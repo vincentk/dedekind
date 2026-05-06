@@ -435,17 +435,26 @@ The authoritative textbook in the context of programming might be \emph{Types an
 For the more casual reader of this text, it should be sufficient to remember that category theory is a book-keeping device.
 It tells us what clicks together (the arrows compose), what doesn't, and how things might be rearranged or simplified.
 
-In the context of \texttt{dedekind}, we further restrict our attention to a subset that most readers will be familiar with: algebras, i.e.\ sets equipped with operations.\footnote{We use ``algebra'' here in the universal-algebra sense (a $\Sigma$-algebra: a carrier set together with operations realising a signature $\Sigma$); the unrelated algebraic-geometry usage of ``algebraic set'' for the zero locus of a system of polynomials is \emph{not} what we mean.}
-The Booleans $\mathbb{B}$ with logical operations, the integers $\mathbb{Z}$ with addition and subtraction and so on.
-In algebra textbook terminology: the universal-algebra category $\mathbf{Alg}(\Sigma)$~\cite{burris1981universalalgebra} for a fixed algebraic signature $\Sigma$ (a list of operation symbols with their arities).
-In functional programming terminology, this corresponds to $F_\Sigma$-algebras: for each signature $\Sigma$ there is a polynomial endofunctor $F_\Sigma$ on $\mathbf{Set}$, and Pierce~\cite{pierce1991basic} (§2.2) gives the isomorphism $\mathbf{Alg}(\Sigma) \cong F_\Sigma\text{-}\mathbf{Alg}$ that lets the same fragment read coherently to both audiences.
+In the context of \texttt{dedekind}, we focus on a fragment of $\mathbf{Cat}$ that most readers will be familiar with: $\mathbf{Alg}(-)$, i.e.\ algebras in the universal-algebra sense.\footnote{The unrelated algebraic-geometry usage of ``algebraic set'' for the zero locus of a system of polynomials is \emph{not} what we mean. The dash is a typographic placeholder meaning ``fill in any signature here'' (Mac Lane's standard argument-blank convention~\cite{maclane1971categories}, same family as $\mathrm{Hom}(-, -)$ for the hom-bifunctor and $(-)^{\mathrm{op}}$ for the opposite-category functor); it is \emph{not} a unary minus. The notation reappears in §\ref{sec:cpp-stlc-mapping}.}
+Here, we adopt algebra textbook terminology where the universal-algebra category is $\mathbf{Alg}(\Sigma)$~\cite{burris1981universalalgebra} and $\Sigma$ denotes a fixed algebraic signature, i.e.\ a list of operation symbols with their arities.
+However, \emph{we deliberately leave $\Sigma$ unbound for now}; the intent is to defer the formalisation of concrete operations.
+The net result is a focus on sets equipped with operations realising as-yet-unspecified signatures $\Sigma$.
+Concretely, $\mathbf{Alg}(\Sigma) \subset \mathbf{Alg}(-)$ for any fixed $\Sigma$; varieties such as $\mathbf{Mon}$ arise as $\mathbf{Alg}(\Sigma_{\mathrm{Mon}})$ for the monoid signature, and $\mathbf{Alg}(-)$ itself is a small fragment of $\mathbf{Cat}$ (with $\mathbf{Set}$ entering not as a containing supercategory but via the standard forgetful functor $U: \mathbf{Alg}(-) \to \mathbf{Set}$ that drops operations and keeps the carrier).
+While the binding of concrete operator-shape signatures such as $\neg, \vee, \wedge, \cup, \cap, +, \times, \ldots$ is discussed in later sections~\ref{sec:cpp-stlc-mapping}, \ref{sec:sets-rules}, we can already name some familiar examples: the Booleans $\mathbb{B}$ with logical operations, the integers $\mathbb{Z}$ with addition and subtraction, and so on.
+
+In functional programming terminology, these algebras correspond to $F_\Sigma$-algebras: for each signature $\Sigma$ there is a polynomial endofunctor $F_\Sigma$ on $\mathbf{Set}$, and Pierce~\cite{pierce1991basic} (§2.2) gives the isomorphism $\mathbf{Alg}(\Sigma) \cong F_\Sigma\text{-}\mathbf{Alg}$ that lets the same fragment read coherently to both audiences.
+We note though that while $\mathbf{Alg}(\Sigma)$ is only a small fragment of $\mathbf{Cat}$ we expect that it carries enough algebraic vocabulary to host carriers, operators, and structure-preserving arrows in the shape an engineering library actually needs and so we use it as a starting point for a structuralist mathematical style~\cite{marquis2022structuralist}.
+
+We further restrict our attention to the \emph{small} slice $\mathbf{Alg}(\Sigma)_{\beth_1}$ --- the $\beth_1$-small algebras, i.e.\ algebras whose underlying carrier has cardinality at most that of the continuum.\footnote{The standard mathematical workaround for ``a category whose objects are all sets / all categories'' is a Grothendieck universe hierarchy~\cite{maclane1971categories} (Mac Lane, §I.6): pick a universe $U$, define $\mathbf{Set}_U$ as the category of $U$-small sets, then let $\mathbf{Set}_U$ live as an object of a larger-universe $\mathbf{Cat}_{U'}$.  The hierarchy stratifies; no level contains itself.  The $\beth_1$ subscript here pins the smallness ceiling at the cardinality of the continuum --- enough to admit $\mathbb{R}$-sized carriers, small enough to forbid proper-class self-reference.}
+Pinning the object-size at $\beth_1$ admits the transfinite carriers required for Dedekind-cut arithmetic ($\mathbb{R}$, §\ref{sec:numeric-tension}) and the continuum-sized $\mathbb{C}$, $\mathbb{D}$ used in §\ref{sec:linalg}, while keeping a foundational ceiling that forbids the self-referential paradoxes of the proper-class meta-categories $\mathbf{Set}$ and $\mathbf{Cat}$.
+
 
 In the language of software architecture, the picture might be described as a hub-and-spoke layout.
 Each hub is a carrier type $\mathrm{T}$, and the spokes are the maps that compose with it.
 Operator overloads ($\mathrm{T} \times \mathrm{T} \to \mathrm{T}$), free-function actions on the carrier, trait specialisations registering structural facts about $\mathrm{T}$, and named embedding arrows $\mathrm{T} \to \mathrm{S}$ crossing to a sibling hub.
 The library lifts this pattern directly into the build graph.
 Each named module declares one or more hubs and owns its spokes.
-The partition DAG is the diagram of inter-hub arrows.
+The module/partition DAG is the diagram of inter-hub arrows.
 Figure~\ref{fig:hub-spoke-bnz} sketches three concrete algebraic hubs ($\mathbb{B}$, $\mathbb{N}$, $\mathbb{Z}$) with one arrow of each kind.
 
 \begin{figure}[htbp]
@@ -474,14 +483,7 @@ Most arrows on each hub and most inter-hub arrows are suppressed for clarity. Th
 \label{fig:hub-spoke-bnz}
 \end{figure}
 
-
-While it may now be tempting to start formalizing operations such as $\neg, \vee, \wedge, \cup, \cap, +, \times, \ldots$, we \emph{deliberately leave $\Sigma$ unbound for now}.\footnote{When $\Sigma$ stays unbound throughout a discussion, we sometimes write $\mathbf{Alg}(-)$ for the family $\bigcup_\Sigma \mathbf{Alg}(\Sigma)$ over the signatures the library names.  The dash is a typographic placeholder meaning ``fill in any signature here'' (Mac Lane's standard argument-blank convention~\cite{maclane1971categories}, same family as $\mathrm{Hom}(-, -)$ for the hom-bifunctor and $(-)^{\mathrm{op}}$ for the opposite-category functor); it is \emph{not} a unary minus.  The notation reappears in §\ref{sec:cpp-stlc-mapping}.}
-The binding of concrete operator-shape signatures is deferred to later sections~\ref{sec:cpp-stlc-mapping}, \ref{sec:sets-rules}.
-We note though that while $\mathbf{Alg}(\Sigma)$ is only a small fragment of $\mathbf{Cat}$ we expect that it carries enough algebraic vocabulary to host carriers, operators, and structure-preserving arrows in the shape an engineering library actually needs and so we use it as a starting point for a structuralist mathematical style~\cite{marquis2022structuralist}.
-We further restrict our attention to the \emph{small} slice $\mathbf{Alg}(\Sigma)_{\beth_1}$ --- the $\beth_1$-small algebras, i.e.\ algebras whose underlying carrier has cardinality at most that of the continuum.\footnote{The standard mathematical workaround for ``a category whose objects are all sets / all categories'' is a Grothendieck universe hierarchy~\cite{maclane1971categories} (Mac Lane, §I.6): pick a universe $U$, define $\mathbf{Set}_U$ as the category of $U$-small sets, then let $\mathbf{Set}_U$ live as an object of a larger-universe $\mathbf{Cat}_{U'}$.  The hierarchy stratifies; no level contains itself.  The $\beth_1$ subscript here pins the smallness ceiling at the cardinality of the continuum --- enough to admit $\mathbb{R}$-sized carriers, small enough to forbid proper-class self-reference.}
-Pinning the object-size at $\beth_1$ admits the transfinite carriers required for Dedekind-cut arithmetic ($\mathbb{R}$, §\ref{sec:numeric-tension}) and the continuum-sized $\mathbb{C}$, $\mathbb{D}$ used in §\ref{sec:linalg}, while keeping a foundational ceiling that forbids the self-referential paradoxes of the proper-class meta-categories $\mathbf{Set}$ and $\mathbf{Cat}$.
-
-The general thrust of the architecture is then to view these small, algebraic categories as universal underlying carrier sets, with specific sets characterised in the ETCS sense by a subobject classifier $\Omega$.
+The general thrust of the architecture is then to view these small, algebraic categories as universal underlying carrier sets, with specific subsets characterised in the ETCS sense by a subobject classifier $\Omega$.
 A predicate $P : A \to \Omega$ maps ambient elements to \emph{truth values}, and $\Omega$ is the type those truth values live in.
 Change $\Omega$, and you change what counts as membership.
 The default is the one every programmer expects: $\Omega = \mathbb{B} = \{\top, \bot\}$, classical two-valued logic.
@@ -496,30 +498,91 @@ In $\mathbb{K}_3$, $P \lor \neg P = \mathit{Unknown}$ is a calm, unremarkable id
 The paradox was never in the floats; it was in our choice of $\Omega$.
 $\Omega$ parameterises membership truth values while the $\beth_1$ ceiling parameterises carrier size; the two are orthogonal.
 
-\subsection{A Well-Behaved Structure in C++: the Juliet Posture $\mathbf{Jlt}$}
+\subsection{A Well-Behaved Structure in C++: the Juliet Posture $\mathbf{Jlt} \subset (\mathbf{CCC} \cap \mathbf{Cpp})$}
 \label{sec:jlt}
 
-
-In much the same way that category theory can be intimidating, C++ as a whole is a famously inhospitable substrate for formal reasoning.
-A closed denotational semantics for the full language is, to our knowledge, not on the books.\footnote{Concretely: overload resolution and argument-dependent lookup are non-uniform; two-phase name lookup interacts with template instantiation in ways that defeat parametricity (Wadler's classical objection to template genericity, after Bracha \& Odersky~\cite{bracha1998making}, bites here); \cppinline{reinterpret_cast} breaks type abstraction at the value level; and template instantiation in general is Turing-complete and undecidable.  On the carrier side, undefined behaviour is the rule rather than the exception: signed-overflow UB defeats ring-associativity on machine \cppinline{int} / \cppinline{long}, IEEE-754 rounding-non-associativity defeats field-associativity on \cppinline{float} / \cppinline{double} --- §\ref{sec:carrier-rosetta} audits each stdlib carrier's algebraic surface against the textbook expectations.}
-
-We chose elements from C++ guided by two criteria.
+Section~\ref{sec:alg-sigma} carved out a well-behaved structure on the mathematics side: $\mathbf{Alg}(-)_{\beth_1}$.
+Here we want the engineering counterpart.
+The idea is to find a fragment of C++ that, suitably disciplined, matches the structure our algebraic hubs need to inhabit.
+The following two criteria were used in this largely empirical development process:
 First, alignment with the universal-algebra fragment $\mathbf{Alg}(\Sigma)$ identified in §\ref{sec:alg-sigma}.
-Second, the desire to integrate functionality the standard library already ships, in particular \cppinline{std::regular} value-types and the primitive carriers (\cppinline{int}, \cppinline{double}, \cppinline{bool}, \dots), without wrapping them in \cppinline{struct} boilerplate or paying a runtime cost.
-We can compare and contrast this choice problem with three textbook schools~\cite{pierce2002tapl, cardelli1996typesystems} of type identification:
-\begin{itemize}
-\item nominal (declared lineage (often inheritance); checked at compile time but blind to behaviour),
-\item duck (structural by call-site method probe; checked at runtime, too late for the optimiser),
-\item static structural typing (concept-based; behaviour checked at compile time without a declared lineage).
-\end{itemize}
+Second, the desire to integrate functionality the standard library already ships, in particular \cppinline{std::regular} value-types and the primitive carriers without wrapping them in \cppinline{struct} boilerplate or paying a runtime cost.
+The findings are presented below as a proof sketch for clarity of exposition.
 
-C++23 concepts realise the third school.
-We call the resulting discipline the \emph{Juliet Posture}, after the observation that a rose by any other name would smell as sweet~\cite{shakespeare1597romeo}.
+\begin{proposition}
+The intersection $\mathbf{CCC} \cap \mathbf{Cpp}$ is non-empty and reifiable within the C++23 translation unit.
+\end{proposition}
+
+\begin{proof}[Sketch]
+To show this intersection isn't empty, we exhibit one of its inhabitants: a mapping from a disciplined slice of $\mathbf{Cpp}$ to what a Cartesian Closed Category asks for (equivalently, the internal language of $\mathbf{STLC}$).
+The slice is what \cppinline{std::regular} together with the admissibility rules of Appendix~\ref{app:jlt-systemf} carves out; the mapping is the five steps below.
+
+\begin{enumerate}
+    \item \textbf{Objects.}
+    Take the types satisfying \cppinline{std::regular}: the ones with default-construction, copy-semantics, and an honest \cppinline{operator==}.
+    We can read these as sets of values with stable identity, as long as nothing else inspects type internals to break that read.
+    The admissibility rules of Appendix~\ref{app:jlt-systemf} (no public-API specialisation, no behaviour-branching SFINAE) are exactly what keeps the \emph{as long as} honest, and they're what gives us equational extensionality $a = b \implies f(a) = f(b)$ on the morphisms below.
+
+    \item \textbf{Morphisms.}
+    Take \cppinline{constexpr} lambda expressions, again on the disciplined fragment.
+    By itself \cppinline{constexpr} doesn't get us pure and terminating arrows --- captures can be mutable, and template instantiation is Turing-complete in the general case~\cite{veldhuizen2003templates}.
+    The same admissibility rules from Appendix~\ref{app:jlt-systemf} (no \cppinline{reinterpret_cast}, no SFINAE branching, bounded instantiation depth) recover the pure, terminating, effect-free reading; identity and associativity of composition hold by inspection.
+
+    \item \textbf{Products.}
+    \cppinline{std::pair} with structured bindings hands us the universal property of products: for any $A, B$ we have a product $A \times B$ with projections $\pi_1, \pi_2$, and the mediating-arrow construction is the obvious tuple-build.
+    This is the \emph{Cartesian} half of the structure.
+
+    \item \textbf{Exponentials.}
+    First-class lambdas hand us the internal Hom-object $B^A$: a lambda value \cppinline{[](A) -> B { ... }} \emph{is} an arrow $A \to B$, packaged as a C++ value.
+    Currying --- mapping $f : A \times B \to C$ to $\hat{f} : A \to C^B$ --- is what lambdas-capturing-arguments do, and on the disciplined fragment it gives us the bijection $\mathrm{Hom}(A \times B, C) \cong \mathrm{Hom}(A, C^B)$ that \emph{closed} asks for.
+
+    \item \textbf{The admissibility gate.}
+    \cppinline{concept} does the work at compile time: it mechanically checks that a given type $T \in \mathbf{Cpp}$ has the operator-shape and member-API surface to inhabit $\mathbf{CCC}$.
+    Note this is the \emph{C++-side gate}, not the topos-level subobject classifier $\Omega$ of §\ref{sec:alg-sigma} --- the bona fide $\Omega$ lives one layer up in the codebase's \texttt{category:topoi} partition, and \cppinline{concept} is the type-system's complement to it.
+\end{enumerate}
+
+Putting these together: a terminal object (\cppinline{void} / \cppinline{std::monostate}), finite products, exponentials, and an admissibility gate, all inside the disciplined \cppinline{constexpr} subset Appendix~\ref{app:jlt-systemf} carves out.
+The intersection $\mathbf{CCC} \cap \mathbf{Cpp}$ is inhabited.
+\end{proof}
+
+We can compare and contrast this fragment with three textbook schools~\cite{pierce2002tapl, cardelli1996typesystems} of type identification:
+i) \textbf{nominal typing} (declared lineage, often inheritance; checked at compile time but blind to behaviour),
+ii) \textbf{duck typing} (structural by call-site method probe; checked at runtime, too late for the optimiser),
+iii) \textbf{static structural typing} (concept-based; behaviour checked at compile time without a declared lineage).
+C++23 \cppinline{concept}, \cppinline{constexpr}, and \cppinline{std::regular} realise the third school.
+Call this disciplined subset $\mathbf{Jlt} \subset \mathbf{CCC} \cap \mathbf{Cpp}$ (mnemonically: \emph{Juliet}), after the observation that a rose by any other name would smell as sweet~\cite{shakespeare1597romeo}.
 The library cares about the \emph{scent} (structural invariants), not the \emph{lineage} (declared name).
+In $\mathbf{Jlt}$ the objects are well-behaved types and the values they classify, and the morphisms are the arrows the language admits between them.
+The Juliet Posture deliberately rejects type erasure on the categorical surface: erased witnesses are opaque to both the concept checker and the LLVM optimizer, so erased layers degrade the gate's sharpness and the structural-pruning power that §\ref{sec:compiler-wall} and §\ref{sec:pruning} rest on.
+
+In practice this boils down to compile-time structural typing across three feature tiers, each strictly more expressive than the last:
+\begin{enumerate}
+\item~\cppinline{constexpr} branching via template specialisation (the C++<20 baseline);
+\item~\cppinline{concept}-constrained templates, which lift specialisation from a \emph{compiles-or-doesn't} probe to a named structural predicate (the C++20/23 step the Juliet Posture rests on);
+\item~developer-supplied claims and axioms via \emph{trait specialisations} that downstream concepts consult to discharge a single \cppinline{static_assert} obligation.
+\end{enumerate}
+An example is shown in Listing~\ref{lst:jlt}.
+The first two tiers are mechanically decidable on the disciplined fragment the library polices.
+The third tier is a manual-certification path.
+
+The motivation for the third tier is as follows:
+The C++ standard distinguishes in [concepts.lib] between \emph{satisfying} a concept (syntactic) and \emph{modelling} it (semantic)~\cite{cpp23standard}.
+C++ Core Guideline T.20~\cite{cppcoreguidelines} prescribes manual certification for the semantic-requirements clause the spec deliberately refuses to enforce mechanically.
+The standard's \emph{ill-formed, no diagnostic required} clause is its bite, the C++ analogue of \emph{ex falso quodlibet}.
+An \texttt{axiom} keyword was considered in early C++0x drafts for in-language semantic certification and ultimately withdrawn~\cite{isocpp_concepts_history}.
+The manual-certification pattern is the path the committee left open.\footnote{The C++ standard's \emph{syntactic} / \emph{semantic} split is fundamentally \textbf{decidable vs.\ undecidable} --- what the spec commits to enforcing mechanically vs.\ what it deliberately refuses to enforce --- and does not coincide with the static-vs-dynamic semantics split familiar from PL theory~\cite{pierce2002tapl}.  C++'s \emph{syntactic} bucket subsumes that tradition's \emph{static semantics} (type checking, concept resolution, auto-derived theorems via \cppinline{static_assert}) because those are all things the compiler verifies mechanically; the C++ \emph{semantic} bucket is roughly what resists mechanical decision in the spec's chosen target structure.  The committee's vocabulary optimises for responsibility allocation (compiler vs.\ user) rather than for type-theoretic precision; the mismatch is real but learnable.}
+
+The library thus pre-defines traits (\cppinline{is_associative_v<T, Op>}, \cppinline{is_commutative_v<T, Op>}, \dots) and concepts (\cppinline{IsRing}, \cppinline{IsField}, \ldots), with safe defaults.
+Overrides or custom user-supplied traits in the downstream are explicitly allowed.
+Here, we mean safe defaults to be read in the bit-perfect sense: \cppinline{bool} is \emph{recognized} as \cppinline{IsField} (the Galois Field $\mathbb F_2$) and as \cppinline{IsLattice}, while \cppinline{int} is \emph{rejected} as \cppinline{IsRing} because addition is not associative in general (overflow).
+We call this safe-by-default configuration the \emph{Honest Rejection} policy.
+The trait-registry mechanics --- which axioms propagate under which constructors, how per-carrier specialisations are organised, how the \emph{Honest Rejection} policy maps to varieties, and how the algebra-side machinery composes with the C++-side concept layer --- are deferred to §\ref{sec:pruning} (\emph{Algebraic Lattice}) and §\ref{sec:numeric-tension}.
+
 
 % Source: src/main/modules/dedekind/algebra/ring.cppm (concept definition, ll. 110-116)
 \begin{listing}[ht]
-\caption{The Juliet Posture: structural compile-time matching regardless of nominal provenance.}
+\caption{The Juliet Posture and Honest Rejection: structural compile-time matching regardless of nominal provenance.}
+\label{lst:jlt}
 \begin{cpp}
 // Concept identifying the syntactic ring operators
 template <typename T>
@@ -539,29 +602,6 @@ static_assert(!HasRingOperators<bool>);
 static_assert(!IsAssociative<bool, std::logical_and<bool>>);
 \end{cpp}
 \end{listing}
-
-In practice this boils down to compile-time structural typing across three feature tiers, each strictly more expressive than the last:
-(i)~\cppinline{constexpr} branching via template specialisation (the C++<20 baseline);
-(ii)~\cppinline{concept}-constrained templates, which lift specialisation from a \emph{compiles-or-doesn't} probe to a named structural predicate (the C++20/23 step the Juliet Posture rests on);
-(iii)~developer-supplied claims and axioms via \emph{trait specialisations} (\cppinline{is_associative_v<T, Op>}, \cppinline{is_commutative_v<T, Op>}, \dots) that downstream concepts (\cppinline{IsRing}, \cppinline{IsField}) consult to discharge a single \cppinline{static_assert} obligation.
-The first two tiers are mechanically decidable on the disciplined fragment the library polices.
-Template instantiation is Turing-complete in general~\cite{veldhuizen2003templates}.
-Decidability is recovered by the bounded-instantiation-depth and no-template-template-recursion rules collected in Appendix~\ref{app:jlt-systemf}.
-The third tier is the manual-certification path.
-The C++ standard distinguishes in [concepts.lib] between \emph{satisfying} a concept (syntactic) and \emph{modelling} it (semantic)~\cite{cpp23standard}.
-C++ Core Guideline T.20~\cite{cppcoreguidelines} prescribes manual certification for the semantic-requirements clause the spec deliberately refuses to enforce mechanically.
-The standard's \emph{ill-formed, no diagnostic required} clause is its bite, the C++ analogue of \emph{ex falso quodlibet}.
-An \texttt{axiom} keyword was considered in early C++0x drafts for in-language semantic certification and ultimately withdrawn~\cite{isocpp_concepts_history}.
-The manual-certification pattern is the path the committee left open.\footnote{The C++ standard's \emph{syntactic} / \emph{semantic} split is fundamentally \textbf{decidable vs.\ undecidable} --- what the spec commits to enforcing mechanically vs.\ what it deliberately refuses to enforce --- and does not coincide with the static-vs-dynamic semantics split familiar from PL theory~\cite{pierce2002tapl}.  C++'s \emph{syntactic} bucket subsumes that tradition's \emph{static semantics} (type checking, concept resolution, auto-derived theorems via \cppinline{static_assert}) because those are all things the compiler verifies mechanically; the C++ \emph{semantic} bucket is roughly what resists mechanical decision in the spec's chosen target structure.  The committee's vocabulary optimises for responsibility allocation (compiler vs.\ user) rather than for type-theoretic precision; the mismatch is real but learnable.}
-
-The trait-registry mechanics --- which axioms propagate under which constructors, how per-carrier specialisations are organised, how the \emph{Honest Rejection} policy maps to varieties, and how the algebra-side machinery composes with the C++-side concept layer --- are deferred to §\ref{sec:pruning} (\emph{Algebraic Lattice}) and §\ref{sec:numeric-tension} (\emph{The Traits Registry: Abstract Naturals vs.\ IEEE Numerics}).
-
-An unintended but most welcome side effect: the disciplined subset that aligns with $\mathbf{Alg}(\Sigma)$ also turns out to be a faithful image of System~F (Pierce~\cite{pierce2002tapl} ch.~23, 29) and of the simply-typed $\lambda$-calculus under Lambek--Scott~\cite{lambek1988introduction}.
-Details of this observation are discussed in Appendix~\ref{app:jlt-systemf}.
-
-Call this disciplined subset $\mathbf{Jlt} \subset \mathbf{Cpp}$ (mnemonically: \emph{Juliet}, after the \emph{rose by any other name} reading of structural-over-nominal typing).
-In $\mathbf{Jlt}$ the objects are \cppinline{std::regular} types and the values they classify, and the morphisms are the arrows the language admits between them.
-The Juliet Posture deliberately rejects type erasure on the categorical surface: erased witnesses are opaque to both the concept checker and the LLVM optimizer, so erased layers degrade the gate's sharpness and the structural-pruning power that §\ref{sec:compiler-wall} and §\ref{sec:pruning} rest on.
 
 \subsection{A Common Ground: $\mathbf{Ddk} = \mathbf{Jlt} \cap \mathbf{Alg}(-)_{\beth_1}$}
 \label{sec:cpp-stlc-mapping}
@@ -625,7 +665,7 @@ For carriers that already clear the architectural \cppinline{IsTotal} gate (peri
 Carriers whose totality lives outside that ladder (e.g.\ exact-arithmetic types like \cppinline{Rational<I>}, or signed integer types whose overflow is UB) need an additional architectural lift on \cppinline{IsTotal} before the strict concepts will match.
 The user has audited their inputs to a regime where the law actually holds.
 Examples are integer arithmetic on a domain where overflow cannot occur, IEEE \cppinline{double} accepted with associativity-by-fiat for a specific application, or a custom carrier whose modular wrap-around the user proves consistent with the surrounding logic.
-The opt-in is the user's pinky-swear in their part of the multiverse.
+The opt-in is the user's pinky-swear in the downstream.
 They own the proof that the swear is honest.
 IFNDR is the standard's bite if the swear was a lie.
 This is the operational discharge of the satisfies/models distinction §\ref{sec:jlt} introduces.
@@ -641,6 +681,7 @@ A pre-existing standard-library type such as a \cppinline{std::pair} or a \cppin
 Nominal-typing alternatives (declared lineage, base classes, virtual interfaces) would require carriers shipped in the C++ standard a decade ago to opt in upstream, which is impossible.
 Second, the disciplined fragment in which $\mathbf{Ddk}$ inhabits also reads as a faithful image of the simply-typed $\lambda$-calculus and System~F under Lambek--Scott~\cite{lambek1988introduction} and Pierce~\cite{pierce2002tapl}.
 This is a verification artefact rather than a flow-relevant claim, but worth naming for the reader who wants to chase the bridge.
+Details of this observation are discussed in Appendix~\ref{app:jlt-systemf}.
 The row-by-row C++23 $\to$ STLC mapping is in Appendix~\ref{app:ddk-rosetta}, alongside the operator-shape rosetta and the textbook commutative-square diagram for Listing~\ref{lst:isfunctor} below.
 
 \paragraph{Higher-kinded inhabitants.}
