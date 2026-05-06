@@ -141,7 +141,8 @@ static_assert(
 // the set-level shape predicate (from `:computability`, requires
 // `S::cardinality_type` modelling `IsFinite`).
 // ---------------------------------------------------------------------------
-static_assert(dedekind::category::IsFinite<typename ExtensionalSet<int>::cardinality_type>,
+static_assert(dedekind::category::IsFinite<
+                  typename ExtensionalSet<int>::cardinality_type>,
               "ExtensionalSet's cardinality_type tag (Finite) models IsFinite "
               "— the dropped name's invariant kept as a breadcrumb (#598).");
 
@@ -233,10 +234,10 @@ constexpr auto from_std(const std::set<T, Compare, Alloc>&)
 
 export template <typename T, typename Hash, typename Equal, typename Alloc>
 constexpr auto from_std(const std::unordered_set<T, Hash, Equal, Alloc>& source)
-    -> dedekind::sets::ExtensionalSet<
-        T, dedekind::category::ClassicalLogic, Hash, Equal> {
-  dedekind::sets::ExtensionalSet<T, dedekind::category::ClassicalLogic,
-                                       Hash, Equal>
+    -> dedekind::sets::ExtensionalSet<T, dedekind::category::ClassicalLogic,
+                                      Hash, Equal> {
+  dedekind::sets::ExtensionalSet<T, dedekind::category::ClassicalLogic, Hash,
+                                 Equal>
       out;
   for (const auto& value : source) out.elements.insert(value);
   return out;
