@@ -290,9 +290,10 @@ constexpr auto operator<<=(const SingletonSet<T, L>& s, Func&& f) {
  * @c FiniteExtensionalSet (sister source under #598) and predicate
  * sets (lazy / iso-witnessed cases).
  */
-export template <typename T, typename L, dedekind::category::IsArrow F>
-  requires std::same_as<dedekind::category::Dom<std::remove_cvref_t<F>>, T>
-constexpr auto image(F&& f, const SingletonSet<T, L>& s) {
+export template <typename L, dedekind::category::IsArrow F>
+constexpr auto image(
+    F&& f,
+    const SingletonSet<dedekind::category::Dom<std::remove_cvref_t<F>>, L>& s) {
   using U = dedekind::category::Cod<std::remove_cvref_t<F>>;
   return SingletonSet<U, L>{std::forward<F>(f)(s.pivot)};
 }
