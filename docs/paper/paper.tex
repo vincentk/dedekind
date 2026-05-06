@@ -561,7 +561,7 @@ In practice this boils down to compile-time structural typing across three featu
 \item~\cppinline{concept}-constrained templates, which lift specialisation from a \emph{compiles-or-doesn't} probe to a named structural predicate (the C++20/23 step the Juliet Posture rests on);
 \item~developer-supplied claims and axioms via \emph{trait specialisations} that downstream concepts consult to discharge a single \cppinline{static_assert} obligation.
 \end{enumerate}
-An example is shown in Listing \ref{lst:jlt}.
+An example is shown in Listing~\ref{lst:jlt}.
 The first two tiers are mechanically decidable on the disciplined fragment the library polices.
 The third tier is a manual-certification path.
 
