@@ -154,18 +154,33 @@ static_assert(IsFiniteSet<ExtensionalSet<int>>,
               "ExtensionalSet satisfies the set-level IsFiniteSet shape "
               "predicate from :computability (#598).");
 
-namespace detail {
+// ---------------------------------------------------------------------------
+// Equivalence-relation breadcrumb (#598 scout).
+//
+// `ExtensionalSet`'s `Equal` template parameter is the equivalence
+// relation under which membership is decided.  `std::equal_to<T>` on
+// `std::regular T` is the canonical witness — the same `IsEquivalence`
+// that `category:equivalence` already pins for `int` is what every
+// `ExtensionalSet<int>` instance silently relies on.  Pinning it here
+// (instead of leaving it implicit) gives the type-checker an explicit
+// arrow back to the equivalence-relation home.  The companion `Hash`
+// is the partition function (each equivalence class = a hash bucket);
+// `IsHashFunction` from the same partition pins that side.
+// ---------------------------------------------------------------------------
+static_assert(dedekind::category::IsEquivalence<int, std::equal_to<int>>,
+              "ExtensionalSet's `Equal` (default `std::equal_to<int>`) "
+              "must satisfy IsEquivalence — the equivalence relation "
+              "under which extensional membership is decided (#598).");
+static_assert(dedekind::category::IsHashFunction<std::hash<int>, int>,
+              "ExtensionalSet's `Hash` (default `std::hash<int>`) must "
+              "satisfy IsHashFunction — the partition function whose "
+              "fibres index the underlying std::unordered_set's buckets "
+              "(#598).");
 
-template <typename...>
-inline constexpr bool always_false_v = false;
-
-template <typename T>
-concept DefaultHashable = requires(const T& value) {
-  { std::hash<T>{}(value) } -> std::convertible_to<std::size_t>;
-  { std::equal_to<T>{}(value, value) } -> std::convertible_to<bool>;
-};
-
-template <typename C>
+// `StdSetLike`: structural shape of the std-container types `from_std`
+// accepts and `to_std` produces.  Single concept (no detail wrapper —
+// per PR #605 review: "not sure what is gained by declaring it twice").
+export template <typename C>
 concept StdSetLike = requires(C c, const typename C::value_type& value) {
   typename C::value_type;
   { c.begin() } -> std::input_iterator;
@@ -174,13 +189,16 @@ concept StdSetLike = requires(C c, const typename C::value_type& value) {
   { c.find(value) };
 };
 
+namespace detail {
+
+template <typename...>
+inline constexpr bool always_false_v = false;
+
 template <typename C, typename T>
-concept StdSetLikeOf = StdSetLike<C> && std::same_as<typename C::value_type, T>;
+concept StdSetLikeOf =
+    dedekind::sets::StdSetLike<C> && std::same_as<typename C::value_type, T>;
 
 }  // namespace detail
-
-export template <typename C>
-concept StdSetLike = detail::StdSetLike<C>;
 
 export template <typename StdSetLike, typename T, typename L, typename Hash,
                  typename Equal>
@@ -202,7 +220,8 @@ constexpr auto to_std(const ExtSet&) -> StdSetLike {
 }
 
 export template <typename T, typename Alloc>
-  requires detail::DefaultHashable<T>
+  requires dedekind::category::IsHashFunction<std::hash<T>, T> &&
+           dedekind::category::IsEquivalence<T, std::equal_to<T>>
 constexpr auto from_std(const std::set<T, std::less<T>, Alloc>& source)
     -> dedekind::sets::ExtensionalSet<T> {
   dedekind::sets::ExtensionalSet<T> out;
@@ -211,13 +230,16 @@ constexpr auto from_std(const std::set<T, std::less<T>, Alloc>& source)
 }
 
 export template <typename T, typename Alloc>
-  requires(!detail::DefaultHashable<T>)
+  requires(!dedekind::category::IsHashFunction<std::hash<T>, T> ||
+           !dedekind::category::IsEquivalence<T, std::equal_to<T>>)
 constexpr auto from_std(const std::set<T, std::less<T>, Alloc>&)
     -> dedekind::sets::ExtensionalSet<T> {
   static_assert(detail::always_false_v<T, Alloc>,
                 "dedekind::sets::from_std(std::set<T>) requires T to be "
-                "hashable by std::hash<T> and comparable by std::equal_to<T> "
-                "because the MVP finite extensional carrier is hash-based.");
+                "hashable (IsHashFunction<std::hash<T>, T>) and to carry "
+                "an equivalence relation under std::equal_to<T> "
+                "(IsEquivalence<T, std::equal_to<T>>); the MVP finite "
+                "extensional carrier is hash-based.");
 }
 
 export template <typename T, typename Compare, typename Alloc>
@@ -244,7 +266,7 @@ constexpr auto from_std(const std::unordered_set<T, Hash, Equal, Alloc>& source)
 }
 
 export template <typename StdSetLike>
-  requires detail::StdSetLike<StdSetLike>
+  requires dedekind::sets::StdSetLike<StdSetLike>
 constexpr auto from_std(const StdSetLike&)
     -> dedekind::sets::ExtensionalSet<typename StdSetLike::value_type> {
   static_assert(detail::always_false_v<StdSetLike>,
