@@ -219,9 +219,21 @@ constexpr auto to_std(const ExtSet&) -> StdSetLike {
                 "source and a std set-like target with matching value_type.");
 }
 
+// Syntactic gate only: `from_std` needs hashing (to populate the
+// std::unordered_set buckets) and `==` (to satisfy `std::regular<T>`).
+// The semantic claim that `std::equal_to<T>` is a textbook equivalence
+// relation lives in the @c IsEquivalence breadcrumb above on the int
+// witness; it is deliberately NOT required here because
+// `category:equivalence` excludes floating-point from `IsEquivalence`
+// (NaN breaks reflexivity), and the Python facade legitimately accepts
+// `std::set<double>` despite that semantic gap.  The user-facing
+// soundness contract is: the carrier behaves extensionally up to the
+// equality the user supplies; if that equality isn't an equivalence
+// relation in the textbook sense, that's the user's call (see #591
+// Mazur-equivalence escape hatch for ε-equivalence on floats).
 export template <typename T, typename Alloc>
   requires dedekind::category::IsHashFunction<std::hash<T>, T> &&
-           dedekind::category::IsEquivalence<T, std::equal_to<T>>
+           std::regular<T>
 constexpr auto from_std(const std::set<T, std::less<T>, Alloc>& source)
     -> dedekind::sets::ExtensionalSet<T> {
   dedekind::sets::ExtensionalSet<T> out;
@@ -231,14 +243,13 @@ constexpr auto from_std(const std::set<T, std::less<T>, Alloc>& source)
 
 export template <typename T, typename Alloc>
   requires(!dedekind::category::IsHashFunction<std::hash<T>, T> ||
-           !dedekind::category::IsEquivalence<T, std::equal_to<T>>)
+           !std::regular<T>)
 constexpr auto from_std(const std::set<T, std::less<T>, Alloc>&)
     -> dedekind::sets::ExtensionalSet<T> {
   static_assert(detail::always_false_v<T, Alloc>,
                 "dedekind::sets::from_std(std::set<T>) requires T to be "
-                "hashable (IsHashFunction<std::hash<T>, T>) and to carry "
-                "an equivalence relation under std::equal_to<T> "
-                "(IsEquivalence<T, std::equal_to<T>>); the MVP finite "
+                "hashable (IsHashFunction<std::hash<T>, T>) and "
+                "std::regular (T's `==` is well-formed); the MVP finite "
                 "extensional carrier is hash-based.");
 }
 
