@@ -501,12 +501,13 @@ $\Omega$ parameterises membership truth values while the $\beth_1$ ceiling param
 \subsection{A Well-Behaved Structure in C++: the Juliet Posture $\mathbf{Jlt} \subset (\mathbf{CCC} \cap \mathbf{Cpp})$}
 \label{sec:jlt}
 
-Section~\ref{sec:alg-sigma} carved out a well-behaved structure on the mathematics side: $\mathbf{Alg}(-)_{\beth_1}$, here we want the engineering counterpart.
+Section~\ref{sec:alg-sigma} carved out a well-behaved structure on the mathematics side: $\mathbf{Alg}(-)_{\beth_1}$.
+Here we want the engineering counterpart.
 The idea is to find a fragment of C++ that, suitably disciplined, matches the structure our algebraic hubs need to inhabit.
-The following two criteria were used in this  largely empirical development process:
+The following two criteria were used in this largely empirical development process:
 First, alignment with the universal-algebra fragment $\mathbf{Alg}(\Sigma)$ identified in §\ref{sec:alg-sigma}.
 Second, the desire to integrate functionality the standard library already ships, in particular \cppinline{std::regular} value-types and the primitive carriers without wrapping them in \cppinline{struct} boilerplate or paying a runtime cost.
-The findings presented below as a proof sketch for clarity of exposition.
+The findings are presented below as a proof sketch for clarity of exposition.
 
 \begin{proposition}
 The intersection $\mathbf{CCC} \cap \mathbf{Cpp}$ is non-empty and reifiable within the C++23 translation unit.
@@ -545,9 +546,9 @@ The intersection $\mathbf{CCC} \cap \mathbf{Cpp}$ is inhabited.
 \end{proof}
 
 We can compare and contrast this fragment with three textbook schools~\cite{pierce2002tapl, cardelli1996typesystems} of type identification:
-i) \textbf{nominal} (declared lineage (often inheritance); checked at compile time but blind to behaviour),
-ii) \textbf{duck} (structural by call-site method probe; checked at runtime, too late for the optimiser),
-iii) \textbf{static structural} typing (concept-based; behaviour checked at compile time without a declared lineage).
+i) \textbf{nominal typing} (declared lineage, often inheritance; checked at compile time but blind to behaviour),
+ii) \textbf{duck typing} (structural by call-site method probe; checked at runtime, too late for the optimiser),
+iii) \textbf{static structural typing} (concept-based; behaviour checked at compile time without a declared lineage).
 C++23 \cppinline{concept}, \cppinline{constexpr}, and \cppinline{std::regular} realise the third school.
 Call this disciplined subset $\mathbf{Jlt} \subset \mathbf{CCC} \cap \mathbf{Cpp}$ (mnemonically: \emph{Juliet}), after the observation that a rose by any other name would smell as sweet~\cite{shakespeare1597romeo}.
 The library cares about the \emph{scent} (structural invariants), not the \emph{lineage} (declared name).
@@ -558,20 +559,20 @@ In practice this boils down to compile-time structural typing across three featu
 \begin{enumerate}
 \item~\cppinline{constexpr} branching via template specialisation (the C++<20 baseline);
 \item~\cppinline{concept}-constrained templates, which lift specialisation from a \emph{compiles-or-doesn't} probe to a named structural predicate (the C++20/23 step the Juliet Posture rests on);
-\item~developer-supplied claims and axioms via \emph{trait specialisations} consult to discharge a single \cppinline{static_assert} obligation.
+\item~developer-supplied claims and axioms via \emph{trait specialisations} that downstream concepts consult to discharge a single \cppinline{static_assert} obligation.
 \end{enumerate}
 An example is shown in Listing \ref{lst:jlt}.
 The first two tiers are mechanically decidable on the disciplined fragment the library polices.
-The third tier is a manual-certification path. 
+The third tier is a manual-certification path.
 
-The motivation for the third tier as follows:
+The motivation for the third tier is as follows:
 The C++ standard distinguishes in [concepts.lib] between \emph{satisfying} a concept (syntactic) and \emph{modelling} it (semantic)~\cite{cpp23standard}.
 C++ Core Guideline T.20~\cite{cppcoreguidelines} prescribes manual certification for the semantic-requirements clause the spec deliberately refuses to enforce mechanically.
 The standard's \emph{ill-formed, no diagnostic required} clause is its bite, the C++ analogue of \emph{ex falso quodlibet}.
 An \texttt{axiom} keyword was considered in early C++0x drafts for in-language semantic certification and ultimately withdrawn~\cite{isocpp_concepts_history}.
 The manual-certification pattern is the path the committee left open.\footnote{The C++ standard's \emph{syntactic} / \emph{semantic} split is fundamentally \textbf{decidable vs.\ undecidable} --- what the spec commits to enforcing mechanically vs.\ what it deliberately refuses to enforce --- and does not coincide with the static-vs-dynamic semantics split familiar from PL theory~\cite{pierce2002tapl}.  C++'s \emph{syntactic} bucket subsumes that tradition's \emph{static semantics} (type checking, concept resolution, auto-derived theorems via \cppinline{static_assert}) because those are all things the compiler verifies mechanically; the C++ \emph{semantic} bucket is roughly what resists mechanical decision in the spec's chosen target structure.  The committee's vocabulary optimises for responsibility allocation (compiler vs.\ user) rather than for type-theoretic precision; the mismatch is real but learnable.}
 
-The library thus pre-defines traits (\cppinline{is_associative_v<T, Op>}, \cppinline{is_commutative_v<T, Op>}, \dots)  and concepts (\cppinline{IsRing}, \cppinline{IsField}, \ldots),  with safe defaults.
+The library thus pre-defines traits (\cppinline{is_associative_v<T, Op>}, \cppinline{is_commutative_v<T, Op>}, \dots) and concepts (\cppinline{IsRing}, \cppinline{IsField}, \ldots), with safe defaults.
 Overrides or custom user-supplied traits in the down-stream are explicitly allowed.
 Here, we mean safe defaults to be read in the bit-perfect sense: \cppinline{bool} is \emph{recognized} as \cppinline{IsField} (the Galois Field $\mathbb F_2$) and as \cppinline{IsLattice}, while \cppinline{int} is \emph{rejected} as \cppinline{IsRing} because addition is not associative in general (overflow).
 We call this safe-by-default configuration the \emph{Honest Rejection} policy.
