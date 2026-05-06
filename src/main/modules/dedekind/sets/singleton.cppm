@@ -287,8 +287,10 @@ constexpr auto operator<<=(const SingletonSet<T, L>& s, Func&& f) {
  *
  * Filed under #602's layer-1 plan: per-shape image dispatch, Singleton
  * source as the entry point.  The same shape generalises to
- * @c FiniteExtensionalSet (sister source under #598) and predicate
- * sets (lazy / iso-witnessed cases).
+ * @c ExtensionalSet (sister source post-#598) and predicate sets
+ * (lazy / iso-witnessed cases).  Note: the per-wrapper overload shape
+ * is itself due for dissolution under #607's Juliet-clean refactor;
+ * this slice lands the entry-point breadcrumbs in their current form.
  */
 export template <typename L, dedekind::category::IsArrow F>
 constexpr auto image(
