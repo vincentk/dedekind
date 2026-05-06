@@ -427,7 +427,7 @@ The strategy of this section is a three-step intersection.
 Both category theory and modern C++23 are large and occasionally intimidating beasts; each, however, admits a tractable subset with somewhat simpler atomic building blocks and clear composition rules.
 The \texttt{dedekind} library lives at their intersection.
 
-\subsection{A Well-Behaved Structure in Category Theory: $\mathbf{Alg}(\Sigma)$}
+\subsection{A Well-Behaved Structure in Category Theory: $\mathbf{Alg}(-)_{\beth_1}$}
 \label{sec:alg-sigma}
 
 The choice of anchoring the library's domain in category theory on the mathematical side is neither new nor arbitrary and follows a well-trodden path.
@@ -436,9 +436,10 @@ For the more casual reader of this text, it should be sufficient to remember tha
 It tells us what clicks together (the arrows compose), what doesn't, and how things might be rearranged or simplified.
 
 In the context of \texttt{dedekind}, we further restrict our attention to a subset that most readers will be familiar with: algebras, i.e.\ sets equipped with operations.\footnote{We use ``algebra'' here in the universal-algebra sense (a $\Sigma$-algebra: a carrier set together with operations realising a signature $\Sigma$); the unrelated algebraic-geometry usage of ``algebraic set'' for the zero locus of a system of polynomials is \emph{not} what we mean.}
-The Booleans $\mathbb B$ with logical operations, the integers $\mathbb Z$ with addition and subtraction and so on.
+The Booleans $\mathbb{B}$ with logical operations, the integers $\mathbb{Z}$ with addition and subtraction and so on.
 In algebra textbook terminology: the universal-algebra category $\mathbf{Alg}(\Sigma)$~\cite{burris1981universalalgebra} for a fixed algebraic signature $\Sigma$ (a list of operation symbols with their arities).
 In functional programming terminology, this corresponds to $F_\Sigma$-algebras: for each signature $\Sigma$ there is a polynomial endofunctor $F_\Sigma$ on $\mathbf{Set}$, and Pierce~\cite{pierce1991basic} (§2.2) gives the isomorphism $\mathbf{Alg}(\Sigma) \cong F_\Sigma\text{-}\mathbf{Alg}$ that lets the same fragment read coherently to both audiences.
+
 In the language of software architecture, the picture might be described as a hub-and-spoke layout.
 Each hub is a carrier type $\mathrm{T}$, and the spokes are the maps that compose with it.
 Operator overloads ($\mathrm{T} \times \mathrm{T} \to \mathrm{T}$), free-function actions on the carrier, trait specialisations registering structural facts about $\mathrm{T}$, and named embedding arrows $\mathrm{T} \to \mathrm{S}$ crossing to a sibling hub.
@@ -462,6 +463,7 @@ Figure~\ref{fig:hub-spoke-bnz} sketches three concrete algebraic hubs ($\mathbb{
 An example subset of $\mathbf{Alg}(\Sigma)$: the carriers $\mathbb{B}$, $\mathbb{N}$, $\mathbb{Z}$.
 Each carrier is depicted with its underlying set as the single object ($\{\mathrm{false}, \mathrm{true}\}$, $\{0, 1, 2, \ldots\}$, $\{\ldots, -1, 0, 1, \ldots\}$) and selected endo-operations as loops: the affine translation $x \mapsto x \oplus 1$ on $\mathbb{B}$ (i.e.\ logical negation, which on $\mathbb{F}_2$ is the additive translation by 1), squaring $x \mapsto x^2$ on $\mathbb{N}$, negation $x \mapsto -x$ on $\mathbb{Z}$.
 This is a cartoon of the carrier-as-a-category picture, in the spirit of Mac Lane~\cite{maclane1971categories} §I.1's monoid $\leftrightarrow$ one-object-category bijection.
+Equivalently (Pierce~\cite{pierce1991basic} §2.2): each loop is a component of the bundled structure arrow $\alpha : F_\Sigma(A) \to A$, where $A$ is the carrier, for the carrier's signature.
 A strict realisation would draw one morphism per carrier element, impractical here, so only a few representative loops are shown.
 The set's elements are not drawn separately; in this layer they live \emph{inside} the single object, exactly as in the category $\mathbf{Mon}$ of monoids.
 Inter-hub arrows are typed maps $\mathrm{T} \to \mathrm{S}$.
@@ -472,13 +474,29 @@ Most arrows on each hub and most inter-hub arrows are suppressed for clarity. Th
 \label{fig:hub-spoke-bnz}
 \end{figure}
 
+
 While it may now be tempting to start formalizing operations such as $\neg, \vee, \wedge, \cup, \cap, +, \times, \ldots$, we \emph{deliberately leave $\Sigma$ unbound for now}.\footnote{When $\Sigma$ stays unbound throughout a discussion, we sometimes write $\mathbf{Alg}(-)$ for the family $\bigcup_\Sigma \mathbf{Alg}(\Sigma)$ over the signatures the library names.  The dash is a typographic placeholder meaning ``fill in any signature here'' (Mac Lane's standard argument-blank convention~\cite{maclane1971categories}, same family as $\mathrm{Hom}(-, -)$ for the hom-bifunctor and $(-)^{\mathrm{op}}$ for the opposite-category functor); it is \emph{not} a unary minus.  The notation reappears in §\ref{sec:cpp-stlc-mapping}.}
 The binding of concrete operator-shape signatures is deferred to later sections~\ref{sec:cpp-stlc-mapping}, \ref{sec:sets-rules}.
 We note though that while $\mathbf{Alg}(\Sigma)$ is only a small fragment of $\mathbf{Cat}$ we expect that it carries enough algebraic vocabulary to host carriers, operators, and structure-preserving arrows in the shape an engineering library actually needs and so we use it as a starting point for a structuralist mathematical style~\cite{marquis2022structuralist}.
 We further restrict our attention to the \emph{small} slice $\mathbf{Alg}(\Sigma)_{\beth_1}$ --- the $\beth_1$-small algebras, i.e.\ algebras whose underlying carrier has cardinality at most that of the continuum.\footnote{The standard mathematical workaround for ``a category whose objects are all sets / all categories'' is a Grothendieck universe hierarchy~\cite{maclane1971categories} (Mac Lane, §I.6): pick a universe $U$, define $\mathbf{Set}_U$ as the category of $U$-small sets, then let $\mathbf{Set}_U$ live as an object of a larger-universe $\mathbf{Cat}_{U'}$.  The hierarchy stratifies; no level contains itself.  The $\beth_1$ subscript here pins the smallness ceiling at the cardinality of the continuum --- enough to admit $\mathbb{R}$-sized carriers, small enough to forbid proper-class self-reference.}
 Pinning the object-size at $\beth_1$ admits the transfinite carriers required for Dedekind-cut arithmetic ($\mathbb{R}$, §\ref{sec:numeric-tension}) and the continuum-sized $\mathbb{C}$, $\mathbb{D}$ used in §\ref{sec:linalg}, while keeping a foundational ceiling that forbids the self-referential paradoxes of the proper-class meta-categories $\mathbf{Set}$ and $\mathbf{Cat}$.
 
-\subsection{A Well-Behaved Structure in C++: the Juliet Posture}
+The general thrust of the architecture is then to view these small, algebraic categories as universal underlying carrier sets, with specific sets characterised in the ETCS sense by a subobject classifier $\Omega$.
+A predicate $P : A \to \Omega$ maps ambient elements to \emph{truth values}, and $\Omega$ is the type those truth values live in.
+Change $\Omega$, and you change what counts as membership.
+The default is the one every programmer expects: $\Omega = \mathbb{B} = \{\top, \bot\}$, classical two-valued logic.
+Plug it in and you get ordinary set theory.
+But set structures with undecidable membership (e.g.\ the Mandelbrot set) can be supported this way also.
+Swap it for Kleene $\mathbb{K}_3 = \{-1, 0, +1\}$ and something more interesting happens.
+In the case of \cppinline{double}, the extra value \emph{Unknown} is where \texttt{NaN} lives.
+In classical logic, $P \lor \neg P = \top$ is a theorem.
+With \texttt{NaN} in play, that theorem quietly breaks, because neither $x < \texttt{NaN}$ nor
+$x \geq \texttt{NaN}$ is true.
+In $\mathbb{K}_3$, $P \lor \neg P = \mathit{Unknown}$ is a calm, unremarkable identity.
+The paradox was never in the floats; it was in our choice of $\Omega$.
+$\Omega$ parameterises membership truth values while the $\beth_1$ ceiling parameterises carrier size; the two are orthogonal.
+
+\subsection{A Well-Behaved Structure in C++: the Juliet Posture $\mathbf{Jlt}$}
 \label{sec:jlt}
 
 
@@ -538,19 +556,14 @@ The manual-certification pattern is the path the committee left open.\footnote{T
 
 The trait-registry mechanics --- which axioms propagate under which constructors, how per-carrier specialisations are organised, how the \emph{Honest Rejection} policy maps to varieties, and how the algebra-side machinery composes with the C++-side concept layer --- are deferred to §\ref{sec:pruning} (\emph{Algebraic Lattice}) and §\ref{sec:numeric-tension} (\emph{The Traits Registry: Abstract Naturals vs.\ IEEE Numerics}).
 
-A welcome side effect: the disciplined subset that aligns with $\mathbf{Alg}(\Sigma)$ also turns out to be a faithful image of System~F (Pierce~\cite{pierce2002tapl} ch.~23, 29) and of the simply-typed $\lambda$-calculus under Lambek--Scott~\cite{lambek1988introduction}.
-The same surface reads in either tradition.
-This was not the design goal.
-The paper began as an engineering exercise on $\mathbf{Alg}(\Sigma)$, and the System-F reading announced itself afterwards.
-The triangulation across System~F, the Juliet Posture, and Bourbaki structuralism~\cite{marquis2022structuralist} is reported as an observation rather than a guarantee.
-Some discipline is required of the engineer for the reading to hold.
-The precise admissibility rules and a row-by-row mapping across the three vocabularies are deferred to Appendix~\ref{app:jlt-systemf}.
+An unintended but most welcome side effect: the disciplined subset that aligns with $\mathbf{Alg}(\Sigma)$ also turns out to be a faithful image of System~F (Pierce~\cite{pierce2002tapl} ch.~23, 29) and of the simply-typed $\lambda$-calculus under Lambek--Scott~\cite{lambek1988introduction}.
+Details of this observation are discussed in Appendix~\ref{app:jlt-systemf}.
 
 Call this disciplined subset $\mathbf{Jlt} \subset \mathbf{Cpp}$ (mnemonically: \emph{Juliet}, after the \emph{rose by any other name} reading of structural-over-nominal typing).
 In $\mathbf{Jlt}$ the objects are \cppinline{std::regular} types and the values they classify, and the morphisms are the arrows the language admits between them.
 The Juliet Posture deliberately rejects type erasure on the categorical surface: erased witnesses are opaque to both the concept checker and the LLVM optimizer, so erased layers degrade the gate's sharpness and the structural-pruning power that §\ref{sec:compiler-wall} and §\ref{sec:pruning} rest on.
 
-\subsection{The Structuralist Intersection: $\mathbf{Ddk} = \mathbf{Jlt} \cap \mathbf{Alg}(-)_{\beth_1}$}
+\subsection{A Common Ground: $\mathbf{Ddk} = \mathbf{Jlt} \cap \mathbf{Alg}(-)_{\beth_1}$}
 \label{sec:cpp-stlc-mapping}
 
 The \texttt{dedekind} types and combinators are the inhabitants of $\mathbf{Jlt} \cap \mathbf{Alg}(-)_{\beth_1}$.
@@ -709,27 +722,6 @@ The 2-categorical layer above thus becomes the engineer's honesty obligation, na
 \section{Sets and Sequences}
 \label{sec:sets-rules}
 % ============================================================
-
-\subsection{The Subobject Classifier $\Omega$}
-
-Here is what $\Omega$ is doing for us. A predicate $P : A \to \Omega$ maps ambient
-elements to \emph{truth values}, and $\Omega$ is the type those truth values live
-in. Change $\Omega$, and you change what counts as membership.
-
-The default is the one every programmer expects: $\Omega = \{\top, \bot\}$,
-classical two-valued logic. Plug it in and you get ordinary set theory.
-
-Swap it for Kleene K3---$\Omega = \{-1, 0, +1\}$---and something more interesting
-happens. The extra value is \emph{Unknown}, and it is where \texttt{NaN} lives.
-In classical logic, $P \lor \neg P = \top$ is a theorem; with \texttt{NaN} in
-play, that theorem quietly breaks, because neither $x < \texttt{NaN}$ nor
-$x \geq \texttt{NaN}$ is true. In K3, $P \lor \neg P = \mathit{Unknown}$ is a
-calm, unremarkable identity. The paradox was never in the floats; it was in our
-choice of $\Omega$.
-
-That is the payoff: the same comprehension machinery handles exact domains
-(pick classical $\Omega$) and floating-point domains (pick K3) with no change to
-the API. The logic is a parameter.
 
 % ============================================================
 \subsection{Intensional First, Realize When You Mean It}
@@ -2773,15 +2765,14 @@ programmer chooses which policy to apply.
 \label{sec:carrier-rosetta}
 
 A \emph{carrier} in this paper is the underlying set on which an
-algebraic structure lives --- the substrate of operations.  Following
-the universal-algebra convention~\cite{burris1981universalalgebra} an
-algebra is the pair $(A, F)$ of a carrier $A$ together with a family
-$F$ of finitary operations satisfying axioms.  The same set may serve
-as carrier for several distinct algebras (e.g.\ $\mathbb{B}$ as
-$(\{0,1\}, \lor, \land)$ vs as $(\mathbb{F}_2, \oplus, \land)$); and
-the same algebra may be obtained as either a primitive (a chosen
-carrier) or as the result of a construction (a quotient, free, or
-localisation functor) applied to a smaller carrier.  $\mathbb{Q}$ is
+algebraic structure lives --- the substrate of operations.  The
+universal-algebra formulation is introduced in §\ref{sec:alg-sigma}
+and applies here.  The same set may serve as carrier for several
+distinct algebras (e.g.\ $\mathbb{B}$ as $(\{0,1\}, \lor, \land)$
+vs as $(\mathbb{F}_2, \oplus, \land)$); and the same algebra may be
+obtained as either a primitive (a chosen carrier) or as the result
+of a construction (a quotient, free, or localisation functor)
+applied to a smaller carrier.  $\mathbb{Q}$ is
 both a carrier (the rationals, used as base for
 \cppinline{Rational<I>}) and the field-of-fractions construction
 $\operatorname{Frac}(\mathbb{Z})$~\cite{lang2002algebra}; $\mathbb{C}$
