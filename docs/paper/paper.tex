@@ -478,6 +478,21 @@ We note though that while $\mathbf{Alg}(\Sigma)$ is only a small fragment of $\m
 We further restrict our attention to the \emph{small} slice $\mathbf{Alg}(\Sigma)_{\beth_1}$ --- the $\beth_1$-small algebras, i.e.\ algebras whose underlying carrier has cardinality at most that of the continuum.\footnote{The standard mathematical workaround for ``a category whose objects are all sets / all categories'' is a Grothendieck universe hierarchy~\cite{maclane1971categories} (Mac Lane, §I.6): pick a universe $U$, define $\mathbf{Set}_U$ as the category of $U$-small sets, then let $\mathbf{Set}_U$ live as an object of a larger-universe $\mathbf{Cat}_{U'}$.  The hierarchy stratifies; no level contains itself.  The $\beth_1$ subscript here pins the smallness ceiling at the cardinality of the continuum --- enough to admit $\mathbb{R}$-sized carriers, small enough to forbid proper-class self-reference.}
 Pinning the object-size at $\beth_1$ admits the transfinite carriers required for Dedekind-cut arithmetic ($\mathbb{R}$, §\ref{sec:numeric-tension}) and the continuum-sized $\mathbb{C}$, $\mathbb{D}$ used in §\ref{sec:linalg}, while keeping a foundational ceiling that forbids the self-referential paradoxes of the proper-class meta-categories $\mathbf{Set}$ and $\mathbf{Cat}$.
 
+The general thrust of the architecture is then to view these small, algebraic categories as universal underlying carrier sets with specific sets being characterized in the ETCS sense by a 
+ subobject classifier $\Omega$:.
+ A predicate $P : A \to \Omega$ maps ambient elements to \emph{truth values}, and $\Omega$ is the type those truth values live in.
+Change $\Omega$, and you change what counts as membership.
+The default is the one every programmer expects: $\Omega = \mathbb B = \{\top, \bot\}$, classical two-valued logic.
+Plug it in and you get ordinary set theory.
+But set structures with undecidable membership (e.g. the Mandelbrot set) can be supported this way also.
+Swap it for Kleene K3---$\Omega = \mathbb K3 = \{-1, 0, +1\}$ and something more interesting happens.
+In the case of \cppinline{double}, the extra value is \emph{Unknown} is where \texttt{NaN} lives.
+In classical logic, $P \lor \neg P = \top$ is a theorem.
+With \texttt{NaN} in play, that theorem quietly breaks, because neither $x < \texttt{NaN}$ nor
+$x \geq \texttt{NaN}$ is true.
+In K3, $P \lor \neg P = \mathit{Unknown}$ is a calm, unremarkable identity.
+The paradox was never in the floats; it was in our choice of $\Omega$.
+
 \subsection{A Well-Behaved Structure in C++: the Juliet Posture}
 \label{sec:jlt}
 
@@ -538,13 +553,8 @@ The manual-certification pattern is the path the committee left open.\footnote{T
 
 The trait-registry mechanics --- which axioms propagate under which constructors, how per-carrier specialisations are organised, how the \emph{Honest Rejection} policy maps to varieties, and how the algebra-side machinery composes with the C++-side concept layer --- are deferred to §\ref{sec:pruning} (\emph{Algebraic Lattice}) and §\ref{sec:numeric-tension} (\emph{The Traits Registry: Abstract Naturals vs.\ IEEE Numerics}).
 
-A welcome side effect: the disciplined subset that aligns with $\mathbf{Alg}(\Sigma)$ also turns out to be a faithful image of System~F (Pierce~\cite{pierce2002tapl} ch.~23, 29) and of the simply-typed $\lambda$-calculus under Lambek--Scott~\cite{lambek1988introduction}.
-The same surface reads in either tradition.
-This was not the design goal.
-The paper began as an engineering exercise on $\mathbf{Alg}(\Sigma)$, and the System-F reading announced itself afterwards.
-The triangulation across System~F, the Juliet Posture, and Bourbaki structuralism~\cite{marquis2022structuralist} is reported as an observation rather than a guarantee.
-Some discipline is required of the engineer for the reading to hold.
-The precise admissibility rules and a row-by-row mapping across the three vocabularies are deferred to Appendix~\ref{app:jlt-systemf}.
+An unintended but most welcome side effect: the disciplined subset that aligns with $\mathbf{Alg}(\Sigma)$ also turns out to be a faithful image of System~F (Pierce~\cite{pierce2002tapl} ch.~23, 29) and of the simply-typed $\lambda$-calculus under Lambek--Scott~\cite{lambek1988introduction}.
+Details of this observation are discussed in Appendix~\ref{app:jlt-systemf}.
 
 Call this disciplined subset $\mathbf{Jlt} \subset \mathbf{Cpp}$ (mnemonically: \emph{Juliet}, after the \emph{rose by any other name} reading of structural-over-nominal typing).
 In $\mathbf{Jlt}$ the objects are \cppinline{std::regular} types and the values they classify, and the morphisms are the arrows the language admits between them.
@@ -704,27 +714,6 @@ The 2-categorical layer above thus becomes the engineer's honesty obligation, na
 \section{Sets and Sequences}
 \label{sec:sets-rules}
 % ============================================================
-
-\subsection{The Subobject Classifier $\Omega$}
-
-Here is what $\Omega$ is doing for us. A predicate $P : A \to \Omega$ maps ambient
-elements to \emph{truth values}, and $\Omega$ is the type those truth values live
-in. Change $\Omega$, and you change what counts as membership.
-
-The default is the one every programmer expects: $\Omega = \{\top, \bot\}$,
-classical two-valued logic. Plug it in and you get ordinary set theory.
-
-Swap it for Kleene K3---$\Omega = \{-1, 0, +1\}$---and something more interesting
-happens. The extra value is \emph{Unknown}, and it is where \texttt{NaN} lives.
-In classical logic, $P \lor \neg P = \top$ is a theorem; with \texttt{NaN} in
-play, that theorem quietly breaks, because neither $x < \texttt{NaN}$ nor
-$x \geq \texttt{NaN}$ is true. In K3, $P \lor \neg P = \mathit{Unknown}$ is a
-calm, unremarkable identity. The paradox was never in the floats; it was in our
-choice of $\Omega$.
-
-That is the payoff: the same comprehension machinery handles exact domains
-(pick classical $\Omega$) and floating-point domains (pick K3) with no change to
-the API. The logic is a parameter.
 
 % ============================================================
 \subsection{Intensional First, Realize When You Mean It}
