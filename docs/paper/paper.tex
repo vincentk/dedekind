@@ -630,6 +630,40 @@ If $e$ contains runtime variables, the residue $\mathfrak{R}$ is the "thinnest" 
 $$\frac{e \in Ddk \quad \text{unknown}(\text{pivots})}{\phi(e) \longrightarrow \text{MinimalResidue}}$$ 
 In both cases, the "Optimum" is the same: the inhabitant of the nightclub that takes up the least amount of space in the instruction cache. The $Ddk$ infrastructure ensures that we never settle for a "heavy" expression when a "light" one is mathematically equivalent.
 
+The optimization in $Ddk$ is intended to be monotone, but strictly speaking, it is not always so. While the goal is to reach a simpler Residue ($\mathfrak{R}$), the process is a sequence of transformations that can fail or even regress in subtle ways.
+## 1. Is the Residue Always Smaller?
+Usually, yes. Every step in the Normal Form Reduction is a rewrite rule designed to decrease "symbolic complexity." However, there are cases where the intermediate residue temporarily becomes "heavier":
+
+* The "Explosion" before Collapse: Some algebraic identities (like distributivity: $a(b+c) \to ab+ac$) actually increase the number of terms before they enable a downstream collapse (like $ab - ab \to 0$).
+* The "Stubborn Residual": If the math cannot finish at compile time, the compiler might emit a residue that is more "defensive" (and thus larger) than a naive manual implementation, simply because it must account for every possible edge case within the axioms. [1, 2, 3] 
+
+## 2. How can it go wrong? (The Devious Failures)
+Beyond the obvious template instantiation limits (which just halt the reduction), the reduction can fail in "devious" ways: [4, 5] 
+
+* Oscillation (The Infinite Loop): If two rewrite rules are contradictory—for example, one that expands a term and another that contracts it—the compiler can enter an infinite loop of instantiations. This is the ultimate violation of the Monotone Property.
+* The "Opaque Barrier": The bouncer ($Jlt$) only certifies the type. If you pass a type that is mathematically honest but used in a "dirty" context (e.g., accessed through a volatile pointer or a reinterpret_cast), the compiler may lose its "license" to optimize. It sees the bouncer's pass but can't verify the current "state" of the inhabitant.
+* Axiomatic Misalignment: If you supply a "cheat code" for an identity that is true for real numbers but false for floating-point math (e.g., $(a+b)+c \equiv a+(b+c)$), the compiler may perform a "correct" reduction that results in an "incorrect" machine-code witness.
+* Dead-End Specializations: If a library author provides a specialization that is too specific, the compiler might choose it even if a more general (and more efficient) collapse was possible, leading to a "Local Optimum" that is not the global $argmax$. [1, 3] 
+
+## Summary of Failure Modes
+
+| Mode [1, 6] | Cause | Symptom |
+|---|---|---|
+| Instability | Contradictory rewrite rules | Infinite compilation or crash. |
+| Axiomatic Leak | Missing or opaque traits | "Heavy" code that recalculates known truths. |
+| The "Lie" | Breaking $Jlt$ discipline | Correct-looking code that produces wrong results. |
+
+In short: The optimization is only as monotone as your Axiomatic Profile is consistent.
+Should we add a "Safety and Termination" subsection to 2.3 to explicitly address these "Axiomatic Leaks" and the risk of non-monotone rewrites?
+
+[1] [https://sbaziotis.com](https://sbaziotis.com/compilers/compiler-opt.html)
+[2] [https://www.cs.tufts.edu](https://www.cs.tufts.edu/comp/150FP/archive/keith-cooper/Ch10.pdf)
+[3] [https://medium.com](https://medium.com/@vikramsetty169/compiler-aware-programming-optimizations-1799ec6332af)
+[4] [https://www.youtube.com](https://www.youtube.com/watch?v=TyiiNVA1syk&t=40)
+[5] [https://lefticus.gitbooks.io](https://lefticus.gitbooks.io/cpp-best-practices/content/08-Considering_Performance.html)
+[6] [https://infoscience.epfl.ch](https://infoscience.epfl.ch/server/api/core/bitstreams/8d7a1caa-6b48-4ed7-be28-e136f2611c8a/content)
+
+
 The \texttt{dedekind} types and combinators are the inhabitants of $\mathbf{Jlt} \cap \mathbf{Alg}(-)_{\beth_1}$.
 These are C++23 types in the disciplined fragment $\mathbf{Jlt}$ (§\ref{sec:jlt}) that simultaneously carry universal-algebra structure $\mathbf{Alg}(\Sigma)$ (§\ref{sec:alg-sigma}) for some signature $\Sigma$ the carrier supplies operators for, with the size restriction from §\ref{sec:alg-sigma} carried through.
 The dash notation $\mathbf{Alg}(-)_{\beth_1}$ is the family $\bigcup_\Sigma \mathbf{Alg}(\Sigma)_{\beth_1}$ over the signatures the library names.
