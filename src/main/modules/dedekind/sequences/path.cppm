@@ -765,7 +765,8 @@ static_assert(IsNet<Path<int>>,
 // Sanity: the textbook-name aliases resolve to Path.
 static_assert(std::same_as<Sequence<int>, Path<int>>,
               "Sequence<T> is a textbook-name alias for Path<T>.");
-static_assert(std::same_as<Net<int>, Path<int>>,
-              "Net<T> with default D = ℕ is a textbook-name alias for Path<T>.");
+static_assert(
+    std::same_as<Net<int>, Path<int>>,
+    "Net<T> with default D = ℕ is a textbook-name alias for Path<T>.");
 
 }  // namespace dedekind::sequences
