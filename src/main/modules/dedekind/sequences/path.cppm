@@ -698,9 +698,14 @@ static_assert(
 // ---------------------------------------------------------------------------
 // Categorical anchor: Path<T> as a morphism out of the NNO (#602).
 //
-// A @c Path<T> is structurally a function @f$f : \mathbb{N} \to T@f$ —
-// the canonical @c IsArrow / @c IsNet / @c IsSequence (all asserted
-// already, above and in @c :net).  Categorically this is a morphism
+// A @c Path<T> is structurally a function @f$f : \mathbb{N} \to T@f$
+// satisfying @c IsArrow (asserted above), @c IsSequence (asserted
+// above), and @c IsNet (asserted at the foot of this section, below).
+// @c IsSequence's definition in @c :net entails @c IsNet, so the
+// new @c static_assert is technically redundant — it is kept here
+// explicitly to make the directed-set / generalisation door visible
+// at this site rather than reading-as-magic-via-concept-refinement.
+// Categorically this is a morphism
 // out of the @b Natural Numbers Object: by NNO universality (ℕ as
 // initial F-algebra of @f$F(X) = 1 + X@f$), such an @c f is uniquely
 // determined by an @c (a₀ ∈ T, s : T → T) pair via Peano recursion,
@@ -746,18 +751,25 @@ using Sequence = Path<T>;
 /** @brief Textbook name: a Net is a function from a directed set into @c T.
  *
  *  @details For now ℕ is the only directed-set domain we model
- *  concretely, so @c Net<T> = @c Path<T> in this library.  The default
- *  domain template parameter @c D = @c std::size_t is a forward-looking
- *  hook; once @c :order grows non-ℕ directed-set carriers, additional
- *  @c Net<T, D> specialisations follow naturally.
+ *  concretely, so @c Net<T> = @c Path<T> in this library.  The
+ *  @c requires clause pins @c D @c = @c std::size_t (i.e., ℕ) so that
+ *  callers cannot quietly instantiate over a non-ℕ domain that the
+ *  library does not yet support.  Once @c :order grows non-ℕ
+ *  directed-set carriers, the right move is to redesign @c Net as a
+ *  @c struct or @c concept (alias templates cannot be specialised),
+ *  with this typedef-shape replaced by the more general definition.
+ *  The constraint here is the forward-pointing marker for that future
+ *  redesign, not a specialisation hook.
  */
 export template <typename T, typename D = std::size_t>
   requires std::same_as<D, std::size_t>
 using Net = Path<T>;
 
-// Pin the categorical roles via existing concepts.  IsArrow,
-// IsSequence, IsFiniteSequence are already asserted above; IsNet is
-// added here to make the directed-set generalisation hook explicit.
+// Pin the categorical roles via existing concepts.  IsArrow and
+// IsSequence are asserted above; IsNet is added here as the explicit
+// witness of the directed-set generalisation hook (IsSequence
+// entails IsNet by its definition in @c :net, so the assertion is
+// structurally redundant — its purpose is documentation-by-CI).
 static_assert(IsNet<Path<int>>,
               "Path<int> is a morphism from a directed set (ℕ): the "
               "@c IsNet structural shape that @c IsSequence refines.");
