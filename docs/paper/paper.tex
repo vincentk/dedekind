@@ -606,6 +606,30 @@ static_assert(!IsAssociative<bool, std::logical_and<bool>>);
 \subsection{A Common Ground: $\mathbf{Ddk} = \mathbf{Jlt} \cap \mathbf{Alg}(-)_{\beth_1}$}
 \label{sec:cpp-stlc-mapping}
 
+To maintain precision, we should treat $Ddk$ as the category (the "Club" or the "Safe Set") and use distinct symbols for the Expression (the input) and the Residue (the output).
+In this framing, the "Club" is the domain, the code you write is a point in that domain, and the reduction is a morphism that maps a "heavy" expression to a "light" one.
+Here is a proposal for the naming convention:
+
+   1. $Ddk$ (The Input Space): The set of all valid C++ expressions formed by types in the intersection $\mathbf{Alg} \cap Jlt$. If you write it, and it compiles, it is an inhabitant of $Ddk$.
+   2. $\mathfrak{R}$ (The Residue/Output): The "Normal Form" or the "Result." This is the simplified inhabitant that remains after the compiler has applied all available cheat codes.
+   3. $\phi$ (The Reduction Morphism): The actual action of the compiler/library engine.
+
+Using your set-builder and Inference Rules notation, here is how that looks in prose:
+------------------------------
+## 2.3 The $Ddk$ Intersection: Normal Form Reduction
+We define $Ddk$ as the input space for our calculus—the set of all expressions $e$ whose carriers are certified by $Jlt$ ("bouncer") and whose operations are governed by $\mathbf{Alg}$ axioms and theorems ("cheat codes").
+$$Ddk = \{ e \mid \text{type}(e) \in (Jlt \cap \mathbf{Alg}) \}$$ 
+The utility of this space is the existence of a Reduction Morphism, $\phi: Ddk \to \mathfrak{R}$, which maps a "heavy" expression to its Minimal Algebraic Residue $\mathfrak{R}$. The goal of the infrastructure is to find the inhabitant of $Ddk$ that maximizes information density:
+$$\mathfrak{R} = \text{argmax}_{e' \in Ddk} \{ \text{Density}(e') \mid e' \equiv e \}$$ 
+The compiler’s "decision" to follow a rewrite branch is a matter of Structural Substitution. We express the transition from input to output using the following inference rules:
+I. The Total Collapse (Literal Output)
+If all terms in $e$ are known at translation time, the residue $\mathfrak{R}$ is a terminal literal (the Materialized Witness).
+$$\frac{e \in Ddk \quad \text{known}(\text{pivots})}{\phi(e) \Downarrow \text{Literal}}$$ 
+II. The Partial Reduction (Residual Output)
+If $e$ contains runtime variables, the residue $\mathfrak{R}$ is the "thinnest" possible machine-code logic that remains after all algebraic identities have been exhausted.
+$$\frac{e \in Ddk \quad \text{unknown}(\text{pivots})}{\phi(e) \longrightarrow \text{MinimalResidue}}$$ 
+In both cases, the "Optimum" is the same: the inhabitant of the nightclub that takes up the least amount of space in the instruction cache. The $Ddk$ infrastructure ensures that we never settle for a "heavy" expression when a "light" one is mathematically equivalent.
+
 The \texttt{dedekind} types and combinators are the inhabitants of $\mathbf{Jlt} \cap \mathbf{Alg}(-)_{\beth_1}$.
 These are C++23 types in the disciplined fragment $\mathbf{Jlt}$ (§\ref{sec:jlt}) that simultaneously carry universal-algebra structure $\mathbf{Alg}(\Sigma)$ (§\ref{sec:alg-sigma}) for some signature $\Sigma$ the carrier supplies operators for, with the size restriction from §\ref{sec:alg-sigma} carried through.
 The dash notation $\mathbf{Alg}(-)_{\beth_1}$ is the family $\bigcup_\Sigma \mathbf{Alg}(\Sigma)_{\beth_1}$ over the signatures the library names.
