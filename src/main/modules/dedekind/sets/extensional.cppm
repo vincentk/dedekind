@@ -427,11 +427,11 @@ constexpr auto filter(P&& p, std::set<T, Compare, Alloc>&& s) {
 
 // Type-shape breadcrumbs (no static_assert on values, since std::* can't
 // be default-constructed with non-empty contents in C++23 constexpr).
-static_assert(
-    std::same_as<decltype(image(std::declval<int (&)(const int&)>(),
-                                std::declval<const std::unordered_set<int>&>())),
-                 std::unordered_set<int>>,
-    "image(f, std::unordered_set<T>) returns std::unordered_set<U>.");
+static_assert(std::same_as<decltype(image(
+                               std::declval<int (&)(const int&)>(),
+                               std::declval<const std::unordered_set<int>&>())),
+                           std::unordered_set<int>>,
+              "image(f, std::unordered_set<T>) returns std::unordered_set<U>.");
 
 static_assert(
     std::same_as<decltype(image(std::declval<int (&)(const int&)>(),
@@ -440,9 +440,10 @@ static_assert(
     "image(f, std::set<T>) returns std::set<U>.");
 
 static_assert(
-    std::same_as<decltype(filter(std::declval<bool (&)(const int&)>(),
-                                 std::declval<const std::unordered_set<int>&>())),
-                 std::unordered_set<int>>,
+    std::same_as<
+        decltype(filter(std::declval<bool (&)(const int&)>(),
+                        std::declval<const std::unordered_set<int>&>())),
+        std::unordered_set<int>>,
     "filter(p, std::unordered_set<T>) returns std::unordered_set<T>.");
 
 static_assert(

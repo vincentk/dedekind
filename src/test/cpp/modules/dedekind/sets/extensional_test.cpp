@@ -3,7 +3,7 @@
 #include <unordered_set>
 #include <vector>
 
-import dedekind.category;  // ambient_set / IsSet — for the lift-then-certify nugget
+import dedekind.category; // ambient_set / IsSet — for the lift-then-certify nugget
 import dedekind.sets;
 
 using namespace dedekind::sets;
@@ -121,7 +121,8 @@ TEST_CASE("Sets: image / filter on std-container carriers (#602, trivial)",
     CHECK(filter([](const int&) { return false; }, S).empty());
   }
 
-  SECTION("Lift-then-certify: image / filter result composes with ambient_set") {
+  SECTION(
+      "Lift-then-certify: image / filter result composes with ambient_set") {
     const std::unordered_set<int> S{1, 2, 3, 4, 5};
     const auto evens = filter([](const int& x) { return x % 2 == 0; }, S);
     const auto evens_isset = dedekind::category::ambient_set(evens);
