@@ -270,8 +270,8 @@ concept IsKernelPair = IsPullback<P, F, F>;
  * @tparam G The second parallel arrow @c G @c : @c A @c → @c B.
  */
 export template <typename Q, typename F, typename G>
-concept IsCoequalizer = IsArrow<F> && IsArrow<G> &&
-                        std::same_as<Dom<F>, Dom<G>> &&
-                        std::same_as<Cod<F>, Cod<G>>;
+concept IsCoequalizer =
+    IsArrow<F> && IsArrow<G> && std::same_as<Dom<F>, Dom<G>> &&
+    std::same_as<Cod<F>, Cod<G>>;
 
 }  // namespace dedekind::category
