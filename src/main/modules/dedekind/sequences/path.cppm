@@ -695,4 +695,90 @@ static_assert(
     IsFrobenius<path_functor<int>, int, long>,
     "Path must satisfy the Frobenius witness (Kleisli + co-Kleisli).");
 
+// ---------------------------------------------------------------------------
+// Categorical anchor: Path<T> as a morphism out of the NNO (#602).
+//
+// A @c Path<T> is structurally a function @f$f : \mathbb{N} \to T@f$
+// satisfying @c IsArrow (asserted above), @c IsSequence (asserted
+// above), and @c IsNet (asserted at the foot of this section, below).
+// @c IsSequence's definition in @c :net entails @c IsNet, so the
+// new @c static_assert is technically redundant — it is kept here
+// explicitly to make the directed-set / generalisation door visible
+// at this site rather than reading-as-magic-via-concept-refinement.
+// Categorically this is a morphism
+// out of the @b Natural Numbers Object: by NNO universality (ℕ as
+// initial F-algebra of @f$F(X) = 1 + X@f$), such an @c f is uniquely
+// determined by an @c (a₀ ∈ T, s : T → T) pair via Peano recursion,
+// with @c f(0) = a₀ and @c f(n+1) = s(f(n)).  @c Path<T>'s call
+// operator IS this recursor; the type encodes "transform of ℕ" by
+// construction, not by iteration.
+//
+// The image of such an @c f — in the categorical kernel-pair-coequalizer
+// sense — is the orbit of @c a₀ under iterated @c s in @c T: the
+// smallest @c s-stable subobject of @c T containing @c a₀, equivalently
+// @f$\mathrm{coeq}(\mathbb{N} \times_T \mathbb{N} \rightrightarrows
+// \mathbb{N})@f$.  The general @c image-as-coequalizer machinery in
+// @c :category is filed for a separate slice; this section pins the
+// structural reading at the @c :sequences end so CI verifies the
+// connection at the type level.
+//
+// The @c using aliases below give the textbook names @b Sequence and
+// @b Net as type-level synonyms for @c Path; the @c static_asserts
+// pin @c IsNet (which @c IsSequence already entails, but spelling it
+// out separately makes the directed-set / generalisation door explicit).
+//
+// Open architectural concerns documented for follow-up:
+//
+//   * The @c Path<T> implementation is currently @b extensional-first
+//     (@c std::vector backing).  The paper's §3 narrative is
+//     @b intensional-first (rule before realisation; see
+//     §sec:intensional).  Honest direction: split @c :path's
+//     extensional realisation into a sister @c :sequences:extensional
+//     partition, keeping @c :path purely structural.  Tracked as
+//     follow-up; not in scope for these breadcrumbs.
+//   * General-domain transforms (@c Net over directed sets that aren't
+//     ℕ) need the @c :order:directed-set axiomatic surface to grow.
+//     For now @c Net<T> is a synonym for @c Path<T> with implicit
+//     ℕ-domain, with a forward-looking parameterisation.
+//
+// Filed against #602 (set-transformation primitives, post-#607 shape).
+// ---------------------------------------------------------------------------
+
+/** @brief Textbook name: a Sequence over @c T is @c f : ℕ → T = @c Path<T>. */
+export template <typename T>
+using Sequence = Path<T>;
+
+/** @brief Textbook name: a Net is a function from a directed set into @c T.
+ *
+ *  @details For now ℕ is the only directed-set domain we model
+ *  concretely, so @c Net<T> = @c Path<T> in this library.  The
+ *  @c requires clause pins @c D @c = @c std::size_t (i.e., ℕ) so that
+ *  callers cannot quietly instantiate over a non-ℕ domain that the
+ *  library does not yet support.  Once @c :order grows non-ℕ
+ *  directed-set carriers, the right move is to redesign @c Net as a
+ *  @c struct or @c concept (alias templates cannot be specialised),
+ *  with this typedef-shape replaced by the more general definition.
+ *  The constraint here is the forward-pointing marker for that future
+ *  redesign, not a specialisation hook.
+ */
+export template <typename T, typename D = std::size_t>
+  requires std::same_as<D, std::size_t>
+using Net = Path<T>;
+
+// Pin the categorical roles via existing concepts.  IsArrow and
+// IsSequence are asserted above; IsNet is added here as the explicit
+// witness of the directed-set generalisation hook (IsSequence
+// entails IsNet by its definition in @c :net, so the assertion is
+// structurally redundant — its purpose is documentation-by-CI).
+static_assert(IsNet<Path<int>>,
+              "Path<int> is a morphism from a directed set (ℕ): the "
+              "@c IsNet structural shape that @c IsSequence refines.");
+
+// Sanity: the textbook-name aliases resolve to Path.
+static_assert(std::same_as<Sequence<int>, Path<int>>,
+              "Sequence<T> is a textbook-name alias for Path<T>.");
+static_assert(
+    std::same_as<Net<int>, Path<int>>,
+    "Net<T> with default D = ℕ is a textbook-name alias for Path<T>.");
+
 }  // namespace dedekind::sequences
