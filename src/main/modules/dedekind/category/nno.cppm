@@ -1,10 +1,38 @@
 /**
  * @file dedekind/category/nno.cppm
  * @partition :nno
- * @brief The Natural Numbers Object — Lawvere's ETCS Axiom 9.
+ * @brief The Natural Numbers Object — Lawvere's ETCS Axiom 9 — and the
+ *        upstream home of @b Peano @b recursion / @b primitive
+ *        @b recursion / the @b Peano @b successor (categorical idiom +
+ *        textbook synonyms below).
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
+ *
+ * @section nno__Vocabulary
+ *
+ * The categorical and textbook idioms are interchangeable on this
+ * partition — they name the same Form under different names:
+ *
+ *   - @b NNO @b universal @b property  ≡  @b Peano @b recursion
+ *     (a.k.a.\ @b primitive @b recursion).
+ *   - The arrow @c s @c : @c N @c → @c N (categorical idiom)
+ *     ≡  the @b Peano @b successor.
+ *   - The arrow @c z @c : @c 1 @c → @c N (categorical idiom)
+ *     ≡  the @b zero @b axiom.
+ *   - A morphism @c f @c : @c N @c → @c A determined by
+ *     @c (a₀, @c g) (categorical idiom)
+ *     ≡  a function defined by Peano recursion with base case @c a₀
+ *        and recursive step @c g.
+ *
+ * The categorical idiom is what the @c IsNNO concept below pins
+ * structurally.  The textbook idiom is recorded here so that a search
+ * for @b "Peano" lands at this upstream Form, not at one of the
+ * downstream @b witness @b sites where the carrier-level
+ * @c successor member API is named on a specific carrier
+ * (@c morphologies:archimedean for the @c IsCyclic shape;
+ * @c numbers:natural for @c Cardinality's NNO witness).  See the
+ * layering note in §nno__Layering_audit.
  *
  * @section nno__NNO_Universal_Property
  * In Lawvere's ETCS the natural numbers are not @b constructed --- they
@@ -22,10 +50,34 @@
  *   @c f @c ∘ @c s @c = @c g @c ∘ @c f  (step clause)
  *
  * Existence + uniqueness of @c f for any @c (A, a₀, g) is the universal
- * property; it is the "engineer's honesty obligation" in this
- * codebase, since C++ concepts cannot quantify over the functorial
- * content.  The structural shape ( @c z and @c s as arrows of the
- * stated signatures) @b is what the type system can pin.
+ * property; equivalently, "every Peano-recursion specification has a
+ * unique total function realising it" — the engineer's honesty
+ * obligation in this codebase, since C++ concepts cannot quantify
+ * over the functorial content.  The structural shape ( @c z and @c s
+ * as arrows of the stated signatures) @b is what the type system can
+ * pin.
+ *
+ * @section nno__Layering_audit
+ *
+ * Audited 2026-05-07: the upstream home of Peano recursion / Peano
+ * successor / primitive recursion @b is this partition
+ * (@c :category:nno).  The downstream files that mention "Peano"
+ * surface the carrier-level @b witness, not the categorical Form:
+ *
+ *   - @c morphologies:archimedean — has a @c T::successor(x) member
+ *     API on @c IsCyclic carriers (@c Modular<N> etc.).  The
+ *     numerically-coinciding-with @f$S(x) = x + 1@f$ remark there is
+ *     about the @b carrier's API, not about NNO universality.
+ *   - @c numbers:natural — registers @c Cardinality as the canonical
+ *     @c IsNNO witness.  This is a @c (z, @c s) pair on a specific
+ *     carrier; the universal property it claims-to-witness is what
+ *     this partition defines.
+ *
+ * The layering is correct: Form upstream (@c :category:nno),
+ * witnesses downstream.  The textbook-vocabulary section above is
+ * the cross-reference that prevents the "Peano keeps appearing in
+ * prose but is buried downstream" misreading a search-by-vocabulary
+ * naturally invites.
  *
  * @section nno__This_Partition
  * Lifts ETCS Axiom 9 from the @c :etcs facade-level mention (where it
