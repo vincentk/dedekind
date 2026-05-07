@@ -320,4 +320,184 @@ static_assert(
     "from_std(std::unordered_set<int>) round-trip preserves IsSet "
     "membership through the same ambient_set<int>(...) gate (#598).");
 
+// ---------------------------------------------------------------------------
+// image / filter on std-container carriers — concrete realisations of
+// transform-and-restrict on the canonical extensional carrier (#602).
+//
+// These are operationally trivial helpers: image(f, S) iterates and
+// inserts; filter(p, S) iterates and conditionally inserts.  They live
+// here, not in @c category:etcs, because they are imperative loops over
+// std containers — the categorical / "pure" framework in @c category:
+// stays free of for-loops and @c std::* iteration.  In ETCS-flavoured
+// terminology these helpers are the cardinality-extensional case of the
+// abstract operations (image as kernel-pair coequalizer, filter as
+// pullback-of-the-subobject-classifier); the categorical primitives
+// belong upstream and have their own treatment.  Not paper-relevant on
+// their own; ship them here as engineering convenience for downstream
+// callers that already hold std containers.
+// ---------------------------------------------------------------------------
+
+// Callable-shape note: `std::invocable<F&, const T&>` (lvalue F invocation
+// via `std::invoke`) is the correct constraint here.  Bare
+// `std::invocable<const T&>` checks rvalue-only invocation, which excludes
+// pointer-to-member callables and `operator() &&`-only callables.  All
+// loop bodies use `std::invoke(f, x)` / `std::invoke(p, x)` for the same
+// reason.
+//
+// Container-policy note: the overloads preserve Hash/Equal/Alloc (for
+// unordered_set) and Compare/Alloc (for set) when the codomain type
+// equals the domain type (i.e. when image is endomorphic on the
+// element type, and always for filter).  When image's transform changes
+// the element type (T → U with U != T), the source's hashing /
+// comparison policies are no longer applicable to U and the output
+// falls back to the default Hash / Compare / Alloc on U.
+
+/** @brief image(f, std::unordered_set<T, Hash, Equal, Alloc>) — lvalue. */
+export template <typename T, typename Hash, typename Equal, typename Alloc,
+                 typename F>
+  requires std::invocable<F&, const T&>
+constexpr auto image(F&& f,
+                     const std::unordered_set<T, Hash, Equal, Alloc>& s) {
+  using U = std::remove_cvref_t<std::invoke_result_t<F&, const T&>>;
+  if constexpr (std::same_as<U, T>) {
+    std::unordered_set<U, Hash, Equal, Alloc> out;
+    out.reserve(s.size());
+    for (const auto& x : s) out.insert(std::invoke(f, x));
+    return out;
+  } else {
+    std::unordered_set<U> out;
+    out.reserve(s.size());
+    for (const auto& x : s) out.insert(std::invoke(f, x));
+    return out;
+  }
+}
+
+/** @brief image(f, std::unordered_set<T, Hash, Equal, Alloc>) — rvalue. */
+export template <typename T, typename Hash, typename Equal, typename Alloc,
+                 typename F>
+  requires std::invocable<F&, const T&>
+constexpr auto image(F&& f, std::unordered_set<T, Hash, Equal, Alloc>&& s) {
+  using U = std::remove_cvref_t<std::invoke_result_t<F&, const T&>>;
+  if constexpr (std::same_as<U, T>) {
+    std::unordered_set<U, Hash, Equal, Alloc> out;
+    out.reserve(s.size());
+    for (const auto& x : s) out.insert(std::invoke(f, x));
+    return out;
+  } else {
+    std::unordered_set<U> out;
+    out.reserve(s.size());
+    for (const auto& x : s) out.insert(std::invoke(f, x));
+    return out;
+  }
+}
+
+/** @brief image(f, std::set<T, Compare, Alloc>) — lvalue. */
+export template <typename T, typename Compare, typename Alloc, typename F>
+  requires std::invocable<F&, const T&>
+constexpr auto image(F&& f, const std::set<T, Compare, Alloc>& s) {
+  using U = std::remove_cvref_t<std::invoke_result_t<F&, const T&>>;
+  if constexpr (std::same_as<U, T>) {
+    std::set<U, Compare, Alloc> out;
+    for (const auto& x : s) out.insert(std::invoke(f, x));
+    return out;
+  } else {
+    std::set<U> out;
+    for (const auto& x : s) out.insert(std::invoke(f, x));
+    return out;
+  }
+}
+
+/** @brief image(f, std::set<T, Compare, Alloc>) — rvalue. */
+export template <typename T, typename Compare, typename Alloc, typename F>
+  requires std::invocable<F&, const T&>
+constexpr auto image(F&& f, std::set<T, Compare, Alloc>&& s) {
+  using U = std::remove_cvref_t<std::invoke_result_t<F&, const T&>>;
+  if constexpr (std::same_as<U, T>) {
+    std::set<U, Compare, Alloc> out;
+    for (const auto& x : s) out.insert(std::invoke(f, x));
+    return out;
+  } else {
+    std::set<U> out;
+    for (const auto& x : s) out.insert(std::invoke(f, x));
+    return out;
+  }
+}
+
+/** @brief filter(p, std::unordered_set<T, Hash, Equal, Alloc>) — lvalue.
+ *
+ *  @details Filter is always endomorphic on the element type, so the
+ *  source's Hash/Equal/Alloc are preserved unconditionally. */
+export template <typename T, typename Hash, typename Equal, typename Alloc,
+                 typename P>
+  requires std::predicate<P&, const T&>
+constexpr auto filter(P&& p,
+                      const std::unordered_set<T, Hash, Equal, Alloc>& s) {
+  std::unordered_set<T, Hash, Equal, Alloc> out;
+  for (const auto& x : s) {
+    if (std::invoke(p, x)) out.insert(x);
+  }
+  return out;
+}
+
+/** @brief filter(p, std::unordered_set<T, Hash, Equal, Alloc>) — rvalue. */
+export template <typename T, typename Hash, typename Equal, typename Alloc,
+                 typename P>
+  requires std::predicate<P&, const T&>
+constexpr auto filter(P&& p, std::unordered_set<T, Hash, Equal, Alloc>&& s) {
+  std::unordered_set<T, Hash, Equal, Alloc> out;
+  for (const auto& x : s) {
+    if (std::invoke(p, x)) out.insert(x);
+  }
+  return out;
+}
+
+/** @brief filter(p, std::set<T, Compare, Alloc>) — lvalue. */
+export template <typename T, typename Compare, typename Alloc, typename P>
+  requires std::predicate<P&, const T&>
+constexpr auto filter(P&& p, const std::set<T, Compare, Alloc>& s) {
+  std::set<T, Compare, Alloc> out;
+  for (const auto& x : s) {
+    if (std::invoke(p, x)) out.insert(x);
+  }
+  return out;
+}
+
+/** @brief filter(p, std::set<T, Compare, Alloc>) — rvalue. */
+export template <typename T, typename Compare, typename Alloc, typename P>
+  requires std::predicate<P&, const T&>
+constexpr auto filter(P&& p, std::set<T, Compare, Alloc>&& s) {
+  std::set<T, Compare, Alloc> out;
+  for (const auto& x : s) {
+    if (std::invoke(p, x)) out.insert(x);
+  }
+  return out;
+}
+
+// Type-shape breadcrumbs (no static_assert on values, since std::* can't
+// be default-constructed with non-empty contents in C++23 constexpr).
+static_assert(std::same_as<decltype(image(
+                               std::declval<int (&)(const int&)>(),
+                               std::declval<const std::unordered_set<int>&>())),
+                           std::unordered_set<int>>,
+              "image(f, std::unordered_set<T>) returns std::unordered_set<U>.");
+
+static_assert(
+    std::same_as<decltype(image(std::declval<int (&)(const int&)>(),
+                                std::declval<const std::set<int>&>())),
+                 std::set<int>>,
+    "image(f, std::set<T>) returns std::set<U>.");
+
+static_assert(
+    std::same_as<
+        decltype(filter(std::declval<bool (&)(const int&)>(),
+                        std::declval<const std::unordered_set<int>&>())),
+        std::unordered_set<int>>,
+    "filter(p, std::unordered_set<T>) returns std::unordered_set<T>.");
+
+static_assert(
+    std::same_as<decltype(filter(std::declval<bool (&)(const int&)>(),
+                                 std::declval<const std::set<int>&>())),
+                 std::set<int>>,
+    "filter(p, std::set<T>) returns std::set<T>.");
+
 }  // namespace dedekind::sets
