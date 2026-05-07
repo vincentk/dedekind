@@ -883,6 +883,60 @@ is conjunction; union is disjunction; complement is negation. No values are touc
 because there are no values yet. The combinators compose at compile time and produce
 a new type---a new rule---which the compiler is then free to inspect.
 
+\subsection{Functions on Sets: Filtering and Transforming}
+\label{sec:functions-on-sets}
+
+So far the operations on sets have been \emph{lattice} operations: intersection, union, complement.
+The two operations a working programmer reaches for next are \emph{filter} (keep the elements satisfying a predicate) and \emph{transform} (apply a function elementwise).
+Both have clean readings in the comprehension view, and one of them turns out to be the more interesting story.
+
+\paragraph{Filter is silently already there.}
+The textbook set-builder $\{x \in S \mid p(x)\}$ is filter; the comprehension form in \texttt{dedekind} writes it almost verbatim:
+\[
+  \mathrm{filter}(p,\,S) \;=\; S \,\cap\, \{x \in A \mid p(x)\}.
+\]
+Categorically this is the pullback of the subobject classifier:
+\(\{x \in A \mid p(x)\}\) is the subobject of $A$ classified by $p$, and intersecting with $S$ is again predicate conjunction.
+No new primitive is needed; the apparatus is the comprehension-and-meet machinery the previous subsections already built.
+Where the working programmer would write \texttt{S.filter(p)}, we write \texttt{S \& Set\{element<A> | p\}} --- and the type checker sees a sharper rule, not an iterated container.
+The Juliet Posture pays off here: any \texttt{IsSet} carrier can be filtered, including a \cppinline{std::unordered_set<T>} lifted via \cppinline{ambient_set}, without a project-shipped wrapper between the user's data and the categorical surface.
+
+\paragraph{Transform is the structurally interesting one.}
+A \emph{transform} of $S$ under $f : A \to B$ is the image: the set $\{f(x) \mid x \in S\}$.
+The textbook categorical definition is the \emph{epi--mono factorisation} of $f$,
+\[
+  S \;\xrightarrow{e}\; \mathrm{Im}(f|_S) \;\xrightarrow{m}\; B,
+\]
+or equivalently the coequalizer of the kernel pair: $\mathrm{Im}(f|_S) \,=\, \mathrm{coeq}(S \times_B S \;\rightrightarrows\; S)$.
+The kernel pair is the equivalence ``$x$ and $x'$ have the same $f$-image''; the coequalizer collapses each equivalence class to one point.
+Read aloud: the image is what is left of $S$ after we identify points $f$ doesn't distinguish.
+This works for any domain, in any regular category --- and it is what gets the structural reading off the ground.
+
+The constructive realisation, however, depends on what $S$ \emph{is}.
+There are three regimes the library distinguishes, each a different reading of the same categorical primitive:
+
+\begin{itemize}
+\item \textbf{Predicate-defined $S$} (intensional comprehension): the image is the subobject of $B$ classified by $\lambda b. \exists x \in A.\; p(x) \wedge f(x) = b$.
+This needs the existential quantifier on $\Omega$ --- the topos's $\exists$ machinery --- which the library names but does not yet expand structurally.
+The rule survives in the type system; materialising it crosses the realisation boundary.
+
+\item \textbf{Finite extensional $S$} (a \cppinline{std::set<T>} or \cppinline{std::unordered_set<T>}, lifted via \cppinline{ambient_set}): the kernel pair is finite, and its coequalizer is computed by deduplication on insertion --- by hash for \cppinline{std::unordered_set} (\cppinline{operator==} on collisions) and by ordered comparison for \cppinline{std::set} (the strict-weak-order \cppinline{Compare}).
+The trivial elementwise loop in \texttt{:extensional} is, suitably read, the operationalisation of $\mathrm{coeq}(S \times_B S \rightrightarrows S)$ on a finite carrier.
+
+\item \textbf{$\mathbb{N}$-indexed $S$} (a sequence, $f : \mathbb{N} \to T$): the universal property of the Natural Numbers Object \cite{lawvere1964elementary} determines $f$ from less data than enumeration --- a starting point $a_0 \in T$ and a step $s : T \to T$, by Peano recursion --- and the image is the orbit of $a_0$ under iterated $s$ in $T$, equivalently the smallest $s$-stable subobject of $T$ containing $a_0$.
+The library's \cppinline{Path<T>} carries this as a typed value; a path \emph{is} the transform, by construction, and never enumerates its codomain.
+\end{itemize}
+
+The three readings are not three different operations; they are the same kernel-pair-coequalizer specialised to three different shapes of $S$.
+The library exposes each shape's natural form (\texttt{Path<T>} for $\mathbb{N}$-indexed, \cppinline{Set\{element<A> | p\}} for predicates, the trivial helper in \texttt{:extensional} for finite carriers), with the categorical \texttt{image} primitive in \texttt{:category} planned to name the connection at the type level.\footnote{At the time of writing, the per-shape constructive realisations are present in their respective partitions; the categorical \texttt{image} primitive that pins the kernel-pair-coequalizer reading uniformly across them — so a single concept gates routing and CI verifies the connection — is filed as a follow-up slice.  The realisations are not duplicates of one another: they are honestly different algorithms for honestly different domain shapes, sharing the same categorical name once the upstream primitive lands.  The realisation boundary, in either case, is where the choice is made.}
+
+\paragraph{Why this matters for the listing.}
+The \emph{Intensional First} discipline says the rule lives longer than any of its realisations.
+A predicate-defined transform is a rule the type system can rewrite, prune, and compose without ever evaluating $f$.
+An $\mathbb{N}$-indexed transform is a path the type system can compose with other paths --- and again, no values are touched until the realisation boundary.
+The Juliet Posture says any user type satisfying \cppinline{IsSet} or \cppinline{IsSequence} flows through this machinery without wrapping.
+Together, the two stances put $\{f(x) \mid x \in S, p(x)\}$ --- the textbook definition that opens this section --- straight into the type system as a closed-form rule, with the three realisations standing by for the moment the rule has to land.
+
 \subsection{Structural Pruning in Practice}
 
 The payoff of the comprehension view is that the LLVM backend can \emph{prune} a
