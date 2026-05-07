@@ -21,7 +21,7 @@
  *   - The arrow @c z @c : @c 1 @c → @c N (categorical idiom)
  *     ≡  the @b zero @b axiom.
  *   - A morphism @c f @c : @c N @c → @c A determined by
- *     @c (a₀, @c g) (categorical idiom)
+ *     (@c a₀, @c g) (categorical idiom)
  *     ≡  a function defined by Peano recursion with base case @c a₀
  *        and recursive step @c g.
  *
@@ -69,7 +69,7 @@
  *     numerically-coinciding-with @f$S(x) = x + 1@f$ remark there is
  *     about the @b carrier's API, not about NNO universality.
  *   - @c numbers:natural — registers @c Cardinality as the canonical
- *     @c IsNNO witness.  This is a @c (z, @c s) pair on a specific
+ *     @c IsNNO witness.  This is a (@c z, @c s) pair on a specific
  *     carrier; the universal property it claims-to-witness is what
  *     this partition defines.
  *
