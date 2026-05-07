@@ -3,6 +3,7 @@
 #include <unordered_set>
 #include <vector>
 
+import dedekind.category;  // ambient_set / IsSet — for the lift-then-certify nugget
 import dedekind.sets;
 
 using namespace dedekind::sets;
