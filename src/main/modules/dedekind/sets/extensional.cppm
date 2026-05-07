@@ -337,90 +337,138 @@ static_assert(
 // callers that already hold std containers.
 // ---------------------------------------------------------------------------
 
-/** @brief image(f, std::unordered_set<T, ...>) — lvalue. */
+// Callable-shape note: `std::invocable<F&, const T&>` (lvalue F invocation
+// via `std::invoke`) is the correct constraint here.  Bare
+// `std::invocable<const T&>` checks rvalue-only invocation, which excludes
+// pointer-to-member callables and `operator() &&`-only callables.  All
+// loop bodies use `std::invoke(f, x)` / `std::invoke(p, x)` for the same
+// reason.
+//
+// Container-policy note: the overloads preserve Hash/Equal/Alloc (for
+// unordered_set) and Compare/Alloc (for set) when the codomain type
+// equals the domain type (i.e. when image is endomorphic on the
+// element type, and always for filter).  When image's transform changes
+// the element type (T → U with U != T), the source's hashing /
+// comparison policies are no longer applicable to U and the output
+// falls back to the default Hash / Compare / Alloc on U.
+
+/** @brief image(f, std::unordered_set<T, Hash, Equal, Alloc>) — lvalue. */
 export template <typename T, typename Hash, typename Equal, typename Alloc,
-                 std::invocable<const T&> F>
+                 typename F>
+  requires std::invocable<F&, const T&>
 constexpr auto image(F&& f,
                      const std::unordered_set<T, Hash, Equal, Alloc>& s) {
   using U = std::remove_cvref_t<std::invoke_result_t<F&, const T&>>;
-  std::unordered_set<U> out;
-  out.reserve(s.size());
-  for (const auto& x : s) out.insert(f(x));
-  return out;
+  if constexpr (std::same_as<U, T>) {
+    std::unordered_set<U, Hash, Equal, Alloc> out;
+    out.reserve(s.size());
+    for (const auto& x : s) out.insert(std::invoke(f, x));
+    return out;
+  } else {
+    std::unordered_set<U> out;
+    out.reserve(s.size());
+    for (const auto& x : s) out.insert(std::invoke(f, x));
+    return out;
+  }
 }
 
-/** @brief image(f, std::unordered_set<T, ...>) — rvalue. */
+/** @brief image(f, std::unordered_set<T, Hash, Equal, Alloc>) — rvalue. */
 export template <typename T, typename Hash, typename Equal, typename Alloc,
-                 std::invocable<const T&> F>
+                 typename F>
+  requires std::invocable<F&, const T&>
 constexpr auto image(F&& f, std::unordered_set<T, Hash, Equal, Alloc>&& s) {
   using U = std::remove_cvref_t<std::invoke_result_t<F&, const T&>>;
-  std::unordered_set<U> out;
-  out.reserve(s.size());
-  for (const auto& x : s) out.insert(f(x));
-  return out;
+  if constexpr (std::same_as<U, T>) {
+    std::unordered_set<U, Hash, Equal, Alloc> out;
+    out.reserve(s.size());
+    for (const auto& x : s) out.insert(std::invoke(f, x));
+    return out;
+  } else {
+    std::unordered_set<U> out;
+    out.reserve(s.size());
+    for (const auto& x : s) out.insert(std::invoke(f, x));
+    return out;
+  }
 }
 
-/** @brief image(f, std::set<T, ...>) — lvalue. */
-export template <typename T, typename Compare, typename Alloc,
-                 std::invocable<const T&> F>
+/** @brief image(f, std::set<T, Compare, Alloc>) — lvalue. */
+export template <typename T, typename Compare, typename Alloc, typename F>
+  requires std::invocable<F&, const T&>
 constexpr auto image(F&& f, const std::set<T, Compare, Alloc>& s) {
   using U = std::remove_cvref_t<std::invoke_result_t<F&, const T&>>;
-  std::set<U> out;
-  for (const auto& x : s) out.insert(f(x));
-  return out;
+  if constexpr (std::same_as<U, T>) {
+    std::set<U, Compare, Alloc> out;
+    for (const auto& x : s) out.insert(std::invoke(f, x));
+    return out;
+  } else {
+    std::set<U> out;
+    for (const auto& x : s) out.insert(std::invoke(f, x));
+    return out;
+  }
 }
 
-/** @brief image(f, std::set<T, ...>) — rvalue. */
-export template <typename T, typename Compare, typename Alloc,
-                 std::invocable<const T&> F>
+/** @brief image(f, std::set<T, Compare, Alloc>) — rvalue. */
+export template <typename T, typename Compare, typename Alloc, typename F>
+  requires std::invocable<F&, const T&>
 constexpr auto image(F&& f, std::set<T, Compare, Alloc>&& s) {
   using U = std::remove_cvref_t<std::invoke_result_t<F&, const T&>>;
-  std::set<U> out;
-  for (const auto& x : s) out.insert(f(x));
-  return out;
+  if constexpr (std::same_as<U, T>) {
+    std::set<U, Compare, Alloc> out;
+    for (const auto& x : s) out.insert(std::invoke(f, x));
+    return out;
+  } else {
+    std::set<U> out;
+    for (const auto& x : s) out.insert(std::invoke(f, x));
+    return out;
+  }
 }
 
-/** @brief filter(p, std::unordered_set<T, ...>) — lvalue. */
+/** @brief filter(p, std::unordered_set<T, Hash, Equal, Alloc>) — lvalue.
+ *
+ *  @details Filter is always endomorphic on the element type, so the
+ *  source's Hash/Equal/Alloc are preserved unconditionally. */
 export template <typename T, typename Hash, typename Equal, typename Alloc,
-                 std::predicate<const T&> P>
+                 typename P>
+  requires std::predicate<P&, const T&>
 constexpr auto filter(P&& p,
                       const std::unordered_set<T, Hash, Equal, Alloc>& s) {
-  std::unordered_set<T, Hash, Equal> out;
+  std::unordered_set<T, Hash, Equal, Alloc> out;
   for (const auto& x : s) {
-    if (p(x)) out.insert(x);
+    if (std::invoke(p, x)) out.insert(x);
   }
   return out;
 }
 
-/** @brief filter(p, std::unordered_set<T, ...>) — rvalue. */
+/** @brief filter(p, std::unordered_set<T, Hash, Equal, Alloc>) — rvalue. */
 export template <typename T, typename Hash, typename Equal, typename Alloc,
-                 std::predicate<const T&> P>
+                 typename P>
+  requires std::predicate<P&, const T&>
 constexpr auto filter(P&& p, std::unordered_set<T, Hash, Equal, Alloc>&& s) {
-  std::unordered_set<T, Hash, Equal> out;
+  std::unordered_set<T, Hash, Equal, Alloc> out;
   for (const auto& x : s) {
-    if (p(x)) out.insert(x);
+    if (std::invoke(p, x)) out.insert(x);
   }
   return out;
 }
 
-/** @brief filter(p, std::set<T, ...>) — lvalue. */
-export template <typename T, typename Compare, typename Alloc,
-                 std::predicate<const T&> P>
+/** @brief filter(p, std::set<T, Compare, Alloc>) — lvalue. */
+export template <typename T, typename Compare, typename Alloc, typename P>
+  requires std::predicate<P&, const T&>
 constexpr auto filter(P&& p, const std::set<T, Compare, Alloc>& s) {
-  std::set<T, Compare> out;
+  std::set<T, Compare, Alloc> out;
   for (const auto& x : s) {
-    if (p(x)) out.insert(x);
+    if (std::invoke(p, x)) out.insert(x);
   }
   return out;
 }
 
-/** @brief filter(p, std::set<T, ...>) — rvalue. */
-export template <typename T, typename Compare, typename Alloc,
-                 std::predicate<const T&> P>
+/** @brief filter(p, std::set<T, Compare, Alloc>) — rvalue. */
+export template <typename T, typename Compare, typename Alloc, typename P>
+  requires std::predicate<P&, const T&>
 constexpr auto filter(P&& p, std::set<T, Compare, Alloc>&& s) {
-  std::set<T, Compare> out;
+  std::set<T, Compare, Alloc> out;
   for (const auto& x : s) {
-    if (p(x)) out.insert(x);
+    if (std::invoke(p, x)) out.insert(x);
   }
   return out;
 }
