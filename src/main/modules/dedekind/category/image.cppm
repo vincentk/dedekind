@@ -10,9 +10,9 @@
  * @section image__Motivation
  *
  * Lifts the @em image role to first-class concept status, completing
- * the kernel-pair / coequalizer naming chain set up in @c :pullback:
+ * the kernel-pair / parallel-pair naming chain set up in @c :pullback:
  *
- *   @c IsKernelPair @c → @c IsCoequalizer @c → @c IsImageOf
+ *   @c IsKernelPair @c → @c IsParallelPair @c → @c IsImageOf
  *
  * For an arrow @c F @c : @c A @c → @c B, the @b image @c Im(F) is the
  * coequalizer of the kernel pair of @c F:
@@ -32,8 +32,10 @@
  * @em subobject @em of @em codomain (mono part of the factorisation)
  * — are isomorphic in a topos.  This partition pins the
  * @b mono-side reading as @c IsImageOf<S, F>: @c S is a Subobject of
- * @c Cod<F>.  The dual quotient-side reading is named in
- * @c :pullback as @c IsCoequalizer.
+ * @c Cod<F>.  The dual quotient-side reading awaits an @c IsQuotient
+ * sister to @c IsSubobject; until then @c :pullback names only the
+ * structural input shape ( @c IsParallelPair) rather than a
+ * not-yet-pinnable @c IsCoequalizer.
  *
  * @section image__Structural_vs_Universal
  *
@@ -43,7 +45,7 @@
  *   - @c S is a Subobject of @c Cod<F> ( @c IsSubobject<S, @c Cod<F>>).
  *
  * What @c IsImageOf @b cannot pin (engineer's honesty obligation, as
- * for @c IsNNO and @c IsCoequalizer):
+ * for @c IsNNO):
  *
  *   - That @c S is the @b smallest such subobject (universality of the
  *     image factorisation),
@@ -110,9 +112,8 @@ namespace dedekind::category {
  *
  * The universality (smallest such subobject; canonical epi-mono
  * factorisation @c F @c = @c m @c ∘ @c e) is the engineer's honesty
- * obligation, as for @c IsNNO and @c IsCoequalizer.  C++ concepts
- * cannot quantify over the universal property; they pin the
- * operational signature only.
+ * obligation, as for @c IsNNO.  C++ concepts cannot quantify over
+ * the universal property; they pin the operational signature only.
  *
  * @tparam S The candidate image species (a Subobject of @c Cod<F>).
  * @tparam F The arrow whose image @c S claims to realise.
