@@ -383,20 +383,26 @@ static_assert(embed_𝔹_ℕ_(false) == finite_cardinality(0),
 static_assert(embed_𝔹_ℕ_(true) == finite_cardinality(1),
               "embed_𝔹_ℕ_(true)  = 1 in the variant ℕ-proxy carrier.");
 
-// Set-level lift: image of a Singleton<true, _> bool-set under
-// 𝔹 ↪ ℕ is the Singleton in ℕ at @c finite_cardinality(1).  Uses
-// the existing @c image(F, SingletonSet) overload from
+// Set-level lift witnesses: @c embed_𝔹_ℕ on @c SingletonSet<true>
+// lands at @c finite_cardinality(1), and on @c SingletonSet<false>
+// at @c finite_cardinality(0).  Both pinned at the @b value level so
+// the pivot equality is constant-evaluated, not just the codomain
+// type (the type-only form would only check that we land in some
+// @c SingletonSet<Cardinality>, not which inhabitant).  Uses the
+// existing @c image(F, SingletonSet) overload from
 // @c sets:singleton; the named @c embed_𝔹_ℕ surface delegates
-// through it.  Witness pinned at the type level so a downstream
-// per-shape generalisation (extensional std-containers, lazy
-// predicate sets in #602 layer 2) can extend the dispatch table
-// without touching this anchor.
+// through it.  Sister anchor to PR #626's @c embed_𝔹_𝕂3 witness in
+// @c :boolean --- same shape, different codomain.
 static_assert(
-    std::same_as<decltype(embed_𝔹_ℕ(
-                     dedekind::sets::SingletonSet<bool, ClassicalLogic>{true})),
-                 dedekind::sets::SingletonSet<Cardinality, ClassicalLogic>>,
-    "embed_𝔹_ℕ(Singleton<true>) lands in the Singleton at "
-    "finite_cardinality(1) on the Cardinality carrier.");
+    embed_𝔹_ℕ(dedekind::sets::SingletonSet<bool, ClassicalLogic>{true}).pivot ==
+        finite_cardinality(1),
+    "embed_𝔹_ℕ(Singleton<true>) lands at finite_cardinality(1) on the "
+    "Cardinality carrier.");
+static_assert(
+    embed_𝔹_ℕ(dedekind::sets::SingletonSet<bool, ClassicalLogic>{false})
+            .pivot == finite_cardinality(0),
+    "embed_𝔹_ℕ(Singleton<false>) lands at finite_cardinality(0) on the "
+    "Cardinality carrier.");
 
 // (6) The @c std::unsigned_integral family classification (textbook
 //     @c ℤ/2^wℤ stance, the universal lift @c
