@@ -39,6 +39,7 @@ module;
 #include <concepts>
 #include <functional>
 #include <type_traits>  // std::remove_cvref_t for the post-#559 universe-witness static_asserts
+#include <utility>  // std::forward (used in embed_𝔹_𝕂3's set-level lift)
 
 export module dedekind.numbers:boolean;
 
@@ -286,10 +287,50 @@ export inline constexpr auto embed_𝔹_𝕂3_ =
                    : dedekind::category::Ternary::False;
         });
 
+/**
+ * @brief Set-level lift of @c embed_𝔹_𝕂3_: image of a Boolean set
+ *        @c S under the canonical mono 𝔹 ↪ 𝕂3.
+ *
+ * @details Layer-1 entry per #602 (sister to @c embed_𝔹_ℕ in
+ * @c :numbers:natural, PR #624).  Names the construction at the call
+ * site rather than re-spelling @c image(embed_𝔹_𝕂3_, S).  Accepted
+ * input @c S is anything @c dedekind::sets::image already dispatches
+ * on --- @c SingletonSet (@c :sets:singleton),
+ * @c std::set<bool> / @c std::unordered_set<bool> (@c :sets:extensional);
+ * lazy predicate sets join the dispatch table when #602's layer 2
+ * lands.
+ *
+ * Mathematically: the image of @c S under the canonical mono
+ * 𝔹 ↪ 𝕂3 is a subset of @c {Ternary::False, @c Ternary::True} ⊂ 𝕂3
+ * containing whichever @c bool elements are in @c S.
+ * @c Ternary::Unknown is by construction @b not in the image --- the
+ * structural reason the arrow is monic but not surjective.
+ */
+export template <typename S>
+  requires requires(S&& s) {
+    dedekind::sets::image(embed_𝔹_𝕂3_, std::forward<S>(s));
+  }
+constexpr auto embed_𝔹_𝕂3(S&& s) {
+  return dedekind::sets::image(embed_𝔹_𝕂3_, std::forward<S>(s));
+}
+
 // (5) Adjacent-set arrow: 𝔹 ↪ ℕ via @c embed_𝔹_uint_ in @c :natural.
 // This partition is upstream of @c :natural, so the witness for the
 // monic-arrow registration lives in @c :natural (registered there as
 // @c is_monic_arrow_v = true on @c embed_𝔹_uint_).
+
+// (5a) Set-level lift witness: @c embed_𝔹_𝕂3 on @c SingletonSet<true>
+// lands in @c SingletonSet<Ternary> at @c Ternary::True, exercising the
+// runtime dispatch through @c sets::image(arrow, SingletonSet) at the
+// type level.  Sister anchor to PR #624's @c embed_𝔹_ℕ witness in
+// @c :natural; same pattern, different codomain.
+static_assert(
+    std::same_as<decltype(embed_𝔹_𝕂3(
+                     dedekind::sets::SingletonSet<bool, ClassicalLogic>{true})),
+                 dedekind::sets::SingletonSet<dedekind::category::Ternary,
+                                              ClassicalLogic>>,
+    "embed_𝔹_𝕂3(Singleton<true>) lands in the Singleton at "
+    "Ternary::True on the 𝕂3 carrier.");
 
 }  // namespace dedekind::numbers
 
