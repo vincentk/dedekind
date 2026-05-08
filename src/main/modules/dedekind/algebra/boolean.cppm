@@ -102,13 +102,41 @@ using BooleanSet = BooleanSetOf<>;
 export inline constexpr UniversalSet<bool, ClassicalLogic, Finite> 𝔹 =
     sets::Ω<bool>;
 
-static_assert(
-    IsAlgebraOnSet<decltype(𝔹),             // X = decltype(𝔹) —
-                                            // the SET
-                   std::logical_and<bool>,  // ∧  ┐
-                   std::logical_or<bool>,   // ∨  ├ F = element-level ops
-                   std::logical_not<bool>   // ¬  ┘   on the carrier bool
-                   >);
+/**
+ * @concept HasPartialOrderOperators
+ * @brief @b Pure @b syntactic @b shape: T supports the partial-order
+ *        operators @c <, @c <=, @c >, @c >= with results in the
+ *        truth-value carrier @c L::Ω of a chosen logical species.
+ *
+ * @details
+ * Use this concept where a callsite needs the three logical operators
+ * to compile and yield a value in the truth-value carrier of a chosen
+ * @c IsLogicalSpecies, but does @b not want to bind to a particular
+ * logical species (classical / Boolean, ternary / Kleene, ...). No claim about
+ * reflexivity, antisymmetry, transitivity, or comparability is made
+ * here; for those, use @c IsPreOrdered / @c IsPartiallyOrdered /
+ * @c IsTotallyOrdered (the last in @c :order:total).
+ *
+ * The @c L parameter defaults to @c ClassicalLogic (so @c L::Ω is
+ * @c bool); supply a different @c IsLogicalSpecies to constrain the
+ * return type to a non-Boolean truth-value carrier (e.g.\ Kleene
+ * @c TernaryLogic).  Mirrors the @c L-parametric pattern already used
+ * by @c IsPreOrdered / @c IsPartiallyOrdered.
+ *
+ * Sibling of @c dedekind::algebra::HasRingOperators (in @c
+ * algebra:ring), @c dedekind::algebra::HasFieldOperators (in @c
+ * algebra:field), and @c HasLatticeOperators (in @c order:lattice)
+ * in the shape-concept family.  The split between @b shape and @b
+ * axiom mirrors the literal-vs-strict tier introduced under PR #394.
+ */
+export template <typename T, typename L = ClassicalLogic>
+concept HasLogicalOperators = requires(const T a, const T b) {
+  { a && b } -> std::same_as<typename L::Ω>;
+  { a || b } -> std::same_as<typename L::Ω>;
+  { !a } -> std::same_as<T>;
+};
+
+static_assert(IsAlgebraOnSet<decltype(𝔹), HasLogicalOperators<bool>>);
 
 export inline constexpr BooleanSet B{};
 

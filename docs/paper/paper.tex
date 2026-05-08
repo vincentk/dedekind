@@ -618,13 +618,9 @@ This can be type-checked against the \cppinline{IsAlgebraOnSet} concept shown in
 \caption{A type that type-checks against \cppinline{IsAlgebraOnSet} inhabits $\mathbf{Ddk}$.}
 \label{lst:algebra:universal}
 \begin{cpp}
-/** @brief An operation closes on T (either binary or unary). */
-export template <typename T, typename Op>
-concept IsOpOn = IsBinaryOpOn<T, Op> || IsUnaryOpOn<T, Op>;
-
 export template <typename X, typename... Ops>
 concept IsAlgebraOnSet =
-    requires { typename X::Domain; } &&  // HAS-A: X exposes its carrier
+    requires { typename X::Domain; } &&
     std::regular<typename X::Domain> &&
     (... && IsOpOn<typename X::Domain, Ops>);
 \end{cpp}
@@ -634,6 +630,24 @@ concept IsAlgebraOnSet =
 % Here, the intention is to elaborate using `𝔹` and `double` or `int` as case studies.
 % The former as an example of a bit-perfect bona fide algebraic set, the latter as examples of more problematic
 % cases which are surfaced by the Honest Rejection policy.
+
+% Source excerpt from dedekind.algebra:boolean.
+\begin{listing}[ht]
+\caption{Case Study: \cppinline{𝔹} is a bit-perfect algebraic set in $\mathbf{Ddk}$ by way of inhabiting $\mathbf{Jlt}$ as well as $\mathbf{Alg}(∧, ∨, ¬)$.}
+\label{lst:algebra:universal}
+\begin{cpp}
+export inline constexpr UniversalSet<bool, ClassicalLogic, Finite> 𝔹 =
+    sets::Ω<bool>;
+
+static_assert(
+    IsAlgebraOnSet<decltype(𝔹),             // X = decltype(𝔹) —
+                                            // the SET
+                   std::logical_and<bool>,  // ∧  ┐
+                   std::logical_or<bool>,   // ∨  ├ F = element-level ops
+                   std::logical_not<bool>   // ¬  ┘   on the carrier bool
+                   >);
+\end{cpp}
+\end{listing}
 
 The dash notation $\mathbf{Alg}(-)_{\beth_1}$ is the family $\bigcup_\Sigma \mathbf{Alg}(\Sigma)_{\beth_1}$ over the signatures the library names.
 Per §\ref{sec:alg-sigma}, $\Sigma$ stays unbound here, and the per-shape \cppinline{Has*Operators} concepts pin it later.

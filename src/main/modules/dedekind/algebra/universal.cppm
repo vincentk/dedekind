@@ -110,19 +110,6 @@ concept IsOpOn = IsBinaryOpOn<T, Op> || IsUnaryOpOn<T, Op>;
 // IsAlgebra: the universal-algebra (A, F) meta-pattern.
 // ---------------------------------------------------------------------------
 
-//
-//   X       — the set object (HAS-A its underlying carrier via X::Domain).
-//   X::Domain — the carrier element type (the A in BS §I.1's (A, F)).
-//   Ops...  — element-level operations on the carrier
-//             (the F; set-level ops like complement / | / & live on X
-//              itself, not in Ops, so they're never confused with F).
-//
-export template <typename X, typename... Ops>
-concept IsAlgebraOnSet =
-    requires { typename X::Domain; } &&  // HAS-A: X exposes its carrier
-    std::regular<typename X::Domain> &&
-    (... && IsOpOn<typename X::Domain, Ops>);
-
 /**
  * @concept IsAlgebra
  * @brief The universal-algebra (A, F) pattern at the closure tier.
@@ -160,6 +147,21 @@ concept IsAlgebraOnSet =
  */
 export template <typename T, typename... Ops>
 concept IsAlgebra = std::regular<T> && (... && IsOpOn<T, Ops>);
+// Should probably include HasCarrier (see below).
+
+//
+//   X       — the set object (HAS-A its underlying carrier via X::Domain).
+//   X::Domain — the carrier element type (the A in BS §I.1's (A, F)).
+//   Ops...  — element-level operations on the carrier
+//             (the F; set-level ops like complement / | / & live on X
+//              itself, not in Ops, so they're never confused with F).
+//
+export template <typename X, typename... Ops>
+concept IsAlgebraOnSet =
+    requires { typename X::Domain; } &&  // HAS-A: X exposes its carrier
+    IsAlgebra<X::Domain>;
+// std::regular<typename X::Domain> &&
+//(... && IsOpOn<typename X::Domain, Ops>);
 
 // ---------------------------------------------------------------------------
 // IsTotalAlgebra: the totality-tier anchor between :universal and :total
