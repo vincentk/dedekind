@@ -719,8 +719,8 @@ static_assert(
 // @f$\mathrm{coeq}(\mathbb{N} \times_T \mathbb{N} \rightrightarrows
 // \mathbb{N})@f$.  The kernel-pair / parallel-pair / image concepts
 // now live in @c :category — see @c IsKernelPair and @c IsParallelPair
-// in @c :pullback and @c IsImageOf in @c :image.  ( @c IsCoequalizer
-// the concept proper is on hold pending an @c IsQuotient sister to
+// in @c :pullback and @c IsImageOf in @c :image.  (The @c IsCoequalizer
+// concept proper is on hold pending an @c IsQuotient sister to
 // @c IsSubobject; @c :pullback's partition header explains why.)
 // The @c static_assert below pins the @c IsImageOf shape on @c Path<T>
 // at the type level: any subobject of @c T qualifies structurally as a
