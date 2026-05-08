@@ -75,8 +75,7 @@ struct SingletonSet {
   using Domain = T;
   using Codomain = typename L::Ω;
   using logic_species = L;
-  using cardinality_type = finite_cardinality(1);
-  using is_extensional_tag = void;
+  using cardinality_type = Finite;
   using base_set_type = SingletonSet<T, L>;
 
   /** @section singleton__Algebraic_Axioms */

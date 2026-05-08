@@ -95,7 +95,9 @@ struct is_extensional<T> : std::true_type {};
 
 /** @concept IsExtensional (The Proof) */
 export template <typename S>
-concept IsExtensional = is_extensional<S>::value;
+concept IsExtensional =
+    std::is_same_v<decltype(std::declval<const S&>().size()), std::size_t> ||
+    is_extensional<S>::value;
 
 /**
  * @concept IsEnumerated
