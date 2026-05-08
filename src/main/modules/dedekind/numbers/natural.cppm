@@ -53,6 +53,7 @@ module;
 
 #include <concepts>
 #include <functional>
+#include <utility>  // std::forward (used in embed_𝔹_ℕ's set-level lift)
 
 export module dedekind.numbers:natural;
 
@@ -162,15 +163,20 @@ export inline constexpr auto embed_𝔹_ℕ_ =
     });
 
 /**
- * @brief Set-level lift of @c embed_𝔹_ℕ_: image of an @c IsSet @c S
- *        under the canonical mono 𝔹 ↪ ℕ.
+ * @brief Set-level lift of @c embed_𝔹_ℕ_: image of a Boolean set
+ *        @c S under the canonical mono 𝔹 ↪ ℕ.
  *
  * @details Layer-1 entry per #602: names the construction at the
- * call site rather than re-spelling @c image(embed_𝔹_ℕ_, S).
- * Delegates to @c dedekind::sets::image, inheriting whatever
- * per-shape dispatch @c image already provides (Singleton on
- * @c :sets:singleton, std-containers on @c :sets:extensional;
- * lazy predicate sets when #602's layer 2 lands).
+ * call site rather than re-spelling @c image(embed_𝔹_ℕ_, S).  The
+ * accepted input @c S is anything @c dedekind::sets::image already
+ * dispatches on --- @c SingletonSet (@c :sets:singleton),
+ * @c std::set<bool> / @c std::unordered_set<bool> (@c :sets:extensional);
+ * lazy predicate sets join the dispatch table when #602's layer 2
+ * lands.  This is structurally the union of the @c IsSet
+ * universe-value carriers and the std-container carriers that
+ * @c image accepts today; the requires-clause checks well-formedness
+ * directly rather than gating through a single concept (which would
+ * exclude one or the other tier).
  *
  * Mathematically: the image of @c S under the canonical mono
  * 𝔹 ↪ ℕ is a subset of @c {0, @c 1} ⊂ @c ℕ containing whichever
