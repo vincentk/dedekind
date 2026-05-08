@@ -53,7 +53,7 @@
  */
 module;
 
-#include <bits/stl_function.h>
+#include <functional>
 
 export module dedekind.algebra:boolean;
 

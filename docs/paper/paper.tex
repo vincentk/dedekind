@@ -630,7 +630,10 @@ concept IsAlgebraOnSet =
 \end{cpp}
 \end{listing}
 
-% Intention is to elaborate using `𝔹` as and `double` or `int` as case studies.
+% Note to self:
+% Here, the intention is to elaborate using `𝔹` and `double` or `int` as case studies.
+% The former as an example of a bit-perfect bona fide algebraic set, the latter as examples of more problematic
+% cases which are surfaced by the Honest Rejection policy.
 
 The dash notation $\mathbf{Alg}(-)_{\beth_1}$ is the family $\bigcup_\Sigma \mathbf{Alg}(\Sigma)_{\beth_1}$ over the signatures the library names.
 Per §\ref{sec:alg-sigma}, $\Sigma$ stays unbound here, and the per-shape \cppinline{Has*Operators} concepts pin it later.
