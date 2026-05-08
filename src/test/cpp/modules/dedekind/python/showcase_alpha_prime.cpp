@@ -16,13 +16,16 @@
  *   5. complement-via-LEM: @c S @c ∩ @c ¬S @c = @c ∅ at compile time,
  *   6. tier elevation lands on both reductions.
  *
- * The α′ candidate listing in #603 enumerates seven nuggets; this
- * showcase ships the six that compile against current main.  The
- * remaining two — a cross-carrier @c embed_𝔹_ℕ embedding and a
- * transformation nugget @c {2x @c | @c x @c ∈ @c S} — are deferred
- * follow-ups (the embedding function is not yet reified; the
- * transformation nugget is gated on the expression-template DSL leg
- * of #603's four-leg ordering).
+ * The α′ candidate listing in #603 enumerates seven base nuggets,
+ * with an eighth @em transformation nugget @c {2x @c | @c x @c ∈ @c S}
+ * added in the 2026-05-06 design update.  This showcase ships the six
+ * that compile against current main: of the seven base nuggets, one
+ * (the cross-carrier @c embed_𝔹_ℕ embedding) is dropped because
+ * @c embed_𝔹_ℕ is not yet reified; the transformation nugget is
+ * deferred because it is gated on the expression-template DSL leg
+ * of #603's four-leg ordering.  Six ship, one is dropped, one is
+ * deferred --- eight total candidate nuggets in the design,
+ * six implemented today.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -46,7 +49,7 @@ using namespace dedekind::order;
 // (1) Rule.  Intensional ℕ-comprehension via the soft alias `in<>` (post-#620).
 //     Reads "the set of x ∈ ℕ such that x > 5" — bar, "in" on the LHS, the
 //     textbook membership shape.
-constexpr auto S = Set{in<ℕ> | (in<ℕ> > bound<5>)};
+constexpr auto S = Set{in<ℕ> | in<ℕ> > bound<5>};
 
 // ℕ = Ω<Cardinality> routes through NaturalLogic → TernaryLogic (because
 // ℵ_0 is transfinite), so `S.contains(...)` returns Ternary rather than bool;
@@ -67,7 +70,7 @@ static_assert(S.contains(7u) == NLogic::True);
 //     across `NegatedPredicate` (so `T & {<7}` would collapse to the literal
 //     interval [6, 6]) is a future DSL refinement; membership on T still
 //     constant-folds via the predicate.
-constexpr auto T = set_difference(S, Set{in<ℕ> | (in<ℕ> > bound<10>)});
+constexpr auto T = set_difference(S, Set{in<ℕ> | in<ℕ> > bound<10>});
 static_assert(T.contains(8u) == NLogic::True);    // 5 < 8 ≤ 10 ✓
 static_assert(T.contains(11u) == NLogic::False);  // 11 > 10 ✗
 
@@ -78,7 +81,7 @@ static_assert(T.contains(11u) == NLogic::False);  // 11 > 10 ✗
 //     `T & {== bound<6>}` form would land the same Singleton via the
 //     trimmed `T` and an equality-classifier reduction; both refinements
 //     are separate future slices.)
-constexpr Singleton<6> a = S & Set{in<ℕ> | (in<ℕ> < bound<7>)};
+constexpr Singleton<6> a = S & Set{in<ℕ> | in<ℕ> < bound<7>};
 
 // (5) Contradicted.  Complement-via-LEM: any S has empty meet with its
 //     complement.  `structured_and` reduces this to `Ø<Cardinality>` at

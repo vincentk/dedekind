@@ -201,6 +201,10 @@ add_library(set-pruning-ir-fixture STATIC EXCLUDE_FROM_ALL
     src/test/cpp/modules/dedekind/python/showcase_07_lattice_real_interval.cpp
     src/test/cpp/modules/dedekind/python/showcase_08_halfspace_2d_product.cpp
     src/test/cpp/modules/dedekind/python/showcase_09_lp_vertex_typed_constant.cpp
+    # showcase_alpha_prime.cpp is added for compile-time validation of the
+    # paper §3 α′ listing; it has no checked-in `.ll` fixture because its
+    # IR demo is reused from showcase_03 (the empty-meet structural pattern).
+    # See showcase_alpha_prime.cpp's header for the cross-reference.
     src/test/cpp/modules/dedekind/python/showcase_alpha_prime.cpp)
 
 set_target_properties(set-pruning-ir-fixture PROPERTIES
