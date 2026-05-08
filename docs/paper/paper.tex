@@ -900,8 +900,8 @@ static_assert(IsCompileTimeEnumerable<decltype(a)> && IsCompileTimeEnumerable<de
 \end{cpp}
 \end{listing}
 
-The generated binary contains no membership-test code for
-\cppinline{empty_meet}: the type-level contradiction rule resolves the
+The \cppinline{S & !S} collapse on line 7 of Listing~\ref{lst:pruning} generates no
+membership-test code: the type-level contradiction rule resolves the
 result to $\varnothing$ \emph{before} code generation, and the
 computability tier of $\varnothing$ is fully top
 (extensional/classical/element-in-type).
