@@ -109,42 +109,15 @@ static_assert(
                    std::logical_not<bool>   // ¬  ┘   on the carrier bool
                    >);
 
-/**
- * @concept HasLogicalOperators
- * @brief @b Pure @b syntactic @b shape: T supports the logical operators
- *        @c &&, @c ||, @c ! with @c &&, @c || returning the truth-value
- *        carrier @c L::Ω of a chosen logical species and @c ! returning
- *        @c T.
- *
- * @details
- * Use this concept where a callsite needs the three logical operators
- * to compile and yield a value in the truth-value carrier of a chosen
- * @c IsLogicalSpecies, but does @b not want to bind to a particular
- * logical species (classical / Boolean, ternary / Kleene, ...).  No claim
- * about Boolean-algebra axioms (idempotence, distributivity, complements,
- * de~Morgan) is made here; for those, witness the algebra at the
- * (A, F)-structure tier downstream.
- *
- * The @c L parameter defaults to @c ClassicalLogic (so @c L::Ω is
- * @c bool); supply a different @c IsLogicalSpecies to constrain the
- * @c &&, @c || return types to a non-Boolean truth-value carrier
- * (e.g.\ Kleene @c TernaryLogic).  Mirrors the @c L-parametric pattern
- * already used by @c IsPreOrdered / @c IsPartiallyOrdered in @c :order.
- *
- * Sibling of @c dedekind::algebra::HasRingOperators (in @c
- * algebra:ring), @c dedekind::algebra::HasFieldOperators (in @c
- * algebra:field), and @c HasLatticeOperators (in @c order:lattice)
- * in the shape-concept family.  The split between @b shape and @b
- * axiom mirrors the literal-vs-strict tier introduced under PR #394.
- */
-export template <typename T, typename L = ClassicalLogic>
-concept HasLogicalOperators = requires(const T a, const T b) {
-  { a && b } -> std::same_as<typename L::Ω>;
-  { a || b } -> std::same_as<typename L::Ω>;
-  { !a } -> std::same_as<T>;
-};
-
-static_assert(HasLogicalOperators<bool>);
+// The logical-operator shape concept already lives at the lower layer as
+// @c dedekind::category::HasLogicalOperators<T> (in @c :logic, introduced
+// under #393), as a sibling of @c HasRingOperators / @c HasFieldOperators
+// / @c HasLatticeOperators in the shape-concept family.  Reusing it here
+// rather than duplicating; the L-parametric variant (where @c && / @c ||
+// close to @c L::Ω rather than to @c T) is a future refinement that can
+// be added on top of the category-layer concept if a non-Boolean truth-
+// value carrier carrier ever calls for it.
+static_assert(dedekind::category::HasLogicalOperators<bool>);
 
 export inline constexpr BooleanSet B{};
 
