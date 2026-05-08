@@ -392,6 +392,62 @@ constexpr auto classify(F&& f) {
   return Subobject<A, std::remove_cvref_t<F>>{std::forward<F>(f)};
 }
 
+/**
+ * @concept IsQuotient
+ * @brief The categorical witness of a regular epimorphism @c q: A ↠ Q ---
+ *        the dual of @c IsSubobject.
+ *
+ * @details A quotient @c Q of @c A is given by:
+ *
+ *   - @c q.q @c : @c A @c ⟶⟶ @c Q::Class --- the regular-epi
+ *     projection onto equivalence classes,
+ *   - @c q.r @c : @c A @c × @c A @c ⟶ @c Ω --- the kernel relation
+ *     (the @em co-classifier, dual to @c χ for @c IsSubobject):
+ *     two elements @c x, @c y @c ∈ @c A are equated by @c q iff
+ *     @c r(x, y) @c = @c True.
+ *
+ * In a topos, just as every subobject is uniquely classified by a
+ * unary characteristic morphism @c χ @c : @c A @c → @c Ω (membership
+ * predicate), every regular-epi quotient is uniquely co-classified by
+ * its kernel relation @c r @c : @c A @c × @c A @c → @c Ω (binary
+ * equivalence predicate).  This concept names the dual surface so
+ * downstream concepts ( @c IsCoequalizer in @c :image, future
+ * pushouts) can constrain the quotient leg of a colimit at the type
+ * level.
+ *
+ * The @b structural shape pinned here is the operational signatures.
+ * The @em equivalence-relation laws on @c r (reflexivity, symmetry,
+ * transitivity) and the @em regular-epi universality of @c q
+ * (existence and uniqueness of the unique factoring map for any
+ * arrow that equates the kernel relation) are the engineer's honesty
+ * obligation, as for @c IsNNO and @c IsSubobject --- C++ concepts can
+ * pin shape, not the $\forall$ in the universal property.
+ *
+ * @tparam Q The Quotient Species (The "Quotient Body").
+ * @tparam A The Ambient Species (The "Source Space").
+ */
+export template <typename Q, typename A>
+concept IsQuotient = requires(Q q, A a, A b) {
+  /**
+   * @brief q: A ⟶⟶ Q::Class
+   * The regular-epi projection.  Every member of A is mapped to its
+   * equivalence class in Q.
+   */
+  { q.q(a) } -> std::same_as<typename Q::Class>;
+
+  /**
+   * @brief r: A × A ⟶ Ω
+   * The kernel relation --- co-classifier of the quotient.  Two A's are
+   * equivalent under @c q iff @c r(x, y) @c = @c True.
+   */
+  { q.r(a, b) } -> LogicalValue;
+
+  // Metadata verification: declared ambient must match A.
+  typename Q::Ambient;
+  typename Q::Class;
+  requires std::same_as<typename Q::Ambient, A>;
+};
+
 /** @brief Logical Conjunction (Intersection): Synthesizes a rule for A ∩ B.
  *  @note Textbook term: meet (∧) in the internal Heyting/Boolean algebra of Ω.
  */

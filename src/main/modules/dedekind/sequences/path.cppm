@@ -717,11 +717,11 @@ static_assert(
 // sense — is the orbit of @c a₀ under iterated @c s in @c T: the
 // smallest @c s-stable subobject of @c T containing @c a₀, equivalently
 // @f$\mathrm{coeq}(\mathbb{N} \times_T \mathbb{N} \rightrightarrows
-// \mathbb{N})@f$.  The kernel-pair / parallel-pair / image concepts
-// now live in @c :category — see @c IsKernelPair and @c IsParallelPair
-// in @c :pullback and @c IsImageOf in @c :image.  (The @c IsCoequalizer
-// concept proper is on hold pending an @c IsQuotient sister to
-// @c IsSubobject; @c :pullback's partition header explains why.)
+// \mathbb{N})@f$.  The kernel-pair / parallel-pair / coequalizer /
+// image / quotient concepts now live in @c :category --- see
+// @c IsKernelPair and @c IsParallelPair in @c :pullback,
+// @c IsImageOf and @c IsCoequalizer in @c :image, and
+// @c IsQuotient (sister to @c IsSubobject) in @c :topoi.
 // The @c static_assert below pins the @c IsImageOf shape on @c Path<T>
 // at the type level: any subobject of @c T qualifies structurally as a
 // candidate image-witness for a @c Path<T>; the concrete orbit-closure
