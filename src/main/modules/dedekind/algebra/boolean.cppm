@@ -99,15 +99,16 @@ using BooleanSet = BooleanSetOf<>;
  *  static_asserts were migrated to @c bool directly in step 1 of this
  *  PR (#559, slice 𝔹).
  */
-export inline constexpr auto 𝔹 = sets::Ω<bool>;
+export inline constexpr UniversalSet<bool, ClassicalLogic, Finite> 𝔹 =
+    sets::Ω<bool>;
 
-static_assert(IsAlgebraOnSet<
-              UniversalSet<bool, ClassicalLogic, Finite>,  // X = decltype(𝔹) —
-                                                           // the SET
-              std::logical_and<bool>,                      // ∧  ┐
-              std::logical_or<bool>,  // ∨  ├ F = element-level ops
-              std::logical_not<bool>  // ¬  ┘   on the carrier bool
-              >);
+static_assert(
+    IsAlgebraOnSet<decltype(𝔹),             // X = decltype(𝔹) —
+                                            // the SET
+                   std::logical_and<bool>,  // ∧  ┐
+                   std::logical_or<bool>,   // ∨  ├ F = element-level ops
+                   std::logical_not<bool>   // ¬  ┘   on the carrier bool
+                   >);
 
 export inline constexpr BooleanSet B{};
 
