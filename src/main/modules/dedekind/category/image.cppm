@@ -90,9 +90,12 @@
  * carriers are available ( @c sets:extensional for std-container
  * carriers; @c sequences:path for the NNO-morphism reading).
  *
- * @note "There is geometry in the humming of the strings, there is
- *        music in the spacing of the spheres."
- *       — Pythagoras, fragment.
+ * @note "ἁρμονία δὲ πολυμιγέων ἕνωσις καὶ δίχα φρονεόντων
+ *        συμφρόνησις."
+ *       ("Harmony is the unification of things many-mixed, and the
+ *        same-mindedness of things thinking-apart.")
+ *       — Philolaus of Croton, fragment B10 DK,
+ *         apud Stobaeus, @em Anthology I.21.7d.
  */
 module;
 
