@@ -53,6 +53,8 @@
  */
 module;
 
+#include <bits/stl_function.h>
+
 export module dedekind.algebra:boolean;
 
 import dedekind.category;
@@ -60,6 +62,7 @@ import dedekind.order;
 import dedekind.sets;
 
 namespace dedekind::algebra {
+using namespace dedekind::category;
 using namespace dedekind::sets;
 
 export template <typename L = dedekind::category::ClassicalLogic,
