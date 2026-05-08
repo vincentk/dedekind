@@ -717,10 +717,15 @@ static_assert(
 // sense — is the orbit of @c a₀ under iterated @c s in @c T: the
 // smallest @c s-stable subobject of @c T containing @c a₀, equivalently
 // @f$\mathrm{coeq}(\mathbb{N} \times_T \mathbb{N} \rightrightarrows
-// \mathbb{N})@f$.  The general @c image-as-coequalizer machinery in
-// @c :category is filed for a separate slice; this section pins the
-// structural reading at the @c :sequences end so CI verifies the
-// connection at the type level.
+// \mathbb{N})@f$.  The kernel-pair / parallel-pair / image concepts
+// now live in @c :category — see @c IsKernelPair and @c IsParallelPair
+// in @c :pullback and @c IsImageOf in @c :image.  (The @c IsCoequalizer
+// concept proper is on hold pending an @c IsQuotient sister to
+// @c IsSubobject; @c :pullback's partition header explains why.)
+// The @c static_assert below pins the @c IsImageOf shape on @c Path<T>
+// at the type level: any subobject of @c T qualifies structurally as a
+// candidate image-witness for a @c Path<T>; the concrete orbit-closure
+// carrier is the downstream witness slice.
 //
 // The @c using aliases below give the textbook names @b Sequence and
 // @b Net as type-level synonyms for @c Path; the @c static_asserts
@@ -773,6 +778,18 @@ using Net = Path<T>;
 static_assert(IsNet<Path<int>>,
               "Path<int> is a morphism from a directed set (ℕ): the "
               "@c IsNet structural shape that @c IsSequence refines.");
+
+// IsImageOf<S, Path<T>> structural fit: any Subobject of @c T qualifies
+// as a candidate image-witness for a @c Path<T>.  The orbit-closure
+// carrier is the downstream concrete witness; this assertion validates
+// that the concept-level fit holds at the @c :sequences boundary, so a
+// future witness can drop in without re-checking the structural shape.
+static_assert(
+    IsImageOf<decltype(classify<int>([](const int&) { return true; })),
+              Path<int>>,
+    "@c IsImageOf<S, Path<int>> is structurally well-typed for any "
+    "Subobject S of @c int: Cod<Path<int>> = int, and S is required "
+    "to be a Subobject of int.");
 
 // Sanity: the textbook-name aliases resolve to Path.
 static_assert(std::same_as<Sequence<int>, Path<int>>,

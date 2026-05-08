@@ -58,6 +58,12 @@ export import :limit;      // Universal Limits
 export import :cartesian;  // Products/Coproducts, CCC Foundations
 export import :topoi;      // Internal Logic of the Topos
 export import :pullback;   // The Universal Construction "Sink"
+export import :image;      // IsImageOf<S, F> — image of an arrow as
+                           // a structurally-named subobject of Cod<F>;
+                           // mono side of the canonical epi-mono
+                           // factorisation.  The dual quotient side
+                           // awaits an IsQuotient sister to IsSubobject;
+                           // see :pullback's partition header.
 
 // Level 1: The Ideal (Total Algebra)
 export import :total;
