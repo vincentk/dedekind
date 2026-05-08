@@ -392,6 +392,79 @@ constexpr auto classify(F&& f) {
   return Subobject<A, std::remove_cvref_t<F>>{std::forward<F>(f)};
 }
 
+/**
+ * @concept IsQuotient
+ * @brief The categorical witness of a regular epimorphism @c q: A ↠ Q ---
+ *        the dual of @c IsSubobject.
+ *
+ * @details A quotient @c Q of @c A is given by:
+ *
+ *   - @c q.q @c : @c A @c ⟶⟶ @c Q::Class --- the regular-epi
+ *     projection onto equivalence classes (an @c IsArrow),
+ *   - @c q.r @c : @c A @c × @c A @c ⟶ @c Ω --- the kernel relation
+ *     (the @em co-classifier, dual to @c χ for @c IsSubobject), pinned
+ *     as an @c IsPredicate whose domain is a product object @c IsProduct
+ *     of @c A and @c A: two elements @c x, @c y @c ∈ @c A are equated
+ *     by @c q iff @c r((x, y)) @c = @c True.
+ *
+ * In a topos, just as every subobject is uniquely classified by a
+ * unary characteristic morphism @c χ @c : @c A @c → @c Ω (membership
+ * predicate), every regular-epi quotient is uniquely co-classified by
+ * its kernel relation @c r @c : @c A @c × @c A @c → @c Ω (binary
+ * equivalence predicate over a product object).  This concept names
+ * the dual surface so downstream concepts ( @c IsCoequalizer in
+ * @c :image, future pushouts) can constrain the quotient leg of a
+ * colimit at the type level.
+ *
+ * @b Symmetry @b with @c IsSubobject: where @c IsSubobject pins
+ * @c s.χ as an @c IsPredicate with @c Dom<χ> @c = @c A,
+ * @c IsQuotient pins @c q.q as an @c IsArrow with
+ * @c Dom<q> @c = @c A and @c Cod<q> @c = @c Q::Class, and @c q.r as
+ * an @c IsPredicate over a product domain @c IsProduct<Dom<r>, A, A>.
+ * Both members are proper morphisms (carrying @c Domain / @c Codomain
+ * typedefs) so they compose with the rest of the @c :category arrow
+ * machinery uniformly --- raw callables won't satisfy this concept.
+ *
+ * The @b structural shape pinned here is the operational signatures.
+ * The @em equivalence-relation laws on @c r (reflexivity, symmetry,
+ * transitivity) and the @em regular-epi universality of @c q
+ * (existence and uniqueness of the unique factoring map for any
+ * arrow that equates the kernel relation) are the engineer's honesty
+ * obligation, as for @c IsNNO and @c IsSubobject --- C++ concepts can
+ * pin shape, not the $\forall$ in the universal property.
+ *
+ * @tparam Q The Quotient Species (The "Quotient Body").
+ * @tparam A The Ambient Species (The "Source Space").
+ */
+export template <typename Q, typename A>
+concept IsQuotient = requires(Q q) {
+  /**
+   * @brief q: A ⟶⟶ Q::Class
+   * The regular-epi projection, pinned as an @c IsArrow so it composes
+   * uniformly with the rest of @c :category.
+   */
+  { q.q } -> IsArrow;
+
+  /**
+   * @brief r: A × A ⟶ Ω
+   * The kernel relation --- co-classifier of the quotient, pinned as
+   * an @c IsPredicate over a product domain.
+   */
+  { q.r } -> IsPredicate;
+
+  // Metadata verification: declared ambient must match A.
+  typename Q::Ambient;
+  typename Q::Class;
+  requires std::same_as<typename Q::Ambient, A>;
+
+  // Arrow signatures: q : A ⟶ Q::Class.
+  requires std::same_as<Dom<decltype(q.q)>, A>;
+  requires std::same_as<Cod<decltype(q.q)>, typename Q::Class>;
+
+  // Predicate domain: r is over a product object IsProduct<Dom<r>, A, A>.
+  requires IsProduct<Dom<decltype(q.r)>, A, A>;
+};
+
 /** @brief Logical Conjunction (Intersection): Synthesizes a rule for A ∩ B.
  *  @note Textbook term: meet (∧) in the internal Heyting/Boolean algebra of Ω.
  */

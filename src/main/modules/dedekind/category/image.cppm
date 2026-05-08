@@ -1,18 +1,20 @@
 /**
  * @file dedekind/category/image.cppm
  * @partition :image
- * @brief The image of an arrow as a structurally-named subobject of its
- *        codomain — `IsImageOf<S, F>`.
+ * @brief Image-as-coequalizer-of-kernel-pair: @c IsImageOf<S, F> on the
+ *        mono side and @c IsCoequalizer<Q, F, G> on the quotient side.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
  * @section image__Motivation
  *
- * Lifts the @em image role to first-class concept status, completing
- * the kernel-pair / parallel-pair naming chain set up in @c :pullback:
+ * Hosts the canonical epi-mono factorisation chain set up by
+ * @c :pullback (kernel pair, parallel pair) and @c :topoi (subobject,
+ * quotient):
  *
- *   @c IsKernelPair @c → @c IsParallelPair @c → @c IsImageOf
+ *   @c IsKernelPair @c → @c IsParallelPair @c → @c IsCoequalizer @c → @c
+ * IsImageOf
  *
  * For an arrow @c F @c : @c A @c → @c B, the @b image @c Im(F) is the
  * coequalizer of the kernel pair of @c F:
@@ -27,15 +29,19 @@
  *   @c A @c → @c Im(F) @c → @c B
  *
  * with @c e regular-epi (the coequalizer projection) and @c m mono
- * (the inclusion of the image into the codomain).  The two readings —
- * @em quotient @em of @em domain (kernel-pair coequalizer) and
- * @em subobject @em of @em codomain (mono part of the factorisation)
- * — are isomorphic in a topos.  This partition pins the
- * @b mono-side reading as @c IsImageOf<S, F>: @c S is a Subobject of
- * @c Cod<F>.  The dual quotient-side reading awaits an @c IsQuotient
- * sister to @c IsSubobject; until then @c :pullback names only the
- * structural input shape ( @c IsParallelPair) rather than a
- * not-yet-pinnable @c IsCoequalizer.
+ * (the inclusion of the image into the codomain).  Two structurally
+ * named concepts pin the two sides:
+ *
+ *   - @b mono @b side: @c IsImageOf<S, F> --- @c S is a Subobject of
+ *     @c Cod<F> realising the image.
+ *   - @b quotient @b side: @c IsCoequalizer<Q, F, G> --- @c Q is a
+ *     Quotient of @c Cod<F> equating the parallel pair @c F, @c G.
+ *
+ * Both are co-located here in @c :image since the image-as-coequalizer
+ * reading is the structural payoff that ties them together.  The
+ * universal-property obligations (smallest such subobject, canonical
+ * factorisation, regular-epi universality of @c q) remain the
+ * engineer's honesty obligation in the @c IsNNO style.
  *
  * @section image__Structural_vs_Universal
  *
@@ -84,9 +90,12 @@
  * carriers are available ( @c sets:extensional for std-container
  * carriers; @c sequences:path for the NNO-morphism reading).
  *
- * @note "There is geometry in the humming of the strings, there is
- *        music in the spacing of the spheres."
- *       — Pythagoras, fragment.
+ * @note "ἁρμονία δὲ πολυμιγέων ἕνωσις καὶ δίχα φρονεόντων
+ *        συμφρόνησις."
+ *       ("Harmony is the unification of things many-mixed, and the
+ *        same-mindedness of things thinking-apart.")
+ *       — Philolaus of Croton, fragment B10 DK,
+ *         apud Stobaeus, @em Anthology I.21.7d.
  */
 module;
 
@@ -94,8 +103,9 @@ module;
 
 export module dedekind.category:image;
 
-import :morphism;  // For IsArrow / Cod
-import :topoi;     // For IsSubobject
+import :morphism;  // For IsArrow / Cod / Dom
+import :pullback;  // For IsParallelPair
+import :topoi;     // For IsSubobject / IsQuotient
 
 namespace dedekind::category {
 
@@ -120,5 +130,53 @@ namespace dedekind::category {
  */
 export template <typename S, typename F>
 concept IsImageOf = IsArrow<F> && IsSubobject<S, Cod<F>>;
+
+/**
+ * @concept IsCoequalizer
+ * @brief The categorical dual of @c IsEqualizer --- a Quotient of
+ *        @c Cod<F> equating two parallel arrows @c F, @c G.
+ *
+ * @details For a parallel pair @c F, @c G @c : @c A @c → @c B, the
+ * coequalizer is the smallest quotient @c Q of @c B together with a
+ * regular epi @c q @c : @c B @c → @c Q satisfying the equalising
+ * condition
+ *
+ *   @c q @c ∘ @c F @c = @c q @c ∘ @c G                 (equalising)
+ *
+ * universal among such: any other arrow @c B @c → @c X equating @c F
+ * and @c G factors uniquely through @c q.  In a topos the coequalizer
+ * is the regular-epi onto the quotient by the smallest equivalence
+ * relation containing the image of the parallel pair.
+ *
+ * Where @c IsEqualizer pins the structural shape via
+ * @c IsSubobject<E, @c Dom<F>>, the dual @c IsCoequalizer pins it via
+ * @c IsQuotient<Q, @c Cod<F>> (in @c :topoi as the dual to
+ * @c IsSubobject).  The universal property's $\forall$ ---
+ * @em existence and @em uniqueness of the unique factoring map for any
+ * arrow that equates the kernel relation, plus the equalising
+ * condition @c q∘F @c = @c q∘G --- is the engineer's honesty
+ * obligation, as for @c IsNNO.
+ *
+ * @section image__Image_as_coequalizer
+ *
+ * For a single arrow @c F @c : @c A @c → @c B with kernel pair
+ * @c π_1, @c π_2 @c : @c P @c ⇒ @c A (@c P satisfying
+ * @c IsKernelPair<P, @c F> in @c :pullback), the @em image of @c F is
+ * the coequalizer of @c (π_1, @c π_2) --- the canonical epi-mono
+ * factorisation
+ *
+ *   @c A @c → @c Im(F) @c → @c B
+ *
+ * read off as "collapse the equivalence relation 'same F-image'".
+ * The mono side @c Im(F) @c ↪ @c B is what @c IsImageOf above pins;
+ * the quotient side @c A @c ↠ @c A/~ is what @c IsCoequalizer here
+ * pins (with @c F = @c π_1, @c G = @c π_2 over the kernel pair).
+ *
+ * @tparam Q The candidate coequalizer species (a Quotient of @c Cod<F>).
+ * @tparam F The first parallel arrow @c F @c : @c A @c → @c B.
+ * @tparam G The second parallel arrow @c G @c : @c A @c → @c B.
+ */
+export template <typename Q, typename F, typename G>
+concept IsCoequalizer = IsParallelPair<F, G> && IsQuotient<Q, Cod<F>>;
 
 }  // namespace dedekind::category

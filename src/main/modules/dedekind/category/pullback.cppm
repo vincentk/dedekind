@@ -38,28 +38,20 @@
  *   concept level.
  *
  * - **Parallel pair** (`IsParallelPair<F, G>`): the structural
- *   precondition shared by an equalizer's input @b and a (future)
- *   coequalizer's input --- two arrows @c F, @c G with matching
- *   @c Dom and @c Cod.  Used here as the input shape for the
- *   image-as-coequalizer reading: the kernel pair of @c F supplies
- *   two parallel projections @c π_1, @c π_2 @c : @c P @c ⇒ @c Dom<F>,
- *   and the image is the coequalizer of that parallel pair.
+ *   precondition shared by an equalizer's input @b and a coequalizer's
+ *   input --- two arrows @c F, @c G with matching @c Dom and @c Cod.
+ *   Used here as the input shape for the image-as-coequalizer reading:
+ *   the kernel pair of @c F supplies two parallel projections
+ *   @c π_1, @c π_2 @c : @c P @c ⇒ @c Dom<F>, and the image is the
+ *   coequalizer of that parallel pair.
  *
- * The full @b coequalizer concept --- the smallest quotient of
- * @c Cod<F> that equates @c F and @c G, witnessed by a regular epi
- * @c q @c : @c Cod<F> @c → @c Q satisfying @c q∘F @c = @c q∘G ---
- * cannot yet be pinned at the C++-concept level: it requires an
- * @c IsQuotient sister to @c IsSubobject (with a "co-classifier"
- * surface), which the codebase does not yet reify.  Naming an
- * @c IsCoequalizer concept whose body is just the parallel-pair
- * precondition would overpromise; @c IsParallelPair is the honest
- * shape until the quotient surface lands.  Image of a single
- * arrow @c F still reads, mathematically, as
- * @f$\mathrm{Im}(F) @f$ @f$=@f$
- * @f$\mathrm{coeq}(\pi_1, \pi_2 : \mathrm{KernelPair}(F) \rightrightarrows
- * \mathrm{Dom}(F))@f$ --- the canonical epi-mono factorisation;
- * the @em mono side of that factorisation is what the
- * @c :image partition pins as @c IsImageOf<S, F>.
+ * The full coequalizer concept ( @c IsCoequalizer<Q, F, G> ---
+ * @c IsParallelPair<F, G> @c && @c IsQuotient<Q, @c Cod<F>>) lives
+ * in @c :image alongside @c IsImageOf, since the image-as-coequalizer
+ * reading is the structural payoff that ties the two sides of the
+ * canonical epi-mono factorisation together.  @c IsQuotient itself
+ * (the dual of @c IsSubobject, the "co-classifier" surface) lives in
+ * @c :topoi where the subobject classifier already lives.
  *
  * Wikipedia: Pullback (category theory), Equaliser (mathematics)
  *
