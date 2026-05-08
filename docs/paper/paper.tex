@@ -922,25 +922,24 @@ Together, the two stances put $\{f(x) \mid x \in S, p(x)\}$ --- the textbook def
 The payoff of the comprehension view is that the LLVM backend can \emph{prune} a
 set expression to a no-op when its predicate is statically unsatisfiable.
 
-% Source: src/test/cpp/modules/dedekind/python/showcase_03_halfspace_contradiction.cpp
+% Source: src/test/cpp/modules/dedekind/python/showcase_alpha_prime.cpp
 \begin{listing}[htbp]
-\caption{Contradictory predicates collapse to the empty-set type $\varnothing$. Uses the \cppinline{Halfspace}-NTTP DSL to pin both bounds in the type signature, so the contradiction is resolved at translation time.}
+\caption{α′ — a single listing across the §3 narrative arc \emph{rule\,→\,tested\,→\,trimmed\,→\,collapsed\,→\,contradicted\,→\,certified} on $\mathbb{N}$.  Each line is one structural reduction the compiler discharges.  The \cppinline{== L::True} membership form lifts \cppinline{Ternary} (the natural-logic species over the transfinite $\mathbb{N}$) into a \cppinline{static_assert}-eligible boolean; a halfspace-elevation refinement that carries decidability back into bare \cppinline{static_assert(S.contains(7u))} reading is on the future-DSL list.  The cardinality-1 collapse \cppinline{S & {<7}} → \cppinline{Singleton<6>} and the law-of-excluded-middle reduction \cppinline{S & !S} → $\varnothing$ are both type-level discharges; Listing~\ref{lst:pruning_ir} demonstrates the same empty-meet structural pattern at the IR level via a sibling halfspace-contradiction witness in \texttt{showcase\_03\_halfspace\_contradiction.cpp}.}
 \label{lst:pruning}
 \begin{cpp}
-constexpr auto n = element<ℕ>;
-
-// Two halfspace-structured sets, with pivots (5 and 3) carried as NTTPs.
-constexpr auto gt_5 = Set{n | (n > bound<5>)};
-constexpr auto lt_3 = Set{n | (n < bound<3>)};
-
-// Compile-time theorem: the meet IS the empty set on ℕ.
-constexpr Ø<Cardinality> empty_meet = gt_5 & lt_3;
-static_assert(empty_meet == Ø{});
+constexpr auto S = Set{in<ℕ> | in<ℕ> > bound<5>};                         // rule
+using L = decltype(S)::logic_species;                                       // ℕ → TernaryLogic
+static_assert(S.contains(7u) == L::True);                                    // tested
+constexpr auto T = set_difference(S, Set{in<ℕ> | in<ℕ> > bound<10>});        // trimmed
+static_assert(T.contains(8u) == L::True && T.contains(11u) == L::False);
+constexpr Singleton<6> a = S & Set{in<ℕ> | in<ℕ> < bound<7>};                // collapsed
+constexpr Ø<Cardinality> b = S & !S;                                         // contradicted
+static_assert(IsCompileTimeEnumerable<decltype(a)> && IsCompileTimeEnumerable<decltype(b)>);  // certified
 \end{cpp}
 \end{listing}
 
-The generated binary contains no membership-test code for
-\cppinline{empty_meet}: the type-level contradiction rule resolves the
+The \cppinline{S & !S} collapse on line 7 of Listing~\ref{lst:pruning} generates no
+membership-test code: the type-level contradiction rule resolves the
 result to $\varnothing$ \emph{before} code generation, and the
 computability tier of $\varnothing$ is fully top
 (extensional/classical/element-in-type).
