@@ -327,16 +327,16 @@ constexpr auto embed_𝔹_𝕂3(S&& s) {
 // @c SingletonSet<Ternary>, not which inhabitant).  Sister anchor
 // to PR #624's @c embed_𝔹_ℕ witness in @c :natural --- same shape,
 // different codomain.
-static_assert(
-    embed_𝔹_𝕂3(dedekind::sets::SingletonSet<bool, ClassicalLogic>{true})
-            .pivot == dedekind::category::Ternary::True,
-    "embed_𝔹_𝕂3(Singleton<true>) lands at Ternary::True on the 𝕂3 "
-    "carrier.");
-static_assert(
-    embed_𝔹_𝕂3(dedekind::sets::SingletonSet<bool, ClassicalLogic>{false})
-            .pivot == dedekind::category::Ternary::False,
-    "embed_𝔹_𝕂3(Singleton<false>) lands at Ternary::False on the 𝕂3 "
-    "carrier.");
+static_assert(embed_𝔹_𝕂3(dedekind::sets::SingletonSet<bool, ClassicalLogic>{
+                             true})
+                      .pivot == dedekind::category::Ternary::True,
+              "embed_𝔹_𝕂3(Singleton<true>) lands at Ternary::True on the 𝕂3 "
+              "carrier.");
+static_assert(embed_𝔹_𝕂3(dedekind::sets::SingletonSet<bool, ClassicalLogic>{
+                             false})
+                      .pivot == dedekind::category::Ternary::False,
+              "embed_𝔹_𝕂3(Singleton<false>) lands at Ternary::False on the 𝕂3 "
+              "carrier.");
 
 }  // namespace dedekind::numbers
 
