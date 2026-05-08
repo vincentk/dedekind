@@ -100,9 +100,9 @@ export inline constexpr auto 𝔹 = sets::Ω<bool>;
 static_assert(IsAlgebraOnSet<
               UniversalSet<bool, ClassicalLogic, Finite>,  // X = decltype(𝔹) —
                                                            // the SET
-              std::logical_and<bool>,  // ∧  ┐
-              std::logical_or<bool>,   // ∨  ├ F = element-level ops
-              std::logical_not<bool>   // ¬  ┘   on the carrier bool
+              std::logical_and<bool>,                      // ∧  ┐
+              std::logical_or<bool>,  // ∨  ├ F = element-level ops
+              std::logical_not<bool>  // ¬  ┘   on the carrier bool
               >);
 
 export inline constexpr BooleanSet B{};
