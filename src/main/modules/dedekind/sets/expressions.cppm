@@ -208,6 +208,28 @@ struct BoundScout {
 export template <auto Ambient>
 inline constexpr BoundScout<Ambient> element{};
 
+/** @brief Soft alias @c in<Ambient> for @c element<Ambient> (#603) ---
+ *  reads closer to the math @c Set{in<ℕ> @c | @c …} ≈ "the set of
+ *  @c x @c ∈ @c ℕ such that …", saves four chars per scout, and keeps
+ *  paper Listing 6 one-liner-friendly:
+ *
+ *      inline constexpr auto S = Set{in<ℕ> | (in<ℕ> > bound<5>)};
+ *
+ *  Both names alias the same @c BoundScout<Ambient> instance; new code
+ *  prefers the @c in spelling.  A hard rename is a future slice once
+ *  usage of the @c in form stabilises across the codebase.
+ *
+ *  Disambiguation note: this is a @b variable template at carrier
+ *  argument @c <Ambient>, structurally distinct from the free function
+ *  @c dedekind::category::in(x, @c S) (the ETCS membership query) ---
+ *  the two live in different namespaces and use different syntactic
+ *  shapes ( @c in<...> at type/value-as-NTTP positions vs.\
+ *  @c in(...) at call positions), so no ambiguity arises in practice.
+ *  Membership queries in the @c sets DSL idiomatically route through
+ *  @c S.contains(x) on the set value itself. */
+export template <auto Ambient>
+inline constexpr BoundScout<Ambient> in{};
+
 /** @brief The universal predicate: accepts every element of T. */
 export template <typename T>
 struct UniversalPredicate {
