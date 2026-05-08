@@ -93,7 +93,7 @@ namespace dedekind::algebra {
 //
 export template <typename X, typename... Ops>
 concept IsAlgebraOnSet =
-    requires { typename X::Domain; } &&              // HAS-A: X exposes its carrier
+    requires { typename X::Domain; } &&  // HAS-A: X exposes its carrier
     std::regular<typename X::Domain> &&
     (... && IsOpOn<typename X::Domain, Ops>);
 
