@@ -102,6 +102,13 @@ using BooleanSet = BooleanSetOf<>;
 export inline constexpr UniversalSet<bool, ClassicalLogic, Finite> 𝔹 =
     sets::Ω<bool>;
 
+static_assert(
+    IsAlgebraOnSet<decltype(𝔹),
+                   std::logical_and<bool>,  // ∧  ┐
+                   std::logical_or<bool>,   // ∨  ├ F = element-level ops
+                   std::logical_not<bool>   // ¬  ┘   on the carrier bool
+                   >);
+
 /**
  * @concept HasPartialOrderOperators
  * @brief @b Pure @b syntactic @b shape: T supports the partial-order
@@ -136,7 +143,7 @@ concept HasLogicalOperators = requires(const T a, const T b) {
   { !a } -> std::same_as<T>;
 };
 
-static_assert(IsAlgebraOnSet<decltype(𝔹), HasLogicalOperators<bool>>);
+static_assert(HasLogicalOperators<bool>);
 
 export inline constexpr BooleanSet B{};
 
