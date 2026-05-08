@@ -84,6 +84,19 @@ import dedekind.category; // IsArrow, IsSurjective (composing IsHomomorphism /
 
 namespace dedekind::algebra {
 
+//
+//   X       — the set object (HAS-A its underlying carrier via X::Domain).
+//   X::Domain — the carrier element type (the A in BS §I.1's (A, F)).
+//   Ops...  — element-level operations on the carrier
+//             (the F; set-level ops like complement / | / & live on X
+//              itself, not in Ops, so they're never confused with F).
+//
+export template <typename X, typename... Ops>
+concept IsAlgebraOnSet =
+    requires { typename X::Domain; } &&              // HAS-A: X exposes its carrier
+    std::regular<typename X::Domain> &&
+    (... && IsOpOn<typename X::Domain, Ops>);
+
 // ---------------------------------------------------------------------------
 // Operation-shape concepts: an operation closes on T (binary, unary, or one
 // of those).  Nullary operations (constants like T{}, T{1}) are not reified
