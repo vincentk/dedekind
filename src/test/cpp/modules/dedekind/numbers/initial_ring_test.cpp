@@ -308,6 +308,25 @@ TEST_CASE(
   CHECK(embed_𝔹_𝕂3_(false) != Ternary::Unknown);
 }
 
+TEST_CASE(
+    "carrier-lattice: embed_𝔹_𝕂3 (set-level lift) on Singleton<true> lands at "
+    "Singleton<Ternary::True> in 𝕂3",
+    "[carrier-lattice][boolean][kleene][embed][image]") {
+  // The per-shape dispatch (which sets::image overload to use) is
+  // resolved at compile time via template overload resolution; this
+  // test invokes the resulting code at runtime so the lambda /
+  // forwarding-reference body show up as covered for codecov.
+  // Sister of PR #624's embed_𝔹_ℕ test; same pattern, different
+  // codomain.
+  constexpr SingletonSet<bool, ClassicalLogic> s_true{true};
+  const auto image_set = embed_𝔹_𝕂3(s_true);
+  CHECK(image_set.pivot == Ternary::True);
+
+  constexpr SingletonSet<bool, ClassicalLogic> s_false{false};
+  const auto image_set_false = embed_𝔹_𝕂3(s_false);
+  CHECK(image_set_false.pivot == Ternary::False);
+}
+
 // ===========================================================================
 // (6a) embed_𝔹_ℕ_ operational behaviour (covers the lambda body for
 //      codecov; sister of embed_𝔹_uint_ landing in the variant
