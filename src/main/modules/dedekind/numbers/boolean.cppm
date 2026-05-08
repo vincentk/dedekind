@@ -319,18 +319,24 @@ constexpr auto embed_𝔹_𝕂3(S&& s) {
 // monic-arrow registration lives in @c :natural (registered there as
 // @c is_monic_arrow_v = true on @c embed_𝔹_uint_).
 
-// (5a) Set-level lift witness: @c embed_𝔹_𝕂3 on @c SingletonSet<true>
-// lands in @c SingletonSet<Ternary> at @c Ternary::True, exercising the
-// runtime dispatch through @c sets::image(arrow, SingletonSet) at the
-// type level.  Sister anchor to PR #624's @c embed_𝔹_ℕ witness in
-// @c :natural; same pattern, different codomain.
+// (5a) Set-level lift witnesses: @c embed_𝔹_𝕂3 on @c SingletonSet<true>
+// lands at @c Ternary::True, and on @c SingletonSet<false> at
+// @c Ternary::False.  Both pinned at the @b value level so the
+// pivot equality is constant-evaluated, not just the codomain type
+// (the type-only form would only check that we land in some
+// @c SingletonSet<Ternary>, not which inhabitant).  Sister anchor
+// to PR #624's @c embed_𝔹_ℕ witness in @c :natural --- same shape,
+// different codomain.
 static_assert(
-    std::same_as<decltype(embed_𝔹_𝕂3(
-                     dedekind::sets::SingletonSet<bool, ClassicalLogic>{true})),
-                 dedekind::sets::SingletonSet<dedekind::category::Ternary,
-                                              ClassicalLogic>>,
-    "embed_𝔹_𝕂3(Singleton<true>) lands in the Singleton at "
-    "Ternary::True on the 𝕂3 carrier.");
+    embed_𝔹_𝕂3(dedekind::sets::SingletonSet<bool, ClassicalLogic>{true})
+            .pivot == dedekind::category::Ternary::True,
+    "embed_𝔹_𝕂3(Singleton<true>) lands at Ternary::True on the 𝕂3 "
+    "carrier.");
+static_assert(
+    embed_𝔹_𝕂3(dedekind::sets::SingletonSet<bool, ClassicalLogic>{false})
+            .pivot == dedekind::category::Ternary::False,
+    "embed_𝔹_𝕂3(Singleton<false>) lands at Ternary::False on the 𝕂3 "
+    "carrier.");
 
 }  // namespace dedekind::numbers
 
