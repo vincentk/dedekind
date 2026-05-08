@@ -69,11 +69,10 @@ using namespace dedekind::category;
  * Wikipedia: Bounded lattice
  */
 export template <typename S>
-concept IsBoundedLattice =
-    dedekind::category::IsSetLattice<S> && requires(S s) {
-      { s.lower_bound() } -> std::same_as<typename S::Domain>;  // The Bottom
-      { s.upper_bound() } -> std::same_as<typename S::Domain>;  // The Top
-    };
+concept IsBoundedLattice = IsSetLattice<S> && requires(S s) {
+  { s.lower_bound() } -> std::same_as<typename S::Domain>;  // The Bottom
+  { s.upper_bound() } -> std::same_as<typename S::Domain>;  // The Top
+};
 
 /**
  * @concept IsMereologicalLattice
@@ -85,64 +84,46 @@ concept IsBoundedLattice =
  * determine if two parts share a common 'Individual'.
  */
 export template <typename S, typename L = ClassicalLogic>
-concept IsMereologicalLattice = dedekind::category::IsSetLattice<S> &&
-                                IsPartOf<S, S, L> && requires(S a, S b) {
-                                  // Closure witness: join/meet expressions must
-                                  // be well-formed.
-                                  { a | b };
-                                  { a & b };
+concept IsMereologicalLattice =
+    IsSetLattice<S> && IsPartOfRelation<S, S, typename L::Ω> &&
+    requires(S a, S b) {
+      // Closure witness: join/meet expressions must
+      // be well-formed.
+      { a | b };
+      { a & b };
 
-                                  // TODO:
-                                  // We move the "Equality" check to a Logical
-                                  // Equivalence: Does (a | b) represent the
-                                  // same subobject as b if a <= b? (This is
-                                  // handled by your internal logic, not the C++
-                                  // grammar).
-                                  //
-                                  // 1. Consistency Axiom: (a <= b) <=> (a | b
-                                  // == b)
-                                  //{ (a | b) == b } ->
-                                  // std::convertible_to<typename L::type>;
+      // TODO:
+      // We move the "Equality" check to a Logical
+      // Equivalence: Does (a | b) represent the
+      // same subobject as b if a <= b? (This is
+      // handled by your internal logic, not the C++
+      // grammar).
+      //
+      // 1. Consistency Axiom: (a <= b) <=> (a | b
+      // == b)
+      //{ (a | b) == b } ->
+      // std::convertible_to<typename L::type>;
 
-                                  // 2. Overlap Axiom: Meet with an empty set is
-                                  // detectable. If the intersection (a & b)
-                                  // results in an empty set, it must be
-                                  // equivalent to the Initial Object Ø.
-                                  //{ (a & b) == a } ->
-                                  // std::convertible_to<typename L::type>;
+      // 2. Overlap Axiom: Meet with an empty set is
+      // detectable. If the intersection (a & b)
+      // results in an empty set, it must be
+      // equivalent to the Initial Object Ø.
+      //{ (a & b) == a } ->
+      // std::convertible_to<typename L::type>;
 
-                                  /**
-                                   * @section mereology__The_Absorption_Proofs
-                                   * These laws anchor the duality of the
-                                   * Monadic Push (|) and the Comonadic Pull
-                                   * (&).
-                                   */
-                                  // Axiom 1: a ∪ (a ∩ b) = a
-                                  //{ (a | (a & b)) == a } ->
-                                  // std::convertible_to<typename L::type>;
+      /**
+       * @section mereology__The_Absorption_Proofs
+       * These laws anchor the duality of the
+       * Monadic Push (|) and the Comonadic Pull
+       * (&).
+       */
+      // Axiom 1: a ∪ (a ∩ b) = a
+      //{ (a | (a & b)) == a } ->
+      // std::convertible_to<typename L::type>;
 
-                                  // Axiom 2: a ∩ (a ∪ b) = a
-                                  //{ (a & (a | b)) == a } ->
-                                  // std::convertible_to<typename L::type>;
-                                };
-
-/**
- * @concept IsExtensionalLattice
- * @brief The Axiom of Identity: Wholes are identical iff they have the same
- * parts.
- *
- * @details
- * This is the 'Soul' of Set Theory. It transforms a Lattice into a
- * recognizable 'Collection'.
- *
- * Theorem: (a == b) <=> (a <= b && b <= a)
- */
-export template <typename S, typename L = ClassicalLogic>
-concept IsExtensionalLattice =
-    IsMereologicalLattice<S, L> && IsExtensional<S> && requires(S a, S b) {
-      { (a == b) } -> std::convertible_to<typename L::Ω>;
-      // The Proof: Equality is equivalent to Mutual Parthood.
-      requires requires { (a <= b && b <= a) == (a == b); };
+      // Axiom 2: a ∩ (a ∪ b) = a
+      //{ (a & (a | b)) == a } ->
+      // std::convertible_to<typename L::type>;
     };
 
 /**
@@ -190,7 +171,8 @@ concept IsSystem = IsBoundedLattice<S> && requires {
    * This anchors membership as the Characteristic Morphism:
    * Body(Species::element)
    */
-  requires IsProperPart<typename Species::Domain, typename S::Domain, L>;
+  requires IsPartOfRelation<typename Species::Domain, typename S::Domain,
+                            typename L::Ω>;
 
   /** @requirement All inhabitants share the same mereological context. */
   requires std::same_as<typename S::Domain::ambient_species, Species>;

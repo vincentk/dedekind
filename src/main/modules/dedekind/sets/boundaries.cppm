@@ -63,9 +63,28 @@ namespace dedekind::sets {
 
 /** @brief ∅: The Initial Object. Extensional (Size 0). */
 export template <typename T, typename L = ClassicalLogic>
-struct Ø final : Boundaries {
+struct Ø final {
+  // ~ arrow / morphism / subobject classifier jargon
   using Domain = T;
   using Codomain = typename L::Ω;
+  // ~ set expressions jargon:
+  using Ambient = T;
+
+  // ~ topoi jargon;
+  /** @brief Member-shape mirror of Subobject's: every element of T
+   *  is a member of U via the always-True classifier; the wrapper
+   *  carries the T-value the IsSubobject contract reads back through ι. */
+  struct Member {
+    T value;
+  };
+
+  /** @brief ι: U ↣ T — the canonical identity inclusion.
+   *  Every member of the universal set is by construction an element
+   *  of the ambient T; ι unwraps the Member's T-value. */
+  constexpr T ι(const Member& m) const { return m.value; }
+
+  static const Ø χ;
+
   using logic_species = L;
   using cardinality_type = Finite;
   using is_extensional_tag = void;
@@ -136,39 +155,27 @@ struct Ø final : Boundaries {
   constexpr std::size_t upper_bound() const { return 0; }
 
   // Ø | S = S
-  // Note: blocked for the parameter-free form `Ø<AnyDomain>` (i.e. `Ø{}`) —
-  // that form is a comparison-only tag; using it in a meet/join would
-  // silently propagate `AnyDomain` as the result carrier, which is almost
-  // never what the caller meant. Spell the carrier explicitly instead.
   template <typename S>
-    requires(!std::same_as<T, AnyDomain>)
+    requires(IsSet<S>)
   constexpr auto operator|(const S& s) const {
     return s;
   }
   // Ø & S = Ø
   template <typename S>
-    requires(!std::same_as<T, AnyDomain>)
+    requires(IsSet<S>)
   constexpr auto operator&(const S&) const {
     return *this;
   }
   // Ø ^ S = S  (∅ △ S = S; #469)
-  // Same AnyDomain block as | / & above.
   template <typename S>
-    requires(!std::same_as<T, AnyDomain>)
+    requires(IsSet<S>)
   constexpr auto operator^(const S& s) const {
     return s;
   }
 };
 
-/**
- * @brief Deduction guide: `Ø{}` (no template args) resolves to `Ø<>`.
- *
- * Enables paper-quality listings like `static_assert(s == Ø{});` without
- * forcing the reader to spell out carrier / logic species. The cross-type
- * `operator==` on `Ø` makes `Ø<AnyDomain, ClassicalLogic>` equal to any
- * other `Ø<T2, L2>`, so the comparison is semantically "is s the empty set?"
- */
-Ø() -> Ø<>;
+template <typename T, typename L>
+inline constexpr Ø<T, L> Ø<T, L>::χ{};
 
 /**
  * @struct UniversalSet
@@ -188,9 +195,28 @@ struct Ø final : Boundaries {
  * pre-#551 surface had.
  */
 export template <typename T, typename L = ClassicalLogic, typename C = ℵ_0>
-struct UniversalSet final : Boundaries {
+struct UniversalSet final {
+  // ~ arrow / morphism / subobject classifier jargon
   using Domain = T;
   using Codomain = typename L::Ω;
+  // ~ set expressions jargon:
+  using Ambient = T;
+
+  // ~ topoi jargon;
+  /** @brief Member-shape mirror of Subobject's: every element of T
+   *  is a member of U via the always-True classifier; the wrapper
+   *  carries the T-value the IsSubobject contract reads back through ι. */
+  struct Member {
+    T value;
+  };
+
+  /** @brief ι: U ↣ T — the canonical identity inclusion.
+   *  Every member of the universal set is by construction an element
+   *  of the ambient T; ι unwraps the Member's T-value. */
+  constexpr T ι(const Member& m) const { return m.value; }
+
+  static const UniversalSet χ;
+
   using cardinality_type = C;
   using base_set_type = UniversalSet<T, L, C>;
   using is_universal_boundary = void;
@@ -267,6 +293,9 @@ struct UniversalSet final : Boundaries {
   }
 };
 
+template <typename T, typename L, typename C>
+inline constexpr UniversalSet<T, L, C> UniversalSet<T, L, C>::χ{};
+
 /** @brief The universal-predicate value at carrier @c T (subobject-classifier
  *         reading per #551).
  *
@@ -301,12 +330,19 @@ template <typename T, typename L, typename C>
 struct is_extensional<UniversalSet<T, L, C>>
     : std::bool_constant<C::is_finite> {};
 
-static_assert(
-    dedekind::category::IsSet<decltype(ambient_set<int>(UniversalSet<int>{}))>,
-    "The universal boundary must lift to an ETCS set object.");
-static_assert(dedekind::category::IsSet<decltype(ambient_set<int>(Ø<int>{}))>,
+static_assert(IsSet<decltype(UniversalSet<int>{})>,
+              "The universal boundary must lift to an ETCS set object.");
+
+static_assert(IsSet<decltype(ambient_set<int>(UniversalSet<int>{}))>,
+              "The universal boundary must lift to an ETCS set object.");
+
+static_assert(IsSet<decltype(Ø<int>{})>,
               "The empty boundary must lift to an ETCS set object.");
-static_assert(dedekind::category::HasCanonicalSetCCC<int>,
+
+static_assert(IsSet<decltype(ambient_set<int>(Ø<int>{}))>,
+              "The empty boundary must lift to an ETCS set object.");
+
+static_assert(HasCanonicalSetCCC<int>,
               "Breadcrumb to :cartesian: boundary ambient int has canonical "
               "CCC witness.");
 

@@ -104,11 +104,6 @@ struct SingletonSet {
 
   /** @section singleton__Mereological_Relation (sqsubseteq) */
 
-  // 1. Manual definition to satisfy: { a <= b } -> typename L::Ω
-  constexpr typename L::Ω operator<=(const SingletonSet& other) const {
-    return (pivot == other.pivot) ? L::True : L::False;
-  }
-
   // 2. Manual equality for IsExtensional
   constexpr bool operator==(const SingletonSet& other) const {
     return pivot == other.pivot;
@@ -120,16 +115,9 @@ struct SingletonSet {
 
   // S1 <= S2 (Is S1 a part of S2?)
   template <typename S>
+    requires IsSet<S>
   constexpr typename L::Ω operator<=(const S& other) const {
-    // If it's another singleton, compare pivots
-    if constexpr (requires { other.pivot; }) {
-      return (pivot == other.pivot) ? L::True : L::False;
-    }
-    // If it's the Universal Set, it's always true
-    if constexpr (std::is_base_of_v<Boundaries, S>) {
-      return other(*this);  // Let the boundary decide (Ω returns True)
-    }
-    return L::False;
+    return (other.contains(pivot)) ? L::True : L::False;
   }
 
   /** @section singleton__Mereological_Lattice_Audit */

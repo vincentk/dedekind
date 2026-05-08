@@ -131,7 +131,7 @@ struct MembershipBinding {
    *  @c !b) routing into it.
    */
   template <auto OtherAmbient>
-    requires std::same_as<element_of_t<Species>, bool> &&
+    requires std::same_as<typename Species::Domain::Type, bool> &&
              std::same_as<typename BoundScout<OtherAmbient>::T, bool>
   constexpr auto operator|(const BoundScout<OtherAmbient>&) const {
     return Comprehension<Species, BooleanEqPredicate>{base,
@@ -161,7 +161,7 @@ struct MembershipBinding {
 export template <auto Ambient>
 struct BoundScout {
   using AmbientType = std::remove_cvref_t<decltype(Ambient)>;
-  using T = element_of_t<AmbientType>;
+  using T = typename AmbientType::Domain;
   using is_variable = void;
   static constexpr AmbientType ambient = Ambient;
 
@@ -206,6 +206,7 @@ struct BoundScout {
  *  get a scout that ranges over the universal predicate at carrier
  *  @c T.  */
 export template <auto Ambient>
+//  requires IsSet<Ambient>
 inline constexpr BoundScout<Ambient> element{};
 
 /** @brief Soft alias @c in<Ambient> for @c element<Ambient> (#603) ---
