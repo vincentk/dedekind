@@ -53,6 +53,7 @@ module;
 
 #include <concepts>
 #include <functional>
+#include <utility>  // std::forward (used in embed_𝔹_ℕ's set-level lift)
 
 export module dedekind.numbers:natural;
 
@@ -143,6 +144,51 @@ concept Monoid_ℕ =
  */
 export inline constexpr auto embed_𝔹_uint_ =
     arrow<bool, unsigned>([](const bool& b) noexcept { return b ? 1u : 0u; });
+
+/**
+ * @brief Canonical embedding 𝔹 ↪ ℕ: bool → Cardinality.
+ * @details False maps to @c finite_cardinality(0), True to
+ *          @c finite_cardinality(1).
+ *
+ * Sister arrow to @c embed_𝔹_uint_ above; this one lands in the
+ * @c Cardinality carrier (the canonical @c IsNatural witness of
+ * @c ℕ in the set-builder layer) directly, without routing through
+ * the machine-width @c unsigned proxy.  Filed against #602 layer 1
+ * (the set-level lift @c embed_𝔹_ℕ below uses this arrow to delegate
+ * through the existing @c sets::image dispatch).
+ */
+export inline constexpr auto embed_𝔹_ℕ_ =
+    arrow<bool, Cardinality>([](const bool& b) noexcept -> Cardinality {
+      return finite_cardinality(b ? 1 : 0);
+    });
+
+/**
+ * @brief Set-level lift of @c embed_𝔹_ℕ_: image of a Boolean set
+ *        @c S under the canonical mono 𝔹 ↪ ℕ.
+ *
+ * @details Layer-1 entry per #602: names the construction at the
+ * call site rather than re-spelling @c image(embed_𝔹_ℕ_, S).  The
+ * accepted input @c S is anything @c dedekind::sets::image already
+ * dispatches on --- @c SingletonSet (@c :sets:singleton),
+ * @c std::set<bool> / @c std::unordered_set<bool> (@c :sets:extensional);
+ * lazy predicate sets join the dispatch table when #602's layer 2
+ * lands.  This is structurally the union of the @c IsSet
+ * universe-value carriers and the std-container carriers that
+ * @c image accepts today; the requires-clause checks well-formedness
+ * directly rather than gating through a single concept (which would
+ * exclude one or the other tier).
+ *
+ * Mathematically: the image of @c S under the canonical mono
+ * 𝔹 ↪ ℕ is a subset of @c {0, @c 1} ⊂ @c ℕ containing whichever
+ * @c bool elements are in @c S.
+ */
+export template <typename S>
+  requires requires(S&& s) {
+    dedekind::sets::image(embed_𝔹_ℕ_, std::forward<S>(s));
+  }
+constexpr auto embed_𝔹_ℕ(S&& s) {
+  return dedekind::sets::image(embed_𝔹_ℕ_, std::forward<S>(s));
+}
 
 /**
  * @brief Canonical injection from `std::unsigned_integral` into any
@@ -328,6 +374,30 @@ static_assert(N(-7) == ClassicalLogic::False,
 // (downstream), as @c embed_uint_sint_; the canonical variant-layer
 // ℕ @c ↪ @c ℤ embedding is @c lift_ℕ_ℤ_ (also in @c :integer).
 
+// (5a) Value- and set-level witnesses for @c embed_𝔹_ℕ_ — the variant-
+// layer canonical mono 𝔹 ↪ ℕ landing directly in @c Cardinality.
+// Filed against #602 layer 1: the set-level lift is the entry-point
+// example called out in the issue's acceptance criteria.
+static_assert(embed_𝔹_ℕ_(false) == finite_cardinality(0),
+              "embed_𝔹_ℕ_(false) = 0 in the variant ℕ-proxy carrier.");
+static_assert(embed_𝔹_ℕ_(true) == finite_cardinality(1),
+              "embed_𝔹_ℕ_(true)  = 1 in the variant ℕ-proxy carrier.");
+
+// Set-level lift: image of a Singleton<true, _> bool-set under
+// 𝔹 ↪ ℕ is the Singleton in ℕ at @c finite_cardinality(1).  Uses
+// the existing @c image(F, SingletonSet) overload from
+// @c sets:singleton; the named @c embed_𝔹_ℕ surface delegates
+// through it.  Witness pinned at the type level so a downstream
+// per-shape generalisation (extensional std-containers, lazy
+// predicate sets in #602 layer 2) can extend the dispatch table
+// without touching this anchor.
+static_assert(
+    std::same_as<decltype(embed_𝔹_ℕ(
+                     dedekind::sets::SingletonSet<bool, ClassicalLogic>{true})),
+                 dedekind::sets::SingletonSet<Cardinality, ClassicalLogic>>,
+    "embed_𝔹_ℕ(Singleton<true>) lands in the Singleton at "
+    "finite_cardinality(1) on the Cardinality carrier.");
+
 // (6) The @c std::unsigned_integral family classification (textbook
 //     @c ℤ/2^wℤ stance, the universal lift @c
 //     embed_uint_ℕ, the @c Modular<N> / @c IsCyclic
@@ -397,4 +467,12 @@ inline constexpr bool
 static_assert(
     IsInjective<std::decay_t<decltype(dedekind::numbers::embed_𝔹_uint_)>>,
     "embed_𝔹_uint_ (𝔹 ↪ ℕ) is registered injective.");
+
+template <>
+inline constexpr bool
+    is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_𝔹_ℕ_)>> =
+        true;
+static_assert(
+    IsInjective<std::decay_t<decltype(dedekind::numbers::embed_𝔹_ℕ_)>>,
+    "embed_𝔹_ℕ_ (𝔹 ↪ ℕ via Cardinality) is registered injective.");
 }  // namespace dedekind::category
