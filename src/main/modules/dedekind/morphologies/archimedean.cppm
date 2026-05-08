@@ -185,7 +185,7 @@ static_assert(IsArchimedeanField<double>,
  * proof of @c image's behaviour on the cardinality-1 case:
  *
  *   (i)   @c image is defined for @c IsArrow inputs.
- *   (ii)  Tier preservation: cardinality 1 ↦ 1, @c IsExtensional 
+ *   (ii)  Tier preservation: cardinality 1 ↦ 1, @c IsExtensional
  *         preserved on the codomain side.
  *   (iii) Kleisli factoring: @c image(f, @c s) is the cardinality-1
  *         instance of the powerset-monad bind @c s @c >>= @c (η @c ∘ @c f),

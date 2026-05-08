@@ -306,8 +306,9 @@ constexpr auto image(
 // `morphologies:archimedean` (the natural home for Peano-successor
 // witnesses).  The structural claims pinned there:
 //   (i)   `image` is defined for @c IsArrow inputs.
-//   (ii)  Tier preservation: cardinality 1 ↦ 1, @c IsExtensional preserved on the codomain side.
-//   (iii) Kleisli factoring: @c image(f, s) == @c (s @c >>= @c (η @c ∘ @c f))
+//   (ii)  Tier preservation: cardinality 1 ↦ 1, @c IsExtensional preserved on
+//   the codomain side. (iii) Kleisli factoring: @c image(f, s) == @c (s @c >>=
+//   @c (η @c ∘ @c f))
 //         — the cardinality-1 instance of the powerset-monad bind.
 // Placing the witness downstream lets us avoid contaminating
 // @c :singleton with its own assertion machinery (per PR #604 review).

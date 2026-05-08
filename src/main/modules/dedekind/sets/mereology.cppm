@@ -230,7 +230,7 @@ struct is_extensional<T> : std::true_type {};
 
 /** @concept IsExtensional (The Proof) */
 export template <typename S>
-concept IsExtensional = is_extensional<S>::value; 
+concept IsExtensional = is_extensional<S>::value;
 
 /**
  * @concept IsEnumerated
@@ -245,7 +245,7 @@ concept IsExtensional = is_extensional<S>::value;
  * @tparam L The Subobject Classifier (Ω). Defaults to ClassicalLogic.
  */
 export template <typename S, typename L = ClassicalLogic>
-concept IsEnumerated = IsExtensional<S> &&requires(const S s) {
+concept IsEnumerated = IsExtensional<S> && requires(const S s) {
   typename S::Domain;
   requires dedekind::category::IsSet<
       decltype(dedekind::category::ambient_set<typename S::Domain>(s))>;
