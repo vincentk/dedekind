@@ -53,13 +53,17 @@
  */
 module;
 
+#include <functional>
+
 export module dedekind.algebra:boolean;
 
 import dedekind.category;
 import dedekind.order;
 import dedekind.sets;
+import :universal;
 
 namespace dedekind::algebra {
+using namespace dedekind::category;
 using namespace dedekind::sets;
 
 export template <typename L = dedekind::category::ClassicalLogic,
@@ -95,7 +99,25 @@ using BooleanSet = BooleanSetOf<>;
  *  static_asserts were migrated to @c bool directly in step 1 of this
  *  PR (#559, slice 𝔹).
  */
-export inline constexpr auto 𝔹 = sets::Ω<bool>;
+export inline constexpr UniversalSet<bool, ClassicalLogic, Finite> 𝔹 =
+    sets::Ω<bool>;
+
+static_assert(
+    IsAlgebraOnSet<decltype(𝔹),
+                   std::logical_and<bool>,  // ∧  ┐
+                   std::logical_or<bool>,   // ∨  ├ F = element-level ops
+                   std::logical_not<bool>   // ¬  ┘   on the carrier bool
+                   >);
+
+// The logical-operator shape concept already lives at the lower layer as
+// @c dedekind::category::HasLogicalOperators<T> (in @c :logic, introduced
+// under #393), as a sibling of @c HasRingOperators / @c HasFieldOperators
+// / @c HasLatticeOperators in the shape-concept family.  Reusing it here
+// rather than duplicating; the L-parametric variant (where @c && / @c ||
+// close to @c L::Ω rather than to @c T) is a future refinement that can
+// be added on top of the category-layer concept if a non-Boolean truth-
+// value carrier carrier ever calls for it.
+static_assert(dedekind::category::HasLogicalOperators<bool>);
 
 export inline constexpr BooleanSet B{};
 

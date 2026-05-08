@@ -187,7 +187,10 @@ collapse.
 \noindent A subsidiary observation we offer alongside: working in the disciplined subset of C++23 the paper develops carries a striking resemblance, by structural analogy (§\ref{sec:jlt}), to using \texttt{clang++} as a System~F type-checker, with optimised machine code emerging as a side effect rather than from a separate compilation step.  We name the resemblance because the body's exhibits invite it; a formal correspondence is not in scope.
 \end{abstract}
 
+% Table of contents is just a convenience during editing. It will be removed before submission.
+\newpage
 \tableofcontents
+\newpage
 
 \vspace{0.75em}
 \noindent\textbf{Keywords:} C++23; concepts; non-type template
@@ -607,10 +610,45 @@ static_assert(!IsAssociative<bool, std::logical_and<bool>>);
 \label{sec:cpp-stlc-mapping}
 
 The \texttt{dedekind} types and combinators are the inhabitants of $\mathbf{Jlt} \cap \mathbf{Alg}(-)_{\beth_1}$.
-These are C++23 types in the disciplined fragment $\mathbf{Jlt}$ (§\ref{sec:jlt}) that simultaneously carry universal-algebra structure $\mathbf{Alg}(\Sigma)$ (§\ref{sec:alg-sigma}) for some signature $\Sigma$ the carrier supplies operators for, with the size restriction from §\ref{sec:alg-sigma} carried through.
+These are C++23 types and values in the disciplined fragment $\mathbf{Jlt}$ (§\ref{sec:jlt}) that simultaneously carry universal-algebra structure $\mathbf{Alg}(\Sigma)$ (§\ref{sec:alg-sigma}) for some signature $\Sigma$ the carrier supplies operators for, with the size restriction from §\ref{sec:alg-sigma} carried through.
+This can be type-checked against the \cppinline{IsAlgebraOnSet} concept shown in Listing~\ref{lst:algebra:universal}.
+
+% Source excerpt from dedekind.algebra:universal.
+\begin{listing}[ht]
+\caption{A type that type-checks against \cppinline{IsAlgebraOnSet} inhabits $\mathbf{Ddk}$.}
+\label{lst:algebra:universal}
+\begin{cpp}
+export template <typename X, typename... Ops>
+concept IsAlgebraOnSet = IsAlgebra<typename X::Domain, Ops...>;
+\end{cpp}
+\end{listing}
+
+% Note to self:
+% Here, the intention is to elaborate using `𝔹` and `double` or `int` as case studies.
+% The former as an example of a bit-perfect bona fide algebraic set, the latter as examples of more problematic
+% cases which are surfaced by the Honest Rejection policy.
+
+% Source excerpt from dedekind.algebra:boolean.
+\begin{listing}[ht]
+\caption{Case Study: \cppinline{𝔹} is a bit-perfect algebraic set in $\mathbf{Ddk}$ by way of inhabiting $\mathbf{Jlt}$ as well as $\mathbf{Alg}(∧, ∨, ¬)$.}
+\label{lst:algebra:boolean_case}
+\begin{cpp}
+export inline constexpr UniversalSet<bool, ClassicalLogic, Finite> 𝔹 =
+    sets::Ω<bool>;
+
+static_assert(
+    IsAlgebraOnSet<decltype(𝔹),             // X = decltype(𝔹) —
+                                            // the SET
+                   std::logical_and<bool>,  // ∧  ┐
+                   std::logical_or<bool>,   // ∨  ├ F = element-level ops
+                   std::logical_not<bool>   // ¬  ┘   on the carrier bool
+                   >);
+\end{cpp}
+\end{listing}
+
 The dash notation $\mathbf{Alg}(-)_{\beth_1}$ is the family $\bigcup_\Sigma \mathbf{Alg}(\Sigma)_{\beth_1}$ over the signatures the library names.
 Per §\ref{sec:alg-sigma}, $\Sigma$ stays unbound here, and the per-shape \cppinline{Has*Operators} concepts pin it later.
-The intersection is small and that is the point.
+The intersection is controlled and small and that is the point.
 
 \paragraph{Honest Rejection: the headline policy.}
 $\mathbf{Ddk}$ ships with a few carriers certified safe by default but refuses many other things at the gate.
