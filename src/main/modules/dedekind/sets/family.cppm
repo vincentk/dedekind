@@ -51,8 +51,7 @@ export module dedekind.sets:family;
 
 import dedekind.category;
 
-import :boundaries;
-import :singleton;
+import :mereology;
 
 using namespace dedekind::category;
 
@@ -64,61 +63,27 @@ namespace dedekind::sets {
 
 /** @section family__Set_Type_Erasure */
 
-export template <typename Species, typename L = ClassicalLogic>
-using AnySetOver = std::variant<Ø<Species, L>, UniversalSet<Species, L>,
-                                SingletonSet<element_of_t<Species>, L>>;
-/**
- * @class Family
- * @brief A realized collection of sets (A "Set of Sets") over a common Species.
+/** @brief A @b set @b family: a set whose elements are themselves sets,
+ *  all sharing the same ambient species @c Species.
  *
- * @details
- * In the Dedekind architecture, a Family is the extensional realization of a
- * mereological 'System'. It acts as a container for parts of a specific
- * Ambient Species, satisfying the IsSystem concept.
+ *  Detects "F is set-shaped (has @c Domain) AND F::Domain is set-shaped
+ *  (has its own @c Domain) AND F::Domain::Domain is @c Species" — i.e.
+ *  one level of nesting, common-species-uniform.
  *
- * Unlike a raw collection, a Family is a Bounded Lattice where the
- * extreme points—the Empty Set and the Universal Set—serve as the
- * structural Identities for Union and Intersection.
+ *  Matches @c Set<Set<Species, L, P>, L, λ> (the return type of
+ *  @c power_set), and any other carrier whose elements are
+ *  @c Domain-typedef-bearing carriers over @c Species.
  *
- * @section family__Semantic_Role
- * - An element of a Family is itself an IsSet (e.g., SingletonSet).
- * - A Family over Species X is bounded by the Power Set P(X).
- * - It provides the context for Topos-aware set operations.
- *
- * @tparam Species The underlying domain (e.g., Integers) that all
- *                 member sets must inhabit.
- * @tparam L The Subobject Classifier (Ω) governing the truth logic
- *           of the member sets. Defaults to ClassicalLogic.
- *
- * @see dedekind.ontology:IsSystem
- * @see dedekind.sets:EmptySet
- * @see dedekind.sets:UniversalSet
+ *  Does NOT match the legacy @c Family<Species, L>::Domain =
+ *  @c AnySetOver = @c std::variant<…> — the variant has no
+ *  @c Domain typedef. Replacing @c Family with this concept-gated
+ *  form is exactly the migration this concept enables.
  */
-export template <typename Species, typename L = ClassicalLogic>
-struct Family {
-  // Implies a type-erased interface for member sets, but we can still enforce
-  // the IsSet concept at runtime.
-  using Domain = AnySetOver<Species, L>;
+template <typename F>
+concept IsSetFamily =
+    IsSystem<F, typename F::Domain> && IsSet<F> && IsSet<typename F::Domain>;
 
-  static constexpr auto bottom() { return Ø<Species, L>{}; }
-  static constexpr auto top() { return UniversalSet<Species, L>{}; }
-
-  // ... Implementation of Lattice operators ...
-};
-
-static_assert(
-    dedekind::category::IsSet<
-        decltype(dedekind::category::ambient_set<int>(Family<int>::bottom()))>,
-    "Family::bottom() must lift to an ETCS set object.");
-static_assert(
-    dedekind::category::IsSet<
-        decltype(dedekind::category::ambient_set<int>(Family<int>::top()))>,
-    "Family::top() must lift to an ETCS set object.");
-static_assert(dedekind::category::HasCanonicalSetCCC<AnySetOver<int>>,
-              "Breadcrumb to :cartesian: family ambient variant has canonical "
-              "CCC witness.");
-
-// FIXME:
+//
 // static_assert(IsSystem<Family<int>, int>, "Family must satisfy IsSystem.");
 
 }  // namespace dedekind::sets
