@@ -215,20 +215,30 @@ inline constexpr BoundScout<Ambient> element{};
  *
  *      inline constexpr auto S = Set{in<ℕ> | (in<ℕ> > bound<5>)};
  *
- *  Both names alias the same @c BoundScout<Ambient> instance; new code
- *  prefers the @c in spelling.  A hard rename is a future slice once
- *  usage of the @c in form stabilises across the codebase.
+ *  This is a @b reference variable template binding @c in<Ambient> to
+ *  the same @c BoundScout<Ambient> instance as @c element<Ambient> ---
+ *  not a parallel default-constructed instance.  Address equality
+ *  ( @c &in<A> @c == @c &element<A>) is verified by the
+ *  @c static_assert below.  New code prefers the @c in spelling; a
+ *  hard rename is a future slice once usage stabilises.
  *
- *  Disambiguation note: this is a @b variable template at carrier
- *  argument @c <Ambient>, structurally distinct from the free function
- *  @c dedekind::category::in(x, @c S) (the ETCS membership query) ---
- *  the two live in different namespaces and use different syntactic
- *  shapes ( @c in<...> at type/value-as-NTTP positions vs.\
- *  @c in(...) at call positions), so no ambiguity arises in practice.
- *  Membership queries in the @c sets DSL idiomatically route through
- *  @c S.contains(x) on the set value itself. */
+ *  Disambiguation: this is a variable template at value-as-NTTP
+ *  position ( @c in<Ambient>), structurally distinct from the ETCS
+ *  free function @c dedekind::category::in(x, @c S) at call position.
+ *  The two live in different namespaces and use different syntactic
+ *  shapes, so no ambiguity arises in practice.  Membership queries in
+ *  the @c sets DSL idiomatically route through @c S.contains(x) on
+ *  the set value itself. */
 export template <auto Ambient>
-inline constexpr BoundScout<Ambient> in{};
+inline constexpr BoundScout<Ambient> const& in = element<Ambient>;
+
+// True-alias witness: @c in<A> and @c element<A> are the same object
+// (the reference variable template binds rather than default-
+// constructs).  Validates the docstring claim and pins the soft-
+// alias contract at the type level.
+static_assert(&in<UniversalSet<bool>{}> == &element<UniversalSet<bool>{}>,
+              "in<Ambient> is a reference alias for element<Ambient>: "
+              "same address, same instance.");
 
 /** @brief The universal predicate: accepts every element of T. */
 export template <typename T>
