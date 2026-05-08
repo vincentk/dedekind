@@ -309,6 +309,43 @@ TEST_CASE(
 }
 
 // ===========================================================================
+// (6a) embed_𝔹_ℕ_ operational behaviour (covers the lambda body for
+//      codecov; sister of embed_𝔹_uint_ landing in the variant
+//      Cardinality carrier directly per #602 layer 1, PR #624).
+// ===========================================================================
+
+TEST_CASE(
+    "carrier-lattice: embed_𝔹_ℕ_ maps true to finite_cardinality(1) and false "
+    "to finite_cardinality(0) (𝔹 ↪ ℕ via the variant Cardinality carrier)",
+    "[carrier-lattice][boolean][cardinality][embed]") {
+  CHECK(embed_𝔹_ℕ_(true) == finite_cardinality(1));
+  CHECK(embed_𝔹_ℕ_(false) == finite_cardinality(0));
+  // ℵ_0 (the saturating sentinel for transfinite cardinalities) is by
+  // construction NOT in the image of the canonical embedding — it
+  // models values past the representable range, which 𝔹 does not
+  // reach.  This negative fact is the structural reason the arrow is
+  // monic but not surjective.
+  CHECK(embed_𝔹_ℕ_(true) != Cardinality{ℵ_0{}});
+  CHECK(embed_𝔹_ℕ_(false) != Cardinality{ℵ_0{}});
+}
+
+TEST_CASE(
+    "carrier-lattice: embed_𝔹_ℕ (set-level lift) on Singleton<true> lands at "
+    "Singleton<finite_cardinality(1)> in ℕ",
+    "[carrier-lattice][boolean][cardinality][embed][image]") {
+  // Set-level lift exercises the runtime dispatch through
+  // dedekind::sets::image(arrow, SingletonSet) — covers the
+  // forwarding-reference body for codecov.
+  constexpr SingletonSet<bool, ClassicalLogic> s_true{true};
+  const auto image_set = embed_𝔹_ℕ(s_true);
+  CHECK(image_set.pivot == finite_cardinality(1));
+
+  constexpr SingletonSet<bool, ClassicalLogic> s_false{false};
+  const auto image_set_false = embed_𝔹_ℕ(s_false);
+  CHECK(image_set_false.pivot == finite_cardinality(0));
+}
+
+// ===========================================================================
 // (7) Carrier-lattice lift unification (#455): existential-proof
 //     dispatch on the central (Cardinality, SignedCardinality) pair.
 // ===========================================================================
