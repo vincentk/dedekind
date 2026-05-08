@@ -25,7 +25,7 @@
  * In this implementation both are realised as `Subobject` species whose
  * characteristic morphism χ encodes the membership predicate.
  *
- * @section pullback__Kernel_Pair_and_Coequalizer_dual
+ * @section pullback__Kernel_Pair_and_Parallel_Pair
  * Two structurally-named extensions of the above, anchoring the
  * @em image-as-coequalizer-of-kernel-pair reading the §3 paper outline
  * (`Functions on Sets: Filtering and Transforming`) refers to:
@@ -37,25 +37,29 @@
  *   alias exists to give the kernel-pair role its textbook name at the
  *   concept level.
  *
- * - **Coequalizer** (`IsCoequalizer<Q, F, G>`): the categorical dual of
- *   `IsEqualizer`.  Where the equalizer is the largest @em subobject
- *   of @c Dom<F> on which two parallel arrows agree, the coequalizer
- *   is the smallest @em quotient of @c Cod<F> that equates them.
- *   Image of a single arrow @c F is the coequalizer of its kernel
- *   pair: @f$\mathrm{Im}(F) @f$ @f$=@f$
- *   @f$\mathrm{coeq}(\pi_1, \pi_2 : \mathrm{KernelPair}(F) \rightrightarrows
- *   \mathrm{Dom}(F))@f$, the canonical epi-mono factorisation reading.
+ * - **Parallel pair** (`IsParallelPair<F, G>`): the structural
+ *   precondition shared by an equalizer's input @b and a (future)
+ *   coequalizer's input --- two arrows @c F, @c G with matching
+ *   @c Dom and @c Cod.  Used here as the input shape for the
+ *   image-as-coequalizer reading: the kernel pair of @c F supplies
+ *   two parallel projections @c π_1, @c π_2 @c : @c P @c ⇒ @c Dom<F>,
+ *   and the image is the coequalizer of that parallel pair.
  *
- * The coequalizer concept here pins only the structural-shape contract
- * (parallel arrows with matching @c Dom and @c Cod).  The universality
- * (existence and uniqueness of the unique factoring map for any
- * equalising arrow) is the engineer's honesty obligation, as for
- * @c IsNNO --- C++ concepts cannot quantify over the universal
- * property's $\forall$, only over the structural shape.  The dual side
- * (an `IsQuotient` sister to `IsSubobject`) is not yet reified in the
- * codebase; until it is, the @em quotient half of "Q is a quotient of
- * Cod<F>" lives as documentation rather than as a type-level
- * constraint.
+ * The full @b coequalizer concept --- the smallest quotient of
+ * @c Cod<F> that equates @c F and @c G, witnessed by a regular epi
+ * @c q @c : @c Cod<F> @c → @c Q satisfying @c q∘F @c = @c q∘G ---
+ * cannot yet be pinned at the C++-concept level: it requires an
+ * @c IsQuotient sister to @c IsSubobject (with a "co-classifier"
+ * surface), which the codebase does not yet reify.  Naming an
+ * @c IsCoequalizer concept whose body is just the parallel-pair
+ * precondition would overpromise; @c IsParallelPair is the honest
+ * shape until the quotient surface lands.  Image of a single
+ * arrow @c F still reads, mathematically, as
+ * @f$\mathrm{Im}(F) @f$ @f$=@f$
+ * @f$\mathrm{coeq}(\pi_1, \pi_2 : \mathrm{KernelPair}(F) \rightrightarrows
+ * \mathrm{Dom}(F))@f$ --- the canonical epi-mono factorisation;
+ * the @em mono side of that factorisation is what the
+ * @c :image partition pins as @c IsImageOf<S, F>.
  *
  * Wikipedia: Pullback (category theory), Equaliser (mathematics)
  *
@@ -214,8 +218,10 @@ concept IsEqualizer =
  *
  * The @b image of an arrow @c F is the coequalizer of @c F's kernel
  * pair (the canonical epi-mono factorisation of @c F), which is the
- * structural payoff this naming sets up.  See the @c IsCoequalizer
- * concept below.
+ * structural payoff this naming sets up.  The kernel pair's
+ * projections @c π_1, @c π_2 form an @c IsParallelPair (below) on
+ * @c Dom<F>; the coequalizer-of-parallel-pair half awaits an
+ * @c IsQuotient surface (see the partition header).
  *
  * @tparam P The candidate kernel-pair species (a Subobject of
  *           @c Dom<F> @c × @c Dom<F>).
@@ -225,52 +231,47 @@ export template <typename P, typename F>
 concept IsKernelPair = IsPullback<P, F, F>;
 
 /**
- * @concept IsCoequalizer
- * @brief The categorical dual of @c IsEqualizer --- a quotient of
- *        @c Cod<F> that equates two parallel arrows @c F, @c G.
+ * @concept IsParallelPair
+ * @brief @c F and @c G are a parallel pair of arrows --- shared
+ *        @c Dom and shared @c Cod.
  *
- * @details For parallel arrows @c F, @c G @c : @c A @c → @c B, the
- * coequalizer is the smallest quotient @c Q of @c B together with
- * a regular epi @c q @c : @c B @c → @c Q satisfying
+ * @details The structural precondition shared by an @em equalizer's
+ * input ( @c IsEqualizer<E, @c F, @c G> via the @c IsSubobject leg
+ * above) and a (future) @em coequalizer's input.  Used here as the
+ * shape of the kernel pair's two projections @c π_1, @c π_2 @c :
+ * @c KernelPair(F) @c ⇒ @c Dom<F> --- the input to the
+ * image-as-coequalizer reading.
  *
- *   @c q @c ∘ @c F @c = @c q @c ∘ @c G                 (equalising)
+ * @b Why @b not @c IsCoequalizer here?
+ * A coequalizer concept proper would constrain a @em quotient
+ * witness @c Q (with a regular epi @c q @c : @c Cod<F> @c → @c Q
+ * satisfying @c q∘F @c = @c q∘G), dual to how @c IsEqualizer
+ * constrains a @em subobject witness @c E via @c IsSubobject.
+ * That requires an @c IsQuotient sister to @c IsSubobject which
+ * the codebase has not yet reified.  Naming an @c IsCoequalizer
+ * concept whose body checked only parallel-arrow shape would
+ * overpromise (a downstream caller could read the name as a
+ * verified coequalizer when only the input shape was checked) ---
+ * so the structurally-honest shape lives here as
+ * @c IsParallelPair, and the @c IsCoequalizer name is reserved for
+ * the future @c Q-witnessed concept.
  *
- * and universal among such: any other @c B @c → @c X equating @c F
- * and @c G factors uniquely through @c q.  In a topos the
- * coequalizer is the regular-epi onto the quotient by the smallest
- * equivalence relation containing the image of the parallel pair.
+ * Mathematically, image-as-coequalizer still holds: for an arrow
+ * @c F @c : @c A @c → @c B with kernel pair
+ * @c π_1, @c π_2 @c : @c P @c ⇒ @c A,
  *
- * Where @c IsEqualizer pins the structural shape via
- * @c IsSubobject<E, @c Dom<F>>, the dual @c IsCoequalizer would pin
- * @c Q via an @em IsQuotient sister concept --- which the codebase
- * does not yet reify.  Until it does, the structural shape pinned
- * here is the @em parallel-arrow precondition; the @em quotient
- * half lives as documentation.  This is consistent with @c IsNNO's
- * approach: the structural shape is what the type system can pin;
- * the universal property (existence and uniqueness of the unique
- * factoring map) is the engineer's honesty obligation.
+ *   @c Im(F) @c = @c coeq(π_1, π_2) @c
  *
- * @section pullback__Image_as_coequalizer
- * For a single arrow @c F @c : @c A @c → @c B with kernel pair
- * @c π_1, @c π_2 @c : @c P @c ⇒ @c A (@c P satisfying
- * @c IsKernelPair<P, @c F> above), the @em image of @c F is the
- * coequalizer of @c (π_1, @c π_2) --- the canonical epi-mono
- * factorisation
+ * the canonical epi-mono factorisation @c A @c → @c Im(F) @c → @c B.
+ * The @em mono side ( @c Im(F) @c ↪ @c B) is what the @c :image
+ * partition pins as @c IsImageOf<S, F>; the @em quotient side
+ * awaits @c IsQuotient.
  *
- *   @c A @c → @c Im(F) @c → @c B
- *
- * read off as "collapse the equivalence relation 'same F-image'".
- * This is the structural definition of image referenced by the §3
- * paper outline (Functions on Sets: Filtering and Transforming).
- *
- * @tparam Q The candidate coequalizer species (target quotient of
- *           @c Cod<F>); structurally not yet pinnable beyond
- *           parallel-arrow preconditions, see above.
- * @tparam F The first parallel arrow @c F @c : @c A @c → @c B.
- * @tparam G The second parallel arrow @c G @c : @c A @c → @c B.
+ * @tparam F The first arrow @c F @c : @c A @c → @c B.
+ * @tparam G The second arrow @c G @c : @c A @c → @c B.
  */
-export template <typename Q, typename F, typename G>
-concept IsCoequalizer =
+export template <typename F, typename G>
+concept IsParallelPair =
     IsArrow<F> && IsArrow<G> && std::same_as<Dom<F>, Dom<G>> &&
     std::same_as<Cod<F>, Cod<G>>;
 
