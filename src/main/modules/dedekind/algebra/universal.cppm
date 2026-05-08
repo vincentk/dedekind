@@ -157,9 +157,7 @@ concept IsAlgebra = std::regular<T> && (... && IsOpOn<T, Ops>);
 //              itself, not in Ops, so they're never confused with F).
 //
 export template <typename X, typename... Ops>
-concept IsAlgebraOnSet =
-    requires { typename X::Domain; } &&  // HAS-A: X exposes its carrier
-    IsAlgebra<X::Domain>;
+concept IsAlgebraOnSet = IsAlgebra<typename X::Domain>;
 // std::regular<typename X::Domain> &&
 //(... && IsOpOn<typename X::Domain, Ops>);
 
