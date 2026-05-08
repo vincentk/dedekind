@@ -61,68 +61,6 @@ namespace dedekind::sets {
 using namespace dedekind::category;
 
 /**
- * FIXME: workaround. This signature should later be removed as
- * part of the ETCS refactor.
- *
- * @brief The Mereological Part-Whole relation (sqsubseteq).
- * @details Returns true (in Ω) if S1 is a symbolic part of S2.
- *          Supported encodings are aligned with category:mereology:
- *          `p <= w`, `w(p)`, and `w[p]`.
- *          Example: Integers <= Reals.
- */
-export template <typename S1, typename S2, typename L = ClassicalLogic>
-concept IsPartOf = dedekind::category::IsPartOfRelation<S1, S2, typename L::Ω>;
-
-/** @brief The Dual / Converse of the Part-Whole relation. */
-export template <typename S1, typename S2, typename L = ClassicalLogic>
-  requires IsPartOf<S1, S2, L>
-constexpr typename L::Ω operator>=(const S2& whole, const S1& part) {
-  if constexpr (requires {
-                  { part <= whole } -> std::same_as<typename L::Ω>;
-                }) {
-    return part <= whole;  // Order-style converse
-  } else if constexpr (requires {
-                         { whole(part) } -> std::same_as<typename L::Ω>;
-                       }) {
-    return whole(part);  // Predicate-style converse
-  } else {
-    return whole[part];  // Indexer-style converse
-  }
-}
-
-/**
- * @concept IsProperPart
- * @brief The primitive binary relation: x < y (x is a part of y).
- *
- * @details
- * Membership as a Morphism. In the Dedekind universe, the presence of
- * a part within a whole is defined by the functional application y(part).
- *
- * This concept anchors the syntax for the "Characteristic Function" (Ω =
- * y(x)). While the relational syntax (x < y) is established here, the
- * structural "Soul" of the relation—including transitivity and
- * antisymmetry—is formally proven downstream in :order or :algebra.
- *
- * @tparam Part The potential subobject or element.
- * @tparam Whole The containing mereological body or species.
- * @tparam L The Subobject Classifier (Ω) governing the set's logic.
- */
-export template <typename Part, typename Whole, typename L = ClassicalLogic>
-concept IsProperPart = IsPartOf<Part, Whole, L>;
-
-// The six lattice-name aliases (IsSkewMeetSemilattice, IsSkewJoinSemilattice,
-// IsSkewLattice, IsSetMeetSemilattice, IsSetJoinSemilattice, IsSetLattice)
-// are defined in dedekind.category:mereology with set-theoretic
-// (std::bit_and/bit_or) default operators. Re-export them here to preserve
-// qualified lookup through dedekind::sets.
-export using dedekind::category::IsSkewMeetSemilattice;
-export using dedekind::category::IsSkewJoinSemilattice;
-export using dedekind::category::IsSkewLattice;
-export using dedekind::category::IsSetMeetSemilattice;
-export using dedekind::category::IsSetJoinSemilattice;
-export using dedekind::category::IsSetLattice;
-
-/**
  * @concept IsBoundedLattice
  * @brief A Lattice with a unique "Top" (1) and "Bottom" (0).
  * @details
@@ -187,19 +125,6 @@ concept IsMereologicalLattice = dedekind::category::IsSetLattice<S> &&
                                   //{ (a & (a | b)) == a } ->
                                   // std::convertible_to<typename L::type>;
                                 };
-
-/** @brief Primary trait: Is a species defined by its members? */
-export template <typename T>
-struct is_extensional : std::false_type {};
-
-// Atomic Proof: Integrals are always extensional.
-template <std::integral T>
-struct is_extensional<T> : std::true_type {};
-
-/** @concept IsExtensional (The Proof) */
-export template <typename S>
-concept IsExtensional =
-    is_extensional<S>::value || requires { typename S::is_extensional_tag; };
 
 /**
  * @concept IsExtensionalLattice
@@ -295,11 +220,17 @@ concept IsUncountable = IsCardinality<C> && !IsCountable<C>;
 export template <typename C>
 concept IsFiniteMagnitude = IsCountable<C> && (C::is_finite == true);
 
-// Finite, ℵ<N>, ℵ_0, ℶ_1 are defined in :cardinality (same module).
+/** @brief Primary trait: Is a species defined by its members? */
+export template <typename T>
+struct is_extensional : std::false_type {};
 
-/** @section mereology__The_Body: The Logic of Presence */
+// Atomic Proof: Integrals are always extensional.
+template <std::integral T>
+struct is_extensional<T> : std::true_type {};
 
-/** @section mereology__The_Extent: The Logic of Realization */
+/** @concept IsExtensional (The Proof) */
+export template <typename S>
+concept IsExtensional = is_extensional<S>::value; 
 
 /**
  * @concept IsEnumerated
@@ -314,7 +245,7 @@ concept IsFiniteMagnitude = IsCountable<C> && (C::is_finite == true);
  * @tparam L The Subobject Classifier (Ω). Defaults to ClassicalLogic.
  */
 export template <typename S, typename L = ClassicalLogic>
-concept IsEnumerated = requires(const S s) {
+concept IsEnumerated = IsExtensional<S> &&requires(const S s) {
   typename S::Domain;
   requires dedekind::category::IsSet<
       decltype(dedekind::category::ambient_set<typename S::Domain>(s))>;
@@ -352,18 +283,6 @@ concept IsSymbolic = requires(const S s) {
   requires dedekind::category::IsSet<
       decltype(dedekind::category::ambient_set<typename S::Domain>(s))>;
 } && !IsEnumerated<S, L>;
-
-/**
- * @concept IsPointedSet
- * @brief A Set that has a designated "Origin" or "Identity" element.
- * Wikipedia: Pointed set
- */
-export template <typename S, typename T>
-concept IsPointedSet = requires(const S s) {
-  typename S::Domain;
-  requires dedekind::category::IsSet<
-      decltype(dedekind::category::ambient_set<typename S::Domain>(s))>;
-} && IsPointed<T, std::plus<T>>;
 
 /**
  * @section mereology__Structural_Inference

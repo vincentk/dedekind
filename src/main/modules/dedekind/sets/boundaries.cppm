@@ -61,66 +61,8 @@ using namespace dedekind::category;
  */
 namespace dedekind::sets {
 
-struct Boundaries {};
-
-/** @section boundaries__Structural_Resolution
- *
- * @c resolve_species / @c element_of_t resolve a type to its underlying
- * element type: predicate-set carriers (anything with a nested
- * @c ::Domain) project to their domain, primitive types are their own
- * elements (the @b carrier reading after #399).  Lifted from
- * @c :family to @c :boundaries so the upstream @c Variable / @c var
- * machinery in @c :expressions can use the same trait without
- * duplicating the resolution logic.
- *
- * @section boundaries__Picking_Policy_Cross_Reference
- *
- * @c element_of_t is one of @b three Domain-resolving helpers in the
- * project — see @c :morphism's "Picking policy" comment block (post-
- * #411) for the canonical decision rule.  In short:
- *
- *   * @c Dom<F> / @c Cod<F> ( @c :morphism) — for @c IsArrow-strict
- *     contexts.
- *   * @c element_of_t<S> ( @b here) — for sites that must accept @b
- *     primitive carriers as well as predicate-set carriers.  This is
- *     the only helper with a primitive fallback; per-symbol carrier
- *     migrations (post-#401 / #402 etc.) prefer this on consumer sites
- *     to avoid the "primitive doesn't satisfy @c Species::Domain"
- *     cascade.
- *   * @c MorphicBridge<signature_extractor<F>::type>::Domain ( @c
- *     :morphism) — for typed-lambda contexts without nested @c ::Domain.
- *
- * Bare @c typename @c T::Domain is acceptable only at @b producer sites
- * (where @c using @c Domain @c = @c T; is the @b defining clause), or
- * inside a @c requires that already excludes primitives.
- */
-export template <typename T>
-struct resolve_species {
-  using type = T;  // Fallback for primitives (int, bool, ...) — the carrier IS
-                   // the element.
-};
-
-export template <typename T>
-  requires requires { typename T::Domain; }
-struct resolve_species<T> {
-  using type = typename T::Domain;  // Extract from formal Species.
-};
-
-export template <typename T>
-using element_of_t = typename resolve_species<T>::type;
-
-/**
- * @brief Sentinel carrier for the parameter-free form `Ø{}`.
- *
- * Enables a deduction guide that lets listings write `Ø{}` (no type args)
- * and have it compare equal to any `Ø<T, L>`, regardless of carrier and
- * logic species. This is purely for paper-listing readability; a typed
- * empty set `Ø<int, TernaryLogic>{}` is still the underlying object of record.
- */
-struct AnyDomain {};
-
 /** @brief ∅: The Initial Object. Extensional (Size 0). */
-export template <typename T = AnyDomain, typename L = ClassicalLogic>
+export template <typename T, typename L = ClassicalLogic>
 struct Ø final : Boundaries {
   using Domain = T;
   using Codomain = typename L::Ω;

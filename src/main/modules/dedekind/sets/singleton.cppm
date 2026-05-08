@@ -218,8 +218,7 @@ constexpr auto operator^(const Set<T, L1, P>& other,
   return s ^ other;
 }
 
-static_assert(IsPointedSet<SingletonSet<int>, int> &&
-                  IsExtensional<SingletonSet<int>>,
+static_assert(IsExtensional<SingletonSet<int>>,
               "Mereology: SingletonSet must satisfy the Singleton axiom.");
 static_assert(
     dedekind::category::IsSet<
@@ -307,8 +306,7 @@ constexpr auto image(
 // `morphologies:archimedean` (the natural home for Peano-successor
 // witnesses).  The structural claims pinned there:
 //   (i)   `image` is defined for @c IsArrow inputs.
-//   (ii)  Tier preservation: cardinality 1 ↦ 1, @c IsExtensional and
-//         @c IsPointedSet preserved on the codomain side.
+//   (ii)  Tier preservation: cardinality 1 ↦ 1, @c IsExtensional preserved on the codomain side.
 //   (iii) Kleisli factoring: @c image(f, s) == @c (s @c >>= @c (η @c ∘ @c f))
 //         — the cardinality-1 instance of the powerset-monad bind.
 // Placing the witness downstream lets us avoid contaminating
