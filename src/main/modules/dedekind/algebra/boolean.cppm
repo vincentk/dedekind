@@ -60,6 +60,7 @@ export module dedekind.algebra:boolean;
 import dedekind.category;
 import dedekind.order;
 import dedekind.sets;
+import :universal;
 
 namespace dedekind::algebra {
 using namespace dedekind::category;
