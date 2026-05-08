@@ -225,10 +225,14 @@ inline constexpr BoundScout<Ambient> element{};
  *  Disambiguation: this is a variable template at value-as-NTTP
  *  position ( @c in<Ambient>), structurally distinct from the ETCS
  *  free function @c dedekind::category::in(x, @c S) at call position.
- *  The two live in different namespaces and use different syntactic
- *  shapes, so no ambiguity arises in practice.  Membership queries in
- *  the @c sets DSL idiomatically route through @c S.contains(x) on
- *  the set value itself. */
+ *  However: when @b both namespaces are pulled in via @c using
+ *  @c namespace, unqualified-lookup of the name @c in is ambiguous --
+ *  C++ name lookup happens before syntactic discrimination by argument
+ *  shape.  Call-site fix: omit @c using @c namespace
+ *  @c dedekind::category and spell category names fully qualified, or
+ *  reach for the @c sets::in<...> qualified form.  Membership queries
+ *  in the @c sets DSL idiomatically route through @c S.contains(x) on
+ *  the set value itself, sidestepping the conflict. */
 export template <auto Ambient>
 inline constexpr BoundScout<Ambient> const& in = element<Ambient>;
 

@@ -200,7 +200,8 @@ add_library(set-pruning-ir-fixture STATIC EXCLUDE_FROM_ALL
     src/test/cpp/modules/dedekind/python/showcase_06_halfspace_interval_42.cpp
     src/test/cpp/modules/dedekind/python/showcase_07_lattice_real_interval.cpp
     src/test/cpp/modules/dedekind/python/showcase_08_halfspace_2d_product.cpp
-    src/test/cpp/modules/dedekind/python/showcase_09_lp_vertex_typed_constant.cpp)
+    src/test/cpp/modules/dedekind/python/showcase_09_lp_vertex_typed_constant.cpp
+    src/test/cpp/modules/dedekind/python/showcase_alpha_prime.cpp)
 
 set_target_properties(set-pruning-ir-fixture PROPERTIES
     CXX_STANDARD 23
