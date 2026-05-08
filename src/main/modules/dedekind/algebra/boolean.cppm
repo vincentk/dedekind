@@ -110,25 +110,26 @@ static_assert(
                    >);
 
 /**
- * @concept HasPartialOrderOperators
- * @brief @b Pure @b syntactic @b shape: T supports the partial-order
- *        operators @c <, @c <=, @c >, @c >= with results in the
- *        truth-value carrier @c L::Ω of a chosen logical species.
+ * @concept HasLogicalOperators
+ * @brief @b Pure @b syntactic @b shape: T supports the logical operators
+ *        @c &&, @c ||, @c ! with @c &&, @c || returning the truth-value
+ *        carrier @c L::Ω of a chosen logical species and @c ! returning
+ *        @c T.
  *
  * @details
  * Use this concept where a callsite needs the three logical operators
  * to compile and yield a value in the truth-value carrier of a chosen
  * @c IsLogicalSpecies, but does @b not want to bind to a particular
- * logical species (classical / Boolean, ternary / Kleene, ...). No claim about
- * reflexivity, antisymmetry, transitivity, or comparability is made
- * here; for those, use @c IsPreOrdered / @c IsPartiallyOrdered /
- * @c IsTotallyOrdered (the last in @c :order:total).
+ * logical species (classical / Boolean, ternary / Kleene, ...).  No claim
+ * about Boolean-algebra axioms (idempotence, distributivity, complements,
+ * de~Morgan) is made here; for those, witness the algebra at the
+ * (A, F)-structure tier downstream.
  *
  * The @c L parameter defaults to @c ClassicalLogic (so @c L::Ω is
  * @c bool); supply a different @c IsLogicalSpecies to constrain the
- * return type to a non-Boolean truth-value carrier (e.g.\ Kleene
- * @c TernaryLogic).  Mirrors the @c L-parametric pattern already used
- * by @c IsPreOrdered / @c IsPartiallyOrdered.
+ * @c &&, @c || return types to a non-Boolean truth-value carrier
+ * (e.g.\ Kleene @c TernaryLogic).  Mirrors the @c L-parametric pattern
+ * already used by @c IsPreOrdered / @c IsPartiallyOrdered in @c :order.
  *
  * Sibling of @c dedekind::algebra::HasRingOperators (in @c
  * algebra:ring), @c dedekind::algebra::HasFieldOperators (in @c
