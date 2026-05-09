@@ -68,7 +68,7 @@ concept IsCountable = IsCardinality<C> && (C::is_countable == true);
 export template <typename C>
 concept IsUncountable = IsCardinality<C> && !IsCountable<C>;
 
-/** @concept IsFiniteMagnitude: Strictly terminating. */
+/** @concept IsFinite: Strictly terminating. */
 export template <typename C>
 concept IsFinite = IsCountable<C> && (C::is_finite == true);
 

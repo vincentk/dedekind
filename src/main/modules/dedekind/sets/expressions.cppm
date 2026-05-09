@@ -131,7 +131,7 @@ struct MembershipBinding {
    *  @c !b) routing into it.
    */
   template <auto OtherAmbient>
-    requires std::same_as<typename Species::Domain::Type, bool> &&
+    requires std::same_as<typename Species::Domain, bool> &&
              std::same_as<typename BoundScout<OtherAmbient>::T, bool>
   constexpr auto operator|(const BoundScout<OtherAmbient>&) const {
     return Comprehension<Species, BooleanEqPredicate>{base,
