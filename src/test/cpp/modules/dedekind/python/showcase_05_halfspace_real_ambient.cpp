@@ -49,10 +49,8 @@ static_assert(empty_meet == Ø{});
 // the reduced Ø carries ALL THREE — continuous carrier notwithstanding.
 static_assert(!HasDecidableMembership<decltype(gt_five)>);
 static_assert(!IsExtensional<decltype(gt_five)>);
-static_assert(!IsExtensional<decltype(gt_five)>);
 
 static_assert(HasDecidableMembership<decltype(empty_meet)>);
-static_assert(IsExtensional<decltype(empty_meet)>);
 static_assert(IsExtensional<decltype(empty_meet)>);
 
 /**

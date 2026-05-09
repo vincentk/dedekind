@@ -98,15 +98,13 @@ TEST_CASE("Pruning showcase 3: halfspace contradiction on ℕ collapses to Ø",
   constexpr auto lt_three = Set{n | (n < bound<3>)};
 
   constexpr Ø<Cardinality> empty_meet = gt_five & lt_three;
-  STATIC_CHECK(empty_meet == Ø{});
+  STATIC_CHECK(empty_meet == Ø<Cardinality>{});
 
   SECTION("Computability tiers tighten at the reduction boundary") {
     STATIC_CHECK_FALSE(HasDecidableMembership<decltype(gt_five)>);
     STATIC_CHECK_FALSE(IsExtensional<decltype(gt_five)>);
-    STATIC_CHECK_FALSE(IsExtensional<decltype(gt_five)>);
 
     STATIC_CHECK(HasDecidableMembership<decltype(empty_meet)>);
-    STATIC_CHECK(IsExtensional<decltype(empty_meet)>);
     STATIC_CHECK(IsExtensional<decltype(empty_meet)>);
   }
 }
@@ -135,7 +133,7 @@ TEST_CASE("Pruning showcase 5: halfspace meet on ℝ collapses to Ø",
   constexpr auto lt_three = Set{x | (x < bound<3.0>)};
 
   constexpr Ø<Real<double>> empty_meet = gt_five & lt_three;
-  STATIC_CHECK(empty_meet == Ø{});
+  STATIC_CHECK(empty_meet == Ø<Real<double>>{});
 
   SECTION("Continuous carrier: parents not finite, reduced Ø is finite") {
     STATIC_CHECK_FALSE(IsExtensional<decltype(gt_five)>);
@@ -158,10 +156,15 @@ TEST_CASE("Pruning showcase 6: (-21, 21] on ℤ has size 42",
   STATIC_CHECK(Iv::upper_strictness == Strictness::NonStrict);
   STATIC_CHECK(iv.size() == 42u);
 
-  SECTION("Finite and decidable but not compile-time-enumerable") {
+  SECTION("Finite and decidable; extensional under the consolidated gate") {
+    // The 2026-05-09 :sets:cardinality consolidation merged the
+    // type-level NTTP vs runtime-pivot distinction into the
+    // IsExtensional gate; OrderInterval qualifies (size() returns
+    // size_t).  The previous STATIC_CHECK_FALSE on the finer
+    // tag-based concept becomes a positive assertion under the
+    // simplified definition.
     STATIC_CHECK(HasDecidableMembership<decltype(iv)>);
     STATIC_CHECK(IsExtensional<decltype(iv)>);
-    STATIC_CHECK_FALSE(IsExtensional<decltype(iv)>);
   }
 }
 

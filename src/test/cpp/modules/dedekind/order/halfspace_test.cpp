@@ -242,20 +242,18 @@ TEST_CASE("order:halfspace — OrderInterval size across strictness pairs",
   }
 }
 
-TEST_CASE("order:halfspace — Singleton satisfies all three computability tiers",
+TEST_CASE("order:halfspace — Singleton satisfies the consolidated tiers",
           "[order][halfspace][singleton][computability]") {
-  // Sets-level concepts from dedekind.sets:computability, instantiated on
-  // order-level types. The sets test target cannot import dedekind.order,
-  // so these downstream conformance checks live here.
+  // Sets-level concepts (HasDecidableMembership in :sets:computability,
+  // IsExtensional in :sets:cardinality post-2026-05-09 consolidation),
+  // instantiated on order-level types. The sets test target cannot
+  // import dedekind.order, so these downstream conformance checks live
+  // here.
   STATIC_CHECK(HasDecidableMembership<Singleton<42>>);
   STATIC_CHECK(IsExtensional<Singleton<42>>);
-  STATIC_CHECK(IsExtensional<Singleton<42>>);
 
-  SECTION(
-      "TernaryLogic variant: finite + compile-time-enumerable but not "
-      "decidable") {
+  SECTION("TernaryLogic variant: extensional but not decidable") {
     STATIC_CHECK_FALSE(HasDecidableMembership<Singleton<42, TernaryLogic>>);
-    STATIC_CHECK(IsExtensional<Singleton<42, TernaryLogic>>);
     STATIC_CHECK(IsExtensional<Singleton<42, TernaryLogic>>);
   }
 }
@@ -266,13 +264,12 @@ TEST_CASE("order:halfspace — OrderInterval on ℤ is finite and enumerable",
       iv{};
 
   STATIC_CHECK(HasDecidableMembership<decltype(iv)>);
-  STATIC_CHECK(IsExtensional<decltype(iv)>);
-  // The 2026-05-09 :sets:cardinality consolidation merged
-  // IsExtensional's tag-based distinction (type-level
-  // inhabitants vs value-level inhabitants) into the IsExtensional gate;
-  // OrderInterval's value-level inhabitants now qualify since size()
-  // returns size_t.  The finer distinction (type-level NTTP
-  // inhabitants only) lives in a follow-up concept if/when needed.
+  // The 2026-05-09 :sets:cardinality consolidation merged the
+  // tag-based distinction (type-level NTTP inhabitants vs runtime
+  // value-level inhabitants) into the @c IsExtensional gate;
+  // OrderInterval qualifies since @c size() returns @c size_t.  The
+  // finer distinction (type-level NTTP inhabitants only) lives in a
+  // follow-up concept if/when needed.
   STATIC_CHECK(IsExtensional<decltype(iv)>);
   STATIC_CHECK(iv.size() == 8u);
 }

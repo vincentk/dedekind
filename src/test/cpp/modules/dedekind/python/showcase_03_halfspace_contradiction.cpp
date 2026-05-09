@@ -51,10 +51,8 @@ static_assert(empty_meet == Ø{});
 // extensional) empty set restores decidable, finite, type-level semantics.
 static_assert(!HasDecidableMembership<decltype(gt_5)>);
 static_assert(!IsExtensional<decltype(gt_5)>);
-static_assert(!IsExtensional<decltype(gt_5)>);
 
 static_assert(HasDecidableMembership<decltype(empty_meet)>);
-static_assert(IsExtensional<decltype(empty_meet)>);
 static_assert(IsExtensional<decltype(empty_meet)>);
 
 /**
