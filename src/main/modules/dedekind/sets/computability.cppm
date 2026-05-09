@@ -81,22 +81,6 @@ concept HasDecidableMembership =
                  ClassicalLogic>;
 
 /**
- * @concept IsFiniteSet
- * @brief S has finite cardinality and exposes an observable `size()`.
- *
- * The cardinality is carried in the type (`cardinality_type = Finite`), so
- * this is a purely compile-time check — not a runtime claim that `size()`
- * happens to be small.
- */
-export template <typename S>
-concept IsFiniteSet =
-    requires { typename std::remove_cvref_t<S>::cardinality_type; } &&
-    std::same_as<typename std::remove_cvref_t<S>::cardinality_type, Finite> &&
-    requires(const std::remove_cvref_t<S>& s) {
-      { s.size() } -> std::convertible_to<std::size_t>;
-    };
-
-/**
  * @concept IsCompileTimeEnumerable
  * @brief S's elements are knowable to the compiler.
  *
@@ -108,6 +92,6 @@ concept IsFiniteSet =
  * duplicate it.
  */
 export template <typename S>
-concept IsCompileTimeEnumerable = IsFiniteSet<S> && IsExtensional<S>;
+concept IsCompileTimeEnumerable = IsExtensional<S>;
 
 }  // namespace dedekind::sets
