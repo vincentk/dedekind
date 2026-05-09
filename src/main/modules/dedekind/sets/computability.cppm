@@ -98,17 +98,16 @@ concept IsFiniteSet =
 
 /**
  * @concept IsCompileTimeEnumerable
- * @brief S's elements are knowable to the compiler (NTTP-carried values).
+ * @brief S's elements are knowable to the compiler.
  *
- * Stronger than `IsFiniteSet`: the compiler can reason about individual
- * elements without ever running the program. Witnessed structurally via the
- * `is_compile_time_extensional_tag` marker, which types like `Ø<T, L>` and
- * `Singleton<V, L>` carry (their elements, or absence thereof, are in types)
- * but which `SingletonSet<T>{x}` does not (its pivot is a runtime field).
+ * Stronger than `IsFiniteSet`: routes through `IsExtensional` (in
+ * @c :sets:cardinality) — the canonical authority on extensionality
+ * vocabulary post-2026-05-09.  The previous tag-based marker
+ * (@c is_compile_time_extensional_tag) was retired in favour of the
+ * concept gate; new code consumes @c :sets:cardinality, doesn't
+ * duplicate it.
  */
 export template <typename S>
-concept IsCompileTimeEnumerable = IsFiniteSet<S> && requires {
-  typename std::remove_cvref_t<S>::is_compile_time_extensional_tag;
-};
+concept IsCompileTimeEnumerable = IsFiniteSet<S> && IsExtensional<S>;
 
 }  // namespace dedekind::sets

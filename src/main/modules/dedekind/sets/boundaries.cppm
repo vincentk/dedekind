@@ -152,21 +152,28 @@ struct Ø final {
   constexpr cardinality_type cardinality() const { return cardinality_type{}; }
   constexpr std::size_t upper_bound() const { return 0; }
 
+  // Set-shape gate for the lattice operators below: requires the
+  // operand to expose a @c Domain typedef.  Lightweight intentionally —
+  // tightens to @c IsSet<S> once the typedef-alignment surgery
+  // (@c Domain/@c Ambient) completes and the canonical carriers
+  // (@c UniversalSet, @c SingletonSet, @c Set, ...) all satisfy
+  // @c IsSet structurally.
+
   // Ø | S = S
   template <typename S>
-    requires(IsSet<S>)
+    requires requires { typename S::Domain; }
   constexpr auto operator|(const S& s) const {
     return s;
   }
   // Ø & S = Ø
   template <typename S>
-    requires(IsSet<S>)
+    requires requires { typename S::Domain; }
   constexpr auto operator&(const S&) const {
     return *this;
   }
   // Ø ^ S = S  (∅ △ S = S; #469)
   template <typename S>
-    requires(IsSet<S>)
+    requires requires { typename S::Domain; }
   constexpr auto operator^(const S& s) const {
     return s;
   }
