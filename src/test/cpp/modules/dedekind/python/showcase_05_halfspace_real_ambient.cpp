@@ -43,7 +43,7 @@ constexpr auto lt_three = Set{x | (x < bound<3.0>)};
 
 // Compile-time theorem: the meet IS the empty set on ℝ.
 constexpr Ø<Real<double>> empty_meet = gt_five & lt_three;
-static_assert(empty_meet == Ø{});
+static_assert(empty_meet == Ø<Real<double>>{});
 
 // Computability made visible: parent Sets carry NONE of the three tiers;
 // the reduced Ø carries ALL THREE — continuous carrier notwithstanding.

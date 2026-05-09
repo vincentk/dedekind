@@ -43,7 +43,7 @@ constexpr auto lt_3 = Set{n | (n < bound<3>)};
 
 // Compile-time theorem: the meet IS the empty set on ℕ.
 constexpr Ø<Cardinality> empty_meet = gt_5 & lt_3;
-static_assert(empty_meet == Ø{});
+static_assert(empty_meet == Ø<Cardinality>{});
 
 // Computability made a compile-time observable: the parent Sets carry NONE
 // of the three tiers; the reduced Ø carries ALL THREE. Compile-time reduction
