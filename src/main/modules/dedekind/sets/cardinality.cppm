@@ -127,25 +127,6 @@ concept IsEnumerated = IsExtensional<S> && requires(const S s) {
   { s.upper_bound() } -> std::convertible_to<std::size_t>;
 };
 
-/**
- * @section mereology__Structural_Inference
- * @brief Deduce the governing logic species from the nature of the Base.
- *
- * Theorem:
- * If a Species is Finite AND Extensional, it is a Classical Topos
- * (Binary). If a Species is Transfinite OR Non-Extensional, it is a
- * Kleene Topos (Ternary).
- */
-export template <typename Base>
-struct NaturalLogic {
-  static constexpr bool is_infinite = IsTransfinite<Base>;
-  static constexpr bool is_extensional_v = IsExtensional<Base>;
-
-  using species = std::conditional_t<is_extensional_v && !is_infinite,
-                                     ClassicalLogic, TernaryLogic>;
-  using type = species;
-};
-
 /** @struct ℵ: The Transfinite Ladder. */
 export template <std::size_t N>
 struct ℵ {

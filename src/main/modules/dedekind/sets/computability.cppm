@@ -59,6 +59,25 @@ namespace dedekind::sets {
 using namespace dedekind::category;
 
 /**
+ * @section mereology__Structural_Inference
+ * @brief Deduce the governing logic species from the nature of the Base.
+ *
+ * Theorem:
+ * If a Species is Finite AND Extensional, it is a Classical Topos
+ * (Binary). If a Species is Transfinite OR Non-Extensional, it is a
+ * Kleene Topos (Ternary).
+ */
+export template <typename Base>
+struct NaturalLogic {
+  static constexpr bool is_infinite = IsTransfinite<Base>;
+  static constexpr bool is_extensional_v = IsExtensional<Base>;
+
+  using species = std::conditional_t<is_extensional_v && !is_infinite,
+                                     ClassicalLogic, TernaryLogic>;
+  using type = species;
+};
+
+/**
  * @concept HasDecidableMembership
  * @brief S's membership map ranges into two-valued (classical) logic.
  *
