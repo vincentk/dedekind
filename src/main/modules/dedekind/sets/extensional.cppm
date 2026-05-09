@@ -139,9 +139,10 @@ static_assert(
 //
 // `IsFinite<C>` is the cardinality-level proposition (`!IsTransfinite<C>`,
 // from `category:species`); `IsCountable<C>` is the cardinality-level
-// "magnitude ≤ ℵ₀" proposition (from `:mereology`); `IsExtensional<S>` is
-// the set-level shape predicate (from `:computability`, requires
-// `S::cardinality_type` modelling `IsFinite`).
+// "magnitude ≤ ℵ₀" proposition (post-#625 home: `:sets:cardinality`);
+// `IsExtensional<S>` is the set-level shape predicate (post-#625 home:
+// `:sets:cardinality`; gates on `size()` returning `size_t` or the
+// `is_extensional<S>` trait).
 // ---------------------------------------------------------------------------
 static_assert(dedekind::category::IsFinite<
                   typename ExtensionalSet<int>::cardinality_type>,

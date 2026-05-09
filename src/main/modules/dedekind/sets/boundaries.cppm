@@ -71,16 +71,17 @@ struct Ø final {
   using Ambient = T;
 
   // ~ topoi jargon;
-  /** @brief Member-shape mirror of Subobject's: every element of T
-   *  is a member of U via the always-True classifier; the wrapper
-   *  carries the T-value the IsSubobject contract reads back through ι. */
+  /** @brief Member-shape mirror of Subobject's.  Vacuously inhabited (Ø has
+   *  no members) — but the wrapper type is still required so the
+   *  IsSubobject contract has a Member-to-T projection to read through ι. */
   struct Member {
     T value;
   };
 
-  /** @brief ι: U ↣ T — the canonical identity inclusion.
-   *  Every member of the universal set is by construction an element
-   *  of the ambient T; ι unwraps the Member's T-value. */
+  /** @brief ι: Ø ↣ T — the trivial inclusion.  No members are ever
+   *  constructed, so ι is unreachable in practice; the body unwraps the
+   *  Member's T-value to satisfy the SHAPE the IsSubobject contract
+   *  reads. */
   constexpr T ι(const Member& m) const { return m.value; }
 
   static const Ø χ;
@@ -152,12 +153,10 @@ struct Ø final {
   constexpr cardinality_type cardinality() const { return cardinality_type{}; }
   constexpr std::size_t upper_bound() const { return 0; }
 
-  // Set-shape gate for the lattice operators below: requires the
-  // operand to expose a @c Domain typedef.  Lightweight intentionally —
-  // tightens to @c IsSet<S> once the typedef-alignment surgery
-  // (@c Domain/@c Ambient) completes and the canonical carriers
-  // (@c UniversalSet, @c SingletonSet, @c Set, ...) all satisfy
-  // @c IsSet structurally.
+  // Set-shape gate for the lattice operators below: @c IsSet<S>.  The
+  // canonical carriers (@c UniversalSet, @c SingletonSet, @c Set) all
+  // satisfy @c IsSet structurally post-#625, so the lattice ops accept
+  // anything that does.
 
   // Ø | S = S
   template <typename S>
@@ -180,7 +179,7 @@ struct Ø final {
 };
 
 template <typename T, typename L>
-inline constexpr Ø<T, L> Ø<T, L>::χ{};
+inline const Ø<T, L> Ø<T, L>::χ{};
 
 /**
  * @struct UniversalSet
@@ -299,7 +298,7 @@ struct UniversalSet final {
 };
 
 template <typename T, typename L, typename C>
-inline constexpr UniversalSet<T, L, C> UniversalSet<T, L, C>::χ{};
+inline const UniversalSet<T, L, C> UniversalSet<T, L, C>::χ{};
 
 /** @brief The universal-predicate value at carrier @c T (subobject-classifier
  *         reading per #551).

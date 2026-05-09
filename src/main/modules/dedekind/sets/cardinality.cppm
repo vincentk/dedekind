@@ -93,11 +93,17 @@ struct is_extensional : std::false_type {};
 template <std::integral T>
 struct is_extensional<T> : std::true_type {};
 
-/** @concept IsExtensional (The Proof) */
+/** @concept IsExtensional (The Proof)
+ *
+ *  @note The @c size() branch is guarded by a @c requires expression so the
+ *  member-access lookup happens in the immediate context: types without a
+ *  @c size() member (e.g. @c int) cleanly fail this branch and fall through
+ *  to the @c is_extensional trait specialization, rather than producing a
+ *  hard error. */
 export template <typename S>
-concept IsExtensional =
-    std::is_same_v<decltype(std::declval<const S&>().size()), std::size_t> ||
-    is_extensional<S>::value;
+concept IsExtensional = requires(const S& s) {
+  { s.size() } -> std::same_as<std::size_t>;
+} || is_extensional<S>::value;
 
 /**
  * @concept IsEnumerated

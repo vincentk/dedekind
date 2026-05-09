@@ -156,8 +156,9 @@ struct MembershipBinding {
  * usable as NTTP value).  @c Ambient is a constexpr instance of an
  * ambient type (e.g.\ a @c UniversalSet<...>{} default-constructed
  * at compile time, or anything with a nested @c Domain typedef).
- * The scout's element type @c T is @c element_of_t<Ambient>'s
- * underlying carrier.
+ * The scout's element type @c T is read directly from the ambient's
+ * @c Domain typedef (see @c using @c T = @c typename @c
+ * AmbientType::Domain below).
  */
 export template <auto Ambient>
 struct BoundScout {
@@ -817,7 +818,7 @@ class Set {
 // @c predicate_ via @c Predicate{}; the SHAPE is what the contract
 // reads (semantics live in @c operator() which IS predicate-aware).
 template <typename T, typename L, typename Predicate>
-inline constexpr Set<T, L, Predicate> Set<T, L, Predicate>::χ{Predicate{}};
+inline const Set<T, L, Predicate> Set<T, L, Predicate>::χ{Predicate{}};
 
 /** @brief Explicit set complement overload to avoid picking category morphism
  * `!`. */

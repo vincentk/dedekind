@@ -138,10 +138,18 @@ struct SingletonSet {
   auto operator<=>(const SingletonSet&) const = delete;
 
   // S1 <= S2 (Is S1 a part of S2?)
+  //
+  // Constrained to operands that share our logic species so the verdict
+  // returned by @c other.contains(pivot) (a @c S::logic_species::Ω value)
+  // is type-compatible with our return type @c L::Ω.  Avoids the
+  // bool-conversion trap of @c (Ternary::True ? ... : ...): on
+  // non-Boolean logics @c L::Ω is an enum class that's not contextually
+  // convertible to @c bool.  Cross-logic mereology would need an explicit
+  // logic-embedding arrow; that's a follow-up.
   template <typename S>
-    requires IsSet<S>
+    requires IsSet<S> && std::same_as<typename S::logic_species, L>
   constexpr typename L::Ω operator<=(const S& other) const {
-    return (other.contains(pivot)) ? L::True : L::False;
+    return other.contains(pivot);
   }
 
   /** @section singleton__Mereological_Lattice_Audit */
@@ -200,7 +208,7 @@ struct SingletonSet {
 // semantic membership query goes through the instance's
 // @c operator() which IS pivot-aware).
 template <typename T, typename L>
-inline constexpr SingletonSet<T, L> SingletonSet<T, L>::χ{};
+inline const SingletonSet<T, L> SingletonSet<T, L>::χ{};
 
 // ---------------------------------------------------------------------------
 // Singleton ^ Set / Set ^ Singleton — symmetric difference on the Atom
