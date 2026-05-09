@@ -92,12 +92,9 @@ module;
 #include <cstddef>
 #include <functional>
 #include <limits>
-#include <set>            // negative-witness static_asserts on
-                          // embed_uint_ℕ's set-level overload constraint
-#include <type_traits>    // std::remove_cvref_t (no-narrowing pin in
-                          // embed_uint_ℕ's set-level overload)
-#include <unordered_set>  // negative-witness static_asserts (as above)
-#include <utility>  // std::forward (used in embed_uint_ℕ's set-level lift)
+#include <type_traits>  // std::remove_cvref_t (no-narrowing pin in
+                        // embed_uint_ℕ's set-level overload)
+#include <utility>      // std::forward (used in embed_uint_ℕ's set-level lift)
 
 export module dedekind.numbers:uint;
 
@@ -230,27 +227,12 @@ constexpr auto embed_uint_ℕ(S&& s) {
   return dedekind::sets::image(embed_uint_ℕ_, std::forward<S>(s));
 }
 
-// No-narrowing pin witnesses: source carriers whose element type is
-// not exactly @c unsigned must NOT satisfy the set-level overload's
-// constraint.  Each line below would silently sign-reinterpret or
-// truncate at the per-element call site if the implicit conversion
-// were allowed — the constraint blocks them.
-static_assert(
-    !requires {
-      embed_uint_ℕ(
-          dedekind::sets::SingletonSet<int, dedekind::category::ClassicalLogic>{
-              0});
-    },
-    "embed_uint_ℕ rejects SingletonSet<int>: int → unsigned would "
-    "sign-reinterpret negative values.");
-static_assert(
-    !requires { embed_uint_ℕ(std::set<int>{}); },
-    "embed_uint_ℕ rejects std::set<int>: int → unsigned would "
-    "sign-reinterpret negative values.");
-static_assert(
-    !requires { embed_uint_ℕ(std::set<unsigned long long>{}); },
-    "embed_uint_ℕ rejects std::set<unsigned long long>: wider→"
-    "narrower unsigned would silently truncate.");
+// (The no-narrowing pin in the @c requires-clause above is the substantive
+// guard.  Negative-witness @c static_asserts of the form
+// @c "!requires @c { @c embed_uint_ℕ(SingletonSet<int>{0}); @c }" trigger
+// a hard "no matching function" diagnostic on clang-22 inside the
+// nested-requires context rather than absorbing as SFINAE; pin via
+// runtime tests in @c uint_test.cpp instead.)
 
 // Set-level lift witness: @c embed_uint_ℕ on @c SingletonSet<unsigned>{42}
 // lands at @c finite_cardinality(42).  Pinned at the @b value level so
