@@ -304,9 +304,9 @@ constexpr auto operator<<=(const SingletonSet<T, L>& s, Func&& f) {
  *   - The Kleisli triple's @c >>= (above): @c image(f, @c s) @c is the
  *     Singleton specialisation of the Set-monad's bind, factored
  *     through @c η.
- *   - The image's tier (@c IsCompileTimeEnumerable, @c IsExtensional,
- *     @c HasDecidableMembership): all preserved by the lift, since
- *     @c SingletonSet has cardinality 1 in both source and target.
+ *   - The image's tier ( @c IsExtensional, @c HasDecidableMembership):
+ *     preserved by the lift, since @c SingletonSet has cardinality 1
+ *     in both source and target.
  *
  * Filed under #602's layer-1 plan: per-shape image dispatch, Singleton
  * source as the entry point.  The same shape generalises to

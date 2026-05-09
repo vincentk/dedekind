@@ -10,17 +10,30 @@
  * @dependency :logic, :category
  *
  * @section mereology__Mereology
- * This partition defines the "Body" of the Dedekind species. In the
- * structuralist ontology, Mereology establishes the relationship between
- * 'Parts' and 'Wholes' as a mapping between a Domain and a Logic.
+ * This partition defines the "Body" of the Dedekind species at the
+ * @b lattice / @b system tier.  In the structuralist ontology,
+ * Mereology establishes the relationship between 'Parts' and 'Wholes'
+ * as the bounded-lattice structure of a space-of-parts together with
+ * the @b atom / @b system axioms over it.
  *
  * @details
- * Membership is defined as a morphism to a Subobject Classifier (Ω).
- * By decoupling the "Body" from the "Truth," the same mereological laws
- * are applied across different logical universes:
- * - IsSet: The universal rule-based predicate for membership.
- * - IsBooleanSet: The Classical {True, False} universe (The Binary Prime).
- * - IsKleeneSet: The Indeterminate {True, False, Unknown} universe.
+ * Post-2026-05-09 consolidation, this partition exposes the following
+ * concept surface; the structural-parthood encoding @c IsPartOfRelation
+ * lives upstream in @c :category:mereology (this partition's
+ * @c IsPartOf / @c IsProperPart aliases were retired as redundant with
+ * the upstream concept):
+ *
+ *   - @c IsBoundedLattice<S> — a lattice with @b top and @b bottom (1
+ *     and 0 in the lattice's order), the structural identities for
+ *     @c | (Join) and @c & (Meet).
+ *   - @c IsMereologicalLattice<S, L> — a lattice where Join / Meet are
+ *     synonymous with Sum / Product, anchoring the textbook Boolean
+ *     reading of the lattice operators.
+ *   - @c IsAtom<S, L> — an Individual (@b minimal in the parthood
+ *     order) that possesses no proper parts.
+ *   - @c IsSystem<S, Species, L> — the @b space @b of @b parts: a
+ *     Bounded Lattice whose inhabitants are valid Parts of the named
+ *     ambient @c Species.
  *
  * @section mereology__Structural_Anchors
  * Standard C++ operators are anchored here as Set Morphisms,
@@ -29,7 +42,7 @@
  * - operator||, operator| : Union (The Join).
  * - operator! : Complement (The Remainder).
  *
- * @tparam S The Set implementation type being verified.
+ * @tparam S The Set / Lattice implementation type being verified.
  * @tparam L The Logic species (Ω) governing the membership predicate.
  *           Defaults to ClassicalLogic for zero-overhead arithmetic.
  *

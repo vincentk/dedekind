@@ -1,47 +1,39 @@
 /**
  * @file dedekind/sets/computability.cppm
  * @partition :computability
- * @brief Computability as a compile-time observable.
+ * @brief Decidable membership as a compile-time observable.
  *
- * @section computability__Computability_Tiers
+ * @section computability__Decidability_Axis
  *
- * Three concepts expose how much of a set's computational content is
- * available to the compiler. Two of them are strictly nested by their
- * definitions; the third is orthogonal.
+ * Post-2026-05-09 consolidation, this partition exports a single concept
+ * along the @b decidability axis:
  *
- *                     IsCompileTimeEnumerable
- *                                ↓  (definitionally, via `IsExtensional<S> &&
- * …`) IsExtensional
+ *   - `HasDecidableMembership<S>` — membership `x ∈ S` is answered in
+ *     two-valued logic (i.e. no Unknown).  Equivalent to `logic_species`
+ *     being `ClassicalLogic`.  Independent of finiteness: a finite
+ *     extensional object can be declared with `TernaryLogic`
+ *     (e.g. `Ø<int, TernaryLogic>`, `Singleton<42, TernaryLogic>`), in
+ *     which case it satisfies @c :sets:cardinality::IsExtensional but
+ *     NOT `HasDecidableMembership`.
  *
- *                    HasDecidableMembership    (orthogonal — logic-species
- * axis)
+ * The orthogonal @b extensionality axis lives upstream in
+ * @c :sets:cardinality (the canonical home for extensionality /
+ * cardinality / enumerability vocabulary post-2026-05-09).  Use
+ * @c IsExtensional from there for the size-observable check;
+ * @c IsFinite / @c IsCountable / @c IsUncountable / @c IsCardinality
+ * are the cardinality-tier concepts.  The partition header was
+ * trimmed in the same pass: the previous tag-based
+ * @c IsCompileTimeEnumerable concept was retired as redundant — the
+ * @c IsExtensional gate captures the same observable.
  *
- * - `HasDecidableMembership<S>` — membership `x ∈ S` is answered in
- *   two-valued logic (i.e. no Unknown). Equivalent to `logic_species` being
- *   `ClassicalLogic`. This is independent of finiteness: a finite extensional
- *   object can be declared with `TernaryLogic` (e.g. `Ø<int, TernaryLogic>`,
- *   `Singleton<42, TernaryLogic>`), in which case it satisfies `IsExtensional`
- *   but NOT `HasDecidableMembership`.
+ * @section computability__Reduction_Restores_Decidability
  *
- * - `IsExtensional<S>` — the set has a finite cardinality and an observable
- *   `size()`. Does not by itself imply decidable membership.
- *
- * - `IsCompileTimeEnumerable<S>` — the set's elements are known to the
- *   *compiler*, not merely to the runtime. In practice: the values live in
- *   the type system (NTTPs), so the compiler can reason about individual
- *   elements without ever running the program. Definitionally implies
- *   `IsExtensional` (it is spelled as a refinement of it).
- *
- * @section computability__Reduction_Restores_Computability
- *
- * The `Set::operator&` / `operator|` machinery monotonically tightens this
- * classification as compile-time reductions succeed. An intensional Set over
- * a transfinite carrier starts at the bottom (Ternary, no observable size,
- * opaque predicate); a structural reduction to `Ø` or `Singleton<V>` lifts it
- * to the top (Classical, size 1-or-0, elements in types).
- *
- * A paper-facing `static_assert` at each tier witnesses the lift in the type
- * system itself — no runtime test needed, and no explanatory prose either.
+ * The @c Set::operator& / @c operator| machinery monotonically tightens
+ * the decidability classification as compile-time reductions succeed.
+ * An intensional Set over a transfinite carrier starts at the bottom
+ * (TernaryLogic, opaque predicate); a structural reduction to @c Ø or
+ * @c Singleton<V> lifts it to the top (ClassicalLogic, decidable
+ * membership).
  *
  * Wikipedia: Computability theory, Decidability (logic), Concepts (C++20)
  *

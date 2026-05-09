@@ -62,7 +62,9 @@ struct ExtensionalSet {
   using Codomain = typename L::Ω;
   using logic_species = L;
   using cardinality_type = Finite;
-  using is_extensional_tag = void;
+  // is_extensional_tag retired 2026-05-09: the canonical
+  // extensionality gate is :sets:cardinality::IsExtensional, which
+  // reads size() / is_extensional<T> trait, not the tag typedef.
 
   std::unordered_set<T, Hash, Equal> elements;
 
