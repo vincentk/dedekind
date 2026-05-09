@@ -523,8 +523,30 @@ constexpr auto operator|(const Set<SignedCardinality, L, P1>& lhs,
 export template <typename T, typename L, typename Predicate>
 class Set {
  public:
+  // ~ arrow / morphism / subobject classifier jargon
   using Domain = T;
   using Codomain = typename L::Ω;
+  // ~ set expressions jargon:
+  using Ambient = T;
+
+  // ~ topoi jargon: Member-shape mirror of Subobject's; the IsSubobject
+  // contract reads the Member-to-T projection through ι below.  Same
+  // shape as Ø / UniversalSet / SingletonSet's Member.
+  struct Member {
+    T value;
+  };
+
+  /** @brief ι: Set ↣ T — Member unwrap.  Identical pattern to
+   *  Subobject<A, χ>::ι and SingletonSet::ι; the inclusion projects
+   *  the Member's T-value back to the ambient. */
+  constexpr T ι(const Member& m) const { return m.value; }
+
+  /** @brief χ: T → Ω — arrow-form classifier for the IsSubobject
+   *  contract.  Static self-reference (SHAPE-only — semantic
+   *  membership query lives in @c operator() below, predicate-aware).
+   *  Same pattern as Ø / UniversalSet / SingletonSet's χ. */
+  static const Set χ;
+
   using logic_species = L;
   using cardinality_type = ℵ_0;
 
@@ -788,6 +810,13 @@ class Set {
 
   Predicate predicate_;
 };
+
+// Out-of-class χ definition — completes the IsSubobject self-reference
+// declared in-class at @c Set::χ above.  Default-initializes
+// @c predicate_ via @c Predicate{}; the SHAPE is what the contract
+// reads (semantics live in @c operator() which IS predicate-aware).
+template <typename T, typename L, typename Predicate>
+inline constexpr Set<T, L, Predicate> Set<T, L, Predicate>::χ{Predicate{}};
 
 /** @brief Explicit set complement overload to avoid picking category morphism
  * `!`. */
