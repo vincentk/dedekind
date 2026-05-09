@@ -447,11 +447,11 @@ struct SetId final {
 };
 
 /**
- * @brief The Cartesian Closed Category of C++ Types in Jlt (Ddk).
+ * @brief The Category of C++ Types (Set).
  * Formally reified as a Cartesian Closed Category.
  */
 template <typename T>
-struct Ddk final {
+struct Set final {
   using Species = T;
   using Arrow = Morphism<T, T, std::function<T(T)>>;
   using Id = SetId<T>;
@@ -474,12 +474,22 @@ struct Ddk final {
   }
 };
 
+/**
+ * @brief Explicit alias for the canonical ETCS CCC witness over ambient A.
+ *
+ * @details
+ * This alias exists to reduce naming ambiguity with `dedekind::sets::Set`
+ * (the intensional set-builder DSL species).
+ */
+export template <typename A>
+using CanonicalSetCCC = Set<A>;
+
 // Now we can bless it right next to its definition
-static_assert(IsCartesianClosed<Ddk<int>>,
-              "Verification Failed: Ddk must be Cartesian Closed.");
+static_assert(IsCartesianClosed<Set<int>>,
+              "Verification Failed: Set must be Cartesian Closed.");
 
 /**
- * @concept HasDdk
+ * @concept HasCanonicalSetCCC
  * @brief Mnemonic bridge: ambient species A has a canonical CCC witness.
  *
  * @details
@@ -487,7 +497,7 @@ static_assert(IsCartesianClosed<Ddk<int>>,
  * set concepts to also be category concepts.
  */
 export template <typename A>
-concept HasDdk = IsCartesianClosed<Ddk<A>>;
+concept HasCanonicalSetCCC = IsCartesianClosed<CanonicalSetCCC<A>>;
 
 /**
  * @concept IsProductCategory
