@@ -365,7 +365,6 @@ concept HasETCSAxioms =
     HasAxiom7SubobjectClassifier<T> && HasAxiom8EmptySet<typename T::Ambient> &&
     HasAxiom9NNO<typename T::Ambient> && HasAxiom10PowerObjectLattice<T>;
 
-
 /**
  * @concept HasCanonicalSetCCC
  * @brief Mnemonic bridge: ambient species A has a canonical CCC witness.
@@ -375,7 +374,8 @@ concept HasETCSAxioms =
  * set concepts to also be category concepts.
  */
 export template <typename A>
-concept IsSet = HasETCSAxioms<A> && IsCartesianClosed<CanonicalSetCCC<typename A::Ambient>>;
+concept IsSet =
+    HasETCSAxioms<A> && IsCartesianClosed<CanonicalSetCCC<typename A::Ambient>>;
 
 /**
  * @brief Construct a set object over ambient species A from a characteristic
