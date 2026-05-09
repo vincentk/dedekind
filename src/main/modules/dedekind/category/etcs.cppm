@@ -354,7 +354,7 @@ concept HasAxiom10PowerObjectLattice =
  * historically under #389.
  */
 export template <typename T>
-concept IsSet =
+concept HasETCSAxioms =
     IsSetObject<T, typename T::Ambient> &&
     HasAxiom1Composition<typename T::Ambient> &&
     HasAxiom2Identity<typename T::Ambient> &&
@@ -363,22 +363,19 @@ concept IsSet =
     HasAxiom5CartesianProduct<typename T::Ambient> &&
     HasAxiom6Exponentiation<typename T::Ambient> &&
     HasAxiom7SubobjectClassifier<T> && HasAxiom8EmptySet<typename T::Ambient> &&
-    HasAxiom9NNO<typename T::Ambient> && HasAxiom10PowerObjectLattice<T> &&
-    HasCanonicalSetCCC<typename T::Ambient>;
+    HasAxiom9NNO<typename T::Ambient> && HasAxiom10PowerObjectLattice<T>;
+
 
 /**
- * @concept IsSetInCanonicalCCC
- * @brief Documentation alias for @c IsSet now that the latter entails
- *        @c HasCanonicalSetCCC structurally (see #389).
+ * @concept HasCanonicalSetCCC
+ * @brief Mnemonic bridge: ambient species A has a canonical CCC witness.
  *
  * @details
- * Pre-#389 this concept was a separate opt-in object/category bridge;
- * post-#389 it is tautologically equivalent to @c IsSet<S> and retained
- * only so existing call sites (and reader-facing documentation that
- * names the CCC connection explicitly) keep working.
+ * This keeps category-level verification explicit without forcing object-level
+ * set concepts to also be category concepts.
  */
-export template <typename S>
-concept IsSetInCanonicalCCC = IsSet<S>;
+export template <typename A>
+concept IsSet = HasETCSAxioms<A> && IsCartesianClosed<CanonicalSetCCC<typename A::Ambient>>;
 
 /**
  * @brief Construct a set object over ambient species A from a characteristic
@@ -491,12 +488,8 @@ using _isset_witness_t = decltype(ambient_set<int>([](int) { return true; }));
 }  // namespace
 static_assert(IsSet<_isset_witness_t>,
               "Witness: representative carrier satisfies IsSet.");
-static_assert(!IsSet<_isset_witness_t> ||
-                  HasCanonicalSetCCC<typename _isset_witness_t::Ambient>,
-              "Directional witness: IsSet entails HasCanonicalSetCCC over "
-              "the ambient species (every ETCS category is a CCC, #389).");
 static_assert(
-    IsSetInCanonicalCCC<_isset_witness_t>,
+    IsSet<_isset_witness_t>,
     "Mnemonic check: ETCS set objects live over a canonical CCC ambient.");
 
 /**

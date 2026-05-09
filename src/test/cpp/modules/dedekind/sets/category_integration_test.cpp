@@ -65,12 +65,11 @@ TEST_CASE("Sets+Category: Set naming boundary is explicit",
   // `sets::Set` (DSL species) and `category::Set` (CCC witness) are distinct.
   STATIC_CHECK(!std::same_as<decltype(positive),
                              dedekind::category::CanonicalSetCCC<Cardinality>>);
-  STATIC_CHECK(dedekind::category::HasCanonicalSetCCC<Cardinality>);
 
   // Bridge through ETCS object construction over the post-#402 ℕ carrier
   // (ℕ = Cardinality, the variant ℕ-proxy).
   const auto positive_set = ambient_set<Cardinality>(positive);
-  STATIC_CHECK(dedekind::category::IsSetInCanonicalCCC<decltype(positive_set)>);
+  STATIC_CHECK(IsSet<decltype(positive_set)>);
 
   CHECK(positive_set.χ(3u) == Ternary::True);
   CHECK(positive_set.χ(0u) == Ternary::False);

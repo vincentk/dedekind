@@ -346,10 +346,6 @@ static_assert(IsSet<decltype(Ø<int>{})>,
 static_assert(IsSet<decltype(ambient_set<int>(Ø<int>{}))>,
               "The empty boundary must lift to an ETCS set object.");
 
-static_assert(HasCanonicalSetCCC<int>,
-              "Breadcrumb to :cartesian: boundary ambient int has canonical "
-              "CCC witness.");
-
 // =============================================================
 // Architecture note: universe Ω<T> vs. classifier <Tower>Of<>
 // =============================================================

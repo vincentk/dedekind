@@ -120,8 +120,8 @@ TEST_CASE("ETCS: Boolean algebra over bool ambient",
   const auto top = ambient_set<bool>([](const bool&) { return true; });
   const auto bottom = ambient_set<bool>([](const bool&) { return false; });
 
-  STATIC_CHECK(IsSetInCanonicalCCC<decltype(p)>);
-  STATIC_CHECK(IsSetInCanonicalCCC<decltype(q)>);
+  STATIC_CHECK(IsSet<decltype(p)>);
+  STATIC_CHECK(IsSet<decltype(q)>);
 
   const auto p_or_q = set_union(p, q);
   const auto p_and_q = set_intersection(p, q);
