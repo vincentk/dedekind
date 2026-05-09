@@ -8,7 +8,7 @@
  * Mixed strictness (strict lower, non-strict upper). On an integral carrier
  * the cardinality is compile-time computable from the bounds and the
  * strictness pair, so the reduced OrderInterval exposes `size() == 42` and
- * satisfies `IsFiniteSet` — without elevating further (no Singleton collapse
+ * satisfies `IsExtensional` — without elevating further (no Singleton collapse
  * because cardinality > 1).
  *
  * Expected LLVM IR: `ret i1 true` — inhabitant 0 is in the meet.
@@ -55,7 +55,7 @@ static_assert(iv.size() == 42u);
 // Computability classification: finite and decidable, but not
 // compile-time-enumerable (its 42 inhabitants are not in the type).
 static_assert(HasDecidableMembership<decltype(iv)>);
-static_assert(IsFiniteSet<decltype(iv)>);
+static_assert(IsExtensional<decltype(iv)>);
 static_assert(!IsCompileTimeEnumerable<decltype(iv)>);
 
 /**

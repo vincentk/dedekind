@@ -1,7 +1,7 @@
 /** @file dedekind/sets/computability_test.cpp
  *
  * Unit coverage for the three-tier computability hierarchy introduced in
- * PR #361: `HasDecidableMembership`, `IsFiniteSet`, `IsCompileTimeEnumerable`.
+ * PR #361: `HasDecidableMembership`, `IsExtensional`, `IsCompileTimeEnumerable`.
  *
  * Tests in this file use ONLY `dedekind.sets` + `dedekind.category` so the
  * sets-test target respects the module DAG (sets is upstream of order).
@@ -39,16 +39,16 @@ TEST_CASE("sets:computability — HasDecidableMembership on Ø",
   }
 }
 
-TEST_CASE("sets:computability — IsFiniteSet on Ø", "[sets][computability]") {
+TEST_CASE("sets:computability — IsExtensional on Ø", "[sets][computability]") {
   SECTION("Ø is finite regardless of logic species") {
-    STATIC_CHECK(IsFiniteSet<Ø<int>>);
-    STATIC_CHECK(IsFiniteSet<Ø<int, TernaryLogic>>);
+    STATIC_CHECK(IsExtensional<Ø<int>>);
+    STATIC_CHECK(IsExtensional<Ø<int, TernaryLogic>>);
   }
 
   SECTION("Intensional Set over a transfinite carrier is not finite") {
     constexpr auto x = element<ℕ>;
     constexpr auto s = Set{x | [](const auto& v) { return v > 5u; }};
-    STATIC_CHECK_FALSE(IsFiniteSet<decltype(s)>);
+    STATIC_CHECK_FALSE(IsExtensional<decltype(s)>);
   }
 }
 
@@ -62,20 +62,20 @@ TEST_CASE("sets:computability — IsCompileTimeEnumerable on Ø",
   SECTION("An intensional Set is neither finite nor compile-time-enumerable") {
     constexpr auto x = element<ℕ>;
     constexpr auto s = Set{x | [](const auto& v) { return v > 5u; }};
-    STATIC_CHECK_FALSE(IsFiniteSet<decltype(s)>);
+    STATIC_CHECK_FALSE(IsExtensional<decltype(s)>);
     STATIC_CHECK_FALSE(IsCompileTimeEnumerable<decltype(s)>);
   }
 }
 
 TEST_CASE("sets:computability — refinement order of the three tiers",
           "[sets][computability]") {
-  // IsCompileTimeEnumerable is definitionally `IsFiniteSet<S> && requires {
+  // IsCompileTimeEnumerable is definitionally `IsExtensional<S> && requires {
   // is_compile_time_extensional_tag }`, so the implication holds
   // structurally. Verified here against concrete witnesses.
-  STATIC_CHECK(IsCompileTimeEnumerable<Ø<int>> && IsFiniteSet<Ø<int>>);
+  STATIC_CHECK(IsCompileTimeEnumerable<Ø<int>> && IsExtensional<Ø<int>>);
 
   // Finite extensional witnesses in dedekind.sets also happen to satisfy
   // HasDecidableMembership (via ClassicalLogic default); tested as a
   // practical invariant on the shipped types, not a theorem of the concepts.
-  STATIC_CHECK(IsFiniteSet<Ø<int>> && HasDecidableMembership<Ø<int>>);
+  STATIC_CHECK(IsExtensional<Ø<int>> && HasDecidableMembership<Ø<int>>);
 }

@@ -72,8 +72,33 @@ using namespace dedekind::category;
 export template <typename T, typename L = ClassicalLogic>
 struct SingletonSet {
   T pivot;
+  // ~ arrow / morphism / subobject classifier jargon
   using Domain = T;
   using Codomain = typename L::Ω;
+  // ~ set expressions jargon:
+  using Ambient = T;
+
+  // ~ topoi jargon: Member-shape mirror of Subobject's; the IsSubobject
+  // contract reads the Member-to-T projection through ι below.  The
+  // SingletonSet's only true inhabitant is @c pivot; @c Member is the
+  // structural wrapper carrying a T value.
+  struct Member {
+    T value;
+  };
+
+  /** @brief ι: {x} ↣ T — Member unwrap.  Identical pattern to
+   *  Subobject<A, χ>::ι; the inclusion projects the Member's
+   *  T-value back to the ambient. */
+  constexpr T ι(const Member& m) const { return m.value; }
+
+  /** @brief χ: T → Ω — arrow-form classifier for the IsSubobject
+   *  contract.  Static self-reference: the IsSubobject contract
+   *  reads only the SHAPE (signature + Domain match), not the
+   *  semantics; the actual membership query lives in @c operator()
+   *  below (instance-aware, returns True iff @c v @c == @c pivot).
+   *  Same pattern as Ø / UniversalSet's χ in @c :sets:boundaries. */
+  static const SingletonSet χ;
+
   using logic_species = L;
   using cardinality_type = Finite;
   using base_set_type = SingletonSet<T, L>;
@@ -168,6 +193,14 @@ struct SingletonSet {
   // For the sake of the lattice, we return the Universal boundary.
   constexpr auto operator!() const { return UniversalSet<T, L>{}; }
 };
+
+// Out-of-class χ definition: completes the IsSubobject self-reference
+// declared in-class at @c SingletonSet::χ above.  Default-initializes
+// @c pivot via @c T{} (the SHAPE is what the contract reads; the
+// semantic membership query goes through the instance's
+// @c operator() which IS pivot-aware).
+template <typename T, typename L>
+inline constexpr SingletonSet<T, L> SingletonSet<T, L>::χ{};
 
 // ---------------------------------------------------------------------------
 // Singleton ^ Set / Set ^ Singleton — symmetric difference on the Atom
@@ -271,7 +304,7 @@ constexpr auto operator<<=(const SingletonSet<T, L>& s, Func&& f) {
  *   - The Kleisli triple's @c >>= (above): @c image(f, @c s) @c is the
  *     Singleton specialisation of the Set-monad's bind, factored
  *     through @c η.
- *   - The image's tier (@c IsCompileTimeEnumerable, @c IsFiniteSet,
+ *   - The image's tier (@c IsCompileTimeEnumerable, @c IsExtensional,
  *     @c HasDecidableMembership): all preserved by the lift, since
  *     @c SingletonSet has cardinality 1 in both source and target.
  *

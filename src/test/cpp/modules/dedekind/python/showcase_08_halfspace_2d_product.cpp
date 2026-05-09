@@ -49,7 +49,7 @@ static_assert(box.size() == 462u);
 // Computability classification survives the product: finite and decidable,
 // but not compile-time-enumerable (we don't list all 462 pairs in the type).
 static_assert(HasDecidableMembership<decltype(box)>);
-static_assert(IsFiniteSet<decltype(box)>);
+static_assert(IsExtensional<decltype(box)>);
 static_assert(!IsCompileTimeEnumerable<decltype(box)>);
 
 /**

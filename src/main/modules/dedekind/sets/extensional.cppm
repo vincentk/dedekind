@@ -9,7 +9,7 @@
  * listing its elements rather than by predicate) is necessarily finite,
  * so the @b Finite qualifier is dropped from the carrier name; the
  * finiteness and countability propositions are kept as @c static_assert
- * breadcrumbs against @c IsFiniteSet / @c IsFinite / @c IsCountable
+ * breadcrumbs against @c IsExtensional / @c IsFinite / @c IsCountable
  * (#598 acceptance).
  *
  * The std-container bridges (@c from_std / @c to_std) live in this
@@ -137,7 +137,7 @@ static_assert(
 //
 // `IsFinite<C>` is the cardinality-level proposition (`!IsTransfinite<C>`,
 // from `category:species`); `IsCountable<C>` is the cardinality-level
-// "magnitude ≤ ℵ₀" proposition (from `:mereology`); `IsFiniteSet<S>` is
+// "magnitude ≤ ℵ₀" proposition (from `:mereology`); `IsExtensional<S>` is
 // the set-level shape predicate (from `:computability`, requires
 // `S::cardinality_type` modelling `IsFinite`).
 // ---------------------------------------------------------------------------
@@ -150,8 +150,8 @@ static_assert(IsCountable<typename ExtensionalSet<int>::cardinality_type>,
               "Finite ⇒ countable: ExtensionalSet's cardinality_type "
               "models IsCountable (#598).");
 
-static_assert(IsFiniteSet<ExtensionalSet<int>>,
-              "ExtensionalSet satisfies the set-level IsFiniteSet shape "
+static_assert(IsExtensional<ExtensionalSet<int>>,
+              "ExtensionalSet satisfies the set-level IsExtensional shape "
               "predicate from :computability (#598).");
 
 // ---------------------------------------------------------------------------

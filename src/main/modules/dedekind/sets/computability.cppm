@@ -10,8 +10,8 @@
  * definitions; the third is orthogonal.
  *
  *                     IsCompileTimeEnumerable
- *                                ↓  (definitionally, via `IsFiniteSet<S> && …`)
- *                         IsFiniteSet
+ *                                ↓  (definitionally, via `IsExtensional<S> && …`)
+ *                         IsExtensional
  *
  *                    HasDecidableMembership    (orthogonal — logic-species
  * axis)
@@ -20,17 +20,17 @@
  *   two-valued logic (i.e. no Unknown). Equivalent to `logic_species` being
  *   `ClassicalLogic`. This is independent of finiteness: a finite extensional
  *   object can be declared with `TernaryLogic` (e.g. `Ø<int, TernaryLogic>`,
- *   `Singleton<42, TernaryLogic>`), in which case it satisfies `IsFiniteSet`
+ *   `Singleton<42, TernaryLogic>`), in which case it satisfies `IsExtensional`
  *   but NOT `HasDecidableMembership`.
  *
- * - `IsFiniteSet<S>` — the set has a finite cardinality and an observable
+ * - `IsExtensional<S>` — the set has a finite cardinality and an observable
  *   `size()`. Does not by itself imply decidable membership.
  *
  * - `IsCompileTimeEnumerable<S>` — the set's elements are known to the
  *   *compiler*, not merely to the runtime. In practice: the values live in
  *   the type system (NTTPs), so the compiler can reason about individual
  *   elements without ever running the program. Definitionally implies
- *   `IsFiniteSet` (it is spelled as a refinement of it).
+ *   `IsExtensional` (it is spelled as a refinement of it).
  *
  * @section computability__Reduction_Restores_Computability
  *

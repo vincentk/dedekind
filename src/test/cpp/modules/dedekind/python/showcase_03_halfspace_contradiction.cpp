@@ -50,11 +50,11 @@ static_assert(empty_meet == Ø{});
 // from an intensional description over a transfinite carrier to the (trivial
 // extensional) empty set restores decidable, finite, type-level semantics.
 static_assert(!HasDecidableMembership<decltype(gt_5)>);
-static_assert(!IsFiniteSet<decltype(gt_5)>);
+static_assert(!IsExtensional<decltype(gt_5)>);
 static_assert(!IsCompileTimeEnumerable<decltype(gt_5)>);
 
 static_assert(HasDecidableMembership<decltype(empty_meet)>);
-static_assert(IsFiniteSet<decltype(empty_meet)>);
+static_assert(IsExtensional<decltype(empty_meet)>);
 static_assert(IsCompileTimeEnumerable<decltype(empty_meet)>);
 
 /**

@@ -68,7 +68,7 @@ static_assert(lattice_cut.size() == 42u);
 // Computability classification matches showcase_06: finite, decidable,
 // but not compile-time-enumerable (the 42 elements aren't NTTPs).
 static_assert(HasDecidableMembership<decltype(lattice_cut)>);
-static_assert(IsFiniteSet<decltype(lattice_cut)>);
+static_assert(IsExtensional<decltype(lattice_cut)>);
 static_assert(!IsCompileTimeEnumerable<decltype(lattice_cut)>);
 
 /**

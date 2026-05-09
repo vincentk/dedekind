@@ -102,11 +102,11 @@ TEST_CASE("Pruning showcase 3: halfspace contradiction on ℕ collapses to Ø",
 
   SECTION("Computability tiers tighten at the reduction boundary") {
     STATIC_CHECK_FALSE(HasDecidableMembership<decltype(gt_five)>);
-    STATIC_CHECK_FALSE(IsFiniteSet<decltype(gt_five)>);
+    STATIC_CHECK_FALSE(IsExtensional<decltype(gt_five)>);
     STATIC_CHECK_FALSE(IsCompileTimeEnumerable<decltype(gt_five)>);
 
     STATIC_CHECK(HasDecidableMembership<decltype(empty_meet)>);
-    STATIC_CHECK(IsFiniteSet<decltype(empty_meet)>);
+    STATIC_CHECK(IsExtensional<decltype(empty_meet)>);
     STATIC_CHECK(IsCompileTimeEnumerable<decltype(empty_meet)>);
   }
 }
@@ -138,8 +138,8 @@ TEST_CASE("Pruning showcase 5: halfspace meet on ℝ collapses to Ø",
   STATIC_CHECK(empty_meet == Ø{});
 
   SECTION("Continuous carrier: parents not finite, reduced Ø is finite") {
-    STATIC_CHECK_FALSE(IsFiniteSet<decltype(gt_five)>);
-    STATIC_CHECK(IsFiniteSet<decltype(empty_meet)>);
+    STATIC_CHECK_FALSE(IsExtensional<decltype(gt_five)>);
+    STATIC_CHECK(IsExtensional<decltype(empty_meet)>);
   }
 }
 
@@ -160,7 +160,7 @@ TEST_CASE("Pruning showcase 6: (-21, 21] on ℤ has size 42",
 
   SECTION("Finite and decidable but not compile-time-enumerable") {
     STATIC_CHECK(HasDecidableMembership<decltype(iv)>);
-    STATIC_CHECK(IsFiniteSet<decltype(iv)>);
+    STATIC_CHECK(IsExtensional<decltype(iv)>);
     STATIC_CHECK_FALSE(IsCompileTimeEnumerable<decltype(iv)>);
   }
 }
@@ -192,7 +192,7 @@ TEST_CASE("Pruning showcase 7: ℤ lattice ∩ real interval (-21.0, 21.0]",
   STATIC_CHECK(Iv::upper_pivot == 21.0);
   STATIC_CHECK(lattice_cut.size() == 42u);
   STATIC_CHECK(HasDecidableMembership<decltype(lattice_cut)>);
-  STATIC_CHECK(IsFiniteSet<decltype(lattice_cut)>);
+  STATIC_CHECK(IsExtensional<decltype(lattice_cut)>);
 }
 
 TEST_CASE("Pruning showcase 8: 2D rectangle via IntervalProduct",
@@ -206,7 +206,7 @@ TEST_CASE("Pruning showcase 8: 2D rectangle via IntervalProduct",
   STATIC_CHECK(box.size() == 42u * 11u);
   STATIC_CHECK(box.size() == 462u);
   STATIC_CHECK(HasDecidableMembership<decltype(box)>);
-  STATIC_CHECK(IsFiniteSet<decltype(box)>);
+  STATIC_CHECK(IsExtensional<decltype(box)>);
 
   SECTION("2D membership at a specific point") {
     using Logic = typename decltype(box)::logic_species;
