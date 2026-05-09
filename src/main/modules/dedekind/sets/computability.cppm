@@ -79,19 +79,4 @@ concept HasDecidableMembership =
     requires { typename std::remove_cvref_t<S>::logic_species; } &&
     std::same_as<typename std::remove_cvref_t<S>::logic_species,
                  ClassicalLogic>;
-
-/**
- * @concept IsCompileTimeEnumerable
- * @brief S's elements are knowable to the compiler.
- *
- * Stronger than `IsFiniteSet`: routes through `IsExtensional` (in
- * @c :sets:cardinality) — the canonical authority on extensionality
- * vocabulary post-2026-05-09.  The previous tag-based marker
- * (@c is_compile_time_extensional_tag) was retired in favour of the
- * concept gate; new code consumes @c :sets:cardinality, doesn't
- * duplicate it.
- */
-export template <typename S>
-concept IsCompileTimeEnumerable = IsExtensional<S>;
-
 }  // namespace dedekind::sets
