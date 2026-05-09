@@ -92,6 +92,11 @@ module;
 #include <cstddef>
 #include <functional>
 #include <limits>
+#include <set>            // negative-witness static_asserts on
+                          // embed_uint_ℕ's set-level overload constraint
+#include <type_traits>    // std::remove_cvref_t (no-narrowing pin in
+                          // embed_uint_ℕ's set-level overload)
+#include <unordered_set>  // negative-witness static_asserts (as above)
 #include <utility>  // std::forward (used in embed_uint_ℕ's set-level lift)
 
 export module dedekind.numbers:uint;
@@ -193,13 +198,59 @@ export inline constexpr auto embed_uint_ℕ_ =
  * @c unsigned @c ↪ @c ℕ is a subset of the finite fragment of @c
  * Cardinality containing whichever @c unsigned values are in @c S.
  */
+// No-narrowing pin: the source set's element type must be EXACTLY
+// @c unsigned.  Without this gate, sets over @c int (sign reinterpret:
+// @c int(-1) → @c unsigned(UINT_MAX)) or over a wider unsigned
+// (truncation: @c unsigned @c long @c long(UINT_MAX+1) → @c unsigned(0))
+// would satisfy the bare @c image-well-formedness requires-clause via
+// implicit conversion at the per-element @c embed_uint_ℕ_ call site,
+// silently breaking the canonical-mono contract and bypassing the
+// @c digits-safety @c static_assert in the per-value @c embed_uint_ℕ(U).
+// We pin both the @c Domain-exposing carriers (SingletonSet,
+// dedekind::sets::Set, …) and the @c value_type-exposing carriers
+// (std::set, std::unordered_set) in a single disjunctive constraint —
+// either typedef must match exactly @c unsigned for the overload to
+// fire.
 export template <typename S>
-  requires requires(S&& s) {
-    dedekind::sets::image(embed_uint_ℕ_, std::forward<S>(s));
-  }
+  requires(
+              requires {
+                typename std::remove_cvref_t<S>::Domain;
+                requires std::same_as<typename std::remove_cvref_t<S>::Domain,
+                                      unsigned>;
+              } ||
+              requires {
+                typename std::remove_cvref_t<S>::value_type;
+                requires std::same_as<
+                    typename std::remove_cvref_t<S>::value_type, unsigned>;
+              }) &&
+          requires(S&& s) {
+            dedekind::sets::image(embed_uint_ℕ_, std::forward<S>(s));
+          }
 constexpr auto embed_uint_ℕ(S&& s) {
   return dedekind::sets::image(embed_uint_ℕ_, std::forward<S>(s));
 }
+
+// No-narrowing pin witnesses: source carriers whose element type is
+// not exactly @c unsigned must NOT satisfy the set-level overload's
+// constraint.  Each line below would silently sign-reinterpret or
+// truncate at the per-element call site if the implicit conversion
+// were allowed — the constraint blocks them.
+static_assert(
+    !requires {
+      embed_uint_ℕ(
+          dedekind::sets::SingletonSet<int, dedekind::category::ClassicalLogic>{
+              0});
+    },
+    "embed_uint_ℕ rejects SingletonSet<int>: int → unsigned would "
+    "sign-reinterpret negative values.");
+static_assert(
+    !requires { embed_uint_ℕ(std::set<int>{}); },
+    "embed_uint_ℕ rejects std::set<int>: int → unsigned would "
+    "sign-reinterpret negative values.");
+static_assert(
+    !requires { embed_uint_ℕ(std::set<unsigned long long>{}); },
+    "embed_uint_ℕ rejects std::set<unsigned long long>: wider→"
+    "narrower unsigned would silently truncate.");
 
 // Set-level lift witness: @c embed_uint_ℕ on @c SingletonSet<unsigned>{42}
 // lands at @c finite_cardinality(42).  Pinned at the @b value level so
