@@ -54,19 +54,26 @@ TEST_CASE("Mereology: Ontological Concept Verification",
           "[ontology][mereology]") {
   // 1. Verify the Presence Morphism (The Functional Essence)
   // Does the concept correctly identify a callable 'Whole' for a 'Part'?
-  STATIC_REQUIRE(IsProperPart<int, MockPart>);
+  // Post-consolidation: route through @c :category:mereology's
+  // canonical @c IsPartOfRelation (the 2026-05-09 alignment dropped
+  // the @c :sets:mereology aliases @c IsProperPart / @c IsPartOf as
+  // redundant with the upstream concept).
+  STATIC_REQUIRE(IsPartOfRelation<int, MockPart, bool>);
 
   // 2. Verify the Systemic Lattice (The Space of Parts)
   // Does the concept recognize a Bounded Lattice inhabited by valid Parts?
   STATIC_REQUIRE(IsSystem<MockSystem, MockSpecies>);
 
-  // 3. Verify Relational Duality
-  // Does 'operator>=' automatically derive from '<=' once the concept is hit?
+  // 3. Verify the order-style encoding of parthood is recognised.
+  // Note: the @c operator>= auto-synthesis (dual of <=) was retired
+  // in the 2026-05-09 mereology consolidation; only the forward <=
+  // direction is checked here.  If the converse spelling is needed
+  // back, file as a follow-up against the consolidated
+  // @c :category:mereology surface.
   struct WeakPart {
     constexpr bool operator<=(const WeakPart&) const { return true; }
   };
-  STATIC_REQUIRE(IsPartOf<WeakPart, WeakPart>);
-  STATIC_REQUIRE(WeakPart{} >= WeakPart{});
+  STATIC_REQUIRE(IsPartOfRelation<WeakPart, WeakPart, bool>);
 }
 
 TEST_CASE("Mereology: IsMereologicalCutCandidate structural contract",

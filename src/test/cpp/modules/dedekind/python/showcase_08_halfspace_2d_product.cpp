@@ -46,11 +46,11 @@ constexpr auto box = I_wide * I_tall;
 static_assert(box.size() == 42u * 11u);
 static_assert(box.size() == 462u);
 
-// Computability classification survives the product: finite and decidable,
-// but not compile-time-enumerable (we don't list all 462 pairs in the type).
+// Computability classification survives the product: finite, decidable,
+// and extensional under the post-2026-05-09 :sets:cardinality
+// consolidation (size() returns size_t).
 static_assert(HasDecidableMembership<decltype(box)>);
-static_assert(IsFiniteSet<decltype(box)>);
-static_assert(!IsCompileTimeEnumerable<decltype(box)>);
+static_assert(IsExtensional<decltype(box)>);
 
 /**
  * @brief Showcase 8: 2D membership in a 42×11 rectangle.

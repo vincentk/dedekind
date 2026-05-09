@@ -8,7 +8,7 @@
  * Same DSL, different carrier. Bounds are `double`-valued NTTPs; the Set's
  * carrier is `Real<double>`. Structural contradiction detection works
  * identically — but the computability classification differs from ℕ:
- * continuous carriers yield OrderInterval (not IsFiniteSet) when the meet
+ * continuous carriers yield OrderInterval (not IsExtensional) when the meet
  * is non-empty.
  *
  * Expected LLVM IR: `ret i1 false`.
@@ -43,17 +43,15 @@ constexpr auto lt_three = Set{x | (x < bound<3.0>)};
 
 // Compile-time theorem: the meet IS the empty set on ℝ.
 constexpr Ø<Real<double>> empty_meet = gt_five & lt_three;
-static_assert(empty_meet == Ø{});
+static_assert(empty_meet == Ø<Real<double>>{});
 
 // Computability made visible: parent Sets carry NONE of the three tiers;
 // the reduced Ø carries ALL THREE — continuous carrier notwithstanding.
 static_assert(!HasDecidableMembership<decltype(gt_five)>);
-static_assert(!IsFiniteSet<decltype(gt_five)>);
-static_assert(!IsCompileTimeEnumerable<decltype(gt_five)>);
+static_assert(!IsExtensional<decltype(gt_five)>);
 
 static_assert(HasDecidableMembership<decltype(empty_meet)>);
-static_assert(IsFiniteSet<decltype(empty_meet)>);
-static_assert(IsCompileTimeEnumerable<decltype(empty_meet)>);
+static_assert(IsExtensional<decltype(empty_meet)>);
 
 /**
  * @brief Showcase 5: halfspace contradiction on ℝ.

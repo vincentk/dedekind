@@ -220,20 +220,18 @@ target_compile_options(set-pruning-ir-fixture PRIVATE
 target_link_libraries(set-pruning-ir-fixture PRIVATE dedekind_python)
 
 if(DEDEKIND_BUILD_PYTHON_BINDINGS)
-    # Temporary policy: pin bindings/integration to Python 3.12 until
-    # python-graphblas/llvmlite availability is stable on newer interpreters.
-    find_package(Python 3.12 EXACT QUIET COMPONENTS Interpreter Development.Module)
+    find_package(Python 3.12...<3.15 QUIET COMPONENTS Interpreter Development.Module)
     if(NOT Python_FOUND)
         find_package(Python COMPONENTS Interpreter QUIET)
         if(Python_Interpreter_FOUND)
             message(FATAL_ERROR
-                "Python 3.12 is currently required for Dedekind Python bindings/integration tests. "
+                "Dedekind Python bindings/integration tests require Python 3.12, 3.13, or 3.14. "
                 "Found ${Python_VERSION} at ${Python_EXECUTABLE}. "
-                "Activate a Python 3.12 environment (for example: python3.12 -m venv .venv312 && source .venv312/bin/activate) "
-                "or configure CMake with a 3.12 interpreter.")
+                "Activate a supported Python environment (for example: python3.12 -m venv .venv && source .venv/bin/activate) "
+                "or configure CMake with a 3.12-3.14 interpreter.")
         else()
             message(FATAL_ERROR
-                "Python 3.12 is currently required for Dedekind Python bindings/integration tests, but no Python interpreter was found.")
+                "Dedekind Python bindings/integration tests require Python 3.12, 3.13, or 3.14, but no Python interpreter was found.")
         endif()
     endif()
     add_subdirectory(ext/nanobind EXCLUDE_FROM_ALL)

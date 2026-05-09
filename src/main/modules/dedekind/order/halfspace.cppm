@@ -280,7 +280,7 @@ struct OrderInterval {
   // For integer-range carriers, cardinality is compile-time-decidable
   // from the bounds and strictness pair.  Gate the size() / cardinality_type
   // surface so that continuous carriers (like Real<double>) correctly fail
-  // IsFiniteSet, AND so that the variant ℕ-/ℤ-proxy carriers from
+  // IsExtensional, AND so that the variant ℕ-/ℤ-proxy carriers from
   // sets:cardinality (Cardinality, SignedCardinality) keep this surface
   // post-#402 retarget.  The IsRingIntegral concept (above) is the
   // post-#414 generalisation of std::integral — same semantics for the
@@ -474,8 +474,8 @@ constexpr auto structured_and(Halfspace<T, P1, Direction::Downward, S1, L>,
  * @brief Cartesian product of two reduced extensional structures (typically
  * `OrderInterval`s on integer carriers). Preserves size / logic / tags so the
  * 2D product participates in the same computability classification as the
- * 1D factors: `IsFiniteSet<IntervalProduct<I1, I2>>` holds whenever each
- * factor satisfies `IsFiniteSet`.
+ * 1D factors: `IsExtensional<IntervalProduct<I1, I2>>` holds whenever each
+ * factor satisfies `IsExtensional`.
  */
 export template <typename A, typename B>
   requires std::same_as<typename A::logic_species, typename B::logic_species>

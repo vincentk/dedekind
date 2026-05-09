@@ -1,14 +1,19 @@
 /** @file dedekind/sets/computability_test.cpp
  *
- * Unit coverage for the three-tier computability hierarchy introduced in
- * PR #361: `HasDecidableMembership`, `IsFiniteSet`, `IsCompileTimeEnumerable`.
+ * Unit coverage for the consolidated computability surface
+ * (post-2026-05-09): @c HasDecidableMembership in @c :sets:computability
+ * and @c IsExtensional in @c :sets:cardinality.  The previous tag-based
+ * @c IsCompileTimeEnumerable / @c IsFiniteSet concepts were retired in
+ * favour of the @c IsExtensional gate; this file's tests collapse the
+ * two prior tier tests into one accordingly.
  *
- * Tests in this file use ONLY `dedekind.sets` + `dedekind.category` so the
- * sets-test target respects the module DAG (sets is upstream of order).
- * Downstream concept-conformance for order-level types (`Singleton`,
- * `OrderInterval`) lives in `modules/dedekind/order/halfspace_test.cpp`;
- * reduction-boundary coverage via the halfspace DSL lives in
- * `modules/dedekind/analysis/pruning_showcases_test.cpp`.
+ * Tests in this file use ONLY @c dedekind.sets + @c dedekind.category so
+ * the sets-test target respects the module DAG (sets is upstream of order).
+ * Downstream concept-conformance for order-level types (@c Singleton,
+ * @c OrderInterval) lives in
+ * @c modules/dedekind/order/halfspace_test.cpp; reduction-boundary
+ * coverage via the halfspace DSL lives in
+ * @c modules/dedekind/analysis/pruning_showcases_test.cpp.
  */
 
 #include <catch2/catch_test_macros.hpp>
@@ -39,43 +44,26 @@ TEST_CASE("sets:computability — HasDecidableMembership on Ø",
   }
 }
 
-TEST_CASE("sets:computability — IsFiniteSet on Ø", "[sets][computability]") {
-  SECTION("Ø is finite regardless of logic species") {
-    STATIC_CHECK(IsFiniteSet<Ø<int>>);
-    STATIC_CHECK(IsFiniteSet<Ø<int, TernaryLogic>>);
+TEST_CASE("sets:cardinality — IsExtensional on Ø",
+          "[sets][cardinality][computability]") {
+  SECTION("Ø is extensional regardless of logic species") {
+    STATIC_CHECK(IsExtensional<Ø<int>>);
+    STATIC_CHECK(IsExtensional<Ø<int, TernaryLogic>>);
   }
 
-  SECTION("Intensional Set over a transfinite carrier is not finite") {
+  SECTION("Intensional Set over a transfinite carrier is not extensional") {
     constexpr auto x = element<ℕ>;
     constexpr auto s = Set{x | [](const auto& v) { return v > 5u; }};
-    STATIC_CHECK_FALSE(IsFiniteSet<decltype(s)>);
+    STATIC_CHECK_FALSE(IsExtensional<decltype(s)>);
   }
 }
 
-TEST_CASE("sets:computability — IsCompileTimeEnumerable on Ø",
+TEST_CASE("sets:computability — extensionality and decidability are orthogonal",
           "[sets][computability]") {
-  SECTION("Ø exposes (vacuously) elements at the type level") {
-    STATIC_CHECK(IsCompileTimeEnumerable<Ø<int>>);
-    STATIC_CHECK(IsCompileTimeEnumerable<Ø<int, TernaryLogic>>);
-  }
-
-  SECTION("An intensional Set is neither finite nor compile-time-enumerable") {
-    constexpr auto x = element<ℕ>;
-    constexpr auto s = Set{x | [](const auto& v) { return v > 5u; }};
-    STATIC_CHECK_FALSE(IsFiniteSet<decltype(s)>);
-    STATIC_CHECK_FALSE(IsCompileTimeEnumerable<decltype(s)>);
-  }
-}
-
-TEST_CASE("sets:computability — refinement order of the three tiers",
-          "[sets][computability]") {
-  // IsCompileTimeEnumerable is definitionally `IsFiniteSet<S> && requires {
-  // is_compile_time_extensional_tag }`, so the implication holds
-  // structurally. Verified here against concrete witnesses.
-  STATIC_CHECK(IsCompileTimeEnumerable<Ø<int>> && IsFiniteSet<Ø<int>>);
-
-  // Finite extensional witnesses in dedekind.sets also happen to satisfy
-  // HasDecidableMembership (via ClassicalLogic default); tested as a
-  // practical invariant on the shipped types, not a theorem of the concepts.
-  STATIC_CHECK(IsFiniteSet<Ø<int>> && HasDecidableMembership<Ø<int>>);
+  // The two surviving tiers are along independent axes
+  // (extensionality lives in :sets:cardinality; decidability here).
+  // This test exhibits the orthogonality on a concrete witness.
+  STATIC_CHECK(IsExtensional<Ø<int>> && HasDecidableMembership<Ø<int>>);
+  STATIC_CHECK(IsExtensional<Ø<int, TernaryLogic>> &&
+               !HasDecidableMembership<Ø<int, TernaryLogic>>);
 }

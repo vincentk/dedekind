@@ -50,6 +50,28 @@ using namespace dedekind::category;
 // Cardinality ladder (moved from :mereology)
 // ---------------------------------------------------------------------------
 
+export template <typename C>
+// Terminology note: this concept validates cardinality metadata tags
+// (`is_finite`, `is_countable`, `power_type`) rather than proving
+// cardinal arithmetic laws. Name kept for compatibility during taxonomy pass.
+concept IsCardinality = requires {
+  { C::is_finite } -> std::convertible_to<bool>;
+  { C::is_countable } -> std::convertible_to<bool>;
+  typename C::power_type;
+};
+
+/** @concept IsCountable: Magnitude is at most Aleph_0. */
+export template <typename C>
+concept IsCountable = IsCardinality<C> && (C::is_countable == true);
+
+/** @concept IsUncountable: Magnitude is strictly greater than Aleph_0. */
+export template <typename C>
+concept IsUncountable = IsCardinality<C> && !IsCountable<C>;
+
+/** @concept IsFinite: Strictly terminating. */
+export template <typename C>
+concept IsFinite = IsCountable<C> && (C::is_finite == true);
+
 /** @struct Finite: Hardware-bound magnitude. */
 export struct Finite {
   static constexpr bool is_finite = true;
@@ -58,6 +80,57 @@ export struct Finite {
   auto operator<=>(const Finite&) const = default;
 
   using power_type = Finite;  // Finite sets always jump to other Finite sets.
+};
+
+static_assert(IsCardinality<Finite>);
+static_assert(IsFinite<Finite>);
+
+/** @brief Primary trait: Is a species defined by its members? */
+export template <typename T>
+struct is_extensional : std::false_type {};
+
+// Atomic Proof: Integrals are always extensional.
+template <std::integral T>
+struct is_extensional<T> : std::true_type {};
+
+/** @concept IsExtensional (The Proof)
+ *
+ *  @note The @c size() branch is guarded by a @c requires expression so the
+ *  member-access lookup happens in the immediate context: types without a
+ *  @c size() member (e.g. @c int) cleanly fail this branch and fall through
+ *  to the @c is_extensional trait specialization, rather than producing a
+ *  hard error. */
+export template <typename S>
+concept IsExtensional = requires(const S& s) {
+  { s.size() } -> std::same_as<std::size_t>;
+} || is_extensional<S>::value;
+
+/**
+ * @concept IsEnumerated
+ * @brief A set whose members are materialized or bounded in memory (The
+ * "Bucket").
+ *
+ * @details In the structuralist ontology, Extensionality implies that
+ *          membership is not merely a rule (λx. P(x)) but is constrained
+ *          by a physical container with a terminable address space.
+ *
+ * @tparam S A set species.
+ * @tparam L The Subobject Classifier (Ω). Defaults to ClassicalLogic.
+ */
+export template <typename S, typename L = ClassicalLogic>
+concept IsEnumerated = IsExtensional<S> && requires(const S s) {
+  typename S::Domain;
+  requires dedekind::category::IsSet<
+      decltype(dedekind::category::ambient_set<typename S::Domain>(s))>;
+
+  /** @section mereology__Magnitude: The Physical Proof */
+  // An extensional set MUST claim a Finite cardinality type.
+  requires(S::cardinality_type::is_finite == true);
+
+  /** @section mereology__Termination: The Boundedness Proof */
+  // Every extensional set must define a maximum capacity (upper_bound)
+  // to ensure memory-safe allocations and finite iteration.
+  { s.upper_bound() } -> std::convertible_to<std::size_t>;
 };
 
 /** @struct ℵ: The Transfinite Ladder. */

@@ -43,19 +43,17 @@ constexpr auto lt_3 = Set{n | (n < bound<3>)};
 
 // Compile-time theorem: the meet IS the empty set on ℕ.
 constexpr Ø<Cardinality> empty_meet = gt_5 & lt_3;
-static_assert(empty_meet == Ø{});
+static_assert(empty_meet == Ø<Cardinality>{});
 
 // Computability made a compile-time observable: the parent Sets carry NONE
 // of the three tiers; the reduced Ø carries ALL THREE. Compile-time reduction
 // from an intensional description over a transfinite carrier to the (trivial
 // extensional) empty set restores decidable, finite, type-level semantics.
 static_assert(!HasDecidableMembership<decltype(gt_5)>);
-static_assert(!IsFiniteSet<decltype(gt_5)>);
-static_assert(!IsCompileTimeEnumerable<decltype(gt_5)>);
+static_assert(!IsExtensional<decltype(gt_5)>);
 
 static_assert(HasDecidableMembership<decltype(empty_meet)>);
-static_assert(IsFiniteSet<decltype(empty_meet)>);
-static_assert(IsCompileTimeEnumerable<decltype(empty_meet)>);
+static_assert(IsExtensional<decltype(empty_meet)>);
 
 /**
  * @brief Showcase 3: halfspace contradiction on ℕ.

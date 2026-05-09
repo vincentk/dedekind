@@ -8,7 +8,7 @@
  * Mixed strictness (strict lower, non-strict upper). On an integral carrier
  * the cardinality is compile-time computable from the bounds and the
  * strictness pair, so the reduced OrderInterval exposes `size() == 42` and
- * satisfies `IsFiniteSet` — without elevating further (no Singleton collapse
+ * satisfies `IsExtensional` — without elevating further (no Singleton collapse
  * because cardinality > 1).
  *
  * Expected LLVM IR: `ret i1 true` — inhabitant 0 is in the meet.
@@ -52,11 +52,13 @@ static_assert(Iv::upper_strictness == Strictness::NonStrict);
 // Cardinality is computed at compile time from the bounds + strictness.
 static_assert(iv.size() == 42u);
 
-// Computability classification: finite and decidable, but not
-// compile-time-enumerable (its 42 inhabitants are not in the type).
+// Computability classification: finite, decidable, and extensional under
+// the post-2026-05-09 :sets:cardinality consolidation (size() returns
+// size_t).  The previous tag-based distinction between type-level NTTP
+// inhabitants and runtime value-level inhabitants merged into the single
+// IsExtensional gate; OrderInterval qualifies.
 static_assert(HasDecidableMembership<decltype(iv)>);
-static_assert(IsFiniteSet<decltype(iv)>);
-static_assert(!IsCompileTimeEnumerable<decltype(iv)>);
+static_assert(IsExtensional<decltype(iv)>);
 
 /**
  * @brief Showcase 6: observable cardinality on a 42-element ℤ-interval.

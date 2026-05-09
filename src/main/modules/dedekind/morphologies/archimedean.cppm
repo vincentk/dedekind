@@ -185,8 +185,8 @@ static_assert(IsArchimedeanField<double>,
  * proof of @c image's behaviour on the cardinality-1 case:
  *
  *   (i)   @c image is defined for @c IsArrow inputs.
- *   (ii)  Tier preservation: cardinality 1 ↦ 1, @c IsExtensional and
- *         @c IsPointedSet preserved on the codomain side.
+ *   (ii)  Tier preservation: cardinality 1 ↦ 1, @c IsExtensional
+ *         preserved on the codomain side.
  *   (iii) Kleisli factoring: @c image(f, @c s) is the cardinality-1
  *         instance of the powerset-monad bind @c s @c >>= @c (η @c ∘ @c f),
  *         witnessed by @c image(f, @c s) @c == @c singleton(f(s.pivot))
@@ -218,8 +218,6 @@ static_assert(
     "Cod(F) == int folds back to SingletonSet<int>.");
 static_assert(dedekind::sets::IsExtensional<decltype(s1)>,
               "Breadcrumb (ii): image preserves IsExtensional.");
-static_assert(dedekind::sets::IsPointedSet<decltype(s1), int>,
-              "Breadcrumb (ii): image preserves IsPointedSet.");
 static_assert(s1.size() == 1,
               "Breadcrumb (ii): cardinality is preserved (1 ↦ 1).");
 

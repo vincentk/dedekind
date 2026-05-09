@@ -242,33 +242,35 @@ TEST_CASE("order:halfspace — OrderInterval size across strictness pairs",
   }
 }
 
-TEST_CASE("order:halfspace — Singleton satisfies all three computability tiers",
+TEST_CASE("order:halfspace — Singleton satisfies the consolidated tiers",
           "[order][halfspace][singleton][computability]") {
-  // Sets-level concepts from dedekind.sets:computability, instantiated on
-  // order-level types. The sets test target cannot import dedekind.order,
-  // so these downstream conformance checks live here.
+  // Sets-level concepts (HasDecidableMembership in :sets:computability,
+  // IsExtensional in :sets:cardinality post-2026-05-09 consolidation),
+  // instantiated on order-level types. The sets test target cannot
+  // import dedekind.order, so these downstream conformance checks live
+  // here.
   STATIC_CHECK(HasDecidableMembership<Singleton<42>>);
-  STATIC_CHECK(IsFiniteSet<Singleton<42>>);
-  STATIC_CHECK(IsCompileTimeEnumerable<Singleton<42>>);
+  STATIC_CHECK(IsExtensional<Singleton<42>>);
 
-  SECTION(
-      "TernaryLogic variant: finite + compile-time-enumerable but not "
-      "decidable") {
+  SECTION("TernaryLogic variant: extensional but not decidable") {
     STATIC_CHECK_FALSE(HasDecidableMembership<Singleton<42, TernaryLogic>>);
-    STATIC_CHECK(IsFiniteSet<Singleton<42, TernaryLogic>>);
-    STATIC_CHECK(IsCompileTimeEnumerable<Singleton<42, TernaryLogic>>);
+    STATIC_CHECK(IsExtensional<Singleton<42, TernaryLogic>>);
   }
 }
 
-TEST_CASE("order:halfspace — OrderInterval on ℤ is finite but not enumerable",
+TEST_CASE("order:halfspace — OrderInterval on ℤ is finite and enumerable",
           "[order][halfspace][order_interval][computability]") {
   constexpr OrderInterval<int, 1, 10, Strictness::Strict, Strictness::Strict>
       iv{};
 
   STATIC_CHECK(HasDecidableMembership<decltype(iv)>);
-  STATIC_CHECK(IsFiniteSet<decltype(iv)>);
-  // The 8 inhabitants live at the value level, not in the type.
-  STATIC_CHECK_FALSE(IsCompileTimeEnumerable<decltype(iv)>);
+  // The 2026-05-09 :sets:cardinality consolidation merged the
+  // tag-based distinction (type-level NTTP inhabitants vs runtime
+  // value-level inhabitants) into the @c IsExtensional gate;
+  // OrderInterval qualifies since @c size() returns @c size_t.  The
+  // finer distinction (type-level NTTP inhabitants only) lives in a
+  // follow-up concept if/when needed.
+  STATIC_CHECK(IsExtensional<decltype(iv)>);
   STATIC_CHECK(iv.size() == 8u);
 }
 
@@ -284,12 +286,10 @@ TEST_CASE("order:halfspace — reduction boundary tightens all three tiers",
     constexpr Ø<Cardinality> meet = gt5 & lt3;
 
     STATIC_CHECK_FALSE(HasDecidableMembership<decltype(gt5)>);
-    STATIC_CHECK_FALSE(IsFiniteSet<decltype(gt5)>);
-    STATIC_CHECK_FALSE(IsCompileTimeEnumerable<decltype(gt5)>);
+    STATIC_CHECK_FALSE(IsExtensional<decltype(gt5)>);
 
     STATIC_CHECK(HasDecidableMembership<decltype(meet)>);
-    STATIC_CHECK(IsFiniteSet<decltype(meet)>);
-    STATIC_CHECK(IsCompileTimeEnumerable<decltype(meet)>);
+    STATIC_CHECK(IsExtensional<decltype(meet)>);
   }
 
   SECTION("Singleton reduction") {
@@ -299,7 +299,7 @@ TEST_CASE("order:halfspace — reduction boundary tightens all three tiers",
 
     STATIC_CHECK_FALSE(HasDecidableMembership<decltype(gt3)>);
     STATIC_CHECK(HasDecidableMembership<decltype(s)>);
-    STATIC_CHECK(IsCompileTimeEnumerable<decltype(s)>);
+    STATIC_CHECK(IsExtensional<decltype(s)>);
   }
 }
 

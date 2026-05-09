@@ -61,73 +61,33 @@ using namespace dedekind::category;
  */
 namespace dedekind::sets {
 
-struct Boundaries {};
-
-/** @section boundaries__Structural_Resolution
- *
- * @c resolve_species / @c element_of_t resolve a type to its underlying
- * element type: predicate-set carriers (anything with a nested
- * @c ::Domain) project to their domain, primitive types are their own
- * elements (the @b carrier reading after #399).  Lifted from
- * @c :family to @c :boundaries so the upstream @c Variable / @c var
- * machinery in @c :expressions can use the same trait without
- * duplicating the resolution logic.
- *
- * @section boundaries__Picking_Policy_Cross_Reference
- *
- * @c element_of_t is one of @b three Domain-resolving helpers in the
- * project — see @c :morphism's "Picking policy" comment block (post-
- * #411) for the canonical decision rule.  In short:
- *
- *   * @c Dom<F> / @c Cod<F> ( @c :morphism) — for @c IsArrow-strict
- *     contexts.
- *   * @c element_of_t<S> ( @b here) — for sites that must accept @b
- *     primitive carriers as well as predicate-set carriers.  This is
- *     the only helper with a primitive fallback; per-symbol carrier
- *     migrations (post-#401 / #402 etc.) prefer this on consumer sites
- *     to avoid the "primitive doesn't satisfy @c Species::Domain"
- *     cascade.
- *   * @c MorphicBridge<signature_extractor<F>::type>::Domain ( @c
- *     :morphism) — for typed-lambda contexts without nested @c ::Domain.
- *
- * Bare @c typename @c T::Domain is acceptable only at @b producer sites
- * (where @c using @c Domain @c = @c T; is the @b defining clause), or
- * inside a @c requires that already excludes primitives.
- */
-export template <typename T>
-struct resolve_species {
-  using type = T;  // Fallback for primitives (int, bool, ...) — the carrier IS
-                   // the element.
-};
-
-export template <typename T>
-  requires requires { typename T::Domain; }
-struct resolve_species<T> {
-  using type = typename T::Domain;  // Extract from formal Species.
-};
-
-export template <typename T>
-using element_of_t = typename resolve_species<T>::type;
-
-/**
- * @brief Sentinel carrier for the parameter-free form `Ø{}`.
- *
- * Enables a deduction guide that lets listings write `Ø{}` (no type args)
- * and have it compare equal to any `Ø<T, L>`, regardless of carrier and
- * logic species. This is purely for paper-listing readability; a typed
- * empty set `Ø<int, TernaryLogic>{}` is still the underlying object of record.
- */
-struct AnyDomain {};
-
 /** @brief ∅: The Initial Object. Extensional (Size 0). */
-export template <typename T = AnyDomain, typename L = ClassicalLogic>
-struct Ø final : Boundaries {
+export template <typename T, typename L = ClassicalLogic>
+struct Ø final {
+  // ~ arrow / morphism / subobject classifier jargon
   using Domain = T;
   using Codomain = typename L::Ω;
+  // ~ set expressions jargon:
+  using Ambient = T;
+
+  // ~ topoi jargon;
+  /** @brief Member-shape mirror of Subobject's.  Vacuously inhabited (Ø has
+   *  no members) — but the wrapper type is still required so the
+   *  IsSubobject contract has a Member-to-T projection to read through ι. */
+  struct Member {
+    T value;
+  };
+
+  /** @brief ι: Ø ↣ T — the trivial inclusion.  No members are ever
+   *  constructed, so ι is unreachable in practice; the body unwraps the
+   *  Member's T-value to satisfy the SHAPE the IsSubobject contract
+   *  reads. */
+  constexpr T ι(const Member& m) const { return m.value; }
+
+  static const Ø χ;
+
   using logic_species = L;
   using cardinality_type = Finite;
-  using is_extensional_tag = void;
-  using is_compile_time_extensional_tag = void;
   using base_set_type = Ø<T, L>;
 
   /** @section boundaries__Algebraic_Axioms */
@@ -193,40 +153,33 @@ struct Ø final : Boundaries {
   constexpr cardinality_type cardinality() const { return cardinality_type{}; }
   constexpr std::size_t upper_bound() const { return 0; }
 
+  // Set-shape gate for the lattice operators below: @c IsSet<S>.  The
+  // canonical carriers (@c UniversalSet, @c SingletonSet, @c Set) all
+  // satisfy @c IsSet structurally post-#625, so the lattice ops accept
+  // anything that does.
+
   // Ø | S = S
-  // Note: blocked for the parameter-free form `Ø<AnyDomain>` (i.e. `Ø{}`) —
-  // that form is a comparison-only tag; using it in a meet/join would
-  // silently propagate `AnyDomain` as the result carrier, which is almost
-  // never what the caller meant. Spell the carrier explicitly instead.
   template <typename S>
-    requires(!std::same_as<T, AnyDomain>)
+    requires(IsSet<S>)
   constexpr auto operator|(const S& s) const {
     return s;
   }
   // Ø & S = Ø
   template <typename S>
-    requires(!std::same_as<T, AnyDomain>)
+    requires(IsSet<S>)
   constexpr auto operator&(const S&) const {
     return *this;
   }
   // Ø ^ S = S  (∅ △ S = S; #469)
-  // Same AnyDomain block as | / & above.
   template <typename S>
-    requires(!std::same_as<T, AnyDomain>)
+    requires(IsSet<S>)
   constexpr auto operator^(const S& s) const {
     return s;
   }
 };
 
-/**
- * @brief Deduction guide: `Ø{}` (no template args) resolves to `Ø<>`.
- *
- * Enables paper-quality listings like `static_assert(s == Ø{});` without
- * forcing the reader to spell out carrier / logic species. The cross-type
- * `operator==` on `Ø` makes `Ø<AnyDomain, ClassicalLogic>` equal to any
- * other `Ø<T2, L2>`, so the comparison is semantically "is s the empty set?"
- */
-Ø() -> Ø<>;
+template <typename T, typename L>
+inline const Ø<T, L> Ø<T, L>::χ{};
 
 /**
  * @struct UniversalSet
@@ -246,9 +199,28 @@ struct Ø final : Boundaries {
  * pre-#551 surface had.
  */
 export template <typename T, typename L = ClassicalLogic, typename C = ℵ_0>
-struct UniversalSet final : Boundaries {
+struct UniversalSet final {
+  // ~ arrow / morphism / subobject classifier jargon
   using Domain = T;
   using Codomain = typename L::Ω;
+  // ~ set expressions jargon:
+  using Ambient = T;
+
+  // ~ topoi jargon;
+  /** @brief Member-shape mirror of Subobject's: every element of T
+   *  is a member of U via the always-True classifier; the wrapper
+   *  carries the T-value the IsSubobject contract reads back through ι. */
+  struct Member {
+    T value;
+  };
+
+  /** @brief ι: U ↣ T — the canonical identity inclusion.
+   *  Every member of the universal set is by construction an element
+   *  of the ambient T; ι unwraps the Member's T-value. */
+  constexpr T ι(const Member& m) const { return m.value; }
+
+  static const UniversalSet χ;
+
   using cardinality_type = C;
   using base_set_type = UniversalSet<T, L, C>;
   using is_universal_boundary = void;
@@ -325,6 +297,9 @@ struct UniversalSet final : Boundaries {
   }
 };
 
+template <typename T, typename L, typename C>
+inline const UniversalSet<T, L, C> UniversalSet<T, L, C>::χ{};
+
 /** @brief The universal-predicate value at carrier @c T (subobject-classifier
  *         reading per #551).
  *
@@ -359,12 +334,19 @@ template <typename T, typename L, typename C>
 struct is_extensional<UniversalSet<T, L, C>>
     : std::bool_constant<C::is_finite> {};
 
-static_assert(
-    dedekind::category::IsSet<decltype(ambient_set<int>(UniversalSet<int>{}))>,
-    "The universal boundary must lift to an ETCS set object.");
-static_assert(dedekind::category::IsSet<decltype(ambient_set<int>(Ø<int>{}))>,
+static_assert(IsSet<decltype(UniversalSet<int>{})>,
+              "The universal boundary must lift to an ETCS set object.");
+
+static_assert(IsSet<decltype(ambient_set<int>(UniversalSet<int>{}))>,
+              "The universal boundary must lift to an ETCS set object.");
+
+static_assert(IsSet<decltype(Ø<int>{})>,
               "The empty boundary must lift to an ETCS set object.");
-static_assert(dedekind::category::HasCanonicalSetCCC<int>,
+
+static_assert(IsSet<decltype(ambient_set<int>(Ø<int>{}))>,
+              "The empty boundary must lift to an ETCS set object.");
+
+static_assert(HasCanonicalSetCCC<int>,
               "Breadcrumb to :cartesian: boundary ambient int has canonical "
               "CCC witness.");
 

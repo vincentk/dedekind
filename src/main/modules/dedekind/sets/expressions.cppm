@@ -58,10 +58,11 @@ module;
 export module dedekind.sets:expressions;
 
 import dedekind.category;
-import :boundaries;   // For Ω, Ø
-import :cardinality;  // For Cardinality / SignedCardinality (cross-carrier
-                      // meet)
-import :mereology;    // For NaturalLogic
+import :boundaries;     // For Ω, Ø
+import :cardinality;    // For Cardinality / SignedCardinality (cross-carrier
+                        // meet)
+import :mereology;      // For mereology lattice concepts
+import :computability;  // For NaturalLogic / HasDecidableMembership
 
 namespace dedekind::sets {
 using namespace dedekind::category;
@@ -131,7 +132,7 @@ struct MembershipBinding {
    *  @c !b) routing into it.
    */
   template <auto OtherAmbient>
-    requires std::same_as<element_of_t<Species>, bool> &&
+    requires std::same_as<typename Species::Domain, bool> &&
              std::same_as<typename BoundScout<OtherAmbient>::T, bool>
   constexpr auto operator|(const BoundScout<OtherAmbient>&) const {
     return Comprehension<Species, BooleanEqPredicate>{base,
@@ -155,13 +156,14 @@ struct MembershipBinding {
  * usable as NTTP value).  @c Ambient is a constexpr instance of an
  * ambient type (e.g.\ a @c UniversalSet<...>{} default-constructed
  * at compile time, or anything with a nested @c Domain typedef).
- * The scout's element type @c T is @c element_of_t<Ambient>'s
- * underlying carrier.
+ * The scout's element type @c T is read directly from the ambient's
+ * @c Domain typedef (see @c using @c T = @c typename @c
+ * AmbientType::Domain below).
  */
 export template <auto Ambient>
 struct BoundScout {
   using AmbientType = std::remove_cvref_t<decltype(Ambient)>;
-  using T = element_of_t<AmbientType>;
+  using T = typename AmbientType::Domain;
   using is_variable = void;
   static constexpr AmbientType ambient = Ambient;
 
@@ -206,6 +208,7 @@ struct BoundScout {
  *  get a scout that ranges over the universal predicate at carrier
  *  @c T.  */
 export template <auto Ambient>
+//  requires IsSet<Ambient>
 inline constexpr BoundScout<Ambient> element{};
 
 /** @brief Soft alias @c in<Ambient> for @c element<Ambient> (#603) ---
@@ -522,8 +525,30 @@ constexpr auto operator|(const Set<SignedCardinality, L, P1>& lhs,
 export template <typename T, typename L, typename Predicate>
 class Set {
  public:
+  // ~ arrow / morphism / subobject classifier jargon
   using Domain = T;
   using Codomain = typename L::Ω;
+  // ~ set expressions jargon:
+  using Ambient = T;
+
+  // ~ topoi jargon: Member-shape mirror of Subobject's; the IsSubobject
+  // contract reads the Member-to-T projection through ι below.  Same
+  // shape as Ø / UniversalSet / SingletonSet's Member.
+  struct Member {
+    T value;
+  };
+
+  /** @brief ι: Set ↣ T — Member unwrap.  Identical pattern to
+   *  Subobject<A, χ>::ι and SingletonSet::ι; the inclusion projects
+   *  the Member's T-value back to the ambient. */
+  constexpr T ι(const Member& m) const { return m.value; }
+
+  /** @brief χ: T → Ω — arrow-form classifier for the IsSubobject
+   *  contract.  Static self-reference (SHAPE-only — semantic
+   *  membership query lives in @c operator() below, predicate-aware).
+   *  Same pattern as Ø / UniversalSet / SingletonSet's χ. */
+  static const Set χ;
+
   using logic_species = L;
   using cardinality_type = ℵ_0;
 
@@ -788,6 +813,13 @@ class Set {
   Predicate predicate_;
 };
 
+// Out-of-class χ definition — completes the IsSubobject self-reference
+// declared in-class at @c Set::χ above.  Default-initializes
+// @c predicate_ via @c Predicate{}; the SHAPE is what the contract
+// reads (semantics live in @c operator() which IS predicate-aware).
+template <typename T, typename L, typename Predicate>
+inline const Set<T, L, Predicate> Set<T, L, Predicate>::χ{Predicate{}};
+
 /** @brief Explicit set complement overload to avoid picking category morphism
  * `!`. */
 export template <typename T, typename L, typename Predicate>
@@ -877,6 +909,13 @@ Set(BoundScout<Ambient>) -> Set<
     typename BoundScout<Ambient>::T,
     typename NaturalLogic<typename BoundScout<Ambient>::AmbientType>::type,
     UniversalPredicate<typename BoundScout<Ambient>::T>>;
+
+// Enforce ETCS compliance also here:
+static_assert(
+    IsSet<decltype(ambient_set<int>(
+        Set<int, ClassicalLogic, UniversalPredicate<int>>{
+            UniversalPredicate<int>{}}))>,
+    "The canonical intensional Set<T, L, Predicate> must lift to an ETCS set ");
 
 static_assert(
     dedekind::category::IsSet<decltype(dedekind::category::ambient_set<int>(

@@ -195,7 +195,7 @@ struct Path {
 
   friend constexpr Path operator+(Path const& a, Path const& b) {
     auto gen = [a, b](std::size_t i) { return a.at(i) + b.at(i); };
-    if constexpr (IsFiniteMagnitude<Cardinality>) {
+    if constexpr (dedekind::sets::IsFinite<Cardinality>) {
       return Path{gen, std::min(a.size(), b.size())};
     } else {
       return Path{gen};
@@ -204,7 +204,7 @@ struct Path {
 
   friend constexpr Path operator-(Path const& a, Path const& b) {
     auto gen = [a, b](std::size_t i) { return a.at(i) - b.at(i); };
-    if constexpr (IsFiniteMagnitude<Cardinality>) {
+    if constexpr (dedekind::sets::IsFinite<Cardinality>) {
       return Path{gen, std::min(a.size(), b.size())};
     } else {
       return Path{gen};
@@ -213,7 +213,7 @@ struct Path {
 
   friend constexpr Path operator-(Path const& a) {
     auto gen = [a](std::size_t i) { return -a.at(i); };
-    if constexpr (IsFiniteMagnitude<Cardinality>) {
+    if constexpr (dedekind::sets::IsFinite<Cardinality>) {
       return Path{gen, a.size()};
     } else {
       return Path{gen};
@@ -222,7 +222,7 @@ struct Path {
 
   friend constexpr Path operator*(T const& s, Path const& a) {
     auto gen = [s, a](std::size_t i) { return s * a.at(i); };
-    if constexpr (IsFiniteMagnitude<Cardinality>) {
+    if constexpr (dedekind::sets::IsFinite<Cardinality>) {
       return Path{gen, a.size()};
     } else {
       return Path{gen};
@@ -231,7 +231,7 @@ struct Path {
 
   friend constexpr Path operator*(Path const& a, T const& s) {
     auto gen = [s, a](std::size_t i) { return a.at(i) * s; };
-    if constexpr (IsFiniteMagnitude<Cardinality>) {
+    if constexpr (dedekind::sets::IsFinite<Cardinality>) {
       return Path{gen, a.size()};
     } else {
       return Path{gen};
@@ -251,7 +251,7 @@ struct Path {
       return f(m.at(n)).at(n);
     };
 
-    if constexpr (IsFiniteMagnitude<Cardinality>) {
+    if constexpr (dedekind::sets::IsFinite<Cardinality>) {
       return Path<U, Cardinality>{bound_generator, m.size()};
     } else {
       return Path<U, Cardinality>{bound_generator};
@@ -270,7 +270,7 @@ struct Path {
 
     auto extended_generator = [w, f = std::forward<F>(f)](std::size_t n) {
       // Create the "sub-path" (suffix) starting at n, preserving cardinality.
-      if constexpr (IsFiniteMagnitude<Cardinality>) {
+      if constexpr (dedekind::sets::IsFinite<Cardinality>) {
         const std::size_t suffix_size = (n < w.size()) ? w.size() - n : 0;
         return f(Path<T, Cardinality>{
             [w, n](std::size_t i) { return w.at(n + i); }, suffix_size});
@@ -280,7 +280,7 @@ struct Path {
       }
     };
 
-    if constexpr (IsFiniteMagnitude<Cardinality>) {
+    if constexpr (dedekind::sets::IsFinite<Cardinality>) {
       return Path<U, Cardinality>{extended_generator, w.size()};
     } else {
       return Path<U, Cardinality>{extended_generator};
@@ -288,19 +288,19 @@ struct Path {
   }
 
   constexpr std::size_t size() const noexcept
-    requires IsFiniteMagnitude<Cardinality>
+    requires dedekind::sets::IsFinite<Cardinality>
   {
     return extent;
   }
 
   constexpr auto begin() const noexcept
-    requires IsFiniteMagnitude<Cardinality>
+    requires dedekind::sets::IsFinite<Cardinality>
   {
     return const_iterator{.owner = this, .index = 0};
   }
 
   constexpr auto end() const noexcept
-    requires IsFiniteMagnitude<Cardinality>
+    requires dedekind::sets::IsFinite<Cardinality>
   {
     return const_iterator{.owner = this, .index = size()};
   }
@@ -339,7 +339,7 @@ constexpr auto from_range(R&& range) {
 
 export template <typename T, typename Cardinality>
 constexpr auto prefix(const Path<T, Cardinality>& path, std::size_t length) {
-  if constexpr (IsFiniteMagnitude<Cardinality>) {
+  if constexpr (dedekind::sets::IsFinite<Cardinality>) {
     const std::size_t clamped = std::min(length, path.size());
     return FinitePath<T>{[path](std::size_t i) { return path.at(i); }, clamped};
   } else {
@@ -361,7 +361,7 @@ constexpr auto prefix(const Path<T, Cardinality>& path, std::size_t length) {
  *         tail.
  */
 export template <typename T, typename Cardinality>
-  requires(!IsFiniteMagnitude<Cardinality>)
+  requires(!dedekind::sets::IsFinite<Cardinality>)
 constexpr auto drop(const Path<T, Cardinality>& path, std::size_t n) {
   return Path<T, Cardinality>{[path, n](std::size_t i) {
     assert(i <= std::numeric_limits<std::size_t>::max() - n &&
@@ -412,7 +412,7 @@ constexpr auto iterate(T seed, Step&& step, std::size_t length) {
 }
 
 export template <typename T, typename Cardinality, typename Pred>
-  requires IsFiniteMagnitude<Cardinality> &&
+  requires dedekind::sets::IsFinite<Cardinality> &&
            std::predicate<const std::decay_t<Pred>&, const T&>
 constexpr std::size_t count_if(const Path<T, Cardinality>& path, Pred&& pred) {
   auto predicate = std::forward<Pred>(pred);
@@ -464,7 +464,7 @@ constexpr auto exists(const Path<T, Cardinality>& path, Pred&& pred) {
   auto predicate = std::forward<Pred>(pred);
   Omega witness = Logic::False;
   for (std::size_t i = 0;; ++i) {
-    if constexpr (IsFiniteMagnitude<Cardinality>) {
+    if constexpr (dedekind::sets::IsFinite<Cardinality>) {
       if (i >= path.size()) break;
     }
     witness = Logic::OR(witness, std::invoke(predicate, path.at(i)));
@@ -514,7 +514,7 @@ constexpr auto forall(const Path<T, Cardinality>& path, Pred&& pred) {
   auto predicate = std::forward<Pred>(pred);
   Omega witness = Logic::True;
   for (std::size_t i = 0;; ++i) {
-    if constexpr (IsFiniteMagnitude<Cardinality>) {
+    if constexpr (dedekind::sets::IsFinite<Cardinality>) {
       if (i >= path.size()) break;
     }
     witness = Logic::AND(witness, std::invoke(predicate, path.at(i)));

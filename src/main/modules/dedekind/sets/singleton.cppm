@@ -72,11 +72,35 @@ using namespace dedekind::category;
 export template <typename T, typename L = ClassicalLogic>
 struct SingletonSet {
   T pivot;
+  // ~ arrow / morphism / subobject classifier jargon
   using Domain = T;
   using Codomain = typename L::Ω;
+  // ~ set expressions jargon:
+  using Ambient = T;
+
+  // ~ topoi jargon: Member-shape mirror of Subobject's; the IsSubobject
+  // contract reads the Member-to-T projection through ι below.  The
+  // SingletonSet's only true inhabitant is @c pivot; @c Member is the
+  // structural wrapper carrying a T value.
+  struct Member {
+    T value;
+  };
+
+  /** @brief ι: {x} ↣ T — Member unwrap.  Identical pattern to
+   *  Subobject<A, χ>::ι; the inclusion projects the Member's
+   *  T-value back to the ambient. */
+  constexpr T ι(const Member& m) const { return m.value; }
+
+  /** @brief χ: T → Ω — arrow-form classifier for the IsSubobject
+   *  contract.  Static self-reference: the IsSubobject contract
+   *  reads only the SHAPE (signature + Domain match), not the
+   *  semantics; the actual membership query lives in @c operator()
+   *  below (instance-aware, returns True iff @c v @c == @c pivot).
+   *  Same pattern as Ø / UniversalSet's χ in @c :sets:boundaries. */
+  static const SingletonSet χ;
+
   using logic_species = L;
   using cardinality_type = Finite;
-  using is_extensional_tag = void;
   using base_set_type = SingletonSet<T, L>;
 
   /** @section singleton__Algebraic_Axioms */
@@ -104,11 +128,6 @@ struct SingletonSet {
 
   /** @section singleton__Mereological_Relation (sqsubseteq) */
 
-  // 1. Manual definition to satisfy: { a <= b } -> typename L::Ω
-  constexpr typename L::Ω operator<=(const SingletonSet& other) const {
-    return (pivot == other.pivot) ? L::True : L::False;
-  }
-
   // 2. Manual equality for IsExtensional
   constexpr bool operator==(const SingletonSet& other) const {
     return pivot == other.pivot;
@@ -119,17 +138,18 @@ struct SingletonSet {
   auto operator<=>(const SingletonSet&) const = delete;
 
   // S1 <= S2 (Is S1 a part of S2?)
+  //
+  // Constrained to operands that share our logic species so the verdict
+  // returned by @c other.contains(pivot) (a @c S::logic_species::Ω value)
+  // is type-compatible with our return type @c L::Ω.  Avoids the
+  // bool-conversion trap of @c (Ternary::True ? ... : ...): on
+  // non-Boolean logics @c L::Ω is an enum class that's not contextually
+  // convertible to @c bool.  Cross-logic mereology would need an explicit
+  // logic-embedding arrow; that's a follow-up.
   template <typename S>
+    requires IsSet<S> && std::same_as<typename S::logic_species, L>
   constexpr typename L::Ω operator<=(const S& other) const {
-    // If it's another singleton, compare pivots
-    if constexpr (requires { other.pivot; }) {
-      return (pivot == other.pivot) ? L::True : L::False;
-    }
-    // If it's the Universal Set, it's always true
-    if constexpr (std::is_base_of_v<Boundaries, S>) {
-      return other(*this);  // Let the boundary decide (Ω returns True)
-    }
-    return L::False;
+    return other.contains(pivot);
   }
 
   /** @section singleton__Mereological_Lattice_Audit */
@@ -182,6 +202,14 @@ struct SingletonSet {
   constexpr auto operator!() const { return UniversalSet<T, L>{}; }
 };
 
+// Out-of-class χ definition: completes the IsSubobject self-reference
+// declared in-class at @c SingletonSet::χ above.  Default-initializes
+// @c pivot via @c T{} (the SHAPE is what the contract reads; the
+// semantic membership query goes through the instance's
+// @c operator() which IS pivot-aware).
+template <typename T, typename L>
+inline const SingletonSet<T, L> SingletonSet<T, L>::χ{};
+
 // ---------------------------------------------------------------------------
 // Singleton ^ Set / Set ^ Singleton — symmetric difference on the Atom
 // (#469 review-driven specialisations).
@@ -218,8 +246,8 @@ constexpr auto operator^(const Set<T, L1, P>& other,
   return s ^ other;
 }
 
-static_assert(IsPointedSet<SingletonSet<int>, int> &&
-                  IsExtensional<SingletonSet<int>>,
+static_assert(IsSet<SingletonSet<int>>, "A singleton must be a set.");
+static_assert(IsExtensional<SingletonSet<int>>,
               "Mereology: SingletonSet must satisfy the Singleton axiom.");
 static_assert(
     dedekind::category::IsSet<
@@ -284,9 +312,9 @@ constexpr auto operator<<=(const SingletonSet<T, L>& s, Func&& f) {
  *   - The Kleisli triple's @c >>= (above): @c image(f, @c s) @c is the
  *     Singleton specialisation of the Set-monad's bind, factored
  *     through @c η.
- *   - The image's tier (@c IsCompileTimeEnumerable, @c IsFiniteSet,
- *     @c HasDecidableMembership): all preserved by the lift, since
- *     @c SingletonSet has cardinality 1 in both source and target.
+ *   - The image's tier ( @c IsExtensional, @c HasDecidableMembership):
+ *     preserved by the lift, since @c SingletonSet has cardinality 1
+ *     in both source and target.
  *
  * Filed under #602's layer-1 plan: per-shape image dispatch, Singleton
  * source as the entry point.  The same shape generalises to
@@ -307,9 +335,9 @@ constexpr auto image(
 // `morphologies:archimedean` (the natural home for Peano-successor
 // witnesses).  The structural claims pinned there:
 //   (i)   `image` is defined for @c IsArrow inputs.
-//   (ii)  Tier preservation: cardinality 1 ↦ 1, @c IsExtensional and
-//         @c IsPointedSet preserved on the codomain side.
-//   (iii) Kleisli factoring: @c image(f, s) == @c (s @c >>= @c (η @c ∘ @c f))
+//   (ii)  Tier preservation: cardinality 1 ↦ 1, @c IsExtensional preserved on
+//   the codomain side. (iii) Kleisli factoring: @c image(f, s) == @c (s @c >>=
+//   @c (η @c ∘ @c f))
 //         — the cardinality-1 instance of the powerset-monad bind.
 // Placing the witness downstream lets us avoid contaminating
 // @c :singleton with its own assertion machinery (per PR #604 review).
