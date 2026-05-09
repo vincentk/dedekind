@@ -331,27 +331,14 @@ concept HasAxiom10PowerObjectLattice =
     };
 
 /**
- * @concept IsSet
- * @brief ETCS set concept that aggregates all 10 axiom witnesses in one place.
+ * @concept HasETCSAxioms
+ * @brief Aggregates the 10 ETCS axiom witnesses over a carrier T.
  *
- * @details
- * IsSet keeps the elegant Subobject representation (axiom 7) while making
- * the ETCS axiom mapping explicit and discoverable as concept-level witnesses.
- *
- * @section etcs__ETCS_subset_CCC
- * Standard categorical fact: every ETCS category is a Cartesian-closed
- * category, but most CCCs are not ETCS.  Axioms 3 (terminal), 5 (products),
- * and 6 (exponentials) are exactly the structural ingredients of a CCC; the
- * additional axioms (4 well-pointed, 7 subobject classifier, 9 NNO, 10
- * choice/power-object lattice) are precisely what fails for general CCCs.
- *
- * The concept body therefore aggregates @c HasCanonicalSetCCC over the
- * ambient species directly, so any carrier that satisfies @c IsSet
- * inherits the CCC guarantee structurally rather than by per-carrier
- * opt-in.  This is the Lambek--Scott payoff: Cartesian-closedness is
- * simply-typed lambda calculus, and the ETCS subset relation now lifts
- * that to the typed lambda calculus of the set-builder DSL.  Tracked
- * historically under #389.
+ * @details Each axiom is its own concept-level witness
+ * (@c HasAxiom1Composition through @c HasAxiom10PowerObjectLattice); this
+ * concept conjoins them into a single gate.  Used by @c IsSet below as
+ * the axioms half of the ETCS set predicate (the other half being the
+ * canonical CCC witness over the ambient species).
  */
 export template <typename T>
 concept HasETCSAxioms =
@@ -366,12 +353,26 @@ concept HasETCSAxioms =
     HasAxiom9NNO<typename T::Ambient> && HasAxiom10PowerObjectLattice<T>;
 
 /**
- * @concept HasCanonicalSetCCC
- * @brief Mnemonic bridge: ambient species A has a canonical CCC witness.
+ * @concept IsSet
+ * @brief ETCS set: a carrier satisfying the 10 ETCS axioms AND admitting
+ *        the canonical Set-CCC witness over its ambient species.
  *
- * @details
- * This keeps category-level verification explicit without forcing object-level
- * set concepts to also be category concepts.
+ * @details Conjoins @c HasETCSAxioms<A> with @c IsCartesianClosed over
+ * @c CanonicalSetCCC<A::Ambient>.  Every ETCS category is a CCC --- axioms
+ * 3 (terminal), 5 (products), 6 (exponentials) are exactly the structural
+ * ingredients of a CCC --- so the second half of the conjunction is
+ * structurally entailed by the first; carrying it in the body makes the
+ * CCC guarantee discoverable at the @c IsSet site rather than per-carrier
+ * opt-in.  This is the Lambek--Scott payoff: Cartesian-closedness is
+ * simply-typed lambda calculus, and the ETCS subset relation lifts that
+ * to the typed lambda calculus of the set-builder DSL.  Tracked
+ * historically under #389.
+ *
+ * @section etcs__ETCS_subset_CCC
+ * Standard categorical fact: every ETCS category is a Cartesian-closed
+ * category, but most CCCs are not ETCS.  The additional axioms beyond CCC
+ * (4 well-pointed, 7 subobject classifier, 9 NNO, 10 choice / power-object
+ * lattice) are precisely what fails for general CCCs.
  */
 export template <typename A>
 concept IsSet =
@@ -487,10 +488,15 @@ namespace {
 using _isset_witness_t = decltype(ambient_set<int>([](int) { return true; }));
 }  // namespace
 static_assert(IsSet<_isset_witness_t>,
-              "Witness: representative carrier satisfies IsSet.");
+              "Witness: representative carrier satisfies IsSet "
+              "(axioms + canonical CCC over the ambient).");
 static_assert(
-    IsSet<_isset_witness_t>,
-    "Mnemonic check: ETCS set objects live over a canonical CCC ambient.");
+    IsCartesianClosed<CanonicalSetCCC<typename _isset_witness_t::Ambient>>,
+    "Directional witness: the CCC half of IsSet pinned independently --- "
+    "the canonical Set-CCC over the witness's ambient species is "
+    "Cartesian-closed.  (Pre-#629 this was carried by the "
+    "IsSetInCanonicalCCC mnemonic alias; IsSet now subsumes it "
+    "structurally, so the alias is gone but the directional check stays.)");
 
 /**
  * @brief The canonical Set ↪ Cat lift for any IsSet-witnessing carrier.
