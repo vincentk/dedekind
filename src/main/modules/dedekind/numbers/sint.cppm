@@ -73,6 +73,9 @@ module;
 #include <concepts>
 #include <functional>
 #include <limits>
+#include <type_traits>  // std::remove_cvref_t (no-narrowing pin in
+                        // embed_sint_ℤ's set-level overload)
+#include <utility>      // std::forward (used in embed_sint_ℤ's set-level lift)
 
 export module dedekind.numbers:sint;
 
@@ -149,6 +152,86 @@ export inline constexpr auto embed_sint_ℤ_ =
         [](const int& i) noexcept -> dedekind::sets::SignedCardinality {
           return embed_sint_ℤ(i);
         });
+
+/**
+ * @brief Set-level lift of @c embed_sint_ℤ_: image of an @c int-set
+ *        @c S under the canonical mono @c int ↪ ℤ.
+ *
+ * @details Layer-1 entry per #602, sister to @c embed_𝔹_ℕ (PR #624),
+ * @c embed_𝔹_𝕂3 (PR #626), and @c embed_uint_ℕ (PR #628): names the
+ * construction at the call site rather than re-spelling
+ * @c image(embed_sint_ℤ_, S).  Accepted input @c S is anything
+ * @c dedekind::sets::image already dispatches on —
+ * @c SingletonSet (@c :sets:singleton),
+ * @c std::set<int> / @c std::unordered_set<int>
+ * (@c :sets:extensional); lazy predicate sets join the dispatch
+ * table when #602's layer 2 lands.
+ *
+ * @note This overload is on the @b set side; the per-value entry
+ * point @c embed_sint_ℤ(S @c v) — the templated function above for
+ * any @c std::signed_integral @c S — is unchanged and kept for the
+ * value-level call sites in @c :sint and @c :integer.  Overload
+ * resolution disambiguates via the @c requires-clause: the per-value
+ * overload requires @c std::signed_integral, this one requires
+ * the set's element type to be exactly @c int (the no-narrowing pin
+ * below) and @c image to be well-formed; no @c S satisfies both at
+ * once.
+ *
+ * Mathematically: the image of @c S under the canonical mono
+ * @c int @c ↪ @c ℤ is a subset of the finite fragment of @c
+ * SignedCardinality containing whichever @c int values are in @c S.
+ */
+// No-narrowing pin: the source set's element type must be EXACTLY
+// @c int.  Without this gate, sets over a wider signed type
+// (e.g. @c long, @c long @c long) or over @c unsigned would
+// satisfy the bare @c image-well-formedness requires-clause via
+// implicit conversion at the per-element @c embed_sint_ℤ_ call site,
+// silently truncating (long@→int) or sign-reinterpreting (unsigned@→int)
+// and bypassing the @c digits-safety @c static_assert in the per-value
+// @c embed_sint_ℤ(S).  We pin both the @c Domain-exposing carriers
+// (SingletonSet, dedekind::sets::Set, …) and the @c value_type-exposing
+// carriers (std::set, std::unordered_set) in a single disjunctive
+// constraint — either typedef must match exactly @c int for the overload
+// to fire.  Same shape as PR #628's @c embed_uint_ℕ no-narrowing pin.
+export template <typename S>
+  requires(
+              requires {
+                typename std::remove_cvref_t<S>::Domain;
+                requires std::same_as<typename std::remove_cvref_t<S>::Domain,
+                                      int>;
+              } ||
+              requires {
+                typename std::remove_cvref_t<S>::value_type;
+                requires std::same_as<
+                    typename std::remove_cvref_t<S>::value_type, int>;
+              }) &&
+          requires(S&& s) {
+            dedekind::sets::image(embed_sint_ℤ_, std::forward<S>(s));
+          }
+constexpr auto embed_sint_ℤ(S&& s) {
+  return dedekind::sets::image(embed_sint_ℤ_, std::forward<S>(s));
+}
+
+// Set-level lift witnesses: @c embed_sint_ℤ on @c SingletonSet<int>{42}
+// lands at @c finite_signed_cardinality(42), and on @c SingletonSet<int>{-7}
+// at @c finite_signed_cardinality(-7).  Pinned at the @b value level so
+// the pivot equality is constant-evaluated, not just the codomain type.
+// Mirrors PR #624 / #626 / #628's witnesses — same shape, different
+// (carrier, codomain) pair.
+static_assert(
+    embed_sint_ℤ(
+        dedekind::sets::SingletonSet<int, dedekind::category::ClassicalLogic>{
+            42})
+            .pivot == dedekind::sets::finite_signed_cardinality(42),
+    "embed_sint_ℤ(SingletonSet<int>{42}) lands at "
+    "finite_signed_cardinality(42) on the SignedCardinality carrier.");
+static_assert(embed_sint_ℤ(dedekind::sets::SingletonSet<
+                               int, dedekind::category::ClassicalLogic>{-7})
+                      .pivot == dedekind::sets::finite_signed_cardinality(-7),
+              "embed_sint_ℤ(SingletonSet<int>{-7}) lands at "
+              "finite_signed_cardinality(-7) on the SignedCardinality carrier "
+              "(negative-value witness — the symmetric complement to "
+              "embed_uint_ℕ's non-negative-only fragment).");
 
 /**
  * @brief Type-honest absolute value at the machine layer:
