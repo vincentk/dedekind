@@ -10,8 +10,8 @@
  * definitions; the third is orthogonal.
  *
  *                     IsCompileTimeEnumerable
- *                                ↓  (definitionally, via `IsExtensional<S> && …`)
- *                         IsExtensional
+ *                                ↓  (definitionally, via `IsExtensional<S> &&
+ * …`) IsExtensional
  *
  *                    HasDecidableMembership    (orthogonal — logic-species
  * axis)

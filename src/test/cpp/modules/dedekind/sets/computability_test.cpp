@@ -1,7 +1,8 @@
 /** @file dedekind/sets/computability_test.cpp
  *
  * Unit coverage for the three-tier computability hierarchy introduced in
- * PR #361: `HasDecidableMembership`, `IsExtensional`, `IsCompileTimeEnumerable`.
+ * PR #361: `HasDecidableMembership`, `IsExtensional`,
+ * `IsCompileTimeEnumerable`.
  *
  * Tests in this file use ONLY `dedekind.sets` + `dedekind.category` so the
  * sets-test target respects the module DAG (sets is upstream of order).
