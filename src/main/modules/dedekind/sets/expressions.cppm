@@ -879,6 +879,13 @@ Set(BoundScout<Ambient>) -> Set<
     typename NaturalLogic<typename BoundScout<Ambient>::AmbientType>::type,
     UniversalPredicate<typename BoundScout<Ambient>::T>>;
 
+// Enforce ETCS compliance also here:
+static_assert(
+    IsSet<decltype(ambient_set<int>(
+        Set<int, ClassicalLogic, UniversalPredicate<int>>{
+            UniversalPredicate<int>{}}))>,
+    "The canonical intensional Set<T, L, Predicate> must lift to an ETCS set ");
+
 static_assert(
     dedekind::category::IsSet<decltype(dedekind::category::ambient_set<int>(
         Set<int, dedekind::category::ClassicalLogic, UniversalPredicate<int>>{
