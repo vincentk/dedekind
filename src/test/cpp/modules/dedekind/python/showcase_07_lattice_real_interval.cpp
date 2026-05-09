@@ -69,7 +69,7 @@ static_assert(lattice_cut.size() == 42u);
 // but not compile-time-enumerable (the 42 elements aren't NTTPs).
 static_assert(HasDecidableMembership<decltype(lattice_cut)>);
 static_assert(IsExtensional<decltype(lattice_cut)>);
-static_assert(!IsCompileTimeEnumerable<decltype(lattice_cut)>);
+static_assert(!IsExtensional<decltype(lattice_cut)>);
 
 /**
  * @brief Showcase 7: integer lattice ∩ real interval, 42 elements.

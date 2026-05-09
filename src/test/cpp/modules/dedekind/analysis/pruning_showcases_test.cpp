@@ -103,11 +103,11 @@ TEST_CASE("Pruning showcase 3: halfspace contradiction on ℕ collapses to Ø",
   SECTION("Computability tiers tighten at the reduction boundary") {
     STATIC_CHECK_FALSE(HasDecidableMembership<decltype(gt_five)>);
     STATIC_CHECK_FALSE(IsExtensional<decltype(gt_five)>);
-    STATIC_CHECK_FALSE(IsCompileTimeEnumerable<decltype(gt_five)>);
+    STATIC_CHECK_FALSE(IsExtensional<decltype(gt_five)>);
 
     STATIC_CHECK(HasDecidableMembership<decltype(empty_meet)>);
     STATIC_CHECK(IsExtensional<decltype(empty_meet)>);
-    STATIC_CHECK(IsCompileTimeEnumerable<decltype(empty_meet)>);
+    STATIC_CHECK(IsExtensional<decltype(empty_meet)>);
   }
 }
 
@@ -121,8 +121,8 @@ TEST_CASE("Pruning showcase 4: cardinality-1 halfspace meet = Singleton<4>",
   STATIC_CHECK(in_between == Singleton<4>{});
 
   SECTION("Elements now live at the type level") {
-    STATIC_CHECK_FALSE(IsCompileTimeEnumerable<decltype(gt_3)>);
-    STATIC_CHECK(IsCompileTimeEnumerable<decltype(in_between)>);
+    STATIC_CHECK_FALSE(IsExtensional<decltype(gt_3)>);
+    STATIC_CHECK(IsExtensional<decltype(in_between)>);
   }
 }
 
@@ -161,7 +161,7 @@ TEST_CASE("Pruning showcase 6: (-21, 21] on ℤ has size 42",
   SECTION("Finite and decidable but not compile-time-enumerable") {
     STATIC_CHECK(HasDecidableMembership<decltype(iv)>);
     STATIC_CHECK(IsExtensional<decltype(iv)>);
-    STATIC_CHECK_FALSE(IsCompileTimeEnumerable<decltype(iv)>);
+    STATIC_CHECK_FALSE(IsExtensional<decltype(iv)>);
   }
 }
 

@@ -94,8 +94,8 @@ constexpr Ø<Cardinality> b = S & !S;
 //     reduction crosses the realisation boundary, lifting an intensional
 //     description on a transfinite carrier into decidable, finite,
 //     type-level semantics.
-static_assert(IsCompileTimeEnumerable<decltype(a)>);
-static_assert(IsCompileTimeEnumerable<decltype(b)>);
+static_assert(IsExtensional<decltype(a)>);
+static_assert(IsExtensional<decltype(b)>);
 
 /**
  * @brief Showcase α′: the §3 walk's compile-time payoff lifted to a

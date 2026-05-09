@@ -50,7 +50,7 @@ static_assert(box.size() == 462u);
 // but not compile-time-enumerable (we don't list all 462 pairs in the type).
 static_assert(HasDecidableMembership<decltype(box)>);
 static_assert(IsExtensional<decltype(box)>);
-static_assert(!IsCompileTimeEnumerable<decltype(box)>);
+static_assert(!IsExtensional<decltype(box)>);
 
 /**
  * @brief Showcase 8: 2D membership in a 42×11 rectangle.

@@ -2,7 +2,7 @@
  *
  * Unit coverage for the three-tier computability hierarchy introduced in
  * PR #361: `HasDecidableMembership`, `IsExtensional`,
- * `IsCompileTimeEnumerable`.
+ * `IsExtensional`.
  *
  * Tests in this file use ONLY `dedekind.sets` + `dedekind.category` so the
  * sets-test target respects the module DAG (sets is upstream of order).
@@ -53,27 +53,27 @@ TEST_CASE("sets:computability — IsExtensional on Ø", "[sets][computability]")
   }
 }
 
-TEST_CASE("sets:computability — IsCompileTimeEnumerable on Ø",
+TEST_CASE("sets:computability — IsExtensional on Ø",
           "[sets][computability]") {
   SECTION("Ø exposes (vacuously) elements at the type level") {
-    STATIC_CHECK(IsCompileTimeEnumerable<Ø<int>>);
-    STATIC_CHECK(IsCompileTimeEnumerable<Ø<int, TernaryLogic>>);
+    STATIC_CHECK(IsExtensional<Ø<int>>);
+    STATIC_CHECK(IsExtensional<Ø<int, TernaryLogic>>);
   }
 
   SECTION("An intensional Set is neither finite nor compile-time-enumerable") {
     constexpr auto x = element<ℕ>;
     constexpr auto s = Set{x | [](const auto& v) { return v > 5u; }};
     STATIC_CHECK_FALSE(IsExtensional<decltype(s)>);
-    STATIC_CHECK_FALSE(IsCompileTimeEnumerable<decltype(s)>);
+    STATIC_CHECK_FALSE(IsExtensional<decltype(s)>);
   }
 }
 
 TEST_CASE("sets:computability — refinement order of the three tiers",
           "[sets][computability]") {
-  // IsCompileTimeEnumerable is definitionally `IsExtensional<S> && requires {
+  // IsExtensional is definitionally `IsExtensional<S> && requires {
   // is_compile_time_extensional_tag }`, so the implication holds
   // structurally. Verified here against concrete witnesses.
-  STATIC_CHECK(IsCompileTimeEnumerable<Ø<int>> && IsExtensional<Ø<int>>);
+  STATIC_CHECK(IsExtensional<Ø<int>> && IsExtensional<Ø<int>>);
 
   // Finite extensional witnesses in dedekind.sets also happen to satisfy
   // HasDecidableMembership (via ClassicalLogic default); tested as a

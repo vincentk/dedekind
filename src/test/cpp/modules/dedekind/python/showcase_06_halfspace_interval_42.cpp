@@ -56,7 +56,7 @@ static_assert(iv.size() == 42u);
 // compile-time-enumerable (its 42 inhabitants are not in the type).
 static_assert(HasDecidableMembership<decltype(iv)>);
 static_assert(IsExtensional<decltype(iv)>);
-static_assert(!IsCompileTimeEnumerable<decltype(iv)>);
+static_assert(!IsExtensional<decltype(iv)>);
 
 /**
  * @brief Showcase 6: observable cardinality on a 42-element ℤ-interval.

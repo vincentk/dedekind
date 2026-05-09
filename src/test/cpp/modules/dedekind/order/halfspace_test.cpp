@@ -249,14 +249,14 @@ TEST_CASE("order:halfspace — Singleton satisfies all three computability tiers
   // so these downstream conformance checks live here.
   STATIC_CHECK(HasDecidableMembership<Singleton<42>>);
   STATIC_CHECK(IsExtensional<Singleton<42>>);
-  STATIC_CHECK(IsCompileTimeEnumerable<Singleton<42>>);
+  STATIC_CHECK(IsExtensional<Singleton<42>>);
 
   SECTION(
       "TernaryLogic variant: finite + compile-time-enumerable but not "
       "decidable") {
     STATIC_CHECK_FALSE(HasDecidableMembership<Singleton<42, TernaryLogic>>);
     STATIC_CHECK(IsExtensional<Singleton<42, TernaryLogic>>);
-    STATIC_CHECK(IsCompileTimeEnumerable<Singleton<42, TernaryLogic>>);
+    STATIC_CHECK(IsExtensional<Singleton<42, TernaryLogic>>);
   }
 }
 
@@ -268,12 +268,12 @@ TEST_CASE("order:halfspace — OrderInterval on ℤ is finite and enumerable",
   STATIC_CHECK(HasDecidableMembership<decltype(iv)>);
   STATIC_CHECK(IsExtensional<decltype(iv)>);
   // The 2026-05-09 :sets:cardinality consolidation merged
-  // IsCompileTimeEnumerable's tag-based distinction (type-level
+  // IsExtensional's tag-based distinction (type-level
   // inhabitants vs value-level inhabitants) into the IsExtensional gate;
   // OrderInterval's value-level inhabitants now qualify since size()
   // returns size_t.  The finer distinction (type-level NTTP
   // inhabitants only) lives in a follow-up concept if/when needed.
-  STATIC_CHECK(IsCompileTimeEnumerable<decltype(iv)>);
+  STATIC_CHECK(IsExtensional<decltype(iv)>);
   STATIC_CHECK(iv.size() == 8u);
 }
 
@@ -290,11 +290,11 @@ TEST_CASE("order:halfspace — reduction boundary tightens all three tiers",
 
     STATIC_CHECK_FALSE(HasDecidableMembership<decltype(gt5)>);
     STATIC_CHECK_FALSE(IsExtensional<decltype(gt5)>);
-    STATIC_CHECK_FALSE(IsCompileTimeEnumerable<decltype(gt5)>);
+    STATIC_CHECK_FALSE(IsExtensional<decltype(gt5)>);
 
     STATIC_CHECK(HasDecidableMembership<decltype(meet)>);
     STATIC_CHECK(IsExtensional<decltype(meet)>);
-    STATIC_CHECK(IsCompileTimeEnumerable<decltype(meet)>);
+    STATIC_CHECK(IsExtensional<decltype(meet)>);
   }
 
   SECTION("Singleton reduction") {
@@ -304,7 +304,7 @@ TEST_CASE("order:halfspace — reduction boundary tightens all three tiers",
 
     STATIC_CHECK_FALSE(HasDecidableMembership<decltype(gt3)>);
     STATIC_CHECK(HasDecidableMembership<decltype(s)>);
-    STATIC_CHECK(IsCompileTimeEnumerable<decltype(s)>);
+    STATIC_CHECK(IsExtensional<decltype(s)>);
   }
 }
 
