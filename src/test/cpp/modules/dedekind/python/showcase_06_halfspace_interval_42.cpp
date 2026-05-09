@@ -52,11 +52,13 @@ static_assert(Iv::upper_strictness == Strictness::NonStrict);
 // Cardinality is computed at compile time from the bounds + strictness.
 static_assert(iv.size() == 42u);
 
-// Computability classification: finite and decidable, but not
-// compile-time-enumerable (its 42 inhabitants are not in the type).
+// Computability classification: finite, decidable, and extensional under
+// the post-2026-05-09 :sets:cardinality consolidation (size() returns
+// size_t).  The previous tag-based distinction between type-level NTTP
+// inhabitants and runtime value-level inhabitants merged into the single
+// IsExtensional gate; OrderInterval qualifies.
 static_assert(HasDecidableMembership<decltype(iv)>);
 static_assert(IsExtensional<decltype(iv)>);
-static_assert(!IsExtensional<decltype(iv)>);
 
 /**
  * @brief Showcase 6: observable cardinality on a 42-element ℤ-interval.

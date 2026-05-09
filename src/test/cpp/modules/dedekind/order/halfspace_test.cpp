@@ -287,10 +287,8 @@ TEST_CASE("order:halfspace — reduction boundary tightens all three tiers",
 
     STATIC_CHECK_FALSE(HasDecidableMembership<decltype(gt5)>);
     STATIC_CHECK_FALSE(IsExtensional<decltype(gt5)>);
-    STATIC_CHECK_FALSE(IsExtensional<decltype(gt5)>);
 
     STATIC_CHECK(HasDecidableMembership<decltype(meet)>);
-    STATIC_CHECK(IsExtensional<decltype(meet)>);
     STATIC_CHECK(IsExtensional<decltype(meet)>);
   }
 
