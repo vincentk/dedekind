@@ -205,8 +205,7 @@ constexpr auto operator^(const Set<T, L1, P>& other,
   return s ^ other;
 }
 
-static_assert(IsSet<SingletonSet<int>>,
-              "A singleton must be a set.");
+static_assert(IsSet<SingletonSet<int>>, "A singleton must be a set.");
 static_assert(IsExtensional<SingletonSet<int>>,
               "Mereology: SingletonSet must satisfy the Singleton axiom.");
 static_assert(
