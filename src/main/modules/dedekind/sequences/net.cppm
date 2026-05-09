@@ -158,7 +158,7 @@ concept IsSequence = IsNet<Seq> && IsCountablyIndexedFamily<Seq> && requires {
 export template <typename Seq>
 concept IsFiniteSequence = IsSequence<Seq> && requires(Seq s) {
   typename Seq::cardinality_type;
-  requires IsFinite<typename Seq::cardinality_type>;
+  requires dedekind::sets::IsFinite<typename Seq::cardinality_type>;
   { s.size() } -> std::convertible_to<std::size_t>;
 };
 

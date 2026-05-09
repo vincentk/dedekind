@@ -260,15 +260,20 @@ TEST_CASE("order:halfspace — Singleton satisfies all three computability tiers
   }
 }
 
-TEST_CASE("order:halfspace — OrderInterval on ℤ is finite but not enumerable",
+TEST_CASE("order:halfspace — OrderInterval on ℤ is finite and enumerable",
           "[order][halfspace][order_interval][computability]") {
   constexpr OrderInterval<int, 1, 10, Strictness::Strict, Strictness::Strict>
       iv{};
 
   STATIC_CHECK(HasDecidableMembership<decltype(iv)>);
   STATIC_CHECK(IsFiniteSet<decltype(iv)>);
-  // The 8 inhabitants live at the value level, not in the type.
-  STATIC_CHECK_FALSE(IsCompileTimeEnumerable<decltype(iv)>);
+  // The 2026-05-09 :sets:cardinality consolidation merged
+  // IsCompileTimeEnumerable's tag-based distinction (type-level
+  // inhabitants vs value-level inhabitants) into the IsExtensional gate;
+  // OrderInterval's value-level inhabitants now qualify since size()
+  // returns size_t.  The finer distinction (type-level NTTP
+  // inhabitants only) lives in a follow-up concept if/when needed.
+  STATIC_CHECK(IsCompileTimeEnumerable<decltype(iv)>);
   STATIC_CHECK(iv.size() == 8u);
 }
 
