@@ -92,6 +92,7 @@ module;
 #include <cstddef>
 #include <functional>
 #include <limits>
+#include <utility>  // std::forward (used in embed_uint_ℕ's set-level lift)
 
 export module dedekind.numbers:uint;
 
@@ -165,6 +166,58 @@ export inline constexpr auto embed_uint_ℕ_ =
         [](const unsigned& u) noexcept -> dedekind::sets::Cardinality {
           return embed_uint_ℕ(u);
         });
+
+/**
+ * @brief Set-level lift of @c embed_uint_ℕ_: image of an @c unsigned-set
+ *        @c S under the canonical mono @c unsigned ↪ ℕ.
+ *
+ * @details Layer-1 entry per #602, sister to @c embed_𝔹_ℕ (PR #624) and
+ * @c embed_𝔹_𝕂3 (PR #626): names the construction at the call site
+ * rather than re-spelling @c image(embed_uint_ℕ_, S).  Accepted input
+ * @c S is anything @c dedekind::sets::image already dispatches on —
+ * @c SingletonSet (@c :sets:singleton),
+ * @c std::set<unsigned> / @c std::unordered_set<unsigned>
+ * (@c :sets:extensional); lazy predicate sets join the dispatch table
+ * when #602's layer 2 lands.
+ *
+ * @note This overload is on the @b set side; the per-value entry point
+ * @c embed_uint_ℕ(U @c v) — the templated function above for any
+ * @c std::unsigned_integral @c U — is unchanged and kept for the value-
+ * level call sites that already exist in @c :uint and @c :integer (see
+ * @c uint_test.cpp, @c tower_test.cpp, @c embed_uint_sint_).  Overload
+ * resolution disambiguates via the @c requires-clause: the per-value
+ * overload requires @c std::unsigned_integral, this one requires
+ * @c image to be well-formed, and no @c U satisfies both at once.
+ *
+ * Mathematically: the image of @c S under the canonical mono
+ * @c unsigned @c ↪ @c ℕ is a subset of the finite fragment of @c
+ * Cardinality containing whichever @c unsigned values are in @c S.
+ */
+export template <typename S>
+  requires requires(S&& s) {
+    dedekind::sets::image(embed_uint_ℕ_, std::forward<S>(s));
+  }
+constexpr auto embed_uint_ℕ(S&& s) {
+  return dedekind::sets::image(embed_uint_ℕ_, std::forward<S>(s));
+}
+
+// Set-level lift witness: @c embed_uint_ℕ on @c SingletonSet<unsigned>{42}
+// lands at @c finite_cardinality(42).  Pinned at the @b value level so
+// the pivot equality is constant-evaluated, not just the codomain type.
+// Mirrors PR #624's witnesses for @c embed_𝔹_ℕ and PR #626's for
+// @c embed_𝔹_𝕂3 — same shape, different (carrier, codomain) pair.
+static_assert(embed_uint_ℕ(dedekind::sets::SingletonSet<
+                               unsigned, dedekind::category::ClassicalLogic>{
+                               42u})
+                      .pivot == dedekind::sets::finite_cardinality(42),
+              "embed_uint_ℕ(SingletonSet<unsigned>{42}) lands at "
+              "finite_cardinality(42) on the Cardinality carrier.");
+static_assert(embed_uint_ℕ(dedekind::sets::SingletonSet<
+                               unsigned, dedekind::category::ClassicalLogic>{
+                               0u})
+                      .pivot == dedekind::sets::finite_cardinality(0),
+              "embed_uint_ℕ(SingletonSet<unsigned>{0}) lands at "
+              "finite_cardinality(0) on the Cardinality carrier.");
 
 // ===========================================================================
 // (2) Family classification — std::unsigned_integral as ℤ/2^wℤ
