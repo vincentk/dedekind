@@ -161,19 +161,19 @@ struct Ø final {
 
   // Ø | S = S
   template <typename S>
-    requires requires { typename S::Domain; }
+    requires(IsSet<S>)
   constexpr auto operator|(const S& s) const {
     return s;
   }
   // Ø & S = Ø
   template <typename S>
-    requires requires { typename S::Domain; }
+    requires(IsSet<S>)
   constexpr auto operator&(const S&) const {
     return *this;
   }
   // Ø ^ S = S  (∅ △ S = S; #469)
   template <typename S>
-    requires requires { typename S::Domain; }
+    requires(IsSet<S>)
   constexpr auto operator^(const S& s) const {
     return s;
   }
