@@ -53,8 +53,7 @@ TEST_CASE("sets:computability — IsExtensional on Ø", "[sets][computability]")
   }
 }
 
-TEST_CASE("sets:computability — IsExtensional on Ø",
-          "[sets][computability]") {
+TEST_CASE("sets:computability — IsExtensional on Ø", "[sets][computability]") {
   SECTION("Ø exposes (vacuously) elements at the type level") {
     STATIC_CHECK(IsExtensional<Ø<int>>);
     STATIC_CHECK(IsExtensional<Ø<int, TernaryLogic>>);
