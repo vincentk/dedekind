@@ -613,6 +613,8 @@ The \texttt{dedekind} types and combinators are the inhabitants of $\mathbf{Jlt}
 These are C++23 types and values in the disciplined fragment $\mathbf{Jlt}$ (§\ref{sec:jlt}) that simultaneously carry universal-algebra structure $\mathbf{Alg}(\Sigma)$ (§\ref{sec:alg-sigma}) for some signature $\Sigma$ the carrier supplies operators for, with the size restriction from §\ref{sec:alg-sigma} carried through.
 This can be type-checked against the \cppinline{IsAlgebraOnSet} concept shown in Listing~\ref{lst:algebra:universal}.
 
+\mathbf{Ddk} is the CCC of C++ types reified categorically; algebraic structures arise as internal models.
+
 % Source excerpt from dedekind.algebra:universal.
 \begin{listing}[ht]
 \caption{A type that type-checks against \cppinline{IsAlgebraOnSet} inhabits $\mathbf{Ddk}$.}
