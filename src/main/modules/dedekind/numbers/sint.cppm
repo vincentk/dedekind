@@ -71,6 +71,8 @@
 module;
 
 #include <concepts>
+#include <cstddef>  // std::size_t (used in the digits-width static_assert
+                    // in embed_sint_ℤ's per-value entry point)
 #include <functional>
 #include <limits>
 #include <type_traits>  // std::remove_cvref_t (no-narrowing pin in
@@ -186,13 +188,14 @@ export inline constexpr auto embed_sint_ℤ_ =
 // (e.g. @c long, @c long @c long) or over @c unsigned would
 // satisfy the bare @c image-well-formedness requires-clause via
 // implicit conversion at the per-element @c embed_sint_ℤ_ call site,
-// silently truncating (long@→int) or sign-reinterpreting (unsigned@→int)
-// and bypassing the @c digits-safety @c static_assert in the per-value
-// @c embed_sint_ℤ(S).  We pin both the @c Domain-exposing carriers
-// (SingletonSet, dedekind::sets::Set, …) and the @c value_type-exposing
-// carriers (std::set, std::unordered_set) in a single disjunctive
-// constraint — either typedef must match exactly @c int for the overload
-// to fire.  Same shape as PR #628's @c embed_uint_ℕ no-narrowing pin.
+// silently truncating (long@→int) or applying the
+// implementation-defined unsigned@→int narrowing conversion, in
+// either case bypassing the @c digits-safety @c static_assert in
+// the per-value @c embed_sint_ℤ(S).  We pin both the @c Domain-exposing
+// carriers (SingletonSet, dedekind::sets::Set, …) and the @c
+// value_type-exposing carriers (std::set, std::unordered_set) in a single
+// disjunctive constraint — either typedef must match exactly @c int for the
+// overload to fire.  Same shape as PR #628's @c embed_uint_ℕ no-narrowing pin.
 export template <typename S>
   requires(
               requires {
