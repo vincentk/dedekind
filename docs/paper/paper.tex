@@ -613,7 +613,15 @@ The \texttt{dedekind} types and combinators are the inhabitants of $\mathbf{Jlt}
 These are C++23 types and values in the disciplined fragment $\mathbf{Jlt}$ (§\ref{sec:jlt}) that simultaneously carry universal-algebra structure $\mathbf{Alg}(\Sigma)$ (§\ref{sec:alg-sigma}) for some signature $\Sigma$ the carrier supplies operators for, with the size restriction from §\ref{sec:alg-sigma} carried through.
 This can be type-checked against the \cppinline{IsAlgebraOnSet} concept shown in Listing~\ref{lst:algebra:universal}.
 
-\mathbf{Ddk} is the CCC of C++ types reified categorically; algebraic structures arise as internal models.
+The intersection in the section heading is more than a definitional convenience.
+$\mathbf{Ddk}$ inherits the cartesian closed structure of $\mathbf{Jlt}$ --- products via \cppinline{std::pair}, exponentials via \cppinline{std::function}, terminal via \cppinline{std::monostate}, pinned by the \cppinline{IsCartesianClosed<Set<T>>} witness in \texttt{category:cartesian} --- and is closed under those constructions because the algebraic furniture on the carriers carries through them.
+Morally, $\mathbf{Ddk}$ \emph{is} a cartesian closed category --- the disciplined sub-CCC of $\mathbf{Jlt}$ one obtains by also requiring algebraic structure --- and the \cppinline{static_assert} is the moment of categorical witness.
+This is the Juliet posture made concrete: the same types one writes in C++23, looked at as a category by agreement.
+
+With $\mathbf{Ddk}$ a CCC, algebraic structure arises \emph{internally}.
+Each signature $\Sigma$ together with its axioms determines a Lawvere theory $T_\Sigma$, and a $\Sigma$-algebra in this paper's sense is a finite-product-preserving functor $T_\Sigma \to \mathbf{Ddk}$.
+Reading \cppinline{IsAlgebraOnSet<X, Ops...>} (Listing~\ref{lst:algebra:universal}) through this lens, the carrier $X$ is an object of $\mathbf{Ddk}$, the \cppinline{Ops...} pin the model in one go, and the forgetful arrows the project ships --- $\mathbf{Ring} \to \mathbf{AbGrp} \to \mathbf{Set}$, together with the family of \texttt{embed\_*\_*\_} witnesses --- become natural transformations between such models.
+The $(A, \Sigma)$ spectrum recovers plain sets at $\Sigma = \emptyset$ and climbs through monoid, ring, and field signatures as one fills in operators.
 
 % Source excerpt from dedekind.algebra:universal.
 \begin{listing}[ht]
