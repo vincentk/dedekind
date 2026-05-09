@@ -58,10 +58,10 @@ module;
 export module dedekind.sets:expressions;
 
 import dedekind.category;
-import :boundaries;   // For Ω, Ø
-import :cardinality;  // For Cardinality / SignedCardinality (cross-carrier
-                      // meet)
-import :mereology;     // For mereology lattice concepts
+import :boundaries;     // For Ω, Ø
+import :cardinality;    // For Cardinality / SignedCardinality (cross-carrier
+                        // meet)
+import :mereology;      // For mereology lattice concepts
 import :computability;  // For NaturalLogic / HasDecidableMembership
 
 namespace dedekind::sets {
