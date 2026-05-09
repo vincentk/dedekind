@@ -253,9 +253,6 @@ static_assert(
     dedekind::category::IsSet<
         decltype(dedekind::category::ambient_set<int>(SingletonSet<int>{0}))>,
     "SingletonSet must lift to an ETCS set object.");
-static_assert(dedekind::category::HasCanonicalSetCCC<int>,
-              "Breadcrumb to :cartesian: singleton ambient int has canonical "
-              "CCC witness.");
 
 /** @section singleton__The_Set_Monad_Realization */
 

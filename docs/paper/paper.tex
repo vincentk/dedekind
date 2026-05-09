@@ -613,6 +613,14 @@ The \texttt{dedekind} types and combinators are the inhabitants of $\mathbf{Jlt}
 These are C++23 types and values in the disciplined fragment $\mathbf{Jlt}$ (§\ref{sec:jlt}) that simultaneously carry universal-algebra structure $\mathbf{Alg}(\Sigma)$ (§\ref{sec:alg-sigma}) for some signature $\Sigma$ the carrier supplies operators for, with the size restriction from §\ref{sec:alg-sigma} carried through.
 This can be type-checked against the \cppinline{IsAlgebraOnSet} concept shown in Listing~\ref{lst:algebra:universal}.
 
+$\mathbf{Ddk}$ is itself a cartesian closed category.
+Products are \cppinline{std::pair}, exponentials are \cppinline{std::function}, the terminal is \cppinline{std::monostate} --- the same constructions C++ programmers reach for daily.
+The \cppinline{IsCartesianClosed<Set<T>>} witness in \texttt{category:cartesian} is the moment these constructions are agreed-upon to be looked at categorically: the Juliet posture made concrete.
+
+The algebraic structure each carrier provides (per \cppinline{IsAlgebraOnSet}, Listing~\ref{lst:algebra:universal}) lives \emph{inside} this CCC.
+The operations are arrows in $\mathbf{Ddk}$; axioms are equations between such arrows; the forgetful arrows the project ships ($\mathbf{Ring} \to \mathbf{AbGrp} \to \mathbf{Set}$, together with the \texttt{embed\_*\_*\_} family) drop operations as they move between carriers.
+Plain sets are the degenerate case where the operator tuple is empty.
+
 % Source excerpt from dedekind.algebra:universal.
 \begin{listing}[ht]
 \caption{A type that type-checks against \cppinline{IsAlgebraOnSet} inhabits $\mathbf{Ddk}$.}

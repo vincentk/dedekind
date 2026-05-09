@@ -166,7 +166,7 @@ concept IsGaloisField = dedekind::category::IsField<T, Add, Mult> &&
  * Reference polynomial: Lidl & Niederreiter, *Finite Fields*, 2nd
  * ed. (Cambridge University Press, 1997), Table C.1.
  */
-export struct 𝔽64 {
+export struct 𝔽64 final {
   // Canonical value 0..63; constructor masks with 0x3F so out-of-range
   // bits are reduced to zero rather than leaking into the polynomial.
   std::uint8_t value;
@@ -452,18 +452,5 @@ static_assert(
     std::same_as<std::ranges::range_value_t<decltype(f64_primitive_powers())>,
                  𝔽64>,
     "std::ranges::range_value_t of the 𝔽64^× enumeration must be 𝔽64.");
-
-/** @section galois__CCC_Inheritance_389 CCC inheritance (#389)
- *
- * The Galois-field carriers can serve as the ambient species of an
- * ETCS-style set object; the canonical CCC over each carrier (terminal
- * @c One, products @c std::pair, exponentials @c std::function) is
- * therefore Cartesian-closed, and any @c IsSet<S> built over these
- * ambients inherits the CCC guarantee structurally per #389.
- */
-static_assert(dedekind::category::HasCanonicalSetCCC<bool>,
-              "𝔽2 (bool) hosts a canonical Cartesian-closed Set ambient.");
-static_assert(dedekind::category::HasCanonicalSetCCC<𝔽64>,
-              "𝔽64 hosts a canonical Cartesian-closed Set ambient.");
 
 }  // namespace dedekind::algebra

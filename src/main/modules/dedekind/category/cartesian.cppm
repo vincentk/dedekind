@@ -485,20 +485,8 @@ export template <typename A>
 using CanonicalSetCCC = Set<A>;
 
 // Now we can bless it right next to its definition
-static_assert(IsCartesianClosed<Set<int>>,
+static_assert(IsCartesianClosed<CanonicalSetCCC<int>>,
               "Verification Failed: Set must be Cartesian Closed.");
-
-/**
- * @concept HasCanonicalSetCCC
- * @brief Mnemonic bridge: ambient species A has a canonical CCC witness.
- *
- * @details
- * This keeps category-level verification explicit without forcing object-level
- * set concepts to also be category concepts.
- */
-export template <typename A>
-concept HasCanonicalSetCCC = IsCartesianClosed<CanonicalSetCCC<A>>;
-
 /**
  * @concept IsProductCategory
  * @brief A Category Hub where the Species is a Categorical Product (std::pair).

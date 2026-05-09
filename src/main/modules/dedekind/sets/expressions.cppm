@@ -924,10 +924,6 @@ static_assert(
     "The canonical intensional Set<T, L, Predicate> must lift to an ETCS set "
     "object.");
 
-static_assert(
-    dedekind::category::HasCanonicalSetCCC<int>,
-    "Breadcrumb to :cartesian: ambient int carries canonical CCC witness.");
-
 /** @section expressions__Identity_CTAD */
 template <typename Species>
 Set(Species) -> Set<typename Species::Domain,
@@ -1097,10 +1093,6 @@ using CanonicalIntProductDomain = typename CanonicalIntProductSet::Domain;
 static_assert(
     dedekind::category::IsProduct<CanonicalIntProductDomain, int, int>,
     "sets::cartesian_product must expose a std::pair product domain.");
-static_assert(
-    dedekind::category::HasCanonicalSetCCC<CanonicalIntProductDomain>,
-    "Breadcrumb to :cartesian: cartesian_product domain carries canonical "
-    "CCC witness.");
 
 /**
  * @brief A Relation from A to B is a set of pairs: a subset of A × B.

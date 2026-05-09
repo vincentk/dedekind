@@ -1119,23 +1119,4 @@ static_assert(
                                   default_integer>,
     "Rational<Z> must satisfy IsProduct<Rational<Z>, Z, Z> (ℚ ≅ ℤ × ℤ / ~).");
 
-/** @section rational__CCC_Inheritance_389 CCC inheritance (#389)
- *
- * The rational-number carriers and their integer building blocks all
- * host a canonical Cartesian-closed Set ambient: their @c IsSet
- * anchor (above) entails @c HasCanonicalSetCCC over the ambient
- * species per #389.  These witnesses pin the CCC corollary directly
- * next to the carrier definitions for downstream-module discoverability.
- */
-static_assert(dedekind::category::HasCanonicalSetCCC<Rational<default_integer>>,
-              "Rational<default_integer> hosts a canonical "
-              "Cartesian-closed Set ambient.");
-static_assert(
-    dedekind::category::HasCanonicalSetCCC<ExtensionalCardinal<>>,
-    "ExtensionalCardinal<> hosts a canonical Cartesian-closed Set ambient.");
-static_assert(
-    dedekind::category::HasCanonicalSetCCC<SignedExtensionalCardinal<>>,
-    "SignedExtensionalCardinal<> hosts a canonical "
-    "Cartesian-closed Set ambient.");
-
 }  // namespace dedekind::numbers

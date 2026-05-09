@@ -78,10 +78,6 @@ static_assert(
 static_assert(
     dedekind::category::IsProduct<CanonicalIntRelationDomain, int, int>,
     "Relation domain must satisfy categorical IsProduct.");
-static_assert(
-    dedekind::category::HasCanonicalSetCCC<CanonicalIntRelationDomain>,
-    "Breadcrumb to :cartesian: relation ambient product has "
-    "canonical CCC witness.");
 
 /**
  * @brief Selection (σ): filter elements of a set by an additional predicate.
