@@ -222,6 +222,13 @@ inline constexpr bool is_associative_v<T, Op> = true;
  * the conjunction "small @b and locally small" is structurally equivalent
  * to @c IsSmallCategory in this encoding.  Paper §2.3 step 1 cites
  * @c IsSmallCategory as the concept that enforces both readings.
+ *
+ * @note "Concreteness gives locally-smallness for free: a faithful
+ *        @c U @c : @c C @c → @c Set forces @c Hom_C(a, b) @c ↪
+ *        @c Hom_Set(U(a), U(b)) @c = @c U(b)^U(a), and a subset of a
+ *        set is a set."
+ *       — Claude (Anthropic AI assistant), conversation log,
+ *         PR #639 review (2026-05-10).
  */
 export template <typename Cat>
 concept IsLocallySmallCategory = requires {
