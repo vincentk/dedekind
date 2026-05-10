@@ -223,10 +223,16 @@ inline constexpr bool is_associative_v<T, Op> = true;
  * to @c IsSmallCategory in this encoding.  Paper §2.3 step 1 cites
  * @c IsSmallCategory as the concept that enforces both readings.
  *
- * @note "Concreteness gives locally-smallness for free: a faithful
- *        @c U @c : @c C @c → @c Set forces @c Hom_C(a, b) @c ↪
- *        @c Hom_Set(U(a), U(b)) @c = @c U(b)^U(a), and a subset of a
- *        set is a set."
+ * @note  U : 𝒞 → Set ∧ faithful(U)  ⟹  ∀ a, b ∈ Ob(𝒞).
+ *                                       Hom_𝒞(a, b) ↣ U(b)^U(a) ∈ Ob(Set)
+ *                                     ⟹  𝒞 ∈ Ob(LocSmall).
+ *
+ *        ∴  Concrete ⊆ LocSmall.
+ *
+ *        [Trans: "Concreteness gives locally-smallness for free: a faithful
+ *        forgetful @c U @c : @c 𝒞 @c → @c Set monicly injects each Hom-set
+ *        of @c 𝒞 into a function-set of @c Set, and a subset of a set is
+ *        a set."]
  *       — Claude (Anthropic AI assistant), conversation log,
  *         PR #639 review (2026-05-10).
  */
