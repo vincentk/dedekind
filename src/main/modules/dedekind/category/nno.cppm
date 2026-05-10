@@ -114,14 +114,15 @@
  * caveat that closure under successor only holds away from
  * @c numeric_limits<unsigned>::max() ) are downstream candidates.
  *
- * @note "In the mathematical development of recent decades, the
- *        notion of set has not only played a fundamental role, but
- *        it has itself passed through a long process of refinement.
- *        ... The natural numbers, of course, recur in every
- *        development of the theory, since the set of natural numbers
- *        is by far the most important infinite set."
- *       — F. William Lawvere, "An Elementary Theory of the Category
- *         of Sets" (1964).
+ * @note "Die Zahlen sind freie Schöpfungen des menschlichen Geistes;
+ *        sie dienen als ein Mittel, um die Verschiedenheit der Dinge
+ *        leichter und schärfer aufzufassen."
+ *
+ *        [Trans: "Numbers are free creations of the human mind;
+ *        they serve as a means of apprehending more easily and more
+ *        sharply the difference of things."]
+ *       — Richard Dedekind, *Was sind und was sollen die Zahlen?*
+ *         (1888), preface.
  */
 module;
 

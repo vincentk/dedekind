@@ -228,6 +228,10 @@ concept IsLocallySmallCategory = requires {
   // The arrow-collection is a single C++ type --- its value-set is a
   // set in the metatheory.
   typename Cat::Arrow;
+  // ... and that type satisfies the minimal IsArrow shape, so we're
+  // gating on the categorical arrow notion, not any nested `Arrow`
+  // typedef.  Rules out types with an unrelated `Arrow` member.
+  requires IsArrow<typename Cat::Arrow>;
 };
 
 export template <typename Cat>

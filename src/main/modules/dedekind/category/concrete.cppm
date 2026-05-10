@@ -32,15 +32,14 @@
  *
  * @section concrete__Std_Namespace_Mappings
  *
- * | Concept / Function | Categorical role |
- * |--------------------|--------------------------------------------------------|
- * | `IsSetObject<S, A>`| Per-object concreteness: @c S is a Subobject of
- * ambient @c A. | | `IsConcrete<C>`    | Per-category concreteness: @c C is
- * small AND its objects are sets. | | `set_intersection` | @c χ_A @c ∧ @c χ_B
- * (meet on @c Sub(A))                  | | `set_union`        | @c χ_A @c ∨ @c
- * χ_B (join on @c Sub(A))                  | | `set_complement`   | @c ¬χ_A
- * (Heyting complement)                            | | `in` / `in_via`    |
- * Membership @c x @c ∈ @c S evaluated via @c χ_S          |
+ *  - @c IsSetObject<S, @c A>: per-object concreteness ---
+ *    @c S is a Subobject of ambient @c A.
+ *  - @c IsConcrete<C>: per-category concreteness ---
+ *    @c C is small AND its objects are sets.
+ *  - @c set_intersection: @c χ_A @c ∧ @c χ_B (meet on @c Sub(A)).
+ *  - @c set_union: @c χ_A @c ∨ @c χ_B (join on @c Sub(A)).
+ *  - @c set_complement: @c ¬χ_A (Heyting complement).
+ *  - @c in / @c in_via: membership @c x @c ∈ @c S evaluated via @c χ_S.
  *
  * Concept-as-predicate framing (cf. #635, #637):
  *
@@ -49,10 +48,8 @@
  *   (size axis: small)        (concreteness)         (full ETCS axiomatisation)
  * @endcode
  *
- * @note "In the mathematical development of recent decades, the notion of
- *  set has not only played a fundamental role, but it has itself
- *  passed through a long process of refinement."
- *  — F. William Lawvere, "An Elementary Theory of the Category of Sets"
+ * @note "A set is a Many that allows itself to be thought of as a One."
+ *  — Georg Cantor, letter to Richard Dedekind (1899)
  */
 
 module;
@@ -63,11 +60,12 @@ module;
 
 export module dedekind.category:concrete;
 
-import :logic;     // classify, classifier_true, Ternary, LogicalValue
-import :morphism;  // IsArrow, IsSpokeArrow, Dom, Cod, operator>>
-import :small;     // IsSmallCategory --- size-axis prerequisite for IsConcrete
-import :species;   // IsSpecies --- "object collection is set-shaped"
-import :topoi;     // IsSubobject, IsPredicate --- subobject machinery
+import :cartesian;  // Set<T> --- target of the IsConcrete witnesses below
+import :logic;      // classify, classifier_true, Ternary, LogicalValue
+import :morphism;   // IsArrow, IsSpokeArrow, Dom, Cod, operator>>
+import :small;      // IsSmallCategory --- size-axis prerequisite for IsConcrete
+import :species;    // IsSpecies --- "object collection is set-shaped"
+import :topoi;      // IsSubobject, IsPredicate --- subobject machinery
 
 namespace dedekind::category {
 
@@ -118,8 +116,10 @@ concept IsSetObject = IsSubobject<S, A> && requires {
  *
  *          Examples in the project:
  *            - @c Set<T> --- the canonical CCC in @c :cartesian; concrete
- *              because @c Species @c = @c T (any C++ type satisfies
- *              @c IsSpecies via the integral / floating-point / bool primary).
+ *              for any @c T that satisfies @c IsSpecies (the @c :species
+ *              primary registers integral / floating-point / bool types;
+ *              other types opt in via explicit @c SpeciesTraits
+ *              specialisations).
  *            - @c DiscreteCategory<S> in @c :discrete --- concrete when
  *              @c S is a registered species.
  */
