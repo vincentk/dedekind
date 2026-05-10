@@ -187,62 +187,6 @@ constexpr Identity<Identity<A>> δ(identity_hub_tag, Identity<A> const& ia) {
 }
 
 /**
- * @brief The Box endofunctor.
- * Reified 1-morphism that preserves both objects and arrows exactly.
- */
-// Monadic
-template <typename A>
-constexpr Box<std::decay_t<A>> η(A&& value) {
-  return {std::forward<A>(value)};
-}
-
-// Tagged defaults for Box hub.
-export template <typename A>
-  requires IsSpecies<std::decay_t<A>>
-constexpr Box<std::decay_t<A>> η(box_hub_tag, A&& value) {
-  return {std::forward<A>(value)};
-}
-
-/**
- * @brief μ for Box: flattens nested box context.
- * @details Box<Box<A>> -> Box<A>
- */
-template <typename A>
-  requires IsSpecies<A>
-constexpr Box<A> μ(Box<Box<A>> const& bba) {
-  return {bba.value.value};
-}
-
-export template <typename A>
-  requires IsSpecies<A>
-constexpr Box<A> μ(box_hub_tag, Box<Box<A>> const& bba) {
-  return {bba.value.value};
-}
-
-// Comonadic
-template <typename A>
-constexpr A ε(Box<A> const& ba) {
-  return ba.value;
-}
-
-export template <typename A>
-  requires IsSpecies<A>
-constexpr A ε(box_hub_tag, Box<A> const& ba) {
-  return ba.value;
-}
-
-template <typename A>
-constexpr Box<Box<A>> δ(Box<A> const& ba) {
-  return {ba};
-}
-
-export template <typename A>
-  requires IsSpecies<A>
-constexpr Box<Box<A>> δ(box_hub_tag, Box<A> const& ba) {
-  return {ba};
-}
-
-/**
  * @concept IsPreTransformation
  * @brief The raw family of components.
  */

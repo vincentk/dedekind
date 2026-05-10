@@ -75,33 +75,6 @@ namespace dedekind::category {
 
 /** @section kleisli__The_Box_Action_Engine */
 
-// Bind: Box<T> >>= (T -> Box<U>) -> Box<U>
-export template <typename T, typename Func>
-constexpr auto operator>>=(const Box<T>& b, Func&& f) {
-  return std::forward<Func>(f)(b.value);
-}
-
-// Extend: Box<T> <<= (Box<T> -> U) -> Box<U>
-export template <typename T, typename Func>
-constexpr auto operator<<=(const Box<T>& b, Func&& f) {
-  using U = std::invoke_result_t<Func, Box<T>>;
-  return Box<U>{std::forward<Func>(f)(b)};
-}
-
-/** @section kleisli__The_Kleisli_Witnesses */
-
-// PR #508: removed template-template parameters from the public surface of
-// :kleisli to make the disciplined-fragment claim of the paper's
-// admissibility-rules table hold without exception.  The Hub indirection
-// follows the :functor precedent (PR introducing box_functor / maybe_functor
-// in :functor): higher-kindedness lives in a regular type's nested Shape<U>
-// alias rather than as a template-template parameter.  Carrier-side
-// specialisations in :sequences:path , :linear_algebra:tuple ,
-// :linear_algebra:matrix follow the same pattern, instantiating
-// unit_witness / counit_witness on box_functor<T> / path_functor<T> /
-// vec2_functor<T> / covec2_functor<T> / matrix2x2_functor<T>
-// (the canonical Hubs the *_functor partition already exports).
-
 /**
  * @brief unit_witness<Hub, T>: Generic Kleisli unit witness.
  * Lifts a value into the Kleisli extension named by @c Hub::template Shape<T>.
@@ -113,11 +86,6 @@ constexpr auto operator<<=(const Box<T>& b, Func&& f) {
 export template <typename Hub, typename T>
 struct unit_witness;
 
-export template <typename T>
-struct unit_witness<box_functor<T>, T> final {
-  constexpr auto operator()(T x) const { return Box<T>{std::move(x)}; }
-};
-
 /**
  * @brief counit_witness<Hub, T>: Generic Kleisli counit witness.
  * Samples a value from the co-Kleisli extension named by
@@ -125,11 +93,6 @@ struct unit_witness<box_functor<T>, T> final {
  */
 export template <typename Hub, typename T>
 struct counit_witness;
-
-export template <typename T>
-struct counit_witness<box_functor<T>, T> final {
-  constexpr T operator()(const Box<T>& b) const noexcept { return b.value; }
-};
 
 /** @section kleisli__Extension_Concepts */
 

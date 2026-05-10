@@ -242,54 +242,6 @@ struct morphic_engine {
 };
 
 /**
- * @brief The Boxed Species (The F<T> Context).
- *
- * Reifies the "Box" as a categorical object that announces its
- * own species and shape, enabling 1-parameter functorial discovery.
- */
-export template <typename T>
-struct Box final {
-  /** @brief The physical payload. */
-  const T value;
-
-  /** @brief Equality for structural verification in static_asserts. */
-  constexpr bool operator==(const Box&) const = default;
-};
-
-/**
- * @brief The Intensional Hub for Boxed values.
- * @details Concrete @ref IsFunctor model. Acts as an endofunctor
- * Set<T> -> Set<Box<T>>.
- */
-export template <typename T>
-struct box_functor {
-  using ArrowKind = hub_arrow_tag;
-  using Σ_cat = Set<T>;
-  using Τ_cat = Set<Box<T>>;
-
-  // Requirement for IsArrow (Hub as 1-morphism in Cat)
-  using Domain = Σ_cat;
-  using Codomain = Τ_cat;
-
-  /** @brief F_obj: The Type Constructor */
-  template <typename U>
-  using Shape = Box<U>;
-
-  /** @brief F_mor (φ): The Morphic Lift */
-  template <typename 𝗳>
-    requires IsArrow<std::remove_cvref_t<𝗳>>
-  constexpr auto φ(𝗳&& f) const {
-    // We return an Arrow in the Target Category (Set<Box<T>>)
-    return arrow([f = std::forward<𝗳>(f)](Box<T> const& b) {
-      return Box{std::invoke(f, b.value)};
-    });
-  }
-
-  // Action on Objects
-  constexpr Τ_cat operator()(const Σ_cat&) const noexcept { return {}; }
-};
-
-/**
  * @brief The Intensional Functor for Optional (Maybe) values.
  * @details Concrete @ref IsFunctor model implementing
  * Set<T> -> Set<std::optional<T>>.
@@ -319,16 +271,8 @@ struct maybe_functor {
   constexpr Τ_cat operator()(const Σ_cat&) const noexcept { return {}; }
 };
 
-static_assert(IsFunctor<box_functor<int>>,
-              "Verification Failed: box_functor must satisfy IsFunctor.");
-
 static_assert(IsFunctor<maybe_functor<int>>,
               "Verification Failed: maybe_functor must satisfy IsFunctor.");
-
-static_assert(IsMorphicApplicator<morphic_engine<box_functor<int>, int>,
-                                  box_functor<int>, int>,
-              "Structural Integrity Failed: morphic_engine must satisfy "
-              "IsMorphicApplicator.");
 
 /**
  * @brief Stage 1: The Functorial Applicator.
@@ -343,11 +287,6 @@ struct functor_applicator {
     return morphic_engine<Hub, std::decay_t<Spoke>>{h, std::forward<Spoke>(ma)};
   }
 };
-
-static_assert(IsFunctorialApplicator<functor_applicator<box_functor<int>>,
-                                     box_functor<int>>,
-              "Structural Integrity Failed: functor_applicator must satisfy "
-              "IsFunctorialApplicator.");
 
 // Now fmap is just a factory for the Applicator
 template <typename Hub>
@@ -740,14 +679,6 @@ constexpr auto φ(Identity<A> const& id, F&& f)
   (void)id;
   (void)f;
   return category::id<std::invoke_result_t<F, A>>();
-}
-
-/**
- * @brief φ for Box.
- */
-template <typename A, typename F>
-constexpr auto φ(Box<A> const& box, F&& f) -> Box<std::invoke_result_t<F, A>> {
-  return {std::invoke(std::forward<F>(f), box.value)};
 }
 
 // The quotient-algebra meta-symmetry (Frac, Cplx, Dual as structural
