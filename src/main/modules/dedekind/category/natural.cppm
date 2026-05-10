@@ -137,7 +137,7 @@ constexpr Maybe<A> μ(maybe_hub_tag, Maybe<Maybe<A>> const& mma) {
  * retired in #632.
  */
 // η: a → std::tuple<a>
-template <typename A>
+export template <typename A>
 constexpr std::tuple<std::decay_t<A>> η(tuple_hub_tag, A&& value) {
   return std::tuple<std::decay_t<A>>{std::forward<A>(value)};
 }
