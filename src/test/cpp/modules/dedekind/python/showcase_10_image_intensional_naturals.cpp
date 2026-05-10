@@ -34,10 +34,12 @@
 
 import dedekind.category;
 import dedekind.numbers;
+import dedekind.order; // For bound<V> (NTTP-pivoted halfspace builder)
 import dedekind.sets;
 
 using namespace dedekind::category;
 using namespace dedekind::numbers;
+using namespace dedekind::order;
 using namespace dedekind::sets;
 
 // Source: an intensional predicate-defined Set over ℕ.  The set
