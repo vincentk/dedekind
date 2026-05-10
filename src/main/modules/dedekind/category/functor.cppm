@@ -106,10 +106,10 @@ namespace dedekind::category {
  * 2. Identity Law: F(id_c) = id_{F(c)}
  * 3. Composition Law: F(f >> g) = F(f) >> F(g)
  *
- * Because `IsCategory` in this project is single-species, the object witness
- * for `c` is always recovered by first forming the identity arrow `id_c(c)`.
- * Functorial object mapping is therefore observed indirectly through the spoke
- * `F(id_c(c))`, whose domain recovers the image object `F(c)`.
+ * Because `IsSmallCategory` in this project is single-species, the object
+ * witness for `c` is always recovered by first forming the identity arrow
+ * `id_c(c)`. Functorial object mapping is therefore observed indirectly through
+ * the spoke `F(id_c(c))`, whose domain recovers the image object `F(c)`.
  *
  * Canonical hub models provided in this partition are listed in
  * @ref IsFunctor_Models.
@@ -118,8 +118,8 @@ export template <typename F>
 concept IsFunctor = IsArrow<F> && requires {
   typename F::Σ_cat;
   typename F::Τ_cat;
-  requires IsCategory<typename F::Σ_cat>;
-  requires IsCategory<typename F::Τ_cat>;
+  requires IsSmallCategory<typename F::Σ_cat>;
+  requires IsSmallCategory<typename F::Τ_cat>;
 
   /**
    * 2. The Type Constructor (The Recipe)
@@ -650,7 +650,7 @@ static_assert(IsFunctor<trace_functor<int>>,
  * Concrete @ref IsFunctor model.
  */
 export template <typename Cat>
-  requires IsCategory<Cat>
+  requires IsSmallCategory<Cat>
 struct identity_functor {
   using ArrowKind = hub_arrow_tag;
   using Σ_cat = Cat;

@@ -259,7 +259,7 @@ constexpr Identity<Identity<A>> δ(identity_hub_tag, Identity<A> const& ia) {
  * @brief The raw family of components.
  */
 export template <typename Α, typename CatS, typename CatT>
-concept IsPreTransformation = IsCategory<CatS> && IsCategory<CatT> &&
+concept IsPreTransformation = IsSmallCategory<CatS> && IsSmallCategory<CatT> &&
                               requires(Α α, typename CatS::Arrow::Domain c) {
                                 // The machine: takes an object in S, returns an
                                 // arrow in T

@@ -617,6 +617,34 @@ $\mathbf{Ddk}$ is itself a cartesian closed category.
 Products are \cppinline{std::pair}, exponentials are \cppinline{std::function}, the terminal is \cppinline{std::monostate} --- the same constructions C++ programmers reach for daily.
 The \cppinline{IsCartesianClosed<Set<T>>} witness in \texttt{category:cartesian} is the moment these constructions are agreed-upon to be looked at categorically: the Juliet posture made concrete.
 
+\paragraph{From $\mathbf{Cat}$ to $\mathbf{Ddk}$ in named refinement steps.}
+The construction is not a single jump from the bare metacategory $\mathbf{Cat}$ to the project's specific instance $\mathbf{Ddk}$.
+Each step adds one structural commitment, and each commitment is reified as an existing C++23 partition or concept, so the chain is reproducible by reading the partition DAG (Table~\ref{tbl:cat-to-ddk}).
+
+\begin{table}[htbp]
+\centering
+\caption{\textbf{The chain $\mathbf{Cat} \to \mathbf{Ddk}$ as named refinement steps.}  Each row adds one structural commitment over the previous; each is cashed out by an existing C++23 partition / concept.  Steps 0--6 are internal to category theory; step 7 is the move out of pure CT into the C++ realisation.  The chain is approximately linear at the granularity shown; the honest reading is more lattice-shaped, with concreteness (step 6) and the size axis (step 1) sitting orthogonally to the CCC and topos refinements (steps 2--4) rather than strictly downstream of them.}
+\label{tbl:cat-to-ddk}
+\small
+\begin{tabular}{@{}c l l l@{}}
+\toprule
+\textbf{\#} & \textbf{Refinement added} & \textbf{Partition / concept} & \textbf{Net structure} \\
+\midrule
+0 & (bare category axioms)                       & ---                                                    & category                       \\
+1 & smallness                                    & \cppinline{:small} / \cppinline{IsSmallCategory}        & small category                 \\
+2 & terminal $1$, binary products $\times$       & \cppinline{:cartesian} / \cppinline{IsTerminal}, \cppinline{IsProduct} & finitely complete \\
+3 & exponentials $B^A$                           & \cppinline{:cartesian} / \cppinline{IsExponential}      & CCC                            \\
+4 & subobject classifier $\Omega$                & \cppinline{:topoi} / \cppinline{IsSubobject}, \cppinline{IsTopos} & elementary topos      \\
+5 & ETCS axioms (well-pointedness, NNO, choice)  & \cppinline{:etcs}                                       & Set-modeling topos             \\
+6 & concreteness (objects \emph{are} sets; faithful $U: \mathcal{C} \to \mathbf{Set}$) & \cppinline{:etcs} / \cppinline{IsSetObject}, \cppinline{Subobject} & concrete Set-model \\
+\midrule
+7 & C++ Juliet binding (carriers as concrete C++ types) & \cppinline{:cartesian::Ddk}                      & $\mathbf{Ddk}$                 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The locally-small-not-small slot --- the textbook home of $\mathbf{Cat}$ itself, $\mathbf{Set}$, $\mathbf{Alg}(\Sigma)$, $\mathbf{Top}$ --- branches off this chain at step~1 and is intentionally not navigated by the project today; the architectural intent and reasons for deferring \cppinline{IsLocallySmallCategory} live in the \cppinline{:small} docstring (\texttt{small\_\_The\_Locally\_Small\_Slot}).
+
 The algebraic structure each carrier provides (per \cppinline{IsAlgebraOnSet}, Listing~\ref{lst:algebra:universal}) lives \emph{inside} this CCC.
 The operations are arrows in $\mathbf{Ddk}$; axioms are equations between such arrows; the forgetful arrows the project ships ($\mathbf{Ring} \to \mathbf{AbGrp} \to \mathbf{Set}$, together with the \texttt{embed\_*\_*\_} family) drop operations as they move between carriers.
 Plain sets are the degenerate case where the operator tuple is empty.

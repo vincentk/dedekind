@@ -103,7 +103,7 @@ template <typename T, typename Op>
 inline constexpr bool is_associative_v<T, Op> = true;
 
 /**
- * @concept IsCategory
+ * @concept IsSmallCategory
  * @brief A point-free, morphism-only reification of a Category.
  * @details In this structuralist approach, we bypass the traditional
  * object-morphism dichotomy. A category is defined solely by its arrows and
@@ -118,9 +118,71 @@ inline constexpr bool is_associative_v<T, Op> = true;
  * it gives a canonical type-/label-level representative of an object via the
  * identity arrow `Cat::id_c(x)`, allowing object-level reasoning to be
  * re-entered through composition. Recovering the original value-level label
- * `x` from that identity arrow, however, is not required by `IsCategory`; that
- * would need an additional guarantee that identity arrows carry or expose such
- * a witness.
+ * `x` from that identity arrow, however, is not required by `IsSmallCategory`;
+ * that would need an additional guarantee that identity arrows carry or expose
+ * such a witness.
+ *
+ * @section small__What_Smallness_Pins
+ * In CT jargon, @c IsSmallCategory pins exactly the @b smallness reading of
+ * "small category" --- the @em cardinality reading: the collection of
+ * objects (the value-set of @c Species) and the collection of arrows
+ * (the value-set of @c Arrow) are each sets in the metatheory.  This
+ * is forced by representing both as C++ types: a C++ type's values
+ * form a set (not a proper class), so Ob(𝒞) and the total Hom-collection
+ * are sets.
+ *
+ * @c IsSmallCategory deliberately does @b not pin the second, ontological
+ * reading of "small" --- @em concreteness --- under which each object
+ * is itself a set (equivalently: there is a faithful forgetful functor
+ * @c U @c : @c 𝒞 @c → @c Set).  Whether each object is a set or a tag
+ * depends on what @c Species is bound to at the call site
+ * (@c Set<T> binds to sets; an enum-style @c Species binds to tags).
+ * Concreteness as a structural commitment is layered downstream in
+ * @c :etcs --- the ETCS axiomatization of @c Set characterizes a
+ * topos in which objects @b are sets via the topos structure
+ * (terminal, products, exponentials, subobject classifier, NNO).
+ *
+ * Other refinements of "category" --- thin, discrete, locally-finite,
+ * intensional / extensional, lazy / strict --- are also intentionally
+ * out of scope here; they are named (or named-able) at downstream
+ * partitions where they have semantic content.  The intensional /
+ * extensional split in particular is reified at @c :sets:expressions
+ * (intensional, @c TernaryLogic) vs @c :sets:extensional (decidable
+ * membership), not at the category layer.
+ *
+ * @section small__The_Locally_Small_Slot
+ * Standard CT distinguishes three slots along the size axis:
+ *
+ * | Concept                       | Object collection | Hom-sets    |
+ * |:------------------------------|:------------------|:------------|
+ * | (general) category            | proper class      | proper class|
+ * | @b locally @b small category  | proper class      | sets        |
+ * | @b small category             | set               | sets        |
+ *
+ * @c IsSmallCategory pins the third row (small).  The @b locally @b
+ * small slot --- where @c Set, @c Cpp (the category of C++ types),
+ * @c Top, and @c Alg(Σ) all live in standard CT --- is intentionally
+ * @b not given a sibling concept @c IsLocallySmallCategory in this
+ * codebase.  Two reasons:
+ *
+ *   1. @b No @b current @b consumer.  No site in the project today
+ *      requires a category whose object-collection is type-level
+ *      (a proper class) but whose Hom-collection is value-level (a
+ *      set).  The slot would be speculative API, and the project's
+ *      struct-creation posture is "burden of proof on adding a
+ *      concept, not on omitting one".
+ *   2. @b Implementation @b cost.  A faithful @c IsLocallySmallCategory
+ *      requires a higher-kinded @c Cat::template Hom<A, @c B> slot,
+ *      which is the same template-template territory the codebase
+ *      otherwise tries to keep at arm's length (in the @c IsFunctor
+ *      Hub/Spoke pattern, etc.).  Paying that complexity without a
+ *      load-bearing consumer would be the wrong trade.
+ *
+ * If a future slice introduces an honest @c Cpp-as-category or
+ * @c Alg(Σ)-as-category construction, that's the natural moment to
+ * reify the @c IsLocallySmallCategory slot --- with a real consumer
+ * to pressure-test the higher-kinded API shape rather than guessing
+ * it ahead of time.
  *
  * Axioms:
  * 1. Existence: For every arrow f, there exist unique identity arrows id_dom(f)
@@ -129,7 +191,7 @@ inline constexpr bool is_associative_v<T, Op> = true;
  * 3. Unitary: id_dom(f) >> f = f = f >> id_cod(f).
  */
 export template <typename Cat>
-concept IsCategory = requires {
+concept IsSmallCategory = requires {
   typename Cat::Arrow;
 
   // The 'label' type for objects in this category
@@ -164,7 +226,7 @@ concept IsCategory = requires {
 
   /**
    * @note External composition (Exo-composition)
-   * While not strictly required by the IsCategory concept, implementations
+   * While not strictly required by the IsSmallCategory concept, implementations
    * are encouraged to provide templated operator>> overloads to allow
    * composition with any external type satisfying IsArrow, provided
    * the Domain/Codomain plumbing is compatible.

@@ -30,6 +30,26 @@
  * | **9. NNO (ℕ)**               | `SpeciesTraits<unsigned>`             |
  * | **10. Axiom of Choice** (asp.) | `meet` / `join` power-object lattice |
  *
+ * @section etcs__What_Concreteness_Pins
+ *
+ * @c :small establishes the @em cardinality reading of "small category":
+ * the collection of objects and the collection of arrows are each sets in
+ * the metatheory (forced by representing them as C++ types).  @c :etcs
+ * pins the complementary @em ontological reading: each object @b is
+ * a set, characterized structurally via the topos structure (terminal,
+ * products, exponentials, subobject classifier, NNO).  In the project's
+ * vocabulary this is the move from "objects are elements of a set"
+ * (@c :small, Reading 1) to "objects are sets" (@c :etcs, Reading 2 /
+ * @em concreteness; equivalently: faithful forgetful functor
+ * @c U @c : @c 𝒞 @c → @c Set).
+ *
+ * The two readings are independent: @c :small admits enum-style tag
+ * objects (small but not concrete); @c :etcs requires the topos
+ * structure that makes objects bona-fide sets.  Categories that satisfy
+ * both --- the small concrete categories --- are the @c IsSmallCategory
+ * carriers whose @c Species is itself a set-typed carrier (@c Set<T>,
+ * the ETCS @c Subobject machinery).
+ *
  * @see Lawvere, F.W. (1964) "An Elementary Theory of the Category of Sets"
  * @see McLarty, C. (1993) "Numbers can be just what they have to"
  *
@@ -528,7 +548,7 @@ static_assert(
  * of the underlying-objects functor @c U @c : @c Cat @c → @c Set.  The
  * adjunction @c Disc @c ⊣ @c U lives between the @b meta-categories
  * @c Set and @c Cat.  This codebase encodes categories per-ambient
- * (one @c Species per @c IsCategory type), so the @b meta-categorical
+ * (one @c Species per @c IsSmallCategory type), so the @b meta-categorical
  * statement is one level above what the type system can express
  * directly --- there is no @c category_of_sets or @c
  * category_of_categories type whose @c Species ranges over all sets
@@ -557,7 +577,7 @@ using discrete_lift_t = DiscreteCategory<S>;
 
 // Witness that the lift produces a discrete category for the
 // representative @c IsSet-witnessing carrier from above.
-static_assert(IsCategory<discrete_lift_t<_isset_witness_t>>,
+static_assert(IsSmallCategory<discrete_lift_t<_isset_witness_t>>,
               "Set ↪ Cat lift: discrete_lift_t<S> satisfies the "
               "general Category contract.");
 static_assert(IsDiscreteCategory<discrete_lift_t<_isset_witness_t>>,

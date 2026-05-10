@@ -35,10 +35,10 @@ TEST_CASE("discrete_lift_t produces a DiscreteCategory for any IsSet carrier",
   STATIC_CHECK(IsDiscreteCategory<discrete_lift_t<BoolTrueSet>>);
   STATIC_CHECK(IsDiscreteCategory<discrete_lift_t<UIntEvenSet>>);
 
-  // IsDiscreteCategory subsumes IsCategory; pin it for clarity.
-  STATIC_CHECK(IsCategory<discrete_lift_t<IntNonNegSet>>);
-  STATIC_CHECK(IsCategory<discrete_lift_t<BoolTrueSet>>);
-  STATIC_CHECK(IsCategory<discrete_lift_t<UIntEvenSet>>);
+  // IsDiscreteCategory subsumes IsSmallCategory; pin it for clarity.
+  STATIC_CHECK(IsSmallCategory<discrete_lift_t<IntNonNegSet>>);
+  STATIC_CHECK(IsSmallCategory<discrete_lift_t<BoolTrueSet>>);
+  STATIC_CHECK(IsSmallCategory<discrete_lift_t<UIntEvenSet>>);
 
   // The lift uses S itself, not S::Ambient — the static-type witness.
   STATIC_CHECK(std::same_as<discrete_lift_t<IntNonNegSet>,

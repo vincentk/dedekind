@@ -394,8 +394,8 @@ static_assert(!IsExponential<std::function<int(int)>, int, bool>,
 /**
  * @concept IsCartesianClosed
  * @brief A Category equipped with Terminal Objects, Products, and Exponentials.
- * @details This concept extends `IsCategory` to satisfy the three axioms of a
- * Cartesian Closed Category (CCC):
+ * @details This concept extends `IsSmallCategory` to satisfy the three axioms
+ * of a Cartesian Closed Category (CCC):
  * 1. **Terminal Object** — a unique sink `1` (represented by `One` /
  *    `std::monostate`).
  * 2. **Products** — for any two objects A, B, a product A × B exists
@@ -407,7 +407,7 @@ static_assert(!IsExponential<std::function<int(int)>, int, bool>,
  * the Dedekind topos (ETCS).
  */
 export template <typename Cat>
-concept IsCartesianClosed = IsCategory<Cat> && requires {
+concept IsCartesianClosed = IsSmallCategory<Cat> && requires {
   // 1. Terminal Object exists
   typename Cat::Terminal;
   requires IsTerminalObject<typename Cat::Terminal>;
@@ -438,7 +438,7 @@ struct SetId final {
 
   /**
    * @brief The explicit bridge to the Category's Arrow type.
-   * This satisfies the std::convertible_to constraint in IsCategory.
+   * This satisfies the std::convertible_to constraint in IsSmallCategory.
    */
   constexpr operator Morphism<T, T, std::function<T(T)>>() const {
     return Morphism<T, T, std::function<T(T)>>{
@@ -492,7 +492,7 @@ static_assert(IsCartesianClosed<CanonicalSetCCC<int>>,
  * @brief A Category Hub where the Species is a Categorical Product (std::pair).
  */
 export template <typename Cat>
-concept IsProductCategory = IsCategory<Cat> && requires {
+concept IsProductCategory = IsSmallCategory<Cat> && requires {
   /**
    * The species of this category must be a Product.
    * We extract A and B via the pair's internal aliases.
