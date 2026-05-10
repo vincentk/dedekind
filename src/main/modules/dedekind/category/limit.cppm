@@ -244,15 +244,16 @@ concept IsProjectedInitialObject =
  * f: X → A and g: X → B, there exists a unique morphism u: X → P making the
  * following diagram commute:
  * @code
- *        X
- *       / \
- *      f   g
- *     /     \
- *    A       B
- *     \     /
- *      π₁  π₂
- *       \ /
- *        P
+ *           X
+ *          /|\
+ *        f/ | \g
+ *        /  u  \         (u is the unique mediating morphism)
+ *       /   |   \
+ *      v    v    v
+ *      A ←  P  → B
+ *         π₁   π₂
+ *
+ *   commutes:  f = π₁ ∘ u   and   g = π₂ ∘ u
  * @endcode
  *
  * `std::pair<A, B>` satisfies this concept via its `.first` (π₁) and

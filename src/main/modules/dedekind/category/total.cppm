@@ -205,11 +205,6 @@ export template <typename T, typename Op>
 concept IsUnitalMagma = IsMagma<T, Op> && IsPointed<T, Op>;
 
 /**
- * @concept IsLoop
- * @brief A UnitalMagma with Inverses (-x).
- * @note "A Group without the Associativity Axiom."
- */
-/**
  * @concept IsInvertible
  * @brief A pointed (T, Op) where every element has an Op-inverse.
  * @details Re-homed from @c :species under #637, alongside @c IsPointed
@@ -219,6 +214,11 @@ concept IsUnitalMagma = IsMagma<T, Op> && IsPointed<T, Op>;
 export template <typename T, typename Op>
 concept IsInvertible = IsPointed<T, Op> && is_invertible_v<T, Op>;
 
+/**
+ * @concept IsLoop
+ * @brief A UnitalMagma with Inverses (-x).
+ * @note "A Group without the Associativity Axiom."
+ */
 export template <typename T, typename Op>
 concept IsLoop = IsUnitalMagma<T, Op> && IsInvertible<T, Op>;
 
