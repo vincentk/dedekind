@@ -68,8 +68,8 @@
  * - @ref maybe_functor is a concrete @ref IsFunctor model in this partition,
  *   but under the current category choices it is not an @ref IsEndofunctor
  *   witness for @ref IsMonad (see `:monad` for the textbook constraint).
- * - Value-level overloads of φ for Maybe/Identity at the end of this file
- *   are lifting utilities, not IsFunctor hub models by themselves.
+ * - Value-level overloads of φ for Maybe / Identity / std::tuple at the end
+ *   of this file are lifting utilities, not IsFunctor hub models by themselves.
  *
  *
  * @note "If we do not succeed in solving a mathematical problem, the reason

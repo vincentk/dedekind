@@ -64,8 +64,9 @@ module;
 
 export module dedekind.category:kleisli;
 
-import :functor;  // maybe_functor (canonical Hub for unit_witness /
-                  // counit_witness; #508 / #632)
+import :functor;  // maybe_functor (canonical Hub for unit_witness, monad-only)
+                  // and tuple_functor (canonical Hub for both
+                  // unit_witness AND counit_witness; #508 / #632)
 import :natural;  // IsDefaultHubTag — type-checked constraint on the Kleisli M
                   // slot
 import :monad;
@@ -84,8 +85,13 @@ namespace dedekind::category {
  */
 
 // Bind: Maybe<T> >>= (T -> Maybe<U>) -> Maybe<U>.
-// Standard Maybe-monad bind: nullopt propagates; Some(x) feeds x into f.
+// Constrained to Kleisli arrows whose codomain is a @c Maybe-shaped
+// carrier — guarantees the @c Result{std::nullopt} branch is well-formed
+// and rules out accidental carrier-changing binds (Copilot review on
+// #632).
 export template <typename T, typename Func>
+  requires std::constructible_from<std::invoke_result_t<Func, T>,
+                                   std::nullopt_t>
 constexpr auto operator>>=(const Maybe<T>& m, Func&& f) {
   using Result = std::invoke_result_t<Func, T>;
   return m.has_value() ? std::forward<Func>(f)(*m) : Result{std::nullopt};
@@ -128,8 +134,22 @@ struct counit_witness;
  * @c std::tuple wrapper carries the Frobenius role going forward.
  */
 
+namespace _kleisli_detail {
+template <typename U>
+struct is_tuple1 : std::false_type {};
+template <typename U>
+struct is_tuple1<std::tuple<U>> : std::true_type {};
+template <typename U>
+inline constexpr bool is_tuple1_v = is_tuple1<U>::value;
+}  // namespace _kleisli_detail
+
 // Bind: std::tuple<T> >>= (T -> std::tuple<U>) -> std::tuple<U>.
+// Constrained via SFINAE-friendly partial-specialization detector: the
+// Kleisli arrow's codomain must be a 1-tuple, ruling out accidental
+// carrier-changing binds (Copilot review on #632).
 export template <typename T, typename Func>
+  requires _kleisli_detail::is_tuple1_v<
+      std::remove_cvref_t<std::invoke_result_t<Func, T>>>
 constexpr auto operator>>=(const std::tuple<T>& t, Func&& f) {
   return std::forward<Func>(f)(std::get<0>(t));
 }
@@ -206,9 +226,11 @@ constexpr auto κ(MA const& ma, F&& f) {
  *   σ(wa, f) = φ(δ(wa), f)
  * This is the textbook co-Kleisli extension operation (extend/cobind).
  *
- * @tparam WA The comonadic type (e.g., Identity<T>; Maybe<T> on the
- *             Some-fragment per the @c kleisli__The_Maybe_Action_Engine
- *             concession)
+ * @tparam WA The comonadic type (e.g., @c std::tuple<T> as the
+ *             bona-fide Frobenius carrier per @c
+ *             kleisli__The_Tuple_Frobenius_Engine, or the identity-
+ *             arrow Identity).  Maybe is monad-only and intentionally
+ *             not a comonadic carrier here (#632).
  * @tparam F The function type to apply (typically W<A> → B)
  *
  * @param wa The comonadic value to extend

@@ -49,7 +49,8 @@ namespace dedekind::category {
 
 /**
  * @brief Value-level alias for η (eta) with explicit hub tag dispatch.
- * @details Example: pure(maybe_hub, x), pure(identity_hub, x).
+ * @details Example: pure(maybe_hub, x), pure(identity_hub, x),
+ *          pure(tuple_hub, x).
  */
 export template <typename HubTag, typename A>
   requires IsDefaultHubTag<HubTag> &&
