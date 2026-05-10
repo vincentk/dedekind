@@ -46,6 +46,38 @@ TEST_CASE("Total: The Path to Symmetry (Table 2)",
     STATIC_CHECK(IsRing<unsigned int, std::plus<unsigned int>,
                         std::multiplies<unsigned int>>);
   }
+
+  SECTION("Pointed factories: zero<A,B,Op>() and unit<A,B,Op>() at runtime") {
+    // Runtime witnesses for the @c IsPointed-gated constant-morphism factories
+    // re-homed from @c :discrete to @c :total under #637.  Compile-time
+    // witnesses are pinned alongside the definitions in @c :total; this section
+    // exercises the function bodies at runtime so coverage instrumentation
+    // sees the move.
+
+    // Additive zero: maps everything to identity_v<int, std::plus<int>> = 0.
+    auto z_int = zero<int, int, std::plus<int>>();
+    CHECK(z_int(0) == 0);
+    CHECK(z_int(7) == 0);
+    CHECK(z_int(-42) == 0);
+
+    // Multiplicative unit: maps everything to identity_v<int,
+    // std::multiplies<int>> = 1.
+    auto u_int = unit<int, int, std::multiplies<int>>();
+    CHECK(u_int(0) == 1);
+    CHECK(u_int(99) == 1);
+    CHECK(u_int(-7) == 1);
+
+    // Cross-codomain: A=double, B=int, Op=std::plus<int>.
+    auto z_dbl_to_int = zero<double, int, std::plus<int>>();
+    CHECK(z_dbl_to_int(3.14) == 0);
+    CHECK(z_dbl_to_int(-1.5) == 0);
+
+    // Boolean multiplicative unit: identity_v<bool, std::logical_and<bool>> =
+    // true.
+    auto u_int_to_bool = unit<int, bool, std::logical_and<bool>>();
+    CHECK(u_int_to_bool(0) == true);
+    CHECK(u_int_to_bool(123) == true);
+  }
 }
 
 TEST_CASE("Total: Lattice Structures (Relational Presence)",

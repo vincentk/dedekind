@@ -8,14 +8,20 @@
  * and "Function Space" (Exponential) mechanics necessary for ETCS.
  *
  * @section cartesian__Std_Namespace_Mappings
- * This partition asserts bidirectional mappings between categorical constructs
- * and `std` types:
+ * This partition asserts bidirectional mappings between the CCC-completing
+ * categorical constructs and `std` types:
  *
  * | Concept          | `std` representative                          |
  * |------------------|-----------------------------------------------|
- * | `IsProduct`      | `std::pair<A, B>` (via `.first` / `.second`)  |
  * | `IsCoproduct`    | `std::variant<A, B>` (via ι₁ / ι₂)           |
  * | `IsExponential`  | `std::function<B(A)>`, lambdas                |
+ *
+ * @note The product side --- `IsProduct` for `std::pair<A, B>`, plus
+ * `IsProductProjection` / `IsProjectedProduct` / `mediate_product` /
+ * `IsArrowFromProduct` --- moved to `:limit` under #637, since binary
+ * products are categorical limits (limit of a discrete two-object diagram).
+ * @c :cartesian imports @c :limit, so consumers of the CCC umbrella
+ * (`IsCartesianClosed`) keep reaching the product machinery transitively.
  *
  * Wikipedia: Cartesian closed category, Exponential object
  *
@@ -46,128 +52,18 @@ import :species;
 
 namespace dedekind::category {
 
-/**
- * @concept IsProduct
- * @brief Categorification of `std::pair<A, B>` as the categorical product
- * (A × B).
- * @details A product of A and B is an object P equipped with projection
- * morphisms π₁: P → A and π₂: P → B such that for any object X with morphisms
- * f: X → A and g: X → B, there exists a unique morphism u: X → P making the
- * following diagram commute:
- * @code
- *        X
- *       / \
- *      f   g
- *     /     \
- *    A       B
- *     \     /
- *      π₁  π₂
- *       \ /
- *        P
- * @endcode
- *
- * `std::pair<A, B>` satisfies this concept via its `.first` (π₁) and
- * `.second` (π₂) members.
- */
-template <typename P, typename A, typename B>
-concept IsPairLikeProduct = requires(P p) {
-  { p.first } -> std::convertible_to<A>;
-  { p.second } -> std::convertible_to<B>;
-};
-
-export template <typename P, typename A, typename B>
-concept IsProduct = IsPairLikeProduct<P, A, B>;
-
-static_assert(
-    IsProduct<std::pair<int, bool>, int, bool>,
-    "Verification Failed: std::pair<int, bool> must satisfy IsProduct.");
-
-template <typename A, typename B>
-struct SpeciesTraits<std::pair<A, B>> {
-  using Domain = std::pair<A, B>;
-  using machine_type = Domain;
-};
-
-template <typename... Ts>
-  requires(sizeof...(Ts) > 0)
-struct SpeciesTraits<std::tuple<Ts...>> {
-  using Domain = std::tuple<Ts...>;
-  using machine_type = Domain;
-};
-
-/**
- * @concept IsProductProjection
- * @brief Functional-part projection witness from a product whole to one part.
- *
- * @details
- * A projection is a morphism-like accessor from a whole `P` to one component
- * type (`A` for left, `B` for right). In categorical terms these correspond to
- * canonical product projections π₁ and π₂.
- */
-export template <typename Projection, typename Whole, typename Part>
-concept IsProductProjection = requires(Projection projection, Whole whole) {
-  { projection(whole) } -> std::convertible_to<Part>;
-};
-
-/**
- * @concept IsProjectedProduct
- * @brief Product witness through an optional whole-projection policy.
- *
- * @details
- * By default (`WholeProject = std::identity`), this reduces to a direct
- * `IsProduct<P, A, B>` check. With an opt-in projector (for example an
- * `operator->` drill-down policy), this concept certifies that a wrapper type
- * exposes a product whole whose canonical parts are still discoverable.
- */
-export template <typename P, typename A, typename B,
-                 typename WholeProject = std::identity>
-concept IsProjectedProduct =
-    requires(WholeProject project, const P& p) {
-      { project(p) };
-    } &&
-    IsProduct<std::remove_cvref_t<decltype(std::declval<WholeProject>()(
-                  std::declval<const P&>()))>,
-              A, B>;
-
-static_assert(IsProductProjection<decltype([](const std::pair<int, bool>& p) {
-                                    return p.first;
-                                  }),
-                                  std::pair<int, bool>, int>,
-              "π1 must project Product -> LeftPart.");
-static_assert(IsProductProjection<decltype([](const std::pair<int, bool>& p) {
-                                    return p.second;
-                                  }),
-                                  std::pair<int, bool>, bool>,
-              "π2 must project Product -> RightPart.");
-static_assert(IsProjectedProduct<std::pair<int, bool>, int, bool>,
-              "Identity projection must certify direct products.");
-
-/**
- * @brief Mediating morphism for Products: ⟨f, g⟩: X -> (A × B)
- * @details Given f: X -> A and g: X -> B, constructs the unique morphism
- * that pairs their results.
- */
-export template <IsArrow F, IsArrow G>
-  requires std::same_as<Dom<F>, Dom<G>>  // Universal property: same source X
-auto mediate_product(F&& f, G&& g) {
-  using X = Dom<F>;
-  using A = Cod<F>;
-  using B = Cod<G>;
-
-  return arrow([f = std::forward<F>(f), g = std::forward<G>(g)](const X& x) {
-    return std::pair<A, B>(f(x), g(x));
-  });
-}
-
-/**
- * @concept IsArrowFromProduct
- * @brief Matches an Arrow whose Domain is a categorical Product (std::pair).
- */
-export template <typename F>
-concept IsArrowFromProduct =
-    IsArrow<F> && IsProduct<Dom<F>, typename Dom<F>::first_type,
-                            typename Dom<F>::second_type>;
-
+// NOTE (#637 re-home): the @c IsProduct concept family --- @c
+// IsPairLikeProduct, @c IsProduct, @c IsProductProjection, @c
+// IsProjectedProduct, @c IsArrowFromProduct, plus the @c
+// SpeciesTraits<std::pair<A, B>> / @c SpeciesTraits<std::tuple<Ts...>>
+// specialisations and the @c mediate_product factory --- moved to @c
+// :limit.  Products are categorical limits (limit of a discrete two-
+// object diagram); their natural home is alongside @c IsTerminalObject /
+// @c IsInitialObject in @c :limit.  This partition retains only the
+// CCC-completing pieces (@c IsExponential, @c IsCartesianClosed, the @c
+// curry / uncurry / eval surface, @c IsCoproduct).  Consumers reach the
+// product machinery through @c :limit (which @c :cartesian imports) or
+// directly via @c import dedekind.category.
 /**
  * @concept IsExponential
  * @brief Categorification of `std::function<B(A)>` as the Internal Hom-set
@@ -406,23 +302,20 @@ static_assert(!IsExponential<std::function<int(int)>, int, bool>,
  * This triple of structures provides the categorical foundations required for
  * the Dedekind topos (ETCS).
  */
+// Concept-as-predicate / @c &&-as-intersection composition: the cartesian
+// closed concept narrows @c IsCartesian by additionally requiring
+// exponentials.  Reads as the lattice meet @c IsCartesian @c ∩
+// HasExponentials, mirroring the chain in paper §2.3 step 2 → step 3.
 export template <typename Cat>
-concept IsCartesianClosed = IsSmallCategory<Cat> && requires {
-  // 1. Terminal Object exists
-  typename Cat::Terminal;
-  requires IsTerminalObject<typename Cat::Terminal>;
-} && requires(typename Cat::Arrow::Domain A, typename Cat::Arrow::Codomain B) {
-  // 2. Cartesian: Products exist for objects in the category
-  typename Cat::template Product<decltype(A), decltype(B)>;
-  requires IsProduct<typename Cat::template Product<decltype(A), decltype(B)>,
-                     decltype(A), decltype(B)>;
-
-  // 3. Closed: Exponentials exist for objects in the category
-  typename Cat::template Exponential<decltype(A), decltype(B)>;
-  requires IsExponential<
-      typename Cat::template Exponential<decltype(A), decltype(B)>, decltype(A),
-      decltype(B)>;
-};
+concept IsCartesianClosed =
+    IsCartesian<Cat> &&
+    requires(typename Cat::Arrow::Domain A, typename Cat::Arrow::Codomain B) {
+      // Closed: Exponentials exist for objects in the category.
+      typename Cat::template Exponential<decltype(A), decltype(B)>;
+      requires IsExponential<
+          typename Cat::template Exponential<decltype(A), decltype(B)>,
+          decltype(A), decltype(B)>;
+    };
 
 /**
  * @brief The Identity morphism for the category Set.

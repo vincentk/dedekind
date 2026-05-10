@@ -323,32 +323,13 @@ export template <typename T, typename Op>
   requires requires { identity_trait<T, Op>::value; }
 inline constexpr T identity_v = identity_trait<T, Op>::value;
 
-/**
- * @concept IsPointed
- * Replaces the missing 'HasIdentity' for Level 0.1
- */
-export template <typename T, typename Op>
-concept IsPointed = requires {
-  { identity_v<T, Op> } -> std::convertible_to<T>;
-};
-
-static_assert(IsPointed<bool, std::logical_or<bool>>,
-              "Pointed: Booleans must have an additive identity (false).");
-
-static_assert(IsPointed<bool, std::logical_and<bool>>,
-              "Pointed: Booleans must have a multiplicative identity (true).");
-
-static_assert(IsPointed<int, std::plus<int>>,
-              "Pointed: Integers must have an additive identity (0).");
-
-static_assert(IsPointed<int, std::multiplies<int>>,
-              "Pointed: Integers must have a multiplicative identity (1).");
-
-static_assert(IsPointed<double, std::plus<double>>,
-              "Pointed: Doubles must have an additive identity (0).");
-
-static_assert(IsPointed<double, std::multiplies<double>>,
-              "Pointed: Doubles must have a multiplicative identity (1).");
+// NOTE (#637 re-home): the @c IsPointed concept moved to @c :total, where
+// it sits with its consumers @c IsUnitalMagma / @c IsMonoid / @c IsLoop /
+// @c IsGroup.  @c IsPointed @em uses the @c identity_v / @c identity_trait
+// / @c identity_registry trait machinery defined above (which stays here in
+// @c :species as the trait-registry surface), but is conceptually
+// universal-algebra rather than species-level.  Consumers reach
+// @c IsPointed through @c :total or via @c import dedekind.category.
 
 /**
  * @brief The Characteristic of the Species.
@@ -935,8 +916,10 @@ concept IsDistributive = requires(T a, T b, T c) {
 export template <typename T, typename Op>
 concept IsIdempotent = is_idempotent_v<T, Op>;
 
-export template <typename T, typename Op>
-concept IsInvertible = IsPointed<T, Op> && is_invertible_v<T, Op>;
+// NOTE (#637 re-home): @c IsInvertible moved to @c :total alongside @c
+// IsPointed (which it composes with).  The @c is_invertible_v trait
+// stays here in @c :species as the trait-registry surface; only the
+// concept layer moves.
 
 /**
  * @concept IsPeriodic

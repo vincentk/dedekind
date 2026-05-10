@@ -57,13 +57,6 @@ struct ConstantMorphism final {
   constexpr B operator()(const A&) const noexcept { return value; }
 };
 
-/** @section discrete__Registration_Atomic_Floor */
-template <typename A, typename B, typename Op>
-  requires IsPointed<B, Op>
-struct identity_registry<ConstantMorphism<A, B>, Op> {
-  static constexpr ConstantMorphism<A, B> value{identity_v<B, Op>};
-};
-
 /**
  * @section discrete__Constant_Morphism_Axioms
  * A Constant Mapping is inherently associative under any operation
@@ -72,26 +65,17 @@ struct identity_registry<ConstantMorphism<A, B>, Op> {
 template <typename A, typename B, typename Op>
 inline constexpr bool is_associative_v<ConstantMorphism<A, B>, Op> = true;
 
-/** @section discrete__Unified_Ideal_Factories */
-export template <typename A, typename B, typename Op = std::plus<B>>
-  requires IsPointed<B, Op>
-constexpr auto zero() {
-  return ConstantMorphism<A, B>{identity_v<B, Op>};
-}
-
-export template <typename A, typename B, typename Op = std::multiplies<B>>
-  requires IsPointed<B, Op>
-constexpr auto unit() {
-  return ConstantMorphism<A, B>{identity_v<B, Op>};
-}
-
-static_assert(IsPointed<decltype(zero<int, int>()), std::plus<int>>);
-static_assert(IsPointed<decltype(unit<int, int>()), std::multiplies<int>>);
-
-// 4. Verify functional correctness (maps to the 'Point' 0)
-static_assert(
-    zero<int, int, std::plus<int>>()(123) == 0,
-    "Logic Error: Zero mapping failed to return the identity element.");
+// NOTE (#637 re-home): the algebra-flavoured @c zero<A, B, Op>() / @c
+// unit<A, B, Op>() factories (constant morphisms pointing at @c
+// identity_v<B, Op>) plus the @c identity_registry specialisation for
+// @c ConstantMorphism<A, B> moved to @c :total, where they sit with @c
+// IsPointed (their primary user) and the @c IsUnitalMagma / @c IsMonoid
+// hierarchy.  These constructions are universal-algebra-flavoured
+// (chosen-element witnesses), not discrete-category-flavoured; @c
+// :discrete keeps the categorical @c ConstantMorphism construct itself
+// and the @c is_associative_v specialisation (which holds unconditionally
+// without an identity).  Consumers reach the algebra-flavoured factories
+// through @c :total or via @c import dedekind.category.
 
 /**
  * @section discrete__Discrete_Categories

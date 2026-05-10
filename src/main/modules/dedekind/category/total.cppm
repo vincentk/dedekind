@@ -86,6 +86,89 @@ struct TotalMorphism : Morphism<A, B, Func> {
       "Totality Error: The provided function is not total over the domain.");
 };
 
+/**
+ * @concept IsPointed
+ * @brief A type @c T has a chosen identity element under operation @c Op.
+ * @details Replaces the missing `HasIdentity` for Level 0.1.  The identity
+ *          element is looked up via the @c identity_v trait registered in
+ *          @c :species; @c IsPointed pins the existence claim at the concept
+ *          level.  Re-homed from @c :species to @c :total under #637 ---
+ *          this is universal-algebra content (chosen-element witness for a
+ *          (T, Op) pair), conceptually adjacent to @c IsMagma / @c
+ *          IsUnitalMagma / @c IsMonoid below, not species-level.
+ */
+export template <typename T, typename Op>
+concept IsPointed = requires {
+  { identity_v<T, Op> } -> std::convertible_to<T>;
+};
+
+static_assert(IsPointed<bool, std::logical_or<bool>>,
+              "Pointed: Booleans must have an additive identity (false).");
+static_assert(IsPointed<bool, std::logical_and<bool>>,
+              "Pointed: Booleans must have a multiplicative identity (true).");
+static_assert(IsPointed<int, std::plus<int>>,
+              "Pointed: Integers must have an additive identity (0).");
+static_assert(IsPointed<int, std::multiplies<int>>,
+              "Pointed: Integers must have a multiplicative identity (1).");
+static_assert(IsPointed<double, std::plus<double>>,
+              "Pointed: Doubles must have an additive identity (0).");
+static_assert(IsPointed<double, std::multiplies<double>>,
+              "Pointed: Doubles must have a multiplicative identity (1).");
+
+/** @section total__Pointed_ConstantMorphism_Factories
+ *
+ * @details Re-homed from @c :discrete under #637 (the constant morphisms
+ * here use @c IsPointed, which is universal-algebra content).  The @c
+ * ConstantMorphism construct itself stays in @c :discrete; what lives
+ * here is the algebra-flavoured layer that picks out the identity
+ * element of @c (B, Op) and wraps it as a constant morphism @c A @c → @c B.
+ */
+
+/**
+ * @brief @c identity_registry specialisation for @c ConstantMorphism<A, B>.
+ *        Registers the constant-at-identity-element-of-@c B as the identity
+ *        element of @c ConstantMorphism<A, B> under operation @c Op.
+ */
+template <typename A, typename B, typename Op>
+  requires IsPointed<B, Op>
+struct identity_registry<ConstantMorphism<A, B>, Op> {
+  static constexpr ConstantMorphism<A, B> value{identity_v<B, Op>};
+};
+
+/**
+ * @brief @c zero<A, B, Op>(): the constant morphism @c A @c → @c B that
+ *        maps everything to the @c Op-identity element of @c B.
+ *        Defaults to @c std::plus<B> (additive identity, i.e. zero).
+ */
+export template <typename A, typename B, typename Op = std::plus<B>>
+  requires IsPointed<B, Op>
+constexpr auto zero() {
+  return ConstantMorphism<A, B>{identity_v<B, Op>};
+}
+
+/**
+ * @brief @c unit<A, B, Op>(): the constant morphism @c A @c → @c B that
+ *        maps everything to the @c Op-identity element of @c B.
+ *        Defaults to @c std::multiplies<B> (multiplicative identity, i.e.
+ *        one).  Distinct from @c :limit's nullary @c unit<T>() which
+ *        produces the unique terminal-morphism @c T @c → @c One; the
+ *        two are namespace-overloaded with disjoint template-argument
+ *        shapes.
+ */
+export template <typename A, typename B, typename Op = std::multiplies<B>>
+  requires IsPointed<B, Op>
+constexpr auto unit() {
+  return ConstantMorphism<A, B>{identity_v<B, Op>};
+}
+
+static_assert(IsPointed<decltype(zero<int, int>()), std::plus<int>>);
+static_assert(IsPointed<decltype(unit<int, int>()), std::multiplies<int>>);
+
+// Functional correctness: maps to the Op-identity element.
+static_assert(
+    zero<int, int, std::plus<int>>()(123) == 0,
+    "Logic Error: Zero mapping failed to return the identity element.");
+
 // 3. Verify it is a Total Arrow (defined for all x in Domain)
 static_assert(IsTotalArrow<decltype(zero<int, int>())>,
               "Totality Error: zero() must be total constant over its domain.");
@@ -120,6 +203,16 @@ static_assert(!IsMagma<int, std::plus<int>>);
  */
 export template <typename T, typename Op>
 concept IsUnitalMagma = IsMagma<T, Op> && IsPointed<T, Op>;
+
+/**
+ * @concept IsInvertible
+ * @brief A pointed (T, Op) where every element has an Op-inverse.
+ * @details Re-homed from @c :species under #637, alongside @c IsPointed
+ *          which it composes with.  The underlying @c is_invertible_v
+ *          trait stays in @c :species as the trait-registry surface.
+ */
+export template <typename T, typename Op>
+concept IsInvertible = IsPointed<T, Op> && is_invertible_v<T, Op>;
 
 /**
  * @concept IsLoop

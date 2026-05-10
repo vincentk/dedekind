@@ -1,7 +1,8 @@
 /**
  * @file dedekind/category/limit.cppm
  * @partition :limit
- * @brief The Boundary Objects (Initial and Terminal).
+ * @brief Universal Limits: boundary objects (Initial and Terminal) and binary
+ * products.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -18,13 +19,14 @@
  * every other species is measured and made finite.
  *
  * @section limit__Std_Namespace_Mappings
- * This partition asserts bidirectional mappings between categorical boundary
- * objects and `std` types:
+ * This partition asserts bidirectional mappings between categorical limit
+ * constructions and `std` types:
  *
- * | Concept / Alias     | `std` representative  | Categorical role     |
- * |---------------------|-----------------------|----------------------|
- * | `One` (Terminal)    | `std::monostate`      | Unique sink (1)      |
- * | `Zero` (Initial)    | `std::nullptr_t`      | Unique source (0)    |
+ * | Concept / Alias     | `std` representative  | Categorical role          |
+ * |---------------------|-----------------------|---------------------------|
+ * | `One` (Terminal)    | `std::monostate`      | Unique sink (1)           |
+ * | `Zero` (Initial)    | `std::nullptr_t`      | Unique source (0)         |
+ * | `IsProduct`         | `std::pair<A, B>`     | Binary product (A × B)    |
  *
  * @note "This conviction of the solvability of every mathematical problem is a
  * powerful incentive to the worker. We hear within us the perpetual call:
@@ -37,6 +39,7 @@ module;
 #include <cstddef>
 #include <exception>
 #include <functional>
+#include <tuple>  // SpeciesTraits<std::tuple<Ts...>> in the products block (#637)
 #include <type_traits>
 #include <utility>
 #include <variant>  // Required for std::monostate
@@ -46,6 +49,8 @@ export module dedekind.category:limit;
 import :discrete;
 import :mereology;
 import :morphism;
+import :small;  // IsSmallCategory --- the size-axis prerequisite for
+                // IsCartesian
 import :species;
 
 namespace dedekind::category {
@@ -219,6 +224,214 @@ concept IsProjectedInitialObject =
     } &&
     IsInitialObject<std::remove_cvref_t<decltype(std::declval<Project>()(
         std::declval<const T&>()))>>;
+
+/** @section limit__Products_and_Projections
+ *
+ * @details Binary products are limits of the discrete two-object diagram
+ * @c {* @c → @c A, @c * @c → @c B}; their natural home is here in @c :limit
+ * alongside @c IsTerminalObject / @c IsInitialObject (themselves limits of
+ * the empty / opposite-empty diagrams).  Re-homed from @c :cartesian under
+ * #637 --- @c :cartesian retains the strictly CCC-completing pieces
+ * (exponentials, currying, @c IsCartesianClosed).
+ */
+
+/**
+ * @concept IsProduct
+ * @brief Categorification of `std::pair<A, B>` as the categorical product
+ * (A × B).
+ * @details A product of A and B is an object P equipped with projection
+ * morphisms π₁: P → A and π₂: P → B such that for any object X with morphisms
+ * f: X → A and g: X → B, there exists a unique morphism u: X → P making the
+ * following diagram commute:
+ * @code
+ *           X
+ *          /|\
+ *        f/ | \g
+ *        /  u  \         (u is the unique mediating morphism)
+ *       /   |   \
+ *      v    v    v
+ *      A ←  P  → B
+ *         π₁   π₂
+ *
+ *   commutes:  f = π₁ ∘ u   and   g = π₂ ∘ u
+ * @endcode
+ *
+ * `std::pair<A, B>` satisfies this concept via its `.first` (π₁) and
+ * `.second` (π₂) members.
+ */
+template <typename P, typename A, typename B>
+concept IsPairLikeProduct = requires(P p) {
+  { p.first } -> std::convertible_to<A>;
+  { p.second } -> std::convertible_to<B>;
+};
+
+export template <typename P, typename A, typename B>
+concept IsProduct = IsPairLikeProduct<P, A, B>;
+
+static_assert(
+    IsProduct<std::pair<int, bool>, int, bool>,
+    "Verification Failed: std::pair<int, bool> must satisfy IsProduct.");
+
+template <typename A, typename B>
+struct SpeciesTraits<std::pair<A, B>> {
+  using Domain = std::pair<A, B>;
+  using machine_type = Domain;
+};
+
+template <typename... Ts>
+  requires(sizeof...(Ts) > 0)
+struct SpeciesTraits<std::tuple<Ts...>> {
+  using Domain = std::tuple<Ts...>;
+  using machine_type = Domain;
+};
+
+/**
+ * @concept IsProductProjection
+ * @brief Functional-part projection witness from a product whole to one part.
+ *
+ * @details
+ * A projection is a morphism-like accessor from a whole `P` to one component
+ * type (`A` for left, `B` for right). In categorical terms these correspond to
+ * canonical product projections π₁ and π₂.
+ */
+export template <typename Projection, typename Whole, typename Part>
+concept IsProductProjection = requires(Projection projection, Whole whole) {
+  { projection(whole) } -> std::convertible_to<Part>;
+};
+
+/**
+ * @concept IsProjectedProduct
+ * @brief Product witness through an optional whole-projection policy.
+ *
+ * @details
+ * By default (`WholeProject = std::identity`), this reduces to a direct
+ * `IsProduct<P, A, B>` check. With an opt-in projector (for example an
+ * `operator->` drill-down policy), this concept certifies that a wrapper type
+ * exposes a product whole whose canonical parts are still discoverable.
+ */
+export template <typename P, typename A, typename B,
+                 typename WholeProject = std::identity>
+concept IsProjectedProduct =
+    requires(WholeProject project, const P& p) {
+      { project(p) };
+    } &&
+    IsProduct<std::remove_cvref_t<decltype(std::declval<WholeProject>()(
+                  std::declval<const P&>()))>,
+              A, B>;
+
+static_assert(IsProductProjection<decltype([](const std::pair<int, bool>& p) {
+                                    return p.first;
+                                  }),
+                                  std::pair<int, bool>, int>,
+              "π1 must project Product -> LeftPart.");
+static_assert(IsProductProjection<decltype([](const std::pair<int, bool>& p) {
+                                    return p.second;
+                                  }),
+                                  std::pair<int, bool>, bool>,
+              "π2 must project Product -> RightPart.");
+static_assert(IsProjectedProduct<std::pair<int, bool>, int, bool>,
+              "Identity projection must certify direct products.");
+
+/**
+ * @brief Mediating morphism for Products: ⟨f, g⟩: X -> (A × B)
+ * @details Given f: X -> A and g: X -> B, constructs the unique morphism
+ * that pairs their results.
+ */
+export template <IsArrow F, IsArrow G>
+  requires std::same_as<Dom<F>, Dom<G>>  // Universal property: same source X
+auto mediate_product(F&& f, G&& g) {
+  using X = Dom<F>;
+  using A = Cod<F>;
+  using B = Cod<G>;
+
+  return arrow([f = std::forward<F>(f), g = std::forward<G>(g)](const X& x) {
+    return std::pair<A, B>(f(x), g(x));
+  });
+}
+
+/**
+ * @concept IsArrowFromProduct
+ * @brief Matches an Arrow whose Domain is a categorical Product (std::pair).
+ */
+export template <typename F>
+concept IsArrowFromProduct =
+    IsArrow<F> && IsProduct<Dom<F>, typename Dom<F>::first_type,
+                            typename Dom<F>::second_type>;
+
+/**
+ * @brief Left projection @c π_1 @c : @c A @c × @c B @c → @c A.
+ * @details The canonical first projection out of a binary product, named per
+ *          Pierce (@em Basic Category Theory for Computer Scientists §1.4).
+ *          Sister of the coproduct injection @c ι_1 in @c :cartesian.
+ */
+export template <typename A, typename B>
+constexpr auto π_1(const std::pair<A, B>& p) {
+  return p.first;
+}
+
+/**
+ * @brief Right projection @c π_2 @c : @c A @c × @c B @c → @c B.
+ * @details The canonical second projection out of a binary product, named per
+ *          Pierce.  Sister of the coproduct injection @c ι_2 in @c :cartesian.
+ */
+export template <typename A, typename B>
+constexpr auto π_2(const std::pair<A, B>& p) {
+  return p.second;
+}
+
+// Compiler-validated witnesses: π_1 / π_2 inhabit IsProductProjection.
+static_assert(IsProductProjection<decltype([](const std::pair<int, bool>& p) {
+                                    return π_1<int, bool>(p);
+                                  }),
+                                  std::pair<int, bool>, int>,
+              "π_1 must inhabit IsProductProjection<Product → LeftPart>.");
+static_assert(IsProductProjection<decltype([](const std::pair<int, bool>& p) {
+                                    return π_2<int, bool>(p);
+                                  }),
+                                  std::pair<int, bool>, bool>,
+              "π_2 must inhabit IsProductProjection<Product → RightPart>.");
+
+/**
+ * @concept IsCartesian
+ * @brief A small category equipped with a terminal object @c 1 and binary
+ *        products @c × --- a "cartesian category" in the textbook sense
+ *        (Pierce, @em Basic Category Theory for Computer Scientists §1.4;
+ *        Awodey).
+ *
+ * @details Concept-as-predicate framing: @c IsCartesian narrows the
+ * type-class @c IsSmallCategory by intersecting with the finite-product
+ * structure (terminal + binary products).  This is the @em finite-products
+ * subset of finite limits --- finitely complete categories also have
+ * equalisers and pullbacks, which are not pinned here; @c IsCartesian
+ * deliberately stops at the products-and-terminal layer.
+ *
+ * Position in the size-and-structure lattice (read top-down as narrowing
+ * intersections; cf. paper §2.3):
+ *
+ * @code
+ *   IsSmallCategory<Cat>
+ *     ∧ has terminal object @c Cat::Terminal
+ *     ∧ has binary product @c Cat::template Product<A, B>
+ *   = IsCartesian<Cat>
+ * @endcode
+ *
+ * The CCC-completing exponentials live downstream in @c :cartesian; @c
+ * IsCartesianClosed = @c IsCartesian + has-exponentials.  Re-using @c
+ * IsCartesian as the prerequisite gates @c IsCartesianClosed cleanly
+ * against the chain @c IsSmallCategory @c → @c IsCartesian @c → @c
+ * IsCartesianClosed.
+ */
+export template <typename Cat>
+concept IsCartesian = IsSmallCategory<Cat> && requires {
+  // Terminal object 1 exists.
+  typename Cat::Terminal;
+  requires IsTerminalObject<typename Cat::Terminal>;
+} && requires(typename Cat::Arrow::Domain A, typename Cat::Arrow::Codomain B) {
+  // Binary product A × B exists for objects in the category.
+  typename Cat::template Product<decltype(A), decltype(B)>;
+  requires IsProduct<typename Cat::template Product<decltype(A), decltype(B)>,
+                     decltype(A), decltype(B)>;
+};
 
 /** @section limit__Realizations */
 export using TerminalCategory = DiscreteCategory<One>;
