@@ -121,11 +121,34 @@ inline constexpr bool is_associative_v<T, Op> = true;
  * `x` from that identity arrow, however, is not required by `IsCategory`; that
  * would need an additional guarantee that identity arrows carry or expose such
  * a witness.
- * 
- * I guess that in CT jargon, this concept boils down to defining categories
- * which are
- * a) small: every type that satisfies this concept is also a type constraint (a set boundary) in Cpp.
- * b) monoidal: the fish operator is associative and has an identity.
+ *
+ * @section small__What_Smallness_Pins
+ * In CT jargon, @c IsCategory pins exactly the @b smallness reading of
+ * "small category" --- the @em cardinality reading: the collection of
+ * objects (the value-set of @c Species) and the collection of arrows
+ * (the value-set of @c Arrow) are each sets in the metatheory.  This
+ * is forced by representing both as C++ types: a C++ type's values
+ * form a set (not a proper class), so Ob(𝒞) and the total Hom-collection
+ * are sets.
+ *
+ * @c IsCategory deliberately does @b not pin the second, ontological
+ * reading of "small" --- @em concreteness --- under which each object
+ * is itself a set (equivalently: there is a faithful forgetful functor
+ * @c U @c : @c 𝒞 @c → @c Set).  Whether each object is a set or a tag
+ * depends on what @c Species is bound to at the call site
+ * (@c Set<T> binds to sets; an enum-style @c Species binds to tags).
+ * Concreteness as a structural commitment is layered downstream in
+ * @c :etcs --- the ETCS axiomatization of @c Set characterizes a
+ * topos in which objects @b are sets via the topos structure
+ * (terminal, products, exponentials, subobject classifier, NNO).
+ *
+ * Other refinements of "category" --- thin, discrete, locally-finite,
+ * intensional / extensional, lazy / strict --- are also intentionally
+ * out of scope here; they are named (or named-able) at downstream
+ * partitions where they have semantic content.  The intensional /
+ * extensional split in particular is reified at @c :sets:expressions
+ * (intensional, @c TernaryLogic) vs @c :sets:extensional (decidable
+ * membership), not at the category layer.
  *
  * Axioms:
  * 1. Existence: For every arrow f, there exist unique identity arrows id_dom(f)
