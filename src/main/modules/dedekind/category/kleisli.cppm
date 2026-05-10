@@ -63,8 +63,8 @@ module;
 
 export module dedekind.category:kleisli;
 
-import :functor;  // box_functor (canonical Hub for unit_witness/counit_witness;
-                  // #508)
+import :functor;  // maybe_functor (canonical Hub for unit_witness /
+                  // counit_witness; #508 / #632)
 import :natural;  // IsDefaultHubTag — type-checked constraint on the Kleisli M
                   // slot
 import :monad;
@@ -73,26 +73,67 @@ import :morphism;
 
 namespace dedekind::category {
 
-/** @section kleisli__The_Box_Action_Engine */
+/** @section kleisli__The_Maybe_Action_Engine */
+
+// Bind: Maybe<T> >>= (T -> Maybe<U>) -> Maybe<U>.
+// Standard Maybe-monad bind: nullopt propagates; Some(x) feeds x into f.
+export template <typename T, typename Func>
+constexpr auto operator>>=(const Maybe<T>& m, Func&& f) {
+  using Result = std::invoke_result_t<Func, T>;
+  return m.has_value() ? std::forward<Func>(f)(*m) : Result{std::nullopt};
+}
+
+// Extend: Maybe<T> <<= (Maybe<T> -> U) -> Maybe<U>.
+// The comonadic extend on Maybe.  Mathematically Maybe is not a true
+// comonad (counit on nullopt has no honest answer), so this overload
+// is well-defined only on the Some-fragment: when @c m is Some(x), the
+// result is @c Some(f(m)); when @c m is nullopt, the result is also
+// @c nullopt (the carrier propagates the indecision rather than
+// fabricating a value).  Sister to the Box-as-trivial-comonad
+// vestigial path retired in #632.
+export template <typename T, typename Func>
+constexpr auto operator<<=(const Maybe<T>& m, Func&& f) {
+  using U = std::invoke_result_t<Func, Maybe<T>>;
+  return m.has_value() ? Maybe<U>{std::forward<Func>(f)(m)}
+                       : Maybe<U>{std::nullopt};
+}
 
 /**
  * @brief unit_witness<Hub, T>: Generic Kleisli unit witness.
  * Lifts a value into the Kleisli extension named by @c Hub::template Shape<T>.
  *
  * @tparam Hub A regular type carrying a nested @c Shape<U> alias; canonical
- *             example is @c box_functor<U> from @c :functor.
+ *             example is @c maybe_functor<U> from @c :functor.
  * @tparam T   The value type.
  */
 export template <typename Hub, typename T>
 struct unit_witness;
 
+export template <typename T>
+struct unit_witness<maybe_functor<T>, T> final {
+  constexpr auto operator()(T x) const { return Maybe<T>{std::move(x)}; }
+};
+
 /**
  * @brief counit_witness<Hub, T>: Generic Kleisli counit witness.
  * Samples a value from the co-Kleisli extension named by
  * @c Hub::template Shape<T>.
+ *
+ * @note For @c maybe_functor<T> the counit is well-defined only on the
+ * Some-fragment of @c Maybe<T>: dereferencing @c std::nullopt has no
+ * honest answer and produces UB.  Callers exercise the witness on
+ * Some-values; the comonadic-extend / IsCoKleisliExtension /
+ * IsFrobenius witnesses inherit this restriction.  See the
+ * "kleisli__The_Maybe_Action_Engine" section header for the broader
+ * mathematical concession (Maybe is a monad, not a true comonad).
  */
 export template <typename Hub, typename T>
 struct counit_witness;
+
+export template <typename T>
+struct counit_witness<maybe_functor<T>, T> final {
+  constexpr T operator()(const Maybe<T>& m) const noexcept { return *m; }
+};
 
 /** @section kleisli__Extension_Concepts */
 
@@ -127,7 +168,7 @@ concept IsFrobenius =
  *   κ(ma, f) = μ(φ(ma, f))
  * This is the textbook Kleisli extension operation.
  *
- * @tparam MA The monadic type (e.g., Box<T>, Maybe<T>, Identity<T>)
+ * @tparam MA The monadic type (e.g., Maybe<T>, Identity<T>)
  * @tparam F The function type to apply (typically A → MA<B>)
  *
  * @param ma The monadic value to bind
@@ -147,7 +188,9 @@ constexpr auto κ(MA const& ma, F&& f) {
  *   σ(wa, f) = φ(δ(wa), f)
  * This is the textbook co-Kleisli extension operation (extend/cobind).
  *
- * @tparam WA The comonadic type (e.g., Box<T>, Identity<T>)
+ * @tparam WA The comonadic type (e.g., Identity<T>; Maybe<T> on the
+ *             Some-fragment per the @c kleisli__The_Maybe_Action_Engine
+ *             concession)
  * @tparam F The function type to apply (typically W<A> → B)
  *
  * @param wa The comonadic value to extend
@@ -333,8 +376,8 @@ concept HasComonadicExtendOperators =
 // comonadic carrier has two CT readings depending on the carrier
 // shape:
 //
-//   * @b Comonadic carrier (e.g. @c Box<T>, future smart-pointer-like
-//     comonads): @c m->member @c ≡ @c ε(m).member, where
+//   * @b Comonadic carrier (e.g. @c Identity<T>; future smart-pointer-
+//     like comonads): @c m->member @c ≡ @c ε(m).member, where
 //     @c ε: @c W<A> @c → @c A is the comonadic @b extract (Mac Lane
 //     @em CWM §VI; Wadler 1992 @em Comprehending @em Monads).
 //   * @b Monadic carrier with partial dereference (e.g. @c Maybe<T>):
@@ -359,7 +402,7 @@ concept HasArrowDereferenceOperator = requires(M const& m) { m.operator->(); };
 /** @brief @c is_kleisli_deref_v<M>: opt-in marker that the carrier's
  *         @c operator-> realises Kleisli dereference (for monadic
  *         carriers like @c Maybe<T>) or comonadic extract @c ε
- *         (for comonadic carriers like @c Box<T>).  Default false;
+ *         (for comonadic carriers like @c Identity<T>).  Default false;
  *         specialise to @c true at the carrier site. */
 export template <typename M>
 inline constexpr bool is_kleisli_deref_v = false;
@@ -379,8 +422,8 @@ concept IsKleisliDeref =
  *          monad-hub tag @c M.  Its underlying map has shape
  *          @c e: @c A @c → @c T<B>, where @c T is the monadic carrier
  *          shape selected by the hub tag (@c Maybe for
- *          @c maybe_hub_tag, @c Box for @c box_hub_tag, @c Identity for
- *          @c identity_hub_tag).  The @c M slot is the
+ *          @c maybe_hub_tag, @c Identity for @c identity_hub_tag).  The @c M
+ * slot is the
  *          @b monad-hub @b tag itself — a tag type that names which
  *          Kleisli category the arrow inhabits — not the class template.
  *          Constrained by @c IsDefaultHubTag to make the connection
@@ -437,9 +480,9 @@ static_assert(
     "Opt-in via is_kleisli_arrow_v<E, maybe_hub_tag> = true lifts the "
     "arrow into the IsKleisliArrow concept.");
 static_assert(
-    !IsKleisliArrow<toy_partial_realize, box_hub_tag>,
+    !IsKleisliArrow<toy_partial_realize, identity_hub_tag>,
     "Opt-in is per-(E, M) pair: a Maybe-shaped Kleisli arrow does not "
-    "automatically inhabit the Box Kleisli category.");
+    "automatically inhabit the Identity Kleisli category.");
 
 }  // namespace _kleisli_arrow_witness_380
 

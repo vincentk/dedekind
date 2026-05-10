@@ -88,7 +88,7 @@ namespace dedekind::category {
 // Concrete instances of this pattern in the codebase:
 //   * @c Set<int> — the category whose objects are int values and
 //     whose morphisms are functions @c int @c → @c int.
-//   * @c Set<Box<int>> — a @b different category, same structural
+//   * @c Set<Maybe<int>> — a @b different category, same structural
 //     shape, distinct species.
 //   * @c Set<Path<int>> — a category whose objects are sequences
 //     @c ℕ @c → @c int.  Path<int> is an OBJECT in this category,
@@ -119,7 +119,7 @@ namespace dedekind::category {
 //
 //   * @b F_obj: an action on objects, taking @c 𝒞.Species @c → @c 𝒟.Species.
 //     In code this is @c F::template @c Shape<U> (the type-constructor
-//     part: @c box_functor<T>::Shape<U> @c = @c Box<U>, etc.).
+//     part: @c maybe_functor<T>::Shape<U> @c = @c Maybe<U>, etc.).
 //   * @b F_mor: an action on morphisms, taking @c 𝒞.Arrow @c → @c 𝒟.Arrow,
 //     with @c F(g @c ∘ @c f) @c = @c F(g) @c ∘ @c F(f) and
 //     @c F(id_a) @c = @c id_{F(a)}.  In code this is @c F.φ(f) (the
@@ -135,7 +135,7 @@ namespace dedekind::category {
 //
 // In the architecture vocabulary below, functors are called @b hub
 // @b arrows: their endpoints are categories (the source / target
-// labels @c Σ_cat / @c Τ_cat that hub types like @c box_functor
+// labels @c Σ_cat / @c Τ_cat that hub types like @c maybe_functor
 // expose), so they sit "above" the spoke arrows that connect objects
 // within a single category.  The fish @c F @c >> @c G (sugar for
 // @c G @c ∘ @c F) at the hub level is functor composition; that

@@ -43,7 +43,7 @@
  *
  * 2. The Spoke (Extensional Spoke / Matter):
  *    This is the concrete instance—an ordinary arrow (@ref IsArrow) or a data
- *    container (e.g., Box<T>). While the Hub provides the "How," the Spoke
+ *    container (e.g., Maybe<T>). While the Hub provides the "How," the Spoke
  *    provides the "What." The spoke is a resident of a category, but it
  *    does not own the mapping logic itself.
  *
@@ -58,7 +58,6 @@
  *
  * The following types in this partition model @ref IsFunctor:
  * - @ref identity_functor: Cat -> Cat.
- * - @ref box_functor: Set<T> -> Set<Box<T>>.
  * - @ref maybe_functor: Set<T> -> Set<Maybe<T>>.
  * - @ref trace_functor: Set<T> -> StringCategory.
  * - @ref composite_functor: composition G . F for any composable functors.
@@ -67,7 +66,7 @@
  * - @ref maybe_functor is a concrete @ref IsFunctor model in this partition,
  *   but under the current category choices it is not an @ref IsEndofunctor
  *   witness for @ref IsMonad (see `:monad` for the textbook constraint).
- * - Value-level overloads of φ for Maybe/Identity/Box at the end of this file
+ * - Value-level overloads of φ for Maybe/Identity at the end of this file
  *   are lifting utilities, not IsFunctor hub models by themselves.
  *
  *
@@ -232,7 +231,8 @@ struct morphic_engine {
     /**
      * 2. The Crucial Step:
      * Your Hub knows the Target Category (Τ_cat).
-     * We wrap the raw data 'ma' into that category's Species (e.g., Box<int>).
+     * We wrap the raw data 'ma' into that category's Species (e.g.,
+     * Maybe<int>).
      */
     using TargetSpecies = typename Hub::Τ_cat::Species;
 

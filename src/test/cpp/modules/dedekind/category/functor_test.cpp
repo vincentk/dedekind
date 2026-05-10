@@ -11,7 +11,6 @@ TEST_CASE("Category: Functor Concepts", "[category][functor]") {
 
   STATIC_CHECK(IsFunctor<identity_functor<IntCat>>);
   STATIC_CHECK(IsEndofunctor<identity_functor<IntCat>>);
-  STATIC_CHECK(IsFunctor<box_functor<int>>);
   STATIC_CHECK(IsFunctor<maybe_functor<int>>);
   STATIC_CHECK(IsFunctor<trace_functor<int>>);
   STATIC_CHECK(IsSpokeArrow<decltype(plus_one)>);
@@ -27,17 +26,6 @@ TEST_CASE("Category: Functor hub action", "[category][functor][hub-action]") {
     STATIC_CHECK(IsArrow<decltype(lifted)>);
     CHECK(lifted(41) == 42);
     CHECK(lifted(-2) == -1);
-  }
-
-  SECTION("Box functor lifts codomain into Box<T>") {
-    box_functor<int> boxf;
-    auto plus_one = arrow([](int x) { return x + 1; });
-
-    auto lifted = boxf.φ(plus_one);
-
-    STATIC_CHECK(IsArrow<decltype(lifted)>);
-    CHECK(lifted(Box<int>{41}) == Box<int>{42});
-    CHECK(lifted(Box<int>{-2}) == Box<int>{-1});
   }
 
   SECTION("Maybe functor short-circuits empty inputs") {

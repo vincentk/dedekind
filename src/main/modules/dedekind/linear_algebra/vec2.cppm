@@ -311,7 +311,7 @@ constexpr Covec2V<T> Vec2V<T>::transpose() const {
  *  lifts elementwise to an arrow @c Vec2V<T>→Vec2V<T> (resp.\ Covec).
  *  The hub types below own that lift and witness
  *  @c dedekind::category::IsFunctor for each shape.  They mirror
- *  @c dedekind::category::box_functor / @c maybe_functor in pattern.
+ *  @c dedekind::category::maybe_functor in pattern.
  */
 export template <typename T>
   requires std::regular<T> && dedekind::algebra::HasRingOperators<T>

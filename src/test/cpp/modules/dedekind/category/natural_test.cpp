@@ -63,14 +63,18 @@ TEST_CASE("Category: Natural textbook operator defaults",
     CHECK(duplicated(id<int>())(9) == 9);
   }
 
-  SECTION("Box hub supports η, μ, ε, δ defaults") {
-    auto injected = η(box_hub, 4);
-    CHECK(injected == Box<int>{4});
+  SECTION("Maybe hub supports η, μ, ε, δ defaults (Some-fragment)") {
+    // Maybe is mathematically a monad, not a true comonad; the
+    // comonadic ε / δ defaults are well-defined only on the
+    // Some-fragment of Maybe<T> (counit on nullopt has no honest
+    // answer).  See :natural's η/μ/ε/δ block for the concession.
+    auto injected = η(maybe_hub, 4);
+    CHECK(injected == Maybe<int>{4});
 
-    Box<Box<int>> nested{{17}};
-    CHECK(μ(box_hub, nested) == Box<int>{17});
+    Maybe<Maybe<int>> nested{Maybe<int>{17}};
+    CHECK(μ(maybe_hub, nested) == Maybe<int>{17});
 
-    CHECK(ε(box_hub, Box<int>{19}) == 19);
-    CHECK(δ(box_hub, Box<int>{19}) == Box<Box<int>>{{19}});
+    CHECK(ε(maybe_hub, Maybe<int>{19}) == 19);
+    CHECK(δ(maybe_hub, Maybe<int>{19}) == Maybe<Maybe<int>>{Maybe<int>{19}});
   }
 }

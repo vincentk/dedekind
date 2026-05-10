@@ -73,17 +73,14 @@ namespace dedekind::category {
 // Hub tags for textbook operator defaults without template-template dispatch.
 export struct maybe_hub_tag final {};
 export struct identity_hub_tag final {};
-export struct box_hub_tag final {};
 
 export inline constexpr maybe_hub_tag maybe_hub{};
 export inline constexpr identity_hub_tag identity_hub{};
-export inline constexpr box_hub_tag box_hub{};
 
 export template <typename Tag>
 concept IsDefaultHubTag =
     std::same_as<std::remove_cvref_t<Tag>, maybe_hub_tag> ||
-    std::same_as<std::remove_cvref_t<Tag>, identity_hub_tag> ||
-    std::same_as<std::remove_cvref_t<Tag>, box_hub_tag>;
+    std::same_as<std::remove_cvref_t<Tag>, identity_hub_tag>;
 
 /**
  * @brief The Maybe endofunctor T, implemented via std::optional.
@@ -115,6 +112,41 @@ export template <typename A>
   requires IsSpecies<A>
 constexpr Maybe<A> μ(maybe_hub_tag, Maybe<Maybe<A>> const& mma) {
   return mma.has_value() ? *mma : std::nullopt;
+}
+
+// Comonadic ε for Maybe.  Defined on the Some-fragment only:
+// ε(Some(x)) = x; ε(nullopt) is UB (dereferences a value-less
+// optional).  Same mathematical concession as the Box-as-trivial-
+// comonad vestigial path retired in #632 — the price of using
+// std-blessed std::optional as the carrier.
+template <typename A>
+constexpr A ε(Maybe<A> const& ma) {
+  return *ma;
+}
+
+export template <typename A>
+  requires IsSpecies<A>
+constexpr A ε(maybe_hub_tag, Maybe<A> const& ma) {
+  return *ma;
+}
+
+/**
+ * @brief Comonadic duplicate (δ) for Maybe: Maybe<A> → Maybe<Maybe<A>>.
+ *
+ * @details On the Some-fragment δ(Some(x)) = Some(Some(x)); on
+ * @c nullopt the duplicate stays @c nullopt (the carrier propagates
+ * the indecision rather than fabricating a Some).
+ */
+template <typename A>
+  requires IsSpecies<A>
+constexpr Maybe<Maybe<A>> δ(Maybe<A> const& ma) {
+  return ma.has_value() ? Maybe<Maybe<A>>{ma} : std::nullopt;
+}
+
+export template <typename A>
+  requires IsSpecies<A>
+constexpr Maybe<Maybe<A>> δ(maybe_hub_tag, Maybe<A> const& ma) {
+  return ma.has_value() ? Maybe<Maybe<A>>{ma} : std::nullopt;
 }
 
 /**

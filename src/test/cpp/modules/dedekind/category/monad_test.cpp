@@ -73,11 +73,15 @@ TEST_CASE("Category: Monad textbook aliases", "[category][monad][aliases]") {
     CHECK(j(8) == 8);
   }
 
-  SECTION("pure, join, extract, duplicate route through Box defaults") {
-    CHECK(pure(box_hub, 2) == Box<int>{2});
-    CHECK(join(box_hub, Box<Box<int>>{{6}}) == Box<int>{6});
-    CHECK(extract(box_hub, Box<int>{9}) == 9);
-    CHECK(duplicate(box_hub, Box<int>{9}) == Box<Box<int>>{{9}});
+  SECTION("pure, join, extract, duplicate route through Maybe defaults") {
+    // Maybe is a monad, not a true comonad; extract / duplicate are
+    // well-defined only on the Some-fragment.  See
+    // :natural's η/μ/ε/δ block for the concession.
+    CHECK(pure(maybe_hub, 2) == Maybe<int>{2});
+    CHECK(join(maybe_hub, Maybe<Maybe<int>>{Maybe<int>{6}}) == Maybe<int>{6});
+    CHECK(extract(maybe_hub, Maybe<int>{9}) == 9);
+    CHECK(duplicate(maybe_hub, Maybe<int>{9}) ==
+          Maybe<Maybe<int>>{Maybe<int>{9}});
   }
 }
 
