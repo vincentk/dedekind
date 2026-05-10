@@ -338,6 +338,18 @@ static_assert(embed_𝔹_𝕂3(dedekind::sets::SingletonSet<bool, ClassicalLogic
               "embed_𝔹_𝕂3(Singleton<false>) lands at Ternary::False on the 𝕂3 "
               "carrier.");
 
+// Concept-level witness: the result realises the categorical image of
+// the source set under the canonical mono 𝔹 ↪ 𝕂3 — Subobject of
+// @c Cod<embed_𝔹_𝕂3_> = Ternary per @c :category:image.
+static_assert(
+    dedekind::category::IsImageOf<
+        decltype(embed_𝔹_𝕂3(dedekind::sets::SingletonSet<bool, ClassicalLogic>{
+            true})),
+        decltype(embed_𝔹_𝕂3_)>,
+    "embed_𝔹_𝕂3(S) realises IsImageOf<result, embed_𝔹_𝕂3_>: result is "
+    "a Subobject of Cod<embed_𝔹_𝕂3_> = Ternary, witnessing the "
+    "categorical image of S under the canonical mono 𝔹 ↪ 𝕂3.");
+
 }  // namespace dedekind::numbers
 
 namespace dedekind::category {

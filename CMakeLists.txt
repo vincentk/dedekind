@@ -201,6 +201,16 @@ add_library(set-pruning-ir-fixture STATIC EXCLUDE_FROM_ALL
     src/test/cpp/modules/dedekind/python/showcase_07_lattice_real_interval.cpp
     src/test/cpp/modules/dedekind/python/showcase_08_halfspace_2d_product.cpp
     src/test/cpp/modules/dedekind/python/showcase_09_lp_vertex_typed_constant.cpp
+    # showcase_10_image_intensional_naturals.cpp is added for compile-time
+    # validation of the layer-1 image overload on intensional Sets (#602 / #631);
+    # it has no checked-in `.ll` fixture because its IR demo
+    # (`ret i1 false` for `TernaryLogic::Unknown == True`) is shape-identical
+    # to showcase_03's empty-meet reduction (`ret i1 false` for
+    # `L::False == L::True`).  The structural reduction itself
+    # (image-of-intensional-Set carries the always-Unknown predicate) is
+    # exhibited at compile time via the static_assert chain in the source.
+    # Same precedent as showcase_alpha_prime below.
+    src/test/cpp/modules/dedekind/python/showcase_10_image_intensional_naturals.cpp
     # showcase_alpha_prime.cpp is added for compile-time validation of the
     # paper §3 α′ listing; it has no checked-in `.ll` fixture because its
     # IR demo is reused from showcase_03 (the empty-meet structural pattern).

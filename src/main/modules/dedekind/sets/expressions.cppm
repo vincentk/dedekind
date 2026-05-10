@@ -820,6 +820,67 @@ class Set {
 template <typename T, typename L, typename Predicate>
 inline const Set<T, L, Predicate> Set<T, L, Predicate>::χ{Predicate{}};
 
+/** @brief Symbolic image-of-intensional-Set predicate (#602 layer 1).
+ *
+ *  @details For a source intensional @c Set{x | P(x)} and an arrow
+ *  @c f: T → U, the categorical image is @c Set{y | ∃x ∈ T. P(x) ∧ y == f(x)}.
+ *  On a transfinite carrier T the existential is generally undecidable
+ *  (predicate-defined source, no enumerable elements); this predicate
+ *  reflects the indecision honestly by returning
+ *  @c TernaryLogic::Unknown for every query.
+ *
+ *  Specializations that decide membership for monic arrows with
+ *  structural inverses, or for finite source carriers, are layer 2 of
+ *  #602 (per-arrow / per-carrier dispatch).  This default predicate
+ *  completes the layer-1 API surface so @c image(f, intensional_set)
+ *  is well-formed and type-checked, with the result honestly tagged
+ *  @c TernaryLogic.
+ *
+ *  Default-constructible by design: the @c Set<U, TernaryLogic, ...>
+ *  @c χ static initializer requires the predicate type to
+ *  default-construct.  Captureless / no source-set + arrow storage in
+ *  the closure for the same reason.
+ *
+ *  @tparam U The codomain element type — read off from @c Cod<F> at
+ *  the @c image call site.  Parameterising by @c U keeps the predicate
+ *  type distinct per result instantiation.
+ */
+export template <typename U>
+struct SymbolicImagePredicate {
+  constexpr auto operator()(const U&) const {
+    return dedekind::category::TernaryLogic::Unknown;
+  }
+};
+
+/** @brief image(f, Set<T, L, P>) — image of an intensional Set under
+ *         an arrow.  Layer 1 of #602.
+ *
+ *  @details Sister overload in the @c image dispatch table, alongside
+ *   - @c image(f, SingletonSet) (@c :sets:singleton; extensional, exact).
+ *   - @c image(f, std::set / std::unordered_set) (@c :sets:extensional;
+ *     extensional, exact via enumeration).
+ *   - @b this overload (intensional, symbolic with @c TernaryLogic).
+ *
+ *  The result is itself an intensional @c Set on the codomain
+ *  @c U = Cod<F>, with @c TernaryLogic as the logic species and the
+ *  always-Unknown @c SymbolicImagePredicate as the predicate.  This
+ *  honestly admits the indecision — the existential @c ∃x ∈ T. P(x)
+ *  ∧ y == f(x) is undecidable on transfinite carriers without further
+ *  structure (a partial inverse for @c f, or finiteness of @c T).
+ *
+ *  @c IsArrow<F> is the gate (the project's general arrow concept);
+ *  @c IsMonicArrow<F> would be the natural strengthening for the
+ *  decidable-specialisation path (layer 2).
+ */
+export template <typename T, typename L, typename P,
+                 dedekind::category::IsArrow F>
+  requires std::same_as<dedekind::category::Dom<std::remove_cvref_t<F>>, T>
+constexpr auto image(F&&, const Set<T, L, P>&) {
+  using U = dedekind::category::Cod<std::remove_cvref_t<F>>;
+  return Set<U, dedekind::category::TernaryLogic, SymbolicImagePredicate<U>>{
+      SymbolicImagePredicate<U>{}};
+}
+
 /** @brief Explicit set complement overload to avoid picking category morphism
  * `!`. */
 export template <typename T, typename L, typename Predicate>

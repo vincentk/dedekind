@@ -404,6 +404,19 @@ static_assert(
     "embed_𝔹_ℕ(Singleton<false>) lands at finite_cardinality(0) on the "
     "Cardinality carrier.");
 
+// Concept-level witness: the result of @c embed_𝔹_ℕ realises the
+// categorical image of the source set under the canonical mono
+// 𝔹 ↪ ℕ — i.e. it is a Subobject of @c Cod<embed_𝔹_ℕ_> = Cardinality
+// (smallest-such-subobject reading per @c :category:image).
+static_assert(
+    dedekind::category::IsImageOf<
+        decltype(embed_𝔹_ℕ(dedekind::sets::SingletonSet<bool, ClassicalLogic>{
+            true})),
+        decltype(embed_𝔹_ℕ_)>,
+    "embed_𝔹_ℕ(S) realises IsImageOf<result, embed_𝔹_ℕ_>: result is a "
+    "Subobject of Cod<embed_𝔹_ℕ_> = Cardinality, witnessing the "
+    "categorical image of S under the canonical mono 𝔹 ↪ ℕ.");
+
 // (6) The @c std::unsigned_integral family classification (textbook
 //     @c ℤ/2^wℤ stance, the universal lift @c
 //     embed_uint_ℕ, the @c Modular<N> / @c IsCyclic

@@ -252,6 +252,19 @@ static_assert(embed_uint_ℕ(dedekind::sets::SingletonSet<
               "embed_uint_ℕ(SingletonSet<unsigned>{0}) lands at "
               "finite_cardinality(0) on the Cardinality carrier.");
 
+// Concept-level witness: the result realises the categorical image of
+// the source set under the canonical mono unsigned ↪ ℕ — Subobject
+// of @c Cod<embed_uint_ℕ_> = Cardinality per @c :category:image.
+static_assert(
+    dedekind::category::IsImageOf<
+        decltype(embed_uint_ℕ(dedekind::sets::SingletonSet<
+                              unsigned, dedekind::category::ClassicalLogic>{
+            42u})),
+        decltype(embed_uint_ℕ_)>,
+    "embed_uint_ℕ(S) realises IsImageOf<result, embed_uint_ℕ_>: result "
+    "is a Subobject of Cod<embed_uint_ℕ_> = Cardinality, witnessing the "
+    "categorical image of S under the canonical mono unsigned ↪ ℕ.");
+
 // ===========================================================================
 // (2) Family classification — std::unsigned_integral as ℤ/2^wℤ
 // ===========================================================================
