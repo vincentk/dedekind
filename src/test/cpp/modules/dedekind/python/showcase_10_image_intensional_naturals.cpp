@@ -26,6 +26,21 @@
  * Expected LLVM IR: @c ret @c i1 @c false for the Unknown-vs-True
  * comparison in @c witness_image_intensional_unknown.
  *
+ * @note No checked-in @c .ll fixture for this showcase: the IR shape
+ * is identical to @c showcase_03_halfspace_contradiction.cpp's
+ * @c witness_empty_halfspace_meet (`ret i1 false` for an
+ * always-falsy comparison at @c -O2), differing only in the
+ * @b structural @b reduction at the Ddk level
+ * (Unknown-in-TernaryLogic vs False-in-ClassicalLogic).  The
+ * structural reduction itself is exhibited via the @c static_assert
+ * chain above; full IR-fixture parity (a dedicated @c .ll plus a
+ * registered semantic check in
+ * @c .github/copilot/housekeeping/pruning-ir-fixture.py) would be a
+ * follow-up if/when the TernaryLogic-folding path needs its own
+ * IR-level audit anchor distinct from the empty-meet one.  Mirrors
+ * the precedent set by @c showcase_alpha_prime.cpp (also built but
+ * un-fixtured for the same shape-equivalence reason).
+ *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  */
