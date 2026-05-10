@@ -623,7 +623,7 @@ Each step adds one structural commitment, and each commitment is reified as an e
 
 \begin{table}[htbp]
 \centering
-\caption{\textbf{The chain $\mathbf{Cat} \to \mathbf{Ddk}$ as named refinement steps.}  Each row adds one structural commitment over the previous; each is cashed out by an existing C++23 partition / concept.  Steps 0--6 are internal to category theory; step 7 is the move out of pure CT into the C++ realisation.  The chain is approximately linear at the granularity shown; the honest reading is more lattice-shaped, with concreteness (step 6) and the size axis (step 1) sitting orthogonally to the CCC and topos refinements (steps 2--4) rather than strictly downstream of them.}
+\caption{\textbf{The chain $\mathbf{Cat} \to \mathbf{Ddk}$ as named refinement steps.}  Each row adds one structural commitment over the previous; each is cashed out by an existing C++23 partition / concept.  Steps 0--6 are internal to category theory; step 7 is the move out of pure CT into the C++ realisation.  The chain is approximately linear at the granularity shown; the honest reading is more lattice-shaped, with concreteness (step 5) and the size axis (step 1) sitting orthogonally to the CCC and topos refinements (steps 2--4) rather than strictly downstream of them.}
 \label{tbl:cat-to-ddk}
 \small
 \begin{tabular}{@{}c l l l@{}}
@@ -635,15 +635,15 @@ Each step adds one structural commitment, and each commitment is reified as an e
 2 & terminal $1$, binary products $\times$       & \cppinline{:limit} / \cppinline{IsCartesian}            & cartesian (Pierce §1.4)        \\
 3 & exponentials $B^A$                           & \cppinline{:cartesian} / \cppinline{IsCartesianClosed}  & CCC                            \\
 4 & subobject classifier $\Omega$                & \cppinline{:topoi} / \cppinline{IsSubobject}, \cppinline{IsTopos} & elementary topos      \\
-5 & ETCS axioms (well-pointedness, NNO, choice)  & \cppinline{:etcs}                                       & Set-modeling topos             \\
-6 & concreteness (objects \emph{are} sets; faithful $U: \mathcal{C} \to \mathbf{Set}$) & \cppinline{:etcs} / \cppinline{IsSetObject}, \cppinline{Subobject} & concrete Set-model \\
+5 & concreteness (objects \emph{are} sets; faithful $U: \mathcal{C} \to \mathbf{Set}$) & \cppinline{:concrete} / \cppinline{IsConcrete}, \cppinline{IsSetObject} & concrete topos        \\
+6 & ETCS axioms (well-pointedness, NNO, choice)  & \cppinline{:etcs} / \cppinline{IsSet}                   & Set-modeling topos             \\
 \midrule
 7 & C++ Juliet binding (carriers as concrete C++ types) & \cppinline{:cartesian::Ddk}                      & $\mathbf{Ddk}$                 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-The locally-small-not-small slot --- the textbook home of $\mathbf{Cat}$ itself, $\mathbf{Set}$, $\mathbf{Alg}(\Sigma)$, $\mathbf{Top}$ --- branches off this chain at step~1 and is intentionally not navigated by the project today; the architectural intent and reasons for deferring \cppinline{IsLocallySmallCategory} live in the \cppinline{:small} docstring (\texttt{small\_\_The\_Locally\_Small\_Slot}).
+The size-axis vocabulary in @c :small is now layered explicitly: \cppinline{IsLocallySmallCategory} (Hom-collection is a set) is the weaker concept; \cppinline{IsSmallCategory} narrows it with $\textsc{Ob}$-is-a-set, so step~1 enforces both readings in one concept (\cppinline{IsSmallCategory} = \cppinline{IsLocallySmallCategory} \(\wedge\) $\textsc{Ob}$-is-a-set in the project's encoding).  The textbook \emph{locally-small-not-small} slot --- $\mathbf{Cat}$ itself, $\mathbf{Set}$, $\mathbf{Alg}(\Sigma)$, $\mathbf{Top}$, where $\textsc{Ob}$ is a proper class --- requires the higher-kinded $\mathrm{Hom}\langle A, B \rangle$ slot at the type level; the project deliberately does not navigate it today, and the architectural reasons for deferring that specific slot live in the \cppinline{:small} docstring section \texttt{small\_\_The\_Locally\_Small\_Slot}.
 
 The algebraic structure each carrier provides (per \cppinline{IsAlgebraOnSet}, Listing~\ref{lst:algebra:universal}) lives \emph{inside} this CCC.
 The operations are arrows in $\mathbf{Ddk}$; axioms are equations between such arrows; the forgetful arrows the project ships ($\mathbf{Ring} \to \mathbf{AbGrp} \to \mathbf{Set}$, together with the \texttt{embed\_*\_*\_} family) drop operations as they move between carriers.

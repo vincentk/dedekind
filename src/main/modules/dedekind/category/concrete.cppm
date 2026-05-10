@@ -1,0 +1,246 @@
+/**
+ * @file dedekind/category/concrete.cppm
+ * @partition :concrete
+ * @brief Concrete categories: faithful @c U @c : @c 𝒞 @c → @c Set, sub-object
+ *        machinery, lattice operations on χ-classified sets.
+ *
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
+ *
+ * @section concrete__What_Concreteness_Pins
+ *
+ * A category @c 𝒞 is @em concrete (in the textbook sense; Mac Lane CWM §IV.6,
+ * Pierce §1.6, Awodey ch 6) when there is a faithful functor
+ * @c U @c : @c 𝒞 @c → @c Set, i.e. each object @b is a set and each arrow
+ * @b is a set-function preserving the relevant structure.  This is the
+ * @em ontological reading of "small category" (every object is a set),
+ * complementing the @em cardinality reading pinned by @c :small
+ * (the object-collection and Hom-collection are themselves sets).
+ *
+ * The two readings are independent (Reading 1 / Reading 2 in the @c :small
+ * docstring; cf. paper §2.3):
+ *   - Small but not concrete: @c 𝟚 (the two-arrow category), finite-state-
+ *     machines-as-categories, posetal categories with abstract tag objects.
+ *   - Concrete but not small: @c Set itself, @c Grp, @c Alg(Σ), @c Top.
+ *
+ * @c :concrete sits @b between @c :small and @c :etcs on the chain
+ * @c Cat @c → @c Ddk: @c IsSmallCategory pins the size axis; @c IsConcrete
+ * pins the concreteness axis (objects are sets); @c :etcs further
+ * axiomatises @em which concrete category is @c Set itself via the topos
+ * structure (well-pointedness, NNO, choice, ...).  @c :etcs imports
+ * @c :concrete and treats it as the prerequisite layer.
+ *
+ * @section concrete__Std_Namespace_Mappings
+ *
+ * | Concept / Function | Categorical role |
+ * |--------------------|--------------------------------------------------------|
+ * | `IsSetObject<S, A>`| Per-object concreteness: @c S is a Subobject of
+ * ambient @c A. | | `IsConcrete<C>`    | Per-category concreteness: @c C is
+ * small AND its objects are sets. | | `set_intersection` | @c χ_A @c ∧ @c χ_B
+ * (meet on @c Sub(A))                  | | `set_union`        | @c χ_A @c ∨ @c
+ * χ_B (join on @c Sub(A))                  | | `set_complement`   | @c ¬χ_A
+ * (Heyting complement)                            | | `in` / `in_via`    |
+ * Membership @c x @c ∈ @c S evaluated via @c χ_S          |
+ *
+ * Concept-as-predicate framing (cf. #635, #637):
+ *
+ * @code
+ *   IsSmallCategory<C>      ⊇    IsConcrete<C>      ⊇    IsSet (= ETCS)
+ *   (size axis: small)        (concreteness)         (full ETCS axiomatisation)
+ * @endcode
+ *
+ * @note "In the mathematical development of recent decades, the notion of
+ *  set has not only played a fundamental role, but it has itself
+ *  passed through a long process of refinement."
+ *  — F. William Lawvere, "An Elementary Theory of the Category of Sets"
+ */
+
+module;
+
+#include <concepts>
+#include <type_traits>
+#include <utility>
+
+export module dedekind.category:concrete;
+
+import :logic;     // classify, classifier_true, Ternary, LogicalValue
+import :morphism;  // IsArrow, IsSpokeArrow, Dom, Cod, operator>>
+import :small;     // IsSmallCategory --- size-axis prerequisite for IsConcrete
+import :species;   // IsSpecies --- "object collection is set-shaped"
+import :topoi;     // IsSubobject, IsPredicate --- subobject machinery
+
+namespace dedekind::category {
+
+/**
+ * @concept IsSetObject
+ * @brief A categorical set object represented as a subobject @c S @c ↣ @c A.
+ *
+ * @details The per-object concreteness witness: @c S is a Subobject of its
+ *          @c Ambient type, so @c S "is" a set (the subset of @c Ambient
+ *          carved out by its characteristic morphism @c χ).  Re-homed from
+ *          @c :etcs to @c :concrete under #636 --- this is the concreteness
+ *          atom, independent of the further ETCS-specific axioms.
+ */
+export template <typename S, typename A>
+concept IsSetObject = IsSubobject<S, A> && requires {
+  typename S::Ambient;
+  requires std::same_as<typename S::Ambient, A>;
+};
+
+/**
+ * @concept IsConcrete
+ * @brief A small category @c C is @em concrete when its objects are
+ *        themselves sets --- equivalently, when there is a faithful functor
+ *        @c U @c : @c C @c → @c Set.
+ *
+ * @details Concept-as-predicate / @c &&-as-set-intersection framing:
+ *          @c IsConcrete narrows @c IsSmallCategory by intersecting with
+ *          the constraint that the category's object-collection is
+ *          set-shaped (its @c Species type is registered in the species
+ *          atlas).  In the project's Juliet posture, where @c Species is
+ *          a C++ type whose values @em are the objects, registration in
+ *          the species atlas (via @c SpeciesTraits) is exactly the
+ *          structural witness that those objects can be viewed as
+ *          elements of @c Set.
+ *
+ *          Position in the size-and-structure lattice (read top-down as
+ *          narrowing intersections; cf. paper §2.3):
+ *
+ * @code
+ *   IsSmallCategory<C>
+ *     ∧ IsSpecies<C::Species>   (objects sit in the species atlas)
+ *   = IsConcrete<C>
+ * @endcode
+ *
+ *          @c :etcs further narrows by adding the full topos / ETCS axiom
+ *          surface (subobject classifier, NNO, choice, ...): @c IsSet =
+ *          @c IsConcrete + ETCS axioms.
+ *
+ *          Examples in the project:
+ *            - @c Set<T> --- the canonical CCC in @c :cartesian; concrete
+ *              because @c Species @c = @c T (any C++ type satisfies
+ *              @c IsSpecies via the integral / floating-point / bool primary).
+ *            - @c DiscreteCategory<S> in @c :discrete --- concrete when
+ *              @c S is a registered species.
+ */
+export template <typename C>
+concept IsConcrete = IsSmallCategory<C> && IsSpecies<typename C::Species>;
+
+/**
+ * @concept HasTernarySupport
+ * @brief True when a set object's classifier returns ternary truth values.
+ */
+export template <typename S>
+concept HasTernarySupport =
+    IsSubobject<S, typename S::Ambient> &&
+    std::same_as<Cod<decltype(std::declval<S>().χ)>, Ternary>;
+
+/**
+ * @concept IsCompatibleSetPair
+ * @brief Two set objects over the same ambient species and same Ω codomain.
+ */
+export template <typename S1, typename S2>
+concept IsCompatibleSetPair =
+    IsSubobject<S1, typename S1::Ambient> &&
+    IsSubobject<S2, typename S2::Ambient> &&
+    std::same_as<typename S1::Ambient, typename S2::Ambient> &&
+    std::same_as<Cod<decltype(std::declval<S1>().χ)>,
+                 Cod<decltype(std::declval<S2>().χ)>>;
+
+/** @brief Set intersection: materialize @c A @c ∩ @c B from @c χ_A @c ∧ @c χ_B.
+ */
+export template <typename S1, typename S2>
+  requires IsCompatibleSetPair<S1, S2>
+constexpr auto set_intersection(const S1& lhs, const S2& rhs) {
+  using A = typename S1::Ambient;
+  return classify<A>(lhs.χ && rhs.χ);
+}
+
+/** @brief Set union: materialize @c A @c ∪ @c B from @c χ_A @c ∨ @c χ_B. */
+export template <typename S1, typename S2>
+  requires IsCompatibleSetPair<S1, S2>
+constexpr auto set_union(const S1& lhs, const S2& rhs) {
+  using A = typename S1::Ambient;
+  return classify<A>(lhs.χ || rhs.χ);
+}
+
+/** @brief Set complement: materialize @c A^c from @c ¬χ_A. */
+export template <typename S>
+  requires IsSubobject<S, typename S::Ambient>
+constexpr auto set_complement(const S& s) {
+  using A = typename S::Ambient;
+  return classify<A>(!s.χ);
+}
+
+/** @brief Membership: @c x @c ∈ @c S evaluated via @c χ_S(x). */
+export template <typename S>
+  requires IsSubobject<S, typename S::Ambient>
+constexpr auto in(const typename S::Ambient& x, const S& s) {
+  return s.χ(x);
+}
+
+/**
+ * @brief Membership through an embedding arrow @c e @c : @c X @c → @c A,
+ *        then @c χ_S.
+ * @details Evaluates @c x @c ∈_e @c S as @c χ_S(e(x)).
+ */
+export template <typename S, IsArrow E>
+  requires IsSubobject<S, typename S::Ambient> &&
+           std::same_as<Cod<E>, typename S::Ambient>
+constexpr auto in_via(const Dom<E>& x, E&& embedding, const S& s) {
+  return s.χ(std::forward<E>(embedding)(x));
+}
+
+/**
+ * @brief Compose two embedding arrows for pullback naturality path checks.
+ * @details Produces @c h @c = @c f @c >> @c g @c : @c A @c → @c C,
+ *          preserving @c IsArrow compatibility.  Use instead of an ad-hoc
+ *          lambda when building composed-path witnesses for downstream
+ *          axiom-7 reindexing surfaces in @c :etcs.  Raw lambdas do not
+ *          carry @c Domain / @c Codomain typedefs, so they fail the
+ *          @c IsArrow concept; this wrapper delegates to @c operator>>
+ *          which returns a properly typed @c Morphism.
+ */
+export template <IsArrow F, IsArrow G>
+  requires IsSpokeArrow<std::decay_t<F>> && IsSpokeArrow<std::decay_t<G>> &&
+           std::same_as<Cod<std::decay_t<F>>, Dom<std::decay_t<G>>>
+constexpr auto compose_embedding(F&& f, G&& g) {
+  return std::forward<F>(f) >> std::forward<G>(g);
+}
+
+/** @brief Lattice alias: meet @c = intersection on @c Sub(A). */
+export template <typename S1, typename S2>
+  requires IsCompatibleSetPair<S1, S2>
+constexpr auto meet(const S1& lhs, const S2& rhs) {
+  return set_intersection(lhs, rhs);
+}
+
+/** @brief Lattice alias: join @c = union on @c Sub(A). */
+export template <typename S1, typename S2>
+  requires IsCompatibleSetPair<S1, S2>
+constexpr auto join(const S1& lhs, const S2& rhs) {
+  return set_union(lhs, rhs);
+}
+
+/** @section concrete__Witnesses
+ *
+ * @details Compiler-validated witnesses pinning that the canonical
+ * carriers of the project's CCC layer satisfy @c IsConcrete.  These
+ * close the AC of #636 ("at least one downstream @c IsConcrete witness")
+ * and serve as audit-trail evidence that the concreteness concept binds
+ * structurally on the project's actual carriers.
+ */
+
+// @c Set<T> (the canonical CCC over @c T from @c :cartesian) is concrete
+// for any species type @c T --- its @c Species = @c T and the species
+// atlas registers all integral / floating-point / bool primaries by
+// default.
+static_assert(IsConcrete<Set<int>>,
+              "Set<int> is concrete: Species = int is a registered species.");
+static_assert(IsConcrete<Set<bool>>,
+              "Set<bool> is concrete: Species = bool is a registered species.");
+static_assert(
+    IsConcrete<Set<double>>,
+    "Set<double> is concrete: Species = double is a registered species.");
+
+}  // namespace dedekind::category

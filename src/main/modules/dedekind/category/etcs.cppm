@@ -34,21 +34,26 @@
  *
  * @c :small establishes the @em cardinality reading of "small category":
  * the collection of objects and the collection of arrows are each sets in
- * the metatheory (forced by representing them as C++ types).  @c :etcs
- * pins the complementary @em ontological reading: each object @b is
- * a set, characterized structurally via the topos structure (terminal,
- * products, exponentials, subobject classifier, NNO).  In the project's
- * vocabulary this is the move from "objects are elements of a set"
- * (@c :small, Reading 1) to "objects are sets" (@c :etcs, Reading 2 /
- * @em concreteness; equivalently: faithful forgetful functor
- * @c U @c : @c 𝒞 @c → @c Set).
+ * the metatheory.  @c :concrete (re-homed from this partition under #636)
+ * pins the @em ontological reading: each object @b is a set, equivalently
+ * a faithful forgetful functor @c U @c : @c 𝒞 @c → @c Set.
  *
- * The two readings are independent: @c :small admits enum-style tag
- * objects (small but not concrete); @c :etcs requires the topos
- * structure that makes objects bona-fide sets.  Categories that satisfy
- * both --- the small concrete categories --- are the @c IsSmallCategory
- * carriers whose @c Species is itself a set-typed carrier (@c Set<T>,
- * the ETCS @c Subobject machinery).
+ * Concept-as-predicate framing (cf. paper §2.3):
+ *
+ * @code
+ *   IsSmallCategory<C>      ⊇    IsConcrete<C>      ⊇    IsSet (= ETCS)
+ *   (size axis: small)       (ontology: objects-are-   (full ETCS
+ *                            sets; faithful U: C→Set)   axiomatisation)
+ * @endcode
+ *
+ * @c :etcs sits one step down from @c :concrete on this chain: every
+ * ETCS set @em is a concrete set object, plus the 10 ETCS axioms
+ * (well-pointedness, NNO, choice, ...) that pick out @c Set specifically
+ * among concrete categories.  The @c IsSetObject, @c IsConcrete, and
+ * @c χ-based set-operation machinery (@c set_intersection / @c set_union
+ * / @c set_complement / @c in / @c in_via / @c meet / @c join) all live
+ * in @c :concrete; this partition imports it and adds the ETCS-specific
+ * axiom witnesses on top.
  *
  * @see Lawvere, F.W. (1964) "An Elementary Theory of the Category of Sets"
  * @see McLarty, C. (1993) "Numbers can be just what they have to"
@@ -74,6 +79,9 @@ import :adjunction;  // HasAdjunctionShape / IsAdjunction — the bona fide
                      // adjunction machinery used to witness Disc ⊣ U at the
                      // type level (#572 review).
 import :cartesian;
+import :concrete;  // IsSetObject, IsConcrete, set_intersection / set_union /
+                   // set_complement / in / in_via / meet / join — the
+                   // concreteness layer (#636), prerequisite for ETCS axioms.
 import :discrete;  // DiscreteCategory<T> — target of the Set ↪ Cat lift (#572)
 import :functor;   // identity_functor — the structural-shape witness for
                    // the discrete-restriction Disc ⊣ U adjunction (#572).
@@ -87,107 +95,14 @@ import :topoi;
 
 namespace dedekind::category {
 
-/**
- * @concept IsSetObject
- * @brief A categorical set object represented as a subobject S ↣ A.
- */
-export template <typename S, typename A>
-concept IsSetObject = IsSubobject<S, A> && requires {
-  typename S::Ambient;
-  requires std::same_as<typename S::Ambient, A>;
-};
-
-/**
- * @concept HasTernarySupport
- * @brief True when a set object's classifier returns ternary truth values.
- */
-export template <typename S>
-concept HasTernarySupport =
-    IsSubobject<S, typename S::Ambient> &&
-    std::same_as<Cod<decltype(std::declval<S>().χ)>, Ternary>;
-
-/**
- * @concept IsCompatibleSetPair
- * @brief Two set objects over the same ambient species and same Ω codomain.
- */
-export template <typename S1, typename S2>
-concept IsCompatibleSetPair =
-    IsSubobject<S1, typename S1::Ambient> &&
-    IsSubobject<S2, typename S2::Ambient> &&
-    std::same_as<typename S1::Ambient, typename S2::Ambient> &&
-    std::same_as<Cod<decltype(std::declval<S1>().χ)>,
-                 Cod<decltype(std::declval<S2>().χ)>>;
-
-/** @brief ETCS intersection: materialize A ∩ B from χ_A ∧ χ_B. */
-export template <typename S1, typename S2>
-  requires IsCompatibleSetPair<S1, S2>
-constexpr auto set_intersection(const S1& lhs, const S2& rhs) {
-  using A = typename S1::Ambient;
-  return classify<A>(lhs.χ && rhs.χ);
-}
-
-/** @brief ETCS union: materialize A ∪ B from χ_A ∨ χ_B. */
-export template <typename S1, typename S2>
-  requires IsCompatibleSetPair<S1, S2>
-constexpr auto set_union(const S1& lhs, const S2& rhs) {
-  using A = typename S1::Ambient;
-  return classify<A>(lhs.χ || rhs.χ);
-}
-
-/** @brief ETCS complement: materialize A^c from ¬χ_A. */
-export template <typename S>
-  requires IsSubobject<S, typename S::Ambient>
-constexpr auto set_complement(const S& s) {
-  using A = typename S::Ambient;
-  return classify<A>(!s.χ);
-}
-
-/** @brief ETCS membership: x ∈ S evaluated via χ_S(x). */
-export template <typename S>
-  requires IsSubobject<S, typename S::Ambient>
-constexpr auto in(const typename S::Ambient& x, const S& s) {
-  return s.χ(x);
-}
-
-/**
- * @brief Membership through an embedding arrow e: X -> A, then χ_S.
- * @details Evaluates x ∈_e S as χ_S(e(x)).
- */
-export template <typename S, IsArrow E>
-  requires IsSubobject<S, typename S::Ambient> &&
-           std::same_as<Cod<E>, typename S::Ambient>
-constexpr auto in_via(const Dom<E>& x, E&& embedding, const S& s) {
-  return s.χ(std::forward<E>(embedding)(x));
-}
-
-/**
- * @brief Compose two embedding arrows for pullback naturality path checks.
- * @details Produces h = f >> g : A -> C, preserving `IsArrow` compatibility.
- * Use instead of an ad-hoc lambda when building composed-path witnesses for
- * `HasAxiom7PullbackReindexingDefinitionalSurface`. Raw lambdas do not carry
- * `Domain`/`Codomain` typedefs, so they fail the `IsArrow` concept; this
- * wrapper delegates to `operator>>` which returns a properly typed `Morphism`.
- */
-export template <IsArrow F, IsArrow G>
-  requires IsSpokeArrow<std::decay_t<F>> && IsSpokeArrow<std::decay_t<G>> &&
-           std::same_as<Cod<std::decay_t<F>>, Dom<std::decay_t<G>>>
-constexpr auto compose_embedding(F&& f, G&& g) {
-  return std::forward<F>(f) >> std::forward<G>(g);
-}
-
-/** @brief Lattice alias: meet = intersection. */
-export template <typename S1, typename S2>
-  requires IsCompatibleSetPair<S1, S2>
-constexpr auto meet(const S1& lhs, const S2& rhs) {
-  return set_intersection(lhs, rhs);
-}
-
-/** @brief Lattice alias: join = union. */
-export template <typename S1, typename S2>
-  requires IsCompatibleSetPair<S1, S2>
-constexpr auto join(const S1& lhs, const S2& rhs) {
-  return set_union(lhs, rhs);
-}
+// NOTE (#636 re-home): the concreteness layer --- @c IsSetObject,
+// @c HasTernarySupport, @c IsCompatibleSetPair, @c set_intersection / @c
+// set_union / @c set_complement, @c in / @c in_via, @c meet / @c join,
+// @c compose_embedding, and the new @c IsConcrete<C> umbrella ---
+// moved to @c :concrete.  @c :etcs retains the ETCS-specific axiom
+// witnesses (@c HasAxiom1..10, @c HasETCSAxioms, @c IsSet) and imports
+// @c :concrete as the structural prerequisite.  Concept-as-predicate
+// reading: @c IsSet @c = @c IsConcrete @c + ETCS axioms.
 
 /** @brief ETCS axiom 1 witness: composition is available for ambient arrows. */
 export template <typename A>

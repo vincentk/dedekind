@@ -85,7 +85,10 @@ export import :numeric;  // Concrete Hardware Logic (IEEE 754)
 export import :partial;  // The Final Abstracted Partial Interface
 
 // Level 4: The Skeletal Signatures (Synthesis)
-export import :etcs;  // The World of Sets (Importing Partial + Mereology)
+export import :concrete;  // Concreteness layer (IsSetObject, IsConcrete,
+                          // χ-based set ops) — re-homed from :etcs (#636);
+                          // prerequisite for the ETCS axioms below.
+export import :etcs;      // The World of Sets (Importing Partial + Mereology)
 
 namespace dedekind::category {
 // Top-level category-theoretic aliases and universal compositions.
