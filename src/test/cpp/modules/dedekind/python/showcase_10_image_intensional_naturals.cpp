@@ -100,6 +100,20 @@ static_assert(img(finite_cardinality(0)) == Ternary::Unknown,
               "of a set bounded below by 5), the layer-1 symbolic "
               "predicate cannot decide this either.");
 
+// Concept-level witness: closes the axiomatic flow @c :category →
+// @c :sets for the intensional-image overload.  The result realises
+// the categorical image of @c gt_5 under @c succ_arrow — a Subobject
+// of @c Cod<succ_arrow> = Cardinality per @c :category:image.
+// Sister to the per-arrow-embedding witnesses in @c :numbers:natural /
+// @c :numbers:boolean / @c :numbers:uint / @c :numbers:sint
+// (the four canonical machine→variant mono lifts of #602 layer 1).
+static_assert(
+    IsImageOf<decltype(img), decltype(succ_arrow)>,
+    "image(f, intensional Set<T>) realises IsImageOf<result, f>: the "
+    "result is a Subobject of Cod<f>, witnessing the categorical image "
+    "of the source set under f even when membership is symbolic "
+    "(TernaryLogic::Unknown on transfinite carriers).");
+
 /**
  * @brief Showcase 10: image-of-intensional-Set on ℕ honestly returns
  *        Unknown.

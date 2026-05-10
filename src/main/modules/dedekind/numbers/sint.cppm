@@ -236,6 +236,19 @@ static_assert(embed_sint_ℤ(dedekind::sets::SingletonSet<
               "(negative-value witness — the symmetric complement to "
               "embed_uint_ℕ's non-negative-only fragment).");
 
+// Concept-level witness: the result realises the categorical image
+// of the source set under the canonical mono int ↪ ℤ — Subobject
+// of @c Cod<embed_sint_ℤ_> = SignedCardinality per @c :category:image.
+static_assert(
+    dedekind::category::IsImageOf<
+        decltype(embed_sint_ℤ(dedekind::sets::SingletonSet<
+                              int, dedekind::category::ClassicalLogic>{42})),
+        decltype(embed_sint_ℤ_)>,
+    "embed_sint_ℤ(S) realises IsImageOf<result, embed_sint_ℤ_>: result "
+    "is a Subobject of Cod<embed_sint_ℤ_> = SignedCardinality, "
+    "witnessing the categorical image of S under the canonical mono "
+    "int ↪ ℤ.");
+
 /**
  * @brief Type-honest absolute value at the machine layer:
  *        @c int @c → @c unsigned.
