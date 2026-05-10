@@ -143,6 +143,16 @@ constexpr std::tuple<std::decay_t<A>> η(tuple_hub_tag, A&& value) {
 }
 
 // μ: std::tuple<std::tuple<A>> → std::tuple<A>
+//
+// Both untagged and tagged variants — the untagged form is what κ's body
+// invokes (κ(ma, f) = μ(φ(ma, f))).  Mirrors the Maybe and Identity
+// untagged-μ overloads above.
+template <typename A>
+  requires IsSpecies<A>
+constexpr std::tuple<A> μ(std::tuple<std::tuple<A>> const& tta) {
+  return std::get<0>(tta);
+}
+
 export template <typename A>
   requires IsSpecies<A>
 constexpr std::tuple<A> μ(tuple_hub_tag, std::tuple<std::tuple<A>> const& tta) {
