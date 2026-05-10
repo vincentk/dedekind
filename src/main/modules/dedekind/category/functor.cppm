@@ -690,20 +690,31 @@ static_assert(
 /**
  * @brief The Maybe endofunctor T, implemented via std::optional.
  */
-template <typename T>
+export template <typename T>
 using Maybe = std::optional<T>;
 
 /**
  * @brief φ for Maybe (std::optional).
  * If ma has a value, applies f and wraps the result.
  */
-template <typename A, typename F>
+export template <typename A, typename F>
 constexpr auto φ(Maybe<A> const& ma, F&& f)
     -> Maybe<std::invoke_result_t<F, A>> {
   if (ma) {
     return std::make_optional(std::invoke(std::forward<F>(f), *ma));
   }
   return std::nullopt;
+}
+
+/**
+ * @brief φ for std::tuple<T> — Frobenius carrier (#632).
+ * Applies @c f to the single element, returning a 1-tuple of the result.
+ */
+export template <typename A, typename F>
+constexpr auto φ(std::tuple<A> const& ta, F&& f)
+    -> std::tuple<std::invoke_result_t<F, A>> {
+  return std::tuple<std::invoke_result_t<F, A>>{
+      std::invoke(std::forward<F>(f), std::get<0>(ta))};
 }
 
 /**
