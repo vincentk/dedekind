@@ -138,9 +138,10 @@ inline constexpr bool is_associative_v<T, Op> = true;
  * depends on what @c Species is bound to at the call site
  * (@c Set<T> binds to sets; an enum-style @c Species binds to tags).
  * Concreteness as a structural commitment is layered downstream in
- * @c :etcs --- the ETCS axiomatization of @c Set characterizes a
- * topos in which objects @b are sets via the topos structure
- * (terminal, products, exponentials, subobject classifier, NNO).
+ * @c :concrete --- @c IsConcrete<C> @c = @c IsSmallCategory<C> @c ∧
+ * @c IsSpecies<C::Species> --- and further refined in @c :etcs, whose
+ * ETCS axiomatization picks out @c Set specifically among concrete
+ * categories via the topos structure (well-pointedness, NNO, choice).
  *
  * Other refinements of "category" --- thin, discrete, locally-finite,
  * intensional / extensional, lazy / strict --- are also intentionally
@@ -159,20 +160,29 @@ inline constexpr bool is_associative_v<T, Op> = true;
  * | @b locally @b small category  | proper class      | sets        |
  * | @b small category             | set               | sets        |
  *
- * @c IsSmallCategory pins the third row (small).  The @b locally @b
- * small slot --- where @c Set, @c Cpp (the category of C++ types),
- * @c Top, and @c Alg(Σ) all live in standard CT --- is intentionally
- * @b not given a sibling concept @c IsLocallySmallCategory in this
- * codebase.  Two reasons:
+ * @c IsSmallCategory pins the third row (small).  The @b locally @b small
+ * row above it is named at the value level by the new @c
+ * IsLocallySmallCategory concept (defined below): when @c Cat::Arrow is a
+ * single C++ type, its value-set is a set in the metatheory, hence the
+ * total Hom-collection is a set and so is every @c Hom_Cat(a, b) (a
+ * subset).  In the project's value-level encoding, @c IsSmallCategory =
+ * @c IsLocallySmallCategory + Ob-is-a-set; small implies locally small,
+ * making "small @b and locally small" a structurally equivalent gate to
+ * @c IsSmallCategory.
+ *
+ * What remains deferred is the @em higher-kinded reading of locally-
+ * small-not-small --- the textbook home of @c Set itself, @c Cpp,
+ * @c Top, @c Alg(Σ), where the object-collection is a proper class
+ * and @c Hom<A, B> must be exposed as a type-level slot.  Two reasons
+ * to defer:
  *
  *   1. @b No @b current @b consumer.  No site in the project today
  *      requires a category whose object-collection is type-level
- *      (a proper class) but whose Hom-collection is value-level (a
- *      set).  The slot would be speculative API, and the project's
- *      struct-creation posture is "burden of proof on adding a
- *      concept, not on omitting one".
- *   2. @b Implementation @b cost.  A faithful @c IsLocallySmallCategory
- *      requires a higher-kinded @c Cat::template Hom<A, @c B> slot,
+ *      (a proper class).  The slot would be speculative API, and the
+ *      project's struct-creation posture is "burden of proof on adding
+ *      a concept, not on omitting one".
+ *   2. @b Implementation @b cost.  A faithful higher-kinded locally-
+ *      small concept requires a @c Cat::template Hom<A, @c B> slot,
  *      which is the same template-template territory the codebase
  *      otherwise tries to keep at arm's length (in the @c IsFunctor
  *      Hub/Spoke pattern, etc.).  Paying that complexity without a
@@ -180,9 +190,9 @@ inline constexpr bool is_associative_v<T, Op> = true;
  *
  * If a future slice introduces an honest @c Cpp-as-category or
  * @c Alg(Σ)-as-category construction, that's the natural moment to
- * reify the @c IsLocallySmallCategory slot --- with a real consumer
- * to pressure-test the higher-kinded API shape rather than guessing
- * it ahead of time.
+ * lift @c IsLocallySmallCategory from its value-level form to the
+ * higher-kinded slot --- with a real consumer to pressure-test the
+ * API shape rather than guessing it ahead of time.
  *
  * Axioms:
  * 1. Existence: For every arrow f, there exist unique identity arrows id_dom(f)
@@ -190,10 +200,55 @@ inline constexpr bool is_associative_v<T, Op> = true;
  * 2. Composition: If cod(f) == dom(g), then f >> g exists.
  * 3. Unitary: id_dom(f) >> f = f = f >> id_cod(f).
  */
+/**
+ * @concept IsLocallySmallCategory
+ * @brief Value-level locally-small witness: the Hom-collection of @c Cat is
+ *        a set in the metatheory.
+ *
+ * @details Forced by representing arrows as values of a single C++ type
+ * @c Cat::Arrow --- a C++ type's value-set is a set (not a proper class),
+ * so the total arrow-collection is a set; for any fixed pair of objects
+ * @c (a, b), @c Hom_Cat(a, b) is the subset of @c Cat::Arrow values with
+ * @c Dom = a and @c Cod = b, hence itself a set (subset of a set).
+ *
+ * This is the @em value-level reading of "locally small".  The
+ * @em higher-kinded reading --- where objects are a proper class and
+ * @c Hom<A, B> is exposed as a type-level slot --- is deliberately not
+ * navigated by the project (cf. @c small__The_Locally_Small_Slot below).
+ *
+ * @section small__LocallySmall_Implies_Small
+ * @c IsSmallCategory @c = @c IsLocallySmallCategory @c + Ob-is-a-set, so
+ * any @c IsSmallCategory carrier is automatically @c IsLocallySmallCategory;
+ * the conjunction "small @b and locally small" is structurally equivalent
+ * to @c IsSmallCategory in this encoding.  Paper §2.3 step 1 cites
+ * @c IsSmallCategory as the concept that enforces both readings.
+ *
+ * @note  U : 𝒞 → Set ∧ faithful(U)  ⟹  ∀ a, b ∈ Ob(𝒞).
+ *                                       Hom_𝒞(a, b) ↣ U(b)^U(a) ∈ Ob(Set)
+ *                                     ⟹  𝒞 ∈ Ob(LocSmall).
+ *
+ *        ∴  Concrete ⊆ LocSmall.
+ *
+ *        [Trans: "Concreteness gives locally-smallness for free: a faithful
+ *        forgetful @c U @c : @c 𝒞 @c → @c Set monicly injects each Hom-set
+ *        of @c 𝒞 into a function-set of @c Set, and a subset of a set is
+ *        a set."]
+ *       — Claude (Anthropic AI assistant), conversation log,
+ *         PR #639 review (2026-05-10).
+ */
 export template <typename Cat>
-concept IsSmallCategory = requires {
+concept IsLocallySmallCategory = requires {
+  // The arrow-collection is a single C++ type --- its value-set is a
+  // set in the metatheory.
   typename Cat::Arrow;
+  // ... and that type satisfies the minimal IsArrow shape, so we're
+  // gating on the categorical arrow notion, not any nested `Arrow`
+  // typedef.  Rules out types with an unrelated `Arrow` member.
+  requires IsArrow<typename Cat::Arrow>;
+};
 
+export template <typename Cat>
+concept IsSmallCategory = IsLocallySmallCategory<Cat> && requires {
   // The 'label' type for objects in this category
   typename Cat::Species;
   // Per the picking policy in :morphism (#411): use Dom<...> in
