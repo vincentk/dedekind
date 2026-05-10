@@ -59,6 +59,7 @@ module;
 #include <concepts>
 #include <functional>
 #include <optional>
+#include <tuple>  // std::tuple<T> — bona-fide Frobenius carrier (#632)
 
 export module dedekind.category:natural;
 
@@ -73,14 +74,17 @@ namespace dedekind::category {
 // Hub tags for textbook operator defaults without template-template dispatch.
 export struct maybe_hub_tag final {};
 export struct identity_hub_tag final {};
+export struct tuple_hub_tag final {};
 
 export inline constexpr maybe_hub_tag maybe_hub{};
 export inline constexpr identity_hub_tag identity_hub{};
+export inline constexpr tuple_hub_tag tuple_hub{};
 
 export template <typename Tag>
 concept IsDefaultHubTag =
     std::same_as<std::remove_cvref_t<Tag>, maybe_hub_tag> ||
-    std::same_as<std::remove_cvref_t<Tag>, identity_hub_tag>;
+    std::same_as<std::remove_cvref_t<Tag>, identity_hub_tag> ||
+    std::same_as<std::remove_cvref_t<Tag>, tuple_hub_tag>;
 
 /**
  * @brief The Maybe endofunctor T, implemented via std::optional.
@@ -114,39 +118,60 @@ constexpr Maybe<A> μ(maybe_hub_tag, Maybe<Maybe<A>> const& mma) {
   return mma.has_value() ? *mma : std::nullopt;
 }
 
-// Comonadic ε for Maybe.  Defined on the Some-fragment only:
-// ε(Some(x)) = x; ε(nullopt) is UB (dereferences a value-less
-// optional).  Same mathematical concession as the Box-as-trivial-
-// comonad vestigial path retired in #632 — the price of using
-// std-blessed std::optional as the carrier.
-template <typename A>
-constexpr A ε(Maybe<A> const& ma) {
-  return *ma;
-}
-
-export template <typename A>
-  requires IsSpecies<A>
-constexpr A ε(maybe_hub_tag, Maybe<A> const& ma) {
-  return *ma;
-}
+// (Maybe is a monad, not a comonad — counit on @c std::nullopt has no
+// honest answer.  The bona-fide Frobenius carrier in this codebase is
+// @c std::tuple<T> below; see the @c tuple_hub_tag block.)
 
 /**
- * @brief Comonadic duplicate (δ) for Maybe: Maybe<A> → Maybe<Maybe<A>>.
+ * @brief The std::tuple<T> Frobenius carrier.
  *
- * @details On the Some-fragment δ(Some(x)) = Some(Some(x)); on
- * @c nullopt the duplicate stays @c nullopt (the carrier propagates
- * the indecision rather than fabricating a Some).
+ * @details @c std::tuple<T> is a 1-tuple — it always has a single
+ * element, so the comonadic counit @c std::get<0> is total (no
+ * Some-fragment caveat) and the duplicate wraps once more cleanly.
+ * Combined with the textbook monadic structure (η as @c
+ * std::make_tuple, μ via @c std::get<0> on the inner tuple), this
+ * makes @c std::tuple<T> the project's bona-fide Frobenius witness
+ * — both Kleisli and co-Kleisli laws hold without concession.
+ *
+ * Replaces the vestigial @c Box-as-trivially-comonadic carrier
+ * retired in #632.
  */
+// η: a → std::tuple<a>
 template <typename A>
+constexpr std::tuple<std::decay_t<A>> η(tuple_hub_tag, A&& value) {
+  return std::tuple<std::decay_t<A>>{std::forward<A>(value)};
+}
+
+// μ: std::tuple<std::tuple<A>> → std::tuple<A>
+export template <typename A>
   requires IsSpecies<A>
-constexpr Maybe<Maybe<A>> δ(Maybe<A> const& ma) {
-  return ma.has_value() ? Maybe<Maybe<A>>{ma} : std::nullopt;
+constexpr std::tuple<A> μ(tuple_hub_tag, std::tuple<std::tuple<A>> const& tta) {
+  return std::get<0>(tta);
+}
+
+// ε: std::tuple<A> → A
+template <typename A>
+constexpr A ε(std::tuple<A> const& ta) {
+  return std::get<0>(ta);
 }
 
 export template <typename A>
   requires IsSpecies<A>
-constexpr Maybe<Maybe<A>> δ(maybe_hub_tag, Maybe<A> const& ma) {
-  return ma.has_value() ? Maybe<Maybe<A>>{ma} : std::nullopt;
+constexpr A ε(tuple_hub_tag, std::tuple<A> const& ta) {
+  return std::get<0>(ta);
+}
+
+// δ: std::tuple<A> → std::tuple<std::tuple<A>>
+template <typename A>
+  requires IsSpecies<A>
+constexpr std::tuple<std::tuple<A>> δ(std::tuple<A> const& ta) {
+  return std::tuple<std::tuple<A>>{ta};
+}
+
+export template <typename A>
+  requires IsSpecies<A>
+constexpr std::tuple<std::tuple<A>> δ(tuple_hub_tag, std::tuple<A> const& ta) {
+  return std::tuple<std::tuple<A>>{ta};
 }
 
 /**

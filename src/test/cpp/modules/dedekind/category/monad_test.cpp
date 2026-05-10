@@ -1,5 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 #include <concepts>
+#include <tuple>
 
 import dedekind.category;
 
@@ -73,15 +74,22 @@ TEST_CASE("Category: Monad textbook aliases", "[category][monad][aliases]") {
     CHECK(j(8) == 8);
   }
 
-  SECTION("pure, join, extract, duplicate route through Maybe defaults") {
-    // Maybe is a monad, not a true comonad; extract / duplicate are
-    // well-defined only on the Some-fragment.  See
-    // :natural's η/μ/ε/δ block for the concession.
+  SECTION("pure, join route through Maybe defaults (monad only)") {
+    // Maybe is a monad, not a comonad — extract / duplicate live on
+    // the Frobenius carrier std::tuple<T>, not on Maybe.
     CHECK(pure(maybe_hub, 2) == Maybe<int>{2});
     CHECK(join(maybe_hub, Maybe<Maybe<int>>{Maybe<int>{6}}) == Maybe<int>{6});
-    CHECK(extract(maybe_hub, Maybe<int>{9}) == 9);
-    CHECK(duplicate(maybe_hub, Maybe<int>{9}) ==
-          Maybe<Maybe<int>>{Maybe<int>{9}});
+  }
+
+  SECTION("pure, join, extract, duplicate route through tuple defaults") {
+    // std::tuple<T> is the project's bona-fide Frobenius carrier
+    // per #632 — both monad and comonad laws hold without concession.
+    CHECK(pure(tuple_hub, 2) == std::tuple<int>{2});
+    CHECK(join(tuple_hub, std::tuple<std::tuple<int>>{std::tuple<int>{6}}) ==
+          std::tuple<int>{6});
+    CHECK(extract(tuple_hub, std::tuple<int>{9}) == 9);
+    CHECK(duplicate(tuple_hub, std::tuple<int>{9}) ==
+          std::tuple<std::tuple<int>>{std::tuple<int>{9}});
   }
 }
 

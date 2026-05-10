@@ -1,5 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 #include <concepts>
+#include <tuple>
 
 import dedekind.category;
 
@@ -63,18 +64,29 @@ TEST_CASE("Category: Natural textbook operator defaults",
     CHECK(duplicated(id<int>())(9) == 9);
   }
 
-  SECTION("Maybe hub supports η, μ, ε, δ defaults (Some-fragment)") {
-    // Maybe is mathematically a monad, not a true comonad; the
-    // comonadic ε / δ defaults are well-defined only on the
-    // Some-fragment of Maybe<T> (counit on nullopt has no honest
-    // answer).  See :natural's η/μ/ε/δ block for the concession.
+  SECTION("Maybe hub supports monadic η, μ defaults") {
+    // Maybe is mathematically a monad, not a comonad — counit on
+    // nullopt has no honest answer.  The bona-fide Frobenius carrier
+    // is std::tuple<T> (next SECTION); Maybe stays monad-only here.
     auto injected = η(maybe_hub, 4);
     CHECK(injected == Maybe<int>{4});
 
     Maybe<Maybe<int>> nested{Maybe<int>{17}};
     CHECK(μ(maybe_hub, nested) == Maybe<int>{17});
+  }
 
-    CHECK(ε(maybe_hub, Maybe<int>{19}) == 19);
-    CHECK(δ(maybe_hub, Maybe<int>{19}) == Maybe<Maybe<int>>{Maybe<int>{19}});
+  SECTION("Tuple hub supports η, μ, ε, δ defaults (Frobenius)") {
+    // std::tuple<T> is the project's bona-fide Frobenius (= monad +
+    // comonad) carrier per #632.  The 1-tuple always has a single
+    // element, so std::get<0> is total — no Some-fragment caveat.
+    auto injected = η(tuple_hub, 4);
+    CHECK(injected == std::tuple<int>{4});
+
+    std::tuple<std::tuple<int>> nested{std::tuple<int>{17}};
+    CHECK(μ(tuple_hub, nested) == std::tuple<int>{17});
+
+    CHECK(ε(tuple_hub, std::tuple<int>{19}) == 19);
+    CHECK(δ(tuple_hub, std::tuple<int>{19}) ==
+          std::tuple<std::tuple<int>>{std::tuple<int>{19}});
   }
 }

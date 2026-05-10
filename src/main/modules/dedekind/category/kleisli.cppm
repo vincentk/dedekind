@@ -59,6 +59,7 @@ module;
 #include <functional>
 #include <ios>
 #include <optional>  // std::nullopt — used by the _kleisli_arrow_witness_380 skeleton
+#include <tuple>  // std::tuple<T> — bona-fide Frobenius carrier (#632)
 #include <utility>  // std::move / std::forward (kept self-contained per #521 review)
 
 export module dedekind.category:kleisli;
@@ -73,7 +74,14 @@ import :morphism;
 
 namespace dedekind::category {
 
-/** @section kleisli__The_Maybe_Action_Engine */
+/** @section kleisli__The_Maybe_Action_Engine
+ *
+ * @details Maybe is a monad, not a comonad — counit on @c std::nullopt
+ * has no honest answer.  This block defines only the monadic surface
+ * for @c Maybe<T> (bind, unit_witness).  The bona-fide Frobenius
+ * carrier (= monad + comonad) is @c std::tuple<T> below; that's where
+ * counit / extend / IsCoKleisliExtension / IsFrobenius witnesses live.
+ */
 
 // Bind: Maybe<T> >>= (T -> Maybe<U>) -> Maybe<U>.
 // Standard Maybe-monad bind: nullopt propagates; Some(x) feeds x into f.
@@ -83,27 +91,13 @@ constexpr auto operator>>=(const Maybe<T>& m, Func&& f) {
   return m.has_value() ? std::forward<Func>(f)(*m) : Result{std::nullopt};
 }
 
-// Extend: Maybe<T> <<= (Maybe<T> -> U) -> Maybe<U>.
-// The comonadic extend on Maybe.  Mathematically Maybe is not a true
-// comonad (counit on nullopt has no honest answer), so this overload
-// is well-defined only on the Some-fragment: when @c m is Some(x), the
-// result is @c Some(f(m)); when @c m is nullopt, the result is also
-// @c nullopt (the carrier propagates the indecision rather than
-// fabricating a value).  Sister to the Box-as-trivial-comonad
-// vestigial path retired in #632.
-export template <typename T, typename Func>
-constexpr auto operator<<=(const Maybe<T>& m, Func&& f) {
-  using U = std::invoke_result_t<Func, Maybe<T>>;
-  return m.has_value() ? Maybe<U>{std::forward<Func>(f)(m)}
-                       : Maybe<U>{std::nullopt};
-}
-
 /**
  * @brief unit_witness<Hub, T>: Generic Kleisli unit witness.
  * Lifts a value into the Kleisli extension named by @c Hub::template Shape<T>.
  *
  * @tparam Hub A regular type carrying a nested @c Shape<U> alias; canonical
- *             example is @c maybe_functor<U> from @c :functor.
+ *             examples are @c maybe_functor<U> (monad-only) and
+ *             @c tuple_functor<U> (Frobenius) from @c :functor.
  * @tparam T   The value type.
  */
 export template <typename Hub, typename T>
@@ -117,22 +111,46 @@ struct unit_witness<maybe_functor<T>, T> final {
 /**
  * @brief counit_witness<Hub, T>: Generic Kleisli counit witness.
  * Samples a value from the co-Kleisli extension named by
- * @c Hub::template Shape<T>.
- *
- * @note For @c maybe_functor<T> the counit is well-defined only on the
- * Some-fragment of @c Maybe<T>: dereferencing @c std::nullopt has no
- * honest answer and produces UB.  Callers exercise the witness on
- * Some-values; the comonadic-extend / IsCoKleisliExtension /
- * IsFrobenius witnesses inherit this restriction.  See the
- * "kleisli__The_Maybe_Action_Engine" section header for the broader
- * mathematical concession (Maybe is a monad, not a true comonad).
+ * @c Hub::template Shape<T>.  Defined for genuine comonadic carriers
+ * only; @c maybe_functor is not specialised here because Maybe is a
+ * monad, not a comonad (counit on nullopt has no honest answer).
  */
 export template <typename Hub, typename T>
 struct counit_witness;
 
+/** @section kleisli__The_Tuple_Frobenius_Engine
+ *
+ * @details @c std::tuple<T> is a 1-tuple — always has a single
+ * element, so @c std::get<0> is total.  This makes it the project's
+ * bona-fide Frobenius (= monad + comonad) carrier: both Kleisli and
+ * co-Kleisli laws hold without concession.  Replaces the vestigial
+ * Box-as-trivially-comonadic path retired in #632; the std-blessed
+ * @c std::tuple wrapper carries the Frobenius role going forward.
+ */
+
+// Bind: std::tuple<T> >>= (T -> std::tuple<U>) -> std::tuple<U>.
+export template <typename T, typename Func>
+constexpr auto operator>>=(const std::tuple<T>& t, Func&& f) {
+  return std::forward<Func>(f)(std::get<0>(t));
+}
+
+// Extend: std::tuple<T> <<= (std::tuple<T> -> U) -> std::tuple<U>.
+export template <typename T, typename Func>
+constexpr auto operator<<=(const std::tuple<T>& t, Func&& f) {
+  using U = std::invoke_result_t<Func, std::tuple<T>>;
+  return std::tuple<U>{std::forward<Func>(f)(t)};
+}
+
 export template <typename T>
-struct counit_witness<maybe_functor<T>, T> final {
-  constexpr T operator()(const Maybe<T>& m) const noexcept { return *m; }
+struct unit_witness<tuple_functor<T>, T> final {
+  constexpr auto operator()(T x) const { return std::tuple<T>{std::move(x)}; }
+};
+
+export template <typename T>
+struct counit_witness<tuple_functor<T>, T> final {
+  constexpr T operator()(const std::tuple<T>& t) const noexcept {
+    return std::get<0>(t);
+  }
 };
 
 /** @section kleisli__Extension_Concepts */

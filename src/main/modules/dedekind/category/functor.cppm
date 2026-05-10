@@ -59,6 +59,8 @@
  * The following types in this partition model @ref IsFunctor:
  * - @ref identity_functor: Cat -> Cat.
  * - @ref maybe_functor: Set<T> -> Set<Maybe<T>>.
+ * - @ref tuple_functor: Set<T> -> Set<std::tuple<T>> (the project's
+ *   bona-fide Frobenius carrier; #632).
  * - @ref trace_functor: Set<T> -> StringCategory.
  * - @ref composite_functor: composition G . F for any composable functors.
  *
@@ -84,6 +86,7 @@ module;
 #include <functional>
 #include <optional>
 #include <string>
+#include <tuple>  // tuple_functor — bona-fide Frobenius carrier (#632)
 
 export module dedekind.category:functor;
 
@@ -270,6 +273,44 @@ struct maybe_functor {
 
   constexpr Τ_cat operator()(const Σ_cat&) const noexcept { return {}; }
 };
+
+/**
+ * @brief The Intensional Functor for 1-tuple values.
+ *
+ * @details Concrete @ref IsFunctor model implementing
+ * Set<T> -> Set<std::tuple<T>>.  Pinned as the project's bona-fide
+ * Frobenius (= monad + comonad) carrier: std::tuple<T> always has a
+ * single element, so ε via std::get<0> is total (no Some-fragment
+ * concession), and δ wraps once more cleanly.  Sister to
+ * @ref maybe_functor (monad only) per the #632 carrier-role split.
+ */
+export template <typename T>
+struct tuple_functor {
+  using ArrowKind = hub_arrow_tag;
+  using Σ_cat = Set<T>;
+  using Τ_cat = Set<std::tuple<T>>;
+
+  using Domain = Σ_cat;
+  using Codomain = Τ_cat;
+
+  template <typename U>
+  using Shape = std::tuple<U>;
+
+  /** @brief φ: lift @c f: T → U to @c std::tuple<T> → std::tuple<U>
+   *  by mapping the single element. */
+  template <typename 𝗳>
+    requires IsArrow<std::remove_cvref_t<𝗳>>
+  constexpr auto φ(𝗳&& f) const {
+    return arrow([f = std::forward<𝗳>(f)](std::tuple<T> const& t) {
+      return std::tuple{std::invoke(f, std::get<0>(t))};
+    });
+  }
+
+  constexpr Τ_cat operator()(const Σ_cat&) const noexcept { return {}; }
+};
+
+static_assert(IsFunctor<tuple_functor<int>>,
+              "Verification Failed: tuple_functor must satisfy IsFunctor.");
 
 static_assert(IsFunctor<maybe_functor<int>>,
               "Verification Failed: maybe_functor must satisfy IsFunctor.");
