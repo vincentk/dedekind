@@ -103,7 +103,7 @@ template <typename T, typename Op>
 inline constexpr bool is_associative_v<T, Op> = true;
 
 /**
- * @concept IsCategory
+ * @concept IsSmallCategory
  * @brief A point-free, morphism-only reification of a Category.
  * @details In this structuralist approach, we bypass the traditional
  * object-morphism dichotomy. A category is defined solely by its arrows and
@@ -118,12 +118,12 @@ inline constexpr bool is_associative_v<T, Op> = true;
  * it gives a canonical type-/label-level representative of an object via the
  * identity arrow `Cat::id_c(x)`, allowing object-level reasoning to be
  * re-entered through composition. Recovering the original value-level label
- * `x` from that identity arrow, however, is not required by `IsCategory`; that
- * would need an additional guarantee that identity arrows carry or expose such
- * a witness.
+ * `x` from that identity arrow, however, is not required by `IsSmallCategory`;
+ * that would need an additional guarantee that identity arrows carry or expose
+ * such a witness.
  *
  * @section small__What_Smallness_Pins
- * In CT jargon, @c IsCategory pins exactly the @b smallness reading of
+ * In CT jargon, @c IsSmallCategory pins exactly the @b smallness reading of
  * "small category" --- the @em cardinality reading: the collection of
  * objects (the value-set of @c Species) and the collection of arrows
  * (the value-set of @c Arrow) are each sets in the metatheory.  This
@@ -131,7 +131,7 @@ inline constexpr bool is_associative_v<T, Op> = true;
  * form a set (not a proper class), so Ob(𝒞) and the total Hom-collection
  * are sets.
  *
- * @c IsCategory deliberately does @b not pin the second, ontological
+ * @c IsSmallCategory deliberately does @b not pin the second, ontological
  * reading of "small" --- @em concreteness --- under which each object
  * is itself a set (equivalently: there is a faithful forgetful functor
  * @c U @c : @c 𝒞 @c → @c Set).  Whether each object is a set or a tag
@@ -157,7 +157,7 @@ inline constexpr bool is_associative_v<T, Op> = true;
  * 3. Unitary: id_dom(f) >> f = f = f >> id_cod(f).
  */
 export template <typename Cat>
-concept IsCategory = requires {
+concept IsSmallCategory = requires {
   typename Cat::Arrow;
 
   // The 'label' type for objects in this category
@@ -192,7 +192,7 @@ concept IsCategory = requires {
 
   /**
    * @note External composition (Exo-composition)
-   * While not strictly required by the IsCategory concept, implementations
+   * While not strictly required by the IsSmallCategory concept, implementations
    * are encouraged to provide templated operator>> overloads to allow
    * composition with any external type satisfying IsArrow, provided
    * the Domain/Codomain plumbing is compatible.

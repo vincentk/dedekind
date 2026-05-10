@@ -47,10 +47,10 @@ TEST_CASE("discrete_lift_t fires across the numeric tower",
   STATIC_CHECK(IsDiscreteCategory<discrete_lift_t<IntSubset>>);
   STATIC_CHECK(IsDiscreteCategory<discrete_lift_t<RationalSubset>>);
 
-  // IsCategory falls out of IsDiscreteCategory; pinned for clarity.
-  STATIC_CHECK(IsCategory<discrete_lift_t<NatSubset>>);
-  STATIC_CHECK(IsCategory<discrete_lift_t<IntSubset>>);
-  STATIC_CHECK(IsCategory<discrete_lift_t<RationalSubset>>);
+  // IsSmallCategory falls out of IsDiscreteCategory; pinned for clarity.
+  STATIC_CHECK(IsSmallCategory<discrete_lift_t<NatSubset>>);
+  STATIC_CHECK(IsSmallCategory<discrete_lift_t<IntSubset>>);
+  STATIC_CHECK(IsSmallCategory<discrete_lift_t<RationalSubset>>);
 }
 
 TEST_CASE("discrete_lift_t distinguishes refined subobjects of ℚ",

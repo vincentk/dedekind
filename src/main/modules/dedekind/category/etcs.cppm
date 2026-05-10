@@ -46,7 +46,7 @@
  * The two readings are independent: @c :small admits enum-style tag
  * objects (small but not concrete); @c :etcs requires the topos
  * structure that makes objects bona-fide sets.  Categories that satisfy
- * both --- the small concrete categories --- are the @c IsCategory
+ * both --- the small concrete categories --- are the @c IsSmallCategory
  * carriers whose @c Species is itself a set-typed carrier (@c Set<T>,
  * the ETCS @c Subobject machinery).
  *
@@ -548,7 +548,7 @@ static_assert(
  * of the underlying-objects functor @c U @c : @c Cat @c → @c Set.  The
  * adjunction @c Disc @c ⊣ @c U lives between the @b meta-categories
  * @c Set and @c Cat.  This codebase encodes categories per-ambient
- * (one @c Species per @c IsCategory type), so the @b meta-categorical
+ * (one @c Species per @c IsSmallCategory type), so the @b meta-categorical
  * statement is one level above what the type system can express
  * directly --- there is no @c category_of_sets or @c
  * category_of_categories type whose @c Species ranges over all sets
@@ -577,7 +577,7 @@ using discrete_lift_t = DiscreteCategory<S>;
 
 // Witness that the lift produces a discrete category for the
 // representative @c IsSet-witnessing carrier from above.
-static_assert(IsCategory<discrete_lift_t<_isset_witness_t>>,
+static_assert(IsSmallCategory<discrete_lift_t<_isset_witness_t>>,
               "Set ↪ Cat lift: discrete_lift_t<S> satisfies the "
               "general Category contract.");
 static_assert(IsDiscreteCategory<discrete_lift_t<_isset_witness_t>>,

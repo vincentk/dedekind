@@ -114,7 +114,7 @@ static_assert(
  */
 export template <typename Cat>
 concept IsDiscreteCategory =
-    IsCategory<Cat> && std::same_as<typename Cat::Arrow, typename Cat::Id>;
+    IsSmallCategory<Cat> && std::same_as<typename Cat::Arrow, typename Cat::Id>;
 
 /**
  * @brief DiscreteCategory realization using the Identity Morphism.
@@ -140,8 +140,8 @@ using IntCat = DiscreteCategory<int>;
 // 2. Test: Does it satisfy the general Category contract?
 // This verifies: Arrow exists, id exists, and factory works.
 static_assert(
-    IsCategory<IntCat>,
-    "Verification Failed: DiscreteCategory<int> must satisfy IsCategory.");
+    IsSmallCategory<IntCat>,
+    "Verification Failed: DiscreteCategory<int> must satisfy IsSmallCategory.");
 
 // 3. Test: Does it satisfy the Discrete-specific property?
 // This verifies: Arrow type is identical to the Identity type.

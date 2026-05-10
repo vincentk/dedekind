@@ -547,7 +547,7 @@ namespace dedekind::category {
  * makes @c Morphism<Path<T>, Path<T>, ...> fail @c IsSpokeArrow
  * (because @c Path<T> is an @c IsArrow domain), which in turn makes
  * @c Set<Path<T>>::operator>>(Arrow, Arrow) — needed by
- * @c IsCategory<Set<Path<T>>> — not resolve cleanly.  The standard
+ * @c IsSmallCategory<Set<Path<T>>> — not resolve cleanly.  The standard
  * Functor-on-Set machinery does not apply.  This is structural to
  * Path's "is itself an arrow" nature and not a defect to be papered
  * over.
@@ -612,7 +612,7 @@ static_assert(IsSequence<Path<int>>, "Path must satisfy the sequence concept.");
 // IsSpokeArrow discriminator read !IsArrow<Dom<T>> — but the
 // Morphism here has Dom = Path<int>, which IS an arrow, so the
 // proxy mis-classified Morphism<Path,Path,...> as NOT a SpokeArrow.
-// Post-#525 the discriminator reads !IsCategoryShape<Dom<T>>, which
+// Post-#525 the discriminator reads !IsSmallCategoryShape<Dom<T>>, which
 // returns false for Path<int> (it has no category-shape aliases),
 // so the Morphism IS a SpokeArrow.  This static_assert pins the fix
 // mechanically; if the discriminator ever regresses, it surfaces
@@ -626,7 +626,7 @@ using PathArrow = dedekind::category::CanonicalSetCCC<Path<int>>::Arrow;
 static_assert(dedekind::category::IsArrow<Path<int>>,
               "Path<int> is itself an IsArrow at the type level "
               "(Domain = size_t, Codomain = T, call operator).");
-static_assert(!dedekind::category::IsCategoryShape<Path<int>>,
+static_assert(!dedekind::category::IsSmallCategoryShape<Path<int>>,
               "Path<int> is NOT a category-shaped thing — it has no "
               "::Arrow / ::Species / ::Id aliases.  This is the "
               "distinction the #525 discriminator-sharpening makes.");

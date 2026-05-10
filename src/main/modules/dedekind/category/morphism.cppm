@@ -185,9 +185,9 @@ namespace dedekind::category {
 //     category): a spoke.
 //
 // The codebase realises this question structurally as
-// @c IsCategoryShape<Dom<T>>, defined further down.  @c IsCategoryShape
-// is the structural prefix of the full @c IsCategory in @c :small —
-// here we only need the shape to make the routing decision; the
+// @c IsSmallCategoryShape<Dom<T>>, defined further down.  @c
+// IsSmallCategoryShape is the structural prefix of the full @c IsSmallCategory
+// in @c :small — here we only need the shape to make the routing decision; the
 // behavioural axioms (composition closure, identity laws) are not
 // needed at this layer.
 //
@@ -201,7 +201,7 @@ namespace dedekind::category {
 // sequence is a function @c ℕ @c → @c T", which makes
 // @c IsArrow<Path<T>> trivially true even though @c Path<T> is an
 // @b object in @b Set, not a category.  The post-#525 form
-// @c !IsCategoryShape<Dom<T>> asks the right question and the
+// @c !IsSmallCategoryShape<Dom<T>> asks the right question and the
 // over-fire stops.
 //
 // @section Manual_Override
@@ -221,7 +221,7 @@ namespace dedekind::category {
  *
  * @details Currently @b reserved: @c IsSpokeArrow does not check for
  * @c ArrowKind @c = @c spoke_arrow_tag as an opt-in.  The structural
- * discriminator @c !IsCategoryShape<Dom<T>> already catches the typical
+ * discriminator @c !IsSmallCategoryShape<Dom<T>> already catches the typical
  * spoke case automatically, so no opt-in is needed in practice.  This
  * tag is kept as a parallel slot to @c hub_arrow_tag so a future opt-in
  * mechanism (e.g., for a type whose Domain is unusually category-shaped
@@ -316,25 +316,25 @@ export template <IsArrow F>
 using Cod = typename std::remove_cvref_t<F>::Codomain;
 
 /**
- * @concept IsCategoryShape
- * @brief Structural prefix of @c dedekind::category::IsCategory: a type
+ * @concept IsSmallCategoryShape
+ * @brief Structural prefix of @c dedekind::category::IsSmallCategory: a type
  *        carrying the identifying category-shaped aliases @c ::Arrow,
  *        @c ::Species, @c ::Id.
  *
- * @details The full @c IsCategory in @c :small refines this with
+ * @details The full @c IsSmallCategory in @c :small refines this with
  * behavioural checks (@c id_c factory, @c f @c >> @c g internal
  * closure, etc.).  At this layer we only need the structural test to
  * answer the question "is this thing a @b category" for purposes of
- * hub/spoke discrimination.  Full @c IsCategory cannot be referenced
+ * hub/spoke discrimination.  Full @c IsSmallCategory cannot be referenced
  * here because @c :small imports @c :morphism (cycle), and because
- * @c IsCategory recursively uses @c f @c >> @c g which is the very
+ * @c IsSmallCategory recursively uses @c f @c >> @c g which is the very
  * operator we are gating.  The structural prefix is the load-bearing
  * piece for routing — it identifies the @b argument-shape of a
  * functor (a thing taking a category, not an object), which is the
  * single distinction the hub/spoke split needs to make (#525).
  */
 export template <typename T>
-concept IsCategoryShape = requires {
+concept IsSmallCategoryShape = requires {
   typename std::remove_cvref_t<T>::Arrow;
   typename std::remove_cvref_t<T>::Species;
   typename std::remove_cvref_t<T>::Id;
@@ -347,7 +347,7 @@ concept IsCategoryShape = requires {
  * @details In the hub/spoke vocabulary, a "hub" arrow acts on
  *          categories as its objects: it is an arrow @b between
  *          categories, not within one.  Functors are the canonical
- *          example.  The @c IsCategoryShape prefix detects the
+ *          example.  The @c IsSmallCategoryShape prefix detects the
  *          identifying @c ::Arrow / @c ::Species / @c ::Id alias
  *          surface; the prior structural-proxy form
  *          (@c IsArrow<Dom<T>>) over-fired on object-level types
@@ -357,7 +357,7 @@ concept IsCategoryShape = requires {
  */
 export template <typename T>
 concept IsHubArrow =
-    IsArrow<T> && IsCategoryShape<Dom<T>> && IsCategoryShape<Cod<T>>;
+    IsArrow<T> && IsSmallCategoryShape<Dom<T>> && IsSmallCategoryShape<Cod<T>>;
 
 /**
  * @concept IsSpokeArrow
@@ -365,7 +365,7 @@ concept IsHubArrow =
  *        categories (#525 sharpening).
  * @details A "spoke" arrow connects ordinary species-level objects
  *          @b within a category.  The discriminator is "Domain is
- *          not a category-shaped thing" (@c !IsCategoryShape<Dom<T>>);
+ *          not a category-shaped thing" (@c !IsSmallCategoryShape<Dom<T>>);
  *          this is the formal expression of "this isn't a functor".
  *          Generic categorical composition in this partition is
  *          intentionally limited to spoke arrows so higher-order
@@ -375,7 +375,7 @@ concept IsHubArrow =
  * @section morphism__Spoke_Discriminator_Sharpening
  * Pre-#525 the discriminator read @c !IsArrow<Dom<T>> — a structural
  * proxy that worked coincidentally for functor-Hubs (whose Domain is
- * a @c IsCategory<C> witness, which trivially satisfies @c IsArrow
+ * a @c IsSmallCategory<C> witness, which trivially satisfies @c IsArrow
  * via @c Cat::Arrow), but over-fired on object-level carriers that
  * happen to expose @c Domain / @c Codomain aliases for unrelated
  * reasons.  The canonical example is @c Path<T>, which models the
@@ -383,7 +383,7 @@ concept IsHubArrow =
  * declaring @c Domain @c = @c std::size_t and a call operator —
  * making @c IsArrow<Path<T>> @b true at the type level even though
  * @c Path<T> is plainly an @b object (not a category-to-category
- * arrow).  The sharpened discriminator @c !IsCategoryShape<Dom<T>>
+ * arrow).  The sharpened discriminator @c !IsSmallCategoryShape<Dom<T>>
  * stops the over-fire while preserving the original intent: hub
  * arrows are arrows between categories.
  *
@@ -392,8 +392,8 @@ concept IsHubArrow =
  */
 export template <typename T>
 concept IsSpokeArrow =
-    IsArrow<T> && !IsCategoryShape<Dom<T>> && !IsCategoryShape<Cod<T>> &&
-    !requires {
+    IsArrow<T> && !IsSmallCategoryShape<Dom<T>> &&
+    !IsSmallCategoryShape<Cod<T>> && !requires {
       requires std::same_as<typename std::remove_cvref_t<T>::ArrowKind,
                             hub_arrow_tag>;
     };
