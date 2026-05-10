@@ -142,6 +142,31 @@ TEST_CASE("Cartesian: Product Projection Semantics",
                    return arrow_drill_down(envelope);
                  })>);
   }
+
+  SECTION("π_1 / π_2 / mediate_product exercised at runtime") {
+    // Runtime witnesses for the product-side factories re-homed from
+    // :cartesian to :limit under #637.  Compile-time witnesses live
+    // alongside the definitions; this exercises the bodies at runtime
+    // so coverage instrumentation sees the move.
+
+    std::pair<int, bool> p{42, true};
+    CHECK(π_1<int, bool>(p) == 42);
+    CHECK(π_2<int, bool>(p) == true);
+
+    // mediate_product: given f: X → A and g: X → B, build the unique
+    // u: X → A × B such that f = π_1 ∘ u and g = π_2 ∘ u.
+    auto f = arrow<int, int>([](int x) { return x * 2; });
+    auto g = arrow<int, bool>([](int x) { return x > 0; });
+    auto u = mediate_product(f, g);
+
+    auto y = u(7);
+    CHECK(π_1<int, bool>(y) == 14);    // (π_1 ∘ u)(7) = f(7) = 14
+    CHECK(π_2<int, bool>(y) == true);  // (π_2 ∘ u)(7) = g(7) = true
+
+    auto y_neg = u(-3);
+    CHECK(π_1<int, bool>(y_neg) == -6);     // f(-3) = -6
+    CHECK(π_2<int, bool>(y_neg) == false);  // g(-3) = false
+  }
 }
 
 TEST_CASE(
