@@ -59,6 +59,7 @@ module;
 #include <concepts>
 #include <functional>
 #include <optional>
+#include <tuple>  // std::tuple<T> — bona-fide Frobenius carrier (#632)
 
 export module dedekind.category:natural;
 
@@ -73,17 +74,17 @@ namespace dedekind::category {
 // Hub tags for textbook operator defaults without template-template dispatch.
 export struct maybe_hub_tag final {};
 export struct identity_hub_tag final {};
-export struct box_hub_tag final {};
+export struct tuple_hub_tag final {};
 
 export inline constexpr maybe_hub_tag maybe_hub{};
 export inline constexpr identity_hub_tag identity_hub{};
-export inline constexpr box_hub_tag box_hub{};
+export inline constexpr tuple_hub_tag tuple_hub{};
 
 export template <typename Tag>
 concept IsDefaultHubTag =
     std::same_as<std::remove_cvref_t<Tag>, maybe_hub_tag> ||
     std::same_as<std::remove_cvref_t<Tag>, identity_hub_tag> ||
-    std::same_as<std::remove_cvref_t<Tag>, box_hub_tag>;
+    std::same_as<std::remove_cvref_t<Tag>, tuple_hub_tag>;
 
 /**
  * @brief The Maybe endofunctor T, implemented via std::optional.
@@ -115,6 +116,73 @@ export template <typename A>
   requires IsSpecies<A>
 constexpr Maybe<A> μ(maybe_hub_tag, Maybe<Maybe<A>> const& mma) {
   return mma.has_value() ? *mma : std::nullopt;
+}
+
+// (Maybe is a monad, not a comonad — counit on @c std::nullopt has no
+// honest answer.  The bona-fide Frobenius carrier in this codebase is
+// @c std::tuple<T> below; see the @c tuple_hub_tag block.)
+
+/**
+ * @brief The std::tuple<T> Frobenius carrier.
+ *
+ * @details @c std::tuple<T> is a 1-tuple — it always has a single
+ * element, so the comonadic counit @c std::get<0> is total (no
+ * Some-fragment caveat) and the duplicate wraps once more cleanly.
+ * Combined with the textbook monadic structure (η as @c
+ * std::make_tuple, μ via @c std::get<0> on the inner tuple), this
+ * makes @c std::tuple<T> the project's bona-fide Frobenius witness
+ * — both Kleisli and co-Kleisli laws hold without concession.
+ *
+ * Replaces the vestigial @c Box-as-trivially-comonadic carrier
+ * retired in #632.
+ */
+// η: a → std::tuple<a>
+export template <typename A>
+  requires IsSpecies<std::decay_t<A>>
+constexpr std::tuple<std::decay_t<A>> η(tuple_hub_tag, A&& value) {
+  return std::tuple<std::decay_t<A>>{std::forward<A>(value)};
+}
+
+// μ: std::tuple<std::tuple<A>> → std::tuple<A>
+//
+// Both untagged and tagged variants — the untagged form is what κ's body
+// invokes (κ(ma, f) = μ(φ(ma, f))).  Mirrors the Maybe and Identity
+// untagged-μ overloads above.
+template <typename A>
+  requires IsSpecies<A>
+constexpr std::tuple<A> μ(std::tuple<std::tuple<A>> const& tta) {
+  return std::get<0>(tta);
+}
+
+export template <typename A>
+  requires IsSpecies<A>
+constexpr std::tuple<A> μ(tuple_hub_tag, std::tuple<std::tuple<A>> const& tta) {
+  return std::get<0>(tta);
+}
+
+// ε: std::tuple<A> → A
+template <typename A>
+constexpr A ε(std::tuple<A> const& ta) {
+  return std::get<0>(ta);
+}
+
+export template <typename A>
+  requires IsSpecies<A>
+constexpr A ε(tuple_hub_tag, std::tuple<A> const& ta) {
+  return std::get<0>(ta);
+}
+
+// δ: std::tuple<A> → std::tuple<std::tuple<A>>
+template <typename A>
+  requires IsSpecies<A>
+constexpr std::tuple<std::tuple<A>> δ(std::tuple<A> const& ta) {
+  return std::tuple<std::tuple<A>>{ta};
+}
+
+export template <typename A>
+  requires IsSpecies<A>
+constexpr std::tuple<std::tuple<A>> δ(tuple_hub_tag, std::tuple<A> const& ta) {
+  return std::tuple<std::tuple<A>>{ta};
 }
 
 /**
@@ -184,62 +252,6 @@ export template <typename A>
 constexpr Identity<Identity<A>> δ(identity_hub_tag, Identity<A> const& ia) {
   (void)ia;
   return id<Identity<A>>();
-}
-
-/**
- * @brief The Box endofunctor.
- * Reified 1-morphism that preserves both objects and arrows exactly.
- */
-// Monadic
-template <typename A>
-constexpr Box<std::decay_t<A>> η(A&& value) {
-  return {std::forward<A>(value)};
-}
-
-// Tagged defaults for Box hub.
-export template <typename A>
-  requires IsSpecies<std::decay_t<A>>
-constexpr Box<std::decay_t<A>> η(box_hub_tag, A&& value) {
-  return {std::forward<A>(value)};
-}
-
-/**
- * @brief μ for Box: flattens nested box context.
- * @details Box<Box<A>> -> Box<A>
- */
-template <typename A>
-  requires IsSpecies<A>
-constexpr Box<A> μ(Box<Box<A>> const& bba) {
-  return {bba.value.value};
-}
-
-export template <typename A>
-  requires IsSpecies<A>
-constexpr Box<A> μ(box_hub_tag, Box<Box<A>> const& bba) {
-  return {bba.value.value};
-}
-
-// Comonadic
-template <typename A>
-constexpr A ε(Box<A> const& ba) {
-  return ba.value;
-}
-
-export template <typename A>
-  requires IsSpecies<A>
-constexpr A ε(box_hub_tag, Box<A> const& ba) {
-  return ba.value;
-}
-
-template <typename A>
-constexpr Box<Box<A>> δ(Box<A> const& ba) {
-  return {ba};
-}
-
-export template <typename A>
-  requires IsSpecies<A>
-constexpr Box<Box<A>> δ(box_hub_tag, Box<A> const& ba) {
-  return {ba};
 }
 
 /**

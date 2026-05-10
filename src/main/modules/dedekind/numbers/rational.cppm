@@ -363,7 +363,7 @@ static_assert((Rational<default_integer>(default_integer{2}, default_integer{3})
 // (Real<Q>, Complex<R>) and value_type (Dual<F>, IsTangentBundle).
 // The dedekind.category:functor partition meanwhile establishes the
 // canonical convention --- Σ_cat / Τ_cat for source/target category
-// and Shape<U> for the on-objects action (cf. box_functor<T> at
+// and Shape<U> for the on-objects action (cf. maybe_functor<T> at
 // src/main/modules/dedekind/category/functor.cppm).  Unifying the carrier-side
 // projections with the :functor convention is NEW-A trait-registry
 // work and tracked under #498; this static_assert is the smallest

@@ -43,7 +43,7 @@
  *
  * 2. The Spoke (Extensional Spoke / Matter):
  *    This is the concrete instance—an ordinary arrow (@ref IsArrow) or a data
- *    container (e.g., Box<T>). While the Hub provides the "How," the Spoke
+ *    container (e.g., Maybe<T>). While the Hub provides the "How," the Spoke
  *    provides the "What." The spoke is a resident of a category, but it
  *    does not own the mapping logic itself.
  *
@@ -58,8 +58,9 @@
  *
  * The following types in this partition model @ref IsFunctor:
  * - @ref identity_functor: Cat -> Cat.
- * - @ref box_functor: Set<T> -> Set<Box<T>>.
  * - @ref maybe_functor: Set<T> -> Set<Maybe<T>>.
+ * - @ref tuple_functor: Set<T> -> Set<std::tuple<T>> (the project's
+ *   bona-fide Frobenius carrier; #632).
  * - @ref trace_functor: Set<T> -> StringCategory.
  * - @ref composite_functor: composition G . F for any composable functors.
  *
@@ -67,8 +68,8 @@
  * - @ref maybe_functor is a concrete @ref IsFunctor model in this partition,
  *   but under the current category choices it is not an @ref IsEndofunctor
  *   witness for @ref IsMonad (see `:monad` for the textbook constraint).
- * - Value-level overloads of φ for Maybe/Identity/Box at the end of this file
- *   are lifting utilities, not IsFunctor hub models by themselves.
+ * - Value-level overloads of φ for Maybe / Identity / std::tuple at the end
+ *   of this file are lifting utilities, not IsFunctor hub models by themselves.
  *
  *
  * @note "If we do not succeed in solving a mathematical problem, the reason
@@ -85,6 +86,7 @@ module;
 #include <functional>
 #include <optional>
 #include <string>
+#include <tuple>  // tuple_functor — bona-fide Frobenius carrier (#632)
 
 export module dedekind.category:functor;
 
@@ -232,61 +234,14 @@ struct morphic_engine {
     /**
      * 2. The Crucial Step:
      * Your Hub knows the Target Category (Τ_cat).
-     * We wrap the raw data 'ma' into that category's Species (e.g., Box<int>).
+     * We wrap the raw data 'ma' into that category's Species (e.g.,
+     * Maybe<int>).
      */
     using TargetSpecies = typename Hub::Τ_cat::Species;
 
     // Pass the 'Boxed' version of ma to the lifted morphism
     return lifted_arrow(TargetSpecies{ma});
   }
-};
-
-/**
- * @brief The Boxed Species (The F<T> Context).
- *
- * Reifies the "Box" as a categorical object that announces its
- * own species and shape, enabling 1-parameter functorial discovery.
- */
-export template <typename T>
-struct Box final {
-  /** @brief The physical payload. */
-  const T value;
-
-  /** @brief Equality for structural verification in static_asserts. */
-  constexpr bool operator==(const Box&) const = default;
-};
-
-/**
- * @brief The Intensional Hub for Boxed values.
- * @details Concrete @ref IsFunctor model. Acts as an endofunctor
- * Set<T> -> Set<Box<T>>.
- */
-export template <typename T>
-struct box_functor {
-  using ArrowKind = hub_arrow_tag;
-  using Σ_cat = Set<T>;
-  using Τ_cat = Set<Box<T>>;
-
-  // Requirement for IsArrow (Hub as 1-morphism in Cat)
-  using Domain = Σ_cat;
-  using Codomain = Τ_cat;
-
-  /** @brief F_obj: The Type Constructor */
-  template <typename U>
-  using Shape = Box<U>;
-
-  /** @brief F_mor (φ): The Morphic Lift */
-  template <typename 𝗳>
-    requires IsArrow<std::remove_cvref_t<𝗳>>
-  constexpr auto φ(𝗳&& f) const {
-    // We return an Arrow in the Target Category (Set<Box<T>>)
-    return arrow([f = std::forward<𝗳>(f)](Box<T> const& b) {
-      return Box{std::invoke(f, b.value)};
-    });
-  }
-
-  // Action on Objects
-  constexpr Τ_cat operator()(const Σ_cat&) const noexcept { return {}; }
 };
 
 /**
@@ -319,16 +274,46 @@ struct maybe_functor {
   constexpr Τ_cat operator()(const Σ_cat&) const noexcept { return {}; }
 };
 
-static_assert(IsFunctor<box_functor<int>>,
-              "Verification Failed: box_functor must satisfy IsFunctor.");
+/**
+ * @brief The Intensional Functor for 1-tuple values.
+ *
+ * @details Concrete @ref IsFunctor model implementing
+ * Set<T> -> Set<std::tuple<T>>.  Pinned as the project's bona-fide
+ * Frobenius (= monad + comonad) carrier: std::tuple<T> always has a
+ * single element, so ε via std::get<0> is total (no Some-fragment
+ * concession), and δ wraps once more cleanly.  Sister to
+ * @ref maybe_functor (monad only) per the #632 carrier-role split.
+ */
+export template <typename T>
+struct tuple_functor {
+  using ArrowKind = hub_arrow_tag;
+  using Σ_cat = Set<T>;
+  using Τ_cat = Set<std::tuple<T>>;
+
+  using Domain = Σ_cat;
+  using Codomain = Τ_cat;
+
+  template <typename U>
+  using Shape = std::tuple<U>;
+
+  /** @brief φ: lift @c f: T → U to @c std::tuple<T> → std::tuple<U>
+   *  by mapping the single element. */
+  template <typename 𝗳>
+    requires IsArrow<std::remove_cvref_t<𝗳>>
+  constexpr auto φ(𝗳&& f) const {
+    return arrow([f = std::forward<𝗳>(f)](std::tuple<T> const& t) {
+      return std::tuple{std::invoke(f, std::get<0>(t))};
+    });
+  }
+
+  constexpr Τ_cat operator()(const Σ_cat&) const noexcept { return {}; }
+};
+
+static_assert(IsFunctor<tuple_functor<int>>,
+              "Verification Failed: tuple_functor must satisfy IsFunctor.");
 
 static_assert(IsFunctor<maybe_functor<int>>,
               "Verification Failed: maybe_functor must satisfy IsFunctor.");
-
-static_assert(IsMorphicApplicator<morphic_engine<box_functor<int>, int>,
-                                  box_functor<int>, int>,
-              "Structural Integrity Failed: morphic_engine must satisfy "
-              "IsMorphicApplicator.");
 
 /**
  * @brief Stage 1: The Functorial Applicator.
@@ -343,11 +328,6 @@ struct functor_applicator {
     return morphic_engine<Hub, std::decay_t<Spoke>>{h, std::forward<Spoke>(ma)};
   }
 };
-
-static_assert(IsFunctorialApplicator<functor_applicator<box_functor<int>>,
-                                     box_functor<int>>,
-              "Structural Integrity Failed: functor_applicator must satisfy "
-              "IsFunctorialApplicator.");
 
 // Now fmap is just a factory for the Applicator
 template <typename Hub>
@@ -710,20 +690,31 @@ static_assert(
 /**
  * @brief The Maybe endofunctor T, implemented via std::optional.
  */
-template <typename T>
+export template <typename T>
 using Maybe = std::optional<T>;
 
 /**
  * @brief φ for Maybe (std::optional).
  * If ma has a value, applies f and wraps the result.
  */
-template <typename A, typename F>
+export template <typename A, typename F>
 constexpr auto φ(Maybe<A> const& ma, F&& f)
     -> Maybe<std::invoke_result_t<F, A>> {
   if (ma) {
     return std::make_optional(std::invoke(std::forward<F>(f), *ma));
   }
   return std::nullopt;
+}
+
+/**
+ * @brief φ for std::tuple<T> — Frobenius carrier (#632).
+ * Applies @c f to the single element, returning a 1-tuple of the result.
+ */
+export template <typename A, typename F>
+constexpr auto φ(std::tuple<A> const& ta, F&& f)
+    -> std::tuple<std::invoke_result_t<F, A>> {
+  return std::tuple<std::invoke_result_t<F, A>>{
+      std::invoke(std::forward<F>(f), std::get<0>(ta))};
 }
 
 /**
@@ -740,14 +731,6 @@ constexpr auto φ(Identity<A> const& id, F&& f)
   (void)id;
   (void)f;
   return category::id<std::invoke_result_t<F, A>>();
-}
-
-/**
- * @brief φ for Box.
- */
-template <typename A, typename F>
-constexpr auto φ(Box<A> const& box, F&& f) -> Box<std::invoke_result_t<F, A>> {
-  return {std::invoke(std::forward<F>(f), box.value)};
 }
 
 // The quotient-algebra meta-symmetry (Frac, Cplx, Dual as structural

@@ -59,12 +59,14 @@ module;
 #include <functional>
 #include <ios>
 #include <optional>  // std::nullopt — used by the _kleisli_arrow_witness_380 skeleton
+#include <tuple>  // std::tuple<T> — bona-fide Frobenius carrier (#632)
 #include <utility>  // std::move / std::forward (kept self-contained per #521 review)
 
 export module dedekind.category:kleisli;
 
-import :functor;  // box_functor (canonical Hub for unit_witness/counit_witness;
-                  // #508)
+import :functor;  // maybe_functor (canonical Hub for unit_witness, monad-only)
+                  // and tuple_functor (canonical Hub for both
+                  // unit_witness AND counit_witness; #508 / #632)
 import :natural;  // IsDefaultHubTag — type-checked constraint on the Kleisli M
                   // slot
 import :monad;
@@ -73,62 +75,112 @@ import :morphism;
 
 namespace dedekind::category {
 
-/** @section kleisli__The_Box_Action_Engine */
+/** @section kleisli__The_Maybe_Action_Engine
+ *
+ * @details Maybe is a monad, not a comonad — counit on @c std::nullopt
+ * has no honest answer.  This block defines only the monadic surface
+ * for @c Maybe<T> (bind, unit_witness).  The bona-fide Frobenius
+ * carrier (= monad + comonad) is @c std::tuple<T> below; that's where
+ * counit / extend / IsCoKleisliExtension / IsFrobenius witnesses live.
+ */
 
-// Bind: Box<T> >>= (T -> Box<U>) -> Box<U>
+namespace _kleisli_detail {
+template <typename U>
+struct is_maybe : std::false_type {};
+template <typename U>
+struct is_maybe<Maybe<U>> : std::true_type {};
+template <typename U>
+inline constexpr bool is_maybe_v = is_maybe<U>::value;
+}  // namespace _kleisli_detail
+
+// Bind: Maybe<T> >>= (T -> Maybe<U>) -> Maybe<U>.
+// Constrained via SFINAE-friendly partial-specialization detector: the
+// Kleisli arrow's codomain must be exactly @c Maybe<U> (= @c
+// std::optional<U>), ruling out accidental carrier-changing binds to
+// unrelated types that happen to accept @c std::nullopt_t (Copilot
+// review on #632; mirror of the @c is_tuple1 detector below).
 export template <typename T, typename Func>
-constexpr auto operator>>=(const Box<T>& b, Func&& f) {
-  return std::forward<Func>(f)(b.value);
+  requires _kleisli_detail::is_maybe_v<
+      std::remove_cvref_t<std::invoke_result_t<Func, T>>>
+constexpr auto operator>>=(const Maybe<T>& m, Func&& f) {
+  using Result = std::invoke_result_t<Func, T>;
+  return m.has_value() ? std::forward<Func>(f)(*m) : Result{std::nullopt};
 }
-
-// Extend: Box<T> <<= (Box<T> -> U) -> Box<U>
-export template <typename T, typename Func>
-constexpr auto operator<<=(const Box<T>& b, Func&& f) {
-  using U = std::invoke_result_t<Func, Box<T>>;
-  return Box<U>{std::forward<Func>(f)(b)};
-}
-
-/** @section kleisli__The_Kleisli_Witnesses */
-
-// PR #508: removed template-template parameters from the public surface of
-// :kleisli to make the disciplined-fragment claim of the paper's
-// admissibility-rules table hold without exception.  The Hub indirection
-// follows the :functor precedent (PR introducing box_functor / maybe_functor
-// in :functor): higher-kindedness lives in a regular type's nested Shape<U>
-// alias rather than as a template-template parameter.  Carrier-side
-// specialisations in :sequences:path , :linear_algebra:tuple ,
-// :linear_algebra:matrix follow the same pattern, instantiating
-// unit_witness / counit_witness on box_functor<T> / path_functor<T> /
-// vec2_functor<T> / covec2_functor<T> / matrix2x2_functor<T>
-// (the canonical Hubs the *_functor partition already exports).
 
 /**
  * @brief unit_witness<Hub, T>: Generic Kleisli unit witness.
  * Lifts a value into the Kleisli extension named by @c Hub::template Shape<T>.
  *
  * @tparam Hub A regular type carrying a nested @c Shape<U> alias; canonical
- *             example is @c box_functor<U> from @c :functor.
+ *             examples are @c maybe_functor<U> (monad-only) and
+ *             @c tuple_functor<U> (Frobenius) from @c :functor.
  * @tparam T   The value type.
  */
 export template <typename Hub, typename T>
 struct unit_witness;
 
 export template <typename T>
-struct unit_witness<box_functor<T>, T> final {
-  constexpr auto operator()(T x) const { return Box<T>{std::move(x)}; }
+struct unit_witness<maybe_functor<T>, T> final {
+  constexpr auto operator()(T x) const { return Maybe<T>{std::move(x)}; }
 };
 
 /**
  * @brief counit_witness<Hub, T>: Generic Kleisli counit witness.
  * Samples a value from the co-Kleisli extension named by
- * @c Hub::template Shape<T>.
+ * @c Hub::template Shape<T>.  Defined for genuine comonadic carriers
+ * only; @c maybe_functor is not specialised here because Maybe is a
+ * monad, not a comonad (counit on nullopt has no honest answer).
  */
 export template <typename Hub, typename T>
 struct counit_witness;
 
+/** @section kleisli__The_Tuple_Frobenius_Engine
+ *
+ * @details @c std::tuple<T> is a 1-tuple — always has a single
+ * element, so @c std::get<0> is total.  This makes it the project's
+ * bona-fide Frobenius (= monad + comonad) carrier: both Kleisli and
+ * co-Kleisli laws hold without concession.  Replaces the vestigial
+ * Box-as-trivially-comonadic path retired in #632; the std-blessed
+ * @c std::tuple wrapper carries the Frobenius role going forward.
+ */
+
+namespace _kleisli_detail {
+template <typename U>
+struct is_tuple1 : std::false_type {};
+template <typename U>
+struct is_tuple1<std::tuple<U>> : std::true_type {};
+template <typename U>
+inline constexpr bool is_tuple1_v = is_tuple1<U>::value;
+}  // namespace _kleisli_detail
+
+// Bind: std::tuple<T> >>= (T -> std::tuple<U>) -> std::tuple<U>.
+// Constrained via SFINAE-friendly partial-specialization detector: the
+// Kleisli arrow's codomain must be a 1-tuple, ruling out accidental
+// carrier-changing binds (Copilot review on #632).
+export template <typename T, typename Func>
+  requires _kleisli_detail::is_tuple1_v<
+      std::remove_cvref_t<std::invoke_result_t<Func, T>>>
+constexpr auto operator>>=(const std::tuple<T>& t, Func&& f) {
+  return std::forward<Func>(f)(std::get<0>(t));
+}
+
+// Extend: std::tuple<T> <<= (std::tuple<T> -> U) -> std::tuple<U>.
+export template <typename T, typename Func>
+constexpr auto operator<<=(const std::tuple<T>& t, Func&& f) {
+  using U = std::invoke_result_t<Func, std::tuple<T>>;
+  return std::tuple<U>{std::forward<Func>(f)(t)};
+}
+
 export template <typename T>
-struct counit_witness<box_functor<T>, T> final {
-  constexpr T operator()(const Box<T>& b) const noexcept { return b.value; }
+struct unit_witness<tuple_functor<T>, T> final {
+  constexpr auto operator()(T x) const { return std::tuple<T>{std::move(x)}; }
+};
+
+export template <typename T>
+struct counit_witness<tuple_functor<T>, T> final {
+  constexpr T operator()(const std::tuple<T>& t) const noexcept {
+    return std::get<0>(t);
+  }
 };
 
 /** @section kleisli__Extension_Concepts */
@@ -164,7 +216,7 @@ concept IsFrobenius =
  *   κ(ma, f) = μ(φ(ma, f))
  * This is the textbook Kleisli extension operation.
  *
- * @tparam MA The monadic type (e.g., Box<T>, Maybe<T>, Identity<T>)
+ * @tparam MA The monadic type (e.g., Maybe<T>, Identity<T>)
  * @tparam F The function type to apply (typically A → MA<B>)
  *
  * @param ma The monadic value to bind
@@ -184,7 +236,11 @@ constexpr auto κ(MA const& ma, F&& f) {
  *   σ(wa, f) = φ(δ(wa), f)
  * This is the textbook co-Kleisli extension operation (extend/cobind).
  *
- * @tparam WA The comonadic type (e.g., Box<T>, Identity<T>)
+ * @tparam WA The comonadic type (e.g., @c std::tuple<T> as the
+ *             bona-fide Frobenius carrier per @c
+ *             kleisli__The_Tuple_Frobenius_Engine, or the identity-
+ *             arrow Identity).  Maybe is monad-only and intentionally
+ *             not a comonadic carrier here (#632).
  * @tparam F The function type to apply (typically W<A> → B)
  *
  * @param wa The comonadic value to extend
@@ -370,8 +426,8 @@ concept HasComonadicExtendOperators =
 // comonadic carrier has two CT readings depending on the carrier
 // shape:
 //
-//   * @b Comonadic carrier (e.g. @c Box<T>, future smart-pointer-like
-//     comonads): @c m->member @c ≡ @c ε(m).member, where
+//   * @b Comonadic carrier (e.g. @c Identity<T>; future smart-pointer-
+//     like comonads): @c m->member @c ≡ @c ε(m).member, where
 //     @c ε: @c W<A> @c → @c A is the comonadic @b extract (Mac Lane
 //     @em CWM §VI; Wadler 1992 @em Comprehending @em Monads).
 //   * @b Monadic carrier with partial dereference (e.g. @c Maybe<T>):
@@ -396,7 +452,7 @@ concept HasArrowDereferenceOperator = requires(M const& m) { m.operator->(); };
 /** @brief @c is_kleisli_deref_v<M>: opt-in marker that the carrier's
  *         @c operator-> realises Kleisli dereference (for monadic
  *         carriers like @c Maybe<T>) or comonadic extract @c ε
- *         (for comonadic carriers like @c Box<T>).  Default false;
+ *         (for comonadic carriers like @c Identity<T>).  Default false;
  *         specialise to @c true at the carrier site. */
 export template <typename M>
 inline constexpr bool is_kleisli_deref_v = false;
@@ -415,9 +471,8 @@ concept IsKleisliDeref =
  * @details A Kleisli arrow lives in the Kleisli category indexed by a
  *          monad-hub tag @c M.  Its underlying map has shape
  *          @c e: @c A @c → @c T<B>, where @c T is the monadic carrier
- *          shape selected by the hub tag (@c Maybe for
- *          @c maybe_hub_tag, @c Box for @c box_hub_tag, @c Identity for
- *          @c identity_hub_tag).  The @c M slot is the
+ *          shape selected by the hub tag (@c Maybe for @c maybe_hub_tag,
+ *          @c Identity for @c identity_hub_tag).  The @c M slot is the
  *          @b monad-hub @b tag itself — a tag type that names which
  *          Kleisli category the arrow inhabits — not the class template.
  *          Constrained by @c IsDefaultHubTag to make the connection
@@ -474,9 +529,9 @@ static_assert(
     "Opt-in via is_kleisli_arrow_v<E, maybe_hub_tag> = true lifts the "
     "arrow into the IsKleisliArrow concept.");
 static_assert(
-    !IsKleisliArrow<toy_partial_realize, box_hub_tag>,
+    !IsKleisliArrow<toy_partial_realize, identity_hub_tag>,
     "Opt-in is per-(E, M) pair: a Maybe-shaped Kleisli arrow does not "
-    "automatically inhabit the Box Kleisli category.");
+    "automatically inhabit the Identity Kleisli category.");
 
 }  // namespace _kleisli_arrow_witness_380
 

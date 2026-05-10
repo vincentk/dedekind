@@ -535,11 +535,11 @@ namespace dedekind::category {
  * Kleisli witness registry (@c unit_witness / @c counit_witness /
  * @c IsKleisliExtension / @c IsCoKleisliExtension / @c IsFrobenius).
  * Named @c path_functor for naming-convention parity with the sibling
- * @c box_functor / @c maybe_functor / @c vec2_functor /
- * @c matrix2x2_functor Hubs in other partitions.
+ * @c maybe_functor / @c vec2_functor / @c matrix2x2_functor Hubs in
+ * other partitions.
  *
  * @section path__Functor_Limitation
- * Unlike @c box_functor / @c maybe_functor — which DO satisfy
+ * Unlike @c maybe_functor — which DOES satisfy
  * @c dedekind::category::IsFunctor — @c path_functor deliberately
  * does NOT.  Reason: @c Path<T> is itself an Arrow at the type level
  * (carries @c Domain @c = @c std::size_t and @c Codomain @c = @c T,
