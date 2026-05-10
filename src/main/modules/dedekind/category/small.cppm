@@ -150,6 +150,40 @@ inline constexpr bool is_associative_v<T, Op> = true;
  * (intensional, @c TernaryLogic) vs @c :sets:extensional (decidable
  * membership), not at the category layer.
  *
+ * @section small__The_Locally_Small_Slot
+ * Standard CT distinguishes three slots along the size axis:
+ *
+ * | Concept                       | Object collection | Hom-sets    |
+ * |:------------------------------|:------------------|:------------|
+ * | (general) category            | proper class      | proper class|
+ * | @b locally @b small category  | proper class      | sets        |
+ * | @b small category             | set               | sets        |
+ *
+ * @c IsSmallCategory pins the third row (small).  The @b locally @b
+ * small slot --- where @c Set, @c Cpp (the category of C++ types),
+ * @c Top, and @c Alg(Σ) all live in standard CT --- is intentionally
+ * @b not given a sibling concept @c IsLocallySmallCategory in this
+ * codebase.  Two reasons:
+ *
+ *   1. @b No @b current @b consumer.  No site in the project today
+ *      requires a category whose object-collection is type-level
+ *      (a proper class) but whose Hom-collection is value-level (a
+ *      set).  The slot would be speculative API, and the project's
+ *      struct-creation posture is "burden of proof on adding a
+ *      concept, not on omitting one".
+ *   2. @b Implementation @b cost.  A faithful @c IsLocallySmallCategory
+ *      requires a higher-kinded @c Cat::template Hom<A, @c B> slot,
+ *      which is the same template-template territory the codebase
+ *      otherwise tries to keep at arm's length (in the @c IsFunctor
+ *      Hub/Spoke pattern, etc.).  Paying that complexity without a
+ *      load-bearing consumer would be the wrong trade.
+ *
+ * If a future slice introduces an honest @c Cpp-as-category or
+ * @c Alg(Σ)-as-category construction, that's the natural moment to
+ * reify the @c IsLocallySmallCategory slot --- with a real consumer
+ * to pressure-test the higher-kinded API shape rather than guessing
+ * it ahead of time.
+ *
  * Axioms:
  * 1. Existence: For every arrow f, there exist unique identity arrows id_dom(f)
  *    and id_cod(f).
