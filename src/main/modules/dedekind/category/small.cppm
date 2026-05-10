@@ -121,6 +121,11 @@ inline constexpr bool is_associative_v<T, Op> = true;
  * `x` from that identity arrow, however, is not required by `IsCategory`; that
  * would need an additional guarantee that identity arrows carry or expose such
  * a witness.
+ * 
+ * I guess that in CT jargon, this concept boils down to defining categories
+ * which are
+ * a) small: every type that satisfies this concept is also a type constraint (a set boundary) in Cpp.
+ * b) monoidal: the fish operator is associative and has an identity.
  *
  * Axioms:
  * 1. Existence: For every arrow f, there exist unique identity arrows id_dom(f)
