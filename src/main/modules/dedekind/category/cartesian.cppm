@@ -302,23 +302,20 @@ static_assert(!IsExponential<std::function<int(int)>, int, bool>,
  * This triple of structures provides the categorical foundations required for
  * the Dedekind topos (ETCS).
  */
+// Concept-as-predicate / @c &&-as-intersection composition: the cartesian
+// closed concept narrows @c IsCartesian by additionally requiring
+// exponentials.  Reads as the lattice meet @c IsCartesian @c ∩
+// HasExponentials, mirroring the chain in paper §2.3 step 2 → step 3.
 export template <typename Cat>
-concept IsCartesianClosed = IsSmallCategory<Cat> && requires {
-  // 1. Terminal Object exists
-  typename Cat::Terminal;
-  requires IsTerminalObject<typename Cat::Terminal>;
-} && requires(typename Cat::Arrow::Domain A, typename Cat::Arrow::Codomain B) {
-  // 2. Cartesian: Products exist for objects in the category
-  typename Cat::template Product<decltype(A), decltype(B)>;
-  requires IsProduct<typename Cat::template Product<decltype(A), decltype(B)>,
-                     decltype(A), decltype(B)>;
-
-  // 3. Closed: Exponentials exist for objects in the category
-  typename Cat::template Exponential<decltype(A), decltype(B)>;
-  requires IsExponential<
-      typename Cat::template Exponential<decltype(A), decltype(B)>, decltype(A),
-      decltype(B)>;
-};
+concept IsCartesianClosed =
+    IsCartesian<Cat> &&
+    requires(typename Cat::Arrow::Domain A, typename Cat::Arrow::Codomain B) {
+      // Closed: Exponentials exist for objects in the category.
+      typename Cat::template Exponential<decltype(A), decltype(B)>;
+      requires IsExponential<
+          typename Cat::template Exponential<decltype(A), decltype(B)>,
+          decltype(A), decltype(B)>;
+    };
 
 /**
  * @brief The Identity morphism for the category Set.

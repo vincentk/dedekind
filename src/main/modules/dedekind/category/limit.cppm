@@ -49,6 +49,8 @@ export module dedekind.category:limit;
 import :discrete;
 import :mereology;
 import :morphism;
+import :small;  // IsSmallCategory --- the size-axis prerequisite for
+                // IsCartesian
 import :species;
 
 namespace dedekind::category {
@@ -354,6 +356,81 @@ export template <typename F>
 concept IsArrowFromProduct =
     IsArrow<F> && IsProduct<Dom<F>, typename Dom<F>::first_type,
                             typename Dom<F>::second_type>;
+
+/**
+ * @brief Left projection @c π_1 @c : @c A @c × @c B @c → @c A.
+ * @details The canonical first projection out of a binary product, named per
+ *          Pierce (@em Basic Category Theory for Computer Scientists §1.4).
+ *          Sister of the coproduct injection @c ι_1 in @c :cartesian.
+ */
+export template <typename A, typename B>
+constexpr auto π_1(const std::pair<A, B>& p) {
+  return p.first;
+}
+
+/**
+ * @brief Right projection @c π_2 @c : @c A @c × @c B @c → @c B.
+ * @details The canonical second projection out of a binary product, named per
+ *          Pierce.  Sister of the coproduct injection @c ι_2 in @c :cartesian.
+ */
+export template <typename A, typename B>
+constexpr auto π_2(const std::pair<A, B>& p) {
+  return p.second;
+}
+
+// Compiler-validated witnesses: π_1 / π_2 inhabit IsProductProjection.
+static_assert(IsProductProjection<decltype([](const std::pair<int, bool>& p) {
+                                    return π_1<int, bool>(p);
+                                  }),
+                                  std::pair<int, bool>, int>,
+              "π_1 must inhabit IsProductProjection<Product → LeftPart>.");
+static_assert(IsProductProjection<decltype([](const std::pair<int, bool>& p) {
+                                    return π_2<int, bool>(p);
+                                  }),
+                                  std::pair<int, bool>, bool>,
+              "π_2 must inhabit IsProductProjection<Product → RightPart>.");
+
+/**
+ * @concept IsCartesian
+ * @brief A small category equipped with a terminal object @c 1 and binary
+ *        products @c × --- a "cartesian category" in the textbook sense
+ *        (Pierce, @em Basic Category Theory for Computer Scientists §1.4;
+ *        Awodey).
+ *
+ * @details Concept-as-predicate framing: @c IsCartesian narrows the
+ * type-class @c IsSmallCategory by intersecting with the finite-product
+ * structure (terminal + binary products).  This is the @em finite-products
+ * subset of finite limits --- finitely complete categories also have
+ * equalisers and pullbacks, which are not pinned here; @c IsCartesian
+ * deliberately stops at the products-and-terminal layer.
+ *
+ * Position in the size-and-structure lattice (read top-down as narrowing
+ * intersections; cf. paper §2.3):
+ *
+ * @code
+ *   IsSmallCategory<Cat>
+ *     ∧ has terminal object @c Cat::Terminal
+ *     ∧ has binary product @c Cat::template Product<A, B>
+ *   = IsCartesian<Cat>
+ * @endcode
+ *
+ * The CCC-completing exponentials live downstream in @c :cartesian; @c
+ * IsCartesianClosed = @c IsCartesian + has-exponentials.  Re-using @c
+ * IsCartesian as the prerequisite gates @c IsCartesianClosed cleanly
+ * against the chain @c IsSmallCategory @c → @c IsCartesian @c → @c
+ * IsCartesianClosed.
+ */
+export template <typename Cat>
+concept IsCartesian = IsSmallCategory<Cat> && requires {
+  // Terminal object 1 exists.
+  typename Cat::Terminal;
+  requires IsTerminalObject<typename Cat::Terminal>;
+} && requires(typename Cat::Arrow::Domain A, typename Cat::Arrow::Codomain B) {
+  // Binary product A × B exists for objects in the category.
+  typename Cat::template Product<decltype(A), decltype(B)>;
+  requires IsProduct<typename Cat::template Product<decltype(A), decltype(B)>,
+                     decltype(A), decltype(B)>;
+};
 
 /** @section limit__Realizations */
 export using TerminalCategory = DiscreteCategory<One>;
