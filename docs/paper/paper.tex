@@ -623,7 +623,7 @@ Each step adds one structural commitment, and each commitment is reified as an e
 
 \begin{table}[htbp]
 \centering
-\caption{\textbf{The chain $\mathbf{Cat} \to \mathbf{Ddk}$ as named refinement steps.}  Each row adds one structural commitment over the previous; each is cashed out by an existing C++23 partition / concept.  The chain is approximately linear at the granularity shown; the honest reading is more lattice-shaped, with concreteness (objects \emph{are} sets) sitting orthogonally to the CCC and topos refinements rather than strictly downstream of them.}
+\caption{\textbf{The chain $\mathbf{Cat} \to \mathbf{Ddk}$ as named refinement steps.}  Each row adds one structural commitment over the previous; each is cashed out by an existing C++23 partition / concept.  Steps 0--6 are internal to category theory; step 7 is the move out of pure CT into the C++ realisation.  The chain is approximately linear at the granularity shown; the honest reading is more lattice-shaped, with concreteness (step 6) and the size axis (step 1) sitting orthogonally to the CCC and topos refinements (steps 2--4) rather than strictly downstream of them.}
 \label{tbl:cat-to-ddk}
 \small
 \begin{tabular}{@{}c l l l@{}}
@@ -636,12 +636,14 @@ Each step adds one structural commitment, and each commitment is reified as an e
 3 & exponentials $B^A$                           & \cppinline{:cartesian} / \cppinline{IsExponential}      & CCC                            \\
 4 & subobject classifier $\Omega$                & \cppinline{:topoi} / \cppinline{IsSubobject}, \cppinline{IsTopos} & elementary topos      \\
 5 & ETCS axioms (well-pointedness, NNO, choice)  & \cppinline{:etcs}                                       & Set-modeling topos             \\
-6 & C++ Juliet binding (carriers as concrete C++ types) & \cppinline{:cartesian::Ddk}                      & $\mathbf{Ddk}$                 \\
+6 & concreteness (objects \emph{are} sets; faithful $U: \mathcal{C} \to \mathbf{Set}$) & \cppinline{:etcs} / \cppinline{IsSetObject}, \cppinline{Subobject} & concrete Set-model \\
+\midrule
+7 & C++ Juliet binding (carriers as concrete C++ types) & \cppinline{:cartesian::Ddk}                      & $\mathbf{Ddk}$                 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-The locally-small-not-small slot --- the textbook home of $\mathbf{Cat}$ itself, $\mathbf{Set}$, $\mathbf{Alg}(\Sigma)$, $\mathbf{Top}$ --- branches off this chain at step~1 and is intentionally not navigated by the project today\footnote{Reifying \cppinline{IsLocallySmallCategory} as a sibling concept would require a higher-kinded $\mathrm{Hom}\langle A, B \rangle$ slot whose template-template machinery the codebase otherwise keeps at arm's length; deferred until a load-bearing consumer surfaces.  The architectural slot is named in the \cppinline{:small} docstring without a concept stub.}.
+The locally-small-not-small slot --- the textbook home of $\mathbf{Cat}$ itself, $\mathbf{Set}$, $\mathbf{Alg}(\Sigma)$, $\mathbf{Top}$ --- branches off this chain at step~1 and is intentionally not navigated by the project today; the architectural intent and reasons for deferring \cppinline{IsLocallySmallCategory} live in the \cppinline{:small} docstring (\texttt{small\_\_The\_Locally\_Small\_Slot}).
 
 The algebraic structure each carrier provides (per \cppinline{IsAlgebraOnSet}, Listing~\ref{lst:algebra:universal}) lives \emph{inside} this CCC.
 The operations are arrows in $\mathbf{Ddk}$; axioms are equations between such arrows; the forgetful arrows the project ships ($\mathbf{Ring} \to \mathbf{AbGrp} \to \mathbf{Set}$, together with the \texttt{embed\_*\_*\_} family) drop operations as they move between carriers.
