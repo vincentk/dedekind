@@ -567,6 +567,98 @@ inline constexpr auto embed_ℤ_ℚ =
     });
 
 /**
+ * @brief Set-level lift of @c embed_ℤ_ℚ: image of an int-set @c S as a
+ *        Rational-set under the canonical mono @c ℤ @c ↪ @c ℚ.
+ *
+ * @details Layer-1 entry per #602, sister to @c embed_𝔹_ℕ (PR #624),
+ * @c embed_𝔹_𝕂3 (PR #626), @c embed_uint_ℕ (PR #628), and
+ * @c embed_sint_ℤ (PR #630): names the construction at the call site
+ * rather than re-spelling @c image(embed_ℤ_ℚ<I>, @c S).  Accepted
+ * input @c S is anything @c dedekind::sets::image already dispatches
+ * on --- @c SingletonSet (@c :sets:singleton),
+ * @c std::set<int> / @c std::unordered_set<int> (@c :sets:extensional),
+ * and intensional @c Set<int, L, P> carriers (@c :sets:expressions,
+ * symbolic Unknown predicate).
+ *
+ * @b Naming: @c Frac is the carrier-lattice functor name --- the
+ * field-of-fractions construction over an integral domain
+ * (Burris-Sankappanavar; Lang) --- promoted to the @b set level.  At
+ * the value level the same construction is the per-value arrow
+ * @c embed_ℤ_ℚ above; the set-level entry uses @c Frac to align with
+ * the issue-#602 functor-zoo nomenclature (@c Frac, @c Cplx, @c Dual,
+ * @c Free_n, @c End_R) and to leave room for sister set-level lifts
+ * (@c Cplx(IsSet auto S), @c Dual(IsSet auto S)) in adjacent
+ * partitions.
+ *
+ * @b Carrier @b note: the "ℤ" in this slice is the @b machine-level
+ * integer carrier @c machine_integer @c = @c int (the input type of
+ * the per-value arrow @c embed_ℤ_ℚ).  The corresponding lift on the
+ * project's exact-ℤ representation @c SignedCardinality composes
+ * through @c embed_sint_ℤ and lands as a follow-up slice.
+ *
+ * Mathematically: image(@c S) under the canonical mono @c n @c ↦ @c
+ * n/1 is @c {n/1 @c | @c n @c ∈ @c S} as a subset of @c ℚ --- the
+ * field-of-fractions inclusion lifted from values to sets.
+ */
+// No-narrowing pin: source set's element type must be EXACTLY
+// @c machine_integer (= int), matching the per-value arrow's domain.
+// Mirrors PR #630's @c embed_sint_ℤ no-narrowing pin --- both
+// @c Domain-exposing carriers (SingletonSet, dedekind::sets::Set, ...)
+// and @c value_type-exposing carriers (std::set, std::unordered_set)
+// are pinned in a single disjunctive constraint.
+export template <IsInteger I = default_integer, typename S>
+  requires(
+              requires {
+                typename std::remove_cvref_t<S>::Domain;
+                requires std::same_as<typename std::remove_cvref_t<S>::Domain,
+                                      machine_integer>;
+              } ||
+              requires {
+                typename std::remove_cvref_t<S>::value_type;
+                requires std::same_as<
+                    typename std::remove_cvref_t<S>::value_type,
+                    machine_integer>;
+              }) &&
+          requires(S&& s) {
+            dedekind::sets::image(embed_ℤ_ℚ<I>, std::forward<S>(s));
+          }
+constexpr auto Frac(S&& s) {
+  return dedekind::sets::image(embed_ℤ_ℚ<I>, std::forward<S>(s));
+}
+
+// Set-level lift witness: @c Frac(SingletonSet<int>{5}) lands at
+// @c Rational{5, 1}.  Pinned at the @b value level so the pivot
+// equality is constant-evaluated, not just the codomain type.  Mirrors
+// PR #624 / #626 / #628 / #630's witnesses --- same shape, different
+// (carrier, codomain) pair.
+static_assert(Frac(dedekind::sets::SingletonSet<
+                       machine_integer, dedekind::category::ClassicalLogic>{5})
+                      .pivot == Rational<default_integer>{5, 1},
+              "Frac(SingletonSet<int>{5}) lands at Rational{5, 1} on the "
+              "Rational<default_integer> carrier (n ↦ n/1; the "
+              "field-of-fractions inclusion "
+              "ℤ ↪ ℚ).");
+static_assert(
+    Frac(dedekind::sets::SingletonSet<machine_integer,
+                                      dedekind::category::ClassicalLogic>{-3})
+            .pivot == Rational<default_integer>{-3, 1},
+    "Frac(SingletonSet<int>{-3}) lands at Rational{-3, 1} (negative-"
+    "value witness; the field-of-fractions inclusion is sign-preserving).");
+
+// Concept-level witness: the result realises the categorical image of
+// the source set under the canonical mono @c ℤ @c ↪ @c ℚ --- a
+// Subobject of @c Cod<embed_ℤ_ℚ> @c = @c Rational<> per
+// @c :category:image.
+static_assert(
+    dedekind::category::IsImageOf<
+        decltype(Frac(dedekind::sets::SingletonSet<
+                      machine_integer, dedekind::category::ClassicalLogic>{5})),
+        decltype(embed_ℤ_ℚ<>)>,
+    "Frac(S) realises IsImageOf<result, embed_ℤ_ℚ>: result is a "
+    "Subobject of Cod<embed_ℤ_ℚ> = Rational<default_integer>, witnessing the "
+    "categorical image of S under the canonical mono ℤ ↪ ℚ.");
+
+/**
  * @brief Exact dyadic embedding @c double → ℚ.
  *
  * @details Every finite IEEE 754 @c double is exactly the dyadic
