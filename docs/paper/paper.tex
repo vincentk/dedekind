@@ -632,7 +632,7 @@ Each step adds one structural commitment, and each commitment is reified as an e
 \midrule
 0 & (bare category axioms)                       & ---                                                    & category                       \\
 1 & smallness                                    & \cppinline{:small} / \cppinline{IsSmallCategory}        & small category                 \\
-2 & terminal $1$, binary products $\times$       & \cppinline{:cartesian} / \cppinline{IsTerminal}, \cppinline{IsProduct} & finitely complete \\
+2 & terminal $1$, binary products $\times$       & \cppinline{:limit} / \cppinline{IsTerminal}, \cppinline{IsProduct}     & finitely complete \\
 3 & exponentials $B^A$                           & \cppinline{:cartesian} / \cppinline{IsExponential}      & CCC                            \\
 4 & subobject classifier $\Omega$                & \cppinline{:topoi} / \cppinline{IsSubobject}, \cppinline{IsTopos} & elementary topos      \\
 5 & ETCS axioms (well-pointedness, NNO, choice)  & \cppinline{:etcs}                                       & Set-modeling topos             \\
