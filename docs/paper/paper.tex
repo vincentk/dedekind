@@ -621,6 +621,11 @@ The algebraic structure each carrier provides (per \cppinline{IsAlgebraOnSet}, L
 The operations are arrows in $\mathbf{Ddk}$; axioms are equations between such arrows; the forgetful arrows the project ships ($\mathbf{Ring} \to \mathbf{AbGrp} \to \mathbf{Set}$, together with the \texttt{embed\_*\_*\_} family) drop operations as they move between carriers.
 Plain sets are the degenerate case where the operator tuple is empty.
 
+The architecture converges on a small grammar worth naming explicitly as target structure: an algebra HAS-A underlying set and HAS operations on that set; a set HAS-A ambient and HAS a subobject classifier $\chi$ on that ambient; the ambient IS-A small category, in the CCC sense of the previous paragraphs.
+The HAS-A reading is the same shape at both upper layers, but the kind of ``has'' differs --- an algebra carries behavioural structure (functions with axioms governing them), a set carries shape-only structure (the $\chi$ is the \cppinline{IsSubobject} contract's anchor, with the actual decision living in the predicate's \cppinline{operator()}).
+Three slots, mapped onto the codebase: the IS-A category lives in \texttt{category:cartesian}; the set HAS-A in \texttt{category:etcs}; the algebra HAS-A in \texttt{algebra:universal}.
+Every concept the project ships fits one of the three.
+
 % Source excerpt from dedekind.algebra:universal.
 \begin{listing}[ht]
 \caption{A type that type-checks against \cppinline{IsAlgebraOnSet} inhabits $\mathbf{Ddk}$.}
