@@ -84,14 +84,24 @@ namespace dedekind::category {
  * counit / extend / IsCoKleisliExtension / IsFrobenius witnesses live.
  */
 
+namespace _kleisli_detail {
+template <typename U>
+struct is_maybe : std::false_type {};
+template <typename U>
+struct is_maybe<Maybe<U>> : std::true_type {};
+template <typename U>
+inline constexpr bool is_maybe_v = is_maybe<U>::value;
+}  // namespace _kleisli_detail
+
 // Bind: Maybe<T> >>= (T -> Maybe<U>) -> Maybe<U>.
-// Constrained to Kleisli arrows whose codomain is a @c Maybe-shaped
-// carrier — guarantees the @c Result{std::nullopt} branch is well-formed
-// and rules out accidental carrier-changing binds (Copilot review on
-// #632).
+// Constrained via SFINAE-friendly partial-specialization detector: the
+// Kleisli arrow's codomain must be exactly @c Maybe<U> (= @c
+// std::optional<U>), ruling out accidental carrier-changing binds to
+// unrelated types that happen to accept @c std::nullopt_t (Copilot
+// review on #632; mirror of the @c is_tuple1 detector below).
 export template <typename T, typename Func>
-  requires std::constructible_from<std::invoke_result_t<Func, T>,
-                                   std::nullopt_t>
+  requires _kleisli_detail::is_maybe_v<
+      std::remove_cvref_t<std::invoke_result_t<Func, T>>>
 constexpr auto operator>>=(const Maybe<T>& m, Func&& f) {
   using Result = std::invoke_result_t<Func, T>;
   return m.has_value() ? std::forward<Func>(f)(*m) : Result{std::nullopt};
@@ -461,9 +471,8 @@ concept IsKleisliDeref =
  * @details A Kleisli arrow lives in the Kleisli category indexed by a
  *          monad-hub tag @c M.  Its underlying map has shape
  *          @c e: @c A @c → @c T<B>, where @c T is the monadic carrier
- *          shape selected by the hub tag (@c Maybe for
- *          @c maybe_hub_tag, @c Identity for @c identity_hub_tag).  The @c M
- * slot is the
+ *          shape selected by the hub tag (@c Maybe for @c maybe_hub_tag,
+ *          @c Identity for @c identity_hub_tag).  The @c M slot is the
  *          @b monad-hub @b tag itself — a tag type that names which
  *          Kleisli category the arrow inhabits — not the class template.
  *          Constrained by @c IsDefaultHubTag to make the connection
