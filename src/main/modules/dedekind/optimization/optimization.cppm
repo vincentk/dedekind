@@ -17,7 +17,7 @@
  * This realises the paper's thesis in a sharpened form: the feasible
  * polytope is a set-as-predicate, its finite vertex set is enumerated
  * structurally, and the objective's ordering collapses the candidate set
- * to a singleton optimum.  "Rules on buckets are set" specialised to
+ * to a singleton optimum.  "Rules on Buckets are Set" specialised to
  * convex programming.
  *
  * @note "Modellbildung ist die halbe Miete."

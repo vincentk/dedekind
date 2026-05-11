@@ -79,11 +79,13 @@ struct Comprehension {
   static constexpr bool is_idempotent_v = true;
 };
 
-// @c BoundScout forward declaration, gated by @c HasUnderlyingCarrier
-// (from @c :category:species) on @c decltype(Ambient) per #623 so
-// callers passing a value whose type lacks @c ::Domain hit a single
-// diagnostic at the declaration site rather than a cascade of
-// template-instantiation errors inside @c BoundScout's body.
+// @c BoundScout forward declaration, gated by @c IsArrow (from
+// @c :category:morphism) on @c decltype(Ambient) per #623 so callers
+// passing a value whose type lacks @c ::Domain hit a single diagnostic
+// at the declaration site rather than a cascade of template-instantiation
+// errors inside @c BoundScout's body.  The textbook justification for
+// the @c IsArrow gate (a set IS its characteristic morphism under the
+// current encoding) is in the longer comment on @c element below.
 
 /** @brief Forward declaration of @c BoundScout (post-#551), needed by
  *  @c MembershipBinding<S>::operator| below for the bool-truthy
