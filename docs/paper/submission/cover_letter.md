@@ -2,7 +2,7 @@
 
 Dear Editors,
 
-We submit *Sets Are Rules, Not Buckets* for consideration in
+We submit *Rules on Buckets are Set* for consideration in
 *Programming*.  The paper introduces the `dedekind` library, which
 leverages C++23's concepts and non-type template parameters to
 embed formal categorical structures into the type system at
