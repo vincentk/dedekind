@@ -426,3 +426,48 @@ TEST_CASE("Dedekind Sets: Heterogeneous subset semantics",
     CHECK(positive.is_subset_of_at(small, -1) == true);
   }
 }
+
+TEST_CASE(
+    "Dedekind Sets: image(iso f, Set<T, L, P>) — #602 Layer 2 decidable "
+    "specialisation",
+    "[sets][image][iso][layer2][602]") {
+  // Identity<int> is an isomorphism (inverse = self).  The image of an
+  // intensional Set<int> under the identity iso must be (i) on the same
+  // ambient int, (ii) on the same logic species (no demotion to Ternary
+  // as the generic IsArrow fallback would), and (iii) decidable point-
+  // wise --- membership query lifts through the inverse (here = the
+  // identity), so the image preserves the source's truth table exactly.
+
+  SECTION("Identity iso preserves classical decidability") {
+    const auto positive_pred = [](const int& v) { return v > 0; };
+    const Set<int, ClassicalLogic, decltype(positive_pred)> positive{
+        positive_pred};
+
+    auto img = image(Identity<int>{}, positive);
+
+    // The image's logic species is the source's (ClassicalLogic),
+    // NOT TernaryLogic (which would be the IsArrow-fallback result).
+    STATIC_CHECK(
+        std::same_as<typename decltype(img)::logic_species, ClassicalLogic>);
+    // Ambient is preserved.
+    STATIC_CHECK(std::same_as<typename decltype(img)::Ambient, int>);
+    // Decidable: same truth values as the source through the identity.
+    CHECK(img(5) == true);
+    CHECK(img(-1) == false);
+    CHECK(img(0) == false);
+  }
+
+  SECTION("Identity iso on a ternary-logic source preserves Ternary") {
+    auto x = element<ℕ>;
+    const auto gt_zero = Set{x | (x > 0u)};
+    static_assert(
+        std::same_as<typename decltype(gt_zero)::logic_species, TernaryLogic>);
+
+    auto img = image(Identity<Cardinality>{}, gt_zero);
+
+    STATIC_CHECK(
+        std::same_as<typename decltype(img)::logic_species, TernaryLogic>);
+    CHECK(img(5u) == Ternary::True);
+    CHECK(img(0u) == Ternary::False);
+  }
+}

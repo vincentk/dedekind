@@ -854,7 +854,7 @@ concept IsIsomorphism = IsArrow<F> && requires(F f) {
 };
 
 /** @brief The structural inverse of an Identity is itself. */
-template <typename T>
+export template <typename T>
 [[nodiscard]] constexpr auto inverse(Identity<T> id) noexcept {
   return id;
 }
@@ -868,7 +868,7 @@ static_assert(IsIsomorphism<Identity<bool>>,
               "Identity must be a self-inverse isomorphism.");
 
 /** @brief The structural inverse of Negation is itself (Involutive). */
-template <typename A, typename B, typename Impl>
+export template <typename A, typename B, typename Impl>
   requires std::same_as<Impl, std::negate<A>>
 [[nodiscard]] constexpr auto inverse(Morphism<A, B, Impl> f) noexcept {
   return f;  // Negate is its own inverse
