@@ -653,6 +653,7 @@ The architecture converges on a small grammar worth naming explicitly as target 
 The HAS-A reading is the same shape at both upper layers, but the kind of ``has'' differs --- an algebra carries behavioural structure (functions with axioms governing them), a set carries shape-only structure (the $\chi$ is the \cppinline{IsSubobject} contract's anchor, with the actual decision living in the predicate's \cppinline{operator()}).
 Three slots, mapped onto the codebase: the IS-A category lives in \texttt{category:cartesian}; the set HAS-A in \texttt{category:etcs}; the algebra HAS-A in \texttt{algebra:universal}.
 Every concept the project ships fits one of the three.
+The two HAS-A layers are reified at the type level by a pair of sibling concepts in the spirit of product-as-parthood (Le\'sniewski mereology composed with the universal-property product; \texttt{category:mereology} + \texttt{category:limit}): \cppinline{SetAsProduct<S, Underlying, Classifier>} in \texttt{category:concrete} names the set HAS-A as the (\textsc{Underlying}, \textsc{Classifier}) pair, and \cppinline{AlgebraAsProduct<A, Set, Ops...>} in \texttt{algebra:universal} names the algebra HAS-A as the (\textsc{Set}, \textsc{Operations}) pair, composing on the element-level \cppinline{HasCarrier<Algebra, Carrier, Ops...>} sibling that has been in this partition since the \cppinline{(A, F)} read-off was first encoded.
 
 % Source excerpt from dedekind.algebra:universal.
 \begin{listing}[ht]
