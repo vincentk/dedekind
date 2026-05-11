@@ -403,7 +403,8 @@ static_assert(IsProductProjection<decltype([](const std::pair<int, bool>& p) {
 
 /**
  * @concept IsProductParthood
- * @brief Bridge: a product P with parts A and B IS a mereological parthood.
+ * @brief Bridge: a product P with parts A and B IS a mereological parthood
+ *        in the projection-access reading.
  *
  * @details
  * Names the structural equivalence between the universal-property product
@@ -414,22 +415,47 @@ static_assert(IsProductProjection<decltype([](const std::pair<int, bool>& p) {
  * operations.  In pointer-like wrapper language, the same operations spell
  * @c p->fst and @c p->snd.  Same difference.
  *
- * Constraint: the concept is anchored on @c IsProjectedProduct, so the
- * type-system gate matches the textbook claim "P is a product, hence
- * parthood".  By default @c WholeProject is @c std::identity, reducing the
- * bridge to a direct @c IsProduct<P, A, B> check that @c std::pair walks
- * out of the box.
+ * @par Which reading of "parthood"?
+ * Two readings of parthood coexist in this codebase, and the bridge
+ * encodes only the first:
  *
- * Pluggability: quotient-style wholes whose part-access does not go through
+ *  -# **Projection-access reading** (this concept): A is a part of P iff
+ *     there exists a canonical projection P → A, witnessed structurally
+ *     by an @c IsProductProjection -inhabiting callable.  This is the
+ *     reading the universal-property product canonically supplies.
+ *  -# **Predicate reading** (@c :mereology @c IsPartOfRelation): A is a
+ *     part of P iff one of @c part @c <= @c whole / @c whole(part) /
+ *     @c whole[part] returns @c Ω.  This is the order-theoretic /
+ *     characteristic-function reading.
+ *
+ * The bridge intentionally does NOT establish an
+ * @c IsPartOfRelation -encoded witness alongside the projection witness;
+ * those encodings ride on independent operator surfaces that
+ * @c std::pair does not currently overload.  Future slices of #573 may
+ * add an @c IsPartOfRelation companion witness once a natural
+ * Ω-valued predicate (e.g.\ "is @c x @c == @c π_1(p)?") is wired in.
+ *
+ * @par Constraint
+ * The concept is anchored on @c IsProjectedProduct, so the type-system
+ * gate matches the textbook claim "P is a product, hence parthood
+ * (projection-access)".  By default @c WholeProject is @c std::identity,
+ * reducing the bridge to a direct @c IsProduct<P, A, B> check that
+ * @c std::pair walks out of the box.
+ *
+ * @par Pluggability
+ * Quotient-style wholes whose part-access does not go through
  * @c .first / @c .second can supply a custom @p WholeProject policy that
  * materialises a @c std::pair -shaped view of the parts (#573 slice 4
  * onward).  This mirrors @c IsProjectedProduct's default-template-parameter
- * pattern --- the bridge is exactly @c IsProjectedProduct re-stated under a
- * parthood name.
+ * pattern --- the bridge is currently a structural alias of
+ * @c IsProjectedProduct stated under a parthood name; future slices may
+ * sharpen it further.
  *
- * Sollbruchstelle (#573): downstream code that wants "A is mereologically
- * part of P" writes @c IsProductParthood<P, A, B> rather than recapitulating
- * @c IsProduct, and the name signals the parthood reading explicitly.
+ * @par Sollbruchstelle (#573)
+ * Downstream code that wants "A is mereologically part of P
+ * (projection-access)" writes @c IsProductParthood<P, A, B> rather than
+ * recapitulating @c IsProduct, and the name signals the parthood reading
+ * explicitly.
  *
  * @tparam P             The product whole (an @c IsSpecies object).
  * @tparam A             The left part (an @c IsSpecies object).
