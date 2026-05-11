@@ -924,6 +924,19 @@ static_assert(
     IsInjective<std::decay_t<decltype(dedekind::numbers::embed_ℤ_ℚ<>)>>,
     "embed_ℤ_ℚ (ℤ ↪ ℚ) is registered injective.");
 
+// IsEmbeddingFunctor witness (#633): @c embed_ℤ_ℚ is the canonical
+// field-of-fractions inclusion @c n @c ↦ @c n/1.  Fully faithful
+// (discrete machine-integer source) + injective on objects.  Pinned at
+// the default-template instantiation @c embed_ℤ_ℚ<> (= @c
+// embed_ℤ_ℚ<default_integer>); other carriers register at their
+// instantiation sites if needed.
+template <>
+inline constexpr bool is_embedding_functor_v<
+    std::decay_t<decltype(dedekind::numbers::embed_ℤ_ℚ<>)>> = true;
+static_assert(
+    IsEmbeddingFunctor<std::decay_t<decltype(dedekind::numbers::embed_ℤ_ℚ<>)>>,
+    "embed_ℤ_ℚ realises IsEmbeddingFunctor per #633's Mac Lane reading.");
+
 }  // namespace dedekind::category
 
 namespace dedekind::algebra {

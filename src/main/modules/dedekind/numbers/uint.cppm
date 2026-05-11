@@ -470,6 +470,17 @@ static_assert(
     "embed_uint_ℕ_ (unsigned → Cardinality) is "
     "registered injective.");
 
+// IsEmbeddingFunctor witness (#633): @c embed_uint_ℕ_ is fully faithful
+// (discrete source) + injective on objects (machine unsigned values map
+// bijectively to their Cardinality witnesses in @c [0, 2^width)).
+template <>
+inline constexpr bool is_embedding_functor_v<
+    std::decay_t<decltype(dedekind::numbers::embed_uint_ℕ_)>> = true;
+static_assert(
+    IsEmbeddingFunctor<
+        std::decay_t<decltype(dedekind::numbers::embed_uint_ℕ_)>>,
+    "embed_uint_ℕ_ realises IsEmbeddingFunctor per #633's Mac Lane reading.");
+
 // ===========================================================================
 // Mazur-equivalence pilot (#591): @c std::unsigned_integral as @c ℕ for
 // inputs strictly less than @c 2^width.

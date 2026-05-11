@@ -416,6 +416,18 @@ static_assert(
     "embed_sint_ℤ_ (int → SignedCardinality) is "
     "registered injective.");
 
+// IsEmbeddingFunctor witness (#633): @c embed_sint_ℤ_ is fully faithful
+// (discrete source) + injective on objects (sign-magnitude bijection
+// between machine signed values and the corresponding SignedCardinality
+// witnesses).
+template <>
+inline constexpr bool is_embedding_functor_v<
+    std::decay_t<decltype(dedekind::numbers::embed_sint_ℤ_)>> = true;
+static_assert(
+    IsEmbeddingFunctor<
+        std::decay_t<decltype(dedekind::numbers::embed_sint_ℤ_)>>,
+    "embed_sint_ℤ_ realises IsEmbeddingFunctor per #633's Mac Lane reading.");
+
 // ===========================================================================
 // Mazur-equivalence pilot (#591): @c std::signed_integral as @c ℤ for
 // inputs in @c [std::numeric_limits<S>::min(), @c

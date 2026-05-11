@@ -494,4 +494,18 @@ inline constexpr bool
 static_assert(
     IsInjective<std::decay_t<decltype(dedekind::numbers::embed_𝔹_ℕ_)>>,
     "embed_𝔹_ℕ_ (𝔹 ↪ ℕ via Cardinality) is registered injective.");
+
+// IsEmbeddingFunctor witness (#633 refinement quartet): @c embed_𝔹_ℕ_ is
+// fully faithful (source is a discrete category, so faithfulness is
+// trivial) + injective on objects (the underlying function on the two
+// 𝔹-objects {false, true} maps to the two distinct Cardinality witnesses
+// {finite_cardinality(0), finite_cardinality(1)}).  Refines @c IsMonicArrow
+// at the functor level.
+template <>
+inline constexpr bool is_embedding_functor_v<
+    std::decay_t<decltype(dedekind::numbers::embed_𝔹_ℕ_)>> = true;
+static_assert(
+    IsEmbeddingFunctor<std::decay_t<decltype(dedekind::numbers::embed_𝔹_ℕ_)>>,
+    "embed_𝔹_ℕ_ realises IsEmbeddingFunctor: fully faithful + injective on "
+    "objects per #633's Mac Lane CWM §IV.4 reading.");
 }  // namespace dedekind::category

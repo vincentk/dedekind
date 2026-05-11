@@ -756,4 +756,177 @@ constexpr auto φ(Identity<A> const& id, F&& f)
 // — the propagation only meaningfully applies to declared HSP /
 // free-algebra carriers).
 
+/** @section functor__Textbook_Modifiers (#633)
+ *
+ * @details Textbook CT (Mac Lane @em CWM; Borceux @em Handbook) names
+ * functors by their @em adjective modifiers, not by polymorphism /
+ * non-polymorphism umbrellas.  The project already carries the
+ * textbook-canonical modifiers as separate concepts:
+ *
+ *   - @c IsEndofunctor (Mac Lane §I.3; @c F @c : @c 𝒞 @c → @c 𝒞)
+ *     --- defined above in this partition.
+ *   - @c IsFreeFunctor (Mac Lane §IV.3; left adjoint to forgetful)
+ *     --- defined in @c :adjunction.
+ *   - @c IsForgetfulFunctor (Mac Lane §IV; right adjoint to free)
+ *     --- defined in @c :adjunction.
+ *
+ * The two modifiers below complete the monic / epi pair the
+ * carrier-lattice and (A, F) anchor work need:
+ *
+ *   - @c IsEmbeddingFunctor (Mac Lane CWM §IV.4; fully faithful +
+ *     injective on objects --- the Yoneda-embedding flavour).
+ *     Concrete witnesses: the @c embed_*_*_ family.
+ *   - @c IsQuotientFunctor (Borceux @em Handbook §4.3; regular epi
+ *     / coequalizer presentation).  Slot reserved for the (A, F)
+ *     anchor's Σ-algebras-as-functors @c T_Σ @c → @c Ddk (algebras
+ *     arise as quotients of free algebras --- Burris-Sankappanavar
+ *     §II.10) and #602's carrier-lattice @c Frac / @c Cplx / @c
+ *     Dual quotient half.
+ *
+ * Both are @em engineer-asserted via trait registration ---
+ * @c is_embedding_functor_v<F> / @c is_quotient_functor_v<F> ---
+ * mirroring the @c is_monic_arrow_v / @c is_epic_arrow_v pattern in
+ * @c :morphism.  The categorical content (fully faithful +
+ * injectivity on objects for embeddings; coequalizer of two parallel
+ * functors for quotients) is the engineer's claim, type-checked at
+ * the registration site.
+ *
+ * Weaker reading variants (@c IsFaithfulFunctor on its own,
+ * @c IsFullFunctor on its own, @c IsEpiFunctor without the regular-
+ * epi strengthening, @c IsEssentiallySurjectiveFunctor, ...) land
+ * flat as separate concepts when a consumer earns them; there's no
+ * umbrella distinction in textbook CT.
+ *
+ * @section functor__Two_Intuition_Pumps
+ *
+ * Two reading registers live side-by-side in CT (cf. #633 body),
+ * but they are @b not separate type-system concepts:
+ *
+ *   - @b Container / Hask-endofunctor flavour: functor as polymorphic
+ *     type-constructor.  Examples in this partition: @c maybe_functor,
+ *     @c tuple_functor, @c identity_functor.  Type-system witness:
+ *     these all satisfy @c IsFunctor with @c Σ_cat @c = @c Τ_cat ---
+ *     i.e.\ they are @em endofunctors (which is the textbook name).
+ *   - @b Algebraic-set / structural-CT flavour: functor as a
+ *     structure-preserving map between two specific named categories,
+ *     with further modifiers for monic / epi / faithful / full / etc.
+ *     The carrier-lattice embeddings are @c IsEmbeddingFunctor
+ *     witnesses; future quotient projections will be @c
+ *     IsQuotientFunctor witnesses.
+ *
+ * The two intuitions are unified at the @c IsFunctor level (Mac Lane
+ * §I.3): a functor is a structure-preserving map between two
+ * categories, full stop.  Polymorphic / non-polymorphic is a
+ * presentation choice for how F is given, not a structural CT
+ * property; textbook CT therefore does not name umbrella concepts
+ * "@c IsContainerFunctor" / "@c IsSpecificFunctor".  This project
+ * follows the textbook reading: no umbrella concepts, only the
+ * textbook-canonical adjective modifiers.
+ */
+
+/**
+ * @brief Trait registry for the @ref IsEmbeddingFunctor concept.
+ * @details Engineer-asserted opt-in: a functor is an embedding
+ *          (fully faithful + injective on objects --- Mac Lane CWM
+ *          §IV.4, the Yoneda-embedding flavour) iff the engineer
+ *          specialises this trait to @c true at the functor's
+ *          declaration site.  Mirrors @c is_monic_arrow_v in
+ *          @c :morphism: the categorical claim is the engineer's,
+ *          type-checked at the registration site.
+ *
+ *          Default @c false.  Specialise @b at @b the @b carrier @b
+ *          site (e.g. in @c :numbers:natural for @c embed_𝔹_ℕ_).
+ */
+export template <typename F>
+inline constexpr bool is_embedding_functor_v = false;
+
+/**
+ * @concept IsEmbeddingFunctor
+ * @brief A functor that is @em fully @em faithful @c + @em injective
+ *        @em on @em objects (Mac Lane CWM §IV.4 strong reading; the
+ *        Yoneda-embedding flavour).
+ *
+ * @details Embeddings are @b monic in the categorical sense.  This
+ * concept therefore @b mechanically @b requires @c IsMonicArrow as
+ * the textbook structural prerequisite (in addition to the
+ * engineer-asserted @c is_embedding_functor_v trait that pins the
+ * stronger fully-faithful + injective-on-objects claim).  The trait
+ * is the engineer's commitment to the Mac Lane §IV.4 reading; the
+ * @c IsMonicArrow check is the mechanical verification that the
+ * arrow's monic registration is also in place.
+ *
+ * @b Opt-in @b semantics (#641 review note): the type-system gate
+ * here is @c IsArrow @c + @c IsMonicArrow @c + the @c
+ * is_embedding_functor_v trait.  It does @b not require the bare
+ * @c IsFunctor concept (which today carries the container-flavoured
+ * @c Shape<U> requirement, see @c functor__Two_Intuition_Pumps), so
+ * bare spoke arrows can register as @c IsEmbeddingFunctor witnesses
+ * without first satisfying @c IsFunctor.  This is intentional: the
+ * carrier-lattice @c embed_*_*_ family @b are functors @c Set<source>
+ * @c → @c Set<codomain> at the Mac Lane §I.3 level, but they're
+ * presented in the codebase as bare arrows rather than as @c IsFunctor
+ * witnesses with @c Σ_cat / @c Τ_cat slots.  The @c
+ * is_embedding_functor_v trait is the engineer's commitment to the
+ * functorial reading; once the deferred @c IsFunctor refactor lands
+ * (drop the @c Shape<U> requirement, per #633's "Implementation
+ * sequence"), this concept will be tightened to require @c IsFunctor.
+ *
+ * @b Concrete @b witnesses (registered in @c :numbers and adjacent
+ * partitions): @c embed_𝔹_ℕ_ (@c bool @c ↪ @c Cardinality), @c
+ * embed_𝔹_𝕂3_ (@c bool @c ↪ @c TernaryLogic::Ω), @c embed_uint_ℕ_
+ * (@c unsigned @c ↪ @c Cardinality), @c embed_sint_ℤ_ (@c int @c ↪
+ * @c SignedCardinality), @c embed_ℤ_ℚ (machine_integer @c ↪ @c
+ * Rational<I>).  Each is an arrow with @c IsMonicArrow / @c
+ * IsInjective + a registered @c is_embedding_functor_v specialisation
+ * pinning the functor-level structural claim.
+ *
+ * Weaker reading variants (@c IsFaithfulFunctor only, @c
+ * IsFullFunctor only) can be added as separate concepts when a
+ * consumer earns them.
+ */
+export template <typename F>
+concept IsEmbeddingFunctor =
+    IsArrow<F> && IsMonicArrow<F> && is_embedding_functor_v<F>;
+
+/**
+ * @brief Trait registry for the @ref IsQuotientFunctor concept.
+ * @details Engineer-asserted opt-in: a functor is a quotient
+ *          (regular epi / coequalizer presentation --- Borceux
+ *          @em Handbook §4.3) iff the engineer specialises this
+ *          trait to @c true at the functor's declaration site.
+ *          Same shape as @c is_embedding_functor_v above.
+ *
+ *          Default @c false.  Concrete witnesses populate when the
+ *          (A, F) anchor work (#498) lands Σ-algebras as functors
+ *          @c T_Σ @c → @c Ddk (algebras arise as quotients of free
+ *          algebras --- Burris-Sankappanavar §II.10) and when the
+ *          carrier-lattice @c Frac / @c Cplx / @c Dual functors at
+ *          the strict-quotient reading land (#602 layer-1.5+).
+ */
+export template <typename F>
+inline constexpr bool is_quotient_functor_v = false;
+
+/**
+ * @concept IsQuotientFunctor
+ * @brief A functor that is a regular epi / coequalizer presentation
+ *        (Borceux @em Handbook §4.3).
+ *
+ * @details Quotients are @b epic in the categorical sense.  This
+ * concept therefore @b mechanically @b requires @c IsEpicArrow as
+ * the textbook structural prerequisite (in addition to the
+ * engineer-asserted @c is_quotient_functor_v trait that pins the
+ * stronger regular-epi / coequalizer reading).  Categorically dual
+ * to @c IsEmbeddingFunctor: where embeddings are fully-faithful-
+ * monic, quotients are coequalizer-epi.
+ *
+ * No concrete witnesses today --- the slot is reserved for the
+ * (A, F) anchor and #602's carrier-lattice quotient half.  When
+ * witnesses land, each registration site needs @b both the
+ * @c is_quotient_functor_v specialisation @b and the underlying
+ * @c is_epic_arrow_v specialisation.
+ */
+export template <typename F>
+concept IsQuotientFunctor =
+    IsArrow<F> && IsEpicArrow<F> && is_quotient_functor_v<F>;
+
 }  // namespace dedekind::category
