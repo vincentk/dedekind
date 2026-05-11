@@ -902,6 +902,84 @@ constexpr auto image(F&&, const Set<T, L, P>&) {
       SymbolicImagePredicate<U>{}};
 }
 
+/** @brief Composed predicate for the iso-decidable @c image(f, Set)
+ *         specialisation below: @c y @c ↦ @c S(f^{-1}(y)) where @c S
+ *         is the source set's characteristic and @c f^{-1} is the
+ *         iso's inverse.
+ *
+ *  @details Captures (i) the source set @c S by value and (ii) the
+ *  inverse arrow @c FInv by value, so the closure is self-contained
+ *  and constexpr-friendly at the call site.  Not default-constructible
+ *  in general --- @c Set<T,L,P> stores a @c Predicate by value and has
+ *  no default constructor, so callers must always supply both
+ *  components to the in-class aggregate initialiser.  The Set's
+ *  @c operator() already performs @c lift_logic<L> on the inner
+ *  result, and @c S.operator() on the unwrapped @c x returns @c L::Ω
+ *  directly, so the composition preserves the source logic species
+ *  without going through Ternary.
+ *
+ *  @c SourceSet is the @c Set<T,L,P> instantiation; @c FInv is the
+ *  type returned by @c inverse(f) for the iso @c f.
+ */
+template <typename SourceSet, typename FInv>
+struct ComposedIsoImagePredicate {
+  SourceSet source;
+  FInv f_inverse;
+
+  template <typename U>
+  constexpr auto operator()(const U& y) const {
+    return source(f_inverse(y));
+  }
+};
+
+/** @brief image(iso f, Set<T, L, P>) — @b decidable specialisation for
+ *         isomorphism arrows (#602 Layer 2 entry).
+ *
+ *  @details When @c f admits an inverse @c f^{-1} (the @c IsIsomorphism
+ *  gate), the image of an intensional Set under @c f is mechanically
+ *  recoverable via predicate composition:
+ *
+ *  @code
+ *    image(f, S) = { y ∈ Cod(f) | S(f^{-1}(y)) }
+ *  @endcode
+ *
+ *  The result is a @c Set<U, L, ComposedIsoImagePredicate<...>> --- the
+ *  same logic species @c L as the source (no demotion to Ternary), and
+ *  a composed predicate that evaluates membership through the inverse.
+ *  This is strictly stronger than the @c IsArrow fallback above, which
+ *  honestly returns the always-Unknown @c SymbolicImagePredicate; iso
+ *  arrows preserve decidability of the image because the existential
+ *  @c ∃x ∈ T. P(x) ∧ y == f(x) reduces to a single test @c P(f^{-1}(y)).
+ *
+ *  Overload resolution picks this specialisation over the @c IsArrow
+ *  one by partial-ordering (@c IsIsomorphism subsumes @c IsArrow).
+ *
+ *  @section expressions__Image_Iso_Layer2_Anchor
+ *
+ *  Layer-2 entry from the @c #602 layering proposal: the
+ *  "predicate-set with iso" path that the Layer-1 overload's docstring
+ *  flagged as the natural strengthening.  Layer-2 continues with the
+ *  retract path immediately below (Case A / #659), and further with
+ *  enumerable-source (Case B / #660) and terminal-codomain (Case C /
+ *  #661) over follow-up slices.
+ */
+export template <typename T, typename L, typename P,
+                 dedekind::category::IsIsomorphism F>
+  requires std::same_as<dedekind::category::Dom<std::remove_cvref_t<F>>, T>
+constexpr auto image(F&& f, const Set<T, L, P>& s) {
+  using U = dedekind::category::Cod<std::remove_cvref_t<F>>;
+  // Unqualified call so ADL routes to the inverse overload for f's
+  // type (e.g.\ Identity<T>, TaggedNegate) in dedekind::category.
+  // This PR exports the relevant inverse overloads (a small boy-scout
+  // edit in :morphism, see commit history); the unqualified shape is
+  // what the IsIsomorphism concept itself uses, and matches the
+  // codebase's ADL-hook style for partial categorical primitives.
+  auto f_inv = inverse(std::forward<F>(f));
+  using FInv = std::remove_cvref_t<decltype(f_inv)>;
+  using NewPredicate = ComposedIsoImagePredicate<Set<T, L, P>, FInv>;
+  return Set<U, L, NewPredicate>{NewPredicate{s, std::move(f_inv)}};
+}
+
 /** @brief Composed predicate for the retract-decidable @c image(f, Set)
  *         specialisation: @c y @c ↦ @c let @c mx @c = @c retract(f)(y);
  *         @c mx.has_value() @c ? @c S(mx.value()) @c : @c L::False.
@@ -913,8 +991,9 @@ constexpr auto image(F&&, const Set<T, L, P>&) {
  *    @c image(F, S) and the predicate returns @c L::False directly.
  *
  *  Stores the source set and the retract callable by value.  Sister
- *  predicate shape to the (in-flight) @c ComposedIsoImagePredicate
- *  from #657 / #602 Case A's iso sibling.
+ *  predicate shape to @c ComposedIsoImagePredicate above (#657 / #602
+ *  Case A's iso sibling), differing in that the retract is partial so
+ *  the membership query has to case-split on the @c has_value branch.
  */
 template <typename SourceSet, typename RetractFn, typename L>
 struct ComposedRetractImagePredicate {
@@ -946,8 +1025,8 @@ struct ComposedRetractImagePredicate {
  *  @endcode
  *
  *  This is strictly more general than the @c IsIsomorphism specialisation
- *  (#657 sister): iso arrows happen to be retractable too (retract is
- *  inverse wrapped in always-Some), but most carrier-lattice embeddings
+ *  above (#657 sister): iso arrows happen to be retractable too (retract
+ *  is inverse wrapped in always-Some), but most carrier-lattice embeddings
  *  in the project (@c embed_𝔹_ℕ, @c embed_uint_ℕ, @c embed_sint_ℤ, ...)
  *  are monic-but-not-iso with natural retracts that can opt in to this
  *  path by registering a @c retract overload.
@@ -958,11 +1037,10 @@ struct ComposedRetractImagePredicate {
  *
  *  @par Disambiguation against the iso overload
  *  The @c !IsIsomorphism guard in the requires-clause keeps iso arrows
- *  on the simpler unconditional-inverse path (#657, sister sub-task)
- *  and only routes genuinely-partial retracts here.  Both overloads
- *  otherwise satisfy the same partial-ordering tier (more constrained
- *  than the @c IsArrow fallback), so the guard is the explicit
- *  tiebreaker.
+ *  on the simpler unconditional-inverse path above (#657) and only
+ *  routes genuinely-partial retracts here.  Both overloads otherwise
+ *  satisfy the same partial-ordering tier (more constrained than the
+ *  @c IsArrow fallback), so the guard is the explicit tiebreaker.
  */
 export template <typename T, typename L, typename P,
                  dedekind::category::IsRetractableArrow F>
