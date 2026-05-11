@@ -360,4 +360,15 @@ inline constexpr bool
 static_assert(
     IsInjective<std::decay_t<decltype(dedekind::numbers::embed_𝔹_𝕂3_)>>,
     "embed_𝔹_𝕂3_ (𝔹 ↪ 𝕂3) is registered injective.");
+
+// IsEmbeddingFunctor witness (#633): @c embed_𝔹_𝕂3_ lifts the
+// two-element 𝔹 into the three-element 𝕂3 truth surface monicly
+// (False ↦ False, True ↦ True; the Unknown value is unreached).
+// Fully faithful + injective on objects per Mac Lane CWM §IV.4.
+template <>
+inline constexpr bool is_embedding_functor_v<
+    std::decay_t<decltype(dedekind::numbers::embed_𝔹_𝕂3_)>> = true;
+static_assert(
+    IsEmbeddingFunctor<std::decay_t<decltype(dedekind::numbers::embed_𝔹_𝕂3_)>>,
+    "embed_𝔹_𝕂3_ realises IsEmbeddingFunctor per #633's Mac Lane reading.");
 }  // namespace dedekind::category

@@ -756,4 +756,183 @@ constexpr auto φ(Identity<A> const& id, F&& f)
 // — the propagation only meaningfully applies to declared HSP /
 // free-algebra carriers).
 
+/** @section functor__The_Refinement_Quartet (#633)
+ *
+ * @details Beyond the container-style @c IsFunctor pinned above, the
+ * project's universal-algebra and (A, F)-anchor commitments call for
+ * a richer functor vocabulary covering the @em algebraic-set intuition
+ * (functors as structure-preserving maps between named categories,
+ * with the further structural split between embeddings (monic) and
+ * quotients (epi)).  The refinement quartet below names these slots:
+ *
+ * @code
+ *   IsFunctor                  (general — Mac Lane CWM §I.3; currently
+ *   │                           equivalent to IsContainerFunctor in this
+ *   │                           partition pending the target-vector refactor
+ *   │                           tracked at #633)
+ *   ├── IsContainerFunctor     (polymorphic / type-constructor flavour;
+ *   │                           Maybe, std::tuple, Identity, ...)
+ *   └── IsSpecificFunctor      (between two specific named categories;
+ *       │                       embeddings, quotients, forgetful, Σ-algebras-
+ *       │                       as-functors)
+ *       ├── IsEmbeddingFunctor (monic specific functor; fully faithful +
+ *       │                       injective on objects — Mac Lane CWM §IV.4)
+ *       └── IsQuotientFunctor  (epi specific functor; regular epi /
+ *                               coequalizer presentation — Borceux §4.3)
+ * @endcode
+ *
+ * Two intuition pumps live here side-by-side (cf. #633 body):
+ *   - @b Container @b reading (Haskell-tutorial flavour): functor as a
+ *     polymorphic type-constructor.  @c IsContainerFunctor pins this.
+ *   - @b Algebraic-set @b reading (universal-algebra flavour): functor as
+ *     a structure-preserving map between two specific named categories.
+ *     @c IsSpecificFunctor pins this; @c IsEmbeddingFunctor / @c
+ *     IsQuotientFunctor refine to the monic / epi cases.
+ *
+ * The leaf concepts (@c IsEmbeddingFunctor / @c IsQuotientFunctor) are
+ * @em engineer-asserted via trait registration --- @c
+ * is_embedding_functor_v<F> / @c is_quotient_functor_v<F> --- mirroring
+ * the @c is_monic_arrow_v / @c is_epic_arrow_v pattern in @c :morphism.
+ * The categorical content (full faithfulness + injectivity on objects;
+ * coequalizer of two parallel functors) is the engineer's claim,
+ * type-checked at registration sites.
+ *
+ * @section functor__Quartet_Intended_Refactor
+ *
+ * The target-vector intent (per #633) is to refactor @c IsFunctor itself
+ * to the @em general Mac Lane §I.3 definition (no polymorphic-@c
+ * Shape<U> requirement) and lift the polymorphic / type-constructor
+ * commitment into @c IsContainerFunctor.  That refactor is @b deferred
+ * here: this slice lands the additive quartet (siblings + refinements
+ * of the current container-flavoured @c IsFunctor), so the (A, F)
+ * anchor work and #602's per-arrow embedding lifts have the structural
+ * concept anchor available.  The @c IsFunctor / @c IsContainerFunctor
+ * split lands as a follow-up slice that sweeps consumers; absent
+ * regression risk, @c IsContainerFunctor is currently defined as @c
+ * IsFunctor (the witnesses coincide).
+ */
+
+/**
+ * @concept IsContainerFunctor
+ * @brief @ref IsFunctor specialised to the container / type-constructor
+ *        flavour --- a polymorphic functor parameterised by element
+ *        type via @c F::template Shape<U>.
+ *
+ * @details Currently equivalent to @c IsFunctor (which already pins
+ * the @c Shape<U> requirement).  The split into a weaker general @c
+ * IsFunctor and a stronger @c IsContainerFunctor is queued as a
+ * follow-up slice (see @c functor__Quartet_Intended_Refactor); this
+ * sibling alias gives consumers a forward-compatible name to gate on
+ * when they specifically want the container flavour.
+ *
+ * Witnesses: @c maybe_functor<T>, @c tuple_functor<T>, @c
+ * identity_functor<Cat>, @c composite_functor<F, G>, @c
+ * trace_functor<T>.
+ */
+export template <typename F>
+concept IsContainerFunctor = IsFunctor<F>;
+
+/**
+ * @concept IsSpecificFunctor
+ * @brief A structure-preserving map between two specific named small
+ *        categories @c Σ and @c Τ --- the @em algebraic-set intuition
+ *        pump (universal-algebra flavour).
+ *
+ * @details Gates on @c F being an @c IsArrow, @c Σ and @c Τ being @c
+ * IsSmallCategory, and @c F's @c Dom / @c Cod matching the species
+ * types of @c Σ / @c Τ.  Covers any of:
+ *   - @b monic @b specific @b functors (the carrier-lattice
+ *     embeddings; refined by @c IsEmbeddingFunctor below);
+ *   - @b epi @b specific @b functors (Σ-algebras-as-functors @c T_Σ
+ *     @c → @c Ddk; @c Frac / @c Cplx / @c Dual at the carrier-lattice
+ *     quotient level; refined by @c IsQuotientFunctor below);
+ *   - "neither" specific functors (forgetful: @c Ring @c → @c AbGrp,
+ *     @c AbGrp @c → @c Set, the @c embed_*_*_ family at intermediate
+ *     ranks).
+ *
+ * Mac Lane CWM §I.3 (functors) + §IV (forgetful / free as paradigmatic
+ * specific functors).
+ */
+export template <typename F, typename Σ, typename Τ>
+concept IsSpecificFunctor =
+    IsArrow<F> && IsSmallCategory<Σ> && IsSmallCategory<Τ> &&
+    std::same_as<Dom<F>, typename Σ::Species> &&
+    std::same_as<Cod<F>, typename Τ::Species>;
+
+/**
+ * @brief Trait registry for the @ref IsEmbeddingFunctor concept.
+ * @details Engineer-asserted opt-in: a specific functor is an
+ *          embedding (fully faithful + injective on objects --- Mac
+ *          Lane CWM §IV.4, the Yoneda-embedding flavour) iff the
+ *          engineer specialises this trait to @c true at the
+ *          functor's declaration site.  Mirrors @c is_monic_arrow_v
+ *          in @c :morphism: the categorical claim is the engineer's,
+ *          type-checked at the registration site.
+ *
+ *          Default @c false.  Specialise @b at @b the @b carrier @b
+ *          site (e.g. in @c :numbers:natural for @c embed_𝔹_ℕ_).
+ */
+export template <typename F>
+inline constexpr bool is_embedding_functor_v = false;
+
+/**
+ * @concept IsEmbeddingFunctor
+ * @brief A specific functor that is @em fully @em faithful @c + @em
+ *        injective @em on @em objects (Mac Lane CWM §IV.4 strong
+ *        reading; the Yoneda-embedding flavour).
+ *
+ * @details The monic refinement of @c IsSpecificFunctor.  Trait-
+ * registered via @c is_embedding_functor_v --- the engineer asserts
+ * the categorical content (fully faithful + injective-on-objects)
+ * at the carrier site; this concept gates on the engineer's claim.
+ *
+ * @b Concrete @b witnesses (registered in @c :numbers and adjacent
+ * partitions): @c embed_𝔹_ℕ_ (@c bool @c ↪ @c Cardinality), @c
+ * embed_𝔹_𝕂3_ (@c bool @c ↪ @c TernaryLogic::Ω), @c embed_uint_ℕ_
+ * (@c unsigned @c ↪ @c Cardinality), @c embed_sint_ℤ_ (@c int @c ↪
+ * @c SignedCardinality), @c embed_ℤ_ℚ (machine_integer @c ↪ @c
+ * Rational<I>).  Each is an arrow with @c IsMonomorphism / @c
+ * IsInjective + a registered @c is_embedding_functor_v specialisation
+ * pinning the functor-level structural claim.
+ *
+ * Weaker reading variants (@c IsFaithfulFunctor only, @c
+ * IsFullFunctor only) can be added as separate concepts when a
+ * consumer earns them.
+ */
+export template <typename F>
+concept IsEmbeddingFunctor = IsArrow<F> && is_embedding_functor_v<F>;
+
+/**
+ * @brief Trait registry for the @ref IsQuotientFunctor concept.
+ * @details Engineer-asserted opt-in: a specific functor is a quotient
+ *          (regular epi / coequalizer presentation in @c [Σ, @c Τ] ---
+ *          Borceux @em Handbook §4.3) iff the engineer specialises
+ *          this trait to @c true at the functor's declaration site.
+ *          Same shape as @c is_embedding_functor_v above.
+ *
+ *          Default @c false.  Concrete witnesses populate when the
+ *          (A, F) anchor work (#498) lands Σ-algebras as functors
+ *          @c T_Σ @c → @c Ddk (algebras arise as quotients of free
+ *          algebras --- Burris-Sankappanavar §II.10) and when the
+ *          carrier-lattice @c Frac / @c Cplx / @c Dual functors at
+ *          the strict-quotient reading land (#602 layer-1.5+).
+ */
+export template <typename F>
+inline constexpr bool is_quotient_functor_v = false;
+
+/**
+ * @concept IsQuotientFunctor
+ * @brief A specific functor that is a regular epi / coequalizer
+ *        presentation in @c [Σ, @c Τ] (Borceux @em Handbook §4.3).
+ *
+ * @details The epi refinement of @c IsSpecificFunctor.  Trait-
+ * registered via @c is_quotient_functor_v.  Categorically dual to
+ * @c IsEmbeddingFunctor: where embeddings are fully-faithful-monic,
+ * quotients are coequalizer-epi.  No concrete witnesses today ---
+ * the slot is reserved for the (A, F) anchor and #602's
+ * carrier-lattice quotient half.
+ */
+export template <typename F>
+concept IsQuotientFunctor = IsArrow<F> && is_quotient_functor_v<F>;
+
 }  // namespace dedekind::category
