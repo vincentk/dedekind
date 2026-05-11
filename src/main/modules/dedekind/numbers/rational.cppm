@@ -549,6 +549,20 @@ static_assert(
     "ℚ's underlying carrier IS Rational<default_integer> — the textbook "
     "universe-over-carrier reading.");
 
+// #573 slice 4 pilot witness: ℚ walks SetAsProduct.  The universe value
+// is a UniversalSet over Rational<default_integer> --- its Ambient is the
+// underlying species, its χ is the always-True classifier.  Names the
+// (Underlying, Classifier) product reading of the ambient rational set
+// concretely on the canonical pilot carrier.
+static_assert(
+    dedekind::category::SetAsProduct<std::remove_cvref_t<decltype(ℚ)>,
+                                     Rational<default_integer>,
+                                     std::remove_cvref_t<decltype(ℚ.χ)>>,
+    "#573 slice 4: ℚ must witness SetAsProduct over "
+    "(Rational<default_integer>, "
+    "χ-type).  The universe value is a UniversalSet whose Ambient matches the "
+    "rational carrier and whose χ is recoverable as a typed member.");
+
 /** @brief The predicate-set value (instance of @c RationalSet),
  *         retained for set-builder DSL usage like @c Set{q @c % @c Q}
  *         where @c q @c = @c var<ℚ> ranges over rationals.
