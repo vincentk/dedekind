@@ -846,10 +846,14 @@ inline constexpr bool is_embedding_functor_v = false;
  *        @em on @em objects (Mac Lane CWM §IV.4 strong reading; the
  *        Yoneda-embedding flavour).
  *
- * @details Trait-registered via @c is_embedding_functor_v --- the
- * engineer asserts the categorical content (fully faithful +
- * injective-on-objects) at the carrier site; this concept gates on
- * the engineer's claim.
+ * @details Embeddings are @b monic in the categorical sense.  This
+ * concept therefore @b mechanically @b requires @c IsMonicArrow as
+ * the textbook structural prerequisite (in addition to the
+ * engineer-asserted @c is_embedding_functor_v trait that pins the
+ * stronger fully-faithful + injective-on-objects claim).  The trait
+ * is the engineer's commitment to the Mac Lane §IV.4 reading; the
+ * @c IsMonicArrow check is the mechanical verification that the
+ * arrow's monic registration is also in place.
  *
  * @b Concrete @b witnesses (registered in @c :numbers and adjacent
  * partitions): @c embed_𝔹_ℕ_ (@c bool @c ↪ @c Cardinality), @c
@@ -865,7 +869,8 @@ inline constexpr bool is_embedding_functor_v = false;
  * consumer earns them.
  */
 export template <typename F>
-concept IsEmbeddingFunctor = IsArrow<F> && is_embedding_functor_v<F>;
+concept IsEmbeddingFunctor =
+    IsArrow<F> && IsMonicArrow<F> && is_embedding_functor_v<F>;
 
 /**
  * @brief Trait registry for the @ref IsQuotientFunctor concept.
@@ -890,13 +895,22 @@ inline constexpr bool is_quotient_functor_v = false;
  * @brief A functor that is a regular epi / coequalizer presentation
  *        (Borceux @em Handbook §4.3).
  *
- * @details Trait-registered via @c is_quotient_functor_v.
- * Categorically dual to @c IsEmbeddingFunctor: where embeddings
- * are fully-faithful-monic, quotients are coequalizer-epi.
+ * @details Quotients are @b epic in the categorical sense.  This
+ * concept therefore @b mechanically @b requires @c IsEpicArrow as
+ * the textbook structural prerequisite (in addition to the
+ * engineer-asserted @c is_quotient_functor_v trait that pins the
+ * stronger regular-epi / coequalizer reading).  Categorically dual
+ * to @c IsEmbeddingFunctor: where embeddings are fully-faithful-
+ * monic, quotients are coequalizer-epi.
+ *
  * No concrete witnesses today --- the slot is reserved for the
- * (A, F) anchor and #602's carrier-lattice quotient half.
+ * (A, F) anchor and #602's carrier-lattice quotient half.  When
+ * witnesses land, each registration site needs @b both the
+ * @c is_quotient_functor_v specialisation @b and the underlying
+ * @c is_epic_arrow_v specialisation.
  */
 export template <typename F>
-concept IsQuotientFunctor = IsArrow<F> && is_quotient_functor_v<F>;
+concept IsQuotientFunctor =
+    IsArrow<F> && IsEpicArrow<F> && is_quotient_functor_v<F>;
 
 }  // namespace dedekind::category
