@@ -426,6 +426,41 @@ constexpr auto image(F&& f, std::set<T, Compare, Alloc>&& s) {
   }
 }
 
+/** @brief image(f, ExtensionalSet<T, L>) --- #602 Layer 2 / Case B
+ *         enumeration-decidable specialisation.
+ *
+ *  @details Exhaustive iteration is the decidability path here ---
+ *  unlike the F-side cases (iso / monic-with-retract), this overload
+ *  imposes @b no invertibility requirement on @c F.  Decidability is
+ *  inherited from the source set's extensionality: every element of
+ *  the source set is enumerable, every image is computed by direct
+ *  application, and the result lives in a finite extensional carrier
+ *  with classical-equality-based membership.
+ *
+ *  The result preserves the source's logic species @c L and is itself
+ *  an @c ExtensionalSet<U, L> (with default Hash / Equal policies on
+ *  the codomain type when @c U @c != @c T).
+ *
+ *  Sibling of @c image(f, std::unordered_set<T>) and @c image(f, std::set<T>)
+ *  above; this overload promotes the result to the project's wrapper
+ *  carrier rather than the bare std-container shape, keeping logic-
+ *  species information intact.  Together with the F-side specialisations
+ *  (iso #657, retract #659 / Case A), this completes the "low-hanging
+ *  fruit" Layer-2 decidability landscape from the #602 layering proposal.
+ */
+export template <typename T, typename L, typename Hash, typename Equal,
+                 typename F>
+  requires std::invocable<F&, const T&>
+constexpr auto image(F&& f, const ExtensionalSet<T, L, Hash, Equal>& s) {
+  using U = std::remove_cvref_t<std::invoke_result_t<F&, const T&>>;
+  ExtensionalSet<U, L> out;
+  out.elements.reserve(s.size());
+  for (const auto& x : s.elements) {
+    out.elements.insert(std::invoke(f, x));
+  }
+  return out;
+}
+
 /** @brief filter(p, std::unordered_set<T, Hash, Equal, Alloc>) — lvalue.
  *
  *  @details Filter is always endomorphic on the element type, so the

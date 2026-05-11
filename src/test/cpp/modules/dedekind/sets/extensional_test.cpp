@@ -132,3 +132,58 @@ TEST_CASE("Sets: image / filter on std-container carriers (#602, trivial)",
     CHECK_FALSE(evens_isset.χ(3));
   }
 }
+
+TEST_CASE(
+    "Dedekind Sets: image(F, ExtensionalSet<T, L>) — #602 Layer 2 / Case B",
+    "[sets][image][extensional][enumerated][layer2][602]") {
+  // Enumeration-decidable image: no invertibility requirement on F.
+  // Decidability comes from the source's extensionality --- iterate,
+  // fmap, collect.  The result is an ExtensionalSet<U, L>, preserving
+  // the source's logic species.
+
+  SECTION("Endomorphic image preserves Classical logic species") {
+    ExtensionalSet<int, dedekind::category::ClassicalLogic> S;
+    S.elements = {1, 2, 3, 4, 5};
+
+    auto img = image([](const int& x) { return x * 2; }, S);
+
+    STATIC_CHECK(std::same_as<typename decltype(img)::logic_species,
+                              dedekind::category::ClassicalLogic>);
+    STATIC_CHECK(std::same_as<typename decltype(img)::Domain, int>);
+    CHECK(img.size() == 5u);
+    CHECK(img.contains(2));
+    CHECK(img.contains(10));
+    CHECK_FALSE(img.contains(3));  // Odd, not in 2*{1..5}.
+  }
+
+  SECTION("Cross-carrier image (T → U) lands in ExtensionalSet<U, L>") {
+    ExtensionalSet<int, dedekind::category::ClassicalLogic> S;
+    S.elements = {-1, 0, 1};
+
+    // Map to bool: is the int non-negative?
+    auto img = image([](const int& x) { return x >= 0; }, S);
+
+    STATIC_CHECK(std::same_as<typename decltype(img)::Domain, bool>);
+    STATIC_CHECK(std::same_as<typename decltype(img)::logic_species,
+                              dedekind::category::ClassicalLogic>);
+    // {-1, 0, 1} → {false, true} after image.
+    CHECK(img.size() == 2u);
+    CHECK(img.contains(true));
+    CHECK(img.contains(false));
+  }
+
+  SECTION(
+      "Non-injective F collapses duplicates (decidability via set semantics)") {
+    ExtensionalSet<int, dedekind::category::ClassicalLogic> S;
+    S.elements = {-2, -1, 0, 1, 2};
+
+    // x ↦ |x| collapses {-2,2} → 2 and {-1,1} → 1.
+    auto img = image([](const int& x) { return x < 0 ? -x : x; }, S);
+
+    CHECK(img.size() == 3u);  // {0, 1, 2}
+    CHECK(img.contains(0));
+    CHECK(img.contains(1));
+    CHECK(img.contains(2));
+    CHECK_FALSE(img.contains(-1));
+  }
+}
