@@ -392,6 +392,85 @@ static_assert(IsProductProjection<decltype([](const std::pair<int, bool>& p) {
               "π_2 must inhabit IsProductProjection<Product → RightPart>.");
 
 /**
+ * @section limit__Product_Parthood_Bridge
+ * Bridge: every product is a mereological parthood (#573 / #643).
+ *
+ * The bridge concept lives here in @c :limit because @c :limit already
+ * imports @c :mereology (the reverse would be a cycle), so this partition
+ * is the natural marriage point between the universal-property product
+ * vocabulary and Leśniewski's parthood vocabulary.
+ */
+
+/**
+ * @concept IsProductParthood
+ * @brief Bridge: a product P with parts A and B IS a mereological parthood.
+ *
+ * @details
+ * Names the structural equivalence between the universal-property product
+ * (Burris-Sankappanavar §I.1; Mac Lane CWM III.4) and the Leśniewski-style
+ * mereological reading: A and B are parts of P, accessed through canonical
+ * projections.  In Pierce-language (@em Basic Category Theory §1.4) the
+ * bridge reads as: @c π_1(p) and @c π_2(p) are the atomic part-access
+ * operations.  In pointer-like wrapper language, the same operations spell
+ * @c p->fst and @c p->snd.  Same difference.
+ *
+ * Constraint: the concept is anchored on @c IsProjectedProduct, so the
+ * type-system gate matches the textbook claim "P is a product, hence
+ * parthood".  By default @c WholeProject is @c std::identity, reducing the
+ * bridge to a direct @c IsProduct<P, A, B> check that @c std::pair walks
+ * out of the box.
+ *
+ * Pluggability: quotient-style wholes whose part-access does not go through
+ * @c .first / @c .second can supply a custom @p WholeProject policy that
+ * materialises a @c std::pair -shaped view of the parts (#573 slice 4
+ * onward).  This mirrors @c IsProjectedProduct's default-template-parameter
+ * pattern --- the bridge is exactly @c IsProjectedProduct re-stated under a
+ * parthood name.
+ *
+ * Sollbruchstelle (#573): downstream code that wants "A is mereologically
+ * part of P" writes @c IsProductParthood<P, A, B> rather than recapitulating
+ * @c IsProduct, and the name signals the parthood reading explicitly.
+ *
+ * @tparam P             The product whole.
+ * @tparam A             The left part.
+ * @tparam B             The right part.
+ * @tparam WholeProject  Optional projection policy materialising a pair-
+ *                       shaped view of P (default: @c std::identity).
+ */
+export template <typename P, typename A, typename B,
+                 typename WholeProject = std::identity>
+concept IsProductParthood = IsProjectedProduct<P, A, B, WholeProject>;
+
+// Compiler-validated witnesses: std::pair walks the bridge with the
+// std::identity default projection.
+static_assert(
+    IsProductParthood<std::pair<int, bool>, int, bool>,
+    "std::pair<A, B> must witness the product-parthood bridge by default.");
+static_assert(IsProductParthood<std::pair<bool, int>, bool, int>,
+              "Symmetric pair witness for the product-parthood bridge.");
+
+namespace detail {
+// Mock quotient-style whole exposing part-access through named members
+// rather than .first / .second --- proves the bridge plugs in a custom
+// WholeProject policy as advertised for the quotient case (#573 slice 4
+// onward).
+struct mock_quotient {
+  int representative;
+  bool canonical_form;
+};
+struct mock_quotient_to_pair_view {
+  constexpr std::pair<int, bool> operator()(const mock_quotient& q) const {
+    return {q.representative, q.canonical_form};
+  }
+};
+}  // namespace detail
+
+static_assert(IsProductParthood<detail::mock_quotient, int, bool,
+                                detail::mock_quotient_to_pair_view>,
+              "Quotient-style whole must witness the bridge through a custom "
+              "WholeProject policy.");
+
+/**
  * @concept IsCartesian
  * @brief A small category equipped with a terminal object @c 1 and binary
  *        products @c × --- a "cartesian category" in the textbook sense
