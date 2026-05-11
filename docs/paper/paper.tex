@@ -1912,6 +1912,22 @@ is resolved at compile time to exactly one of:
 \end{enumerate}
 \end{theorem}
 
+\begin{figure}[htbp]
+\centering
+\begin{tikzcd}[column sep=3em, row sep=4em, ampersand replacement=\&]
+\& \mathrm{Halfspace}\langle x \geq a^\star\rangle \,\cap\, \mathrm{Halfspace}\langle x \leq b^\star\rangle
+  \arrow[dl, "{[a^\star < b^\star]}"']
+  \arrow[d, "{[a^\star = b^\star]}"']
+  \arrow[dr, "{[a^\star > b^\star]}"] \& \\
+\mathrm{OrderInterval}[a^\star, b^\star] \& \mathrm{Singleton}\langle v\rangle \& \varnothing
+\end{tikzcd}
+\caption{The 1D type-directed collapse as a diagram chase (Theorem~\ref{thm:type-directed-collapse-1d}).
+The meet of the effective lower- and upper-bound halfspaces resolves at compile time into exactly one of three typed constants, selected by the side condition on the pivots: an \cppinline{OrderInterval}$[a^\star, b^\star]$ for the generic bounded case ($a^\star < b^\star$); a \cppinline{Singleton}$\langle v\rangle$ for the degenerate equality case ($a^\star = b^\star = v$, with $T$ integral so the unique inhabitant is the integer that pins both sides simultaneously); the empty set $\varnothing$ for the contradiction case ($a^\star > b^\star$).
+The diagram commutes on elements: $x$ inhabits the source meet iff $x$ inhabits the target type the side-condition selects.
+Mechanically witnessed by Showcase~3 ($\varnothing$ branch, \texttt{showcase\_03\_halfspace\_contradiction.cpp}) and Showcase~4 (\cppinline{Singleton<6>} branch, the cardinality-1 reduction in Listing~\ref{lst:pruning}); both fold to constant IR returns under \texttt{-O2}, as Listing~\ref{lst:pruning_ir} demonstrates for the empty-meet branch.}
+\label{fig:type-directed-collapse-1d}
+\end{figure}
+
 \begin{proof}
 By induction on $m + n$.
 
