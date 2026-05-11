@@ -362,7 +362,7 @@ static_assert(
     "embed_𝔹_𝕂3_ (𝔹 ↪ 𝕂3) is registered injective.");
 
 // IsEmbeddingFunctor witness (#633): @c embed_𝔹_𝕂3_ lifts the
-// two-element 𝔹 into the three-element 𝕂3 truth surface monicly
+// two-element 𝔹 into the three-element 𝕂3 truth surface monically
 // (False ↦ False, True ↦ True; the Unknown value is unreached).
 // Fully faithful + injective on objects per Mac Lane CWM §IV.4.
 template <>

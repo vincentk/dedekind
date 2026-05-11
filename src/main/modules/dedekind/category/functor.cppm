@@ -855,12 +855,28 @@ inline constexpr bool is_embedding_functor_v = false;
  * @c IsMonicArrow check is the mechanical verification that the
  * arrow's monic registration is also in place.
  *
+ * @b Opt-in @b semantics (#641 review note): the type-system gate
+ * here is @c IsArrow @c + @c IsMonicArrow @c + the @c
+ * is_embedding_functor_v trait.  It does @b not require the bare
+ * @c IsFunctor concept (which today carries the container-flavoured
+ * @c Shape<U> requirement, see @c functor__Two_Intuition_Pumps), so
+ * bare spoke arrows can register as @c IsEmbeddingFunctor witnesses
+ * without first satisfying @c IsFunctor.  This is intentional: the
+ * carrier-lattice @c embed_*_*_ family @b are functors @c Set<source>
+ * @c → @c Set<codomain> at the Mac Lane §I.3 level, but they're
+ * presented in the codebase as bare arrows rather than as @c IsFunctor
+ * witnesses with @c Σ_cat / @c Τ_cat slots.  The @c
+ * is_embedding_functor_v trait is the engineer's commitment to the
+ * functorial reading; once the deferred @c IsFunctor refactor lands
+ * (drop the @c Shape<U> requirement, per #633's "Implementation
+ * sequence"), this concept will be tightened to require @c IsFunctor.
+ *
  * @b Concrete @b witnesses (registered in @c :numbers and adjacent
  * partitions): @c embed_𝔹_ℕ_ (@c bool @c ↪ @c Cardinality), @c
  * embed_𝔹_𝕂3_ (@c bool @c ↪ @c TernaryLogic::Ω), @c embed_uint_ℕ_
  * (@c unsigned @c ↪ @c Cardinality), @c embed_sint_ℤ_ (@c int @c ↪
  * @c SignedCardinality), @c embed_ℤ_ℚ (machine_integer @c ↪ @c
- * Rational<I>).  Each is an arrow with @c IsMonomorphism / @c
+ * Rational<I>).  Each is an arrow with @c IsMonicArrow / @c
  * IsInjective + a registered @c is_embedding_functor_v specialisation
  * pinning the functor-level structural claim.
  *
