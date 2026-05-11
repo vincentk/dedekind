@@ -3,11 +3,37 @@
 #include <concepts>
 #include <exception>
 #include <functional>
+#include <utility>
 #include <variant>
 
 import dedekind.category;
 
 using namespace dedekind::category;
+
+// File-scope helpers for the product-as-parthood bridge test.  Registered as
+// IsSpecies via SpeciesTraits so the IsSpecies constraint on
+// IsProductParthood is satisfied; the type stands in for the future quotient
+// construction (#573 slice 4 onward).
+namespace product_parthood_test {
+struct QuotientEnvelope {
+  int representative{};
+  bool canonical_form{};
+};
+
+struct PairView {
+  constexpr std::pair<int, bool> operator()(const QuotientEnvelope& q) const {
+    return {q.representative, q.canonical_form};
+  }
+};
+}  // namespace product_parthood_test
+
+namespace dedekind::category {
+template <>
+struct SpeciesTraits<product_parthood_test::QuotientEnvelope> {
+  using Domain = product_parthood_test::QuotientEnvelope;
+  using machine_type = product_parthood_test::QuotientEnvelope;
+};
+}  // namespace dedekind::category
 
 TEST_CASE("Discrete: Terminal Object (1) - Pure Existence",
           "[category][discrete][terminal]") {
@@ -84,5 +110,22 @@ TEST_CASE("Discrete: Projected Boundary Semantics",
       }
     };
     STATIC_CHECK(IsProjectedInitialObject<InitialEnvelope, Drill>);
+  }
+}
+
+TEST_CASE("Limit: Product-as-Parthood Bridge",
+          "[category][limit][mereology][product][parthood]") {
+  SECTION("std::pair walks the bridge with the default projection") {
+    STATIC_CHECK(IsProductParthood<std::pair<int, bool>, int, bool>);
+    STATIC_CHECK(IsProductParthood<std::pair<bool, int>, bool, int>);
+  }
+
+  SECTION(
+      "Quotient-style whole walks the bridge through a custom WholeProject") {
+    // A quotient-flavoured envelope without .first / .second --- the
+    // WholeProject policy materialises a pair view of the parts, exactly the
+    // shape #573 slice 4 onward will need for the quotient construction.
+    STATIC_CHECK(IsProductParthood<product_parthood_test::QuotientEnvelope, int,
+                                   bool, product_parthood_test::PairView>);
   }
 }

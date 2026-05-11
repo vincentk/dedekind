@@ -431,44 +431,23 @@ static_assert(IsProductProjection<decltype([](const std::pair<int, bool>& p) {
  * part of P" writes @c IsProductParthood<P, A, B> rather than recapitulating
  * @c IsProduct, and the name signals the parthood reading explicitly.
  *
- * @tparam P             The product whole.
- * @tparam A             The left part.
- * @tparam B             The right part.
+ * @tparam P             The product whole (an @c IsSpecies object).
+ * @tparam A             The left part (an @c IsSpecies object).
+ * @tparam B             The right part (an @c IsSpecies object).
  * @tparam WholeProject  Optional projection policy materialising a pair-
  *                       shaped view of P (default: @c std::identity).
  */
 export template <typename P, typename A, typename B,
                  typename WholeProject = std::identity>
-concept IsProductParthood = IsProjectedProduct<P, A, B, WholeProject>;
+concept IsProductParthood = IsSpecies<P> && IsSpecies<A> && IsSpecies<B> &&
+                            IsProjectedProduct<P, A, B, WholeProject>;
 
-// Compiler-validated witnesses: std::pair walks the bridge with the
-// std::identity default projection.
+// Compiler-validated witness: std::pair walks the bridge with the
+// std::identity default projection.  Pluggability of @p WholeProject for
+// quotient-style wholes is exercised in the test fork (#573 slice 4 onward).
 static_assert(
     IsProductParthood<std::pair<int, bool>, int, bool>,
     "std::pair<A, B> must witness the product-parthood bridge by default.");
-static_assert(IsProductParthood<std::pair<bool, int>, bool, int>,
-              "Symmetric pair witness for the product-parthood bridge.");
-
-namespace detail {
-// Mock quotient-style whole exposing part-access through named members
-// rather than .first / .second --- proves the bridge plugs in a custom
-// WholeProject policy as advertised for the quotient case (#573 slice 4
-// onward).
-struct mock_quotient {
-  int representative;
-  bool canonical_form;
-};
-struct mock_quotient_to_pair_view {
-  constexpr std::pair<int, bool> operator()(const mock_quotient& q) const {
-    return {q.representative, q.canonical_form};
-  }
-};
-}  // namespace detail
-
-static_assert(IsProductParthood<detail::mock_quotient, int, bool,
-                                detail::mock_quotient_to_pair_view>,
-              "Quotient-style whole must witness the bridge through a custom "
-              "WholeProject policy.");
 
 /**
  * @concept IsCartesian
