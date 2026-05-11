@@ -126,7 +126,10 @@ concept IsSetObject = IsSubobject<S, A> && requires {
  */
 export template <typename S, typename Underlying, typename Classifier>
 concept SetAsProduct = IsSetObject<S, Underlying> && requires(const S& s) {
-  { s.χ } -> std::convertible_to<Classifier>;
+  // Match the projected type of s.χ exactly (after stripping cv-ref) so
+  // the seam captures the structural identity rather than relying on
+  // implicit conversions.  Per PR #650 review.
+  requires std::same_as<std::remove_cvref_t<decltype(s.χ)>, Classifier>;
 };
 
 /**
