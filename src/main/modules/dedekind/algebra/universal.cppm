@@ -409,6 +409,69 @@ static_assert(
     "interpretation (idempotent ∧, involutive ⊕).");
 
 // ---------------------------------------------------------------------------
+// AlgebraAsProduct: set-level sibling of HasCarrier (#573 slice 3 / #645).
+// ---------------------------------------------------------------------------
+
+/**
+ * @concept AlgebraAsProduct
+ * @brief Set-level sibling of @c HasCarrier: an algebra is a product of
+ *        (set object, operations on the underlying type).
+ *
+ * @details
+ * Where element-level @c HasCarrier<Algebra, Carrier, Ops...> reads the
+ * carrier as a TYPE (e.g.\ @c int, @c bool, @c unsigned), this set-level
+ * concept reads the carrier as a SET OBJECT --- something with both an
+ * underlying species and a characteristic morphism @c χ.  In universal-
+ * algebra vocabulary (Burris--Sankappanavar §I.1): every algebra
+ * @c (A, @c F) is a pair of (carrier set @c A, operations @c F);
+ * element-level @c HasCarrier names the (A_type, F) reading, this
+ * set-level concept names the full (A_set, F) reading where A_set is
+ * the categorical set object carrying both the underlying type and the
+ * membership predicate.
+ *
+ * The two concepts are siblings, not replacements:
+ *   - @c HasCarrier:        the C++-idiomatic form ("algebra over @c int")
+ *   - @c AlgebraAsProduct:  the textbook-idiomatic form ("algebra over a set")
+ *
+ * Composition (read as @c &&-as-intersection):
+ *
+ * @code
+ *   AlgebraAsProduct<A, Set, Ops...>
+ *     := IsSetObject<Set, Set::Ambient>        (Set is a set object)
+ *      ∧ HasCarrier<A, Set::Ambient, Ops...>   (A has Set::Ambient as
+ *                                               carrier with these Ops)
+ * @endcode
+ *
+ * @par Sollbruchstelle (#573)
+ * Names the (Set, Operations) product reading of an algebra explicitly,
+ * complementing slice 2's @c SetAsProduct<Set, Underlying, Classifier>
+ * in @c :category:concrete.  Together they encode the nested-product
+ * structure  algebra → set → underlying  as typed obligations rather
+ * than naming conventions.  The pilot witness on a real named carrier
+ * (@c Rational<I>) ships in #573 slice 4 (#646).
+ *
+ * @tparam A    The algebra (whole).
+ * @tparam Set  The underlying set object (an @c IsSetObject; the left
+ *              part of the (Set, Operations) pair).
+ * @tparam Ops  The operations on @c Set::Ambient (the right part).
+ *
+ * @see @c HasCarrier above (element-level sibling, this partition).
+ * @see @c SetAsProduct (set-level sibling, @c :category:concrete; #644
+ *      slice 2).
+ * @see Burris \& Sankappanavar 1981 §I.1 (algebra @c (A, @c F) pair).
+ */
+export template <typename A, typename Set, typename... Ops>
+concept AlgebraAsProduct =
+    dedekind::category::IsSetObject<Set, typename Set::Ambient> &&
+    HasCarrier<A, typename Set::Ambient, Ops...>;
+
+// Pilot witness for AlgebraAsProduct ships in #573 slice 4 (#646) ---
+// see Rational<I>'s static_assert at its definition site.  Witnesses
+// using ad-hoc :sets:expressions classify<T>(...) constructions live in
+// the test fork (algebra/algebra_as_product_test.cpp) per the project's
+// "no mocks in main" guidance (PR #648 review).
+
+// ---------------------------------------------------------------------------
 // Phase 2: Homomorphisms — arrows between algebras (#506).
 // ---------------------------------------------------------------------------
 //
