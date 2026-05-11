@@ -1351,9 +1351,9 @@ T \arrow[r, "\mathrm{Free}_n", hook] \& V_n(T) = T^n \arrow[r, "\mathrm{End}_T",
                                                   \arrow[l, shift right=2, "\mathrm{row}_i / \mathrm{col}_j"', dashed]
 \end{tikzcd}
 \caption{The rank progression scalar $\to$ vector $\to$ matrix as a commuting diagram (Table~\ref{tab:rosetta-rank}).
-Forward arrows (solid, $\hookrightarrow$) are total morphisms: $\mathrm{Free}_n$ embeds the scalar $T$ as a $1$-tuple (or, equivalently, lifts to a $1{\times}1$ matrix via the composite $\mathrm{End}_T \circ \mathrm{Free}_n$); $\mathrm{End}_T$ promotes a free module $V_n(T)$ to its endomorphism ring $M_n(T)$.
-Reverse arrows (dashed) are not categorical inverses: $\pi_i : V_n \to T$ projects to a single coordinate (a left inverse of $\mathrm{Free}_n$ only on the $i$-th axis), and $\mathrm{row}_i / \mathrm{col}_j : M_n \to V_n$ extracts a row or column (a basis-dependent reduction, not a quotient).
-The diagram commutes on data: the composite $T \hookrightarrow V_n \hookrightarrow M_n$ agrees with the direct scalar-as-$1{\times}1$-matrix embedding, and reductions through the dashed arrows recover scalars from matrices in the basis-aligned subcases.
+Forward arrows (solid, $\hookrightarrow$) are total morphisms: $\mathrm{Free}_n$ is the free-module-of-rank-$n$ construction $T \mapsto V_n(T) = T^n$ (\textbf{P} in the HSP sense; Burris--Sankappanavar §II.10); $\mathrm{End}_T$ is the endomorphism-ring construction $V_n(T) \mapsto M_n(T) = \mathrm{End}_T(V_n)$ (internal hom in $\mathbf{Mod}_R$; Mac Lane CWM §VII).
+Reverse arrows (dashed) are not categorical inverses: $\pi_i : V_n \to T$ projects to a single coordinate (a left inverse of $\mathrm{Free}_n$ only along the $i$-th axis), and $\mathrm{row}_i / \mathrm{col}_j : M_n \to V_n$ extracts a row or column (a basis-dependent reduction, not a quotient).
+The rank ladder reads left-to-right: the only path scalar~$\to$~matrix is the forward composite $T \hookrightarrow V_n \hookrightarrow M_n$; the dashed arrows recover the lower rung from the higher one in the basis-aligned subcases.
 In the codebase the three vertices are inhabited by \cppinline{T}, \cppinline{Vec2V<T>}, and \cppinline{Matrix2x2V<T>} at $n = 2$ (Table~\ref{tab:rosetta-rank}); higher ranks ship through the combinators \texttt{DirectSum} / \texttt{BlockUpperTriangular} / \texttt{Kronecker} (\#368).}
 \label{fig:rank-progression}
 \end{figure}
