@@ -86,6 +86,50 @@ concept IsSetObject = IsSubobject<S, A> && requires {
 };
 
 /**
+ * @concept SetAsProduct
+ * @brief Set := (Underlying, Classifier) read as a product, in the
+ *        projection-access sense.
+ *
+ * @details
+ * Names the @em product reading of a set object explicitly --- a set is a
+ * pair of (i) its underlying ambient species @p Underlying, accessed
+ * type-level via @c S::Ambient, and (ii) its characteristic morphism
+ * @p Classifier, accessed value-level via the projector @c s.χ.  Sibling
+ * to @c IsSetObject, which names the @em predicate reading "S is a
+ * subobject of A".  The two readings carve the same surface from
+ * different angles.
+ *
+ * @par Why this concept exists (#573 / #644 --- Sollbruchstelle)
+ * The user's framing for the HAS-A maturation: "a set should be a product
+ * in the @c :cartesian sense of an underlying and predicates."  This
+ * concept names that seam.  It refines @c IsSetObject by adding a typed
+ * obligation that the classifier projects to @p Classifier --- a
+ * structural witness that the (Underlying, Classifier) decomposition is
+ * recoverable.  Downstream slices (#573 slice 3 @c AlgebraAsProduct,
+ * slice 4 pilot witness) compose on this name.
+ *
+ * @par Relation to @c IsProductParthood
+ * The bridge concept @c IsProductParthood in @c :limit asserts the
+ * structural product-as-parthood reading uniformly via
+ * @c IsProjectedProduct.  @c SetAsProduct is the set-level specialisation,
+ * but the asymmetry "Underlying is a type, Classifier is a value" makes
+ * a direct @c IsProductParthood composition awkward at this slice ---
+ * the parts are accessed through different kinds of projectors
+ * (type-level @c ::Ambient vs.\ value-level @c .χ).  The concepts are
+ * logical siblings, not typed dependencies; future slices may unify the
+ * projector vocabulary once a natural meeting point emerges.
+ *
+ * @tparam S           The set object.
+ * @tparam Underlying  The ambient species (an @c IsSpecies object).
+ * @tparam Classifier  The characteristic-morphism type projected from
+ *                     @c s.χ.
+ */
+export template <typename S, typename Underlying, typename Classifier>
+concept SetAsProduct = IsSetObject<S, Underlying> && requires(const S& s) {
+  { s.χ } -> std::convertible_to<Classifier>;
+};
+
+/**
  * @concept IsConcrete
  * @brief A small category @c C is @em concrete when its objects are
  *        themselves sets --- equivalently, when there is a faithful functor
