@@ -1015,21 +1015,32 @@ struct ComposedRetractImagePredicate {
  *         inverse via the @c retract(f) ADL hook).  #602 Layer 2 / Case A.
  *
  *  @details When @c f is a monomorphism (@c IsMonicArrow) AND ships a
- *  retract @c retract(f) @c : @c Cod(f) @c → @c Maybe<Dom(f)>, the image
- *  of an intensional Set is mechanically recoverable via the retract:
+ *  retract @c retract(f) @c : @c Cod(f) @c → @c std::optional<Dom(f)>,
+ *  the image of an intensional Set is mechanically recoverable via the
+ *  retract:
  *
  *  @code
  *    image(f, S)(y)
  *      = let mx = retract(f)(y);
- *        mx.has_value() ? S(mx.value()) : L::False
+ *        mx.has_value() ? S(*mx) : L::False
  *  @endcode
  *
- *  This is strictly more general than the @c IsIsomorphism specialisation
- *  above (#657 sister): iso arrows happen to be retractable too (retract
- *  is inverse wrapped in always-Some), but most carrier-lattice embeddings
- *  in the project (@c embed_𝔹_ℕ, @c embed_uint_ℕ, @c embed_sint_ℤ, ...)
- *  are monic-but-not-iso with natural retracts that can opt in to this
- *  path by registering a @c retract overload.
+ *  The retract contract is @c std::optional -shaped specifically (the
+ *  @c IsRetractableArrow concept in @c :morphism gates on
+ *  @c std::same_as<std::optional<Dom<F>>>); generalising to the
+ *  project's broader @c IsPotential surface (@c Partial<T> /
+ *  @c TernaryResult<T> etc.) is a deliberate follow-up.
+ *
+ *  This is independent of the @c IsIsomorphism specialisation above
+ *  (#657 sister): although every iso has a structural total retract,
+ *  this PR does @b not auto-register a @c retract hook for arbitrary
+ *  iso arrows, so iso routes through the @c IsIsomorphism overload
+ *  unchanged.  The retract path handles the monic-but-not-iso case ---
+ *  most carrier-lattice embeddings in the project (@c embed_𝔹_ℕ,
+ *  @c embed_uint_ℕ, @c embed_sint_ℤ, ...) are monic and admit a
+ *  natural retract, and can opt in to this path by registering a
+ *  @c retract overload alongside their existing @c is_monic_arrow_v
+ *  declaration.
  *
  *  The result keeps the source's logic species @c L (no demotion to
  *  Ternary) and stores the composed predicate carrying both the source
@@ -1037,10 +1048,11 @@ struct ComposedRetractImagePredicate {
  *
  *  @par Disambiguation against the iso overload
  *  The @c !IsIsomorphism guard in the requires-clause keeps iso arrows
- *  on the simpler unconditional-inverse path above (#657) and only
- *  routes genuinely-partial retracts here.  Both overloads otherwise
- *  satisfy the same partial-ordering tier (more constrained than the
- *  @c IsArrow fallback), so the guard is the explicit tiebreaker.
+ *  on the simpler unconditional-inverse path above (#657) in the
+ *  hypothetical case where a user did opt an iso arrow into the
+ *  retract path (by registering a retract hook on it).  Without that
+ *  guard, an iso arrow that also happened to be retractable would be
+ *  ambiguous between the two overloads; with it, iso always wins.
  */
 export template <typename T, typename L, typename P,
                  dedekind::category::IsRetractableArrow F>
