@@ -955,6 +955,51 @@ static_assert(IsEpicArrow<Identity<int>>,
               "Identity must be recognised as an epic arrow.");
 
 /**
+ * @concept IsRetractableArrow
+ * @brief A monic arrow that ships with a structurally-known
+ *        @em retract --- a partial inverse @c retract(f) @c : @c Cod<F>
+ *        @c → @c Maybe<Dom<F>> --- discoverable via ADL on @p F.
+ *
+ * @details The retract is the operational gate for a decidability path
+ * on @c image(f, S) that's strictly more general than @c IsIsomorphism
+ * (which requires a @em total inverse): for a monic @c F that admits a
+ * partial inverse, the image membership
+ *
+ *   @c y @c ∈ @c image(F, @c S)
+ *
+ * reduces to
+ *
+ *   @c let @c mx @c = @c retract(f)(y); @c mx.has_value() @c && @c
+ * S(mx.value())
+ *
+ * which is decidable whenever the retract itself is decidable.  The
+ * canonical project use case is the @c embed_* family of carrier-
+ * lattice embeddings, each of which is monic and admits a natural
+ * partial inverse (e.g.\ @c embed_𝔹_ℕ has retract
+ * @c Cardinality @c → @c Maybe<bool>; @c embed_uint_ℕ has retract
+ * @c Cardinality @c → @c Maybe<unsigned> that fires on the finite-
+ * representable range).
+ *
+ * @par Relation to @c IsIsomorphism
+ * Iso arrows are retractable (the retract is @c inverse(f) wrapped in
+ * the always-Some branch), so structurally @c IsIsomorphism ⊂
+ * @c IsRetractableArrow.  In code we keep the two image-overload paths
+ * disjoint via a @c !IsIsomorphism guard on the retract overload, so
+ * iso routes through the simpler unconditional-inverse path (PR #657)
+ * and only genuinely-partial retracts route through the retract path.
+ *
+ * @par Opt-in semantics
+ * Retracts are user-declared via the @c retract(f) ADL hook (like
+ * @c inverse for @c IsIsomorphism); the concept's @c requires-clause
+ * only checks that the hook is well-formed.  The user owns the
+ * @b correctness obligation (the hook genuinely partially-inverts F).
+ */
+export template <typename F>
+concept IsRetractableArrow = IsMonicArrow<F> && requires(F f) {
+  { retract(f) };
+};
+
+/**
  * @concept IsBijectiveArrow
  * @brief An arrow declared to be both a monomorphism (ι: A ↣ B) and an
  *        epimorphism (π: A ↠ B), i.e. an isomorphism of sets (A ≅ B).

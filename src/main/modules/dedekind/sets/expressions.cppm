@@ -902,6 +902,84 @@ constexpr auto image(F&&, const Set<T, L, P>&) {
       SymbolicImagePredicate<U>{}};
 }
 
+/** @brief Composed predicate for the retract-decidable @c image(f, Set)
+ *         specialisation: @c y @c ↦ @c let @c mx @c = @c retract(f)(y);
+ *         @c mx.has_value() @c ? @c S(mx.value()) @c : @c L::False.
+ *
+ *  @details Operational shape:
+ *  - When @c retract(f)(y) has a value, the membership query factors
+ *    through the source set's @c operator() at that preimage.
+ *  - When the retract returns nothing, @c y is structurally outside
+ *    @c image(F, S) and the predicate returns @c L::False directly.
+ *
+ *  Stores the source set and the retract callable by value.  Sister
+ *  predicate shape to the (in-flight) @c ComposedIsoImagePredicate
+ *  from #657 / #602 Case A's iso sibling.
+ */
+template <typename SourceSet, typename RetractFn, typename L>
+struct ComposedRetractImagePredicate {
+  SourceSet source;
+  RetractFn retract_fn;
+
+  template <typename U>
+  constexpr typename L::Ω operator()(const U& y) const {
+    auto mx = retract_fn(y);
+    if (mx.has_value()) {
+      return source(*mx);
+    }
+    return L::False;
+  }
+};
+
+/** @brief image(monic-with-retract f, Set<T, L, P>) --- @b decidable
+ *         specialisation for monic arrows that ship a retract (a partial
+ *         inverse via the @c retract(f) ADL hook).  #602 Layer 2 / Case A.
+ *
+ *  @details When @c f is a monomorphism (@c IsMonicArrow) AND ships a
+ *  retract @c retract(f) @c : @c Cod(f) @c → @c Maybe<Dom(f)>, the image
+ *  of an intensional Set is mechanically recoverable via the retract:
+ *
+ *  @code
+ *    image(f, S)(y)
+ *      = let mx = retract(f)(y);
+ *        mx.has_value() ? S(mx.value()) : L::False
+ *  @endcode
+ *
+ *  This is strictly more general than the @c IsIsomorphism specialisation
+ *  (#657 sister): iso arrows happen to be retractable too (retract is
+ *  inverse wrapped in always-Some), but most carrier-lattice embeddings
+ *  in the project (@c embed_𝔹_ℕ, @c embed_uint_ℕ, @c embed_sint_ℤ, ...)
+ *  are monic-but-not-iso with natural retracts that can opt in to this
+ *  path by registering a @c retract overload.
+ *
+ *  The result keeps the source's logic species @c L (no demotion to
+ *  Ternary) and stores the composed predicate carrying both the source
+ *  set and the retract callable.
+ *
+ *  @par Disambiguation against the iso overload
+ *  The @c !IsIsomorphism guard in the requires-clause keeps iso arrows
+ *  on the simpler unconditional-inverse path (#657, sister sub-task)
+ *  and only routes genuinely-partial retracts here.  Both overloads
+ *  otherwise satisfy the same partial-ordering tier (more constrained
+ *  than the @c IsArrow fallback), so the guard is the explicit
+ *  tiebreaker.
+ */
+export template <typename T, typename L, typename P,
+                 dedekind::category::IsRetractableArrow F>
+  requires std::same_as<dedekind::category::Dom<std::remove_cvref_t<F>>, T> &&
+           (!dedekind::category::IsIsomorphism<std::remove_cvref_t<F>>)
+constexpr auto image(F&& f, const Set<T, L, P>& s) {
+  using U = dedekind::category::Cod<std::remove_cvref_t<F>>;
+  // Unqualified call so ADL routes to the retract overload registered
+  // for f's type in the appropriate namespace.  The IsRetractableArrow
+  // concept guarantees the call is well-formed.
+  auto retract_fn = retract(std::forward<F>(f));
+  using RetractFn = std::remove_cvref_t<decltype(retract_fn)>;
+  using NewPredicate =
+      ComposedRetractImagePredicate<Set<T, L, P>, RetractFn, L>;
+  return Set<U, L, NewPredicate>{NewPredicate{s, std::move(retract_fn)}};
+}
+
 /** @brief Explicit set complement overload to avoid picking category morphism
  * `!`. */
 export template <typename T, typename L, typename Predicate>

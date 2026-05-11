@@ -1,10 +1,41 @@
 #include <catch2/catch_test_macros.hpp>
+#include <optional>
 
 import dedekind.category;
 import dedekind.sets;
 
 using namespace dedekind::category;
 using namespace dedekind::sets;
+
+// Test-fork helpers for the retract-decidable image specialisation
+// (#602 Layer 2 / Case A / #659).  A non-iso monic arrow whose image
+// is decidable through a partial inverse (retract).
+//
+// DoubleArrow: int → int, x ↦ 2*x.  Monic (the user declares
+// is_monic_arrow_v) but not iso (the codomain is "even ints only", so
+// no total inverse on the natural int).  Retract: y ↦ y/2 if y is
+// even, else nullopt.
+namespace retract_image_test {
+struct DoubleArrow {
+  using Domain = int;
+  using Codomain = int;
+  constexpr int operator()(int x) const { return 2 * x; }
+};
+
+constexpr auto retract(DoubleArrow) {
+  return [](const int& y) -> std::optional<int> {
+    if (y % 2 == 0) return y / 2;
+    return std::nullopt;
+  };
+}
+}  // namespace retract_image_test
+
+// Register the monic trait so IsMonicArrow (and IsRetractableArrow)
+// fire on the test wrapper.
+template <>
+inline constexpr bool
+    dedekind::category::is_monic_arrow_v<retract_image_test::DoubleArrow> =
+        true;
 
 TEST_CASE("Dedekind MVP: Basic Membership and Symbols", "[sets]") {
   SECTION("Integer Universe Membership") {
@@ -424,5 +455,42 @@ TEST_CASE("Dedekind Sets: Heterogeneous subset semantics",
 
     CHECK(positive.is_subset_of_at(small, 5) == false);
     CHECK(positive.is_subset_of_at(small, -1) == true);
+  }
+}
+
+TEST_CASE(
+    "Dedekind Sets: image(monic-with-retract, Set) — #602 Layer 2 / Case A",
+    "[sets][image][retract][monic][layer2][602]") {
+  // DoubleArrow is monic (declared above) but not iso --- the codomain
+  // is "even ints", a strict subset of int.  The retract sends even y
+  // back to y/2 and odd y to nullopt.  Test that:
+  //   (i)  image(DoubleArrow, S) preserves the source's logic species
+  //        (no demotion to TernaryLogic);
+  //   (ii) y in image iff y is even AND y/2 in S (decidable);
+  //   (iii) odd y is always out of image (the retract returns nullopt).
+
+  SECTION("Classical: image preserves Classical decidability") {
+    const auto positive_pred = [](const int& v) { return v > 0; };
+    const Set<int, ClassicalLogic, decltype(positive_pred)> positive{
+        positive_pred};
+
+    auto img = image(retract_image_test::DoubleArrow{}, positive);
+
+    // Logic species is preserved (NOT TernaryLogic, which would be the
+    // IsArrow-fallback result).
+    STATIC_CHECK(
+        std::same_as<typename decltype(img)::logic_species, ClassicalLogic>);
+    STATIC_CHECK(std::same_as<typename decltype(img)::Ambient, int>);
+
+    // y = 10 is even, 10/2 = 5 > 0, so in image.
+    CHECK(img(10) == true);
+    // y = 4 is even, 4/2 = 2 > 0, so in image.
+    CHECK(img(4) == true);
+    // y = -6 is even, -6/2 = -3, not > 0, so NOT in image.
+    CHECK(img(-6) == false);
+    // y = 7 is odd, retract returns nullopt → NOT in image.
+    CHECK(img(7) == false);
+    // y = -3 is odd, same story.
+    CHECK(img(-3) == false);
   }
 }
