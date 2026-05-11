@@ -1917,14 +1917,15 @@ is resolved at compile time to exactly one of:
 \begin{tikzcd}[column sep=3em, row sep=4em, ampersand replacement=\&]
 \& \mathrm{Halfspace}\langle x \geq a^\star\rangle \,\cap\, \mathrm{Halfspace}\langle x \leq b^\star\rangle
   \arrow[dl, "{[a^\star < b^\star]}"']
-  \arrow[d, "{[a^\star = b^\star]}"']
+  \arrow[d, "{[a^\star = b^\star,\, T \text{ integral}]}"']
   \arrow[dr, "{[a^\star > b^\star]}"] \& \\
-\mathrm{OrderInterval}[a^\star, b^\star] \& \mathrm{Singleton}\langle v\rangle \& \varnothing
+\mathrm{OrderInterval}\langle a^\star, b^\star\rangle \& \mathrm{Singleton}\langle v\rangle \& \mathrm{EmptyPredicate}\langle T\rangle
 \end{tikzcd}
 \caption{The 1D type-directed collapse as a diagram chase (Theorem~\ref{thm:type-directed-collapse-1d}).
-The meet of the effective lower- and upper-bound halfspaces resolves at compile time into exactly one of three typed constants, selected by the side condition on the pivots: an \cppinline{OrderInterval}$[a^\star, b^\star]$ for the generic bounded case ($a^\star < b^\star$); a \cppinline{Singleton}$\langle v\rangle$ for the degenerate equality case ($a^\star = b^\star = v$, with $T$ integral so the unique inhabitant is the integer that pins both sides simultaneously); the empty set $\varnothing$ for the contradiction case ($a^\star > b^\star$).
+The meet of the effective lower- and upper-bound halfspaces resolves at compile time into exactly one of three typed constants, selected by the side condition on the pivots: an \cppinline{OrderInterval<a*, b*>} for the generic bounded case ($a^\star < b^\star$); a \cppinline{Singleton<v>} for the degenerate equality case ($a^\star = b^\star = v$) \emph{when $T$ is integral} (the integrality guard from Theorem~\ref{thm:type-directed-collapse-1d} case 2; on a non-integral $T$ the equality case stays in the (degenerate) \cppinline{OrderInterval<a*, a*>} branch instead); and \cppinline{EmptyPredicate<T>} (lifted to $\varnothing$ at the topos level) for the contradiction case ($a^\star > b^\star$).
 The diagram commutes on elements: $x$ inhabits the source meet iff $x$ inhabits the target type the side-condition selects.
-Mechanically witnessed by Showcase~3 ($\varnothing$ branch, \texttt{showcase\_03\_halfspace\_contradiction.cpp}) and Showcase~4 (\cppinline{Singleton<6>} branch, the cardinality-1 reduction in Listing~\ref{lst:pruning}); both fold to constant IR returns under \texttt{-O2}, as Listing~\ref{lst:pruning_ir} demonstrates for the empty-meet branch.}
+Implementation hook: the meet is realised by \cppinline{structured_and(Halfspace<...,Upward,...>, Halfspace<...,Downward,...>)} in \texttt{dedekind.order:halfspace}, which case-splits the pivot comparison at compile time and returns the corresponding typed constant directly; the empty-result type \cppinline{EmptyPredicate<T>} lives in \texttt{dedekind.order} and lifts to \cppinline{Ø<T,L>} in \texttt{dedekind.sets:boundaries}.
+Mechanically witnessed by Showcase~3 (\cppinline{EmptyPredicate<T>} branch, \texttt{showcase\_03\_halfspace\_contradiction.cpp}) and Showcase~4 (\cppinline{Singleton<6>} branch, the cardinality-1 reduction in Listing~\ref{lst:pruning}); both fold to constant IR returns under \texttt{-O2}, as Listing~\ref{lst:pruning_ir} demonstrates for the empty-meet branch.}
 \label{fig:type-directed-collapse-1d}
 \end{figure}
 
