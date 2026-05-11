@@ -156,8 +156,16 @@ concept IsAlgebra = std::regular<T> && (... && IsOpOn<T, Ops>);
 //             (the F; set-level ops like complement / | / & live on X
 //              itself, not in Ops, so they're never confused with F).
 //
+// Gated by @c IsArrow on @c X (#623): under the project's current
+// set-as-characteristic-morphism encoding, a "set" @b is its @c χ :
+// @c T @c → @c Ω --- so @c IsArrow<X> implies @c typename @c X::Domain
+// is well-formed.  Gating at the concept level shortens diagnostics
+// on mis-use compared to the inlined @c requires @c { @c typename @c
+// X::Domain; @c } pattern.  If the encoding later decouples sets
+// from arrows, the gate is the natural site to revisit.
 export template <typename X, typename... Ops>
-concept IsAlgebraOnSet = IsAlgebra<typename X::Domain, Ops...>;
+concept IsAlgebraOnSet =
+    dedekind::category::IsArrow<X> && IsAlgebra<typename X::Domain, Ops...>;
 
 // ---------------------------------------------------------------------------
 // IsTotalAlgebra: the totality-tier anchor between :universal and :total

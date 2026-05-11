@@ -1,6 +1,6 @@
 # Submission package
 
-Submission-portal metadata for *Sets Are Rules, Not Buckets*
+Submission-portal metadata for *Rules on Buckets are Set*
 (target: the journal *Programming*).  These artefacts are *not*
 part of the paper proper; they live here so they are tracked
 alongside the paper and travel with it.

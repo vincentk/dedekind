@@ -79,10 +79,19 @@ struct Comprehension {
   static constexpr bool is_idempotent_v = true;
 };
 
+// @c BoundScout forward declaration, gated by @c IsArrow (from
+// @c :category:morphism) on @c decltype(Ambient) per #623 so callers
+// passing a value whose type lacks @c ::Domain hit a single diagnostic
+// at the declaration site rather than a cascade of template-instantiation
+// errors inside @c BoundScout's body.  The textbook justification for
+// the @c IsArrow gate (a set IS its characteristic morphism under the
+// current encoding) is in the longer comment on @c element below.
+
 /** @brief Forward declaration of @c BoundScout (post-#551), needed by
  *  @c MembershipBinding<S>::operator| below for the bool-truthy
  *  specialisation. */
 export template <auto Ambient>
+  requires dedekind::category::IsArrow<std::remove_cvref_t<decltype(Ambient)>>
 struct BoundScout;
 
 /** @brief Boolean equality predicate for compile-time pruning over 𝔹.
@@ -161,6 +170,7 @@ struct MembershipBinding {
  * AmbientType::Domain below).
  */
 export template <auto Ambient>
+  requires dedekind::category::IsArrow<std::remove_cvref_t<decltype(Ambient)>>
 struct BoundScout {
   using AmbientType = std::remove_cvref_t<decltype(Ambient)>;
   using T = typename AmbientType::Domain;
@@ -207,8 +217,18 @@ struct BoundScout {
  *  ambient value.  Companion to @c Ω<T>: spell @c element<Ω<T>> to
  *  get a scout that ranges over the universal predicate at carrier
  *  @c T.  */
+// Gated by @c IsArrow (#623): the @c BoundScout instantiation requires
+// @c decltype(Ambient)::Domain.  Under the project's @b current encoding
+// a "set" @b is its characteristic morphism @c χ : @c T @c → @c Ω
+// (ETCS reading), so any IsArrow has @c ::Domain, and the project's
+// set-as-predicate carriers (@c Ω<T>, @c UniversalSet<T, L, C>, @c
+// Subobject<A, χ>) all satisfy @c IsArrow via their @c χ --- no need
+// for a project-specific @c HasUnderlyingCarrier concept.  If the
+// encoding later decouples sets from arrows (e.g. sets as
+// non-characteristic carriers), the gate is the natural site to
+// revisit.
 export template <auto Ambient>
-//  requires IsSet<Ambient>
+  requires dedekind::category::IsArrow<std::remove_cvref_t<decltype(Ambient)>>
 inline constexpr BoundScout<Ambient> element{};
 
 /** @brief Soft alias @c in<Ambient> for @c element<Ambient> (#603) ---
@@ -237,6 +257,7 @@ inline constexpr BoundScout<Ambient> element{};
  *  in the @c sets DSL idiomatically route through @c S.contains(x) on
  *  the set value itself, sidestepping the conflict. */
 export template <auto Ambient>
+  requires dedekind::category::IsArrow<std::remove_cvref_t<decltype(Ambient)>>
 inline constexpr BoundScout<Ambient> const& in = element<Ambient>;
 
 // True-alias witness: @c in<A> and @c element<A> are the same object
