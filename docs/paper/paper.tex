@@ -882,7 +882,30 @@ $P$. Nothing is enumerated, nothing is allocated, nothing is stored. The
 predicate \emph{is} the set.
 
 That shift---what Lawvere called the comprehension view~\cite{lawvere1964etcs,
-lawvere2003sets}---is the one idea this section needs. Once you accept it,
+lawvere2003sets}---is the one idea this section needs.
+Figure~\ref{fig:comprehension-triangle} reads it as a commuting triangle: the predicate, the comprehension set, and the truth-value $\Omega$ form three vertices, and the two paths from the predicate to $\Omega$ (evaluate directly vs.\ build the set and ask membership) agree.
+That agreement is the entire content of ``the predicate \emph{is} the set''.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzcd}[column sep=5em, row sep=4em, ampersand replacement=\&]
+\& P : A \to \Omega
+  \arrow[dl, "\mathrm{compr.}\;\; P \,\mapsto\, \{x \in A \mid P(x)\}"', swap]
+  \arrow[dr, "\mathrm{eval}_x\;\; P \,\mapsto\, P(x)"] \& \\
+\{x \in A \mid P(x)\}
+  \arrow[rr, "x \in S \;\equiv\; \chi_S(x)"']
+\& \& \Omega
+\end{tikzcd}
+\caption{The comprehension triangle.
+Top: a predicate $P : A \to \Omega$ (the intensional rule).
+Bottom-left: the typed-constant set $S = \{x \in A \mid P(x)\}$ (the extensional view).
+Bottom-right: the truth-value object $\Omega$ (classically \texttt{bool}, K3 for floats, etc.).
+The triangle commutes: $\chi_S(x) = P(x)$ for every $x \in A$, i.e.\ the characteristic morphism recovered from the comprehension set IS the original predicate.
+In the codebase the triangle is named at the type level by the \cppinline{SetAsProduct<S, Underlying, Classifier>} concept in \texttt{category:concrete} (\#573 slice 2), sibling to the \cppinline{IsSetObject<S, A>} predicate reading; together they assert that the (Underlying, Classifier) decomposition of a set is recoverable, which IS the commuting clause.}
+\label{fig:comprehension-triangle}
+\end{figure}
+
+Once you accept it,
 everything downstream (intersection, complement, emptiness, pruning) falls out
 as predicate algebra. The subobject classifier $\Omega$ becomes a knob you can
 turn: classical \texttt{bool} for exact domains, Kleene K3 for floats, anything
