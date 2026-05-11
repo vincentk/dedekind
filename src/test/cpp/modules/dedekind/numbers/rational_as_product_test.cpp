@@ -10,7 +10,7 @@
  *      ℚ = UniversalSet<Rational<default_integer>> already walks
  *      IsSetObject without adapters).
  *    - @c AlgebraAsProduct: the @e algebra-level witness lives here in
- *      the test fork, via a thin @c rational_view<I> wrapper that
+ *      the test fork, via a thin @c RationalView<I> wrapper that
  *      exposes Rational<I> through the HasCarrier mereology arms
  *      (predicate-style part-of + arrow_drill_down).  Same pattern as
  *      slice 3's @c BoolAlgebraView (#651).
