@@ -199,4 +199,84 @@ static_assert(IsIndexedMorphismFamily<detail::toy_countable_family<int>>,
 static_assert(IsCountablyIndexedFamily<detail::toy_countable_family<int>>,
               "Countable toy family must satisfy countable-index concept.");
 
+/** @section net__Halfspace_As_Net_Witnesses — Sealing the IS-A relation (#665).
+ *
+ * A @c Halfspace<T,k,D,S,L> in @c :order:halfspace already exposes
+ * @c Domain=T, @c Codomain=typename @c L::Ω, and
+ * @c operator()(const @c T&) @c -> @c Codomain in the exact shape
+ * @c IsArrow requires.  When @c T satisfies @c IsDirectedSet<T> (the
+ * standard ordered carriers --- @f$\mathbb{N}@f$, @f$\mathbb{Z}@f$,
+ * @f$\mathbb{R}@f$, @c std::size_t; the logic-species parameter on
+ * @c IsDirectedSet defaults to @c ClassicalLogic), the halfspace
+ * satisfies @c IsNet automatically, since @c IsNet @c = @c IsArrow @c &&
+ * @c IsDirectedSet<typename @c N::Domain>.  Same for @c OrderInterval;
+ * @c Singleton inhabits @c IsArrow at the predicate level.
+ *
+ * Textbook identification (Munkres / Kelley): a halfspace
+ * @f$\{x \in T \mid x \bowtie k\}@f$ on a directed carrier (≤-directed
+ * by convention) is an @b indicator @b net --- predicate-valued on T's
+ * directed structure, with the pivot @f$k@f$ as the convergence witness:
+ * upward halfspaces (@f$x>k@f$ and @f$x \ge k@f$ alike) are
+ * eventually-True; downward halfspaces (@f$x<k@f$ and @f$x \le k@f$
+ * alike) are eventually-False.  The strictness flag affects behaviour at
+ * the pivot, not on the tail.  The C++ ontology and the algebraic
+ * ontology coincide here.
+ *
+ * The static_asserts below cost nothing at runtime and add zero surface
+ * area to the existing types; they exist so the IS-A relation is visible
+ * to downstream concept-binding (@c requires @c IsNet<H> picks up
+ * halfspaces uniformly alongside sequences and other nets) and the
+ * textbook identity is sealed mechanically, not by prose.  Honest
+ * Rejection comes free: a carrier that fails @c IsDirectedSet (e.g.\
+ * @f$\mathbb{C}@f$ without a chosen order) fails
+ * @c IsNet<Halfspace<ℂ,...>> at instantiation, with the diagnostic
+ * naming the missing textbook axiom.
+ *
+ * @note The companion identification --- @c Halfspace's @e extension as
+ *       a typed directed sub-poset of @c T, and its inclusion as a
+ *       sub-net of the identity-net on @c T --- requires sub-poset
+ *       typing not yet present in the codebase, and is a downstream
+ *       Sollbruchstelle for the convergence reification
+ *       (@c net @c -> @c L @c ⟺ @c ∃ @c halfspace @c H @c ⊆ @c T
+ *       @c such @c that @c f(H) @c ⊆ @c V).  See #602 / #665.
+ */
+
+// Halfspace IS-A IsArrow (carrier-independent: int suffices).
+static_assert(
+    dedekind::category::IsArrow<
+        Halfspace<int, 5, Direction::Upward, Strictness::Strict,
+                  dedekind::category::ClassicalLogic>>,
+    "Halfspace exposes Domain / Codomain / operator() in the IsArrow shape.");
+
+// Halfspace IS-A IsNet on a directed carrier (std::size_t under ≤).
+static_assert(
+    IsNet<Halfspace<std::size_t, 5, Direction::Upward, Strictness::Strict,
+                    dedekind::category::ClassicalLogic>>,
+    "On a directed carrier, a Halfspace is structurally an indicator net.");
+
+// Downward direction is structurally symmetric.
+static_assert(
+    IsNet<Halfspace<std::size_t, 5, Direction::Downward, Strictness::NonStrict,
+                    dedekind::category::ClassicalLogic>>,
+    "Downward halfspaces inhabit IsNet symmetrically (eventually-False net).");
+
+// OrderInterval inherits the same conformance --- two-sided indicator.
+static_assert(
+    dedekind::category::IsArrow<
+        OrderInterval<int, 3, 7, Strictness::NonStrict, Strictness::NonStrict,
+                      dedekind::category::ClassicalLogic>>,
+    "OrderInterval exposes the IsArrow shape.");
+
+static_assert(IsNet<OrderInterval<std::size_t, 3, 7, Strictness::NonStrict,
+                                  Strictness::NonStrict,
+                                  dedekind::category::ClassicalLogic>>,
+              "On a directed carrier, OrderInterval is an indicator net "
+              "(eventually-False past the upper pivot).");
+
+// Singleton inhabits IsArrow at the predicate level --- the degenerate case.
+static_assert(dedekind::category::IsArrow<
+                  Singleton<42, dedekind::category::ClassicalLogic>>,
+              "Singleton<v> exposes the IsArrow shape "
+              "(degenerate indicator: True at a single index).");
+
 }  // namespace dedekind::sequences
