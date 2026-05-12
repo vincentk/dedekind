@@ -33,24 +33,11 @@ import dedekind.category;
 import dedekind.order;
 import dedekind.sets;
 import :integer;
-import :sint;  // IsInteger / extensional_integer / Group_ℤ / default_integer
-               // (relocated from :integer per #670 cleanup)
 
 namespace dedekind::numbers {
 using namespace dedekind::category;
 using namespace dedekind::order;
 using namespace dedekind::sets;
-
-// Canonical extensional/machine realization for the integer carrier.
-export using machine_integer = extensional_integer;
-
-// Canonical extensional/machine realization for the floating-point side
-// of the rational realization boundary.  Mirrors @c machine_integer: a
-// single-place rename surface so downstream code does not hard-code
-// @c double everywhere.  The IEEE 754 partial reading lives at
-// @c numbers:floating_point ; the exact embedding into ℚ runs through
-// @c embed_double_ℚ (defined further down).
-export using machine_float = double;
 
 /**
  * @class Rational
@@ -449,71 +436,6 @@ static_assert(
     dedekind::algebra::is_module_v<Rational<default_integer>, default_integer>,
     "Rational<I> is a module over its IntegerCarrier I.");
 
-/**
- * @brief Characteristic morphism for ℚ: the rationals.
- * Accepts native Rational<I> and delegates predecessor checks through ℤ.
- */
-export template <IsInteger I = default_integer, typename L = ClassicalLogic,
-                 typename C = ℵ_0>
-struct RationalsOf {
-  using Domain = Rational<I>;
-  using Codomain = typename L::Ω;
-  using logic_species = L;
-  using cardinality_type = C;
-
-  // Native Rational<I>: always a member of ℚ
-  constexpr typename L::Ω operator()(const Rational<I>&) const {
-    return L::True;
-  }
-
-  // Direct parent: embed extensional integer into ℚ.
-  constexpr typename L::Ω operator()(machine_integer z) const {
-    return operator()(Rational<I>{static_cast<I>(z), static_cast<I>(1)});
-  }
-
-  // Direct parent (carrier-level): embed I (typically the cyclic finite
-  // fragment SignedExtensionalCardinal<>) into ℚ.  Preserves the ℤ ⊂ ℚ
-  // story at the @c Rational<I>'s native integer carrier.
-  constexpr typename L::Ω operator()(const I& z) const
-    requires(!std::same_as<I, machine_integer>)
-  {
-    return operator()(Rational<I>{z, I{1}});
-  }
-
-  // Note (#670 cleanup): the previous "delegate to ambient ℤ" catch-all
-  // (routed non-parent inputs through @c dedekind::numbers::Z(x), the
-  // removed @c IntegerSet predicate constant) was deleted as deprecated.
-  // The two parent overloads above (@c machine_integer and the carrier
-  // @c I) preserve the @c ℤ @c ⊂ @c ℚ membership story at the canonical
-  // carriers.  The post-#670 canonical @c ℤ alias uses
-  // @c SignedCardinality, which is @b not @c I; embedding
-  // @c SignedCardinality values into @c ℚ requires explicit construction
-  // via the carrier projection (no implicit catch-all).  Restoring the
-  // automatic @c SignedCardinality @c → @c Rational<I> route awaits the
-  // @c default_integer @c → @c SignedCardinality migration slice.
-};
-
-/** @brief Internal predicate-set type for the rational numbers (the
- *         IsSet anchor; categorical set object).  See @c ℚ below for
- *         the algebraic carrier (the @c Rational<...> field type).
- *         Not @c export-ed --- the API boundary is crystal clear:
- *         @c ℚ is the field, @c RationalSet is the implementation
- *         detail underlying the value-level constant @c Q.
- */
-using RationalSet = RationalsOf<>;
-
-/** @brief Pluggable rational-field type alias parameterised on the
- *         integer carrier.
- *
- *  @details @c ℚ_t<MyInteger> instantiates @c Rational<MyInteger>; the
- *  bare @c ℚ_t<> defaults to @c Rational<default_integer>.  Used in
- *  template-type-parameter positions where the rational carrier needs
- *  to be named directly (e.g.\ @c std::plus<ℚ_t<>>,
- *  @c HasFieldOperators<ℚ_t<>>).
- */
-export template <IsInteger I = default_integer>
-using ℚ_t = Rational<I>;
-
 /** @brief The canonical rational-number universe ℚ =
  * Ω<Rational<default_integer>> (post-#559).
  *
@@ -553,7 +475,9 @@ using ℚ_t = Rational<I>;
  *  @c algebra::HasFieldOperators<Rational<default_integer>> is the
  *  load-bearing field-arithmetic guarantee.
  */
-export inline constexpr auto ℚ = dedekind::sets::Ω<Rational<default_integer>>;
+export inline constexpr UniversalSet<Rational<SignedCardinality>,
+                                     ClassicalLogic, ℵ_0>
+    ℚ = dedekind::sets::Ω<Rational<SignedCardinality>>;
 
 static_assert(std::same_as<std::remove_cvref_t<decltype(ℚ)>,
                            dedekind::sets::UniversalSet<

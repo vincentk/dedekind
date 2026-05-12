@@ -93,50 +93,9 @@ using namespace dedekind::sets;
  * Wikipedia: Semiring, Peano axioms
  */
 export template <typename N>
-concept IsNatural = std::regular<N> && requires(N a, N b) {
-  { a + b } -> std::same_as<N>;
-  { a * b } -> std::same_as<N>;
-  { a <= b } -> std::convertible_to<bool>;
-};
-
-/**
- * @concept IsNaturalNumber
- * @brief Alias for the machine/extensional natural-number species.
- *
- * @details `std::unsigned_integral` types are the IEEE-policy realisation of
- * ℕ — they satisfy `IsNatural` structurally (unsigned arithmetic wraps, so
- * the semiring laws hold), but they are identified separately here because
- * they are the *output* of `realize_to_size_t` and the *input* of
- * `embed_unsigned_integral`, not the preferred certified domain for new code.
- */
-export template <typename T>
-concept IsNaturalNumber = std::unsigned_integral<T>;
-
-/**
- * @concept Monoid_ℕ
- * @brief ℕ as the commutative monoid of naturals under addition.
- *
- * @details A carrier @c T satisfies @c Monoid_ℕ iff
- *   - it is @c IsNatural (the structural commutative-semiring-with-order
- *     witness for ℕ), and
- *   - @c (T, +, 0) is certified as an @c IsCommutativeMonoid by the species-
- *     trait registry (associativity, identity, commutativity of @c
- *     std::plus<T>).
- *
- * This is the concept the downstream library is meant to program against:
- * writing @c template @c <Monoid_ℕ T> binds the generic code to *any* carrier
- * that can prove itself a natural-number monoid, so a concrete choice
- * (@c ExtensionalCardinal<>, @c unsigned @c int, or a user-supplied carrier
- * carrying a species-trait proof) plugs in without rewriting the algorithm.
- *
- * The safety side-effect is deliberate: carriers whose @c + is *not* a
- * law-abiding monoid (signed @c int under @c std::plus, because overflow is
- * UB) fail this concept at the gate, so generic code that depends on the
- * monoid laws never instantiates on an unsafe carrier in the first place.
- */
-export template <typename T>
-concept Monoid_ℕ =
-    IsNatural<T> && dedekind::category::IsCommutativeMonoid<T, std::plus<T>>;
+concept IsNatural =
+    HasRingOperators<N> && IsMonoid<N, std::add<N>> && IsTotallyOrdered<N> &&
+    dedekind::category::IsCommutativeMonoid<T, std::plus<T>>;
 
 /**
  * @brief Canonical embedding 𝔹 ↪ ℕ: bool → unsigned.
