@@ -68,6 +68,7 @@ module;
 #include <concepts>
 #include <cstddef>
 #include <functional>
+#include <type_traits>
 
 export module dedekind.algebra:scout_algebra;
 
@@ -79,34 +80,65 @@ import :group;            // IsAdditiveGroup<T, Add>
 namespace dedekind::algebra {
 
 /**
- * @brief Marker trait: @c T's order is preserved under group translation.
+ * @brief Marker trait: @c T is a non-cyclic ordered additive group
+ *        whose order is translation-invariant, with the saturating
+ *        escape contract for values that would exceed representable
+ *        capacity.
  *
  * @details
- * Defaults to @c false.  Carriers opt in via specialisation when the
- * order @f$\le@f$ on @c T satisfies the translation-invariance axiom
- * @f$a \le b \Rightarrow a+c \le b+c@f$ for all @f$c \in T@f$.
+ * Defaults to @c false.  Carriers opt in via specialisation when their
+ * arithmetic is @b not @b cyclic --- i.e.\ they @b saturate or
+ * @b escalate (e.g.\ to @f$\pm \aleph_0@f$ sentinels) rather than
+ * wrapping at the representable bound.  Saturation preserves the
+ * partial order @f$\le@f$ under translation (if @c a @c <= @c b then
+ * @c a+c @c <= @c b+c, including the case where both saturate to the
+ * same sentinel); wrapping does @b not (the modular wrap reverses the
+ * order at the boundary).
  *
- * This axiom holds for @b unbounded ordered additive groups
- * (@f$\mathbb{Z}@f$, @f$\mathbb{Q}@f$, @f$\mathbb{R}@f$) but @b not
- * for modular carriers (@c unsigned @c int as
- * @f$\mathbb{Z}/2^N\mathbb{Z}@f$: the order is total but translation
- * wraps and reverses the order at the boundary).
+ * @note The structural fact this marker discriminates is @b not
+ *       boundedness (every C++ carrier is bounded), but @b cyclicity.
+ *       A saturating carrier is bounded but non-cyclic: arithmetic
+ *       past the bound escalates to a distinguishable sentinel
+ *       (@f$\pm \aleph_0@f$ or @c NaZ for indeterminate forms in the
+ *       project's @c SignedCardinality variant), keeping
+ *       translation-invariance honest @b including at the boundary.
+ *       Modular carriers (@c unsigned @c int, the finite
+ *       @c sets::SignedExtensionalCardinal<N>) wrap, reversing order;
+ *       they fail the marker by default.
  *
- * The marker exists because translation-invariance is a semantic
- * (universally-quantified) axiom that cannot be checked structurally
- * from the C++ surface alone --- a carrier may inhabit
- * @c IsAdditiveGroup and @c std::totally_ordered yet fail the axiom
- * (modular case).  Explicit opt-in keeps the framework honest.
+ * @note The project put deliberate effort into the saturating
+ *       variants (@c sets::SignedCardinality, @c sets::Cardinality)
+ *       precisely so they would be bona-fide proxies for
+ *       @f$\mathbb{Z}@f$ / @f$\mathbb{N}@f$ rather than cyclic
+ *       (cf.\ @c cardinality.cppm:878-967 --- "@c SignedCardinality
+ *       is the signed counterpart of @c Cardinality (the ℕ ∪ ℵ_0
+ *       variant): ... saturating ... not periodic ... the library's
+ *       bona-fide proxy for ℤ modulo physical limits").  The marker
+ *       opt-in below honours that effort: it is specialised for
+ *       @c SignedCardinality, @b not for the cyclic finite-fragment
+ *       @c SignedExtensionalCardinal<N>.
  */
 template <typename T>
 struct is_translation_invariant_ordered : std::false_type {};
 
-/** @brief The project's exact @f$\mathbb{Z}@f$ carrier
- *  (@c sets::SignedExtensionalCardinal<N>) inhabits translation-invariant
- *  order under @c +: it is an unbounded ordered abelian group. */
-template <std::size_t N>
-struct is_translation_invariant_ordered<
-    dedekind::sets::SignedExtensionalCardinal<N>> : std::true_type {};
+/** @brief @c sets::SignedCardinality is the project's bona-fide
+ *  saturating proxy for @f$\mathbb{Z}@f$: arithmetic escalates to
+ *  @f$\pm \aleph_0@f$ on overflow and propagates @c NaZ on
+ *  indeterminate forms, rather than wrapping modulo capacity
+ *  (cf.\ @c cardinality.cppm:923-967).  This is the structural
+ *  guarantee the marker certifies: translation preserves the partial
+ *  order @f$\le@f$ on the finite fragment; saturation collapses
+ *  ordering past the boundary into the @f$\pm \aleph_0@f$ sentinel
+ *  (the meet still holds: both sides land at the same sentinel).  The
+ *  finite-fragment carrier @c SignedExtensionalCardinal<N> is
+ *  intentionally @b not opted in: it is cyclic
+ *  (mod @f$2^{N \cdot 64}@f$), so its addition would reverse the
+ *  order at the wrap boundary.  The variant @c SignedCardinality is
+ *  what callers should use whenever they want translation-invariance
+ *  at the type level (i.e.\ the halfspace pipe). */
+template <>
+struct is_translation_invariant_ordered<dedekind::sets::SignedCardinality>
+    : std::true_type {};
 
 template <typename T>
 inline constexpr bool is_translation_invariant_ordered_v =
@@ -117,22 +149,34 @@ inline constexpr bool is_translation_invariant_ordered_v =
  * @brief An additive group whose order is translation-invariant.
  *
  * @details
- * Combines the algebraic gate (@c IsAdditiveGroup) with the structural
- * gate (@c std::totally_ordered) and the @b axiom marker
- * (@c is_translation_invariant_ordered_v).  This is the right
+ * Combines the algebraic gate (@c IsAdditiveGroup) with the @b axiom
+ * marker (@c is_translation_invariant_ordered_v).  This is the right
  * precondition for halfspace-pivot transport: shifting
  * @f$\{x \mid x > k\}@f$ by @c +c yields @f$\{y \mid y > k+c\}@f$
- * exactly when @c c-translation preserves the order, which is the
- * axiom the marker certifies.
+ * exactly when @c c-translation preserves the order, which is what
+ * the marker certifies.
+ *
+ * @note Earlier drafts also required @c std::totally_ordered<T>.
+ *       Dropped because the project's saturating ℤ proxy
+ *       (@c sets::SignedCardinality, a @c std::variant) uses
+ *       custom comparison operators (specialised on the saturating
+ *       semantics and on @c NaZ propagation), which do not satisfy
+ *       the @c std::totally_ordered structural concept --- yet the
+ *       carrier @b is the right one for translation-invariant
+ *       ordered-group semantics.  The marker carries the order claim;
+ *       a separate @c std::totally_ordered structural check would
+ *       Honest-Reject the very carriers the marker is supposed to
+ *       accept.  The structural order check belongs at the marker
+ *       opt-in site, not at the concept.
  *
  * Modular carriers (@c unsigned @c int as @f$\mathbb{Z}/2^N\mathbb{Z}@f$)
- * satisfy @c IsAdditiveGroup and @c std::totally_ordered but NOT this
- * concept --- they fail the marker by default.  Honest Rejection on
- * halfspace-pipe attempts with modular carriers.
+ * satisfy @c IsAdditiveGroup but NOT this concept --- they fail the
+ * marker by default.  Honest Rejection on halfspace-pipe attempts with
+ * modular carriers.
  */
 export template <typename T>
 concept IsOrderedAdditiveGroup =
-    IsAdditiveGroup<T> && std::totally_ordered<T> &&
+    dedekind::category::IsAbelianGroup<T, std::plus<T>> &&
     is_translation_invariant_ordered_v<T>;
 
 /**
@@ -260,8 +304,9 @@ namespace dedekind::sets {
  * operation on @c T.
  */
 export template <auto Ambient, auto K>
-  requires dedekind::algebra::IsAdditiveGroup<
-               typename BoundScout<Ambient>::T> &&
+  requires dedekind::category::IsAbelianGroup<
+               typename BoundScout<Ambient>::T,
+               std::plus<typename BoundScout<Ambient>::T>> &&
            std::convertible_to<decltype(K), typename BoundScout<Ambient>::T>
 constexpr auto operator+(BoundScout<Ambient>, dedekind::order::Bound<K>) {
   using T = typename BoundScout<Ambient>::T;
@@ -285,8 +330,9 @@ constexpr auto operator+(BoundScout<Ambient>, dedekind::order::Bound<K>) {
  * @c IsAdditiveGroup<T> fails and the overload is removed.
  */
 export template <auto Ambient, auto K>
-  requires dedekind::algebra::IsAdditiveGroup<
-               typename BoundScout<Ambient>::T> &&
+  requires dedekind::category::IsAbelianGroup<
+               typename BoundScout<Ambient>::T,
+               std::plus<typename BoundScout<Ambient>::T>> &&
            std::convertible_to<decltype(-K), typename BoundScout<Ambient>::T>
 constexpr auto operator-(BoundScout<Ambient>, dedekind::order::Bound<K>) {
   using T = typename BoundScout<Ambient>::T;

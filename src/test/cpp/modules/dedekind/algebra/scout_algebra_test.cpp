@@ -127,30 +127,34 @@ static_assert(
     "translation-invariant, so the pivot transport would be wrong.");
 
 // ---------------------------------------------------------------------------
-// Slice 2: end-to-end halfspace-pivot transport on the project's ℤ.
+// Slice 2: end-to-end halfspace-pivot transport on the project's ℤ proxy.
 //
-// The canonical witness uses @c sets::SignedExtensionalCardinal<> --- the
-// project's exact ℤ carrier --- which inhabits IsOrderedAdditiveGroup
-// (unbounded ordered abelian group; the is_translation_invariant_ordered
-// marker is specialised to @c true for this carrier in scout_algebra.cppm).
+// The canonical witness uses @c sets::SignedCardinality --- the project's
+// @b bona-fide @b saturating proxy for @f$\mathbb{Z}@f$
+// (cf.\ @c cardinality.cppm:923-967, "saturating ... not periodic ...
+// the library's bona-fide proxy for ℤ modulo physical limits") ---
+// which inhabits @c IsOrderedAdditiveGroup (the
+// @c is_translation_invariant_ordered marker is specialised to @c true
+// for this carrier in @c scout_algebra.cppm).  Note this is @b not the
+// finite-fragment @c SignedExtensionalCardinal<N>, which is cyclic and
+// therefore @b not opted in.
 // ---------------------------------------------------------------------------
 
 TEST_CASE("scout_algebra: in-line shift transports halfspace pivot on ℤ (#664)",
           "[algebra][scout_algebra][comprehension][slice2]") {
-  using Z = dedekind::sets::SignedExtensionalCardinal<>;
+  using Z = dedekind::sets::SignedCardinality;
 
   constexpr auto x = dedekind::sets::element<dedekind::sets::Ω<Z>>;
   constexpr auto S = dedekind::sets::Set{x + dedekind::order::bound<3> |
                                          (x > dedekind::order::bound<5>)};
 
-  // The result IS `Set<Z, TernaryLogic, Halfspace<Z, 8, Upward, Strict>>`:
-  // the source halfspace (pivot 5) is transported through the +3 shift
-  // to land at pivot 8, direction and strictness preserved.  Pivot
+  // The result IS `Set<Z, L, Halfspace<Z, 8, Upward, Strict>>`: the
+  // source halfspace (pivot 5) is transported through the +3 shift to
+  // land at pivot 8, direction and strictness preserved.  Pivot
   // arithmetic happens in the structural NTTP type (`int`), not in `Z`
-  // (which may not itself be NTTP-usable as a structural type).
-  // The Set's logic is `TernaryLogic` because `NaturalLogic<Ω<Z>>`
-  // routes through transfinite cardinality.  Type-directed collapse
-  // at compile time.
+  // (the variant `SignedCardinality` may not itself be NTTP-usable as a
+  // structural type).  Type-directed collapse at compile time on the
+  // project's bona-fide saturating ℤ proxy.
   using SetL = typename dedekind::sets::NaturalLogic<
       dedekind::sets::UniversalSet<Z>>::type;
   using ExpectedPredicate =
