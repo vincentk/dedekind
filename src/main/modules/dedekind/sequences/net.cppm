@@ -204,18 +204,23 @@ static_assert(IsCountablyIndexedFamily<detail::toy_countable_family<int>>,
  * A @c Halfspace<T,k,D,S,L> in @c :order:halfspace already exposes
  * @c Domain=T, @c Codomain=typename @c L::Ω, and
  * @c operator()(const @c T&) @c -> @c Codomain in the exact shape
- * @c IsArrow requires.  When @c T satisfies @c IsDirectedSet<T,L> (the
+ * @c IsArrow requires.  When @c T satisfies @c IsDirectedSet<T> (the
  * standard ordered carriers --- @f$\mathbb{N}@f$, @f$\mathbb{Z}@f$,
- * @f$\mathbb{R}@f$, @c std::size_t), the halfspace satisfies @c IsNet
- * automatically.  Same for @c OrderInterval; @c Singleton inhabits
- * @c IsArrow at the predicate level.
+ * @f$\mathbb{R}@f$, @c std::size_t; the logic-species parameter on
+ * @c IsDirectedSet defaults to @c ClassicalLogic), the halfspace
+ * satisfies @c IsNet automatically, since @c IsNet @c = @c IsArrow @c &&
+ * @c IsDirectedSet<typename @c N::Domain>.  Same for @c OrderInterval;
+ * @c Singleton inhabits @c IsArrow at the predicate level.
  *
  * Textbook identification (Munkres / Kelley): a halfspace
- * @f$\{x \in T \mid x \bowtie k\}@f$ on a directed carrier is an
- * @b indicator @b net --- predicate-valued on T's directed structure,
- * with the pivot @f$k@f$ as the convergence witness (eventually-True for
- * upward halfspaces with strict direction; eventually-False otherwise).
- * The C++ ontology and the algebraic ontology coincide here.
+ * @f$\{x \in T \mid x \bowtie k\}@f$ on a directed carrier (≤-directed
+ * by convention) is an @b indicator @b net --- predicate-valued on T's
+ * directed structure, with the pivot @f$k@f$ as the convergence witness:
+ * upward halfspaces (@f$x>k@f$ and @f$x \ge k@f$ alike) are
+ * eventually-True; downward halfspaces (@f$x<k@f$ and @f$x \le k@f$
+ * alike) are eventually-False.  The strictness flag affects behaviour at
+ * the pivot, not on the tail.  The C++ ontology and the algebraic
+ * ontology coincide here.
  *
  * The static_asserts below cost nothing at runtime and add zero surface
  * area to the existing types; they exist so the IS-A relation is visible
