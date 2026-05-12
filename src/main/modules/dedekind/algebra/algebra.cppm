@@ -53,5 +53,7 @@ export import :quotient;  // IsQuotientAlgebra<Q> / IsProductAlgebra<Q> +
                           // Frac, Cplx, Dual, Vec2V; #498/#499 NEW-A)
 export import :registration;
 export import :ring;
-export import :universal;  // IsAlgebra meta-pattern (Burris-Sankappanavar)
+export import :scout_algebra;  // GroupScout — algebraic gating of the
+                               // in-line comprehension surface (#664)
+export import :universal;      // IsAlgebra meta-pattern (Burris-Sankappanavar)
 export import :vectorspace;
