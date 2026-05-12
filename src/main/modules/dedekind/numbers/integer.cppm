@@ -389,6 +389,68 @@ static_assert(
     "IntegersOf must be the canonical IsSet anchor for "
     "dedekind.numbers:integer (Domain = exact ℤ carrier per #399 slice 3).");
 
+/** @section integer__Saturating_ℤ_Companion (#670)
+ *
+ * Companion to @c ℤ above, using the @b saturating variant
+ * @c sets::SignedCardinality as the carrier rather than the @b cyclic
+ * finite fragment @c SignedExtensionalCardinal<>.  This mirrors the
+ * @c ℕ pattern (@c ℕ @c = @c Ω<Cardinality> where @c Cardinality is
+ * the saturating @f$\mathbb{N} \cup \{\aleph_0\}@f$ variant) and
+ * gives the project a discipline-consistent ℤ proxy at the value
+ * level.
+ *
+ * Why a companion alias rather than retargeting @c ℤ itself: the
+ * existing @c ℤ is anchored across ~400 references (witnesses in
+ * @c :rational, @c Rational<default_integer>, embeddings, paper
+ * listings); retargeting it would cascade and touch many sites
+ * outside @c :numbers.  The additive companion is a Sollbruchstelle:
+ * downstream code that wants the saturating discipline can opt in via
+ * @c ℤ_aleph today, and a future cleanup can migrate the full
+ * @c ℤ alias once all downstream sites have been verified.
+ *
+ * The carrier @c sets::SignedCardinality is the project's documented
+ * bona-fide proxy for @f$\mathbb{Z}@f$ modulo physical limits
+ * (cf.\ @c cardinality.cppm:923-924, "the library's bona-fide proxy
+ * for ℤ modulo physical limits") --- arithmetic saturates to
+ * @f$\pm \aleph_0@f$ on overflow rather than wrapping modulo
+ * @f$2^{N \cdot 64}@f$.  This is what the in-line scout-algebra
+ * surface (#664) requires for translation-invariant halfspace-pivot
+ * transport: the @c IsOrderedAdditiveGroup marker in
+ * @c :algebra:scout_algebra is specialised to @c true for
+ * @c SignedCardinality and to @c false (default) for the cyclic
+ * finite fragment, exactly because the saturating discipline
+ * preserves order under translation and the cyclic one does not at
+ * the wrap boundary.
+ */
+export inline constexpr auto ℤ_aleph =
+    dedekind::sets::Ω<dedekind::sets::SignedCardinality>;
+
+static_assert(
+    std::same_as<std::remove_cvref_t<decltype(ℤ_aleph)>,
+                 dedekind::sets::UniversalSet<dedekind::sets::SignedCardinality,
+                                              ClassicalLogic, ℵ_0>>,
+    "ℤ_aleph is the universe Ω<SignedCardinality>, mirroring "
+    "ℕ = Ω<Cardinality>.");
+static_assert(
+    std::same_as<typename std::remove_cvref_t<decltype(ℤ_aleph)>::Domain,
+                 dedekind::sets::SignedCardinality>,
+    "ℤ_aleph's underlying carrier IS SignedCardinality — the project's "
+    "bona-fide saturating ℤ proxy (per cardinality.cppm:923-924). "
+    "Mirrors ℕ's underlying carrier being Cardinality, the saturating "
+    "ℕ proxy.");
+
+// The saturating ℤ proxy inhabits the algebraic concept chain the
+// in-line scout-algebra surface uses (#664).  Pinning the witness:
+// IsOrderedAdditiveGroup<SignedCardinality> holds via the
+// is_translation_invariant_ordered marker specialised in
+// :algebra:scout_algebra.
+static_assert(dedekind::algebra::IsOrderedAdditiveGroup<
+                  dedekind::sets::SignedCardinality>,
+              "ℤ_aleph's carrier SignedCardinality must satisfy "
+              "IsOrderedAdditiveGroup --- this is the structural binding "
+              "between the new saturating-ℤ alias and the in-line "
+              "scout-algebra halfspace pipe (#664).");
+
 /**
  * @brief Canonical embedding ℕ ↪ ℤ: unsigned int → int.
  * @details The natural numbers embed into the integers via the unsigned→signed
