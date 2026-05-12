@@ -58,6 +58,25 @@ TEST_CASE("scout_algebra: partition compiles, exports are reachable (#664)",
 }
 
 // ---------------------------------------------------------------------------
+// Positive control: operator+ / operator- DO compile when IsAdditiveGroup
+// is satisfied (unsigned int → Z/2ⁿZ modular group; cf. category/total.cppm
+// remark "unsigned int with addition is a Group").  Without a positive
+// witness, the Honest Rejection static_asserts below could pass even if the
+// operators were unreachable (e.g., wrong namespace, ADL miss).  The
+// positive control proves the operators are wired correctly @b and the
+// gate engages on the right axis.
+// ---------------------------------------------------------------------------
+
+static_assert(ScoutAdditiveShiftIsCallable<unsigned int, 3u>,
+              "operator+(BoundScout<unsigned>, Bound<3u>) must be callable: "
+              "unsigned int is an additive group under modular wrap "
+              "(Z/2^N Z), so IsAdditiveGroup<unsigned> holds.");
+
+static_assert(ScoutAdditiveSubtractIsCallable<unsigned int, 3u>,
+              "operator-(BoundScout<unsigned>, Bound<3u>) must be callable on "
+              "an additive group (modular subtraction is well-defined).");
+
+// ---------------------------------------------------------------------------
 // Honest Rejection: operator+ / operator- are removed when IsAdditiveGroup
 // fails (machine `int`; overflow is UB → no group structure).
 // ---------------------------------------------------------------------------

@@ -91,10 +91,13 @@ namespace dedekind::algebra {
  * itself stays uniform across the additive and multiplicative
  * specialisations.
  *
- * @c GroupScout exposes @c Domain / @c Codomain typedefs and an
- * @c operator()(Domain) that applies @c Op(Element, Inner(x)) --- so a
- * @c GroupScout is itself @c IsArrow-shaped, ready for downstream
- * use in the Set CTAD (Slice 2).
+ * @c GroupScout is @b purely symbolic --- a type-level marker used by
+ * the Set CTAD (Slice 2) to perform halfspace-pivot transport.  It has
+ * @b no @c operator() and no @c Domain typedef, mirroring the
+ * @c BoundScout convention (cf.\ @c sets/expressions.cppm:168-178:
+ * "the scout is type-only --- it has no runtime state and no
+ * operator() on plain values").  The carrier is recoverable as
+ * @c GroupScout::carrier_type.
  *
  * @tparam T       The carrier type.
  * @tparam Op      The group operation (a callable type, e.g.\
@@ -106,46 +109,49 @@ namespace dedekind::algebra {
 export template <typename T, typename Op, auto Element, typename Inner>
   requires dedekind::category::IsGroup<T, Op>
 struct GroupScout {
-  using Domain = typename Inner::Domain;
-  using Codomain = T;
+  using carrier_type = T;
   using op_type = Op;
   using inner_type = Inner;
 
   static constexpr auto element = Element;
-
-  /**
-   * @brief Evaluate the scout: apply @c Op(Element, @c Inner(x)).
-   *
-   * Group axioms guarantee closure (@c Op(Element, @c Inner(x)) ∈ T),
-   * associativity (composition of scouts composes by composing
-   * elements under @c Op), and inverse (every @c GroupScout has a
-   * @c GroupScout inverse with element @c Op⁻¹(Element)).
-   */
-  constexpr T operator()(const Domain& x) const {
-    return Op{}(static_cast<T>(Element), Inner{}(x));
-  }
 };
+
+}  // namespace dedekind::algebra
+
+// The factory operator overloads are declared in @c dedekind::sets ---
+// the namespace of the @b first operand @c BoundScout --- so they
+// participate in ADL when callers write @c in<T> @c + @c bound<k>
+// without an explicit @c using @c dedekind::algebra::operator+
+// directive.  This mirrors @c :order:halfspace 's placement of
+// @c operator>(BoundScout,Bound) in @c dedekind::order (the namespace
+// of @c Bound), reachable via ADL on either operand.
+namespace dedekind::sets {
 
 /**
  * @brief Additive specialisation: @c in<T> @c + @c bound<k> →
  *        @c GroupScout<T, @c std::plus<T>, @c k, @c BoundScout<T>>.
  *
  * @details
- * Gated on @c IsAdditiveGroup<T>.  Honest Rejection: writing
- * @c in<ℕ> @c + @c bound<3> fails (ℕ is not an additive group ---
- * @c IsAdditiveGroup<Cardinality> @c == @c false), with the diagnostic
- * naming the missing group axiom.
+ * Gated on @c IsAdditiveGroup<T> @b and @c std::convertible_to<K,T> ---
+ * the algebraic axioms guarantee the shift is well-defined, and the
+ * convertibility check makes invalid @c K values fail in the
+ * requires-clause rather than as hard errors during instantiation.
+ *
+ * Honest Rejection: writing @c in<ℕ> @c + @c bound<3> fails (ℕ is not
+ * an additive group --- @c IsAdditiveGroup<Cardinality> @c ==
+ * @c false), with the diagnostic naming the missing group axiom.
  *
  * The scout represents the function @c λx.k+x where @c + is the group
  * operation on @c T.
  */
 export template <auto Ambient, auto K>
   requires dedekind::algebra::IsAdditiveGroup<
-      typename dedekind::sets::BoundScout<Ambient>::T>
-constexpr auto operator+(dedekind::sets::BoundScout<Ambient>,
-                         dedekind::order::Bound<K>) {
-  using T = typename dedekind::sets::BoundScout<Ambient>::T;
-  return GroupScout<T, std::plus<T>, K, dedekind::sets::BoundScout<Ambient>>{};
+               typename BoundScout<Ambient>::T> &&
+           std::convertible_to<decltype(K), typename BoundScout<Ambient>::T>
+constexpr auto operator+(BoundScout<Ambient>, dedekind::order::Bound<K>) {
+  using T = typename BoundScout<Ambient>::T;
+  return dedekind::algebra::GroupScout<T, std::plus<T>, K,
+                                       BoundScout<Ambient>>{};
 }
 
 /**
@@ -155,17 +161,22 @@ constexpr auto operator+(dedekind::sets::BoundScout<Ambient>,
  * @details
  * Encoded as the additive inverse: @c x @c - @c k @c = @c x @c + @c (-k).
  * Group axioms guarantee @c (-k) ∈ T (additive inverse exists for
- * every element).  Honest Rejection on non-groups (ℕ): the negation
- * @c -K cannot be expressed in the carrier without an inverse, so the
- * gate @c IsAdditiveGroup<T> fails and the overload is removed.
+ * every element).  The convertibility constraint applies to @c (-K)
+ * since that is the value embedded in the resulting scout's
+ * @c Element field.
+ *
+ * Honest Rejection on non-groups (ℕ): the negation @c -K cannot be
+ * expressed in the carrier without an inverse, so the gate
+ * @c IsAdditiveGroup<T> fails and the overload is removed.
  */
 export template <auto Ambient, auto K>
   requires dedekind::algebra::IsAdditiveGroup<
-      typename dedekind::sets::BoundScout<Ambient>::T>
-constexpr auto operator-(dedekind::sets::BoundScout<Ambient>,
-                         dedekind::order::Bound<K>) {
-  using T = typename dedekind::sets::BoundScout<Ambient>::T;
-  return GroupScout<T, std::plus<T>, -K, dedekind::sets::BoundScout<Ambient>>{};
+               typename BoundScout<Ambient>::T> &&
+           std::convertible_to<decltype(-K), typename BoundScout<Ambient>::T>
+constexpr auto operator-(BoundScout<Ambient>, dedekind::order::Bound<K>) {
+  using T = typename BoundScout<Ambient>::T;
+  return dedekind::algebra::GroupScout<T, std::plus<T>, -K,
+                                       BoundScout<Ambient>>{};
 }
 
-}  // namespace dedekind::algebra
+}  // namespace dedekind::sets
