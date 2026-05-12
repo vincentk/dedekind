@@ -313,17 +313,12 @@ struct RealsOf {
   // Native Real<S>: always a member of ℝ
   constexpr typename L::Ω operator()(const Real<S>&) const { return L::True; }
 
-  // Direct parent: embed Rational<I> into ℝ via the canonical arrow.
-  constexpr typename L::Ω operator()(const Rational<I>& q) const {
-    return operator()(embed_ℚ_ℝ<I, S>(q));
-  }
-
-  // Delegate non-parent ancestors to ambient ℚ.
-  template <typename T>
-    requires(!std::same_as<T, Real<S>> && !std::same_as<T, Rational<I>>)
-  constexpr typename L::Ω operator()(const T& x) const {
-    return dedekind::numbers::RationalsOf<I>{}(x);
-  }
+  // The Rational<I> direct-parent overload and the non-parent-ancestor
+  // catch-all were removed under the ℚ retarget cleanup: both routed
+  // through @c embed_ℚ_ℝ, which itself was removed (no
+  // @c static_cast<int> on @c SignedCardinality, the post-retarget
+  // canonical ℤ carrier).  Callers that need ℝ-membership for a ℚ or
+  // ℤ value must construct the corresponding @c Real<S> explicitly.
 };
 
 export using RealSet = RealsOf<>;
@@ -465,9 +460,10 @@ static_assert(dedekind::algebra::HasFieldOperators<ExactReal<>>,
  *     (explicit @c embed_double / @c realize_to_double morphisms).
  *     The current trivial direction is @c Real<double>{x} for the
  *     forward and @c .resolve() for the reverse.
- * (5) Adjacent-set arrows: ℚ ↪ ℝ via @c embed_ℚ_ℝ above
- *     (registered monic); ℝ ↪ ℂ via @c embed_ℝ_ℂ in @c :complex
- *     (downstream).
+ * (5) Adjacent-set arrows: @c ℚ @c ↪ @c ℝ was previously offered by
+ *     @c embed_ℚ_ℝ; that arrow was removed under the ℚ retarget
+ *     cleanup (no @c static_cast<int> on @c SignedCardinality carrier);
+ *     ℝ ↪ ℂ via @c embed_ℝ_ℂ in @c :complex (downstream) remains.
  */
 static_assert(dedekind::algebra::HasRingOperators<ExactReal<>>,
               "ExactReal<> closes the ring operator surface.");
