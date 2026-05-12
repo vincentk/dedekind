@@ -33,24 +33,12 @@ import dedekind.category;
 import dedekind.order;
 import dedekind.sets;
 import :integer;
-import :sint;  // IsInteger / extensional_integer / Group_ℤ / default_integer
-               // (relocated from :integer per #670 cleanup)
+import :sint;  // IsInteger / default_integer (relocated from :integer per #670)
 
 namespace dedekind::numbers {
 using namespace dedekind::category;
 using namespace dedekind::order;
 using namespace dedekind::sets;
-
-// Canonical extensional/machine realization for the integer carrier.
-export using machine_integer = extensional_integer;
-
-// Canonical extensional/machine realization for the floating-point side
-// of the rational realization boundary.  Mirrors @c machine_integer: a
-// single-place rename surface so downstream code does not hard-code
-// @c double everywhere.  The IEEE 754 partial reading lives at
-// @c numbers:floating_point ; the exact embedding into ℚ runs through
-// @c embed_double_ℚ (defined further down).
-export using machine_float = double;
 
 /**
  * @class Rational
@@ -449,71 +437,6 @@ static_assert(
     dedekind::algebra::is_module_v<Rational<default_integer>, default_integer>,
     "Rational<I> is a module over its IntegerCarrier I.");
 
-/**
- * @brief Characteristic morphism for ℚ: the rationals.
- * Accepts native Rational<I> and delegates predecessor checks through ℤ.
- */
-export template <IsInteger I = default_integer, typename L = ClassicalLogic,
-                 typename C = ℵ_0>
-struct RationalsOf {
-  using Domain = Rational<I>;
-  using Codomain = typename L::Ω;
-  using logic_species = L;
-  using cardinality_type = C;
-
-  // Native Rational<I>: always a member of ℚ
-  constexpr typename L::Ω operator()(const Rational<I>&) const {
-    return L::True;
-  }
-
-  // Direct parent: embed extensional integer into ℚ.
-  constexpr typename L::Ω operator()(machine_integer z) const {
-    return operator()(Rational<I>{static_cast<I>(z), static_cast<I>(1)});
-  }
-
-  // Direct parent (carrier-level): embed I (typically the cyclic finite
-  // fragment SignedExtensionalCardinal<>) into ℚ.  Preserves the ℤ ⊂ ℚ
-  // story at the @c Rational<I>'s native integer carrier.
-  constexpr typename L::Ω operator()(const I& z) const
-    requires(!std::same_as<I, machine_integer>)
-  {
-    return operator()(Rational<I>{z, I{1}});
-  }
-
-  // Note (#670 cleanup): the previous "delegate to ambient ℤ" catch-all
-  // (routed non-parent inputs through @c dedekind::numbers::Z(x), the
-  // removed @c IntegerSet predicate constant) was deleted as deprecated.
-  // The two parent overloads above (@c machine_integer and the carrier
-  // @c I) preserve the @c ℤ @c ⊂ @c ℚ membership story at the canonical
-  // carriers.  The post-#670 canonical @c ℤ alias uses
-  // @c SignedCardinality, which is @b not @c I; embedding
-  // @c SignedCardinality values into @c ℚ requires explicit construction
-  // via the carrier projection (no implicit catch-all).  Restoring the
-  // automatic @c SignedCardinality @c → @c Rational<I> route awaits the
-  // @c default_integer @c → @c SignedCardinality migration slice.
-};
-
-/** @brief Internal predicate-set type for the rational numbers (the
- *         IsSet anchor; categorical set object).  See @c ℚ below for
- *         the algebraic carrier (the @c Rational<...> field type).
- *         Not @c export-ed --- the API boundary is crystal clear:
- *         @c ℚ is the field, @c RationalSet is the implementation
- *         detail underlying the value-level constant @c Q.
- */
-using RationalSet = RationalsOf<>;
-
-/** @brief Pluggable rational-field type alias parameterised on the
- *         integer carrier.
- *
- *  @details @c ℚ_t<MyInteger> instantiates @c Rational<MyInteger>; the
- *  bare @c ℚ_t<> defaults to @c Rational<default_integer>.  Used in
- *  template-type-parameter positions where the rational carrier needs
- *  to be named directly (e.g.\ @c std::plus<ℚ_t<>>,
- *  @c HasFieldOperators<ℚ_t<>>).
- */
-export template <IsInteger I = default_integer>
-using ℚ_t = Rational<I>;
-
 /** @brief The canonical rational-number universe ℚ =
  * Ω<Rational<default_integer>> (post-#559).
  *
@@ -521,39 +444,35 @@ using ℚ_t = Rational<I>;
  *  symbols (@c 𝔹 / @c ℕ / @c ℤ / @c ℚ / @c ℝ / @c ℂ / @c 𝔻) denote the
  *  @b universe values (constexpr instances of @c UniversalSet over the
  *  carrier), not carrier @b types.  Carrier types are spelled directly
- *  (@c Rational<default_integer>, or @c ℚ_t<I> for the parameterised
- *  form) in template-type-parameter positions; @c ℚ alone is the
- *  universe value the set-builder DSL takes as ambient.
+ *  (@c Rational<default_integer>, or @c Rational<I> for the
+ *  parameterised form over an arbitrary @c IsInteger I) in
+ *  template-type-parameter positions; @c ℚ alone is the universe
+ *  value the set-builder DSL takes as ambient.
  *
  *  This makes @c element<ℚ> the canonical scout spelling — closer to
  *  textbook math notation than the pre-#559 @c element<Ω<ℚ>> form.
  *  Pre-#559 the spelling was @c using @c ℚ @c = @c ℚ_t<> (a carrier-
  *  type alias); the type-context sites in concept gates and
- *  static_asserts were migrated to @c Rational<default_integer> /
- *  @c ℚ_t<> directly in step 1 of this slice.
+ *  static_asserts were migrated to @c Rational<default_integer>
+ *  directly in step 1 of this slice.
  *
- *  @note  The strict @c category::IsField<Rational<default_integer>,
- *  std::plus<...>, std::multiplies<...>> is @b not currently certified.
- *  Two distinct blocks compose:
- *
- *  1. @b IsTotal @b gate (architectural).  The strict ring/field
- *     ladder requires @c IsMagma, which requires @c IsTotal<T, Op>
- *     @c = @c IsPeriodic @c || @c IsIdempotent @c || @c IsSaturating.
- *     Exact carriers like @c Rational<...> are none of those (no
- *     wrap, no idempotence, no saturation), so the strict ladder is
- *     blocked at the totality step regardless of invertibility
- *     specialisations.  An "exact" or "infinite-domain-total"
- *     fourth path on @c IsTotal would be required.
- *  2. @b Species-trait specialisations (incremental).  Even with
- *     IsTotal lifted, the @c is_invertible_v / @c inverse_trait
- *     registrations would still be missing on @c Rational under the
- *     active numeric policy.
- *
- *  Until both blocks lift, the operational
+ *  @note  Post-ℚ-retarget (#673), the strict ring ladder closes on
+ *  @c Rational<default_integer> via the saturating @c IsTotal path
+ *  inherited from @c default_integer @c = @c SignedCardinality:
+ *  @c IsRing and @c IsCommutativeRing both fire (see the axiomatic
+ *  probes near the bottom of this file).  What remains @b not
+ *  certified is strict @c category::IsField on the @b full ℚ ---
+ *  @c 0/1 has no multiplicative inverse on the carrier, so the
+ *  multiplicative-group axiom fails by construction.  The textbook
+ *  ℚ-as-field claim is @c (ℚ\\{0}, @c *), a @c Subobject construction
+ *  not yet in the codebase (tracked separately under #664 Slice 3).
+ *  Until that subobject lands, the operational
  *  @c algebra::HasFieldOperators<Rational<default_integer>> is the
- *  load-bearing field-arithmetic guarantee.
+ *  load-bearing field-arithmetic guarantee on the full carrier.
  */
-export inline constexpr auto ℚ = dedekind::sets::Ω<Rational<default_integer>>;
+export inline constexpr UniversalSet<Rational<default_integer>, ClassicalLogic,
+                                     ℵ_0>
+    ℚ = dedekind::sets::Ω<Rational<default_integer>>;
 
 static_assert(std::same_as<std::remove_cvref_t<decltype(ℚ)>,
                            dedekind::sets::UniversalSet<
@@ -579,114 +498,24 @@ static_assert(
     "χ-type).  The universe value is a UniversalSet whose Ambient matches the "
     "rational carrier and whose χ is recoverable as a typed member.");
 
-/** @brief The predicate-set value (instance of @c RationalSet),
- *         retained for set-builder DSL usage like @c Set{q @c % @c Q}
- *         where @c q @c = @c var<ℚ> ranges over rationals.
- */
-export inline constexpr RationalSet Q{};
+// `Q` constant + `RationalSet` alias removed under ℚ-retarget
+// chiselling --- callers spell @c element<ℚ> directly off the universe
+// value @c ℚ above.
 
-/**
- * @brief Machine realization arrow ℤ ↪ ℚ: machine_integer → Rational<I>.
- * @details Every integer n embeds as the fraction n/1.
- *          This is the current machine model lift of Z → Q.
- */
-export template <IsInteger I = default_integer>
-inline constexpr auto embed_ℤ_ℚ =
-    arrow<machine_integer, Rational<I>>([](const machine_integer& n) noexcept {
-      return Rational<I>{static_cast<I>(n), static_cast<I>(1)};
-    });
+// `embed_ℤ_ℚ` machine-layer arrow removed: its source type
+// @c machine_integer (= @c int) was the deprecated machine-layer
+// integer carrier.  Callers that need ℤ ↪ ℚ realisation should
+// construct @c Rational<I>{n, I{1}} directly at the call site.
+//
+// Pragmatic alias kept for downstream callers that still reach for it:
+export using machine_integer = int;
 
-/**
- * @brief Set-level lift of @c embed_ℤ_ℚ: image of an int-set @c S as a
- *        Rational-set under the canonical mono @c ℤ @c ↪ @c ℚ.
- *
- * @details Layer-1 entry per #602, sister to @c embed_𝔹_ℕ (PR #624),
- * @c embed_𝔹_𝕂3 (PR #626), @c embed_uint_ℕ (PR #628), and
- * @c embed_sint_ℤ (PR #630): names the construction at the call site
- * rather than re-spelling @c image(embed_ℤ_ℚ<I>, @c S).  Accepted
- * input @c S is anything @c dedekind::sets::image already dispatches
- * on --- @c SingletonSet (@c :sets:singleton),
- * @c std::set<int> / @c std::unordered_set<int> (@c :sets:extensional),
- * and intensional @c Set<int, L, P> carriers (@c :sets:expressions,
- * symbolic Unknown predicate).
- *
- * @b Naming: @c Frac is the carrier-lattice functor name --- the
- * field-of-fractions construction over an integral domain
- * (Burris-Sankappanavar; Lang) --- promoted to the @b set level.  At
- * the value level the same construction is the per-value arrow
- * @c embed_ℤ_ℚ above; the set-level entry uses @c Frac to align with
- * the issue-#602 functor-zoo nomenclature (@c Frac, @c Cplx, @c Dual,
- * @c Free_n, @c End_R) and to leave room for sister set-level lifts
- * (@c Cplx(IsSet auto S), @c Dual(IsSet auto S)) in adjacent
- * partitions.
- *
- * @b Carrier @b note: the "ℤ" in this slice is the @b machine-level
- * integer carrier @c machine_integer @c = @c int (the input type of
- * the per-value arrow @c embed_ℤ_ℚ).  The corresponding lift on the
- * project's exact-ℤ representation @c SignedCardinality composes
- * through @c embed_sint_ℤ and lands as a follow-up slice.
- *
- * Mathematically: image(@c S) under the canonical mono @c n @c ↦ @c
- * n/1 is @c {n/1 @c | @c n @c ∈ @c S} as a subset of @c ℚ --- the
- * field-of-fractions inclusion lifted from values to sets.
- */
-// No-narrowing pin: source set's element type must be EXACTLY
-// @c machine_integer (= int), matching the per-value arrow's domain.
-// Mirrors PR #630's @c embed_sint_ℤ no-narrowing pin --- both
-// @c Domain-exposing carriers (SingletonSet, dedekind::sets::Set, ...)
-// and @c value_type-exposing carriers (std::set, std::unordered_set)
-// are pinned in a single disjunctive constraint.
-export template <IsInteger I = default_integer, typename S>
-  requires(
-              requires {
-                typename std::remove_cvref_t<S>::Domain;
-                requires std::same_as<typename std::remove_cvref_t<S>::Domain,
-                                      machine_integer>;
-              } ||
-              requires {
-                typename std::remove_cvref_t<S>::value_type;
-                requires std::same_as<
-                    typename std::remove_cvref_t<S>::value_type,
-                    machine_integer>;
-              }) &&
-          requires(S&& s) {
-            dedekind::sets::image(embed_ℤ_ℚ<I>, std::forward<S>(s));
-          }
-constexpr auto Frac(S&& s) {
-  return dedekind::sets::image(embed_ℤ_ℚ<I>, std::forward<S>(s));
-}
-
-// Set-level lift witness: @c Frac(SingletonSet<int>{5}) lands at
-// @c Rational{5, 1}.  Pinned at the @b value level so the pivot
-// equality is constant-evaluated, not just the codomain type.  Mirrors
-// PR #624 / #626 / #628 / #630's witnesses --- same shape, different
-// (carrier, codomain) pair.
-static_assert(Frac(dedekind::sets::SingletonSet<
-                       machine_integer, dedekind::category::ClassicalLogic>{5})
-                      .pivot == Rational<default_integer>{5, 1},
-              "Frac(SingletonSet<int>{5}) lands at Rational{5, 1} on the "
-              "Rational<default_integer> carrier (n ↦ n/1; the "
-              "field-of-fractions inclusion "
-              "ℤ ↪ ℚ).");
-static_assert(
-    Frac(dedekind::sets::SingletonSet<machine_integer,
-                                      dedekind::category::ClassicalLogic>{-3})
-            .pivot == Rational<default_integer>{-3, 1},
-    "Frac(SingletonSet<int>{-3}) lands at Rational{-3, 1} (negative-"
-    "value witness; the field-of-fractions inclusion is sign-preserving).");
-
-// Concept-level witness: the result realises the categorical image of
-// the source set under the canonical mono @c ℤ @c ↪ @c ℚ --- a
-// Subobject of @c Cod<embed_ℤ_ℚ> @c = @c Rational<> per
-// @c :category:image.
-static_assert(
-    dedekind::category::IsImageOf<
-        decltype(Frac(dedekind::sets::SingletonSet<
-                      machine_integer, dedekind::category::ClassicalLogic>{5})),
-        decltype(embed_ℤ_ℚ<>)>,
-    "Frac(S) realises IsImageOf<result, embed_ℤ_ℚ>: result is a "
-    "Subobject of Cod<embed_ℤ_ℚ> = Rational<default_integer>, witnessing the "
-    "categorical image of S under the canonical mono ℤ ↪ ℚ.");
+// `Frac` set-level lift removed under ℚ-retarget chiselling: depended
+// transitively on @c embed_ℤ_ℚ (removed above).  The carrier-lattice
+// functor zoo (@c Frac / @c Cplx / @c Dual / ...) at the set level
+// remains a valid target — the next iteration will restore @c Frac
+// on the new @c ℤ carrier (@c SignedCardinality) via @c embed_sint_ℤ
+// rather than the deprecated machine-layer arrow.
 
 /**
  * @brief Exact dyadic embedding @c double → ℚ.
@@ -946,57 +775,12 @@ struct SpeciesTraits<dedekind::numbers::Rational<Z>> {
   using machine_type = dedekind::numbers::Rational<Z>;
 };
 
-template <>
-inline constexpr bool
-    is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_ℤ_ℚ<>)>> =
-        true;
-static_assert(
-    IsInjective<std::decay_t<decltype(dedekind::numbers::embed_ℤ_ℚ<>)>>,
-    "embed_ℤ_ℚ (ℤ ↪ ℚ) is registered injective.");
-
-// IsEmbeddingFunctor witness (#633): @c embed_ℤ_ℚ is the canonical
-// field-of-fractions inclusion @c n @c ↦ @c n/1.  Fully faithful
-// (discrete machine-integer source) + injective on objects.  Pinned at
-// the default-template instantiation @c embed_ℤ_ℚ<> (= @c
-// embed_ℤ_ℚ<default_integer>); other carriers register at their
-// instantiation sites if needed.
-template <>
-inline constexpr bool is_embedding_functor_v<
-    std::decay_t<decltype(dedekind::numbers::embed_ℤ_ℚ<>)>> = true;
-static_assert(
-    IsEmbeddingFunctor<std::decay_t<decltype(dedekind::numbers::embed_ℤ_ℚ<>)>>,
-    "embed_ℤ_ℚ realises IsEmbeddingFunctor per #633's Mac Lane reading.");
+// embed_ℤ_ℚ monicity / IsEmbeddingFunctor / is_homomorphism_v
+// registrations removed under ℚ-retarget chiselling — the arrow
+// itself was removed (machine-layer ℕ → ℤ scaffolding).  Restoring
+// on the new ℤ carrier (SignedCardinality) lands as a follow-up.
 
 }  // namespace dedekind::category
-
-namespace dedekind::algebra {
-
-// embed_ℤ_ℚ is, mathematically, a @b ring @b homomorphism: the
-// field-of-fractions inclusion @c ℤ @c ↪ @c Frac(ℤ) @c = @c ℚ
-// preserves both ring operations --- @c (n + m)/1 == @c n/1 + @c m/1
-// (additive law) and @c (n * m)/1 == @c n/1 * @c m/1 (multiplicative
-// law) --- by definition of Rational arithmetic (numerator-aware
-// reduction preserves these on @c den == 1 inputs).  At the
-// @b trait-registry tier the @c is_homomorphism_v / @c IsHomomorphism
-// pair (introduced in @c algebra:universal under #506) is
-// @b unparameterised: it does not yet name a specific (Op, Op')
-// pair, so the registration here is the @b algebra-level homomorphism
-// witness (the strictly stronger ring-homomorphism reading lives in
-// the prose, awaiting per-axiom-tier refinements
-// @c IsAdditiveHomomorphism / @c IsMultiplicativeHomomorphism /
-// @c IsRingHomomorphism in a follow-on slice).  Pinned here as the
-// first positive @c is_homomorphism_v witness in the project.
-template <>
-inline constexpr bool
-    is_homomorphism_v<std::decay_t<decltype(dedekind::numbers::embed_ℤ_ℚ<>)>> =
-        true;
-static_assert(
-    IsHomomorphism<std::decay_t<decltype(dedekind::numbers::embed_ℤ_ℚ<>)>>,
-    "embed_ℤ_ℚ (ℤ ↪ ℚ) is registered as an algebra homomorphism "
-    "(the strictly stronger ring-homomorphism reading lives in the "
-    "prose; the trait is intentionally unparameterised at this slice).");
-
-}  // namespace dedekind::algebra
 
 namespace dedekind::category {
 
@@ -1026,17 +810,14 @@ namespace dedekind::numbers {
  * witness slots.
  */
 
-// (1) IsSet anchor on the predicate-set constant Q.
-static_assert(
-    dedekind::category::IsSet<decltype(dedekind::category::ambient_set<
-                                       Rational<default_integer>>(Q))>,
-    "RationalsOf must be the canonical IsSet anchor for "
-    "dedekind.numbers:rational.");
+// (1) IsSet anchor on the predicate-set constant Q --- removed under
+// ℚ-retarget chiselling: the @c Q constant + @c RationalsOf were
+// removed.  IsSet for ℚ is witnessed via the universe value ℚ above.
 
 // (2) Syntax (the C++ operator surface that maps to ℚ's algebra).  Post-
 // #559, ℚ is the universe value Ω<Rational<default_integer>>; the carrier
 // in concept-gate type-parameter slots is Rational<default_integer>
-// (a.k.a.\ ℚ_t<>) directly.
+// directly.
 //   - HasRingOperators<Rational<default_integer>>: literal +, binary -,
 //     unary -, * close on the carrier.
 //   - HasFieldOperators<Rational<default_integer>>: literal +, -, *, /
@@ -1083,15 +864,15 @@ static_assert(
 // (5) Adjacent-set arrows on ℚ:
 //   - Forward predecessor: @c ℤ ↪ ℚ via @c embed_ℤ_ℚ (n ↦ n/1; same
 //     arrow as (4)).
-//   - Forward successor:    @c ℚ ↪ ℝ via @c embed_ℚ_ℝ in @c :real
-//     (downstream; q ↦ Real{q}, the canonical inclusion).
-//   - Reverse direction (ℚ → machine):  composes through the
-//     successor arrow — @c embed_ℚ_ℝ(q).resolve() yields a @c double
-//     approximation (lossy when the denominator's not a power of two;
-//     exact for dyadic rationals).  The reverse path is intentionally
-//     not a single primitive on @c Rational<I>: ℚ → @c double is the
-//     realisation crossing into IEEE 754 numerics, and the carrier-
-//     lattice convention routes that through the ℝ-proxy so the
+//   - Forward successor:    @c ℚ ↪ ℝ — the @c embed_ℚ_ℝ arrow was
+//     removed under the ℚ retarget cleanup (the @c SignedCardinality
+//     variant carrier deliberately does not expose machine-numeric
+//     conversions).  Callers construct @c Real<S>{…} directly at the
+//     call site for the lossy realisation.
+//   - Reverse direction (ℚ → machine):  intentionally not a single
+//     primitive on @c Rational<I>: ℚ → @c double is the realisation
+//     crossing into IEEE 754 numerics, and the carrier-lattice
+//     convention routes that through the ℝ-proxy so the
 //     IEEE-754 friction is named at the right partition.
 
 /**
@@ -1143,11 +924,8 @@ static_assert(
 // hold (e.g. because a downstream change breaks a species-trait), the build
 // breaks here, at the point of the claim, rather than silently downstream.
 
-// ℕ as a commutative monoid under +: the canonical arbitrary-precision
-// natural carrier.
-static_assert(Monoid_ℕ<ExtensionalCardinal<>>,
-              "ExtensionalCardinal<> must realize ℕ as a commutative monoid "
-              "under std::plus.");
+// `Monoid_ℕ` static_assert removed under ℚ-retarget chiselling: the
+// concept was deleted from :natural.
 
 // ℤ as an abelian group under +: the canonical arbitrary-precision signed
 // integer carrier. The species-trait registry supplies associativity,
@@ -1211,6 +989,107 @@ static_assert(
     dedekind::algebra::HasGroupOperatorsMul<Rational<default_integer>>,
     "Rational<default_integer> closes the multiplicative-group operator "
     "surface (*, /, T{1}).");
+
+// =========================================================================
+// Axiomatic-algebra probes on Rational<default_integer> (post-ℚ-retarget).
+//
+// The static_asserts below pin which strict algebraic concepts fire on
+// the post-retarget @c Rational<SignedCardinality> carrier.  The
+// expected pattern: the @b additive-group axioms close cleanly (ℚ under
+// + IS an abelian group --- 0/1 is the identity, every rational has
+// an additive inverse), but the @b multiplicative-group axiom fails on
+// the full ℚ because @c 0/1 has no multiplicative inverse.  The strict
+// @c IsField concept therefore requires the @b nonzero subobject
+// @c ℚ\\{0} as the multiplicative-group carrier --- not the full ℚ.
+// That subobject construction is its own follow-up; below we pin the
+// surface that actually closes today.
+// =========================================================================
+
+// (+, *) additive abelian group fires:
+//   • IsAbelianGroup<ℚ, +>  — closed under + with 0/1 identity, every
+//     rational has an additive inverse -q.
+namespace probe {
+template <typename Q>
+inline constexpr bool ℚ_is_additive_abelian_group_v =
+    dedekind::category::IsAbelianGroup<Q, std::plus<Q>>;
+}  // namespace probe
+static_assert(probe::ℚ_is_additive_abelian_group_v<Rational<default_integer>>,
+              "ℚ under + must be an abelian group (associative, "
+              "commutative, identity 0/1, inverse -q).");
+
+// Multiplicative abelian group on the FULL ℚ does NOT fire: 0/1 has no
+// multiplicative inverse.  This is the @b expected failure --- it
+// witnesses, mechanically, that the strict @c IsField requires the
+// nonzero-subobject construction @c ℚ\\{0} to close the multiplicative
+// group.  Pinning the negative as documentation.
+static_assert(
+    !dedekind::category::IsAbelianGroup<
+        Rational<default_integer>, std::multiplies<Rational<default_integer>>>,
+    "The FULL ℚ under * is NOT a group (0/1 has no inverse).  The "
+    "multiplicative group is ℚ\\{0}, which requires a Subobject "
+    "construction --- tracked as the structural prerequisite for the "
+    "strict IsField witness.");
+
+// IsRing fires on the saturating @c Rational<SignedCardinality>: post-
+// #669 (SignedCardinality satisfying std::regular etc.) + #670 (ℤ
+// retarget to SignedCardinality) + ℚ retarget, the IsTotal disjunction
+// closes via the @c is_saturating path that the saturating carriers
+// expose.  This RESOLVES the rational.cppm:1174 FIXME for the new ℚ
+// (the FIXME was filed against the cyclic-fragment Rational<SE<>>
+// carrier; the saturating retarget cleared the architectural blocker).
+static_assert(
+    dedekind::category::IsRing<Rational<default_integer>,
+                               std::plus<Rational<default_integer>>,
+                               std::multiplies<Rational<default_integer>>>,
+    "Strict IsRing<ℚ, +, *> CLOSES on the saturating ℚ "
+    "(post-#669/#670/ℚ-retarget): the IsTotal disjunction "
+    "closes via the saturating-carrier path.");
+static_assert(
+    dedekind::category::IsCommutativeRing<
+        Rational<default_integer>, std::plus<Rational<default_integer>>,
+        std::multiplies<Rational<default_integer>>>,
+    "ℚ is a commutative ring: multiplication of rationals "
+    "commutes (a/b * c/d = c/d * a/b).");
+
+// IsField on the FULL ℚ: requires the multiplicative-group axiom on
+// the carrier, which fails because 0/1 has no inverse.  The full-ℚ
+// IsField therefore does @b not fire --- this is mathematically
+// correct (textbook ℚ is a field via the ℚ\\{0} multiplicative group,
+// not via a putative inverse-of-zero).
+static_assert(
+    !dedekind::algebra::IsField<Rational<default_integer>,
+                                std::plus<Rational<default_integer>>,
+                                std::multiplies<Rational<default_integer>>>,
+    "Strict IsField<ℚ, +, *> on the FULL ℚ does NOT fire: 0/1 has no "
+    "multiplicative inverse, so the multiplicative-group axiom fails "
+    "on the carrier.  The textbook ℚ-as-field claim is "
+    "(ℚ\\{0}, *) is a multiplicative group --- a Subobject "
+    "construction not yet in the codebase.  Tracked separately.");
+
+// =========================================================================
+// What this means for #664 Slice 3 (multiplicative scaling of halfspaces):
+//
+// The scout-algebra's multiplicative gate cannot use @c IsField<ℚ, ...>
+// or @c IsAbelianGroup<ℚ, std::multiplies<...>> as a structural
+// concept --- both are mechanically blocked above.  The two paths
+// forward:
+//
+//   (a) A @c ℚ\\{0} subobject carrier (the genuine multiplicative
+//       group) on which @c IsAbelianGroup fires structurally.  Then
+//       the multiplicative scout uses @c IsAbelianGroup<T, std::multiplies<T>>
+//       gated on this subobject.
+//
+//   (b) An opt-in marker @c is_ordered_multiplicative_field_shape_v<T>
+//       (analogous to @c is_translation_invariant_ordered) that the
+//       carrier author certifies, paired with the operational
+//       @c HasFieldOperators structural check.  This is the
+//       carrier-promise pattern @c :algebra:scout_algebra already
+//       uses for the additive case.
+//
+// (b) is the smaller move; (a) is the structurally honest one.  The
+// in-line scout-algebra Slice 3 will pick (b) absent the subobject
+// machinery.
+// =========================================================================
 
 /**
  * @brief Canonical polynomial ring over the rationals: Q[x].

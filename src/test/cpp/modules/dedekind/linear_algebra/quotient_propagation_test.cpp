@@ -85,10 +85,9 @@ TEST_CASE("HSP propagation: commutativity lifts componentwise (P)",
 
 TEST_CASE("HSP propagation: IsTotal certificate lifts via the right path",
           "[algebra][quotient][propagation]") {
-  // default_integer (Z1) certifies IsTotal via is_periodic; the H
-  // propagation must lift periodicity (not just saturation) so the
-  // IsTotal disjunction in :species closes on Rational<I>.
-  STATIC_CHECK(is_periodic_v<Q, std::plus<Q>>);
+  // Post-ℚ-retarget: default_integer is now SignedCardinality
+  // (saturating), so is_periodic no longer applies on Rational<I>; the
+  // IsTotal disjunction in :species closes via is_saturating instead.
   STATIC_CHECK(is_total_v<Q, std::plus<Q>>);
   STATIC_CHECK(is_total_v<Q, std::multiplies<Q>>);
   // unsigned int certifies IsTotal via is_periodic; P propagation
