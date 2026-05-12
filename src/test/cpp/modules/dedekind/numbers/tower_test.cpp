@@ -32,9 +32,9 @@ static_assert(IsMonicArrow<std::decay_t<decltype(embed_𝔹_uint_)>>);
 // embed_uint_sint_ was removed in #670 (deprecated machine-layer ℕ → ℤ arrow);
 // the carrier-lattice tower no longer carries this middle-row horizontal.
 static_assert(IsMonicArrow<std::decay_t<decltype(embed_𝕂3_ℤ_)>>);
-static_assert(IsMonicArrow<std::decay_t<decltype(embed_ℤ_ℚ<>)>>);
-// embed_ℚ_ℝ removed under ℚ retarget cleanup (no static_cast<int>
-// on the SignedCardinality variant carrier).
+// embed_ℤ_ℚ removed under ℚ retarget chiselling (machine-layer arrow
+// scaffolding); embed_ℚ_ℝ removed alongside it (no static_cast<int>
+// on SignedCardinality variant carrier).
 static_assert(IsMonicArrow<std::decay_t<decltype(embed_ℝ_ℂ<>)>>);
 
 // ---------------------------------------------------------------------------
@@ -51,16 +51,8 @@ static_assert(std::same_as<Dom<std::decay_t<decltype(embed_𝕂3_ℤ_)>>, Ternar
 static_assert(std::same_as<Cod<std::decay_t<decltype(embed_𝕂3_ℤ_)>>,
                            dedekind::sets::SignedCardinality>);
 
-// embed_ℤ_ℚ<> takes a machine_integer (the source-side type is hardwired
-// in the arrow definition, independent of the I template parameter) and
-// returns a Rational<I> with I = default_integer post-#499 retarget
-// (default_integer = SignedExtensionalCardinal<>).
-static_assert(
-    std::same_as<Dom<std::decay_t<decltype(embed_ℤ_ℚ<>)>>, machine_integer>);
-static_assert(std::same_as<Cod<std::decay_t<decltype(embed_ℤ_ℚ<>)>>,
-                           Rational<default_integer>>);
-
-// embed_ℚ_ℝ Dom/Cod static_asserts removed under ℚ retarget cleanup.
+// embed_ℤ_ℚ + embed_ℚ_ℝ Dom/Cod static_asserts removed under ℚ
+// retarget chiselling (both arrows deleted).
 
 static_assert(std::same_as<Dom<std::decay_t<decltype(embed_ℝ_ℂ<>)>>,
                            Real<machine_real_scalar>>);
@@ -165,12 +157,8 @@ TEST_CASE("Tower: K3 ↪ ℤ via embed_𝕂3_ℤ_", "[numbers][tower][embedding]
 // ℤ ↪ ℚ
 // ---------------------------------------------------------------------------
 
-TEST_CASE("Tower: ℤ ↪ ℚ via embed_ℤ_ℚ", "[numbers][tower][embedding]") {
-  // Embedding preserves value: n -> n/1.
-  CHECK(embed_ℤ_ℚ<>(3).num() == 3);
-  CHECK(embed_ℤ_ℚ<>(3).den() == 1);
-  CHECK(embed_ℤ_ℚ<>(-5).num() == -5);
-}
+// Tower: ℤ ↪ ℚ via embed_ℤ_ℚ — TEST_CASE removed under ℚ-retarget
+// chiselling.  The arrow itself was deleted (machine-layer scaffolding).
 
 // ---------------------------------------------------------------------------
 // ℚ ↪ ℝ

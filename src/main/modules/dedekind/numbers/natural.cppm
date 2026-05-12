@@ -93,9 +93,9 @@ using namespace dedekind::sets;
  * Wikipedia: Semiring, Peano axioms
  */
 export template <typename N>
-concept IsNatural =
-    HasRingOperators<N> && IsMonoid<N, std::add<N>> && IsTotallyOrdered<N> &&
-    dedekind::category::IsCommutativeMonoid<T, std::plus<T>>;
+concept IsNatural = dedekind::algebra::HasRingOperators<N> &&
+                    dedekind::category::IsCommutativeMonoid<N, std::plus<N>> &&
+                    dedekind::order::IsTotallyOrdered<N>;
 
 /**
  * @brief Canonical embedding 𝔹 ↪ ℕ: bool → unsigned.
@@ -250,8 +250,8 @@ static_assert(dedekind::order::HasLatticeOperators<unsigned int>,
 static_assert(IsNatural<unsigned int>,
               "unsigned int satisfies IsNatural (commutative semiring "
               "with order; +,*,<= close on the carrier).");
-static_assert(IsNaturalNumber<unsigned int>,
-              "unsigned int is the canonical IsNaturalNumber.");
+// `IsNaturalNumber` alias removed under ℚ-retarget chiselling; the
+// `IsNatural` concept above is the canonical witness.
 static_assert(
     dedekind::algebra::IsArithmeticRing<unsigned int>,
     "unsigned int is the seal where strict ℕ-flavoured ring proof and "
