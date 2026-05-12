@@ -117,9 +117,12 @@ export inline constexpr auto embed_𝕂3_ℤ_ =
  *          operators without crossing the @c sets @c → @c numbers
  *          module boundary).  This @c arrow form is the named monic
  *          morphism the carrier-lattice Figure 1 labels at the
- *          variant-layer top row; structurally @b distinct from the
- *          machine-layer @c embed_uint_sint_ above (an
- *          @c arrow<unsigned, @c int> sign reinterpretation).
+ *          variant-layer top row.  The corresponding machine-layer
+ *          horizontal arrow (@c arrow<unsigned, @c int>, previously
+ *          @c embed_uint_sint_) was removed in #670 as deprecated;
+ *          the carrier-lattice diagram is consequently missing that
+ *          middle-row machine-layer ℕ→ℤ link until a follow-up
+ *          restores it on the new ℤ carrier (@c SignedCardinality).
  *          Registered as monic below.
  */
 export inline constexpr auto lift_ℕ_ℤ_ =

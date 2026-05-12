@@ -12,11 +12,12 @@ using namespace dedekind::sets;
 TEST_CASE("Numbers: canonical starter symbols", "[numbers][starter]") {
   // Per #559 (option-A migration, sibling to #551's Ω<carrier> ambient
   // redesign), the canonical species symbols are universe @b values:
-  // @c ℕ = @c Ω<Cardinality>, @c ℤ = @c Ω<SignedExtensionalCardinal<>>,
-  // and so on.  Carriers are spelled directly (Cardinality, ℤ-as-alias,
-  // ℚ-as-alias, ...) in template-type-parameter positions.  Each symbol's
-  // STATIC_CHECK below witnesses the universe-over-carrier reading by
-  // asserting (a) decltype(symbol) == UniversalSet<carrier> and (b)
+  // @c ℕ = @c Ω<Cardinality>, @c ℤ = @c Ω<SignedCardinality> (post-#670:
+  // saturating-discipline alignment with ℕ), and so on.  Carriers are
+  // spelled directly (Cardinality, SignedCardinality, Rational<...>, ...)
+  // in template-type-parameter positions.  Each symbol's STATIC_CHECK
+  // below witnesses the universe-over-carrier reading by asserting
+  // (a) decltype(symbol) == UniversalSet<carrier> and (b)
   // decltype(symbol)::Domain == carrier.
 
   STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(ℕ)>,
@@ -100,13 +101,53 @@ TEST_CASE("Numbers: starter universes satisfy lattice identities",
   // (Dual<F> relocated from :numbers to :analysis).
 }
 
-// TEST_CASE removed under #670 cleanup propagation: the "ℚ as the
-// textbook quotient (ℤ × ℤ_≠0) / cross-multiplication" exhibit was
-// anchored on ℤ's old carrier (SignedExtensionalCardinal<>) matching
-// Rational<default_integer>'s carrier; with ℤ's retarget to
-// SignedCardinality, the two no longer agree.  Restoring this exhibit
-// requires either migrating Rational<default_integer> onto
-// SignedCardinality (separate slice; ~400 references) or providing a
-// cross-variant lift `quotient_carrier` specialisation that handles
-// the SignedCardinality → SignedExtensionalCardinal<> projection.
-// Tracked as part of the broader cleanup propagation in #670 follow-ups.
+TEST_CASE(
+    "Numbers: ℚ as the textbook quotient (ℤ × ℤ_≠0) / cross-multiplication "
+    "(#567 exhibit; post-#670 anchored on the cyclic-fragment ℤ carrier)",
+    "[numbers][starter][quotient][exhibit]") {
+  // The textbook construction of ℚ in code:
+  //
+  //   ℚ = (ℤ × ℤ_≠0) / ~,  where (a, b) ~ (c, d) iff a·d = b·c
+  //
+  // Post-#670, the canonical @c ℤ alias is @c Ω<SignedCardinality>
+  // (saturating discipline mirroring @c ℕ = @c Ω<Cardinality>), while
+  // @c Rational<default_integer> still routes through the cyclic
+  // @c SignedExtensionalCardinal<> carrier.  The two no longer share a
+  // common @c Domain, so the exhibit anchors on the @b explicit cyclic
+  // ℤ universe @c Ω<SignedExtensionalCardinal<>> rather than the
+  // canonical @c ℤ alias --- preserving the structural exhibit (the
+  // quotient's @c Domain @c IS @c Rational<default_integer>) without
+  // requiring a full @c Rational migration.  Restoring the binding to
+  // the canonical @c ℤ alias awaits the @c default_integer retarget
+  // (next slice).
+
+  using I = default_integer;  // SignedExtensionalCardinal<> (carrier for ℚ)
+  constexpr auto Z_cyclic = Ω<SignedExtensionalCardinal<>>;
+  constexpr auto z = element<Z_cyclic>;
+  constexpr auto numerators = Set{z};
+  // Nonzero predicate (BoundScout doesn't expose a scalar `!=` lift; an
+  // explicit lambda keeps the C++20 rewritten-comparison rules off the
+  // universe-value side of the comparison).
+  constexpr auto denominators =
+      Set{z | [](const I& v) { return !(v == I{0}); }};
+  constexpr auto pairs = cartesian_product(numerators, denominators);
+
+  // Cross-multiplication equivalence relation as a typed tag (so the
+  // quotient_carrier trait can specialise on it).
+  constexpr auto cross_mult = CrossMultEquiv<I>{};
+
+  // The textbook ℚ-from-construction.
+  constexpr auto Q_constructed = quotient(pairs, cross_mult);
+
+  // The structural claim: the quotient's Domain IS Rational<default_integer>
+  // — the carrier we already use for ℚ.  Same artefact, structurally
+  // exhibited.
+  STATIC_CHECK(std::same_as<
+               typename std::remove_cvref_t<decltype(Q_constructed)>::Domain,
+               Rational<default_integer>>);
+
+  // And it agrees with the universe-value spelling of ℚ (post-#566):
+  STATIC_CHECK(std::same_as<
+               typename std::remove_cvref_t<decltype(Q_constructed)>::Domain,
+               typename std::remove_cvref_t<decltype(ℚ)>::Domain>);
+}
