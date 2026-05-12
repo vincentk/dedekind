@@ -1181,6 +1181,83 @@ export constexpr bool operator<(const SignedCardinality& lhs,
   return compare_signed(lhs, rhs) == std::partial_ordering::less;
 }
 
+/** @brief Explicit homogeneous @c == on @c SignedCardinality (#669).
+ *
+ * @details
+ * Mirrors the @c == on @c Cardinality above: the @c std::variant's
+ * defaulted @c == lives inside the module's purview and is @b not
+ * reachable across the @c dedekind.sets module boundary (the
+ * @c \<variant\> header is in the global module fragment).  Defining
+ * the operator explicitly in @c dedekind::sets --- where ADL can find
+ * it from importers like @c dedekind.numbers and
+ * @c dedekind.algebra:scout_algebra --- closes the gap so
+ * @c std::equality_comparable<SignedCardinality>,
+ * @c std::regular<SignedCardinality>, and
+ * @c std::three_way_comparable<SignedCardinality,
+ * @c std::partial_ordering> fire downstream.
+ *
+ * @c NaZ-vs-NaZ returns @c true: this is the variant-alternative
+ * equality reading, required for @c == to be an equivalence relation
+ * (reflexivity).  The companion @c <=> below @b mirrors this --- the
+ * NaZ-vs-NaZ case is special-cased to return
+ * @c std::partial_ordering::equivalent so that @c == and @c <=>
+ * @b agree on this pair, per C++20's @c std::three_way_comparable
+ * contract @c (a @c == @c b) ↔ @c std::is_eq(a @c <=> @c b).  @c NaZ
+ * vs @b non-@c NaZ remains @c unordered in @c <=> (and @c false in
+ * @c ==), preserving IEEE-NaN-style unordered semantics for mixed
+ * comparisons.
+ *
+ * Closes #669, which itself closes the persistent local-only build
+ * failure on @c sint.cppm:228
+ * (@c embed_sint_ℤ(SingletonSet<int>{42}).pivot @c == @c
+ * finite_signed_cardinality(42)).
+ */
+export constexpr bool operator==(const SignedCardinality& lhs,
+                                 const SignedCardinality& rhs) noexcept {
+  // Both NaZ: equal as variant alternatives (reflexive ==).
+  if (detail::sc_is_naz(lhs) && detail::sc_is_naz(rhs)) return true;
+  if (detail::sc_is_naz(lhs) || detail::sc_is_naz(rhs)) return false;
+  // Either ±ℵ_0: alternative-tag equality.
+  if (detail::sc_is_pos_inf(lhs)) return detail::sc_is_pos_inf(rhs);
+  if (detail::sc_is_neg_inf(lhs)) return detail::sc_is_neg_inf(rhs);
+  if (detail::sc_is_pos_inf(rhs) || detail::sc_is_neg_inf(rhs)) return false;
+  // Finite-vs-finite: delegate to SignedExtensionalCardinal<>'s
+  // canonical-zero-aware ==.
+  return std::get<SignedExtensionalCardinal<>>(lhs) ==
+         std::get<SignedExtensionalCardinal<>>(rhs);
+}
+
+/** @brief Explicit homogeneous @c <=> on @c SignedCardinality (#669).
+ *
+ * @details
+ * Returns @c std::partial_ordering because @c NaZ is unordered with
+ * @b non-@c NaZ operands (IEEE-NaN-style).  Special-case: @c NaZ
+ * @c <=> @c NaZ returns @c std::partial_ordering::equivalent so that
+ * the @c == above (which returns @c true on NaZ-vs-NaZ for
+ * @c std::equality_comparable reflexivity) and this @c <=> agree on
+ * the equivalence case, per @c std::three_way_comparable's contract
+ * @c (a @c == @c b) ↔ @c std::is_eq(a @c <=> @c b).  Mixed @c NaZ
+ * vs non-@c NaZ comparisons remain @c unordered.
+ *
+ * Required for @c std::three_way_comparable<SignedCardinality,
+ * @c std::partial_ordering> to fire downstream.  Pairs with the @c ==
+ * above to close the full standard-concept surface for the saturating
+ * ℤ proxy.
+ */
+export constexpr std::partial_ordering operator<=>(
+    const SignedCardinality& lhs, const SignedCardinality& rhs) noexcept {
+  // Special-case NaZ-vs-NaZ to agree with the homogeneous == above
+  // (which returns true on this pair for std::equality_comparable
+  // reflexivity).  compare_signed returns unordered for any
+  // NaZ-involving pair, including both-NaZ; we override that case here
+  // so the C++20 three_way_comparable contract holds:
+  //   (a == b) ↔ std::is_eq(a <=> b).
+  if (detail::sc_is_naz(lhs) && detail::sc_is_naz(rhs)) {
+    return std::partial_ordering::equivalent;
+  }
+  return compare_signed(lhs, rhs);
+}
+
 // ---------------------------------------------------------------------------
 // Heterogeneous comparison: variant ↔ std::integral (closes #415)
 // ---------------------------------------------------------------------------
@@ -2134,6 +2211,53 @@ static_assert(
     IsSpecies<dedekind::sets::SignedExtensionalCardinal<>>,
     "SignedExtensionalCardinal<> must be a recognised Species — anchors "
     "the @c ℤ alias's IsSet witness in @c numbers:integer (#399 slice 3).");
+
+// Standard-concept witnesses (#669): the explicit homogeneous operators
+// added above (operator== and operator<=>) close the module-boundary
+// gap between the variant carriers and the std-library's concept
+// templates.  Pinning these means downstream code can freely write
+// `requires std::regular<T>` or `requires std::three_way_comparable<T,
+// std::partial_ordering>` against the variant ℕ-/ℤ-proxy carriers
+// without surprise rejection.
+
+// --- Cardinality (ℕ ∪ {ℵ_0}) ---
+// Strong order: no unordered values; finite < ℵ_0; finite-vs-finite
+// reduces to ExtensionalCardinal's defaulted <=>.
+static_assert(std::equality_comparable<dedekind::sets::Cardinality>,
+              "Cardinality must be std::equality_comparable (closes #669; "
+              "exposes the variant's == across the module boundary).");
+static_assert(std::regular<dedekind::sets::Cardinality>,
+              "Cardinality must be std::regular (semi-regular + "
+              "equality_comparable); enables downstream concept-binding.");
+static_assert(std::three_way_comparable<dedekind::sets::Cardinality,
+                                        std::strong_ordering>,
+              "Cardinality must be std::three_way_comparable with "
+              "std::strong_ordering --- no NaN/NaZ-equivalent in the ℕ "
+              "proxy, so the strong order is exact.");
+static_assert(std::totally_ordered<dedekind::sets::Cardinality>,
+              "Cardinality must be std::totally_ordered --- the strong "
+              "order above implies the four partial-order operators "
+              "(<, <=, >, >=) via C++20 rewrite rules.");
+
+// --- SignedCardinality (ℤ ∪ {±ℵ_0, NaZ}) ---
+// Partial order: NaZ is unordered with everything (IEEE-NaN-style).
+// std::totally_ordered is INTENTIONALLY NOT satisfied; the right
+// standard-concept binding is three_way_comparable with partial_ordering.
+static_assert(std::equality_comparable<dedekind::sets::SignedCardinality>,
+              "SignedCardinality must be std::equality_comparable; the "
+              "explicit homogeneous == above (alternative-tag equality + "
+              "NaZ-as-equal) closes #669 for the ℤ proxy.");
+static_assert(std::regular<dedekind::sets::SignedCardinality>,
+              "SignedCardinality must be std::regular --- closes the "
+              "persistent :sint.cppm local-only build failure "
+              "(embed_sint_ℤ(SingletonSet<int>{42}).pivot == "
+              "finite_signed_cardinality(42) static_assert at "
+              "sint.cppm:228).");
+static_assert(std::three_way_comparable<dedekind::sets::SignedCardinality,
+                                        std::partial_ordering>,
+              "SignedCardinality must be std::three_way_comparable with "
+              "std::partial_ordering --- NaZ is unordered with everything, "
+              "mirroring IEEE-NaN's partial-order semantics.");
 
 // ---------------------------------------------------------------------------
 // Closure-forcing trait specialisations (slice of #432)
