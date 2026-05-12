@@ -29,375 +29,57 @@ namespace dedekind::numbers {
 using namespace dedekind::category;
 using namespace dedekind::sets;
 
-export template <typename T>
-concept IsReflectiveSpecies = std::regular<T> && requires(T a) {
-  { -a } -> std::same_as<T>;
-  { T{} } -> std::same_as<T>;
-};
-
-/**
- * @concept IsInteger
- * @brief Structural concept for an Euclidean integer domain.
+/** @section integer__Saturating_ℤ (#670)
  *
- * @details Deliberately *not* restricted to `std::signed_integral<T>` so that
- * user-defined multi-precision integer types (e.g. a sign-augmented
- * `ExtensionalCardinal<N>`) can satisfy this concept without being built-in
- * C++ types.  The required operations are exactly those used by
- * `Rational<Z>::simplify()` and the ring/field machinery:
+ * @c ℤ is the universe @c Ω<SignedCardinality>, using the @b saturating
+ * variant @c sets::SignedCardinality as the carrier (rather than the
+ * @b cyclic finite fragment @c SignedExtensionalCardinal<>).  This
+ * mirrors the @c ℕ pattern (@c ℕ @c = @c Ω<Cardinality>, where
+ * @c Cardinality is the saturating @f$\mathbb{N} \cup \{\aleph_0\}@f$
+ * variant) --- the project's stance is now consistent across @c ℕ and
+ * @c ℤ: bounded representations @b escalate (saturate to
+ * @f$\pm \aleph_0@f$) rather than wrap.
  *
- *  - Additive group: `+`, `-` (binary and unary), `T{0}`.
- *  - Multiplicative monoid: `*`, `T{1}`.
- *  - Euclidean pair: `/` and `%` (needed by `std::gcd` and `simplify()`).
- *  - Total order: `<` (needed for canonical-sign normalisation).
- *
- * **Embedding from `std::signed_integral`:** every built-in signed integer
- * type satisfies this concept unchanged — the blanket `std::signed_integral`
- * constraint is now expressed as a static proof rather than a gating
- * condition.  Use `embed_signed_integral<Z>(v)` to inject a
- * `std::signed_integral` value into an arbitrary `IsInteger` type `Z`.
- */
-export template <typename T>
-concept IsInteger = IsReflectiveSpecies<T> && requires(T a, T b) {
-  // Additive group
-  { a + b } -> std::same_as<T>;
-  { a - b } -> std::same_as<T>;
-  // Multiplicative monoid
-  { a * b } -> std::same_as<T>;
-  // Euclidean domain (needed for std::gcd in Rational::simplify)
-  { a / b } -> std::same_as<T>;
-  { a % b } -> std::same_as<T>;
-  // Total order (needed for canonical-sign normalisation)
-  { a < b } -> std::convertible_to<bool>;
-};
-
-/**
- * @brief Canonical injection from `std::signed_integral` into any `IsInteger`
- *        domain `Z` via its single-argument constructor.
- *
- * @details `std::signed_integral` types (e.g. `int`) are *not* certified as
- * `IsInteger` because their addition has undefined-behaviour overflow (see the
- * `!IsMagma<int, std::plus<int>>` rejection in `dedekind.category:total`).
- * This function is the *embedding arrow* that injects a built-in signed value
- * into a well-behaved `IsInteger` domain (e.g. a future
- * `SignedExtensionalCardinal<N>`), without claiming `int` itself is such a
- * domain.
- *
- * @tparam Z  The target `IsInteger` type.
- * @tparam S  A `std::signed_integral` source type (deduced).
- */
-export template <IsInteger Z, std::signed_integral S>
-constexpr Z embed_signed_integral(S v) {
-  return Z{v};
-}
-
-/**
- * @brief Absolute value in the integer spine.
- * @details This lives upstream of `:rational` so Euclidean normalization does
- * not need to depend on machine-only facilities.
- */
-export template <IsInteger Z>
-constexpr Z integer_abs(Z value) {
-  return value < Z{0} ? -value : value;
-}
-
-/**
- * @brief Euclidean greatest common divisor over an `IsInteger` carrier.
- *
- * @details Uses `std::gcd` when the carrier is natively supported, otherwise
- * falls back to the Euclidean algorithm in terms of `%`, comparison, and
- * additive inversion. This is the upstream normalization primitive that
- * `Rational<Z>` should use instead of depending on `std::gcd` directly.
- */
-export template <IsInteger Z>
-constexpr Z euclidean_gcd(Z lhs, Z rhs) {
-  // std::gcd only works for builtin integral types (it static_asserts
-  // otherwise).
-  if constexpr (std::is_integral_v<Z>) {
-    return std::gcd(lhs, rhs);
-  } else {
-    lhs = integer_abs(lhs);
-    rhs = integer_abs(rhs);
-    while (rhs != Z{0}) {
-      const Z remainder = lhs % rhs;
-      lhs = rhs;
-      rhs = remainder;
-    }
-    return lhs;
-  }
-}
-
-export template <typename Z>
-concept HasEuclideanGcd = IsInteger<Z> && requires(Z a, Z b) {
-  { euclidean_gcd(a, b) } -> std::same_as<Z>;
-};
-
-/**
- * @brief Current extensional machine integer carrier.
- *
- * @details This names the concrete machine-level entry point explicitly so
- * embeddings into the integer spine can refer to an extensional source type
- * without hard-coding `int` everywhere downstream.
- *
- * @note `int` satisfies IsInteger syntactically (all required operations are
- * present) but is NOT a total algebra: signed overflow is UB, so it is not
- * IsMagma. For total-algebra contexts prefer `ExtensionalCardinal<>` (natural
- * numbers by fiat) or a future `SignedExtensionalCardinal<N>` (integers by
- * fiat).
- */
-export using extensional_integer = int;
-
-/**
- * @brief Default integer carrier used by downstream numeric layers.
- *
- * @details Intentionally an alias so the default can be retargeted in one
- * place.  Current choice is @c SignedExtensionalCardinal<> --- the
- * variant signed-integer-by-fiat carrier whose arithmetic is total
- * (sign-magnitude with periodic wrap, no UB).  This makes the default
- * @c Rational<default_integer> participate in the strict @c IsRing
- * chain (and so @c IsField), via the @c SignedExtensionalCardinal<>
- * @c IsInteger pinning.  The previous default was machine @c int,
- * which @b syntactically satisfies @c IsInteger but @b not
- * @c IsMagma (signed-overflow UB), blocking any axiomatic ring/field
- * proof on @c Rational<int> at the @c IsTotal certificate.  The
- * machine alias @c extensional_integer remains @c int for callsites
- * that genuinely want the IEEE-style machine carrier.
- *
- * @note The saturating sibling @c dedekind::sets::SignedCardinality
- *       (variant with @f$\pm \aleph_0@f$ / @c NaZ escalation) mirrors
- *       @c ℕ's @c Cardinality discipline and is the proper proxy for
- *       paper-@f$\mathbb{Z}@f$ at the @b set level
- *       (cf.\ @c cardinality.cppm:878-967, "the library's bona-fide
- *       proxy for ℤ modulo physical limits").  An additive realignment
- *       of @c default_integer / @c ℤ onto @c SignedCardinality is
- *       tracked separately --- the change touches ~400 references
- *       (witnesses in @c :rational, @c Rational<default_integer>,
- *       embeddings, paper listings) and is its own slice.
- */
-export using default_integer = SignedExtensionalCardinal<>;
-
-/**
- * @concept Group_ℤ
- * @brief ℤ as the abelian group of integers under addition.
- *
- * @details A carrier @c T satisfies @c Group_ℤ iff
- *   - it is @c IsInteger (structural integer syntax: +, -, *, /, %, <), and
- *   - @c (T, +, 0) is certified as an @c IsAbelianGroup by the species-trait
- *     registry (associative, commutative, has an identity, has an inverse).
- *
- * Downstream code that writes `template <Group_ℤ T>` gets a contract that is
- * simultaneously *intensional* (the carrier is named by its algebraic role,
- * not by a concrete C++ type) and *safe* (carriers whose addition is UB, like
- * signed @c int, are rejected at the concept gate rather than trusted).
- * Realisation to a concrete carrier (@c ExtensionalCardinal, @c
- * SignedExtensionalCardinal, @c std::signed_integral where the user has
- * furnished the trait proof) happens at the call site, not in the concept
- * body.
- */
-export template <typename T>
-concept Group_ℤ =
-    IsInteger<T> && dedekind::category::IsAbelianGroup<T, std::plus<T>>;
-
-/** @section integer__Canonical_Species_Spine (ℤ)
- *
- * The canonical species symbol @c ℤ aliases the exact ℤ @b carrier
- * @c SignedExtensionalCardinal<> per #399 (slice 3); the predicate-set
- * form @c IntegersOf<> stays partition-local (non-exported as
- * @c IntegerSet) and is reachable via the value-level constant @c Z
- * for set-builder DSL.  Both are defined further down.  The spine
- * below pins ℤ's syntax / semantics / arrow-fabric witnesses against
- * drift.  The strict (species-trait) witnesses on the exact ℤ carrier
- * land in @c :rational (where the species-trait registrations are
- * reachable); the partition-local witnesses here cover the
- * literal-shape concepts and the primitive-type arrows.
- */
-
-// (1) IsSet anchor: deferred until after Z is defined further down.
-
-// (2) Syntax (the C++ operator surface that maps to ℤ's algebra).
-//   - HasRingOperators<int>: literal +, -, *, unary - all close on int.
-//   - HasGroupOperatorsAdd<int>: literal +, binary -, unary - all close.
-//   - HasSuccessorOperators<int>: pre/post ++, -- all close.
-//   - HasCompoundGroupOperators*<int>: +=, -=, *=, /= all close.
-static_assert(dedekind::algebra::HasRingOperators<int>,
-              "ℤ's machine carrier (int) closes the literal ring operator "
-              "surface.");
-
-// Probe (#498 NEW-A): does the strict axiomatic IsRing chain fire on
-// default_integer (= SignedExtensionalCardinal<>)?  The integer.cppm
-// docstring claims it does, via the periodic-wrap path through
-// IsTotal.  Pinning the witness explicitly so we know where we stand.
-static_assert(
-    dedekind::category::IsRing<default_integer, std::plus<default_integer>,
-                               std::multiplies<default_integer>>,
-    "ℤ as default_integer (SignedExtensionalCardinal<>) closes the "
-    "strict axiomatic IsRing chain — periodic-wrap clears the "
-    "IsTotal gate; trait specialisations carry associativity, "
-    "commutativity, distributivity, identity, additive inverse.");
-static_assert(dedekind::category::IsCommutativeRing<
-                  default_integer, std::plus<default_integer>,
-                  std::multiplies<default_integer>>,
-              "ℤ is also commutative (multiplicative commutativity certified "
-              "via the species-trait registry on SignedExtensionalCardinal).");
-static_assert(dedekind::algebra::HasGroupOperatorsAdd<int>,
-              "ℤ's machine carrier closes the additive-group operator surface "
-              "(+, binary -, unary -).");
-static_assert(dedekind::algebra::HasSuccessorOperators<int>,
-              "ℤ's machine carrier supports the successor operator "
-              "surface (Peano-aligned ++, --).");
-
-// (3) Semantics (the algebraic structures int actually carries).
-//   - Self-documenting: IsInteger<int> (structural Euclidean-integer-
-//     domain syntax).
-//   - Group_ℤ<int> deliberately does NOT fire: signed-overflow UB
-//     defeats the strict abelian-group proof under the math-wins-
-//     over-C++ stance.  Group_ℤ<SignedExtensionalCardinal<>> is the
-//     exact-ℤ witness, asserted in `:rational`.
-//   - IsArithmeticAdditiveGroup<int> likewise refused.
-static_assert(IsInteger<extensional_integer>,
-              "extensional_integer (= int) satisfies IsInteger "
-              "(structural Euclidean-integer-domain syntax).");
-static_assert(!Group_ℤ<int>,
-              "int must NOT satisfy Group_ℤ: signed-overflow UB "
-              "defeats the strict abelian-group proof under the "
-              "math-wins-over-C++ stance.");
-static_assert(!dedekind::algebra::IsArithmeticAdditiveGroup<int>,
-              "int must NOT satisfy IsArithmeticAdditiveGroup: same "
-              "reason as the Group_ℤ rejection.");
-
-// (4) Primitive-type arrow:  std::signed_integral ↔ ℤ.  Forward via
-// `embed_signed_integral<Z>(v)` defined earlier in this partition;
-// reverse via the carrier's explicit `operator S()` (single-limb only,
-// to prevent silent truncation).  Pinned below as static_asserts on
-// the canonical exact ℤ carrier.
-
-// (5) Adjacent-set arrow: ℕ ↪ ℤ via `embed_uint_sint_` defined further down
-// in this partition.  Reverse direction (ℤ → ℕ via absolute value or
-// signed-bit projection) is not a strict embedding and is intentionally
-// not registered.
-
-/**
- * @brief Characteristic morphism for ℤ: the integers.
- * Accepts native int and all embedded predecessors (unsigned, Ternary).
- */
-export template <typename L = ClassicalLogic, typename C = ℵ_0>
-struct IntegersOf {
-  // Domain is the exact ℤ carrier per #399 slice 3.  Tracks the
-  // top-level @c ℤ alias (@c SignedExtensionalCardinal<>) so that
-  // @c var<ℤ>; @c n @c % @c Z routes the same_as check on
-  // Variable's element type @c T against @c Z::Domain cleanly
-  // through the carrier — the int / unsigned / Ternary / bool
-  // overloads below remain reachable via implicit @c int @c → @c SEC
-  // construction.
-  using Domain = dedekind::sets::SignedExtensionalCardinal<>;
-  using Codomain = typename L::Ω;
-  using logic_species = L;
-  using cardinality_type = C;
-
-  // Native exact ℤ: always a member of ℤ.  Direct dispatch on the
-  // carrier (no implicit-conversion round trip).
-  constexpr typename L::Ω operator()(
-      const dedekind::sets::SignedExtensionalCardinal<>&) const {
-    return L::True;
-  }
-
-  // Native int: always a member of ℤ.  Retained for callsite ergonomics
-  // (literals, machine-int fixtures); the implicit @c int @c → @c SEC
-  // construction lifts the same predicate.
-  constexpr typename L::Ω operator()(int) const { return L::True; }
-
-  // Embedded unsigned (via embed_uint_sint_)
-  constexpr typename L::Ω operator()(unsigned n) const {
-    return operator()(static_cast<int>(n));
-  }
-
-  // Embedded Ternary: False ↦ -1, Unknown ↦ 0, True ↦ 1.  Delegates
-  // to the int overload directly rather than routing through @c
-  // embed_𝕂3_ℤ_ — post-#430 that arrow lands on @c SignedCardinality
-  // (the variant ℤ-proxy), whereas this @c IntegersOf<> predicate-set
-  // is parameterised on the int machine carrier.  The {-1, 0, 1}
-  // mapping is the same; the implementations are deliberately
-  // separate to keep this overload at the machine-int layer.
-  constexpr typename L::Ω operator()(Ternary t) const {
-    switch (t) {
-      case Ternary::False:
-        return operator()(-1);
-      case Ternary::Unknown:
-        return operator()(0);
-      case Ternary::True:
-        return operator()(1);
-    }
-    return L::False;
-  }
-
-  // Embedded bool (via embed_𝔹_uint_ → embed_uint_sint_)
-  constexpr typename L::Ω operator()(bool b) const {
-    return operator()(embed_𝔹_uint_(b));
-  }
-};
-
-// Non-exported convenience alias used by the value-level @c Z constant
-// below.  Post-#559 (option-A migration), the public name @c ℤ denotes
-// the @b universe @b value @c Ω<SignedExtensionalCardinal<>>; the
-// carrier @c SignedExtensionalCardinal<> is named directly in
-// template-type-parameter positions (per #399 slice 3).  Callers who
-// specifically need the predicate-set @b classifier should spell
-// @c IntegersOf<> or @c decltype(Z) — symmetric with the
-// @c BooleanSetOf<> / @c B handling on the @c 𝔹 side.
-using IntegerSet = IntegersOf<>;
-
-/** @brief The canonical Boolean-tower successor: the exact ℤ universe.
- *
- *  Post-#559, @c ℤ names the @b universe value @c
- * Ω<SignedExtensionalCardinal<>> (a constexpr @c UniversalSet<...>{}).  The
- * carrier is
- *  @c dedekind::sets::SignedExtensionalCardinal<>, addressed directly in
- *  template-type-parameter positions; the math symbol denotes the set.
- *
- *  This makes @c element<ℤ> the canonical scout spelling — closer to
- *  textbook math notation than the pre-#559 @c element<Ω<ℤ>> form
- *  (which required @c ℤ to be a carrier-type alias).  Pre-#559 the
- *  spelling was @c using @c ℤ @c = @c SignedExtensionalCardinal<>; the
- *  ~73 type-context sites in concept gates / static_asserts were
- *  migrated to @c SignedExtensionalCardinal<> directly in step 1 of
- *  this slice.
- *
- *  Strict semantic witnesses on the carrier (@c IsRing,
- *  @c IsArithmeticAdditiveGroup, @c Group_ℤ, etc.) live in @c :rational
- *  by module-DAG necessity (the trait registrations are reachable
- *  there); the partition-local witnesses below cover what is reachable
- *  in @c :integer's import scope.
+ * The carrier @c sets::SignedCardinality is the project's documented
+ * bona-fide proxy for @f$\mathbb{Z}@f$ modulo physical limits
+ * (cf.\ @c cardinality.cppm:923-924, "the library's bona-fide proxy
+ * for ℤ modulo physical limits") --- arithmetic saturates to
+ * @f$\pm \aleph_0@f$ on overflow rather than wrapping modulo
+ * @f$2^{N \cdot 64}@f$.  This is what the in-line scout-algebra
+ * surface (#664) requires for translation-invariant halfspace-pivot
+ * transport: the @c IsOrderedAdditiveGroup marker in
+ * @c :algebra:scout_algebra is specialised to @c true for
+ * @c SignedCardinality and to @c false (default) for the cyclic
+ * finite fragment, exactly because the saturating discipline
+ * preserves order under translation and the cyclic one does not at
+ * the wrap boundary.
  */
 export inline constexpr auto ℤ =
-    dedekind::sets::Ω<dedekind::sets::SignedExtensionalCardinal<>>;
+    dedekind::sets::Ω<dedekind::sets::SignedCardinality>;
 
 static_assert(
     std::same_as<std::remove_cvref_t<decltype(ℤ)>,
-                 dedekind::sets::UniversalSet<SignedExtensionalCardinal<>,
+                 dedekind::sets::UniversalSet<dedekind::sets::SignedCardinality,
                                               ClassicalLogic, ℵ_0>>,
-    "ℤ is the universe Ω<SignedExtensionalCardinal<>> (post-#559).");
+    "ℤ is the universe Ω<SignedCardinality>, mirroring "
+    "ℕ = Ω<Cardinality> (#670).");
 static_assert(std::same_as<typename std::remove_cvref_t<decltype(ℤ)>::Domain,
-                           SignedExtensionalCardinal<>>,
-              "ℤ's underlying carrier IS SignedExtensionalCardinal<> — the "
-              "exact-ℤ carrier from #399 slice 3.");
+                           dedekind::sets::SignedCardinality>,
+              "ℤ's underlying carrier IS SignedCardinality — the project's "
+              "bona-fide saturating ℤ proxy (per cardinality.cppm:923-924). "
+              "Mirrors ℕ's underlying carrier being Cardinality.");
 
-export inline constexpr IntegerSet Z{};
-
-static_assert(
-    dedekind::category::IsSet<
-        decltype(dedekind::category::ambient_set<
-                 dedekind::sets::SignedExtensionalCardinal<>>(Z))>,
-    "IntegersOf must be the canonical IsSet anchor for "
-    "dedekind.numbers:integer (Domain = exact ℤ carrier per #399 slice 3).");
-
-/**
- * @brief Canonical embedding ℕ ↪ ℤ: unsigned int → int.
- * @details The natural numbers embed into the integers via the unsigned→signed
- *          widening conversion. This is injective for values that fit in int;
- *          large unsigned values may overflow, so the domain is conventionally
- *          restricted to values ≤ INT_MAX when used with certified arithmetic.
- */
-export inline constexpr auto embed_uint_sint_ = arrow<unsigned, int>(
-    [](const unsigned& x) noexcept { return static_cast<int>(x); });
+// The saturating ℤ proxy inhabits the algebraic concept chain the
+// in-line scout-algebra surface uses (#664).  Pinning the witness:
+// IsOrderedAdditiveGroup<SignedCardinality> holds via the
+// is_translation_invariant_ordered marker specialised in
+// :algebra:scout_algebra.
+static_assert(dedekind::algebra::IsOrderedAdditiveGroup<
+                  dedekind::sets::SignedCardinality>,
+              "ℤ's carrier SignedCardinality must satisfy "
+              "IsOrderedAdditiveGroup --- the structural binding "
+              "between ℤ and the in-line scout-algebra halfspace "
+              "pipe (#664 / #670).");
 
 /**
  * @brief Canonical embedding K3 ↪ ℤ: Ternary → SignedCardinality.
@@ -425,45 +107,6 @@ export inline constexpr auto embed_𝕂3_ℤ_ =
         });
 
 /**
- * @brief Canonical embedding of any std::unsigned_integral into formal ℕ.
- *
- * @details Every std::unsigned_integral type is a machine-width representative
- * of ℕ. ExtensionalCardinal<> is the "by fiat" unbounded ℕ. This template
- * covers any unsigned width; the concrete arrow embed_unsigned_ℕ handles the
- * canonical machine-width (unsigned) case.
- *
- * @tparam U Any std::unsigned_integral source type.
- */
-export template <std::unsigned_integral U>
-constexpr ExtensionalCardinal<> embed_to_ℕ(U v) {
-  return ExtensionalCardinal<>{
-      static_cast<ExtensionalCardinal<>::limb_type>(v)};
-}
-
-/**
- * @brief Concrete monic arrow: unsigned ↪ ℕ (ExtensionalCardinal<>).
- *
- * @details Injects the canonical machine-width unsigned into the extensional
- * natural-number carrier. unsigned is the machine representative of
- * std::unsigned_integral; for other widths use embed_to_ℕ<U>(v).
- * Declared monic: distinct machine unsigned values yield distinct
- * ExtensionalCardinal<> values within the 64-bit limb.
- */
-export inline constexpr auto embed_unsigned_ℕ =
-    arrow<unsigned, ExtensionalCardinal<>>(
-        [](const unsigned& u) noexcept -> ExtensionalCardinal<> {
-          return ExtensionalCardinal<>{
-              static_cast<ExtensionalCardinal<>::limb_type>(u)};
-        });
-
-// The universal machine-to-variant lift @c embed_uint_ℕ
-// and its concrete-arrow form @c embed_uint_ℕ_ live in the
-// dedicated sibling partition @c numbers:uint, which consolidates the
-// @c std::unsigned_integral family's textbook classification (commutative
-// ring @c ℤ/2^wℤ, the @c Modular<N> / @c IsCyclic correspondence, and
-// the width-ladder ring-hom witnesses).  Cross-reference only here.
-
-/**
  * @brief Canonical variant-layer embedding @c ℕ @c ↪ @c ℤ:
  *        @c Cardinality @c → @c SignedCardinality, exposed as a
  *        first-class @c arrow object for the carrier-lattice diagram.
@@ -474,9 +117,12 @@ export inline constexpr auto embed_unsigned_ℕ =
  *          operators without crossing the @c sets @c → @c numbers
  *          module boundary).  This @c arrow form is the named monic
  *          morphism the carrier-lattice Figure 1 labels at the
- *          variant-layer top row; structurally @b distinct from the
- *          machine-layer @c embed_uint_sint_ above (an
- *          @c arrow<unsigned, @c int> sign reinterpretation).
+ *          variant-layer top row.  The corresponding machine-layer
+ *          horizontal arrow (@c arrow<unsigned, @c int>, previously
+ *          @c embed_uint_sint_) was removed in #670 as deprecated;
+ *          the carrier-lattice diagram is consequently missing that
+ *          middle-row machine-layer ℕ→ℤ link until a follow-up
+ *          restores it on the new ℤ carrier (@c SignedCardinality).
  *          Registered as monic below.
  */
 export inline constexpr auto lift_ℕ_ℤ_ =
@@ -485,29 +131,9 @@ export inline constexpr auto lift_ℕ_ℤ_ =
           return dedekind::sets::lift_cardinality_to_signed(c);
         });
 
-/**
- * @brief Canonical embedding of any std::signed_integral into ℤ.
- *
- * @details The extensional integer carrier (extensional_integer = int) is the
- * default target. For injecting into a general IsInteger domain Z, use
- * embed_signed_integral<Z>(v).
- *
- * @tparam S Any std::signed_integral source type.
- */
-export template <std::signed_integral S>
-constexpr extensional_integer embed_signed_to_ℤ(S v) {
-  return static_cast<extensional_integer>(v);
-}
-
 }  // namespace dedekind::numbers
 
 namespace dedekind::category {
-template <>
-inline constexpr bool is_monic_arrow_v<
-    std::decay_t<decltype(dedekind::numbers::embed_uint_sint_)>> = true;
-static_assert(
-    IsInjective<std::decay_t<decltype(dedekind::numbers::embed_uint_sint_)>>,
-    "embed_uint_sint_ (machine-layer ℕ → ℤ) is registered injective.");
 
 template <>
 inline constexpr bool
@@ -516,15 +142,6 @@ inline constexpr bool
 static_assert(
     IsInjective<std::decay_t<decltype(dedekind::numbers::embed_𝕂3_ℤ_)>>,
     "embed_𝕂3_ℤ_ (𝕂3 → ℤ) is registered injective.");
-
-template <>
-inline constexpr bool is_monic_arrow_v<
-    std::decay_t<decltype(dedekind::numbers::embed_unsigned_ℕ)>> = true;
-static_assert(
-    IsInjective<std::decay_t<decltype(dedekind::numbers::embed_unsigned_ℕ)>>,
-    "embed_unsigned_ℕ (unsigned → ExtensionalCardinal) is registered "
-    "injective.");
-// Monicity of @c embed_uint_ℕ_ is registered in @c :uint.
 
 template <>
 inline constexpr bool

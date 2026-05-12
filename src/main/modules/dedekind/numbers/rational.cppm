@@ -33,6 +33,8 @@ import dedekind.category;
 import dedekind.order;
 import dedekind.sets;
 import :integer;
+import :sint;  // IsInteger / extensional_integer / Group_ℤ / default_integer
+               // (relocated from :integer per #670 cleanup)
 
 namespace dedekind::numbers {
 using namespace dedekind::category;
@@ -469,12 +471,26 @@ struct RationalsOf {
     return operator()(Rational<I>{static_cast<I>(z), static_cast<I>(1)});
   }
 
-  // Delegate non-parent ancestors to ambient ℤ.
-  template <typename T>
-    requires(!std::same_as<T, Rational<I>> && !std::same_as<T, machine_integer>)
-  constexpr typename L::Ω operator()(const T& x) const {
-    return dedekind::numbers::Z(x);
+  // Direct parent (carrier-level): embed I (typically the cyclic finite
+  // fragment SignedExtensionalCardinal<>) into ℚ.  Preserves the ℤ ⊂ ℚ
+  // story at the @c Rational<I>'s native integer carrier.
+  constexpr typename L::Ω operator()(const I& z) const
+    requires(!std::same_as<I, machine_integer>)
+  {
+    return operator()(Rational<I>{z, I{1}});
   }
+
+  // Note (#670 cleanup): the previous "delegate to ambient ℤ" catch-all
+  // (routed non-parent inputs through @c dedekind::numbers::Z(x), the
+  // removed @c IntegerSet predicate constant) was deleted as deprecated.
+  // The two parent overloads above (@c machine_integer and the carrier
+  // @c I) preserve the @c ℤ @c ⊂ @c ℚ membership story at the canonical
+  // carriers.  The post-#670 canonical @c ℤ alias uses
+  // @c SignedCardinality, which is @b not @c I; embedding
+  // @c SignedCardinality values into @c ℚ requires explicit construction
+  // via the carrier projection (no implicit catch-all).  Restoring the
+  // automatic @c SignedCardinality @c → @c Rational<I> route awaits the
+  // @c default_integer @c → @c SignedCardinality migration slice.
 };
 
 /** @brief Internal predicate-set type for the rational numbers (the

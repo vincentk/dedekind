@@ -12,11 +12,12 @@ using namespace dedekind::sets;
 TEST_CASE("Numbers: canonical starter symbols", "[numbers][starter]") {
   // Per #559 (option-A migration, sibling to #551's Ω<carrier> ambient
   // redesign), the canonical species symbols are universe @b values:
-  // @c ℕ = @c Ω<Cardinality>, @c ℤ = @c Ω<SignedExtensionalCardinal<>>,
-  // and so on.  Carriers are spelled directly (Cardinality, ℤ-as-alias,
-  // ℚ-as-alias, ...) in template-type-parameter positions.  Each symbol's
-  // STATIC_CHECK below witnesses the universe-over-carrier reading by
-  // asserting (a) decltype(symbol) == UniversalSet<carrier> and (b)
+  // @c ℕ = @c Ω<Cardinality>, @c ℤ = @c Ω<SignedCardinality> (post-#670:
+  // saturating-discipline alignment with ℕ), and so on.  Carriers are
+  // spelled directly (Cardinality, SignedCardinality, Rational<...>, ...)
+  // in template-type-parameter positions.  Each symbol's STATIC_CHECK
+  // below witnesses the universe-over-carrier reading by asserting
+  // (a) decltype(symbol) == UniversalSet<carrier> and (b)
   // decltype(symbol)::Domain == carrier.
 
   STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(ℕ)>,
@@ -24,13 +25,14 @@ TEST_CASE("Numbers: canonical starter symbols", "[numbers][starter]") {
   STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(Ω<Cardinality>)>,
                             UniversalSet<Cardinality>>);
 
+  // Post-#670: ℤ uses the saturating SignedCardinality variant
+  // (mirroring ℕ = Ω<Cardinality>), not the cyclic finite fragment.
   STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(ℤ)>,
-                            UniversalSet<SignedExtensionalCardinal<>>>);
+                            UniversalSet<SignedCardinality>>);
   STATIC_CHECK(std::same_as<typename std::remove_cvref_t<decltype(ℤ)>::Domain,
-                            SignedExtensionalCardinal<>>);
-  STATIC_CHECK(std::same_as<
-               std::remove_cvref_t<decltype(Ω<SignedExtensionalCardinal<>>)>,
-               UniversalSet<SignedExtensionalCardinal<>>>);
+                            SignedCardinality>);
+  STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(Ω<SignedCardinality>)>,
+                            UniversalSet<SignedCardinality>>);
 
   STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(ℚ)>,
                             UniversalSet<Rational<default_integer>>>);
@@ -101,27 +103,31 @@ TEST_CASE("Numbers: starter universes satisfy lattice identities",
 
 TEST_CASE(
     "Numbers: ℚ as the textbook quotient (ℤ × ℤ_≠0) / cross-multiplication "
-    "(#567 exhibit)",
+    "(#567 exhibit; post-#670 anchored on the cyclic-fragment ℤ carrier)",
     "[numbers][starter][quotient][exhibit]") {
-  // The textbook construction of ℚ in code, observable as a
-  // static_assert chain.  The structural claim is the *type identity*:
-  // the quotient's Domain is the carrier we already use for ℚ.
+  // The textbook construction of ℚ in code:
   //
   //   ℚ = (ℤ × ℤ_≠0) / ~,  where (a, b) ~ (c, d) iff a·d = b·c
   //
-  // The carrier inhabiting this construction is Rational<I>; equality
-  // and canonicalisation (Rational::simplify normalising via gcd;
-  // operator== cross-multiplying) provide the equivalence-class
-  // semantics the relation specifies.
+  // Post-#670, the canonical @c ℤ alias is @c Ω<SignedCardinality>
+  // (saturating discipline mirroring @c ℕ = @c Ω<Cardinality>), while
+  // @c Rational<default_integer> still routes through the cyclic
+  // @c SignedExtensionalCardinal<> carrier.  The two no longer share a
+  // common @c Domain, so the exhibit anchors on the @b explicit cyclic
+  // ℤ universe @c Ω<SignedExtensionalCardinal<>> rather than the
+  // canonical @c ℤ alias --- preserving the structural exhibit (the
+  // quotient's @c Domain @c IS @c Rational<default_integer>) without
+  // requiring a full @c Rational migration.  Restoring the binding to
+  // the canonical @c ℤ alias awaits the @c default_integer retarget
+  // (next slice).
 
-  // ℤ × ℤ_≠0 — pairs of integers with nonzero second component.
-  using I = default_integer;  // SignedExtensionalCardinal<>
-  constexpr auto z = element<ℤ>;
+  using I = default_integer;  // SignedExtensionalCardinal<> (carrier for ℚ)
+  constexpr auto Z_cyclic = Ω<SignedExtensionalCardinal<>>;
+  constexpr auto z = element<Z_cyclic>;
   constexpr auto numerators = Set{z};
-  // Use an explicit lambda for the nonzero predicate: BoundScout doesn't
-  // expose a scalar `!=` lift on the relational surface, and the C++20
-  // rewritten-comparison semantics around `!=` would otherwise trip on
-  // the universe-value side.
+  // Nonzero predicate (BoundScout doesn't expose a scalar `!=` lift; an
+  // explicit lambda keeps the C++20 rewritten-comparison rules off the
+  // universe-value side of the comparison).
   constexpr auto denominators =
       Set{z | [](const I& v) { return !(v == I{0}); }};
   constexpr auto pairs = cartesian_product(numerators, denominators);

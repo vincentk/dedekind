@@ -259,9 +259,15 @@ TEST_CASE(
 // which is a different categorical concept.
 
 TEST_CASE(
-    "carrier-lattice: every figure-1 arrow is a structural arrow and a "
-    "type-checked monic morphism",
+    "carrier-lattice: figure-1 arrows (minus the middle-row machine-layer "
+    "ℕ→ℤ link, removed under #670) are structural arrows and "
+    "type-checked monic morphisms",
     "[carrier-lattice][figure][monic][witness]") {
+  // Note (#670): the machine-layer ℕ→ℤ horizontal arrow
+  // (@c embed_uint_sint_) was removed as deprecated.  Figure 1
+  // coverage is consequently @b incomplete pending a follow-up that
+  // restores this arrow on the new ℤ carrier (@c SignedCardinality).
+  // All other figure-1 arrows are witnessed below.
   // Top-row variant-layer arrow: ℕ ↪ ℤ canonical embedding.
   STATIC_CHECK(IsArrow<std::decay_t<decltype(lift_ℕ_ℤ_)>>);
   STATIC_CHECK(IsMonicArrow<std::decay_t<decltype(lift_ℕ_ℤ_)>>);
@@ -275,9 +281,10 @@ TEST_CASE(
   STATIC_CHECK(IsMonicArrow<std::decay_t<decltype(embed_uint_ℕ_)>>);
   STATIC_CHECK(IsArrow<std::decay_t<decltype(embed_sint_ℤ_)>>);
   STATIC_CHECK(IsMonicArrow<std::decay_t<decltype(embed_sint_ℤ_)>>);
-  // Middle-row horizontal arrow: machine-layer ℕ → ℤ sign reinterpretation.
-  STATIC_CHECK(IsArrow<std::decay_t<decltype(embed_uint_sint_)>>);
-  STATIC_CHECK(IsMonicArrow<std::decay_t<decltype(embed_uint_sint_)>>);
+  // (Note: the machine-layer ℕ → ℤ horizontal arrow `embed_uint_sint_`
+  //  was removed in #670 as deprecated.  The carrier-lattice diagram
+  //  is consequently missing this middle-row horizontal arrow until a
+  //  follow-up restores it on the new ℤ carrier.)
   // Bottom-row vertical arrow: 𝔹 ↪ ℕ.
   STATIC_CHECK(IsArrow<std::decay_t<decltype(embed_𝔹_uint_)>>);
   STATIC_CHECK(IsMonicArrow<std::decay_t<decltype(embed_𝔹_uint_)>>);
