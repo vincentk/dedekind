@@ -66,16 +66,74 @@
 module;
 
 #include <concepts>
+#include <cstddef>
 #include <functional>
 
 export module dedekind.algebra:scout_algebra;
 
 import dedekind.category; // IsGroup<T, Op>
-import dedekind.sets;     // BoundScout<auto>
+import dedekind.sets;     // BoundScout<auto>, SignedExtensionalCardinal
 import dedekind.order;    // Bound<auto>
 import :group;            // IsAdditiveGroup<T, Add>
 
 namespace dedekind::algebra {
+
+/**
+ * @brief Marker trait: @c T's order is preserved under group translation.
+ *
+ * @details
+ * Defaults to @c false.  Carriers opt in via specialisation when the
+ * order @f$\le@f$ on @c T satisfies the translation-invariance axiom
+ * @f$a \le b \Rightarrow a+c \le b+c@f$ for all @f$c \in T@f$.
+ *
+ * This axiom holds for @b unbounded ordered additive groups
+ * (@f$\mathbb{Z}@f$, @f$\mathbb{Q}@f$, @f$\mathbb{R}@f$) but @b not
+ * for modular carriers (@c unsigned @c int as
+ * @f$\mathbb{Z}/2^N\mathbb{Z}@f$: the order is total but translation
+ * wraps and reverses the order at the boundary).
+ *
+ * The marker exists because translation-invariance is a semantic
+ * (universally-quantified) axiom that cannot be checked structurally
+ * from the C++ surface alone --- a carrier may inhabit
+ * @c IsAdditiveGroup and @c std::totally_ordered yet fail the axiom
+ * (modular case).  Explicit opt-in keeps the framework honest.
+ */
+template <typename T>
+struct is_translation_invariant_ordered : std::false_type {};
+
+/** @brief The project's exact @f$\mathbb{Z}@f$ carrier
+ *  (@c sets::SignedExtensionalCardinal<N>) inhabits translation-invariant
+ *  order under @c +: it is an unbounded ordered abelian group. */
+template <std::size_t N>
+struct is_translation_invariant_ordered<
+    dedekind::sets::SignedExtensionalCardinal<N>> : std::true_type {};
+
+template <typename T>
+inline constexpr bool is_translation_invariant_ordered_v =
+    is_translation_invariant_ordered<T>::value;
+
+/**
+ * @concept IsOrderedAdditiveGroup
+ * @brief An additive group whose order is translation-invariant.
+ *
+ * @details
+ * Combines the algebraic gate (@c IsAdditiveGroup) with the structural
+ * gate (@c std::totally_ordered) and the @b axiom marker
+ * (@c is_translation_invariant_ordered_v).  This is the right
+ * precondition for halfspace-pivot transport: shifting
+ * @f$\{x \mid x > k\}@f$ by @c +c yields @f$\{y \mid y > k+c\}@f$
+ * exactly when @c c-translation preserves the order, which is the
+ * axiom the marker certifies.
+ *
+ * Modular carriers (@c unsigned @c int as @f$\mathbb{Z}/2^N\mathbb{Z}@f$)
+ * satisfy @c IsAdditiveGroup and @c std::totally_ordered but NOT this
+ * concept --- they fail the marker by default.  Honest Rejection on
+ * halfspace-pipe attempts with modular carriers.
+ */
+export template <typename T>
+concept IsOrderedAdditiveGroup =
+    IsAdditiveGroup<T> && std::totally_ordered<T> &&
+    is_translation_invariant_ordered_v<T>;
 
 /**
  * @brief Symbolic scout parameterised by carrier @c T, group operation
@@ -151,13 +209,21 @@ struct GroupScout {
    */
   template <auto Pivot, dedekind::order::Direction D,
             dedekind::order::Strictness S, typename L>
-    requires std::same_as<Op, std::plus<T>> && requires {
-      typename Inner::AmbientType;
-      Inner::ambient;
-    }
+    requires std::same_as<Op, std::plus<T>> && IsOrderedAdditiveGroup<T> &&
+             requires {
+               typename Inner::AmbientType;
+               Inner::ambient;
+             }
   constexpr auto operator|(
       dedekind::order::Halfspace<T, Pivot, D, S, L>) const {
-    constexpr auto new_pivot = static_cast<T>(Pivot) + static_cast<T>(Element);
+    // Compute the shifted pivot in its natural arithmetic --- not via a
+    // forced cast to @c T.  This preserves the original pivot's
+    // structural NTTP type (e.g.\ @c int when @c T is a non-structural
+    // proxy) and follows the @c Halfspace contract that @c Pivot may
+    // legitimately differ in type from @c T (cf.\ @c halfspace.cppm:189
+    // "Pivot may be a different structural type than T ... the carrier's
+    // converting ctor / overload set handles the comparison").
+    constexpr auto new_pivot = Pivot + Element;
     using NewHalfspace = dedekind::order::Halfspace<T, new_pivot, D, S, L>;
     using AmbientType = typename Inner::AmbientType;
     return dedekind::sets::Comprehension<AmbientType, NewHalfspace>{

@@ -98,46 +98,65 @@ static_assert(!ScoutAdditiveSubtractIsCallable<int, 3>,
               "candidate set on a carrier that is not an additive group.");
 
 // ---------------------------------------------------------------------------
-// Slice 2: end-to-end halfspace-pivot transport.
+// Slice 2 Honest Rejection on the comprehension pipe: modular carriers
+// (unsigned int as Z/2^N Z) inhabit IsAdditiveGroup but the order is NOT
+// translation-invariant (wraparound at the boundary flips order).  The
+// halfspace-pivot transport would be semantically wrong, so the pipe
+// must reject the comprehension at compile time.
 //
-// The canonical witness for the in-line scout-algebra surface (#664):
-//
-//     constexpr auto S = Set{ in<U> + bound<3u> | (in<U> > bound<5u>) };
-//     // semantically: { n + 3 | n ∈ U, n > 5 } = { y ∈ U | y > 8 }.
-//
-// Source predicate is `Halfspace<U, 5u, Upward, Strict, ...>`.  The
-// scout `+ bound<3u>` translates by the group element 3u.  Image
-// halfspace has pivot 5u + 3u = 8u, direction and strictness preserved.
-//
-// The test verifies the result type IS the typed halfspace --- the Set
-// CTAD picks up the Comprehension produced by GroupScout::operator| and
-// produces a Set whose predicate is the shifted halfspace, witnessing
-// type-directed collapse at compile time.
+// Note that operator+/- DO compile on unsigned (Slice 1's gate is just
+// IsAdditiveGroup --- creating a GroupScout doesn't depend on order).
+// Only operator| (the halfspace pipe) tightens the gate to
+// IsOrderedAdditiveGroup, which excludes modular carriers via the
+// is_translation_invariant_ordered marker default of false.
 // ---------------------------------------------------------------------------
 
-TEST_CASE("scout_algebra: in-line shift transports halfspace pivot (#664 / S2)",
+namespace {
+
+template <typename T, auto K, auto P>
+concept ScoutCompositesWithHalfspacePipe =
+    requires(dedekind::sets::BoundScout<dedekind::sets::UniversalSet<T>{}> s,
+             dedekind::order::Bound<K> k,
+             dedekind::order::Bound<P> p) { (s + k) | (s > p); };
+
+}  // namespace
+
+static_assert(
+    !ScoutCompositesWithHalfspacePipe<unsigned int, 3u, 5u>,
+    "Halfspace pipe must reject modular unsigned: Z/2^N Z's order is not "
+    "translation-invariant, so the pivot transport would be wrong.");
+
+// ---------------------------------------------------------------------------
+// Slice 2: end-to-end halfspace-pivot transport on the project's ℤ.
+//
+// The canonical witness uses @c sets::SignedExtensionalCardinal<> --- the
+// project's exact ℤ carrier --- which inhabits IsOrderedAdditiveGroup
+// (unbounded ordered abelian group; the is_translation_invariant_ordered
+// marker is specialised to @c true for this carrier in scout_algebra.cppm).
+// ---------------------------------------------------------------------------
+
+TEST_CASE("scout_algebra: in-line shift transports halfspace pivot on ℤ (#664)",
           "[algebra][scout_algebra][comprehension][slice2]") {
-  using U = unsigned int;
-  // Set CTAD derives the logic from `NaturalLogic<AmbientType>`; for
-  // `Ω<U>` with default cardinality ℵ_0, that resolves to `TernaryLogic`.
+  using Z = dedekind::sets::SignedExtensionalCardinal<>;
+
+  constexpr auto x = dedekind::sets::element<dedekind::sets::Ω<Z>>;
+  constexpr auto S = dedekind::sets::Set{x + dedekind::order::bound<3> |
+                                         (x > dedekind::order::bound<5>)};
+
+  // The result IS `Set<Z, TernaryLogic, Halfspace<Z, 8, Upward, Strict>>`:
+  // the source halfspace (pivot 5) is transported through the +3 shift
+  // to land at pivot 8, direction and strictness preserved.  Pivot
+  // arithmetic happens in the structural NTTP type (`int`), not in `Z`
+  // (which may not itself be NTTP-usable as a structural type).
+  // The Set's logic is `TernaryLogic` because `NaturalLogic<Ω<Z>>`
+  // routes through transfinite cardinality.  Type-directed collapse
+  // at compile time.
   using SetL = typename dedekind::sets::NaturalLogic<
-      dedekind::sets::UniversalSet<U>>::type;
-
-  constexpr auto x = dedekind::sets::element<dedekind::sets::Ω<U>>;
-  constexpr auto S = dedekind::sets::Set{x + dedekind::order::bound<3u> |
-                                         (x > dedekind::order::bound<5u>)};
-
-  // The result IS a `Set<U, TernaryLogic, Halfspace<U, 8u, Upward, Strict>>`:
-  // the source halfspace (pivot 5u) is transported through the +3u shift
-  // to land at pivot 8u, direction and strictness preserved.  The
-  // `Halfspace`'s logic parameter is preserved from the source (defaults
-  // to `ClassicalLogic` since `operator>(BoundScout, Bound)` produces a
-  // halfspace with default-L; the outer `Set` separately carries the
-  // ambient's `TernaryLogic`).  Type-directed collapse at compile time.
+      dedekind::sets::UniversalSet<Z>>::type;
   using ExpectedPredicate =
-      dedekind::order::Halfspace<U, 8u, dedekind::order::Direction::Upward,
+      dedekind::order::Halfspace<Z, 8, dedekind::order::Direction::Upward,
                                  dedekind::order::Strictness::Strict>;
-  using ExpectedSet = dedekind::sets::Set<U, SetL, ExpectedPredicate>;
+  using ExpectedSet = dedekind::sets::Set<Z, SetL, ExpectedPredicate>;
   using ResultType = std::remove_cvref_t<decltype(S)>;
   STATIC_CHECK(std::same_as<ResultType, ExpectedSet>);
 }
