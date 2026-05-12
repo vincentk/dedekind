@@ -1196,24 +1196,25 @@ export constexpr bool operator<(const SignedCardinality& lhs,
  * @c std::three_way_comparable<SignedCardinality,
  * @c std::partial_ordering> fire downstream.
  *
- * @c NaZ-vs-NaZ comparison @b is equal (the alternative-equality reading;
- * compare with the @c <=> below which returns @c unordered for any pair
- * involving @c NaZ in the partial order).  This mirrors C++ standard
- * semantics: @c std::optional<T>'s @c == treats both-empty as equal even
- * though semantically @e undefined; here @c NaZ == @c NaZ is true at the
- * variant-equality level while @c NaZ @c <=> @c NaZ is @c unordered at
- * the partial-order level.  The two are independently sensible and
- * jointly required by @c std::three_way_comparable.
+ * @c NaZ-vs-NaZ returns @c true: this is the variant-alternative
+ * equality reading, required for @c == to be an equivalence relation
+ * (reflexivity).  The companion @c <=> below @b mirrors this --- the
+ * NaZ-vs-NaZ case is special-cased to return
+ * @c std::partial_ordering::equivalent so that @c == and @c <=>
+ * @b agree on this pair, per C++20's @c std::three_way_comparable
+ * contract @c (a @c == @c b) ↔ @c std::is_eq(a @c <=> @c b).  @c NaZ
+ * vs @b non-@c NaZ remains @c unordered in @c <=> (and @c false in
+ * @c ==), preserving IEEE-NaN-style unordered semantics for mixed
+ * comparisons.
  *
- * Closes the persistent @c :sint.cppm local build failure
+ * Closes #669, which itself closes the persistent local-only build
+ * failure on @c sint.cppm:228
  * (@c embed_sint_ℤ(SingletonSet<int>{42}).pivot @c == @c
- * finite_signed_cardinality(42) static_assert at @c sint.cppm:228 ---
- * see @c feedback_local_make_compile_nanobind_blindspot.md in agent
- * memory).
+ * finite_signed_cardinality(42)).
  */
 export constexpr bool operator==(const SignedCardinality& lhs,
                                  const SignedCardinality& rhs) noexcept {
-  // Both NaZ: equal as variant alternatives (not as ordered values).
+  // Both NaZ: equal as variant alternatives (reflexive ==).
   if (detail::sc_is_naz(lhs) && detail::sc_is_naz(rhs)) return true;
   if (detail::sc_is_naz(lhs) || detail::sc_is_naz(rhs)) return false;
   // Either ±ℵ_0: alternative-tag equality.
@@ -1230,16 +1231,30 @@ export constexpr bool operator==(const SignedCardinality& lhs,
  *
  * @details
  * Returns @c std::partial_ordering because @c NaZ is unordered with
- * everything (including itself in the ordering sense), mirroring
- * IEEE-NaN's @c <=> semantics.  Delegates to @c compare_signed (the
- * existing helper introduced for the homogeneous @c < at line 1179).
+ * @b non-@c NaZ operands (IEEE-NaN-style).  Special-case: @c NaZ
+ * @c <=> @c NaZ returns @c std::partial_ordering::equivalent so that
+ * the @c == above (which returns @c true on NaZ-vs-NaZ for
+ * @c std::equality_comparable reflexivity) and this @c <=> agree on
+ * the equivalence case, per @c std::three_way_comparable's contract
+ * @c (a @c == @c b) ↔ @c std::is_eq(a @c <=> @c b).  Mixed @c NaZ
+ * vs non-@c NaZ comparisons remain @c unordered.
  *
  * Required for @c std::three_way_comparable<SignedCardinality,
  * @c std::partial_ordering> to fire downstream.  Pairs with the @c ==
- * above to close the full standard-concept surface.
+ * above to close the full standard-concept surface for the saturating
+ * ℤ proxy.
  */
 export constexpr std::partial_ordering operator<=>(
     const SignedCardinality& lhs, const SignedCardinality& rhs) noexcept {
+  // Special-case NaZ-vs-NaZ to agree with the homogeneous == above
+  // (which returns true on this pair for std::equality_comparable
+  // reflexivity).  compare_signed returns unordered for any
+  // NaZ-involving pair, including both-NaZ; we override that case here
+  // so the C++20 three_way_comparable contract holds:
+  //   (a == b) ↔ std::is_eq(a <=> b).
+  if (detail::sc_is_naz(lhs) && detail::sc_is_naz(rhs)) {
+    return std::partial_ordering::equivalent;
+  }
   return compare_signed(lhs, rhs);
 }
 
