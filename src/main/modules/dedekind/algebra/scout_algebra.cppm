@@ -2,7 +2,7 @@
  * @file dedekind/algebra/scout_algebra.cppm
  * @partition :scout_algebra
  * @brief Symbolic scout type for the in-line comprehension surface,
- *        gated on algebraic structure of the carrier (#664 Slice 1).
+ *        gated on algebraic structure of the carrier (#664).
  *
  * @section scout_algebra__Motivation
  *
@@ -12,7 +12,8 @@
  * not in implementation-specific concepts.  This partition is the
  * algebraic foundation for #664's in-line scout-algebra surface
  * @c Set{f(x) @c | @c P(x)}: once a scout is a valid algebraic
- * expression, downstream slices wire it into the comprehension DSL.
+ * expression, the comprehension pipe transports the source predicate
+ * structurally and yields a typed @c Set with the @b shifted predicate.
  *
  * @section scout_algebra__Design
  *
@@ -29,9 +30,17 @@
  *    @c GroupScout<T, @c std::plus<T>, @c -k, @c BoundScout<T>>
  *    (subtraction encoded via the additive inverse).
  *
+ * The comprehension pipe @c GroupScout::operator|(Halfspace) performs
+ * @b halfspace-pivot @b transport: the source predicate's pivot is
+ * shifted by the scout's @c Element along the additive group action,
+ * yielding a @c Comprehension that Set CTAD picks up and resolves to a
+ * @c Set with the shifted halfspace as predicate.  No Set CTAD changes
+ * needed; the existing @c Comprehension path in @c :sets:expressions
+ * is the consumer.
+ *
  * The multiplicative specialisation
  * (@c operator*(Bound<k>, @c BoundScout<T>) for
- * @c IsMultiplicativeGroup<T>) is deferred to Slice 3.
+ * @c IsMultiplicativeGroup<T>) is deferred to a follow-up slice.
  *
  * @section scout_algebra__Honest_Rejection
  *
@@ -41,19 +50,15 @@
  * overload to be removed from the candidate set.  The compile error
  * names the missing textbook axiom, not a library-specific failure.
  *
- * @section scout_algebra__Out_Of_Scope_For_This_Slice
+ * @section scout_algebra__Out_Of_Scope_For_This_Partition_Today
  *
- *  - @c MembershipBinding<GroupScout<...>> @c | @c predicate routing
- *    (Slice 2).
- *  - Halfspace-pivot transport through the scout
- *    (@c Halfspace<T,k,↑,S,L> shifted to @c Halfspace<T,k+Element,↑,S,L>)
- *    (Slice 2).
- *  - Set CTAD deduction guide for transformed-scout comprehensions
- *    (Slice 2).
- *  - Multiplicative specialisation @c operator* (Slice 3).
+ *  - Multiplicative specialisation @c operator* (follow-up slice).
  *  - Retract-tier scaling on rings (where the carrier is not a
  *    multiplicative group, e.g.\ @c bound<2> @c * @c in<ℤ>) (further
  *    follow-up).
+ *  - Composition of scouts beyond a single @c BoundScout inner
+ *    (e.g.\ @c bound<2> @c * @c in<ℤ> @c + @c bound<1> --- where the
+ *    inner of the outer @c + is itself a @c GroupScout) (follow-up).
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -61,16 +66,118 @@
 module;
 
 #include <concepts>
+#include <cstddef>
 #include <functional>
+#include <type_traits>
 
 export module dedekind.algebra:scout_algebra;
 
 import dedekind.category; // IsGroup<T, Op>
-import dedekind.sets;     // BoundScout<auto>
+import dedekind.sets;     // BoundScout<auto>, SignedExtensionalCardinal
 import dedekind.order;    // Bound<auto>
 import :group;            // IsAdditiveGroup<T, Add>
 
 namespace dedekind::algebra {
+
+/**
+ * @brief Marker trait: @c T is a non-cyclic ordered additive group
+ *        whose order is translation-invariant, with the saturating
+ *        escape contract for values that would exceed representable
+ *        capacity.
+ *
+ * @details
+ * Defaults to @c false.  Carriers opt in via specialisation when their
+ * arithmetic is @b not @b cyclic --- i.e.\ they @b saturate or
+ * @b escalate (e.g.\ to @f$\pm \aleph_0@f$ sentinels) rather than
+ * wrapping at the representable bound.  Saturation preserves the
+ * partial order @f$\le@f$ under translation (if @c a @c <= @c b then
+ * @c a+c @c <= @c b+c, including the case where both saturate to the
+ * same sentinel); wrapping does @b not (the modular wrap reverses the
+ * order at the boundary).
+ *
+ * @note The structural fact this marker discriminates is @b not
+ *       boundedness (every C++ carrier is bounded), but @b cyclicity.
+ *       A saturating carrier is bounded but non-cyclic: arithmetic
+ *       past the bound escalates to a distinguishable sentinel
+ *       (@f$\pm \aleph_0@f$ or @c NaZ for indeterminate forms in the
+ *       project's @c SignedCardinality variant), keeping
+ *       translation-invariance honest @b including at the boundary.
+ *       Modular carriers (@c unsigned @c int, the finite
+ *       @c sets::SignedExtensionalCardinal<N>) wrap, reversing order;
+ *       they fail the marker by default.
+ *
+ * @note The project put deliberate effort into the saturating
+ *       variants (@c sets::SignedCardinality, @c sets::Cardinality)
+ *       precisely so they would be bona-fide proxies for
+ *       @f$\mathbb{Z}@f$ / @f$\mathbb{N}@f$ rather than cyclic
+ *       (cf.\ @c cardinality.cppm:878-967 --- "@c SignedCardinality
+ *       is the signed counterpart of @c Cardinality (the ℕ ∪ ℵ_0
+ *       variant): ... saturating ... not periodic ... the library's
+ *       bona-fide proxy for ℤ modulo physical limits").  The marker
+ *       opt-in below honours that effort: it is specialised for
+ *       @c SignedCardinality, @b not for the cyclic finite-fragment
+ *       @c SignedExtensionalCardinal<N>.
+ */
+template <typename T>
+struct is_translation_invariant_ordered : std::false_type {};
+
+/** @brief @c sets::SignedCardinality is the project's bona-fide
+ *  saturating proxy for @f$\mathbb{Z}@f$: arithmetic escalates to
+ *  @f$\pm \aleph_0@f$ on overflow and propagates @c NaZ on
+ *  indeterminate forms, rather than wrapping modulo capacity
+ *  (cf.\ @c cardinality.cppm:923-967).  This is the structural
+ *  guarantee the marker certifies: translation preserves the partial
+ *  order @f$\le@f$ on the finite fragment; saturation collapses
+ *  ordering past the boundary into the @f$\pm \aleph_0@f$ sentinel
+ *  (the meet still holds: both sides land at the same sentinel).  The
+ *  finite-fragment carrier @c SignedExtensionalCardinal<N> is
+ *  intentionally @b not opted in: it is cyclic
+ *  (mod @f$2^{N \cdot 64}@f$), so its addition would reverse the
+ *  order at the wrap boundary.  The variant @c SignedCardinality is
+ *  what callers should use whenever they want translation-invariance
+ *  at the type level (i.e.\ the halfspace pipe). */
+template <>
+struct is_translation_invariant_ordered<dedekind::sets::SignedCardinality>
+    : std::true_type {};
+
+template <typename T>
+inline constexpr bool is_translation_invariant_ordered_v =
+    is_translation_invariant_ordered<T>::value;
+
+/**
+ * @concept IsOrderedAdditiveGroup
+ * @brief An additive group whose order is translation-invariant.
+ *
+ * @details
+ * Combines the algebraic gate (@c IsAdditiveGroup) with the @b axiom
+ * marker (@c is_translation_invariant_ordered_v).  This is the right
+ * precondition for halfspace-pivot transport: shifting
+ * @f$\{x \mid x > k\}@f$ by @c +c yields @f$\{y \mid y > k+c\}@f$
+ * exactly when @c c-translation preserves the order, which is what
+ * the marker certifies.
+ *
+ * @note Earlier drafts also required @c std::totally_ordered<T>.
+ *       Dropped because the project's saturating ℤ proxy
+ *       (@c sets::SignedCardinality, a @c std::variant) uses
+ *       custom comparison operators (specialised on the saturating
+ *       semantics and on @c NaZ propagation), which do not satisfy
+ *       the @c std::totally_ordered structural concept --- yet the
+ *       carrier @b is the right one for translation-invariant
+ *       ordered-group semantics.  The marker carries the order claim;
+ *       a separate @c std::totally_ordered structural check would
+ *       Honest-Reject the very carriers the marker is supposed to
+ *       accept.  The structural order check belongs at the marker
+ *       opt-in site, not at the concept.
+ *
+ * Modular carriers (@c unsigned @c int as @f$\mathbb{Z}/2^N\mathbb{Z}@f$)
+ * satisfy @c IsAdditiveGroup but NOT this concept --- they fail the
+ * marker by default.  Honest Rejection on halfspace-pipe attempts with
+ * modular carriers.
+ */
+export template <typename T>
+concept IsOrderedAdditiveGroup =
+    dedekind::category::IsAbelianGroup<T, std::plus<T>> &&
+    is_translation_invariant_ordered_v<T>;
 
 /**
  * @brief Symbolic scout parameterised by carrier @c T, group operation
@@ -114,6 +221,58 @@ struct GroupScout {
   using inner_type = Inner;
 
   static constexpr auto element = Element;
+
+  /**
+   * @brief Comprehension pipe: @c GroupScout @c | @c Halfspace →
+   *        @c Comprehension with the halfspace's pivot shifted by
+   *        @c Element.
+   *
+   * @details
+   * Halfspace-pivot transport along the additive group action: a source
+   * predicate @f$\{x \in T \mid x \bowtie k\}@f$ pushed through the
+   * scout function @f$\lambda x.\,k_E + x@f$ (where @f$k_E@f$ is this
+   * scout's @c Element) yields the image halfspace
+   * @f$\{y \in T \mid y \bowtie k + k_E\}@f$ --- the pivot shifts by
+   * @c Element, the direction and strictness are preserved (group
+   * translation is monotone).
+   *
+   * The result is a @c Comprehension over the inner scout's @c Ambient,
+   * with the @b shifted halfspace as predicate.  Downstream @c Set CTAD
+   * (already present in @c :sets:expressions) picks this up unchanged
+   * and produces a @c Set<T,L,Halfspace<T,k+k_E,...>> --- no Set CTAD
+   * changes needed.
+   *
+   * @section Specialisation gate
+   *
+   * Currently restricted to @c Op @c = @c std::plus<T> (additive group
+   * action) and @c Inner exposing @c AmbientType / @c ambient (i.e.\
+   * a @c BoundScout).  Slice 3 adds the multiplicative case
+   * (@c Op @c = @c std::multiplies<T>); composition of scouts
+   * (e.g.\ @c bound<2> @c * @c in<ℤ> @c + @c bound<1>) is further
+   * follow-up.
+   */
+  template <auto Pivot, dedekind::order::Direction D,
+            dedekind::order::Strictness S, typename L>
+    requires std::same_as<Op, std::plus<T>> && IsOrderedAdditiveGroup<T> &&
+             requires {
+               typename Inner::AmbientType;
+               Inner::ambient;
+             }
+  constexpr auto operator|(
+      dedekind::order::Halfspace<T, Pivot, D, S, L>) const {
+    // Compute the shifted pivot in its natural arithmetic --- not via a
+    // forced cast to @c T.  This preserves the original pivot's
+    // structural NTTP type (e.g.\ @c int when @c T is a non-structural
+    // proxy) and follows the @c Halfspace contract that @c Pivot may
+    // legitimately differ in type from @c T (cf.\ @c halfspace.cppm:189
+    // "Pivot may be a different structural type than T ... the carrier's
+    // converting ctor / overload set handles the comparison").
+    constexpr auto new_pivot = Pivot + Element;
+    using NewHalfspace = dedekind::order::Halfspace<T, new_pivot, D, S, L>;
+    using AmbientType = typename Inner::AmbientType;
+    return dedekind::sets::Comprehension<AmbientType, NewHalfspace>{
+        Inner::ambient, NewHalfspace{}};
+  }
 };
 
 }  // namespace dedekind::algebra
@@ -145,8 +304,9 @@ namespace dedekind::sets {
  * operation on @c T.
  */
 export template <auto Ambient, auto K>
-  requires dedekind::algebra::IsAdditiveGroup<
-               typename BoundScout<Ambient>::T> &&
+  requires dedekind::category::IsAbelianGroup<
+               typename BoundScout<Ambient>::T,
+               std::plus<typename BoundScout<Ambient>::T>> &&
            std::convertible_to<decltype(K), typename BoundScout<Ambient>::T>
 constexpr auto operator+(BoundScout<Ambient>, dedekind::order::Bound<K>) {
   using T = typename BoundScout<Ambient>::T;
@@ -170,8 +330,9 @@ constexpr auto operator+(BoundScout<Ambient>, dedekind::order::Bound<K>) {
  * @c IsAdditiveGroup<T> fails and the overload is removed.
  */
 export template <auto Ambient, auto K>
-  requires dedekind::algebra::IsAdditiveGroup<
-               typename BoundScout<Ambient>::T> &&
+  requires dedekind::category::IsAbelianGroup<
+               typename BoundScout<Ambient>::T,
+               std::plus<typename BoundScout<Ambient>::T>> &&
            std::convertible_to<decltype(-K), typename BoundScout<Ambient>::T>
 constexpr auto operator-(BoundScout<Ambient>, dedekind::order::Bound<K>) {
   using T = typename BoundScout<Ambient>::T;

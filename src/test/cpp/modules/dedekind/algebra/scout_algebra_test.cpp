@@ -96,3 +96,71 @@ static_assert(!ScoutAdditiveShiftIsCallable<int, 3>,
 static_assert(!ScoutAdditiveSubtractIsCallable<int, 3>,
               "operator-(BoundScout<int>, Bound<k>) must be removed from the "
               "candidate set on a carrier that is not an additive group.");
+
+// ---------------------------------------------------------------------------
+// Slice 2 Honest Rejection on the comprehension pipe: modular carriers
+// (unsigned int as Z/2^N Z) inhabit IsAdditiveGroup but the order is NOT
+// translation-invariant (wraparound at the boundary flips order).  The
+// halfspace-pivot transport would be semantically wrong, so the pipe
+// must reject the comprehension at compile time.
+//
+// Note that operator+/- DO compile on unsigned (Slice 1's gate is just
+// IsAdditiveGroup --- creating a GroupScout doesn't depend on order).
+// Only operator| (the halfspace pipe) tightens the gate to
+// IsOrderedAdditiveGroup, which excludes modular carriers via the
+// is_translation_invariant_ordered marker default of false.
+// ---------------------------------------------------------------------------
+
+namespace {
+
+template <typename T, auto K, auto P>
+concept ScoutCompositesWithHalfspacePipe =
+    requires(dedekind::sets::BoundScout<dedekind::sets::UniversalSet<T>{}> s,
+             dedekind::order::Bound<K> k,
+             dedekind::order::Bound<P> p) { (s + k) | (s > p); };
+
+}  // namespace
+
+static_assert(
+    !ScoutCompositesWithHalfspacePipe<unsigned int, 3u, 5u>,
+    "Halfspace pipe must reject modular unsigned: Z/2^N Z's order is not "
+    "translation-invariant, so the pivot transport would be wrong.");
+
+// ---------------------------------------------------------------------------
+// Slice 2: end-to-end halfspace-pivot transport on the project's ℤ proxy.
+//
+// The canonical witness uses @c sets::SignedCardinality --- the project's
+// @b bona-fide @b saturating proxy for @f$\mathbb{Z}@f$
+// (cf.\ @c cardinality.cppm:923-967, "saturating ... not periodic ...
+// the library's bona-fide proxy for ℤ modulo physical limits") ---
+// which inhabits @c IsOrderedAdditiveGroup (the
+// @c is_translation_invariant_ordered marker is specialised to @c true
+// for this carrier in @c scout_algebra.cppm).  Note this is @b not the
+// finite-fragment @c SignedExtensionalCardinal<N>, which is cyclic and
+// therefore @b not opted in.
+// ---------------------------------------------------------------------------
+
+TEST_CASE("scout_algebra: in-line shift transports halfspace pivot on ℤ (#664)",
+          "[algebra][scout_algebra][comprehension][slice2]") {
+  using Z = dedekind::sets::SignedCardinality;
+
+  constexpr auto x = dedekind::sets::element<dedekind::sets::Ω<Z>>;
+  constexpr auto S = dedekind::sets::Set{x + dedekind::order::bound<3> |
+                                         (x > dedekind::order::bound<5>)};
+
+  // The result IS `Set<Z, L, Halfspace<Z, 8, Upward, Strict>>`: the
+  // source halfspace (pivot 5) is transported through the +3 shift to
+  // land at pivot 8, direction and strictness preserved.  Pivot
+  // arithmetic happens in the structural NTTP type (`int`), not in `Z`
+  // (the variant `SignedCardinality` may not itself be NTTP-usable as a
+  // structural type).  Type-directed collapse at compile time on the
+  // project's bona-fide saturating ℤ proxy.
+  using SetL = typename dedekind::sets::NaturalLogic<
+      dedekind::sets::UniversalSet<Z>>::type;
+  using ExpectedPredicate =
+      dedekind::order::Halfspace<Z, 8, dedekind::order::Direction::Upward,
+                                 dedekind::order::Strictness::Strict>;
+  using ExpectedSet = dedekind::sets::Set<Z, SetL, ExpectedPredicate>;
+  using ResultType = std::remove_cvref_t<decltype(S)>;
+  STATIC_CHECK(std::same_as<ResultType, ExpectedSet>);
+}

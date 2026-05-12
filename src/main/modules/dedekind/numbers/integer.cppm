@@ -161,6 +161,17 @@ export using extensional_integer = int;
  * proof on @c Rational<int> at the @c IsTotal certificate.  The
  * machine alias @c extensional_integer remains @c int for callsites
  * that genuinely want the IEEE-style machine carrier.
+ *
+ * @note The saturating sibling @c dedekind::sets::SignedCardinality
+ *       (variant with @f$\pm \aleph_0@f$ / @c NaZ escalation) mirrors
+ *       @c ℕ's @c Cardinality discipline and is the proper proxy for
+ *       paper-@f$\mathbb{Z}@f$ at the @b set level
+ *       (cf.\ @c cardinality.cppm:878-967, "the library's bona-fide
+ *       proxy for ℤ modulo physical limits").  An additive realignment
+ *       of @c default_integer / @c ℤ onto @c SignedCardinality is
+ *       tracked separately --- the change touches ~400 references
+ *       (witnesses in @c :rational, @c Rational<default_integer>,
+ *       embeddings, paper listings) and is its own slice.
  */
 export using default_integer = SignedExtensionalCardinal<>;
 
