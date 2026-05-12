@@ -33,7 +33,8 @@ static_assert(IsMonicArrow<std::decay_t<decltype(embed_𝔹_uint_)>>);
 // the carrier-lattice tower no longer carries this middle-row horizontal.
 static_assert(IsMonicArrow<std::decay_t<decltype(embed_𝕂3_ℤ_)>>);
 static_assert(IsMonicArrow<std::decay_t<decltype(embed_ℤ_ℚ<>)>>);
-static_assert(IsMonicArrow<std::decay_t<decltype(embed_ℚ_ℝ<>)>>);
+// embed_ℚ_ℝ removed under ℚ retarget cleanup (no static_cast<int>
+// on the SignedCardinality variant carrier).
 static_assert(IsMonicArrow<std::decay_t<decltype(embed_ℝ_ℂ<>)>>);
 
 // ---------------------------------------------------------------------------
@@ -59,13 +60,7 @@ static_assert(
 static_assert(std::same_as<Cod<std::decay_t<decltype(embed_ℤ_ℚ<>)>>,
                            Rational<default_integer>>);
 
-// embed_ℚ_ℝ<> default-instantiates with I = default_integer (so the source
-// is Rational<default_integer> = Rational<SignedExtensionalCardinal<>>)
-// and S = machine_real_scalar.
-static_assert(std::same_as<Dom<std::decay_t<decltype(embed_ℚ_ℝ<>)>>,
-                           Rational<default_integer>>);
-static_assert(std::same_as<Cod<std::decay_t<decltype(embed_ℚ_ℝ<>)>>,
-                           Real<machine_real_scalar>>);
+// embed_ℚ_ℝ Dom/Cod static_asserts removed under ℚ retarget cleanup.
 
 static_assert(std::same_as<Dom<std::decay_t<decltype(embed_ℝ_ℂ<>)>>,
                            Real<machine_real_scalar>>);
@@ -181,15 +176,10 @@ TEST_CASE("Tower: ℤ ↪ ℚ via embed_ℤ_ℚ", "[numbers][tower][embedding]")
 // ℚ ↪ ℝ
 // ---------------------------------------------------------------------------
 
-TEST_CASE("Tower: ℚ ↪ ℝ via embed_ℚ_ℝ", "[numbers][tower][embedding]") {
-  // Embedding preserves value: 3/1 -> 3.0.  embed_ℚ_ℝ<> defaults its
-  // integer carrier to default_integer (SignedExtensionalCardinal<>
-  // post-#499 retarget); construct via the default_integer factory.
-  using D = default_integer;
-  CHECK(embed_ℚ_ℝ<>(Rational<D>{D{3}, D{1}}).resolve() == 3.0);
-  CHECK(embed_ℚ_ℝ<>(Rational<D>{D{1}, D{2}}).resolve() == 0.5);
-  CHECK(embed_ℚ_ℝ<>(Rational<D>{D{-7}, D{4}}).resolve() == -1.75);
-}
+// Tower: ℚ ↪ ℝ via embed_ℚ_ℝ — TEST_CASE removed under ℚ retarget
+// cleanup.  The arrow itself was removed (no static_cast<int> on
+// SignedCardinality variant carrier).  Direct Real<S>{...} construction
+// remains available for callers that want the lossy realisation.
 
 // ---------------------------------------------------------------------------
 // ℝ ↪ ℂ
@@ -226,32 +216,10 @@ TEST_CASE("Stress: Im(K3->ℤ) intersect positive-real ℂ",
   CHECK(embed_𝕂3_ℤ_(Ternary::Unknown) == 0);
   CHECK(embed_𝕂3_ℤ_(Ternary::True) == 1);
 
-  // FIXME(#429): bridging from @c SignedCardinality to the @c int-typed
-  // @c embed_ℤ_ℚ<> needs the @c realize_signed_to_machine extraction
-  // arrow (filed under #429 as a #402 prerequisite).  Until that lands,
-  // we feed the downstream tower the canonical int values directly —
-  // the variant-side embedding is verified by the @c CHECKs above.
-  const int z_false = -1;
-  const int z_unknown = 0;
-  const int z_true = 1;
-
-  const auto embed_ℤ_ℂ = embed_ℤ_ℚ<> >> embed_ℚ_ℝ<> >> embed_ℝ_ℂ<>;
-
-  const auto c_false = embed_ℤ_ℂ(z_false);
-  const auto c_unknown = embed_ℤ_ℂ(z_unknown);
-  const auto c_true = embed_ℤ_ℂ(z_true);
-
-  const auto has_positive_real = [](const Complex<machine_real_scalar>& z) {
-    return z.real() > 0.0;
-  };
-
-  CHECK(has_positive_real(c_false) == false);
-  CHECK(has_positive_real(c_unknown) == false);
-  CHECK(has_positive_real(c_true) == true);
-
-  // Therefore the intersection is exactly {1 + 0i}.
-  CHECK(c_true.real() == 1.0);
-  CHECK(c_true.imag() == 0.0);
+  // Composed-chain part (z → ℂ via embed_ℤ_ℚ >> embed_ℚ_ℝ >> embed_ℝ_ℂ)
+  // removed under ℚ retarget cleanup: embed_ℚ_ℝ was deleted (no
+  // static_cast<int> on SignedCardinality variant carrier).  The K3 → ℤ
+  // image fragment remains witnessed above.
 }
 
 // ---------------------------------------------------------------------------

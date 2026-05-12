@@ -273,60 +273,13 @@ inline constexpr bool
 
 namespace dedekind::numbers {
 
-/**
- * @brief Machine realization arrow ℚ ↪ ℝ: Rational<I> → Real<S>.
- * @details Converts a rational p/q to the closest IEEE 754 value of type S.
- *
- * @section Carrier_Bridge_Locality
- * The integer-to-IEEE conversion @c static_cast<S>(q.num()) is the lossy
- * step.  When @c I is a built-in (@c int, @c long, ...), the standard
- * float-from-int conversion fires.  When @c I is a variant exact carrier
- * (@c SignedExtensionalCardinal<>, etc.) which deliberately does @b not
- * export an @c operator @c double (to keep the variant carriers free of
- * IEEE coupling), the lossy bridge is implemented here at the
- * @b call-site rather than upstream: the variant integer is first
- * extracted as a built-in @c int via its @c operator @c int (single-limb,
- * the canonical retarget instance) and then promoted to @c S via
- * standard widening.  This keeps the IEEE-coupling local to the arrow
- * that owns the lossy semantics, matching the structural-Platonist
- * directive that variant carriers do not advertise machine-numeric
- * conversions they do not need.
- */
-export template <IsInteger I = default_integer,
-                 IsRealCarrier S = machine_real_scalar>
-inline constexpr auto embed_ℚ_ℝ =
-    arrow<Rational<I>, Real<S>>([](const Rational<I>& q) {
-      auto to_real_scalar = [](const I& z) -> S {
-        // Detect @b static-castability rather than just implicit
-        // convertibility: a carrier may expose @c explicit
-        // @c operator @c S, which makes @c static_cast<S>(z) valid
-        // even when @c std::convertible_to<I, S> is false.  This
-        // captures both the implicit-conversion case (built-in
-        // @c int @c → @c double) and the explicit-conversion-operator
-        // case uniformly.
-        if constexpr (requires { static_cast<S>(z); }) {
-          return static_cast<S>(z);
-        } else {
-          // Variant carrier path: the variant integer is first
-          // extracted via its documented @c operator @c int (a
-          // signed-integral conversion, gated separately on the
-          // variant), then widened to @c S.  Lossy by design at the
-          // variant-int step (multi-limb values truncate to
-          // single-limb int) AND at the int-to-float step (above 2^53
-          // IEEE rounding fires).  We require the int bridge exists;
-          // if neither path is available, the static_assert below
-          // surfaces a diagnostic at the right spot rather than an
-          // opaque template substitution failure.
-          static_assert(
-              requires { static_cast<int>(z); },
-              "embed_ℚ_ℝ requires either static_cast<S>(I) or "
-              "static_cast<int>(I) to be valid; provide one or "
-              "the other on the integer carrier I.");
-          return static_cast<S>(static_cast<int>(z));
-        }
-      };
-      return Real<S>{to_real_scalar(q.num()) / to_real_scalar(q.den())};
-    });
+// embed_ℚ_ℝ removed under ℚ retarget cleanup: the arrow required
+// `static_cast<int>(I)` to be valid on the integer carrier I, which
+// `SignedCardinality` (the post-#670 / ℚ-retarget canonical integer
+// carrier) does not provide (the variant deliberately does not export
+// machine-numeric conversions).  Callers that need ℚ → ℝ realisation
+// should construct @c Real<S>{ ... } explicitly at the call site, where
+// the lossy semantics are visible.
 
 /**
  * @brief Canonical embedding of any std::floating_point type into ℝ.
@@ -430,13 +383,8 @@ struct SpeciesTraits<dedekind::numbers::Real<Q>> {
   using machine_type = dedekind::numbers::Real<Q>;
 };
 
-template <>
-inline constexpr bool
-    is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_ℚ_ℝ<>)>> =
-        true;
-static_assert(
-    IsInjective<std::decay_t<decltype(dedekind::numbers::embed_ℚ_ℝ<>)>>,
-    "embed_ℚ_ℝ (ℚ ↪ ℝ) is registered injective.");
+// embed_ℚ_ℝ monicity registration also removed (the arrow itself was
+// removed above; no `decltype` to register).
 }  // namespace dedekind::category
 
 namespace dedekind::numbers {
