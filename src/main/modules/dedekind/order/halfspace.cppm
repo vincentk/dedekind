@@ -158,8 +158,14 @@ export enum class Direction { Upward, Downward };
  */
 export enum class Strictness { Strict, NonStrict };
 
-/** @brief Compile-time bound tag: `bound<5>` carries `5` in its type. */
-template <auto V>
+/** @brief Compile-time bound tag: `bound<5>` carries `5` in its type.
+ *
+ * Exported (post-#664) so downstream partitions outside `:halfspace`
+ * (e.g.\ `:algebra:scout_algebra`) can declare overloads on `Bound<V>`
+ * directly; previously only the `bound` variable template was exported,
+ * which made cross-partition operator signatures awkward.
+ */
+export template <auto V>
 struct Bound {
   using value_type = decltype(V);
   static constexpr value_type value = V;
