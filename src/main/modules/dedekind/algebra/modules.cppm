@@ -393,7 +393,8 @@ namespace dedekind::algebra {
  *                  Rational<default_integer>>
  *     — @c linear_algebra/mat2x2.cppm: Vec2 over ℚ as a ℚ-module
  *     (the rank-2 vector space over the field ℚ, witnessed at the
- *     module tier; post-#664 the @c IsField<Rational> certification
+ *     module tier; under epic #374's @c HasFieldOperators-to-
+ *     @c IsField retargeting, the @c IsField<Rational> certification
  *     in @c numbers/rational.cppm closes the upgrade to
  *     @c is_vector_space_v automatically via the concept composition).
  *
@@ -424,10 +425,11 @@ namespace dedekind::algebra {
  *
  *   @c is_vector_space_v<V, F> automatic upgrade — the trait fires
  *   when @c IsField<F> holds in addition to @c IsModule<V, F>.
- *   Post-#664 the strict @c category::IsField closes on
- *   @c Rational<default_integer> (via the multiplicative-inverse
- *   trait registration in @c numbers/rational.cppm; zero excluded by
- *   the @c is_invertible_v convention pinned in @c total.cppm), so
+ *   Under epic #374's @c HasFieldOperators-to-@c IsField retargeting,
+ *   the strict @c category::IsField closes on
+ *   @c Rational<default_integer> via the multiplicative-inverse trait
+ *   registration in @c numbers/rational.cppm (zero excluded by the
+ *   @c is_invertible_v convention pinned in @c total.cppm).  So
  *   every @c is_module_v witness above whose scalar is @c ℚ
  *   auto-upgrades to @c is_vector_space_v.  The post-#673 saturating
  *   @c IsTotal path cleared the prior architectural blocker.

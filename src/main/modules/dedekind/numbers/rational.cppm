@@ -447,8 +447,14 @@ struct inverse_trait<dedekind::numbers::Rational<I>,
                      std::multiplies<dedekind::numbers::Rational<I>>> {
   static constexpr bool exists = true;
   using value_type = dedekind::numbers::Rational<I>;
-  static constexpr value_type compute(
-      const dedekind::numbers::Rational<I>& q) noexcept {
+  // Not @c noexcept: @c Rational::inverse() throws
+  // @c std::domain_error on @c 0/1.  Per the
+  // @c is_invertible_v / @c inverse_trait convention, callers are
+  // expected to honour the "zero is understood excluded" precondition;
+  // a violation surfaces as an exception (the failure-mode the
+  // operator @c / surface already presents), @b not as
+  // @c std::terminate from a @c noexcept boundary.
+  static constexpr value_type compute(const dedekind::numbers::Rational<I>& q) {
     return q.inverse();
   }
 };
