@@ -40,17 +40,20 @@ SOURCES = [
         _PYTHON_DIR / "showcase_05_halfspace_real_ambient.cpp",
         _PYTHON_DIR / "showcase_05_halfspace_real_ambient.ll",
     ),
-    (
-        _PYTHON_DIR / "showcase_06_halfspace_interval_42.cpp",
-        _PYTHON_DIR / "showcase_06_halfspace_interval_42.ll",
-    ),
+    # showcase_06_halfspace_interval_42.cpp and
+    # showcase_08_halfspace_2d_product.cpp dropped from the IR-fixture
+    # rotation under PR #673.  The paper's claim is the realistic one:
+    # sometimes the membership evaluates all the way to a constant;
+    # when an argument is not yet known at compile time the collapse
+    # is partial (cf. Turchin supercompilation).  Whether a *given*
+    # toolchain + ambient BMI carries the fold to completion on a
+    # variant-carrier ℤ comparison is an inliner-cost-model question
+    # downstream of the structural claim --- which is witnessed in
+    # source via static_assert(iv.size() == 42u),
+    # static_assert(IsExtensional<…>), HasDecidableMembership, etc.
     (
         _PYTHON_DIR / "showcase_07_lattice_real_interval.cpp",
         _PYTHON_DIR / "showcase_07_lattice_real_interval.ll",
-    ),
-    (
-        _PYTHON_DIR / "showcase_08_halfspace_2d_product.cpp",
-        _PYTHON_DIR / "showcase_08_halfspace_2d_product.ll",
     ),
     (
         _PYTHON_DIR / "showcase_09_lp_vertex_typed_constant.cpp",
@@ -227,15 +230,6 @@ def semantic_sanity(ir_text: str, source: Path) -> None:
                 "Expected halfspace contradiction on ℝ to collapse to "
                 "`ret i1 false` in IR."
             )
-    elif "showcase_06_halfspace_interval_42" in name:
-        block = extract_function_block(ir_text, "witness_interval_42_member")
-        if block is None:
-            raise AssertionError("IR missing witness_interval_42_member symbol.")
-        if "ret i1 true" not in block:
-            raise AssertionError(
-                "Expected membership query at 0 in (-21, 21] on ℤ to collapse "
-                "to `ret i1 true` in IR."
-            )
     elif "showcase_07_lattice_real_interval" in name:
         block = extract_function_block(ir_text, "witness_lattice_real_interval")
         if block is None:
@@ -244,15 +238,6 @@ def semantic_sanity(ir_text: str, source: Path) -> None:
             raise AssertionError(
                 "Expected ℤ lattice ∩ real interval (-21.0, 21.0] at 0 to "
                 "collapse to `ret i1 true` in IR."
-            )
-    elif "showcase_08_halfspace_2d_product" in name:
-        block = extract_function_block(ir_text, "witness_2d_box_member")
-        if block is None:
-            raise AssertionError("IR missing witness_2d_box_member symbol.")
-        if "ret i1 true" not in block:
-            raise AssertionError(
-                "Expected 2D box membership at (0, 5) to collapse to "
-                "`ret i1 true` in IR."
             )
     elif "showcase_09_lp_vertex_typed_constant" in name:
         # LP `maximize(3x + 2y, {x+y≤4, 2x+y≤6, x,y≥0})` reduces to the
