@@ -33,6 +33,8 @@ import dedekind.category;
 import dedekind.order;
 import dedekind.sets;
 import :integer;
+import :sint;  // IsInteger / extensional_integer / Group_ℤ / default_integer
+               // (relocated from :integer per #670 cleanup)
 
 namespace dedekind::numbers {
 using namespace dedekind::category;
@@ -469,12 +471,14 @@ struct RationalsOf {
     return operator()(Rational<I>{static_cast<I>(z), static_cast<I>(1)});
   }
 
-  // Delegate non-parent ancestors to ambient ℤ.
-  template <typename T>
-    requires(!std::same_as<T, Rational<I>> && !std::same_as<T, machine_integer>)
-  constexpr typename L::Ω operator()(const T& x) const {
-    return dedekind::numbers::Z(x);
-  }
+  // Note (#670 cleanup): the previous "delegate to ambient ℤ" overload
+  // routed non-parent inputs through `dedekind::numbers::Z(x)` (the
+  // `IntegerSet` predicate constant).  That apparatus was removed in
+  // #670 as deprecated --- non-parent-ancestor membership now falls
+  // through to default overload-resolution failure, which is the
+  // Honest Rejection: callers that need the ℤ-mediated lift should
+  // construct the @c Rational<I> explicitly via the available embeds
+  // rather than relying on an implicit catch-all.
 };
 
 /** @brief Internal predicate-set type for the rational numbers (the

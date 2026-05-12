@@ -29,24 +29,16 @@ namespace dedekind::numbers {
 using namespace dedekind::category;
 using namespace dedekind::sets;
 
-/** @section integer__Saturating_ℤ_Companion (#670)
+/** @section integer__Saturating_ℤ (#670)
  *
- * Companion to @c ℤ above, using the @b saturating variant
- * @c sets::SignedCardinality as the carrier rather than the @b cyclic
- * finite fragment @c SignedExtensionalCardinal<>.  This mirrors the
- * @c ℕ pattern (@c ℕ @c = @c Ω<Cardinality> where @c Cardinality is
- * the saturating @f$\mathbb{N} \cup \{\aleph_0\}@f$ variant) and
- * gives the project a discipline-consistent ℤ proxy at the value
- * level.
- *
- * Why a companion alias rather than retargeting @c ℤ itself: the
- * existing @c ℤ is anchored across ~400 references (witnesses in
- * @c :rational, @c Rational<default_integer>, embeddings, paper
- * listings); retargeting it would cascade and touch many sites
- * outside @c :numbers.  The additive companion is a Sollbruchstelle:
- * downstream code that wants the saturating discipline can opt in via
- * @c ℤ_aleph today, and a future cleanup can migrate the full
- * @c ℤ alias once all downstream sites have been verified.
+ * @c ℤ is the universe @c Ω<SignedCardinality>, using the @b saturating
+ * variant @c sets::SignedCardinality as the carrier (rather than the
+ * @b cyclic finite fragment @c SignedExtensionalCardinal<>).  This
+ * mirrors the @c ℕ pattern (@c ℕ @c = @c Ω<Cardinality>, where
+ * @c Cardinality is the saturating @f$\mathbb{N} \cup \{\aleph_0\}@f$
+ * variant) --- the project's stance is now consistent across @c ℕ and
+ * @c ℤ: bounded representations @b escalate (saturate to
+ * @f$\pm \aleph_0@f$) rather than wrap.
  *
  * The carrier @c sets::SignedCardinality is the project's documented
  * bona-fide proxy for @f$\mathbb{Z}@f$ modulo physical limits
@@ -66,18 +58,16 @@ export inline constexpr auto ℤ =
     dedekind::sets::Ω<dedekind::sets::SignedCardinality>;
 
 static_assert(
-    std::same_as<std::remove_cvref_t<decltype(ℤ_aleph)>,
+    std::same_as<std::remove_cvref_t<decltype(ℤ)>,
                  dedekind::sets::UniversalSet<dedekind::sets::SignedCardinality,
                                               ClassicalLogic, ℵ_0>>,
-    "ℤ_aleph is the universe Ω<SignedCardinality>, mirroring "
-    "ℕ = Ω<Cardinality>.");
-static_assert(
-    std::same_as<typename std::remove_cvref_t<decltype(ℤ_aleph)>::Domain,
-                 dedekind::sets::SignedCardinality>,
-    "ℤ_aleph's underlying carrier IS SignedCardinality — the project's "
-    "bona-fide saturating ℤ proxy (per cardinality.cppm:923-924). "
-    "Mirrors ℕ's underlying carrier being Cardinality, the saturating "
-    "ℕ proxy.");
+    "ℤ is the universe Ω<SignedCardinality>, mirroring "
+    "ℕ = Ω<Cardinality> (#670).");
+static_assert(std::same_as<typename std::remove_cvref_t<decltype(ℤ)>::Domain,
+                           dedekind::sets::SignedCardinality>,
+              "ℤ's underlying carrier IS SignedCardinality — the project's "
+              "bona-fide saturating ℤ proxy (per cardinality.cppm:923-924). "
+              "Mirrors ℕ's underlying carrier being Cardinality.");
 
 // The saturating ℤ proxy inhabits the algebraic concept chain the
 // in-line scout-algebra surface uses (#664).  Pinning the witness:
@@ -86,10 +76,10 @@ static_assert(
 // :algebra:scout_algebra.
 static_assert(dedekind::algebra::IsOrderedAdditiveGroup<
                   dedekind::sets::SignedCardinality>,
-              "ℤ_aleph's carrier SignedCardinality must satisfy "
-              "IsOrderedAdditiveGroup --- this is the structural binding "
-              "between the new saturating-ℤ alias and the in-line "
-              "scout-algebra halfspace pipe (#664).");
+              "ℤ's carrier SignedCardinality must satisfy "
+              "IsOrderedAdditiveGroup --- the structural binding "
+              "between ℤ and the in-line scout-algebra halfspace "
+              "pipe (#664 / #670).");
 
 /**
  * @brief Canonical embedding K3 ↪ ℤ: Ternary → SignedCardinality.
@@ -138,29 +128,9 @@ export inline constexpr auto lift_ℕ_ℤ_ =
           return dedekind::sets::lift_cardinality_to_signed(c);
         });
 
-/**
- * @brief Canonical embedding of any std::signed_integral into ℤ.
- *
- * @details The extensional integer carrier (extensional_integer = int) is the
- * default target. For injecting into a general IsInteger domain Z, use
- * embed_signed_integral<Z>(v).
- *
- * @tparam S Any std::signed_integral source type.
- */
-export template <std::signed_integral S>
-constexpr extensional_integer embed_signed_to_ℤ(S v) {
-  return static_cast<extensional_integer>(v);
-}
-
 }  // namespace dedekind::numbers
 
 namespace dedekind::category {
-template <>
-inline constexpr bool is_monic_arrow_v<
-    std::decay_t<decltype(dedekind::numbers::embed_uint_sint_)>> = true;
-static_assert(
-    IsInjective<std::decay_t<decltype(dedekind::numbers::embed_uint_sint_)>>,
-    "embed_uint_sint_ (machine-layer ℕ → ℤ) is registered injective.");
 
 template <>
 inline constexpr bool
@@ -169,15 +139,6 @@ inline constexpr bool
 static_assert(
     IsInjective<std::decay_t<decltype(dedekind::numbers::embed_𝕂3_ℤ_)>>,
     "embed_𝕂3_ℤ_ (𝕂3 → ℤ) is registered injective.");
-
-template <>
-inline constexpr bool is_monic_arrow_v<
-    std::decay_t<decltype(dedekind::numbers::embed_unsigned_ℕ)>> = true;
-static_assert(
-    IsInjective<std::decay_t<decltype(dedekind::numbers::embed_unsigned_ℕ)>>,
-    "embed_unsigned_ℕ (unsigned → ExtensionalCardinal) is registered "
-    "injective.");
-// Monicity of @c embed_uint_ℕ_ is registered in @c :uint.
 
 template <>
 inline constexpr bool

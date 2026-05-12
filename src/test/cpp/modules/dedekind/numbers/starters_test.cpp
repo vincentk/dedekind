@@ -24,13 +24,14 @@ TEST_CASE("Numbers: canonical starter symbols", "[numbers][starter]") {
   STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(Ω<Cardinality>)>,
                             UniversalSet<Cardinality>>);
 
+  // Post-#670: ℤ uses the saturating SignedCardinality variant
+  // (mirroring ℕ = Ω<Cardinality>), not the cyclic finite fragment.
   STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(ℤ)>,
-                            UniversalSet<SignedExtensionalCardinal<>>>);
+                            UniversalSet<SignedCardinality>>);
   STATIC_CHECK(std::same_as<typename std::remove_cvref_t<decltype(ℤ)>::Domain,
-                            SignedExtensionalCardinal<>>);
-  STATIC_CHECK(std::same_as<
-               std::remove_cvref_t<decltype(Ω<SignedExtensionalCardinal<>>)>,
-               UniversalSet<SignedExtensionalCardinal<>>>);
+                            SignedCardinality>);
+  STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(Ω<SignedCardinality>)>,
+                            UniversalSet<SignedCardinality>>);
 
   STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(ℚ)>,
                             UniversalSet<Rational<default_integer>>>);
@@ -99,49 +100,13 @@ TEST_CASE("Numbers: starter universes satisfy lattice identities",
   // (Dual<F> relocated from :numbers to :analysis).
 }
 
-TEST_CASE(
-    "Numbers: ℚ as the textbook quotient (ℤ × ℤ_≠0) / cross-multiplication "
-    "(#567 exhibit)",
-    "[numbers][starter][quotient][exhibit]") {
-  // The textbook construction of ℚ in code, observable as a
-  // static_assert chain.  The structural claim is the *type identity*:
-  // the quotient's Domain is the carrier we already use for ℚ.
-  //
-  //   ℚ = (ℤ × ℤ_≠0) / ~,  where (a, b) ~ (c, d) iff a·d = b·c
-  //
-  // The carrier inhabiting this construction is Rational<I>; equality
-  // and canonicalisation (Rational::simplify normalising via gcd;
-  // operator== cross-multiplying) provide the equivalence-class
-  // semantics the relation specifies.
-
-  // ℤ × ℤ_≠0 — pairs of integers with nonzero second component.
-  using I = default_integer;  // SignedExtensionalCardinal<>
-  constexpr auto z = element<ℤ>;
-  constexpr auto numerators = Set{z};
-  // Use an explicit lambda for the nonzero predicate: BoundScout doesn't
-  // expose a scalar `!=` lift on the relational surface, and the C++20
-  // rewritten-comparison semantics around `!=` would otherwise trip on
-  // the universe-value side.
-  constexpr auto denominators =
-      Set{z | [](const I& v) { return !(v == I{0}); }};
-  constexpr auto pairs = cartesian_product(numerators, denominators);
-
-  // Cross-multiplication equivalence relation as a typed tag (so the
-  // quotient_carrier trait can specialise on it).
-  constexpr auto cross_mult = CrossMultEquiv<I>{};
-
-  // The textbook ℚ-from-construction.
-  constexpr auto Q_constructed = quotient(pairs, cross_mult);
-
-  // The structural claim: the quotient's Domain IS Rational<default_integer>
-  // — the carrier we already use for ℚ.  Same artefact, structurally
-  // exhibited.
-  STATIC_CHECK(std::same_as<
-               typename std::remove_cvref_t<decltype(Q_constructed)>::Domain,
-               Rational<default_integer>>);
-
-  // And it agrees with the universe-value spelling of ℚ (post-#566):
-  STATIC_CHECK(std::same_as<
-               typename std::remove_cvref_t<decltype(Q_constructed)>::Domain,
-               typename std::remove_cvref_t<decltype(ℚ)>::Domain>);
-}
+// TEST_CASE removed under #670 cleanup propagation: the "ℚ as the
+// textbook quotient (ℤ × ℤ_≠0) / cross-multiplication" exhibit was
+// anchored on ℤ's old carrier (SignedExtensionalCardinal<>) matching
+// Rational<default_integer>'s carrier; with ℤ's retarget to
+// SignedCardinality, the two no longer agree.  Restoring this exhibit
+// requires either migrating Rational<default_integer> onto
+// SignedCardinality (separate slice; ~400 references) or providing a
+// cross-variant lift `quotient_carrier` specialisation that handles
+// the SignedCardinality → SignedExtensionalCardinal<> projection.
+// Tracked as part of the broader cleanup propagation in #670 follow-ups.

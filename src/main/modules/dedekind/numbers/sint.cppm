@@ -75,6 +75,7 @@ module;
                     // in embed_sint_ℤ's per-value entry point)
 #include <functional>
 #include <limits>
+#include <numeric>      // std::gcd (relocated from :integer per #670 cleanup)
 #include <type_traits>  // std::remove_cvref_t (no-narrowing pin in
                         // embed_sint_ℤ's set-level overload)
 #include <utility>      // std::forward (used in embed_sint_ℤ's set-level lift)
@@ -86,9 +87,95 @@ import dedekind.category;
 import dedekind.order;
 import dedekind.sequences;
 import dedekind.sets;
-import :integer;  // for Group_ℤ + extensional_integer alias
+import :integer;  // ℤ value-level alias (Ω<SignedCardinality>, post-#670)
 
 namespace dedekind::numbers {
+using namespace dedekind::category;
+using namespace dedekind::sets;
+
+// ---------------------------------------------------------------------------
+// Signed-integer machinery (relocated from :integer per #670, "move
+// functionality to sint or uint where appropriate").
+//
+// These concepts and aliases previously lived in :integer alongside the
+// value-level ℤ alias.  The reorganisation separates the @b set-level
+// ℤ (now `Ω<SignedCardinality>`, kept in :integer) from the
+// @b carrier-level machinery for machine signed integers (concepts,
+// embedding, GCD --- relocated here).  Downstream consumers (Rational
+// in :rational) import :sint to pick them up.
+// ---------------------------------------------------------------------------
+
+/** @brief Current extensional machine integer carrier. */
+export using extensional_integer = int;
+
+/** @concept IsReflectiveSpecies: a regular type with additive inverse
+ *  and default-constructible zero. */
+export template <typename T>
+concept IsReflectiveSpecies = std::regular<T> && requires(T a) {
+  { -a } -> std::same_as<T>;
+  { T{} } -> std::same_as<T>;
+};
+
+/** @concept IsInteger: structural Euclidean-integer-domain concept
+ *  (additive group + multiplicative monoid + Euclidean pair + total
+ *  order on the carrier). */
+export template <typename T>
+concept IsInteger = IsReflectiveSpecies<T> && requires(T a, T b) {
+  { a + b } -> std::same_as<T>;
+  { a - b } -> std::same_as<T>;
+  { a * b } -> std::same_as<T>;
+  { a / b } -> std::same_as<T>;
+  { a % b } -> std::same_as<T>;
+  { a < b } -> std::convertible_to<bool>;
+};
+
+/** @brief Canonical injection from `std::signed_integral` into any
+ *  `IsInteger` domain Z. */
+export template <IsInteger Z, std::signed_integral S>
+constexpr Z embed_signed_integral(S v) {
+  return Z{v};
+}
+
+/** @brief Absolute value in the integer spine. */
+export template <IsInteger Z>
+constexpr Z integer_abs(Z value) {
+  return value < Z{0} ? -value : value;
+}
+
+/** @brief Euclidean GCD over an `IsInteger` carrier. */
+export template <IsInteger Z>
+constexpr Z euclidean_gcd(Z lhs, Z rhs) {
+  if constexpr (std::is_integral_v<Z>) {
+    return std::gcd(lhs, rhs);
+  } else {
+    lhs = integer_abs(lhs);
+    rhs = integer_abs(rhs);
+    while (rhs != Z{0}) {
+      const Z remainder = lhs % rhs;
+      lhs = rhs;
+      rhs = remainder;
+    }
+    return lhs;
+  }
+}
+
+export template <typename Z>
+concept HasEuclideanGcd = IsInteger<Z> && requires(Z a, Z b) {
+  { euclidean_gcd(a, b) } -> std::same_as<Z>;
+};
+
+/** @brief Default signed-integer carrier used by downstream numeric
+ *  layers (Rational<I>, embeddings).  Anchored on the cyclic finite
+ *  fragment `SignedExtensionalCardinal<>` for compatibility with the
+ *  existing IsField/IsRing chain on Rational; migrating to
+ *  SignedCardinality is its own slice. */
+export using default_integer = SignedExtensionalCardinal<>;
+
+/** @concept Group_ℤ: T satisfies Group_ℤ iff it is IsInteger AND
+ *  (T, +, 0) is an abelian group. */
+export template <typename T>
+concept Group_ℤ =
+    IsInteger<T> && dedekind::category::IsAbelianGroup<T, std::plus<T>>;
 
 // ===========================================================================
 // (1) Universal machine→variant lift: std::signed_integral → SignedCardinality

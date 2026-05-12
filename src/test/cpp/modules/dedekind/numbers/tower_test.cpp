@@ -29,7 +29,8 @@ using namespace dedekind::ieee;
 
 static_assert(IsMonicArrow<Identity<machine_integer>>);
 static_assert(IsMonicArrow<std::decay_t<decltype(embed_𝔹_uint_)>>);
-static_assert(IsMonicArrow<std::decay_t<decltype(embed_uint_sint_)>>);
+// embed_uint_sint_ was removed in #670 (deprecated machine-layer ℕ → ℤ arrow);
+// the carrier-lattice tower no longer carries this middle-row horizontal.
 static_assert(IsMonicArrow<std::decay_t<decltype(embed_𝕂3_ℤ_)>>);
 static_assert(IsMonicArrow<std::decay_t<decltype(embed_ℤ_ℚ<>)>>);
 static_assert(IsMonicArrow<std::decay_t<decltype(embed_ℚ_ℝ<>)>>);
@@ -43,10 +44,7 @@ static_assert(std::same_as<Dom<std::decay_t<decltype(embed_𝔹_uint_)>>, bool>)
 static_assert(
     std::same_as<Cod<std::decay_t<decltype(embed_𝔹_uint_)>>, unsigned>);
 
-static_assert(
-    std::same_as<Dom<std::decay_t<decltype(embed_uint_sint_)>>, unsigned>);
-static_assert(std::same_as<Cod<std::decay_t<decltype(embed_uint_sint_)>>,
-                           machine_integer>);
+// embed_uint_sint_'s Dom/Cod static_asserts removed under #670 cleanup.
 
 static_assert(std::same_as<Dom<std::decay_t<decltype(embed_𝕂3_ℤ_)>>, Ternary>);
 static_assert(std::same_as<Cod<std::decay_t<decltype(embed_𝕂3_ℤ_)>>,
@@ -82,20 +80,8 @@ static_assert(IsSpecies<Complex<machine_real_scalar>>);
 // Generic unsigned / signed / floating-point embeddings
 // ---------------------------------------------------------------------------
 
-TEST_CASE("Tower: embed_to_ℕ<U> covers any unsigned_integral",
-          "[numbers][tower][embedding]") {
-  // unsigned long is distinct from unsigned — exercises the template overload
-  CHECK(embed_to_ℕ(42UL).limbs[0] == 42UL);
-  CHECK(embed_to_ℕ(0UL).limbs[0] == 0UL);
-  CHECK(embed_to_ℕ(static_cast<unsigned char>(7)).limbs[0] == 7UL);
-}
-
-TEST_CASE("Tower: embed_unsigned_ℕ (concrete monic arrow)",
-          "[numbers][tower][embedding]") {
-  CHECK(embed_unsigned_ℕ(0u).limbs[0] == 0UL);
-  CHECK(embed_unsigned_ℕ(42u).limbs[0] == 42UL);
-  CHECK(embed_unsigned_ℕ(1000u).limbs[0] == 1000UL);
-}
+// embed_to_ℕ / embed_unsigned_ℕ test cases removed under #670 cleanup
+// (those symbols were removed as deprecated machine-layer embeddings).
 
 TEST_CASE("Tower: embed_uint_ℕ (universal machine→variant lift)",
           "[numbers][tower][embedding][carrier-lattice]") {
@@ -123,12 +109,10 @@ TEST_CASE("Tower: embed_uint_ℕ (universal machine→variant lift)",
   CHECK(embed_uint_ℕ_(42u) == dedekind::sets::finite_cardinality(42));
 }
 
-TEST_CASE("Tower: embed_signed_to_ℤ<S> covers any signed_integral",
-          "[numbers][tower][embedding]") {
-  CHECK(embed_signed_to_ℤ(static_cast<short>(5)) == 5);
-  CHECK(embed_signed_to_ℤ(-3) == -3);
-  CHECK(embed_signed_to_ℤ(static_cast<long long>(100LL)) == 100);
-}
+// embed_signed_to_ℤ test case removed under #670 cleanup (the function
+// was the deprecated extensional_integer-targeted embed; callers can
+// use embed_sint_ℤ (the per-set lift) or embed_signed_integral<Z> from
+// :sint directly).
 
 TEST_CASE("Tower: embed_floating_ℝ<F> covers any floating_point",
           "[numbers][tower][embedding]") {
@@ -157,23 +141,8 @@ TEST_CASE("Tower: 𝔹 ↪ ℕ via embed_𝔹_uint_", "[numbers][tower][embeddin
 // ℕ ↪ ℤ
 // ---------------------------------------------------------------------------
 
-TEST_CASE("Tower: ℕ ↪ ℤ via embed_uint_sint_", "[numbers][tower][embedding]") {
-  // Unsigned naturals always embed into integers successfully.
-  const auto integers = ambient_set<int>([](const int&) { return true; });
-
-  CHECK(in_via(0u, embed_uint_sint_, integers) == true);
-  CHECK(in_via(42u, embed_uint_sint_, integers) == true);
-  CHECK(in_via(1000u, embed_uint_sint_, integers) == true);
-
-  // Membership in the naturals set respects sign.
-  CHECK(N(0) == true);
-  CHECK(N(7) == true);
-  CHECK(N(-1) == false);
-
-  // Unsigned values are always natural.
-  CHECK(N(0u) == true);
-  CHECK(N(42u) == true);
-}
+// ℕ ↪ ℤ via embed_uint_sint_ test case removed under #670 cleanup
+// (embed_uint_sint_ was the deprecated machine-layer arrow).
 
 // ---------------------------------------------------------------------------
 // K3 ↪ ℤ
@@ -238,17 +207,10 @@ TEST_CASE("Tower: ℝ ↪ ℂ via embed_ℝ_ℂ", "[numbers][tower][embedding]")
 // Composed tower: unsigned ↪ ℤ ↪ ℚ ↪ ℝ ↪ ℂ  (via >> composition)
 // ---------------------------------------------------------------------------
 
-TEST_CASE("Tower: composed chain unsigned -> ℤ -> ℚ -> ℝ -> ℂ",
-          "[numbers][tower][embedding][composition]") {
-  const auto embed_ℕ_ℚ = embed_uint_sint_ >> embed_ℤ_ℚ<>;
-  const auto embed_ℕ_ℝ = embed_ℕ_ℚ >> embed_ℚ_ℝ<>;
-  const auto embed_ℕ_ℂ = embed_ℕ_ℝ >> embed_ℝ_ℂ<>;
-
-  // 3 travels the full chain and arrives in ℂ as (3 + 0i).
-  const auto result = embed_ℕ_ℂ(3u);
-  CHECK(result.real() == 3.0);
-  CHECK(result.imag() == 0.0);
-}
+// Composed chain test removed under #670 cleanup: its first link was
+// embed_uint_sint_ (machine-layer ℕ → ℤ), which was the deprecated
+// arrow.  Restoring the chain requires a new machine-layer ℕ → ℤ arrow
+// on the saturating SignedCardinality carrier.
 
 // ---------------------------------------------------------------------------
 // Stress test: Im(K3 -> ℤ) ∩ { z in ℂ | Re(z) > 0 }
@@ -505,17 +467,6 @@ TEST_CASE("Tower: inter-species set membership via embeddings",
   // Compose 𝔹 ↪ ℕ ↪ ℤ ↪ ℚ and test against a ℚ+ predicate.
   // Rational<> is not an ETCS species, so use Set<> directly.
   // embed_ℤ_ℚ<> default-instantiates over default_integer (SEC<>
-  // post-#499 retarget); the predicate-set type parameter must match.
-  const auto positive_pred = [](const Rational<default_integer>& q) {
-    return q.num() > default_integer{0};
-  };
-  const Set<Rational<default_integer>, ClassicalLogic, decltype(positive_pred)>
-      positive_rationals{positive_pred};
-
-  const auto embed_𝔹_ℚ = [](bool b) {
-    return embed_ℤ_ℚ<>(embed_uint_sint_(embed_𝔹_uint_(b)));
-  };
-
-  CHECK(positive_rationals(embed_𝔹_ℚ(true)) == true);    // 1/1 ∈ ℚ+
-  CHECK(positive_rationals(embed_𝔹_ℚ(false)) == false);  // 0/1 ∉ ℚ+
+  // 𝔹 → ℚ chain test removed under #670 cleanup: depended on
+  // embed_uint_sint_ (deprecated machine-layer ℕ → ℤ).
 }

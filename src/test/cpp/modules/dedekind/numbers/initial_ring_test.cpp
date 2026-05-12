@@ -275,9 +275,10 @@ TEST_CASE(
   STATIC_CHECK(IsMonicArrow<std::decay_t<decltype(embed_uint_ℕ_)>>);
   STATIC_CHECK(IsArrow<std::decay_t<decltype(embed_sint_ℤ_)>>);
   STATIC_CHECK(IsMonicArrow<std::decay_t<decltype(embed_sint_ℤ_)>>);
-  // Middle-row horizontal arrow: machine-layer ℕ → ℤ sign reinterpretation.
-  STATIC_CHECK(IsArrow<std::decay_t<decltype(embed_uint_sint_)>>);
-  STATIC_CHECK(IsMonicArrow<std::decay_t<decltype(embed_uint_sint_)>>);
+  // (Note: the machine-layer ℕ → ℤ horizontal arrow `embed_uint_sint_`
+  //  was removed in #670 as deprecated.  The carrier-lattice diagram
+  //  is consequently missing this middle-row horizontal arrow until a
+  //  follow-up restores it on the new ℤ carrier.)
   // Bottom-row vertical arrow: 𝔹 ↪ ℕ.
   STATIC_CHECK(IsArrow<std::decay_t<decltype(embed_𝔹_uint_)>>);
   STATIC_CHECK(IsMonicArrow<std::decay_t<decltype(embed_𝔹_uint_)>>);
