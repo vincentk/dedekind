@@ -2,7 +2,7 @@
  * @file dedekind/algebra/scout_algebra.cppm
  * @partition :scout_algebra
  * @brief Symbolic scout type for the in-line comprehension surface,
- *        gated on algebraic structure of the carrier (#664 Slice 1).
+ *        gated on algebraic structure of the carrier (#664).
  *
  * @section scout_algebra__Motivation
  *
@@ -12,7 +12,8 @@
  * not in implementation-specific concepts.  This partition is the
  * algebraic foundation for #664's in-line scout-algebra surface
  * @c Set{f(x) @c | @c P(x)}: once a scout is a valid algebraic
- * expression, downstream slices wire it into the comprehension DSL.
+ * expression, the comprehension pipe transports the source predicate
+ * structurally and yields a typed @c Set with the @b shifted predicate.
  *
  * @section scout_algebra__Design
  *
@@ -29,9 +30,17 @@
  *    @c GroupScout<T, @c std::plus<T>, @c -k, @c BoundScout<T>>
  *    (subtraction encoded via the additive inverse).
  *
+ * The comprehension pipe @c GroupScout::operator|(Halfspace) performs
+ * @b halfspace-pivot @b transport: the source predicate's pivot is
+ * shifted by the scout's @c Element along the additive group action,
+ * yielding a @c Comprehension that Set CTAD picks up and resolves to a
+ * @c Set with the shifted halfspace as predicate.  No Set CTAD changes
+ * needed; the existing @c Comprehension path in @c :sets:expressions
+ * is the consumer.
+ *
  * The multiplicative specialisation
  * (@c operator*(Bound<k>, @c BoundScout<T>) for
- * @c IsMultiplicativeGroup<T>) is deferred to Slice 3.
+ * @c IsMultiplicativeGroup<T>) is deferred to a follow-up slice.
  *
  * @section scout_algebra__Honest_Rejection
  *
@@ -41,19 +50,15 @@
  * overload to be removed from the candidate set.  The compile error
  * names the missing textbook axiom, not a library-specific failure.
  *
- * @section scout_algebra__Out_Of_Scope_For_This_Slice
+ * @section scout_algebra__Out_Of_Scope_For_This_Partition_Today
  *
- *  - @c MembershipBinding<GroupScout<...>> @c | @c predicate routing
- *    (Slice 2).
- *  - Halfspace-pivot transport through the scout
- *    (@c Halfspace<T,k,↑,S,L> shifted to @c Halfspace<T,k+Element,↑,S,L>)
- *    (Slice 2).
- *  - Set CTAD deduction guide for transformed-scout comprehensions
- *    (Slice 2).
- *  - Multiplicative specialisation @c operator* (Slice 3).
+ *  - Multiplicative specialisation @c operator* (follow-up slice).
  *  - Retract-tier scaling on rings (where the carrier is not a
  *    multiplicative group, e.g.\ @c bound<2> @c * @c in<ℤ>) (further
  *    follow-up).
+ *  - Composition of scouts beyond a single @c BoundScout inner
+ *    (e.g.\ @c bound<2> @c * @c in<ℤ> @c + @c bound<1> --- where the
+ *    inner of the outer @c + is itself a @c GroupScout) (follow-up).
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -114,6 +119,50 @@ struct GroupScout {
   using inner_type = Inner;
 
   static constexpr auto element = Element;
+
+  /**
+   * @brief Comprehension pipe: @c GroupScout @c | @c Halfspace →
+   *        @c Comprehension with the halfspace's pivot shifted by
+   *        @c Element.
+   *
+   * @details
+   * Halfspace-pivot transport along the additive group action: a source
+   * predicate @f$\{x \in T \mid x \bowtie k\}@f$ pushed through the
+   * scout function @f$\lambda x.\,k_E + x@f$ (where @f$k_E@f$ is this
+   * scout's @c Element) yields the image halfspace
+   * @f$\{y \in T \mid y \bowtie k + k_E\}@f$ --- the pivot shifts by
+   * @c Element, the direction and strictness are preserved (group
+   * translation is monotone).
+   *
+   * The result is a @c Comprehension over the inner scout's @c Ambient,
+   * with the @b shifted halfspace as predicate.  Downstream @c Set CTAD
+   * (already present in @c :sets:expressions) picks this up unchanged
+   * and produces a @c Set<T,L,Halfspace<T,k+k_E,...>> --- no Set CTAD
+   * changes needed.
+   *
+   * @section Specialisation gate
+   *
+   * Currently restricted to @c Op @c = @c std::plus<T> (additive group
+   * action) and @c Inner exposing @c AmbientType / @c ambient (i.e.\
+   * a @c BoundScout).  Slice 3 adds the multiplicative case
+   * (@c Op @c = @c std::multiplies<T>); composition of scouts
+   * (e.g.\ @c bound<2> @c * @c in<ℤ> @c + @c bound<1>) is further
+   * follow-up.
+   */
+  template <auto Pivot, dedekind::order::Direction D,
+            dedekind::order::Strictness S, typename L>
+    requires std::same_as<Op, std::plus<T>> && requires {
+      typename Inner::AmbientType;
+      Inner::ambient;
+    }
+  constexpr auto operator|(
+      dedekind::order::Halfspace<T, Pivot, D, S, L>) const {
+    constexpr auto new_pivot = static_cast<T>(Pivot) + static_cast<T>(Element);
+    using NewHalfspace = dedekind::order::Halfspace<T, new_pivot, D, S, L>;
+    using AmbientType = typename Inner::AmbientType;
+    return dedekind::sets::Comprehension<AmbientType, NewHalfspace>{
+        Inner::ambient, NewHalfspace{}};
+  }
 };
 
 }  // namespace dedekind::algebra

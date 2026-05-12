@@ -96,3 +96,48 @@ static_assert(!ScoutAdditiveShiftIsCallable<int, 3>,
 static_assert(!ScoutAdditiveSubtractIsCallable<int, 3>,
               "operator-(BoundScout<int>, Bound<k>) must be removed from the "
               "candidate set on a carrier that is not an additive group.");
+
+// ---------------------------------------------------------------------------
+// Slice 2: end-to-end halfspace-pivot transport.
+//
+// The canonical witness for the in-line scout-algebra surface (#664):
+//
+//     constexpr auto S = Set{ in<U> + bound<3u> | (in<U> > bound<5u>) };
+//     // semantically: { n + 3 | n ∈ U, n > 5 } = { y ∈ U | y > 8 }.
+//
+// Source predicate is `Halfspace<U, 5u, Upward, Strict, ...>`.  The
+// scout `+ bound<3u>` translates by the group element 3u.  Image
+// halfspace has pivot 5u + 3u = 8u, direction and strictness preserved.
+//
+// The test verifies the result type IS the typed halfspace --- the Set
+// CTAD picks up the Comprehension produced by GroupScout::operator| and
+// produces a Set whose predicate is the shifted halfspace, witnessing
+// type-directed collapse at compile time.
+// ---------------------------------------------------------------------------
+
+TEST_CASE("scout_algebra: in-line shift transports halfspace pivot (#664 / S2)",
+          "[algebra][scout_algebra][comprehension][slice2]") {
+  using U = unsigned int;
+  // Set CTAD derives the logic from `NaturalLogic<AmbientType>`; for
+  // `Ω<U>` with default cardinality ℵ_0, that resolves to `TernaryLogic`.
+  using SetL = typename dedekind::sets::NaturalLogic<
+      dedekind::sets::UniversalSet<U>>::type;
+
+  constexpr auto x = dedekind::sets::element<dedekind::sets::Ω<U>>;
+  constexpr auto S = dedekind::sets::Set{x + dedekind::order::bound<3u> |
+                                         (x > dedekind::order::bound<5u>)};
+
+  // The result IS a `Set<U, TernaryLogic, Halfspace<U, 8u, Upward, Strict>>`:
+  // the source halfspace (pivot 5u) is transported through the +3u shift
+  // to land at pivot 8u, direction and strictness preserved.  The
+  // `Halfspace`'s logic parameter is preserved from the source (defaults
+  // to `ClassicalLogic` since `operator>(BoundScout, Bound)` produces a
+  // halfspace with default-L; the outer `Set` separately carries the
+  // ambient's `TernaryLogic`).  Type-directed collapse at compile time.
+  using ExpectedPredicate =
+      dedekind::order::Halfspace<U, 8u, dedekind::order::Direction::Upward,
+                                 dedekind::order::Strictness::Strict>;
+  using ExpectedSet = dedekind::sets::Set<U, SetL, ExpectedPredicate>;
+  using ResultType = std::remove_cvref_t<decltype(S)>;
+  STATIC_CHECK(std::same_as<ResultType, ExpectedSet>);
+}
