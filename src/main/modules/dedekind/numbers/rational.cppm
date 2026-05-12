@@ -423,6 +423,36 @@ struct inverse_trait<dedekind::numbers::Rational<I>,
   }
 };
 
+// Carrier-specific multiplicative inverse: the field-defining ℚ trait
+// --- every @b non-zero rational has a multiplicative inverse via
+// numerator/denominator swap (@c q.inverse()).  Zero is excluded by
+// the @c is_invertible_v<T, Mult> convention pinned in
+// @c total.cppm:486-491 ("the strict mathematical definition --- every
+// non-zero element is multiplicatively invertible --- cannot be stated
+// in a C++ concept; a carrier opts into the multiplicative-group
+// witness by specialising @c is_invertible_v / @c inverse_trait to
+// assert the field-level claim; zero is understood excluded").  Same
+// mechanism the @c :algebra:field witness for @c bool / 𝔽₂ already
+// uses (@c is_invertible_v<bool, std::bit_and> @c = @c true).  With
+// this registration in place, @c IsAbelianGroup<Rational<I>,
+// std::multiplies> --- and consequently @c category::IsField and
+// @c algebra::IsField --- fire on ℚ.
+template <dedekind::numbers::IsInteger I>
+inline constexpr bool
+    is_invertible_v<dedekind::numbers::Rational<I>,
+                    std::multiplies<dedekind::numbers::Rational<I>>> = true;
+
+template <dedekind::numbers::IsInteger I>
+struct inverse_trait<dedekind::numbers::Rational<I>,
+                     std::multiplies<dedekind::numbers::Rational<I>>> {
+  static constexpr bool exists = true;
+  using value_type = dedekind::numbers::Rational<I>;
+  static constexpr value_type compute(
+      const dedekind::numbers::Rational<I>& q) noexcept {
+    return q.inverse();
+  }
+};
+
 }  // namespace dedekind::category
 
 namespace dedekind::numbers {
@@ -456,19 +486,16 @@ static_assert(
  *  static_asserts were migrated to @c Rational<default_integer>
  *  directly in step 1 of this slice.
  *
- *  @note  Post-ℚ-retarget (#673), the strict ring ladder closes on
- *  @c Rational<default_integer> via the saturating @c IsTotal path
- *  inherited from @c default_integer @c = @c SignedCardinality:
- *  @c IsRing and @c IsCommutativeRing both fire (see the axiomatic
- *  probes near the bottom of this file).  What remains @b not
- *  certified is strict @c category::IsField on the @b full ℚ ---
- *  @c 0/1 has no multiplicative inverse on the carrier, so the
- *  multiplicative-group axiom fails by construction.  The textbook
- *  ℚ-as-field claim is @c (ℚ\\{0}, @c *), a @c Subobject construction
- *  not yet in the codebase (tracked separately under #664 Slice 3).
- *  Until that subobject lands, the operational
- *  @c algebra::HasFieldOperators<Rational<default_integer>> is the
- *  load-bearing field-arithmetic guarantee on the full carrier.
+ *  @note  Post-ℚ-retarget (#673) the ring ladder closes via the
+ *  saturating @c IsTotal path inherited from @c default_integer @c =
+ *  @c SignedCardinality, and the multiplicative-inverse trait
+ *  registration in this file lifts @c Rational<I> to the textbook
+ *  field axiom (Lang, @em Algebra §III.1: a commutative ring whose
+ *  @b non-zero elements form a multiplicative group; zero excluded by
+ *  the @c is_invertible_v / @c inverse_trait convention pinned in
+ *  @c total.cppm).  Both @c category::IsField and the operator-bearing
+ *  @c algebra::IsField fire on @c Rational<default_integer> --- see
+ *  the axiomatic probes near the bottom of this file.
  */
 export inline constexpr UniversalSet<Rational<default_integer>, ClassicalLogic,
                                      ℵ_0>
@@ -878,16 +905,19 @@ static_assert(
 /**
  * @section rational__Formal_Verification_2
  *
- * Rational<I> satisfies the operational field-like witness
- * (HasFieldOperators): all four arithmetic operations are available and
- * closed.
- *
- * @note The stronger categorical proof IsField<Rational<I>> is architecturally
- * blocked: IsField requires IsRing which requires IsMonoid which requires
- * IsTotal (IsPeriodic || IsIdempotent). Rational arithmetic is neither periodic
- * nor idempotent, so it lives in the Kleene/partial-function stratum instead.
- * The Kleene traits (is_kleene_associative_v etc.) are the appropriate anchors
- * for the algebraic properties of Rational<I>.
+ * Rational<I> satisfies both the operational field-like witness
+ * (HasFieldOperators --- all four arithmetic operations available and
+ * closed) and the axiomatic categorical claim @c IsField<Rational<I>,
+ * +, *> after the multiplicative-inverse trait registration earlier
+ * in this file: every @b non-zero rational has a multiplicative
+ * inverse via @c q.inverse(), with zero excluded by the
+ * @c is_invertible_v convention pinned in @c total.cppm.  This is the
+ * textbook field factoring (Lang, @em Algebra §III.1: a field is a
+ * commutative ring whose non-zero elements form a multiplicative
+ * group).  The Kleene partial-function traits remain available for
+ * codepaths that need explicit failure handling on division by zero
+ * (@c HonestDivRational), but they are no longer the only anchor ---
+ * the strict @c IsField witness is now load-bearing.
  */
 // ExtensionalCardinal<> (the cardinality ring) now carries division/modulo,
 // making it satisfy IsInteger. It represents ℕ "by fiat": a total ring
@@ -947,17 +977,10 @@ static_assert(
     "additive group AND literal +,-,unary - close on the carrier.");
 
 // ℚ as the field of rationals: the canonical arbitrary-precision rational
-// carrier that the paper-facing showcases instantiate on.
-//
-// FIXME(#374): the strict category::IsField<Rational<I>, ...> does not
-// yet certify on this carrier.  The body transitively depends on the
-// trait specialisations (identity_v / is_associative_v /
-// is_commutative_v) being lifted onto Rational<I> via the IsTotal
-// gate, and on a new IsTotal certification path for exact carriers
-// (none of periodic/idempotent/saturating apply).  Until that lifts,
-// the operator-shape witness
-// HasFieldOperators<Rational<SignedExtensionalCardinal<>>> asserted
-// below is the load-bearing guarantee.
+// carrier that the paper-facing showcases instantiate on.  Both the
+// operational @c HasFieldOperators surface AND the axiomatic
+// @c category::IsField / @c algebra::IsField close on
+// @c Rational<default_integer> (see the probes below).
 
 // ℚ-deal (#394, surface only): HasFieldOperators is the literal field-
 // operator surface (+, -, unary -, *, /, T{1}).  Rational<I>'s friend
@@ -994,41 +1017,40 @@ static_assert(
 // Axiomatic-algebra probes on Rational<default_integer> (post-ℚ-retarget).
 //
 // The static_asserts below pin which strict algebraic concepts fire on
-// the post-retarget @c Rational<SignedCardinality> carrier.  The
-// expected pattern: the @b additive-group axioms close cleanly (ℚ under
-// + IS an abelian group --- 0/1 is the identity, every rational has
-// an additive inverse), but the @b multiplicative-group axiom fails on
-// the full ℚ because @c 0/1 has no multiplicative inverse.  The strict
-// @c IsField concept therefore requires the @b nonzero subobject
-// @c ℚ\\{0} as the multiplicative-group carrier --- not the full ℚ.
-// That subobject construction is its own follow-up; below we pin the
-// surface that actually closes today.
+// the post-retarget @c Rational<SignedCardinality> carrier.  Both the
+// additive-group and multiplicative-group axioms close --- the latter
+// under the @c is_invertible_v / @c inverse_trait convention pinned in
+// @c total.cppm:486-491 ("the strict mathematical definition --- every
+// non-zero element is multiplicatively invertible --- cannot be stated
+// in a C++ concept; a carrier opts into the multiplicative-group
+// witness by specialising @c is_invertible_v / @c inverse_trait to
+// assert the field-level claim; zero is understood excluded").  This
+// matches the textbook factoring (Lang, @em Algebra §III.1): a field
+// is a commutative ring whose @b non-zero elements form a
+// multiplicative group.
 // =========================================================================
 
-// (+, *) additive abelian group fires:
+// (+, *) abelian group fires on both:
 //   • IsAbelianGroup<ℚ, +>  — closed under + with 0/1 identity, every
 //     rational has an additive inverse -q.
+//   • IsAbelianGroup<ℚ, *>  — closed under * with 1/1 identity, every
+//     @b non-zero rational has a multiplicative inverse via q.inverse()
+//     (zero excluded by the is_invertible_v convention).
 namespace probe {
 template <typename Q>
 inline constexpr bool ℚ_is_additive_abelian_group_v =
     dedekind::category::IsAbelianGroup<Q, std::plus<Q>>;
+template <typename Q>
+inline constexpr bool ℚ_is_multiplicative_abelian_group_v =
+    dedekind::category::IsAbelianGroup<Q, std::multiplies<Q>>;
 }  // namespace probe
 static_assert(probe::ℚ_is_additive_abelian_group_v<Rational<default_integer>>,
               "ℚ under + must be an abelian group (associative, "
               "commutative, identity 0/1, inverse -q).");
-
-// Multiplicative abelian group on the FULL ℚ does NOT fire: 0/1 has no
-// multiplicative inverse.  This is the @b expected failure --- it
-// witnesses, mechanically, that the strict @c IsField requires the
-// nonzero-subobject construction @c ℚ\\{0} to close the multiplicative
-// group.  Pinning the negative as documentation.
 static_assert(
-    !dedekind::category::IsAbelianGroup<
-        Rational<default_integer>, std::multiplies<Rational<default_integer>>>,
-    "The FULL ℚ under * is NOT a group (0/1 has no inverse).  The "
-    "multiplicative group is ℚ\\{0}, which requires a Subobject "
-    "construction --- tracked as the structural prerequisite for the "
-    "strict IsField witness.");
+    probe::ℚ_is_multiplicative_abelian_group_v<Rational<default_integer>>,
+    "ℚ under * (with zero excluded by convention) must be an abelian "
+    "group: associative, commutative, identity 1/1, inverse q.inverse().");
 
 // IsRing fires on the saturating @c Rational<SignedCardinality>: post-
 // #669 (SignedCardinality satisfying std::regular etc.) + #670 (ℤ
@@ -1051,45 +1073,28 @@ static_assert(
     "ℚ is a commutative ring: multiplication of rationals "
     "commutes (a/b * c/d = c/d * a/b).");
 
-// IsField on the FULL ℚ: requires the multiplicative-group axiom on
-// the carrier, which fails because 0/1 has no inverse.  The full-ℚ
-// IsField therefore does @b not fire --- this is mathematically
-// correct (textbook ℚ is a field via the ℚ\\{0} multiplicative group,
-// not via a putative inverse-of-zero).
+// IsField fires on ℚ via the textbook factoring: (ℚ, +) is an abelian
+// group, (ℚ, *) is a commutative monoid, and @b every @b non-zero
+// rational has a multiplicative inverse (the @c is_invertible_v<...,
+// std::multiplies> trait above, with zero excluded by the convention
+// pinned in @c total.cppm:486-491 --- the same convention the @c bool /
+// 𝔽₂ field witness already uses).  The axiomatic + operator-bearing
+// witnesses both close.
 static_assert(
-    !dedekind::algebra::IsField<Rational<default_integer>,
+    dedekind::category::IsField<Rational<default_integer>,
                                 std::plus<Rational<default_integer>>,
                                 std::multiplies<Rational<default_integer>>>,
-    "Strict IsField<ℚ, +, *> on the FULL ℚ does NOT fire: 0/1 has no "
-    "multiplicative inverse, so the multiplicative-group axiom fails "
-    "on the carrier.  The textbook ℚ-as-field claim is "
-    "(ℚ\\{0}, *) is a multiplicative group --- a Subobject "
-    "construction not yet in the codebase.  Tracked separately.");
-
-// =========================================================================
-// What this means for #664 Slice 3 (multiplicative scaling of halfspaces):
-//
-// The scout-algebra's multiplicative gate cannot use @c IsField<ℚ, ...>
-// or @c IsAbelianGroup<ℚ, std::multiplies<...>> as a structural
-// concept --- both are mechanically blocked above.  The two paths
-// forward:
-//
-//   (a) A @c ℚ\\{0} subobject carrier (the genuine multiplicative
-//       group) on which @c IsAbelianGroup fires structurally.  Then
-//       the multiplicative scout uses @c IsAbelianGroup<T, std::multiplies<T>>
-//       gated on this subobject.
-//
-//   (b) An opt-in marker @c is_ordered_multiplicative_field_shape_v<T>
-//       (analogous to @c is_translation_invariant_ordered) that the
-//       carrier author certifies, paired with the operational
-//       @c HasFieldOperators structural check.  This is the
-//       carrier-promise pattern @c :algebra:scout_algebra already
-//       uses for the additive case.
-//
-// (b) is the smaller move; (a) is the structurally honest one.  The
-// in-line scout-algebra Slice 3 will pick (b) absent the subobject
-// machinery.
-// =========================================================================
+    "Axiomatic IsField<ℚ, +, *> CLOSES (Lang, Algebra §III.1): "
+    "commutative ring with the non-zero elements forming a "
+    "multiplicative group, registered via is_invertible_v<Rational<I>, "
+    "std::multiplies> = true (zero excluded by convention).");
+static_assert(
+    dedekind::algebra::IsField<Rational<default_integer>,
+                               std::plus<Rational<default_integer>>,
+                               std::multiplies<Rational<default_integer>>>,
+    "Operator-bearing IsField<ℚ, +, *> CLOSES: the field axioms hold "
+    "via traits AND the operator surface (+, -, *, /, .inverse()) is "
+    "fully exposed on Rational<I>.");
 
 /**
  * @brief Canonical polynomial ring over the rationals: Q[x].
