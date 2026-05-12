@@ -444,41 +444,35 @@ static_assert(
  *  symbols (@c 𝔹 / @c ℕ / @c ℤ / @c ℚ / @c ℝ / @c ℂ / @c 𝔻) denote the
  *  @b universe values (constexpr instances of @c UniversalSet over the
  *  carrier), not carrier @b types.  Carrier types are spelled directly
- *  (@c Rational<default_integer>, or @c ℚ_t<I> for the parameterised
- *  form) in template-type-parameter positions; @c ℚ alone is the
- *  universe value the set-builder DSL takes as ambient.
+ *  (@c Rational<default_integer>, or @c Rational<I> for the
+ *  parameterised form over an arbitrary @c IsInteger I) in
+ *  template-type-parameter positions; @c ℚ alone is the universe
+ *  value the set-builder DSL takes as ambient.
  *
  *  This makes @c element<ℚ> the canonical scout spelling — closer to
  *  textbook math notation than the pre-#559 @c element<Ω<ℚ>> form.
  *  Pre-#559 the spelling was @c using @c ℚ @c = @c ℚ_t<> (a carrier-
  *  type alias); the type-context sites in concept gates and
- *  static_asserts were migrated to @c Rational<default_integer> /
- *  @c ℚ_t<> directly in step 1 of this slice.
+ *  static_asserts were migrated to @c Rational<default_integer>
+ *  directly in step 1 of this slice.
  *
- *  @note  The strict @c category::IsField<Rational<default_integer>,
- *  std::plus<...>, std::multiplies<...>> is @b not currently certified.
- *  Two distinct blocks compose:
- *
- *  1. @b IsTotal @b gate (architectural).  The strict ring/field
- *     ladder requires @c IsMagma, which requires @c IsTotal<T, Op>
- *     @c = @c IsPeriodic @c || @c IsIdempotent @c || @c IsSaturating.
- *     Exact carriers like @c Rational<...> are none of those (no
- *     wrap, no idempotence, no saturation), so the strict ladder is
- *     blocked at the totality step regardless of invertibility
- *     specialisations.  An "exact" or "infinite-domain-total"
- *     fourth path on @c IsTotal would be required.
- *  2. @b Species-trait specialisations (incremental).  Even with
- *     IsTotal lifted, the @c is_invertible_v / @c inverse_trait
- *     registrations would still be missing on @c Rational under the
- *     active numeric policy.
- *
- *  Until both blocks lift, the operational
+ *  @note  Post-ℚ-retarget (#673), the strict ring ladder closes on
+ *  @c Rational<default_integer> via the saturating @c IsTotal path
+ *  inherited from @c default_integer @c = @c SignedCardinality:
+ *  @c IsRing and @c IsCommutativeRing both fire (see the axiomatic
+ *  probes near the bottom of this file).  What remains @b not
+ *  certified is strict @c category::IsField on the @b full ℚ ---
+ *  @c 0/1 has no multiplicative inverse on the carrier, so the
+ *  multiplicative-group axiom fails by construction.  The textbook
+ *  ℚ-as-field claim is @c (ℚ\\{0}, @c *), a @c Subobject construction
+ *  not yet in the codebase (tracked separately under #664 Slice 3).
+ *  Until that subobject lands, the operational
  *  @c algebra::HasFieldOperators<Rational<default_integer>> is the
- *  load-bearing field-arithmetic guarantee.
+ *  load-bearing field-arithmetic guarantee on the full carrier.
  */
-export inline constexpr UniversalSet<Rational<SignedCardinality>,
-                                     ClassicalLogic, ℵ_0>
-    ℚ = dedekind::sets::Ω<Rational<SignedCardinality>>;
+export inline constexpr UniversalSet<Rational<default_integer>, ClassicalLogic,
+                                     ℵ_0>
+    ℚ = dedekind::sets::Ω<Rational<default_integer>>;
 
 static_assert(std::same_as<std::remove_cvref_t<decltype(ℚ)>,
                            dedekind::sets::UniversalSet<
@@ -823,7 +817,7 @@ namespace dedekind::numbers {
 // (2) Syntax (the C++ operator surface that maps to ℚ's algebra).  Post-
 // #559, ℚ is the universe value Ω<Rational<default_integer>>; the carrier
 // in concept-gate type-parameter slots is Rational<default_integer>
-// (a.k.a.\ ℚ_t<>) directly.
+// directly.
 //   - HasRingOperators<Rational<default_integer>>: literal +, binary -,
 //     unary -, * close on the carrier.
 //   - HasFieldOperators<Rational<default_integer>>: literal +, -, *, /

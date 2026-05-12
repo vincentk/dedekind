@@ -93,7 +93,7 @@ using namespace dedekind::sets;
  * Wikipedia: Semiring, Peano axioms
  */
 export template <typename N>
-concept IsNatural = dedekind::algebra::HasRingOperators<N> &&
+concept IsNatural = dedekind::algebra::HasSemiringOperators<N> &&
                     dedekind::category::IsCommutativeMonoid<N, std::plus<N>> &&
                     dedekind::order::IsTotallyOrdered<N>;
 
