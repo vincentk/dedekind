@@ -101,10 +101,43 @@ TEST_CASE("Numbers: starter universes satisfy lattice identities",
   // (Dual<F> relocated from :numbers to :analysis).
 }
 
-// "Numbers: ℚ as the textbook quotient" exhibit removed under ℚ
-// retarget cleanup: with default_integer now SignedCardinality (the
-// canonical ℤ carrier, mirroring ℕ's Cardinality), the cross-variant
-// workaround anchoring on Ω<SignedExtensionalCardinal<>> is itself
-// dead marble.  Restoring the exhibit cleanly awaits the
-// `Rational<SignedCardinality>` instantiation working end-to-end, at
-// which point it ties directly to the canonical ℤ.
+TEST_CASE(
+    "Numbers: ℚ as the textbook quotient (ℤ × ℤ_≠0) / cross-multiplication "
+    "(#567 exhibit; post-#673 anchored on canonical ℤ)",
+    "[numbers][starter][quotient][exhibit]") {
+  // ℚ = (ℤ × ℤ_≠0) / ~,  where (a, b) ~ (c, d) iff a·d = b·c.
+  //
+  // Post-#673, @c default_integer @c == @c SignedCardinality (the
+  // canonical ℤ carrier, mirroring @c ℕ's @c Cardinality).  The
+  // exhibit therefore ties directly to the canonical @c ℤ alias,
+  // dropping the cyclic-vs-saturating workaround that had briefly
+  // anchored the prior version on @c Ω<SignedExtensionalCardinal<>>.
+
+  using I = default_integer;  // SignedCardinality (canonical ℤ carrier)
+  constexpr auto z = element<ℤ>;
+  constexpr auto numerators = Set{z};
+  // Nonzero predicate via the heterogeneous @c SignedCardinality @c ==
+  // @c std::integral overload (cardinality.cppm:1326) --- avoids
+  // constructing @c I{0} on the variant carrier.
+  constexpr auto denominators = Set{z | [](const I& v) { return !(v == 0); }};
+  constexpr auto pairs = cartesian_product(numerators, denominators);
+
+  // Cross-multiplication equivalence relation (typed tag so the
+  // @c quotient_carrier trait can specialise on it).
+  constexpr auto cross_mult = CrossMultEquiv<I>{};
+
+  // The textbook ℚ-from-construction.
+  constexpr auto Q_constructed = quotient(pairs, cross_mult);
+
+  // The structural claim: the quotient's @c Domain @b IS
+  // @c Rational<default_integer> --- same artefact, structurally
+  // exhibited.
+  STATIC_CHECK(std::same_as<
+               typename std::remove_cvref_t<decltype(Q_constructed)>::Domain,
+               Rational<default_integer>>);
+
+  // And it agrees with the universe-value spelling of @c ℚ (post-#566).
+  STATIC_CHECK(std::same_as<
+               typename std::remove_cvref_t<decltype(Q_constructed)>::Domain,
+               typename std::remove_cvref_t<decltype(ℚ)>::Domain>);
+}

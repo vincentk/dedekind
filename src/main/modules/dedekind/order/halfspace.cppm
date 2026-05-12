@@ -504,7 +504,13 @@ struct IntervalProduct {
     requires std::same_as<typename B::cardinality_type, Finite>;
   }, Finite, ℵ_0>;
 
-  constexpr Codomain operator()(const Domain& p) const {
+  // [[gnu::always_inline]] keeps the showcase_08 IR-fixture promise that
+  // 2D box membership at compile-time-known coordinates collapses to a
+  // single `ret i1 const` after optimisation: the 2D path adds an extra
+  // call layer over the 1D OrderInterval::operator(), pushing the
+  // variant-comparison + bad_variant_access throw paths past clang's
+  // default inlining threshold on variant-carrier ℤ.
+  [[gnu::always_inline]] constexpr Codomain operator()(const Domain& p) const {
     using L = logic_species;
     return (a(p.first) == L::True && b(p.second) == L::True) ? L::True
                                                              : L::False;

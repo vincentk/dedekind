@@ -2,9 +2,11 @@
 @llvm.global_ctors = appending global [1 x { i32, ptr, ptr }] [{ i32, ptr, ptr } { i32 65535, ptr @_GLOBAL__sub_I_showcase_08_halfspace_2d_product.cpp, ptr null }]
 
 ; Function Attrs: mustprogress nofree noinline norecurse nosync nounwind ssp willreturn memory(none) uwtable
-define noundef zeroext i1 @witness_2d_box_member() local_unnamed_addr #0 {
+define noundef zeroext i1 @witness_2d_box_member() local_unnamed_addr #0 personality ptr @__gxx_personality_v0 {
   ret i1 true
 }
+
+declare i32 @__gxx_personality_v0(...)
 
 declare void @_ZGIW8dedekindW8category() local_unnamed_addr
 

@@ -191,23 +191,17 @@ TEST_CASE("Tower: ℝ ↪ ℂ via embed_ℝ_ℂ", "[numbers][tower][embedding]")
 // on the saturating SignedCardinality carrier.
 
 // ---------------------------------------------------------------------------
-// Stress test: Im(K3 -> ℤ) ∩ { z in ℂ | Re(z) > 0 }
+// Im(K3 → ℤ) = {-1, 0, 1}
 // ---------------------------------------------------------------------------
 
-TEST_CASE("Stress: Im(K3->ℤ) intersect positive-real ℂ",
-          "[numbers][tower][embedding][intersection]") {
-  // Image of K3 in ℤ under canonical embedding: {-1, 0, 1}.  Post-#430
+TEST_CASE("Image: Im(K3 → ℤ) = {-1, 0, 1}", "[numbers][tower][embedding]") {
+  // Image of K3 in ℤ under canonical embedding.  Post-#430
   // @c embed_𝕂3_ℤ_ lands on @c SignedCardinality; the heterogeneous
   // @c == contract pinned by #415 / PR #438 lets us verify the image
   // values directly.
   CHECK(embed_𝕂3_ℤ_(Ternary::False) == -1);
   CHECK(embed_𝕂3_ℤ_(Ternary::Unknown) == 0);
   CHECK(embed_𝕂3_ℤ_(Ternary::True) == 1);
-
-  // Composed-chain part (z → ℂ via embed_ℤ_ℚ >> embed_ℚ_ℝ >> embed_ℝ_ℂ)
-  // removed under ℚ retarget cleanup: embed_ℚ_ℝ was deleted (no
-  // static_cast<int> on SignedCardinality variant carrier).  The K3 → ℤ
-  // image fragment remains witnessed above.
 }
 
 // ---------------------------------------------------------------------------
