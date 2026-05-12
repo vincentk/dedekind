@@ -195,7 +195,13 @@ struct Halfspace {
   // `Pivot` may be a different structural type than `T` (e.g., pivot = 5.0 as
   // double, T = Real<double>). The carrier's converting ctor / overload set
   // handles the comparison; we only assume `T` is comparable with the pivot.
-  constexpr Codomain operator()(const T& x) const {
+  //
+  // [[gnu::always_inline]] keeps the showcase IR-fixture promises (witness
+  // functions collapse to a single `ret i1 const` after optimisation): on
+  // variant-carrier ℤ the comparison brings in `bad_variant_access`
+  // invoke/unwind paths that push the function past clang-22's default
+  // inlining threshold on Linux even though they constant-fold away.
+  [[gnu::always_inline]] constexpr Codomain operator()(const T& x) const {
     if constexpr (D == Direction::Upward) {
       const bool hit = (S == Strictness::Strict) ? (x > Pivot) : (x >= Pivot);
       return hit ? L::True : L::False;
@@ -277,7 +283,11 @@ struct OrderInterval {
   static constexpr Strictness lower_strictness = SL;
   static constexpr Strictness upper_strictness = SU;
 
-  constexpr Codomain operator()(const T& x) const {
+  // [[gnu::always_inline]] mirrors the Halfspace::operator() rationale:
+  // variant-carrier `bad_variant_access` paths in `x > Lo` / `x <= Hi` push
+  // the function over clang-22's Linux inlining threshold despite folding
+  // to constants at -O2/-O3.
+  [[gnu::always_inline]] constexpr Codomain operator()(const T& x) const {
     const bool lo_ok = (SL == Strictness::Strict) ? (x > Lo) : (x >= Lo);
     const bool hi_ok = (SU == Strictness::Strict) ? (x < Hi) : (x <= Hi);
     return (lo_ok && hi_ok) ? L::True : L::False;
@@ -504,12 +514,11 @@ struct IntervalProduct {
     requires std::same_as<typename B::cardinality_type, Finite>;
   }, Finite, ℵ_0>;
 
-  // [[gnu::always_inline]] keeps the showcase_08 IR-fixture promise that
-  // 2D box membership at compile-time-known coordinates collapses to a
-  // single `ret i1 const` after optimisation: the 2D path adds an extra
-  // call layer over the 1D OrderInterval::operator(), pushing the
-  // variant-comparison + bad_variant_access throw paths past clang's
-  // default inlining threshold on variant-carrier ℤ.
+  // [[gnu::always_inline]] mirrors the Halfspace / OrderInterval rationale
+  // (variant-carrier `bad_variant_access` paths push past clang-22's Linux
+  // inliner) plus the extra 2D-product call layer that showcase_08 stacks
+  // on top of two OrderIntervals.  Without the hint, witness_2d_box_member
+  // does not collapse to `ret i1 true` even when both factors do.
   [[gnu::always_inline]] constexpr Codomain operator()(const Domain& p) const {
     using L = logic_species;
     return (a(p.first) == L::True && b(p.second) == L::True) ? L::True
