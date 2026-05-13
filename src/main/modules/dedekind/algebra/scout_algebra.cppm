@@ -365,11 +365,14 @@ struct GroupScout {
    *   * if @c k_E < 0: direction reversed
    *     (@c >  @c ↔ @c <,  @c ≥ @c ↔ @c ≤); strictness preserved.
    *
-   * The @c k_E = 0 case (where the halfspace collapses to the whole
-   * carrier or the empty set depending on direction / strictness) is
-   * Honest-Rejected by the @c Element @c != zero gate in the
-   * requires-clause: callers can re-spell it as the appropriate
-   * universal / empty Set explicitly.
+   * The @c k_E = 0 case is Honest-Rejected by the @c Element @c !=
+   * zero gate in the requires-clause: scaling by @c 0 collapses the
+   * scout function to the @b constant map @c x @c ↦ @c 0, so the
+   * image of the source halfspace is the singleton @c {0} (if the
+   * source is satisfiable) or @c ∅ (if not) --- neither of which is a
+   * halfspace, so the halfspace-pivot transport pattern doesn't apply.
+   * Callers wanting that image should re-spell it as a @c Singleton
+   * (or empty Set) directly.
    *
    * @section Specialisation gate
    *

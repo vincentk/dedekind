@@ -106,3 +106,26 @@ static_assert(
     "ℤ (SignedCardinality) is NOT a multiplicative group: it is a ring "
     "but lacks multiplicative inverses for non-units, so the scout-"
     "algebra multiplicative pipe Honest-Rejects scaling on ℤ.");
+
+// ---------------------------------------------------------------------------
+// Honest Rejection: @c k_E = 0 scaling.  Scaling by zero collapses the
+// scout function to the constant map @c x @c ↦ @c 0; the image is the
+// singleton @c {0} (or @c ∅), not a halfspace, so the pivot-transport
+// pattern doesn't apply.  The pipe's @c Element != zero gate refuses
+// the comprehension at compile time.  Wrapped in a concept so the
+// rejection is observed via concept-satisfaction rather than as a
+// hard error from operator-overload resolution at namespace scope.
+// ---------------------------------------------------------------------------
+
+template <typename Scout, typename HS>
+concept HasScalingPipe = requires(const Scout& s, const HS& h) { s | h; };
+
+static_assert(
+    !HasScalingPipe<
+        decltype(dedekind::sets::element<ℚ> * dedekind::order::bound<0>),
+        dedekind::order::Halfspace<Rational<default_integer>, 2,
+                                   dedekind::order::Direction::Upward,
+                                   dedekind::order::Strictness::Strict>>,
+    "k_E = 0 scaling is Honest-Rejected: scaling by zero is not a "
+    "halfspace-pivot transport (the image is the singleton {0} or ∅, "
+    "not a halfspace).");
