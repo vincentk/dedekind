@@ -123,4 +123,24 @@ TEST_CASE(
   CHECK(S(dedekind::sets::finite_signed_cardinality(13)) == L::False);
   CHECK(S(dedekind::sets::finite_signed_cardinality(10)) == L::False);
   CHECK(S(dedekind::sets::finite_signed_cardinality(11)) == L::False);
+
+  // Sentinel behaviour: ℤ = Ω<SignedCardinality> includes ±ℵ_0 and
+  // NaZ.  The scaling map x ↦ M*x (with finite non-zero M) maps
+  //   +ℵ_0 ↦ +ℵ_0,  -ℵ_0 ↦ -ℵ_0,  NaZ ↦ NaZ
+  // per @c SignedCardinality::operator*.  The predicate uses the
+  // identity-based divisibility test @c M * (y/M) == y rather than
+  // the modular @c y % M == 0 form precisely so the sentinels
+  // propagate correctly --- the identity holds at sentinels.
+  // Source halfspace `{n | n > 5}` lifts the membership question
+  // to the source on each sentinel: +ℵ_0 > 5 is True (in image);
+  // -ℵ_0 > 5 is False (not in image); NaZ > 5 is unordered, so
+  // Halfspace's < check fails into False.
+  constexpr auto pos_inf =
+      dedekind::sets::SignedCardinality{dedekind::sets::PositiveInfinity{}};
+  constexpr auto neg_inf =
+      dedekind::sets::SignedCardinality{dedekind::sets::NegativeInfinity{}};
+  constexpr auto naz = dedekind::sets::SignedCardinality{dedekind::sets::NaZ{}};
+  CHECK(S(pos_inf) == L::True);
+  CHECK(S(neg_inf) == L::False);
+  CHECK(S(naz) == L::False);
 }

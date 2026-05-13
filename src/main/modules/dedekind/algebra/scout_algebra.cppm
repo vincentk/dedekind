@@ -7,9 +7,12 @@
  * @section scout_algebra__Motivation
  *
  * The algebraic constraints give rise to the symbolic scout type.  A
- * @c GroupScout<T,Op,Element,Inner> exists exactly when @c (T, @c Op)
- * is a group --- the gate is purely algebraic, in textbook vocabulary,
- * not in implementation-specific concepts.  This partition is the
+ * @c GroupScout<T,Op,Element,Inner> exists when @c (T, @c Op) is at
+ * least a monoid; per-pipe @c requires-clauses additionally check the
+ * structural algebraic claim (group / abelian group / field / ring)
+ * needed for that pipe's halfspace-transport semantics.  The gate is
+ * purely algebraic, in textbook vocabulary, not in implementation-
+ * specific concepts.  This partition is the
  * algebraic foundation for #664's in-line scout-algebra surface
  * @c Set{f(x) @c | @c P(x)}: once a scout is a valid algebraic
  * expression, the comprehension pipe transports the source predicate
@@ -17,10 +20,17 @@
  *
  * @section scout_algebra__Design
  *
- * One basic type, gated on @c IsGroup<T,Op>.  Two named specialisations
- * via operator overloads --- not template specialisations of the type
- * itself, but factory operator overloads that produce specific group
- * instances:
+ * One basic type, gated on @c IsMonoid<T,Op> at the class level
+ * (relaxed from @c IsGroup<T,Op> for #664 Slice 5's ring-retract
+ * case --- @c (ℤ, std::multiplies) is a monoid not a group, and the
+ * ring-retract pipe certifies the algebraic claim it actually needs).
+ * Group-shaped structure is still enforced per-pipe via
+ * @c requires-clauses on @c IsOrderedAdditiveGroup /
+ * @c IsOrderedMultiplicativeGroup; the ring-retract pipe instead
+ * gates on @c IsOrderedCommutativeRing.  Named specialisations via
+ * operator overloads --- not template specialisations of the type
+ * itself, but factory operator overloads that produce specific
+ * scout instances:
  *
  *  - @c operator+(BoundScout<T>, @c Bound<k>) for
  *    @c IsAdditiveGroup<T> --- produces a
@@ -302,6 +312,22 @@ concept IsOrderedCommutativeRing =
                                           std::multiplies<T>> &&
     is_translation_invariant_ordered_v<T>;
 
+// Local helper: structural probe for the @c Halfspace shape.  Used in
+// the composition-pipe @c requires-clauses to Honest-Reject the case
+// where the inner pipe produces a non-@c Halfspace predicate (e.g.\
+// the Slice-5 ring-retract pipe produces @c AffineImageOfHalfspace,
+// which lacks @c pivot @c / @c direction @c / @c strictness static
+// members; a composition pipe assuming those members would otherwise
+// fail with an opaque member-access error inside the body).
+namespace detail {
+template <typename P>
+concept HasHalfspaceShape = requires {
+  P::pivot;
+  P::direction;
+  P::strictness;
+};
+}  // namespace detail
+
 // Forward declaration of @c AffineImageOfHalfspace --- the ring-retract
 // pipe's result predicate type.  Defined after @c GroupScout below
 // because its operator() invokes @c SourceHalfspace's operator(),
@@ -317,13 +343,18 @@ struct AffineImageOfHalfspace;
  *        expression.
  *
  * @details
- * The algebraic constraint @c IsGroup<T,Op> gives rise to the scout
- * type: a well-formed @c GroupScout exists exactly when @c (T, @c Op)
- * is a group, with @c Element a member of @c T (NTTP-encoded) and
- * @c Inner an inner scout/expression of type @c Inner.  This is the
- * "algebraic-over-architectural" stance applied to the comprehension
- * surface: the scout is gated on a textbook concept
- * (@c IsGroup), not on an implementation-specific marker.
+ * The class-level algebraic constraint @c IsMonoid<T,Op> (relaxed
+ * from @c IsGroup<T,Op> under #664 Slice 5 to admit the ring-retract
+ * case for @c (ℤ, std::multiplies)) makes the scout type instantiable.
+ * Each pipe overload below additionally enforces the stronger
+ * algebraic claim it needs (@c IsOrderedAdditiveGroup /
+ * @c IsOrderedMultiplicativeGroup / @c IsOrderedCommutativeRing)
+ * at the @c requires-clause: a callsite that produces a
+ * @c GroupScout whose @c (T, Op) is a monoid but not a group simply
+ * won't find a pipe overload to fire @b unless the ring-retract path
+ * applies.  This is the "algebraic-over-architectural" stance
+ * applied to the comprehension surface: gates are textbook concepts,
+ * not implementation-specific markers.
  *
  * Per-operator factories (@c operator+, @c operator-, [future
  * @c operator*]) populate the @c Op and @c Element fields.  The type
@@ -528,7 +559,16 @@ struct GroupScout {
              requires {
                typename Inner::op_type;
                Inner::element;
-             }
+             } &&
+             // Inner's pipe must produce a Halfspace-shaped predicate.
+             // Honest-Rejects the case where inner is a ring-retract
+             // pipe (Slice 5) whose result is @c AffineImageOfHalfspace;
+             // the composition pipe assumes Halfspace's @c pivot @c /
+             // @c direction @c / @c strictness static members.
+             detail::HasHalfspaceShape<std::remove_cvref_t<
+                 decltype((Inner{} | std::declval<dedekind::order::Halfspace<
+                                         T, Pivot, D, S, L>>())
+                              .predicate)>>
   constexpr auto operator|(
       dedekind::order::Halfspace<T, Pivot, D, S, L> hs) const {
     constexpr auto inner_comp = Inner{} | hs;
@@ -559,10 +599,19 @@ struct GroupScout {
             dedekind::order::Strictness S, typename L>
     requires std::same_as<Op, std::multiplies<T>> &&
              IsOrderedMultiplicativeGroup<T> &&
-             (Element != decltype(Element){}) && requires {
+             (Element != decltype(Element){}) &&
+             requires {
                typename Inner::op_type;
                Inner::element;
-             }
+             } &&
+             // Inner's pipe must produce a Halfspace-shaped predicate
+             // (same Honest-Rejection as the additive composition pipe
+             // above; a Slice-5 ring-retract inner producing
+             // @c AffineImageOfHalfspace is refused here).
+             detail::HasHalfspaceShape<std::remove_cvref_t<
+                 decltype((Inner{} | std::declval<dedekind::order::Halfspace<
+                                         T, Pivot, D, S, L>>())
+                              .predicate)>>
   constexpr auto operator|(
       dedekind::order::Halfspace<T, Pivot, D, S, L> hs) const {
     constexpr auto inner_comp = Inner{} | hs;
@@ -612,7 +661,18 @@ struct GroupScout {
     requires std::same_as<Op, std::multiplies<T>> &&
              IsOrderedCommutativeRing<T> &&
              (!IsOrderedMultiplicativeGroup<T>) &&
-             (Element != decltype(Element){}) && requires {
+             (Element != decltype(Element){}) &&
+             // The ring-retract pipe's @c AffineImageOfHalfspace
+             // predicate calls @c y/M and @c M*(y/M) at membership
+             // time; gate on the operator surface here so a future
+             // ring carrier without @c / (e.g.\ a polynomial ring on
+             // a non-Euclidean coefficient ring) is Honest-Rejected
+             // at the requires-clause rather than failing inside the
+             // predicate body.
+             requires(T a, T b) {
+               { a / b } -> std::same_as<T>;
+               { a * b } -> std::same_as<T>;
+             } && requires {
                typename Inner::AmbientType;
                Inner::ambient;
              }
@@ -662,10 +722,22 @@ struct AffineImageOfHalfspace {
   constexpr Codomain operator()(const T& y) const {
     using L = logic_species;
     const T m_in_t = T{M};
-    if (!((y % m_in_t) == T{})) {
-      return L::False;  // y not divisible by M --- not in image.
-    }
+    // Divisibility-via-identity: @c y @c in @c image @c iff there
+    // exists @c x with @c M*x @c = @c y, i.e.\ @c M @c * @c (y/M)
+    // @c == @c y.  This formulation is preferred over the modular
+    // @c y @c % @c M @c == @c 0 form because it propagates correctly
+    // through variant sentinels (@c \pm @c \aleph_0, @c NaZ) on the
+    // saturating ℤ proxy @c SignedCardinality: @c \pm @c \aleph_0
+    // @c / @c m @c = @c \pm @c \aleph_0 and @c m @c * @c \pm @c
+    // \aleph_0 @c = @c \pm @c \aleph_0, so the identity holds at
+    // the sentinel and the predicate correctly defers to the
+    // source halfspace's sentinel-handling.  (The modular form would
+    // return @c NaZ for sentinel mod, mis-rejecting sentinels that
+    // are actually in the image.)
     const T x_preimage = y / m_in_t;
+    if (!((m_in_t * x_preimage) == y)) {
+      return L::False;  // No preimage --- y not in image.
+    }
     return SourceHalfspace{}(x_preimage);
   }
 };
@@ -795,6 +867,13 @@ export template <auto Ambient, auto K>
                typename BoundScout<Ambient>::T> &&
            (!dedekind::algebra::IsOrderedMultiplicativeGroup<
                typename BoundScout<Ambient>::T>) &&
+           // Match the ring-retract pipe's @c /, @c * requirement so
+           // factory and pipe accept/reject the same carriers.
+           requires(typename BoundScout<Ambient>::T a,
+                    typename BoundScout<Ambient>::T b) {
+             { a / b } -> std::same_as<typename BoundScout<Ambient>::T>;
+             { a * b } -> std::same_as<typename BoundScout<Ambient>::T>;
+           } &&
            std::convertible_to<decltype(K), typename BoundScout<Ambient>::T>
 constexpr auto operator*(BoundScout<Ambient>, dedekind::order::Bound<K>) {
   using T = typename BoundScout<Ambient>::T;
