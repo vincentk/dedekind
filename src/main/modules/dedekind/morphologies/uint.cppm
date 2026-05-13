@@ -116,14 +116,6 @@ using namespace dedekind::sets;
 export inline constexpr auto embed_𝔹_uint_ =
     arrow<bool, unsigned>([](const bool& b) noexcept { return b ? 1u : 0u; });
 
-namespace dedekind::category {
-template <>
-inline constexpr bool is_monic_arrow_v<std::decay_t<decltype(embed_𝔹_uint_)>> =
-    true;
-static_assert(IsInjective<std::decay_t<decltype(embed_𝔹_uint_)>>,
-              "embed_𝔹_uint_ (𝔹 ↪ ℕ) is registered injective.");
-}  // namespace dedekind::category
-
 // ===========================================================================
 // (1) Universal machine→variant lift: std::unsigned_integral → Cardinality
 // ===========================================================================
@@ -545,4 +537,10 @@ static_assert(IsEquivalence<std::size_t, std::equal_to<std::size_t>>,
               "Mazur (#591): std::equal_to<std::size_t> must satisfy "
               "IsEquivalence; the canonical bounded-cardinality witness "
               "for the indexing surface.");
+
+template <>
+inline constexpr bool is_monic_arrow_v<std::decay_t<decltype(embed_𝔹_uint_)>> =
+    true;
+static_assert(IsInjective<std::decay_t<decltype(embed_𝔹_uint_)>>,
+              "embed_𝔹_uint_ (𝔹 ↪ ℕ) is registered injective.");
 }  // namespace dedekind::category
