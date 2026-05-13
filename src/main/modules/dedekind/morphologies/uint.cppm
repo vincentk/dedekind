@@ -100,10 +100,10 @@ export module dedekind.morphologies:uint;
 
 import dedekind.algebra;
 import dedekind.category;
-import dedekind.morphologies;
 import dedekind.order;
 import dedekind.sequences;
 import dedekind.sets;
+import :cyclic;
 
 namespace dedekind::morphologies {
 

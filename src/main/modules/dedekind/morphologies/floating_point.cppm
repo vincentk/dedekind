@@ -68,7 +68,7 @@ module;
 #include <concepts>
 #include <functional>
 
-export module dedekind.numbers:floating_point;
+export module dedekind.morphologies:floating_point;
 
 import dedekind.algebra;  // HasFieldOperators / HasRingOperators
                           // (operator-surface positives)
@@ -81,7 +81,7 @@ import dedekind.category; // category::IsRing / category::IsField --- the
 import dedekind.order;    // HasPartialOrderOperators / HasTotalOrderOperators
                           // / IsTotallyOrdered (negation pinned here)
 
-namespace dedekind::numbers {
+namespace dedekind::morphologies {
 
 /** @section floating_point__Formal_Verification std::floating_point family
  * witnesses */

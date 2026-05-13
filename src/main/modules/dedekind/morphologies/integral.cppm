@@ -63,11 +63,11 @@ module;
 #include <concepts>
 #include <functional>
 
-export module dedekind.numbers:integral;
+export module dedekind.morphologies:integral;
 
 import dedekind.algebra; // IsField (umbrella negative-claim witness)
 
-namespace dedekind::numbers {
+namespace dedekind::morphologies {
 
 /** @section integral__Formal_Verification Umbrella negative claims under
  * arithmetic.

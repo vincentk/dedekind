@@ -33,23 +33,10 @@ export import dedekind.topology;  // Rays, half-spaces, intervals, convex shapes
 
 /** @section numbers__Discrete_Foundations */
 export import :boolean;   // Truth<L> and Ω
-export import :uint;      // std::unsigned_integral as ℤ/2^wℤ
-                          // (machine layer below ℕ; closes part of #417)
 export import :natural;   // Cardinality partition (carrier:
                           // dedekind::sets::Cardinality)
 export import :integer;   // SignedExtensionalCardinal<> partition (variant
                           // ℤ-proxy / IntegersOf<>)
-export import :sint;      // std::signed_integral: operator surface ✓,
-                          // axiomatic ring ✗ (Honest Rejection;
-                          // closes part of #418)
-export import :integral;  // std::integral umbrella note over the three
-                          // siblings (unsigned_integral / signed_integral
-                          // / bool); closes #419
-export import :floating_point;  // std::floating_point: operator surface +
-                                // operational ordered-field ✓; axiomatic ring /
-                                // field / total order ✗ (IEEE 754 Honest
-                                // Rejection); closes #420
-
 /** @section numbers__Algebraic_Extensions */
 export import :rational;    // Rational<default_integer> (The Quotient Field)
 export import :complex;     // ℂ (The Cayley-Dickson construction)
