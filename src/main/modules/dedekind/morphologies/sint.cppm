@@ -88,6 +88,8 @@ import dedekind.order;
 import dedekind.sequences;
 import dedekind.sets;
 
+import :integral;
+
 namespace dedekind::morphologies {
 using namespace dedekind::category;
 using namespace dedekind::algebra;
@@ -107,18 +109,6 @@ using namespace dedekind::sets;
 
 /** @brief Current extensional machine integer carrier. */
 export using extensional_integer = int;
-
-/** @concept IsInteger: structural Euclidean-integer-domain concept
- *  (additive group + multiplicative monoid + Euclidean pair + total
- *  order on the carrier). */
-export template <typename T = extensional_integer>
-concept IsInteger =
-    IsAlgebra<T, std::plus<T>, std::multiplies<T>, std::modulus<T>> &&
-    requires(T a, T b) {
-      { a - b } -> std::same_as<T>;
-      { a / b } -> std::same_as<T>;
-      { a < b } -> std::convertible_to<bool>;
-    };
 
 /** @brief Canonical injection from `std::signed_integral` into any
  *  `IsInteger` domain Z. */

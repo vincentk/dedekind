@@ -118,7 +118,7 @@ namespace dedekind::algebra {
  *       @c SignedCardinality, @b not for the cyclic finite-fragment
  *       @c SignedExtensionalCardinal<N>.
  */
-template <typename T>
+export template <typename T>
 struct is_translation_invariant_ordered : std::false_type {};
 
 /** @brief @c sets::SignedCardinality is the project's bona-fide
@@ -136,11 +136,11 @@ struct is_translation_invariant_ordered : std::false_type {};
  *  order at the wrap boundary.  The variant @c SignedCardinality is
  *  what callers should use whenever they want translation-invariance
  *  at the type level (i.e.\ the halfspace pipe). */
-template <>
+export template <>
 struct is_translation_invariant_ordered<dedekind::sets::SignedCardinality>
     : std::true_type {};
 
-template <typename T>
+export template <typename T>
 inline constexpr bool is_translation_invariant_ordered_v =
     is_translation_invariant_ordered<T>::value;
 

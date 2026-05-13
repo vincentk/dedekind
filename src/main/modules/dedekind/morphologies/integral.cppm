@@ -65,9 +65,37 @@ module;
 
 export module dedekind.morphologies:integral;
 
-import dedekind.algebra; // IsField (umbrella negative-claim witness)
+import dedekind.algebra;
+import dedekind.category;
+import dedekind.order;
+import dedekind.sets;
+import :cyclic;
 
 namespace dedekind::morphologies {
+using namespace dedekind::algebra;
+using namespace dedekind::order;
+using namespace dedekind::sets;
+
+/**
+ * @concept IsInteger: integer-shape operator-surface concept
+ *  order on the carrier). */
+export template <typename T>
+concept IsInteger =
+    IsAlgebra<T, std::plus<T>, std::multiplies<T>, std::modulus<T>> &&
+    // IsPreOrdered<T> may be rejected, as reflexivity is not guaranteed.
+    // Instead, require the non-reflexive variants:
+    std::three_way_comparable<T> && requires(T a, T b) {
+      { a - b } -> std::same_as<T>;
+      { a / b } -> std::same_as<T>;
+    };
+
+export template <typename T>
+concept IsSaturatingInteger =
+    IsInteger<T> && is_translation_invariant_ordered_v<T> && !IsCyclic<T>;
+
+export template <typename T>
+concept IsCyclicInteger =
+    IsInteger<T> && !is_translation_invariant_ordered_v<T> && IsCyclic<T>;
 
 /** @section integral__Formal_Verification Umbrella negative claims under
  * arithmetic.
@@ -89,10 +117,37 @@ namespace dedekind::morphologies {
  * here so the umbrella reader does not silently inherit the XOR / AND
  * result.
  */
-static_assert(
-    !dedekind::algebra::IsField<bool, std::plus<bool>, std::multiplies<bool>>,
-    "bool is NOT a field under std::plus / std::multiplies: "
-    "the arithmetic operators promote to int; the field reading "
-    "of bool lives at std::bit_xor / std::bit_and (see :boolean).");
+static_assert(!IsField<bool, std::plus<bool>, std::multiplies<bool>>,
+              "bool is NOT a field under std::plus / std::multiplies: "
+              "the arithmetic operators promote to int; the field reading "
+              "of bool lives at std::bit_xor / std::bit_and (see :boolean).");
+
+static_assert(!dedekind::category::IsClosedUnderBinary<bool, std::plus<>>,
+              "bool is NOT closed under std::plus / std::multiplies. Instead, "
+              "it promotes to int.");
+
+static_assert(dedekind::category::IsClosedUnderBinary<bool, std::plus<bool>>,
+              "... but std::plus<bool> casts the result under the hood.");
+
+static_assert(!IsAlgebra<bool, std::plus<>, std::multiplies<>>,
+              "bool is NOT closed under std::plus / std::multiplies. Instead, "
+              "it promotes to int.");
+
+/**
+ * @section rational__Formal_Verification_2
+ *
+ * @c Rational<I> satisfies @c algebra::IsField via the
+ * multiplicative-inverse trait registration above; the Kleene
+ * partial-function helpers (@c HonestDivRational, etc.) remain for
+ * codepaths that prefer explicit @c Ternary failure over throwing.
+ */
+static_assert(IsInteger<ExtensionalCardinal<>>,
+              "ExtensionalCardinal<> must satisfy IsInteger (Euclidean "
+              "ring: +, -, *, /, % with two's-complement wrapping).");
+
+static_assert(IsInteger<SignedExtensionalCardinal<>>,
+              "SignedExtensionalCardinal<> must satisfy IsInteger (Euclidean "
+              "signed ring: sign-magnitude arithmetic, overflow-free up to "
+              "2^{N*64 - 1}).");
 
 }  // namespace dedekind::morphologies

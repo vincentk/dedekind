@@ -875,28 +875,6 @@ static_assert(
 //     convention routes that through the ℝ-proxy so the
 //     IEEE-754 friction is named at the right partition.
 
-/**
- * @section rational__Formal_Verification_2
- *
- * @c Rational<I> satisfies @c algebra::IsField via the
- * multiplicative-inverse trait registration above; the Kleene
- * partial-function helpers (@c HonestDivRational, etc.) remain for
- * codepaths that prefer explicit @c Ternary failure over throwing.
- */
-// ExtensionalCardinal<> (the cardinality ring) now carries division/modulo,
-// making it satisfy IsInteger. It represents ℕ "by fiat": a total ring
-// (IsRing, IsMagma) whose wrapping arithmetic avoids UB. This assert lives
-// here (not in cardinality.cppm) to avoid a circular import chain:
-//   :cardinality → :natural   :integer → :cardinality   :rational → :integer
-static_assert(IsInteger<ExtensionalCardinal<>>,
-              "ExtensionalCardinal<> must satisfy IsInteger (Euclidean "
-              "ring: +, -, *, /, % with two's-complement wrapping).");
-
-static_assert(IsInteger<SignedExtensionalCardinal<>>,
-              "SignedExtensionalCardinal<> must satisfy IsInteger (Euclidean "
-              "signed ring: sign-magnitude arithmetic, overflow-free up to "
-              "2^{N*64 - 1}).");
-
 static_assert(
     dedekind::algebra::HasFieldOperators<Rational<default_integer>>,
     "Rational<I> must satisfy the operational field-like witness (ℚ is a "
