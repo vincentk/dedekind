@@ -1583,6 +1583,56 @@ export constexpr SignedCardinality lift_cardinality_to_signed(
   return SignedCardinality{result};
 }
 
+/**
+ * @brief Canonical variant-layer embedding @c ℕ @c ↪ @c ℤ:
+ *        @c Cardinality @c → @c SignedCardinality, exposed as a
+ *        first-class @c arrow object for the carrier-lattice diagram.
+ *
+ * @details Wraps @c dedekind::sets::lift_cardinality_to_signed (the
+ *          public function definition; lives in @c sets:cardinality
+ *          to remain reachable from cross-variant comparison
+ *          operators without crossing the @c sets @c → @c numbers
+ *          module boundary).  This @c arrow form is the named monic
+ *          morphism the carrier-lattice Figure 1 labels at the
+ *          variant-layer top row.  The corresponding machine-layer
+ *          horizontal arrow (@c arrow<unsigned, @c int>, previously
+ *          @c embed_uint_sint_) was removed in #670 as deprecated;
+ *          the carrier-lattice diagram is consequently missing that
+ *          middle-row machine-layer ℕ→ℤ link until a follow-up
+ *          restores it on the new ℤ carrier (@c SignedCardinality).
+ *          Registered as monic below.
+ */
+export inline constexpr auto lift_ℕ_ℤ_ =
+    arrow<dedekind::sets::Cardinality, dedekind::sets::SignedCardinality>(
+        [](const dedekind::sets::Cardinality& c) noexcept {
+          return dedekind::sets::lift_cardinality_to_signed(c);
+        });
+
+/**
+ * @brief Canonical embedding K3 ↪ ℤ: Ternary → SignedCardinality.
+ * @details Maps False → -1, Unknown → 0, True → 1.  Lands on the
+ *          variant ℤ-proxy carrier @c SignedCardinality (closes #430,
+ *          a #402 prerequisite); the previous @c int codomain made
+ *          the K3 → variant-ℤ chain require an explicit machine-side
+ *          extraction step.  The unreachable default returns @c NaZ
+ *          for IEEE-NaN-style propagation if a non-canonical
+ *          @c Ternary value were ever constructed (cannot happen in
+ *          practice — @c Ternary is a closed enum).
+ */
+export inline constexpr auto embed_𝕂3_ℤ_ =
+    arrow<Ternary, dedekind::sets::SignedCardinality>(
+        [](const Ternary& t) noexcept -> dedekind::sets::SignedCardinality {
+          switch (t) {
+            case Ternary::False:
+              return dedekind::sets::finite_signed_cardinality(-1);
+            case Ternary::Unknown:
+              return dedekind::sets::finite_signed_cardinality(0);
+            case Ternary::True:
+              return dedekind::sets::finite_signed_cardinality(1);
+          }
+          return dedekind::sets::SignedCardinality{dedekind::sets::NaZ{}};
+        });
+
 /** @brief @c Cardinality @c <=> @c SignedCardinality.  Routes through
  *         the canonical ℕ ↪ ℤ lift and @c compare_signed; @c NaZ on
  *         the @c rhs propagates as @c unordered. */
@@ -1800,6 +1850,7 @@ export constexpr SignedCardinality operator*(const SignedCardinality& a,
 // ---------------------------------------------------------------------------
 
 namespace dedekind::category {
+using namespace dedekind::sets;
 
 using C1 = dedekind::sets::ExtensionalCardinal<>;
 
@@ -2324,5 +2375,18 @@ static_assert(IsSurjective<std::decay_t<decltype(dedekind::sets::abs_)>>,
               "arrow.");
 static_assert(!IsInjective<std::decay_t<decltype(dedekind::sets::abs_)>>,
               "abs_ is NOT injective — it folds sign (abs(3) == abs(-3)).");
+
+template <>
+inline constexpr bool is_monic_arrow_v<std::decay_t<decltype(lift_ℕ_ℤ_)>> =
+    true;
+static_assert(IsInjective<std::decay_t<decltype(lift_ℕ_ℤ_)>>,
+              "lift_ℕ_ℤ_ (variant-layer ℕ ↪ ℤ; Grothendieck-construction unit) "
+              "is registered injective.");
+
+template <>
+inline constexpr bool is_monic_arrow_v<std::decay_t<decltype(embed_𝕂3_ℤ_)>> =
+    true;
+static_assert(IsInjective<std::decay_t<decltype(embed_𝕂3_ℤ_)>>,
+              "embed_𝕂3_ℤ_ (𝕂3 → ℤ) is registered injective.");
 
 }  // namespace dedekind::category

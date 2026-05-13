@@ -89,10 +89,12 @@ module;
 export module dedekind.algebra:initial_ring;
 
 import dedekind.category;
+import dedekind.sets;
 import :group;
 import :ring;
 
 namespace dedekind::algebra {
+using namespace dedekind::sets;
 
 // ===========================================================================
 // (1) Initial Ring — ℤ as the initial object in Ring.
@@ -188,5 +190,15 @@ concept IsGrothendieckGroup =
     dedekind::category::IsAbelianGroup<G, std::plus<G>> &&
     dedekind::category::IsCommutativeMonoid<M, std::plus<M>> &&
     is_grothendieck_group_v<G, M>;
+
+template <>
+inline constexpr bool is_initial_ring_v<SignedCardinality> = true;
+
+template <>
+inline constexpr bool is_grothendieck_group_v<SignedCardinality, Cardinality> =
+    true;
+
+static_assert(IsInitialRing<SignedCardinality>);
+static_assert(IsGrothendieckGroup<SignedCardinality, Cardinality>);
 
 }  // namespace dedekind::algebra

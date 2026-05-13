@@ -270,50 +270,6 @@ static_assert(FiniteBooleanSetOf<>{}(true) == ClassicalLogic::False,
 static_assert(FiniteBooleanSetOf<>{}(false) == ClassicalLogic::False,
               "Empty Boolean predicate-set does not contain false.");
 
-/**
- * @brief Canonical embedding @c 𝔹 @c ↪ @c 𝕂3: bool → Ternary.
- * @details The two-valued-to-three-valued Kleene lift: @c false @c
- *          ↦ @c Ternary::False (@c -1), @c true @c ↦ @c
- *          Ternary::True (@c 1).  The @c Ternary::Unknown (@c 0)
- *          value is @b not in the image — it represents the third
- *          truth-value that @c 𝔹 lacks.  This is the canonical
- *          inclusion of two-valued classical logic into three-
- *          valued Kleene logic; structurally a monomorphism.
- */
-export inline constexpr auto embed_𝔹_𝕂3_ =
-    arrow<bool, dedekind::category::Ternary>(
-        [](const bool& b) noexcept -> dedekind::category::Ternary {
-          return b ? dedekind::category::Ternary::True
-                   : dedekind::category::Ternary::False;
-        });
-
-/**
- * @brief Set-level lift of @c embed_𝔹_𝕂3_: image of a Boolean set
- *        @c S under the canonical mono 𝔹 ↪ 𝕂3.
- *
- * @details Layer-1 entry per #602 (sister to @c embed_𝔹_ℕ in
- * @c :numbers:natural, PR #624).  Names the construction at the call
- * site rather than re-spelling @c image(embed_𝔹_𝕂3_, S).  Accepted
- * input @c S is anything @c dedekind::sets::image already dispatches
- * on --- @c SingletonSet (@c :sets:singleton),
- * @c std::set<bool> / @c std::unordered_set<bool> (@c :sets:extensional);
- * lazy predicate sets join the dispatch table when #602's layer 2
- * lands.
- *
- * Mathematically: the image of @c S under the canonical mono
- * 𝔹 ↪ 𝕂3 is a subset of @c {Ternary::False, @c Ternary::True} ⊂ 𝕂3
- * containing whichever @c bool elements are in @c S.
- * @c Ternary::Unknown is by construction @b not in the image --- the
- * structural reason the arrow is monic but not surjective.
- */
-export template <typename S>
-  requires requires(S&& s) {
-    dedekind::sets::image(embed_𝔹_𝕂3_, std::forward<S>(s));
-  }
-constexpr auto embed_𝔹_𝕂3(S&& s) {
-  return dedekind::sets::image(embed_𝔹_𝕂3_, std::forward<S>(s));
-}
-
 // (5) Adjacent-set arrow: 𝔹 ↪ ℕ via @c embed_𝔹_uint_ in @c :natural.
 // This partition is upstream of @c :natural, so the witness for the
 // monic-arrow registration lives in @c :natural (registered there as

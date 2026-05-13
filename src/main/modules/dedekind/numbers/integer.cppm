@@ -95,77 +95,6 @@ static_assert(dedekind::algebra::IsOrderedAdditiveGroup<
               "between ℤ and the in-line scout-algebra halfspace "
               "pipe (#664 / #670).");
 
-/**
- * @brief Canonical embedding K3 ↪ ℤ: Ternary → SignedCardinality.
- * @details Maps False → -1, Unknown → 0, True → 1.  Lands on the
- *          variant ℤ-proxy carrier @c SignedCardinality (closes #430,
- *          a #402 prerequisite); the previous @c int codomain made
- *          the K3 → variant-ℤ chain require an explicit machine-side
- *          extraction step.  The unreachable default returns @c NaZ
- *          for IEEE-NaN-style propagation if a non-canonical
- *          @c Ternary value were ever constructed (cannot happen in
- *          practice — @c Ternary is a closed enum).
- */
-export inline constexpr auto embed_𝕂3_ℤ_ =
-    arrow<Ternary, dedekind::sets::SignedCardinality>(
-        [](const Ternary& t) noexcept -> dedekind::sets::SignedCardinality {
-          switch (t) {
-            case Ternary::False:
-              return dedekind::sets::finite_signed_cardinality(-1);
-            case Ternary::Unknown:
-              return dedekind::sets::finite_signed_cardinality(0);
-            case Ternary::True:
-              return dedekind::sets::finite_signed_cardinality(1);
-          }
-          return dedekind::sets::SignedCardinality{dedekind::sets::NaZ{}};
-        });
-
-/**
- * @brief Canonical variant-layer embedding @c ℕ @c ↪ @c ℤ:
- *        @c Cardinality @c → @c SignedCardinality, exposed as a
- *        first-class @c arrow object for the carrier-lattice diagram.
- *
- * @details Wraps @c dedekind::sets::lift_cardinality_to_signed (the
- *          public function definition; lives in @c sets:cardinality
- *          to remain reachable from cross-variant comparison
- *          operators without crossing the @c sets @c → @c numbers
- *          module boundary).  This @c arrow form is the named monic
- *          morphism the carrier-lattice Figure 1 labels at the
- *          variant-layer top row.  The corresponding machine-layer
- *          horizontal arrow (@c arrow<unsigned, @c int>, previously
- *          @c embed_uint_sint_) was removed in #670 as deprecated;
- *          the carrier-lattice diagram is consequently missing that
- *          middle-row machine-layer ℕ→ℤ link until a follow-up
- *          restores it on the new ℤ carrier (@c SignedCardinality).
- *          Registered as monic below.
- */
-export inline constexpr auto lift_ℕ_ℤ_ =
-    arrow<dedekind::sets::Cardinality, dedekind::sets::SignedCardinality>(
-        [](const dedekind::sets::Cardinality& c) noexcept {
-          return dedekind::sets::lift_cardinality_to_signed(c);
-        });
-
-}  // namespace dedekind::numbers
-
-namespace dedekind::category {
-
-template <>
-inline constexpr bool
-    is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_𝕂3_ℤ_)>> =
-        true;
-static_assert(
-    IsInjective<std::decay_t<decltype(dedekind::numbers::embed_𝕂3_ℤ_)>>,
-    "embed_𝕂3_ℤ_ (𝕂3 → ℤ) is registered injective.");
-
-template <>
-inline constexpr bool
-    is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::lift_ℕ_ℤ_)>> =
-        true;
-static_assert(IsInjective<std::decay_t<decltype(dedekind::numbers::lift_ℕ_ℤ_)>>,
-              "lift_ℕ_ℤ_ (variant-layer ℕ ↪ ℤ; Grothendieck-construction unit) "
-              "is registered injective.");
-}  // namespace dedekind::category
-
 // ===========================================================================
 // Initial Ring + Grothendieck Group witnesses on @c SignedCardinality
 // (closes part of #446).
@@ -185,19 +114,6 @@ static_assert(IsInjective<std::decay_t<decltype(dedekind::numbers::lift_ℕ_ℤ_
 // homomorphisms) is the engineer's honesty obligation; the test
 // suite exercises the operational behaviour at concrete targets.
 // ===========================================================================
-
-namespace dedekind::algebra {
-
-template <>
-inline constexpr bool is_initial_ring_v<dedekind::sets::SignedCardinality> =
-    true;
-
-template <>
-inline constexpr bool is_grothendieck_group_v<dedekind::sets::SignedCardinality,
-                                              dedekind::sets::Cardinality> =
-    true;
-
-}  // namespace dedekind::algebra
 
 namespace dedekind::numbers {
 

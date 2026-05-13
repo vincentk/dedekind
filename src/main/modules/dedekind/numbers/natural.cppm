@@ -98,6 +98,23 @@ concept IsNatural = dedekind::algebra::HasSemiringOperators<N> &&
                     dedekind::order::IsTotallyOrdered<N>;
 
 /**
+ * @brief Canonical embedding 𝔹 ↪ ℕ: bool → Cardinality.
+ * @details False maps to @c finite_cardinality(0), True to
+ *          @c finite_cardinality(1).
+ *
+ * Sister arrow to @c embed_𝔹_uint_ above; this one lands in the
+ * @c Cardinality carrier (the canonical @c IsNatural witness of
+ * @c ℕ in the set-builder layer) directly, without routing through
+ * the machine-width @c unsigned proxy.  Filed against #602 layer 1
+ * (the set-level lift @c embed_𝔹_ℕ below uses this arrow to delegate
+ * through the existing @c sets::image dispatch).
+ */
+export inline constexpr auto embed_𝔹_ℕ_ =
+    arrow<bool, Cardinality>([](const bool& b) noexcept -> Cardinality {
+      return finite_cardinality(b ? 1 : 0);
+    });
+
+/**
  * @brief Set-level lift of @c embed_𝔹_ℕ_: image of a Boolean set
  *        @c S under the canonical mono 𝔹 ↪ ℕ.
  *
