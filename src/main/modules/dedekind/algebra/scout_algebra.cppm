@@ -29,18 +29,21 @@
  *    @c IsAdditiveGroup<T> --- produces the group-inverse shift:
  *    @c GroupScout<T, @c std::plus<T>, @c -k, @c BoundScout<T>>
  *    (subtraction encoded via the additive inverse).
+ *  - @c operator*(BoundScout<T>, @c Bound<k>) for
+ *    @c IsAbelianGroup<T, @c std::multiplies<T>> (i.e.\ a field
+ *    carrier, gated on PR #674's @c IsField cert) --- produces
+ *    @c GroupScout<T, @c std::multiplies<T>, @c k, @c BoundScout<T>>.
  *
  * The comprehension pipe @c GroupScout::operator|(Halfspace) performs
- * @b halfspace-pivot @b transport: the source predicate's pivot is
- * shifted by the scout's @c Element along the additive group action,
- * yielding a @c Comprehension that Set CTAD picks up and resolves to a
- * @c Set with the shifted halfspace as predicate.  No Set CTAD changes
- * needed; the existing @c Comprehension path in @c :sets:expressions
- * is the consumer.
- *
- * The multiplicative specialisation
- * (@c operator*(Bound<k>, @c BoundScout<T>) for
- * @c IsMultiplicativeGroup<T>) is deferred to a follow-up slice.
+ * @b halfspace-pivot @b transport.  The additive pipe shifts the
+ * source pivot by the scout's @c Element along the additive group
+ * action.  The multiplicative pipe (Slice 3) scales the source pivot,
+ * preserves direction when @c k > 0, flips direction when @c k < 0,
+ * and Honest-Rejects @c k = 0 (collapsing-halfspace case).  Both
+ * yield a @c Comprehension that Set CTAD picks up and resolves to a
+ * @c Set with the transported halfspace as predicate.  No Set CTAD
+ * changes needed; the existing @c Comprehension path in
+ * @c :sets:expressions is the consumer.
  *
  * @section scout_algebra__Honest_Rejection
  *
@@ -52,10 +55,17 @@
  *
  * @section scout_algebra__Out_Of_Scope_For_This_Partition_Today
  *
- *  - Multiplicative specialisation @c operator* (follow-up slice).
- *  - Retract-tier scaling on rings (where the carrier is not a
- *    multiplicative group, e.g.\ @c bound<2> @c * @c in<ℤ>) (further
- *    follow-up).
+ *  - Retract-tier scaling on rings (where the carrier is a ring but
+ *    not a multiplicative group, e.g.\ @c bound<2> @c * @c in<ℤ>):
+ *    Honest-Rejected today by @c IsAbelianGroup<T, std::multiplies<T>>
+ *    on @c SignedCardinality being @c false (ℤ is not a field).
+ *    Lifting this to a ring-shaped scaling tier is a follow-up.
+ *  - Division @c operator/(BoundScout<T>, @c Bound<k>) for fields:
+ *    semantically @c x @c / @c k @c = @c x @c * @c k^{-1}.  Computing
+ *    @c k^{-1} at the factory site embeds a non-trivial @c T value
+ *    (e.g.\ @c Rational{1,k}) into the resulting scout's @c Element,
+ *    which forces @c T to be a structural NTTP carrier ---
+ *    incompatible with the variant-carrier ℚ today.  Follow-up.
  *  - Composition of scouts beyond a single @c BoundScout inner
  *    (e.g.\ @c bound<2> @c * @c in<ℤ> @c + @c bound<1> --- where the
  *    inner of the outer @c + is itself a @c GroupScout) (follow-up).
@@ -144,6 +154,42 @@ template <typename T>
 inline constexpr bool is_translation_invariant_ordered_v =
     is_translation_invariant_ordered<T>::value;
 
+/** @brief Carrier-promise marker: @c T is an @b ordered multiplicative
+ *  group on its non-zero cone.  Mirrors @c is_translation_invariant_ordered
+ *  for the additive case: the marker is the axiom-level promise that
+ *  scaling a halfspace pivot by @c k preserves the order @b when
+ *  @c k > 0 and reverses it @b when @c k < 0 (with @c k = 0 collapsing
+ *  the halfspace --- handled by the pipe's @c Element != zero gate).
+ *
+ *  Default is @c false_type --- carriers must positively register the
+ *  ordered-field structure.  Specialised in @c numbers:rational for
+ *  @c Rational<I> on any @c IsInteger I: ℚ is an ordered field (Lang,
+ *  @em Algebra §III.1 + the order-compatibility axioms).  Carriers that
+ *  satisfy @c algebra::IsField but @b not the order axiom (e.g.\
+ *  finite fields like @c bool / 𝔽₂; complex numbers @c Complex<R>
+ *  where there is no order compatible with @c *) fail this marker by
+ *  default.
+ *
+ *  The marker pairs with @c IsAbelianGroup<T, std::multiplies<T>> in
+ *  the @c IsOrderedMultiplicativeGroup concept below, exactly as the
+ *  additive marker pairs with @c IsAbelianGroup<T, std::plus<T>> in
+ *  @c IsOrderedAdditiveGroup.
+ *
+ *  Exported (unlike the additive sibling) so downstream carrier-side
+ *  partitions (@c numbers:rational) can specialise without a
+ *  scout-algebra-imports-numbers reverse dependency.  The additive
+ *  marker's specialisation lives in this same file because
+ *  @c sets::SignedCardinality is upstream of @c :algebra; the
+ *  multiplicative marker's specialisation lives in @c numbers:rational
+ *  because @c Rational<I> is downstream.
+ */
+export template <typename T>
+struct is_ordered_multiplicative_group : std::false_type {};
+
+export template <typename T>
+inline constexpr bool is_ordered_multiplicative_group_v =
+    is_ordered_multiplicative_group<T>::value;
+
 /**
  * @concept IsOrderedAdditiveGroup
  * @brief An additive group whose order is translation-invariant.
@@ -178,6 +224,34 @@ export template <typename T>
 concept IsOrderedAdditiveGroup =
     dedekind::category::IsAbelianGroup<T, std::plus<T>> &&
     is_translation_invariant_ordered_v<T>;
+
+/**
+ * @concept IsOrderedMultiplicativeGroup
+ * @brief A multiplicative group whose order is compatible with @c *.
+ *
+ * @details
+ * Multiplicative twin of @c IsOrderedAdditiveGroup: combines the
+ * algebraic gate @c IsAbelianGroup<T, std::multiplies<T>> with the
+ * @b axiom marker @c is_ordered_multiplicative_group_v<T>.  This is
+ * the precondition for halfspace-pivot transport under scaling:
+ * scaling @f$\{x \mid x > k\}@f$ by @c k_E yields
+ * @f$\{y \mid y > k \cdot k_E\}@f$ when @c k_E > 0 and the
+ * direction-flipped @f$\{y \mid y < k \cdot k_E\}@f$ when @c k_E < 0,
+ * exactly when @c k_E-scaling preserves / reverses the order under
+ * the multiplicative-group structure.  The marker certifies the
+ * order-compatibility axiom.
+ *
+ * @note The @c k_E = 0 case is degenerate (the halfspace collapses);
+ *       handled at the pipe's @c Element != zero gate, not here.
+ *
+ * Per PR #674: @c IsField<Rational<default_integer>> fires structurally,
+ * so the algebraic side closes on ℚ.  The marker side is registered in
+ * @c numbers:rational.
+ */
+export template <typename T>
+concept IsOrderedMultiplicativeGroup =
+    dedekind::category::IsAbelianGroup<T, std::multiplies<T>> &&
+    is_ordered_multiplicative_group_v<T>;
 
 /**
  * @brief Symbolic scout parameterised by carrier @c T, group operation
@@ -273,6 +347,70 @@ struct GroupScout {
     return dedekind::sets::Comprehension<AmbientType, NewHalfspace>{
         Inner::ambient, NewHalfspace{}};
   }
+
+  /**
+   * @brief Comprehension pipe (multiplicative): @c GroupScout @c |
+   *        @c Halfspace → @c Comprehension with the halfspace's pivot
+   *        scaled by @c Element, and the direction flipped if
+   *        @c Element < 0 (#664 Slice 3).
+   *
+   * @details
+   * Halfspace-pivot transport along the multiplicative-group action: a
+   * source predicate @f$\{x \in T \mid x \bowtie k\}@f$ pushed through
+   * the scout function @f$\lambda x.\,k_E \cdot x@f$ (where @f$k_E@f$
+   * is this scout's @c Element) yields the image halfspace
+   * @f$\{y \in T \mid y \bowtie' k \cdot k_E\}@f$, where:
+   *   * if @c k_E > 0: direction and strictness preserved
+   *     (@c ⋈' @c = @c ⋈);
+   *   * if @c k_E < 0: direction reversed
+   *     (@c >  @c ↔ @c <,  @c ≥ @c ↔ @c ≤); strictness preserved.
+   *
+   * The @c k_E = 0 case (where the halfspace collapses to the whole
+   * carrier or the empty set depending on direction / strictness) is
+   * Honest-Rejected by the @c Element @c != zero gate in the
+   * requires-clause: callers can re-spell it as the appropriate
+   * universal / empty Set explicitly.
+   *
+   * @section Specialisation gate
+   *
+   * Currently restricted to @c Op @c = @c std::multiplies<T> and
+   * @c Inner exposing @c AmbientType / @c ambient (i.e.\ a
+   * @c BoundScout).  Mirrors the additive specialisation above.
+   */
+  template <auto Pivot, dedekind::order::Direction D,
+            dedekind::order::Strictness S, typename L>
+    requires std::same_as<Op, std::multiplies<T>> &&
+             IsOrderedMultiplicativeGroup<T> &&
+             // Honest Rejection on the degenerate @c k_E = 0 case.
+             (Element != decltype(Element){}) && requires {
+               typename Inner::AmbientType;
+               Inner::ambient;
+             }
+  constexpr auto operator|(
+      dedekind::order::Halfspace<T, Pivot, D, S, L>) const {
+    // Same natural-arithmetic principle as the additive pipe: the
+    // scaled pivot keeps @c Pivot 's NTTP type when feasible (e.g.\
+    // @c int * @c int → @c int when both come from @c bound<int>),
+    // sidestepping non-structural carriers.
+    constexpr auto new_pivot = Element * Pivot;
+    using AmbientType = typename Inner::AmbientType;
+    if constexpr (Element > decltype(Element){}) {
+      // @c k_E > 0: direction and strictness preserved.
+      using NewHalfspace = dedekind::order::Halfspace<T, new_pivot, D, S, L>;
+      return dedekind::sets::Comprehension<AmbientType, NewHalfspace>{
+          Inner::ambient, NewHalfspace{}};
+    } else {
+      // @c k_E < 0: direction flipped (Upward ↔ Downward), strictness
+      // preserved.
+      constexpr auto flipped = (D == dedekind::order::Direction::Upward)
+                                   ? dedekind::order::Direction::Downward
+                                   : dedekind::order::Direction::Upward;
+      using NewHalfspace =
+          dedekind::order::Halfspace<T, new_pivot, flipped, S, L>;
+      return dedekind::sets::Comprehension<AmbientType, NewHalfspace>{
+          Inner::ambient, NewHalfspace{}};
+    }
+  }
 };
 
 }  // namespace dedekind::algebra
@@ -337,6 +475,43 @@ export template <auto Ambient, auto K>
 constexpr auto operator-(BoundScout<Ambient>, dedekind::order::Bound<K>) {
   using T = typename BoundScout<Ambient>::T;
   return dedekind::algebra::GroupScout<T, std::plus<T>, -K,
+                                       BoundScout<Ambient>>{};
+}
+
+/**
+ * @brief Multiplicative specialisation: @c in<T> @c * @c bound<k> →
+ *        @c GroupScout<T, @c std::multiplies<T>, @c k, @c BoundScout<T>>
+ *        (#664 Slice 3).
+ *
+ * @details
+ * Gated on @c IsAbelianGroup<T, std::multiplies<T>> @b and
+ * @c std::convertible_to<K, T>.  Multiplicative-group axioms (every
+ * non-zero element invertible) certify that scaling is well-defined;
+ * the convertibility check makes invalid @c K values fail at the
+ * requires-clause rather than as hard errors during instantiation.
+ *
+ * The scout represents the function @c λx.k @c * @c x where @c * is
+ * the group operation on @c T.  The downstream
+ * @c GroupScout::operator|(Halfspace) pipe (above) does the
+ * direction-aware halfspace-pivot transport: @c k > 0 preserves the
+ * direction, @c k < 0 flips it (Upward ↔ Downward), @c k = 0 is
+ * Honest-Rejected at the pipe.
+ *
+ * Honest Rejection: writing @c in<ℤ> @c * @c bound<3> fails (post-#674,
+ * @c IsAbelianGroup<SignedCardinality, std::multiplies> is @b false
+ * --- the saturating ℤ proxy is a ring but @b not a field; ℤ has no
+ * multiplicative inverses for non-units).  On ℚ the gate fires:
+ * @c IsField<Rational<default_integer>> is the post-#674 witness that
+ * @c (ℚ\\{0}, @c *) is a multiplicative abelian group.
+ */
+export template <auto Ambient, auto K>
+  requires dedekind::category::IsAbelianGroup<
+               typename BoundScout<Ambient>::T,
+               std::multiplies<typename BoundScout<Ambient>::T>> &&
+           std::convertible_to<decltype(K), typename BoundScout<Ambient>::T>
+constexpr auto operator*(BoundScout<Ambient>, dedekind::order::Bound<K>) {
+  using T = typename BoundScout<Ambient>::T;
+  return dedekind::algebra::GroupScout<T, std::multiplies<T>, K,
                                        BoundScout<Ambient>>{};
 }
 
