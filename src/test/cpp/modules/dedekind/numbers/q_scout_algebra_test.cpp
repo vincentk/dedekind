@@ -109,13 +109,20 @@ static_assert(
     "ℤ (SignedCardinality) IS the initial ring (algebra:initial_ring).");
 
 static_assert(
+    dedekind::algebra::IsGrothendieckGroup<dedekind::sets::SignedCardinality,
+                                           dedekind::sets::Cardinality>,
+    "ℤ (SignedCardinality) IS the Grothendieck group of ℕ (Cardinality) "
+    "--- the universal abelian-group completion of (ℕ, +, 0).");
+
+static_assert(
     !dedekind::algebra::IsOrderedMultiplicativeGroup<
         dedekind::sets::SignedCardinality>,
-    "ℤ (SignedCardinality) is the initial ring but NOT a multiplicative "
-    "group: non-units (i.e.\\ everything except ±1) lack multiplicative "
-    "inverses, so the scout-algebra multiplicative pipe Honest-Rejects "
-    "scaling on ℤ.  Use ℚ (Rational<default_integer>) for the multiplicative-"
-    "scaling slice.");
+    "ℤ is the initial ring AND the Grothendieck group of ℕ, but NOT a "
+    "multiplicative group: non-units (i.e.\\ everything except ±1) lack "
+    "multiplicative inverses, so the scout-algebra multiplicative pipe "
+    "Honest-Rejects scaling on ℤ.  Use ℚ (Rational<default_integer>) for "
+    "the multiplicative-scaling slice --- ℚ is, after all, the field of "
+    "fractions of ℤ (the universal field extending the integers).");
 
 // ---------------------------------------------------------------------------
 // Honest Rejection: @c k_E = 0 scaling.  Scaling by zero collapses the
