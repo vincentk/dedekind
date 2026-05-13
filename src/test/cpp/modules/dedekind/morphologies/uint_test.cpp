@@ -25,9 +25,9 @@ import dedekind.sets;
 using namespace dedekind::category;
 using namespace dedekind::morphologies;
 using namespace dedekind::sets;
+using dedekind::morphologies::embed_uint_ℕ_;
 using dedekind::morphologies::IsCyclic;
 using dedekind::morphologies::Modular;
-using dedekind::morphologies::embed_uint_ℕ_;
 
 // ===========================================================================
 // (1) The universal lift arrow: std::unsigned_integral → Cardinality

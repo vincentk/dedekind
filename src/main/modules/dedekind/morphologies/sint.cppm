@@ -468,29 +468,26 @@ static_assert(
     dedekind::sequences::IsFiniteSequence<dedekind::sequences::FinitePath<int>>,
     "FinitePath<int> is a bona-fide finite sequence.");
 
-}  // namespace dedekind::numbers
+}  // namespace dedekind::morphologies
 
 namespace dedekind::category {
 using namespace dedekind::morphologies;
 template <>
-inline constexpr bool
-    is_monic_arrow_v<std::decay_t<decltype(embed_sint_ℤ_)>> =
-        true;
-static_assert(
-    IsInjective<std::decay_t<decltype(embed_sint_ℤ_)>>,
-    "embed_sint_ℤ_ (int → SignedCardinality) is "
-    "registered injective.");
+inline constexpr bool is_monic_arrow_v<std::decay_t<decltype(embed_sint_ℤ_)>> =
+    true;
+static_assert(IsInjective<std::decay_t<decltype(embed_sint_ℤ_)>>,
+              "embed_sint_ℤ_ (int → SignedCardinality) is "
+              "registered injective.");
 
 // IsEmbeddingFunctor witness (#633): @c embed_sint_ℤ_ is fully faithful
 // (discrete source) + injective on objects (sign-magnitude bijection
 // between machine signed values and the corresponding SignedCardinality
 // witnesses).
 template <>
-inline constexpr bool is_embedding_functor_v<
-    std::decay_t<decltype(embed_sint_ℤ_)>> = true;
+inline constexpr bool
+    is_embedding_functor_v<std::decay_t<decltype(embed_sint_ℤ_)>> = true;
 static_assert(
-    IsEmbeddingFunctor<
-        std::decay_t<decltype(embed_sint_ℤ_)>>,
+    IsEmbeddingFunctor<std::decay_t<decltype(embed_sint_ℤ_)>>,
     "embed_sint_ℤ_ realises IsEmbeddingFunctor per #633's Mac Lane reading.");
 
 // ===========================================================================

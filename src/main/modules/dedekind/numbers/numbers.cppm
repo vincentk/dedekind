@@ -32,11 +32,11 @@ export import dedekind.order;  // Ordered predicate concepts for numeric species
 export import dedekind.topology;  // Rays, half-spaces, intervals, convex shapes
 
 /** @section numbers__Discrete_Foundations */
-export import :boolean;   // Truth<L> and Ω
-export import :natural;   // Cardinality partition (carrier:
-                          // dedekind::sets::Cardinality)
-export import :integer;   // SignedExtensionalCardinal<> partition (variant
-                          // ℤ-proxy / IntegersOf<>)
+export import :boolean;  // Truth<L> and Ω
+export import :natural;  // Cardinality partition (carrier:
+                         // dedekind::sets::Cardinality)
+export import :integer;  // SignedExtensionalCardinal<> partition (variant
+                         // ℤ-proxy / IntegersOf<>)
 /** @section numbers__Algebraic_Extensions */
 export import :rational;    // Rational<default_integer> (The Quotient Field)
 export import :complex;     // ℂ (The Cayley-Dickson construction)

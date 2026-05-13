@@ -171,3 +171,27 @@ TEST_CASE(
   CHECK(abs_(embed_sint_ℤ_(-3)) == finite_cardinality(3));
   CHECK(abs_(embed_sint_ℤ_(0)) == finite_cardinality(0));
 }
+
+// ===========================================================================
+// (4) Embedding chain: 𝕂3 → sint → ℤ (signed counterpart to 𝔹 → uint → ℕ)
+// ===========================================================================
+
+TEST_CASE("sint: 𝕂3 → sint → ℤ chain via embed_𝕂3_ℤ_ + lift",
+          "[numbers][sint][lift][embedding-chain]") {
+  // Post-PR #439, embed_𝕂3_ℤ_ already lands on SignedCardinality
+  // directly.  The textbook-factored chain
+  //
+  //   𝕂3 → std::signed_integral → ℤ
+  //
+  // would route through @c int (the machine layer) on the first leg
+  // and then through @c embed_sint_ℤ on the
+  // second; PR #439's chosen factorisation collapses the two legs
+  // into one for ergonomic reasons.  Exercise the chain claim
+  // directly by relating @c embed_𝕂3_ℤ_'s images to the lifted
+  // canonical machine-int images @c -1 / @c 0 / @c 1, asserting
+  // that both factorisations agree on the canonical value of each
+  // Kleene truth-value.
+  CHECK(embed_𝕂3_ℤ_(Ternary::False) == embed_sint_ℤ(-1));
+  CHECK(embed_𝕂3_ℤ_(Ternary::Unknown) == embed_sint_ℤ(0));
+  CHECK(embed_𝕂3_ℤ_(Ternary::True) == embed_sint_ℤ(1));
+}

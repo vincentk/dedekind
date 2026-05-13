@@ -177,4 +177,4 @@ static_assert(!dedekind::order::IsTotallyOrdered<double>,
 static_assert(!dedekind::order::IsTotallyOrdered<long double>,
               "long double is NOT IsTotallyOrdered: NaN breaks reflexivity.");
 
-}  // namespace dedekind::numbers
+}  // namespace dedekind::morphologies

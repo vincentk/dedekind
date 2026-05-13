@@ -95,4 +95,4 @@ static_assert(
     "the arithmetic operators promote to int; the field reading "
     "of bool lives at std::bit_xor / std::bit_and (see :boolean).");
 
-}  // namespace dedekind::numbers
+}  // namespace dedekind::morphologies
