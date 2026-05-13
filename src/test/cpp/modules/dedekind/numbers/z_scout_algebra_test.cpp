@@ -81,3 +81,46 @@ TEST_CASE(
   using ResultType = std::remove_cvref_t<decltype(S)>;
   STATIC_CHECK(std::same_as<ResultType, ExpectedSet>);
 }
+
+// ---------------------------------------------------------------------------
+// Ring-retract multiplicative scaling on ℤ (#664 Slice 5).
+//
+// ℤ is the initial ring, NOT a field --- non-units lack multiplicative
+// inverses.  The map x ↦ M*x is therefore a retract, not an iso: only
+// multiples of M land in the image.  The scout-algebra ring-retract
+// pipe produces an AffineImageOfHalfspace predicate that checks both
+// divisibility AND the source halfspace at the preimage y/M.
+//
+// The result is type-directed: writing `Set{x * bound<2> | x > bound<5>}`
+// on ℤ produces a Set whose predicate is
+// `AffineImageOfHalfspace<ℤ, 2, source_halfspace>`, NOT a plain Halfspace.
+// ---------------------------------------------------------------------------
+
+TEST_CASE(
+    "ℤ: ring-retract scaling produces AffineImageOfHalfspace (#664 Slice 5)",
+    "[numbers][integer][scout_algebra][slice5]") {
+  constexpr auto x = dedekind::sets::element<ℤ>;
+  // {n ∈ ℤ | n > 5} pushed through λn. 2*n → {2n | n > 5} = {12, 14, ...}.
+  constexpr auto S = dedekind::sets::Set{x * dedekind::order::bound<2> |
+                                         (x > dedekind::order::bound<5>)};
+
+  using SetL = typename dedekind::sets::NaturalLogic<
+      std::remove_cvref_t<decltype(ℤ)>>::type;
+  using SourceHalfspace =
+      dedekind::order::Halfspace<dedekind::sets::SignedCardinality, 5,
+                                 dedekind::order::Direction::Upward,
+                                 dedekind::order::Strictness::Strict>;
+  using ExpectedPredicate = dedekind::algebra::AffineImageOfHalfspace<
+      dedekind::sets::SignedCardinality, 2, SourceHalfspace>;
+  using ExpectedSet = dedekind::sets::Set<dedekind::sets::SignedCardinality,
+                                          SetL, ExpectedPredicate>;
+  STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(S)>, ExpectedSet>);
+
+  // Membership behaviour: S = {12, 14, 16, ...}.
+  using L = SetL;
+  CHECK(S(dedekind::sets::finite_signed_cardinality(12)) == L::True);
+  CHECK(S(dedekind::sets::finite_signed_cardinality(14)) == L::True);
+  CHECK(S(dedekind::sets::finite_signed_cardinality(13)) == L::False);
+  CHECK(S(dedekind::sets::finite_signed_cardinality(10)) == L::False);
+  CHECK(S(dedekind::sets::finite_signed_cardinality(11)) == L::False);
+}
