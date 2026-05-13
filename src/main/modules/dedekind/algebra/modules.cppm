@@ -393,8 +393,10 @@ namespace dedekind::algebra {
  *                  Rational<default_integer>>
  *     — @c linear_algebra/mat2x2.cppm: Vec2 over ℚ as a ℚ-module
  *     (the rank-2 vector space over the field ℚ, witnessed at the
- *     module tier; the strengthening to @c is_vector_space_v needs
- *     @c IsField<Rational> to bind, see "remaining gap" below).
+ *     module tier; under epic #374's @c HasFieldOperators-to-
+ *     @c IsField retargeting, the @c IsField<Rational> certification
+ *     in @c numbers/rational.cppm closes the upgrade to
+ *     @c is_vector_space_v automatically via the concept composition).
  *
  *   @b is_free_module_v specialisations (rank-bearing):
  *
@@ -419,23 +421,24 @@ namespace dedekind::algebra {
  *     endomorphism ring of the rank-2 free module, on both the
  *     unsigned-integer and ℚ scalar carriers.
  *
- * Remaining gap (one architectural lift to unblock):
+ * Recursive enrichment status:
  *
- *   @c is_vector_space_v<V, F> recursive upgrade — the trait fires
- *   automatically once @c IsField<F> holds in addition to
- *   @c IsModule<V, F>.  The strict @c category::IsField on
- *   @c Rational<I> is currently parked behind the @c IsTotal
- *   architectural gate (none of the periodic / idempotent /
- *   saturating paths apply to exact carriers).  Lifting that gate
- *   with an exact-carrier path is the load-bearing follow-up; once
- *   it lands, every @c is_module_v witness above whose scalar is a
- *   field carrier auto-upgrades to @c is_vector_space_v.
+ *   @c is_vector_space_v<V, F> automatic upgrade — the trait fires
+ *   when @c IsField<F> holds in addition to @c IsModule<V, F>.
+ *   Under epic #374's @c HasFieldOperators-to-@c IsField retargeting,
+ *   the strict @c category::IsField closes on
+ *   @c Rational<default_integer> via the multiplicative-inverse trait
+ *   registration in @c numbers/rational.cppm (zero excluded by the
+ *   @c is_invertible_v convention pinned in @c total.cppm).  So
+ *   every @c is_module_v witness above whose scalar is @c ℚ
+ *   auto-upgrades to @c is_vector_space_v.  The post-#673 saturating
+ *   @c IsTotal path cleared the prior architectural blocker.
  *
  * The recursive enrichment Figure~1 of the paper depicts (ℚ as
  * ℤ-module, 𝔻 as ℝ-module, ℂ as ℝ-module, …) is structurally in
  * place at the @c is_module_v / @c is_free_module_v /
- * @c is_endomorphism_ring_v tier.  This inventory is the running
- * snapshot.
+ * @c is_endomorphism_ring_v tier --- with ℚ now also at the
+ * @c is_vector_space_v tier.  This inventory is the running snapshot.
  */
 
 /** @brief @c is_module_v<M, R>: @c M is an @c R-module.  Concept-based
