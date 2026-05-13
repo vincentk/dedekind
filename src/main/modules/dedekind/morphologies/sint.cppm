@@ -90,6 +90,7 @@ import dedekind.sets;
 
 namespace dedekind::morphologies {
 using namespace dedekind::category;
+using namespace dedekind::algebra;
 using namespace dedekind::sets;
 
 // ---------------------------------------------------------------------------
@@ -107,19 +108,11 @@ using namespace dedekind::sets;
 /** @brief Current extensional machine integer carrier. */
 export using extensional_integer = int;
 
-/** @concept IsReflectiveSpecies: a regular type with additive inverse
- *  and default-constructible zero. */
-export template <typename T>
-concept IsReflectiveSpecies = std::regular<T> && requires(T a) {
-  { -a } -> std::same_as<T>;
-  { T{} } -> std::same_as<T>;
-};
-
 /** @concept IsInteger: structural Euclidean-integer-domain concept
  *  (additive group + multiplicative monoid + Euclidean pair + total
  *  order on the carrier). */
 export template <typename T>
-concept IsInteger = IsReflectiveSpecies<T> && requires(T a, T b) {
+concept IsInteger = IsTotalAlgebra<T, std::plus<T>> && requires(T a, T b) {
   { a + b } -> std::same_as<T>;
   { a - b } -> std::same_as<T>;
   { a * b } -> std::same_as<T>;

@@ -52,6 +52,78 @@ import :posetal;
 import :species;
 
 namespace dedekind::category {
+
+/**
+ * @concept IsClosedUnder
+ * @brief @c (S, @c Op) is closed under a binary operation: @c
+ *        Op{}(s_1, @c s_2) returns a value of type @c S for any
+ *        @c S-typed operands.  The textbook closure axiom expressed
+ *        structurally — no opt-in trait needed because closure is
+ *        deducible from the operator's signature.
+ *
+ *  @b Relationship @b to @b @c IsTotal (defined further down): @c
+ *  IsTotal is the @b stronger axiomatic claim that the operation is
+ *  total as a function @c S @c × @c S @c → @c S (defined for all
+ *  inputs, achieved via one of the periodic / idempotent / saturating
+ *  paths).  @c IsClosedUnder is purely about the operator's return
+ *  type; it does @b not promise totality.  So @c IsTotal<T, @c Op>
+ *  implies @c IsClosedUnder<T, @c Op>, but not vice-versa: @c int
+ *  under @c std::plus<> satisfies @c IsClosedUnder (the operator
+ *  returns @c int) but not @c IsTotal (signed overflow is UB).  The
+ *  three concepts @c IsClosedUnder / @c IsTotal / @c IsClosureForcing
+ *  (in @c :total) are siblings:
+ *
+ *    * @c IsClosedUnder<S, @c Op> — structural: signature returns @c S.
+ *    * @c IsTotal<S, @c Op> — axiomatic: defined for all inputs AND
+ *      returns @c S.
+ *    * @c IsClosureForcing<Op, @c S, @c T> — operation is total with
+ *      a @b wider codomain @c T, and @c T is the universal recipient
+ *      (the smallest carrier closing @c Op over @c S inputs).
+ *
+ *  Used positively as a witness ("ℕ is closed under +") and
+ *  negatively in @c HasClosureForcingShape ("ℕ is @b not closed
+ *  under −, which is why @c -Cardinality returns @c
+ *  SignedCardinality").  See @c docs/design/carrier-lattice.md, the
+ *  "elementwise dual" section.
+ */
+export template <typename S, typename Op>
+concept IsClosedUnder = requires(const S& a, const S& b) {
+  { Op{}(a, b) } -> std::same_as<S>;
+};
+
+/**
+ * @concept IsClosedUnderUnary
+ * @brief Unary closure variant: @c Op{}(s) returns @c S for any
+ *        @c S-typed operand.  Cardinality has @b no @c IsClosedUnderUnary
+ *        for @c std::negate<> (negation of a positive natural would
+ *        need to land outside ℕ); that's the structural witness that
+ *        @c -Cardinality is closure-forcing rather than closed.
+ */
+export template <typename S, typename Op>
+concept IsClosedUnderUnary = requires(const S& a) {
+  { Op{}(a) } -> std::same_as<S>;
+};
+
+/**
+ * @concept IsTotal
+ * @brief The Master Safety Certificate for Level 0.
+ * A morphism is total if it is Periodic (Circular), Idempotent
+ * (Stable), or Saturating (escalating to an extended-range sentinel).
+ *
+ * Textbook note:
+ * The three paths are orthogonal algebraic properties.  This concept
+ * is a pragmatic implementation certificate and not a canonical
+ * algebraic taxonomy boundary; carriers opt in to whichever path
+ * matches their machine-totality story.  The named concept @c
+ * IsSaturating that wraps @c is_saturating_v lives in @c
+ * dedekind.category:mereology (per #387's lift); here we reach for
+ * the underlying trait variable directly so this upstream-
+ * foundational layer does not depend on that partition.
+ */
+export template <typename T, typename Op>
+concept IsTotal =
+    IsPeriodic<T, Op> || IsIdempotent<T, Op> || is_saturating_v<T, Op>;
+
 /**
  * @concept IsTotalArrow
  * @brief A Morphism whose domain species admits no undefined (hazard) values.
