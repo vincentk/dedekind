@@ -80,16 +80,15 @@ module;
                         // embed_sint_ℤ's set-level overload)
 #include <utility>      // std::forward (used in embed_sint_ℤ's set-level lift)
 
-export module dedekind.numbers:sint;
+export module dedekind.morphologies:sint;
 
 import dedekind.algebra;
 import dedekind.category;
 import dedekind.order;
 import dedekind.sequences;
 import dedekind.sets;
-import :integer;  // ℤ value-level alias (Ω<SignedCardinality>, post-#670)
 
-namespace dedekind::numbers {
+namespace dedekind::morphologies {
 using namespace dedekind::category;
 using namespace dedekind::sets;
 
@@ -501,12 +500,13 @@ static_assert(
 }  // namespace dedekind::numbers
 
 namespace dedekind::category {
+using namespace dedekind::morphologies;
 template <>
 inline constexpr bool
-    is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_sint_ℤ_)>> =
+    is_monic_arrow_v<std::decay_t<decltype(embed_sint_ℤ_)>> =
         true;
 static_assert(
-    IsInjective<std::decay_t<decltype(dedekind::numbers::embed_sint_ℤ_)>>,
+    IsInjective<std::decay_t<decltype(embed_sint_ℤ_)>>,
     "embed_sint_ℤ_ (int → SignedCardinality) is "
     "registered injective.");
 
@@ -516,10 +516,10 @@ static_assert(
 // witnesses).
 template <>
 inline constexpr bool is_embedding_functor_v<
-    std::decay_t<decltype(dedekind::numbers::embed_sint_ℤ_)>> = true;
+    std::decay_t<decltype(embed_sint_ℤ_)>> = true;
 static_assert(
     IsEmbeddingFunctor<
-        std::decay_t<decltype(dedekind::numbers::embed_sint_ℤ_)>>,
+        std::decay_t<decltype(embed_sint_ℤ_)>>,
     "embed_sint_ℤ_ realises IsEmbeddingFunctor per #633's Mac Lane reading.");
 
 // ===========================================================================

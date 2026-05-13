@@ -22,12 +22,14 @@
 
 import dedekind.algebra;
 import dedekind.category;
-import dedekind.numbers;
+import dedekind.morphologies;
 import dedekind.sets;
 
 using namespace dedekind::category;
-using namespace dedekind::numbers;
+using namespace dedekind::morphologies;
 using namespace dedekind::sets;
+using dedekind::morphologies::embed_sint_ℤ;
+using dedekind::morphologies::embed_sint_ℤ_;
 
 // ===========================================================================
 // (1) The universal lift arrow: std::signed_integral → SignedCardinality

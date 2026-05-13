@@ -30,13 +30,15 @@ export module dedekind.numbers:rational;
 
 import dedekind.algebra;
 import dedekind.category;
+import dedekind.morphologies;
 import dedekind.order;
 import dedekind.sets;
 import :integer;
-import :sint;  // IsInteger / default_integer (relocated from :integer per #670)
 
 namespace dedekind::numbers {
+using namespace dedekind::algebra;
 using namespace dedekind::category;
+using namespace dedekind::morphologies;
 using namespace dedekind::order;
 using namespace dedekind::sets;
 

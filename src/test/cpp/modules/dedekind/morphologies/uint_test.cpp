@@ -20,14 +20,14 @@
 
 import dedekind.category;
 import dedekind.morphologies;
-import dedekind.numbers;
 import dedekind.sets;
 
 using namespace dedekind::category;
-using namespace dedekind::numbers;
+using namespace dedekind::morphologies;
 using namespace dedekind::sets;
 using dedekind::morphologies::IsCyclic;
 using dedekind::morphologies::Modular;
+using dedekind::morphologies::embed_uint_ℕ_;
 
 // ===========================================================================
 // (1) The universal lift arrow: std::unsigned_integral → Cardinality
