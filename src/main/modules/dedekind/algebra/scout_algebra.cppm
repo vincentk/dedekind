@@ -37,9 +37,11 @@
  *    @c operator*(GroupScout, @c Bound<k>) (Slice 4): @b composition
  *    factories lifting the above to a @c GroupScout LHS, so the
  *    canonical @b affine syntax @c (in<T> @c * @c bound<m>) @c + @c
- *    bound<k> = @c λx.\,m*x @c + @c k compiles.  Two-layer composition
- *    today (one BoundScout-inner leaf); deeper composition is a
- *    follow-up.
+ *    bound<k> = @c λx.\,m*x @c + @c k compiles.  Composition is
+ *    @b recursive: nesting any depth of @c GroupScout layers (e.g.\
+ *    @c ((x @c + @c 1) @c * @c 2) @c + @c 3) constructs and pipes
+ *    correctly --- each recursive pipe call defers to @c Inner{} @c |
+ *    @c hs, which terminates at the @c BoundScout base case.
  *
  * The comprehension pipe @c GroupScout::operator|(Halfspace) performs
  * @b halfspace-pivot @b transport.  The additive pipe shifts the
@@ -75,11 +77,10 @@
  *    (e.g.\ @c Rational{1,k}) into the resulting scout's @c Element,
  *    which forces @c T to be a structural NTTP carrier ---
  *    incompatible with the variant-carrier ℚ today.  Follow-up.
- *  - Deeper composition (3+ layers --- e.g.\ @c ((x @c + @c 1) @c *
- *    @c 2) @c + @c 3) is not yet enabled: the Slice-4 composition
- *    pipes assume a 2-layer @c GroupScout-of-@c BoundScout chain.
- *    Lifting to recursive composition would require the recursive
- *    case to also accept @c GroupScout-of-@c GroupScout as @c Inner.
+ *  - (No further composition-depth limitation: the Slice-4 recursive
+ *    pipes handle 2-layer @b and deeper nesting through the same
+ *    @c Inner{} @c | @c hs recursion.  Pinned by the 3-layer test in
+ *    @c q_scout_algebra_test.cpp.)
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -446,9 +447,10 @@ struct GroupScout {
    * is a @c GroupScout (not a @c BoundScout).  The multiplicative-
    * outer composition case (@c (@c x @c + @c b @c ) @c * @c m) is
    * the dual overload below; the inner-leg recursion makes both
-   * cases compose freely.  Recursive composition (3+ layers) is not
-   * yet enabled (would require detecting @c Inner being a
-   * @c GroupScout-of-GroupScout); ship the 2-layer affine case first.
+   * cases compose freely.  Deeper composition (3+ layers, e.g.\
+   * @c ((x @c + @c 1) @c * @c 2) @c + @c 3) works through the same
+   * @c Inner{} @c | @c hs recursion; the @c requires-clause matches
+   * any @c GroupScout @c Inner, not just @c GroupScout-of-@c BoundScout.
    */
   template <auto Pivot, dedekind::order::Direction D,
             dedekind::order::Strictness S, typename L>

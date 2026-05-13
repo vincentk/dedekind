@@ -149,6 +149,34 @@ TEST_CASE(
 }
 
 TEST_CASE(
+    "ℚ: 3-layer composition ((x + a) * b) + c transports correctly "
+    "(#664 Slice 4)",
+    "[numbers][rational][scout_algebra][slice4]") {
+  constexpr auto x = dedekind::sets::element<ℚ>;
+  // {x ∈ ℚ | x > 5} pushed through λx. ((x + 1) * 2) + 3 = 2x + 5.
+  //   Innermost +1: pivot 5 → 6.
+  //   Middle *2:   pivot 6 → 12.
+  //   Outermost +3: pivot 12 → 15.
+  // The recursive composition pipe handles depth >2 automatically ---
+  // each layer's pipe calls Inner{} | hs which recurses down to the
+  // BoundScout base case.
+  constexpr auto S = dedekind::sets::Set{
+      ((x + dedekind::order::bound<1>)*dedekind::order::bound<
+          2>)+dedekind::order::bound<3> |
+      (x > dedekind::order::bound<5>)};
+
+  using SetL = typename dedekind::sets::NaturalLogic<
+      std::remove_cvref_t<decltype(ℚ)>>::type;
+  using ExpectedPredicate =
+      dedekind::order::Halfspace<Rational<default_integer>, 15,
+                                 dedekind::order::Direction::Upward,
+                                 dedekind::order::Strictness::Strict>;
+  using ExpectedSet =
+      dedekind::sets::Set<Rational<default_integer>, SetL, ExpectedPredicate>;
+  STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(S)>, ExpectedSet>);
+}
+
+TEST_CASE(
     "ℚ: affine composition with negative outer scaling flips direction "
     "(#664 Slice 4)",
     "[numbers][rational][scout_algebra][slice4]") {
