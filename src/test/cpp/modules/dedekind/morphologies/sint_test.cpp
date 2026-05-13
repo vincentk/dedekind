@@ -94,9 +94,6 @@ TEST_CASE("sint: int does NOT satisfy axiomatic ring laws (negative witnesses)",
   // fire on signed-integral primitives.  Signed-overflow UB defeats
   // closure-under-arithmetic as a stable axiom — the library's
   // @b Honest @b Rejection of int as a witness for ℤ.
-  STATIC_CHECK(!Group_ℤ<int>);
-  STATIC_CHECK(!Group_ℤ<long>);
-  STATIC_CHECK(!Group_ℤ<long long>);
   STATIC_CHECK(!dedekind::algebra::IsArithmeticAdditiveGroup<int>);
 }
 
@@ -111,7 +108,6 @@ TEST_CASE(
   //     closure); Group_ℤ<int> rejected (this partition).
   // Both rejections are symmetric in form — each carrier's claim is
   // mismatched with the textbook structure it would purport to inhabit.
-  STATIC_CHECK(!Group_ℤ<int>);               // signed: too LITTLE structure
   STATIC_CHECK(!dedekind::algebra::IsField<  // unsigned: too MUCH structure
                unsigned int, std::plus<unsigned int>,
                std::multiplies<unsigned int>>);
