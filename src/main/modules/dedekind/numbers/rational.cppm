@@ -450,9 +450,33 @@ template <dedekind::numbers::IsInteger I>
 struct is_ordered_multiplicative_group<dedekind::numbers::Rational<I>>
     : std::true_type {};
 
+// Carrier-promise: @c Rational<I> is also a translation-invariant
+// ordered group under @c + --- ℚ is an ordered field, so the additive
+// group inherits the order-compatibility axiom alongside the
+// multiplicative one above.  Closes the marker half of
+// @c IsOrderedAdditiveGroup<Rational<I>> for the scout-algebra's
+// additive translation slice (#664 Slice 2).
+template <dedekind::numbers::IsInteger I>
+struct is_translation_invariant_ordered<dedekind::numbers::Rational<I>>
+    : std::true_type {};
+
 }  // namespace dedekind::algebra
 
 namespace dedekind::numbers {
+
+// Algebraic witness: @c Rational<default_integer> satisfies the
+// composed @c IsOrderedMultiplicativeGroup concept --- the
+// algebraic half (@c IsAbelianGroup<Rational<I>, std::multiplies>)
+// closes via the @c is_invertible_v / @c IsField cert in this file
+// (PR #674); the order half closes via @c IsTotallyOrdered (Rational's
+// @c <=> returning @c std::strong_ordering, pinned downstream); the
+// order-compatibility half closes via the marker specialisation
+// above.  Cross-partition invariant, pinned in main per the
+// static_assert-in-main pattern.
+static_assert(
+    dedekind::algebra::IsOrderedMultiplicativeGroup<Rational<default_integer>>,
+    "ℚ (Rational<default_integer>) satisfies IsOrderedMultiplicativeGroup: "
+    "ordered field (Lang, Algebra §III.1).");
 
 // NEW-A trait registry witness (#498/#499): @c Rational<I> is a
 // module over its @c IntegerCarrier @c I.  Textbook reading: ℚ is a

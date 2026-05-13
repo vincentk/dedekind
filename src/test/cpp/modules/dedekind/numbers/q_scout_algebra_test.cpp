@@ -34,15 +34,15 @@ import dedekind.sets;
 
 using namespace dedekind::numbers;
 
-// ---------------------------------------------------------------------------
-// Algebraic + order witnesses on @c Rational<default_integer>.
-// ---------------------------------------------------------------------------
-
-static_assert(
-    dedekind::algebra::IsOrderedMultiplicativeGroup<Rational<default_integer>>,
-    "ℚ satisfies IsOrderedMultiplicativeGroup: IsField (post-#674) "
-    "gives the multiplicative-group axiom on the non-zero cone, and "
-    "the ordered-field marker is registered for Rational<I>.");
+// Algebraic witnesses moved upstream per the static_assert-in-main
+// pattern:
+//   * @c IsOrderedMultiplicativeGroup<Rational<default_integer>> ---
+//     pinned at @c rational.cppm.
+//   * @c !IsOrderedMultiplicativeGroup<SignedCardinality> ---
+//     pinned at @c integer.cppm (alongside @c IsInitialRing and
+//     @c IsGrothendieckGroup, completing the algebraic identity of ℤ).
+// The TEST_CASEs below exercise the actual pipe behaviour (positive
+// scaling, direction-flip on negative scalar, @c k_E = 0 rejection).
 
 // ---------------------------------------------------------------------------
 // Scout-algebra: positive-scalar multiplicative scaling preserves
@@ -91,38 +91,6 @@ TEST_CASE("ℚ: negative-scalar scaling flips direction (#664 Slice 3)",
       dedekind::sets::Set<Rational<default_integer>, SetL, ExpectedPredicate>;
   STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(S)>, ExpectedSet>);
 }
-
-// ---------------------------------------------------------------------------
-// Honest Rejection: ℤ has no multiplicative inverses (post-#674 the
-// IsField gate is firmly @c false on @c SignedCardinality), so the
-// multiplicative factory and pipe are removed from the candidate set.
-// The negative is documentation: writing @c in<ℤ> @c * @c bound<3>
-// fails to compile, not silently produces a wrong type.  Paired below
-// with the @b positive algebraic claim that ℤ @b is the initial ring
-// (per @c algebra:initial_ring), so the rejection is structurally
-// honest: ℤ retains its full algebraic standing, just not as a
-// multiplicative group.
-// ---------------------------------------------------------------------------
-
-static_assert(
-    dedekind::algebra::IsInitialRing<dedekind::sets::SignedCardinality>,
-    "ℤ (SignedCardinality) IS the initial ring (algebra:initial_ring).");
-
-static_assert(
-    dedekind::algebra::IsGrothendieckGroup<dedekind::sets::SignedCardinality,
-                                           dedekind::sets::Cardinality>,
-    "ℤ (SignedCardinality) IS the Grothendieck group of ℕ (Cardinality) "
-    "--- the universal abelian-group completion of (ℕ, +, 0).");
-
-static_assert(
-    !dedekind::algebra::IsOrderedMultiplicativeGroup<
-        dedekind::sets::SignedCardinality>,
-    "ℤ is the initial ring AND the Grothendieck group of ℕ, but NOT a "
-    "multiplicative group: non-units (i.e.\\ everything except ±1) lack "
-    "multiplicative inverses, so the scout-algebra multiplicative pipe "
-    "Honest-Rejects scaling on ℤ.  Use ℚ (Rational<default_integer>) for "
-    "the multiplicative-scaling slice --- ℚ is, after all, the field of "
-    "fractions of ℤ (the universal field extending the integers).");
 
 // ---------------------------------------------------------------------------
 // Honest Rejection: @c k_E = 0 scaling.  Scaling by zero collapses the
