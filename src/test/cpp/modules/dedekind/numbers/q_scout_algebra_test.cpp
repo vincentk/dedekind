@@ -97,15 +97,25 @@ TEST_CASE("ℚ: negative-scalar scaling flips direction (#664 Slice 3)",
 // IsField gate is firmly @c false on @c SignedCardinality), so the
 // multiplicative factory and pipe are removed from the candidate set.
 // The negative is documentation: writing @c in<ℤ> @c * @c bound<3>
-// fails to compile, not silently produces a wrong type.
+// fails to compile, not silently produces a wrong type.  Paired below
+// with the @b positive algebraic claim that ℤ @b is the initial ring
+// (per @c algebra:initial_ring), so the rejection is structurally
+// honest: ℤ retains its full algebraic standing, just not as a
+// multiplicative group.
 // ---------------------------------------------------------------------------
+
+static_assert(
+    dedekind::algebra::IsInitialRing<dedekind::sets::SignedCardinality>,
+    "ℤ (SignedCardinality) IS the initial ring (algebra:initial_ring).");
 
 static_assert(
     !dedekind::algebra::IsOrderedMultiplicativeGroup<
         dedekind::sets::SignedCardinality>,
-    "ℤ (SignedCardinality) is NOT a multiplicative group: it is a ring "
-    "but lacks multiplicative inverses for non-units, so the scout-"
-    "algebra multiplicative pipe Honest-Rejects scaling on ℤ.");
+    "ℤ (SignedCardinality) is the initial ring but NOT a multiplicative "
+    "group: non-units (i.e.\\ everything except ±1) lack multiplicative "
+    "inverses, so the scout-algebra multiplicative pipe Honest-Rejects "
+    "scaling on ℤ.  Use ℚ (Rational<default_integer>) for the multiplicative-"
+    "scaling slice.");
 
 // ---------------------------------------------------------------------------
 // Honest Rejection: @c k_E = 0 scaling.  Scaling by zero collapses the

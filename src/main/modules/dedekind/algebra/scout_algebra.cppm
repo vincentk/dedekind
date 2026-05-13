@@ -230,27 +230,45 @@ concept IsOrderedAdditiveGroup =
  * @brief A multiplicative group whose order is compatible with @c *.
  *
  * @details
- * Multiplicative twin of @c IsOrderedAdditiveGroup: combines the
- * algebraic gate @c IsAbelianGroup<T, std::multiplies<T>> with the
- * @b axiom marker @c is_ordered_multiplicative_group_v<T>.  This is
- * the precondition for halfspace-pivot transport under scaling:
- * scaling @f$\{x \mid x > k\}@f$ by @c k_E yields
+ * Multiplicative twin of @c IsOrderedAdditiveGroup, with three
+ * orthogonal claims composed:
+ *
+ *   * @b Algebraic: @c IsAbelianGroup<T, std::multiplies<T>> ---
+ *     @c T's non-zero cone is a multiplicative abelian group.
+ *   * @b Order: @c order::IsTotallyOrdered<T> --- @c T's @c <=>
+ *     decides every pair (no @c std::partial_ordering "unordered"
+ *     outcomes).  Tighter than the additive sibling because the
+ *     carriers we care about here (@c Rational<I>, future @c Real
+ *     proxies) are ordered fields with strong-ordering @c <=>,
+ *     whereas the additive sibling has to admit variant ℤ proxies
+ *     whose @c <=> is partial (cf.\ the @c \@note above
+ *     @c IsOrderedAdditiveGroup).
+ *   * @b Order-compatibility: the carrier-promise marker
+ *     @c is_ordered_multiplicative_group_v<T> --- the axiom that
+ *     scaling preserves the order when the scalar is positive and
+ *     reverses it when negative.
+ *
+ * This is the precondition for halfspace-pivot transport under
+ * scaling: scaling @f$\{x \mid x > k\}@f$ by @c k_E yields
  * @f$\{y \mid y > k \cdot k_E\}@f$ when @c k_E > 0 and the
  * direction-flipped @f$\{y \mid y < k \cdot k_E\}@f$ when @c k_E < 0,
- * exactly when @c k_E-scaling preserves / reverses the order under
- * the multiplicative-group structure.  The marker certifies the
- * order-compatibility axiom.
+ * exactly when the three claims compose.
  *
- * @note The @c k_E = 0 case is degenerate (the halfspace collapses);
- *       handled at the pipe's @c Element != zero gate, not here.
+ * @note The @c k_E = 0 case is degenerate (the scout function
+ *       collapses to the constant @c x @c ↦ @c 0; the image is the
+ *       singleton @c {0} or @c ∅, not a halfspace); handled at the
+ *       pipe's @c Element != zero gate, not here.
  *
  * Per PR #674: @c IsField<Rational<default_integer>> fires structurally,
- * so the algebraic side closes on ℚ.  The marker side is registered in
- * @c numbers:rational.
+ * so the algebraic side closes on ℚ.  The marker side is registered
+ * in @c numbers:rational.  The order side closes via @c Rational 's
+ * @c <=> returning @c std::strong_ordering (pinned at
+ * @c rational.cppm:1021).
  */
 export template <typename T>
 concept IsOrderedMultiplicativeGroup =
     dedekind::category::IsAbelianGroup<T, std::multiplies<T>> &&
+    dedekind::order::IsTotallyOrdered<T> &&
     is_ordered_multiplicative_group_v<T>;
 
 /**
