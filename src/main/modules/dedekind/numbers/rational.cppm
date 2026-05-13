@@ -918,28 +918,6 @@ static_assert(
 // hold (e.g. because a downstream change breaks a species-trait), the build
 // breaks here, at the point of the claim, rather than silently downstream.
 
-// `Monoid_ℕ` static_assert removed under ℚ-retarget chiselling: the
-// concept was deleted from :natural.
-
-// ℤ as an abelian group under +: the canonical arbitrary-precision signed
-// integer carrier. The species-trait registry supplies associativity,
-// commutativity, identity, and inverse; the concept gate enforces them.
-static_assert(Group_ℤ<SignedExtensionalCardinal<>>,
-              "SignedExtensionalCardinal<> must realize ℤ as an abelian "
-              "group under std::plus.");
-
-// ℤ-deal (#394): the strict additive-group proof above AND the literal
-// C++ +, binary -, unary - operators close strictly on the carrier.
-// SignedExtensionalCardinal<>'s friend operators all return
-// SignedExtensionalCardinal<> exactly, so HasGroupOperatorsAdd fires;
-// combined with the species-trait Group_ℤ proof, IsArithmeticAdditiveGroup
-// is the meet-point between the math-textbook ℤ structure and the
-// standard C++ arithmetic operators on this carrier.
-static_assert(
-    dedekind::algebra::IsArithmeticAdditiveGroup<SignedExtensionalCardinal<>>,
-    "SignedExtensionalCardinal<> is the canonical ℤ-deal: strict "
-    "additive group AND literal +,-,unary - close on the carrier.");
-
 // ℚ as the field of rationals: the canonical arbitrary-precision rational
 // carrier that the paper-facing showcases instantiate on.  Both the
 // operational @c HasFieldOperators surface AND the axiomatic

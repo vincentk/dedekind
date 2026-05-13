@@ -29,6 +29,20 @@ namespace dedekind::numbers {
 using namespace dedekind::category;
 using namespace dedekind::sets;
 
+/** @brief Default signed-integer carrier used by downstream numeric
+ *  layers (Rational<I>, embeddings).  Post-#670-sibling (ℚ retarget):
+ *  anchored on @c sets::SignedCardinality (saturating ℤ proxy with
+ *  ±ℵ_0 / NaZ escalation), mirroring how @c ℤ = @c Ω<SignedCardinality>
+ *  in @c :integer.  This is the discipline-consistent canonical ℤ
+ *  carrier --- @c ℚ = @c Ω<Rational<default_integer>> now uses the
+ *  saturating variant uniformly.
+ *
+ *  Pre-retarget value: @c SignedExtensionalCardinal<> (cyclic finite
+ *  fragment).  The retarget is what the user asked for: "re-target
+ *  rationals / ℚ in the same way as ℤ, ℕ, 𝔹".
+ */
+export using default_integer = dedekind::sets::SignedCardinality;
+
 /** @section integer__Saturating_ℤ (#670)
  *
  * @c ℤ is the universe @c Ω<SignedCardinality>, using the @b saturating

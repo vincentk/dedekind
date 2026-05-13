@@ -163,26 +163,6 @@ concept HasEuclideanGcd = IsInteger<Z> && requires(Z a, Z b) {
   { euclidean_gcd(a, b) } -> std::same_as<Z>;
 };
 
-/** @brief Default signed-integer carrier used by downstream numeric
- *  layers (Rational<I>, embeddings).  Post-#670-sibling (ℚ retarget):
- *  anchored on @c sets::SignedCardinality (saturating ℤ proxy with
- *  ±ℵ_0 / NaZ escalation), mirroring how @c ℤ = @c Ω<SignedCardinality>
- *  in @c :integer.  This is the discipline-consistent canonical ℤ
- *  carrier --- @c ℚ = @c Ω<Rational<default_integer>> now uses the
- *  saturating variant uniformly.
- *
- *  Pre-retarget value: @c SignedExtensionalCardinal<> (cyclic finite
- *  fragment).  The retarget is what the user asked for: "re-target
- *  rationals / ℚ in the same way as ℤ, ℕ, 𝔹".
- */
-export using default_integer = dedekind::sets::SignedCardinality;
-
-/** @concept Group_ℤ: T satisfies Group_ℤ iff it is IsInteger AND
- *  (T, +, 0) is an abelian group. */
-export template <typename T>
-concept Group_ℤ =
-    IsInteger<T> && dedekind::category::IsAbelianGroup<T, std::plus<T>>;
-
 // ===========================================================================
 // (1) Universal machine→variant lift: std::signed_integral → SignedCardinality
 // ===========================================================================
@@ -433,15 +413,6 @@ static_assert(dedekind::algebra::HasSuccessorOperators<long long>,
 // as a stable axiom; the strict abelian-group / ring witnesses
 // must @b not fire on @c std::signed_integral primitives.  The
 // exact-@c ℤ reading lives on @c SignedCardinality post-#402.
-static_assert(!Group_ℤ<int>,
-              "int must NOT satisfy Group_ℤ: signed-overflow UB defeats "
-              "the strict abelian-group proof under the math-wins-over-C++ "
-              "stance.  SignedCardinality is the exact-ℤ witness "
-              "(carrier home: dedekind::sets:cardinality).");
-static_assert(!Group_ℤ<long>,
-              "long must NOT satisfy Group_ℤ for the same reason.");
-static_assert(!Group_ℤ<long long>,
-              "long long must NOT satisfy Group_ℤ for the same reason.");
 static_assert(!dedekind::algebra::IsArithmeticAdditiveGroup<int>,
               "int must NOT satisfy IsArithmeticAdditiveGroup: same "
               "UB-on-overflow reason as the Group_ℤ rejection.");
