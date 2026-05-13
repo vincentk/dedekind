@@ -989,7 +989,7 @@ set expression to a no-op when its predicate is statically unsatisfiable.
 
 % Source: src/test/cpp/modules/dedekind/python/showcase_alpha_prime.cpp
 \begin{listing}[htbp]
-\caption{α′ — a single listing across the §3 narrative arc \emph{rule\,→\,tested\,→\,trimmed\,→\,collapsed\,→\,contradicted\,→\,certified} on $\mathbb{N}$.  Each line is one structural reduction the compiler discharges.  The \cppinline{== L::True} membership form lifts \cppinline{Ternary} (the natural-logic species over the transfinite $\mathbb{N}$) into a \cppinline{static_assert}-eligible boolean; a halfspace-elevation refinement that carries decidability back into bare \cppinline{static_assert(S.contains(7u))} reading is on the future-DSL list.  The cardinality-1 collapse \cppinline{S & {<7}} → \cppinline{Singleton<6>} and the law-of-excluded-middle reduction \cppinline{S & !S} → $\varnothing$ are both type-level discharges; Listing~\ref{lst:pruning_ir} demonstrates the same empty-meet structural pattern at the IR level via a sibling halfspace-contradiction witness in \texttt{showcase\_03\_halfspace\_contradiction.cpp}.}
+\caption{α′ — a single listing across the §3 narrative arc \emph{rule\,→\,tested\,→\,trimmed\,→\,collapsed\,→\,contradicted\,→\,certified\,→\,transformed} on $\mathbb{N}$ (the \emph{transformed} nugget parallel-sections on $\mathbb{Q}$, the smallest carrier where the scout-algebra additive and multiplicative gates both fire).  Each line is one structural reduction the compiler discharges.  The \cppinline{== L::True} membership form lifts \cppinline{Ternary} (the natural-logic species over the transfinite $\mathbb{N}$) into a \cppinline{static_assert}-eligible boolean; a halfspace-elevation refinement that carries decidability back into bare \cppinline{static_assert(S.contains(7u))} reading is on the future-DSL list.  The cardinality-1 collapse \cppinline{S & {<7}} → \cppinline{Singleton<6>} and the law-of-excluded-middle reduction \cppinline{S & !S} → $\varnothing$ are both type-level discharges; Listing~\ref{lst:pruning_ir} demonstrates the same empty-meet structural pattern at the IR level via a sibling halfspace-contradiction witness in \texttt{showcase\_03\_halfspace\_contradiction.cpp}.  The \emph{transformed} nugget is the in-line scout-algebra surface (\#664): \cppinline{in<ℚ> + bound<3>} shifts the source halfspace's pivot by $+3$ at the type level; \cppinline{in<ℚ> * bound<2>} scales the pivot by $\times 2$ (positive-scalar branch; the negative-scalar branch flips the halfspace's direction).  $\mathbb{Q}$ admits both because \cppinline{IsField<Rational<default_integer>>} fires structurally (PR \#674), inheriting the additive and multiplicative gates from the field axioms.}
 \label{lst:pruning}
 \begin{cpp}
 constexpr auto S = Set{in<ℕ> | in<ℕ> > bound<5>};                         // rule
@@ -1000,6 +1000,8 @@ static_assert(T.contains(8u) == L::True && T.contains(11u) == L::False);
 constexpr Singleton<6> a = S & Set{in<ℕ> | in<ℕ> < bound<7>};                // collapsed
 constexpr Ø<Cardinality> b = S & !S;                                         // contradicted
 static_assert(IsCompileTimeEnumerable<decltype(a)> && IsCompileTimeEnumerable<decltype(b)>);  // certified
+constexpr auto Sₜ = Set{in<ℚ> + bound<3> | in<ℚ> > bound<2>};                // transformed (+): {y | y > 5}
+constexpr auto S× = Set{in<ℚ> * bound<2> | in<ℚ> > bound<5>};                // transformed (×): {y | y > 10}
 \end{cpp}
 \end{listing}
 

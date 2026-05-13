@@ -203,6 +203,25 @@ static_assert(
     "SignedCardinality realises the Grothendieck construction at the "
     "operator level.");
 
+// Honest Rejection: ℤ is the initial ring AND the Grothendieck group
+// of ℕ (asserted above), but NOT a multiplicative group --- non-units
+// (everything except ±1) lack multiplicative inverses.  The
+// scout-algebra @c operator*(BoundScout, Bound) factory and the
+// multiplicative @c GroupScout::operator|(Halfspace) pipe in
+// @c :algebra:scout_algebra both gate on
+// @c IsAbelianGroup<T, std::multiplies<T>>, so ℤ is correctly
+// removed from the candidate set when callers spell @c in<ℤ> @c *
+// @c bound<k>.  Use ℚ (Rational<default_integer>, the field of
+// fractions of ℤ; pinned at @c rational.cppm) for multiplicative
+// halfspace scaling.  Cross-partition invariant pinned in main per
+// the static_assert-in-main pattern.
+static_assert(
+    !dedekind::algebra::IsOrderedMultiplicativeGroup<
+        dedekind::sets::SignedCardinality>,
+    "ℤ (SignedCardinality) is NOT a multiplicative group --- non-units "
+    "lack multiplicative inverses.  ℚ (the field of fractions of ℤ) is "
+    "the right carrier for multiplicative halfspace scaling.");
+
 }  // namespace dedekind::numbers
 
 // ---------------------------------------------------------------------------

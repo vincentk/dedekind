@@ -21,15 +21,23 @@
  * added in the 2026-05-06 design update.  This showcase ships the six
  * that compile against current main: of the seven base nuggets, one
  * (the cross-carrier @c embed_𝔹_ℕ embedding) is dropped because
- * @c embed_𝔹_ℕ is not yet reified; the transformation nugget is
- * deferred because it is gated on the expression-template DSL leg
- * of #603's four-leg ordering.  Six ship, one is dropped, one is
- * deferred --- eight total candidate nuggets in the design,
- * six implemented today.
+ * @c embed_𝔹_ℕ is not yet reified.
+ *
+ * Post-#664 (Slice 2 + Slice 3 + PR #674's @c IsField cert) the @b
+ * transformation nugget is @b realised, parallel-sectioned on ℚ
+ * (since ℕ doesn't admit the algebraic gates: not a group under @c +,
+ * not a field under @c *).  ℚ admits both: additive translation
+ * @c in<ℚ> @c + @c bound<k> via @c IsOrderedAdditiveGroup<ℚ>, and
+ * multiplicative scaling @c in<ℚ> @c * @c bound<k> via
+ * @c IsOrderedMultiplicativeGroup<ℚ>.  The transformations are
+ * type-level halfspace-pivot transports, just like the §3 reductions.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  */
+
+#include <concepts>
+#include <type_traits>
 
 import dedekind.category;
 import dedekind.sets;
@@ -96,6 +104,32 @@ constexpr Ø<Cardinality> b = S & !S;
 //     type-level semantics.
 static_assert(IsExtensional<decltype(a)>);
 static_assert(IsExtensional<decltype(b)>);
+
+// (7) Transformed.  The deferred eighth nugget from #603's design,
+//     realised post-#664 + #674 on ℚ (the algebraic gates fail on ℕ
+//     --- not a group under +, not a field under *; on ℚ both fire).
+//     Each scout-algebra DSL form is a halfspace-pivot transport at
+//     compile time: the source predicate's pivot is shifted (+) or
+//     scaled (*) by the scout's Element under the group action.
+constexpr auto S_translated = Set{in<ℚ> + bound<3> | in<ℚ> > bound<2>};
+constexpr auto S_scaled = Set{in<ℚ> * bound<2> | in<ℚ> > bound<5>};
+// Pivot transport: 2 + 3 = 5 (translation); 5 * 2 = 10 (scaling).
+// The reduced predicate IS a Halfspace with the transported pivot at
+// the type level; pinned via full-type equality.
+using QLogic = typename dedekind::sets::NaturalLogic<
+    std::remove_cvref_t<decltype(ℚ)>>::type;
+using QCarrier =
+    dedekind::numbers::Rational<dedekind::numbers::default_integer>;
+static_assert(
+    std::same_as<
+        std::remove_cvref_t<decltype(S_translated)>,
+        Set<QCarrier, QLogic,
+            Halfspace<QCarrier, 5, Direction::Upward, Strictness::Strict>>>);
+static_assert(
+    std::same_as<
+        std::remove_cvref_t<decltype(S_scaled)>,
+        Set<QCarrier, QLogic,
+            Halfspace<QCarrier, 10, Direction::Upward, Strictness::Strict>>>);
 
 /**
  * @brief Showcase α′: the §3 walk's compile-time payoff lifted to a
