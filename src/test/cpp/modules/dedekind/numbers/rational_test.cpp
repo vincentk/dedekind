@@ -4,9 +4,11 @@
 #include <limits>
 
 import dedekind.category;
+import dedekind.morphologies;
 import dedekind.numbers;
 import dedekind.sets;
 
+using namespace dedekind::morphologies;
 using namespace dedekind::numbers;
 
 TEST_CASE("Numbers: Rational Simplification", "[numbers][rational]") {

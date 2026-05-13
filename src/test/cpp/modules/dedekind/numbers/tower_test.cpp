@@ -14,14 +14,16 @@
 #include <catch2/catch_test_macros.hpp>
 
 import dedekind.category;
+import dedekind.ieee;
+import dedekind.morphologies;
 import dedekind.numbers;
 import dedekind.sets;
-import dedekind.ieee;
 
 using namespace dedekind::category;
+using namespace dedekind::ieee;
+using namespace dedekind::morphologies;
 using namespace dedekind::numbers;
 using namespace dedekind::sets;
-using namespace dedekind::ieee;
 
 // ---------------------------------------------------------------------------
 // Compile-time monicity declarations are honoured

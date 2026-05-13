@@ -8,9 +8,11 @@
                     // operator — see PR #437 review thread.
 
 import dedekind.category;
+import dedekind.morphologies;
 import dedekind.numbers;
 
 using namespace dedekind::category;
+using namespace dedekind::morphologies;
 using namespace dedekind::numbers;
 using namespace dedekind::sets;
 
