@@ -2389,4 +2389,17 @@ inline constexpr bool is_monic_arrow_v<std::decay_t<decltype(embed_𝕂3_ℤ_)>>
 static_assert(IsInjective<std::decay_t<decltype(embed_𝕂3_ℤ_)>>,
               "embed_𝕂3_ℤ_ (𝕂3 → ℤ) is registered injective.");
 
+// ---------------------------------------------------------------------------
+// Carrier-lattice lift unification (#455): existential-proof
+// specialisation of @c category::lift for the central variant-layer
+// pair @c (Cardinality, SignedCardinality).  Demonstrates that the
+// discoverability-alias dispatch works on a real lattice arrow;
+// remaining six specialisations land as follow-up.
+// ---------------------------------------------------------------------------
+
+template <>
+constexpr SignedCardinality lift<Cardinality, SignedCardinality>(
+    Cardinality const& n) {
+  return lift_ℕ_ℤ_(n);
+}
 }  // namespace dedekind::category
