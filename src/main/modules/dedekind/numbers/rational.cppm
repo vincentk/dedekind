@@ -436,26 +436,16 @@ inline constexpr bool
 
 namespace dedekind::algebra {
 
-// Carrier-promise: @c Rational<I> is an @b ordered multiplicative
-// group on its non-zero cone --- ℚ is an ordered field (Lang, @em
-// Algebra §III.1 + the order-compatibility axioms); the multiplicative
-// group @c (ℚ\\{0}, @c *) inherits the order from the additive structure
-// via the textbook positive / negative dichotomy.  Closes the marker
-// half of @c IsOrderedMultiplicativeGroup<Rational<I>> for the
-// in-line scout-algebra's multiplicative scaling slice (#664 Slice 3);
-// the algebraic half --- @c IsAbelianGroup<Rational<I>,
-// std::multiplies<Rational<I>>> --- closes via the @c is_invertible_v
-// trait registered above (PR #674).
-template <dedekind::numbers::IsInteger I>
-struct is_ordered_multiplicative_group<dedekind::numbers::Rational<I>>
-    : std::true_type {};
-
-// Carrier-promise: @c Rational<I> is also a translation-invariant
-// ordered group under @c + --- ℚ is an ordered field, so the additive
-// group inherits the order-compatibility axiom alongside the
-// multiplicative one above.  Closes the marker half of
-// @c IsOrderedAdditiveGroup<Rational<I>> for the scout-algebra's
-// additive translation slice (#664 Slice 2).
+// Carrier-promise: @c Rational<I> is a translation-invariant ordered
+// group under @c + --- ℚ is an ordered field (Lang, @em Algebra
+// §III.1), so the additive group inherits the order-compatibility
+// axiom.  Closes the marker half of @c IsOrderedAdditiveGroup<Rational<I>>
+// for the scout-algebra's additive translation slice (#664 Slice 2).
+// The multiplicative side is handled upstream: @c
+// IsOrderedMultiplicativeGroup composes @c algebra::IsField<T> @c &&
+// @c order::IsTotallyOrdered<T> directly, with no carrier-side marker
+// needed --- Rational satisfies both structurally (PR #674's @c
+// IsField cert + @c std::strong_ordering @c <=>).
 template <dedekind::numbers::IsInteger I>
 struct is_translation_invariant_ordered<dedekind::numbers::Rational<I>>
     : std::true_type {};

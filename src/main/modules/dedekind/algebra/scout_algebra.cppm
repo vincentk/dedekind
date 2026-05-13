@@ -84,7 +84,9 @@ export module dedekind.algebra:scout_algebra;
 
 import dedekind.category; // IsGroup<T, Op>
 import dedekind.sets;     // BoundScout<auto>, SignedExtensionalCardinal
-import dedekind.order;    // Bound<auto>
+import dedekind.order;    // Bound<auto>, IsTotallyOrdered
+import :field;            // IsField<T, Add, Mult> (the multiplicative-group +
+                          // ordered-field gate)
 import :group;            // IsAdditiveGroup<T, Add>
 
 namespace dedekind::algebra {
@@ -154,41 +156,17 @@ export template <typename T>
 inline constexpr bool is_translation_invariant_ordered_v =
     is_translation_invariant_ordered<T>::value;
 
-/** @brief Carrier-promise marker: @c T is an @b ordered multiplicative
- *  group on its non-zero cone.  Mirrors @c is_translation_invariant_ordered
- *  for the additive case: the marker is the axiom-level promise that
- *  scaling a halfspace pivot by @c k preserves the order @b when
- *  @c k > 0 and reverses it @b when @c k < 0 (with @c k = 0 collapsing
- *  the halfspace --- handled by the pipe's @c Element != zero gate).
- *
- *  Default is @c false_type --- carriers must positively register the
- *  ordered-field structure.  Specialised in @c numbers:rational for
- *  @c Rational<I> on any @c IsInteger I: ℚ is an ordered field (Lang,
- *  @em Algebra §III.1 + the order-compatibility axioms).  Carriers that
- *  satisfy @c algebra::IsField but @b not the order axiom (e.g.\
- *  finite fields like @c bool / 𝔽₂; complex numbers @c Complex<R>
- *  where there is no order compatible with @c *) fail this marker by
- *  default.
- *
- *  The marker pairs with @c IsAbelianGroup<T, std::multiplies<T>> in
- *  the @c IsOrderedMultiplicativeGroup concept below, exactly as the
- *  additive marker pairs with @c IsAbelianGroup<T, std::plus<T>> in
- *  @c IsOrderedAdditiveGroup.
- *
- *  Exported (unlike the additive sibling) so downstream carrier-side
- *  partitions (@c numbers:rational) can specialise without a
- *  scout-algebra-imports-numbers reverse dependency.  The additive
- *  marker's specialisation lives in this same file because
- *  @c sets::SignedCardinality is upstream of @c :algebra; the
- *  multiplicative marker's specialisation lives in @c numbers:rational
- *  because @c Rational<I> is downstream.
- */
-export template <typename T>
-struct is_ordered_multiplicative_group : std::false_type {};
-
-export template <typename T>
-inline constexpr bool is_ordered_multiplicative_group_v =
-    is_ordered_multiplicative_group<T>::value;
+// No multiplicative-side marker is exported: unlike the additive case
+// (where the @c is_translation_invariant_ordered marker carries the
+// order claim past @c SignedCardinality 's partial-ordering @c <=>),
+// the multiplicative case's consumers are ordered-field carriers
+// (e.g.\ @c Rational<I>) whose @c <=> is @c std::strong_ordering and
+// which therefore satisfy @c std::totally_ordered structurally.  The
+// composition @c algebra::IsField<T> @c && @c order::IsTotallyOrdered<T>
+// in @c IsOrderedMultiplicativeGroup below is the upstream-rooted
+// expression of "ordered multiplicative group on the non-zero cone";
+// a separate marker would only re-state what the upstream concepts
+// already prove.
 
 /**
  * @concept IsOrderedAdditiveGroup
@@ -227,49 +205,45 @@ concept IsOrderedAdditiveGroup =
 
 /**
  * @concept IsOrderedMultiplicativeGroup
- * @brief A multiplicative group whose order is compatible with @c *.
+ * @brief An ordered field --- the textbook home of multiplicative
+ *        scaling of halfspaces.
  *
  * @details
- * Multiplicative twin of @c IsOrderedAdditiveGroup, with three
- * orthogonal claims composed:
- *
- *   * @b Algebraic: @c IsAbelianGroup<T, std::multiplies<T>> ---
- *     @c T's non-zero cone is a multiplicative abelian group.
- *   * @b Order: @c order::IsTotallyOrdered<T> --- @c T's @c <=>
- *     decides every pair (no @c std::partial_ordering "unordered"
- *     outcomes).  Tighter than the additive sibling because the
- *     carriers we care about here (@c Rational<I>, future @c Real
- *     proxies) are ordered fields with strong-ordering @c <=>,
- *     whereas the additive sibling has to admit variant ℤ proxies
- *     whose @c <=> is partial (cf.\ the @c \@note above
- *     @c IsOrderedAdditiveGroup).
- *   * @b Order-compatibility: the carrier-promise marker
- *     @c is_ordered_multiplicative_group_v<T> --- the axiom that
- *     scaling preserves the order when the scalar is positive and
- *     reverses it when negative.
+ * Composes two upstream concepts directly:
+ *   * @c algebra::IsField<T> --- @c T is a field (post-PR #674's
+ *     @c IsField cert on @c Rational<I>), so the multiplicative
+ *     group on the non-zero cone @c (T \\ {0}, @c *) is an abelian
+ *     group with multiplicative inverses.
+ *   * @c order::IsTotallyOrdered<T> --- @c T's @c <=> decides every
+ *     pair via @c std::totally_ordered.  Combined with the field
+ *     axiom, this gives an @b ordered @b field; the order is
+ *     automatically compatible with @c * via the textbook
+ *     positive/negative dichotomy.
  *
  * This is the precondition for halfspace-pivot transport under
  * scaling: scaling @f$\{x \mid x > k\}@f$ by @c k_E yields
  * @f$\{y \mid y > k \cdot k_E\}@f$ when @c k_E > 0 and the
- * direction-flipped @f$\{y \mid y < k \cdot k_E\}@f$ when @c k_E < 0,
- * exactly when the three claims compose.
+ * direction-flipped @f$\{y \mid y < k \cdot k_E\}@f$ when @c k_E < 0.
+ *
+ * No carrier-promise marker (unlike the additive sibling): the
+ * upstream concepts cover everything.  @c Rational<I> satisfies both
+ * (@c IsField via PR #674's @c is_invertible_v registration,
+ * @c IsTotallyOrdered via @c Rational 's @c std::strong_ordering
+ * @c <=>); finite fields like @c bool @c / 𝔽₂ correctly fail
+ * @c IsTotallyOrdered (well, they trivially satisfy it on the
+ * 2-element set, but order-compatibility-with-multiplication is
+ * vacuous --- the halfspace pivot-transport pattern doesn't apply
+ * either way); @c Complex<R> correctly fails @c IsTotallyOrdered
+ * (no order compatible with the complex multiplication).
  *
  * @note The @c k_E = 0 case is degenerate (the scout function
  *       collapses to the constant @c x @c ↦ @c 0; the image is the
  *       singleton @c {0} or @c ∅, not a halfspace); handled at the
  *       pipe's @c Element != zero gate, not here.
- *
- * Per PR #674: @c IsField<Rational<default_integer>> fires structurally,
- * so the algebraic side closes on ℚ.  The marker side is registered
- * in @c numbers:rational.  The order side closes via @c Rational 's
- * @c <=> returning @c std::strong_ordering (pinned at
- * @c rational.cppm:1021).
  */
 export template <typename T>
 concept IsOrderedMultiplicativeGroup =
-    dedekind::category::IsAbelianGroup<T, std::multiplies<T>> &&
-    dedekind::order::IsTotallyOrdered<T> &&
-    is_ordered_multiplicative_group_v<T>;
+    dedekind::algebra::IsField<T> && dedekind::order::IsTotallyOrdered<T>;
 
 /**
  * @brief Symbolic scout parameterised by carrier @c T, group operation
