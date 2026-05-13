@@ -96,6 +96,83 @@ TEST_CASE("ℚ: negative-scalar scaling flips direction (#664 Slice 3)",
 }
 
 // ---------------------------------------------------------------------------
+// Scout-algebra: affine composition `(m * x) + b` (#664 Slice 4).
+// The canonical affine form: inner multiplicative scale, outer
+// additive shift.  Halfspace transport applies the inner pipe first,
+// then the outer pipe on the result.
+// ---------------------------------------------------------------------------
+
+TEST_CASE(
+    "ℚ: affine composition (m * x) + b transports correctly (#664 Slice 4)",
+    "[numbers][rational][scout_algebra][slice4]") {
+  constexpr auto x = dedekind::sets::element<ℚ>;
+  // {x ∈ ℚ | x > 5} pushed through λx. 2·x + 1.
+  //   Inner *2:  pivot 5 → 10, direction Upward preserved.
+  //   Outer +1:  pivot 10 → 11, direction Upward preserved.
+  // Final: {y ∈ ℚ | y > 11}.
+  constexpr auto S = dedekind::sets::Set{x * dedekind::order::bound<2> +
+                                             dedekind::order::bound<1> |
+                                         (x > dedekind::order::bound<5>)};
+
+  using SetL = typename dedekind::sets::NaturalLogic<
+      std::remove_cvref_t<decltype(ℚ)>>::type;
+  using ExpectedPredicate =
+      dedekind::order::Halfspace<Rational<default_integer>, 11,
+                                 dedekind::order::Direction::Upward,
+                                 dedekind::order::Strictness::Strict>;
+  using ExpectedSet =
+      dedekind::sets::Set<Rational<default_integer>, SetL, ExpectedPredicate>;
+  STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(S)>, ExpectedSet>);
+}
+
+TEST_CASE(
+    "ℚ: affine composition (x + b) * m transports correctly (#664 Slice 4)",
+    "[numbers][rational][scout_algebra][slice4]") {
+  constexpr auto x = dedekind::sets::element<ℚ>;
+  // {x ∈ ℚ | x > 5} pushed through λx. 2·(x + 3) = 2x + 6.
+  //   Inner +3:  pivot 5 → 8, direction Upward preserved.
+  //   Outer *2:  pivot 8 → 16, direction Upward preserved.
+  // Final: {y ∈ ℚ | y > 16}.
+  constexpr auto S = dedekind::sets::Set{
+      (x + dedekind::order::bound<3>)*dedekind::order::bound<2> |
+      (x > dedekind::order::bound<5>)};
+
+  using SetL = typename dedekind::sets::NaturalLogic<
+      std::remove_cvref_t<decltype(ℚ)>>::type;
+  using ExpectedPredicate =
+      dedekind::order::Halfspace<Rational<default_integer>, 16,
+                                 dedekind::order::Direction::Upward,
+                                 dedekind::order::Strictness::Strict>;
+  using ExpectedSet =
+      dedekind::sets::Set<Rational<default_integer>, SetL, ExpectedPredicate>;
+  STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(S)>, ExpectedSet>);
+}
+
+TEST_CASE(
+    "ℚ: affine composition with negative outer scaling flips direction "
+    "(#664 Slice 4)",
+    "[numbers][rational][scout_algebra][slice4]") {
+  constexpr auto x = dedekind::sets::element<ℚ>;
+  // {x ∈ ℚ | x > 5} pushed through λx. (-2)·(x + 3) = -2x - 6.
+  //   Inner +3:  pivot 5 → 8, direction Upward.
+  //   Outer *(-2): pivot 8 → -16, direction FLIPPED to Downward.
+  // Final: {y ∈ ℚ | y < -16}.
+  constexpr auto S = dedekind::sets::Set{
+      (x + dedekind::order::bound<3>)*dedekind::order::bound<-2> |
+      (x > dedekind::order::bound<5>)};
+
+  using SetL = typename dedekind::sets::NaturalLogic<
+      std::remove_cvref_t<decltype(ℚ)>>::type;
+  using ExpectedPredicate =
+      dedekind::order::Halfspace<Rational<default_integer>, -16,
+                                 dedekind::order::Direction::Downward,
+                                 dedekind::order::Strictness::Strict>;
+  using ExpectedSet =
+      dedekind::sets::Set<Rational<default_integer>, SetL, ExpectedPredicate>;
+  STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(S)>, ExpectedSet>);
+}
+
+// ---------------------------------------------------------------------------
 // Honest Rejection: @c k_E = 0 scaling.  Scaling by zero collapses the
 // scout function to the constant map @c x @c ↦ @c 0; the image is the
 // singleton @c {0} (or @c ∅), not a halfspace, so the pivot-transport

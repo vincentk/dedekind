@@ -33,17 +33,26 @@
  *    @c IsAbelianGroup<T, @c std::multiplies<T>> (i.e.\ a field
  *    carrier, gated on PR #674's @c IsField cert) --- produces
  *    @c GroupScout<T, @c std::multiplies<T>, @c k, @c BoundScout<T>>.
+ *  - @c operator+(GroupScout, @c Bound<k>) and
+ *    @c operator*(GroupScout, @c Bound<k>) (Slice 4): @b composition
+ *    factories lifting the above to a @c GroupScout LHS, so the
+ *    canonical @b affine syntax @c (in<T> @c * @c bound<m>) @c + @c
+ *    bound<k> = @c λx.\,m*x @c + @c k compiles.  Two-layer composition
+ *    today (one BoundScout-inner leaf); deeper composition is a
+ *    follow-up.
  *
  * The comprehension pipe @c GroupScout::operator|(Halfspace) performs
  * @b halfspace-pivot @b transport.  The additive pipe shifts the
  * source pivot by the scout's @c Element along the additive group
  * action.  The multiplicative pipe (Slice 3) scales the source pivot,
  * preserves direction when @c k > 0, flips direction when @c k < 0,
- * and Honest-Rejects @c k = 0 (collapsing-halfspace case).  Both
- * yield a @c Comprehension that Set CTAD picks up and resolves to a
- * @c Set with the transported halfspace as predicate.  No Set CTAD
- * changes needed; the existing @c Comprehension path in
- * @c :sets:expressions is the consumer.
+ * and Honest-Rejects @c k = 0 (collapsing-halfspace case).  Slice 4's
+ * @b composition pipes recurse: inner-first transport, then outer's
+ * pipe on top, with the same direction-flip rules.  All yield a
+ * @c Comprehension that Set CTAD picks up and resolves to a @c Set
+ * with the transported halfspace as predicate.  No Set CTAD changes
+ * needed; the existing @c Comprehension path in @c :sets:expressions
+ * is the consumer.
  *
  * @section scout_algebra__Honest_Rejection
  *
@@ -66,9 +75,11 @@
  *    (e.g.\ @c Rational{1,k}) into the resulting scout's @c Element,
  *    which forces @c T to be a structural NTTP carrier ---
  *    incompatible with the variant-carrier ℚ today.  Follow-up.
- *  - Composition of scouts beyond a single @c BoundScout inner
- *    (e.g.\ @c bound<2> @c * @c in<ℤ> @c + @c bound<1> --- where the
- *    inner of the outer @c + is itself a @c GroupScout) (follow-up).
+ *  - Deeper composition (3+ layers --- e.g.\ @c ((x @c + @c 1) @c *
+ *    @c 2) @c + @c 3) is not yet enabled: the Slice-4 composition
+ *    pipes assume a 2-layer @c GroupScout-of-@c BoundScout chain.
+ *    Lifting to recursive composition would require the recursive
+ *    case to also accept @c GroupScout-of-@c GroupScout as @c Inner.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -405,6 +416,109 @@ struct GroupScout {
           Inner::ambient, NewHalfspace{}};
     }
   }
+
+  /**
+   * @brief Comprehension pipe (composition): @c GroupScout @c |
+   *        @c Halfspace when @c Inner is itself a @c GroupScout ---
+   *        recursive halfspace-pivot transport across a composed
+   *        affine map @c λx.\,f(g(x)) (#664 Slice 4).
+   *
+   * @details
+   * Composition reads inside-out: @c (@c m @c * @c x @c ) @c + @c b
+   * = @c λx.\,b @c + @c (m @c * @c x) is the outer @c GroupScout
+   * (@c Op @c = @c std::plus, @c Element @c = @c b) wrapping the
+   * inner @c GroupScout (@c Op @c = @c std::multiplies,
+   * @c Element @c = @c m).  Halfspace transport applies the @b inner
+   * transport first (it's the inside of the function composition),
+   * then this scout's transport on top.  The result is the same
+   * @c Comprehension shape the base pipes produce; the recursion
+   * terminates at a @c BoundScout-inner leaf via the base-case
+   * overload above.
+   *
+   * The new pivot, direction, and strictness are extracted from
+   * @c Inner 's pipe result (@c Comprehension<..., InnerHalfspace>),
+   * then re-transported under @c std::plus<T> .  Mirrors the
+   * non-composed additive pipe's pivot arithmetic.
+   *
+   * @section Specialisation gate
+   *
+   * Outer is additive (@c Op @c = @c std::plus<T>) over an Inner that
+   * is a @c GroupScout (not a @c BoundScout).  The multiplicative-
+   * outer composition case (@c (@c x @c + @c b @c ) @c * @c m) is
+   * the dual overload below; the inner-leg recursion makes both
+   * cases compose freely.  Recursive composition (3+ layers) is not
+   * yet enabled (would require detecting @c Inner being a
+   * @c GroupScout-of-GroupScout); ship the 2-layer affine case first.
+   */
+  template <auto Pivot, dedekind::order::Direction D,
+            dedekind::order::Strictness S, typename L>
+    requires std::same_as<Op, std::plus<T>> && IsOrderedAdditiveGroup<T> &&
+             // Inner is a @c GroupScout (composition); has @c op_type
+             // and @c element, but not @c AmbientType / @c ambient ---
+             // the latter live on the @c BoundScout at the bottom of
+             // the chain.
+             requires {
+               typename Inner::op_type;
+               Inner::element;
+             }
+  constexpr auto operator|(
+      dedekind::order::Halfspace<T, Pivot, D, S, L> hs) const {
+    constexpr auto inner_comp = Inner{} | hs;
+    using InnerPredicate = std::remove_cvref_t<decltype(inner_comp.predicate)>;
+    constexpr auto new_pivot = InnerPredicate::pivot + Element;
+    using NewHalfspace =
+        dedekind::order::Halfspace<T, new_pivot, InnerPredicate::direction,
+                                   InnerPredicate::strictness, L>;
+    using AmbientType = std::remove_cvref_t<decltype(inner_comp.base)>;
+    return dedekind::sets::Comprehension<AmbientType, NewHalfspace>{
+        inner_comp.base, NewHalfspace{}};
+  }
+
+  /**
+   * @brief Comprehension pipe (composition, multiplicative outer):
+   *        @c (g(x)) @c * @c m where @c g is an inner scout.
+   *
+   * @details
+   * Multiplicative-outer twin of the composition pipe above.  Reads
+   * @c (@c x @c + @c b @c ) @c * @c m = @c λx.\,m @c * @c (x @c + @c b)
+   * --- inner additive shift, outer multiplicative scale.  Inner's
+   * pipe transports first; this scout multiplies the result's pivot
+   * by @c Element and flips direction if @c Element @c < @c 0
+   * (same direction-flip rule as the non-composed multiplicative
+   * pipe).  Honest-Rejects @c Element @c = @c 0.
+   */
+  template <auto Pivot, dedekind::order::Direction D,
+            dedekind::order::Strictness S, typename L>
+    requires std::same_as<Op, std::multiplies<T>> &&
+             IsOrderedMultiplicativeGroup<T> &&
+             (Element != decltype(Element){}) && requires {
+               typename Inner::op_type;
+               Inner::element;
+             }
+  constexpr auto operator|(
+      dedekind::order::Halfspace<T, Pivot, D, S, L> hs) const {
+    constexpr auto inner_comp = Inner{} | hs;
+    using InnerPredicate = std::remove_cvref_t<decltype(inner_comp.predicate)>;
+    constexpr auto new_pivot = Element * InnerPredicate::pivot;
+    using AmbientType = std::remove_cvref_t<decltype(inner_comp.base)>;
+    if constexpr (Element > decltype(Element){}) {
+      using NewHalfspace =
+          dedekind::order::Halfspace<T, new_pivot, InnerPredicate::direction,
+                                     InnerPredicate::strictness, L>;
+      return dedekind::sets::Comprehension<AmbientType, NewHalfspace>{
+          inner_comp.base, NewHalfspace{}};
+    } else {
+      constexpr auto flipped =
+          (InnerPredicate::direction == dedekind::order::Direction::Upward)
+              ? dedekind::order::Direction::Downward
+              : dedekind::order::Direction::Upward;
+      using NewHalfspace =
+          dedekind::order::Halfspace<T, new_pivot, flipped,
+                                     InnerPredicate::strictness, L>;
+      return dedekind::sets::Comprehension<AmbientType, NewHalfspace>{
+          inner_comp.base, NewHalfspace{}};
+    }
+  }
 };
 
 }  // namespace dedekind::algebra
@@ -507,6 +621,51 @@ constexpr auto operator*(BoundScout<Ambient>, dedekind::order::Bound<K>) {
   using T = typename BoundScout<Ambient>::T;
   return dedekind::algebra::GroupScout<T, std::multiplies<T>, K,
                                        BoundScout<Ambient>>{};
+}
+
+/**
+ * @brief Composition (additive outer): @c (g(x)) @c + @c bound<k> for
+ *        any @c GroupScout @c g(x) (#664 Slice 4).
+ *
+ * @details
+ * Lifts the @c operator+ factory from @c BoundScout to any
+ * @c GroupScout LHS, enabling the canonical @b affine syntax
+ * @c (in<ℚ> @c * @c bound<m>) @c + @c bound<k> = @c λx.\,m*x @c + @c k
+ * (or its multiplicative-outer twin below).  The result is a
+ * @c GroupScout with the LHS as @c Inner --- recursion handled by
+ * the composition pipe in @c GroupScout::operator|(Halfspace) above.
+ *
+ * Honest Rejection: writing @c (g(x)) @c + @c bound<k> on a non-
+ * additive-group carrier @c T fails at the same gate as the base
+ * factory (@c IsAbelianGroup<T, std::plus<T>>).
+ */
+export template <typename T, typename InnerOp, auto InnerElement,
+                 typename InnerInner, auto K>
+  requires dedekind::category::IsAbelianGroup<T, std::plus<T>> &&
+           std::convertible_to<decltype(K), T>
+constexpr auto operator+(
+    dedekind::algebra::GroupScout<T, InnerOp, InnerElement, InnerInner>,
+    dedekind::order::Bound<K>) {
+  return dedekind::algebra::GroupScout<
+      T, std::plus<T>, K,
+      dedekind::algebra::GroupScout<T, InnerOp, InnerElement, InnerInner>>{};
+}
+
+/**
+ * @brief Composition (multiplicative outer): @c (g(x)) @c * @c bound<k>
+ *        for any @c GroupScout @c g(x).  Multiplicative twin of the
+ *        additive composition factory above.
+ */
+export template <typename T, typename InnerOp, auto InnerElement,
+                 typename InnerInner, auto K>
+  requires dedekind::category::IsAbelianGroup<T, std::multiplies<T>> &&
+           std::convertible_to<decltype(K), T>
+constexpr auto operator*(
+    dedekind::algebra::GroupScout<T, InnerOp, InnerElement, InnerInner>,
+    dedekind::order::Bound<K>) {
+  return dedekind::algebra::GroupScout<
+      T, std::multiplies<T>, K,
+      dedekind::algebra::GroupScout<T, InnerOp, InnerElement, InnerInner>>{};
 }
 
 }  // namespace dedekind::sets
