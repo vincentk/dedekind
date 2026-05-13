@@ -112,7 +112,7 @@ export using extensional_integer = int;
  *  (additive group + multiplicative monoid + Euclidean pair + total
  *  order on the carrier). */
 export template <typename T>
-concept IsInteger = IsTotalAlgebra<T, std::plus<T>> && requires(T a, T b) {
+concept IsInteger = IsAlgebra<T, std::plus<T>> && requires(T a, T b) {
   { a + b } -> std::same_as<T>;
   { a - b } -> std::same_as<T>;
   { a * b } -> std::same_as<T>;

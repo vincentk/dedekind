@@ -46,7 +46,7 @@ using namespace dedekind::sets;
  * @class Rational
  * @brief The Field of Fractions over an Integral Domain Z.
  */
-export template <IsInteger Z>
+export template <IsInteger Z = default_integer>
 class Rational {
  public:
   // Self-Domain: `Variable<Rational<Z>>::T` becomes `Rational<Z>` so
