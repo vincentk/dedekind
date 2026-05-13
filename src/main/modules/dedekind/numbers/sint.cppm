@@ -116,9 +116,19 @@ concept IsReflectiveSpecies = std::regular<T> && requires(T a) {
   { T{} } -> std::same_as<T>;
 };
 
-/** @concept IsInteger: structural Euclidean-integer-domain concept
- *  (additive group + multiplicative monoid + Euclidean pair + total
- *  order on the carrier). */
+/** @concept IsInteger: integer-shape operator-surface concept ---
+ *  @c std::regular @c + unary @c - @c + @c T{} (via
+ *  @c IsReflectiveSpecies above) @c + @c +, @c -, @c *, @c /,
+ *  @c %, @c <.  This is @b syntactic only; it does @b not certify
+ *  the carrier as an actual Euclidean domain, ring, or totally-
+ *  ordered structure --- those axiomatic claims live in
+ *  @c algebra::IsRing @c / @c algebra::IsCommutativeRing @c /
+ *  @c algebra::IsEuclidean @c / @c order::IsTotallyOrdered upstream,
+ *  and must be witnessed separately at the carrier-registration
+ *  site.  Refactoring this concept to compose the algebraic surfaces
+ *  directly (and Honest-Reject carriers that satisfy the operator
+ *  shape but lack the axioms, e.g.\ @c int with signed-overflow UB)
+ *  is tracked in #675. */
 export template <typename T>
 concept IsInteger = IsReflectiveSpecies<T> && requires(T a, T b) {
   { a + b } -> std::same_as<T>;
