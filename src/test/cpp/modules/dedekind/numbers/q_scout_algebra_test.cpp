@@ -15,13 +15,16 @@
  *     strictness preserved;
  *   * zero scalar is Honest-Rejected (the halfspace would collapse).
  *
- * Algebraic gate: @c IsAbelianGroup<Rational<default_integer>,
- * std::multiplies<...>> closes via the @c is_invertible_v trait
- * registered in @c :rational under PR #674 (zero excluded by the
- * @c total.cppm convention).  Order-compatibility: the carrier-promise
- * marker @c is_ordered_multiplicative_group<Rational<I>> is registered
- * in @c :rational for any @c IsInteger I (ℚ is an ordered field, Lang,
- * @em Algebra §III.1).
+ * Algebraic gate: @c IsOrderedMultiplicativeGroup<T> composes
+ * upstream concepts directly --- @c algebra::IsField<T> (closes on
+ * @c Rational<default_integer> via the @c is_invertible_v trait
+ * registered in @c :rational under PR #674; zero excluded by the
+ * @c total.cppm convention) and @c order::IsTotallyOrdered<T>
+ * (closes via @c Rational 's @c <=> returning @c std::strong_ordering).
+ * No carrier-promise marker is needed on the multiplicative side
+ * (asymmetric with the additive sibling, which keeps
+ * @c is_translation_invariant_ordered to admit the variant ℤ proxy
+ * @c SignedCardinality).
  */
 #include <catch2/catch_test_macros.hpp>
 #include <type_traits>

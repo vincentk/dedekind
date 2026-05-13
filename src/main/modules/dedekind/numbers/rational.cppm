@@ -455,13 +455,12 @@ struct is_translation_invariant_ordered<dedekind::numbers::Rational<I>>
 namespace dedekind::numbers {
 
 // Algebraic witness: @c Rational<default_integer> satisfies the
-// composed @c IsOrderedMultiplicativeGroup concept --- the
-// algebraic half (@c IsAbelianGroup<Rational<I>, std::multiplies>)
-// closes via the @c is_invertible_v / @c IsField cert in this file
-// (PR #674); the order half closes via @c IsTotallyOrdered (Rational's
-// @c <=> returning @c std::strong_ordering, pinned downstream); the
-// order-compatibility half closes via the marker specialisation
-// above.  Cross-partition invariant, pinned in main per the
+// @c IsOrderedMultiplicativeGroup concept, which composes upstream
+// directly --- @c algebra::IsField<T> (closes via the
+// @c is_invertible_v / @c IsField cert in this file, PR #674) and
+// @c order::IsTotallyOrdered<T> (closes via Rational's @c <=>
+// returning @c std::strong_ordering).  No carrier-promise marker
+// needed.  Cross-partition invariant, pinned in main per the
 // static_assert-in-main pattern.
 static_assert(
     dedekind::algebra::IsOrderedMultiplicativeGroup<Rational<default_integer>>,

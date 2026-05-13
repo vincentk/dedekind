@@ -229,12 +229,11 @@ concept IsOrderedAdditiveGroup =
  * upstream concepts cover everything.  @c Rational<I> satisfies both
  * (@c IsField via PR #674's @c is_invertible_v registration,
  * @c IsTotallyOrdered via @c Rational 's @c std::strong_ordering
- * @c <=>); finite fields like @c bool @c / 𝔽₂ correctly fail
- * @c IsTotallyOrdered (well, they trivially satisfy it on the
- * 2-element set, but order-compatibility-with-multiplication is
- * vacuous --- the halfspace pivot-transport pattern doesn't apply
- * either way); @c Complex<R> correctly fails @c IsTotallyOrdered
- * (no order compatible with the complex multiplication).
+ * @c <=>); @c bool / 𝔽₂ satisfies @c IsTotallyOrdered trivially on
+ * the 2-element set but the halfspace pivot-transport pattern doesn't
+ * apply (no continuous-scaling interpretation on a 2-point carrier);
+ * @c Complex<R> correctly fails @c IsTotallyOrdered (no order
+ * compatible with the complex multiplication).
  *
  * @note The @c k_E = 0 case is degenerate (the scout function
  *       collapses to the constant @c x @c ↦ @c 0; the image is the
