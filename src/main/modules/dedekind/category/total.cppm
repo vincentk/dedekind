@@ -87,7 +87,7 @@ namespace dedekind::category {
  *  "elementwise dual" section.
  */
 export template <typename S, typename Op>
-concept IsClosedUnder = requires(const S& a, const S& b) {
+concept IsClosedUnderBinary = requires(const S& a, const S& b) {
   { Op{}(a, b) } -> std::same_as<S>;
 };
 
@@ -103,6 +103,10 @@ export template <typename S, typename Op>
 concept IsClosedUnderUnary = requires(const S& a) {
   { Op{}(a) } -> std::same_as<S>;
 };
+
+/** @brief An operation closes on T (either binary or unary). */
+export template <typename T, typename Op>
+concept IsClosedUnder = IsClosedUnderBinary<T, Op> || IsClosedUnderUnary<T, Op>;
 
 /**
  * @concept IsTotal

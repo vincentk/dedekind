@@ -83,28 +83,13 @@ import dedekind.category; // IsArrow, IsSurjective (composing IsHomomorphism /
                           // IsQuotientMorphism; #506)
 
 namespace dedekind::algebra {
+using namespace dedekind::category;
 
 // ---------------------------------------------------------------------------
 // Operation-shape concepts: an operation closes on T (binary, unary, or one
 // of those).  Nullary operations (constants like T{}, T{1}) are not reified
 // as Op-callables here; the library handles them at the value level.
 // ---------------------------------------------------------------------------
-
-/** @brief A unary operation closes on T: @c op(a) returns @c T. */
-export template <typename T, typename Op>
-concept IsUnaryOpOn = std::regular<T> && requires(T a, Op op) {
-  { op(a) } -> std::same_as<T>;
-};
-
-/** @brief A binary operation closes on T: @c op(a, b) returns @c T. */
-export template <typename T, typename Op>
-concept IsBinaryOpOn = std::regular<T> && requires(T a, T b, Op op) {
-  { op(a, b) } -> std::same_as<T>;
-};
-
-/** @brief An operation closes on T (either binary or unary). */
-export template <typename T, typename Op>
-concept IsOpOn = IsBinaryOpOn<T, Op> || IsUnaryOpOn<T, Op>;
 
 // ---------------------------------------------------------------------------
 // IsAlgebra: the universal-algebra (A, F) meta-pattern.
@@ -146,7 +131,7 @@ concept IsOpOn = IsBinaryOpOn<T, Op> || IsUnaryOpOn<T, Op>;
  *      construction-on-an-algebra pattern.
  */
 export template <typename T, typename... Ops>
-concept IsAlgebra = std::regular<T> && (... && IsOpOn<T, Ops>);
+concept IsAlgebra = std::regular<T> && (... && IsClosedUnder<T, Ops>);
 // Should probably include HasCarrier (see below).
 
 //

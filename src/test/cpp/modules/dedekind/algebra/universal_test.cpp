@@ -35,10 +35,12 @@
 #include <functional>
 
 import dedekind.algebra;
+import dedekind.category;
 
 using dedekind::algebra::IsAlgebra;
-using dedekind::algebra::IsBinaryOpOn;
-using dedekind::algebra::IsUnaryOpOn;
+using dedekind::category::IsClosedUnder;
+using dedekind::category::IsClosedUnderBinary;
+using dedekind::category::IsClosedUnderUnary;
 
 TEST_CASE(
     "Universal algebra: closure-tier witness on canonical primitive carriers",
@@ -52,9 +54,9 @@ TEST_CASE(
                          std::multiplies<unsigned int>>);
 
   // Helper concepts (operation-shape predicates) fire on the building blocks.
-  STATIC_CHECK(IsBinaryOpOn<int, std::plus<int>>);
-  STATIC_CHECK(IsBinaryOpOn<int, std::multiplies<int>>);
-  STATIC_CHECK(IsUnaryOpOn<int, std::negate<int>>);
+  STATIC_CHECK(IsClosedUnderBinary<int, std::plus<int>>);
+  STATIC_CHECK(IsClosedUnderBinary<int, std::multiplies<int>>);
+  STATIC_CHECK(IsClosedUnderUnary<int, std::negate<int>>);
 }
 
 TEST_CASE("Universal algebra: same underlying set, two distinct (A, F) tuples",
