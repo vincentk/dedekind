@@ -35,9 +35,7 @@ TEST_CASE("Sets: Singleton Acceptance", "[sets][singleton][acceptance]") {
     STATIC_REQUIRE(
         std::same_as<typename decltype(_s)::cardinality_type, Finite>);
   }
-  SECTION("Complement") { 
-    STATIC_REQUIRE(IsSet<decltype(!_s)>);
-  }
+  SECTION("Complement") { STATIC_REQUIRE(IsSet<decltype(!_s)>); }
 }
 
 /*
