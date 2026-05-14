@@ -481,6 +481,79 @@ constexpr auto image(F&&, const Ø<T, L>&) {
 
 };  // namespace dedekind::sets
 
+namespace dedekind::sets {
+
+/** @section singleton__Functor_Hub (#687)
+ *
+ * @brief @c singleton_functor — the @c IsFunctor / @c IsFrobenius hub
+ *        for @c SingletonSet<T>, the canonical η of the Set monad.
+ *
+ * @details Sibling of @c :category:functor::tuple_functor (the project's
+ *          other bona-fide Frobenius carrier).  Since @c SingletonSet
+ *          always holds exactly one element, @c ε (counit) via
+ *          @c .pivot is total and @c δ (duplication) wraps once more
+ *          cleanly — both Kleisli and co-Kleisli laws hold without
+ *          concession.
+ */
+export template <typename T>
+struct singleton_functor {
+  using ArrowKind = dedekind::category::hub_arrow_tag;
+  using Σ_cat = dedekind::category::CanonicalSetCCC<T>;
+  using Τ_cat = dedekind::category::CanonicalSetCCC<SingletonSet<T>>;
+
+  using Domain = Σ_cat;
+  using Codomain = Τ_cat;
+
+  template <typename U>
+  using Shape = SingletonSet<U>;
+
+  /** @brief φ: lift @c f: T → U to @c SingletonSet<T> → SingletonSet<U>
+   *  by mapping the pivot. */
+  template <typename 𝗳>
+    requires dedekind::category::IsArrow<std::remove_cvref_t<𝗳>>
+  constexpr auto φ(𝗳&& f) const {
+    return dedekind::category::arrow(
+        [f = std::forward<𝗳>(f)](SingletonSet<T> const& s) {
+          using U = std::remove_cvref_t<std::invoke_result_t<𝗳, T>>;
+          return SingletonSet<U>{std::invoke(f, s.pivot)};
+        });
+  }
+
+  constexpr Τ_cat operator()(const Σ_cat&) const noexcept { return {}; }
+};
+
+// Kleisli `operator>>=` and co-Kleisli `operator<<=` on SingletonSet
+// already exist above in this partition; they double as the operators
+// the `IsKleisliExtension` / `IsCoKleisliExtension` concepts require
+// via the singleton_functor hub.
+
+}  // namespace dedekind::sets
+
+namespace dedekind::category {
+/** @brief Unit (η) witness: @c T → @c SingletonSet<T>. */
+export template <typename T>
+struct unit_witness<dedekind::sets::singleton_functor<T>, T> final {
+  constexpr auto operator()(T x) const {
+    return dedekind::sets::SingletonSet<T>{std::move(x)};
+  }
+};
+
+/** @brief Counit (ε) witness: @c SingletonSet<T> → @c T via pivot. */
+export template <typename T>
+struct counit_witness<dedekind::sets::singleton_functor<T>, T> final {
+  constexpr T operator()(
+      const dedekind::sets::SingletonSet<T>& s) const noexcept {
+    return s.pivot;
+  }
+};
+
+static_assert(IsFunctor<dedekind::sets::singleton_functor<int>>,
+              "singleton_functor must satisfy IsFunctor (#687).");
+static_assert(IsFrobenius<dedekind::sets::singleton_functor<int>, int, long>,
+              "singleton_functor must satisfy IsFrobenius — Kleisli "
+              "AND co-Kleisli extensions on SingletonSet<T> (#687).");
+}  // namespace dedekind::category
+
 /** @section singleton__The_Final_Ontology_Proof
  * Deferred while `dedekind.sets` is being retargeted to the updated
  * `dedekind.category` hub/spoke functor API.
