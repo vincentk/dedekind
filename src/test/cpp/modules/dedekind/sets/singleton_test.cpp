@@ -165,9 +165,10 @@ TEST_CASE("Sets: Composition of Operations: The Functor Highway",
   SECTION("2. Compile-Time Semantic Mapping of Composition") {
     // Zero-overhead claim: the composition resolves to a constant 12.
     // Explicit left-fold parens on `>>=` (right-associative in C++).
-    static_assert(
-        ((singleton(5) >>= [](int x) { return singleton(x + 1); }) >>=
-         [](int x) { return singleton(x * 2); }).origin() == 12,
-        "The Composition Axiom must be resolved at compile-time.");
+    static_assert(((singleton(5) >>= [](int x) { return singleton(x + 1); }) >>=
+                   [](int x) {
+                     return singleton(x * 2);
+                   }).origin() == 12,
+                  "The Composition Axiom must be resolved at compile-time.");
   }
 }
