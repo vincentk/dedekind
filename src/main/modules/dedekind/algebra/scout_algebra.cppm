@@ -326,6 +326,19 @@ concept HasHalfspaceShape = requires {
   P::direction;
   P::strictness;
 };
+
+// Sibling probe for the @c AffineImageOfHalfspace shape.  Used in the
+// Slice-B canonical-witness composition pipe to detect when the inner
+// scout's pipe produced an affine-image predicate (the Slice-5 ring-
+// retract output) rather than a plain @c Halfspace --- the two
+// composition routes are structurally distinct and the requires-
+// clauses dispatch on shape.
+template <typename P>
+concept HasAffineImageShape = requires {
+  P::multiplier;
+  P::offset;
+  typename P::source_halfspace_type;
+};
 }  // namespace detail
 
 // Forward declaration of @c AffineImageOfHalfspace --- the ring-retract
@@ -334,7 +347,16 @@ concept HasHalfspaceShape = requires {
 // which depends only on the @c :order:halfspace types already
 // imported.  The forward declaration here is enough for two-phase
 // name lookup inside @c GroupScout's ring-retract pipe to bind.
-export template <typename T, auto M, typename SourceHalfspace>
+//
+// Slice-5-canonical extension (post-PR #664-Slice-B): a fourth NTTP
+// @c B carries the additive offset of the affine map @f$y = M @c * x +
+// B@f$.  The pre-extension form @c AffineImageOfHalfspace<T, M, SrcHS>
+// is now @c AffineImageOfHalfspace<T, M, /*B=*/T-typed-zero, SrcHS>; the
+// Slice-5 ring-retract pipe instantiates it that way (no offset), and a
+// new composition pipe folds outer additive shifts into the offset so
+// the canonical witness @c Set{bound<2> @c * @c in<ℤ> @c + @c bound<1>
+// @c | @c (in<ℤ> @c > @c bound<5>)} reaches a single predicate.
+export template <typename T, auto M, auto B, typename SourceHalfspace>
 struct AffineImageOfHalfspace;
 
 /**
@@ -583,6 +605,66 @@ struct GroupScout {
   }
 
   /**
+   * @brief Comprehension pipe (canonical-witness composition, #664
+   *        Slice B): outer additive shift @c (@c f(x) @c ) @c + @c K
+   *        over an inner ring-retract scaling @c f(x) @c = @c M
+   *        @c * @c g(x) @c + @c B_inner.
+   *
+   * @details
+   * The canonical-witness shape: @c Set{bound<M> @c * @c in<ℤ> @c +
+   * @c bound<K> @c | @c (in<ℤ> @c ⋈ @c bound<p>)} on @c ℤ.  Inner
+   * ring-retract produces @c AffineImageOfHalfspace<T, M, B_inner,
+   * SrcHS>; outer additive shift by @c Element folds into the offset:
+   *
+   * @code
+   *   inner:        x ↦ M @c * @c x @c + @c B_inner
+   *   outer shift:  y ↦ y @c + @c Element
+   *   composed:     x ↦ M @c * @c x @c + @c (B_inner @c + @c Element)
+   * @endcode
+   *
+   * Membership of @c z in the composed image: @c (z @c - @c B_new)
+   * is divisible by @c M AND @c src((z @c - @c B_new) @c / @c M),
+   * with @c B_new @c = @c B_inner @c + @c Element.  The result type
+   * is again @c AffineImageOfHalfspace --- the divisibility witness
+   * doesn't collapse under additive shift (the divisor stays @c M).
+   *
+   * Dispatch: shape-detected via @c detail::HasAffineImageShape on
+   * the inner pipe's predicate type, which is the sibling probe to
+   * @c HasHalfspaceShape used by the standard additive-composition
+   * pipe above.  The two pipes are mutually exclusive (a predicate
+   * exposes @b either @c pivot @b or @c multiplier, never both), so
+   * the requires-clauses partition cleanly without overload
+   * ambiguity.
+   */
+  template <auto Pivot, dedekind::order::Direction D,
+            dedekind::order::Strictness S, typename L>
+    requires std::same_as<Op, std::plus<T>> && IsOrderedAdditiveGroup<T> &&
+             requires {
+               typename Inner::op_type;
+               Inner::element;
+             } &&
+             // Inner's pipe produces an affine-image predicate (the
+             // Slice-5 ring-retract output).  Honest-Rejects the
+             // Slice-4 Halfspace case, which the sibling pipe above
+             // handles.
+             detail::HasAffineImageShape<std::remove_cvref_t<
+                 decltype((Inner{} | std::declval<dedekind::order::Halfspace<
+                                         T, Pivot, D, S, L>>())
+                              .predicate)>>
+  constexpr auto operator|(
+      dedekind::order::Halfspace<T, Pivot, D, S, L> hs) const {
+    constexpr auto inner_comp = Inner{} | hs;
+    using InnerPredicate = std::remove_cvref_t<decltype(inner_comp.predicate)>;
+    constexpr auto new_offset = InnerPredicate::offset + Element;
+    using SrcHalfspace = typename InnerPredicate::source_halfspace_type;
+    using NewPredicate = AffineImageOfHalfspace<T, InnerPredicate::multiplier,
+                                                new_offset, SrcHalfspace>;
+    using AmbientType = std::remove_cvref_t<decltype(inner_comp.base)>;
+    return dedekind::sets::Comprehension<AmbientType, NewPredicate>{
+        inner_comp.base, NewPredicate{}};
+  }
+
+  /**
    * @brief Comprehension pipe (composition, multiplicative outer):
    *        @c (g(x)) @c * @c m where @c g is an inner scout.
    *
@@ -679,7 +761,14 @@ struct GroupScout {
   constexpr auto operator|(
       dedekind::order::Halfspace<T, Pivot, D, S, L>) const {
     using SourceHalfspace = dedekind::order::Halfspace<T, Pivot, D, S, L>;
-    using ResultPredicate = AffineImageOfHalfspace<T, Element, SourceHalfspace>;
+    // Slice-5 base case: no outer additive shift, so the affine
+    // offset @c B is zero.  Slice-B's outer-shift composition pipe
+    // (below) folds non-zero offsets in by accumulating @c B_inner
+    // @c + @c K when an outer @c + @c bound<K> wraps an inner
+    // ring-retract.
+    using ResultPredicate =
+        AffineImageOfHalfspace<T, Element, decltype(Element){0},
+                               SourceHalfspace>;
     using AmbientType = typename Inner::AmbientType;
     return dedekind::sets::Comprehension<AmbientType, ResultPredicate>{
         Inner::ambient, ResultPredicate{}};
@@ -688,18 +777,22 @@ struct GroupScout {
 
 /**
  * @brief Image of a source halfspace under the affine map @f$y = M
- *        \cdot x@f$ on a commutative ring carrier (#664 Slice 5
- *        ring-retract scaling).
+ *        \cdot x + B@f$ on a commutative ring carrier (#664 Slice 5
+ *        ring-retract scaling + Slice-B canonical-witness extension).
  *
  * @details
  * Membership of @c y in the image is the conjunction of two
- * decidable checks:
+ * decidable checks (after the affine inversion @c y @c ↦ @c (y @c -
+ * @c B) @c / @c M):
  *
- *   (1) @b Divisibility @c M @c | @c y --- there exists an integer
- *       @c x with @c M*x @c = @c y; on a ring carrier this is
- *       computable as @c (y @c % @c M) @c == @c 0.
- *   (2) @b Source @b predicate @c source(y/M) --- the (unique
- *       modulo sign) preimage satisfies the source halfspace.
+ *   (1) @b Divisibility @c M @c | @c (y @c - @c B) --- there exists
+ *       an integer @c x with @c M*x @c = @c y @c - @c B; on a ring
+ *       carrier this is computable as @c ((y @c - @c B) @c % @c M)
+ *       @c == @c 0 (or the identity-based form used in the body
+ *       below, which propagates correctly through variant sentinels).
+ *   (2) @b Source @b predicate @c source((y @c - @c B) @c / @c M)
+ *       --- the (unique modulo sign) preimage satisfies the source
+ *       halfspace.
  *
  * On a field (@c ℚ) the divisibility check is vacuous (every @c y
  * has a preimage); the @c !IsOrderedMultiplicativeGroup<T> gate at
@@ -708,34 +801,52 @@ struct GroupScout {
  * @c Halfspace, which folds at compile time without the
  * runtime modular check.
  *
+ * @b Slice-B @b canonical @b witness: the offset @c B carries the
+ * outer additive shift folded into the predicate by the
+ * @c GroupScout<T, std::plus<T>, K, AffineImageInner> composition
+ * pipe below.  The pre-extension Slice-5 form (no outer shift) sets
+ * @c B @c = @c 0; the composition pipe accumulates @c B_new @c =
+ * @c B_inner @c + @c K.
+ *
  * @tparam T               Carrier (ordered commutative ring).
  * @tparam M               Affine multiplier (NTTP, @c != @c 0).
+ * @tparam B               Affine offset (NTTP; @c 0 in the base
+ *                         Slice-5 ring-retract pipe; non-zero only
+ *                         when the canonical-witness composition
+ *                         folds an outer additive shift in).
  * @tparam SourceHalfspace Source halfspace type.
  */
-export template <typename T, auto M, typename SourceHalfspace>
+export template <typename T, auto M, auto B, typename SourceHalfspace>
 struct AffineImageOfHalfspace {
   using Domain = T;
   using Codomain = typename SourceHalfspace::Codomain;
   using logic_species = typename SourceHalfspace::logic_species;
   using cardinality_type = dedekind::sets::ℵ_0;
+  using source_halfspace_type = SourceHalfspace;
+  static constexpr auto multiplier = M;
+  static constexpr auto offset = B;
 
   constexpr Codomain operator()(const T& y) const {
     using L = logic_species;
     const T m_in_t = T{M};
-    // Divisibility-via-identity: @c y @c in @c image @c iff there
-    // exists @c x with @c M*x @c = @c y, i.e.\ @c M @c * @c (y/M)
-    // @c == @c y.  This formulation is preferred over the modular
-    // @c y @c % @c M @c == @c 0 form because it propagates correctly
-    // through variant sentinels (@c \pm @c \aleph_0, @c NaZ) on the
-    // saturating ℤ proxy @c SignedCardinality: @c \pm @c \aleph_0
-    // @c / @c m @c = @c \pm @c \aleph_0 and @c m @c * @c \pm @c
-    // \aleph_0 @c = @c \pm @c \aleph_0, so the identity holds at
-    // the sentinel and the predicate correctly defers to the
-    // source halfspace's sentinel-handling.  (The modular form would
-    // return @c NaZ for sentinel mod, mis-rejecting sentinels that
-    // are actually in the image.)
-    const T x_preimage = y / m_in_t;
-    if (!((m_in_t * x_preimage) == y)) {
+    const T b_in_t = T{B};
+    // Invert the affine map @c y @c = @c M*x @c + @c B by computing
+    // @c y_minus_b @c = @c y @c - @c B and then the preimage
+    // @c x @c = @c y_minus_b @c / @c M.  Divisibility-via-identity:
+    // @c y @c in @c image @c iff @c M @c * @c (y_minus_b @c / @c M)
+    // @c == @c y_minus_b.  This formulation is preferred over the
+    // modular @c y_minus_b @c % @c M @c == @c 0 form because it
+    // propagates correctly through variant sentinels (@c \pm @c
+    // \aleph_0, @c NaZ) on the saturating ℤ proxy @c
+    // SignedCardinality: @c \pm @c \aleph_0 @c / @c m @c = @c \pm @c
+    // \aleph_0 and @c m @c * @c \pm @c \aleph_0 @c = @c \pm @c
+    // \aleph_0, so the identity holds at the sentinel and the
+    // predicate correctly defers to the source halfspace's sentinel-
+    // handling.  (The modular form would return @c NaZ for sentinel
+    // mod, mis-rejecting sentinels that are actually in the image.)
+    const T y_minus_b = y - b_in_t;
+    const T x_preimage = y_minus_b / m_in_t;
+    if (!((m_in_t * x_preimage) == y_minus_b)) {
       return L::False;  // No preimage --- y not in image.
     }
     return SourceHalfspace{}(x_preimage);
