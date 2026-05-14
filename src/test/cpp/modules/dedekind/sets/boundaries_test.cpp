@@ -113,6 +113,13 @@ TEST_CASE("Boundaries: The Algebra of Extremality", "[sets][boundaries]") {
     CHECK(std::is_same_v<decltype(universe & s),
                          SingletonSet<SignedExtensionalCardinal<>>>);
   }
+
+  SECTION("Cartesian Product") {
+    INFO("The empty set is a fixed point of the cartesian product.");
+    STATIC_CHECK(null * null == null);
+    STATIC_CHECK(universe * null == null);
+    STATIC_CHECK(null * universe == null);
+  }
 }
 
 TEST_CASE("image(IsTerminalMorphism F, S) — terminal-codomain collapse (#661)",
