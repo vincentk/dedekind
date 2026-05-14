@@ -82,6 +82,21 @@ TEST_CASE("Sets: Singleton Acceptance", "[sets][singleton][acceptance]") {
     // REQUIRE((!_s) | _s == UniversalSet<size_t>{});
     // REQUIRE(UniversalSet<size_t>{} == (!_s) | _s);
   }
+  SECTION("Difference") {
+    INFO("Variations on {x} - Ø = id.");
+    REQUIRE(_s - Ø<size_t>{} == _s);
+    REQUIRE(Ø<size_t>{} - _s == Ø<size_t>{});
+    REQUIRE(_s - _s == Ø<size_t>{});
+    INFO("Variations on {x} - !{x} = Ø.");
+    REQUIRE(_s - !_s == Ø<size_t>{});
+    REQUIRE(_s - _s == Ø<size_t>{});
+  }
+  SECTION("Subset relations") {
+    REQUIRE(_s <= _s);
+    REQUIRE(_s <= Ø<size_t>{} == false);
+    REQUIRE(Ø<size_t>{} <= _s == true);
+    REQUIRE(_s <= !_s == false);
+  }
 }
 
 /*
