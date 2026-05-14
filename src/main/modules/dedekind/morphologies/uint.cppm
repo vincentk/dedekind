@@ -96,16 +96,25 @@ module;
                         // embed_uint_ℕ's set-level overload)
 #include <utility>      // std::forward (used in embed_uint_ℕ's set-level lift)
 
-export module dedekind.numbers:uint;
+export module dedekind.morphologies:uint;
 
 import dedekind.algebra;
 import dedekind.category;
-import dedekind.morphologies;
 import dedekind.order;
 import dedekind.sequences;
 import dedekind.sets;
+import :cyclic;
 
-namespace dedekind::numbers {
+namespace dedekind::morphologies {
+using namespace dedekind::category;
+using namespace dedekind::sets;
+
+/**
+ * @brief Canonical embedding 𝔹 ↪ ℕ: bool → unsigned.
+ * @details False maps to 0, True maps to 1.
+ */
+export inline constexpr auto embed_𝔹_uint_ =
+    arrow<bool, unsigned>([](const bool& b) noexcept { return b ? 1u : 0u; });
 
 // ===========================================================================
 // (1) Universal machine→variant lift: std::unsigned_integral → Cardinality
@@ -458,27 +467,25 @@ static_assert(
     "Width-ladder ring-hom witness: * commutes with the inclusion on the "
     "non-overflow fragment (0xFF · 0x101 = 0xFFFF fits in unsigned short).");
 
-}  // namespace dedekind::numbers
+}  // namespace dedekind::morphologies
 
 namespace dedekind::category {
+using namespace dedekind::morphologies;
 template <>
-inline constexpr bool
-    is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_uint_ℕ_)>> =
-        true;
-static_assert(
-    IsInjective<std::decay_t<decltype(dedekind::numbers::embed_uint_ℕ_)>>,
-    "embed_uint_ℕ_ (unsigned → Cardinality) is "
-    "registered injective.");
+inline constexpr bool is_monic_arrow_v<std::decay_t<decltype(embed_uint_ℕ_)>> =
+    true;
+static_assert(IsInjective<std::decay_t<decltype(embed_uint_ℕ_)>>,
+              "embed_uint_ℕ_ (unsigned → Cardinality) is "
+              "registered injective.");
 
 // IsEmbeddingFunctor witness (#633): @c embed_uint_ℕ_ is fully faithful
 // (discrete source) + injective on objects (machine unsigned values map
 // bijectively to their Cardinality witnesses in @c [0, 2^width)).
 template <>
-inline constexpr bool is_embedding_functor_v<
-    std::decay_t<decltype(dedekind::numbers::embed_uint_ℕ_)>> = true;
+inline constexpr bool
+    is_embedding_functor_v<std::decay_t<decltype(embed_uint_ℕ_)>> = true;
 static_assert(
-    IsEmbeddingFunctor<
-        std::decay_t<decltype(dedekind::numbers::embed_uint_ℕ_)>>,
+    IsEmbeddingFunctor<std::decay_t<decltype(embed_uint_ℕ_)>>,
     "embed_uint_ℕ_ realises IsEmbeddingFunctor per #633's Mac Lane reading.");
 
 // ===========================================================================
@@ -530,4 +537,10 @@ static_assert(IsEquivalence<std::size_t, std::equal_to<std::size_t>>,
               "Mazur (#591): std::equal_to<std::size_t> must satisfy "
               "IsEquivalence; the canonical bounded-cardinality witness "
               "for the indexing surface.");
+
+template <>
+inline constexpr bool is_monic_arrow_v<std::decay_t<decltype(embed_𝔹_uint_)>> =
+    true;
+static_assert(IsInjective<std::decay_t<decltype(embed_𝔹_uint_)>>,
+              "embed_𝔹_uint_ (𝔹 ↪ ℕ) is registered injective.");
 }  // namespace dedekind::category

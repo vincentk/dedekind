@@ -23,6 +23,7 @@ export module dedekind.numbers:real;
 
 import dedekind.algebra; // HasRingOperators / HasFieldOperators (canonical-spine witnesses)
 import dedekind.category;
+import dedekind.morphologies; // IsInteger (gated template parameter on Real<Rational<I>>)
 import dedekind.order;
 import dedekind.sets;
 import :rational;
@@ -198,8 +199,14 @@ struct PartialDivReal {
  * representable and return True, but conservatively, we flag all embeddings
  * as Unknown.
  */
-export template <IsInteger I = default_integer,
+// @c I has no default because the body @c static_cast<S>(q.num()) requires
+// @c I to be convertible to the floating-point @c S; the project's
+// @c default_integer (post-PR #676) is @c SignedCardinality (a
+// @c std::variant), which has no floating-point cast.  Callers must
+// instantiate with a castable integer carrier (e.g.\ @c machine_integer).
+export template <dedekind::morphologies::IsInteger I,
                  IsRealCarrier S = machine_real_scalar>
+  requires std::convertible_to<I, S>
 struct PartialEmbedRationalToReal {
   using value_type = Real<S>;
   using logic_species = TernaryLogic;
@@ -254,17 +261,17 @@ inline constexpr dedekind::numbers::Real<S> partial_identity_v<
  * Real<double> is intentionally withheld (NaN breaks reflexivity).
  * Real<Rational<I>> is totally ordered because Rational<I> is.
  */
-template <dedekind::numbers::IsInteger I>
+template <dedekind::morphologies::IsInteger I>
 inline constexpr bool
     is_reflexive_v<dedekind::numbers::Real<dedekind::numbers::Rational<I>>,
                    std::less_equal<>> = true;
 
-template <dedekind::numbers::IsInteger I>
+template <dedekind::morphologies::IsInteger I>
 inline constexpr bool
     is_transitive_v<dedekind::numbers::Real<dedekind::numbers::Rational<I>>,
                     std::less_equal<>> = true;
 
-template <dedekind::numbers::IsInteger I>
+template <dedekind::morphologies::IsInteger I>
 inline constexpr bool
     is_antisymmetric_v<dedekind::numbers::Real<dedekind::numbers::Rational<I>>,
                        std::less_equal<>> = true;

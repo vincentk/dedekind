@@ -20,12 +20,12 @@
 
 import dedekind.category;
 import dedekind.morphologies;
-import dedekind.numbers;
 import dedekind.sets;
 
 using namespace dedekind::category;
-using namespace dedekind::numbers;
+using namespace dedekind::morphologies;
 using namespace dedekind::sets;
+using dedekind::morphologies::embed_uint_ℕ_;
 using dedekind::morphologies::IsCyclic;
 using dedekind::morphologies::Modular;
 

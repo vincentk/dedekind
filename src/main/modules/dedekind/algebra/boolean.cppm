@@ -54,6 +54,7 @@
 module;
 
 #include <functional>
+#include <utility>  // std::forward (used in embed_𝔹_𝕂3's set-level lift)
 
 export module dedekind.algebra:boolean;
 
@@ -108,6 +109,78 @@ static_assert(
                    std::logical_or<bool>,   // ∨  ├ F = element-level ops
                    std::logical_not<bool>   // ¬  ┘   on the carrier bool
                    >);
+
+/**
+ * @brief Canonical embedding @c 𝔹 @c ↪ @c 𝕂3: bool → Ternary.
+ * @details The two-valued-to-three-valued Kleene lift: @c false @c
+ *          ↦ @c Ternary::False (@c -1), @c true @c ↦ @c
+ *          Ternary::True (@c 1).  The @c Ternary::Unknown (@c 0)
+ *          value is @b not in the image — it represents the third
+ *          truth-value that @c 𝔹 lacks.  This is the canonical
+ *          inclusion of two-valued classical logic into three-
+ *          valued Kleene logic; structurally a monomorphism.
+ */
+export inline constexpr auto embed_𝔹_𝕂3_ =
+    arrow<bool, dedekind::category::Ternary>(
+        [](const bool& b) noexcept -> dedekind::category::Ternary {
+          return b ? dedekind::category::Ternary::True
+                   : dedekind::category::Ternary::False;
+        });
+
+/**
+ * @brief Set-level lift of @c embed_𝔹_𝕂3_: image of a Boolean set
+ *        @c S under the canonical mono 𝔹 ↪ 𝕂3.
+ *
+ * @details Layer-1 entry per #602 (sister to @c embed_𝔹_ℕ in
+ * @c :numbers:natural, PR #624).  Names the construction at the call
+ * site rather than re-spelling @c image(embed_𝔹_𝕂3_, S).  Accepted
+ * input @c S is anything @c dedekind::sets::image already dispatches
+ * on --- @c SingletonSet (@c :sets:singleton),
+ * @c std::set<bool> / @c std::unordered_set<bool> (@c :sets:extensional);
+ * lazy predicate sets join the dispatch table when #602's layer 2
+ * lands.
+ *
+ * Mathematically: the image of @c S under the canonical mono
+ * 𝔹 ↪ 𝕂3 is a subset of @c {Ternary::False, @c Ternary::True} ⊂ 𝕂3
+ * containing whichever @c bool elements are in @c S.
+ * @c Ternary::Unknown is by construction @b not in the image --- the
+ * structural reason the arrow is monic but not surjective.
+ */
+export template <typename S>
+  requires requires(S&& s) {
+    dedekind::sets::image(embed_𝔹_𝕂3_, std::forward<S>(s));
+  }
+constexpr auto embed_𝔹_𝕂3(S&& s) {
+  return dedekind::sets::image(embed_𝔹_𝕂3_, std::forward<S>(s));
+}
+
+// Set-level value-witnesses for @c embed_𝔹_𝕂3 — pinned at the @b value
+// level so the pivot equality is constant-evaluated, not just the codomain
+// type.  Sister anchor to PR #624's @c embed_𝔹_ℕ witness in @c :natural ---
+// same shape, different codomain.  Lives next to the arrow itself so the
+// value-pin moves with the canonical surface.
+static_assert(embed_𝔹_𝕂3(dedekind::sets::SingletonSet<bool, ClassicalLogic>{
+                             true})
+                      .pivot == dedekind::category::Ternary::True,
+              "embed_𝔹_𝕂3(Singleton<true>) lands at Ternary::True on the 𝕂3 "
+              "carrier.");
+static_assert(embed_𝔹_𝕂3(dedekind::sets::SingletonSet<bool, ClassicalLogic>{
+                             false})
+                      .pivot == dedekind::category::Ternary::False,
+              "embed_𝔹_𝕂3(Singleton<false>) lands at Ternary::False on the 𝕂3 "
+              "carrier.");
+
+// Concept-level witness: the result realises the categorical image of
+// the source set under the canonical mono 𝔹 ↪ 𝕂3 — Subobject of
+// @c Cod<embed_𝔹_𝕂3_> = Ternary per @c :category:image.
+static_assert(
+    dedekind::category::IsImageOf<
+        decltype(embed_𝔹_𝕂3(dedekind::sets::SingletonSet<bool, ClassicalLogic>{
+            true})),
+        decltype(embed_𝔹_𝕂3_)>,
+    "embed_𝔹_𝕂3(S) realises IsImageOf<result, embed_𝔹_𝕂3_>: result is "
+    "a Subobject of Cod<embed_𝔹_𝕂3_> = Ternary, witnessing the "
+    "categorical image of S under the canonical mono 𝔹 ↪ 𝕂3.");
 
 // The logical-operator shape concept already lives at the lower layer as
 // @c dedekind::category::HasLogicalOperators<T> (in @c :logic, introduced
@@ -170,3 +243,29 @@ static_assert(dedekind::order::IsDirectedPoset<bool>,
               "bool is a directed poset (directed + antisymmetric).");
 
 }  // namespace dedekind::algebra
+
+// ---------------------------------------------------------------------------
+// Trait registrations for @c embed_𝔹_𝕂3_ — live next to the arrow itself
+// so callers importing @c dedekind.algebra get @c IsMonicArrow /
+// @c IsEmbeddingFunctor witnesses without also needing @c dedekind.numbers.
+// ---------------------------------------------------------------------------
+namespace dedekind::category {
+template <>
+inline constexpr bool
+    is_monic_arrow_v<std::decay_t<decltype(dedekind::algebra::embed_𝔹_𝕂3_)>> =
+        true;
+static_assert(
+    IsInjective<std::decay_t<decltype(dedekind::algebra::embed_𝔹_𝕂3_)>>,
+    "embed_𝔹_𝕂3_ (𝔹 ↪ 𝕂3) is registered injective.");
+
+// IsEmbeddingFunctor witness (#633): @c embed_𝔹_𝕂3_ lifts the
+// two-element 𝔹 into the three-element 𝕂3 truth surface monically
+// (False ↦ False, True ↦ True; the Unknown value is unreached).
+// Fully faithful + injective on objects per Mac Lane CWM §IV.4.
+template <>
+inline constexpr bool is_embedding_functor_v<
+    std::decay_t<decltype(dedekind::algebra::embed_𝔹_𝕂3_)>> = true;
+static_assert(
+    IsEmbeddingFunctor<std::decay_t<decltype(dedekind::algebra::embed_𝔹_𝕂3_)>>,
+    "embed_𝔹_𝕂3_ realises IsEmbeddingFunctor per #633's Mac Lane reading.");
+}  // namespace dedekind::category

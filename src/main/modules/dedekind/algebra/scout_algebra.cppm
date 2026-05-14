@@ -188,7 +188,7 @@ struct is_translation_invariant_ordered : std::false_type {};
  *  order at the wrap boundary.  The variant @c SignedCardinality is
  *  what callers should use whenever they want translation-invariance
  *  at the type level (i.e.\ the halfspace pipe). */
-template <>
+export template <>
 struct is_translation_invariant_ordered<dedekind::sets::SignedCardinality>
     : std::true_type {};
 

@@ -18,8 +18,9 @@
  * fails as a stable axiom.  The library's posture is honest in both
  * directions: @c HasRingOperators<int> and @c HasGroupOperatorsAdd<int>
  * fire (the operator surface really is there), but @c IsRing<int,
- * std::plus, std::multiplies> and @c Group_ℤ<int> do @b not (the
- * axiomatic-ring witness would be a false claim under UB).  The
+ * std::plus, std::multiplies> and @c IsArithmeticAdditiveGroup<int>
+ * do @b not (the axiomatic-ring witness would be a false claim under
+ * UB).  The
  * exact-@c ℤ reading lives one carrier step deeper, on @c
  * SignedCardinality (with @c ±ℵ_0 saturation and @c NaZ).
  *
@@ -80,17 +81,19 @@ module;
                         // embed_sint_ℤ's set-level overload)
 #include <utility>      // std::forward (used in embed_sint_ℤ's set-level lift)
 
-export module dedekind.numbers:sint;
+export module dedekind.morphologies:sint;
 
 import dedekind.algebra;
 import dedekind.category;
 import dedekind.order;
 import dedekind.sequences;
 import dedekind.sets;
-import :integer;  // ℤ value-level alias (Ω<SignedCardinality>, post-#670)
 
-namespace dedekind::numbers {
+import :integral;
+
+namespace dedekind::morphologies {
 using namespace dedekind::category;
+using namespace dedekind::algebra;
 using namespace dedekind::sets;
 
 // ---------------------------------------------------------------------------
@@ -107,27 +110,6 @@ using namespace dedekind::sets;
 
 /** @brief Current extensional machine integer carrier. */
 export using extensional_integer = int;
-
-/** @concept IsReflectiveSpecies: a regular type with additive inverse
- *  and default-constructible zero. */
-export template <typename T>
-concept IsReflectiveSpecies = std::regular<T> && requires(T a) {
-  { -a } -> std::same_as<T>;
-  { T{} } -> std::same_as<T>;
-};
-
-/** @concept IsInteger: structural Euclidean-integer-domain concept
- *  (additive group + multiplicative monoid + Euclidean pair + total
- *  order on the carrier). */
-export template <typename T>
-concept IsInteger = IsReflectiveSpecies<T> && requires(T a, T b) {
-  { a + b } -> std::same_as<T>;
-  { a - b } -> std::same_as<T>;
-  { a * b } -> std::same_as<T>;
-  { a / b } -> std::same_as<T>;
-  { a % b } -> std::same_as<T>;
-  { a < b } -> std::convertible_to<bool>;
-};
 
 /** @brief Canonical injection from `std::signed_integral` into any
  *  `IsInteger` domain Z. */
@@ -163,26 +145,6 @@ export template <typename Z>
 concept HasEuclideanGcd = IsInteger<Z> && requires(Z a, Z b) {
   { euclidean_gcd(a, b) } -> std::same_as<Z>;
 };
-
-/** @brief Default signed-integer carrier used by downstream numeric
- *  layers (Rational<I>, embeddings).  Post-#670-sibling (ℚ retarget):
- *  anchored on @c sets::SignedCardinality (saturating ℤ proxy with
- *  ±ℵ_0 / NaZ escalation), mirroring how @c ℤ = @c Ω<SignedCardinality>
- *  in @c :integer.  This is the discipline-consistent canonical ℤ
- *  carrier --- @c ℚ = @c Ω<Rational<default_integer>> now uses the
- *  saturating variant uniformly.
- *
- *  Pre-retarget value: @c SignedExtensionalCardinal<> (cyclic finite
- *  fragment).  The retarget is what the user asked for: "re-target
- *  rationals / ℚ in the same way as ℤ, ℕ, 𝔹".
- */
-export using default_integer = dedekind::sets::SignedCardinality;
-
-/** @concept Group_ℤ: T satisfies Group_ℤ iff it is IsInteger AND
- *  (T, +, 0) is an abelian group. */
-export template <typename T>
-concept Group_ℤ =
-    IsInteger<T> && dedekind::category::IsAbelianGroup<T, std::plus<T>>;
 
 // ===========================================================================
 // (1) Universal machine→variant lift: std::signed_integral → SignedCardinality
@@ -434,18 +396,10 @@ static_assert(dedekind::algebra::HasSuccessorOperators<long long>,
 // as a stable axiom; the strict abelian-group / ring witnesses
 // must @b not fire on @c std::signed_integral primitives.  The
 // exact-@c ℤ reading lives on @c SignedCardinality post-#402.
-static_assert(!Group_ℤ<int>,
-              "int must NOT satisfy Group_ℤ: signed-overflow UB defeats "
-              "the strict abelian-group proof under the math-wins-over-C++ "
-              "stance.  SignedCardinality is the exact-ℤ witness "
-              "(carrier home: dedekind::sets:cardinality).");
-static_assert(!Group_ℤ<long>,
-              "long must NOT satisfy Group_ℤ for the same reason.");
-static_assert(!Group_ℤ<long long>,
-              "long long must NOT satisfy Group_ℤ for the same reason.");
 static_assert(!dedekind::algebra::IsArithmeticAdditiveGroup<int>,
-              "int must NOT satisfy IsArithmeticAdditiveGroup: same "
-              "UB-on-overflow reason as the Group_ℤ rejection.");
+              "int must NOT satisfy IsArithmeticAdditiveGroup: "
+              "signed-overflow UB defeats closure-under-arithmetic as a "
+              "stable axiom.");
 static_assert(!dedekind::algebra::IsArithmeticAdditiveGroup<long>,
               "long must NOT satisfy IsArithmeticAdditiveGroup.");
 static_assert(!dedekind::algebra::IsArithmeticAdditiveGroup<long long>,
@@ -477,7 +431,7 @@ static_assert(dedekind::order::HasLatticeOperators<long long>,
               "long long carries the bitwise / lattice operator surface.");
 
 // Axiomatic-ring rejection — the strictly weaker downstream consequence
-// of the @c !Group_ℤ / @c !IsArithmeticAdditiveGroup pins above.
+// of the @c !IsArithmeticAdditiveGroup pins above.
 // Pinned explicitly so the std::signed_integral reader sees the
 // dichotomy in one place: the operator surface fires, the axiomatic
 // ring witness does not.
@@ -498,28 +452,26 @@ static_assert(
     dedekind::sequences::IsFiniteSequence<dedekind::sequences::FinitePath<int>>,
     "FinitePath<int> is a bona-fide finite sequence.");
 
-}  // namespace dedekind::numbers
+}  // namespace dedekind::morphologies
 
 namespace dedekind::category {
+using namespace dedekind::morphologies;
 template <>
-inline constexpr bool
-    is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_sint_ℤ_)>> =
-        true;
-static_assert(
-    IsInjective<std::decay_t<decltype(dedekind::numbers::embed_sint_ℤ_)>>,
-    "embed_sint_ℤ_ (int → SignedCardinality) is "
-    "registered injective.");
+inline constexpr bool is_monic_arrow_v<std::decay_t<decltype(embed_sint_ℤ_)>> =
+    true;
+static_assert(IsInjective<std::decay_t<decltype(embed_sint_ℤ_)>>,
+              "embed_sint_ℤ_ (int → SignedCardinality) is "
+              "registered injective.");
 
 // IsEmbeddingFunctor witness (#633): @c embed_sint_ℤ_ is fully faithful
 // (discrete source) + injective on objects (sign-magnitude bijection
 // between machine signed values and the corresponding SignedCardinality
 // witnesses).
 template <>
-inline constexpr bool is_embedding_functor_v<
-    std::decay_t<decltype(dedekind::numbers::embed_sint_ℤ_)>> = true;
+inline constexpr bool
+    is_embedding_functor_v<std::decay_t<decltype(embed_sint_ℤ_)>> = true;
 static_assert(
-    IsEmbeddingFunctor<
-        std::decay_t<decltype(dedekind::numbers::embed_sint_ℤ_)>>,
+    IsEmbeddingFunctor<std::decay_t<decltype(embed_sint_ℤ_)>>,
     "embed_sint_ℤ_ realises IsEmbeddingFunctor per #633's Mac Lane reading.");
 
 // ===========================================================================

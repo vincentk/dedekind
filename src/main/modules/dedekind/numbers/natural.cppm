@@ -22,9 +22,10 @@
  *
  * @section natural__Structural_Mapping
  * This is where we perform the final 'Lifting'. We prove that
- * @c SignedExtensionalCardinal<> satisfies @c Group_ℤ (per the strict
- * @c IsCommutativeRing witness pinned in @c integer.cppm) and that
- * @c double is a hardware-constrained approximation of an exact field.
+ * @c SignedExtensionalCardinal<> satisfies the strict
+ * @c IsArithmeticAdditiveGroup / @c IsCommutativeRing witnesses pinned
+ * in @c integer.cppm and that @c double is a hardware-constrained
+ * approximation of an exact field.
  *
  * @anchors C++ Fundamental Types: bool, char, int, long, float, double.
  *
@@ -96,13 +97,6 @@ export template <typename N>
 concept IsNatural = dedekind::algebra::HasSemiringOperators<N> &&
                     dedekind::category::IsCommutativeMonoid<N, std::plus<N>> &&
                     dedekind::order::IsTotallyOrdered<N>;
-
-/**
- * @brief Canonical embedding 𝔹 ↪ ℕ: bool → unsigned.
- * @details False maps to 0, True maps to 1.
- */
-export inline constexpr auto embed_𝔹_uint_ =
-    arrow<bool, unsigned>([](const bool& b) noexcept { return b ? 1u : 0u; });
 
 /**
  * @brief Canonical embedding 𝔹 ↪ ℕ: bool → Cardinality.
@@ -438,13 +432,6 @@ static_assert(
 }  // namespace dedekind::numbers
 
 namespace dedekind::category {
-template <>
-inline constexpr bool
-    is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_𝔹_uint_)>> =
-        true;
-static_assert(
-    IsInjective<std::decay_t<decltype(dedekind::numbers::embed_𝔹_uint_)>>,
-    "embed_𝔹_uint_ (𝔹 ↪ ℕ) is registered injective.");
 
 template <>
 inline constexpr bool

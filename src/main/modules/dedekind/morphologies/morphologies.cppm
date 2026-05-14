@@ -48,3 +48,8 @@ export module dedekind.morphologies;
 
 export import :archimedean;
 export import :cyclic;
+
+export import :integral;
+export import :uint;
+export import :sint;
+export import :floating_point;

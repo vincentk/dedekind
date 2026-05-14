@@ -22,12 +22,14 @@
 
 import dedekind.algebra;
 import dedekind.category;
-import dedekind.numbers;
+import dedekind.morphologies;
 import dedekind.sets;
 
 using namespace dedekind::category;
-using namespace dedekind::numbers;
+using namespace dedekind::morphologies;
 using namespace dedekind::sets;
+using dedekind::morphologies::embed_sint_ℤ;
+using dedekind::morphologies::embed_sint_ℤ_;
 
 // ===========================================================================
 // (1) The universal lift arrow: std::signed_integral → SignedCardinality
@@ -92,9 +94,6 @@ TEST_CASE("sint: int does NOT satisfy axiomatic ring laws (negative witnesses)",
   // fire on signed-integral primitives.  Signed-overflow UB defeats
   // closure-under-arithmetic as a stable axiom — the library's
   // @b Honest @b Rejection of int as a witness for ℤ.
-  STATIC_CHECK(!Group_ℤ<int>);
-  STATIC_CHECK(!Group_ℤ<long>);
-  STATIC_CHECK(!Group_ℤ<long long>);
   STATIC_CHECK(!dedekind::algebra::IsArithmeticAdditiveGroup<int>);
 }
 
@@ -106,10 +105,10 @@ TEST_CASE(
   //   * unsigned int claims MORE structure than ℕ has (modular inverses);
   //     IsField<unsigned int> rejected (PR #441 / :uint).
   //   * int claims LESS structure than ℤ has (UB on overflow defeats
-  //     closure); Group_ℤ<int> rejected (this partition).
+  //     closure); IsArithmeticAdditiveGroup<int> rejected (this partition).
   // Both rejections are symmetric in form — each carrier's claim is
   // mismatched with the textbook structure it would purport to inhabit.
-  STATIC_CHECK(!Group_ℤ<int>);               // signed: too LITTLE structure
+  STATIC_CHECK(!dedekind::algebra::IsArithmeticAdditiveGroup<int>);
   STATIC_CHECK(!dedekind::algebra::IsField<  // unsigned: too MUCH structure
                unsigned int, std::plus<unsigned int>,
                std::multiplies<unsigned int>>);
@@ -137,30 +136,6 @@ TEST_CASE(
   // Pick a finite value that exists on both sides and verify the lift
   // commutes with negation under the operator surface.
   CHECK(-one_lifted == neg_one_lifted);
-}
-
-// ===========================================================================
-// (4) Embedding chain: 𝕂3 → sint → ℤ (signed counterpart to 𝔹 → uint → ℕ)
-// ===========================================================================
-
-TEST_CASE("sint: 𝕂3 → sint → ℤ chain via embed_𝕂3_ℤ_ + lift",
-          "[numbers][sint][lift][embedding-chain]") {
-  // Post-PR #439, embed_𝕂3_ℤ_ already lands on SignedCardinality
-  // directly.  The textbook-factored chain
-  //
-  //   𝕂3 → std::signed_integral → ℤ
-  //
-  // would route through @c int (the machine layer) on the first leg
-  // and then through @c embed_sint_ℤ on the
-  // second; PR #439's chosen factorisation collapses the two legs
-  // into one for ergonomic reasons.  Exercise the chain claim
-  // directly by relating @c embed_𝕂3_ℤ_'s images to the lifted
-  // canonical machine-int images @c -1 / @c 0 / @c 1, asserting
-  // that both factorisations agree on the canonical value of each
-  // Kleene truth-value.
-  CHECK(embed_𝕂3_ℤ_(Ternary::False) == embed_sint_ℤ(-1));
-  CHECK(embed_𝕂3_ℤ_(Ternary::Unknown) == embed_sint_ℤ(0));
-  CHECK(embed_𝕂3_ℤ_(Ternary::True) == embed_sint_ℤ(1));
 }
 
 // ===========================================================================

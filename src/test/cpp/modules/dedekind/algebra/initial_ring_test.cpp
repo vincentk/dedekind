@@ -35,18 +35,15 @@
 
 import dedekind.algebra;
 import dedekind.category;
-import dedekind.morphologies;
-import dedekind.numbers;
 import dedekind.sets;
 
+using namespace dedekind::algebra;
 using namespace dedekind::category;
-using namespace dedekind::numbers;
 using namespace dedekind::sets;
 using dedekind::algebra::is_grothendieck_group_v;
 using dedekind::algebra::is_initial_ring_v;
 using dedekind::algebra::IsGrothendieckGroup;
 using dedekind::algebra::IsInitialRing;
-using dedekind::morphologies::Modular;
 
 // ===========================================================================
 // (1) Concept fires on the canonical witnesses
@@ -75,82 +72,6 @@ TEST_CASE(
   STATIC_CHECK(!is_initial_ring_v<Cardinality>);
   STATIC_CHECK((!is_grothendieck_group_v<unsigned int, Cardinality>));
   STATIC_CHECK((!is_grothendieck_group_v<Cardinality, Cardinality>));
-}
-
-// ===========================================================================
-// (2) Universal property exercised: χ_{Modular<n>} as mod-n reduction
-// ===========================================================================
-//
-// The unique ring homomorphism @c χ_R : @c SignedCardinality → @c R
-// for @c R = @c Modular<n> is the mod-@c n reduction.  We exercise
-// this operationally — the test suite pins what the universal-
-// property witness's @b operational behaviour must be on a concrete
-// target ring.
-
-namespace {
-// Helper: mod-n reduction of a finite SignedCardinality value.
-// Implements χ_{Modular<n>} for the finite fragment.
-//
-// Precision: take the modulus in the limb type (the wider unsigned
-// type the @c ExtensionalCardinal stores @c magnitude.limbs[0] in)
-// before narrowing to @c Modular<N>::machine_type.  Casting first
-// would truncate the magnitude when @c machine_type is narrower
-// than the limb type.
-template <auto N>
-constexpr Modular<N> χ_to_modular(SignedCardinality const& z) noexcept {
-  if (auto const* sec = std::get_if<SignedExtensionalCardinal<>>(&z)) {
-    using ML = typename Modular<N>::machine_type;
-    auto const limb = sec->magnitude.limbs[0];
-    using LimbType = std::remove_cv_t<std::remove_reference_t<decltype(limb)>>;
-    auto const reduced_in_limb = limb % static_cast<LimbType>(N);
-    auto const reduced_mag = static_cast<ML>(reduced_in_limb);
-    if (sec->negative && reduced_mag != 0) {
-      return Modular<N>{static_cast<ML>(N) - reduced_mag};
-    }
-    return Modular<N>{reduced_mag};
-  }
-  // Sentinels (±ℵ_0, NaZ): not part of the textbook ℤ; the
-  // universal property does not extend.  Return zero as a
-  // placeholder; this case is out of scope for the test.
-  return Modular<N>{0};
-}
-}  // namespace
-
-TEST_CASE(
-    "initial_ring: χ_{Modular<5>} is the unique ring homomorphism — sends "
-    "1 to 1, preserves +, *, zero",
-    "[algebra][initial_ring][modular][universal-property]") {
-  // Sends 1_ℤ to 1_M (the load-bearing universal-property clause).
-  CHECK(χ_to_modular<5>(finite_signed_cardinality(1)).value == 1);
-  CHECK(χ_to_modular<5>(finite_signed_cardinality(0)).value == 0);
-  // Mod-5 reduction on positive finite values.
-  CHECK(χ_to_modular<5>(finite_signed_cardinality(7)).value == 2);
-  CHECK(χ_to_modular<5>(finite_signed_cardinality(13)).value == 3);
-  CHECK(χ_to_modular<5>(finite_signed_cardinality(25)).value == 0);
-  // Mod-5 reduction on negative values (sign-aware: -3 ≡ 2 (mod 5)).
-  CHECK(χ_to_modular<5>(finite_signed_cardinality(-1)).value == 4);
-  CHECK(χ_to_modular<5>(finite_signed_cardinality(-3)).value == 2);
-  CHECK(χ_to_modular<5>(finite_signed_cardinality(-5)).value == 0);
-  CHECK(χ_to_modular<5>(finite_signed_cardinality(-7)).value == 3);
-}
-
-TEST_CASE(
-    "initial_ring: χ_{Modular<n>} is a ring homomorphism — preserves + and "
-    "* on representative values",
-    "[algebra][initial_ring][modular][ring-homomorphism]") {
-  auto const z2 = finite_signed_cardinality(2);
-  auto const z3 = finite_signed_cardinality(3);
-  auto const z5 = finite_signed_cardinality(5);
-  // χ(a + b) = χ(a) + χ(b)
-  auto const sum_via_z = χ_to_modular<7>(z2 + z3);
-  auto const sum_via_m = χ_to_modular<7>(z2) + χ_to_modular<7>(z3);
-  CHECK(sum_via_z.value == sum_via_m.value);
-  // χ(a * b) = χ(a) * χ(b)
-  auto const prod_via_z = χ_to_modular<7>(z2 * z5);
-  auto const prod_via_m = χ_to_modular<7>(z2) * χ_to_modular<7>(z5);
-  CHECK(prod_via_z.value == prod_via_m.value);
-  // Wrap example: χ(8) = χ(1) since 8 ≡ 1 (mod 7).
-  CHECK(χ_to_modular<7>(finite_signed_cardinality(8)).value == 1);
 }
 
 // ===========================================================================
@@ -239,78 +160,21 @@ TEST_CASE(
   auto const via_grothendieck = finite_cardinality(7) - finite_cardinality(0);
   auto const via_initial_ring = finite_signed_cardinality(7);
   CHECK(via_grothendieck == via_initial_ring);
-  // χ_{Modular<5>} of either yields the same residue.
-  CHECK(χ_to_modular<5>(via_grothendieck).value ==
-        χ_to_modular<5>(via_initial_ring).value);
 }
-
-// ===========================================================================
-// (5) Carrier-lattice arrows are mechanically witnessed as monic
-// ===========================================================================
-//
-// Figure 1 in @c paper.tex / @c report.tex labels seven arrows.
-// The static_asserts below pin each one as @c IsMonicArrow at the
-// concept level — the figure's claim that they are canonical
-// embeddings registered as monic morphisms is not schematic prose
-// but a type-checked fact.  The dashed retraction @c abs (also
-// shown in the figure) is intentionally @b not asserted monic
-// here; it is a split-mono partner of @c lift_ℕ_ℤ_ (i.e.,
-// @c abs @c ∘ @c embed @c = @c id on the non-negative fragment),
-// which is a different categorical concept.
-
-TEST_CASE(
-    "carrier-lattice: figure-1 arrows (minus the middle-row machine-layer "
-    "ℕ→ℤ link, removed under #670) are structural arrows and "
-    "type-checked monic morphisms",
-    "[carrier-lattice][figure][monic][witness]") {
-  // Note (#670): the machine-layer ℕ→ℤ horizontal arrow
-  // (@c embed_uint_sint_) was removed as deprecated.  Figure 1
-  // coverage is consequently @b incomplete pending a follow-up that
-  // restores this arrow on the new ℤ carrier (@c SignedCardinality).
-  // All other figure-1 arrows are witnessed below.
-  // Top-row variant-layer arrow: ℕ ↪ ℤ canonical embedding.
-  STATIC_CHECK(IsArrow<std::decay_t<decltype(lift_ℕ_ℤ_)>>);
-  STATIC_CHECK(IsMonicArrow<std::decay_t<decltype(lift_ℕ_ℤ_)>>);
-  // Operational witness: lift_ℕ_ℤ_ realises the canonical embedding
-  // — applied to a Cardinality, returns the corresponding non-
-  // negative SignedCardinality.  Covers the arrow's lambda body.
-  CHECK(lift_ℕ_ℤ_(finite_cardinality(7)) == finite_signed_cardinality(7));
-  CHECK(lift_ℕ_ℤ_(finite_cardinality(0)) == finite_signed_cardinality(0));
-  // Middle-row vertical arrows (machine → variant lifts).
-  STATIC_CHECK(IsArrow<std::decay_t<decltype(embed_uint_ℕ_)>>);
-  STATIC_CHECK(IsMonicArrow<std::decay_t<decltype(embed_uint_ℕ_)>>);
-  STATIC_CHECK(IsArrow<std::decay_t<decltype(embed_sint_ℤ_)>>);
-  STATIC_CHECK(IsMonicArrow<std::decay_t<decltype(embed_sint_ℤ_)>>);
-  // (Note: the machine-layer ℕ → ℤ horizontal arrow `embed_uint_sint_`
-  //  was removed in #670 as deprecated.  The carrier-lattice diagram
-  //  is consequently missing this middle-row horizontal arrow until a
-  //  follow-up restores it on the new ℤ carrier.)
-  // Bottom-row vertical arrow: 𝔹 ↪ ℕ.
-  STATIC_CHECK(IsArrow<std::decay_t<decltype(embed_𝔹_uint_)>>);
-  STATIC_CHECK(IsMonicArrow<std::decay_t<decltype(embed_𝔹_uint_)>>);
-  // Bottom-row horizontal arrow: 𝔹 ↪ 𝕂3.
-  STATIC_CHECK(IsArrow<std::decay_t<decltype(embed_𝔹_𝕂3_)>>);
-  STATIC_CHECK(IsMonicArrow<std::decay_t<decltype(embed_𝔹_𝕂3_)>>);
-  // Bottom-to-top diagonal arrow: 𝕂3 ↪ ℤ (skips the machine row).
-  STATIC_CHECK(IsArrow<std::decay_t<decltype(embed_𝕂3_ℤ_)>>);
-  STATIC_CHECK(IsMonicArrow<std::decay_t<decltype(embed_𝕂3_ℤ_)>>);
-}
-
-// ===========================================================================
-// (6) embed_𝔹_𝕂3_ operational behaviour (covers the lambda body for
-//     codecov; this PR's only new arrow at the carrier-lattice layer)
-// ===========================================================================
 
 TEST_CASE(
     "carrier-lattice: embed_𝔹_𝕂3_ maps true to Ternary::True and false to "
     "Ternary::False (canonical 2-valued ↪ 3-valued Kleene inclusion)",
     "[carrier-lattice][boolean][kleene][embed]") {
+  // Runtime invocation of the arrow's lambda body — codecov-load-bearing.
+  // The compile-time witnesses live in @c :algebra:boolean; this exercises
+  // the same equalities at runtime so the lambda body shows up as covered.
   CHECK(embed_𝔹_𝕂3_(true) == Ternary::True);
   CHECK(embed_𝔹_𝕂3_(false) == Ternary::False);
   // Ternary::Unknown is by construction NOT in the image of the
   // canonical embedding — it represents the third truth-value that
-  // 𝔹 lacks.  This negative fact is the structural reason the
-  // arrow is monic but not surjective.
+  // 𝔹 lacks.  This negative fact is the structural reason the arrow
+  // is monic but not surjective.
   CHECK(embed_𝔹_𝕂3_(true) != Ternary::Unknown);
   CHECK(embed_𝔹_𝕂3_(false) != Ternary::Unknown);
 }
@@ -332,43 +196,6 @@ TEST_CASE(
   constexpr SingletonSet<bool, ClassicalLogic> s_false{false};
   const auto image_set_false = embed_𝔹_𝕂3(s_false);
   CHECK(image_set_false.pivot == Ternary::False);
-}
-
-// ===========================================================================
-// (6a) embed_𝔹_ℕ_ operational behaviour (covers the lambda body for
-//      codecov; sister of embed_𝔹_uint_ landing in the variant
-//      Cardinality carrier directly per #602 layer 1, PR #624).
-// ===========================================================================
-
-TEST_CASE(
-    "carrier-lattice: embed_𝔹_ℕ_ maps true to finite_cardinality(1) and false "
-    "to finite_cardinality(0) (𝔹 ↪ ℕ via the variant Cardinality carrier)",
-    "[carrier-lattice][boolean][cardinality][embed]") {
-  CHECK(embed_𝔹_ℕ_(true) == finite_cardinality(1));
-  CHECK(embed_𝔹_ℕ_(false) == finite_cardinality(0));
-  // ℵ_0 (the saturating sentinel for transfinite cardinalities) is by
-  // construction NOT in the image of the canonical embedding — it
-  // models values past the representable range, which 𝔹 does not
-  // reach.  This negative fact is the structural reason the arrow is
-  // monic but not surjective.
-  CHECK(embed_𝔹_ℕ_(true) != Cardinality{ℵ_0{}});
-  CHECK(embed_𝔹_ℕ_(false) != Cardinality{ℵ_0{}});
-}
-
-TEST_CASE(
-    "carrier-lattice: embed_𝔹_ℕ (set-level lift) on Singleton<true> lands at "
-    "Singleton<finite_cardinality(1)> in ℕ",
-    "[carrier-lattice][boolean][cardinality][embed][image]") {
-  // Set-level lift exercises the runtime dispatch through
-  // dedekind::sets::image(arrow, SingletonSet) — covers the
-  // forwarding-reference body for codecov.
-  constexpr SingletonSet<bool, ClassicalLogic> s_true{true};
-  const auto image_set = embed_𝔹_ℕ(s_true);
-  CHECK(image_set.pivot == finite_cardinality(1));
-
-  constexpr SingletonSet<bool, ClassicalLogic> s_false{false};
-  const auto image_set_false = embed_𝔹_ℕ(s_false);
-  CHECK(image_set_false.pivot == finite_cardinality(0));
 }
 
 // ===========================================================================

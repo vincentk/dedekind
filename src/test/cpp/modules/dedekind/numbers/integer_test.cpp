@@ -8,9 +8,11 @@
                     // operator — see PR #437 review thread.
 
 import dedekind.category;
+import dedekind.morphologies;
 import dedekind.numbers;
 
 using namespace dedekind::category;
+using namespace dedekind::morphologies;
 using namespace dedekind::numbers;
 using namespace dedekind::sets;
 
@@ -170,4 +172,66 @@ TEST_CASE(
   CHECK(abs_(embed_sint_ℤ_(int_min)) == finite_cardinality(int_min_magnitude));
   CHECK(abs_(embed_sint_ℤ_(-3)) == finite_cardinality(3));
   CHECK(abs_(embed_sint_ℤ_(0)) == finite_cardinality(0));
+}
+
+// ===========================================================================
+// (3.5) embed_𝔹_ℕ_ — runtime witness for the variant-layer canonical
+//       mono 𝔹 ↪ ℕ landing on the @c Cardinality carrier.  The
+//       compile-time witnesses live in @c :natural; this exercises
+//       the same equalities at runtime so the arrow's lambda body
+//       shows up as covered for codecov.
+// ===========================================================================
+
+TEST_CASE(
+    "carrier-lattice: embed_𝔹_ℕ_ maps true to finite_cardinality(1) and false "
+    "to finite_cardinality(0) (𝔹 ↪ ℕ via the variant Cardinality carrier)",
+    "[carrier-lattice][boolean][cardinality][embed]") {
+  CHECK(embed_𝔹_ℕ_(true) == finite_cardinality(1));
+  CHECK(embed_𝔹_ℕ_(false) == finite_cardinality(0));
+  // ℵ_0 (the saturating sentinel for transfinite cardinalities) is by
+  // construction NOT in the image of the canonical embedding — it
+  // models values past the representable range, which 𝔹 does not
+  // reach.
+  CHECK(embed_𝔹_ℕ_(true) != Cardinality{ℵ_0{}});
+  CHECK(embed_𝔹_ℕ_(false) != Cardinality{ℵ_0{}});
+}
+
+TEST_CASE(
+    "carrier-lattice: embed_𝔹_ℕ (set-level lift) on Singleton<true> lands at "
+    "Singleton<finite_cardinality(1)> in ℕ",
+    "[carrier-lattice][boolean][cardinality][embed][image]") {
+  // Set-level lift exercises the runtime dispatch through
+  // dedekind::sets::image(arrow, SingletonSet) — covers the
+  // forwarding-reference body for codecov.
+  constexpr SingletonSet<bool, ClassicalLogic> s_true{true};
+  const auto image_set = embed_𝔹_ℕ(s_true);
+  CHECK(image_set.pivot == finite_cardinality(1));
+
+  constexpr SingletonSet<bool, ClassicalLogic> s_false{false};
+  const auto image_set_false = embed_𝔹_ℕ(s_false);
+  CHECK(image_set_false.pivot == finite_cardinality(0));
+}
+
+// ===========================================================================
+// (4) Embedding chain: 𝕂3 → sint → ℤ (signed counterpart to 𝔹 → uint → ℕ)
+// ===========================================================================
+
+TEST_CASE("sint: 𝕂3 → sint → ℤ chain via embed_𝕂3_ℤ_ + lift",
+          "[numbers][sint][lift][embedding-chain]") {
+  // Post-PR #439, embed_𝕂3_ℤ_ already lands on SignedCardinality
+  // directly.  The textbook-factored chain
+  //
+  //   𝕂3 → std::signed_integral → ℤ
+  //
+  // would route through @c int (the machine layer) on the first leg
+  // and then through @c embed_sint_ℤ on the
+  // second; PR #439's chosen factorisation collapses the two legs
+  // into one for ergonomic reasons.  Exercise the chain claim
+  // directly by relating @c embed_𝕂3_ℤ_'s images to the lifted
+  // canonical machine-int images @c -1 / @c 0 / @c 1, asserting
+  // that both factorisations agree on the canonical value of each
+  // Kleene truth-value.
+  CHECK(embed_𝕂3_ℤ_(Ternary::False) == embed_sint_ℤ(-1));
+  CHECK(embed_𝕂3_ℤ_(Ternary::Unknown) == embed_sint_ℤ(0));
+  CHECK(embed_𝕂3_ℤ_(Ternary::True) == embed_sint_ℤ(1));
 }

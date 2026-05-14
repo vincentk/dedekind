@@ -30,13 +30,15 @@ export module dedekind.numbers:rational;
 
 import dedekind.algebra;
 import dedekind.category;
+import dedekind.morphologies;
 import dedekind.order;
 import dedekind.sets;
 import :integer;
-import :sint;  // IsInteger / default_integer (relocated from :integer per #670)
 
 namespace dedekind::numbers {
+using namespace dedekind::algebra;
 using namespace dedekind::category;
+using namespace dedekind::morphologies;
 using namespace dedekind::order;
 using namespace dedekind::sets;
 
@@ -44,7 +46,7 @@ using namespace dedekind::sets;
  * @class Rational
  * @brief The Field of Fractions over an Integral Domain Z.
  */
-export template <IsInteger Z>
+export template <IsInteger Z = default_integer>
 class Rational {
  public:
   // Self-Domain: `Variable<Rational<Z>>::T` becomes `Rational<Z>` so
@@ -107,7 +109,17 @@ class Rational {
   constexpr Rational(S n)  // NOLINT(google-explicit-constructor)
       : first(Z{n}), second(Z{1}) {}
 
-  /** @section rational__The_Simplification_Morphism */
+  /** @section rational__The_Simplification_Morphism
+   *
+   *  FIXME(#680): when @c Z is the saturating @c SignedCardinality and
+   *  either @c first or @c second is a non-finite sentinel (@c NaZ or
+   *  @c ±ℵ_0), @c euclidean_gcd's loop @c rhs != Z{0} can fail to
+   *  terminate (@c NaZ @c % anything @c == @c NaZ).  Typical inputs
+   *  stay in the finite fragment and avoid this; an Honest-Rejection
+   *  guard at the carrier boundary is the structurally-right fix.
+   *  Tracked separately so this PR's scope (the integer-classification
+   *  refactor) stays contained.
+   */
   constexpr void simplify() {
     if (second == Z{0}) throw std::domain_error("Rational: Division by zero.");
 
@@ -277,52 +289,52 @@ struct PartialEmbedIntegerToRational {
 namespace dedekind::category {
 
 /** @brief Kleene traits for rational arithmetic. */
-template <dedekind::numbers::IsInteger I>
+template <dedekind::morphologies::IsInteger I>
 inline constexpr bool is_kleene_associative_v<
     dedekind::numbers::Rational<I>, dedekind::numbers::PartialAddRational<I>> =
     true;
 
-template <dedekind::numbers::IsInteger I>
+template <dedekind::morphologies::IsInteger I>
 inline constexpr bool is_kleene_commutative_v<
     dedekind::numbers::Rational<I>, dedekind::numbers::PartialAddRational<I>> =
     true;
 
-template <dedekind::numbers::IsInteger I>
+template <dedekind::morphologies::IsInteger I>
 inline constexpr dedekind::numbers::Rational<I> partial_identity_v<
     dedekind::numbers::Rational<I>, dedekind::numbers::PartialAddRational<I>> =
     dedekind::numbers::Rational<I>(I{0}, I{1});
 
-template <dedekind::numbers::IsInteger I>
+template <dedekind::morphologies::IsInteger I>
 inline constexpr bool is_kleene_associative_v<
     dedekind::numbers::Rational<I>, dedekind::numbers::PartialMulRational<I>> =
     true;
 
-template <dedekind::numbers::IsInteger I>
+template <dedekind::morphologies::IsInteger I>
 inline constexpr bool is_kleene_commutative_v<
     dedekind::numbers::Rational<I>, dedekind::numbers::PartialMulRational<I>> =
     true;
 
-template <dedekind::numbers::IsInteger I>
+template <dedekind::morphologies::IsInteger I>
 inline constexpr dedekind::numbers::Rational<I> partial_identity_v<
     dedekind::numbers::Rational<I>, dedekind::numbers::PartialMulRational<I>> =
     dedekind::numbers::Rational<I>(I{1}, I{1});
 
 /** @brief Kleene traits for integer→rational embedding (exact). */
-template <dedekind::numbers::IsInteger I>
+template <dedekind::morphologies::IsInteger I>
 inline constexpr bool is_kleene_associative_v<
     dedekind::numbers::Rational<I>,
     dedekind::numbers::PartialEmbedIntegerToRational<I>> = true;
 
 /** @brief Ordering traits: Rational<I> is a total order (ℚ ≤ is a chain). */
-template <dedekind::numbers::IsInteger I>
+template <dedekind::morphologies::IsInteger I>
 inline constexpr bool
     is_reflexive_v<dedekind::numbers::Rational<I>, std::less_equal<>> = true;
 
-template <dedekind::numbers::IsInteger I>
+template <dedekind::morphologies::IsInteger I>
 inline constexpr bool
     is_transitive_v<dedekind::numbers::Rational<I>, std::less_equal<>> = true;
 
-template <dedekind::numbers::IsInteger I>
+template <dedekind::morphologies::IsInteger I>
 inline constexpr bool
     is_antisymmetric_v<dedekind::numbers::Rational<I>, std::less_equal<>> =
         true;
@@ -382,7 +394,7 @@ static_assert(std::same_as<typename Rational<default_integer>::IntegerCarrier,
 
 namespace dedekind::category {
 
-template <dedekind::numbers::IsInteger I>
+template <dedekind::morphologies::IsInteger I>
 struct quotient_algebra_base<dedekind::numbers::Rational<I>> {
   using type = I;
 };
@@ -390,14 +402,14 @@ struct quotient_algebra_base<dedekind::numbers::Rational<I>> {
 // Carrier-specific identity values (0/1 → 0/1 for plus, 1/1 for multiplies):
 // these don't propagate trivially because the quotient witness has its
 // own constructor shape.
-template <dedekind::numbers::IsInteger I>
+template <dedekind::morphologies::IsInteger I>
 struct identity_trait<dedekind::numbers::Rational<I>,
                       std::plus<dedekind::numbers::Rational<I>>> {
   using value_type = dedekind::numbers::Rational<I>;
   static constexpr value_type value = value_type{I{0}, I{1}};
 };
 
-template <dedekind::numbers::IsInteger I>
+template <dedekind::morphologies::IsInteger I>
 struct identity_trait<dedekind::numbers::Rational<I>,
                       std::multiplies<dedekind::numbers::Rational<I>>> {
   using value_type = dedekind::numbers::Rational<I>;
@@ -407,12 +419,12 @@ struct identity_trait<dedekind::numbers::Rational<I>,
 // Carrier-specific additive inverse: the defining ℚ trait — every
 // rational has an additive inverse via numerator-negation.  This too
 // is carrier-specific (the construction depends on Rational's layout).
-template <dedekind::numbers::IsInteger I>
+template <dedekind::morphologies::IsInteger I>
 inline constexpr bool is_invertible_v<
     dedekind::numbers::Rational<I>, std::plus<dedekind::numbers::Rational<I>>> =
     true;
 
-template <dedekind::numbers::IsInteger I>
+template <dedekind::morphologies::IsInteger I>
 struct inverse_trait<dedekind::numbers::Rational<I>,
                      std::plus<dedekind::numbers::Rational<I>>> {
   static constexpr bool exists = true;
@@ -427,7 +439,7 @@ struct inverse_trait<dedekind::numbers::Rational<I>,
 // @c is_invertible_v convention pinned in @c total.cppm).  Closes
 // @c IsAbelianGroup<Rational<I>, std::multiplies> and hence
 // @c IsField on ℚ.
-template <dedekind::numbers::IsInteger I>
+template <dedekind::morphologies::IsInteger I>
 inline constexpr bool
     is_invertible_v<dedekind::numbers::Rational<I>,
                     std::multiplies<dedekind::numbers::Rational<I>>> = true;
@@ -755,13 +767,13 @@ struct CrossMultEquiv {
 // std::pair<I, I>> fire honestly on the full domain, which is what
 // the @c quotient operator's requires-clause consumes.
 namespace dedekind::category {
-template <dedekind::numbers::IsInteger I>
+template <dedekind::morphologies::IsInteger I>
 inline constexpr bool
     is_reflexive_relation_v<dedekind::numbers::CrossMultEquiv<I>> = true;
-template <dedekind::numbers::IsInteger I>
+template <dedekind::morphologies::IsInteger I>
 inline constexpr bool
     is_symmetric_relation_v<dedekind::numbers::CrossMultEquiv<I>> = true;
-template <dedekind::numbers::IsInteger I>
+template <dedekind::morphologies::IsInteger I>
 inline constexpr bool
     is_transitive_relation_v<dedekind::numbers::CrossMultEquiv<I>> = true;
 }  // namespace dedekind::category
@@ -771,7 +783,7 @@ inline constexpr bool
 // the specialisation references types from @c dedekind::numbers, which
 // is fine.
 namespace dedekind::sets {
-export template <dedekind::numbers::IsInteger I>
+export template <dedekind::morphologies::IsInteger I>
 struct quotient_carrier<std::pair<I, I>, dedekind::numbers::CrossMultEquiv<I>> {
   using type = dedekind::numbers::Rational<I>;
 };
@@ -798,7 +810,7 @@ static_assert(
 }  // namespace dedekind::numbers
 
 namespace dedekind::category {
-template <dedekind::numbers::IsInteger Z>
+template <dedekind::morphologies::IsInteger Z>
 struct SpeciesTraits<dedekind::numbers::Rational<Z>> {
   using Domain = dedekind::numbers::Rational<Z>;
   using machine_type = dedekind::numbers::Rational<Z>;
@@ -876,8 +888,9 @@ static_assert(
 //     are neither periodic, idempotent, nor saturating); the operational
 //     reading via @c HasFieldOperators is the load-bearing
 //     field-arithmetic guarantee, asserted downstream in this file's
-//     Formal_Verification block. Group_ℤ on the integer carrier of ℚ is also
-//     asserted downstream where the species-trait registry is reachable.
+//     Formal_Verification block.  The additive-group / commutative-ring
+//     pins on the integer carrier of ℚ live at @c :integer, where the
+//     species-trait registry on @c SignedCardinality is reachable.
 
 // (4) Primitive-type arrows on ℚ:
 //   - Forward (machine → ℚ): @c embed_ℤ_ℚ promotes a @c machine_integer
@@ -904,28 +917,6 @@ static_assert(
 //     convention routes that through the ℝ-proxy so the
 //     IEEE-754 friction is named at the right partition.
 
-/**
- * @section rational__Formal_Verification_2
- *
- * @c Rational<I> satisfies @c algebra::IsField via the
- * multiplicative-inverse trait registration above; the Kleene
- * partial-function helpers (@c HonestDivRational, etc.) remain for
- * codepaths that prefer explicit @c Ternary failure over throwing.
- */
-// ExtensionalCardinal<> (the cardinality ring) now carries division/modulo,
-// making it satisfy IsInteger. It represents ℕ "by fiat": a total ring
-// (IsRing, IsMagma) whose wrapping arithmetic avoids UB. This assert lives
-// here (not in cardinality.cppm) to avoid a circular import chain:
-//   :cardinality → :natural   :integer → :cardinality   :rational → :integer
-static_assert(IsInteger<ExtensionalCardinal<>>,
-              "ExtensionalCardinal<> must satisfy IsInteger (Euclidean "
-              "ring: +, -, *, /, % with two's-complement wrapping).");
-
-static_assert(IsInteger<SignedExtensionalCardinal<>>,
-              "SignedExtensionalCardinal<> must satisfy IsInteger (Euclidean "
-              "signed ring: sign-magnitude arithmetic, overflow-free up to "
-              "2^{N*64 - 1}).");
-
 static_assert(
     dedekind::algebra::HasFieldOperators<Rational<default_integer>>,
     "Rational<I> must satisfy the operational field-like witness (ℚ is a "
@@ -946,28 +937,6 @@ static_assert(
 // concepts they *claim* to realize. When a future certification fails to
 // hold (e.g. because a downstream change breaks a species-trait), the build
 // breaks here, at the point of the claim, rather than silently downstream.
-
-// `Monoid_ℕ` static_assert removed under ℚ-retarget chiselling: the
-// concept was deleted from :natural.
-
-// ℤ as an abelian group under +: the canonical arbitrary-precision signed
-// integer carrier. The species-trait registry supplies associativity,
-// commutativity, identity, and inverse; the concept gate enforces them.
-static_assert(Group_ℤ<SignedExtensionalCardinal<>>,
-              "SignedExtensionalCardinal<> must realize ℤ as an abelian "
-              "group under std::plus.");
-
-// ℤ-deal (#394): the strict additive-group proof above AND the literal
-// C++ +, binary -, unary - operators close strictly on the carrier.
-// SignedExtensionalCardinal<>'s friend operators all return
-// SignedExtensionalCardinal<> exactly, so HasGroupOperatorsAdd fires;
-// combined with the species-trait Group_ℤ proof, IsArithmeticAdditiveGroup
-// is the meet-point between the math-textbook ℤ structure and the
-// standard C++ arithmetic operators on this carrier.
-static_assert(
-    dedekind::algebra::IsArithmeticAdditiveGroup<SignedExtensionalCardinal<>>,
-    "SignedExtensionalCardinal<> is the canonical ℤ-deal: strict "
-    "additive group AND literal +,-,unary - close on the carrier.");
 
 // ℚ as the field of rationals: the canonical arbitrary-precision rational
 // carrier that the paper-facing showcases instantiate on.  Both the
