@@ -60,6 +60,7 @@
  */
 module;
 
+#include <compare>  // std::three_way_comparable (gated in IsInteger)
 #include <concepts>
 #include <functional>
 
@@ -102,13 +103,30 @@ concept IsInteger =
       { a / b } -> std::same_as<T>;
     };
 
+/** @brief Saturating-ℤ-shape integer: integer surface + translation-invariant
+ *         order (sentinels propagate cleanly; no cyclic wrap).  The variant
+ *         ℤ proxy @c SignedCardinality is the canonical witness.
+ *
+ *  The classifier uses @c is_translation_invariant_ordered_v as the
+ *  carrier-promise marker (registered in @c :algebra:scout_algebra on
+ *  @c SignedCardinality); the cyclic alternative is gated below by
+ *  @c IsCyclicGroup<T, std::plus<T>> rather than the duck-typed
+ *  @c morphologies::IsCyclic shape concept, which checks for the
+ *  @c Modular<N>-shaped member API (@c Domain / @c generator() /
+ *  @c successor()) and would not fire on @c SignedExtensionalCardinal<>.
+ */
 export template <typename T>
-concept IsSaturatingInteger =
-    IsInteger<T> && is_translation_invariant_ordered_v<T> && !IsCyclic<T>;
+concept IsSaturatingInteger = IsInteger<T> && is_translation_invariant_ordered_v<T>;
 
+/** @brief Cyclic-ℤ-shape integer: integer surface + abelian-group-cyclic
+ *         under @c +.  @c SignedExtensionalCardinal<> (sign-magnitude
+ *         @c ℤ/2^{N*64}ℤ) is the canonical witness via
+ *         @c IsCyclicGroup<SignedExtensionalCardinal<1>, std::plus<>>
+ *         pinned in @c :sets:cardinality.
+ */
 export template <typename T>
 concept IsCyclicInteger =
-    IsInteger<T> && !is_translation_invariant_ordered_v<T> && IsCyclic<T>;
+    IsInteger<T> && dedekind::category::IsCyclicGroup<T, std::plus<T>>;
 
 /** @section integral__Formal_Verification Umbrella negative claims under
  * arithmetic.
@@ -164,5 +182,25 @@ static_assert(IsInteger<SignedExtensionalCardinal<>>,
               "SignedExtensionalCardinal<> must satisfy IsInteger (Euclidean "
               "signed ring: sign-magnitude arithmetic, overflow-free up to "
               "2^{N*64 - 1}).");
+
+/** @section integral__Classifier_Partition_Witnesses
+ *
+ * The two structural ℤ proxies partition cleanly across
+ * @c IsSaturatingInteger / @c IsCyclicInteger.  These pins document the
+ * intended classification so future trait changes cannot silently invert
+ * the partition.
+ */
+static_assert(IsSaturatingInteger<SignedCardinality>,
+              "SignedCardinality is the canonical saturating-ℤ witness "
+              "(translation-invariant order; ±ℵ_0 / NaZ escalation).");
+static_assert(!IsCyclicInteger<SignedCardinality>,
+              "SignedCardinality is NOT cyclic: it is the saturating "
+              "ℤ proxy, not a finite cyclic group.");
+static_assert(IsCyclicInteger<SignedExtensionalCardinal<>>,
+              "SignedExtensionalCardinal<> is the canonical cyclic-ℤ "
+              "witness (sign-magnitude ℤ/2^{N*64}ℤ under +).");
+static_assert(!IsSaturatingInteger<SignedExtensionalCardinal<>>,
+              "SignedExtensionalCardinal<> is NOT saturating: it wraps "
+              "cyclically rather than escalating to a sentinel.");
 
 }  // namespace dedekind::morphologies

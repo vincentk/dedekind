@@ -199,8 +199,14 @@ struct PartialDivReal {
  * representable and return True, but conservatively, we flag all embeddings
  * as Unknown.
  */
-export template <IsInteger I = default_integer,
+// @c I has no default because the body @c static_cast<S>(q.num()) requires
+// @c I to be convertible to the floating-point @c S; the project's
+// @c default_integer (post-PR #676) is @c SignedCardinality (a
+// @c std::variant), which has no floating-point cast.  Callers must
+// instantiate with a castable integer carrier (e.g.\ @c machine_integer).
+export template <dedekind::morphologies::IsInteger I,
                  IsRealCarrier S = machine_real_scalar>
+  requires std::convertible_to<I, S>
 struct PartialEmbedRationalToReal {
   using value_type = Real<S>;
   using logic_species = TernaryLogic;

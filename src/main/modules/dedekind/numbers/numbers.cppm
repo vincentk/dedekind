@@ -35,8 +35,9 @@ export import dedekind.topology;  // Rays, half-spaces, intervals, convex shapes
 export import :boolean;  // Truth<L> and Ω
 export import :natural;  // Cardinality partition (carrier:
                          // dedekind::sets::Cardinality)
-export import :integer;  // SignedExtensionalCardinal<> partition (variant
-                         // ℤ-proxy / IntegersOf<>)
+export import :integer;  // ℤ = Ω<SignedCardinality> (saturating variant
+                         // ℤ-proxy, post-#670); default_integer alias also
+                         // anchored on SignedCardinality (post-PR #676).
 /** @section numbers__Algebraic_Extensions */
 export import :rational;    // Rational<default_integer> (The Quotient Field)
 export import :complex;     // ℂ (The Cayley-Dickson construction)

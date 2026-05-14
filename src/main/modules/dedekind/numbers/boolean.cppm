@@ -283,48 +283,12 @@ static_assert(FiniteBooleanSetOf<>{}(false) == ClassicalLogic::False,
 // @c SingletonSet<Ternary>, not which inhabitant).  Sister anchor
 // to PR #624's @c embed_𝔹_ℕ witness in @c :natural --- same shape,
 // different codomain.
-static_assert(embed_𝔹_𝕂3(dedekind::sets::SingletonSet<bool, ClassicalLogic>{
-                             true})
-                      .pivot == dedekind::category::Ternary::True,
-              "embed_𝔹_𝕂3(Singleton<true>) lands at Ternary::True on the 𝕂3 "
-              "carrier.");
-static_assert(embed_𝔹_𝕂3(dedekind::sets::SingletonSet<bool, ClassicalLogic>{
-                             false})
-                      .pivot == dedekind::category::Ternary::False,
-              "embed_𝔹_𝕂3(Singleton<false>) lands at Ternary::False on the 𝕂3 "
-              "carrier.");
+// embed_𝔹_𝕂3 (set-level lift) value-witnesses live with the arrow itself in
+// @c :algebra:boolean — keeping the value-level pin co-located with the
+// arrow definition avoids the cross-partition lookup the bare names would
+// require here (the names are not in @c dedekind::numbers post-PR-#676 move).
 
-// Concept-level witness: the result realises the categorical image of
-// the source set under the canonical mono 𝔹 ↪ 𝕂3 — Subobject of
-// @c Cod<embed_𝔹_𝕂3_> = Ternary per @c :category:image.
-static_assert(
-    dedekind::category::IsImageOf<
-        decltype(embed_𝔹_𝕂3(dedekind::sets::SingletonSet<bool, ClassicalLogic>{
-            true})),
-        decltype(embed_𝔹_𝕂3_)>,
-    "embed_𝔹_𝕂3(S) realises IsImageOf<result, embed_𝔹_𝕂3_>: result is "
-    "a Subobject of Cod<embed_𝔹_𝕂3_> = Ternary, witnessing the "
-    "categorical image of S under the canonical mono 𝔹 ↪ 𝕂3.");
+// embed_𝔹_𝕂3_ trait registrations (is_monic_arrow_v / is_embedding_functor_v)
+// live with the arrow itself in @c :algebra:boolean (PR #676 review round).
 
 }  // namespace dedekind::numbers
-
-namespace dedekind::category {
-template <>
-inline constexpr bool
-    is_monic_arrow_v<std::decay_t<decltype(dedekind::algebra::embed_𝔹_𝕂3_)>> =
-        true;
-static_assert(
-    IsInjective<std::decay_t<decltype(dedekind::algebra::embed_𝔹_𝕂3_)>>,
-    "embed_𝔹_𝕂3_ (𝔹 ↪ 𝕂3) is registered injective.");
-
-// IsEmbeddingFunctor witness (#633): @c embed_𝔹_𝕂3_ lifts the
-// two-element 𝔹 into the three-element 𝕂3 truth surface monically
-// (False ↦ False, True ↦ True; the Unknown value is unreached).
-// Fully faithful + injective on objects per Mac Lane CWM §IV.4.
-template <>
-inline constexpr bool is_embedding_functor_v<
-    std::decay_t<decltype(dedekind::algebra::embed_𝔹_𝕂3_)>> = true;
-static_assert(
-    IsEmbeddingFunctor<std::decay_t<decltype(dedekind::algebra::embed_𝔹_𝕂3_)>>,
-    "embed_𝔹_𝕂3_ realises IsEmbeddingFunctor per #633's Mac Lane reading.");
-}  // namespace dedekind::category

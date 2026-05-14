@@ -109,7 +109,17 @@ class Rational {
   constexpr Rational(S n)  // NOLINT(google-explicit-constructor)
       : first(Z{n}), second(Z{1}) {}
 
-  /** @section rational__The_Simplification_Morphism */
+  /** @section rational__The_Simplification_Morphism
+   *
+   *  FIXME(#680): when @c Z is the saturating @c SignedCardinality and
+   *  either @c first or @c second is a non-finite sentinel (@c NaZ or
+   *  @c ±ℵ_0), @c euclidean_gcd's loop @c rhs != Z{0} can fail to
+   *  terminate (@c NaZ @c % anything @c == @c NaZ).  Typical inputs
+   *  stay in the finite fragment and avoid this; an Honest-Rejection
+   *  guard at the carrier boundary is the structurally-right fix.
+   *  Tracked separately so this PR's scope (the integer-classification
+   *  refactor) stays contained.
+   */
   constexpr void simplify() {
     if (second == Z{0}) throw std::domain_error("Rational: Division by zero.");
 
