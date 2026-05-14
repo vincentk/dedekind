@@ -81,3 +81,66 @@ TEST_CASE(
   using ResultType = std::remove_cvref_t<decltype(S)>;
   STATIC_CHECK(std::same_as<ResultType, ExpectedSet>);
 }
+
+// ---------------------------------------------------------------------------
+// Ring-retract multiplicative scaling on ℤ (#664 Slice 5).
+//
+// ℤ is the initial ring, NOT a field --- non-units lack multiplicative
+// inverses.  The map x ↦ M*x is therefore a retract, not an iso: only
+// multiples of M land in the image.  The scout-algebra ring-retract
+// pipe produces an AffineImageOfHalfspace predicate that checks both
+// divisibility AND the source halfspace at the preimage y/M.
+//
+// The result is type-directed: writing `Set{x * bound<2> | x > bound<5>}`
+// on ℤ produces a Set whose predicate is
+// `AffineImageOfHalfspace<ℤ, 2, source_halfspace>`, NOT a plain Halfspace.
+// ---------------------------------------------------------------------------
+
+TEST_CASE(
+    "ℤ: ring-retract scaling produces AffineImageOfHalfspace (#664 Slice 5)",
+    "[numbers][integer][scout_algebra][slice5]") {
+  constexpr auto x = dedekind::sets::element<ℤ>;
+  // {n ∈ ℤ | n > 5} pushed through λn. 2*n → {2n | n > 5} = {12, 14, ...}.
+  constexpr auto S = dedekind::sets::Set{x * dedekind::order::bound<2> |
+                                         (x > dedekind::order::bound<5>)};
+
+  using SetL = typename dedekind::sets::NaturalLogic<
+      std::remove_cvref_t<decltype(ℤ)>>::type;
+  using SourceHalfspace =
+      dedekind::order::Halfspace<dedekind::sets::SignedCardinality, 5,
+                                 dedekind::order::Direction::Upward,
+                                 dedekind::order::Strictness::Strict>;
+  using ExpectedPredicate = dedekind::algebra::AffineImageOfHalfspace<
+      dedekind::sets::SignedCardinality, 2, SourceHalfspace>;
+  using ExpectedSet = dedekind::sets::Set<dedekind::sets::SignedCardinality,
+                                          SetL, ExpectedPredicate>;
+  STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(S)>, ExpectedSet>);
+
+  // Membership behaviour: S = {12, 14, 16, ...}.
+  using L = SetL;
+  CHECK(S(dedekind::sets::finite_signed_cardinality(12)) == L::True);
+  CHECK(S(dedekind::sets::finite_signed_cardinality(14)) == L::True);
+  CHECK(S(dedekind::sets::finite_signed_cardinality(13)) == L::False);
+  CHECK(S(dedekind::sets::finite_signed_cardinality(10)) == L::False);
+  CHECK(S(dedekind::sets::finite_signed_cardinality(11)) == L::False);
+
+  // Sentinel behaviour: ℤ = Ω<SignedCardinality> includes ±ℵ_0 and
+  // NaZ.  The scaling map x ↦ M*x (with finite non-zero M) maps
+  //   +ℵ_0 ↦ +ℵ_0,  -ℵ_0 ↦ -ℵ_0,  NaZ ↦ NaZ
+  // per @c SignedCardinality::operator*.  The predicate uses the
+  // identity-based divisibility test @c M * (y/M) == y rather than
+  // the modular @c y % M == 0 form precisely so the sentinels
+  // propagate correctly --- the identity holds at sentinels.
+  // Source halfspace `{n | n > 5}` lifts the membership question
+  // to the source on each sentinel: +ℵ_0 > 5 is True (in image);
+  // -ℵ_0 > 5 is False (not in image); NaZ > 5 is unordered, so
+  // Halfspace's < check fails into False.
+  constexpr auto pos_inf =
+      dedekind::sets::SignedCardinality{dedekind::sets::PositiveInfinity{}};
+  constexpr auto neg_inf =
+      dedekind::sets::SignedCardinality{dedekind::sets::NegativeInfinity{}};
+  constexpr auto naz = dedekind::sets::SignedCardinality{dedekind::sets::NaZ{}};
+  CHECK(S(pos_inf) == L::True);
+  CHECK(S(neg_inf) == L::False);
+  CHECK(S(naz) == L::False);
+}
