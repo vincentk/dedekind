@@ -474,6 +474,17 @@ static_assert(
     IsEmbeddingFunctor<std::decay_t<decltype(embed_sint_ℤ_)>>,
     "embed_sint_ℤ_ realises IsEmbeddingFunctor per #633's Mac Lane reading.");
 
+// IsMonotone witness (#664 morphism vocabulary): the canonical inclusion
+// @c int @c → @c SignedCardinality preserves order — the embedding takes
+// @c k to @c finite_signed_cardinality(k), and @c SignedCardinality's
+// @c <=> agrees with the machine @c int order on the finite fragment.
+template <>
+inline constexpr bool is_monotone_v<std::decay_t<decltype(embed_sint_ℤ_)>,
+                                    std::less_equal<>> = true;
+static_assert(IsMonotone<std::decay_t<decltype(embed_sint_ℤ_)>>,
+              "embed_sint_ℤ_ (int → SignedCardinality) is monotone — "
+              "the canonical inclusion preserves the numeric order.");
+
 // ===========================================================================
 // Mazur-equivalence pilot (#591): @c std::signed_integral as @c ℤ for
 // inputs in @c [std::numeric_limits<S>::min(), @c

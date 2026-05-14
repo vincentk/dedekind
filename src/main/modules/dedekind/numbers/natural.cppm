@@ -454,4 +454,17 @@ static_assert(
     IsEmbeddingFunctor<std::decay_t<decltype(dedekind::numbers::embed_𝔹_ℕ_)>>,
     "embed_𝔹_ℕ_ realises IsEmbeddingFunctor: fully faithful + injective on "
     "objects per #633's Mac Lane CWM §IV.4 reading.");
+
+// IsMonotone witness (#664 morphism vocabulary): @c false @c ↦
+// @c finite_cardinality(0), @c true @c ↦ @c finite_cardinality(1); the
+// embedding preserves the canonical Boolean order under @c
+// Cardinality 's @c <=>.
+template <>
+inline constexpr bool is_monotone_v<
+    std::decay_t<decltype(dedekind::numbers::embed_𝔹_ℕ_)>,
+    std::less_equal<>> = true;
+static_assert(
+    IsMonotone<std::decay_t<decltype(dedekind::numbers::embed_𝔹_ℕ_)>>,
+    "embed_𝔹_ℕ_ (𝔹 ↪ ℕ via Cardinality) is monotone — preserves the "
+    "Boolean / cardinality order.");
 }  // namespace dedekind::category
