@@ -405,8 +405,7 @@ concept IsOrderIsomorphism = IsBijectiveArrow<F> && IsMonotone<F, Op>;
  *          ordered field flips the halfspace's direction.
  */
 export template <typename F, typename Op = std::less_equal<>>
-concept IsOrderAntiIsomorphism =
-    IsBijectiveArrow<F> && IsAntiMonotone<F, Op>;
+concept IsOrderAntiIsomorphism = IsBijectiveArrow<F> && IsAntiMonotone<F, Op>;
 
 // Identity arrows are monotone under any relation: id(x) = x, so
 // Op(x, y) ⇒ Op(id(x), id(y)) holds trivially.

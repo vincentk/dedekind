@@ -461,10 +461,9 @@ static_assert(
 // Cardinality 's @c <=>.
 template <>
 inline constexpr bool is_monotone_v<
-    std::decay_t<decltype(dedekind::numbers::embed_𝔹_ℕ_)>,
-    std::less_equal<>> = true;
-static_assert(
-    IsMonotone<std::decay_t<decltype(dedekind::numbers::embed_𝔹_ℕ_)>>,
-    "embed_𝔹_ℕ_ (𝔹 ↪ ℕ via Cardinality) is monotone — preserves the "
-    "Boolean / cardinality order.");
+    std::decay_t<decltype(dedekind::numbers::embed_𝔹_ℕ_)>, std::less_equal<>> =
+    true;
+static_assert(IsMonotone<std::decay_t<decltype(dedekind::numbers::embed_𝔹_ℕ_)>>,
+              "embed_𝔹_ℕ_ (𝔹 ↪ ℕ via Cardinality) is monotone — preserves the "
+              "Boolean / cardinality order.");
 }  // namespace dedekind::category

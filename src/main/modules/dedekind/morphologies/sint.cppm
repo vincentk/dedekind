@@ -479,8 +479,9 @@ static_assert(
 // @c k to @c finite_signed_cardinality(k), and @c SignedCardinality's
 // @c <=> agrees with the machine @c int order on the finite fragment.
 template <>
-inline constexpr bool is_monotone_v<std::decay_t<decltype(embed_sint_ℤ_)>,
-                                    std::less_equal<>> = true;
+inline constexpr bool
+    is_monotone_v<std::decay_t<decltype(embed_sint_ℤ_)>, std::less_equal<>> =
+        true;
 static_assert(IsMonotone<std::decay_t<decltype(embed_sint_ℤ_)>>,
               "embed_sint_ℤ_ (int → SignedCardinality) is monotone — "
               "the canonical inclusion preserves the numeric order.");

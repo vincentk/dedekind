@@ -276,8 +276,8 @@ static_assert(
 // ≤ @c true to @c False @c ≤ @c True — order is preserved.
 template <>
 inline constexpr bool is_monotone_v<
-    std::decay_t<decltype(dedekind::algebra::embed_𝔹_𝕂3_)>,
-    std::less_equal<>> = true;
+    std::decay_t<decltype(dedekind::algebra::embed_𝔹_𝕂3_)>, std::less_equal<>> =
+    true;
 static_assert(
     IsMonotone<std::decay_t<decltype(dedekind::algebra::embed_𝔹_𝕂3_)>>,
     "embed_𝔹_𝕂3_ (𝔹 ↪ 𝕂3) is monotone — preserves the Boolean order "
