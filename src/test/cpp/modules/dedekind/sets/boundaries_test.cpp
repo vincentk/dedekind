@@ -122,14 +122,13 @@ TEST_CASE("Boundaries: The Algebra of Extremality", "[sets][boundaries]") {
     // type because the cartesian product is type-correct as a set
     // of pairs.
     INFO("Ø × Ø = Ø<pair>");
-    STATIC_CHECK(std::is_same_v<decltype(null * null),
-                                Ø<std::pair<int, int>>>);
+    STATIC_CHECK(std::is_same_v<decltype(null * null), Ø<std::pair<int, int>>>);
     INFO("Ω × Ø = Ø<pair>");
-    STATIC_CHECK(std::is_same_v<decltype(universe * null),
-                                Ø<std::pair<int, int>>>);
+    STATIC_CHECK(
+        std::is_same_v<decltype(universe * null), Ø<std::pair<int, int>>>);
     INFO("Ø × Ω = Ø<pair>");
-    STATIC_CHECK(std::is_same_v<decltype(null * universe),
-                                Ø<std::pair<int, int>>>);
+    STATIC_CHECK(
+        std::is_same_v<decltype(null * universe), Ø<std::pair<int, int>>>);
   }
 }
 

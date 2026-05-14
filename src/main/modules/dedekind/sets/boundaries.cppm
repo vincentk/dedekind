@@ -44,8 +44,8 @@ module;
 #include <compare>
 #include <concepts>
 #include <functional>
-#include <utility>  // std::pair (Ø × S cartesian-product return type)
 #include <limits>
+#include <utility>  // std::pair (Ø × S cartesian-product return type)
 
 export module dedekind.sets:boundaries;
 
