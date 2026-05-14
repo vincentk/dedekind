@@ -22,7 +22,7 @@ TEST_CASE("Sets: Singleton Final Proof: The Highway",
 }
 
 TEST_CASE("Sets: Singleton Acceptance", "[sets][singleton][acceptance]") {
-  auto _s = ι(42);
+  auto _s = ι<size_t>(42);
   STATIC_REQUIRE(IsSet<decltype(_s)>);
   SECTION("Construction") {
     INFO("Succesful membership test.");
@@ -44,6 +44,22 @@ TEST_CASE("Sets: Singleton Acceptance", "[sets][singleton][acceptance]") {
     INFO("Complement is its own inverse.");
     STATIC_REQUIRE(IsSet<decltype(!(!_s))>);
     REQUIRE(&(!(!_s)) == &_s);
+  }
+  SECTION("Intersections") {
+    INFO("The intersection of a set with itself is a fixed point.");
+    REQUIRE((_s & _s) == _s);
+    REQUIRE(&(_s & _s) == &_s);
+    INFO("The intersection of a set with its complement is empty.");
+    REQUIRE((!_s) & _s == Ø<size_t>{});
+    REQUIRE(Ø<size_t>{} == (!_s) & _s);
+  }
+  SECTION("Union") {
+    INFO("The union of a set with itself is a fixed point.");
+    REQUIRE((_s | _s) == _s);
+    REQUIRE(&(_s | _s) == &_s);
+    INFO("The union of a set with its complement is the universal set.");
+    REQUIRE((!_s) & _s == UniversalSet<size_t>{});
+    REQUIRE(UniversalSet<size_t>{} == (!_s) & _s);
   }
 }
 
