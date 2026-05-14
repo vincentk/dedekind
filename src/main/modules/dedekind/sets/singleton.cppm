@@ -196,10 +196,16 @@ struct SingletonSet {
     }};
   }
 
-  // Complement: !{a}
-  // In a strict sense, this is the relative complement (Universe \ {a}).
-  // For the sake of the lattice, we return the Universal boundary.
-  constexpr auto operator!() const { return UniversalSet<T, L>{}; }
+  /** @brief Complement @c !{a} @c = @c {x @c ∈ @c T @c | @c x @c ≠ @c a}.
+   *  @details Built via @c ambient_set<T> so the return type is a
+   *           canonical @c IsSet inhabitant by construction. */
+  constexpr auto operator!() const {
+    auto result = dedekind::category::ambient_set<T>(
+        [p = pivot](const T& x) { return x != p; });
+    static_assert(dedekind::category::IsSet<decltype(result)>,
+                  "Singleton complement must satisfy IsSet.");
+    return result;
+  }
 };
 
 // Out-of-class χ definition: completes the IsSubobject self-reference
@@ -265,6 +271,26 @@ constexpr auto singleton(T&& value) {
 export template <typename T>
 constexpr auto ι(T&& value) {
   return singleton(value);
+}
+
+/** @brief Explicit @c !{a} overload — shadows the generic
+ *         @c IsPredicate-based @c operator! in @c :category:topoi so
+ *         @c !singleton picks the set-typed complement, not a
+ *         @c Morphism wrapper.  Mirrors the @c Set<T,L,P> overrides
+ *         in @c :sets:expressions. */
+export template <typename T, typename L>
+constexpr auto operator!(const SingletonSet<T, L>& s) {
+  return s.operator!();
+}
+
+export template <typename T, typename L>
+constexpr auto operator!(SingletonSet<T, L>& s) {
+  return s.operator!();
+}
+
+export template <typename T, typename L>
+constexpr auto operator!(SingletonSet<T, L>&& s) {
+  return s.operator!();
 }
 
 /** @section singleton__The_Set_Monad: The Categorical Identity */
