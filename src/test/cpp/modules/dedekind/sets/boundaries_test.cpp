@@ -115,10 +115,21 @@ TEST_CASE("Boundaries: The Algebra of Extremality", "[sets][boundaries]") {
   }
 
   SECTION("Cartesian Product") {
-    INFO("The empty set is a fixed point of the cartesian product.");
-    STATIC_CHECK(null * null == null);
-    STATIC_CHECK(universe * null == null);
-    STATIC_CHECK(null * universe == null);
+    // The empty set annihilates the cartesian product on either side.
+    // Type-level claim only (cross-type Ø<T> == Ø<U> equality lives
+    // in #685's equality-matrix scope and would be needed for the
+    // value-level `== null` reading).  Carrier widens to the pair
+    // type because the cartesian product is type-correct as a set
+    // of pairs.
+    INFO("Ø × Ø = Ø<pair>");
+    STATIC_CHECK(std::is_same_v<decltype(null * null),
+                                Ø<std::pair<int, int>>>);
+    INFO("Ω × Ø = Ø<pair>");
+    STATIC_CHECK(std::is_same_v<decltype(universe * null),
+                                Ø<std::pair<int, int>>>);
+    INFO("Ø × Ω = Ø<pair>");
+    STATIC_CHECK(std::is_same_v<decltype(null * universe),
+                                Ø<std::pair<int, int>>>);
   }
 }
 
