@@ -657,9 +657,8 @@ struct GroupScout {
     using InnerPredicate = std::remove_cvref_t<decltype(inner_comp.predicate)>;
     constexpr auto new_offset = InnerPredicate::offset + Element;
     using SrcHalfspace = typename InnerPredicate::source_halfspace_type;
-    using NewPredicate =
-        AffineImageOfHalfspace<T, InnerPredicate::multiplier, new_offset,
-                               SrcHalfspace>;
+    using NewPredicate = AffineImageOfHalfspace<T, InnerPredicate::multiplier,
+                                                new_offset, SrcHalfspace>;
     using AmbientType = std::remove_cvref_t<decltype(inner_comp.base)>;
     return dedekind::sets::Comprehension<AmbientType, NewPredicate>{
         inner_comp.base, NewPredicate{}};

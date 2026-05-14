@@ -169,10 +169,9 @@ TEST_CASE(
     "[numbers][integer][scout_algebra][canonical-witness]") {
   constexpr auto x = dedekind::sets::element<ℤ>;
   // The canonical-witness form straight out of the issue body.
-  constexpr auto S =
-      dedekind::sets::Set{x * dedekind::order::bound<2> +
-                              dedekind::order::bound<1> |
-                          (x > dedekind::order::bound<5>)};
+  constexpr auto S = dedekind::sets::Set{x * dedekind::order::bound<2> +
+                                             dedekind::order::bound<1> |
+                                         (x > dedekind::order::bound<5>)};
 
   using SetL = typename dedekind::sets::NaturalLogic<
       std::remove_cvref_t<decltype(ℤ)>>::type;
