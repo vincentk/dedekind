@@ -134,48 +134,41 @@ TEST_CASE("Sets: Singleton Acceptance", "[sets][singleton][acceptance]") {
   }
 }
 
-// FIXME(#687): the "Functor Highway" exercises the monad-bind /
-// co-monad-extract pipeline (`into<SingletonSet>`, `>>=`, `<<=`,
-// `extract<SingletonSet>`).  Today SingletonSet has no
-// `singleton_functor` hub (sibling of `tuple_functor` in
-// `:category:functor`) and no Kleisli operators (`>>=` / `<<=`).
-// `IsFunctor<F>` and `IsFrobenius<Hub, T, U>` are both ready to bite
-// once the hub plumbing lands (~30-50 lines following the
-// `tuple_functor` / `path_functor` reference patterns).  Tracked
-// under #687; commented out here so the build stays green while the
-// hub work proceeds in its own slice.
-/*
+/**
+ * @brief Functor Highway — exercises the @c singleton_functor monad-bind
+ *        + co-monad-extract pipeline (#687, post-singleton_functor hub).
+ *
+ * @details Rewritten from the original `into<SingletonSet>` /
+ *          `extract<SingletonSet>` factory syntax to the current
+ *          surface: `singleton(value)` for η, `s.origin()` for ε,
+ *          `s >>= f` for Kleisli bind (already exported by
+ *          `:sets:singleton`).  The `singleton_functor` hub's
+ *          `IsFunctor` / `IsFrobenius` witnesses pin the algebraic
+ *          claim at the type level; this TEST_CASE exercises the
+ *          composition behaviour at the value level.
+ */
 TEST_CASE("Sets: Composition of Operations: The Functor Highway",
           "[sets][composition][monad]") {
-
   SECTION("1. Forward Monadic Composition (Bind)") {
-    // Define our atomic operations as lambda predicates/transformers
-    auto plus_one = [](int x) { return x + 1; };
-    auto times_two = [](int x) { return x * 2; };
+    auto plus_one = [](int x) { return singleton(x + 1); };
+    auto times_two = [](int x) { return singleton(x * 2); };
 
-    // Start with a value, lift it into a SingletonSet,
-    // and compose the operations using the monadic "Push" (>>=)
-    // Math: η(5) >>= (x -> η(x + 1)) >>= (x -> η(x * 2))
-    auto result_set = 5 >> into<SingletonSet>
-                        >>= [plus_one](int x) { return plus_one(x) >>
-into<SingletonSet>; }
-                        >>= [times_two](int x) { return times_two(x) >>
-into<SingletonSet>; };
+    // η(5) >>= plus_one >>= times_two   ≡   singleton((5+1)*2) = {12}.
+    // Explicit parens because `>>=` is right-associative in C++; the
+    // monad-bind reading wants left-fold.
+    auto result_set = (singleton(5) >>= plus_one) >>= times_two;
 
-    // The result should be a SingletonSet containing (5 + 1) * 2 = 12
     REQUIRE(result_set(12) == true);
     REQUIRE(result_set(6) == false);
   }
 
   SECTION("2. Compile-Time Semantic Mapping of Composition") {
-    // Validating the "Zero-Overhead" claim from Page 1
-    // The compiler should resolve the composition to a constant 12
-    static_assert((5 >> into<SingletonSet>
-                     >>= [](int x) { return (x + 1) >> into<SingletonSet>; }
-                     >>= [](int x) { return (x * 2) >> into<SingletonSet>; }
-                     << extract<SingletonSet>) == 12,
+    // Zero-overhead claim: the composition resolves to a constant 12.
+    // Explicit left-fold parens on `>>=` (right-associative in C++).
+    static_assert(((singleton(5) >>= [](int x) { return singleton(x + 1); }) >>=
+                   [](int x) {
+                     return singleton(x * 2);
+                   }).origin() == 12,
                   "The Composition Axiom must be resolved at compile-time.");
   }
-
 }
-*/
