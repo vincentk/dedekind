@@ -219,9 +219,8 @@ struct SingletonSet {
     // returns size 1 correctly; FIXME(#685) general join with
     // distinct pivots undercounts (the second pivot is not in the
     // base) — full join needs a 2-element base.
-    return Comprehension{*this, [s1 = *this, s2 = other](const T& x) {
-                           return s1(x) || s2(x);
-                         }};
+    return Comprehension{
+        *this, [s1 = *this, s2 = other](const T& x) { return s1(x) || s2(x); }};
   }
 
   template <typename U, typename L2>
@@ -230,8 +229,7 @@ struct SingletonSet {
     // with predicate @c other(x).  Probe at @c base.pivot decides
     // size: 1 if @c other contains the pivot, 0 otherwise — correct
     // for both self-meet and meet with distinct-pivot singletons.
-    return Comprehension{
-        *this, [s2 = other](const T& x) { return s2(x); }};
+    return Comprehension{*this, [s2 = other](const T& x) { return s2(x); }};
   }
 
   /** @brief Symmetric difference @c {a} @c △ @c {b} (#469).
