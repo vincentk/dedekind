@@ -121,3 +121,32 @@ TEST_CASE("Boundaries: The Algebra of Extremality", "[sets][boundaries]") {
                          SingletonSet<SignedExtensionalCardinal<>>>);
   }
 }
+
+TEST_CASE("image(IsTerminalMorphism F, S) — terminal-codomain collapse (#661)",
+          "[sets][image][terminal-morphism]") {
+  using dedekind::category::One;
+  const auto bang = dedekind::category::unit<int>();  // !: int → One
+
+  SECTION("UniversalSet source → SingletonSet<One> (inhabited collapse)") {
+    constexpr UniversalSet<int> universe;
+    const auto img = image(bang, universe);
+    STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(img)>,
+                              SingletonSet<One, ClassicalLogic>>);
+    CHECK(img(One{}));
+  }
+
+  SECTION("Ø source → Ø<One> (empty stays empty)") {
+    constexpr Ø<int> empty;
+    const auto img = image(bang, empty);
+    STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(img)>,
+                              Ø<One, ClassicalLogic>>);
+  }
+
+  SECTION("SingletonSet source → SingletonSet<One> via the generic overload") {
+    const auto s = singleton(7);
+    const auto img = image(bang, s);
+    STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(img)>,
+                              SingletonSet<One, ClassicalLogic>>);
+    CHECK(img(One{}));
+  }
+}

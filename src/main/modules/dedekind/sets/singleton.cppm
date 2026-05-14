@@ -328,6 +328,37 @@ constexpr auto image(
   return SingletonSet<U, L>{std::forward<F>(f)(s.pivot)};
 }
 
+/** @section singleton__Image_Terminal_Morphism (#661)
+ *  @brief Terminal-codomain-arrow collapse for @c image(F, S): when
+ *         @c F is an @c IsTerminalMorphism (@c F: @c T @c → @c One),
+ *         the image is structurally degenerate.
+ *  @details
+ *  - @c image(F, @c Ø<T, @c L>) → @c Ø<One, @c L> — empty source maps
+ *    to empty image.
+ *  - @c image(F, @c UniversalSet<T, @c L, @c C>) →
+ *    @c SingletonSet<One, @c L>{One{}} — inhabited source collapses
+ *    to the singleton on @c One.
+ *  - @c image(F, @c SingletonSet<T, @c L>) falls through to the
+ *    generic @c image(F, @c SingletonSet) above (correct: returns
+ *    @c SingletonSet<One, L>{F(pivot)} = @c SingletonSet<One, L>{One{}}).
+ *
+ *  Predicate-based @c Set<T, L, P> sources fall through to the
+ *  symbolic-fallback @c image() in @c :expressions (inhabitation
+ *  undecidable in general). */
+export template <typename L, typename T, typename C, typename F>
+  requires dedekind::category::IsTerminalMorphism<std::remove_cvref_t<F>> &&
+           std::same_as<dedekind::category::Dom<std::remove_cvref_t<F>>, T>
+constexpr auto image(F&&, const UniversalSet<T, L, C>&) {
+  return SingletonSet<dedekind::category::One, L>{dedekind::category::One{}};
+}
+
+export template <typename L, typename T, typename F>
+  requires dedekind::category::IsTerminalMorphism<std::remove_cvref_t<F>> &&
+           std::same_as<dedekind::category::Dom<std::remove_cvref_t<F>>, T>
+constexpr auto image(F&&, const Ø<T, L>&) {
+  return Ø<dedekind::category::One, L>{};
+}
+
 // Breadcrumbs for `image(f, SingletonSet)` live downstream in
 // `morphologies:archimedean` (the natural home for Peano-successor
 // witnesses).  The structural claims pinned there:
