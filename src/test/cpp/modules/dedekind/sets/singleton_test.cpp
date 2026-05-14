@@ -62,8 +62,8 @@ TEST_CASE("Sets: Singleton Acceptance", "[sets][singleton][acceptance]") {
     REQUIRE((_s | _s) == _s);
     REQUIRE(&(_s | _s) == &_s);
     INFO("The union of a set with its complement is the universal set.");
-    REQUIRE((!_s) & _s == UniversalSet<size_t>{});
-    REQUIRE(UniversalSet<size_t>{} == (!_s) & _s);
+    REQUIRE((!_s) | _s == UniversalSet<size_t>{});
+    REQUIRE(UniversalSet<size_t>{} == (!_s) | _s);
   }
 }
 
