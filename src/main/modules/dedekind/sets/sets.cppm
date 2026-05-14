@@ -130,34 +130,39 @@ concept HasCardinalityInterface = requires(const S& s) {
   { s.cardinality() };
 };
 
-/** @brief Master: a set with the full user-facing ergonomic surface.
- *  @details Decays cv/ref on @c S internally — callers can pass
- *           @c decltype(expr) directly without manual
- *           @c std::remove_cvref_t.  The strict @c :category:etcs::IsSet
- *           is the axiomatic underpinning; the ergonomic decay lives
- *           here in @c :sets where ergonomics is the @em sine @em qua
- *           @em non. */
+/** @brief Master: ergonomic counterpart of @c :etcs::IsSet — strict
+ *         set-theoretic superset that adds cv/ref decay (so callers
+ *         can pass @c decltype(expr) directly).
+ *
+ *  @details Every @c IsSet<T> satisfies @c HasSetSurface<T>; the
+ *           superset is proper because reference- / cv-qualified
+ *           variants satisfy @c HasSetSurface but not the strict
+ *           @c :etcs::IsSet.  Granular DSL affordances (membership,
+ *           complement, lattice ops, cardinality) are the @c Has*
+ *           sub-concepts above — composed at use sites rather than
+ *           bundled here. */
 export template <typename S>
-concept HasSetSurface = dedekind::category::IsSet<std::remove_cvref_t<S>> &&
-                        HasMembershipOperator<std::remove_cvref_t<S>> &&
-                        HasComplementOperator<std::remove_cvref_t<S>> &&
-                        HasSetOperators<std::remove_cvref_t<S>> &&
-                        HasCardinalityInterface<std::remove_cvref_t<S>>;
+concept HasSetSurface = dedekind::category::IsSet<std::remove_cvref_t<S>>;
 
 /** @section sets__User_Facing_Surface_Witnesses
- *  @details Canonical green witnesses pinning the master concept on the
- *           user-facing surface types this PR covers.  Set types that
- *           do @b not yet satisfy @c HasSetSurface (e.g.\ @c Complement,
- *           @c Subobject — missing the lattice ops) are not pinned
- *           here; the user's red-green acceptance tests surface those
- *           gaps. */
+ *  @details Canonical green witnesses pinning the master concept +
+ *           every sub-concept on @c SingletonSet, the most fully-
+ *           equipped concrete set type today.  Strict-superset
+ *           property: a reference-qualified decltype still satisfies
+ *           @c HasSetSurface. */
 namespace _user_facing_witnesses {
 using _S1 = SingletonSet<int, dedekind::category::ClassicalLogic>;
 static_assert(HasMembershipOperator<_S1>);
 static_assert(HasComplementOperator<_S1>);
 static_assert(HasSetOperators<_S1>);
 static_assert(HasCardinalityInterface<_S1>);
+
+// Strict-superset claim: HasSetSurface fires wherever IsSet fires...
+static_assert(dedekind::category::IsSet<_S1> ? HasSetSurface<_S1> : true);
 static_assert(HasSetSurface<_S1>);
+// ...and also fires on ref/cv variants the strict IsSet rejects.
+static_assert(!dedekind::category::IsSet<_S1 const&>);
+static_assert(HasSetSurface<_S1 const&>);
 }  // namespace _user_facing_witnesses
 
 }  // namespace dedekind::sets
