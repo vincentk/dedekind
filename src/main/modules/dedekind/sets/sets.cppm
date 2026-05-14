@@ -34,6 +34,10 @@
  * *Grundlagen einer allgemeinen Mannigfaltigkeitslehre* (1883).
  * [Trans: "The essence of mathematics lies entirely in its freedom."]
  */
+module;
+
+#include <concepts>  // std::convertible_to
+
 export module dedekind.sets;
 
 export import :cardinality;
@@ -45,3 +49,106 @@ export import :mereology;
 export import :singleton;
 export import :relational;
 export import :quotient;
+
+import dedekind.category;  // IsSet (the ETCS-axiomatic gate composed by HasSetSurface)
+
+namespace dedekind::sets {
+
+/** @section sets__User_Facing_Surface
+ *
+ * @brief Master concept + checklist for the ergonomic set-DSL surface.
+ *
+ * @details
+ * Per @c :etcs vs @c :expressions polarity: @c :etcs reifies the 10 ETCS
+ * axioms with almost no regard for ergonomics; @c :expressions and its
+ * siblings take ergonomics as the @em sine @em qua @em non (set-builder
+ * notation is presumed blackboard-readable).  This block names the
+ * ergonomic surface every user-facing set type should expose.
+ *
+ * Composition: @c HasSetSurface @c = @c IsSet @c + four @c Has* checklist
+ * concepts.  Sub-concepts are usable individually at acceptance sites
+ * that want to gate on a single affordance.
+ */
+
+/** @brief Callable wrapper around set-level union (∪), used so the
+ *         abstract lattice claim @c :category:mereology::IsSetLattice
+ *         can be instantiated on the set-pair operators. */
+struct set_join {
+  template <typename S>
+  constexpr auto operator()(const S& a, const S& b) const {
+    return a | b;
+  }
+};
+
+/** @brief Callable wrapper around set-level intersection (∩). */
+struct set_meet {
+  template <typename S>
+  constexpr auto operator()(const S& a, const S& b) const {
+    return a & b;
+  }
+};
+
+/** @brief Sub-concept: @c s(v) is well-formed and returns a value
+ *         convertible to the set's logic species @c Ω. */
+export template <typename S>
+concept HasMembershipOperator =
+    requires(const S& s, const typename S::Ambient& v) {
+      { s(v) } -> std::convertible_to<typename S::logic_species::Ω>;
+    };
+
+/** @brief Sub-concept: @c !s is well-formed.
+ *  @details Result type intentionally unconstrained at this slice
+ *           (Sollbruchstelle).  Strict variant @c IsSet<decltype(!s)>
+ *           can land later when more set types prove closure under
+ *           complement. */
+export template <typename S>
+concept HasComplementOperator = requires(const S& s) {
+  { !s };
+};
+
+/** @brief Sub-concept: lattice-of-sets surface — operations on PAIRS
+ *         OF SETS (∪, ∩, △).
+ *  @details Distinct from @c :order::HasLatticeOperators which acts on
+ *           PAIRS OF ELEMENTS — different ontological layers, same
+ *           lattice abstraction.  The axiomatic claim ("this IS a
+ *           lattice of sets") lives upstream as
+ *           @c :category:mereology::IsSetLattice<S, set_join, set_meet>;
+ *           callers needing the axiomatic gate compose both. */
+export template <typename S>
+concept HasSetOperators = requires(const S& a, const S& b) {
+  { a | b };
+  { a & b };
+  { a ^ b };
+};
+
+/** @brief Sub-concept: @c s.cardinality() returns the carrier's
+ *         @c cardinality_type tag. */
+export template <typename S>
+concept HasCardinalityInterface = requires(const S& s) {
+  typename S::cardinality_type;
+  { s.cardinality() };
+};
+
+/** @brief Master: a set with the full user-facing ergonomic surface. */
+export template <typename S>
+concept HasSetSurface = dedekind::category::IsSet<S> &&
+                       HasMembershipOperator<S> && HasComplementOperator<S> &&
+                       HasSetOperators<S> && HasCardinalityInterface<S>;
+
+/** @section sets__User_Facing_Surface_Witnesses
+ *  @details Canonical green witnesses pinning the master concept on the
+ *           user-facing surface types this PR covers.  Set types that
+ *           do @b not yet satisfy @c HasSetSurface (e.g.\ @c Complement,
+ *           @c Subobject — missing the lattice ops) are not pinned
+ *           here; the user's red-green acceptance tests surface those
+ *           gaps. */
+namespace _user_facing_witnesses {
+using _S1 = SingletonSet<int, dedekind::category::ClassicalLogic>;
+static_assert(HasMembershipOperator<_S1>);
+static_assert(HasComplementOperator<_S1>);
+static_assert(HasSetOperators<_S1>);
+static_assert(HasCardinalityInterface<_S1>);
+static_assert(HasSetSurface<_S1>);
+}  // namespace _user_facing_witnesses
+
+}  // namespace dedekind::sets
