@@ -97,9 +97,7 @@ struct Complement {
   constexpr Ambient ι(const Member& m) const { return m.value; }
 
   /** @brief Membership: @c v @c ∈ @c !S iff @c v @c ∉ @c S. */
-  constexpr auto operator()(const Ambient& v) const {
-    return !((*source)(v));
-  }
+  constexpr auto operator()(const Ambient& v) const { return !((*source)(v)); }
 
   constexpr cardinality_type cardinality() const { return {}; }
 };
@@ -112,13 +110,19 @@ inline const Complement<S> Complement<S>::χ{};
  *           @c IsPredicate-based @c operator! in @c :category:topoi
  *           for any cv/ref qualification on the @c Complement. */
 export template <typename S>
-constexpr S const& operator!(const Complement<S>& c) { return *c.source; }
+constexpr S const& operator!(const Complement<S>& c) {
+  return *c.source;
+}
 
 export template <typename S>
-constexpr S const& operator!(Complement<S>& c) { return *c.source; }
+constexpr S const& operator!(Complement<S>& c) {
+  return *c.source;
+}
 
 export template <typename S>
-constexpr S const& operator!(Complement<S>&& c) { return *c.source; }
+constexpr S const& operator!(Complement<S>&& c) {
+  return *c.source;
+}
 
 /** @brief {x}: The Atom. Extensional (Size 1). */
 export template <typename T, typename L = ClassicalLogic>
