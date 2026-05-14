@@ -309,9 +309,16 @@ concept HasETCSAxioms =
  * (4 well-pointed, 7 subobject classifier, 9 NNO, 10 choice / power-object
  * lattice) are precisely what fails for general CCCs.
  */
-export template <typename A>
-concept IsSet =
+namespace detail {
+template <typename A>
+concept _IsSetCore =
     HasETCSAxioms<A> && IsCartesianClosed<CanonicalSetCCC<typename A::Ambient>>;
+}  // namespace detail
+
+/** @brief Ref/cv-decayed gate so callers can pass reference / const-qualified
+ *         decltypes without strip-ing themselves. */
+export template <typename A>
+concept IsSet = detail::_IsSetCore<std::remove_cvref_t<A>>;
 
 /**
  * @brief Construct a set object over ambient species A from a characteristic

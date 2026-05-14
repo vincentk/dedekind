@@ -68,6 +68,58 @@ namespace dedekind::sets {
 
 using namespace dedekind::category;
 
+/** @brief Structural complement wrapper.
+ *  @details Holds @c S const* (nullable so the @c static @c χ shape
+ *           witness can default-construct) and exposes the complement
+ *           set surface.  Free-function @c operator! on a populated
+ *           @c Complement returns @c *source, giving structural
+ *           involution: @c !!s @b is @c s as the same object. */
+export template <typename S>
+struct Complement {
+  using Ambient = typename S::Ambient;
+  using Domain = Ambient;
+  using Codomain = typename S::Codomain;
+  using logic_species = typename S::logic_species;
+  using cardinality_type = ℵ_0;
+
+  /** @brief Member-shape mirror for the @c IsSubobject contract. */
+  struct Member {
+    Ambient value;
+  };
+
+  S const* source = nullptr;
+
+  /** @brief Static shape witness (nullptr source — pure SHAPE for the
+   *         @c IsSubobject / @c IsSet concept checks; runtime invocation
+   *         is UB and never reached by the concept machinery). */
+  static const Complement χ;
+
+  constexpr Ambient ι(const Member& m) const { return m.value; }
+
+  /** @brief Membership: @c v @c ∈ @c !S iff @c v @c ∉ @c S. */
+  constexpr auto operator()(const Ambient& v) const {
+    return !((*source)(v));
+  }
+
+  constexpr cardinality_type cardinality() const { return {}; }
+};
+
+template <typename S>
+inline const Complement<S> Complement<S>::χ{};
+
+/** @brief Involution: @c !Complement<S> @b is @c *source (same object).
+ *  @details Three overloads (const&/&/&&) shadow the generic
+ *           @c IsPredicate-based @c operator! in @c :category:topoi
+ *           for any cv/ref qualification on the @c Complement. */
+export template <typename S>
+constexpr S const& operator!(const Complement<S>& c) { return *c.source; }
+
+export template <typename S>
+constexpr S const& operator!(Complement<S>& c) { return *c.source; }
+
+export template <typename S>
+constexpr S const& operator!(Complement<S>&& c) { return *c.source; }
+
 /** @brief {x}: The Atom. Extensional (Size 1). */
 export template <typename T, typename L = ClassicalLogic>
 struct SingletonSet {
@@ -197,14 +249,11 @@ struct SingletonSet {
   }
 
   /** @brief Complement @c !{a} @c = @c {x @c ∈ @c T @c | @c x @c ≠ @c a}.
-   *  @details Built via @c ambient_set<T> so the return type is a
-   *           canonical @c IsSet inhabitant by construction. */
-  constexpr auto operator!() const {
-    auto result = dedekind::category::ambient_set<T>(
-        [p = pivot](const T& x) { return x != p; });
-    static_assert(dedekind::category::IsSet<decltype(result)>,
-                  "Singleton complement must satisfy IsSet.");
-    return result;
+   *  @details Returns @c Complement<SingletonSet> pointing at @c this;
+   *           the free @c operator! on @c Complement unwraps to
+   *           @c *source, so @c !!s @b is @c s (same object). */
+  constexpr Complement<SingletonSet<T, L>> operator!() const {
+    return Complement<SingletonSet<T, L>>{this};
   }
 };
 
