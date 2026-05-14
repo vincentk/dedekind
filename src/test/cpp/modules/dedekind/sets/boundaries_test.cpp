@@ -53,15 +53,13 @@ TEST_CASE("Boundaries: The Algebra of Extremality", "[sets][boundaries]") {
   }
 
   SECTION("Aha! 2: The Law of Identity") {
-    auto s = ι<size_t>(42);
+    constexpr auto s = ι<size_t>(42);
 
     INFO("In a Union, the Void is the Identity: ∅ | S = S.");
     STATIC_REQUIRE(std::is_same_v<decltype(null | s), decltype(s)>);
-    // Compiles in non-static mode. Apparently missing constexptr?
     STATIC_REQUIRE((null | s) == s);
-    INFO("n an Intersection, the Universe is the Identity: Ω & S = S.");
+    INFO("In an Intersection, the Universe is the Identity: Ω & S = S.");
     STATIC_REQUIRE(std::is_same_v<decltype(universe & s), decltype(s)>);
-    // Compiles in non-static mode. Apparently missing constexptr?
     STATIC_REQUIRE((universe & s) == s);
   }
 
