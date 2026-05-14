@@ -488,6 +488,19 @@ static_assert(
     IsEmbeddingFunctor<std::decay_t<decltype(embed_uint_ℕ_)>>,
     "embed_uint_ℕ_ realises IsEmbeddingFunctor per #633's Mac Lane reading.");
 
+// IsMonotone witness (#664 morphism vocabulary): the canonical inclusion
+// @c unsigned @c → @c Cardinality preserves order — both carriers are
+// totally ordered and the embedding sends @c k to @c finite_cardinality(k),
+// which is comparable to other finite cardinalities via the same numeric
+// magnitude.
+template <>
+inline constexpr bool
+    is_monotone_v<std::decay_t<decltype(embed_uint_ℕ_)>, std::less_equal<>> =
+        true;
+static_assert(IsMonotone<std::decay_t<decltype(embed_uint_ℕ_)>>,
+              "embed_uint_ℕ_ (unsigned → Cardinality) is monotone — "
+              "the canonical inclusion preserves the numeric order.");
+
 // ===========================================================================
 // Mazur-equivalence pilot (#591): @c std::unsigned_integral as @c ℕ for
 // inputs strictly less than @c 2^width.
@@ -543,4 +556,15 @@ inline constexpr bool is_monic_arrow_v<std::decay_t<decltype(embed_𝔹_uint_)>>
     true;
 static_assert(IsInjective<std::decay_t<decltype(embed_𝔹_uint_)>>,
               "embed_𝔹_uint_ (𝔹 ↪ ℕ) is registered injective.");
+
+// IsMonotone witness (#664 morphism vocabulary): @c false @c ↦ @c 0 and
+// @c true @c ↦ @c 1, which respects the canonical Boolean order
+// @c false @c ≤ @c true via the numeric order @c 0 @c ≤ @c 1.
+template <>
+inline constexpr bool
+    is_monotone_v<std::decay_t<decltype(embed_𝔹_uint_)>, std::less_equal<>> =
+        true;
+static_assert(IsMonotone<std::decay_t<decltype(embed_𝔹_uint_)>>,
+              "embed_𝔹_uint_ (𝔹 ↪ ℕ) is monotone — preserves the "
+              "Boolean / numeric order.");
 }  // namespace dedekind::category

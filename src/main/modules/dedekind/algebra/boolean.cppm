@@ -268,4 +268,18 @@ inline constexpr bool is_embedding_functor_v<
 static_assert(
     IsEmbeddingFunctor<std::decay_t<decltype(dedekind::algebra::embed_𝔹_𝕂3_)>>,
     "embed_𝔹_𝕂3_ realises IsEmbeddingFunctor per #633's Mac Lane reading.");
+
+// IsMonotone witness (#664 morphism vocabulary): @c false @c ↦ @c False
+// (@c -1), @c true @c ↦ @c True (@c 1).  Under the canonical Kleene order
+// @c False @c < @c Unknown @c < @c True (which @c std::less_equal lifts
+// to the underlying @c int-valued enum), the embedding sends @c false @c
+// ≤ @c true to @c False @c ≤ @c True — order is preserved.
+template <>
+inline constexpr bool is_monotone_v<
+    std::decay_t<decltype(dedekind::algebra::embed_𝔹_𝕂3_)>, std::less_equal<>> =
+    true;
+static_assert(
+    IsMonotone<std::decay_t<decltype(dedekind::algebra::embed_𝔹_𝕂3_)>>,
+    "embed_𝔹_𝕂3_ (𝔹 ↪ 𝕂3) is monotone — preserves the Boolean order "
+    "under the canonical Kleene three-value order.");
 }  // namespace dedekind::category

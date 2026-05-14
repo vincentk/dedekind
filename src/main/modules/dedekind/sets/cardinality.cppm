@@ -2384,11 +2384,34 @@ static_assert(IsInjective<std::decay_t<decltype(lift_ℕ_ℤ_)>>,
               "lift_ℕ_ℤ_ (variant-layer ℕ ↪ ℤ; Grothendieck-construction unit) "
               "is registered injective.");
 
+// IsMonotone witness (#664 morphism vocabulary): the variant-layer
+// canonical inclusion @c Cardinality @c → @c SignedCardinality preserves
+// order — non-negative cardinals lift to non-negative signed cardinals
+// with the same numeric magnitude, and @c SignedCardinality 's @c <=>
+// agrees with @c Cardinality 's on the common fragment.
+template <>
+inline constexpr bool
+    is_monotone_v<std::decay_t<decltype(lift_ℕ_ℤ_)>, std::less_equal<>> = true;
+static_assert(IsMonotone<std::decay_t<decltype(lift_ℕ_ℤ_)>>,
+              "lift_ℕ_ℤ_ (Cardinality → SignedCardinality) is monotone — "
+              "the variant-layer ℕ ↪ ℤ embedding preserves order.");
+
 template <>
 inline constexpr bool is_monic_arrow_v<std::decay_t<decltype(embed_𝕂3_ℤ_)>> =
     true;
 static_assert(IsInjective<std::decay_t<decltype(embed_𝕂3_ℤ_)>>,
               "embed_𝕂3_ℤ_ (𝕂3 → ℤ) is registered injective.");
+
+// IsMonotone witness (#664 morphism vocabulary): @c False @c ↦ @c -1,
+// @c Unknown @c ↦ @c 0, @c True @c ↦ @c 1, which respects the canonical
+// Kleene three-value order @c False @c < @c Unknown @c < @c True.
+template <>
+inline constexpr bool
+    is_monotone_v<std::decay_t<decltype(embed_𝕂3_ℤ_)>, std::less_equal<>> =
+        true;
+static_assert(IsMonotone<std::decay_t<decltype(embed_𝕂3_ℤ_)>>,
+              "embed_𝕂3_ℤ_ (𝕂3 → ℤ) is monotone — preserves the Kleene "
+              "three-value order through the canonical embedding.");
 
 // ---------------------------------------------------------------------------
 // Carrier-lattice lift unification (#455): existential-proof

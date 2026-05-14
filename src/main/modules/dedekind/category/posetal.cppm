@@ -50,6 +50,8 @@ export module dedekind.category:posetal;
 
 import :logic;
 import :mereology;
+import :morphism;  // IsArrow / IsBijectiveArrow / Identity (gates for
+                   // IsMonotone / IsAntiMonotone / IsOrderIsomorphism)
 
 namespace dedekind::category {
 
@@ -298,5 +300,124 @@ static_assert(
         &p1, &p2, &p3,
         arrow_drill_down_min<const std::ranges::min_max_result<int>*>),
     "Opt-in operator-> drill-down must preserve posetal path semantics.");
+
+// ---------------------------------------------------------------------------
+// Order-aware morphism classes (#664 acceptance criteria, 2026-05-14).
+//
+// Sibling vocabulary to @c :morphism's @c IsMonicArrow / @c IsEpicArrow /
+// @c IsBijectiveArrow: those are the order-FREE morphism classes (injective /
+// surjective / bijective predicates on a single arrow @c F).  The classes
+// below add the order-AWARE classes (monotone / anti-monotone / order-
+// isomorphism / order-anti-isomorphism), parameterised by the ambient
+// order relation @c Op.  Per Mac Lane CWM ("the arrows are just the
+// instances of the order relation"), monotone maps are the arrows between
+// posetal categories — this is their natural home.
+//
+// Pattern: same as @c :morphism's @c is_monic_arrow_v / @c IsMonicArrow
+// pair — an opt-in trait that defaults to @c false plus a concept that
+// gates on @c IsArrow @c && the trait.  White-list witnesses where the
+// proof is reachable at landing time; downstream partitions late-bind
+// additional proofs by adding their own trait specialisations.  No wrapper
+// structs (Juliet posture): the trait carries the structural claim
+// without an extra type.
+//
+// User's mnemonic ("iso / mono => enabling"): order-isos enable clean
+// halfspace-pivot transport (result is again a halfspace); monos-without-
+// inverse enable image-with-witness transport (halfspace + witness, e.g.\
+// @c AffineImageOfHalfspace on the ℤ ring-retract).  The vocabulary below
+// names the enabling shapes so scout-algebra pipes can dispatch on them
+// rather than on per-slice positive/negative branching.
+// ---------------------------------------------------------------------------
+
+/**
+ * @brief User-declared monotonicity witness for an arrow type @c F
+ *        with respect to the ambient order relation @c Op.
+ *
+ * @details Monotonicity cannot be verified at compile time in general
+ *          (it quantifies over all input pairs); users specialise this
+ *          to @c true to declare that @c F preserves the order @c Op
+ *          (∀ @c x, @c y: @c Op(x, @c y) @c ⇒ @c Op(F(x), @c F(y))).
+ *          The compiler trusts the declaration; the public review
+ *          process is the audit trail.  Mirrors @c is_monic_arrow_v
+ *          in @c :morphism (same opt-in pattern).
+ *
+ *          Default relation @c std::less_equal<> matches the partition
+ *          convention (see partition header).
+ */
+export template <typename F, typename Op = std::less_equal<>>
+inline constexpr bool is_monotone_v = false;
+
+/**
+ * @concept IsMonotone
+ * @brief An arrow @c F declared to be @b order-preserving with respect
+ *        to the ambient order relation @c Op.
+ *
+ * @details ∀ @c x, @c y in @c Dom<F>: @c Op(x, @c y) @c ⇒ @c
+ *          Op(F(x), @c F(y)).  Per Mac Lane, this is the canonical
+ *          shape of an arrow between posetal categories.
+ */
+export template <typename F, typename Op = std::less_equal<>>
+concept IsMonotone = IsArrow<F> && is_monotone_v<F, Op>;
+
+/**
+ * @brief User-declared anti-monotonicity witness for an arrow type
+ *        @c F with respect to the ambient order relation @c Op.
+ *
+ * @details ∀ @c x, @c y: @c Op(x, @c y) @c ⇒ @c Op(F(y), @c F(x))
+ *          (order @b reversed).  Mirrors @c is_monotone_v; same
+ *          opt-in trait pattern.  Composition rule (audit-trail
+ *          property): @c IsAntiMonotone @c ∘ @c IsAntiMonotone @c =
+ *          @c IsMonotone (two flips cancel).
+ */
+export template <typename F, typename Op = std::less_equal<>>
+inline constexpr bool is_antimonotone_v = false;
+
+/**
+ * @concept IsAntiMonotone
+ * @brief An arrow @c F declared to be @b order-reversing with respect
+ *        to the ambient order relation @c Op.
+ */
+export template <typename F, typename Op = std::less_equal<>>
+concept IsAntiMonotone = IsArrow<F> && is_antimonotone_v<F, Op>;
+
+/**
+ * @concept IsOrderIsomorphism
+ * @brief An arrow that is both an order-preserving map and a bijection.
+ *
+ * @details Composes the categorical bijection certificate
+ *          (@c :morphism::IsBijectiveArrow @c = @c IsMonicArrow @c &&
+ *          @c IsEpicArrow) with the order-preservation trait above.
+ *          This is the textbook "enabling" class for clean halfspace-
+ *          pivot transport in @c :algebra:scout_algebra: the image of
+ *          a halfspace under an order-iso is again a halfspace.
+ */
+export template <typename F, typename Op = std::less_equal<>>
+concept IsOrderIsomorphism = IsBijectiveArrow<F> && IsMonotone<F, Op>;
+
+/**
+ * @concept IsOrderAntiIsomorphism
+ * @brief An arrow that is both an order-reversing map and a bijection.
+ *
+ * @details Composes @c IsBijectiveArrow with @c IsAntiMonotone.  Under
+ *          this class, halfspace-pivot transport remains clean but the
+ *          direction (Upward / Downward) is @b flipped — the structural
+ *          reason multiplicative scaling by a negative scalar on an
+ *          ordered field flips the halfspace's direction.
+ */
+export template <typename F, typename Op = std::less_equal<>>
+concept IsOrderAntiIsomorphism = IsBijectiveArrow<F> && IsAntiMonotone<F, Op>;
+
+// Identity arrows are monotone under any relation: id(x) = x, so
+// Op(x, y) ⇒ Op(id(x), id(y)) holds trivially.
+template <typename T, typename Op>
+inline constexpr bool is_monotone_v<Identity<T>, Op> = true;
+
+// Identity arrows are therefore order-isomorphisms (they are bijective
+// via the @c :morphism registration AND monotone via the above).
+static_assert(IsMonotone<Identity<int>>,
+              "Identity must be recognised as a monotone arrow.");
+static_assert(IsOrderIsomorphism<Identity<int>>,
+              "Identity must be recognised as an order-isomorphism "
+              "(bijection + monotone).");
 
 }  // namespace dedekind::category
