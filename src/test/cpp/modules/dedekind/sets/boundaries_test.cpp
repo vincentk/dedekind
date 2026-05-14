@@ -56,10 +56,12 @@ TEST_CASE("Boundaries: The Algebra of Extremality", "[sets][boundaries]") {
     constexpr auto s = ι<int>(42);
 
     INFO("In a Union, the Void is the Identity: ∅ | S = S.");
-    STATIC_REQUIRE(std::is_same_v<decltype(null | s), std::remove_cvref_t<decltype(s)>>);
+    STATIC_REQUIRE(
+        std::is_same_v<decltype(null | s), std::remove_cvref_t<decltype(s)>>);
     STATIC_REQUIRE((null | s) == s);
     INFO("In an Intersection, the Universe is the Identity: Ω & S = S.");
-    STATIC_REQUIRE(std::is_same_v<decltype(universe & s), std::remove_cvref_t<decltype(s)>>);
+    STATIC_REQUIRE(std::is_same_v<decltype(universe & s),
+                                  std::remove_cvref_t<decltype(s)>>);
     STATIC_REQUIRE((universe & s) == s);
   }
 
