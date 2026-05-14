@@ -138,12 +138,11 @@ concept HasCardinalityInterface = requires(const S& s) {
  *           here in @c :sets where ergonomics is the @em sine @em qua
  *           @em non. */
 export template <typename S>
-concept HasSetSurface =
-    dedekind::category::IsSet<std::remove_cvref_t<S>> &&
-    HasMembershipOperator<std::remove_cvref_t<S>> &&
-    HasComplementOperator<std::remove_cvref_t<S>> &&
-    HasSetOperators<std::remove_cvref_t<S>> &&
-    HasCardinalityInterface<std::remove_cvref_t<S>>;
+concept HasSetSurface = dedekind::category::IsSet<std::remove_cvref_t<S>> &&
+                        HasMembershipOperator<std::remove_cvref_t<S>> &&
+                        HasComplementOperator<std::remove_cvref_t<S>> &&
+                        HasSetOperators<std::remove_cvref_t<S>> &&
+                        HasCardinalityInterface<std::remove_cvref_t<S>>;
 
 /** @section sets__User_Facing_Surface_Witnesses
  *  @details Canonical green witnesses pinning the master concept on the
