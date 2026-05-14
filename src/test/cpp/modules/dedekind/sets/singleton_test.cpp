@@ -25,7 +25,7 @@ TEST_CASE("Sets: Singleton Acceptance", "[sets][singleton][acceptance]") {
   auto _s = ι<size_t>(42);
   STATIC_REQUIRE(IsSet<decltype(_s)>);
   SECTION("Construction") {
-    INFO("Succesful membership test.");
+    INFO("Successful membership test.");
     REQUIRE(_s(42));
     INFO("Failed membership test.");
     REQUIRE(!_s(4));

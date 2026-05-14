@@ -90,14 +90,22 @@ struct Complement {
   S const* source = nullptr;
 
   /** @brief Static shape witness (nullptr source — pure SHAPE for the
-   *         @c IsSubobject / @c IsSet concept checks; runtime invocation
-   *         is UB and never reached by the concept machinery). */
+   *         @c IsSubobject / @c IsSet concept checks; the @c source
+   *         pointer is intentionally null on this witness because the
+   *         concept machinery only reads types, never invokes
+   *         @c operator()).  Runtime queries against the static @c χ
+   *         return @c L::False defensively (an empty-witness predicate
+   *         is vacuously false). */
   static const Complement χ;
 
   constexpr Ambient ι(const Member& m) const { return m.value; }
 
-  /** @brief Membership: @c v @c ∈ @c !S iff @c v @c ∉ @c S. */
-  constexpr auto operator()(const Ambient& v) const { return !((*source)(v)); }
+  /** @brief Membership: @c v @c ∈ @c !S iff @c v @c ∉ @c S.
+   *  @details Null-source path returns @c L::False (the static @c χ
+   *           witness uses nullptr — see above). */
+  constexpr auto operator()(const Ambient& v) const {
+    return source ? !((*source)(v)) : Codomain{logic_species::False};
+  }
 
   constexpr cardinality_type cardinality() const { return {}; }
 };
@@ -212,24 +220,35 @@ struct SingletonSet {
 
   /** @section singleton__Unified_Lattice_Operations */
 
+  /** @brief Singleton-bounded join (lvalue self): comprehension over
+   *         @c *this (size 1).  Lvalue-only because @c Comprehension
+   *         stores its base by reference; rvalue self-joins use the
+   *         universe-bounded fallback below to avoid dangling. */
   template <typename U, typename L2>
-  constexpr auto operator|(const SingletonSet<U, L2>& other) const {
-    // Singleton-bounded join: comprehension over @c *this (size 1)
-    // with predicate @c (*this)(x) @c || @c other(x).  Self-union
-    // returns size 1 correctly; FIXME(#685) general join with
-    // distinct pivots undercounts (the second pivot is not in the
-    // base) — full join needs a 2-element base.
+  constexpr auto operator|(const SingletonSet<U, L2>& other) const& {
     return Comprehension{
         *this, [s1 = *this, s2 = other](const T& x) { return s1(x) || s2(x); }};
   }
 
+  /** @brief Singleton-bounded meet (lvalue self). */
   template <typename U, typename L2>
-  constexpr auto operator&(const SingletonSet<U, L2>& other) const {
-    // Singleton-bounded meet: comprehension over @c *this (size 1)
-    // with predicate @c other(x).  Probe at @c base.pivot decides
-    // size: 1 if @c other contains the pivot, 0 otherwise — correct
-    // for both self-meet and meet with distinct-pivot singletons.
+  constexpr auto operator&(const SingletonSet<U, L2>& other) const& {
     return Comprehension{*this, [s2 = other](const T& x) { return s2(x); }};
+  }
+
+  /** @brief Rvalue-safe fallback: universe-bounded comprehension that
+   *         doesn't reference @c *this.  Size is not computable (the
+   *         base is the universe) — the price of rvalue safety. */
+  template <typename U, typename L2>
+  constexpr auto operator|(const SingletonSet<U, L2>& other) const&& {
+    return element<Ω<T, L>> |
+           [s1 = *this, s2 = other](const T& x) { return s1(x) || s2(x); };
+  }
+
+  template <typename U, typename L2>
+  constexpr auto operator&(const SingletonSet<U, L2>& other) const&& {
+    return element<Ω<T, L>> |
+           [s1 = *this, s2 = other](const T& x) { return s1(x) && s2(x); };
   }
 
   /** @brief Symmetric difference @c {a} @c △ @c {b} (#469).
@@ -329,7 +348,7 @@ constexpr auto singleton(T&& value) {
 
 export template <typename T>
 constexpr auto ι(T&& value) {
-  return singleton(value);
+  return singleton(std::forward<T>(value));
 }
 
 /** @brief Explicit @c !{a} overload — shadows the generic

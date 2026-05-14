@@ -66,9 +66,11 @@ namespace dedekind::sets {
  * notation is presumed blackboard-readable).  This block names the
  * ergonomic surface every user-facing set type should expose.
  *
- * Composition: @c HasSetSurface @c = @c IsSet @c + four @c Has* checklist
- * concepts.  Sub-concepts are usable individually at acceptance sites
- * that want to gate on a single affordance.
+ * Composition: @c HasSetSurface is the @b strict set-theoretic superset
+ * of @c :etcs::IsSet (adds cv/ref decay only — no extra structural
+ * requirements).  The @c Has* checklist sub-concepts below are
+ * standalone affordances composed at use sites rather than bundled
+ * into the master.
  */
 
 /** @brief Callable wrapper around set-level union (∪), used so the
