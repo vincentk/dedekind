@@ -61,6 +61,7 @@ TEST_CASE("Sets: Singleton Acceptance", "[sets][singleton][acceptance]") {
     //   * `Complement<S> & SingletonSet<S>` lacks a cross-type overload
     //     and no equality with `Ø<T>{}` exists today.
     INFO("The intersection of a set with itself is a fixed point.");
+    REQUIRE((_s & _s).size() == 1);
     // REQUIRE((_s & _s) == _s);
     // REQUIRE(&(_s & _s) == &_s);
     INFO("The intersection of a set with its complement is empty.");
@@ -74,6 +75,7 @@ TEST_CASE("Sets: Singleton Acceptance", "[sets][singleton][acceptance]") {
     // structural-identity / cross-type-overload / equality-matrix
     // surgery needed.
     INFO("The union of a set with itself is a fixed point.");
+    REQUIRE((_s | _s).size() == 1);
     // REQUIRE((_s | _s) == _s);
     // REQUIRE(&(_s | _s) == &_s);
     INFO("The union of a set with its complement is the universal set.");
