@@ -68,6 +68,70 @@ namespace dedekind::sets {
 
 using namespace dedekind::category;
 
+/** @brief Structural complement wrapper.
+ *  @details Holds @c S const* (nullable so the @c static @c χ shape
+ *           witness can default-construct) and exposes the complement
+ *           set surface.  Free-function @c operator! on a populated
+ *           @c Complement returns @c *source, giving structural
+ *           involution: @c !!s @b is @c s as the same object. */
+export template <typename S>
+struct Complement {
+  using Ambient = typename S::Ambient;
+  using Domain = Ambient;
+  using Codomain = typename S::Codomain;
+  using logic_species = typename S::logic_species;
+  using cardinality_type = ℵ_0;
+
+  /** @brief Member-shape mirror for the @c IsSubobject contract. */
+  struct Member {
+    Ambient value;
+  };
+
+  S const* source = nullptr;
+
+  /** @brief Static shape witness (nullptr source — pure SHAPE for the
+   *         @c IsSubobject / @c IsSet concept checks; the @c source
+   *         pointer is intentionally null on this witness because the
+   *         concept machinery only reads types, never invokes
+   *         @c operator()).  Runtime queries against the static @c χ
+   *         return @c L::False defensively (an empty-witness predicate
+   *         is vacuously false). */
+  static const Complement χ;
+
+  constexpr Ambient ι(const Member& m) const { return m.value; }
+
+  /** @brief Membership: @c v @c ∈ @c !S iff @c v @c ∉ @c S.
+   *  @details Null-source path returns @c L::False (the static @c χ
+   *           witness uses nullptr — see above). */
+  constexpr auto operator()(const Ambient& v) const {
+    return source ? !((*source)(v)) : Codomain{logic_species::False};
+  }
+
+  constexpr cardinality_type cardinality() const { return {}; }
+};
+
+template <typename S>
+inline const Complement<S> Complement<S>::χ{};
+
+/** @brief Involution: @c !Complement<S> @b is @c *source (same object).
+ *  @details Three overloads (const&/&/&&) shadow the generic
+ *           @c IsPredicate-based @c operator! in @c :category:topoi
+ *           for any cv/ref qualification on the @c Complement. */
+export template <typename S>
+constexpr S const& operator!(const Complement<S>& c) {
+  return *c.source;
+}
+
+export template <typename S>
+constexpr S const& operator!(Complement<S>& c) {
+  return *c.source;
+}
+
+export template <typename S>
+constexpr S const& operator!(Complement<S>&& c) {
+  return *c.source;
+}
+
 /** @brief {x}: The Atom. Extensional (Size 1). */
 export template <typename T, typename L = ClassicalLogic>
 struct SingletonSet {
@@ -156,16 +220,33 @@ struct SingletonSet {
 
   /** @section singleton__Unified_Lattice_Operations */
 
+  /** @brief Singleton-bounded join (lvalue self): comprehension over
+   *         @c *this (size 1).  Lvalue-only because @c Comprehension
+   *         stores its base by reference; rvalue self-joins use the
+   *         universe-bounded fallback below to avoid dangling. */
   template <typename U, typename L2>
-  constexpr auto operator|(const SingletonSet<U, L2>& other) const {
-    // Return a structural Join: {x | x == pivot || x == other.pivot}
+  constexpr auto operator|(const SingletonSet<U, L2>& other) const& {
+    return Comprehension{
+        *this, [s1 = *this, s2 = other](const T& x) { return s1(x) || s2(x); }};
+  }
+
+  /** @brief Singleton-bounded meet (lvalue self). */
+  template <typename U, typename L2>
+  constexpr auto operator&(const SingletonSet<U, L2>& other) const& {
+    return Comprehension{*this, [s2 = other](const T& x) { return s2(x); }};
+  }
+
+  /** @brief Rvalue-safe fallback: universe-bounded comprehension that
+   *         doesn't reference @c *this.  Size is not computable (the
+   *         base is the universe) — the price of rvalue safety. */
+  template <typename U, typename L2>
+  constexpr auto operator|(const SingletonSet<U, L2>& other) const&& {
     return element<Ω<T, L>> |
            [s1 = *this, s2 = other](const T& x) { return s1(x) || s2(x); };
   }
 
   template <typename U, typename L2>
-  constexpr auto operator&(const SingletonSet<U, L2>& other) const {
-    // Return a structural Meet: {x | x == pivot && x == other.pivot}
+  constexpr auto operator&(const SingletonSet<U, L2>& other) const&& {
     return element<Ω<T, L>> |
            [s1 = *this, s2 = other](const T& x) { return s1(x) && s2(x); };
   }
@@ -196,10 +277,13 @@ struct SingletonSet {
     }};
   }
 
-  // Complement: !{a}
-  // In a strict sense, this is the relative complement (Universe \ {a}).
-  // For the sake of the lattice, we return the Universal boundary.
-  constexpr auto operator!() const { return UniversalSet<T, L>{}; }
+  /** @brief Complement @c !{a} @c = @c {x @c ∈ @c T @c | @c x @c ≠ @c a}.
+   *  @details Returns @c Complement<SingletonSet> pointing at @c this;
+   *           the free @c operator! on @c Complement unwraps to
+   *           @c *source, so @c !!s @b is @c s (same object). */
+  constexpr Complement<SingletonSet<T, L>> operator!() const {
+    return Complement<SingletonSet<T, L>>{this};
+  }
 };
 
 // Out-of-class χ definition: completes the IsSubobject self-reference
@@ -260,6 +344,31 @@ static_assert(
 export template <typename T>
 constexpr auto singleton(T&& value) {
   return SingletonSet<std::decay_t<T>>{std::forward<T>(value)};
+}
+
+export template <typename T>
+constexpr auto ι(T&& value) {
+  return singleton(std::forward<T>(value));
+}
+
+/** @brief Explicit @c !{a} overload — shadows the generic
+ *         @c IsPredicate-based @c operator! in @c :category:topoi so
+ *         @c !singleton picks the set-typed complement, not a
+ *         @c Morphism wrapper.  Mirrors the @c Set<T,L,P> overrides
+ *         in @c :sets:expressions. */
+export template <typename T, typename L>
+constexpr auto operator!(const SingletonSet<T, L>& s) {
+  return s.operator!();
+}
+
+export template <typename T, typename L>
+constexpr auto operator!(SingletonSet<T, L>& s) {
+  return s.operator!();
+}
+
+export template <typename T, typename L>
+constexpr auto operator!(SingletonSet<T, L>&& s) {
+  return s.operator!();
 }
 
 /** @section singleton__The_Set_Monad: The Categorical Identity */

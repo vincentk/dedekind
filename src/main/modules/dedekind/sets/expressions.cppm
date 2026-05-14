@@ -77,6 +77,22 @@ struct Comprehension {
   static constexpr bool is_associative_v = true;
   template <typename Op>
   static constexpr bool is_idempotent_v = true;
+
+  /** @brief Size when the base exposes a probe element (@c pivot) and a
+   *         @c size().  For singleton-bounded bases (size 1), the
+   *         predicate is probed once at @c base.pivot and the result
+   *         is @c base.size() if the probe holds, @c 0 otherwise.
+   *         Larger enumerable bases would need iteration — out of
+   *         scope here (FIXME(#685)). */
+  constexpr std::size_t size() const
+    requires requires(const Base& b, const Predicate& p) {
+      b.pivot;
+      b.size();
+      { p(b.pivot) } -> std::convertible_to<bool>;
+    }
+  {
+    return predicate(base.pivot) ? base.size() : 0;
+  }
 };
 
 // @c BoundScout forward declaration, gated by @c IsArrow (from
