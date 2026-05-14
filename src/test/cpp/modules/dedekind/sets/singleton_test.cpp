@@ -39,8 +39,11 @@ TEST_CASE("Sets: Singleton Acceptance", "[sets][singleton][acceptance]") {
   SECTION("Complement") {
     STATIC_REQUIRE(IsSet<decltype(!_s)>);
     INFO("Inverted membership test vis-a-vis base set.");
-    REQUIRE(!(!_s)(42));
+    REQUIRE((!(!_s))(42));
     REQUIRE((!_s)(4));
+    INFO("Complement is its own inverse.");
+    STATIC_REQUIRE(IsSet<decltype(!(!_s))>);
+    REQUIRE(&(!(!_s)) == &_s);
   }
 }
 
