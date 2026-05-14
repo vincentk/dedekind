@@ -116,7 +116,8 @@ concept IsInteger =
  *  @c successor()) and would not fire on @c SignedExtensionalCardinal<>.
  */
 export template <typename T>
-concept IsSaturatingInteger = IsInteger<T> && is_translation_invariant_ordered_v<T>;
+concept IsSaturatingInteger =
+    IsInteger<T> && is_translation_invariant_ordered_v<T>;
 
 /** @brief Cyclic-ℤ-shape integer: integer surface + abelian-group-cyclic
  *         under @c +.  @c SignedExtensionalCardinal<> (sign-magnitude

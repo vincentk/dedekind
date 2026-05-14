@@ -159,16 +159,16 @@ constexpr auto embed_𝔹_𝕂3(S&& s) {
 // type.  Sister anchor to PR #624's @c embed_𝔹_ℕ witness in @c :natural ---
 // same shape, different codomain.  Lives next to the arrow itself so the
 // value-pin moves with the canonical surface.
-static_assert(
-    embed_𝔹_𝕂3(dedekind::sets::SingletonSet<bool, ClassicalLogic>{true})
-            .pivot == dedekind::category::Ternary::True,
-    "embed_𝔹_𝕂3(Singleton<true>) lands at Ternary::True on the 𝕂3 "
-    "carrier.");
-static_assert(
-    embed_𝔹_𝕂3(dedekind::sets::SingletonSet<bool, ClassicalLogic>{false})
-            .pivot == dedekind::category::Ternary::False,
-    "embed_𝔹_𝕂3(Singleton<false>) lands at Ternary::False on the 𝕂3 "
-    "carrier.");
+static_assert(embed_𝔹_𝕂3(dedekind::sets::SingletonSet<bool, ClassicalLogic>{
+                             true})
+                      .pivot == dedekind::category::Ternary::True,
+              "embed_𝔹_𝕂3(Singleton<true>) lands at Ternary::True on the 𝕂3 "
+              "carrier.");
+static_assert(embed_𝔹_𝕂3(dedekind::sets::SingletonSet<bool, ClassicalLogic>{
+                             false})
+                      .pivot == dedekind::category::Ternary::False,
+              "embed_𝔹_𝕂3(Singleton<false>) lands at Ternary::False on the 𝕂3 "
+              "carrier.");
 
 // Concept-level witness: the result realises the categorical image of
 // the source set under the canonical mono 𝔹 ↪ 𝕂3 — Subobject of
