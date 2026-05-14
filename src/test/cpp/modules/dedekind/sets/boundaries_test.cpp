@@ -53,7 +53,7 @@ TEST_CASE("Boundaries: The Algebra of Extremality", "[sets][boundaries]") {
   }
 
   SECTION("Aha! 2: The Law of Identity") {
-    constexpr auto s = ι<size_t>(42);
+    constexpr auto s = ι<int>(42);
 
     INFO("In a Union, the Void is the Identity: ∅ | S = S.");
     STATIC_REQUIRE(std::is_same_v<decltype(null | s), decltype(s)>);
