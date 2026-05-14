@@ -23,6 +23,7 @@ TEST_CASE("Sets: Singleton Final Proof: The Highway",
 
 TEST_CASE("Sets: Singleton Acceptance", "[sets][singleton][acceptance]") {
   auto _s = ι(42);
+  STATIC_REQUIRE(IsSet<decltype(_s)>);
   SECTION("Construction") {
     INFO("Succesful membership test.");
     REQUIRE(_s(42));
@@ -35,7 +36,12 @@ TEST_CASE("Sets: Singleton Acceptance", "[sets][singleton][acceptance]") {
     STATIC_REQUIRE(
         std::same_as<typename decltype(_s)::cardinality_type, Finite>);
   }
-  SECTION("Complement") { STATIC_REQUIRE(IsSet<decltype(!_s)>); }
+  SECTION("Complement") {
+    STATIC_REQUIRE(IsSet<decltype(!_s)>);
+    INFO("Inverted membership test vis-a-vis base set.");
+    REQUIRE(!(!_s)(42));
+    REQUIRE((!_s)(4));
+  }
 }
 
 /*
