@@ -22,9 +22,10 @@
  *
  * @section natural__Structural_Mapping
  * This is where we perform the final 'Lifting'. We prove that
- * @c SignedExtensionalCardinal<> satisfies @c Group_ℤ (per the strict
- * @c IsCommutativeRing witness pinned in @c integer.cppm) and that
- * @c double is a hardware-constrained approximation of an exact field.
+ * @c SignedExtensionalCardinal<> satisfies the strict
+ * @c IsArithmeticAdditiveGroup / @c IsCommutativeRing witnesses pinned
+ * in @c integer.cppm and that @c double is a hardware-constrained
+ * approximation of an exact field.
  *
  * @anchors C++ Fundamental Types: bool, char, int, long, float, double.
  *

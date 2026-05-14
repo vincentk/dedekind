@@ -39,7 +39,6 @@ import dedekind.category;
 
 using dedekind::algebra::IsAlgebra;
 using dedekind::category::IsClosedUnder;
-using dedekind::category::IsClosedUnderBinary;
 using dedekind::category::IsClosedUnderUnary;
 
 TEST_CASE(
@@ -54,8 +53,8 @@ TEST_CASE(
                          std::multiplies<unsigned int>>);
 
   // Helper concepts (operation-shape predicates) fire on the building blocks.
-  STATIC_CHECK(IsClosedUnderBinary<int, std::plus<int>>);
-  STATIC_CHECK(IsClosedUnderBinary<int, std::multiplies<int>>);
+  STATIC_CHECK(IsClosedUnder<int, std::plus<int>>);
+  STATIC_CHECK(IsClosedUnder<int, std::multiplies<int>>);
   STATIC_CHECK(IsClosedUnderUnary<int, std::negate<int>>);
 }
 

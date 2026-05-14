@@ -2247,16 +2247,16 @@ verify the mechanism rather than take the claim on faith.
 returns the carrier by signature, but the literal \cppinline{+} /
 \cppinline{*} operator surface does not (witnessed at
 \texttt{algebra/ring.cppm}, \texttt{algebra/field.cppm},
-\texttt{numbers/uint.cppm}, \texttt{order/lattice.cppm}).
+\texttt{morphologies/uint.cppm}, \texttt{order/lattice.cppm}).
 \emph{Signed-overflow UB defeats $\mathbb{Z}$}: \cppinline{int} /
 \cppinline{long} / \cppinline{long long} carry the literal ring
 operator surface
 (\cppinline{HasRingOperators<int>} fires) but \emph{not} the
 axiomatic ring witness, because closure-under-arithmetic fails as a
 stable axiom under signed-overflow UB; the negative pins
-\cppinline{!Group_ℤ<int>}, \cppinline{!IsArithmeticAdditiveGroup<int>},
+\cppinline{!IsArithmeticAdditiveGroup<int>} and
 \cppinline{!category::IsRing<int, std::plus, std::multiplies>} at
-\texttt{numbers/sint.cppm} make the rejection mechanical.
+\texttt{morphologies/sint.cppm} make the rejection mechanical.
 \emph{IEEE 754 breaks reflexivity}: \cppinline{NaN <= NaN}
 evaluates to \cppinline{false}, so
 \cppinline{is_reflexive_v<double, std::less_equal<>>} is deliberately
@@ -2279,7 +2279,7 @@ integer carrier (\texttt{sets/cardinality.cppm},
 and the three siblings are a finite cyclic ring, an
 operator-surface-without-axioms carrier, and (separately) the
 Boolean rig + Galois field $\mathbb{F}_2$; nothing axiomatic
-survives the union (\texttt{numbers/integral.cppm}). Each friction
+survives the union (\texttt{morphologies/integral.cppm}). Each friction
 is the structural reason an axiom slot is left
 \emph{unsatisfied} for the relevant family.
 

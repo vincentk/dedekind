@@ -175,6 +175,44 @@ TEST_CASE(
 }
 
 // ===========================================================================
+// (3.5) embed_𝔹_ℕ_ — runtime witness for the variant-layer canonical
+//       mono 𝔹 ↪ ℕ landing on the @c Cardinality carrier.  The
+//       compile-time witnesses live in @c :natural; this exercises
+//       the same equalities at runtime so the arrow's lambda body
+//       shows up as covered for codecov.
+// ===========================================================================
+
+TEST_CASE(
+    "carrier-lattice: embed_𝔹_ℕ_ maps true to finite_cardinality(1) and false "
+    "to finite_cardinality(0) (𝔹 ↪ ℕ via the variant Cardinality carrier)",
+    "[carrier-lattice][boolean][cardinality][embed]") {
+  CHECK(embed_𝔹_ℕ_(true) == finite_cardinality(1));
+  CHECK(embed_𝔹_ℕ_(false) == finite_cardinality(0));
+  // ℵ_0 (the saturating sentinel for transfinite cardinalities) is by
+  // construction NOT in the image of the canonical embedding — it
+  // models values past the representable range, which 𝔹 does not
+  // reach.
+  CHECK(embed_𝔹_ℕ_(true) != Cardinality{ℵ_0{}});
+  CHECK(embed_𝔹_ℕ_(false) != Cardinality{ℵ_0{}});
+}
+
+TEST_CASE(
+    "carrier-lattice: embed_𝔹_ℕ (set-level lift) on Singleton<true> lands at "
+    "Singleton<finite_cardinality(1)> in ℕ",
+    "[carrier-lattice][boolean][cardinality][embed][image]") {
+  // Set-level lift exercises the runtime dispatch through
+  // dedekind::sets::image(arrow, SingletonSet) — covers the
+  // forwarding-reference body for codecov.
+  constexpr SingletonSet<bool, ClassicalLogic> s_true{true};
+  const auto image_set = embed_𝔹_ℕ(s_true);
+  CHECK(image_set.pivot == finite_cardinality(1));
+
+  constexpr SingletonSet<bool, ClassicalLogic> s_false{false};
+  const auto image_set_false = embed_𝔹_ℕ(s_false);
+  CHECK(image_set_false.pivot == finite_cardinality(0));
+}
+
+// ===========================================================================
 // (4) Embedding chain: 𝕂3 → sint → ℤ (signed counterpart to 𝔹 → uint → ℕ)
 // ===========================================================================
 

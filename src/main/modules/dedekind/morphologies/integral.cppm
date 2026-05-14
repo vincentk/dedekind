@@ -77,8 +77,19 @@ using namespace dedekind::order;
 using namespace dedekind::sets;
 
 /**
- * @concept IsInteger: integer-shape operator-surface concept
- *  order on the carrier). */
+ * @concept IsInteger: integer-shape operator-surface concept (Euclidean
+ *          ring shape — additive group + multiplicative monoid + Euclidean
+ *          pair, with @c three_way_comparable for the order surface).
+ *
+ *  @b Composition: @c IsAlgebra over @c (+, @c *, @c %) supplies binary
+ *  closure for the three Euclidean operators; the @c requires clause
+ *  adds binary @c - (closure-of-subtraction), unary @c - (additive
+ *  inverse), default @c T{} (the additive identity), and binary @c /
+ *  (Euclidean quotient).  @c std::three_way_comparable gates the
+ *  ordering surface without demanding strict reflexivity (the
+ *  ℝ-as-double / IEEE-754 fragment fails reflexivity by NaN-vs-NaN,
+ *  so we deliberately stop short of @c IsPreOrdered here).
+ */
 export template <typename T>
 concept IsInteger =
     IsAlgebra<T, std::plus<T>, std::multiplies<T>, std::modulus<T>> &&
@@ -86,6 +97,8 @@ concept IsInteger =
     // Instead, require the non-reflexive variants:
     std::three_way_comparable<T> && requires(T a, T b) {
       { a - b } -> std::same_as<T>;
+      { -a } -> std::same_as<T>;
+      { T{} } -> std::same_as<T>;
       { a / b } -> std::same_as<T>;
     };
 
@@ -122,24 +135,26 @@ static_assert(!IsField<bool, std::plus<bool>, std::multiplies<bool>>,
               "the arithmetic operators promote to int; the field reading "
               "of bool lives at std::bit_xor / std::bit_and (see :boolean).");
 
-static_assert(!dedekind::category::IsClosedUnderBinary<bool, std::plus<>>,
+static_assert(!dedekind::category::IsClosedUnder<bool, std::plus<>>,
               "bool is NOT closed under std::plus / std::multiplies. Instead, "
               "it promotes to int.");
 
-static_assert(dedekind::category::IsClosedUnderBinary<bool, std::plus<bool>>,
+static_assert(dedekind::category::IsClosedUnder<bool, std::plus<bool>>,
               "... but std::plus<bool> casts the result under the hood.");
 
 static_assert(!IsAlgebra<bool, std::plus<>, std::multiplies<>>,
               "bool is NOT closed under std::plus / std::multiplies. Instead, "
               "it promotes to int.");
 
-/**
- * @section rational__Formal_Verification_2
+/** @section integral__IsInteger_Witnesses
  *
- * @c Rational<I> satisfies @c algebra::IsField via the
- * multiplicative-inverse trait registration above; the Kleene
- * partial-function helpers (@c HonestDivRational, etc.) remain for
- * codepaths that prefer explicit @c Ternary failure over throwing.
+ * @c ExtensionalCardinal<> and @c SignedExtensionalCardinal<> are the
+ * project's two structurally-faithful @c IsInteger witnesses: cyclic
+ * ℤ/2^{N·64}ℤ (unsigned wrap) and overflow-free signed-magnitude
+ * @c ℤ on the same limb width.  The variant ℤ proxy
+ * @c SignedCardinality is the saturating sibling — it inherits
+ * @c IsInteger transitively through its finite-fragment alternative
+ * but is gated separately via @c IsSaturatingInteger above.
  */
 static_assert(IsInteger<ExtensionalCardinal<>>,
               "ExtensionalCardinal<> must satisfy IsInteger (Euclidean "

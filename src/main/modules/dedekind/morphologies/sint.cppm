@@ -18,8 +18,9 @@
  * fails as a stable axiom.  The library's posture is honest in both
  * directions: @c HasRingOperators<int> and @c HasGroupOperatorsAdd<int>
  * fire (the operator surface really is there), but @c IsRing<int,
- * std::plus, std::multiplies> and @c Group_ℤ<int> do @b not (the
- * axiomatic-ring witness would be a false claim under UB).  The
+ * std::plus, std::multiplies> and @c IsArithmeticAdditiveGroup<int>
+ * do @b not (the axiomatic-ring witness would be a false claim under
+ * UB).  The
  * exact-@c ℤ reading lives one carrier step deeper, on @c
  * SignedCardinality (with @c ±ℵ_0 saturation and @c NaZ).
  *
@@ -396,8 +397,9 @@ static_assert(dedekind::algebra::HasSuccessorOperators<long long>,
 // must @b not fire on @c std::signed_integral primitives.  The
 // exact-@c ℤ reading lives on @c SignedCardinality post-#402.
 static_assert(!dedekind::algebra::IsArithmeticAdditiveGroup<int>,
-              "int must NOT satisfy IsArithmeticAdditiveGroup: same "
-              "UB-on-overflow reason as the Group_ℤ rejection.");
+              "int must NOT satisfy IsArithmeticAdditiveGroup: "
+              "signed-overflow UB defeats closure-under-arithmetic as a "
+              "stable axiom.");
 static_assert(!dedekind::algebra::IsArithmeticAdditiveGroup<long>,
               "long must NOT satisfy IsArithmeticAdditiveGroup.");
 static_assert(!dedekind::algebra::IsArithmeticAdditiveGroup<long long>,
@@ -429,7 +431,7 @@ static_assert(dedekind::order::HasLatticeOperators<long long>,
               "long long carries the bitwise / lattice operator surface.");
 
 // Axiomatic-ring rejection — the strictly weaker downstream consequence
-// of the @c !Group_ℤ / @c !IsArithmeticAdditiveGroup pins above.
+// of the @c !IsArithmeticAdditiveGroup pins above.
 // Pinned explicitly so the std::signed_integral reader sees the
 // dichotomy in one place: the operator surface fires, the axiomatic
 // ring witness does not.

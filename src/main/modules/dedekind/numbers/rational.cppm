@@ -279,52 +279,52 @@ struct PartialEmbedIntegerToRational {
 namespace dedekind::category {
 
 /** @brief Kleene traits for rational arithmetic. */
-template <dedekind::numbers::IsInteger I>
+template <dedekind::morphologies::IsInteger I>
 inline constexpr bool is_kleene_associative_v<
     dedekind::numbers::Rational<I>, dedekind::numbers::PartialAddRational<I>> =
     true;
 
-template <dedekind::numbers::IsInteger I>
+template <dedekind::morphologies::IsInteger I>
 inline constexpr bool is_kleene_commutative_v<
     dedekind::numbers::Rational<I>, dedekind::numbers::PartialAddRational<I>> =
     true;
 
-template <dedekind::numbers::IsInteger I>
+template <dedekind::morphologies::IsInteger I>
 inline constexpr dedekind::numbers::Rational<I> partial_identity_v<
     dedekind::numbers::Rational<I>, dedekind::numbers::PartialAddRational<I>> =
     dedekind::numbers::Rational<I>(I{0}, I{1});
 
-template <dedekind::numbers::IsInteger I>
+template <dedekind::morphologies::IsInteger I>
 inline constexpr bool is_kleene_associative_v<
     dedekind::numbers::Rational<I>, dedekind::numbers::PartialMulRational<I>> =
     true;
 
-template <dedekind::numbers::IsInteger I>
+template <dedekind::morphologies::IsInteger I>
 inline constexpr bool is_kleene_commutative_v<
     dedekind::numbers::Rational<I>, dedekind::numbers::PartialMulRational<I>> =
     true;
 
-template <dedekind::numbers::IsInteger I>
+template <dedekind::morphologies::IsInteger I>
 inline constexpr dedekind::numbers::Rational<I> partial_identity_v<
     dedekind::numbers::Rational<I>, dedekind::numbers::PartialMulRational<I>> =
     dedekind::numbers::Rational<I>(I{1}, I{1});
 
 /** @brief Kleene traits for integer→rational embedding (exact). */
-template <dedekind::numbers::IsInteger I>
+template <dedekind::morphologies::IsInteger I>
 inline constexpr bool is_kleene_associative_v<
     dedekind::numbers::Rational<I>,
     dedekind::numbers::PartialEmbedIntegerToRational<I>> = true;
 
 /** @brief Ordering traits: Rational<I> is a total order (ℚ ≤ is a chain). */
-template <dedekind::numbers::IsInteger I>
+template <dedekind::morphologies::IsInteger I>
 inline constexpr bool
     is_reflexive_v<dedekind::numbers::Rational<I>, std::less_equal<>> = true;
 
-template <dedekind::numbers::IsInteger I>
+template <dedekind::morphologies::IsInteger I>
 inline constexpr bool
     is_transitive_v<dedekind::numbers::Rational<I>, std::less_equal<>> = true;
 
-template <dedekind::numbers::IsInteger I>
+template <dedekind::morphologies::IsInteger I>
 inline constexpr bool
     is_antisymmetric_v<dedekind::numbers::Rational<I>, std::less_equal<>> =
         true;
@@ -384,7 +384,7 @@ static_assert(std::same_as<typename Rational<default_integer>::IntegerCarrier,
 
 namespace dedekind::category {
 
-template <dedekind::numbers::IsInteger I>
+template <dedekind::morphologies::IsInteger I>
 struct quotient_algebra_base<dedekind::numbers::Rational<I>> {
   using type = I;
 };
@@ -392,14 +392,14 @@ struct quotient_algebra_base<dedekind::numbers::Rational<I>> {
 // Carrier-specific identity values (0/1 → 0/1 for plus, 1/1 for multiplies):
 // these don't propagate trivially because the quotient witness has its
 // own constructor shape.
-template <dedekind::numbers::IsInteger I>
+template <dedekind::morphologies::IsInteger I>
 struct identity_trait<dedekind::numbers::Rational<I>,
                       std::plus<dedekind::numbers::Rational<I>>> {
   using value_type = dedekind::numbers::Rational<I>;
   static constexpr value_type value = value_type{I{0}, I{1}};
 };
 
-template <dedekind::numbers::IsInteger I>
+template <dedekind::morphologies::IsInteger I>
 struct identity_trait<dedekind::numbers::Rational<I>,
                       std::multiplies<dedekind::numbers::Rational<I>>> {
   using value_type = dedekind::numbers::Rational<I>;
@@ -409,12 +409,12 @@ struct identity_trait<dedekind::numbers::Rational<I>,
 // Carrier-specific additive inverse: the defining ℚ trait — every
 // rational has an additive inverse via numerator-negation.  This too
 // is carrier-specific (the construction depends on Rational's layout).
-template <dedekind::numbers::IsInteger I>
+template <dedekind::morphologies::IsInteger I>
 inline constexpr bool is_invertible_v<
     dedekind::numbers::Rational<I>, std::plus<dedekind::numbers::Rational<I>>> =
     true;
 
-template <dedekind::numbers::IsInteger I>
+template <dedekind::morphologies::IsInteger I>
 struct inverse_trait<dedekind::numbers::Rational<I>,
                      std::plus<dedekind::numbers::Rational<I>>> {
   static constexpr bool exists = true;
@@ -429,7 +429,7 @@ struct inverse_trait<dedekind::numbers::Rational<I>,
 // @c is_invertible_v convention pinned in @c total.cppm).  Closes
 // @c IsAbelianGroup<Rational<I>, std::multiplies> and hence
 // @c IsField on ℚ.
-template <dedekind::numbers::IsInteger I>
+template <dedekind::morphologies::IsInteger I>
 inline constexpr bool
     is_invertible_v<dedekind::numbers::Rational<I>,
                     std::multiplies<dedekind::numbers::Rational<I>>> = true;
@@ -726,13 +726,13 @@ struct CrossMultEquiv {
 // std::pair<I, I>> fire honestly on the full domain, which is what
 // the @c quotient operator's requires-clause consumes.
 namespace dedekind::category {
-template <dedekind::numbers::IsInteger I>
+template <dedekind::morphologies::IsInteger I>
 inline constexpr bool
     is_reflexive_relation_v<dedekind::numbers::CrossMultEquiv<I>> = true;
-template <dedekind::numbers::IsInteger I>
+template <dedekind::morphologies::IsInteger I>
 inline constexpr bool
     is_symmetric_relation_v<dedekind::numbers::CrossMultEquiv<I>> = true;
-template <dedekind::numbers::IsInteger I>
+template <dedekind::morphologies::IsInteger I>
 inline constexpr bool
     is_transitive_relation_v<dedekind::numbers::CrossMultEquiv<I>> = true;
 }  // namespace dedekind::category
@@ -742,7 +742,7 @@ inline constexpr bool
 // the specialisation references types from @c dedekind::numbers, which
 // is fine.
 namespace dedekind::sets {
-export template <dedekind::numbers::IsInteger I>
+export template <dedekind::morphologies::IsInteger I>
 struct quotient_carrier<std::pair<I, I>, dedekind::numbers::CrossMultEquiv<I>> {
   using type = dedekind::numbers::Rational<I>;
 };
@@ -769,7 +769,7 @@ static_assert(
 }  // namespace dedekind::numbers
 
 namespace dedekind::category {
-template <dedekind::numbers::IsInteger Z>
+template <dedekind::morphologies::IsInteger Z>
 struct SpeciesTraits<dedekind::numbers::Rational<Z>> {
   using Domain = dedekind::numbers::Rational<Z>;
   using machine_type = dedekind::numbers::Rational<Z>;
@@ -847,8 +847,9 @@ static_assert(
 //     are neither periodic, idempotent, nor saturating); the operational
 //     reading via @c HasFieldOperators is the load-bearing
 //     field-arithmetic guarantee, asserted downstream in this file's
-//     Formal_Verification block. Group_ℤ on the integer carrier of ℚ is also
-//     asserted downstream where the species-trait registry is reachable.
+//     Formal_Verification block.  The additive-group / commutative-ring
+//     pins on the integer carrier of ℚ live at @c :integer, where the
+//     species-trait registry on @c SignedCardinality is reachable.
 
 // (4) Primitive-type arrows on ℚ:
 //   - Forward (machine → ℚ): @c embed_ℤ_ℚ promotes a @c machine_integer

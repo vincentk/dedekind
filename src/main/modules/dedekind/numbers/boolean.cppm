@@ -311,10 +311,10 @@ static_assert(
 namespace dedekind::category {
 template <>
 inline constexpr bool
-    is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_𝔹_𝕂3_)>> =
+    is_monic_arrow_v<std::decay_t<decltype(dedekind::algebra::embed_𝔹_𝕂3_)>> =
         true;
 static_assert(
-    IsInjective<std::decay_t<decltype(dedekind::numbers::embed_𝔹_𝕂3_)>>,
+    IsInjective<std::decay_t<decltype(dedekind::algebra::embed_𝔹_𝕂3_)>>,
     "embed_𝔹_𝕂3_ (𝔹 ↪ 𝕂3) is registered injective.");
 
 // IsEmbeddingFunctor witness (#633): @c embed_𝔹_𝕂3_ lifts the
@@ -323,8 +323,8 @@ static_assert(
 // Fully faithful + injective on objects per Mac Lane CWM §IV.4.
 template <>
 inline constexpr bool is_embedding_functor_v<
-    std::decay_t<decltype(dedekind::numbers::embed_𝔹_𝕂3_)>> = true;
+    std::decay_t<decltype(dedekind::algebra::embed_𝔹_𝕂3_)>> = true;
 static_assert(
-    IsEmbeddingFunctor<std::decay_t<decltype(dedekind::numbers::embed_𝔹_𝕂3_)>>,
+    IsEmbeddingFunctor<std::decay_t<decltype(dedekind::algebra::embed_𝔹_𝕂3_)>>,
     "embed_𝔹_𝕂3_ realises IsEmbeddingFunctor per #633's Mac Lane reading.");
 }  // namespace dedekind::category

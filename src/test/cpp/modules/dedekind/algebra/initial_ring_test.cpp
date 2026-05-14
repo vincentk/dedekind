@@ -49,6 +49,19 @@ using dedekind::algebra::IsInitialRing;
 // (1) Concept fires on the canonical witnesses
 // ===========================================================================
 
+TEST_CASE("initial_ring: IsInitialRing<SignedCardinality> fires",
+          "[algebra][initial_ring][witness]") {
+  STATIC_CHECK(IsInitialRing<SignedCardinality>);
+  STATIC_CHECK(is_initial_ring_v<SignedCardinality>);
+}
+
+TEST_CASE(
+    "initial_ring: IsGrothendieckGroup<SignedCardinality, Cardinality> fires",
+    "[algebra][grothendieck][witness]") {
+  STATIC_CHECK(IsGrothendieckGroup<SignedCardinality, Cardinality>);
+  STATIC_CHECK((is_grothendieck_group_v<SignedCardinality, Cardinality>));
+}
+
 TEST_CASE(
     "initial_ring: opt-in trait defaults to false (no initial-ring witness "
     "without explicit registration)",
@@ -147,6 +160,23 @@ TEST_CASE(
   auto const via_grothendieck = finite_cardinality(7) - finite_cardinality(0);
   auto const via_initial_ring = finite_signed_cardinality(7);
   CHECK(via_grothendieck == via_initial_ring);
+}
+
+TEST_CASE(
+    "carrier-lattice: embed_𝔹_𝕂3_ maps true to Ternary::True and false to "
+    "Ternary::False (canonical 2-valued ↪ 3-valued Kleene inclusion)",
+    "[carrier-lattice][boolean][kleene][embed]") {
+  // Runtime invocation of the arrow's lambda body — codecov-load-bearing.
+  // The compile-time witnesses live in @c :algebra:boolean; this exercises
+  // the same equalities at runtime so the lambda body shows up as covered.
+  CHECK(embed_𝔹_𝕂3_(true) == Ternary::True);
+  CHECK(embed_𝔹_𝕂3_(false) == Ternary::False);
+  // Ternary::Unknown is by construction NOT in the image of the
+  // canonical embedding — it represents the third truth-value that
+  // 𝔹 lacks.  This negative fact is the structural reason the arrow
+  // is monic but not surjective.
+  CHECK(embed_𝔹_𝕂3_(true) != Ternary::Unknown);
+  CHECK(embed_𝔹_𝕂3_(false) != Ternary::Unknown);
 }
 
 TEST_CASE(

@@ -131,7 +131,7 @@ using namespace dedekind::category;
  *      construction-on-an-algebra pattern.
  */
 export template <typename T, typename... Ops>
-concept IsAlgebra = std::regular<T> && (... && IsClosedUnder<T, Ops>);
+concept IsAlgebra = std::regular<T> && (... && IsClosedUnderEither<T, Ops>);
 // Should probably include HasCarrier (see below).
 
 //

@@ -105,9 +105,10 @@ TEST_CASE(
   //   * unsigned int claims MORE structure than ℕ has (modular inverses);
   //     IsField<unsigned int> rejected (PR #441 / :uint).
   //   * int claims LESS structure than ℤ has (UB on overflow defeats
-  //     closure); Group_ℤ<int> rejected (this partition).
+  //     closure); IsArithmeticAdditiveGroup<int> rejected (this partition).
   // Both rejections are symmetric in form — each carrier's claim is
   // mismatched with the textbook structure it would purport to inhabit.
+  STATIC_CHECK(!dedekind::algebra::IsArithmeticAdditiveGroup<int>);
   STATIC_CHECK(!dedekind::algebra::IsField<  // unsigned: too MUCH structure
                unsigned int, std::plus<unsigned int>,
                std::multiplies<unsigned int>>);

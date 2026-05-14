@@ -893,7 +893,7 @@ struct SignedExtensionalCardinal {
 //     observe exceptions.
 //   - The variant alternative ordering (finite first) makes
 //     `SignedCardinality{}` the canonical zero, satisfying the
-//     `IsReflectiveSpecies`/`IsInteger` `T{}` requirement.
+//     `IsInteger` `T{}` requirement.
 //   - The total `+` / `*` are saturating, not periodic --- the
 //     `is_saturating_v` species trait (introduced under this issue)
 //     is the load-bearing certificate that lifts `IsTotal` and the
@@ -1916,8 +1916,8 @@ static_assert(
 //
 // Mirrors the ExtensionalCardinal<1> registrations above, with the crucial
 // addition of `is_invertible_v` under + (every integer has an additive
-// inverse — this is what lifts ℤ from a monoid to a group, and is the
-// semantic difference between `Monoid_ℕ` and `Group_ℤ`).
+// inverse — this is what lifts ℤ from a commutative monoid to an
+// abelian group at the trait-registry level).
 
 using Z1 = dedekind::sets::SignedExtensionalCardinal<>;
 
@@ -2029,9 +2029,9 @@ static_assert(IsCyclicGroup<Z1, std::plus<Z1>>,
 // The extended-integer carrier is a saturating abelian group under +
 // (escalating to ±ℵ_0 rather than wrapping or being undefined).  The
 // `is_saturating_v` trait is the load-bearing certificate that lifts
-// IsTotal -> IsMagma -> IsMonoid -> IsGroup -> IsAbelianGroup, the
-// chain `Group_ℤ` requires.  It is *not* periodic (unbounded), nor
-// idempotent (a+a != a in general), nor cyclic (no finite generator).
+// IsTotal -> IsMagma -> IsMonoid -> IsGroup -> IsAbelianGroup on this
+// carrier.  It is *not* periodic (unbounded), nor idempotent
+// (a+a != a in general), nor cyclic (no finite generator).
 
 using SC = dedekind::sets::SignedCardinality;
 
@@ -2108,7 +2108,8 @@ struct inverse_trait<SC, std::plus<SC>> {
 static_assert(IsAbelianGroup<SC, std::plus<SC>>,
               "SignedCardinality must certify as an abelian group under "
               "addition --- the canonical exact-ℤ extended-integer carrier "
-              "with ±ℵ_0 escalation (closes #377's Group_ℤ acceptance).");
+              "with ±ℵ_0 escalation (closes #377's abelian-group on ℤ "
+              "acceptance).");
 
 static_assert(IsRing<SC, std::plus<SC>, std::multiplies<SC>>,
               "SignedCardinality must certify as a total ring (the "
