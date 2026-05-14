@@ -42,7 +42,11 @@ TEST_CASE("Sets: Singleton Acceptance", "[sets][singleton][acceptance]") {
     REQUIRE((!(!_s))(42));
     REQUIRE((!_s)(4));
     INFO("Complement is its own inverse.");
-    STATIC_REQUIRE(IsSet<decltype(!(!_s))>);
+    // @c HasSetSurface (the @c :sets ergonomic wrapper around @c IsSet)
+    // is ref-decay-safe; @c decltype(!(!_s)) is @c SingletonSet const&
+    // post-involution and the strict @c :etcs::IsSet would not fire on
+    // a reference type without manual @c std::remove_cvref_t.
+    STATIC_REQUIRE(HasSetSurface<decltype(!(!_s))>);
     REQUIRE(&(!(!_s)) == &_s);
   }
   SECTION("Intersections") {

@@ -331,9 +331,6 @@ struct Subobject {
   /** @brief ι: S ↣ A (The Textbook Inclusion) */
   constexpr A ι(const Member& m) const { return m.value; }
 
-  /** @brief Membership query @c s(v): delegates to the classifier @c χ. */
-  constexpr auto operator()(const A& v) const { return χ(v); }
-
   /**
    * @section topoi__Pullback_Projections
    * These projections are only valid when the Ambient space A satisfies

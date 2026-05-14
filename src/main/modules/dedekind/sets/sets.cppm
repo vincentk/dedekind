@@ -36,7 +36,8 @@
  */
 module;
 
-#include <concepts>  // std::convertible_to
+#include <concepts>     // std::convertible_to
+#include <type_traits>  // std::remove_cvref_t (HasSetSurface decays cv/ref)
 
 export module dedekind.sets;
 
@@ -129,11 +130,20 @@ concept HasCardinalityInterface = requires(const S& s) {
   { s.cardinality() };
 };
 
-/** @brief Master: a set with the full user-facing ergonomic surface. */
+/** @brief Master: a set with the full user-facing ergonomic surface.
+ *  @details Decays cv/ref on @c S internally — callers can pass
+ *           @c decltype(expr) directly without manual
+ *           @c std::remove_cvref_t.  The strict @c :category:etcs::IsSet
+ *           is the axiomatic underpinning; the ergonomic decay lives
+ *           here in @c :sets where ergonomics is the @em sine @em qua
+ *           @em non. */
 export template <typename S>
-concept HasSetSurface = dedekind::category::IsSet<S> &&
-                        HasMembershipOperator<S> && HasComplementOperator<S> &&
-                        HasSetOperators<S> && HasCardinalityInterface<S>;
+concept HasSetSurface =
+    dedekind::category::IsSet<std::remove_cvref_t<S>> &&
+    HasMembershipOperator<std::remove_cvref_t<S>> &&
+    HasComplementOperator<std::remove_cvref_t<S>> &&
+    HasSetOperators<std::remove_cvref_t<S>> &&
+    HasCardinalityInterface<std::remove_cvref_t<S>>;
 
 /** @section sets__User_Facing_Surface_Witnesses
  *  @details Canonical green witnesses pinning the master concept on the
