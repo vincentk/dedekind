@@ -113,6 +113,14 @@ TEST_CASE("Sets: Singleton Acceptance", "[sets][singleton][acceptance]") {
     // REQUIRE((Ø<size_t>{} <= _s) == true);
     // REQUIRE((_s <= !_s) == false);
   }
+  SECTION("Cartesian Product") {
+    // Possibly doable:
+    REQUIRE((_s * _s).size() == 1);
+    REQUIRE((_s * Ø<size_t>{}) == Ø<size_t>{});
+    REQUIRE((Ø<size_t>{} * _s) == Ø<size_t>{});
+    // Probably too hard:
+    REQUIRE(_s * !_s).size() > 1);
+  }
 }
 
 /*
