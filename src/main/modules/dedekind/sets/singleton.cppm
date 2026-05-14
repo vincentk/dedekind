@@ -262,6 +262,11 @@ constexpr auto singleton(T&& value) {
   return SingletonSet<std::decay_t<T>>{std::forward<T>(value)};
 }
 
+export template <typename T>
+constexpr auto ι(T&& value) {
+  return singleton(value);
+}
+
 /** @section singleton__The_Set_Monad: The Categorical Identity */
 
 /**

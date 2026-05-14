@@ -21,6 +21,22 @@ TEST_CASE("Sets: Singleton Final Proof: The Highway",
   }
 }
 
+TEST_CASE("Sets: Singleton Acceptance", "[sets][singleton][acceptance]") {
+  auto _s = ι(42);
+  SECTION("Construction") {
+    INFO("Succesful membership test.");
+    REQUIRE(_s(42));
+    INFO("Failed membership test.");
+    REQUIRE(!_s(4));
+  }
+  SECTION("Cardinality") {
+    REQUIRE(_s.size() == 1);
+    REQUIRE(_s.cardinality() == Finite{});
+    STATIC_REQUIRE(
+        std::same_as<typename decltype(_s)::cardinality_type, Finite>);
+  }
+}
+
 /*
 TEST_CASE("Sets: Composition of Operations: The Functor Highway",
           "[sets][composition][monad]") {
