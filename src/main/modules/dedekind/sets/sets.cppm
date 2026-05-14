@@ -50,7 +50,7 @@ export import :singleton;
 export import :relational;
 export import :quotient;
 
-import dedekind.category;  // IsSet (the ETCS-axiomatic gate composed by HasSetSurface)
+import dedekind.category; // IsSet (the ETCS-axiomatic gate composed by HasSetSurface)
 
 namespace dedekind::sets {
 
@@ -132,8 +132,8 @@ concept HasCardinalityInterface = requires(const S& s) {
 /** @brief Master: a set with the full user-facing ergonomic surface. */
 export template <typename S>
 concept HasSetSurface = dedekind::category::IsSet<S> &&
-                       HasMembershipOperator<S> && HasComplementOperator<S> &&
-                       HasSetOperators<S> && HasCardinalityInterface<S>;
+                        HasMembershipOperator<S> && HasComplementOperator<S> &&
+                        HasSetOperators<S> && HasCardinalityInterface<S>;
 
 /** @section sets__User_Facing_Surface_Witnesses
  *  @details Canonical green witnesses pinning the master concept on the
