@@ -134,7 +134,6 @@ TEST_CASE("Sets: Singleton Acceptance", "[sets][singleton][acceptance]") {
   }
 }
 
-/*
 TEST_CASE("Sets: Composition of Operations: The Functor Highway",
           "[sets][composition][monad]") {
 
@@ -168,4 +167,3 @@ into<SingletonSet>; };
   }
 
 }
-                    */
