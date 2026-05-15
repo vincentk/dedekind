@@ -45,6 +45,7 @@ module;
 #include <concepts>
 #include <functional>
 #include <limits>
+#include <utility>  // std::pair (Ø × S cartesian-product return type)
 
 export module dedekind.sets:boundaries;
 
@@ -176,10 +177,28 @@ struct Ø final {
   constexpr auto operator^(const S& s) const {
     return s;
   }
+
+  /** @brief Ø × S = Ø<pair<T, S::Ambient>, L> — empty annihilates the
+   *         cartesian product on the @b left.  Carrier widens to the
+   *         pair type so the result is type-correct as a set of pairs. */
+  template <typename S>
+    requires(IsSet<S>)
+  constexpr auto operator*(const S&) const {
+    return Ø<std::pair<T, typename S::Ambient>, L>{};
+  }
 };
 
 template <typename T, typename L>
 inline const Ø<T, L> Ø<T, L>::χ{};
+
+/** @brief S × Ø = Ø<pair<S::Ambient, T2>, L> — empty annihilates the
+ *         cartesian product on the @b right.  Symmetric companion to
+ *         @c Ø::operator*; carrier widens to the pair type. */
+export template <typename S, typename T2, typename L>
+  requires(IsSet<S> && !std::same_as<S, Ø<typename S::Ambient, L>>)
+constexpr auto operator*(const S&, const Ø<T2, L>&) {
+  return Ø<std::pair<typename S::Ambient, T2>, L>{};
+}
 
 /**
  * @struct UniversalSet

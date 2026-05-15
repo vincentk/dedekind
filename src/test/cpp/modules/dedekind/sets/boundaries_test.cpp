@@ -8,19 +8,17 @@ using namespace dedekind::sets;
 
 TEST_CASE("Level 1 Final Proof: The Mereology Highway",
           "[ontology][mereology][highway]") {
+  Ø<int> empty;
   SECTION("2. Initial Object Proof") {
-    Ø<int> empty;
-    static_assert(dedekind::category::IsSet<decltype(ambient_set<int>(empty))>);
+    static_assert(IsSet<decltype(ambient_set<int>(empty))>);
   }
 
   SECTION("3. The Extreme Bounds (0 and 1)") {
-    Ø<int> empty;
     UniversalSet<int> universe;
 
     // Verify these are valid sets over the active logic species.
-    static_assert(dedekind::category::IsSet<decltype(ambient_set<int>(empty))>);
-    static_assert(
-        dedekind::category::IsSet<decltype(ambient_set<int>(universe))>);
+    static_assert(IsSet<decltype(ambient_set<int>(empty))>);
+    static_assert(IsSet<decltype(ambient_set<int>(universe))>);
 
     // Verify the Logical Truth across species
     REQUIRE(empty(42) == false);
@@ -40,37 +38,32 @@ TEST_CASE("Level 1 Final Proof: The Mereology Highway",
 }
 
 TEST_CASE("Boundaries: The Algebra of Extremality", "[sets][boundaries]") {
-  // Use SignedExtensionalCardinal<> directly as the carrier for the
-  // boundary identities (post-#559 ℤ slice migration; the prior local
-  // alias `using ℤ = int` is no longer referenced after the type-site
-  // sweep replaced ℤ with the carrier name in the body).
-
   // The Identities: Ø and Ω as the "North and South Poles"
-  constexpr Ø<SignedExtensionalCardinal<>> null;
-  constexpr UniversalSet<SignedExtensionalCardinal<>> universe;
+  constexpr Ø<int> null;
+  constexpr UniversalSet<int> universe;
 
   SECTION("Aha! 1: The Law of Absorption (Annihilation)") {
     /**
      * In a Union, the Universe is the Annihilator: Ω | S = Ω.
      * In an Intersection, the Void is the Annihilator: ∅ & S = ∅.
      */
-    static_assert(std::is_same_v<decltype((universe | null)),
-                                 UniversalSet<SignedExtensionalCardinal<>>>);
-    static_assert(std::is_same_v<decltype((null & universe)),
-                                 Ø<SignedExtensionalCardinal<>>>);
+    static_assert(
+        std::is_same_v<decltype((universe | null)), UniversalSet<int>>);
+    static_assert(std::is_same_v<decltype((null & universe)), Ø<int>>);
   }
 
-  // SECTION("Aha! 2: The Law of Identity") {
-  //   /**
-  //    * In a Union, the Void is the Identity: ∅ | S = S.
-  //    * In an Intersection, the Universe is the Identity: Ω & S = S.
-  //    */
-  //   // Let's use a Singleton to prove it preserves the specific "Body"
-  //   constexpr SingletonSet<ℤ>{42} s;
+  SECTION("Aha! 2: The Law of Identity") {
+    constexpr auto s = ι<int>(42);
 
-  //   static_assert(std::is_same_v<decltype(null | s), SingletonSet<ℤ>>);
-  //   static_assert(std::is_same_v<decltype(universe & s), SingletonSet<ℤ>>);
-  // }
+    INFO("In a Union, the Void is the Identity: ∅ | S = S.");
+    STATIC_REQUIRE(
+        std::is_same_v<decltype(null | s), std::remove_cvref_t<decltype(s)>>);
+    STATIC_REQUIRE((null | s) == s);
+    INFO("In an Intersection, the Universe is the Identity: Ω & S = S.");
+    STATIC_REQUIRE(std::is_same_v<decltype(universe & s),
+                                  std::remove_cvref_t<decltype(s)>>);
+    STATIC_REQUIRE((universe & s) == s);
+  }
 
   SECTION("Aha! 3: The Involution of the Remainder") {
     /**
@@ -119,6 +112,23 @@ TEST_CASE("Boundaries: The Algebra of Extremality", "[sets][boundaries]") {
                          SingletonSet<SignedExtensionalCardinal<>>>);
     CHECK(std::is_same_v<decltype(universe & s),
                          SingletonSet<SignedExtensionalCardinal<>>>);
+  }
+
+  SECTION("Cartesian Product") {
+    // The empty set annihilates the cartesian product on either side.
+    // Type-level claim only (cross-type Ø<T> == Ø<U> equality lives
+    // in #685's equality-matrix scope and would be needed for the
+    // value-level `== null` reading).  Carrier widens to the pair
+    // type because the cartesian product is type-correct as a set
+    // of pairs.
+    INFO("Ø × Ø = Ø<pair>");
+    STATIC_CHECK(std::is_same_v<decltype(null * null), Ø<std::pair<int, int>>>);
+    INFO("Ω × Ø = Ø<pair>");
+    STATIC_CHECK(
+        std::is_same_v<decltype(universe * null), Ø<std::pair<int, int>>>);
+    INFO("Ø × Ω = Ø<pair>");
+    STATIC_CHECK(
+        std::is_same_v<decltype(null * universe), Ø<std::pair<int, int>>>);
   }
 }
 
