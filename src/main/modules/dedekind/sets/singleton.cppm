@@ -210,8 +210,18 @@ struct SingletonSet {
   // non-Boolean logics @c L::Ω is an enum class that's not contextually
   // convertible to @c bool.  Cross-logic mereology would need an explicit
   // logic-embedding arrow; that's a follow-up.
+  /** @brief Mereological subset on the @c SingletonSet's pivot.
+   *
+   *  @details The @c is_universal_boundary exclusion avoids ambiguity
+   *  with @c UniversalSet's symmetric @c operator<= friend: universe
+   *  is the top of the lattice, so @c S <= @c UniversalSet is always
+   *  @c True — both overloads agree, but the compiler needs help
+   *  picking one.  We cede the call to the friend on @c UniversalSet
+   *  so the universe sits as the unambiguous top of the lattice.
+   */
   template <typename S>
-    requires IsSet<S> && std::same_as<typename S::logic_species, L>
+    requires IsSet<S> && std::same_as<typename S::logic_species, L> &&
+             (!requires { typename S::is_universal_boundary; })
   constexpr typename L::Ω operator<=(const S& other) const {
     return other.contains(pivot);
   }
