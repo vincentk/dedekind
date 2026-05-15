@@ -274,30 +274,41 @@ TEST_CASE("order:halfspace — OrderInterval on ℤ is finite and enumerable",
   STATIC_CHECK(iv.size() == 8u);
 }
 
-TEST_CASE("order:halfspace — reduction boundary tightens all three tiers",
+TEST_CASE("order:halfspace — reduction tightens extensionality (post-#622)",
           "[order][halfspace][computability][reduction]") {
-  // Mirrored from analysis/pruning_showcases_test.cpp at the unit level:
-  // the reduction boundary IS the computability boundary.
+  // Mirrored from analysis/pruning_showcases_test.cpp at the unit level.
+  //
+  // Pre-#622: this test was named "reduction boundary tightens all three
+  // tiers" and exhibited Ternary → Classical promotion as the structural
+  // reduction collapsed a halfspace to @c Ø / @c Singleton.  Post-#622's
+  // cardinality cut, ℕ is countable on the carrier axis and routes to
+  // ClassicalLogic directly — so HasDecidableMembership fires on @c gt5
+  // / @c gt3 already, before any reduction.  The interesting axis that
+  // STILL tightens here is @b extensionality: @c gt5 is not extensional
+  // (predicate-shaped, no materialised members); after meet-reduction
+  // to @c Ø or @c Singleton, the result IS extensional.
   constexpr auto n = element<ℕ>;
 
-  SECTION("Empty-meet reduction") {
+  SECTION("Empty-meet reduction (extensionality tightens)") {
     constexpr auto gt5 = Set{n | (n > bound<5>)};
     constexpr auto lt3 = Set{n | (n < bound<3>)};
     constexpr Ø<Cardinality> meet = gt5 & lt3;
 
-    STATIC_CHECK_FALSE(HasDecidableMembership<decltype(gt5)>);
-    STATIC_CHECK_FALSE(IsExtensional<decltype(gt5)>);
-
+    // Both source and meet are Classical (carrier axis fires on ℕ).
+    STATIC_CHECK(HasDecidableMembership<decltype(gt5)>);
     STATIC_CHECK(HasDecidableMembership<decltype(meet)>);
+
+    // Extensionality tightens: gt5 is intensional, meet (=Ø) is extensional.
+    STATIC_CHECK_FALSE(IsExtensional<decltype(gt5)>);
     STATIC_CHECK(IsExtensional<decltype(meet)>);
   }
 
-  SECTION("Singleton reduction") {
+  SECTION("Singleton reduction (extensionality tightens)") {
     constexpr auto gt3 = Set{n | (n > bound<3>)};
     constexpr auto lt5 = Set{n | (n < bound<5>)};
     constexpr Singleton<4> s = gt3 & lt5;
 
-    STATIC_CHECK_FALSE(HasDecidableMembership<decltype(gt3)>);
+    STATIC_CHECK(HasDecidableMembership<decltype(gt3)>);
     STATIC_CHECK(HasDecidableMembership<decltype(s)>);
     STATIC_CHECK(IsExtensional<decltype(s)>);
   }

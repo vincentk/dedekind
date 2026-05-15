@@ -73,6 +73,15 @@ struct Comprehension {
   Predicate predicate;
   using Domain = typename Base::Domain;
 
+  // Forward Base's cardinality so NaturalLogic / IsCountable can read off
+  // the carrier axis on a comprehension's effective magnitude.  A
+  // predicate-restricted comprehension is at most as large as its base
+  // (P-restriction can only shrink the membership set), so inheriting the
+  // base's cardinality bound is sound for the carrier-axis resolver
+  // (#622).  Sharper bounds (singleton-bounded comprehensions etc.) are
+  // tracked via the @c size() probe below, not via this typedef.
+  using cardinality_type = typename Base::cardinality_type;
+
   template <typename Op>
   static constexpr bool is_associative_v = true;
   template <typename Op>

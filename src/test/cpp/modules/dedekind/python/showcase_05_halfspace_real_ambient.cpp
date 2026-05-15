@@ -32,10 +32,13 @@ using namespace dedekind::numbers;
 using namespace dedekind::order;
 
 // Symbolic scout ranging over the universal set Ω<Real<double>>.
-// FIXME(#399 slice 4-6): once ℝ becomes a carrier alias for
-// Real<...>, switch to @c element<Ω<ℝ>>; for now ℝ is still the
-// predicate-set type, so we spell the carrier directly.
-constexpr auto x = element<Ω<Real<double>>>;
+// Post-#559 / #622: ℝ is @c UniversalSet<Real<double>, ClassicalLogic,
+// ℶ_1>, the universe value with the correct continuum cardinality.
+// Spelling the scout as @c element<ℝ> (rather than @c element<Ω<Real<double>>>
+// which would default-route ℵ_0) is what threads the ℶ_1 cardinality
+// into @c NaturalLogic's carrier-axis verdict — TernaryLogic, as the
+// uncountable carrier mandates.
+constexpr auto x = element<ℝ>;
 
 // Opposing halfspaces with compile-time double-valued pivots.
 constexpr auto gt_five = Set{x | (x > bound<5.0>)};

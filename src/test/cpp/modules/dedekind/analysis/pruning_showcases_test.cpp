@@ -100,11 +100,16 @@ TEST_CASE("Pruning showcase 3: halfspace contradiction on ℕ collapses to Ø",
   constexpr Ø<Cardinality> empty_meet = gt_five & lt_three;
   STATIC_CHECK(empty_meet == Ø<Cardinality>{});
 
-  SECTION("Computability tiers tighten at the reduction boundary") {
-    STATIC_CHECK_FALSE(HasDecidableMembership<decltype(gt_five)>);
-    STATIC_CHECK_FALSE(IsExtensional<decltype(gt_five)>);
-
+  SECTION("Reduction tightens extensionality (post-#622)") {
+    // Post-#622: ℕ → ClassicalLogic on the carrier axis, so @c gt_five
+    // is decidable on the carrier-axis fast path — no Ternary→Classical
+    // promotion to witness here.  The axis that STILL tightens is
+    // extensionality: @c gt_five is intensional (predicate-shaped), the
+    // empty-meet reduction is extensional (it IS @c Ø).
+    STATIC_CHECK(HasDecidableMembership<decltype(gt_five)>);
     STATIC_CHECK(HasDecidableMembership<decltype(empty_meet)>);
+
+    STATIC_CHECK_FALSE(IsExtensional<decltype(gt_five)>);
     STATIC_CHECK(IsExtensional<decltype(empty_meet)>);
   }
 }

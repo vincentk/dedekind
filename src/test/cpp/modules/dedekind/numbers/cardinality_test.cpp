@@ -543,7 +543,10 @@ TEST_CASE(
   // alias) because the @c ℤ alias-flip to the variant lives behind
   // #402 — see the @c FIXME breadcrumb.  Once #402 lands this test can
   // shift to the more idiomatic @c element<Ω<ℤ>> form.
-  using L = TernaryLogic;
+  // Post-#622: ℕ → ClassicalLogic on the carrier axis, so the cross-
+  // carrier Sets in these sections must use the same logic species for
+  // the @c & / @c | overloads (gated on @c same_as<L1, L2>) to fire.
+  using L = ClassicalLogic;
   SECTION("Set<ℕ> & Set<ℤ> tightens to Set<ℕ>") {
     constexpr auto n = element<ℕ>;
     constexpr auto positive_n =
@@ -558,12 +561,12 @@ TEST_CASE(
     // Type-level proof: result carrier is ℕ (Cardinality), not ℤ.
     STATIC_CHECK(std::same_as<typename decltype(meet)::Domain, Cardinality>);
     // Members in the natural-side window are in the meet.
-    CHECK(meet(finite_cardinality(6)) == Ternary::True);
-    CHECK(meet(finite_cardinality(10)) == Ternary::True);
+    CHECK(meet(finite_cardinality(6)));
+    CHECK(meet(finite_cardinality(10)));
     // Members of A but outside the ℤ window are excluded.
-    CHECK(meet(finite_cardinality(11)) == Ternary::False);
+    CHECK_FALSE(meet(finite_cardinality(11)));
     // Members below the ℕ window are excluded.
-    CHECK(meet(finite_cardinality(5)) == Ternary::False);
+    CHECK_FALSE(meet(finite_cardinality(5)));
   }
   SECTION("Set<ℕ> | Set<ℤ> widens to Set<ℤ> ({1} ∪ {-1} ⊂ ℤ)") {
     constexpr auto n = element<ℕ>;
@@ -579,12 +582,12 @@ TEST_CASE(
     STATIC_CHECK(
         std::same_as<typename decltype(union_set)::Domain, SignedCardinality>);
     // Both 1 (from ℕ) and -1 (from ℤ) are in the union.
-    CHECK(union_set(finite_signed_cardinality(1)) == Ternary::True);
-    CHECK(union_set(finite_signed_cardinality(-1)) == Ternary::True);
+    CHECK(union_set(finite_signed_cardinality(1)));
+    CHECK(union_set(finite_signed_cardinality(-1)));
     // Other values are excluded.
-    CHECK(union_set(finite_signed_cardinality(0)) == Ternary::False);
-    CHECK(union_set(finite_signed_cardinality(2)) == Ternary::False);
-    CHECK(union_set(finite_signed_cardinality(-2)) == Ternary::False);
+    CHECK_FALSE(union_set(finite_signed_cardinality(0)));
+    CHECK_FALSE(union_set(finite_signed_cardinality(2)));
+    CHECK_FALSE(union_set(finite_signed_cardinality(-2)));
   }
   SECTION("Symmetric direction: Set<ℤ> & Set<ℕ> still tightens to Set<ℕ>") {
     constexpr auto n = element<ℕ>;
@@ -597,9 +600,9 @@ TEST_CASE(
     constexpr auto small_n = Set{n | (n < 5u)};  // {0, …, 4} ⊂ Cardinality
     const auto meet = bounded_z & small_n;       // {0, …, 4} ⊂ Cardinality
     STATIC_CHECK(std::same_as<typename decltype(meet)::Domain, Cardinality>);
-    CHECK(meet(finite_cardinality(0)) == Ternary::True);
-    CHECK(meet(finite_cardinality(4)) == Ternary::True);
-    CHECK(meet(finite_cardinality(5)) == Ternary::False);
+    CHECK(meet(finite_cardinality(0)));
+    CHECK(meet(finite_cardinality(4)));
+    CHECK_FALSE(meet(finite_cardinality(5)));
   }
 }
 

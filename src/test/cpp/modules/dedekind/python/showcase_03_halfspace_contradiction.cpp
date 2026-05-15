@@ -45,11 +45,13 @@ constexpr auto lt_3 = Set{n | (n < bound<3>)};
 constexpr Ø<Cardinality> empty_meet = gt_5 & lt_3;
 static_assert(empty_meet == Ø<Cardinality>{});
 
-// Computability made a compile-time observable: the parent Sets carry NONE
-// of the three tiers; the reduced Ø carries ALL THREE. Compile-time reduction
-// from an intensional description over a transfinite carrier to the (trivial
-// extensional) empty set restores decidable, finite, type-level semantics.
-static_assert(!HasDecidableMembership<decltype(gt_5)>);
+// Post-#622: ℕ → ClassicalLogic on the carrier axis, so @c gt_5 is
+// decidable on the carrier-axis fast path — Ternary→Classical
+// promotion is no longer the story here.  The axis that STILL tightens
+// at the reduction boundary is @b extensionality: @c gt_5 is intensional
+// (predicate-shaped, opaque λ); the empty-meet reduction is extensional
+// (it IS @c Ø, materialised at the type level).
+static_assert(HasDecidableMembership<decltype(gt_5)>);
 static_assert(!IsExtensional<decltype(gt_5)>);
 
 static_assert(HasDecidableMembership<decltype(empty_meet)>);
