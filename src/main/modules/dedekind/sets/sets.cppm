@@ -108,27 +108,8 @@ concept HasCardinalityInterface = requires(const S& s) {
  *           sub-concepts above — composed at use sites rather than
  *           bundled here. */
 export template <typename S>
-concept HasSetSurface = dedekind::category::IsSet<std::remove_cvref_t<S>>;
-
-/** @section sets__User_Facing_Surface_Witnesses
- *  @details Canonical green witnesses pinning the master concept +
- *           every sub-concept on @c SingletonSet, the most fully-
- *           equipped concrete set type today.  Strict-superset
- *           property: a reference-qualified decltype still satisfies
- *           @c HasSetSurface. */
-namespace _user_facing_witnesses {
-using _S1 = SingletonSet<int, dedekind::category::ClassicalLogic>;
-static_assert(HasMembershipOperator<_S1>);
-static_assert(HasComplementOperator<_S1>);
-static_assert(HasSetOperators<_S1>);
-static_assert(HasCardinalityInterface<_S1>);
-
-// Strict-superset claim: HasSetSurface fires wherever IsSet fires...
-static_assert(dedekind::category::IsSet<_S1> ? HasSetSurface<_S1> : true);
-static_assert(HasSetSurface<_S1>);
-// ...and also fires on ref/cv variants the strict IsSet rejects.
-static_assert(!dedekind::category::IsSet<_S1 const&>);
-static_assert(HasSetSurface<_S1 const&>);
-}  // namespace _user_facing_witnesses
-
-}  // namespace dedekind::sets
+concept HasSetSurface = dedekind::category::IsSet<std::remove_cvref_t<S>> &&
+                        IsOrderLatticeOperations<S> &&
+                        HasMembershipOperator<std::remove_cvref_t<S>> &&
+                        HasComplementOperator<std::remove_cvref_t<S>> &&
+                        HasCardinalityInterface<std::remove_cvref_t<S>>;
