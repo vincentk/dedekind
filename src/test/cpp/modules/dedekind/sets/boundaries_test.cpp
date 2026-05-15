@@ -160,3 +160,22 @@ TEST_CASE("image(IsTerminalMorphism F, S) — terminal-codomain collapse (#661)"
     CHECK(img(One{}));
   }
 }
+
+TEST_CASE(
+    "Set differences."
+    "[sets][boundary][differences]") {
+  constexpr Ø<int> _Ø;
+  constexpr UniversalSet<int> Ω;
+
+  SECTION("x - x = 0") {
+    INFO("Ø - Ø = Ø");
+    STATIC_CHECK(_Ø - _Ø == _Ø);
+    INFO("Ω - Ω = Ø");
+    STATIC_CHECK(_Ω - _Ω == _Ø);
+  }
+
+  SECTION("x - 0 = x") {
+    INFO("Ω - Ø = Ω");
+    STATIC_CHECK(_Ω - _Ø == _Ω);
+  }
+}
