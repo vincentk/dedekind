@@ -161,11 +161,9 @@ TEST_CASE("image(IsTerminalMorphism F, S) — terminal-codomain collapse (#661)"
   }
 }
 
-TEST_CASE(
-    "Set differences."
-    "[sets][boundary][differences]") {
+TEST_CASE("Set differences.", "[sets][boundary][differences]") {
   constexpr Ø<int> _Ø;
-  constexpr UniversalSet<int> Ω;
+  constexpr UniversalSet<int> _Ω;
 
   SECTION("x - x = 0") {
     INFO("Ø - Ø = Ø");

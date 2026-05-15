@@ -178,6 +178,14 @@ struct Ø final {
     return s;
   }
 
+  // Ø - S = Ø  (set difference: A - B = A & !B; for A = ∅ this collapses
+  // structurally to ∅ regardless of B).
+  template <typename S>
+    requires(IsSet<S>)
+  constexpr auto operator-(const S&) const {
+    return *this;
+  }
+
   /** @brief Ø × S = Ø<pair<T, S::Ambient>, L> — empty annihilates the
    *         cartesian product on the @b left.  Carrier widens to the
    *         pair type so the result is type-correct as a set of pairs. */
@@ -312,6 +320,13 @@ struct UniversalSet final {
   // so x ∈ U △ S iff x ∉ S, i.e. the complement of S.
   template <typename S>
   constexpr auto operator^(const S& s) const {
+    return !s;
+  }
+
+  // U - S = ¬S  (set difference: A - B = A & !B; for A = U this is
+  // U & !B = !B, the complement of S — pointwise: x ∈ U - S iff x ∉ S).
+  template <typename S>
+  constexpr auto operator-(const S& s) const {
     return !s;
   }
 };
