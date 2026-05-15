@@ -55,8 +55,8 @@ TEST_CASE("Dedekind MVP: Basic Membership and Symbols", "[sets]") {
     // here use unsigned values that lift into Cardinality.
     auto n = element<ℕ>;
     auto infinite = Set{n | (n > 0u)};
-    REQUIRE(infinite(5u) == Ternary::True);
-    REQUIRE(infinite(0u) == Ternary::False);
+    REQUIRE(infinite(5u));
+    REQUIRE_FALSE(infinite(0u));
   }
 }
 
@@ -72,16 +72,15 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
     auto distinct = singleton(11);
     auto sym_eq = same_a ^ same_b;
     auto sym_neq = same_a ^ distinct;
-    // The Set CTAD ascends the logic species to TernaryLogic via
-    // NaturalLogic<UniversalSet<...>>; results compare against Ternary::True /
-    // Ternary::False, not bool.
+    // Post-#622 (carrier-axis cut): ℕ is countable (ℵ_0) and routes to
+    // ClassicalLogic, so the Set CTAD lands @c bool, not @c Ternary.
     // {7} ^ {7} is empty pointwise.
-    REQUIRE(sym_eq(7) == Ternary::False);
-    REQUIRE(sym_eq(0) == Ternary::False);
+    REQUIRE_FALSE(sym_eq(7));
+    REQUIRE_FALSE(sym_eq(0));
     // {7} ^ {11} contains exactly 7 and 11.
-    REQUIRE(sym_neq(7) == Ternary::True);
-    REQUIRE(sym_neq(11) == Ternary::True);
-    REQUIRE(sym_neq(0) == Ternary::False);
+    REQUIRE(sym_neq(7));
+    REQUIRE(sym_neq(11));
+    REQUIRE_FALSE(sym_neq(0));
   }
 
   SECTION("Singleton ^ Set — pivot toggles membership (#469)") {
@@ -93,13 +92,13 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
     auto out_xor = sing_out_set ^ positives;  // -3 ∉ positives → result adds -3
     // Same TernaryLogic ascent as above.
     // 5 was in positives, now isn't (singleton toggled it off).
-    REQUIRE(in_xor(5) == Ternary::False);
-    REQUIRE(in_xor(7) ==
-            Ternary::True);  // 7 stays in (was in positives, not toggled)
+    REQUIRE_FALSE(in_xor(5));
+    // 7 stays in (was in positives, not toggled).
+    REQUIRE(in_xor(7));
     // -3 wasn't in positives, now is (singleton toggled it on).
-    REQUIRE(out_xor(-3) == Ternary::True);
-    REQUIRE(out_xor(7) == Ternary::True);    // 7 stays in
-    REQUIRE(out_xor(-1) == Ternary::False);  // -1 stays out
+    REQUIRE(out_xor(-3));
+    REQUIRE(out_xor(7));         // 7 stays in
+    REQUIRE_FALSE(out_xor(-1));  // -1 stays out
   }
 
   SECTION("Boundary collapses: A ^ ∅ = A, ∅ ^ A = A (#469)") {
@@ -118,8 +117,8 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
                   "S ^ Ø collapses structurally to the same Set type as S.");
     static_assert(std::is_same_v<decltype(left_collapse), decltype(S)>,
                   "Ø ^ S collapses structurally to the same Set type as S.");
-    REQUIRE(right_collapse(50u) == Ternary::True);
-    REQUIRE(right_collapse(5u) == Ternary::False);
+    REQUIRE(right_collapse(50u));
+    REQUIRE_FALSE(right_collapse(5u));
   }
 
   SECTION("Boundary collapses: A ^ Ω = ¬A, Ω ^ A = ¬A (#469)") {
@@ -127,12 +126,12 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
     using SDomain = decltype(S)::Domain;
     using SLogic = decltype(S)::logic_species;
     UniversalSet<SDomain, SLogic> universe{};
-    auto right_collapse = S ^ universe;              // type: !S
-    auto left_collapse = universe ^ S;               // type: !S
-    REQUIRE(right_collapse(50u) == Ternary::False);  // 50 ∈ S → ∉ !S
-    REQUIRE(right_collapse(5u) == Ternary::True);    // 5 ∉ S  → ∈ !S
-    REQUIRE(left_collapse(50u) == Ternary::False);
-    REQUIRE(left_collapse(5u) == Ternary::True);
+    auto right_collapse = S ^ universe;  // type: !S
+    auto left_collapse = universe ^ S;   // type: !S
+    REQUIRE_FALSE(right_collapse(50u));  // 50 ∈ S → ∉ !S
+    REQUIRE(right_collapse(5u));         // 5 ∉ S  → ∈ !S
+    REQUIRE_FALSE(left_collapse(50u));
+    REQUIRE(left_collapse(5u));
   }
 
   SECTION("Self-XOR is empty at every input: A ^ A is ∅ pointwise") {
@@ -144,9 +143,9 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
     // for any Set S, S ^ S evaluates to false at every input.
     auto S = Set{x | x > 10u};
     auto S_xor_S = S ^ S;
-    REQUIRE(S_xor_S(5u) == Ternary::False);
-    REQUIRE(S_xor_S(50u) == Ternary::False);
-    REQUIRE(S_xor_S(200u) == Ternary::False);
+    REQUIRE_FALSE(S_xor_S(5u));
+    REQUIRE_FALSE(S_xor_S(50u));
+    REQUIRE_FALSE(S_xor_S(200u));
   }
 
   SECTION(
@@ -189,11 +188,11 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
     REQUIRE(sym_diff_disjoint(7u) == union_disjoint(7u));
     REQUIRE(sym_diff_disjoint(20u) == union_disjoint(20u));
     // 3 < 5 → in B → in symmetric difference / union.
-    REQUIRE(sym_diff_disjoint(3u) == Ternary::True);
+    REQUIRE(sym_diff_disjoint(3u));
     // 7 is in neither (7 < 5 false, 7 > 10 false).
-    REQUIRE(sym_diff_disjoint(7u) == Ternary::False);
+    REQUIRE_FALSE(sym_diff_disjoint(7u));
     // 20 > 10 → in A → in symmetric difference / union.
-    REQUIRE(sym_diff_disjoint(20u) == Ternary::True);
+    REQUIRE(sym_diff_disjoint(20u));
   }
 
   SECTION("De Morgan negation peel: A ^ ¬B = ¬(A ^ B) (#469)") {
@@ -212,9 +211,9 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
     // Concrete values:
     // 5: ∈ B (5 < 100), ∉ A (5 ≯ 10) → A ^ B classifies True at 5
     //   → ¬(A ^ B) classifies False at 5 → A ^ ¬B = False.
-    REQUIRE(sym_diff_neg(5u) == Ternary::False);
+    REQUIRE_FALSE(sym_diff_neg(5u));
     // 50: ∈ both A and B → A ^ B classifies False → ¬(A ^ B) = True.
-    REQUIRE(sym_diff_neg(50u) == Ternary::True);
+    REQUIRE(sym_diff_neg(50u));
   }
 
   SECTION(
@@ -231,9 +230,9 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
     // semantics rather than the structural type.
     auto S = Set{x | x > 10u};
     auto S_xor_notS = S ^ !S;
-    REQUIRE(S_xor_notS(5u) == Ternary::True);
-    REQUIRE(S_xor_notS(50u) == Ternary::True);
-    REQUIRE(S_xor_notS(200u) == Ternary::True);
+    REQUIRE(S_xor_notS(5u));
+    REQUIRE(S_xor_notS(50u));
+    REQUIRE(S_xor_notS(200u));
   }
 
   SECTION("Membership: x ∈ A ^ B iff x is in exactly one") {
@@ -241,11 +240,11 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
     auto B = Set{x | x < 100u};
     auto sym_diff = A ^ B;
     // 5: in B only (5 < 100, 5 ≯ 10) → in symmetric difference
-    REQUIRE(sym_diff(5u) == Ternary::True);
+    REQUIRE(sym_diff(5u));
     // 50: in both (50 > 10 AND 50 < 100) → NOT in symmetric difference
-    REQUIRE(sym_diff(50u) == Ternary::False);
+    REQUIRE_FALSE(sym_diff(50u));
     // 200: in A only (200 > 10, 200 ≮ 100) → in symmetric difference
-    REQUIRE(sym_diff(200u) == Ternary::True);
+    REQUIRE(sym_diff(200u));
   }
 
   SECTION("Textbook identity: A ^ B == (A | B) & !(A & B)") {
@@ -266,10 +265,11 @@ TEST_CASE("Dedekind Identities: Extremal Collapse", "[sets][identities]") {
     // Naturals remain stable when materialized through Set{...}.
     auto U = Set{N};
 
-    static_assert(std::is_same_v<decltype(U)::logic_species, TernaryLogic>);
+    // Post-#622: ℕ → ClassicalLogic on the carrier axis.
+    static_assert(std::is_same_v<decltype(U)::logic_species, ClassicalLogic>);
     // ℕ-as-carrier (= unsigned int) accepts every unsigned value; the
     // classifier reading on int is reachable via direct N(-1) calls.
-    REQUIRE(U(42u) == Ternary::True);
+    REQUIRE(U(42u));
     // Direct N(int) call returns ClassicalLogic::Ω (= bool), not Ternary,
     // because the int overload short-circuits to the classical answer
     // without lifting through the ambient logic.
@@ -281,14 +281,14 @@ TEST_CASE("Dedekind Identities: Extremal Collapse", "[sets][identities]") {
     auto S = Set{x | (x > 10u && x < 5u)};
 
     // For a non-trivial polish, we verify it is 'Total Absence'
-    REQUIRE(S(0u) == Ternary::False);
-    REQUIRE(S(7u) == Ternary::False);
-    REQUIRE(S(12u) == Ternary::False);
+    REQUIRE_FALSE(S(0u));
+    REQUIRE_FALSE(S(7u));
+    REQUIRE_FALSE(S(12u));
   }
 
   SECTION("Tautology: {x ∈ ℕ | x > 10 ∨ x <= 10} is Ω") {
     auto S = Set{x | (x > 10u || x <= 10u)};
-    REQUIRE(S(7u) == Ternary::True);
+    REQUIRE(S(7u));
   }
 }
 
@@ -355,9 +355,9 @@ TEST_CASE("Dedekind Sets: Cartesian product and relation witnesses",
   STATIC_CHECK(IsProduct<ProductDomain, int, int>);
   STATIC_CHECK(IsSet<decltype(product_set)>);
 
-  CHECK(product(ProductDomain{1, 2}) == Ternary::True);
-  CHECK(product(ProductDomain{-1, 2}) == Ternary::False);
-  CHECK(product(ProductDomain{1, 7}) == Ternary::False);
+  CHECK(product(ProductDomain{1, 2}));
+  CHECK_FALSE(product(ProductDomain{-1, 2}));
+  CHECK_FALSE(product(ProductDomain{1, 7}));
 
   const auto graph_pred = [](const std::pair<int, int>& p) {
     return p.second == 2 * p.first;
@@ -383,8 +383,8 @@ TEST_CASE("Dedekind Sets: Ambient cartesian product ergonomics",
   using PDomain = typename decltype(p_via_operator)::Domain;
 
   STATIC_CHECK(IsProduct<PDomain, int, int>);
-  STATIC_CHECK(p_via_function(PDomain{1, 2}) == Ternary::True);
-  STATIC_CHECK(p_via_operator(PDomain{3, 4}) == Ternary::True);
+  STATIC_CHECK(p_via_function(PDomain{1, 2}));
+  STATIC_CHECK(p_via_operator(PDomain{3, 4}));
 }
 
 TEST_CASE("Dedekind Sets: Power-set witness over homogeneous predicates",
@@ -400,8 +400,8 @@ TEST_CASE("Dedekind Sets: Power-set witness over homogeneous predicates",
   STATIC_CHECK(std::same_as<typename decltype(p_positive)::Domain,
                             std::remove_cvref_t<decltype(positive)>>);
   STATIC_CHECK(std::same_as<decltype(p_positive), decltype(𝔓_positive)>);
-  CHECK(p_positive(positive) == Ternary::True);
-  CHECK(𝔓_positive(positive) == Ternary::True);
+  CHECK(p_positive(positive));
+  CHECK(𝔓_positive(positive));
 }
 
 TEST_CASE("Dedekind Sets: Power-set preserves ambient logic",
@@ -411,9 +411,11 @@ TEST_CASE("Dedekind Sets: Power-set preserves ambient logic",
   const auto gt_zero = Set{x | (x > 0u)};
   const auto p_gt_zero = power_set(gt_zero);
 
-  STATIC_CHECK(
-      std::same_as<typename decltype(p_gt_zero)::logic_species, TernaryLogic>);
-  CHECK(p_gt_zero(gt_zero) == Ternary::True);
+  // Post-#622: ℕ-carrier Sets route to ClassicalLogic on the carrier
+  // axis; power_set preserves the source's logic species.
+  STATIC_CHECK(std::same_as<typename decltype(p_gt_zero)::logic_species,
+                            ClassicalLogic>);
+  CHECK(p_gt_zero(gt_zero));
 }
 
 TEST_CASE("Dedekind Sets: Relation witnesses preserve ternary logic",
@@ -427,6 +429,10 @@ TEST_CASE("Dedekind Sets: Relation witnesses preserve ternary logic",
   const Relation<int, int, TernaryLogic, decltype(tri_rel_pred)> R{
       tri_rel_pred};
 
+  // Relation R is explicitly TernaryLogic-parameterised (see the
+  // template-arg list above), so @c relates returns @c Ternary directly —
+  // these comparisons stay Ternary-valued regardless of the carrier-axis
+  // cut (#622).
   CHECK(relates(R, 3, 6) == Ternary::Unknown);
   CHECK(relates(R, 3, 7) == Ternary::True);
 
@@ -437,13 +443,14 @@ TEST_CASE("Dedekind Sets: Relation witnesses preserve ternary logic",
 
 TEST_CASE("Dedekind Sets: Heterogeneous subset semantics",
           "[sets][subset][logic]") {
-  SECTION("Ternary logic yields Unknown for heterogeneous predicates") {
-    auto x = element<ℕ>;
-    const auto gt_zero = Set{x | (x > 0u)};
-    const auto ge_zero = Set{x | (x >= 0u)};
-
-    REQUIRE((gt_zero <= ge_zero) == Ternary::Unknown);
-  }
+  // FIXME(#693): "Ternary logic yields Unknown for heterogeneous predicates"
+  // — pre-#622 the test exhibited heterogeneous subset returning Unknown
+  // because ℕ-carrier Sets routed Ternary by default; post-#622 ℕ →
+  // Classical on the carrier axis, so the heterogeneous subset between
+  // two opaque-λ ℕ-Sets is no longer a Ternary case.  Predicate-level
+  // axis (#693) is the principled home for this witness — an explicit
+  // Ternary-typed predicate carrier would expose Unknown without going
+  // through the carrier-axis resolver.
 
   SECTION("Classical logic has no heterogeneous subset operator") {
     const auto positive_pred = [](const int& v) { return v > 0; };
@@ -488,19 +495,12 @@ TEST_CASE(
     CHECK(img(0) == false);
   }
 
-  SECTION("Identity iso on a ternary-logic source preserves Ternary") {
-    auto x = element<ℕ>;
-    const auto gt_zero = Set{x | (x > 0u)};
-    static_assert(
-        std::same_as<typename decltype(gt_zero)::logic_species, TernaryLogic>);
-
-    auto img = image(Identity<Cardinality>{}, gt_zero);
-
-    STATIC_CHECK(
-        std::same_as<typename decltype(img)::logic_species, TernaryLogic>);
-    CHECK(img(5u) == Ternary::True);
-    CHECK(img(0u) == Ternary::False);
-  }
+  // FIXME(#693): "Identity iso on a ternary-logic source preserves
+  // Ternary" — pre-#622 the ℕ fixture routed to TernaryLogic.  Post-#622
+  // the carrier-axis cut puts ℕ on ClassicalLogic; recovering the
+  // Ternary-preserves-Ternary witness requires an explicit Ternary-typed
+  // predicate carrier — the principled home is the predicate-level axis
+  // (#693).
 }
 
 TEST_CASE(

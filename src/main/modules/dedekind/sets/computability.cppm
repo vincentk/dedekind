@@ -62,18 +62,47 @@ using namespace dedekind::category;
  * @section mereology__Structural_Inference
  * @brief Deduce the governing logic species from the nature of the Base.
  *
- * Theorem:
- * If a Species is Finite AND Extensional, it is a Classical Topos
- * (Binary). If a Species is Transfinite OR Non-Extensional, it is a
- * Kleene Topos (Ternary).
+ * Theorem (carrier-axis decidability resolver, post-#622):
+ * If a Species's @c cardinality_type is @b Countable (@c Finite or @c ℵ_0),
+ * its membership predicates are recognised as Classical (Δ⁰₁ on the carrier
+ * axis).  If the cardinality is @b Uncountable (@c ℶ_1, …), the species is
+ * a Kleene Topos (Ternary) — two independent ceilings stack to justify the
+ * Ternary verdict:
+ *   (a) Rice's theorem forbids recognising non-trivial semantic properties
+ *       of arbitrary code, so opaque predicates over uncountable carriers
+ *       cannot be promoted by inspection;
+ *   (b) the float↔ℝ gap means a @c double-typed witness does not faithfully
+ *       denote a real number, so even a structurally-Δ⁰₁ comparison
+ *       (e.g.\ @c x @c > @c pivot) on ℝ-as-@c double is exact-as-@c double
+ *       but unknown-as-ℝ.
+ * Both ceilings agree on the verdict (Ternary) for independent reasons.
+ *
+ * Decidability is the load-bearing property; cardinality is its cheap
+ * structural witness on the carrier axis.  Set-level and predicate-level
+ * promotion axes (#692, #693) are tracked separately and compose by OR.
  */
-export template <typename Base>
+// Primary template: when @c Base exposes no @c cardinality_type the
+// resolver cannot make a structural claim on the carrier axis — fall
+// back to the honest default of @c TernaryLogic.  This branch keeps the
+// resolver SFINAE-friendly for callers that probe @c NaturalLogic in a
+// @c requires-clause (e.g.\ the cartesian-product @c operator* overload
+// gate in @c :sets:expressions): non-Set carriers like @c
+// dedekind::ieee::IEEE<double> degrade gracefully rather than producing
+// a hard error.
+export template <typename Base, typename = void>
 struct NaturalLogic {
-  static constexpr bool is_infinite = IsTransfinite<Base>;
-  static constexpr bool is_extensional_v = IsExtensional<Base>;
+  using species = TernaryLogic;
+  using type = species;
+};
 
-  using species = std::conditional_t<is_extensional_v && !is_infinite,
-                                     ClassicalLogic, TernaryLogic>;
+// Specialisation: when @c Base exposes @c cardinality_type, read the
+// carrier-axis verdict per #622 — Countable (@c Finite, @c ℵ_0) →
+// @c ClassicalLogic, Uncountable (@c ℶ_1, …) → @c TernaryLogic.
+export template <typename Base>
+struct NaturalLogic<Base, std::void_t<typename Base::cardinality_type>> {
+  using species =
+      std::conditional_t<IsCountable<typename Base::cardinality_type>,
+                         ClassicalLogic, TernaryLogic>;
   using type = species;
 };
 

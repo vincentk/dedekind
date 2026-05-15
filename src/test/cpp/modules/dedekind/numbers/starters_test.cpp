@@ -59,8 +59,8 @@ TEST_CASE("Numbers: starter universes construct from ambient values",
 
   constexpr auto n = element<ℕ>;
   constexpr auto naturals = Set{n};
-  static_assert(naturals(7u) == Ternary::True);
-  static_assert(naturals(0u) == Ternary::True);
+  static_assert(naturals(7u));
+  static_assert(naturals(0u));
   // Direct ambient-call route: ℕ.contains(value) (or equivalently
   // Ω<Cardinality>.contains(value), since ℕ = Ω<Cardinality>) returns
   // L::True for every Cardinality value (the universal-set semantics).
@@ -69,7 +69,7 @@ TEST_CASE("Numbers: starter universes construct from ambient values",
 
   constexpr auto z = element<ℤ>;
   constexpr auto integers = Set{z};
-  static_assert(integers(-7) == Ternary::True);
+  static_assert(integers(-7));
 
   // 𝔻 starter-universe construction moved to
   // src/test/cpp/modules/dedekind/analysis/dual_test.cpp at PR #513
@@ -82,18 +82,18 @@ TEST_CASE("Numbers: starter universes satisfy lattice identities",
     constexpr auto n = element<ℕ>;
     const auto U = Set{n};
     const auto O = !U;
-    CHECK((U | O)(7u) == Ternary::True);
-    CHECK((U & O)(7u) == Ternary::False);
-    CHECK((U | O)(0u) == Ternary::True);
-    CHECK((U & O)(0u) == Ternary::False);
+    CHECK((U | O)(7u));
+    CHECK_FALSE((U & O)(7u));
+    CHECK((U | O)(0u));
+    CHECK_FALSE((U & O)(0u));
   }
 
   {
     constexpr auto z = element<ℤ>;
     const auto U = Set{z};
     const auto O = !U;
-    CHECK((U | O)(4) == Ternary::True);
-    CHECK((U & O)(4) == Ternary::False);
+    CHECK((U | O)(4));
+    CHECK_FALSE((U & O)(4));
   }
 
   // 𝔻 / D / Dual lattice-identity check moved to

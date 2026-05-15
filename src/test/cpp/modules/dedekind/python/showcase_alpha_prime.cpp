@@ -59,17 +59,16 @@ using namespace dedekind::order;
 //     textbook membership shape.
 constexpr auto S = Set{in<ℕ> | in<ℕ> > bound<5>};
 
-// ℕ = Ω<Cardinality> routes through NaturalLogic → TernaryLogic (because
-// ℵ_0 is transfinite), so `S.contains(...)` returns Ternary rather than bool;
-// the comparison against `Logic::True` lifts the result back into
-// boolean / static_assert-eligible form.  A halfspace-elevation refinement
-// (carry the membership decidability through the carrier's logic-routing so
-// `static_assert(S.contains(7u))` reads bare) is on the future-DSL list.
-using NLogic = typename decltype(S)::logic_species;
+// Post-#622: ℕ = Ω<Cardinality> is countable on the carrier axis
+// (ℵ_0), so NaturalLogic routes the comprehension @c S to
+// @c ClassicalLogic — @c S.contains(...) lands @c bool directly, no
+// Kleene lift required.  Rice's theorem still caps further promotion of
+// the opaque λ inside the comprehension, but the carrier-axis witness
+// is sufficient at this layer.
 
 // (2) Tested.  Compile-time membership query — the rule is the type, so
-//     `S.contains(7u) == True` is constant-evaluable.
-static_assert(S.contains(7u) == NLogic::True);
+//     `S.contains(7u)` is constant-evaluable and reads as bare @c bool.
+static_assert(S.contains(7u));
 
 // (3) Trimmed.  Set difference: A ∖ B = {x | x ∈ A ∧ x ∉ B}.  The textbook
 //     `S \ T` would be the natural spelling; substituted here as
@@ -79,8 +78,8 @@ static_assert(S.contains(7u) == NLogic::True);
 //     interval [6, 6]) is a future DSL refinement; membership on T still
 //     constant-folds via the predicate.
 constexpr auto T = set_difference(S, Set{in<ℕ> | in<ℕ> > bound<10>});
-static_assert(T.contains(8u) == NLogic::True);    // 5 < 8 ≤ 10 ✓
-static_assert(T.contains(11u) == NLogic::False);  // 11 > 10 ✗
+static_assert(T.contains(8u));    // 5 < 8 ≤ 10 ✓
+static_assert(!T.contains(11u));  // 11 > 10 ✗
 
 // (4) Collapsed.  Cardinality reduction → 1 (intensional → extensional).
 //     `S` (= {x : x > 5}) intersected with {x : x < 7} on ℕ has cardinality
@@ -115,31 +114,32 @@ constexpr auto S_translated = Set{in<ℚ> + bound<3> | in<ℚ> > bound<2>};
 constexpr auto S_scaled = Set{in<ℚ> * bound<2> | in<ℚ> > bound<5>};
 // Pivot transport: 2 + 3 = 5 (translation); 5 * 2 = 10 (scaling).
 // The reduced predicate IS a Halfspace with the transported pivot at
-// the type level; pinned via full-type equality.
-using QLogic = typename dedekind::sets::NaturalLogic<
-    std::remove_cvref_t<decltype(ℚ)>>::type;
+// the type level; pinned via full-type equality.  ℚ is countable (ℵ_0)
+// so the carrier-axis cut (#622) routes through ClassicalLogic.
 using QCarrier =
     dedekind::numbers::Rational<dedekind::numbers::default_integer>;
 static_assert(
     std::same_as<
         std::remove_cvref_t<decltype(S_translated)>,
-        Set<QCarrier, QLogic,
+        Set<QCarrier, dedekind::category::ClassicalLogic,
             Halfspace<QCarrier, 5, Direction::Upward, Strictness::Strict>>>);
 static_assert(
     std::same_as<
         std::remove_cvref_t<decltype(S_scaled)>,
-        Set<QCarrier, QLogic,
+        Set<QCarrier, dedekind::category::ClassicalLogic,
             Halfspace<QCarrier, 10, Direction::Upward, Strictness::Strict>>>);
 
 /**
  * @brief Showcase α′: the §3 walk's compile-time payoff lifted to a
  *        runtime witness.
  *
- * @c S.contains(7u) is constant-evaluable (7 > 5 lands in the halfspace),
- * so the compiler should constant-fold the body to @c true.
+ * @c S.contains(7u) is constant-evaluable (7 > 5 lands in the halfspace).
+ * Post-#622 the result IS @c bool directly (ℕ → ClassicalLogic on the
+ * carrier axis), so the body returns the membership query as-is — no
+ * Kleene comparison lift required.
  *
  * Expected IR: `ret i1 true`
  */
 extern "C" __attribute__((noinline)) bool witness_alpha_prime() {
-  return S.contains(7u) == NLogic::True;
+  return S.contains(7u);
 }

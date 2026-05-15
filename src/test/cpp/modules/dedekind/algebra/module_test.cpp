@@ -120,14 +120,14 @@ TEST_CASE("Modules: Integer Polynomial Action", "[algebra][modules]") {
     auto zero_line = Set{v % UniversalSet<RealLine>{} | [](const RealLine& r) {
       return r.coordinate().resolve() == 0.0;
     }};
-    CHECK(zero_line(RealLine(0.0)) == dedekind::category::Ternary::True);
-    CHECK(zero_line(RealLine(1.0)) == dedekind::category::Ternary::False);
+    CHECK(zero_line(RealLine(0.0)));
+    CHECK_FALSE(zero_line(RealLine(1.0)));
 
     auto b = element<Ω<BoolLine>>;
     auto true_line = Set{b % UniversalSet<BoolLine>{} |
                          [](const BoolLine& x) { return x.coordinate(); }};
-    CHECK(true_line(BoolLine(true)) == dedekind::category::Ternary::True);
-    CHECK(true_line(BoolLine(false)) == dedekind::category::Ternary::False);
+    CHECK(true_line(BoolLine(true)));
+    CHECK_FALSE(true_line(BoolLine(false)));
   }
 
   SECTION("Vector-space notion exists as an ETCS set and vectors are members") {

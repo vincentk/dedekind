@@ -157,8 +157,8 @@ TEST_CASE("Topology: Rules of Continuity Coverage", "[topology][continuity]") {
         Set{x % UniversalSet<int>{} |
             [open_mid](const int& value) { return open_mid(value); }};
 
-    CHECK(in_open_mid(1) == Ternary::True);
-    CHECK(in_open_mid(0) == Ternary::False);
-    CHECK(in_open_mid(3) == Ternary::False);
+    CHECK(in_open_mid(1));
+    CHECK_FALSE(in_open_mid(0));
+    CHECK_FALSE(in_open_mid(3));
   }
 }
