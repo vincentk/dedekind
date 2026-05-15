@@ -177,3 +177,30 @@ TEST_CASE("Set differences.", "[sets][boundary][differences]") {
     STATIC_CHECK(_Ω - _Ø == _Ω);
   }
 }
+
+TEST_CASE("Structural recursion, Subset and membership relations.", "[sets][boundary][subset]") {
+  constexpr Ø<int> _Ø0;
+  constexpr Ø<Ø<int>> _Ø1;
+  constexpr UniversalSet<int> _Ω0;
+  constexpr UniversalSet<Ø<int>> _Ω1;
+  constexpr SingletonSet<Ø<int>> _s1 = ι(Ø<int>{});
+
+  SECTION("0 <= 0") {
+    INFO("Ø <= Ø");
+    STATIC_CHECK(_Ø0 <= _Ø0);
+    STATIC_CHECK(!_Ø0(0));
+    INFO("Ø <= Ω");
+    STATIC_CHECK(_Ø0 <= _Ω0);
+    STATIC_CHECK(!_Ω0(_Ø0));
+  }
+
+  SECTION("0 <= 1") {
+    INFO("Ø <= {Ø}");
+    STATIC_CHECK(_Ø1 <= _s1);
+    STATIC_CHECK(!_Ø1(_s1));
+    STATIC_CHECK(_s1(_Ø0));
+    INFO("{Ø} <= Ω");
+    STATIC_CHECK(_s1 <= _Ω1);
+    STATIC_CHECK(_Ω1(_Ø0));
+  }
+}
