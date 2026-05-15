@@ -48,13 +48,17 @@ TEST_CASE("Sets+Category: singleton and comprehension predicates satisfy ETCS",
   const auto support = set_intersection(positive_set, bounded_set);
 
   STATIC_CHECK(dedekind::category::IsSet<decltype(positive_set)>);
-  STATIC_CHECK(dedekind::category::HasTernarySupport<decltype(positive_set)>);
-  STATIC_CHECK(dedekind::category::HasTernarySupport<decltype(support)>);
+  // Post-#622 (cardinality cut): ℕ → ClassicalLogic on the carrier axis,
+  // so the sets-DSL Sets @c positive / @c bounded are decidable on the
+  // carrier-axis fast path.  (Pre-#622 these were @c HasTernarySupport
+  // assertions on the @c ambient_set-lifted wrappers.)
+  STATIC_CHECK(dedekind::sets::HasDecidableMembership<decltype(positive)>);
+  STATIC_CHECK(dedekind::sets::HasDecidableMembership<decltype(bounded)>);
 
-  CHECK(positive_set.χ(5u) == Ternary::True);
-  CHECK(positive_set.χ(0u) == Ternary::False);
-  CHECK(support.χ(5u) == Ternary::True);
-  CHECK(support.χ(50u) == Ternary::False);
+  CHECK(positive_set.χ(5u));
+  CHECK_FALSE(positive_set.χ(0u));
+  CHECK(support.χ(5u));
+  CHECK_FALSE(support.χ(50u));
 }
 
 TEST_CASE("Sets+Category: Set naming boundary is explicit",
@@ -71,6 +75,6 @@ TEST_CASE("Sets+Category: Set naming boundary is explicit",
   const auto positive_set = ambient_set<Cardinality>(positive);
   STATIC_CHECK(IsSet<decltype(positive_set)>);
 
-  CHECK(positive_set.χ(3u) == Ternary::True);
-  CHECK(positive_set.χ(0u) == Ternary::False);
+  CHECK(positive_set.χ(3u));
+  CHECK_FALSE(positive_set.χ(0u));
 }

@@ -12,10 +12,11 @@ namespace {
 
 // Post-#559: ℂ is the universe value Ω<Complex<machine_real_scalar>,
 // ClassicalLogic, ℶ_1>, so the canonical scout spelling is element<ℂ>
-// (no double-Ω).  ℝ migration to element<ℝ> is tracked separately
-// (FIXME(#559): ℝ scout still spells Ω<Real<double>> with default ℵ_0
-// rather than ℝ's actual ℶ_1; sweep alongside the post-ℂ tidy-up).
-constexpr auto r = element<Ω<Real<double>>>;
+// (no double-Ω).  ℝ migration to element<ℝ> completed alongside #622's
+// cardinality cut — Ω<Real<double>> with the default ℵ_0 would route
+// the carrier-axis resolver to ClassicalLogic, contradicting ℝ's
+// actual ℶ_1 cardinality and the Ternary semantics this test relies on.
+constexpr auto r = element<ℝ>;
 constexpr auto c = element<ℂ>;
 
 constexpr auto real_gt_zero = [](const Real<double>& x) {
