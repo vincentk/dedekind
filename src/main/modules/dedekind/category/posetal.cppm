@@ -85,6 +85,9 @@ export template <typename T, typename Rel = std::less_equal<T>,
 concept IsTotallyOrderedPosetal =
     IsPosetal<T, Rel, L> && IsTotalOrder<T, Rel, typename L::Ω>;
 
+using DefaultJoin = decltype(std::ranges::max);
+using DefaultMeet = decltype(std::ranges::min);
+
 /**
  * @concept IsOrderMeetSemilattice
  * @brief Order-theoretic meet-semilattice as a commutative refinement.
@@ -101,7 +104,7 @@ concept IsTotallyOrderedPosetal =
  * surface (@c meet(a, b) @c -> @c convertible_to<T>).  Callsites that
  * need just the operator-surface check use the magma concept directly.
  */
-export template <typename T, typename Meet = decltype(std::ranges::min)>
+export template <typename T, typename Meet = DefaultMeet>
 concept IsOrderMeetSemilattice =
     IsMereologicalMeetSemilattice<T, Meet> && IsCommutative<T, Meet>;
 
@@ -110,7 +113,7 @@ concept IsOrderMeetSemilattice =
  * @brief Trait-certified meet-semilattice (associative + idempotent +
  * commutative).
  */
-export template <typename T, typename Meet = decltype(std::ranges::min)>
+export template <typename T, typename Meet = DefaultMeet>
 concept IsCertifiedOrderMeetSemilattice = IsOrderMeetSemilattice<T, Meet>;
 
 /**
@@ -129,7 +132,7 @@ concept IsCertifiedOrderMeetSemilattice = IsOrderMeetSemilattice<T, Meet>;
  * surface (@c join(a, b) @c -> @c convertible_to<T>).  Callsites that
  * need just the operator-surface check use the magma concept directly.
  */
-export template <typename T, typename Join = decltype(std::ranges::max)>
+export template <typename T, typename Join = DefaultJoin>
 concept IsOrderJoinSemilattice =
     IsMereologicalJoinSemilattice<T, Join> && IsCommutative<T, Join>;
 
@@ -138,7 +141,7 @@ concept IsOrderJoinSemilattice =
  * @brief Trait-certified join-semilattice (associative + idempotent +
  * commutative).
  */
-export template <typename T, typename Join = decltype(std::ranges::max)>
+export template <typename T, typename Join = DefaultJoin>
 concept IsCertifiedOrderJoinSemilattice = IsOrderJoinSemilattice<T, Join>;
 
 /**
@@ -156,8 +159,8 @@ concept IsCertifiedOrderJoinSemilattice = IsOrderJoinSemilattice<T, Join>;
  * concepts (@c IsMereologicalJoinMagma / @c IsMereologicalMeetMagma).
  * The bundled concept here is purely semantic.
  */
-export template <typename T, typename Join = decltype(std::ranges::max),
-                 typename Meet = decltype(std::ranges::min)>
+export template <typename T, typename Join = DefaultJoin,
+                 typename Meet = DefaultMeet>
 concept IsOrderLatticeOperations =
     IsMereologicalLatticeOperations<T, Join, Meet> &&
     IsOrderJoinSemilattice<T, Join> && IsOrderMeetSemilattice<T, Meet> &&
@@ -168,8 +171,8 @@ concept IsOrderLatticeOperations =
  * @brief Trait-certified lattice operations (commutative semilattices +
  * absorption).
  */
-export template <typename T, typename Join = decltype(std::ranges::max),
-                 typename Meet = decltype(std::ranges::min)>
+export template <typename T, typename Join = DefaultJoin,
+                 typename Meet = DefaultMeet>
 concept IsCertifiedOrderLatticeOperations =
     IsOrderLatticeOperations<T, Join, Meet>;
 
@@ -179,8 +182,8 @@ concept IsCertifiedOrderLatticeOperations =
  *
  * @see https://en.wikipedia.org/wiki/Distributive_lattice
  */
-export template <typename T, typename Join = decltype(std::ranges::max),
-                 typename Meet = decltype(std::ranges::min)>
+export template <typename T, typename Join = DefaultJoin,
+                 typename Meet = DefaultMeet>
 concept IsOrderDistributiveLatticeOperations =
     IsOrderLatticeOperations<T, Join, Meet> && IsDistributive<T, Join, Meet> &&
     IsDistributive<T, Meet, Join>;
@@ -189,14 +192,11 @@ concept IsOrderDistributiveLatticeOperations =
  * @concept IsCertifiedOrderDistributiveLatticeOperations
  * @brief Trait-certified distributive lattice refinement.
  */
-export template <typename T, typename Join = decltype(std::ranges::max),
-                 typename Meet = decltype(std::ranges::min)>
+export template <typename T, typename Join = DefaultJoin,
+                 typename Meet = DefaultMeet>
 concept IsCertifiedOrderDistributiveLatticeOperations =
     IsOrderDistributiveLatticeOperations<T, Join, Meet> &&
     IsDistributive<T, Join, Meet> && IsDistributive<T, Meet, Join>;
-
-using DefaultJoin = decltype(std::ranges::max);
-using DefaultMeet = decltype(std::ranges::min);
 
 /**
  * @concept IsPathProjection
