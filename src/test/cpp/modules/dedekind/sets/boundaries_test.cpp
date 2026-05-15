@@ -178,7 +178,8 @@ TEST_CASE("Set differences.", "[sets][boundary][differences]") {
   }
 }
 
-TEST_CASE("Structural recursion, Subset and membership relations.", "[sets][boundary][subset]") {
+TEST_CASE("Structural recursion, Subset and membership relations.",
+          "[sets][boundary][subset]") {
   constexpr Ø<int> _Ø0;
   constexpr Ø<Ø<int>> _Ø1;
   constexpr UniversalSet<int> _Ω0;
