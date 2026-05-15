@@ -73,31 +73,10 @@ namespace dedekind::sets {
  * into the master.
  */
 
-/** @brief Callable wrapper around set-level union (∪), used so the
- *         abstract lattice claim @c :category:mereology::IsSetLattice
- *         can be instantiated on the set-pair operators. */
-struct set_join {
-  template <typename S>
-  constexpr auto operator()(const S& a, const S& b) const {
-    return a | b;
-  }
-};
-
-/** @brief Callable wrapper around set-level intersection (∩). */
-struct set_meet {
-  template <typename S>
-  constexpr auto operator()(const S& a, const S& b) const {
-    return a & b;
-  }
-};
-
 /** @brief Sub-concept: @c s(v) is well-formed and returns a value
  *         convertible to the set's logic species @c Ω. */
 export template <typename S>
-concept HasMembershipOperator =
-    requires(const S& s, const typename S::Ambient& v) {
-      { s(v) } -> std::convertible_to<typename S::logic_species::Ω>;
-    };
+concept HasMembershipOperator = IsArrow<S::Amient, S::logic_species::Ω>;
 
 /** @brief Sub-concept: @c !s is well-formed.
  *  @details Result type intentionally unconstrained at this slice
@@ -107,21 +86,6 @@ concept HasMembershipOperator =
 export template <typename S>
 concept HasComplementOperator = requires(const S& s) {
   { !s };
-};
-
-/** @brief Sub-concept: lattice-of-sets surface — operations on PAIRS
- *         OF SETS (∪, ∩, △).
- *  @details Distinct from @c :order::HasLatticeOperators which acts on
- *           PAIRS OF ELEMENTS — different ontological layers, same
- *           lattice abstraction.  The axiomatic claim ("this IS a
- *           lattice of sets") lives upstream as
- *           @c :category:mereology::IsSetLattice<S, set_join, set_meet>;
- *           callers needing the axiomatic gate compose both. */
-export template <typename S>
-concept HasSetOperators = requires(const S& a, const S& b) {
-  { a | b };
-  { a & b };
-  { a ^ b };
 };
 
 /** @brief Sub-concept: @c s.cardinality() returns the carrier's
