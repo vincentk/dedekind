@@ -174,4 +174,67 @@ static_assert(IsLatticeCategory<int>,
               "trivially directed and codirected (max / min are the "
               "join / meet).");
 
+/**
+ * @concept IsBoundedLatticeCategory
+ * @brief A lattice category that has a designated bottom (initial) and
+ *        top (terminal) element — row 5 of the lattice Form-chain (#698
+ *        Slice 4).
+ *
+ * @details
+ * Faithful inclusion @c IsBoundedLatticeCategory @c ⊊ @c IsLatticeCategory
+ * encoded definitionally per the project's @em "faithful specialization
+ * in the type signature from day one" posture (#698).
+ *
+ * The bounded refinement adds two value-witnesses to the row-4 content:
+ *
+ *   - @b bottom (lattice-internal initial): @c lattice_bottom_v<T, Rel>
+ *     is a @c constexpr @c T value with @c Rel(⊥, x) for all @c x.
+ *   - @b top (lattice-internal terminal): @c lattice_top_v<T, Rel> is
+ *     a @c constexpr @c T value with @c Rel(x, ⊤) for all @c x.
+ *
+ * These are the @b internal initial / terminal of the lattice viewed
+ * as a thin category — distinct from the @b global initial / terminal
+ * of @c :limit (@c std::nullptr_t and @c std::monostate, respectively),
+ * which name the unique initial / terminal of the outer category of
+ * sets, not of any particular lattice.  The trait family @c
+ * lattice_bottom / @c lattice_top in @c :species provides the
+ * per-(T, Rel) value-witnesses; concept gates @c HasLatticeBottom /
+ * @c HasLatticeTop probe whether a specialisation is in scope.
+ *
+ * Faithful per #698 Q3: the Form-chain commits to categorical
+ * universal-property witnesses (the bottom / top are designated
+ * elements of the carrier, not operational @c lower_bound() /
+ * @c upper_bound() member functions on a Sub<S>).
+ *
+ * @tparam T    The Domain (Objects).
+ * @tparam Rel  The Relation.
+ * @tparam Join The join operation (default @c std::ranges::max).
+ * @tparam Meet The meet operation (default @c std::ranges::min).
+ * @tparam L    The Logic Species.
+ */
+export template <typename T, typename Rel = std::less_equal<T>,
+                 typename Join = decltype(std::ranges::max),
+                 typename Meet = decltype(std::ranges::min),
+                 typename L = ClassicalLogic>
+concept IsBoundedLatticeCategory =
+    IsLatticeCategory<T, Rel, Join, Meet, L> &&  // Faithful: bounded ⊊ lattice.
+    HasLatticeBottom<T, Rel> &&  // Initial object inside the lattice.
+    HasLatticeTop<T, Rel>;       // Terminal object inside the lattice.
+
+/** @section lattice__Bounded_Canonical_Witnesses */
+
+static_assert(IsBoundedLatticeCategory<bool>,
+              "bool is a bounded lattice category: bottom = false, top = "
+              "true (the canonical 2-element bounded lattice; also the "
+              "subobject classifier Ω in Set).");
+
+static_assert(IsBoundedLatticeCategory<int>,
+              "int is bounded: lattice_bottom_v = INT_MIN, "
+              "lattice_top_v = INT_MAX.");
+
+static_assert(lattice_bottom_v<bool, std::less_equal<bool>> == false,
+              "Bool's lattice bottom is false.");
+static_assert(lattice_top_v<bool, std::less_equal<bool>> == true,
+              "Bool's lattice top is true.");
+
 }  // namespace dedekind::category
