@@ -52,6 +52,8 @@ import :logic;
 import :mereology;
 import :morphism;  // IsArrow / IsBijectiveArrow / Identity (gates for
                    // IsMonotone / IsAntiMonotone / IsOrderIsomorphism)
+import :thin;      // IsThinCategory — the faithful row-1 inclusion that
+                   // IsPosetal explicitly imports per #698 Slice 1.
 
 namespace dedekind::category {
 
@@ -64,6 +66,14 @@ namespace dedekind::category {
  * By default, it assumes Classical (Boolean) logic, but it can be
  * parameterized to support intuitionistic or fuzzy relations.
  *
+ * @details
+ * @c IsPosetal is the strict refinement of @c IsThinCategory (#698 row 1):
+ * a posetal category is a thin category that is @b also @b skeletal
+ * (antisymmetric).  The faithful inclusion @c IsPosetal @c ⊊
+ * @c IsThinCategory is encoded definitionally in the signature per the
+ * project's @em "faithful specialization in the type signature from day
+ * one" posture (#698).
+ *
  * @tparam T   The Domain (Objects).
  * @tparam Rel The Relation (Morphisms).
  * @tparam L   The Logic Species (The Subobject Classifier).
@@ -71,6 +81,8 @@ namespace dedekind::category {
 export template <typename T, typename Rel = std::less_equal<T>,
                  typename L = ClassicalLogic>
 concept IsPosetal =
+    IsThinCategory<T, Rel, L> &&  // Faithful inclusion: every poset IS thin
+                                  // (preorder + antisymmetric); #698 Slice 1.
     IsPartialOrder<T, Rel, typename L::Ω> && requires(Rel rel, T a, T b) {
       // The relation must yield a result from the logical classifier
       { rel(a, b) } -> std::same_as<typename L::Ω>;
