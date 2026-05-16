@@ -452,8 +452,8 @@ static_assert(IsInvolutiveEndofunctor<std::bit_not<unsigned>, unsigned>,
  *  @c value @c ∧ x @c ≤ b when @c value @c = @c (a @c → b).
  *
  *  @section lattice__Heyting_Aligns_With_IsExponential
- *  The wrapper satisfies @c :cartesian::IsExponential<HeytingExponential<T, Rel>,
- *  T, T> @b structurally — @c eval(e, x) is just the call expression
+ *  The wrapper satisfies @c :cartesian::IsExponential<HeytingExponential<T,
+ * Rel>, T, T> @b structurally — @c eval(e, x) is just the call expression
  *  @c e(x), and the wrapper's @c operator()(T) returns T.  This is the
  *  unification @b across CCCs: function-space exponentials (Set / Cpp)
  *  and value-shaped exponentials (Heyting) satisfy the same structural
@@ -483,10 +483,10 @@ struct HeytingExponential;
 template <typename T>
   requires std::is_integral_v<T>
 struct HeytingExponential<T, std::less_equal<T>> {
-  using Domain = T;    // IsArrow-shaped (for the future :morphism refinement)
+  using Domain = T;  // IsArrow-shaped (for the future :morphism refinement)
   using Codomain = T;
 
-  T value;             // the exponential element e = a → b
+  T value;  // the exponential element e = a → b
 
   /** @brief Eval morphism: @c value @c ∧ x (the meet, which @b is eval
    *         in a thin Heyting algebra).  Universal property:
@@ -528,11 +528,12 @@ export template <typename T, typename Rel = std::less_equal<T>,
                  typename Meet = decltype(std::ranges::min),
                  typename L = ClassicalLogic>
 concept IsHeytingLatticeCategory =
-    IsBoundedLatticeCategory<T, Rel, Join, Meet, L> &&  // Faithful: heyting ⊊ bounded.
-    IsExponential<HeytingExponential<T, Rel>, T, T>;    // Lattice exponential
-                                                        // satisfies the same
-                                                        // CCC concept Set's
-                                                        // function spaces do.
+    IsBoundedLatticeCategory<T, Rel, Join, Meet,
+                             L> &&  // Faithful: heyting ⊊ bounded.
+    IsExponential<HeytingExponential<T, Rel>, T, T>;  // Lattice exponential
+                                                      // satisfies the same
+                                                      // CCC concept Set's
+                                                      // function spaces do.
 
 /** @section lattice__Heyting_Canonical_Witnesses */
 
@@ -547,9 +548,9 @@ static_assert(IsHeytingLatticeCategory<int>,
               "implication; HeytingExponential<int, std::less_equal>::"
               "operator()(x) = min(value, x).");
 
-static_assert(IsExponential<HeytingExponential<bool, std::less_equal<bool>>,
-                            bool, bool>,
-              "HeytingExponential<bool> aligns with :cartesian::IsExponential "
-              "structurally — pure call-shape recognition (#698 Slice 6).");
+static_assert(
+    IsExponential<HeytingExponential<bool, std::less_equal<bool>>, bool, bool>,
+    "HeytingExponential<bool> aligns with :cartesian::IsExponential "
+    "structurally — pure call-shape recognition (#698 Slice 6).");
 
 }  // namespace dedekind::category
