@@ -450,6 +450,52 @@ concept IsDirected = requires(T a, T b) {
   { Rel{}(a, b) } -> std::convertible_to<bool>;
 } && requires { requires is_directed_v<T, Rel>; };
 
+/** @section species__Codirectedness: ∀a,b ∃c. c ≤ a ∧ c ≤ b
+ *
+ *  @brief Trait to mark a relation as @b codirected: every pair of
+ *         elements has a lower bound.
+ *
+ *  @details Codirectedness is the dual of directedness — every pair has
+ *  SOME lower bound, not necessarily a greatest lower bound (meet).
+ *  Combined with directedness and posetal structure (antisymmetry), it
+ *  upgrades a filtered category to a @b lattice category (#698 row 4):
+ *
+ *    lattice = posetal + filtered (UB exists) + cofiltered (LB exists)
+ *            + universality (UB / LB are unique by antisymmetry)
+ *
+ *  Filtered and cofiltered are dual existence axioms; together with
+ *  antisymmetry they suffice for the Form-witness assembly of
+ *  @c IsLatticeCategory in @c :lattice.
+ */
+export template <typename T, typename Rel>
+struct is_codirected : std::false_type {};
+
+/** @brief Discovery: types may opt in via a nested @c is_codirected_v
+ *         template member, mirroring the sibling trait patterns. */
+template <typename T, typename Rel>
+  requires requires { T::template is_codirected_v<Rel>; }
+struct is_codirected<T, Rel>
+    : std::bool_constant<T::template is_codirected_v<Rel>> {};
+
+export template <typename T, typename Rel>
+inline constexpr bool is_codirected_v = is_codirected<T, Rel>::value;
+
+/** @brief Every totally ordered carrier under @c std::less_equal is
+ *         codirected: @c min(a, b) is the lower bound of every pair. */
+template <typename T>
+  requires std::totally_ordered<T>
+struct is_codirected<T, std::less_equal<T>> : std::true_type {};
+
+/**
+ * @concept IsCodirected
+ * @brief Formal verification of the codirectedness axiom:
+ *        ∀ a, b ∈ T. ∃ c ∈ T. Rel(c, a) ∧ Rel(c, b).
+ */
+export template <typename T, typename Rel>
+concept IsCodirected = requires(T a, T b) {
+  { Rel{}(a, b) } -> std::convertible_to<bool>;
+} && requires { requires is_codirected_v<T, Rel>; };
+
 /** @section species__Categorical_Inverses: The 'Undo' Bricks */
 
 /** @brief In XOR, every element is its own inverse (Involutive). */
