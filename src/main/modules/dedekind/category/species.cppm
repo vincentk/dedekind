@@ -398,6 +398,58 @@ concept IsAntisymmetric = requires(T a, T b) {
   { Rel{}(a, b) } -> std::convertible_to<bool>;
 } && requires { requires is_antisymmetric_v<T, Rel>; };
 
+/** @section species__Directedness: ∀a,b ∃c. a ≤ c ∧ b ≤ c
+ *
+ *  @brief Trait to mark a relation as @b directed: every pair of
+ *         elements has an upper bound.
+ *
+ *  @details Directedness is the one-sided existence axiom that
+ *  upgrades a preorder / thin category to a @b filtered category
+ *  (#698 row 3): every finite subset has SOME upper bound (induction
+ *  reduces this to the pairwise case).
+ *
+ *  Filtered ⊊ thin: every filtered category is thin, but filtered
+ *  additionally requires the upper-bound existence claim.  Note that
+ *  filtered does @b not require antisymmetry — it is parallel to,
+ *  not downstream of, @c :posetal in the Form-chain.
+ */
+export template <typename T, typename Rel>
+struct is_directed : std::false_type {};
+
+/** @brief Discovery: types may opt in via a nested @c is_directed_v
+ *         template member, mirroring the @c is_reflexive_v /
+ *         @c is_transitive_v / @c is_antisymmetric_v discovery pattern. */
+template <typename T, typename Rel>
+  requires requires { T::template is_directed_v<Rel>; }
+struct is_directed<T, Rel>
+    : std::bool_constant<T::template is_directed_v<Rel>> {};
+
+export template <typename T, typename Rel>
+inline constexpr bool is_directed_v = is_directed<T, Rel>::value;
+
+/** @brief Every totally ordered carrier under @c std::less_equal is
+ *         directed: @c max(a, b) is the upper bound of every pair. */
+template <typename T>
+  requires std::totally_ordered<T>
+struct is_directed<T, std::less_equal<T>> : std::true_type {};
+
+/**
+ * @concept IsDirected
+ * @brief Formal verification of the directedness axiom:
+ *        ∀ a, b ∈ T. ∃ c ∈ T. Rel(a, c) ∧ Rel(b, c).
+ *
+ * @details At the value level, every pair has an upper bound under
+ * @c Rel.  Specialised at trait level rather than constructively
+ * because exhibiting @c c for arbitrary @c a, @c b in a generic
+ * concept body is awkward; the trait specialisation captures the
+ * mathematical content for the canonical witnesses
+ * (@c std::totally_ordered carriers).
+ */
+export template <typename T, typename Rel>
+concept IsDirected = requires(T a, T b) {
+  { Rel{}(a, b) } -> std::convertible_to<bool>;
+} && requires { requires is_directed_v<T, Rel>; };
+
 /** @section species__Categorical_Inverses: The 'Undo' Bricks */
 
 /** @brief In XOR, every element is its own inverse (Involutive). */
