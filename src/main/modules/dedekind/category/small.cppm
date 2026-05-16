@@ -143,13 +143,18 @@ inline constexpr bool is_associative_v<T, Op> = true;
  * ETCS axiomatization picks out @c Set specifically among concrete
  * categories via the topos structure (well-pointedness, NNO, choice).
  *
- * Other refinements of "category" --- thin, discrete, locally-finite,
+ * Other refinements of "category" --- discrete, locally-finite,
  * intensional / extensional, lazy / strict --- are also intentionally
  * out of scope here; they are named (or named-able) at downstream
  * partitions where they have semantic content.  The intensional /
  * extensional split in particular is reified at @c :sets:expressions
  * (intensional, @c TernaryLogic) vs @c :sets:extensional (decidable
- * membership), not at the category layer.
+ * membership), not at the category layer.  @b Thin categories
+ * (hom(a, b) has @c ≤ 1 morphism — the categorical incarnation of
+ * preorders) were lifted from this Sollbruchstelle to their own
+ * partition @c :category::thin in #698, where they sit as row 1 of the
+ * lattice Form-chain (@c IsThinCategory @c ⊂ @c IsPosetal @c ⊂
+ * @c IsLatticeCategory).
  *
  * @section small__The_Locally_Small_Slot
  * Standard CT distinguishes three slots along the size axis:

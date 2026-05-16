@@ -49,7 +49,9 @@ export import :equivalence;  // Equivalence relations (Mazur up-to relaxation;
 export import :logic;        // The Subobject Classifier (Truth)
 
 // Level 0.5: The Structural Infrastructure
-export import :posetal;    // Partial Orders (Verified by Logic)
+export import :thin;       // Thin Categories (preorders; row 1 of the
+                           // lattice Form-chain; #698)
+export import :posetal;    // Partial Orders (thin + antisymmetric)
 export import :small;      // Small Categories
 export import :discrete;   // The Discrete Category (Points as Arrows)
 export import :nno;        // The Natural Numbers Object (ETCS Axiom 9 reified;
