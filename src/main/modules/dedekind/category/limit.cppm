@@ -119,13 +119,26 @@ auto unit() {
 
 /**
  * @concept IsTerminalObject
- * @brief A type that is (or maps canonically to) the Terminal Object One.
- * @details `std::monostate` (aliased as `One`) is the sole terminal object.
- * Any type T that produces a valid `IsTerminalMorphism` via `unit<T>()` also
- * satisfies this concept.
+ * @brief A type that plays the role of a terminal object — either the
+ *        canonical global @c One (@c std::monostate, the unique
+ *        terminal of the ambient category of sets) or an opt-in
+ *        structural witness via the @c is_terminal_object_tag typedef.
+ *
+ * @details The strict @c std::same_as<T, One> branch is the historical
+ * reading: @c One is the unique terminal in the umbrella category Set.
+ * The tag-discovery branch admits @b structural witness types declared
+ * downstream — e.g.\ @c :lattice::LatticeTop<T, Rel> registers itself
+ * as a terminal object of the lattice over @c (T, Rel) viewed as a
+ * thin category (#698 Slice 4).
+ *
+ * Categorical content: initial / terminal exist @em relative @em to a
+ * category.  The strict global reading covers Set; the tag-based
+ * extension lets sub-categories (lattices, posets, …) name their own
+ * terminal-witness types without parameterising the concept by category.
  */
 export template <typename T>
-concept IsTerminalObject = std::same_as<T, One>;
+concept IsTerminalObject =
+    std::same_as<T, One> || requires { typename T::is_terminal_object_tag; };
 
 /**
  * @concept IsBoundaryProjection
@@ -201,12 +214,26 @@ concept HasUniqueMorphismFrom = std::same_as<Z, Zero> && requires {
 
 /**
  * @concept IsInitialObject
- * @brief A type that is the Initial Object Zero.
- * @details `std::nullptr_t` (aliased as `Zero`) is the sole initial object.
- * It is the unique type from which a morphism to every other species exists.
+ * @brief A type that plays the role of an initial object — either the
+ *        canonical global @c Zero (@c std::nullptr_t, the unique
+ *        initial of the ambient category of sets) or an opt-in
+ *        structural witness via the @c is_initial_object_tag typedef.
+ *
+ * @details The strict @c std::same_as<T, Zero> branch is the historical
+ * reading: @c Zero is the unique initial in the umbrella category Set.
+ * The tag-discovery branch admits @b structural witness types declared
+ * downstream — e.g.\ @c :lattice::LatticeBottom<T, Rel> registers
+ * itself as an initial object of the lattice over @c (T, Rel) viewed
+ * as a thin category (#698 Slice 4).
+ *
+ * Categorical content: initial / terminal exist @em relative @em to a
+ * category.  The strict global reading covers Set; the tag-based
+ * extension lets sub-categories (lattices, posets, …) name their own
+ * initial-witness types without parameterising the concept by category.
  */
 export template <typename T>
-concept IsInitialObject = std::same_as<T, Zero>;
+concept IsInitialObject =
+    std::same_as<T, Zero> || requires { typename T::is_initial_object_tag; };
 
 /**
  * @concept IsProjectedInitialObject

@@ -99,6 +99,9 @@ module;
 #include <algorithm>
 #include <concepts>
 #include <functional>
+#include <limits>       // std::numeric_limits — LatticeBottom/Top
+                        // specialisations for arithmetic carriers.
+#include <type_traits>  // std::is_arithmetic_v — same specialisations.
 
 export module dedekind.category:lattice;
 
@@ -107,6 +110,9 @@ import :posetal;   // IsPosetal — row 2 (thin + antisymmetric);
                    // IsOrderLatticeOperations — bottom-up algebraic surface
 import :filtered;  // IsFilteredCategory — row 3 (directed thin cat)
 import :species;   // is_codirected_v — cofiltered companion to is_directed_v
+import :limit;     // IsInitialObject / IsTerminalObject — row 5
+                   // universal-property witnesses (relaxed via tag
+                   // discovery to admit LatticeBottom/LatticeTop).
 
 namespace dedekind::category {
 
@@ -173,5 +179,142 @@ static_assert(IsLatticeCategory<int>,
               "int is a lattice category — totally ordered carriers are "
               "trivially directed and codirected (max / min are the "
               "join / meet).");
+
+/** @section lattice__Bounded_Witnesses
+ *
+ *  @brief Structural witness types for the bottom (initial) and top
+ *         (terminal) of the lattice over @c (T, @c Rel), playing the
+ *         role of initial / terminal objects of the lattice viewed as
+ *         a thin category.
+ *
+ *  @details Each wrapper type:
+ *
+ *    - Declares the @c is_initial_object_tag / @c is_terminal_object_tag
+ *      typedef so it satisfies the relaxed @c :limit::IsInitialObject /
+ *      @c IsTerminalObject (tag-discovery branch).
+ *    - Exposes the corresponding carrier element as a @c constexpr
+ *      @c value member (extractable when consumers need the actual
+ *      lattice element).
+ *
+ *  Specialisations are provided for arithmetic carriers under
+ *  @c std::less_equal: @c std::numeric_limits<T>::min() / @c max() are
+ *  the lattice bottom / top.  This covers @c bool (false / true),
+ *  @c int (INT_MIN / INT_MAX), @c unsigned (0 / UINT_MAX), @c size_t,
+ *  and the rest of the arithmetic family.
+ *
+ *  Downstream sub-categories (set algebras, posets with named extremes,
+ *  …) opt in by specialising the wrappers for their @c (T, @c Rel)
+ *  pair; no change to @c :species or duplicate concept surface.
+ */
+
+/** @brief Primary template: undefined — no value, no tag.  Specialise
+ *         to register the bottom of the lattice over @c (T, @c Rel). */
+export template <typename T, typename Rel>
+struct LatticeBottom;
+
+/** @brief Primary template: undefined.  Specialise to register the
+ *         top of the lattice over @c (T, @c Rel). */
+export template <typename T, typename Rel>
+struct LatticeTop;
+
+/** @brief Canonical specialisation: @b integral carriers under
+ *         @c std::less_equal have bottom @c = @c numeric_limits<T>::min().
+ *
+ *  @note Floating-point carriers are intentionally @b excluded — they
+ *  fail upstream @c IsThinCategory because @c is_transitive_v in
+ *  @c :species is specialised only for integral + @c bool (IEEE 754 NaN
+ *  breaks transitivity / reflexivity, see @c :thin tests).  Limiting
+ *  this specialisation to @c std::is_integral_v also avoids the
+ *  @c numeric_limits<T>::min() vs @c lowest() trap on floats:
+ *  @c min() returns the smallest positive normal for floats, not the
+ *  most-negative value. */
+template <typename T>
+  requires std::is_integral_v<T>
+struct LatticeBottom<T, std::less_equal<T>> {
+  using is_initial_object_tag = void;
+  static constexpr T value = std::numeric_limits<T>::min();
+};
+
+/** @brief Canonical specialisation: @b integral carriers under
+ *         @c std::less_equal have top @c = @c numeric_limits<T>::max(). */
+template <typename T>
+  requires std::is_integral_v<T>
+struct LatticeTop<T, std::less_equal<T>> {
+  using is_terminal_object_tag = void;
+  static constexpr T value = std::numeric_limits<T>::max();
+};
+
+/**
+ * @concept IsBoundedLatticeCategory
+ * @brief A lattice category that has a designated bottom (initial) and
+ *        top (terminal) element — row 5 of the lattice Form-chain (#698
+ *        Slice 4).
+ *
+ * @details
+ * Faithful inclusion @c IsBoundedLatticeCategory @c ⊊ @c IsLatticeCategory
+ * encoded definitionally per the project's @em "faithful specialization
+ * in the type signature from day one" posture (#698).
+ *
+ * The bounded refinement adds two @b structural witness types:
+ *
+ *   - @c LatticeBottom<T, Rel> — declared as an initial-object witness
+ *     via @c :limit::IsInitialObject (relaxed with tag-discovery).
+ *   - @c LatticeTop<T, Rel> — declared as a terminal-object witness
+ *     via @c :limit::IsTerminalObject (relaxed similarly).
+ *
+ * These are the lattice's @b own initial / terminal objects —
+ * universal-property witnesses local to the lattice over @c (T, Rel)
+ * viewed as a thin category.  Distinct from the strict-global
+ * @c std::same_as<T, Zero> / @c std::same_as<T, One> branches of the
+ * @c :limit concepts, which name the unique initial / terminal of the
+ * ambient category of sets.  The tag-discovery relaxation of @c :limit
+ * (in turn) admits both readings without parallel concept surface.
+ *
+ * Faithful per #698 Q3: the Form-chain commits to categorical
+ * universal-property witnesses — bottom / top are designated structural
+ * witness types satisfying @c IsInitialObject / @c IsTerminalObject,
+ * not operational @c lower_bound() / @c upper_bound() member functions
+ * on a Sub<S>.
+ *
+ * @tparam T    The Domain (Objects).
+ * @tparam Rel  The Relation.
+ * @tparam Join The join operation (default @c std::ranges::max).
+ * @tparam Meet The meet operation (default @c std::ranges::min).
+ * @tparam L    The Logic Species.
+ */
+export template <typename T, typename Rel = std::less_equal<T>,
+                 typename Join = decltype(std::ranges::max),
+                 typename Meet = decltype(std::ranges::min),
+                 typename L = ClassicalLogic>
+concept IsBoundedLatticeCategory =
+    IsLatticeCategory<T, Rel, Join, Meet, L> &&  // Faithful: bounded ⊊ lattice.
+    IsInitialObject<LatticeBottom<T, Rel>> &&    // Universal-property initial.
+    IsTerminalObject<LatticeTop<T, Rel>> &&      // Universal-property terminal.
+    requires {
+      /** @brief The wrappers must expose the corresponding carrier
+       *         element as a @c constexpr @c value member.  Without
+       *         this, a tag-only specialisation (initial-object tag
+       *         declared but no @c value) would silently satisfy the
+       *         universal-property check while providing no usable
+       *         bottom / top — defeating the structural contract. */
+      { LatticeBottom<T, Rel>::value } -> std::convertible_to<T>;
+      { LatticeTop<T, Rel>::value } -> std::convertible_to<T>;
+    };
+
+/** @section lattice__Bounded_Canonical_Witnesses */
+
+static_assert(IsBoundedLatticeCategory<bool>,
+              "bool is a bounded lattice category: bottom = false, top = "
+              "true (the canonical 2-element bounded lattice; also the "
+              "subobject classifier Ω in Set).");
+
+static_assert(IsBoundedLatticeCategory<int>,
+              "int is bounded: LatticeBottom = INT_MIN, "
+              "LatticeTop = INT_MAX.");
+
+static_assert(LatticeBottom<bool, std::less_equal<bool>>::value == false,
+              "Bool's lattice bottom is false.");
+static_assert(LatticeTop<bool, std::less_equal<bool>>::value == true,
+              "Bool's lattice top is true.");
 
 }  // namespace dedekind::category
