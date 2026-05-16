@@ -317,4 +317,106 @@ static_assert(LatticeBottom<bool, std::less_equal<bool>>::value == false,
 static_assert(LatticeTop<bool, std::less_equal<bool>>::value == true,
               "Bool's lattice top is true.");
 
+/** @section lattice__Involutive_Endofunctor
+ *
+ *  @brief Involutive endofunctor concept — an endomap @c F @c : @c T @c → @c T
+ *         with @c F² @c ≅ @c Id.
+ *
+ *  @details
+ *  An @b involutive @b endofunctor on a category @c C is a functor
+ *  @c F @c : @c C @c → @c C whose square is naturally isomorphic to
+ *  the identity functor.  In thin / lattice categories (where the
+ *  category structure is reduced to a carrier @c T plus a relation),
+ *  this collapses to an endomap on @c T satisfying @c F(F(x)) @c = @c x
+ *  for all @c x @c ∈ @c T.
+ *
+ *  Used downstream by the row-7 @c IsBooleanLatticeCategory (#698
+ *  Slice 7), where the @b complement is the canonical involution.
+ *  Examples:
+ *
+ *    - @c std::logical_not<bool> on @c bool: @c !!x @c = @c x.
+ *    - @c std::bit_not<T> on integral @c T: @c ~~x @c = @c x.
+ *    - @c :sets::Complement on a Boolean subobject lattice @c Sub<S>:
+ *      @c !!S @c ≡ @c S (the bona-fide involution from #683).
+ *
+ *  @section lattice__Involutive_Sollbruchstelle
+ *  @b Pragmatic placement: this concept lives inline in @c :lattice
+ *  per #698 Q2.  When a second consumer arrives (e.g.\ dual categories,
+ *  opposite functors, monad-shaped opportunities), the natural
+ *  extraction target is a new partition @c :involution or — if the
+ *  consumer is monad-shaped — @c :monad.  Until then the lightweight
+ *  inline location avoids partition-graph churn for a single consumer.
+ *
+ *  Strictly: involution is @b not a monad.  A monad @c (T, η, μ) has
+ *  @c μ @c : @c T² @c → @c T; an involution has @c F² @c ≅ @c Id (the
+ *  iteration goes back to identity, not to the functor itself).  The
+ *  shared shape is "endofunctor + property of its second iteration".
+ */
+
+/** @brief Trait: a callable @c F is involutive on @c T iff @c F(F(x))
+ *         @c = @c x for all @c x @c ∈ @c T.  Primary template is
+ *         @c std::false_type; opt-in via specialisation or member
+ *         discovery. */
+template <typename F, typename T>
+struct is_involutive : std::false_type {};
+
+/** @brief Discovery: types may opt in via a nested @c is_involutive_v
+ *         template member, mirroring the @c is_reflexive / @c
+ *         is_transitive / @c is_directed pattern in @c :species. */
+template <typename F, typename T>
+  requires requires { F::template is_involutive_v<T>; }
+struct is_involutive<F, T>
+    : std::bool_constant<F::template is_involutive_v<T>> {};
+
+export template <typename F, typename T>
+inline constexpr bool is_involutive_v = is_involutive<F, T>::value;
+
+/** @brief Canonical specialisation: @c std::logical_not<bool> is the
+ *         involution on @c bool. */
+template <>
+struct is_involutive<std::logical_not<bool>, bool> : std::true_type {};
+
+/** @brief Canonical specialisation: @c std::bit_not<T> is the
+ *         involution on integral @c T (~~x = x). */
+template <typename T>
+  requires std::is_integral_v<T>
+struct is_involutive<std::bit_not<T>, T> : std::true_type {};
+
+/**
+ * @concept IsInvolutiveEndofunctor
+ * @brief A callable @c F is an involutive endofunctor on @c T —
+ *        invocable @c T @c → @c T with @c F² @c ≅ @c Id.
+ *
+ * @details
+ * Three structural requirements:
+ *
+ *   - @c F is invocable on @c T (the endomap shape).
+ *   - The invocation returns a value convertible to @c T (so @c F
+ *     genuinely maps @c T to @c T, not to some larger codomain).
+ *   - @c F² @c = @c Id, witnessed by @c is_involutive_v<F, T>.
+ *
+ * Used by @c IsBooleanLatticeCategory (#698 Slice 7) with @c F the
+ * lattice complement.
+ *
+ * @tparam F The endofunctor (a callable).
+ * @tparam T The carrier type on which @c F acts.
+ */
+export template <typename F, typename T>
+concept IsInvolutiveEndofunctor =
+    std::invocable<F, T> &&
+    std::convertible_to<std::invoke_result_t<F, T>, T> &&
+    is_involutive_v<F, T>;
+
+/** @section lattice__Involution_Canonical_Witnesses */
+
+static_assert(IsInvolutiveEndofunctor<std::logical_not<bool>, bool>,
+              "std::logical_not<bool> is the canonical Boolean involution: "
+              "!!x == x for all x in {false, true}.");
+
+static_assert(IsInvolutiveEndofunctor<std::bit_not<int>, int>,
+              "std::bit_not<int> is involutive on int: ~~x == x.");
+
+static_assert(IsInvolutiveEndofunctor<std::bit_not<unsigned>, unsigned>,
+              "std::bit_not<unsigned> is involutive on unsigned.");
+
 }  // namespace dedekind::category
