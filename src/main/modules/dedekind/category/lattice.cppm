@@ -473,14 +473,14 @@ static_assert(IsInvolutiveEndofunctor<std::bit_not<unsigned>, unsigned>,
  *  Specialisations beyond the integral / @c std::less_equal case are
  *  tracked under #708.
  */
-template <typename T, typename Rel>
+export template <typename T, typename Rel>
 struct HeytingExponential;
 
 /** @brief Canonical specialisation: integral carriers under
  *         @c std::less_equal (including @c bool).  Holds an exponential
  *         value @c value @c ∈ T; @c operator()(x) returns the meet
  *         @c min(value, x) which @b is the lattice's eval morphism. */
-template <typename T>
+export template <typename T>
   requires std::is_integral_v<T>
 struct HeytingExponential<T, std::less_equal<T>> {
   using Domain = T;  // IsArrow-shaped (for the future :morphism refinement)
