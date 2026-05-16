@@ -44,9 +44,6 @@ module;
 #include <algorithm>
 #include <concepts>
 #include <functional>
-#include <limits>  // std::numeric_limits — used by lattice_bottom/top
-                   // specialisations for arithmetic carriers (#698 Slice 4).
-#include <type_traits>  // std::is_arithmetic_v — same specialisations.
 
 export module dedekind.category:species;
 
@@ -498,89 +495,6 @@ export template <typename T, typename Rel>
 concept IsCodirected = requires(T a, T b) {
   { Rel{}(a, b) } -> std::convertible_to<bool>;
 } && requires { requires is_codirected_v<T, Rel>; };
-
-/** @section species__Lattice_Extremes: bottom (initial) and top (terminal)
- *
- *  @brief Value-witnesses for the bottom (initial) and top (terminal)
- *         elements of a lattice over @c T under @c Rel.
- *
- *  @details The lattice over @c (T, @c Rel) viewed as a thin category has
- *  an @b initial object iff there exists @c ⊥ @c ∈ @c T with
- *  @c Rel(⊥, @c x) for all @c x — i.e.\ the lattice has a @b bottom.
- *  Dually, the @b terminal object is the lattice @b top @c ⊤ with
- *  @c Rel(x, @c ⊤) for all @c x.
- *
- *  These are lattice-internal initial / terminal — distinct from the
- *  outer category-theoretic @c :limit::IsInitialObject (which pins
- *  @c std::nullptr_t as the unique global initial) and @c :limit::
- *  IsTerminalObject (@c std::monostate).  The lattice's @b own
- *  initial / terminal are per-(T, Rel) carrier elements.
- *
- *  Mirrors the @c :category:partial::partial_identity_v pattern:
- *  primary template is undefined; specialisations provide a
- *  @c constexpr @c value member.  The detection concepts @c
- *  HasLatticeBottom / @c HasLatticeTop fire when a specialisation is
- *  in scope.  Used by @c :lattice::IsBoundedLatticeCategory (#698
- *  Slice 4) as the faithful row-5 witness.
- */
-
-/** @brief Primary template: undefined (no @c value member).
- *  Specialise to provide the bottom element of the lattice. */
-template <typename T, typename Rel>
-struct lattice_bottom;
-
-/** @brief Primary template: undefined.  Specialise to provide the
- *  top element of the lattice. */
-template <typename T, typename Rel>
-struct lattice_top;
-
-/** @brief Specialisation for arithmetic types under @c std::less_equal:
- *         @c std::numeric_limits<T>::min() is the lattice bottom. */
-template <typename T>
-  requires std::is_arithmetic_v<T>
-struct lattice_bottom<T, std::less_equal<T>> {
-  static constexpr T value = std::numeric_limits<T>::min();
-};
-
-/** @brief Specialisation for arithmetic types under @c std::less_equal:
- *         @c std::numeric_limits<T>::max() is the lattice top.  Note
- *         @c std::numeric_limits<bool>::min/max give @c false/true,
- *         which is exactly the 2-element Boolean lattice's bottom/top. */
-template <typename T>
-  requires std::is_arithmetic_v<T>
-struct lattice_top<T, std::less_equal<T>> {
-  static constexpr T value = std::numeric_limits<T>::max();
-};
-
-/** @brief Value-witness for the lattice bottom. */
-export template <typename T, typename Rel>
-inline constexpr T lattice_bottom_v = lattice_bottom<T, Rel>::value;
-
-/** @brief Value-witness for the lattice top. */
-export template <typename T, typename Rel>
-inline constexpr T lattice_top_v = lattice_top<T, Rel>::value;
-
-/**
- * @concept HasLatticeBottom
- * @brief A lattice-internal initial object exists for @c (T, @c Rel) —
- *        i.e.\ @c lattice_bottom<T, Rel> is specialised with a
- *        @c constexpr @c value member.
- */
-export template <typename T, typename Rel>
-concept HasLatticeBottom = requires {
-  { lattice_bottom<T, Rel>::value } -> std::convertible_to<T>;
-};
-
-/**
- * @concept HasLatticeTop
- * @brief A lattice-internal terminal object exists for @c (T, @c Rel) —
- *        i.e.\ @c lattice_top<T, Rel> is specialised with a
- *        @c constexpr @c value member.
- */
-export template <typename T, typename Rel>
-concept HasLatticeTop = requires {
-  { lattice_top<T, Rel>::value } -> std::convertible_to<T>;
-};
 
 /** @section species__Categorical_Inverses: The 'Undo' Bricks */
 

@@ -7,11 +7,13 @@
  *   IsBoundedLatticeCategory ⊊ IsLatticeCategory ⊊ IsFilteredCategory
  *                              ⊊ IsThinCategory
  *
- * The bounded refinement requires lattice-internal initial / terminal
- * elements via the @c HasLatticeBottom / @c HasLatticeTop traits in
- * @c :species.  Distinct from @c :limit's strict @c IsInitialObject
- * (which pins @c std::nullptr_t globally) — these are per-(T, Rel)
- * lattice-internal bottom / top.
+ * The bounded refinement requires structural witness types
+ * @c LatticeBottom<T, Rel> and @c LatticeTop<T, Rel> declared in
+ * @c :lattice — each carries the @c is_initial_object_tag / @c
+ * is_terminal_object_tag typedef so the relaxed @c :limit::
+ * IsInitialObject / @c IsTerminalObject (tag-discovery branch) fires.
+ * No parallel concept surface; the universal-property reading is
+ * carried by the existing @c :limit categorical concepts.
  */
 
 #include <catch2/catch_test_macros.hpp>
@@ -24,22 +26,20 @@ import dedekind.category;
 using namespace dedekind::category;
 
 TEST_CASE(
-    "category:bounded-lattice — bool is the canonical 2-element bounded "
-    "lattice",
+    "category:bounded-lattice — bool is the canonical 2-element bounded lattice",
     "[category][lattice][bounded][bool][canonical]") {
   /** @brief @c bool under @c std::less_equal has bottom = @c false,
    *         top = @c true — the canonical 2-element bounded lattice
    *         (also the subobject classifier Ω in Set). */
   STATIC_CHECK(IsBoundedLatticeCategory<bool>);
-  STATIC_CHECK(HasLatticeBottom<bool, std::less_equal<bool>>);
-  STATIC_CHECK(HasLatticeTop<bool, std::less_equal<bool>>);
-  STATIC_CHECK(lattice_bottom_v<bool, std::less_equal<bool>> == false);
-  STATIC_CHECK(lattice_top_v<bool, std::less_equal<bool>> == true);
+  STATIC_CHECK(IsInitialObject<LatticeBottom<bool, std::less_equal<bool>>>);
+  STATIC_CHECK(IsTerminalObject<LatticeTop<bool, std::less_equal<bool>>>);
+  STATIC_CHECK(LatticeBottom<bool, std::less_equal<bool>>::value == false);
+  STATIC_CHECK(LatticeTop<bool, std::less_equal<bool>>::value == true);
 }
 
 TEST_CASE(
-    "category:bounded-lattice — integral carriers are bounded via "
-    "numeric_limits",
+    "category:bounded-lattice — integral carriers are bounded via numeric_limits",
     "[category][lattice][bounded][numeric]") {
   /** @brief Integral carriers under @c std::less_equal are bounded:
    *         bottom = @c numeric_limits<T>::min(), top = max(). */
@@ -47,11 +47,21 @@ TEST_CASE(
   STATIC_CHECK(IsBoundedLatticeCategory<unsigned>);
   STATIC_CHECK(IsBoundedLatticeCategory<std::size_t>);
 
-  STATIC_CHECK(lattice_bottom_v<int, std::less_equal<int>> == INT_MIN);
-  STATIC_CHECK(lattice_top_v<int, std::less_equal<int>> == INT_MAX);
+  STATIC_CHECK(LatticeBottom<int, std::less_equal<int>>::value == INT_MIN);
+  STATIC_CHECK(LatticeTop<int, std::less_equal<int>>::value == INT_MAX);
 
-  STATIC_CHECK(lattice_bottom_v<unsigned, std::less_equal<unsigned>> == 0u);
-  STATIC_CHECK(lattice_top_v<unsigned, std::less_equal<unsigned>> == UINT_MAX);
+  STATIC_CHECK(LatticeBottom<unsigned, std::less_equal<unsigned>>::value == 0u);
+  STATIC_CHECK(LatticeTop<unsigned, std::less_equal<unsigned>>::value == UINT_MAX);
+}
+
+TEST_CASE("category:bounded-lattice — relaxed :limit concepts still fire on global Zero/One",
+          "[category][lattice][bounded][limit][relaxed]") {
+  /** @brief The relaxation to @c :limit::IsInitialObject /
+   *         @c IsTerminalObject preserves the existing strict-global
+   *         branch — @c Zero and @c One still satisfy.  Verifies that
+   *         the existing ETCS / topoi consumers continue to fire. */
+  STATIC_CHECK(IsInitialObject<Zero>);
+  STATIC_CHECK(IsTerminalObject<One>);
 }
 
 TEST_CASE("category:bounded-lattice — Form-chain faithful inclusions hold",
