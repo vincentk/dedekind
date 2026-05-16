@@ -54,6 +54,9 @@ export import :thin;       // Thin Categories (preorders; row 1 of the
 export import :posetal;    // Partial Orders (thin + antisymmetric)
 export import :filtered;   // Filtered Categories (thin + directed; row 3
                            // of the lattice Form-chain; #698 Slice 2)
+export import :lattice;    // Lattice Categories (posetal + filtered +
+                           // cofiltered + universality; row 4 of the
+                           // lattice Form-chain; #698 Slice 3)
 export import :small;      // Small Categories
 export import :discrete;   // The Discrete Category (Points as Arrows)
 export import :nno;        // The Natural Numbers Object (ETCS Axiom 9 reified;
