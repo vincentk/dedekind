@@ -34,11 +34,12 @@ TEST_CASE("category:thin — integral carriers are thin",
    *
    *  @note Floating-point carriers (@c double, @c float) intentionally
    *  do @b not satisfy @c IsThinCategory under @c std::less_equal: the
-   *  @c is_transitive_v trait in @c :species is specialised only for
-   *  integral and bool carriers, because @c NaN-tainted IEEE 754
-   *  comparisons break transitivity (@c NaN @c <= x is always false).
-   *  Honest rejection — see @c numbers::approx / @c :ieee for the
-   *  partial-arithmetic surface that handles this. */
+   *  @c is_reflexive_v trait in @c :species is specialised only for
+   *  @c std::totally_ordered carriers, and @c double under IEEE 754 is
+   *  @b not totally ordered because @c NaN violates reflexivity
+   *  (@c NaN @c <= @c NaN is @c false).  Honest rejection — see
+   *  @c numbers::approx / @c :ieee for the partial-arithmetic surface
+   *  that handles this. */
   STATIC_CHECK(IsThinCategory<int>);
   STATIC_CHECK(IsThinCategory<unsigned>);
   STATIC_CHECK(IsThinCategory<std::size_t>);

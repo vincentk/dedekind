@@ -27,9 +27,12 @@
  * need not be identical.  Adding antisymmetry yields @c :posetal::IsPosetal
  * — a thin category that is also @b skeletal.
  *
- * @c IsPosetal is a strict refinement of @c IsThinCategory; the inclusion
- * is encoded definitionally per the project's @em "faithful specialization
- * in the type signature from day 1" posture (#698).
+ * @c IsPosetal is a strict refinement of @c IsThinCategory.  At the time
+ * of this partition's introduction the inclusion is @b not yet encoded
+ * definitionally in @c IsPosetal — that signature-level refactor lands
+ * in #698 Slice 1, after which the inclusion is visible directly in
+ * @c IsPosetal's @c requires clause per the project's @em "faithful
+ * specialization in the type signature from day 1" posture.
  *
  * @section thin__Sollbruchstelle_From_Small
  * @c :small's docstring deliberately defers thin-category vocabulary:
@@ -60,7 +63,9 @@ module;
 export module dedekind.category:thin;
 
 import :logic;
-import :mereology;  // is_reflexive_v, is_transitive_v traits
+import :species;  // is_reflexive_v, is_transitive_v traits — defined in
+                  // :species; :mereology imports them without re-exporting,
+                  // so we must import :species directly here.
 
 namespace dedekind::category {
 
