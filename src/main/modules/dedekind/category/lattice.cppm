@@ -404,8 +404,7 @@ struct is_involutive<std::bit_not<T>, T> : std::true_type {};
 export template <typename F, typename T>
 concept IsInvolutiveEndofunctor =
     std::invocable<F, T> &&
-    std::convertible_to<std::invoke_result_t<F, T>, T> &&
-    is_involutive_v<F, T>;
+    std::convertible_to<std::invoke_result_t<F, T>, T> && is_involutive_v<F, T>;
 
 /** @section lattice__Involution_Canonical_Witnesses */
 
