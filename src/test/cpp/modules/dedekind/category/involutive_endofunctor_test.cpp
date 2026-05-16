@@ -55,8 +55,9 @@ TEST_CASE("category:lattice — std::bit_not is involutive on integral carriers"
   STATIC_CHECK(bit_not_int(bit_not_int(0)) == 0);
 }
 
-TEST_CASE("category:lattice — opt-in registration is required (no default true)",
-          "[category][lattice][involution][negative][opt-in]") {
+TEST_CASE(
+    "category:lattice — opt-in registration is required (no default true)",
+    "[category][lattice][involution][negative][opt-in]") {
   /** @brief Sanity: the @c is_involutive trait is @b opt-in.  Absence
    *         of an explicit specialisation means @c is_involutive_v is
    *         @c false_type by default, and @c IsInvolutiveEndofunctor
