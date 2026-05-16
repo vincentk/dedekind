@@ -106,13 +106,17 @@ module;
 export module dedekind.category:lattice;
 
 import :logic;
-import :posetal;   // IsPosetal — row 2 (thin + antisymmetric);
-                   // IsOrderLatticeOperations — bottom-up algebraic surface
-import :filtered;  // IsFilteredCategory — row 3 (directed thin cat)
-import :species;   // is_codirected_v — cofiltered companion to is_directed_v
-import :limit;     // IsInitialObject / IsTerminalObject — row 5
-                   // universal-property witnesses (relaxed via tag
-                   // discovery to admit LatticeBottom/LatticeTop).
+import :posetal;    // IsPosetal — row 2 (thin + antisymmetric);
+                    // IsOrderLatticeOperations — bottom-up algebraic surface
+import :filtered;   // IsFilteredCategory — row 3 (directed thin cat)
+import :species;    // is_codirected_v — cofiltered companion to is_directed_v
+import :limit;      // IsInitialObject / IsTerminalObject — row 5
+                    // universal-property witnesses (relaxed via tag
+                    // discovery to admit LatticeBottom/LatticeTop).
+import :cartesian;  // IsExponential — row 6 universal-property witness
+                    // (structural recogniser post-#698 Slice 6; admits
+                    // both Set/Cpp function-space exponentials AND
+                    // lattice-internal value exponentials uniformly).
 
 namespace dedekind::category {
 
@@ -427,5 +431,141 @@ static_assert(IsInvolutiveEndofunctor<std::bit_not<int>, int>,
 
 static_assert(IsInvolutiveEndofunctor<std::bit_not<unsigned>, unsigned>,
               "std::bit_not<unsigned> is involutive on unsigned.");
+
+/** @section lattice__Heyting_Exponential
+ *
+ *  @brief Structural witness type for an @b exponential object in the
+ *         lattice over @c (T, @c Rel) viewed as a thin cartesian closed
+ *         category — the relative complement @c a @c → b held as a
+ *         carrier value, exposed as a callable that computes the eval
+ *         morphism @c eval(e, x) @c = @c e @c ∧ x.
+ *
+ *  @details
+ *  In a Heyting algebra, the exponential object @c b^a is the value
+ *  @c (a @c → b) @c ∈ @c T satisfying the universal adjunction
+ *
+ *    @c a @c ∧ @c x @c ≤ @c b @c iff @c x @c ≤ @c (a @c → b).
+ *
+ *  @c HeytingExponential<T, Rel> wraps the exponential value and
+ *  exposes the eval morphism @em structurally — its @c operator()(x)
+ *  computes the meet @c value @c ∧ x.  The universal property says
+ *  @c value @c ∧ x @c ≤ b when @c value @c = @c (a @c → b).
+ *
+ *  @section lattice__Heyting_Aligns_With_IsExponential
+ *  The wrapper satisfies @c :cartesian::IsExponential<HeytingExponential<T,
+ * Rel>, T, T> @b structurally — @c eval(e, x) is just the call expression
+ *  @c e(x), and the wrapper's @c operator()(T) returns T.  This is the
+ *  unification @b across CCCs: function-space exponentials (Set / Cpp)
+ *  and value-shaped exponentials (Heyting) satisfy the same structural
+ *  concept body, with no tag declarations or CPO machinery (#698 Slice 6).
+ *
+ *  The wrapper also exposes @c Domain / @c Codomain typedefs, so it
+ *  satisfies @c IsArrow when the future @c IsArrowExponential
+ *  refinement (#706) lands.
+ *
+ *  Concrete formulae for canonical carriers:
+ *
+ *    - Integral carriers under @c std::less_equal (with @c ∧ = min):
+ *      @c eval(e, x) @c = @c min(value, x).  The universal exponential
+ *      value @c (a @c → b) for input pair @c (a, b) is @c top if
+ *      @c a @c ≤ b, else @c b — derivable from the meet's adjunction.
+ *
+ *  Specialisations beyond the integral / @c std::less_equal case are
+ *  tracked under #708.
+ */
+export template <typename T, typename Rel, typename Meet>
+struct HeytingExponential;
+
+/** @brief Canonical specialisation: integral carriers under
+ *         @c std::less_equal with @c std::ranges::min as the meet.
+ *         Holds an exponential value @c value @c ∈ T; @c operator()(x)
+ *         returns @c min(value, x) — the lattice meet, which @b is the
+ *         eval morphism in a thin Heyting algebra.
+ *
+ *  @note The @c Meet template parameter is load-bearing: it pins the
+ *  meet operation @c HeytingExponential uses for eval to the meet
+ *  @c IsHeytingLatticeCategory commits to via @b its @c Meet
+ *  parameter.  Without this coupling, a consumer could instantiate
+ *  @c IsHeytingLatticeCategory with a non-canonical @c Meet while
+ *  @c HeytingExponential::operator() silently used a different
+ *  operation — categorical contract broken. */
+export template <typename T>
+  requires std::is_integral_v<T>
+struct HeytingExponential<T, std::less_equal<T>, decltype(std::ranges::min)> {
+  using Domain = T;  // IsArrow-shaped (for the future :morphism refinement)
+  using Codomain = T;
+
+  T value;  // the exponential element e = a → b
+
+  /** @brief Eval morphism: @c value @c ∧ x (the meet, which @b is eval
+   *         in a thin Heyting algebra).  Universal property:
+   *         @c value @c ∧ x @c ≤ @c b when @c value @c = @c (a @c → b). */
+  constexpr T operator()(T x) const noexcept {
+    return std::ranges::min(value, x);
+  }
+};
+
+/**
+ * @concept IsHeytingLatticeCategory
+ * @brief A bounded lattice category whose lattice exponentials are
+ *        witnessed by @c :cartesian::IsExponential — row 6 of the
+ *        lattice Form-chain (#698 Slice 6).
+ *
+ * @details
+ * Faithful inclusion @c IsHeytingLatticeCategory @c ⊊
+ * @c IsBoundedLatticeCategory encoded definitionally per the project's
+ * @em "faithful specialization in the type signature from day one"
+ * posture (#698).
+ *
+ * @section lattice__Heyting_Form_Chain_Row_6
+ * The Heyting refinement requires the carrier @c T has an exponential
+ * object structure: @c HeytingExponential<T, Rel> wraps the relative
+ * complement value @c a @c → b and satisfies @c :cartesian::IsExponential.
+ * The structural alignment with the CCC concept means lattice
+ * exponentials and function-space exponentials inhabit the same
+ * categorical surface — different concrete representations, one shared
+ * concept (#698 Slice 6's generalisation of @c IsExponential).
+ *
+ * @tparam T    The Domain (Objects).
+ * @tparam Rel  The Relation.
+ * @tparam Join The join operation (default @c std::ranges::max).
+ * @tparam Meet The meet operation (default @c std::ranges::min).
+ * @tparam L    The Logic Species.
+ */
+export template <typename T, typename Rel = std::less_equal<T>,
+                 typename Join = decltype(std::ranges::max),
+                 typename Meet = decltype(std::ranges::min),
+                 typename L = ClassicalLogic>
+concept IsHeytingLatticeCategory =
+    IsBoundedLatticeCategory<T, Rel, Join, Meet,
+                             L> &&  // Faithful: heyting ⊊ bounded.
+    IsExponential<HeytingExponential<T, Rel, Meet>, T,
+                  T>;  // Lattice exponential — Meet is passed through so
+                       // the eval operation in the wrapper is pinned to
+                       // the concept's Meet, not silently hardcoded.
+                       // Without this, instantiating the concept with a
+                       // non-canonical Meet would silently leave the
+                       // wrapper using the wrong operation (PR #709
+                       // review fix).
+
+/** @section lattice__Heyting_Canonical_Witnesses */
+
+static_assert(IsHeytingLatticeCategory<bool>,
+              "bool with std::less_equal is the canonical 2-element "
+              "Heyting (and Boolean) lattice; HeytingExponential's "
+              "operator()(x) computes the meet on bool, satisfying "
+              ":cartesian::IsExponential structurally.");
+
+static_assert(IsHeytingLatticeCategory<int>,
+              "int is a Heyting lattice under the totally-ordered "
+              "implication; HeytingExponential<int, std::less_equal>::"
+              "operator()(x) = min(value, x).");
+
+static_assert(
+    IsExponential<HeytingExponential<bool, std::less_equal<bool>,
+                                     decltype(std::ranges::min)>,
+                  bool, bool>,
+    "HeytingExponential<bool, …, min> aligns with :cartesian::IsExponential "
+    "structurally — pure call-shape recognition (#698 Slice 6).");
 
 }  // namespace dedekind::category
