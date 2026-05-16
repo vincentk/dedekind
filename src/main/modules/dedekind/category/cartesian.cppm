@@ -66,21 +66,67 @@ namespace dedekind::category {
 // directly via @c import dedekind.category.
 /**
  * @concept IsExponential
- * @brief Categorification of `std::function<B(A)>` as the Internal Hom-set
- * (B^A).
- * @details Identifies a type as an inhabitant of the function space from A to
- * B. A type F satisfies this concept when it is move-constructible and
- * callable with a single argument of type A returning B.
+ * @brief Categorical exponential object @c B^A — generalised structural
+ *        recogniser of "eval morphism via call expression" (#698 Slice 6).
  *
- * Three canonical inhabitants in the `std` namespace:
- * - `std::function<B(A)>` — type-erased, copyable function wrapper.
- * - `std::move_only_function<B(A)>` (C++23) — move-only, lighter-weight
- *   alternative.
- * - Any lambda `[...](A) -> B` — anonymous structural closure.
+ * @details
+ * In a Cartesian closed category C, an exponential object @c B^A is an
+ * object @c E with an evaluation morphism @c eval: @c E @c × @c A @c → @c B
+ * satisfying the currying universal property.  The concrete shape of
+ * @c E varies by category:
+ *
+ *   - @b Set / @b Cpp: @c E is a function-space type (lambda,
+ *     @c std::function<B(A)>, @c std::move_only_function<B(A)>, any
+ *     callable struct) — the historical reading.
+ *   - @b Heyting @b algebra (thin CCC): @c E is a @em value of the
+ *     carrier @c T representing @c a @c → @c b; @c operator()(x)
+ *     computes the meet @c e @c ∧ x.  The universal property says
+ *     @c e @c ∧ a @c ≤ @c b.
+ *
+ * The unifying observation: in @b every CCC, the eval morphism is
+ * implemented by @b applying the exponential object to its argument.
+ * In C++ that is the call expression @c e(a).  This concept therefore
+ * recognises exponentials structurally — by the well-formedness and
+ * return type of the call — without committing to function-space
+ * representation.  Pure Juliet posture: no tag, no CPO, no wrapper-
+ * for-tag.
+ *
+ * @section cartesian__Strict_Same_As
+ * The result type is checked via @c std::same_as<B>, not @c
+ * std::convertible_to<B>.  This preserves the Honest Rejection
+ * negative witness below (a function returning @c int does not
+ * satisfy @c IsExponential<…, int, bool>, even though @c int implicitly
+ * converts to @c bool in C++).
+ *
+ * @section cartesian__Structural_vs_Universal_Property
+ * The concept captures the eval morphism's @b operational shape
+ * (eval(e, a) → B) but does @b not enforce the currying universal
+ * property (∀ @c f : @c Γ @c × @c A @c → @c B, ∃! @c f̂ : @c Γ @c → @c E).
+ * Universal-property enforcement is tracked separately as #707.
+ *
+ * @section cartesian__IsArrow_Harmonisation
+ * @c IsExponential does not require @c IsArrow.  Function-space
+ * inhabitants like @c std::function<B(A)> satisfy this concept but
+ * @b not @c IsArrow (no @c Domain / @c Codomain typedefs).  The
+ * project's canonical arrow-shaped exponentials (e.g.\ outputs of
+ * @c arrow<A, B>(…), @c HeytingExponential<T, Rel>) satisfy both.
+ * The refinement @c IsArrowExponential @c = @c IsExponential @c
+ * && @c IsArrow is tracked as #706.
+ *
+ * @section cartesian__Slice6_Generalization
+ * Pre-#698-Slice-6 reading was Set-specific: @c std::move_constructible
+ * + @c std::invoke_result_t.  Slice 6 generalised to the structural
+ * call-shape recogniser so that lattice exponentials (Heyting
+ * implications, see @c :lattice::HeytingExponential) participate
+ * uniformly.  Behavioural preservation: every existing Set-side witness
+ * (function-spaces, lambdas, function-objects) continues to fire
+ * because @b being callable with the right signature was already the
+ * load-bearing fact under the old definition.
  */
-export template <typename F, typename A, typename B>
-concept IsExponential =
-    std::move_constructible<F> && std::same_as<std::invoke_result_t<F, A>, B>;
+export template <typename E, typename A, typename B>
+concept IsExponential = requires(E e, A a) {
+  { e(a) } -> std::same_as<B>;
+};
 
 /**
  * @brief Internal Hom Factory (Exponential)
