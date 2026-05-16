@@ -23,8 +23,10 @@ import dedekind.category;
 
 using namespace dedekind::category;
 
-TEST_CASE("category:bounded-lattice — bool is the canonical 2-element bounded lattice",
-          "[category][lattice][bounded][bool][canonical]") {
+TEST_CASE(
+    "category:bounded-lattice — bool is the canonical 2-element bounded "
+    "lattice",
+    "[category][lattice][bounded][bool][canonical]") {
   /** @brief @c bool under @c std::less_equal has bottom = @c false,
    *         top = @c true — the canonical 2-element bounded lattice
    *         (also the subobject classifier Ω in Set). */
@@ -35,8 +37,10 @@ TEST_CASE("category:bounded-lattice — bool is the canonical 2-element bounded 
   STATIC_CHECK(lattice_top_v<bool, std::less_equal<bool>> == true);
 }
 
-TEST_CASE("category:bounded-lattice — integral carriers are bounded via numeric_limits",
-          "[category][lattice][bounded][numeric]") {
+TEST_CASE(
+    "category:bounded-lattice — integral carriers are bounded via "
+    "numeric_limits",
+    "[category][lattice][bounded][numeric]") {
   /** @brief Integral carriers under @c std::less_equal are bounded:
    *         bottom = @c numeric_limits<T>::min(), top = max(). */
   STATIC_CHECK(IsBoundedLatticeCategory<int>);

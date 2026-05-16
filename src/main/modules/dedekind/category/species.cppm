@@ -44,8 +44,8 @@ module;
 #include <algorithm>
 #include <concepts>
 #include <functional>
-#include <limits>       // std::numeric_limits — used by lattice_bottom/top
-                        // specialisations for arithmetic carriers (#698 Slice 4).
+#include <limits>  // std::numeric_limits — used by lattice_bottom/top
+                   // specialisations for arithmetic carriers (#698 Slice 4).
 #include <type_traits>  // std::is_arithmetic_v — same specialisations.
 
 export module dedekind.category:species;
