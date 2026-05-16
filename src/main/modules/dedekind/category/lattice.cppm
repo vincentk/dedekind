@@ -473,16 +473,25 @@ static_assert(IsInvolutiveEndofunctor<std::bit_not<unsigned>, unsigned>,
  *  Specialisations beyond the integral / @c std::less_equal case are
  *  tracked under #708.
  */
-export template <typename T, typename Rel>
+export template <typename T, typename Rel, typename Meet>
 struct HeytingExponential;
 
 /** @brief Canonical specialisation: integral carriers under
- *         @c std::less_equal (including @c bool).  Holds an exponential
- *         value @c value @c ∈ T; @c operator()(x) returns the meet
- *         @c min(value, x) which @b is the lattice's eval morphism. */
+ *         @c std::less_equal with @c std::ranges::min as the meet.
+ *         Holds an exponential value @c value @c ∈ T; @c operator()(x)
+ *         returns @c min(value, x) — the lattice meet, which @b is the
+ *         eval morphism in a thin Heyting algebra.
+ *
+ *  @note The @c Meet template parameter is load-bearing: it pins the
+ *  meet operation @c HeytingExponential uses for eval to the meet
+ *  @c IsHeytingLatticeCategory commits to via @b its @c Meet
+ *  parameter.  Without this coupling, a consumer could instantiate
+ *  @c IsHeytingLatticeCategory with a non-canonical @c Meet while
+ *  @c HeytingExponential::operator() silently used a different
+ *  operation — categorical contract broken. */
 export template <typename T>
   requires std::is_integral_v<T>
-struct HeytingExponential<T, std::less_equal<T>> {
+struct HeytingExponential<T, std::less_equal<T>, decltype(std::ranges::min)> {
   using Domain = T;  // IsArrow-shaped (for the future :morphism refinement)
   using Codomain = T;
 
@@ -492,7 +501,7 @@ struct HeytingExponential<T, std::less_equal<T>> {
    *         in a thin Heyting algebra).  Universal property:
    *         @c value @c ∧ x @c ≤ @c b when @c value @c = @c (a @c → b). */
   constexpr T operator()(T x) const noexcept {
-    return (value <= x) ? value : x;  // = min(value, x)
+    return std::ranges::min(value, x);
   }
 };
 
@@ -530,10 +539,14 @@ export template <typename T, typename Rel = std::less_equal<T>,
 concept IsHeytingLatticeCategory =
     IsBoundedLatticeCategory<T, Rel, Join, Meet,
                              L> &&  // Faithful: heyting ⊊ bounded.
-    IsExponential<HeytingExponential<T, Rel>, T, T>;  // Lattice exponential
-                                                      // satisfies the same
-                                                      // CCC concept Set's
-                                                      // function spaces do.
+    IsExponential<HeytingExponential<T, Rel, Meet>, T,
+                  T>;  // Lattice exponential — Meet is passed through so
+                       // the eval operation in the wrapper is pinned to
+                       // the concept's Meet, not silently hardcoded.
+                       // Without this, instantiating the concept with a
+                       // non-canonical Meet would silently leave the
+                       // wrapper using the wrong operation (PR #709
+                       // review fix).
 
 /** @section lattice__Heyting_Canonical_Witnesses */
 
@@ -549,8 +562,10 @@ static_assert(IsHeytingLatticeCategory<int>,
               "operator()(x) = min(value, x).");
 
 static_assert(
-    IsExponential<HeytingExponential<bool, std::less_equal<bool>>, bool, bool>,
-    "HeytingExponential<bool> aligns with :cartesian::IsExponential "
+    IsExponential<HeytingExponential<bool, std::less_equal<bool>,
+                                     decltype(std::ranges::min)>,
+                  bool, bool>,
+    "HeytingExponential<bool, …, min> aligns with :cartesian::IsExponential "
     "structurally — pure call-shape recognition (#698 Slice 6).");
 
 }  // namespace dedekind::category
