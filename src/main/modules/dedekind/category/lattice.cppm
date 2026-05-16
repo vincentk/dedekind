@@ -678,11 +678,11 @@ export template <typename T, typename Rel = std::less_equal<T>,
                  typename L = ClassicalLogic>
 concept IsBooleanLatticeCategory =
     IsHeytingLatticeCategory<T, Rel, Join, Meet,
-                             L> &&         // Faithful: boolean ⊊ heyting.
-    IsInvolutiveEndofunctor<Not, T> &&     // Structural: Not² ≅ Id.
+                             L> &&      // Faithful: boolean ⊊ heyting.
+    IsInvolutiveEndofunctor<Not, T> &&  // Structural: Not² ≅ Id.
     is_complement_v<Not, T, Rel, Join,
-                    Meet>;                 // Semantic opt-in: complement
-                                           // laws hold for this pairing.
+                    Meet>;  // Semantic opt-in: complement
+                            // laws hold for this pairing.
 
 /** @section lattice__Boolean_Canonical_Witnesses */
 

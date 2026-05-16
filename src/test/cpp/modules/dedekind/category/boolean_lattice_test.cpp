@@ -19,8 +19,8 @@
  * is tracked under #710 as a separate canonical witness.
  */
 
-#include <catch2/catch_test_macros.hpp>
 #include <algorithm>  // std::ranges::min / max — Join / Meet template args
+#include <catch2/catch_test_macros.hpp>
 #include <concepts>
 #include <functional>
 
@@ -47,24 +47,22 @@ TEST_CASE("category:boolean — bool is the canonical 2-element Boolean lattice"
   STATIC_CHECK(std::ranges::max(false, not_op(false)) == true);
 }
 
-TEST_CASE(
-    "category:boolean — is_complement_v is opt-in (no default true)",
-    "[category][lattice][boolean][negative][opt-in]") {
+TEST_CASE("category:boolean — is_complement_v is opt-in (no default true)",
+          "[category][lattice][boolean][negative][opt-in]") {
   /** @brief The @c is_complement_v trait follows the @c is_involutive_v
    *         opt-in pattern: absence of a specialisation means @c false,
    *         so non-registered pairings fail closed. */
-  STATIC_CHECK(is_complement_v<std::logical_not<bool>, bool,
-                               std::less_equal<bool>, decltype(std::ranges::max),
-                               decltype(std::ranges::min)>);
+  STATIC_CHECK(
+      is_complement_v<std::logical_not<bool>, bool, std::less_equal<bool>,
+                      decltype(std::ranges::max), decltype(std::ranges::min)>);
 
   /** @brief @c int under @c std::less_equal with @c std::bit_not is
    *         @b not a Boolean lattice — the bitwise complement doesn't
    *         match the order-theoretic meet/join.  Witness:
    *         @c min(5, ~5) = @c min(5, -6) = @c -6, not @c INT_MIN. */
-  STATIC_CHECK_FALSE(is_complement_v<std::bit_not<int>, int,
-                                     std::less_equal<int>,
-                                     decltype(std::ranges::max),
-                                     decltype(std::ranges::min)>);
+  STATIC_CHECK_FALSE(
+      is_complement_v<std::bit_not<int>, int, std::less_equal<int>,
+                      decltype(std::ranges::max), decltype(std::ranges::min)>);
   STATIC_CHECK_FALSE(
       IsBooleanLatticeCategory<int, std::less_equal<int>,
                                decltype(std::ranges::max),
@@ -87,9 +85,8 @@ TEST_CASE(
   STATIC_CHECK(IsBooleanLatticeCategory<bool>);
 }
 
-TEST_CASE(
-    "category:boolean — int participates in rows 1–6 but NOT row 7",
-    "[category][lattice][boolean][negative][int][honest-rejection]") {
+TEST_CASE("category:boolean — int participates in rows 1–6 but NOT row 7",
+          "[category][lattice][boolean][negative][int][honest-rejection]") {
   /** @brief Honest Rejection at row 7: @c int under
    *         @c std::less_equal IS a totally-ordered Heyting algebra
    *         (a chain — every chain is Heyting), but a chain is Boolean
