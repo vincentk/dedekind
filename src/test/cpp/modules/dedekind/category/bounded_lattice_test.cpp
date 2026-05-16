@@ -26,7 +26,8 @@ import dedekind.category;
 using namespace dedekind::category;
 
 TEST_CASE(
-    "category:bounded-lattice — bool is the canonical 2-element bounded lattice",
+    "category:bounded-lattice — bool is the canonical 2-element bounded "
+    "lattice",
     "[category][lattice][bounded][bool][canonical]") {
   /** @brief @c bool under @c std::less_equal has bottom = @c false,
    *         top = @c true — the canonical 2-element bounded lattice
@@ -39,7 +40,8 @@ TEST_CASE(
 }
 
 TEST_CASE(
-    "category:bounded-lattice — integral carriers are bounded via numeric_limits",
+    "category:bounded-lattice — integral carriers are bounded via "
+    "numeric_limits",
     "[category][lattice][bounded][numeric]") {
   /** @brief Integral carriers under @c std::less_equal are bounded:
    *         bottom = @c numeric_limits<T>::min(), top = max(). */
@@ -51,11 +53,14 @@ TEST_CASE(
   STATIC_CHECK(LatticeTop<int, std::less_equal<int>>::value == INT_MAX);
 
   STATIC_CHECK(LatticeBottom<unsigned, std::less_equal<unsigned>>::value == 0u);
-  STATIC_CHECK(LatticeTop<unsigned, std::less_equal<unsigned>>::value == UINT_MAX);
+  STATIC_CHECK(LatticeTop<unsigned, std::less_equal<unsigned>>::value ==
+               UINT_MAX);
 }
 
-TEST_CASE("category:bounded-lattice — relaxed :limit concepts still fire on global Zero/One",
-          "[category][lattice][bounded][limit][relaxed]") {
+TEST_CASE(
+    "category:bounded-lattice — relaxed :limit concepts still fire on global "
+    "Zero/One",
+    "[category][lattice][bounded][limit][relaxed]") {
   /** @brief The relaxation to @c :limit::IsInitialObject /
    *         @c IsTerminalObject preserves the existing strict-global
    *         branch — @c Zero and @c One still satisfy.  Verifies that

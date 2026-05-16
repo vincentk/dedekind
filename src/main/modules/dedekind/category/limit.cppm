@@ -138,8 +138,7 @@ auto unit() {
  */
 export template <typename T>
 concept IsTerminalObject =
-    std::same_as<T, One> ||
-    requires { typename T::is_terminal_object_tag; };
+    std::same_as<T, One> || requires { typename T::is_terminal_object_tag; };
 
 /**
  * @concept IsBoundaryProjection
@@ -234,8 +233,7 @@ concept HasUniqueMorphismFrom = std::same_as<Z, Zero> && requires {
  */
 export template <typename T>
 concept IsInitialObject =
-    std::same_as<T, Zero> ||
-    requires { typename T::is_initial_object_tag; };
+    std::same_as<T, Zero> || requires { typename T::is_initial_object_tag; };
 
 /**
  * @concept IsProjectedInitialObject
