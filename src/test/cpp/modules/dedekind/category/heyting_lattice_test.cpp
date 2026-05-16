@@ -17,8 +17,8 @@
  * exercise both flavours plus the Form-chain inclusion chain.
  */
 
-#include <catch2/catch_test_macros.hpp>
 #include <algorithm>  // std::ranges::min — Meet template arg in HeytingExponential
+#include <catch2/catch_test_macros.hpp>
 #include <climits>
 #include <concepts>
 #include <functional>
@@ -36,11 +36,15 @@ TEST_CASE("category:heyting — Bool is the canonical 2-element Heyting lattice"
   STATIC_CHECK(IsHeytingLatticeCategory<bool>);
 
   // Concrete eval values: e.g. value = true (= top), operator()(false) = false.
-  constexpr HeytingExponential<bool, std::less_equal<bool>, decltype(std::ranges::min)> e_top{true};
+  constexpr HeytingExponential<bool, std::less_equal<bool>,
+                               decltype(std::ranges::min)>
+      e_top{true};
   STATIC_CHECK(e_top(false) == false);
   STATIC_CHECK(e_top(true) == true);
   // value = false (= bottom), operator()(x) = false for every x.
-  constexpr HeytingExponential<bool, std::less_equal<bool>, decltype(std::ranges::min)> e_bot{false};
+  constexpr HeytingExponential<bool, std::less_equal<bool>,
+                               decltype(std::ranges::min)>
+      e_bot{false};
   STATIC_CHECK(e_bot(false) == false);
   STATIC_CHECK(e_bot(true) == false);
 }
@@ -54,7 +58,9 @@ TEST_CASE("category:heyting — integral carriers are Heyting lattices",
   STATIC_CHECK(IsHeytingLatticeCategory<unsigned>);
   STATIC_CHECK(IsHeytingLatticeCategory<std::size_t>);
 
-  constexpr HeytingExponential<int, std::less_equal<int>, decltype(std::ranges::min)> e_int{42};
+  constexpr HeytingExponential<int, std::less_equal<int>,
+                               decltype(std::ranges::min)>
+      e_int{42};
   STATIC_CHECK(e_int(10) == 10);   // min(42, 10) = 10
   STATIC_CHECK(e_int(100) == 42);  // min(42, 100) = 42
   STATIC_CHECK(e_int(42) == 42);   // min(42, 42) = 42
@@ -78,10 +84,12 @@ TEST_CASE(
   STATIC_CHECK_FALSE(IsExponential<std::function<int(int)>, int, bool>);
 
   // Lattice-value side: HeytingExponential satisfies the same concept.
-  STATIC_CHECK(IsExponential<HeytingExponential<bool, std::less_equal<bool>, decltype(std::ranges::min)>,
+  STATIC_CHECK(IsExponential<HeytingExponential<bool, std::less_equal<bool>,
+                                                decltype(std::ranges::min)>,
                              bool, bool>);
-  STATIC_CHECK(
-      IsExponential<HeytingExponential<int, std::less_equal<int>, decltype(std::ranges::min)>, int, int>);
+  STATIC_CHECK(IsExponential<HeytingExponential<int, std::less_equal<int>,
+                                                decltype(std::ranges::min)>,
+                             int, int>);
 }
 
 TEST_CASE(
