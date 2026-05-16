@@ -217,19 +217,28 @@ struct LatticeBottom;
 export template <typename T, typename Rel>
 struct LatticeTop;
 
-/** @brief Canonical specialisation: arithmetic carriers under
- *         @c std::less_equal have bottom @c = @c numeric_limits<T>::min(). */
+/** @brief Canonical specialisation: @b integral carriers under
+ *         @c std::less_equal have bottom @c = @c numeric_limits<T>::min().
+ *
+ *  @note Floating-point carriers are intentionally @b excluded — they
+ *  fail upstream @c IsThinCategory because @c is_transitive_v in
+ *  @c :species is specialised only for integral + @c bool (IEEE 754 NaN
+ *  breaks transitivity / reflexivity, see @c :thin tests).  Limiting
+ *  this specialisation to @c std::is_integral_v also avoids the
+ *  @c numeric_limits<T>::min() vs @c lowest() trap on floats:
+ *  @c min() returns the smallest positive normal for floats, not the
+ *  most-negative value. */
 template <typename T>
-  requires std::is_arithmetic_v<T>
+  requires std::is_integral_v<T>
 struct LatticeBottom<T, std::less_equal<T>> {
   using is_initial_object_tag = void;
   static constexpr T value = std::numeric_limits<T>::min();
 };
 
-/** @brief Canonical specialisation: arithmetic carriers under
+/** @brief Canonical specialisation: @b integral carriers under
  *         @c std::less_equal have top @c = @c numeric_limits<T>::max(). */
 template <typename T>
-  requires std::is_arithmetic_v<T>
+  requires std::is_integral_v<T>
 struct LatticeTop<T, std::less_equal<T>> {
   using is_terminal_object_tag = void;
   static constexpr T value = std::numeric_limits<T>::max();
@@ -280,7 +289,17 @@ export template <typename T, typename Rel = std::less_equal<T>,
 concept IsBoundedLatticeCategory =
     IsLatticeCategory<T, Rel, Join, Meet, L> &&  // Faithful: bounded ⊊ lattice.
     IsInitialObject<LatticeBottom<T, Rel>> &&    // Universal-property initial.
-    IsTerminalObject<LatticeTop<T, Rel>>;        // Universal-property terminal.
+    IsTerminalObject<LatticeTop<T, Rel>> &&      // Universal-property terminal.
+    requires {
+      /** @brief The wrappers must expose the corresponding carrier
+       *         element as a @c constexpr @c value member.  Without
+       *         this, a tag-only specialisation (initial-object tag
+       *         declared but no @c value) would silently satisfy the
+       *         universal-property check while providing no usable
+       *         bottom / top — defeating the structural contract. */
+      { LatticeBottom<T, Rel>::value } -> std::convertible_to<T>;
+      { LatticeTop<T, Rel>::value } -> std::convertible_to<T>;
+    };
 
 /** @section lattice__Bounded_Canonical_Witnesses */
 
