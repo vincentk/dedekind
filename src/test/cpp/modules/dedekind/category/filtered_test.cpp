@@ -21,8 +21,9 @@ import dedekind.category;
 
 using namespace dedekind::category;
 
-TEST_CASE("category:filtered — Bool is the canonical 2-element filtered category",
-          "[category][filtered][bool][canonical]") {
+TEST_CASE(
+    "category:filtered — Bool is the canonical 2-element filtered category",
+    "[category][filtered][bool][canonical]") {
   /** @brief @c bool with @c std::less_equal is filtered: @c true is the
    *         upper bound of every pair.  Together with reflexivity +
    *         transitivity (already established in @c :thin) this makes
@@ -42,8 +43,9 @@ TEST_CASE("category:filtered — totally ordered integral carriers are filtered"
   STATIC_CHECK(IsFilteredCategory<std::size_t>);
 }
 
-TEST_CASE("category:filtered — IsFilteredCategory faithfully includes IsThinCategory",
-          "[category][filtered][thin][faithful]") {
+TEST_CASE(
+    "category:filtered — IsFilteredCategory faithfully includes IsThinCategory",
+    "[category][filtered][thin][faithful]") {
   /** @brief Every filtered category is thin (faithful inclusion encoded
    *         in @c IsFilteredCategory's signature). */
   STATIC_CHECK(IsThinCategory<bool>);
