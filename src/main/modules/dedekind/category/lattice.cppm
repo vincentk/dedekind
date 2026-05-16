@@ -356,8 +356,10 @@ static_assert(LatticeTop<bool, std::less_equal<bool>>::value == true,
 /** @brief Trait: a callable @c F is involutive on @c T iff @c F(F(x))
  *         @c = @c x for all @c x @c ∈ @c T.  Primary template is
  *         @c std::false_type; opt-in via specialisation or member
- *         discovery. */
-template <typename F, typename T>
+ *         discovery.  @b Exported so downstream code can specialise
+ *         this trait for its own carrier types (mirrors the
+ *         @c :species::is_reflexive / @c is_transitive export pattern). */
+export template <typename F, typename T>
 struct is_involutive : std::false_type {};
 
 /** @brief Discovery: types may opt in via a nested @c is_involutive_v
@@ -377,9 +379,17 @@ template <>
 struct is_involutive<std::logical_not<bool>, bool> : std::true_type {};
 
 /** @brief Canonical specialisation: @c std::bit_not<T> is the
- *         involution on integral @c T (~~x = x). */
+ *         involution on @b non-bool integral @c T (~~x = x).
+ *
+ *  @note @c bool is @b excluded: @c std::bit_not<bool>(x) computes
+ *  @c ~x via integral promotion (yielding @c -1 or @c -2 in @c int),
+ *  then converts back to @c bool — which is always @c true for any
+ *  non-zero result.  So @c bit_not(bit_not(false)) @c == @c true,
+ *  not @c false: @c std::bit_not<bool> is @b not an involution.
+ *  Bool's involution is @c std::logical_not<bool>, specialised
+ *  separately above. */
 template <typename T>
-  requires std::is_integral_v<T>
+  requires std::is_integral_v<T> && (!std::is_same_v<T, bool>)
 struct is_involutive<std::bit_not<T>, T> : std::true_type {};
 
 /**

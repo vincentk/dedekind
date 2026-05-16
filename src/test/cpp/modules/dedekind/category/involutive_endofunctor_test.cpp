@@ -55,15 +55,19 @@ TEST_CASE("category:lattice — std::bit_not is involutive on integral carriers"
   STATIC_CHECK(bit_not_int(bit_not_int(0)) == 0);
 }
 
-TEST_CASE("category:lattice — non-involutive callables are rejected",
-          "[category][lattice][involution][negative]") {
-  /** @brief Sanity: a non-involutive callable (e.g.\ @c std::negate
-   *         on unsigned, which is NOT involutive because two's-complement
-   *         negation on an unsigned overflow is wrap-around but the
-   *         opt-in trait is not registered for it) does not satisfy
-   *         the concept.  The trait is @b opt-in: absence of an
-   *         @c is_involutive specialisation means @c is_involutive_v
-   *         is @c false_type by default. */
+TEST_CASE("category:lattice — opt-in registration is required (no default true)",
+          "[category][lattice][involution][negative][opt-in]") {
+  /** @brief Sanity: the @c is_involutive trait is @b opt-in.  Absence
+   *         of an explicit specialisation means @c is_involutive_v is
+   *         @c false_type by default, and @c IsInvolutiveEndofunctor
+   *         fails closed.
+   *
+   *  @note @c std::negate<unsigned> @b is actually involutive (unsigned
+   *  arithmetic is modulo, so @c -(-x) @c == @c x), but no
+   *  specialisation has been registered for it — this test demonstrates
+   *  the opt-in pattern, not non-involutiveness.  A genuinely
+   *  non-involutive callable would also fail, but for a different
+   *  structural reason. */
   STATIC_CHECK_FALSE(IsInvolutiveEndofunctor<std::negate<unsigned>, unsigned>);
   STATIC_CHECK_FALSE(is_involutive_v<std::negate<unsigned>, unsigned>);
 }
