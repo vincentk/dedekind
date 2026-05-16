@@ -13,8 +13,8 @@
  *   IsLatticeCategory ⊊ IsPosetal           ⊊ IsThinCategory
  */
 
-#include <catch2/catch_test_macros.hpp>
 #include <algorithm>
+#include <catch2/catch_test_macros.hpp>
 #include <concepts>
 #include <functional>
 
@@ -44,7 +44,8 @@ TEST_CASE("category:lattice — totally ordered integral carriers are lattices",
 }
 
 TEST_CASE(
-    "category:lattice — IsLatticeCategory faithfully includes the Form-chain rows above",
+    "category:lattice — IsLatticeCategory faithfully includes the Form-chain "
+    "rows above",
     "[category][lattice][faithful][form-chain]") {
   /** @brief Every lattice category is filtered, posetal, and thin —
    *         encoded in @c IsLatticeCategory's signature definitionally. */

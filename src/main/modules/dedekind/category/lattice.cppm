@@ -147,8 +147,8 @@ export template <typename T, typename Rel = std::less_equal<T>,
                  typename Meet = decltype(std::ranges::min),
                  typename L = ClassicalLogic>
 concept IsLatticeCategory =
-    IsPosetal<T, Rel, L> &&             // Faithful: lattice ⊊ posetal.
-    IsFilteredCategory<T, Rel, L> &&    // Faithful: lattice ⊊ filtered.
+    IsPosetal<T, Rel, L> &&           // Faithful: lattice ⊊ posetal.
+    IsFilteredCategory<T, Rel, L> &&  // Faithful: lattice ⊊ filtered.
     requires {
       /** @brief Cofiltered: every pair has a lower bound. */
       requires is_codirected_v<T, Rel>;
