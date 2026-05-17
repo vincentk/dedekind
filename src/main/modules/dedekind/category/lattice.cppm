@@ -83,6 +83,58 @@
  * (max / min are the join / meet).  Pinning @c bool here anchors the
  * Form-chain at its smallest non-trivial example.
  *
+ * @section lattice__Omega_First_Pointwise_Lift
+ * @b Textbook content (#698 Slice 8): the relation between a topos's
+ * subobject classifier @c Ω and the subobject lattices @c Sub(A) of every
+ * ambient @c A is @b directional, not symmetric:
+ *
+ *   @c Sub(A) @c ≅ @c Hom(A, @c Ω) @c ≅ @c Ω^A
+ *
+ * gives @c Sub(A) an automatic lattice structure for every @c A,
+ * inherited @b pointwise from the lattice structure on @c Ω.  The lattice
+ * operations on @c Sub(A) (meet, join, complement, ≤) correspond pointwise
+ * to the lattice operations on @c Ω (AND, OR, NOT, ≤_Ω) applied to
+ * characteristic morphisms @c χ.  Direction is Ω → @c Sub(A); the reverse
+ * doesn't hold without representability.
+ *
+ * @section lattice__Constructive_Collapse
+ * The project commits to @em intensional-first (lazy predicates over
+ * potentially infinite carriers, per Q1 of #698); this admits
+ * undecidability as a first-class value via @c TernaryLogic (Kleene K3).
+ * Same Form-chain code, two regimes:
+ *
+ *   - @c L @c = @c ClassicalLogic → @c Ω @c = @c bool → Form-chain rows
+ *     1–7 → standard set theory falls out as the @b decidable collapse.
+ *   - @c L @c = @c TernaryLogic → @c Ω @c = @c Ternary → Form-chain rows
+ *     1–6 (Heyting only — K3 is the smallest non-Boolean Heyting algebra;
+ *     complement laws fail honestly at @c Unknown) → the "tricky to
+ *     decide" escape door.
+ *
+ * The Form-chain row a carrier participates in is determined by the
+ * carrier's @c logic_species; the same code witnesses both regimes via
+ * parametric polymorphism on @c L.  This is Slice 8's architectural
+ * commit: undecidability is @b architectural (L-parametric), not a
+ * corner case (per-branch special-casing).
+ *
+ * @section lattice__Mereology_As_Special_Case
+ * @c :mereology parthood is a special case of subobject classification:
+ * "x is part of y" reads as @c subset_eq(x, @c y) on @c Sub(whole),
+ * which is the pointwise lift of @c ≤_Ω applied to characteristic
+ * morphisms.  Finite enumerable wholes → Classical → Boolean parthood;
+ * infinite / intensional wholes → Kleene → Heyting parthood with
+ * honest @c Unknown at undecidable points.  Same Form-chain machinery,
+ * one foundation.
+ *
+ * @section lattice__CT_vs_Sets_Vocabulary
+ * Pierce-style stratification: this partition's concept @b bodies use
+ * CT-vocabulary primitives (the classifier @c Ω, the ambient @c A, the
+ * characteristic morphism @c χ, free functions @c meet / @c join /
+ * @c complement / @c subset_eq).  Default template arguments (@c Rel @c =
+ * @c std::less_equal, @c Join @c = @c std::ranges::max, ...) are
+ * @b set-theoretic hints — examples, not body content.  Operator
+ * sugar (@c <=, @c &, @c |, @c !) lives downstream in @c :sets as
+ * forwarders to the CT primitives.
+ *
  * @see https://en.wikipedia.org/wiki/Lattice_(order)
  * @see https://ncatlab.org/nlab/show/lattice
  *
@@ -98,6 +150,7 @@ module;
 
 #include <algorithm>
 #include <concepts>
+#include <cstdint>      // std::int8_t — Ternary cast in TernaryLessEqual.
 #include <functional>
 #include <limits>       // std::numeric_limits — LatticeBottom/Top
                         // specialisations for arithmetic carriers.
@@ -700,5 +753,217 @@ static_assert(
     "(e.g. min(5, ~5) = -6 ≠ INT_MIN).  Honest Rejection via the opt-in "
     "is_complement_v trait — see #710 for the bitwise Boolean algebra "
     "under a bit-subset relation.");
+
+/** @section lattice__Ternary_Form_Chain_Witness
+ *
+ *  @brief Kleene K3 (@c Ternary) at the Form-chain — the constructive
+ *         collapse path (#698 Slice 8).
+ *
+ *  @details
+ *  @c Ternary is the smallest non-Boolean Heyting algebra: the 3-element
+ *  chain @c {False @c < @c Unknown @c < @c True} with Kleene min / max /
+ *  rotation operators.  It is the canonical @c Ω for the "tricky to
+ *  decide" regime: predicates over infinite intensional carriers honestly
+ *  return @c Unknown at undecidable points.
+ *
+ *  This section witnesses the pipeline at row 1 (@c IsThinCategory) and
+ *  row 2 (@c IsPosetal) — proof of concept that the Form-chain admits
+ *  Ternary-valued @c Rel directly via the @c L parameter.  Rows 3–6
+ *  (filtered / lattice / bounded / Heyting) require the @c :posetal
+ *  algebraic surface (@c IsOrderLatticeOperations) to also fire on
+ *  Ternary, which involves a fan-out of trait specialisations across
+ *  @c :species and @c :mereology — that work follows in #698 Slice 9 with
+ *  the @c :etcs harmonisation.  Row 7 (Boolean) fails @b honestly under
+ *  Ternary: complement laws break at @c Unknown (the smallest non-Boolean
+ *  Heyting algebra is exactly K3).
+ *
+ *  The callables below are CT-vocabulary primitives — they carry the
+ *  Form-chain @c Rel / @c Join / @c Meet / @c Not slots for Ternary.  The
+ *  set-theoretic operator surface (@c <=, @c &, @c |, @c !) on Ternary
+ *  lives in @c :logic as exported overloads on the @c Ternary enum.
+ */
+
+/** @brief Ternary-valued @c ≤ — chain order with @c Ternary return type
+ *         matching @c IsThinCategory<·, ·, TernaryLogic>'s @c rel(a, @c b)
+ *         @c -> @c L::Ω constraint.
+ *
+ *  @note Returns only @c True or @c False, never @c Unknown — @c ≤
+ *  on the 3-element chain is itself classically decided.  The @c Unknown
+ *  values arise when predicates over an infinite ambient are composed
+ *  with this @c Rel, not at the @c Ω-internal level. */
+export struct TernaryLessEqual {
+  constexpr Ternary operator()(Ternary a, Ternary b) const noexcept {
+    return static_cast<std::int8_t>(a) <= static_cast<std::int8_t>(b)
+               ? Ternary::True
+               : Ternary::False;
+  }
+};
+
+/** @brief Ternary meet (Form-chain @c Meet slot) — forwards to
+ *         @c TernaryLogic::AND (Kleene strong conjunction = min). */
+export struct TernaryMeet {
+  constexpr Ternary operator()(Ternary a, Ternary b) const noexcept {
+    return TernaryLogic::AND(a, b);
+  }
+};
+
+/** @brief Ternary join (Form-chain @c Join slot) — forwards to
+ *         @c TernaryLogic::OR (Kleene strong disjunction = max). */
+export struct TernaryJoin {
+  constexpr Ternary operator()(Ternary a, Ternary b) const noexcept {
+    return TernaryLogic::OR(a, b);
+  }
+};
+
+/** @brief Ternary involution (Form-chain @c Not slot, classical sense) —
+ *         forwards to @c TernaryLogic::NOT (Kleene rotation about
+ *         @c Unknown).
+ *
+ *  @note Involutive (@c ¬¬x @c = @c x for all @c x, including @c Unknown
+ *  because @c -0 @c = @c 0), but @b not a Boolean complement: complement
+ *  laws fail at @c Unknown (@c Unknown @c ∧ @c ¬Unknown @c = @c min(0,
+ *  @c 0) @c = @c Unknown @c ≠ @c False).  Hence no @c is_complement_v
+ *  registration below — @c IsBooleanLatticeCategory<Ternary, …> fails
+ *  closed under the Slice 7 opt-in trait pattern. */
+export struct TernaryNot {
+  constexpr Ternary operator()(Ternary a) const noexcept {
+    return TernaryLogic::NOT(a);
+  }
+};
+
+}  // namespace dedekind::category
+
+// Trait specialisations for Ternary at rows 1 (IsThinCategory) and 2
+// (IsPosetal).  Outside the namespace because the primary templates live
+// in :species under @c dedekind::category and the explicit specialisations
+// must inhabit the same namespace — re-opening below keeps the
+// specialisations local to this section.
+namespace dedekind::category {
+
+/** @brief @c TernaryLessEqual is reflexive: @c rel(a, @c a) @c = @c True
+ *         for every @c a since @c static_cast<int8_t>(a) @c <= @c
+ *         static_cast<int8_t>(a) tautologically. */
+template <>
+struct is_reflexive<Ternary, TernaryLessEqual> : std::true_type {};
+
+/** @brief @c TernaryLessEqual is transitive on the 3-element chain
+ *         (integral @c <= is transitive). */
+template <>
+struct is_transitive<Ternary, TernaryLessEqual> : std::true_type {};
+
+/** @brief @c TernaryLessEqual is antisymmetric: @c (a @c <= @c b) @c ∧
+ *         @c (b @c <= @c a) @c ⇒ @c a @c = @c b on the integral
+ *         @c int8_t cast. */
+template <>
+struct is_antisymmetric<Ternary, TernaryLessEqual> : std::true_type {};
+
+/** @brief @c TernaryNot is involutive: @c TernaryLogic::NOT is rotation
+ *         about @c Unknown, so @c NOT(NOT(x)) @c = @c x for all @c x. */
+template <>
+struct is_involutive<TernaryNot, Ternary> : std::true_type {};
+
+}  // namespace dedekind::category
+
+namespace dedekind::category {
+
+/** @section lattice__Ternary_Witness_Static_Asserts */
+
+static_assert(IsThinCategory<Ternary, TernaryLessEqual, TernaryLogic>,
+              "Ternary under TernaryLessEqual is a thin category in the "
+              "Ternary topos: rel(a, b) returns Ternary (matching L::Ω = "
+              "Ternary), reflexive, and transitive on the 3-element chain.");
+
+static_assert(IsPosetal<Ternary, TernaryLessEqual, TernaryLogic>,
+              "Ternary under TernaryLessEqual is posetal — antisymmetric "
+              "on the integral cast.");
+
+static_assert(IsInvolutiveEndofunctor<TernaryNot, Ternary>,
+              "TernaryNot is involutive — Kleene rotation about Unknown "
+              "satisfies NOT(NOT(x)) = x for all x ∈ {False, Unknown, "
+              "True}.");
+
+static_assert(
+    !IsBooleanLatticeCategory<Ternary, TernaryLessEqual, TernaryJoin,
+                              TernaryMeet, TernaryNot, TernaryLogic>,
+    "Ternary is NOT a Boolean lattice — Kleene K3 is the smallest "
+    "non-Boolean Heyting algebra, complement laws fail at Unknown "
+    "(Unknown ∧ ¬Unknown = min(0, 0) = Unknown ≠ False).  Honest "
+    "Rejection via the opt-in is_complement_v trait — the trait is "
+    "deliberately not registered for (TernaryNot, Ternary, …).  Heyting "
+    "structure (row 6) lands in #698 Slice 9 with the :posetal algebraic "
+    "surface specialisations.");
+
+/**
+ * @concept IsSubobjectLattice
+ * @brief A type @c S is the carrier of a subobject lattice over
+ *        @c S::Ambient, with lattice structure induced pointwise from
+ *        the classifier @c S::logic_species::Ω.
+ *
+ * @details
+ * The textbook content (#698 Slice 8): in a topos with subobject
+ * classifier @c Ω, the bijection
+ *
+ *    @c Sub(A) @c ≅ @c Hom(A, @c Ω) @c ≅ @c Ω^A
+ *
+ * gives @c Sub(A) an automatic lattice structure for every @c A,
+ * inherited @b pointwise from the lattice structure on @c Ω.  Direction
+ * is Ω → @c Sub(A); not the reverse without representability.
+ *
+ * @section lattice__IsSubobjectLattice_Form_Chain_Strength
+ * The Form-chain row @c S participates in is determined by
+ * @c L @c = @c S::logic_species:
+ *
+ *   - @c L @c = @c ClassicalLogic → @c S inherits @b Boolean structure
+ *     (row 7), per Slice 7's @c IsBooleanLatticeCategory.
+ *   - @c L @c = @c TernaryLogic → @c S inherits @b Heyting structure
+ *     only (row 6, the "tricky to decide" escape door); complement
+ *     laws fail honestly at @c Unknown.
+ *
+ * The classical-only requirement (@c complement free function) is
+ * gated via the OR-trick: row 7 strength is required @em only when
+ * @c L is classical.
+ *
+ * @section lattice__IsSubobjectLattice_CT_Vocabulary
+ * The concept body uses CT-vocabulary primitives: the carrier exposes
+ * @c Ambient and @c logic_species typedefs, and free functions
+ * @c meet, @c join, @c subset_eq (and classical-gated @c complement)
+ * exist with the right shape.  Operator sugar (@c <=, @c &, @c |,
+ * @c !) lives in @c :sets as forwarders.  Pierce-style stratification:
+ * abstract content in the body, set-theoretic hints in the defaults.
+ *
+ * @section lattice__IsSubobjectLattice_Sollbruchstelle
+ * This concept is the @b architectural commit of Slice 8.  The CT-side
+ * free-function witnesses (@c meet, @c join, @c subset_eq,
+ * @c complement) for @c Subobject<A, @c Chi> in @c :topoi and the
+ * operator forwarders on @c Set<T, @c L, @c P> in @c :sets land in
+ * Slice 9 with the @c :etcs harmonisation (Axiom 10 generalisation +
+ * concrete carrier witnesses).  Holding the architectural commit here
+ * lets the @c IsSet @c ⟹ @c IsSubobjectLattice binding read off in
+ * Slice 9 without re-litigating the concept shape.
+ *
+ * @tparam S The subobject carrier.  Must expose @c Ambient and
+ *           @c logic_species typedefs (CT-vocabulary metadata).
+ */
+export template <typename S>
+concept IsSubobjectLattice = requires {
+  typename S::Ambient;
+  typename S::logic_species;
+  requires IsLogicalSpecies<typename S::logic_species>;
+} && requires(S a, S b) {
+  /** @brief CT-vocabulary free functions for the binary lattice
+   *  operations (binary product / coproduct in the subobject category). */
+  { meet(a, b) };
+  { join(a, b) };
+  /** @brief Subset-equal: pointwise universal lift of @c ≤_Ω. */
+  {
+    subset_eq(a, b)
+  } -> std::same_as<typename S::logic_species::Ω>;
+} && (
+  /** @brief Classical-gated complement (OR-trick): required only when
+   *         @c L commits to classical Ω; non-classical L (e.g.\
+   *         TernaryLogic) is honestly Heyting-only and complement is
+   *         either unregistered or ambiguous at Unknown. */
+  !std::same_as<typename S::logic_species, ClassicalLogic>
+  || requires(S a) { { complement(a) }; });
 
 }  // namespace dedekind::category
