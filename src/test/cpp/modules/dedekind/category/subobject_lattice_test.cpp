@@ -24,8 +24,8 @@
  * @c :etcs harmonisation.
  */
 
-#include <catch2/catch_test_macros.hpp>
 #include <algorithm>  // std::ranges::min / max — Kleene meet / join on Ternary
+#include <catch2/catch_test_macros.hpp>
 #include <compare>
 #include <concepts>
 
@@ -43,9 +43,12 @@ TEST_CASE("category:subobject-lattice — Ternary <=> enables stdlib niebloids",
    *  decided — the truth ordering is total.  @c Unknown values arise from
    *  undecidable predicates over an intensional ambient, not from
    *  comparing two @c Ternary values directly. */
-  STATIC_CHECK((Ternary::False <=> Ternary::Unknown) == std::strong_ordering::less);
-  STATIC_CHECK((Ternary::Unknown <=> Ternary::True) == std::strong_ordering::less);
-  STATIC_CHECK((Ternary::True <=> Ternary::True) == std::strong_ordering::equal);
+  STATIC_CHECK((Ternary::False <=> Ternary::Unknown) ==
+               std::strong_ordering::less);
+  STATIC_CHECK((Ternary::Unknown <=> Ternary::True) ==
+               std::strong_ordering::less);
+  STATIC_CHECK((Ternary::True <=> Ternary::True) ==
+               std::strong_ordering::equal);
 
   // Auto-derived <, <=, >, >=, ==, != all work.
   STATIC_CHECK(Ternary::False < Ternary::True);

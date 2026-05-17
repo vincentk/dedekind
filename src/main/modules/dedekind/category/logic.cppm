@@ -202,7 +202,8 @@ export constexpr Ternary operator!(Ternary a) { return TernaryLogic::NOT(a); }
  *  truth ordering is total).  @c Unknown values in @c Ternary arise
  *  from undecidable predicates over an intensional ambient, not from
  *  comparing two @c Ternary values directly. */
-export constexpr std::strong_ordering operator<=>(Ternary a, Ternary b) noexcept {
+export constexpr std::strong_ordering operator<=>(Ternary a,
+                                                  Ternary b) noexcept {
   return static_cast<std::int8_t>(a) <=> static_cast<std::int8_t>(b);
 }
 
