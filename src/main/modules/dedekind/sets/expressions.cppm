@@ -886,10 +886,12 @@ class Set {
  *  is well-formed and type-checked, with the result honestly tagged
  *  @c TernaryLogic.
  *
- *  Default-constructible by design: the @c Set<U, TernaryLogic, ...>
- *  @c χ static initializer requires the predicate type to
- *  default-construct.  Captureless / no source-set + arrow storage in
- *  the closure for the same reason.
+ *  Captureless / no source-set + arrow storage in the closure: keeps
+ *  the predicate value-light and structurally compatible with the
+ *  comprehension-DSL paths.  (Historically also default-constructible
+ *  to satisfy the now-retired @c Set::χ static-initialiser; that
+ *  static is gone post-#681, but captureless predicates are still
+ *  preferable for symbolic-image purposes.)
  *
  *  @tparam U The codomain element type — read off from @c Cod<F> at
  *  the @c image call site.  Parameterising by @c U keeps the predicate

@@ -93,36 +93,42 @@ concept IsSetObject = IsSubobject<S, A> && requires {
  * @details
  * Names the @em product reading of a set object explicitly --- a set is a
  * pair of (i) its underlying ambient species @p Underlying, accessed
- * type-level via @c S::Ambient, and (ii) its characteristic morphism
- * @p Classifier, accessed value-level via the projector @c s.χ.  Sibling
- * to @c IsSetObject, which names the @em predicate reading "S is a
- * subobject of A".  The two readings carve the same surface from
- * different angles.
+ * type-level via @c S::Ambient, and (ii) its classifier codomain
+ * @p Classifier, recognised structurally via the call shape
+ * @c S(a) @c -> @c Classifier.  Sibling to @c IsSetObject, which names
+ * the @em predicate reading "S is a subobject of A".  The two readings
+ * carve the same surface from different angles.
+ *
+ * @par Post-#681 semantic shift
+ * Prior to the structural refactor, @c Classifier named the @em type of
+ * the characteristic-morphism projector (@c decltype(s.χ)).  The static
+ * @c χ projector has been retired in favour of structural recognition
+ * (@c S @b is the characteristic morphism via @c operator()), so
+ * @c Classifier is now @em the codomain @c L::Ω that @c S(a) produces,
+ * not the predicate-type wrapper.  Concrete examples: for a Set under
+ * @c ClassicalLogic, @c Classifier @c = @c bool; for a Set under
+ * @c TernaryLogic, @c Classifier @c = @c Ternary.
  *
  * @par Why this concept exists (#573 / #644 --- Sollbruchstelle)
  * The user's framing for the HAS-A maturation: "a set should be a product
  * in the @c :cartesian sense of an underlying and predicates."  This
  * concept names that seam.  It refines @c IsSetObject by adding a typed
- * obligation that the classifier projects to @p Classifier --- a
- * structural witness that the (Underlying, Classifier) decomposition is
- * recoverable.  Downstream slices (#573 slice 3 @c AlgebraAsProduct,
+ * obligation that the classifier codomain @b is @p Classifier ---
+ * a structural witness that the (Underlying, Classifier) decomposition
+ * is recoverable.  Downstream slices (#573 slice 3 @c AlgebraAsProduct,
  * slice 4 pilot witness) compose on this name.
  *
  * @par Relation to @c IsProductParthood
  * The bridge concept @c IsProductParthood in @c :limit asserts the
  * structural product-as-parthood reading uniformly via
  * @c IsProjectedProduct.  @c SetAsProduct is the set-level specialisation,
- * but the asymmetry "Underlying is a type, Classifier is a value" makes
- * a direct @c IsProductParthood composition awkward at this slice ---
- * the parts are accessed through different kinds of projectors
- * (type-level @c ::Ambient vs.\ value-level @c .χ).  The concepts are
- * logical siblings, not typed dependencies; future slices may unify the
- * projector vocabulary once a natural meeting point emerges.
+ * but the asymmetry "Underlying is a type, Classifier is a codomain"
+ * keeps a direct @c IsProductParthood composition awkward at this
+ * slice; the concepts are logical siblings, not typed dependencies.
  *
  * @tparam S           The set object.
  * @tparam Underlying  The ambient species (an @c IsSpecies object).
- * @tparam Classifier  The characteristic-morphism type projected from
- *                     @c s.χ.
+ * @tparam Classifier  The codomain of @c S-as-predicate (@c L::Ω).
  */
 export template <typename S, typename Underlying, typename Classifier>
 concept SetAsProduct = IsSetObject<S, Underlying> && requires {
@@ -202,32 +208,43 @@ concept IsCompatibleSetPair =
     std::same_as<std::invoke_result_t<S1 const&, typename S1::Ambient const&>,
                  std::invoke_result_t<S2 const&, typename S2::Ambient const&>>;
 
-/** @brief Set intersection: materialize @c A @c ∩ @c B from
- *         the carriers-as-predicates @c S1, @c S2.  Post-#681
- *         structural refactor: invocation @c s(a) replaces named
- *         @c s.χ access. */
+/** @brief Set intersection: materialize @c A @c ∩ @c B from the
+ *         carriers-as-predicates @c S1, @c S2.  Post-#681 structural
+ *         refactor: invocation @c s(a) replaces named @c s.χ access;
+ *         the meet uses @c L::AND directly so the operation works for
+ *         any @c IsLogicalSpecies @c L (not just @c bool / @c Ternary
+ *         where C++ @c operator&& happens to be defined). */
 export template <typename S1, typename S2>
   requires IsCompatibleSetPair<S1, S2>
 constexpr auto set_intersection(const S1& lhs, const S2& rhs) {
   using A = typename S1::Ambient;
-  return classify<A>([lhs, rhs](const A& a) { return lhs(a) && rhs(a); });
+  using L = typename GetLogic<
+      std::invoke_result_t<S1 const&, A const&>>::type;
+  return classify<A>(
+      [lhs, rhs](const A& a) { return L::AND(lhs(a), rhs(a)); });
 }
 
 /** @brief Set union: materialize @c A @c ∪ @c B from carriers as
- *         predicates. */
+ *         predicates.  Uses @c L::OR directly per #715 review. */
 export template <typename S1, typename S2>
   requires IsCompatibleSetPair<S1, S2>
 constexpr auto set_union(const S1& lhs, const S2& rhs) {
   using A = typename S1::Ambient;
-  return classify<A>([lhs, rhs](const A& a) { return lhs(a) || rhs(a); });
+  using L = typename GetLogic<
+      std::invoke_result_t<S1 const&, A const&>>::type;
+  return classify<A>(
+      [lhs, rhs](const A& a) { return L::OR(lhs(a), rhs(a)); });
 }
 
-/** @brief Set complement: materialize @c A^c from carrier-as-predicate. */
+/** @brief Set complement: materialize @c A^c from carrier-as-predicate.
+ *         Uses @c L::NOT directly per #715 review. */
 export template <typename S>
   requires IsSubobject<S, typename S::Ambient>
 constexpr auto set_complement(const S& s) {
   using A = typename S::Ambient;
-  return classify<A>([s](const A& a) { return !s(a); });
+  using L = typename GetLogic<
+      std::invoke_result_t<S const&, A const&>>::type;
+  return classify<A>([s](const A& a) { return L::NOT(s(a)); });
 }
 
 /** @brief Membership: @c x @c ∈ @c S evaluated via @c S's structural

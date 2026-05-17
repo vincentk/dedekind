@@ -358,8 +358,13 @@ struct Subobject {
    *         predicate shape (per the @c IsSubobject refactor in
    *         this file): callers use @c s(a) rather than @c s.χ(a),
    *         so @c Set and @c Subobject expose a uniform predicate
-   *         surface. */
-  constexpr auto operator()(const A& a) const { return χ(a); }
+   *         surface.
+   *
+   *  @note Return type is @c decltype(auto) so cv/ref qualifiers from
+   *  @c χ(a) are preserved (#715 review): if a future @c Chi returns
+   *  a reference or non-trivially-copyable Ω, the forwarder doesn't
+   *  silently copy. */
+  constexpr decltype(auto) operator()(const A& a) const { return χ(a); }
 
   /**
    * @section topoi__Pullback_Projections
