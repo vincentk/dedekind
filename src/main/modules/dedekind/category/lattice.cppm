@@ -150,7 +150,7 @@ module;
 
 #include <algorithm>
 #include <concepts>
-#include <cstdint>      // std::int8_t — Ternary cast in TernaryLessEqual.
+#include <cstdint>  // std::int8_t — Ternary cast in TernaryLessEqual.
 #include <functional>
 #include <limits>       // std::numeric_limits — LatticeBottom/Top
                         // specialisations for arithmetic carriers.
@@ -945,25 +945,28 @@ static_assert(
  *           @c logic_species typedefs (CT-vocabulary metadata).
  */
 export template <typename S>
-concept IsSubobjectLattice = requires {
-  typename S::Ambient;
-  typename S::logic_species;
-  requires IsLogicalSpecies<typename S::logic_species>;
-} && requires(S a, S b) {
-  /** @brief CT-vocabulary free functions for the binary lattice
-   *  operations (binary product / coproduct in the subobject category). */
-  { meet(a, b) };
-  { join(a, b) };
-  /** @brief Subset-equal: pointwise universal lift of @c ≤_Ω. */
-  {
-    subset_eq(a, b)
-  } -> std::same_as<typename S::logic_species::Ω>;
-} && (
-  /** @brief Classical-gated complement (OR-trick): required only when
-   *         @c L commits to classical Ω; non-classical L (e.g.\
-   *         TernaryLogic) is honestly Heyting-only and complement is
-   *         either unregistered or ambiguous at Unknown. */
-  !std::same_as<typename S::logic_species, ClassicalLogic>
-  || requires(S a) { { complement(a) }; });
+concept IsSubobjectLattice =
+    requires {
+      typename S::Ambient;
+      typename S::logic_species;
+      requires IsLogicalSpecies<typename S::logic_species>;
+    } &&
+    requires(S a, S b) {
+      /** @brief CT-vocabulary free functions for the binary lattice
+       *  operations (binary product / coproduct in the subobject category). */
+      { meet(a, b) };
+      { join(a, b) };
+      /** @brief Subset-equal: pointwise universal lift of @c ≤_Ω. */
+      { subset_eq(a, b) } -> std::same_as<typename S::logic_species::Ω>;
+    } &&
+    (
+        /** @brief Classical-gated complement (OR-trick): required only when
+         *         @c L commits to classical Ω; non-classical L (e.g.\
+         *         TernaryLogic) is honestly Heyting-only and complement is
+         *         either unregistered or ambiguous at Unknown. */
+        !std::same_as<typename S::logic_species, ClassicalLogic> ||
+        requires(S a) {
+          { complement(a) };
+        });
 
 }  // namespace dedekind::category
