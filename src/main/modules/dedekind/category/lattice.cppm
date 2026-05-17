@@ -819,67 +819,39 @@ concept IsSubobjectFamilyMember = requires {
  * inherited @b pointwise from the lattice structure on @c Ω.  Direction
  * is Ω → @c Sub(A); not the reverse without representability.
  *
- * @section lattice__IsSubobjectLattice_Form_Chain_Refinement
- * @c IsSubobjectLattice<S> @b refines @c IsThinCategory<S,
- * S::SubsetEqRel, S::logic_species>: a subobject family @b is a thin
- * category under @c subset_eq (the @c Rel slot), provided the
- * @b carrier exposes its own @c SubsetEqRel callable type as a
- * typedef.  The refinement is structural — the type checker sees the
- * Form-chain row 1 inclusion directly.
- *
- * The @c SubsetEqRel type belongs to the carrier so @c :lattice does
- * @b not invent a new function-object wrapper struct (per #712 review
- * — "Please no lambdas, IsPredicate instead to have domain and
- * codomain").  Concretely the carrier provides a @b binary callable
- * type invoked as @c rel(a, b) @c -> @c L::Ω — what
- * @c :cartesian::IsBinaryRelation names structurally, with
- * @c Codomain @c = @c L::Ω relaxing IsBinaryRelation's bool default
- * to the carrier's classifier.  Following the project's
- * @c :morphism::infer_morphism convention for binary operators, such
- * a callable exposes @c Domain @c = @c S (the first arg type) and
- * @c Codomain @c = @c L::Ω.  Slice 9 supplies the carriers (@c Set,
- * @c Subobject) and their @c SubsetEqRel typedefs.
+ * @section lattice__IsSubobjectLattice_Structural_Shape
+ * @c IsSubobjectLattice<S> checks the carrier's CT-vocabulary metadata
+ * plus the family-typed shape of @c meet / @c join / @c complement.
+ * The Form-chain row 1 (thin) @c ≤ relation is @b derivable from
+ * @c meet (see the derivability section below); the concept therefore
+ * doesn't need a separate @c subset_eq / @c operator<= clause or a
+ * carrier-side @c SubsetEqRel typedef.
  *
  * The strength @c S inherits at higher rows is determined by
  * @c L @c = @c S::logic_species:
  *
- *   - @c L @c = @c ClassicalLogic → @c S inherits @b Boolean structure
- *     (row 7), per Slice 7's @c IsBooleanLatticeCategory.  The
- *     @c complement free function is a bona-fide Boolean complement.
- *   - @c L @c = @c TernaryLogic → @c S inherits @b Heyting structure
- *     only (row 6, the "tricky to decide" escape door).  The
- *     @c complement free function still exists and is involutive
- *     (Kleene rotation), but @b not a Boolean complement —
- *     complement laws fail at @c Unknown.
+ *   - @c L @c = @c ClassicalLogic → @c S participates in
+ *     @c IsBooleanSubobjectLattice (below) — the Boolean refinement
+ *     mirroring Diaconescu's classical-Ω direction.
+ *   - @c L @c = @c TernaryLogic → @c S stays Heyting-only (the
+ *     "tricky to decide" escape door, Slice 8 constructive collapse).
  *
- * Complement is therefore required @b unconditionally, with its
- * semantic strength (Boolean vs Kleene-involution-only)
- * established at the @c L-witness level rather than gated at the
- * concept boundary (per #712 review — the OR-trick gating
- * complement on @c ClassicalLogic was too restrictive).
+ * Complement is required @b unconditionally; its semantic strength
+ * (Boolean vs Kleene-involution-only) is established at the
+ * @c L-witness level via the parallel @c IsBooleanSubobjectLattice
+ * concept, not gated inside this concept's body.
  *
  * @section lattice__IsSubobjectLattice_CT_Vocabulary
  * The concept body uses CT-vocabulary primitives: the carrier exposes
- * @c Ambient and @c logic_species typedefs plus a @c SubsetEqRel
- * callable type, and free functions @c meet, @c join, @c complement
- * exist with the right shape.  Operator sugar (@c <=, @c &, @c |,
- * @c !) lives in @c :sets as forwarders.  Pierce-style stratification:
- * abstract content in the body, set-theoretic hints in the defaults.
+ * @c Ambient and @c logic_species typedefs, and free functions
+ * @c meet, @c join, @c complement exist with the right shape.
+ * Operator sugar (@c <=, @c &, @c |, @c !) lives in @c :sets as
+ * forwarders.  Pierce-style stratification: abstract content in the
+ * body, set-theoretic hints in the defaults.
  *
- * @section lattice__IsSubobjectLattice_Sollbruchstelle
- * This concept is the @b architectural commit of Slice 8.  Carrier
- * witnesses (@c SubsetEqRel typedefs on @c Set / @c Subobject, the
- * @c meet / @c join / @c complement free functions, the @c
- * HasAxiom10PowerObjectLattice generalisation in @c :etcs) land in
- * Slice 9 with the @c :etcs harmonisation.  Ternary's Form-chain
- * participation (rows 1–6) also lands in Slice 9 — once a concrete
- * @c :etcs carrier instantiates @c S::logic_species @c = @c
- * TernaryLogic and supplies a @c SubsetEqRel, the Form-chain rows
- * fire by structural recognition without @c :lattice carrying any
- * Ternary-specific function-object struct types.
- *
- * @tparam S The subobject carrier.  Must expose @c Ambient,
- *           @c logic_species, and @c SubsetEqRel typedefs.
+ * @tparam S The subobject carrier.  Must expose @c Ambient and
+ *           @c logic_species typedefs (the latter satisfying
+ *           @c IsLogicalSpecies).
  */
 export template <typename S>
 concept IsSubobjectLattice = requires(S a, S b) {

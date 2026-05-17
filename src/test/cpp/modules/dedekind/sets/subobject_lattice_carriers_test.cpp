@@ -8,16 +8,24 @@
  *
  *   - All three already exposed @c Ambient + @c logic_species
  *     pre-Slice-9.
- *   - All three already had @c operator<= returning @c L::Ω
- *     pre-Slice-9.
  *   - The free @c meet / @c join / @c complement (Slice 9 added the
  *     @c complement alias in @c :etcs::concrete) produce
- *     @c IsSubobjectFamilyMember-shaped results.
+ *     @c IsSubobjectFamilyMember-shaped results — the family is
+ *     anchored on (@c S::Ambient, @c S::logic_species).
  *
- * The post-#712-review refactor uses @b structural recognition via
- * @c { a @c <= @c b } @c -> @c L::Ω instead of carrier-side
- * @c SubsetEqRel nested-struct typedefs — no new function-object
- * structs anywhere ("Structs will lock us in").
+ * The concept body uses @b structural recognition: it checks the
+ * carrier's CT-vocabulary metadata (Ambient + logic_species) plus the
+ * shape of @c meet / @c join / @c complement free functions — no
+ * carrier-side @c SubsetEqRel typedef, no @c operator<= clause.  The
+ * Form-chain row-1 @c ≤ relation is @b derivable from @c meet
+ * (Birkhoff §1.4), so the concept doesn't need a separate subset_eq
+ * requirement.  No new function-object structs anywhere ("Structs
+ * will lock us in", #712 review).
+ *
+ * @c IsBooleanSubobjectLattice<S> is the parallel L-parametric
+ * Boolean refinement: ClassicalLogic carriers fire it; TernaryLogic
+ * carriers fall out (Diaconescu's classical direction).  See the
+ * @c [boolean] / @c [kleene] test cases below.
  *
  * The full @c IsSet @c ⟹ @c IsSubobjectLattice static_assert is
  * deferred to a follow-up pending a @c Set::χ static-init refactor

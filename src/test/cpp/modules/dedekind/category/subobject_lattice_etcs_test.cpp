@@ -7,20 +7,19 @@
  * @c Subobject<A, Chi> after the Slice 9 additions:
  *
  *   - @c Subobject<A, Chi> now exposes @c logic_species via
- *     @c GetLogic<Cod<Chi>>;
- *   - member @c operator<= returns @c L::Ω (identity-case
- *     @c L::True; heterogeneous-Chi @c L::Unknown when @c L
- *     admits it).
+ *     @c GetLogic<Cod<Chi>> (the single new typedef in Slice 9).
  *
- * The @c :sets-side carriers (@c Ø, @c UniversalSet, @c SingletonSet,
- * @c Set<T, L, P>) are witnessed in
+ * The @c :sets-side carriers (@c Ø, @c UniversalSet, @c SingletonSet)
+ * are witnessed in
  * @c test/cpp/modules/dedekind/sets/subobject_lattice_carriers_test.cpp
  * (which can import @c dedekind.sets).
  *
- * The post-#712-review refactor uses @b structural recognition via
- * @c { a @c <= @c b } @c -> @c L::Ω instead of carrier-side
- * @c SubsetEqRel nested-struct typedefs — no new function-object
- * structs anywhere ("Structs will lock us in").
+ * The concept body uses @b structural recognition on
+ * @c meet / @c join / @c complement shapes; the Form-chain row-1
+ * @c ≤ relation is @b derivable from @c meet (Birkhoff §1.4) and is
+ * not a separate clause.  No carrier-side @c SubsetEqRel typedef and
+ * no new function-object structs introduced ("Structs will lock us
+ * in", #712 review).
  */
 
 #include <catch2/catch_test_macros.hpp>

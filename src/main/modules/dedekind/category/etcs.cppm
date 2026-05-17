@@ -260,31 +260,32 @@ concept HasAxiom7PullbackReindexingDefinitionalSurface =
  * here.
  *
  * @section etcs__Axiom_10_Slice_9_Generalisation
- * #698 Slice 9 generalises the body to the full Form-chain row 7
- * surface: in addition to @c meet / @c join, the carrier must expose
- * @c complement and a @c SubsetEqRel callable for the lattice @c ≤
- * (refined as the Form-chain @c Rel slot).  This is the Axiom 10
- * upgrade restoring textbook ETCS faithfulness: in a Boolean topos,
- * Sub(A) is a complete Boolean algebra under @c (≤, @c ∧, @c ∨, @c ¬,
- * @c ⊥, @c ⊤) — the concept now reflects that completely.
+ * #698 Slice 9 adds a single typedef requirement to the body — the
+ * carrier must expose its @c logic_species (verified as an
+ * @c IsLogicalSpecies) — alongside the pre-existing @c meet / @c join
+ * structural shape.  The classical-direction Boolean refinement
+ * (Diaconescu) and the @c complement clause live in the parallel
+ * @c :lattice::IsSubobjectLattice / @c IsBooleanSubobjectLattice
+ * concepts rather than inside Axiom 10's body — see the Diaconescu
+ * note below for why.
  *
  * Concrete carriers (@c Set<T, L, P>, @c Subobject<A, Chi>) provide:
  *   - @c logic_species typedef (the @c L for Sub's classifier);
- *   - @c SubsetEqRel nested type (the binary @c ≤ callable returning
- *     @c L::Ω);
- *   - free functions @c meet, @c join, @c complement returning
- *     same-family @c IsSubobjectFamilyMember-shaped results.
- *
- * Together these satisfy @c :lattice::IsSubobjectLattice, completing the
- * Form-chain @c IsSet @c ⟹ @c IsSubobjectLattice<Sub(A)> bind.
+ *   - free functions @c meet, @c join (and @c complement at the
+ *     parallel @c :lattice concept) returning same-family
+ *     @c IsSubobjectFamilyMember-shaped results.
  */
 export template <typename S>
 concept HasAxiom10PowerObjectLattice =
     IsSetObject<S, typename S::Ambient> && IsCompatibleSetPair<S, S> &&
     requires {
       /** @brief @c logic_species typedef anchors the classifier @c L
-       *  (Slice 9 — required by @c :lattice::IsSubobjectLattice). */
+       *  (Slice 9 — required by @c :lattice::IsSubobjectLattice).
+       *  Verified as an @c IsLogicalSpecies so unrelated types with
+       *  an accidental @c logic_species typedef don't satisfy the
+       *  axiom by accident (#713 review, Copilot). */
       typename S::logic_species;
+      requires IsLogicalSpecies<typename S::logic_species>;
     } && requires(S lhs, S rhs) {
       requires IsSetObject<decltype(meet(lhs, rhs)), typename S::Ambient>;
       requires IsSetObject<decltype(join(lhs, rhs)), typename S::Ambient>;
