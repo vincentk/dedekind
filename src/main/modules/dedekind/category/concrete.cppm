@@ -269,6 +269,28 @@ constexpr auto join(const S1& lhs, const S2& rhs) {
   return set_union(lhs, rhs);
 }
 
+/** @brief Lattice alias: complement @c = set_complement on @c Sub(A).
+ *
+ *  @details The third Form-chain lattice op (#698 Slice 9), paralleling
+ *  the @c meet / @c join aliases above.  Required by
+ *  @c :lattice::IsSubobjectLattice for the @c complement(a) free-function
+ *  shape.  Result inhabits the same subobject family
+ *  (@c IsSubobjectFamilyMember-shaped) because @c set_complement returns
+ *  a @c Subobject<A, ...> with the same @c Ambient and @c logic_species
+ *  as the input — pointwise lift of @c L::NOT through @c χ.
+ *
+ *  @note Strength of the resulting complement depends on @c L:
+ *  classical → bona-fide Boolean complement; Kleene → involutive
+ *  rotation that fails Boolean complement laws at @c Unknown.  The
+ *  concept body of @c IsSubobjectLattice requires the @b shape;
+ *  the semantic strength is established at the @c L-witness level
+ *  (Slice 7's @c is_complement_v opt-in trait). */
+export template <typename S>
+  requires IsSubobject<S, typename S::Ambient>
+constexpr auto complement(const S& s) {
+  return set_complement(s);
+}
+
 /** @section concrete__Witnesses
  *
  * @details Compiler-validated witnesses pinning that the canonical

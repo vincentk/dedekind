@@ -253,17 +253,76 @@ concept HasAxiom7PullbackReindexingDefinitionalSurface =
 
 /**
  * @brief ETCS axiom 10 witness: power-object lattice completeness.
- * @details meet/join on subobjects follows from the subobject classifier
- * (Axiom 7) inducing a Heyting algebra on Sub(A). The Axiom of Choice proper
- * (every epimorphism splits) is aspirational and not yet encoded here.
+ * @details meet/join/complement on subobjects follows from the subobject
+ * classifier (Axiom 7) inducing a Heyting algebra on Sub(A) (Boolean if
+ * the topos is Boolean, i.e.\ L = ClassicalLogic).  The Axiom of Choice
+ * proper (every epimorphism splits) is aspirational and not yet encoded
+ * here.
+ *
+ * @section etcs__Axiom_10_Slice_9_Generalisation
+ * #698 Slice 9 adds a single typedef requirement to the body — the
+ * carrier must expose its @c logic_species (verified as an
+ * @c IsLogicalSpecies) — alongside the pre-existing @c meet / @c join
+ * structural shape.  The classical-direction Boolean refinement
+ * (Diaconescu) and the @c complement clause live in the parallel
+ * @c :lattice::IsSubobjectLattice / @c IsBooleanSubobjectLattice
+ * concepts rather than inside Axiom 10's body — see the Diaconescu
+ * note below for why.
+ *
+ * Concrete carriers (@c Set<T, L, P>, @c Subobject<A, Chi>) provide:
+ *   - @c logic_species typedef (the @c L for Sub's classifier);
+ *   - free functions @c meet, @c join (and @c complement at the
+ *     parallel @c :lattice concept) returning same-family
+ *     @c IsSubobjectFamilyMember-shaped results.
  */
 export template <typename S>
 concept HasAxiom10PowerObjectLattice =
     IsSetObject<S, typename S::Ambient> && IsCompatibleSetPair<S, S> &&
-    requires(S lhs, S rhs) {
+    requires {
+      /** @brief @c logic_species typedef anchors the classifier @c L
+       *  (Slice 9 — required by @c :lattice::IsSubobjectLattice).
+       *  Verified as an @c IsLogicalSpecies so unrelated types with
+       *  an accidental @c logic_species typedef don't satisfy the
+       *  axiom by accident (#713 review, Copilot). */
+      typename S::logic_species;
+      requires IsLogicalSpecies<typename S::logic_species>;
+    } && requires(S lhs, S rhs) {
       requires IsSetObject<decltype(meet(lhs, rhs)), typename S::Ambient>;
       requires IsSetObject<decltype(join(lhs, rhs)), typename S::Ambient>;
     };
+
+/** @section etcs__Axiom_10_Diaconescu_Note
+ *
+ *  @brief Diaconescu's classical direction (#698 Slice 9 review).
+ *
+ *  @details The standard textbook ETCS Axiom 10 is the @b Axiom of
+ *  Choice: every epimorphism splits.  Diaconescu (1975) showed that
+ *  in a topos, AC implies the topos is Boolean (classical internal
+ *  logic).  The codebase commits to one direction of this
+ *  bi-implication only:
+ *
+ *      @c L @c = @c ClassicalLogic @c ⟹ Sub(A) Boolean   (Diaconescu's
+ * classical-Ω direction)
+ *      @c L @c = @c TernaryLogic   @c ⟹ Sub(A) Heyting   (constructive-collapse
+ * path)
+ *
+ *  The Boolean refinement is exposed via the parallel
+ *  @c :lattice::IsBooleanSubobjectLattice<S> concept rather than
+ *  baked into Axiom 10's body.  An earlier attempt to gate the
+ *  conditional inside @c HasAxiom10PowerObjectLattice triggered
+ *  instantiation of @c set_complement(s) → @c !s.χ → @c Set::χ's
+ *  static-init for capturing-lambda Predicates produced by the
+ *  comprehension DSL, which fails default-construction.  The
+ *  parallel-track design avoids that ODR-use cascade; the static
+ *  asserts in @c :sets carrier files pin the L-parametric route
+ *  type-checked at the carrier sites without inducing the cascade.
+ *
+ *  The reverse direction (Boolean Sub(A) @c ⟹ full AC) is the
+ *  splitting-epi witness, which is genuinely aspirational and not yet
+ *  encoded.  The header table's @c (asp.) marker on row 10 names this
+ *  remaining gap.  Tracked as a separate concept (e.g.\
+ *  @c HasAxiom10AxiomOfChoiceFull) if and when the project commits to
+ *  it. */
 
 /**
  * @concept HasETCSAxioms

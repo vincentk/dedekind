@@ -318,6 +318,15 @@ concept IsSubobject = requires(S s, typename S::Member m) {
 export template <typename A, typename Chi>
 struct Subobject {
   using Ambient = A;
+
+  /** @brief The logic species @c L is derived from the characteristic
+   *  morphism's codomain @c Cod<Chi> via @c GetLogic.  Concretely:
+   *  @c GetLogic<bool>::type @c = @c ClassicalLogic;
+   *  @c GetLogic<Ternary>::type @c = @c TernaryLogic.  Required by
+   *  @c :lattice::IsSubobjectLattice as a CT-vocabulary metadata
+   *  typedef (#698 Slice 9). */
+  using logic_species = typename GetLogic<Cod<Chi>>::type;
+
   Chi χ;  // The Rule: A ⟶ Ω
 
   /**
