@@ -83,6 +83,58 @@
  * (max / min are the join / meet).  Pinning @c bool here anchors the
  * Form-chain at its smallest non-trivial example.
  *
+ * @section lattice__Omega_First_Pointwise_Lift
+ * @b Textbook content (#698 Slice 8): the relation between a topos's
+ * subobject classifier @c Ω and the subobject lattices @c Sub(A) of every
+ * ambient @c A is @b directional, not symmetric:
+ *
+ *   @c Sub(A) @c ≅ @c Hom(A, @c Ω) @c ≅ @c Ω^A
+ *
+ * gives @c Sub(A) an automatic lattice structure for every @c A,
+ * inherited @b pointwise from the lattice structure on @c Ω.  The lattice
+ * operations on @c Sub(A) (meet, join, complement, ≤) correspond pointwise
+ * to the lattice operations on @c Ω (AND, OR, NOT, ≤_Ω) applied to
+ * characteristic morphisms @c χ.  Direction is Ω → @c Sub(A); the reverse
+ * doesn't hold without representability.
+ *
+ * @section lattice__Constructive_Collapse
+ * The project commits to @em intensional-first (lazy predicates over
+ * potentially infinite carriers, per Q1 of #698); this admits
+ * undecidability as a first-class value via @c TernaryLogic (Kleene K3).
+ * Same Form-chain code, two regimes:
+ *
+ *   - @c L @c = @c ClassicalLogic → @c Ω @c = @c bool → Form-chain rows
+ *     1–7 → standard set theory falls out as the @b decidable collapse.
+ *   - @c L @c = @c TernaryLogic → @c Ω @c = @c Ternary → Form-chain rows
+ *     1–6 (Heyting only — K3 is the smallest non-Boolean Heyting algebra;
+ *     complement laws fail honestly at @c Unknown) → the "tricky to
+ *     decide" escape door.
+ *
+ * The Form-chain row a carrier participates in is determined by the
+ * carrier's @c logic_species; the same code witnesses both regimes via
+ * parametric polymorphism on @c L.  This is Slice 8's architectural
+ * commit: undecidability is @b architectural (L-parametric), not a
+ * corner case (per-branch special-casing).
+ *
+ * @section lattice__Mereology_As_Special_Case
+ * @c :mereology parthood is a special case of subobject classification:
+ * "x is part of y" reads as @c subset_eq(x, @c y) on @c Sub(whole),
+ * which is the pointwise lift of @c ≤_Ω applied to characteristic
+ * morphisms.  Finite enumerable wholes → Classical → Boolean parthood;
+ * infinite / intensional wholes → Kleene → Heyting parthood with
+ * honest @c Unknown at undecidable points.  Same Form-chain machinery,
+ * one foundation.
+ *
+ * @section lattice__CT_vs_Sets_Vocabulary
+ * Pierce-style stratification: this partition's concept @b bodies use
+ * CT-vocabulary primitives (the classifier @c Ω, the ambient @c A, the
+ * characteristic morphism @c χ, free functions @c meet / @c join /
+ * @c complement / @c subset_eq).  Default template arguments (@c Rel @c =
+ * @c std::less_equal, @c Join @c = @c std::ranges::max, ...) are
+ * @b set-theoretic hints — examples, not body content.  Operator
+ * sugar (@c <=, @c &, @c |, @c !) lives downstream in @c :sets as
+ * forwarders to the CT primitives.
+ *
  * @see https://en.wikipedia.org/wiki/Lattice_(order)
  * @see https://ncatlab.org/nlab/show/lattice
  *
@@ -700,5 +752,172 @@ static_assert(
     "(e.g. min(5, ~5) = -6 ≠ INT_MIN).  Honest Rejection via the opt-in "
     "is_complement_v trait — see #710 for the bitwise Boolean algebra "
     "under a bit-subset relation.");
+
+/**
+ * @concept IsSubobjectFamilyMember
+ * @brief A type @c R is a member of the subobject family over ambient
+ *        @c A in classifier @c L.
+ *
+ * @details
+ * The lattice operations on @c Sub(A) (meet, join, complement) close
+ * over the @em family of subobjects of @c A in @c L, not over a single
+ * predicate-type closed carrier.  Concretely: @c Set<T, L, P> @c &
+ * @c Set<T, L, Q> returns @c Set<T, L, AndPredicate<P,Q>> — a different
+ * predicate type, but the same @c Ambient and @c logic_species.
+ *
+ * @section lattice__Family_Anchor
+ * The @b ambient @c A is the anchor (per #712 review): a subobject
+ * family is determined by the pair @c (A, @c L), and family membership
+ * is recognised by metadata equality.  This parallels the mereology
+ * notion in @c :sets::mereology::IsSystem<S, Species, L>: a system is
+ * "a space of parts" anchored on its ambient Species, and the parts
+ * (subobjects) form a family by virtue of sharing that ambient.
+ *
+ * @section lattice__Family_Generalisation_Door
+ * Per #712 review: if the @c (A, @c L) anchoring proves too
+ * restrictive in some future regime (e.g.\ "families over a category
+ * rather than a single ambient" — fibrations, sheaves over a site,
+ * dependent power objects), the family concept can be generalised by
+ * adding template parameters or splitting the anchor.  The current
+ * shape is the minimum that supports the Slice 8 architectural
+ * commit; broader generalisations land if and when a concrete consumer
+ * surfaces a need.
+ *
+ * @tparam R The candidate family member (typically the result type of
+ *           @c meet / @c join / @c complement).
+ * @tparam A The ambient object.
+ * @tparam L The classifier (logic species).
+ */
+export template <typename R, typename A, typename L>
+concept IsSubobjectFamilyMember = requires {
+  /** @brief Strip cv/ref so reference-returning carriers (e.g.\
+   *  @c meet(a, b) @c -> @c const @c S& under expression-template
+   *  optimisation) are admitted — the trailing-return-type
+   *  substitution in @c requires-expressions can yield reference
+   *  types, and the family-membership check is properties-of-the-
+   *  type, not properties-of-the-expression-category (#712 review,
+   *  Copilot). */
+  typename std::remove_cvref_t<R>::Ambient;
+  typename std::remove_cvref_t<R>::logic_species;
+  requires std::same_as<typename std::remove_cvref_t<R>::Ambient, A>;
+  requires std::same_as<typename std::remove_cvref_t<R>::logic_species, L>;
+};
+
+/**
+ * @concept IsSubobjectLattice
+ * @brief A type @c S is the carrier of a subobject lattice over
+ *        @c S::Ambient, with lattice structure induced pointwise from
+ *        the classifier @c S::logic_species::Ω.
+ *
+ * @details
+ * The textbook content (#698 Slice 8): in a topos with subobject
+ * classifier @c Ω, the bijection
+ *
+ *    @c Sub(A) @c ≅ @c Hom(A, @c Ω) @c ≅ @c Ω^A
+ *
+ * gives @c Sub(A) an automatic lattice structure for every @c A,
+ * inherited @b pointwise from the lattice structure on @c Ω.  Direction
+ * is Ω → @c Sub(A); not the reverse without representability.
+ *
+ * @section lattice__IsSubobjectLattice_Form_Chain_Refinement
+ * @c IsSubobjectLattice<S> @b refines @c IsThinCategory<S,
+ * S::SubsetEqRel, S::logic_species>: a subobject family @b is a thin
+ * category under @c subset_eq (the @c Rel slot), provided the
+ * @b carrier exposes its own @c SubsetEqRel callable type as a
+ * typedef.  The refinement is structural — the type checker sees the
+ * Form-chain row 1 inclusion directly.
+ *
+ * The @c SubsetEqRel type belongs to the carrier so @c :lattice does
+ * @b not invent a new function-object wrapper struct (per #712 review
+ * — "Please no lambdas, IsPredicate instead to have domain and
+ * codomain").  Concretely the carrier provides a @b binary callable
+ * type invoked as @c rel(a, b) @c -> @c L::Ω — what
+ * @c :cartesian::IsBinaryRelation names structurally, with
+ * @c Codomain @c = @c L::Ω relaxing IsBinaryRelation's bool default
+ * to the carrier's classifier.  Following the project's
+ * @c :morphism::infer_morphism convention for binary operators, such
+ * a callable exposes @c Domain @c = @c S (the first arg type) and
+ * @c Codomain @c = @c L::Ω.  Slice 9 supplies the carriers (@c Set,
+ * @c Subobject) and their @c SubsetEqRel typedefs.
+ *
+ * The strength @c S inherits at higher rows is determined by
+ * @c L @c = @c S::logic_species:
+ *
+ *   - @c L @c = @c ClassicalLogic → @c S inherits @b Boolean structure
+ *     (row 7), per Slice 7's @c IsBooleanLatticeCategory.  The
+ *     @c complement free function is a bona-fide Boolean complement.
+ *   - @c L @c = @c TernaryLogic → @c S inherits @b Heyting structure
+ *     only (row 6, the "tricky to decide" escape door).  The
+ *     @c complement free function still exists and is involutive
+ *     (Kleene rotation), but @b not a Boolean complement —
+ *     complement laws fail at @c Unknown.
+ *
+ * Complement is therefore required @b unconditionally, with its
+ * semantic strength (Boolean vs Kleene-involution-only)
+ * established at the @c L-witness level rather than gated at the
+ * concept boundary (per #712 review — the OR-trick gating
+ * complement on @c ClassicalLogic was too restrictive).
+ *
+ * @section lattice__IsSubobjectLattice_CT_Vocabulary
+ * The concept body uses CT-vocabulary primitives: the carrier exposes
+ * @c Ambient and @c logic_species typedefs plus a @c SubsetEqRel
+ * callable type, and free functions @c meet, @c join, @c complement
+ * exist with the right shape.  Operator sugar (@c <=, @c &, @c |,
+ * @c !) lives in @c :sets as forwarders.  Pierce-style stratification:
+ * abstract content in the body, set-theoretic hints in the defaults.
+ *
+ * @section lattice__IsSubobjectLattice_Sollbruchstelle
+ * This concept is the @b architectural commit of Slice 8.  Carrier
+ * witnesses (@c SubsetEqRel typedefs on @c Set / @c Subobject, the
+ * @c meet / @c join / @c complement free functions, the @c
+ * HasAxiom10PowerObjectLattice generalisation in @c :etcs) land in
+ * Slice 9 with the @c :etcs harmonisation.  Ternary's Form-chain
+ * participation (rows 1–6) also lands in Slice 9 — once a concrete
+ * @c :etcs carrier instantiates @c S::logic_species @c = @c
+ * TernaryLogic and supplies a @c SubsetEqRel, the Form-chain rows
+ * fire by structural recognition without @c :lattice carrying any
+ * Ternary-specific function-object struct types.
+ *
+ * @tparam S The subobject carrier.  Must expose @c Ambient,
+ *           @c logic_species, and @c SubsetEqRel typedefs.
+ */
+export template <typename S>
+concept IsSubobjectLattice =
+    requires {
+      typename S::Ambient;
+      typename S::logic_species;
+      requires IsLogicalSpecies<typename S::logic_species>;
+      typename S::SubsetEqRel;
+    } &&
+    /** @brief Form-chain refinement: @c S is a thin category under its
+     *         carrier-provided @c SubsetEqRel.  Row 1 inclusion is
+     *         type-checked; reflexivity / transitivity of the carrier's
+     *         relation are registered as opt-in traits in Slice 9. */
+    IsThinCategory<S, typename S::SubsetEqRel, typename S::logic_species> &&
+    requires(S a, S b) {
+      /** @brief CT-vocabulary free functions for the binary lattice
+       *  operations (binary product / coproduct in the subobject category).
+       *  Results inhabit the same subobject family — anchored on
+       *  @c (S::Ambient, S::logic_species) per the family concept. */
+      {
+        meet(a, b)
+      } -> IsSubobjectFamilyMember<typename S::Ambient,
+                                   typename S::logic_species>;
+      {
+        join(a, b)
+      } -> IsSubobjectFamilyMember<typename S::Ambient,
+                                   typename S::logic_species>;
+    } && requires(S a) {
+      /** @brief Complement is required unconditionally: classical
+       *         carriers get a bona-fide Boolean complement, Kleene
+       *         carriers get the involutive rotation that fails
+       *         Boolean complement laws at @c Unknown.  The semantic
+       *         strength is established at the @c L-witness level,
+       *         not the concept boundary. */
+      {
+        complement(a)
+      } -> IsSubobjectFamilyMember<typename S::Ambient,
+                                   typename S::logic_species>;
+    };
 
 }  // namespace dedekind::category
