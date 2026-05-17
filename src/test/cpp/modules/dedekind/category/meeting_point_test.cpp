@@ -82,10 +82,9 @@ TEST_CASE(
 
   // Row 7 honest rejection under (std::less_equal + std::bit_not).
   STATIC_CHECK_FALSE(
-      IsBooleanLatticeCategory<std::size_t, std::less_equal<std::size_t>,
-                               decltype(std::ranges::max),
-                               decltype(std::ranges::min),
-                               std::bit_not<std::size_t>>);
+      IsBooleanLatticeCategory<
+          std::size_t, std::less_equal<std::size_t>, decltype(std::ranges::max),
+          decltype(std::ranges::min), std::bit_not<std::size_t>>);
 }
 
 // ---------------------------------------------------------------------------
@@ -106,7 +105,8 @@ TEST_CASE(
    *         the canonical @c std::ranges niebloid defaults
    *         (@c std::ranges::max / @c std::ranges::min).  This pins the
    *         element-level meeting-point. */
-  using ElementType = std::ranges::range_value_t<std::ranges::iota_view<int, int>>;
+  using ElementType =
+      std::ranges::range_value_t<std::ranges::iota_view<int, int>>;
   static_assert(std::same_as<ElementType, int>);
 
   STATIC_CHECK(IsThinCategory<int>);
@@ -120,9 +120,9 @@ TEST_CASE(
    *         default to @c decltype(std::ranges::min) and
    *         @c decltype(std::ranges::max) — i.e.\ the std::ranges
    *         niebloids ARE the Form-chain's canonical lattice ops. */
-  STATIC_CHECK(IsLatticeCategory<int, std::less_equal<int>,
-                                 decltype(std::ranges::max),
-                                 decltype(std::ranges::min)>);
+  STATIC_CHECK(
+      IsLatticeCategory<int, std::less_equal<int>, decltype(std::ranges::max),
+                        decltype(std::ranges::min)>);
 }
 
 TEST_CASE(
