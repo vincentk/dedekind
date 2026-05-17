@@ -956,8 +956,8 @@ concept IsSubobjectFamilyMember = requires {
  */
 export template <typename S>
 struct SubsetEq {
-  constexpr auto operator()(const S& a, const S& b) const
-      -> typename S::logic_species::Ω {
+  constexpr auto operator()(const S& a, const S& b) const ->
+      typename S::logic_species::Ω {
     return subset_eq(a, b);
   }
 };
@@ -1051,8 +1051,7 @@ concept IsSubobjectLattice =
         join(a, b)
       } -> IsSubobjectFamilyMember<typename S::Ambient,
                                    typename S::logic_species>;
-    } &&
-    requires(S a) {
+    } && requires(S a) {
       /** @brief Complement is required unconditionally: classical
        *         carriers get a bona-fide Boolean complement, Kleene
        *         carriers get the involutive rotation that fails
