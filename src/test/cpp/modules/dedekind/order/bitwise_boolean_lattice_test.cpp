@@ -16,8 +16,8 @@
  * readings.
  */
 
-#include <catch2/catch_test_macros.hpp>
 #include <algorithm>
+#include <catch2/catch_test_macros.hpp>
 #include <concepts>
 #include <cstddef>
 #include <functional>
