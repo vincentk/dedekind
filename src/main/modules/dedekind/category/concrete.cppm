@@ -135,8 +135,8 @@ concept SetAsProduct = IsSetObject<S, Underlying> && requires {
   // operationally equivalent: the Classifier dimension is the L::Ω
   // value at any @c a, and downstream consumers consume the codomain
   // not the predicate-type wrapper.
-  requires std::same_as<
-      std::invoke_result_t<S const&, Underlying const&>, Classifier>;
+  requires std::same_as<std::invoke_result_t<S const&, Underlying const&>,
+                        Classifier>;
 };
 
 /**
@@ -199,9 +199,8 @@ concept IsCompatibleSetPair =
     IsSubobject<S1, typename S1::Ambient> &&
     IsSubobject<S2, typename S2::Ambient> &&
     std::same_as<typename S1::Ambient, typename S2::Ambient> &&
-    std::same_as<
-        std::invoke_result_t<S1 const&, typename S1::Ambient const&>,
-        std::invoke_result_t<S2 const&, typename S2::Ambient const&>>;
+    std::same_as<std::invoke_result_t<S1 const&, typename S1::Ambient const&>,
+                 std::invoke_result_t<S2 const&, typename S2::Ambient const&>>;
 
 /** @brief Set intersection: materialize @c A @c ∩ @c B from
  *         the carriers-as-predicates @c S1, @c S2.  Post-#681
@@ -211,8 +210,7 @@ export template <typename S1, typename S2>
   requires IsCompatibleSetPair<S1, S2>
 constexpr auto set_intersection(const S1& lhs, const S2& rhs) {
   using A = typename S1::Ambient;
-  return classify<A>(
-      [lhs, rhs](const A& a) { return lhs(a) && rhs(a); });
+  return classify<A>([lhs, rhs](const A& a) { return lhs(a) && rhs(a); });
 }
 
 /** @brief Set union: materialize @c A @c ∪ @c B from carriers as
@@ -221,8 +219,7 @@ export template <typename S1, typename S2>
   requires IsCompatibleSetPair<S1, S2>
 constexpr auto set_union(const S1& lhs, const S2& rhs) {
   using A = typename S1::Ambient;
-  return classify<A>(
-      [lhs, rhs](const A& a) { return lhs(a) || rhs(a); });
+  return classify<A>([lhs, rhs](const A& a) { return lhs(a) || rhs(a); });
 }
 
 /** @brief Set complement: materialize @c A^c from carrier-as-predicate. */

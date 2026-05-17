@@ -232,8 +232,8 @@ concept HasAxiom10ChoiceSplitEpicLawSurface =
 export template <typename S, IsArrow E>
   requires IsSubobject<S, typename S::Ambient> &&
            std::same_as<Cod<E>, typename S::Ambient> &&
-           std::equality_comparable<std::invoke_result_t<
-               S const&, typename S::Ambient const&>>
+           std::equality_comparable<
+               std::invoke_result_t<S const&, typename S::Ambient const&>>
 constexpr bool classifier_reindexing_definitional_witness_at(const S& s,
                                                              const E& embedding,
                                                              const Dom<E>& x) {
