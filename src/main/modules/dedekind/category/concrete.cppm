@@ -125,11 +125,18 @@ concept IsSetObject = IsSubobject<S, A> && requires {
  *                     @c s.χ.
  */
 export template <typename S, typename Underlying, typename Classifier>
-concept SetAsProduct = IsSetObject<S, Underlying> && requires(const S& s) {
-  // Match the projected type of s.χ exactly (after stripping cv-ref) so
-  // the seam captures the structural identity rather than relying on
-  // implicit conversions.  Per PR #650 review.
-  requires std::same_as<std::remove_cvref_t<decltype(s.χ)>, Classifier>;
+concept SetAsProduct = IsSetObject<S, Underlying> && requires {
+  // Post-#681 structural refactor: the carrier IS the characteristic
+  // morphism, so there is no named @c s.χ projector to match against
+  // @c Classifier.  We capture the (Underlying, Classifier) seam
+  // instead by matching @c Classifier to the codomain of @c S-as-
+  // predicate — i.e.\ @c L::Ω.  Slightly different semantic surface
+  // (Classifier = the codomain, not the predicate-type itself), but
+  // operationally equivalent: the Classifier dimension is the L::Ω
+  // value at any @c a, and downstream consumers consume the codomain
+  // not the predicate-type wrapper.
+  requires std::same_as<
+      std::invoke_result_t<S const&, Underlying const&>, Classifier>;
 };
 
 /**
@@ -180,7 +187,8 @@ concept IsConcrete = IsSmallCategory<C> && IsSpecies<typename C::Species>;
 export template <typename S>
 concept HasTernarySupport =
     IsSubobject<S, typename S::Ambient> &&
-    std::same_as<Cod<decltype(std::declval<S>().χ)>, Ternary>;
+    std::same_as<std::invoke_result_t<S const&, typename S::Ambient const&>,
+                 Ternary>;
 
 /**
  * @concept IsCompatibleSetPair
@@ -191,51 +199,58 @@ concept IsCompatibleSetPair =
     IsSubobject<S1, typename S1::Ambient> &&
     IsSubobject<S2, typename S2::Ambient> &&
     std::same_as<typename S1::Ambient, typename S2::Ambient> &&
-    std::same_as<Cod<decltype(std::declval<S1>().χ)>,
-                 Cod<decltype(std::declval<S2>().χ)>>;
+    std::same_as<
+        std::invoke_result_t<S1 const&, typename S1::Ambient const&>,
+        std::invoke_result_t<S2 const&, typename S2::Ambient const&>>;
 
-/** @brief Set intersection: materialize @c A @c ∩ @c B from @c χ_A @c ∧ @c χ_B.
- */
+/** @brief Set intersection: materialize @c A @c ∩ @c B from
+ *         the carriers-as-predicates @c S1, @c S2.  Post-#681
+ *         structural refactor: invocation @c s(a) replaces named
+ *         @c s.χ access. */
 export template <typename S1, typename S2>
   requires IsCompatibleSetPair<S1, S2>
 constexpr auto set_intersection(const S1& lhs, const S2& rhs) {
   using A = typename S1::Ambient;
-  return classify<A>(lhs.χ && rhs.χ);
+  return classify<A>(
+      [lhs, rhs](const A& a) { return lhs(a) && rhs(a); });
 }
 
-/** @brief Set union: materialize @c A @c ∪ @c B from @c χ_A @c ∨ @c χ_B. */
+/** @brief Set union: materialize @c A @c ∪ @c B from carriers as
+ *         predicates. */
 export template <typename S1, typename S2>
   requires IsCompatibleSetPair<S1, S2>
 constexpr auto set_union(const S1& lhs, const S2& rhs) {
   using A = typename S1::Ambient;
-  return classify<A>(lhs.χ || rhs.χ);
+  return classify<A>(
+      [lhs, rhs](const A& a) { return lhs(a) || rhs(a); });
 }
 
-/** @brief Set complement: materialize @c A^c from @c ¬χ_A. */
+/** @brief Set complement: materialize @c A^c from carrier-as-predicate. */
 export template <typename S>
   requires IsSubobject<S, typename S::Ambient>
 constexpr auto set_complement(const S& s) {
   using A = typename S::Ambient;
-  return classify<A>(!s.χ);
+  return classify<A>([s](const A& a) { return !s(a); });
 }
 
-/** @brief Membership: @c x @c ∈ @c S evaluated via @c χ_S(x). */
+/** @brief Membership: @c x @c ∈ @c S evaluated via @c S's structural
+ *         call (the carrier IS the characteristic morphism). */
 export template <typename S>
   requires IsSubobject<S, typename S::Ambient>
 constexpr auto in(const typename S::Ambient& x, const S& s) {
-  return s.χ(x);
+  return s(x);
 }
 
 /**
  * @brief Membership through an embedding arrow @c e @c : @c X @c → @c A,
- *        then @c χ_S.
- * @details Evaluates @c x @c ∈_e @c S as @c χ_S(e(x)).
+ *        then the carrier-as-predicate.  Evaluates @c x @c ∈_e @c S as
+ *        @c s(e(x)).
  */
 export template <typename S, IsArrow E>
   requires IsSubobject<S, typename S::Ambient> &&
            std::same_as<Cod<E>, typename S::Ambient>
 constexpr auto in_via(const Dom<E>& x, E&& embedding, const S& s) {
-  return s.χ(std::forward<E>(embedding)(x));
+  return s(std::forward<E>(embedding)(x));
 }
 
 /**

@@ -590,10 +590,13 @@ class Set {
   constexpr T ι(const Member& m) const { return m.value; }
 
   /** @brief χ: T → Ω — arrow-form classifier for the IsSubobject
-   *  contract.  Static self-reference (SHAPE-only — semantic
-   *  membership query lives in @c operator() below, predicate-aware).
-   *  Same pattern as Ø / UniversalSet / SingletonSet's χ. */
-  static const Set χ;
+   *  contract — historically a static self-reference (now retired).
+   *  Post-#681 structural refactor: @c Set @b is the characteristic
+   *  morphism via @c operator() below; the @c IsSubobject concept
+   *  recognises this structurally with @c { s(a) } @c -> @c LogicalValue
+   *  rather than via a named @c .χ member.  No static-init cascade for
+   *  non-default-constructible Predicates (e.g.\ capturing-lambda
+   *  predicates produced by the comprehension DSL). */
 
   using logic_species = L;
   using cardinality_type = ℵ_0;
@@ -859,12 +862,13 @@ class Set {
   Predicate predicate_;
 };
 
-// Out-of-class χ definition — completes the IsSubobject self-reference
-// declared in-class at @c Set::χ above.  Default-initializes
-// @c predicate_ via @c Predicate{}; the SHAPE is what the contract
-// reads (semantics live in @c operator() which IS predicate-aware).
-template <typename T, typename L, typename Predicate>
-inline const Set<T, L, Predicate> Set<T, L, Predicate>::χ{Predicate{}};
+// Out-of-class χ definition retired (#681 structural refactor).  The
+// @c IsSubobject concept now recognises @c Set as the characteristic
+// morphism via its @c operator() call shape, not via a named static
+// @c χ member.  Removing the static eliminates the @c Predicate{}
+// default-construction cascade that previously blocked comprehension-
+// DSL Sets from participating in the @c IsSubobject / Form-chain
+// surfaces.
 
 /** @brief Symbolic image-of-intensional-Set predicate (#602 layer 1).
  *

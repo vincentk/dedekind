@@ -280,11 +280,26 @@ static_assert(
  * @concept IsSubobject
  * @brief The categorical witness of a monomorphism ι: S ↣ A.
  *
+ * @details
+ * @section topoi__IsSubobject_Structural_Refactor
+ * Structural recognition (#681 / Slice 9 follow-up): @c S @b is the
+ * characteristic morphism — invoked via @c s(a), not accessed via a
+ * named @c s.χ member.  The earlier @c { s.χ } @c -> @c IsPredicate
+ * clause forced every @c IsSubobject-checked type to materialise @c χ
+ * as a struct member; for @c Set carriers this was a static
+ * @c default-initialised Set instance, which @b fails for capturing-
+ * lambda Predicates (the comprehension DSL).
+ *
+ * Project's architectural commitment ("undecidable functionality can't
+ * be struct-built"): structural call recognition replaces named-member
+ * lookup.  Same lesson as the Slice 6 @c IsExponential refactor
+ * (carrier IS the exponential via call shape).
+ *
  * @tparam S The Subobject Species (The "Body").
  * @tparam A The Ambient Species (The "Space").
  */
 export template <typename S, typename A>
-concept IsSubobject = requires(S s, typename S::Member m) {
+concept IsSubobject = requires(S s, typename S::Member m, A const& a) {
   /**
    * @brief ι: S ↣ A
    * The canonical inclusion morphism. Every member of S must
@@ -293,18 +308,16 @@ concept IsSubobject = requires(S s, typename S::Member m) {
   { s.ι(m) } -> std::same_as<A>;
 
   /**
-   * @brief χ: A ⟶ Ω
-   * Every subobject in a Topos is uniquely classified by a
-   * morphism into the subobject classifier Ω.
+   * @brief χ: A ⟶ Ω — recognised structurally as S's call shape.
+   *        @c s(a) returns a logical value (the carrier's classifier's
+   *        Ω).  S itself IS the characteristic morphism; no named
+   *        @c χ member required at the concept body.
    */
-  { s.χ } -> IsPredicate;
+  { s(a) } -> LogicalValue;
 
   // Metadata verification: The declared ambient must match A.
   typename S::Ambient;
   requires std::same_as<typename S::Ambient, A>;
-
-  // Characteristic morphism verification: χ must classify elements of A.
-  requires std::same_as<Dom<decltype(s.χ)>, A>;
 };
 
 /**
@@ -339,6 +352,14 @@ struct Subobject {
 
   /** @brief ι: S ↣ A (The Textbook Inclusion) */
   constexpr A ι(const Member& m) const { return m.value; }
+
+  /** @brief Subobject IS the characteristic morphism — invocation
+   *         @c s(a) forwards to the stored @c χ field.  Structural
+   *         predicate shape (per the @c IsSubobject refactor in
+   *         this file): callers use @c s(a) rather than @c s.χ(a),
+   *         so @c Set and @c Subobject expose a uniform predicate
+   *         surface. */
+  constexpr auto operator()(const A& a) const { return χ(a); }
 
   /**
    * @section topoi__Pullback_Projections
