@@ -150,10 +150,12 @@ module;
 
 #include <algorithm>
 #include <concepts>
-#include <cstddef>      // std::size_t — Slice 10 meeting-point pin.
+#include <cstddef>  // std::size_t — Slice 10 meeting-point pin.
 #include <functional>
 #include <limits>       // std::numeric_limits — LatticeBottom/Top
                         // specialisations for arithmetic carriers.
+#include <ranges>       // std::ranges::iota_view, range_value_t — Slice 10
+                        // niebloid-identity / tripwire pins.
 #include <type_traits>  // std::is_arithmetic_v — same specialisations.
 
 export module dedekind.category:lattice;
@@ -782,23 +784,31 @@ static_assert(IsHeytingLatticeCategory<std::size_t>,
               "implication; rows 1–6 of the Form-chain fire.");
 
 static_assert(
-    !IsBooleanLatticeCategory<std::size_t, std::less_equal<std::size_t>,
-                              decltype(std::ranges::max),
-                              decltype(std::ranges::min),
-                              std::bit_not<std::size_t>>,
+    !IsBooleanLatticeCategory<
+        std::size_t, std::less_equal<std::size_t>, decltype(std::ranges::max),
+        decltype(std::ranges::min), std::bit_not<std::size_t>>,
     "size_t under std::less_equal with std::bit_not is NOT a Boolean "
     "lattice — same Honest Rejection as int (the bitwise complement "
     "doesn't match the order-theoretic meet/join).  Bitwise route is "
     "#710's territory.");
 
-static_assert(IsLatticeCategory<int, std::less_equal<int>,
-                                decltype(std::ranges::max),
-                                decltype(std::ranges::min)>,
-              "Niebloid identity: the Form-chain Meet / Join slot "
-              "defaults ARE the std::ranges niebloids "
-              "(std::ranges::min, std::ranges::max).  Pinning the "
-              "explicit instantiation here makes the structural fit "
-              "type-checked at compile time.");
+static_assert(
+    IsLatticeCategory<int, std::less_equal<int>, decltype(std::ranges::max),
+                      decltype(std::ranges::min)>,
+    "Niebloid identity: the Form-chain Meet / Join slot "
+    "defaults ARE the std::ranges niebloids "
+    "(std::ranges::min, std::ranges::max).  Pinning the "
+    "explicit instantiation here makes the structural fit "
+    "type-checked at compile time.");
+
+static_assert(
+    std::same_as<std::ranges::range_value_t<std::ranges::iota_view<int, int>>,
+                 int>,
+    "Tripwire: std::ranges::iota_view's value_type is the integral "
+    "carrier the niebloid-identity pin above relies on.  If iota_view's "
+    "value_type semantics ever changed (e.g.\\ producing a wrapper type "
+    "instead of the underlying integer), the meeting-point structure "
+    "for std::ranges would surface the divergence here.");
 
 /**
  * @concept IsSubobjectFamilyMember
