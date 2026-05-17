@@ -262,10 +262,14 @@ struct is_codirected<T, dedekind::order::bit_subset_eq<T>> : std::true_type {};
  *  @c T:
  *
  *    - @c is_associative<T, std::bit_or<T>>     (struct spec)
- *    - @c is_absorptive_v<T, std::bit_or<T>, std::bit_and<T>>     (variable spec)
- *    - @c is_absorptive_v<T, std::bit_and<T>, std::bit_or<T>>     (variable spec)
- *    - @c is_distributive_v<T, std::bit_or<T>, std::bit_and<T>>   (variable spec)
- *    - @c is_distributive_v<T, std::bit_and<T>, std::bit_or<T>>   (variable spec)
+ *    - @c is_absorptive_v<T, std::bit_or<T>, std::bit_and<T>>     (variable
+ * spec)
+ *    - @c is_absorptive_v<T, std::bit_and<T>, std::bit_or<T>>     (variable
+ * spec)
+ *    - @c is_distributive_v<T, std::bit_or<T>, std::bit_and<T>>   (variable
+ * spec)
+ *    - @c is_distributive_v<T, std::bit_and<T>, std::bit_or<T>>   (variable
+ * spec)
  *
  *  Note: @c is_associative_v / @c is_idempotent_v are derived from
  *  struct traits, so specialisations go on the @b struct (matching
