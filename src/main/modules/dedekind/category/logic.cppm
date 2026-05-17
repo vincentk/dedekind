@@ -132,11 +132,7 @@ static_assert(IsLogicalSpecies<ClassicalLogic>,
  * - Unknown (0): The indeterminate or undecidable state.
  * - True (1): The absolute positive.
  */
-export enum class Ternary : std::int8_t {
-  False = -1,
-  Unknown = 0,
-  True = 1
-};
+export enum class Ternary : std::int8_t { False = -1, Unknown = 0, True = 1 };
 
 /**
  * @brief The internal logic of the Ternary Topos.
@@ -160,14 +156,14 @@ export struct TernaryLogic final {
 
   /** @brief Kleene Conjunction: Returns the minimum truth value. */
   static constexpr Ternary AND(Ternary a, Ternary b) {
-    return static_cast<Ternary>(
-        std::ranges::min(static_cast<std::int8_t>(a), static_cast<std::int8_t>(b)));
+    return static_cast<Ternary>(std::ranges::min(static_cast<std::int8_t>(a),
+                                                 static_cast<std::int8_t>(b)));
   }
 
   /** @brief Kleene Disjunction: Returns the maximum truth value. */
   static constexpr Ternary OR(Ternary a, Ternary b) {
-    return static_cast<Ternary>(
-        std::ranges::max(static_cast<std::int8_t>(a), static_cast<std::int8_t>(b)));
+    return static_cast<Ternary>(std::ranges::max(static_cast<std::int8_t>(a),
+                                                 static_cast<std::int8_t>(b)));
   }
 
   /** @brief Kleene Negation: Returns the additive inverse (rotation about
