@@ -224,3 +224,24 @@ TEST_CASE(
     STATIC_CHECK(!IsBinaryFunction<R, int, int>);
   }
 }
+
+TEST_CASE(
+    "Cartesian: IsArrowExponential — IsExponential + IsArrow refinement (#706)",
+    "[category][cartesian][exponential][isarrow]") {
+  /** @brief @c IsArrowExponential refines @c IsExponential to additionally
+   *         require the project's @c IsArrow morphism discipline (explicit
+   *         @c Domain / @c Codomain typedefs).  Function-space inhabitants
+   *         satisfy @c IsExponential but @b not @c IsArrowExponential —
+   *         the discipline is honest about the distinction. */
+
+  // Negative witness: std::function<B(A)> is IsExponential but not IsArrow.
+  STATIC_CHECK(IsExponential<std::function<bool(int)>, int, bool>);
+  STATIC_CHECK_FALSE(IsArrowExponential<std::function<bool(int)>, int, bool>);
+
+  // Positive witness: an arrow-shaped exponential from the arrow<A, B> factory
+  // satisfies both — the project's canonical arrow shape.
+  using ProjectArrow = Exponential<int, bool>;
+  STATIC_CHECK(IsExponential<ProjectArrow, int, bool>);
+  STATIC_CHECK(IsArrow<ProjectArrow>);
+  STATIC_CHECK(IsArrowExponential<ProjectArrow, int, bool>);
+}

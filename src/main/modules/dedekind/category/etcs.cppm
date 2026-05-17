@@ -131,10 +131,12 @@ concept HasAxiom4WellPointedness = IsSubobject<S, typename S::Ambient>;
 export template <typename A>
 concept HasAxiom5CartesianProduct = IsProduct<std::pair<A, A>, A, A>;
 
-/** @brief ETCS axiom 6 witness: exponentials B^A exist (here A^A witness). */
+/** @brief ETCS axiom 6 witness: exponentials B^A exist (here A^A
+ *  witness).  Uses the named @c IsArrowExponential refinement (#706)
+ *  rather than the ad hoc @c IsExponential @c && @c IsArrow combination
+ *  that lived here previously. */
 export template <typename A>
-concept HasAxiom6Exponentiation =
-    IsExponential<Exponential<A, A>, A, A> && IsArrow<Exponential<A, A>>;
+concept HasAxiom6Exponentiation = IsArrowExponential<Exponential<A, A>, A, A>;
 
 /** @brief ETCS axiom 7 witness: every set is represented by a subobject. */
 export template <typename S>

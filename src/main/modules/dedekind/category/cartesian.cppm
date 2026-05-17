@@ -129,6 +129,44 @@ concept IsExponential = requires(E e, A a) {
 };
 
 /**
+ * @concept IsArrowExponential
+ * @brief An exponential @c E @c : @c A @c → @c B that also satisfies
+ *        the project's morphism vocabulary (@c IsArrow with matching
+ *        @c Domain / @c Codomain typedefs).  #706.
+ *
+ * @details
+ * Refines @c IsExponential to additionally require @c IsArrow's
+ * structural commitments — @c E::Domain typedef equal to @c A,
+ * @c E::Codomain typedef equal to @c B.  Function-space inhabitants
+ * (@c std::function<B(A)>, raw lambdas) satisfy @c IsExponential but
+ * @b not @c IsArrowExponential because they don't expose the
+ * @c Domain / @c Codomain typedefs.  Project-shipped arrow-shaped
+ * exponentials — outputs of @c arrow<A, B>(…), @c HeytingExponential,
+ * @c :morphism::Morphism, etc. — satisfy both.
+ *
+ * @section cartesian__IsArrowExponential_Consumer
+ * Migrated from an ad hoc @c IsExponential<…> @c && @c IsArrow<…>
+ * combination at @c :etcs::HasAxiom6Exponentiation, which named the
+ * same content inline.  Refactoring that consumer to the named
+ * refinement removes a chicken-and-egg seam (the supply for the
+ * refinement was inlined at the one demand site) — see #706 for the
+ * triage rationale.
+ *
+ * Consumers that want the project's morphism discipline gate on
+ * @c IsArrowExponential; consumers that accept any callable
+ * (function-spaces, raw lambdas, structural-only) use the bare
+ * @c IsExponential.  Split mirrors the @c :morphism @c IsArrow
+ * vs.\ generic-callable distinction.
+ *
+ * @tparam E The exponential object (must be @c IsArrow-shaped).
+ * @tparam A The domain.
+ * @tparam B The codomain.
+ */
+export template <typename E, typename A, typename B>
+concept IsArrowExponential = IsExponential<E, A, B> && IsArrow<E> &&
+                             std::same_as<Dom<E>, A> && std::same_as<Cod<E>, B>;
+
+/**
  * @brief Internal Hom Factory (Exponential)
  * @details 1. Fully Automatic: Inferred from lambda signature
  */
