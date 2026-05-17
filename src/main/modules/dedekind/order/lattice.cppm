@@ -281,25 +281,26 @@ template <typename T>
   requires std::is_integral_v<T>
 struct is_associative<T, std::bit_or<T>> : std::true_type {};
 
+// Variable-template partial specs in this file embed the constraint in
+// the *value* (cf. species.cppm:740 / :745 pattern with std::unsigned_integral
+// / std::integral), not via a requires clause on the template — the
+// requires-form yields "no variable template matches partial
+// specialization" on libc++/clang.
 template <typename T>
-  requires std::is_integral_v<T>
 inline constexpr bool is_absorptive_v<T, std::bit_or<T>, std::bit_and<T>> =
-    true;
+    std::is_integral_v<T>;
 
 template <typename T>
-  requires std::is_integral_v<T>
 inline constexpr bool is_absorptive_v<T, std::bit_and<T>, std::bit_or<T>> =
-    true;
+    std::is_integral_v<T>;
 
 template <typename T>
-  requires std::is_integral_v<T>
 inline constexpr bool is_distributive_v<T, std::bit_or<T>, std::bit_and<T>> =
-    true;
+    std::is_integral_v<T>;
 
 template <typename T>
-  requires std::is_integral_v<T>
 inline constexpr bool is_distributive_v<T, std::bit_and<T>, std::bit_or<T>> =
-    true;
+    std::is_integral_v<T>;
 
 /** @brief @c HeytingExponential specialisation for the bitwise Boolean
  *         lattice (#710): on integral @c T under @c bit_subset_eq with
