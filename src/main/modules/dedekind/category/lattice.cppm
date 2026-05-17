@@ -928,4 +928,41 @@ concept IsSubobjectLattice = requires(S a, S b) {
  *  stratification named in Slice 8's Sollbruchstelle text), not as a
  *  CT-vocabulary primitive of this concept. */
 
+/**
+ * @concept IsBooleanSubobjectLattice
+ * @brief A subobject lattice over a @b classical classifier — the
+ *        Boolean refinement that closes the L-parametric gap (#698
+ *        Slice 9 review pass).
+ *
+ * @details
+ * Mechanises the user's downstream intuition: parametrising a set
+ * carrier with @c ClassicalLogic should automatically participate in
+ * the Boolean lattice surface; parametrising with @c TernaryLogic
+ * should not.  The previous parallel-track architecture left this
+ * documentation-only ("easy to forget" per the review thread); this
+ * concept makes it @b type-checked.
+ *
+ * @section lattice__IsBooleanSubobjectLattice_Justification
+ * In topos-theoretic terms: a topos with classical subobject
+ * classifier (@c Ω @c = @c bool) has Boolean @c Sub(A) for every
+ * ambient @c A.  This is automatic — no semantic opt-in required at
+ * the family level beyond the @c logic_species commitment.
+ * @b Diaconescu's theorem (1975) further says the full Axiom of
+ * Choice would propagate Boolean-ness in the reverse direction, but
+ * the converse direction we use here (classical @c Ω @c ⟹ Boolean
+ * @c Sub(A)) is uncontroversial.
+ *
+ * The concept is therefore just @c IsSubobjectLattice @c +
+ * @c L @c = @c ClassicalLogic — no extra structural laws beyond
+ * what @c IsSubobjectLattice already checks.  Kleene / Heyting
+ * carriers fail closed because their @c logic_species @c ≠ @c
+ * ClassicalLogic.
+ *
+ * @tparam S The subobject carrier.
+ */
+export template <typename S>
+concept IsBooleanSubobjectLattice =
+    IsSubobjectLattice<S> &&
+    std::same_as<typename S::logic_species, ClassicalLogic>;
+
 }  // namespace dedekind::category

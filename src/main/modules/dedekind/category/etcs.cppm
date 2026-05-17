@@ -285,30 +285,42 @@ concept HasAxiom10PowerObjectLattice =
       /** @brief @c logic_species typedef anchors the classifier @c L
        *  (Slice 9 — required by @c :lattice::IsSubobjectLattice). */
       typename S::logic_species;
-    } && requires(S lhs, S rhs) {
+    } &&
+    requires(S lhs, S rhs) {
       requires IsSetObject<decltype(meet(lhs, rhs)), typename S::Ambient>;
       requires IsSetObject<decltype(join(lhs, rhs)), typename S::Ambient>;
     };
 
-/** @section etcs__Axiom_10_Complement_Sollbruchstelle
+/** @section etcs__Axiom_10_Diaconescu_Note
  *
- *  @brief The @c complement clause is @b deferred from Axiom 10 pending
- *         a fix to @c Set::χ's static-member initialisation path
- *         (#698 Slice 9, follow-up).
+ *  @brief Diaconescu's classical direction (#698 Slice 9 review).
  *
- *  @details Adding @c requires @c IsSetObject<decltype(complement(lhs)),
- *  typename @c S::Ambient> here triggers instantiation of
- *  @c set_complement(s) → @c classify<A>(!s.χ) → @c Set::χ's static
- *  initialiser, which requires the @c Predicate to be default-
- *  constructible.  Capturing lambdas produced by the comprehension
- *  DSL (e.g.\ @c BoundScout's @c operator>'s captured @c rhs in
- *  expressions.cppm:1262) are @b not default-constructible, so the
- *  static-init fails.
+ *  @details The standard textbook ETCS Axiom 10 is the @b Axiom of
+ *  Choice: every epimorphism splits.  Diaconescu (1975) showed that
+ *  in a topos, AC implies the topos is Boolean (classical internal
+ *  logic).  The codebase commits to one direction of this
+ *  bi-implication only:
  *
- *  The full @c IsSet @c ⟹ @c IsSubobjectLattice static_assert
- *  awaits a separate @c Set::χ static-init refactor (likely a guarded
- *  definition requiring @c std::default_initializable<Predicate>, or a
- *  re-design of the @c χ self-reference).  Tracked as a follow-up. */
+ *      @c L @c = @c ClassicalLogic @c ⟹ Sub(A) Boolean   (Diaconescu's classical-Ω direction)
+ *      @c L @c = @c TernaryLogic   @c ⟹ Sub(A) Heyting   (constructive-collapse path)
+ *
+ *  The Boolean refinement is exposed via the parallel
+ *  @c :lattice::IsBooleanSubobjectLattice<S> concept rather than
+ *  baked into Axiom 10's body.  An earlier attempt to gate the
+ *  conditional inside @c HasAxiom10PowerObjectLattice triggered
+ *  instantiation of @c set_complement(s) → @c !s.χ → @c Set::χ's
+ *  static-init for capturing-lambda Predicates produced by the
+ *  comprehension DSL, which fails default-construction.  The
+ *  parallel-track design avoids that ODR-use cascade; the static
+ *  asserts in @c :sets carrier files pin the L-parametric route
+ *  type-checked at the carrier sites without inducing the cascade.
+ *
+ *  The reverse direction (Boolean Sub(A) @c ⟹ full AC) is the
+ *  splitting-epi witness, which is genuinely aspirational and not yet
+ *  encoded.  The header table's @c (asp.) marker on row 10 names this
+ *  remaining gap.  Tracked as a separate concept (e.g.\
+ *  @c HasAxiom10AxiomOfChoiceFull) if and when the project commits to
+ *  it. */
 
 /**
  * @concept HasETCSAxioms
