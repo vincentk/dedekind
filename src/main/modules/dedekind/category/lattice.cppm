@@ -896,12 +896,10 @@ concept IsSubobjectLattice = requires(S a, S b) {
    *         family concept. */
   {
     meet(a, b)
-  } -> IsSubobjectFamilyMember<typename S::Ambient,
-                               typename S::logic_species>;
+  } -> IsSubobjectFamilyMember<typename S::Ambient, typename S::logic_species>;
   {
     join(a, b)
-  } -> IsSubobjectFamilyMember<typename S::Ambient,
-                               typename S::logic_species>;
+  } -> IsSubobjectFamilyMember<typename S::Ambient, typename S::logic_species>;
 } && requires(S a) {
   /** @brief Complement is required unconditionally: classical carriers
    *         get a bona-fide Boolean complement, Kleene carriers get
@@ -910,8 +908,7 @@ concept IsSubobjectLattice = requires(S a, S b) {
    *         at the @c L-witness level, not the concept boundary. */
   {
     complement(a)
-  } -> IsSubobjectFamilyMember<typename S::Ambient,
-                               typename S::logic_species>;
+  } -> IsSubobjectFamilyMember<typename S::Ambient, typename S::logic_species>;
 };
 
 /** @section lattice__IsSubobjectLattice_Order_Derivability

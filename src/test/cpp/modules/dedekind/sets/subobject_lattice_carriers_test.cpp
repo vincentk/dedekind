@@ -52,9 +52,8 @@ TEST_CASE(
   STATIC_CHECK(IsSubobjectLattice<SingletonSet<bool>>);
 }
 
-TEST_CASE(
-    "sets:subobject-lattice — IsSet still fires post-Axiom-10 update",
-    "[sets][lattice][subobject][etcs][axiom10][regression]") {
+TEST_CASE("sets:subobject-lattice — IsSet still fires post-Axiom-10 update",
+          "[sets][lattice][subobject][etcs][axiom10][regression]") {
   /** @brief Regression: the Axiom 10 generalisation added a
    *         @c logic_species typedef requirement.  The canonical
    *         carriers all expose it pre-Slice-9, so @c IsSet still
