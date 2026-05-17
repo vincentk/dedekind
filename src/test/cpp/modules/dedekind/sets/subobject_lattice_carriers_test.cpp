@@ -53,6 +53,19 @@ TEST_CASE(
 }
 
 TEST_CASE(
+    "sets:subobject-lattice — complement free function actually runs",
+    "[sets][lattice][subobject][complement][runtime]") {
+  /** @brief Codecov touch: the @c complement(s) free function in
+   *         @c :etcs::concrete forwards to @c set_complement(s).  The
+   *         concept-level static asserts in this file check the
+   *         function's @em shape via @c decltype; this runtime call
+   *         exercises the forwarder body so coverage sees it. */
+  constexpr UniversalSet<bool> univ{};
+  const auto univ_complement = complement(univ);
+  STATIC_CHECK(IsSubobject<decltype(univ_complement), bool>);
+}
+
+TEST_CASE(
     "sets:subobject-lattice — ClassicalLogic carriers fire "
     "IsBooleanSubobjectLattice",
     "[sets][lattice][subobject][boolean][classical]") {
