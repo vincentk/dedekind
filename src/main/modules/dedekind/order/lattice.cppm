@@ -249,6 +249,70 @@ template <typename T>
   requires std::is_integral_v<T>
 struct is_codirected<T, dedekind::order::bit_subset_eq<T>> : std::true_type {};
 
+/** @section order_lattice__Bitwise_Algebra_Trait_Registration
+ *
+ *  @brief Algebra-trait specialisations for @c std::bit_or<T> /
+ *         @c std::bit_and<T> on specific integral @c T (#710).
+ *
+ *  @details The project's existing specialisations cover @c bool +
+ *  the transparent @c std::bit_or<> / @c std::bit_and<> forms, plus
+ *  @c std::bit_and<T> for specific @c T.  The missing pieces for the
+ *  bitwise Boolean lattice's @c IsLatticeCategory chain to fire on
+ *  generic integral @c T:
+ *
+ *    - @c is_associative_v<T, std::bit_or<T>>
+ *    - @c is_idempotent_v<T, std::bit_or<T>>
+ *    - @c is_absorptive_v<T, std::bit_or<T>, std::bit_and<T>>
+ *    - @c is_absorptive_v<T, std::bit_and<T>, std::bit_or<T>>
+ *    - @c is_distributive_v<T, std::bit_or<T>, std::bit_and<T>>
+ *
+ *  All are textbook bitwise-operator facts (OR is associative,
+ *  idempotent, absorbs over AND, distributes over AND, etc.). */
+template <typename T>
+  requires std::is_integral_v<T>
+inline constexpr bool is_associative_v<T, std::bit_or<T>> = true;
+
+template <typename T>
+  requires std::is_integral_v<T>
+inline constexpr bool is_idempotent_v<T, std::bit_or<T>> = true;
+
+template <typename T>
+  requires std::is_integral_v<T>
+inline constexpr bool is_absorptive_v<T, std::bit_or<T>, std::bit_and<T>> =
+    true;
+
+template <typename T>
+  requires std::is_integral_v<T>
+inline constexpr bool is_absorptive_v<T, std::bit_and<T>, std::bit_or<T>> =
+    true;
+
+template <typename T>
+  requires std::is_integral_v<T>
+inline constexpr bool is_distributive_v<T, std::bit_or<T>, std::bit_and<T>> =
+    true;
+
+template <typename T>
+  requires std::is_integral_v<T>
+inline constexpr bool is_distributive_v<T, std::bit_and<T>, std::bit_or<T>> =
+    true;
+
+/** @brief @c HeytingExponential specialisation for the bitwise Boolean
+ *         lattice (#710): on integral @c T under @c bit_subset_eq with
+ *         @c std::bit_and as meet, the relative complement
+ *         @c a @c → @c b @c = @c ~a @c | @c b (Boolean Heyting), and
+ *         the @c eval morphism @c e(x) @c = @c e @c & @c x (meet).
+ *         Required so @c IsHeytingLatticeCategory fires at row 6 of
+ *         the Form-chain for this Rel / Meet pairing. */
+template <typename T>
+  requires std::is_integral_v<T>
+struct HeytingExponential<T, dedekind::order::bit_subset_eq<T>,
+                          std::bit_and<T>> {
+  using Domain = T;
+  using Codomain = T;
+  T value;
+  constexpr T operator()(T x) const noexcept { return value & x; }
+};
+
 /** @brief Bitwise-lattice bottom: the all-zeros bitmask. */
 template <typename T>
   requires std::is_integral_v<T>
