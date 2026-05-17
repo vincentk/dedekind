@@ -790,10 +790,17 @@ static_assert(
  */
 export template <typename R, typename A, typename L>
 concept IsSubobjectFamilyMember = requires {
-  typename R::Ambient;
-  typename R::logic_species;
-  requires std::same_as<typename R::Ambient, A>;
-  requires std::same_as<typename R::logic_species, L>;
+  /** @brief Strip cv/ref so reference-returning carriers (e.g.\
+   *  @c meet(a, b) @c -> @c const @c S& under expression-template
+   *  optimisation) are admitted — the trailing-return-type
+   *  substitution in @c requires-expressions can yield reference
+   *  types, and the family-membership check is properties-of-the-
+   *  type, not properties-of-the-expression-category (#712 review,
+   *  Copilot). */
+  typename std::remove_cvref_t<R>::Ambient;
+  typename std::remove_cvref_t<R>::logic_species;
+  requires std::same_as<typename std::remove_cvref_t<R>::Ambient, A>;
+  requires std::same_as<typename std::remove_cvref_t<R>::logic_species, L>;
 };
 
 /**
@@ -823,11 +830,15 @@ concept IsSubobjectFamilyMember = requires {
  * The @c SubsetEqRel type belongs to the carrier so @c :lattice does
  * @b not invent a new function-object wrapper struct (per #712 review
  * — "Please no lambdas, IsPredicate instead to have domain and
- * codomain").  Concretely the carrier provides a callable type
- * with @c Domain @c = @c S, @c Codomain @c = @c L::Ω satisfying
- * @c :morphism::IsArrow (i.e.\ an @c :topoi::IsPredicate-style binary
- * relation in the subobject category).  Slice 9 supplies the carriers
- * (@c Set, @c Subobject) and their @c SubsetEqRel typedefs.
+ * codomain").  Concretely the carrier provides a @b binary callable
+ * type invoked as @c rel(a, b) @c -> @c L::Ω — what
+ * @c :cartesian::IsBinaryRelation names structurally, with
+ * @c Codomain @c = @c L::Ω relaxing IsBinaryRelation's bool default
+ * to the carrier's classifier.  Following the project's
+ * @c :morphism::infer_morphism convention for binary operators, such
+ * a callable exposes @c Domain @c = @c S (the first arg type) and
+ * @c Codomain @c = @c L::Ω.  Slice 9 supplies the carriers (@c Set,
+ * @c Subobject) and their @c SubsetEqRel typedefs.
  *
  * The strength @c S inherits at higher rows is determined by
  * @c L @c = @c S::logic_species:
