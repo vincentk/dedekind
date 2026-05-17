@@ -33,8 +33,8 @@
  */
 module;
 #include <algorithm>
-#include <concepts>     // std::convertible_to (HasLatticeOperators)
-#include <cstddef>      // std::size_t — bitwise lattice witness (#710)
+#include <concepts>  // std::convertible_to (HasLatticeOperators)
+#include <cstddef>   // std::size_t — bitwise lattice witness (#710)
 #include <functional>
 #include <type_traits>  // std::is_integral_v — bitwise lattice (#710)
 
@@ -218,9 +218,7 @@ static_assert(IsOrderLattice<bool>,
 export template <typename T>
   requires std::is_integral_v<T>
 struct bit_subset_eq {
-  constexpr bool operator()(T a, T b) const noexcept {
-    return (a & b) == a;
-  }
+  constexpr bool operator()(T a, T b) const noexcept { return (a & b) == a; }
 };
 
 }  // namespace dedekind::order
@@ -240,8 +238,8 @@ struct is_transitive<T, dedekind::order::bit_subset_eq<T>> : std::true_type {};
 
 template <typename T>
   requires std::is_integral_v<T>
-struct is_antisymmetric<T, dedekind::order::bit_subset_eq<T>>
-    : std::true_type {};
+struct is_antisymmetric<T, dedekind::order::bit_subset_eq<T>> : std::true_type {
+};
 
 template <typename T>
   requires std::is_integral_v<T>
@@ -292,12 +290,11 @@ static_assert(
     "(which honestly fails row 7 — see :category::lattice's static_assert "
     "documenting the Honest Rejection).");
 
-static_assert(
-    dedekind::category::IsBooleanLatticeCategory<
-        unsigned, bit_subset_eq<unsigned>, std::bit_or<unsigned>,
-        std::bit_and<unsigned>, std::bit_not<unsigned>>,
-    "unsigned under (bit_subset_eq, |, &, ~) is the bitwise Boolean "
-    "lattice on its bit-width.");
+static_assert(dedekind::category::IsBooleanLatticeCategory<
+                  unsigned, bit_subset_eq<unsigned>, std::bit_or<unsigned>,
+                  std::bit_and<unsigned>, std::bit_not<unsigned>>,
+              "unsigned under (bit_subset_eq, |, &, ~) is the bitwise Boolean "
+              "lattice on its bit-width.");
 
 static_assert(dedekind::category::LatticeBottom<
                   std::size_t, bit_subset_eq<std::size_t>>::value ==

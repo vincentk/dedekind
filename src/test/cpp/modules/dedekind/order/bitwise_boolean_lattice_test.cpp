@@ -35,22 +35,24 @@ TEST_CASE(
    *         (@c bit_subset_eq, @c |, @c &, @c ~).  All seven Form-chain
    *         rows fire — this is the power-set lattice of 64 bit
    *         positions, a finite Boolean algebra of dimension 64. */
-  STATIC_CHECK(IsThinCategory<std::size_t, bit_subset_eq<std::size_t>,
-                              ClassicalLogic>);
+  STATIC_CHECK(
+      IsThinCategory<std::size_t, bit_subset_eq<std::size_t>, ClassicalLogic>);
   STATIC_CHECK(
       IsPosetal<std::size_t, bit_subset_eq<std::size_t>, ClassicalLogic>);
   STATIC_CHECK(IsFilteredCategory<std::size_t, bit_subset_eq<std::size_t>,
                                   ClassicalLogic>);
-  STATIC_CHECK(IsBooleanLatticeCategory<
-               std::size_t, bit_subset_eq<std::size_t>, std::bit_or<std::size_t>,
-               std::bit_and<std::size_t>, std::bit_not<std::size_t>>);
+  STATIC_CHECK(
+      IsBooleanLatticeCategory<
+          std::size_t, bit_subset_eq<std::size_t>, std::bit_or<std::size_t>,
+          std::bit_and<std::size_t>, std::bit_not<std::size_t>>);
 }
 
 TEST_CASE("order:bitwise-boolean — unsigned int also fires",
           "[order][lattice][bitwise][boolean][unsigned]") {
-  STATIC_CHECK(IsBooleanLatticeCategory<
-               unsigned, bit_subset_eq<unsigned>, std::bit_or<unsigned>,
-               std::bit_and<unsigned>, std::bit_not<unsigned>>);
+  STATIC_CHECK(
+      IsBooleanLatticeCategory<unsigned, bit_subset_eq<unsigned>,
+                               std::bit_or<unsigned>, std::bit_and<unsigned>,
+                               std::bit_not<unsigned>>);
 }
 
 TEST_CASE("order:bitwise-boolean — bit_subset_eq computes correctly",
@@ -95,8 +97,8 @@ TEST_CASE(
    *         participate in @c IsBooleanLatticeCategory.  Two distinct
    *         algebraic structures, two distinct lattice witnesses. */
   STATIC_CHECK(IsHeytingLatticeCategory<std::size_t>);
-  STATIC_CHECK_FALSE(IsBooleanLatticeCategory<
-                     std::size_t, std::less_equal<std::size_t>,
-                     decltype(std::ranges::max), decltype(std::ranges::min),
-                     std::bit_not<std::size_t>>);
+  STATIC_CHECK_FALSE(
+      IsBooleanLatticeCategory<
+          std::size_t, std::less_equal<std::size_t>, decltype(std::ranges::max),
+          decltype(std::ranges::min), std::bit_not<std::size_t>>);
 }
