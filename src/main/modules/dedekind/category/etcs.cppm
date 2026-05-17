@@ -285,8 +285,7 @@ concept HasAxiom10PowerObjectLattice =
       /** @brief @c logic_species typedef anchors the classifier @c L
        *  (Slice 9 — required by @c :lattice::IsSubobjectLattice). */
       typename S::logic_species;
-    } &&
-    requires(S lhs, S rhs) {
+    } && requires(S lhs, S rhs) {
       requires IsSetObject<decltype(meet(lhs, rhs)), typename S::Ambient>;
       requires IsSetObject<decltype(join(lhs, rhs)), typename S::Ambient>;
     };
@@ -301,8 +300,10 @@ concept HasAxiom10PowerObjectLattice =
  *  logic).  The codebase commits to one direction of this
  *  bi-implication only:
  *
- *      @c L @c = @c ClassicalLogic @c ⟹ Sub(A) Boolean   (Diaconescu's classical-Ω direction)
- *      @c L @c = @c TernaryLogic   @c ⟹ Sub(A) Heyting   (constructive-collapse path)
+ *      @c L @c = @c ClassicalLogic @c ⟹ Sub(A) Boolean   (Diaconescu's
+ * classical-Ω direction)
+ *      @c L @c = @c TernaryLogic   @c ⟹ Sub(A) Heyting   (constructive-collapse
+ * path)
  *
  *  The Boolean refinement is exposed via the parallel
  *  @c :lattice::IsBooleanSubobjectLattice<S> concept rather than

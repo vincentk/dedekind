@@ -53,7 +53,8 @@ TEST_CASE(
 }
 
 TEST_CASE(
-    "sets:subobject-lattice — ClassicalLogic carriers fire IsBooleanSubobjectLattice",
+    "sets:subobject-lattice — ClassicalLogic carriers fire "
+    "IsBooleanSubobjectLattice",
     "[sets][lattice][subobject][boolean][classical]") {
   /** @brief Mechanises the user's downstream intuition: parametrising a
    *         carrier with @c ClassicalLogic automatically participates in
@@ -65,14 +66,17 @@ TEST_CASE(
 }
 
 TEST_CASE(
-    "sets:subobject-lattice — TernaryLogic carriers do NOT fire IsBooleanSubobjectLattice",
+    "sets:subobject-lattice — TernaryLogic carriers do NOT fire "
+    "IsBooleanSubobjectLattice",
     "[sets][lattice][subobject][boolean][kleene][negative]") {
   /** @brief Honest Rejection: parametrising a carrier with
    *         @c TernaryLogic falls out of the Boolean refinement.
    *         Heyting structure still holds via @c IsSubobjectLattice. */
   STATIC_CHECK_FALSE(IsBooleanSubobjectLattice<Ø<bool, TernaryLogic>>);
-  STATIC_CHECK_FALSE(IsBooleanSubobjectLattice<UniversalSet<bool, TernaryLogic>>);
-  STATIC_CHECK_FALSE(IsBooleanSubobjectLattice<SingletonSet<bool, TernaryLogic>>);
+  STATIC_CHECK_FALSE(
+      IsBooleanSubobjectLattice<UniversalSet<bool, TernaryLogic>>);
+  STATIC_CHECK_FALSE(
+      IsBooleanSubobjectLattice<SingletonSet<bool, TernaryLogic>>);
 }
 
 TEST_CASE("sets:subobject-lattice — IsSet still fires post-Axiom-10 update",
