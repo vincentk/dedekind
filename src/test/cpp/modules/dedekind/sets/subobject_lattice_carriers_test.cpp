@@ -52,9 +52,8 @@ TEST_CASE(
   STATIC_CHECK(IsSubobjectLattice<SingletonSet<bool>>);
 }
 
-TEST_CASE(
-    "sets:subobject-lattice — complement free function actually runs",
-    "[sets][lattice][subobject][complement][runtime]") {
+TEST_CASE("sets:subobject-lattice — complement free function actually runs",
+          "[sets][lattice][subobject][complement][runtime]") {
   /** @brief Codecov touch: the @c complement(s) free function in
    *         @c :etcs::concrete forwards to @c set_complement(s).  The
    *         concept-level static asserts in this file check the
