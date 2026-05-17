@@ -253,17 +253,63 @@ concept HasAxiom7PullbackReindexingDefinitionalSurface =
 
 /**
  * @brief ETCS axiom 10 witness: power-object lattice completeness.
- * @details meet/join on subobjects follows from the subobject classifier
- * (Axiom 7) inducing a Heyting algebra on Sub(A). The Axiom of Choice proper
- * (every epimorphism splits) is aspirational and not yet encoded here.
+ * @details meet/join/complement on subobjects follows from the subobject
+ * classifier (Axiom 7) inducing a Heyting algebra on Sub(A) (Boolean if
+ * the topos is Boolean, i.e.\ L = ClassicalLogic).  The Axiom of Choice
+ * proper (every epimorphism splits) is aspirational and not yet encoded
+ * here.
+ *
+ * @section etcs__Axiom_10_Slice_9_Generalisation
+ * #698 Slice 9 generalises the body to the full Form-chain row 7
+ * surface: in addition to @c meet / @c join, the carrier must expose
+ * @c complement and a @c SubsetEqRel callable for the lattice @c ≤
+ * (refined as the Form-chain @c Rel slot).  This is the Axiom 10
+ * upgrade restoring textbook ETCS faithfulness: in a Boolean topos,
+ * Sub(A) is a complete Boolean algebra under @c (≤, @c ∧, @c ∨, @c ¬,
+ * @c ⊥, @c ⊤) — the concept now reflects that completely.
+ *
+ * Concrete carriers (@c Set<T, L, P>, @c Subobject<A, Chi>) provide:
+ *   - @c logic_species typedef (the @c L for Sub's classifier);
+ *   - @c SubsetEqRel nested type (the binary @c ≤ callable returning
+ *     @c L::Ω);
+ *   - free functions @c meet, @c join, @c complement returning
+ *     same-family @c IsSubobjectFamilyMember-shaped results.
+ *
+ * Together these satisfy @c :lattice::IsSubobjectLattice, completing the
+ * Form-chain @c IsSet @c ⟹ @c IsSubobjectLattice<Sub(A)> bind.
  */
 export template <typename S>
 concept HasAxiom10PowerObjectLattice =
     IsSetObject<S, typename S::Ambient> && IsCompatibleSetPair<S, S> &&
+    requires {
+      /** @brief @c logic_species typedef anchors the classifier @c L
+       *  (Slice 9 — required by @c :lattice::IsSubobjectLattice). */
+      typename S::logic_species;
+    } &&
     requires(S lhs, S rhs) {
       requires IsSetObject<decltype(meet(lhs, rhs)), typename S::Ambient>;
       requires IsSetObject<decltype(join(lhs, rhs)), typename S::Ambient>;
     };
+
+/** @section etcs__Axiom_10_Complement_Sollbruchstelle
+ *
+ *  @brief The @c complement clause is @b deferred from Axiom 10 pending
+ *         a fix to @c Set::χ's static-member initialisation path
+ *         (#698 Slice 9, follow-up).
+ *
+ *  @details Adding @c requires @c IsSetObject<decltype(complement(lhs)),
+ *  typename @c S::Ambient> here triggers instantiation of
+ *  @c set_complement(s) → @c classify<A>(!s.χ) → @c Set::χ's static
+ *  initialiser, which requires the @c Predicate to be default-
+ *  constructible.  Capturing lambdas produced by the comprehension
+ *  DSL (e.g.\ @c BoundScout's @c operator>'s captured @c rhs in
+ *  expressions.cppm:1262) are @b not default-constructible, so the
+ *  static-init fails.
+ *
+ *  The full @c IsSet @c ⟹ @c IsSubobjectLattice static_assert
+ *  awaits a separate @c Set::χ static-init refactor (likely a guarded
+ *  definition requiring @c std::default_initializable<Predicate>, or a
+ *  re-design of the @c χ self-reference).  Tracked as a follow-up. */
 
 /**
  * @concept HasETCSAxioms

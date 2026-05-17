@@ -882,42 +882,53 @@ concept IsSubobjectFamilyMember = requires {
  *           @c logic_species, and @c SubsetEqRel typedefs.
  */
 export template <typename S>
-concept IsSubobjectLattice =
-    requires {
-      typename S::Ambient;
-      typename S::logic_species;
-      requires IsLogicalSpecies<typename S::logic_species>;
-      typename S::SubsetEqRel;
-    } &&
-    /** @brief Form-chain refinement: @c S is a thin category under its
-     *         carrier-provided @c SubsetEqRel.  Row 1 inclusion is
-     *         type-checked; reflexivity / transitivity of the carrier's
-     *         relation are registered as opt-in traits in Slice 9. */
-    IsThinCategory<S, typename S::SubsetEqRel, typename S::logic_species> &&
-    requires(S a, S b) {
-      /** @brief CT-vocabulary free functions for the binary lattice
-       *  operations (binary product / coproduct in the subobject category).
-       *  Results inhabit the same subobject family — anchored on
-       *  @c (S::Ambient, S::logic_species) per the family concept. */
-      {
-        meet(a, b)
-      } -> IsSubobjectFamilyMember<typename S::Ambient,
-                                   typename S::logic_species>;
-      {
-        join(a, b)
-      } -> IsSubobjectFamilyMember<typename S::Ambient,
-                                   typename S::logic_species>;
-    } && requires(S a) {
-      /** @brief Complement is required unconditionally: classical
-       *         carriers get a bona-fide Boolean complement, Kleene
-       *         carriers get the involutive rotation that fails
-       *         Boolean complement laws at @c Unknown.  The semantic
-       *         strength is established at the @c L-witness level,
-       *         not the concept boundary. */
-      {
-        complement(a)
-      } -> IsSubobjectFamilyMember<typename S::Ambient,
-                                   typename S::logic_species>;
-    };
+concept IsSubobjectLattice = requires(S a, S b) {
+  /** @brief CT-vocabulary metadata: @c S exposes an ambient and a
+   *         classifier logic species. */
+  typename S::Ambient;
+  typename S::logic_species;
+  requires IsLogicalSpecies<typename S::logic_species>;
+
+  /** @brief CT-vocabulary free functions for the binary lattice
+   *         operations (binary product / coproduct in the subobject
+   *         category).  Results inhabit the same subobject family —
+   *         anchored on @c (S::Ambient, S::logic_species) per the
+   *         family concept. */
+  {
+    meet(a, b)
+  } -> IsSubobjectFamilyMember<typename S::Ambient,
+                               typename S::logic_species>;
+  {
+    join(a, b)
+  } -> IsSubobjectFamilyMember<typename S::Ambient,
+                               typename S::logic_species>;
+} && requires(S a) {
+  /** @brief Complement is required unconditionally: classical carriers
+   *         get a bona-fide Boolean complement, Kleene carriers get
+   *         the involutive rotation that fails Boolean complement
+   *         laws at @c Unknown.  The semantic strength is established
+   *         at the @c L-witness level, not the concept boundary. */
+  {
+    complement(a)
+  } -> IsSubobjectFamilyMember<typename S::Ambient,
+                               typename S::logic_species>;
+};
+
+/** @section lattice__IsSubobjectLattice_Order_Derivability
+ *
+ *  @brief The Form-chain @c ≤ relation on a subobject lattice is
+ *         @b derivable from @c meet:
+ *
+ *      @c a @c ≤ @c b @c ⟺ @c meet(a, @c b) @c = @c a
+ *                    @c ⟺ @c join(a, @c b) @c = @c b
+ *
+ *  This is a standard textbook equivalence (Birkhoff, "Lattice Theory",
+ *  §1.4).  Hence @c IsSubobjectLattice's body does @b not require a
+ *  separate @c subset_eq / @c operator<= clause — the row-1 (thin)
+ *  inclusion content is recoverable from the row-3 (filtered) lattice
+ *  ops.  Carriers exposing a direct @c operator<= or free
+ *  @c subset_eq do so as @b set-side sugar (the Pierce-style
+ *  stratification named in Slice 8's Sollbruchstelle text), not as a
+ *  CT-vocabulary primitive of this concept. */
 
 }  // namespace dedekind::category
