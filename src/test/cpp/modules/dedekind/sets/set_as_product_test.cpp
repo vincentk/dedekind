@@ -23,21 +23,25 @@ TEST_CASE("Concrete: SetAsProduct seam — Set := (Underlying, Classifier)",
           "[category][concrete][sets][product][parthood]") {
   // classify<T>(predicate) (from :category:topoi) materialises a
   // Subobject<A, χ> whose Ambient is T and whose χ is the rule-arrow
-  // built from the predicate.  This is the natural test target for the
-  // (Underlying, Classifier) reading.
+  // built from the predicate.  Post-#681 structural refactor:
+  // @c SetAsProduct's Classifier dimension is the codomain of the
+  // carrier-as-predicate (L::Ω), not the predicate-type wrapper.  For
+  // a bool-returning lambda under ClassicalLogic the Classifier is bool.
   const auto s_even = classify<int>([](const int& x) { return x % 2 == 0; });
 
-  using ChiType = std::remove_cvref_t<decltype(s_even.χ)>;
+  // Classifier = codomain of S(a) — i.e.\ @c ClassicalLogic::Ω = bool.
+  using ClassifierΩ = bool;
 
   SECTION("set object witnesses both readings (predicate and product)") {
     // Predicate reading (sibling): S is a subobject of int.
     STATIC_CHECK(IsSetObject<decltype(s_even), int>);
-    // Product reading (this slice): S decomposes as (int, χ-type).
-    STATIC_CHECK(SetAsProduct<decltype(s_even), int, ChiType>);
+    // Product reading (this slice): S decomposes as (int, classifier-Ω).
+    STATIC_CHECK(SetAsProduct<decltype(s_even), int, ClassifierΩ>);
   }
 
   SECTION("Underlying must match S::Ambient") {
-    // A wrong Underlying must not satisfy the concept.
-    STATIC_CHECK_FALSE(SetAsProduct<decltype(s_even), bool, ChiType>);
+    // A wrong Underlying must not satisfy the concept (fails on the
+    // IsSetObject prerequisite, not on the Classifier match).
+    STATIC_CHECK_FALSE(SetAsProduct<decltype(s_even), bool, ClassifierΩ>);
   }
 }

@@ -525,19 +525,20 @@ static_assert(
     "ℚ's underlying carrier IS Rational<default_integer> — the textbook "
     "universe-over-carrier reading.");
 
-// #573 slice 4 pilot witness: ℚ walks SetAsProduct.  The universe value
-// is a UniversalSet over Rational<default_integer> --- its Ambient is the
-// underlying species, its χ is the always-True classifier.  Names the
-// (Underlying, Classifier) product reading of the ambient rational set
-// concretely on the canonical pilot carrier.
+// #573 slice 4 pilot witness: ℚ walks SetAsProduct.  Post-#681 structural
+// refactor: @c SetAsProduct's Classifier dimension is now the codomain
+// of the carrier-as-predicate (the @c L::Ω value at any @c a), not the
+// predicate-type wrapper itself.  For ℚ under @c ClassicalLogic the
+// codomain is @c bool.  Same CT content (the universe value is a
+// UniversalSet over Rational<default_integer> classified by Ω), now
+// expressed structurally rather than via a named @c .χ projector.
 static_assert(
     dedekind::category::SetAsProduct<std::remove_cvref_t<decltype(ℚ)>,
-                                     Rational<default_integer>,
-                                     std::remove_cvref_t<decltype(ℚ.χ)>>,
+                                     Rational<default_integer>, bool>,
     "#573 slice 4: ℚ must witness SetAsProduct over "
-    "(Rational<default_integer>, "
-    "χ-type).  The universe value is a UniversalSet whose Ambient matches the "
-    "rational carrier and whose χ is recoverable as a typed member.");
+    "(Rational<default_integer>, ClassicalLogic::Ω = bool).  The universe "
+    "value is a UniversalSet whose Ambient matches the rational carrier "
+    "and whose classifier codomain is bool.");
 
 // `Q` constant + `RationalSet` alias removed under ℚ-retarget
 // chiselling --- callers spell @c element<ℚ> directly off the universe

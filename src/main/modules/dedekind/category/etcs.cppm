@@ -119,11 +119,13 @@ concept HasAxiom2Identity =
 export template <typename A>
 concept HasAxiom3TerminalObject = IsTerminalObject<One>;
 
-/** @brief ETCS axiom 4 witness: membership is evaluation through χ. */
+/** @brief ETCS axiom 4 witness: membership is evaluation through the
+ *  carrier-as-characteristic-morphism.  Post-#681 structural refactor:
+ *  @c IsSubobject already requires the structural call shape
+ *  @c { s(a) } @c -> @c LogicalValue, so the membership-as-evaluation
+ *  reading lands on the @c IsSubobject witness itself. */
 export template <typename S>
-concept HasAxiom4WellPointedness =
-    IsSubobject<S, typename S::Ambient> &&
-    IsPredicate<std::remove_cvref_t<decltype(std::declval<S>().χ)>>;
+concept HasAxiom4WellPointedness = IsSubobject<S, typename S::Ambient>;
 
 /** @brief ETCS axiom 5 witness: products exist for ambient species A. */
 export template <typename A>
@@ -230,13 +232,14 @@ concept HasAxiom10ChoiceSplitEpicLawSurface =
 export template <typename S, IsArrow E>
   requires IsSubobject<S, typename S::Ambient> &&
            std::same_as<Cod<E>, typename S::Ambient> &&
-           std::equality_comparable<Cod<decltype(std::declval<S>().χ)>>
+           std::equality_comparable<
+               std::invoke_result_t<S const&, typename S::Ambient const&>>
 constexpr bool classifier_reindexing_definitional_witness_at(const S& s,
                                                              const E& embedding,
                                                              const Dom<E>& x) {
   const auto embedded = embedding(x);
-  const auto via_classifier = s.χ(embedded);
-  return via_classifier == s.χ(embedded);
+  const auto via_classifier = s(embedded);
+  return via_classifier == s(embedded);
 }
 
 /**
@@ -249,7 +252,8 @@ export template <typename S, typename E>
 concept HasAxiom7PullbackReindexingDefinitionalSurface =
     HasAxiom7SubobjectClassifier<S> && IsArrow<E> &&
     std::same_as<Cod<E>, typename S::Ambient> &&
-    std::equality_comparable<Cod<decltype(std::declval<S>().χ)>>;
+    std::equality_comparable<
+        std::invoke_result_t<S const&, typename S::Ambient const&>>;
 
 /**
  * @brief ETCS axiom 10 witness: power-object lattice completeness.
