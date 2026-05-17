@@ -33,8 +33,10 @@
  */
 module;
 #include <algorithm>
-#include <concepts>  // std::convertible_to (HasLatticeOperators)
+#include <concepts>     // std::convertible_to (HasLatticeOperators)
+#include <cstddef>      // std::size_t — bitwise lattice witness (#710)
 #include <functional>
+#include <type_traits>  // std::is_integral_v — bitwise lattice (#710)
 
 export module dedekind.order:lattice;
 
@@ -169,6 +171,142 @@ static_assert(IsOrderLattice<bool>,
               "bool is the canonical Boolean-ring lattice "
               "(under bit_xor / bit_and; both halves of the bundle "
               "fire today).");
+
+/** @section order_lattice__Bitwise_Boolean_Lattice
+ *
+ *  @brief Integral carriers under the @b bitwise Boolean algebra (#710).
+ *
+ *  @details
+ *  An integral carrier @c T (@c int, @c unsigned, @c std::size_t, …)
+ *  has TWO distinct lattice readings on the same underlying set:
+ *
+ *    - The @b Boolean-ring reading (@c IsOrderLattice<bool> above
+ *      already pins this for @c bool): @c (XOR, AND) — additive group
+ *      under XOR, multiplicative monoid under AND.  Algebraic / field-
+ *      flavoured.
+ *    - The @b Boolean-lattice reading (this section, #710): the
+ *      power-set lattice of the bit positions.  @c a @c ⊆_bit @c b
+ *      @c ⟺ @c (a @c & @c b) @c == @c a; meet = @c &; join = @c |;
+ *      complement = @c ~; bottom = @c 0; top = @c ~T(0).  Order-theoretic
+ *      / Form-chain-row-7 flavoured.
+ *
+ *  The two readings are equivalent on Boolean algebras (XOR is the
+ *  symmetric difference @c (a @c | @c b) @c & @c ~(a @c & @c b)), but
+ *  they expose different concept surfaces — @c IsOrderLattice
+ *  (Boolean-ring) above vs.\ @c :category::IsBooleanLatticeCategory
+ *  (Form-chain row 7) here.  Naming both makes the equivalence
+ *  navigable rather than implicit.
+ *
+ *  @section order_lattice__Bitwise_GF_Cross_Reference
+ *  @c :algebra::galois.cppm carries the Galois field machinery
+ *  (@c bool @c = @c 𝔽_2 under @c (XOR, AND); @c 𝔽64 @c = @c GF(2^6)
+ *  with polynomial multiplication mod @c x^6+x+1; @c IsGaloisField
+ *  concept; @c GaloisFieldRegistration CRTP).  For wider integral
+ *  @c T (@c size_t etc.), the field claim requires a specific primitive
+ *  polynomial — the project does not witness @c GF(2^N) for arbitrary
+ *  @c N as field-on-the-primitive type without a struct wrapper.
+ *
+ *  Cross-reading: the bitwise Boolean @b lattice on @c size_t here is
+ *  the lattice of subsets of @c {0, …, 63}; the (would-be) Galois
+ *  @b field @c GF(2^64) on the same carrier is a different algebraic
+ *  structure on the same underlying set.  Don't conflate them.
+ */
+
+/** @brief Bit-subset relation: @c a @c ⊆_bit @c b @c ⟺ @c (a @c &
+ *         @c b) @c == @c a.  Form-chain @c Rel slot for the bitwise
+ *         Boolean lattice on integral carriers (#710). */
+export template <typename T>
+  requires std::is_integral_v<T>
+struct bit_subset_eq {
+  constexpr bool operator()(T a, T b) const noexcept {
+    return (a & b) == a;
+  }
+};
+
+}  // namespace dedekind::order
+
+// Trait specialisations sit in the @c dedekind::category namespace
+// where their primary templates live; re-opening here keeps the
+// bitwise-lattice witnesses self-contained at this site.
+namespace dedekind::category {
+
+template <typename T>
+  requires std::is_integral_v<T>
+struct is_reflexive<T, dedekind::order::bit_subset_eq<T>> : std::true_type {};
+
+template <typename T>
+  requires std::is_integral_v<T>
+struct is_transitive<T, dedekind::order::bit_subset_eq<T>> : std::true_type {};
+
+template <typename T>
+  requires std::is_integral_v<T>
+struct is_antisymmetric<T, dedekind::order::bit_subset_eq<T>>
+    : std::true_type {};
+
+template <typename T>
+  requires std::is_integral_v<T>
+struct is_directed<T, dedekind::order::bit_subset_eq<T>> : std::true_type {};
+
+template <typename T>
+  requires std::is_integral_v<T>
+struct is_codirected<T, dedekind::order::bit_subset_eq<T>> : std::true_type {};
+
+/** @brief Bitwise-lattice bottom: the all-zeros bitmask. */
+template <typename T>
+  requires std::is_integral_v<T>
+struct LatticeBottom<T, dedekind::order::bit_subset_eq<T>> {
+  using is_initial_object_tag = void;
+  static constexpr T value = T{0};
+};
+
+/** @brief Bitwise-lattice top: the all-ones bitmask. */
+template <typename T>
+  requires std::is_integral_v<T>
+struct LatticeTop<T, dedekind::order::bit_subset_eq<T>> {
+  using is_terminal_object_tag = void;
+  static constexpr T value = static_cast<T>(~T{0});
+};
+
+/** @brief Canonical specialisation: @c std::bit_not<T> is the
+ *         complement for the bitwise Boolean lattice on integral @c T.
+ *         Complement laws hold structurally: @c a @c & @c ~a @c = @c 0
+ *         (bottom) and @c a @c | @c ~a @c = @c ~T(0) (top). */
+template <typename T>
+  requires std::is_integral_v<T>
+struct is_complement<std::bit_not<T>, T, dedekind::order::bit_subset_eq<T>,
+                     std::bit_or<T>, std::bit_and<T>> : std::true_type {};
+
+}  // namespace dedekind::category
+
+namespace dedekind::order {
+
+/** @section order_lattice__Bitwise_Canonical_Witnesses */
+
+static_assert(
+    dedekind::category::IsBooleanLatticeCategory<
+        std::size_t, bit_subset_eq<std::size_t>, std::bit_or<std::size_t>,
+        std::bit_and<std::size_t>, std::bit_not<std::size_t>>,
+    "size_t under (bit_subset_eq, |, &, ~) is the bitwise Boolean "
+    "lattice — the power-set lattice of {0, …, 63}.  Distinct from "
+    "the totally-ordered Heyting chain on size_t under std::less_equal "
+    "(which honestly fails row 7 — see :category::lattice's static_assert "
+    "documenting the Honest Rejection).");
+
+static_assert(
+    dedekind::category::IsBooleanLatticeCategory<
+        unsigned, bit_subset_eq<unsigned>, std::bit_or<unsigned>,
+        std::bit_and<unsigned>, std::bit_not<unsigned>>,
+    "unsigned under (bit_subset_eq, |, &, ~) is the bitwise Boolean "
+    "lattice on its bit-width.");
+
+static_assert(dedekind::category::LatticeBottom<
+                  std::size_t, bit_subset_eq<std::size_t>>::value ==
+                  std::size_t{0},
+              "Bitwise lattice bottom on size_t is the all-zeros bitmask.");
+static_assert(dedekind::category::LatticeTop<
+                  std::size_t, bit_subset_eq<std::size_t>>::value ==
+                  ~std::size_t{0},
+              "Bitwise lattice top on size_t is the all-ones bitmask.");
 
 // Set<T, L, P> structurally cannot satisfy @c HasLatticeOperators (#469
 // design note).  After the @c operator^ symmetric-difference slice
