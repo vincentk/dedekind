@@ -150,6 +150,7 @@ module;
 
 #include <algorithm>
 #include <concepts>
+#include <cstddef>      // std::size_t — Slice 10 meeting-point pin.
 #include <functional>
 #include <limits>       // std::numeric_limits — LatticeBottom/Top
                         // specialisations for arithmetic carriers.
@@ -752,6 +753,52 @@ static_assert(
     "(e.g. min(5, ~5) = -6 ≠ INT_MIN).  Honest Rejection via the opt-in "
     "is_complement_v trait — see #710 for the bitwise Boolean algebra "
     "under a bit-subset relation.");
+
+/** @section lattice__Slice_10_Meeting_Point
+ *
+ *  @brief Compile-time meeting-point pins (#698 Slice 10) — three
+ *         structurally distinct carriers at the same Form-chain rows.
+ *
+ *  @details The closing slice for #698 establishes that the Form-chain
+ *  machinery is genuinely carrier-uniform: same code, three readings.
+ *  The full meeting-point matrix (rows × carriers) lives in
+ *  @c test/cpp/.../meeting_point_test.cpp; the pins below are the
+ *  compile-time anchors that catch regressions @em at @em compile-time
+ *  rather than runtime.
+ *
+ *  Per @c feedback_static_assert_in_main: cross-partition / cross-
+ *  carrier invariants live as @c static_assert in the main @c .cppm
+ *  source when there's no mock-type dependency.
+ *
+ *  Carriers covered here:
+ *  - @c size_t: large finite totally-ordered chain (Slices 6/7 already
+ *    pinned @c bool and @c int).
+ *  - @c std::ranges niebloid identity: the Form-chain @c Meet / @c Join
+ *    slots @b are the @c std::ranges niebloid types — pinned via an
+ *    explicit instantiation that names them. */
+
+static_assert(IsHeytingLatticeCategory<std::size_t>,
+              "size_t is a Heyting lattice under the totally-ordered "
+              "implication; rows 1–6 of the Form-chain fire.");
+
+static_assert(
+    !IsBooleanLatticeCategory<std::size_t, std::less_equal<std::size_t>,
+                              decltype(std::ranges::max),
+                              decltype(std::ranges::min),
+                              std::bit_not<std::size_t>>,
+    "size_t under std::less_equal with std::bit_not is NOT a Boolean "
+    "lattice — same Honest Rejection as int (the bitwise complement "
+    "doesn't match the order-theoretic meet/join).  Bitwise route is "
+    "#710's territory.");
+
+static_assert(IsLatticeCategory<int, std::less_equal<int>,
+                                decltype(std::ranges::max),
+                                decltype(std::ranges::min)>,
+              "Niebloid identity: the Form-chain Meet / Join slot "
+              "defaults ARE the std::ranges niebloids "
+              "(std::ranges::min, std::ranges::max).  Pinning the "
+              "explicit instantiation here makes the structural fit "
+              "type-checked at compile time.");
 
 /**
  * @concept IsSubobjectFamilyMember
