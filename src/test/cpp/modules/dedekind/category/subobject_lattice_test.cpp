@@ -3,159 +3,116 @@
  * Unit coverage for #698 Slice 8:
  *
  *   - @c IsSubobjectLattice<S> — the CT-vocabulary concept binding
- *     subobject carriers to the Form-chain via the
- *     classifier @c S::logic_species::Ω.
- *   - The Ternary Form-chain witness — Kleene K3 participates in rows
- *     1 (@c IsThinCategory) and 2 (@c IsPosetal) under the @c TernaryLogic
- *     species; row 7 (@c IsBooleanLatticeCategory) fails honestly
- *     because K3 is the smallest non-Boolean Heyting algebra (complement
- *     laws break at @c Unknown).
+ *     subobject carriers to the Form-chain via the classifier
+ *     @c S::logic_species::Ω.  Refines @c IsThinCategory<S,
+ *     S::SubsetEqRel, S::logic_species>; requires the carrier to
+ *     expose its own @c SubsetEqRel callable type (an
+ *     @c :morphism::IsArrow-shaped binary relation).
+ *   - @c IsSubobjectFamilyMember<R, A, L> — anchored on the ambient
+ *     and the classifier, the family concept paralleling
+ *     @c :sets::mereology::IsSystem<S, Species, L>.
+ *   - @c operator<=> on @c Ternary in @c :logic — enables stdlib
+ *     niebloids (@c std::ranges::min / @c max) to compute Kleene
+ *     meet / join on Ternary directly, so @c :lattice carries no
+ *     Ternary-specific function-object struct types.
  *
- * Architectural commits (no concrete carrier witnesses yet — those land
- * in Slice 9 with the @c :etcs harmonisation):
- *
- *   - The Form-chain is L-parametric from day 0: @c IsThinCategory<T,
- *     Rel, L> binds @c rel(a, b) @c -> @c L::Ω, so a Ternary-valued
- *     @c Rel is admissible without any concept-shape changes.
- *   - The collapse rule: @c L = @c ClassicalLogic → rows 1–7 (standard
- *     set theory falls out as the decidable collapse); @c L = @c
- *     TernaryLogic → rows 1–6 only (Heyting; the "tricky to decide"
- *     escape door).
+ * Slice 8 is the @b architectural commit.  Concrete carrier witnesses
+ * (@c SubsetEqRel typedefs on @c Set / @c Subobject, free-function
+ * @c meet / @c join / @c complement, the @c HasAxiom10PowerObjectLattice
+ * generalisation in @c :etcs, Ternary's Form-chain participation via a
+ * concrete @c L = @c TernaryLogic carrier) land in Slice 9 with the
+ * @c :etcs harmonisation.
  */
 
 #include <catch2/catch_test_macros.hpp>
+#include <algorithm>  // std::ranges::min / max — Kleene meet / join on Ternary
+#include <compare>
 #include <concepts>
-#include <cstdint>
-#include <functional>
 
 import dedekind.category;
 
 using namespace dedekind::category;
 
-TEST_CASE("category:subobject-lattice — Ternary callables compute correctly",
-          "[category][lattice][subobject][ternary][callable]") {
-  /** @brief Sanity: the Form-chain callables on Ternary forward to
-   *         @c TernaryLogic's strong Kleene operators. */
-  constexpr TernaryLessEqual le{};
-  constexpr TernaryMeet meet{};
-  constexpr TernaryJoin join{};
-  constexpr TernaryNot not_op{};
+TEST_CASE("category:subobject-lattice — Ternary <=> enables stdlib niebloids",
+          "[category][logic][ternary][spaceship]") {
+  /** @brief @c Ternary has @c operator<=> returning @c std::strong_ordering
+   *         on the truth-order chain @c False @c (-1) @c < @c Unknown
+   *         @c (0) @c < @c True @c (1).
+   *
+   *  @note Comparison between two @c Ternary values is itself classically
+   *  decided — the truth ordering is total.  @c Unknown values arise from
+   *  undecidable predicates over an intensional ambient, not from
+   *  comparing two @c Ternary values directly. */
+  STATIC_CHECK((Ternary::False <=> Ternary::Unknown) == std::strong_ordering::less);
+  STATIC_CHECK((Ternary::Unknown <=> Ternary::True) == std::strong_ordering::less);
+  STATIC_CHECK((Ternary::True <=> Ternary::True) == std::strong_ordering::equal);
 
-  // Chain order: False < Unknown < True.
-  STATIC_CHECK(le(Ternary::False, Ternary::Unknown) == Ternary::True);
-  STATIC_CHECK(le(Ternary::Unknown, Ternary::True) == Ternary::True);
-  STATIC_CHECK(le(Ternary::True, Ternary::False) == Ternary::False);
-
-  // Meet = Kleene AND = min.
-  STATIC_CHECK(meet(Ternary::True, Ternary::Unknown) == Ternary::Unknown);
-  STATIC_CHECK(meet(Ternary::Unknown, Ternary::False) == Ternary::False);
-  STATIC_CHECK(meet(Ternary::True, Ternary::True) == Ternary::True);
-
-  // Join = Kleene OR = max.
-  STATIC_CHECK(join(Ternary::False, Ternary::Unknown) == Ternary::Unknown);
-  STATIC_CHECK(join(Ternary::Unknown, Ternary::True) == Ternary::True);
-  STATIC_CHECK(join(Ternary::False, Ternary::False) == Ternary::False);
-
-  // Kleene rotation: NOT(False) = True, NOT(Unknown) = Unknown,
-  // NOT(True) = False.  This is the load-bearing feature for "complement
-  // laws fail at Unknown": Unknown ∧ ¬Unknown = min(Unknown, Unknown)
-  // = Unknown, not False.
-  STATIC_CHECK(not_op(Ternary::False) == Ternary::True);
-  STATIC_CHECK(not_op(Ternary::Unknown) == Ternary::Unknown);
-  STATIC_CHECK(not_op(Ternary::True) == Ternary::False);
-
-  // Involutiveness: NOT(NOT(x)) = x for every x — required by
-  // IsInvolutiveEndofunctor and the load-bearing reason TernaryNot
-  // sits at the Form-chain Not slot.
-  STATIC_CHECK(not_op(not_op(Ternary::False)) == Ternary::False);
-  STATIC_CHECK(not_op(not_op(Ternary::Unknown)) == Ternary::Unknown);
-  STATIC_CHECK(not_op(not_op(Ternary::True)) == Ternary::True);
-}
-
-TEST_CASE("category:subobject-lattice — Ternary participates in rows 1–2",
-          "[category][lattice][subobject][ternary][form-chain]") {
-  /** @brief Ternary at @c IsThinCategory (row 1): preorder with @c L::Ω-
-   *         valued @c rel. */
-  STATIC_CHECK(IsThinCategory<Ternary, TernaryLessEqual, TernaryLogic>);
-
-  /** @brief Ternary at @c IsPosetal (row 2): thin + antisymmetric. */
-  STATIC_CHECK(IsPosetal<Ternary, TernaryLessEqual, TernaryLogic>);
-
-  /** @brief @c TernaryNot is an involutive endofunctor (Slice 5
-   *         machinery), independent of the Form-chain rows.  Used at
-   *         the @c Not slot when a Boolean-style complement is
-   *         intended; in K3 the complement laws fail, so this
-   *         involution does @b not promote to a Boolean lattice
-   *         complement. */
-  STATIC_CHECK(IsInvolutiveEndofunctor<TernaryNot, Ternary>);
+  // Auto-derived <, <=, >, >=, ==, != all work.
+  STATIC_CHECK(Ternary::False < Ternary::True);
+  STATIC_CHECK(Ternary::Unknown <= Ternary::Unknown);
+  STATIC_CHECK(Ternary::True > Ternary::False);
+  STATIC_CHECK(Ternary::False == Ternary::False);
+  STATIC_CHECK(Ternary::Unknown != Ternary::True);
 }
 
 TEST_CASE(
-    "category:subobject-lattice — Ternary is NOT Boolean (honest rejection)",
-    "[category][lattice][subobject][ternary][negative][honest-rejection]") {
-  /** @brief @c K3 is the smallest non-Boolean Heyting algebra.
-   *         @c is_complement_v is @b deliberately not registered for
-   *         @c (TernaryNot, Ternary, TernaryLessEqual, TernaryJoin,
-   *         TernaryMeet), so @c IsBooleanLatticeCategory<Ternary, …>
-   *         fails closed via Slice 7's opt-in trait pattern. */
-  STATIC_CHECK_FALSE(
-      IsBooleanLatticeCategory<Ternary, TernaryLessEqual, TernaryJoin,
-                               TernaryMeet, TernaryNot, TernaryLogic>);
+    "category:subobject-lattice — Kleene meet / join via std::ranges niebloids",
+    "[category][logic][ternary][niebloid][lattice]") {
+  /** @brief With @c operator<=> on Ternary, @c std::ranges::min / @c max
+   *         compute the Kleene strong AND / OR directly.  No
+   *         Ternary-specific function-object struct types live in
+   *         @c :lattice (#712 review — "Structs will lock us in"). */
+  STATIC_CHECK(std::ranges::min(Ternary::True, Ternary::Unknown) ==
+               Ternary::Unknown);  // Kleene AND
+  STATIC_CHECK(std::ranges::min(Ternary::Unknown, Ternary::False) ==
+               Ternary::False);  // Kleene AND, False annihilator
+  STATIC_CHECK(std::ranges::max(Ternary::False, Ternary::Unknown) ==
+               Ternary::Unknown);  // Kleene OR
+  STATIC_CHECK(std::ranges::max(Ternary::Unknown, Ternary::True) ==
+               Ternary::True);  // Kleene OR, True annihilator
 
-  /** @brief Direct semantic witness of why: complement laws fail at
-   *         @c Unknown.  This is the value-level evidence the opt-in
-   *         trait avoided registering. */
-  constexpr TernaryMeet meet{};
-  constexpr TernaryJoin join{};
-  constexpr TernaryNot not_op{};
-
-  // x ∧ ¬x = ⊥ fails at Unknown: Unknown ∧ ¬Unknown = Unknown, not False.
-  STATIC_CHECK(meet(Ternary::Unknown, not_op(Ternary::Unknown)) ==
-               Ternary::Unknown);
-  // Holds at True / False (the classically-decidable subset of K3):
-  STATIC_CHECK(meet(Ternary::True, not_op(Ternary::True)) == Ternary::False);
-  STATIC_CHECK(meet(Ternary::False, not_op(Ternary::False)) == Ternary::False);
-
-  // x ∨ ¬x = ⊤ fails at Unknown likewise.
-  STATIC_CHECK(join(Ternary::Unknown, not_op(Ternary::Unknown)) ==
-               Ternary::Unknown);
+  // Truth-functional consistency with TernaryLogic::AND / OR.
+  STATIC_CHECK(std::ranges::min(Ternary::True, Ternary::Unknown) ==
+               TernaryLogic::AND(Ternary::True, Ternary::Unknown));
+  STATIC_CHECK(std::ranges::max(Ternary::False, Ternary::Unknown) ==
+               TernaryLogic::OR(Ternary::False, Ternary::Unknown));
 }
 
 namespace {
 
 // Architectural fixture: a minimal carrier exposing the CT-vocabulary
 // metadata that IsSubobjectLattice<S>'s body requires.  No operational
-// content yet — the meet / join / subset_eq free-function witnesses
-// land in Slice 9 with the :etcs harmonisation; this fixture exists to
-// prove the concept's metadata clause fires structurally.
+// content yet — the SubsetEqRel typedef, meet / join / complement free
+// functions land in Slice 9 with the :etcs harmonisation; this fixture
+// exists to prove the concept's metadata clause fires structurally.
 struct FauxSubobject {
   using Ambient = bool;
   using logic_species = dedekind::category::ClassicalLogic;
 };
-
-// Confirm fixture exposes the CT-vocabulary metadata IsSubobjectLattice
-// needs.  Slice 9 adds the free-function witnesses on Subobject<A, Chi>
-// and Set<T, L, P> at which point the concept fires end-to-end.
 
 }  // namespace
 
 TEST_CASE(
     "category:subobject-lattice — IsSubobjectLattice metadata clause fires",
     "[category][lattice][subobject][concept][metadata]") {
-  /** @brief Sanity that the concept's CT-vocabulary metadata clause
+  /** @brief Sanity that the concept's CT-vocabulary metadata
    *         (@c Ambient + @c logic_species typedefs, with
-   *         @c IsLogicalSpecies on the species) fires structurally on
-   *         a carrier exposing the required typedefs.
+   *         @c IsLogicalSpecies on the species) is the shape carriers
+   *         must expose.
    *
-   *  @note The full concept additionally requires free-function @c meet,
-   *  @c join, @c subset_eq (and classical-gated @c complement) — those
-   *  witnesses land in Slice 9 with the @c :etcs harmonisation, at which
+   *  @note The full concept additionally requires a @c SubsetEqRel
+   *  typedef and free-function @c meet, @c join, @c complement —
+   *  those land in Slice 9 with the @c :etcs harmonisation, at which
    *  point @c Subobject<A, Chi> and @c Set<T, L, P> will fire the
    *  concept end-to-end.  This test pins the Slice 8 architectural
    *  commit: the metadata shape is what we want, and the carriers
-   *  already expose it (@c Set has @c Ambient + @c logic_species
-   *  typedefs per @c expressions.cppm; @c Subobject has @c Ambient and
-   *  derives @c logic_species via the carrier's @c χ). */
+   *  already expose @c Ambient + @c logic_species. */
   STATIC_CHECK(IsLogicalSpecies<FauxSubobject::logic_species>);
   STATIC_CHECK(std::same_as<FauxSubobject::Ambient, bool>);
+
+  /** @brief Negative witness: without @c SubsetEqRel + the free
+   *         functions, the full concept does @b not fire.  Slice 9
+   *         lifts this by adding the missing pieces on @c Set /
+   *         @c Subobject. */
+  STATIC_CHECK_FALSE(IsSubobjectLattice<FauxSubobject>);
 }

@@ -150,7 +150,6 @@ module;
 
 #include <algorithm>
 #include <concepts>
-#include <cstdint>  // std::int8_t — Ternary cast in TernaryLessEqual.
 #include <functional>
 #include <limits>       // std::numeric_limits — LatticeBottom/Top
                         // specialisations for arithmetic carriers.
@@ -754,145 +753,6 @@ static_assert(
     "is_complement_v trait — see #710 for the bitwise Boolean algebra "
     "under a bit-subset relation.");
 
-/** @section lattice__Ternary_Form_Chain_Witness
- *
- *  @brief Kleene K3 (@c Ternary) at the Form-chain — the constructive
- *         collapse path (#698 Slice 8).
- *
- *  @details
- *  @c Ternary is the smallest non-Boolean Heyting algebra: the 3-element
- *  chain @c {False @c < @c Unknown @c < @c True} with Kleene min / max /
- *  rotation operators.  It is the canonical @c Ω for the "tricky to
- *  decide" regime: predicates over infinite intensional carriers honestly
- *  return @c Unknown at undecidable points.
- *
- *  This section witnesses the pipeline at row 1 (@c IsThinCategory) and
- *  row 2 (@c IsPosetal) — proof of concept that the Form-chain admits
- *  Ternary-valued @c Rel directly via the @c L parameter.  Rows 3–6
- *  (filtered / lattice / bounded / Heyting) require the @c :posetal
- *  algebraic surface (@c IsOrderLatticeOperations) to also fire on
- *  Ternary, which involves a fan-out of trait specialisations across
- *  @c :species and @c :mereology — that work follows in #698 Slice 9 with
- *  the @c :etcs harmonisation.  Row 7 (Boolean) fails @b honestly under
- *  Ternary: complement laws break at @c Unknown (the smallest non-Boolean
- *  Heyting algebra is exactly K3).
- *
- *  The callables below are CT-vocabulary primitives — they carry the
- *  Form-chain @c Rel / @c Join / @c Meet / @c Not slots for Ternary.  The
- *  set-theoretic operator surface (@c <=, @c &, @c |, @c !) on Ternary
- *  lives in @c :logic as exported overloads on the @c Ternary enum.
- */
-
-/** @brief Ternary-valued @c ≤ — chain order with @c Ternary return type
- *         matching @c IsThinCategory<·, ·, TernaryLogic>'s @c rel(a, @c b)
- *         @c -> @c L::Ω constraint.
- *
- *  @note Returns only @c True or @c False, never @c Unknown — @c ≤
- *  on the 3-element chain is itself classically decided.  The @c Unknown
- *  values arise when predicates over an infinite ambient are composed
- *  with this @c Rel, not at the @c Ω-internal level. */
-export struct TernaryLessEqual {
-  constexpr Ternary operator()(Ternary a, Ternary b) const noexcept {
-    return static_cast<std::int8_t>(a) <= static_cast<std::int8_t>(b)
-               ? Ternary::True
-               : Ternary::False;
-  }
-};
-
-/** @brief Ternary meet (Form-chain @c Meet slot) — forwards to
- *         @c TernaryLogic::AND (Kleene strong conjunction = min). */
-export struct TernaryMeet {
-  constexpr Ternary operator()(Ternary a, Ternary b) const noexcept {
-    return TernaryLogic::AND(a, b);
-  }
-};
-
-/** @brief Ternary join (Form-chain @c Join slot) — forwards to
- *         @c TernaryLogic::OR (Kleene strong disjunction = max). */
-export struct TernaryJoin {
-  constexpr Ternary operator()(Ternary a, Ternary b) const noexcept {
-    return TernaryLogic::OR(a, b);
-  }
-};
-
-/** @brief Ternary involution (Form-chain @c Not slot, classical sense) —
- *         forwards to @c TernaryLogic::NOT (Kleene rotation about
- *         @c Unknown).
- *
- *  @note Involutive (@c ¬¬x @c = @c x for all @c x, including @c Unknown
- *  because @c -0 @c = @c 0), but @b not a Boolean complement: complement
- *  laws fail at @c Unknown (@c Unknown @c ∧ @c ¬Unknown @c = @c min(0,
- *  @c 0) @c = @c Unknown @c ≠ @c False).  Hence no @c is_complement_v
- *  registration below — @c IsBooleanLatticeCategory<Ternary, …> fails
- *  closed under the Slice 7 opt-in trait pattern. */
-export struct TernaryNot {
-  constexpr Ternary operator()(Ternary a) const noexcept {
-    return TernaryLogic::NOT(a);
-  }
-};
-
-}  // namespace dedekind::category
-
-// Trait specialisations for Ternary at rows 1 (IsThinCategory) and 2
-// (IsPosetal).  Outside the namespace because the primary templates live
-// in :species under @c dedekind::category and the explicit specialisations
-// must inhabit the same namespace — re-opening below keeps the
-// specialisations local to this section.
-namespace dedekind::category {
-
-/** @brief @c TernaryLessEqual is reflexive: @c rel(a, @c a) @c = @c True
- *         for every @c a since @c static_cast<int8_t>(a) @c <= @c
- *         static_cast<int8_t>(a) tautologically. */
-template <>
-struct is_reflexive<Ternary, TernaryLessEqual> : std::true_type {};
-
-/** @brief @c TernaryLessEqual is transitive on the 3-element chain
- *         (integral @c <= is transitive). */
-template <>
-struct is_transitive<Ternary, TernaryLessEqual> : std::true_type {};
-
-/** @brief @c TernaryLessEqual is antisymmetric: @c (a @c <= @c b) @c ∧
- *         @c (b @c <= @c a) @c ⇒ @c a @c = @c b on the integral
- *         @c int8_t cast. */
-template <>
-struct is_antisymmetric<Ternary, TernaryLessEqual> : std::true_type {};
-
-/** @brief @c TernaryNot is involutive: @c TernaryLogic::NOT is rotation
- *         about @c Unknown, so @c NOT(NOT(x)) @c = @c x for all @c x. */
-template <>
-struct is_involutive<TernaryNot, Ternary> : std::true_type {};
-
-}  // namespace dedekind::category
-
-namespace dedekind::category {
-
-/** @section lattice__Ternary_Witness_Static_Asserts */
-
-static_assert(IsThinCategory<Ternary, TernaryLessEqual, TernaryLogic>,
-              "Ternary under TernaryLessEqual is a thin category in the "
-              "Ternary topos: rel(a, b) returns Ternary (matching L::Ω = "
-              "Ternary), reflexive, and transitive on the 3-element chain.");
-
-static_assert(IsPosetal<Ternary, TernaryLessEqual, TernaryLogic>,
-              "Ternary under TernaryLessEqual is posetal — antisymmetric "
-              "on the integral cast.");
-
-static_assert(IsInvolutiveEndofunctor<TernaryNot, Ternary>,
-              "TernaryNot is involutive — Kleene rotation about Unknown "
-              "satisfies NOT(NOT(x)) = x for all x ∈ {False, Unknown, "
-              "True}.");
-
-static_assert(
-    !IsBooleanLatticeCategory<Ternary, TernaryLessEqual, TernaryJoin,
-                              TernaryMeet, TernaryNot, TernaryLogic>,
-    "Ternary is NOT a Boolean lattice — Kleene K3 is the smallest "
-    "non-Boolean Heyting algebra, complement laws fail at Unknown "
-    "(Unknown ∧ ¬Unknown = min(0, 0) = Unknown ≠ False).  Honest "
-    "Rejection via the opt-in is_complement_v trait — the trait is "
-    "deliberately not registered for (TernaryNot, Ternary, …).  Heyting "
-    "structure (row 6) lands in #698 Slice 9 with the :posetal algebraic "
-    "surface specialisations.");
-
 /**
  * @concept IsSubobjectFamilyMember
  * @brief A type @c R is a member of the subobject family over ambient
@@ -937,32 +797,6 @@ concept IsSubobjectFamilyMember = requires {
 };
 
 /**
- * @brief Callable wrapper for the free @c subset_eq function on a
- *        subobject carrier, so @c IsThinCategory<S, SubsetEq<S>, L>
- *        can refine the Form-chain at the @c Rel slot.
- *
- * @details
- * The Form-chain's @c Rel slot expects a callable type with
- * @c rel(a, b) @c -> @c L::Ω (see thin.cppm:97).  Free-function
- * @c subset_eq is the CT-vocabulary primitive; @c SubsetEq<S> is its
- * callable shadow.  ADL finds the carrier-side @c subset_eq overload.
- *
- * Carriers (@c Set, @c Subobject) provide their own @c subset_eq
- * implementations in Slice 9 with the @c :etcs harmonisation; Slice 8
- * just lands the wrapper shape so the concept refinement reads
- * cleanly.
- *
- * @tparam S The subobject carrier type.
- */
-export template <typename S>
-struct SubsetEq {
-  constexpr auto operator()(const S& a, const S& b) const ->
-      typename S::logic_species::Ω {
-    return subset_eq(a, b);
-  }
-};
-
-/**
  * @concept IsSubobjectLattice
  * @brief A type @c S is the carrier of a subobject lattice over
  *        @c S::Ambient, with lattice structure induced pointwise from
@@ -980,11 +814,20 @@ struct SubsetEq {
  *
  * @section lattice__IsSubobjectLattice_Form_Chain_Refinement
  * @c IsSubobjectLattice<S> @b refines @c IsThinCategory<S,
- * SubsetEq<S>, S::logic_species>: a subobject family @b is a thin
- * category under @c subset_eq (the @c Rel slot).  The refinement is
- * structural, not merely documentary — the type checker sees the
- * Form-chain inclusion directly via the conjoined concept clause
- * (per #712 review).
+ * S::SubsetEqRel, S::logic_species>: a subobject family @b is a thin
+ * category under @c subset_eq (the @c Rel slot), provided the
+ * @b carrier exposes its own @c SubsetEqRel callable type as a
+ * typedef.  The refinement is structural — the type checker sees the
+ * Form-chain row 1 inclusion directly.
+ *
+ * The @c SubsetEqRel type belongs to the carrier so @c :lattice does
+ * @b not invent a new function-object wrapper struct (per #712 review
+ * — "Please no lambdas, IsPredicate instead to have domain and
+ * codomain").  Concretely the carrier provides a callable type
+ * with @c Domain @c = @c S, @c Codomain @c = @c L::Ω satisfying
+ * @c :morphism::IsArrow (i.e.\ an @c :topoi::IsPredicate-style binary
+ * relation in the subobject category).  Slice 9 supplies the carriers
+ * (@c Set, @c Subobject) and their @c SubsetEqRel typedefs.
  *
  * The strength @c S inherits at higher rows is determined by
  * @c L @c = @c S::logic_species:
@@ -1006,24 +849,26 @@ struct SubsetEq {
  *
  * @section lattice__IsSubobjectLattice_CT_Vocabulary
  * The concept body uses CT-vocabulary primitives: the carrier exposes
- * @c Ambient and @c logic_species typedefs, and free functions
- * @c meet, @c join, @c subset_eq, @c complement exist with the
- * right shape.  Operator sugar (@c <=, @c &, @c |, @c !) lives in
- * @c :sets as forwarders.  Pierce-style stratification: abstract
- * content in the body, set-theoretic hints in the defaults.
+ * @c Ambient and @c logic_species typedefs plus a @c SubsetEqRel
+ * callable type, and free functions @c meet, @c join, @c complement
+ * exist with the right shape.  Operator sugar (@c <=, @c &, @c |,
+ * @c !) lives in @c :sets as forwarders.  Pierce-style stratification:
+ * abstract content in the body, set-theoretic hints in the defaults.
  *
  * @section lattice__IsSubobjectLattice_Sollbruchstelle
- * This concept is the @b architectural commit of Slice 8.  The CT-side
- * free-function witnesses (@c meet, @c join, @c subset_eq,
- * @c complement) for @c Subobject<A, @c Chi> in @c :topoi and the
- * operator forwarders on @c Set<T, @c L, @c P> in @c :sets land in
- * Slice 9 with the @c :etcs harmonisation (Axiom 10 generalisation +
- * concrete carrier witnesses).  Holding the architectural commit here
- * lets the @c IsSet @c ⟹ @c IsSubobjectLattice binding read off in
- * Slice 9 without re-litigating the concept shape.
+ * This concept is the @b architectural commit of Slice 8.  Carrier
+ * witnesses (@c SubsetEqRel typedefs on @c Set / @c Subobject, the
+ * @c meet / @c join / @c complement free functions, the @c
+ * HasAxiom10PowerObjectLattice generalisation in @c :etcs) land in
+ * Slice 9 with the @c :etcs harmonisation.  Ternary's Form-chain
+ * participation (rows 1–6) also lands in Slice 9 — once a concrete
+ * @c :etcs carrier instantiates @c S::logic_species @c = @c
+ * TernaryLogic and supplies a @c SubsetEqRel, the Form-chain rows
+ * fire by structural recognition without @c :lattice carrying any
+ * Ternary-specific function-object struct types.
  *
- * @tparam S The subobject carrier.  Must expose @c Ambient and
- *           @c logic_species typedefs (CT-vocabulary metadata).
+ * @tparam S The subobject carrier.  Must expose @c Ambient,
+ *           @c logic_species, and @c SubsetEqRel typedefs.
  */
 export template <typename S>
 concept IsSubobjectLattice =
@@ -1031,13 +876,13 @@ concept IsSubobjectLattice =
       typename S::Ambient;
       typename S::logic_species;
       requires IsLogicalSpecies<typename S::logic_species>;
+      typename S::SubsetEqRel;
     } &&
-    /** @brief Form-chain refinement: @c S is a thin category under
-     *         @c subset_eq.  This makes the row 1 inclusion type-checked,
-     *         not merely documented.  Reflexivity / transitivity of
-     *         @c subset_eq for the concrete carrier are registered as
-     *         opt-in traits in Slice 9 with the @c :etcs harmonisation. */
-    IsThinCategory<S, SubsetEq<S>, typename S::logic_species> &&
+    /** @brief Form-chain refinement: @c S is a thin category under its
+     *         carrier-provided @c SubsetEqRel.  Row 1 inclusion is
+     *         type-checked; reflexivity / transitivity of the carrier's
+     *         relation are registered as opt-in traits in Slice 9. */
+    IsThinCategory<S, typename S::SubsetEqRel, typename S::logic_species> &&
     requires(S a, S b) {
       /** @brief CT-vocabulary free functions for the binary lattice
        *  operations (binary product / coproduct in the subobject category).
