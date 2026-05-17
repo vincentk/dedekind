@@ -218,10 +218,8 @@ export template <typename S1, typename S2>
   requires IsCompatibleSetPair<S1, S2>
 constexpr auto set_intersection(const S1& lhs, const S2& rhs) {
   using A = typename S1::Ambient;
-  using L = typename GetLogic<
-      std::invoke_result_t<S1 const&, A const&>>::type;
-  return classify<A>(
-      [lhs, rhs](const A& a) { return L::AND(lhs(a), rhs(a)); });
+  using L = typename GetLogic<std::invoke_result_t<S1 const&, A const&>>::type;
+  return classify<A>([lhs, rhs](const A& a) { return L::AND(lhs(a), rhs(a)); });
 }
 
 /** @brief Set union: materialize @c A @c ∪ @c B from carriers as
@@ -230,10 +228,8 @@ export template <typename S1, typename S2>
   requires IsCompatibleSetPair<S1, S2>
 constexpr auto set_union(const S1& lhs, const S2& rhs) {
   using A = typename S1::Ambient;
-  using L = typename GetLogic<
-      std::invoke_result_t<S1 const&, A const&>>::type;
-  return classify<A>(
-      [lhs, rhs](const A& a) { return L::OR(lhs(a), rhs(a)); });
+  using L = typename GetLogic<std::invoke_result_t<S1 const&, A const&>>::type;
+  return classify<A>([lhs, rhs](const A& a) { return L::OR(lhs(a), rhs(a)); });
 }
 
 /** @brief Set complement: materialize @c A^c from carrier-as-predicate.
@@ -242,8 +238,7 @@ export template <typename S>
   requires IsSubobject<S, typename S::Ambient>
 constexpr auto set_complement(const S& s) {
   using A = typename S::Ambient;
-  using L = typename GetLogic<
-      std::invoke_result_t<S const&, A const&>>::type;
+  using L = typename GetLogic<std::invoke_result_t<S const&, A const&>>::type;
   return classify<A>([s](const A& a) { return L::NOT(s(a)); });
 }
 
