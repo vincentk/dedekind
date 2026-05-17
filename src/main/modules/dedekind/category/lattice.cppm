@@ -40,11 +40,11 @@
  *       ↓ + cofiltered + universality
  *   IsLatticeCategory       (row 4, THIS PARTITION)
  *       ↓ + initial + terminal
- *   IsBoundedLatticeCategory  (row 5 — future slice)
+ *   IsBoundedLatticeCategory  (row 5, #698 Slice 4 — landed)
  *       ↓ + exponentials
- *   IsHeytingLatticeCategory  (row 6 — future slice)
+ *   IsHeytingLatticeCategory  (row 6, #698 Slice 6 — landed)
  *       ↓ + complement involution
- *   IsBooleanLatticeCategory  (row 7 — future slice)
+ *   IsBooleanLatticeCategory  (row 7, #698 Slice 7 — THIS SLICE)
  * @endcode
  *
  * Each `↓ +` is a @b faithful inclusion encoded definitionally in the
@@ -567,5 +567,138 @@ static_assert(
                   bool, bool>,
     "HeytingExponential<bool, …, min> aligns with :cartesian::IsExponential "
     "structurally — pure call-shape recognition (#698 Slice 6).");
+
+/** @section lattice__Boolean_Complement_Trait
+ *
+ *  @brief Opt-in trait: @c Not is the @b complement morphism for the
+ *         Boolean lattice over @c (T, Rel, Join, Meet).  The trait
+ *         is the @em semantic gate for @c IsBooleanLatticeCategory —
+ *         the structural side (Heyting + involutiveness of @c Not) is
+ *         already enforced by the upstream concepts, but the @b
+ *         complement laws
+ *
+ *      @c x @c ∧ @c ¬x @c = @c ⊥ , @c x @c ∨ @c ¬x @c = @c ⊤
+ *
+ *  are value-level statements that can't be discharged at type level.
+ *  Following the @c is_involutive_v / @c is_reflexive_v opt-in pattern
+ *  (#698 Slice 5), the carrier-side @b registers itself by specialising
+ *  this trait.  Non-canonical pairings (e.g. @c std::bit_not<int> with
+ *  @c std::less_equal<int>) genuinely fail the laws and are @b
+ *  excluded by default.
+ *
+ *  @note This is a 5-parameter trait, not 6: the logic species @c L
+ *  doesn't participate in the complement laws (those are pinned by
+ *  @c Rel via @c lattice_top / @c lattice_bottom and by @c Join / @c
+ *  Meet directly).  Adding @c L would create spurious specialisation
+ *  burden for no algebraic content.
+ *
+ *  The bitwise Boolean algebra on integers (\@c int / @c unsigned with
+ *  bit-subset @c Rel, @c & / @c | as meet / join, @c ~ as complement)
+ *  is a separate canonical witness tracked under #710.
+ */
+export template <typename Not, typename T, typename Rel, typename Join,
+                 typename Meet>
+struct is_complement : std::false_type {};
+
+export template <typename Not, typename T, typename Rel, typename Join,
+                 typename Meet>
+inline constexpr bool is_complement_v =
+    is_complement<Not, T, Rel, Join, Meet>::value;
+
+/** @brief Canonical specialisation: @c std::logical_not<bool> is the
+ *         complement for the 2-element Boolean lattice over
+ *         @c (bool, std::less_equal<bool>, std::ranges::max,
+ *         std::ranges::min).  Value-level laws hold trivially:
+ *         @c true @c ∧ @c !true @c = @c min(true, false) @c = @c false
+ *         @c = @c ⊥, and @c true @c ∨ @c !true @c = @c max(true, false)
+ *         @c = @c true @c = @c ⊤. */
+template <>
+struct is_complement<std::logical_not<bool>, bool, std::less_equal<bool>,
+                     decltype(std::ranges::max), decltype(std::ranges::min)>
+    : std::true_type {};
+
+/**
+ * @concept IsBooleanLatticeCategory
+ * @brief A Heyting lattice category whose complement is an involutive
+ *        endofunctor satisfying the Boolean complement laws — row 7 of
+ *        the lattice Form-chain (#698 Slice 7).
+ *
+ * @details
+ * Faithful inclusion @c IsBooleanLatticeCategory @c ⊊
+ * @c IsHeytingLatticeCategory encoded definitionally per the project's
+ * @em "faithful specialization in the type signature from day one"
+ * posture (#698).
+ *
+ * @section lattice__Boolean_Form_Chain_Row_7
+ * Three layered requirements, each a single @c && term:
+ *
+ *   - @c IsHeytingLatticeCategory @em (structural prerequisite — bounded
+ *     lattice with exponentials).
+ *   - @c IsInvolutiveEndofunctor<Not, T> @em (structural: @c Not @c :
+ *     T @c → T with @c Not² @c ≅ @c Id — Slice 5 machinery).
+ *   - @c is_complement_v<Not, T, Rel, Join, Meet> @em (semantic
+ *     opt-in: the complement laws hold for this (\@c Not, lattice) pair).
+ *
+ * @section lattice__Boolean_Equivalent_Characterisations
+ * Equivalent textbook readings of "Boolean lattice", any of which the
+ * caller can use to recognise the participation:
+ *
+ *   - A complemented distributive lattice.
+ *   - A Heyting algebra in which @c ¬¬x @c = @c x (law of excluded
+ *     middle).
+ *   - A bounded lattice with a unary @c ¬ satisfying @c x @c ∧ @c ¬x
+ *     @c = @c ⊥ and @c x @c ∨ @c ¬x @c = @c ⊤.
+ *
+ * This concept threads the third reading definitionally.  The first
+ * two follow as derived theorems on any carrier participating in the
+ * concept (distributivity in a lattice with relative complements is a
+ * standard result; double-negation elimination is the registered
+ * involutiveness of @c Not).
+ *
+ * @section lattice__Boolean_Witnesses
+ *   - @c bool under @c std::less_equal with @c std::logical_not<bool>
+ *     — the canonical 2-element Boolean algebra.
+ *   - Integral carriers under @c std::less_equal with @c std::bit_not
+ *     are @b not Boolean lattices (order doesn't match complement);
+ *     the bitwise Boolean algebra requires a bit-subset @c Rel (#710).
+ *
+ * @tparam T    The Domain (Objects).
+ * @tparam Rel  The Relation.
+ * @tparam Join The join operation (default @c std::ranges::max).
+ * @tparam Meet The meet operation (default @c std::ranges::min).
+ * @tparam Not  The complement endofunctor (default
+ *              @c std::logical_not<T>; fails closed for non-bool unless
+ *              the carrier registers an alternative pairing).
+ * @tparam L    The Logic Species.
+ */
+export template <typename T, typename Rel = std::less_equal<T>,
+                 typename Join = decltype(std::ranges::max),
+                 typename Meet = decltype(std::ranges::min),
+                 typename Not = std::logical_not<T>,
+                 typename L = ClassicalLogic>
+concept IsBooleanLatticeCategory =
+    IsHeytingLatticeCategory<T, Rel, Join, Meet,
+                             L> &&      // Faithful: boolean ⊊ heyting.
+    IsInvolutiveEndofunctor<Not, T> &&  // Structural: Not² ≅ Id.
+    is_complement_v<Not, T, Rel, Join,
+                    Meet>;  // Semantic opt-in: complement
+                            // laws hold for this pairing.
+
+/** @section lattice__Boolean_Canonical_Witnesses */
+
+static_assert(IsBooleanLatticeCategory<bool>,
+              "bool with std::less_equal and std::logical_not is the "
+              "canonical 2-element Boolean lattice — every Form-chain row "
+              "1 through 7 fires definitionally.");
+
+static_assert(
+    !IsBooleanLatticeCategory<int, std::less_equal<int>,
+                              decltype(std::ranges::max),
+                              decltype(std::ranges::min), std::bit_not<int>>,
+    "int under std::less_equal with std::bit_not is NOT a Boolean lattice: "
+    "the bitwise complement doesn't match the order-theoretic meet/join "
+    "(e.g. min(5, ~5) = -6 ≠ INT_MIN).  Honest Rejection via the opt-in "
+    "is_complement_v trait — see #710 for the bitwise Boolean algebra "
+    "under a bit-subset relation.");
 
 }  // namespace dedekind::category
