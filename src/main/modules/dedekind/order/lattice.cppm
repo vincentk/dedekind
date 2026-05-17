@@ -256,25 +256,26 @@ struct is_codirected<T, dedekind::order::bit_subset_eq<T>> : std::true_type {};
  *
  *  @details The project's existing specialisations cover @c bool +
  *  the transparent @c std::bit_or<> / @c std::bit_and<> forms, plus
- *  @c std::bit_and<T> for specific @c T.  The missing pieces for the
- *  bitwise Boolean lattice's @c IsLatticeCategory chain to fire on
- *  generic integral @c T:
+ *  @c std::bit_and<T> + idempotent on @c std::bit_or<T> for specific
+ *  @c T.  The pieces this slice still needs for the bitwise Boolean
+ *  lattice's @c IsLatticeCategory chain to fire on generic integral
+ *  @c T:
  *
- *    - @c is_associative_v<T, std::bit_or<T>>
- *    - @c is_idempotent_v<T, std::bit_or<T>>
- *    - @c is_absorptive_v<T, std::bit_or<T>, std::bit_and<T>>
- *    - @c is_absorptive_v<T, std::bit_and<T>, std::bit_or<T>>
- *    - @c is_distributive_v<T, std::bit_or<T>, std::bit_and<T>>
+ *    - @c is_associative<T, std::bit_or<T>>     (struct spec)
+ *    - @c is_absorptive_v<T, std::bit_or<T>, std::bit_and<T>>     (variable spec)
+ *    - @c is_absorptive_v<T, std::bit_and<T>, std::bit_or<T>>     (variable spec)
+ *    - @c is_distributive_v<T, std::bit_or<T>, std::bit_and<T>>   (variable spec)
+ *    - @c is_distributive_v<T, std::bit_and<T>, std::bit_or<T>>   (variable spec)
  *
- *  All are textbook bitwise-operator facts (OR is associative,
- *  idempotent, absorbs over AND, distributes over AND, etc.). */
+ *  Note: @c is_associative_v / @c is_idempotent_v are derived from
+ *  struct traits, so specialisations go on the @b struct (matching
+ *  the pattern used at species.cppm for @c is_idempotent<T,
+ *  std::bit_or<T>>).  @c is_absorptive_v and @c is_distributive_v
+ *  are @b direct variable templates with primary @c = false, so
+ *  specialisations go on the variable. */
 template <typename T>
   requires std::is_integral_v<T>
-inline constexpr bool is_associative_v<T, std::bit_or<T>> = true;
-
-template <typename T>
-  requires std::is_integral_v<T>
-inline constexpr bool is_idempotent_v<T, std::bit_or<T>> = true;
+struct is_associative<T, std::bit_or<T>> : std::true_type {};
 
 template <typename T>
   requires std::is_integral_v<T>
