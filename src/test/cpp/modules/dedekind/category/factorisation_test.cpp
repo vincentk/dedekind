@@ -69,9 +69,8 @@ TEST_CASE(
   STATIC_CHECK_FALSE(IsFactorisationSystem<int>);
 }
 
-TEST_CASE(
-    "image:image_of — factory produces a Subobject of Cod<F>",
-    "[category][image][image-of][factory]") {
+TEST_CASE("image:image_of — factory produces a Subobject of Cod<F>",
+          "[category][image][image-of][factory]") {
   /** @brief The @c image_of(f) factory constructs a @c Subobject of
    *         @c Cod<F> from any @c IsArrow @c F.  This runtime test
    *         exercises the factory body (construction of
