@@ -1029,7 +1029,7 @@ inline constexpr bool is_distributive_v<T, decltype(std::ranges::min),
  * the direct trait check without creating a circular dependency on
  * @c :mereology.
  */
-template <typename T, typename Op1, typename Op2>
+export template <typename T, typename Op1, typename Op2>
 inline constexpr bool is_absorptive_v = false;
 
 /** @section species__Lattice_Absorber_Registration */

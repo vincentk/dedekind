@@ -34,7 +34,9 @@
 module;
 #include <algorithm>
 #include <concepts>  // std::convertible_to (HasLatticeOperators)
+#include <cstddef>   // std::size_t — bitwise lattice witness (#710)
 #include <functional>
+#include <type_traits>  // std::is_integral_v — bitwise lattice (#710)
 
 export module dedekind.order:lattice;
 
@@ -169,6 +171,215 @@ static_assert(IsOrderLattice<bool>,
               "bool is the canonical Boolean-ring lattice "
               "(under bit_xor / bit_and; both halves of the bundle "
               "fire today).");
+
+/** @section order_lattice__Bitwise_Boolean_Lattice
+ *
+ *  @brief Integral carriers under the @b bitwise Boolean algebra (#710).
+ *
+ *  @details
+ *  An integral carrier @c T (@c int, @c unsigned, @c std::size_t, …)
+ *  has TWO distinct lattice readings on the same underlying set:
+ *
+ *    - The @b Boolean-ring reading (@c IsOrderLattice<bool> above
+ *      already pins this for @c bool): @c (XOR, AND) — additive group
+ *      under XOR, multiplicative monoid under AND.  Algebraic / field-
+ *      flavoured.
+ *    - The @b Boolean-lattice reading (this section, #710): the
+ *      power-set lattice of the bit positions.  @c a @c ⊆_bit @c b
+ *      @c ⟺ @c (a @c & @c b) @c == @c a; meet = @c &; join = @c |;
+ *      complement = @c ~; bottom = @c 0; top = @c ~T(0).  Order-theoretic
+ *      / Form-chain-row-7 flavoured.
+ *
+ *  The two readings are equivalent on Boolean algebras (XOR is the
+ *  symmetric difference @c (a @c | @c b) @c & @c ~(a @c & @c b)), but
+ *  they expose different concept surfaces — @c IsOrderLattice
+ *  (Boolean-ring) above vs.\ @c :category::IsBooleanLatticeCategory
+ *  (Form-chain row 7) here.  Naming both makes the equivalence
+ *  navigable rather than implicit.
+ *
+ *  @section order_lattice__Bitwise_GF_Cross_Reference
+ *  @c :algebra::galois.cppm carries the Galois field machinery
+ *  (@c bool @c = @c 𝔽_2 under @c (XOR, AND); @c 𝔽64 @c = @c GF(2^6)
+ *  with polynomial multiplication mod @c x^6+x+1; @c IsGaloisField
+ *  concept; @c GaloisFieldRegistration CRTP).  For wider integral
+ *  @c T (@c size_t etc.), the field claim requires a specific primitive
+ *  polynomial — the project does not witness @c GF(2^N) for arbitrary
+ *  @c N as field-on-the-primitive type without a struct wrapper.
+ *
+ *  Cross-reading: the bitwise Boolean @b lattice on integral @c T
+ *  here is the lattice of subsets of @c {0, …, @c
+ * std::numeric_limits<T>::digits-1}; the (would-be) Galois @b field on @c
+ * GF(2^N) (with @c N the carrier bit-width) on the same carrier is a different
+ * algebraic structure on the same underlying set.  Don't conflate them.
+ */
+
+/** @brief Bit-subset relation: @c a @c ⊆_bit @c b @c ⟺ @c (a @c &
+ *         @c b) @c == @c a.  Form-chain @c Rel slot for the bitwise
+ *         Boolean lattice on integral carriers (#710). */
+export template <typename T>
+  requires std::is_integral_v<T>
+struct bit_subset_eq {
+  constexpr bool operator()(T a, T b) const noexcept { return (a & b) == a; }
+};
+
+}  // namespace dedekind::order
+
+// Trait specialisations sit in the @c dedekind::category namespace
+// where their primary templates live; re-opening here keeps the
+// bitwise-lattice witnesses self-contained at this site.
+namespace dedekind::category {
+
+template <typename T>
+  requires std::is_integral_v<T>
+struct is_reflexive<T, dedekind::order::bit_subset_eq<T>> : std::true_type {};
+
+template <typename T>
+  requires std::is_integral_v<T>
+struct is_transitive<T, dedekind::order::bit_subset_eq<T>> : std::true_type {};
+
+template <typename T>
+  requires std::is_integral_v<T>
+struct is_antisymmetric<T, dedekind::order::bit_subset_eq<T>> : std::true_type {
+};
+
+template <typename T>
+  requires std::is_integral_v<T>
+struct is_directed<T, dedekind::order::bit_subset_eq<T>> : std::true_type {};
+
+template <typename T>
+  requires std::is_integral_v<T>
+struct is_codirected<T, dedekind::order::bit_subset_eq<T>> : std::true_type {};
+
+/** @section order_lattice__Bitwise_Algebra_Trait_Registration
+ *
+ *  @brief Algebra-trait specialisations for @c std::bit_or<T> /
+ *         @c std::bit_and<T> on specific integral @c T (#710).
+ *
+ *  @details The project's existing specialisations cover @c bool +
+ *  the transparent @c std::bit_or<> / @c std::bit_and<> forms, plus
+ *  @c is_idempotent and @c is_associative for @c std::bit_or<T> on
+ *  integral @c T at @c species.cppm:866-872.  The pieces this slice
+ *  still needs for the bitwise Boolean lattice's @c IsLatticeCategory
+ *  chain to fire on generic integral @c T:
+ *
+ *    - @c is_absorptive_v<T, std::bit_or<T>, std::bit_and<T>>     (variable
+ * spec)
+ *    - @c is_absorptive_v<T, std::bit_and<T>, std::bit_or<T>>     (variable
+ * spec)
+ *    - @c is_distributive_v<T, std::bit_or<T>, std::bit_and<T>>   (variable
+ * spec)
+ *    - @c is_distributive_v<T, std::bit_and<T>, std::bit_or<T>>   (variable
+ * spec)
+ *
+ *  Variable-template partial specs in this file embed the constraint
+ *  in the @b value (cf. @c species.cppm:740 / :745 pattern with
+ *  @c std::unsigned_integral / @c std::integral), not via a
+ *  @c requires clause on the template — the requires-form yields
+ *  "no variable template matches partial specialization" on
+ *  libc++/clang. */
+template <typename T>
+inline constexpr bool is_absorptive_v<T, std::bit_or<T>, std::bit_and<T>> =
+    std::is_integral_v<T>;
+
+template <typename T>
+inline constexpr bool is_absorptive_v<T, std::bit_and<T>, std::bit_or<T>> =
+    std::is_integral_v<T>;
+
+template <typename T>
+inline constexpr bool is_distributive_v<T, std::bit_or<T>, std::bit_and<T>> =
+    std::is_integral_v<T>;
+
+template <typename T>
+inline constexpr bool is_distributive_v<T, std::bit_and<T>, std::bit_or<T>> =
+    std::is_integral_v<T>;
+
+/** @brief @c HeytingExponential specialisation for the bitwise Boolean
+ *         lattice (#710): on integral @c T (excluding @c bool — see
+ *         caveat below) under @c bit_subset_eq with @c std::bit_and as
+ *         meet, the relative complement @c a @c → @c b @c = @c ~a @c |
+ *         @c b (Boolean Heyting), and the @c eval morphism
+ *         @c e(x) @c = @c e @c & @c x (meet).  Required so
+ *         @c IsHeytingLatticeCategory fires at row 6 of the Form-chain
+ *         for this Rel / Meet pairing.
+ *
+ *  @note  @c bool is excluded because @c std::bit_not<bool> is not an
+ *         involution under integral promotion (@c ~true via @c int and
+ *         back gives @c true again), so @c ~a @c | @c b miscomputes
+ *         the relative pseudo-complement.  The project documents this
+ *         hazard at @c category/lattice.cppm; @c bool's Heyting
+ *         structure travels via @c std::logical_or / @c std::logical_not
+ *         in the @c :total reading, not this bitwise one. */
+template <typename T>
+  requires(std::is_integral_v<T> && !std::is_same_v<T, bool>)
+struct HeytingExponential<T, dedekind::order::bit_subset_eq<T>,
+                          std::bit_and<T>> {
+  using Domain = T;
+  using Codomain = T;
+  T value;
+  constexpr T operator()(T x) const noexcept { return value & x; }
+};
+
+/** @brief Bitwise-lattice bottom: the all-zeros bitmask. */
+template <typename T>
+  requires std::is_integral_v<T>
+struct LatticeBottom<T, dedekind::order::bit_subset_eq<T>> {
+  using is_initial_object_tag = void;
+  static constexpr T value = T{0};
+};
+
+/** @brief Bitwise-lattice top: the all-ones bitmask. */
+template <typename T>
+  requires std::is_integral_v<T>
+struct LatticeTop<T, dedekind::order::bit_subset_eq<T>> {
+  using is_terminal_object_tag = void;
+  static constexpr T value = static_cast<T>(~T{0});
+};
+
+/** @brief Canonical specialisation: @c std::bit_not<T> is the
+ *         complement for the bitwise Boolean lattice on integral @c T
+ *         (excluding @c bool — see caveat).  Complement laws hold
+ *         structurally: @c a @c & @c ~a @c = @c 0 (bottom) and
+ *         @c a @c | @c ~a @c = @c ~T(0) (top).
+ *
+ *  @note  @c bool is excluded for the same reason as @c HeytingExponential
+ *         above: @c std::bit_not<bool> is not an involution under
+ *         integral promotion, so the complement laws would lie. */
+template <typename T>
+  requires(std::is_integral_v<T> && !std::is_same_v<T, bool>)
+struct is_complement<std::bit_not<T>, T, dedekind::order::bit_subset_eq<T>,
+                     std::bit_or<T>, std::bit_and<T>> : std::true_type {};
+
+}  // namespace dedekind::category
+
+namespace dedekind::order {
+
+/** @section order_lattice__Bitwise_Canonical_Witnesses */
+
+static_assert(
+    dedekind::category::IsBooleanLatticeCategory<
+        std::size_t, bit_subset_eq<std::size_t>, std::bit_or<std::size_t>,
+        std::bit_and<std::size_t>, std::bit_not<std::size_t>>,
+    "size_t under (bit_subset_eq, |, &, ~) is the bitwise Boolean "
+    "lattice — the power-set lattice of {0, …, "
+    "std::numeric_limits<std::size_t>::digits-1}.  Distinct from "
+    "the totally-ordered Heyting chain on size_t under std::less_equal "
+    "(which honestly fails row 7 — see :category::lattice's static_assert "
+    "documenting the Honest Rejection).");
+
+static_assert(dedekind::category::IsBooleanLatticeCategory<
+                  unsigned, bit_subset_eq<unsigned>, std::bit_or<unsigned>,
+                  std::bit_and<unsigned>, std::bit_not<unsigned>>,
+              "unsigned under (bit_subset_eq, |, &, ~) is the bitwise Boolean "
+              "lattice on its bit-width.");
+
+static_assert(dedekind::category::LatticeBottom<
+                  std::size_t, bit_subset_eq<std::size_t>>::value ==
+                  std::size_t{0},
+              "Bitwise lattice bottom on size_t is the all-zeros bitmask.");
+static_assert(dedekind::category::LatticeTop<
+                  std::size_t, bit_subset_eq<std::size_t>>::value ==
+                  ~std::size_t{0},
+              "Bitwise lattice top on size_t is the all-ones bitmask.");
 
 // Set<T, L, P> structurally cannot satisfy @c HasLatticeOperators (#469
 // design note).  After the @c operator^ symmetric-difference slice
