@@ -310,14 +310,14 @@ template <>
 inline constexpr bool is_exact_category_v<
     _factorisation_upgrade_witnesses::exact_category_witness> = true;
 
-static_assert(IsExactCategory<
-                  _factorisation_upgrade_witnesses::exact_category_witness>,
-              "Toy witness must satisfy IsExactCategory directly.");
+static_assert(
+    IsExactCategory<_factorisation_upgrade_witnesses::exact_category_witness>,
+    "Toy witness must satisfy IsExactCategory directly.");
 
 static_assert(
-    IsRegularCategory<
-        _factorisation_upgrade_witnesses::exact_category_witness>,
-    "IsExactCategory ⇒ IsRegularCategory upgrade must fire (Borceux vol 2 §2.6).");
+    IsRegularCategory<_factorisation_upgrade_witnesses::exact_category_witness>,
+    "IsExactCategory ⇒ IsRegularCategory upgrade must fire (Borceux vol 2 "
+    "§2.6).");
 
 static_assert(
     IsFactorisationSystem<
