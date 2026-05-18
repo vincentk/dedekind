@@ -349,4 +349,98 @@ static_assert(IsCyclicRing<CyclicRing<int, 100>>,
               "CyclicRing<int, 100> satisfies morphologies::IsCyclicRing "
               "(IsCyclic + ring-shaped + and *).");
 
+// ===========================================================================
+// First Isomorphism Theorem — typed witness at the canonical mod_2 case
+// (#718 Slice 4, paper-§3 crown).
+//
+// Textbook statement (Burris-Sankappanavar §II.6 / Birkhoff & Mac Lane
+// "Algebra" §III): for every homomorphism @c f: @c A @c → @c B between
+// algebras of the same signature, the quotient @c A/ker(f) is isomorphic
+// to the image @c im(f).  Concretely instantiated at the parity
+// homomorphism
+//
+//   @c mod_2: @c int @c → @c bool,    @c mod_2(x) @c = @c (x & 1) != 0
+//
+// the theorem yields:
+//
+//   @c int/ker(mod_2)  ≅  @c im(mod_2)
+//   @c ──────────────       ───────────
+//        Modular<2>             bool
+//
+// — bool as the smallest non-trivial Galois field @c 𝔽₂ ≅ ℤ/2ℤ, already
+// established elsewhere in the project as the smallest non-trivial
+// Boolean algebra (#400 / 𝔹).  The First-Iso here makes that
+// equivalence type-checked at the categorical level.
+// ===========================================================================
+
+namespace first_iso_mod_2 {
+
+/** @brief The parity homomorphism @c mod_2: @c int @c → @c bool.  An
+ *         @c IsArrow whose kernel is the parity congruence on @c int. */
+export struct mod_2_arrow {
+  using Domain = int;
+  using Codomain = bool;
+  constexpr bool operator()(int x) const noexcept { return (x & 1) != 0; }
+};
+
+/** @brief The canonical First-Iso connector @c Modular<2> @c → @c bool.
+ *
+ *  @details Sends the residue class @c [0] (the "even" class) to
+ *  @c false and @c [1] (the "odd" class) to @c true.  Together with
+ *  its inverse @c connector_inv this realises the iso predicted
+ *  by the First Isomorphism Theorem at the parity-homomorphism case. */
+export struct connector {
+  using Domain = dedekind::morphologies::Modular<2>;
+  using Codomain = bool;
+  constexpr bool operator()(Domain m) const noexcept { return m.value != 0; }
+};
+
+/** @brief Inverse direction: @c bool @c → @c Modular<2>. */
+export struct connector_inv {
+  using Domain = bool;
+  using Codomain = dedekind::morphologies::Modular<2>;
+  constexpr Codomain operator()(bool b) const noexcept {
+    return Codomain(b ? 1 : 0);
+  }
+};
+
+/** @brief Free-function @c inverse hook for @c connector (the
+ *         shape required by @c :morphism::IsIsomorphism). */
+export constexpr connector_inv inverse(connector) noexcept { return {}; }
+
+/** @brief Free-function @c inverse hook for the reverse direction. */
+export constexpr connector inverse(connector_inv) noexcept { return {}; }
+
+}  // namespace first_iso_mod_2
+
+// THE FIRST-ISO-THEOREM CROWN at the parity-homomorphism instance.
+//
+// Asserts at compile time: the residue-class quotient ℤ/2ℤ is canonically
+// isomorphic to the image of the parity homomorphism (which is all of
+// bool, since mod_2 is surjective onto bool).  A regression that
+// removes the inverse() hook or breaks the Domain/Codomain alignment
+// would surface here at compile time.
+static_assert(
+    dedekind::category::IsIsomorphism<first_iso_mod_2::connector>,
+    "First-Isomorphism-Theorem (Burris-Sankappanavar §II.6) at the "
+    "canonical parity-homomorphism case: ℤ/ker(mod_2) ≅ im(mod_2), i.e.\\ "
+    "Modular<2> ≅ bool.  This is the typed instantiation of A/ker(f) ≅ "
+    "im(f) on the smallest non-trivial cyclic quotient — bool as "
+    "𝔽₂ ≅ ℤ/2ℤ.");
+
+static_assert(
+    dedekind::category::IsIsomorphism<first_iso_mod_2::connector_inv>,
+    "First-Iso witness in the reverse direction: bool → Modular<2> is "
+    "also an isomorphism (an iso is bidirectional by definition).");
+
+// Cross-checks: the Domain / Codomain alignment matches the theorem's
+// shape — Quotient on the Domain side, Image on the Codomain side.
+static_assert(
+    std::same_as<typename first_iso_mod_2::connector::Domain, Modular<2>>,
+    "First-Iso Domain: Modular<2> = ℤ/2ℤ, the quotient by the parity "
+    "congruence (= ker(mod_2)).");
+static_assert(
+    std::same_as<typename first_iso_mod_2::connector::Codomain, bool>,
+    "First-Iso Codomain: bool = im(mod_2) (mod_2 is surjective).");
+
 }  // namespace dedekind::morphologies
