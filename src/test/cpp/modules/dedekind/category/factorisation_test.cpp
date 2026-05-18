@@ -64,11 +64,11 @@ struct regular_mono_only_arrow {
 }  // namespace _auto_upgrade_witnesses
 
 template <>
-inline constexpr bool is_regular_epi_v<
-    _auto_upgrade_witnesses::regular_epi_only_arrow> = true;
+inline constexpr bool
+    is_regular_epi_v<_auto_upgrade_witnesses::regular_epi_only_arrow> = true;
 template <>
-inline constexpr bool is_regular_mono_v<
-    _auto_upgrade_witnesses::regular_mono_only_arrow> = true;
+inline constexpr bool
+    is_regular_mono_v<_auto_upgrade_witnesses::regular_mono_only_arrow> = true;
 }  // namespace dedekind::category
 
 TEST_CASE(
@@ -88,12 +88,10 @@ TEST_CASE(
       IsEpicArrow<
           dedekind::category::_auto_upgrade_witnesses::regular_epi_only_arrow>);
 
-  STATIC_CHECK(
-      IsRegularMono<
-          dedekind::category::_auto_upgrade_witnesses::regular_mono_only_arrow>);
-  STATIC_CHECK(
-      IsMonicArrow<
-          dedekind::category::_auto_upgrade_witnesses::regular_mono_only_arrow>);
+  STATIC_CHECK(IsRegularMono<dedekind::category::_auto_upgrade_witnesses::
+                                 regular_mono_only_arrow>);
+  STATIC_CHECK(IsMonicArrow<dedekind::category::_auto_upgrade_witnesses::
+                                regular_mono_only_arrow>);
 }
 
 TEST_CASE(

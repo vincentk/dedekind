@@ -288,8 +288,7 @@ struct ImageChi {
  * @tparam F The arrow whose image is being constructed.
  */
 export template <typename F>
-  requires IsArrow<F> &&
-           std::constructible_from<std::remove_cvref_t<F>, F&&>
+  requires IsArrow<F> && std::constructible_from<std::remove_cvref_t<F>, F&&>
 constexpr auto image_of(F&& f) {
   using FT = std::remove_cvref_t<F>;
   return Subobject<Cod<FT>, ImageChi<FT>>{ImageChi<FT>{std::forward<F>(f)}};
