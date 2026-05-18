@@ -100,18 +100,29 @@
 module;
 
 #include <concepts>
+#include <utility>  // std::forward, std::remove_cvref_t
 
 export module dedekind.category:image;
 
-import :morphism;  // For IsArrow / Cod / Dom
-import :pullback;  // For IsParallelPair
-import :topoi;     // For IsSubobject / IsQuotient
+import :morphism;       // For IsArrow / Cod / Dom / Identity
+import :pullback;       // For IsParallelPair
+import :topoi;          // For IsSubobject / IsQuotient / Subobject
+import :factorisation;  // For IsFactorisationSystem / IsRegularCategory /
+                        // IsExactCategory — the categorical context for the
+                        // (regular epi, mono) factorisation system this
+                        // partition narrates (#718 Slice 2).
+import :cartesian;      // For CanonicalSetCCC — Set witness site (#718 Slice 2).
+import :logic;          // For Ternary — default codomain of image_of's
+                        // predicate (Honest Rejection until concrete
+                        // specialisation, see image_of below).
 
 namespace dedekind::category {
 
 /**
  * @concept IsImageOf
- * @brief @c S realises the image of arrow @c F as a Subobject of @c Cod<F>.
+ * @brief @c S realises the image of arrow @c F as a Subobject of @c Cod<F>
+ *        — the @b mono @b side of the (regular epi, mono) factorisation
+ *        system pinned in @c :factorisation.
  *
  * @details Structurally, @c IsImageOf<S, F> is exactly @c IsArrow<F>
  * @c && @c IsSubobject<S, @c Cod<F>>.  The added value over the bare
@@ -124,6 +135,13 @@ namespace dedekind::category {
  * factorisation @c F @c = @c m @c ∘ @c e) is the engineer's honesty
  * obligation, as for @c IsNNO.  C++ concepts cannot quantify over
  * the universal property; they pin the operational signature only.
+ *
+ * Categorical context (#718 Slice 2): @c IsImageOf is the @b mono @b
+ * leg of the @c IsFactorisationSystem<C> pair in @c :factorisation.
+ * In a regular category (@c IsRegularCategory<C>), every arrow's
+ * image is a regular subobject and the factorisation is unique up to
+ * iso; in @b Set and every topos this is the canonical (regular
+ * epi, mono) factorisation.
  *
  * @tparam S The candidate image species (a Subobject of @c Cod<F>).
  * @tparam F The arrow whose image @c S claims to realise.
@@ -178,5 +196,107 @@ concept IsImageOf = IsArrow<F> && IsSubobject<S, Cod<F>>;
  */
 export template <typename Q, typename F, typename G>
 concept IsCoequalizer = IsParallelPair<F, G> && IsQuotient<Q, Cod<F>>;
+
+/**
+ * @section image__Factorisation_Cross_Reference
+ *
+ * @c IsImageOf (mono leg) + @c IsCoequalizer (epi leg) jointly realise
+ * the (regular epi, mono) factorisation system named in
+ * @c :factorisation as @c IsFactorisationSystem<C>.  The
+ * decomposition F = m ∘ e, with e the regular epi onto Im(F) and m
+ * the mono Im(F) ↪ Cod<F>, is what @c IsRegularCategory<C> witnesses
+ * universally; in @b Set / @b CanonicalSetCCC and every topos this
+ * factorisation is unique up to isomorphism.  The witnesses below pin
+ * the canonical Set instances of the categorical chain.
+ */
+
+// ---------------------------------------------------------------------------
+// Set / CanonicalSetCCC witness for the (regular epi, mono) factorisation
+// system.  Set is the exemplar exact category (Borceux vol 2 §2; "in Set
+// and more generally any topos, every epimorphism is the coequalizer of
+// its kernel pair") — registering IsExactCategory auto-upgrades to
+// IsRegularCategory and IsFactorisationSystem via the chain set up in
+// :factorisation (Slice 1).
+// ---------------------------------------------------------------------------
+
+template <typename A>
+inline constexpr bool is_exact_category_v<CanonicalSetCCC<A>> = true;
+
+static_assert(IsExactCategory<CanonicalSetCCC<int>>,
+              "CanonicalSetCCC<A> is exact: every equivalence relation "
+              "on a Set object is the kernel pair of some arrow.");
+static_assert(IsRegularCategory<CanonicalSetCCC<int>>,
+              "CanonicalSetCCC<A> is regular by the IsExactCategory ⇒ "
+              "IsRegularCategory upgrade.");
+static_assert(IsFactorisationSystem<CanonicalSetCCC<int>>,
+              "CanonicalSetCCC<A> admits the canonical (regular epi, mono) "
+              "factorisation system by the IsRegularCategory ⇒ "
+              "IsFactorisationSystem upgrade.");
+
+// ---------------------------------------------------------------------------
+// image_of(f) — factory producing the image of an arrow F as a Subobject
+// of Cod<F>.  Sollbruchstelle for the categorical anchor; concrete
+// realisations specialise the predicate for specific carrier patterns
+// (e.g. Slice 4's First-Iso-Theorem needs the mod_n case to compute
+// concretely on ℤ/nℤ).  Also feeds #602 (image-of-set-under-function)
+// at the per-arrow-not-per-set level.
+// ---------------------------------------------------------------------------
+
+/**
+ * @brief The characteristic predicate of @c image_of(F) — recognises @c y
+ *        as "in the image of @c F".
+ *
+ * @details Default behaviour: returns @c Ternary::Unknown because the
+ * existential @c ∃x ∈ Dom<F>. F(x) = y is undecidable on a general
+ * @c IsArrow without further structure on @c Dom<F> (e.g.\ finite
+ * enumerability, inversion, or a comprehension-DSL hook).  Concrete
+ * specialisations override for specific @c F — Slice 4 lands the
+ * @c mod_n case, where the image is the interval [0, n).
+ *
+ * @tparam F The arrow whose image this predicate classifies.
+ */
+export template <typename F>
+  requires IsArrow<F>
+struct ImageChi {
+  F f;
+  using Domain = Cod<F>;
+  using Codomain = Ternary;
+
+  /** @brief Default Honest-Rejection classifier: returns
+   *  @c Ternary::Unknown.  Specialisations on specific @c F fire
+   *  the @c True / @c False answer; until then, the image is
+   *  honestly opaque. */
+  constexpr Ternary operator()(const Cod<F>&) const noexcept {
+    return Ternary::Unknown;
+  }
+};
+
+/**
+ * @brief Factory: @c image_of(f) constructs the image of @c f as a
+ *        @c Subobject of @c Cod<F>.
+ *
+ * @details The returned @c Subobject's characteristic predicate
+ * (@c ImageChi above) recognises @c y as "@c y is in the image of
+ * @c f".  Pairs with @c IsImageOf at the type level: the result
+ * satisfies @c IsImageOf<decltype(image_of(f)), F> for every
+ * @c IsArrow @c F.  The Slice-2 realisation defers the existential
+ * resolution to @c Ternary::Unknown (Honest Rejection); concrete
+ * carrier-specific specialisations of @c ImageChi land in later
+ * slices (Slice 4's First-Iso-Theorem exhibit).
+ *
+ * @tparam F The arrow whose image is being constructed.
+ */
+export template <typename F>
+  requires IsArrow<F>
+constexpr auto image_of(F&& f) {
+  using FT = std::remove_cvref_t<F>;
+  return Subobject<Cod<FT>, ImageChi<FT>>{ImageChi<FT>{std::forward<F>(f)}};
+}
+
+// Witness: image_of(Identity<int>) is an IsSubobject of int — the trivial
+// image is the whole carrier.  Pins the type signature at compile time.
+static_assert(IsSubobject<decltype(image_of(Identity<int>{})), int>,
+              "image_of(Identity<int>) realises a Subobject of int — the "
+              "trivial image-of-identity exhibit.");
 
 }  // namespace dedekind::category

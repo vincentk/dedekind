@@ -281,6 +281,27 @@ static_assert(IsRegularMono<Identity<int>>,
               "of the degenerate parallel pair (id, id).");
 
 // ---------------------------------------------------------------------------
+// Arrow-side automatic upgrades: every regular epi is an epi (by
+// definition — a coequalizer is automatically right-cancellable);
+// dually every regular mono is a mono.  Registering the regular-side
+// trait alone is sufficient; the upstream epi / mono trait fires
+// transitively.
+//
+// Symmetric to the category-level IsExactCategory ⇒ IsRegularCategory ⇒
+// IsFactorisationSystem upgrade chain above: textbook implications
+// become typed-implication upgrade specialisations at the trait
+// registry layer.
+// ---------------------------------------------------------------------------
+
+template <typename E>
+  requires is_regular_epi_v<E>
+inline constexpr bool is_epic_arrow_v<E> = true;
+
+template <typename M>
+  requires is_regular_mono_v<M>
+inline constexpr bool is_monic_arrow_v<M> = true;
+
+// ---------------------------------------------------------------------------
 // Upgrade-chain witnesses: exercise the IsExactCategory ⇒ IsRegularCategory
 // ⇒ IsFactorisationSystem propagation chain on a category-shape-tagged
 // toy carrier.  A future change that breaks either implication is caught
