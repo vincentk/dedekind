@@ -290,4 +290,60 @@ struct is_idempotent<Q, std::multiplies<Q>>
     : is_idempotent<product_algebra_base_t<Q>,
                     std::multiplies<product_algebra_base_t<Q>>> {};
 
+// ---------------------------------------------------------------------------
+// S (Subalgebra) — Birkhoff's HSP, Burris-Sankappanavar §II.5 / §II.10.
+//
+// The third leg of HSP closure: a subalgebra S of A is a subobject
+// (S ⊆ A in Set) that is closed under the algebraic operations of A.
+// For a single operation Op : A × A → A, closure means: for all
+// s, s' ∈ S, Op(s, s') ∈ S.  Universal-algebra anchor for the S leg
+// completing the H (IsQuotientAlgebra) + P (IsProductAlgebra) + S
+// triple — #718 Slice 3, blocking Slice 5's HSP-closed crown witness.
+//
+// Single-operation form lands first; multi-op variadic
+// IsSubalgebra<S, A, Op...> for ring-flavoured carriers waits on a
+// downstream demand (Sollbruchstelle, mirroring Slice 0's IsCongruence
+// shape).
+// ---------------------------------------------------------------------------
+
+/**
+ * @brief User-declared closure witness: subobject @c S of @c A is
+ *        closed under operation @c Op.
+ *
+ * @details Closure: for all @c m1, m2 of @c S::Member, the value
+ *          @c Op(ι(m1), ι(m2)) lies in the image of @c ι (i.e.\ is
+ *          itself representable as a Member of @c S).  Cannot be
+ *          checked at compile time in general — opt-in.
+ *
+ *          Universal-algebra reference: Burris-Sankappanavar §II.5.
+ */
+export template <typename S, typename A, typename Op>
+inline constexpr bool is_closed_under_v = false;
+
+/**
+ * @concept IsSubalgebra
+ * @brief Subobject @c S of @c A is a @b subalgebra under operation
+ *        @c Op when it is closed under @c Op.
+ *
+ * @details The S leg of Birkhoff's HSP closure (#718 Slice 3),
+ *          completing the triple with @c IsQuotientAlgebra (H, above
+ *          in this partition) and @c IsProductAlgebra (P, also
+ *          above).  Mirrors @c :cartesian's @c IsCongruence shape
+ *          (Slice 0): structural shape (the @c IsSubobject witness +
+ *          Op signature gate) plus opt-in closure trait.
+ *
+ *          Universal-algebra references: Burris-Sankappanavar §II.5
+ *          (subalgebras) + §II.10 (the HSP closure operators).
+ *
+ * @tparam S The candidate subalgebra (a Subobject of @c A).
+ * @tparam A The ambient algebra carrier.
+ * @tparam Op The binary operation @c V @c × @c V @c → @c V that
+ *            @c S must be closed under.
+ */
+export template <typename S, typename A, typename Op>
+concept IsSubalgebra = IsSubobject<S, A> && is_closed_under_v<S, A, Op> &&
+                       requires(const A& a, const Op& op) {
+                         { op(a, a) } -> std::convertible_to<A>;
+                       };
+
 }  // namespace dedekind::category
