@@ -31,13 +31,69 @@ TEST_CASE(
   /** @brief Identity<T> is the canonical witness for both legs of the
    *         (regular epi, mono) factorisation system: the coequalizer
    *         and equalizer of the degenerate parallel pair (id, id) are
-   *         both id itself. */
+   *         both id itself.
+   *
+   *         Note: Identity<T> is independently registered as both
+   *         @c is_epic_arrow_v and @c is_monic_arrow_v in @c :morphism,
+   *         so the @c IsEpicArrow / @c IsMonicArrow assertions here
+   *         don't exercise the auto-upgrade — see the
+   *         @c regular_only_arrow witness below for the upgrade test. */
   STATIC_CHECK(IsRegularEpi<Identity<int>>);
   STATIC_CHECK(IsRegularMono<Identity<int>>);
-  // Arrow auto-upgrade chain: every regular epi is an epi by the
-  // is_regular_epi_v ⇒ is_epic_arrow_v partial spec in :factorisation.
   STATIC_CHECK(IsEpicArrow<Identity<int>>);
   STATIC_CHECK(IsMonicArrow<Identity<int>>);
+}
+
+namespace dedekind::category {
+namespace _auto_upgrade_witnesses {
+/** @brief Arrow-shaped struct registered ONLY as @c is_regular_epi_v.
+ *         The auto-upgrade in @c :factorisation must lift it to
+ *         @c is_epic_arrow_v transitively. */
+struct regular_epi_only_arrow {
+  using Domain = int;
+  using Codomain = int;
+  constexpr int operator()(int x) const noexcept { return x; }
+};
+
+/** @brief Dual: arrow registered ONLY as @c is_regular_mono_v. */
+struct regular_mono_only_arrow {
+  using Domain = int;
+  using Codomain = int;
+  constexpr int operator()(int x) const noexcept { return x; }
+};
+}  // namespace _auto_upgrade_witnesses
+
+template <>
+inline constexpr bool is_regular_epi_v<
+    _auto_upgrade_witnesses::regular_epi_only_arrow> = true;
+template <>
+inline constexpr bool is_regular_mono_v<
+    _auto_upgrade_witnesses::regular_mono_only_arrow> = true;
+}  // namespace dedekind::category
+
+TEST_CASE(
+    "category:factorisation — arrow auto-upgrade: regular epi/mono ⇒ epi/mono",
+    "[category][factorisation][auto-upgrade][arrow]") {
+  /** @brief @c is_regular_epi_v ⇒ @c is_epic_arrow_v auto-upgrade is
+   *         catchable only with a witness that's registered ONLY on
+   *         the regular-side trait.  The @c regular_epi_only_arrow
+   *         above lives in @c _auto_upgrade_witnesses and is opted-
+   *         into @c is_regular_epi_v but @b not @c is_epic_arrow_v.
+   *         The auto-upgrade in @c :factorisation must then fire
+   *         @c IsEpicArrow transitively. */
+  STATIC_CHECK(
+      IsRegularEpi<
+          dedekind::category::_auto_upgrade_witnesses::regular_epi_only_arrow>);
+  STATIC_CHECK(
+      IsEpicArrow<
+          dedekind::category::_auto_upgrade_witnesses::regular_epi_only_arrow>);
+
+  STATIC_CHECK(
+      IsRegularMono<
+          dedekind::category::_auto_upgrade_witnesses::regular_mono_only_arrow>);
+  STATIC_CHECK(
+      IsMonicArrow<
+          dedekind::category::_auto_upgrade_witnesses::regular_mono_only_arrow>);
 }
 
 TEST_CASE(

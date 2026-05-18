@@ -100,7 +100,8 @@
 module;
 
 #include <concepts>
-#include <utility>  // std::forward, std::remove_cvref_t
+#include <type_traits>  // std::remove_cvref_t
+#include <utility>      // std::forward
 
 export module dedekind.category:image;
 
@@ -287,7 +288,8 @@ struct ImageChi {
  * @tparam F The arrow whose image is being constructed.
  */
 export template <typename F>
-  requires IsArrow<F>
+  requires IsArrow<F> &&
+           std::constructible_from<std::remove_cvref_t<F>, F&&>
 constexpr auto image_of(F&& f) {
   using FT = std::remove_cvref_t<F>;
   return Subobject<Cod<FT>, ImageChi<FT>>{ImageChi<FT>{std::forward<F>(f)}};
