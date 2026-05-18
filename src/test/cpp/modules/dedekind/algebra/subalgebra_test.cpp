@@ -16,7 +16,6 @@
  */
 
 #include <catch2/catch_test_macros.hpp>
-
 #include <functional>
 
 import dedekind.algebra;
@@ -55,28 +54,28 @@ struct even_ints {
 /** @brief Closure registration: the even integers are closed under
  *         @c std::plus<int>.  Textbook subalgebra of @c (ℤ, +). */
 template <>
-inline constexpr bool is_closed_under_v<_subalgebra_witnesses::even_ints, int,
-                                        std::plus<int>> = true;
+inline constexpr bool
+    is_closed_under_v<_subalgebra_witnesses::even_ints, int, std::plus<int>> =
+        true;
 
 }  // namespace dedekind::category
 
 using namespace dedekind::category;
 
-TEST_CASE(
-    "algebra:subalgebra — even integers are a subalgebra of (ℤ, +)",
-    "[algebra][subalgebra][HSP-S][canonical]") {
+TEST_CASE("algebra:subalgebra — even integers are a subalgebra of (ℤ, +)",
+          "[algebra][subalgebra][HSP-S][canonical]") {
   /** @brief Even integers @c {…, -2, 0, 2, 4, …} form a subalgebra of
    *         @c ℤ under @c +: the sum of two even integers is even.
    *         This is the canonical textbook subalgebra (Burris-Sank
    *         §II.5) — the S leg of HSP. */
-  STATIC_CHECK(
-      IsSubobject<_subalgebra_witnesses::even_ints, int>);
+  STATIC_CHECK(IsSubobject<_subalgebra_witnesses::even_ints, int>);
   STATIC_CHECK(
       IsSubalgebra<_subalgebra_witnesses::even_ints, int, std::plus<int>>);
 }
 
 TEST_CASE(
-    "algebra:subalgebra — negative gate: unregistered subobjects honestly reject",
+    "algebra:subalgebra — negative gate: unregistered subobjects honestly "
+    "reject",
     "[algebra][subalgebra][HSP-S][negative][closure-gate]") {
   /** @brief A subobject that hasn't opted into @c is_closed_under_v<…,
    *         Op> for a given @c Op honestly rejects @c IsSubalgebra
