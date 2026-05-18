@@ -111,10 +111,10 @@ import :factorisation;  // For IsFactorisationSystem / IsRegularCategory /
                         // IsExactCategory — the categorical context for the
                         // (regular epi, mono) factorisation system this
                         // partition narrates (#718 Slice 2).
-import :cartesian;      // For CanonicalSetCCC — Set witness site (#718 Slice 2).
-import :logic;          // For Ternary — default codomain of image_of's
-                        // predicate (Honest Rejection until concrete
-                        // specialisation, see image_of below).
+import :cartesian;  // For CanonicalSetCCC — Set witness site (#718 Slice 2).
+import :logic;      // For Ternary — default codomain of image_of's
+                    // predicate (Honest Rejection until concrete
+                    // specialisation, see image_of below).
 
 namespace dedekind::category {
 
