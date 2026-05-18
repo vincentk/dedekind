@@ -207,10 +207,10 @@ static_assert(IsOrderLattice<bool>,
  *  @c N as field-on-the-primitive type without a struct wrapper.
  *
  *  Cross-reading: the bitwise Boolean @b lattice on integral @c T
- *  here is the lattice of subsets of @c {0, …, @c std::numeric_limits<T>::digits-1};
- *  the (would-be) Galois @b field on @c GF(2^N) (with @c N the carrier
- *  bit-width) on the same carrier is a different algebraic structure
- *  on the same underlying set.  Don't conflate them.
+ *  here is the lattice of subsets of @c {0, …, @c
+ * std::numeric_limits<T>::digits-1}; the (would-be) Galois @b field on @c
+ * GF(2^N) (with @c N the carrier bit-width) on the same carrier is a different
+ * algebraic structure on the same underlying set.  Don't conflate them.
  */
 
 /** @brief Bit-subset relation: @c a @c ⊆_bit @c b @c ⟺ @c (a @c &
