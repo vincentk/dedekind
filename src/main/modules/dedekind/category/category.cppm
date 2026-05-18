@@ -65,6 +65,9 @@ export import :limit;      // Universal Limits
 export import :cartesian;  // Products/Coproducts, CCC Foundations
 export import :topoi;      // Internal Logic of the Topos
 export import :pullback;   // The Universal Construction "Sink"
+export import :factorisation;  // (Regular epi, mono) factorisation system,
+                               // IsRegularCategory / IsExactCategory; row 4–8
+                               // of the quotient Form-chain (#718).
 export import :image;      // IsImageOf<S, F> — image of an arrow as
                            // a structurally-named subobject of Cod<F>;
                            // mono side of the canonical epi-mono
