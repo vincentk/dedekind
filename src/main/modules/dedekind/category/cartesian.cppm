@@ -942,8 +942,7 @@ inline constexpr bool is_congruence_v = false;
  *            must preserve.
  */
 export template <typename R, typename V, typename Op>
-concept IsCongruence =
-    IsEquivalenceRelation<R, V> && is_congruence_v<R, V, Op>;
+concept IsCongruence = IsEquivalenceRelation<R, V> && is_congruence_v<R, V, Op>;
 
 // ---------------------------------------------------------------------------
 // Canonical positive witness: std::equal_to<V> is a congruence w.r.t.\
@@ -959,10 +958,11 @@ concept IsCongruence =
 template <std::integral V>
 inline constexpr bool is_congruence_v<std::equal_to<V>, V, std::plus<V>> = true;
 template <std::integral V>
-inline constexpr bool
-    is_congruence_v<std::equal_to<V>, V, std::multiplies<V>> = true;
+inline constexpr bool is_congruence_v<std::equal_to<V>, V, std::multiplies<V>> =
+    true;
 template <std::integral V>
-inline constexpr bool is_congruence_v<std::equal_to<V>, V, std::minus<V>> = true;
+inline constexpr bool is_congruence_v<std::equal_to<V>, V, std::minus<V>> =
+    true;
 template <std::integral V>
 inline constexpr bool is_congruence_v<std::equal_to<V>, V, std::bit_or<V>> =
     true;
@@ -979,8 +979,9 @@ static_assert(IsCongruence<std::equal_to<int>, int, std::plus<int>>,
               "transparency.");
 static_assert(IsCongruence<std::equal_to<int>, int, std::multiplies<int>>,
               "std::equal_to<int> is a congruence w.r.t. * on int.");
-static_assert(IsCongruence<std::equal_to<unsigned>, unsigned, std::bit_or<unsigned>>,
-              "std::equal_to<unsigned> is a congruence w.r.t. bitwise OR.");
+static_assert(
+    IsCongruence<std::equal_to<unsigned>, unsigned, std::bit_or<unsigned>>,
+    "std::equal_to<unsigned> is a congruence w.r.t. bitwise OR.");
 
 // Negative witness: std::equal_to<double> is not an equivalence relation
 // (NaN == NaN is false under IEEE 754), so it cannot be a congruence
