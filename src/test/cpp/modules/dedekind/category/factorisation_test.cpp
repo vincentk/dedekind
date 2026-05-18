@@ -1,0 +1,159 @@
+/** @file dedekind/category/factorisation_test.cpp
+ *
+ * Unit coverage for @c :category::factorisation (#718 Slice 1) and the
+ * @c :image rewire + @c image_of factory (#718 Slice 2).
+ *
+ * Coverage targets:
+ *  - The five Form-chain concepts (rows 4–8 of #718): @c IsRegularEpi,
+ *    @c IsRegularMono, @c IsFactorisationSystem, @c IsRegularCategory,
+ *    @c IsExactCategory.
+ *  - The two upgrade chains: @c IsExactCategory ⇒ @c IsRegularCategory
+ *    ⇒ @c IsFactorisationSystem (category-level) and
+ *    @c is_regular_epi_v ⇒ @c is_epic_arrow_v plus the dual (arrow-level).
+ *  - The @c image_of(F) factory runtime body and the @c ImageChi<F>
+ *    Honest-Rejection default classifier (@c Ternary::Unknown).
+ *
+ * Existential / structural witnesses live as @c static_assert inside
+ * the main partition (cf.\ @c feedback_static_assert_in_main.md); the
+ * runtime exercises below ensure the factory bodies are covered by
+ * codecov in addition to the type-checked compile-time witnesses.
+ */
+
+#include <catch2/catch_test_macros.hpp>
+
+import dedekind.category;
+
+using namespace dedekind::category;
+
+TEST_CASE(
+    "category:factorisation — Identity<int> is the trivial regular epi / mono",
+    "[category][factorisation][regular-epi][regular-mono][identity]") {
+  /** @brief Identity<T> is the canonical witness for both legs of the
+   *         (regular epi, mono) factorisation system: the coequalizer
+   *         and equalizer of the degenerate parallel pair (id, id) are
+   *         both id itself.
+   *
+   *         Note: Identity<T> is independently registered as both
+   *         @c is_epic_arrow_v and @c is_monic_arrow_v in @c :morphism,
+   *         so the @c IsEpicArrow / @c IsMonicArrow assertions here
+   *         don't exercise the auto-upgrade — see the
+   *         @c regular_only_arrow witness below for the upgrade test. */
+  STATIC_CHECK(IsRegularEpi<Identity<int>>);
+  STATIC_CHECK(IsRegularMono<Identity<int>>);
+  STATIC_CHECK(IsEpicArrow<Identity<int>>);
+  STATIC_CHECK(IsMonicArrow<Identity<int>>);
+}
+
+namespace dedekind::category {
+namespace _auto_upgrade_witnesses {
+/** @brief Arrow-shaped struct registered ONLY as @c is_regular_epi_v.
+ *         The auto-upgrade in @c :factorisation must lift it to
+ *         @c is_epic_arrow_v transitively. */
+struct regular_epi_only_arrow {
+  using Domain = int;
+  using Codomain = int;
+  constexpr int operator()(int x) const noexcept { return x; }
+};
+
+/** @brief Dual: arrow registered ONLY as @c is_regular_mono_v. */
+struct regular_mono_only_arrow {
+  using Domain = int;
+  using Codomain = int;
+  constexpr int operator()(int x) const noexcept { return x; }
+};
+}  // namespace _auto_upgrade_witnesses
+
+template <>
+inline constexpr bool
+    is_regular_epi_v<_auto_upgrade_witnesses::regular_epi_only_arrow> = true;
+template <>
+inline constexpr bool
+    is_regular_mono_v<_auto_upgrade_witnesses::regular_mono_only_arrow> = true;
+}  // namespace dedekind::category
+
+TEST_CASE(
+    "category:factorisation — arrow auto-upgrade: regular epi/mono ⇒ epi/mono",
+    "[category][factorisation][auto-upgrade][arrow]") {
+  /** @brief @c is_regular_epi_v ⇒ @c is_epic_arrow_v auto-upgrade is
+   *         catchable only with a witness that's registered ONLY on
+   *         the regular-side trait.  The @c regular_epi_only_arrow
+   *         above lives in @c _auto_upgrade_witnesses and is opted-
+   *         into @c is_regular_epi_v but @b not @c is_epic_arrow_v.
+   *         The auto-upgrade in @c :factorisation must then fire
+   *         @c IsEpicArrow transitively. */
+  STATIC_CHECK(
+      IsRegularEpi<
+          dedekind::category::_auto_upgrade_witnesses::regular_epi_only_arrow>);
+  STATIC_CHECK(
+      IsEpicArrow<
+          dedekind::category::_auto_upgrade_witnesses::regular_epi_only_arrow>);
+
+  STATIC_CHECK(IsRegularMono<dedekind::category::_auto_upgrade_witnesses::
+                                 regular_mono_only_arrow>);
+  STATIC_CHECK(IsMonicArrow<dedekind::category::_auto_upgrade_witnesses::
+                                regular_mono_only_arrow>);
+}
+
+TEST_CASE(
+    "category:factorisation — CanonicalSetCCC is exact, regular, and admits "
+    "the (regular epi, mono) factorisation system",
+    "[category][factorisation][set][upgrade-chain]") {
+  /** @brief @b Set (CanonicalSetCCC<A>) is the exemplar exact category
+   *         (Borceux vol 2 §2; "in Set and any topos, every epimorphism
+   *         is the coequalizer of its kernel pair").  The upgrade chain
+   *         @c IsExactCategory ⇒ @c IsRegularCategory ⇒
+   *         @c IsFactorisationSystem fires from the single
+   *         @c is_exact_category_v opt-in registered in @c :image. */
+  STATIC_CHECK(IsExactCategory<CanonicalSetCCC<int>>);
+  STATIC_CHECK(IsRegularCategory<CanonicalSetCCC<int>>);
+  STATIC_CHECK(IsFactorisationSystem<CanonicalSetCCC<int>>);
+}
+
+TEST_CASE(
+    "category:factorisation — negative gate: int is not category-shaped, so "
+    "the category-level concepts honestly reject",
+    "[category][factorisation][negative][category-shape-gate]") {
+  /** @brief A non-category-shaped type (@c int has no @c ::Arrow /
+   *         @c ::Species / @c ::Id aliases) cannot satisfy any of the
+   *         category-level concepts, even if the variable trait were
+   *         force-registered.  The @c IsSmallCategoryShape gate added
+   *         in Slice 1's Copilot pass enforces this. */
+  STATIC_CHECK_FALSE(IsRegularCategory<int>);
+  STATIC_CHECK_FALSE(IsExactCategory<int>);
+  STATIC_CHECK_FALSE(IsFactorisationSystem<int>);
+}
+
+TEST_CASE("image:image_of — factory produces a Subobject of Cod<F>",
+          "[category][image][image-of][factory]") {
+  /** @brief The @c image_of(f) factory constructs a @c Subobject of
+   *         @c Cod<F> from any @c IsArrow @c F.  This runtime test
+   *         exercises the factory body (construction of
+   *         @c Subobject<Cod<F>, ImageChi<F>>) and the
+   *         @c ImageChi::operator() Honest-Rejection default
+   *         (@c Ternary::Unknown).  Concrete carrier-specific
+   *         specialisations of @c ImageChi<F> land in #718 Slice 4
+   *         (First-Iso-Theorem).
+   *
+   *         Note: tests deliberately invoke the factory at @b runtime
+   *         (no @c constexpr) so codecov sees the function bodies
+   *         hit, not only compile-time evaluation. */
+  // Type-level witness via a constexpr instance — pins the type shape.
+  constexpr Identity<int> id_int_const{};
+  constexpr auto image_const = image_of(id_int_const);
+  STATIC_CHECK(IsSubobject<decltype(image_const), int>);
+
+  // Runtime witness — exercises the factory body, the Subobject
+  // construction, the ImageChi default classifier, and the
+  // Subobject::operator() forwarder all at runtime.
+  Identity<int> id_int_runtime{};
+  auto image_runtime = image_of(id_int_runtime);
+  CHECK(image_runtime(42) == Ternary::Unknown);
+  CHECK(image_runtime(0) == Ternary::Unknown);
+  CHECK(image_runtime(-1) == Ternary::Unknown);
+
+  // Also exercise the Subobject::ι inclusion arm at runtime (it's
+  // wired up by the factory but not otherwise touched).
+  using Img = decltype(image_runtime);
+  typename Img::Member m{17};
+  CHECK(image_runtime.ι(m) == 17);
+}
