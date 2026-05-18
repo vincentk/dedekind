@@ -17,6 +17,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <functional>
+#include <string>
 
 import dedekind.algebra;
 import dedekind.category;
@@ -49,6 +50,17 @@ struct even_ints {
   constexpr bool operator()(int a) const noexcept { return χ(a); }
 };
 
+/** @brief "Malformed" Op witness: takes a @c double, not a binary
+ *         @c int × @c int operation.  Used below to exercise the
+ *         @c IsSubalgebra concept body's @c { op(a, a) } @c
+ *         @c -> @c std::convertible_to<A> Op-shape gate.
+ *         @c std::convertible_to<int> still admits @c double via
+ *         narrowing conversion, so we deliberately return a
+ *         @c std::string — a type that has no conversion to @c int. */
+struct malformed_op {
+  constexpr std::string operator()(int, int) const { return {}; }
+};
+
 }  // namespace _subalgebra_witnesses
 
 /** @brief Closure registration: the even integers are closed under
@@ -57,6 +69,16 @@ template <>
 inline constexpr bool
     is_closed_under_v<_subalgebra_witnesses::even_ints, int, std::plus<int>> =
         true;
+
+/** @brief Op-shape-gate test: closure is force-registered for the
+ *         malformed Op, so the Op-shape @c requires clause in the
+ *         @c IsSubalgebra concept body is the @b only thing
+ *         preventing the concept from firing.  A regression that
+ *         removes the gate would now fail this static_assert. */
+template <>
+inline constexpr bool is_closed_under_v<_subalgebra_witnesses::even_ints, int,
+                                        _subalgebra_witnesses::malformed_op> =
+    true;
 
 }  // namespace dedekind::category
 
@@ -88,6 +110,22 @@ TEST_CASE(
   // even * anything = even.  But this test demonstrates that without an
   // explicit opt-in registration the concept honestly rejects, which is
   // the project's Honest-Rejection discipline.)
+}
+
+TEST_CASE(
+    "algebra:subalgebra — negative gate: Op-shape requires clause rejects "
+    "malformed operations even when closure is registered",
+    "[algebra][subalgebra][HSP-S][negative][op-shape-gate]") {
+  /** @brief Op-shape gate is the second negative cover: a
+   *         @c malformed_op (returns @c std::string from a binary
+   *         @c (int, int) call) cannot satisfy
+   *         @c { op(a, a) } @c -> @c std::convertible_to<A>.
+   *         Closure is force-registered to true above, so the
+   *         @c requires clause is the @b only thing preventing the
+   *         concept from firing.  A regression that removes the gate
+   *         would surface here at compile time. */
+  STATIC_CHECK_FALSE(IsSubalgebra<_subalgebra_witnesses::even_ints, int,
+                                  _subalgebra_witnesses::malformed_op>);
 }
 
 TEST_CASE("algebra:subalgebra — runtime exercise of the even-ints witness",
