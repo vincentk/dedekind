@@ -953,7 +953,8 @@ inline constexpr bool is_congruence_v = false;
  * obligation.
  */
 export template <typename R, typename V, typename Op>
-concept IsCongruence = IsEquivalenceRelation<R, V> && is_congruence_v<R, V, Op> &&
+concept IsCongruence =
+    IsEquivalenceRelation<R, V> && is_congruence_v<R, V, Op> &&
     requires(const V& v, const Op& op) {
       { op(v, v) } -> std::convertible_to<V>;
     };
