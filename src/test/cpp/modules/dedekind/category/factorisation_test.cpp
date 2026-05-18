@@ -78,17 +78,28 @@ TEST_CASE("image:image_of — factory produces a Subobject of Cod<F>",
    *         @c ImageChi::operator() Honest-Rejection default
    *         (@c Ternary::Unknown).  Concrete carrier-specific
    *         specialisations of @c ImageChi<F> land in #718 Slice 4
-   *         (First-Iso-Theorem). */
-  constexpr Identity<int> id_int{};
-  constexpr auto image = image_of(id_int);
+   *         (First-Iso-Theorem).
+   *
+   *         Note: tests deliberately invoke the factory at @b runtime
+   *         (no @c constexpr) so codecov sees the function bodies
+   *         hit, not only compile-time evaluation. */
+  // Type-level witness via a constexpr instance — pins the type shape.
+  constexpr Identity<int> id_int_const{};
+  constexpr auto image_const = image_of(id_int_const);
+  STATIC_CHECK(IsSubobject<decltype(image_const), int>);
 
-  // Type-level: the result is a Subobject of int — the trivial
-  // image-of-identity exhibit (the whole carrier).
-  STATIC_CHECK(IsSubobject<decltype(image), int>);
+  // Runtime witness — exercises the factory body, the Subobject
+  // construction, the ImageChi default classifier, and the
+  // Subobject::operator() forwarder all at runtime.
+  Identity<int> id_int_runtime{};
+  auto image_runtime = image_of(id_int_runtime);
+  CHECK(image_runtime(42) == Ternary::Unknown);
+  CHECK(image_runtime(0) == Ternary::Unknown);
+  CHECK(image_runtime(-1) == Ternary::Unknown);
 
-  // Runtime: the default classifier returns Ternary::Unknown (Honest
-  // Rejection until a concrete specialisation overrides).
-  CHECK(image(42) == Ternary::Unknown);
-  CHECK(image(0) == Ternary::Unknown);
-  CHECK(image(-1) == Ternary::Unknown);
+  // Also exercise the Subobject::ι inclusion arm at runtime (it's
+  // wired up by the factory but not otherwise touched).
+  using Img = decltype(image_runtime);
+  typename Img::Member m{17};
+  CHECK(image_runtime.ι(m) == 17);
 }
