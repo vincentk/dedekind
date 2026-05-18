@@ -79,7 +79,8 @@ module;
 export module dedekind.category:factorisation;
 
 import :morphism;  // IsArrow, IsEpicArrow, IsMonicArrow, Identity
-import :pullback;  // IsParallelPair (the input shape for coequalizer / equalizer)
+import :pullback;  // IsParallelPair (the input shape for coequalizer /
+                   // equalizer)
 
 namespace dedekind::category {
 
