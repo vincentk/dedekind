@@ -67,9 +67,8 @@ TEST_CASE("morphologies:first_iso — Modular<2> ≅ bool (the First-Iso crown)"
   CHECK(inv_r(Modular<2>{1}));
 }
 
-TEST_CASE(
-    "morphologies:first_iso — round-trip is identity in both directions",
-    "[morphologies][cyclic][first-iso][round-trip]") {
+TEST_CASE("morphologies:first_iso — round-trip is identity in both directions",
+          "[morphologies][cyclic][first-iso][round-trip]") {
   /** @brief Iso law check: forward ∘ reverse = id_bool, and
    *         reverse ∘ forward = id_{Modular<2>}.  The two laws
    *         together imply the iso is genuine; the static_assert

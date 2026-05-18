@@ -439,8 +439,7 @@ static_assert(
     std::same_as<typename first_iso_mod_2::connector::Domain, Modular<2>>,
     "First-Iso Domain: Modular<2> = ℤ/2ℤ, the quotient by the parity "
     "congruence (= ker(mod_2)).");
-static_assert(
-    std::same_as<typename first_iso_mod_2::connector::Codomain, bool>,
-    "First-Iso Codomain: bool = im(mod_2) (mod_2 is surjective).");
+static_assert(std::same_as<typename first_iso_mod_2::connector::Codomain, bool>,
+              "First-Iso Codomain: bool = im(mod_2) (mod_2 is surjective).");
 
 }  // namespace dedekind::morphologies
