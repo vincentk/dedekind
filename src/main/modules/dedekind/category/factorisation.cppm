@@ -169,9 +169,16 @@ inline constexpr bool is_factorisation_system_v = false;
  * @concept IsFactorisationSystem
  * @brief Category @c C admits the canonical (regular epi, mono)
  *        factorisation system.  Form-chain row 6 (#718).
+ *
+ * @details Gates on @c IsSmallCategoryShape<C> so a downstream user
+ *          cannot register the trait on a non-category-shaped type
+ *          (e.g.\ @c int) and have the concept fire — matches the
+ *          codebase's existing category-level concept pattern in
+ *          @c :small / @c :morphism.
  */
 export template <typename C>
-concept IsFactorisationSystem = is_factorisation_system_v<C>;
+concept IsFactorisationSystem =
+    IsSmallCategoryShape<C> && is_factorisation_system_v<C>;
 
 // ---------------------------------------------------------------------------
 // Regular and exact categories — Sollbruchstellen named here; downstream
@@ -197,9 +204,12 @@ inline constexpr bool is_regular_category_v = false;
  * @concept IsRegularCategory
  * @brief Category @c C satisfies the regular-category axioms.  Pinned
  *        for @b Set and (transitively) every topos.
+ *
+ * @details Gates on @c IsSmallCategoryShape<C>; see @c IsFactorisationSystem
+ *          above for the rationale.
  */
 export template <typename C>
-concept IsRegularCategory = is_regular_category_v<C>;
+concept IsRegularCategory = IsSmallCategoryShape<C> && is_regular_category_v<C>;
 
 /**
  * @brief Every regular category admits the (regular epi, mono)
@@ -227,12 +237,19 @@ inline constexpr bool is_exact_category_v = false;
 
 /**
  * @concept IsExactCategory
- * @brief Category @c C satisfies the exact-category axioms.  Sollbruchstelle
- *        landing site; the @b Set witness ships now, individual topos
- *        witnesses follow when they're needed.
+ * @brief Category @c C satisfies the exact-category axioms.
+ *        Sollbruchstelle landing site.
+ *
+ * @details Gates on @c IsSmallCategoryShape<C>; see
+ *          @c IsFactorisationSystem above for the rationale.
+ *
+ *          @b Set / @b CanonicalSetCCC and topos-shaped witnesses ship
+ *          in Slice 2 (the @c :image rewire), where the necessary
+ *          downstream imports are already in scope; this slice lands
+ *          the named seam only.
  */
 export template <typename C>
-concept IsExactCategory = is_exact_category_v<C>;
+concept IsExactCategory = IsSmallCategoryShape<C> && is_exact_category_v<C>;
 
 /**
  * @brief Every exact category is a regular category (Borceux vol 2 §2.6);
@@ -262,5 +279,57 @@ static_assert(IsRegularEpi<Identity<int>>,
 static_assert(IsRegularMono<Identity<int>>,
               "Identity<int> is the trivial regular mono — equalizer "
               "of the degenerate parallel pair (id, id).");
+
+// ---------------------------------------------------------------------------
+// Upgrade-chain witnesses: exercise the IsExactCategory ⇒ IsRegularCategory
+// ⇒ IsFactorisationSystem propagation chain on a category-shape-tagged
+// toy carrier.  A future change that breaks either implication is caught
+// here at compile time, not in a downstream witness file (mirrors the
+// upstream relation-trait pattern at :cartesian's IsEquivalenceRelation).
+// ---------------------------------------------------------------------------
+
+namespace _factorisation_upgrade_witnesses {
+/**
+ * @brief Category-shape-tagged toy carrier for upgrade-chain witnesses.
+ *
+ * @details Carries the three @c IsSmallCategoryShape aliases (@c ::Arrow
+ *          / @c ::Species / @c ::Id) so the gated concepts can fire on
+ *          it, with no behavioural commitments beyond the structural
+ *          shape.  The honesty obligation (that this stand-in actually
+ *          @em is an exact category) is the witness's responsibility;
+ *          here we only exercise the @b implication chain.
+ */
+struct exact_category_witness {
+  using Arrow = void;
+  using Species = void;
+  using Id = void;
+};
+}  // namespace _factorisation_upgrade_witnesses
+
+template <>
+inline constexpr bool is_exact_category_v<
+    _factorisation_upgrade_witnesses::exact_category_witness> = true;
+
+static_assert(IsExactCategory<
+                  _factorisation_upgrade_witnesses::exact_category_witness>,
+              "Toy witness must satisfy IsExactCategory directly.");
+
+static_assert(
+    IsRegularCategory<
+        _factorisation_upgrade_witnesses::exact_category_witness>,
+    "IsExactCategory ⇒ IsRegularCategory upgrade must fire (Borceux vol 2 §2.6).");
+
+static_assert(
+    IsFactorisationSystem<
+        _factorisation_upgrade_witnesses::exact_category_witness>,
+    "IsRegularCategory ⇒ IsFactorisationSystem upgrade must fire "
+    "(Wikipedia: regular category → (regular epi, mono) factorisation).");
+
+// Negative gate witness: a non-category-shape carrier must NOT satisfy
+// the gated concepts, even with the variable trait force-registered.
+static_assert(!IsRegularCategory<int>,
+              "int is not category-shaped (no ::Arrow / ::Species / ::Id "
+              "aliases), so IsRegularCategory must honestly reject even "
+              "if the variable trait were registered.");
 
 }  // namespace dedekind::category
