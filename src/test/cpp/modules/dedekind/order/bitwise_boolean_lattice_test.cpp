@@ -34,8 +34,10 @@ TEST_CASE(
     "[order][lattice][bitwise][boolean][size_t]") {
   /** @brief @c size_t under the bitwise Boolean algebra:
    *         (@c bit_subset_eq, @c |, @c &, @c ~).  All seven Form-chain
-   *         rows fire — this is the power-set lattice of 64 bit
-   *         positions, a finite Boolean algebra of dimension 64. */
+   *         rows fire — this is the power-set lattice of
+   *         @c std::numeric_limits<std::size_t>::digits bit positions
+   *         (64 on LP64 / LLP64; 32 on 32-bit targets), a finite
+   *         Boolean algebra of that dimension. */
   STATIC_CHECK(
       IsThinCategory<std::size_t, bit_subset_eq<std::size_t>, ClassicalLogic>);
   STATIC_CHECK(
