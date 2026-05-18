@@ -884,6 +884,139 @@ static_assert(!IsEquivalenceRelation<std::equal_to<double>, double>,
               "exclusion clause.");
 
 // ---------------------------------------------------------------------------
+// Congruence (universal-algebra anchor — #718 Slice 0).
+//
+// An equivalence relation @c R on a carrier @c V is a @b congruence
+// with respect to an operation @c Op @c : @c V @c × @c V @c → @c V
+// when @c R is preserved by @c Op:
+//
+//   @c R(x, x') @c ∧ @c R(y, y') @c ⇒ @c R(Op(x, y), @c Op(x', y'))
+//
+// Reference: Burris & Sankappanavar, @em A @em Course @em in
+// @em Universal @em Algebra (Springer GTM 78, 1981), Definition II.5.1.
+// The HSP theorem (Birkhoff 1935 / Burris-Sankappanavar §II.11) sits
+// directly atop this concept: a class of algebras is closed under
+// homomorphic images iff every kernel-of-homomorphism is a congruence.
+//
+// Single-operation case landed first; the variadic
+// @c IsCongruence<R, V, Op...> for multi-op algebras (e.g.\ a ring's
+// (+, ·) joint congruence) lifts when the first ring-quotient witness
+// needs it.  Sollbruchstelle named at @c is_congruence_v's primary.
+// ---------------------------------------------------------------------------
+
+/**
+ * @brief User-declared congruence witness: @c R respects @c Op on @c T.
+ * @details A congruence is an equivalence relation preserved by @c Op:
+ *          @c R(x, x') @c ∧ @c R(y, y') @c ⇒ @c R(Op(x, y), @c Op(x', y')).
+ *          The full congruence definition is then
+ *          @c IsEquivalenceRelation<R, T> @c ∧ @c is_congruence_v<R, T, Op>.
+ *          Cannot be checked at compile time in general; opt-in.
+ *
+ * Single-operation form.  Multi-op congruences for ring-flavoured
+ * carriers (joint @c (+, @c ·) preservation) wait on a downstream
+ * witness; the variadic lift is the Sollbruchstelle here.
+ */
+export template <typename R, typename T, typename Op>
+inline constexpr bool is_congruence_v = false;
+
+/**
+ * @concept IsCongruence
+ * @brief A homogeneous binary relation @c R on a carrier @c V is a
+ *        @b congruence w.r.t.\ operation @c Op when it is an
+ *        equivalence relation and respects @c Op.
+ *
+ * @details Stratifies @c IsEquivalenceRelation by the operation that
+ *          must be respected: every congruence is an equivalence
+ *          relation, but not every equivalence relation is a congruence
+ *          (a textbook foil: @c |x| @c = @c |y| on @c ℤ is an
+ *          equivalence but @b not a congruence for @c +, since
+ *          @c 3 @c ~ @c -3 and @c 5 @c ~ @c 5 yet
+ *          @c 3+5 @c = @c 8 @c ≄ @c 2 @c = @c -3+5).
+ *
+ *          Universal-algebra reference: Burris-Sankappanavar §II.5.
+ *          Form-chain row 2 in the quotient categorification (#718).
+ *
+ * @tparam R The candidate equivalence-relation type.
+ * @tparam V The homogeneous carrier on which @c R lives.
+ * @tparam Op The binary operation @c V @c × @c V @c → @c V that @c R
+ *            must preserve.
+ *
+ * @section cartesian__IsCongruence_Op_Shape_Gate
+ * The concept body requires @c Op to be structurally well-formed as
+ * a binary operation @c V @c × @c V @c → @c V: @c Op(v, @c v) must be
+ * callable and produce a result convertible back to @c V.  Without this
+ * shape gate, a malformed @c Op could be registered via
+ * @c is_congruence_v and the concept would still pass — type-checked
+ * meaninglessness.  The gate is structural-shape only (mirroring the
+ * upstream relation traits' shape-only semantics), not a verification
+ * of the congruence law itself, which remains an opt-in honesty
+ * obligation.
+ */
+export template <typename R, typename V, typename Op>
+concept IsCongruence =
+    IsEquivalenceRelation<R, V> && is_congruence_v<R, V, Op> &&
+    requires(const V& v, const Op& op) {
+      { op(v, v) } -> std::convertible_to<V>;
+    };
+
+// ---------------------------------------------------------------------------
+// Canonical positive witnesses: std::equal_to<V> is a congruence on
+// integral V w.r.t.\ the std-lib binary operations registered below
+// (plus / multiplies / minus / bit_or / bit_and / bit_xor).
+//
+// Reasoning: equality is the smallest equivalence relation on V; if
+// x == x' and y == y' then Op(x, y) is the same computation as
+// Op(x', y') by referential transparency, so Op(x, y) == Op(x', y').
+// This argument extends to any well-defined Op on integral V; the
+// finite registered list reflects the project's std-lib opt-in
+// discipline (downstream callers opt-in for further Ops or custom
+// callables site-locally), not a constraint on which Ops the
+// argument applies to.
+//
+// The integral constraint mirrors the upstream IsEquivalenceRelation
+// gate (via is_reflexive_relation_v / is_symmetric_relation_v /
+// is_transitive_relation_v) that excludes NaN-on-float pathology for
+// std::equal_to.
+// ---------------------------------------------------------------------------
+template <std::integral V>
+inline constexpr bool is_congruence_v<std::equal_to<V>, V, std::plus<V>> = true;
+template <std::integral V>
+inline constexpr bool is_congruence_v<std::equal_to<V>, V, std::multiplies<V>> =
+    true;
+template <std::integral V>
+inline constexpr bool is_congruence_v<std::equal_to<V>, V, std::minus<V>> =
+    true;
+template <std::integral V>
+inline constexpr bool is_congruence_v<std::equal_to<V>, V, std::bit_or<V>> =
+    true;
+template <std::integral V>
+inline constexpr bool is_congruence_v<std::equal_to<V>, V, std::bit_and<V>> =
+    true;
+template <std::integral V>
+inline constexpr bool is_congruence_v<std::equal_to<V>, V, std::bit_xor<V>> =
+    true;
+
+static_assert(IsCongruence<std::equal_to<int>, int, std::plus<int>>,
+              "std::equal_to<int> is a congruence w.r.t. + on int: "
+              "equality is preserved by + via referential transparency "
+              "(and similarly for the other std-lib binary ops "
+              "registered above).");
+static_assert(IsCongruence<std::equal_to<int>, int, std::multiplies<int>>,
+              "std::equal_to<int> is a congruence w.r.t. * on int.");
+static_assert(
+    IsCongruence<std::equal_to<unsigned>, unsigned, std::bit_or<unsigned>>,
+    "std::equal_to<unsigned> is a congruence w.r.t. bitwise OR.");
+
+// Negative witness: std::equal_to<double> is not an equivalence relation
+// (NaN == NaN is false under IEEE 754), so it cannot be a congruence
+// for any operation — IsEquivalenceRelation is the upstream gate.
+static_assert(!IsCongruence<std::equal_to<double>, double, std::plus<double>>,
+              "std::equal_to<double> is not an equivalence relation under "
+              "IEEE 754 (NaN-on-reflexivity); therefore not a congruence "
+              "for any operation.  Honest-Rejection inherited from "
+              "IsEquivalenceRelation upstream.");
+
+// ---------------------------------------------------------------------------
 // operator[] — eval / CCC counit (#531, step 1).
 //
 // A C++ subscript expression @c s[i] on a fixed-size carrier @c Seq
