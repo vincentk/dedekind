@@ -811,6 +811,43 @@ static_assert(WitnessesFirstIso<mod_2_arrow, connector>);  // ← THE crown
 \end{cpp}
 \end{listing}
 
+\paragraph{Birkhoff's HSP closure: a variety is closed under H, S, P.}
+The Quotient functor sits inside the deeper Birkhoff classification: a class $K$ of algebras is a variety (equationally definable) iff $K$ is closed under H (quotients), S (subalgebras), and P (direct products)~\cite{burris1981universalalgebra}~(§II.10--11).
+The dedekind library realises HSP closure as \emph{trait propagation}: the carrier-side registries \cppinline{quotient_algebra_base<Q>}, \cppinline{subalgebra_base<S>}, and \cppinline{product_algebra_base<P>} each lift the species traits (\cppinline{is_associative_v}, \cppinline{is_commutative_v}, \cppinline{is_distributive_v}, \cppinline{is_periodic}, \cppinline{is_idempotent}, \cppinline{is_saturating}) uniformly from a base algebra to its HSP-derived carriers.
+Listing~\ref{lst:hsp-closed} pins Birkhoff at the canonical cyclic-ring base $\mathbb{Z}/6\mathbb{Z}$: the variety ``carriers with associative $+$ and commutative $+$'' is HSP-closed by the propagation specs, witnessed by eight \cppinline{static_assert}s (two axioms times four carriers).
+A regression in any of the three propagation legs surfaces at compile time; the synthetic markers stand in as type-level placeholders for any concrete H/S/P-construction over $\mathbb{Z}/6\mathbb{Z}$.
+
+\begin{listing}[ht]
+\caption{Birkhoff's HSP closure typed.  Base $\mathbb{Z}/6\mathbb{Z}$ + three synthetic HSP markers wired to the carrier-side registries; the trait propagation lifts both axioms of the variety uniformly to all three HSP-derived carriers.  Any future H/S/P construction over $\mathbb{Z}/6\mathbb{Z}$ (or any other base in the variety) follows the same one-line opt-in pattern.}
+\label{lst:hsp-closed}
+\begin{cpp}
+// --- Synthetic HSP markers wired to Modular<6> -----------------------
+struct H_image_of_Z6 {};   // type-level placeholder for any H-image of Z/6Z
+struct S_subalg_of_Z6 {};  // ... S-subalgebra ...
+struct P_product_of_Z6 {}; // ... P-direct-product ...
+
+template <> struct quotient_algebra_base<H_image_of_Z6> { using type = Modular<6>; };
+template <> struct subalgebra_base      <S_subalg_of_Z6> { using type = Modular<6>; };
+template <> struct product_algebra_base <P_product_of_Z6>{ using type = Modular<6>; };
+
+// --- THE Birkhoff HSP-closed crown -----------------------------------
+// Variety V: carriers with associative + AND commutative +.
+// V is HSP-closed by the propagation specs.
+
+using Z6 = Modular<6>;  using H = H_image_of_Z6;
+using S  = S_subalg_of_Z6;  using P = P_product_of_Z6;
+
+static_assert(is_associative_v<Z6, std::plus<Z6>>);  // base ∈ V
+static_assert(is_associative_v<H,  std::plus<H>>);   // H closure (quotient)
+static_assert(is_associative_v<S,  std::plus<S>>);   // S closure (subalgebra)
+static_assert(is_associative_v<P,  std::plus<P>>);   // P closure (product)
+static_assert(is_commutative_v<Z6, std::plus<Z6>>);  // (same four, both axioms)
+static_assert(is_commutative_v<H,  std::plus<H>>);
+static_assert(is_commutative_v<S,  std::plus<S>>);
+static_assert(is_commutative_v<P,  std::plus<P>>);
+\end{cpp}
+\end{listing}
+
 \paragraph{The intersection's deliberate scope.}
 Two distinct mechanisms compose into the intersection $\mathbf{Ddk} = \mathbf{Jlt} \cap \mathbf{Alg}(-)_{\beth_1}$, and naming them separately matters because they pay for different things.
 The $\beth_1$ ceiling from §\ref{sec:alg-sigma} is \emph{foundational}: it stops the encoding from courting the Russell-style self-reference of a meta-category-of-everything, the same way ZFC's missing set-of-all-sets is shaped to forbid such an object.
