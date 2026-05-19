@@ -12,8 +12,10 @@
  *
  * @section morphologies__Partitions
  *   - @c :archimedean --- @c IsCyclic, @c IsCyclicRing, @c IsSimplyInfinite,
- *     @c IsArchimedeanField, @c IsDedekindCompleteField, @c IsCauchy,
- *     @c IsConvergent, plus the @c CauchyPath carrier.  Hosts the
+ *     @c IsArchimedeanField, @c IsDedekindCompleteField, plus the
+ *     @c CauchyPath carrier.  (Sequence-side concepts @c IsCauchySequence
+ *     and @c IsConvergentSequence moved to @c :sequences::convergence
+ *     under the textbook factoring; #719 Slice 0.)  Hosts the
  *     @c successor / @c generator vocabulary notes (carrier-level
  *     member API ↔ axiomatic @c order::IsSuccessor; modern
  *     copula-theoretic Archimedean-generator bridge).

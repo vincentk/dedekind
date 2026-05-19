@@ -19,7 +19,74 @@ module;
 
 export module dedekind.sequences:convergence;
 
+import :net;     // IsSequence (Form-chain row 4) — #719 Slice 0
 import :path;
+import :limits;  // limit() — :sequences-side prerequisite for IsConvergentSequence
+
+namespace dedekind::sequences {
+
+// ===========================================================================
+// Sequence-side convergence concepts (#719 Slice 0).
+//
+// Re-homed from @c :morphologies::archimedean per the textbook
+// factoring discussed in the design review for #719: sequence-side
+// properties (@c IsCauchySequence, @c IsConvergentSequence) live in
+// the @c :sequences partition next to the sequence-trait machinery
+// they consume; carrier-side prerequisites (@c IsArchimedean,
+// @c IsArchimedeanField, @c IsDedekindCompleteField) stay in
+// @c :morphologies::archimedean on the carrier axis.  The
+// @c CauchyPath<T> @em carrier (a tagged @c Path<T> alias) stays in
+// @c :morphologies::archimedean too — it is a concrete derived
+// struct, not a concept.
+//
+// Form-chain rows 5 and 6 of the sequence categorification (#719).
+// Carrier-side prerequisite @c IsArchimedean<Codomain<Seq>> is the
+// engineer's honesty obligation (the concept body pins only the
+// operational shape; metric-completeness lives on the carrier).
+// ===========================================================================
+
+/**
+ * @concept IsCauchySequence
+ * @brief A @c Seq is a @b Cauchy @b sequence: its tail is eventually
+ *        arbitrarily small under the metric on the carrier.
+ *
+ * @details Structurally, the concept pins three operational shapes:
+ *          @c Seq @c is @c IsSequence; @c s.at(0) returns @c Codomain;
+ *          @c std::abs(s.at(0) @c - @c s.at(0)) is callable.  The
+ *          full Cauchy criterion (∀ε>0 ∃N ∀m,n≥N. |s(m)-s(n)|<ε) is
+ *          the engineer's honesty obligation — undecidable on a
+ *          general carrier without further metric machinery.
+ *
+ *          Anchor: Bishop, @em Foundations @em of @em Constructive
+ *          @em Analysis §2.10.  Form-chain row 5 of #719.
+ */
+export template <typename Seq>
+concept IsCauchySequence = IsSequence<Seq> && requires(Seq s) {
+  { s.at(0) } -> std::same_as<typename Seq::Codomain>;
+  { std::abs(s.at(0) - s.at(0)) };
+};
+
+/**
+ * @concept IsConvergentSequence
+ * @brief A Cauchy sequence whose limit can be witnessed via
+ *        @c limit(s).
+ *
+ * @details Strict refinement of @c IsCauchySequence by the existence
+ *          of a @c limit(s) witness.  Extracting @c limit(s) from a
+ *          @c Cauchy sequence is the LEM-flavoured collapse step
+ *          (Specker's recursive counterexample under
+ *          @c ConstructiveLogic; classical under @c ClassicalLogic).
+ *          The carrier-axis cardinality cut determines whether the
+ *          collapse fires honestly — see #719 Slice 5.
+ *
+ *          Anchor: Bishop §2.18.  Form-chain row 6 of #719.
+ */
+export template <typename Seq>
+concept IsConvergentSequence = IsCauchySequence<Seq> && requires(Seq s) {
+  { limit(s) } -> std::same_as<typename Seq::Codomain>;
+};
+
+}  // namespace dedekind::sequences
 
 namespace dedekind::sequences {
 

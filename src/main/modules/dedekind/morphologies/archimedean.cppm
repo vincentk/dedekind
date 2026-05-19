@@ -148,16 +148,14 @@ concept IsMinkowskiSummable = requires(S a, S b) {
   { a + b } -> std::same_as<S>;
 };
 
-export template <typename Seq>
-concept IsCauchy = IsSequence<Seq> && requires(Seq s) {
-  { s.at(0) } -> std::same_as<typename Seq::Codomain>;
-  { std::abs(s.at(0) - s.at(0)) };
-};
-
-export template <typename Seq>
-concept IsConvergent = IsCauchy<Seq> && requires(Seq s) {
-  { limit(s) } -> std::same_as<typename Seq::Codomain>;
-};
+// Sequence-side concepts moved to @c :sequences::convergence under
+// the textbook factoring (#719 Slice 0): carrier-side properties
+// (@c IsArchimedean<T>, @c IsArchimedeanField<T>,
+// @c IsDedekindCompleteField<T>) stay here on the carrier axis;
+// sequence-side properties (@c IsCauchySequence<Seq>,
+// @c IsConvergentSequence<Seq>) live alongside the sequence-trait
+// machinery they consume.  @c CauchyPath<T> stays as a carrier-
+// derived struct (a tagged @c Path<T> alias).
 
 export template <typename T>
 struct CauchyPath : public Path<T> {
