@@ -396,13 +396,13 @@ struct image_carrier {};
  */
 export template <typename F, typename Connector>
 concept WitnessesFirstIso =
-    IsArrow<F> && IsIsomorphism<Connector> && requires {
+    IsArrow<F> && IsIsomorphism<Connector> &&
+    requires {
       typename kernel_quotient<F>::Class;
       typename image_carrier<F>::type;
     } &&
     std::same_as<typename Connector::Domain,
                  typename kernel_quotient<F>::Class> &&
-    std::same_as<typename Connector::Codomain,
-                 typename image_carrier<F>::type>;
+    std::same_as<typename Connector::Codomain, typename image_carrier<F>::type>;
 
 }  // namespace dedekind::category

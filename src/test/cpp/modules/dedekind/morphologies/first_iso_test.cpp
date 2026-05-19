@@ -31,9 +31,10 @@ using namespace dedekind::morphologies;
 using namespace dedekind::morphologies::first_iso_mod_2;
 using dedekind::category::WitnessesFirstIso;
 
-TEST_CASE("morphologies:first_iso — WitnessesFirstIso<mod_2_arrow, connector> "
-          "(the reusable First-Iso crown at mod_2)",
-          "[morphologies][cyclic][first-iso][crown]") {
+TEST_CASE(
+    "morphologies:first_iso — WitnessesFirstIso<mod_2_arrow, connector> "
+    "(the reusable First-Iso crown at mod_2)",
+    "[morphologies][cyclic][first-iso][crown]") {
   /** @brief The typed claim: @c connector witnesses the First Iso
    *         Theorem at @c mod_2.  The static_assert in :morphologies
    *         already pins it at compile time; this STATIC_CHECK is the
@@ -63,9 +64,8 @@ TEST_CASE("morphologies:first_iso — mod_2 parity homomorphism",
   CHECK(f(101));
 }
 
-TEST_CASE(
-    "morphologies:first_iso — connector / connector_inv runtime exercise",
-    "[morphologies][cyclic][first-iso][connector]") {
+TEST_CASE("morphologies:first_iso — connector / connector_inv runtime exercise",
+          "[morphologies][cyclic][first-iso][connector]") {
   /** @brief Runtime exercise of the iso bodies + the @c inverse()
    *         free-function hooks (codecov coverage). */
   connector forward{};
@@ -151,8 +151,8 @@ TEST_CASE(
    *     @c mod_2_arrow and a valid @c IsIsomorphism, a connector whose
    *     @c Domain isn't @c Modular<2> fails the @c same_as gate
    *     ⇒ honest reject. */
-  STATIC_CHECK_FALSE(WitnessesFirstIso<_first_iso_negative::unregistered_arrow,
-                                       connector>);
+  STATIC_CHECK_FALSE(
+      WitnessesFirstIso<_first_iso_negative::unregistered_arrow, connector>);
   STATIC_CHECK_FALSE(
       WitnessesFirstIso<mod_2_arrow,
                         _first_iso_negative::misdomained_connector>);
