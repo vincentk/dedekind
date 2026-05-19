@@ -796,7 +796,7 @@ concept WitnessesFirstIso =
 // --- The mod_2 instance, in :morphologies::cyclic --------------------
 struct mod_2_arrow {
   using Domain = int;  using Codomain = bool;
-  constexpr bool operator()(int x) const noexcept { return (x & 1) != 0; }
+  constexpr bool operator()(int x) const noexcept { return x % 2 != 0; }
 };
 struct connector {  // hand-rolled Modular<2> → bool
   using Domain = Modular<2>;  using Codomain = bool;

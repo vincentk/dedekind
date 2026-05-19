@@ -37,8 +37,10 @@ TEST_CASE(
     "[morphologies][cyclic][first-iso][crown]") {
   /** @brief The typed claim: @c connector witnesses the First Iso
    *         Theorem at @c mod_2.  The static_assert in :morphologies
-   *         already pins it at compile time; this STATIC_CHECK is the
-   *         runtime test harness mirror. */
+   *         already pins this at compile time; the STATIC_CHECK below
+   *         (a Catch2 static_assert wrapper, evaluated at compile time)
+   *         mirrors the same fact inside the test harness so
+   *         regressions surface during a test build as well. */
   STATIC_CHECK(WitnessesFirstIso<mod_2_arrow, connector>);
   // The reverse iso is also a valid witness when the roles of quotient
   // and image are swapped (a true iso is bidirectional).  But our trait
@@ -103,7 +105,7 @@ TEST_CASE("morphologies:first_iso — round-trip is identity in both directions"
   CHECK(forward(reverse(true)) == true);
 }
 
-namespace _first_iso_negative {
+namespace first_iso_negative_detail {
 
 /** @brief Stand-in arrow with NO kernel_quotient / image_carrier
  *         registrations.  @c WitnessesFirstIso must reject it. */
@@ -135,7 +137,7 @@ constexpr misdomained_connector inverse(misdomained_connector_inv) noexcept {
   return {};
 }
 
-}  // namespace _first_iso_negative
+}  // namespace first_iso_negative_detail
 
 TEST_CASE(
     "morphologies:first_iso — negative gates: unregistered F + mismatched "
@@ -152,8 +154,8 @@ TEST_CASE(
    *     @c Domain isn't @c Modular<2> fails the @c same_as gate
    *     ⇒ honest reject. */
   STATIC_CHECK_FALSE(
-      WitnessesFirstIso<_first_iso_negative::unregistered_arrow, connector>);
+      WitnessesFirstIso<first_iso_negative_detail::unregistered_arrow, connector>);
   STATIC_CHECK_FALSE(
       WitnessesFirstIso<mod_2_arrow,
-                        _first_iso_negative::misdomained_connector>);
+                        first_iso_negative_detail::misdomained_connector>);
 }

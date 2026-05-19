@@ -385,11 +385,17 @@ static_assert(IsCyclicRing<CyclicRing<int, 100>>,
 
 namespace first_iso_mod_2 {
 
-/** @brief The parity homomorphism @c mod_2: @c int @c → @c bool. */
+/** @brief The parity homomorphism @c mod_2: @c int @c → @c bool.
+ *
+ *  @details Uses @c x @c % @c 2 rather than @c x @c & @c 1: the
+ *  representation-independent parity test matches the textbook
+ *  reading "remainder mod 2" exactly, and is well-defined for
+ *  negative @c x on every C++ implementation (the tests exercise
+ *  negative inputs). */
 export struct mod_2_arrow {
   using Domain = int;
   using Codomain = bool;
-  constexpr bool operator()(int x) const noexcept { return (x & 1) != 0; }
+  constexpr bool operator()(int x) const noexcept { return x % 2 != 0; }
 };
 
 /** @brief Hand-rolled iso connector @c Modular<2> @c → @c bool.
