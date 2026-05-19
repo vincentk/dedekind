@@ -300,4 +300,109 @@ static_assert(IsSubobject<decltype(image_of(Identity<int>{})), int>,
               "image_of(Identity<int>) realises a Subobject of int — the "
               "trivial image-of-identity exhibit.");
 
+// ===========================================================================
+// First Isomorphism Theorem — reusable typed surface (#718 Slice 4).
+//
+// Textbook statement (Burris-Sankappanavar §II.6; Birkhoff & Mac Lane
+// "Algebra" §III): for every homomorphism @c f: @c A @c → @c B between
+// algebras of the same signature,
+//
+//   @c A/ker(f)  ≅  @c im(f).
+//
+// We give the theorem a @b reusable @b typed surface in three pieces:
+//
+//   1. Two opt-in trait families that encode the textbook claim
+//      "for this @c F, @c A/ker(F) IS @c X" and "for this @c F,
+//      @c im(F) IS @c Y" mechanically (per-arrow @c ::Class /
+//      @c ::type registrations).
+//
+//   2. The @c WitnessesFirstIso<F, Connector> concept, which gates
+//      a user-supplied @c Connector iso against the trait registry —
+//      the connector's @c Domain must match the registered quotient
+//      and its @c Codomain must match the registered image.
+//
+//   3. Per-instance witnesses are then a short pattern: register
+//      the two textbook facts, hand-roll a connector, and assert
+//      @c WitnessesFirstIso<F, Connector>.  The concept does the
+//      load-bearing work — a regression in @c F's quotient or image
+//      that breaks the textbook claim surfaces immediately.
+//
+// Same shape works for @c mod_2, @c mod_3, parity-on-@c ℕ,
+// projection-to-row-reduced-echelon, any concrete homomorphism a
+// future slice instantiates.
+// ===========================================================================
+
+/**
+ * @brief Opt-in trait: textbook claim "for this @c F, @c A/ker(F)
+ *        is the carrier @c ::Class".
+ *
+ * @details Default is empty (no @c ::Class member); specialise on a
+ *          per-@c F basis at the carrier-defining site to declare
+ *          which carrier @c F's kernel-pair quotient inhabits.  The
+ *          mechanical type-check happens in
+ *          @c WitnessesFirstIso below, which uses the @c ::Class
+ *          typedef to gate a candidate iso's @c Domain.
+ *
+ *          Universal-algebra reference: Burris-Sankappanavar §II.6
+ *          (First Iso) / §II.5 (congruence / kernel as congruence).
+ */
+export template <typename F>
+struct kernel_quotient {};
+
+/**
+ * @brief Opt-in trait: textbook claim "for this @c F, @c im(F)
+ *        is the carrier @c ::type".
+ *
+ * @details Default is empty (no @c ::type member); specialise on a
+ *          per-@c F basis to declare which carrier @c F's image
+ *          inhabits.  Used by @c WitnessesFirstIso to gate a
+ *          candidate iso's @c Codomain.  Sibling to the
+ *          @c image_of(F) factory above (which produces a generic
+ *          Subobject); @c image_carrier names the carrier-of-record
+ *          for a specific @c F when the textbook fact is known
+ *          (e.g.\ @c mod_n's image is the bounded interval
+ *          @c [0, @c n)).
+ */
+export template <typename F>
+struct image_carrier {};
+
+/**
+ * @concept WitnessesFirstIso
+ * @brief @c Connector witnesses the First Isomorphism Theorem at
+ *        homomorphism @c F.
+ *
+ * @details The typed shape of the theorem.  A user-supplied
+ *          @c Connector is accepted as a First-Iso witness iff
+ *
+ *            (i)  it is an iso (@c IsIsomorphism<Connector>),
+ *
+ *            (ii) its @c Domain is exactly the registered
+ *                 @c kernel_quotient<F>::Class (the textbook
+ *                 quotient @c A/ker(F)),
+ *
+ *            (iii) its @c Codomain is exactly the registered
+ *                  @c image_carrier<F>::type (the textbook
+ *                  image @c im(F)).
+ *
+ *          A regression in any leg surfaces at compile time.  In
+ *          particular, hand-rolling an iso between unrelated types
+ *          and @b claiming it witnesses First-Iso is not enough —
+ *          the registered quotient and image must match.
+ *
+ *          Form-chain row 7 (paper-§3 crown) of #718.
+ *
+ * @tparam F          The homomorphism @c F @c : @c A @c → @c B.
+ * @tparam Connector  Candidate iso @c A/ker(F) @c → @c im(F).
+ */
+export template <typename F, typename Connector>
+concept WitnessesFirstIso =
+    IsArrow<F> && IsIsomorphism<Connector> &&
+    requires {
+      typename kernel_quotient<F>::Class;
+      typename image_carrier<F>::type;
+    } &&
+    std::same_as<typename Connector::Domain,
+                 typename kernel_quotient<F>::Class> &&
+    std::same_as<typename Connector::Codomain, typename image_carrier<F>::type>;
+
 }  // namespace dedekind::category
