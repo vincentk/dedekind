@@ -349,4 +349,119 @@ static_assert(IsCyclicRing<CyclicRing<int, 100>>,
               "CyclicRing<int, 100> satisfies morphologies::IsCyclicRing "
               "(IsCyclic + ring-shaped + and *).");
 
+// ===========================================================================
+// First Isomorphism Theorem — first concrete instance (#718 Slice 4).
+//
+// The reusable typed surface lives in @c :category::image:
+//   - opt-in @c kernel_quotient<F>::Class trait family,
+//   - opt-in @c image_carrier<F>::type trait family,
+//   - @c WitnessesFirstIso<F, Connector> concept gating a user-supplied
+//     iso against the trait registry.
+//
+// Per-instance work is the short pattern:
+//
+//   1. Define the homomorphism @c F as an @c IsArrow.
+//   2. Hand-roll an iso connector @c A/ker(F) @c → @c im(F).
+//   3. Register the two textbook claims:
+//        @c kernel_quotient<F>::Class @c = @c A/ker(F),
+//        @c image_carrier<F>::type   @c = @c im(F).
+//   4. @c static_assert(WitnessesFirstIso<F, Connector>).
+//
+// Below: the @c mod_2: @c int @c → @c bool instance.  Same pattern
+// works for @c mod_n, parity-on-@c ℕ, any concrete homomorphism a
+// later slice instantiates.  Textbook anchor: Burris-Sankappanavar
+// §II.6, Birkhoff & Mac Lane "Algebra" §III.
+//
+// At mod_2 the textbook claim is:
+//
+//   @c int/ker(mod_2)   ≅   @c im(mod_2)
+//   @c ──────────────       ───────────
+//        Modular<2>            bool        (mod_2 is surjective)
+//
+// recovering @c bool ≅ ℤ/2ℤ as the categorical iso predicted by the
+// First-Iso theorem (the algebraic side, @c bool ≡ 𝔽₂, is already
+// established in #400).
+// ===========================================================================
+
+namespace first_iso_mod_2 {
+
+/** @brief The parity homomorphism @c mod_2: @c int @c → @c bool. */
+export struct mod_2_arrow {
+  using Domain = int;
+  using Codomain = bool;
+  constexpr bool operator()(int x) const noexcept { return (x & 1) != 0; }
+};
+
+/** @brief Hand-rolled iso connector @c Modular<2> @c → @c bool.
+ *
+ *  @details Sends the residue class @c [0] (the "even" class) to
+ *  @c false and @c [1] (the "odd" class) to @c true.  Gated below
+ *  by @c WitnessesFirstIso against the textbook trait claims —
+ *  if the Domain or Codomain drift, the static_assert fails. */
+export struct connector {
+  using Domain = dedekind::morphologies::Modular<2>;
+  using Codomain = bool;
+  constexpr bool operator()(Domain m) const noexcept { return m.value != 0; }
+};
+
+/** @brief Inverse direction: @c bool @c → @c Modular<2>. */
+export struct connector_inv {
+  using Domain = bool;
+  using Codomain = dedekind::morphologies::Modular<2>;
+  constexpr Codomain operator()(bool b) const noexcept {
+    return Codomain(b ? 1 : 0);
+  }
+};
+
+/** @brief Free-function @c inverse hook satisfying
+ *         @c :morphism::IsIsomorphism. */
+export constexpr connector_inv inverse(connector) noexcept { return {}; }
+export constexpr connector inverse(connector_inv) noexcept { return {}; }
+
+}  // namespace first_iso_mod_2
+
 }  // namespace dedekind::morphologies
+
+namespace dedekind::category {
+
+// Textbook claim 1: @c int/ker(mod_2) IS @c Modular<2> (the quotient
+// of @c int by parity-congruence inhabits the cyclic-ring carrier).
+template <>
+struct kernel_quotient<dedekind::morphologies::first_iso_mod_2::mod_2_arrow> {
+  using Class = dedekind::morphologies::Modular<2>;
+};
+
+// Textbook claim 2: @c im(mod_2) IS @c bool (mod_2 is surjective
+// onto the Boolean carrier).
+template <>
+struct image_carrier<dedekind::morphologies::first_iso_mod_2::mod_2_arrow> {
+  using type = bool;
+};
+
+// THE crown — typed witness of the First Isomorphism Theorem at
+// the parity-homomorphism instance.  The static_assert mechanically
+// type-checks three pieces:
+//
+//   (i)   the connector is an iso (IsIsomorphism<connector>);
+//   (ii)  the connector's Domain matches kernel_quotient<F>::Class
+//         (= Modular<2>);
+//   (iii) the connector's Codomain matches image_carrier<F>::type
+//         (= bool).
+//
+// A regression in any leg surfaces here at compile time.  In
+// particular, hand-rolling an iso between unrelated types and
+// labelling it "First-Iso witness" no longer suffices — the
+// trait registry must agree.
+static_assert(
+    WitnessesFirstIso<dedekind::morphologies::first_iso_mod_2::mod_2_arrow,
+                      dedekind::morphologies::first_iso_mod_2::connector>,
+    "First-Isomorphism-Theorem at mod_2 (Burris-Sankappanavar §II.6): "
+    "the connector's typed shape matches the textbook claim that "
+    "int/ker(mod_2) is Modular<2> and im(mod_2) is bool.");
+
+}  // namespace dedekind::category
+
+// (The original @c dedekind::morphologies block was already closed
+// above where we crossed into @c dedekind::category for the First-Iso
+// trait registrations.  No reopening needed; this file ends after
+// the static_assert.)

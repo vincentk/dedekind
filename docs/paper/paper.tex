@@ -770,6 +770,47 @@ The carrier-lattice's higher-kinded constructions are populated by several funct
 and \emph{Quotient} (quotient by a congruence: an H operation in the HSP sense, giving $\mathbb{C} = \mathbb{R}[i]/(i^2+1)$ and $\mathbb{D} = \mathbb{R}[\varepsilon]/(\varepsilon^2)$).
 Each construction is named in the carrier-lattice diagram (Figure~\ref{fig:carrier-lattice}) and exhibited concretely in §\ref{sec:linalg}; the discipline of this section is that each functor lifts at the type level the moment a hub naming it passes the concept gate, and the corresponding carrier (\cppinline{Rational<I>}, \cppinline{Vec2V<T>} / \cppinline{Matrix2x2V<T>}, \cppinline{Complex<R>} / \cppinline{Dual<F>}) inhabits $\mathbf{Ddk}$ at that kind level without modifying the underlying scalar storage.
 
+\paragraph{Quotient sub-witness: the First Isomorphism Theorem.}
+The Quotient functor in the carrier lattice rests on a textbook theorem: for any homomorphism $f: A \to B$, the quotient $A/\ker(f)$ is isomorphic to the image $\operatorname{im}(f)$~\cite{burris1981universalalgebra}~(§II.6).
+The dedekind library exposes this as a reusable typed surface in \texttt{category:image}: two opt-in trait families encoding the textbook claim ``for this $f$, $A/\ker(f)$ inhabits $X$'' and ``for this $f$, $\operatorname{im}(f)$ inhabits $Y$'', plus a \cppinline{WitnessesFirstIso<F, Connector>} concept gating a user-supplied iso against the trait registry.
+Listing~\ref{lst:first-iso} shows the shape; the static\_assert at the bottom compiles only if the connector's typed \cppinline{Domain} matches the registered quotient and its \cppinline{Codomain} matches the registered image --- a textbook fact reified as a type-checker discharge.
+
+\begin{listing}[ht]
+\caption{First Iso typed witness: the reusable shape (concept + opt-in traits) plus the $\operatorname{mod}_2$ instance.  Same pattern carries $\operatorname{mod}_n$, parity-on-$\mathbb{N}$, any concrete homomorphism --- three opt-in lines plus a single \cppinline{static_assert} per instance.}
+\label{lst:first-iso}
+\begin{cpp}
+// --- The reusable surface, in :category::image -----------------------
+template <typename F> struct kernel_quotient {};  // ::Class registry
+template <typename F> struct image_carrier  {};  // ::type  registry
+
+template <typename F, typename Connector>
+concept WitnessesFirstIso =
+    IsArrow<F> && IsIsomorphism<Connector>
+    && requires { typename kernel_quotient<F>::Class;
+                  typename image_carrier <F>::type;  }
+    && std::same_as<typename Connector::Domain,
+                    typename kernel_quotient<F>::Class>
+    && std::same_as<typename Connector::Codomain,
+                    typename image_carrier <F>::type>;
+
+// --- The mod_2 instance, in :morphologies::cyclic --------------------
+struct mod_2_arrow {
+  using Domain = int;  using Codomain = bool;
+  constexpr bool operator()(int x) const noexcept { return (x & 1) != 0; }
+};
+struct connector {  // hand-rolled Modular<2> → bool
+  using Domain = Modular<2>;  using Codomain = bool;
+  constexpr bool operator()(Modular<2> m) const noexcept { return m.value != 0; }
+};
+// ... and connector_inv + inverse() hooks ...
+
+template <> struct kernel_quotient<mod_2_arrow> { using Class = Modular<2>; };
+template <> struct image_carrier <mod_2_arrow> { using type  = bool;        };
+
+static_assert(WitnessesFirstIso<mod_2_arrow, connector>);  // ← THE crown
+\end{cpp}
+\end{listing}
+
 \paragraph{The intersection's deliberate scope.}
 Two distinct mechanisms compose into the intersection $\mathbf{Ddk} = \mathbf{Jlt} \cap \mathbf{Alg}(-)_{\beth_1}$, and naming them separately matters because they pay for different things.
 The $\beth_1$ ceiling from §\ref{sec:alg-sigma} is \emph{foundational}: it stops the encoding from courting the Russell-style self-reference of a meta-category-of-everything, the same way ZFC's missing set-of-all-sets is shaped to forbid such an object.
