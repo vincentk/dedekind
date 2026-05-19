@@ -51,12 +51,21 @@ namespace dedekind::sequences {
  * @brief A @c Seq is a @b Cauchy @b sequence: its tail is eventually
  *        arbitrarily small under the metric on the carrier.
  *
- * @details Structurally, the concept pins three operational shapes:
- *          @c Seq @c is @c IsSequence; @c s.at(0) returns @c Codomain;
- *          @c std::abs(s.at(0) @c - @c s.at(0)) is callable.  The
- *          full Cauchy criterion (∀ε>0 ∃N ∀m,n≥N. |s(m)-s(n)|<ε) is
- *          the engineer's honesty obligation — undecidable on a
- *          general carrier without further metric machinery.
+ * @details Structurally, the concept pins:
+ *          (i)  @c Seq satisfies @c IsSequence,
+ *          (ii) @c s.at(0) returns @c Seq::Codomain,
+ *          (iii) @c Codomain supports subtraction (@c a @c - @c a is
+ *               well-formed), the minimal arithmetic needed to write
+ *               down @c |s(m)-s(n)|.
+ *
+ *          The earlier formulation required @c std::abs(diff) to be
+ *          callable, which excluded user-defined carriers that don't
+ *          overload @c std::abs.  The current body keeps the
+ *          subtraction shape (permissive: user-defined carriers with
+ *          @c operator- participate) and lifts the absolute-value
+ *          metric reasoning into the engineer's honesty obligation,
+ *          alongside the full Cauchy criterion
+ *          (∀ε>0 ∃N ∀m,n≥N. |s(m)−s(n)|<ε).
  *
  *          Anchor: Bishop, @em Foundations @em of @em Constructive
  *          @em Analysis §2.10.  Form-chain row 5 of #719.
@@ -64,7 +73,7 @@ namespace dedekind::sequences {
 export template <typename Seq>
 concept IsCauchySequence = IsSequence<Seq> && requires(Seq s) {
   { s.at(0) } -> std::same_as<typename Seq::Codomain>;
-  { std::abs(s.at(0) - s.at(0)) };
+  { s.at(0) - s.at(0) };
 };
 
 /**
