@@ -154,7 +154,8 @@ TEST_CASE(
    *     @c Domain isn't @c Modular<2> fails the @c same_as gate
    *     ⇒ honest reject. */
   STATIC_CHECK_FALSE(
-      WitnessesFirstIso<first_iso_negative_detail::unregistered_arrow, connector>);
+      WitnessesFirstIso<first_iso_negative_detail::unregistered_arrow,
+                        connector>);
   STATIC_CHECK_FALSE(
       WitnessesFirstIso<mod_2_arrow,
                         first_iso_negative_detail::misdomained_connector>);
