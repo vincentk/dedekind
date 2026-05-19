@@ -33,17 +33,17 @@ namespace dedekind::sequences {
 // factoring discussed in the design review for #719: sequence-side
 // properties (@c IsCauchySequence, @c IsConvergentSequence) live in
 // the @c :sequences partition next to the sequence-trait machinery
-// they consume; carrier-side prerequisites (@c IsArchimedean,
-// @c IsArchimedeanField, @c IsDedekindCompleteField) stay in
-// @c :morphologies::archimedean on the carrier axis.  The
-// @c CauchyPath<T> @em carrier (a tagged @c Path<T> alias) stays in
-// @c :morphologies::archimedean too — it is a concrete derived
-// struct, not a concept.
+// they consume; carrier-side prerequisites stay where they live in
+// the wider library — @c IsArchimedean in @c :order::completeness,
+// @c IsArchimedeanField / @c IsDedekindCompleteField in
+// @c :morphologies::archimedean.  The @c CauchyPath<T> @em carrier
+// (a tagged @c Path<T> alias) stays in @c :morphologies::archimedean
+// too — it is a concrete derived struct, not a concept.
 //
 // Form-chain rows 5 and 6 of the sequence categorification (#719).
-// Carrier-side prerequisite @c IsArchimedean<Codomain<Seq>> is the
-// engineer's honesty obligation (the concept body pins only the
-// operational shape; metric-completeness lives on the carrier).
+// Carrier-side prerequisite @c order::IsArchimedean<Codomain<Seq>>
+// is the engineer's honesty obligation (the concept body pins only
+// the operational shape; metric-completeness lives on the carrier).
 // ===========================================================================
 
 /**

@@ -150,12 +150,13 @@ concept IsMinkowskiSummable = requires(S a, S b) {
 
 // Sequence-side concepts moved to @c :sequences::convergence under
 // the textbook factoring (#719 Slice 0): carrier-side properties
-// (@c IsArchimedean<T>, @c IsArchimedeanField<T>,
-// @c IsDedekindCompleteField<T>) stay here on the carrier axis;
-// sequence-side properties (@c IsCauchySequence<Seq>,
-// @c IsConvergentSequence<Seq>) live alongside the sequence-trait
-// machinery they consume.  @c CauchyPath<T> stays as a carrier-
-// derived struct (a tagged @c Path<T> alias).
+// (@c IsArchimedeanField<T>, @c IsDedekindCompleteField<T>) stay
+// here on the carrier axis; the upstream @c IsArchimedean<T> lives
+// further upstream in @c :order::completeness; sequence-side
+// properties (@c IsCauchySequence<Seq>, @c IsConvergentSequence<Seq>)
+// now live alongside the sequence-trait machinery they consume.
+// @c CauchyPath<T> stays as a carrier-derived struct (a tagged
+// @c Path<T> alias).
 
 export template <typename T>
 struct CauchyPath : public Path<T> {

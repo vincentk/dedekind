@@ -1,18 +1,28 @@
-/** @file dedekind/sequences/cauchy_sequence_concepts_test.cpp
+/** @file dedekind/morphologies/cauchy_sequence_concepts_test.cpp
  *
  * Unit coverage for the re-homed sequence-side convergence concepts
  * (#719 Slice 0): @c IsCauchySequence and @c IsConvergentSequence
  * now live in @c :sequences::convergence under the textbook
  * factoring (sequence-side concepts in the sequence partition;
- * carrier-side prerequisites in @c :morphologies::archimedean).
+ * carrier-side prerequisites in @c :order::completeness for
+ * @c IsArchimedean and @c :morphologies::archimedean for the field
+ * extensions).
  *
  * Coverage targets:
- *  - @c IsCauchySequence fires on the canonical @c CauchyPath<double>.
- *  - @c IsConvergentSequence fires on the same carrier (Cauchy +
- *    @c limit() machinery).
- *  - Honest-Rejection on a generic @c Path<int> (no @c std::abs
- *    semantics needed for the type-level check, but @c limit() is
- *    not registered for @c int).
+ *  - @c IsCauchySequence fires on @c CauchyPath<double>.
+ *  - @c IsCauchySequence fires on a generic @c Path<double> (the
+ *    @c std::abs structural shape is well-formed on @c double).
+ *  - Honest-Rejection on @c Path<int>: @c IsConvergentSequence rejects
+ *    because no @c limit() overload exists for @c int (the
+ *    @c :sequences::limits @c static_assert pins @c !HasLimit<int>).
+ *
+ * Note: a positive @c IsConvergentSequence<Path<double>> case is
+ * deliberately omitted from this slice — Slice 0 is a pure re-home
+ * (no semantic change to the concepts); the positive convergent
+ * witness is exercised downstream in #719 Slice 5 (logical-collapse
+ * upgrades + Bolzano-Weierstrass crown), where the @c limit()
+ * resolution paths and the @c ClassicalLogic / @c Ternary gating
+ * are set up coherently.
  */
 
 #include <catch2/catch_test_macros.hpp>
