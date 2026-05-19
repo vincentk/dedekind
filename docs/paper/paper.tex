@@ -1228,12 +1228,16 @@ the simpler set at compile time.
 \end{figure}
 
 The third pillar.  The carrier lattice of Figure~\ref{fig:carrier-lattice}
-in load-bearing form: HSP propagation lifts axioms componentwise
-along quotients (\textbf{H}, e.g. \texttt{Complex},
-\texttt{Dual}) and direct products (\textbf{P}, e.g. $V_n(R)$,
-\texttt{Diagonal}); localizations such as \texttt{Frac} sit alongside
-HSP rather than inside it, and $\operatorname{End}_R$ is the
-partial-axiom rank-$n$ extension.  The algebraic lattice's compile-time-reduction
+in load-bearing form: HSP propagation lifts axioms uniformly along
+quotients (\textbf{H}, e.g.\ \texttt{Complex}, \texttt{Dual} via
+\cppinline{quotient_algebra_base<Q>}), subalgebras (\textbf{S}, via
+\cppinline{subalgebra_base<S>}), and direct products (\textbf{P},
+e.g.\ $V_n(R)$, \texttt{Diagonal} via
+\cppinline{product_algebra_base<P>}) --- the three carrier-side
+registries jointly realise Birkhoff's HSP closure
+(Listing~\ref{lst:hsp-closed}); localizations such as \texttt{Frac}
+sit alongside HSP rather than inside it, and $\operatorname{End}_R$
+is the partial-axiom rank-$n$ extension.  The algebraic lattice's compile-time-reduction
 showcases live in the sister section §\ref{sec:linalg}
 \emph{Linear Algebra}: linear programming
 (§\ref{sec:lp-centrepiece}), forward-mode automatic differentiation
