@@ -35,7 +35,6 @@
  */
 
 #include <catch2/catch_test_macros.hpp>
-
 #include <functional>
 
 import dedekind.algebra;
@@ -139,12 +138,12 @@ TEST_CASE(
 
   // The four-fold static_assert pinning Birkhoff: base + three HSP
   // legs, each carrier showing both axioms of V.
-  STATIC_CHECK(is_associative_v<Z6, std::plus<Z6>>);    // base
-  STATIC_CHECK(is_associative_v<H, std::plus<H>>);      // H
-  STATIC_CHECK(is_associative_v<S, std::plus<S>>);      // S
-  STATIC_CHECK(is_associative_v<P, std::plus<P>>);      // P
-  STATIC_CHECK(is_commutative_v<Z6, std::plus<Z6>>);    // base
-  STATIC_CHECK(is_commutative_v<H, std::plus<H>>);      // H
-  STATIC_CHECK(is_commutative_v<S, std::plus<S>>);      // S
-  STATIC_CHECK(is_commutative_v<P, std::plus<P>>);      // P
+  STATIC_CHECK(is_associative_v<Z6, std::plus<Z6>>);  // base
+  STATIC_CHECK(is_associative_v<H, std::plus<H>>);    // H
+  STATIC_CHECK(is_associative_v<S, std::plus<S>>);    // S
+  STATIC_CHECK(is_associative_v<P, std::plus<P>>);    // P
+  STATIC_CHECK(is_commutative_v<Z6, std::plus<Z6>>);  // base
+  STATIC_CHECK(is_commutative_v<H, std::plus<H>>);    // H
+  STATIC_CHECK(is_commutative_v<S, std::plus<S>>);    // S
+  STATIC_CHECK(is_commutative_v<P, std::plus<P>>);    // P
 }

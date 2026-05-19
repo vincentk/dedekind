@@ -432,8 +432,8 @@ struct is_periodic<S, std::plus<S>>
 template <typename S>
   requires IsSubalgebraOf<S>
 struct is_periodic<S, std::multiplies<S>>
-    : is_periodic<subalgebra_base_t<S>,
-                  std::multiplies<subalgebra_base_t<S>>> {};
+    : is_periodic<subalgebra_base_t<S>, std::multiplies<subalgebra_base_t<S>>> {
+};
 
 template <typename S>
   requires IsSubalgebraOf<S>
