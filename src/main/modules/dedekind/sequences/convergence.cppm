@@ -19,9 +19,10 @@ module;
 
 export module dedekind.sequences:convergence;
 
-import :net;     // IsSequence (Form-chain row 4) — #719 Slice 0
+import :net;  // IsSequence (Form-chain row 4) — #719 Slice 0
 import :path;
-import :limits;  // limit() — :sequences-side prerequisite for IsConvergentSequence
+import :limits;  // limit() — :sequences-side prerequisite for
+                 // IsConvergentSequence
 
 namespace dedekind::sequences {
 
