@@ -346,4 +346,110 @@ concept IsSubalgebra = IsSubobject<S, A> && is_closed_under_v<S, A, Op> &&
                          { op(a, a) } -> std::convertible_to<A>;
                        };
 
+// ---------------------------------------------------------------------------
+// subalgebra_base<S>::type — carrier-side registry mirroring
+// quotient_algebra_base and product_algebra_base.  The propagation
+// specs below lift the species traits (is_associative, is_commutative,
+// is_distributive, …) from the ambient algebra A to its subalgebra S
+// uniformly, completing the HSP closure of axioms on the trait registry.
+// ---------------------------------------------------------------------------
+
+/** @brief @c subalgebra_base<S>: carrier-side declaration that @c S
+ *         is a subalgebra of some base algebra (the S operation in
+ *         Birkhoff HSP).  Specialise the @c ::type member at the
+ *         carrier-defining partition; the propagation specs below
+ *         then lift the species-trait pins from base to @c S. */
+export template <typename S>
+struct subalgebra_base {};
+
+/** @brief Convenience alias for @c subalgebra_base<S>::type. */
+export template <typename S>
+using subalgebra_base_t = typename subalgebra_base<S>::type;
+
+/** @concept IsSubalgebraOf
+ *  @brief @c S is declared as a subalgebra of some base algebra.
+ *  @details Triggered by a specialisation of @c subalgebra_base<S>
+ *           exposing a @c ::type member.  Sibling of
+ *           @c IsQuotientAlgebra and @c IsProductAlgebra; all three
+ *           are HSP operations that preserve the structural species
+ *           traits of @c Base. */
+export template <typename S>
+concept IsSubalgebraOf = requires { typename subalgebra_base<S>::type; };
+
+// --- S (subalgebra) propagation: structural traits lift from Base. ---------
+//
+// A subalgebra @c S of @c Base inherits the same axioms as @c Base
+// for the corresponding operation, because @c S's operations are the
+// restrictions of @c Base's operations.  Identical propagation
+// pattern as the H (quotient_algebra_base) and P (product_algebra_base)
+// sections above.
+
+template <typename S>
+  requires IsSubalgebraOf<S>
+inline constexpr bool is_associative_v<S, std::plus<S>> =
+    is_associative_v<subalgebra_base_t<S>, std::plus<subalgebra_base_t<S>>>;
+
+template <typename S>
+  requires IsSubalgebraOf<S>
+inline constexpr bool is_associative_v<S, std::multiplies<S>> =
+    is_associative_v<subalgebra_base_t<S>,
+                     std::multiplies<subalgebra_base_t<S>>>;
+
+template <typename S>
+  requires IsSubalgebraOf<S>
+inline constexpr bool is_commutative_v<S, std::plus<S>> =
+    is_commutative_v<subalgebra_base_t<S>, std::plus<subalgebra_base_t<S>>>;
+
+template <typename S>
+  requires IsSubalgebraOf<S>
+inline constexpr bool is_commutative_v<S, std::multiplies<S>> =
+    is_commutative_v<subalgebra_base_t<S>,
+                     std::multiplies<subalgebra_base_t<S>>>;
+
+template <typename S>
+  requires IsSubalgebraOf<S>
+inline constexpr bool is_distributive_v<S, std::multiplies<S>, std::plus<S>> =
+    is_distributive_v<subalgebra_base_t<S>,
+                      std::multiplies<subalgebra_base_t<S>>,
+                      std::plus<subalgebra_base_t<S>>>;
+
+template <typename S>
+  requires IsSubalgebraOf<S>
+struct is_saturating<S, std::plus<S>>
+    : is_saturating<subalgebra_base_t<S>, std::plus<subalgebra_base_t<S>>> {};
+
+template <typename S>
+  requires IsSubalgebraOf<S>
+struct is_saturating<S, std::multiplies<S>>
+    : is_saturating<subalgebra_base_t<S>,
+                    std::multiplies<subalgebra_base_t<S>>> {};
+
+template <typename S>
+  requires IsSubalgebraOf<S>
+struct is_periodic<S, std::plus<S>>
+    : is_periodic<subalgebra_base_t<S>, std::plus<subalgebra_base_t<S>>> {};
+
+template <typename S>
+  requires IsSubalgebraOf<S>
+struct is_periodic<S, std::multiplies<S>>
+    : is_periodic<subalgebra_base_t<S>, std::multiplies<subalgebra_base_t<S>>> {
+};
+
+template <typename S>
+  requires IsSubalgebraOf<S>
+struct is_idempotent<S, std::plus<S>>
+    : is_idempotent<subalgebra_base_t<S>, std::plus<subalgebra_base_t<S>>> {};
+
+template <typename S>
+  requires IsSubalgebraOf<S>
+struct is_idempotent<S, std::multiplies<S>>
+    : is_idempotent<subalgebra_base_t<S>,
+                    std::multiplies<subalgebra_base_t<S>>> {};
+
 }  // namespace dedekind::category
+
+// The Birkhoff HSP-closed @b exhibit (typed crown) lives downstream in
+// the test surface — it consumes both @c :algebra::quotient (the
+// propagation specs above) and @c :morphologies::cyclic (for the
+// concrete @c Modular<N> base).  See
+// @c src/test/cpp/modules/dedekind/algebra/hsp_closed_test.cpp.
