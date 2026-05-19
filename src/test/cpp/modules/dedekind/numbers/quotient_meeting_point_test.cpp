@@ -24,7 +24,6 @@
  */
 
 #include <catch2/catch_test_macros.hpp>
-
 #include <functional>
 
 import dedekind.algebra;
@@ -51,9 +50,8 @@ TEST_CASE("quotient meeting-point — bool fires equivalence + congruence rows",
   STATIC_CHECK(IsCongruence<std::equal_to<bool>, bool, std::bit_and<bool>>);
 }
 
-TEST_CASE(
-    "quotient meeting-point — Modular<6> fires HSP propagation (Slice 5)",
-    "[quotient][meeting-point][modular][HSP]") {
+TEST_CASE("quotient meeting-point — Modular<6> fires HSP propagation (Slice 5)",
+          "[quotient][meeting-point][modular][HSP]") {
   /** @brief @c Modular<6> is the canonical cyclic-ring inhabitant
    *         of the associative-commutative @c + variety.  Slice 5's
    *         HSP-closed crown uses @c Modular<6> as the base, exercised
@@ -102,9 +100,8 @@ TEST_CASE(
   CHECK(f(1));        // odd
 }
 
-TEST_CASE(
-    "quotient meeting-point — Set as the categorical context (rows 6–8)",
-    "[quotient][meeting-point][set][category-level]") {
+TEST_CASE("quotient meeting-point — Set as the categorical context (rows 6–8)",
+          "[quotient][meeting-point][set][category-level]") {
   /** @brief Category-level rows 6 (@c IsFactorisationSystem), 7
    *         (@c IsRegularCategory), 8 (@c IsExactCategory) fire on
    *         @c CanonicalSetCCC<A> for @c A in the canonical-carrier
