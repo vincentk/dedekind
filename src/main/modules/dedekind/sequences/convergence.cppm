@@ -19,7 +19,7 @@ module;
 
 export module dedekind.sequences:convergence;
 
-import dedekind.category;  // is_periodic_v / cyclic_order_v — the orbit bridge
+import dedekind.category; // is_periodic_v / cyclic_order_v — the orbit bridge
 
 import :net;  // IsSequence (Form-chain row 4) — #719 Slice 0
 import :path;

@@ -18,7 +18,6 @@
  */
 
 #include <catch2/catch_test_macros.hpp>
-
 #include <functional>
 
 import dedekind.category;
@@ -45,7 +44,8 @@ TEST_CASE(
 }
 
 TEST_CASE(
-    "morphologies:orbit-bridge — the orbit of Modular<6> is a period-6 sequence",
+    "morphologies:orbit-bridge — the orbit of Modular<6> is a period-6 "
+    "sequence",
     "[morphologies][orbit][periodic][bridge][crown]") {
   /** @brief The bridge: OrbitSequence<Modular<6>, +> is a period-6
    *         sequence.  is_periodic_v(carrier) ⇒ is_periodic_sequence_v
@@ -59,9 +59,8 @@ TEST_CASE(
   STATIC_CHECK_FALSE(IsPeriodicSequence<Orbit6, 0>);  // degenerate guard
 }
 
-TEST_CASE(
-    "morphologies:orbit-bridge — runtime: the orbit cycles with period 6",
-    "[morphologies][orbit][runtime]") {
+TEST_CASE("morphologies:orbit-bridge — runtime: the orbit cycles with period 6",
+          "[morphologies][orbit][runtime]") {
   /** @brief Runtime exercise of the OrbitSequence body — the orbit
    *         values cycle with period 6.  Confirms the type-level
    *         periodicity claim is backed by the actual orbit. */
