@@ -152,9 +152,15 @@ inline constexpr bool is_periodic_sequence_v = false;
 /** @concept IsPeriodicSequence
  *  @brief A period-@c N sequence.  Honest-Rejection foil for the
  *         monotone / Cauchy rows (a non-constant periodic sequence is
- *         bounded but neither monotone nor Cauchy). */
+ *         bounded but neither monotone nor Cauchy).
+ *
+ *  @details Requires @c N @c > @c 0: "period 0" is undefined (the
+ *           @c s(n) @c = @c s(n+N) reading degenerates), so the
+ *           concept rejects @c N @c == @c 0 regardless of any
+ *           accidental trait opt-in. */
 export template <typename Seq, std::size_t N>
-concept IsPeriodicSequence = IsSequence<Seq> && is_periodic_sequence_v<Seq, N>;
+concept IsPeriodicSequence =
+    (N > 0) && IsSequence<Seq> && is_periodic_sequence_v<Seq, N>;
 
 /** @brief Opt-in: @c Seq is absorptive (eventually constant —
  *         @c ∃N, z. ∀n≥N. s(n) = z).  Codomain-side compression: the

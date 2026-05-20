@@ -92,6 +92,9 @@ TEST_CASE(
   // Wrong period N honestly rejects (no opt-in for N=2):
   STATIC_CHECK_FALSE(IsPeriodicSequence<seq_shape_witnesses::periodic_path, 2>);
   STATIC_CHECK_FALSE(IsPeriodicSequence<Path<double>, 3>);
+  // Period 0 is degenerate — the concept rejects N == 0 regardless of
+  // any (accidental) opt-in, via the N > 0 guard in the concept body:
+  STATIC_CHECK_FALSE(IsPeriodicSequence<seq_shape_witnesses::periodic_path, 0>);
 }
 
 TEST_CASE(
