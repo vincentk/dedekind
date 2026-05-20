@@ -62,13 +62,16 @@ TEST_CASE(
 TEST_CASE("morphologies:orbit-bridge — runtime: the orbit cycles with period 6",
           "[morphologies][orbit][runtime]") {
   /** @brief Runtime exercise of the OrbitSequence body — the orbit
-   *         values cycle with period 6.  Confirms the type-level
-   *         periodicity claim is backed by the actual orbit. */
-  Orbit6 orbit{Z6{1}, Plus6{}};
+   *         values cycle with the carrier's cyclic order.  Uses
+   *         @c Modular<6>::generator() and @c cyclic_order_v rather
+   *         than the literals 1 and 6, keeping the test aligned with
+   *         the "period read off cyclic_order_v" story. */
+  constexpr std::size_t order = cyclic_order_v<Z6, Plus6>;
+  Orbit6 orbit{Z6::generator(), Plus6{}};
 
-  // The orbit values repeat every 6 steps (the carrier's cyclic order).
-  for (std::size_t n = 0; n < 6; ++n) {
-    CHECK(orbit.at(n) == orbit.at(n + 6));
-    CHECK(orbit.at(n) == orbit.at(n + 12));
+  // The orbit values repeat every `order` steps (the cyclic order).
+  for (std::size_t n = 0; n < order; ++n) {
+    CHECK(orbit.at(n) == orbit.at(n + order));
+    CHECK(orbit.at(n) == orbit.at(n + 2 * order));
   }
 }

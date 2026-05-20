@@ -203,17 +203,21 @@ concept IsSubsequence =
 //
 // A periodic carrier (T, Op) — @c is_periodic_v<T, Op> with finite
 // @c cyclic_order_v<T, Op> @c = @c N — generates an @b orbit @b
-// sequence  n ↦ Opⁿ(generator)  that cycles with period N.  This
-// makes the two @c is_periodic notions provably one: the carrier-axis
-// trait in @c :species and the sequence-axis trait above are bridged
-// by the orbit construction.  Same propagation shape as #718's HSP
-// trait-lifting (carrier trait ⇒ derived-carrier trait).
+// sequence  n ↦ Opⁿ(generator)  for which @c N is @b a @b period.
+// (It is the @em minimal period when the element generates the whole
+// group; an arbitrary element's orbit may have a smaller minimal
+// period dividing N.  N is always a valid period — the non-minimal
+// convention used here.)  This makes the two @c is_periodic notions
+// provably one: the carrier-axis trait in @c :species and the
+// sequence-axis trait above are bridged by the orbit construction.
+// Same propagation shape as #718's HSP trait-lifting (carrier trait ⇒
+// derived-carrier trait).
 //
 // @c OrbitSequence<T, Op> is the reified orbit, a distinct sequence
 // type (deriving the @c IsSequence shape from @c Path<T>) so the
 // type-level propagation has something to key on.  The exact orbit
 // indexing is immaterial to the periodicity claim — what propagates
-// is the @b period, read off @c cyclic_order_v.
+// is the period @c N, read off @c cyclic_order_v.
 // ===========================================================================
 
 /** @brief The orbit sequence @c n ↦ Opⁿ(generator) of a carrier
@@ -222,11 +226,23 @@ concept IsSubsequence =
  *  @details Derives the sequence shape from @c Path<T>; the generator
  *  function folds @c Op over copies of the stored generator element.
  *  The carrier's periodicity (if any) propagates to this type's
- *  @c is_periodic_sequence_v via the bridge below. */
+ *  @c is_periodic_sequence_v via the bridge below.
+ *
+ *  @note When @c cyclic_order_v<T, Op> @c = @c order @c > @c 0, the
+ *  index @c n is reduced @c mod @c order before folding, so @c at(n)
+ *  is @c O(order) rather than @c O(n) — the orbit only has @c order
+ *  distinct values regardless of @c n. */
 export template <typename T, typename Op>
 struct OrbitSequence : Path<T> {
   constexpr OrbitSequence(T gen, Op op) {
     this->generator = [gen, op](std::size_t n) {
+      // For a periodic carrier the orbit has only `order` distinct
+      // values; reduce n to keep at() bounded by the cyclic order
+      // rather than the (arbitrarily large) query index.
+      constexpr std::size_t order = dedekind::category::cyclic_order_v<T, Op>;
+      if constexpr (order > 0) {
+        n %= order;
+      }
       T acc = gen;
       for (std::size_t i = 0; i < n; ++i) {
         acc = op(acc, gen);
@@ -238,9 +254,9 @@ struct OrbitSequence : Path<T> {
 
 /** @brief The orbit bridge.  If @c (T, Op) is a periodic carrier with
  *         @c cyclic_order_v<T, Op> @c = @c N @c > @c 0, then its orbit
- *         sequence is a period-@c N sequence.  @c N is deduced from the
- *         query and gated against the carrier's cyclic order, so the
- *         propagation fires exactly at the true period. */
+ *         sequence is a period-@c N sequence (@c N is @b a period; see
+ *         the section note on minimality).  @c N is deduced from the
+ *         query and gated against the carrier's cyclic order. */
 template <typename T, typename Op, std::size_t N>
   requires(N > 0 && dedekind::category::is_periodic_v<T, Op> &&
            N == dedekind::category::cyclic_order_v<T, Op>)
