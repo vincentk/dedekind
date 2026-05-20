@@ -54,8 +54,8 @@ struct int_path : Path<int> {
 
 namespace dedekind::sequences {
 template <>
-inline constexpr bool
-    is_bounded_sequence_v<seq_shape_witnesses::bounded_path> = true;
+inline constexpr bool is_bounded_sequence_v<seq_shape_witnesses::bounded_path> =
+    true;
 template <>
 inline constexpr bool
     is_monotone_sequence_v<seq_shape_witnesses::monotone_path> = true;
@@ -109,8 +109,8 @@ TEST_CASE("sequences:shape — IsSubsequence fires on the (sub, super) pair",
   STATIC_CHECK(IsSubsequence<seq_shape_witnesses::sub_path,
                              seq_shape_witnesses::super_path>);
   // Cross-Codomain pair honestly rejects (double vs int):
-  STATIC_CHECK_FALSE(
-      IsSubsequence<seq_shape_witnesses::sub_path, seq_shape_witnesses::int_path>);
+  STATIC_CHECK_FALSE(IsSubsequence<seq_shape_witnesses::sub_path,
+                                   seq_shape_witnesses::int_path>);
   // No opt-in ⇒ honest reject even with matching Codomain:
   STATIC_CHECK_FALSE(IsSubsequence<Path<double>, Path<double>>);
 }
