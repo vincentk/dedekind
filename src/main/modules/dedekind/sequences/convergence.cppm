@@ -19,6 +19,8 @@ module;
 
 export module dedekind.sequences:convergence;
 
+import dedekind.category;  // is_periodic_v / cyclic_order_v — the orbit bridge
+
 import :net;  // IsSequence (Form-chain row 4) — #719 Slice 0
 import :path;
 import :limits;  // limit() — :sequences-side prerequisite for
@@ -194,6 +196,55 @@ concept IsSubsequence =
     IsSequence<Sub> && IsSequence<Sup> &&
     std::same_as<typename Sub::Codomain, typename Sup::Codomain> &&
     is_subsequence_v<Sub, Sup>;
+
+// ===========================================================================
+// The orbit bridge (#719 Slice 1b): carrier-axis periodicity ⇒
+// sequence-axis periodicity.
+//
+// A periodic carrier (T, Op) — @c is_periodic_v<T, Op> with finite
+// @c cyclic_order_v<T, Op> @c = @c N — generates an @b orbit @b
+// sequence  n ↦ Opⁿ(generator)  that cycles with period N.  This
+// makes the two @c is_periodic notions provably one: the carrier-axis
+// trait in @c :species and the sequence-axis trait above are bridged
+// by the orbit construction.  Same propagation shape as #718's HSP
+// trait-lifting (carrier trait ⇒ derived-carrier trait).
+//
+// @c OrbitSequence<T, Op> is the reified orbit, a distinct sequence
+// type (deriving the @c IsSequence shape from @c Path<T>) so the
+// type-level propagation has something to key on.  The exact orbit
+// indexing is immaterial to the periodicity claim — what propagates
+// is the @b period, read off @c cyclic_order_v.
+// ===========================================================================
+
+/** @brief The orbit sequence @c n ↦ Opⁿ(generator) of a carrier
+ *         @c (T, Op), reified as a distinct @c IsSequence type.
+ *
+ *  @details Derives the sequence shape from @c Path<T>; the generator
+ *  function folds @c Op over copies of the stored generator element.
+ *  The carrier's periodicity (if any) propagates to this type's
+ *  @c is_periodic_sequence_v via the bridge below. */
+export template <typename T, typename Op>
+struct OrbitSequence : Path<T> {
+  constexpr OrbitSequence(T gen, Op op) {
+    this->generator = [gen, op](std::size_t n) {
+      T acc = gen;
+      for (std::size_t i = 0; i < n; ++i) {
+        acc = op(acc, gen);
+      }
+      return acc;
+    };
+  }
+};
+
+/** @brief The orbit bridge.  If @c (T, Op) is a periodic carrier with
+ *         @c cyclic_order_v<T, Op> @c = @c N @c > @c 0, then its orbit
+ *         sequence is a period-@c N sequence.  @c N is deduced from the
+ *         query and gated against the carrier's cyclic order, so the
+ *         propagation fires exactly at the true period. */
+template <typename T, typename Op, std::size_t N>
+  requires(N > 0 && dedekind::category::is_periodic_v<T, Op> &&
+           N == dedekind::category::cyclic_order_v<T, Op>)
+inline constexpr bool is_periodic_sequence_v<OrbitSequence<T, Op>, N> = true;
 
 }  // namespace dedekind::sequences
 
