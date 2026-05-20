@@ -96,6 +96,105 @@ concept IsConvergentSequence = IsCauchySequence<Seq> && requires(Seq s) {
   { limit(s) } -> std::same_as<typename Seq::Codomain>;
 };
 
+// ===========================================================================
+// Sequence-shape concepts (#719 Slice 1).
+//
+// Boundedness, monotonicity, periodicity, absorptivity, and the
+// subsequence relation are @b properties @b of @b the @b value (which
+// specific sequence), not of the carrier type — a @c Path<double> can
+// be bounded or unbounded, monotone or oscillating.  C++ concepts gate
+// on types, so each property is pinned by an opt-in trait the carrier
+// (or a tagged carrier wrapper) registers when it @b guarantees the
+// property.  Same honesty discipline as @c :morphism's
+// @c is_epic_arrow_v and the relation traits in @c :cartesian: the
+// concept names the structural role; the witness opts in.
+//
+// Periodic / absorptive are the dual compression readings surfaced in
+// the #719 design review: periodic compresses the index
+// (@c ℕ ↠ ℤ/Nℤ); absorptive compresses the codomain (eventually
+// constant; @c ℕ → @c {z}).  Both lift the carrier-axis vocabulary
+// (@c is_periodic_v / @c is_absorptive_v in @c :species) onto the
+// sequence axis.
+//
+// Anchors: Bishop §2 (bounded / monotone); Bolzano-Weierstrass
+// (subsequence, feeds #719 Slice 5).  Form-chain rows 5a–5e of #719.
+// ===========================================================================
+
+/** @brief Opt-in: @c Seq is order-bounded (image bounded above and
+ *         below).  The bound witnesses are the engineer's obligation. */
+export template <typename Seq>
+inline constexpr bool is_bounded_sequence_v = false;
+
+/** @concept IsBoundedSequence
+ *  @brief A sequence whose image is order-bounded.  Bishop §2. */
+export template <typename Seq>
+concept IsBoundedSequence = IsSequence<Seq> && is_bounded_sequence_v<Seq>;
+
+/** @brief Opt-in: @c Seq is monotone (@c s(n) ≤ s(n+1) for all n, or
+ *         the reverse).  Direction is the witness's concern. */
+export template <typename Seq>
+inline constexpr bool is_monotone_sequence_v = false;
+
+/** @concept IsMonotoneSequence
+ *  @brief A monotone sequence.  Bishop §2; together with
+ *         @c IsBoundedSequence drives the monotone-convergence upgrade
+ *         (LEM-gated, #719 Slice 5). */
+export template <typename Seq>
+concept IsMonotoneSequence = IsSequence<Seq> && is_monotone_sequence_v<Seq>;
+
+/** @brief Opt-in: @c Seq is periodic with period @c N
+ *         (@c s(n) @c = @c s(n+N) for all n).  Index-side compression:
+ *         the sequence factors through @c ℕ/Nℤ.  Sequence-axis analog
+ *         of @c :species's @c is_periodic_v<T, Op>. */
+export template <typename Seq, std::size_t N>
+inline constexpr bool is_periodic_sequence_v = false;
+
+/** @concept IsPeriodicSequence
+ *  @brief A period-@c N sequence.  Honest-Rejection foil for the
+ *         monotone / Cauchy rows (a non-constant periodic sequence is
+ *         bounded but neither monotone nor Cauchy).
+ *
+ *  @details Requires @c N @c > @c 0: "period 0" is undefined (the
+ *           @c s(n) @c = @c s(n+N) reading degenerates), so the
+ *           concept rejects @c N @c == @c 0 regardless of any
+ *           accidental trait opt-in. */
+export template <typename Seq, std::size_t N>
+concept IsPeriodicSequence =
+    (N > 0) && IsSequence<Seq> && is_periodic_sequence_v<Seq, N>;
+
+/** @brief Opt-in: @c Seq is absorptive (eventually constant —
+ *         @c ∃N, z. ∀n≥N. s(n) = z).  Codomain-side compression: the
+ *         tail factors through a singleton @c {z}.  Dual of
+ *         @c is_periodic_sequence_v; sequence-axis analog of
+ *         @c :species's @c is_absorptive_v. */
+export template <typename Seq>
+inline constexpr bool is_absorptive_sequence_v = false;
+
+/** @concept IsAbsorptiveSequence
+ *  @brief An eventually-constant sequence.  The simplest convergent
+ *         case (limit = the absorbing value); period-1-eventually
+ *         dual to @c IsPeriodicSequence. */
+export template <typename Seq>
+concept IsAbsorptiveSequence = IsSequence<Seq> && is_absorptive_sequence_v<Seq>;
+
+/** @brief Opt-in: @c Sub is a subsequence of @c Sup — there is a
+ *         strictly increasing index map @c φ with
+ *         @c Sub(n) @c = @c Sup(φ(n)).  The index map is the
+ *         engineer's obligation. */
+export template <typename Sub, typename Sup>
+inline constexpr bool is_subsequence_v = false;
+
+/** @concept IsSubsequence
+ *  @brief @c Sub is a subsequence of @c Sup (same Codomain, strictly
+ *         increasing index map).  Feeds the Bolzano-Weierstrass row
+ *         (#719 Slice 5: every bounded sequence has a convergent
+ *         subsequence). */
+export template <typename Sub, typename Sup>
+concept IsSubsequence =
+    IsSequence<Sub> && IsSequence<Sup> &&
+    std::same_as<typename Sub::Codomain, typename Sup::Codomain> &&
+    is_subsequence_v<Sub, Sup>;
+
 }  // namespace dedekind::sequences
 
 namespace dedekind::sequences {
