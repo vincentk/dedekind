@@ -406,15 +406,27 @@ constexpr auto tails(const Path<T, Cardinality>& s)
  *        @f$\mathbb{N} \to A@f$: @c ε (head @c w.at(0)), @c δ
  *        (@c tails(w)), and @c extend (@c w @c <<= @c f).
  *
- * @details This is the sequence-axis operational counterpart of the
- * axiomatic @c dedekind::category::IsComonad — the same complementary
- * pairing the project uses for @c IsCyclic vs @c IsCyclicGroup.  The
- * heavy categorical concept demands an @c IsEndofunctor with reified
- * @c ε / @c δ natural transformations; this one asks only that the
- * carrier exposes the operational shape, which @c Path already does
- * via @c counit_witness (ε) and @c tails (δ).  The third leg, @c extend
- * (@c operator<<=), is the derived @f$\mathrm{map}\,f \circ \delta@f$ and
- * is separately certified by the @c IsCoKleisliExtension witness below.
+ * @details This is the @b extension presentation of the stream comonad
+ * (counit @c ε + coextension @c <<=), the dual of Manes' Kleisli-triple
+ * theorem.  It is @b equivalent to — not weaker than — the
+ * comultiplication presentation @f$(W, \varepsilon, \delta)@f$ of
+ * @c dedekind::category::IsComonad: the two determine each other, with
+ * @c δ recovered as @c tails (@c s @c <<= @c std::identity{}).  The
+ * pairing mirrors @c IsCyclic vs @c IsCyclicGroup.
+ *
+ * Why the @b extension presentation rather than @c IsComonad directly:
+ * @c IsComonad refines @c IsEndofunctor (@c Σ_cat @c == @c Τ_cat), and
+ * @b no non-identity type-constructor in the library is an endofunctor —
+ * every reified functor maps @c Set<T> @c → @c Set<F<T>> (so
+ * @c maybe_functor and @c tuple_functor are @c IsFunctor but @b not
+ * @c IsEndofunctor; the only @c IsComonad witness in the codebase is
+ * @c identity_functor).  @c Path is no exception, so the co-Kleisli
+ * layer is the level on which the comonad is actually certified — see
+ * the @c path__Why_The_Kleisli_Layer_And_Not_IsComonad note on
+ * @c path_functor.  The @c extend leg here is the derived
+ * @f$\mathrm{map}\,f \circ \delta@f$, separately certified by the
+ * @c IsCoKleisliExtension witness pinned beside the
+ * @c IsStreamComonad<Path<int>> assertion below.
  *
  * Finiteness is excluded on purpose: the comonad of @b infinite streams
  * (with @c δ = @c tails) is a different beast from the non-empty-list
@@ -601,33 +613,50 @@ namespace dedekind::category {
  * @c maybe_functor / @c vec2_functor / @c matrix2x2_functor Hubs in
  * other partitions.
  *
- * @section path__Functor_Limitation
- * Unlike @c maybe_functor — which DOES satisfy
- * @c dedekind::category::IsFunctor — @c path_functor deliberately
- * does NOT.  Reason: @c Path<T> is itself an Arrow at the type level
- * (carries @c Domain @c = @c std::size_t and @c Codomain @c = @c T,
- * realising the textbook reading @c Path: @c ℕ @c → @c T).  This
- * makes @c Morphism<Path<T>, Path<T>, ...> fail @c IsSpokeArrow
- * (because @c Path<T> is an @c IsArrow domain), which in turn makes
- * @c Set<Path<T>>::operator>>(Arrow, Arrow) — needed by
- * @c IsSmallCategory<Set<Path<T>>> — not resolve cleanly.  The standard
- * Functor-on-Set machinery does not apply.  This is structural to
- * Path's "is itself an arrow" nature and not a defect to be papered
- * over.
+ * @section path__Why_The_Kleisli_Layer_And_Not_IsComonad
+ * Path's (co)monadic structure is certified at the Kleisli-witness
+ * layer (@c :kleisli — @c unit_witness, @c counit_witness,
+ * @c IsKleisliExtension, @c IsCoKleisliExtension, @c IsFrobenius), @b not
+ * via the strict @c dedekind::category::IsComonad / @c IsMonad.  This is
+ * a deliberate, textbook-sanctioned choice, not a Path-specific defect:
+ *
+ *   - The two presentations are @b equivalent.  A comonad
+ *     @f$(W, \varepsilon, \delta)@f$ and a co-Kleisli triple
+ *     (object-map @c Shape, counit @c ε, coextension @c <<=) determine
+ *     each other (the dual of Manes' Kleisli-triple theorem).  The
+ *     @c :kleisli layer is the @b extension presentation; @c :monad's
+ *     @c IsComonad is the @b comultiplication presentation.  Path lives
+ *     in the former.
+ *
+ *   - The strict @c IsComonad cannot bite @b any non-identity
+ *     type-constructor here, Path included.  @c IsComonad refines
+ *     @c IsEndofunctor, which demands @c Σ_cat @c == @c Τ_cat.  Every
+ *     reified functor in the library maps @c Set<T> @c → @c Set<F<T>>
+ *     (@c maybe_functor, @c tuple_functor), so @c Σ_cat @c ≠ @c Τ_cat
+ *     and none of them are endofunctors — the @b only @c IsEndofunctor /
+ *     @c IsComonad witness in the codebase is @c identity_functor.
+ *     (Confirmed mechanically: @c maybe_functor and @c tuple_functor are
+ *     @c IsFunctor but @b not @c IsEndofunctor.)  So reifying @c φ on
+ *     @c path_functor would buy @c IsFunctor at best — never
+ *     @c IsComonad — because @c Path<T> changes the object type
+ *     @c Set<T> @c → @c Set<Path<T>> exactly as @c maybe_functor does.
+ *
+ *   - @c path_functor therefore reifies only the object-action
+ *     (@c Shape) the Kleisli registry consumes; @c φ (= @c map) is
+ *     recoverable but left unreified because the @c :kleisli layer is
+ *     the level on which the equivalence is actually witnessed for
+ *     non-identity carriers.
  *
  * @section path__Frobenius_Reading
  * Path is @b Frobenius — it carries both monadic and comonadic
- * structure (per the partition's header note).  Under the categorical
- * reading at the Kleisli-witness level:
- *   * @c path_functor is the Hub-tag for the underlying functor T,
- *     namely the type-constructor @c Path<·> on objects (no @c φ
- *     reified at this level for the structural reason above).
+ * structure (per the partition's header note).  At the Kleisli-witness
+ * level:
+ *   * @c path_functor is the Hub-tag for the type-constructor
+ *     @c Path<·> on objects (object-action only; see above).
  *   * @c unit_witness<path_functor<T>, T> is the @c T-component of
- *     the natural transformation @c η: @c Id @c ⇒ @c T (constant
- *     path @c λn.x).
- *   * @c counit_witness<path_functor<T>, T> is the @c T-component
- *     of the natural transformation @c ε: @c T @c ⇒ @c Id (head
- *     sampling @c p.at(0)).
+ *     @c η: @c Id @c ⇒ @c T (constant path @c λn.x).
+ *   * @c counit_witness<path_functor<T>, T> is the @c T-component of
+ *     @c ε: @c T @c ⇒ @c Id (head sampling @c p.at(0)).
  *   * The downstream @c IsFrobenius<path_functor<int>, int, long>
  *     static_assert witnesses the Kleisli-side bracket shape
  *     mechanically — that's the right level to certify on Path.
@@ -758,16 +787,45 @@ static_assert(
     IsFrobenius<path_functor<int>, int, long>,
     "Path must satisfy the Frobenius witness (Kleisli + co-Kleisli).");
 
-// Stream comonad (Uustalu–Vene): the infinite Path carries the operational
-// ε / δ / extend triple; the finite Path is honestly rejected (the stream
-// comonad with δ = tails is not the non-empty-list comonad).
+// ---------------------------------------------------------------------------
+// Stream comonad (Uustalu–Vene), in the extension presentation.
+//
+// The three assertions below are ONE comonad seen at one level — the
+// co-Kleisli / extension presentation — pinned mechanically so the
+// equivalence is load-bearing rather than narrative:
+//
+//   (1) IsCoKleisliExtension<path_functor<int>, …>  — the categorical
+//       co-Kleisli triple (ε via counit_witness + coextension <<=) in
+//       :kleisli; this is the upstream comonad witness Path reuses.
+//   (2) IsStreamComonad<Path<int>>                   — the sequence-axis
+//       operational shape (head ε + tails δ) built ON (1); δ = tails is
+//       s <<= std::identity{}, so (2) is a specialisation of (1).
+//
+// Equivalence to the comultiplication presentation (W, ε, δ) of
+// category::IsComonad holds by the dual Kleisli-triple theorem, but is
+// NOT asserted here because IsComonad refines IsEndofunctor (Σ_cat ==
+// Τ_cat) and no non-identity type-constructor in the library is an
+// endofunctor (maybe_functor / tuple_functor are IsFunctor but not
+// IsEndofunctor; only identity_functor is).  path_functor is therefore
+// deliberately left below endofunctor level — the assertion pins that as
+// a Sollbruchstelle: if a future change reifies path_functor up to an
+// endofunctor, this fires and forces the IsComonad-vs-:kleisli story
+// (see path__Why_The_Kleisli_Layer_And_Not_IsComonad) to be revisited.
+static_assert(!IsEndofunctor<path_functor<int>>,
+              "Sollbruchstelle: path_functor is intentionally NOT reified "
+              "to endofunctor level (Path changes Set<T> → Set<Path<T>>, so "
+              "Σ_cat ≠ Τ_cat — same as maybe_functor).  Path's comonad is "
+              "certified in the :kleisli extension presentation instead.  If "
+              "this fails, revisit whether category::IsComonad now applies.");
+
 static_assert(IsStreamComonad<Path<int>>,
               "An infinite Path is an operational stream comonad: head (ε), "
-              "tails (δ), and extend (<<=).");
+              "tails (δ), and extend (<<=), built on the co-Kleisli witness.");
 static_assert(!IsStreamComonad<FinitePath<int>>,
               "A FinitePath is NOT a stream comonad — δ = tails is the "
               "infinite-stream structure, distinct from the non-empty-list "
               "comonad on finite carriers.");
+// ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
 // Categorical anchor: Path<T> as a morphism out of the NNO (#602).
