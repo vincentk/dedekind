@@ -110,8 +110,8 @@ constexpr auto mandelbrot_orbit(const Complex<R>& c) {
  *
  *   - @b Escaping @c c (outside @f$M@f$): the path is @c Unknown until the
  *     escape index, then @c True forever (@c True is the absorbing element
- *     of Kleene OR — @c §sequences::IsAbsorptiveSequence's "tail factors
- *     through a singleton @f$\{z\}@f$" with @f$z = @c True@f$).
+ *     of Kleene OR — the @c IsAbsorptiveSequence tail factors through a
+ *     singleton @f$\{z\}@f$ with @f$z@f$ = @c True).
  *   - @b Bounded @c c (inside @f$M@f$): the path is the constant @c Unknown
  *     sequence — eventually-constant from index 0, the degenerate absorptive
  *     case (@f$z = @c Unknown@f$).
@@ -123,12 +123,28 @@ constexpr auto mandelbrot_orbit(const Complex<R>& c) {
  * (@c IsBoundedSequence ⟺ @f$c \in M@f$) is value-dependent and cannot be
  * type-witnessed, but "the escape indicator is an absorptive sequence" @b is.
  *
+ * @note Construction is restricted to @c orbit_divergence_path (the only
+ *       friend): the absorptive invariant is enforced @b by @b construction,
+ *       not merely promised by the trait opt-in.  No public constructor from
+ *       an arbitrary @c Path<Ternary> exists, so a @c DivergencePath can only
+ *       arise from the factory that guarantees eventual-constancy.  (The
+ *       @c .generator / @c .extent members inherited from @c Path remain
+ *       writable — preserving eventual-constancy under in-place mutation is
+ *       the residual honesty obligation, as for every tagged @c Path.)
+ *
  * @see dedekind::sequences::IsAbsorptiveSequence
  */
 export template <IsComplexScalar R>
 struct DivergencePath : Path<Ternary> {
+ private:
   constexpr explicit DivergencePath(Path<Ternary> p)
       : Path<Ternary>{std::move(p)} {}
+
+  template <IsComplexScalar R2, typename EscapeCriterion>
+    requires IsEscapeCriterion<EscapeCriterion, Complex<R2>>
+  friend constexpr auto orbit_divergence_path(const OrbitPath<R2>& orbit,
+                                              EscapeCriterion criterion)
+      -> DivergencePath<R2>;
 };
 
 /**
