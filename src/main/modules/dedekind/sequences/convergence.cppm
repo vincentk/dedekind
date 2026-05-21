@@ -128,7 +128,16 @@ export template <typename Seq>
 inline constexpr bool is_bounded_sequence_v = false;
 
 /** @concept IsBoundedSequence
- *  @brief A sequence whose image is order-bounded.  Bishop §2. */
+ *  @brief A sequence whose image is order-bounded.  Bishop §2.
+ *
+ *  @section convergence__Bounded_Mandelbrot Mandelbrot connection
+ *  Orbit-boundedness @b is the Mandelbrot membership criterion:
+ *  @c c @c ∈ @c M @c ⟺ the orbit @c mandelbrot_orbit(c) @c = @c
+ *  iterate(0, @c z↦z²+c) (in @c :numbers::mandelbrot) is bounded
+ *  @c ⟺ @c IsBoundedSequence holds for that orbit.  The escape-time
+ *  machinery (@c orbit_escape_time) is the negation: an escaping
+ *  parameter's orbit is @b unbounded, so @c IsBoundedSequence
+ *  honestly rejects it. */
 export template <typename Seq>
 concept IsBoundedSequence = IsSequence<Seq> && is_bounded_sequence_v<Seq>;
 
@@ -159,7 +168,17 @@ inline constexpr bool is_periodic_sequence_v = false;
  *  @details Requires @c N @c > @c 0: "period 0" is undefined (the
  *           @c s(n) @c = @c s(n+N) reading degenerates), so the
  *           concept rejects @c N @c == @c 0 regardless of any
- *           accidental trait opt-in. */
+ *           accidental trait opt-in.
+ *
+ *  @section convergence__Periodic_Mandelbrot Mandelbrot connection
+ *  In @c :numbers::mandelbrot, a parameter @c c in a @b hyperbolic @b
+ *  component of period @c N has an orbit that settles into an
+ *  attracting @c N-cycle — eventually period-@c N.  The main cardioid
+ *  is the period-1 component (the orbit converges to an attracting
+ *  fixed point — eventually @c IsAbsorptiveSequence); the period-2
+ *  bulb is eventually period-2; and so on.  The bulbs of the
+ *  Mandelbrot set are the geometric picture of @c IsPeriodicSequence
+ *  on the @c z↦z²+c iteration. */
 export template <typename Seq, std::size_t N>
 concept IsPeriodicSequence =
     (N > 0) && IsSequence<Seq> && is_periodic_sequence_v<Seq, N>;
@@ -175,7 +194,23 @@ inline constexpr bool is_absorptive_sequence_v = false;
 /** @concept IsAbsorptiveSequence
  *  @brief An eventually-constant sequence.  The simplest convergent
  *         case (limit = the absorbing value); period-1-eventually
- *         dual to @c IsPeriodicSequence. */
+ *         dual to @c IsPeriodicSequence.
+ *
+ *  @section convergence__Absorptive_Mandelbrot Mandelbrot connection
+ *  This concept's canonical consumer is the @b escape-time @b
+ *  divergence path in @c :numbers::mandelbrot.  @c orbit_divergence_path
+ *  produces a monotone @c Path<Ternary> that is @c Unknown until the
+ *  orbit escapes and @c True forever after — @b eventually @b constant,
+ *  i.e.\ an @c IsAbsorptiveSequence whose absorbing value is the
+ *  Kleene-@c True that is the absorbing element of Kleene @c OR.  The
+ *  partition's own comment names this: "True is the absorbing element
+ *  of Kleene OR, so once the path reaches True it stays there."
+ *
+ *  This is where the @b absorptive reading earns its keep: not via
+ *  @c :species's lattice-absorption @c is_absorptive_v (a looser,
+ *  shared-name analogy — there is no orbit-style theorem linking the
+ *  two), but via escape-time dynamics, where the eventually-constant
+ *  escape indicator is genuinely an absorptive sequence. */
 export template <typename Seq>
 concept IsAbsorptiveSequence = IsSequence<Seq> && is_absorptive_sequence_v<Seq>;
 
@@ -231,7 +266,23 @@ concept IsSubsequence =
  *  @note When @c cyclic_order_v<T, Op> @c = @c order @c > @c 0, the
  *  index @c n is reduced @c mod @c order before folding, so @c at(n)
  *  is @c O(order) rather than @c O(n) — the orbit only has @c order
- *  distinct values regardless of @c n. */
+ *  distinct values regardless of @c n.
+ *
+ *  @section convergence__Orbit_vs_Iteration Group orbit vs.\ iteration
+ *  @c OrbitSequence is the @b group-flavoured orbit
+ *  (@c n ↦ Opⁿ(generator), folding a binary @c Op).  Its
+ *  dynamical-systems sibling is the @b unary-iteration sequence
+ *  @c n ↦ fⁿ(seed) produced by @c iterate(seed, @c f) — e.g.\
+ *  @c mandelbrot_orbit(c) @c = @c iterate(0, @c z↦z²+c) in
+ *  @c :numbers::mandelbrot.  Both are "iteration sequences"; the
+ *  sequence-shape concepts (@c IsBoundedSequence,
+ *  @c IsPeriodicSequence, @c IsAbsorptiveSequence) apply to either
+ *  regardless of how the orbit is constructed.  A future mechanical
+ *  unification — a typed @c IterationSequence<f, seed> subsuming both
+ *  — would let the periodicity bridge fire on Mandelbrot bulbs too;
+ *  this slice keeps the group-orbit case (where @c cyclic_order_v
+ *  gives the period) and leaves the unary generalisation as a
+ *  named follow-up. */
 export template <typename T, typename Op>
 struct OrbitSequence : Path<T> {
   constexpr OrbitSequence(T gen, Op op) {
