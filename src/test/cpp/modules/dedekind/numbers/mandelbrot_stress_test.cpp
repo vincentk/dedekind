@@ -113,6 +113,8 @@ TEST_CASE("Sets: Mandelbrot set-builder stress test", "[sets][mandelbrot]") {
         mandelbrot_orbit(ComplexPoint{2.0, 0.0}), criterion);
 
     static_assert(IsSequence<decltype(divergence)>);
+    // The escape signal is a typed absorptive sequence (eventually constant).
+    static_assert(IsAbsorptiveSequence<DivergencePath<double>>);
     REQUIRE(divergence.at(0) == Ternary::Unknown);  // z_0=0, inside ball
     REQUIRE(divergence.at(1) == Ternary::Unknown);  // z_1=2, |2|²=4 not >4
     REQUIRE(divergence.at(2) == Ternary::True);     // z_2=6, |6|²=36>4
