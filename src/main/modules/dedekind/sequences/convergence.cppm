@@ -19,6 +19,8 @@ module;
 
 export module dedekind.sequences:convergence;
 
+import dedekind.category; // is_periodic_v / cyclic_order_v — the orbit bridge
+
 import :net;  // IsSequence (Form-chain row 4) — #719 Slice 0
 import :path;
 import :limits;  // limit() — :sequences-side prerequisite for
@@ -126,7 +128,16 @@ export template <typename Seq>
 inline constexpr bool is_bounded_sequence_v = false;
 
 /** @concept IsBoundedSequence
- *  @brief A sequence whose image is order-bounded.  Bishop §2. */
+ *  @brief A sequence whose image is order-bounded.  Bishop §2.
+ *
+ *  @section convergence__Bounded_Mandelbrot Mandelbrot connection
+ *  Orbit-boundedness @b is the Mandelbrot membership criterion:
+ *  @c c @c ∈ @c M @c ⟺ the orbit @c mandelbrot_orbit(c) @c = @c
+ *  iterate(0, @c z↦z²+c) (in @c :numbers::mandelbrot) is bounded
+ *  @c ⟺ @c IsBoundedSequence holds for that orbit.  The escape-time
+ *  machinery (@c orbit_escape_time) is the negation: an escaping
+ *  parameter's orbit is @b unbounded, so @c IsBoundedSequence
+ *  honestly rejects it. */
 export template <typename Seq>
 concept IsBoundedSequence = IsSequence<Seq> && is_bounded_sequence_v<Seq>;
 
@@ -157,7 +168,17 @@ inline constexpr bool is_periodic_sequence_v = false;
  *  @details Requires @c N @c > @c 0: "period 0" is undefined (the
  *           @c s(n) @c = @c s(n+N) reading degenerates), so the
  *           concept rejects @c N @c == @c 0 regardless of any
- *           accidental trait opt-in. */
+ *           accidental trait opt-in.
+ *
+ *  @section convergence__Periodic_Mandelbrot Mandelbrot connection
+ *  In @c :numbers::mandelbrot, a parameter @c c in a @b hyperbolic @b
+ *  component of period @c N has an orbit that settles into an
+ *  attracting @c N-cycle — eventually period-@c N.  The main cardioid
+ *  is the period-1 component (the orbit converges to an attracting
+ *  fixed point — eventually @c IsAbsorptiveSequence); the period-2
+ *  bulb is eventually period-2; and so on.  The bulbs of the
+ *  Mandelbrot set are the geometric picture of @c IsPeriodicSequence
+ *  on the @c z↦z²+c iteration. */
 export template <typename Seq, std::size_t N>
 concept IsPeriodicSequence =
     (N > 0) && IsSequence<Seq> && is_periodic_sequence_v<Seq, N>;
@@ -173,7 +194,23 @@ inline constexpr bool is_absorptive_sequence_v = false;
 /** @concept IsAbsorptiveSequence
  *  @brief An eventually-constant sequence.  The simplest convergent
  *         case (limit = the absorbing value); period-1-eventually
- *         dual to @c IsPeriodicSequence. */
+ *         dual to @c IsPeriodicSequence.
+ *
+ *  @section convergence__Absorptive_Mandelbrot Mandelbrot connection
+ *  This concept's canonical consumer is the @b escape-time @b
+ *  divergence path in @c :numbers::mandelbrot.  @c orbit_divergence_path
+ *  produces a monotone @c Path<Ternary> that is @c Unknown until the
+ *  orbit escapes and @c True forever after — @b eventually @b constant,
+ *  i.e.\ an @c IsAbsorptiveSequence whose absorbing value is the
+ *  Kleene-@c True that is the absorbing element of Kleene @c OR.  The
+ *  partition's own comment names this: "True is the absorbing element
+ *  of Kleene OR, so once the path reaches True it stays there."
+ *
+ *  This is where the @b absorptive reading earns its keep: not via
+ *  @c :species's lattice-absorption @c is_absorptive_v (a looser,
+ *  shared-name analogy — there is no orbit-style theorem linking the
+ *  two), but via escape-time dynamics, where the eventually-constant
+ *  escape indicator is genuinely an absorptive sequence. */
 export template <typename Seq>
 concept IsAbsorptiveSequence = IsSequence<Seq> && is_absorptive_sequence_v<Seq>;
 
@@ -194,6 +231,87 @@ concept IsSubsequence =
     IsSequence<Sub> && IsSequence<Sup> &&
     std::same_as<typename Sub::Codomain, typename Sup::Codomain> &&
     is_subsequence_v<Sub, Sup>;
+
+// ===========================================================================
+// The orbit bridge (#719 Slice 1b): carrier-axis periodicity ⇒
+// sequence-axis periodicity.
+//
+// A periodic carrier (T, Op) — @c is_periodic_v<T, Op> with finite
+// @c cyclic_order_v<T, Op> @c = @c N — generates an @b orbit @b
+// sequence  n ↦ Opⁿ(generator)  for which @c N is @b a @b period.
+// (It is the @em minimal period when the element generates the whole
+// group; an arbitrary element's orbit may have a smaller minimal
+// period dividing N.  N is always a valid period — the non-minimal
+// convention used here.)  This makes the two @c is_periodic notions
+// provably one: the carrier-axis trait in @c :species and the
+// sequence-axis trait above are bridged by the orbit construction.
+// Same propagation shape as #718's HSP trait-lifting (carrier trait ⇒
+// derived-carrier trait).
+//
+// @c OrbitSequence<T, Op> is the reified orbit, a distinct sequence
+// type (deriving the @c IsSequence shape from @c Path<T>) so the
+// type-level propagation has something to key on.  The exact orbit
+// indexing is immaterial to the periodicity claim — what propagates
+// is the period @c N, read off @c cyclic_order_v.
+// ===========================================================================
+
+/** @brief The orbit sequence @c n ↦ Opⁿ(generator) of a carrier
+ *         @c (T, Op), reified as a distinct @c IsSequence type.
+ *
+ *  @details Derives the sequence shape from @c Path<T>; the generator
+ *  function folds @c Op over copies of the stored generator element.
+ *  The carrier's periodicity (if any) propagates to this type's
+ *  @c is_periodic_sequence_v via the bridge below.
+ *
+ *  @note When @c cyclic_order_v<T, Op> @c = @c order @c > @c 0, the
+ *  index @c n is reduced @c mod @c order before folding, so @c at(n)
+ *  is @c O(order) rather than @c O(n) — the orbit only has @c order
+ *  distinct values regardless of @c n.
+ *
+ *  @section convergence__Orbit_vs_Iteration Group orbit vs.\ iteration
+ *  @c OrbitSequence is the @b group-flavoured orbit
+ *  (@c n ↦ Opⁿ(generator), folding a binary @c Op).  Its
+ *  dynamical-systems sibling is the @b unary-iteration sequence
+ *  @c n ↦ fⁿ(seed) produced by @c iterate(seed, @c f) — e.g.\
+ *  @c mandelbrot_orbit(c) @c = @c iterate(0, @c z↦z²+c) in
+ *  @c :numbers::mandelbrot.  Both are "iteration sequences"; the
+ *  sequence-shape concepts (@c IsBoundedSequence,
+ *  @c IsPeriodicSequence, @c IsAbsorptiveSequence) apply to either
+ *  regardless of how the orbit is constructed.  A future mechanical
+ *  unification — a typed @c IterationSequence<f, seed> subsuming both
+ *  — would let the periodicity bridge fire on Mandelbrot bulbs too;
+ *  this slice keeps the group-orbit case (where @c cyclic_order_v
+ *  gives the period) and leaves the unary generalisation as a
+ *  named follow-up. */
+export template <typename T, typename Op>
+struct OrbitSequence : Path<T> {
+  constexpr OrbitSequence(T gen, Op op) {
+    this->generator = [gen, op](std::size_t n) {
+      // For a periodic carrier the orbit has only `order` distinct
+      // values; reduce n to keep at() bounded by the cyclic order
+      // rather than the (arbitrarily large) query index.
+      constexpr std::size_t order = dedekind::category::cyclic_order_v<T, Op>;
+      if constexpr (order > 0) {
+        n %= order;
+      }
+      T acc = gen;
+      for (std::size_t i = 0; i < n; ++i) {
+        acc = op(acc, gen);
+      }
+      return acc;
+    };
+  }
+};
+
+/** @brief The orbit bridge.  If @c (T, Op) is a periodic carrier with
+ *         @c cyclic_order_v<T, Op> @c = @c N @c > @c 0, then its orbit
+ *         sequence is a period-@c N sequence (@c N is @b a period; see
+ *         the section note on minimality).  @c N is deduced from the
+ *         query and gated against the carrier's cyclic order. */
+template <typename T, typename Op, std::size_t N>
+  requires(N > 0 && dedekind::category::is_periodic_v<T, Op> &&
+           N == dedekind::category::cyclic_order_v<T, Op>)
+inline constexpr bool is_periodic_sequence_v<OrbitSequence<T, Op>, N> = true;
 
 }  // namespace dedekind::sequences
 
