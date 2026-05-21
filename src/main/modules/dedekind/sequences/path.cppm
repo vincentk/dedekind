@@ -403,8 +403,13 @@ constexpr auto tails(const Path<T, Cardinality>& s)
  * @concept IsStreamComonad
  * @brief \emph{Operational} duck-typed check that @c W carries the
  *        Uustalu–Vene stream-comonad shape on an @b infinite sequence
- *        @f$\mathbb{N} \to A@f$: @c ε (head @c w.at(0)), @c δ
- *        (@c tails(w)), and @c extend (@c w @c <<= @c f).
+ *        @f$\mathbb{N} \to A@f$.  The concept body checks the two
+ *        primitive legs — @c ε (head @c w.at(0)) and @c δ
+ *        (@c tails(w)) — only; the third leg @c extend (@c w @c <<= @c f)
+ *        is the derived @f$\mathrm{map}\,f \circ \delta@f$ and is
+ *        certified separately by the @c IsCoKleisliExtension witness
+ *        (pinned beside the @c IsStreamComonad<Path<int>> assertion
+ *        below), not re-checked here.
  *
  * @details This is the @b extension presentation of the stream comonad
  * (counit @c ε + coextension @c <<=), the dual of Manes' Kleisli-triple
