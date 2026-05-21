@@ -20,6 +20,9 @@ module;
 export module dedekind.sequences:convergence;
 
 import dedekind.category; // is_periodic_v / cyclic_order_v — the orbit bridge
+import dedekind.order;    // IsOrderMeetSemilattice / IsOrderJoinSemilattice —
+                          // the lattice prerequisite for order-convergence
+                          // (#719 Slice 3)
 
 import :net;  // IsSequence (Form-chain row 4) — #719 Slice 0
 import :path;
@@ -97,6 +100,62 @@ export template <typename Seq>
 concept IsConvergentSequence = IsCauchySequence<Seq> && requires(Seq s) {
   { limit(s) } -> std::same_as<typename Seq::Codomain>;
 };
+
+/** @brief Opt-in: @c Seq order-converges — its liminf and limsup
+ *         coincide.  The order-@b completeness of the carrier (so the
+ *         inf/sup of the @b infinite tails exist) and the
+ *         @c liminf @c = @c limsup equality itself are the engineer's
+ *         honesty obligation, exactly as metric-completeness is for
+ *         @c IsCauchySequence. */
+export template <typename Seq>
+inline constexpr bool is_order_convergent_v = false;
+
+/**
+ * @concept IsOrderConvergent
+ * @brief A sequence that converges in the @b order sense:
+ *        @f$\liminf_n s(n) = \limsup_n s(n)@f$, with
+ *        @f$\liminf = \bigsqcup_n \bigsqcap_{k\ge n} s(k)@f$ and
+ *        @f$\limsup = \bigsqcap_n \bigsqcup_{k\ge n} s(k)@f$.
+ *
+ * @details The carrier must be an order @b lattice — both an
+ * @c order::IsOrderMeetSemilattice (for the @c ⊓ / inf of tails) and an
+ * @c order::IsOrderJoinSemilattice (for the @c ⊔ / sup) — so that
+ * @c liminf and @c limsup are even @b definable.  This is the
+ * load-bearing @c :order::lattice cross-reference: a carrier with no
+ * meet/join cannot host order-convergence and is honestly rejected
+ * regardless of any trait opt-in.  Order-@b completeness (the inf/sup
+ * of the @b infinite tails actually existing) and the
+ * @c liminf @c = @c limsup equality are the engineer's honesty
+ * obligation, mirroring how metric-completeness is the obligation for
+ * @c IsCauchySequence.
+ *
+ * @section convergence__Order_vs_Metric Order vs metric convergence
+ * Order-convergence is the @b lattice-theoretic, metric-free notion and
+ * is @b constructive (no LEM): in a Dedekind-complete carrier a
+ * @b bounded @b monotone sequence order-converges to the sup/inf of its
+ * image — the order-theoretic monotone convergence theorem, which needs
+ * no choice principle.  This contrasts with the metric
+ * @c IsConvergentSequence, whose @c limit(s) extraction from a Cauchy
+ * sequence is the LEM-flavoured collapse gated in #719 Slice 5.
+ *
+ * The monotone-convergence propagation itself
+ * (@c is_bounded_sequence_v @c ∧ @c is_monotone_sequence_v over a
+ * @c order::IsDedekindComplete carrier @c ⇒ order-convergent) is a named
+ * follow-up rather than a baked-in concept disjunction: the only
+ * @c IsDedekindComplete carrier in the library, @c ExactReal, lives
+ * downstream of @c :sequences, so the propagation is best witnessed in a
+ * downstream test alongside that carrier (cf.\ the orbit bridge, whose
+ * propagation is witnessed downstream in @c :morphologies).
+ *
+ * Anchor: Birkhoff, @em Lattice @em Theory §X.9 (order convergence).
+ * Form-chain row 6b of #719.
+ */
+export template <typename Seq>
+concept IsOrderConvergent =
+    IsSequence<Seq> &&
+    dedekind::order::IsOrderMeetSemilattice<typename Seq::Codomain> &&
+    dedekind::order::IsOrderJoinSemilattice<typename Seq::Codomain> &&
+    is_order_convergent_v<Seq>;
 
 // ===========================================================================
 // Sequence-shape concepts (#719 Slice 1).
