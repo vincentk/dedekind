@@ -388,7 +388,8 @@ constexpr auto drop(const Path<T, Cardinality>& path, std::size_t n) {
  *   - right counit: @f$(\mathrm{map}\,\varepsilon)(\delta\,s) = s@f$
  *   - coassoc:      @f$\delta(\delta\,s) = (\mathrm{map}\,\delta)(\delta\,s)@f$
  *
- * @see operator<<= — the co-Kleisli @c extend; @c δ(s) == s <<= identity.
+ * @see operator<<= — the co-Kleisli @c extend; @c δ(s) is @c extend with
+ *      the context-identity, i.e.\ @c s @c <<= @c std::identity{}.
  */
 export template <typename T, typename Cardinality>
   requires(!dedekind::sets::IsFinite<Cardinality>)
@@ -418,13 +419,18 @@ constexpr auto tails(const Path<T, Cardinality>& s)
  * Finiteness is excluded on purpose: the comonad of @b infinite streams
  * (with @c δ = @c tails) is a different beast from the non-empty-list
  * comonad on finite carriers, so a @c FinitePath is honestly rejected.
+ *
+ * The @c δ leg constrains @c tails(w) to be indexable with elements of
+ * type @c W (a stream of @c W tails), not merely well-formed — this pins
+ * the comultiplication shape @f$W \Rightarrow W \circ W@f$ and rejects an
+ * unrelated ADL-found @c tails returning some other type.
  */
 export template <typename W>
 concept IsStreamComonad =
     IsSequence<W> && !dedekind::sets::IsFinite<typename W::cardinality_type> &&
-    requires(const W& w) {
+    requires(const W& w, std::size_t n) {
       { w.at(0) } -> std::same_as<typename W::Codomain>;
-      { tails(w) };
+      { tails(w).at(n) } -> std::same_as<W>;
     };
 
 export template <typename T, typename Step>
