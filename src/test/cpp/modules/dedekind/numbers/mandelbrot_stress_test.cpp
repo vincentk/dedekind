@@ -1,8 +1,10 @@
 #include <catch2/catch_test_macros.hpp>
 #include <chrono>
 #include <complex>
+#include <concepts>
 #include <cstdint>
 #include <string>
+#include <type_traits>
 
 import dedekind.category;
 import dedekind.sets;
@@ -113,6 +115,11 @@ TEST_CASE("Sets: Mandelbrot set-builder stress test", "[sets][mandelbrot]") {
         mandelbrot_orbit(ComplexPoint{2.0, 0.0}), criterion);
 
     static_assert(IsSequence<decltype(divergence)>);
+    // The factory wires the new API: its return type is exactly
+    // DivergencePath<double>, a typed absorptive sequence (eventually const).
+    static_assert(std::same_as<std::remove_cvref_t<decltype(divergence)>,
+                               DivergencePath<double>>);
+    static_assert(IsAbsorptiveSequence<DivergencePath<double>>);
     REQUIRE(divergence.at(0) == Ternary::Unknown);  // z_0=0, inside ball
     REQUIRE(divergence.at(1) == Ternary::Unknown);  // z_1=2, |2|²=4 not >4
     REQUIRE(divergence.at(2) == Ternary::True);     // z_2=6, |6|²=36>4
