@@ -100,7 +100,55 @@ constexpr auto mandelbrot_orbit(const Complex<R>& c) {
 // ─────────────────────────────────────
 
 /**
- * The divergence spectrum of an orbit: a monotone Path<Ternary>.
+ * @class DivergencePath
+ * @brief The escape signal of a Mandelbrot orbit, tagged as a sequence-shape
+ *        witness: a monotone @c {Unknown,True}-valued @c Path<Ternary> that
+ *        is @b structurally absorptive for every parameter @c c.
+ *
+ * @details The divergence path of @c orbit_divergence_path is eventually
+ * constant regardless of @c c:
+ *
+ *   - @b Escaping @c c (outside @f$M@f$): the path is @c Unknown until the
+ *     escape index, then @c True forever (@c True is the absorbing element
+ *     of Kleene OR — the @c IsAbsorptiveSequence tail factors through a
+ *     singleton @f$\{z\}@f$ with @f$z@f$ = @c True).
+ *   - @b Bounded @c c (inside @f$M@f$): the path is the constant @c Unknown
+ *     sequence — eventually-constant from index 0, the degenerate absorptive
+ *     case (@f$z = @c Unknown@f$).
+ *
+ * So the @c IsAbsorptiveSequence shape holds at the @b type level for the
+ * carrier as a whole, independently of the (value-level, undecidable)
+ * membership question for any individual @c c.  This is the honest leverage
+ * the sequence API affords Mandelbrot: per-@c c boundedness
+ * (@c IsBoundedSequence ⟺ @f$c \in M@f$) is value-dependent and cannot be
+ * type-witnessed, but "the escape indicator is an absorptive sequence" @b is.
+ *
+ * @note Construction is restricted to @c orbit_divergence_path (the only
+ *       friend): the absorptive invariant is enforced @b by @b construction,
+ *       not merely promised by the trait opt-in.  No public constructor from
+ *       an arbitrary @c Path<Ternary> exists, so a @c DivergencePath can only
+ *       arise from the factory that guarantees eventual-constancy.  (The
+ *       @c .generator / @c .extent members inherited from @c Path remain
+ *       writable — preserving eventual-constancy under in-place mutation is
+ *       the residual honesty obligation, as for every tagged @c Path.)
+ *
+ * @see dedekind::sequences::IsAbsorptiveSequence
+ */
+export template <IsComplexScalar R>
+struct DivergencePath : Path<Ternary> {
+ private:
+  constexpr explicit DivergencePath(Path<Ternary> p)
+      : Path<Ternary>{std::move(p)} {}
+
+  template <IsComplexScalar R2, typename EscapeCriterion>
+    requires IsEscapeCriterion<EscapeCriterion, Complex<R2>>
+  friend constexpr auto orbit_divergence_path(const OrbitPath<R2>& orbit,
+                                              EscapeCriterion criterion)
+      -> DivergencePath<R2>;
+};
+
+/**
+ * The divergence spectrum of an orbit: a monotone @c DivergencePath<R>.
  *
  *   orbit_divergence_path(orbit, p)(n)
  *     = True    if ∃ k ≤ n : p(z_k)   (escape witnessed)
@@ -109,6 +157,9 @@ constexpr auto mandelbrot_orbit(const Complex<R>& c) {
  * Monotonicity: True is the absorbing element of Kleene OR, so once the
  * path reaches True it stays there.  A monotone {Unknown,True}-valued path
  * is isomorphic to ℕ∞ — its information content is exactly the escape time.
+ * The result type @c DivergencePath<R> carries the
+ * @c sequences::IsAbsorptiveSequence shape (eventually constant for every
+ * @c c — see the class doc), making the eventual-constancy a type-level fact.
  *
  * This is the Layer 1 intensional object; orbit_escape_time() is the
  * efficient materialization.
@@ -117,13 +168,13 @@ export template <IsComplexScalar R, typename EscapeCriterion>
   requires IsEscapeCriterion<EscapeCriterion, Complex<R>>
 constexpr auto orbit_divergence_path(const OrbitPath<R>& orbit,
                                      EscapeCriterion criterion)
-    -> Path<Ternary> {
-  return scan(
+    -> DivergencePath<R> {
+  return DivergencePath<R>{scan(
       [criterion](const FinitePath<Complex<R>>& p) -> Ternary {
         return exists(p, classify<Complex<R>>(criterion).χ) ? Ternary::True
                                                             : Ternary::Unknown;
       },
-      orbit);
+      orbit)};
 }
 
 /**
@@ -236,5 +287,36 @@ constexpr auto M_tower(EscapeCriterion criterion,
     return M_N<R>(n, criterion, policy);
   };
 }
+
+}  // namespace dedekind::numbers
+
+namespace dedekind::sequences {
+
+/** @brief Opt-in: every @c DivergencePath<R> is absorptive (eventually
+ *         constant — @c True after escape, or the degenerate constant
+ *         @c Unknown when bounded).  The eventual-constancy is structural,
+ *         holding for all @c c, so it is a sound type-level registration.
+ *         See @c dedekind::numbers::DivergencePath. */
+export template <dedekind::numbers::IsComplexScalar R>
+inline constexpr bool
+    is_absorptive_sequence_v<dedekind::numbers::DivergencePath<R>> = true;
+
+}  // namespace dedekind::sequences
+
+namespace dedekind::numbers {
+
+/** @section mandelbrot__Formal_Verification
+ *  Sequence-API leverage pinned at the type level (#719). */
+
+// The raw orbit n ↦ z_n is a bona-fide sequence (ℕ → Complex<R>).
+static_assert(dedekind::sequences::IsSequence<OrbitPath<double>>,
+              "A Mandelbrot orbit is an IsSequence (ℕ → Complex).");
+
+// The escape indicator is a typed absorptive sequence — eventual-constancy
+// for every c, independent of the value-level membership question.
+static_assert(
+    dedekind::sequences::IsAbsorptiveSequence<DivergencePath<double>>,
+    "The Mandelbrot divergence path is an absorptive sequence: eventually "
+    "constant (True after escape, else the degenerate constant Unknown).");
 
 }  // namespace dedekind::numbers
