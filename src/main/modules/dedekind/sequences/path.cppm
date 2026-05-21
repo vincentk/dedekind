@@ -370,6 +370,63 @@ constexpr auto drop(const Path<T, Cardinality>& path, std::size_t n) {
   }};
 }
 
+/**
+ * @brief δ (duplicate / comultiplication) of the stream comonad — the
+ *        stream of all suffixes.
+ *
+ * @details For an infinite stream @f$s : \mathbb{N} \to T@f$,
+ * @f[
+ *   \mathrm{tails}(s)\,(n) \;=\; \mathrm{drop}(s, n) \;=\; \lambda i.\, s(n+i),
+ * @f]
+ * so @c tails(s) is the @f$\mathbb{N} \to (\mathbb{N} \to T)@f$ stream whose
+ * @f$n@f$-th element is the @f$n@f$-shifted tail of @c s.  This is the
+ * Uustalu–Vene comultiplication @f$\delta@f$ for the stream comonad; paired
+ * with the head counit @f$\varepsilon(s) = s(0)@f$ it satisfies the comonad
+ * laws (witnessed in @c stream_comonad_test.cpp):
+ *
+ *   - left  counit: @f$\varepsilon(\delta\,s) = s@f$           (head of tails)
+ *   - right counit: @f$(\mathrm{map}\,\varepsilon)(\delta\,s) = s@f$
+ *   - coassoc:      @f$\delta(\delta\,s) = (\mathrm{map}\,\delta)(\delta\,s)@f$
+ *
+ * @see operator<<= — the co-Kleisli @c extend; @c δ(s) == s <<= identity.
+ */
+export template <typename T, typename Cardinality>
+  requires(!dedekind::sets::IsFinite<Cardinality>)
+constexpr auto tails(const Path<T, Cardinality>& s)
+    -> Path<Path<T, Cardinality>, Cardinality> {
+  return Path<Path<T, Cardinality>, Cardinality>{
+      [s](std::size_t n) { return drop(s, n); }};
+}
+
+/**
+ * @concept IsStreamComonad
+ * @brief \emph{Operational} duck-typed check that @c W carries the
+ *        Uustalu–Vene stream-comonad shape on an @b infinite sequence
+ *        @f$\mathbb{N} \to A@f$: @c ε (head @c w.at(0)), @c δ
+ *        (@c tails(w)), and @c extend (@c w @c <<= @c f).
+ *
+ * @details This is the sequence-axis operational counterpart of the
+ * axiomatic @c dedekind::category::IsComonad — the same complementary
+ * pairing the project uses for @c IsCyclic vs @c IsCyclicGroup.  The
+ * heavy categorical concept demands an @c IsEndofunctor with reified
+ * @c ε / @c δ natural transformations; this one asks only that the
+ * carrier exposes the operational shape, which @c Path already does
+ * via @c counit_witness (ε) and @c tails (δ).  The third leg, @c extend
+ * (@c operator<<=), is the derived @f$\mathrm{map}\,f \circ \delta@f$ and
+ * is separately certified by the @c IsCoKleisliExtension witness below.
+ *
+ * Finiteness is excluded on purpose: the comonad of @b infinite streams
+ * (with @c δ = @c tails) is a different beast from the non-empty-list
+ * comonad on finite carriers, so a @c FinitePath is honestly rejected.
+ */
+export template <typename W>
+concept IsStreamComonad =
+    IsSequence<W> && !dedekind::sets::IsFinite<typename W::cardinality_type> &&
+    requires(const W& w) {
+      { w.at(0) } -> std::same_as<typename W::Codomain>;
+      { tails(w) };
+    };
+
 export template <typename T, typename Step>
   requires std::invocable<const std::decay_t<Step>&, const T&> &&
            std::same_as<
@@ -694,6 +751,17 @@ static_assert(IsCoKleisliExtension<path_functor<int>, int, long>,
 static_assert(
     IsFrobenius<path_functor<int>, int, long>,
     "Path must satisfy the Frobenius witness (Kleisli + co-Kleisli).");
+
+// Stream comonad (Uustalu–Vene): the infinite Path carries the operational
+// ε / δ / extend triple; the finite Path is honestly rejected (the stream
+// comonad with δ = tails is not the non-empty-list comonad).
+static_assert(IsStreamComonad<Path<int>>,
+              "An infinite Path is an operational stream comonad: head (ε), "
+              "tails (δ), and extend (<<=).");
+static_assert(!IsStreamComonad<FinitePath<int>>,
+              "A FinitePath is NOT a stream comonad — δ = tails is the "
+              "infinite-stream structure, distinct from the non-empty-list "
+              "comonad on finite carriers.");
 
 // ---------------------------------------------------------------------------
 // Categorical anchor: Path<T> as a morphism out of the NNO (#602).
