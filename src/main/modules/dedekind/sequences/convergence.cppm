@@ -469,10 +469,21 @@ constexpr bool in_closed_euclidean_ball(R center, R point, R radius) {
  *        path, materialised via the co-Kleisli @c scan.
  *
  * @details @c partial_sums(terms)(n) folds @c + over the first @c n+1
- * terms (the additive identity @c T{} seeds the fold).  This is the
- * carrier on which @c IsSummable / @c IsAbsolutelyConvergent are judged:
- * the series @f$\sum a_n@f$ converges iff @c partial_sums(terms) does.
- * Requires the @c IsSeries additive shape on @c T.
+ * terms, @b seeded @b from @b the @b first @b term (index 0) and
+ * accumulating from index 1 — so no additive identity / default
+ * constructor is needed, only the @c IsSeries additive shape (@c +).
+ * The @c scan prefix is always non-empty (element @c i sees the first
+ * @c i+1 terms), so the seed @c prefix_terms.at(0) is always valid.
+ * This is the carrier on which @c IsSummable / @c IsAbsolutelyConvergent
+ * are judged: the series @f$\sum a_n@f$ converges iff @c partial_sums
+ * does.
+ *
+ * @note @b Complexity: this is a @b lazy / intensional series (like
+ * @c scan itself) — each @c at(n) recomputes the fold, so it is
+ * @f$O(n)@f$ per access and @f$O(N^2)@f$ to sample the first @c N
+ * partial sums.  For hot-path numerical convergence checks prefer the
+ * eager single-pass @c converges_series_partial_sums below, which caches
+ * the running sum.
  */
 export template <typename T>
   requires requires(T a) {
@@ -481,8 +492,8 @@ export template <typename T>
 constexpr Path<T> partial_sums(const Path<T>& terms) {
   return scan(
       [](const FinitePath<T>& prefix_terms) -> T {
-        T acc{};
-        for (std::size_t i = 0; i < prefix_terms.size(); ++i) {
+        T acc = prefix_terms.at(0);
+        for (std::size_t i = 1; i < prefix_terms.size(); ++i) {
           acc = acc + prefix_terms.at(i);
         }
         return acc;

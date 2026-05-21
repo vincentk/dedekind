@@ -20,8 +20,11 @@
  *    (not summable) is honestly rejected — the refinement is load-bearing.
  */
 
+#include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <cstddef>
+
+using Catch::Approx;
 
 import dedekind.sequences;
 
@@ -77,10 +80,10 @@ TEST_CASE("sequences:series — partial_sums materialises Sₙ = Σ_{k≤n} aₖ
   const auto terms = geometric_series_terms<double>(0.5);
   const auto sums = partial_sums(terms);
   STATIC_CHECK(IsSequence<decltype(sums)>);
-  REQUIRE(sums.at(0) == 1.0);    // S₀ = 1
-  REQUIRE(sums.at(1) == 1.5);    // S₁ = 1 + 1/2
-  REQUIRE(sums.at(2) == 1.75);   // S₂ = 1 + 1/2 + 1/4
-  REQUIRE(sums.at(3) == 1.875);  // S₃
+  REQUIRE(sums.at(0) == Approx(1.0));    // S₀ = 1
+  REQUIRE(sums.at(1) == Approx(1.5));    // S₁ = 1 + 1/2
+  REQUIRE(sums.at(2) == Approx(1.75));   // S₂ = 1 + 1/2 + 1/4
+  REQUIRE(sums.at(3) == Approx(1.875));  // S₃
 }
 
 TEST_CASE("sequences:series — IsSummable fires on the tagged opt-in witness",
