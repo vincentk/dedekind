@@ -15,6 +15,7 @@ module;
 #include <cmath>
 #include <concepts>
 #include <cstddef>
+#include <type_traits>
 #include <vector>
 
 export module dedekind.sequences:convergence;
@@ -112,8 +113,8 @@ concept IsConvergentSequence = IsCauchySequence<Seq> && requires(Seq s) {
  *         (the continuum, or a non-cardinality'd primitive) in
  *         @c TernaryLogic. */
 export template <typename Seq>
-using convergence_logic =
-    typename dedekind::sets::NaturalLogic<typename Seq::Codomain>::species;
+using convergence_logic = typename dedekind::sets::NaturalLogic<
+    typename std::remove_cvref_t<Seq>::Codomain>::type;
 
 /**
  * @concept IsClassicallyConvergent
