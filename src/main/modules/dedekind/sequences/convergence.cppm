@@ -158,6 +158,71 @@ concept IsOrderConvergent =
     is_order_convergent_v<Seq>;
 
 // ===========================================================================
+// Series concepts (#719 Slice 4): a series is a sequence carrying the
+// additive partial-sum structure.  Form-chain rows 6c–6e.
+//
+// A @b series @f$\sum a_n@f$ is determined by its term sequence
+// @f$(a_n)@f$; its convergence is the convergence of the partial-sum
+// sequence @f$S_n = \sum_{k\le n} a_k@f$ (materialised by
+// @c partial_sums below).  The carrier gate uses the @b additive shape
+// (@c a @c + @c a well-formed) rather than a registered algebraic
+// concept, exactly the deliberate choice @c IsCauchySequence makes for
+// its subtraction shape: it admits @c double and user-defined additive
+// carriers alike, lifting the monoid/Banach reasoning to the engineer's
+// honesty obligation.
+// ===========================================================================
+
+/**
+ * @concept IsSeries
+ * @brief A sequence whose @c Codomain carries the additive structure
+ *        needed to form partial sums @f$S_n = \sum_{k\le n} a_k@f$.
+ *
+ * @details The load-bearing structural gate: a carrier with no @c +
+ *          cannot host a series and is honestly rejected.  @c IsSummable
+ *          / @c IsAbsolutelyConvergent refine this with opt-in traits.
+ *          See @c partial_sums for the partial-sum materialisation.
+ */
+export template <typename Seq>
+concept IsSeries = IsSequence<Seq> && requires(typename Seq::Codomain a) {
+  { a + a } -> std::convertible_to<typename Seq::Codomain>;
+};
+
+/** @brief Opt-in: the series @f$\sum a_n@f$ is @b summable — its
+ *         partial-sum sequence converges.  The actual convergence (and
+ *         the carrier completeness it presumes) is the engineer's
+ *         honesty obligation, as for @c IsConvergentSequence. */
+export template <typename Seq>
+inline constexpr bool is_summable_v = false;
+
+/** @concept IsSummable
+ *  @brief A convergent series.  Necessary condition (the engineer's
+ *         obligation to respect): summable @c ⇒ @c a_n @c → @c 0.  The
+ *         runtime numerical hooks @c ratio_test_converges,
+ *         @c root_test_converges, @c comparison_test_converges, and
+ *         @c converges_series_partial_sums (below) are the operational
+ *         counterparts that decide summability for concrete float
+ *         carriers. */
+export template <typename Seq>
+concept IsSummable = IsSeries<Seq> && is_summable_v<Seq>;
+
+/** @brief Opt-in: the series @f$\sum a_n@f$ is @b absolutely convergent
+ *         — the series of norms @f$\sum \lVert a_n\rVert@f$ is summable. */
+export template <typename Seq>
+inline constexpr bool is_absolutely_convergent_v = false;
+
+/** @concept IsAbsolutelyConvergent
+ *  @brief An absolutely convergent series.  @b Refines @c IsSummable:
+ *         in a complete (Banach) carrier absolute convergence implies
+ *         convergence, so an @c IsAbsolutelyConvergent witness is also
+ *         @c IsSummable — the same refinement shape as
+ *         @c IsConvergentSequence over @c IsCauchySequence.  Carrier
+ *         completeness is the honesty obligation that makes the
+ *         implication sound; the witness opts into @b both traits. */
+export template <typename Seq>
+concept IsAbsolutelyConvergent =
+    IsSummable<Seq> && is_absolutely_convergent_v<Seq>;
+
+// ===========================================================================
 // Sequence-shape concepts (#719 Slice 1).
 //
 // Boundedness, monotonicity, periodicity, absorptivity, and the
@@ -398,6 +463,43 @@ constexpr bool in_closed_euclidean_ball(R center, R point, R radius) {
 }
 
 }  // namespace detail
+
+/**
+ * @brief The partial-sum series @f$S_n = \sum_{k\le n} a_k@f$ of a term
+ *        path, materialised via the co-Kleisli @c scan.
+ *
+ * @details @c partial_sums(terms)(n) folds @c + over the first @c n+1
+ * terms, @b seeded @b from @b the @b first @b term (index 0) and
+ * accumulating from index 1 — so no additive identity / default
+ * constructor is needed, only the @c IsSeries additive shape (@c +).
+ * The @c scan prefix is always non-empty (element @c i sees the first
+ * @c i+1 terms), so the seed @c prefix_terms.at(0) is always valid.
+ * This is the carrier on which @c IsSummable / @c IsAbsolutelyConvergent
+ * are judged: the series @f$\sum a_n@f$ converges iff @c partial_sums
+ * does.
+ *
+ * @note @b Complexity: this is a @b lazy / intensional series (like
+ * @c scan itself) — each @c at(n) recomputes the fold, so it is
+ * @f$O(n)@f$ per access and @f$O(N^2)@f$ to sample the first @c N
+ * partial sums.  For hot-path numerical convergence checks prefer the
+ * eager single-pass @c converges_series_partial_sums below, which caches
+ * the running sum.
+ */
+export template <typename T>
+  requires requires(T a) {
+    { a + a } -> std::convertible_to<T>;
+  }
+constexpr Path<T> partial_sums(const Path<T>& terms) {
+  return scan(
+      [](const FinitePath<T>& prefix_terms) -> T {
+        T acc = prefix_terms.at(0);
+        for (std::size_t i = 1; i < prefix_terms.size(); ++i) {
+          acc = acc + prefix_terms.at(i);
+        }
+        return acc;
+      },
+      terms);
+}
 
 /**
  * @brief Build a geometric-series term path: a_n = r^n.
