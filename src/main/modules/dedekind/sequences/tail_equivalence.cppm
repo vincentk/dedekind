@@ -54,10 +54,12 @@
 module;
 
 #include <algorithm>
+#include <concepts>
 #include <cstddef>
 #include <functional>
 #include <limits>
 #include <numeric>
+#include <type_traits>
 
 export module dedekind.sequences:tail;
 
@@ -92,8 +94,11 @@ struct TailEquivalent {
         window_start > std::numeric_limits<std::size_t>::max() - window_span
             ? std::numeric_limits<std::size_t>::max()
             : window_start + window_span;
+    // Compare via the carrier's own equality (the registered policy), not a
+    // bare !=, so types providing only operator== participate too.
+    const std::equal_to<T> eq{};
     for (std::size_t i = window_start; i < end; ++i) {
-      if (s.at(i) != t.at(i)) {
+      if (!eq(s.at(i), t.at(i))) {
         return false;
       }
     }
@@ -148,8 +153,14 @@ struct lasso_presentation {};
  */
 export template <typename Seq>
 concept IsEventuallyPeriodic = IsSequence<Seq> && requires {
+  // Both members must be present and integral (so they are usable with
+  // std::gcd / std::lcm and index arithmetic) — a non-integral period
+  // could otherwise satisfy `> 0` yet break decide_tail_equivalence.
+  requires std::integral<
+      std::remove_cvref_t<decltype(lasso_presentation<Seq>::pre_period)>>;
+  requires std::integral<
+      std::remove_cvref_t<decltype(lasso_presentation<Seq>::period)>>;
   requires lasso_presentation<Seq>::period > 0;
-  { lasso_presentation<Seq>::pre_period } -> std::convertible_to<std::size_t>;
 };
 
 /**
@@ -172,19 +183,43 @@ export template <typename S, typename T>
            std::same_as<typename S::Codomain, typename T::Codomain>)
 constexpr dedekind::category::Ternary decide_tail_equivalence(const S& s,
                                                               const T& t) {
+  using dedekind::category::Ternary;
   if constexpr (IsEventuallyPeriodic<S> && IsEventuallyPeriodic<T>) {
-    const std::size_t start = std::max(lasso_presentation<S>::pre_period,
-                                       lasso_presentation<T>::pre_period);
-    const std::size_t len =
-        std::lcm(lasso_presentation<S>::period, lasso_presentation<T>::period);
+    constexpr auto max = std::numeric_limits<std::size_t>::max();
+    const std::size_t ps =
+        static_cast<std::size_t>(lasso_presentation<S>::pre_period);
+    const std::size_t pt =
+        static_cast<std::size_t>(lasso_presentation<T>::pre_period);
+    const std::size_t cs =
+        static_cast<std::size_t>(lasso_presentation<S>::period);
+    const std::size_t ct =
+        static_cast<std::size_t>(lasso_presentation<T>::period);
+    const std::size_t start = std::max(ps, pt);
+    // Compute lcm(cs, ct) without UB: lcm = cs/gcd * ct; bail to Unknown if
+    // that product — or the start+len window — would overflow size_t.
+    const std::size_t g = std::gcd(cs, ct);
+    if (g == 0) {
+      return Ternary::Unknown;
+    }
+    const std::size_t a = cs / g;
+    if (a > max / ct) {
+      return Ternary::Unknown;  // lcm overflow ⇒ undecidable within bounds
+    }
+    const std::size_t len = a * ct;
+    if (len == 0 || start > max - len) {
+      return Ternary::Unknown;  // window would overflow ⇒ undecidable here
+    }
+    // Compare on the IsArrow surface s(n) (IsSequence guarantees operator(),
+    // not necessarily .at()) via the carrier's equality.
+    const std::equal_to<typename S::Codomain> eq{};
     for (std::size_t k = 0; k < len; ++k) {
-      const std::size_t n =
-          start + k;  // start,len are small finite-presentation data
-      if (s.at(n) != t.at(n)) {
-        return dedekind::category::Ternary::False;
+      const std::size_t n = start + k;
+      if (!eq(s(static_cast<typename S::Domain>(n)),
+              t(static_cast<typename T::Domain>(n)))) {
+        return Ternary::False;
       }
     }
-    return dedekind::category::Ternary::True;
+    return Ternary::True;
   } else {
     return dedekind::category::Ternary::Unknown;
   }
