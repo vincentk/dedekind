@@ -19,10 +19,14 @@ module;
 
 export module dedekind.sequences:convergence;
 
-import dedekind.category; // is_periodic_v / cyclic_order_v — the orbit bridge
+import dedekind.category; // is_periodic_v / cyclic_order_v — the orbit bridge;
+                          // ClassicalLogic — the classical regime tag
 import dedekind.order;    // IsOrderMeetSemilattice / IsOrderJoinSemilattice —
                           // the lattice prerequisite for order-convergence
                           // (#719 Slice 3)
+import dedekind.sets;     // NaturalLogic — the carrier-axis cardinality cut
+                          // (countable→Classical, uncountable→Ternary) gating
+                          // the Cauchy⇒convergent collapse (#719 Slice 5)
 
 import :net;  // IsSequence (Form-chain row 4) — #719 Slice 0
 import :path;
@@ -100,6 +104,43 @@ export template <typename Seq>
 concept IsConvergentSequence = IsCauchySequence<Seq> && requires(Seq s) {
   { limit(s) } -> std::same_as<typename Seq::Codomain>;
 };
+
+/** @brief The logic regime governing @c Seq's limit-collapse, read off
+ *         the carrier's cardinality via the @c :sets cardinality cut
+ *         (@c NaturalLogic): a @b countable @c Codomain (@c ℵ_0 /
+ *         @c Finite) lands in @c ClassicalLogic, an @b uncountable one
+ *         (the continuum, or a non-cardinality'd primitive) in
+ *         @c TernaryLogic. */
+export template <typename Seq>
+using convergence_logic =
+    typename dedekind::sets::NaturalLogic<typename Seq::Codomain>::species;
+
+/**
+ * @concept IsClassicallyConvergent
+ * @brief A Cauchy sequence whose carrier sits in the @b classical logic
+ *        regime, so the Cauchy @c ⇒ convergent collapse (limit
+ *        extraction) fires honestly.
+ *
+ * @details The LEM-flavoured step "every Cauchy sequence converges" is
+ * the completeness axiom; constructively it is @b blocked — Specker
+ * exhibits a computable Cauchy sequence of rationals whose limit is not
+ * computable.  The carrier-axis cardinality cut (#622/#696) decides the
+ * regime via @c convergence_logic: a @b countable @c Codomain lands in
+ * @c ClassicalLogic and the collapse fires; an @b uncountable carrier
+ * (the continuum, or a non-cardinality'd primitive like @c double — the
+ * float↔ℝ gap) lands in @c TernaryLogic and the collapse is honestly
+ * rejected.  The @b existence of the limit is then the classical theorem
+ * / the engineer's honesty obligation; this concept gates only the
+ * Cauchy shape and the regime, matching the project's
+ * concept-names-the-role discipline.
+ *
+ * Form-chain row 7 of #719; the convergence half of the logical-collapse
+ * crown that @c WitnessesBolzanoWeierstrass completes.
+ */
+export template <typename Seq>
+concept IsClassicallyConvergent =
+    IsCauchySequence<Seq> &&
+    std::same_as<convergence_logic<Seq>, dedekind::category::ClassicalLogic>;
 
 /** @brief Opt-in: @c Seq order-converges — its liminf and limsup
  *         coincide.  The order-@b completeness of the carrier (so the
@@ -355,6 +396,33 @@ concept IsSubsequence =
     IsSequence<Sub> && IsSequence<Sup> &&
     std::same_as<typename Sub::Codomain, typename Sup::Codomain> &&
     is_subsequence_v<Sub, Sup>;
+
+/**
+ * @concept WitnessesBolzanoWeierstrass
+ * @brief The Bolzano–Weierstrass crown: @c Sub witnesses that the
+ *        bounded sequence @c Sup has a convergent subsequence.
+ *
+ * @details Holds when @c Sup is order-bounded (@c IsBoundedSequence),
+ * @c Sub is a subsequence of @c Sup (@c IsSubsequence), and @c Sub is
+ * @c IsClassicallyConvergent.  This is Bolzano–Weierstrass read as a
+ * @b logical-collapse theorem: "every bounded sequence has a convergent
+ * subsequence" is classically true but constructively false (it needs
+ * sequential compactness / a LEM-grade choice).  The classical collapse
+ * fires exactly when the carrier is in the @c ClassicalLogic regime
+ * (countable cardinality cut); over a @c TernaryLogic carrier the
+ * witness is honestly rejected — no type-level guarantee of a convergent
+ * subsequence (Specker / non-computable limit).
+ *
+ * The convergent subsequence itself (the strictly-increasing index map
+ * and the limit) is the @b existential witness the engineer supplies via
+ * @c is_subsequence_v + the carrier's classical regime; this concept
+ * certifies that a supplied @c (Sub, Sup) pair has the
+ * Bolzano–Weierstrass shape.  Crown of #719 (Form-chain row 7).
+ */
+export template <typename Sub, typename Sup>
+concept WitnessesBolzanoWeierstrass =
+    IsBoundedSequence<Sup> && IsSubsequence<Sub, Sup> &&
+    IsClassicallyConvergent<Sub>;
 
 // ===========================================================================
 // The orbit bridge (#719 Slice 1b): carrier-axis periodicity ⇒
