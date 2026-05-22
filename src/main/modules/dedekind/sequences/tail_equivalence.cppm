@@ -53,9 +53,11 @@
  */
 module;
 
+#include <algorithm>
 #include <cstddef>
 #include <functional>
 #include <limits>
+#include <numeric>
 
 export module dedekind.sequences:tail;
 
@@ -98,6 +100,95 @@ struct TailEquivalent {
     return true;
   }
 };
+
+/**
+ * @section tail__From_The_Undecidable_General_Case_To_A_Decidable_Bool
+ *
+ * Tail-equivalence is undecidable in general — deciding @c s ~ t means
+ * consuming the infinite tail, i.e.\ @b general @b recursion over a
+ * codata stream whose state space is unbounded; the honest verdict is
+ * @c Ternary::Unknown.  It collapses to a decidable @c bool exactly when
+ * both streams have a @b finite-state presentation — a @b lasso: a finite
+ * prefix followed by a cycle, @f$s(n) = s(n + C)\ \forall n \ge P@f$.
+ * On a lasso the decision is @b structural @b recursion over the finite
+ * @c (prefix, cycle) witness: past @c max(Pₛ,Pₜ) both streams factor
+ * through a common cycle of length @c lcm(Cₛ,Cₜ), so agreement on @b one
+ * full period is agreement forever — a @b provably @b sufficient,
+ * terminating check, not a sampled heuristic.
+ *
+ * This is the type-directed bridge from the general (Ternary) case to the
+ * decidable (Boolean) case: the finite-presentation witness
+ * @c IsEventuallyPeriodic is exactly what licenses structural recursion.
+ * It unifies the @c :convergence shape concepts as lasso shapes —
+ * @c IsAbsorptiveSequence is a prefix + @b 1-cycle (eventually constant),
+ * @c IsPeriodicSequence<N> is a @b 0-prefix + N-cycle — and coheres with
+ * the #719 Slice 5 collapse: a finite presentation is a countable /
+ * @c ClassicalLogic object (decidable), its absence is @c TernaryLogic.
+ */
+
+/** @brief Opt-in finite-state ("lasso") presentation of an
+ *         eventually-periodic sequence: a prefix of length @c pre_period
+ *         followed by a cycle of length @c period
+ *         (@c s(n) @c = @c s(n+period) for all @c n @c ≥ @c pre_period).
+ *         The primary carries no presentation; a witness specialises it
+ *         with the finite @c (pre_period, period) data — the engineer's
+ *         honesty obligation (the presentation cannot be computed in
+ *         general).  Absorptive ⇒ @c period @c = @c 1; periodic ⇒
+ *         @c pre_period @c = @c 0. */
+export template <typename Seq>
+struct lasso_presentation {};
+
+/**
+ * @concept IsEventuallyPeriodic
+ * @brief @c Seq has a finite-state (lasso) presentation: a
+ *        @c lasso_presentation specialisation giving a positive @c period
+ *        and a @c pre_period.  This is the @b finite-presentation witness
+ *        that licenses a decidable, structural-recursive tail-equivalence
+ *        test (see @c decide_tail_equivalence).
+ */
+export template <typename Seq>
+concept IsEventuallyPeriodic = IsSequence<Seq> && requires {
+  requires lasso_presentation<Seq>::period > 0;
+  { lasso_presentation<Seq>::pre_period } -> std::convertible_to<std::size_t>;
+};
+
+/**
+ * @brief Type-directed tail-equivalence decision: honest @c bool exactly
+ *        on the finite-presentation domain, @c Ternary::Unknown otherwise.
+ *
+ * @details If both @c S and @c T are @c IsEventuallyPeriodic, the verdict
+ * is computed by @b structural recursion over their lasso presentations —
+ * a comparison on the provably-sufficient window
+ * @c [max(Pₛ,Pₜ), max(Pₛ,Pₜ) + lcm(Cₛ,Cₜ)) — and returned as
+ * @c Ternary::True / @c Ternary::False.  Otherwise the decision would
+ * require @b general recursion over an unbounded tail, so it is honestly
+ * rejected as @c Ternary::Unknown.  Contrast @c TailEquivalent::operator()
+ * — the @c bool relation the congruence machinery consumes — whose
+ * fixed-window read is operational/sampled; this is the decidable,
+ * correct verdict where the type permits it.
+ */
+export template <typename S, typename T>
+  requires(IsSequence<S> && IsSequence<T> &&
+           std::same_as<typename S::Codomain, typename T::Codomain>)
+constexpr dedekind::category::Ternary decide_tail_equivalence(const S& s,
+                                                              const T& t) {
+  if constexpr (IsEventuallyPeriodic<S> && IsEventuallyPeriodic<T>) {
+    const std::size_t start = std::max(lasso_presentation<S>::pre_period,
+                                       lasso_presentation<T>::pre_period);
+    const std::size_t len =
+        std::lcm(lasso_presentation<S>::period, lasso_presentation<T>::period);
+    for (std::size_t k = 0; k < len; ++k) {
+      const std::size_t n =
+          start + k;  // start,len are small finite-presentation data
+      if (s.at(n) != t.at(n)) {
+        return dedekind::category::Ternary::False;
+      }
+    }
+    return dedekind::category::Ternary::True;
+  } else {
+    return dedekind::category::Ternary::Unknown;
+  }
+}
 
 }  // namespace dedekind::sequences
 
@@ -161,5 +252,13 @@ static_assert(
                                       std::plus<Path<double>>>,
     "Tail-equivalence over double must NOT be a congruence: double equality "
     "is not reflexive (NaN), mirroring the std::equal_to<double> policy.");
+
+// A bare Path has no finite (lasso) presentation, so the general→decidable
+// bridge does not fire — deciding tail-equivalence on it is general
+// recursion (Ternary::Unknown).  Witness-based positive cases (decidable
+// bool on lasso witnesses) live in the test, where the tagged carriers do.
+static_assert(!IsEventuallyPeriodic<Path<int>>,
+              "A bare Path<int> has no finite-state (lasso) presentation by "
+              "default; the decidable tail-equivalence bridge requires one.");
 
 }  // namespace dedekind::sequences

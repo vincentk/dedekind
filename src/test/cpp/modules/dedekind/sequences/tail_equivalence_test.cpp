@@ -17,6 +17,11 @@
  *    tail-equivalent to the constant path at its limit.
  *  - the congruence fires at a second integral instantiation (Path<long>)
  *    and is honestly rejected over float (Path<double>, NaN policy).
+ *  - the general→decidable bridge: IsEventuallyPeriodic (the lasso /
+ *    finite-presentation witness) and decide_tail_equivalence — a
+ *    decidable bool on lasso witnesses (structural recursion over the
+ *    provably-sufficient lcm-window), Ternary::Unknown otherwise (general
+ *    recursion / Honest-Rejection).
  */
 
 #include <catch2/catch_test_macros.hpp>
@@ -37,6 +42,52 @@ Path<int> ramp_then(int tail_value, int head_value, std::size_t prefix_len) {
 }
 
 }  // namespace
+
+namespace tail_lasso {
+
+// Eventually-periodic ("lasso") witnesses: a finite prefix then a 2-cycle.
+// pre=2: 7,7,0,1,0,1,…   (tail value n%2 from index 2)
+struct pre2_per2 : Path<int> {
+  pre2_per2()
+      : Path<int>{[](std::size_t n) {
+          return n >= 2 ? static_cast<int>(n % 2) : 7;
+        }} {}
+};
+// pre=3: 5,5,5,0,1,0,1,…  (tail value n%2 from index 3) — tail-equal to
+// pre2_per2.
+struct pre3_per2 : Path<int> {
+  pre3_per2()
+      : Path<int>{[](std::size_t n) {
+          return n >= 3 ? static_cast<int>(n % 2) : 5;
+        }} {}
+};
+// pre=2, opposite phase: 9,9,1,0,1,0,…  (tail (n+1)%2) — NOT tail-equal.
+struct pre2_per2_antiphase : Path<int> {
+  pre2_per2_antiphase()
+      : Path<int>{[](std::size_t n) {
+          return n >= 2 ? static_cast<int>((n + 1) % 2) : 9;
+        }} {}
+};
+
+}  // namespace tail_lasso
+
+namespace dedekind::sequences {
+template <>
+struct lasso_presentation<tail_lasso::pre2_per2> {
+  static constexpr std::size_t pre_period = 2;
+  static constexpr std::size_t period = 2;
+};
+template <>
+struct lasso_presentation<tail_lasso::pre3_per2> {
+  static constexpr std::size_t pre_period = 3;
+  static constexpr std::size_t period = 2;
+};
+template <>
+struct lasso_presentation<tail_lasso::pre2_per2_antiphase> {
+  static constexpr std::size_t pre_period = 2;
+  static constexpr std::size_t period = 2;
+};
+}  // namespace dedekind::sequences
 
 TEST_CASE("sequences:tail — the sampled relation detects eventual agreement",
           "[sequences][tail][relation]") {
@@ -102,4 +153,36 @@ TEST_CASE(
   STATIC_CHECK_FALSE(
       dedekind::category::IsCongruence<TailEquivalent<double>, Path<double>,
                                        std::plus<Path<double>>>);
+}
+
+TEST_CASE(
+    "sequences:tail — IsEventuallyPeriodic is the finite-presentation "
+    "witness (lasso) that gates decidability",
+    "[sequences][tail][lasso][decidable]") {
+  STATIC_CHECK(IsEventuallyPeriodic<tail_lasso::pre2_per2>);
+  STATIC_CHECK(IsEventuallyPeriodic<tail_lasso::pre3_per2>);
+  // A bare Path has no finite presentation ⇒ no decidability gate.
+  STATIC_CHECK_FALSE(IsEventuallyPeriodic<Path<int>>);
+}
+
+TEST_CASE(
+    "sequences:tail — decide_tail_equivalence: decidable bool on lasso "
+    "witnesses, Unknown (general recursion) otherwise",
+    "[sequences][tail][lasso][decidable][honest-rejection]") {
+  using dedekind::category::Ternary;
+  const tail_lasso::pre2_per2 s;  // 7,7,0,1,0,1,…
+  const tail_lasso::pre3_per2 t;  // 5,5,5,0,1,0,1,…  (tail-equal to s)
+  const tail_lasso::pre2_per2_antiphase u;  // 9,9,1,0,1,0,…    (NOT tail-equal)
+
+  // Both eventually-periodic ⇒ structural recursion over the
+  // provably-sufficient [max(pre), max(pre)+lcm(period)) window ⇒ a real
+  // verdict, not a sampled guess.
+  REQUIRE(decide_tail_equivalence(s, t) == Ternary::True);
+  REQUIRE(decide_tail_equivalence(s, u) == Ternary::False);
+
+  // No finite presentation on either side ⇒ deciding needs the infinite
+  // tail (general recursion) ⇒ honestly Unknown.
+  const Path<int> p{[](std::size_t n) { return static_cast<int>(n); }};
+  const Path<int> q{[](std::size_t n) { return static_cast<int>(n) + 1; }};
+  REQUIRE(decide_tail_equivalence(p, q) == Ternary::Unknown);
 }
