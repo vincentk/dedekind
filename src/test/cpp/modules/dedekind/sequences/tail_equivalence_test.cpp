@@ -15,7 +15,8 @@
  *  - the congruence's computational content: s~s' ∧ t~t' ⇒ s+t ~ s'+t'.
  *  - the absorptive connection: an eventually-constant path is
  *    tail-equivalent to the constant path at its limit.
- *  - the congruence fires at a second instantiation (Path<double>).
+ *  - the congruence fires at a second integral instantiation (Path<long>)
+ *    and is honestly rejected over float (Path<double>, NaN policy).
  */
 
 #include <catch2/catch_test_macros.hpp>
