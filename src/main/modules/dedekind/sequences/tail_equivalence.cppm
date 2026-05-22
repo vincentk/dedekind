@@ -55,6 +55,7 @@ module;
 
 #include <cstddef>
 #include <functional>
+#include <limits>
 
 export module dedekind.sequences:tail;
 
@@ -83,7 +84,13 @@ struct TailEquivalent {
   std::size_t window_span = 64;
 
   constexpr bool operator()(const Path<T>& s, const Path<T>& t) const {
-    for (std::size_t i = window_start; i < window_start + window_span; ++i) {
+    // Overflow-safe end: a large window_start must not wrap the bound and
+    // make the loop vacuously report agreement.
+    const std::size_t end =
+        window_start > std::numeric_limits<std::size_t>::max() - window_span
+            ? std::numeric_limits<std::size_t>::max()
+            : window_start + window_span;
+    for (std::size_t i = window_start; i < end; ++i) {
       if (s.at(i) != t.at(i)) {
         return false;
       }
@@ -96,22 +103,31 @@ struct TailEquivalent {
 
 namespace dedekind::category {
 
-// Tail-equivalence is an equivalence relation: reflexive, symmetric and
-// transitive (true of the full ∃N∀n≥N relation, and of the sampled
-// window the operator() reads).
+// Tail-equivalence inherits each relational property from the carrier's
+// own equality: it is reflexive / symmetric / transitive exactly when
+// @c std::equal_to<T> is.  This mirrors the codebase's equality policy
+// (std::equal_to<V> is registered an equivalence only for reflexive
+// carriers — std::integral V), so IEEE floats are correctly excluded:
+// NaN ≠ NaN breaks reflexivity, so TailEquivalent<double> is NOT an
+// equivalence relation (and hence not a congruence).
 template <typename T>
+  requires is_reflexive_relation_v<std::equal_to<T>>
 inline constexpr bool
     is_reflexive_relation_v<dedekind::sequences::TailEquivalent<T>> = true;
 template <typename T>
+  requires is_symmetric_relation_v<std::equal_to<T>>
 inline constexpr bool
     is_symmetric_relation_v<dedekind::sequences::TailEquivalent<T>> = true;
 template <typename T>
+  requires is_transitive_relation_v<std::equal_to<T>>
 inline constexpr bool
     is_transitive_relation_v<dedekind::sequences::TailEquivalent<T>> = true;
 
-// …and a congruence with respect to Path's pointwise addition: agreeing
-// past N₁ and past N₂ ⇒ the sums agree past max(N₁,N₂).
+// …and a congruence with respect to Path's pointwise addition (agreeing
+// past N₁ and past N₂ ⇒ the sums agree past max(N₁,N₂)) — gated on the
+// carrier's equality being a bona fide equivalence, same policy.
 template <typename T>
+  requires IsEquivalenceRelation<std::equal_to<T>, T>
 inline constexpr bool is_congruence_v<dedekind::sequences::TailEquivalent<T>,
                                       dedekind::sequences::Path<T>,
                                       std::plus<dedekind::sequences::Path<T>>> =
@@ -135,5 +151,15 @@ static_assert(
                                      std::plus<Path<int>>>,
     "Tail-equivalence must be a congruence w.r.t. pointwise + on Path<int>, "
     "so the quotient Path<int>/~tail inherits the additive structure.");
+
+// Honest-Rejection: over an IEEE float carrier the carrier's own equality
+// is not reflexive (NaN ≠ NaN), so tail-equivalence is not an equivalence
+// relation and Path<double>/~tail is not certified a congruence quotient.
+// Same policy as std::equal_to<double>.
+static_assert(
+    !dedekind::category::IsCongruence<TailEquivalent<double>, Path<double>,
+                                      std::plus<Path<double>>>,
+    "Tail-equivalence over double must NOT be a congruence: double equality "
+    "is not reflexive (NaN), mirroring the std::equal_to<double> policy.");
 
 }  // namespace dedekind::sequences

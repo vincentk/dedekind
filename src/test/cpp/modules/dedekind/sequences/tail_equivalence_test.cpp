@@ -44,12 +44,12 @@ TEST_CASE("sequences:tail — the sampled relation detects eventual agreement",
   const auto b = ramp_then(7, 2, 3);    // 2,2,2,7,7,7,… — agrees from index 3
   const auto c = Path<int>{[](std::size_t n) { return static_cast<int>(n); }};
 
-  // a and b agree on the whole sampled tail (they differ only in [0,3),
-  // and the default window starts at 0) — so on a window STARTING past the
-  // prefix they are tail-equivalent.
+  // a and b differ only on [0,3) and agree from index 3 onward.  A window
+  // STARTING at 3 sees only the agreeing tail ⇒ tail-equivalent…
   const TailEquivalent<int> tail_from_3{.window_start = 3, .window_span = 64};
   REQUIRE(tail_from_3(a, b));
-  // On the full-from-zero window they differ in [0,3):
+  // …while the default window starts at 0 and so catches the differing
+  // prefix [0,3):
   REQUIRE_FALSE(tail_eq(a, b));
   // a is not tail-equivalent to the unbounded ramp c:
   REQUIRE_FALSE(tail_eq(a, c));
@@ -86,12 +86,19 @@ TEST_CASE(
   REQUIRE(tail_from_5(eventually_42, constant_42));
 }
 
-TEST_CASE("sequences:tail — the congruence fires at a second instantiation",
-          "[sequences][tail][congruence]") {
-  // Non-vacuous re-instantiation: the registration is a template over T,
-  // exercised here at Path<double> (the main-file static_assert pins
-  // Path<int>).
+TEST_CASE(
+    "sequences:tail — the congruence fires at a second (integral) "
+    "instantiation, and is honestly rejected over float",
+    "[sequences][tail][congruence][honest-rejection]") {
+  // Non-vacuous re-instantiation at Path<long> (the main-file static_assert
+  // pins Path<int>); long's equality is reflexive, so the congruence fires.
   STATIC_CHECK(
+      dedekind::category::IsCongruence<TailEquivalent<long>, Path<long>,
+                                       std::plus<Path<long>>>);
+  // Over double the carrier's equality is not reflexive (NaN), so
+  // tail-equivalence is not an equivalence relation and not a congruence —
+  // same policy as std::equal_to<double>.
+  STATIC_CHECK_FALSE(
       dedekind::category::IsCongruence<TailEquivalent<double>, Path<double>,
                                        std::plus<Path<double>>>);
 }
