@@ -41,6 +41,7 @@ module;
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <ranges>
 
 export module dedekind.sequences:ranges;
@@ -258,17 +259,48 @@ static_assert(
  * witnessing of @c iota_view as an object (subobject-of-ambient lattice
  * shape) is the Slice 3+ direction.
  */
-export template <std::integral T, T Lo, T Hi, dedekind::order::Strictness SL,
-                 dedekind::order::Strictness SU, typename L>
+export template <std::integral T, auto Lo, auto Hi,
+                 dedekind::order::Strictness SL, dedekind::order::Strictness SU,
+                 typename L>
+  requires std::convertible_to<decltype(Lo), T> &&
+           std::convertible_to<decltype(Hi), T>
 constexpr std::ranges::iota_view<T, T> to_iota_view(
     const dedekind::order::OrderInterval<T, Lo, Hi, SL, SU, L>&) {
-  constexpr T start =
-      (SL == dedekind::order::Strictness::Strict) ? static_cast<T>(Lo + 1) : Lo;
-  constexpr T raw_bound =
-      (SU == dedekind::order::Strictness::Strict) ? Hi : static_cast<T>(Hi + 1);
-  // Clamp: an empty OrderInterval (e.g. {x : 5 < x < 5}) must produce an
-  // empty iota_view, not a wrapped one — iota(start, bound<start) is
-  // ill-formed and would compute a wrapped size on unsigned T.
+  // OrderInterval's pivots are NTTPs of possibly distinct integral types
+  // (e.g. int pivots for a size_t carrier); narrow each to the carrier
+  // type before arithmetic.  No wider arithmetic type works uniformly
+  // here — int64_t can't represent size_t's max — so the overflow corners
+  // are kept in T and ruled out at compile time below.
+  constexpr T lo_t = static_cast<T>(Lo);
+  constexpr T hi_t = static_cast<T>(Hi);
+  constexpr T tmax = std::numeric_limits<T>::max();
+
+  // Honest-Rejection at compile time for the corners where the iota_view's
+  // bounds cannot be represented in T: lower-Strict at T's max would need
+  // start = max+1, and upper-NonStrict at T's max would need bound = max+1
+  // (iota's exclusive upper bound has no way to encode "include max").
+  static_assert(SL != dedekind::order::Strictness::Strict || lo_t != tmax,
+                "to_iota_view: lower-Strict at T's max would need start = "
+                "max+1, which is not representable in T.  Use a different "
+                "lower boundary, or a wider carrier.");
+  static_assert(SU != dedekind::order::Strictness::NonStrict || hi_t != tmax,
+                "to_iota_view: upper-NonStrict at T's max would need bound = "
+                "max+1 (iota's exclusive upper), which is not representable "
+                "in T.  Use upper-Strict (predicate x < max), or a wider "
+                "carrier.");
+
+  // The strictness ±1 is now safe in T (the overflow corners are excluded
+  // above, so the increment cannot UB on signed T nor wrap on unsigned T).
+  constexpr T start = (SL == dedekind::order::Strictness::Strict)
+                          ? static_cast<T>(lo_t + 1)
+                          : lo_t;
+  constexpr T raw_bound = (SU == dedekind::order::Strictness::Strict)
+                              ? hi_t
+                              : static_cast<T>(hi_t + 1);
+  // Empty intervals (e.g. {x : 5 < x < 5}) yield bound < start under the
+  // strictness normalisation; std::views::iota(start, bound<start) would
+  // iterate on a wrapped range and size() would underflow on unsigned T.
+  // Clamp so the resulting iota_view is honestly empty.
   constexpr T bound = raw_bound < start ? start : raw_bound;
   return std::ranges::views::iota(start, bound);
 }

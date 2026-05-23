@@ -103,6 +103,28 @@ TEST_CASE(
 }
 
 TEST_CASE(
+    "ranges:halfspace→iota — unsigned carrier: pivots cross types, and the "
+    "empty case does not wrap",
+    "[ranges][halfspace][iota][unsigned]") {
+  // Pivots are int (3, 7); carrier is std::size_t — exercises the
+  // auto-NTTP / convertible-to-T pivot deduction.
+  using OI_us = OrderInterval<std::size_t, 3, 7, Strictness::NonStrict,
+                              Strictness::Strict>;
+  const auto iv = to_iota_view(OI_us{});
+  STATIC_CHECK(
+      std::is_same_v<std::remove_cvref_t<decltype(iv)>,
+                     std::ranges::iota_view<std::size_t, std::size_t>>);
+  REQUIRE(iv_size(iv) == 4u);  // {3,4,5,6}
+
+  // Empty after strictness normalisation on an unsigned carrier: the clamp
+  // must produce an empty iota_view, not an underflowed (size_t)-1.
+  using OI_us_empty =
+      OrderInterval<std::size_t, 5, 5, Strictness::Strict, Strictness::Strict>;
+  const auto iv_empty = to_iota_view(OI_us_empty{});
+  REQUIRE(iv_size(iv_empty) == 0u);
+}
+
+TEST_CASE(
     "ranges:halfspace→iota — the image plugs into IsFiniteSequence via "
     "from_range",
     "[ranges][halfspace][iota][sequence-bridge]") {
