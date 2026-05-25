@@ -139,3 +139,51 @@ TEST_CASE(
   REQUIRE(fp.at(0) == 0);
   REQUIRE(fp.at(3) == 3);
 }
+
+TEST_CASE(
+    "ranges:iota→halfspace — from_iota_view rebuilds OI from a matching "
+    "iota_view, rejects a mismatched one (#703 Slice 2)",
+    "[ranges][halfspace][iota][inverse]") {
+  using OI =
+      OrderInterval<int, 3, 8, Strictness::NonStrict, Strictness::Strict>;
+  // Round-trip on a matching iota_view: from_iota_view sees the [3, 8)
+  // bounds and rebuilds OI{}.
+  const auto matched = from_iota_view<OI>(to_iota_view(OI{}));
+  REQUIRE(matched.has_value());
+
+  // Honest-Rejection: an iota_view with the wrong bounds yields nullopt —
+  // the iso is value-level, so only the SPECIFIC iota_view value
+  // to_iota_view(OI{}) corresponds to OI{}.
+  const auto wrong_bounds = from_iota_view<OI>(std::ranges::views::iota(0, 5));
+  REQUIRE_FALSE(wrong_bounds.has_value());
+
+  // Even a partial mismatch (correct start, wrong bound) is rejected.
+  const auto partial = from_iota_view<OI>(std::ranges::views::iota(3, 9));
+  REQUIRE_FALSE(partial.has_value());
+}
+
+TEST_CASE(
+    "ranges:iota→halfspace — round-trip across the four strictness "
+    "combinations and across signed/unsigned carriers",
+    "[ranges][halfspace][iota][inverse][round-trip]") {
+  using OI_SN =
+      OrderInterval<int, 3, 8, Strictness::Strict, Strictness::NonStrict>;
+  using OI_SS =
+      OrderInterval<int, 3, 8, Strictness::Strict, Strictness::Strict>;
+  using OI_NN =
+      OrderInterval<int, 3, 8, Strictness::NonStrict, Strictness::NonStrict>;
+  using OI_us = OrderInterval<std::size_t, 3, 7, Strictness::NonStrict,
+                              Strictness::Strict>;
+
+  REQUIRE(from_iota_view<OI_SN>(to_iota_view(OI_SN{})).has_value());
+  REQUIRE(from_iota_view<OI_SS>(to_iota_view(OI_SS{})).has_value());
+  REQUIRE(from_iota_view<OI_NN>(to_iota_view(OI_NN{})).has_value());
+  REQUIRE(from_iota_view<OI_us>(to_iota_view(OI_us{})).has_value());
+
+  // Empty interval round-trips to nullopt? No — to_iota_view produces an
+  // empty iota_view at the clamped bounds; from_iota_view should accept it
+  // since the bounds match the clamped construction.
+  using OI_empty =
+      OrderInterval<int, 5, 5, Strictness::Strict, Strictness::Strict>;
+  REQUIRE(from_iota_view<OI_empty>(to_iota_view(OI_empty{})).has_value());
+}

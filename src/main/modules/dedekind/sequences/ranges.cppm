@@ -42,6 +42,7 @@ module;
 #include <cstddef>
 #include <cstdint>
 #include <limits>
+#include <optional>
 #include <ranges>
 
 export module dedekind.sequences:ranges;
@@ -234,46 +235,56 @@ static_assert(
     "IntegerInterval must satisfy IsConvexEnumerable (convex + terminal set).");
 
 /**
- * @section ranges__Halfspace_To_Iota_View_Bridge (#703 Slice 1)
+ * @section ranges__Halfspace_To_Iota_View_Bridge (#703 Slices 1–2)
  *
- * @brief The typed→runtime half of the halfspace ↔ iota_view isomorphism:
- *        convert a compile-time-bounded @c order::OrderInterval into the
- *        equivalent @c std::ranges::iota_view (closed-open boundary).
+ * @brief The halfspace ↔ iota_view isomorphism — typed @c OrderInterval
+ *        ↔ runtime-bounded @c std::ranges::iota_view, witnessed at the
+ *        value level by a round-trip.
  *
  * @details An @c order::OrderInterval<T, Lo, Hi, SL, SU> is the meet of two
  * opposing halfspaces — a typed-Δ⁰₁ predicate.  @c std::ranges::iota_view
  * is its range view: the same set of integers, accessed as a view rather
- * than as a predicate.  This adapter maps the typed predicate to a
- * runtime-bounded iota_view, normalising the four (SL, SU) strictness
- * combinations to iota_view's canonical @c [start, bound) shape:
+ * than as a predicate.  The pair @c (to_iota_view, from_iota_view)
+ * normalises the four (SL, SU) strictness combinations to iota_view's
+ * canonical @c [start, bound) shape:
  *
  *   - lower @c Strict     ⇒ @c start = Lo + 1   (predicate @c x > Lo)
  *   - lower @c NonStrict  ⇒ @c start = Lo       (predicate @c x ≥ Lo)
  *   - upper @c Strict     ⇒ @c bound = Hi       (predicate @c x < Hi)
  *   - upper @c NonStrict  ⇒ @c bound = Hi + 1   (predicate @c x ≤ Hi)
  *
- * The reverse direction (@c from_iota_view) requires an explicit typed
- * target because @c iota_view's bounds are runtime data while
- * @c OrderInterval's are template parameters — deferred to Slice 2 along
- * with the @c IsIsomorphism witness for the pair.  Deeper Form-chain
- * witnessing of @c iota_view as an object (subobject-of-ambient lattice
- * shape) is the Slice 3+ direction.
+ * The iso is @b value-level: it relates the singleton @c OI{} to a
+ * specific @c iota_view value, not the @c OrderInterval @b type to the
+ * @c iota_view @b type.  @c OrderInterval's bounds are template
+ * parameters and @c iota_view's are runtime data, so @c from_iota_view
+ * must be told the target type and verifies the runtime bounds match
+ * what @c to_iota_view would produce — returning @c std::optional<OI>
+ * (Honest-Rejection on mismatch).  The round-trip
+ * @c from_iota_view<OI>(to_iota_view(OI{})) is the iso witness, pinned
+ * by @c static_assert below.  A heavier categorical @c IsIsomorphism
+ * reification (arrows-as-structs with @c inverse()) is intentionally
+ * not done: it would over-claim a type-level iso, which the
+ * typed/runtime asymmetry forbids.  Slice 3+: @c iota_view as a
+ * Form-chain object (subobject-of-ambient lattice shape).
  */
-export template <std::integral T, auto Lo, auto Hi,
-                 dedekind::order::Strictness SL, dedekind::order::Strictness SU,
-                 typename L>
+namespace detail {
+
+/** @brief The @c [start, bound) iota_view bounds an @c OrderInterval
+ *         normalises to (shared between @c to_iota_view and
+ *         @c from_iota_view).  Specialised on @c OrderInterval shape;
+ *         the overflow corners (lower-Strict / upper-NonStrict at T's
+ *         max) are forbidden at compile time. */
+template <typename OI>
+struct iota_bounds_of;
+
+template <std::integral T, auto Lo, auto Hi, dedekind::order::Strictness SL,
+          dedekind::order::Strictness SU, typename L>
   requires std::convertible_to<decltype(Lo), T> &&
            std::convertible_to<decltype(Hi), T>
-constexpr std::ranges::iota_view<T, T> to_iota_view(
-    const dedekind::order::OrderInterval<T, Lo, Hi, SL, SU, L>&) {
-  // OrderInterval's pivots are NTTPs of possibly distinct integral types
-  // (e.g. int pivots for a size_t carrier); narrow each to the carrier
-  // type before arithmetic.  No wider arithmetic type works uniformly
-  // here — int64_t can't represent size_t's max — so the overflow corners
-  // are kept in T and ruled out at compile time below.
-  constexpr T lo_t = static_cast<T>(Lo);
-  constexpr T hi_t = static_cast<T>(Hi);
-  constexpr T tmax = std::numeric_limits<T>::max();
+struct iota_bounds_of<dedekind::order::OrderInterval<T, Lo, Hi, SL, SU, L>> {
+  static constexpr T lo_t = static_cast<T>(Lo);
+  static constexpr T hi_t = static_cast<T>(Hi);
+  static constexpr T tmax = std::numeric_limits<T>::max();
 
   // Honest-Rejection at compile time for the corners where the iota_view's
   // bounds cannot be represented in T: lower-Strict at T's max would need
@@ -289,20 +300,76 @@ constexpr std::ranges::iota_view<T, T> to_iota_view(
                 "in T.  Use upper-Strict (predicate x < max), or a wider "
                 "carrier.");
 
-  // The strictness ±1 is now safe in T (the overflow corners are excluded
-  // above, so the increment cannot UB on signed T nor wrap on unsigned T).
-  constexpr T start = (SL == dedekind::order::Strictness::Strict)
-                          ? static_cast<T>(lo_t + 1)
-                          : lo_t;
-  constexpr T raw_bound = (SU == dedekind::order::Strictness::Strict)
-                              ? hi_t
-                              : static_cast<T>(hi_t + 1);
-  // Empty intervals (e.g. {x : 5 < x < 5}) yield bound < start under the
-  // strictness normalisation; std::views::iota(start, bound<start) would
-  // iterate on a wrapped range and size() would underflow on unsigned T.
-  // Clamp so the resulting iota_view is honestly empty.
-  constexpr T bound = raw_bound < start ? start : raw_bound;
-  return std::ranges::views::iota(start, bound);
+  // The strictness ±1 is now safe in T (overflow corners excluded above).
+  static constexpr T start = (SL == dedekind::order::Strictness::Strict)
+                                 ? static_cast<T>(lo_t + 1)
+                                 : lo_t;
+  static constexpr T raw_bound = (SU == dedekind::order::Strictness::Strict)
+                                     ? hi_t
+                                     : static_cast<T>(hi_t + 1);
+  // Empty intervals (e.g. {x : 5 < x < 5}) yield raw_bound < start; clamp so
+  // the resulting iota_view is honestly empty rather than wrapped.
+  static constexpr T bound = raw_bound < start ? start : raw_bound;
+};
+
+}  // namespace detail
+
+/** @brief The typed→runtime half of the iso: project an @c OrderInterval to
+ *         its canonical @c std::ranges::iota_view (the same set of integers
+ *         viewed as a range rather than a predicate). */
+export template <std::integral T, auto Lo, auto Hi,
+                 dedekind::order::Strictness SL, dedekind::order::Strictness SU,
+                 typename L>
+  requires std::convertible_to<decltype(Lo), T> &&
+           std::convertible_to<decltype(Hi), T>
+constexpr std::ranges::iota_view<T, T> to_iota_view(
+    const dedekind::order::OrderInterval<T, Lo, Hi, SL, SU, L>&) {
+  using B = detail::iota_bounds_of<
+      dedekind::order::OrderInterval<T, Lo, Hi, SL, SU, L>>;
+  return std::ranges::views::iota(B::start, B::bound);
 }
+
+/** @brief The runtime→typed half of the iso (verifying, partial): check
+ *         whether the runtime @c iota_view matches what @c to_iota_view
+ *         would produce for the target @c OI, and return @c OI{} on match,
+ *         @c std::nullopt otherwise.
+ *
+ *  @details The target @c OrderInterval is supplied at the type level
+ *  because its bounds are template parameters; @c iota_view's are runtime
+ *  data, so the inverse cannot reconstruct the type — it can only
+ *  @b verify the bounds.  This is the honest shape of the asymmetric iso:
+ *  bijection at the value level (between @c OI{} and a specific
+ *  @c iota_view value), partial-with-verification at the runtime level. */
+export template <typename OI>
+constexpr std::optional<OI> from_iota_view(
+    const std::ranges::iota_view<typename OI::Domain, typename OI::Domain>&
+        iv) {
+  using B = detail::iota_bounds_of<OI>;
+  using T = typename OI::Domain;
+  const T actual_start = *iv.begin();
+  // Cast size to T explicitly to avoid -Wsign-conversion on signed T; a
+  // size that doesn't fit T can't be a valid from_iota_view target anyway.
+  const T actual_bound =
+      static_cast<T>(actual_start + static_cast<T>(iv.size()));
+  if (actual_start == B::start && actual_bound == B::bound) {
+    return OI{};
+  }
+  return std::nullopt;
+}
+
+/** @section ranges__Halfspace_Iota_Round_Trip
+ *  The iso witness: a value-level round-trip on a representative
+ *  @c OrderInterval pins that @c from_iota_view ∘ @c to_iota_view is the
+ *  identity on @c OI{}.  The negative direction is exercised in the test
+ *  (a mismatched iota_view ⇒ nullopt). */
+namespace halfspace_iota_witness {
+using OI =
+    dedekind::order::OrderInterval<int, 3, 8,
+                                   dedekind::order::Strictness::NonStrict,
+                                   dedekind::order::Strictness::Strict>;
+static_assert(from_iota_view<OI>(to_iota_view(OI{})).has_value(),
+              "Iso witness: from_iota_view ∘ to_iota_view yields OI{} for the "
+              "canonical [3, 8) interval.");
+}  // namespace halfspace_iota_witness
 
 }  // namespace dedekind::sequences
