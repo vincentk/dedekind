@@ -208,6 +208,44 @@ TEST_CASE("ranges:halfspace ↔ iota — disjoint meet produces an empty iota_vi
   REQUIRE(iv_size(iv_disjoint) == 0u);
 }
 
+TEST_CASE("ranges:iota — meet-semilattice law witnesses (#703 Slice 3b)",
+          "[ranges][iota][meet-semilattice]") {
+  // IotaIntersection: the meet operator on iota_view values.  The lattice
+  // laws (associative + commutative + idempotent) are registered as traits
+  // and pinned by static_assert in ranges.cppm; here we exhibit them on
+  // concrete value-level samples so the trait registrations agree with
+  // the actual operator behaviour.
+  constexpr IotaIntersection meet{};
+  const auto a = std::ranges::views::iota(2, 8);
+  const auto b = std::ranges::views::iota(5, 10);
+  const auto c = std::ranges::views::iota(3, 9);
+
+  // Idempotent: a ∧ a == a.
+  const auto a_meet_a = meet(a, a);
+  REQUIRE(iv_size(a_meet_a) == 6u);
+  REQUIRE(*a_meet_a.begin() == 2);
+
+  // Commutative: a ∧ b == b ∧ a (both = [5, 8)).
+  const auto ab = meet(a, b);
+  const auto ba = meet(b, a);
+  REQUIRE(iv_size(ab) == iv_size(ba));
+  REQUIRE(iv_size(ab) == 3u);
+  REQUIRE(*ab.begin() == 5);
+  REQUIRE(*ba.begin() == 5);
+
+  // Associative: (a ∧ b) ∧ c == a ∧ (b ∧ c).
+  const auto abc_left = meet(meet(a, b), c);
+  const auto abc_right = meet(a, meet(b, c));
+  REQUIRE(iv_size(abc_left) == iv_size(abc_right));
+  REQUIRE(*abc_left.begin() == *abc_right.begin());
+
+  // Disjoint ⇒ empty (the codomain-closure that lets the trait
+  // registration stand uniformly).
+  const auto d = std::ranges::views::iota(20, 30);
+  const auto ad = meet(a, d);
+  REQUIRE(iv_size(ad) == 0u);
+}
+
 TEST_CASE(
     "ranges:iota→halfspace — round-trip across the four strictness "
     "combinations and across signed/unsigned carriers",
