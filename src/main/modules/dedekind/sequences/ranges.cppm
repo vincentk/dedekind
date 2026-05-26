@@ -456,10 +456,18 @@ export struct IotaIntersection {
       const std::ranges::iota_view<T, T>& b) const {
     if (a.empty()) return a;
     if (b.empty()) return b;
+    // Read the iota_view's start and bound DIRECTLY from its iterators
+    // (operator* on iota_view's iterator just returns the stored value),
+    // not via @c start @c + @c size().  Computing the bound from the size
+    // narrows @c iv.size() (a @c range_size_t, typically @c size_t) back
+    // to @c T, which truncates and can trigger signed-overflow UB on huge
+    // ranges like @c [INT_MIN, INT_MAX).  Both iterators are well-formed
+    // for @c iota_view<T,T> per @c [range.iota.iterator] (no past-the-end
+    // dereference UB — the iterator stores @c value_ in itself).
     const T a_start = *a.begin();
     const T b_start = *b.begin();
-    const T a_bound = static_cast<T>(a_start + static_cast<T>(a.size()));
-    const T b_bound = static_cast<T>(b_start + static_cast<T>(b.size()));
+    const T a_bound = *a.end();
+    const T b_bound = *b.end();
     const T new_start = a_start > b_start ? a_start : b_start;
     const T raw_bound = a_bound < b_bound ? a_bound : b_bound;
     // Clamp to empty on disjoint inputs (raw_bound < new_start) so size()

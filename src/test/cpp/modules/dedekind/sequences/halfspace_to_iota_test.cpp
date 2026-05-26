@@ -17,6 +17,7 @@
 
 #include <algorithm>
 #include <catch2/catch_test_macros.hpp>
+#include <climits>
 #include <iterator>
 #include <ranges>
 #include <type_traits>
@@ -244,6 +245,25 @@ TEST_CASE("ranges:iota — meet-semilattice law witnesses (#703 Slice 3b)",
   const auto d = std::ranges::views::iota(20, 30);
   const auto ad = meet(a, d);
   REQUIRE(iv_size(ad) == 0u);
+}
+
+TEST_CASE("ranges:iota — meet handles huge signed ranges (overflow regression)",
+          "[ranges][iota][meet-semilattice][overflow]") {
+  // Regression for the signed-overflow bug where computing the bound via
+  // start + (T)size() narrowed a huge size_t to T and tripped UB.  The
+  // fix reads the bound directly from iota_view's end iterator — no size
+  // arithmetic — so a huge range like [INT_MIN, INT_MAX) intersected with
+  // a small range stays the small range.
+  constexpr IotaIntersection meet{};
+  const auto huge = std::ranges::views::iota(INT_MIN, INT_MAX);
+  const auto small_range = std::ranges::views::iota(3, 8);
+  const auto m1 = meet(huge, small_range);
+  REQUIRE(iv_size(m1) == 5u);
+  REQUIRE(*m1.begin() == 3);
+  // Commute the operands too, since meet is commutative.
+  const auto m2 = meet(small_range, huge);
+  REQUIRE(iv_size(m2) == 5u);
+  REQUIRE(*m2.begin() == 3);
 }
 
 TEST_CASE(
