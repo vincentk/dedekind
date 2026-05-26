@@ -550,7 +550,11 @@ constexpr auto operator*(OrderInterval<T1, Lo1, Hi1, SL1, SU1, L1> a,
  *  This is the lattice @c ∧ on the OrderInterval carrier, supplying the
  *  meet operation @c structured_and on halfspaces lifts to its bounded
  *  child.  Same-T, same-L overloads only — heterogeneous-carrier
- *  intersection is not a lattice operation. */
+ *  intersection is not a lattice operation.
+ *
+ *  @see dedekind::sequences::bridge_meet_witness in @c :sequences:ranges —
+ *       the type-level static_asserts that pin the bridge respects this
+ *       meet (lattice-homomorphism). */
 export template <typename T, auto Lo1, auto Hi1, Strictness SL1, Strictness SU1,
                  auto Lo2, auto Hi2, Strictness SL2, Strictness SU2, typename L>
   requires std::convertible_to<decltype(Lo1), T> &&
