@@ -346,15 +346,29 @@ constexpr std::optional<OI> from_iota_view(
         iv) {
   using B = detail::iota_bounds_of<OI>;
   using T = typename OI::Domain;
-  const T actual_start = *iv.begin();
-  // Cast size to T explicitly to avoid -Wsign-conversion on signed T; a
-  // size that doesn't fit T can't be a valid from_iota_view target anyway.
-  const T actual_bound =
-      static_cast<T>(actual_start + static_cast<T>(iv.size()));
-  if (actual_start == B::start && actual_bound == B::bound) {
+  // Compare sizes first.  This is well-defined for any iota_view (including
+  // empty and very large) and avoids the @c actual_start @c + @c iv.size()
+  // arithmetic that could wrap for large ranges.
+  const std::size_t actual_size = static_cast<std::size_t>(iv.size());
+  const std::size_t expected_size =
+      static_cast<std::size_t>(B::bound - B::start);
+  if (actual_size != expected_size) {
+    return std::nullopt;
+  }
+  // Empty interval: both sides empty ⇒ accept (the unique empty interval
+  // per @c OI type; @c *iv.begin() is conventionally @c value_ even when
+  // @c begin() @c == @c end(), but skipping the read keeps the verifier
+  // unambiguously safe and the meaning honest — at the value level the iso
+  // identifies @c OI{Empty} with @b any empty iota_view).
+  if (actual_size == 0) {
     return OI{};
   }
-  return std::nullopt;
+  // Non-empty: dereferencing begin() is well-defined.
+  const T actual_start = *iv.begin();
+  if (actual_start != B::start) {
+    return std::nullopt;
+  }
+  return OI{};
 }
 
 /** @section ranges__Halfspace_Iota_Round_Trip
