@@ -386,4 +386,42 @@ static_assert(from_iota_view<OI>(to_iota_view(OI{})).has_value(),
               "canonical [3, 8) interval.");
 }  // namespace halfspace_iota_witness
 
+/** @section ranges__Bridge_Respects_Meet (#703 Slice 3a)
+ *  The iota_view bridge is a @b lattice @b homomorphism on the meet:
+ *  @c to_iota_view(A @c ∧ B) has @c start = max(start_A, start_B) and
+ *  @c bound = min(bound_A, bound_B), i.e.\ exactly the set-intersection
+ *  bounds.  Pinned at the type level via the shared
+ *  @c iota_bounds_of helper. */
+namespace bridge_meet_witness {
+using A = dedekind::order::OrderInterval<
+    int, 2, 8, dedekind::order::Strictness::NonStrict,
+    dedekind::order::Strictness::Strict>;  // [2, 8)
+using B = dedekind::order::OrderInterval<
+    int, 5, 10, dedekind::order::Strictness::NonStrict,
+    dedekind::order::Strictness::Strict>;                           // [5, 10)
+using AandB = decltype(dedekind::order::structured_and(A{}, B{}));  // [5, 8)
+
+static_assert(detail::iota_bounds_of<AandB>::start == 5,
+              "Bridge respects meet: start of A∩B equals max of starts.");
+static_assert(detail::iota_bounds_of<AandB>::bound == 8,
+              "Bridge respects meet: bound of A∩B equals min of bounds.");
+
+// Disjoint case: [0, 3) ∩ [5, 10) ⇒ empty OrderInterval (clamped to an
+// empty iota_view), not three-way-reduced — the OI tower is closed under
+// intersection so the bridge composes uniformly.
+using D1 =
+    dedekind::order::OrderInterval<int, 0, 3,
+                                   dedekind::order::Strictness::NonStrict,
+                                   dedekind::order::Strictness::Strict>;
+using D2 =
+    dedekind::order::OrderInterval<int, 5, 10,
+                                   dedekind::order::Strictness::NonStrict,
+                                   dedekind::order::Strictness::Strict>;
+using D1andD2 = decltype(dedekind::order::structured_and(D1{}, D2{}));
+static_assert(detail::iota_bounds_of<D1andD2>::start ==
+                  detail::iota_bounds_of<D1andD2>::bound,
+              "Disjoint intervals' meet produces an empty iota_view "
+              "(start == bound after the clamp).");
+}  // namespace bridge_meet_witness
+
 }  // namespace dedekind::sequences

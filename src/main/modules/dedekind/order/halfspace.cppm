@@ -534,4 +534,56 @@ constexpr auto operator*(OrderInterval<T1, Lo1, Hi1, SL1, SU1, L1> a,
   return IntervalProduct<decltype(a), decltype(b)>{a, b};
 }
 
+/** @brief Meet on two same-carrier `OrderInterval`s: the intersection.
+ *
+ *  @details The meet of @c [a, b] and @c [c, d] (with appropriate
+ *  strictness on each side) is @c [max(a,c), min(b,d)] — the
+ *  more-restrictive bound wins, and at a tie the @b strictest strictness
+ *  wins.  The result is always an @c OrderInterval; an @b empty
+ *  intersection is represented honestly as an @c OrderInterval whose
+ *  bounds make @c size() @c = @c 0 (rather than three-way-reducing to
+ *  @c EmptyPredicate / @c Singleton as the halfspace-halfspace overloads
+ *  do — the OI tower is structurally closed under intersection, and
+ *  closure is the load-bearing fact for the @c :ranges halfspace ↔
+ *  iota_view bridge to compose with this meet).
+ *
+ *  This is the lattice @c ∧ on the OrderInterval carrier, supplying the
+ *  meet operation @c structured_and on halfspaces lifts to its bounded
+ *  child.  Same-T, same-L overloads only — heterogeneous-carrier
+ *  intersection is not a lattice operation. */
+export template <typename T, auto Lo1, auto Hi1, Strictness SL1, Strictness SU1,
+                 auto Lo2, auto Hi2, Strictness SL2, Strictness SU2, typename L>
+  requires std::convertible_to<decltype(Lo1), T> &&
+           std::convertible_to<decltype(Hi1), T> &&
+           std::convertible_to<decltype(Lo2), T> &&
+           std::convertible_to<decltype(Hi2), T>
+constexpr auto structured_and(OrderInterval<T, Lo1, Hi1, SL1, SU1, L>,
+                              OrderInterval<T, Lo2, Hi2, SL2, SU2, L>) {
+  constexpr T lo1 = static_cast<T>(Lo1);
+  constexpr T lo2 = static_cast<T>(Lo2);
+  constexpr T hi1 = static_cast<T>(Hi1);
+  constexpr T hi2 = static_cast<T>(Hi2);
+
+  // The bigger lower / smaller upper wins; at a tie the strictest
+  // strictness wins (a Strict edge subsumes a NonStrict edge at the same
+  // pivot).
+  constexpr T new_lo = lo1 > lo2 ? lo1 : lo2;
+  constexpr Strictness new_SL =
+      (lo1 > lo2)   ? SL1
+      : (lo2 > lo1) ? SL2
+      : (SL1 == Strictness::Strict || SL2 == Strictness::Strict)
+          ? Strictness::Strict
+          : Strictness::NonStrict;
+
+  constexpr T new_hi = hi1 < hi2 ? hi1 : hi2;
+  constexpr Strictness new_SU =
+      (hi1 < hi2)   ? SU1
+      : (hi2 < hi1) ? SU2
+      : (SU1 == Strictness::Strict || SU2 == Strictness::Strict)
+          ? Strictness::Strict
+          : Strictness::NonStrict;
+
+  return OrderInterval<T, new_lo, new_hi, new_SL, new_SU, L>{};
+}
+
 }  // namespace dedekind::order
