@@ -15,9 +15,12 @@
  *    existing from_range adapter — the bridge plugs into the sequence layer.
  */
 
+#include <algorithm>
 #include <catch2/catch_test_macros.hpp>
+#include <iterator>
 #include <ranges>
 #include <type_traits>
+#include <vector>
 
 import dedekind.sequences;
 import dedekind.order;
@@ -160,6 +163,49 @@ TEST_CASE(
   // Even a partial mismatch (correct start, wrong bound) is rejected.
   const auto partial = from_iota_view<OI>(std::ranges::views::iota(3, 9));
   REQUIRE_FALSE(partial.has_value());
+}
+
+TEST_CASE("ranges:halfspace ↔ iota — the bridge respects meet (#703 Slice 3a)",
+          "[ranges][halfspace][iota][meet]") {
+  // The OrderInterval ∧ on the carrier composes with to_iota_view: the
+  // image's bounds are exactly the set-intersection bounds.
+  using A = OrderInterval<int, 2, 8, Strictness::NonStrict, Strictness::Strict>;
+  using B =
+      OrderInterval<int, 5, 10, Strictness::NonStrict, Strictness::Strict>;
+  const auto iv_meet = to_iota_view(dedekind::order::structured_and(A{}, B{}));
+  // Size-check before dereferencing — guards against the structured_and
+  // result silently regressing to empty.
+  REQUIRE(iv_size(iv_meet) == 3u);  // {5, 6, 7}
+  REQUIRE(*iv_meet.begin() == 5);
+
+  // And the iota_view of the meet is the set-intersection of the iota_views
+  // of A and B — a value-level lattice-homomorphism check.
+  std::vector<int> via_meet(iv_meet.begin(), iv_meet.end());
+  std::vector<int> via_intersection;
+  std::ranges::set_intersection(to_iota_view(A{}), to_iota_view(B{}),
+                                std::back_inserter(via_intersection));
+  REQUIRE(via_meet == via_intersection);
+
+  // Strictest-wins at a tied boundary: [3, 8) ∧ [3, 8] both with NonStrict
+  // lower at 3 ⇒ the meet has lower NonStrict.  Upper Strict beats
+  // NonStrict at the same Hi.
+  using L = OrderInterval<int, 3, 8, Strictness::NonStrict, Strictness::Strict>;
+  using R =
+      OrderInterval<int, 3, 8, Strictness::NonStrict, Strictness::NonStrict>;
+  const auto iv_tied = to_iota_view(dedekind::order::structured_and(L{}, R{}));
+  REQUIRE(iv_size(iv_tied) == 5u);  // [3, 8) wins over [3, 8]
+  REQUIRE(*iv_tied.begin() == 3);
+}
+
+TEST_CASE("ranges:halfspace ↔ iota — disjoint meet produces an empty iota_view",
+          "[ranges][halfspace][iota][meet][empty]") {
+  using D1 =
+      OrderInterval<int, 0, 3, Strictness::NonStrict, Strictness::Strict>;
+  using D2 =
+      OrderInterval<int, 5, 10, Strictness::NonStrict, Strictness::Strict>;
+  const auto iv_disjoint =
+      to_iota_view(dedekind::order::structured_and(D1{}, D2{}));
+  REQUIRE(iv_size(iv_disjoint) == 0u);
 }
 
 TEST_CASE(

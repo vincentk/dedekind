@@ -34,6 +34,7 @@ module;
 #include <algorithm>
 #include <concepts>
 #include <cstddef>
+#include <type_traits>
 #include <utility>
 
 export module dedekind.order:halfspace;
@@ -532,6 +533,70 @@ export template <typename T1, auto Lo1, auto Hi1, Strictness SL1,
 constexpr auto operator*(OrderInterval<T1, Lo1, Hi1, SL1, SU1, L1> a,
                          OrderInterval<T2, Lo2, Hi2, SL2, SU2, L2> b) {
   return IntervalProduct<decltype(a), decltype(b)>{a, b};
+}
+
+/** @brief Meet on two same-carrier `OrderInterval`s: the intersection.
+ *
+ *  @details The meet of @c [a, b] and @c [c, d] (with appropriate
+ *  strictness on each side) is @c [max(a,c), min(b,d)] — the
+ *  more-restrictive bound wins, and at a tie the @b strictest strictness
+ *  wins.  The result is always an @c OrderInterval; an @b empty
+ *  intersection is represented honestly as an @c OrderInterval whose
+ *  bounds make @c size() @c = @c 0 (rather than three-way-reducing to
+ *  @c EmptyPredicate / @c Singleton as the halfspace-halfspace overloads
+ *  do — the OI tower is structurally closed under intersection, and
+ *  closure is the load-bearing fact for the @c :ranges halfspace ↔
+ *  iota_view bridge to compose with this meet).
+ *
+ *  This is the lattice @c ∧ on the OrderInterval carrier, supplying the
+ *  meet operation @c structured_and on halfspaces lifts to its bounded
+ *  child.  Same-T, same-L overloads only — heterogeneous-carrier
+ *  intersection is not a lattice operation.
+ *
+ *  @see dedekind::sequences::bridge_meet_witness in @c :sequences:ranges —
+ *       the type-level static_asserts that pin the bridge respects this
+ *       meet (lattice-homomorphism). */
+export template <typename T, auto Lo1, auto Hi1, Strictness SL1, Strictness SU1,
+                 auto Lo2, auto Hi2, Strictness SL2, Strictness SU2, typename L>
+  requires std::convertible_to<decltype(Lo1), T> &&
+           std::convertible_to<decltype(Hi1), T> &&
+           std::convertible_to<decltype(Lo2), T> &&
+           std::convertible_to<decltype(Hi2), T>
+constexpr auto structured_and(OrderInterval<T, Lo1, Hi1, SL1, SU1, L>,
+                              OrderInterval<T, Lo2, Hi2, SL2, SU2, L>) {
+  // Compute the meet bounds in the common type of the source NTTPs — not
+  // by casting through T.  Casting through T would (a) lose the original
+  // pivot type (e.g. with cross-type pivots) and (b) break carriers whose
+  // T isn't a structural NTTP type (e.g. Cardinality / SignedCardinality
+  // — std::variant carriers can't be NTTPs).  The returned OrderInterval
+  // keeps T as its carrier and the bounds as their common NTTP type.
+  using LoC = std::common_type_t<decltype(Lo1), decltype(Lo2)>;
+  using HiC = std::common_type_t<decltype(Hi1), decltype(Hi2)>;
+  constexpr LoC lo1 = static_cast<LoC>(Lo1);
+  constexpr LoC lo2 = static_cast<LoC>(Lo2);
+  constexpr HiC hi1 = static_cast<HiC>(Hi1);
+  constexpr HiC hi2 = static_cast<HiC>(Hi2);
+
+  // The bigger lower / smaller upper wins; at a tie the strictest
+  // strictness wins (a Strict edge subsumes a NonStrict edge at the same
+  // pivot).
+  constexpr LoC new_lo = lo1 > lo2 ? lo1 : lo2;
+  constexpr Strictness new_SL =
+      (lo1 > lo2)   ? SL1
+      : (lo2 > lo1) ? SL2
+      : (SL1 == Strictness::Strict || SL2 == Strictness::Strict)
+          ? Strictness::Strict
+          : Strictness::NonStrict;
+
+  constexpr HiC new_hi = hi1 < hi2 ? hi1 : hi2;
+  constexpr Strictness new_SU =
+      (hi1 < hi2)   ? SU1
+      : (hi2 < hi1) ? SU2
+      : (SU1 == Strictness::Strict || SU2 == Strictness::Strict)
+          ? Strictness::Strict
+          : Strictness::NonStrict;
+
+  return OrderInterval<T, new_lo, new_hi, new_SL, new_SU, L>{};
 }
 
 }  // namespace dedekind::order
