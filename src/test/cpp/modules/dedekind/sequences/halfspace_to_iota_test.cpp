@@ -173,8 +173,10 @@ TEST_CASE("ranges:halfspace ↔ iota — the bridge respects meet (#703 Slice 3a
   using B =
       OrderInterval<int, 5, 10, Strictness::NonStrict, Strictness::Strict>;
   const auto iv_meet = to_iota_view(dedekind::order::structured_and(A{}, B{}));
-  REQUIRE(*iv_meet.begin() == 5);
+  // Size-check before dereferencing — guards against the structured_and
+  // result silently regressing to empty.
   REQUIRE(iv_size(iv_meet) == 3u);  // {5, 6, 7}
+  REQUIRE(*iv_meet.begin() == 5);
 
   // And the iota_view of the meet is the set-intersection of the iota_views
   // of A and B — a value-level lattice-homomorphism check.
@@ -191,8 +193,8 @@ TEST_CASE("ranges:halfspace ↔ iota — the bridge respects meet (#703 Slice 3a
   using R =
       OrderInterval<int, 3, 8, Strictness::NonStrict, Strictness::NonStrict>;
   const auto iv_tied = to_iota_view(dedekind::order::structured_and(L{}, R{}));
-  REQUIRE(*iv_tied.begin() == 3);
   REQUIRE(iv_size(iv_tied) == 5u);  // [3, 8) wins over [3, 8]
+  REQUIRE(*iv_tied.begin() == 3);
 }
 
 TEST_CASE("ranges:halfspace ↔ iota — disjoint meet produces an empty iota_view",

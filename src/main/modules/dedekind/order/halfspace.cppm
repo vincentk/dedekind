@@ -34,6 +34,7 @@ module;
 #include <algorithm>
 #include <concepts>
 #include <cstddef>
+#include <type_traits>
 #include <utility>
 
 export module dedekind.order:halfspace;
@@ -563,15 +564,23 @@ export template <typename T, auto Lo1, auto Hi1, Strictness SL1, Strictness SU1,
            std::convertible_to<decltype(Hi2), T>
 constexpr auto structured_and(OrderInterval<T, Lo1, Hi1, SL1, SU1, L>,
                               OrderInterval<T, Lo2, Hi2, SL2, SU2, L>) {
-  constexpr T lo1 = static_cast<T>(Lo1);
-  constexpr T lo2 = static_cast<T>(Lo2);
-  constexpr T hi1 = static_cast<T>(Hi1);
-  constexpr T hi2 = static_cast<T>(Hi2);
+  // Compute the meet bounds in the common type of the source NTTPs — not
+  // by casting through T.  Casting through T would (a) lose the original
+  // pivot type (e.g. with cross-type pivots) and (b) break carriers whose
+  // T isn't a structural NTTP type (e.g. Cardinality / SignedCardinality
+  // — std::variant carriers can't be NTTPs).  The returned OrderInterval
+  // keeps T as its carrier and the bounds as their common NTTP type.
+  using LoC = std::common_type_t<decltype(Lo1), decltype(Lo2)>;
+  using HiC = std::common_type_t<decltype(Hi1), decltype(Hi2)>;
+  constexpr LoC lo1 = static_cast<LoC>(Lo1);
+  constexpr LoC lo2 = static_cast<LoC>(Lo2);
+  constexpr HiC hi1 = static_cast<HiC>(Hi1);
+  constexpr HiC hi2 = static_cast<HiC>(Hi2);
 
   // The bigger lower / smaller upper wins; at a tie the strictest
   // strictness wins (a Strict edge subsumes a NonStrict edge at the same
   // pivot).
-  constexpr T new_lo = lo1 > lo2 ? lo1 : lo2;
+  constexpr LoC new_lo = lo1 > lo2 ? lo1 : lo2;
   constexpr Strictness new_SL =
       (lo1 > lo2)   ? SL1
       : (lo2 > lo1) ? SL2
@@ -579,7 +588,7 @@ constexpr auto structured_and(OrderInterval<T, Lo1, Hi1, SL1, SU1, L>,
           ? Strictness::Strict
           : Strictness::NonStrict;
 
-  constexpr T new_hi = hi1 < hi2 ? hi1 : hi2;
+  constexpr HiC new_hi = hi1 < hi2 ? hi1 : hi2;
   constexpr Strictness new_SU =
       (hi1 < hi2)   ? SU1
       : (hi2 < hi1) ? SU2
