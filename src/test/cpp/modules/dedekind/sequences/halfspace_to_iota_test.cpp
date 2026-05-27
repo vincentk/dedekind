@@ -17,6 +17,7 @@
 
 #include <algorithm>
 #include <catch2/catch_test_macros.hpp>
+#include <climits>
 #include <iterator>
 #include <ranges>
 #include <type_traits>
@@ -206,6 +207,63 @@ TEST_CASE("ranges:halfspace ↔ iota — disjoint meet produces an empty iota_vi
   const auto iv_disjoint =
       to_iota_view(dedekind::order::structured_and(D1{}, D2{}));
   REQUIRE(iv_size(iv_disjoint) == 0u);
+}
+
+TEST_CASE("ranges:iota — meet-semilattice law witnesses (#703 Slice 3b)",
+          "[ranges][iota][meet-semilattice]") {
+  // IotaIntersection: the meet operator on iota_view values.  The lattice
+  // laws (associative + commutative + idempotent) are registered as traits
+  // and pinned by static_assert in ranges.cppm; here we exhibit them on
+  // concrete value-level samples so the trait registrations agree with
+  // the actual operator behaviour.
+  constexpr IotaIntersection meet{};
+  const auto a = std::ranges::views::iota(2, 8);
+  const auto b = std::ranges::views::iota(5, 10);
+  const auto c = std::ranges::views::iota(3, 9);
+
+  // Idempotent: a ∧ a == a.
+  const auto a_meet_a = meet(a, a);
+  REQUIRE(iv_size(a_meet_a) == 6u);
+  REQUIRE(*a_meet_a.begin() == 2);
+
+  // Commutative: a ∧ b == b ∧ a (both = [5, 8)).
+  const auto ab = meet(a, b);
+  const auto ba = meet(b, a);
+  REQUIRE(iv_size(ab) == iv_size(ba));
+  REQUIRE(iv_size(ab) == 3u);
+  REQUIRE(*ab.begin() == 5);
+  REQUIRE(*ba.begin() == 5);
+
+  // Associative: (a ∧ b) ∧ c == a ∧ (b ∧ c).
+  const auto abc_left = meet(meet(a, b), c);
+  const auto abc_right = meet(a, meet(b, c));
+  REQUIRE(iv_size(abc_left) == iv_size(abc_right));
+  REQUIRE(*abc_left.begin() == *abc_right.begin());
+
+  // Disjoint ⇒ empty (the codomain-closure that lets the trait
+  // registration stand uniformly).
+  const auto d = std::ranges::views::iota(20, 30);
+  const auto ad = meet(a, d);
+  REQUIRE(iv_size(ad) == 0u);
+}
+
+TEST_CASE("ranges:iota — meet handles huge signed ranges (overflow regression)",
+          "[ranges][iota][meet-semilattice][overflow]") {
+  // Regression for the signed-overflow bug where computing the bound via
+  // start + (T)size() narrowed a huge size_t to T and tripped UB.  The
+  // fix reads the bound directly from iota_view's end iterator — no size
+  // arithmetic — so a huge range like [INT_MIN, INT_MAX) intersected with
+  // a small range stays the small range.
+  constexpr IotaIntersection meet{};
+  const auto huge = std::ranges::views::iota(INT_MIN, INT_MAX);
+  const auto small_range = std::ranges::views::iota(3, 8);
+  const auto m1 = meet(huge, small_range);
+  REQUIRE(iv_size(m1) == 5u);
+  REQUIRE(*m1.begin() == 3);
+  // Commute the operands too, since meet is commutative.
+  const auto m2 = meet(small_range, huge);
+  REQUIRE(iv_size(m2) == 5u);
+  REQUIRE(*m2.begin() == 3);
 }
 
 TEST_CASE(

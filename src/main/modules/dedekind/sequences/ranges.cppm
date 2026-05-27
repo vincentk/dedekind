@@ -424,4 +424,94 @@ static_assert(detail::iota_bounds_of<D1andD2>::start ==
               "(start == bound after the clamp).");
 }  // namespace bridge_meet_witness
 
+/** @section ranges__Iota_Meet_Semilattice (#703 Slice 3b)
+ *
+ *  @brief @c std::ranges::iota_view as a Form-chain object: an
+ *         @c order::IsOrderMeetSemilattice under subset-inclusion, with
+ *         intersection as the meet.
+ *
+ *  @details Two @c iota_view values @c a, @c b can be intersected: their
+ *  meet is the iota_view @c [max(start), min(bound)) clamped to empty if
+ *  disjoint.  Intersection is associative, commutative, and idempotent —
+ *  the three trait registrations below make
+ *  @c IsOrderMeetSemilattice<iota_view<T,T>, IotaIntersection> fire.
+ *
+ *  @note @b Why @b meet-only @b and @b not @b a @b full @b lattice:
+ *  union of two iota_views is @b not in general an iota_view
+ *  (@c [0,3) @c ∪ @c [5,10) is not one interval), so iota_view's carrier
+ *  is @b not closed under join.  A full lattice on the intervals layer
+ *  requires moving to a richer carrier — finite unions of intervals, or
+ *  the @c Sub<> subobject lattice from #698 Slice 8.  Tracked as a
+ *  follow-up issue; this slice exhibits the honest meet-semilattice
+ *  fragment.
+ */
+
+/** @brief The meet (intersection) operator on @c std::ranges::iota_view
+ *         values: a callable that returns the iota_view of the common
+ *         tail, or an empty iota_view on disjoint inputs. */
+export struct IotaIntersection {
+  template <std::integral T>
+  constexpr std::ranges::iota_view<T, T> operator()(
+      const std::ranges::iota_view<T, T>& a,
+      const std::ranges::iota_view<T, T>& b) const {
+    if (a.empty()) return a;
+    if (b.empty()) return b;
+    // Read the iota_view's start and bound DIRECTLY from its iterators
+    // (operator* on iota_view's iterator just returns the stored value),
+    // not via @c start @c + @c size().  Computing the bound from the size
+    // narrows @c iv.size() (a @c range_size_t, typically @c size_t) back
+    // to @c T, which truncates and can trigger signed-overflow UB on huge
+    // ranges like @c [INT_MIN, INT_MAX).  Both iterators are well-formed
+    // for @c iota_view<T,T> per @c [range.iota.iterator] (no past-the-end
+    // dereference UB — the iterator stores @c value_ in itself).
+    const T a_start = *a.begin();
+    const T b_start = *b.begin();
+    const T a_bound = *a.end();
+    const T b_bound = *b.end();
+    const T new_start = a_start > b_start ? a_start : b_start;
+    const T raw_bound = a_bound < b_bound ? a_bound : b_bound;
+    // Clamp to empty on disjoint inputs (raw_bound < new_start) so size()
+    // doesn't underflow on unsigned T — same shape as to_iota_view's clamp.
+    const T new_bound = raw_bound < new_start ? new_start : raw_bound;
+    return std::ranges::views::iota(new_start, new_bound);
+  }
+};
+
+}  // namespace dedekind::sequences
+
+namespace dedekind::category {
+
+// IotaIntersection is the meet on iota_view<T,T>: associative,
+// commutative, idempotent — the trait triple that makes
+// IsOrderMeetSemilattice fire.
+template <std::integral T>
+inline constexpr bool is_associative_v<std::ranges::iota_view<T, T>,
+                                       dedekind::sequences::IotaIntersection> =
+    true;
+template <std::integral T>
+inline constexpr bool is_commutative_v<std::ranges::iota_view<T, T>,
+                                       dedekind::sequences::IotaIntersection> =
+    true;
+template <std::integral T>
+inline constexpr bool is_idempotent_v<std::ranges::iota_view<T, T>,
+                                      dedekind::sequences::IotaIntersection> =
+    true;
+
+}  // namespace dedekind::category
+
+namespace dedekind::sequences {
+
+// The Form-chain row-4-fragment witness: iota_view is an order-theoretic
+// meet-semilattice under intersection (codirected, but not filtered —
+// join doesn't fit iota_view; see the section note above).
+static_assert(dedekind::order::IsOrderMeetSemilattice<
+                  std::ranges::iota_view<int, int>, IotaIntersection>,
+              "iota_view<int,int> with IotaIntersection is an order-theoretic "
+              "meet-semilattice (associative + commutative + idempotent + the "
+              "magma surface meet(a,b) -> iota_view<T,T>).");
+static_assert(
+    dedekind::order::IsOrderMeetSemilattice<
+        std::ranges::iota_view<std::size_t, std::size_t>, IotaIntersection>,
+    "Same witness fires on the unsigned (size_t) carrier.");
+
 }  // namespace dedekind::sequences
