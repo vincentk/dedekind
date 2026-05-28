@@ -48,7 +48,7 @@
  * - **Feasible + bounded** inputs only. An infeasible polytope (empty
  *   feasible region) surfaces as `VertexCandidate::feasible == false`
  *   on the returned candidate; callers inspect that flag on the
- *   result of `maximize_value()`.  Unbounded polytopes are *not*
+ *   result of `maximize_with_values()`.  Unbounded polytopes are *not*
  *   detected by this reduction: enumeration returns the best vertex
  *   among the ${n \choose 2}$ active-set candidates, so an unbounded
  *   objective over an unbounded polytope will yield a finite vertex
@@ -149,10 +149,11 @@ struct VertexCandidate {
  *
  *  Value-level helpers used by the bridge kernel.  The kernel itself
  *  (@ref detail::maximize_impl) is one @c constexpr function called from
- *  both modes — the NTTP entry point @ref maximize_value hands it a
- *  span over a @c constexpr @c std::array of triples (folds at compile
- *  time); the runtime entry point @ref maximize_with_values hands it a
- *  span over a runtime @c std::vector (runs at call time).  Same code
+ *  both modes — the NTTP packaging @ref maximize materialises a
+ *  @c constexpr @c std::array of triples and hands its span to the
+ *  single public entry @ref maximize_with_values (folds at compile
+ *  time); the runtime call site hands a @c std::vector-backed span to
+ *  the same @ref maximize_with_values (runs at call time).  Same code
  *  path, two evaluation modes, selected by the constexpr-ness of the
  *  arguments at the call site.
  */
@@ -216,13 +217,14 @@ constexpr VertexCandidate<T> solve_active_set(const HalfspaceTriple<T>& h1,
  *        an empty feasible set.
  *
  * @details One @c constexpr kernel for both evaluation modes.  Called
- * with a @c constexpr @c std::span (e.g. from @c maximize_value below,
- * which materialises the NTTP pack as a fixed-size @c std::array), the
- * reduction folds at translation time and the optimum collapses to a
- * typed constant.  Called with a runtime @c std::span (e.g. over a
- * @c std::vector materialised from a Python list of triples), the same
- * function runs at runtime — same code path, same active-set
- * enumeration, same carrier-aware @c is_singular check.  This is the
+ * with a @c constexpr @c std::span (e.g. from @c maximize_with_values
+ * below, when @c maximize materialises the NTTP pack as a fixed-size
+ * @c std::array), the reduction folds at translation time and the
+ * optimum collapses to a typed constant.  Called with a runtime
+ * @c std::span (e.g. over a @c std::vector materialised from a Python
+ * list of triples), the same function runs at runtime — same code
+ * path, same active-set enumeration, same carrier-aware
+ * @c is_singular check.  This is the
  * paper's two-way bridge made literal: one function, two modes,
  * selection by the constexpr-ness of the arguments at the call site.
  */

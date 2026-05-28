@@ -15,10 +15,12 @@ this script reads out ``(2.0, 2.0)`` at run time via the nanobind facade.
                      -y <= 0        (H4:  y >= 0)
     => optimum at (2, 2), objective value 10.
 
-Both modes route through ``detail::maximize_impl_dynamic`` on the same
-active-set enumeration.  Running the two showcases on the same polytope
-demonstrates that the choice of compile-time vs. runtime evaluation is a
-deployment decision, not a structural change.
+Both modes route through ``detail::maximize_impl`` on the same
+active-set enumeration — one ``constexpr`` kernel called from the NTTP
+packaging surface (compile-time fold) and from the runtime entry
+``maximize_with_values`` (run-time call).  Running the two showcases on
+the same polytope demonstrates that the choice of compile-time vs.
+runtime evaluation is a deployment decision, not a structural change.
 """
 
 import dedekind
