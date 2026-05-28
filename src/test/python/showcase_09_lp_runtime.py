@@ -1,51 +1,57 @@
-"""Showcase 9 (runtime companion): 2D LP with coefficients supplied from
-Python.
+"""Showcase 9 (runtime companion): the §5 polytope, perturbed by ε,
+solved across the bridge on a ``Dual<Rational>`` carrier.
 
-Paired with the compile-time showcase
-``src/test/cpp/modules/dedekind/python/showcase_09_lp_vertex_typed_constant.cpp``.
-Same polytope, same objective, same active-set kernel — but the
-coefficients arrive as Python floats rather than C++ NTTPs.  The compile-
-time showcase reduces the optimum to a typed constant ``Vec2<Rat, 2, 2>``;
-this script reads out ``(2.0, 2.0)`` at run time via the nanobind facade.
+The pair:
+  * ``showcase_09_lp_vertex_typed_constant.cpp`` — NTTP-driven, ℚ-exact,
+    the optimum returned as the typed constant ``Vec2<Rat, 2, 2>``.
+  * THIS file — the same kernel, runtime call from Python, ℚ-exact in
+    both primal and tangent: instantiates ``detail::maximize_impl`` at
+    the identical template specialisation as the C++
+    ``[dual][sensitivity]`` test.
 
-    maximize 3*x + 2*y
-    subject to  x +  y <= 4        (H1)   non-axis-aligned
-                2*x + y <= 6        (H2)   non-axis-aligned
+Polytope (same as §5), with H1's bound perturbed by ε:
+
+    maximize  3*x + 2*y
+    subject to   x +  y <= 4 + ε   (H1')
+                2*x + y <= 6        (H2)
                 -x      <= 0        (H3:  x >= 0)
                      -y <= 0        (H4:  y >= 0)
-    => optimum at (2, 2), objective value 10.
 
-Both modes route through ``detail::maximize_impl`` on the same
-active-set enumeration — one ``constexpr`` kernel called from the NTTP
-packaging surface (compile-time fold) and from the runtime entry
-``maximize_with_values`` (run-time call).  Running the two showcases on
-the same polytope demonstrates that the choice of compile-time vs.
-runtime evaluation is a deployment decision, not a structural change.
+Active set at the optimum: {H1', H2}.  Solving the perturbed system gives
+``x* = 2 - ε, y* = 2 + 2ε`` — both ℚ-exact, with the chain rule already
+run through the Cramer solve in exact rational arithmetic.
 """
 
 import dedekind
 
 
-# The polytope: a list of (a, b, c) halfspace triples encoding a*x + b*y <= c.
-HALFSPACES = [
-    (1.0, 1.0, 4.0),    # H1:  x +  y <= 4
-    (2.0, 1.0, 6.0),    # H2:  2x + y <= 6
-    (-1.0, 0.0, 0.0),   # H3:  x >= 0
-    (0.0, -1.0, 0.0),   # H4:  y >= 0
-]
-
-# Objective: maximise 3*x + 2*y.
-OBJECTIVE = (3.0, 2.0)
-
-
 def main() -> None:
-    x, y, feasible = dedekind.maximize_lp(OBJECTIVE, HALFSPACES)
+    D = dedekind.DualRational
+    R = dedekind.Rational
 
-    print(f"polytope:    {len(HALFSPACES)} halfspaces in 2D")
-    print(f"objective:   max {OBJECTIVE[0]}*x + {OBJECTIVE[1]}*y")
+    objective = (D(3, 0), D(2, 0))
+    halfspaces = [
+        (D(1, 0), D(1, 0), D(R(4), R(1))),  # H1',  x +  y <= 4 + ε
+        (D(2, 0), D(1, 0), D(6, 0)),         # H2,  2x +  y <= 6
+        (D(-1, 0), D(0, 0), D(0, 0)),        # H3,  x >= 0
+        (D(0, 0), D(-1, 0), D(0, 0)),        # H4,       y >= 0
+    ]
+
+    x, y, feasible = dedekind.maximize_lp(objective, halfspaces)
+
+    print(f"carrier:     Dual<Rational<SignedExtensionalCardinal<>>>")
+    print(f"             (same as the compile-time NTTP exhibit)")
+    print(f"polytope:    {len(halfspaces)} halfspaces in 2D (H1's bound + ε)")
     print(f"feasible:    {feasible}")
-    print(f"optimum:     (x*, y*) = ({x}, {y})")
-    print(f"obj. value:  {OBJECTIVE[0] * x + OBJECTIVE[1] * y}")
+    print(f"x* = {x.value().num()}/{x.value().den()}"
+          f" + ({x.derivative().num()}/{x.derivative().den()})·ε")
+    print(f"y* = {y.value().num()}/{y.value().den()}"
+          f" + ({y.derivative().num()}/{y.derivative().den()})·ε")
+    obj_val = objective[0].value() * x.value() + objective[1].value() * y.value()
+    obj_der = (objective[0].value() * x.derivative()
+               + objective[1].value() * y.derivative())
+    print(f"objective:   {obj_val.num()}/{obj_val.den()}"
+          f" + ({obj_der.num()}/{obj_der.den()})·ε")
 
 
 if __name__ == "__main__":

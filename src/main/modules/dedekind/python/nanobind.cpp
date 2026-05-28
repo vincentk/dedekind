@@ -199,60 +199,18 @@ void bind_complex(nb::module_& m) {
       });
 }
 
-// ── 2D LP: runtime call site of the bridge kernel (dedekind.optimization) ─
-// The compile-time LP showcase reduces the optimum to a typed constant
-// when every coefficient is fixed at the type level (`maximize_value`).
-// This binding is the runtime call site of the same `constexpr` kernel:
-// Python supplies the objective and halfspaces as values, the kernel
-// runs at runtime.  Carrier is `double` here — the natural Python float
-// — so the binding is interchange-friendly with NumPy / scipy / Pandas.
-
-auto maximize_lp_double(
-    std::pair<double, double> objective,
-    const std::vector<std::tuple<double, double, double>>& halfspaces)
-    -> std::tuple<double, double, bool> {
-  std::vector<dedekind::optimization::HalfspaceTriple<double>> coeffs;
-  coeffs.reserve(halfspaces.size());
-  for (const auto& [a, b, c] : halfspaces) {
-    coeffs.push_back({a, b, c});
-  }
-  const auto result = dedekind::optimization::maximize_with_values<double>(
-      std::span<const dedekind::optimization::HalfspaceTriple<double>>(coeffs),
-      objective.first, objective.second);
-  return {result.x, result.y, result.feasible};
-}
-
-// ── 2D LP across the bridge on a Dual<double> carrier ──────────────────
-// The kernel is template-parametric over the carrier T; instantiating at
-// T = Dual<double> lifts the same active-set enumeration into the
-// forward-mode AD product (val, der).  Result: optimum primal AND its
-// first-order sensitivity to whatever ε-perturbation is encoded in the
-// inputs — one runtime call to the same kernel, no separate derivative
-// pass.
-
-using DualD = dedekind::analysis::Dual<double>;
-
-auto maximize_lp_dual(
-    std::pair<DualD, DualD> objective,
-    const std::vector<std::tuple<DualD, DualD, DualD>>& halfspaces)
-    -> std::tuple<DualD, DualD, bool> {
-  std::vector<dedekind::optimization::HalfspaceTriple<DualD>> coeffs;
-  coeffs.reserve(halfspaces.size());
-  for (const auto& [a, b, c] : halfspaces) {
-    coeffs.push_back({a, b, c});
-  }
-  const auto result = dedekind::optimization::maximize_with_values<DualD>(
-      std::span<const dedekind::optimization::HalfspaceTriple<DualD>>(coeffs),
-      objective.first, objective.second);
-  return {result.x, result.y, result.feasible};
-}
-
 // ── 2D LP across the bridge on a Dual<Rational> carrier ────────────────
-// Exact, paper-faithful carrier: the same
-// `Rational<SignedExtensionalCardinal<>>` the compile-time NTTP showcase uses,
-// in its Dual<F> AD lifting.  Going across the bridge on this carrier maximises
-// overlap with the pure-C++ compile-time exhibit — every coefficient is
-// ℚ-exact, every Cramer determinant divides cleanly without rounding.
+// The single LP binding exposed to Python.  Exact, paper-faithful carrier:
+// `Rational<SignedExtensionalCardinal<>>` is the same ℚ the compile-time
+// NTTP showcase uses; `Dual<F>` lifts the active-set enumeration into the
+// forward-mode AD product (val, der).  Result: optimum primal AND its
+// first-order sensitivity, ℚ-exact, from one runtime call to the same
+// `constexpr` kernel the compile-time exhibit folds.
+//
+// Carrier-pluggability lemma (witnessed by the C++ test suite, not
+// re-bound here): the kernel is `T`-generic.  Approximate carriers
+// (`double`, `Dual<double>`) subsume to this one as ε → 0 or as the
+// rationals' denominators → 1, so a separate Python binding is redundant.
 
 using Z = dedekind::sets::SignedExtensionalCardinal<>;
 using Rat = dedekind::numbers::Rational<Z>;
@@ -447,31 +405,15 @@ NB_MODULE(_dedekind, module) {
   bind_rational(module);
   bind_dual_rational(module);
 
-  // ── 2D LP runtime entry point (dedekind.optimization) ───────────────────
+  // ── 2D LP across the bridge on a Dual<Rational> carrier ────────────────
   module.def(
-      "maximize_lp", &maximize_lp_double,
-      "2D LP: maximise cx*x + cy*y over a polytope given as a list of "
-      "(a, b, c) halfspace triples (a*x + b*y <= c).  Returns "
-      "(x_star, y_star, feasible).  The same active-set kernel that backs "
-      "the compile-time LP showcase, exposed with coefficients arriving as "
-      "Python values rather than C++ NTTPs — the runtime side of the "
-      "two-way bridge between value and type-level evaluation.");
-  module.def(
-      "maximize_lp_dual", &maximize_lp_dual,
-      "2D LP across the bridge on a Dual<double> carrier: maximise cx*x + "
-      "cy*y where every coefficient is a Dual number (val, der).  Returns "
-      "(x_star, y_star, feasible) with x_star / y_star themselves Dual — "
-      "primal AND first-order sensitivity to the ε-perturbation encoded "
-      "in the inputs, from one runtime call to the same active-set "
-      "kernel that backs maximize_lp and the compile-time showcase.");
-  module.def(
-      "maximize_lp_dual_rational", &maximize_lp_dual_rational,
+      "maximize_lp", &maximize_lp_dual_rational,
       "2D LP across the bridge on a Dual<Rational> carrier — the same "
       "carrier the compile-time NTTP showcase uses, instantiated in its "
       "Dual<F> AD lifting.  Inputs are tuples of DualRational; result is "
       "(x_star, y_star, feasible) with the coordinates ℚ-exact in both "
-      "primal and tangent.  Maximum carrier-overlap with the pure-C++ "
-      "compile-time exhibit.");
+      "primal and tangent.  Same active-set kernel the compile-time "
+      "exhibit folds; running here at runtime with Python values.");
 
   // ── linear_algebra / graphblas middleware ────────────────────────────────
   module.def("graphblas_backend_stub_available",

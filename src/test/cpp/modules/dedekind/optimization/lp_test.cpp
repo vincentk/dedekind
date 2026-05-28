@@ -136,72 +136,66 @@ TEST_CASE("optimization:lp — axis-aligned corner is pruned away",
 }
 
 /**
- * @brief DSL bridge (§3 ↔ §5): the §5 LP cast in textbook form
- *        ` F : ℚ×ℚ, U : F → ℚ, G ⊆ F, opt = argmax(G, U) `.
- *
- * The §5 polytope, written out in the four-line textbook frame:
+ * @brief DSL bridge (§3 ↔ §5): the §5 LP in the textbook frame
+ *        ` F : ℚ×ℚ, U : F → ℚ, G ⊆ F, opt = argmax(G, U) `,
+ *        with G as a *structural* meet of typed halfspaces.
  *
  *   F = ℚ × ℚ            -- ambient field, operationally `Vec2V<Rat>`.
- *   U : F → ℚ            -- linear utility, the §5 objective `3x + 2y`.
- *   G ⊆ F                -- feasible region, the §5 polytope as a rule.
- *   opt = argmax(G, U)   -- LP reduction; kernel-backed.
+ *   U : F → ℚ            -- `LinearFunctional` carrying (3, 2) at the
+ *                           type level.
+ *   G ⊆ F                -- `H1 & H2 & H3 & H4` lifted into the DSL via
+ *                           `halfspace_set`.  G's *type* IS
+ *                           `Polytope2DSet<Rat, H1, H2, H3, H4>` — the
+ *                           halfspace-collapse machinery recognises the
+ *                           meet structurally, NOT as an opaque lambda.
+ *   opt = argmax(G, U)   -- DSL combinator: extracts G's pack from the
+ *                           type, U's coefficients from its NTTPs, and
+ *                           dispatches to the kernel.  Returns the
+ *                           typed constant `Vec2<Rat, Rat{2L}, Rat{2L}>`.
  *
- * The kernel computes the optimum.  The DSL's `Set::contains` evaluates
- * the rule G on that optimum, and the lambda U evaluates the utility on
- * it; both witnesses are decided at translation time, so the §5 exhibit
- * is *literally* the comprehension View claim of §3 applied to LP.
- *
- * Decidability: every halfspace predicate is a pointwise comparison on
- * rationals — fully classical, no `Ternary::Unknown` fall-through.  The
- * conjunction of four `bool`s is itself `bool`, so `G.contains(v)` and
- * `U(v)` fold to constant expressions when `v` is constexpr.
- *
- * What's still kernel-backed (not yet a DSL primitive): the `argmax`
- * combinator itself.  See `[dsl-gap]`-tagged FIXME below.
+ * The §3 comprehension View shows through onto the §5 LP centerpiece
+ * because every step in the textbook frame is realised as a DSL-typed
+ * object — G is a `Polytope2DSet` not a closure; U is a typed functional
+ * not a lambda; `argmax` is a combinator not a kernel call site.
  */
 TEST_CASE(
     "optimization:lp — DSL bridge (§3 ↔ §5): F = ℚ×ℚ, U : F → ℚ, "
-    "G ⊆ F, kernel argmax lies in G with U(opt) = 10 (#743)",
+    "G = H1 & H2 & H3 & H4, opt = argmax(G, U) = Vec2<Rat, 2, 2> (#743)",
     "[optimization][lp][dsl][bridge][centrepiece]") {
-  // F = ℚ × ℚ.  Operationally `Vec2V<Rat>`: a column vector of two
-  // rationals, structurally the 2D rational plane.
+  // F = ℚ × ℚ.  Operationally `Vec2V<Rat>`.
   using F = dedekind::linear_algebra::Vec2V<Rat>;
   static_assert(F::dimension == 2);
   static_assert(std::same_as<typename F::scalar_type, Rat>);
 
-  // U : F → ℚ.  Linear utility from the §5 objective.
-  constexpr auto U = [](const F& p) -> Rat {
-    return Rat{3L} * p.x + Rat{2L} * p.y;
-  };
+  // U : F → ℚ.  Linear functional carrying the §5 objective (3, 2) at
+  // the type level so `argmax` can route its coefficients into the
+  // NTTP-driven kernel without smuggling them through function params.
+  constexpr LinearFunctional<Rat, Rat{3L}, Rat{2L}> U{};
 
-  // G ⊆ F.  Feasible region as a Set comprehension: a conjunction of
-  // the four §5 halfspace `contains_value` predicates on a point of F.
-  constexpr auto p = dedekind::sets::element<dedekind::sets::Ω<F>>;
-  constexpr auto G = dedekind::sets::Set{p | [](const F& pt) {
-    return H1::contains_value(pt.x, pt.y) && H2::contains_value(pt.x, pt.y) &&
-           H3::contains_value(pt.x, pt.y) && H4::contains_value(pt.x, pt.y);
-  }};
+  // G ⊆ F.  Structural meet of four typed halfspaces — the DSL recognises
+  // the pack and `decltype(G)` IS `Polytope2DSet<Rat, H1, H2, H3, H4>`,
+  // not an opaque-lambda `Set<...>`.  The halfspace-collapse machinery
+  // does real work: G carries its structure, not just its predicate.
+  constexpr auto G = halfspace_set(H1{}) & halfspace_set(H2{}) &
+                     halfspace_set(H3{}) & halfspace_set(H4{});
+  static_assert(
+      std::same_as<decltype(G), const Polytope2DSet<Rat, H1, H2, H3, H4>>);
 
-  // argmax(G, U).  Kernel-backed today; the NTTP packaging `maximize`
-  // lifts the result to `Vec2<Rat, 2, 2>` (the typed constant), which we
-  // destructure into a value-level point of F.
-  // FIXME[dsl-gap]: a true `argmax(G, U)` DSL combinator would take G
-  // and U directly; this requires extracting the halfspaces from G (or
-  // a tagged-Polytope carrier) so the kernel can enumerate vertex
-  // candidates.  Scope-out of #743; tracked separately.
-  using NttpLifted =
-      decltype(maximize<Rat, Rat{3L}, Rat{2L}, H1, H2, H3, H4>());
-  constexpr NttpLifted lifted{};
-  constexpr F opt{lifted.first, lifted.second};
-  STATIC_CHECK(opt == F{Rat{2L}, Rat{2L}});
+  // argmax(G, U).  The DSL combinator extracts the halfspace pack from
+  // G's type, the (cx, cy) from U's NTTPs, dispatches to `maximize`, and
+  // returns the optimum as the typed constant.
+  constexpr auto opt = argmax(G, U);
+  static_assert(std::same_as<decltype(opt), const Vec2<Rat, Rat{2L}, Rat{2L}>>);
 
-  // THE bridge witness: the kernel's answer lies in G (the DSL rule
-  // accepts it), and U evaluates to the textbook value 10 on it.  §3
-  // and §5 collapse onto the same exhibit at compile time.
-  STATIC_CHECK(G.contains(opt));
-  STATIC_CHECK(U(opt) == Rat{10L});
+  // The bridge witnesses: the kernel's answer lies in G (the structural
+  // Set's `.contains`) and U evaluates to the textbook value 10 on it.
+  // §3 and §5 collapse onto the same exhibit at compile time, both
+  // decided through DSL-typed objects.
+  constexpr F opt_v{opt.first, opt.second};
+  STATIC_CHECK(G.contains(opt_v));
+  STATIC_CHECK(U(opt_v) == Rat{10L});
 
-  // Negative witnesses: G correctly rejects points outside the polytope.
+  // Negative witnesses on the structural Set.
   STATIC_CHECK_FALSE(G.contains(F{Rat{3L}, Rat{3L}}));   // x + y = 6 > 4
   STATIC_CHECK_FALSE(G.contains(F{Rat{-1L}, Rat{0L}}));  // x < 0
 }

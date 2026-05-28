@@ -12,8 +12,6 @@ try:
     from ._dedekind import Complex
     from ._dedekind import Dual as CppDual
     from ._dedekind import maximize_lp
-    from ._dedekind import maximize_lp_dual
-    from ._dedekind import maximize_lp_dual_rational
     from ._dedekind import Rational
     from ._dedekind import DualRational
 except ModuleNotFoundError as _exc:
@@ -92,8 +90,6 @@ __all__ = [
     "DSLDual",
     "Dual",
     "maximize_lp",
-    "maximize_lp_dual",
-    "maximize_lp_dual_rational",
     "Rational",
     "DualRational",
     # Submodules

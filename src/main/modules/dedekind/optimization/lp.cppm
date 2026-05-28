@@ -380,4 +380,104 @@ constexpr auto lp_extract(Polytope2D<T, cx, cy, Hs...>) {
   return Polytope2D<T, cx, cy, Hs...>::extract();
 }
 
+/** @section lp__DSL_Slice  Structured halfspace meets for the §3 ↔ §5 bridge.
+ *
+ *  Minimum DSL surface that makes the meet of typed halfspaces a
+ *  @em structural object rather than an opaque lambda predicate.  The
+ *  pieces here let the §5 LP exhibit read in the textbook frame
+ *  `F : ℚ×ℚ, U : F→ℚ, G ⊆ F, opt = argmax(G, U)`, with `G` literally
+ *  carrying its halfspace pack at the type level:
+ *
+ *      constexpr auto G = halfspace_set(H1{}) & halfspace_set(H2{})
+ *                       & halfspace_set(H3{}) & halfspace_set(H4{});
+ *      constexpr LinearFunctional<Rat, Rat{3L}, Rat{2L}> U{};
+ *      constexpr auto opt = argmax(G, U);   //  Vec2<Rat, Rat{2L}, Rat{2L}>
+ *      static_assert(G.contains(opt));      //  opt ∈ G via the structural Set
+ *
+ *  Closes (in the typed-halfspace special case) the direction the
+ *  `:expressions` `operator&` FIXME(#365) points at — lattice-law
+ *  rewriting on Set intersections — and is the seed for the broader
+ *  Set-DSL extension tracked in #747.
+ */
+
+/** @brief A typed-Set facet over a single NTTP halfspace.  Lifts a
+ *  @ref Halfspace2D into a Set-shaped object over @c Vec2V<T>: it has
+ *  `Domain`, `contains(v)`, and participates in the structural meet
+ *  below.  Carries the halfspace as a type parameter so `&` can
+ *  preserve the pack rather than collapsing to a lambda. */
+export template <typename Hs2D>
+struct Halfspace2DSet {
+  using scalar_type = typename Hs2D::scalar_type;
+  using Domain = dedekind::linear_algebra::Vec2V<scalar_type>;
+
+  constexpr bool contains(const Domain& p) const {
+    return Hs2D::contains_value(p.x, p.y);
+  }
+};
+
+/** @brief Lift a @ref Halfspace2D NTTP value into its Set facet. */
+export template <typename T, T a, T b, T c>
+constexpr auto halfspace_set(Halfspace2D<T, a, b, c>) {
+  return Halfspace2DSet<Halfspace2D<T, a, b, c>>{};
+}
+
+/** @brief Structural meet of typed halfspaces: a polytope carrying its
+ *  halfspace pack at the type level.  Has `contains(v)` for the Set
+ *  surface (the conjunction of every halfspace's `contains_value`); the
+ *  type-level pack is what @ref argmax extracts to call the kernel. */
+export template <typename T, typename... Hs>
+struct Polytope2DSet {
+  using scalar_type = T;
+  using Domain = dedekind::linear_algebra::Vec2V<T>;
+
+  constexpr bool contains(const Domain& p) const {
+    return (Hs::contains_value(p.x, p.y) && ...);
+  }
+};
+
+/** @brief @c Halfspace2DSet & @c Halfspace2DSet — the structural meet
+ *  that gives the §3↔§5 bridge its bite.  Returns a @ref Polytope2DSet
+ *  carrying both halfspaces at the type level, NOT an opaque lambda
+ *  meet (which is what plain @c Set::operator& would collapse to). */
+export template <typename T, T a1, T b1, T c1, T a2, T b2, T c2>
+constexpr auto operator&(Halfspace2DSet<Halfspace2D<T, a1, b1, c1>>,
+                         Halfspace2DSet<Halfspace2D<T, a2, b2, c2>>) {
+  return Polytope2DSet<T, Halfspace2D<T, a1, b1, c1>,
+                       Halfspace2D<T, a2, b2, c2>>{};
+}
+
+/** @brief Chained meet: @c Polytope2DSet & @c Halfspace2DSet appends
+ *  the new halfspace to the pack. */
+export template <typename T, typename... Hs, T a, T b, T c>
+constexpr auto operator&(Polytope2DSet<T, Hs...>,
+                         Halfspace2DSet<Halfspace2D<T, a, b, c>>) {
+  return Polytope2DSet<T, Hs..., Halfspace2D<T, a, b, c>>{};
+}
+
+/** @brief Linear functional `U : F → T` with NTTP-typed coefficients.
+ *  Carries the objective as type parameters so @ref argmax can call the
+ *  NTTP-driven kernel `maximize<T, cx, cy, Hs...>()` directly without
+ *  smuggling the values through function parameters. */
+export template <typename T, T cx_, T cy_>
+struct LinearFunctional {
+  using scalar_type = T;
+  static constexpr T cx = cx_;
+  static constexpr T cy = cy_;
+
+  constexpr T operator()(const dedekind::linear_algebra::Vec2V<T>& p) const {
+    return cx * p.x + cy * p.y;
+  }
+};
+
+/** @brief `argmax(G, U)` on a structured polytope and a linear
+ *  functional.  Extracts the halfspace pack from G's type and the
+ *  objective coefficients from U's NTTPs, dispatches to the kernel
+ *  via @ref maximize, and lifts the result to an NTTP @c Vec2.  The
+ *  DSL combinator the §5 exhibit names; the kernel itself is unchanged. */
+export template <typename T, typename... Hs, T cx, T cy>
+  requires(sizeof...(Hs) >= 2) && dedekind::algebra::HasRingOperators<T>
+constexpr auto argmax(Polytope2DSet<T, Hs...>, LinearFunctional<T, cx, cy>) {
+  return maximize<T, cx, cy, Hs...>();
+}
+
 }  // namespace dedekind::optimization
