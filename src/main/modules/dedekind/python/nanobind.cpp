@@ -49,6 +49,7 @@ import dedekind.analysis; // Dual<F> (relocated from :numbers at PR #513)
 import dedekind.numbers;
 import dedekind.optimization; // maximize_with_values, HalfspaceTriple
 import dedekind.python;
+import dedekind.sets; // SignedExtensionalCardinal (carrier for paper-faithful Rat)
 
 namespace nb = nanobind;
 
@@ -246,6 +247,134 @@ auto maximize_lp_dual(
   return {result.x, result.y, result.feasible};
 }
 
+// ── 2D LP across the bridge on a Dual<Rational> carrier ────────────────
+// Exact, paper-faithful carrier: the same
+// `Rational<SignedExtensionalCardinal<>>` the compile-time NTTP showcase uses,
+// in its Dual<F> AD lifting.  Going across the bridge on this carrier maximises
+// overlap with the pure-C++ compile-time exhibit — every coefficient is
+// ℚ-exact, every Cramer determinant divides cleanly without rounding.
+
+using Z = dedekind::sets::SignedExtensionalCardinal<>;
+using Rat = dedekind::numbers::Rational<Z>;
+using DualRat = dedekind::analysis::Dual<Rat>;
+
+auto maximize_lp_dual_rational(
+    std::pair<DualRat, DualRat> objective,
+    const std::vector<std::tuple<DualRat, DualRat, DualRat>>& halfspaces)
+    -> std::tuple<DualRat, DualRat, bool> {
+  std::vector<dedekind::optimization::HalfspaceTriple<DualRat>> coeffs;
+  coeffs.reserve(halfspaces.size());
+  for (const auto& [a, b, c] : halfspaces) {
+    coeffs.push_back({a, b, c});
+  }
+  const auto result = dedekind::optimization::maximize_with_values<DualRat>(
+      std::span<const dedekind::optimization::HalfspaceTriple<DualRat>>(coeffs),
+      objective.first, objective.second);
+  return {result.x, result.y, result.feasible};
+}
+
+// ── Rational<SignedExtensionalCardinal<>> ── exact ℚ for paper-faithful inputs
+void bind_rational(nb::module_& m) {
+  nb::class_<Rat>(
+      m, "Rational",
+      "Exact rational `num/den` over the project's paper-facing integer "
+      "carrier (SignedExtensionalCardinal).  Same `Rat` type used by the "
+      "compile-time LP showcase.")
+      .def("__init__", [](Rat* self) { new (self) Rat{}; })
+      .def(
+          "__init__", [](Rat* self, long n) { new (self) Rat{Z{n}}; },
+          nb::arg("n"), "Integer embedding `n / 1`.")
+      .def(
+          "__init__",
+          [](Rat* self, long num, long den) { new (self) Rat{Z{num}, Z{den}}; },
+          nb::arg("num"), nb::arg("den"),
+          "Construct `num / den`.  Denominator must be non-zero.")
+      .def(
+          "num", [](const Rat& r) { return static_cast<long>(r.num()); },
+          "Numerator as a Python int (single-limb carrier).")
+      .def(
+          "den", [](const Rat& r) { return static_cast<long>(r.den()); },
+          "Denominator as a Python int (single-limb carrier).")
+      .def(
+          "__add__", [](const Rat& a, const Rat& b) { return a + b; },
+          "Rational addition.")
+      .def(
+          "__sub__", [](const Rat& a, const Rat& b) { return a - b; },
+          "Rational subtraction.")
+      .def(
+          "__mul__", [](const Rat& a, const Rat& b) { return a * b; },
+          "Rational multiplication.")
+      .def(
+          "__truediv__", [](const Rat& a, const Rat& b) { return a / b; },
+          "Rational division.")
+      .def(
+          "__neg__", [](const Rat& a) { return -a; }, "Unary negation.")
+      .def(
+          "__eq__", [](const Rat& a, const Rat& b) { return a == b; },
+          "Equality.")
+      .def("__repr__", [](const Rat& r) {
+        return std::string("Rational(") +
+               std::to_string(static_cast<long>(r.num())) + ", " +
+               std::to_string(static_cast<long>(r.den())) + ")";
+      });
+}
+
+// ── Dual<Rational> ── forward-mode AD product over exact ℚ
+void bind_dual_rational(nb::module_& m) {
+  nb::class_<DualRat>(
+      m, "DualRational",
+      "Forward-mode AD product `Dual<Rational>` = `val + der·ε`, with both "
+      "components exact rationals.  Lifting LP into this carrier gives "
+      "optimum AND first-order sensitivity in a single solve, ℚ-exact.")
+      .def("__init__", [](DualRat* self) { new (self) DualRat{}; })
+      .def(
+          "__init__",
+          [](DualRat* self, const Rat& val) { new (self) DualRat{val}; },
+          nb::arg("val"), "Dual with primal `val` and zero tangent.")
+      .def(
+          "__init__",
+          [](DualRat* self, const Rat& val, const Rat& der) {
+            new (self) DualRat{val, der};
+          },
+          nb::arg("val"), nb::arg("der"),
+          "Dual with primal `val` and tangent `der`.")
+      .def(
+          "__init__",
+          [](DualRat* self, long val, long der) {
+            new (self) DualRat{Rat{Z{val}}, Rat{Z{der}}};
+          },
+          nb::arg("val"), nb::arg("der"),
+          "Convenience: build `Dual<Rational>` from two Python integers.")
+      .def(
+          "value", [](const DualRat& d) { return d.val; },
+          "Primal value as a Rational.")
+      .def(
+          "derivative", [](const DualRat& d) { return d.der; },
+          "Tangent as a Rational.")
+      .def(
+          "__add__", [](const DualRat& a, const DualRat& b) { return a + b; },
+          "Dual addition.")
+      .def(
+          "__sub__", [](const DualRat& a, const DualRat& b) { return a - b; },
+          "Dual subtraction.")
+      .def(
+          "__mul__", [](const DualRat& a, const DualRat& b) { return a * b; },
+          "Dual multiplication (chain rule: ε² = 0).")
+      .def(
+          "__neg__", [](const DualRat& a) { return -a; }, "Unary negation.")
+      .def(
+          "__eq__", [](const DualRat& a, const DualRat& b) { return a == b; },
+          "Equality.")
+      .def("__repr__", [](const DualRat& d) {
+        return std::string("DualRational(val=Rational(") +
+               std::to_string(static_cast<long>(d.val.num())) + ", " +
+               std::to_string(static_cast<long>(d.val.den())) +
+               "), der=Rational(" +
+               std::to_string(static_cast<long>(d.der.num())) + ", " +
+               std::to_string(static_cast<long>(d.der.den())) + "))";
+      });
+}
+
 void bind_dual(nb::module_& m) {
   using Dual = dedekind::analysis::Dual<double>;
   nb::class_<Dual>(m, "Dual",
@@ -315,6 +444,8 @@ NB_MODULE(_dedekind, module) {
   // ── algebraic extensions (dedekind.numbers) ─────────────────────────────
   bind_complex(module);
   bind_dual(module);
+  bind_rational(module);
+  bind_dual_rational(module);
 
   // ── 2D LP runtime entry point (dedekind.optimization) ───────────────────
   module.def(
@@ -333,6 +464,14 @@ NB_MODULE(_dedekind, module) {
       "primal AND first-order sensitivity to the ε-perturbation encoded "
       "in the inputs, from one runtime call to the same active-set "
       "kernel that backs maximize_lp and the compile-time showcase.");
+  module.def(
+      "maximize_lp_dual_rational", &maximize_lp_dual_rational,
+      "2D LP across the bridge on a Dual<Rational> carrier — the same "
+      "carrier the compile-time NTTP showcase uses, instantiated in its "
+      "Dual<F> AD lifting.  Inputs are tuples of DualRational; result is "
+      "(x_star, y_star, feasible) with the coordinates ℚ-exact in both "
+      "primal and tangent.  Maximum carrier-overlap with the pure-C++ "
+      "compile-time exhibit.");
 
   // ── linear_algebra / graphblas middleware ────────────────────────────────
   module.def("graphblas_backend_stub_available",

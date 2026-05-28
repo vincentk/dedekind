@@ -85,6 +85,17 @@ TEST_CASE("optimization:lp — Polytope2D + lp_extract comonadic counit (#388)",
   CHECK(via_extract_member == via_lp_extract);
 }
 
+// The §5 polytope as a constexpr value-level array: shared between the
+// NTTP-folding tests below and the bridge witness, so every test makes
+// the single bridge entry visible — same call as the runtime path, just
+// with constexpr inputs.
+constexpr std::array<HalfspaceTriple<Rat>, 4> kPolytope = {{
+    {Rat{1L}, Rat{1L}, Rat{4L}},   // H1:  x +  y ≤ 4
+    {Rat{2L}, Rat{1L}, Rat{6L}},   // H2:  2x + y ≤ 6
+    {Rat{-1L}, Rat{0L}, Rat{0L}},  // H3:  x      ≥ 0
+    {Rat{0L}, Rat{-1L}, Rat{0L}},  // H4:       y ≥ 0
+}};
+
 TEST_CASE(
     "optimization:lp — paper-facing existential proof: "
     "maximize(3x + 2y, polytope) = Vec2<Rat, 2, 2> at compile time",
@@ -98,8 +109,11 @@ TEST_CASE(
   STATIC_CHECK(opt.first == Rat{2L});
   STATIC_CHECK(opt.second == Rat{2L});
 
-  // The value-level reduction carries the objective value too.
-  constexpr auto v = maximize_value<Rat, Rat{3L}, Rat{2L}, H1, H2, H3, H4>();
+  // The single bridge entry, called with constexpr inputs, folds to the
+  // same constant and carries the objective value too.  Same function
+  // template as the runtime path — see the [bridge] witness below.
+  constexpr auto v = maximize_with_values<Rat>(
+      std::span<const HalfspaceTriple<Rat>>(kPolytope), Rat{3L}, Rat{2L});
   STATIC_CHECK(v.feasible);
   STATIC_CHECK(v.x == Rat{2L});
   STATIC_CHECK(v.y == Rat{2L});
@@ -114,7 +128,8 @@ TEST_CASE("optimization:lp — axis-aligned corner is pruned away",
   // (0, 4) has obj = 0 + 8 = 8; (3, 0) has obj = 9 + 0 = 9; (2, 2) wins
   // at obj = 10. The reduction correctly picks the non-axis-aligned
   // intersection, not the corner.
-  constexpr auto v = maximize_value<Rat, Rat{3L}, Rat{2L}, H1, H2, H3, H4>();
+  constexpr auto v = maximize_with_values<Rat>(
+      std::span<const HalfspaceTriple<Rat>>(kPolytope), Rat{3L}, Rat{2L});
   STATIC_CHECK(!(v.x == Rat{0L} && v.y == Rat{4L}));  // not (0, 4)
   STATIC_CHECK(!(v.x == Rat{3L} && v.y == Rat{0L}));  // not (3, 0)
   STATIC_CHECK(!(v.x == Rat{0L} && v.y == Rat{0L}));  // not (0, 0)
@@ -123,19 +138,18 @@ TEST_CASE("optimization:lp — axis-aligned corner is pruned away",
 TEST_CASE("optimization:lp — infeasible polytope reports no optimum",
           "[optimization][lp][infeasible]") {
   // Intersect x ≤ 1 with x ≥ 3 (i.e. -x ≤ -3): infeasible — no (x, y) is
-  // in both halfspaces. The value-level reduction reports `!feasible`
-  // rather than returning a bogus vertex.
-  using InfX1 = Halfspace2D<Rat, Rat{1L}, Rat{0L}, Rat{1L}>;    //  x ≤ 1
-  using InfX2 = Halfspace2D<Rat, Rat{-1L}, Rat{0L}, Rat{-3L}>;  // -x ≤ -3
-  using InfY = Halfspace2D<Rat, Rat{0L}, Rat{1L}, Rat{5L}>;     //  y ≤ 5
-
-  constexpr auto v =
-      maximize_value<Rat, Rat{1L}, Rat{1L}, InfX1, InfX2, InfY>();
+  // in both halfspaces.  The bridge entry, called with constexpr inputs,
+  // reports `!feasible` rather than returning a bogus vertex.  Note: the
+  // NTTP packaging `maximize<...>()` would fire a static_assert at
+  // instantiation; here we observe the flag directly.
+  constexpr std::array<HalfspaceTriple<Rat>, 3> infeasible = {{
+      {Rat{1L}, Rat{0L}, Rat{1L}},    //  x ≤ 1
+      {Rat{-1L}, Rat{0L}, Rat{-3L}},  // -x ≤ -3 (i.e. x ≥ 3)
+      {Rat{0L}, Rat{1L}, Rat{5L}},    //  y ≤ 5
+  }};
+  constexpr auto v = maximize_with_values<Rat>(
+      std::span<const HalfspaceTriple<Rat>>(infeasible), Rat{1L}, Rat{1L});
   STATIC_CHECK_FALSE(v.feasible);
-  // Note: the NTTP `maximize<...>()` form would fire a static_assert at
-  // instantiation; we exercise the value-level `maximize_value<...>` here
-  // so the test can observe the infeasibility flag rather than failing
-  // to compile.
 }
 
 /**
@@ -170,14 +184,18 @@ TEST_CASE(
     "[optimization][lp][dual][sensitivity]") {
   using D = Dual<Rat>;
 
-  // Perturbed H1: x + y ≤ 4 + ε.
-  using H1P = Halfspace2D<D, D{Rat{1L}}, D{Rat{1L}}, D{Rat{4L}, Rat{1L}}>;
-  using H2D = Halfspace2D<D, D{Rat{2L}}, D{Rat{1L}}, D{Rat{6L}}>;
-  using H3D = Halfspace2D<D, D{Rat{-1L}}, D{Rat{0L}}, D{Rat{0L}}>;
-  using H4D = Halfspace2D<D, D{Rat{0L}}, D{Rat{-1L}}, D{Rat{0L}}>;
-
-  constexpr auto v =
-      maximize_value<D, D{Rat{3L}}, D{Rat{2L}}, H1P, H2D, H3D, H4D>();
+  // Polytope with H1's bound perturbed by ε.  Same shape as the §5
+  // exhibit; instantiated at T = Dual<Rat> the kernel returns primal
+  // AND first-order sensitivity from one call.
+  constexpr std::array<HalfspaceTriple<D>, 4> dual_polytope = {{
+      {D{Rat{1L}}, D{Rat{1L}}, D{Rat{4L}, Rat{1L}}},  // H1':  x +  y ≤ 4 + ε
+      {D{Rat{2L}}, D{Rat{1L}}, D{Rat{6L}}},           // H2:  2x +  y ≤ 6
+      {D{Rat{-1L}}, D{Rat{0L}}, D{Rat{0L}}},          // H3:  x      ≥ 0
+      {D{Rat{0L}}, D{Rat{-1L}}, D{Rat{0L}}},          // H4:       y ≥ 0
+  }};
+  constexpr auto v = maximize_with_values<D>(
+      std::span<const HalfspaceTriple<D>>(dual_polytope), D{Rat{3L}},
+      D{Rat{2L}});
   STATIC_CHECK(v.feasible);
 
   // x* = 2 - ε  →  primal 2, tangent -1.
@@ -230,10 +248,16 @@ TEST_CASE(
   STATIC_CHECK(v.x == Rat{2L});
   STATIC_CHECK(v.y == Rat{2L});
 
-  // Parity with the NTTP entry point on the same polytope.
-  constexpr auto nttp = maximize_value<Rat, Rat{3L}, Rat{2L}, H1, H2, H3, H4>();
-  STATIC_CHECK(v.x == nttp.x);
-  STATIC_CHECK(v.y == nttp.y);
+  // Parity with the NTTP packaging surface on the same polytope: the
+  // bridge entry called with constexpr inputs and the NTTP-lifted
+  // `Vec2<T, x*, y*>` must agree, because the latter is the former
+  // wrapped in a type-level packaging step.
+  using NttpLifted =
+      decltype(maximize<Rat, Rat{3L}, Rat{2L}, H1, H2, H3, H4>());
+  STATIC_CHECK(std::same_as<NttpLifted, Vec2<Rat, Rat{2L}, Rat{2L}>>);
+  constexpr NttpLifted lifted{};
+  STATIC_CHECK(v.x == lifted.first);
+  STATIC_CHECK(v.y == lifted.second);
 }
 
 TEST_CASE(
@@ -253,11 +277,13 @@ TEST_CASE(
   CHECK(result.x == Rat{2L});
   CHECK(result.y == Rat{2L});
 
-  // Parity with the NTTP path: the same polytope reduced through both
-  // modes must yield identical coordinates.
-  constexpr auto nttp = maximize_value<Rat, Rat{3L}, Rat{2L}, H1, H2, H3, H4>();
-  CHECK(result.x == nttp.x);
-  CHECK(result.y == nttp.y);
+  // Parity with the NTTP packaging surface: the same polytope reduced
+  // through both surfaces must yield identical coordinates.
+  using NttpLifted =
+      decltype(maximize<Rat, Rat{3L}, Rat{2L}, H1, H2, H3, H4>());
+  constexpr NttpLifted lifted{};
+  CHECK(result.x == lifted.first);
+  CHECK(result.y == lifted.second);
 }
 
 TEST_CASE(
