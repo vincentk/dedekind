@@ -11,6 +11,7 @@ try:
     from ._dedekind import set_cardinality
     from ._dedekind import Complex
     from ._dedekind import Dual as CppDual
+    from ._dedekind import maximize_lp
 except ModuleNotFoundError as _exc:
     raise ImportError(
         "The dedekind C++ extension (_dedekind) is not available. "
@@ -86,6 +87,7 @@ __all__ = [
     "CppDual",
     "DSLDual",
     "Dual",
+    "maximize_lp",
     # Submodules
     "sets",
     "sequences",

@@ -28,8 +28,10 @@
 
 #include <nanobind/nanobind.h>
 #include <nanobind/ndarray.h>
+#include <nanobind/stl/pair.h>
 #include <nanobind/stl/set.h>
 #include <nanobind/stl/string.h>
+#include <nanobind/stl/tuple.h>
 #include <nanobind/stl/vector.h>
 
 #include <algorithm>
@@ -37,11 +39,14 @@
 #include <cstdint>
 #include <set>
 #include <string>
+#include <tuple>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 import dedekind.analysis; // Dual<F> (relocated from :numbers at PR #513)
 import dedekind.numbers;
+import dedekind.optimization; // maximize_with_values, HalfspaceCoefficients
 import dedekind.python;
 
 namespace nb = nanobind;
@@ -192,6 +197,28 @@ void bind_complex(nb::module_& m) {
       });
 }
 
+// ── 2D LP: runtime-coefficient entry point (dedekind.optimization) ──────
+// The compile-time LP showcase reduces the optimum to a typed constant
+// when every coefficient is fixed at the type level.  This binding is the
+// companion runtime entry point: Python supplies the objective and the
+// halfspace coefficients as values; the same active-set kernel produces
+// the optimum.  Carrier is `double` here — the natural Python float — so
+// the binding is interchange-friendly with NumPy / scipy / Pandas.
+
+auto maximize_lp_double(
+    std::pair<double, double> objective,
+    const std::vector<std::tuple<double, double, double>>& halfspaces)
+    -> std::tuple<double, double, bool> {
+  std::vector<dedekind::optimization::HalfspaceCoefficients<double>> coeffs;
+  coeffs.reserve(halfspaces.size());
+  for (const auto& [a, b, c] : halfspaces) {
+    coeffs.push_back({a, b, c});
+  }
+  const auto result = dedekind::optimization::maximize_with_values<double>(
+      coeffs, objective.first, objective.second);
+  return {result.x, result.y, result.feasible};
+}
+
 void bind_dual(nb::module_& m) {
   using Dual = dedekind::analysis::Dual<double>;
   nb::class_<Dual>(m, "Dual",
@@ -261,6 +288,16 @@ NB_MODULE(_dedekind, module) {
   // ── algebraic extensions (dedekind.numbers) ─────────────────────────────
   bind_complex(module);
   bind_dual(module);
+
+  // ── 2D LP runtime entry point (dedekind.optimization) ───────────────────
+  module.def(
+      "maximize_lp", &maximize_lp_double,
+      "2D LP: maximise cx*x + cy*y over a polytope given as a list of "
+      "(a, b, c) halfspace triples (a*x + b*y <= c).  Returns "
+      "(x_star, y_star, feasible).  The same active-set kernel that backs "
+      "the compile-time LP showcase, exposed with coefficients arriving as "
+      "Python values rather than C++ NTTPs — the runtime side of the "
+      "two-way bridge between value and type-level evaluation.");
 
   // ── linear_algebra / graphblas middleware ────────────────────────────────
   module.def("graphblas_backend_stub_available",

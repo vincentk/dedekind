@@ -75,6 +75,8 @@ module;
 #include <array>
 #include <concepts>
 #include <cstddef>
+#include <span>
+#include <vector>
 
 export module dedekind.optimization:lp;
 
@@ -244,6 +246,53 @@ constexpr VertexCandidate<T> maximize_impl(
   return best;
 }
 
+/**
+ * @brief Runtime-sized variant of @c maximize_impl: same algorithm, but
+ *        the constraint pack arrives as a non-owning view whose size is
+ *        only known at run time.  Used by the @c maximize_with_values
+ *        entry point that backs the Python binding; the constexpr path
+ *        retains its fixed-size @c std::array shape.
+ *
+ * @details Feasibility is checked inline against the same view, avoiding
+ * the flat-pointer interface used by @c is_feasible (which assumes a
+ * contiguous (a, b, c)-tuple layout).  The algorithm and the active-set
+ * solver are otherwise identical to the constexpr path; the @c is_singular
+ * carrier-aware check still applies via @c solve_active_set.
+ */
+template <typename T>
+VertexCandidate<T> maximize_impl_dynamic(
+    std::span<const HalfspaceTriple<T>> constraints, T cx, T cy) {
+  VertexCandidate<T> best{T{}, T{}, false};
+  T best_obj{};
+  bool best_set = false;
+  const std::size_t N = constraints.size();
+
+  for (std::size_t i = 0; i < N; ++i) {
+    for (std::size_t j = i + 1; j < N; ++j) {
+      const auto v = solve_active_set(constraints[i], constraints[j]);
+      if (!v.feasible) continue;
+
+      bool feasible = true;
+      for (std::size_t k = 0; k < N; ++k) {
+        const auto& h = constraints[k];
+        if (h.c < h.a * v.x + h.b * v.y) {
+          feasible = false;
+          break;
+        }
+      }
+      if (!feasible) continue;
+
+      const T obj = cx * v.x + cy * v.y;
+      if (!best_set || best_obj < obj) {
+        best_set = true;
+        best_obj = obj;
+        best = v;
+      }
+    }
+  }
+  return best;
+}
+
 }  // namespace detail
 
 /**
@@ -335,6 +384,72 @@ export template <typename T, T cx, T cy, typename... Hs>
   requires(sizeof...(Hs) >= 2) && dedekind::algebra::HasRingOperators<T>
 constexpr auto lp_extract(Polytope2D<T, cx, cy, Hs...>) {
   return Polytope2D<T, cx, cy, Hs...>::extract();
+}
+
+/** @section lp__Runtime_Coefficient_Entry_Point
+ *
+ *  @ref maximize and @ref maximize_value take the polytope as an NTTP
+ *  pack: every coefficient is fixed at the type level and the reduction
+ *  collapses to a typed constant.  @ref maximize_with_values is the
+ *  companion entry point for the case where the polytope's coefficients
+ *  arrive at run time — for instance, from a Python script via the
+ *  nanobind facade.  The kernel is the same active-set enumeration; only
+ *  the carrier of the constraint pack differs (NTTP @c std::array on the
+ *  compile-time path, @c std::span on the runtime path).
+ *
+ *  Paired with the NTTP path, the two entry points exhibit the same
+ *  polytope through both modes — the bridge in both directions on
+ *  identical inputs.
+ */
+
+/** @brief Halfspace coefficient triple @c (a, b, c) for the runtime
+ *  entry point.  Re-exported alias of the internal triple so callers
+ *  outside the module can construct argument vectors without naming
+ *  the @c detail namespace.
+ */
+export template <typename T>
+using HalfspaceCoefficients = detail::HalfspaceTriple<T>;
+
+/** @brief Vertex result from the runtime entry point.  Re-exported alias
+ *  of the internal candidate so callers can read out @c (x, y, feasible).
+ */
+export template <typename T>
+using VertexResult = detail::VertexCandidate<T>;
+
+/** @brief Runtime-coefficient LP: maximise @c cx*x + cy*y over a
+ *  polytope whose halfspaces arrive as values, not as NTTPs.
+ *
+ *  @details Identical algorithm to @ref maximize_value; the difference
+ *  is purely where the polytope lives.  The compile-time path returns
+ *  the optimum as a typed constant via NTTPs; the runtime path returns
+ *  a @c VertexResult populated at call time.  Both paths route through
+ *  the same active-set enumeration (@c detail::solve_active_set), so the
+ *  two modes agree on any polytope expressible in both.
+ *
+ *  @par Feasibility
+ *  The @c .feasible flag reports whether the polytope admits any
+ *  vertex.  An empty feasible region yields @c {T{}, T{}, false};
+ *  unbounded polytopes are not detected by this reduction (same scope
+ *  caveat as the NTTP path).
+ */
+export template <typename T>
+  requires dedekind::algebra::HasRingOperators<T>
+VertexResult<T> maximize_with_values(
+    std::span<const HalfspaceCoefficients<T>> halfspaces, T cx, T cy) {
+  return detail::maximize_impl_dynamic<T>(halfspaces, cx, cy);
+}
+
+/** @brief Overload accepting a @c std::vector by const-reference.  A
+ *  convenience for the common Python-binding shape where the caller
+ *  materialises the constraint list as a vector before handing it to
+ *  the kernel.
+ */
+export template <typename T>
+  requires dedekind::algebra::HasRingOperators<T>
+VertexResult<T> maximize_with_values(
+    const std::vector<HalfspaceCoefficients<T>>& halfspaces, T cx, T cy) {
+  return detail::maximize_impl_dynamic<T>(
+      std::span<const HalfspaceCoefficients<T>>(halfspaces), cx, cy);
 }
 
 }  // namespace dedekind::optimization

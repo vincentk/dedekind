@@ -7,6 +7,7 @@
  */
 
 #include <catch2/catch_test_macros.hpp>
+#include <vector>
 
 import dedekind.analysis; // Dual<F> (relocated from :numbers at PR #513)
 import dedekind.linear_algebra;
@@ -184,4 +185,93 @@ TEST_CASE(
   // y* = 2 + 2ε → primal 2, tangent +2.
   STATIC_CHECK(v.y.val == Rat{2L});
   STATIC_CHECK(v.y.der == Rat{2L});
+}
+
+/**
+ * @brief Runtime-coefficient entry point: the paper's bridge in the
+ *        opposite direction.  Same polytope as the NTTP centrepiece,
+ *        but the constraints arrive as values rather than types — the
+ *        shape Python callers see through the nanobind facade.
+ *
+ * The two modes go through the same active-set kernel, so agreement on
+ * the locked polytope is the first parity claim; a second polytope
+ * guards against the runtime path being accidentally constant-folded by
+ * coincidence.
+ */
+TEST_CASE(
+    "optimization:lp — runtime-coefficient entry point: "
+    "same polytope, value-level inputs, identical optimum (#743)",
+    "[optimization][lp][runtime][centrepiece]") {
+  // Same instance as the centrepiece above, but values not types.
+  std::vector<HalfspaceCoefficients<Rat>> halfspaces{
+      {Rat{1L}, Rat{1L}, Rat{4L}},   //  x +  y ≤ 4   (H1)
+      {Rat{2L}, Rat{1L}, Rat{6L}},   // 2x +  y ≤ 6   (H2)
+      {Rat{-1L}, Rat{0L}, Rat{0L}},  //  x      ≥ 0   (H3)
+      {Rat{0L}, Rat{-1L}, Rat{0L}},  //       y ≥ 0   (H4)
+  };
+  const auto result = maximize_with_values<Rat>(halfspaces, Rat{3L}, Rat{2L});
+
+  CHECK(result.feasible);
+  CHECK(result.x == Rat{2L});
+  CHECK(result.y == Rat{2L});
+
+  // Parity with the NTTP path: the same polytope reduced through both
+  // modes must yield identical coordinates.
+  constexpr auto nttp = maximize_value<Rat, Rat{3L}, Rat{2L}, H1, H2, H3, H4>();
+  CHECK(result.x == nttp.x);
+  CHECK(result.y == nttp.y);
+}
+
+TEST_CASE(
+    "optimization:lp — runtime-coefficient entry point: "
+    "second polytope guards against coincidental constant-fold (#743)",
+    "[optimization][lp][runtime]") {
+  // A different polytope with a different optimum: max x + y over the
+  // triangle {x ≥ 0, y ≥ 0, x + 2y ≤ 6, 2x + y ≤ 6}.  The optimum is
+  // at the active set {x + 2y = 6, 2x + y = 6}, giving x = y = 2 and
+  // objective 4 — distinct from the centrepiece's (2, 2, 10) only in
+  // the objective value, so we also check the objective.
+  std::vector<HalfspaceCoefficients<Rat>> halfspaces{
+      {Rat{1L}, Rat{2L}, Rat{6L}},
+      {Rat{2L}, Rat{1L}, Rat{6L}},
+      {Rat{-1L}, Rat{0L}, Rat{0L}},
+      {Rat{0L}, Rat{-1L}, Rat{0L}},
+  };
+  const auto result = maximize_with_values<Rat>(halfspaces, Rat{1L}, Rat{1L});
+
+  CHECK(result.feasible);
+  CHECK(result.x == Rat{2L});
+  CHECK(result.y == Rat{2L});
+  CHECK(Rat{1L} * result.x + Rat{1L} * result.y == Rat{4L});
+
+  // A third instance to disambiguate the optimum location too: shrink
+  // the bound on the first halfspace so the vertex moves.
+  std::vector<HalfspaceCoefficients<Rat>> shrunk{
+      {Rat{1L}, Rat{2L}, Rat{3L}},
+      {Rat{2L}, Rat{1L}, Rat{6L}},
+      {Rat{-1L}, Rat{0L}, Rat{0L}},
+      {Rat{0L}, Rat{-1L}, Rat{0L}},
+  };
+  const auto shrunk_result =
+      maximize_with_values<Rat>(shrunk, Rat{1L}, Rat{1L});
+  CHECK(shrunk_result.feasible);
+  // Active set {x + 2y = 3, 2x + y = 6}: solve gives x = 3, y = 0.
+  CHECK(shrunk_result.x == Rat{3L});
+  CHECK(shrunk_result.y == Rat{0L});
+}
+
+TEST_CASE(
+    "optimization:lp — runtime entry point reports infeasibility "
+    "without throwing (#743)",
+    "[optimization][lp][runtime][infeasible]") {
+  // x ≤ 1 ∧ x ≥ 3: empty feasible region.  The runtime path must report
+  // @c !feasible rather than the NTTP path's static_assert failure —
+  // Python callers need to inspect the flag at run time.
+  std::vector<HalfspaceCoefficients<Rat>> halfspaces{
+      {Rat{1L}, Rat{0L}, Rat{1L}},
+      {Rat{-1L}, Rat{0L}, Rat{-3L}},
+      {Rat{0L}, Rat{1L}, Rat{5L}},
+  };
+  const auto result = maximize_with_values<Rat>(halfspaces, Rat{1L}, Rat{1L});
+  CHECK_FALSE(result.feasible);
 }
