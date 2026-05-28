@@ -75,6 +75,54 @@ class DedekindMaximizeLpTest(unittest.TestCase):
         self.assertEqual(x, 3.0)
         self.assertEqual(y, 0.0)
 
+    def test_dual_sensitivity_perturbed_h1_bound(self) -> None:
+        # Across the bridge on a Dual<double> carrier: the same active-set
+        # kernel returns primal AND first-order sensitivity.  Perturbing
+        # H1's bound by ε moves the active set {H1', H2} optimum to
+        #   x* = 2 - ε     (primal 2, tangent -1)
+        #   y* = 2 + 2ε    (primal 2, tangent +2)
+        # — the chain rule has already run inside the Cramer solve.
+        D = dedekind.Dual
+        x, y, feasible = dedekind.maximize_lp_dual(
+            (D(3.0, 0.0), D(2.0, 0.0)),
+            [
+                (D(1.0, 0.0), D(1.0, 0.0), D(4.0, 1.0)),    # H1 bound + ε
+                (D(2.0, 0.0), D(1.0, 0.0), D(6.0, 0.0)),    # H2
+                (D(-1.0, 0.0), D(0.0, 0.0), D(0.0, 0.0)),   # H3
+                (D(0.0, 0.0), D(-1.0, 0.0), D(0.0, 0.0)),   # H4
+            ],
+        )
+        self.assertTrue(feasible)
+        self.assertEqual(x.value(), 2.0)
+        self.assertEqual(x.derivative(), -1.0)
+        self.assertEqual(y.value(), 2.0)
+        self.assertEqual(y.derivative(), 2.0)
+
+    def test_dual_no_perturbation_matches_primal_path(self) -> None:
+        # With all tangents zero, the dual path must agree with the plain
+        # double path on the primal — the Dual<double> instantiation
+        # subsumes the double instantiation as ε → 0.
+        D = dedekind.Dual
+        x_dual, y_dual, feasible = dedekind.maximize_lp_dual(
+            (D(3.0, 0.0), D(2.0, 0.0)),
+            [
+                (D(1.0, 0.0), D(1.0, 0.0), D(4.0, 0.0)),
+                (D(2.0, 0.0), D(1.0, 0.0), D(6.0, 0.0)),
+                (D(-1.0, 0.0), D(0.0, 0.0), D(0.0, 0.0)),
+                (D(0.0, 0.0), D(-1.0, 0.0), D(0.0, 0.0)),
+            ],
+        )
+        x_plain, y_plain, _ = dedekind.maximize_lp(
+            (3.0, 2.0),
+            [(1.0, 1.0, 4.0), (2.0, 1.0, 6.0),
+             (-1.0, 0.0, 0.0), (0.0, -1.0, 0.0)],
+        )
+        self.assertTrue(feasible)
+        self.assertEqual(x_dual.value(), x_plain)
+        self.assertEqual(y_dual.value(), y_plain)
+        self.assertEqual(x_dual.derivative(), 0.0)
+        self.assertEqual(y_dual.derivative(), 0.0)
+
     def test_infeasible_polytope_reports_flag(self) -> None:
         # x <= 1 and x >= 3 cannot both hold; the runtime entry point
         # reports the feasibility flag (rather than the NTTP path's

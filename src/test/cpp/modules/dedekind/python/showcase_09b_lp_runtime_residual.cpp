@@ -1,0 +1,75 @@
+/**
+ * @file
+ * src/test/cpp/modules/dedekind/python/showcase_09b_lp_runtime_residual.cpp
+ * @brief Showcase 9b — Runtime call site of the same LP kernel as
+ *        showcase_09 (compile-time NTTP form).  Companion IR fixture.
+ *
+ * @section Description
+ * Showcase 9 (`showcase_09_lp_vertex_typed_constant.cpp`) calls
+ * `detail::maximize_impl<Rat>` at compile time through the NTTP entry
+ * point `maximize_value<Rat, cx, cy, Hs...>()`; the compiler folds the
+ * full active-set enumeration to a typed constant `Vec2<Rat, 2, 2>` and
+ * the emitted IR for `witness_lp_optimum_x` is `ret i64 2`.
+ *
+ * This fixture calls the *same* kernel through the runtime entry point
+ * `maximize_with_values<double>(span, cx, cy)` with the coefficients
+ * arriving as function arguments (not known at translation time).  At
+ * `-O2` the emitted IR retains the algorithm's residual structure:
+ * the C(n, 2) active-set enumeration, the 2×2 Cramer determinant +
+ * solve, the feasibility loop, and the argmax — all visible, none
+ * folded away.  Read side-by-side with
+ * `showcase_09_lp_vertex_typed_constant.ll` this exhibits the bridge in IR
+ * form: one `constexpr` kernel, two evaluation modes, selection by the
+ * constexpr-ness of the call site.
+ *
+ * Carrier is `double` for IR readability; the kernel is carrier-
+ * parametric (see `showcase_09_lp_runtime_dual.py` for the same call
+ * site instantiated at `T = Dual<double>` for primal + sensitivity).
+ *
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
+ */
+
+#include <cstddef>
+#include <span>
+
+import dedekind.optimization;
+
+using dedekind::optimization::HalfspaceTriple;
+using dedekind::optimization::maximize_with_values;
+
+/**
+ * @brief Optimum's x-coordinate from a runtime polytope.
+ *
+ * Expected IR shape at -O2: residual loop nest over the C(n, 2)
+ * candidate active sets, 2×2 Cramer solve per pair, feasibility check
+ * against the full constraint set, scalar argmax accumulator.  Nothing
+ * folded — the coefficients are runtime arguments.
+ */
+extern "C" __attribute__((noinline)) double witness_lp_runtime_x(
+    const HalfspaceTriple<double>* hs, std::size_t n, double cx, double cy) {
+  return maximize_with_values<double>(
+             std::span<const HalfspaceTriple<double>>(hs, n), cx, cy)
+      .x;
+}
+
+/** @brief Companion y-coordinate witness; structurally identical IR. */
+extern "C" __attribute__((noinline)) double witness_lp_runtime_y(
+    const HalfspaceTriple<double>* hs, std::size_t n, double cx, double cy) {
+  return maximize_with_values<double>(
+             std::span<const HalfspaceTriple<double>>(hs, n), cx, cy)
+      .y;
+}
+
+/**
+ * @brief Feasibility flag from a runtime polytope.
+ *
+ * The runtime entry point reports feasibility through a flag rather
+ * than the NTTP path's `static_assert`; Python callers branch on it.
+ */
+extern "C" __attribute__((noinline)) bool witness_lp_runtime_feasible(
+    const HalfspaceTriple<double>* hs, std::size_t n, double cx, double cy) {
+  return maximize_with_values<double>(
+             std::span<const HalfspaceTriple<double>>(hs, n), cx, cy)
+      .feasible;
+}

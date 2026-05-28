@@ -221,6 +221,31 @@ auto maximize_lp_double(
   return {result.x, result.y, result.feasible};
 }
 
+// ── 2D LP across the bridge on a Dual<double> carrier ──────────────────
+// The kernel is template-parametric over the carrier T; instantiating at
+// T = Dual<double> lifts the same active-set enumeration into the
+// forward-mode AD product (val, der).  Result: optimum primal AND its
+// first-order sensitivity to whatever ε-perturbation is encoded in the
+// inputs — one runtime call to the same kernel, no separate derivative
+// pass.
+
+using DualD = dedekind::analysis::Dual<double>;
+
+auto maximize_lp_dual(
+    std::pair<DualD, DualD> objective,
+    const std::vector<std::tuple<DualD, DualD, DualD>>& halfspaces)
+    -> std::tuple<DualD, DualD, bool> {
+  std::vector<dedekind::optimization::HalfspaceTriple<DualD>> coeffs;
+  coeffs.reserve(halfspaces.size());
+  for (const auto& [a, b, c] : halfspaces) {
+    coeffs.push_back({a, b, c});
+  }
+  const auto result = dedekind::optimization::maximize_with_values<DualD>(
+      std::span<const dedekind::optimization::HalfspaceTriple<DualD>>(coeffs),
+      objective.first, objective.second);
+  return {result.x, result.y, result.feasible};
+}
+
 void bind_dual(nb::module_& m) {
   using Dual = dedekind::analysis::Dual<double>;
   nb::class_<Dual>(m, "Dual",
@@ -300,6 +325,14 @@ NB_MODULE(_dedekind, module) {
       "the compile-time LP showcase, exposed with coefficients arriving as "
       "Python values rather than C++ NTTPs — the runtime side of the "
       "two-way bridge between value and type-level evaluation.");
+  module.def(
+      "maximize_lp_dual", &maximize_lp_dual,
+      "2D LP across the bridge on a Dual<double> carrier: maximise cx*x + "
+      "cy*y where every coefficient is a Dual number (val, der).  Returns "
+      "(x_star, y_star, feasible) with x_star / y_star themselves Dual — "
+      "primal AND first-order sensitivity to the ε-perturbation encoded "
+      "in the inputs, from one runtime call to the same active-set "
+      "kernel that backs maximize_lp and the compile-time showcase.");
 
   // ── linear_algebra / graphblas middleware ────────────────────────────────
   module.def("graphblas_backend_stub_available",
