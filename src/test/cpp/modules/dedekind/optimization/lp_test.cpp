@@ -135,6 +135,77 @@ TEST_CASE("optimization:lp — axis-aligned corner is pruned away",
   STATIC_CHECK(!(v.x == Rat{0L} && v.y == Rat{0L}));  // not (0, 0)
 }
 
+/**
+ * @brief DSL bridge (§3 ↔ §5): the §5 LP cast in textbook form
+ *        ` F : ℚ×ℚ, U : F → ℚ, G ⊆ F, opt = argmax(G, U) `.
+ *
+ * The §5 polytope, written out in the four-line textbook frame:
+ *
+ *   F = ℚ × ℚ            -- ambient field, operationally `Vec2V<Rat>`.
+ *   U : F → ℚ            -- linear utility, the §5 objective `3x + 2y`.
+ *   G ⊆ F                -- feasible region, the §5 polytope as a rule.
+ *   opt = argmax(G, U)   -- LP reduction; kernel-backed.
+ *
+ * The kernel computes the optimum.  The DSL's `Set::contains` evaluates
+ * the rule G on that optimum, and the lambda U evaluates the utility on
+ * it; both witnesses are decided at translation time, so the §5 exhibit
+ * is *literally* the comprehension View claim of §3 applied to LP.
+ *
+ * Decidability: every halfspace predicate is a pointwise comparison on
+ * rationals — fully classical, no `Ternary::Unknown` fall-through.  The
+ * conjunction of four `bool`s is itself `bool`, so `G.contains(v)` and
+ * `U(v)` fold to constant expressions when `v` is constexpr.
+ *
+ * What's still kernel-backed (not yet a DSL primitive): the `argmax`
+ * combinator itself.  See `[dsl-gap]`-tagged FIXME below.
+ */
+TEST_CASE(
+    "optimization:lp — DSL bridge (§3 ↔ §5): F = ℚ×ℚ, U : F → ℚ, "
+    "G ⊆ F, kernel argmax lies in G with U(opt) = 10 (#743)",
+    "[optimization][lp][dsl][bridge][centrepiece]") {
+  // F = ℚ × ℚ.  Operationally `Vec2V<Rat>`: a column vector of two
+  // rationals, structurally the 2D rational plane.
+  using F = dedekind::linear_algebra::Vec2V<Rat>;
+  static_assert(F::dimension == 2);
+  static_assert(std::same_as<typename F::scalar_type, Rat>);
+
+  // U : F → ℚ.  Linear utility from the §5 objective.
+  constexpr auto U = [](const F& p) -> Rat {
+    return Rat{3L} * p.x + Rat{2L} * p.y;
+  };
+
+  // G ⊆ F.  Feasible region as a Set comprehension: a conjunction of
+  // the four §5 halfspace `contains_value` predicates on a point of F.
+  constexpr auto p = dedekind::sets::element<dedekind::sets::Ω<F>>;
+  constexpr auto G = dedekind::sets::Set{p | [](const F& pt) {
+    return H1::contains_value(pt.x, pt.y) && H2::contains_value(pt.x, pt.y) &&
+           H3::contains_value(pt.x, pt.y) && H4::contains_value(pt.x, pt.y);
+  }};
+
+  // argmax(G, U).  Kernel-backed today; the NTTP packaging `maximize`
+  // lifts the result to `Vec2<Rat, 2, 2>` (the typed constant), which we
+  // destructure into a value-level point of F.
+  // FIXME[dsl-gap]: a true `argmax(G, U)` DSL combinator would take G
+  // and U directly; this requires extracting the halfspaces from G (or
+  // a tagged-Polytope carrier) so the kernel can enumerate vertex
+  // candidates.  Scope-out of #743; tracked separately.
+  using NttpLifted =
+      decltype(maximize<Rat, Rat{3L}, Rat{2L}, H1, H2, H3, H4>());
+  constexpr NttpLifted lifted{};
+  constexpr F opt{lifted.first, lifted.second};
+  STATIC_CHECK(opt == F{Rat{2L}, Rat{2L}});
+
+  // THE bridge witness: the kernel's answer lies in G (the DSL rule
+  // accepts it), and U evaluates to the textbook value 10 on it.  §3
+  // and §5 collapse onto the same exhibit at compile time.
+  STATIC_CHECK(G.contains(opt));
+  STATIC_CHECK(U(opt) == Rat{10L});
+
+  // Negative witnesses: G correctly rejects points outside the polytope.
+  STATIC_CHECK_FALSE(G.contains(F{Rat{3L}, Rat{3L}}));   // x + y = 6 > 4
+  STATIC_CHECK_FALSE(G.contains(F{Rat{-1L}, Rat{0L}}));  // x < 0
+}
+
 TEST_CASE("optimization:lp — infeasible polytope reports no optimum",
           "[optimization][lp][infeasible]") {
   // Intersect x ≤ 1 with x ≥ 3 (i.e. -x ≤ -3): infeasible — no (x, y) is
