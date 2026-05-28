@@ -76,7 +76,6 @@ module;
 #include <concepts>
 #include <cstddef>
 #include <span>
-#include <vector>
 
 export module dedekind.optimization:lp;
 
@@ -119,28 +118,45 @@ struct Halfspace2D {
   }
 };
 
-/** @section lp__LP_Reduction_Internals
- *
- *  Value-level helpers used to fold the NTTP constraint pack at compile
- *  time. The output is then re-promoted to an NTTP `Vec2<T, x*, y*>`.
+/** @brief Value-level halfspace carrier @c (a, b, c) for the bridge
+ *  kernel.  Paired with the NTTP carrier @ref Halfspace2D: an instance
+ *  of @c Halfspace2D<T, a, b, c> destructures into a @c HalfspaceTriple
+ *  <T>{a, b, c} for the uniform value-vector the kernel consumes.  The
+ *  two structures share one role — the halfspace — split across the
+ *  type/value boundary the bridge straddles.
  */
-namespace detail {
-
-/** @brief Rigid triple carrying one halfspace's (a, b, c) as values. */
-template <typename T>
+export template <typename T>
 struct HalfspaceTriple {
   T a;
   T b;
   T c;
 };
 
-/** @brief Optional-like wrapper for a candidate vertex. */
-template <typename T>
+/** @brief Reduction output: optimum coordinates with a feasibility flag.
+ *
+ *  The @c .feasible flag distinguishes a genuine optimum from an empty
+ *  feasible region — the runtime call site inspects the flag; the NTTP
+ *  call site checks it via @c static_assert in @ref maximize.
+ */
+export template <typename T>
 struct VertexCandidate {
   T x;
   T y;
   bool feasible;
 };
+
+/** @section lp__LP_Reduction_Internals
+ *
+ *  Value-level helpers used by the bridge kernel.  The kernel itself
+ *  (@ref detail::maximize_impl) is one @c constexpr function called from
+ *  both modes — the NTTP entry point @ref maximize_value hands it a
+ *  span over a @c constexpr @c std::array of triples (folds at compile
+ *  time); the runtime entry point @ref maximize_with_values hands it a
+ *  span over a runtime @c std::vector (runs at call time).  Same code
+ *  path, two evaluation modes, selected by the constexpr-ness of the
+ *  arguments at the call site.
+ */
+namespace detail {
 
 /**
  * @brief Carrier-aware singularity predicate on the Cramer determinant.
@@ -194,73 +210,24 @@ constexpr VertexCandidate<T> solve_active_set(const HalfspaceTriple<T>& h1,
 }
 
 /**
- * @brief Feasibility: candidate vertex satisfies every halfspace.
- */
-template <typename T>
-constexpr bool is_feasible(const VertexCandidate<T>& v, const T* halfspaces,
-                           std::size_t n) {
-  if (!v.feasible) return false;
-  for (std::size_t i = 0; i < n; ++i) {
-    const T a = halfspaces[3 * i + 0];
-    const T b = halfspaces[3 * i + 1];
-    const T c = halfspaces[3 * i + 2];
-    if (c < a * v.x + b * v.y) return false;
-  }
-  return true;
-}
-
-/**
  * @brief Argmax over feasible vertex-candidates under the objective
- *        `cx · x + cy · y`. The co-Kleisli argmax on the candidate
+ *        `cx · x + cy · y`.  The co-Kleisli argmax on the candidate
  *        path; returns `{x*, y*, true}` on success, `{0, 0, false}` on
- *        empty feasible set.
- */
-template <typename T, std::size_t N>
-constexpr VertexCandidate<T> maximize_impl(
-    const std::array<HalfspaceTriple<T>, N>& constraints, T cx, T cy) {
-  // Flatten constraints for is_feasible's plain-pointer interface.
-  std::array<T, 3 * N> flat{};
-  for (std::size_t i = 0; i < N; ++i) {
-    flat[3 * i + 0] = constraints[i].a;
-    flat[3 * i + 1] = constraints[i].b;
-    flat[3 * i + 2] = constraints[i].c;
-  }
-
-  VertexCandidate<T> best{T{}, T{}, false};
-  T best_obj{};
-  bool best_set = false;
-
-  for (std::size_t i = 0; i < N; ++i) {
-    for (std::size_t j = i + 1; j < N; ++j) {
-      const auto v = solve_active_set(constraints[i], constraints[j]);
-      if (!is_feasible(v, flat.data(), N)) continue;
-
-      const T obj = cx * v.x + cy * v.y;
-      if (!best_set || best_obj < obj) {
-        best_set = true;
-        best_obj = obj;
-        best = v;
-      }
-    }
-  }
-  return best;
-}
-
-/**
- * @brief Runtime-sized variant of @c maximize_impl: same algorithm, but
- *        the constraint pack arrives as a non-owning view whose size is
- *        only known at run time.  Used by the @c maximize_with_values
- *        entry point that backs the Python binding; the constexpr path
- *        retains its fixed-size @c std::array shape.
+ *        an empty feasible set.
  *
- * @details Feasibility is checked inline against the same view, avoiding
- * the flat-pointer interface used by @c is_feasible (which assumes a
- * contiguous (a, b, c)-tuple layout).  The algorithm and the active-set
- * solver are otherwise identical to the constexpr path; the @c is_singular
- * carrier-aware check still applies via @c solve_active_set.
+ * @details One @c constexpr kernel for both evaluation modes.  Called
+ * with a @c constexpr @c std::span (e.g. from @c maximize_value below,
+ * which materialises the NTTP pack as a fixed-size @c std::array), the
+ * reduction folds at translation time and the optimum collapses to a
+ * typed constant.  Called with a runtime @c std::span (e.g. over a
+ * @c std::vector materialised from a Python list of triples), the same
+ * function runs at runtime — same code path, same active-set
+ * enumeration, same carrier-aware @c is_singular check.  This is the
+ * paper's two-way bridge made literal: one function, two modes,
+ * selection by the constexpr-ness of the arguments at the call site.
  */
 template <typename T>
-VertexCandidate<T> maximize_impl_dynamic(
+constexpr VertexCandidate<T> maximize_impl(
     std::span<const HalfspaceTriple<T>> constraints, T cx, T cy) {
   VertexCandidate<T> best{T{}, T{}, false};
   T best_obj{};
@@ -296,21 +263,25 @@ VertexCandidate<T> maximize_impl_dynamic(
 }  // namespace detail
 
 /**
- * @brief The LP reduction: compute the optimum of `cx · x + cy · y` over
- *        the polytope defined by the halfspace pack, as a constexpr
- *        value-level vertex.
+ * @brief NTTP entry point: optimum as a value-level @c VertexCandidate.
  *
- * Primarily used by `maximize_type` to produce the NTTP output; also
- * usable directly when a `constexpr Vec2V<T>` is all you need. The
- * `.feasible` flag indicates whether the polytope admits any vertex (if
- * false, the polytope is empty).
+ * @details Materialises the NTTP halfspace pack into a @c constexpr
+ * @c std::array of value triples and hands a span to the unified bridge
+ * kernel @ref detail::maximize_impl.  Because both the array and the
+ * kernel call are @c constexpr, the reduction folds at translation time
+ * and the returned candidate is a typed constant.  Used by @ref maximize
+ * to lift the result back to an NTTP @c Vec2<T, x*, y*>.
+ *
+ * The @c .feasible flag indicates whether the polytope admits any
+ * vertex (false ⇒ the polytope is empty).
  */
 export template <typename T, T cx, T cy, typename... Hs>
   requires(sizeof...(Hs) >= 2)
-constexpr detail::VertexCandidate<T> maximize_value() {
-  constexpr std::array<detail::HalfspaceTriple<T>, sizeof...(Hs)> cs = {
-      detail::HalfspaceTriple<T>{Hs::coeff_x, Hs::coeff_y, Hs::bound}...};
-  return detail::maximize_impl(cs, cx, cy);
+constexpr VertexCandidate<T> maximize_value() {
+  constexpr std::array<HalfspaceTriple<T>, sizeof...(Hs)> cs = {
+      HalfspaceTriple<T>{Hs::coeff_x, Hs::coeff_y, Hs::bound}...};
+  return detail::maximize_impl<T>(std::span<const HalfspaceTriple<T>>(cs), cx,
+                                  cy);
 }
 
 /**
@@ -386,70 +357,42 @@ constexpr auto lp_extract(Polytope2D<T, cx, cy, Hs...>) {
   return Polytope2D<T, cx, cy, Hs...>::extract();
 }
 
-/** @section lp__Runtime_Coefficient_Entry_Point
+/** @section lp__The_Bridge
  *
- *  @ref maximize and @ref maximize_value take the polytope as an NTTP
- *  pack: every coefficient is fixed at the type level and the reduction
- *  collapses to a typed constant.  @ref maximize_with_values is the
- *  companion entry point for the case where the polytope's coefficients
- *  arrive at run time — for instance, from a Python script via the
- *  nanobind facade.  The kernel is the same active-set enumeration; only
- *  the carrier of the constraint pack differs (NTTP @c std::array on the
- *  compile-time path, @c std::span on the runtime path).
+ *  @ref maximize_value and @ref maximize_with_values are not two
+ *  reductions.  They are two call sites of @em the same function,
+ *  @ref detail::maximize_impl, which takes a @c std::span<const
+ *  HalfspaceTriple<T>> and a @c (cx, cy) objective and is @c constexpr.
  *
- *  Paired with the NTTP path, the two entry points exhibit the same
- *  polytope through both modes — the bridge in both directions on
- *  identical inputs.
+ *  - @ref maximize_value materialises the NTTP pack into a @c constexpr
+ *    @c std::array and hands its span to the kernel.  Every argument is
+ *    a constant expression, so the call folds at translation time and
+ *    the optimum collapses to a typed constant — used by @ref maximize
+ *    to lift the result back to an NTTP @c Vec2<T, x*, y*>.
+ *
+ *  - @ref maximize_with_values takes a span over runtime data (e.g. a
+ *    @c std::vector populated from a Python list of triples through the
+ *    nanobind facade) and hands it to the same kernel.  The arguments
+ *    are not constant expressions, so the call runs at runtime.
+ *
+ *  Selection between the two evaluation modes is therefore not a kernel
+ *  choice but a property of the call site: the same @c constexpr code
+ *  path serves both, with the compiler folding what it can.  This is the
+ *  paper's two-way bridge between value and type-level evaluation made
+ *  literal — one function, two modes.
  */
 
-/** @brief Halfspace coefficient triple @c (a, b, c) for the runtime
- *  entry point.  Re-exported alias of the internal triple so callers
- *  outside the module can construct argument vectors without naming
- *  the @c detail namespace.
- */
-export template <typename T>
-using HalfspaceCoefficients = detail::HalfspaceTriple<T>;
-
-/** @brief Vertex result from the runtime entry point.  Re-exported alias
- *  of the internal candidate so callers can read out @c (x, y, feasible).
- */
-export template <typename T>
-using VertexResult = detail::VertexCandidate<T>;
-
-/** @brief Runtime-coefficient LP: maximise @c cx*x + cy*y over a
- *  polytope whose halfspaces arrive as values, not as NTTPs.
- *
- *  @details Identical algorithm to @ref maximize_value; the difference
- *  is purely where the polytope lives.  The compile-time path returns
- *  the optimum as a typed constant via NTTPs; the runtime path returns
- *  a @c VertexResult populated at call time.  Both paths route through
- *  the same active-set enumeration (@c detail::solve_active_set), so the
- *  two modes agree on any polytope expressible in both.
- *
- *  @par Feasibility
- *  The @c .feasible flag reports whether the polytope admits any
- *  vertex.  An empty feasible region yields @c {T{}, T{}, false};
- *  unbounded polytopes are not detected by this reduction (same scope
- *  caveat as the NTTP path).
+/** @brief Runtime entry point: hand a value-level constraint span to the
+ *  unified @ref detail::maximize_impl kernel.  Marked @c constexpr so
+ *  the same call folds at compile time when its arguments happen to be
+ *  constant expressions (witnessed by a @c static_assert in the test
+ *  suite); reduces to a runtime call when they are not.
  */
 export template <typename T>
   requires dedekind::algebra::HasRingOperators<T>
-VertexResult<T> maximize_with_values(
-    std::span<const HalfspaceCoefficients<T>> halfspaces, T cx, T cy) {
-  return detail::maximize_impl_dynamic<T>(halfspaces, cx, cy);
-}
-
-/** @brief Overload accepting a @c std::vector by const-reference.  A
- *  convenience for the common Python-binding shape where the caller
- *  materialises the constraint list as a vector before handing it to
- *  the kernel.
- */
-export template <typename T>
-  requires dedekind::algebra::HasRingOperators<T>
-VertexResult<T> maximize_with_values(
-    const std::vector<HalfspaceCoefficients<T>>& halfspaces, T cx, T cy) {
-  return detail::maximize_impl_dynamic<T>(
-      std::span<const HalfspaceCoefficients<T>>(halfspaces), cx, cy);
+constexpr VertexCandidate<T> maximize_with_values(
+    std::span<const HalfspaceTriple<T>> halfspaces, T cx, T cy) {
+  return detail::maximize_impl<T>(halfspaces, cx, cy);
 }
 
 }  // namespace dedekind::optimization

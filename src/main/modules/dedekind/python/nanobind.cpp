@@ -38,6 +38,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <set>
+#include <span>
 #include <string>
 #include <tuple>
 #include <unordered_set>
@@ -46,7 +47,7 @@
 
 import dedekind.analysis; // Dual<F> (relocated from :numbers at PR #513)
 import dedekind.numbers;
-import dedekind.optimization; // maximize_with_values, HalfspaceCoefficients
+import dedekind.optimization; // maximize_with_values, HalfspaceTriple
 import dedekind.python;
 
 namespace nb = nanobind;
@@ -197,25 +198,26 @@ void bind_complex(nb::module_& m) {
       });
 }
 
-// ── 2D LP: runtime-coefficient entry point (dedekind.optimization) ──────
+// ── 2D LP: runtime call site of the bridge kernel (dedekind.optimization) ─
 // The compile-time LP showcase reduces the optimum to a typed constant
-// when every coefficient is fixed at the type level.  This binding is the
-// companion runtime entry point: Python supplies the objective and the
-// halfspace coefficients as values; the same active-set kernel produces
-// the optimum.  Carrier is `double` here — the natural Python float — so
-// the binding is interchange-friendly with NumPy / scipy / Pandas.
+// when every coefficient is fixed at the type level (`maximize_value`).
+// This binding is the runtime call site of the same `constexpr` kernel:
+// Python supplies the objective and halfspaces as values, the kernel
+// runs at runtime.  Carrier is `double` here — the natural Python float
+// — so the binding is interchange-friendly with NumPy / scipy / Pandas.
 
 auto maximize_lp_double(
     std::pair<double, double> objective,
     const std::vector<std::tuple<double, double, double>>& halfspaces)
     -> std::tuple<double, double, bool> {
-  std::vector<dedekind::optimization::HalfspaceCoefficients<double>> coeffs;
+  std::vector<dedekind::optimization::HalfspaceTriple<double>> coeffs;
   coeffs.reserve(halfspaces.size());
   for (const auto& [a, b, c] : halfspaces) {
     coeffs.push_back({a, b, c});
   }
   const auto result = dedekind::optimization::maximize_with_values<double>(
-      coeffs, objective.first, objective.second);
+      std::span<const dedekind::optimization::HalfspaceTriple<double>>(coeffs),
+      objective.first, objective.second);
   return {result.x, result.y, result.feasible};
 }
 

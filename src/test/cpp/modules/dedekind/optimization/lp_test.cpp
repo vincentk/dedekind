@@ -6,7 +6,9 @@
  * active set `{H1, H2}` solved via `Invertible2x2`.
  */
 
+#include <array>
 #include <catch2/catch_test_macros.hpp>
+#include <span>
 #include <vector>
 
 import dedekind.analysis; // Dual<F> (relocated from :numbers at PR #513)
@@ -198,12 +200,48 @@ TEST_CASE(
  * guards against the runtime path being accidentally constant-folded by
  * coincidence.
  */
+/**
+ * @brief Bridge witness: @ref maximize_with_values is one @c constexpr
+ *        function that serves both evaluation modes.
+ *
+ * Called with @c constexpr arguments, the same call folds at translation
+ * time — witnessed here by a @c STATIC_CHECK on the result.  Called with
+ * runtime arguments, the same call runs at runtime (the subsequent
+ * @c TEST_CASE blocks exercise that mode).  Two modes, one function;
+ * selection is a property of the call site, not the API surface.  This
+ * is the bridge the paper's §2 prose names.
+ */
+TEST_CASE(
+    "optimization:lp — bridge witness: maximize_with_values folds when "
+    "its arguments are constexpr (#743)",
+    "[optimization][lp][bridge][centrepiece]") {
+  constexpr std::array<HalfspaceTriple<Rat>, 4> cs = {{
+      {Rat{1L}, Rat{1L}, Rat{4L}},
+      {Rat{2L}, Rat{1L}, Rat{6L}},
+      {Rat{-1L}, Rat{0L}, Rat{0L}},
+      {Rat{0L}, Rat{-1L}, Rat{0L}},
+  }};
+  // The runtime entry point, called with constexpr inputs, must produce
+  // a constant expression: this is the "same function, two modes" claim
+  // checked mechanically rather than by prose.
+  constexpr auto v = maximize_with_values<Rat>(
+      std::span<const HalfspaceTriple<Rat>>(cs), Rat{3L}, Rat{2L});
+  STATIC_CHECK(v.feasible);
+  STATIC_CHECK(v.x == Rat{2L});
+  STATIC_CHECK(v.y == Rat{2L});
+
+  // Parity with the NTTP entry point on the same polytope.
+  constexpr auto nttp = maximize_value<Rat, Rat{3L}, Rat{2L}, H1, H2, H3, H4>();
+  STATIC_CHECK(v.x == nttp.x);
+  STATIC_CHECK(v.y == nttp.y);
+}
+
 TEST_CASE(
     "optimization:lp — runtime-coefficient entry point: "
     "same polytope, value-level inputs, identical optimum (#743)",
     "[optimization][lp][runtime][centrepiece]") {
   // Same instance as the centrepiece above, but values not types.
-  std::vector<HalfspaceCoefficients<Rat>> halfspaces{
+  std::vector<HalfspaceTriple<Rat>> halfspaces{
       {Rat{1L}, Rat{1L}, Rat{4L}},   //  x +  y ≤ 4   (H1)
       {Rat{2L}, Rat{1L}, Rat{6L}},   // 2x +  y ≤ 6   (H2)
       {Rat{-1L}, Rat{0L}, Rat{0L}},  //  x      ≥ 0   (H3)
@@ -231,7 +269,7 @@ TEST_CASE(
   // at the active set {x + 2y = 6, 2x + y = 6}, giving x = y = 2 and
   // objective 4 — distinct from the centrepiece's (2, 2, 10) only in
   // the objective value, so we also check the objective.
-  std::vector<HalfspaceCoefficients<Rat>> halfspaces{
+  std::vector<HalfspaceTriple<Rat>> halfspaces{
       {Rat{1L}, Rat{2L}, Rat{6L}},
       {Rat{2L}, Rat{1L}, Rat{6L}},
       {Rat{-1L}, Rat{0L}, Rat{0L}},
@@ -246,7 +284,7 @@ TEST_CASE(
 
   // A third instance to disambiguate the optimum location too: shrink
   // the bound on the first halfspace so the vertex moves.
-  std::vector<HalfspaceCoefficients<Rat>> shrunk{
+  std::vector<HalfspaceTriple<Rat>> shrunk{
       {Rat{1L}, Rat{2L}, Rat{3L}},
       {Rat{2L}, Rat{1L}, Rat{6L}},
       {Rat{-1L}, Rat{0L}, Rat{0L}},
@@ -267,7 +305,7 @@ TEST_CASE(
   // x ≤ 1 ∧ x ≥ 3: empty feasible region.  The runtime path must report
   // @c !feasible rather than the NTTP path's static_assert failure —
   // Python callers need to inspect the flag at run time.
-  std::vector<HalfspaceCoefficients<Rat>> halfspaces{
+  std::vector<HalfspaceTriple<Rat>> halfspaces{
       {Rat{1L}, Rat{0L}, Rat{1L}},
       {Rat{-1L}, Rat{0L}, Rat{-3L}},
       {Rat{0L}, Rat{1L}, Rat{5L}},
