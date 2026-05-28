@@ -6,8 +6,8 @@
  *
  * @section Description
  * Showcase 9 (`showcase_09_lp_vertex_typed_constant.cpp`) calls
- * `detail::maximize_impl<Rat>` at compile time through the NTTP entry
- * point `maximize_value<Rat, cx, cy, Hs...>()`; the compiler folds the
+ * `detail::maximize_impl<Rat>` at compile time through the NTTP
+ * packaging `maximize<Rat, cx, cy, Hs...>()`; the compiler folds the
  * full active-set enumeration to a typed constant `Vec2<Rat, 2, 2>` and
  * the emitted IR for `witness_lp_optimum_x` is `ret i64 2`.
  *
@@ -23,8 +23,9 @@
  * constexpr-ness of the call site.
  *
  * Carrier is `double` for IR readability; the kernel is carrier-
- * parametric (see `showcase_09_lp_runtime_dual.py` for the same call
- * site instantiated at `T = Dual<double>` for primal + sensitivity).
+ * parametric (see `src/test/python/showcase_09_lp_runtime.py` for the
+ * same call site instantiated at `T = Dual<Rational>` — primal AND
+ * first-order sensitivity, ℚ-exact, the only LP Python binding).
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
