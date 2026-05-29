@@ -214,6 +214,12 @@ add_library(set-pruning-ir-fixture STATIC EXCLUDE_FROM_ALL
     src/test/cpp/modules/dedekind/python/showcase_07_lattice_real_interval.cpp
     src/test/cpp/modules/dedekind/python/showcase_08_halfspace_2d_product.cpp
     src/test/cpp/modules/dedekind/python/showcase_09_lp_vertex_typed_constant.cpp
+    # showcase_09b is the runtime call site of the same kernel as 09:
+    # the coefficients arrive as runtime arguments, the IR retains the
+    # algorithm's residual structure.  Read side-by-side with 09's
+    # `ret i64 2` IR, this exhibits the bridge in IR form — one
+    # constexpr kernel, two evaluation modes selected by the call site.
+    src/test/cpp/modules/dedekind/python/showcase_09b_lp_runtime_residual.cpp
     # showcase_10_image_intensional_naturals.cpp is added for compile-time
     # validation of the layer-1 image overload on intensional Sets (#602 / #631);
     # it has no checked-in `.ll` fixture because its IR demo

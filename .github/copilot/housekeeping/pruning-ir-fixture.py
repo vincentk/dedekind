@@ -59,6 +59,17 @@ SOURCES = [
         _PYTHON_DIR / "showcase_09_lp_vertex_typed_constant.cpp",
         _PYTHON_DIR / "showcase_09_lp_vertex_typed_constant.ll",
     ),
+    # showcase_09b is the runtime counterpart of showcase_09: the same
+    # active-set kernel called through `maximize_with_values<double>(span, …)`
+    # with coefficients as function arguments.  Unlike showcase_09's
+    # `ret i64 2`, the body cannot fold — its semantic_sanity check below
+    # asserts that the Cramer 2×2 solve (`fdiv double`) and the loop
+    # accumulators (`phi`) survive into IR.  This guards against optimizer
+    # regressions that would silently fold what the paper claims is residual.
+    (
+        _PYTHON_DIR / "showcase_09b_lp_runtime_residual.cpp",
+        _PYTHON_DIR / "showcase_09b_lp_runtime_residual.ll",
+    ),
 ]
 
 # Keep single-source aliases for backward compatibility with any callers.
@@ -253,6 +264,46 @@ def semantic_sanity(ir_text: str, source: Path) -> None:
                 raise AssertionError(
                     f"Expected {symbol} to collapse to `ret i64 2` in IR "
                     "(the optimum is the typed constant Vec2<Rat, 2, 2>)."
+                )
+    elif "showcase_09b_lp_runtime_residual" in name:
+        # The runtime counterpart of showcase_09: the same active-set
+        # kernel called through `maximize_with_values<double>(span, cx, cy)`
+        # with coefficients as function arguments.  Unlike showcase_09's
+        # `ret i64 2`, the body cannot fold — every coefficient is runtime
+        # data — so the algorithm's residual structure must survive into IR.
+        # The paired contrast (folded vs. residual on the same kernel) is
+        # the bridge claim made mechanically; these assertions guard it
+        # against optimizer drift that would silently invert the contrast.
+        for symbol in (
+            "witness_lp_runtime_x",
+            "witness_lp_runtime_y",
+            "witness_lp_runtime_feasible",
+        ):
+            block = extract_function_block(ir_text, symbol)
+            if block is None:
+                raise AssertionError(f"IR missing {symbol} symbol.")
+            # Residual Cramer 2x2 solve: two `fdiv double` (x* and y*
+            # numerators divided by the active-set determinant).
+            if "fdiv double" not in block:
+                raise AssertionError(
+                    f"{symbol}: expected residual `fdiv double` from the "
+                    "Cramer 2x2 solve to survive in IR — its absence would "
+                    "mean the runtime kernel was accidentally constant-folded."
+                )
+            # Residual loop / argmax structure: the outer C(n,2) enumeration
+            # and the argmax accumulator survive as `phi` nodes.
+            if "phi" not in block:
+                raise AssertionError(
+                    f"{symbol}: expected residual `phi` nodes (loop "
+                    "counters / argmax accumulators) to survive in IR — "
+                    "their absence would mean the loops were eliminated."
+                )
+            # Residual FMA arithmetic: the 2x2 determinant and the
+            # objective `cx*x + cy*y` go through `llvm.fmuladd.f64`.
+            if "fmuladd" not in block:
+                raise AssertionError(
+                    f"{symbol}: expected `llvm.fmuladd.f64` (Cramer "
+                    "determinant + objective FMA) to survive in IR."
                 )
     else:
         raise AssertionError(f"No semantic checks defined for {name}.")
