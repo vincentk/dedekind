@@ -422,9 +422,14 @@ constexpr auto lp_extract(Polytope2D<T, cx, cy, Hs...>) {
 export template <typename T, T a, T b, T c>
 struct Halfspace2DPredicate {
   using Domain = dedekind::linear_algebra::Vec2V<T>;
-  // Countable: ℚ² is countable, so a halfspace over Vec2V<Rat> sits at
-  // ℵ_0 — matches `Set`'s own default and feeds the `Set::operator&`
-  // dispatch on `cardinality_type` cleanly.
+  // `cardinality_type` here matches `Set`'s own default (`ℵ_0`) so the
+  // `Set::operator&` dispatch on `requires { typename Result::cardinality_type;
+  // }` resolves cleanly without substitution failure when the structured result
+  // is wrapped back into a Set.  The tag is a typed defaulting choice for the
+  // DSL dispatch, NOT a paper claim about the cardinality of `Vec2V<T>` for
+  // arbitrary `T` (e.g. uncountable for `T = double`); sharper carrier-axis
+  // bounds (#622) are tracked through the
+  // `:sets:cardinality` ladder rather than at the predicate site.
   using cardinality_type = dedekind::sets::ℵ_0;
 
   constexpr bool operator()(const Domain& p) const {

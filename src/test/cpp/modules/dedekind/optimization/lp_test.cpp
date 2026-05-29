@@ -146,8 +146,10 @@ TEST_CASE("optimization:lp — axis-aligned corner is pruned away",
  *   U : F → ℚ            -- `LinearFunctional` carrying (3, 2) at the
  *                           type level.
  *   G ⊆ F                -- the meet `halfspace_set(H1{}) & ... &
- * halfspace_set(H4{})`, where `halfspace_set` lifts each NTTP halfspace into a
- * `Set<Vec2V<Rat>, ClassicalLogic, Halfspace2DPredicate<Rat, ...>>` and `&`
+ *                           halfspace_set(H4{})`, where `halfspace_set`
+ *                           lifts each NTTP halfspace into a Set
+ *                           `Set<Vec2V<Rat>, ClassicalLogic,
+ *                            Halfspace2DPredicate<Rat, ...>>` and `&`
  *                           routes through `:expressions::Set::operator&` →
  *                           `structured_and` (ADL on our overloads in
  *                           `:optimization`) → a Set whose predicate IS
