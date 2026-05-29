@@ -433,7 +433,7 @@ struct Halfspace2DPredicate {
   using cardinality_type = dedekind::sets::ℵ_0;
 
   constexpr bool operator()(const Domain& p) const {
-    return !(c < a * p.x + b * p.y);
+    return Halfspace2D<T, a, b, c>::contains_value(p.x, p.y);
   }
 };
 
@@ -504,6 +504,17 @@ export template <typename T, T a, T b, T c, typename... Hs>
 constexpr auto structured_and(Halfspace2DPredicate<T, a, b, c>,
                               Polytope2DPredicate<T, Hs...>) {
   return Polytope2DPredicate<T, Halfspace2D<T, a, b, c>, Hs...>{};
+}
+
+/** @brief Polytope + polytope → concatenate the halfspace packs.  Without
+ *  this overload, a right-associative meet `(H1 & H2) & (H3 & H4)` would
+ *  fall through to the lambda meet in @c :expressions::Set::operator& ;
+ *  the whole point of @c structured_and is that the structural collapse
+ *  must not depend on how the source bracketed the meet. */
+export template <typename T, typename... Hs1, typename... Hs2>
+constexpr auto structured_and(Polytope2DPredicate<T, Hs1...>,
+                              Polytope2DPredicate<T, Hs2...>) {
+  return Polytope2DPredicate<T, Hs1..., Hs2...>{};
 }
 
 /** @brief Linear functional `U : F → T` with NTTP-typed coefficients.

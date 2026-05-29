@@ -210,6 +210,16 @@ TEST_CASE(
   // Negative witnesses through the Set DSL contract.
   STATIC_CHECK_FALSE(G.contains(F{Rat{3L}, Rat{3L}}));   // x + y = 6 > 4
   STATIC_CHECK_FALSE(G.contains(F{Rat{-1L}, Rat{0L}}));  // x < 0
+
+  // Bracketing invariance: `(H1 & H2) & (H3 & H4)` (polytope × polytope)
+  // must collapse to the same `Polytope2DPredicate` as the left-folded
+  // form above.  Without the polytope × polytope `structured_and`
+  // overload, the Set DSL would fall through to a lambda meet here and
+  // `decltype(G2)` would not match — so the static_assert is the
+  // mechanical guard against that regression.
+  constexpr auto G2 = (halfspace_set(H1{}) & halfspace_set(H2{})) &
+                      (halfspace_set(H3{}) & halfspace_set(H4{}));
+  static_assert(std::same_as<decltype(G2), decltype(G)>);
 }
 
 TEST_CASE("optimization:lp — infeasible polytope reports no optimum",
