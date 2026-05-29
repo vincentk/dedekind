@@ -422,14 +422,32 @@ constexpr auto lp_extract(Polytope2D<T, cx, cy, Hs...>) {
 export template <typename T, T a, T b, T c>
 struct Halfspace2DPredicate {
   using Domain = dedekind::linear_algebra::Vec2V<T>;
-  // `cardinality_type` here matches `Set`'s own default (`ℵ_0`) so the
-  // `Set::operator&` dispatch on `requires { typename Result::cardinality_type;
-  // }` resolves cleanly without substitution failure when the structured result
-  // is wrapped back into a Set.  The tag is a typed defaulting choice for the
-  // DSL dispatch, NOT a paper claim about the cardinality of `Vec2V<T>` for
-  // arbitrary `T` (e.g. uncountable for `T = double`); sharper carrier-axis
-  // bounds (#622) are tracked through the
-  // `:sets:cardinality` ladder rather than at the predicate site.
+  // `cardinality_type` here serves @em two purposes for the
+  // `:expressions::Set::operator&` dispatch on the structured result
+  // (see `:expressions::expressions.cppm:708-715`):
+  //
+  //   1. Required for substitution well-formedness.  The Finite-elevation
+  //      branch is spelled
+  //          `requires { typename Result::cardinality_type; } &&
+  //           std::same_as<typename Result::cardinality_type, Finite>`
+  //      and the `&&` short-circuits at @em evaluation but NOT at
+  //      @em substitution: the `std::same_as<typename Result::…, Finite>`
+  //      operand is type-checked regardless of the `requires`'s truth
+  //      value.  Empirically: removing this typedef yields a hard
+  //      `no type named 'cardinality_type'` error at that line.
+  //      (FIXME on the `:expressions` side: lift the second clause into a
+  //      nested `if constexpr` so the requires guard is sufficient on its
+  //      own.)
+  //   2. Classification: matches `Set`'s own default (`ℵ_0`) so the
+  //      structured polytope ends up wrapped via the generic
+  //      `Set<T, L, Result>{…}` path rather than elevated as a Finite
+  //      result.  The right answer for the 2D polytope case.
+  //
+  // The `ℵ_0` tag is a typed defaulting choice for the DSL dispatch —
+  // NOT a paper claim about the cardinality of `Vec2V<T>` for arbitrary
+  // `T` (e.g. uncountable for `T = double`); sharper carrier-axis bounds
+  // (#622) belong on the `:sets:cardinality` ladder, not at the predicate
+  // site.
   using cardinality_type = dedekind::sets::ℵ_0;
 
   constexpr bool operator()(const Domain& p) const {
@@ -445,10 +463,13 @@ struct Halfspace2DPredicate {
 export template <typename T, typename... Hs>
 struct Polytope2DPredicate {
   using Domain = dedekind::linear_algebra::Vec2V<T>;
-  // Same typed-defaulting rationale as @ref Halfspace2DPredicate :
-  // matches `Set`'s own default so the `Set::operator&` dispatch on
-  // `cardinality_type` resolves cleanly; not a paper claim about the
-  // cardinality of `Vec2V<T>` for arbitrary `T`.
+  // Same typed-defaulting rationale as @ref Halfspace2DPredicate (1)
+  // substitution well-formedness for `:expressions::Set::operator&`'s
+  // Finite-elevation branch (which references `Result::cardinality_type`
+  // outside a `requires` guard, so the typedef must exist for the body
+  // to type-check), and (2) classification — `ℵ_0` routes the structured
+  // polytope through the generic Set wrapping path.  Not a paper claim
+  // about the cardinality of `Vec2V<T>` for arbitrary `T`.
   using cardinality_type = dedekind::sets::ℵ_0;
 
   constexpr bool operator()(const Domain& p) const {
