@@ -12,6 +12,7 @@
 #include <vector>
 
 import dedekind.analysis; // Dual<F> (relocated from :numbers at PR #513)
+import dedekind.category; // ClassicalLogic — Set's logic species (#747)
 import dedekind.linear_algebra;
 import dedekind.numbers;
 import dedekind.optimization;
@@ -136,75 +137,75 @@ TEST_CASE("optimization:lp — axis-aligned corner is pruned away",
 }
 
 /**
- * @brief Structural bridge: the §5 LP in the textbook frame
+ * @brief Set DSL bridge (§3 ↔ §5): the §5 LP in the textbook frame
  *        ` F : ℚ×ℚ, U : F → ℚ, G ⊆ F, opt = argmax(G, U) `,
- *        with G as a structurally-typed meet of halfspaces.
+ *        with G a real `:expressions::Set` whose predicate carries the
+ *        halfspace pack at the type level (#747).
  *
  *   F = ℚ × ℚ            -- ambient field, operationally `Vec2V<Rat>`.
  *   U : F → ℚ            -- `LinearFunctional` carrying (3, 2) at the
  *                           type level.
- *   G ⊆ F                -- `halfspace_set(H1{}) & halfspace_set(H2{})
- *                           & halfspace_set(H3{}) & halfspace_set(H4{})`.
- *                           G's *type* IS
- *                           `Polytope2DSet<Rat, H1, H2, H3, H4>`,
- *                           carrying the halfspace pack at the type
- *                           level.  The `&` operator here is the
- *                           structural meet defined in `:optimization` —
- *                           shape-compatible with the `:expressions`
- *                           Set DSL surface, NOT actually a Set DSL
- *                           participant (see lp__Structural_Slice in
- *                           lp.cppm and #747).
- *   opt = argmax(G, U)   -- combinator that extracts G's pack from the
- *                           type, U's coefficients from its NTTPs, and
- *                           dispatches to the kernel.  Returns the
+ *   G ⊆ F                -- the meet `halfspace_set(H1{}) & ... &
+ * halfspace_set(H4{})`, where `halfspace_set` lifts each NTTP halfspace into a
+ * `Set<Vec2V<Rat>, ClassicalLogic, Halfspace2DPredicate<Rat, ...>>` and `&`
+ *                           routes through `:expressions::Set::operator&` →
+ *                           `structured_and` (ADL on our overloads in
+ *                           `:optimization`) → a Set whose predicate IS
+ *                           `Polytope2DPredicate<Rat, H1, H2, H3, H4>`.
+ *                           Closes FIXME(#365) for the 2D-halfspace case:
+ *                           the meet is a structural reduction, not a
+ *                           lambda fall-through.
+ *   opt = argmax(G, U)   -- combinator that extracts the halfspace pack
+ *                           from G's `Polytope2DPredicate` and U's
+ *                           NTTPs, dispatches to `maximize`, returns the
  *                           typed constant `Vec2<Rat, Rat{2L}, Rat{2L}>`.
  *
- * The bridge this exhibit supports is the *structural* one: G's *type*
- * IS the polytope's combinatorial data, so `argmax` can dispatch on it
- * without re-extracting halfspaces from a closure body.  The stronger
- * §3 ↔ §5 claim — that the @c :expressions Set DSL infrastructure
- * (Lawvere comprehension over @c Set<T, L, P>) does the work — requires
- * lifting these carriers into actual @c Set<...> instances with a
- * structural @c Halfspace2DPredicate ; tracked in #747.
+ * Every step in the textbook frame is realised through a real Set DSL
+ * object: G is a `:expressions::Set` instance, the meet goes through
+ * `Set::operator&`, the predicate carries the structure.  The §3
+ * comprehension View does the work for §5; the kernel itself is
+ * untouched.
  */
 TEST_CASE(
-    "optimization:lp — structural bridge: F = ℚ×ℚ, U : F → ℚ, "
-    "G = H1 & H2 & H3 & H4, opt = argmax(G, U) = Vec2<Rat, 2, 2> (#743)",
-    "[optimization][lp][structural][bridge][centrepiece]") {
-  // F = ℚ × ℚ.  Operationally `Vec2V<Rat>`.
+    "optimization:lp — Set DSL bridge: G = H1 & H2 & H3 & H4 as "
+    "Set<Vec2V<Rat>, ClassicalLogic, Polytope2DPredicate<...>>, "
+    "opt = argmax(G, U) = Vec2<Rat, 2, 2> (#747)",
+    "[optimization][lp][dsl][bridge][centrepiece]") {
   using F = dedekind::linear_algebra::Vec2V<Rat>;
   static_assert(F::dimension == 2);
   static_assert(std::same_as<typename F::scalar_type, Rat>);
 
-  // U : F → ℚ.  Linear functional carrying the §5 objective (3, 2) at
-  // the type level so `argmax` can route its coefficients into the
-  // NTTP-driven kernel without smuggling them through function params.
+  // U : F → ℚ.
   constexpr LinearFunctional<Rat, Rat{3L}, Rat{2L}> U{};
 
-  // G ⊆ F.  Structurally-typed meet of four halfspaces: `decltype(G)`
-  // IS `Polytope2DSet<Rat, H1, H2, H3, H4>`, carrying the pack at the
-  // type level.  The `&` here is the one in `:optimization`, not
-  // `:expressions::Set::operator&` — see lp__Structural_Slice for the
-  // honest read on what is and is not Set DSL participation.
+  // G ⊆ F.  The meet of four halfspace-Sets goes through
+  // `:expressions::Set::operator&`, which discovers our
+  // `structured_and` overloads via ADL on `Halfspace2DPredicate` /
+  // `Polytope2DPredicate` and reduces structurally.
   constexpr auto G = halfspace_set(H1{}) & halfspace_set(H2{}) &
                      halfspace_set(H3{}) & halfspace_set(H4{});
-  static_assert(
-      std::same_as<decltype(G), const Polytope2DSet<Rat, H1, H2, H3, H4>>);
 
-  // argmax(G, U).  The combinator extracts the halfspace pack from G's
-  // type, the (cx, cy) from U's NTTPs, dispatches to `maximize`, and
-  // returns the optimum as the typed constant.
+  // `decltype(G)` IS a real `:expressions::Set` instance — the §3 DSL —
+  // whose predicate carries the halfspace pack at the type level.  This
+  // is what closes FIXME(#365) for the 2D-halfspace case: not a lambda,
+  // a structural predicate.
+  using ExpectedG =
+      dedekind::sets::Set<F, dedekind::category::ClassicalLogic,
+                          Polytope2DPredicate<Rat, H1, H2, H3, H4>>;
+  static_assert(std::same_as<decltype(G), const ExpectedG>);
+
+  // argmax(G, U).  Extracts the halfspace pack from G's predicate and
+  // (cx, cy) from U's NTTPs; dispatches to `maximize`.
   constexpr auto opt = argmax(G, U);
   static_assert(std::same_as<decltype(opt), const Vec2<Rat, Rat{2L}, Rat{2L}>>);
 
-  // The witnesses: the kernel's answer lies in G (pointwise `.contains`
-  // on the structurally-typed carrier), and U evaluates to the textbook
-  // value 10 on it.
+  // The witnesses: opt ∈ G via the Set DSL's `contains`; U(opt) is the
+  // textbook value 10.  Everything decided at translation time.
   constexpr F opt_v{opt.first, opt.second};
   STATIC_CHECK(G.contains(opt_v));
   STATIC_CHECK(U(opt_v) == Rat{10L});
 
-  // Negative witnesses on the structurally-typed carrier.
+  // Negative witnesses through the Set DSL contract.
   STATIC_CHECK_FALSE(G.contains(F{Rat{3L}, Rat{3L}}));   // x + y = 6 > 4
   STATIC_CHECK_FALSE(G.contains(F{Rat{-1L}, Rat{0L}}));  // x < 0
 }
