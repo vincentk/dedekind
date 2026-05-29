@@ -445,6 +445,10 @@ struct Halfspace2DPredicate {
 export template <typename T, typename... Hs>
 struct Polytope2DPredicate {
   using Domain = dedekind::linear_algebra::Vec2V<T>;
+  // Same typed-defaulting rationale as @ref Halfspace2DPredicate :
+  // matches `Set`'s own default so the `Set::operator&` dispatch on
+  // `cardinality_type` resolves cleanly; not a paper claim about the
+  // cardinality of `Vec2V<T>` for arbitrary `T`.
   using cardinality_type = dedekind::sets::ℵ_0;
 
   constexpr bool operator()(const Domain& p) const {
