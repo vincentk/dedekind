@@ -220,6 +220,21 @@ add_library(set-pruning-ir-fixture STATIC EXCLUDE_FROM_ALL
     # `ret i64 2` IR, this exhibits the bridge in IR form — one
     # constexpr kernel, two evaluation modes selected by the call site.
     src/test/cpp/modules/dedekind/python/showcase_09b_lp_runtime_residual.cpp
+    # showcase_12 is the compile-time NTTP form of the bit-ops fast path
+    # (signed-unimodular + axis-aligned pack — the unit square).  The
+    # NTTP entry maximize<>() dispatches to detail::maximize_impl_axis_aligned
+    # under that gate and the fold collapses to a typed constant
+    # `Vec2<Rat, 1, 1>`; witness IR is `ret i64 1`.  Middle panel of the
+    # §5 triptych (compile-time fast path); showcase_09 holds the
+    # generic Cramer compile-time panel.
+    src/test/cpp/modules/dedekind/python/showcase_12_lp_unimodular_fast_path.cpp
+    # showcase_12b is the runtime call site of the fast-path kernel
+    # (carrier `int` for IR readability).  Read side-by-side with
+    # showcase_09b (generic Cramer runtime: MUL, DIV, full active-set
+    # enumeration) and showcase_12 (compile-time fold), this is the
+    # third panel of the §5 triptych: bit-ops IR on an axis-aligned
+    # signed-unimodular pack, with MUL and DIV absent on the carrier.
+    src/test/cpp/modules/dedekind/python/showcase_12b_lp_unimodular_runtime.cpp
     # showcase_10_image_intensional_naturals.cpp is added for compile-time
     # validation of the layer-1 image overload on intensional Sets (#602 / #631);
     # it has no checked-in `.ll` fixture because its IR demo
