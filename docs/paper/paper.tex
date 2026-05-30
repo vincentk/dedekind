@@ -122,16 +122,18 @@
 \newcommand{\bind}{\mathbin{>\!\!>\mkern-6.7mu=}}
 
 % --- Document Metadata ---
-\title{Rules on Buckets are Set:\\
-  Intensional Programming in C++23 via \texttt{dedekind}\thanks{%
+\title{Compile-Time Linear Programming via the Juliet Posture\thanks{%
     Draft intended for submission to \emph{Programming}~\cite{programming_journal},
     the journal for programming-related research.
     The paper's scope is deliberately narrower than the companion project
-    report: this document focuses on the sets-as-predicates thesis and
-    compile-time structural pruning; the broader library (categorical
-    foundations, algebra tower, numeric tower, geometry, linear algebra,
-    morphologies, Python facade) is documented in the companion Report
-    distributed alongside the source tree.}}
+    report: this document focuses on the compile-time treatment of small
+    linear programs under the disciplined fragment of C++23 described
+    here.
+    The implementation is open source as \texttt{dedekind}~\cite{dedekind2026};
+    the broader library (categorical foundations, algebra tower, numeric
+    tower, geometry, linear algebra, morphologies, Python facade) is
+    documented in the companion Report distributed alongside the source
+    tree.}}
 \author{The \texttt{dedekind} Authors}
 \date{\today}
 
@@ -140,51 +142,13 @@
 \maketitle
 
 \begin{abstract}
-\noindent\emph{Named algebraic structure at the type level, discharged
-by the compiler, narrows the gap between abstract mathematics and
-machine code without a separate proof assistant.} The underlying
-theory is not new---ETCS~\cite{lawvere1964etcs}, Wadler's
-parametricity and propositions-as-types
-reading~\cite{wadler1989theorems,wadler2015propositions}, and
-proof-assistant-grounded formalisation in Coq, Agda, and Lean have
-been studied for decades. What is new is the \emph{cost-benefit
-calculus}: modern transformer-based coding assistants substantially
-compress the time and expertise needed to author opt-in trait
-specialisations, axiom-shape concepts, and the surrounding library
-scaffolding, turning what was an academic specialism into an
-actionable workflow for working software engineers.
-The meta-claim is not ours to originate; we make it here so the body's executable exhibit can be read in that light, and the §\ref{sec:acknowledgements} disclosure documents how the calculus actually shifted on this paper specifically (which tools, which tasks, what oversight pattern).
-
-We present \texttt{dedekind}~\cite{dedekind2026}, an
-open-source C++23 library (Apache-2.0), as that exhibit. It embeds
-formal set-theoretic and categorical structures directly into the
-type system and targets \emph{mainstream C++23}---concepts,
-non-type template parameters, named modules---rather than a research
-compiler. The design rule is \emph{intensional first, realize when
-you mean it}: a set is represented as a predicate $P : A \to \Omega$
-over an ambient carrier type $A$, not as a heap-allocated container, with
-two practical consequences:
-\begin{itemize}
-  \item Set operations (intersection, complement, union) compose as
-        predicate combinators at compile time, enabling the
-        \textsc{llvm} backend to perform \emph{structural pruning}:
-        logically empty intersections collapse into zero-instruction
-        machine code.
-  \item Numeric realisation is deferred to explicit boundaries,
-        cleanly separating abstract algebraic reasoning (e.g.\ over
-        the naturals $\mathbb{N}$) from hardware-constrained IEEE~754
-        floating-point~\cite{ieee754_2019} semantics.
-\end{itemize}
-The paper identifies \emph{Axiomatic Systems Programming} as a
-nascent paradigm in which the compiler is a structural gate, not a
-theorem prover, and demonstrates the discipline through a textbook
-linear-programming instance that reduces at compile time to its
-optimal vertex as a typed constant; the same reduction over a
-dual-number ring additionally recovers forward-mode automatic
-differentiation~\cite{elliott2018simple} as a sibling compile-time
-collapse.
-
-\noindent A subsidiary observation we offer alongside: working in the disciplined subset of C++23 the paper develops carries a striking resemblance, by structural analogy (§\ref{sec:jlt}), to using \texttt{clang++} as a System~F type-checker, with optimised machine code emerging as a side effect rather than from a separate compilation step.  We name the resemblance because the body's exhibits invite it; a formal correspondence is not in scope.
+\noindent Optimization problems are pervasive in scientific and engineering computation.
+A compile-time treatment of the closely related task of differentiation is well established via automatic differentiation~\cite{elliott2018simple}.
+An analogous treatment of small linear programs, in which structural verification is discharged by the type checker rather than by runtime guards, is reported below.
+A structurally-typed fragment of C++23 --- termed the \emph{Juliet Posture} --- was assembled from \cppinline{constexpr} evaluation, concepts, and template instantiation, and was characterised under a System~F reading of the underlying type system.
+A parametric two-dimensional linear program was implemented and the resulting code was found to compile to three qualitatively distinct intermediate representations across families of inputs: a signed-unimodular fast path expressed in bitwise operations, a generic implementation of Cramer's rule, and a \cppinline{static_assert} refusal for infeasible inputs.
+The same template was found to be instantiable both at compile time and at runtime from a single source.
+Within the scope of this exhibit, structural information available at the type level was found to license ahead-of-time analysis (constant folding, dead-code elimination, refusal to emit code) in place of the corresponding runtime computation.
 \end{abstract}
 
 % Table of contents is just a convenience during editing. It will be removed before submission.
