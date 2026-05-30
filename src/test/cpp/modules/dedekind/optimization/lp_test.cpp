@@ -116,6 +116,45 @@ TEST_CASE("optimization:lp — bit-ops fast-path triptych dispatch (#749)",
 }
 
 TEST_CASE(
+    "optimization:lp — triptych: one NTTP entry routes three regimes (#749)",
+    "[optimization][lp][triptych][routing]") {
+  // The §5 abstract claim: one parametric template @c maximize<T,cx,cy,Hs...>
+  // routes to three qualitatively distinct compile-time outcomes across
+  // families of inputs.  This test pins the routing mechanically.
+  //
+  //   regime  | pack                       | dispatch branch
+  //   --------+----------------------------+----------------
+  //   fast    | unit square (U1..U4)       | bit-ops fast path
+  //   generic | §5 polytope (H1..H4)       | Cramer fold
+  //   refusal | empty x-interval           | static_assert at @ref maximize
+  //                                          (the .fail.cpp form is deferred;
+  //                                          the runtime collapse is the
+  //                                          [refusal]-tagged TEST_CASE below)
+  using U1 = Halfspace2D<Rat, Rat{1L}, Rat{0L}, Rat{1L}>;
+  using U2 = Halfspace2D<Rat, Rat{0L}, Rat{1L}, Rat{1L}>;
+  using U3 = Halfspace2D<Rat, Rat{-1L}, Rat{0L}, Rat{0L}>;
+  using U4 = Halfspace2D<Rat, Rat{0L}, Rat{-1L}, Rat{0L}>;
+
+  // Fast-path regime: NTTP entry dispatches via @c if @c constexpr to the
+  // axis-aligned bit-ops kernel.  Same @c maximize template, same call
+  // site shape; the only thing that changes is the halfspace pack.
+  using FastOpt = decltype(maximize<Rat, Rat{1L}, Rat{1L}, U1, U2, U3, U4>());
+  STATIC_CHECK(std::same_as<FastOpt, Vec2<Rat, Rat{1L}, Rat{1L}>>);
+
+  // Generic regime: same NTTP entry, different pack — Cramer fold.
+  using GenericOpt =
+      decltype(maximize<Rat, Rat{3L}, Rat{2L}, H1, H2, H3, H4>());
+  STATIC_CHECK(std::same_as<GenericOpt, Vec2<Rat, Rat{2L}, Rat{2L}>>);
+
+  // Routing witnesses: the dispatch gate evaluates differently for the
+  // two packs, which is what causes the two regimes to fire.
+  STATIC_CHECK(IsSignedUnimodular<U1, U2, U3, U4> &&
+               IsAxisAlignedPolytope<U1, U2, U3, U4>);
+  STATIC_CHECK_FALSE(IsSignedUnimodular<H1, H2, H3, H4> &&
+                     IsAxisAlignedPolytope<H1, H2, H3, H4>);
+}
+
+TEST_CASE(
     "optimization:lp — triptych refusal: infeasible axis-aligned pack (#749)",
     "[optimization][lp][triptych][refusal]") {
   // Empty feasible region: x ≤ 0 ∧ x ≥ 1 ∧ 0 ≤ y ≤ 1.  The NTTP entry
