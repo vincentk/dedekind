@@ -50,6 +50,23 @@ TEST_CASE("optimization:lp — Halfspace2D membership at the type level",
   STATIC_CHECK_FALSE(H1::template contains<Rat{3L}, Rat{3L}>());  // exterior
 }
 
+TEST_CASE("optimization:lp — IsSignedUnimodular structural classifier (#749)",
+          "[optimization][lp][triptych][signed-unimodular]") {
+  // The unit-square pack: maximize x + y s.t. 0 ≤ x ≤ 1, 0 ≤ y ≤ 1.
+  // All entries in {−1, 0, +1}: classifier holds.
+  using U1 = Halfspace2D<Rat, Rat{1L}, Rat{0L}, Rat{1L}>;   //  x ≤ 1
+  using U2 = Halfspace2D<Rat, Rat{0L}, Rat{1L}, Rat{1L}>;   //  y ≤ 1
+  using U3 = Halfspace2D<Rat, Rat{-1L}, Rat{0L}, Rat{0L}>;  // -x ≤ 0
+  using U4 = Halfspace2D<Rat, Rat{0L}, Rat{-1L}, Rat{0L}>;  // -y ≤ 0
+  STATIC_CHECK(IsSignedUnimodular<U1, U2, U3, U4>);
+
+  // The §5 polytope: H2 has coeff_x = 2, so the classifier fails.
+  STATIC_CHECK_FALSE(IsSignedUnimodular<H1, H2, H3, H4>);
+
+  // Dropping the offending halfspace recovers the classifier.
+  STATIC_CHECK(IsSignedUnimodular<H1, H3, H4>);
+}
+
 TEST_CASE("optimization:lp — Polytope2D + lp_extract comonadic counit (#388)",
           "[optimization][lp][comonad][counit]") {
   // The polytope context (cx, cy, Hs...) reified as a type, with the

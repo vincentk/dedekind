@@ -120,6 +120,47 @@ struct Halfspace2D {
   }
 };
 
+/** @section lp__Structural_Classifiers
+ *
+ *  Structural properties of halfspace packs that the @ref maximize NTTP
+ *  entry uses to dispatch among the §5 triptych: the signed-unimodular
+ *  fast path, the generic Cramer fold, and the @c static_assert refusal
+ *  for infeasible packs.  Algebraic gates over the halfspace family —
+ *  the dispatch is driven by what the constraints @em are, not by what
+ *  the call site says they should be.
+ */
+namespace detail {
+
+/** @brief Per-halfspace check: @c (coeff_x, coeff_y) ∈ {−1, 0, +1}². */
+template <typename H>
+constexpr bool entries_in_unit_range_v =
+    (H::coeff_x == typename H::scalar_type{-1} ||
+     H::coeff_x == typename H::scalar_type{} ||
+     H::coeff_x == typename H::scalar_type{1}) &&
+    (H::coeff_y == typename H::scalar_type{-1} ||
+     H::coeff_y == typename H::scalar_type{} ||
+     H::coeff_y == typename H::scalar_type{1});
+
+}  // namespace detail
+
+/** @brief Pack-level concept: every halfspace has entries in {−1, 0, +1}.
+ *
+ *  @details Necessary structural condition for the bit-ops fast path in
+ *  @ref maximize : when every halfspace in the pack carries
+ *  @c (coeff_x, coeff_y) ∈ {−1, 0, +1}², the active-set 2×2
+ *  determinants live in {−2, −1, 0, +1, +2} and the matrix entries
+ *  themselves collapse multiplications to additions, subtractions, and
+ *  sign flips at the IR level.  Every signed-unimodular pack the §5
+ *  exhibit ships further satisfies pairwise @c |det| ∈ {0, 1}, which
+ *  takes the fast-path division to a no-op; a pairwise sharpening of
+ *  the gate is a candidate refinement when a workload turns up
+ *  unit-range entries with @c |det| ∈ {1, 2} active-set determinants.
+ *
+ *  Algebraic gate per `feedback_algebraic_over_architectural_constraints`.
+ */
+export template <typename... Hs>
+concept IsSignedUnimodular = (detail::entries_in_unit_range_v<Hs> && ...);
+
 /** @brief Value-level halfspace carrier @c (a, b, c) for the bridge
  *  kernel.  Paired with the NTTP carrier @ref Halfspace2D: an instance
  *  of @c Halfspace2D<T, a, b, c> destructures into a @c HalfspaceTriple
