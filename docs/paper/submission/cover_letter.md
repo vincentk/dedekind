@@ -2,7 +2,7 @@
 
 Dear Editors,
 
-We submit *Rules on Buckets are Set* for consideration in
+We submit *Compile-Time Linear Programming via the Juliet Posture* for consideration in
 *Programming*.  The paper introduces the `dedekind` library, which
 leverages C++23's concepts and non-type template parameters to
 embed formal categorical structures into the type system at
