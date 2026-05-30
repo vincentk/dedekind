@@ -67,6 +67,54 @@ TEST_CASE("optimization:lp — IsSignedUnimodular structural classifier (#749)",
   STATIC_CHECK(IsSignedUnimodular<H1, H3, H4>);
 }
 
+TEST_CASE(
+    "optimization:lp — IsAxisAlignedPolytope structural classifier (#749)",
+    "[optimization][lp][triptych][axis-aligned]") {
+  // Unit-square pack: every halfspace constrains exactly one axis.
+  using U1 = Halfspace2D<Rat, Rat{1L}, Rat{0L}, Rat{1L}>;
+  using U2 = Halfspace2D<Rat, Rat{0L}, Rat{1L}, Rat{1L}>;
+  using U3 = Halfspace2D<Rat, Rat{-1L}, Rat{0L}, Rat{0L}>;
+  using U4 = Halfspace2D<Rat, Rat{0L}, Rat{-1L}, Rat{0L}>;
+  STATIC_CHECK(IsAxisAlignedPolytope<U1, U2, U3, U4>);
+
+  // The §5 polytope: H1 = (1, 1, 4) is not axis-aligned (both coeffs nonzero).
+  STATIC_CHECK_FALSE(IsAxisAlignedPolytope<H1, H2, H3, H4>);
+}
+
+TEST_CASE("optimization:lp — bit-ops fast-path triptych dispatch (#749)",
+          "[optimization][lp][triptych][fast-path]") {
+  // Unit-square pack: signed-unimodular AND axis-aligned, so the NTTP
+  // entry @ref maximize dispatches to the bit-ops fast path.
+  using U1 = Halfspace2D<Rat, Rat{1L}, Rat{0L}, Rat{1L}>;
+  using U2 = Halfspace2D<Rat, Rat{0L}, Rat{1L}, Rat{1L}>;
+  using U3 = Halfspace2D<Rat, Rat{-1L}, Rat{0L}, Rat{0L}>;
+  using U4 = Halfspace2D<Rat, Rat{0L}, Rat{-1L}, Rat{0L}>;
+
+  // Compile-time fold: maximize x + y over the unit square → (1, 1).
+  using Opt = decltype(maximize<Rat, Rat{1L}, Rat{1L}, U1, U2, U3, U4>());
+  STATIC_CHECK(std::same_as<Opt, Vec2<Rat, Rat{1L}, Rat{1L}>>);
+
+  // Runtime entry (bridge witness for the fast-path kernel): same answer.
+  constexpr std::array<HalfspaceTriple<Rat>, 4> kUnitSquare = {{
+      {Rat{1L}, Rat{0L}, Rat{1L}},
+      {Rat{0L}, Rat{1L}, Rat{1L}},
+      {Rat{-1L}, Rat{0L}, Rat{0L}},
+      {Rat{0L}, Rat{-1L}, Rat{0L}},
+  }};
+  constexpr auto v_pp = maximize_axis_aligned_with_values<Rat>(
+      std::span<const HalfspaceTriple<Rat>>(kUnitSquare), Rat{1L}, Rat{1L});
+  STATIC_CHECK(v_pp.feasible);
+  STATIC_CHECK(v_pp.x == Rat{1L});
+  STATIC_CHECK(v_pp.y == Rat{1L});
+
+  // Negative-x objective: the fast path picks x_lo via sign selection.
+  constexpr auto v_np = maximize_axis_aligned_with_values<Rat>(
+      std::span<const HalfspaceTriple<Rat>>(kUnitSquare), Rat{-1L}, Rat{1L});
+  STATIC_CHECK(v_np.feasible);
+  STATIC_CHECK(v_np.x == Rat{0L});
+  STATIC_CHECK(v_np.y == Rat{1L});
+}
+
 TEST_CASE("optimization:lp — Polytope2D + lp_extract comonadic counit (#388)",
           "[optimization][lp][comonad][counit]") {
   // The polytope context (cx, cy, Hs...) reified as a type, with the

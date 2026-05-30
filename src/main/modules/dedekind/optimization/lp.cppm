@@ -141,6 +141,13 @@ constexpr bool entries_in_unit_range_v =
      H::coeff_y == typename H::scalar_type{} ||
      H::coeff_y == typename H::scalar_type{1});
 
+/** @brief Per-halfspace check: at least one of @c (coeff_x, coeff_y) is zero —
+ *  the halfspace is axis-aligned (constrains x or y but not both).
+ */
+template <typename H>
+constexpr bool axis_aligned_v = H::coeff_x == typename H::scalar_type{} ||
+                                H::coeff_y == typename H::scalar_type{};
+
 }  // namespace detail
 
 /** @brief Pack-level concept: every halfspace has entries in {−1, 0, +1}.
@@ -160,6 +167,18 @@ constexpr bool entries_in_unit_range_v =
  */
 export template <typename... Hs>
 concept IsSignedUnimodular = (detail::entries_in_unit_range_v<Hs> && ...);
+
+/** @brief Pack-level concept: every halfspace is axis-aligned.
+ *
+ *  @details Combined with @ref IsSignedUnimodular this is the dispatch
+ *  gate for the bit-ops fast path in @ref maximize : axis-aligned halfspaces
+ *  with entries in {−1, 0, +1} reduce the LP to per-axis bound extraction,
+ *  with vertex selection driven by the sign of the objective coefficients.
+ *  No multiplication, no division — only comparisons and sign flips remain
+ *  in the IR.
+ */
+export template <typename... Hs>
+concept IsAxisAlignedPolytope = (detail::axis_aligned_v<Hs> && ...);
 
 /** @brief Value-level halfspace carrier @c (a, b, c) for the bridge
  *  kernel.  Paired with the NTTP carrier @ref Halfspace2D: an instance
@@ -305,6 +324,71 @@ constexpr VertexCandidate<T> maximize_impl(
   return best;
 }
 
+/**
+ * @brief Bit-ops fast-path kernel for axis-aligned signed-unimodular
+ *        polytopes.  Sibling of @ref maximize_impl ; same return shape,
+ *        same constexpr-callable / runtime-callable bridge property.
+ *
+ * @details Precondition (caller's responsibility, statically gated by
+ * @c IsSignedUnimodular && @c IsAxisAlignedPolytope at the @ref maximize
+ * dispatch site): every halfspace in @c constraints has
+ * @c (a, b) ∈ {−1, 0, +1}² with at least one coefficient zero.  Under
+ * this precondition each halfspace contributes one bound on one axis,
+ * the active set degenerates to per-axis bracketing, and the optimum
+ * vertex is selected by the sign of the objective coefficients.  No
+ * multiplication or division is performed on the carrier — the IR for
+ * the runtime call reduces to comparisons, negations, and selects.
+ */
+template <typename T>
+constexpr VertexCandidate<T> maximize_impl_axis_aligned(
+    std::span<const HalfspaceTriple<T>> constraints, T cx, T cy) {
+  bool has_x_lo = false, has_x_hi = false;
+  bool has_y_lo = false, has_y_hi = false;
+  T x_lo{}, x_hi{}, y_lo{}, y_hi{};
+
+  for (const auto& h : constraints) {
+    if (T{} < h.a) {
+      // +1·x ≤ c   →   x ≤ c   (upper bound on x).
+      if (!has_x_hi || h.c < x_hi) {
+        x_hi = h.c;
+        has_x_hi = true;
+      }
+    } else if (h.a < T{}) {
+      // −1·x ≤ c   →   x ≥ −c   (lower bound on x).
+      const T lo = T{} - h.c;
+      if (!has_x_lo || x_lo < lo) {
+        x_lo = lo;
+        has_x_lo = true;
+      }
+    } else if (T{} < h.b) {
+      // +1·y ≤ c   →   y ≤ c   (upper bound on y).
+      if (!has_y_hi || h.c < y_hi) {
+        y_hi = h.c;
+        has_y_hi = true;
+      }
+    } else if (h.b < T{}) {
+      // −1·y ≤ c   →   y ≥ −c   (lower bound on y).
+      const T lo = T{} - h.c;
+      if (!has_y_lo || y_lo < lo) {
+        y_lo = lo;
+        has_y_lo = true;
+      }
+    }
+    // Trivial halfspace (a = b = 0): no bound to record.
+  }
+
+  // Feasibility: a bounded box requires both bounds on each axis, and
+  // lo ≤ hi.
+  if (!has_x_lo || !has_x_hi || !has_y_lo || !has_y_hi)
+    return {T{}, T{}, false};
+  if (x_hi < x_lo || y_hi < y_lo) return {T{}, T{}, false};
+
+  // Pick the vertex by objective sign — no multiplication needed.
+  const T x_opt = (cx < T{}) ? x_lo : x_hi;
+  const T y_opt = (cy < T{}) ? y_lo : y_hi;
+  return {x_opt, y_opt, true};
+}
+
 }  // namespace detail
 
 /** @section lp__The_Bridge
@@ -335,6 +419,22 @@ export template <typename T>
 constexpr VertexCandidate<T> maximize_with_values(
     std::span<const HalfspaceTriple<T>> halfspaces, T cx, T cy) {
   return detail::maximize_impl<T>(halfspaces, cx, cy);
+}
+
+/** @brief Runtime entry for the bit-ops fast-path kernel.  Same shape as
+ *  @ref maximize_with_values ; caller must guarantee that every halfspace
+ *  is axis-aligned with entries in {−1, 0, +1} (the precondition the
+ *  NTTP entry @ref maximize statically gates via @c IsSignedUnimodular
+ *  and @c IsAxisAlignedPolytope ).  Constexpr-callable for compile-time
+ *  evaluation; the runtime call site sees an IR without @c MUL or @c DIV
+ *  on the carrier.  Same bridge property as @ref maximize_with_values —
+ *  one function, two evaluation modes.
+ */
+export template <typename T>
+  requires dedekind::algebra::HasRingOperators<T>
+constexpr VertexCandidate<T> maximize_axis_aligned_with_values(
+    std::span<const HalfspaceTriple<T>> halfspaces, T cx, T cy) {
+  return detail::maximize_impl_axis_aligned<T>(halfspaces, cx, cy);
 }
 
 /**
@@ -369,13 +469,27 @@ export template <typename T, T cx, T cy, typename... Hs>
 constexpr auto maximize() {
   constexpr std::array<HalfspaceTriple<T>, sizeof...(Hs)> cs = {
       HalfspaceTriple<T>{Hs::coeff_x, Hs::coeff_y, Hs::bound}...};
-  constexpr auto v =
-      maximize_with_values<T>(std::span<const HalfspaceTriple<T>>(cs), cx, cy);
-  static_assert(v.feasible,
-                "LP is infeasible or unbounded: no optimal vertex in the "
-                "polytope. Check that the halfspace pack intersects to a "
-                "non-empty bounded region.");
-  return Vec2<T, v.x, v.y>{};
+  // §5 triptych dispatch: when the pack is signed-unimodular AND
+  // axis-aligned, the bit-ops fast path applies; otherwise fall back to
+  // the generic Cramer fold.  Infeasibility surfaces uniformly via the
+  // @c static_assert on @c .feasible below.
+  if constexpr (IsSignedUnimodular<Hs...> && IsAxisAlignedPolytope<Hs...>) {
+    constexpr auto v = maximize_axis_aligned_with_values<T>(
+        std::span<const HalfspaceTriple<T>>(cs), cx, cy);
+    static_assert(v.feasible,
+                  "LP is infeasible: axis-aligned bit-ops fast path could "
+                  "not bracket a non-empty box. Check that every axis has "
+                  "matched lower and upper bounds with lo ≤ hi.");
+    return Vec2<T, v.x, v.y>{};
+  } else {
+    constexpr auto v = maximize_with_values<T>(
+        std::span<const HalfspaceTriple<T>>(cs), cx, cy);
+    static_assert(v.feasible,
+                  "LP is infeasible or unbounded: no optimal vertex in the "
+                  "polytope. Check that the halfspace pack intersects to a "
+                  "non-empty bounded region.");
+    return Vec2<T, v.x, v.y>{};
+  }
 }
 
 /** @section lp__Comonadic_Extract_Witness
