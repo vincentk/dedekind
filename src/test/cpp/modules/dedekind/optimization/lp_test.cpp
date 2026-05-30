@@ -115,6 +115,25 @@ TEST_CASE("optimization:lp — bit-ops fast-path triptych dispatch (#749)",
   STATIC_CHECK(v_np.y == Rat{1L});
 }
 
+TEST_CASE(
+    "optimization:lp — triptych refusal: infeasible axis-aligned pack (#749)",
+    "[optimization][lp][triptych][refusal]") {
+  // Empty feasible region: x ≤ 0 ∧ x ≥ 1 ∧ 0 ≤ y ≤ 1.  The NTTP entry
+  // @ref maximize on this pack would fire @c static_assert on the fast
+  // path; the runtime entry returns @c feasible == false, which is the
+  // same refusal signal collapsed to a runtime predicate.  A negative-
+  // compile exhibit for the @c static_assert path ships under Phase A4.
+  constexpr std::array<HalfspaceTriple<Rat>, 4> kEmptyXInterval = {{
+      {Rat{1L}, Rat{0L}, Rat{0L}},    //  x ≤ 0
+      {Rat{-1L}, Rat{0L}, Rat{-1L}},  // -x ≤ -1, i.e. x ≥ 1
+      {Rat{0L}, Rat{1L}, Rat{1L}},    //  y ≤ 1
+      {Rat{0L}, Rat{-1L}, Rat{0L}},   // -y ≤ 0, i.e. y ≥ 0
+  }};
+  constexpr auto v = maximize_axis_aligned_with_values<Rat>(
+      std::span<const HalfspaceTriple<Rat>>(kEmptyXInterval), Rat{1L}, Rat{1L});
+  STATIC_CHECK_FALSE(v.feasible);
+}
+
 TEST_CASE("optimization:lp — Polytope2D + lp_extract comonadic counit (#388)",
           "[optimization][lp][comonad][counit]") {
   // The polytope context (cx, cy, Hs...) reified as a type, with the
