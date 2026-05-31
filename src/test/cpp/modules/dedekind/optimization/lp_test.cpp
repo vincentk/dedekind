@@ -50,6 +50,35 @@ TEST_CASE("optimization:lp — Halfspace2D membership at the type level",
   STATIC_CHECK_FALSE(H1::template contains<Rat{3L}, Rat{3L}>());  // exterior
 }
 
+TEST_CASE(
+    "optimization:lp — output-side Set predicates (#749 Set-out alignment)",
+    "[optimization][lp][set-out]") {
+  // Building blocks for the Set-as-output design: the LP's optimal
+  // locus is a Set whose predicate type encodes the regime.
+
+  // Singleton2DPredicate: NTTP-coordinated singleton predicate.
+  using Sing = Singleton2DPredicate<Rat, Rat{2L}, Rat{2L}>;
+  STATIC_CHECK(Sing::coord_x == Rat{2L});
+  STATIC_CHECK(Sing::coord_y == Rat{2L});
+  constexpr Sing pred{};
+  STATIC_CHECK(pred(Vec2V<Rat>{Rat{2L}, Rat{2L}}));
+  STATIC_CHECK_FALSE(pred(Vec2V<Rat>{Rat{2L}, Rat{3L}}));
+  STATIC_CHECK_FALSE(pred(Vec2V<Rat>{Rat{0L}, Rat{0L}}));
+
+  // lp_singleton_set: lifts NTTP (x*, y*) into a Set whose predicate
+  // carries the singleton structurally.  The output Set's predicate
+  // type pins the regime at the type level.
+  constexpr auto sing_set = lp_singleton_set<Rat, Rat{2L}, Rat{2L}>();
+  CHECK(sing_set(Vec2V<Rat>{Rat{2L}, Rat{2L}}));
+  CHECK_FALSE(sing_set(Vec2V<Rat>{Rat{3L}, Rat{3L}}));
+
+  // lp_empty_set: lifts the empty optimum (infeasible LP) into a Set
+  // whose predicate is the existing :expressions::EmptyPredicate.
+  constexpr auto empty = lp_empty_set<Rat>();
+  CHECK_FALSE(empty(Vec2V<Rat>{Rat{0L}, Rat{0L}}));
+  CHECK_FALSE(empty(Vec2V<Rat>{Rat{2L}, Rat{2L}}));
+}
+
 TEST_CASE("optimization:lp — IsSignedUnimodular structural classifier (#749)",
           "[optimization][lp][triptych][signed-unimodular]") {
   // The unit-square pack: maximize x + y s.t. 0 ≤ x ≤ 1, 0 ≤ y ≤ 1.
