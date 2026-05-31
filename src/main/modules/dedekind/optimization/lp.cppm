@@ -485,6 +485,31 @@ export template <typename T>
   requires dedekind::algebra::HasRingOperators<T>
 constexpr VertexCandidate<T> maximize_with_values(
     std::span<const HalfspaceTriple<T>> halfspaces, T cx, T cy) {
+  // Mechanical dispatch: scan the span for structural fast-path
+  // eligibility (every halfspace has @c (a, b) ∈ {−1, 0, +1}² with at
+  // least one zero coefficient) and route to the bit-ops kernel when
+  // it qualifies, else the generic Cramer kernel.  Mirrors the NTTP
+  // entry's @c if @c constexpr dispatch at runtime — the type system
+  // selects the kernel from the input's structure end-to-end.
+  if constexpr (SuitableForAxisAlignedFastPath<T>) {
+    const T one{1};
+    const T zero{};
+    const T neg_one{T{} - one};
+    bool fast_eligible = true;
+    for (std::size_t i = 0; i < halfspaces.size(); ++i) {
+      const auto& h = halfspaces[i];
+      const bool a_unit = h.a == neg_one || h.a == zero || h.a == one;
+      const bool b_unit = h.b == neg_one || h.b == zero || h.b == one;
+      const bool axis_aligned = h.a == zero || h.b == zero;
+      if (!a_unit || !b_unit || !axis_aligned) {
+        fast_eligible = false;
+        break;
+      }
+    }
+    if (fast_eligible) {
+      return detail::maximize_impl_axis_aligned<T>(halfspaces, cx, cy);
+    }
+  }
   return detail::maximize_impl<T>(halfspaces, cx, cy);
 }
 

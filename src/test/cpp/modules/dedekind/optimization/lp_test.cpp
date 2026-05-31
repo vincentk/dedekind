@@ -372,6 +372,39 @@ TEST_CASE("optimization:lp — axis-aligned corner is pruned away",
   STATIC_CHECK(!(v.x == Rat{0L} && v.y == Rat{0L}));  // not (0, 0)
 }
 
+TEST_CASE(
+    "optimization:lp — maximize_with_values mechanically dispatches (#749)",
+    "[optimization][lp][set-out][mechanical-dispatch]") {
+  // The single public runtime entry @c maximize_with_values now scans
+  // its input for fast-path eligibility and routes to the bit-ops
+  // kernel when every halfspace is signed-unimodular axis-aligned;
+  // otherwise falls through to the generic Cramer kernel.  The wart of
+  // having two public runtime entries the caller had to pick from is
+  // gone — the type system selects the kernel from the input's
+  // structure end-to-end.
+
+  // Unit-square pack → fast-path kernel routes; same answer (1, 1).
+  constexpr std::array<HalfspaceTriple<Rat>, 4> kUnitSquare = {{
+      {Rat{1L}, Rat{0L}, Rat{1L}},
+      {Rat{0L}, Rat{1L}, Rat{1L}},
+      {Rat{-1L}, Rat{0L}, Rat{0L}},
+      {Rat{0L}, Rat{-1L}, Rat{0L}},
+  }};
+  constexpr auto via_auto = maximize_with_values<Rat>(
+      std::span<const HalfspaceTriple<Rat>>(kUnitSquare), Rat{1L}, Rat{1L});
+  STATIC_CHECK(via_auto.feasible);
+  STATIC_CHECK(via_auto.x == Rat{1L});
+  STATIC_CHECK(via_auto.y == Rat{1L});
+
+  // §5 polytope (H2's coeff_x = 2): not fast-eligible.  Cramer routes
+  // and computes (2, 2) via the active-set enumeration.
+  constexpr auto via_generic = maximize_with_values<Rat>(
+      std::span<const HalfspaceTriple<Rat>>(kPolytope), Rat{3L}, Rat{2L});
+  STATIC_CHECK(via_generic.feasible);
+  STATIC_CHECK(via_generic.x == Rat{2L});
+  STATIC_CHECK(via_generic.y == Rat{2L});
+}
+
 /**
  * @brief Set DSL bridge (§3 ↔ §5): the §5 LP in the textbook frame
  *        ` F : ℚ×ℚ, U : F → ℚ, G ⊆ F, opt = argmax(G, U) `,
