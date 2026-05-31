@@ -75,6 +75,7 @@ module;
 #include <array>
 #include <concepts>
 #include <cstddef>
+#include <limits>
 #include <span>
 
 export module dedekind.optimization:lp;
@@ -149,6 +150,26 @@ constexpr bool axis_aligned_v = H::coeff_x == typename H::scalar_type{} ||
                                 H::coeff_y == typename H::scalar_type{};
 
 }  // namespace detail
+
+/** @brief Carrier requirements for the bit-ops fast-path kernel.
+ *
+ *  @details The kernel uses default construction ( @c T{} ), construction
+ *  from the integer literal @c 1 ( @c T{1} ), ring operators, ordering,
+ *  and the convention that @c −1 lies strictly below @c 0 — which excludes
+ *  unsigned integral carriers where @c T{} @c − @c T{1} wraps to the
+ *  maximum value and would pass the kernel's @c neg_one validation, then
+ *  be misread as a positive coefficient by the @c zero @c < @c h.a branch.
+ *  Naming each operation in the concept lets unsupported carriers fail at
+ *  the API boundary rather than inside the function body.
+ */
+export template <typename T>
+concept SuitableForAxisAlignedFastPath =
+    dedekind::algebra::HasRingOperators<T> && std::totally_ordered<T> &&
+    requires {
+      T{};
+      T{1};
+      requires(T{} - T{1}) < T{};
+    };
 
 /** @brief Pack-level concept: every halfspace has entries in {−1, 0, +1}.
  *
@@ -372,6 +393,23 @@ constexpr VertexCandidate<T> maximize_impl_axis_aligned(
     const bool b_ok = h.b == neg_one || h.b == zero || h.b == one;
     if (!a_ok || !b_ok) return {zero, zero, false};
 
+    // Axis-alignment guard: reject halfspaces where BOTH coefficients
+    // are nonzero (e.g. @c x @c + @c y @c ≤ @c c ).  Without this the
+    // @c zero @c < @c h.a branch silently consumes the @c a-coefficient
+    // and ignores @c h.b , misreading a diagonal halfspace as an upper
+    // bound on x.
+    if (h.a != zero && h.b != zero) return {zero, zero, false};
+
+    // Boundary guard: when the carrier specialises @c std::numeric_limits
+    // (e.g. signed integral types), reject @c h.c at the lowest
+    // representable value.  The negation @c zero @c − @c h.c below would
+    // be undefined behaviour on signed integral T at @c T::lowest() ;
+    // carriers without @c numeric_limits specialisation (Rational, Dual)
+    // bypass this check.
+    if constexpr (std::numeric_limits<T>::is_specialized) {
+      if (h.c == std::numeric_limits<T>::lowest()) return {zero, zero, false};
+    }
+
     if (zero < h.a) {
       // +1·x ≤ c   →   x ≤ c   (upper bound on x).
       if (!has_x_hi || h.c < x_hi) {
@@ -454,25 +492,30 @@ constexpr VertexCandidate<T> maximize_with_values(
  *  @ref maximize_with_values ; the NTTP entry @ref maximize statically
  *  gates this path via @c IsSignedUnimodular and @c IsAxisAlignedPolytope ,
  *  but the runtime entry is also reachable directly, so the kernel
- *  defensively validates each halfspace's coefficients are in {−1, 0, +1}
- *  and collapses the result to the infeasible sentinel
- *  (@c VertexCandidate::feasible @c == @c false) on any out-of-range
- *  coefficient, rather than silently mis-solving (@c h.a @c = @c 2 would
- *  otherwise read as @c +1·x ).  Honest Rejection per the project's
- *  discipline.
+ *  defensively validates each halfspace and collapses the result to the
+ *  infeasible sentinel (@c VertexCandidate::feasible @c == @c false) on:
  *
- *  Constexpr-callable for compile-time evaluation; the runtime call site
- *  sees an IR without @c MUL or @c DIV on the carrier.  Same bridge
- *  property as @ref maximize_with_values — one function, two evaluation
- *  modes.
+ *  - any coefficient outside {−1, 0, +1} (e.g. @c h.a @c = @c 2 would
+ *    otherwise read as @c +1·x );
+ *  - a halfspace with both coefficients nonzero — diagonal, not
+ *    axis-aligned (@c x @c + @c y @c ≤ @c c would otherwise read as
+ *    @c x @c ≤ @c c );
+ *  - @c h.c at @c std::numeric_limits<T>::lowest() on carriers where
+ *    @c numeric_limits is specialised (signed integers): @c zero @c −
+ *    @c h.c would be undefined behaviour there.
  *
- *  Beyond @c HasRingOperators<T> the kernel uses default construction
- *  (@c T{} ) and ordering comparisons; @c std::totally_ordered<T> pins
- *  the latter so callers fail fast at the requires clause rather than
- *  inside the kernel body.
+ *  Honest Rejection per the project's discipline.  Constexpr-callable
+ *  for compile-time evaluation; the runtime call site sees an IR
+ *  without @c MUL or @c DIV on the carrier.
+ *
+ *  Carrier constraint @ref detail::SuitableForAxisAlignedFastPath names
+ *  every operation the kernel uses ( @c T{} , @c T{1} , ring ops,
+ *  ordering, signedness via @c (T{} @c − @c T{1}) @c < @c T{} ) so
+ *  unsupported carriers fail at the API boundary rather than inside the
+ *  function body.
  */
 export template <typename T>
-  requires dedekind::algebra::HasRingOperators<T> && std::totally_ordered<T>
+  requires SuitableForAxisAlignedFastPath<T>
 constexpr VertexCandidate<T> maximize_axis_aligned_with_values(
     std::span<const HalfspaceTriple<T>> halfspaces, T cx, T cy) {
   return detail::maximize_impl_axis_aligned<T>(halfspaces, cx, cy);

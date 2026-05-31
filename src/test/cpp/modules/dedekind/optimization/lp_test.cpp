@@ -208,6 +208,53 @@ TEST_CASE(
   constexpr auto v_out = maximize_axis_aligned_with_values<Rat>(
       std::span<const HalfspaceTriple<Rat>>(kOutOfRange), Rat{1L}, Rat{1L});
   STATIC_CHECK_FALSE(v_out.feasible);
+
+  // Diagonal halfspace: unit-range entries but BOTH nonzero.  The
+  // kernel rejects rather than reading @c (1, 1, 2) as @c x ≤ 2 .
+  constexpr std::array<HalfspaceTriple<Rat>, 5> kDiagonal = {{
+      {Rat{1L}, Rat{0L}, Rat{1L}},
+      {Rat{0L}, Rat{1L}, Rat{1L}},
+      {Rat{-1L}, Rat{0L}, Rat{0L}},
+      {Rat{0L}, Rat{-1L}, Rat{0L}},
+      {Rat{1L}, Rat{1L}, Rat{2L}},  // diagonal: not axis-aligned
+  }};
+  constexpr auto v_diag = maximize_axis_aligned_with_values<Rat>(
+      std::span<const HalfspaceTriple<Rat>>(kDiagonal), Rat{1L}, Rat{1L});
+  STATIC_CHECK_FALSE(v_diag.feasible);
+}
+
+TEST_CASE("optimization:lp — fast-path concept rejects unsigned carrier (#749)",
+          "[optimization][lp][triptych][concept]") {
+  // The fast-path requires clause uses `(T{} - T{1}) < T{}` to exclude
+  // unsigned integral carriers, where `0u - 1u == UINT_MAX` would pass
+  // the kernel's @c neg_one validation and be misread as a positive
+  // coefficient.  The constraint failure surfaces at the API boundary,
+  // not inside the kernel.  Test the concept directly rather than via
+  // a SFINAE call site — clang under -Werror promotes the "no matching
+  // function" diagnostic to a hard error before the @c requires
+  // expression evaluates to false.
+  STATIC_CHECK_FALSE(SuitableForAxisAlignedFastPath<unsigned int>);
+  STATIC_CHECK(SuitableForAxisAlignedFastPath<int>);
+  STATIC_CHECK(SuitableForAxisAlignedFastPath<Rat>);
+}
+
+TEST_CASE("optimization:lp — fast-path INT_MIN boundary guard (#749)",
+          "[optimization][lp][triptych][refusal]") {
+  // For signed integer carriers, `zero - h.c` is undefined behaviour
+  // when `h.c == INT_MIN`.  The kernel uses `std::numeric_limits<T>`
+  // to detect this and collapse to the infeasible sentinel; carriers
+  // without `numeric_limits` specialisation (Rational, Dual) bypass
+  // the check.
+  constexpr int kIntMin = std::numeric_limits<int>::min();
+  constexpr std::array<HalfspaceTriple<int>, 4> kIntMinPack = {{
+      {1, 0, 1},
+      {0, 1, 1},
+      {-1, 0, kIntMin},  // -x ≤ INT_MIN: zero - INT_MIN is UB
+      {0, -1, 0},
+  }};
+  constexpr auto v = maximize_axis_aligned_with_values<int>(
+      std::span<const HalfspaceTriple<int>>(kIntMinPack), 1, 1);
+  STATIC_CHECK_FALSE(v.feasible);
 }
 
 TEST_CASE("optimization:lp — Polytope2D + lp_extract comonadic counit (#388)",

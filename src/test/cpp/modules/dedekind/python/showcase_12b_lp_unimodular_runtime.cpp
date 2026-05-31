@@ -24,9 +24,10 @@
  * Carrier is @c int for IR readability — integer compares, integer
  * negation, integer select; no @c FMUL or @c FDIV obscuring the
  * structural claim.  The kernel is carrier-parametric over
- * @c HasRingOperators<T> @c && @c std::totally_ordered<T> — the same
- * runtime entry works for any carrier satisfying both (ring operators
- * plus ordering / default construction).
+ * @c detail::SuitableForAxisAlignedFastPath<T> , which names every
+ * operation the kernel uses ( @c T{} , @c T{1} , ring operators,
+ * ordering, signedness via @c (T{} @c − @c T{1}) @c < @c T{} ).  The
+ * same runtime entry works for any carrier satisfying that concept.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
