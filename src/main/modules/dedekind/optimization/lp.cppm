@@ -132,15 +132,24 @@ struct Halfspace2D {
  */
 namespace detail {
 
-/** @brief Per-halfspace check: @c (coeff_x, coeff_y) ∈ {−1, 0, +1}². */
+/** @brief Per-halfspace check: @c (coeff_x, coeff_y) ∈ {−1, 0, +1}².
+ *
+ *  @details Gated on @c T{-1} being a valid construction so unsigned
+ *  halfspace carriers gracefully classify as @c false rather than
+ *  ill-forming the classifier (which would otherwise emit a narrowing
+ *  conversion error on @c unsigned{-1} under @c -Wconversion ).  Per
+ *  Copilot review on PR #751.
+ */
 template <typename H>
-constexpr bool entries_in_unit_range_v =
-    (H::coeff_x == typename H::scalar_type{-1} ||
-     H::coeff_x == typename H::scalar_type{} ||
-     H::coeff_x == typename H::scalar_type{1}) &&
-    (H::coeff_y == typename H::scalar_type{-1} ||
-     H::coeff_y == typename H::scalar_type{} ||
-     H::coeff_y == typename H::scalar_type{1});
+constexpr bool entries_in_unit_range_v = []() {
+  using T = typename H::scalar_type;
+  if constexpr (requires { T{-1}; }) {
+    return (H::coeff_x == T{-1} || H::coeff_x == T{} || H::coeff_x == T{1}) &&
+           (H::coeff_y == T{-1} || H::coeff_y == T{} || H::coeff_y == T{1});
+  } else {
+    return false;
+  }
+}();
 
 /** @brief Per-halfspace check: at least one of @c (coeff_x, coeff_y) is zero —
  *  the halfspace is axis-aligned (constrains x or y but not both).
