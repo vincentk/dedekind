@@ -548,6 +548,72 @@ constexpr VertexCandidate<T> maximize_axis_aligned_with_values(
  * polytopes have no finite optimal vertex, the function errors at
  * instantiation).
  */
+/** @section lp__Output_Set_Predicates
+ *
+ *  Predicates for the @em output side of @ref argmax — the optimal
+ *  locus expressed as a @c :expressions::Set rather than a typed
+ *  @c Vec2 .  The output Set's predicate type encodes the LP's
+ *  mathematical regime:
+ *
+ *  - @ref Singleton2DPredicate carries @c (x*, y*) at the type level
+ *    when the LP has a unique optimal vertex.
+ *  - The existing @c :expressions::EmptyPredicate carries the empty
+ *    set when the LP is infeasible.
+ *  - An unbounded-face predicate is deferred until §5 needs it.
+ *
+ *  Both NTTP and runtime entries of @ref argmax return a Set; at the
+ *  NTTP level the predicate type pins the regime, at the runtime level
+ *  the regime is carried by the Set's value-level state.  The §3
+ *  sets-as-rules vocabulary is the same on both sides of the @c
+ *  argmax combinator — input polytope and output locus alike.
+ */
+
+/** @brief @c :expressions predicate for the LP's unique optimal vertex
+ *  at NTTP coordinates.
+ *
+ *  @details Carries @c (x_val, y_val) as NTTPs (structural) and exposes
+ *  a stateless @c operator() — the predicate matches @c v iff
+ *  @c v.x == x_val @c && @c v.y == y_val .  Cardinality is @c Finite
+ *  (size 1).  Used as the output-Set predicate when @ref argmax
+ *  produces a unique optimum.
+ */
+export template <typename T, T x_val, T y_val>
+struct Singleton2DPredicate {
+  using Domain = dedekind::linear_algebra::Vec2V<T>;
+  static constexpr T coord_x = x_val;
+  static constexpr T coord_y = y_val;
+  using cardinality_type = dedekind::sets::Finite;
+
+  constexpr bool operator()(const Domain& p) const {
+    return p.x == x_val && p.y == y_val;
+  }
+};
+
+/** @brief Lift an NTTP @c (x*, y*) into a @c :expressions Set whose
+ *  predicate carries the singleton structurally.  Mirrors
+ *  @ref halfspace_set on the input side; together they make the §3 ↔
+ *  §5 bridge symmetric — Set goes in, Set comes out. */
+export template <typename T, T x_val, T y_val>
+constexpr auto lp_singleton_set() {
+  return dedekind::sets::Set<dedekind::linear_algebra::Vec2V<T>,
+                             dedekind::category::ClassicalLogic,
+                             Singleton2DPredicate<T, x_val, y_val>>{
+      Singleton2DPredicate<T, x_val, y_val>{}};
+}
+
+/** @brief Lift an empty optimum into a @c :expressions Set whose
+ *  predicate is the existing @c :expressions::EmptyPredicate over
+ *  @c Vec2V<T> .  Used as the output of @ref argmax when the LP is
+ *  infeasible — the empty optimum is a value of the output Set type,
+ *  not a compile event. */
+export template <typename T>
+constexpr auto lp_empty_set() {
+  return dedekind::sets::Set<
+      dedekind::linear_algebra::Vec2V<T>, dedekind::category::ClassicalLogic,
+      dedekind::sets::EmptyPredicate<dedekind::linear_algebra::Vec2V<T>>>{
+      dedekind::sets::EmptyPredicate<dedekind::linear_algebra::Vec2V<T>>{}};
+}
+
 export template <typename T, T cx, T cy, typename... Hs>
   requires(sizeof...(Hs) >= 2) && dedekind::algebra::HasRingOperators<T>
 constexpr auto maximize() {
@@ -573,6 +639,58 @@ constexpr auto maximize() {
                   "polytope. Check that the halfspace pack intersects to a "
                   "non-empty bounded region.");
     return Vec2<T, v.x, v.y>{};
+  }
+}
+
+/**
+ * @brief NTTP packaging on top of @ref maximize_with_values returning a
+ *        @c :expressions Set whose predicate type encodes the LP's
+ *        mathematical regime.
+ *
+ * Usage:
+ *
+ *     constexpr auto opt = maximize_set<Rat, Rat{3L}, Rat{2L},
+ *                                       H1, H2, H3, H4>();
+ *     //  decltype(opt) = Set<Vec2V<Rat>, ClassicalLogic,
+ *     //                      Singleton2DPredicate<Rat, Rat{2L}, Rat{2L}>>
+ *     //  — the regime (Singleton) AND the coordinates (2, 2) live in
+ *     //  the type.
+ *
+ * @details Same kernel dispatch as @ref maximize (signed-unimodular fast
+ * path vs generic Cramer fold), but the return is a Set whose predicate
+ * type carries the regime instead of a @c Vec2 with an implicit
+ * "feasible" assumption.  When the LP is infeasible the return is a
+ * Set with @c :expressions::EmptyPredicate ; no @c static_assert
+ * fires — the empty optimum is a value of the output Set type.
+ *
+ * Callers who want compile-time refusal of infeasible inputs can
+ * @c static_assert on @c decltype(opt) themselves (e.g. @c static_assert
+ * (!std::same_as<decltype(opt), decltype(lp_empty_set<T>())>)).
+ *
+ * This is the Set-as-output companion to @ref maximize ; @ref argmax
+ * below is the @c :expressions Set DSL entry that calls it.
+ */
+export template <typename T, T cx, T cy, typename... Hs>
+  requires(sizeof...(Hs) >= 2) && dedekind::algebra::HasRingOperators<T>
+constexpr auto maximize_set() {
+  constexpr std::array<HalfspaceTriple<T>, sizeof...(Hs)> cs = {
+      HalfspaceTriple<T>{Hs::coeff_x, Hs::coeff_y, Hs::bound}...};
+  if constexpr (IsSignedUnimodular<Hs...> && IsAxisAlignedPolytope<Hs...>) {
+    constexpr auto v = maximize_axis_aligned_with_values<T>(
+        std::span<const HalfspaceTriple<T>>(cs), cx, cy);
+    if constexpr (v.feasible) {
+      return lp_singleton_set<T, v.x, v.y>();
+    } else {
+      return lp_empty_set<T>();
+    }
+  } else {
+    constexpr auto v = maximize_with_values<T>(
+        std::span<const HalfspaceTriple<T>>(cs), cx, cy);
+    if constexpr (v.feasible) {
+      return lp_singleton_set<T, v.x, v.y>();
+    } else {
+      return lp_empty_set<T>();
+    }
   }
 }
 
@@ -726,72 +844,6 @@ constexpr auto halfspace_set(Halfspace2D<T, a, b, c>) {
       Halfspace2DPredicate<T, a, b, c>{}};
 }
 
-/** @section lp__Output_Set_Predicates
- *
- *  Predicates for the @em output side of @ref argmax — the optimal
- *  locus expressed as a @c :expressions::Set rather than a typed
- *  @c Vec2 .  The output Set's predicate type encodes the LP's
- *  mathematical regime:
- *
- *  - @ref Singleton2DPredicate carries @c (x*, y*) at the type level
- *    when the LP has a unique optimal vertex.
- *  - The existing @c :expressions::EmptyPredicate carries the empty
- *    set when the LP is infeasible.
- *  - An unbounded-face predicate is deferred until §5 needs it.
- *
- *  Both NTTP and runtime entries of @ref argmax return a Set; at the
- *  NTTP level the predicate type pins the regime, at the runtime level
- *  the regime is carried by the Set's value-level state.  The §3
- *  sets-as-rules vocabulary is the same on both sides of the @c
- *  argmax combinator — input polytope and output locus alike.
- */
-
-/** @brief @c :expressions predicate for the LP's unique optimal vertex
- *  at NTTP coordinates.
- *
- *  @details Carries @c (x_val, y_val) as NTTPs (structural) and exposes
- *  a stateless @c operator() — the predicate matches @c v iff
- *  @c v.x == x_val @c && @c v.y == y_val .  Cardinality is @c Finite
- *  (size 1).  Used as the output-Set predicate when @ref argmax
- *  produces a unique optimum.
- */
-export template <typename T, T x_val, T y_val>
-struct Singleton2DPredicate {
-  using Domain = dedekind::linear_algebra::Vec2V<T>;
-  static constexpr T coord_x = x_val;
-  static constexpr T coord_y = y_val;
-  using cardinality_type = dedekind::sets::Finite;
-
-  constexpr bool operator()(const Domain& p) const {
-    return p.x == x_val && p.y == y_val;
-  }
-};
-
-/** @brief Lift an NTTP @c (x*, y*) into a @c :expressions Set whose
- *  predicate carries the singleton structurally.  Mirrors
- *  @ref halfspace_set on the input side; together they make the §3 ↔
- *  §5 bridge symmetric — Set goes in, Set comes out. */
-export template <typename T, T x_val, T y_val>
-constexpr auto lp_singleton_set() {
-  return dedekind::sets::Set<dedekind::linear_algebra::Vec2V<T>,
-                             dedekind::category::ClassicalLogic,
-                             Singleton2DPredicate<T, x_val, y_val>>{
-      Singleton2DPredicate<T, x_val, y_val>{}};
-}
-
-/** @brief Lift an empty optimum into a @c :expressions Set whose
- *  predicate is the existing @c :expressions::EmptyPredicate over
- *  @c Vec2V<T> .  Used as the output of @ref argmax when the LP is
- *  infeasible — the empty optimum is a value of the output Set type,
- *  not a compile event. */
-export template <typename T>
-constexpr auto lp_empty_set() {
-  return dedekind::sets::Set<
-      dedekind::linear_algebra::Vec2V<T>, dedekind::category::ClassicalLogic,
-      dedekind::sets::EmptyPredicate<dedekind::linear_algebra::Vec2V<T>>>{
-      dedekind::sets::EmptyPredicate<dedekind::linear_algebra::Vec2V<T>>{}};
-}
-
 /** @section lp__structured_and_overloads
  *
  *  Customization point: when @c :expressions::Set::operator& meets two
@@ -862,17 +914,24 @@ struct LinearFunctional {
  *
  *  @c G is a Set whose predicate is a @ref Polytope2DPredicate carrying
  *  the halfspace pack; @c U is a @ref LinearFunctional carrying the
- *  objective coefficients as NTTPs.  This combinator extracts both
- *  packs from the type level and dispatches to the kernel via
- *  @ref maximize , returning the optimum as an NTTP @c Vec2 .  Pure
- *  type-level glue on top of @c maximize ; the kernel itself is unchanged. */
+ *  objective coefficients as NTTPs.  Extracts both packs from the type
+ *  level and dispatches to the kernel via @ref maximize_set , returning
+ *  the optimal locus as a Set — singleton @c {(x*, y*)} when the LP has
+ *  a unique optimum, empty when infeasible.
+ *
+ *  Set in, Set out: the textbook @c argmax @c : @c Set @c → @c Set
+ *  shape, with both input and output carried by the project's set-
+ *  comprehension DSL.  The output Set's predicate type encodes the
+ *  mathematical regime — caller pattern-matches on @c decltype(opt) if
+ *  they want compile-time regime discrimination.
+ */
 export template <typename T, typename L, typename... Hs, T cx, T cy>
   requires(sizeof...(Hs) >= 2) && dedekind::algebra::HasRingOperators<T>
 constexpr auto argmax(
     const dedekind::sets::Set<dedekind::linear_algebra::Vec2V<T>, L,
                               Polytope2DPredicate<T, Hs...>>&,
     LinearFunctional<T, cx, cy>) {
-  return maximize<T, cx, cy, Hs...>();
+  return maximize_set<T, cx, cy, Hs...>();
 }
 
 }  // namespace dedekind::optimization

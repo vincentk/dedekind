@@ -407,7 +407,7 @@ TEST_CASE("optimization:lp — axis-aligned corner is pruned away",
 TEST_CASE(
     "optimization:lp — Set DSL bridge: G = H1 & H2 & H3 & H4 as "
     "Set<Vec2V<Rat>, ClassicalLogic, Polytope2DPredicate<...>>, "
-    "opt = argmax(G, U) = Vec2<Rat, 2, 2> (#747)",
+    "opt = argmax(G, U) = Set with Singleton2DPredicate<Rat, 2, 2> (#747)",
     "[optimization][lp][dsl][bridge][centrepiece]") {
   using F = dedekind::linear_algebra::Vec2V<Rat>;
   static_assert(F::dimension == 2);
@@ -424,22 +424,27 @@ TEST_CASE(
                      halfspace_set(H3{}) & halfspace_set(H4{});
 
   // `decltype(G)` IS a real `:expressions::Set` instance — the §3 DSL —
-  // whose predicate carries the halfspace pack at the type level.  This
-  // is what closes FIXME(#365) for the 2D-halfspace case: not a lambda,
-  // a structural predicate.
+  // whose predicate carries the halfspace pack at the type level.
   using ExpectedG =
       dedekind::sets::Set<F, dedekind::category::ClassicalLogic,
                           Polytope2DPredicate<Rat, H1, H2, H3, H4>>;
   static_assert(std::same_as<decltype(G), const ExpectedG>);
 
-  // argmax(G, U).  Extracts the halfspace pack from G's predicate and
-  // (cx, cy) from U's NTTPs; dispatches to `maximize`.
+  // argmax(G, U).  Set in, Set out.  The output Set's predicate type
+  // pins the regime (Singleton) AND the coordinates ((2, 2)) at the
+  // type level — input polytope and output locus carried in the same
+  // DSL vocabulary.
   constexpr auto opt = argmax(G, U);
-  static_assert(std::same_as<decltype(opt), const Vec2<Rat, Rat{2L}, Rat{2L}>>);
+  using ExpectedOpt =
+      dedekind::sets::Set<F, dedekind::category::ClassicalLogic,
+                          Singleton2DPredicate<Rat, Rat{2L}, Rat{2L}>>;
+  static_assert(std::same_as<decltype(opt), const ExpectedOpt>);
 
-  // The witnesses: opt ∈ G via the Set DSL's `contains`; U(opt) is the
-  // textbook value 10.  Everything decided at translation time.
-  constexpr F opt_v{opt.first, opt.second};
+  // The witnesses: opt ∈ G via the Set DSL's `contains`; opt itself
+  // singles out (2, 2); U(2, 2) is the textbook value 10.  Everything
+  // decided at translation time.
+  constexpr F opt_v{Rat{2L}, Rat{2L}};
+  STATIC_CHECK(opt(opt_v));
   STATIC_CHECK(G.contains(opt_v));
   STATIC_CHECK(U(opt_v) == Rat{10L});
 
