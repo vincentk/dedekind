@@ -174,24 +174,26 @@ concept SuitableForAxisAlignedFastPath =
 /** @brief Pack-level concept: every halfspace has entries in {−1, 0, +1}.
  *
  *  @details Necessary structural condition for the bit-ops fast path in
- *  @ref maximize : when every halfspace in the pack carries
- *  @c (coeff_x, coeff_y) ∈ {−1, 0, +1}², the active-set 2×2
- *  determinants live in {−2, −1, 0, +1, +2} and the matrix entries
- *  themselves collapse multiplications to additions, subtractions, and
- *  sign flips at the IR level.  Every signed-unimodular pack the §5
- *  exhibit ships further satisfies pairwise @c |det| ∈ {0, 1}, which
- *  takes the fast-path division to a no-op; a pairwise sharpening of
- *  the gate is a candidate refinement when a workload turns up
- *  unit-range entries with @c |det| ∈ {1, 2} active-set determinants.
+ *  @ref maximize ; the name describes what the concept @em mechanically
+ *  checks rather than the proper @c signed-unimodular property (which
+ *  would require pairwise @c |det| ≤ 1).  Used in combination with
+ *  @ref IsAxisAlignedPolytope as the fast-path dispatch gate: in the
+ *  axis-aligned + unit-range scope each pair of halfspaces has
+ *  determinant @c a_i·b_j @c − @c b_i·a_j with exactly one of the
+ *  products nonzero (the other has a zero coefficient), so @c |det|
+ *  ∈ {0, 1} exactly — the combined gate IS proper signed-unimodular
+ *  for 2D axis-aligned halfspaces.  The fast-path division therefore
+ *  reduces to a sign flip and the carrier multiplications collapse to
+ *  additions, subtractions, and sign flips at the IR level.
  *
  *  Algebraic gate per `feedback_algebraic_over_architectural_constraints`.
  */
 export template <typename... Hs>
-concept IsSignedUnimodular = (detail::entries_in_unit_range_v<Hs> && ...);
+concept HasUnitRangeEntries = (detail::entries_in_unit_range_v<Hs> && ...);
 
 /** @brief Pack-level concept: every halfspace is axis-aligned.
  *
- *  @details Combined with @ref IsSignedUnimodular this is the dispatch
+ *  @details Combined with @ref HasUnitRangeEntries this is the dispatch
  *  gate for the bit-ops fast path in @ref maximize : axis-aligned halfspaces
  *  with entries in {−1, 0, +1} reduce the LP to per-axis bound extraction,
  *  with vertex selection driven by the sign of the objective coefficients.
@@ -351,7 +353,7 @@ constexpr VertexCandidate<T> maximize_impl(
  *        same constexpr-callable / runtime-callable bridge property.
  *
  * @details Precondition (caller's responsibility, statically gated by
- * @c IsSignedUnimodular && @c IsAxisAlignedPolytope at the @ref maximize
+ * @c HasUnitRangeEntries && @c IsAxisAlignedPolytope at the @ref maximize
  * dispatch site): every halfspace in @c constraints has
  * @c (a, b) ∈ {−1, 0, +1}² with at least one coefficient zero.  Under
  * this precondition each halfspace contributes one bound on one axis,
@@ -383,7 +385,7 @@ constexpr VertexCandidate<T> maximize_impl_axis_aligned(
     const auto& h = constraints[i];
     // Precondition guard: each halfspace must be axis-aligned with
     // @c (a, b) ∈ {−1, 0, +1}².  The NTTP entry @ref maximize gates
-    // this via @c IsSignedUnimodular && @c IsAxisAlignedPolytope; the
+    // this via @c HasUnitRangeEntries && @c IsAxisAlignedPolytope; the
     // exported runtime entry @ref maximize_axis_aligned_with_values is
     // reachable directly, so the kernel rejects out-of-range coefficients
     // by collapsing to the infeasible sentinel rather than silently
@@ -515,7 +517,7 @@ constexpr VertexCandidate<T> maximize_with_values(
 
 /** @brief Runtime entry for the bit-ops fast-path kernel.  Same shape as
  *  @ref maximize_with_values ; the NTTP entry @ref maximize statically
- *  gates this path via @c IsSignedUnimodular and @c IsAxisAlignedPolytope ,
+ *  gates this path via @c HasUnitRangeEntries and @c IsAxisAlignedPolytope ,
  *  but the runtime entry is also reachable directly, so the kernel
  *  defensively validates each halfspace and collapses the result to the
  *  infeasible sentinel (@c VertexCandidate::feasible @c == @c false) on:
@@ -533,8 +535,8 @@ constexpr VertexCandidate<T> maximize_with_values(
  *  for compile-time evaluation; the runtime call site sees an IR
  *  without @c MUL or @c DIV on the carrier.
  *
- *  Carrier constraint @ref detail::SuitableForAxisAlignedFastPath names
- *  every operation the kernel uses ( @c T{} , @c T{1} , ring ops,
+ *  Carrier constraint @ref SuitableForAxisAlignedFastPath names every
+ *  operation the kernel uses ( @c T{} , @c T{1} , ring ops,
  *  ordering, signedness via @c (T{} @c − @c T{1}) @c < @c T{} ) so
  *  unsupported carriers fail at the API boundary rather than inside the
  *  function body.
@@ -605,11 +607,12 @@ constexpr VertexCandidate<T> maximize_cramer_with_values(
  *    set when the LP is infeasible.
  *  - An unbounded-face predicate is deferred until §5 needs it.
  *
- *  Both NTTP and runtime entries of @ref argmax return a Set; at the
- *  NTTP level the predicate type pins the regime, at the runtime level
- *  the regime is carried by the Set's value-level state.  The §3
- *  sets-as-rules vocabulary is the same on both sides of the @c
- *  argmax combinator — input polytope and output locus alike.
+ *  @ref argmax (the NTTP combinator) returns a Set whose predicate type
+ *  pins the regime.  The runtime entries @ref maximize_with_values and
+ *  siblings currently return @c VertexCandidate<T> ; lifting them to a
+ *  uniform Set return is a follow-up.  The §3 sets-as-rules vocabulary
+ *  is the same on both sides of @c argmax — input polytope and output
+ *  locus alike.
  */
 
 /** @brief @c :expressions predicate for the LP's unique optimal vertex
@@ -667,7 +670,8 @@ constexpr auto maximize() {
   // axis-aligned, the bit-ops fast path applies; otherwise fall back to
   // the generic Cramer fold.  Infeasibility surfaces uniformly via the
   // @c static_assert on @c .feasible below.
-  if constexpr (IsSignedUnimodular<Hs...> && IsAxisAlignedPolytope<Hs...>) {
+  if constexpr (HasUnitRangeEntries<Hs...> && IsAxisAlignedPolytope<Hs...> &&
+                SuitableForAxisAlignedFastPath<T>) {
     constexpr auto v = maximize_axis_aligned_with_values<T>(
         std::span<const HalfspaceTriple<T>>(cs), cx, cy);
     static_assert(v.feasible,
@@ -719,7 +723,8 @@ export template <typename T, T cx, T cy, typename... Hs>
 constexpr auto maximize_set() {
   constexpr std::array<HalfspaceTriple<T>, sizeof...(Hs)> cs = {
       HalfspaceTriple<T>{Hs::coeff_x, Hs::coeff_y, Hs::bound}...};
-  if constexpr (IsSignedUnimodular<Hs...> && IsAxisAlignedPolytope<Hs...>) {
+  if constexpr (HasUnitRangeEntries<Hs...> && IsAxisAlignedPolytope<Hs...> &&
+                SuitableForAxisAlignedFastPath<T>) {
     constexpr auto v = maximize_axis_aligned_with_values<T>(
         std::span<const HalfspaceTriple<T>>(cs), cx, cy);
     if constexpr (v.feasible) {

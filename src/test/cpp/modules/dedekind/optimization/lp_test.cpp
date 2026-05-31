@@ -8,6 +8,7 @@
 
 #include <array>
 #include <catch2/catch_test_macros.hpp>
+#include <limits>
 #include <span>
 #include <vector>
 
@@ -79,7 +80,7 @@ TEST_CASE(
   CHECK_FALSE(empty(Vec2V<Rat>{Rat{2L}, Rat{2L}}));
 }
 
-TEST_CASE("optimization:lp — IsSignedUnimodular structural classifier (#749)",
+TEST_CASE("optimization:lp — HasUnitRangeEntries structural classifier (#749)",
           "[optimization][lp][triptych][signed-unimodular]") {
   // The unit-square pack: maximize x + y s.t. 0 ≤ x ≤ 1, 0 ≤ y ≤ 1.
   // All entries in {−1, 0, +1}: classifier holds.
@@ -87,13 +88,13 @@ TEST_CASE("optimization:lp — IsSignedUnimodular structural classifier (#749)",
   using U2 = Halfspace2D<Rat, Rat{0L}, Rat{1L}, Rat{1L}>;   //  y ≤ 1
   using U3 = Halfspace2D<Rat, Rat{-1L}, Rat{0L}, Rat{0L}>;  // -x ≤ 0
   using U4 = Halfspace2D<Rat, Rat{0L}, Rat{-1L}, Rat{0L}>;  // -y ≤ 0
-  STATIC_CHECK(IsSignedUnimodular<U1, U2, U3, U4>);
+  STATIC_CHECK(HasUnitRangeEntries<U1, U2, U3, U4>);
 
   // The §5 polytope: H2 has coeff_x = 2, so the classifier fails.
-  STATIC_CHECK_FALSE(IsSignedUnimodular<H1, H2, H3, H4>);
+  STATIC_CHECK_FALSE(HasUnitRangeEntries<H1, H2, H3, H4>);
 
   // Dropping the offending halfspace recovers the classifier.
-  STATIC_CHECK(IsSignedUnimodular<H1, H3, H4>);
+  STATIC_CHECK(HasUnitRangeEntries<H1, H3, H4>);
 }
 
 TEST_CASE(
@@ -177,9 +178,9 @@ TEST_CASE(
 
   // Routing witnesses: the dispatch gate evaluates differently for the
   // two packs, which is what causes the two regimes to fire.
-  STATIC_CHECK(IsSignedUnimodular<U1, U2, U3, U4> &&
+  STATIC_CHECK(HasUnitRangeEntries<U1, U2, U3, U4> &&
                IsAxisAlignedPolytope<U1, U2, U3, U4>);
-  STATIC_CHECK_FALSE(IsSignedUnimodular<H1, H2, H3, H4> &&
+  STATIC_CHECK_FALSE(HasUnitRangeEntries<H1, H2, H3, H4> &&
                      IsAxisAlignedPolytope<H1, H2, H3, H4>);
 }
 
@@ -208,7 +209,7 @@ TEST_CASE(
     "[optimization][lp][triptych][refusal]") {
   // Two precondition violations the runtime entry must collapse to the
   // infeasible sentinel rather than silently mis-solve (the NTTP entry
-  // gates these statically via @c IsSignedUnimodular and
+  // gates these statically via @c HasUnitRangeEntries and
   // @c IsAxisAlignedPolytope ; the runtime entry is reachable directly
   // and the kernel defends Honest Rejection).
 
