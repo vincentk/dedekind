@@ -346,35 +346,55 @@ constexpr VertexCandidate<T> maximize_impl_axis_aligned(
   bool has_y_lo = false, has_y_hi = false;
   T x_lo{}, x_hi{}, y_lo{}, y_hi{};
 
+  const T one{1};
+  const T zero{};
+  const T neg_one{T{} - one};
+
   for (const auto& h : constraints) {
-    if (T{} < h.a) {
+    // Precondition guard: each halfspace must be axis-aligned with
+    // @c (a, b) ∈ {−1, 0, +1}².  The NTTP entry @ref maximize gates
+    // this via @c IsSignedUnimodular && @c IsAxisAlignedPolytope; the
+    // exported runtime entry @ref maximize_axis_aligned_with_values is
+    // reachable directly, so the kernel rejects out-of-range coefficients
+    // by collapsing to the infeasible sentinel rather than silently
+    // mis-solving with @c h.a = 2 read as @c +1·x.  Honest Rejection
+    // per the project's discipline.
+    const bool a_ok = h.a == neg_one || h.a == zero || h.a == one;
+    const bool b_ok = h.b == neg_one || h.b == zero || h.b == one;
+    if (!a_ok || !b_ok) return {zero, zero, false};
+
+    if (zero < h.a) {
       // +1·x ≤ c   →   x ≤ c   (upper bound on x).
       if (!has_x_hi || h.c < x_hi) {
         x_hi = h.c;
         has_x_hi = true;
       }
-    } else if (h.a < T{}) {
+    } else if (h.a < zero) {
       // −1·x ≤ c   →   x ≥ −c   (lower bound on x).
-      const T lo = T{} - h.c;
+      const T lo = zero - h.c;
       if (!has_x_lo || x_lo < lo) {
         x_lo = lo;
         has_x_lo = true;
       }
-    } else if (T{} < h.b) {
+    } else if (zero < h.b) {
       // +1·y ≤ c   →   y ≤ c   (upper bound on y).
       if (!has_y_hi || h.c < y_hi) {
         y_hi = h.c;
         has_y_hi = true;
       }
-    } else if (h.b < T{}) {
+    } else if (h.b < zero) {
       // −1·y ≤ c   →   y ≥ −c   (lower bound on y).
-      const T lo = T{} - h.c;
+      const T lo = zero - h.c;
       if (!has_y_lo || y_lo < lo) {
         y_lo = lo;
         has_y_lo = true;
       }
+    } else if (h.c < zero) {
+      // Zero-row halfspace @c 0·x + 0·y ≤ c with @c c < 0 is vacuously
+      // unsatisfiable: the whole polytope collapses to empty.  The
+      // @c c ≥ 0 case is the trivial halfspace and contributes nothing.
+      return {zero, zero, false};
     }
-    // Trivial halfspace (a = b = 0): no bound to record.
   }
 
   // Feasibility: a bounded box requires both bounds on each axis, and
@@ -422,16 +442,28 @@ constexpr VertexCandidate<T> maximize_with_values(
 }
 
 /** @brief Runtime entry for the bit-ops fast-path kernel.  Same shape as
- *  @ref maximize_with_values ; caller must guarantee that every halfspace
- *  is axis-aligned with entries in {−1, 0, +1} (the precondition the
- *  NTTP entry @ref maximize statically gates via @c IsSignedUnimodular
- *  and @c IsAxisAlignedPolytope ).  Constexpr-callable for compile-time
- *  evaluation; the runtime call site sees an IR without @c MUL or @c DIV
- *  on the carrier.  Same bridge property as @ref maximize_with_values —
- *  one function, two evaluation modes.
+ *  @ref maximize_with_values ; the NTTP entry @ref maximize statically
+ *  gates this path via @c IsSignedUnimodular and @c IsAxisAlignedPolytope ,
+ *  but the runtime entry is also reachable directly, so the kernel
+ *  defensively validates each halfspace's coefficients are in {−1, 0, +1}
+ *  and collapses the result to the infeasible sentinel
+ *  (@c VertexCandidate::feasible @c == @c false) on any out-of-range
+ *  coefficient, rather than silently mis-solving (@c h.a @c = @c 2 would
+ *  otherwise read as @c +1·x ).  Honest Rejection per the project's
+ *  discipline.
+ *
+ *  Constexpr-callable for compile-time evaluation; the runtime call site
+ *  sees an IR without @c MUL or @c DIV on the carrier.  Same bridge
+ *  property as @ref maximize_with_values — one function, two evaluation
+ *  modes.
+ *
+ *  Beyond @c HasRingOperators<T> the kernel uses default construction
+ *  (@c T{} ) and ordering comparisons; @c std::totally_ordered<T> pins
+ *  the latter so callers fail fast at the requires clause rather than
+ *  inside the kernel body.
  */
 export template <typename T>
-  requires dedekind::algebra::HasRingOperators<T>
+  requires dedekind::algebra::HasRingOperators<T> && std::totally_ordered<T>
 constexpr VertexCandidate<T> maximize_axis_aligned_with_values(
     std::span<const HalfspaceTriple<T>> halfspaces, T cx, T cy) {
   return detail::maximize_impl_axis_aligned<T>(halfspaces, cx, cy);

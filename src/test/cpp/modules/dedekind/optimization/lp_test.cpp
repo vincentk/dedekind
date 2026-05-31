@@ -161,7 +161,8 @@ TEST_CASE(
   // @ref maximize on this pack would fire @c static_assert on the fast
   // path; the runtime entry returns @c feasible == false, which is the
   // same refusal signal collapsed to a runtime predicate.  A negative-
-  // compile exhibit for the @c static_assert path ships under Phase A4.
+  // compile exhibit (@c .fail.cpp ) for the @c static_assert path is
+  // deferred to a follow-up (needs CMake @c try_compile infra).
   constexpr std::array<HalfspaceTriple<Rat>, 4> kEmptyXInterval = {{
       {Rat{1L}, Rat{0L}, Rat{0L}},    //  x ≤ 0
       {Rat{-1L}, Rat{0L}, Rat{-1L}},  // -x ≤ -1, i.e. x ≥ 1
@@ -171,6 +172,42 @@ TEST_CASE(
   constexpr auto v = maximize_axis_aligned_with_values<Rat>(
       std::span<const HalfspaceTriple<Rat>>(kEmptyXInterval), Rat{1L}, Rat{1L});
   STATIC_CHECK_FALSE(v.feasible);
+}
+
+TEST_CASE(
+    "optimization:lp — fast-path defensive validation on runtime entry (#749)",
+    "[optimization][lp][triptych][refusal]") {
+  // Two precondition violations the runtime entry must collapse to the
+  // infeasible sentinel rather than silently mis-solve (the NTTP entry
+  // gates these statically via @c IsSignedUnimodular and
+  // @c IsAxisAlignedPolytope ; the runtime entry is reachable directly
+  // and the kernel defends Honest Rejection).
+
+  // Zero-row halfspace with negative bound: @c 0·x + 0·y ≤ -1 is
+  // vacuously unsatisfiable, the whole polytope collapses to empty.
+  constexpr std::array<HalfspaceTriple<Rat>, 5> kZeroRow = {{
+      {Rat{1L}, Rat{0L}, Rat{1L}},
+      {Rat{0L}, Rat{1L}, Rat{1L}},
+      {Rat{-1L}, Rat{0L}, Rat{0L}},
+      {Rat{0L}, Rat{-1L}, Rat{0L}},
+      {Rat{0L}, Rat{0L}, Rat{-1L}},  // 0·x + 0·y ≤ -1 — infeasible row
+  }};
+  constexpr auto v_zero = maximize_axis_aligned_with_values<Rat>(
+      std::span<const HalfspaceTriple<Rat>>(kZeroRow), Rat{1L}, Rat{1L});
+  STATIC_CHECK_FALSE(v_zero.feasible);
+
+  // Out-of-range coefficient: @c 2·x ≤ 4 is axis-aligned but not
+  // signed-unimodular.  The kernel rejects rather than treating it as
+  // @c +1·x ≤ 4 (which would silently set @c x_hi = 4 instead of 2).
+  constexpr std::array<HalfspaceTriple<Rat>, 4> kOutOfRange = {{
+      {Rat{2L}, Rat{0L}, Rat{4L}},  // coeff_x = 2 ∉ {−1, 0, +1}
+      {Rat{0L}, Rat{1L}, Rat{1L}},
+      {Rat{-1L}, Rat{0L}, Rat{0L}},
+      {Rat{0L}, Rat{-1L}, Rat{0L}},
+  }};
+  constexpr auto v_out = maximize_axis_aligned_with_values<Rat>(
+      std::span<const HalfspaceTriple<Rat>>(kOutOfRange), Rat{1L}, Rat{1L});
+  STATIC_CHECK_FALSE(v_out.feasible);
 }
 
 TEST_CASE("optimization:lp — Polytope2D + lp_extract comonadic counit (#388)",

@@ -23,8 +23,10 @@
  *
  * Carrier is @c int for IR readability — integer compares, integer
  * negation, integer select; no @c FMUL or @c FDIV obscuring the
- * structural claim.  The kernel is carrier-parametric; the same
- * runtime entry works for any @c HasRingOperators<T> carrier.
+ * structural claim.  The kernel is carrier-parametric over
+ * @c HasRingOperators<T> @c && @c std::totally_ordered<T> — the same
+ * runtime entry works for any carrier satisfying both (ring operators
+ * plus ordering / default construction).
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.

@@ -278,7 +278,9 @@ def semantic_sanity(ir_text: str, source: Path) -> None:
             block = extract_function_block(ir_text, symbol)
             if block is None:
                 raise AssertionError(f"IR missing {symbol} symbol.")
-            if "ret i64 2" not in block:
+            # Whole-instruction match: `ret i64 2` alone, not as a
+            # substring of `ret i64 20`, `ret i64 25`, etc.
+            if not re.search(r"^\s*ret i64 2\s*$", block, re.MULTILINE):
                 raise AssertionError(
                     f"Expected {symbol} to collapse to `ret i64 2` in IR "
                     "(the optimum is the typed constant Vec2<Rat, 2, 2>)."
@@ -294,7 +296,9 @@ def semantic_sanity(ir_text: str, source: Path) -> None:
             block = extract_function_block(ir_text, symbol)
             if block is None:
                 raise AssertionError(f"IR missing {symbol} symbol.")
-            if "ret i64 1" not in block:
+            # Whole-instruction match: `ret i64 1` alone, not as a
+            # substring of `ret i64 10`, `ret i64 15`, etc.
+            if not re.search(r"^\s*ret i64 1\s*$", block, re.MULTILINE):
                 raise AssertionError(
                     f"Expected {symbol} to collapse to `ret i64 1` in IR "
                     "(fast-path optimum is the typed constant Vec2<Rat, 1, 1>)."
@@ -305,10 +309,14 @@ def semantic_sanity(ir_text: str, source: Path) -> None:
         # span, cx, cy)` with coefficients as function arguments.  The
         # body cannot fold — coefficients are runtime data — so the
         # algorithm's residual structure must survive into IR.  The
-        # bit-ops claim is mechanically witnessed: `phi` accumulators
-        # for the loop survive while `mul`/`sdiv`/`udiv` on the int
-        # carrier are absent (the fast path uses compares, negations,
-        # and selects only).
+        # bit-ops claim is mechanically witnessed: the loop's `phi`
+        # accumulators survive somewhere in the fixture IR while
+        # `mul`/`sdiv`/`udiv` on the int carrier are absent everywhere.
+        #
+        # LLVM may inline the kernel into the witness blocks or outline
+        # it as a separate definition depending on body size; the
+        # whole-fixture check below is agnostic to which choice the
+        # optimiser makes.
         for symbol in (
             "witness_lp_axis_aligned_x",
             "witness_lp_axis_aligned_y",
@@ -317,30 +325,34 @@ def semantic_sanity(ir_text: str, source: Path) -> None:
             block = extract_function_block(ir_text, symbol)
             if block is None:
                 raise AssertionError(f"IR missing {symbol} symbol.")
-            # Loop structure survives: per-axis bound bracketing yields
-            # `phi` accumulators after the loop body.
-            if "phi" not in block:
-                raise AssertionError(
-                    f"{symbol}: expected residual `phi` nodes (per-axis "
-                    "bound accumulators) to survive in IR — their absence "
-                    "would mean the loop was eliminated."
-                )
-            # Bit-ops claim: no integer multiplication or division on the
-            # int carrier (i32) in the fast path.  Allow LLVM's optional
-            # `nuw`/`nsw`/`exact`/`disjoint` flags between opcode and type
-            # so the check is honest against flagged variants; restrict
-            # to `i32` so std::span's i64 pointer-arithmetic `mul nuw nsw
-            # i64` (incidental, not carrier work) does not false-positive.
-            if re.search(
-                r"\b(mul|sdiv|udiv)\b(?:\s+(?:nuw|nsw|exact|disjoint))*\s+i32\b",
-                block,
-            ):
-                raise AssertionError(
-                    f"{symbol}: the bit-ops fast path must emit no "
-                    "`mul`/`sdiv`/`udiv` on the int carrier (i32) — its "
-                    "presence in IR would mean the kernel fell back to "
-                    "Cramer-style arithmetic."
-                )
+
+        # The fast-path loop's `phi` accumulators must survive in the
+        # emitted IR.  Match the LLVM SSA `phi` opcode with a leading
+        # `=` and a trailing type (`phi i32`, `phi i8`, `phi ptr`, ...);
+        # plain substring "phi" would also match `tail call ...phi...`
+        # or symbol names.
+        if not re.search(r"=\s*phi\s+\S", ir_text):
+            raise AssertionError(
+                "Expected residual `phi` SSA nodes (per-axis bound "
+                "accumulators) to survive in IR — their absence would "
+                "mean the fast-path loop was eliminated."
+            )
+
+        # Bit-ops claim, applied to the whole emitted IR: no integer
+        # multiplication or division on the int carrier (i32) anywhere.
+        # Allow LLVM's optional `nuw`/`nsw`/`exact`/`disjoint` flags;
+        # restrict to `i32` so std::span's i64 pointer arithmetic does
+        # not false-positive.
+        if re.search(
+            r"\b(mul|sdiv|udiv)\b(?:\s+(?:nuw|nsw|exact|disjoint))*\s+i32\b",
+            ir_text,
+        ):
+            raise AssertionError(
+                "The bit-ops fast path must emit no `mul`/`sdiv`/`udiv` "
+                "on the int carrier (i32) anywhere in the fixture IR — "
+                "its presence would mean the kernel fell back to "
+                "Cramer-style arithmetic."
+            )
     elif "showcase_09b_lp_runtime_residual" in name:
         # The runtime counterpart of showcase_09: the same active-set
         # kernel called through `maximize_with_values<double>(span, cx, cy)`
