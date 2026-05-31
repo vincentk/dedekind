@@ -1,4 +1,6 @@
 
+%"struct.dedekind::optimization::HalfspaceTriple" = type { i32, i32, i32 }
+
 @llvm.global_ctors = appending global [1 x { i32, ptr, ptr }] [{ i32, ptr, ptr } { i32 65535, ptr @_GLOBAL__sub_I_showcase_12b_lp_unimodular_runtime.cpp, ptr null }]
 
 ; Function Attrs: mustprogress noinline nounwind ssp uwtable
@@ -28,137 +30,136 @@ define zeroext i1 @witness_lp_axis_aligned_feasible(ptr noundef %0, i64 noundef 
 
 ; Function Attrs: mustprogress nounwind ssp uwtable
 define linkonce_odr { i64, i8 } @_ZN8dedekind12optimization6detailW8dedekindW12optimization26maximize_impl_axis_alignedIiEENS0_S3_15VertexCandidateIT_EENSt3__14spanIKNS0_S3_15HalfspaceTripleIS6_EELm18446744073709551615EEES6_S6_(ptr %0, i64 %1, i32 noundef %2, i32 noundef %3) local_unnamed_addr #1 {
-  %5 = mul nuw nsw i64 %1, 12
-  %6 = getelementptr inbounds nuw i8, ptr %0, i64 %5
-  %7 = icmp eq i64 %1, 0
-  br i1 %7, label %96, label %8
+  %5 = icmp eq i64 %1, 0
+  br i1 %5, label %95, label %6
 
-8:                                                ; preds = %4, %64
-  %9 = phi i8 [ %65, %64 ], [ 0, %4 ]
-  %10 = phi i8 [ %66, %64 ], [ 0, %4 ]
-  %11 = phi i8 [ %67, %64 ], [ 0, %4 ]
-  %12 = phi i8 [ %68, %64 ], [ 0, %4 ]
-  %13 = phi i32 [ %69, %64 ], [ 0, %4 ]
-  %14 = phi i32 [ %70, %64 ], [ 0, %4 ]
-  %15 = phi i32 [ %71, %64 ], [ 0, %4 ]
-  %16 = phi i32 [ %72, %64 ], [ 0, %4 ]
-  %17 = phi ptr [ %73, %64 ], [ %0, %4 ]
-  %18 = load i32, ptr %17, align 4, !tbaa !10
-  %19 = add i32 %18, 1
-  %20 = icmp ult i32 %19, 3
-  %21 = getelementptr inbounds nuw i8, ptr %17, i64 4
-  %22 = load i32, ptr %21, align 4, !tbaa !12
-  %23 = add i32 %22, 1
-  %24 = icmp ult i32 %23, 3
-  %25 = and i1 %20, %24
-  br i1 %25, label %26, label %96
+6:                                                ; preds = %4, %63
+  %7 = phi i8 [ %64, %63 ], [ 0, %4 ]
+  %8 = phi i8 [ %65, %63 ], [ 0, %4 ]
+  %9 = phi i8 [ %66, %63 ], [ 0, %4 ]
+  %10 = phi i8 [ %67, %63 ], [ 0, %4 ]
+  %11 = phi i32 [ %68, %63 ], [ 0, %4 ]
+  %12 = phi i32 [ %69, %63 ], [ 0, %4 ]
+  %13 = phi i64 [ %72, %63 ], [ 0, %4 ]
+  %14 = phi i32 [ %70, %63 ], [ 0, %4 ]
+  %15 = phi i32 [ %71, %63 ], [ 0, %4 ]
+  %16 = getelementptr inbounds nuw %"struct.dedekind::optimization::HalfspaceTriple", ptr %0, i64 %13
+  %17 = load i32, ptr %16, align 4, !tbaa !10
+  %18 = add i32 %17, 1
+  %19 = icmp ult i32 %18, 3
+  %20 = getelementptr inbounds nuw i8, ptr %16, i64 4
+  %21 = load i32, ptr %20, align 4, !tbaa !12
+  %22 = add i32 %21, 1
+  %23 = icmp ult i32 %22, 3
+  %24 = and i1 %19, %23
+  br i1 %24, label %25, label %95
 
-26:                                               ; preds = %8
-  %27 = icmp sgt i32 %18, 0
-  br i1 %27, label %28, label %34
+25:                                               ; preds = %6
+  %26 = icmp sgt i32 %17, 0
+  br i1 %26, label %27, label %33
 
-28:                                               ; preds = %26
-  %29 = trunc nuw i8 %10 to i1
-  %30 = getelementptr inbounds nuw i8, ptr %17, i64 8
-  %31 = load i32, ptr %30, align 4, !tbaa !13
-  br i1 %29, label %32, label %64
+27:                                               ; preds = %25
+  %28 = trunc nuw i8 %8 to i1
+  %29 = getelementptr inbounds nuw i8, ptr %16, i64 8
+  %30 = load i32, ptr %29, align 4, !tbaa !13
+  br i1 %28, label %31, label %63
 
-32:                                               ; preds = %28
-  %33 = tail call i32 @llvm.smin.i32(i32 %31, i32 %14)
-  br label %64
+31:                                               ; preds = %27
+  %32 = tail call i32 @llvm.smin.i32(i32 %30, i32 %12)
+  br label %63
 
-34:                                               ; preds = %26
-  %35 = icmp slt i32 %18, 0
-  br i1 %35, label %36, label %45
+33:                                               ; preds = %25
+  %34 = icmp slt i32 %17, 0
+  br i1 %34, label %35, label %44
 
-36:                                               ; preds = %34
-  %37 = getelementptr inbounds nuw i8, ptr %17, i64 8
-  %38 = load i32, ptr %37, align 4, !tbaa !13
-  %39 = sub nsw i32 0, %38
-  %40 = trunc nuw i8 %9 to i1
-  %41 = icmp sge i32 %13, %39
-  %42 = select i1 %40, i1 %41, i1 false
-  %43 = select i1 %42, i32 %13, i32 %39
-  %44 = select i1 %42, i8 %9, i8 1
-  br label %64
+35:                                               ; preds = %33
+  %36 = getelementptr inbounds nuw i8, ptr %16, i64 8
+  %37 = load i32, ptr %36, align 4, !tbaa !13
+  %38 = sub nsw i32 0, %37
+  %39 = trunc nuw i8 %7 to i1
+  %40 = icmp sge i32 %11, %38
+  %41 = select i1 %39, i1 %40, i1 false
+  %42 = select i1 %41, i32 %11, i32 %38
+  %43 = select i1 %41, i8 %7, i8 1
+  br label %63
 
-45:                                               ; preds = %34
-  %46 = icmp sgt i32 %22, 0
-  %47 = getelementptr inbounds nuw i8, ptr %17, i64 8
-  %48 = load i32, ptr %47, align 4, !tbaa !13
-  br i1 %46, label %49, label %53
+44:                                               ; preds = %33
+  %45 = icmp sgt i32 %21, 0
+  %46 = getelementptr inbounds nuw i8, ptr %16, i64 8
+  %47 = load i32, ptr %46, align 4, !tbaa !13
+  br i1 %45, label %48, label %52
 
-49:                                               ; preds = %45
-  %50 = trunc nuw i8 %12 to i1
-  br i1 %50, label %51, label %64
+48:                                               ; preds = %44
+  %49 = trunc nuw i8 %10 to i1
+  br i1 %49, label %50, label %63
 
-51:                                               ; preds = %49
-  %52 = tail call i32 @llvm.smin.i32(i32 %48, i32 %16)
-  br label %64
+50:                                               ; preds = %48
+  %51 = tail call i32 @llvm.smin.i32(i32 %47, i32 %15)
+  br label %63
 
-53:                                               ; preds = %45
-  %54 = icmp slt i32 %22, 0
-  br i1 %54, label %55, label %62
+52:                                               ; preds = %44
+  %53 = icmp slt i32 %21, 0
+  br i1 %53, label %54, label %61
 
-55:                                               ; preds = %53
-  %56 = sub nsw i32 0, %48
-  %57 = trunc nuw i8 %11 to i1
-  %58 = icmp sge i32 %15, %56
-  %59 = select i1 %57, i1 %58, i1 false
-  %60 = select i1 %59, i32 %15, i32 %56
-  %61 = select i1 %59, i8 %11, i8 1
-  br label %64
+54:                                               ; preds = %52
+  %55 = sub nsw i32 0, %47
+  %56 = trunc nuw i8 %9 to i1
+  %57 = icmp sge i32 %14, %55
+  %58 = select i1 %56, i1 %57, i1 false
+  %59 = select i1 %58, i32 %14, i32 %55
+  %60 = select i1 %58, i8 %9, i8 1
+  br label %63
 
-62:                                               ; preds = %53
-  %63 = icmp sgt i32 %48, -1
-  br i1 %63, label %64, label %96
+61:                                               ; preds = %52
+  %62 = icmp sgt i32 %47, -1
+  br i1 %62, label %63, label %95
 
-64:                                               ; preds = %51, %32, %49, %28, %55, %36, %62
-  %65 = phi i8 [ %9, %62 ], [ %9, %55 ], [ %9, %32 ], [ %9, %28 ], [ %44, %36 ], [ %9, %51 ], [ %9, %49 ]
-  %66 = phi i8 [ %10, %62 ], [ %10, %55 ], [ 1, %32 ], [ 1, %28 ], [ %10, %36 ], [ %10, %51 ], [ %10, %49 ]
-  %67 = phi i8 [ %11, %62 ], [ %61, %55 ], [ %11, %32 ], [ %11, %28 ], [ %11, %36 ], [ %11, %51 ], [ %11, %49 ]
-  %68 = phi i8 [ %12, %62 ], [ %12, %55 ], [ %12, %32 ], [ %12, %28 ], [ %12, %36 ], [ 1, %51 ], [ 1, %49 ]
-  %69 = phi i32 [ %13, %62 ], [ %13, %55 ], [ %13, %32 ], [ %13, %28 ], [ %43, %36 ], [ %13, %51 ], [ %13, %49 ]
-  %70 = phi i32 [ %14, %62 ], [ %14, %55 ], [ %33, %32 ], [ %31, %28 ], [ %14, %36 ], [ %14, %51 ], [ %14, %49 ]
-  %71 = phi i32 [ %15, %62 ], [ %60, %55 ], [ %15, %32 ], [ %15, %28 ], [ %15, %36 ], [ %15, %51 ], [ %15, %49 ]
-  %72 = phi i32 [ %16, %62 ], [ %16, %55 ], [ %16, %32 ], [ %16, %28 ], [ %16, %36 ], [ %52, %51 ], [ %48, %49 ]
-  %73 = getelementptr inbounds nuw i8, ptr %17, i64 12
-  %74 = icmp eq ptr %73, %6
-  br i1 %74, label %75, label %8
+63:                                               ; preds = %50, %31, %48, %27, %54, %35, %61
+  %64 = phi i8 [ %7, %61 ], [ %7, %54 ], [ %7, %31 ], [ %7, %27 ], [ %43, %35 ], [ %7, %50 ], [ %7, %48 ]
+  %65 = phi i8 [ %8, %61 ], [ %8, %54 ], [ 1, %31 ], [ 1, %27 ], [ %8, %35 ], [ %8, %50 ], [ %8, %48 ]
+  %66 = phi i8 [ %9, %61 ], [ %60, %54 ], [ %9, %31 ], [ %9, %27 ], [ %9, %35 ], [ %9, %50 ], [ %9, %48 ]
+  %67 = phi i8 [ %10, %61 ], [ %10, %54 ], [ %10, %31 ], [ %10, %27 ], [ %10, %35 ], [ 1, %50 ], [ 1, %48 ]
+  %68 = phi i32 [ %11, %61 ], [ %11, %54 ], [ %11, %31 ], [ %11, %27 ], [ %42, %35 ], [ %11, %50 ], [ %11, %48 ]
+  %69 = phi i32 [ %12, %61 ], [ %12, %54 ], [ %32, %31 ], [ %30, %27 ], [ %12, %35 ], [ %12, %50 ], [ %12, %48 ]
+  %70 = phi i32 [ %14, %61 ], [ %59, %54 ], [ %14, %31 ], [ %14, %27 ], [ %14, %35 ], [ %14, %50 ], [ %14, %48 ]
+  %71 = phi i32 [ %15, %61 ], [ %15, %54 ], [ %15, %31 ], [ %15, %27 ], [ %15, %35 ], [ %51, %50 ], [ %47, %48 ]
+  %72 = add nuw i64 %13, 1
+  %73 = icmp eq i64 %72, %1
+  br i1 %73, label %74, label %6, !llvm.loop !14
 
-75:                                               ; preds = %64
+74:                                               ; preds = %63
+  %75 = trunc nuw i8 %64 to i1
   %76 = trunc nuw i8 %65 to i1
-  %77 = trunc nuw i8 %66 to i1
-  %78 = select i1 %76, i1 %77, i1 false
-  %79 = trunc nuw i8 %67 to i1
-  %80 = select i1 %78, i1 %79, i1 false
-  %81 = trunc nuw i8 %68 to i1
-  %82 = select i1 %80, i1 %81, i1 false
-  br i1 %82, label %83, label %96
+  %77 = select i1 %75, i1 %76, i1 false
+  %78 = trunc nuw i8 %66 to i1
+  %79 = select i1 %77, i1 %78, i1 false
+  %80 = trunc nuw i8 %67 to i1
+  %81 = select i1 %79, i1 %80, i1 false
+  br i1 %81, label %82, label %95
 
-83:                                               ; preds = %75
-  %84 = icmp slt i32 %70, %69
-  %85 = icmp slt i32 %72, %71
-  %86 = select i1 %84, i1 true, i1 %85
-  br i1 %86, label %96, label %87
+82:                                               ; preds = %74
+  %83 = icmp slt i32 %69, %68
+  %84 = icmp slt i32 %71, %70
+  %85 = select i1 %83, i1 true, i1 %84
+  br i1 %85, label %95, label %86
 
-87:                                               ; preds = %83
-  %88 = icmp slt i32 %2, 0
-  %89 = select i1 %88, i32 %69, i32 %70
-  %90 = icmp slt i32 %3, 0
-  %91 = select i1 %90, i32 %71, i32 %72
-  %92 = zext i32 %91 to i64
-  %93 = shl nuw i64 %92, 32
-  %94 = zext i32 %89 to i64
-  %95 = or disjoint i64 %93, %94
-  br label %96
+86:                                               ; preds = %82
+  %87 = icmp slt i32 %2, 0
+  %88 = select i1 %87, i32 %68, i32 %69
+  %89 = icmp slt i32 %3, 0
+  %90 = select i1 %89, i32 %70, i32 %71
+  %91 = zext i32 %90 to i64
+  %92 = shl nuw i64 %91, 32
+  %93 = zext i32 %88 to i64
+  %94 = or disjoint i64 %92, %93
+  br label %95
 
-96:                                               ; preds = %8, %62, %4, %83, %75, %87
-  %97 = phi i64 [ 0, %75 ], [ %95, %87 ], [ 0, %83 ], [ 0, %4 ], [ 0, %62 ], [ 0, %8 ]
-  %98 = phi i8 [ 0, %75 ], [ 1, %87 ], [ 0, %83 ], [ 0, %4 ], [ 0, %62 ], [ 0, %8 ]
-  %99 = insertvalue { i64, i8 } poison, i64 %97, 0
-  %100 = insertvalue { i64, i8 } %99, i8 %98, 1
-  ret { i64, i8 } %100
+95:                                               ; preds = %6, %61, %4, %82, %74, %86
+  %96 = phi i64 [ 0, %74 ], [ %94, %86 ], [ 0, %82 ], [ 0, %4 ], [ 0, %61 ], [ 0, %6 ]
+  %97 = phi i8 [ 0, %74 ], [ 1, %86 ], [ 0, %82 ], [ 0, %4 ], [ 0, %61 ], [ 0, %6 ]
+  %98 = insertvalue { i64, i8 } poison, i64 %96, 0
+  %99 = insertvalue { i64, i8 } %98, i8 %97, 1
+  ret { i64, i8 } %99
 }
 
 declare void @_ZGIW8dedekindW12optimization() local_unnamed_addr
@@ -193,3 +194,5 @@ attributes #3 = { nocallback nocreateundeforpoison nofree nosync nounwind specul
 !11 = !{!"_ZTSN8dedekind12optimizationW8dedekindW12optimization15HalfspaceTripleIiEE", !7, i64 0, !7, i64 4, !7, i64 8}
 !12 = !{!11, !7, i64 4}
 !13 = !{!11, !7, i64 8}
+!14 = distinct !{!14, !15}
+!15 = !{!"llvm.loop.mustprogress"}

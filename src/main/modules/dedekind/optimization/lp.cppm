@@ -350,7 +350,16 @@ constexpr VertexCandidate<T> maximize_impl_axis_aligned(
   const T zero{};
   const T neg_one{T{} - one};
 
-  for (const auto& h : constraints) {
+  // Indexed loop rather than range-for: the range-for's implicit
+  // iterator comparison triggers ADL through @c HalfspaceTriple<T> 's
+  // value type and on libstdc++ pulls in @c Rational / @c Cardinality
+  // operators that are not viable for iterator operands but still
+  // confuse overload resolution.  Indexed iteration matches the style
+  // of the generic Cramer kernel above and avoids the iterator-comparison
+  // path entirely.
+  const std::size_t N = constraints.size();
+  for (std::size_t i = 0; i < N; ++i) {
+    const auto& h = constraints[i];
     // Precondition guard: each halfspace must be axis-aligned with
     // @c (a, b) ∈ {−1, 0, +1}².  The NTTP entry @ref maximize gates
     // this via @c IsSignedUnimodular && @c IsAxisAlignedPolytope; the
