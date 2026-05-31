@@ -546,6 +546,25 @@ constexpr VertexCandidate<T> maximize_axis_aligned_with_values(
   return detail::maximize_impl_axis_aligned<T>(halfspaces, cx, cy);
 }
 
+/** @brief Power-user runtime entry that forces the generic Cramer
+ *  kernel and bypasses the mechanical dispatch in @ref
+ *  maximize_with_values .  Same shape and requires as @ref
+ *  maximize_with_values ; sibling of @ref maximize_axis_aligned_with_values
+ *  on the Cramer side.
+ *
+ *  Intended for callers who already know they want Cramer (e.g. IR
+ *  fixtures isolating the kernel's residual @c fdiv @c + @c fmuladd
+ *  signature, or microbenchmarks).  Library default users should call
+ *  @ref maximize_with_values and let the type system pick the kernel
+ *  from the input's structure.
+ */
+export template <typename T>
+  requires dedekind::algebra::HasRingOperators<T>
+constexpr VertexCandidate<T> maximize_cramer_with_values(
+    std::span<const HalfspaceTriple<T>> halfspaces, T cx, T cy) {
+  return detail::maximize_impl<T>(halfspaces, cx, cy);
+}
+
 /**
  * @brief NTTP packaging on top of @ref maximize_with_values: optimum as
  *        a typed @c Vec2<T, x*, y*>.

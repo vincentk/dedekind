@@ -42,6 +42,18 @@ using dedekind::optimization::HalfspaceTriple;
 using dedekind::optimization::maximize_axis_aligned_with_values;
 
 /**
+ * @note IR microscope.  This fixture calls the explicit power-user
+ * runtime entry @c maximize_axis_aligned_with_values rather than the
+ * mechanically-dispatching default @c maximize_with_values .  The
+ * default routes via a runtime scan + branch; its IR contains the
+ * scan code and both kernels, which pollutes the bit-ops signature
+ * this fixture exists to exhibit.  The explicit power-user entry
+ * goes straight to the fast-path kernel — IR microscope on the
+ * kernel in isolation.  Library default users call
+ * @c maximize_with_values and let the type system pick.
+ */
+
+/**
  * @brief Optimum's x-coordinate from a runtime axis-aligned polytope.
  *
  * Expected IR shape at @c -O2: per-axis bound tracking loop (compares
