@@ -1897,15 +1897,69 @@ A \cppinline{static_assert} on the project's \cppinline{IsSet} concept (the ETCS
 A further \cppinline{static_assert} on \cppinline{IsFAlgebra} confirms the catamorphism \emph{shape} on the output side: the output Set carries a structure map $F\langle X\rangle \to X$ for the identity endofunctor on its ambient category, with the active-set step closing over the halfspace pack.\footnote{The shape witness is mechanical.
 The catamorphism's uniqueness clause --- that \cppinline{argmax(G, U)} is the unique morphism into the output algebra from the initial halfspace-list F-algebra for $F(X) = 1 + \text{Halfspace} \times X$ --- is the engineer's honesty obligation per Pierce~\cite{pierce2002tapl} §5.4; the project's \cppinline{:f_algebra} partition reifies this as an opt-in \cppinline{is_initial_f_algebra_v} trait, deliberately defaulted to false here.}
 
+% Source: src/test/cpp/modules/dedekind/optimization/lp_test.cpp (TEST_CASE "both argmax input and output satisfy IsSet")
+\begin{listing}[htbp]
+\caption{Mechanical \cppinline{IsSet} witness for the input polytope and the three output regimes. From \texttt{lp\_test.cpp} (TEST\_CASE ``both argmax input and output satisfy IsSet'').}
+\label{lst:lp-is-set-chain}
+\begin{cpp}
+
+using F = Vec2V<Rat>;
+using L = ClassicalLogic;
+
+// Input polytope: G ⊆ F via the §3 set-comprehension DSL.
+using PolyG = Set<F, L, Polytope2DPredicate<Rat, H1, H2, H3, H4>>;
+static_assert(IsSet<PolyG>);
+
+// Three output regimes, all over the same ambient F:
+//   (a) NTTP feasible:    Singleton2DPredicate<x*, y*>
+//   (b) NTTP infeasible:  EmptyPredicate<F>
+//   (c) runtime:          LPSolutionPredicate (point, feasible)
+using SingOut    = Set<F, L, Singleton2DPredicate<Rat, Rat{2L}, Rat{2L}>>;
+using EmptyOut   = Set<F, L, EmptyPredicate<F>>;
+using RuntimeOut = Set<F, L, LPSolutionPredicate<Rat>>;
+static_assert(IsSet<SingOut>);
+static_assert(IsSet<EmptyOut>);
+static_assert(IsSet<RuntimeOut>);
+\end{cpp}
+\end{listing}
+
+% Source: src/test/cpp/modules/dedekind/optimization/lp_test.cpp (TEST_CASE "output Set is an F-algebra")
+\begin{listing}[htbp]
+\caption{Mechanical \cppinline{IsFAlgebra} shape witness for the output Set. The active-set step is the structure map $F\langle X\rangle \to X$ on $X = $\cppinline{OutputSet}; the initial-F-algebra opt-in is deliberately false, naming the universal-property clause as the engineer's honesty obligation. From \texttt{lp\_test.cpp} (TEST\_CASE ``output Set is an F-algebra'').}
+\label{lst:lp-is-falgebra}
+\begin{cpp}
+
+using OutputSet     = Set<Vec2V<Rat>, ClassicalLogic,
+                          LPSolutionPredicate<Rat>>;
+using LPSolutionCat = DiscreteCategory<OutputSet>;
+using LPSolutionIdF = identity_functor<LPSolutionCat>;
+
+// Active-set step: endomap on OutputSet.  At F-algebra shape
+// level the step is independent of any particular halfspace;
+// concrete LP folds compose chains of these, each closing
+// over one halfspace internally.
+constexpr auto step = arrow(
+    [](const OutputSet& s) { return s; });
+using StepArrow = std::decay_t<decltype(step)>;
+
+// Catamorphism shape: F<X> → X for F = identity_functor on
+// the ambient category, X = OutputSet, structure map = step.
+static_assert(IsFAlgebra<OutputSet, StepArrow, LPSolutionIdF>);
+
+// Initial-F-algebra opt-in deliberately false: the universal-
+// property clause is the engineer's honesty obligation, not
+// mechanically witnessed here.
+static_assert(!is_initial_f_algebra_v<LPSolutionIdF,
+                                      OutputSet, StepArrow>);
+\end{cpp}
+\end{listing}
+
 \paragraph{Algorithmic scope.}
 The vertex-enumeration kernel is $O(\binom{m}{n})$ in the halfspace count --- the bubble sort of LP, well-suited to the small $m$ §5 exhibits and to compile-time enumeration generally, not to industrial constraint counts.
 The halfspace pack lives in NTTP space; §\ref{sec:compiler-wall} names this as the Compiler Wall, so the inner solver's choice does not move the wall it caps.
 A more elegant compile-time kernel is available in principle: Fourier-Motzkin elimination~\cite{schrijver1986theory} §12.2 reduces the polytope dimension by dimension, surfacing the singleton, empty, face, and ray regimes uniformly from the shape of the resulting interval, and is a catamorphism on the halfspace pack proper rather than the identity-functor shape recorded above.
 We leave the Fourier-Motzkin kernel to follow-up.
 
-% TODO (listings in follow-up commits to this PR):
-%   - Listing: static_assert(IsSet<...>) chain on input and three output regimes.
-%   - Listing: static_assert(IsFAlgebra<...>) inline witness extract.
 
 \subsection{Forward-Mode AD as a Sibling Realisation of Compile-Time Derivatives}
 \label{sec:ad-elliott}
