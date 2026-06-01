@@ -1678,7 +1678,7 @@ review catching the claim.}
 \subsection{Linear Programming: \texorpdfstring{$\operatorname{argmax} : \mathbf{Set} \to \mathbf{Set}$}{argmax: Set → Set}}
 \label{sec:lp-centrepiece}
 
-Stare at a linear program for a moment.
+Look at a linear program for a moment.
 The polytope is an intersection of halfspaces --- a set, in exactly the comprehension sense of Section~\ref{sec:sets-rules}.
 The objective is a linear functional $U : F \to \mathbb{Q}$ on the ambient $F = \mathbb{Q}^2$.
 The optimum is also a set --- a singleton when there is a unique optimal vertex, the empty set when the polytope is infeasible, an unbounded ray when the objective is unbounded over the polytope, a face when the objective is parallel to an edge.
@@ -1826,12 +1826,9 @@ The library exposes \cppinline{maximize_axis_aligned_with_values<T>} and \cppinl
 The fixtures \texttt{showcase\_09b\_lp\_runtime\_residual.ll} and \texttt{showcase\_12b\_lp\_unimodular\_runtime.ll} pin the two kernels' signatures: the Cramer kernel retains its $2 \times 2$ \texttt{fdiv} / \texttt{fmuladd} active-set arithmetic and the loop's \texttt{phi} accumulators; the bit-ops kernel retains the loop's \texttt{phi} accumulators and the sign-driven \texttt{select} but emits no \texttt{mul} / \texttt{sdiv} / \texttt{udiv} on the integer carrier.
 The semantic-sanity checker enforces both shapes (\texttt{pruning-ir-fixture.py}).
 
-\paragraph{Strict close.}
-The previous paragraphs are the rough form; the strict form is mechanical.
 A \cppinline{static_assert} on the project's \cppinline{IsSet} concept (the ETCS-grade Set contract from Section~\ref{sec:sets-rules}) confirms that the input polytope, the singleton output, the empty output, and the runtime-discriminated output are all Sets in the same sense --- not merely structurally-similar wrappers but carriers of \cppinline{HasETCSAxioms} and \cppinline{IsCartesianClosed<CanonicalSetCCC<Ambient>>}.
 A further \cppinline{static_assert} on \cppinline{IsFAlgebra} confirms the catamorphism \emph{shape} on the output side: the output Set carries a structure map $F\langle X\rangle \to X$ for the identity endofunctor on its ambient category, with the active-set step closing over the halfspace pack.\footnote{The shape witness is mechanical.
-The catamorphism's uniqueness clause --- that \cppinline{argmax(G, U)} is the unique morphism into the output algebra from the initial halfspace-list F-algebra for $F(X) = 1 + \text{Halfspace} \times X$ --- is the engineer's honesty obligation per Pierce~\cite{pierce2002tapl} §5.4; the project's \cppinline{:f_algebra} partition reifies this as an opt-in \cppinline{is_initial_f_algebra_v} trait, deliberately defaulted to false here.
-The halfspace-list endofunctor's full \cppinline{IsEndofunctor} instantiation ($\Sigma_\text{cat}$, \cppinline{Shape}, $\varphi$) is a separate categorical task; see also Meijer-Fokkinga-Paterson's classical functional reading of fold under polynomial functors, and Bird's \emph{Algebra of Programming} for the textbook treatment.}
+The catamorphism's uniqueness clause --- that \cppinline{argmax(G, U)} is the unique morphism into the output algebra from the initial halfspace-list F-algebra for $F(X) = 1 + \text{Halfspace} \times X$ --- is the engineer's honesty obligation per Pierce~\cite{pierce2002tapl} §5.4; the project's \cppinline{:f_algebra} partition reifies this as an opt-in \cppinline{is_initial_f_algebra_v} trait, deliberately defaulted to false here.}
 
 % TODO (listings in follow-up commits to this PR):
 %   - Listing: regime × dispatch trigger × predicate × IR signature table.
