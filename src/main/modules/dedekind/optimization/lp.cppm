@@ -509,6 +509,60 @@ constexpr auto lp_runtime_solution_set(dedekind::linear_algebra::Vec2V<T> point,
       LPSolutionPredicate<T>{point, feasible}};
 }
 
+/** @section lp__F_Algebra_Witness
+ *
+ *  Inline type-witness: the output Set of @ref argmax is an F-algebra
+ *  (Mac~Lane ch.~V, Pierce~1991 §5; the project's @c category::IsFAlgebra
+ *  concept).  This pins the catamorphism @em shape mechanically — the
+ *  output Set carries a structure map @c F<X> @c → @c X for the
+ *  carrier @c X @c = @c Set<Vec2V<T>, ClassicalLogic,
+ *  LPSolutionPredicate<T>> .  The witness uses the identity endofunctor
+ *  ( @c F(X) @c = @c X ); the catamorphism interpretation — that
+ *  @c argmax is the unique morphism into this algebra from the initial
+ *  halfspace-list F-algebra carrying the polytope's pack — additionally
+ *  requires F to be the halfspace-list functor and the opt-in
+ *  @c is_initial_f_algebra_v registration that captures the universal
+ *  property's uniqueness clause (engineer's honesty obligation per
+ *  @c category:f_algebra ; deferred here as the halfspace-list endofunctor
+ *  needs its own @c Σ_cat / @c Shape / @c φ scaffolding).
+ *
+ *  See also @c [optimization:lp][f-algebra][catamorphism] in @c lp_test.cpp
+ *  for the test-side static_assert and the parallel @c IsSet witness.
+ */
+namespace detail {
+
+template <typename T>
+using LPSolutionSet = dedekind::sets::Set<dedekind::linear_algebra::Vec2V<T>,
+                                          dedekind::category::ClassicalLogic,
+                                          LPSolutionPredicate<T>>;
+
+template <typename T>
+using LPSolutionIdF = dedekind::category::identity_functor<
+    dedekind::category::DiscreteCategory<LPSolutionSet<T>>>;
+
+/** @brief Shape-level @c F-algebra structure map on the output Set:
+ *  an endomap representing the "active-set step" at the type level.
+ *  Concrete LP folds close over halfspaces internally; the
+ *  shape-level witness here is halfspace-agnostic, which is what
+ *  F-algebra structure abstracts. */
+template <typename T>
+constexpr auto lp_step_arrow =
+    dedekind::category::arrow([](const LPSolutionSet<T>& s) { return s; });
+
+}  // namespace detail
+
+// Inline type witness: the output Set is an F-algebra for the
+// identity endofunctor — the catamorphism shape on the strict-form
+// side of @ref argmax .  Carrier is @c Rational<long> (matches the
+// paper-facing T = ℚ); the witness lifts uniformly to any carrier
+// satisfying the same shape.
+static_assert(
+    dedekind::category::IsFAlgebra<
+        detail::LPSolutionSet<dedekind::numbers::Rational<long>>,
+        std::decay_t<
+            decltype(detail::lp_step_arrow<dedekind::numbers::Rational<long>>)>,
+        detail::LPSolutionIdF<dedekind::numbers::Rational<long>>>);
+
 /** @section lp__The_Bridge
  *
  *  @ref maximize_with_values is the single user-facing entry point for

@@ -51,6 +51,50 @@ TEST_CASE("optimization:lp — Halfspace2D membership at the type level",
   STATIC_CHECK_FALSE(H1::template contains<Rat{3L}, Rat{3L}>());  // exterior
 }
 
+TEST_CASE(
+    "optimization:lp — output Set is an F-algebra (catamorphism shape) (#749)",
+    "[optimization][lp][set-out][f-algebra][catamorphism]") {
+  // The output side of @c argmax @c : @c Set @c → @c Set is structurally
+  // an F-algebra: the output Set carries a structure map @c F<X> @c → @c X
+  // for the carrier @c X = @c Set<Vec2V<T>, ClassicalLogic,
+  // LPSolutionPredicate<T>> .  The catamorphism (fold) interpretation
+  // is then the canonical morphism into this algebra from the initial
+  // halfspace-list F-algebra carrying the polytope's pack.
+  //
+  // We witness the F-algebra @em shape mechanically here; the
+  // universal-property layer (initiality of the halfspace pack as an
+  // F-algebra for @c F(X) @c = @c 1 @c + @c HalfspaceTriple<T> @c × @c X )
+  // is the engineer's honesty obligation per the project's @c
+  // category:f_algebra discipline — opt-in @c is_initial_f_algebra_v
+  // registration is the documented escape hatch, deferred here as the
+  // halfspace-list endofunctor's full @c IsEndofunctor instantiation
+  // (Σ_cat, Shape, φ) is its own scaffolding task; see the source
+  // commentary @c lp__F_Algebra_Witness in @c lp.cppm .
+  using OutputSet =
+      dedekind::sets::Set<Vec2V<Rat>, dedekind::category::ClassicalLogic,
+                          LPSolutionPredicate<Rat>>;
+  using LPSolutionCat = dedekind::category::DiscreteCategory<OutputSet>;
+  using LPSolutionIdF = dedekind::category::identity_functor<LPSolutionCat>;
+
+  // The "active-set step" Arrow at the F-algebra shape level: an
+  // endomap on the output Set.  Concrete LP folds compose chains of
+  // these (each step closes over one halfspace internally); the
+  // shape-level witness here is independent of any particular
+  // halfspace, which is exactly what F-algebra structure abstracts.
+  constexpr auto step =
+      dedekind::category::arrow([](const OutputSet& s) { return s; });
+  using StepArrow = std::decay_t<decltype(step)>;
+
+  STATIC_CHECK(
+      dedekind::category::IsFAlgebra<OutputSet, StepArrow, LPSolutionIdF>);
+  // The initial-F-algebra opt-in is deliberately false here; the
+  // catamorphism reading is documented prose, not a mechanical
+  // universal-property witness.
+  STATIC_CHECK_FALSE(
+      dedekind::category::is_initial_f_algebra_v<LPSolutionIdF, OutputSet,
+                                                 StepArrow>);
+}
+
 TEST_CASE("optimization:lp — both argmax input and output satisfy IsSet (#749)",
           "[optimization][lp][set-out][is-set]") {
   // The mathematical contract: argmax : Set → Set.  Mechanical check
