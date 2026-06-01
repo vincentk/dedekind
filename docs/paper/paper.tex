@@ -1675,37 +1675,31 @@ review catching the claim.}
 \label{sec:linalg}
 % ============================================================
 
-\subsection{Linear Programming: The Optimum as a Typed Constant}
+\subsection{Linear Programming: \texorpdfstring{$\operatorname{argmax} : \mathbf{Set} \to \mathbf{Set}$}{argmax: Set → Set}}
 \label{sec:lp-centrepiece}
 
-Stare at a linear program for a moment. The polytope is an intersection
-of halfspaces---a set, in exactly the comprehension sense of
-Section~\ref{sec:sets-rules}. The objective is a linear functional. The
-optimum is the one vertex of the polytope at which the objective is
-largest.
+Stare at a linear program for a moment.
+The polytope is an intersection of halfspaces --- a set, in exactly the comprehension sense of Section~\ref{sec:sets-rules}.
+The objective is a linear functional $U : F \to \mathbb{Q}$ on the ambient $F = \mathbb{Q}^2$.
+The optimum is also a set --- a singleton when there is a unique optimal vertex, the empty set when the polytope is infeasible, an unbounded ray when the objective is unbounded over the polytope, a face when the objective is parallel to an edge.
+The textbook signature of $\operatorname{argmax}$ is therefore $\mathbf{Set} \to \mathbf{Set}$.
 
-The previous section's reductions collapsed a set to a simpler set. An
-optimum is also a collapse: it reduces a set to a single point. The move
-of this section is to lift that collapse into the type system. If every
-halfspace and every objective coefficient is named at the type level,
-the compiler has enough information to enumerate the vertices, run the
-feasibility checks, compare the objective values, and emit the winner
-as a literal. The LP solver is the C++ compiler.
+In a library where the input polytope is already a Set in the set-comprehension DSL (Section~\ref{sec:sets-rules}), the honest output type is also a Set; the regime --- singleton, empty, ray, face --- is encoded in the output Set's predicate type.
+The move of this section is to lift that arrow into the type system.
+If every halfspace and every objective coefficient is named at the type level, the compiler has enough information to enumerate the vertex candidates, run the feasibility checks, compare objective values, and emit the optimum Set whose predicate carries the regime.
 
-\paragraph{Showcase~9 (centrepiece).} Consider a textbook LP:
+The cases shipped at the time of writing are the singleton (a unique optimal vertex) and the empty Set (infeasible polytope); ray-valued and face-valued outputs are deferred to a follow-up.
+When the LP has a face of optima --- the objective parallel to a feasible edge --- the kernel tie-breaks to a single vertex of that face and the output Set is the corresponding singleton; the §5 strict form makes this scope explicit at the type level.
+
+\paragraph{Showcase~9 (centrepiece).} Consider the textbook LP:
 \begin{align*}
   \text{maximise} \quad & 3x + 2y \\
   \text{subject to} \quad & x + y \leq 4 \\
                           & 2x + y \leq 6 \\
                           & x, y \geq 0
 \end{align*}
-The feasible region is a polygon in $\mathbb{Q}^2$
-(Figure~\ref{fig:lp-polytope}); the optimum is the vertex
-$(2, 2)$ where the non-axis-aligned constraints $x + y = 4$ and
-$2x + y = 6$ are simultaneously binding (objective value $10$). In
-\texttt{dedekind.optimization:lp}, constraints are NTTPs and the
-reduction is a variadic template whose output carries the vertex at the
-type level:
+The feasible region is a polygon in $\mathbb{Q}^2$ (Figure~\ref{fig:lp-polytope}); the optimum is the singleton $\{(2, 2)\}$ where the non-axis-aligned constraints $x + y = 4$ and $2x + y = 6$ are simultaneously binding (objective value $10$).
+In \texttt{dedekind.optimization:lp}, constraints are NTTPs lifted into halfspace Sets, the polytope $G$ is their meet under \cppinline{operator&}, the objective $U$ is a NTTP-typed \cppinline{LinearFunctional}, and \cppinline{argmax(G, U)} returns the optimum Set whose predicate type pins the regime:
 
 \begin{figure}[htbp]
 \centering
@@ -1769,24 +1763,40 @@ using H2 = Halfspace2D<Rat, Rat{2}, Rat{1}, Rat{6}>;     // 2x +  y <= 6
 using H3 = Halfspace2D<Rat, Rat{-1}, Rat{0}, Rat{0}>;    //  x      >= 0
 using H4 = Halfspace2D<Rat, Rat{0}, Rat{-1}, Rat{0}>;    //       y >= 0
 
-using Optimum = decltype(maximize<Rat, Rat{3}, Rat{2}, H1, H2, H3, H4>());
-static_assert(std::same_as<Optimum, Vec2<Rat, Rat{2}, Rat{2}>>);
+// Input: polytope G ⊆ ℚ² as the meet of halfspace Sets in the §3 DSL.
+constexpr auto G = halfspace_set(H1{}) & halfspace_set(H2{})
+                 & halfspace_set(H3{}) & halfspace_set(H4{});
+// Objective: U : F → ℚ, coefficients (3, 2) at the type level.
+constexpr LinearFunctional<Rat, Rat{3}, Rat{2}> U{};
+// Output: a Set whose predicate type encodes the regime.  Here it is
+// the singleton {(2, 2)}, with the coordinates pinned at NTTPs.
+using Optimum = std::remove_cvref_t<decltype(argmax(G, U))>;
+using OptPred = std::remove_cvref_t<decltype(std::declval<Optimum>().predicate())>;
+static_assert(std::same_as<OptPred, Singleton2DPredicate<Rat, Rat{2}, Rat{2}>>);
 \end{cpp}
 \end{listing}
 
-The reduction enumerates vertex candidates at compile time (all
-$\binom{4}{2} = 6$ pairs of binding constraints), solves each $2 \times 2$
-active-set system via \texttt{Invertible2x2}'s closed-form Cramer
-inverse (exact over $\mathbb{Q}$), filters by feasibility against the
-non-active constraints, and picks the objective-maximising feasible
-vertex. Every step is a template specialisation; no runtime iteration
-survives.
+The reduction enumerates vertex candidates at compile time (all $\binom{4}{2} = 6$ pairs of binding constraints), solves each $2 \times 2$ active-set system via \texttt{Invertible2x2}'s closed-form Cramer inverse (exact over $\mathbb{Q}$), filters by feasibility against the non-active constraints, and picks the objective-maximising feasible vertex.
+Every step is a template specialisation; no runtime iteration survives.
 
-\paragraph{IR witness.} The paper's claim is not prose; it is
-translation-time mechanics. Two \texttt{extern "C"} functions in the
-fixture return the numerator of the optimum's $x$- and $y$-coordinates.
-At \texttt{-O2}, \texttt{clang}'s optimiser folds the entire LP
-reduction to literal integers:
+\paragraph{Two kernels under one combinator.}
+A separate concern arises when the polytope happens to be signed-unimodular and axis-aligned: coefficients in $\{-1, 0, +1\}$ with at most one nonzero per halfspace.
+In that scope, the Cramer determinants are all $\pm 1$, the active-set divisions degenerate to sign flips, and the vertex coordinates are simply the relevant axis bounds; the active-set enumeration collapses to per-axis bracketing and a sign-driven select.
+The library ships both kernels and lets the type system pick.
+The dispatch is one \cppinline{if constexpr} over a conjunction of concepts on the halfspace pack and the carrier:
+\cppinline{HasUnitRangeEntries<Hs...>} (every coefficient lies in $\{-1, 0, +1\}$), \cppinline{IsAxisAlignedPolytope<Hs...>} (at least one coefficient is zero per halfspace), and \cppinline{SuitableForAxisAlignedFastPath<T>} (the carrier admits the bit-ops kernel's signedness convention).
+When all three hold, \cppinline{argmax(G, U)} routes to the bit-ops kernel; otherwise to the generic Cramer kernel.
+The non-taken branch is removed from the template instantiation by \cppinline{if constexpr}; no run-time dispatch survives.
+
+\paragraph{Bridge: same source, two evaluation modes.}
+The compile-time path described above takes constraints at the type level.
+The same kernel runs at runtime when the constraints arrive as a \cppinline{std::span} --- the shape Python callers see through the project's \texttt{nanobind} facade.
+The runtime entry \cppinline{maximize_with_values<T>(span, cx, cy)} performs the same structural classification at runtime, routes to the same kernel, and returns the same Set carrier --- with the regime now encoded at the value level (via the predicate's \cppinline{(point, feasible)} state) instead of the type level.
+The bridge is mechanical: the kernel is one \cppinline{constexpr} function, and the call site selects the evaluation mode by the constexpr-ness of its arguments.
+
+\paragraph{IR witness.} The paper's claim is not prose; it is translation-time mechanics.
+On the NTTP path, two \texttt{extern "C"} witness functions in the fixture return the optimum's $x$- and $y$-coordinates --- extracted from the output Set's predicate at the type level.
+At \texttt{-O2}, \texttt{clang}'s optimiser folds the entire LP reduction to literal integers:
 
 % Source: src/test/cpp/modules/dedekind/python/showcase_09_lp_vertex_typed_constant.ll
 \begin{listing}[htbp]
@@ -1804,24 +1814,30 @@ define noundef i64 @witness_lp_optimum_y() ... {
 \end{cpp}
 \end{listing}
 
-The IR is checked into the repository as a fixture
-(\texttt{showcase\_09\_lp\_vertex\_typed\_constant.ll}); a build-time
-gate (\texttt{make ir-fixture-check}) fails CI if optimiser drift ever
-loses the collapse. The binary contains no LP solver; no simplex
-tableau; no active-set machinery. More precisely: the vertex's
-coordinates are non-type template parameters of the result type
-(\cppinline{Vec2<Rat, Rat{2}, Rat{2}>}), so the C++23 NTTP machinery
-is what carries the answer through to type-level. The input is a
-constexpr value passed as NTTP; the output is a type whose NTTPs
-encode the coordinates; the runtime call returning a coordinate
-collapses to a literal load in the emitted IR.  Because the reduction
-lands in \texttt{Rational<...>} rather than IEEE floating point, the
-\cppinline{ret i64 2} output is bit-identical across ARM and x86
-back-ends and host floating-point ABIs --- the typed constant has
-no rounding mode to disagree about.  This is the embedded /
-cross-platform-determinism guarantee the paper has been claiming
-throughout, made concrete by the absence of any \texttt{double}-typed
-reduction in the IR.
+The IR is checked into the repository as a fixture (\texttt{showcase\_09\_lp\_vertex\_typed\_constant.ll}); a build-time gate (\texttt{make ir-fixture-check}) fails CI if optimiser drift ever loses the collapse.
+The binary contains no LP solver; no simplex tableau; no active-set machinery.
+More precisely: the vertex's coordinates are non-type template parameters of the output Set's predicate (\cppinline{Singleton2DPredicate<Rat, Rat{2}, Rat{2}>}), so the C++23 NTTP machinery is what carries the answer through to the type level.
+The input is a constexpr Set passed under \cppinline{argmax(G, U)}; the output is a Set whose predicate type's NTTPs encode the coordinates; the runtime witness extracting a coordinate collapses to a literal load in the emitted IR.
+Because the reduction lands in \texttt{Rational<...>} rather than IEEE floating point, the \cppinline{ret i64 2} output is bit-identical across ARM and x86 back-ends and host floating-point ABIs --- the typed constant has no rounding mode to disagree about.
+
+\paragraph{Runtime IR: two kernels, two signatures.}
+The complementary direction is to call the same kernels with runtime data and look at the residual IR.
+The library exposes \cppinline{maximize_axis_aligned_with_values<T>} and \cppinline{maximize_cramer_with_values<T>} as explicit power-user entries (the IR microscope on each kernel in isolation); the default \cppinline{maximize_with_values<T>} dispatches mechanically between them.
+The fixtures \texttt{showcase\_09b\_lp\_runtime\_residual.ll} and \texttt{showcase\_12b\_lp\_unimodular\_runtime.ll} pin the two kernels' signatures: the Cramer kernel retains its $2 \times 2$ \texttt{fdiv} / \texttt{fmuladd} active-set arithmetic and the loop's \texttt{phi} accumulators; the bit-ops kernel retains the loop's \texttt{phi} accumulators and the sign-driven \texttt{select} but emits no \texttt{mul} / \texttt{sdiv} / \texttt{udiv} on the integer carrier.
+The semantic-sanity checker enforces both shapes (\texttt{pruning-ir-fixture.py}).
+
+\paragraph{Strict close.}
+The previous paragraphs are the rough form; the strict form is mechanical.
+A \cppinline{static_assert} on the project's \cppinline{IsSet} concept (the ETCS-grade Set contract from Section~\ref{sec:sets-rules}) confirms that the input polytope, the singleton output, the empty output, and the runtime-discriminated output are all Sets in the same sense --- not merely structurally-similar wrappers but carriers of \cppinline{HasETCSAxioms} and \cppinline{IsCartesianClosed<CanonicalSetCCC<Ambient>>}.
+A further \cppinline{static_assert} on \cppinline{IsFAlgebra} confirms the catamorphism \emph{shape} on the output side: the output Set carries a structure map $F\langle X\rangle \to X$ for the identity endofunctor on its ambient category, with the active-set step closing over the halfspace pack.\footnote{The shape witness is mechanical.
+The catamorphism's uniqueness clause --- that \cppinline{argmax(G, U)} is the unique morphism into the output algebra from the initial halfspace-list F-algebra for $F(X) = 1 + \text{Halfspace} \times X$ --- is the engineer's honesty obligation per Pierce~\cite{pierce2002tapl} §5.4; the project's \cppinline{:f_algebra} partition reifies this as an opt-in \cppinline{is_initial_f_algebra_v} trait, deliberately defaulted to false here.
+The halfspace-list endofunctor's full \cppinline{IsEndofunctor} instantiation ($\Sigma_\text{cat}$, \cppinline{Shape}, $\varphi$) is a separate categorical task; see also Meijer-Fokkinga-Paterson's classical functional reading of fold under polynomial functors, and Bird's \emph{Algebra of Programming} for the textbook treatment.}
+
+% TODO (listings in follow-up commits to this PR):
+%   - Listing: regime × dispatch trigger × predicate × IR signature table.
+%   - Listing: showcase_09b vs showcase_12b abbreviated IR side-by-side.
+%   - Listing: static_assert(IsSet<...>) chain on input and three output regimes.
+%   - Listing: static_assert(IsFAlgebra<...>) inline witness extract.
 
 \subsection{Forward-Mode AD as a Sibling Realisation of Compile-Time Derivatives}
 \label{sec:ad-elliott}
