@@ -11,9 +11,10 @@
  * carrier: `Rational<long>`). A problem instance is named at the type
  * level — objective as two NTTPs, constraints as a pack of
  * `Halfspace2D<T, a, b, c>` carriers. The reduction
- * `maximize_set<T, cx, cy, H1, H2, …>()` returns the optimum as a Set
- * whose predicate type carries `(x*, y*)` at the type level —
- * "the optimum IS a type", literally, via the Set DSL.
+ * `argmax(G, U)` over a polytope-Set `G` and a `LinearFunctional U`
+ * returns the optimum as a Set whose predicate type carries `(x*, y*)`
+ * at the type level — "the optimum IS a type", literally, via the
+ * Set DSL.
  *
  * @section lp__Comonadic_Framing
  * The reduction is structurally a co-Kleisli arrow. Conceptually:
@@ -751,35 +752,27 @@ constexpr auto lp_empty_set() {
       dedekind::sets::EmptyPredicate<dedekind::linear_algebra::Vec2V<T>>{}};
 }
 
+namespace detail {
+
 /**
  * @brief NTTP packaging on top of @ref maximize_with_values returning a
  *        @c :expressions Set whose predicate type encodes the LP's
- *        mathematical regime.
+ *        mathematical regime.  Implementation of the canonical public
+ *        entry @ref argmax ; callers use @ref argmax , not this.
  *
- * Usage:
+ * @details Same kernel dispatch as the runtime entries (signed-
+ * unimodular fast path vs generic Cramer fold), but the return is a
+ * Set whose predicate type carries the regime.  When the LP is
+ * infeasible the return is a Set with @c :expressions::EmptyPredicate ;
+ * no @c static_assert fires — the empty optimum is a value of the
+ * output Set type.  Callers who want compile-time refusal can
+ * @c static_assert on @c decltype(argmax(G, U)) themselves.
  *
- *     constexpr auto opt = maximize_set<Rat, Rat{3L}, Rat{2L},
- *                                       H1, H2, H3, H4>();
- *     //  decltype(opt) = Set<Vec2V<Rat>, ClassicalLogic,
- *     //                      Singleton2DPredicate<Rat, Rat{2L}, Rat{2L}>>
- *     //  — the regime (Singleton) AND the coordinates (2, 2) live in
- *     //  the type.
- *
- * @details Same kernel dispatch as @ref maximize (signed-unimodular fast
- * path vs generic Cramer fold), but the return is a Set whose predicate
- * type carries the regime instead of a @c Vec2 with an implicit
- * "feasible" assumption.  When the LP is infeasible the return is a
- * Set with @c :expressions::EmptyPredicate ; no @c static_assert
- * fires — the empty optimum is a value of the output Set type.
- *
- * Callers who want compile-time refusal of infeasible inputs can
- * @c static_assert on @c decltype(opt) themselves (e.g. @c static_assert
- * (!std::same_as<decltype(opt), decltype(lp_empty_set<T>())>)).
- *
- * This is the Set-as-output companion to @ref maximize ; @ref argmax
- * below is the @c :expressions Set DSL entry that calls it.
+ * Lives in @c detail:: because @c argmax(G, U) is the canonical public
+ * Set DSL surface — input polytope and output optimum are both Sets
+ * end-to-end, with no NTTP-direct shortcut exposed.
  */
-export template <typename T, T cx, T cy, typename... Hs>
+template <typename T, T cx, T cy, typename... Hs>
   requires(sizeof...(Hs) >= 2) && dedekind::algebra::HasRingOperators<T>
 constexpr auto maximize_set() {
   constexpr std::array<HalfspaceTriple<T>, sizeof...(Hs)> cs = {
@@ -804,17 +797,18 @@ constexpr auto maximize_set() {
   }
 }
 
+}  // namespace detail
+
 /** @section lp__Comonadic_Extract_Witness
  *
- *  @c maximize_set<T, cx, cy, Hs...>() is structurally a comonadic counit
- *  (@c ε in the Kleisli notation): it takes the polytope-context
- *  @c (cx, cy, Hs...) — bundled as the NTTP pack — and extracts the
- *  optimal locus as a Set whose predicate type encodes the regime.
- *  The pack-as-context view matches the textbook co-Kleisli arrow
- *  shape @c F<T> → T already noted in the file header.  The
- *  @c Polytope2D wrapper below makes the extract explicit at the
- *  type level so the witness can be pinned without changing the
- *  primary API surface.
+ *  @c argmax(G, U) is structurally a comonadic counit (@c ε in the
+ *  Kleisli notation): it takes the polytope-context @c G ⊆ F bundled
+ *  with the objective @c U and extracts the optimal locus as a Set
+ *  whose predicate type encodes the regime.  The pack-as-context view
+ *  matches the textbook co-Kleisli arrow shape @c F<T> → T already
+ *  noted in the file header.  The @c Polytope2D wrapper below makes
+ *  the extract explicit at the type level so the witness can be
+ *  pinned without changing the primary API surface.
  */
 
 /** @brief Polytope context: the (cx, cy, Hs...) pack reified as a type.
@@ -836,7 +830,9 @@ struct Polytope2D final {
    *  reduction collapses to a typed constant at instantiation — the
    *  LP-optimum-as-typed-Set claim of §5.
    */
-  static constexpr auto extract() { return maximize_set<T, cx, cy, Hs...>(); }
+  static constexpr auto extract() {
+    return detail::maximize_set<T, cx, cy, Hs...>();
+  }
 };
 
 /** @brief @c ε / extract for the LP comonadic context.  Provided as a
@@ -1007,8 +1003,8 @@ constexpr auto structured_and(Polytope2DPredicate<T, Hs1...>,
 
 /** @brief Linear functional `U : F → T` with NTTP-typed coefficients.
  *  Carries the objective as type parameters so @ref argmax can call the
- *  NTTP-driven kernel @ref maximize_set directly without smuggling the
- *  values through function parameters. */
+ *  NTTP-driven implementation @ref detail::maximize_set directly without
+ *  smuggling the values through function parameters. */
 export template <typename T, T cx_, T cy_>
 struct LinearFunctional {
   using scalar_type = T;
@@ -1025,7 +1021,7 @@ struct LinearFunctional {
  *  @c G is a Set whose predicate is a @ref Polytope2DPredicate carrying
  *  the halfspace pack; @c U is a @ref LinearFunctional carrying the
  *  objective coefficients as NTTPs.  Extracts both packs from the type
- *  level and dispatches to the kernel via @ref maximize_set , returning
+ *  level and dispatches to the kernel via @ref detail::maximize_set , returning
  *  the optimal locus as a Set — singleton @c {(x*, y*)} when the LP has
  *  a unique optimum, empty when infeasible.
  *
@@ -1041,7 +1037,7 @@ constexpr auto argmax(
     const dedekind::sets::Set<dedekind::linear_algebra::Vec2V<T>, L,
                               Polytope2DPredicate<T, Hs...>>&,
     LinearFunctional<T, cx, cy>) {
-  return maximize_set<T, cx, cy, Hs...>();
+  return detail::maximize_set<T, cx, cy, Hs...>();
 }
 
 }  // namespace dedekind::optimization

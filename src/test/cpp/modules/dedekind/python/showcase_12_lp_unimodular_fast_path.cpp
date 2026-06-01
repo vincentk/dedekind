@@ -52,8 +52,13 @@ using U2 = Halfspace2D<Rat, Rat{0}, Rat{1}, Rat{1}>;   //  y ≤ 1
 using U3 = Halfspace2D<Rat, Rat{-1}, Rat{0}, Rat{0}>;  //  x ≥ 0
 using U4 = Halfspace2D<Rat, Rat{0}, Rat{-1}, Rat{0}>;  //  y ≥ 0
 
-using OptimumSet =
-    decltype(maximize_set<Rat, Rat{1}, Rat{1}, U1, U2, U3, U4>());
+// Construct G ⊆ F as the meet of halfspace Sets, U : F → ℚ as the
+// linear functional, and apply argmax(G, U) — the canonical Set DSL
+// combinator.
+constexpr auto G = halfspace_set(U1{}) & halfspace_set(U2{}) &
+                   halfspace_set(U3{}) & halfspace_set(U4{});
+constexpr LinearFunctional<Rat, Rat{1}, Rat{1}> Uf{};
+using OptimumSet = std::remove_cvref_t<decltype(argmax(G, Uf))>;
 using OptimumPred =
     std::remove_cvref_t<decltype(std::declval<OptimumSet>().predicate())>;
 

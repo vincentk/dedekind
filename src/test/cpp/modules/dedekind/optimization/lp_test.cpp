@@ -115,7 +115,7 @@ TEST_CASE("optimization:lp — both argmax input and output satisfy IsSet (#749)
   // same ambient `F`:
   //
   //  (a) NTTP singleton (Singleton2DPredicate carrying (x*, y*) at
-  //      the type level — what `argmax` / `maximize_set` return on
+  //      the type level — what `argmax(G, U)` returns on
   //      the feasible NTTP path);
   //
   //  (b) NTTP empty (EmptyPredicate — infeasible NTTP path);
@@ -201,9 +201,11 @@ TEST_CASE("optimization:lp — bit-ops fast-path triptych dispatch (#749)",
   using U3 = Halfspace2D<Rat, Rat{-1L}, Rat{0L}, Rat{0L}>;
   using U4 = Halfspace2D<Rat, Rat{0L}, Rat{-1L}, Rat{0L}>;
 
-  // Compile-time fold: maximize x + y over the unit square → (1, 1).
-  using OptSet =
-      decltype(maximize_set<Rat, Rat{1L}, Rat{1L}, U1, U2, U3, U4>());
+  // Compile-time fold: argmax(x + y over the unit square) → (1, 1).
+  constexpr auto G = halfspace_set(U1{}) & halfspace_set(U2{}) &
+                     halfspace_set(U3{}) & halfspace_set(U4{});
+  constexpr LinearFunctional<Rat, Rat{1L}, Rat{1L}> Uf{};
+  using OptSet = std::remove_cvref_t<decltype(argmax(G, Uf))>;
   using OptPred =
       std::remove_cvref_t<decltype(std::declval<OptSet>().predicate())>;
   STATIC_CHECK(
@@ -248,19 +250,23 @@ TEST_CASE(
   using U3 = Halfspace2D<Rat, Rat{-1L}, Rat{0L}, Rat{0L}>;
   using U4 = Halfspace2D<Rat, Rat{0L}, Rat{-1L}, Rat{0L}>;
 
-  // Fast-path regime: NTTP entry dispatches via @c if @c constexpr to the
-  // axis-aligned bit-ops kernel.  Same @c maximize_set template, same
-  // call site shape; the only thing that changes is the halfspace pack.
-  using FastSet =
-      decltype(maximize_set<Rat, Rat{1L}, Rat{1L}, U1, U2, U3, U4>());
+  // Fast-path regime: argmax dispatches via @c if @c constexpr to the
+  // axis-aligned bit-ops kernel.  Same @c argmax combinator, same call
+  // site shape; the only thing that changes is the halfspace pack.
+  constexpr auto G_fast = halfspace_set(U1{}) & halfspace_set(U2{}) &
+                          halfspace_set(U3{}) & halfspace_set(U4{});
+  constexpr LinearFunctional<Rat, Rat{1L}, Rat{1L}> Uf{};
+  using FastSet = std::remove_cvref_t<decltype(argmax(G_fast, Uf))>;
   using FastPred =
       std::remove_cvref_t<decltype(std::declval<FastSet>().predicate())>;
   STATIC_CHECK(
       std::same_as<FastPred, Singleton2DPredicate<Rat, Rat{1L}, Rat{1L}>>);
 
-  // Generic regime: same NTTP entry, different pack — Cramer fold.
-  using GenericSet =
-      decltype(maximize_set<Rat, Rat{3L}, Rat{2L}, H1, H2, H3, H4>());
+  // Generic regime: same argmax combinator, different pack — Cramer fold.
+  constexpr auto G_generic = halfspace_set(H1{}) & halfspace_set(H2{}) &
+                             halfspace_set(H3{}) & halfspace_set(H4{});
+  constexpr LinearFunctional<Rat, Rat{3L}, Rat{2L}> Ug{};
+  using GenericSet = std::remove_cvref_t<decltype(argmax(G_generic, Ug))>;
   using GenericPred =
       std::remove_cvref_t<decltype(std::declval<GenericSet>().predicate())>;
   STATIC_CHECK(
@@ -384,9 +390,9 @@ TEST_CASE("optimization:lp — Polytope2D + lp_extract comonadic counit (#388)",
           "[optimization][lp][comonad][counit]") {
   // The polytope context (cx, cy, Hs...) reified as a type, with the
   // co-Kleisli counit lp_extract :: Polytope2D(T) → Set(Vec2V(T))
-  // delegating to maximize_set<...>().  Pins both the constructibility
+  // delegating to argmax(G, U) internally.  Pins both the constructibility
   // of the Polytope2D wrapper and the equivalence between extract()
-  // member, free-function lp_extract, and the underlying maximize_set()
+  // member, free-function lp_extract, and the explicit `argmax(G, U)`
   // — three surfaces that must agree.
   using Poly = Polytope2D<Rat, Rat{3L}, Rat{2L}, H1, H2, H3, H4>;
 
@@ -397,8 +403,10 @@ TEST_CASE("optimization:lp — Polytope2D + lp_extract comonadic counit (#388)",
   constexpr Poly polytope{};
   constexpr auto via_extract_member = polytope.extract();
   constexpr auto via_lp_extract = lp_extract(polytope);
-  constexpr auto via_maximize_set =
-      maximize_set<Rat, Rat{3L}, Rat{2L}, H1, H2, H3, H4>();
+  constexpr auto G_p = halfspace_set(H1{}) & halfspace_set(H2{}) &
+                       halfspace_set(H3{}) & halfspace_set(H4{});
+  constexpr LinearFunctional<Rat, Rat{3L}, Rat{2L}> U_p{};
+  constexpr auto via_argmax = argmax(G_p, U_p);
 
   // The expression-type witnesses: all three surfaces return a Set
   // whose predicate is Singleton2DPredicate<Rat, 2, 2>.
@@ -407,14 +415,13 @@ TEST_CASE("optimization:lp — Polytope2D + lp_extract comonadic counit (#388)",
                           Singleton2DPredicate<Rat, Rat{2L}, Rat{2L}>>;
   STATIC_CHECK(std::same_as<decltype(polytope.extract()), ExpectedOpt>);
   STATIC_CHECK(std::same_as<decltype(lp_extract(polytope)), ExpectedOpt>);
-  STATIC_CHECK(std::same_as<
-               decltype(maximize_set<Rat, Rat{3L}, Rat{2L}, H1, H2, H3, H4>()),
-               ExpectedOpt>);
+  STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(argmax(G_p, U_p))>,
+                            ExpectedOpt>);
 
   // All three surfaces agree on membership of the optimum point.
   CHECK(via_extract_member.contains(Vec2V<Rat>{Rat{2L}, Rat{2L}}));
   CHECK(via_lp_extract.contains(Vec2V<Rat>{Rat{2L}, Rat{2L}}));
-  CHECK(via_maximize_set.contains(Vec2V<Rat>{Rat{2L}, Rat{2L}}));
+  CHECK(via_argmax.contains(Vec2V<Rat>{Rat{2L}, Rat{2L}}));
 }
 
 // The §5 polytope as a constexpr value-level array: shared between the
@@ -430,13 +437,14 @@ constexpr std::array<HalfspaceTriple<Rat>, 4> kPolytope = {{
 
 TEST_CASE(
     "optimization:lp — paper-facing existential proof: "
-    "maximize_set(3x + 2y, polytope) = Set with Singleton2DPredicate<Rat, 2, "
-    "2>",
+    "argmax(G, U) = Set with Singleton2DPredicate<Rat, 2, 2>",
     "[optimization][lp][centrepiece]") {
-  // The reduction returns a Set whose predicate type pins the optimum
+  // argmax(G, U) returns a Set whose predicate type pins the optimum
   // at NTTP coords — the regime IS a type.
-  using OptSet =
-      decltype(maximize_set<Rat, Rat{3L}, Rat{2L}, H1, H2, H3, H4>());
+  constexpr auto G = halfspace_set(H1{}) & halfspace_set(H2{}) &
+                     halfspace_set(H3{}) & halfspace_set(H4{});
+  constexpr LinearFunctional<Rat, Rat{3L}, Rat{2L}> Uf{};
+  using OptSet = std::remove_cvref_t<decltype(argmax(G, Uf))>;
   using OptPred =
       std::remove_cvref_t<decltype(std::declval<OptSet>().predicate())>;
   STATIC_CHECK(
@@ -703,10 +711,12 @@ TEST_CASE(
   STATIC_CHECK_FALSE(v.contains(Vec2V<Rat>{Rat{0L}, Rat{0L}}));
 
   // Parity with the NTTP packaging surface on the same polytope: the
-  // runtime entry called with constexpr inputs and the NTTP Set return
-  // must agree on the optimum point.
-  using NttpSet =
-      decltype(maximize_set<Rat, Rat{3L}, Rat{2L}, H1, H2, H3, H4>());
+  // runtime entry called with constexpr inputs and the argmax(G, U)
+  // Set return must agree on the optimum point.
+  constexpr auto G = halfspace_set(H1{}) & halfspace_set(H2{}) &
+                     halfspace_set(H3{}) & halfspace_set(H4{});
+  constexpr LinearFunctional<Rat, Rat{3L}, Rat{2L}> Uf{};
+  using NttpSet = std::remove_cvref_t<decltype(argmax(G, Uf))>;
   using NttpPred =
       std::remove_cvref_t<decltype(std::declval<NttpSet>().predicate())>;
   STATIC_CHECK(
@@ -732,8 +742,10 @@ TEST_CASE(
 
   // Parity with the NTTP packaging surface: the same polytope reduced
   // through both surfaces must yield identical coordinates.
-  using NttpSet =
-      decltype(maximize_set<Rat, Rat{3L}, Rat{2L}, H1, H2, H3, H4>());
+  constexpr auto G = halfspace_set(H1{}) & halfspace_set(H2{}) &
+                     halfspace_set(H3{}) & halfspace_set(H4{});
+  constexpr LinearFunctional<Rat, Rat{3L}, Rat{2L}> Uf{};
+  using NttpSet = std::remove_cvref_t<decltype(argmax(G, Uf))>;
   using NttpPred =
       std::remove_cvref_t<decltype(std::declval<NttpSet>().predicate())>;
   CHECK(result.contains(Vec2V<Rat>{NttpPred::coord_x, NttpPred::coord_y}));

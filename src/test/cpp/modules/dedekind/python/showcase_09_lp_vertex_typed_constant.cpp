@@ -12,9 +12,8 @@
  *     objective value = 10.
  *
  * The Set DSL combinator `argmax(G, U)` over the polytope `G` and
- * objective `U` (or the equivalent `maximize_set<Rat, cx, cy, Hs...>()`
- * NTTP form internally) enumerates vertex candidates (all `C(4, 2) = 6`
- * pairs of binding constraints), solves each `2×2` active set via
+ * objective `U` enumerates vertex candidates (all `C(4, 2) = 6` pairs
+ * of binding constraints), solves each `2×2` active set via
  * `Invertible2x2`'s closed-form Cramer inverse, filters by feasibility
  * against non-active constraints, and picks the objective-maximising
  * feasible vertex. The active set at the optimum is `{H1, H2}` — both
@@ -56,9 +55,13 @@ using H3 = Halfspace2D<Rat, Rat{-1}, Rat{0}, Rat{0}>;  //  x      ≥ 0
 using H4 = Halfspace2D<Rat, Rat{0}, Rat{-1}, Rat{0}>;  //       y ≥ 0
 
 // The optimum at the type level: a Set with a Singleton2DPredicate
-// pinning the vertex (2, 2) at NTTP coordinates.
-using OptimumSet =
-    decltype(maximize_set<Rat, Rat{3}, Rat{2}, H1, H2, H3, H4>());
+// pinning the vertex (2, 2) at NTTP coordinates.  Construct G ⊆ F as
+// the meet of halfspace Sets, U : F → ℚ as the linear functional, and
+// apply argmax(G, U) — the canonical Set DSL combinator.
+constexpr auto G = halfspace_set(H1{}) & halfspace_set(H2{}) &
+                   halfspace_set(H3{}) & halfspace_set(H4{});
+constexpr LinearFunctional<Rat, Rat{3}, Rat{2}> U{};
+using OptimumSet = std::remove_cvref_t<decltype(argmax(G, U))>;
 using OptimumPred =
     std::remove_cvref_t<decltype(std::declval<OptimumSet>().predicate())>;
 
