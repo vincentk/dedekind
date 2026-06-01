@@ -2034,23 +2034,28 @@ bound by $\varepsilon$ (replace $x + y \leq 4$ with
 $x + y \leq 4 + \varepsilon$). The active set is unchanged for
 infinitesimal perturbation; the Cramer solve now runs over duals:
 
-% Source: src/test/cpp/modules/dedekind/optimization/lp_test.cpp
+% Source: src/test/cpp/modules/dedekind/optimization/lp_test.cpp (TEST_CASE "parametric LP over Dual<ℚ>")
 \begin{listing}[htbp]
-\caption{Parametric LP over \texttt{Dual<Rat>}. From \texttt{lp\_test.cpp}.}
+\caption{Parametric LP over \texttt{Dual<Rat>}: optimum + first-order sensitivity as one typed constant. The runtime entry \cppinline{maximize_with_values<D>} folds at translation time when its arguments are \cppinline{constexpr} (the bridge of §\ref{sec:lp-centrepiece}); instantiating at $T = $\cppinline{Dual<Rat>} discharges sensitivity through the chain rule of the ring laws. From \texttt{lp\_test.cpp} (TEST\_CASE ``parametric LP over Dual<ℚ>'').}
 \label{lst:lp-dual}
 \begin{cpp}
 
 using D = Dual<Rat>;
-using H1P = Halfspace2D<D, D{Rat{1L}}, D{Rat{1L}},
-                        D{Rat{4L}, Rat{1L}}>;  // bound = 4 + epsilon
-using H2D = Halfspace2D<D, D{Rat{2L}}, D{Rat{1L}}, D{Rat{6L}}>;
-using H3D = Halfspace2D<D, D{Rat{-1L}}, D{Rat{0L}}, D{Rat{0L}}>;
-using H4D = Halfspace2D<D, D{Rat{0L}}, D{Rat{-1L}}, D{Rat{0L}}>;
+constexpr std::array<HalfspaceTriple<D>, 4> polytope = {{
+    {D{Rat{1L}}, D{Rat{1L}}, D{Rat{4L}, Rat{1L}}}, // H1: x + y <= 4 + ε
+    {D{Rat{2L}}, D{Rat{1L}}, D{Rat{6L}}},          // H2: 2x + y <= 6
+    {D{Rat{-1L}}, D{Rat{0L}}, D{Rat{0L}}},         // H3: x >= 0
+    {D{Rat{0L}}, D{Rat{-1L}}, D{Rat{0L}}},         // H4:     y >= 0
+}};
+constexpr auto v = maximize_with_values<D>(
+    std::span<const HalfspaceTriple<D>>(polytope),
+    D{Rat{3L}}, D{Rat{2L}});
 
-constexpr auto v = maximize_value<D, D{Rat{3L}}, D{Rat{2L}},
-                                  H1P, H2D, H3D, H4D>();
-static_assert(v.x.val == Rat{2L}  && v.x.der == Rat{-1L});
-static_assert(v.y.val == Rat{2L}  && v.y.der == Rat{2L});
+// Optimum: x* = 2 − ε, y* = 2 + 2ε.  Set membership over Dual<Rat>
+// encodes primal AND first-order sensitivity in one compile-time check.
+constexpr auto opt = Vec2V<D>{D{Rat{2L}, Rat{-1L}},
+                              D{Rat{2L}, Rat{ 2L}}};
+static_assert(v.contains(opt));
 \end{cpp}
 \end{listing}
 
