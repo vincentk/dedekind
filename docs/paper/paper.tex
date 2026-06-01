@@ -1826,6 +1826,25 @@ The library exposes \cppinline{maximize_axis_aligned_with_values<T>} and \cppinl
 The fixtures \texttt{showcase\_09b\_lp\_runtime\_residual.ll} and \texttt{showcase\_12b\_lp\_unimodular\_runtime.ll} pin the two kernels' signatures: the Cramer kernel retains its $2 \times 2$ \texttt{fdiv} / \texttt{fmuladd} active-set arithmetic and the loop's \texttt{phi} accumulators; the bit-ops kernel retains the loop's \texttt{phi} accumulators and the sign-driven \texttt{select} but emits no \texttt{mul} / \texttt{sdiv} / \texttt{udiv} on the integer carrier.
 The semantic-sanity checker enforces both shapes (\texttt{pruning-ir-fixture.py}).
 
+\begin{table}[htbp]
+\centering
+\caption{\textbf{Kernel $\times$ evaluation mode $\times$ output predicate $\times$ IR signature for \cppinline{argmax(G, U)}.}
+The kernel branch is selected by \cppinline{if constexpr} on three concepts over the halfspace pack and carrier (\cppinline{HasUnitRangeEntries}, \cppinline{IsAxisAlignedPolytope}, \cppinline{SuitableForAxisAlignedFastPath}); the evaluation mode is selected by the constexpr-ness of the call site.
+The four rows are exhibited by \texttt{showcase\_12}, \texttt{showcase\_12b}, \texttt{showcase\_09}, and \texttt{showcase\_09b} respectively, with their LLVM IR checked into the repository as fixtures.}
+\label{tab:lp-regime-dispatch}
+\small
+\begin{tabular}{@{}l l l l@{}}
+\toprule
+\textbf{Kernel} & \textbf{Mode} & \textbf{Output predicate} & \textbf{IR signature at \texttt{-O2}} \\
+\midrule
+Fast path & NTTP & \cppinline{Singleton2DPredicate} & \texttt{ret i64 K} (full fold) \\
+Fast path & \cppinline{std::span} & \cppinline{LPSolutionPredicate} & loop \texttt{phi} + sign-driven \texttt{select}; no \texttt{mul}/\texttt{sdiv}/\texttt{udiv} \\
+Generic Cramer & NTTP & \cppinline{Singleton2DPredicate} \emph{or} \cppinline{EmptyPredicate} & \texttt{ret i64 K} \emph{or} \texttt{static\_assert} refusal \\
+Generic Cramer & \cppinline{std::span} & \cppinline{LPSolutionPredicate} & $\binom{m}{n}$ active-set fold; $2{\times}2$ \texttt{fdiv} / \texttt{fmuladd} + \texttt{phi} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 A \cppinline{static_assert} on the project's \cppinline{IsSet} concept (the ETCS-grade Set contract from Section~\ref{sec:sets-rules}) confirms that the input polytope, the singleton output, the empty output, and the runtime-discriminated output are all Sets in the same sense --- not merely structurally-similar wrappers but carriers of \cppinline{HasETCSAxioms} and \cppinline{IsCartesianClosed<CanonicalSetCCC<Ambient>>}.
 A further \cppinline{static_assert} on \cppinline{IsFAlgebra} confirms the catamorphism \emph{shape} on the output side: the output Set carries a structure map $F\langle X\rangle \to X$ for the identity endofunctor on its ambient category, with the active-set step closing over the halfspace pack.\footnote{The shape witness is mechanical.
 The catamorphism's uniqueness clause --- that \cppinline{argmax(G, U)} is the unique morphism into the output algebra from the initial halfspace-list F-algebra for $F(X) = 1 + \text{Halfspace} \times X$ --- is the engineer's honesty obligation per Pierce~\cite{pierce2002tapl} §5.4; the project's \cppinline{:f_algebra} partition reifies this as an opt-in \cppinline{is_initial_f_algebra_v} trait, deliberately defaulted to false here.}
@@ -1837,7 +1856,6 @@ A more elegant compile-time kernel is available in principle: Fourier-Motzkin el
 We leave the Fourier-Motzkin kernel to follow-up.
 
 % TODO (listings in follow-up commits to this PR):
-%   - Listing: regime × dispatch trigger × predicate × IR signature table.
 %   - Listing: showcase_09b vs showcase_12b abbreviated IR side-by-side.
 %   - Listing: static_assert(IsSet<...>) chain on input and three output regimes.
 %   - Listing: static_assert(IsFAlgebra<...>) inline witness extract.
