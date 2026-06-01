@@ -146,9 +146,10 @@
 A compile-time treatment of the closely related task of differentiation is well established via automatic differentiation~\cite{elliott2018simple}.
 An analogous treatment of small linear programs, in which structural verification is discharged by the type checker rather than by runtime guards, is reported below.
 A structurally-typed fragment of C++23 --- termed the \emph{Juliet Posture} --- was assembled from \cppinline{constexpr} evaluation, concepts, and template instantiation, and was characterised under a System~F reading of the underlying type system.
-A parametric two-dimensional linear program was implemented and the resulting code was found to compile to three qualitatively distinct intermediate representations across families of inputs: a signed-unimodular fast path expressed in bitwise operations, a generic implementation of Cramer's rule, and a \cppinline{static_assert} refusal for infeasible inputs.
-The same template was found to be instantiable both at compile time and at runtime from a single source.
-Within the scope of this exhibit, structural information available at the type level was found to license ahead-of-time analysis (constant folding, dead-code elimination, refusal to emit code) in place of the corresponding runtime computation.
+A parametric two-dimensional linear program was implemented whose input polytope and output optimum are both carried as Sets in the project's set-comprehension DSL.
+The type system selects between a signed-unimodular bit-ops kernel and a generic implementation of Cramer's rule based on structural properties of the input Set's predicate; the output Set's predicate type encodes the mathematical regime (singleton or empty in the cases exhibited; degenerate-face and unbounded-face outputs are a follow-up).
+The same parametric source was found to be instantiable both at compile time and at runtime from a single source.
+Within the scope of this exhibit, structural information available at the type level was found to license ahead-of-time analysis (constant folding and dead-code elimination) in place of the corresponding runtime computation.
 \end{abstract}
 
 % Table of contents is just a convenience during editing. It will be removed before submission.

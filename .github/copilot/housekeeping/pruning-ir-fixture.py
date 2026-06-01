@@ -70,6 +70,24 @@ SOURCES = [
         _PYTHON_DIR / "showcase_09b_lp_runtime_residual.cpp",
         _PYTHON_DIR / "showcase_09b_lp_runtime_residual.ll",
     ),
+    # showcase_12 is the compile-time NTTP form of the bit-ops fast path
+    # (unit-square pack — signed-unimodular + axis-aligned).  The fast
+    # path folds at translation time and the witness IR is `ret i64 1`.
+    (
+        _PYTHON_DIR / "showcase_12_lp_unimodular_fast_path.cpp",
+        _PYTHON_DIR / "showcase_12_lp_unimodular_fast_path.ll",
+    ),
+    # showcase_12b is the runtime counterpart of showcase_12: the same
+    # fast-path kernel called through
+    # `maximize_axis_aligned_with_values<int>(span, cx, cy)`.  The
+    # semantic check asserts the bit-ops claim mechanically — the loop
+    # `phi` accumulators survive (no fold) while `mul`/`sdiv`/`udiv` on
+    # the int carrier are absent (the fast path does no arithmetic
+    # beyond compares, negations, and selects).
+    (
+        _PYTHON_DIR / "showcase_12b_lp_unimodular_runtime.cpp",
+        _PYTHON_DIR / "showcase_12b_lp_unimodular_runtime.ll",
+    ),
 ]
 
 # Keep single-source aliases for backward compatibility with any callers.
@@ -260,15 +278,90 @@ def semantic_sanity(ir_text: str, source: Path) -> None:
             block = extract_function_block(ir_text, symbol)
             if block is None:
                 raise AssertionError(f"IR missing {symbol} symbol.")
-            if "ret i64 2" not in block:
+            # Whole-instruction match: `ret i64 2` alone, not as a
+            # substring of `ret i64 20`, `ret i64 25`, etc.
+            if not re.search(r"^\s*ret i64 2\s*$", block, re.MULTILINE):
                 raise AssertionError(
                     f"Expected {symbol} to collapse to `ret i64 2` in IR "
                     "(the optimum is the typed constant Vec2<Rat, 2, 2>)."
                 )
+    elif "showcase_12_lp_unimodular_fast_path" in name:
+        # The bit-ops fast path on the unit-square pack (signed-unimodular
+        # + axis-aligned) folds at compile time to Vec2<Rat, 1, 1>.  The
+        # two witness symbols should collapse to `ret i64 1` — the
+        # numerator of each coordinate as a literal in the emitted IR,
+        # the fast-path dispatch having selected `detail::maximize_impl_axis_aligned`
+        # at the NTTP entry @ref maximize.
+        for symbol in ("witness_lp_fast_optimum_x", "witness_lp_fast_optimum_y"):
+            block = extract_function_block(ir_text, symbol)
+            if block is None:
+                raise AssertionError(f"IR missing {symbol} symbol.")
+            # Whole-instruction match: `ret i64 1` alone, not as a
+            # substring of `ret i64 10`, `ret i64 15`, etc.
+            if not re.search(r"^\s*ret i64 1\s*$", block, re.MULTILINE):
+                raise AssertionError(
+                    f"Expected {symbol} to collapse to `ret i64 1` in IR "
+                    "(fast-path optimum is the typed constant Vec2<Rat, 1, 1>)."
+                )
+    elif "showcase_12b_lp_unimodular_runtime" in name:
+        # The runtime counterpart of showcase_12: the same fast-path
+        # kernel called through `maximize_axis_aligned_with_values<int>(
+        # span, cx, cy)` with coefficients as function arguments.  The
+        # body cannot fold — coefficients are runtime data — so the
+        # algorithm's residual structure must survive into IR.  The
+        # bit-ops claim is mechanically witnessed: the loop's `phi`
+        # accumulators survive somewhere in the fixture IR while
+        # `mul`/`sdiv`/`udiv` on the int carrier are absent everywhere.
+        #
+        # LLVM may inline the kernel into the witness blocks or outline
+        # it as a separate definition depending on body size; the
+        # whole-fixture check below is agnostic to which choice the
+        # optimiser makes.
+        for symbol in (
+            "witness_lp_axis_aligned_x",
+            "witness_lp_axis_aligned_y",
+            "witness_lp_axis_aligned_feasible",
+        ):
+            block = extract_function_block(ir_text, symbol)
+            if block is None:
+                raise AssertionError(f"IR missing {symbol} symbol.")
+
+        # The fast-path loop's `phi` accumulators must survive in the
+        # emitted IR.  Match the LLVM SSA `phi` opcode with a leading
+        # `=` and a trailing type (`phi i32`, `phi i8`, `phi ptr`, ...);
+        # plain substring "phi" would also match `tail call ...phi...`
+        # or symbol names.
+        if not re.search(r"=\s*phi\s+\S", ir_text):
+            raise AssertionError(
+                "Expected residual `phi` SSA nodes (per-axis bound "
+                "accumulators) to survive in IR — their absence would "
+                "mean the fast-path loop was eliminated."
+            )
+
+        # Bit-ops claim, applied to the whole emitted IR: no integer
+        # multiplication or division on the int carrier (i32) anywhere.
+        # Allow LLVM's optional `nuw`/`nsw`/`exact`/`disjoint` flags;
+        # restrict to `i32` so std::span's i64 pointer arithmetic does
+        # not false-positive.
+        if re.search(
+            r"\b(mul|sdiv|udiv)\b(?:\s+(?:nuw|nsw|exact|disjoint))*\s+i32\b",
+            ir_text,
+        ):
+            raise AssertionError(
+                "The bit-ops fast path must emit no `mul`/`sdiv`/`udiv` "
+                "on the int carrier (i32) anywhere in the fixture IR — "
+                "its presence would mean the kernel fell back to "
+                "Cramer-style arithmetic."
+            )
     elif "showcase_09b_lp_runtime_residual" in name:
         # The runtime counterpart of showcase_09: the same active-set
-        # kernel called through `maximize_with_values<double>(span, cx, cy)`
-        # with coefficients as function arguments.  Unlike showcase_09's
+        # kernel called through the power-user runtime entry
+        # `maximize_cramer_with_values<double>(span, cx, cy)` with
+        # coefficients as function arguments — the IR microscope on the
+        # Cramer kernel in isolation (the default `maximize_with_values`
+        # would route via mechanical scan + branch, contaminating the
+        # residual signature this fixture exists to exhibit).  Unlike
+        # showcase_09's
         # `ret i64 2`, the body cannot fold — every coefficient is runtime
         # data — so the algorithm's residual structure must survive into IR.
         # The paired contrast (folded vs. residual on the same kernel) is

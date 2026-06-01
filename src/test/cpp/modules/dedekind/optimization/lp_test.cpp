@@ -8,6 +8,7 @@
 
 #include <array>
 #include <catch2/catch_test_macros.hpp>
+#include <limits>
 #include <span>
 #include <vector>
 
@@ -50,14 +51,349 @@ TEST_CASE("optimization:lp — Halfspace2D membership at the type level",
   STATIC_CHECK_FALSE(H1::template contains<Rat{3L}, Rat{3L}>());  // exterior
 }
 
+TEST_CASE(
+    "optimization:lp — output Set is an F-algebra (catamorphism shape) (#749)",
+    "[optimization][lp][set-out][f-algebra][catamorphism]") {
+  // The output side of @c argmax @c : @c Set @c → @c Set is structurally
+  // an F-algebra: the output Set carries a structure map @c F<X> @c → @c X
+  // for the carrier @c X = @c Set<Vec2V<T>, ClassicalLogic,
+  // LPSolutionPredicate<T>> .  The catamorphism (fold) interpretation
+  // is then the canonical morphism into this algebra from the initial
+  // halfspace-list F-algebra carrying the polytope's pack.
+  //
+  // We witness the F-algebra @em shape mechanically here; the
+  // universal-property layer (initiality of the halfspace pack as an
+  // F-algebra for @c F(X) @c = @c 1 @c + @c HalfspaceTriple<T> @c × @c X )
+  // is the engineer's honesty obligation per the project's @c
+  // category:f_algebra discipline — opt-in @c is_initial_f_algebra_v
+  // registration is the documented escape hatch, deferred here as the
+  // halfspace-list endofunctor's full @c IsEndofunctor instantiation
+  // (Σ_cat, Shape, φ) is its own scaffolding task; see the source
+  // commentary @c lp__F_Algebra_Witness in @c lp.cppm .
+  using OutputSet =
+      dedekind::sets::Set<Vec2V<Rat>, dedekind::category::ClassicalLogic,
+                          LPSolutionPredicate<Rat>>;
+  using LPSolutionCat = dedekind::category::DiscreteCategory<OutputSet>;
+  using LPSolutionIdF = dedekind::category::identity_functor<LPSolutionCat>;
+
+  // The "active-set step" Arrow at the F-algebra shape level: an
+  // endomap on the output Set.  Concrete LP folds compose chains of
+  // these (each step closes over one halfspace internally); the
+  // shape-level witness here is independent of any particular
+  // halfspace, which is exactly what F-algebra structure abstracts.
+  constexpr auto step =
+      dedekind::category::arrow([](const OutputSet& s) { return s; });
+  using StepArrow = std::decay_t<decltype(step)>;
+
+  STATIC_CHECK(
+      dedekind::category::IsFAlgebra<OutputSet, StepArrow, LPSolutionIdF>);
+  // The initial-F-algebra opt-in is deliberately false here; the
+  // catamorphism reading is documented prose, not a mechanical
+  // universal-property witness.
+  STATIC_CHECK_FALSE(
+      dedekind::category::is_initial_f_algebra_v<LPSolutionIdF, OutputSet,
+                                                 StepArrow>);
+}
+
+TEST_CASE("optimization:lp — both argmax input and output satisfy IsSet (#749)",
+          "[optimization][lp][set-out][is-set]") {
+  // The mathematical contract: argmax : Set → Set.  Mechanical check
+  // via the project's @c IsSet concept (HasETCSAxioms +
+  // IsCartesianClosed<CanonicalSetCCC<Ambient>>) on every concrete
+  // Set type the argmax combinator carries — input polytope and all
+  // three regimes on the output.
+
+  using F = Vec2V<Rat>;
+  using L = dedekind::category::ClassicalLogic;
+
+  // Input side: a polytope is `Set<F, L, Polytope2DPredicate<T, Hs...>>`.
+  using PolyG =
+      dedekind::sets::Set<F, L, Polytope2DPredicate<Rat, H1, H2, H3, H4>>;
+  STATIC_CHECK(dedekind::category::IsSet<PolyG>);
+
+  // Output side — three regimes of the Set's predicate, all over the
+  // same ambient `F`:
+  //
+  //  (a) NTTP singleton (Singleton2DPredicate carrying (x*, y*) at
+  //      the type level — what `argmax(G, U)` returns on
+  //      the feasible NTTP path);
+  //
+  //  (b) NTTP empty (EmptyPredicate — infeasible NTTP path);
+  //
+  //  (c) runtime singleton-or-empty (LPSolutionPredicate carrying
+  //      (point, feasible) at the value level — what
+  //      `maximize_with_values` and siblings return).
+  using SingOut =
+      dedekind::sets::Set<F, L, Singleton2DPredicate<Rat, Rat{2L}, Rat{2L}>>;
+  using EmptyOut = dedekind::sets::Set<F, L, dedekind::sets::EmptyPredicate<F>>;
+  using RuntimeOut = dedekind::sets::Set<F, L, LPSolutionPredicate<Rat>>;
+  STATIC_CHECK(dedekind::category::IsSet<SingOut>);
+  STATIC_CHECK(dedekind::category::IsSet<EmptyOut>);
+  STATIC_CHECK(dedekind::category::IsSet<RuntimeOut>);
+}
+
+TEST_CASE(
+    "optimization:lp — output-side Set predicates (#749 Set-out alignment)",
+    "[optimization][lp][set-out]") {
+  // Building blocks for the Set-as-output design: the LP's optimal
+  // locus is a Set whose predicate type encodes the regime.
+
+  // Singleton2DPredicate: NTTP-coordinated singleton predicate.
+  using Sing = Singleton2DPredicate<Rat, Rat{2L}, Rat{2L}>;
+  STATIC_CHECK(Sing::coord_x == Rat{2L});
+  STATIC_CHECK(Sing::coord_y == Rat{2L});
+  constexpr Sing pred{};
+  STATIC_CHECK(pred(Vec2V<Rat>{Rat{2L}, Rat{2L}}));
+  STATIC_CHECK_FALSE(pred(Vec2V<Rat>{Rat{2L}, Rat{3L}}));
+  STATIC_CHECK_FALSE(pred(Vec2V<Rat>{Rat{0L}, Rat{0L}}));
+
+  // lp_singleton_set: lifts NTTP (x*, y*) into a Set whose predicate
+  // carries the singleton structurally.  The output Set's predicate
+  // type pins the regime at the type level.
+  constexpr auto sing_set = lp_singleton_set<Rat, Rat{2L}, Rat{2L}>();
+  CHECK(sing_set(Vec2V<Rat>{Rat{2L}, Rat{2L}}));
+  CHECK_FALSE(sing_set(Vec2V<Rat>{Rat{3L}, Rat{3L}}));
+
+  // lp_empty_set: lifts the empty optimum (infeasible LP) into a Set
+  // whose predicate is the existing :expressions::EmptyPredicate.
+  constexpr auto empty = lp_empty_set<Rat>();
+  CHECK_FALSE(empty(Vec2V<Rat>{Rat{0L}, Rat{0L}}));
+  CHECK_FALSE(empty(Vec2V<Rat>{Rat{2L}, Rat{2L}}));
+}
+
+TEST_CASE("optimization:lp — HasUnitRangeEntries structural classifier (#749)",
+          "[optimization][lp][triptych][signed-unimodular]") {
+  // The unit-square pack: maximize x + y s.t. 0 ≤ x ≤ 1, 0 ≤ y ≤ 1.
+  // All entries in {−1, 0, +1}: classifier holds.
+  using U1 = Halfspace2D<Rat, Rat{1L}, Rat{0L}, Rat{1L}>;   //  x ≤ 1
+  using U2 = Halfspace2D<Rat, Rat{0L}, Rat{1L}, Rat{1L}>;   //  y ≤ 1
+  using U3 = Halfspace2D<Rat, Rat{-1L}, Rat{0L}, Rat{0L}>;  // -x ≤ 0
+  using U4 = Halfspace2D<Rat, Rat{0L}, Rat{-1L}, Rat{0L}>;  // -y ≤ 0
+  STATIC_CHECK(HasUnitRangeEntries<U1, U2, U3, U4>);
+
+  // The §5 polytope: H2 has coeff_x = 2, so the classifier fails.
+  STATIC_CHECK_FALSE(HasUnitRangeEntries<H1, H2, H3, H4>);
+
+  // Dropping the offending halfspace recovers the classifier.
+  STATIC_CHECK(HasUnitRangeEntries<H1, H3, H4>);
+}
+
+TEST_CASE(
+    "optimization:lp — IsAxisAlignedPolytope structural classifier (#749)",
+    "[optimization][lp][triptych][axis-aligned]") {
+  // Unit-square pack: every halfspace constrains exactly one axis.
+  using U1 = Halfspace2D<Rat, Rat{1L}, Rat{0L}, Rat{1L}>;
+  using U2 = Halfspace2D<Rat, Rat{0L}, Rat{1L}, Rat{1L}>;
+  using U3 = Halfspace2D<Rat, Rat{-1L}, Rat{0L}, Rat{0L}>;
+  using U4 = Halfspace2D<Rat, Rat{0L}, Rat{-1L}, Rat{0L}>;
+  STATIC_CHECK(IsAxisAlignedPolytope<U1, U2, U3, U4>);
+
+  // The §5 polytope: H1 = (1, 1, 4) is not axis-aligned (both coeffs nonzero).
+  STATIC_CHECK_FALSE(IsAxisAlignedPolytope<H1, H2, H3, H4>);
+}
+
+TEST_CASE("optimization:lp — bit-ops fast-path triptych dispatch (#749)",
+          "[optimization][lp][triptych][fast-path]") {
+  // Unit-square pack: signed-unimodular AND axis-aligned, so the NTTP
+  // entry @ref maximize dispatches to the bit-ops fast path.
+  using U1 = Halfspace2D<Rat, Rat{1L}, Rat{0L}, Rat{1L}>;
+  using U2 = Halfspace2D<Rat, Rat{0L}, Rat{1L}, Rat{1L}>;
+  using U3 = Halfspace2D<Rat, Rat{-1L}, Rat{0L}, Rat{0L}>;
+  using U4 = Halfspace2D<Rat, Rat{0L}, Rat{-1L}, Rat{0L}>;
+
+  // Compile-time fold: argmax(x + y over the unit square) → (1, 1).
+  constexpr auto G = halfspace_set(U1{}) & halfspace_set(U2{}) &
+                     halfspace_set(U3{}) & halfspace_set(U4{});
+  constexpr LinearFunctional<Rat, Rat{1L}, Rat{1L}> Uf{};
+  using OptSet = std::remove_cvref_t<decltype(argmax(G, Uf))>;
+  using OptPred =
+      std::remove_cvref_t<decltype(std::declval<OptSet>().predicate())>;
+  STATIC_CHECK(
+      std::same_as<OptPred, Singleton2DPredicate<Rat, Rat{1L}, Rat{1L}>>);
+
+  // Runtime entry (bridge witness for the fast-path kernel): same answer.
+  constexpr std::array<HalfspaceTriple<Rat>, 4> kUnitSquare = {{
+      {Rat{1L}, Rat{0L}, Rat{1L}},
+      {Rat{0L}, Rat{1L}, Rat{1L}},
+      {Rat{-1L}, Rat{0L}, Rat{0L}},
+      {Rat{0L}, Rat{-1L}, Rat{0L}},
+  }};
+  constexpr auto v_pp = maximize_axis_aligned_with_values<Rat>(
+      std::span<const HalfspaceTriple<Rat>>(kUnitSquare), Rat{1L}, Rat{1L});
+  STATIC_CHECK(v_pp.contains(Vec2V<Rat>{Rat{1L}, Rat{1L}}));
+  STATIC_CHECK_FALSE(v_pp.contains(Vec2V<Rat>{Rat{0L}, Rat{0L}}));
+
+  // Negative-x objective: the fast path picks x_lo via sign selection.
+  constexpr auto v_np = maximize_axis_aligned_with_values<Rat>(
+      std::span<const HalfspaceTriple<Rat>>(kUnitSquare), Rat{-1L}, Rat{1L});
+  STATIC_CHECK(v_np.contains(Vec2V<Rat>{Rat{0L}, Rat{1L}}));
+  STATIC_CHECK_FALSE(v_np.contains(Vec2V<Rat>{Rat{1L}, Rat{1L}}));
+}
+
+TEST_CASE(
+    "optimization:lp — triptych: one NTTP entry routes three regimes (#749)",
+    "[optimization][lp][triptych][routing]") {
+  // The §5 abstract claim: one parametric template @c maximize<T,cx,cy,Hs...>
+  // routes to three qualitatively distinct compile-time outcomes across
+  // families of inputs.  This test pins the routing mechanically.
+  //
+  //   regime  | pack                       | dispatch branch
+  //   --------+----------------------------+----------------
+  //   fast    | unit square (U1..U4)       | bit-ops fast path
+  //   generic | §5 polytope (H1..H4)       | Cramer fold
+  //   refusal | empty x-interval           | static_assert at @ref maximize
+  //                                          (the .fail.cpp form is deferred;
+  //                                          the runtime collapse is the
+  //                                          [refusal]-tagged TEST_CASE below)
+  using U1 = Halfspace2D<Rat, Rat{1L}, Rat{0L}, Rat{1L}>;
+  using U2 = Halfspace2D<Rat, Rat{0L}, Rat{1L}, Rat{1L}>;
+  using U3 = Halfspace2D<Rat, Rat{-1L}, Rat{0L}, Rat{0L}>;
+  using U4 = Halfspace2D<Rat, Rat{0L}, Rat{-1L}, Rat{0L}>;
+
+  // Fast-path regime: argmax dispatches via @c if @c constexpr to the
+  // axis-aligned bit-ops kernel.  Same @c argmax combinator, same call
+  // site shape; the only thing that changes is the halfspace pack.
+  constexpr auto G_fast = halfspace_set(U1{}) & halfspace_set(U2{}) &
+                          halfspace_set(U3{}) & halfspace_set(U4{});
+  constexpr LinearFunctional<Rat, Rat{1L}, Rat{1L}> Uf{};
+  using FastSet = std::remove_cvref_t<decltype(argmax(G_fast, Uf))>;
+  using FastPred =
+      std::remove_cvref_t<decltype(std::declval<FastSet>().predicate())>;
+  STATIC_CHECK(
+      std::same_as<FastPred, Singleton2DPredicate<Rat, Rat{1L}, Rat{1L}>>);
+
+  // Generic regime: same argmax combinator, different pack — Cramer fold.
+  constexpr auto G_generic = halfspace_set(H1{}) & halfspace_set(H2{}) &
+                             halfspace_set(H3{}) & halfspace_set(H4{});
+  constexpr LinearFunctional<Rat, Rat{3L}, Rat{2L}> Ug{};
+  using GenericSet = std::remove_cvref_t<decltype(argmax(G_generic, Ug))>;
+  using GenericPred =
+      std::remove_cvref_t<decltype(std::declval<GenericSet>().predicate())>;
+  STATIC_CHECK(
+      std::same_as<GenericPred, Singleton2DPredicate<Rat, Rat{2L}, Rat{2L}>>);
+
+  // Routing witnesses: the dispatch gate evaluates differently for the
+  // two packs, which is what causes the two regimes to fire.
+  STATIC_CHECK(HasUnitRangeEntries<U1, U2, U3, U4> &&
+               IsAxisAlignedPolytope<U1, U2, U3, U4>);
+  STATIC_CHECK_FALSE(HasUnitRangeEntries<H1, H2, H3, H4> &&
+                     IsAxisAlignedPolytope<H1, H2, H3, H4>);
+}
+
+TEST_CASE(
+    "optimization:lp — triptych refusal: infeasible axis-aligned pack (#749)",
+    "[optimization][lp][triptych][refusal]") {
+  // Empty feasible region: x ≤ 0 ∧ x ≥ 1 ∧ 0 ≤ y ≤ 1.  The NTTP entry
+  // @ref maximize on this pack would fire @c static_assert on the fast
+  // path; the runtime entry returns @c feasible == false, which is the
+  // same refusal signal collapsed to a runtime predicate.  A negative-
+  // compile exhibit (@c .fail.cpp ) for the @c static_assert path is
+  // deferred to a follow-up (needs CMake @c try_compile infra).
+  constexpr std::array<HalfspaceTriple<Rat>, 4> kEmptyXInterval = {{
+      {Rat{1L}, Rat{0L}, Rat{0L}},    //  x ≤ 0
+      {Rat{-1L}, Rat{0L}, Rat{-1L}},  // -x ≤ -1, i.e. x ≥ 1
+      {Rat{0L}, Rat{1L}, Rat{1L}},    //  y ≤ 1
+      {Rat{0L}, Rat{-1L}, Rat{0L}},   // -y ≤ 0, i.e. y ≥ 0
+  }};
+  constexpr auto v = maximize_axis_aligned_with_values<Rat>(
+      std::span<const HalfspaceTriple<Rat>>(kEmptyXInterval), Rat{1L}, Rat{1L});
+  // Infeasible LP collapses to the empty Set — no point is in it.
+  STATIC_CHECK_FALSE(v.contains(Vec2V<Rat>{Rat{1L}, Rat{1L}}));
+  STATIC_CHECK_FALSE(v.contains(Vec2V<Rat>{Rat{0L}, Rat{0L}}));
+}
+
+TEST_CASE(
+    "optimization:lp — fast-path defensive validation on runtime entry (#749)",
+    "[optimization][lp][triptych][refusal]") {
+  // Two precondition violations the runtime entry must collapse to the
+  // infeasible sentinel rather than silently mis-solve (the NTTP entry
+  // gates these statically via @c HasUnitRangeEntries and
+  // @c IsAxisAlignedPolytope ; the runtime entry is reachable directly
+  // and the kernel defends Honest Rejection).
+
+  // Zero-row halfspace with negative bound: @c 0·x + 0·y ≤ -1 is
+  // vacuously unsatisfiable, the whole polytope collapses to empty.
+  constexpr std::array<HalfspaceTriple<Rat>, 5> kZeroRow = {{
+      {Rat{1L}, Rat{0L}, Rat{1L}},
+      {Rat{0L}, Rat{1L}, Rat{1L}},
+      {Rat{-1L}, Rat{0L}, Rat{0L}},
+      {Rat{0L}, Rat{-1L}, Rat{0L}},
+      {Rat{0L}, Rat{0L}, Rat{-1L}},  // 0·x + 0·y ≤ -1 — infeasible row
+  }};
+  constexpr auto v_zero = maximize_axis_aligned_with_values<Rat>(
+      std::span<const HalfspaceTriple<Rat>>(kZeroRow), Rat{1L}, Rat{1L});
+  STATIC_CHECK_FALSE(v_zero.contains(Vec2V<Rat>{Rat{1L}, Rat{1L}}));
+  STATIC_CHECK_FALSE(v_zero.contains(Vec2V<Rat>{Rat{0L}, Rat{0L}}));
+
+  // Out-of-range coefficient: @c 2·x ≤ 4 is axis-aligned but not
+  // signed-unimodular.  The kernel rejects rather than treating it as
+  // @c +1·x ≤ 4 (which would silently set @c x_hi = 4 instead of 2).
+  constexpr std::array<HalfspaceTriple<Rat>, 4> kOutOfRange = {{
+      {Rat{2L}, Rat{0L}, Rat{4L}},  // coeff_x = 2 ∉ {−1, 0, +1}
+      {Rat{0L}, Rat{1L}, Rat{1L}},
+      {Rat{-1L}, Rat{0L}, Rat{0L}},
+      {Rat{0L}, Rat{-1L}, Rat{0L}},
+  }};
+  constexpr auto v_out = maximize_axis_aligned_with_values<Rat>(
+      std::span<const HalfspaceTriple<Rat>>(kOutOfRange), Rat{1L}, Rat{1L});
+  STATIC_CHECK_FALSE(v_out.contains(Vec2V<Rat>{Rat{1L}, Rat{1L}}));
+
+  // Diagonal halfspace: unit-range entries but BOTH nonzero.  The
+  // kernel rejects rather than reading @c (1, 1, 2) as @c x ≤ 2 .
+  constexpr std::array<HalfspaceTriple<Rat>, 5> kDiagonal = {{
+      {Rat{1L}, Rat{0L}, Rat{1L}},
+      {Rat{0L}, Rat{1L}, Rat{1L}},
+      {Rat{-1L}, Rat{0L}, Rat{0L}},
+      {Rat{0L}, Rat{-1L}, Rat{0L}},
+      {Rat{1L}, Rat{1L}, Rat{2L}},  // diagonal: not axis-aligned
+  }};
+  constexpr auto v_diag = maximize_axis_aligned_with_values<Rat>(
+      std::span<const HalfspaceTriple<Rat>>(kDiagonal), Rat{1L}, Rat{1L});
+  STATIC_CHECK_FALSE(v_diag.contains(Vec2V<Rat>{Rat{1L}, Rat{1L}}));
+}
+
+TEST_CASE("optimization:lp — fast-path concept rejects unsigned carrier (#749)",
+          "[optimization][lp][triptych][concept]") {
+  // The fast-path requires clause uses `(T{} - T{1}) < T{}` to exclude
+  // unsigned integral carriers, where `0u - 1u == UINT_MAX` would pass
+  // the kernel's @c neg_one validation and be misread as a positive
+  // coefficient.  The constraint failure surfaces at the API boundary,
+  // not inside the kernel.  Test the concept directly rather than via
+  // a SFINAE call site — clang under -Werror promotes the "no matching
+  // function" diagnostic to a hard error before the @c requires
+  // expression evaluates to false.
+  STATIC_CHECK_FALSE(SuitableForAxisAlignedFastPath<unsigned int>);
+  STATIC_CHECK(SuitableForAxisAlignedFastPath<int>);
+  STATIC_CHECK(SuitableForAxisAlignedFastPath<Rat>);
+}
+
+TEST_CASE("optimization:lp — fast-path INT_MIN boundary guard (#749)",
+          "[optimization][lp][triptych][refusal]") {
+  // For signed integer carriers, `zero - h.c` is undefined behaviour
+  // when `h.c == INT_MIN`.  The kernel uses `std::numeric_limits<T>`
+  // to detect this and collapse to the infeasible sentinel; carriers
+  // without `numeric_limits` specialisation (Rational, Dual) bypass
+  // the check.
+  constexpr int kIntMin = std::numeric_limits<int>::min();
+  constexpr std::array<HalfspaceTriple<int>, 4> kIntMinPack = {{
+      {1, 0, 1},
+      {0, 1, 1},
+      {-1, 0, kIntMin},  // -x ≤ INT_MIN: zero - INT_MIN is UB
+      {0, -1, 0},
+  }};
+  constexpr auto v = maximize_axis_aligned_with_values<int>(
+      std::span<const HalfspaceTriple<int>>(kIntMinPack), 1, 1);
+  STATIC_CHECK_FALSE(v.contains(Vec2V<int>{1, 1}));
+}
+
 TEST_CASE("optimization:lp — Polytope2D + lp_extract comonadic counit (#388)",
           "[optimization][lp][comonad][counit]") {
   // The polytope context (cx, cy, Hs...) reified as a type, with the
-  // co-Kleisli counit lp_extract :: Polytope2D(T) → Vec2(T) delegating
-  // to maximize<...>().  Pins both the constructibility of the
-  // Polytope2D wrapper and the equivalence between extract() member,
-  // free-function lp_extract, and the underlying maximize() — three
-  // surfaces that must agree.
+  // co-Kleisli counit lp_extract :: Polytope2D(T) → Set(Vec2V(T))
+  // delegating to argmax(G, U) internally.  Pins both the constructibility
+  // of the Polytope2D wrapper and the equivalence between extract()
+  // member, free-function lp_extract, and the explicit `argmax(G, U)`
+  // — three surfaces that must agree.
   using Poly = Polytope2D<Rat, Rat{3L}, Rat{2L}, H1, H2, H3, H4>;
 
   STATIC_CHECK(std::same_as<typename Poly::scalar_type, Rat>);
@@ -67,23 +403,25 @@ TEST_CASE("optimization:lp — Polytope2D + lp_extract comonadic counit (#388)",
   constexpr Poly polytope{};
   constexpr auto via_extract_member = polytope.extract();
   constexpr auto via_lp_extract = lp_extract(polytope);
-  constexpr auto via_maximize =
-      maximize<Rat, Rat{3L}, Rat{2L}, H1, H2, H3, H4>();
+  constexpr auto G_p = halfspace_set(H1{}) & halfspace_set(H2{}) &
+                       halfspace_set(H3{}) & halfspace_set(H4{});
+  constexpr LinearFunctional<Rat, Rat{3L}, Rat{2L}> U_p{};
+  constexpr auto via_argmax = argmax(G_p, U_p);
 
-  // Assert on the *expression* types (the actual API return types)
-  // rather than the constexpr-local *variable* types --- the latter
-  // pick up a top-level const that isn't part of the API surface.
-  STATIC_CHECK(
-      std::same_as<decltype(polytope.extract()), Vec2<Rat, Rat{2L}, Rat{2L}>>);
-  STATIC_CHECK(std::same_as<decltype(lp_extract(polytope)),
-                            Vec2<Rat, Rat{2L}, Rat{2L}>>);
-  STATIC_CHECK(
-      std::same_as<decltype(maximize<Rat, Rat{3L}, Rat{2L}, H1, H2, H3, H4>()),
-                   Vec2<Rat, Rat{2L}, Rat{2L}>>);
+  // The expression-type witnesses: all three surfaces return a Set
+  // whose predicate is Singleton2DPredicate<Rat, 2, 2>.
+  using ExpectedOpt =
+      dedekind::sets::Set<Vec2V<Rat>, dedekind::category::ClassicalLogic,
+                          Singleton2DPredicate<Rat, Rat{2L}, Rat{2L}>>;
+  STATIC_CHECK(std::same_as<decltype(polytope.extract()), ExpectedOpt>);
+  STATIC_CHECK(std::same_as<decltype(lp_extract(polytope)), ExpectedOpt>);
+  STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(argmax(G_p, U_p))>,
+                            ExpectedOpt>);
 
-  CHECK(via_extract_member == via_maximize);
-  CHECK(via_lp_extract == via_maximize);
-  CHECK(via_extract_member == via_lp_extract);
+  // All three surfaces agree on membership of the optimum point.
+  CHECK(via_extract_member.contains(Vec2V<Rat>{Rat{2L}, Rat{2L}}));
+  CHECK(via_lp_extract.contains(Vec2V<Rat>{Rat{2L}, Rat{2L}}));
+  CHECK(via_argmax.contains(Vec2V<Rat>{Rat{2L}, Rat{2L}}));
 }
 
 // The §5 polytope as a constexpr value-level array: shared between the
@@ -99,28 +437,28 @@ constexpr std::array<HalfspaceTriple<Rat>, 4> kPolytope = {{
 
 TEST_CASE(
     "optimization:lp — paper-facing existential proof: "
-    "maximize(3x + 2y, polytope) = Vec2<Rat, 2, 2> at compile time",
+    "argmax(G, U) = Set with Singleton2DPredicate<Rat, 2, 2>",
     "[optimization][lp][centrepiece]") {
-  // The reduction returns an NTTP `Vec2<Rat, 2, 2>` — the optimum IS a type.
-  using Optimum = decltype(maximize<Rat, Rat{3L}, Rat{2L}, H1, H2, H3, H4>());
-  STATIC_CHECK(std::same_as<Optimum, Vec2<Rat, Rat{2L}, Rat{2L}>>);
+  // argmax(G, U) returns a Set whose predicate type pins the optimum
+  // at NTTP coords — the regime IS a type.
+  constexpr auto G = halfspace_set(H1{}) & halfspace_set(H2{}) &
+                     halfspace_set(H3{}) & halfspace_set(H4{});
+  constexpr LinearFunctional<Rat, Rat{3L}, Rat{2L}> Uf{};
+  using OptSet = std::remove_cvref_t<decltype(argmax(G, Uf))>;
+  using OptPred =
+      std::remove_cvref_t<decltype(std::declval<OptSet>().predicate())>;
+  STATIC_CHECK(
+      std::same_as<OptPred, Singleton2DPredicate<Rat, Rat{2L}, Rat{2L}>>);
+  STATIC_CHECK(OptPred::coord_x == Rat{2L});
+  STATIC_CHECK(OptPred::coord_y == Rat{2L});
 
-  // Equivalent value-level view — both `first` and `second` are NTTPs.
-  constexpr Optimum opt{};
-  STATIC_CHECK(opt.first == Rat{2L});
-  STATIC_CHECK(opt.second == Rat{2L});
-
-  // The single bridge entry, called with constexpr inputs, folds to the
-  // same constant and carries the objective value too.  Same function
-  // template as the runtime path — see the [bridge] witness below.
+  // The runtime entry, called with constexpr inputs, folds to the
+  // same answer.  Same kernel as the NTTP path — see the [bridge]
+  // witness below.
   constexpr auto v = maximize_with_values<Rat>(
       std::span<const HalfspaceTriple<Rat>>(kPolytope), Rat{3L}, Rat{2L});
-  STATIC_CHECK(v.feasible);
-  STATIC_CHECK(v.x == Rat{2L});
-  STATIC_CHECK(v.y == Rat{2L});
-  // Objective: 3·2 + 2·2 = 10.
-  constexpr Rat obj = Rat{3L} * v.x + Rat{2L} * v.y;
-  STATIC_CHECK(obj == Rat{10L});
+  STATIC_CHECK(v.contains(Vec2V<Rat>{Rat{2L}, Rat{2L}}));
+  STATIC_CHECK_FALSE(v.contains(Vec2V<Rat>{Rat{0L}, Rat{0L}}));
 }
 
 TEST_CASE("optimization:lp — axis-aligned corner is pruned away",
@@ -128,12 +466,41 @@ TEST_CASE("optimization:lp — axis-aligned corner is pruned away",
   // Sanity check: with the objective direction (3, 2), the candidate
   // (0, 4) has obj = 0 + 8 = 8; (3, 0) has obj = 9 + 0 = 9; (2, 2) wins
   // at obj = 10. The reduction correctly picks the non-axis-aligned
-  // intersection, not the corner.
+  // intersection — not (0, 4), not (3, 0), not (0, 0).
   constexpr auto v = maximize_with_values<Rat>(
       std::span<const HalfspaceTriple<Rat>>(kPolytope), Rat{3L}, Rat{2L});
-  STATIC_CHECK(!(v.x == Rat{0L} && v.y == Rat{4L}));  // not (0, 4)
-  STATIC_CHECK(!(v.x == Rat{3L} && v.y == Rat{0L}));  // not (3, 0)
-  STATIC_CHECK(!(v.x == Rat{0L} && v.y == Rat{0L}));  // not (0, 0)
+  STATIC_CHECK_FALSE(v.contains(Vec2V<Rat>{Rat{0L}, Rat{4L}}));
+  STATIC_CHECK_FALSE(v.contains(Vec2V<Rat>{Rat{3L}, Rat{0L}}));
+  STATIC_CHECK_FALSE(v.contains(Vec2V<Rat>{Rat{0L}, Rat{0L}}));
+}
+
+TEST_CASE(
+    "optimization:lp — maximize_with_values mechanically dispatches (#749)",
+    "[optimization][lp][set-out][mechanical-dispatch]") {
+  // The single public runtime entry @c maximize_with_values now scans
+  // its input for fast-path eligibility and routes to the bit-ops
+  // kernel when every halfspace is signed-unimodular axis-aligned;
+  // otherwise falls through to the generic Cramer kernel.  The wart of
+  // having two public runtime entries the caller had to pick from is
+  // gone — the type system selects the kernel from the input's
+  // structure end-to-end.
+
+  // Unit-square pack → fast-path kernel routes; same answer (1, 1).
+  constexpr std::array<HalfspaceTriple<Rat>, 4> kUnitSquare = {{
+      {Rat{1L}, Rat{0L}, Rat{1L}},
+      {Rat{0L}, Rat{1L}, Rat{1L}},
+      {Rat{-1L}, Rat{0L}, Rat{0L}},
+      {Rat{0L}, Rat{-1L}, Rat{0L}},
+  }};
+  constexpr auto via_auto = maximize_with_values<Rat>(
+      std::span<const HalfspaceTriple<Rat>>(kUnitSquare), Rat{1L}, Rat{1L});
+  STATIC_CHECK(via_auto.contains(Vec2V<Rat>{Rat{1L}, Rat{1L}}));
+
+  // §5 polytope (H2's coeff_x = 2): not fast-eligible.  Cramer routes
+  // and computes (2, 2) via the active-set enumeration.
+  constexpr auto via_generic = maximize_with_values<Rat>(
+      std::span<const HalfspaceTriple<Rat>>(kPolytope), Rat{3L}, Rat{2L});
+  STATIC_CHECK(via_generic.contains(Vec2V<Rat>{Rat{2L}, Rat{2L}}));
 }
 
 /**
@@ -171,7 +538,7 @@ TEST_CASE("optimization:lp — axis-aligned corner is pruned away",
 TEST_CASE(
     "optimization:lp — Set DSL bridge: G = H1 & H2 & H3 & H4 as "
     "Set<Vec2V<Rat>, ClassicalLogic, Polytope2DPredicate<...>>, "
-    "opt = argmax(G, U) = Vec2<Rat, 2, 2> (#747)",
+    "opt = argmax(G, U) = Set with Singleton2DPredicate<Rat, 2, 2> (#747)",
     "[optimization][lp][dsl][bridge][centrepiece]") {
   using F = dedekind::linear_algebra::Vec2V<Rat>;
   static_assert(F::dimension == 2);
@@ -188,22 +555,27 @@ TEST_CASE(
                      halfspace_set(H3{}) & halfspace_set(H4{});
 
   // `decltype(G)` IS a real `:expressions::Set` instance — the §3 DSL —
-  // whose predicate carries the halfspace pack at the type level.  This
-  // is what closes FIXME(#365) for the 2D-halfspace case: not a lambda,
-  // a structural predicate.
+  // whose predicate carries the halfspace pack at the type level.
   using ExpectedG =
       dedekind::sets::Set<F, dedekind::category::ClassicalLogic,
                           Polytope2DPredicate<Rat, H1, H2, H3, H4>>;
   static_assert(std::same_as<decltype(G), const ExpectedG>);
 
-  // argmax(G, U).  Extracts the halfspace pack from G's predicate and
-  // (cx, cy) from U's NTTPs; dispatches to `maximize`.
+  // argmax(G, U).  Set in, Set out.  The output Set's predicate type
+  // pins the regime (Singleton) AND the coordinates ((2, 2)) at the
+  // type level — input polytope and output locus carried in the same
+  // DSL vocabulary.
   constexpr auto opt = argmax(G, U);
-  static_assert(std::same_as<decltype(opt), const Vec2<Rat, Rat{2L}, Rat{2L}>>);
+  using ExpectedOpt =
+      dedekind::sets::Set<F, dedekind::category::ClassicalLogic,
+                          Singleton2DPredicate<Rat, Rat{2L}, Rat{2L}>>;
+  static_assert(std::same_as<decltype(opt), const ExpectedOpt>);
 
-  // The witnesses: opt ∈ G via the Set DSL's `contains`; U(opt) is the
-  // textbook value 10.  Everything decided at translation time.
-  constexpr F opt_v{opt.first, opt.second};
+  // The witnesses: opt ∈ G via the Set DSL's `contains`; opt itself
+  // singles out (2, 2); U(2, 2) is the textbook value 10.  Everything
+  // decided at translation time.
+  constexpr F opt_v{Rat{2L}, Rat{2L}};
+  STATIC_CHECK(opt(opt_v));
   STATIC_CHECK(G.contains(opt_v));
   STATIC_CHECK(U(opt_v) == Rat{10L});
 
@@ -236,7 +608,9 @@ TEST_CASE("optimization:lp — infeasible polytope reports no optimum",
   }};
   constexpr auto v = maximize_with_values<Rat>(
       std::span<const HalfspaceTriple<Rat>>(infeasible), Rat{1L}, Rat{1L});
-  STATIC_CHECK_FALSE(v.feasible);
+  // Infeasible LP collapses to the empty Set.
+  STATIC_CHECK_FALSE(v.contains(Vec2V<Rat>{Rat{1L}, Rat{1L}}));
+  STATIC_CHECK_FALSE(v.contains(Vec2V<Rat>{Rat{3L}, Rat{1L}}));
 }
 
 /**
@@ -283,15 +657,17 @@ TEST_CASE(
   constexpr auto v = maximize_with_values<D>(
       std::span<const HalfspaceTriple<D>>(dual_polytope), D{Rat{3L}},
       D{Rat{2L}});
-  STATIC_CHECK(v.feasible);
 
-  // x* = 2 - ε  →  primal 2, tangent -1.
-  STATIC_CHECK(v.x.val == Rat{2L});
-  STATIC_CHECK(v.x.der == Rat{-1L});
-
-  // y* = 2 + 2ε → primal 2, tangent +2.
-  STATIC_CHECK(v.y.val == Rat{2L});
-  STATIC_CHECK(v.y.der == Rat{2L});
+  // Expected optimum as a Vec2V<D>: x = D{2, -1} (primal 2, tangent -1)
+  // and y = D{2, +2} (primal 2, tangent +2).  Set membership encodes
+  // primal AND sensitivity correctness in one check — the LP's optimum
+  // is the dual point AND the chain rule has already produced the
+  // tangent components inside the Cramer solve.
+  constexpr auto expected = Vec2V<D>{D{Rat{2L}, Rat{-1L}}, D{Rat{2L}, Rat{2L}}};
+  STATIC_CHECK(v.contains(expected));
+  // The primal-only point (2, 2) — wrong tangents — is NOT in the Set:
+  // dual equality demands both components match.
+  STATIC_CHECK_FALSE(v.contains(Vec2V<D>{D{Rat{2L}}, D{Rat{2L}}}));
 }
 
 /**
@@ -331,20 +707,21 @@ TEST_CASE(
   // checked mechanically rather than by prose.
   constexpr auto v = maximize_with_values<Rat>(
       std::span<const HalfspaceTriple<Rat>>(cs), Rat{3L}, Rat{2L});
-  STATIC_CHECK(v.feasible);
-  STATIC_CHECK(v.x == Rat{2L});
-  STATIC_CHECK(v.y == Rat{2L});
+  STATIC_CHECK(v.contains(Vec2V<Rat>{Rat{2L}, Rat{2L}}));
+  STATIC_CHECK_FALSE(v.contains(Vec2V<Rat>{Rat{0L}, Rat{0L}}));
 
   // Parity with the NTTP packaging surface on the same polytope: the
-  // bridge entry called with constexpr inputs and the NTTP-lifted
-  // `Vec2<T, x*, y*>` must agree, because the latter is the former
-  // wrapped in a type-level packaging step.
-  using NttpLifted =
-      decltype(maximize<Rat, Rat{3L}, Rat{2L}, H1, H2, H3, H4>());
-  STATIC_CHECK(std::same_as<NttpLifted, Vec2<Rat, Rat{2L}, Rat{2L}>>);
-  constexpr NttpLifted lifted{};
-  STATIC_CHECK(v.x == lifted.first);
-  STATIC_CHECK(v.y == lifted.second);
+  // runtime entry called with constexpr inputs and the argmax(G, U)
+  // Set return must agree on the optimum point.
+  constexpr auto G = halfspace_set(H1{}) & halfspace_set(H2{}) &
+                     halfspace_set(H3{}) & halfspace_set(H4{});
+  constexpr LinearFunctional<Rat, Rat{3L}, Rat{2L}> Uf{};
+  using NttpSet = std::remove_cvref_t<decltype(argmax(G, Uf))>;
+  using NttpPred =
+      std::remove_cvref_t<decltype(std::declval<NttpSet>().predicate())>;
+  STATIC_CHECK(
+      std::same_as<NttpPred, Singleton2DPredicate<Rat, Rat{2L}, Rat{2L}>>);
+  STATIC_CHECK(v.contains(Vec2V<Rat>{NttpPred::coord_x, NttpPred::coord_y}));
 }
 
 TEST_CASE(
@@ -360,17 +737,18 @@ TEST_CASE(
   };
   const auto result = maximize_with_values<Rat>(halfspaces, Rat{3L}, Rat{2L});
 
-  CHECK(result.feasible);
-  CHECK(result.x == Rat{2L});
-  CHECK(result.y == Rat{2L});
+  CHECK(result.contains(Vec2V<Rat>{Rat{2L}, Rat{2L}}));
+  CHECK_FALSE(result.contains(Vec2V<Rat>{Rat{0L}, Rat{0L}}));
 
   // Parity with the NTTP packaging surface: the same polytope reduced
   // through both surfaces must yield identical coordinates.
-  using NttpLifted =
-      decltype(maximize<Rat, Rat{3L}, Rat{2L}, H1, H2, H3, H4>());
-  constexpr NttpLifted lifted{};
-  CHECK(result.x == lifted.first);
-  CHECK(result.y == lifted.second);
+  constexpr auto G = halfspace_set(H1{}) & halfspace_set(H2{}) &
+                     halfspace_set(H3{}) & halfspace_set(H4{});
+  constexpr LinearFunctional<Rat, Rat{3L}, Rat{2L}> Uf{};
+  using NttpSet = std::remove_cvref_t<decltype(argmax(G, Uf))>;
+  using NttpPred =
+      std::remove_cvref_t<decltype(std::declval<NttpSet>().predicate())>;
+  CHECK(result.contains(Vec2V<Rat>{NttpPred::coord_x, NttpPred::coord_y}));
 }
 
 TEST_CASE(
@@ -390,10 +768,9 @@ TEST_CASE(
   };
   const auto result = maximize_with_values<Rat>(halfspaces, Rat{1L}, Rat{1L});
 
-  CHECK(result.feasible);
-  CHECK(result.x == Rat{2L});
-  CHECK(result.y == Rat{2L});
-  CHECK(Rat{1L} * result.x + Rat{1L} * result.y == Rat{4L});
+  CHECK(result.contains(Vec2V<Rat>{Rat{2L}, Rat{2L}}));
+  // Sanity: optimum is NOT one of the easy corners.
+  CHECK_FALSE(result.contains(Vec2V<Rat>{Rat{0L}, Rat{0L}}));
 
   // A third instance to disambiguate the optimum location too: shrink
   // the bound on the first halfspace so the vertex moves.
@@ -405,10 +782,9 @@ TEST_CASE(
   };
   const auto shrunk_result =
       maximize_with_values<Rat>(shrunk, Rat{1L}, Rat{1L});
-  CHECK(shrunk_result.feasible);
   // Active set {x + 2y = 3, 2x + y = 6}: solve gives x = 3, y = 0.
-  CHECK(shrunk_result.x == Rat{3L});
-  CHECK(shrunk_result.y == Rat{0L});
+  CHECK(shrunk_result.contains(Vec2V<Rat>{Rat{3L}, Rat{0L}}));
+  CHECK_FALSE(shrunk_result.contains(Vec2V<Rat>{Rat{2L}, Rat{2L}}));
 }
 
 TEST_CASE(
@@ -424,5 +800,6 @@ TEST_CASE(
       {Rat{0L}, Rat{1L}, Rat{5L}},
   };
   const auto result = maximize_with_values<Rat>(halfspaces, Rat{1L}, Rat{1L});
-  CHECK_FALSE(result.feasible);
+  CHECK_FALSE(result.contains(Vec2V<Rat>{Rat{1L}, Rat{1L}}));
+  CHECK_FALSE(result.contains(Vec2V<Rat>{Rat{3L}, Rat{1L}}));
 }

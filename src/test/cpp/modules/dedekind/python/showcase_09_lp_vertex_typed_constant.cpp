@@ -8,15 +8,17 @@
  *               2x +  y ≤ 6       (H2)   non-axis-aligned
  *              -x       ≤ 0       (H3:  x ≥ 0)
  *                   -y  ≤ 0       (H4:  y ≥ 0)
- *   ⇒ optimum = Vec2<Rat, 2, 2>, objective value = 10.
+ *   ⇒ optimum = Set whose predicate is Singleton2DPredicate<Rat, 2, 2>,
+ *     objective value = 10.
  *
- * The reduction `maximize<Rat, cx, cy, Hs...>()` enumerates vertex
- * candidates (all `C(4, 2) = 6` pairs of binding constraints), solves
- * each `2×2` active set via `Invertible2x2`'s closed-form Cramer inverse,
- * filters by feasibility against non-active constraints, and picks the
- * objective-maximising feasible vertex. The active set at the optimum is
- * `{H1, H2}` — both non-axis-aligned — giving an honest Gurobi-shaped LP
- * that isn't trivially decided by axis-alignment.
+ * The Set DSL combinator `argmax(G, U)` over the polytope `G` and
+ * objective `U` enumerates vertex candidates (all `C(4, 2) = 6` pairs
+ * of binding constraints), solves each `2×2` active set via
+ * `Invertible2x2`'s closed-form Cramer inverse, filters by feasibility
+ * against non-active constraints, and picks the objective-maximising
+ * feasible vertex. The active set at the optimum is `{H1, H2}` — both
+ * non-axis-aligned — giving an honest Gurobi-shaped LP that isn't
+ * trivially decided by axis-alignment.
  *
  * Expected LLVM IR: `ret i64 2` for `witness_lp_optimum_x` and
  *                   `ret i64 2` for `witness_lp_optimum_y`.
@@ -52,13 +54,23 @@ using H2 = Halfspace2D<Rat, Rat{2}, Rat{1}, Rat{6}>;   // 2x +  y ≤ 6
 using H3 = Halfspace2D<Rat, Rat{-1}, Rat{0}, Rat{0}>;  //  x      ≥ 0
 using H4 = Halfspace2D<Rat, Rat{0}, Rat{-1}, Rat{0}>;  //       y ≥ 0
 
-// The optimum at the type level: `Vec2<Rat, Rat{2}, Rat{2}>`.
-using Optimum = decltype(maximize<Rat, Rat{3}, Rat{2}, H1, H2, H3, H4>());
+// The optimum at the type level: a Set with a Singleton2DPredicate
+// pinning the vertex (2, 2) at NTTP coordinates.  Construct G ⊆ F as
+// the meet of halfspace Sets, U : F → ℚ as the linear functional, and
+// apply argmax(G, U) — the canonical Set DSL combinator.
+constexpr auto G = halfspace_set(H1{}) & halfspace_set(H2{}) &
+                   halfspace_set(H3{}) & halfspace_set(H4{});
+constexpr LinearFunctional<Rat, Rat{3}, Rat{2}> U{};
+using OptimumSet = std::remove_cvref_t<decltype(argmax(G, U))>;
+using OptimumPred =
+    std::remove_cvref_t<decltype(std::declval<OptimumSet>().predicate())>;
 
-// Type-level witnesses: the optimum IS the vertex (2, 2).
-static_assert(std::same_as<Optimum, Vec2<Rat, Rat{2}, Rat{2}>>);
-static_assert(Optimum::first == Rat{2});
-static_assert(Optimum::second == Rat{2});
+// Type-level witnesses: the optimum Set's predicate IS the
+// Singleton2DPredicate carrying (2, 2).
+static_assert(
+    std::same_as<OptimumPred, Singleton2DPredicate<Rat, Rat{2}, Rat{2}>>);
+static_assert(OptimumPred::coord_x == Rat{2});
+static_assert(OptimumPred::coord_y == Rat{2});
 
 /**
  * @brief Showcase 9a: the optimum's x-coordinate as a compile-time
@@ -69,7 +81,7 @@ static_assert(Optimum::second == Rat{2});
  * comparisons) to the literal numerator of `Rat{2L}` at `-O2`.
  */
 extern "C" __attribute__((noinline)) int64_t witness_lp_optimum_x() {
-  return static_cast<int64_t>(Optimum::first.num());
+  return static_cast<int64_t>(OptimumPred::coord_x.num());
 }
 
 /**
@@ -78,5 +90,5 @@ extern "C" __attribute__((noinline)) int64_t witness_lp_optimum_x() {
  * Expected IR: `ret i64 2`.
  */
 extern "C" __attribute__((noinline)) int64_t witness_lp_optimum_y() {
-  return static_cast<int64_t>(Optimum::second.num());
+  return static_cast<int64_t>(OptimumPred::coord_y.num());
 }
