@@ -51,6 +51,43 @@ TEST_CASE("optimization:lp — Halfspace2D membership at the type level",
   STATIC_CHECK_FALSE(H1::template contains<Rat{3L}, Rat{3L}>());  // exterior
 }
 
+TEST_CASE("optimization:lp — both argmax input and output satisfy IsSet (#749)",
+          "[optimization][lp][set-out][is-set]") {
+  // The mathematical contract: argmax : Set → Set.  Mechanical check
+  // via the project's @c IsSet concept (HasETCSAxioms +
+  // IsCartesianClosed<CanonicalSetCCC<Ambient>>) on every concrete
+  // Set type the argmax combinator carries — input polytope and all
+  // three regimes on the output.
+
+  using F = Vec2V<Rat>;
+  using L = dedekind::category::ClassicalLogic;
+
+  // Input side: a polytope is `Set<F, L, Polytope2DPredicate<T, Hs...>>`.
+  using PolyG =
+      dedekind::sets::Set<F, L, Polytope2DPredicate<Rat, H1, H2, H3, H4>>;
+  STATIC_CHECK(dedekind::category::IsSet<PolyG>);
+
+  // Output side — three regimes of the Set's predicate, all over the
+  // same ambient `F`:
+  //
+  //  (a) NTTP singleton (Singleton2DPredicate carrying (x*, y*) at
+  //      the type level — what `argmax` / `maximize_set` return on
+  //      the feasible NTTP path);
+  //
+  //  (b) NTTP empty (EmptyPredicate — infeasible NTTP path);
+  //
+  //  (c) runtime singleton-or-empty (LPSolutionPredicate carrying
+  //      (point, feasible) at the value level — what
+  //      `maximize_with_values` and siblings return).
+  using SingOut =
+      dedekind::sets::Set<F, L, Singleton2DPredicate<Rat, Rat{2L}, Rat{2L}>>;
+  using EmptyOut = dedekind::sets::Set<F, L, dedekind::sets::EmptyPredicate<F>>;
+  using RuntimeOut = dedekind::sets::Set<F, L, LPSolutionPredicate<Rat>>;
+  STATIC_CHECK(dedekind::category::IsSet<SingOut>);
+  STATIC_CHECK(dedekind::category::IsSet<EmptyOut>);
+  STATIC_CHECK(dedekind::category::IsSet<RuntimeOut>);
+}
+
 TEST_CASE(
     "optimization:lp — output-side Set predicates (#749 Set-out alignment)",
     "[optimization][lp][set-out]") {
