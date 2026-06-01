@@ -202,8 +202,12 @@ TEST_CASE("optimization:lp — bit-ops fast-path triptych dispatch (#749)",
   using U4 = Halfspace2D<Rat, Rat{0L}, Rat{-1L}, Rat{0L}>;
 
   // Compile-time fold: maximize x + y over the unit square → (1, 1).
-  using Opt = decltype(maximize<Rat, Rat{1L}, Rat{1L}, U1, U2, U3, U4>());
-  STATIC_CHECK(std::same_as<Opt, Vec2<Rat, Rat{1L}, Rat{1L}>>);
+  using OptSet =
+      decltype(maximize_set<Rat, Rat{1L}, Rat{1L}, U1, U2, U3, U4>());
+  using OptPred =
+      std::remove_cvref_t<decltype(std::declval<OptSet>().predicate())>;
+  STATIC_CHECK(
+      std::same_as<OptPred, Singleton2DPredicate<Rat, Rat{1L}, Rat{1L}>>);
 
   // Runtime entry (bridge witness for the fast-path kernel): same answer.
   constexpr std::array<HalfspaceTriple<Rat>, 4> kUnitSquare = {{
@@ -245,15 +249,22 @@ TEST_CASE(
   using U4 = Halfspace2D<Rat, Rat{0L}, Rat{-1L}, Rat{0L}>;
 
   // Fast-path regime: NTTP entry dispatches via @c if @c constexpr to the
-  // axis-aligned bit-ops kernel.  Same @c maximize template, same call
-  // site shape; the only thing that changes is the halfspace pack.
-  using FastOpt = decltype(maximize<Rat, Rat{1L}, Rat{1L}, U1, U2, U3, U4>());
-  STATIC_CHECK(std::same_as<FastOpt, Vec2<Rat, Rat{1L}, Rat{1L}>>);
+  // axis-aligned bit-ops kernel.  Same @c maximize_set template, same
+  // call site shape; the only thing that changes is the halfspace pack.
+  using FastSet =
+      decltype(maximize_set<Rat, Rat{1L}, Rat{1L}, U1, U2, U3, U4>());
+  using FastPred =
+      std::remove_cvref_t<decltype(std::declval<FastSet>().predicate())>;
+  STATIC_CHECK(
+      std::same_as<FastPred, Singleton2DPredicate<Rat, Rat{1L}, Rat{1L}>>);
 
   // Generic regime: same NTTP entry, different pack — Cramer fold.
-  using GenericOpt =
-      decltype(maximize<Rat, Rat{3L}, Rat{2L}, H1, H2, H3, H4>());
-  STATIC_CHECK(std::same_as<GenericOpt, Vec2<Rat, Rat{2L}, Rat{2L}>>);
+  using GenericSet =
+      decltype(maximize_set<Rat, Rat{3L}, Rat{2L}, H1, H2, H3, H4>());
+  using GenericPred =
+      std::remove_cvref_t<decltype(std::declval<GenericSet>().predicate())>;
+  STATIC_CHECK(
+      std::same_as<GenericPred, Singleton2DPredicate<Rat, Rat{2L}, Rat{2L}>>);
 
   // Routing witnesses: the dispatch gate evaluates differently for the
   // two packs, which is what causes the two regimes to fire.
@@ -372,11 +383,11 @@ TEST_CASE("optimization:lp — fast-path INT_MIN boundary guard (#749)",
 TEST_CASE("optimization:lp — Polytope2D + lp_extract comonadic counit (#388)",
           "[optimization][lp][comonad][counit]") {
   // The polytope context (cx, cy, Hs...) reified as a type, with the
-  // co-Kleisli counit lp_extract :: Polytope2D(T) → Vec2(T) delegating
-  // to maximize<...>().  Pins both the constructibility of the
-  // Polytope2D wrapper and the equivalence between extract() member,
-  // free-function lp_extract, and the underlying maximize() — three
-  // surfaces that must agree.
+  // co-Kleisli counit lp_extract :: Polytope2D(T) → Set(Vec2V(T))
+  // delegating to maximize_set<...>().  Pins both the constructibility
+  // of the Polytope2D wrapper and the equivalence between extract()
+  // member, free-function lp_extract, and the underlying maximize_set()
+  // — three surfaces that must agree.
   using Poly = Polytope2D<Rat, Rat{3L}, Rat{2L}, H1, H2, H3, H4>;
 
   STATIC_CHECK(std::same_as<typename Poly::scalar_type, Rat>);
@@ -386,23 +397,24 @@ TEST_CASE("optimization:lp — Polytope2D + lp_extract comonadic counit (#388)",
   constexpr Poly polytope{};
   constexpr auto via_extract_member = polytope.extract();
   constexpr auto via_lp_extract = lp_extract(polytope);
-  constexpr auto via_maximize =
-      maximize<Rat, Rat{3L}, Rat{2L}, H1, H2, H3, H4>();
+  constexpr auto via_maximize_set =
+      maximize_set<Rat, Rat{3L}, Rat{2L}, H1, H2, H3, H4>();
 
-  // Assert on the *expression* types (the actual API return types)
-  // rather than the constexpr-local *variable* types --- the latter
-  // pick up a top-level const that isn't part of the API surface.
-  STATIC_CHECK(
-      std::same_as<decltype(polytope.extract()), Vec2<Rat, Rat{2L}, Rat{2L}>>);
-  STATIC_CHECK(std::same_as<decltype(lp_extract(polytope)),
-                            Vec2<Rat, Rat{2L}, Rat{2L}>>);
-  STATIC_CHECK(
-      std::same_as<decltype(maximize<Rat, Rat{3L}, Rat{2L}, H1, H2, H3, H4>()),
-                   Vec2<Rat, Rat{2L}, Rat{2L}>>);
+  // The expression-type witnesses: all three surfaces return a Set
+  // whose predicate is Singleton2DPredicate<Rat, 2, 2>.
+  using ExpectedOpt =
+      dedekind::sets::Set<Vec2V<Rat>, dedekind::category::ClassicalLogic,
+                          Singleton2DPredicate<Rat, Rat{2L}, Rat{2L}>>;
+  STATIC_CHECK(std::same_as<decltype(polytope.extract()), ExpectedOpt>);
+  STATIC_CHECK(std::same_as<decltype(lp_extract(polytope)), ExpectedOpt>);
+  STATIC_CHECK(std::same_as<
+               decltype(maximize_set<Rat, Rat{3L}, Rat{2L}, H1, H2, H3, H4>()),
+               ExpectedOpt>);
 
-  CHECK(via_extract_member == via_maximize);
-  CHECK(via_lp_extract == via_maximize);
-  CHECK(via_extract_member == via_lp_extract);
+  // All three surfaces agree on membership of the optimum point.
+  CHECK(via_extract_member.contains(Vec2V<Rat>{Rat{2L}, Rat{2L}}));
+  CHECK(via_lp_extract.contains(Vec2V<Rat>{Rat{2L}, Rat{2L}}));
+  CHECK(via_maximize_set.contains(Vec2V<Rat>{Rat{2L}, Rat{2L}}));
 }
 
 // The §5 polytope as a constexpr value-level array: shared between the
@@ -418,20 +430,23 @@ constexpr std::array<HalfspaceTriple<Rat>, 4> kPolytope = {{
 
 TEST_CASE(
     "optimization:lp — paper-facing existential proof: "
-    "maximize(3x + 2y, polytope) = Vec2<Rat, 2, 2> at compile time",
+    "maximize_set(3x + 2y, polytope) = Set with Singleton2DPredicate<Rat, 2, "
+    "2>",
     "[optimization][lp][centrepiece]") {
-  // The reduction returns an NTTP `Vec2<Rat, 2, 2>` — the optimum IS a type.
-  using Optimum = decltype(maximize<Rat, Rat{3L}, Rat{2L}, H1, H2, H3, H4>());
-  STATIC_CHECK(std::same_as<Optimum, Vec2<Rat, Rat{2L}, Rat{2L}>>);
+  // The reduction returns a Set whose predicate type pins the optimum
+  // at NTTP coords — the regime IS a type.
+  using OptSet =
+      decltype(maximize_set<Rat, Rat{3L}, Rat{2L}, H1, H2, H3, H4>());
+  using OptPred =
+      std::remove_cvref_t<decltype(std::declval<OptSet>().predicate())>;
+  STATIC_CHECK(
+      std::same_as<OptPred, Singleton2DPredicate<Rat, Rat{2L}, Rat{2L}>>);
+  STATIC_CHECK(OptPred::coord_x == Rat{2L});
+  STATIC_CHECK(OptPred::coord_y == Rat{2L});
 
-  // Equivalent value-level view — both `first` and `second` are NTTPs.
-  constexpr Optimum opt{};
-  STATIC_CHECK(opt.first == Rat{2L});
-  STATIC_CHECK(opt.second == Rat{2L});
-
-  // The single bridge entry, called with constexpr inputs, folds to the
-  // same constant and carries the objective value too.  Same function
-  // template as the runtime path — see the [bridge] witness below.
+  // The runtime entry, called with constexpr inputs, folds to the
+  // same answer.  Same kernel as the NTTP path — see the [bridge]
+  // witness below.
   constexpr auto v = maximize_with_values<Rat>(
       std::span<const HalfspaceTriple<Rat>>(kPolytope), Rat{3L}, Rat{2L});
   STATIC_CHECK(v.contains(Vec2V<Rat>{Rat{2L}, Rat{2L}}));
@@ -688,14 +703,15 @@ TEST_CASE(
   STATIC_CHECK_FALSE(v.contains(Vec2V<Rat>{Rat{0L}, Rat{0L}}));
 
   // Parity with the NTTP packaging surface on the same polytope: the
-  // bridge entry called with constexpr inputs and the NTTP-lifted
-  // `Vec2<T, x*, y*>` must agree, because the latter is the former
-  // wrapped in a type-level packaging step.
-  using NttpLifted =
-      decltype(maximize<Rat, Rat{3L}, Rat{2L}, H1, H2, H3, H4>());
-  STATIC_CHECK(std::same_as<NttpLifted, Vec2<Rat, Rat{2L}, Rat{2L}>>);
-  constexpr NttpLifted lifted{};
-  STATIC_CHECK(v.contains(Vec2V<Rat>{lifted.first, lifted.second}));
+  // runtime entry called with constexpr inputs and the NTTP Set return
+  // must agree on the optimum point.
+  using NttpSet =
+      decltype(maximize_set<Rat, Rat{3L}, Rat{2L}, H1, H2, H3, H4>());
+  using NttpPred =
+      std::remove_cvref_t<decltype(std::declval<NttpSet>().predicate())>;
+  STATIC_CHECK(
+      std::same_as<NttpPred, Singleton2DPredicate<Rat, Rat{2L}, Rat{2L}>>);
+  STATIC_CHECK(v.contains(Vec2V<Rat>{NttpPred::coord_x, NttpPred::coord_y}));
 }
 
 TEST_CASE(
@@ -716,10 +732,11 @@ TEST_CASE(
 
   // Parity with the NTTP packaging surface: the same polytope reduced
   // through both surfaces must yield identical coordinates.
-  using NttpLifted =
-      decltype(maximize<Rat, Rat{3L}, Rat{2L}, H1, H2, H3, H4>());
-  constexpr NttpLifted lifted{};
-  CHECK(result.contains(Vec2V<Rat>{lifted.first, lifted.second}));
+  using NttpSet =
+      decltype(maximize_set<Rat, Rat{3L}, Rat{2L}, H1, H2, H3, H4>());
+  using NttpPred =
+      std::remove_cvref_t<decltype(std::declval<NttpSet>().predicate())>;
+  CHECK(result.contains(Vec2V<Rat>{NttpPred::coord_x, NttpPred::coord_y}));
 }
 
 TEST_CASE(

@@ -11,8 +11,9 @@
  * carrier: `Rational<long>`). A problem instance is named at the type
  * level — objective as two NTTPs, constraints as a pack of
  * `Halfspace2D<T, a, b, c>` carriers. The reduction
- * `maximize<cx, cy, H1, H2, …>()` returns the optimum as an NTTP
- * `Vec2<T, x*, y*>` — "the optimum IS a type", literally.
+ * `maximize_set<T, cx, cy, H1, H2, …>()` returns the optimum as a Set
+ * whose predicate type carries `(x*, y*)` at the type level —
+ * "the optimum IS a type", literally, via the Set DSL.
  *
  * @section lp__Comonadic_Framing
  * The reduction is structurally a co-Kleisli arrow. Conceptually:
@@ -681,33 +682,6 @@ constexpr auto maximize_cramer_with_values(
       dedekind::linear_algebra::Vec2V<T>{v.x, v.y}, v.feasible);
 }
 
-/**
- * @brief NTTP packaging on top of @ref maximize_with_values: optimum as
- *        a typed @c Vec2<T, x*, y*>.
- *
- * Usage:
- *
- *     using Opt = decltype(maximize<Rat, Rat{3L}, Rat{2L},
- *                                   Halfspace2D<Rat, 1, 1, 4>,
- *                                   Halfspace2D<Rat, 2, 1, 6>,
- *                                   Halfspace2D<Rat,-1, 0, 0>,
- *                                   Halfspace2D<Rat, 0,-1, 0>>());
- *     // Opt == Vec2<Rat, Rat{2L}, Rat{2L}>  — the optimum IS a type.
- *
- * @details Materialise the NTTP halfspace pack into a @c constexpr
- * @c std::array of triples and call the single bridge entry
- * @ref maximize_with_values.  Because the array and the entry are both
- * @c constexpr, the call folds at translation time and the resulting
- * coordinates lift back to NTTPs as @c Vec2<T, x*, y*>.  This is the
- * only surface that performs the type-level lift; everything below it
- * is the same @c constexpr function the runtime path calls.
- *
- * Requires: the polytope is feasible and bounded.  Infeasible input
- * triggers a @c static_assert failure; unbounded input likewise
- * (detected via the candidate set being empty — since unbounded
- * polytopes have no finite optimal vertex, the function errors at
- * instantiation).
- */
 /** @section lp__Output_Set_Predicates
  *
  *  Predicates for the @em output side of @ref argmax — the optimal
@@ -777,35 +751,6 @@ constexpr auto lp_empty_set() {
       dedekind::sets::EmptyPredicate<dedekind::linear_algebra::Vec2V<T>>{}};
 }
 
-export template <typename T, T cx, T cy, typename... Hs>
-  requires(sizeof...(Hs) >= 2) && dedekind::algebra::HasRingOperators<T>
-constexpr auto maximize() {
-  constexpr std::array<HalfspaceTriple<T>, sizeof...(Hs)> cs = {
-      HalfspaceTriple<T>{Hs::coeff_x, Hs::coeff_y, Hs::bound}...};
-  // §5 triptych dispatch: when the pack is signed-unimodular AND
-  // axis-aligned, the bit-ops fast path applies; otherwise fall back to
-  // the generic Cramer fold.  Infeasibility surfaces uniformly via the
-  // @c static_assert on @c .feasible below.
-  if constexpr (HasUnitRangeEntries<Hs...> && IsAxisAlignedPolytope<Hs...> &&
-                SuitableForAxisAlignedFastPath<T>) {
-    constexpr auto v = detail::maximize_impl_axis_aligned<T>(
-        std::span<const HalfspaceTriple<T>>(cs), cx, cy);
-    static_assert(v.feasible,
-                  "LP is infeasible: axis-aligned bit-ops fast path could "
-                  "not bracket a non-empty box. Check that every axis has "
-                  "matched lower and upper bounds with lo ≤ hi.");
-    return Vec2<T, v.x, v.y>{};
-  } else {
-    constexpr auto v = detail::maximize_impl<T>(
-        std::span<const HalfspaceTriple<T>>(cs), cx, cy);
-    static_assert(v.feasible,
-                  "LP is infeasible or unbounded: no optimal vertex in the "
-                  "polytope. Check that the halfspace pack intersects to a "
-                  "non-empty bounded region.");
-    return Vec2<T, v.x, v.y>{};
-  }
-}
-
 /**
  * @brief NTTP packaging on top of @ref maximize_with_values returning a
  *        @c :expressions Set whose predicate type encodes the LP's
@@ -861,12 +806,12 @@ constexpr auto maximize_set() {
 
 /** @section lp__Comonadic_Extract_Witness
  *
- *  @c maximize<T, cx, cy, Hs...>() is structurally a comonadic counit
+ *  @c maximize_set<T, cx, cy, Hs...>() is structurally a comonadic counit
  *  (@c ε in the Kleisli notation): it takes the polytope-context
  *  @c (cx, cy, Hs...) — bundled as the NTTP pack — and extracts the
- *  optimal vertex as @c Vec2<T, x*, y*>.  The pack-as-context view
- *  matches the textbook co-Kleisli arrow shape
- *  @c F<T> → T already noted in the file header.  The
+ *  optimal locus as a Set whose predicate type encodes the regime.
+ *  The pack-as-context view matches the textbook co-Kleisli arrow
+ *  shape @c F<T> → T already noted in the file header.  The
  *  @c Polytope2D wrapper below makes the extract explicit at the
  *  type level so the witness can be pinned without changing the
  *  primary API surface.
@@ -886,12 +831,12 @@ struct Polytope2D final {
   static constexpr T objective_x = cx;
   static constexpr T objective_y = cy;
 
-  /** @brief @c ε: extract the optimal vertex as a typed Vec2.  The
-   *  reduction collapses to a typed constant at instantiation —
-   *  exactly the LP-vertex-as-typed-constant claim from §5 of the
-   *  paper.
+  /** @brief @c ε: extract the optimal locus as a Set whose predicate
+   *  type pins the regime (singleton at NTTP coords, or empty).  The
+   *  reduction collapses to a typed constant at instantiation — the
+   *  LP-optimum-as-typed-Set claim of §5.
    */
-  static constexpr auto extract() { return maximize<T, cx, cy, Hs...>(); }
+  static constexpr auto extract() { return maximize_set<T, cx, cy, Hs...>(); }
 };
 
 /** @brief @c ε / extract for the LP comonadic context.  Provided as a
@@ -1062,8 +1007,8 @@ constexpr auto structured_and(Polytope2DPredicate<T, Hs1...>,
 
 /** @brief Linear functional `U : F → T` with NTTP-typed coefficients.
  *  Carries the objective as type parameters so @ref argmax can call the
- *  NTTP-driven kernel @c maximize<T, cx, cy, Hs...>() directly without
- *  smuggling the values through function parameters. */
+ *  NTTP-driven kernel @ref maximize_set directly without smuggling the
+ *  values through function parameters. */
 export template <typename T, T cx_, T cy_>
 struct LinearFunctional {
   using scalar_type = T;

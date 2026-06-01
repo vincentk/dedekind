@@ -52,12 +52,17 @@ using U2 = Halfspace2D<Rat, Rat{0}, Rat{1}, Rat{1}>;   //  y ≤ 1
 using U3 = Halfspace2D<Rat, Rat{-1}, Rat{0}, Rat{0}>;  //  x ≥ 0
 using U4 = Halfspace2D<Rat, Rat{0}, Rat{-1}, Rat{0}>;  //  y ≥ 0
 
-using Optimum = decltype(maximize<Rat, Rat{1}, Rat{1}, U1, U2, U3, U4>());
+using OptimumSet =
+    decltype(maximize_set<Rat, Rat{1}, Rat{1}, U1, U2, U3, U4>());
+using OptimumPred =
+    std::remove_cvref_t<decltype(std::declval<OptimumSet>().predicate())>;
 
-// Type-level witnesses: the fast-path optimum is (1, 1).
-static_assert(std::same_as<Optimum, Vec2<Rat, Rat{1}, Rat{1}>>);
-static_assert(Optimum::first == Rat{1});
-static_assert(Optimum::second == Rat{1});
+// Type-level witnesses: the fast-path optimum Set's predicate IS the
+// Singleton2DPredicate carrying (1, 1).
+static_assert(
+    std::same_as<OptimumPred, Singleton2DPredicate<Rat, Rat{1}, Rat{1}>>);
+static_assert(OptimumPred::coord_x == Rat{1});
+static_assert(OptimumPred::coord_y == Rat{1});
 
 /**
  * @brief Showcase 12a: the fast-path optimum's x-coordinate as a
@@ -67,7 +72,7 @@ static_assert(Optimum::second == Rat{1});
  * folds entirely at translation time when the inputs are constexpr.
  */
 extern "C" __attribute__((noinline)) int64_t witness_lp_fast_optimum_x() {
-  return static_cast<int64_t>(Optimum::first.num());
+  return static_cast<int64_t>(OptimumPred::coord_x.num());
 }
 
 /** @brief Showcase 12b: the fast-path optimum's y-coordinate.
@@ -75,5 +80,5 @@ extern "C" __attribute__((noinline)) int64_t witness_lp_fast_optimum_x() {
  * Expected IR: @c ret @c i64 @c 1.
  */
 extern "C" __attribute__((noinline)) int64_t witness_lp_fast_optimum_y() {
-  return static_cast<int64_t>(Optimum::second.num());
+  return static_cast<int64_t>(OptimumPred::coord_y.num());
 }
