@@ -2064,7 +2064,427 @@ static_assert(as_matrix2x2(eps) * as_matrix2x2(eps) == zero_matrix2x2_v<Rat>);
 \end{cpp}
 \end{listing}
 
-\subsection{From Cardinality Pruning to Type-Directed Collapse}
+% ============================================================
+\section{Discussion}
+\label{sec:discussion}
+% ============================================================
+
+
+\subsection{The Compiler Wall: Where This Stops}
+\label{sec:compiler-wall}
+
+Treating \texttt{clang++} as a poor man's theorem prover is useful
+precisely because the compiler is bounded, predictable, and cheap. It
+is also, for the same reason, incapable of doing everything a real
+proof assistant would. The purpose of this subsection is to be honest
+about the wall and to name the \texttt{clang} knobs that push it back
+by a constant factor but cannot remove it.
+
+\paragraph{Compile-time budgets.}
+Every reduction in this paper is a variadic template, so two
+\texttt{clang} budgets matter: \emph{instantiation depth} (default
+$1024$, raised to $2048$ on the affected translation units; concepts
+and NTTP lambdas each add frames so the limit hits earlier than the
+naive count suggests) and \emph{\cppinline{constexpr} steps} (default
+$\sim\!10^6$, capping a single \cppinline{constexpr} evaluation).  A
+$2\times 2$ LP with four constraints is comfortably under both; a
+$2\times 2$ LP with thirty constraints ($\binom{30}{2} = 435$ active
+sets and nontrivial metadata) starts approaching the step limit.
+Raising the caps is possible (\cppinline{-ftemplate-depth=N},
+\cppinline{-fconstexpr-steps=N}) but trades compile time and resident
+memory for reach; the more principled answer is to stop at the
+boundary and hand off to a runtime solver --- which is exactly the
+case our centrepiece is \emph{not}.
+
+\paragraph{Combinatorial blowup is the pessimistic bound.}
+Compile-time vertex enumeration over $n$ halfspaces is, in the worst
+case, $\binom{n}{d}$ active-set solves for a $d$-dimensional LP
+(six for $n = 4$, $190$ for $n = 20$, nearly half a million for
+$n = 1000$).  Two facts soften this substantially in practice.  By
+the fundamental theorem of linear programming, the optimum of a
+$d$-dimensional LP is attained at a vertex with at most $d$ binding
+constraints, and on a handwritten polytope most of the syntactic
+constraint list is slack or redundant; the $\binom{n}{d}$ figure
+counts enumeration cost, not what any one vertex actually witnesses.
+Many of those redundancies are also \emph{statically} removable: the
+library's \cppinline{structured_and} dispatch already collapses
+linearly-dependent or contradictory halfspaces at compile time
+(Showcases~3 and~4), so the combinatorial term tracks the pruned
+count rather than the raw
+one.\footnote{Concretely:
+\cppinline{x > 5 && x > 7} collapses to \cppinline{x > 7} (stricter
+pivot wins); \cppinline{x > 5 && x < 2} collapses to $\varnothing$
+(contradiction); \cppinline{x > 3 && x < 5} over an integral carrier
+collapses to \cppinline{Singleton<4>}.  The 2D extension --- pruning
+halfspaces whose normals are linearly dependent --- follows the same
+dispatch pattern.}
+The instance regime this paper targets --- MPC steps with a handful
+of physical constraints, sensor-fusion guards, parametric
+configuration LPs --- rarely exceeds a few dozen raw constraints
+before pruning, and remains comfortably tractable.  Industrial-scale
+LP is emphatically not in scope; we do not claim it is.
+
+\paragraph{Active-set hints as the user-side escape valve.}
+Even within the compile-time regime, a user with domain knowledge of
+\emph{which} halfspaces bind at the optimum can short-circuit the
+$\binom{n}{d}$ enumeration entirely: because the constraint pack is
+already an NTTP list, instantiating
+\cppinline{maximize<T, cx, cy, H_i, H_j>()} with just the binding
+pair (instead of the full pack) is exactly the active-set hint, and
+the library evaluates only that single Cramer solve.  An explicit
+\cppinline{with_active_set<...>} API that takes the hint as a separate
+template argument and verifies feasibility against the full pack
+without re-enumerating is a natural successor surface, but the
+underlying NTTP-pack-as-hint mechanism is available today: dropping
+slack constraints from the syntactic list is the user's prerogative,
+and the combinatorial term then tracks the hinted count rather than
+the raw one.
+
+\subsection{Boundary Observations: An Axiom~\texorpdfstring{$\to$}{->}~Theorem Chain}
+\label{sec:boundary-observations}
+
+The preceding sections present the technique in an empirical sort of way: through worked showcases, IR artefacts, and concrete diagnostics.
+The library admits a stricter framing whose structural
+parallel is Wadler's \emph{Theorems for Free!}~\cite{wadler1989theorems}:
+parametricity gives the typed-lambda calculus theorems from type
+signatures alone; the dedekind library extends the move into
+\emph{algebraic} territory, where a carrier's axiomatic profile
+(declared via opt-in traits and concept witnesses) discharges
+carrier-level theorems at the type level. The empirical artefacts of
+the showcases are then \emph{realisations} of an underlying
+axiom~$\to$~theorem chain rather than the substance of the chain
+itself.
+
+\paragraph{Axioms as the engineer's honesty obligation.}
+A carrier's algebraic profile is asserted explicitly. Where the
+proof of an axiom is beyond what C++ concepts can quantify, the claim
+is made via an opt-in trait specialisation, and the engineer who
+declares the trait carries Wadler's
+\emph{propositions-as-types}~\cite{wadler2015propositions}
+obligation under the NSPE Code of Ethics canons III and IV (truthful
+public statements; faithful agency). The library ships several such
+opt-in surfaces:
+\cppinline{is_monic_arrow_v} for monomorphism declarations,
+\cppinline{is_initial_ring_v} for the initial-object reading of
+$\mathbb{Z}$, \cppinline{is_grothendieck_group_v} for the
+free-abelian-group reading, \cppinline{is_initial_f_algebra_v} for the
+NNO-as-initial-F-algebra reading, and a family of axiom-shape concepts
+including \cppinline{IsRing}, \cppinline{IsField},
+\cppinline{IsTotallyOrdered}, \cppinline{IsArchimedean}, and
+\cppinline{IsCyclicGroup}. Each is the engineer's claim, not a
+machine-discharged proof; the structural shape (signatures, closure,
+opt-in trait set to \texttt{true}) is what the type system can pin
+mechanically.
+
+\subsection{Related Work}
+\paragraph{Functional and dependently-typed approaches.}
+Agda~\cite{norell2007towards} and Coq provide dependent type systems in which set-membership
+proofs are first-class terms.  The expressiveness is greater than C++23, but the
+runtime model differs fundamentally: proof terms are erased at runtime, whereas
+\texttt{dedekind}'s structural pruning targets machine-code generation in a
+systems-programming context.
+Haskell~\cite{GHC2024} supports type-class-based structural reasoning, and libraries
+such as \texttt{algebra} encode ring and field hierarchies.  C++ templates differ in that
+they operate on concrete machine types (with hardware-level algebraic imperfections)
+rather than erased polymorphic dictionaries.
+
+\paragraph{Exact arithmetic.}
+The GNU Multiple Precision library (GMP) and \texttt{mpfr} support arbitrary-precision
+arithmetic at runtime.  \texttt{iRRAM}~\cite{mueller2001irram} and similar libraries
+implement computable real arithmetic.
+\texttt{dedekind} is complementary: exact reals (Dedekind cuts) are modelled
+\emph{intensionally as types}, and realization to a specific arithmetic backend is
+an explicit programmer choice.
+
+\paragraph{Set-builder type systems.}
+Refinement types~\cite{freeman1991refinement} attach predicates to types, enabling
+a form of set-builder representation in ML-family languages.
+Liquid Haskell~\cite{vazou2014refinement} extends Haskell with SMT-backed
+refinement predicates.
+\texttt{dedekind} achieves a subset of this functionality in standard C++23 without
+a custom type checker, using NTTP-embedded lambdas as the predicate carrier.
+
+\paragraph{Linear programming.}
+The standard LP toolchain---simplex~\cite{dantzig1963simplex} and
+interior-point methods~\cite{karmarkar1984interior} as implemented in
+Gurobi, CPLEX, GLPK, and related solvers---treats the problem instance
+as runtime data: the objective vector, constraint matrix, and right-hand
+side are passed to a solver that iterates to a vertex. \texttt{dedekind}
+sits orthogonally: problem instances whose size and coefficients are
+\emph{compile-time data} reduce via type-level vertex enumeration to
+the optimum as a typed constant (Section~\ref{sec:lp-centrepiece}), with
+the entire solver collapsing out of the emitted binary. This is not a
+replacement for runtime LP---for large, data-dependent instances the
+classical pipeline remains indispensable---but a complement for
+instances that appear during code generation (problem-shape metadata,
+compile-time configuration polytopes, template-parametric optimizer
+settings). Exact-rational arithmetic over $\mathbb{Q}$ connects the
+approach to the exact-LP literature~\cite{gleixner2016exact}; the
+specific contribution is the realisation at translation time with
+zero runtime overhead, witnessed in the emitted LLVM~IR fixtures.
+
+\paragraph{Automatic differentiation.}
+Runtime AD libraries such as Ceres~\cite{ceres-solver},
+Adept~\cite{hogan2014adept}, Sacado, dco/c++, and
+CasADi~\cite{andersson2019casadi} provide forward- and reverse-mode AD
+via expression templates or operator overloading on a specialised
+arithmetic type. The theoretical view taken by
+Elliott~\cite{elliott2018simple}---that forward-mode AD is the
+$(\text{value}, \text{tangent})$ product with chain-rule composition,
+not the dual-number object \emph{per se}---clarifies why the same
+reduction that solves the LP also computes its sensitivities when
+instantiated over the right ring (Section~\ref{sec:ad-elliott}).
+\texttt{dedekind}'s contribution is not a new AD algorithm but the
+observation that a single compile-time reduction, written once over an
+\texttt{HasRingOperators} carrier, serves as LP solver over $\mathbb{Q}$ and
+as forward-mode AD engine over $\mathbb{Q}[\varepsilon]/(\varepsilon^2)$
+with no extra code path.
+
+\paragraph{Embedded machine-learning runtimes and edge computing.}
+The embedded / edge-computing~\cite{shi2016edge} landscape has a
+mature runtime ecosystem that \texttt{dedekind} deliberately sits
+\emph{beside} rather than competes with. TensorFlow Lite
+Micro~\cite{david2021tflm} compiles models to a small-footprint
+interpreter targeted at microcontroller-class devices; ONNX Runtime
+and microTVM generate target-specific code from a model graph; the
+Eigen linear-algebra library is the de facto substrate for embedded
+numerics. These runtimes take the model as input and the target as
+fixed; they do not treat the hosting application's algebraic
+invariants as proof obligations for the C++ compiler to discharge.
+
+A deliberate choice on the linear-algebra backend is worth flagging
+here, since it connects the library's position to the
+abstract-naturals-versus-IEEE-numerics tension of
+Section~\ref{sec:numeric-tension}. Eigen~\cite{eigen2010} is
+mature, widely deployed, and excellent at what it targets---but it
+is also \emph{carrier-opinionated}: its matrix types default to
+\texttt{float} or \texttt{double} and its optimisations assume a
+field-like IEEE carrier. A natural path for \texttt{dedekind}'s
+runtime linear-algebra layer is instead toward
+GraphBLAS~\cite{kepner2011graphalgs, davis2019graphblas}, whose
+explicit \emph{(carrier, $+$, $\times$)} semiring parameterisation
+makes the ring-over-which-matrices-live a first-class configurable
+property. That matches the discipline this paper argues for:
+matrices over \cppinline{bool} (with OR/AND) are perfectly
+well-defined objects when inversion is not required, matrices over
+\cppinline{char} are useful for quantised embedded inference, and
+both sit naturally inside the \cppinline{HasRingOperators} /
+\cppinline{HasSemiringOperators} concept hierarchy. The cost of this
+generality is library complexity rather than carrier simplicity.
+The trade we advocate is correctness-and-performance (tight control
+over the ring structure) at the price of implementation effort,
+against Eigen's opposite trade---an ergonomic default carrier
+whose optimisations are largely locked to floating-point semantics.
+
+\texttt{dedekind} addresses a different surface: the \emph{inline}
+numerical primitives (Kalman filters, pose-estimation math, MPC
+steps, parametric optimisation) a robotics, automotive, or
+instrumentation engineer writes directly in their control loop. For
+these, a fixed-topology LP, a compile-specialised Kalman update,
+or an exact-rational sensor-fusion step expressed against
+\texttt{HasRingOperators} concepts exhibits three properties the
+model-runtime path does not aim at: a binary with no
+interpreter, a dependency graph no heavier than the system's
+\texttt{clang++}, and bit-for-bit deterministic arithmetic across
+platforms when the carrier is $\mathbb{Q}$. We see this as a
+complement to the runtime ecosystem, not a replacement: model-driven
+inference continues to belong to TFLite Micro and its siblings, while
+the numerical glue around such inference---the Kalman front-end, the
+control-loop LP, the gradient for online adaptation---is where
+Axiomatic Systems Programming is strongest.
+
+\paragraph{Data-pipeline DSLs.}
+Apache Spark, Flink, and the Python \texttt{pandas}/\texttt{polars} ecosystem
+provide declarative data pipelines with runtime domain checks. None of these
+ground their APIs in formal set theory, so intersections and filters are
+runtime pipeline operations rather than compile-time type invariants.
+\texttt{dedekind} is positioned one layer down: it is a systems-programming
+library that could in principle back such pipelines, but the contribution
+we demonstrate here is the compile-time reduction at the C++ layer itself.
+
+\paragraph{C++ template metaprogramming lineage.}
+Compile-time computation in C++ has a long tradition that
+\texttt{dedekind} builds on rather than supplants. Boost.Hana
+~\cite{chagnon2016hana} and \texttt{mp11}~\cite{pdimov2017mp11} provide
+compile-time heterogeneous containers and type-level algorithm
+support; Hana in particular already demonstrates concept-based
+structural dispatch at compile time and would be a natural
+lower-layer substrate for several of our combinators.
+CTRE~\cite{dusikova2018ctre} shows that serious computation
+(regular-expression matching, compiled to a type-level automaton)
+can live entirely inside the type system and emit optimised
+machine code; the shape of that reduction---intensional description
+to a named extensional object at translation time---is close kin to
+our halfspace and LP reductions, differing in subject matter but
+not in mechanism. Expression-template AD libraries including
+ENOKI~\cite{jakob2019enoki} and the runtime AD systems
+Ceres~\cite{ceres-solver}, Adept~\cite{hogan2014adept},
+and CasADi~\cite{andersson2019casadi} have carried pieces of the
+dual-number story into production workloads.
+
+\texttt{dedekind}'s position relative to this lineage is specific
+and narrow: it targets \emph{algebraic-semantic} content---ring
+homomorphisms, structural cardinality, ordering laws, the
+$(f, f')$ product as an Elliott~\cite{elliott2018simple} sibling---rather
+than the syntactic structure manipulation that is the traditional focus
+of TMP libraries. The contribution is not another metaprogramming
+trick but the claim, supported by worked reductions, that the
+\emph{discipline} of treating mainstream C++23 as a structural-gate
+theorem prover (Axiomatic Systems Programming) is now coherent enough
+to practise end-to-end.
+% ============================================================
+\section{Conclusion}
+\label{sec:conclusion}
+% ============================================================
+
+The thesis of this paper, once more: \emph{named algebraic structure
+at the type level, discharged by the compiler, narrows the gap
+between abstract mathematics and machine code without a separate
+proof assistant.} \texttt{dedekind} is the existence proof. Sets are
+rules rather than buckets; intensional descriptions defer
+materialisation to explicit boundaries; the LLVM backend carries
+discharged proofs through to object-code optimisation. The
+centrepiece existential proof (Section~\ref{sec:lp-centrepiece}) shows
+a textbook linear-programming instance reducing at compile time to
+its optimal vertex as a typed constant---the six candidate solves,
+six feasibility checks, and six objective comparisons vanish in the
+emitted IR. The same reduction over the dual-number ring recovers
+exact forward-mode sensitivities (Section~\ref{sec:ad-elliott}); at
+the linear-algebra layer it certifies the ring homomorphisms
+$\mathbb{C}, \mathbb{D} \hookrightarrow M_2(\mathbb{Q})$ as
+compile-time facts (Section~\ref{sec:lin-alg-embedding}). The
+companion repository's polynomial-calculus partitions discharge the
+Fundamental Theorem of Calculus at translation time on the same
+discipline. In every case the binary contains only literals.
+
+\paragraph{Axiomatic Systems Programming as a practised discipline.}
+The viewpoint we name in Section~\ref{sec:introduction}---treating
+\texttt{clang++} as a poor man's theorem prover, and the
+\texttt{HasRingOperators} concept as a proof obligation the carrier must
+discharge---is the paper's intended export. Taken seriously, it
+turns each algebraic invariant into a structural gate the compiler
+polices; taken habitually, it shifts the library author's default
+from ``runtime check'' to ``type-level obligation''. Three axes of
+type-directed collapse remain open (Section~\ref{sec:gap}): carrier
+tightening, smooth optimization, and lattice-law rewriting; each
+sits on the same NTTP-plus-concepts foundation as the halfspace and
+LP reductions demonstrated here.
+We leave them as worked targets for successor libraries that adopt
+the same discipline.
+
+\paragraph{An absent failure mode worth reporting.}
+A practical observation, offered honestly: across this library's
+development we did not encounter the two failure modes mainstream
+C++ template programming is famed for --- \emph{template
+instantiation explosion} (compile times that grow super-linearly
+with template depth) and \emph{template error hell} (diagnostics
+buried inside long substitution-failure cascades, far from the
+call site that triggered them).  Neither was a recurring concern.
+This is not nothing: both phenomena are well-documented hazards
+in production C++ template programming.  The disciplined fragment
+of §\ref{sec:axiomatic} (Table~\ref{tab:admissibility-rules})
+appears to rule out, by construction, the mechanisms that produce
+each.  The concept-constrained-template machinery fails at
+\emph{constraint-evaluation} time --- before template-body
+instantiation, with named-axiom diagnostics --- so the SFINAE-
+cascade error path is excluded.  Uniform parametric polymorphism
+(System-F-style; no specialisation-driven branching admitted in the
+public surface) keeps the set of compiled code paths linear in the
+number of callsites rather than combinatorial in the type tuples.
+And the bounded-instantiation-depth admissibility rule (capped at
+the carrier-lattice's three axes in the current surface) prevents
+the recursively-unfolding template-metaprogramming pattern that
+produces the explosion.  Whether this implies a \emph{formal}
+result --- a theorem that the disciplined fragment lies inside a
+decidable type-checking regime --- the paper does not claim.  The
+fragment is small enough that decidability is plausible
+(Lambek--Scott~\cite{lambek1988introduction} maps the constructive
+half to a CCC fragment; the propositions-as-types
+reading~\cite{wadler2015propositions} restricts to inhabited
+propositional types), but a proof would have to argue against
+the full C++ overload-resolution and ADL machinery and lies outside
+the scope of this engineering existence-proof.  We report the
+observation; the explanation we leave to the type-systems
+literature.
+
+\paragraph{A forward claim, in its weakest defensible form.}
+As numerical workloads saturate available hardware, the marginal
+returns of brute-force optimisation are diminishing, and the lever
+with a different cost curve is specialisation at translation time
+rather than run time. That lever also has a sustainability
+dimension: cycles not spent at run time are watt-hours not drawn
+from the grid, and the machine-learning research community has begun
+to measure its compute footprint in exactly those
+terms~\cite{schwartz2020greenai}. The operating point at which the
+lever compounds most visibly is not the data centre but the edge:
+CPU-first and embedded machine-learning
+deployments~\cite{shi2016edge, david2021tflm}, where the problem
+topology is fixed, the runtime footprint is under hard constraint,
+and the toolchain of least resistance is the system's
+\texttt{clang++}. We do not prove here
+that axiomatic discipline applied at library scale yields a
+meaningful fraction of cycles back at either end of the spectrum;
+we claim only that the ingredients---compile-time verification,
+structural optimisation, ring-aware code generation, exact
+arithmetic carriers---are now assembled in mainstream C++23, and
+that the discipline is worth practising precisely because its
+payoffs accrue at scales larger than any single library. If even a
+small fraction of the arithmetic done in contemporary edge
+deployments---model-predictive control in vehicles, Kalman-style
+sensor fusion in robotics, gradient evaluations in micro-inference
+loops---ran against libraries whose algebraic invariants had been
+discharged upstream, the compounded effect would be difficult to
+dismiss. The shape of that opportunity is what Axiomatic Systems
+Programming claims. Whether the shape materialises into the numbers
+it suggests is an engineering question, and one the next decade of
+library authors will answer.
+
+\paragraph{Reproducibility under heterogeneous tooling.}
+The discipline this paper names is, deliberately, falsifiable.  The
+constraints under which it stays honest---textbook-anchored
+vocabulary, a named-module dependency graph, structural assertions
+discharged at translation time, a CI-policed test suite---do not
+depend on which agent typed any particular line of code, nor on the
+specific host language.  As Section~\ref{sec:axiomatic} notes, the
+technique transfers with modest adjustment to any
+strongly-typed-and-tested substrate whose type system can name a
+predicate over compile-time data and check it mechanically: Scala
+under refined types and a strict build, C\# with constrained
+generics under Roslyn analysers, Java with sealed types, strictly-
+typed Python under \texttt{mypy} or \texttt{pyright}.  C++23 is the
+worked example here---chosen because of the LLVM lever from
+discharged proof to optimised object code---but the discipline does
+not turn on it.  A practitioner adopting the same constraints and a
+comparable toolchain in 2026 should be able to produce comparable
+artefacts on comparable timescales, irrespective of host language or
+of how the keystrokes were generated.  The discipline is meant to
+outlast any particular generation of authoring tool---and,
+increasingly, of programming language.
+
+% ============================================================
+\section*{Acknowledgements}
+\label{sec:acknowledgements}
+% ============================================================
+
+The development of \texttt{dedekind} relied substantively on AI assistance throughout, and the writing of this paper did so as well.
+The disclosure here is the concrete instance of the cost-benefit-calculus claim in §\ref{sec:introduction}: that paragraph names the shift in the abstract; this one names how it shifted on this artefact.
+Per the ‹Programming› journal's policy on AI tools~\cite{programming_journal_ai_policy}, the use of these tools is acknowledged and disclosed; the AI systems named below are tools whose contribution is recorded here as assistance, not authorship.
+The author is a single human person, named in the byline, who bears full responsibility for content, scope, correctness, and editorial judgement.
+
+The primary assistant was Anthropic's \emph{Claude} family (Sonnet and Opus across the project's lifetime; the 1M-context Opus 4.7 variant for the most recent slices, where reproducibility against extended-context interactions matters), invoked through the Claude Code CLI.
+Google's Gemini was used for second-opinion structural critique on substantive mathematical claims (size-restriction notation, adjunction-encoding feasibility, foundational-vs-mechanical disentanglement).
+GitHub Copilot's pull-request reviewer was invoked on every PR for scope-vs-claim consistency checks at the prose / table / listing level.
+The assistance covered draft generation (prose, code, listings, tabular structured elements), structural refactoring (concept naming, partition placement, hub-and-spoke dispatch shape), test scaffolding, review-thread response drafting, and CI / GitHub workflow scaffolding.
+
+The pattern is visible at commit-level granularity in the public repository at \url{https://github.com/vincentk/dedekind}: every commit message, every pull-request review thread, and the public CI build log compose into a complete audit trail.
+Reviewers can inspect the assistance pattern at any commit.
+``Assisted'' rather than ``co-authored'' is the operative voice throughout, both for this paper and for the codebase it documents.
+
+\printbibliography
+
+\appendix
+
+\section{From Cardinality Pruning to Type-Directed Collapse}
 \label{sec:gap}
 
 Step back from the showcases for a moment. What is the pattern? In every
@@ -2516,425 +2936,6 @@ demonstrate that the library realises the axiom~$\to$~theorem
 discipline in C++23 today, on the carriers in the Rosetta tables of
 Section~\ref{sec:carrier-rosetta}.
 
-% ============================================================
-\section{Discussion}
-\label{sec:discussion}
-% ============================================================
-
-
-\subsection{The Compiler Wall: Where This Stops}
-\label{sec:compiler-wall}
-
-Treating \texttt{clang++} as a poor man's theorem prover is useful
-precisely because the compiler is bounded, predictable, and cheap. It
-is also, for the same reason, incapable of doing everything a real
-proof assistant would. The purpose of this subsection is to be honest
-about the wall and to name the \texttt{clang} knobs that push it back
-by a constant factor but cannot remove it.
-
-\paragraph{Compile-time budgets.}
-Every reduction in this paper is a variadic template, so two
-\texttt{clang} budgets matter: \emph{instantiation depth} (default
-$1024$, raised to $2048$ on the affected translation units; concepts
-and NTTP lambdas each add frames so the limit hits earlier than the
-naive count suggests) and \emph{\cppinline{constexpr} steps} (default
-$\sim\!10^6$, capping a single \cppinline{constexpr} evaluation).  A
-$2\times 2$ LP with four constraints is comfortably under both; a
-$2\times 2$ LP with thirty constraints ($\binom{30}{2} = 435$ active
-sets and nontrivial metadata) starts approaching the step limit.
-Raising the caps is possible (\cppinline{-ftemplate-depth=N},
-\cppinline{-fconstexpr-steps=N}) but trades compile time and resident
-memory for reach; the more principled answer is to stop at the
-boundary and hand off to a runtime solver --- which is exactly the
-case our centrepiece is \emph{not}.
-
-\paragraph{Combinatorial blowup is the pessimistic bound.}
-Compile-time vertex enumeration over $n$ halfspaces is, in the worst
-case, $\binom{n}{d}$ active-set solves for a $d$-dimensional LP
-(six for $n = 4$, $190$ for $n = 20$, nearly half a million for
-$n = 1000$).  Two facts soften this substantially in practice.  By
-the fundamental theorem of linear programming, the optimum of a
-$d$-dimensional LP is attained at a vertex with at most $d$ binding
-constraints, and on a handwritten polytope most of the syntactic
-constraint list is slack or redundant; the $\binom{n}{d}$ figure
-counts enumeration cost, not what any one vertex actually witnesses.
-Many of those redundancies are also \emph{statically} removable: the
-library's \cppinline{structured_and} dispatch already collapses
-linearly-dependent or contradictory halfspaces at compile time
-(Showcases~3 and~4), so the combinatorial term tracks the pruned
-count rather than the raw
-one.\footnote{Concretely:
-\cppinline{x > 5 && x > 7} collapses to \cppinline{x > 7} (stricter
-pivot wins); \cppinline{x > 5 && x < 2} collapses to $\varnothing$
-(contradiction); \cppinline{x > 3 && x < 5} over an integral carrier
-collapses to \cppinline{Singleton<4>}.  The 2D extension --- pruning
-halfspaces whose normals are linearly dependent --- follows the same
-dispatch pattern.}
-The instance regime this paper targets --- MPC steps with a handful
-of physical constraints, sensor-fusion guards, parametric
-configuration LPs --- rarely exceeds a few dozen raw constraints
-before pruning, and remains comfortably tractable.  Industrial-scale
-LP is emphatically not in scope; we do not claim it is.
-
-\paragraph{Active-set hints as the user-side escape valve.}
-Even within the compile-time regime, a user with domain knowledge of
-\emph{which} halfspaces bind at the optimum can short-circuit the
-$\binom{n}{d}$ enumeration entirely: because the constraint pack is
-already an NTTP list, instantiating
-\cppinline{maximize<T, cx, cy, H_i, H_j>()} with just the binding
-pair (instead of the full pack) is exactly the active-set hint, and
-the library evaluates only that single Cramer solve.  An explicit
-\cppinline{with_active_set<...>} API that takes the hint as a separate
-template argument and verifies feasibility against the full pack
-without re-enumerating is a natural successor surface, but the
-underlying NTTP-pack-as-hint mechanism is available today: dropping
-slack constraints from the syntactic list is the user's prerogative,
-and the combinatorial term then tracks the hinted count rather than
-the raw one.
-
-\subsection{Boundary Observations: An Axiom~\texorpdfstring{$\to$}{->}~Theorem Chain}
-\label{sec:boundary-observations}
-
-The preceding sections present the technique in an empirical sort of way: through worked showcases, IR artefacts, and concrete diagnostics.
-The library admits a stricter framing whose structural
-parallel is Wadler's \emph{Theorems for Free!}~\cite{wadler1989theorems}:
-parametricity gives the typed-lambda calculus theorems from type
-signatures alone; the dedekind library extends the move into
-\emph{algebraic} territory, where a carrier's axiomatic profile
-(declared via opt-in traits and concept witnesses) discharges
-carrier-level theorems at the type level. The empirical artefacts of
-the showcases are then \emph{realisations} of an underlying
-axiom~$\to$~theorem chain rather than the substance of the chain
-itself.
-
-\paragraph{Axioms as the engineer's honesty obligation.}
-A carrier's algebraic profile is asserted explicitly. Where the
-proof of an axiom is beyond what C++ concepts can quantify, the claim
-is made via an opt-in trait specialisation, and the engineer who
-declares the trait carries Wadler's
-\emph{propositions-as-types}~\cite{wadler2015propositions}
-obligation under the NSPE Code of Ethics canons III and IV (truthful
-public statements; faithful agency). The library ships several such
-opt-in surfaces:
-\cppinline{is_monic_arrow_v} for monomorphism declarations,
-\cppinline{is_initial_ring_v} for the initial-object reading of
-$\mathbb{Z}$, \cppinline{is_grothendieck_group_v} for the
-free-abelian-group reading, \cppinline{is_initial_f_algebra_v} for the
-NNO-as-initial-F-algebra reading, and a family of axiom-shape concepts
-including \cppinline{IsRing}, \cppinline{IsField},
-\cppinline{IsTotallyOrdered}, \cppinline{IsArchimedean}, and
-\cppinline{IsCyclicGroup}. Each is the engineer's claim, not a
-machine-discharged proof; the structural shape (signatures, closure,
-opt-in trait set to \texttt{true}) is what the type system can pin
-mechanically.
-
-\subsection{Related Work}
-\paragraph{Functional and dependently-typed approaches.}
-Agda~\cite{norell2007towards} and Coq provide dependent type systems in which set-membership
-proofs are first-class terms.  The expressiveness is greater than C++23, but the
-runtime model differs fundamentally: proof terms are erased at runtime, whereas
-\texttt{dedekind}'s structural pruning targets machine-code generation in a
-systems-programming context.
-Haskell~\cite{GHC2024} supports type-class-based structural reasoning, and libraries
-such as \texttt{algebra} encode ring and field hierarchies.  C++ templates differ in that
-they operate on concrete machine types (with hardware-level algebraic imperfections)
-rather than erased polymorphic dictionaries.
-
-\paragraph{Exact arithmetic.}
-The GNU Multiple Precision library (GMP) and \texttt{mpfr} support arbitrary-precision
-arithmetic at runtime.  \texttt{iRRAM}~\cite{mueller2001irram} and similar libraries
-implement computable real arithmetic.
-\texttt{dedekind} is complementary: exact reals (Dedekind cuts) are modelled
-\emph{intensionally as types}, and realization to a specific arithmetic backend is
-an explicit programmer choice.
-
-\paragraph{Set-builder type systems.}
-Refinement types~\cite{freeman1991refinement} attach predicates to types, enabling
-a form of set-builder representation in ML-family languages.
-Liquid Haskell~\cite{vazou2014refinement} extends Haskell with SMT-backed
-refinement predicates.
-\texttt{dedekind} achieves a subset of this functionality in standard C++23 without
-a custom type checker, using NTTP-embedded lambdas as the predicate carrier.
-
-\paragraph{Linear programming.}
-The standard LP toolchain---simplex~\cite{dantzig1963simplex} and
-interior-point methods~\cite{karmarkar1984interior} as implemented in
-Gurobi, CPLEX, GLPK, and related solvers---treats the problem instance
-as runtime data: the objective vector, constraint matrix, and right-hand
-side are passed to a solver that iterates to a vertex. \texttt{dedekind}
-sits orthogonally: problem instances whose size and coefficients are
-\emph{compile-time data} reduce via type-level vertex enumeration to
-the optimum as a typed constant (Section~\ref{sec:lp-centrepiece}), with
-the entire solver collapsing out of the emitted binary. This is not a
-replacement for runtime LP---for large, data-dependent instances the
-classical pipeline remains indispensable---but a complement for
-instances that appear during code generation (problem-shape metadata,
-compile-time configuration polytopes, template-parametric optimizer
-settings). Exact-rational arithmetic over $\mathbb{Q}$ connects the
-approach to the exact-LP literature~\cite{gleixner2016exact}; the
-specific contribution is the realisation at translation time with
-zero runtime overhead, witnessed in the emitted LLVM~IR fixtures.
-
-\paragraph{Automatic differentiation.}
-Runtime AD libraries such as Ceres~\cite{ceres-solver},
-Adept~\cite{hogan2014adept}, Sacado, dco/c++, and
-CasADi~\cite{andersson2019casadi} provide forward- and reverse-mode AD
-via expression templates or operator overloading on a specialised
-arithmetic type. The theoretical view taken by
-Elliott~\cite{elliott2018simple}---that forward-mode AD is the
-$(\text{value}, \text{tangent})$ product with chain-rule composition,
-not the dual-number object \emph{per se}---clarifies why the same
-reduction that solves the LP also computes its sensitivities when
-instantiated over the right ring (Section~\ref{sec:ad-elliott}).
-\texttt{dedekind}'s contribution is not a new AD algorithm but the
-observation that a single compile-time reduction, written once over an
-\texttt{HasRingOperators} carrier, serves as LP solver over $\mathbb{Q}$ and
-as forward-mode AD engine over $\mathbb{Q}[\varepsilon]/(\varepsilon^2)$
-with no extra code path.
-
-\paragraph{Embedded machine-learning runtimes and edge computing.}
-The embedded / edge-computing~\cite{shi2016edge} landscape has a
-mature runtime ecosystem that \texttt{dedekind} deliberately sits
-\emph{beside} rather than competes with. TensorFlow Lite
-Micro~\cite{david2021tflm} compiles models to a small-footprint
-interpreter targeted at microcontroller-class devices; ONNX Runtime
-and microTVM generate target-specific code from a model graph; the
-Eigen linear-algebra library is the de facto substrate for embedded
-numerics. These runtimes take the model as input and the target as
-fixed; they do not treat the hosting application's algebraic
-invariants as proof obligations for the C++ compiler to discharge.
-
-A deliberate choice on the linear-algebra backend is worth flagging
-here, since it connects the library's position to the
-abstract-naturals-versus-IEEE-numerics tension of
-Section~\ref{sec:numeric-tension}. Eigen~\cite{eigen2010} is
-mature, widely deployed, and excellent at what it targets---but it
-is also \emph{carrier-opinionated}: its matrix types default to
-\texttt{float} or \texttt{double} and its optimisations assume a
-field-like IEEE carrier. A natural path for \texttt{dedekind}'s
-runtime linear-algebra layer is instead toward
-GraphBLAS~\cite{kepner2011graphalgs, davis2019graphblas}, whose
-explicit \emph{(carrier, $+$, $\times$)} semiring parameterisation
-makes the ring-over-which-matrices-live a first-class configurable
-property. That matches the discipline this paper argues for:
-matrices over \cppinline{bool} (with OR/AND) are perfectly
-well-defined objects when inversion is not required, matrices over
-\cppinline{char} are useful for quantised embedded inference, and
-both sit naturally inside the \cppinline{HasRingOperators} /
-\cppinline{HasSemiringOperators} concept hierarchy. The cost of this
-generality is library complexity rather than carrier simplicity.
-The trade we advocate is correctness-and-performance (tight control
-over the ring structure) at the price of implementation effort,
-against Eigen's opposite trade---an ergonomic default carrier
-whose optimisations are largely locked to floating-point semantics.
-
-\texttt{dedekind} addresses a different surface: the \emph{inline}
-numerical primitives (Kalman filters, pose-estimation math, MPC
-steps, parametric optimisation) a robotics, automotive, or
-instrumentation engineer writes directly in their control loop. For
-these, a fixed-topology LP, a compile-specialised Kalman update,
-or an exact-rational sensor-fusion step expressed against
-\texttt{HasRingOperators} concepts exhibits three properties the
-model-runtime path does not aim at: a binary with no
-interpreter, a dependency graph no heavier than the system's
-\texttt{clang++}, and bit-for-bit deterministic arithmetic across
-platforms when the carrier is $\mathbb{Q}$. We see this as a
-complement to the runtime ecosystem, not a replacement: model-driven
-inference continues to belong to TFLite Micro and its siblings, while
-the numerical glue around such inference---the Kalman front-end, the
-control-loop LP, the gradient for online adaptation---is where
-Axiomatic Systems Programming is strongest.
-
-\paragraph{Data-pipeline DSLs.}
-Apache Spark, Flink, and the Python \texttt{pandas}/\texttt{polars} ecosystem
-provide declarative data pipelines with runtime domain checks. None of these
-ground their APIs in formal set theory, so intersections and filters are
-runtime pipeline operations rather than compile-time type invariants.
-\texttt{dedekind} is positioned one layer down: it is a systems-programming
-library that could in principle back such pipelines, but the contribution
-we demonstrate here is the compile-time reduction at the C++ layer itself.
-
-\paragraph{C++ template metaprogramming lineage.}
-Compile-time computation in C++ has a long tradition that
-\texttt{dedekind} builds on rather than supplants. Boost.Hana
-~\cite{chagnon2016hana} and \texttt{mp11}~\cite{pdimov2017mp11} provide
-compile-time heterogeneous containers and type-level algorithm
-support; Hana in particular already demonstrates concept-based
-structural dispatch at compile time and would be a natural
-lower-layer substrate for several of our combinators.
-CTRE~\cite{dusikova2018ctre} shows that serious computation
-(regular-expression matching, compiled to a type-level automaton)
-can live entirely inside the type system and emit optimised
-machine code; the shape of that reduction---intensional description
-to a named extensional object at translation time---is close kin to
-our halfspace and LP reductions, differing in subject matter but
-not in mechanism. Expression-template AD libraries including
-ENOKI~\cite{jakob2019enoki} and the runtime AD systems
-Ceres~\cite{ceres-solver}, Adept~\cite{hogan2014adept},
-and CasADi~\cite{andersson2019casadi} have carried pieces of the
-dual-number story into production workloads.
-
-\texttt{dedekind}'s position relative to this lineage is specific
-and narrow: it targets \emph{algebraic-semantic} content---ring
-homomorphisms, structural cardinality, ordering laws, the
-$(f, f')$ product as an Elliott~\cite{elliott2018simple} sibling---rather
-than the syntactic structure manipulation that is the traditional focus
-of TMP libraries. The contribution is not another metaprogramming
-trick but the claim, supported by worked reductions, that the
-\emph{discipline} of treating mainstream C++23 as a structural-gate
-theorem prover (Axiomatic Systems Programming) is now coherent enough
-to practise end-to-end.
-% ============================================================
-\section{Conclusion}
-\label{sec:conclusion}
-% ============================================================
-
-The thesis of this paper, once more: \emph{named algebraic structure
-at the type level, discharged by the compiler, narrows the gap
-between abstract mathematics and machine code without a separate
-proof assistant.} \texttt{dedekind} is the existence proof. Sets are
-rules rather than buckets; intensional descriptions defer
-materialisation to explicit boundaries; the LLVM backend carries
-discharged proofs through to object-code optimisation. The
-centrepiece existential proof (Section~\ref{sec:lp-centrepiece}) shows
-a textbook linear-programming instance reducing at compile time to
-its optimal vertex as a typed constant---the six candidate solves,
-six feasibility checks, and six objective comparisons vanish in the
-emitted IR. The same reduction over the dual-number ring recovers
-exact forward-mode sensitivities (Section~\ref{sec:ad-elliott}); at
-the linear-algebra layer it certifies the ring homomorphisms
-$\mathbb{C}, \mathbb{D} \hookrightarrow M_2(\mathbb{Q})$ as
-compile-time facts (Section~\ref{sec:lin-alg-embedding}). The
-companion repository's polynomial-calculus partitions discharge the
-Fundamental Theorem of Calculus at translation time on the same
-discipline. In every case the binary contains only literals.
-
-\paragraph{Axiomatic Systems Programming as a practised discipline.}
-The viewpoint we name in Section~\ref{sec:introduction}---treating
-\texttt{clang++} as a poor man's theorem prover, and the
-\texttt{HasRingOperators} concept as a proof obligation the carrier must
-discharge---is the paper's intended export. Taken seriously, it
-turns each algebraic invariant into a structural gate the compiler
-polices; taken habitually, it shifts the library author's default
-from ``runtime check'' to ``type-level obligation''. Three axes of
-type-directed collapse remain open (Section~\ref{sec:gap}): carrier
-tightening, smooth optimization, and lattice-law rewriting; each
-sits on the same NTTP-plus-concepts foundation as the halfspace and
-LP reductions demonstrated here.
-We leave them as worked targets for successor libraries that adopt
-the same discipline.
-
-\paragraph{An absent failure mode worth reporting.}
-A practical observation, offered honestly: across this library's
-development we did not encounter the two failure modes mainstream
-C++ template programming is famed for --- \emph{template
-instantiation explosion} (compile times that grow super-linearly
-with template depth) and \emph{template error hell} (diagnostics
-buried inside long substitution-failure cascades, far from the
-call site that triggered them).  Neither was a recurring concern.
-This is not nothing: both phenomena are well-documented hazards
-in production C++ template programming.  The disciplined fragment
-of §\ref{sec:axiomatic} (Table~\ref{tab:admissibility-rules})
-appears to rule out, by construction, the mechanisms that produce
-each.  The concept-constrained-template machinery fails at
-\emph{constraint-evaluation} time --- before template-body
-instantiation, with named-axiom diagnostics --- so the SFINAE-
-cascade error path is excluded.  Uniform parametric polymorphism
-(System-F-style; no specialisation-driven branching admitted in the
-public surface) keeps the set of compiled code paths linear in the
-number of callsites rather than combinatorial in the type tuples.
-And the bounded-instantiation-depth admissibility rule (capped at
-the carrier-lattice's three axes in the current surface) prevents
-the recursively-unfolding template-metaprogramming pattern that
-produces the explosion.  Whether this implies a \emph{formal}
-result --- a theorem that the disciplined fragment lies inside a
-decidable type-checking regime --- the paper does not claim.  The
-fragment is small enough that decidability is plausible
-(Lambek--Scott~\cite{lambek1988introduction} maps the constructive
-half to a CCC fragment; the propositions-as-types
-reading~\cite{wadler2015propositions} restricts to inhabited
-propositional types), but a proof would have to argue against
-the full C++ overload-resolution and ADL machinery and lies outside
-the scope of this engineering existence-proof.  We report the
-observation; the explanation we leave to the type-systems
-literature.
-
-\paragraph{A forward claim, in its weakest defensible form.}
-As numerical workloads saturate available hardware, the marginal
-returns of brute-force optimisation are diminishing, and the lever
-with a different cost curve is specialisation at translation time
-rather than run time. That lever also has a sustainability
-dimension: cycles not spent at run time are watt-hours not drawn
-from the grid, and the machine-learning research community has begun
-to measure its compute footprint in exactly those
-terms~\cite{schwartz2020greenai}. The operating point at which the
-lever compounds most visibly is not the data centre but the edge:
-CPU-first and embedded machine-learning
-deployments~\cite{shi2016edge, david2021tflm}, where the problem
-topology is fixed, the runtime footprint is under hard constraint,
-and the toolchain of least resistance is the system's
-\texttt{clang++}. We do not prove here
-that axiomatic discipline applied at library scale yields a
-meaningful fraction of cycles back at either end of the spectrum;
-we claim only that the ingredients---compile-time verification,
-structural optimisation, ring-aware code generation, exact
-arithmetic carriers---are now assembled in mainstream C++23, and
-that the discipline is worth practising precisely because its
-payoffs accrue at scales larger than any single library. If even a
-small fraction of the arithmetic done in contemporary edge
-deployments---model-predictive control in vehicles, Kalman-style
-sensor fusion in robotics, gradient evaluations in micro-inference
-loops---ran against libraries whose algebraic invariants had been
-discharged upstream, the compounded effect would be difficult to
-dismiss. The shape of that opportunity is what Axiomatic Systems
-Programming claims. Whether the shape materialises into the numbers
-it suggests is an engineering question, and one the next decade of
-library authors will answer.
-
-\paragraph{Reproducibility under heterogeneous tooling.}
-The discipline this paper names is, deliberately, falsifiable.  The
-constraints under which it stays honest---textbook-anchored
-vocabulary, a named-module dependency graph, structural assertions
-discharged at translation time, a CI-policed test suite---do not
-depend on which agent typed any particular line of code, nor on the
-specific host language.  As Section~\ref{sec:axiomatic} notes, the
-technique transfers with modest adjustment to any
-strongly-typed-and-tested substrate whose type system can name a
-predicate over compile-time data and check it mechanically: Scala
-under refined types and a strict build, C\# with constrained
-generics under Roslyn analysers, Java with sealed types, strictly-
-typed Python under \texttt{mypy} or \texttt{pyright}.  C++23 is the
-worked example here---chosen because of the LLVM lever from
-discharged proof to optimised object code---but the discipline does
-not turn on it.  A practitioner adopting the same constraints and a
-comparable toolchain in 2026 should be able to produce comparable
-artefacts on comparable timescales, irrespective of host language or
-of how the keystrokes were generated.  The discipline is meant to
-outlast any particular generation of authoring tool---and,
-increasingly, of programming language.
-
-% ============================================================
-\section*{Acknowledgements}
-\label{sec:acknowledgements}
-% ============================================================
-
-The development of \texttt{dedekind} relied substantively on AI assistance throughout, and the writing of this paper did so as well.
-The disclosure here is the concrete instance of the cost-benefit-calculus claim in §\ref{sec:introduction}: that paragraph names the shift in the abstract; this one names how it shifted on this artefact.
-Per the ‹Programming› journal's policy on AI tools~\cite{programming_journal_ai_policy}, the use of these tools is acknowledged and disclosed; the AI systems named below are tools whose contribution is recorded here as assistance, not authorship.
-The author is a single human person, named in the byline, who bears full responsibility for content, scope, correctness, and editorial judgement.
-
-The primary assistant was Anthropic's \emph{Claude} family (Sonnet and Opus across the project's lifetime; the 1M-context Opus 4.7 variant for the most recent slices, where reproducibility against extended-context interactions matters), invoked through the Claude Code CLI.
-Google's Gemini was used for second-opinion structural critique on substantive mathematical claims (size-restriction notation, adjunction-encoding feasibility, foundational-vs-mechanical disentanglement).
-GitHub Copilot's pull-request reviewer was invoked on every PR for scope-vs-claim consistency checks at the prose / table / listing level.
-The assistance covered draft generation (prose, code, listings, tabular structured elements), structural refactoring (concept naming, partition placement, hub-and-spoke dispatch shape), test scaffolding, review-thread response drafting, and CI / GitHub workflow scaffolding.
-
-The pattern is visible at commit-level granularity in the public repository at \url{https://github.com/vincentk/dedekind}: every commit message, every pull-request review thread, and the public CI build log compose into a complete audit trail.
-Reviewers can inspect the assistance pattern at any commit.
-``Assisted'' rather than ``co-authored'' is the operative voice throughout, both for this paper and for the codebase it documents.
-
-\printbibliography
-
-\appendix
 
 \section{Continuous Iteration towards the Faithful Translation}
 \label{sec:eventually}
