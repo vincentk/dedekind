@@ -133,16 +133,14 @@ TEST_CASE("optimization:lp — bit-ops fast-path triptych dispatch (#749)",
   }};
   constexpr auto v_pp = maximize_axis_aligned_with_values<Rat>(
       std::span<const HalfspaceTriple<Rat>>(kUnitSquare), Rat{1L}, Rat{1L});
-  STATIC_CHECK(v_pp.feasible);
-  STATIC_CHECK(v_pp.x == Rat{1L});
-  STATIC_CHECK(v_pp.y == Rat{1L});
+  STATIC_CHECK(v_pp.contains(Vec2V<Rat>{Rat{1L}, Rat{1L}}));
+  STATIC_CHECK_FALSE(v_pp.contains(Vec2V<Rat>{Rat{0L}, Rat{0L}}));
 
   // Negative-x objective: the fast path picks x_lo via sign selection.
   constexpr auto v_np = maximize_axis_aligned_with_values<Rat>(
       std::span<const HalfspaceTriple<Rat>>(kUnitSquare), Rat{-1L}, Rat{1L});
-  STATIC_CHECK(v_np.feasible);
-  STATIC_CHECK(v_np.x == Rat{0L});
-  STATIC_CHECK(v_np.y == Rat{1L});
+  STATIC_CHECK(v_np.contains(Vec2V<Rat>{Rat{0L}, Rat{1L}}));
+  STATIC_CHECK_FALSE(v_np.contains(Vec2V<Rat>{Rat{1L}, Rat{1L}}));
 }
 
 TEST_CASE(
@@ -201,7 +199,9 @@ TEST_CASE(
   }};
   constexpr auto v = maximize_axis_aligned_with_values<Rat>(
       std::span<const HalfspaceTriple<Rat>>(kEmptyXInterval), Rat{1L}, Rat{1L});
-  STATIC_CHECK_FALSE(v.feasible);
+  // Infeasible LP collapses to the empty Set — no point is in it.
+  STATIC_CHECK_FALSE(v.contains(Vec2V<Rat>{Rat{1L}, Rat{1L}}));
+  STATIC_CHECK_FALSE(v.contains(Vec2V<Rat>{Rat{0L}, Rat{0L}}));
 }
 
 TEST_CASE(
@@ -224,7 +224,8 @@ TEST_CASE(
   }};
   constexpr auto v_zero = maximize_axis_aligned_with_values<Rat>(
       std::span<const HalfspaceTriple<Rat>>(kZeroRow), Rat{1L}, Rat{1L});
-  STATIC_CHECK_FALSE(v_zero.feasible);
+  STATIC_CHECK_FALSE(v_zero.contains(Vec2V<Rat>{Rat{1L}, Rat{1L}}));
+  STATIC_CHECK_FALSE(v_zero.contains(Vec2V<Rat>{Rat{0L}, Rat{0L}}));
 
   // Out-of-range coefficient: @c 2·x ≤ 4 is axis-aligned but not
   // signed-unimodular.  The kernel rejects rather than treating it as
@@ -237,7 +238,7 @@ TEST_CASE(
   }};
   constexpr auto v_out = maximize_axis_aligned_with_values<Rat>(
       std::span<const HalfspaceTriple<Rat>>(kOutOfRange), Rat{1L}, Rat{1L});
-  STATIC_CHECK_FALSE(v_out.feasible);
+  STATIC_CHECK_FALSE(v_out.contains(Vec2V<Rat>{Rat{1L}, Rat{1L}}));
 
   // Diagonal halfspace: unit-range entries but BOTH nonzero.  The
   // kernel rejects rather than reading @c (1, 1, 2) as @c x ≤ 2 .
@@ -250,7 +251,7 @@ TEST_CASE(
   }};
   constexpr auto v_diag = maximize_axis_aligned_with_values<Rat>(
       std::span<const HalfspaceTriple<Rat>>(kDiagonal), Rat{1L}, Rat{1L});
-  STATIC_CHECK_FALSE(v_diag.feasible);
+  STATIC_CHECK_FALSE(v_diag.contains(Vec2V<Rat>{Rat{1L}, Rat{1L}}));
 }
 
 TEST_CASE("optimization:lp — fast-path concept rejects unsigned carrier (#749)",
@@ -284,7 +285,7 @@ TEST_CASE("optimization:lp — fast-path INT_MIN boundary guard (#749)",
   }};
   constexpr auto v = maximize_axis_aligned_with_values<int>(
       std::span<const HalfspaceTriple<int>>(kIntMinPack), 1, 1);
-  STATIC_CHECK_FALSE(v.feasible);
+  STATIC_CHECK_FALSE(v.contains(Vec2V<int>{1, 1}));
 }
 
 TEST_CASE("optimization:lp — Polytope2D + lp_extract comonadic counit (#388)",
@@ -352,12 +353,8 @@ TEST_CASE(
   // template as the runtime path — see the [bridge] witness below.
   constexpr auto v = maximize_with_values<Rat>(
       std::span<const HalfspaceTriple<Rat>>(kPolytope), Rat{3L}, Rat{2L});
-  STATIC_CHECK(v.feasible);
-  STATIC_CHECK(v.x == Rat{2L});
-  STATIC_CHECK(v.y == Rat{2L});
-  // Objective: 3·2 + 2·2 = 10.
-  constexpr Rat obj = Rat{3L} * v.x + Rat{2L} * v.y;
-  STATIC_CHECK(obj == Rat{10L});
+  STATIC_CHECK(v.contains(Vec2V<Rat>{Rat{2L}, Rat{2L}}));
+  STATIC_CHECK_FALSE(v.contains(Vec2V<Rat>{Rat{0L}, Rat{0L}}));
 }
 
 TEST_CASE("optimization:lp — axis-aligned corner is pruned away",
@@ -365,12 +362,12 @@ TEST_CASE("optimization:lp — axis-aligned corner is pruned away",
   // Sanity check: with the objective direction (3, 2), the candidate
   // (0, 4) has obj = 0 + 8 = 8; (3, 0) has obj = 9 + 0 = 9; (2, 2) wins
   // at obj = 10. The reduction correctly picks the non-axis-aligned
-  // intersection, not the corner.
+  // intersection — not (0, 4), not (3, 0), not (0, 0).
   constexpr auto v = maximize_with_values<Rat>(
       std::span<const HalfspaceTriple<Rat>>(kPolytope), Rat{3L}, Rat{2L});
-  STATIC_CHECK(!(v.x == Rat{0L} && v.y == Rat{4L}));  // not (0, 4)
-  STATIC_CHECK(!(v.x == Rat{3L} && v.y == Rat{0L}));  // not (3, 0)
-  STATIC_CHECK(!(v.x == Rat{0L} && v.y == Rat{0L}));  // not (0, 0)
+  STATIC_CHECK_FALSE(v.contains(Vec2V<Rat>{Rat{0L}, Rat{4L}}));
+  STATIC_CHECK_FALSE(v.contains(Vec2V<Rat>{Rat{3L}, Rat{0L}}));
+  STATIC_CHECK_FALSE(v.contains(Vec2V<Rat>{Rat{0L}, Rat{0L}}));
 }
 
 TEST_CASE(
@@ -393,17 +390,13 @@ TEST_CASE(
   }};
   constexpr auto via_auto = maximize_with_values<Rat>(
       std::span<const HalfspaceTriple<Rat>>(kUnitSquare), Rat{1L}, Rat{1L});
-  STATIC_CHECK(via_auto.feasible);
-  STATIC_CHECK(via_auto.x == Rat{1L});
-  STATIC_CHECK(via_auto.y == Rat{1L});
+  STATIC_CHECK(via_auto.contains(Vec2V<Rat>{Rat{1L}, Rat{1L}}));
 
   // §5 polytope (H2's coeff_x = 2): not fast-eligible.  Cramer routes
   // and computes (2, 2) via the active-set enumeration.
   constexpr auto via_generic = maximize_with_values<Rat>(
       std::span<const HalfspaceTriple<Rat>>(kPolytope), Rat{3L}, Rat{2L});
-  STATIC_CHECK(via_generic.feasible);
-  STATIC_CHECK(via_generic.x == Rat{2L});
-  STATIC_CHECK(via_generic.y == Rat{2L});
+  STATIC_CHECK(via_generic.contains(Vec2V<Rat>{Rat{2L}, Rat{2L}}));
 }
 
 /**
@@ -511,7 +504,9 @@ TEST_CASE("optimization:lp — infeasible polytope reports no optimum",
   }};
   constexpr auto v = maximize_with_values<Rat>(
       std::span<const HalfspaceTriple<Rat>>(infeasible), Rat{1L}, Rat{1L});
-  STATIC_CHECK_FALSE(v.feasible);
+  // Infeasible LP collapses to the empty Set.
+  STATIC_CHECK_FALSE(v.contains(Vec2V<Rat>{Rat{1L}, Rat{1L}}));
+  STATIC_CHECK_FALSE(v.contains(Vec2V<Rat>{Rat{3L}, Rat{1L}}));
 }
 
 /**
@@ -558,15 +553,17 @@ TEST_CASE(
   constexpr auto v = maximize_with_values<D>(
       std::span<const HalfspaceTriple<D>>(dual_polytope), D{Rat{3L}},
       D{Rat{2L}});
-  STATIC_CHECK(v.feasible);
 
-  // x* = 2 - ε  →  primal 2, tangent -1.
-  STATIC_CHECK(v.x.val == Rat{2L});
-  STATIC_CHECK(v.x.der == Rat{-1L});
-
-  // y* = 2 + 2ε → primal 2, tangent +2.
-  STATIC_CHECK(v.y.val == Rat{2L});
-  STATIC_CHECK(v.y.der == Rat{2L});
+  // Expected optimum as a Vec2V<D>: x = D{2, -1} (primal 2, tangent -1)
+  // and y = D{2, +2} (primal 2, tangent +2).  Set membership encodes
+  // primal AND sensitivity correctness in one check — the LP's optimum
+  // is the dual point AND the chain rule has already produced the
+  // tangent components inside the Cramer solve.
+  constexpr auto expected = Vec2V<D>{D{Rat{2L}, Rat{-1L}}, D{Rat{2L}, Rat{2L}}};
+  STATIC_CHECK(v.contains(expected));
+  // The primal-only point (2, 2) — wrong tangents — is NOT in the Set:
+  // dual equality demands both components match.
+  STATIC_CHECK_FALSE(v.contains(Vec2V<D>{D{Rat{2L}}, D{Rat{2L}}}));
 }
 
 /**
@@ -606,9 +603,8 @@ TEST_CASE(
   // checked mechanically rather than by prose.
   constexpr auto v = maximize_with_values<Rat>(
       std::span<const HalfspaceTriple<Rat>>(cs), Rat{3L}, Rat{2L});
-  STATIC_CHECK(v.feasible);
-  STATIC_CHECK(v.x == Rat{2L});
-  STATIC_CHECK(v.y == Rat{2L});
+  STATIC_CHECK(v.contains(Vec2V<Rat>{Rat{2L}, Rat{2L}}));
+  STATIC_CHECK_FALSE(v.contains(Vec2V<Rat>{Rat{0L}, Rat{0L}}));
 
   // Parity with the NTTP packaging surface on the same polytope: the
   // bridge entry called with constexpr inputs and the NTTP-lifted
@@ -618,8 +614,7 @@ TEST_CASE(
       decltype(maximize<Rat, Rat{3L}, Rat{2L}, H1, H2, H3, H4>());
   STATIC_CHECK(std::same_as<NttpLifted, Vec2<Rat, Rat{2L}, Rat{2L}>>);
   constexpr NttpLifted lifted{};
-  STATIC_CHECK(v.x == lifted.first);
-  STATIC_CHECK(v.y == lifted.second);
+  STATIC_CHECK(v.contains(Vec2V<Rat>{lifted.first, lifted.second}));
 }
 
 TEST_CASE(
@@ -635,17 +630,15 @@ TEST_CASE(
   };
   const auto result = maximize_with_values<Rat>(halfspaces, Rat{3L}, Rat{2L});
 
-  CHECK(result.feasible);
-  CHECK(result.x == Rat{2L});
-  CHECK(result.y == Rat{2L});
+  CHECK(result.contains(Vec2V<Rat>{Rat{2L}, Rat{2L}}));
+  CHECK_FALSE(result.contains(Vec2V<Rat>{Rat{0L}, Rat{0L}}));
 
   // Parity with the NTTP packaging surface: the same polytope reduced
   // through both surfaces must yield identical coordinates.
   using NttpLifted =
       decltype(maximize<Rat, Rat{3L}, Rat{2L}, H1, H2, H3, H4>());
   constexpr NttpLifted lifted{};
-  CHECK(result.x == lifted.first);
-  CHECK(result.y == lifted.second);
+  CHECK(result.contains(Vec2V<Rat>{lifted.first, lifted.second}));
 }
 
 TEST_CASE(
@@ -665,10 +658,9 @@ TEST_CASE(
   };
   const auto result = maximize_with_values<Rat>(halfspaces, Rat{1L}, Rat{1L});
 
-  CHECK(result.feasible);
-  CHECK(result.x == Rat{2L});
-  CHECK(result.y == Rat{2L});
-  CHECK(Rat{1L} * result.x + Rat{1L} * result.y == Rat{4L});
+  CHECK(result.contains(Vec2V<Rat>{Rat{2L}, Rat{2L}}));
+  // Sanity: optimum is NOT one of the easy corners.
+  CHECK_FALSE(result.contains(Vec2V<Rat>{Rat{0L}, Rat{0L}}));
 
   // A third instance to disambiguate the optimum location too: shrink
   // the bound on the first halfspace so the vertex moves.
@@ -680,10 +672,9 @@ TEST_CASE(
   };
   const auto shrunk_result =
       maximize_with_values<Rat>(shrunk, Rat{1L}, Rat{1L});
-  CHECK(shrunk_result.feasible);
   // Active set {x + 2y = 3, 2x + y = 6}: solve gives x = 3, y = 0.
-  CHECK(shrunk_result.x == Rat{3L});
-  CHECK(shrunk_result.y == Rat{0L});
+  CHECK(shrunk_result.contains(Vec2V<Rat>{Rat{3L}, Rat{0L}}));
+  CHECK_FALSE(shrunk_result.contains(Vec2V<Rat>{Rat{2L}, Rat{2L}}));
 }
 
 TEST_CASE(
@@ -699,5 +690,6 @@ TEST_CASE(
       {Rat{0L}, Rat{1L}, Rat{5L}},
   };
   const auto result = maximize_with_values<Rat>(halfspaces, Rat{1L}, Rat{1L});
-  CHECK_FALSE(result.feasible);
+  CHECK_FALSE(result.contains(Vec2V<Rat>{Rat{1L}, Rat{1L}}));
+  CHECK_FALSE(result.contains(Vec2V<Rat>{Rat{3L}, Rat{1L}}));
 }

@@ -643,6 +643,17 @@ class Set {
    *  paper-listing sites. */
   constexpr auto contains(const T& v) const { return (*this)(v); }
 
+  /** @brief Const reference to the underlying predicate.  Most callers
+   *  should use @c operator() / @ref contains for membership and let
+   *  the predicate stay encapsulated; this getter exists for scalar-
+   *  interop layers (Python facades, IR fixtures) that need to extract
+   *  value-level state from a predicate whose fields are part of its
+   *  public contract (e.g.\ @c LPSolutionPredicate carrying
+   *  @c point and @c feasible ).  Does not expose mutation; the
+   *  predicate's encapsulation discipline remains the predicate's
+   *  responsibility, not the Set's. */
+  constexpr const Predicate& predicate() const { return predicate_; }
+
   constexpr cardinality_type cardinality() const { return {}; }
 
   constexpr auto operator!() const {

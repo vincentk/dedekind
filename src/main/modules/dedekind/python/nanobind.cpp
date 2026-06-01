@@ -228,7 +228,8 @@ auto maximize_lp_dual_rational(
   const auto result = dedekind::optimization::maximize_with_values<DualRat>(
       std::span<const dedekind::optimization::HalfspaceTriple<DualRat>>(coeffs),
       objective.first, objective.second);
-  return {result.x, result.y, result.feasible};
+  const auto& pred = result.predicate();
+  return {pred.point.x, pred.point.y, pred.feasible};
 }
 
 // ── Rational<SignedExtensionalCardinal<>> ── exact ℚ for paper-faithful inputs

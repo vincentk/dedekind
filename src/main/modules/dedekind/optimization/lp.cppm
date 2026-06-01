@@ -469,6 +469,46 @@ constexpr VertexCandidate<T> maximize_impl_axis_aligned(
 
 }  // namespace detail
 
+/** @brief @c :expressions predicate carrying the LP's runtime optimal
+ *  locus as @c (point, feasible) value-level state.
+ *
+ *  @details Used as the predicate of the runtime entries' output Set:
+ *  membership is @c feasible @c && @c v @c == @c point , so the Set
+ *  is a singleton @c {point} when the LP is feasible and empty when
+ *  it isn't.  Mirrors @ref Singleton2DPredicate / @c EmptyPredicate
+ *  on the NTTP path; the type-level regime there becomes a value-
+ *  level regime here, with the same Set carrier on both sides of the
+ *  bridge.  Callers may use @c Set::contains for membership queries
+ *  or inspect the predicate's @c point / @c feasible directly when
+ *  scalar extraction is needed (e.g. interop with Python).
+ */
+export template <typename T>
+struct LPSolutionPredicate {
+  using Domain = dedekind::linear_algebra::Vec2V<T>;
+  using cardinality_type = dedekind::sets::Finite;
+
+  Domain point;
+  bool feasible;
+
+  constexpr bool operator()(const Domain& v) const {
+    return feasible && v.x == point.x && v.y == point.y;
+  }
+};
+
+/** @brief Lift a runtime optimal locus into a @c :expressions Set
+ *  whose predicate carries @c (point, feasible) at the value level.
+ *  Mirrors @ref lp_singleton_set / @ref lp_empty_set on the runtime
+ *  path: the Set is a singleton @c {point} when feasible, empty when
+ *  not, with the same Set type either way. */
+export template <typename T>
+constexpr auto lp_runtime_solution_set(dedekind::linear_algebra::Vec2V<T> point,
+                                       bool feasible) {
+  return dedekind::sets::Set<dedekind::linear_algebra::Vec2V<T>,
+                             dedekind::category::ClassicalLogic,
+                             LPSolutionPredicate<T>>{
+      LPSolutionPredicate<T>{point, feasible}};
+}
+
 /** @section lp__The_Bridge
  *
  *  @ref maximize_with_values is the single user-facing entry point for
@@ -494,7 +534,7 @@ constexpr VertexCandidate<T> maximize_impl_axis_aligned(
  */
 export template <typename T>
   requires dedekind::algebra::HasRingOperators<T>
-constexpr VertexCandidate<T> maximize_with_values(
+constexpr auto maximize_with_values(
     std::span<const HalfspaceTriple<T>> halfspaces, T cx, T cy) {
   // Mechanical dispatch: scan the span for structural fast-path
   // eligibility (every halfspace has @c (a, b) ∈ {−1, 0, +1}² with at
@@ -502,6 +542,7 @@ constexpr VertexCandidate<T> maximize_with_values(
   // it qualifies, else the generic Cramer kernel.  Mirrors the NTTP
   // entry's @c if @c constexpr dispatch at runtime — the type system
   // selects the kernel from the input's structure end-to-end.
+  VertexCandidate<T> v{T{}, T{}, false};
   if constexpr (SuitableForAxisAlignedFastPath<T>) {
     const T one{1};
     const T zero{};
@@ -518,10 +559,15 @@ constexpr VertexCandidate<T> maximize_with_values(
       }
     }
     if (fast_eligible) {
-      return detail::maximize_impl_axis_aligned<T>(halfspaces, cx, cy);
+      v = detail::maximize_impl_axis_aligned<T>(halfspaces, cx, cy);
+    } else {
+      v = detail::maximize_impl<T>(halfspaces, cx, cy);
     }
+  } else {
+    v = detail::maximize_impl<T>(halfspaces, cx, cy);
   }
-  return detail::maximize_impl<T>(halfspaces, cx, cy);
+  return lp_runtime_solution_set<T>(
+      dedekind::linear_algebra::Vec2V<T>{v.x, v.y}, v.feasible);
 }
 
 /** @brief Runtime entry for the bit-ops fast-path kernel.  Same shape as
@@ -552,9 +598,11 @@ constexpr VertexCandidate<T> maximize_with_values(
  */
 export template <typename T>
   requires SuitableForAxisAlignedFastPath<T>
-constexpr VertexCandidate<T> maximize_axis_aligned_with_values(
+constexpr auto maximize_axis_aligned_with_values(
     std::span<const HalfspaceTriple<T>> halfspaces, T cx, T cy) {
-  return detail::maximize_impl_axis_aligned<T>(halfspaces, cx, cy);
+  const auto v = detail::maximize_impl_axis_aligned<T>(halfspaces, cx, cy);
+  return lp_runtime_solution_set<T>(
+      dedekind::linear_algebra::Vec2V<T>{v.x, v.y}, v.feasible);
 }
 
 /** @brief Power-user runtime entry that forces the generic Cramer
@@ -571,9 +619,11 @@ constexpr VertexCandidate<T> maximize_axis_aligned_with_values(
  */
 export template <typename T>
   requires dedekind::algebra::HasRingOperators<T>
-constexpr VertexCandidate<T> maximize_cramer_with_values(
+constexpr auto maximize_cramer_with_values(
     std::span<const HalfspaceTriple<T>> halfspaces, T cx, T cy) {
-  return detail::maximize_impl<T>(halfspaces, cx, cy);
+  const auto v = detail::maximize_impl<T>(halfspaces, cx, cy);
+  return lp_runtime_solution_set<T>(
+      dedekind::linear_algebra::Vec2V<T>{v.x, v.y}, v.feasible);
 }
 
 /**
@@ -681,7 +731,7 @@ constexpr auto maximize() {
   // @c static_assert on @c .feasible below.
   if constexpr (HasUnitRangeEntries<Hs...> && IsAxisAlignedPolytope<Hs...> &&
                 SuitableForAxisAlignedFastPath<T>) {
-    constexpr auto v = maximize_axis_aligned_with_values<T>(
+    constexpr auto v = detail::maximize_impl_axis_aligned<T>(
         std::span<const HalfspaceTriple<T>>(cs), cx, cy);
     static_assert(v.feasible,
                   "LP is infeasible: axis-aligned bit-ops fast path could "
@@ -689,7 +739,7 @@ constexpr auto maximize() {
                   "matched lower and upper bounds with lo ≤ hi.");
     return Vec2<T, v.x, v.y>{};
   } else {
-    constexpr auto v = maximize_with_values<T>(
+    constexpr auto v = detail::maximize_impl<T>(
         std::span<const HalfspaceTriple<T>>(cs), cx, cy);
     static_assert(v.feasible,
                   "LP is infeasible or unbounded: no optimal vertex in the "
@@ -734,7 +784,7 @@ constexpr auto maximize_set() {
       HalfspaceTriple<T>{Hs::coeff_x, Hs::coeff_y, Hs::bound}...};
   if constexpr (HasUnitRangeEntries<Hs...> && IsAxisAlignedPolytope<Hs...> &&
                 SuitableForAxisAlignedFastPath<T>) {
-    constexpr auto v = maximize_axis_aligned_with_values<T>(
+    constexpr auto v = detail::maximize_impl_axis_aligned<T>(
         std::span<const HalfspaceTriple<T>>(cs), cx, cy);
     if constexpr (v.feasible) {
       return lp_singleton_set<T, v.x, v.y>();
@@ -742,7 +792,7 @@ constexpr auto maximize_set() {
       return lp_empty_set<T>();
     }
   } else {
-    constexpr auto v = maximize_with_values<T>(
+    constexpr auto v = detail::maximize_impl<T>(
         std::span<const HalfspaceTriple<T>>(cs), cx, cy);
     if constexpr (v.feasible) {
       return lp_singleton_set<T, v.x, v.y>();

@@ -61,7 +61,8 @@ extern "C" __attribute__((noinline)) double witness_lp_runtime_x(
     const HalfspaceTriple<double>* hs, std::size_t n, double cx, double cy) {
   return maximize_cramer_with_values<double>(
              std::span<const HalfspaceTriple<double>>(hs, n), cx, cy)
-      .x;
+      .predicate()
+      .point.x;
 }
 
 /** @brief Companion y-coordinate witness; structurally identical IR. */
@@ -69,7 +70,8 @@ extern "C" __attribute__((noinline)) double witness_lp_runtime_y(
     const HalfspaceTriple<double>* hs, std::size_t n, double cx, double cy) {
   return maximize_cramer_with_values<double>(
              std::span<const HalfspaceTriple<double>>(hs, n), cx, cy)
-      .y;
+      .predicate()
+      .point.y;
 }
 
 /**
@@ -82,5 +84,6 @@ extern "C" __attribute__((noinline)) bool witness_lp_runtime_feasible(
     const HalfspaceTriple<double>* hs, std::size_t n, double cx, double cy) {
   return maximize_cramer_with_values<double>(
              std::span<const HalfspaceTriple<double>>(hs, n), cx, cy)
+      .predicate()
       .feasible;
 }
