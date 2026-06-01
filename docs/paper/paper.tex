@@ -1830,6 +1830,12 @@ A \cppinline{static_assert} on the project's \cppinline{IsSet} concept (the ETCS
 A further \cppinline{static_assert} on \cppinline{IsFAlgebra} confirms the catamorphism \emph{shape} on the output side: the output Set carries a structure map $F\langle X\rangle \to X$ for the identity endofunctor on its ambient category, with the active-set step closing over the halfspace pack.\footnote{The shape witness is mechanical.
 The catamorphism's uniqueness clause --- that \cppinline{argmax(G, U)} is the unique morphism into the output algebra from the initial halfspace-list F-algebra for $F(X) = 1 + \text{Halfspace} \times X$ --- is the engineer's honesty obligation per Pierce~\cite{pierce2002tapl} §5.4; the project's \cppinline{:f_algebra} partition reifies this as an opt-in \cppinline{is_initial_f_algebra_v} trait, deliberately defaulted to false here.}
 
+\paragraph{Algorithmic scope.}
+The vertex-enumeration kernel is $O(\binom{m}{n})$ in the halfspace count --- the bubble sort of LP, well-suited to the small $m$ §5 exhibits and to compile-time enumeration generally, not to industrial constraint counts.
+The halfspace pack lives in NTTP space; §\ref{sec:compiler-wall} names this as the Compiler Wall, so the inner solver's choice does not move the wall it caps.
+A more elegant compile-time kernel is available in principle: Fourier-Motzkin elimination~\cite{schrijver1986theory} §12.2 reduces the polytope dimension by dimension, surfacing the singleton, empty, face, and ray regimes uniformly from the shape of the resulting interval, and is a catamorphism on the halfspace pack proper rather than the identity-functor shape recorded above.
+We leave the Fourier-Motzkin kernel to follow-up.
+
 % TODO (listings in follow-up commits to this PR):
 %   - Listing: regime × dispatch trigger × predicate × IR signature table.
 %   - Listing: showcase_09b vs showcase_12b abbreviated IR side-by-side.
