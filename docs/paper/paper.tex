@@ -1826,6 +1826,54 @@ The library exposes \cppinline{maximize_axis_aligned_with_values<T>} and \cppinl
 The fixtures \texttt{showcase\_09b\_lp\_runtime\_residual.ll} and \texttt{showcase\_12b\_lp\_unimodular\_runtime.ll} pin the two kernels' signatures: the Cramer kernel retains its $2 \times 2$ \texttt{fdiv} / \texttt{fmuladd} active-set arithmetic and the loop's \texttt{phi} accumulators; the bit-ops kernel retains the loop's \texttt{phi} accumulators and the sign-driven \texttt{select} but emits no \texttt{mul} / \texttt{sdiv} / \texttt{udiv} on the integer carrier.
 The semantic-sanity checker enforces both shapes (\texttt{pruning-ir-fixture.py}).
 
+% Source excerpts: showcase_09b_lp_runtime_residual.ll, showcase_12b_lp_unimodular_runtime.ll
+\begin{listing}[htbp]
+\caption{Abbreviated runtime IR for the two LP kernels.
+Excerpts from \texttt{showcase\_09b\_lp\_runtime\_residual.ll} (generic Cramer over \texttt{double}) and \texttt{showcase\_12b\_lp\_unimodular\_runtime.ll} (bit-ops fast path over \texttt{int}).
+Cramer emits floating-point divide / multiply / fused-multiply-add inside an active-set loop; the fast path emits per-axis integer compares, \texttt{llvm.smin}, and a sign-driven \texttt{select}, with \texttt{mul} / \texttt{sdiv} / \texttt{udiv} absent on the integer carrier.
+Both fixtures are pinned by \texttt{pruning-ir-fixture.py}.}
+\label{lst:lp-runtime-ir-side-by-side}
+\noindent
+\begin{minipage}[t]{0.48\linewidth}
+\textbf{Generic Cramer (\texttt{showcase\_09b}):}
+\begin{cpp}
+
+; per active-set pair: 2x2 Cramer solve
+%33 = fneg double %32
+%34 = fmul double %22, %33
+%35 = call double @llvm.fmuladd.f64(
+        double %20, double %31, double %34)
+; numerators elided ...
+%44 = fdiv double %43, %35   ; x_num/det
+%47 = fdiv double %46, %35   ; y_num/det
+; per-constraint feasibility check:
+%59 = fmul double %47, %58
+%60 = call double @llvm.fmuladd.f64(
+        double %56, double %44, double %59)
+; outer: C(n,2) pairs; inner: m feasibility;
+; argmax phi over the surviving vertex.
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.48\linewidth}
+\textbf{Bit-ops fast path (\texttt{showcase\_12b}):}
+\begin{cpp}
+
+; per halfspace: per-axis bracketing
+%17 = load i32, ptr %16, align 4   ; coeff_x
+%18 = add  i32 %17, 1
+%19 = icmp ult i32 %18, 3       ; in {-1,0,1}?
+; per-axis dispatch (y-branch elided):
+%41 = call i32 @llvm.smin.i32(
+        i32 %31, i32 %12)
+%42 = select i1 %40, i32 %41, i32 %31
+; phi i8 / phi i32 carry axis bounds and
+; bound-present flags across the loop;
+; no mul / sdiv / udiv on the carrier
+; appears anywhere in this function.
+\end{cpp}
+\end{minipage}
+\end{listing}
+
 \begin{table}[htbp]
 \centering
 \caption{\textbf{Kernel $\times$ evaluation mode $\times$ output predicate $\times$ IR signature for \cppinline{argmax(G, U)}.}
@@ -1856,7 +1904,6 @@ A more elegant compile-time kernel is available in principle: Fourier-Motzkin el
 We leave the Fourier-Motzkin kernel to follow-up.
 
 % TODO (listings in follow-up commits to this PR):
-%   - Listing: showcase_09b vs showcase_12b abbreviated IR side-by-side.
 %   - Listing: static_assert(IsSet<...>) chain on input and three output regimes.
 %   - Listing: static_assert(IsFAlgebra<...>) inline witness extract.
 
