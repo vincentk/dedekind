@@ -355,8 +355,13 @@ def semantic_sanity(ir_text: str, source: Path) -> None:
             )
     elif "showcase_09b_lp_runtime_residual" in name:
         # The runtime counterpart of showcase_09: the same active-set
-        # kernel called through `maximize_with_values<double>(span, cx, cy)`
-        # with coefficients as function arguments.  Unlike showcase_09's
+        # kernel called through the power-user runtime entry
+        # `maximize_cramer_with_values<double>(span, cx, cy)` with
+        # coefficients as function arguments — the IR microscope on the
+        # Cramer kernel in isolation (the default `maximize_with_values`
+        # would route via mechanical scan + branch, contaminating the
+        # residual signature this fixture exists to exhibit).  Unlike
+        # showcase_09's
         # `ret i64 2`, the body cannot fold — every coefficient is runtime
         # data — so the algorithm's residual structure must survive into IR.
         # The paired contrast (folded vs. residual on the same kernel) is

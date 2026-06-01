@@ -629,7 +629,8 @@ constexpr auto maximize_with_values(
  *  gates this path via @c HasUnitRangeEntries and @c IsAxisAlignedPolytope ,
  *  but the runtime entry is also reachable directly, so the kernel
  *  defensively validates each halfspace and collapses the result to the
- *  infeasible sentinel (@c VertexCandidate::feasible @c == @c false) on:
+ *  empty Set (the output Set's @c LPSolutionPredicate carries
+ *  @c feasible @c == @c false at the value level) on:
  *
  *  - any coefficient outside {−1, 0, +1} (e.g. @c h.a @c = @c 2 would
  *    otherwise read as @c +1·x );
@@ -721,11 +722,13 @@ constexpr auto maximize_cramer_with_values(
  *  - An unbounded-face predicate is deferred until §5 needs it.
  *
  *  @ref argmax (the NTTP combinator) returns a Set whose predicate type
- *  pins the regime.  The runtime entries @ref maximize_with_values and
- *  siblings currently return @c VertexCandidate<T> ; lifting them to a
- *  uniform Set return is a follow-up.  The §3 sets-as-rules vocabulary
- *  is the same on both sides of @c argmax — input polytope and output
- *  locus alike.
+ *  pins the regime (singleton / empty) at the type level.  The runtime
+ *  entries @ref maximize_with_values and siblings also return a Set,
+ *  with the regime carried at the value level via @ref LPSolutionPredicate
+ *  's @c (point, feasible) state — see @ref lp_runtime_solution_set .
+ *  The §3 sets-as-rules vocabulary is the same on both sides of
+ *  @c argmax — input polytope and output locus alike — at both the NTTP
+ *  and runtime entries.
  */
 
 /** @brief @c :expressions predicate for the LP's unique optimal vertex
