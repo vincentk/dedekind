@@ -1670,6 +1670,55 @@ of \cite{nspe_ethics} are about; the type system's refusal to accept the
 \cppinline{IsRing<int>} witness is the mechanical analogue of an external
 review catching the claim.}
 
+\paragraph{$\mathbb{C}$ and $\mathbb{D}$ as Subrings of $M_2(\mathbb{Q})$.}
+\label{sec:lin-alg-embedding}
+
+The classical regular representations
+$a + bi \mapsto
+\bigl(\begin{smallmatrix} a & -b \\ b & a \end{smallmatrix}\bigr)$
+and
+$a + b\varepsilon \mapsto
+\bigl(\begin{smallmatrix} a & b \\ 0 & a \end{smallmatrix}\bigr)$
+are ring monomorphisms $\mathbb{C}, \mathbb{D} \hookrightarrow
+M_2(\mathbb{Q})$ (see, e.g., Lang~\cite{lang2002algebra}). The
+library claims both identities at the type level over
+\cppinline{Rational<SignedExtensionalCardinal<>>} and the compiler
+discharges them as bit-perfect \texttt{static\_assert}s, with the
+defining relation $\varepsilon^2 = 0$ lifting to
+$\bigl(\begin{smallmatrix} 0 & 1 \\ 0 & 0 \end{smallmatrix}\bigr)^2
+= 0$ on the matrix side.
+
+In the HSP vocabulary of §\ref{sec:axiomatic}, both embeddings are
+components of a single natural-transformation schema
+$\operatorname{Cplx}, \operatorname{Dual} \Rightarrow
+\operatorname{End}_R \circ \operatorname{Free}_2$ — composing an H
+operation (quotient by $(i^2+1)$ or $(\varepsilon^2)$) with a P
+operation ($\operatorname{Free}_2$) and the internal-hom
+$\operatorname{End}_R$ — with target $M_2(R) =
+\operatorname{End}_R(R^2)$.  The worked instance ships at $R =
+\mathbb{Q}$; the listing below discharges
+$\operatorname{Cplx}(\mathbb{Q}), \operatorname{Dual}(\mathbb{Q})
+\hookrightarrow M_2(\mathbb{Q})$ mechanically.
+
+% Source: src/test/cpp/modules/dedekind/linear_algebra/embeddings_test.cpp
+\begin{listing}[htbp]
+\caption{Matrix embeddings of complex and dual numbers over $\mathbb{Q}$.}
+\label{lst:lin-alg-embeddings}
+\begin{cpp}
+
+using Rat = Rational<SignedExtensionalCardinal<>>;
+constexpr Complex<Rat> z{Rat{1}, Rat{2}}, w{Rat{3}, Rat{-5}};
+constexpr Dual<Rat>    d{Rat{2}, Rat{3}}, e{Rat{-1}, Rat{5}};
+static_assert(as_matrix2x2(z + w) == as_matrix2x2(z) + as_matrix2x2(w));
+static_assert(as_matrix2x2(z * w) == as_matrix2x2(z) * as_matrix2x2(w));
+static_assert(as_matrix2x2(d + e) == as_matrix2x2(d) + as_matrix2x2(e));
+static_assert(as_matrix2x2(d * e) == as_matrix2x2(d) * as_matrix2x2(e));
+constexpr Dual<Rat> eps{Rat{0}, Rat{1}};
+static_assert(as_matrix2x2(eps) * as_matrix2x2(eps) == zero_matrix2x2_v<Rat>);
+\end{cpp}
+\end{listing}
+
+
 % ============================================================
 \section{Linear Algebra}
 \label{sec:linalg}
@@ -2015,54 +2064,6 @@ side effect of the ring laws. The same
 $\mathtt{Dual}\circ\mathtt{Complex}\circ\mathtt{Rational}$ layering
 extends to holomorphic automatic differentiation at compile time;
 we leave its application to a follow-up.
-
-\subsection{Linear Algebra: \texorpdfstring{$\mathbb{C}$ and $\mathbb{D}$}{ℂ and 𝔻} as Subrings of \texorpdfstring{$M_2(\mathbb{Q})$}{M₂(ℚ)}}
-\label{sec:lin-alg-embedding}
-
-The classical regular representations
-$a + bi \mapsto
-\bigl(\begin{smallmatrix} a & -b \\ b & a \end{smallmatrix}\bigr)$
-and
-$a + b\varepsilon \mapsto
-\bigl(\begin{smallmatrix} a & b \\ 0 & a \end{smallmatrix}\bigr)$
-are ring monomorphisms $\mathbb{C}, \mathbb{D} \hookrightarrow
-M_2(\mathbb{Q})$ (see, e.g., Lang~\cite{lang2002algebra}). The
-library claims both identities at the type level over
-\cppinline{Rational<SignedExtensionalCardinal<>>} and the compiler
-discharges them as bit-perfect \texttt{static\_assert}s, with the
-defining relation $\varepsilon^2 = 0$ lifting to
-$\bigl(\begin{smallmatrix} 0 & 1 \\ 0 & 0 \end{smallmatrix}\bigr)^2
-= 0$ on the matrix side.
-
-In the HSP vocabulary of §\ref{sec:axiomatic}, both embeddings are
-components of a single natural-transformation schema
-$\operatorname{Cplx}, \operatorname{Dual} \Rightarrow
-\operatorname{End}_R \circ \operatorname{Free}_2$ — composing an H
-operation (quotient by $(i^2+1)$ or $(\varepsilon^2)$) with a P
-operation ($\operatorname{Free}_2$) and the internal-hom
-$\operatorname{End}_R$ — with target $M_2(R) =
-\operatorname{End}_R(R^2)$.  The worked instance ships at $R =
-\mathbb{Q}$; the listing below discharges
-$\operatorname{Cplx}(\mathbb{Q}), \operatorname{Dual}(\mathbb{Q})
-\hookrightarrow M_2(\mathbb{Q})$ mechanically.
-
-% Source: src/test/cpp/modules/dedekind/linear_algebra/embeddings_test.cpp
-\begin{listing}[htbp]
-\caption{Matrix embeddings of complex and dual numbers over $\mathbb{Q}$.}
-\label{lst:lin-alg-embeddings}
-\begin{cpp}
-
-using Rat = Rational<SignedExtensionalCardinal<>>;
-constexpr Complex<Rat> z{Rat{1}, Rat{2}}, w{Rat{3}, Rat{-5}};
-constexpr Dual<Rat>    d{Rat{2}, Rat{3}}, e{Rat{-1}, Rat{5}};
-static_assert(as_matrix2x2(z + w) == as_matrix2x2(z) + as_matrix2x2(w));
-static_assert(as_matrix2x2(z * w) == as_matrix2x2(z) * as_matrix2x2(w));
-static_assert(as_matrix2x2(d + e) == as_matrix2x2(d) + as_matrix2x2(e));
-static_assert(as_matrix2x2(d * e) == as_matrix2x2(d) * as_matrix2x2(e));
-constexpr Dual<Rat> eps{Rat{0}, Rat{1}};
-static_assert(as_matrix2x2(eps) * as_matrix2x2(eps) == zero_matrix2x2_v<Rat>);
-\end{cpp}
-\end{listing}
 
 % ============================================================
 \section{Discussion}
