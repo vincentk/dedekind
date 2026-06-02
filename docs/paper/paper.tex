@@ -1916,7 +1916,8 @@ Both fixtures are pinned by \texttt{pruning-ir-fixture.py}.}
 
 \begin{table}[htbp]
 \centering
-\caption{\textbf{Kernel $\times$ evaluation mode $\times$ output predicate $\times$ IR signature for \cppinline{argmax(G, U)}.}
+\caption{\textbf{Kernel $\times$ evaluation mode $\times$ output predicate $\times$ IR signature for the §\ref{sec:lp-centrepiece} LP combinator.}
+NTTP rows are reached through \cppinline{argmax(G, U)} (input polytope as a Set, output Set with NTTP-coordinate predicate); runtime rows through \cppinline{maximize_with_values<T>(span, cx, cy)} (input as \cppinline{std::span<HalfspaceTriple<T>>}, output Set with value-level predicate).
 The kernel branch is selected by \cppinline{if constexpr} on three concepts over the halfspace pack and carrier (\cppinline{HasUnitRangeEntries}, \cppinline{IsAxisAlignedPolytope}, \cppinline{SuitableForAxisAlignedFastPath}); the evaluation mode is selected by the constexpr-ness of the call site.
 The four rows are exhibited by \texttt{showcase\_12}, \texttt{showcase\_12b}, \texttt{showcase\_09}, and \texttt{showcase\_09b} respectively, with their LLVM IR checked into the repository as fixtures.}
 \label{tab:lp-regime-dispatch}
@@ -2122,17 +2123,17 @@ LP is emphatically not in scope; we do not claim it is.
 Even within the compile-time regime, a user with domain knowledge of
 \emph{which} halfspaces bind at the optimum can short-circuit the
 $\binom{n}{d}$ enumeration entirely: because the constraint pack is
-already an NTTP list, instantiating
-\cppinline{maximize<T, cx, cy, H_i, H_j>()} with just the binding
-pair (instead of the full pack) is exactly the active-set hint, and
-the library evaluates only that single Cramer solve.  An explicit
-\cppinline{with_active_set<...>} API that takes the hint as a separate
-template argument and verifies feasibility against the full pack
-without re-enumerating is a natural successor surface, but the
-underlying NTTP-pack-as-hint mechanism is available today: dropping
-slack constraints from the syntactic list is the user's prerogative,
-and the combinatorial term then tracks the hinted count rather than
-the raw one.
+already a meet of halfspace Sets, instantiating
+\cppinline{argmax(halfspace_set(H_i{}) & halfspace_set(H_j{}), U)} with
+just the binding pair (instead of the full pack) is exactly the
+active-set hint, and the library evaluates only that single Cramer
+solve.  An explicit \cppinline{with_active_set<...>} API that takes
+the hint as a separate template argument and verifies feasibility
+against the full pack without re-enumerating is a natural successor
+surface, but the underlying meet-as-hint mechanism is available today:
+dropping slack constraints from the syntactic meet is the user's
+prerogative, and the combinatorial term then tracks the hinted count
+rather than the raw one.
 
 \paragraph{Total dual integrality as the generalising forward-pointer.}
 The shipped §\ref{sec:lp-centrepiece} fast-path is a totally-unimodular sub-case: axis-aligned rows with entries in $\{-1, 0, +1\}$, so every square submatrix has determinant in $\{-1, 0, +1\}$ and the polytope is integer for every integer $b$ (Hoffman--Kruskal characterisation~\cite{schrijver1986theory} §19).
@@ -2724,10 +2725,11 @@ sketches that do not.
     under \#363.
   \item \textbf{Linear programming} (demonstrated in
     Section~\ref{sec:lp-centrepiece} and Section~\ref{sec:ad-elliott}).
-    \cppinline{maximize(c, polytope)} reduces, for compile-time-sized LPs, to
-    a typed vertex via type-level active-set enumeration, and the same
-    reduction over a dual-number carrier yields sensitivity analysis
-    with no extra code path: the solver is the compiler.
+    \cppinline{argmax(G, U)} reduces, for compile-time-sized LPs, to a
+    Set whose predicate type encodes the regime (singleton, empty, \ldots)
+    via type-level active-set enumeration; the same reduction over a
+    dual-number carrier yields sensitivity analysis with no extra code
+    path: the solver is the compiler.
   \item \textbf{Lattice-law rewriting.} Distributivity and
     absorption applied at the type level rewrite
     $(A \cup B) \cap \lnot A$ to $B \cap \lnot A$ \emph{before} local
