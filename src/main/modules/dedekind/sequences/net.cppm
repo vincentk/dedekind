@@ -171,7 +171,8 @@ concept IsNet = IsArrow<N> && IsDirectedSet<typename N::Domain>;
  *  - @b NNO universal property.  The @f$\mathbb{N}@f$-indexed case
  *    of @c IsSequence — i.e.\ when @c Domain is the carrier of the
  *    Natural Numbers Object (Lawvere–ETCS Axiom 9; @c IsNNO in
- *    @c dedekind.numbers) — is what licenses @em primitive recursion:
+ *    @c dedekind.category , see @c category/nno.cppm ) — is what
+ *    licenses @em primitive recursion:
  *    given a seed @f$a_0@f$ and a step @f$\sigma@f$, the universal
  *    property delivers a unique map @f$f : \mathbb{N} \to T@f$ with
  *    @f$f(0) = a_0@f$ and @f$f(n+1) = \sigma(f(n))@f$.  This is why

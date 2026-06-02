@@ -49,6 +49,7 @@
  */
 module;
 
+#include <cstddef>
 #include <functional>
 #include <ranges>
 #include <tuple>
@@ -289,7 +290,12 @@ constexpr auto take(SourceRange&& source, std::size_t n) {
   picked.reserve(n);
   for (auto&& element : source) {
     if (picked.size() >= n) break;
-    picked.insert(std::forward<decltype(element)>(element));
+    // emplace (rather than insert(forward<>(element))) for proxy-reference
+    // safety: std::ranges::input_range may yield proxy references (e.g.\
+    // std::vector<bool>::reference) whose conversion-to-T inside insert
+    // is not guaranteed.  emplace constructs in place from the element
+    // expression directly, routing through T's constructor unambiguously.
+    picked.emplace(std::forward<decltype(element)>(element));
   }
   return ExtensionalSet<T>{std::move(picked)};
 }
