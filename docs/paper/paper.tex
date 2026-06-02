@@ -1670,42 +1670,85 @@ of \cite{nspe_ethics} are about; the type system's refusal to accept the
 \cppinline{IsRing<int>} witness is the mechanical analogue of an external
 review catching the claim.}
 
+\subsection{\texorpdfstring{$\mathbb{C}$ and $\mathbb{D}$}{ℂ and 𝔻} as Subrings of \texorpdfstring{$M_2(\mathbb{Q})$}{M₂(ℚ)}}
+\label{sec:lin-alg-embedding}
+
+The classical regular representations
+$a + bi \mapsto
+\bigl(\begin{smallmatrix} a & -b \\ b & a \end{smallmatrix}\bigr)$
+and
+$a + b\varepsilon \mapsto
+\bigl(\begin{smallmatrix} a & b \\ 0 & a \end{smallmatrix}\bigr)$
+are ring monomorphisms $\mathbb{C}, \mathbb{D} \hookrightarrow
+M_2(\mathbb{Q})$ (see, e.g., Lang~\cite{lang2002algebra}). The
+library claims both identities at the type level over
+\cppinline{Rational<SignedExtensionalCardinal<>>} and the compiler
+discharges them as bit-perfect \texttt{static\_assert}s, with the
+defining relation $\varepsilon^2 = 0$ lifting to
+$\bigl(\begin{smallmatrix} 0 & 1 \\ 0 & 0 \end{smallmatrix}\bigr)^2
+= 0$ on the matrix side.
+
+In the HSP vocabulary of §\ref{sec:axiomatic}, both embeddings are
+components of a single natural-transformation schema
+$\operatorname{Cplx}, \operatorname{Dual} \Rightarrow
+\operatorname{End}_R \circ \operatorname{Free}_2$ — composing an H
+operation (quotient by $(i^2+1)$ or $(\varepsilon^2)$) with a P
+operation ($\operatorname{Free}_2$) and the internal-hom
+$\operatorname{End}_R$ — with target $M_2(R) =
+\operatorname{End}_R(R^2)$.  The worked instance ships at $R =
+\mathbb{Q}$; the listing below discharges
+$\operatorname{Cplx}(\mathbb{Q}), \operatorname{Dual}(\mathbb{Q})
+\hookrightarrow M_2(\mathbb{Q})$ mechanically.
+
+% Source: src/test/cpp/modules/dedekind/linear_algebra/embeddings_test.cpp
+\begin{listing}[htbp]
+\caption{Matrix embeddings of complex and dual numbers over $\mathbb{Q}$.}
+\label{lst:lin-alg-embeddings}
+\begin{cpp}
+
+using Rat = Rational<SignedExtensionalCardinal<>>;
+constexpr Complex<Rat> z{Rat{1}, Rat{2}}, w{Rat{3}, Rat{-5}};
+constexpr Dual<Rat>    d{Rat{2}, Rat{3}}, e{Rat{-1}, Rat{5}};
+static_assert(as_matrix2x2(z + w) == as_matrix2x2(z) + as_matrix2x2(w));
+static_assert(as_matrix2x2(z * w) == as_matrix2x2(z) * as_matrix2x2(w));
+static_assert(as_matrix2x2(d + e) == as_matrix2x2(d) + as_matrix2x2(e));
+static_assert(as_matrix2x2(d * e) == as_matrix2x2(d) * as_matrix2x2(e));
+constexpr Dual<Rat> eps{Rat{0}, Rat{1}};
+static_assert(as_matrix2x2(eps) * as_matrix2x2(eps) == zero_matrix2x2_v<Rat>);
+\end{cpp}
+\end{listing}
+
+
 % ============================================================
 \section{Linear Algebra}
 \label{sec:linalg}
 % ============================================================
 
-\subsection{Linear Programming: The Optimum as a Typed Constant}
+\subsection{Linear Programming: \texorpdfstring{$\operatorname{argmax} : \mathbf{Set} \to \mathbf{Set}$}{argmax: Set → Set}}
 \label{sec:lp-centrepiece}
 
-Stare at a linear program for a moment. The polytope is an intersection
-of halfspaces---a set, in exactly the comprehension sense of
-Section~\ref{sec:sets-rules}. The objective is a linear functional. The
-optimum is the one vertex of the polytope at which the objective is
-largest.
+Look at a linear program for a moment.
+The polytope is an intersection of halfspaces --- a set, in exactly the comprehension sense of Section~\ref{sec:sets-rules}.
+The objective is a linear functional $U : F \to \mathbb{Q}$ on the ambient $F = \mathbb{Q}^2$.
+The optimum is also a set --- a singleton when there is a unique optimal vertex, the empty set when the polytope is infeasible, an unbounded ray when the objective is unbounded over the polytope, a face when the objective is parallel to an edge.
+The textbook signature of $\operatorname{argmax}$ is therefore $\mathbf{Set} \to \mathbf{Set}$.
 
-The previous section's reductions collapsed a set to a simpler set. An
-optimum is also a collapse: it reduces a set to a single point. The move
-of this section is to lift that collapse into the type system. If every
-halfspace and every objective coefficient is named at the type level,
-the compiler has enough information to enumerate the vertices, run the
-feasibility checks, compare the objective values, and emit the winner
-as a literal. The LP solver is the C++ compiler.
+In a library where the input polytope is already a Set in the set-comprehension DSL (Section~\ref{sec:sets-rules}), the honest output type is also a Set; the regime --- singleton, empty, ray, face --- is encoded in the output Set's predicate type.
+The move of this section is to lift that arrow into the type system.
+If every halfspace and every objective coefficient is named at the type level, the compiler has enough information to enumerate the vertex candidates, run the feasibility checks, compare objective values, and emit the optimum Set whose predicate carries the regime.
 
-\paragraph{Showcase~9 (centrepiece).} Consider a textbook LP:
+The cases shipped at the time of writing are the singleton (a unique optimal vertex) and the empty Set (infeasible polytope); ray-valued and face-valued outputs are deferred to a follow-up.
+When the LP has a face of optima --- the objective parallel to a feasible edge --- the kernel tie-breaks to a single vertex of that face and the output Set is the corresponding singleton; the §5 strict form makes this scope explicit at the type level.
+
+\paragraph{Showcase~9 (centrepiece).} Consider the textbook LP:
 \begin{align*}
   \text{maximise} \quad & 3x + 2y \\
   \text{subject to} \quad & x + y \leq 4 \\
                           & 2x + y \leq 6 \\
                           & x, y \geq 0
 \end{align*}
-The feasible region is a polygon in $\mathbb{Q}^2$
-(Figure~\ref{fig:lp-polytope}); the optimum is the vertex
-$(2, 2)$ where the non-axis-aligned constraints $x + y = 4$ and
-$2x + y = 6$ are simultaneously binding (objective value $10$). In
-\texttt{dedekind.optimization:lp}, constraints are NTTPs and the
-reduction is a variadic template whose output carries the vertex at the
-type level:
+The feasible region is a polygon in $\mathbb{Q}^2$ (Figure~\ref{fig:lp-polytope}); the optimum is the singleton $\{(2, 2)\}$ where the non-axis-aligned constraints $x + y = 4$ and $2x + y = 6$ are simultaneously binding (objective value $10$).
+In \texttt{dedekind.optimization:lp}, constraints are NTTPs lifted into halfspace Sets, the polytope $G$ is their meet under \cppinline{operator&}, the objective $U$ is a NTTP-typed \cppinline{LinearFunctional}, and \cppinline{argmax(G, U)} returns the optimum Set whose predicate type pins the regime:
 
 \begin{figure}[htbp]
 \centering
@@ -1769,24 +1812,34 @@ using H2 = Halfspace2D<Rat, Rat{2}, Rat{1}, Rat{6}>;     // 2x +  y <= 6
 using H3 = Halfspace2D<Rat, Rat{-1}, Rat{0}, Rat{0}>;    //  x      >= 0
 using H4 = Halfspace2D<Rat, Rat{0}, Rat{-1}, Rat{0}>;    //       y >= 0
 
-using Optimum = decltype(maximize<Rat, Rat{3}, Rat{2}, H1, H2, H3, H4>());
-static_assert(std::same_as<Optimum, Vec2<Rat, Rat{2}, Rat{2}>>);
+// Input: polytope G ⊆ ℚ² as the meet of halfspace Sets in the §3 DSL.
+constexpr auto G = halfspace_set(H1{}) & halfspace_set(H2{})
+                 & halfspace_set(H3{}) & halfspace_set(H4{});
+// Objective: U : F → ℚ, coefficients (3, 2) at the type level.
+constexpr LinearFunctional<Rat, Rat{3}, Rat{2}> U{};
+// Output: a Set whose predicate type encodes the regime.  Here it is
+// the singleton {(2, 2)}, with the coordinates pinned at NTTPs.
+using Optimum = std::remove_cvref_t<decltype(argmax(G, U))>;
+using OptPred = std::remove_cvref_t<decltype(std::declval<Optimum>().predicate())>;
+static_assert(std::same_as<OptPred, Singleton2DPredicate<Rat, Rat{2}, Rat{2}>>);
 \end{cpp}
 \end{listing}
 
-The reduction enumerates vertex candidates at compile time (all
-$\binom{4}{2} = 6$ pairs of binding constraints), solves each $2 \times 2$
-active-set system via \texttt{Invertible2x2}'s closed-form Cramer
-inverse (exact over $\mathbb{Q}$), filters by feasibility against the
-non-active constraints, and picks the objective-maximising feasible
-vertex. Every step is a template specialisation; no runtime iteration
-survives.
+The reduction enumerates vertex candidates at compile time (all $\binom{4}{2} = 6$ pairs of binding constraints), solves each $2 \times 2$ active-set system via \texttt{Invertible2x2}'s closed-form Cramer inverse (exact over $\mathbb{Q}$), filters by feasibility against the non-active constraints, and picks the objective-maximising feasible vertex.
+Every step is a template specialisation; no runtime iteration survives.
 
-\paragraph{IR witness.} The paper's claim is not prose; it is
-translation-time mechanics. Two \texttt{extern "C"} functions in the
-fixture return the numerator of the optimum's $x$- and $y$-coordinates.
-At \texttt{-O2}, \texttt{clang}'s optimiser folds the entire LP
-reduction to literal integers:
+\paragraph{Two kernels under one combinator.}
+A separate concern arises when the polytope happens to be signed-unimodular and axis-aligned: in that scope the Cramer determinants are all $\pm 1$, the active-set divisions degenerate to sign flips, and the enumeration collapses to per-axis bracketing and a sign-driven select.
+The library ships both kernels and lets the type system pick (Table~\ref{tab:lp-regime-dispatch}); the dispatch is a single \cppinline{if constexpr} over three concepts on the halfspace pack and carrier, and the non-taken branch is removed from the template instantiation.
+
+\paragraph{Bridge: same source, two evaluation modes.}
+The compile-time path described above takes constraints at the type level.
+The same kernel runs at runtime when the constraints arrive as a \cppinline{std::span} --- the shape Python callers see through the project's \texttt{nanobind} facade.
+The runtime entry \cppinline{maximize_with_values<T>(span, cx, cy)} performs the same structural classification at runtime, routes to the same kernel, and returns the same Set carrier --- with the regime now encoded at the value level (via the predicate's \cppinline{(point, feasible)} state) instead of the type level.
+The bridge is mechanical: the kernel is one \cppinline{constexpr} function, and the call site selects the evaluation mode by the constexpr-ness of its arguments.
+
+\paragraph{IR witness.} The claim is translation-time mechanics.
+Two \texttt{extern "C"} fixture functions extract the optimum's $x$- and $y$-coordinates from the output Set's predicate; at \texttt{-O2}, \texttt{clang} folds the entire reduction to literal integers:
 
 % Source: src/test/cpp/modules/dedekind/python/showcase_09_lp_vertex_typed_constant.ll
 \begin{listing}[htbp]
@@ -1804,24 +1857,147 @@ define noundef i64 @witness_lp_optimum_y() ... {
 \end{cpp}
 \end{listing}
 
-The IR is checked into the repository as a fixture
-(\texttt{showcase\_09\_lp\_vertex\_typed\_constant.ll}); a build-time
-gate (\texttt{make ir-fixture-check}) fails CI if optimiser drift ever
-loses the collapse. The binary contains no LP solver; no simplex
-tableau; no active-set machinery. More precisely: the vertex's
-coordinates are non-type template parameters of the result type
-(\cppinline{Vec2<Rat, Rat{2}, Rat{2}>}), so the C++23 NTTP machinery
-is what carries the answer through to type-level. The input is a
-constexpr value passed as NTTP; the output is a type whose NTTPs
-encode the coordinates; the runtime call returning a coordinate
-collapses to a literal load in the emitted IR.  Because the reduction
-lands in \texttt{Rational<...>} rather than IEEE floating point, the
-\cppinline{ret i64 2} output is bit-identical across ARM and x86
-back-ends and host floating-point ABIs --- the typed constant has
-no rounding mode to disagree about.  This is the embedded /
-cross-platform-determinism guarantee the paper has been claiming
-throughout, made concrete by the absence of any \texttt{double}-typed
-reduction in the IR.
+The IR is checked in as \texttt{showcase\_09\_lp\_vertex\_typed\_constant.ll}; \texttt{make ir-fixture-check} fails CI on optimiser drift.
+The binary contains no LP solver, no simplex tableau, no active-set machinery: the vertex's coordinates ride as NTTPs of \cppinline{Singleton2DPredicate<Rat, Rat{2}, Rat{2}>}, and the witness extracting a coordinate collapses to a literal load.
+Because the reduction lands in \texttt{Rational<...>} rather than IEEE floating point, the output is bit-identical across ARM and x86 back-ends --- the typed constant has no rounding mode to disagree about.
+
+\paragraph{Runtime IR: two kernels, two signatures.}
+The complementary direction is to call the same kernels with runtime data.
+The power-user entries \cppinline{maximize_axis_aligned_with_values<T>} and \cppinline{maximize_cramer_with_values<T>} are the IR microscope on each kernel in isolation; the default \cppinline{maximize_with_values<T>} dispatches mechanically between them.
+Both signatures are pinned by fixtures (Listing~\ref{lst:lp-runtime-ir-side-by-side}, Table~\ref{tab:lp-regime-dispatch}) and enforced by \texttt{pruning-ir-fixture.py}.
+
+% Source excerpts: showcase_09b_lp_runtime_residual.ll, showcase_12b_lp_unimodular_runtime.ll
+\begin{listing}[htbp]
+\caption{Abbreviated runtime IR for the two LP kernels.
+Excerpts from \texttt{showcase\_09b\_lp\_runtime\_residual.ll} (generic Cramer over \texttt{double}) and \texttt{showcase\_12b\_lp\_unimodular\_runtime.ll} (bit-ops fast path over \texttt{int}).
+Cramer emits floating-point divide / multiply / fused-multiply-add inside an active-set loop; the fast path emits per-axis integer compares, \texttt{llvm.smin}, and a sign-driven \texttt{select}, with \texttt{mul} / \texttt{sdiv} / \texttt{udiv} absent on the integer carrier.
+Both fixtures are pinned by \texttt{pruning-ir-fixture.py}.}
+\label{lst:lp-runtime-ir-side-by-side}
+\noindent
+\begin{minipage}[t]{0.48\linewidth}
+\textbf{Generic Cramer (\texttt{showcase\_09b}):}
+\begin{cpp}
+
+; per active-set pair: 2x2 Cramer solve
+%33 = fneg double %32
+%34 = fmul double %22, %33
+%35 = call double @llvm.fmuladd.f64(
+        double %20, double %31, double %34)
+; numerators elided ...
+%44 = fdiv double %43, %35   ; x_num/det
+%47 = fdiv double %46, %35   ; y_num/det
+; per-constraint feasibility check:
+%59 = fmul double %47, %58
+%60 = call double @llvm.fmuladd.f64(
+        double %56, double %44, double %59)
+; outer: C(n,2) pairs; inner: m feasibility;
+; argmax phi over the surviving vertex.
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.48\linewidth}
+\textbf{Bit-ops fast path (\texttt{showcase\_12b}):}
+\begin{cpp}
+
+; per halfspace: per-axis bracketing
+%17 = load i32, ptr %16, align 4   ; coeff_x
+%18 = add  i32 %17, 1
+%19 = icmp ult i32 %18, 3       ; in {-1,0,1}?
+; per-axis dispatch (y-branch elided):
+%41 = call i32 @llvm.smin.i32(
+        i32 %31, i32 %12)
+%42 = select i1 %40, i32 %41, i32 %31
+; phi i8 / phi i32 carry axis bounds and
+; bound-present flags across the loop;
+; no mul / sdiv / udiv on the carrier
+; appears anywhere in this function.
+\end{cpp}
+\end{minipage}
+\end{listing}
+
+\begin{table}[htbp]
+\centering
+\caption{\textbf{Kernel $\times$ evaluation mode $\times$ output predicate $\times$ IR signature for the §\ref{sec:lp-centrepiece} LP combinator.}
+NTTP rows are reached through \cppinline{argmax(G, U)} (input polytope as a Set, output Set with NTTP-coordinate predicate); runtime rows through \cppinline{maximize_with_values<T>(span, cx, cy)} (input as \cppinline{std::span<HalfspaceTriple<T>>}, output Set with value-level predicate).
+The kernel branch is selected by \cppinline{if constexpr} on three concepts over the halfspace pack and carrier (\cppinline{HasUnitRangeEntries}, \cppinline{IsAxisAlignedPolytope}, \cppinline{SuitableForAxisAlignedFastPath}); the evaluation mode is selected by the constexpr-ness of the call site.
+The four rows are exhibited by \texttt{showcase\_12}, \texttt{showcase\_12b}, \texttt{showcase\_09}, and \texttt{showcase\_09b} respectively, with their LLVM IR checked into the repository as fixtures.}
+\label{tab:lp-regime-dispatch}
+\small
+\begin{tabular}{@{}l l l l@{}}
+\toprule
+\textbf{Kernel} & \textbf{Mode} & \textbf{Output predicate} & \textbf{IR signature at \texttt{-O2}} \\
+\midrule
+Fast path & NTTP & \cppinline{Singleton2DPredicate} & \texttt{ret i64 K} (full fold) \\
+Fast path & \cppinline{std::span} & \cppinline{LPSolutionPredicate} & loop \texttt{phi} + sign-driven \texttt{select}; no \texttt{mul}/\texttt{sdiv}/\texttt{udiv} \\
+Generic Cramer & NTTP & \cppinline{Singleton2DPredicate} \emph{or} \cppinline{EmptyPredicate} & \texttt{ret i64 K} \emph{or} \texttt{static\_assert} refusal \\
+Generic Cramer & \cppinline{std::span} & \cppinline{LPSolutionPredicate} & $\binom{m}{n}$ active-set fold; $2{\times}2$ \texttt{fdiv} / \texttt{fmuladd} + \texttt{phi} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Two \cppinline{static_assert} chains close the section: \cppinline{IsSet} (the ETCS-grade Set contract of Section~\ref{sec:sets-rules}) holds for the input polytope and all three output regimes (Listing~\ref{lst:lp-is-set-chain}); \cppinline{IsFAlgebra} holds for the output Set under the identity endofunctor (Listing~\ref{lst:lp-is-falgebra}), witnessing the catamorphism \emph{shape} with the active-set step as the structure map.\footnote{The shape witness is mechanical.
+The catamorphism's uniqueness clause --- that \cppinline{argmax(G, U)} is the unique morphism into the output algebra from the initial halfspace-list F-algebra for $F(X) = 1 + \text{Halfspace} \times X$ --- is the engineer's honesty obligation per Pierce~\cite{pierce2002tapl} §5.4; the project's \cppinline{:f_algebra} partition reifies this as an opt-in \cppinline{is_initial_f_algebra_v} trait, deliberately defaulted to false here.}
+
+% Source: src/test/cpp/modules/dedekind/optimization/lp_test.cpp (TEST_CASE "both argmax input and output satisfy IsSet")
+\begin{listing}[htbp]
+\caption{Mechanical \cppinline{IsSet} witness for the input polytope and the three output regimes. From \texttt{lp\_test.cpp} (TEST\_CASE ``both argmax input and output satisfy IsSet'').}
+\label{lst:lp-is-set-chain}
+\begin{cpp}
+
+using F = Vec2V<Rat>;
+using L = ClassicalLogic;
+
+// Input polytope: G ⊆ F via the §3 set-comprehension DSL.
+using PolyG = Set<F, L, Polytope2DPredicate<Rat, H1, H2, H3, H4>>;
+static_assert(IsSet<PolyG>);
+
+// Three output regimes, all over the same ambient F:
+//   (a) NTTP feasible:    Singleton2DPredicate<x*, y*>
+//   (b) NTTP infeasible:  EmptyPredicate<F>
+//   (c) runtime:          LPSolutionPredicate (point, feasible)
+using SingOut    = Set<F, L, Singleton2DPredicate<Rat, Rat{2L}, Rat{2L}>>;
+using EmptyOut   = Set<F, L, EmptyPredicate<F>>;
+using RuntimeOut = Set<F, L, LPSolutionPredicate<Rat>>;
+static_assert(IsSet<SingOut>);
+static_assert(IsSet<EmptyOut>);
+static_assert(IsSet<RuntimeOut>);
+\end{cpp}
+\end{listing}
+
+% Source: src/test/cpp/modules/dedekind/optimization/lp_test.cpp (TEST_CASE "output Set is an F-algebra")
+\begin{listing}[htbp]
+\caption{Mechanical \cppinline{IsFAlgebra} shape witness for the output Set. The active-set step is the structure map $F\langle X\rangle \to X$ on $X = $\cppinline{OutputSet}; the initial-F-algebra opt-in is deliberately false, naming the universal-property clause as the engineer's honesty obligation. From \texttt{lp\_test.cpp} (TEST\_CASE ``output Set is an F-algebra'').}
+\label{lst:lp-is-falgebra}
+\begin{cpp}
+
+using OutputSet     = Set<Vec2V<Rat>, ClassicalLogic,
+                          LPSolutionPredicate<Rat>>;
+using LPSolutionCat = DiscreteCategory<OutputSet>;
+using LPSolutionIdF = identity_functor<LPSolutionCat>;
+
+// Active-set step: endomap on OutputSet.  At F-algebra shape
+// level the step is independent of any particular halfspace;
+// concrete LP folds compose chains of these, each closing
+// over one halfspace internally.
+constexpr auto step = arrow(
+    [](const OutputSet& s) { return s; });
+using StepArrow = std::decay_t<decltype(step)>;
+
+// Catamorphism shape: F<X> → X for F = identity_functor on
+// the ambient category, X = OutputSet, structure map = step.
+static_assert(IsFAlgebra<OutputSet, StepArrow, LPSolutionIdF>);
+
+// Initial-F-algebra opt-in deliberately false: the universal-
+// property clause is the engineer's honesty obligation, not
+// mechanically witnessed here.
+static_assert(!is_initial_f_algebra_v<LPSolutionIdF,
+                                      OutputSet, StepArrow>);
+\end{cpp}
+\end{listing}
+
+\paragraph{Algorithmic scope.}
+The vertex-enumeration kernel is $O(\binom{m}{n})$ in the halfspace count --- the bubble sort of LP, well-suited to the small $m$ §5 exhibits and to compile-time enumeration generally, not to industrial constraint counts.
+The halfspace pack lives in NTTP space; §\ref{sec:compiler-wall} names this as the Compiler Wall, so the inner solver's choice does not move the wall it caps.
+
 
 \subsection{Forward-Mode AD as a Sibling Realisation of Compile-Time Derivatives}
 \label{sec:ad-elliott}
@@ -1847,23 +2023,28 @@ bound by $\varepsilon$ (replace $x + y \leq 4$ with
 $x + y \leq 4 + \varepsilon$). The active set is unchanged for
 infinitesimal perturbation; the Cramer solve now runs over duals:
 
-% Source: src/test/cpp/modules/dedekind/optimization/lp_test.cpp
+% Source: src/test/cpp/modules/dedekind/optimization/lp_test.cpp (TEST_CASE "parametric LP over Dual<ℚ>")
 \begin{listing}[htbp]
-\caption{Parametric LP over \texttt{Dual<Rat>}. From \texttt{lp\_test.cpp}.}
+\caption{Parametric LP over \texttt{Dual<Rat>}: optimum + first-order sensitivity as one typed constant. The runtime entry \cppinline{maximize_with_values<D>} folds at translation time when its arguments are \cppinline{constexpr} (the bridge of §\ref{sec:lp-centrepiece}); instantiating at $T = $\cppinline{Dual<Rat>} discharges sensitivity through the chain rule of the ring laws. From \texttt{lp\_test.cpp} (TEST\_CASE ``parametric LP over Dual<ℚ>'').}
 \label{lst:lp-dual}
 \begin{cpp}
 
 using D = Dual<Rat>;
-using H1P = Halfspace2D<D, D{Rat{1L}}, D{Rat{1L}},
-                        D{Rat{4L}, Rat{1L}}>;  // bound = 4 + epsilon
-using H2D = Halfspace2D<D, D{Rat{2L}}, D{Rat{1L}}, D{Rat{6L}}>;
-using H3D = Halfspace2D<D, D{Rat{-1L}}, D{Rat{0L}}, D{Rat{0L}}>;
-using H4D = Halfspace2D<D, D{Rat{0L}}, D{Rat{-1L}}, D{Rat{0L}}>;
+constexpr std::array<HalfspaceTriple<D>, 4> polytope = {{
+    {D{Rat{1L}}, D{Rat{1L}}, D{Rat{4L}, Rat{1L}}}, // H1: x + y <= 4 + ε
+    {D{Rat{2L}}, D{Rat{1L}}, D{Rat{6L}}},          // H2: 2x + y <= 6
+    {D{Rat{-1L}}, D{Rat{0L}}, D{Rat{0L}}},         // H3: x >= 0
+    {D{Rat{0L}}, D{Rat{-1L}}, D{Rat{0L}}},         // H4:     y >= 0
+}};
+constexpr auto v = maximize_with_values<D>(
+    std::span<const HalfspaceTriple<D>>(polytope),
+    D{Rat{3L}}, D{Rat{2L}});
 
-constexpr auto v = maximize_value<D, D{Rat{3L}}, D{Rat{2L}},
-                                  H1P, H2D, H3D, H4D>();
-static_assert(v.x.val == Rat{2L}  && v.x.der == Rat{-1L});
-static_assert(v.y.val == Rat{2L}  && v.y.der == Rat{2L});
+// Optimum: x* = 2 − ε, y* = 2 + 2ε.  Set membership over Dual<Rat>
+// encodes primal AND first-order sensitivity in one compile-time check.
+constexpr auto opt = Vec2V<D>{D{Rat{2L}, Rat{-1L}},
+                              D{Rat{2L}, Rat{ 2L}}};
+static_assert(v.contains(opt));
 \end{cpp}
 \end{listing}
 
@@ -1877,506 +2058,6 @@ side effect of the ring laws. The same
 $\mathtt{Dual}\circ\mathtt{Complex}\circ\mathtt{Rational}$ layering
 extends to holomorphic automatic differentiation at compile time;
 we leave its application to a follow-up.
-
-\subsection{Linear Algebra: \texorpdfstring{$\mathbb{C}$ and $\mathbb{D}$}{ℂ and 𝔻} as Subrings of \texorpdfstring{$M_2(\mathbb{Q})$}{M₂(ℚ)}}
-\label{sec:lin-alg-embedding}
-
-The classical regular representations
-$a + bi \mapsto
-\bigl(\begin{smallmatrix} a & -b \\ b & a \end{smallmatrix}\bigr)$
-and
-$a + b\varepsilon \mapsto
-\bigl(\begin{smallmatrix} a & b \\ 0 & a \end{smallmatrix}\bigr)$
-are ring monomorphisms $\mathbb{C}, \mathbb{D} \hookrightarrow
-M_2(\mathbb{Q})$ (see, e.g., Lang~\cite{lang2002algebra}). The
-library claims both identities at the type level over
-\cppinline{Rational<SignedExtensionalCardinal<>>} and the compiler
-discharges them as bit-perfect \texttt{static\_assert}s, with the
-defining relation $\varepsilon^2 = 0$ lifting to
-$\bigl(\begin{smallmatrix} 0 & 1 \\ 0 & 0 \end{smallmatrix}\bigr)^2
-= 0$ on the matrix side.
-
-In the HSP vocabulary of §\ref{sec:axiomatic}, both embeddings are
-components of a single natural-transformation schema
-$\operatorname{Cplx}, \operatorname{Dual} \Rightarrow
-\operatorname{End}_R \circ \operatorname{Free}_2$ — composing an H
-operation (quotient by $(i^2+1)$ or $(\varepsilon^2)$) with a P
-operation ($\operatorname{Free}_2$) and the internal-hom
-$\operatorname{End}_R$ — with target $M_2(R) =
-\operatorname{End}_R(R^2)$.  The worked instance ships at $R =
-\mathbb{Q}$; the listing below discharges
-$\operatorname{Cplx}(\mathbb{Q}), \operatorname{Dual}(\mathbb{Q})
-\hookrightarrow M_2(\mathbb{Q})$ mechanically.
-
-% Source: src/test/cpp/modules/dedekind/linear_algebra/embeddings_test.cpp
-\begin{listing}[htbp]
-\caption{Matrix embeddings of complex and dual numbers over $\mathbb{Q}$.}
-\label{lst:lin-alg-embeddings}
-\begin{cpp}
-
-using Rat = Rational<SignedExtensionalCardinal<>>;
-constexpr Complex<Rat> z{Rat{1}, Rat{2}}, w{Rat{3}, Rat{-5}};
-constexpr Dual<Rat>    d{Rat{2}, Rat{3}}, e{Rat{-1}, Rat{5}};
-static_assert(as_matrix2x2(z + w) == as_matrix2x2(z) + as_matrix2x2(w));
-static_assert(as_matrix2x2(z * w) == as_matrix2x2(z) * as_matrix2x2(w));
-static_assert(as_matrix2x2(d + e) == as_matrix2x2(d) + as_matrix2x2(e));
-static_assert(as_matrix2x2(d * e) == as_matrix2x2(d) * as_matrix2x2(e));
-constexpr Dual<Rat> eps{Rat{0}, Rat{1}};
-static_assert(as_matrix2x2(eps) * as_matrix2x2(eps) == zero_matrix2x2_v<Rat>);
-\end{cpp}
-\end{listing}
-
-\subsection{From Cardinality Pruning to Type-Directed Collapse}
-\label{sec:gap}
-
-Step back from the showcases for a moment. What is the pattern? In every
-one of them we started with an intensional set---a predicate---and we
-ended with a named extensional object whose \emph{type} carries the
-answer: $\varnothing$, a singleton, an order interval of known
-cardinality, an LP vertex. The collapse is not incidental; it is a
-rewrite rule, running inside the type system, at translation time. To
-make the claim precise, we first formalise ``how much the compiler
-knows about a set'' as a lattice, then state the theorem as monotone
-motion up that lattice.
-
-\begin{definition}[Computability tier]
-\label{def:computability-tier}
-For a compile-time set $S$ over an ambient carrier $T$, the
-\emph{computability tier} is the triple
-\[
-  \mathcal{T}(S) \;=\; \bigl(\,\mathsf{R}(S),\; \mathsf{L}(S),\; \mathsf{K}(S)\,\bigr)
-  \;\in\; \{\mathrm{Int},\mathrm{Ext}\} \times \{\mathrm{K3},\mathrm{Cl}\} \times \{\mathrm{Opq},\mathrm{Elt}\}
-\]
-whose components are the \emph{representation} tier ($\mathsf{R}$:
-intensional vs.\ extensional, i.e.\ predicate vs.\ elements-in-type),
-the \emph{logic} tier ($\mathsf{L}$: Kleene three-valued vs.\
-classical two-valued membership), and the \emph{knowledge} tier
-($\mathsf{K}$: elements opaque vs.\ carried in the type). Each axis
-carries the order $\mathrm{Int} \preceq \mathrm{Ext}$,
-$\mathrm{K3} \preceq \mathrm{Cl}$,
-$\mathrm{Opq} \preceq \mathrm{Elt}$; the product order is
-componentwise. The resulting Boolean lattice $(\mathcal{T}, \preceq)$
-has bottom $\bot = (\mathrm{Int},\mathrm{K3},\mathrm{Opq})$ (``a raw
-predicate over a floating-point carrier with no inhabitants known'')
-and top $\top = (\mathrm{Ext},\mathrm{Cl},\mathrm{Elt})$ (``a named
-finite set whose members are template parameters and whose membership
-is decidable'').
-\end{definition}
-
-Every showcase of Section~\ref{sec:pruning} is a motion inside this
-lattice. The empty-halfspace reductions of Showcase~3 go $(\mathrm{Int},\mathrm{K3},\mathrm{Opq}) \mapsto \top$
-in one step (the result is $\varnothing$); the cardinality-1 reduction
-of Showcase~4 and the LP reduction of Showcase~9 do the same. The
-reductions never slide downward. With that in hand:
-
-\begin{theorem}[Type-Directed Collapse, totally-ordered 1D case]
-\label{thm:type-directed-collapse-1d}
-Let $T$ be a totally ordered carrier, and let
-\[
-  P_i(x) \;=\; (x \ge a_i), \quad i = 1, \dots, m,
-  \qquad
-  Q_j(x) \;=\; (x \le b_j), \quad j = 1, \dots, n,
-\]
-be lower-bound and upper-bound halfspace predicates over $T$ whose
-pivots $a_i, b_j \in T$ are carried at the type level as non-type
-template parameters. Define the effective bounds
-$a^\star \coloneqq \max_i a_i$ if $m \ge 1$ and $a^\star \coloneqq
-\bot$ if $m = 0$, and $b^\star \coloneqq \min_j b_j$ if $n \ge 1$
-and $b^\star \coloneqq \top$ if $n = 0$ (where $\bot, \top$ denote
-the carrier's bottom and top elements, taken as
-$\pm\infty$-style sentinels when $T$ is unbounded). Then the meet
-\[
-  S \;=\; \bigcap_{i=1}^{m} \{x \in T \mid P_i(x)\}
-        \;\cap\;
-        \bigcap_{j=1}^{n} \{x \in T \mid Q_j(x)\}
-\]
-is resolved at compile time to exactly one of:
-\begin{enumerate}
-  \item $\varnothing$, when $a^\star > b^\star$;
-  \item a \cppinline{Singleton<v>}, when $T$ is integral and
-        $a^\star = b^\star = v$;
-  \item an \cppinline{OrderInterval}~$[a^\star, b^\star]$
-        otherwise.
-\end{enumerate}
-\end{theorem}
-
-\begin{figure}[htbp]
-\centering
-\begin{tikzcd}[column sep=3em, row sep=4em, ampersand replacement=\&]
-\& \mathrm{Halfspace}\langle x \geq a^\star\rangle \,\cap\, \mathrm{Halfspace}\langle x \leq b^\star\rangle
-  \arrow[dl, "{[a^\star < b^\star]}"']
-  \arrow[d, "{[a^\star = b^\star,\, T \text{ integral}]}"']
-  \arrow[dr, "{[a^\star > b^\star]}"] \& \\
-\mathrm{OrderInterval}\langle a^\star, b^\star\rangle \& \mathrm{Singleton}\langle v\rangle \& \mathrm{EmptyPredicate}\langle T\rangle
-\end{tikzcd}
-\caption{The 1D type-directed collapse as a diagram chase (Theorem~\ref{thm:type-directed-collapse-1d}).
-The meet of the effective lower- and upper-bound halfspaces resolves at compile time into exactly one of three typed constants, selected by the side condition on the pivots: an \cppinline{OrderInterval<a*, b*>} for the generic bounded case ($a^\star < b^\star$); a \cppinline{Singleton<v>} for the degenerate equality case ($a^\star = b^\star = v$) \emph{when $T$ is integral} (the integrality guard from Theorem~\ref{thm:type-directed-collapse-1d} case 2; on a non-integral $T$ the equality case stays in the (degenerate) \cppinline{OrderInterval<a*, a*>} branch instead); and \cppinline{EmptyPredicate<T>} (lifted to $\varnothing$ at the topos level) for the contradiction case ($a^\star > b^\star$).
-The diagram commutes on elements: $x$ inhabits the source meet iff $x$ inhabits the target type the side-condition selects.
-Implementation hook: the meet is realised by \cppinline{structured_and(Halfspace<...,Upward,...>, Halfspace<...,Downward,...>)} in \texttt{dedekind.order:halfspace}, which case-splits the pivot comparison at compile time and returns the corresponding typed constant directly; the empty-result type \cppinline{EmptyPredicate<T>} lives in \texttt{dedekind.order} and lifts to \cppinline{Ø<T,L>} in \texttt{dedekind.sets:boundaries}.
-Mechanically witnessed by Showcase~3 (\cppinline{EmptyPredicate<T>} branch, \texttt{showcase\_03\_halfspace\_contradiction.cpp}) and Showcase~4 (\cppinline{Singleton<6>} branch, the cardinality-1 reduction in Listing~\ref{lst:pruning}); both fold to constant IR returns under \texttt{-O2}, as Listing~\ref{lst:pruning_ir} demonstrates for the empty-meet branch.}
-\label{fig:type-directed-collapse-1d}
-\end{figure}
-
-\begin{proof}
-By induction on $m + n$.
-
-\smallskip
-\noindent\emph{Base case} ($m + n = 0$): no constraints; $S = T$,
-which is the order interval $[\bot, \top]$ (case 3) by the boundary
-convention.
-
-\smallskip
-\noindent\emph{Inductive step.} Assume the claim holds for $k$ total
-constraints. Add one more; without loss of generality (by the
-symmetry between lower and upper bounds) take it to be a fresh
-lower-bound predicate $P_*(x) = (x \ge a_*)$. The inductive
-hypothesis gives a reduced form $S_k$ of one of the three shapes.
-Form $S = S_k \cap \{x \mid x \ge a_*\}$. Two compile-time
-comparisons of $a_*$ against the bounds of $S_k$ (where present)
-suffice:
-
-\begin{itemize}
-  \item \textbf{Redundant.} If $S_k$ has lower bound $a$ and
-        $a_* \le a$, then $\{x \mid x \ge a_*\} \supseteq S_k$ and
-        $S = S_k$; the form is preserved.
-  \item \textbf{Tightening.} If $S_k$ is the interval $[a, b]$ (or
-        unbounded above) and $a < a_* \le b$ (or no upper bound),
-        then $S = [a_*, b]$ in case 3; if $T$ is integral and
-        $a_* = b$, then $S = \{a_*\}$ (case 2).
-  \item \textbf{Contradicting.} If $S_k$ has upper bound $b$ and
-        $a_* > b$, or if $S_k$ is already $\varnothing$, then
-        $S = \varnothing$ (case 1).
-\end{itemize}
-
-\noindent
-The same case-split, with rôles of $a_i$ and $b_j$ exchanged,
-discharges the symmetric upper-bound addition. Each case lands in
-one of the three forms, completing the induction.
-\end{proof}
-
-\paragraph{Theorems for free.}
-The structural shape of Theorem~\ref{thm:type-directed-collapse-1d}
-is Wadler's \emph{Theorems for Free!}~\cite{wadler1989theorems}
-move at the algebraic register. Wadler showed that polymorphic
-types in the typed lambda calculus discharge a class of theorems by
-parametricity alone, with no further proof obligation on the
-caller. Here, the analogous discharge runs from \emph{carrier-axiom
-declaration} (\cppinline{HasTotalOrderOperators<T>} +
-\cppinline{IsTotallyOrdered<T>}, plus the integral-carrier
-witness when case 2 is to fire) to a carrier-level reduction of any
-finite intersection of half-line constraints. The engineer's
-honesty obligation is the axiom set; the collapse is
-type-level free. The proof above is one demonstration that the
-discharge is mechanical---the inductive argument does not depend on
-which carrier or which pivot type, only on the axiom slots being
-filled.
-
-\paragraph{Existential anchor.}
-The theorem is realised in the library by witnesses that
-materialise at the static-assertion layer; the canonical exhibit on
-$\mathbb{N}$ is the typed-constant collapse
-\[
-  \{x \in \mathbb{N} \mid x \ge 2\} \,\cap\, \{x \in \mathbb{N} \mid x \le 5\}
-  \;\longrightarrow\;
-  \texttt{OrderInterval}\langle 2, 5\rangle,
-\]
-checked at compile time. Section~\ref{sec:pruning} catalogues these
-witnesses; the LLVM~IR fixtures pin the resulting machine-code
-collapse downstream of the type-level reduction.
-
-\begin{conjecture}[Type-Directed Collapse, n-dimensional generalisation]
-\label{conj:type-directed-collapse-nd}
-Let $T_1, \dots, T_d$ be totally ordered carriers and let
-$\{P_k\}_{k=1}^{N}$ be halfspace predicates over the product
-$T_1 \times \dots \times T_d$ whose pivots are carried at the type
-level. The meet
-\[
-  S \;=\; \bigcap_{k=1}^{N} \{(x_1, \dots, x_d) \mid P_k(x_1, \dots, x_d)\}
-\]
-admits a compile-time reduction to a typed normal form
-generalising the three cases of
-Theorem~\ref{thm:type-directed-collapse-1d} (empty, vertex-singleton,
-or a polytope record carrying its active constraint set), under a
-suitable axiom set on the product carrier (total order per axis,
-closure of the meet under the product, and a vertex-enumeration
-discipline for the polytope case). Writing $S_k$ for the
-single-constraint set, the reduction is monotone up the
-computability-tier lattice:
-\[
-  \mathcal{T}(S) \;\succeq\; \bigvee_{k} \mathcal{T}(S_k),
-\]
-and strictly so on at least one axis in every case the library
-exhibits.
-
-\smallskip
-\noindent\emph{Status of claim.} This conjecture is \emph{not}
-proved in the paper. It is supported by the same exhibition pattern
-as the 1D theorem: each case is checked into the library as a
-\cppinline{static_assert}/\cppinline{STATIC_CHECK} witness and,
-where relevant, as an LLVM~IR fixture that fails CI on optimiser
-drift (see Section~\ref{sec:pruning}). The 2D linear-programming
-showcase of Section~\ref{sec:lp-centrepiece} discharges one
-non-trivial instance via active-set vertex enumeration; a general
-inductive proof over pivot configurations and dimensions $d$ is left
-open.
-\end{conjecture}
-
-\begin{corollary}[Iterated collapse]
-\label{cor:iterated-collapse}
-Any finite composition of type-directed-collapse reductions is itself
-monotone up $\mathcal{T}$. In particular, no sequence of library
-operations can ever return a set that is \emph{less} decidable than
-its inputs.
-\end{corollary}
-
-So: not ``a faster way to do set algebra'', but a rewrite rule that
-happens to live in the C++ type system, and whose action is
-monotone-ascending in a lattice of decidability. The halfspace case is
-the smallest non-trivial instance we know how to prove mechanically.
-Four further axes appear to obey the same pattern; the project tracker
-carries one existential proof per axis---one worked instance, one IR
-fixture, one compile-time witness---rather than a general framework.
-We would rather ship one reduction that fully collapses than four
-sketches that do not.
-
-% Tracker cross-reference for maintainers (invisible in PDF):
-%   Carrier tightening      -> issue #362
-%   Smooth optimization     -> issue #363
-%   Linear programming      -> issue #364  (demonstrated here)
-%   Lattice-law rewriting   -> issue #365
-\begin{itemize}
-  \item \textbf{Carrier tightening.} Intersecting a subset of
-    $\mathbb{N}$ with a subset of $\mathbb{R}$ should land in $\mathbb{N}$:
-    the carrier lattice contributes its own structural reduction via the
-    existing canonical embeddings (\cppinline{embed_uint_sint_},
-    \cppinline{embed_ℚ_ℝ}, \ldots).
-  \item \textbf{Smooth optimization.} The stationary set
-    $\{x \mid \nabla f(x) = 0\}$ for a quadratic $f$ collapses to a
-    \cppinline{Singleton<x*>} with the minimizer in the template parameter.
-    Same reduction pattern, applied at the extremum operator.
-    \emph{Scope note:} the polytope / linear-programming domain is not
-    incidental.  Active-set enumeration over halfspaces is
-    constructively bounded at compile time precisely because halfspaces
-    have finite combinatorial structure; non-polyhedral domains
-    (KKT-stationary-point search over arbitrary smooth $f$) require
-    symbolic root-finding which does not terminate at template-
-    instantiation time.  Quadratic $f$ is the worked-instance
-    boundary; non-linear extensions are post-paper work tracked
-    under \#363.
-  \item \textbf{Linear programming} (demonstrated in
-    Section~\ref{sec:lp-centrepiece} and Section~\ref{sec:ad-elliott}).
-    \cppinline{maximize(c, polytope)} reduces, for compile-time-sized LPs, to
-    a typed vertex via type-level active-set enumeration, and the same
-    reduction over a dual-number carrier yields sensitivity analysis
-    with no extra code path: the solver is the compiler.
-  \item \textbf{Lattice-law rewriting.} Distributivity and
-    absorption applied at the type level rewrite
-    $(A \cup B) \cap \lnot A$ to $B \cap \lnot A$ \emph{before} local
-    reduction rules fire, exposing collapses that a purely local analysis
-    would miss.
-\end{itemize}
-
-Each axis sits on the foundation shared with Section~\ref{sec:pruning}: NTTP
-predicates, structured \cppinline{operator&} dispatch, and the computability
-tiers visible in the showcases. Taken together they sketch a program of
-which the present halfspace reductions are one installment.
-
-The polynomial-calculus exhibit (companion-repository
-\texttt{:polynomial} / \texttt{:ftc} partitions) belongs to the same
-family but at the \emph{function} layer: a polynomial reduced under
-\cppinline{derive} (a ring homomorphism) or a numerical integrator
-yields another intensional object whose identity with a target is
-discharged by the compiler.
-
-\paragraph{Scaling beyond atomic carriers via structure-preserving combinators.}
-The same partition---atoms below, runtime above---governs the
-linear-algebra surface the paper exhibits at the $2 \times 2$ scale.
-The library ships \texttt{Invertible2x2}, \texttt{Matrix2x2V},
-\texttt{Vec2V} as statically-validated atoms; larger systems are
-\emph{not} reached by inflating the atom (we do not aim for
-$n \times n$ inversion in templates), but by composing atoms through
-\emph{structure-preserving combinators} that propagate the
-invariants up.  \texttt{DirectSum<A, B>} carries invertibility from
-its factors to the block-diagonal whole and is shipped today;
-$4 \times 4$ invertibility is therefore already a one-combinator
-step from the $2 \times 2$ atom, with $(A \oplus B)^{-1} =
-A^{-1} \oplus B^{-1}$ exact over $\mathbb{Q}$ and verifiable by
-\texttt{static\_assert}:
-
-% Source:
-% src/test/cpp/modules/dedekind/linear_algebra/matrix_test.cpp
-\begin{cpp}
-TEST_CASE("linear_algebra:matrix --- Tier 1: "
-          "DirectSum preserves invertibility") {
-  constexpr Invertible2x2<Rat, Rat{1L}, Rat{2L},
-                          Rat{3L}, Rat{4L}> block_M{};
-  // 90° rotation over ℚ.
-  constexpr Invertible2x2<Rat, Rat{0L}, Rat{-1L},
-                          Rat{1L}, Rat{0L}> block_rot{};
-  constexpr DirectSum<decltype(block_M),
-                      decltype(block_rot)> ds{};
-  constexpr auto ds_inv = ds.inverse();
-
-  using IdentityDirectSum =
-      DirectSum<Identity2x2<Rat>, Identity2x2<Rat>>;
-  STATIC_CHECK(ds * ds_inv == IdentityDirectSum{});
-  STATIC_CHECK(ds_inv * ds == IdentityDirectSum{});
-}
-\end{cpp}
-
-\noindent \texttt{BlockUpperTriangular<A, B, D>} extends the same
-propagation to triangular blocks under a degenerate-Schur condition
-(also shipped, also testable as a single \texttt{static\_assert}); a
-future Kronecker combinator preserves orthogonality and lattice
-structure compositionally.  Each combinator is itself a small
-structurally-checked unit; their composition gives $2^k \times 2^k$
-matrices whose invariants follow by induction without exponential
-blowup in the templates.  The remaining roadmap items
-% Backlog: issues #366 (block-Schur invertibility recursion, full
-% non-degenerate case), #368 (catalog of well-behaved matrix
-% carriers --- orthogonal, rotation, diagonal), #369 (structure-
-% preserving combinators including Kronecker).
-fall out of the same Axiomatic-Systems-Programming discipline rather
-than requiring a different paradigm, and are tracked in the project
-backlog rather than discharged here.  The $2 \times 2 \to 4 \times 4$
-step is a witness, not a promise; everything beyond is the natural
-recursion of the same combinator pattern.
-
-\paragraph{Carrier choices, error messages, ergonomics.}
-The carrier-vs-overflow trade-offs are catalogued in
-Section~\ref{sec:carrier-rosetta}'s Rosetta tables: showcases default
-to \cppinline{Rational<SignedExtensionalCardinal<>>} (exact, no
-silent overflow); programmers who trade exactness for native
-performance pick a primitive row and accept the named failure mode
-(signed-overflow UB on \cppinline{int}; non-associative rounding on
-\cppinline{float}/\cppinline{double}).  The combinators of
-Section~\ref{sec:pruning} bind to \cppinline{HasRingOperators}
-rather than any particular carrier, so the swap is a one-line change
-at the \cppinline{using} declaration.  Error messages, by contrast,
-are a more universal C++ pain: a failed \texttt{static\_assert} in a
-deep reduction can produce a multi-page expansion trail that no
-library can fully repair.  The realistic ambition is to \emph{fail
-fast at the named axiom} --- the first message the reader sees should
-be the predicate that genuinely broke, not the cascade of downstream
-failures it triggered.  The library structures concept ladders so
-that each rung adds a single named requirement, and uses targeted
-\cppinline{static_assert} messages inside internal reductions, so a
-violation surfaces at the smallest witness rather than deep inside
-overload resolution.\footnote{Worked diagnostic: a rank-deficient
-\cppinline{Invertible2x2<Rat, 1, 2, 2, 4>} input produces a single
-named message (\texttt{Invertible2x2 requires full rank: a*d - b*c
-!= 0}) at the \texttt{static\_assert} site with one \texttt{note}
-pointing at the instantiation, no substitution-failure cascade.  The
-predicate sits inside the class body as a literal
-\texttt{static\_assert} rather than as a \cppinline{requires}-clause
-to be probed, so the diagnostic fires at the named axiom directly.}
-
-In short: the compiler wall has a predictable shape---depth, steps,
-combinatorics, numeric range, diagnostics---and each is either
-pushable by a flag, avoidable by staying within the instance regime
-for which this technique is intended, or a known limitation we do not
-claim to have solved. The paper's contribution lies entirely to the
-left of that wall.
-
-\paragraph{Frictions: where C++23 and IEEE numerics break the chain.}
-The axioms cannot always be discharged. The friction points encountered while
-building the library are observational, not advocacy, and each is
-pinned at a concrete file in source (with the relevant lines flagged
-in the corresponding partition's witness blocks) so a reader can
-verify the mechanism rather than take the claim on faith.
-\emph{Integer-promotion shape mismatch}: \cppinline{bool + bool} and
-\cppinline{bool * bool} return \cppinline{int} rather than
-\cppinline{bool}; \cppinline{unsigned short + unsigned short} /
-\cppinline{unsigned short * unsigned short} and
-\cppinline{unsigned char + unsigned char} /
-\cppinline{unsigned char * unsigned char} likewise promote to
-\cppinline{int}. The functor surface
-(\cppinline{std::plus<bool>}, \cppinline{std::multiplies<unsigned short>})
-returns the carrier by signature, but the literal \cppinline{+} /
-\cppinline{*} operator surface does not (witnessed at
-\texttt{algebra/ring.cppm}, \texttt{algebra/field.cppm},
-\texttt{morphologies/uint.cppm}, \texttt{order/lattice.cppm}).
-\emph{Signed-overflow UB defeats $\mathbb{Z}$}: \cppinline{int} /
-\cppinline{long} / \cppinline{long long} carry the literal ring
-operator surface
-(\cppinline{HasRingOperators<int>} fires) but \emph{not} the
-axiomatic ring witness, because closure-under-arithmetic fails as a
-stable axiom under signed-overflow UB; the negative pins
-\cppinline{!IsArithmeticAdditiveGroup<int>} and
-\cppinline{!category::IsRing<int, std::plus, std::multiplies>} at
-\texttt{morphologies/sint.cppm} make the rejection mechanical.
-\emph{IEEE 754 breaks reflexivity}: \cppinline{NaN <= NaN}
-evaluates to \cppinline{false}, so
-\cppinline{is_reflexive_v<double, std::less_equal<>>} is deliberately
-not registered, and \cppinline{!IsTotallyOrdered<double>},
-\cppinline{!IsTotallyOrdered<long double>}, and
-\cppinline{!category::IsRing<double, std::plus, std::multiplies>}
-all hold (\texttt{morphologies/floating\_point.cppm} +
-\texttt{order/total.cppm}); the operational ordered-field reading
-survives via \cppinline{IsOrderedField<double>} in
-\texttt{morphologies/archimedean.cppm}.
-\emph{\cppinline{std::variant} NTTP-unfriendliness}: the variant
-$\mathbb{Z}$-proxy \cppinline{SignedCardinality} (variant of
-\cppinline{SignedExtensionalCardinal<>}, $\pm\aleph_0$,
-\cppinline{NaZ}) cannot be a non-type template parameter without
-workarounds, blocking compile-time arithmetic on the saturating
-integer carrier (\texttt{sets/cardinality.cppm},
-\texttt{numbers/rational.cppm}).
-\emph{\cppinline{std::integral} unifies three structurally distinct algebras}:
-\cppinline{std::integral T = std::unsigned_integral T || std::signed_integral T || std::same_as<T, bool>},
-and the three siblings are a finite cyclic ring, an
-operator-surface-without-axioms carrier, and (separately) the
-Boolean rig + Galois field $\mathbb{F}_2$; nothing axiomatic
-survives the union (\texttt{morphologies/integral.cppm}). Each friction
-is the structural reason an axiom slot is left
-\emph{unsatisfied} for the relevant family.
-
-\paragraph{The policy gate as the bridge.}
-Where the strict axioms cannot be discharged but the operator surface
-must still be programmed against, the library exposes an operational
-policy gate. The canonical example is the rational-field claim,
-which the showcases program against without committing the carrier
-to a specific machine integer:
-%
-\begin{cpp}
-// numbers/rational.cppm --- operational field-like witness for ℚ.
-// HasFieldOperators is the operator-surface gate; the strict
-// axiomatic field witness lives at category::IsField but is not
-// load-bearing for downstream code that only needs +, -, *, /.
-static_assert(
-    dedekind::algebra::HasFieldOperators<Rational<default_integer>>,
-    "Rational<I> must satisfy the operational field-like witness "
-    "(ℚ is a field).");
-
-static_assert(
-    dedekind::algebra::HasFieldOperators<
-        Rational<SignedExtensionalCardinal<>>>,
-    "Rational<SignedExtensionalCardinal<>> must satisfy "
-    "HasFieldOperators: the intended arbitrary-precision "
-    "signed-rational carrier for ℚ.");
-\end{cpp}
-%
-The two carriers differ in their machine-level friction profile
-(\cppinline{default_integer} trips signed-overflow UB on extreme
-inputs; \cppinline{SignedExtensionalCardinal<>} does not, at the
-cost of variant-NTTP friction) but both discharge the operational
-gate. Downstream combinators bind to \cppinline{HasFieldOperators}
-rather than to \cppinline{category::IsField}, and the carrier swap
-between the two is a one-line change at the \cppinline{using}
-declaration. The gate is the load-bearing concept; the strict
-axiomatic field is reachable, on demand, when a use site warrants
-the heavier obligation.
-
-In short, where Section~\ref{sec:compiler-wall} names the
-\emph{mechanical} boundaries of the technique (template depth,
-\cppinline{consteval} budgets, combinatorial blowup, diagnostics),
-this subsection names the \emph{algebraic} boundary: which axioms
-discharge cleanly on which carriers, where the obligation falls to
-the engineer, and which frictions block the discharge. The empirical
-artefacts of the showcases sit one level below this chain---they
-demonstrate that the library realises the axiom~$\to$~theorem
-discipline in C++23 today, on the carriers in the Rosetta tables of
-Section~\ref{sec:carrier-rosetta}.
 
 % ============================================================
 \section{Discussion}
@@ -2442,17 +2123,24 @@ LP is emphatically not in scope; we do not claim it is.
 Even within the compile-time regime, a user with domain knowledge of
 \emph{which} halfspaces bind at the optimum can short-circuit the
 $\binom{n}{d}$ enumeration entirely: because the constraint pack is
-already an NTTP list, instantiating
-\cppinline{maximize<T, cx, cy, H_i, H_j>()} with just the binding
-pair (instead of the full pack) is exactly the active-set hint, and
-the library evaluates only that single Cramer solve.  An explicit
-\cppinline{with_active_set<...>} API that takes the hint as a separate
-template argument and verifies feasibility against the full pack
-without re-enumerating is a natural successor surface, but the
-underlying NTTP-pack-as-hint mechanism is available today: dropping
-slack constraints from the syntactic list is the user's prerogative,
-and the combinatorial term then tracks the hinted count rather than
-the raw one.
+already a meet of halfspace Sets, instantiating
+\cppinline{argmax(halfspace_set(H_i{}) & halfspace_set(H_j{}), U)} with
+just the binding pair (instead of the full pack) is exactly the
+active-set hint, and the library evaluates only that single Cramer
+solve.  An explicit \cppinline{with_active_set<...>} API that takes
+the hint as a separate template argument and verifies feasibility
+against the full pack without re-enumerating is a natural successor
+surface, but the underlying meet-as-hint mechanism is available today:
+dropping slack constraints from the syntactic meet is the user's
+prerogative, and the combinatorial term then tracks the hinted count
+rather than the raw one.
+
+\paragraph{Total dual integrality as the generalising forward-pointer.}
+The shipped §\ref{sec:lp-centrepiece} fast-path is a totally-unimodular sub-case: axis-aligned rows with entries in $\{-1, 0, +1\}$, so every square submatrix has determinant in $\{-1, 0, +1\}$ and the polytope is integer for every integer $b$ (Hoffman--Kruskal characterisation~\cite{schrijver1986theory} §19).
+The generalising theory is \emph{total dual integrality} (TDI): a system $Ax \leq b$ is TDI when the dual LP has an integer optimum for every integer objective, and TDI plus integer $b$ implies an integer polyhedron (Edmonds--Giles theorem~\cite{schrijver1986theory} §22).
+TUM is a TDI sub-case; the §5 fast-path is a sub-case of a sub-case.
+A construction-time \cppinline{IsTDI<Hs..., b>} concept would gate a richer kernel family at compile time, with box-TDI and network-matrix sub-classes as the practical landing where a network-Simplex variant carries a strongly-polynomial guarantee --- the corner of LP solving where the construction-time gate and polynomial Simplex coexist today.
+We do not pursue this generalisation in the paper; the shipped axis-aligned fast-path remains the cleaner structural exhibit of the smaller TUM sub-case it occupies, and the TDI gate is named here as the textbook-shaped forward direction rather than a slated implementation.
 
 \subsection{Boundary Observations: An Axiom~\texorpdfstring{$\to$}{->}~Theorem Chain}
 \label{sec:boundary-observations}
@@ -2797,6 +2485,460 @@ Reviewers can inspect the assistance pattern at any commit.
 \printbibliography
 
 \appendix
+
+\section{From Cardinality Pruning to Type-Directed Collapse}
+\label{sec:gap}
+
+Step back from the showcases for a moment. What is the pattern? In every
+one of them we started with an intensional set---a predicate---and we
+ended with a named extensional object whose \emph{type} carries the
+answer: $\varnothing$, a singleton, an order interval of known
+cardinality, an LP vertex. The collapse is not incidental; it is a
+rewrite rule, running inside the type system, at translation time. To
+make the claim precise, we first formalise ``how much the compiler
+knows about a set'' as a lattice, then state the theorem as monotone
+motion up that lattice.
+
+\begin{definition}[Computability tier]
+\label{def:computability-tier}
+For a compile-time set $S$ over an ambient carrier $T$, the
+\emph{computability tier} is the triple
+\[
+  \mathcal{T}(S) \;=\; \bigl(\,\mathsf{R}(S),\; \mathsf{L}(S),\; \mathsf{K}(S)\,\bigr)
+  \;\in\; \{\mathrm{Int},\mathrm{Ext}\} \times \{\mathrm{K3},\mathrm{Cl}\} \times \{\mathrm{Opq},\mathrm{Elt}\}
+\]
+whose components are the \emph{representation} tier ($\mathsf{R}$:
+intensional vs.\ extensional, i.e.\ predicate vs.\ elements-in-type),
+the \emph{logic} tier ($\mathsf{L}$: Kleene three-valued vs.\
+classical two-valued membership), and the \emph{knowledge} tier
+($\mathsf{K}$: elements opaque vs.\ carried in the type). Each axis
+carries the order $\mathrm{Int} \preceq \mathrm{Ext}$,
+$\mathrm{K3} \preceq \mathrm{Cl}$,
+$\mathrm{Opq} \preceq \mathrm{Elt}$; the product order is
+componentwise. The resulting Boolean lattice $(\mathcal{T}, \preceq)$
+has bottom $\bot = (\mathrm{Int},\mathrm{K3},\mathrm{Opq})$ (``a raw
+predicate over a floating-point carrier with no inhabitants known'')
+and top $\top = (\mathrm{Ext},\mathrm{Cl},\mathrm{Elt})$ (``a named
+finite set whose members are template parameters and whose membership
+is decidable'').
+\end{definition}
+
+Every showcase of Section~\ref{sec:pruning} is a motion inside this
+lattice. The empty-halfspace reductions of Showcase~3 go $(\mathrm{Int},\mathrm{K3},\mathrm{Opq}) \mapsto \top$
+in one step (the result is $\varnothing$); the cardinality-1 reduction
+of Showcase~4 and the LP reduction of Showcase~9 do the same. The
+reductions never slide downward. With that in hand:
+
+\begin{theorem}[Type-Directed Collapse, totally-ordered 1D case]
+\label{thm:type-directed-collapse-1d}
+Let $T$ be a totally ordered carrier, and let
+\[
+  P_i(x) \;=\; (x \ge a_i), \quad i = 1, \dots, m,
+  \qquad
+  Q_j(x) \;=\; (x \le b_j), \quad j = 1, \dots, n,
+\]
+be lower-bound and upper-bound halfspace predicates over $T$ whose
+pivots $a_i, b_j \in T$ are carried at the type level as non-type
+template parameters. Define the effective bounds
+$a^\star \coloneqq \max_i a_i$ if $m \ge 1$ and $a^\star \coloneqq
+\bot$ if $m = 0$, and $b^\star \coloneqq \min_j b_j$ if $n \ge 1$
+and $b^\star \coloneqq \top$ if $n = 0$ (where $\bot, \top$ denote
+the carrier's bottom and top elements, taken as
+$\pm\infty$-style sentinels when $T$ is unbounded). Then the meet
+\[
+  S \;=\; \bigcap_{i=1}^{m} \{x \in T \mid P_i(x)\}
+        \;\cap\;
+        \bigcap_{j=1}^{n} \{x \in T \mid Q_j(x)\}
+\]
+is resolved at compile time to exactly one of:
+\begin{enumerate}
+  \item $\varnothing$, when $a^\star > b^\star$;
+  \item a \cppinline{Singleton<v>}, when $T$ is integral and
+        $a^\star = b^\star = v$;
+  \item an \cppinline{OrderInterval}~$[a^\star, b^\star]$
+        otherwise.
+\end{enumerate}
+\end{theorem}
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzcd}[column sep=3em, row sep=4em, ampersand replacement=\&]
+\& \mathrm{Halfspace}\langle x \geq a^\star\rangle \,\cap\, \mathrm{Halfspace}\langle x \leq b^\star\rangle
+  \arrow[dl, "{[a^\star < b^\star]}"']
+  \arrow[d, "{[a^\star = b^\star,\, T \text{ integral}]}"']
+  \arrow[dr, "{[a^\star > b^\star]}"] \& \\
+\mathrm{OrderInterval}\langle a^\star, b^\star\rangle \& \mathrm{Singleton}\langle v\rangle \& \mathrm{EmptyPredicate}\langle T\rangle
+\end{tikzcd}
+\caption{The 1D type-directed collapse as a diagram chase (Theorem~\ref{thm:type-directed-collapse-1d}).
+The meet of the effective lower- and upper-bound halfspaces resolves at compile time into exactly one of three typed constants, selected by the side condition on the pivots: an \cppinline{OrderInterval<a*, b*>} for the generic bounded case ($a^\star < b^\star$); a \cppinline{Singleton<v>} for the degenerate equality case ($a^\star = b^\star = v$) \emph{when $T$ is integral} (the integrality guard from Theorem~\ref{thm:type-directed-collapse-1d} case 2; on a non-integral $T$ the equality case stays in the (degenerate) \cppinline{OrderInterval<a*, a*>} branch instead); and \cppinline{EmptyPredicate<T>} (lifted to $\varnothing$ at the topos level) for the contradiction case ($a^\star > b^\star$).
+The diagram commutes on elements: $x$ inhabits the source meet iff $x$ inhabits the target type the side-condition selects.
+Implementation hook: the meet is realised by \cppinline{structured_and(Halfspace<...,Upward,...>, Halfspace<...,Downward,...>)} in \texttt{dedekind.order:halfspace}, which case-splits the pivot comparison at compile time and returns the corresponding typed constant directly; the empty-result type \cppinline{EmptyPredicate<T>} lives in \texttt{dedekind.order} and lifts to \cppinline{Ø<T,L>} in \texttt{dedekind.sets:boundaries}.
+Mechanically witnessed by Showcase~3 (\cppinline{EmptyPredicate<T>} branch, \texttt{showcase\_03\_halfspace\_contradiction.cpp}) and Showcase~4 (\cppinline{Singleton<6>} branch, the cardinality-1 reduction in Listing~\ref{lst:pruning}); both fold to constant IR returns under \texttt{-O2}, as Listing~\ref{lst:pruning_ir} demonstrates for the empty-meet branch.}
+\label{fig:type-directed-collapse-1d}
+\end{figure}
+
+\begin{proof}
+By induction on $m + n$.
+
+\smallskip
+\noindent\emph{Base case} ($m + n = 0$): no constraints; $S = T$,
+which is the order interval $[\bot, \top]$ (case 3) by the boundary
+convention.
+
+\smallskip
+\noindent\emph{Inductive step.} Assume the claim holds for $k$ total
+constraints. Add one more; without loss of generality (by the
+symmetry between lower and upper bounds) take it to be a fresh
+lower-bound predicate $P_*(x) = (x \ge a_*)$. The inductive
+hypothesis gives a reduced form $S_k$ of one of the three shapes.
+Form $S = S_k \cap \{x \mid x \ge a_*\}$. Two compile-time
+comparisons of $a_*$ against the bounds of $S_k$ (where present)
+suffice:
+
+\begin{itemize}
+  \item \textbf{Redundant.} If $S_k$ has lower bound $a$ and
+        $a_* \le a$, then $\{x \mid x \ge a_*\} \supseteq S_k$ and
+        $S = S_k$; the form is preserved.
+  \item \textbf{Tightening.} If $S_k$ is the interval $[a, b]$ (or
+        unbounded above) and $a < a_* \le b$ (or no upper bound),
+        then $S = [a_*, b]$ in case 3; if $T$ is integral and
+        $a_* = b$, then $S = \{a_*\}$ (case 2).
+  \item \textbf{Contradicting.} If $S_k$ has upper bound $b$ and
+        $a_* > b$, or if $S_k$ is already $\varnothing$, then
+        $S = \varnothing$ (case 1).
+\end{itemize}
+
+\noindent
+The same case-split, with rôles of $a_i$ and $b_j$ exchanged,
+discharges the symmetric upper-bound addition. Each case lands in
+one of the three forms, completing the induction.
+\end{proof}
+
+\paragraph{Theorems for free.}
+The structural shape of Theorem~\ref{thm:type-directed-collapse-1d}
+is Wadler's \emph{Theorems for Free!}~\cite{wadler1989theorems}
+move at the algebraic register. Wadler showed that polymorphic
+types in the typed lambda calculus discharge a class of theorems by
+parametricity alone, with no further proof obligation on the
+caller. Here, the analogous discharge runs from \emph{carrier-axiom
+declaration} (\cppinline{HasTotalOrderOperators<T>} +
+\cppinline{IsTotallyOrdered<T>}, plus the integral-carrier
+witness when case 2 is to fire) to a carrier-level reduction of any
+finite intersection of half-line constraints. The engineer's
+honesty obligation is the axiom set; the collapse is
+type-level free. The proof above is one demonstration that the
+discharge is mechanical---the inductive argument does not depend on
+which carrier or which pivot type, only on the axiom slots being
+filled.
+
+\paragraph{Existential anchor.}
+The theorem is realised in the library by witnesses that
+materialise at the static-assertion layer; the canonical exhibit on
+$\mathbb{N}$ is the typed-constant collapse
+\[
+  \{x \in \mathbb{N} \mid x \ge 2\} \,\cap\, \{x \in \mathbb{N} \mid x \le 5\}
+  \;\longrightarrow\;
+  \texttt{OrderInterval}\langle 2, 5\rangle,
+\]
+checked at compile time. Section~\ref{sec:pruning} catalogues these
+witnesses; the LLVM~IR fixtures pin the resulting machine-code
+collapse downstream of the type-level reduction.
+
+\begin{conjecture}[Type-Directed Collapse, n-dimensional generalisation]
+\label{conj:type-directed-collapse-nd}
+Let $T_1, \dots, T_d$ be totally ordered carriers and let
+$\{P_k\}_{k=1}^{N}$ be halfspace predicates over the product
+$T_1 \times \dots \times T_d$ whose pivots are carried at the type
+level. The meet
+\[
+  S \;=\; \bigcap_{k=1}^{N} \{(x_1, \dots, x_d) \mid P_k(x_1, \dots, x_d)\}
+\]
+admits a compile-time reduction to a typed normal form
+generalising the three cases of
+Theorem~\ref{thm:type-directed-collapse-1d} (empty, vertex-singleton,
+or a polytope record carrying its active constraint set), under a
+suitable axiom set on the product carrier (total order per axis,
+closure of the meet under the product, and a vertex-enumeration
+discipline for the polytope case). Writing $S_k$ for the
+single-constraint set, the reduction is monotone up the
+computability-tier lattice:
+\[
+  \mathcal{T}(S) \;\succeq\; \bigvee_{k} \mathcal{T}(S_k),
+\]
+and strictly so on at least one axis in every case the library
+exhibits.
+
+\smallskip
+\noindent\emph{Status of claim.} This conjecture is \emph{not}
+proved in the paper. It is supported by the same exhibition pattern
+as the 1D theorem: each case is checked into the library as a
+\cppinline{static_assert}/\cppinline{STATIC_CHECK} witness and,
+where relevant, as an LLVM~IR fixture that fails CI on optimiser
+drift (see Section~\ref{sec:pruning}). The 2D linear-programming
+showcase of Section~\ref{sec:lp-centrepiece} discharges one
+non-trivial instance via active-set vertex enumeration; a general
+inductive proof over pivot configurations and dimensions $d$ is left
+open.
+\end{conjecture}
+
+\begin{corollary}[Iterated collapse]
+\label{cor:iterated-collapse}
+Any finite composition of type-directed-collapse reductions is itself
+monotone up $\mathcal{T}$. In particular, no sequence of library
+operations can ever return a set that is \emph{less} decidable than
+its inputs.
+\end{corollary}
+
+So: not ``a faster way to do set algebra'', but a rewrite rule that
+happens to live in the C++ type system, and whose action is
+monotone-ascending in a lattice of decidability. The halfspace case is
+the smallest non-trivial instance we know how to prove mechanically.
+Four further axes appear to obey the same pattern; the project tracker
+carries one existential proof per axis---one worked instance, one IR
+fixture, one compile-time witness---rather than a general framework.
+We would rather ship one reduction that fully collapses than four
+sketches that do not.
+
+% Tracker cross-reference for maintainers (invisible in PDF):
+%   Carrier tightening      -> issue #362
+%   Smooth optimization     -> issue #363
+%   Linear programming      -> issue #364  (demonstrated here)
+%   Lattice-law rewriting   -> issue #365
+\begin{itemize}
+  \item \textbf{Carrier tightening.} Intersecting a subset of
+    $\mathbb{N}$ with a subset of $\mathbb{R}$ should land in $\mathbb{N}$:
+    the carrier lattice contributes its own structural reduction via the
+    existing canonical embeddings (\cppinline{embed_uint_sint_},
+    \cppinline{embed_ℚ_ℝ}, \ldots).
+  \item \textbf{Smooth optimization.} The stationary set
+    $\{x \mid \nabla f(x) = 0\}$ for a quadratic $f$ collapses to a
+    \cppinline{Singleton<x*>} with the minimizer in the template parameter.
+    Same reduction pattern, applied at the extremum operator.
+    \emph{Scope note:} the polytope / linear-programming domain is not
+    incidental.  Active-set enumeration over halfspaces is
+    constructively bounded at compile time precisely because halfspaces
+    have finite combinatorial structure; non-polyhedral domains
+    (KKT-stationary-point search over arbitrary smooth $f$) require
+    symbolic root-finding which does not terminate at template-
+    instantiation time.  Quadratic $f$ is the worked-instance
+    boundary; non-linear extensions are post-paper work tracked
+    under \#363.
+  \item \textbf{Linear programming} (demonstrated in
+    Section~\ref{sec:lp-centrepiece} and Section~\ref{sec:ad-elliott}).
+    \cppinline{argmax(G, U)} reduces, for compile-time-sized LPs, to a
+    Set whose predicate type encodes the regime (singleton, empty, \ldots)
+    via type-level active-set enumeration; the same reduction over a
+    dual-number carrier yields sensitivity analysis with no extra code
+    path: the solver is the compiler.
+  \item \textbf{Lattice-law rewriting.} Distributivity and
+    absorption applied at the type level rewrite
+    $(A \cup B) \cap \lnot A$ to $B \cap \lnot A$ \emph{before} local
+    reduction rules fire, exposing collapses that a purely local analysis
+    would miss.
+\end{itemize}
+
+Each axis sits on the foundation shared with Section~\ref{sec:pruning}: NTTP
+predicates, structured \cppinline{operator&} dispatch, and the computability
+tiers visible in the showcases. Taken together they sketch a program of
+which the present halfspace reductions are one installment.
+
+The polynomial-calculus exhibit (companion-repository
+\texttt{:polynomial} / \texttt{:ftc} partitions) belongs to the same
+family but at the \emph{function} layer: a polynomial reduced under
+\cppinline{derive} (a ring homomorphism) or a numerical integrator
+yields another intensional object whose identity with a target is
+discharged by the compiler.
+
+\paragraph{Scaling beyond atomic carriers via structure-preserving combinators.}
+The same partition---atoms below, runtime above---governs the
+linear-algebra surface the paper exhibits at the $2 \times 2$ scale.
+The library ships \texttt{Invertible2x2}, \texttt{Matrix2x2V},
+\texttt{Vec2V} as statically-validated atoms; larger systems are
+\emph{not} reached by inflating the atom (we do not aim for
+$n \times n$ inversion in templates), but by composing atoms through
+\emph{structure-preserving combinators} that propagate the
+invariants up.  \texttt{DirectSum<A, B>} carries invertibility from
+its factors to the block-diagonal whole and is shipped today;
+$4 \times 4$ invertibility is therefore already a one-combinator
+step from the $2 \times 2$ atom, with $(A \oplus B)^{-1} =
+A^{-1} \oplus B^{-1}$ exact over $\mathbb{Q}$ and verifiable by
+\texttt{static\_assert}:
+
+% Source:
+% src/test/cpp/modules/dedekind/linear_algebra/matrix_test.cpp
+\begin{cpp}
+TEST_CASE("linear_algebra:matrix --- Tier 1: "
+          "DirectSum preserves invertibility") {
+  constexpr Invertible2x2<Rat, Rat{1L}, Rat{2L},
+                          Rat{3L}, Rat{4L}> block_M{};
+  // 90° rotation over ℚ.
+  constexpr Invertible2x2<Rat, Rat{0L}, Rat{-1L},
+                          Rat{1L}, Rat{0L}> block_rot{};
+  constexpr DirectSum<decltype(block_M),
+                      decltype(block_rot)> ds{};
+  constexpr auto ds_inv = ds.inverse();
+
+  using IdentityDirectSum =
+      DirectSum<Identity2x2<Rat>, Identity2x2<Rat>>;
+  STATIC_CHECK(ds * ds_inv == IdentityDirectSum{});
+  STATIC_CHECK(ds_inv * ds == IdentityDirectSum{});
+}
+\end{cpp}
+
+\noindent \texttt{BlockUpperTriangular<A, B, D>} extends the same
+propagation to triangular blocks under a degenerate-Schur condition
+(also shipped, also testable as a single \texttt{static\_assert}); a
+future Kronecker combinator preserves orthogonality and lattice
+structure compositionally.  Each combinator is itself a small
+structurally-checked unit; their composition gives $2^k \times 2^k$
+matrices whose invariants follow by induction without exponential
+blowup in the templates.  The remaining roadmap items
+% Backlog: issues #366 (block-Schur invertibility recursion, full
+% non-degenerate case), #368 (catalog of well-behaved matrix
+% carriers --- orthogonal, rotation, diagonal), #369 (structure-
+% preserving combinators including Kronecker).
+fall out of the same Axiomatic-Systems-Programming discipline rather
+than requiring a different paradigm, and are tracked in the project
+backlog rather than discharged here.  The $2 \times 2 \to 4 \times 4$
+step is a witness, not a promise; everything beyond is the natural
+recursion of the same combinator pattern.
+
+\paragraph{Carrier choices, error messages, ergonomics.}
+The carrier-vs-overflow trade-offs are catalogued in
+Section~\ref{sec:carrier-rosetta}'s Rosetta tables: showcases default
+to \cppinline{Rational<SignedExtensionalCardinal<>>} (exact, no
+silent overflow); programmers who trade exactness for native
+performance pick a primitive row and accept the named failure mode
+(signed-overflow UB on \cppinline{int}; non-associative rounding on
+\cppinline{float}/\cppinline{double}).  The combinators of
+Section~\ref{sec:pruning} bind to \cppinline{HasRingOperators}
+rather than any particular carrier, so the swap is a one-line change
+at the \cppinline{using} declaration.  Error messages, by contrast,
+are a more universal C++ pain: a failed \texttt{static\_assert} in a
+deep reduction can produce a multi-page expansion trail that no
+library can fully repair.  The realistic ambition is to \emph{fail
+fast at the named axiom} --- the first message the reader sees should
+be the predicate that genuinely broke, not the cascade of downstream
+failures it triggered.  The library structures concept ladders so
+that each rung adds a single named requirement, and uses targeted
+\cppinline{static_assert} messages inside internal reductions, so a
+violation surfaces at the smallest witness rather than deep inside
+overload resolution.\footnote{Worked diagnostic: a rank-deficient
+\cppinline{Invertible2x2<Rat, 1, 2, 2, 4>} input produces a single
+named message (\texttt{Invertible2x2 requires full rank: a*d - b*c
+!= 0}) at the \texttt{static\_assert} site with one \texttt{note}
+pointing at the instantiation, no substitution-failure cascade.  The
+predicate sits inside the class body as a literal
+\texttt{static\_assert} rather than as a \cppinline{requires}-clause
+to be probed, so the diagnostic fires at the named axiom directly.}
+
+In short: the compiler wall has a predictable shape---depth, steps,
+combinatorics, numeric range, diagnostics---and each is either
+pushable by a flag, avoidable by staying within the instance regime
+for which this technique is intended, or a known limitation we do not
+claim to have solved. The paper's contribution lies entirely to the
+left of that wall.
+
+\paragraph{Frictions: where C++23 and IEEE numerics break the chain.}
+The axioms cannot always be discharged. The friction points encountered while
+building the library are observational, not advocacy, and each is
+pinned at a concrete file in source (with the relevant lines flagged
+in the corresponding partition's witness blocks) so a reader can
+verify the mechanism rather than take the claim on faith.
+\emph{Integer-promotion shape mismatch}: \cppinline{bool + bool} and
+\cppinline{bool * bool} return \cppinline{int} rather than
+\cppinline{bool}; \cppinline{unsigned short + unsigned short} /
+\cppinline{unsigned short * unsigned short} and
+\cppinline{unsigned char + unsigned char} /
+\cppinline{unsigned char * unsigned char} likewise promote to
+\cppinline{int}. The functor surface
+(\cppinline{std::plus<bool>}, \cppinline{std::multiplies<unsigned short>})
+returns the carrier by signature, but the literal \cppinline{+} /
+\cppinline{*} operator surface does not (witnessed at
+\texttt{algebra/ring.cppm}, \texttt{algebra/field.cppm},
+\texttt{morphologies/uint.cppm}, \texttt{order/lattice.cppm}).
+\emph{Signed-overflow UB defeats $\mathbb{Z}$}: \cppinline{int} /
+\cppinline{long} / \cppinline{long long} carry the literal ring
+operator surface
+(\cppinline{HasRingOperators<int>} fires) but \emph{not} the
+axiomatic ring witness, because closure-under-arithmetic fails as a
+stable axiom under signed-overflow UB; the negative pins
+\cppinline{!IsArithmeticAdditiveGroup<int>} and
+\cppinline{!category::IsRing<int, std::plus, std::multiplies>} at
+\texttt{morphologies/sint.cppm} make the rejection mechanical.
+\emph{IEEE 754 breaks reflexivity}: \cppinline{NaN <= NaN}
+evaluates to \cppinline{false}, so
+\cppinline{is_reflexive_v<double, std::less_equal<>>} is deliberately
+not registered, and \cppinline{!IsTotallyOrdered<double>},
+\cppinline{!IsTotallyOrdered<long double>}, and
+\cppinline{!category::IsRing<double, std::plus, std::multiplies>}
+all hold (\texttt{morphologies/floating\_point.cppm} +
+\texttt{order/total.cppm}); the operational ordered-field reading
+survives via \cppinline{IsOrderedField<double>} in
+\texttt{morphologies/archimedean.cppm}.
+\emph{\cppinline{std::variant} NTTP-unfriendliness}: the variant
+$\mathbb{Z}$-proxy \cppinline{SignedCardinality} (variant of
+\cppinline{SignedExtensionalCardinal<>}, $\pm\aleph_0$,
+\cppinline{NaZ}) cannot be a non-type template parameter without
+workarounds, blocking compile-time arithmetic on the saturating
+integer carrier (\texttt{sets/cardinality.cppm},
+\texttt{numbers/rational.cppm}).
+\emph{\cppinline{std::integral} unifies three structurally distinct algebras}:
+\cppinline{std::integral T = std::unsigned_integral T || std::signed_integral T || std::same_as<T, bool>},
+and the three siblings are a finite cyclic ring, an
+operator-surface-without-axioms carrier, and (separately) the
+Boolean rig + Galois field $\mathbb{F}_2$; nothing axiomatic
+survives the union (\texttt{morphologies/integral.cppm}). Each friction
+is the structural reason an axiom slot is left
+\emph{unsatisfied} for the relevant family.
+
+\paragraph{The policy gate as the bridge.}
+Where the strict axioms cannot be discharged but the operator surface
+must still be programmed against, the library exposes an operational
+policy gate. The canonical example is the rational-field claim,
+which the showcases program against without committing the carrier
+to a specific machine integer:
+%
+\begin{cpp}
+// numbers/rational.cppm --- operational field-like witness for ℚ.
+// HasFieldOperators is the operator-surface gate; the strict
+// axiomatic field witness lives at category::IsField but is not
+// load-bearing for downstream code that only needs +, -, *, /.
+static_assert(
+    dedekind::algebra::HasFieldOperators<Rational<default_integer>>,
+    "Rational<I> must satisfy the operational field-like witness "
+    "(ℚ is a field).");
+
+static_assert(
+    dedekind::algebra::HasFieldOperators<
+        Rational<SignedExtensionalCardinal<>>>,
+    "Rational<SignedExtensionalCardinal<>> must satisfy "
+    "HasFieldOperators: the intended arbitrary-precision "
+    "signed-rational carrier for ℚ.");
+\end{cpp}
+%
+The two carriers differ in their machine-level friction profile
+(\cppinline{default_integer} trips signed-overflow UB on extreme
+inputs; \cppinline{SignedExtensionalCardinal<>} does not, at the
+cost of variant-NTTP friction) but both discharge the operational
+gate. Downstream combinators bind to \cppinline{HasFieldOperators}
+rather than to \cppinline{category::IsField}, and the carrier swap
+between the two is a one-line change at the \cppinline{using}
+declaration. The gate is the load-bearing concept; the strict
+axiomatic field is reachable, on demand, when a use site warrants
+the heavier obligation.
+
+In short, where Section~\ref{sec:compiler-wall} names the
+\emph{mechanical} boundaries of the technique (template depth,
+\cppinline{consteval} budgets, combinatorial blowup, diagnostics),
+this subsection names the \emph{algebraic} boundary: which axioms
+discharge cleanly on which carriers, where the obligation falls to
+the engineer, and which frictions block the discharge. The empirical
+artefacts of the showcases sit one level below this chain---they
+demonstrate that the library realises the axiom~$\to$~theorem
+discipline in C++23 today, on the carriers in the Rosetta tables of
+Section~\ref{sec:carrier-rosetta}.
+
 
 \section{Continuous Iteration towards the Faithful Translation}
 \label{sec:eventually}
