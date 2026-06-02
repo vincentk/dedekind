@@ -1996,8 +1996,6 @@ static_assert(!is_initial_f_algebra_v<LPSolutionIdF,
 \paragraph{Algorithmic scope.}
 The vertex-enumeration kernel is $O(\binom{m}{n})$ in the halfspace count --- the bubble sort of LP, well-suited to the small $m$ §5 exhibits and to compile-time enumeration generally, not to industrial constraint counts.
 The halfspace pack lives in NTTP space; §\ref{sec:compiler-wall} names this as the Compiler Wall, so the inner solver's choice does not move the wall it caps.
-A more elegant compile-time kernel is available in principle: Fourier-Motzkin elimination~\cite{schrijver1986theory} §12.2 reduces the polytope dimension by dimension, surfacing the singleton, empty, face, and ray regimes uniformly from the shape of the resulting interval, and is a catamorphism on the halfspace pack proper rather than the identity-functor shape recorded above.
-We leave the Fourier-Motzkin kernel to follow-up.
 
 
 \subsection{Forward-Mode AD as a Sibling Realisation of Compile-Time Derivatives}
@@ -2135,6 +2133,13 @@ underlying NTTP-pack-as-hint mechanism is available today: dropping
 slack constraints from the syntactic list is the user's prerogative,
 and the combinatorial term then tracks the hinted count rather than
 the raw one.
+
+\paragraph{Total dual integrality as the generalising forward-pointer.}
+The shipped §\ref{sec:lp-centrepiece} fast-path is a totally-unimodular sub-case: axis-aligned rows with entries in $\{-1, 0, +1\}$, so every square submatrix has determinant in $\{-1, 0, +1\}$ and the polytope is integer for every integer $b$ (Hoffman--Kruskal characterisation~\cite{schrijver1986theory} §19).
+The generalising theory is \emph{total dual integrality} (TDI): a system $Ax \leq b$ is TDI when the dual LP has an integer optimum for every integer objective, and TDI plus integer $b$ implies an integer polyhedron (Edmonds--Giles theorem~\cite{schrijver1986theory} §22).
+TUM is a TDI sub-case; the §5 fast-path is a sub-case of a sub-case.
+A construction-time \cppinline{IsTDI<Hs..., b>} concept would gate a richer kernel family at compile time, with box-TDI and network-matrix sub-classes as the practical landing where a network-Simplex variant carries a strongly-polynomial guarantee --- the corner of LP solving where the construction-time gate and polynomial Simplex coexist today.
+We do not pursue this generalisation in the paper; the shipped axis-aligned fast-path remains the cleaner structural exhibit of the smaller TUM sub-case it occupies, and the TDI gate is named here as the textbook-shaped forward direction rather than a slated implementation.
 
 \subsection{Boundary Observations: An Axiom~\texorpdfstring{$\to$}{->}~Theorem Chain}
 \label{sec:boundary-observations}
