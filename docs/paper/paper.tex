@@ -1829,13 +1829,8 @@ The reduction enumerates vertex candidates at compile time (all $\binom{4}{2} = 
 Every step is a template specialisation; no runtime iteration survives.
 
 \paragraph{Two kernels under one combinator.}
-A separate concern arises when the polytope happens to be signed-unimodular and axis-aligned: coefficients in $\{-1, 0, +1\}$ with at most one nonzero per halfspace.
-In that scope, the Cramer determinants are all $\pm 1$, the active-set divisions degenerate to sign flips, and the vertex coordinates are simply the relevant axis bounds; the active-set enumeration collapses to per-axis bracketing and a sign-driven select.
-The library ships both kernels and lets the type system pick.
-The dispatch is one \cppinline{if constexpr} over a conjunction of concepts on the halfspace pack and the carrier:
-\cppinline{HasUnitRangeEntries<Hs...>} (every coefficient lies in $\{-1, 0, +1\}$), \cppinline{IsAxisAlignedPolytope<Hs...>} (at least one coefficient is zero per halfspace), and \cppinline{SuitableForAxisAlignedFastPath<T>} (the carrier admits the bit-ops kernel's signedness convention).
-When all three hold, \cppinline{argmax(G, U)} routes to the bit-ops kernel; otherwise to the generic Cramer kernel.
-The non-taken branch is removed from the template instantiation by \cppinline{if constexpr}; no run-time dispatch survives.
+A separate concern arises when the polytope happens to be signed-unimodular and axis-aligned: in that scope the Cramer determinants are all $\pm 1$, the active-set divisions degenerate to sign flips, and the enumeration collapses to per-axis bracketing and a sign-driven select.
+The library ships both kernels and lets the type system pick (Table~\ref{tab:lp-regime-dispatch}); the dispatch is a single \cppinline{if constexpr} over three concepts on the halfspace pack and carrier, and the non-taken branch is removed from the template instantiation.
 
 \paragraph{Bridge: same source, two evaluation modes.}
 The compile-time path described above takes constraints at the type level.
@@ -1843,9 +1838,8 @@ The same kernel runs at runtime when the constraints arrive as a \cppinline{std:
 The runtime entry \cppinline{maximize_with_values<T>(span, cx, cy)} performs the same structural classification at runtime, routes to the same kernel, and returns the same Set carrier --- with the regime now encoded at the value level (via the predicate's \cppinline{(point, feasible)} state) instead of the type level.
 The bridge is mechanical: the kernel is one \cppinline{constexpr} function, and the call site selects the evaluation mode by the constexpr-ness of its arguments.
 
-\paragraph{IR witness.} The paper's claim is not prose; it is translation-time mechanics.
-On the NTTP path, two \texttt{extern "C"} witness functions in the fixture return the optimum's $x$- and $y$-coordinates --- extracted from the output Set's predicate at the type level.
-At \texttt{-O2}, \texttt{clang}'s optimiser folds the entire LP reduction to literal integers:
+\paragraph{IR witness.} The claim is translation-time mechanics.
+Two \texttt{extern "C"} fixture functions extract the optimum's $x$- and $y$-coordinates from the output Set's predicate; at \texttt{-O2}, \texttt{clang} folds the entire reduction to literal integers:
 
 % Source: src/test/cpp/modules/dedekind/python/showcase_09_lp_vertex_typed_constant.ll
 \begin{listing}[htbp]
@@ -1863,17 +1857,14 @@ define noundef i64 @witness_lp_optimum_y() ... {
 \end{cpp}
 \end{listing}
 
-The IR is checked into the repository as a fixture (\texttt{showcase\_09\_lp\_vertex\_typed\_constant.ll}); a build-time gate (\texttt{make ir-fixture-check}) fails CI if optimiser drift ever loses the collapse.
-The binary contains no LP solver; no simplex tableau; no active-set machinery.
-More precisely: the vertex's coordinates are non-type template parameters of the output Set's predicate (\cppinline{Singleton2DPredicate<Rat, Rat{2}, Rat{2}>}), so the C++23 NTTP machinery is what carries the answer through to the type level.
-The input is a constexpr Set passed under \cppinline{argmax(G, U)}; the output is a Set whose predicate type's NTTPs encode the coordinates; the runtime witness extracting a coordinate collapses to a literal load in the emitted IR.
-Because the reduction lands in \texttt{Rational<...>} rather than IEEE floating point, the \cppinline{ret i64 2} output is bit-identical across ARM and x86 back-ends and host floating-point ABIs --- the typed constant has no rounding mode to disagree about.
+The IR is checked in as \texttt{showcase\_09\_lp\_vertex\_typed\_constant.ll}; \texttt{make ir-fixture-check} fails CI on optimiser drift.
+The binary contains no LP solver, no simplex tableau, no active-set machinery: the vertex's coordinates ride as NTTPs of \cppinline{Singleton2DPredicate<Rat, Rat{2}, Rat{2}>}, and the witness extracting a coordinate collapses to a literal load.
+Because the reduction lands in \texttt{Rational<...>} rather than IEEE floating point, the output is bit-identical across ARM and x86 back-ends --- the typed constant has no rounding mode to disagree about.
 
 \paragraph{Runtime IR: two kernels, two signatures.}
-The complementary direction is to call the same kernels with runtime data and look at the residual IR.
-The library exposes \cppinline{maximize_axis_aligned_with_values<T>} and \cppinline{maximize_cramer_with_values<T>} as explicit power-user entries (the IR microscope on each kernel in isolation); the default \cppinline{maximize_with_values<T>} dispatches mechanically between them.
-The fixtures \texttt{showcase\_09b\_lp\_runtime\_residual.ll} and \texttt{showcase\_12b\_lp\_unimodular\_runtime.ll} pin the two kernels' signatures: the Cramer kernel retains its $2 \times 2$ \texttt{fdiv} / \texttt{fmuladd} active-set arithmetic and the loop's \texttt{phi} accumulators; the bit-ops kernel retains the loop's \texttt{phi} accumulators and the sign-driven \texttt{select} but emits no \texttt{mul} / \texttt{sdiv} / \texttt{udiv} on the integer carrier.
-The semantic-sanity checker enforces both shapes (\texttt{pruning-ir-fixture.py}).
+The complementary direction is to call the same kernels with runtime data.
+The power-user entries \cppinline{maximize_axis_aligned_with_values<T>} and \cppinline{maximize_cramer_with_values<T>} are the IR microscope on each kernel in isolation; the default \cppinline{maximize_with_values<T>} dispatches mechanically between them.
+Both signatures are pinned by fixtures (Listing~\ref{lst:lp-runtime-ir-side-by-side}, Table~\ref{tab:lp-regime-dispatch}) and enforced by \texttt{pruning-ir-fixture.py}.
 
 % Source excerpts: showcase_09b_lp_runtime_residual.ll, showcase_12b_lp_unimodular_runtime.ll
 \begin{listing}[htbp]
@@ -1942,8 +1933,7 @@ Generic Cramer & \cppinline{std::span} & \cppinline{LPSolutionPredicate} & $\bin
 \end{tabular}
 \end{table}
 
-A \cppinline{static_assert} on the project's \cppinline{IsSet} concept (the ETCS-grade Set contract from Section~\ref{sec:sets-rules}) confirms that the input polytope, the singleton output, the empty output, and the runtime-discriminated output are all Sets in the same sense --- not merely structurally-similar wrappers but carriers of \cppinline{HasETCSAxioms} and \cppinline{IsCartesianClosed<CanonicalSetCCC<Ambient>>}.
-A further \cppinline{static_assert} on \cppinline{IsFAlgebra} confirms the catamorphism \emph{shape} on the output side: the output Set carries a structure map $F\langle X\rangle \to X$ for the identity endofunctor on its ambient category, with the active-set step closing over the halfspace pack.\footnote{The shape witness is mechanical.
+Two \cppinline{static_assert} chains close the section: \cppinline{IsSet} (the ETCS-grade Set contract of Section~\ref{sec:sets-rules}) holds for the input polytope and all three output regimes (Listing~\ref{lst:lp-is-set-chain}); \cppinline{IsFAlgebra} holds for the output Set under the identity endofunctor (Listing~\ref{lst:lp-is-falgebra}), witnessing the catamorphism \emph{shape} with the active-set step as the structure map.\footnote{The shape witness is mechanical.
 The catamorphism's uniqueness clause --- that \cppinline{argmax(G, U)} is the unique morphism into the output algebra from the initial halfspace-list F-algebra for $F(X) = 1 + \text{Halfspace} \times X$ --- is the engineer's honesty obligation per Pierce~\cite{pierce2002tapl} §5.4; the project's \cppinline{:f_algebra} partition reifies this as an opt-in \cppinline{is_initial_f_algebra_v} trait, deliberately defaulted to false here.}
 
 % Source: src/test/cpp/modules/dedekind/optimization/lp_test.cpp (TEST_CASE "both argmax input and output satisfy IsSet")
