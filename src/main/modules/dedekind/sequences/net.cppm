@@ -143,6 +143,59 @@ concept IsNet = IsArrow<N> && IsDirectedSet<typename N::Domain>;
  * \alpha^{q-2}\}@f$ presents cleanly as both
  * @c std::ranges::input_range (today, via @c FinitePath) and
  * @c std::generator<F> (future, via the adapter sketched above).
+ *
+ * @section net__IsSequence_categorical_anchors
+ *
+ * Beyond the standard-library and topology-textbook anchors above,
+ * @c IsSequence sits at a categorical sweet-spot that several upstream
+ * concepts already reify in this codebase.  Naming them here so the
+ * conceptual basis is explicit:
+ *
+ *  - @b F-coalgebra structure.  An enumeration is, categorically, a
+ *    coalgebra @f$\alpha : X \to 1 + T \times X@f$ for the list/stream
+ *    functor @f$F(X) = 1 + T \times X@f$ — the @em unfold step that
+ *    @em enables enumeration.  The concept @c IsFCoalgebra is shipped
+ *    in @c dedekind.category:functor (see @c category/functor.cppm);
+ *    @c IsSequence holds precisely when the source admits such a
+ *    coalgebra for the stream functor instance.
+ *
+ *  - @b Stream-comonad structure on the @em result.  Terminal
+ *    @c F-coalgebras of the list functor are automatically comonads
+ *    (Pierce TAPL §5; Lambek's lemma corollary).  In this codebase
+ *    @c Path<T> reifies the terminal @c F-coalgebra and additionally
+ *    satisfies @c IsStreamComonad (see @c sequences/path.cppm), giving
+ *    @c head / @c tail / @c duplicate on the resulting sequence.  This
+ *    is structure on the @em output of an enumeration, not what
+ *    enables it.
+ *
+ *  - @b NNO universal property.  The @f$\mathbb{N}@f$-indexed case
+ *    of @c IsSequence — i.e.\ when @c Domain is the carrier of the
+ *    Natural Numbers Object (Lawvere–ETCS Axiom 9; @c IsNNO in
+ *    @c dedekind.numbers) — is what licenses @em primitive recursion:
+ *    given a seed @f$a_0@f$ and a step @f$\sigma@f$, the universal
+ *    property delivers a unique map @f$f : \mathbb{N} \to T@f$ with
+ *    @f$f(0) = a_0@f$ and @f$f(n+1) = \sigma(f(n))@f$.  This is why
+ *    NNO-indexed sequences (rather than arbitrary directed-set-indexed
+ *    nets) suffice for bounded enumeration / @c take operations.
+ *
+ *  - @b Terminal-F-coalgebra reading.  The universal-property anchor
+ *    for @c Path<T> is named in the @c :f_algebra partition's title
+ *    ("Initial F-algebras @b and @b terminal @b F-coalgebras", see
+ *    @c category/f_algebra.cppm) and exposed there via the
+ *    @c is_terminal_f_coalgebra_v opt-in trait (sibling to
+ *    @c is_initial_f_algebra_v ).  The opt-in defaults to false; the
+ *    engineer registering a witness carries the universal-property
+ *    obligation per the @c :f_algebra discipline.
+ *
+ * In short: @c IsSequence is the right gate for enumeration
+ * (@c take / @c limit -style operations) precisely because every
+ * @c IsSequence is a coalgebra for the stream functor — the @em unfold
+ * structure is what makes "first @c n elements" well-defined.  The
+ * carrier-side companion @c IsCountableSet (defined immediately below)
+ * is the friendly user-facing predicate that asks "does my carrier
+ * produce a canonical @c IsSequence ?"  The @em duality with the
+ * F-algebra side of @c argmax (@c sec:lp-centrepiece in @c paper.tex )
+ * is exact: fold for @c argmax , unfold for @c take .
  */
 export template <typename Seq>
 concept IsSequence = IsNet<Seq> && IsCountablyIndexedFamily<Seq> && requires {

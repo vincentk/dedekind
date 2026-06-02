@@ -50,14 +50,17 @@
 module;
 
 #include <functional>
+#include <ranges>
 #include <tuple>
 #include <type_traits>
+#include <unordered_set>
 #include <utility>
 
 export module dedekind.sets:relational;
 
 import dedekind.category;
 import :expressions;
+import :extensional;
 
 namespace dedekind::sets {
 using namespace dedekind::category;
@@ -191,5 +194,117 @@ static_assert(
         decltype(dedekind::category::ambient_set<CanonicalNaturalJoinDomain>(
             std::declval<const CanonicalNaturalJoin&>()))>,
     "natural_join output must lift to an ETCS set object.");
+
+/**
+ * @brief Take (LIMIT N): bounded materialisation of an iterable source.
+ *
+ * @details Walks @p source up to the first @p n distinct elements and
+ * returns them as an @c ExtensionalSet<T>.  This is the realisation-
+ * boundary primitive that operationalises the @em "Intensional first,
+ * realize when you mean it" discipline of @c sec:intensional in
+ * @c paper.tex: the user explicitly names the point at which a Path-
+ * walkable source crosses into an enumerated container.
+ *
+ * @section relational__take_Gates
+ *
+ * @c take requires @p source to be a @c std::ranges::input_range.  This
+ * subsumes every realistic source today:
+ *
+ *  - @c std::set<T> / @c std::unordered_set<T> (extensional carriers)
+ *  - @c ExtensionalSet<T> (the project's small-finite extensional carrier
+ *    in @c sets:extensional; exposes @c begin() / @c end())
+ *  - @c FinitePath<T> (the bounded sequence in @c sequences:path; also
+ *    exposes @c begin() / @c end() per @c IsSequence's
+ *    @c Iterator_Range_Anchor)
+ *  - @c std::views::filter -style range adaptors over any of the above
+ *
+ * Sources that satisfy the carrier-side @c IsCountableSet concept (which
+ * exposes @c as_sequence() returning an @c IsSequence) are covered
+ * indirectly via @c std::ranges::input_range on the sequence: callers
+ * pass @c s.as_sequence() to @c take .  A future overload may take the
+ * @c IsCountableSet directly and call @c as_sequence() internally; this
+ * MVP keeps the interface uniform on the range surface.
+ *
+ * Intensional sources without a Path or a range surface (e.g.\ a raw
+ * @c Set<T, L, P> over a transfinite ambient with no canonical
+ * enumeration on @c T) trip @em Honest Rejection: there is no
+ * @c std::ranges::input_range overload, the template substitution fails,
+ * and the compiler refuses with a named concept-failure diagnostic.
+ *
+ * @section relational__take_Categorical_Anchors
+ *
+ * @c take is the bounded hylomorphism @em anamorphism then catamorphism:
+ *
+ *  - The unfold (anamorphism) walks the source as an @c F-coalgebra for
+ *    the list/stream functor @f$F(X) = 1 + T \times X@f$.  This is what
+ *    the codebase's @c IsFCoalgebra concept names
+ *    (@c category:functor.cppm).
+ *  - The fold (catamorphism) accumulates into @c ExtensionalSet<T>, the
+ *    @c F-algebra side.  The depth budget @p n bounds the unfold.
+ *
+ * The duality is exact: @c argmax (@c sec:lp-centrepiece) is the
+ * F-algebra-shaped side, witnessed by @c IsFAlgebra ; @c take is the
+ * F-coalgebra-shaped side, witnessed by the source carrying an
+ * @c IsFCoalgebra (or, indirectly, by satisfying the
+ * @c std::ranges::input_range / @c IsCountableSet surface).
+ *
+ * @section relational__take_Compile_Time
+ *
+ * @c take is intentionally @b runtime-only in this MVP.  The compile-
+ * time path (folding the entire reduction into a typed constant) would
+ * require an output type that is @c constexpr -constructible with
+ * populated contents; the current @c ExtensionalSet uses
+ * @c std::unordered_set internally which is not (in C++23, with
+ * non-empty contents).  A constexpr-friendly extensional output type or
+ * an NTTP-encoded list output is the follow-up that unlocks
+ * @c if @c consteval dispatch; see issue #753.
+ *
+ * @section relational__take_Realisation_Boundary
+ *
+ * Among @c sets:relational 's operators, @c take is the only one that
+ * materialises a result: every other primitive (@c select , @c
+ * set_union , @c set_intersection , @c set_difference , @c
+ * cartesian_product , @c natural_join ) composes predicates without
+ * touching elements.  @c take is therefore the explicit crossing of the
+ * realisation boundary the paper §3 names — the point at which the
+ * user has decided that an extensional answer is wanted.
+ *
+ * @tparam SourceRange  Any @c std::ranges::input_range whose
+ *         @c value_type is the element type @c T .
+ *
+ * @param  source  The source to walk.  Iterated front-to-back up to
+ *                 the first @p n distinct elements.
+ * @param  n       The maximum number of elements to take.  The result's
+ *                 size is @c min(n, |source|).
+ *
+ * @return An @c ExtensionalSet<T> containing the first @p n distinct
+ *         elements of @p source in @p source 's iteration order
+ *         (modulo the @c std::unordered_set 's hash-bucket order in
+ *         the resulting container).
+ */
+export template <std::ranges::input_range SourceRange>
+constexpr auto take(SourceRange&& source, std::size_t n) {
+  using T = std::remove_cvref_t<std::ranges::range_value_t<SourceRange>>;
+  std::unordered_set<T> picked;
+  picked.reserve(n);
+  for (auto&& element : source) {
+    if (picked.size() >= n) break;
+    picked.insert(std::forward<decltype(element)>(element));
+  }
+  return ExtensionalSet<T>{std::move(picked)};
+}
+
+/**
+ * @brief Limit: a named alias for @c take following SQL ergonomics.
+ *
+ * @details @c SELECT @c * @c FROM @c S @c LIMIT @c N is the SQL spelling
+ * of the intensional-SQL operator @c take(S, @c N) .  This alias is
+ * provided so the SQL-fluent reading reads verbatim.  Behaviour and gates
+ * are identical to @c take .
+ */
+export template <std::ranges::input_range SourceRange>
+constexpr auto limit(SourceRange&& source, std::size_t n) {
+  return take(std::forward<SourceRange>(source), n);
+}
 
 }  // namespace dedekind::sets
