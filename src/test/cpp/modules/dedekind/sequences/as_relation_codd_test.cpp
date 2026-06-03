@@ -1,16 +1,25 @@
 // ---------------------------------------------------------------------------
-// take / limit / drop (#753) — predicate-defined subobjects on countable
-// sets of pairs (the relational form of a Path's graph).
+// as_relation + Codd-Date σ-with-derived-pivot (#753).
 //
-// Per the §3 review (2026-06-03), take/drop/limit are σ-with-derived-pivot
-// operators in Codd-Date *Third Manifesto* vocabulary: predicate-defined
-// subobjects of a sequence's graph (relation form), with the cutoff named
-// as a predicate on the index column.  This is the "drop / take are
-// re-written as predicates on countable set" design tracked in #753.
+// Per the §3 review (2026-06-03), a sequence is — in Bourbaki's reading —
+// the set of pairs that is its graph.  `as_relation(Path<T>)` lifts a Path
+// into that set-of-pairs form, after which Codd's relational machinery
+// (σ via `select`, × via `cartesian_product`, ⋈ via `select ∘ ×`) acts on
+// it directly.
 //
-// The Path-level iterable forms (prefix / drop returning FinitePath) remain
-// at :sequences:path under their Bird-Meertens names and are tested
-// elsewhere (path_test.cpp).
+// In particular, Codd's `LIMIT N` (and its dual, the relational `DROP N`)
+// is σ with a derived index-cutoff predicate — `select(R, λ(i,t). i < n)`
+// for the prefix and `i >= n` for the tail.  We do NOT ship `take` /
+// `drop` / `limit` as separate named primitives on the relation form, in
+// the same posture by which we do not ship `zip` (it is
+// `select(cartesian_product(R, S), key_match)`): naming such
+// σ-specialisations obscures the algebraic content the codebase wants the
+// reader to read off directly.
+//
+// These tests exhibit the lift and the σ-specialisation reading; the
+// Bird-Meertens iterable `prefix(Path, n) → FinitePath<T>` (the form that
+// participates in `for`-loops, `partial_sum`, etc.) is exercised in
+// `path_test.cpp`.
 //
 // @copyright 2026 The Dedekind Authors
 // Licensed under the Apache License, Version 2.0.
@@ -62,13 +71,20 @@ TEST_CASE("as_relation lifts a Path to its graph predicate",
   }
 }
 
-TEST_CASE("take(relation, n) restricts the index column to [0, n)",
-          "[sequences][take][relation]") {
+TEST_CASE("Codd LIMIT N as σ-with-derived-pivot: select(R, λ(i,t). i < n)",
+          "[sequences][as_relation][codd][limit]") {
+  // The §3-page-2 exhibit: Codd's LIMIT N (Date & Darwen, Third Manifesto,
+  // Prescription 7) is σ with a derived upper-cutoff pivot on the index
+  // column.  We spell it inline as `select(R, λ(i,t). i < n)` — no named
+  // primitive — making the algebraic content visible at the call site.
   const auto path = make_test_path();
   const auto rel = as_relation(path);
-  const auto first_three = take(rel, std::size_t{3});
+  const auto first_three =
+      select(rel, [](const std::pair<std::size_t, unsigned>& p) -> bool {
+        return p.first < std::size_t{3};
+      });
 
-  SECTION("Pairs with index < n that are on the graph belong to take") {
+  SECTION("Pairs with index < n that are on the graph belong") {
     REQUIRE(first_three(std::pair<std::size_t, unsigned>{0u, 10u}));
     REQUIRE(first_three(std::pair<std::size_t, unsigned>{1u, 20u}));
     REQUIRE(first_three(std::pair<std::size_t, unsigned>{2u, 30u}));
@@ -79,25 +95,24 @@ TEST_CASE("take(relation, n) restricts the index column to [0, n)",
     REQUIRE_FALSE(first_three(std::pair<std::size_t, unsigned>{4u, 50u}));
   }
 
-  SECTION("Pairs not on the graph remain excluded") {
+  SECTION("Pairs not on the graph remain excluded (source predicate veto)") {
     REQUIRE_FALSE(first_three(std::pair<std::size_t, unsigned>{0u, 99u}));
     REQUIRE_FALSE(first_three(std::pair<std::size_t, unsigned>{1u, 21u}));
   }
-
-  SECTION("limit is an alias for take") {
-    const auto via_limit = limit(rel, std::size_t{3});
-    REQUIRE(via_limit(std::pair<std::size_t, unsigned>{0u, 10u}));
-    REQUIRE_FALSE(via_limit(std::pair<std::size_t, unsigned>{3u, 40u}));
-  }
 }
 
-TEST_CASE("drop(relation, n) restricts the index column to [n, +inf)",
-          "[sequences][drop][relation]") {
+TEST_CASE("Dual of LIMIT (relational tail) as select(R, λ(i,t). i >= n)",
+          "[sequences][as_relation][codd][tail]") {
+  // The dual cutoff: the relational tail from index n onward.  Same
+  // σ-specialisation shape, opposite predicate on the index column.
   const auto path = make_test_path();
   const auto rel = as_relation(path);
-  const auto skipped_two = drop(rel, std::size_t{2});
+  const auto skipped_two =
+      select(rel, [](const std::pair<std::size_t, unsigned>& p) -> bool {
+        return p.first >= std::size_t{2};
+      });
 
-  SECTION("Pairs with index >= n that are on the graph belong to drop") {
+  SECTION("Pairs with index >= n that are on the graph belong") {
     REQUIRE(skipped_two(std::pair<std::size_t, unsigned>{2u, 30u}));
     REQUIRE(skipped_two(std::pair<std::size_t, unsigned>{3u, 40u}));
     REQUIRE(skipped_two(std::pair<std::size_t, unsigned>{4u, 50u}));
@@ -109,18 +124,24 @@ TEST_CASE("drop(relation, n) restricts the index column to [n, +inf)",
   }
 }
 
-TEST_CASE("drop ∘ take gives a window on the index column",
-          "[sequences][take][drop][window]") {
-  // The §3-page-2 canonical exhibit: drop(take(rel, m), n) is the
-  // sub-relation restricted to index positions [n, m).  Take=cutoff above,
-  // drop=cutoff below; their composition is the natural interval-on-index
-  // operation, mirroring the OrderInterval pattern §5.4 names.
+TEST_CASE("Conjoining cutoffs as σ ∘ σ gives an index-column window",
+          "[sequences][as_relation][window]") {
+  // Codd-via-Date again: the sub-relation at index positions [m, n) is
+  // the σ-conjunction of the two cutoff predicates.  Same algebra as
+  // SQL `WHERE index >= m AND index < n` — exhibited here as the
+  // composition of two `select` calls.
   const auto path = make_test_path();
   const auto rel = as_relation(path);
 
-  // SQL: SELECT * FROM rel WHERE index >= 1 AND index < 4
-  //    = the sub-relation at indices [1, 4) = pairs (1,20), (2,30), (3,40)
-  const auto window = drop(take(rel, std::size_t{4}), std::size_t{1});
+  // The window at indices [1, 4) — pairs (1,20), (2,30), (3,40).
+  const auto window =
+      select(select(rel,
+                    [](const std::pair<std::size_t, unsigned>& p) -> bool {
+                      return p.first < std::size_t{4};
+                    }),
+             [](const std::pair<std::size_t, unsigned>& p) -> bool {
+               return p.first >= std::size_t{1};
+             });
 
   SECTION("Pairs in the window belong") {
     REQUIRE(window(std::pair<std::size_t, unsigned>{1u, 20u}));
@@ -135,35 +156,5 @@ TEST_CASE("drop ∘ take gives a window on the index column",
 
   SECTION("Pairs not on the graph remain excluded") {
     REQUIRE_FALSE(window(std::pair<std::size_t, unsigned>{2u, 31u}));
-  }
-}
-
-TEST_CASE("Codd-Date σ-with-derived-pivot: take ≡ select with index cutoff",
-          "[sequences][take][codd]") {
-  // The §3-page-2 thesis: take is σ with a derived upper-cutoff pivot
-  // (Date & Darwen, Third Manifesto, Prescription 7).  Demonstrate the
-  // equivalence mechanically: take(rel, n) and select(rel, λp. p.first<n)
-  // produce subobjects with the same membership predicate.
-  const auto path = make_test_path();
-  const auto rel = as_relation(path);
-
-  const auto via_take = take(rel, std::size_t{3});
-  const auto via_select =
-      select(rel, [](const std::pair<std::size_t, unsigned>& p) -> bool {
-        return p.first < std::size_t{3};
-      });
-
-  SECTION("Both produce the same membership decisions") {
-    // On-graph pairs in [0, 3): both accept
-    REQUIRE(via_take(std::pair<std::size_t, unsigned>{0u, 10u}));
-    REQUIRE(via_select(std::pair<std::size_t, unsigned>{0u, 10u}));
-    REQUIRE(via_take(std::pair<std::size_t, unsigned>{2u, 30u}));
-    REQUIRE(via_select(std::pair<std::size_t, unsigned>{2u, 30u}));
-    // On-graph pairs at index >= 3: both reject
-    REQUIRE_FALSE(via_take(std::pair<std::size_t, unsigned>{3u, 40u}));
-    REQUIRE_FALSE(via_select(std::pair<std::size_t, unsigned>{3u, 40u}));
-    // Off-graph pairs: both reject (source predicate veto)
-    REQUIRE_FALSE(via_take(std::pair<std::size_t, unsigned>{0u, 99u}));
-    REQUIRE_FALSE(via_select(std::pair<std::size_t, unsigned>{0u, 99u}));
   }
 }

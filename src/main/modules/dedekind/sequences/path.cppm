@@ -358,8 +358,8 @@ constexpr auto from_range(R&& range) {
  *
  * For an iterable slice use the Bird-Meertens @c prefix at the @c Path
  * layer; for the relational subobject form, lift through @c as_relation
- * and use the partition's @c take / @c drop / @c limit on the resulting
- * graph relation (issue #753 design pivot 2026-06-03):
+ * and compose with @c select (Codd's σ) on the resulting graph
+ * relation — see @c as_relation below (issue #753).
  *
  * @code
  *   const std::vector<unsigned> v = {3, 7, 11, 13, 17};
@@ -498,9 +498,10 @@ constexpr auto drop(const Path<T, Cardinality>& path, std::size_t n) {
  *  - @c cartesian_product gives @c × on top of which
  *    @c select(cartesian_product(R, S), θ) reaches the full
  *    @c θ-join of Codd 1970 (Date & Darwen, @em Third @em Manifesto ).
- *  - @c take / @c drop / @c limit below are predicate-defined subobjects
- *    in this relational form, with the cutoff as a predicate on the
- *    index column.
+ *  - Codd's @c LIMIT @c N and its dual are σ-specialisations:
+ *    spell them inline as @c select(R, λ(i,t). @c i @c < @c n)
+ *    (or @c >= @c n for the tail), not as named primitives — the
+ *    same posture as for @c zip via @c natural_join .
  *
  * @section path__as_relation_Witness
  *
@@ -530,67 +531,16 @@ constexpr auto as_relation(const Path<T, Cardinality>& path) {
   return Set<Pair, ClassicalLogic, decltype(graph_pred)>{graph_pred};
 }
 
-/**
- * @brief @c take(relation, n) — predicate-defined subobject restricting
- *        the index column to @c [0, n) .
- *
- * @details Codd-via-Date reading: @c LIMIT @c N is @em σ with a derived
- * upper-cutoff pivot (Date \& Darwen, @em Third @em Manifesto 2nd ed.,
- * 2006, Prescription 7 / RM Pre 24).  Returns a @c Set whose predicate
- * is the source's predicate composed with the cutoff
- * @c (i, t) ↦ @c i @c < @c n .
- *
- * @section path__take_Composability
- *
- * The output is a @c Set , not a @c FinitePath — it composes with the
- * relational operators in @c :sets:relational (@c select , @c set_union ,
- * @c cartesian_product , @c natural_join ).  For the iterable view of
- * "the first @p n elements" use @c prefix at the @c Path layer
- * directly; @c take is the @em relational form, suited to predicate
- * composition with the other Codd operators.
- *
- * Lawvere via Mac Lane: precomposition with the initial-ordinal
- * inclusion @f$\{0, \ldots, n-1\} \hookrightarrow \mathbb{N}@f$
- * (CWM §V.5, image factorisation); the output is the subobject
- * classified by the conjoined predicate.
- *
- * Pierce-via-Wadler: an early-stopped hylomorphism over a refinement
- * type (TAPL Ch. 22; @em Theorems @em for @em Free! pins parametricity).
- */
-export template <typename Index, typename T, typename L, typename P>
-  requires IsRingIntegral<Index>
-constexpr auto take(const Set<std::pair<Index, T>, L, P>& relation, Index n) {
-  return select(relation, [n](const std::pair<Index, T>& p) -> bool {
-    return p.first < n;
-  });
-}
-
-/**
- * @brief @c limit : SQL alias for @c take on a relational subobject.
- */
-export template <typename Index, typename T, typename L, typename P>
-  requires IsRingIntegral<Index>
-constexpr auto limit(const Set<std::pair<Index, T>, L, P>& relation, Index n) {
-  return take(relation, n);
-}
-
-/**
- * @brief @c drop(relation, n) — predicate-defined subobject restricting
- *        the index column to @c [n, ∞) .
- *
- * @details Dual of @c take : composes the source's predicate with the
- * lower cutoff @c (i, t) ↦ @c i @c >= @c n .  Returns the relational
- * tail; composes with @c take to synthesize intervals on the index
- * column: @c take(drop(relation, m), n - m) is the subobject restricted
- * to positions @c [m, n) of the source relation.
- */
-export template <typename Index, typename T, typename L, typename P>
-  requires IsRingIntegral<Index>
-constexpr auto drop(const Set<std::pair<Index, T>, L, P>& relation, Index n) {
-  return select(relation, [n](const std::pair<Index, T>& p) -> bool {
-    return p.first >= n;
-  });
-}
+// @c take / @c drop / @c limit on the relation form are @em not separately
+// named primitives — they are σ-specialisations and the codebase spells
+// them inline at call sites as @c select(R, λ(i,t). i @c < @c n) etc.
+// This follows Codd's lesson that @c LIMIT @c N is σ with a derived
+// upper-cutoff pivot (Date & Darwen, @em Third @em Manifesto 2nd ed.,
+// 2006, Prescription 7 / RM Pre 24), and the same project posture by
+// which @c zip is not shipped (it is @c select(cartesian_product(R, S),
+// key_match) ).  Naming such specialisations as primitives obscures the
+// algebraic content; the Bird-Meertens iterable @c prefix above remains
+// the way to extract the first @em n elements as a @c FinitePath<T> .
 
 /**
  * @brief δ (duplicate / comultiplication) of the stream comonad — the
