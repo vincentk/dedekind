@@ -192,14 +192,18 @@ static_assert(
             std::declval<const CanonicalNaturalJoin&>()))>,
     "natural_join output must lift to an ETCS set object.");
 
-// take / limit / drop live in :sequences:path now (free functions exported
-// alongside prefix, as_sequence, from_range).  Their home is the sequence
-// layer because they are structure-preserving subobject operations on
-// IsSequence morphisms — not Set-level realisations.  See #753's design
-// pivot (2026-06-03) for the literature pass (Codd-via-Date / Lawvere via
-// Mac Lane / Pierce-via-Wadler) that endorses this placement.  Callers
-// that want the SQL surface import dedekind.sequences alongside
-// dedekind.sets and write take / limit / drop unqualified under the
-// using-namespace patterns documented in the §3 prose.
+// Codd's @c LIMIT @c N and its dual are NOT separately named primitives
+// in this partition: they are σ-specialisations and the codebase spells
+// them inline as @c select(R, @c [](const auto& @c p){ return @c p.first
+// @c < @c n; @c }) on a sequence's graph relation (the same posture by
+// which @c zip is not shipped — it is @c select(cartesian_product(R, S),
+// key_match) ).  To reach the graph-relation form from an @c IsSequence,
+// import @c dedekind.sequences and use @c as_relation(path) at the
+// sequences layer; see #753's 2026-06-03 design pivot for the Codd-Date
+// / Bourbaki / Lawvere literature pass that endorses this posture.
+// The names @c drop and @c limit are also already in use elsewhere in
+// the project (Bird-Meertens @c drop(Path,n) and the sequence-limit
+// @c limit(Path<T>) ), so naming relational σ-specialisations
+// identically would create overload ambiguity for no algebraic gain.
 
 }  // namespace dedekind::sets

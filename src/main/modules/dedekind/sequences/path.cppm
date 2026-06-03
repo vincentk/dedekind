@@ -511,6 +511,7 @@ constexpr auto drop(const Path<T, Cardinality>& path, std::size_t n) {
  * thus type-system-discharged rather than asserted in prose.
  */
 export template <typename T, typename Cardinality>
+  requires std::equality_comparable<T>
 constexpr auto as_relation(const Path<T, Cardinality>& path) {
   // Use @c Path::Domain (currently @c std::size_t ) as the relation's
   // index carrier.  @c IsSequence requires its @c Domain to satisfy
