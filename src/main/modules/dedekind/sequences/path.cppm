@@ -49,12 +49,14 @@ export module dedekind.sequences:path;
 
 import dedekind.category;
 import dedekind.sets;
+import dedekind.order;
 import :net;
 
 namespace dedekind::sequences {
 
 using namespace dedekind::category;
 using namespace dedekind::sets;
+using namespace dedekind::order;
 
 /**
  * @class Path
@@ -465,122 +467,129 @@ constexpr auto drop(const Path<T, Cardinality>& path, std::size_t n) {
 }
 
 /**
- * @brief @c take(seq, n) — the SQL @c LIMIT N operator at the sequence
- *        layer.  Alias for @c prefix .
+ * @brief @c as_relation(path) — adapt a @c Path<T> into its graph relation,
+ *        a Set of @c (index, value) pairs.
  *
- * @details @em Same operation as @c prefix : returns the first @p n
- * elements of @p path as a @c FinitePath<T>.  The two names coexist
- * because each is the right name in a different register:
+ * @section path__as_relation_Categorical_Reading
  *
- *  - @c prefix is the Bird-Meertens / Wadler name; it reads naturally in
- *    functional-programming / category-theory prose.
- *  - @c take is the SQL @c LIMIT @c N name; it reads naturally in the
- *    intensional-SQL surface that issue #753 ships.
+ * By Bourbaki's function-as-graph definition, a function @f$f : \mathbb{N}
+ * \to T@f$ is the set of pairs @f$R_f = \{(n, f(n)) \mid n \in \mathbb{N}\}
+ * \subseteq \mathbb{N} \times T@f$ — i.e.\ a binary relation on
+ * @c std::size_t and @c T .  This adapter exhibits the categorical
+ * identity at the type level: for any @c Path<T, Cardinality> the result
+ * is a @c Set<std::pair<std::size_t, T>, ClassicalLogic, P> whose
+ * predicate @c P (the graph predicate) tests whether a candidate pair
+ * @c (i, t) belongs to the graph, i.e.\ whether @c t @c == @c path.at(i)
+ * (and, for finite paths, @c i @c < @c path.size() ).
  *
- * The two are mechanically identical.  Use whichever fits the register
- * of the calling code.
+ * @section path__as_relation_Why_It_Matters
  *
- * @section path__take_Subobject_Reading
+ * This is the bridge that makes the §3 (page 2) categorical chain
+ * @em sequence @em ⟹ @em set @em of @em pairs @em ⟹ @em relation
+ * a type-checked claim rather than rhetoric.  Once a @c Path<T> is
+ * lifted to its relation form, it participates mechanically in the
+ * relational-algebra machinery of @c :sets:relational :
  *
- * Per the design pivot tracked in #753 (2026-06-03), @c take on a
- * @c Path / @c IsSequence is a structure-preserving subobject operation:
- * the output is a @c FinitePath with the SAME generator as the source
- * (no value evaluation at construction) restricted to a shorter domain.
- * The three literature traditions converge on this reading:
+ *  - @c select returns predicate-defined subobjects (@c σ in Codd).
+ *  - @c set_union , @c set_intersection , @c set_difference act as
+ *    @c ∪ , @c ∩ , @c ∖ .
+ *  - @c cartesian_product gives @c × on top of which
+ *    @c select(cartesian_product(R, S), θ) reaches the full
+ *    @c θ-join of Codd 1970 (Date & Darwen, @em Third @em Manifesto ).
+ *  - @c take / @c drop / @c limit below are predicate-defined subobjects
+ *    in this relational form, with the cutoff as a predicate on the
+ *    index column.
  *
- *  - Codd-via-Date: @c LIMIT @c N is @em σ with a derived upper-cutoff
- *    pivot.  Date, @em The @em Third @em Manifesto (2nd ed., 2006),
- *    Prescription 7 / RM Pre 24.
- *  - Lawvere via Mac Lane: @c take is precomposition of an
- *    @c NNO -indexed morphism with the initial-ordinal inclusion
- *    @f$\{0, \ldots, n-1\} \hookrightarrow \mathbb{N}@f$.  Mac Lane,
- *    @em CWM 2nd ed., §V.5 (image factorisation).
- *  - Pierce-via-Wadler: an early-stopped hylomorphism over a refinement
- *    type @f$\{x : T \mid P(x)\}@f$.  Pierce, @em TAPL Ch. 22
- *    (bounded quantification / refinement types); Wadler, @em Theorems
- *    @em for @em Free! (FPCA 1989).
+ * @section path__as_relation_Witness
+ *
+ * The @c IsSet witness at the partition boundary asserts that the
+ * relation form mechanically satisfies the ETCS Set contract; the
+ * categorical identity "a sequence IS a countable set of pairs" is
+ * thus type-system-discharged rather than asserted in prose.
  */
 export template <typename T, typename Cardinality>
-constexpr auto take(const Path<T, Cardinality>& path, std::size_t n) {
-  return prefix(path, n);
+constexpr auto as_relation(const Path<T, Cardinality>& path) {
+  // Use the sequence's own @c Domain typedef as the relation's index
+  // carrier — the algebraic concept gate is @c IsRingIntegral, certified
+  // for @c std::size_t (operational), @c Cardinality (the @f$\mathbb{N}@f$
+  // Form), @c SignedCardinality (@f$\mathbb{Z}@f$ Form), etc. (see
+  // @c :order:halfspace:96 ).  @c IsSequence (above) requires its @c Domain
+  // to satisfy @c IsRingIntegral , so the relation form inherits the
+  // algebraic gate from the source.  Form-before-Carrier discipline:
+  // @c Path::Domain (currently @c std::size_t ) is the chosen carrier;
+  // the algebraic concept is what makes the choice principled.
+  using Index = typename Path<T, Cardinality>::Domain;
+  using Pair = std::pair<Index, T>;
+  auto graph_pred = [path](const Pair& p) -> bool {
+    const auto i = static_cast<std::size_t>(p.first);
+    if constexpr (dedekind::sets::IsFinite<Cardinality>) {
+      if (i >= path.size()) return false;
+    }
+    return p.second == path.at(i);
+  };
+  return Set<Pair, ClassicalLogic, decltype(graph_pred)>{graph_pred};
 }
 
 /**
- * @brief @c limit : SQL alias for @c take , behaviour and gates identical.
- */
-export template <typename T, typename Cardinality>
-constexpr auto limit(const Path<T, Cardinality>& path, std::size_t n) {
-  return prefix(path, n);
-}
-
-/**
- * @brief @c take(std::vector<T,Alloc>, n) — convenience overload routing
- *        through @c as_sequence(v) .
+ * @brief @c take(relation, n) — predicate-defined subobject restricting
+ *        the index column to @c [0, n) .
  *
- * @details Equivalent to @c take(as_sequence(v), @c n) but spelled
- * directly for SQL-style call-site ergonomics.  The result is a
- * @c FinitePath<T> of size @c min(n, v.size()) , reading lazily through
- * the captured vector.
- */
-export template <typename T, typename Alloc>
-constexpr auto take(const std::vector<T, Alloc>& v, std::size_t n) {
-  return take(as_sequence(v), n);
-}
-
-/**
- * @brief @c limit(std::vector<T,Alloc>, n) — SQL alias for @c take .
- */
-export template <typename T, typename Alloc>
-constexpr auto limit(const std::vector<T, Alloc>& v, std::size_t n) {
-  return take(v, n);
-}
-
-/**
- * @brief @c drop(std::vector<T,Alloc>, n) — convenience overload routing
- *        through @c as_sequence(v) ; finite-tail.
+ * @details Codd-via-Date reading: @c LIMIT @c N is @em σ with a derived
+ * upper-cutoff pivot (Date \& Darwen, @em Third @em Manifesto 2nd ed.,
+ * 2006, Prescription 7 / RM Pre 24).  Returns a @c Set whose predicate
+ * is the source's predicate composed with the cutoff
+ * @c (i, t) ↦ @c i @c < @c n .
  *
- * @details Returns a @c FinitePath<T> of size @c max(0, v.size() - n)
- * exposing @c v[n], @c v[n+1], ..., lazily through the captured vector.
- */
-export template <typename T, typename Alloc>
-constexpr auto drop(const std::vector<T, Alloc>& v, std::size_t n) {
-  return drop(as_sequence(v), n);
-}
-
-/**
- * @brief @c take(std::set<T,Compare,Alloc>, n) — first @p n elements in
- *        sorted order, via @c as_sequence(s) .
+ * @section path__take_Composability
  *
- * @details The categorical reading: @c std::set is an
- * @c IsFiniteSequence under in-order traversal with an
- * @c IsTotallyOrdered codomain (via @c Compare).  @c take returns the
- * sub-sequence of the first @p n sorted elements as a @c FinitePath<T> .
- */
-export template <typename T, typename Compare, typename Alloc>
-constexpr auto take(const std::set<T, Compare, Alloc>& s, std::size_t n) {
-  return take(as_sequence(s), n);
-}
-
-/**
- * @brief @c limit(std::set<T,Compare,Alloc>, n) — SQL alias for @c take .
- */
-export template <typename T, typename Compare, typename Alloc>
-constexpr auto limit(const std::set<T, Compare, Alloc>& s, std::size_t n) {
-  return take(s, n);
-}
-
-/**
- * @brief @c drop(std::set<T,Compare,Alloc>, n) — drop the first @p n
- *        elements in sorted order; finite-tail.
+ * The output is a @c Set , not a @c FinitePath — it composes with the
+ * relational operators in @c :sets:relational (@c select , @c set_union ,
+ * @c cartesian_product , @c natural_join ).  For the iterable view of
+ * "the first @p n elements" use @c prefix at the @c Path layer
+ * directly; @c take is the @em relational form, suited to predicate
+ * composition with the other Codd operators.
  *
- * @details Returns the sub-sequence skipping the first @p n sorted
- * elements.  Composes with @c take to produce intervals:
- * @c take(drop(s, m), n - m) is the closed sub-sequence in positions
- * @c [m, n) of @c s 's sorted enumeration.
+ * Lawvere via Mac Lane: precomposition with the initial-ordinal
+ * inclusion @f$\{0, \ldots, n-1\} \hookrightarrow \mathbb{N}@f$
+ * (CWM §V.5, image factorisation); the output is the subobject
+ * classified by the conjoined predicate.
+ *
+ * Pierce-via-Wadler: an early-stopped hylomorphism over a refinement
+ * type (TAPL Ch. 22; @em Theorems @em for @em Free! pins parametricity).
  */
-export template <typename T, typename Compare, typename Alloc>
-constexpr auto drop(const std::set<T, Compare, Alloc>& s, std::size_t n) {
-  return drop(as_sequence(s), n);
+export template <typename Index, typename T, typename L, typename P>
+  requires IsRingIntegral<Index>
+constexpr auto take(const Set<std::pair<Index, T>, L, P>& relation, Index n) {
+  return select(relation, [n](const std::pair<Index, T>& p) -> bool {
+    return p.first < n;
+  });
+}
+
+/**
+ * @brief @c limit : SQL alias for @c take on a relational subobject.
+ */
+export template <typename Index, typename T, typename L, typename P>
+  requires IsRingIntegral<Index>
+constexpr auto limit(const Set<std::pair<Index, T>, L, P>& relation, Index n) {
+  return take(relation, n);
+}
+
+/**
+ * @brief @c drop(relation, n) — predicate-defined subobject restricting
+ *        the index column to @c [n, ∞) .
+ *
+ * @details Dual of @c take : composes the source's predicate with the
+ * lower cutoff @c (i, t) ↦ @c i @c >= @c n .  Returns the relational
+ * tail; composes with @c take to synthesize intervals on the index
+ * column: @c take(drop(relation, m), n - m) is the subobject restricted
+ * to positions @c [m, n) of the source relation.
+ */
+export template <typename Index, typename T, typename L, typename P>
+  requires IsRingIntegral<Index>
+constexpr auto drop(const Set<std::pair<Index, T>, L, P>& relation, Index n) {
+  return select(relation, [n](const std::pair<Index, T>& p) -> bool {
+    return p.first >= n;
+  });
 }
 
 /**
@@ -972,6 +981,55 @@ static_assert(std::ranges::input_range<FinitePath<int>>,
 static_assert(
     std::input_iterator<decltype(std::declval<FinitePath<int>>().begin())>,
     "FinitePath<T>::begin() must yield a std::input_iterator.");
+
+// IsSet IS-A witness for sequences-as-relations (#753 §3 page-2 thesis).
+//
+// Bourbaki's function-as-graph definition: a function f : ℕ → T is the
+// set of pairs {(n, f(n)) | n ∈ ℕ} — equivalently, a binary relation on
+// std::size_t and T.  as_relation(path) above lifts a Path<T> to this
+// relational form (a Set<pair<size_t, T>, ClassicalLogic, GraphPredicate>).
+// The static_assert below mechanically witnesses that the relational form
+// satisfies the project's ETCS IsSet contract via the canonical
+// ambient_set<Pair>(...) lift — same pattern as the SingletonSet /
+// ExtensionalSet IsSet witnesses in :sets.
+//
+// This pins the §3 (page 2) categorical claim "a sequence IS a countable
+// set of pairs" at the type level: the IS-A relation between an
+// IsSequence inhabitant and an IsSet (of pairs) is type-checked here
+// rather than asserted only in prose.
+static_assert(
+    dedekind::category::IsSet<
+        decltype(dedekind::category::ambient_set<std::pair<std::size_t, int>>(
+            as_relation(std::declval<const Path<int>&>())))>,
+    "as_relation(Path<T>) must lift to an ETCS Set of pairs via "
+    "ambient_set<pair<size_t, T>>(...).  The mechanical witness for "
+    "the §3 page-2 thesis that a sequence IS a countable set of "
+    "pairs (Bourbaki function-as-graph).");
+
+static_assert(
+    dedekind::category::IsSet<
+        decltype(dedekind::category::ambient_set<std::pair<std::size_t, int>>(
+            as_relation(std::declval<const FinitePath<int>&>())))>,
+    "The IS-A witness must hold for both infinite (Path<T>) and finite "
+    "(FinitePath<T>) cardinality cases; the GraphPredicate handles both "
+    "uniformly via the IsFinite<Cardinality> compile-time branch.");
+
+// IsRingIntegral gate witness for Path::Domain (#753 §3 page-2 thesis).
+//
+// IsSequence (above, in :net) now requires its @c Domain to satisfy
+// @c IsRingIntegral — the algebraic concept certified for the operational
+// carriers (std::size_t, unsigned, etc.) AND the project's Form-shaped
+// carriers (Cardinality, SignedCardinality) at :order:halfspace:96.  This
+// pins the Form-before-Carrier discipline at the type level: the choice of
+// std::size_t for Path::Domain is principled (satisfies the algebraic
+// concept) rather than ad-hoc, and the same algebraic concept gates the
+// relation form's index column.
+static_assert(
+    dedekind::order::IsRingIntegral<typename Path<int>::Domain>,
+    "Path::Domain must satisfy IsRingIntegral — the algebraic concept "
+    "shared by std::size_t (operational) and Cardinality (Form).");
+static_assert(dedekind::order::IsRingIntegral<typename FinitePath<int>::Domain>,
+              "FinitePath::Domain must satisfy IsRingIntegral.");
 
 // Juliet-posture witness (#531): the @c std::ranges API produces bona
 // fide library sequences via the @c from_range adapter — any

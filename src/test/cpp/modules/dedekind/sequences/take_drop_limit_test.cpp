@@ -1,150 +1,169 @@
 // ---------------------------------------------------------------------------
-// take / limit / drop (#753) — structure-preserving subobject operators.
+// take / limit / drop (#753) — predicate-defined subobjects on countable
+// sets of pairs (the relational form of a Path's graph).
 //
-// Per the design pivot tracked in #753 (2026-06-03), take / limit / drop are
-// subobject operations that PRESERVE the source's enumeration structure
-// rather than materialising it.  The three traditions converge on this
-// reading: Codd-via-Date treats LIMIT as σ-with-derived-pivot; Lawvere via
-// Mac Lane treats take as precomposition with the initial-ordinal inclusion
-// (an image factorisation); Pierce-via-Wadler treats it as a parametric
-// early-stopped hylomorphism.  The output is a FinitePath<T> — the
-// IsFiniteSequence inhabitant whose generator reads through to the source
-// lazily.
+// Per the §3 review (2026-06-03), take/drop/limit are σ-with-derived-pivot
+// operators in Codd-Date *Third Manifesto* vocabulary: predicate-defined
+// subobjects of a sequence's graph (relation form), with the cutoff named
+// as a predicate on the index column.  This is the "drop / take are
+// re-written as predicates on countable set" design tracked in #753.
 //
-// take / limit / drop live at :sequences:path as free functions exported
-// alongside prefix, as_sequence, from_range.  This test exercises them
-// against the stdlib adapters (std::vector, std::set).
+// The Path-level iterable forms (prefix / drop returning FinitePath) remain
+// at :sequences:path under their Bird-Meertens names and are tested
+// elsewhere (path_test.cpp).
 //
 // @copyright 2026 The Dedekind Authors
 // Licensed under the Apache License, Version 2.0.
 // ---------------------------------------------------------------------------
 
 #include <catch2/catch_test_macros.hpp>
-#include <concepts>
-#include <set>
-#include <type_traits>
-#include <vector>
+#include <cstddef>
+#include <utility>
 
 import dedekind.sequences;
+import dedekind.sets;
 
 using namespace dedekind::sequences;
+using namespace dedekind::sets;
 
-TEST_CASE("take / limit on std::vector — lazy prefix view",
-          "[sequences][take][limit][vector]") {
-  const std::vector<unsigned> source{10u, 20u, 30u, 40u, 50u};
+namespace {
 
-  SECTION("take(v, n) returns first n elements in vector order") {
-    const auto picked = take(source, 3u);
-    REQUIRE(picked.size() == 3u);
-    REQUIRE(picked.at(0) == 10u);
-    REQUIRE(picked.at(1) == 20u);
-    REQUIRE(picked.at(2) == 30u);
+// A small Path<unsigned, Finite> for testing: i ↦ 10 * (i + 1).
+constexpr auto make_test_path() {
+  return FinitePath<unsigned>{[](std::size_t i) -> unsigned {
+                                return static_cast<unsigned>(10 * (i + 1));
+                              },
+                              /*extent=*/5};
+}
+
+}  // namespace
+
+TEST_CASE("as_relation lifts a Path to its graph predicate",
+          "[sequences][as_relation][graph]") {
+  const auto path = make_test_path();
+  const auto rel = as_relation(path);
+
+  SECTION("Pairs on the graph satisfy the relation") {
+    // path.at(i) = 10 * (i + 1), so the graph contains:
+    //   (0, 10), (1, 20), (2, 30), (3, 40), (4, 50)
+    REQUIRE(rel(std::pair<std::size_t, unsigned>{0u, 10u}));
+    REQUIRE(rel(std::pair<std::size_t, unsigned>{1u, 20u}));
+    REQUIRE(rel(std::pair<std::size_t, unsigned>{2u, 30u}));
+    REQUIRE(rel(std::pair<std::size_t, unsigned>{4u, 50u}));
   }
 
-  SECTION("take(v, n) for n > |v| returns the full source") {
-    const auto picked = take(source, 100u);
-    REQUIRE(picked.size() == source.size());
-    for (std::size_t i = 0; i < picked.size(); ++i) {
-      REQUIRE(picked.at(i) == source[i]);
-    }
+  SECTION("Pairs not on the graph fail the relation") {
+    // Wrong value at index 0
+    REQUIRE_FALSE(rel(std::pair<std::size_t, unsigned>{0u, 99u}));
+    // Index 5 is past the path's extent
+    REQUIRE_FALSE(rel(std::pair<std::size_t, unsigned>{5u, 60u}));
+    // Mismatched (correct index, wrong value)
+    REQUIRE_FALSE(rel(std::pair<std::size_t, unsigned>{2u, 31u}));
+  }
+}
+
+TEST_CASE("take(relation, n) restricts the index column to [0, n)",
+          "[sequences][take][relation]") {
+  const auto path = make_test_path();
+  const auto rel = as_relation(path);
+  const auto first_three = take(rel, std::size_t{3});
+
+  SECTION("Pairs with index < n that are on the graph belong to take") {
+    REQUIRE(first_three(std::pair<std::size_t, unsigned>{0u, 10u}));
+    REQUIRE(first_three(std::pair<std::size_t, unsigned>{1u, 20u}));
+    REQUIRE(first_three(std::pair<std::size_t, unsigned>{2u, 30u}));
   }
 
-  SECTION("take(v, 0) returns an empty FinitePath") {
-    const auto picked = take(source, 0u);
-    REQUIRE(picked.size() == 0u);
+  SECTION("Pairs with index >= n are excluded even if on the graph") {
+    REQUIRE_FALSE(first_three(std::pair<std::size_t, unsigned>{3u, 40u}));
+    REQUIRE_FALSE(first_three(std::pair<std::size_t, unsigned>{4u, 50u}));
+  }
+
+  SECTION("Pairs not on the graph remain excluded") {
+    REQUIRE_FALSE(first_three(std::pair<std::size_t, unsigned>{0u, 99u}));
+    REQUIRE_FALSE(first_three(std::pair<std::size_t, unsigned>{1u, 21u}));
   }
 
   SECTION("limit is an alias for take") {
-    const auto via_take = take(source, 3u);
-    const auto via_limit = limit(source, 3u);
-    REQUIRE(via_take.size() == via_limit.size());
-    for (std::size_t i = 0; i < via_take.size(); ++i) {
-      REQUIRE(via_take.at(i) == via_limit.at(i));
-    }
+    const auto via_limit = limit(rel, std::size_t{3});
+    REQUIRE(via_limit(std::pair<std::size_t, unsigned>{0u, 10u}));
+    REQUIRE_FALSE(via_limit(std::pair<std::size_t, unsigned>{3u, 40u}));
   }
 }
 
-TEST_CASE("take on std::set — first n in sorted order",
-          "[sequences][take][set]") {
-  // std::set is sorted by Compare; as_sequence(s) returns elements in
-  // ascending order via in-order traversal.
-  const std::set<unsigned> source{50u, 10u, 30u, 20u, 40u};  // insertion order
-                                                             // doesn't matter
+TEST_CASE("drop(relation, n) restricts the index column to [n, +inf)",
+          "[sequences][drop][relation]") {
+  const auto path = make_test_path();
+  const auto rel = as_relation(path);
+  const auto skipped_two = drop(rel, std::size_t{2});
 
-  SECTION("take(s, n) returns the n smallest elements (sorted)") {
-    const auto picked = take(source, 3u);
-    REQUIRE(picked.size() == 3u);
-    REQUIRE(picked.at(0) == 10u);
-    REQUIRE(picked.at(1) == 20u);
-    REQUIRE(picked.at(2) == 30u);
+  SECTION("Pairs with index >= n that are on the graph belong to drop") {
+    REQUIRE(skipped_two(std::pair<std::size_t, unsigned>{2u, 30u}));
+    REQUIRE(skipped_two(std::pair<std::size_t, unsigned>{3u, 40u}));
+    REQUIRE(skipped_two(std::pair<std::size_t, unsigned>{4u, 50u}));
+  }
+
+  SECTION("Pairs with index < n are excluded even if on the graph") {
+    REQUIRE_FALSE(skipped_two(std::pair<std::size_t, unsigned>{0u, 10u}));
+    REQUIRE_FALSE(skipped_two(std::pair<std::size_t, unsigned>{1u, 20u}));
   }
 }
 
-TEST_CASE("drop on std::vector — finite tail of size max(0, |v|-n)",
-          "[sequences][drop][vector]") {
-  const std::vector<unsigned> source{10u, 20u, 30u, 40u, 50u};
+TEST_CASE("drop ∘ take gives a window on the index column",
+          "[sequences][take][drop][window]") {
+  // The §3-page-2 canonical exhibit: drop(take(rel, m), n) is the
+  // sub-relation restricted to index positions [n, m).  Take=cutoff above,
+  // drop=cutoff below; their composition is the natural interval-on-index
+  // operation, mirroring the OrderInterval pattern §5.4 names.
+  const auto path = make_test_path();
+  const auto rel = as_relation(path);
 
-  SECTION("drop(v, n) skips the first n elements") {
-    const auto remaining = drop(source, 2u);
-    REQUIRE(remaining.size() == 3u);
-    REQUIRE(remaining.at(0) == 30u);
-    REQUIRE(remaining.at(1) == 40u);
-    REQUIRE(remaining.at(2) == 50u);
+  // SQL: SELECT * FROM rel WHERE index >= 1 AND index < 4
+  //    = the sub-relation at indices [1, 4) = pairs (1,20), (2,30), (3,40)
+  const auto window = drop(take(rel, std::size_t{4}), std::size_t{1});
+
+  SECTION("Pairs in the window belong") {
+    REQUIRE(window(std::pair<std::size_t, unsigned>{1u, 20u}));
+    REQUIRE(window(std::pair<std::size_t, unsigned>{2u, 30u}));
+    REQUIRE(window(std::pair<std::size_t, unsigned>{3u, 40u}));
   }
 
-  SECTION("drop(v, n) for n >= |v| returns an empty path") {
-    const auto remaining = drop(source, 10u);
-    REQUIRE(remaining.size() == 0u);
+  SECTION("Pairs outside the window are excluded") {
+    REQUIRE_FALSE(window(std::pair<std::size_t, unsigned>{0u, 10u}));
+    REQUIRE_FALSE(window(std::pair<std::size_t, unsigned>{4u, 50u}));
   }
-}
 
-TEST_CASE("drop on std::set — skip the n smallest elements",
-          "[sequences][drop][set]") {
-  const std::set<unsigned> source{10u, 20u, 30u, 40u, 50u};
-
-  SECTION("drop(s, n) yields the |s|-n largest elements in sorted order") {
-    const auto remaining = drop(source, 2u);
-    REQUIRE(remaining.size() == 3u);
-    REQUIRE(remaining.at(0) == 30u);
-    REQUIRE(remaining.at(1) == 40u);
-    REQUIRE(remaining.at(2) == 50u);
+  SECTION("Pairs not on the graph remain excluded") {
+    REQUIRE_FALSE(window(std::pair<std::size_t, unsigned>{2u, 31u}));
   }
 }
 
-TEST_CASE("drop ∘ take = interval — sequences-by-default composition",
-          "[sequences][take][drop][interval]") {
-  // The §3 canonical exhibit: drop(take(s, m), n) is the sub-sequence
-  // in positions [n, m).  For std::set this is the value-based interval
-  // between the n-th and (m-1)-th smallest elements (inclusive of the
-  // n-th, exclusive of the m-th).
-  //
-  // This composition is what the paper §3 reshape (#744 B3) cites as
-  // the "sequences-by-default" exhibit: take and drop preserve the
-  // source's enumeration structure, returning FinitePath<T> views that
-  // compose mechanically to produce intervals.
-  const std::set<unsigned> source{10u, 20u, 30u, 40u, 50u};
+TEST_CASE("Codd-Date σ-with-derived-pivot: take ≡ select with index cutoff",
+          "[sequences][take][codd]") {
+  // The §3-page-2 thesis: take is σ with a derived upper-cutoff pivot
+  // (Date & Darwen, Third Manifesto, Prescription 7).  Demonstrate the
+  // equivalence mechanically: take(rel, n) and select(rel, λp. p.first<n)
+  // produce subobjects with the same membership predicate.
+  const auto path = make_test_path();
+  const auto rel = as_relation(path);
 
-  // SQL: SELECT * FROM source ORDER BY value LIMIT 4 OFFSET 1
-  // = sub-sequence in positions [1, 4) of the sorted order
-  // = {20, 30, 40}
-  const auto interval = drop(take(source, 4u), 1u);
+  const auto via_take = take(rel, std::size_t{3});
+  const auto via_select =
+      select(rel, [](const std::pair<std::size_t, unsigned>& p) -> bool {
+        return p.first < std::size_t{3};
+      });
 
-  REQUIRE(interval.size() == 3u);
-  REQUIRE(interval.at(0) == 20u);
-  REQUIRE(interval.at(1) == 30u);
-  REQUIRE(interval.at(2) == 40u);
-}
-
-TEST_CASE("take output is an IsFiniteSequence (categorical commitment)",
-          "[sequences][take][is-finite-sequence]") {
-  // Per the design pivot, take's output is a structure-preserving
-  // subobject of the source: a FinitePath<T>, which is the canonical
-  // IsFiniteSequence inhabitant.  Static-assert the shape at the type
-  // level so the categorical commitment is mechanical, not prose.
-  const std::vector<unsigned> source{1u, 2u, 3u, 4u, 5u};
-  const auto picked = take(source, 3u);
-
-  static_assert(IsFiniteSequence<std::remove_cvref_t<decltype(picked)>>,
-                "take's output must be an IsFiniteSequence — structure "
-                "preservation is the design commitment per #753.");
+  SECTION("Both produce the same membership decisions") {
+    // On-graph pairs in [0, 3): both accept
+    REQUIRE(via_take(std::pair<std::size_t, unsigned>{0u, 10u}));
+    REQUIRE(via_select(std::pair<std::size_t, unsigned>{0u, 10u}));
+    REQUIRE(via_take(std::pair<std::size_t, unsigned>{2u, 30u}));
+    REQUIRE(via_select(std::pair<std::size_t, unsigned>{2u, 30u}));
+    // On-graph pairs at index >= 3: both reject
+    REQUIRE_FALSE(via_take(std::pair<std::size_t, unsigned>{3u, 40u}));
+    REQUIRE_FALSE(via_select(std::pair<std::size_t, unsigned>{3u, 40u}));
+    // Off-graph pairs: both reject (source predicate veto)
+    REQUIRE_FALSE(via_take(std::pair<std::size_t, unsigned>{0u, 99u}));
+    REQUIRE_FALSE(via_select(std::pair<std::size_t, unsigned>{0u, 99u}));
+  }
 }

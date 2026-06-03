@@ -216,7 +216,18 @@ concept IsSequence = IsNet<Seq> && IsCountablyIndexedFamily<Seq> && requires {
   // Refactored: value_type -> Codomain
   typename Seq::Codomain;
   typename Seq::Domain;
-} && requires(const Seq s) { requires IsSpecies<typename Seq::Domain>; };
+} && requires(const Seq s) {
+  requires IsSpecies<typename Seq::Domain>;
+  // Algebraic gate (#753, 2026-06-03): the @c Domain is the index carrier
+  // for the sequence.  @c IsRingIntegral is certified for both the
+  // operational carriers (@c std::size_t , @c unsigned int , ...) and the
+  // Form-shaped carriers (@c dedekind::sets::Cardinality for @f$\mathbb{N}@f$,
+  // @c dedekind::sets::SignedCardinality for @f$\mathbb{Z}@f$) at
+  // @c :order:halfspace:96 .  This makes the §3 page-2 claim "a sequence
+  // IS a countable set of @f$\mathbb{N} \times T@f$ pairs" type-checkable
+  // via @c as_relation while respecting Form-before-Carrier discipline.
+  requires dedekind::order::IsRingIntegral<typename Seq::Domain>;
+};
 
 /**
  * @concept IsFiniteSequence
