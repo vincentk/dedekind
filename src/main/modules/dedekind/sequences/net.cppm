@@ -155,9 +155,16 @@ concept IsNet = IsArrow<N> && IsDirectedSet<typename N::Domain>;
  *    coalgebra @f$\alpha : X \to 1 + T \times X@f$ for the list/stream
  *    functor @f$F(X) = 1 + T \times X@f$ — the @em unfold step that
  *    @em enables enumeration.  The concept @c IsFCoalgebra is shipped
- *    in @c dedekind.category:functor (see @c category/functor.cppm);
- *    @c IsSequence holds precisely when the source admits such a
- *    coalgebra for the stream functor instance.
+ *    in @c dedekind.category:functor (see @c category/functor.cppm).
+ *    @c IsSequence does NOT enforce this coalgebraic shape structurally
+ *    (the concept body asks for @c IsNet refinement, a countably-indexed
+ *    family, and Codomain/Domain typedefs — not for a coalgebra
+ *    morphism); it @em names the categorical reading the concept
+ *    captures.  Inhabitants like @c Path<T> in @c sequences/path.cppm
+ *    are coalgebras for this functor by construction; arbitrary
+ *    user-supplied @c IsSequence inhabitants carry the categorical
+ *    interpretation as the engineer's reading, not as a
+ *    type-system-enforced witness.
  *
  *  - @b Stream-comonad structure on the @em result.  Terminal
  *    @c F-coalgebras of the list functor are automatically comonads
@@ -188,15 +195,21 @@ concept IsNet = IsArrow<N> && IsDirectedSet<typename N::Domain>;
  *    engineer registering a witness carries the universal-property
  *    obligation per the @c :f_algebra discipline.
  *
- * In short: @c IsSequence is the right gate for enumeration
- * (@c take / @c limit -style operations) precisely because every
- * @c IsSequence is a coalgebra for the stream functor — the @em unfold
- * structure is what makes "first @c n elements" well-defined.  The
- * carrier-side companion @c IsCountableSet (defined immediately below)
- * is the friendly user-facing predicate that asks "does my carrier
- * produce a canonical @c IsSequence ?"  The @em duality with the
- * F-algebra side of @c argmax (@c sec:lp-centrepiece in @c paper.tex )
- * is exact: fold for @c argmax , unfold for @c take .
+ * In short: @c IsSequence is the natural gate for enumeration
+ * (@c take / @c limit -style operations) because the categorical
+ * structure the concept names — an NNO-indexed morphism, naturally
+ * read as a coalgebra for the stream functor — is what makes
+ * "first @c n elements" well-defined.  The structural type-system
+ * check is the refinement of @c IsNet plus the typedef obligations
+ * named in the concept body; the F-coalgebra / stream-comonad / NNO
+ * apparatus above is the @em categorical reading the concept
+ * captures, enforced by canonical inhabitants like @c Path<T> rather
+ * than by the concept itself.  The carrier-side companion
+ * @c IsCountableSet (defined immediately below) is the friendly
+ * user-facing predicate that asks "does my carrier produce a
+ * canonical @c IsSequence ?"  The @em duality with the F-algebra side
+ * of @c argmax (@c sec:lp-centrepiece in @c paper.tex ) is the
+ * categorical reading: fold for @c argmax , unfold for @c take .
  */
 export template <typename Seq>
 concept IsSequence = IsNet<Seq> && IsCountablyIndexedFamily<Seq> && requires {
