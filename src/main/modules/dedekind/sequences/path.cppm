@@ -356,12 +356,14 @@ constexpr auto from_range(R&& range) {
  *
  * @section path__as_sequence_vector_Use
  *
- * Composes with the @c :sets:relational @c take and @c drop operators
- * (issue #753 design pivot 2026-06-03):
+ * For an iterable slice use the Bird-Meertens @c prefix at the @c Path
+ * layer; for the relational subobject form, lift through @c as_relation
+ * and use the partition's @c take / @c drop / @c limit on the resulting
+ * graph relation (issue #753 design pivot 2026-06-03):
  *
  * @code
  *   const std::vector<unsigned> v = {3, 7, 11, 13, 17};
- *   const auto first_three = take(as_sequence(v), 3u);
+ *   const auto first_three = prefix(as_sequence(v), 3u);
  *   // first_three : FinitePath<unsigned>, size 3, lazy view of v[0..3)
  * @endcode
  *
@@ -509,15 +511,13 @@ constexpr auto drop(const Path<T, Cardinality>& path, std::size_t n) {
  */
 export template <typename T, typename Cardinality>
 constexpr auto as_relation(const Path<T, Cardinality>& path) {
-  // Use the sequence's own @c Domain typedef as the relation's index
-  // carrier — the algebraic concept gate is @c IsRingIntegral, certified
-  // for @c std::size_t (operational), @c Cardinality (the @f$\mathbb{N}@f$
-  // Form), @c SignedCardinality (@f$\mathbb{Z}@f$ Form), etc. (see
-  // @c :order:halfspace:96 ).  @c IsSequence (above) requires its @c Domain
-  // to satisfy @c IsRingIntegral , so the relation form inherits the
-  // algebraic gate from the source.  Form-before-Carrier discipline:
-  // @c Path::Domain (currently @c std::size_t ) is the chosen carrier;
-  // the algebraic concept is what makes the choice principled.
+  // Use @c Path::Domain (currently @c std::size_t ) as the relation's
+  // index carrier.  @c IsSequence requires its @c Domain to satisfy
+  // @c IsRingIntegral (see @c :order:halfspace:96 ); that algebraic gate
+  // — broad enough to admit both @c std::size_t and the @f$\mathbb{N}@f$
+  // Form @c dedekind::sets::Cardinality once @c Path::Domain is later
+  // generalised — is what makes the size_t choice principled rather than
+  // accidental, in line with the project's Form-before-Carrier posture.
   using Index = typename Path<T, Cardinality>::Domain;
   using Pair = std::pair<Index, T>;
   auto graph_pred = [path](const Pair& p) -> bool {
