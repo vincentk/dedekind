@@ -40,6 +40,7 @@ module;
 #include <memory>
 #include <optional>
 #include <ranges>
+#include <set>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -337,6 +338,75 @@ constexpr auto from_range(R&& range) {
       values->size()};
 }
 
+/**
+ * @brief @c as_sequence(std::vector<T,Alloc>) — adapt a vector into a
+ *        @c FinitePath<T> (lazy IsFiniteSequence view).
+ *
+ * @details The categorical reading: a @c std::vector<T> is operationally an
+ * indexed family @f$i \mapsto v[i]@f$ for @f$i \in \{0, \ldots, |v|-1\}@f$
+ * — i.e.\ an @c IsFiniteSequence morphism @f$\{0, \ldots, n-1\} \to T@f$.
+ * This adapter lifts the vector into a @c FinitePath<T> whose generator
+ * reads through to the underlying storage.
+ *
+ * The vector's contents are captured by value into a @c std::shared_ptr
+ * (sibling pattern to @c from_range above) so the resulting @c FinitePath
+ * remains valid independently of the caller's vector lifetime.
+ *
+ * @section path__as_sequence_vector_Use
+ *
+ * Composes with the @c :sets:relational @c take and @c drop operators
+ * (issue #753 design pivot 2026-06-03):
+ *
+ * @code
+ *   const std::vector<unsigned> v = {3, 7, 11, 13, 17};
+ *   const auto first_three = take(as_sequence(v), 3u);
+ *   // first_three : FinitePath<unsigned>, size 3, lazy view of v[0..3)
+ * @endcode
+ *
+ * Equivalent operationally to @c std::span<const T>{v.data(), n}, but
+ * categorically a typed @c IsFiniteSequence morphism that participates
+ * in the project's set-comprehension DSL.
+ */
+export template <typename T, typename Alloc>
+constexpr auto as_sequence(const std::vector<T, Alloc>& v) {
+  auto values = std::make_shared<std::vector<T, Alloc>>(v);
+  return FinitePath<T>{
+      [values](std::size_t i) {
+        assert(i < values->size() && "as_sequence(vector): index out of range");
+        return (*values)[i];
+      },
+      values->size()};
+}
+
+/**
+ * @brief @c as_sequence(std::set<T,Compare,Alloc>) — adapt an ordered set
+ *        into a @c FinitePath<T> in sorted order.
+ *
+ * @details The categorical reading: a @c std::set<T, Compare> is a finite
+ * totally-ordered set under @c Compare ; the in-order traversal is an
+ * @c IsFiniteSequence morphism @f$\{0, \ldots, |s|-1\} \to T@f$ that
+ * visits elements in sorted order.  Combined with the @c IsTotallyOrdered
+ * codomain, this is the categorical anchor for value-based slicing
+ * (pandas-style @c .loc[k:m]) at the @c IsCountableSet layer.
+ *
+ * Implementation: materialise into a sorted @c std::vector for O(1)
+ * indexed access (@c std::set does not provide random access); the
+ * resulting @c FinitePath reads through to the materialised buffer.
+ *
+ * The set's contents are captured by value into a @c std::shared_ptr so
+ * the @c FinitePath remains valid independently of the caller's set.
+ */
+export template <typename T, typename Compare, typename Alloc>
+constexpr auto as_sequence(const std::set<T, Compare, Alloc>& s) {
+  auto values = std::make_shared<std::vector<T>>(s.begin(), s.end());
+  return FinitePath<T>{
+      [values](std::size_t i) {
+        assert(i < values->size() && "as_sequence(set): index out of range");
+        return (*values)[i];
+      },
+      values->size()};
+}
+
 export template <typename T, typename Cardinality>
 constexpr auto prefix(const Path<T, Cardinality>& path, std::size_t length) {
   if constexpr (dedekind::sets::IsFinite<Cardinality>) {
@@ -368,6 +438,149 @@ constexpr auto drop(const Path<T, Cardinality>& path, std::size_t n) {
            "drop index overflow: n + i exceeds size_t");
     return path.at(n + i);
   }};
+}
+
+/**
+ * @brief Drop the first @p n elements of a finite Path; finite-tail overload.
+ *
+ * @details Sibling overload for the IsFinite cardinality tag.  The infinite
+ * variant above produces an infinite Path; this one produces a FinitePath
+ * whose size is @c max(0, path.size() - n) — the bounded tail.  Together
+ * the two overloads make @c drop total over Path<T, Cardinality>.
+ *
+ * @tparam T The element type.
+ * @tparam Cardinality The cardinality of the input path (must be finite).
+ * @param path The input finite path.
+ * @param n The offset to drop.  If @p n exceeds @p path.size(), the
+ *          result is empty.
+ * @return A FinitePath with the same codomain, shifted by @p n , sized to
+ *         the remaining elements.
+ */
+export template <typename T, typename Cardinality>
+  requires dedekind::sets::IsFinite<Cardinality>
+constexpr auto drop(const Path<T, Cardinality>& path, std::size_t n) {
+  const std::size_t remaining = path.size() > n ? path.size() - n : 0u;
+  return FinitePath<T>{[path, n](std::size_t i) { return path.at(n + i); },
+                       remaining};
+}
+
+/**
+ * @brief @c take(seq, n) — the SQL @c LIMIT N operator at the sequence
+ *        layer.  Alias for @c prefix .
+ *
+ * @details @em Same operation as @c prefix : returns the first @p n
+ * elements of @p path as a @c FinitePath<T>.  The two names coexist
+ * because each is the right name in a different register:
+ *
+ *  - @c prefix is the Bird-Meertens / Wadler name; it reads naturally in
+ *    functional-programming / category-theory prose.
+ *  - @c take is the SQL @c LIMIT @c N name; it reads naturally in the
+ *    intensional-SQL surface that issue #753 ships.
+ *
+ * The two are mechanically identical.  Use whichever fits the register
+ * of the calling code.
+ *
+ * @section path__take_Subobject_Reading
+ *
+ * Per the design pivot tracked in #753 (2026-06-03), @c take on a
+ * @c Path / @c IsSequence is a structure-preserving subobject operation:
+ * the output is a @c FinitePath with the SAME generator as the source
+ * (no value evaluation at construction) restricted to a shorter domain.
+ * The three literature traditions converge on this reading:
+ *
+ *  - Codd-via-Date: @c LIMIT @c N is @em σ with a derived upper-cutoff
+ *    pivot.  Date, @em The @em Third @em Manifesto (2nd ed., 2006),
+ *    Prescription 7 / RM Pre 24.
+ *  - Lawvere via Mac Lane: @c take is precomposition of an
+ *    @c NNO -indexed morphism with the initial-ordinal inclusion
+ *    @f$\{0, \ldots, n-1\} \hookrightarrow \mathbb{N}@f$.  Mac Lane,
+ *    @em CWM 2nd ed., §V.5 (image factorisation).
+ *  - Pierce-via-Wadler: an early-stopped hylomorphism over a refinement
+ *    type @f$\{x : T \mid P(x)\}@f$.  Pierce, @em TAPL Ch. 22
+ *    (bounded quantification / refinement types); Wadler, @em Theorems
+ *    @em for @em Free! (FPCA 1989).
+ */
+export template <typename T, typename Cardinality>
+constexpr auto take(const Path<T, Cardinality>& path, std::size_t n) {
+  return prefix(path, n);
+}
+
+/**
+ * @brief @c limit : SQL alias for @c take , behaviour and gates identical.
+ */
+export template <typename T, typename Cardinality>
+constexpr auto limit(const Path<T, Cardinality>& path, std::size_t n) {
+  return prefix(path, n);
+}
+
+/**
+ * @brief @c take(std::vector<T,Alloc>, n) — convenience overload routing
+ *        through @c as_sequence(v) .
+ *
+ * @details Equivalent to @c take(as_sequence(v), @c n) but spelled
+ * directly for SQL-style call-site ergonomics.  The result is a
+ * @c FinitePath<T> of size @c min(n, v.size()) , reading lazily through
+ * the captured vector.
+ */
+export template <typename T, typename Alloc>
+constexpr auto take(const std::vector<T, Alloc>& v, std::size_t n) {
+  return take(as_sequence(v), n);
+}
+
+/**
+ * @brief @c limit(std::vector<T,Alloc>, n) — SQL alias for @c take .
+ */
+export template <typename T, typename Alloc>
+constexpr auto limit(const std::vector<T, Alloc>& v, std::size_t n) {
+  return take(v, n);
+}
+
+/**
+ * @brief @c drop(std::vector<T,Alloc>, n) — convenience overload routing
+ *        through @c as_sequence(v) ; finite-tail.
+ *
+ * @details Returns a @c FinitePath<T> of size @c max(0, v.size() - n)
+ * exposing @c v[n], @c v[n+1], ..., lazily through the captured vector.
+ */
+export template <typename T, typename Alloc>
+constexpr auto drop(const std::vector<T, Alloc>& v, std::size_t n) {
+  return drop(as_sequence(v), n);
+}
+
+/**
+ * @brief @c take(std::set<T,Compare,Alloc>, n) — first @p n elements in
+ *        sorted order, via @c as_sequence(s) .
+ *
+ * @details The categorical reading: @c std::set is an
+ * @c IsFiniteSequence under in-order traversal with an
+ * @c IsTotallyOrdered codomain (via @c Compare).  @c take returns the
+ * sub-sequence of the first @p n sorted elements as a @c FinitePath<T> .
+ */
+export template <typename T, typename Compare, typename Alloc>
+constexpr auto take(const std::set<T, Compare, Alloc>& s, std::size_t n) {
+  return take(as_sequence(s), n);
+}
+
+/**
+ * @brief @c limit(std::set<T,Compare,Alloc>, n) — SQL alias for @c take .
+ */
+export template <typename T, typename Compare, typename Alloc>
+constexpr auto limit(const std::set<T, Compare, Alloc>& s, std::size_t n) {
+  return take(s, n);
+}
+
+/**
+ * @brief @c drop(std::set<T,Compare,Alloc>, n) — drop the first @p n
+ *        elements in sorted order; finite-tail.
+ *
+ * @details Returns the sub-sequence skipping the first @p n sorted
+ * elements.  Composes with @c take to produce intervals:
+ * @c take(drop(s, m), n - m) is the closed sub-sequence in positions
+ * @c [m, n) of @c s 's sorted enumeration.
+ */
+export template <typename T, typename Compare, typename Alloc>
+constexpr auto drop(const std::set<T, Compare, Alloc>& s, std::size_t n) {
+  return drop(as_sequence(s), n);
 }
 
 /**
