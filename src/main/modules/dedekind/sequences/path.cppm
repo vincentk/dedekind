@@ -627,19 +627,34 @@ export template <typename Op, typename T, typename... Ts>
                        T>
 constexpr Path<T> iterate(Op op, T seed_0, Ts... more_seeds) {
   constexpr std::size_t N = 1 + sizeof...(Ts);
-  std::array<T, N> initial{seed_0, T(more_seeds)...};
-  return Path<T>{[op = std::move(op), initial](std::size_t k) -> T {
-    if (k < N) return initial[k];
-    std::array<T, N> window = initial;
-    for (std::size_t i = N; i <= k; ++i) {
-      T next = [&]<std::size_t... Is>(std::index_sequence<Is...>) {
-        return op(window[Is]...);
-      }(std::make_index_sequence<N>{});
-      for (std::size_t j = 0; j + 1 < N; ++j) window[j] = window[j + 1];
-      window[N - 1] = next;
-    }
-    return window[N - 1];
-  }};
+  using Window = std::array<T, N>;
+  Window initial{seed_0, T(more_seeds)...};
+
+  // The window-transition is itself a recurrence on @c Window — shift
+  // left by one, write @c op(w_0, @c ..., @c w_{N-1}) into the last
+  // slot.  @c std::apply unpacks the array via the tuple-like protocol;
+  // @c std::shift_left is the C++20 in-place left shift.  No hand-rolled
+  // index_sequence ceremony, no manual element-by-element copy.
+  auto window_step = [op = std::move(op)](Window w) -> Window {
+    T next = std::apply(op, w);
+    std::shift_left(w.begin(), w.end(), 1);
+    w[N - 1] = next;
+    return w;
+  };
+
+  // The recurrence @em walker IS the existing binary @c iterate primitive
+  // (above) — n-ary @c iterate is its functorial projection.  Window
+  // @c k holds @c (F_k, @c F_{k+1}, @c ..., @c F_{k+N-1}) , so the
+  // canonical @c k -th element is @c window_path.at(k)[0] uniformly for
+  // any @c k @c >= @c 0 (the initial window's seeds being
+  // @c (F_0, @c ..., @c F_{N-1}) ).  No new for-loop, no @c if @c (k @c <
+  // @c N) branch — the math is direct.  The head-projection lambda is
+  // the operational form of @c path_functor::φ at this call site (see
+  // the Sollbruchstelle docstring below for why @c φ remains unreified
+  // at the Hub level).
+  auto window_path = iterate(initial, window_step);
+  return Path<T>{
+      [window_path](std::size_t k) -> T { return window_path.at(k)[0]; }};
 }
 
 export template <typename T, typename Cardinality, typename Pred>

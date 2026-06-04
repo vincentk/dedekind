@@ -101,7 +101,16 @@ function(add_dedekind_layer LAYER_NAME DEPENDS_ON)
     file(GLOB TEST_SOURCES   CONFIGURE_DEPENDS "src/test/cpp/modules/dedekind/${LAYER_NAME}/*_test.cpp")
 
     add_library(${LIB_TARGET} STATIC)
-    set_target_properties(${LIB_TARGET} PROPERTIES CXX_SCAN_FOR_MODULES ON)
+    set_target_properties(${LIB_TARGET} PROPERTIES
+        CXX_SCAN_FOR_MODULES ON
+        # The dedekind_* static libs are linked into the Python bindings .so
+        # (CMakeFiles/_dedekind target).  Without -fPIC, COMDAT-emitted
+        # symbols from inline-variable dynamic-init (esp. closures large
+        # enough to defeat std::function SBO, where the Path destructor is
+        # not inlined) produce non-PIC relocations that fail the .so link.
+        # POSITION_INDEPENDENT_CODE ON makes the static libs PIC-compatible
+        # for both shared-library linkage and the test executables.
+        POSITION_INDEPENDENT_CODE ON)
     target_sources(${LIB_TARGET} PUBLIC FILE_SET CXX_MODULES BASE_DIRS src/main/modules FILES ${MODULE_SOURCES})
     target_compile_options(${LIB_TARGET} PRIVATE ${DEDEKIND_WARNING_FLAGS})
     if(DEDEKIND_RUNTIME_COVERAGE_BRIDGES)
