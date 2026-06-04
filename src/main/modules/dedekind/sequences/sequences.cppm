@@ -16,6 +16,7 @@ export import :net;
 export import :convergence;
 export import :limits;
 export import :path;
+export import :samples;
 export import :tail;
 export import :curve;
 export import :ranges;
