@@ -192,4 +192,18 @@ static_assert(
             std::declval<const CanonicalNaturalJoin&>()))>,
     "natural_join output must lift to an ETCS set object.");
 
+// Codd's @c LIMIT @c N and its dual are NOT separately named primitives
+// in this partition: they are σ-specialisations and the codebase spells
+// them inline as @c select(R, @c [](const auto& @c p){ return @c p.first
+// @c < @c n; @c }) on a sequence's graph relation (the same posture by
+// which @c zip is not shipped — it is @c select(cartesian_product(R, S),
+// key_match) ).  To reach the graph-relation form from an @c IsSequence,
+// import @c dedekind.sequences and use @c as_relation(path) at the
+// sequences layer; see #753's 2026-06-03 design pivot for the Codd-Date
+// / Bourbaki / Lawvere literature pass that endorses this posture.
+// The names @c drop and @c limit are also already in use elsewhere in
+// the project (Bird-Meertens @c drop(Path,n) and the sequence-limit
+// @c limit(Path<T>) ), so naming relational σ-specialisations
+// identically would create overload ambiguity for no algebraic gain.
+
 }  // namespace dedekind::sets

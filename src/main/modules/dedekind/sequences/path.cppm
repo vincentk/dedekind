@@ -48,12 +48,14 @@ export module dedekind.sequences:path;
 
 import dedekind.category;
 import dedekind.sets;
+import dedekind.order;
 import :net;
 
 namespace dedekind::sequences {
 
 using namespace dedekind::category;
 using namespace dedekind::sets;
+using namespace dedekind::order;
 
 /**
  * @class Path
@@ -369,6 +371,81 @@ constexpr auto drop(const Path<T, Cardinality>& path, std::size_t n) {
     return path.at(n + i);
   }};
 }
+
+/**
+ * @brief @c as_relation(path) — adapt a @c Path<T> into its graph relation,
+ *        a Set of @c (index, value) pairs.
+ *
+ * @section path__as_relation_Categorical_Reading
+ *
+ * By Bourbaki's function-as-graph definition, a function @f$f : \mathbb{N}
+ * \to T@f$ is the set of pairs @f$R_f = \{(n, f(n)) \mid n \in \mathbb{N}\}
+ * \subseteq \mathbb{N} \times T@f$ — i.e.\ a binary relation on
+ * @c std::size_t and @c T .  This adapter exhibits the categorical
+ * identity at the type level: for any @c Path<T, Cardinality> the result
+ * is a @c Set<std::pair<std::size_t, T>, ClassicalLogic, P> whose
+ * predicate @c P (the graph predicate) tests whether a candidate pair
+ * @c (i, t) belongs to the graph, i.e.\ whether @c t @c == @c path.at(i)
+ * (and, for finite paths, @c i @c < @c path.size() ).
+ *
+ * @section path__as_relation_Why_It_Matters
+ *
+ * This is the bridge that makes the §3 (page 2) categorical chain
+ * @em sequence @em ⟹ @em set @em of @em pairs @em ⟹ @em relation
+ * a type-checked claim rather than rhetoric.  Once a @c Path<T> is
+ * lifted to its relation form, it participates mechanically in the
+ * relational-algebra machinery of @c :sets:relational :
+ *
+ *  - @c select returns predicate-defined subobjects (@c σ in Codd).
+ *  - @c set_union , @c set_intersection , @c set_difference act as
+ *    @c ∪ , @c ∩ , @c ∖ .
+ *  - @c cartesian_product gives @c × on top of which
+ *    @c select(cartesian_product(R, S), θ) reaches the full
+ *    @c θ-join of Codd 1970 (Date & Darwen, @em Third @em Manifesto ).
+ *  - Codd's @c LIMIT @c N and its dual are σ-specialisations:
+ *    spell them inline as @c select(R, λ(i,t). @c i @c < @c n)
+ *    (or @c >= @c n for the tail), not as named primitives — the
+ *    same posture as for @c zip via @c natural_join .
+ *
+ * @section path__as_relation_Witness
+ *
+ * The @c IsSet witness at the partition boundary asserts that the
+ * relation form mechanically satisfies the ETCS Set contract; the
+ * categorical identity "a sequence IS a countable set of pairs" is
+ * thus type-system-discharged rather than asserted in prose.
+ */
+export template <typename T, typename Cardinality>
+  requires std::equality_comparable<T>
+constexpr auto as_relation(const Path<T, Cardinality>& path) {
+  // Use @c Path::Domain (currently @c std::size_t ) as the relation's
+  // index carrier.  @c IsSequence requires its @c Domain to satisfy
+  // @c IsRingIntegral (see @c :order:halfspace:96 ); that algebraic gate
+  // — broad enough to admit both @c std::size_t and the @f$\mathbb{N}@f$
+  // Form @c dedekind::sets::Cardinality once @c Path::Domain is later
+  // generalised — is what makes the size_t choice principled rather than
+  // accidental, in line with the project's Form-before-Carrier posture.
+  using Index = typename Path<T, Cardinality>::Domain;
+  using Pair = std::pair<Index, T>;
+  auto graph_pred = [path](const Pair& p) -> bool {
+    const auto i = static_cast<std::size_t>(p.first);
+    if constexpr (dedekind::sets::IsFinite<Cardinality>) {
+      if (i >= path.size()) return false;
+    }
+    return p.second == path.at(i);
+  };
+  return Set<Pair, ClassicalLogic, decltype(graph_pred)>{graph_pred};
+}
+
+// @c take / @c drop / @c limit on the relation form are @em not separately
+// named primitives — they are σ-specialisations and the codebase spells
+// them inline at call sites as @c select(R, λ(i,t). i @c < @c n) etc.
+// This follows Codd's lesson that @c LIMIT @c N is σ with a derived
+// upper-cutoff pivot (Date & Darwen, @em Third @em Manifesto 2nd ed.,
+// 2006, Prescription 7 / RM Pre 24), and the same project posture by
+// which @c zip is not shipped (it is @c select(cartesian_product(R, S),
+// key_match) ).  Naming such specialisations as primitives obscures the
+// algebraic content; the Bird-Meertens iterable @c prefix above remains
+// the way to extract the first @em n elements as a @c FinitePath<T> .
 
 /**
  * @brief δ (duplicate / comultiplication) of the stream comonad — the
@@ -759,6 +836,55 @@ static_assert(std::ranges::input_range<FinitePath<int>>,
 static_assert(
     std::input_iterator<decltype(std::declval<FinitePath<int>>().begin())>,
     "FinitePath<T>::begin() must yield a std::input_iterator.");
+
+// IsSet IS-A witness for sequences-as-relations (#753 §3 page-2 thesis).
+//
+// Bourbaki's function-as-graph definition: a function f : ℕ → T is the
+// set of pairs {(n, f(n)) | n ∈ ℕ} — equivalently, a binary relation on
+// std::size_t and T.  as_relation(path) above lifts a Path<T> to this
+// relational form (a Set<pair<size_t, T>, ClassicalLogic, GraphPredicate>).
+// The static_assert below mechanically witnesses that the relational form
+// satisfies the project's ETCS IsSet contract via the canonical
+// ambient_set<Pair>(...) lift — same pattern as the SingletonSet /
+// ExtensionalSet IsSet witnesses in :sets.
+//
+// This pins the §3 (page 2) categorical claim "a sequence IS a countable
+// set of pairs" at the type level: the IS-A relation between an
+// IsSequence inhabitant and an IsSet (of pairs) is type-checked here
+// rather than asserted only in prose.
+static_assert(
+    dedekind::category::IsSet<
+        decltype(dedekind::category::ambient_set<std::pair<std::size_t, int>>(
+            as_relation(std::declval<const Path<int>&>())))>,
+    "as_relation(Path<T>) must lift to an ETCS Set of pairs via "
+    "ambient_set<pair<size_t, T>>(...).  The mechanical witness for "
+    "the §3 page-2 thesis that a sequence IS a countable set of "
+    "pairs (Bourbaki function-as-graph).");
+
+static_assert(
+    dedekind::category::IsSet<
+        decltype(dedekind::category::ambient_set<std::pair<std::size_t, int>>(
+            as_relation(std::declval<const FinitePath<int>&>())))>,
+    "The IS-A witness must hold for both infinite (Path<T>) and finite "
+    "(FinitePath<T>) cardinality cases; the GraphPredicate handles both "
+    "uniformly via the IsFinite<Cardinality> compile-time branch.");
+
+// IsRingIntegral gate witness for Path::Domain (#753 §3 page-2 thesis).
+//
+// IsSequence (above, in :net) now requires its @c Domain to satisfy
+// @c IsRingIntegral — the algebraic concept certified for the operational
+// carriers (std::size_t, unsigned, etc.) AND the project's Form-shaped
+// carriers (Cardinality, SignedCardinality) at :order:halfspace:96.  This
+// pins the Form-before-Carrier discipline at the type level: the choice of
+// std::size_t for Path::Domain is principled (satisfies the algebraic
+// concept) rather than ad-hoc, and the same algebraic concept gates the
+// relation form's index column.
+static_assert(
+    dedekind::order::IsRingIntegral<typename Path<int>::Domain>,
+    "Path::Domain must satisfy IsRingIntegral — the algebraic concept "
+    "shared by std::size_t (operational) and Cardinality (Form).");
+static_assert(dedekind::order::IsRingIntegral<typename FinitePath<int>::Domain>,
+              "FinitePath::Domain must satisfy IsRingIntegral.");
 
 // Juliet-posture witness (#531): the @c std::ranges API produces bona
 // fide library sequences via the @c from_range adapter — any
