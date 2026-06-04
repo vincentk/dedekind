@@ -25,11 +25,11 @@ using namespace dedekind::sets;
 
 // Use the same Form-shaped ℕ alias the samples partition exports —
 // @c ExtensionalCardinal<> is the algebraically-certified finite ℕ
-// carrier, and after #756's @c Path::Domain lift it flows through
-// at both the Index and the carrier roles on @c is_even and
-// @c fibonacci .  Test literals on the value side use this alias to
-// avoid the @c (unsigned @c int) @c vs @c (ExtensionalCardinal<>)
-// implicit-conversion ambiguity that bare @c 0u literals trigger.
+// carrier, and Path's @c Index template parameter carries it at both
+// the Index and the carrier roles on @c is_even and @c fibonacci .
+// Test literals on the value side use this alias to avoid the
+// @c (unsigned @c int) @c vs @c (ExtensionalCardinal<>) implicit-
+// conversion ambiguity that bare @c 0u literals trigger.
 using ℕ_Form = ExtensionalCardinal<>;
 
 TEST_CASE("is_even pins the parity sequence on its first six indices",
@@ -111,10 +111,10 @@ TEST_CASE("θ-join via σ∘× on (is_even, fibonacci) exhibits a heterogeneous 
   // — heterogeneous in the Boolean column, a tuple-of-tuples, NOT a
   // list of one type.  That heterogeneity is the page-2 beat the
   // paper §3 listing exhibits.
-  // Note on the @em heterogeneity of the row's index columns: after
-  // PR #756's @c Path::Domain lift, @c is_even 's index column is
-  // @c ℕ (@c ExtensionalCardinal<> ) while @c fibonacci 's index
-  // column is @c std::size_t (the n-ary @c iterate FIXME).  The θ
+  // Note on the @em heterogeneity of the row's index columns:
+  // @c is_even 's index column is @c ℕ_Form (@c ExtensionalCardinal<> )
+  // while @c fibonacci 's index column is @c std::size_t (the n-ary
+  // @c iterate FIXME documented in @c :sequences:path ).  The θ
   // predicate compares them via @c ExtensionalCardinal<> 's implicit
   // ctor from @c std::unsigned_integral .
   using EvenPair = std::pair<ℕ_Form, Boolean>;

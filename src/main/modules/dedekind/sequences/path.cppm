@@ -92,6 +92,12 @@ struct Path {
     using reference = T;
 
     const Path* owner = nullptr;
+    // Iteration position counter is @c std::size_t — the natural counter
+    // type for a @c std::random_access_iterator (the @c difference_type
+    // is @c std::ptrdiff_t , its index is its unsigned-twin).  This is a
+    // SIZE-shaped role, not an INDEX-shaped one; the call to @c
+    // owner->at(index) below implicit-converts size_t back to the Path's
+    // @c Index via the algebraic gate.
     std::size_t index = 0;
 
     constexpr reference operator*() const {
@@ -640,9 +646,9 @@ constexpr auto iterate(T seed, Step&& step, std::size_t length) {
  */
 export template <typename Op, typename T, typename... Ts>
   requires(std::convertible_to<Ts, T> && ...) &&
-          std::invocable<Op&, T, Ts...> &&
-          std::same_as<std::remove_cvref_t<std::invoke_result_t<Op&, T, Ts...>>,
-                       T>
+          std::invocable<const Op&, T, Ts...> &&
+          std::same_as<
+              std::remove_cvref_t<std::invoke_result_t<const Op&, T, Ts...>>, T>
 constexpr Path<T> iterate(Op op, T seed_0, Ts... more_seeds) {
   constexpr std::size_t N = 1 + sizeof...(Ts);
   using Window = std::array<T, N>;
