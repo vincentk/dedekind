@@ -46,6 +46,22 @@ TEST_CASE("fibonacci pins the canonical sequence 0, 1, 1, 2, 3, 5, 8, 13",
   REQUIRE(fibonacci.at(7) == 13u);
 }
 
+TEST_CASE("fibonacci_of<T> is Form-generic across IsRingIntegral carriers",
+          "[sequences][samples][fibonacci][parametric]") {
+  // The §3-page-2 algebraic-genericity beat: the recurrence is parameterised
+  // on the same IsRingIntegral gate that IsSequence imposes on its Domain
+  // (per :order:halfspace and the #755 substrate PR).  Instantiating
+  // fibonacci_of<T> at a non-default T (here unsigned int) gives the same
+  // canonical sequence — mechanical witness that the named `fibonacci`
+  // is just the T = std::size_t instantiation of a Form-generic recurrence,
+  // not a carrier-specific exhibit.
+  const auto& fib_unsigned = fibonacci_of<unsigned int>;
+  REQUIRE(fib_unsigned.at(0) == 0u);
+  REQUIRE(fib_unsigned.at(1) == 1u);
+  REQUIRE(fib_unsigned.at(5) == 5u);
+  REQUIRE(fib_unsigned.at(7) == 13u);
+}
+
 TEST_CASE(
     "fibonacci_state's recurrence step is the categorical product algebra",
     "[sequences][samples][fibonacci][nno]") {

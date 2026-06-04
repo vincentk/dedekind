@@ -17,15 +17,27 @@
  * @subsection The_Sample_Pair
  *  - @c is_even @c : @c Path<Boolean> — gives the join row a heterogeneous
  *    codomain (@c ℕ @c × @c 𝔹 @c × @c ℕ ), exhibiting tuples-not-lists.
- *  - @c fibonacci @c : @c Path<std::size_t> — the canonical recurrence,
- *    formulated as @c iterate(seed, @c step) on the @em categorical
- *    @em product carrier @c ℕ @c × @c ℕ .  Step is an @c O(1)
- *    endomorphism @c (a, @c b) @c ↦ @c (b, @c a+b) ; the @c iterate
- *    primitive is the unique NNO morphism @c ℕ @c → @c carrier making
- *    Lawvere's NNO recursion diagram commute (Mac Lane @em CWM §V.5).
+ *  - @c fibonacci_of<T> @c : @c Path<T> — the canonical recurrence,
+ *    parameterised on the same algebraic gate @c IsSequence imposes on
+ *    its @c Domain (@c :order:halfspace:IsRingIntegral , the gate used
+ *    by #755 ): any ring-integral carrier @c T whose seed @c T(0u)
+ *    and @c T(1u) are well-formed.  The named default
+ *    @c fibonacci @c = @c fibonacci_of<std::size_t> is what the paper
+ *    listing cites; alternative @c IsRingIntegral carriers
+ *    (@c unsigned, @c ExtensionalCardinal<N>, …) instantiate the same
+ *    recurrence at no extra cost.  The variant @c Cardinality /
+ *    @c SignedCardinality Forms require the
+ *    @c finite_cardinality(0) factory rather than brace-init and are a
+ *    Sollbruchstelle for a future arrow-based zero/one oracle (post
+ *    #602's set-level embeddings).
+ *
+ *    The step @c (a, @c b) @c ↦ @c (b, @c a+b) is an @c O(1)
+ *    endomorphism on the categorical product @c T @c × @c T ; the
+ *    @c iterate primitive is the unique NNO morphism @c ℕ @c → @c carrier
+ *    making Lawvere's NNO recursion diagram commute (Mac Lane @em CWM §V.5).
  *
  * @build_order 5
- * @dependency dedekind.category, dedekind.sequences:path
+ * @dependency dedekind.category, dedekind.order, dedekind.sequences:path
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -44,6 +56,7 @@ module;
 export module dedekind.sequences:samples;
 
 import dedekind.category;
+import dedekind.order;
 import :path;
 
 namespace dedekind::sequences {
@@ -64,10 +77,12 @@ export inline const auto is_even =
     Path<Boolean>{[](std::size_t n) -> Boolean { return Boolean{n % 2 == 0}; }};
 
 /**
- * @brief The Fibonacci recurrence state stream: @c iterate on @c ℕ @c × @c ℕ .
+ * @brief The Fibonacci recurrence state stream: @c iterate on @c T @c × @c T
+ *        for any @c IsRingIntegral carrier @c T whose seed @c T(0u),
+ *        @c T(1u) are well-formed.
  *
  * @details The state carrier is the @em categorical @em product
- * @c ℕ @c × @c ℕ — modelled by @c std::pair<std::size_t, @c std::size_t>
+ * @c T @c × @c T — modelled by @c std::pair<T, @c T>
  * (witnessed by the @c IsProduct static_assert below, exactly as
  * @c Rational<Z> certifies @c IsProduct<Rational<Z>, @c Z, @c Z> and
  * @c Complex<R> certifies @c IsProduct<Complex<R>, @c R, @c R> ).  The
@@ -75,27 +90,61 @@ export inline const auto is_even =
  * that product.  @c iterate(seed, @c step) is the unique morphism
  * @c ℕ @c → @c state-carrier making Lawvere's NNO recursion diagram
  * commute (Mac Lane @em CWM §V.5).
+ *
+ * @tparam T Any @c IsRingIntegral inhabitant constructible from the
+ *           unsigned literals @c 0u and @c 1u — i.e.\ @c std::integral
+ *           types and the @c ExtensionalCardinal<N> /
+ *           @c SignedExtensionalCardinal<N> ring-integral carriers.
+ *           The variant @c Cardinality / @c SignedCardinality Forms are
+ *           excluded by the brace-init requirement; they need
+ *           @c finite_cardinality factories rather than @c T(0u)
+ *           (a Sollbruchstelle named in the partition docstring above).
  */
 static_assert(
     dedekind::category::IsProduct<std::pair<std::size_t, std::size_t>,
                                   std::size_t, std::size_t>,
-    "fibonacci's recurrence state IS the categorical product ℕ × ℕ via "
-    ".first / .second as the canonical projections π₁ and π₂.");
+    "fibonacci's recurrence state IS the categorical product T × T via "
+    ".first / .second as the canonical projections π₁ and π₂ (witnessed "
+    "here at the named-default T = std::size_t).");
 
-export inline const auto fibonacci_state = iterate(
-    std::pair<std::size_t, std::size_t>{0u, 1u},
-    [](const auto& p) { return std::pair{p.second, p.first + p.second}; });
+export template <dedekind::order::IsRingIntegral T>
+  requires requires {
+    T(0u);
+    T(1u);
+  }
+inline const auto fibonacci_state_of =
+    iterate(std::pair<T, T>{T(0u), T(1u)}, [](const auto& p) {
+      return std::pair{p.second, p.first + p.second};
+    });
 
 /**
- * @brief @c fibonacci @c : @c ℕ @c → @c ℕ — the canonical Fibonacci
- *        sequence @c 0, @c 1, @c 1, @c 2, @c 3, @c 5, @c 8, @c 13, ... .
+ * @brief @c fibonacci_of<T> @c : @c ℕ @c → @c T — the canonical Fibonacci
+ *        sequence @c 0, @c 1, @c 1, @c 2, @c 3, @c 5, @c 8, @c 13, ... in
+ *        carrier @c T .
  *
- * @details Read off the canonical sequence by projecting @c π₁ from
- * @c fibonacci_state : @c fibonacci(n) @c = @c π₁(fibonacci_state.at(n)) .
- * The recurrence step lives in @c fibonacci_state ; this Path is just
- * the first-component readout.
+ * @details Read off by projecting @c π₁ from @c fibonacci_state_of<T> :
+ * @c fibonacci_of<T>(n) @c = @c π₁(fibonacci_state_of<T>.at(n)) .  The
+ * recurrence step lives in @c fibonacci_state_of<T> ; this Path is the
+ * first-component readout.
  */
-export inline const auto fibonacci = Path<std::size_t>{
-    [](std::size_t n) -> std::size_t { return fibonacci_state.at(n).first; }};
+export template <dedekind::order::IsRingIntegral T>
+  requires requires {
+    T(0u);
+    T(1u);
+  }
+inline const auto fibonacci_of = Path<T>{
+    [](std::size_t n) -> T { return fibonacci_state_of<T>.at(n).first; }};
+
+/**
+ * @brief @c fibonacci_state @c , @c fibonacci — named defaults at
+ *        @c T @c = @c std::size_t for paper citation.
+ *
+ * @details The §3 page-2 listing cites these names directly:
+ * @c fibonacci is the canonical operational instantiation, and the same
+ * recurrence lifts to any other @c IsRingIntegral carrier via
+ * @c fibonacci_of<T> .
+ */
+export inline const auto& fibonacci_state = fibonacci_state_of<std::size_t>;
+export inline const auto& fibonacci = fibonacci_of<std::size_t>;
 
 }  // namespace dedekind::sequences
