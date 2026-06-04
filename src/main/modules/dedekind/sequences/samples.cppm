@@ -26,11 +26,12 @@
  *    same algebraic gate @c IsSequence imposes on its @c Domain
  *    (@c :order:halfspace:IsRingIntegral , the gate used by #755 ): any
  *    ring-integral carrier @c T whose seed @c T(0u) and @c T(1u) are
- *    well-formed.  The named default
- *    @c fibonacci @c = @c fibonacci_of<std::size_t> is what the paper
- *    listing cites; alternative @c IsRingIntegral carriers
- *    (@c unsigned, @c ExtensionalCardinal<N>, …) instantiate the same
- *    recurrence at no extra cost.  The variant @c Cardinality /
+ *    well-formed.  The named default @c fibonacci @c = @c
+ *    fibonacci_of<ℕ_Form> (@c ExtensionalCardinal<> at the carrier
+ *    role) is what the paper listing cites; alternative
+ *    @c IsRingIntegral carriers (@c std::size_t , @c unsigned,
+ *    @c ExtensionalCardinal<N>, …) instantiate the same recurrence at
+ *    no extra cost.  The variant @c Cardinality /
  *    @c SignedCardinality Forms require the
  *    @c finite_cardinality(0) factory rather than brace-init and are a
  *    Sollbruchstelle for a future arrow-based zero/one oracle (post
@@ -66,11 +67,21 @@ export module dedekind.sequences:samples;
 
 import dedekind.category;
 import dedekind.order;
+import dedekind.sets;
 import :path;
 
 namespace dedekind::sequences {
 
 using namespace dedekind::category;
+
+// The project's algebraically-certified finite ℕ-Form carrier; lives in
+// @c :sets:cardinality (upstream of @c :sequences ).  Used here as the
+// Form-shaped @c Index parameter on Path<...> so the §3 page-2 anchor
+// reads in Form vocabulary at both the Domain and the carrier of the
+// recurrence — closing the @c "size_t again and again" call-site
+// friction that the architectural lift of @c Path::Domain to
+// @c IsRingIntegral made addressable.
+using ℕ_Form = dedekind::sets::ExtensionalCardinal<>;
 
 /**
  * @brief @c is_even @c : @c ℕ @c → @c 𝔹 — the parity sequence as a
@@ -82,8 +93,8 @@ using namespace dedekind::category;
  * triple, not a list of one type.  The join's @em tuples-not-lists
  * character is the page-2 beat the paper prose lands on.
  */
-export inline const auto is_even =
-    Path<Boolean>{[](std::size_t n) -> Boolean { return Boolean{n % 2 == 0}; }};
+export inline const auto is_even = Path<Boolean, ℵ_0, ℕ_Form>{
+    [](ℕ_Form n) -> Boolean { return Boolean{n % ℕ_Form{2u} == ℕ_Form{0u}}; }};
 
 /**
  * @brief @c fibonacci_of<T> @c : @c ℕ @c → @c T — the canonical Fibonacci
@@ -116,14 +127,20 @@ export template <dedekind::order::IsRingIntegral T>
 inline const auto fibonacci_of = iterate(std::plus<T>{}, T(0u), T(1u));
 
 /**
- * @brief @c fibonacci — named default at @c T @c = @c std::size_t for
- *        paper citation.
+ * @brief @c fibonacci — named default at @c T @c = @c ℕ_Form
+ *        (@c ExtensionalCardinal<> ) for paper citation.
  *
  * @details The §3 page-2 listing cites this name directly:
- * @c fibonacci is the canonical operational instantiation, and the same
+ * @c fibonacci is the Form-shaped canonical instantiation at the
+ * @em carrier role (@c T @c = @c ExtensionalCardinal<> ); the same
  * recurrence lifts to any other @c IsRingIntegral carrier via
- * @c fibonacci_of<T> .
+ * @c fibonacci_of<T> .  The returned @c Path 's @c Index defaults to
+ * @c std::size_t because the n-ary @c iterate primitive doesn't yet
+ * propagate the @c Index Form (see the @c FIXME in @c :sequences:path
+ * around the n-ary @c iterate body).  @c is_even above carries
+ * @c ExtensionalCardinal<> at the Path's @c Index role directly,
+ * since it constructs its @c Path explicitly.
  */
-export inline const auto& fibonacci = fibonacci_of<std::size_t>;
+export inline const auto& fibonacci = fibonacci_of<ℕ_Form>;
 
 }  // namespace dedekind::sequences
