@@ -254,3 +254,76 @@ TEST_CASE("Sequences: The Path to Continuity",
     REQUIRE(right.at(2) == 6);
   }
 }
+
+TEST_CASE("n-ary iterate(op, seeds...): the recurrence primitive",
+          "[sequences][path][iterate][nary]") {
+  // Captures "binary op applied recursively to a sliding window" as a
+  // single named primitive.  Fibonacci is the canonical n=2 + plus
+  // instance; Tribonacci is n=3; n=1 reduces to the standard NNO
+  // morphism (in argument-swapped form vs the existing iterate(seed,
+  // step)).
+  using std::size_t;
+
+  SECTION("n=2, op=plus: Fibonacci 0, 1, 1, 2, 3, 5, 8, 13, 21, 34") {
+    const auto fib = iterate(std::plus<size_t>{}, size_t{0}, size_t{1});
+    static_assert(IsSequence<decltype(fib)>);
+    REQUIRE(fib.at(0) == 0u);
+    REQUIRE(fib.at(1) == 1u);
+    REQUIRE(fib.at(2) == 1u);
+    REQUIRE(fib.at(3) == 2u);
+    REQUIRE(fib.at(4) == 3u);
+    REQUIRE(fib.at(5) == 5u);
+    REQUIRE(fib.at(6) == 8u);
+    REQUIRE(fib.at(7) == 13u);
+    REQUIRE(fib.at(8) == 21u);
+    REQUIRE(fib.at(9) == 34u);
+  }
+
+  SECTION("n=3: Tribonacci 0, 0, 1, 1, 2, 4, 7, 13, 24") {
+    const auto tri =
+        iterate([](size_t a, size_t b, size_t c) { return a + b + c; },
+                size_t{0}, size_t{0}, size_t{1});
+    REQUIRE(tri.at(0) == 0u);
+    REQUIRE(tri.at(1) == 0u);
+    REQUIRE(tri.at(2) == 1u);
+    REQUIRE(tri.at(3) == 1u);
+    REQUIRE(tri.at(4) == 2u);
+    REQUIRE(tri.at(5) == 4u);
+    REQUIRE(tri.at(6) == 7u);
+    REQUIRE(tri.at(7) == 13u);
+    REQUIRE(tri.at(8) == 24u);
+  }
+
+  SECTION("n=2, Pell's recurrence P_{n+1} = 2 P_n + P_{n-1}") {
+    // P_0=0, P_1=1, P_2=2, P_3=5, P_4=12, P_5=29, P_6=70
+    const auto pell = iterate([](size_t a, size_t b) { return 2 * b + a; },
+                              size_t{0}, size_t{1});
+    REQUIRE(pell.at(0) == 0u);
+    REQUIRE(pell.at(1) == 1u);
+    REQUIRE(pell.at(2) == 2u);
+    REQUIRE(pell.at(3) == 5u);
+    REQUIRE(pell.at(4) == 12u);
+    REQUIRE(pell.at(5) == 29u);
+    REQUIRE(pell.at(6) == 70u);
+  }
+
+  SECTION(
+      "n=1 reduces to the unary NNO morphism (arg-swapped vs binary form)") {
+    // iterate(succ, 0) is the n=1 form of the n-ary overload; it should
+    // produce the same canonical sequence 0, 1, 2, 3, ... as the binary
+    // iterate(0, succ) form.
+    const auto naturals = iterate([](size_t n) { return n + 1; }, size_t{0});
+    REQUIRE(naturals.at(0) == 0u);
+    REQUIRE(naturals.at(1) == 1u);
+    REQUIRE(naturals.at(5) == 5u);
+    REQUIRE(naturals.at(42) == 42u);
+  }
+
+  SECTION("Op deduction works without explicit type parameter") {
+    // The carrier T deduces from the seeds; no explicit <T> ceremony at
+    // the call site (the page-2 paper §3 claim).
+    const auto fib_int = iterate(std::plus<int>{}, 0, 1);
+    REQUIRE(fib_int.at(7) == 13);
+    REQUIRE(fib_int.at(9) == 34);
+  }
+}

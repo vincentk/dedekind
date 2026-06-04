@@ -30,6 +30,7 @@
 module;
 
 #include <algorithm>
+#include <array>
 #include <cassert>
 #include <compare>
 #include <concepts>
@@ -566,6 +567,79 @@ constexpr auto iterate(T seed, Step&& step, std::size_t length) {
         return (*values)[i];
       },
       length};
+}
+
+/**
+ * @brief @c iterate(op, @c seed_0, @c ... @c , @c seed_{n-1}) — n-ary
+ *        recurrence: a binary (or @em n-ary) operator applied repeatedly to a
+ *        sliding window of @c n previous values.
+ *
+ * @details Captures the structural pattern @em "binary @em op @em applied
+ * @em recursively" that recurs across the codebase's recurrence exhibits
+ * (Fibonacci, Lucas, Tribonacci, GCD-via-Euclid, linear recurrences of any
+ * order).  The state is a sliding window of @c n carriers; each step
+ * computes @c op(w_0, @c ..., @c w_{n-1}) , shifts the window left by one,
+ * and writes the result into the last slot.  The read-back semantics:
+ * @c path.at(k) for @c k @c < @c n returns @c seed_k ; for @c k @c >= @c n
+ * returns the canonical @c k -th sequence element.
+ *
+ * @section path__nary_iterate_Use
+ *
+ * @code
+ *   // Fibonacci:         F_0 = 0, F_1 = 1, F_{n+2} = F_n + F_{n+1}
+ *   auto fib = iterate(std::plus<size_t>{}, size_t{0}, size_t{1});
+ *   // Path<size_t>, at(0)=0, at(1)=1, at(2)=1, at(3)=2, ...
+ *
+ *   // Tribonacci:        T_{n+3} = T_n + T_{n+1} + T_{n+2}
+ *   auto tri = iterate([](size_t a, size_t b, size_t c) { return a + b + c; },
+ *                      size_t{0}, size_t{0}, size_t{1});
+ *
+ *   // Generic linear recurrence (e.g. Pell's: P_{n+1} = 2 P_n + P_{n-1}):
+ *   auto pell = iterate([](size_t a, size_t b) { return 2*b + a; },
+ *                       size_t{0}, size_t{1});
+ * @endcode
+ *
+ * @section path__nary_iterate_NNO_Reading
+ *
+ * For @c n @c = @c 1 this overload reduces to the standard NNO morphism
+ * @c iterate(op, @c seed) above (in argument-swapped form) — the
+ * categorical NNO universal property says there exists a unique morphism
+ * @c ℕ @c → @c carrier making the recursion diagram commute (Mac Lane
+ * @em CWM §V.5), and this is the @c n -dimensional analogue.  The
+ * existing 2-argument @c iterate(seed, @c step) form stays alongside this
+ * overload for back-compat; new code is encouraged to prefer the n-ary
+ * form for any recurrence of order @c >= @c 2 .
+ *
+ * @tparam Op  An @c n -ary callable on @c T @c × @c ... @c × @c T returning
+ *             @c T (where @c n @c = @c 1 @c + @c sizeof...(Ts) ).
+ * @tparam T   The carrier of the recurrence; the codomain of @c op .
+ * @tparam Ts  Additional seed types convertible to @c T .
+ *
+ * @complexity @c O(k) per @c path.at(k) call — the lazy form walks from
+ * the seeds on each random access, just like the binary @c iterate above.
+ * The eager bounded sibling is a separate slice deferred until a use case
+ * surfaces.
+ */
+export template <typename Op, typename T, typename... Ts>
+  requires(std::convertible_to<Ts, T> && ...) &&
+          std::invocable<Op&, T, Ts...> &&
+          std::same_as<std::remove_cvref_t<std::invoke_result_t<Op&, T, Ts...>>,
+                       T>
+constexpr Path<T> iterate(Op op, T seed_0, Ts... more_seeds) {
+  constexpr std::size_t N = 1 + sizeof...(Ts);
+  std::array<T, N> initial{seed_0, T(more_seeds)...};
+  return Path<T>{[op = std::move(op), initial](std::size_t k) -> T {
+    if (k < N) return initial[k];
+    std::array<T, N> window = initial;
+    for (std::size_t i = N; i <= k; ++i) {
+      T next = [&]<std::size_t... Is>(std::index_sequence<Is...>) {
+        return op(window[Is]...);
+      }(std::make_index_sequence<N>{});
+      for (std::size_t j = 0; j + 1 < N; ++j) window[j] = window[j + 1];
+      window[N - 1] = next;
+    }
+    return window[N - 1];
+  }};
 }
 
 export template <typename T, typename Cardinality, typename Pred>

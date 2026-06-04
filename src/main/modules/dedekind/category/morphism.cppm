@@ -809,6 +809,31 @@ constexpr auto operator>>(F&& f, G&& g) {
                          A x) constexpr { return g(f(std::move(x))); });
 }
 
+/**
+ * @brief @c operator>> with a callable on the RHS — auto-wraps the lambda
+ *        as @c arrow<F::Codomain> .
+ *
+ * @details Convenience overload so call sites can chain a typed Arrow with
+ * an inline lambda without per-site @c arrow<B>(λ) ceremony.  The lambda's
+ * Domain is deduced from the LHS Arrow's Codomain; its Codomain is deduced
+ * from the lambda's invoke result.  Equivalent to
+ * @c std::forward<F>(f) @c >> @c arrow<B>(std::forward<G>(g)) where
+ * @c B @c = @c F::Codomain — but spelled inline.
+ *
+ * @note Symmetric (lambda @c >> @c Arrow) adapter is intentionally NOT
+ * shipped: a bare lambda LHS has no fixed Domain, and inferring it from
+ * the RHS's Domain is fragile when the lambda is polymorphic.  Wrap the
+ * lambda explicitly via @c arrow<A>(λ) for that direction.
+ */
+export template <typename F, typename G>
+  requires IsSpokeArrow<std::decay_t<F>> && (!IsArrow<std::decay_t<G>>) &&
+           std::invocable<std::decay_t<G>&,
+                          const typename std::decay_t<F>::Codomain&>
+constexpr auto operator>>(F&& f, G&& g) {
+  using B = typename std::decay_t<F>::Codomain;
+  return std::forward<F>(f) >> arrow<B>(std::forward<G>(g));
+}
+
 /** @section morphism__Categorical_2 Verification: The Unit Laws (f ∘ id = f =
  * id ∘ f) */
 

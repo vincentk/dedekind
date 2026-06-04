@@ -62,25 +62,6 @@ TEST_CASE("fibonacci_of<T> is Form-generic across IsRingIntegral carriers",
   REQUIRE(fib_unsigned.at(7) == 13u);
 }
 
-TEST_CASE(
-    "fibonacci_state's recurrence step is the categorical product algebra",
-    "[sequences][samples][fibonacci][nno]") {
-  // The state pair (F_n, F_{n+1}) at index 7 is (13, 21):
-  //   F_7 = 13, F_8 = 21.
-  // Mechanical witness that the iterate-based recurrence delivers BOTH
-  // projections, not just π₁ — i.e. that the carrier IS the product
-  // ℕ × ℕ at the value level, not only at the IsProduct concept level.
-  const auto state_7 = fibonacci_state.at(7);
-  REQUIRE(state_7.first == 13u);
-  REQUIRE(state_7.second == 21u);
-  // And the next step closes the recurrence loop:
-  //   step(13, 21) = (21, 34) = (F_8, F_9).
-  const auto state_8 = fibonacci_state.at(8);
-  REQUIRE(state_8.first == state_7.second);  // π₁ ∘ step ≡ π₂
-  REQUIRE(state_8.second ==
-          state_7.first + state_7.second);  // π₂ ∘ step ≡ π₁ + π₂
-}
-
 TEST_CASE("as_relation(is_even) graph membership",
           "[sequences][samples][as_relation]") {
   const auto rel = as_relation(is_even);
