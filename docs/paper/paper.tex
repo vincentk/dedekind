@@ -957,19 +957,14 @@ else you can register.
 
 \subsection{Set Operations as Predicate Composition}
 
-If a set is a predicate, a set operation is whatever operation you would apply to
-the predicates. The dictionary writes itself:
-
+If a set is a predicate, a set operation is whatever operation you would apply to the predicates --- intersection is conjunction, union is disjunction, complement is negation:
 \begin{align*}
   S_1 \cap S_2 &\triangleq \{x \in A \mid P_1(x) \land P_2(x)\} \\
   S_1 \cup S_2 &\triangleq \{x \in A \mid P_1(x) \lor P_2(x)\} \\
   \overline{S_1}  &\triangleq \{x \in A \mid \neg P_1(x)\}
 \end{align*}
-
-Every operation on the left is an operation on $\Omega$ on the right. Intersection
-is conjunction; union is disjunction; complement is negation. No values are touched,
-because there are no values yet. The combinators compose at compile time and produce
-a new type---a new rule---which the compiler is then free to inspect.
+The combinators compose at compile time and produce a new type --- a new rule.
+The same dictionary extends to a sequence's graph relation in §\ref{sec:sequences-relational} (Table~\ref{tab:sql-rosetta}); §\ref{sec:pruning-payoff} closes the page-1 hinge with the structural-pruning payoff.
 
 \subsection{Sequences and the Relational Closure}
 \label{sec:sequences-relational}
@@ -1086,10 +1081,11 @@ The dual-mode character of the comprehension DSL --- compile-time \texttt{static
 The page-2 hinge thus closes: every relational query a working programmer writes on a sequence's graph is the corresponding categorical operation on a Set of pairs, dispatched through the page-1 comprehension surface.
 The realisation boundary --- where compile-time rule becomes runtime value --- is the same one §3.\ref{sec:intensional} named at the top: the only thing that has changed is that the carrier is now a sequence's graph rather than a finite extensional set.
 
-\subsection{Structural Pruning in Practice}
+\subsection{Structural Pruning: the Page-1 Payoff}
+\label{sec:pruning-payoff}
 
-The payoff of the comprehension view is that the LLVM backend can \emph{prune} a
-set expression to a no-op when its predicate is statically unsatisfiable.
+The payoff of the comprehension view is that the LLVM backend can \emph{prune} a set expression to a no-op when its predicate is statically unsatisfiable.
+\emph{Algebraic} properties of the predicates, recorded in the \texttt{:species} registry, provide additional pruning opportunities --- $S \cap \varnothing = \varnothing$, $S \cap \overline{S} = \varnothing$, $S_1 \cap S_2 = S_1$ when $S_1 \subseteq S_2$ --- each discharged as a \cppinline{static_assert} once the relevant algebraic witnesses are in the trait registry.
 
 % Source: src/test/cpp/modules/dedekind/python/showcase_alpha_prime.cpp
 \begin{listing}[htbp]
@@ -1127,25 +1123,6 @@ define noundef zeroext i1 @witness_empty_halfspace_meet() local_unnamed_addr #0 
 }
 \end{cpp}
 \end{listing}
-
-\subsection{Algebraic Properties Enable Stronger Pruning}
-
-Beyond interval arithmetic, \emph{algebraic} properties of the predicates provide
-additional pruning opportunities.
-The \texttt{:species} registry records which operations are associative, commutative,
-idempotent, and so forth.
-These traits inform the compiler about structural relationships between sets:
-
-\begin{itemize}
-  \item $S \cap \varnothing = \varnothing$ (intersection with the empty set is empty).
-  \item $S \cap \overline{S} = \varnothing$ (intersection with the complement is empty).
-  \item If $S_1 \subseteq S_2$ then $S_1 \cap S_2 = S_1$ (subset absorption).
-\end{itemize}
-
-Each of these equalities can be discharged as a \cppinline{static_assert} once the
-relevant algebraic witnesses are in the trait registry, reducing the intersection to
-the simpler set at compile time.
-
 
 % ============================================================
 \section{Algebraic Lattice}
