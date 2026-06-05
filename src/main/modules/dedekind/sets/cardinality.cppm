@@ -196,6 +196,19 @@ struct ExtensionalCardinal {
     limbs[0] = static_cast<limb_type>(value);
   }
 
+  /** @brief Explicit projection to @c std::size_t — reads the
+   *         least-significant limb.  Used by @c :sequences:path 's helper
+   *         functions (@c drop , @c scan , @c <<= , @c tails ,
+   *         @c as_relation ) when the user-chosen @c Index Form needs to
+   *         flow through a @c std::size_t -valued counter
+   *         (e.g.\ @c std::vector::size() bound checks).  Marked
+   *         @c explicit so the projection IS-A choice the call site
+   *         makes — it does not implicitly silently lose upper limbs.
+   *
+   *  For @c N @c = @c 1 this is the full value.  For @c N @c > @c 1 the
+   *  upper limbs are dropped; the call site must ensure the value fits. */
+  explicit constexpr operator std::size_t() const noexcept { return limbs[0]; }
+
   constexpr friend bool operator==(const ExtensionalCardinal&,
                                    const ExtensionalCardinal&) = default;
 
@@ -701,6 +714,14 @@ struct SignedExtensionalCardinal {
     }
     magnitude =
         magnitude_type{static_cast<typename magnitude_type::limb_type>(value)};
+  }
+
+  /** @brief Explicit projection to @c std::size_t — reads the magnitude's
+   *         least-significant limb (sign is dropped).  Sibling to
+   *         @c ExtensionalCardinal::operator @c std::size_t() ; used at the
+   *         same call sites in @c :sequences:path 's helpers. */
+  explicit constexpr operator std::size_t() const noexcept {
+    return static_cast<std::size_t>(magnitude);
   }
 
   constexpr friend bool operator==(

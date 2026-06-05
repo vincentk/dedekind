@@ -151,3 +151,41 @@ TEST_CASE("Category: Algebraic Proofs (Runtime Witnesses)",
     STATIC_CHECK(!HasArrowComposeOperators<int, int>);
   }
 }
+
+TEST_CASE("operator>> auto-wraps an RHS lambda as an arrow",
+          "[category][morphism][operator_compose][lambda_adapter]") {
+  // Convenience overload: arrow<A, B>(f) >> [](const B& b) { ... }
+  // wraps the RHS lambda via arrow<B>(λ) implicitly, tightening call
+  // sites that would otherwise spell out the per-site arrow<>{ }
+  // wrapping.
+
+  SECTION("Arrow >> lambda type-checks and composes correctly") {
+    const auto plus_one = arrow<int, int>([](int x) { return x + 1; });
+    const auto chain = plus_one >> [](const int& x) { return x * 2; };
+
+    STATIC_CHECK(IsArrow<decltype(chain)>);
+    REQUIRE(chain(3) == 8);    // (3 + 1) * 2 = 8
+    REQUIRE(chain(10) == 22);  // (10 + 1) * 2 = 22
+  }
+
+  SECTION("Chained Arrow >> lambda >> lambda lifts both lambdas") {
+    // Both RHS positions are bare lambdas; the adapter fires twice.
+    const auto base = arrow<int, int>([](int x) { return x + 1; });
+    const auto chain = base >> [](const int& x) { return x * 2; } >>
+                       [](const int& x) { return x - 3; };
+
+    STATIC_CHECK(IsArrow<decltype(chain)>);
+    REQUIRE(chain(5) == 9);  // ((5 + 1) * 2) - 3 = 9
+  }
+
+  SECTION("RHS lambda's codomain can differ from its domain") {
+    // Arrow<int, int> chained with a bool-returning lambda.
+    const auto plus_one = arrow<int, int>([](int x) { return x + 1; });
+    const auto is_even =
+        plus_one >> [](const int& x) -> bool { return x % 2 == 0; };
+
+    STATIC_CHECK(IsArrow<decltype(is_even)>);
+    REQUIRE(is_even(1) == true);   // (1 + 1) % 2 == 0
+    REQUIRE(is_even(2) == false);  // (2 + 1) % 2 != 0
+  }
+}

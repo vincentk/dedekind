@@ -30,6 +30,7 @@
 module;
 
 #include <algorithm>
+#include <array>
 #include <cassert>
 #include <compare>
 #include <concepts>
@@ -62,12 +63,26 @@ using namespace dedekind::order;
  * @brief A Frobenius-aware sequence F: ℕ → T.
  *
  * @tparam T The Species being enumerated.
+ * @tparam Cardinality The cardinality tag (@c ℵ_0 for infinite, @c Finite
+ *                     for bounded).
+ * @tparam Index The carrier of the @c Domain — any @c IsRingIntegral
+ *               inhabitant, defaulting to @c std::size_t for back-compat
+ *               with all existing call sites.  The Form-shaped choices
+ *               are @c dedekind::sets::ExtensionalCardinal<> (the
+ *               algebraically-certified finite ℕ carrier) and
+ *               @c dedekind::sets::Cardinality (the variant ℕ Form).
+ *               Closes the Sollbruchstelle documented on this struct
+ *               historically (@c "Path::Domain currently @c std::size_t —
+ *               once generalised, @c Cardinality is what makes the
+ *               @c size_t choice principled rather than accidental").
  */
-export template <typename T, typename Cardinality = ℵ_0>
+export template <typename T, typename Cardinality = ℵ_0,
+                 dedekind::order::IsRingIntegral Index = std::size_t>
 struct Path {
-  using Domain = std::size_t;
+  using Domain = Index;
   using Codomain = T;
   using cardinality_type = Cardinality;
+  using index_type = Index;
 
   struct const_iterator {
     using iterator_concept = std::random_access_iterator_tag;
@@ -77,6 +92,12 @@ struct Path {
     using reference = T;
 
     const Path* owner = nullptr;
+    // Iteration position counter is @c std::size_t — the natural counter
+    // type for a @c std::random_access_iterator (the @c difference_type
+    // is @c std::ptrdiff_t , its index is its unsigned-twin).  This is a
+    // SIZE-shaped role, not an INDEX-shaped one; the call to @c
+    // owner->at(index) below implicit-converts size_t back to the Path's
+    // @c Index via the algebraic gate.
     std::size_t index = 0;
 
     constexpr reference operator*() const {
@@ -176,13 +197,13 @@ struct Path {
   };
 
   /** @brief The underlying mapping f(n). */
-  std::function<T(std::size_t)> generator;
+  std::function<T(Index)> generator;
   std::size_t extent = 0;
 
-  constexpr Codomain operator()(Domain i) const { return generator(i); }
+  constexpr Codomain operator()(Index i) const { return generator(i); }
 
   /** @section path__Sequence_Interface */
-  constexpr T at(std::size_t i) const { return generator(i); }
+  constexpr T at(Index i) const { return generator(i); }
 
   /** @section path__Pointwise_Operators
    *
@@ -196,7 +217,7 @@ struct Path {
    */
 
   friend constexpr Path operator+(Path const& a, Path const& b) {
-    auto gen = [a, b](std::size_t i) { return a.at(i) + b.at(i); };
+    auto gen = [a, b](Index i) { return a.at(i) + b.at(i); };
     if constexpr (dedekind::sets::IsFinite<Cardinality>) {
       return Path{gen, std::min(a.size(), b.size())};
     } else {
@@ -205,7 +226,7 @@ struct Path {
   }
 
   friend constexpr Path operator-(Path const& a, Path const& b) {
-    auto gen = [a, b](std::size_t i) { return a.at(i) - b.at(i); };
+    auto gen = [a, b](Index i) { return a.at(i) - b.at(i); };
     if constexpr (dedekind::sets::IsFinite<Cardinality>) {
       return Path{gen, std::min(a.size(), b.size())};
     } else {
@@ -214,7 +235,7 @@ struct Path {
   }
 
   friend constexpr Path operator-(Path const& a) {
-    auto gen = [a](std::size_t i) { return -a.at(i); };
+    auto gen = [a](Index i) { return -a.at(i); };
     if constexpr (dedekind::sets::IsFinite<Cardinality>) {
       return Path{gen, a.size()};
     } else {
@@ -223,7 +244,7 @@ struct Path {
   }
 
   friend constexpr Path operator*(T const& s, Path const& a) {
-    auto gen = [s, a](std::size_t i) { return s * a.at(i); };
+    auto gen = [s, a](Index i) { return s * a.at(i); };
     if constexpr (dedekind::sets::IsFinite<Cardinality>) {
       return Path{gen, a.size()};
     } else {
@@ -232,7 +253,7 @@ struct Path {
   }
 
   friend constexpr Path operator*(Path const& a, T const& s) {
-    auto gen = [s, a](std::size_t i) { return a.at(i) * s; };
+    auto gen = [s, a](Index i) { return a.at(i) * s; };
     if constexpr (dedekind::sets::IsFinite<Cardinality>) {
       return Path{gen, a.size()};
     } else {
@@ -249,14 +270,14 @@ struct Path {
     using ResultPath = std::invoke_result_t<F, T>;
     using U = typename ResultPath::Codomain;
 
-    auto bound_generator = [m, f = std::forward<F>(f)](std::size_t n) {
+    auto bound_generator = [m, f = std::forward<F>(f)](Index n) {
       return f(m.at(n)).at(n);
     };
 
     if constexpr (dedekind::sets::IsFinite<Cardinality>) {
-      return Path<U, Cardinality>{bound_generator, m.size()};
+      return Path<U, Cardinality, Index>{bound_generator, m.size()};
     } else {
-      return Path<U, Cardinality>{bound_generator};
+      return Path<U, Cardinality, Index>{bound_generator};
     }
   }
 
@@ -268,24 +289,25 @@ struct Path {
   friend constexpr auto operator<<=(const Path& w, F&& f) {
     // Symmetry: F now maps Path<T> -> U.
     // We wrap that U back into a Path<U>.
-    using U = std::invoke_result_t<F, Path<T>>;
+    using U = std::invoke_result_t<F, Path<T, Cardinality, Index>>;
 
-    auto extended_generator = [w, f = std::forward<F>(f)](std::size_t n) {
+    auto extended_generator = [w, f = std::forward<F>(f)](Index n) {
       // Create the "sub-path" (suffix) starting at n, preserving cardinality.
       if constexpr (dedekind::sets::IsFinite<Cardinality>) {
-        const std::size_t suffix_size = (n < w.size()) ? w.size() - n : 0;
-        return f(Path<T, Cardinality>{
-            [w, n](std::size_t i) { return w.at(n + i); }, suffix_size});
+        const std::size_t suffix_size =
+            (n < w.size()) ? w.size() - static_cast<std::size_t>(n) : 0u;
+        return f(Path<T, Cardinality, Index>{
+            [w, n](Index i) { return w.at(n + i); }, suffix_size});
       } else {
-        return f(Path<T, Cardinality>{
-            [w, n](std::size_t i) { return w.at(n + i); }});
+        return f(Path<T, Cardinality, Index>{
+            [w, n](Index i) { return w.at(n + i); }});
       }
     };
 
     if constexpr (dedekind::sets::IsFinite<Cardinality>) {
-      return Path<U, Cardinality>{extended_generator, w.size()};
+      return Path<U, Cardinality, Index>{extended_generator, w.size()};
     } else {
-      return Path<U, Cardinality>{extended_generator};
+      return Path<U, Cardinality, Index>{extended_generator};
     }
   }
 
@@ -339,13 +361,16 @@ constexpr auto from_range(R&& range) {
       values->size()};
 }
 
-export template <typename T, typename Cardinality>
-constexpr auto prefix(const Path<T, Cardinality>& path, std::size_t length) {
+export template <typename T, typename Cardinality, typename Index>
+constexpr auto prefix(const Path<T, Cardinality, Index>& path,
+                      std::size_t length) {
   if constexpr (dedekind::sets::IsFinite<Cardinality>) {
     const std::size_t clamped = std::min(length, path.size());
-    return FinitePath<T>{[path](std::size_t i) { return path.at(i); }, clamped};
+    return Path<T, Finite, Index>{[path](Index i) { return path.at(i); },
+                                  clamped};
   } else {
-    return FinitePath<T>{[path](std::size_t i) { return path.at(i); }, length};
+    return Path<T, Finite, Index>{[path](Index i) { return path.at(i); },
+                                  length};
   }
 }
 
@@ -362,13 +387,14 @@ constexpr auto prefix(const Path<T, Cardinality>& path, std::size_t length) {
  * @return An infinite path with the same cardinality, representing the shifted
  *         tail.
  */
-export template <typename T, typename Cardinality>
+export template <typename T, typename Cardinality, typename Index>
   requires(!dedekind::sets::IsFinite<Cardinality>)
-constexpr auto drop(const Path<T, Cardinality>& path, std::size_t n) {
-  return Path<T, Cardinality>{[path, n](std::size_t i) {
-    assert(i <= std::numeric_limits<std::size_t>::max() - n &&
+constexpr auto drop(const Path<T, Cardinality, Index>& path, std::size_t n) {
+  return Path<T, Cardinality, Index>{[path, n](Index i) {
+    const auto j = static_cast<std::size_t>(i);
+    assert(j <= std::numeric_limits<std::size_t>::max() - n &&
            "drop index overflow: n + i exceeds size_t");
-    return path.at(n + i);
+    return path.at(static_cast<Index>(n + j));
   }};
 }
 
@@ -414,24 +440,23 @@ constexpr auto drop(const Path<T, Cardinality>& path, std::size_t n) {
  * categorical identity "a sequence IS a countable set of pairs" is
  * thus type-system-discharged rather than asserted in prose.
  */
-export template <typename T, typename Cardinality>
+export template <typename T, typename Cardinality, typename Index>
   requires std::equality_comparable<T>
-constexpr auto as_relation(const Path<T, Cardinality>& path) {
-  // Use @c Path::Domain (currently @c std::size_t ) as the relation's
-  // index carrier.  @c IsSequence requires its @c Domain to satisfy
-  // @c IsRingIntegral (see @c :order:halfspace:96 ); that algebraic gate
-  // — broad enough to admit both @c std::size_t and the @f$\mathbb{N}@f$
-  // Form @c dedekind::sets::Cardinality once @c Path::Domain is later
-  // generalised — is what makes the size_t choice principled rather than
-  // accidental, in line with the project's Form-before-Carrier posture.
-  using Index = typename Path<T, Cardinality>::Domain;
+constexpr auto as_relation(const Path<T, Cardinality, Index>& path) {
+  // The relation's index column type IS the Path's @c Domain (i.e.\
+  // its @c Index template parameter), gated on @c IsRingIntegral via
+  // the @c IsSequence concept.  After the Path::Domain lift, the
+  // Form-shaped choice @c dedekind::sets::ExtensionalCardinal<> flows
+  // through here without a @c size_t cast at the entry point — only
+  // the finite-cardinality bound check needs a size_t conversion (to
+  // compare against @c path.size() which is a stdlib container size).
   using Pair = std::pair<Index, T>;
   auto graph_pred = [path](const Pair& p) -> bool {
-    const auto i = static_cast<std::size_t>(p.first);
     if constexpr (dedekind::sets::IsFinite<Cardinality>) {
-      if (i >= path.size()) return false;
+      const auto i_size = static_cast<std::size_t>(p.first);
+      if (i_size >= path.size()) return false;
     }
-    return p.second == path.at(i);
+    return p.second == path.at(p.first);
   };
   return Set<Pair, ClassicalLogic, decltype(graph_pred)>{graph_pred};
 }
@@ -468,12 +493,12 @@ constexpr auto as_relation(const Path<T, Cardinality>& path) {
  * @see operator<<= — the co-Kleisli @c extend; @c δ(s) is @c extend with
  *      the context-identity, i.e.\ @c s @c <<= @c std::identity{}.
  */
-export template <typename T, typename Cardinality>
+export template <typename T, typename Cardinality, typename Index>
   requires(!dedekind::sets::IsFinite<Cardinality>)
-constexpr auto tails(const Path<T, Cardinality>& s)
-    -> Path<Path<T, Cardinality>, Cardinality> {
-  return Path<Path<T, Cardinality>, Cardinality>{
-      [s](std::size_t n) { return drop(s, n); }};
+constexpr auto tails(const Path<T, Cardinality, Index>& s)
+    -> Path<Path<T, Cardinality, Index>, Cardinality, Index> {
+  return Path<Path<T, Cardinality, Index>, Cardinality, Index>{
+      [s](Index n) { return drop(s, static_cast<std::size_t>(n)); }};
 }
 
 /**
@@ -568,15 +593,112 @@ constexpr auto iterate(T seed, Step&& step, std::size_t length) {
       length};
 }
 
-export template <typename T, typename Cardinality, typename Pred>
+/**
+ * @brief @c iterate(op, @c seed_0, @c ... @c , @c seed_{n-1}) — n-ary
+ *        recurrence: a binary (or @em n-ary) operator applied repeatedly to a
+ *        sliding window of @c n previous values.
+ *
+ * @details Captures the structural pattern @em "binary @em op @em applied
+ * @em recursively" that recurs across the codebase's recurrence exhibits
+ * (Fibonacci, Lucas, Tribonacci, GCD-via-Euclid, linear recurrences of any
+ * order).  The state is a sliding window of @c n carriers; each step
+ * computes @c op(w_0, @c ..., @c w_{n-1}) , shifts the window left by one,
+ * and writes the result into the last slot.  The read-back semantics:
+ * @c path.at(k) for @c k @c < @c n returns @c seed_k ; for @c k @c >= @c n
+ * returns the canonical @c k -th sequence element.
+ *
+ * @section path__nary_iterate_Use
+ *
+ * @code
+ *   // Fibonacci:         F_0 = 0, F_1 = 1, F_{n+2} = F_n + F_{n+1}
+ *   auto fib = iterate(std::plus<size_t>{}, size_t{0}, size_t{1});
+ *   // Path<size_t>, at(0)=0, at(1)=1, at(2)=1, at(3)=2, ...
+ *
+ *   // Tribonacci:        T_{n+3} = T_n + T_{n+1} + T_{n+2}
+ *   auto tri = iterate([](size_t a, size_t b, size_t c) { return a + b + c; },
+ *                      size_t{0}, size_t{0}, size_t{1});
+ *
+ *   // Generic linear recurrence (e.g. Pell's: P_{n+1} = 2 P_n + P_{n-1}):
+ *   auto pell = iterate([](size_t a, size_t b) { return 2*b + a; },
+ *                       size_t{0}, size_t{1});
+ * @endcode
+ *
+ * @section path__nary_iterate_NNO_Reading
+ *
+ * For @c n @c = @c 1 this overload reduces to the standard NNO morphism
+ * @c iterate(op, @c seed) above (in argument-swapped form) — the
+ * categorical NNO universal property says there exists a unique morphism
+ * @c ℕ @c → @c carrier making the recursion diagram commute (Mac Lane
+ * @em CWM §V.5), and this is the @c n -dimensional analogue.  The
+ * existing 2-argument @c iterate(seed, @c step) form stays alongside this
+ * overload for back-compat; new code is encouraged to prefer the n-ary
+ * form for any recurrence of order @c >= @c 2 .
+ *
+ * @tparam Op  An @c n -ary callable on @c T @c × @c ... @c × @c T returning
+ *             @c T (where @c n @c = @c 1 @c + @c sizeof...(Ts) ).
+ * @tparam T   The carrier of the recurrence; the codomain of @c op .
+ * @tparam Ts  Additional seed types convertible to @c T .
+ *
+ * @complexity @c O(k) per @c path.at(k) call — the lazy form walks from
+ * the seeds on each random access, just like the binary @c iterate above.
+ * The eager bounded sibling is a separate slice deferred until a use case
+ * surfaces.
+ */
+export template <typename Op, typename T, typename... Ts>
+  requires(std::convertible_to<Ts, T> && ...) &&
+          std::invocable<const Op&, T, Ts...> &&
+          std::same_as<
+              std::remove_cvref_t<std::invoke_result_t<const Op&, T, Ts...>>, T>
+constexpr Path<T> iterate(Op op, T seed_0, Ts... more_seeds) {
+  constexpr std::size_t N = 1 + sizeof...(Ts);
+  using Window = std::array<T, N>;
+  Window initial{seed_0, T(more_seeds)...};
+
+  // The window-transition is itself a recurrence on @c Window — shift
+  // left by one, write @c op(w_0, @c ..., @c w_{N-1}) into the last
+  // slot.  @c std::apply unpacks the array via the tuple-like protocol;
+  // @c std::shift_left is the C++20 in-place left shift.  No hand-rolled
+  // index_sequence ceremony, no manual element-by-element copy.
+  auto window_step = [op = std::move(op)](Window w) -> Window {
+    T next = std::apply(op, w);
+    std::shift_left(w.begin(), w.end(), 1);
+    w[N - 1] = next;
+    return w;
+  };
+
+  // The recurrence @em walker IS the existing binary @c iterate primitive
+  // (above) — n-ary @c iterate is its functorial projection.  Window
+  // @c k holds @c (F_k, @c F_{k+1}, @c ..., @c F_{k+N-1}) , so the
+  // canonical @c k -th element is @c window_path.at(k)[0] uniformly for
+  // any @c k @c >= @c 0 (the initial window's seeds being
+  // @c (F_0, @c ..., @c F_{N-1}) ).  No new for-loop, no @c if @c (k @c <
+  // @c N) branch — the math is direct.  The head-projection lambda is
+  // the operational form of @c path_functor::φ at this call site (see
+  // the Sollbruchstelle docstring below for why @c φ remains unreified
+  // at the Hub level).
+  //
+  // FIXME: the returned Path has the default @c Index @c = @c
+  // std::size_t .  Propagating the user-chosen @c Index Form through
+  // here requires a generic projection from arbitrary @c IsRingIntegral
+  // carriers to @c std::size_t (so the inner @c window_path.at can be
+  // queried).  Deferred to a follow-up: the conversion-from-Form
+  // arrow lives in @c :numbers:natural (downstream of this partition).
+  auto window_path = iterate(initial, window_step);
+  return Path<T>{
+      [window_path](std::size_t k) -> T { return window_path.at(k)[0]; }};
+}
+
+export template <typename T, typename Cardinality, typename Index,
+                 typename Pred>
   requires dedekind::sets::IsFinite<Cardinality> &&
            std::predicate<const std::decay_t<Pred>&, const T&>
-constexpr std::size_t count_if(const Path<T, Cardinality>& path, Pred&& pred) {
+constexpr std::size_t count_if(const Path<T, Cardinality, Index>& path,
+                               Pred&& pred) {
   auto predicate = std::forward<Pred>(pred);
   std::size_t count = 0;
 
   for (std::size_t i = 0; i < path.size(); ++i) {
-    if (std::invoke(predicate, path.at(i))) ++count;
+    if (std::invoke(predicate, path.at(static_cast<Index>(i)))) ++count;
   }
 
   return count;
@@ -612,9 +734,10 @@ constexpr std::optional<std::size_t> first_where(const FinitePath<T>& path,
   return std::nullopt;
 }
 
-export template <typename T, typename Cardinality, typename Pred>
+export template <typename T, typename Cardinality, typename Index,
+                 typename Pred>
   requires LogicalMap<Pred, T>
-constexpr auto exists(const Path<T, Cardinality>& path, Pred&& pred) {
+constexpr auto exists(const Path<T, Cardinality, Index>& path, Pred&& pred) {
   using Omega = OmegaOf<Pred, T>;
   using Logic = LogicOf<Omega>;
 
@@ -624,7 +747,8 @@ constexpr auto exists(const Path<T, Cardinality>& path, Pred&& pred) {
     if constexpr (dedekind::sets::IsFinite<Cardinality>) {
       if (i >= path.size()) break;
     }
-    witness = Logic::OR(witness, std::invoke(predicate, path.at(i)));
+    witness = Logic::OR(witness,
+                        std::invoke(predicate, path.at(static_cast<Index>(i))));
     if (witness == Logic::True)
       break;  // short-circuit: absorbing element found
   }
@@ -648,23 +772,26 @@ constexpr auto exists(const Path<T, Cardinality>& path, Pred&& pred) {
  * @param path Source infinite path.
  * @return     Infinite Path<U> where element i == f(prefix(path, i+1)).
  */
-export template <typename T, typename F>
+export template <typename T, typename Index, typename F>
   requires std::copy_constructible<std::decay_t<F>> &&
-           std::invocable<const std::decay_t<F>&, const FinitePath<T>&>
-constexpr auto scan(F&& f, const Path<T>& path) -> Path<
-    std::invoke_result_t<const std::decay_t<F>&, const FinitePath<T>&>> {
+           std::invocable<const std::decay_t<F>&, const Path<T, Finite, Index>&>
+constexpr auto scan(F&& f, const Path<T, ℵ_0, Index>& path) -> Path<
+    std::invoke_result_t<const std::decay_t<F>&, const Path<T, Finite, Index>&>,
+    ℵ_0, Index> {
   using Fn = std::decay_t<F>;
-  using U = std::invoke_result_t<const Fn&, const FinitePath<T>&>;
-  return Path<U>{[f = Fn(std::forward<F>(f)), path](std::size_t i) {
-    assert(i < std::numeric_limits<std::size_t>::max() &&
+  using U = std::invoke_result_t<const Fn&, const Path<T, Finite, Index>&>;
+  return Path<U, ℵ_0, Index>{[f = Fn(std::forward<F>(f)), path](Index i) {
+    const auto j = static_cast<std::size_t>(i);
+    assert(j < std::numeric_limits<std::size_t>::max() &&
            "scan index overflow: i+1 exceeds size_t");
-    return std::invoke(f, prefix(path, i + 1));
+    return std::invoke(f, prefix(path, j + 1));
   }};
 }
 
-export template <typename T, typename Cardinality, typename Pred>
+export template <typename T, typename Cardinality, typename Index,
+                 typename Pred>
   requires LogicalMap<Pred, T>
-constexpr auto forall(const Path<T, Cardinality>& path, Pred&& pred) {
+constexpr auto forall(const Path<T, Cardinality, Index>& path, Pred&& pred) {
   using Omega = OmegaOf<Pred, T>;
   using Logic = LogicOf<Omega>;
 
@@ -674,7 +801,8 @@ constexpr auto forall(const Path<T, Cardinality>& path, Pred&& pred) {
     if constexpr (dedekind::sets::IsFinite<Cardinality>) {
       if (i >= path.size()) break;
     }
-    witness = Logic::AND(witness, std::invoke(predicate, path.at(i)));
+    witness = Logic::AND(
+        witness, std::invoke(predicate, path.at(static_cast<Index>(i))));
     if (witness == Logic::False)
       break;  // short-circuit: absorbing element found
   }
