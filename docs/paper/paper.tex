@@ -971,59 +971,120 @@ is conjunction; union is disjunction; complement is negation. No values are touc
 because there are no values yet. The combinators compose at compile time and produce
 a new type---a new rule---which the compiler is then free to inspect.
 
-\subsection{Functions on Sets: Filtering and Transforming}
-\label{sec:functions-on-sets}
+\subsection{Sequences and the Relational Closure}
+\label{sec:sequences-relational}
 
-So far the operations on sets have been \emph{lattice} operations: intersection, union, complement.
-The two operations a working programmer reaches for next are \emph{filter} (keep the elements satisfying a predicate) and \emph{transform} (apply a function elementwise).
-Both have clean readings in the comprehension view, and one of them turns out to be the more interesting story.
+A \emph{sequence} is a function $f : \mathbb{N} \to T$.
+Bourbaki's function-as-graph convention~\cite{bourbaki1968theoryofsets} identifies $f$ with the set $\{(n, f(n)) \mid n \in \mathbb{N}\} \subseteq \mathbb{N} \times T$ --- a countable set of pairs, which is to say a Codd relation~\cite{codd1970relational} on the natural numbers and $T$.
+This identification is the §3 page-2 hinge: every page-1 set-of-predicate construction (comprehension, filter, complement) carries through to sequences via the graph lift, and the relational algebra Codd built on Cartesian products acts on the result directly.
 
-\paragraph{Filter is silently already there.}
-The textbook set-builder $\{x \in S \mid p(x)\}$ is filter; the comprehension form in \texttt{dedekind} writes it almost verbatim:
-\[
-  \mathrm{filter}(p,\,S) \;=\; S \,\cap\, \{x \in A \mid p(x)\}.
-\]
-Categorically this is the pullback of the subobject classifier:
-\(\{x \in A \mid p(x)\}\) is the subobject of $A$ classified by $p$, and intersecting with $S$ is again predicate conjunction.
-No new primitive is needed; the apparatus is the comprehension-and-meet machinery the previous subsections already built.
-Where the working programmer would write \texttt{S.filter(p)}, we write \texttt{S \& Set\{element<A> | p\}} --- and the type checker sees a sharper rule, not an iterated container.
-The Juliet Posture pays off here: any \texttt{IsSet} carrier can be filtered, including a \cppinline{std::unordered_set<T>} lifted via \cppinline{ambient_set}, without a project-shipped wrapper between the user's data and the categorical surface.
+\paragraph{Named exhibits.}
+The library names two canonical sequences in \texttt{:sequences:samples} to anchor the page-2 exhibit.
+The carrier $T$ is parameterised on the \cppinline{IsRingIntegral} algebraic gate (the same gate \cppinline{IsSequence::Domain} requires); the named defaults sit in the Form-shaped finite-$\mathbb{N}$ carrier \cppinline{ExtensionalCardinal<>} at both the Path's index and the recurrence's carrier.
 
-\paragraph{Transform is the structurally interesting one.}
-A \emph{transform} of $S$ under $f : A \to B$ is the image: the set $\{f(x) \mid x \in S\}$.
-The textbook categorical definition is the \emph{epi--mono factorisation} of $f$,
-\[
-  S \;\xrightarrow{e}\; \mathrm{Im}(f|_S) \;\xrightarrow{m}\; B,
-\]
-or equivalently the coequalizer of the kernel pair: $\mathrm{Im}(f|_S) \,=\, \mathrm{coeq}(S \times_B S \;\rightrightarrows\; S)$.
-The kernel pair is the equivalence ``$x$ and $x'$ have the same $f$-image''; the coequalizer collapses each equivalence class to one point.
-Read aloud: the image is what is left of $S$ after we identify points $f$ doesn't distinguish.
-This works for any domain, in any regular category --- and it is what gets the structural reading off the ground.
+% Source: src/main/modules/dedekind/sequences/samples.cppm
+\begin{listing}[htbp]
+\caption{The §3 page-2 named samples in \texttt{:sequences:samples}.  \cppinline{iterate(op, seeds...)} captures the structural pattern \emph{binary operator applied recursively to a sliding window}: Fibonacci is the $(+, 0, 1)$ instance, Tribonacci the $n=3$ case, Pell the $(2b+a, 0, 1)$ variant, GCD-via-Euclid the modulus instance.  All inhabit the same Lawvere NNO universal-property morphism shape (Mac Lane CWM §V.5~\cite{maclane1971categories}).  The \cppinline{ℕ_Form} alias is the project's algebraically-certified finite $\mathbb{N}$ carrier.}
+\label{lst:samples}
+\begin{cpp}
+using ℕ_Form = dedekind::sets::ExtensionalCardinal<>;
 
-The constructive realisation, however, depends on what $S$ \emph{is}.
-There are three regimes the library distinguishes, each a different reading of the same categorical primitive:
+export inline const auto is_even = Path<Boolean, ℵ_0, ℕ_Form>{
+    [](ℕ_Form n) { return Boolean{n % ℕ_Form{2u} == ℕ_Form{0u}}; }};
 
-\begin{itemize}
-\item \textbf{Predicate-defined $S$} (intensional comprehension): the image is the subobject of $B$ classified by $\lambda b. \exists x \in A.\; p(x) \wedge f(x) = b$.
-This needs the existential quantifier on $\Omega$ --- the topos's $\exists$ machinery --- which the library names but does not yet expand structurally.
-The rule survives in the type system; materialising it crosses the realisation boundary.
+export template <IsRingIntegral T>
+  requires requires { T(0u); T(1u); }
+inline const auto fibonacci_of = iterate(std::plus<T>{}, T(0u), T(1u));
 
-\item \textbf{Finite extensional $S$} (a \cppinline{std::set<T>} or \cppinline{std::unordered_set<T>}, lifted via \cppinline{ambient_set}): the kernel pair is finite, and its coequalizer is computed by deduplication on insertion --- by hash for \cppinline{std::unordered_set} (\cppinline{operator==} on collisions) and by ordered comparison for \cppinline{std::set} (the strict-weak-order \cppinline{Compare}).
-The trivial elementwise loop in \texttt{:extensional} is, suitably read, the operationalisation of $\mathrm{coeq}(S \times_B S \rightrightarrows S)$ on a finite carrier.
+export inline const auto& fibonacci = fibonacci_of<ℕ_Form>;
+\end{cpp}
+\end{listing}
 
-\item \textbf{$\mathbb{N}$-indexed $S$} (a sequence, $f : \mathbb{N} \to T$): the universal property of the Natural Numbers Object \cite{lawvere1964elementary} determines $f$ from less data than enumeration --- a starting point $a_0 \in T$ and a step $s : T \to T$, by Peano recursion --- and the image is the orbit of $a_0$ under iterated $s$ in $T$, equivalently the smallest $s$-stable subobject of $T$ containing $a_0$.
-The library's \cppinline{Path<T>} carries this as a typed value; a path \emph{is} the transform, by construction, and never enumerates its codomain.
-\end{itemize}
+\paragraph{The graph lift is mechanical.}
+The function-as-graph identity is type-system-discharged via \cppinline{as_relation(path)}, which builds the graph predicate $\{(i, t) \mid t = \mathtt{path.at}(i)\}$ as a typed \cppinline{Set} of pairs.
+A static\_assert at the partition boundary witnesses ``a sequence \emph{is} a countable set of pairs'' mechanically:
 
-The three readings are not three different operations; they are the same kernel-pair-coequalizer specialised to three different shapes of $S$.
-The library exposes each shape's natural form (\texttt{Path<T>} for $\mathbb{N}$-indexed, \cppinline{Set\{element<A> | p\}} for predicates, the trivial helper in \texttt{:extensional} for finite carriers), with the categorical \texttt{image} primitive in \texttt{:category} planned to name the connection at the type level.\footnote{At the time of writing, the per-shape constructive realisations are present in their respective partitions; the categorical \texttt{image} primitive that pins the kernel-pair-coequalizer reading uniformly across them — so a single concept gates routing and CI verifies the connection — is filed as a follow-up slice.  The realisations are not duplicates of one another: they are honestly different algorithms for honestly different domain shapes, sharing the same categorical name once the upstream primitive lands.  The realisation boundary, in either case, is where the choice is made.}
+% Source: src/main/modules/dedekind/sequences/path.cppm
+\begin{listing}[htbp]
+\caption{Bourbaki function-as-graph as a typed Set of pairs.  The IS-A static\_assert at the partition boundary (in \texttt{:sequences:path}) lifts the categorical identity into the type system: \texttt{IsSet} fires on the relational form for both infinite and finite-cardinality Path carriers via the \cppinline{ambient_set} canonical lift, so the §3 page-2 hinge is type-checked rather than asserted only in prose.}
+\label{lst:as_relation}
+\begin{cpp}
+template <typename T, typename Cardinality, typename Index>
+  requires std::equality_comparable<T>
+constexpr auto as_relation(const Path<T, Cardinality, Index>& path) {
+  using Pair = std::pair<Index, T>;
+  auto graph_pred = [path](const Pair& p) { return p.second == path.at(p.first); };
+  return Set<Pair, ClassicalLogic, decltype(graph_pred)>{graph_pred};
+}
 
-\paragraph{Why this matters for the listing.}
-The \emph{Intensional First} discipline says the rule lives longer than any of its realisations.
-A predicate-defined transform is a rule the type system can rewrite, prune, and compose without ever evaluating $f$.
-An $\mathbb{N}$-indexed transform is a path the type system can compose with other paths --- and again, no values are touched until the realisation boundary.
-The Juliet Posture says any user type satisfying \cppinline{IsSet} or \cppinline{IsSequence} flows through this machinery without wrapping.
-Together, the two stances put $\{f(x) \mid x \in S, p(x)\}$ --- the textbook definition that opens this section --- straight into the type system as a closed-form rule, with the three realisations standing by for the moment the rule has to land.
+static_assert(IsSet<decltype(ambient_set<std::pair<std::size_t, int>>(
+    as_relation(std::declval<const Path<int>&>())))>,
+    "as_relation(Path<T>) lifts to an ETCS Set of pairs — the §3 page-2 thesis "
+    "that a sequence IS a countable set of pairs (Bourbaki function-as-graph).");
+\end{cpp}
+\end{listing}
+
+\paragraph{Codd acts on graphs.}
+Once a sequence is its graph, Codd's relational algebra~\cite{codd1970relational, date2006third, abiteboul1995foundations} acts on it directly: $\sigma$ via \cppinline{select}, $\cap$ / $\cup$ / $\setminus$ via the lattice operators inherited from page 1, $\times$ via \cppinline{cartesian_product}.
+The general $\theta$-join is the composition
+\(
+  \sigma_\theta \circ \times
+  \;=\;
+  \mathtt{select}(\mathtt{cartesian\_product}(R,\,S),\,\theta)
+\)
+---
+and Codd's \texttt{LIMIT~N} is the $\sigma$-specialisation at $\lambda(i, t).\, i < N$, which the codebase deliberately does \emph{not} ship as a named primitive (Date \& Darwen's reading~\cite{date2006third}, Prescription~7 / RM~Pre~24; same posture as \texttt{zip} via $\bowtie$): writing the predicate inline keeps the algebraic content visible at the call site.
+
+The page-2 anchor is the $\theta$-join of \cppinline{is_even} and \cppinline{fibonacci} on the shared index column.
+The row at $n=7$ is the paper-citable exhibit:
+
+% Source: src/test/cpp/modules/dedekind/sequences/samples_test.cpp
+\begin{listing}[htbp]
+\caption{The §3 page-2 anchor: $\theta$-join via $\sigma \circ \times$ of \cppinline{is_even} and \cppinline{fibonacci} on the shared index column.  The on-diagonal row at $n=7$ is $(7, \mathrm{false}, 13)$ --- heterogeneous in $(\mathbb{N}, \mathbb{B}, \mathbb{N})$, a tuple of three distinct types, not a list of one.  Off-diagonal rows ($i \neq j$) are rejected by the $\theta$-predicate; off-graph rows (wrong sequence value at the index) are rejected by the source-relation predicates.}
+\label{lst:theta-join}
+\begin{cpp}
+const auto rel_even = as_relation(is_even);
+const auto rel_fib  = as_relation(fibonacci);
+
+const auto joined = select(cartesian_product(rel_even, rel_fib),
+    [](const auto& row) { return row.first.first == ℕ_Form{row.second.first}; });
+
+// joined({{ℕ_Form{7u}, false}, {7u, ℕ_Form{13u}}})  →  true
+// joined({{ℕ_Form{7u}, false}, {8u, ℕ_Form{21u}}})  →  false   (off-diagonal)
+// joined({{ℕ_Form{7u}, false}, {7u, ℕ_Form{99u}}})  →  false   (off-graph)
+\end{cpp}
+\end{listing}
+
+The heterogeneity is the beat: the join key is in $\mathbb{N}$, the \cppinline{is_even} column is in $\mathbb{B}$, the \cppinline{fibonacci} column is in $\mathbb{N}$.
+This is \emph{tuples, not lists} --- the relational character the categorical reading affords.
+
+\paragraph{The SQL / dedekind / categorical rosetta.}
+Table~\ref{tab:sql-rosetta} closes the page-2 hinge.
+Each SQL operator has a named function in \texttt{:sets:relational} acting on a Set (page-1 carrier) or a sequence's graph (page-2 carrier); the categorical column is the structural justification.
+The dual-mode character of the comprehension DSL --- compile-time \texttt{static\_assert}s for closed-form rules, runtime \cppinline{REQUIRE}-style membership tests for sampled witnesses --- holds uniformly across the rows.
+
+\begin{table}[htbp]
+\centering
+\caption{The SQL / \texttt{dedekind} / categorical rosetta for §3.  Each row carries a single algebraic operation across the three vocabularies; the codebase column points at the \texttt{:sets:relational} or \texttt{:sequences:path} exported surface.  \texttt{LIMIT~N} and \texttt{zip} are $\sigma$-specialisations the codebase deliberately leaves unnamed --- writing the predicate or join condition inline keeps the algebraic content visible.}
+\label{tab:sql-rosetta}
+\small
+\begin{tabular}{@{}l l l@{}}
+\toprule
+\textbf{SQL} & \textbf{\texttt{dedekind}} & \textbf{Categorical} \\
+\midrule
+\texttt{WHERE p}              & \cppinline{select(S, p)}                                                & $\sigma_p$ \\
+\texttt{AND} / \texttt{OR} / \texttt{NOT} & \cppinline{&} / \cppinline{|} / \cppinline{!}                       & meet / join / complement on $\Omega$ \\
+\texttt{FROM A, B}            & \cppinline{cartesian_product(A, B)}                                     & $\times$ \\
+\texttt{... JOIN B ON $\theta$} & \cppinline{select(cartesian_product(A, B), $\theta$)}                & $\sigma_\theta \circ \times$ \\
+\texttt{NATURAL JOIN}         & \cppinline{natural_join(R, S)} ($\theta$ = key equality)                & $\sigma$-specialisation \\
+\texttt{LIMIT N}              & (inline) \cppinline{select(R, [n](\&p){return p.first < n;})}                       & $\sigma$ on the index column \\
+\texttt{SELECT DISTINCT}      & \cppinline{image(f, S)} (kernel-pair coequalizer)                       & epi--mono factorisation \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The page-2 hinge thus closes: every relational query a working programmer writes on a sequence's graph is the corresponding categorical operation on a Set of pairs, dispatched through the page-1 comprehension surface.
+The realisation boundary --- where compile-time rule becomes runtime value --- is the same one §3.\ref{sec:intensional} named at the top: the only thing that has changed is that the carrier is now a sequence's graph rather than a finite extensional set.
 
 \subsection{Structural Pruning in Practice}
 

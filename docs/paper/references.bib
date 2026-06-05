@@ -1133,3 +1133,42 @@
   howpublished = {\url{https://isocpp.org/wiki/faq/cpp0x-concepts-history}},
   note         = {Records the C++0x \texttt{axiom} keyword proposal and its withdrawal: the committee considered language-level support for semantic certification but did not commit, leaving manual certification (traits, documentation) as the practical path.  The Juliet Posture's trait registry is the engineering instantiation of that path.}
 }
+
+@article{codd1970relational,
+  author    = {Codd, E. F.},
+  title     = {A Relational Model of Data for Large Shared Data Banks},
+  journal   = {Communications of the ACM},
+  volume    = {13},
+  number    = {6},
+  pages     = {377--387},
+  year      = {1970},
+  doi       = {10.1145/362384.362685},
+  note      = {The founding statement of relational algebra: $\sigma$ (selection), $\pi$ (projection), $\cup$, $\cap$, $\setminus$, $\times$ (Cartesian product), and $\theta$-join (= $\sigma_\theta \circ \times$) as the primitives over relations.  Used in §3 page-2 to justify the codebase's posture that \texttt{LIMIT~N} is a $\sigma$-specialisation not separately named.}
+}
+
+@book{date2006third,
+  author    = {Date, C. J. and Darwen, Hugh},
+  title     = {Databases, Types, and the Relational Model: The Third Manifesto},
+  edition   = {3rd},
+  publisher = {Addison-Wesley},
+  year      = {2006},
+  note      = {The modern restatement of Codd's algebra with explicit type discipline.  Prescription~7 / RM~Pre~24 reads \texttt{LIMIT~N} as $\sigma$ with a derived upper-cutoff pivot on the index column --- the reading the codebase adopts in \texttt{:sequences:path} via \cppinline{select(R, [n](\&p){return p.first < n;})} instead of a separately named primitive.}
+}
+
+@book{abiteboul1995foundations,
+  author    = {Abiteboul, Serge and Hull, Richard and Vianu, Victor},
+  title     = {Foundations of Databases},
+  publisher = {Addison-Wesley},
+  year      = {1995},
+  note      = {The textbook treatment of relational query languages, complete with the categorical reading of $\theta$-join as $\sigma_\theta$ applied to the Cartesian product.}
+}
+
+@book{bourbaki1968theoryofsets,
+  author    = {Bourbaki, Nicolas},
+  title     = {Theory of Sets},
+  series    = {Elements of Mathematics},
+  publisher = {Springer},
+  year      = {1968},
+  edition   = {English},
+  note      = {The function-as-graph convention --- a function $f : A \to B$ IS the set of pairs $\{(a, f(a)) \mid a \in A\} \subseteq A \times B$ --- is the foundational identification the §3 page-2 hinge rests on.  Bourbaki §II.3.4 (the definition of a functional graph).}
+}
