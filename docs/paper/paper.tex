@@ -834,47 +834,13 @@ The 2-categorical layer above thus becomes the engineer's honesty obligation, na
 \label{sec:intensional}
 % ============================================================
 
-\subsubsection{The Design Rule}
-
 The central methodology of \texttt{dedekind} is captured by a single rule:
 \begin{quote}
   \emph{Intensional first, realize it when you mean it.}
 \end{quote}
-The thrust of this rule is to leverage \emph{lazy evaluation}---both at the type level
-(compile-time symbolic substitution) and at the value level (deferred numeric approximation)---as
-a principled defence against \emph{Premature Materialization}: the loss of mathematical
-structure that occurs when a computation is forced to a concrete representation earlier than
-necessary.
-
-An \emph{intensional} description specifies a mathematical object by its defining properties.
-An \emph{extensional} representation enumerates its members or computes its value.
-A halfspace \(\{x \in \mathbb{Q} \mid x \leq 4\}\) is intensional; the list of its
-rational points between $0$ and $4$ is extensional; and a function that materialises
-the former into the latter is the auditable crossing of that boundary. The Dedekind cuts
-of Section~\ref{sec:dedekind-cuts}---where a real number is named by the pair of rational
-sets below and above it---push the same distinction to its limit: the real is
-intensional forever, and only bounded-precision queries cross the boundary.
-This framing is close in spirit to intensional database semantics (for example,
-Majki\'c's intensional FOL treatment for peer-to-peer data integration
-\cite{majkic2009intensional}), but our engineering contrast with mainstream SQL
-is explicit: SQL evaluation is typically defined over already-realized relations,
-while \texttt{dedekind} preserves predicate-level structure in the type system and
-defers materialization to an explicit realization boundary.
-
-The methodological lineage also runs through Abelson and
-Sussman's~\cite{abelson1996sicp} \emph{programming by wishful thinking}: name
-the procedure you wish you had, use it, and supply its definition only when the
-surrounding code forces a concrete answer.  SICP's medium for this discipline
-is Scheme---an untyped lambda calculus where the wished-for procedure is
-\emph{notational} until evaluation reaches it.  Our medium is the C++23 type
-checker, which performs a typed lambda calculus on our behalf at compile time:
-the wished-for object inhabits a predicate-set type, the wishes are tracked
-structurally as type-level constraints, and the realization boundary is the
-single point at which the type system permits an extensional value to be
-produced.  Where SICP defers \emph{evaluation} (a runtime move), we defer
-\emph{materialization} (a compile-time-to-runtime move), and the type checker
-is the auditor that ensures the wishes were coherent before the realization
-happens.
+An \emph{intensional} description specifies a mathematical object by its defining properties; an \emph{extensional} representation enumerates its members or computes its value.
+The halfspace $\{x \in \mathbb{Q} \mid x \leq 4\}$ is intensional, the list of its rational points between $0$ and $4$ is extensional, and a function that materialises the former into the latter is the auditable crossing of that boundary.
+The discipline is in the lineage of Abelson \& Sussman's \emph{programming by wishful thinking}~\cite{abelson1996sicp} --- with the difference that SICP's Scheme defers \emph{evaluation} (a runtime move) while \texttt{dedekind}'s C++23 type checker defers \emph{materialisation} (a compile-time-to-runtime move): the wishes are tracked structurally as type-level constraints, and the realisation boundary is the single point at which an extensional value is produced.
 
 \paragraph{Forms before carriers.}
 The library reifies the discrete-foundations triple structurally
