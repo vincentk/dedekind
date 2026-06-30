@@ -170,45 +170,23 @@ differentiation.
 \label{sec:introduction}
 % ============================================================
 
-A software developer who wants to expose mathematical abstractions in a
-programming language faces a recurring tension.
-Algebraic structures---groups,
-rings, fields, vector spaces---are defined in the abstract by laws which are hard to enforce: associativity,
-commutativity, identities, inverses, closure, totality and many more.
-The concrete carriers\footnote{We use ``carrier'' for the underlying set $A$ of a $\Sigma$-algebra in the strict universal-algebra sense (Burris--Sankappanavar~\cite{burris1981universalalgebra}), distinct from the algebra $(A, \Sigma_A)$ itself.  Where the prose says ``the carrier $\mathrm{T}$'' it is shorthand for the pair inhabited under the relevant concept.  Section~\ref{sec:alg-sigma} makes the layering precise; the HAS-A posture of named carriers (algebra HAS-A carrier $\Leftrightarrow$ carrier IS-PART-OF algebra in the mereological reading) is encoded mechanically by the \cppinline{HasCarrier<Algebra, Carrier, Ops...>} concept in \texttt{algebra:universal}, which composes \cppinline{IsAlgebra<Carrier, Ops...>} (algebra-side closure under the operations) with the parthood primitives \cppinline{IsPartOfRelation} and \cppinline{arrow_drill_down} from \texttt{category:mereology}.  The sibling \cppinline{IsTotalAlgebra<T, Ops...>} concept names the totality tier between closure (\cppinline{IsAlgebra}) and the per-axiom laws hierarchy in \texttt{category:total} (\cppinline{IsRing}, \cppinline{IsField}, \dots): closure plus \cppinline{IsTotal<T, Op>} on each operation, the gate the laws-tier concepts are built on.  Pinned end-to-end on $\mathbb{F}_2 = (\mathbb{B}, \oplus, \wedge)$ as the concrete-algebra witness for both tiers.} a programming language offers violate those laws conditionally, sometimes silently:
-sets must fit into memory or cache, functions may throw runtime exceptions or return \cppinline{nullptr};
-a 32-bit signed \cppinline{int} is not an additive group (overflow, \cppinline{INT_MIN} has no
-negation), an IEEE~754 \cppinline{double}~\cite{ieee754_2019} may overflow, underflow, be \cppinline{NaN},
-and is not associative under addition in the bit-perfect sense.
-The options are then to 
-i) ignore the divergence and try to mitigate or silence bugs on specific inputs,
-ii) police it at runtime, or 
-iii) encode it in the software build process so the build system can police and maybe exploit it.
-In real life, the pragmatic choice is often the first one: the programmer defines a \cppinline{std::vector<std::vector<double>>}, calls it a tensor and gets on with life.
+Recent breakthroughs in machine learning have resulted not just in an explosion of novel and interesting use cases but also sparked public debate about the technology's demands and bottlenecks:
+Hardware cost, computational cost, energy use, and interpretability are often named both in applicable literature.
 
-Here, we explore and report what might happen if a library implemented \emph{in a mainstream systems programming language} takes the third
-option seriously and consistently defaults to mathematical rigor and build-time constraints as opposed to risking runtime errors.
-The hope being to find better answers to questions such as the following:
-Will we be able to explain to the type system that an inner product of two vectors is a scalar while the outer product is a matrix of rank 1?
-Will it recognize that the intersection of a set of integers with a set of real numbers must return a subset of the integers?
-What might the type of a function space even look like?
-Will it be possible to design a system that can switch between symbolic operations on intensional concepts such as transfinite sets and extensional properties or is symbolic algebra a capability that will remain locked away in languages which are somehow more expressive?
-What happens if, either by accident or because of inherent complexity, neither the compiler nor the programmer can come up with the answer in a sufficiently short period of time? Is it possible to design escape hatches when the limits of computability are fast approaching?
+This paper therefore focuses on a complementary approach: correct-by-construction systems engineering, where the hope is white-box modeling, interpretability and computational efficiency are facilitated by way of static program verification and optimization.
+Further, to keep the approach complementary, we focus on a library implementation \emph{in a mainstream systems programming language}, i.e. the very substrate that these large models are implemented on.
+We explore and report what might happen if such library targeting analytics and machine learning use cases consistently defaults to mathematical rigor and build-time constraints as opposed to risking runtime errors.
 
-Turing showed us a long time ago that determining the limits of computability up-front is not achievable \emph{in the general case} and so we can anticipate the outcome: a hopefully growing collection of \emph{existential proofs and fragments} that facilitate computation where we know it to be feasible.
-A plausible and occasionally tractable process to support this might look about as sketched in Figure~\ref{fig:dedekind-bridge}:
-1. find pre-validated \emph{existing proofs} and turn them into specifications,
-2. translate the specifications into source code and tests,
-3. type-check the code and run the tests, reviewing the output,
-4. compare and contrast with the original textbook specification (1.).
+We ground the library's domain in category theory, transitioning from cartesian-closed categories to the elementary theory of the category of sets (ETCS) and universal algebra~\cite{pierce2002tapl, lawvere1964etcs}. 
+This framework allows a minimalist type checker to drive upstream optimizations via natural structural transformations. 
 
-Math goes one way; C++ comes back.
-The claim is bounded --- only the part of mathematics that fits a disciplined fragment of C++23 is realised, and even then we make no global claim of having proved the realisation faithful.
-Instead, a growing body of \emph{empirical} evidence is aggregated and compiled.
-The discharge is mechanical, the architecture is set up so the evidence accumulates in a single direction.
-If the compiler accepts the axiom being imported, then the compiler should also be able to validate or sometimes even derive the corresponding theorems~\cite{wadler2015propositions}.
-The remainder of this paper, starting with §\ref{sec:axiomatic}, is intended to illustrate how this was done in some detail and what was found in the process.
+On the encoding side, the choice is more open --- any sufficiently expressive type system would do --- but we landed on C++23~\cite{cpp23standard} for the following reasons.
+The goal is an embedding in an existing system (an eDSL in a library) as opposed to the development of a new language or compiler (a language or framework), and so the host language should meet the following requirements:
+a) it should be mainstream so that tooling is provided for;
+b) its runtime requirements should be modest enough to embed in the Python and JVM ecosystems and to target resource-constrained environments in the high-performance-computing or embedded-systems sense;
+c) its type system should be rich enough to perform many of the desired type checks.
 
+We anticipate the practical boundaries of this architecture: general computability remains undecidable, mainstream toolchains permit non-termination, and the underlying physical hardware model remains fixed. Thus, \texttt{dedekind} functions as a bounded, engineering intermediary between abstract category theory and a disciplined fragment of C++ execution, as sketched in the operational cycle of Figure~\ref{fig:target_model}. 
 
 \begin{figure}[htbp]
 \centering
@@ -218,94 +196,25 @@ The remainder of this paper, starting with §\ref{sec:axiomatic}, is intended to
 \mathbf{Cpp} \arrow[l, shift left=2, "\text{3. type-check and test}"]
 \end{tikzcd}
 \caption{The target operational model.  \texttt{dedekind} aims at being a faithful intermediary between $\mathbf{Cat}$ (mathematical structure in general, axiomatically defined) and a fragment of $\mathbf{Cpp}$ (the category of C++ types, values and arrows between them).
-Math $\to$ library: an interpretation maps a species (a ring, a vector space, a topos primitive) to a corresponding \texttt{dedekind} concept / trait / module.
-Library $\to$ math: the library's declarations cite the underlying axiomatic source so the resulting concept has a textbook anchor.
-Library $\to$ C++: the library instantiates concrete carriers (\cppinline{Rational<long>}, \cppinline{Vec2V<T>}, \dots) under the named structure.
-C++ $\to$ library: the compiler checks each carrier via \cppinline{static_assert} and concept-constraint discharge --- the propositional-fragment instance of the Curry--Howard--Lambek correspondence~\cite{lambek1988introduction,wadler2015propositions}.
+1. find pre-validated \emph{existing proofs} and turn them into specifications,
+2. translate the specifications into source code and tests,
+3. type-check the code and run the tests, reviewing the output,
+4. compare and contrast with the original textbook specification (1.).
 }
-\label{fig:dedekind-bridge}
+\label{fig:target_model}
 \end{figure}
 
+While a global proof of completeness is out of scope, the framework is architected so that verified mathematical evidence accumulates uniformly in a single direction. If the compiler accepts the axiom being imported, it can mechanically validate or derive the corresponding downstream theorems~\cite{wadler2015propositions}.
 
-The choice of anchoring the library's domain in category theory on the mathematical side follows a well-trodden path~\cite{pierce2002tapl}.
-Here, a minimalist type checker does not need to do much more than confirm whether the output of one function matches the input of another (morphism composition).
-Rewrite rules (e.g.\ natural transformations) and optimization enter the picture at a later stage.
-Once this basic rapport is established, the path follows an established progression:
-1. cartesian-closed categories~\cite{lambek1988introduction} giving rise to a simply-typed $\lambda$-calculus~\cite{lambek1988introduction} on sets;
-2. the elementary theory of the category of sets (ETCS)~\cite{lawvere1964etcs}; and
-3. universal algebra and abstract algebra~\cite{burris1981universalalgebra,lang2002algebra}.
+Our resulting posture is explicit: \texttt{dedekind} is a systems-programming library that treats mathematical concepts as first-class compile-time entities. This layout prevents downstream developers from bolting fragile, ad-hoc traits onto unverified numeric types. Choosing to land semantics at the compile-time layer—rather than as runtime abstractions or external DSLs—is a structural commitment that shapes what the compiler can enforce and what remains the developer's responsibility.
 
-On the encoding side, the choice is more open --- any sufficiently expressive type system would do --- but we landed on modern C++ for the following reasons.
-The goal is an embedding in an existing system (an eDSL in a library) as opposed to the development of a new language or compiler (a language or framework), and so the host language should meet the following requirements:
-a) it should be mainstream so that tooling is provided for;
-b) its runtime requirements should be modest enough to embed in the Python and JVM ecosystems and to target resource-constrained environments in the high-performance-computing or embedded-systems sense;
-c) its type system should be rich enough to perform many of the desired type checks.
-Notably, while the resulting DSL should resemble mathematical notation so that Figure~\ref{fig:dedekind-bridge} can be operationalized, developer ergonomics in the broader sense were deliberately not given a high priority at this point in time.
-
-Our resulting posture is explicit: \texttt{dedekind} is a systems-programming
-library that treats mathematical concepts as first-class compile-time
-objects.
-The library is implemented in C++23, and the compile-time
-concept machinery is its primary interface; the consumer we design
-for is another C++ author who would otherwise bolt ad-hoc structure
-onto hard to verify numeric types.
-Choosing to land the semantics at the
-compile-time layer---rather than as runtime abstractions, or as a DSL
-lowered to a runtime solver---is a design commitment that shapes what
-the compiler and the library can do for the user and what they cannot.
-
-\paragraph{The thesis.} In one sentence: \emph{named algebraic structure
-at the type level, discharged by the compiler, narrows the gap
-between abstract mathematics and machine code without a separate
-proof assistant.}
-Figure~\ref{fig:dedekind-bridge} illustrates this overarching goal.
-Every section of the paper serves that sentence.
-
-\paragraph{How is this new?}
-Compile-time verification of algebraic structure is not new in the
-abstract. Agda and Coq host it natively; Liquid Haskell attaches
-refinement predicates to types; C++ template-metaprogramming traditions
-(most visibly Boost.Hana~\cite{chagnon2016hana} and
-CTRE~\cite{dusikova2018ctre}) have demonstrated type-level computation
-at scale for over a decade; autodiff libraries such as
-Ceres-Solver~\cite{ceres-solver} and ENOKI~\cite{jakob2019enoki} have
-carried fragments of the dual-number story into production C++. What this
-paper adds is an end-to-end exhibition of the technique---named
-algebraic structure, discharged by the compiler, with the LLVM
-backend carrying the discharge through to optimised machine
-code---in standard C++23, without a proof assistant, a custom
-type checker, or a bespoke language extension. \texttt{dedekind}
-is the existence proof. The viewpoint on which it rests we name
-\emph{Axiomatic Systems Programming}: an engineering discipline
-of practising, not merely describing, type-level structural verification
-in mainstream compiled code. The discipline transfers to any language
-hosting System-F-style polymorphism with structural concept-style
-constraints; the active research line on extending System F with
-modern type-system disciplines is published at length (see, e.g.,
-the DOT calculus underlying
-Scala~3~\cite{amin2016essence} and the capability-tracking line
-of work~\cite{boruchgruszecki2023capturing}). The contribution of
-this paper is an articulation of that discipline restricted to
-mainstream C++23, together with a worked library that discharges
-its claims mechanically.
+The central thesis is that naming algebraic structures at the type level and letting the compiler discharge their governing laws narrows the gap between abstract mathematics and machine code without relying on an external proof assistant. While compile-time verification is native to languages like Agda or Coq, and partial automatic differentiation loops exist in specialized production environments~\cite{elliott2018simple, jakob2019enoki}, \texttt{dedekind} contributes an end-to-end realization of this discipline inside unmodified standard C++23. It serves as an industrial existence proof, showing that structural type-directed collapse can successfully pass through the template engine down to highly optimized LLVM object primitives.
 
 \paragraph{What shifted the cost--benefit calculus.}
 Two recent developments are the \emph{key enablers}, not tricks or shortcuts.
-First, the C++23 standard~\cite{cpp23standard} delivers the three features the technique needs --- \cppinline{concept}s, NTTPs, and named modules --- in a mainstream toolchain with an installed industrial base; previous template-metaprogramming traditions had to encode these implicitly at steep readability and review cost.
+First, the C++23 standard~\cite{cpp23standard} delivers the features the technique needs --- \cppinline{constexpr}, \cppinline{concept}s, NTTPs, and named \cppinline{module}s --- in a mainstream toolchain with an installed industrial base; previous template-metaprogramming traditions had to encode these implicitly at steep readability and review cost.
 Second, modern coding-assistant LLMs~\cite{chen2021evaluating} compress the time and expertise needed to author opt-in trait specialisations, axiom-shape concepts, and the surrounding library scaffolding, turning what was once a deep-template-metaprogramming specialism into an actionable workflow for working software engineers.
 The correctness story is unchanged --- the type system and \cppinline{static_assert} obligations are what the compiler discharges, both checked mechanically --- but the cost story is, and that is what makes the discipline viable at industrial scale rather than as a paper-only artefact.
-
-While this realization targets C++ explicitly for the reasons stated earlier, much of what follows is however \emph{not} specific to C++.
-Concepts have close analogues in Java (sealed types plus generic constraints),
-C\# (constrained generics, augmented by Roslyn source generators and
-analysers), and Python (PEP~484 type hints under a strict
-\texttt{mypy}/\texttt{pyright} pass). Any language whose type system
-can name a predicate over compile-time data and check it mechanically
-is a candidate host for the same technique. What C++23 contributes on
-top is the LLVM backend sitting downstream of the type checker:
-discharged proofs do not only \emph{verify}, they also \emph{optimise},
-and the connection between the two is what lets the LP vertex collapse
-to a literal return rather than to a skipped runtime check.
 
 \paragraph{Intended target.}
 The discipline lands well in CPU-first high-performance computing and embedded
@@ -314,78 +223,31 @@ hard runtime-footprint constraints---where the technique's
 compile-time-substrate posture sits one layer below existing
 embedded ML runtimes such as TFLite Micro~\cite{david2021tflm}.
 
-\paragraph{The compiler as a poor man's theorem prover} is
-a pedagogical framing that runs through this paper.
-The motivation is primarily structural, not economic:
-\texttt{clang++} \emph{is} a formal system in the technical sense --- a typing
-derivation it accepts is a proof in the propositional fragment
-against a fixed inference rule-set.
-The resulting architecture imposes this division of labour:
-i) the engineer carries an honesty obligation up front~\cite{nspe_ethics} (NSPE, canons III + IV; truthfulness in public statements; faithful agency) and
-ii) the compiler discharges every \cppinline{static_assert}, \cppinline{requires} or \cppinline{constexpr} evaluation that follows. 
-The Curry--Howard reading~\cite{wadler2015propositions} grounds this technically; codified engineering ethics ground it
-professionally: the library treats a trait specialisation in a public source code repository as a public statement subject to the canons. 
-The argument is bounded: software claims in concurrent systems (TCP retransmit-timer correctness, scheduler fairness, end-to-end latency) often cannot be reduced to type-level structural assertions.
-The physics of latency will usually not allow it.
-The paper covers the fragment where the runtime model is \emph{physically localized} on trusted hardware and the reduction is available in principle.
-Further, unlike a theorem prover the compiler is not actively searching for proofs above and beyond the built-in look-up rules.
-It has no tactic language, no resolution procedure, no proof assistant in the loop.
-What it \emph{does} have is a type system strong enough to name a predicate,
-a \cppinline{static_assert} strong enough to discharge it, and an LLVM
-backend that will happily remove what has already been decided.
+\paragraph{The compiler as a verification engine.}
+We adopt the pedagogical framing of the compiler as a tool for formal verification.
+Clang++ operates here as a formal system where a type derivation it accepts serves as a structural proof against a fixed set of inference rules~\cite{wadler2015propositions}.
+This architecture enforces a clear division of labor: the library engineer holds an out-of-band honesty obligation when registering trait axioms, and the compiler mechanically discharges every subsequent \cppinline{static\_assert}, \cppinline{requires} clause, or \cppinline{constexpr} evaluation.
+While the compiler does not actively search for proofs via a tactic language, its type system is sufficiently rich to name predicates, enforce structural boundaries, and license the LLVM backend to completely remove dead code paths that have been resolved at translation time.
 
-\paragraph{What this buys, concretely.} From the design rule (``name
-the structure in the type, let the compiler discharge the laws'') and
-a small handful of primitives (concepts, NTTP-carried predicates,
-halfspaces, cuts), the library builds, at compile time, a numeric
-tower ($\mathbb{N}$, $\mathbb{Z}$, $\mathbb{Q}$, $\mathbb{R}$ via
-Dedekind cuts, $\mathbb{C}$, dual numbers), a small linear-algebra
-layer, a calculus layer (numerical / polynomial / dual-number AD),
-and an optimisation layer (the LP vertex enumerator of
-Section~\ref{sec:lp-centrepiece}). No runtime solver ships with any
-of it. The same machinery lifts arrows over functorial families
-($T \mapsto T^2 \mapsto M_2(T)$ etc.), pins ring monomorphisms
-($T \hookrightarrow M_2(T)$ as a monadic unit), and extracts optima
-from polytopes (the LP reduction of
-Section~\ref{sec:lp-centrepiece} is a co-Kleisli
-arrow);\footnote{%
-Concretely: each of the scalar / column / row / square shape
-constructors $(T, T^2, {}^t T^2, M_2(T))$ is functorial in $T$ and
-ships an $\textsc{IsFunctor}$ witness, so an arrow $f: T \to T$
-lifts elementwise without per-carrier boilerplate.  The scalar
-embedding $T \hookrightarrow M_2(T)$ is the unit $\eta_{M_2}(s) =
-s \cdot I_2$ of the shape monad.  The LP vertex extraction is a
-co-Kleisli arrow $\varepsilon_{\mathrm{LP}}: \mathrm{Polytope}(T)
-\to T^2$.  The library carries these as typed constants in the
-emitted object file via the same primitives that discharge the
-algebraic laws.  The discipline extends to polynomial calculus: the
-formal derivative of a polynomial is a \texttt{static\_assert}-checked
-identity, and the Fundamental Theorem of Calculus (Part~II) is
-discharged at translation time as numerical agreement between a
-trapezoidal quadrature and a closed-form antiderivative
-(\texttt{dedekind.algebra:polynomial} and
-\texttt{dedekind.analysis:ftc} partitions in the companion
-repository).} the categorical vocabulary that names this machinery
-(Table~\ref{tab:cpp-stlc-mapping}) is therefore not decorative ---
-intensional sets in the sense of the
-\emph{nLab}~\cite{nlab:structural_set_theory} (predicates into a
-subobject classifier, situated in a Cartesian-closed
-ambient~\cite{lambek1988introduction}) are the same machinery
-discharging set membership and lifting structure-preserving arrows.
+\paragraph{What this buys, concretely.}
+Guided by the rule ``name the structure in the type, let the compiler discharge the laws,'' the library systematically constructs an algebraic hierarchy entirely at compile time.
+From a handful of structural primitives, \texttt{dedekind} builds a complete numeric tower ($\mathbb{N}$, $\mathbb{Z}$, $\mathbb{Q}$, $\mathbb{R}$ via Dedekind cuts, $\mathbb{C}$, and dual numbers), a categorical linear algebra layer, an automatic differentiation engine, and the compile-time linear programming centerpiece of Section~\ref{sec:lp-centrepiece}.
+Crucially, no runtime solver ships with the binary. The same unified machinery lifts arrows over functorial families, pins ring monomorphisms as monadic units, and extracts exact optima from polytopes as co-Kleisli arrows.
+This categorical vocabulary is not decorative; intensional sets acting as predicates into a subobject classifier are the uniform engine driving both type-level structural pruning and compile-time law enforcement.
 
-\paragraph{The three claims this paper substantiates.}
-\begin{enumerate}
-  \item Sets are \emph{rules} (predicates), not \emph{buckets} (containers).
-  \item Computation is \emph{intensional until explicitly realized}.
-  \item The compiler is used as a \emph{verification and optimization engine}
-        for algebraic invariants.
-\end{enumerate}
-The remainder of the paper develops these three claims and demonstrates
-each by a reduction that compiles to a constant. We make no pretence that a complete
-and faithful taxonomy of mathematics is achievable; quite the contrary, we assert that this process is at best open-ended.
-What we \emph{do} report is a small set of findings that are both interesting
-and true: each claim has a worked exhibit in the library and a
-mechanical witness the compiler discharges.
+\paragraph{Contributions.} Specifically, this paper provides:
+\begin{itemize} 
+\item \textbf{The Juliet Posture Framework:} A formal characterization of a structurally typed fragment of C++23 under a System~F reading, enabling type-checked semantic constraints without custom compiler extensions.
+\item \textbf{A Categorical Linear Algebra Architecture:} A novel method for representing linear maps as semimodules over semirings rather than dense arrays, natively optimized for low-rank and sparse systems.     \item \textbf{A Zero-Overhead Parametric Solver:} The first demonstration of a 2D linear program that evaluates entirely at compile time, collapsing into literal constant returns within the emitted LLVM~IR.
+\item \textbf{An Empirical Software Artifact:} A fully realized, open-source library (\texttt{dedekind}) verifying the fundamental laws of arithmetic, calculus, and automatic differentiation at translation time.
+\end{itemize}
+
+\paragraph{Structure of the paper.}
+The remainder of this paper substantiates these contributions by evaluating three core architectural claims:
+(1) sets operate as intensional type-checked rules rather than extensional memory containers;
+(2) algebraic computation remains purely symbolic until explicitly materialized; and
+(3) standard compilers can reliably function as validation and optimization engines for mathematical invariants.
+Section~2 maps the intersection of C++23 constraints with category theory, Section~3 defines the set comprehension and sequence mechanics, Section~4 explores the algebraic lattice tower, and Section~5 verifies the compile-time optimization payoff through our parametric linear programming centerpiece.
 
 
 % ============================================================
