@@ -142,14 +142,16 @@
 \maketitle
 
 \begin{abstract}
-\noindent Optimization problems are pervasive in scientific and engineering computation.
-A compile-time treatment of the closely related task of differentiation is well established via automatic differentiation~\cite{elliott2018simple}.
-An analogous treatment of small linear programs, in which structural verification is discharged by the type checker rather than by runtime guards, is reported below.
-A structurally-typed fragment of C++23 --- termed the \emph{Juliet Posture} --- was assembled from \cppinline{constexpr} evaluation, concepts, and template instantiation, and was characterised under a System~F reading of the underlying type system.
-A parametric two-dimensional linear program was implemented whose input polytope and output optimum are both carried as Sets in the project's set-comprehension DSL.
+\noindent We focus on the development of a linear algebra library in a mainstream programming language using compile-time evaluation as one way to perform static program verification.
+A structurally-typed fragment of C++23 --- termed the \emph{Juliet Posture} --- was assembled from \cppinline{constexpr} evaluation, \cppinline{concept} checks, and template instantiation, and was characterised under a System~F reading of the underlying type system.
+The \emph{Juliet Posture} was then used to bootstrap in turn i) an approximation of $\mathbf{Set}$ (sets in the ETCS sense), ii) $\mathbf{Alg}(-)_{\beth_1}$ (sets with algebraic operations), iii) algebraic structures such as magmas, rings, fields, semimodules and modules and so on.
+The resulting embedded DSL was used to define a linear algebra library which can describe linear maps generically as semimodules over semirings (booleans, ... , complex or dual numbers) as opposed to taking the more conventional and often very expensive route of modeling tensors as dense multidimensional arrays.
+Specifically, the approach appears to be well suited to modeling sparse, high-dimensional problems, i.e. problems where a corresponding matrix representation has a low rank and can be efficiently approximated using sums of outer products or a suitable SVD form.
+The approach is demonstrated using a parametric two-dimensional linear program.
 The type system selects between a signed-unimodular bit-ops kernel and a generic implementation of Cramer's rule based on structural properties of the input Set's predicate; the output Set's predicate type encodes the mathematical regime (singleton or empty in the cases exhibited; degenerate-face and unbounded-face outputs are a follow-up).
 The same parametric source was found to be instantiable both at compile time and at runtime from a single source.
 Within the scope of this exhibit, structural information available at the type level was found to license ahead-of-time analysis (constant folding and dead-code elimination) in place of the corresponding runtime computation.
+The overall approach, while heavy on the theory, would appear to generalize to systems programming languages other than C++, specifically Rust.
 \end{abstract}
 
 % Table of contents is just a convenience during editing. It will be removed before submission.
