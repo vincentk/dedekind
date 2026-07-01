@@ -145,7 +145,7 @@
 \begin{abstract}
 \noindent We focus on the development of a linear algebra library in a mainstream programming language using compile-time evaluation as one way to perform static program verification.
 A structurally-typed fragment of C++23 --- termed the \emph{Juliet Posture} --- was assembled from \cppinline{constexpr} evaluation, \cppinline{concept} checks, and template instantiation, and was characterised under a System~F reading of the underlying type system.
-The Juliet Posture was then used to bootstrap an intensional set comprehension engine under an ETCS reading, which, when intersected with universal algebraic signatures, forms the core category \(\mathbf{Ddk}\).
+The Juliet Posture was then used to bootstrap an intensional set comprehension engine under an ETCS reading, which, when intersected with universal algebraic signatures, forms the core category $\mathbf{Ddk}$.
 The resulting embedded DSL was used to define a linear algebra library which can describe linear maps generically as semimodules over semirings (booleans, ... , complex or dual numbers) as opposed to taking the more conventional and often very expensive route of modeling tensors as dense multidimensional arrays.
 Specifically, the approach appears to be well suited to modeling sparse, high-dimensional problems, i.e. problems where a corresponding matrix representation has a low rank and can be efficiently approximated using sums of outer products or a suitable SVD form.
 The approach is demonstrated using a parametric two-dimensional linear program.
@@ -379,34 +379,11 @@ Similarly, a cartesian product is a predicate applied to both elements of a pair
 \end{align*}
 For exact numeric carriers, $\Omega$ defaults to standard \texttt{bool} (classical two-valued logic), while inexact carriers may utilize a three-valued Kleene logic ($\mathbb{K}_3$) to handle non-signaling conditions like \texttt{NaN} for floating-points safely without breaking identity laws.
 
-
-This predicate-composition algebra is not merely a shorthand notation; it is mathematically justified because the underlying types model the structure of an elementary topos.
-When operations like intersection or complement are written as boolean logic combinations, the compiler is executing structural shifts inside the \texttt{:topoi} partition.
-This layer uses the \texttt{IsSubobject} and \texttt{IsTopos} concepts to formalize the subobject classifier $\Omega$, proving that every syntactic compile-time rule corresponds to a unique, well-defined subset boundary.
-
-This logical scaffolding ensures that the library's intensional definitions map cleanly to concrete element evaluation.
-Under the \texttt{:concrete} partition, the \texttt{IsConcrete} and \texttt{IsSetObject} concepts verify that abstract categorical objects behave reliably as sets of distinct elements.
-This behavior is mediated by a faithful forgetful functor $U$ that strips away abstract category-theory formatting and exposes the underlying \Cpp{} primitive types.
-The type system tracks this parthood relationship explicitly via the \texttt{SetAsProduct} concept, which packages the underlying carrier type alongside its logical classifier.
-
-The complete operational safety of this set-builder DSL is ultimately guaranteed by the axioms of the Elementary Theory of the Category of Sets (ETCS).
-Enforced within the \texttt{:etcs} partition via the \texttt{IsSet} concept, these axioms mechanically validate well-pointedness, choice, and the existence of a natural numbers object (NNO) at translation time.
-By discharging these foundational obligations entirely during compilation, the type system establishes a rigorous mathematical environment.
-This environment allows downstream algebraic structures to treat these verified sets as stable, unyielding carrier sets.
-
-The compiler is then allowed to perform aggressive compile-time verification and type-directed optimization.
-When a membership test or set relation is encountered, the template engine expands the composed predicates and evaluates them during compilation.
-If an intersection yields a logical contradiction, the type system reduces the resulting expression directly to the empty set $\emptyset$ before code generation occurs.
-As a direct consequence, downstream runtime membership queries for statically impossible configurations are completely eliminated by the LLVM optimizer backend, collapsing into literal constant returns within the emitted machine instructions.
-Listing~\ref{lst:pruning} exhibits a code base extract that tests this type-directed collapse in practice.
-Listing~\ref{{lst:pruning_ir} shows how this collapse is made mechanically observable during the build: the
-witness function for set membership constant-folds to \texttt{ret i1 false} in the emitted LLVM IR.
-
 % Source: src/test/cpp/modules/dedekind/python/showcase_alpha_prime.cpp
 \begin{listing}[htbp]
 \caption{A code extract from the project's test suite intended to model set builder notation in C++23.
 The combinators \cppinline{in} and \cppinline{bound} construct a scout variable and a half-space predicate respectively.
-As evidenced by the \cppinline{static_assert, the set operations are evaluated at compile time.}
+As evidenced by the \cppinline{static_assert}, the set operations are evaluated at compile time.}
 \label{lst:pruning}
 \begin{cpp}
 // {x in ℕ | x > 5}
@@ -425,9 +402,23 @@ static_assert(IsExtensional<decltype(a)> && IsExtensional<decltype(b)>);
 \end{cpp}
 \end{listing}
 
+This predicate-composition algebra is not merely a shorthand notation; it is mathematically justified because the underlying types model the structure of an elementary topos.
+When operations like intersection or complement are written as boolean logic combinations, the compiler is executing structural shifts inside the \texttt{:topoi} partition.
+This layer uses the \texttt{IsSubobject} and \texttt{IsTopos} concepts to formalize the subobject classifier $\Omega$, proving that every syntactic compile-time rule corresponds to a unique, well-defined subset boundary.
+
+This logical scaffolding ensures that the library's intensional definitions map cleanly to concrete element evaluation.
+Under the \texttt{:concrete} partition, the \texttt{IsConcrete} and \texttt{IsSetObject} concepts verify that abstract categorical objects behave reliably as sets of distinct elements.
+This behavior is mediated by a faithful forgetful functor $U$ that strips away abstract category-theory formatting and exposes the underlying \Cpp{} primitive types.
+The type system tracks this parthood relationship explicitly via the \texttt{SetAsProduct} concept, which packages the underlying carrier type alongside its logical classifier.
+
+The complete operational safety of this set-builder DSL is ultimately guaranteed by the axioms of the Elementary Theory of the Category of Sets (ETCS).
+Enforced within the \texttt{:etcs} partition via the \texttt{IsSet} concept, these axioms mechanically validate well-pointedness, choice, and the existence of a natural numbers object (NNO) at translation time.
+By discharging these foundational obligations entirely during compilation, the type system establishes a rigorous mathematical environment.
+This environment allows downstream algebraic structures to treat these verified sets as stable, unyielding carrier sets.
+
 % Source: src/test/cpp/modules/dedekind/python/showcase_03_halfspace_contradiction.ll
 \begin{listing}[htbp]
-\caption{LLVM IR for the empty-meet witness in Listing~\ref{lst:pruning} (\texttt{clang++-22 -O2}): the membership query constant-folds to \texttt{ret i1 false}.  The complementary cardinality-1 case (singleton collapse) and other halfspace reductions are exercised in \texttt{pruning\_showcases\_test.cpp} but not repeated here --- one source / IR pair carries the structural-pruning claim.}
+\caption{LLVM IR for the empty-meet witness in Listing~\ref{lst:pruning} (\texttt{clang++-22 -O2}): the membership query constant-folds to \texttt{ret i1 false}.}
 \label{lst:pruning_ir}
 \begin{cpp}
 define noundef zeroext i1 @witness_empty_halfspace_meet() local_unnamed_addr #0 {
@@ -435,6 +426,14 @@ define noundef zeroext i1 @witness_empty_halfspace_meet() local_unnamed_addr #0 
 }
 \end{cpp}
 \end{listing}
+
+The compiler is then allowed to perform aggressive compile-time verification and type-directed optimization.
+When a membership test or set relation is encountered, the template engine expands the composed predicates and evaluates them during compilation.
+If an intersection yields a logical contradiction, the type system reduces the resulting expression directly to the empty set $\emptyset$ before code generation occurs.
+As a direct consequence, downstream runtime membership queries for statically impossible configurations are completely eliminated by the LLVM optimizer backend, collapsing into literal constant returns within the emitted machine instructions.
+Listing~\ref{lst:pruning} exhibits a code base extract that tests this type-directed collapse in practice.
+Listing~\ref{lst:pruning_ir} shows how this collapse is made mechanically observable during the build: the
+witness function for set membership constant-folds to \texttt{ret i1 false} in the emitted LLVM IR.
 
 % ============================================================
 \section{An Intersection of C++23 and Category Theory}
