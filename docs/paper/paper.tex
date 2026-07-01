@@ -120,6 +120,7 @@
 \definecolor{codepurple}{rgb}{0.58,0,0.82}
 
 \newcommand{\bind}{\mathbin{>\!\!>\mkern-6.7mu=}}
+\newcommand{\Cpp}[1]{C\kern-.05em\raise.3ex\hbox{\footnotesize ++}#1}
 
 % --- Document Metadata ---
 \title{Compile-Time Linear Programming via the Juliet Posture\thanks{%
@@ -144,7 +145,7 @@
 \begin{abstract}
 \noindent We focus on the development of a linear algebra library in a mainstream programming language using compile-time evaluation as one way to perform static program verification.
 A structurally-typed fragment of C++23 --- termed the \emph{Juliet Posture} --- was assembled from \cppinline{constexpr} evaluation, \cppinline{concept} checks, and template instantiation, and was characterised under a System~F reading of the underlying type system.
-The \emph{Juliet Posture} was then used to bootstrap in turn i) an approximation of $\mathbf{Set}$ (sets in the ETCS sense), ii) $\mathbf{Alg}(-)_{\beth_1}$ (sets with algebraic operations), iii) algebraic structures such as magmas, rings, fields, semimodules and modules and so on.
+The Juliet Posture was then used to bootstrap an intensional set comprehension engine under an ETCS reading, which, when intersected with universal algebraic signatures, forms the core category \(\mathbf{Ddk}\).
 The resulting embedded DSL was used to define a linear algebra library which can describe linear maps generically as semimodules over semirings (booleans, ... , complex or dual numbers) as opposed to taking the more conventional and often very expensive route of modeling tensors as dense multidimensional arrays.
 Specifically, the approach appears to be well suited to modeling sparse, high-dimensional problems, i.e. problems where a corresponding matrix representation has a low rank and can be efficiently approximated using sums of outer products or a suitable SVD form.
 The approach is demonstrated using a parametric two-dimensional linear program.
@@ -251,6 +252,191 @@ Section~2 maps the intersection of C++23 constraints with category theory, Secti
 
 
 % ============================================================
+\section{A Well-Behaved Fragment of C++: The Juliet Posture $\mathbf{Jlt}$}
+\label{sec:jlt_posture}
+% ============================================================
+
+
+To build verifiable mathematical structures inside a mainstream toolchain, we must first isolate a pure, deterministic subset of the host language.
+Standard \Cpp{23} contains features that permit arbitrary runtime side effects, non-termination, and undefined behavior---properties that defeat static verification.
+We define the \emph{Juliet Posture} ($Jlt$) as a strictly disciplined fragment of standard \Cpp{23}.
+It is characterized by three core engineering constraints that force standard code to behave like an ideal type system:
+
+\begin{enumerate}
+    \item \textbf{Equational Extensionality:} We restrict acceptable objects to types satisfying the \Cpp{} standard concept \texttt{std::regular}.
+    Values must possess a stable identity, ensuring that $a = b \implies f(a) = f(b)$.
+    \item \textbf{Pure, Terminating Arrows:} Morphisms are restricted to \texttt{constexpr} lambda expressions.
+    We explicitly forbid mutable captures and \texttt{reinterpret\_cast}, enforcing effect-free evaluation and bounded template instantiation depth.
+    \item \textbf{Cartesian Closure:} We map products to \texttt{std::pair} with structured bindings, and exponentials to first-class lambdas that package arrows as values.
+    Currying is achieved naturally via argument capture.
+\end{enumerate}
+
+This subset is realized through a philosophy of \emph{static structural typing}.
+As established in classic type system taxonomy~\cite{pierce2002tapl, cardelli1996typesystems}, type identification typically follows three traditions:
+\emph{nominal typing}, where lineage is checked by declared names or inheritance;
+\emph{duck typing}, where behavior is verified by call-site probing at runtime; and
+\emph{static structural typing}, where invariants are checked at compile time via explicit constraints.
+
+Following the observation that a rose by any other name would smell as sweet~\cite{shakespeare1597romeo}, the Juliet Posture embraces the third school, leveraging language features like \texttt{concept}, \texttt{constexpr}, and non-type template parameters (NTTPs).
+Crucially, the posture does not forbid template partial ordering or constraint subsumption.
+Instead, it harnesses the compiler's overload resolution mechanism as a mechanical proof selection engine.
+When multiple constrained overloads compete at a call site, the compiler naturally routes execution to the most structurally refined match.
+
+The structural discipline enforces that while behavior-branching based on nominal lineage is rejected, algebraic specialization via partial ordering is embraced, provided all matching paths satisfy strict \emph{semantic equivalence}.
+The choice of path is treated purely as a translation-time optimization detail.
+In practice, this posture materializes across three progressive feature tiers: Tier 1 handles basic \texttt{constexpr} branching; Tier 2 introduces concept-constrained templates and structural subsumption; and Tier 3 utilizes developer trait axioms for manual certification.
+
+\paragraph{The Syntactic vs. Semantic Split}
+\label{sec:syntactic_semantic_split}
+
+The boundary of this architecture matches the core distinction in standard \Cpp{} between \emph{satisfying} a concept (syntactic structure) and \emph{modeling} it (semantic lawfulness).
+Syntactic properties are mechanically decidable by the compiler.
+Semantic properties---such as associativity or distributivity---resist mechanical verification inside standard \Cpp{} and remain the engineer's honesty obligation.
+
+We handle this boundary using the \emph{Honest Rejection} policy.
+A primitive machine type is rejected at the gate if its hardware behavior violates ideal mathematical axioms.
+For example, \texttt{int} satisfies the syntactic operators for a ring, but signed-overflow undefined behavior defeats associativity.
+Conversely, \texttt{bool} is safely accepted as the Galois Field $\mathbb{F}_2$ because its bit-perfect operations never overflow or round, as demonstrated in Listing~\ref{lst:honest_rejection}.
+
+% Source: src/main/modules/dedekind/algebra/ring.cppm (concept definition, ll. 110-116)
+\begin{listing}[ht]
+\caption{The Juliet Posture and Honest Rejection: structural compile-time matching regardless of nominal provenance.}
+\label{lst:honest_rejection}
+\begin{cpp}
+// Concept identifying the syntactic ring operators
+template <typename T>
+concept HasRingOperators = requires(T a, T b) {
+  { a + b  } -> std::same_as<T>;
+  { a - b  } -> std::same_as<T>;
+  { -a     } -> std::same_as<T>;
+  { a * b  } -> std::same_as<T>;
+};
+
+ // Operators exist on int, but (int, +), not a monoid, because associativity certification has been withheld:
+static_assert(HasRingOperators<int>); 
+static_assert(!IsAssociative<int, std::plus<int>>); 
+
+// Arithmetic operators are absent on bool but associativity is certified for logical operators:
+static_assert(!HasRingOperators<bool>);
+static_assert(!IsAssociative<bool, std::logical_and<bool>>);
+\end{cpp}
+\end{listing}
+
+By establishing this pure, disciplined substrate first, we gain an environment where types represent sets and values represent elements.
+In category theory terms, we can write $\mathbf{Jlt} \subset \mathbf{Cpp}$.
+This forms the exact Cartesian Closed Category needed to bootstrap formal set comprehension and universal algebra in the following sections.
+
+\section{A Set Comprehension DSL}
+\label{sec:ddk_comprehension}
+
+With a deterministic, structurally-typed substrate established in Section~\ref{sec:jlt_posture}, mathematical sets can be bootstrapped inside the type system.
+Following the comprehension view pioneered by Lawvere~\cite{lawvere1964etcs}, a set is defined not as an extensional memory container or an enumerated list, but strictly as an intensional rule mapped over an ambient species.
+The steps taken to reify intensional sets in the code base are outlined in table~\ref{tbl:cat-to-ddk} forming a core category $\mathbf{Ddk} \subset \mathbf{Jlt} \cap \mathbf{Set}$, which occupies the intersection of pure $\mathbf{Jlt}$ types and universal-algebraic set structures.
+The implementation tracks this definition literally at compile time.
+
+\begin{table}[htbp]
+\centering
+\label{tbl:cat-to-ddk}
+\small
+\begin{tabular}{@{}c l >{\raggedright\arraybackslash}p{5cm} l@{}}
+\toprule
+\textbf{\#} & \textbf{Refinement added} & \textbf{Partition / concept} & \textbf{Net mathematical structure} \\
+\midrule
+1 & Bare category axioms           & \texttt{:small} / \texttt{IsSmallCategory} & Small category base \\
+2 & Terminal and binary products   & \texttt{:limit} / \texttt{IsCartesian} & Cartesian category \\
+3 & Exponentials                   & \texttt{:cartesian} / \texttt{IsCartesianClosed} & Cartesian Closed Category (CCC) \\
+\midrule
+4 & Subobject classifier           & \texttt{:topoi} / \texttt{IsSubobject}, \texttt{IsTopos} & Elementary topos \\
+5 & Concreteness                   & \texttt{:concrete} / \texttt{IsConcrete}, \texttt{IsSetObject} & Concrete topos \\
+6 & ETCS axioms                    & \texttt{:etcs} / \texttt{IsSet} & Set-modeling topos \\
+\midrule
+7 & Universal algebraic signatures & \texttt{:algebra} / \texttt{IsFAlgebra}, \texttt{std::regular} & $\mathbf{Ddk}$ intersection \\
+\bottomrule
+\end{tabular}
+\caption{\textbf{The bottom-up refinement chain from standard \Cpp{} to $\mathbf{Ddk}$.}
+Each row adds one structural commitment over the previous, tracking the literal construction path from language primitives to abstract categories.
+Step 1 establishes the baseline category axioms in code with carriers as types and lambdas as arrows.
+Steps 2--3 constrain it to a Cartesian Closed Category ($Jlt$) sandbox by requiring terminal objects, binary products, and exponentials.
+Steps 4--6 layer on the logical structures of topos theory to model sets, specifying a subobject classifier $\Omega$, enforcing concreteness via a faithful functor $U$ where objects are sets, and satisfying the ETCS axioms of well-pointedness, natural number objects (NNO), and choice.
+Step 7 introduces universal algebraic signatures and $F$-algebras via \texttt{std::regular} types to define the final $\mathbf{Ddk}$ intersection.
+This ordering honors category theory foundations and is enforced via the import order of the library partitions.}
+\end{table}
+
+Concretely, a set $S$ is then specified by a characteristic predicate $P : A \to \Omega$, where $A$ is the underlying type and $\Omega$ is a subobject classifier specifying the logic regime:
+\[
+  S = \{x \in A \mid P(x)\}.
+\]
+A set operation is then an operation on the predicates --- intersection is conjunction, union is disjunction, complement is negation:
+\begin{align*}
+  S_1 \cap S_2 &\triangleq \{x \in A \mid P_1(x) \land P_2(x)\} \\
+    S_1 \cup S_2 &\triangleq \{x \in A \mid P_1(x) \lor P_2(x)\} \\
+    \overline{S_1}  &\triangleq \{x \in A \mid \neg P_1(x)\}
+\end{align*}
+Similarly, a cartesian product is a predicate applied to both elements of a pair, while a power set can be expressed as a subset relation.
+\begin{align*}
+  S_A \times S_B &\triangleq \{x \in A, y \in B \mid P_A(x) \land P_B(y)\}\\
+  \mathcal{P}(S_1) &\triangleq \{x \subset S_1\}
+\end{align*}
+For exact numeric carriers, $\Omega$ defaults to standard \texttt{bool} (classical two-valued logic), while inexact carriers may utilize a three-valued Kleene logic ($\mathbb{K}_3$) to handle non-signaling conditions like \texttt{NaN} for floating-points safely without breaking identity laws.
+
+
+This predicate-composition algebra is not merely a shorthand notation; it is mathematically justified because the underlying types model the structure of an elementary topos.
+When operations like intersection or complement are written as boolean logic combinations, the compiler is executing structural shifts inside the \texttt{:topoi} partition.
+This layer uses the \texttt{IsSubobject} and \texttt{IsTopos} concepts to formalize the subobject classifier $\Omega$, proving that every syntactic compile-time rule corresponds to a unique, well-defined subset boundary.
+
+This logical scaffolding ensures that the library's intensional definitions map cleanly to concrete element evaluation.
+Under the \texttt{:concrete} partition, the \texttt{IsConcrete} and \texttt{IsSetObject} concepts verify that abstract categorical objects behave reliably as sets of distinct elements.
+This behavior is mediated by a faithful forgetful functor $U$ that strips away abstract category-theory formatting and exposes the underlying \Cpp{} primitive types.
+The type system tracks this parthood relationship explicitly via the \texttt{SetAsProduct} concept, which packages the underlying carrier type alongside its logical classifier.
+
+The complete operational safety of this set-builder DSL is ultimately guaranteed by the axioms of the Elementary Theory of the Category of Sets (ETCS).
+Enforced within the \texttt{:etcs} partition via the \texttt{IsSet} concept, these axioms mechanically validate well-pointedness, choice, and the existence of a natural numbers object (NNO) at translation time.
+By discharging these foundational obligations entirely during compilation, the type system establishes a rigorous mathematical environment.
+This environment allows downstream algebraic structures to treat these verified sets as stable, unyielding carrier sets.
+
+The compiler is then allowed to perform aggressive compile-time verification and type-directed optimization.
+When a membership test or set relation is encountered, the template engine expands the composed predicates and evaluates them during compilation.
+If an intersection yields a logical contradiction, the type system reduces the resulting expression directly to the empty set $\emptyset$ before code generation occurs.
+As a direct consequence, downstream runtime membership queries for statically impossible configurations are completely eliminated by the LLVM optimizer backend, collapsing into literal constant returns within the emitted machine instructions.
+Listing~\ref{lst:pruning} exhibits a code base extract that tests this type-directed collapse in practice.
+Listing~\ref{{lst:pruning_ir} shows how this collapse is made mechanically observable during the build: the
+witness function for set membership constant-folds to \texttt{ret i1 false} in the emitted LLVM IR.
+
+% Source: src/test/cpp/modules/dedekind/python/showcase_alpha_prime.cpp
+\begin{listing}[htbp]
+\caption{A code extract from the project's test suite intended to model set builder notation in C++23.
+The combinators \cppinline{in} and \cppinline{bound} construct a scout variable and a half-space predicate respectively.
+As evidenced by the \cppinline{static_assert, the set operations are evaluated at compile time.}
+\label{lst:pruning}
+\begin{cpp}
+// {x in ℕ | x > 5}
+constexpr auto S = Set{in<ℕ> | in<ℕ> > bound<5>};
+// Membership Test:
+static_assert(S.contains(7u));                                              
+// Trimming:
+constexpr auto T = set_difference(S, Set{in<ℕ> | in<ℕ> > bound<10>});        
+static_assert(T.contains(8u) && !T.contains(11u));
+// Collapse:
+constexpr Singleton<6> a = S & Set{in<ℕ> | in<ℕ> < bound<7>};  
+// Contradiction:            
+constexpr Ø<Cardinality> b = S & !S;                                         
+// Certification:
+static_assert(IsExtensional<decltype(a)> && IsExtensional<decltype(b)>);     
+\end{cpp}
+\end{listing}
+
+% Source: src/test/cpp/modules/dedekind/python/showcase_03_halfspace_contradiction.ll
+\begin{listing}[htbp]
+\caption{LLVM IR for the empty-meet witness in Listing~\ref{lst:pruning} (\texttt{clang++-22 -O2}): the membership query constant-folds to \texttt{ret i1 false}.  The complementary cardinality-1 case (singleton collapse) and other halfspace reductions are exercised in \texttt{pruning\_showcases\_test.cpp} but not repeated here --- one source / IR pair carries the structural-pruning claim.}
+\label{lst:pruning_ir}
+\begin{cpp}
+define noundef zeroext i1 @witness_empty_halfspace_meet() local_unnamed_addr #0 {
+  ret i1 false
+}
+\end{cpp}
+\end{listing}
+
+% ============================================================
 \section{An Intersection of C++23 and Category Theory}
 \label{sec:axiomatic}
 % ============================================================
@@ -330,110 +516,6 @@ In $\mathbb{K}_3$, $P \lor \neg P = \mathit{Unknown}$ is a calm, unremarkable id
 The paradox was never in the floats; it was in our choice of $\Omega$.
 $\Omega$ parameterises membership truth values while the $\beth_1$ ceiling parameterises carrier size; the two are orthogonal.
 
-\subsection{A Well-Behaved Structure in C++: the Juliet Posture $\mathbf{Jlt} \subset (\mathbf{CCC} \cap \mathbf{Cpp})$}
-\label{sec:jlt}
-
-Section~\ref{sec:alg-sigma} carved out a well-behaved structure on the mathematics side: $\mathbf{Alg}(-)_{\beth_1}$.
-Here we want the engineering counterpart.
-The idea is to find a fragment of C++ that, suitably disciplined, matches the structure our algebraic hubs need to inhabit.
-The following two criteria were used in this largely empirical development process:
-First, alignment with the universal-algebra fragment $\mathbf{Alg}(\Sigma)$ identified in §\ref{sec:alg-sigma}.
-Second, the desire to integrate functionality the standard library already ships, in particular \cppinline{std::regular} value-types and the primitive carriers without wrapping them in \cppinline{struct} boilerplate or paying a runtime cost.
-The findings are presented below as a proof sketch for clarity of exposition.
-
-\begin{proposition}
-The intersection $\mathbf{CCC} \cap \mathbf{Cpp}$ is non-empty and reifiable within the C++23 translation unit.
-\end{proposition}
-
-\begin{proof}[Sketch]
-To show this intersection isn't empty, we exhibit one of its inhabitants: a mapping from a disciplined slice of $\mathbf{Cpp}$ to what a Cartesian Closed Category asks for (equivalently, the internal language of $\mathbf{STLC}$).
-The slice is what \cppinline{std::regular} together with the admissibility rules of Appendix~\ref{app:jlt-systemf} carves out; the mapping is the five steps below.
-
-\begin{enumerate}
-    \item \textbf{Objects.}
-    Take the types satisfying \cppinline{std::regular}: the ones with default-construction, copy-semantics, and an honest \cppinline{operator==}.
-    We can read these as sets of values with stable identity, as long as nothing else inspects type internals to break that read.
-    The admissibility rules of Appendix~\ref{app:jlt-systemf} (no public-API specialisation, no behaviour-branching SFINAE) are exactly what keeps the \emph{as long as} honest, and they're what gives us equational extensionality $a = b \implies f(a) = f(b)$ on the morphisms below.
-
-    \item \textbf{Morphisms.}
-    Take \cppinline{constexpr} lambda expressions, again on the disciplined fragment.
-    By itself \cppinline{constexpr} doesn't get us pure and terminating arrows --- captures can be mutable, and template instantiation is Turing-complete in the general case~\cite{veldhuizen2003templates}.
-    The same admissibility rules from Appendix~\ref{app:jlt-systemf} (no \cppinline{reinterpret_cast}, no SFINAE branching, bounded instantiation depth) recover the pure, terminating, effect-free reading; identity and associativity of composition hold by inspection.
-
-    \item \textbf{Products.}
-    \cppinline{std::pair} with structured bindings hands us the universal property of products: for any $A, B$ we have a product $A \times B$ with projections $\pi_1, \pi_2$, and the mediating-arrow construction is the obvious tuple-build.
-    This is the \emph{Cartesian} half of the structure.
-
-    \item \textbf{Exponentials.}
-    First-class lambdas hand us the internal Hom-object $B^A$: a lambda value \cppinline{[](A) -> B { ... }} \emph{is} an arrow $A \to B$, packaged as a C++ value.
-    Currying --- mapping $f : A \times B \to C$ to $\hat{f} : A \to C^B$ --- is what lambdas-capturing-arguments do, and on the disciplined fragment it gives us the bijection $\mathrm{Hom}(A \times B, C) \cong \mathrm{Hom}(A, C^B)$ that \emph{closed} asks for.
-
-    \item \textbf{The admissibility gate.}
-    \cppinline{concept} does the work at compile time: it mechanically checks that a given type $T \in \mathbf{Cpp}$ has the operator-shape and member-API surface to inhabit $\mathbf{CCC}$.
-    Note this is the \emph{C++-side gate}, not the topos-level subobject classifier $\Omega$ of §\ref{sec:alg-sigma} --- the bona fide $\Omega$ lives one layer up in the codebase's \texttt{category:topoi} partition, and \cppinline{concept} is the type-system's complement to it.
-\end{enumerate}
-
-Putting these together: a terminal object (\cppinline{void} / \cppinline{std::monostate}), finite products, exponentials, and an admissibility gate, all inside the disciplined \cppinline{constexpr} subset Appendix~\ref{app:jlt-systemf} carves out.
-The intersection $\mathbf{CCC} \cap \mathbf{Cpp}$ is inhabited.
-\end{proof}
-
-We can compare and contrast this fragment with three textbook schools~\cite{pierce2002tapl, cardelli1996typesystems} of type identification:
-i) \textbf{nominal typing} (declared lineage, often inheritance; checked at compile time but blind to behaviour),
-ii) \textbf{duck typing} (structural by call-site method probe; checked at runtime, too late for the optimiser),
-iii) \textbf{static structural typing} (concept-based; behaviour checked at compile time without a declared lineage).
-C++23 \cppinline{concept}, \cppinline{constexpr}, and \cppinline{std::regular} realise the third school.
-Call this disciplined subset $\mathbf{Jlt} \subset \mathbf{CCC} \cap \mathbf{Cpp}$ (mnemonically: \emph{Juliet}), after the observation that a rose by any other name would smell as sweet~\cite{shakespeare1597romeo}.
-The library cares about the \emph{scent} (structural invariants), not the \emph{lineage} (declared name).
-In $\mathbf{Jlt}$ the objects are well-behaved types and the values they classify, and the morphisms are the arrows the language admits between them.
-The Juliet Posture deliberately rejects type erasure on the categorical surface: erased witnesses are opaque to both the concept checker and the LLVM optimizer, so erased layers degrade the gate's sharpness and the structural-pruning power that §\ref{sec:compiler-wall} and §\ref{sec:pruning} rest on.
-
-In practice this boils down to compile-time structural typing across three feature tiers, each strictly more expressive than the last:
-\begin{enumerate}
-\item~\cppinline{constexpr} branching via template specialisation (the C++<20 baseline);
-\item~\cppinline{concept}-constrained templates, which lift specialisation from a \emph{compiles-or-doesn't} probe to a named structural predicate (the C++20/23 step the Juliet Posture rests on);
-\item~developer-supplied claims and axioms via \emph{trait specialisations} that downstream concepts consult to discharge a single \cppinline{static_assert} obligation.
-\end{enumerate}
-An example is shown in Listing~\ref{lst:jlt}.
-The first two tiers are mechanically decidable on the disciplined fragment the library polices.
-The third tier is a manual-certification path.
-
-The motivation for the third tier is as follows:
-The C++ standard distinguishes in [concepts.lib] between \emph{satisfying} a concept (syntactic) and \emph{modelling} it (semantic)~\cite{cpp23standard}.
-C++ Core Guideline T.20~\cite{cppcoreguidelines} prescribes manual certification for the semantic-requirements clause the spec deliberately refuses to enforce mechanically.
-The standard's \emph{ill-formed, no diagnostic required} clause is its bite, the C++ analogue of \emph{ex falso quodlibet}.
-An \texttt{axiom} keyword was considered in early C++0x drafts for in-language semantic certification and ultimately withdrawn~\cite{isocpp_concepts_history}.
-The manual-certification pattern is the path the committee left open.\footnote{The C++ standard's \emph{syntactic} / \emph{semantic} split is fundamentally \textbf{decidable vs.\ undecidable} --- what the spec commits to enforcing mechanically vs.\ what it deliberately refuses to enforce --- and does not coincide with the static-vs-dynamic semantics split familiar from PL theory~\cite{pierce2002tapl}.  C++'s \emph{syntactic} bucket subsumes that tradition's \emph{static semantics} (type checking, concept resolution, auto-derived theorems via \cppinline{static_assert}) because those are all things the compiler verifies mechanically; the C++ \emph{semantic} bucket is roughly what resists mechanical decision in the spec's chosen target structure.  The committee's vocabulary optimises for responsibility allocation (compiler vs.\ user) rather than for type-theoretic precision; the mismatch is real but learnable.}
-
-The library thus pre-defines traits (\cppinline{is_associative_v<T, Op>}, \cppinline{is_commutative_v<T, Op>}, \dots) and concepts (\cppinline{IsRing}, \cppinline{IsField}, \ldots), with safe defaults.
-Overrides or custom user-supplied traits in the downstream are explicitly allowed.
-Here, we mean safe defaults to be read in the bit-perfect sense: \cppinline{bool} is \emph{recognized} as \cppinline{IsField} (the Galois Field $\mathbb F_2$) and as \cppinline{IsLattice}, while \cppinline{int} is \emph{rejected} as \cppinline{IsRing} because addition is not associative in general (overflow).
-We call this safe-by-default configuration the \emph{Honest Rejection} policy.
-The trait-registry mechanics --- which axioms propagate under which constructors, how per-carrier specialisations are organised, how the \emph{Honest Rejection} policy maps to varieties, and how the algebra-side machinery composes with the C++-side concept layer --- are deferred to §\ref{sec:pruning} (\emph{Algebraic Lattice}) and §\ref{sec:numeric-tension}.
-
-
-% Source: src/main/modules/dedekind/algebra/ring.cppm (concept definition, ll. 110-116)
-\begin{listing}[ht]
-\caption{The Juliet Posture and Honest Rejection: structural compile-time matching regardless of nominal provenance.}
-\label{lst:jlt}
-\begin{cpp}
-// Concept identifying the syntactic ring operators
-template <typename T>
-concept HasRingOperators = requires(T a, T b) {
-  { a + b  } -> std::same_as<T>;
-  { a - b  } -> std::same_as<T>;
-  { -a     } -> std::same_as<T>;
-  { a * b  } -> std::same_as<T>;
-};
-
- // Operators exist on int, but (int, +), not a monoid, because associativity certification has been withheld:
-static_assert(HasRingOperators<int>); 
-static_assert(!IsAssociative<int, std::plus<int>>); 
-
-// Arithmetic operators are absent on bool but associativity is certified for logical operators:
-static_assert(!HasRingOperators<bool>);
-static_assert(!IsAssociative<bool, std::logical_and<bool>>);
-\end{cpp}
-\end{listing}
 
 \subsection{A Common Ground: $\mathbf{Ddk} = \mathbf{Jlt} \cap \mathbf{Alg}(-)_{\beth_1}$}
 \label{sec:cpp-stlc-mapping}
@@ -450,27 +532,6 @@ The \cppinline{IsCartesianClosed<Set<T>>} witness in \texttt{category:cartesian}
 The construction is not a single jump from the bare metacategory $\mathbf{Cat}$ to the project's specific instance $\mathbf{Ddk}$.
 Each step adds one structural commitment, and each commitment is reified as an existing C++23 partition or concept, so the chain is reproducible by reading the partition DAG (Table~\ref{tbl:cat-to-ddk}).
 
-\begin{table}[htbp]
-\centering
-\caption{\textbf{The chain $\mathbf{Cat} \to \mathbf{Ddk}$ as named refinement steps.}  Each row adds one structural commitment over the previous; each is cashed out by an existing C++23 partition / concept.  Steps 0--6 are internal to category theory; step 7 is the move out of pure CT into the C++ realisation.  The chain is approximately linear at the granularity shown; the honest reading is more lattice-shaped, with concreteness (step 5) and the size axis (step 1) sitting orthogonally to the CCC and topos refinements (steps 2--4) rather than strictly downstream of them.}
-\label{tbl:cat-to-ddk}
-\small
-\begin{tabular}{@{}c l l l@{}}
-\toprule
-\textbf{\#} & \textbf{Refinement added} & \textbf{Partition / concept} & \textbf{Net structure} \\
-\midrule
-0 & (bare category axioms)                       & ---                                                    & category                       \\
-1 & smallness                                    & \cppinline{:small} / \cppinline{IsSmallCategory}        & small category                 \\
-2 & terminal $1$, binary products $\times$       & \cppinline{:limit} / \cppinline{IsCartesian}            & cartesian (Pierce §1.4)        \\
-3 & exponentials $B^A$                           & \cppinline{:cartesian} / \cppinline{IsCartesianClosed}  & CCC                            \\
-4 & subobject classifier $\Omega$                & \cppinline{:topoi} / \cppinline{IsSubobject}, \cppinline{IsTopos} & elementary topos      \\
-5 & concreteness (objects \emph{are} sets; faithful $U: \mathcal{C} \to \mathbf{Set}$) & \cppinline{:concrete} / \cppinline{IsConcrete}, \cppinline{IsSetObject} & concrete topos        \\
-6 & ETCS axioms (well-pointedness, NNO, choice)  & \cppinline{:etcs} / \cppinline{IsSet}                   & Set-modeling topos             \\
-\midrule
-7 & C++ Juliet binding (carriers as concrete C++ types) & \cppinline{:cartesian::Ddk}                      & $\mathbf{Ddk}$                 \\
-\bottomrule
-\end{tabular}
-\end{table}
 
 The size-axis vocabulary in \cppinline{:small} is now layered explicitly: \cppinline{IsLocallySmallCategory} (Hom-collection is a set) is the weaker concept; \cppinline{IsSmallCategory} narrows it with $\textsc{Ob}$-is-a-set, so step~1 enforces both readings in one concept (\cppinline{IsSmallCategory} = \cppinline{IsLocallySmallCategory} \(\wedge\) $\textsc{Ob}$-is-a-set in the project's encoding).  The textbook \emph{locally-small-not-small} slot --- $\mathbf{Cat}$ itself, $\mathbf{Set}$, $\mathbf{Alg}(\Sigma)$, $\mathbf{Top}$, where $\textsc{Ob}$ is a proper class --- requires the higher-kinded $\mathrm{Hom}\langle A, B \rangle$ slot at the type level; the project deliberately does not navigate it today, and the architectural reasons for deferring that specific slot live in the \cppinline{:small} docstring section \texttt{small\_\_The\_Locally\_Small\_Slot}.
 
@@ -742,60 +803,6 @@ itemised in the carrier-rosetta tables in
 the universal property that defines them, not by the storage
 scheme they happen to use.}
 
-\subsection{The Comprehension View: Rules on Buckets are Set}
-
-Here is the move. A set is a rule on a bucket:
-\[
-  S = \{x \in A \mid P(x)\}.
-\]
-The right-hand side is the definition most mathematicians write down first and then
-silently forget, reaching instead for a list or a \texttt{std::vector}. In
-\texttt{dedekind} we take that right-hand side literally. The set $S$ is the
-\emph{type} whose inhabitants are elements of the ambient species $A$ satisfying
-$P$. Nothing is enumerated, nothing is allocated, nothing is stored. The
-predicate \emph{is} the set.
-
-That shift---what Lawvere called the comprehension view~\cite{lawvere1964etcs,
-lawvere2003sets}---is the one idea this section needs.
-Figure~\ref{fig:comprehension-triangle} reads it as a commuting triangle: the predicate, the comprehension set, and the truth-value $\Omega$ form three vertices, and the two paths from the predicate to $\Omega$ (evaluate directly vs.\ build the set and ask membership) agree.
-That agreement is the entire content of ``the predicate \emph{is} the set''.
-
-\begin{figure}[htbp]
-\centering
-\begin{tikzcd}[column sep=5em, row sep=4em, ampersand replacement=\&]
-\& P : A \to \Omega
-  \arrow[dl, "\mathrm{compr.}\;\; P \,\mapsto\, \{x \in A \mid P(x)\}"']
-  \arrow[dr, "\mathrm{eval}_x\;\; P \,\mapsto\, P(x)"] \& \\
-S = \{x \in A \mid P(x)\}
-  \arrow[rr, "x \in S \;\equiv\; \chi_S(x)"']
-\& \& \Omega
-\end{tikzcd}
-\caption{The comprehension triangle.
-Top: a predicate $P : A \to \Omega$ (the intensional rule).
-Bottom-left: the typed-constant set $S = \{x \in A \mid P(x)\}$ (the extensional view).
-Bottom-right: the truth-value object $\Omega$ (classically \texttt{bool}, K3 for floats, etc.).
-The triangle commutes: $\chi_S(x) = P(x)$ for every $x \in A$, i.e.\ the characteristic morphism recovered from the comprehension set IS the original predicate.
-In the codebase the triangle is named at the type level by the \cppinline{SetAsProduct<S, Underlying, Classifier>} concept in \texttt{category:concrete} (\#573 slice 2), sibling to the \cppinline{IsSetObject<S, A>} predicate reading; together they assert that the (Underlying, Classifier) decomposition of a set is recoverable, which IS the commuting clause.}
-\label{fig:comprehension-triangle}
-\end{figure}
-
-Once you accept it,
-everything downstream (intersection, complement, emptiness, pruning) falls out
-as predicate algebra. The subobject classifier $\Omega$ becomes a knob you can
-turn: classical \texttt{bool} for exact domains, Kleene K3 for floats, anything
-else you can register.
-
-\subsection{Set Operations as Predicate Composition}
-
-If a set is a predicate, a set operation is whatever operation you would apply to the predicates --- intersection is conjunction, union is disjunction, complement is negation:
-\begin{align*}
-  S_1 \cap S_2 &\triangleq \{x \in A \mid P_1(x) \land P_2(x)\} \\
-  S_1 \cup S_2 &\triangleq \{x \in A \mid P_1(x) \lor P_2(x)\} \\
-  \overline{S_1}  &\triangleq \{x \in A \mid \neg P_1(x)\}
-\end{align*}
-The combinators compose at compile time and produce a new type --- a new rule.
-The same dictionary extends to a sequence's graph relation in §\ref{sec:sequences-relational} (Table~\ref{tab:sql-rosetta}); §\ref{sec:pruning-payoff} closes the page-1 hinge with the structural-pruning payoff.
-
 \subsection{Sequences and the Relational Closure}
 \label{sec:sequences-relational}
 
@@ -911,48 +918,6 @@ The dual-mode character of the comprehension DSL --- compile-time \texttt{static
 The page-2 hinge thus closes: every relational query a working programmer writes on a sequence's graph is the corresponding categorical operation on a Set of pairs, dispatched through the page-1 comprehension surface.
 The realisation boundary --- where compile-time rule becomes runtime value --- is the same one §3.\ref{sec:intensional} named at the top: the only thing that has changed is that the carrier is now a sequence's graph rather than a finite extensional set.
 
-\subsection{Structural Pruning: the Page-1 Payoff}
-\label{sec:pruning-payoff}
-
-The payoff of the comprehension view is that the LLVM backend can \emph{prune} a set expression to a no-op when its predicate is statically unsatisfiable.
-\emph{Algebraic} properties of the predicates, recorded in the \texttt{:species} registry, provide additional pruning opportunities --- $S \cap \varnothing = \varnothing$, $S \cap \overline{S} = \varnothing$, $S_1 \cap S_2 = S_1$ when $S_1 \subseteq S_2$ --- each discharged as a \cppinline{static_assert} once the relevant algebraic witnesses are in the trait registry.
-
-% Source: src/test/cpp/modules/dedekind/python/showcase_alpha_prime.cpp
-\begin{listing}[htbp]
-\caption{α′ — a single listing across the §3 narrative arc \emph{rule\,→\,tested\,→\,trimmed\,→\,collapsed\,→\,contradicted\,→\,certified\,→\,transformed} on $\mathbb{N}$ (the \emph{transformed} nugget parallel-sections on $\mathbb{Q}$, the smallest carrier where the scout-algebra additive and multiplicative gates both fire).  Each line is one structural reduction the compiler discharges.  Post-\#622 the carrier-axis decidability resolver routes countable carriers ($\mathbb{N}$, $\mathbb{Z}$, $\mathbb{Q}$) to \cppinline{ClassicalLogic}, so \cppinline{S.contains(7u)} reads as bare \cppinline{static_assert}-eligible \cppinline{bool} without a Kleene lift.  The cardinality-1 collapse \cppinline{S & {<7}} → \cppinline{Singleton<6>} and the law-of-excluded-middle reduction \cppinline{S & !S} → $\varnothing$ are both type-level discharges; Listing~\ref{lst:pruning_ir} demonstrates the same empty-meet structural pattern at the IR level via a sibling halfspace-contradiction witness in \texttt{showcase\_03\_halfspace\_contradiction.cpp}.  The \emph{transformed} nugget is the in-line scout-algebra surface (\#664): \cppinline{in<ℚ> + bound<3>} shifts the source halfspace's pivot by $+3$ at the type level; \cppinline{in<ℚ> * bound<2>} scales the pivot by $\times 2$ (positive-scalar branch; the negative-scalar branch flips the halfspace's direction).  $\mathbb{Q}$ admits both because \cppinline{IsField<Rational<default_integer>>} fires structurally (PR \#674), inheriting the additive and multiplicative gates from the field axioms.}
-\label{lst:pruning}
-\begin{cpp}
-constexpr auto S = Set{in<ℕ> | in<ℕ> > bound<5>};                         // rule
-static_assert(S.contains(7u));                                              // tested
-constexpr auto T = set_difference(S, Set{in<ℕ> | in<ℕ> > bound<10>});        // trimmed
-static_assert(T.contains(8u) && !T.contains(11u));
-constexpr Singleton<6> a = S & Set{in<ℕ> | in<ℕ> < bound<7>};                // collapsed
-constexpr Ø<Cardinality> b = S & !S;                                         // contradicted
-static_assert(IsExtensional<decltype(a)> && IsExtensional<decltype(b)>);     // certified
-constexpr auto Sₜ = Set{in<ℚ> + bound<3> | in<ℚ> > bound<2>};                // transformed (+): {y | y > 5}
-constexpr auto S× = Set{in<ℚ> * bound<2> | in<ℚ> > bound<5>};                // transformed (×): {y | y > 10}
-\end{cpp}
-\end{listing}
-
-The \cppinline{S & !S} collapse on line 7 of Listing~\ref{lst:pruning} generates no
-membership-test code: the type-level contradiction rule resolves the
-result to $\varnothing$ \emph{before} code generation, and the
-computability tier of $\varnothing$ is fully top
-(extensional/classical/element-in-type).
-Listing~\ref{lst:pruning_ir} makes this mechanically observable: the
-witness function for set membership constant-folds to \texttt{ret i1
-false} in the emitted LLVM IR.
-
-% Source: src/test/cpp/modules/dedekind/python/showcase_03_halfspace_contradiction.ll
-\begin{listing}[htbp]
-\caption{LLVM IR for the empty-meet witness in Listing~\ref{lst:pruning} (\texttt{clang++-22 -O2}): the membership query constant-folds to \texttt{ret i1 false}.  The complementary cardinality-1 case (singleton collapse) and other halfspace reductions are exercised in \texttt{pruning\_showcases\_test.cpp} but not repeated here --- one source / IR pair carries the structural-pruning claim.}
-\label{lst:pruning_ir}
-\begin{cpp}
-define noundef zeroext i1 @witness_empty_halfspace_meet() local_unnamed_addr #0 {
-  ret i1 false
-}
-\end{cpp}
-\end{listing}
 
 % ============================================================
 \section{Algebraic Lattice}
