@@ -120,6 +120,7 @@
 \definecolor{codepurple}{rgb}{0.58,0,0.82}
 
 \newcommand{\bind}{\mathbin{>\!\!>\mkern-6.7mu=}}
+\newcommand{\fish}{\mathbin{\gg}}
 \newcommand{\Cpp}[1]{C\kern-.05em\raise.3ex\hbox{\footnotesize ++}#1}
 
 % --- Document Metadata ---
@@ -365,20 +366,20 @@ This ordering honors category theory foundations and is enforced via the import 
 \end{table}
 
 Concretely, a set $S$ is then specified by a characteristic predicate $P : A \to \Omega$, where $A$ is the underlying type and $\Omega$ is a subobject classifier specifying the logic regime:
-\[
+\begin{equation}
   S = \{x \in A \mid P(x)\}.
-\]
+\end{equation}
 A set operation is then an operation on the predicates --- intersection is conjunction, union is disjunction, complement is negation:
-\begin{align*}
+\begin{align}
   S_1 \cap S_2 &\triangleq \{x \in A \mid P_1(x) \land P_2(x)\} \\
     S_1 \cup S_2 &\triangleq \{x \in A \mid P_1(x) \lor P_2(x)\} \\
     \overline{S_1}  &\triangleq \{x \in A \mid \neg P_1(x)\}
-\end{align*}
+\end{align}
 Similarly, a cartesian product is a predicate applied to both elements of a pair, while a power set can be expressed as a subset relation.
-\begin{align*}
+\begin{align}
   S_A \times S_B &\triangleq \{x \in A, y \in B \mid P_A(x) \land P_B(y)\}\\
   \mathcal{P}(S_1) &\triangleq \{x \subset S_1\}
-\end{align*}
+\end{align}
 For exact numeric carriers, $\Omega$ defaults to standard \texttt{bool} (classical two-valued logic), while inexact carriers may utilize a three-valued Kleene logic ($\mathbb{K}_3$) to handle non-signaling conditions like \texttt{NaN} for floating-points safely without breaking identity laws.
 
 % Source: src/test/cpp/modules/dedekind/python/showcase_alpha_prime.cpp
@@ -445,46 +446,76 @@ To bridge the gap between pure intensional sets and downstream matrix transforma
 \subsection{Relations and Tarskian Kleisli Composition}
 \label{sec:monadic_relations_tarski}
 
-To transition seamlessly from static intensional sets to dynamic mappings, binary relations must be formalized without breaking the underlying functional primitives of the Elementary Theory of the Category of Sets (ETCS).
-Instead of identifying a relation extensionally as a subobject pair $R \subseteq A \times B$, the library implements a monadic presentation where a relation is an active functional morphism.
-Concretely, a binary relation $R$ from a domain set $A$ to a codomain set $B$ is defined as a total arrow of the form $R : A \to \mathcal{P}(B)$, where $\mathcal{P}(B)$ represents the intensional power set of the target space.
-This architectural choice ensures that when an element $a \in A$ is supplied to the relation, the compiler immediately evaluates the image as a native, optimized intensional set type in the destination space.
-
-This monadic structural layout enables a pristine, point-free elaboration on relation algebra in the Tarskian sense.
-In classical relational calculus, the relative composition of two relations $R \subseteq A \times B$ and $S \subseteq B \times C$ requires an existential quantification step over the intermediate domain $B$.
-Under this functional presentation, Tarski's relative composition $R ; S : A \to \mathcal{P}(C)$ resolves elegantly as standard Kleisli composition over the power set monad.
-The type system executes this composition by mapping $R$ over the input element to yield an intermediate set, and then binding $S$ across that resulting image via an intensional set-theoretic union cascade.
-
+To transition seamlessly from static intensional sets to dynamic mappings, binary relations must be formalized without breaking the underlying functional primitives of the Elementary Theory of the Category of Sets (ETCS). 
 
 \begin{listing}[htbp]
-\label{lst:tarskian_kleisli_composition}
-\caption{The monadic binary relation concept and its point-free Tarskian composition operator.}
+\caption{Intensional specification of a binary relation predicate over an algebraic product space and its pointwise validation.}
+\label{lst:intensional_relation_validation}
 \begin{cpp}
-// A binary relation is a morphism from a type to an intensional Set type
-template <typename R, typename From, typename To>
-concept IsMonadicRelation = requires(R rel, From choice) {
-    { rel(choice) } -> IsIntensionalSet;
+// R = { (a, b) ∈ ℕ × ℕ | b % a == 0 }
+constexpr auto x = var(ℕ * ℕ);
+constexpr auto R = Set{
+    x | (π_2(x) % π_1(x) == bound<0>)
 };
 
-// Tarskian relative composition reified as a Kleisli bind loop
-template <typename From, typename Inter, typename To, typename R, typename S>
-requires IsMonadicRelation<R, From, Inter> && IsMonadicRelation<S, Inter, To>
-constexpr auto rel_compose(const R& r, const S& s) {
-    auto composed_pred = [r, s](const From& a) {
-        auto intermediate_set = r(a);
-        // Returns the intensional union of S mapped over all elements in the intermediate set
-        return set_bind(intermediate_set, s);
-    };
-    return composed_pred;
-}
+// Pure pointwise validation via indicator properties
+static_assert(R(Pair{2u, 6u})); // Validated: 6 % 2 == 0
+static_assert(!R(Pair{4u, 6u})); // Rejected: 6 % 4 != 0
 \end{cpp}
 \end{listing}
 
-The codebase implements this Tarskian hinge within the \texttt{:relations} partition through the \texttt{rel\_compose} template operator.
-Because the underlying power set operations evaluate purely as compile-time predicate transformations, the composition of two relations does not trigger a runtime search loop over the intermediate space.
-Instead, the compiler unifies the constituent predicates into a single, synthesized type-level constraint that governs the end-to-end mapping from $A$ to $C$.
-Listing~\ref{lst:tarskian_kleisli_composition} illustrates how this monadic relation concept and its corresponding Kleisli composition operator are structurally declared inside the toolchain.
+The design of the relation $R$ in Listing~\ref{lst:intensional_relation_validation} highlights the core architectural boundary between symbolic specification and type-level evaluation. Structurally, the relation is defined entirely through an intensional presentation. Rather than relying on explicit, verbose template-parameter bindings, the expression leverages the functional factory \texttt{var(}\dots\texttt{)} to inject a value-level token carrying the underlying product domain mechanics of $(\mathbb{N} \times \mathbb{N})$. This variable placeholder binds the relational invariant as a native type-directed predicate. 
 
+This intensional rule collapses into an extensional, pointwise evaluation context when interrogated by a concrete element via the indicator property \texttt{operator()}. During compilation, the \texttt{static\_assert} forces the template engine to substitute the candidate literal pair into the projection bindings $\pi_1$ and $\pi_2$, reducing the symbolic constraint down to a primitive boolean literal. Consequently, the library maintains the abstract economy of mathematical logic right up until specific domain elements witness the correctness of the constraint at compile time.
+
+In classical relational calculus, the relative composition of two relations $R \subseteq A \times B$ and $S \subseteq B \times C$ requires an existential quantification step over the intermediate domain $B$:
+\begin{equation}
+R \circ S = \{ (a, c) \in A \times C \mid \exists b \in B : (a, b) \in R \land (b, c) \in S \}
+\end{equation}
+However, general first-order existential ($\exists$) and universal ($\forall$) quantification cannot be implemented generically over infinite intensional sets at compile time, as the enumeration of open predicate domains induces infinite compiler loop regression. 
+
+To circumvent this translation-time decidability bottleneck, the library rejects identifying a relation extensionally as a static subobject pair $R \subseteq A \times B$. Instead, it implements a monadic presentation where a relation is an active functional morphism. Concretely, a binary relation $R$ from a domain set $A$ to a codomain set $B$ is defined as a total arrow of the form $R : A \to \mathcal{P}(B)$, where $\mathcal{P}(B)$ represents the intensional power set of the target space. This architectural choice ensures that when an element $a \in A$ is supplied to the relation, the compiler immediately evaluates the image as a native, optimized intensional set type in the destination space.
+
+Under this functional presentation, Tarski's relative composition resolves elegantly as standard Kleisli arrow composition over the power set monad. We explicitly reify this step within the \texttt{:relations} partition via the infix pipeline operator ($\gg$), allowing the point-free composition to be expressed textually as:
+\begin{equation}
+R \mathbin{\gg} S : A \to \mathcal{P}(C)
+\end{equation}
+The template engine executes this composition by mapping $R$ over an input element to yield an intermediate set, and then binding $S$ across that resulting image via an intensional set-theoretic union cascade:
+\begin{equation}
+(R \mathbin{\gg} S)(a) = \bigcup_{b \in R(a)} S(b)
+\end{equation}
+
+\begin{listing}[htbp]
+\caption{Point-free relational composition via Kleisli arrow piping over the power set monad, circumventing explicit existential quantification search bounds.}
+\label{lst:kleisli_fish_composition}
+\begin{cpp}
+// R : ℕ → P(ℕ) where R(a) = { b ∈ ℕ | b % a == 0 }
+constexpr auto R = [](auto a) {
+    constexpr auto b = var(ℕ);
+    return Set{ b | (b % a == bound<0u>) };
+};
+
+// S : ℕ → P(ℕ) where S(b) = { c ∈ ℕ | b < c }
+constexpr auto S = [](auto b) {
+    constexpr auto c = var(ℕ);
+    return Set{ c | (b < c) };
+};
+
+// Point-free Tarskian relative composition via the fish operator
+constexpr auto R_then_S = R >> S;
+
+// Pointwise validation: The compiler lazy-chains the predicates
+// Is 5 in the composition image of 2?
+static_assert((R_then_S(2u))(5u)); // Validated: Witnessed symbolically by b = 2 or b = 4
+
+// Is 3 in the composition image of 4?
+static_assert(!(R_then_S(4u))(3u)); // Rejected: Constraint chain evaluates to false
+\end{cpp}
+\end{listing}
+
+Because the underlying power set operations evaluate purely as compile-time predicate transformations, the composition of two relations does not trigger a runtime search loop over the intermediate space. The infix pipeline operator ($\gg$) implements true Kleisli composition; when evaluated at a point $a$, the template engine skips any raw search loop and instead transforms the symbolic predicate of $R$ directly into the input of $S$. The existential requirement is thus safely re-encoded as a lazy, zero-cost symbolic predicate transformation pipeline. 
+
+The compiler unifies the constituent predicates into a single, synthesized type-level constraint that governs the end-to-end mapping from $A$ to $C$. Listing~\ref{lst:kleisli_fish_composition} illustrates how this monadic relation concept and its corresponding Kleisli composition operator are structurally declared inside the toolchain.
 
 \subsection{Functions and Morphism Factorization Gates}
 \label{sec:functions_morphism_factorization}
