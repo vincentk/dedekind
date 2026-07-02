@@ -494,33 +494,35 @@ constexpr auto R = [](auto a) {
     constexpr auto b = var(ℕ);
     return Set{ b | (b % a == bound<0u>) };
 };
-
 // S : ℕ → P(ℕ) where S(b) = { c ∈ ℕ | b < c }
 constexpr auto S = [](auto b) {
     constexpr auto c = var(ℕ);
     return Set{ c | (b < c) };
 };
-
 // Point-free Tarskian relative composition via the fish operator
 constexpr auto R_then_S = R >> S;
-
 // Pointwise validation: The compiler lazy-chains the predicates
-// Is 5 in the composition image of 2?
-static_assert((R_then_S(2u))(5u)); // Validated: Witnessed symbolically by b = 2 or b = 4
-
-// Is 3 in the composition image of 4?
-static_assert(!(R_then_S(4u))(3u)); // Rejected: Constraint chain evaluates to false
+// Is 5 in the composition image of 2? Validated: 
+static_assert((R_then_S(2u))(5u));
+// Is 3 in the composition image of 4? Rejected.
+static_assert(!(R_then_S(4u))(3u));
 \end{cpp}
 \end{listing}
 
-Because the underlying power set operations evaluate purely as compile-time predicate transformations, the composition of two relations does not trigger a runtime search loop over the intermediate space. The infix pipeline operator ($\gg$) implements true Kleisli composition; when evaluated at a point $a$, the template engine skips any raw search loop and instead transforms the symbolic predicate of $R$ directly into the input of $S$. The existential requirement is thus safely re-encoded as a lazy, zero-cost symbolic predicate transformation pipeline. 
+Because the underlying power set operations evaluate purely as compile-time predicate transformations, the composition of two relations does not trigger a runtime search loop over the intermediate space.
+The infix pipeline operator ($\gg$) implements true Kleisli composition; when evaluated at a point $a$, the template engine skips any raw search loop and instead transforms the symbolic predicate of $R$ directly into the input of $S$.
+The existential requirement is thus safely re-encoded as a lazy, zero-cost symbolic predicate transformation pipeline. 
 
 The compiler unifies the constituent predicates into a single, synthesized type-level constraint that governs the end-to-end mapping from $A$ to $C$. Listing~\ref{lst:kleisli_fish_composition} illustrates how this monadic relation concept and its corresponding Kleisli composition operator are structurally declared inside the toolchain.
 
 \subsection{Functions and Morphism Factorization Gates}
 \label{sec:functions_morphism_factorization}
 
-With monadic relations firmly established as arrows returning intensional subsets, total functions can be rigorously specialized by constraining the size of their output images.
+While the relational composition operator ($\gg$) detailed in Section~\ref{sec:monadic_relations_tarski} bypasses the need for intermediate set materialization by maintaining a lazy symbolic predicate chain, specialized functional mappings impose a more stringent computational burden.
+For total functions where elements must be explicitly mapped and verified as certified singleton images, the template engine cannot rely solely on passive predicate encapsulation.
+If a function lacks a strict structural inverse or is evaluated over an unconstrained, transfinite domain, constructively determining image containment or mapping preimages becomes undecidable at translation time. Consequently, if a generic result-set construction is impossible for general functions, it is similarly precluded for general relations.
+To resolve this boundary, the library introduces an architectural gate based on the categorical principle of epic-monic factorization.
+
 Mathematically, a relation $R : A \to \mathcal{P}(B)$ is identified as a total function if and only if it maps every input element $a \in A$ to a certified singleton subset in the codomain.
 In the codebase, this structural guarantee is enforced within the \texttt{:functions} partition by wrapping the underlying relation inside a specialized function adapter and guarding its evaluation site with an \texttt{IsSingleton} concept constraint.
 This architecture preserves the structural continuity of the library: functions are not distinct primitives, but are well-behaved, deterministic relations whose output logic is structurally bounded.
@@ -530,48 +532,55 @@ For specialized mappings, codomain membership tests—checking whether a given e
 If a function is certified as surjective, every element of the target space is a valid image, meaning a codomain membership query trivially constant-folds to logical truth.
 If a function is bijective, as is already implemented and leveraged within the core set eDSL, the type system utilizes a structural left-and-right inverse witness to map elements bi-directionally between spaces with zero runtime overhead.
 
-For general or non-bijective functions, however, validating whether an arbitrary element $b \in B$ possesses a valid preimage in the domain $A$ presents a severe decidability barrier.
-Because an intensional domain $A$ may be infinite or transfinite, the compiler cannot execute a brute-force structural search loop to find a matching input element.
-To overcome this limitation, the library introduces an architectural gate based on the categorical principle of epic-monic factorization.
-Every general functional arrow $f : A \to B$ can be uniquely factored into a regular surjection (epi) onto an intermediate image set $I$, followed by a regular injection (mono) from $I$ into the destination space $B$:
+\begin{listing}[htbp]
+\caption{Intensional specification of a functional image set via analytical inversion of a bijective function.}
+\label{lst:functional_image_bijection}
+\begin{cpp}
+// Bijective case:
+// { n + 2 ∈ ℕ | n < 5 }
+constexpr auto x = var(ℕ);
+constexpr auto p2 = Set{ 
+    x + bound<2u> | x < bound<5u> 
+};
+// Validated: 3 + 2 = 5, 3 < 5
+static_assert(p2(5u));   
+// Rejected: 1 is smaller than the base translation boundary 2.
+static_assert(!p2(1u));
+// Rejected: 7 - 2 = 5, which fails the x < 5 constraint
+static_assert(!p2(7u));  
+\end{cpp}
+\end{listing}
+
+For general or non-bijective functions, however, validating whether an arbitrary element $b \in B$ possesses a valid preimage in the domain $A$ presents a severe decidability barrier if evaluated via standard search techniques.
+Rather than treating this as an impassable restriction, the library provides specialized support for functional relations by introducing an architectural gate based on the categorical principle of epic-monic factorization.
+Every general functional arrow $f : A \to B$ can be factored into a regular surjection (epi) onto an intermediate image set $I$, followed by a regular injection (mono) from $I$ into the destination space $B$:
 \begin{equation}
 A \twoheadrightarrow I \hookrightarrow B.
 \end{equation}
 
-By requiring the developer to provide this factorization mapping when declaring an arbitrary function, the compiler gains the exact structural properties needed to handle general codomain membership tests.
+By requiring the developer to provide this factorization mapping when declaring an arbitrary \cppinline{IsTotalFunction}, the compiler gains the exact structural properties needed to handle general codomain membership tests.
 Since the second leg of the factorization chain is a strict injection, it guarantees a one-to-one mapping from the intermediate image set $I$ into the target space $B$, allowing the type-checker to reason about the embedding without exploring the raw domain space $A$.
-Listing~\ref{lst:morphism_factorization_implementation} illustrates how this epic-monic gate and its corresponding image validation assertions are codified within the C++23 template engine.
+Listing~\ref{lst:functional_image_factorization} illustrates how this epic-monic gate and its corresponding image validation assertions are codified within the C++23 template engine.
 
 \begin{listing}[htbp]
-\label{lst:morphism_factorization_implementation}
-\caption{The categorical function adapter and its corresponding epic-monic factorization verification gates.}
+\caption{Intensional specification of a functional image set via forward epic-monic composition inside a set comprehension block.}
+\label{lst:functional_image_factorization}
 \begin{cpp}
-// A function wraps a monadic relation and guarantees a singleton output set
-template <typename F, typename From, typename To>
-concept IsTotalFunction = IsMonadicRelation<F, From, To> && requires(F func, From a) {
-    { func(a) } -> IsSingletonSet;
+constexpr auto x = var(ℕ);
+// Non-bijective case via explicit factorization:
+// { x * x ∈ ℕ | x < 5 }
+// The left-hand side pipes the epi leg into the mono gate via operator>>
+constexpr auto sqs = Set{ 
+    (x * x) >> is_square | x < bound<5u> 
 };
 
-// The Epic-Monic Factorization gate wrapper for general functional images
-template <typename From, typename Image, typename To>
-struct EpicMonicFactorization {
-    // Regular surjection (Epi): A -> I
-    std::function<Image(From)> coequalizer;
-    
-    // Regular injection (Mono): I -> B
-    std::function<To(Image)> equalizer;
-    
-    // Structural left-inverse for the injective leg to make image matching decidable
-    std::function<std::optional<Image>(To)> mono_retract;
-};
-
-template <typename From, typename Image, typename To, typename F>
-requires IsTotalFunction<F, From, To>
-constexpr bool contains_image(const F& func, const EpicMonicFactorization<From, Image, To>& gate, const To& b) {
-    // Validates codomain membership via the mono retraction without searching the domain
-    auto intermediate_witness = gate.mono_retract(b);
-    return intermediate_witness.has_value();
-}
+// Pointwise validation: Bypasses brute-force search loops via backward retraction
+// Validated: 9 is square -> root is 3 -> 3 < 5
+static_assert(sqs(9u));   
+// Rejected: 36 is square -> root is 6 -> 6 >= 5
+static_assert(!sqs(36u));
+// Rejected: 8 fails the is_square retraction check  
+static_assert(!sqs(8u));  
 \end{cpp}
 \end{listing}
 
