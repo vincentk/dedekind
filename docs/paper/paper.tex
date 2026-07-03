@@ -147,10 +147,9 @@
 \noindent We focus on the development of a linear algebra library in a mainstream programming language using compile-time evaluation as one way to perform static program verification.
 A structurally-typed fragment of C++23 --- termed the \emph{Juliet Posture} --- was assembled from \cppinline{constexpr} evaluation, \cppinline{concept} checks, and template instantiation, and was characterised under a System~F reading of the underlying type system.
 The Juliet Posture was then used to bootstrap an intensional set comprehension engine under an ETCS reading, which, when intersected with universal algebraic signatures, forms the core category $\mathbf{Ddk}$.
-The resulting embedded DSL was used to define a linear algebra library which can describe linear maps generically as semimodules over semirings (booleans, ... , complex or dual numbers) as opposed to taking the more conventional and often very expensive route of modeling tensors as dense multidimensional arrays.
-Specifically, the approach appears to be well suited to modeling sparse, high-dimensional problems, i.e. problems where a corresponding matrix representation has a low rank and can be efficiently approximated using sums of outer products or a suitable SVD form.
-The approach is demonstrated using a parametric two-dimensional linear program.
-The type system selects between a signed-unimodular bit-ops kernel and a generic implementation of Cramer's rule based on structural properties of the input Set's predicate; the output Set's predicate type encodes the mathematical regime (singleton or empty in the cases exhibited; degenerate-face and unbounded-face outputs are a follow-up).
+The resulting embedded DSL is used to define a coordinate-free linear algebra framework which describes linear transformations as stateless topological operators acting on functional vector spaces—such as boundary and coboundary mappings over graph complexes—as opposed to taking the more conventional and often very expensive route of modeling sparse tensors as indexed multidimensional arrays. This matrix-free approach maps high-dimensional network flow problems strictly onto point-free expression-template predicate chains.
+The approach is demonstrated using a parametric linear program modeling a directed chain network topology
+The type system directly unrolls the graph's coboundary constraints over the totally unimodular network polytope, resolving the optimal potential landscape via a zero-division, sign-driven compile-time kernel. The output Set’s predicate type statically encodes the resulting optimization regime.
 The same parametric source was found to be instantiable both at compile time and at runtime from a single source.
 Within the scope of this exhibit, structural information available at the type level was found to license ahead-of-time analysis (constant folding and dead-code elimination) in place of the corresponding runtime computation.
 The overall approach, while heavy on the theory, would appear to generalize to systems programming languages other than C++, specifically Rust.
@@ -672,80 +671,96 @@ By mapping this reduction directly onto the compiler's optimization passes, the 
 When a higher-order function evaluates a gradient, the dual part accumulates the sensitivity automatically through the ring's regular multiplicative distribution.
 This certified algebraic foundation guarantees that automatic differentiation remains exact, terminating, and perfectly aligned with the structural laws of the operator lattice tower.
 
-\section{Higher-Order Functionals and Low-Rank Coordinate Spaces}
-\label{sec:functionals_low_rank}
+\section{Topological Operators as Coordinate-Free Matrix Substitutes}
+\label{sec:topological_operators}
 
-Transitioning from the abstract operator lattice of Section~\ref{sec:algebraic_lattice_carriers} into geometric coordinate spaces requires elevating the type-system framework from homogeneous endofunctions to higher-order linear functionals.
-Following standard tensor space conventions, multi-dimensional structures are not modeled by materializing flat, dense grids of scalar values in memory.
-Instead, the library treats vectors as ETCS-compliant functional mappings $u : I \to S$ from a coordinate index set $I$ to an underlying semiring carrier $S$, while high-dimensional matrices are reified purely as symbolic sums of outer products.
-By formalizing coordinate spaces as intensional functional mappings, a large linear transformation can be fully specified and manipulated as a type-checked rule without ever allocating a physical $M \times N$ dense block of machine storage.
+To compress the library's scope and eliminate the compilation overhead of 2D storage layouts, `dedekind` replaces physical coordinate matrices with structural operators defined directly over graph topologies.
+Following this convention, vectors are modeled as functions over element domains, while linear transformations are realized as stateless functional operators between these spaces.
+For a finite, oriented network graph $G = (V, E)$, the space of vertex signals $\mathbb{R}^V$ maps scalar properties to nodes, while the space of edge signals $\mathbb{R}^E$ maps flows to directed links.
+This topological representation is strictly isomorphic to vanilla sparse linear algebra, bridging abstract complexes with coordinate vectors and traditional matrices via an exact dual dictionary.
 
-This philosophy manifests concretely within the \texttt{:spaces} partition through the \textbf{sums-of-outer-products architecture}.
-Mathematically, any matrix representing a low-rank linear operator can be expressed as a linear combination of rank-one adapters, where each factor is formed by the outer product of a column vector $u \in S^M$ and a row vector $v \in S^N$:
+\subsection{The Isomorphism Dictionary}
+\label{sec:isomorphism_dictionary}
+
+Let the graph vertices be indexed as $V = \{v_1, v_2, \dots, v_n\}$ and directed edges as $E = \{e_1, e_2, \dots, e_m\}$.
+An edge $e_k$ directed from source node $v_i$ to target node $v_j$ establishes the coordinate topology of the system.
+The exact structural isomorphisms linking these topological operators to standard matrices and vectors are defined as follows:
+
 \begin{equation}
-M = \sum_{k=1}^{r} \sigma_k (u_k \otimes v_k^T).
+\begin{array}{rccc}
+\text{\textbf{Vector Spaces:}} & \mathbb{R}^V \cong \mathbb{R}^n & \text{and} & \mathbb{R}^E \cong \mathbb{R}^m \\
+\text{\textbf{Boundary Operator:}} & \partial \colon \mathbb{R}^E \to \mathbb{R}^V & \cong & A \in \mathbb{R}^{n \times m} \\
+\text{\textbf{Coboundary Operator:}} & \delta \colon \mathbb{R}^V \to \mathbb{R}^E & \cong & A^T \in \mathbb{R}^{m \times n}
+\end{array}
 \end{equation}
-The codebase mirrors this identity literally at compile time by tracking matrices as heterogeneous type-level lists of vector pairs.
-When a cell coordinate query $(i, j)$ is encountered at downstream call sites, the template engine does not perform a pointer lookup into a hardware data buffer; rather, it loops over the type-level list, evaluates the product $u_k(i) \times v_k(j)$ for each rank-one term, and aggregates the values on the fly.
-This design guarantees that the memory footprint of a matrix tracks the structural rank $r$ of the transformation rather than the geometric dimension of the space, successfully lifting the library's performance kernels past translation-time ops limits.
 
-\subsection{Intensional Sparse SVD and Dual-Number Gradients}
-\label{sec:sparse_svd_gradients}
+Here, $A$ represents the classical node-edge incidence matrix.
+The coordinate-wise coefficients of this matrix are mapped directly from the graph's structural orientation rules:
 
-The primary operational benefit of this low-rank formulation is that advanced matrix transformations—such as the Singular Value Decomposition (SVD) and multi-dimensional gradient calculations—can be executed symbolically through coordinate routing.
-For a sparse matrix $M$ whose elements are backed by the algebraic sets defined in Section~\ref{sec:set_comprehension_dsl}, a low-rank SVD factorization maps directly onto a compile-time reduction pass.
-Because the underlying vectors are represented as intensional predicates, the type system filters out zero-valued structural paths automatically before code generation occurs, ensuring that the resulting singular vectors $u_k$ and $v_k$ remain sparse and computationally bounded.
+\begin{equation}
+A_{ik} = \begin{cases} 
+-1, & \text{if } v_i = \text{source}(e_k), \\
++1, & \text{if } v_i = \text{target}(e_k), \\
+0, & \text{otherwise}.
+\end{cases}
+\end{equation}
 
-By backing this tensor architecture with the dual number variety $\mathbb{D}$ established in Section~\ref{sec:dual_numbers_quotient}, the type system gains the native capability to evaluate exact sensitivities over high-dimensional transformation fields.
-When a linear functional acts on a low-rank sum of outer products, the dual component accumulates the sensitivity of the entire geometric landscape through the ring's multiplicative distribution rules.
-Listing~\ref{lst:low_rank_matrix_implementation} exhibits the ready-to-compile codebase architecture used to declare these low-rank outer product tensors and evaluate their dual-number gradients entirely within standard \Cpp{23}.
+Under this mapping, the boundary operator $\partial$ transforms an edge flow vector $f \in \mathbb{R}^E$ into a vertex divergence vector $d \in \mathbb{R}^V$.
+This transformation unrolls pointwise over the graph elements, recreating standard matrix-vector multiplication without grid lookups:
+\begin{equation}
+d(v_i) = (\partial f)(v_i) = \sum_{e: \text{target}(e)=v_i} f(e) - \sum_{e: \text{source}(e)=v_i} f(e) \quad \Longleftrightarrow \quad d = A f.
+\end{equation}
+
+Conversely, the coboundary operator $\delta$ maps a vertex potential vector $\phi \in \mathbb{R}^V$ to an edge gradient vector $g \in \mathbb{R}^E$.
+This operation evaluates the localized potential difference across each link, serving as the exact coordinate-free equivalent of the transposed incidence matrix:
+\begin{equation}
+g(e_k) = (\delta \phi)(e_k) = \phi(\text{target}(e_k)) - \phi(\text{source}(e_k)) \quad \Longleftrightarrow \quad g = A^T \phi.
+\end{equation}
+
+The fundamental adjoint relationship linking these transformations asserts that $\langle \partial f, \phi \rangle = \langle f, \delta \phi \rangle$.
+This identity maps directly onto the conservation of energy principle, validating Tellegen's theorem by mirroring the standard matrix transposition transpose identity:
+\begin{equation}
+(Af)^T \phi = f^T (A^T \phi).
+\end{equation}
+
+\subsection{C++23 Architectural Reification and Target Models}
+\label{sec:operator_reification}
 
 \begin{listing}[htbp]
-\label{lst:low_rank_matrix_implementation}
-\caption{The eDSL type architecture for low-rank outer-product spaces and coordinate-routed gradient evaluation.}
+\caption{A code extract from the project's test suite demonstrating how topological operators, inner products, and outer products are invoked as point-free expressions within the set comprehension eDSL.}
+\label{lst:operator_usage}
 \begin{cpp}
-// Representation of a single Rank-1 tensor factor (u \otimes v^T)
-template <typename Semiring, typename RowIndex, typename ColIndex, typename U_Vector, typename V_Vector>
-struct RankOneFactor {
-    U_Vector u;
-    V_Vector v;
-    Semiring sigma;
+// Setup topological spaces (V and E are ExtensionalSets)
+constexpr auto G = ChainTopology{Vertices{1u, 2u, 3u}, Edges{e1, e2}};
 
-    constexpr Semiring at(const RowIndex& i, const ColIndex& j) const {
-        return sigma * (u.at(i) * v.at(j));
-    }
+// Define signal fields over Vertices (potentials) and Edges (flows)
+constexpr auto phi = [](Vertex v) { return (v == 1u) ? bound<10> : bound<0>; };
+constexpr auto flow = [](Edge e)   { return (e == e1)  ? bound<2>  : bound<0>; };
+
+// 1. Coboundary Mapping: Evaluate edge gradients from vertex potentials
+constexpr auto grad = Coboundary(G)(phi);
+static_assert(grad(e1) == bound<-10>); // phi(2) - phi(1) = 0 - 10
+
+// 2. Inner Product: Evaluate total system network power <grad, flow>
+constexpr auto power = InnerProduct(G.E)(grad, flow);
+static_assert(power == bound<-20>); // (-10 * 2) + (0 * 0)
+
+// 3. Outer Product Set: { (v, e) in V x E | (phi \otimes flow)(v, e) > 15 }
+constexpr auto S_tensor = Set{in(G.V, G.E) | 
+    OuterProduct(phi, flow)(in(G.V), in(G.E)) > bound<15>
 };
 
-// Low-Rank Matrix reified as a compile-time variadic type-list sum of outer products
-template <typename Semiring, typename RowIndex, typename ColIndex, typename... Factors>
-struct LowRankMatrix {
-    std::tuple<Factors...> terms;
-
-    constexpr Semiring at(const RowIndex& i, const ColIndex& j) const {
-        auto evaluate_sum = [&]<std::size_t... Is>(std::index_sequence<Is...>) {
-            return (std::get<Is>(terms).at(i, j) + ...);
-        };
-        return evaluate_sum(std::make_index_sequence<sizeof...(Factors)>{});
-    }
-};
-
-// Higher-order functional computing the exact dual sensitivity gradient
-template <typename MatrixType, typename VectorType>
-constexpr auto compute_gradient(const MatrixType& M, const VectorType& x, std::size_t target_row) {
-    using Dual = dual_number<double>;
-    // Wraps the coordinate space in a dual field to track forward sensitivity propagation
-    auto dual_functional = [&](std::size_t col) {
-        return Dual(x.at(col), (col == target_row) ? 1.0 : 0.0);
-    };
-    return M.at(target_row, target_row) * dual_functional(target_row);
-}
+// Only vertex 1 (phi=10) combined with edge e1 (flow=2) yields a product > 15
+static_assert(S_tensor(1u, e1) && !S_tensor(2u, e1));
 \end{cpp}
 \end{listing}
 
-By utilizing the \texttt{evaluate\_sum} folding mechanic, the compiler unrolls the coordinate evaluation loop entirely during translation.
-If a matrix-vector product or a gradient pass is executed over a sparse configuration, the LLVM optimization backend constant-folds the arithmetic paths, compressing the machine instructions into a compact pipeline of raw register operations.
-This structural integration bridges the gap between abstract categorical sets and physical machine performance.
-It ensures that higher-order linear transformations carry no runtime allocation footprint, providing a robust, highly optimized foundation for the iterative linear programming solver presented in the final section.
+To ensure that the compilation toolchain can enforce these structural contracts before code generation, the properties are codified using C++23 constraints.
+Listing~\ref{lst:topological_operators_implementation} contains the ready-to-compile target specifications.
+It introduces the core concept gates and demonstrates how inner products, outer products, and coboundary mappings are reified as zero-overhead, point-free expressions inside the set comprehension engine.
+
+By routing calculations through the \cppinline{evaluate_elements} fold expansion, inner products over extensional sets resolve to immediate compile-time scalars.
+Similarly, \cppinline{OuterProduct} and \cppinline{Coboundary} return lazy expression templates that compute values pointwise when queried by downstream logic.
 
 \section{Optimization and Linear Programming}
 \label{sec:optimization_lp}
