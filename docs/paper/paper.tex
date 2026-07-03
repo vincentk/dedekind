@@ -298,6 +298,7 @@ We handle this boundary using the \emph{Honest Rejection} policy.
 A primitive machine type is rejected at the gate if its hardware behavior violates ideal mathematical axioms.
 For example, \texttt{int} satisfies the syntactic operators for a ring, but signed-overflow undefined behavior defeats associativity.
 Conversely, \texttt{bool} is safely accepted as the Galois Field $\mathbb{F}_2$ because its bit-perfect operations never overflow or round, as demonstrated in Listing~\ref{lst:honest_rejection}.
+This design mimicks the use of the \texttt{sorry} macro in Lean or the \texttt{Admitted} command in Coq, where a proof obligation is bypassed by fiat to allow downstream development.
 
 % Source: src/main/modules/dedekind/algebra/ring.cppm (concept definition, ll. 110-116)
 \begin{listing}[ht]
@@ -319,7 +320,8 @@ static_assert(!IsAssociative<int, std::plus<int>>);
 
 // Arithmetic operators are absent on bool but associativity is certified for logical operators:
 static_assert(!HasRingOperators<bool>);
-static_assert(!IsAssociative<bool, std::logical_and<bool>>);
+static_assert(!HasLocigalOperators<bool>);
+static_assert(IsAssociative<bool, std::logical_and<bool>>);
 \end{cpp}
 \end{listing}
 
@@ -382,26 +384,32 @@ Similarly, a cartesian product is a predicate applied to both elements of a pair
 \end{align}
 For exact numeric carriers, $\Omega$ defaults to standard \texttt{bool} (classical two-valued logic), while inexact carriers may utilize a three-valued Kleene logic ($\mathbb{K}_3$) to handle non-signaling conditions like \texttt{NaN} for floating-points safely without breaking identity laws.
 
+First-order quantification is restricted to domains satisfying \cppinline{IsExtensional}, as unconstrained evaluation over transfinite intensional spaces is undecidable at compile time.
+For these bounded domains, the quantifiers $\exists$ (\cppinline{Exists}) and $\forall$ (\cppinline{ForAll}) map directly onto finite coordinate-wise reductions ($\bigvee$ and $\bigwedge$) over $\Omega$, executing as zero-overhead variadic fold expansions during template translation.
+
 % Source: src/test/cpp/modules/dedekind/python/showcase_alpha_prime.cpp
 \begin{listing}[htbp]
 \caption{A code extract from the project's test suite intended to model set builder notation in C++23.
+\cppinline{Set{...}} is a variadic constructor.
 The combinators \cppinline{in} and \cppinline{bound} construct a scout variable and a half-space predicate respectively.
+\cppinline{operator()} is a shorthand for \cppinline{a.contains(e)}.
 As evidenced by the \cppinline{static_assert}, the set operations are evaluated at compile time.}
 \label{lst:pruning}
 \begin{cpp}
 // {x in ℕ | x > 5}
-constexpr auto S = Set{in<ℕ> | in<ℕ> > bound<5>};
-// Membership Test:
-static_assert(S.contains(7u));                                              
-// Trimming:
-constexpr auto T = set_difference(S, Set{in<ℕ> | in<ℕ> > bound<10>});        
-static_assert(T.contains(8u) && !T.contains(11u));
-// Collapse:
-constexpr Singleton<6> a = S & Set{in<ℕ> | in<ℕ> < bound<7>};  
-// Contradiction:            
-constexpr Ø<Cardinality> b = S & !S;                                         
-// Certification:
-static_assert(IsExtensional<decltype(a)> && IsExtensional<decltype(b)>);     
+constexpr auto a = Set{in(ℕ) | in(ℕ) > bound<5>};
+static_assert(a(7u) == a.contains(7u));
+
+constexpr auto b = Set{in(ℕ) | in(ℕ) > bound<6>};
+constexpr Singleton<6> c = a - b; 
+constexpr auto d = Set{in(ℕ) | in(ℕ) < bound<7>};
+constexpr Singleton<6> e = c & d;   
+constexpr Ø<Cardinality> f = c & !c;                       
+
+// {x in ℕ | ∃y ∈ e : x * y == 42}
+constexpr Singleton<7> q = Set{in(ℕ) | Exists(e, [](auto y, auto x) { 
+    return x * y == bound<42>; 
+})};
 \end{cpp}
 \end{listing}
 
@@ -739,59 +747,77 @@ If a matrix-vector product or a gradient pass is executed over a sparse configur
 This structural integration bridges the gap between abstract categorical sets and physical machine performance.
 It ensures that higher-order linear transformations carry no runtime allocation footprint, providing a robust, highly optimized foundation for the iterative linear programming solver presented in the final section.
 
-\section{Optimization and Iterative Linear Programming}
+\section{Optimization and Linear Programming}
 \label{sec:optimization_lp}
 
-The ultimate algorithmic realization of the library's ascending architectural layers—climbing from policed types up through the algebraic lattice and low-rank tensor spaces—is a verifiable, iterative linear programming (LP) solver.
-Standard commercial optimization toolchains typically ingest complete constraint matrices extensionally at runtime, executing heavy matrix factorization loops that are entirely opaque to the compiler.
-In contrast, the \texttt{dedekind} library reifies the optimization problem natively within the type system, treating the feasible region as an intensional set boundary policed by the eDSL constraints defined in Section~\ref{sec:set_comprehension_dsl}.
-By formalizing constraints as composable type-directed predicates rather than raw floating-point rows, the solver gains the capability to execute \emph{partial compile-time evaluation}.
-When an initial subset of geometric bounds is known during translation, the template engine partially executes the solver's iterative kernels, bounding the face topology and constant-folding the active constraint submatrices before the executable ever runs.
+In this section, we transition from foundational set-theoretic primitives to a high-utility application domain: compile-time linear programming (LP) via type-directed constraint checking.
+Rather than implementing general-purpose simplex kernels, which rely heavily on floating-point state mutations and runtime pivoting, we exploit the compile-time metaprogramming engine to formalize and evaluate sparse, high-dimensional LP structures.
 
-This dual-stage execution architecture is implemented within the \texttt{:optimization} partition using a compile-time active-set refinement loop.
-The solver tracks the optimization path using the dual-number varieties established in Section~\ref{sec:dual_numbers_quotient} to evaluate exact objective gradients along the active polytope facets.
-Because the matrix calculations route through the sums-of-outer-products architecture defined in Section~\ref{sec:functionals_low_rank}, the compiler can symbolically manipulate the constraint space without materializing high-dimensional dense tables.
-When a new restriction is appended at build time, the template engine unrolls the coordinate projections, identifies redundant halfspace bounds via type-level unification, and eliminates dead code paths from the emitted machine instructions.
-Listing~\ref{lst:partial_evaluation_lp} exhibits the ready-to-compile architecture of this iterative solver, demonstrating how partial compile-time constraints bound the solution space prior to runtime execution.
+We restrict our scope to the dual of the classical shortest path problem over an explicit directed chain network.
+By anchoring our implementation in the Dual Potentials Matrix under a triangular invariant, we map high-dimensional algebraic inequalities directly onto our library's strict compile-time type mechanics.
+
+\subsection{Mathematical Formalization of the Dual LP}
+\label{subsec:math_formalization}
+
+To evaluate the limits of our type-directed collapse assertions, we explicitly formalize a system of linear inequalities over a directed coordinate space representing a 1D chain topology.
+Let $\mathcal{G} = (\mathcal{V}, \mathcal{E})$ be a directed chain graph where $\mathcal{V} = \{0, 1, \dots, N\}$ defines the set of nodes, and the edge set $\mathcal{E}$ is restricted to immediate successor pairs:
+\begin{equation}
+    \mathcal{E} = \{ (i, j) \in \mathcal{V} \times \mathcal{V} \mid j = i + 1 \}
+\end{equation}
+
+We introduce the system of dual potentials $d_i \in \mathbb{R}$ assigned to each vertex $i \in \mathcal{V}$.
+The linear programming problem targets the maximisation of the potential difference between the terminal node $N$ and the initial node $0$, governed by the Bellman triangular invariant:
+\begin{equation}
+    \begin{aligned}
+        \max_{d} \quad & d_N - d_0 \\
+        \text{s.t.} \quad & d_j - d_i \le c_{ij}, \quad \forall (i, j) \in \mathcal{E}
+    \end{aligned}
+\end{equation}
+For the purpose of our compile-time validation framework, the cost vector is uniformly bounded as a unit constant, $c_{ij} = 1$.
+
+The structural integrity of our type system relies on exact algebraic axioms where the concept of associativity must hold deterministically (\cppinline{is_associative_v = true}).
+This requirement is completely fulfilled by the constraint matrix $A$ representing this linear system.
+Because $A$ is the node-arc incidence transpose matrix of a directed chain network, it is \textit{totally unimodular} (TUM).
+
+By definition, every square submatrix of $A$ has a determinant in $\{-1, 0, 1\}$.
+This mathematical property guarantees that the vertices of the feasible polyhedral region are purely integral.
+Consequently, the optimization space bypasses fractional pivot transformations entirely, eliminating floating-point rounding errors and preserving strict algebraic invariants during compile-time evaluation.
+
+\subsection{The DSL Implementation Blueprint}
+\label{subsec:dsl_blueprint}
+
+We translate the bounded dual invariant space directly into a C++23 compile-time set comprehension block.
+This is achieved using our embedded domain-specific language (eDSL) expressions and the \cppinline{var()} paradigm.
+The compiler parses the mathematical topology into a type-level graph structure, enforcing constraints prior to code generation.
+
+The absolute declarative translation of the problem space into compiling C++23 source code is structured as follows:
 
 \begin{listing}[htbp]
-\label{lst:partial_evaluation_lp}
-\caption{The iterative linear programming solver with support for partial compile-time constraint evaluation.}
+\label{lst:dsl_lp_implementation}
+\caption{Compile-time structuring of the bounded dual invariant space.}
 \begin{cpp}
-// Structure representing a partially evaluated linear program state
-template <typename Objective, typename StructuralConstraints, typename BoundedState>
-struct PartialLinearProgram {
-    Objective c;
-    StructuralConstraints active_facets;
-    BoundedState current_bounds;
+// Section 7.2: Structuring the Bounded Dual Invariant Space
+constexpr auto Nodes = ExtensionalSet{0u, 1u, 2u, 3u, 4u};
+constexpr auto e = var(Nodes * Nodes);
 
-    // Infix operator to inject additional runtime constraints into the active space
-    template <typename NewConstraints>
-    constexpr auto operator|(const NewConstraints& runtime_bounds) const {
-        // Appends new predicates and completes the optimization path at runtime
-        auto full_constraints = active_facets & runtime_bounds;
-        return implementation::solve_lp_steps(c, full_constraints, current_bounds);
-    }
-};
+// The Sparse Chain Network Topology: i -> i + 1
+constexpr auto ChainTopology = Set{ e | (pt_2(e) == pt_1(e) + bound<1u>) };
 
-// Iterative optimizer kernel capable of partial compile-time evaluation
-template <typename Objective, typename Constraints>
-constexpr auto evaluate_static_bounds(const Objective& c, const Constraints& static_bounds) {
-    // Executes initial simplex or active-set iterations over known build-time predicates
-    auto initial_bounds = implementation::prune_facet_topology(c, static_bounds);
-    
-    // Returns a partially evaluated program state with constant-folded submatrices
-    return PartialLinearProgram<Objective, Constraints, decltype(initial_bounds)>{
-        c, static_bounds, initial_bounds
-    };
-}
+// The LP Dual Potentials: Verified via point-evaluation constraints
+constexpr auto d = var(CoordinateSpace<Nodes>);
+constexpr auto DualLPBasis = Set{ d | ForAll(ChainTopology, [](auto edge, auto potentials) {
+    return (potentials(pt_2(edge)) - potentials(pt_1(edge)) <= bound<1u>); // Constant cost = 1
+}) };
 \end{cpp}
 \end{listing}
 
-By utilizing this piping mechanic, the optimization task is split smoothly across the translation-time and runtime boundaries.
-As demonstrated in the test suite, when the static constraints are processed by \texttt{evaluate\_static\_bounds}, the compiler resolves the deterministic portions of the optimization path, reducing the active-set basis matrices to small, highly compressed kernels.
-When the remaining variables or dynamic bounds are supplied at runtime via the bitwise OR pipe operator, the execution engine drops directly into the remaining iterative steps without carrying the architectural overhead of a full, unpruned LP solver.
-The LLVM optimization backend constant-folds the pre-computed iterations into direct register assignments, delivering a lightweight, verifiable machine binary where compile-time algebraic proofs are converted into maximum runtime execution performance.
+In Listing~\ref{lst:dsl_lp_implementation}, \cppinline{ExtensionalSet} instantiates the compile-time vertex domain.
+The product space \cppinline{Nodes * Nodes} creates the universe of potential edges, which is immediately filtered down to \cppinline{ChainTopology} through type-level projection functions (\cppinline{pt_1} and \cppinline{pt_2}).
+
+The variable tracking map \cppinline{d} maps nodes to their respective symbolic dual coordinates.
+Finally, the universal quantifier \cppinline{ForAll} forces the C++23 abstract syntax tree (AST) interpreter to unroll and validate the triangular invariant across every active edge tuple at compile time.
+If a potential assignment violates the total unimodularity constraint, the type deduction sequence fails immediately, preventing invalid optimization states from reaching the compilation backend.
+
 
 \section{Evaluation and Benchmarks}
 \label{sec:evaluation_benchmarks}
