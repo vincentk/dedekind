@@ -173,16 +173,15 @@ differentiation.
 
 Recent breakthroughs in machine learning have resulted not just in an explosion of novel and interesting use cases but also sparked public debate about the technology's demands and bottlenecks:
 Hardware cost, computational cost, energy use, and interpretability are often named in applicable literature.
-
-This paper focuses on a complementary approach: correct-by-construction systems engineering, where the view is that white-box modeling, interpretability and computational efficiency are facilitated by way of static program verification and optimization.
+Here, the focus is placed on a complementary approach: correct-by-construction systems engineering, where the view is that white-box modeling, interpretability and computational efficiency are facilitated by way of static program verification and optimization.
 To this end, an embedded domain specific language (eDSL) was  implemented in a \emph{mainstream systems programming language} -- the very substrate that these large models build on.
-The resulting \texttt{dedekind} library targets analytics and machine learning use cases and consistently defaults to mathematical rigor and build-time constraints as opposed to risking runtime errors.
+The resulting \texttt{dedekind} library targets analytics and machine learning use cases and consistently defaults to mathematical rigor and build-time constraints as opposed to risking runtime inefficiencies or outright errors.
 It rests on two pillars:
 \begin{enumerate}
-\item The domain is grounded in category theory, transitioning from cartesian-closed categories to the elementary theory of the category of sets (ETCS) and universal algebra~\cite{pierce2002tapl, lawvere1964etcs}. 
-This framework provides pre-validated theorems and terminology and allows a minimalist type checker to drive optimizations via equivalence relations. 
-\item On the encoding side, the choice is more open --- any sufficiently expressive type system would do.
-C++23~\cite{cpp23standard} was selected as it meets the following criteria:
+\item The domain is grounded in category theory, transitioning from morphisms and small categories to cartesian-closed categories, the elementary theory of the category of sets (ETCS) and finally universal algebra~\cite{pierce2002tapl, lawvere1964etcs}. 
+This framework provides pre-validated axioms, theorems and terminology and allows a minimalist type checker to drive optimizations via equivalence relations. 
+\item On the encoding side, the choice was more open, as any sufficiently expressive type system was considered to be a plausible implementation substrate.
+C++23~\cite{cpp23standard} was selected as it met the following criteria:
 a) it should be mainstream so that tooling is provided for;
 b) its default runtime requirements should be modest so as not to preclude embeddings in higher-level languages or deployment on constrained environments;
 c) its type system should be rich enough to perform many of the desired type checks.
@@ -191,7 +190,7 @@ c) its type system should be rich enough to perform many of the desired type che
 Practical boundaries of this architecture were anticipated: general computability remains undecidable, mainstream toolchains permit non-termination, and the underlying physical hardware model remains fixed.
 Thus, \texttt{dedekind} functions as a bounded, engineering intermediary between abstract category theory and a disciplined fragment of C++ execution, as sketched in the operational cycle of Figure~\ref{fig:target_model}. 
 The framework is architected so that verified mathematical evidence accumulates uniformly in a single direction.
-If the compiler accepts the axiom being imported, it can mechanically validate or derive the corresponding downstream theorems~\cite{wadler2015propositions}.
+Once an axiom or theorem has been imported, the compiler can engage in mechanical validation or further derivations~\cite{wadler2015propositions}.
 
 
 \begin{figure}[htbp]
@@ -216,25 +215,27 @@ This layout prevents downstream developers from bolting fragile, ad-hoc traits o
 Choosing to land semantics at the compile-time layer—rather than as runtime abstractions or external DSLs—is a structural commitment that shapes what the compiler can enforce and what remains the developer's responsibility.
 The view is that naming algebraic structures at the type level and letting the compiler discharge their governing laws narrows the gap between abstract mathematics and machine code without relying on an external proof assistant.
 While compile-time verification is native to languages like Agda or Coq, and partial automatic differentiation loops exist in specialized production environments~\cite{elliott2018simple, jakob2019enoki}, \texttt{dedekind} contributes an end-to-end realization of this discipline inside unmodified standard C++23.
-It serves as an existence proof, showing that using type-directed compile-time evaluation techniques (single static assignment), a C++23 template engine can successfully collapse many non-trivial algorithmic problems down to highly optimized LLVM object primitives.
+Thus, it serves as an existence proof, showing that a C++23 template engine can successfully collapse many highly non-trivial algorithmic problems down to LLVM object primitives which may be highly specialized and optimized.
 
 \paragraph{A recent shift in the cost--benefit calculus.}
 Two recent developments are the \emph{key enablers}, not tricks or shortcuts.
-First, the C++23 standard~\cite{cpp23standard} delivers the features the technique needs --- \cppinline{constexpr}, \cppinline{concept}s, NTTPs, and named \cppinline{module}s --- in a mainstream toolchain with an installed industrial base; previous template-metaprogramming traditions had to encode these implicitly at steep readability and review cost.
-Second, modern coding-assistant LLMs~\cite{chen2021evaluating} compress the time and expertise needed to do literature search, author opt-in trait specialisations, axiom-shape concepts, and the surrounding library scaffolding, turning what was once a deep-template-metaprogramming specialism into an actionable workflow for working software engineers.
-Automated code reviews aside, the correctness story is unchanged --- the type system and \cppinline{static_assert} obligations are what the compiler discharges, both checked mechanically.
-It is the cost story that has shifted, and that is what makes the discipline viable at industrial scale rather than as a paper-only artifact.
+First, the C++23 standard~\cite{cpp23standard} delivers the key features the technique needs --- \cppinline{constexpr}, \cppinline{concept}s, NTTPs, and named \cppinline{module}s in an open source mainstream toolchain.
+Previous template-metaprogramming traditions had to encode these implicitly at steep readability and review cost.
+Second, modern coding-assistant LLMs~\cite{chen2021evaluating} compress the time and expertise needed to do literature search and carry out the implementation and validation work.
+What was once a metaprogramming curiousity is now a actionable workflow for working software engineers.
+The correctness story is largely unchanged, as the type system and \cppinline{static_assert} obligations are what the compiler discharges, both checked mechanically.
+It is the cost story that has shifted, and that is what increases the discipline's viability at industrial scale rather than as only a paper artifact.
 
 \paragraph{Intended target.}
 The discipline may be interesting to computational scientists or machine learning engineers looking to leverage static verification techniques to validate and optimize their models.
-It should also be interesting for machine learning applications targeting resource-constrained environments such as mobile phones or other embedded or edge devices.
+It may also be interesting for machine learning applications targeting resource-constrained environments such as mobile phones or other embedded or edge devices.
 In the latter case, the technique's compile-time-substrate posture sits one layer below existing embedded ML runtimes such as TFLite Micro~\cite{david2021tflm}.
 
 \paragraph{The compiler as a verification engine.}
 Clang++ is used a formal system where a successful type check serves as a structural proof against a fixed set of inference rules~\cite{wadler2015propositions}.
-This architecture enforces a clear division of labor: the library engineer holds an out-of-band honesty obligation when registering trait axioms, and the compiler mechanically discharges every subsequent \cppinline{static_assert}, \cppinline{requires} clause, or \cppinline{constexpr} evaluation.
+The \Cpp{23} type system, while limited, is sufficiently rich to name predicates, enforce structural boundaries, and license the LLVM backend to completely remove dead code paths that have been resolved at translation time.
+This architecture thus enforces a clear division of labor: the library user holds an out-of-band honesty obligation when registering trait axioms, and the compiler mechanically discharges every subsequent \cppinline{static_assert}, \cppinline{requires} clause, or \cppinline{constexpr} evaluation.
 A simple proof search is mimicked by operator resolution.
-The \Cpp{23} type system is sufficiently rich to name predicates, enforce structural boundaries, and license the LLVM backend to completely remove dead code paths that have been resolved at translation time.
 
 \paragraph{What this buys, concretely.}
 Guided by the rule ``name the structure in the type, let the compiler discharge the laws,'' the library systematically constructs an algebraic hierarchy entirely at compile time.
@@ -269,16 +270,16 @@ Section~5 verifies the compile-time optimization payoff through our parametric l
 
 
 To build verifiable mathematical structures inside a mainstream toolchain, we must first isolate a pure, deterministic subset of the host language.
-Standard \Cpp{23} contains features that permit arbitrary runtime side effects, non-termination, and undefined behavior---properties that defeat static verification.
-We define the \emph{Juliet Posture} ($Jlt$) as a strictly disciplined fragment of standard \Cpp{23}.
-It is characterized by three core engineering constraints that force standard code to behave like an ideal type system:
+Standard \Cpp{23} contains features that permit arbitrary runtime side effects, non-termination, and undefined behavior.
+All of these are properties that defeat static verification.
+The \emph{Juliet Posture} ($Jlt$) is therefore defined as a disciplined fragment of standard \Cpp{23} which is characterized by constraints that force standard code to behave like an ideal type system:
 
 \begin{enumerate}
     \item \textbf{Equational Extensionality:} We restrict acceptable objects to types satisfying the \Cpp{} standard concept \texttt{std::regular}.
     Values must possess a stable identity, ensuring that $a = b \implies f(a) = f(b)$.
     \item \textbf{Pure, Terminating Arrows:} Morphisms are restricted to \texttt{constexpr} lambda expressions.
-    We explicitly forbid mutable captures and \texttt{reinterpret\_cast}, enforcing effect-free evaluation and bounded template instantiation depth.
-    \item \textbf{Cartesian Closure:} We map products to \texttt{std::pair} with structured bindings, and exponentials to first-class lambdas that package arrows as values.
+    Mutable captures and \texttt{reinterpret\_cast} are ruled out, thus enforcing effect-free evaluation and bounded template instantiation depth.
+    \item \textbf{Cartesian Closure:} Products are mapped to \texttt{std::pair} with structured bindings, and exponentials to first-class lambdas that package arrows as values.
     Currying is achieved naturally via argument capture.
 \end{enumerate}
 
@@ -288,10 +289,11 @@ As established in classic type system taxonomy~\cite{pierce2002tapl, cardelli199
 \emph{duck typing}, where behavior is verified by call-site probing at runtime; and
 \emph{static structural typing}, where invariants are checked at compile time via explicit constraints.
 
-Following the observation that a rose by any other name would smell as sweet~\cite{shakespeare1597romeo}, the Juliet Posture embraces the third school, leveraging language features like \texttt{concept}, \texttt{constexpr}, and non-type template parameters (NTTPs).
-Crucially, the posture does not forbid template partial ordering or constraint subsumption.
+The Juliet Posture embraces the third school, leveraging language features like \texttt{concept}, \texttt{constexpr}, and non-type template parameters (NTTPs).
+The posture does not forbid template partial ordering or constraint subsumption.
 Instead, it harnesses the compiler's overload resolution mechanism as a mechanical proof selection engine.
 When multiple constrained overloads compete at a call site, the compiler naturally routes execution to the most structurally refined match.
+The naming followed the observation that a rose by any other name would smell as sweet~\cite{shakespeare1597romeo}, 
 
 The structural discipline enforces that while behavior-branching based on nominal lineage is rejected, algebraic specialization via partial ordering is embraced, provided all matching paths satisfy strict \emph{semantic equivalence}.
 The choice of path is treated purely as a translation-time optimization detail.
@@ -299,6 +301,60 @@ In practice, this posture materializes across three progressive feature tiers: T
 
 \paragraph{The Syntactic vs. Semantic Split}
 \label{sec:syntactic_semantic_split}
+
+\begin{listing}[ht]
+\caption{Illustration of the Juliet Posture and the Honest Rejection Policy as well as the split between syntactical and semantic check.
+Type constraints are supplied as after the fact as \cppinline{concept} type predicates and can be applied regardless of provenance or lineage.
+In this case, they are applied to built-in primitive types.
+Left panel: case study of the primitive \cppinline{bool} type which is an exact model of the Galois field $\mathbb{F}_2$ over $\mathbb{B}$.
+Logical conjunction is associative.
+A corresponding trait certification has been provided.
+Right panel: case study of the primitive \cppinline{int} type which is often used to mimick the ring $\mathbb{Z}$.
+Addition is not associative due to finite representation and overflow.
+A corresponding manual trait certification has been withheld, the type check fails.
+}
+\label{lst:honest_rejection}
+\noindent
+\begin{minipage}[t]{0.48\linewidth}
+\textbf{Associative algebra \texttt{(bool, \veebar, \land)}}
+\begin{cpp}
+template <typename T = bool>
+concept HasLogicalOperators = 
+requires(T a, T b) {
+  { a && b } -> std::same_as<T>;
+  { a || b } -> std::same_as<T>;
+  { a ^ b  } -> std::same_as<T>;
+  { !a     } -> std::same_as<T>;
+};
+static_assert(
+  HasLogicalOperators<bool>); 
+static_assert(
+  IsGaloisField<
+    bool, 
+    std::logical_xor<bool>,
+    std::logical_and<bool>>);
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.48\linewidth}
+\textbf{Non-associative algebra \texttt{(int, +)}}
+\begin{cpp}
+template <typename T>
+concept HasRingOperators =
+requires(T a, T b) {
+  { a + b  } -> std::same_as<T>;
+  { a - b  } -> std::same_as<T>;
+  { -a     } -> std::same_as<T>;
+  { a * b  } -> std::same_as<T>;
+};
+static_assert(
+  HasRingOperators<int>); 
+static_assert(
+  !IsAssociative<
+    int,
+    std::plus<int>>);
+\end{cpp}
+\end{minipage}
+\end{listing}
 
 The boundary of this architecture matches the core distinction in standard \Cpp{} between \emph{satisfying} a concept (syntactic structure) and \emph{modeling} it (semantic lawfulness).
 Syntactic properties are mechanically decidable by the compiler.
@@ -310,30 +366,6 @@ For example, \texttt{int} satisfies the syntactic operators for a ring, but sign
 Conversely, \texttt{bool} is safely accepted as the Galois Field $\mathbb{F}_2$ because its bit-perfect operations never overflow or round, as demonstrated in Listing~\ref{lst:honest_rejection}.
 This design mimicks the use of the \texttt{sorry} macro in Lean or the \texttt{Admitted} command in Coq, where a proof obligation is bypassed by fiat to allow downstream development.
 
-% Source: src/main/modules/dedekind/algebra/ring.cppm (concept definition, ll. 110-116)
-\begin{listing}[ht]
-\caption{The Juliet Posture and Honest Rejection: structural compile-time matching regardless of nominal provenance.}
-\label{lst:honest_rejection}
-\begin{cpp}
-// Concept identifying the syntactic ring operators
-template <typename T>
-concept HasRingOperators = requires(T a, T b) {
-  { a + b  } -> std::same_as<T>;
-  { a - b  } -> std::same_as<T>;
-  { -a     } -> std::same_as<T>;
-  { a * b  } -> std::same_as<T>;
-};
-
- // Operators exist on int, but (int, +), not a monoid, because associativity certification has been withheld:
-static_assert(HasRingOperators<int>); 
-static_assert(!IsAssociative<int, std::plus<int>>); 
-
-// Arithmetic operators are absent on bool but associativity is certified for logical operators:
-static_assert(!HasRingOperators<bool>);
-static_assert(HasLocigalOperators<bool>);
-static_assert(IsAssociative<bool, std::logical_and<bool>>);
-\end{cpp}
-\end{listing}
 
 By establishing this pure, disciplined substrate first, we gain an environment where types represent sets and values represent elements.
 In category theory terms, we can write $\mathbf{Jlt} \subset \mathbf{Cpp}$.
@@ -1079,38 +1111,6 @@ IEEE \cppinline{double} satisfies \cppinline{HasFieldOperators}, but rounding no
 \cppinline{IsField} therefore refuses it.
 Structural typing (§\ref{sec:jlt}) sees the operator surface mechanically.
 The laws are a separate axis the C++ standard library, principled in its silence~\cite{cpp23standard}, refuses to commit to.
-
-% Sources: src/main/modules/dedekind/algebra/galois.cppm (line 335);
-%          src/main/modules/dedekind/numbers/integer.cppm (lines ~340--350);
-%          src/main/modules/dedekind/category/species.cppm (line 1068).
-\begin{listing}[ht]
-\caption{Honest Rejection in code: $\mathbf{Ddk}$ ships the Galois field $\mathbb{F}_2$ and the integers $\mathbb{Z}$ as a strict commutative ring safe by default; \cppinline{int} is refused at the gate.  All four static\_asserts compile in $\mathbf{Ddk}$ today.}
-\label{lst:honest-rejection}
-\begin{cpp}
-// 𝔹 = 𝔽₂: bool under (XOR, AND) is the Galois field on two elements —
-// exact, physical, finite, no rounding, no overflow.  The strict
-// axiomatic IsGaloisField concept binds mechanically (composing the
-// axiomatic category::IsField with a finite-cardinality opt-in), with
-// no user-side trait specialisation required.
-static_assert(IsGaloisField<bool, std::bit_xor<bool>, std::bit_and<bool>>);
-
-// ℤ as default_integer (= SignedExtensionalCardinal<>): the variant
-// signed-integer-by-fiat carrier with sign-magnitude periodic wrap —
-// no UB, totality via the periodic path through IsTotal.  The strict
-// axiomatic IsCommutativeRing chain binds: associativity, commutativity,
-// distributivity, additive identity / inverse, and multiplicative
-// identity all certified through the species-trait registry.
-static_assert(IsCommutativeRing<default_integer,
-                                std::plus<default_integer>,
-                                std::multiplies<default_integer>>);
-
-// int satisfies the ring operator surface (the four arithmetic
-// operators close on int) but fails associativity under signed-overflow
-// UB.  The strict axiomatic concepts refuse int at the gate.
-static_assert(HasRingOperators<int>);
-static_assert(!is_associative_v<int, std::plus<int>>);
-\end{cpp}
-\end{listing}
 
 \paragraph{The fast lane: opt in on a per-carrier basis.}
 A library user pushes the button by writing per-carrier trait specialisations that register \cppinline{is_associative_v<T, Op> = true} (or \cppinline{is_commutative_v}, \cppinline{is_invertible_v}, and so on).
