@@ -268,7 +268,6 @@ Section~5 verifies the compile-time optimization payoff through our parametric l
 \label{sec:jlt_posture}
 % ============================================================
 
-
 To build verifiable mathematical structures inside a mainstream toolchain, we must first isolate a pure, deterministic subset of the host language.
 Standard \Cpp{23} contains features that permit arbitrary runtime side effects, non-termination, and undefined behavior.
 All of these are properties that defeat static verification.
@@ -371,13 +370,64 @@ By establishing this pure, disciplined substrate first, we gain an environment w
 In category theory terms, we can write $\mathbf{Jlt} \subset \mathbf{Cpp}$.
 This forms the exact Cartesian Closed Category needed to bootstrap formal set comprehension and universal algebra in the following sections.
 
-\section{A Set Comprehension DSL}
-\label{sec:ddk_comprehension}
+% ============================================================
+\section{An Elementary Theory of the Category of Sets}
+\label{sec:ddk_etcs}
+% ============================================================
 
 With a deterministic, structurally-typed substrate established in Section~\ref{sec:jlt_posture}, mathematical sets can be bootstrapped inside the type system.
-Here, we aim to model both the syntax and the semantics of mathematical set builder notation in executable C++.
+Here, we aim to model both the syntax and the semantics of mathematical set builder notation in executable $\mathbf{Jlt}$ hoping to achieve a system that lends itself to the expression and subsequent evaluation of precisely those kinds of problems that one might also encounter in a pure math blackboard setting.
+A sketch of some desired functionality to be supported by the set comprehension DSL is provided in Figure~\ref{fig:hub-spoke-bnz}.
 
-Following the comprehension view pioneered by Lawvere~\cite{lawvere1964etcs}, a set is defined not as an extensional memory container or an enumerated list, but strictly as an intensional rule mapped over an ambient species.
+\begin{figure}[htbp]
+\centering
+\begin{tikzcd}[column sep=5em, row sep=4em, ampersand replacement=\&]
+\mathbb{B} \arrow[loop above, "\neg"]
+   \arrow[r, bend left=20, "\mathfrak{i}"]
+\& \mathbb{N} \arrow[loop above, "x^2"]
+   \arrow[l, bend left=20, "x \,\%\, 2 = 0"]
+   \arrow[r, bend left=20, "-x"]
+\& \mathbb{Z} \arrow[loop above, "-x"]
+   \arrow[l, bend left=20, "x^2"]
+\end{tikzcd}
+\caption{
+A sketch of the desired functionality to be supported by the \texttt{dedekind} set DSL.
+The items show correspond to a small example subset of $\mathbf{Alg}(\Sigma)$, the category of universal algebras.
+Example canonical underlying carrier sets $\mathbb{B}$, $\mathbb{N}$, $\mathbb{Z}$ are shown as single objects, the individual set elements are omitted for brevity.
+Most arrows on each carrier and most inter-carrier arrows are suppressed for clarity.
+Selected endomorphisms are shown as loops: negation on $\mathbb B$, squaring on $\mathbb N$, negation on $\mathbb Z$.
+Inter-carrier arrows are typed maps $\mathrm{T} \to \mathrm{S}$.
+$\mathbb{B} \rightleftarrows \mathbb{N}$: forward $\mathfrak{i}$ the canonical embedding, reverse the parity classifier.
+$\mathbb{N} \rightleftarrows \mathbb{Z}$: forward $x \mapsto -x$ (negation, well-typed as $\mathbb{N} \to \mathbb{Z}$ because $\mathbb{N}$ is not closed under additive inverse); reverse $x \mapsto x^2$ (squaring closes into $\mathbb{N}$ from any $\mathbb{Z}$ input).
+}
+\label{fig:hub-spoke-bnz}
+\end{figure}
+
+
+A common implementation approach follows Zermelo-Frenkel set theory, where the discussion often starts from a set membership operation $\in$.
+Software implementations such as \cppinline{std::set} then model sets as extensional memory containers where the membership test is carried out by checking if a given value can be found in the container. 
+This approach, while immensely practical, exhibits prohibitive short-comings when applied to algebraic problems: for example, it can not natively model transfinite sets such as the natural numbers $\mathbb N$, or continuous intervals on the real numbers $\mathbb R$.
+
+By contrast, the categorical comprehension view pioneered by Lawvere~\cite{lawvere1964etcs}, defines a set as an intensional rule mapped over an ambient species.
+Here, a set $S$ is specified by a characteristic predicate $P : A \to \Omega$, where $A$ is the underlying type and $\Omega$ is a subobject classifier specifying the logic regime:
+\begin{equation}
+  S = \{x \in A \mid P(x)\}.
+\end{equation}
+ \emph{A set operation is then an operation on the predicates}, no memory needs to be managed to store the elements of the set.
+ Instead, intersection is conjunction, union is disjunction, complement is negation:
+\begin{align}
+  S_1 \cap S_2 &\triangleq \{x \in A \mid P_1(x) \land P_2(x)\} \\
+    S_1 \cup S_2 &\triangleq \{x \in A \mid P_1(x) \lor P_2(x)\} \\
+    \overline{S_1}  &\triangleq \{x \in A \mid \neg P_1(x)\}
+\end{align}
+Similarly, a cartesian product is a predicate applied to both elements of a pair, while a power set can be expressed as a subset relation.
+\begin{align}
+  S_A \times S_B &\triangleq \{x \in A, y \in B \mid P_A(x) \land P_B(y)\}\\
+  \mathcal{P}(S_1) &\triangleq \{x \subset S_1\}
+\end{align}
+For exact numeric carriers, $\Omega$ defaults to standard \texttt{bool} (classical two-valued logic), while inexact carriers may utilize a three-valued Kleene logic ($\mathbb{K}_3$) to handle non-signaling conditions like \texttt{NaN} for floating-points safely without breaking identity laws.
+
+Identity is denoted by an identity arrow, set membership can be tested by testing a value with a predicate functions.
 The steps taken to reify intensional sets in the code base are outlined in table~\ref{tbl:cat-to-ddk} forming a core category $\mathbf{Ddk} \subset \mathbf{Jlt} \cap \mathbf{Set}$, which occupies the intersection of pure $\mathbf{Jlt}$ types and universal-algebraic set structures.
 The implementation tracks this definition literally at compile time.
 
@@ -409,25 +459,13 @@ Step 7 introduces universal algebraic signatures and $F$-algebras via \texttt{st
 This ordering honors category theory foundations and is enforced via the import order of the library partitions.}
 \end{table}
 
-Concretely, a set $S$ is then specified by a characteristic predicate $P : A \to \Omega$, where $A$ is the underlying type and $\Omega$ is a subobject classifier specifying the logic regime:
-\begin{equation}
-  S = \{x \in A \mid P(x)\}.
-\end{equation}
-A set operation is then an operation on the predicates --- intersection is conjunction, union is disjunction, complement is negation:
-\begin{align}
-  S_1 \cap S_2 &\triangleq \{x \in A \mid P_1(x) \land P_2(x)\} \\
-    S_1 \cup S_2 &\triangleq \{x \in A \mid P_1(x) \lor P_2(x)\} \\
-    \overline{S_1}  &\triangleq \{x \in A \mid \neg P_1(x)\}
-\end{align}
-Similarly, a cartesian product is a predicate applied to both elements of a pair, while a power set can be expressed as a subset relation.
-\begin{align}
-  S_A \times S_B &\triangleq \{x \in A, y \in B \mid P_A(x) \land P_B(y)\}\\
-  \mathcal{P}(S_1) &\triangleq \{x \subset S_1\}
-\end{align}
-For exact numeric carriers, $\Omega$ defaults to standard \texttt{bool} (classical two-valued logic), while inexact carriers may utilize a three-valued Kleene logic ($\mathbb{K}_3$) to handle non-signaling conditions like \texttt{NaN} for floating-points safely without breaking identity laws.
-
 First-order quantification is restricted to domains satisfying \cppinline{IsExtensional}, as unconstrained evaluation over transfinite intensional spaces is undecidable at compile time.
 For these bounded domains, the quantifiers $\exists$ (\cppinline{Exists}) and $\forall$ (\cppinline{ForAll}) map directly onto finite coordinate-wise reductions ($\bigvee$ and $\bigwedge$) over $\Omega$, executing as zero-overhead variadic fold expansions during template translation.
+
+% ============================================================
+\section{A Set Comprehension DSL}
+\label{sec:ddk_comprehension}
+% ============================================================
 
 % Source: src/test/cpp/modules/dedekind/python/showcase_alpha_prime.cpp
 \begin{listing}[htbp]
@@ -989,32 +1027,6 @@ The library lifts this pattern directly into the build graph.
 Each named module declares one or more hubs and owns its spokes.
 The module/partition DAG is the diagram of inter-hub arrows.
 Figure~\ref{fig:hub-spoke-bnz} sketches three concrete algebraic hubs ($\mathbb{B}$, $\mathbb{N}$, $\mathbb{Z}$) with one arrow of each kind.
-
-\begin{figure}[htbp]
-\centering
-\begin{tikzcd}[column sep=5em, row sep=4em, ampersand replacement=\&]
-\mathbb{B} \arrow[loop above, "\neg"]
-   \arrow[r, bend left=20, "\mathfrak{i}"]
-\& \mathbb{N} \arrow[loop above, "x^2"]
-   \arrow[l, bend left=20, "x \,\%\, 2 = 0"]
-   \arrow[r, bend left=20, "-x"]
-\& \mathbb{Z} \arrow[loop above, "-x"]
-   \arrow[l, bend left=20, "x^2"]
-\end{tikzcd}
-\caption{
-An example subset of $\mathbf{Alg}(\Sigma)$: the carriers $\mathbb{B}$, $\mathbb{N}$, $\mathbb{Z}$.
-Each carrier is depicted with its underlying set as the single object ($\{\mathrm{false}, \mathrm{true}\}$, $\{0, 1, 2, \ldots\}$, $\{\ldots, -1, 0, 1, \ldots\}$) and selected endo-operations as loops: the affine translation $x \mapsto x \oplus 1$ on $\mathbb{B}$ (i.e.\ logical negation, which on $\mathbb{F}_2$ is the additive translation by 1), squaring $x \mapsto x^2$ on $\mathbb{N}$, negation $x \mapsto -x$ on $\mathbb{Z}$.
-This is a cartoon of the carrier-as-a-category picture, in the spirit of Mac Lane~\cite{maclane1971categories} §I.1's monoid $\leftrightarrow$ one-object-category bijection.
-Equivalently (Pierce~\cite{pierce1991basic} §2.2): each loop is a component of the bundled structure arrow $\alpha : F_\Sigma(A) \to A$, where $A$ is the carrier, for the carrier's signature.
-A strict realisation would draw one morphism per carrier element, impractical here, so only a few representative loops are shown.
-The set's elements are not drawn separately; in this layer they live \emph{inside} the single object, exactly as in the category $\mathbf{Mon}$ of monoids.
-Inter-hub arrows are typed maps $\mathrm{T} \to \mathrm{S}$.
-$\mathbb{B} \rightleftarrows \mathbb{N}$: forward $\mathfrak{i}$ the canonical embedding, reverse the parity classifier.
-$\mathbb{N} \rightleftarrows \mathbb{Z}$: forward $x \mapsto -x$ (negation, well-typed as $\mathbb{N} \to \mathbb{Z}$ because $\mathbb{N}$ is not closed under additive inverse; the canonical inclusion from the Grothendieck group completion is just $n \mapsto n$ and is not drawn), reverse $x \mapsto x^2$ (squaring closes into $\mathbb{N}$ from any $\mathbb{Z}$ input).
-Most arrows on each hub and most inter-hub arrows are suppressed for clarity. The diagram shows one of each kind.
-}
-\label{fig:hub-spoke-bnz}
-\end{figure}
 
 The general thrust of the architecture is then to view these small, algebraic categories as universal underlying carrier sets, with specific subsets characterised in the ETCS sense by a subobject classifier $\Omega$.
 A predicate $P : A \to \Omega$ maps ambient elements to \emph{truth values}, and $\Omega$ is the type those truth values live in.
