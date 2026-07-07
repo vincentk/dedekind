@@ -391,7 +391,7 @@ A sketch of some desired functionality to be supported by the set comprehension 
    \arrow[l, bend left=20, "x^2"]
 \end{tikzcd}
 \caption{
-A sketch of the desired functionality to be supported by the \texttt{dedekind} set DSL.
+An sketch of the desired functionality to be supported by the \texttt{dedekind} set DSL.
 The items show correspond to a small example subset of $\mathbf{Alg}(\Sigma)$, the category of universal algebras.
 Example canonical underlying carrier sets $\mathbb{B}$, $\mathbb{N}$, $\mathbb{Z}$ are shown as single objects, the individual set elements are omitted for brevity.
 Most arrows on each carrier and most inter-carrier arrows are suppressed for clarity.
@@ -399,37 +399,15 @@ Selected endomorphisms are shown as loops: negation on $\mathbb B$, squaring on 
 Inter-carrier arrows are typed maps $\mathrm{T} \to \mathrm{S}$.
 $\mathbb{B} \rightleftarrows \mathbb{N}$: forward $\mathfrak{i}$ the canonical embedding, reverse the parity classifier.
 $\mathbb{N} \rightleftarrows \mathbb{Z}$: forward $x \mapsto -x$ (negation, well-typed as $\mathbb{N} \to \mathbb{Z}$ because $\mathbb{N}$ is not closed under additive inverse); reverse $x \mapsto x^2$ (squaring closes into $\mathbb{N}$ from any $\mathbb{Z}$ input).
+The interested reader is referred to definitions of the category $\mathbf FPL$~\cite{pierce1991basic} which outlines similar steps in formal detail.
 }
 \label{fig:hub-spoke-bnz}
 \end{figure}
 
 
-A common implementation approach follows Zermelo-Frenkel set theory, where the discussion often starts from a set membership operation $\in$.
-Software implementations such as \cppinline{std::set} then model sets as extensional memory containers where the membership test is carried out by checking if a given value can be found in the container. 
+A common implementation approach follows the material Zermelo-Frenkel set theory, where the discussion often starts from a set membership operation $\in$.
+Common software implementations such as \cppinline{std::set} use this as a starting point and proceed to model sets as extensional memory containers where the membership test is carried out by checking if a given value can be found in the container. 
 This approach, while immensely practical, exhibits prohibitive short-comings when applied to algebraic problems: for example, it can not natively model transfinite sets such as the natural numbers $\mathbb N$, or continuous intervals on the real numbers $\mathbb R$.
-
-By contrast, the categorical comprehension view pioneered by Lawvere~\cite{lawvere1964etcs}, defines a set as an intensional rule mapped over an ambient species.
-Here, a set $S$ is specified by a characteristic predicate $P : A \to \Omega$, where $A$ is the underlying type and $\Omega$ is a subobject classifier specifying the logic regime:
-\begin{equation}
-  S = \{x \in A \mid P(x)\}.
-\end{equation}
- \emph{A set operation is then an operation on the predicates}, no memory needs to be managed to store the elements of the set.
- Instead, intersection is conjunction, union is disjunction, complement is negation:
-\begin{align}
-  S_1 \cap S_2 &\triangleq \{x \in A \mid P_1(x) \land P_2(x)\} \\
-    S_1 \cup S_2 &\triangleq \{x \in A \mid P_1(x) \lor P_2(x)\} \\
-    \overline{S_1}  &\triangleq \{x \in A \mid \neg P_1(x)\}
-\end{align}
-Similarly, a cartesian product is a predicate applied to both elements of a pair, while a power set can be expressed as a subset relation.
-\begin{align}
-  S_A \times S_B &\triangleq \{x \in A, y \in B \mid P_A(x) \land P_B(y)\}\\
-  \mathcal{P}(S_1) &\triangleq \{x \subset S_1\}
-\end{align}
-For exact numeric carriers, $\Omega$ defaults to standard \texttt{bool} (classical two-valued logic), while inexact carriers may utilize a three-valued Kleene logic ($\mathbb{K}_3$) to handle non-signaling conditions like \texttt{NaN} for floating-points safely without breaking identity laws.
-
-Identity is denoted by an identity arrow, set membership can be tested by testing a value with a predicate functions.
-The steps taken to reify intensional sets in the code base are outlined in table~\ref{tbl:cat-to-ddk} forming a core category $\mathbf{Ddk} \subset \mathbf{Jlt} \cap \mathbf{Set}$, which occupies the intersection of pure $\mathbf{Jlt}$ types and universal-algebraic set structures.
-The implementation tracks this definition literally at compile time.
 
 \begin{table}[htbp]
 \centering
@@ -450,7 +428,7 @@ The implementation tracks this definition literally at compile time.
 7 & Universal algebraic signatures & \texttt{:algebra} / \texttt{IsFAlgebra}, \texttt{std::regular} & $\mathbf{Ddk}$ intersection \\
 \bottomrule
 \end{tabular}
-\caption{\textbf{The bottom-up refinement chain from standard \Cpp{} to $\mathbf{Ddk}$.}
+\caption{The bottom-up refinement chain from standard $\mathbf{Jlt}$ to $\mathbf{Ddk}$.
 Each row adds one structural commitment over the previous, tracking the literal construction path from language primitives to abstract categories.
 Step 1 establishes the baseline category axioms in code with carriers as types and lambdas as arrows.
 Steps 2--3 constrain it to a Cartesian Closed Category ($Jlt$) sandbox by requiring terminal objects, binary products, and exponentials.
@@ -458,6 +436,66 @@ Steps 4--6 layer on the logical structures of topos theory to model sets, specif
 Step 7 introduces universal algebraic signatures and $F$-algebras via \texttt{std::regular} types to define the final $\mathbf{Ddk}$ intersection.
 This ordering honors category theory foundations and is enforced via the import order of the library partitions.}
 \end{table}
+
+\begin{listing}[ht]
+\caption{
+Excerpts from \texttt{dedekind} illustrating the \cppinline{concept} definitions used in the reification of $\mathbf {Ddk} \subseteq (\mathbf{Set} \cap \mathbf{Jlt})$.
+Fundamental \cppinline{concept} definitions (objects, morphisms, small categories, \ldots) are composed to reify the considerable more complex \cppinline{concept IsSet}.
+\cppinline{concept IsSet} can then be used to mechanically test candidate implementations of set theory in the ETCS sense.
+Left: definition of morphisms and small categories: \cppinline{concept IsArrow}, \cppinline{IsMonicArrow}, \cppinline{IsEpicArrow}, \cppinline{IsIsomorphism}, \cppinline{IsSmallCategory}.
+Right: definition of the characteristic predicate \cppinline{IsSubobjectClassifier}, and the composite predicate \cppinline{IsSet}.
+The interested reader is referred to the reference implementation~\cite{Krautler_dedekind_2026} for full implementation details.
+}
+\label{lst:concept_isset}
+\noindent
+\begin{minipage}[t]{0.48\linewidth}
+$\mathbf{Cat}$ in $\mathbf{Jlt}$
+\begin{cpp}
+tbd
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.48\linewidth}
+$\mathbf{Set}$ in $\mathbf{Jlt}$
+\begin{cpp}
+tbd
+\end{cpp}
+\end{minipage}
+\end{listing}
+
+By contrast, the structural categorical comprehension view pioneered by Lawvere~\cite{lawvere1964etcs}, defines a set via objects and functions (morphisms).
+The interested reader is referred to  Mac Lane~\cite{maclane1971categories} for an in-depth treatment and to Pierce~\cite{pierce1991basic} for a pedagogical introduction to many of the key concepts.
+Here, we will only mimick the formalism's 10 defining axioms in terminology familiar to a working programmer.
+Corresponding \cppinline{concept} compositions are outlined in Table~\ref{tbl:cat-to-ddk}, key excerpts from the code base are summarized in Listing~\ref{lst:concept_isset} highlighting the reification of $\mathbf{Set}$ in $\mathbf{Jlt}$.
+\begin{enumerate}
+\item A \textbf{Small Category} is modeled by instances of a fixed base type \cppinline{A} with stable identity beyond pointer equality (e.g. \cppinline{std::regular}) such that \cppinline{a == b} and morphisms are pure functions \cppinline{(f(a) == f(b)) == (a == b)} as a base-line implementation\footnote{The category is automatically small because physical constraints on the runtime environment will result in a finite runtime size.}. 
+This way, a notion of equational reasoning is enabled.
+\item Generalized predicates are modeled as arrows $P : A \to \Omega$, where $A$. In $\mathbf{Set}$, $\Omega = \{\mathrm{true}, \mathrm{false}\}$, i.e. a mapping to the boolean lattice $\mathbb{B}(\land, \lor, \neg)$.\footnote{Additionally, \texttt{dedekind} supports a generalization to logical lattices such as $\mathbb{K}_3(\mathrm{min}, \mathrm{max}, \neg) = \{-1, 0, 1\}$ (to capture the notion of computability) or probability measures, although a detailed discussion is beyond the scope of this report.} In the context of a given small category, $P$ is called the \textbf{Characteristic Predicate} and $\Omega$ is called the \textbf{Subobject Classifier}.
+\item \ldots
+\end{enumerate}
+Note how, when sets are approached this way, the evaluation order \emph{defaults to lazy evaluation} semantics from the atomic laziness of the logical operators \cppinline{operator&&} and \cppinline{operator||}.
+This way, transfinite sets are supported out of the box.
+
+\begin{equation}
+  S = \{x \in A \mid P(x)\}.
+\end{equation}
+ \emph{A set operation is then an operation on the predicates}, no memory needs to be managed to store the elements of the set.
+ Instead, intersection is conjunction, union is disjunction, complement is negation.
+The set algebra thus inherits its lattice structure from the underlying logical lattice:
+\begin{align}
+  S_1 \cap S_2 &\triangleq \{x \in A \mid P_1(x) \land P_2(x)\} \\
+    S_1 \cup S_2 &\triangleq \{x \in A \mid P_1(x) \lor P_2(x)\} \\
+    \overline{S_1}  &\triangleq \{x \in A \mid \neg P_1(x)\}
+\end{align}
+Similarly, a cartesian product is a predicate applied to both elements of a pair, while a power set can be expressed as a subset relation.
+\begin{align}
+  S_A \times S_B &\triangleq \{x \in A, y \in B \mid P_A(x) \land P_B(y)\}\\
+  \mathcal{P}(S_1) &\triangleq \{x \subset S_1\}
+\end{align}
+For exact numeric carriers, $\Omega$ defaults to standard \texttt{bool} (classical two-valued logic), while inexact carriers may utilize a three-valued Kleene logic ($\mathbb{K}_3$) to handle non-signaling conditions like \texttt{NaN} for floating-points safely without breaking identity laws.
+
+Identity is denoted by an identity arrow, set membership can be tested by testing a value with a predicate functions.
+The steps taken to reify intensional sets in the code base are outlined in table~\ref{tbl:cat-to-ddk} forming a core category $\mathbf{Ddk} \subset \mathbf{Jlt} \cap \mathbf{Set}$, which occupies the intersection of pure $\mathbf{Jlt}$ types and universal-algebraic set structures.
+The implementation tracks this definition literally at compile time.
 
 First-order quantification is restricted to domains satisfying \cppinline{IsExtensional}, as unconstrained evaluation over transfinite intensional spaces is undecidable at compile time.
 For these bounded domains, the quantifiers $\exists$ (\cppinline{Exists}) and $\forall$ (\cppinline{ForAll}) map directly onto finite coordinate-wise reductions ($\bigvee$ and $\bigwedge$) over $\Omega$, executing as zero-overhead variadic fold expansions during template translation.
