@@ -271,7 +271,7 @@ Section~5 verifies the compile-time optimization payoff through our parametric l
 To build verifiable mathematical structures inside a mainstream toolchain, we must first isolate a pure, deterministic subset of the host language.
 Standard \Cpp{23} contains features that permit arbitrary runtime side effects, non-termination, and undefined behavior.
 All of these are properties that defeat static verification.
-The \emph{Juliet Posture} ($Jlt$) is therefore defined as a disciplined fragment of standard \Cpp{23} which is characterized by constraints that force standard code to behave like an ideal type system:
+The \emph{Juliet Posture} ($\mathbf{Jlt}$) is therefore defined as a disciplined fragment of standard \Cpp{23} which is characterized by constraints that force standard code to behave like an ideal type system:
 
 \begin{enumerate}
     \item \textbf{Equational Extensionality:} We restrict acceptable objects to types satisfying the \Cpp{} standard concept \texttt{std::regular}.
@@ -282,21 +282,21 @@ The \emph{Juliet Posture} ($Jlt$) is therefore defined as a disciplined fragment
     Currying is achieved naturally via argument capture.
 \end{enumerate}
 
-This subset is realized through a philosophy of \emph{static structural typing}.
+This subset is realized through a particular philosophy of \emph{static structural typing}.
 As established in classic type system taxonomy~\cite{pierce2002tapl, cardelli1996typesystems}, type identification typically follows three traditions:
 \emph{nominal typing}, where lineage is checked by declared names or inheritance;
 \emph{duck typing}, where behavior is verified by call-site probing at runtime; and
 \emph{static structural typing}, where invariants are checked at compile time via explicit constraints.
 
-The Juliet Posture embraces the third school, leveraging language features like \texttt{concept}, \texttt{constexpr}, and non-type template parameters (NTTPs).
+$\mathbf{Jlt}$ embraces the third school, leveraging language features like \texttt{concept}, \texttt{constexpr}, and non-type template parameters (NTTPs).
 The posture does not forbid template partial ordering or constraint subsumption.
 Instead, it harnesses the compiler's overload resolution mechanism as a mechanical proof selection engine.
 When multiple constrained overloads compete at a call site, the compiler naturally routes execution to the most structurally refined match.
 The naming followed the observation that a rose by any other name would smell as sweet~\cite{shakespeare1597romeo}, 
 
 The structural discipline enforces that while behavior-branching based on nominal lineage is rejected, algebraic specialization via partial ordering is embraced, provided all matching paths satisfy strict \emph{semantic equivalence}.
-The choice of path is treated purely as a translation-time optimization detail.
-In practice, this posture materializes across three progressive feature tiers: Tier 1 handles basic \texttt{constexpr} branching; Tier 2 introduces concept-constrained templates and structural subsumption; and Tier 3 utilizes developer trait axioms for manual certification.
+The choice of path is then treated purely as a translation-time optimization detail.
+In practice, this posture materializes across progressive feature tiers: i) basic \texttt{constexpr} branching; ii) concept-constrained templates and structural subsumption; and iii) utilization of developer trait axioms for manual certification.
 
 \paragraph{The Syntactic vs. Semantic Split}
 \label{sec:syntactic_semantic_split}
@@ -358,9 +358,7 @@ static_assert(
 The boundary of this architecture matches the core distinction in standard \Cpp{} between \emph{satisfying} a concept (syntactic structure) and \emph{modeling} it (semantic lawfulness).
 Syntactic properties are mechanically decidable by the compiler.
 Semantic properties---such as associativity or distributivity---resist mechanical verification inside standard \Cpp{} and remain the engineer's honesty obligation.
-
-We handle this boundary using the \emph{Honest Rejection} policy.
-A primitive machine type is rejected at the gate if its hardware behavior violates ideal mathematical axioms.
+Here, $\mathbf{Jlt}$ defaults to an \emph{Honest Rejection Policy} which asserts that if neither mechanical nor manual certification is available at compile-time, then a violation of the corresponding axioms is assumed and the type is rejected at the gate.
 For example, \texttt{int} satisfies the syntactic operators for a ring, but signed-overflow undefined behavior defeats associativity.
 Conversely, \texttt{bool} is safely accepted as the Galois Field $\mathbb{F}_2$ because its bit-perfect operations never overflow or round, as demonstrated in Listing~\ref{lst:honest_rejection}.
 This design mimicks the use of the \texttt{sorry} macro in Lean or the \texttt{Admitted} command in Coq, where a proof obligation is bypassed by fiat to allow downstream development.
@@ -377,7 +375,7 @@ This forms the exact Cartesian Closed Category needed to bootstrap formal set co
 
 With a deterministic, structurally-typed substrate established in Section~\ref{sec:jlt_posture}, mathematical sets can be bootstrapped inside the type system.
 Here, we aim to model both the syntax and the semantics of mathematical set builder notation in executable $\mathbf{Jlt}$ hoping to achieve a system that lends itself to the expression and subsequent evaluation of precisely those kinds of problems that one might also encounter in a pure math blackboard setting.
-A sketch of some desired functionality to be supported by the set comprehension DSL is provided in Figure~\ref{fig:hub-spoke-bnz}.
+A sketch of some desired supported functionality is provided in Figure~\ref{fig:hub-spoke-bnz}.
 
 \begin{figure}[htbp]
 \centering
@@ -404,10 +402,10 @@ The interested reader is referred to definitions of the category $\mathbf FPL$~\
 \label{fig:hub-spoke-bnz}
 \end{figure}
 
-
-A common implementation approach follows the material Zermelo-Frenkel set theory, where the discussion often starts from a set membership operation $\in$.
-Common software implementations such as \cppinline{std::set} use this as a starting point and proceed to model sets as extensional memory containers where the membership test is carried out by checking if a given value can be found in the container. 
+A common implementation approach for set implementations follows the material Zermelo-Frenkel set theory, where the discussion often starts from a set membership operation $\in$.
+Implementations such as \cppinline{std::set} use this as a starting point and proceed to model sets as extensional memory containers where the membership test is carried out by checking if a given value can be found in the container. 
 This approach, while immensely practical, exhibits prohibitive short-comings when applied to algebraic problems: for example, it can not natively model transfinite sets such as the natural numbers $\mathbb N$, or continuous intervals on the real numbers $\mathbb R$.
+As a result, both the guarantees that a compiler can infer and the optimizations that it can perform on such problems are often severely restricted.
 
 \begin{table}[htbp]
 \centering
@@ -465,9 +463,11 @@ tbd
 By contrast, the structural categorical comprehension view pioneered by Lawvere~\cite{lawvere1964etcs}, defines a set via objects and functions (morphisms).
 The interested reader is referred to  Mac Lane~\cite{maclane1971categories} for an in-depth treatment and to Pierce~\cite{pierce1991basic} for a pedagogical introduction to many of the key concepts.
 Here, we will only mimick the formalism's 10 defining axioms in terminology familiar to a working programmer.
+
 Corresponding \cppinline{concept} compositions are outlined in Table~\ref{tbl:cat-to-ddk}, key excerpts from the code base are summarized in Listing~\ref{lst:concept_isset} highlighting the reification of $\mathbf{Set}$ in $\mathbf{Jlt}$.
 \begin{enumerate}
-\item A \textbf{Small Category} is modeled by instances of a fixed base type \cppinline{A} with stable identity beyond pointer equality (e.g. \cppinline{std::regular}) such that \cppinline{a == b} and morphisms are pure functions \cppinline{(f(a) == f(b)) == (a == b)} as a base-line implementation\footnote{The category is automatically small because physical constraints on the runtime environment will result in a finite runtime size.}. 
+\item A basic model of \textbf{Categories} in $\mathbf{Jlt}$ can circumscribe a collection of objects as a type constraint \cppinline{std::regular A},  \cppinline{std::regular B}, \ldots and a collection of morphisms as \cppinline{std::invocable<A, B>}.
+Basic composition rules \footnote{The category is automatically small because physical constraints on the runtime environment will result in a finite runtime size.}. 
 This way, a notion of equational reasoning is enabled.
 \item Generalized predicates are modeled as arrows $P : A \to \Omega$, where $A$. In $\mathbf{Set}$, $\Omega = \{\mathrm{true}, \mathrm{false}\}$, i.e. a mapping to the boolean lattice $\mathbb{B}(\land, \lor, \neg)$.\footnote{Additionally, \texttt{dedekind} supports a generalization to logical lattices such as $\mathbb{K}_3(\mathrm{min}, \mathrm{max}, \neg) = \{-1, 0, 1\}$ (to capture the notion of computability) or probability measures, although a detailed discussion is beyond the scope of this report.} In the context of a given small category, $P$ is called the \textbf{Characteristic Predicate} and $\Omega$ is called the \textbf{Subobject Classifier}.
 \item \ldots
