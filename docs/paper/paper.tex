@@ -449,7 +449,13 @@ The interested reader is referred to the reference implementation~\cite{Krautler
 \begin{minipage}[t]{0.48\linewidth}
 $\mathbf{Cat}$ in $\mathbf{Jlt}$
 \begin{cpp}
-tbd
+export template <typename F>
+concept IsArrow = requires {
+  typename std::remove_cvref_t<F>::Domain;
+  typename std::remove_cvref_t<F>::Codomain;
+} && requires(F f, typename std::remove_cvref_t<F>::Domain x) {
+  { f(x) } -> std::convertible_to<typename std::remove_cvref_t<F>::Codomain>;
+};
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.48\linewidth}
@@ -461,15 +467,17 @@ tbd
 \end{listing}
 
 By contrast, the structural categorical comprehension view pioneered by Lawvere~\cite{lawvere1964etcs}, defines a set via objects and functions (morphisms).
-The interested reader is referred to  Mac Lane~\cite{maclane1971categories} for an in-depth treatment and to Pierce~\cite{pierce1991basic} for a pedagogical introduction to many of the key concepts.
 Here, we will only mimick the formalism's 10 defining axioms in terminology familiar to a working programmer.
+The interested reader is referred to  Mac Lane~\cite{maclane1971categories} for an in-depth treatment and to Pierce~\cite{pierce1991basic} for a pedagogical introduction to many of the key concepts.
 
 Corresponding \cppinline{concept} compositions are outlined in Table~\ref{tbl:cat-to-ddk}, key excerpts from the code base are summarized in Listing~\ref{lst:concept_isset} highlighting the reification of $\mathbf{Set}$ in $\mathbf{Jlt}$.
 \begin{enumerate}
-\item A basic model of \textbf{Categories} in $\mathbf{Jlt}$ can circumscribe a collection of objects as a type constraint \cppinline{std::regular A},  \cppinline{std::regular B}, \ldots and a collection of morphisms as \cppinline{std::invocable<A, B>}.
-Basic composition rules \footnote{The category is automatically small because physical constraints on the runtime environment will result in a finite runtime size.}. 
-This way, a notion of equational reasoning is enabled.
-\item Generalized predicates are modeled as arrows $P : A \to \Omega$, where $A$. In $\mathbf{Set}$, $\Omega = \{\mathrm{true}, \mathrm{false}\}$, i.e. a mapping to the boolean lattice $\mathbb{B}(\land, \lor, \neg)$.\footnote{Additionally, \texttt{dedekind} supports a generalization to logical lattices such as $\mathbb{K}_3(\mathrm{min}, \mathrm{max}, \neg) = \{-1, 0, 1\}$ (to capture the notion of computability) or probability measures, although a detailed discussion is beyond the scope of this report.} In the context of a given small category, $P$ is called the \textbf{Characteristic Predicate} and $\Omega$ is called the \textbf{Subobject Classifier}.
+\item  \textbf{Categories} are enabled in $\mathbf{Jlt}$: we use type constraints to circumscribe i) a collection of objects: \cppinline{std::regular A}, ii) a collection of morphisms: \cppinline{std::regular_invocable<F, A>} with a return type check.
+Because the collection of expressible \Cpp{23} types and callable lambdas in a single translation unit is strictly finite, the resulting categories are inherently \textbf{small} and \textbf{locally small}.
+Unlike standard categorical models of programming languages where types are objects and functions are morphisms, \(\mathbf{Ddk}\) adopts a localized paradigm where individual types are themselves modeled as distinct categories.
+The intention is to reify the desired behavior outlined in Figure~\ref{{fig:hub-spoke-bnz}} in \Cpp{23} as directly as possible.
+Consequently, for a given category \(\mathbf{C}\) corresponding to a type \(X\), the internal arrows are endo-morphisms on \(X\), rendering \(\mathbf{C}\) structurally monoidal.
+\item Generalized predicates are modeled as arrows $P : A \to \Omega$, where $\Omega$ is a logical lattice..\footnote{Additionally, \texttt{dedekind} supports a generalization to logical lattices such as $\mathbb{K}_3(\mathrm{min}, \mathrm{max}, \neg) = \{-1, 0, 1\}$ (to capture the notion of computability) or probability measures, although a detailed discussion is beyond the scope of this report.}  In $\mathbf{Set}$, $\Omega = \{\mathrm{true}, \mathrm{false}\}$, i.e. a mapping to the boolean lattice $\mathbb{B}(\land, \lor, \neg)$. In the context of a given small category, $P$ is called the \textbf{Characteristic Predicate} and $\Omega$ is called the \textbf{Subobject Classifier}.
 \item \ldots
 \end{enumerate}
 Note how, when sets are approached this way, the evaluation order \emph{defaults to lazy evaluation} semantics from the atomic laziness of the logical operators \cppinline{operator&&} and \cppinline{operator||}.
