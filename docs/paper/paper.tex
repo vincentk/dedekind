@@ -412,6 +412,73 @@ In category theory terms, we can write $\mathbf{Jlt} \subset \mathbf{Cpp}$.
 This forms the exact Cartesian Closed Category needed to bootstrap formal set comprehension and universal algebra in the following sections.
 
 \section{Intensional Sets as Type-Checked Predicates}
+
+In this section, we first show working code~\ref{sec:ddk_comprehension} to illustrate the expected payoff, we then discuss the theoretical foundations in set theory, specifically the category-theoretical elementary theory of sets~\ref{sec:ddk_etcs}.
+
+% ============================================================
+\subsection{A Set Comprehension DSL}
+\label{sec:ddk_comprehension}
+% ============================================================
+
+% Source: src/test/cpp/modules/dedekind/python/showcase_alpha_prime.cpp
+\begin{listing}[htbp]
+\caption{A code extract from the project's test suite intended to model set builder notation in C++23.
+\cppinline{Set{...}} is a variadic constructor.
+The combinators \cppinline{in} and \cppinline{bound} construct a scout variable and a half-space predicate respectively.
+\cppinline{operator()} is a shorthand for \cppinline{a.contains(e)}.
+As evidenced by the \cppinline{static_assert}, the set operations are evaluated at compile time.}
+\label{lst:pruning}
+\begin{cpp}
+// {x in ℕ | x > 5}
+constexpr auto a = Set{in(ℕ) | in(ℕ) > bound<5>};
+static_assert(a(7u) == a.contains(7u));
+
+constexpr auto b = Set{in(ℕ) | in(ℕ) > bound<6>};
+constexpr Singleton<6> c = a - b; 
+constexpr auto d = Set{in(ℕ) | in(ℕ) < bound<7>};
+constexpr Singleton<6> e = c & d;   
+constexpr Ø<Cardinality> f = c & !c;                       
+
+// {x in ℕ | ∃y ∈ e : x * y == 42}
+constexpr Singleton<7> q = Set{in(ℕ) | Exists(e, [](auto y, auto x) { 
+    return x * y == bound<42>; 
+})};
+\end{cpp}
+\end{listing}
+
+This predicate-composition algebra is not merely a shorthand notation; it is mathematically justified because the underlying types model the structure of an elementary topos.
+When operations like intersection or complement are written as boolean logic combinations, the compiler is executing structural shifts inside the \texttt{:topoi} partition.
+This layer uses the \texttt{IsSubobject} and \texttt{IsTopos} concepts to formalize the subobject classifier $\Omega$, proving that every syntactic compile-time rule corresponds to a unique, well-defined subset boundary.
+
+This logical scaffolding ensures that the library's intensional definitions map cleanly to concrete element evaluation.
+Under the \texttt{:concrete} partition, the \texttt{IsConcrete} and \texttt{IsSetObject} concepts verify that abstract categorical objects behave reliably as sets of distinct elements.
+This behavior is mediated by a faithful forgetful functor $U$ that strips away abstract category-theory formatting and exposes the underlying \Cpp{} primitive types.
+The type system tracks this parthood relationship explicitly via the \texttt{SetAsProduct} concept, which packages the underlying carrier type alongside its logical classifier.
+
+The complete operational safety of this set-builder DSL is ultimately guaranteed by the axioms of the Elementary Theory of the Category of Sets (ETCS).
+Enforced within the \texttt{:etcs} partition via the \texttt{IsSet} concept, these axioms mechanically validate well-pointedness, choice, and the existence of a natural numbers object (NNO) at translation time.
+By discharging these foundational obligations entirely during compilation, the type system establishes a rigorous mathematical environment.
+This environment allows downstream algebraic structures to treat these verified sets as stable, unyielding carrier sets.
+
+% Source: src/test/cpp/modules/dedekind/python/showcase_03_halfspace_contradiction.ll
+\begin{listing}[htbp]
+\caption{LLVM IR for the empty-meet witness in Listing~\ref{lst:pruning} (\texttt{clang++-22 -O2}): the membership query constant-folds to \texttt{ret i1 false}.}
+\label{lst:pruning_ir}
+\begin{cpp}
+define noundef zeroext i1 @witness_empty_halfspace_meet() local_unnamed_addr #0 {
+  ret i1 false
+}
+\end{cpp}
+\end{listing}
+
+The compiler is then allowed to perform aggressive compile-time verification and type-directed optimization.
+When a membership test or set relation is encountered, the template engine expands the composed predicates and evaluates them during compilation.
+If an intersection yields a logical contradiction, the type system reduces the resulting expression directly to the empty set $\emptyset$ before code generation occurs.
+As a direct consequence, downstream runtime membership queries for statically impossible configurations are completely eliminated by the LLVM optimizer backend, collapsing into literal constant returns within the emitted machine instructions.
+Listing~\ref{lst:pruning} exhibits a code base extract that tests this type-directed collapse in practice.
+Listing~\ref{lst:pruning_ir} shows how this collapse is made mechanically observable during the build: the
+witness function for set membership constant-folds to \texttt{ret i1 false} in the emitted LLVM IR.
+
 % ============================================================
 \subsection{An Elementary Theory of the Category of Sets}
 \label{sec:ddk_etcs}
@@ -500,70 +567,6 @@ The implementation tracks this definition literally at compile time.
 
 First-order quantification is restricted to domains satisfying \cppinline{IsExtensional}, as unconstrained evaluation over transfinite intensional spaces is undecidable at compile time.
 For these bounded domains, the quantifiers $\exists$ (\cppinline{Exists}) and $\forall$ (\cppinline{ForAll}) map directly onto finite coordinate-wise reductions ($\bigvee$ and $\bigwedge$) over $\Omega$, executing as zero-overhead variadic fold expansions during template translation.
-
-% ============================================================
-\subsection{A Set Comprehension DSL}
-\label{sec:ddk_comprehension}
-% ============================================================
-
-% Source: src/test/cpp/modules/dedekind/python/showcase_alpha_prime.cpp
-\begin{listing}[htbp]
-\caption{A code extract from the project's test suite intended to model set builder notation in C++23.
-\cppinline{Set{...}} is a variadic constructor.
-The combinators \cppinline{in} and \cppinline{bound} construct a scout variable and a half-space predicate respectively.
-\cppinline{operator()} is a shorthand for \cppinline{a.contains(e)}.
-As evidenced by the \cppinline{static_assert}, the set operations are evaluated at compile time.}
-\label{lst:pruning}
-\begin{cpp}
-// {x in ℕ | x > 5}
-constexpr auto a = Set{in(ℕ) | in(ℕ) > bound<5>};
-static_assert(a(7u) == a.contains(7u));
-
-constexpr auto b = Set{in(ℕ) | in(ℕ) > bound<6>};
-constexpr Singleton<6> c = a - b; 
-constexpr auto d = Set{in(ℕ) | in(ℕ) < bound<7>};
-constexpr Singleton<6> e = c & d;   
-constexpr Ø<Cardinality> f = c & !c;                       
-
-// {x in ℕ | ∃y ∈ e : x * y == 42}
-constexpr Singleton<7> q = Set{in(ℕ) | Exists(e, [](auto y, auto x) { 
-    return x * y == bound<42>; 
-})};
-\end{cpp}
-\end{listing}
-
-This predicate-composition algebra is not merely a shorthand notation; it is mathematically justified because the underlying types model the structure of an elementary topos.
-When operations like intersection or complement are written as boolean logic combinations, the compiler is executing structural shifts inside the \texttt{:topoi} partition.
-This layer uses the \texttt{IsSubobject} and \texttt{IsTopos} concepts to formalize the subobject classifier $\Omega$, proving that every syntactic compile-time rule corresponds to a unique, well-defined subset boundary.
-
-This logical scaffolding ensures that the library's intensional definitions map cleanly to concrete element evaluation.
-Under the \texttt{:concrete} partition, the \texttt{IsConcrete} and \texttt{IsSetObject} concepts verify that abstract categorical objects behave reliably as sets of distinct elements.
-This behavior is mediated by a faithful forgetful functor $U$ that strips away abstract category-theory formatting and exposes the underlying \Cpp{} primitive types.
-The type system tracks this parthood relationship explicitly via the \texttt{SetAsProduct} concept, which packages the underlying carrier type alongside its logical classifier.
-
-The complete operational safety of this set-builder DSL is ultimately guaranteed by the axioms of the Elementary Theory of the Category of Sets (ETCS).
-Enforced within the \texttt{:etcs} partition via the \texttt{IsSet} concept, these axioms mechanically validate well-pointedness, choice, and the existence of a natural numbers object (NNO) at translation time.
-By discharging these foundational obligations entirely during compilation, the type system establishes a rigorous mathematical environment.
-This environment allows downstream algebraic structures to treat these verified sets as stable, unyielding carrier sets.
-
-% Source: src/test/cpp/modules/dedekind/python/showcase_03_halfspace_contradiction.ll
-\begin{listing}[htbp]
-\caption{LLVM IR for the empty-meet witness in Listing~\ref{lst:pruning} (\texttt{clang++-22 -O2}): the membership query constant-folds to \texttt{ret i1 false}.}
-\label{lst:pruning_ir}
-\begin{cpp}
-define noundef zeroext i1 @witness_empty_halfspace_meet() local_unnamed_addr #0 {
-  ret i1 false
-}
-\end{cpp}
-\end{listing}
-
-The compiler is then allowed to perform aggressive compile-time verification and type-directed optimization.
-When a membership test or set relation is encountered, the template engine expands the composed predicates and evaluates them during compilation.
-If an intersection yields a logical contradiction, the type system reduces the resulting expression directly to the empty set $\emptyset$ before code generation occurs.
-As a direct consequence, downstream runtime membership queries for statically impossible configurations are completely eliminated by the LLVM optimizer backend, collapsing into literal constant returns within the emitted machine instructions.
-Listing~\ref{lst:pruning} exhibits a code base extract that tests this type-directed collapse in practice.
-Listing~\ref{lst:pruning_ir} shows how this collapse is made mechanically observable during the build: the
-witness function for set membership constant-folds to \texttt{ret i1 false} in the emitted LLVM IR.
 
 \section{Point-Free Mappings: Functors between Sets}
 \label{sec:relations_functions_blueprint}
