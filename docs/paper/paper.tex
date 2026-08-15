@@ -411,8 +411,9 @@ By establishing this pure, disciplined substrate first, we gain an environment w
 In category theory terms, we can write $\mathbf{Jlt} \subset \mathbf{Cpp}$.
 This forms the exact Cartesian Closed Category needed to bootstrap formal set comprehension and universal algebra in the following sections.
 
+\section{Intensional Sets as Type-Checked Predicates}
 % ============================================================
-\section{An Elementary Theory of the Category of Sets}
+\subsection{An Elementary Theory of the Category of Sets}
 \label{sec:ddk_etcs}
 % ============================================================
 
@@ -446,7 +447,7 @@ The interested reader is referred to definitions of the category $\mathbf FPL$~\
 \end{figure}
 
 A common implementation approach for set implementations follows the material Zermelo-Frenkel set theory, where the discussion often starts from a set membership operation $\in$.
-Implementations such as \cppinline{std::set} use this as a starting point and proceed to model sets as extensional memory containers where the membership test is carried out by checking if a given value can be found in the container. 
+Implementations such as \cppinline{std::set} use this as a starting point and proceed to model sets as \emph{extensional} memory containers where the membership test is carried out by checking if a given value can be found in the container. 
 This approach, while immensely practical, exhibits prohibitive short-comings when applied to algebraic problems: for example, it can not natively model transfinite sets such as the natural numbers $\mathbb N$, or continuous intervals on the real numbers $\mathbb R$.
 As a result, both the guarantees that a compiler can infer and the optimizations that it can perform on such problems are often severely restricted.
 
@@ -481,7 +482,7 @@ tbd
 \end{minipage}
 \end{listing}
 
-By contrast, the structural categorical comprehension view pioneered by Lawvere~\cite{lawvere1964etcs}, defines a set via objects and functions (morphisms).
+By contrast, the structural categorical comprehension view pioneered by Lawvere~\cite{lawvere1964etcs}, defines a set \emph{intensionally} via objects and functions (morphisms).
 Here, we use the following literature definition~\cite{nlab:nlab}: \emph{$\mathbf{Set}$ is a \textbf{well-pointed}, \textbf{Cartesian Closed Category} with a \textbf{subobject classifier}, a \textbf{natural numbers object}, and the \textbf{axiom of choice}}.
 This definition is arguably terse and full of jargon, but it can be broken down into 10 defining axioms.
 These axioms can in turn be reified as type-level \cppinline{concept} predicates and composed into an overall structural type predicate \cppinline{concept IsSet} which can then be used to check if a type in $\mathbf{Jlt}$ is also an object in $\mathbf{Set}$.
@@ -501,7 +502,7 @@ First-order quantification is restricted to domains satisfying \cppinline{IsExte
 For these bounded domains, the quantifiers $\exists$ (\cppinline{Exists}) and $\forall$ (\cppinline{ForAll}) map directly onto finite coordinate-wise reductions ($\bigvee$ and $\bigwedge$) over $\Omega$, executing as zero-overhead variadic fold expansions during template translation.
 
 % ============================================================
-\section{A Set Comprehension DSL}
+\subsection{A Set Comprehension DSL}
 \label{sec:ddk_comprehension}
 % ============================================================
 
@@ -564,7 +565,7 @@ Listing~\ref{lst:pruning} exhibits a code base extract that tests this type-dire
 Listing~\ref{lst:pruning_ir} shows how this collapse is made mechanically observable during the build: the
 witness function for set membership constant-folds to \texttt{ret i1 false} in the emitted LLVM IR.
 
-\section{Relations, Functions}
+\section{Point-Free Mappings: Functors between Sets}
 \label{sec:relations_functions_blueprint}
 
 To transition seamlessly from static intensional sets to dynamic mappings, binary relations can be formalized as morphisms \cppinline{IsArrow<A, B>} where both domain and codomain \cppinline{require} the ETCS axioms via \cppinline{IsSet}. 
