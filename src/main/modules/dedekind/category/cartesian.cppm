@@ -380,8 +380,9 @@ static_assert(!IsExponential<std::function<int(int)>, int, bool>,
  *    `std::monostate`).
  * 2. **Products** — for any two objects A, B, a product A × B exists
  *    (represented by `std::pair<A, B>`).
- * 3. **Exponentials** — for any two objects A, B, a function space B^A exists
- *    (represented by `std::function<B(A)>` or any lambda).
+ * 3. **Exponentials** — for any two objects A, B, an arrow-shaped function
+ *    space B^A exists (an `IsArrowExponential`; default carrier
+ *    `Morphism<A,B,std::function<B(A)>>`).
  *
  * This triple of structures provides the categorical foundations required for
  * the Dedekind topos (ETCS).
@@ -394,9 +395,10 @@ export template <typename Cat>
 concept IsCartesianClosed =
     IsCartesian<Cat> &&
     requires(typename Cat::Arrow::Domain A, typename Cat::Arrow::Codomain B) {
-      // Closed: Exponentials exist for objects in the category.
+      // Closed: exponentials exist and are arrow-shaped (the internal hom is
+      // an IsArrow A -> B, not a bare/erased callable).
       typename Cat::template Exponential<decltype(A), decltype(B)>;
-      requires IsExponential<
+      requires IsArrowExponential<
           typename Cat::template Exponential<decltype(A), decltype(B)>,
           decltype(A), decltype(B)>;
     };
@@ -440,9 +442,17 @@ struct Set final {
   template <typename A, typename B>
   using Product = std::pair<A, B>;
 
-  // 3. Exponential: B^A
-  template <typename A, typename B>
-  using Exponential = std::function<B(A)>;
+  // 3. Exponential: B^A --- the internal hom, *required* to be IsArrow-shaped
+  // (A.1's arrow).  The carrier is a defaulted, IsArrowExponential-constrained
+  // parameter, so no concrete type enters the concept --- only the default
+  // slot.  Morphism<A,B,std::function> is the default carrier; std::function is
+  // confined to its erased callable impl (C++ has no nameable capturing
+  // callable).  FIXME(#764): a constexpr-capable default carrier would let the
+  // witness's exponentials fold at compile time.
+  template <typename A, typename B,
+            typename Exp = Morphism<A, B, std::function<B(A)>>>
+    requires IsArrowExponential<Exp, A, B>
+  using Exponential = Exp;
 
   static constexpr Id id_c(const T& x) noexcept { return Id{x}; }
 
