@@ -514,8 +514,9 @@ An extensional representation of such sets would require computational resources
 To escape the limitations of resource-bounded containers, \texttt{dedekind} shifts from an extensional formulation to a structural, category-theoretic foundation.
 The library acts as a change-of-base engine across a diagram of distinct structural set theories.
 The split is by the \emph{decidability} of membership, not by cardinality.
-Where the compiler can decide $x \in S$, membership is two-valued and the subobject classifier is Boolean ($\Omega = \mathbb{B}$); the enumerable carriers such as $\mathbb{N}$ and $\mathbb{Z}$ are of this kind, since a bounded search decides membership.
-Where it cannot decide, by Rice's theorem for an opaque predicate, or because the carrier cannot be faithfully enumerated (a float carrier does not denote its reals), the characteristic map is a \emph{partial} function.
+Where the membership predicate is decidable, so the compiler can evaluate $\chi(x)$ to a definite $\top$ or $\bot$, membership is two-valued and the subobject classifier is Boolean ($\Omega = \mathbb{B}$).
+A transparent rule, such as a comparison or an arithmetic test, is of this kind.
+Where the predicate is not decidable, by Rice's theorem for an opaque lambda the compiler cannot inspect, or for an existential over a domain it cannot search, the characteristic map is a \emph{partial} function.
 We represent that in the standard way, as a total map into the Boolean extended with one \emph{undecided} value, the lift (partial-map classifier) of $\mathbb{B}$~\cite{moggi1991notions, rosolini1986continuity}.
 The truth object $\Omega$ stays Boolean; undecidability lives in the lift, not in a third truth value.
 
@@ -540,8 +541,8 @@ When the template engine encounters combinations of these specific, named type g
 The evaluation tracks the \texttt{dedekind} compiler navigates on type inspection.
 Carriers failing the $\mathbf{Jlt}$ gate (non-\texttt{std::regular}) are rejected by concept constraints.
 The rest are routed by whether membership is \emph{decidable}.
-When it is, for instance an enumerable carrier where a bounded search decides $x \in S$, the classifier is Boolean, $\Omega = \mathbb{B}$.
-When it is not, by Rice's theorem or because the carrier cannot be enumerated, the characteristic map is partial and its value lands in the Boolean lifted with an \emph{undecided} value \texttt{U}.
+When it is, for instance a transparent rule the compiler can evaluate, the classifier is Boolean, $\Omega = \mathbb{B}$.
+When it is not, by Rice's theorem for an opaque predicate or for an existential it cannot search, the characteristic map is partial and its value lands in the Boolean lifted with an \emph{undecided} value \texttt{U}.
 That third value is definedness, not a third truth: undecidable queries return a deterministic \texttt{Unknown} rather than risking a translation-time hang.
 }
 \label{fig:compiler_decision_tree}
@@ -549,7 +550,7 @@ That third value is definedness, not a third truth: undecidable queries return a
 
 On the lifted track the connectives are the strong-Kleene, or \emph{parallel}, operations on the extended Boolean~\cite{kleene1952metamathematics, plotkin1977lcf}.
 A decidably false conjunct still empties a meet ($\bot \wedge \text{U} = \bot$), so an empty intersection prunes even when the other conjunct is undecided.
-This is what compile-time pruning needs, and it is strictly stronger than a sequential, monadic combination, which would return \text{U} and lose the prune.
+This is what compile-time pruning needs, and it is strictly stronger than a sequential, monadic combination, which would return $\text{U}$ and lose the prune.
 The resulting logic is Kleene's logic of partial predicates, not an intuitionistic one: the truth object stays Boolean, and the undecided value records definedness.
 The library thus relegates un-enumerable existential queries to a deterministic, compile-time \texttt{Unknown} verdict, preserving structural rigour without risking translation-time hangs.
 Figure~\ref{fig:compiler_decision_tree} shows the decision.
@@ -1751,10 +1752,10 @@ To bridge this abstract mathematical formalism with systems-programming primitiv
 \begin{itemize}
     \item \textbf{Axioms of Subobject Classifier \& Equalizers:}
     \begin{enumerate}
-        \item \textit{Subobject Classifier:} a truth-value object $\Omega$ with an element $\mathrm{true}: 1 \to \Omega$, so every subobject $S \subseteq A$ is named by a characteristic map $\chi: A \to \Omega$.
+        \item \textit{Subobject Classifier:} a truth-value object $\Omega$ with an element $\mathrm{true}: 1 \to \Omega$ such that every mono $S \hookrightarrow A$ arises as the pullback of $\mathrm{true}$ along a \emph{unique} characteristic map $\chi: A \to \Omega$.
         \item \textit{Equalizers:} for parallel arrows $f, g: A \to B$, the subobject $\{x \in A \mid f(x) = g(x)\}$.
     \end{enumerate}
-    \item \textbf{C++ Reification:} $\Omega$ is a pluggable \emph{logic species}. \cppinline{concept IsLogicalSpecies} asks for a type carrying $\Omega$ with its \cppinline{AND} / \cppinline{OR} / \cppinline{NOT} and \cppinline{True} / \cppinline{False}. Two ship: \cppinline{ClassicalLogic} ($\Omega = $ \cppinline{bool}) and \cppinline{TernaryLogic} ($\Omega = $ \cppinline{Ternary}, the Boolean lifted with an \cppinline{Unknown} value, under strong-Kleene connectives). The characteristic map $\chi$ is the predicate of a \cppinline{Set<T, L, P>}, whose \cppinline{operator()} returns $\Omega$; \cppinline{concept IsSubobject} recognises it. Which a carrier receives is the decidability split of Section~\ref{sec:ddk_etcs}: $\mathbb{B}$ where membership is decidable, the lifted Boolean where it is not. Equalizers are named by \cppinline{concept IsEqualizer}, the subobject solving $f = g$.
+    \item \textbf{C++ Reification:} The classifier $\Omega$ is Boolean. What a carrier plugs in is the codomain of its (possibly partial) characteristic map, fixed by a \emph{logic species} \cppinline{L} (the code names this codomain \cppinline{L::Omega}). \cppinline{ClassicalLogic} gives $\mathbb{B}$ (\cppinline{bool}), a total map; \cppinline{TernaryLogic} gives the lifted Boolean (\cppinline{Ternary}, $\mathbb{B}+\text{U}$, under strong-Kleene connectives), the codomain of a partial $\chi$. \cppinline{concept IsLogicalSpecies} gates such a species; the predicate of a \cppinline{Set<T, L, P>} is $\chi$, and \cppinline{concept IsSubobject} recognises it. Which codomain a carrier receives is the decidability split of Section~\ref{sec:ddk_etcs}: $\mathbb{B}$ where membership is decidable, the lifted Boolean where it is not. Equalizers are named by \cppinline{concept IsEqualizer}, the subobject solving $f = g$.
     \item \textbf{Explanatory Note:} An \textit{intensional} set is a rule, not an array. Testing $x \in S$ evaluates $\chi(x)$ instead of searching memory.
 \end{itemize}
 
