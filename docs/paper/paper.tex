@@ -1725,10 +1725,10 @@ To bridge this abstract mathematical formalism with systems-programming primitiv
 \begin{itemize}
     \item \textbf{Axioms of Terminal Object \& Finite Products:}
     \begin{enumerate}
-        \item \textit{Terminal Object:} There exists a unique set $1$ with exactly one element, and every set $A$ has exactly one arrow $A \to 1$.
+        \item \textit{Terminal Object:} There is a terminal object $1$, characterised purely by its universal property: every set $A$ has exactly one arrow $A \to 1$.
         \item \textit{Binary Products:} For any sets $A$ and $B$ there is a product $A \times B$ with projections $\pi_1: A \times B \to A$ and $\pi_2: A \times B \to B$, universal in that every pair $f: X \to A$, $g: X \to B$ factors through a unique $\langle f, g\rangle: X \to A \times B$.
     \end{enumerate}
-    \item \textbf{C++ Reification:} The concepts \texttt{IsTerminalObject} and \texttt{IsProduct} gate the structure, and the standard library satisfies them out of the box: \texttt{std::monostate} \emph{is} the terminal object (exported as \texttt{One}), and \texttt{std::pair} \emph{is} the binary product (\texttt{std::tuple} the $n$-ary case), with projections $\pi_1 / \pi_2$ reading \texttt{.first} / \texttt{.second}. The universal factorisation $\langle f, g\rangle$ is the one piece \texttt{std} does not provide; the library supplies it as the default \texttt{mediate\_product} arrow.
+    \item \textbf{C++ Reification:} The concepts \texttt{IsTerminalObject} and \texttt{IsProduct} gate the structure, and the standard library satisfies them out of the box: \texttt{std::monostate} \emph{is} the terminal object (exported as \texttt{One}), and \texttt{std::pair} \emph{is} the binary product, with projections $\pi_1 / \pi_2$ reading \texttt{.first} / \texttt{.second}. The universal factorisation $\langle f, g\rangle$ is the one piece \texttt{std} does not provide; the library supplies it as the default \texttt{mediate\_product} arrow.
     \item \textbf{Clarity Note for Engineers:} This layer turns relational coordinate tables into type-safe tuples. The terminal object lets us define ``elements'' of a set $A$ structurally, as arrows \texttt{One} $\to A$.
 \end{itemize}
 
