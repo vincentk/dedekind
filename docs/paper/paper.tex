@@ -1738,8 +1738,8 @@ To bridge this abstract mathematical formalism with systems-programming primitiv
 
 \subsection{Cartesian Closed Categories (\texttt{:cartesian} partition)}
 \begin{itemize}
-    \item \textbf{Axiom of Exponentials:} For any sets $A$ and $B$ there is an exponential $B^A$ --- the set of functions $A \to B$ --- with an evaluation map $\mathrm{eval}: B^A \times A \to B$, universal in that every $f: X \times A \to B$ factors through a unique $\mathrm{curry}(f): X \to B^A$ (the adjunction $(-\times A) \dashv (-)^A$).
-    \item \textbf{C++ Reification:} The exponential $B^A$ is the \emph{internal hom} and is required to satisfy \cppinline{concept IsArrow} $A \to B$ by \cppinline{concept IsCartesianClosed} and \cppinline{concept IsArrowExponential}. The adjunction arrows \cppinline{curry} / \cppinline{uncurry} / \cppinline{eval} are library-provided.
+    \item \textbf{Axiom of Exponentials:} For any sets $A$ and $B$ there is an exponential $B^A$: the set of functions $A \to B$ with an evaluation map $\mathrm{eval}: B^A \times A \to B$, universal in that every $f: X \times A \to B$ factors through a unique $\mathrm{curry}(f): X \to B^A$ (the adjunction $(-\times A) \dashv (-)^A$).
+    \item \textbf{C++ Reification:} The exponential $B^A$ is the internal hom, whose inhabitants are the functions $A \to B$. It is required by \cppinline{concept IsCartesianClosed} via \cppinline{concept IsExponential}. The adjunction arrows \cppinline{curry} / \cppinline{uncurry} / \cppinline{eval} are library-provided.
     \item \textbf{Explanatory Note:} This licenses function \textit{Currying} at compile time via the \cppinline{constexpr} lambdas. It guarantees that functions are first-class citizens that can be passed, stored, and transformed by other functions without dropping out of the type-checking engine.
 \end{itemize}
 
