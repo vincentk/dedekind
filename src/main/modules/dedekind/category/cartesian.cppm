@@ -380,9 +380,11 @@ static_assert(!IsExponential<std::function<int(int)>, int, bool>,
  *    `std::monostate`).
  * 2. **Products** — for any two objects A, B, a product A × B exists
  *    (represented by `std::pair<A, B>`).
- * 3. **Exponentials** — for any two objects A, B, an arrow-shaped function
- *    space B^A exists (an `IsArrowExponential`; default carrier
- *    `Morphism<A,B,std::function<B(A)>>`).
+ * 3. **Exponentials** — for any two objects A, B, a function space B^A
+ *    exists: an *object* whose inhabitants are functions A→B (`IsExponential`).
+ *    B^A is an object, not an arrow; arrow-shaped carriers that also carry
+ *    `Domain`/`Codomain` are a representation refinement (`IsArrowExponential`),
+ *    used e.g. by `Set<T>::Exponential`'s default — not required here.
  *
  * This triple of structures provides the categorical foundations required for
  * the Dedekind topos (ETCS).
@@ -395,10 +397,12 @@ export template <typename Cat>
 concept IsCartesianClosed =
     IsCartesian<Cat> &&
     requires(typename Cat::Arrow::Domain A, typename Cat::Arrow::Codomain B) {
-      // Closed: exponentials exist and are arrow-shaped (the internal hom is
-      // an IsArrow A -> B, not a bare/erased callable).
+      // Closed: exponentials exist --- an object whose inhabitants are
+      // functions A -> B.  The exponential is an object, not an arrow, so the
+      // general gate is IsExponential; arrow-shaped carriers are a refinement
+      // (IsArrowExponential), a per-carrier choice (see Set<T>::Exponential).
       typename Cat::template Exponential<decltype(A), decltype(B)>;
-      requires IsArrowExponential<
+      requires IsExponential<
           typename Cat::template Exponential<decltype(A), decltype(B)>,
           decltype(A), decltype(B)>;
     };
@@ -442,13 +446,14 @@ struct Set final {
   template <typename A, typename B>
   using Product = std::pair<A, B>;
 
-  // 3. Exponential: B^A --- the internal hom, *required* to be IsArrow-shaped
-  // (A.1's arrow).  The carrier is a defaulted, IsArrowExponential-constrained
-  // parameter, so no concrete type enters the concept --- only the default
-  // slot.  Morphism<A,B,std::function> is the default carrier; std::function is
-  // confined to its erased callable impl (C++ has no nameable capturing
-  // callable).  FIXME(#764): a constexpr-capable default carrier would let the
-  // witness's exponentials fold at compile time.
+  // 3. Exponential: B^A.  The exponential is an *object*; here we *choose* an
+  // arrow-shaped carrier for the canonical Set witness --- an IsArrow (A.1's
+  // arrow) so ::Domain/::Codomain are carried.  This is a per-carrier
+  // representation refinement (IsArrowExponential), NOT required by the general
+  // IsCartesianClosed.  The carrier is a defaulted, IsArrowExponential-
+  // constrained parameter defaulting to Morphism<A,B,std::function>, with
+  // std::function confined to the erased callable impl.  FIXME(#764): a
+  // constexpr-capable default carrier would let the exponentials fold.
   template <typename A, typename B,
             typename Exp = Morphism<A, B, std::function<B(A)>>>
     requires IsArrowExponential<Exp, A, B>
