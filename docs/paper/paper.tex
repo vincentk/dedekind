@@ -1716,8 +1716,12 @@ To bridge this abstract mathematical formalism with systems-programming primitiv
 
 \subsection{1. Small Categories (\texttt{:small} partition)}
 \begin{itemize}
-    \item \textbf{Mathematical Axiom:} A collection of objects and arrows (morphisms) closed under an associative composition with identities. \emph{Smallness} is the size condition that both collections are \emph{sets} rather than proper classes; when only the hom-collections are required to be sets the category is \emph{locally small}. The partition names both rungs --- \texttt{IsLocallySmallCategory} (the arrow-collection is a single C++ type, hence a set) and \texttt{IsSmallCategory} (additionally the objects form a set).
-    \item \textbf{C++ Reification:} Per $\mathbf{Jlt}$~\ref{sec:jlt_posture}, objects are \texttt{std::regular} carriers. Morphisms are values of a single arrow type satisfying \texttt{IsArrow}, with \texttt{::Domain} and \texttt{::Codomain} typedefs and a callable \texttt{f(x)} from the domain into the codomain. Composition is the overloaded \texttt{operator>>}, with the identity laws \texttt{id >> g == g} and \texttt{f >> id == f} discharged as overloads; identity arrows come from an \texttt{id\_c(x)} factory.
+    \item \textbf{Axioms of Categories and Smallness:}
+    \begin{enumerate}
+        \item \textit{Category:} a collection of objects and arrows (morphisms) closed under an associative composition with identities.
+        \item \textit{Smallness:} both collections are \emph{sets} rather than proper classes --- here \emph{by construction}, since a single translation unit expresses only finitely many types and lambdas. (Requiring only the hom-collections to be sets gives the weaker notion of a \emph{locally small} category.)
+    \end{enumerate}
+    \item \textbf{C++ Reification:} The concepts \texttt{IsSmallCategory} and its weaker sibling \texttt{IsLocallySmallCategory} gate the structure. Per $\mathbf{Jlt}$~\ref{sec:jlt_posture}, objects are \texttt{std::regular} carriers. Morphisms are values of a single arrow type satisfying \texttt{IsArrow}, with \texttt{::Domain} and \texttt{::Codomain} typedefs and a callable \texttt{f(x)} from the domain into the codomain. Composition is the overloaded \texttt{operator>>}, with the identity laws \texttt{id >> g == g} and \texttt{f >> id == f} discharged as overloads; identity arrows come from an \texttt{id\_c(x)} factory.
     \item \textbf{Clarity Note for Engineers:} Instead of data-hiding containers, a ``set'' at this entry rung is simply a well-behaved C++ type acting as a domain, and a ``function'' is a side-effect-free arrow mapping inputs to outputs. In its single-object mode --- the carrier type taken as the sole object and its arrows as endomorphisms --- composition makes the category a \textbf{monoid} (a one-object category); these are exactly the endomorphism loops drawn on each carrier hub of Figure~\ref{fig:hub-spoke-bnz}.
 \end{itemize}
 
