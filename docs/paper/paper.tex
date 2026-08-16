@@ -1140,19 +1140,19 @@ The module/partition DAG is the diagram of inter-hub arrows.
 Figure~\ref{fig:hub-spoke-bnz} sketches three concrete algebraic hubs ($\mathbb{B}$, $\mathbb{N}$, $\mathbb{Z}$) with one arrow of each kind.
 
 The general thrust of the architecture is then to view these small, algebraic categories as universal underlying carrier sets, with specific subsets characterised in the ETCS sense by a subobject classifier $\Omega$.
-A predicate $P : A \to \Omega$ maps ambient elements to \emph{truth values}, and $\Omega$ is the type those truth values live in.
-Change $\Omega$, and you change what counts as membership.
-The default is the one every programmer expects: $\Omega = \mathbb{B} = \{\top, \bot\}$, classical two-valued logic.
+A predicate $P : A \to \Omega$ maps ambient elements to \emph{truth values} in the subobject classifier $\Omega$.
+For decidable membership that classifier is the one every programmer expects: $\Omega = \mathbb{B} = \{\top, \bot\}$, classical two-valued logic.
 Plug it in and you get ordinary set theory.
-But set structures with undecidable membership (e.g.\ the Mandelbrot set) can be supported this way also.
-Swap it for Kleene $\mathbb{K}_3 = \{-1, 0, +1\}$ and something more interesting happens.
-In the case of \cppinline{double}, the extra value \emph{Unknown} is where \texttt{NaN} lives.
+Sets whose membership the compiler cannot decide (e.g.\ the Mandelbrot set) are supported too, by making the predicate \emph{partial}.
+Its codomain lifts to $\mathbb{B} + \text{U}$, with $\text{U}$ the \emph{undecided} value, while the classifier $\Omega$ itself stays Boolean.
+For \cppinline{double}, $\text{U}$ is where \texttt{NaN} lives.
 In classical logic, $P \lor \neg P = \top$ is a theorem.
-With \texttt{NaN} in play, that theorem quietly breaks, because neither $x < \texttt{NaN}$ nor
-$x \geq \texttt{NaN}$ is true.
-In $\mathbb{K}_3$, $P \lor \neg P = \mathit{Unknown}$ is a calm, unremarkable identity.
-The paradox was never in the floats; it was in our choice of $\Omega$.
-$\Omega$ parameterises membership truth values while the $\beth_1$ ceiling parameterises carrier size; the two are orthogonal.
+With \texttt{NaN} in play that theorem quietly breaks, because neither $x < \texttt{NaN}$ nor $x \geq \texttt{NaN}$ is true.
+On the lifted codomain, under strong-Kleene, $P \lor \neg P = \text{U}$ is a calm, unremarkable identity.
+The paradox was never in the floats.
+It was in reading an undecided value as a truth.
+Keep truth Boolean and let the codomain carry the indecision, and it dissolves.
+The codomain's lift parameterises \emph{definedness} while the $\beth_1$ ceiling parameterises carrier size; the two are orthogonal.
 
 
 \subsection{A Common Ground: $\mathbf{Ddk} = \mathbf{Jlt} \cap \mathbf{Alg}(-)_{\beth_1}$}
@@ -2765,7 +2765,8 @@ $1$, $\times$, $(-)^{(-)}$ & terminal object, binary product, exponential (the L
 
 Three rows are doing more work than the others, and the paper's
 contribution lies on top of them: the subobject classifier
-$\Omega$ (the codomain of every NTTP-carried lambda; see
+$\Omega$ (the Boolean codomain of a decidable membership lambda,
+lifted to $\mathbb{B}+\text{U}$ where it is not; see
 §\ref{sec:sets-rules}) is what makes a predicate a \emph{set} in
 the structuralist sense; the Lambek--Scott correspondence is what
 makes the set-builder DSL a syntax for a Cartesian-closed
