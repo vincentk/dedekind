@@ -98,3 +98,6 @@ build_ci/**
 nn_notes/**
 .coverage
 docs/paper/_minted/
+
+# vim swap files
+*.swp
