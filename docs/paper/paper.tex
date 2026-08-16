@@ -504,7 +504,7 @@ witness function for set membership constant-folds to \texttt{ret i1 false} in t
 % ============================================================
 
 With the syntactic behavior of the set comprehension DSL established, what follows is a formalization of the underlying semantic engine.
-Standard software implementations such as `std::set` usually follow an approach inspired by classical Zermelo-Fraenkel (ZF) set theory, where collections of unique objects are built from the bottom up from atoms such as $\emptyset$ or $1$ via composition operations such as union ($\cup$) and intersection ($\cap$).
+Standard software implementations such as \cppinline{std::set} usually follow an approach inspired by classical Zermelo-Fraenkel (ZF) set theory, where collections of unique objects are built from the bottom up from atoms such as $\emptyset$ or $1$ via composition operations such as union ($\cup$) and intersection ($\cap$).
 Membership in the collection can then be tested with an abstract element membership relation ($\in$).
 The resulting implementations usually store the elements in physical computer memory and are thus \emph{extensional} by definition.
 Extensional sets however exhibit prohibitive shortcomings when applied to algebraic problems:
@@ -513,8 +513,12 @@ An extensional representation of such sets would require computational resources
 
 To escape the limitations of resource-bounded containers, \texttt{dedekind} shifts from an extensional formulation to a structural, category-theoretic foundation.
 The library acts as a change-of-base engine across a diagram of distinct structural set theories.
-On the countable track ($\mathbb{N}$, $\mathbb{Z}$), the system adheres to Lawvere's classical Elementary Theory of the Category of Sets (ETCS)~\cite{lawvere1964etcs}, where the Axiom of Choice is constructively earned via explicit witness synthesis, restricting the subobject classifier to classical boolean logic ($\Omega = \mathbb{B}$).
-Conversely, on the uncountable track ($\mathbb{R}$, continuous intervals), general choice cannot be backed due to Rice's Theorem and the structural fidelity gap of float-typed representations.
+The split is by the \emph{decidability} of membership, not by cardinality.
+Where the membership predicate is decidable, so the compiler can evaluate $\chi(x)$ to a definite $\top$ or $\bot$, membership is two-valued and the subobject classifier is Boolean ($\Omega = \mathbb{B}$).
+A transparent rule, such as a comparison or an arithmetic test, is of this kind.
+Where the predicate is not decidable, by Rice's theorem for an opaque lambda the compiler cannot inspect, or for an existential over a domain it cannot search, the characteristic map is a \emph{partial} function.
+We represent that in the standard way, as a total map into the Boolean extended with one \emph{undecided} value, the lift (partial-map classifier) of $\mathbb{B}$~\cite{moggi1991notions, rosolini1986continuity}.
+The truth object $\Omega$ stays Boolean; undecidability lives in the lift, not in a third truth value.
 
 This type-directed collapse, however, uncovers a fundamental architectural division of labor within \texttt{dedekind}. 
 By Rice’s theorem~\cite{rice1953classes}, it is impossible for a compiler to inspect and decide non-trivial semantic properties of arbitrary, opaque functions at translation time. 
@@ -529,26 +533,27 @@ When the template engine encounters combinations of these specific, named type g
 \begin{tikzcd}[column sep=5em, row sep=4em, ampersand replacement=\&]
 \& T \arrow[d, "\text{inspect}"] \& \\
 \& \mathbf{Jlt} \arrow[d, "\text{yes}"] \arrow[r, "\text{no}"] \& \text{Reject} \\
-\& \text{is\_countable} \arrow[dl, "\text{true}"'] \arrow[dr, "\text{false}"] \& \\
-\mathbb{B} \arrow[d, "\chi"] \& \& K_3 \arrow[d, "\chi"] \\
+\& \text{decidable?} \arrow[dl, "\text{yes}"'] \arrow[dr, "\text{no}"] \& \\
+\mathbb{B} \arrow[d, "\chi"] \& \& \mathbb{B}+\text{U} \arrow[d, "\chi"] \\
 \{\top, \bot\} \& \& \{\top, \bot, \text{U}\}
 \end{tikzcd}
 \caption{
-The bifurcated evaluation tracks navigated by the \texttt{dedekind} compiler upon type inspection. 
-The pipeline illustrates how carrier characteristics partition structural foundations at translation time without data materialization. 
-Types failing the foundational $\mathbf{Jlt}$ regularization gate (i.e., non-\texttt{std::regular} compliance) are immediately rejected by concept constraints to guarantee identity persistence. 
-Valid carriers are automatically routed via compile-time cardinality analysis. 
-The countable track maps directly to standard ETCS, equipping the domain with classical boolean logic ($\Omega = \mathbb{B}$) and unlocking constructive witness synthesis via bounded search. 
-The uncountable track maps directly to an intuitionistic regime (iETCS), shifting the subobject classifier to a three-valued Heyting algebra ($\Omega = K_3$) where un-enumerable existential operations gracefully degrade to a deterministic \texttt{Unknown} status.
+The evaluation tracks the \texttt{dedekind} compiler navigates on type inspection.
+Carriers failing the $\mathbf{Jlt}$ gate (non-\texttt{std::regular}) are rejected by concept constraints.
+The rest are routed by whether membership is \emph{decidable}.
+When it is, for instance a transparent rule the compiler can evaluate, the classifier is Boolean, $\Omega = \mathbb{B}$.
+When it is not, by Rice's theorem for an opaque predicate or for an existential it cannot search, the characteristic map is partial and its value lands in the Boolean lifted with an \emph{undecided} value \texttt{U}.
+That third value is definedness, not a third truth: undecidable queries return a deterministic \texttt{Unknown} rather than risking a translation-time hang.
 }
 \label{fig:compiler_decision_tree}
 \end{figure}
 
-Rather than collapsing, the library gracefully transitions the uncountable fragment into an Intuitionistic ETCS (iETCS) regime~\cite{palmgren2014constructive}.
-By Diaconescu's Theorem~\cite{diaconescu1975axiom}, the absence of the Axiom of Choice inherently relaxes the internal logic of a topos from classical to intuitionistic~\cite{awodey1995choice}.
-Consequently, the system expands the subobject classifier into a three-valued Heyting algebra ($\Omega = K_3$), which behaves isomorphically to the internal time-like logic of the arrow topos $\mathbf{Set}^{\to}$~\cite{johnstone2002elephant}.
-While ETCS is classically equivalent to a bounded variant of Zermelo-Fraenkel set theory with choice (ZFC), this top-down categorical framework permits \texttt{dedekind} to gracefully relegate un-enumerable existential queries to a deterministic, compile-time \texttt{Unknown} verdict, preserving structural rigour without risking translation-time hangs.
-The compile-time decision tree is illustrated in Figure~\ref{fig:compiler_decision_tree}.
+On the lifted track the connectives are the strong-Kleene, or \emph{parallel}, operations on the extended Boolean~\cite{kleene1952metamathematics, plotkin1977lcf}.
+A decidably false conjunct still empties a meet ($\bot \wedge \text{U} = \bot$), so an empty intersection prunes even when the other conjunct is undecided.
+This is what compile-time pruning needs, and it is strictly stronger than a sequential, monadic combination, which would return $\text{U}$ and lose the prune.
+The resulting logic is Kleene's logic of partial predicates, not an intuitionistic one: the truth object stays Boolean, and the undecided value records definedness.
+The library thus relegates un-enumerable existential queries to a deterministic, compile-time \texttt{Unknown} verdict, preserving structural rigour without risking translation-time hangs.
+Figure~\ref{fig:compiler_decision_tree} shows the decision.
 
 \begin{listing}[ht]
 \caption{
@@ -1135,19 +1140,19 @@ The module/partition DAG is the diagram of inter-hub arrows.
 Figure~\ref{fig:hub-spoke-bnz} sketches three concrete algebraic hubs ($\mathbb{B}$, $\mathbb{N}$, $\mathbb{Z}$) with one arrow of each kind.
 
 The general thrust of the architecture is then to view these small, algebraic categories as universal underlying carrier sets, with specific subsets characterised in the ETCS sense by a subobject classifier $\Omega$.
-A predicate $P : A \to \Omega$ maps ambient elements to \emph{truth values}, and $\Omega$ is the type those truth values live in.
-Change $\Omega$, and you change what counts as membership.
-The default is the one every programmer expects: $\Omega = \mathbb{B} = \{\top, \bot\}$, classical two-valued logic.
+A predicate $P : A \to \Omega$ maps ambient elements to \emph{truth values} in the subobject classifier $\Omega$.
+For decidable membership that classifier is the one every programmer expects: $\Omega = \mathbb{B} = \{\top, \bot\}$, classical two-valued logic.
 Plug it in and you get ordinary set theory.
-But set structures with undecidable membership (e.g.\ the Mandelbrot set) can be supported this way also.
-Swap it for Kleene $\mathbb{K}_3 = \{-1, 0, +1\}$ and something more interesting happens.
-In the case of \cppinline{double}, the extra value \emph{Unknown} is where \texttt{NaN} lives.
+Sets whose membership the compiler cannot decide (e.g.\ the Mandelbrot set) are supported too, by making the predicate \emph{partial}.
+Its codomain lifts to $\mathbb{B} + \text{U}$, with $\text{U}$ the \emph{undecided} value, while the classifier $\Omega$ itself stays Boolean.
+For \cppinline{double}, $\text{U}$ is where \texttt{NaN} lives.
 In classical logic, $P \lor \neg P = \top$ is a theorem.
-With \texttt{NaN} in play, that theorem quietly breaks, because neither $x < \texttt{NaN}$ nor
-$x \geq \texttt{NaN}$ is true.
-In $\mathbb{K}_3$, $P \lor \neg P = \mathit{Unknown}$ is a calm, unremarkable identity.
-The paradox was never in the floats; it was in our choice of $\Omega$.
-$\Omega$ parameterises membership truth values while the $\beth_1$ ceiling parameterises carrier size; the two are orthogonal.
+With \texttt{NaN} in play that theorem quietly breaks, because neither $x < \texttt{NaN}$ nor $x \geq \texttt{NaN}$ is true.
+On the lifted codomain, under strong-Kleene, $P \lor \neg P = \text{U}$ is a calm, unremarkable identity.
+The paradox was never in the floats.
+It was in reading an undecided value as a truth.
+Keep truth Boolean and let the codomain carry the indecision, and it dissolves.
+The codomain's lift parameterises \emph{definedness} while the $\beth_1$ ceiling parameterises carrier size; the two are orthogonal.
 
 
 \subsection{A Common Ground: $\mathbf{Ddk} = \mathbf{Jlt} \cap \mathbf{Alg}(-)_{\beth_1}$}
@@ -1710,7 +1715,7 @@ With a deterministic, structurally-typed substrate established in Section~\ref{s
 
 A common implementation approach follows material Zermelo-Fraenkel (ZF) set theory, where the discussion starts from an element membership relation $\in$ acting on a cumulative universe of sets. Implementations such as \texttt{std::set} use this as a starting point and model sets as \textit{extensional memory containers}. The identity of a set is determined by explicitly enumerating its members in physical allocations, and membership is evaluated by traversing a data structure (e.g., a balanced binary search tree). This approach exhibits prohibitive shortcomings when applied to algebraic and engineering problems: for example, it cannot natively model infinite sets like the natural numbers $\mathbb{N}$, or non-enumerable continuous intervals over the real numbers $\mathbb{R}$. As a result, both the structural guarantees a compiler can infer and the optimizations it can perform on such problems are severely restricted.
 
-By contrast, the \textit{structural categorical comprehension} view pioneered by William Lawvere~\cite{lawvere} abandons element-centric containment. Instead, it defines a set entirely through its relational behavior using objects and functions (\textit{morphisms}). In this framework, we do not ask what an element \textit{is} internally; we ask how it behaves under functional composition. Lawvere’s Elementary Theory of the Category of Sets (\textbf{ETCS}) posits that the category of sets (\textbf{Set}) is a well-pointed, Cartesian Closed Category with a subobject classifier, a natural numbers object, and the axiom of choice.
+By contrast, the \textit{structural categorical comprehension} view pioneered by William Lawvere~\cite{lawvere1964etcs} abandons element-centric containment. Instead, it defines a set entirely through its relational behavior using objects and functions (\textit{morphisms}). In this framework, we do not ask what an element \textit{is} internally; we ask how it behaves under functional composition. Lawvere’s Elementary Theory of the Category of Sets (\textbf{ETCS}) posits that the category of sets (\textbf{Set}) is a well-pointed, Cartesian Closed Category with a subobject classifier, a natural numbers object, and the axiom of choice.
 
 To bridge this abstract mathematical formalism with systems-programming primitives, we translate the foundational axioms of ETCS into explicit C++23 type-predicates (\texttt{concept IsSet}) distributed across six localized compile-time partitions:
 
@@ -1747,11 +1752,11 @@ To bridge this abstract mathematical formalism with systems-programming primitiv
 \begin{itemize}
     \item \textbf{Axioms of Subobject Classifier \& Equalizers:}
     \begin{enumerate}
-        \item \textit{Subobject Classifier:} There exists a truth-value set $\Omega$ and a unique arrow $\text{true}: 1 \to \Omega$. Every subset $S \subseteq A$ uniquely corresponds to a \textit{characteristic predicate} arrow $\chi: A \to \Omega$.
-        \item \textit{Equalizers:} For any parallel functions $f, g: A \to B$, there exists a subset of $A$ where $f(x) = g(x)$.
+        \item \textit{Subobject Classifier:} a truth-value object $\Omega$ with an element $\mathrm{true}: 1 \to \Omega$ such that every mono $S \hookrightarrow A$ arises as the pullback of $\mathrm{true}$ along a \emph{unique} characteristic map $\chi: A \to \Omega$.
+        \item \textit{Equalizers:} for parallel arrows $f, g: A \to B$, the subobject $\{x \in A \mid f(x) = g(x)\}$.
     \end{enumerate}
-    \item \textbf{C++ Reification:} Rather than forcing a hardcoded boolean infrastructure, $\Omega$ is generalized as a pluggable logical lattice type. It defaults to bit-perfect \texttt{bool} for classical two-valued logic, but can be swapped for three-valued structures like \texttt{struct K3} to represent undefined floating-point NaN states natively.
-    \item \textbf{Explanatory Note:} An \textit{intensional} set is defined by a rule, not an array. Instead of searching a block of RAM to check if $x \in S$, the compiler executes the predicate function $\chi(x)$. If $\chi(x)$ evaluates to true, the element belongs to the subobject.
+    \item \textbf{C++ Reification:} The classifier $\Omega$ is Boolean. What a carrier plugs in is the codomain of its (possibly partial) characteristic map, fixed by a \emph{logic species} \cppinline{L} (the code names this codomain \cppinline{L::Omega}). \cppinline{ClassicalLogic} gives $\mathbb{B}$ (\cppinline{bool}), a total map; \cppinline{TernaryLogic} gives the lifted Boolean (\cppinline{Ternary}, $\mathbb{B}+\text{U}$, under strong-Kleene connectives), the codomain of a partial $\chi$. \cppinline{concept IsLogicalSpecies} gates such a species; the predicate of a \cppinline{Set<T, L, P>} is $\chi$, and \cppinline{concept IsSubobject} recognises it. Which codomain a carrier receives is the decidability split of Section~\ref{sec:ddk_etcs}: $\mathbb{B}$ where membership is decidable, the lifted Boolean where it is not. Equalizers are named by \cppinline{concept IsEqualizer}, the subobject solving $f = g$.
+    \item \textbf{Explanatory Note:} An \textit{intensional} set is a rule, not an array. Testing $x \in S$ evaluates $\chi(x)$ instead of searching memory.
 \end{itemize}
 
 \subsection{Concrete Topoi (\texttt{:concrete} partition)}
@@ -2760,7 +2765,8 @@ $1$, $\times$, $(-)^{(-)}$ & terminal object, binary product, exponential (the L
 
 Three rows are doing more work than the others, and the paper's
 contribution lies on top of them: the subobject classifier
-$\Omega$ (the codomain of every NTTP-carried lambda; see
+$\Omega$ (the Boolean codomain of a decidable membership lambda,
+lifted to $\mathbb{B}+\text{U}$ where it is not; see
 §\ref{sec:sets-rules}) is what makes a predicate a \emph{set} in
 the structuralist sense; the Lambek--Scott correspondence is what
 makes the set-builder DSL a syntax for a Cartesian-closed
