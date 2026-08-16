@@ -383,8 +383,9 @@ static_assert(!IsExponential<std::function<int(int)>, int, bool>,
  * 3. **Exponentials** — for any two objects A, B, a function space B^A
  *    exists: an *object* whose inhabitants are functions A→B (`IsExponential`).
  *    B^A is an object, not an arrow; arrow-shaped carriers that also carry
- *    `Domain`/`Codomain` are a representation refinement (`IsArrowExponential`),
- *    used e.g. by `Set<T>::Exponential`'s default — not required here.
+ *    `Domain`/`Codomain` are a representation refinement
+ * (`IsArrowExponential`), used e.g. by `Set<T>::Exponential`'s default — not
+ * required here.
  *
  * This triple of structures provides the categorical foundations required for
  * the Dedekind topos (ETCS).
