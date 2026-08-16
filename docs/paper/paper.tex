@@ -1747,11 +1747,11 @@ To bridge this abstract mathematical formalism with systems-programming primitiv
 \begin{itemize}
     \item \textbf{Axioms of Subobject Classifier \& Equalizers:}
     \begin{enumerate}
-        \item \textit{Subobject Classifier:} There exists a truth-value set $\Omega$ and a unique arrow $\text{true}: 1 \to \Omega$. Every subset $S \subseteq A$ uniquely corresponds to a \textit{characteristic predicate} arrow $\chi: A \to \Omega$.
-        \item \textit{Equalizers:} For any parallel functions $f, g: A \to B$, there exists a subset of $A$ where $f(x) = g(x)$.
+        \item \textit{Subobject Classifier:} a truth-value object $\Omega$ with an element $\mathrm{true}: 1 \to \Omega$, so every subobject $S \subseteq A$ is named by a characteristic map $\chi: A \to \Omega$.
+        \item \textit{Equalizers:} for parallel arrows $f, g: A \to B$, the subobject $\{x \in A \mid f(x) = g(x)\}$.
     \end{enumerate}
-    \item \textbf{C++ Reification:} Rather than forcing a hardcoded boolean infrastructure, $\Omega$ is generalized as a pluggable logical lattice type. It defaults to bit-perfect \texttt{bool} for classical two-valued logic, but can be swapped for three-valued structures like \texttt{struct K3} to represent undefined floating-point NaN states natively.
-    \item \textbf{Explanatory Note:} An \textit{intensional} set is defined by a rule, not an array. Instead of searching a block of RAM to check if $x \in S$, the compiler executes the predicate function $\chi(x)$. If $\chi(x)$ evaluates to true, the element belongs to the subobject.
+    \item \textbf{C++ Reification:} $\Omega$ is a pluggable \emph{logic species}. \cppinline{concept IsLogicalSpecies} asks for a type carrying $\Omega$ with its \cppinline{AND} / \cppinline{OR} / \cppinline{NOT} and \cppinline{True} / \cppinline{False}. Two ship: \cppinline{ClassicalLogic} ($\Omega = $ \cppinline{bool}) and \cppinline{TernaryLogic} ($\Omega = $ \cppinline{Ternary}, the Kleene $K_3$ with an \cppinline{Unknown} value). The characteristic map $\chi$ is the predicate of a \cppinline{Set<T, L, P>}, whose \cppinline{operator()} returns $\Omega$; \cppinline{concept IsSubobject} recognises it. Which $\Omega$ a carrier receives is the countable versus uncountable bifurcation of Section~\ref{sec:ddk_etcs}: $\mathbb{B}$ classical, $K_3$ intuitionistic. Equalizers are named by \cppinline{concept IsEqualizer}, the subobject solving $f = g$.
+    \item \textbf{Explanatory Note:} An \textit{intensional} set is a rule, not an array. Testing $x \in S$ evaluates $\chi(x)$ instead of searching memory.
 \end{itemize}
 
 \subsection{Concrete Topoi (\texttt{:concrete} partition)}
