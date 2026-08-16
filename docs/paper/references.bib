@@ -351,16 +351,64 @@
 }
 
 @article{lawvere1964etcs,
-  title={An elementary theory of the category of sets},
-  author={Lawvere, F. William},
-  journal={Proceedings of the National Academy of Sciences},
-  volume={52},
-  number={6},
-  pages={1506--1511},
-  year={1964},
-  publisher={National Acad Sciences}
+  author    = {William F. Lawvere},
+  title     = {An Elementary Theory of the Category of Sets},
+  journal   = {Proceedings of the National Academy of Sciences},
+  volume    = {52},
+  number    = {6},
+  pages     = {1506--1511},
+  year      = {1964},
+  publisher = {National Acad Sciences}
 }
 
+@article{rice1953classes,
+  author    = {Henry Gordon Rice},
+  title     = {Classes of Recursively Enumerable Sets and Their Decision Problems},
+  journal   = {Transactions of the American Mathematical Society},
+  volume    = {74},
+  number    = {2},
+  pages     = {358--366},
+  year      = {1953},
+  publisher = {JSTOR},
+  doi       = {10.2307/1990888}
+}
+
+@article{diaconescu1975axiom,
+  author    = {Radu Diaconescu},
+  title     = {Axiom of Choice and Complementation},
+  journal   = {Proceedings of the American Mathematical Society},
+  volume    = {51},
+  number    = {1},
+  pages     = {176--178},
+  year      = {1975}
+}
+
+@unpublished{awodey1995choice,
+  author    = {Steven Awodey},
+  title     = {Axiom of Choice and Excluded Middle in Categorical Logic},
+  note      = {Preprint, The University of Chicago},
+  year      = {1995},
+  url       = {https://www.andrew.cmu.edu/user/awodey/preprints/ac.pdf}
+}
+
+@article{palmgren2014constructive,
+  author    = {Erik Palmgren and Ieke Moerdijk},
+  title     = {Type Theories, Toposes and Constructive Set Theory},
+  journal   = {Annals of Pure and Applied Logic},
+  volume    = {165},
+  number    = {1},
+  pages     = {70--89},
+  year      = {2014}
+}
+
+@book{johnstone2002elephant,
+  author    = {Peter T. Johnstone},
+  title     = {Sketches of an Elephant: A Topos Theory Compendium},
+  volume    = {1},
+  publisher = {Oxford University Press},
+  year      = {2002},
+  series    = {Oxford Logic Guides}
+}
 
 @book{mclarty1992toposes,
   title={Elementary Categories, Elementary Toposes},
@@ -432,8 +480,8 @@
 @software{Krautler_dedekind_2026,
   author = {Vincent Kräutler},
   title = {{dedekind}: A Structuralist Mereology in C++23},
-  url = {https://github.com},
-  version = {v1.0.0}, % or use the commit SHA: {commit 40d5369}
+  url = {https://github.com/vincentk/dedekind},
+  version = {v1.0.0},
   year = {2026},
   publisher = {GitHub}
 }
@@ -1132,4 +1180,55 @@
   year         = {2024},
   howpublished = {\url{https://isocpp.org/wiki/faq/cpp0x-concepts-history}},
   note         = {Records the C++0x \texttt{axiom} keyword proposal and its withdrawal: the committee considered language-level support for semantic certification but did not commit, leaving manual certification (traits, documentation) as the practical path.  The Juliet Posture's trait registry is the engineering instantiation of that path.}
+}
+
+@article{codd1970relational,
+  author    = {Codd, E. F.},
+  title     = {A Relational Model of Data for Large Shared Data Banks},
+  journal   = {Communications of the ACM},
+  volume    = {13},
+  number    = {6},
+  pages     = {377--387},
+  year      = {1970},
+  doi       = {10.1145/362384.362685},
+  note      = {The founding statement of relational algebra: $\sigma$ (selection), $\pi$ (projection), $\cup$, $\cap$, $\setminus$, $\times$ (Cartesian product), and $\theta$-join (= $\sigma_\theta \circ \times$) as the primitives over relations.  Used in §3 page-2 to justify the codebase's posture that \texttt{LIMIT~N} is a $\sigma$-specialisation not separately named.}
+}
+
+@book{date2006third,
+  author    = {Date, C. J. and Darwen, Hugh},
+  title     = {Databases, Types, and the Relational Model: The Third Manifesto},
+  edition   = {3rd},
+  publisher = {Addison-Wesley},
+  year      = {2006},
+  note      = {The modern restatement of Codd's algebra with explicit type discipline.  Prescription~7 / RM~Pre~24 reads \texttt{LIMIT~N} as $\sigma$ with a derived upper-cutoff pivot on the index column --- the reading the codebase adopts in \texttt{:sequences:path} via \cppinline{select(R, [n](\&p){return p.first < n;})} instead of a separately named primitive.}
+}
+
+@book{abiteboul1995foundations,
+  author    = {Abiteboul, Serge and Hull, Richard and Vianu, Victor},
+  title     = {Foundations of Databases},
+  publisher = {Addison-Wesley},
+  year      = {1995},
+  note      = {The textbook treatment of relational query languages, complete with the categorical reading of $\theta$-join as $\sigma_\theta$ applied to the Cartesian product.}
+}
+
+@book{bourbaki1968theoryofsets,
+  author    = {Bourbaki, Nicolas},
+  title     = {Theory of Sets},
+  series    = {Elements of Mathematics},
+  publisher = {Springer},
+  year      = {1968},
+  edition   = {English},
+  note      = {The function-as-graph convention --- a function $f : A \to B$ IS the set of pairs $\{(a, f(a)) \mid a \in A\} \subseteq A \times B$ --- is the foundational identification the §3 page-2 hinge rests on.  Bourbaki §II.3.4 (the definition of a functional graph).}
+}
+
+@article{tarski1941calculus,
+  author    = {Tarski, Alfred},
+  title     = {On the Calculus of Relations},
+  journal   = {The Journal of Symbolic Logic},
+  volume    = {6},
+  number    = {3},
+  pages     = {73--89},
+  year      = {1941},
+  publisher = {Association for Symbolic Logic},
+  doi       = {10.2307/2268577}
 }
