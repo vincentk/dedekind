@@ -504,7 +504,7 @@ witness function for set membership constant-folds to \texttt{ret i1 false} in t
 % ============================================================
 
 With the syntactic behavior of the set comprehension DSL established, what follows is a formalization of the underlying semantic engine.
-Standard software implementations such as `std::set` usually follow an approach inspired by classical Zermelo-Fraenkel (ZF) set theory, where collections of unique objects are built from the bottom up from atoms such as $\emptyset$ or $1$ via composition operations such as union ($\cup$) and intersection ($\cap$).
+Standard software implementations such as \cppinline{std::set} usually follow an approach inspired by classical Zermelo-Fraenkel (ZF) set theory, where collections of unique objects are built from the bottom up from atoms such as $\emptyset$ or $1$ via composition operations such as union ($\cup$) and intersection ($\cap$).
 Membership in the collection can then be tested with an abstract element membership relation ($\in$).
 The resulting implementations usually store the elements in physical computer memory and are thus \emph{extensional} by definition.
 Extensional sets however exhibit prohibitive shortcomings when applied to algebraic problems:
