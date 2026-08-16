@@ -69,16 +69,11 @@ jobs:
         grep -q "python/dedekind/" build/python-coverage.xml
 
     - name: Upload to Codecov
-      uses: codecov/codecov-action@75cd11691c0faa626561e295848008c8a7dddffe  # v5
+      uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac  # v5.5.5
       with:
         files: build/coverage.info,build/python-coverage.xml
         token: ${{ secrets.CODECOV_TOKEN }}
-        # Codecov's CLI wrapper (v0.2.7) currently fails its own GPG key import
-        # ("gpg: no valid OpenPGP data found" -> "Can't check signature: No
-        # public key" for RSA key 2703...9869) -- a Codecov-side signing
-        # regression (2026-08). A coverage-upload failure must not gate CI
-        # health; flip back to true once upstream signing is fixed.
-        fail_ci_if_error: false
+        fail_ci_if_error: true
         verbose: true
 
     # Diagnostic artifact upload — runs regardless of earlier-step outcome so
