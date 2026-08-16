@@ -18,6 +18,8 @@ namespace product_parthood_test {
 struct QuotientEnvelope {
   int representative{};
   bool canonical_form{};
+  friend constexpr bool operator==(const QuotientEnvelope&,
+                                   const QuotientEnvelope&) = default;
 };
 
 struct PairView {

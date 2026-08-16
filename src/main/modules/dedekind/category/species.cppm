@@ -70,7 +70,8 @@ struct SpeciesTraits<T> {
  * @brief Formal verification that a type has been registered in the Atlas.
  */
 export template <typename T>
-concept IsSpecies = requires { typename SpeciesTraits<T>::Domain; };
+concept IsSpecies =
+    std::regular<T> && requires { typename SpeciesTraits<T>::Domain; };
 
 /** @section species__Verification_of_the_Algebraic_Atlas */
 
