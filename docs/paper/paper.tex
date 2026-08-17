@@ -478,16 +478,17 @@ constexpr Singleton<7> q = Set{in(ℕ) | Exists(e, [](auto y, auto x) {
 
 The combinator \cppinline{in} constructs a \emph{scout variable}.
 In the blackboard form $\{\,x \in \mathbb{N} \mid P(x)\,\}$ it plays the role of the bound variable $x$: a stand-in for an arbitrary element of the domain, which the bar then constrains by a predicate.
-What makes it more than a name is that it carries its domain in its own type, so the compiler knows what the variable ranges over, and it carries a representative value (its \emph{pivot}) that the template engine substitutes to evaluate and prune the predicate at compile time.
-Informally, the scout is sent into the domain to probe membership.
-Formally it is the characteristic-morphism handle that the comprehension pipe (\cppinline{operator|}) binds to a predicate (\cppinline{BoundScout} in the code, gated by \cppinline{IsArrow} since a set is its own characteristic morphism).
+What makes it more than a name is that it carries its domain in its own type, so the compiler knows what the variable ranges over.
+Informally it just names an arbitrary element of that domain.
+Formally it is the handle that the comprehension pipe (\cppinline{operator|}) binds to a predicate: in the code, \cppinline{BoundScout} is an empty structural type whose type-level ambient records the domain, gated by \cppinline{IsArrow} since a set is its own characteristic morphism.
 
 This predicate-composition algebra is not merely a shorthand notation; it functions as an embedded syntax engine that allows the declaration of infinite spaces at the type level.
 When operations like intersection (\texttt{\&}), union, or complement (\texttt{!}) are written as boolean logic combinations, the compiler parses the abstract syntax tree into a unified predicate chain.
 The template engine expands these composed expressions during compilation, triggering type-level constant folding and dead-code elimination.
 
-The correspondence is exact, and it is what makes the algebra optimizable.
-Because a set is its predicate, the lattice of sets over a domain $A$ is the Boolean lattice lifted pointwise, $\mathcal{P}(A) \cong \mathbb{B}^A$ (Table~\ref{tab:lattice-lift}).
+The correspondence is exact on the decidable track, and it is what makes the algebra optimizable.
+Because a set is its predicate, the lattice of sets over a domain $A$ with decidable membership is the Boolean lattice lifted pointwise, $\mathcal{P}(A) \cong \mathbb{B}^A$ (Table~\ref{tab:lattice-lift}).
+Where membership is undecided the codomain lifts to $\mathbb{B}+\text{U}$ and the operations become the three-valued Kleene ones, a de Morgan structure but no longer a Boolean algebra, since complement has no inverse at $\text{U}$.
 Optimization is then the simplification of these predicate compositions at translation time: an empty meet prunes, $\bot \wedge p \Rightarrow \bot$, and constant conjuncts fold away.
 The induced order, set inclusion, is pointwise implication $\chi_S \Rightarrow \chi_T$; it ranges over the domain, and keeping it decidable is the task of the specializations in §\ref{sec:ddk_etcs}.
 
@@ -502,9 +503,10 @@ set lattice $\mathcal{P}(A)$ & $\cap$ & $\cup$ & $\complement$ & $\varnothing$ &
 \bottomrule
 \end{tabular}
 \caption{
-The set lattice is the Boolean lattice, lifted pointwise.
-An intensional set is its own characteristic predicate $\chi : A \to \mathbb{B}$, so the powerset lattice over $A$ is the Boolean algebra of predicates, $\mathcal{P}(A) \cong \mathbb{B}^A$.
+On the decidable track, the set lattice is the Boolean lattice, lifted pointwise.
+An intensional set with decidable membership is its own total characteristic predicate $\chi : A \to \mathbb{B}$, so the powerset lattice over $A$ is the Boolean algebra of predicates, $\mathcal{P}(A) \cong \mathbb{B}^A$.
 Each set operation is compiled as the corresponding Boolean operation on predicates, with no element materialized.
+Undecidable membership lifts the codomain to $\mathbb{B}+\text{U}$, a three-valued Kleene structure that is not Boolean.
 }
 \label{tab:lattice-lift}
 \end{table}
@@ -622,14 +624,15 @@ concept IsArrow = requires {
 $\mathbf{Set}$ in $\mathbf{Jlt}$
 \begin{cpp}
 template <typename S, typename A>
-concept IsSubobject = requires(S s, A a) {
-  { s(a) } -> LogicalValue;
+concept IsSubobject = requires(S s, typename S::Member m, A a) {
+  { s.ι(m) } -> std::same_as<A>;
+  { s(a) }   -> LogicalValue;
 };
 
 template <typename A>
 concept IsSet =
   HasETCSAxioms<A> &&
-  IsCartesianClosed<CanonicalSetCCC<A::Ambient>>;
+  IsCartesianClosed<CanonicalSetCCC<typename A::Ambient>>;
 \end{cpp}
 \end{minipage}
 \end{listing}
