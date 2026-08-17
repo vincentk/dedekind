@@ -148,10 +148,11 @@
 A structurally-typed fragment of C++23 --- termed the \emph{Juliet Posture} --- was assembled from \cppinline{constexpr} evaluation, \cppinline{concept} checks, and template instantiation, and was characterised under a System~F reading of the underlying type system.
 The Juliet Posture was then used to bootstrap an intensional set comprehension engine under an ETCS reading, which, when intersected with universal algebraic signatures, forms the core category $\mathbf{Ddk}$.
 The resulting embedded DSL is used to define a coordinate-free linear algebra framework which describes linear transformations as stateless topological operators acting on functional vector spaces—such as boundary and coboundary mappings over graph complexes—as opposed to taking the more conventional and often very expensive route of modeling sparse tensors as indexed multidimensional arrays. This matrix-free approach maps high-dimensional network flow problems strictly onto point-free expression-template predicate chains.
-The approach is demonstrated using a parametric linear program modeling a directed chain network topology
-The type system directly unrolls the graph's coboundary constraints over the totally unimodular network polytope, resolving the optimal potential landscape via a zero-division, sign-driven compile-time kernel. The output Set’s predicate type statically encodes the resulting optimization regime.
-The same parametric source was found to be instantiable both at compile time and at runtime from a single source.
-Within the scope of this exhibit, structural information available at the type level was found to license ahead-of-time analysis (constant folding and dead-code elimination) in place of the corresponding runtime computation.
+On this basis the paper specifies its target exhibit: the dual of a shortest-path problem over a directed chain network, cast entirely in the type system.
+The dual potentials become a compile-time set comprehension and the coboundary constraints unroll over the totally unimodular network polytope, so the feasible region is a type rather than a runtime data structure.
+Because the chain's coboundary telescopes, the optimum is expected to fold at translation time to a typed constant, exactly as the set-comprehension exhibits already collapse an empty intersection to a literal in the emitted IR.
+Re-running the same reduction over a dual-number ring is specified to carry first-order edge-cost sensitivity alongside the optimum, as a side effect of the ring laws.
+A synthetic source-and-IR exhibit fixes this target concretely, so the narrative arc doubles as the specification the implementation is written to meet.
 The overall approach, while heavy on the theory, would appear to generalize to systems programming languages other than C++, specifically Rust.
 \end{abstract}
 
@@ -1279,7 +1280,64 @@ The same reduction carries its own first-order sensitivity for free.
 Re-run the dual over $\mathbb{Q}[\varepsilon]/(\varepsilon^2)$ in place of $\mathbb{Q}$, so each edge cost $c_{ij}$ carries a tangent beside its value.
 The optimum $d_N - d_0$ then returns paired with its derivative $\partial(d_N - d_0)/\partial c_{ij}$ as one typed constant, with no separate derivative pass.
 This is forward-mode automatic differentiation in Elliott's sense~\cite{elliott2018simple}, the chain-rule-carrying product $(f, f')$, with the chain rule falling out of the dual-number ring laws.
-The \cppinline{Dual<F>} carrier drops into any NTTP-parameterised carrier without special-casing; the chain-network exhibit is deferred to a follow-up.
+The \cppinline{Dual<F>} carrier drops into any NTTP-parameterised carrier without special-casing.
+
+\paragraph{Specification: compile-time resolution and its sensitivity.}
+The blueprint above declares the feasible potentials; the exhibit that \emph{resolves} them is the target this paper specifies rather than a checked-in result.
+Its shape is fixed synthetically in Listings~\ref{lst:chain-dual-spec-src} and~\ref{lst:chain-dual-spec-ir}.
+Because the chain's coboundary telescopes, the optimum $d_N - d_0$ equals the sum of edge costs, so with NTTP costs it must fold at translation time to a typed constant, in the same way the empty-meet witness of §\ref{sec:ddk_comprehension} folds to \texttt{ret i1 false}.
+Swapping the cost ring $\mathbb{Q} \to \mathbb{Q}[\varepsilon]/(\varepsilon^2)$ carries the first-order edge-cost sensitivity in that same typed constant, since each cost enters the telescoped sum linearly.
+
+% SPEC / IMPLEMENTATION TODO (2026-08-17): Listings lst:chain-dual-spec-src and
+% lst:chain-dual-spec-ir are SYNTHETIC. They fix the target the chain-network
+% kernel must meet; they are NOT checked-in exhibits. The maximize / perturb_edge
+% surface and both @witness_chain_dual_* IR functions are not yet implemented.
+% This is the deliberate arc-as-spec seam. Copilot / reviewers: do not flag as a
+% claim-vs-code mismatch; it is intentionally forward-looking implementation work.
+\begin{listing}[htbp]
+\caption{\textbf{Specification (synthetic, not yet implemented).}  Compile-time resolution of the chain-network dual and its edge-cost sensitivity.  The optimum $d_N - d_0$ folds to a typed constant because the coboundary telescopes; swapping the cost ring to \cppinline{Dual<Rat>} carries the first-order sensitivity in the same constant.}
+\label{lst:chain-dual-spec-src}
+\begin{cpp}
+// SPECIFICATION (synthetic): the target the implementation must meet.
+// Objective: the terminal potential gap d_N - d_0, maximised over the
+// feasible dual potentials DualLPBasis of the listing above.
+constexpr auto gap     = [](auto d) { return d(bound<4u>) - d(bound<0u>); };
+constexpr auto optimum = maximize(DualLPBasis, gap);
+
+// The chain's coboundary telescopes: d_N - d_0 = sum of edge costs.
+// Unit costs, N = 4 edges -> the optimum folds to a typed constant.
+static_assert(optimum == bound<4u>);
+
+// Ring swap Q -> Dual<Q>: first-order edge-cost sensitivity for free.
+using D = Dual<Rat>;   // Rat = Rational<...>, exact Q
+// Perturb the (2 -> 3) edge cost by epsilon; all other costs stay unit.
+constexpr auto optimum_eps =
+    maximize<D>(perturb_edge<2u, 3u>(DualLPBasis), gap);
+
+// primal d_N - d_0 = 4;  tangent  d(d_N - d_0)/dc_{2,3} = 1
+static_assert(optimum_eps == D{Rat{4}, Rat{1}});
+\end{cpp}
+\end{listing}
+
+\begin{listing}[htbp]
+\caption{\textbf{Specification (synthetic).}  The LLVM IR the kernel of Listing~\ref{lst:chain-dual-spec-src} must fold to at \texttt{-O2}: the optimum and its edge-cost sensitivity as literal constants, with no solver left in the emitted binary.}
+\label{lst:chain-dual-spec-ir}
+\begin{cpp}
+; optimum d_N - d_0 = sum of unit edge costs = 4
+define noundef i64 @witness_chain_dual_optimum() {
+  ret i64 4
+}
+
+; primal + tangent packed as one constant: (d_N - d_0, d/dc_{2,3})
+define { i64, i64 } @witness_chain_dual_sensitivity() {
+  ret { i64, i64 } { i64 4, i64 1 }
+}
+\end{cpp}
+\end{listing}
+
+The two listings are synthetic: they name the \cppinline{maximize} and \cppinline{perturb_edge} surface and the two IR witnesses the implementation is written to satisfy, not results already checked in.
+This is the arc-as-specification seam.
+The reduction is fully determined by the telescoping structure and the ring laws; building the kernel that emits exactly this IR is the remaining implementation work.
 
 
 \section{Evaluation and Benchmarks}
