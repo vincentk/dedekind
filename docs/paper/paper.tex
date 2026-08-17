@@ -536,12 +536,19 @@ witness function for set membership constant-folds to \texttt{ret i1 false} in t
 With the syntactic behavior of the set comprehension DSL established, what follows is a formalization of the underlying semantic engine.
 Loosely speaking, a set here is just its membership test.
 A reader who wants only the API can keep that picture and skim the rest of this subsection, which makes it precise in the language of topos theory.
-Standard software implementations such as \cppinline{std::set} usually follow an approach inspired by classical Zermelo-Fraenkel (ZF) set theory, where collections of unique objects are built from the bottom up from atoms such as $\emptyset$ or $1$ via composition operations such as union ($\cup$) and intersection ($\cap$).
-Membership in the collection can then be tested with an abstract element membership relation ($\in$).
-The resulting implementations usually store the elements in physical computer memory and are thus \emph{extensional} by definition.
-Extensional sets however exhibit prohibitive shortcomings when applied to algebraic problems:
-for example, they cannot natively model infinite sets, such as the natural numbers $\mathbb{N}$, or continuous intervals over $\mathbb{R}$, nor can they faithfully model sets where membership may not be computable in practice such as the Mandelbrot set or the set of unbroken cryptographic keys.
-An extensional representation of such sets would require computational resources which are not available in practice either due to lack of memory or due to lack of processing power.
+The more common description of sets, the one \cppinline{std::set} follows, is Zermelo-Fraenkel (ZF): a set is built from the bottom up from atoms such as $\emptyset$ via union and intersection, with membership tested by an element relation ($\in$).
+Its obvious reading is a bag with things in it, and an implementation stores exactly that, the elements in memory, so it is \emph{extensional} by definition.
+That reading does not fit every set one wants to compute with.
+Take the open disk $D = \{\, x \mid \lVert x - c \rVert < r \,\}$ in the plane: extensionally a bag of uncountably many points that no machine can hold, intensionally a single inequality that \emph{is} the set.
+This is the everyday contrast between a raster image and a vector drawing: extensionally the disk is a grid of stored points, intensionally it is the defining inequality, exact at any resolution.
+% FIXME(restructure): candidate wrapfigure. Side-by-side rendering of the same
+% disk: left a raster / pixel grid (extensional / ZFC, the stored points), right a
+% vector drawing labelled by the predicate (intensional / ETCS, the defining
+% condition). Caption: raster-vs-vector = extensional-vs-intensional = ZFC-by-
+% contents vs ETCS-by-condition. Alt design: a Venn whose overlap P and Q ties to
+% the lattice-lift table (intersection IS conjunction). Keep it small; decide at
+% the 22pp main/appendix split.
+ETCS gives a natural language for this second perspective, where a set is presented by the condition its members satisfy, a perspective the bag-of-things reading of ZF leaves implicit.
 
 To escape the limitations of resource-bounded containers, \texttt{dedekind} shifts from an extensional formulation to a structural, category-theoretic foundation.
 The library acts as a change-of-base engine across a diagram of distinct structural set theories.
@@ -551,6 +558,7 @@ By Rice's theorem~\cite{rice1953classes} the compiler cannot inspect a black-box
 A point query still runs the lambda.
 A structural query the compiler cannot search, such as emptiness or an existential over an unbounded domain, returns a deterministic \texttt{Unknown} rather than risking a translation-time hang.
 So the default gives one of three answers: yes, no, or \texttt{Unknown}, the last meaning only that the test did not finish at compile time.
+The open disk shows this concretely: a point inside tests yes, a point outside tests no, and a point exactly on the rim $\lVert x - c \rVert = r$ is the undecided case, since over the reals no finite-precision comparison settles $<$ against $=$.
 That third answer is not a new kind of truth; it records that the query was left undecided.
 Formally, yes and no stay the ordinary two-valued truth object ($\Omega = \mathbb{B}$), and \texttt{Unknown} is a separate value layered on top: the \emph{lift} of the Booleans, or partial-map classifier~\cite{moggi1991notions, rosolini1986continuity}.
 
