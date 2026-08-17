@@ -528,7 +528,7 @@ witness function for set membership constant-folds to \texttt{ret i1 false} in t
 % ============================================================
 
 With the syntactic behavior of the set comprehension DSL established, what follows is a formalization of the underlying semantic engine.
-Morally, a set here is just its membership test.
+Loosely speaking, a set here is just its membership test.
 A reader who wants only the API can keep that picture and skim the rest of this subsection, which makes it precise in the language of topos theory.
 Standard software implementations such as \cppinline{std::set} usually follow an approach inspired by classical Zermelo-Fraenkel (ZF) set theory, where collections of unique objects are built from the bottom up from atoms such as $\emptyset$ or $1$ via composition operations such as union ($\cup$) and intersection ($\cap$).
 Membership in the collection can then be tested with an abstract element membership relation ($\in$).
@@ -544,16 +544,15 @@ Hand the engine an opaque C++ lambda and it is honest but unoptimized.
 By Rice's theorem~\cite{rice1953classes} the compiler cannot inspect a black-box function to prune a meet or reduce an active set at translation time.
 A point query still runs the lambda.
 A structural query the compiler cannot search, such as emptiness or an existential over an unbounded domain, returns a deterministic \texttt{Unknown} rather than risking a translation-time hang.
-Semantically this default is a partial characteristic map.
-The truth object $\Omega$ stays Boolean.
-Undecidability lives in the lift, a total map into the Boolean extended with one \emph{undecided} value \texttt{U}, the partial-map classifier of $\mathbb{B}$~\cite{moggi1991notions, rosolini1986continuity}.
-It is definedness, not a third truth.
+So the default gives one of three answers: yes, no, or \texttt{Unknown}, the last meaning only that the test did not finish at compile time.
+That third answer is not a new kind of truth; it records that the query was left undecided.
+Formally, yes and no stay the ordinary two-valued truth object ($\Omega = \mathbb{B}$), and \texttt{Unknown} is a separate value layered on top: the \emph{lift} of the Booleans, or partial-map classifier~\cite{moggi1991notions, rosolini1986continuity}.
 
 Optimization is opt-in, through specialization.
 The type system exposes a family of named, structurally transparent predicates that specialize for a selection of common classifications: extensional sets, partially ordered sets, totally ordered sets, and so on.
 When a carrier matches one, the compiler reads its structure, fires the rewrite rules of Theorem~\ref{thm:type-directed-collapse-1d}, prunes at compile time, and decides membership.
-The characteristic map is then total and two-valued, and the classifier is the one every programmer expects, $\Omega = \mathbb{B}$.
-The elementary topos interface (\cppinline{IsSet}) keeps both paths identical to downstream universal-algebraic modules, so a specialization is a drop-in fast path, not a separate type.
+The answer is then always a plain yes or no, the two-valued logic every programmer expects ($\Omega = \mathbb{B}$).
+The shared set interface (\cppinline{IsSet}) presents both paths identically to the downstream code, so a specialization is a drop-in fast path, not a separate type.
 The split is therefore not by cardinality but by whether a specialization applies.
 The catalogue of structured presentations, and the algebra of which set operations preserve the fast path, is the subject of §\ref{sec:algebraic_lattice_carriers}.
 
@@ -575,11 +574,11 @@ That default is a partial characteristic map into the lifted Boolean $\mathbb{B}
 \label{fig:compiler_decision_tree}
 \end{figure}
 
-On the lifted track the connectives are the strong-Kleene, or \emph{parallel}, operations on the extended Boolean~\cite{kleene1952metamathematics, plotkin1977lcf}.
-A decidably false conjunct still empties a meet ($\bot \wedge \text{U} = \bot$), so an empty intersection prunes even when the other conjunct is undecided.
-This is what compile-time pruning needs, and it is strictly stronger than a sequential, monadic combination, which would return $\text{U}$ and lose the prune.
-The resulting logic is Kleene's logic of partial predicates, not an intuitionistic one: the truth object stays Boolean, and the undecided value records definedness.
-The library thus relegates un-enumerable existential queries to a deterministic, compile-time \texttt{Unknown} verdict, preserving structural rigour without risking translation-time hangs.
+When one side of an \texttt{and} or \texttt{or} is \texttt{Unknown}, the result follows the rule you would hope for.
+An intersection with a provably empty set is still empty even if the other side is undecided ($\bot \wedge \text{U} = \bot$), so the prune survives.
+This is exactly what compile-time pruning needs, and it is stronger than threading the unknowns through a \texttt{Maybe}-style combinator, which would surrender and return \texttt{Unknown} the moment either side is unknown, losing the prune.
+Formally these are the strong-Kleene, or \emph{parallel}, connectives, and the resulting three-valued logic of partial predicates is Kleene's, not an intuitionistic one: the underlying truth values stay Boolean, and the third value marks undecidedness~\cite{kleene1952metamathematics, plotkin1977lcf}.
+The upshot is that a query the compiler cannot enumerate returns a definite \texttt{Unknown} during translation rather than hanging, and the structural guarantees survive intact.
 Figure~\ref{fig:compiler_decision_tree} shows the decision.
 
 \begin{listing}[ht]
