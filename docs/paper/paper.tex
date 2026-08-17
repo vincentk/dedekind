@@ -425,8 +425,8 @@ This forms the exact Cartesian Closed Category needed to bootstrap formal set co
    \arrow[l, bend left=20, "x^2"]
 \end{tikzcd}
 \caption{
-An sketch of the desired functionality to be supported by the \texttt{dedekind} set DSL.
-The items show correspond to a small example subset of $\mathbf{Alg}(\Sigma)$, the category of universal algebras.
+A sketch of the desired functionality to be supported by the \texttt{dedekind} set DSL.
+The items shown correspond to a small example subset of $\mathbf{Alg}(\Sigma)$, the category of universal algebras.
 Example canonical underlying carrier sets $\mathbb{B}$, $\mathbb{N}$, $\mathbb{Z}$ are shown as single objects, the individual set elements are omitted for brevity.
 Most arrows on each carrier and most inter-carrier arrows are suppressed for clarity.
 Selected endomorphisms are shown as loops: negation on $\mathbb B$, squaring on $\mathbb N$, negation on $\mathbb Z$.
@@ -442,7 +442,7 @@ With a deterministic, structurally-typed substrate established in Section~\ref{s
 Here, we aim to model both the syntax and the semantics of mathematical set builder notation in executable $\mathbf{Jlt}$ hoping to achieve a system that lends itself to the expression and subsequent evaluation of precisely those kinds of problems that one might also encounter in a pure math blackboard setting.
 A sketch of some desired supported functionality is provided in Figure~\ref{fig:hub-spoke-bnz}.
 
-In this section, we first show working code~\ref{sec:ddk_comprehension} to illustrate the expected payoff, we then discuss the theoretical foundations in set theory, specifically the category-theoretical elementary theory of sets~\ref{sec:ddk_etcs}.
+In this section, we first show working code (§\ref{sec:ddk_comprehension}) to illustrate the expected payoff, then discuss the theoretical foundations in set theory, specifically the category-theoretical elementary theory of sets (§\ref{sec:ddk_etcs}).
 
 % ============================================================
 \subsection{A Set Comprehension DSL}
@@ -454,6 +454,7 @@ In this section, we first show working code~\ref{sec:ddk_comprehension} to illus
 \caption{A code extract from the project's test suite intended to model set builder notation in C++23.
 \cppinline{Set{...}} is a variadic constructor.
 The combinators \cppinline{in} and \cppinline{bound} construct a scout variable and a half-space predicate respectively.
+The scout variable appears on both sides of the bar: introduced on the left, and referred back to on the right, so the predicate to the right reads as the constraint $x > 5$.
 \cppinline{operator()} is a shorthand for \cppinline{a.contains(e)}.
 As evidenced by the \cppinline{static_assert}, the set operations are evaluated at compile time.}
 \label{lst:pruning}
@@ -475,7 +476,7 @@ constexpr Singleton<7> q = Set{in(ℕ) | Exists(e, [](auto y, auto x) {
 \end{cpp}
 \end{listing}
 
-This predicate-composition algebra is not merely a shorthand notation; it functions as an embedded syntax engine that allows the declaration of transfinite spaces at the type level.
+This predicate-composition algebra is not merely a shorthand notation; it functions as an embedded syntax engine that allows the declaration of infinite spaces at the type level.
 When operations like intersection (\texttt{\&}), union, or complement (\texttt{!}) are written as boolean logic combinations, the compiler parses the abstract syntax tree into a unified predicate chain.
 The template engine expands these composed expressions during compilation, triggering type-level constant folding and dead-code elimination.
 
@@ -527,11 +528,13 @@ witness function for set membership constant-folds to \texttt{ret i1 false} in t
 % ============================================================
 
 With the syntactic behavior of the set comprehension DSL established, what follows is a formalization of the underlying semantic engine.
+Morally, a set here is just its membership test.
+A reader who wants only the API can keep that picture and skim the rest of this subsection, which makes it precise in the language of topos theory.
 Standard software implementations such as \cppinline{std::set} usually follow an approach inspired by classical Zermelo-Fraenkel (ZF) set theory, where collections of unique objects are built from the bottom up from atoms such as $\emptyset$ or $1$ via composition operations such as union ($\cup$) and intersection ($\cap$).
 Membership in the collection can then be tested with an abstract element membership relation ($\in$).
 The resulting implementations usually store the elements in physical computer memory and are thus \emph{extensional} by definition.
 Extensional sets however exhibit prohibitive shortcomings when applied to algebraic problems:
-for example, they cannot natively model transfinite sets, such as the natural numbers $\mathbb{N}$, or continuous intervals over $\mathbb{R}$, nor can they faithfully model sets where membership may not be computable in practice such as the Mandelbrot set or the set of unbroken cryptographic keys.
+for example, they cannot natively model infinite sets, such as the natural numbers $\mathbb{N}$, or continuous intervals over $\mathbb{R}$, nor can they faithfully model sets where membership may not be computable in practice such as the Mandelbrot set or the set of unbroken cryptographic keys.
 An extensional representation of such sets would require computational resources which are not available in practice either due to lack of memory or due to lack of processing power.
 
 To escape the limitations of resource-bounded containers, \texttt{dedekind} shifts from an extensional formulation to a structural, category-theoretic foundation.
@@ -582,7 +585,7 @@ Figure~\ref{fig:compiler_decision_tree} shows the decision.
 \begin{listing}[ht]
 \caption{
 Excerpts from \texttt{dedekind} illustrating the \cppinline{concept} definitions used in the reification of $\mathbf {Ddk} \subseteq (\mathbf{Set} \cap \mathbf{Jlt})$.
-Fundamental \cppinline{concept} definitions (objects, morphisms, small categories, \ldots) are composed to reify the considerable more complex \cppinline{concept IsSet}.
+Fundamental \cppinline{concept} definitions (objects, morphisms, small categories, \ldots) are composed to reify the considerably more complex \cppinline{concept IsSet}.
 \cppinline{concept IsSet} can then be used to mechanically test candidate implementations of set theory in the ETCS sense.
 Left: definition of morphisms and small categories: \cppinline{concept IsArrow}, \cppinline{IsMonicArrow}, \cppinline{IsEpicArrow}, \cppinline{IsIsomorphism}, \cppinline{IsSmallCategory}.
 Right: the characteristic-map axiom \cppinline{IsSubobject}, where a subobject's own call shape \cppinline{s(a)} is the classifier $\chi : A \to \Omega$ (it returns a \cppinline{LogicalValue}); and the composite \cppinline{IsSet}, a \cppinline{Jlt} carrier that conjoins the ten ETCS axiom witnesses (\cppinline{HasETCSAxioms}) with the Set-as-Cartesian-closed-category witness.
@@ -618,7 +621,8 @@ concept IsSet =
 \end{minipage}
 \end{listing}
 
-By contrast, the structural categorical comprehension view pioneered by Lawvere~\cite{lawvere1964etcs}, defines a set \emph{intensionally} via objects and functions (morphisms).
+The semantic engine above presupposes a categorical, rather than extensional, notion of set.
+That notion is Lawvere's~\cite{lawvere1964etcs}: a set is given \emph{intensionally}, by objects and the functions (morphisms) between them.
 Here, we use the following literature definition~\cite{nlab:nlab}: \emph{$\mathbf{Set}$ is a \textbf{well-pointed}, \textbf{Cartesian Closed Category} with a \textbf{subobject classifier}, a \textbf{natural numbers object}, and the \textbf{axiom of choice}}.
 This definition is arguably terse and full of jargon, but it can be broken down into 10 defining axioms.
 These axioms can in turn be reified as type-level \cppinline{concept} predicates and composed into an overall structural type predicate \cppinline{concept IsSet} which can then be used to check if a type in $\mathbf{Jlt}$ is also an object in $\mathbf{Set}$.
@@ -630,11 +634,11 @@ For the sake of brevity, the steps are detailed in Appendix~\ref{sec:etcs}, key 
 
 A concrete type that type checks against \cppinline{concept IsSet} should support all of the above functionality and allow the evaluation of non-trivial set expressions as one might encounter them in a blackboard environment.
 
-Identity is denoted by an identity arrow, set membership can be tested by testing a value with a predicate functions.
-The steps taken to reify intensional sets in the code base are outlined in table~\ref{tbl:cat-to-ddk} forming a core category $\mathbf{Ddk} \subset \mathbf{Jlt} \cap \mathbf{Set}$, which occupies the intersection of pure $\mathbf{Jlt}$ types and universal-algebraic set structures.
+Identity is denoted by an identity arrow, and set membership is tested by evaluating a predicate on a value.
+The steps taken to reify intensional sets in the code base are outlined in Table~\ref{tbl:cat-to-ddk} forming a core category $\mathbf{Ddk} \subset \mathbf{Jlt} \cap \mathbf{Set}$, which occupies the intersection of pure $\mathbf{Jlt}$ types and universal-algebraic set structures.
 The implementation tracks this definition literally at compile time.
 
-First-order quantification is restricted to domains satisfying \cppinline{IsExtensional}, as unconstrained evaluation over transfinite intensional spaces is undecidable at compile time.
+First-order quantification is restricted to domains satisfying \cppinline{IsExtensional}, as unconstrained evaluation over infinite intensional spaces is undecidable at compile time.
 For these bounded domains, the quantifiers $\exists$ (\cppinline{Exists}) and $\forall$ (\cppinline{ForAll}) map directly onto finite coordinate-wise reductions ($\bigvee$ and $\bigwedge$) over $\Omega$, executing as zero-overhead variadic fold expansions during template translation.
 
 \section{Point-Free Mappings: Functors between Sets}
