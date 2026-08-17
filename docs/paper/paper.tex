@@ -241,7 +241,7 @@ A simple proof search is mimicked by operator resolution.
 Guided by the rule ``name the structure in the type, let the compiler discharge the laws,'' the library systematically constructs an algebraic hierarchy entirely at compile time.
 From a handful of structural primitives (morphisms and small categories), \texttt{dedekind} builds a domain specific language to describe sets, a numeric lattice ($\mathbb{B}$, $\mathbb{N}$, $\mathbb{Z}$, $\mathbb{Q}$, $\mathbb{R}$, $\mathbb{C}$, \ldots) and a point-free linear algebra layer, among other things,
 Programs are partially or fully evaluated at compile-time as they are brought to single static assignment form potentially resulting in operator fusion or complete reduction to a statically computed constant result.
-The resulting capabilities are demonstrated by the compile-time solution of a non-trivial linear programming problem in Section~\ref{sec:lp-centrepiece}.
+The resulting capabilities are demonstrated by the compile-time formulation of the dual of a shortest-path problem over a directed chain network in Section~\ref{sec:optimization_lp}.
 This categorical vocabulary is not decorative; intensional sets acting as predicates into a subobject classifier are the uniform engine driving both type-level structural pruning and compile-time law enforcement.
 
 \paragraph{Contributions.} Specifically, this paper provides:
@@ -1100,6 +1100,13 @@ The variable tracking map \cppinline{d} maps nodes to their respective symbolic 
 Finally, the universal quantifier \cppinline{ForAll} forces the C++23 abstract syntax tree (AST) interpreter to unroll and validate the triangular invariant across every active edge tuple at compile time.
 If a potential assignment violates the total unimodularity constraint, the type deduction sequence fails immediately, preventing invalid optimization states from reaching the compilation backend.
 
+\paragraph{Edge-cost sensitivity by a ring swap.}
+The same reduction carries its own first-order sensitivity for free.
+Re-run the dual over $\mathbb{Q}[\varepsilon]/(\varepsilon^2)$ in place of $\mathbb{Q}$, so each edge cost $c_{ij}$ carries a tangent beside its value.
+The optimum $d_N - d_0$ then returns paired with its derivative $\partial(d_N - d_0)/\partial c_{ij}$ as one typed constant, with no separate derivative pass.
+This is forward-mode automatic differentiation in Elliott's sense~\cite{elliott2018simple}, the chain-rule-carrying product $(f, f')$, with the chain rule falling out of the dual-number ring laws.
+The \cppinline{Dual<F>} carrier drops into any NTTP-parameterised carrier without special-casing; the chain-network exhibit is deferred to a follow-up.
+
 
 \section{Evaluation and Benchmarks}
 \label{sec:evaluation_benchmarks}
@@ -1191,7 +1198,7 @@ In functional programming terminology, these algebras correspond to $F_\Sigma$-a
 We note though that while $\mathbf{Alg}(\Sigma)$ is only a small fragment of $\mathbf{Cat}$ we expect that it carries enough algebraic vocabulary to host carriers, operators, and structure-preserving arrows in the shape an engineering library actually needs and so we use it as a starting point for a structuralist mathematical style~\cite{marquis2022structuralist}.
 
 We further restrict our attention to the \emph{small} slice $\mathbf{Alg}(\Sigma)_{\beth_1}$ --- the $\beth_1$-small algebras, i.e.\ algebras whose underlying carrier has cardinality at most that of the continuum.\footnote{The standard mathematical workaround for ``a category whose objects are all sets / all categories'' is a Grothendieck universe hierarchy~\cite{maclane1971categories} (Mac Lane, §I.6): pick a universe $U$, define $\mathbf{Set}_U$ as the category of $U$-small sets, then let $\mathbf{Set}_U$ live as an object of a larger-universe $\mathbf{Cat}_{U'}$.  The hierarchy stratifies; no level contains itself.  The $\beth_1$ subscript here pins the smallness ceiling at the cardinality of the continuum --- enough to admit $\mathbb{R}$-sized carriers, small enough to forbid proper-class self-reference.}
-Pinning the object-size at $\beth_1$ admits the transfinite carriers required for Dedekind-cut arithmetic ($\mathbb{R}$, §\ref{sec:numeric-tension}) and the continuum-sized $\mathbb{C}$, $\mathbb{D}$ used in §\ref{sec:linalg}, while keeping a foundational ceiling that forbids the self-referential paradoxes of the proper-class meta-categories $\mathbf{Set}$ and $\mathbf{Cat}$.
+Pinning the object-size at $\beth_1$ admits the transfinite carriers required for Dedekind-cut arithmetic ($\mathbb{R}$, §\ref{sec:numeric-tension}) and the continuum-sized $\mathbb{C}$, $\mathbb{D}$ used in §\ref{sec:operational_calculus}, while keeping a foundational ceiling that forbids the self-referential paradoxes of the proper-class meta-categories $\mathbf{Set}$ and $\mathbf{Cat}$.
 
 
 In the language of software architecture, the picture might be described as a hub-and-spoke layout.
@@ -1317,7 +1324,7 @@ The carrier-lattice's higher-kinded constructions are populated by several funct
 \emph{Frac} (field of fractions: a left adjoint to the inclusion $\mathbf{Field} \hookrightarrow \mathbf{IntegralDomain}$, giving $\mathbb{Q} = \operatorname{Frac}(\mathbb{Z})$, with $\operatorname{Cuts}$ as a sister carrier-strength completion giving $\mathbb{R} = \operatorname{Cuts}(\mathbb{Q})$);
 \emph{Free} (free module: a left adjoint to the forgetful $U: \mathrm{Mod}_R \to \mathbf{Set}$, giving $V_n(R) = \operatorname{Free}_n(R) = R^n$ and dually the internal hom $\operatorname{End}_R(V_n) = M_n(R)$);
 and \emph{Quotient} (quotient by a congruence: an H operation in the HSP sense, giving $\mathbb{C} = \mathbb{R}[i]/(i^2+1)$ and $\mathbb{D} = \mathbb{R}[\varepsilon]/(\varepsilon^2)$).
-Each construction is named in the carrier-lattice diagram (Figure~\ref{fig:carrier-lattice}) and exhibited concretely in §\ref{sec:linalg}; the discipline of this section is that each functor lifts at the type level the moment a hub naming it passes the concept gate, and the corresponding carrier (\cppinline{Rational<I>}, \cppinline{Vec2V<T>} / \cppinline{Matrix2x2V<T>}, \cppinline{Complex<R>} / \cppinline{Dual<F>}) inhabits $\mathbf{Ddk}$ at that kind level without modifying the underlying scalar storage.
+Each construction is named in the carrier-lattice diagram (Figure~\ref{fig:carrier-lattice}) and exhibited concretely in §\ref{sec:operational_calculus}; the discipline of this section is that each functor lifts at the type level the moment a hub naming it passes the concept gate, and the corresponding carrier (\cppinline{Rational<I>}, \cppinline{Vec2V<T>} / \cppinline{Matrix2x2V<T>}, \cppinline{Complex<R>} / \cppinline{Dual<F>}) inhabits $\mathbf{Ddk}$ at that kind level without modifying the underlying scalar storage.
 
 \paragraph{Quotient sub-witness: the First Isomorphism Theorem.}
 The Quotient functor in the carrier lattice rests on a textbook theorem: for any homomorphism $f: A \to B$, the quotient $A/\ker(f)$ is isomorphic to the image $\operatorname{im}(f)$~\cite{burris1981universalalgebra}~(§II.6).
@@ -1405,346 +1412,6 @@ The visible cost is what neither mechanism gives away for free: meta-categorical
 They survive in $\mathbf{Ddk}$ as documented prose-level CT vocabulary, anchored where possible by mechanically-witnessed \emph{restrictions} to a single small slice.
 A representative anchor: the $\mathrm{Disc} \dashv U$ adjunction between $\mathbf{Set}$ and $\mathbf{Cat}$ is referenced in prose in \texttt{category:etcs}, but the bona fide \cppinline{HasAdjunctionShape} / \cppinline{IsAdjunction} witnesses match on the discrete-restriction representatives \cppinline{disc_self_endofunctor_t<C>} and \cppinline{disc_self_unit_t<C>} reified in \texttt{category:natural}, where $F = U = \mathrm{Id}$ and $\eta = \epsilon$ degenerate to the identity natural transformation on a single $C$.
 The 2-categorical layer above thus becomes the engineer's honesty obligation, named by reference rather than by type-level proof --- a price the encoding pays in exchange for the foundational soundness of $\beth_1$ and the gate-sharpness of no-erasure, and one §\ref{sec:compiler-wall} revisits at the wall where the type checker also stops.
-
-% ============================================================
-\section{Linear Algebra}
-\label{sec:linalg}
-% ============================================================
-
-\subsection{Linear Programming: \texorpdfstring{$\operatorname{argmax} : \mathbf{Set} \to \mathbf{Set}$}{argmax: Set → Set}}
-\label{sec:lp-centrepiece}
-
-Look at a linear program for a moment.
-The polytope is an intersection of halfspaces --- a set, in exactly the comprehension sense of Section~\ref{sec:sets-rules}.
-The objective is a linear functional $U : F \to \mathbb{Q}$ on the ambient $F = \mathbb{Q}^2$.
-The optimum is also a set --- a singleton when there is a unique optimal vertex, the empty set when the polytope is infeasible, an unbounded ray when the objective is unbounded over the polytope, a face when the objective is parallel to an edge.
-The textbook signature of $\operatorname{argmax}$ is therefore $\mathbf{Set} \to \mathbf{Set}$.
-
-In a library where the input polytope is already a Set in the set-comprehension DSL (Section~\ref{sec:sets-rules}), the honest output type is also a Set; the regime --- singleton, empty, ray, face --- is encoded in the output Set's predicate type.
-The move of this section is to lift that arrow into the type system.
-If every halfspace and every objective coefficient is named at the type level, the compiler has enough information to enumerate the vertex candidates, run the feasibility checks, compare objective values, and emit the optimum Set whose predicate carries the regime.
-
-The cases shipped at the time of writing are the singleton (a unique optimal vertex) and the empty Set (infeasible polytope); ray-valued and face-valued outputs are deferred to a follow-up.
-When the LP has a face of optima --- the objective parallel to a feasible edge --- the kernel tie-breaks to a single vertex of that face and the output Set is the corresponding singleton; the §5 strict form makes this scope explicit at the type level.
-
-\paragraph{Showcase~9 (centrepiece).} Consider the textbook LP:
-\begin{align*}
-  \text{maximise} \quad & 3x + 2y \\
-  \text{subject to} \quad & x + y \leq 4 \\
-                          & 2x + y \leq 6 \\
-                          & x, y \geq 0
-\end{align*}
-The feasible region is a polygon in $\mathbb{Q}^2$ (Figure~\ref{fig:lp-polytope}); the optimum is the singleton $\{(2, 2)\}$ where the non-axis-aligned constraints $x + y = 4$ and $2x + y = 6$ are simultaneously binding (objective value $10$).
-In \texttt{dedekind.optimization:lp}, constraints are NTTPs lifted into halfspace Sets, the polytope $G$ is their meet under \cppinline{operator&}, the objective $U$ is a NTTP-typed \cppinline{LinearFunctional}, and \cppinline{argmax(G, U)} returns the optimum Set whose predicate type pins the regime:
-
-\begin{figure}[htbp]
-\centering
-\begin{tikzpicture}[scale=0.85]
-  % Axes
-  \draw[->, thick] (-0.3, 0) -- (5.3, 0) node[right] {$x$};
-  \draw[->, thick] (0, -0.3) -- (0, 5.5) node[above] {$y$};
-  % Gridlines
-  \draw[gray, very thin, opacity=0.5] (0, 0) grid (5, 5);
-  \foreach \i in {1,2,3,4,5} {
-    \node[below left, font=\scriptsize] at (\i, 0) {$\i$};
-    \node[below left, font=\scriptsize] at (0, \i) {$\i$};
-  }
-  % Feasible region: polygon (0,0)-(3,0)-(2,2)-(0,4)
-  \fill[blue!18] (0,0) -- (3,0) -- (2,2) -- (0,4) -- cycle;
-  \draw[blue!40!black, thick] (0,0) -- (3,0) -- (2,2) -- (0,4) -- cycle;
-  % The two non-trivial constraint boundaries (extended past feasible region)
-  \draw[green!50!black, dashed, thick] (-0.1, 4.1) -- (4.5,-0.4)
-    node[pos=0.92, below right, font=\small] {$x+y=4$};
-  \draw[red!60!black, dashed, thick] (-0.1, 6.2) -- (3.4, -0.8)
-    node[pos=0.92, below right, font=\small] {$2x+y=6$};
-  % Objective level line through the optimum: 3x+2y=10 passes through (2,2) and (0,5)
-  \draw[violet!70!black, dotted, thick] (-0.1, 5.15) -- (3.5, -0.25)
-    node[pos=0.08, above right, font=\small] {$3x+2y=10$};
-  % Feasible vertices
-  \fill[black] (0,0) circle (2.5pt);
-  \fill[black] (3,0) circle (2.5pt);
-  \fill[black] (0,4) circle (2.5pt);
-  % Highlight the optimum
-  \fill[red] (2,2) circle (3.5pt);
-  \draw[red, thick] (2,2) circle (6pt);
-  % Vertex labels with objective values
-  \node[below left, font=\small] at (0,0) {$(0,0)\!:\!0$};
-  \node[below right, font=\small] at (3,0) {$(3,0)\!:\!9$};
-  \node[above left, font=\small] at (0,4) {$(0,4)\!:\!8$};
-  \node[above right, font=\small, red] at (2.1,2.05) {$\mathbf{(2,2)\!:\!10}$};
-  % Objective direction arrow
-  \draw[->, thick, violet!80!black] (4.0, 3.2) -- (4.6, 3.6);
-  \node[violet!80!black, font=\small] at (4.3, 2.95) {$c = (3,2)$};
-\end{tikzpicture}
-\caption{The feasible polygon of Showcase~9. Vertices are labelled
-with the objective value $3x + 2y$ at each. The active-set
-enumeration considers all $\binom{4}{2} = 6$ pairs of constraints;
-four pairs produce feasible intersections, and the optimum is the one
-vertex (red) where both non-axis-aligned constraints
-$H_1\colon x+y\leq 4$ and $H_2\colon 2x+y\leq 6$ bind simultaneously.
-At translation time the compiler performs this enumeration; the
-emitted binary contains only the literal coordinates of $(2,2)$.}
-\label{fig:lp-polytope}
-\end{figure}
-
-% Source: src/test/cpp/modules/dedekind/python/showcase_09_lp_vertex_typed_constant.cpp
-\begin{listing}[htbp]
-\caption{Compile-time LP: the optimum IS a type. From \texttt{showcase\_09\_lp\_vertex\_typed\_constant.cpp}.}
-\label{lst:lp-centrepiece}
-\begin{cpp}
-
-using Rat = Rational<SignedExtensionalCardinal<>>;  // canonical exact ℚ
-using H1 = Halfspace2D<Rat, Rat{1}, Rat{1}, Rat{4}>;     //  x +  y <= 4
-using H2 = Halfspace2D<Rat, Rat{2}, Rat{1}, Rat{6}>;     // 2x +  y <= 6
-using H3 = Halfspace2D<Rat, Rat{-1}, Rat{0}, Rat{0}>;    //  x      >= 0
-using H4 = Halfspace2D<Rat, Rat{0}, Rat{-1}, Rat{0}>;    //       y >= 0
-
-// Input: polytope G ⊆ ℚ² as the meet of halfspace Sets in the §3 DSL.
-constexpr auto G = halfspace_set(H1{}) & halfspace_set(H2{})
-                 & halfspace_set(H3{}) & halfspace_set(H4{});
-// Objective: U : F → ℚ, coefficients (3, 2) at the type level.
-constexpr LinearFunctional<Rat, Rat{3}, Rat{2}> U{};
-// Output: a Set whose predicate type encodes the regime.  Here it is
-// the singleton {(2, 2)}, with the coordinates pinned at NTTPs.
-using Optimum = std::remove_cvref_t<decltype(argmax(G, U))>;
-using OptPred = std::remove_cvref_t<decltype(std::declval<Optimum>().predicate())>;
-static_assert(std::same_as<OptPred, Singleton2DPredicate<Rat, Rat{2}, Rat{2}>>);
-\end{cpp}
-\end{listing}
-
-The reduction enumerates vertex candidates at compile time (all $\binom{4}{2} = 6$ pairs of binding constraints), solves each $2 \times 2$ active-set system via \texttt{Invertible2x2}'s closed-form Cramer inverse (exact over $\mathbb{Q}$), filters by feasibility against the non-active constraints, and picks the objective-maximising feasible vertex.
-Every step is a template specialisation; no runtime iteration survives.
-
-\paragraph{Two kernels under one combinator.}
-A separate concern arises when the polytope happens to be signed-unimodular and axis-aligned: in that scope the Cramer determinants are all $\pm 1$, the active-set divisions degenerate to sign flips, and the enumeration collapses to per-axis bracketing and a sign-driven select.
-The library ships both kernels and lets the type system pick (Table~\ref{tab:lp-regime-dispatch}); the dispatch is a single \cppinline{if constexpr} over three concepts on the halfspace pack and carrier, and the non-taken branch is removed from the template instantiation.
-
-\paragraph{Bridge: same source, two evaluation modes.}
-The compile-time path described above takes constraints at the type level.
-The same kernel runs at runtime when the constraints arrive as a \cppinline{std::span} --- the shape Python callers see through the project's \texttt{nanobind} facade.
-The runtime entry \cppinline{maximize_with_values<T>(span, cx, cy)} performs the same structural classification at runtime, routes to the same kernel, and returns the same Set carrier --- with the regime now encoded at the value level (via the predicate's \cppinline{(point, feasible)} state) instead of the type level.
-The bridge is mechanical: the kernel is one \cppinline{constexpr} function, and the call site selects the evaluation mode by the constexpr-ness of its arguments.
-
-\paragraph{IR witness.} The claim is translation-time mechanics.
-Two \texttt{extern "C"} fixture functions extract the optimum's $x$- and $y$-coordinates from the output Set's predicate; at \texttt{-O2}, \texttt{clang} folds the entire reduction to literal integers:
-
-% Source: src/test/cpp/modules/dedekind/python/showcase_09_lp_vertex_typed_constant.ll
-\begin{listing}[htbp]
-\caption{Emitted LLVM IR for Showcase~9. The six candidate solves, six feasibility checks, and six objective comparisons collapse to constant returns.}
-\label{lst:lp-ir}
-\begin{cpp}
-
-define noundef i64 @witness_lp_optimum_x() ... {
-  ret i64 2
-}
-
-define noundef i64 @witness_lp_optimum_y() ... {
-  ret i64 2
-}
-\end{cpp}
-\end{listing}
-
-The IR is checked in as \texttt{showcase\_09\_lp\_vertex\_typed\_constant.ll}; \texttt{make ir-fixture-check} fails CI on optimiser drift.
-The binary contains no LP solver, no simplex tableau, no active-set machinery: the vertex's coordinates ride as NTTPs of \cppinline{Singleton2DPredicate<Rat, Rat{2}, Rat{2}>}, and the witness extracting a coordinate collapses to a literal load.
-Because the reduction lands in \texttt{Rational<...>} rather than IEEE floating point, the output is bit-identical across ARM and x86 back-ends --- the typed constant has no rounding mode to disagree about.
-
-\paragraph{Runtime IR: two kernels, two signatures.}
-The complementary direction is to call the same kernels with runtime data.
-The power-user entries \cppinline{maximize_axis_aligned_with_values<T>} and \cppinline{maximize_cramer_with_values<T>} are the IR microscope on each kernel in isolation; the default \cppinline{maximize_with_values<T>} dispatches mechanically between them.
-Both signatures are pinned by fixtures (Listing~\ref{lst:lp-runtime-ir-side-by-side}, Table~\ref{tab:lp-regime-dispatch}) and enforced by \texttt{pruning-ir-fixture.py}.
-
-% Source excerpts: showcase_09b_lp_runtime_residual.ll, showcase_12b_lp_unimodular_runtime.ll
-\begin{listing}[htbp]
-\caption{Abbreviated runtime IR for the two LP kernels.
-Excerpts from \texttt{showcase\_09b\_lp\_runtime\_residual.ll} (generic Cramer over \texttt{double}) and \texttt{showcase\_12b\_lp\_unimodular\_runtime.ll} (bit-ops fast path over \texttt{int}).
-Cramer emits floating-point divide / multiply / fused-multiply-add inside an active-set loop; the fast path emits per-axis integer compares, \texttt{llvm.smin}, and a sign-driven \texttt{select}, with \texttt{mul} / \texttt{sdiv} / \texttt{udiv} absent on the integer carrier.
-Both fixtures are pinned by \texttt{pruning-ir-fixture.py}.}
-\label{lst:lp-runtime-ir-side-by-side}
-\noindent
-\begin{minipage}[t]{0.48\linewidth}
-\textbf{Generic Cramer (\texttt{showcase\_09b}):}
-\begin{cpp}
-
-; per active-set pair: 2x2 Cramer solve
-%33 = fneg double %32
-%34 = fmul double %22, %33
-%35 = call double @llvm.fmuladd.f64(
-        double %20, double %31, double %34)
-; numerators elided ...
-%44 = fdiv double %43, %35   ; x_num/det
-%47 = fdiv double %46, %35   ; y_num/det
-; per-constraint feasibility check:
-%59 = fmul double %47, %58
-%60 = call double @llvm.fmuladd.f64(
-        double %56, double %44, double %59)
-; outer: C(n,2) pairs; inner: m feasibility;
-; argmax phi over the surviving vertex.
-\end{cpp}
-\end{minipage}\hfill
-\begin{minipage}[t]{0.48\linewidth}
-\textbf{Bit-ops fast path (\texttt{showcase\_12b}):}
-\begin{cpp}
-
-; per halfspace: per-axis bracketing
-%17 = load i32, ptr %16, align 4   ; coeff_x
-%18 = add  i32 %17, 1
-%19 = icmp ult i32 %18, 3       ; in {-1,0,1}?
-; per-axis dispatch (y-branch elided):
-%41 = call i32 @llvm.smin.i32(
-        i32 %31, i32 %12)
-%42 = select i1 %40, i32 %41, i32 %31
-; phi i8 / phi i32 carry axis bounds and
-; bound-present flags across the loop;
-; no mul / sdiv / udiv on the carrier
-; appears anywhere in this function.
-\end{cpp}
-\end{minipage}
-\end{listing}
-
-\begin{table}[htbp]
-\centering
-\caption{\textbf{Kernel $\times$ evaluation mode $\times$ output predicate $\times$ IR signature for the §\ref{sec:lp-centrepiece} LP combinator.}
-NTTP rows are reached through \cppinline{argmax(G, U)} (input polytope as a Set, output Set with NTTP-coordinate predicate); runtime rows through \cppinline{maximize_with_values<T>(span, cx, cy)} (input as \cppinline{std::span<HalfspaceTriple<T>>}, output Set with value-level predicate).
-The kernel branch is selected by \cppinline{if constexpr} on three concepts over the halfspace pack and carrier (\cppinline{HasUnitRangeEntries}, \cppinline{IsAxisAlignedPolytope}, \cppinline{SuitableForAxisAlignedFastPath}); the evaluation mode is selected by the constexpr-ness of the call site.
-The four rows are exhibited by \texttt{showcase\_12}, \texttt{showcase\_12b}, \texttt{showcase\_09}, and \texttt{showcase\_09b} respectively, with their LLVM IR checked into the repository as fixtures.}
-\label{tab:lp-regime-dispatch}
-\small
-\begin{tabular}{@{}l l l l@{}}
-\toprule
-\textbf{Kernel} & \textbf{Mode} & \textbf{Output predicate} & \textbf{IR signature at \texttt{-O2}} \\
-\midrule
-Fast path & NTTP & \cppinline{Singleton2DPredicate} & \texttt{ret i64 K} (full fold) \\
-Fast path & \cppinline{std::span} & \cppinline{LPSolutionPredicate} & loop \texttt{phi} + sign-driven \texttt{select}; no \texttt{mul}/\texttt{sdiv}/\texttt{udiv} \\
-Generic Cramer & NTTP & \cppinline{Singleton2DPredicate} \emph{or} \cppinline{EmptyPredicate} & \texttt{ret i64 K} \emph{or} \texttt{static\_assert} refusal \\
-Generic Cramer & \cppinline{std::span} & \cppinline{LPSolutionPredicate} & $\binom{m}{n}$ active-set fold; $2{\times}2$ \texttt{fdiv} / \texttt{fmuladd} + \texttt{phi} \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-Two \cppinline{static_assert} chains close the section: \cppinline{IsSet} (the ETCS-grade Set contract of Section~\ref{sec:sets-rules}) holds for the input polytope and all three output regimes (Listing~\ref{lst:lp-is-set-chain}); \cppinline{IsFAlgebra} holds for the output Set under the identity endofunctor (Listing~\ref{lst:lp-is-falgebra}), witnessing the catamorphism \emph{shape} with the active-set step as the structure map.\footnote{The shape witness is mechanical.
-The catamorphism's uniqueness clause --- that \cppinline{argmax(G, U)} is the unique morphism into the output algebra from the initial halfspace-list F-algebra for $F(X) = 1 + \text{Halfspace} \times X$ --- is the engineer's honesty obligation per Pierce~\cite{pierce2002tapl} §5.4; the project's \cppinline{:f_algebra} partition reifies this as an opt-in \cppinline{is_initial_f_algebra_v} trait, deliberately defaulted to false here.}
-
-% Source: src/test/cpp/modules/dedekind/optimization/lp_test.cpp (TEST_CASE "both argmax input and output satisfy IsSet")
-\begin{listing}[htbp]
-\caption{Mechanical \cppinline{IsSet} witness for the input polytope and the three output regimes. From \texttt{lp\_test.cpp} (TEST\_CASE ``both argmax input and output satisfy IsSet'').}
-\label{lst:lp-is-set-chain}
-\begin{cpp}
-
-using F = Vec2V<Rat>;
-using L = ClassicalLogic;
-
-// Input polytope: G ⊆ F via the §3 set-comprehension DSL.
-using PolyG = Set<F, L, Polytope2DPredicate<Rat, H1, H2, H3, H4>>;
-static_assert(IsSet<PolyG>);
-
-// Three output regimes, all over the same ambient F:
-//   (a) NTTP feasible:    Singleton2DPredicate<x*, y*>
-//   (b) NTTP infeasible:  EmptyPredicate<F>
-//   (c) runtime:          LPSolutionPredicate (point, feasible)
-using SingOut    = Set<F, L, Singleton2DPredicate<Rat, Rat{2L}, Rat{2L}>>;
-using EmptyOut   = Set<F, L, EmptyPredicate<F>>;
-using RuntimeOut = Set<F, L, LPSolutionPredicate<Rat>>;
-static_assert(IsSet<SingOut>);
-static_assert(IsSet<EmptyOut>);
-static_assert(IsSet<RuntimeOut>);
-\end{cpp}
-\end{listing}
-
-% Source: src/test/cpp/modules/dedekind/optimization/lp_test.cpp (TEST_CASE "output Set is an F-algebra")
-\begin{listing}[htbp]
-\caption{Mechanical \cppinline{IsFAlgebra} shape witness for the output Set. The active-set step is the structure map $F\langle X\rangle \to X$ on $X = $\cppinline{OutputSet}; the initial-F-algebra opt-in is deliberately false, naming the universal-property clause as the engineer's honesty obligation. From \texttt{lp\_test.cpp} (TEST\_CASE ``output Set is an F-algebra'').}
-\label{lst:lp-is-falgebra}
-\begin{cpp}
-
-using OutputSet     = Set<Vec2V<Rat>, ClassicalLogic,
-                          LPSolutionPredicate<Rat>>;
-using LPSolutionCat = DiscreteCategory<OutputSet>;
-using LPSolutionIdF = identity_functor<LPSolutionCat>;
-
-// Active-set step: endomap on OutputSet.  At F-algebra shape
-// level the step is independent of any particular halfspace;
-// concrete LP folds compose chains of these, each closing
-// over one halfspace internally.
-constexpr auto step = arrow(
-    [](const OutputSet& s) { return s; });
-using StepArrow = std::decay_t<decltype(step)>;
-
-// Catamorphism shape: F<X> → X for F = identity_functor on
-// the ambient category, X = OutputSet, structure map = step.
-static_assert(IsFAlgebra<OutputSet, StepArrow, LPSolutionIdF>);
-
-// Initial-F-algebra opt-in deliberately false: the universal-
-// property clause is the engineer's honesty obligation, not
-// mechanically witnessed here.
-static_assert(!is_initial_f_algebra_v<LPSolutionIdF,
-                                      OutputSet, StepArrow>);
-\end{cpp}
-\end{listing}
-
-\paragraph{Algorithmic scope.}
-The vertex-enumeration kernel is $O(\binom{m}{n})$ in the halfspace count --- the bubble sort of LP, well-suited to the small $m$ §5 exhibits and to compile-time enumeration generally, not to industrial constraint counts.
-The halfspace pack lives in NTTP space; §\ref{sec:compiler-wall} names this as the Compiler Wall, so the inner solver's choice does not move the wall it caps.
-
-
-\subsection{Forward-Mode AD as a Sibling Realisation of Compile-Time Derivatives}
-\label{sec:ad-elliott}
-
-Swap the ring: re-run the same LP reduction over
-$\mathbb{Q}[\varepsilon]/(\varepsilon^2)$ instead of $\mathbb{Q}$.
-The optimum and its derivative with respect to a chosen input come
-out as one typed constant; no separate derivative pass. We follow
-Elliott's framing~\cite{elliott2018simple} that forward-mode AD is
-the chain-rule-carrying product $(f, f')$, with the dual-number ring
-making the chain rule fall out of the ring laws.\footnote{The same
-abstract derivative is computed numerically by
-\texttt{dedekind.analysis:ftc::derivative\_at} (central difference)
-and symbolically by
-\texttt{dedekind.algebra:polynomial::RigPolynomial::derive}. The
-\texttt{Dual<F>} carrier slots into any NTTP-parameterised carrier
----including the LP's \texttt{Halfspace2D<T, a, b, c>}---without
-special-casing, because its primal and tangent are structural
-fields.}
-
-\paragraph{Showcase: parametric LP sensitivity.} Perturb $H_1$'s
-bound by $\varepsilon$ (replace $x + y \leq 4$ with
-$x + y \leq 4 + \varepsilon$). The active set is unchanged for
-infinitesimal perturbation; the Cramer solve now runs over duals:
-
-% Source: src/test/cpp/modules/dedekind/optimization/lp_test.cpp (TEST_CASE "parametric LP over Dual<ℚ>")
-\begin{listing}[htbp]
-\caption{Parametric LP over \texttt{Dual<Rat>}: optimum + first-order sensitivity as one typed constant. The runtime entry \cppinline{maximize_with_values<D>} folds at translation time when its arguments are \cppinline{constexpr} (the bridge of §\ref{sec:lp-centrepiece}); instantiating at $T = $\cppinline{Dual<Rat>} discharges sensitivity through the chain rule of the ring laws. From \texttt{lp\_test.cpp} (TEST\_CASE ``parametric LP over Dual<ℚ>'').}
-\label{lst:lp-dual}
-\begin{cpp}
-
-using D = Dual<Rat>;
-constexpr std::array<HalfspaceTriple<D>, 4> polytope = {{
-    {D{Rat{1L}}, D{Rat{1L}}, D{Rat{4L}, Rat{1L}}}, // H1: x + y <= 4 + ε
-    {D{Rat{2L}}, D{Rat{1L}}, D{Rat{6L}}},          // H2: 2x + y <= 6
-    {D{Rat{-1L}}, D{Rat{0L}}, D{Rat{0L}}},         // H3: x >= 0
-    {D{Rat{0L}}, D{Rat{-1L}}, D{Rat{0L}}},         // H4:     y >= 0
-}};
-constexpr auto v = maximize_with_values<D>(
-    std::span<const HalfspaceTriple<D>>(polytope),
-    D{Rat{3L}}, D{Rat{2L}});
-
-// Optimum: x* = 2 − ε, y* = 2 + 2ε.  Set membership over Dual<Rat>
-// encodes primal AND first-order sensitivity in one compile-time check.
-constexpr auto opt = Vec2V<D>{D{Rat{2L}, Rat{-1L}},
-                              D{Rat{2L}, Rat{ 2L}}};
-static_assert(v.contains(opt));
-\end{cpp}
-\end{listing}
-
-\noindent
-The primal $(2, 2)$ is the original optimum; the tangents $(-1, +2)$
-match the hand derivation $x^*(t) = 2 - t$, $y^*(t) = 2 + 2t$ on the
-active set $\{x + y = 4 + t,\; 2x + y = 6\}$. The LP reduction was
-written once over an unconstrained ring-like carrier; instantiating
-it over the dual-number ring discharges sensitivity analysis as a
-side effect of the ring laws. The same
-$\mathtt{Dual}\circ\mathtt{Complex}\circ\mathtt{Rational}$ layering
-extends to holomorphic automatic differentiation at compile time;
-we leave its application to a follow-up.
 
 % ============================================================
 \section*{Acknowledgements}
@@ -1884,7 +1551,7 @@ is decidable'').
 Every showcase of Section~\ref{sec:pruning} is a motion inside this
 lattice. The empty-halfspace reductions of Showcase~3 go $(\mathrm{Int},\mathrm{K3},\mathrm{Opq}) \mapsto \top$
 in one step (the result is $\varnothing$); the cardinality-1 reduction
-of Showcase~4 and the LP reduction of Showcase~9 do the same. The
+of Showcase~4 does the same. The
 reductions never slide downward. With that in hand:
 
 \begin{theorem}[Type-Directed Collapse, totally-ordered 1D case]
@@ -2032,11 +1699,8 @@ proved in the paper. It is supported by the same exhibition pattern
 as the 1D theorem: each case is checked into the library as a
 \cppinline{static_assert}/\cppinline{STATIC_CHECK} witness and,
 where relevant, as an LLVM~IR fixture that fails CI on optimiser
-drift (see Section~\ref{sec:pruning}). The 2D linear-programming
-showcase of Section~\ref{sec:lp-centrepiece} discharges one
-non-trivial instance via active-set vertex enumeration; a general
-inductive proof over pivot configurations and dimensions $d$ is left
-open.
+drift (see Section~\ref{sec:pruning}). A general inductive proof over
+dimensions $d$ is left open.
 \end{conjecture}
 
 \begin{corollary}[Iterated collapse]
@@ -2082,11 +1746,10 @@ sketches that do not.
     boundary; non-linear extensions are post-paper work tracked
     under \#363.
   \item \textbf{Linear programming} (demonstrated in
-    Section~\ref{sec:lp-centrepiece} and Section~\ref{sec:ad-elliott}).
-    \cppinline{argmax(G, U)} reduces, for compile-time-sized LPs, to a
-    Set whose predicate type encodes the regime (singleton, empty, \ldots)
-    via type-level active-set enumeration; the same reduction over a
-    dual-number carrier yields sensitivity analysis with no extra code
+    Section~\ref{sec:optimization_lp}).
+    The dual of a shortest-path problem over a chain network reduces, at
+    compile time, to a typed constant; the same reduction over a
+    dual-number carrier yields edge-cost sensitivity with no extra code
     path: the solver is the compiler.
   \item \textbf{Lattice-law rewriting.} Distributivity and
     absorption applied at the type level rewrite
@@ -2738,8 +2401,8 @@ witness on which the set-comprehension surface
 \cppinline{requires}-clause (§\ref{sec:axiomatic}) & Evidence / constraint satisfaction --- a proof obligation that the type carries the term-level operations \\
 \cppinline{static_assert} (throughout) & Mechanical proof that proposition $P$ is inhabited at translation time (Curry--Howard~\cite{wadler2015propositions}) \\
 \cppinline{using} alias (§\ref{sec:axiomatic}) & Type-level redex --- the compiler reduces by $\beta$-style substitution \\
-\cppinline{constexpr} evaluation (§\ref{sec:lp-centrepiece}, IR fixtures) & Normalisation ($\beta$-reduction) --- reduction of a term to its value or literal form \\
-\cppinline{std::same_as} (§\ref{sec:lp-centrepiece}) & Definitional type equality $\tau = \sigma$ \\
+\cppinline{constexpr} evaluation (§\ref{sec:ddk_comprehension}, IR fixtures) & Normalisation ($\beta$-reduction) --- reduction of a term to its value or literal form \\
+\cppinline{std::same_as} (§\ref{sec:ddk_etcs}) & Definitional type equality $\tau = \sigma$ \\
 \midrule
 \texttt{dedekind} & \\
 \midrule
