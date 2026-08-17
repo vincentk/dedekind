@@ -479,6 +479,29 @@ This predicate-composition algebra is not merely a shorthand notation; it functi
 When operations like intersection (\texttt{\&}), union, or complement (\texttt{!}) are written as boolean logic combinations, the compiler parses the abstract syntax tree into a unified predicate chain.
 The template engine expands these composed expressions during compilation, triggering type-level constant folding and dead-code elimination.
 
+The correspondence is exact, and it is what makes the algebra optimizable.
+Because a set is its predicate, the lattice of sets over a domain $A$ is the Boolean lattice lifted pointwise, $\mathcal{P}(A) \cong \mathbb{B}^A$ (Table~\ref{tab:lattice-lift}).
+Optimization is then the simplification of these predicate compositions at translation time: an empty meet prunes, $\bot \wedge p \Rightarrow \bot$, and constant conjuncts fold away.
+The induced order, set inclusion, is pointwise implication $\chi_S \Rightarrow \chi_T$; it ranges over the domain, and keeping it decidable is the task of the specializations in §\ref{sec:ddk_etcs}.
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+lattice operation & meet & join & complement & bottom & top \\
+\midrule
+Boolean lattice $\mathbb{B}$ & $\wedge$ & $\vee$ & $\neg$ & $\bot$ & $\top$ \\
+set lattice $\mathcal{P}(A)$ & $\cap$ & $\cup$ & $\complement$ & $\varnothing$ & $A$ \\
+\bottomrule
+\end{tabular}
+\caption{
+The set lattice is the Boolean lattice, lifted pointwise.
+An intensional set is its own characteristic predicate $\chi : A \to \mathbb{B}$, so the powerset lattice over $A$ is the Boolean algebra of predicates, $\mathcal{P}(A) \cong \mathbb{B}^A$.
+Each set operation is compiled as the corresponding Boolean operation on predicates, with no element materialized.
+}
+\label{tab:lattice-lift}
+\end{table}
+
 % Source: src/test/cpp/modules/dedekind/python/showcase_03_halfspace_contradiction.ll
 \begin{listing}[htbp]
 \caption{LLVM IR for the empty-meet witness in Listing~\ref{lst:pruning} (\texttt{clang++-22 -O2}): the membership query constant-folds to \texttt{ret i1 false}.}
@@ -513,37 +536,40 @@ An extensional representation of such sets would require computational resources
 
 To escape the limitations of resource-bounded containers, \texttt{dedekind} shifts from an extensional formulation to a structural, category-theoretic foundation.
 The library acts as a change-of-base engine across a diagram of distinct structural set theories.
-The split is by the \emph{decidability} of membership, not by cardinality.
-Where the membership predicate is decidable, so the compiler can evaluate $\chi(x)$ to a definite $\top$ or $\bot$, membership is two-valued and the subobject classifier is Boolean ($\Omega = \mathbb{B}$).
-A transparent rule, such as a comparison or an arithmetic test, is of this kind.
-Where the predicate is not decidable, by Rice's theorem for an opaque lambda the compiler cannot inspect, or for an existential over a domain it cannot search, the characteristic map is a \emph{partial} function.
-We represent that in the standard way, as a total map into the Boolean extended with one \emph{undecided} value, the lift (partial-map classifier) of $\mathbb{B}$~\cite{moggi1991notions, rosolini1986continuity}.
-The truth object $\Omega$ stays Boolean; undecidability lives in the lift, not in a third truth value.
+What it guarantees for any predicate is a correct general default, and that default is deliberately poor.
+Hand the engine an opaque C++ lambda and it is honest but unoptimized.
+By Rice's theorem~\cite{rice1953classes} the compiler cannot inspect a black-box function to prune a meet or reduce an active set at translation time.
+A point query still runs the lambda.
+A structural query the compiler cannot search, such as emptiness or an existential over an unbounded domain, returns a deterministic \texttt{Unknown} rather than risking a translation-time hang.
+Semantically this default is a partial characteristic map.
+The truth object $\Omega$ stays Boolean.
+Undecidability lives in the lift, a total map into the Boolean extended with one \emph{undecided} value \texttt{U}, the partial-map classifier of $\mathbb{B}$~\cite{moggi1991notions, rosolini1986continuity}.
+It is definedness, not a third truth.
 
-This type-directed collapse, however, uncovers a fundamental architectural division of labor within \texttt{dedekind}. 
-By Rice’s theorem~\cite{rice1953classes}, it is impossible for a compiler to inspect and decide non-trivial semantic properties of arbitrary, opaque functions at translation time. 
-If an intensional set is constructed using an un-annotated, black-box C++ lambda expression, the compiler cannot inspect its internal logic to execute compile-time pruning or active-set reductions. 
-To sidestep this decidability bottleneck without sacrificing mathematical rigor, the library strictly separates the \emph{categorical contract} from the \emph{structural rewrite engine}. 
-The elementary topos infrastructure (\texttt{IsSet}) serves as a uniform mathematical interface, ensuring that all predicates look identical to downstream universal algebraic modules. 
-Concurrently, the type system exposes a family of named, structurally transparent primitive predicates—such as \texttt{Halfspace2D} and \texttt{OrderInterval}. 
-When the template engine encounters combinations of these specific, named type geometries, it intercepts the expression and activates automated structural rewrite rules (as proven in Theorem 1).
+Optimization is opt-in, through specialization.
+The type system exposes a family of named, structurally transparent predicates that specialize for a selection of common classifications: extensional sets, partially ordered sets, totally ordered sets, and so on.
+When a carrier matches one, the compiler reads its structure, fires the rewrite rules of Theorem~\ref{thm:type-directed-collapse-1d}, prunes at compile time, and decides membership.
+The characteristic map is then total and two-valued, and the classifier is the one every programmer expects, $\Omega = \mathbb{B}$.
+The elementary topos interface (\cppinline{IsSet}) keeps both paths identical to downstream universal-algebraic modules, so a specialization is a drop-in fast path, not a separate type.
+The split is therefore not by cardinality but by whether a specialization applies.
+The catalogue of structured presentations, and the algebra of which set operations preserve the fast path, is the subject of §\ref{sec:algebraic_lattice_carriers}.
 
 \begin{figure}[htbp]
 \centering
 \begin{tikzcd}[column sep=5em, row sep=4em, ampersand replacement=\&]
 \& T \arrow[d, "\text{inspect}"] \& \\
 \& \mathbf{Jlt} \arrow[d, "\text{yes}"] \arrow[r, "\text{no}"] \& \text{Reject} \\
-\& \text{decidable?} \arrow[dl, "\text{yes}"'] \arrow[dr, "\text{no}"] \& \\
+\& |[draw, rounded corners]| \text{specialization?} \arrow[dl, "\text{matches}"'] \arrow[dr, "\text{none}"] \& \\
 \mathbb{B} \arrow[d, "\chi"] \& \& \mathbb{B}+\text{U} \arrow[d, "\chi"] \\
 \{\top, \bot\} \& \& \{\top, \bot, \text{U}\}
 \end{tikzcd}
 \caption{
-The evaluation tracks the \texttt{dedekind} compiler navigates on type inspection.
+The one decision the semantic engine makes on type inspection.
 Carriers failing the $\mathbf{Jlt}$ gate (non-\texttt{std::regular}) are rejected by concept constraints.
-The rest are routed by whether membership is \emph{decidable}.
-When it is, for instance a transparent rule the compiler can evaluate, the classifier is Boolean, $\Omega = \mathbb{B}$.
-When it is not, by Rice's theorem for an opaque predicate or for an existential it cannot search, the characteristic map is partial and its value lands in the Boolean lifted with an \emph{undecided} value \texttt{U}.
-That third value is definedness, not a third truth: undecidable queries return a deterministic \texttt{Unknown} rather than risking a translation-time hang.
+Rice's theorem rules out a universal fast path, so the library ships a correct general default and lets the user opt into optimization by specializing.
+When a carrier matches a named, transparent presentation, the compiler reads its structure, prunes at compile time, and decides: membership is two-valued and the classifier is Boolean, $\Omega = \mathbb{B}$.
+When none matches, only the opaque predicate remains, and a query the compiler cannot search returns a deterministic \texttt{Unknown} rather than risking a translation-time hang.
+That default is a partial characteristic map into the lifted Boolean $\mathbb{B}+\text{U}$, where \texttt{U} records definedness, not a third truth.
 }
 \label{fig:compiler_decision_tree}
 \end{figure}
