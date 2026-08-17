@@ -1340,66 +1340,37 @@ This is the arc-as-specification seam.
 The reduction is fully determined by the telescoping structure and the ring laws; building the kernel that emits exactly this IR is the remaining implementation work.
 
 
-\section{Evaluation and Benchmarks}
+\section{Evaluation: Compile-Time Cost and Complexity}
 \label{sec:evaluation_benchmarks}
 
-To quantify the operational trade-offs introduced by shifting structural validation and optimization steps from the runtime execution domain into the translation-time template engine, a series of empirical performance benchmarks must be conducted.
-The core hypothesis of the \texttt{dedekind} library architecture posits that the severe compilation overhead incurred by deep template instantiations is offset by a corresponding, multi-order-of-magnitude reduction in runtime latency.
-To validate this assertion, the partial compile-time linear programming solver established in Section~\ref{sec:optimization_lp} was evaluated across directed network graph configurations of scaling node sizes.
-All measurements were compiled using standard Clang++18 targeting an LLVM 18.1 backend on an Apple M3 Air architecture with execution bounds pinned via explicit optimization flags (\texttt{-O3 -fconstexpr-ops-limit=4194304}).
+The architecture makes a deliberate trade: work is moved out of run time and into the translation-time template engine.
+Rather than extrapolate that trade from a single benchmark point, we characterise it in terms of the two parameters that actually govern it, the template instantiation depth and the number of constraints the reduction unrolls.
 
-The primary evaluation profile isolates the exact relationship between the volume of static constraints applied at build time and the resulting resource consumption at translation time.
-When an optimization task scales from purely runtime execution to maximum partial compile-time evaluation, the compiler is forced to manage a rapidly expanding tree of nested type allocations and coordinate-routing unrolling passes.
-Table~\ref{tab:benchmarks} details the representative performance metrics collected during these trials, contrasting the total compilation duration and peak compiler memory footprint against the final execution clock cycles per optimization pass.
-
-\begin{table}[htbp]
-\caption{Compilation cost versus runtime execution latency across scaling network topologies.
-The static allocation column indicates the percentage of topological constraints processed at build time via \cppinline{evaluate_static_bounds}.
-Runtime execution latency is measured as the geometric mean of clock cycles across $10^5$ iterative solver iterations.
-All compilation metrics tracking memory and time reflect the resource footprint of a single isolated translation unit.}
-\label{tab:benchmarks}
-\centering
-\begin{tabular}{llrrr}
-\toprule
-Graph Size ($V \times E$) & Static Allocation & Compilation Time (s) & Peak Compiler RAM (MB) & Runtime Latency (Cycles) \\
-\midrule
-$2 \times 1$   & 0\% (Pure Runtime)   & 1.2   & 142  & 1450   \\
-$2 \times 1$   & 100\% (Pure Static)  & 3.4   & 210  & 12     \\
-$16 \times 15$ & 0\% (Pure Runtime)   & 2.1   & 165  & 24800  \\
-$16 \times 15$ & 50\% (Partial Static) & 8.7   & 480  & 8300   \\
-$16 \times 15$ & 100\% (Pure Static)  & 24.5  & 1120 & 48     \\
-$64 \times 63$ & 0\% (Pure Runtime)   & 4.8   & 210  & 186000 \\
-$64 \times 63$ & 50\% (Partial Static) & 41.2  & 1890 & 54200  \\
-$64 \times 63$ & 100\% (Pure Static)  & 148.1 & 3450 & 112    \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\subsection{Analysis of Translation-Time Overhead}
+\subsection{Translation-time cost}
 \label{sec:translation_overhead_analysis}
 
-A predictable, non-linear escalation in compilation duration is observed as the percentage of static build-time constraints increases.
-When the 64-node network configuration is completely deferred to runtime execution, compilation requires a baseline of only 4.8 seconds because solver templates are treated as uninstantiated generic architectures.
-However, when 100\% of those topological constraints are declared statically to trigger maximum partial evaluation, compilation time surges to 148.1 seconds alongside a peak compiler memory footprint of 3.45 gigabytes.
-This resource spike represents the computational toll of resolving point-free topological relations and unrolling the coboundary operator chains within the \cppinline{constexpr} template interpreter.
-Because standard C++ toolchains rely on an internal abstract syntax tree (AST) interpreter to execute compile-time code, complex algebraic reductions force the compiler to act as an unbuffered functional engine.
+The compiler evaluates \cppinline{constexpr} reductions with an abstract-syntax-tree interpreter, so translation-time work is interpretive rather than compiled, and its absolute magnitude is not small.
+Its \emph{scaling}, though, is fixed by structure.
+The first parameter is the template instantiation depth.
+The disciplined fragment of §\ref{sec:jlt_posture} admits no unbounded type-level recursion, so the depth stays bounded and each reduction remains inside a decidable cone rather than diverging; the carrier tower, for instance, is capped at scalar, shape, and quotient axes, a depth of at most three in the current surface.
+The second parameter is the number of constraints the quantifier unrolls.
+For the chain-network dual of §\ref{sec:optimization_lp}, \cppinline{ForAll} expands once per edge, so the constraint count is linear in the edge count $E$.
+Composing the two, the translation-time cost is $\mathcal{O}(E)$ instantiations at bounded depth: polynomial in the problem size precisely because the depth is capped.
+An unbounded-depth formulation would forfeit that guarantee; the bounded-depth discipline is what buys both termination and a predictable cost curve, and it is the honest content of the ``severe compilation cost'' the approach is often charged with.
 
-\subsection{Analysis of Runtime Performance Payoff}
+\subsection{Runtime payoff}
 \label{sec:runtime_payoff_analysis}
 
-The severe translation-time penalty is rewarded by a massive, asymmetric collapse in runtime execution latency.
-As shown in Table~\ref{tab:benchmarks}, a fully static constraint configuration executes its entire optimization sequence in exactly 112 clock cycles, delivering a greater than 1600$\times$ speedup over the corresponding runtime-evaluated baseline.
-This dramatic cycle reduction is made mechanically possible because the type system completely evaluates the active-set facet topology and resolves the deterministic portions of the topological boundaries during compilation.
-The LLVM optimization engine receives an already pruned, constant-folded active-set network kernel, allowing it to bypass heavy algorithmic path searches and dynamic array indexing entirely.
+The payoff is structural rather than merely quantitative.
+When the constraints are declared statically, the reduction resolves the optimum to a typed constant, the telescoped coboundary sum of §\ref{sec:optimization_lp}, and the backend receives an already constant-folded kernel.
+The runtime cost of the resulting binary is therefore $\mathcal{O}(1)$: a literal load, with no solver, no active-set search, and no dynamic indexing left in the emitted code, as the synthetic IR of Listing~\ref{lst:chain-dual-spec-ir} specifies.
+The same discipline that folds an empty intersection to \texttt{ret i1 false} (§\ref{sec:ddk_comprehension}) discards the network's redundant constraint paths before code generation, so the emitted pass branches on none of the pruned structure.
 
-The resulting machine binary condenses what would normally be thousands of lines of heavy memory-probing loop instructions into a flat, predictable cascade of raw register movements and localized inline scalar operations.
-Furthermore, because the intensional set boundaries discard redundant constraint paths prior to code generation, the execution engine experiences zero branch mispredictions or hardware cache misses during the optimization pass.
-These benchmarks confirm that for systems-programming contexts where runtime latency is the ultimate engineering metric—such as real-time embedded control, high-frequency signal processing, or edge robotics—the \texttt{dedekind} library’s partial compile-time evaluation loop successfully converts build-time patience into maximal runtime execution velocity.
-
-For a sequence of $N$ optimization instances characterized by partially differing runtime inputs, the relative computational advantage scales as $\mathcal{O}(N)$.
-This linear amortization is achieved because the substantial translation-time compilation cost is incurred only once as a fixed overhead.
-Downstream execution can subsequently reuse the pruned, constant-folded active-set topology across all $N$ distinct operational variations.
-As $N$ scales, the fixed build-time penalty becomes asymptotically negligible, transforming the initial translation latency into a highly efficient cumulative runtime velocity.
+This is where the trade pays for itself.
+The translation-time cost is $\mathcal{O}(E)$ and is incurred once; the runtime cost of the compiled kernel is $\mathcal{O}(1)$ and is paid on every invocation.
+For a workload that runs the same statically-resolved kernel repeatedly, the fixed build-time cost amortises towards zero per invocation, which is the regime the architecture targets: build-time patience exchanged for runtime that is constant by construction, as wanted in real-time embedded control, signal processing, or edge robotics.
+Measured cost curves against a reference implementation are the natural next step once the kernel of §\ref{sec:optimization_lp} is built.
+The claim made here is the structural one: the cost is governed by instantiation depth and constraint count, not by any single observation.
 
 % ============================================================
 \section{Discussion and Future Work}
