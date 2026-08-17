@@ -560,7 +560,8 @@ By Rice's theorem~\cite{rice1953classes} the compiler cannot inspect a black-box
 A point query still runs the lambda.
 A structural query the compiler cannot search, such as emptiness or an existential over an unbounded domain, returns a deterministic \texttt{Unknown} rather than risking a translation-time hang.
 So the default gives one of three answers: yes, no, or \texttt{Unknown}, the last meaning only that the test did not finish at compile time.
-The open disk shows this concretely: a point inside tests yes, a point outside tests no, and a point exactly on the rim $\lVert x - c \rVert = r$ is the undecided case, since over the reals no finite-precision comparison settles $<$ against $=$.
+The open disk shows the shape of it: inside tests yes, outside tests no, and the rim $\lVert x - c \rVert = r$ is where a decision can stall.
+An ordinary floating-point comparison still returns a definite bool there; the rim is genuinely \texttt{Unknown} only for a carrier that reports the undecided boundary rather than forcing $<$ or $=$, the role \texttt{dedekind}'s constructive $\mathbb{R}$ is meant to play.
 That third answer is not a new kind of truth; it records that the query was left undecided.
 Formally, yes and no stay the ordinary two-valued truth object ($\Omega = \mathbb{B}$), and \texttt{Unknown} is a separate value layered on top: the \emph{lift} of the Booleans, or partial-map classifier~\cite{moggi1991notions, rosolini1986continuity}.
 
@@ -569,6 +570,16 @@ The type system exposes a family of named, structurally transparent predicates t
 When a carrier matches one, the compiler reads its structure, fires the rewrite rules of Theorem~\ref{thm:type-directed-collapse-1d}, prunes at compile time, and decides membership.
 The answer is then always a plain yes or no, the two-valued logic every programmer expects ($\Omega = \mathbb{B}$).
 The shared set interface (\cppinline{IsSet}) presents both paths identically to the downstream code, so a specialization is a drop-in fast path, not a separate type.
+% IMPLEMENTATION NOTE (2026-08-17, spec vs code): this sentence and
+% Figure~\ref{fig:compiler_decision_tree}'s "none -> B+U" branch state the SPEC.
+% The current resolver only approximates it: NaturalLogic keys on IsCountable
+% (a cardinality proxy, unsound for an opaque predicate over a countable domain)
+% plus structural reductions, NOT on decidability. An opaque bool lambda always
+% yields a definite value via lift_logic, never Unknown. Target: make
+% HasDecidableMembership the primary gate (IsExtensional OR a structural-
+% decidability witness advertised by the named predicate) and derive
+% logic_species from it. Tracked as a follow-up code PR; blast radius ~239 test
+% references to ClassicalLogic / NaturalLogic. See PR #766 review discussion.
 The split is therefore not by cardinality but by whether a specialization applies.
 The catalogue of structured presentations, and the algebra of which set operations preserve the fast path, is the subject of §\ref{sec:algebraic_lattice_carriers}.
 
