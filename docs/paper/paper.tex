@@ -587,7 +587,7 @@ Excerpts from \texttt{dedekind} illustrating the \cppinline{concept} definitions
 Fundamental \cppinline{concept} definitions (objects, morphisms, small categories, \ldots) are composed to reify the considerable more complex \cppinline{concept IsSet}.
 \cppinline{concept IsSet} can then be used to mechanically test candidate implementations of set theory in the ETCS sense.
 Left: definition of morphisms and small categories: \cppinline{concept IsArrow}, \cppinline{IsMonicArrow}, \cppinline{IsEpicArrow}, \cppinline{IsIsomorphism}, \cppinline{IsSmallCategory}.
-Right: the characteristic-map axiom (\cppinline{IsSubobject}, the classifier $\chi$ recognised as a carrier's call shape into $\Omega$) and the composite predicate \cppinline{IsSet}, which conjoins the ten ETCS axiom witnesses.
+Right: the characteristic-map axiom \cppinline{IsSubobject}, where a subobject's own call shape \cppinline{s(a)} is the classifier $\chi : A \to \Omega$ (it returns a \cppinline{LogicalValue}); and the composite \cppinline{IsSet}, a \cppinline{Jlt} carrier that conjoins the ten ETCS axiom witnesses (\cppinline{HasETCSAxioms}) with the Set-as-Cartesian-closed-category witness.
 The interested reader is referred to the reference implementation~\cite{Krautler_dedekind_2026} for full implementation details.
 }
 \label{lst:concept_isset}
@@ -607,15 +607,11 @@ concept IsArrow = requires {
 \begin{minipage}[t]{0.48\linewidth}
 $\mathbf{Set}$ in $\mathbf{Jlt}$
 \begin{cpp}
-// characteristic-map axiom: a subobject
-// whose call shape is the classifier chi
 template <typename S, typename A>
 concept IsSubobject = requires(S s, A a) {
-  { s(a) } -> LogicalValue;  // chi: A -> Omega
+  { s(a) } -> LogicalValue;
 };
 
-// a Jlt carrier that is an ETCS set:
-// ten axiom witnesses, plus Set is a CCC
 template <typename A>
 concept IsSet =
   HasETCSAxioms<A> &&
