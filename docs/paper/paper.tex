@@ -147,7 +147,7 @@
 \noindent We focus on the development of a linear algebra library in a mainstream programming language using compile-time evaluation as one way to perform static program verification.
 A structurally-typed fragment of C++23 --- termed the \emph{Juliet Posture} --- was assembled from \cppinline{constexpr} evaluation, \cppinline{concept} checks, and template instantiation, and was characterised under a System~F reading of the underlying type system.
 The Juliet Posture was then used to bootstrap an intensional set comprehension engine under an ETCS reading, which, when intersected with universal algebraic signatures, forms the core category $\mathbf{Ddk}$.
-The resulting embedded DSL is used to define a coordinate-free linear algebra framework which describes linear transformations as stateless topological operators acting on functional vector spaces—such as boundary and coboundary mappings over graph complexes—as opposed to taking the more conventional and often very expensive route of modeling sparse tensors as indexed multidimensional arrays. This matrix-free approach maps high-dimensional network flow problems strictly onto point-free expression-template predicate chains.
+The resulting embedded DSL is used to define a coordinate-free linear algebra framework which describes linear transformations as stateless topological operators acting on functional vector spaces, such as boundary and coboundary mappings over graph complexes, as opposed to taking the more conventional and often very expensive route of modeling sparse tensors as indexed multidimensional arrays. This matrix-free approach maps high-dimensional network flow problems strictly onto point-free expression-template predicate chains.
 On this basis the paper specifies its target exhibit: the dual of a shortest-path problem over a directed chain network, cast entirely in the type system.
 The dual potentials become a compile-time set comprehension and the coboundary constraints unroll over the totally unimodular network polytope, so the feasible region is a type rather than a runtime data structure.
 Because the chain's coboundary telescopes, the optimum is expected to fold at translation time to a typed constant, exactly as the set-comprehension exhibits already collapse an empty intersection to a literal in the emitted IR.
@@ -213,7 +213,7 @@ The steps of a single development cycle are:
 
 The resulting posture is explicit: \texttt{dedekind} is a systems-programming library that treats pre-validated mathematical concepts as first-class compile-time entities.
 This layout prevents downstream developers from bolting fragile, ad-hoc traits onto unverified numeric types.
-Choosing to land semantics at the compile-time layer—rather than as runtime abstractions or external DSLs—is a structural commitment that shapes what the compiler can enforce and what remains the developer's responsibility.
+Choosing to land semantics at the compile-time layer, rather than as runtime abstractions or external DSLs, is a structural commitment that shapes what the compiler can enforce and what remains the developer's responsibility.
 The view is that naming algebraic structures at the type level and letting the compiler discharge their governing laws narrows the gap between abstract mathematics and machine code without relying on an external proof assistant.
 While compile-time verification is native to languages like Agda or Coq, and partial automatic differentiation loops exist in specialized production environments~\cite{elliott2018simple, jakob2019enoki}, \texttt{dedekind} contributes an end-to-end realization of this discipline inside unmodified standard C++23.
 Thus, it serves as an existence proof, showing that a C++23 template engine can successfully collapse many highly non-trivial algorithmic problems down to LLVM object primitives which may be highly specialized and optimized.
@@ -249,7 +249,7 @@ This categorical vocabulary is not decorative; intensional sets acting as predic
 \begin{itemize} 
 \item \textbf{The Juliet Posture Framework:} A formal characterization of a structurally typed fragment of C++23 under a System~F reading, enabling type-checked semantic constraints without custom compiler extensions.
 \item \textbf{A Categorical Linear Algebra Architecture:} A novel method for representing linear maps as stateless topological operators over graph complexes rather than dense arrays, natively optimized for coordinate-free network systems.
-\item \textbf{A Zero-Overhead Parametric Solver:} A demonstration of a network linear program that evaluates entirely at compile time, collapsing into literal constant returns within the emitted LLVM IR.
+\item \textbf{A Zero-Overhead Parametric Solver (specified):} A synthetic source-and-IR specification of a network linear program that evaluates entirely at compile time, collapsing into literal constant returns within the emitted LLVM IR, built on the set-level type-directed collapse demonstrated in §\ref{sec:ddk_comprehension}.
 \item \textbf{An Empirical Software Artifact:} A fully realized, open-source library (\texttt{dedekind}) verifying the fundamental laws of arithmetic, calculus, and automatic differentiation at translation time.
 \end{itemize}
 
@@ -258,10 +258,10 @@ The remainder of this paper substantiates these contributions by evaluating thre
 (1) sets operate as intensional type-checked rules rather than extensional memory containers;
 (2) algebraic computation remains purely symbolic until explicitly materialized; and
 (3) standard compilers can reliably function as validation and optimization engines for mathematical invariants.
-Section~2 maps the intersection of C++23 constraints with category theory.
-Section~3 defines the set comprehension and sequence mechanics.
-Section~4 explores the algebraic lattice tower.
-Section~5 verifies the compile-time optimization payoff through our parametric linear programming centerpiece.
+Section~\ref{sec:jlt_posture} isolates the disciplined fragment of C++23, the Juliet Posture.
+Section~\ref{sec:intensional_sets} bootstraps intensional sets as type-checked predicates and the type-directed collapse they license, and Section~\ref{sec:relations_functions_blueprint} lifts these to point-free mappings between sets.
+Section~\ref{sec:algebraic_lattice_carriers} builds the universal-algebra tower of carriers, and Section~\ref{sec:operational_calculus} recasts linear algebra as coordinate-free, matrix-free operators over them.
+Section~\ref{sec:optimization_lp} specifies the chain-network dual linear program as the compile-time centrepiece; Section~\ref{sec:evaluation_benchmarks} models its cost, and Section~\ref{sec:discussion} sets out the limitations and follow-up.
 
 
 % ============================================================
@@ -413,6 +413,7 @@ In category theory terms, we can write $\mathbf{Jlt} \subset \mathbf{Cpp}$.
 This forms the exact Cartesian Closed Category needed to bootstrap formal set comprehension and universal algebra in the following sections.
 
 \section{Intensional Sets as Type-Checked Predicates}
+\label{sec:intensional_sets}
 
 \begin{figure}[htbp]
 \centering
@@ -770,7 +771,7 @@ In the codebase, this structural guarantee is enforced within the \texttt{:funct
 This architecture preserves the structural continuity of the library: functions are not distinct primitives, but are well-behaved, deterministic relations whose output logic is structurally bounded.
 
 Reifying functions in this manner allows the type system to mechanically verify classical mapping properties at translation time.
-For specialized mappings, codomain membership tests—checking whether a given element $b \in B$ lies within the actual image of the transformation—are easily discharged by the compiler.
+For specialized mappings, codomain membership tests, checking whether a given element $b \in B$ lies within the actual image of the transformation, are easily discharged by the compiler.
 If a function is certified as surjective, every element of the target space is a valid image, meaning a codomain membership query trivially constant-folds to logical truth.
 If a function is bijective, as is already implemented and leveraged within the core set eDSL, the type system utilizes a structural left-and-right inverse witness to map elements bi-directionally between spaces with zero runtime overhead.
 
@@ -1102,6 +1103,7 @@ This certified algebraic foundation guarantees that automatic differentiation re
 \section{Coordinate-Free Linear Operators}
 \label{sec:operational_calculus}
 
+With the carrier tower of §\ref{sec:algebraic_lattice_carriers} established, linear algebra over those carriers is the next layer.
 To eliminate the compile-time storage and index lookup overhead of physical matrix arrays, the library replaces coordinate linear algebra with structural operators defined over functional vector spaces.
 Rather than treating linear maps as rigid grids of numeric coefficients, the framework exploits an exact isomorphism linking traditional linear algebra, the Schwinger-Dirac braket formalism, and Discrete Exterior Calculus (DEC).
 Under this formulation, tangent and cotangent vector fields are reified as first-class functional state mappings from a coordinate index set to a semiring carrier, while high-dimensional transformations are manipulated as stateless, point-free expression trees.
@@ -1122,9 +1124,6 @@ In the library's implementation, this corresponds to a compile-time variadic fol
 Similarly, an outer product space is formalized by the tensor product $V \otimes W$, where a simple dyadic tensor $|u\rangle\langle v|$ acts as a lazy, two-argument projection expression template mapping $(i, j) \mapsto u(i) \times v(j)$, structuring a rank-one transformation without allocating physical memory cells.
 
 The design patterns governing these functional vector geometries manifest concretely through compile-time expression templates.
-Listing~\ref{lst:extensional_function_application} exhibits how the inner product bracket $\langle y \mid x \rangle$, transfinite function kets, and right-multiplied dyadic projection vectors are reified cleanly via natural operator overloading under the \emph{Juliet Posture}.
-
-The design patterns governing these functional vector geometries manifest concretely through compile-time expression templates.
 Listing~\ref{lst:extensional_function_application} exhibits how transfinite functional fields, adjoint transposition ($\sim$), and point-free dyadic operators ($\lvert x \rangle \langle y \rvert$) are reified cleanly via operator overloading within the \emph{Juliet Posture}.
 
 \begin{listing}[htbp]
@@ -1136,8 +1135,8 @@ constexpr auto u1 = Ket{[](auto n) { return n * n; }};
 constexpr auto v1 = Ket{[](auto n) { return n + bound<1u>; }};
 constexpr auto M_tensor = u1 * ~v1; // Reifies the linear operator |u1><v1|
 
-// Define a finite, enumerable coordinate index set using a validated standard container
-constexpr std::ordered_set<unsigned> BaseDomain{1u, 2u, 3u};
+// Define a finite, enumerable coordinate index set as a library extensional carrier
+constexpr ExtensionalSet BaseDomain{1u, 2u, 3u};
 
 // { M_tensor(x, 2u) | x in BaseDomain } mapped with a filter condition > 10
 constexpr auto S_image = Set{M_tensor(in(BaseDomain), bound<2u>) | M_tensor(in(BaseDomain), bound<2u>) > bound<10u>};
@@ -1191,7 +1190,7 @@ static_assert(M_rank2(bound<5u>, bound<5u>) == bound<200u>);
 \subsection{Topological Operators and Symplectic Bridging}
 \label{sec:topological_specializations}
 
-Topological operators—such as the boundary ($\partial$) and coboundary ($\delta$) operators used to formalize network linear programming constraints—fit into this generalized operator framework as structured, sparse linear mappings by viewing a graph as a discrete, one-dimensional simplicial complex.
+Topological operators, such as the boundary ($\partial$) and coboundary ($\delta$) operators used to formalize network linear programming constraints, fit into this generalized operator framework as structured, sparse linear mappings by viewing a graph as a discrete, one-dimensional simplicial complex.
 Under this formulation, the space of vertex signals acts as a space of discrete 0-forms, while the edge signals represent discrete 1-forms mapped over the complex.
 The coboundary operator $\delta$ acts precisely as the discrete exterior derivative $d_0$, transforming a vertex 0-form field $|\phi\rangle$ into an edge 1-form field $|\text{grad}\rangle$.
 Expressed in braket notation, the evaluation of the edge gradient across a directed link $e = |v_j\rangle\langle v_i|$ is the direct projection of the coboundary operator onto the edge state:
@@ -1340,7 +1339,7 @@ This is the arc-as-specification seam.
 The reduction is fully determined by the telescoping structure and the ring laws; building the kernel that emits exactly this IR is the remaining implementation work.
 
 
-\section{Evaluation: Compile-Time Cost and Complexity}
+\section{Compile-Time Cost and Complexity}
 \label{sec:evaluation_benchmarks}
 
 The architecture makes a deliberate trade: work is moved out of run time and into the translation-time template engine.
