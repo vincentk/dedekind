@@ -556,12 +556,10 @@ The catalogue of structured presentations, and the algebra of which set operatio
 
 \begin{figure}[htbp]
 \centering
-\begin{tikzcd}[column sep=5em, row sep=4em, ampersand replacement=\&]
-\& T \arrow[d, "\text{inspect}"] \& \\
-\& \mathbf{Jlt} \arrow[d, "\text{yes}"] \arrow[r, "\text{no}"] \& \text{Reject} \\
-\& |[draw, rounded corners]| \text{specialization?} \arrow[dl, "\text{matches}"'] \arrow[dr, "\text{none}"] \& \\
-\mathbb{B} \arrow[d, "\chi"] \& \& \mathbb{B}+\text{U} \arrow[d, "\chi"] \\
-\{\top, \bot\} \& \& \{\top, \bot, \text{U}\}
+\begin{tikzcd}[row sep=1.8em, column sep=2.6em, ampersand replacement=\&]
+\& \& \& \mathbb{B} \arrow[r, "\chi"] \& \{\top, \bot\} \\
+T \arrow[r, "\text{inspect}"] \& \mathbf{Jlt} \arrow[r, "\text{yes}"] \arrow[d, "\text{no}"'] \& |[draw, rounded corners]| \text{specialization?} \arrow[ur, "\text{matches}"] \arrow[dr, "\text{none}"'] \& \& \\
+\& \text{Reject} \& \& \mathbb{B}+\text{U} \arrow[r, "\chi"] \& \{\top, \bot, \text{U}\}
 \end{tikzcd}
 \caption{
 The one decision the semantic engine makes on type inspection.
