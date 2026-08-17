@@ -476,6 +476,12 @@ constexpr Singleton<7> q = Set{in(ℕ) | Exists(e, [](auto y, auto x) {
 \end{cpp}
 \end{listing}
 
+The combinator \cppinline{in} constructs a \emph{scout variable}.
+In the blackboard form $\{\,x \in \mathbb{N} \mid P(x)\,\}$ it plays the role of the bound variable $x$: a stand-in for an arbitrary element of the domain, which the bar then constrains by a predicate.
+What makes it more than a name is that it carries its domain in its own type, so the compiler knows what the variable ranges over, and it carries a representative value (its \emph{pivot}) that the template engine substitutes to evaluate and prune the predicate at compile time.
+Informally, the scout is sent into the domain to probe membership.
+Formally it is the characteristic-morphism handle that the comprehension pipe (\cppinline{operator|}) binds to a predicate (\cppinline{BoundScout} in the code, gated by \cppinline{IsArrow} since a set is its own characteristic morphism).
+
 This predicate-composition algebra is not merely a shorthand notation; it functions as an embedded syntax engine that allows the declaration of infinite spaces at the type level.
 When operations like intersection (\texttt{\&}), union, or complement (\texttt{!}) are written as boolean logic combinations, the compiler parses the abstract syntax tree into a unified predicate chain.
 The template engine expands these composed expressions during compilation, triggering type-level constant folding and dead-code elimination.
