@@ -124,12 +124,13 @@
 \newcommand{\Cpp}[1]{C\kern-.05em\raise.3ex\hbox{\footnotesize ++}#1}
 
 % --- Document Metadata ---
-\title{Compile-Time Linear Programming via the Juliet Posture\thanks{%
+\title{Compile-Time Optimization via the Juliet Posture\thanks{%
     Draft intended for submission to \emph{Programming}~\cite{programming_journal},
     the journal for programming-related research.
     The paper's scope is deliberately narrower than the companion project
-    report: this document focuses on the compile-time treatment of small
-    linear programs under the disciplined fragment of C++23 described
+    report: this document focuses on the compile-time treatment of a small
+    network optimization, the critical path of a directed acyclic graph by
+    semiring closure, under the disciplined fragment of C++23 described
     here.
     The implementation is open source as \texttt{dedekind}~\cite{dedekind2026};
     the broader library (categorical foundations, algebra tower, numeric
@@ -164,8 +165,8 @@ The overall approach, while heavy on the theory, would appear to generalize to s
 \vspace{0.75em}
 \noindent\textbf{Keywords:} C++23; concepts; non-type template
 parameters; compile-time verification; Axiomatic Systems Programming;
-type-directed collapse; linear programming; forward-mode automatic
-differentiation.
+type-directed collapse; semiring closure; critical path; forward-mode
+automatic differentiation.
 
 % ============================================================
 \section{Introduction}
@@ -249,7 +250,7 @@ This categorical vocabulary is not decorative; intensional sets acting as predic
 \begin{itemize} 
 \item \textbf{The Juliet Posture Framework:} A formal characterization of a structurally typed fragment of C++23 under a System~F reading, enabling type-checked semantic constraints without custom compiler extensions.
 \item \textbf{A Categorical Linear Algebra Architecture:} A novel method for representing linear maps as stateless topological operators over graph complexes rather than dense arrays, natively optimized for coordinate-free network systems.
-\item \textbf{A Zero-Overhead Parametric Solver (specified):} A synthetic source-and-IR specification of a network linear program that evaluates entirely at compile time, collapsing into literal constant returns within the emitted LLVM IR, built on the set-level type-directed collapse demonstrated in §\ref{sec:ddk_comprehension}.
+\item \textbf{A Zero-Overhead Optimization Exhibit:} A checked-in source-and-IR demonstration of a network critical path, computed by semiring closure, that folds to literal constant returns in the emitted LLVM IR when the endpoints are static and leaves a specialised runtime-parametric residual when they are not, built on the set-level type-directed collapse of §\ref{sec:ddk_comprehension}.
 \item \textbf{An Empirical Software Artifact:} A fully realized, open-source library (\texttt{dedekind}) verifying the fundamental laws of arithmetic, calculus, and automatic differentiation at translation time.
 \end{itemize}
 
@@ -1169,11 +1170,14 @@ Computing the critical path is therefore solving one side of a linear program, a
 \label{subsec:semiring_closure}
 
 The reduction is a \cppinline{fold} over the graph's edges (Listing~\ref{lst:closure}), gated on the \emph{algebraic} concept \cppinline{IsSemiring<S, Add, Mult>} rather than a syntactic operator list.
-Each edge relaxes one potential, $d[\mathrm{head}] := d[\mathrm{head}] \oplus d[\mathrm{tail}] \otimes c$; one pass in topological order suffices on a DAG.
+Each edge relaxes one potential, $d[\mathrm{head}] := d[\mathrm{head}] \oplus d[\mathrm{tail}] \otimes c$; one pass in topological order suffices on a DAG.\footnote{\cppinline{materialise} (Listing~\ref{lst:necklace}) emits edges tail-ascending, a topological order whenever the nodes are numbered compatibly with the DAG; such a numbering always exists, and the necklace's $(x,y)$-index is one. A topologically shuffled edge list would instead need the usual $|\mathcal{V}| - 1$ relaxation passes.}
 The operators default to the carrier's canonical pair, so neither the reachability nor the critical-path call site spells them out.
 
 \begin{listing}[htbp]
-\caption{The single-source semiring closure: a fold over the edge sequence, gated on \cppinline{IsSemiring}, the operators defaulted per carrier.}
+\caption{The single-source semiring closure: a fold over the edge sequence, gated on \cppinline{IsSemiring}, the operators defaulted per carrier.
+The fold threads its accumulator in place, so the relaxation step is not side-effect-free.
+The effect stays local, the potential net never escapes the call, and \cppinline{constexpr} evaluation is the proof: a function leaking an observable effect could not fold to the literal IR of Listing~\ref{lst:necklace-ir}.
+This is the role Haskell reserves for \cppinline{runST}, sealing an in-place computation so it reads as pure from the outside.}
 \label{lst:closure}
 \begin{cpp}
 template <typename S, std::size_t Cap,
@@ -1182,7 +1186,8 @@ template <typename S, std::size_t Cap,
   requires IsSemiring<S, Add, Mult>
 constexpr S semiring_closure(std::size_t source, std::size_t sink,
                              const Edges& edges, CostFn cost) {
-  FiniteNet<S, Cap> d{};                     // the potential net, 0-bar everywhere
+  static_assert(S{} == identity_v<S, Add>);  // net default IS the semiring 0-bar
+  FiniteNet<S, Cap> d{};               // 0-bar everywhere (-inf under MaxPlus)
   d.at(source) = identity_v<S, Mult>;  // 1-bar at the source
   return fold(edges, d, [&](auto& acc, Edge e) {   // thread the net in place
     acc.at(e.head) = Add{}(acc(e.head), Mult{}(acc(e.tail), cost(e.tail, e.head)));
@@ -1693,8 +1698,8 @@ sketches that do not.
     instantiation time.  Quadratic $f$ is the worked-instance
     boundary; non-linear extensions are post-paper work tracked
     under \#363.
-  \item \textbf{Linear programming} (demonstrated in
-    Section~\ref{sec:optimization_lp}).
+  \item \textbf{Network critical path, a linear-programming dual}
+    (demonstrated in Section~\ref{sec:optimization_lp}).
     The critical path of a directed acyclic network reduces, at
     compile time, to a typed constant; the same closure over a
     dual-number carrier yields edge-cost sensitivity with no extra code
