@@ -128,18 +128,23 @@ struct Dual {
   friend constexpr bool operator==(const Dual&, const Dual&) = default;
 
   /**
-   * @brief Primal-lex ordering: `a < b` iff `a.val < b.val`.
+   * @brief Lexicographic total order: primal first, tangent breaks ties.
    *
-   *  This is a partial order on `Dual<F>` (ties under primal equality
-   *  are incomparable — we return `false`), projecting to the natural
-   *  total order on the primal component `F`. Used by downstream
-   *  reductions (e.g. argmax in `dedekind.optimization:lp`) whose
-   *  ordering semantics are defined on the primal part only. Tangents
-   *  are not part of the ordering — they ride along via the chain rule
-   *  on arithmetic.
+   *  `a < b` iff `a.val < b.val`, or equal primal with `a.der < b.der`.
+   *  This is a @b total order whose induced equality is @c operator==
+   *  (which compares both components), so trichotomy holds and any
+   *  order-extremum over @c Dual --- e.g. the tropical @c ⊕ = @c max ---
+   *  is @b commutative (a genuine semiring join, not an argument-order
+   *  artefact).  On a primal tie the extremum carries the larger tangent,
+   *  the @b upper subgradient: a deterministic, valid selection at a point
+   *  where @c max is non-differentiable.  The primal alone still fixes the
+   *  optimum's @b value (a tie is equal-primal); the tangent only decides
+   *  @b which representative is carried out of the tie, so downstream
+   *  argmax (e.g. @c dedekind.optimization:lp) keeps the same optimal
+   *  value, with degenerate ties now broken deterministically.
    */
   friend constexpr bool operator<(const Dual& a, const Dual& b) {
-    return a.val < b.val;
+    return a.val < b.val || (a.val == b.val && a.der < b.der);
   }
 
   friend constexpr Dual operator+(const Dual& a, const Dual& b) {

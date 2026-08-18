@@ -101,11 +101,16 @@ struct identity_trait<dedekind::algebra::Tropical<T, M>,
                       std::plus<dedekind::algebra::Tropical<T, M>>, void> {
   static constexpr dedekind::algebra::Tropical<T, M> value{true, T{}};
 };
-/** @brief @c ⊗ is total via the @c ∞-absorbing saturating certificate. */
+/** @brief @c ⊗ (= T's @c + with the @c ∞ sentinel absorbing) is total exactly
+ *  when T's own @c + is total: the @c ∞ boundary saturates, and the finite part
+ *  inherits T's totality.  Gated on @c IsMagma<T> so the certificate is @b
+ *  honest --- @c true for a periodic carrier such as @c unsigned (defined
+ *  wraparound, no UB), @c false for @c long long (signed overflow is not a
+ *  magma; cf. the @c !IsMagma<int,+> rejection in @c category/total.cppm). */
 template <typename T, bool M>
 struct is_saturating<dedekind::algebra::Tropical<T, M>,
                      std::plus<dedekind::algebra::Tropical<T, M>>>
-    : std::true_type {};
+    : std::bool_constant<dedekind::category::IsMagma<T, std::plus<T>>> {};
 /** @brief @c ⊗ distributes over @c ⊕. */
 template <typename T, bool M>
 inline constexpr bool
@@ -146,8 +151,10 @@ struct semiring_ops<bool> {
   using mult = std::logical_and<bool>;
 };
 
-// Cross-partition invariant: the tropical carrier is a certified dioid.
-static_assert(IsTropical<MaxPlus<long long>, TropicalPlus,
-                         std::plus<MaxPlus<long long>>>);
+// Cross-partition invariant: the tropical carrier is a certified dioid over an
+// honestly-total (periodic) carrier.  Unsigned states the non-negative domain;
+// signed long long is correctly NOT certifiable (overflow is not a magma).
+static_assert(IsTropical<MaxPlus<unsigned long long>, TropicalPlus,
+                         std::plus<MaxPlus<unsigned long long>>>);
 
 }  // namespace dedekind::algebra

@@ -14,7 +14,8 @@
  * The edge relation is one analytic rule, E((x,y),(x',y')) <=> x'=x+1 &
  * |y'-y|=1; it is materialised extensionally (once, in topological order) and
  * the closure is a fold over that sequence, not nested loops.  The cost of
- * arriving at (x',y') is y'*(K-x'), so the longest path is the chevron
+ * arriving at (x',y') is max(y'*(K-x'), 0) (CPM durations are non-negative, so
+ * the carrier is unsigned), so the longest path is the chevron
  * up,up,down,down = 8.
  *
  * Expected LLVM IR (at -O2), a literal load each, no solver:
@@ -72,25 +73,32 @@ constexpr bool necklace_reaches = semiring_closure<bool, NCAP>(
     NSRC, NSINK, necklace_edges, [](std::size_t, std::size_t) { return true; });
 static_assert(necklace_reaches);
 
-// --- Critical path: MaxPlus, defaulted to (max, +). ---
-using MPll = MaxPlus<long long>;
+// --- Critical path: MaxPlus over UNSIGNED --- a periodic magma, hence a
+// genuinely total dioid (no overflow UB), so the carrier itself states the
+// problem's non-negativity.  CPM durations are >= 0, so the cost is
+// max(y*(K-x), 0); the critical chevron is already non-negative, so the
+// value is unchanged at 8. ---
+using MPu = MaxPlus<unsigned long long>;
 constexpr auto cpm_cost = [](std::size_t, std::size_t v) {
   const int x2 = static_cast<int>(v) / 3, y2 = static_cast<int>(v) % 3 - 1;
-  return MPll::of(static_cast<long long>(y2) * (NK - x2));
+  const long long c = static_cast<long long>(y2) * (NK - x2);
+  return MPu::of(c > 0 ? static_cast<unsigned long long>(c) : 0ULL);
 };
-constexpr MPll necklace_cpm =
-    semiring_closure<MPll, NCAP>(NSRC, NSINK, necklace_edges, cpm_cost);
+constexpr MPu necklace_cpm =
+    semiring_closure<MPu, NCAP>(NSRC, NSINK, necklace_edges, cpm_cost);
 static_assert(necklace_cpm.finite && necklace_cpm.val == 8);
 
 // --- Sensitivity: MaxPlus over dual numbers; the tangent is the envelope
 // theorem (1 on the chosen branch, 0 otherwise). ---
-using DLL = dedekind::analysis::Dual<long long>;
-using MPd = MaxPlus<DLL>;
+using DUL = dedekind::analysis::Dual<unsigned long long>;
+using MPd = MaxPlus<DUL>;
 constexpr auto sens_cost = [](int peak) {
   return [peak](std::size_t, std::size_t v) {
     const int x2 = static_cast<int>(v) / 3, y2 = static_cast<int>(v) % 3 - 1;
-    const long long value = static_cast<long long>(y2) * (NK - x2);
-    return MPd::of(DLL{value, (v == nidx(peak, 1)) ? 1 : 0});
+    const long long c = static_cast<long long>(y2) * (NK - x2);
+    const unsigned long long value =
+        c > 0 ? static_cast<unsigned long long>(c) : 0ULL;
+    return MPd::of(DUL{value, (v == nidx(peak, 1)) ? 1ULL : 0ULL});
   };
 };
 constexpr MPd necklace_sens_crit =
@@ -126,14 +134,15 @@ witness_necklace_sensitivity_floated() {
  *  IR: a real fold loop, not a constant. */
 extern "C" __attribute__((noinline)) int64_t
 witness_necklace_critical_between(std::size_t source, std::size_t sink) {
+  if (source >= NCAP || sink >= NCAP) return -1;  // endpoints bounded by NCAP
   return static_cast<int64_t>(
-      semiring_closure<MPll, NCAP>(source, sink, necklace_edges, cpm_cost).val);
+      semiring_closure<MPu, NCAP>(source, sink, necklace_edges, cpm_cost).val);
 }
 
 // --- The same result the ddk way: collapse the relation to the critical-path
 // FUNCTION (annotate → pred net), iterate it to the path, fold the path. ---
-constexpr auto necklace_pred = dedekind::optimization::annotate<MPll, NCAP>(
-    NSRC, necklace_edges, cpm_cost);
+constexpr auto necklace_pred =
+    dedekind::optimization::annotate<MPu, NCAP>(NSRC, necklace_edges, cpm_cost);
 constexpr auto necklace_path =
     dedekind::optimization::critical_path<NCAP>(necklace_pred, NSRC, NSINK);
 
@@ -141,7 +150,7 @@ constexpr auto necklace_path =
 constexpr long long necklace_path_value = dedekind::sequences::fold(
     necklace_path, 0LL,
     [](long long& acc, const dedekind::optimization::Edge& e) {
-      acc += cpm_cost(e.tail, e.head).val;
+      acc += static_cast<long long>(cpm_cost(e.tail, e.head).val);
     });
 static_assert(necklace_path_value == 8);
 

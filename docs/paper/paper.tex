@@ -1198,7 +1198,7 @@ constexpr S semiring_closure(std::size_t source, std::size_t sink,
 
 The tropical carrier \cppinline{Tropical<T>} $= T \cup \{\infty\}$ is a certified \cppinline{IsSemiring}, and in fact a \emph{dioid}: its addition $\oplus$ is the order-extremum (\cppinline{max} for the longest path), an idempotent semilattice, while its multiplication $\otimes$ is the carrier's own $+$.
 That idempotence is the whole difference from the naturals; the concept \cppinline{IsTropical} names it as \cppinline{IsSemiring} refined by an idempotent $\oplus$.
-\cppinline{MaxPlus<T>} aliases the longest-path direction, with $\infty$ the saturating sentinel the extended cardinal's $\aleph_0$ already plays.
+\cppinline{MaxPlus<T>} aliases the longest-path direction, with $\infty$ the saturating sentinel the extended cardinal's $\aleph_0$ already plays.\footnote{The finite carrier is \cppinline{unsigned}: its $+$ is a \emph{periodic} magma (defined wraparound, not signed-overflow UB), so the $\otimes$-totality the \cppinline{IsSemiring} gate requires is certified \emph{honestly} rather than asserted over a hazard; signed \cppinline{long long} is correctly not certifiable.  This is the same discipline the library applies to \textsc{ieee} and signed integers: an operation is certified total only where the hardware genuinely closes it.}
 
 \subsection{A worked exhibit: the diamond necklace}
 \label{subsec:necklace}
@@ -1225,7 +1225,8 @@ The edge relation is one analytic rule on the pair of nodes, and because $y$ ran
 \begin{equation}
     E\big((x,y),(x',y')\big) \iff x' = x + 1 \;\wedge\; |y' - y| = 1.
 \end{equation}
-The cost of arriving at $(x', y')$ is $y' \cdot (K - x')$, which is $0$ on the axis, so merges are free, and $\pm(K - x')$ at the peaks and valleys.
+The cost of arriving at $(x', y')$ is $\max\big(y'(K - x'),\, 0\big)$, a non-negative duration (a CPM activity cannot take negative time), so the carrier is \cppinline{unsigned}.
+It is $0$ on the axis, so merges are free, positive at the early peaks and late valleys, and clamped to $0$ where $y'(K - x') < 0$; the critical chevron is already non-negative, so the clamp leaves its value unchanged.
 Up pays early and down pays late, so the longest path is a chevron, up, up, down, down, of value $3 + 1 + 1 + 3 = 8$.
 
 Listing~\ref{lst:necklace} drives the one closure over three semirings, and Listing~\ref{lst:necklace-ir} is the LLVM IR it emits.
@@ -1244,7 +1245,7 @@ constexpr bool reaches = semiring_closure<bool, Cap>(
 
 // Critical path, point-free: collapse the relation to the critical-path
 // FUNCTION (a net V -> V), iterate it to the path, fold the path to a scalar.
-constexpr FiniteNet<size_t, Cap> pred = annotate<MaxPlus<long long>, Cap>(src, edges, cost);
+constexpr FiniteNet<size_t, Cap> pred = annotate<MaxPlus<unsigned long long>, Cap>(src, edges, cost);
 constexpr auto path  = critical_path(pred, src, sink);
 constexpr long long value = fold(path, 0LL,
     [](long long& acc, Edge e){ acc += cost(e.tail, e.head).val; });
@@ -1309,7 +1310,7 @@ The runtime cost of the resulting binary is therefore $\mathcal{O}(1)$: a litera
 The same discipline that folds an empty intersection to \texttt{ret i1 false} (§\ref{sec:ddk_comprehension}) discards the network's redundant constraint paths before code generation, so the emitted pass branches on none of the pruned structure.
 
 This is where the trade pays for itself.
-The translation-time cost is $\mathcal{O}(E)$ and is incurred once; the runtime cost of the compiled kernel is $\mathcal{O}(1)$ and is paid on every invocation.
+The translation-time cost is $\mathcal{O}(V^{2} + E)$, the $V^{2}$ to materialise the intensional rule over node pairs and the $E$ for the fold, incurred once; the runtime cost of the compiled kernel is $\mathcal{O}(1)$ and is paid on every invocation.
 For a workload that runs the same statically-resolved kernel repeatedly, the fixed build-time cost amortises towards zero per invocation, which is the regime the architecture targets: build-time patience exchanged for runtime that is constant by construction, as wanted in real-time embedded control, signal processing, or edge robotics.
 The static case is not forced, however: the same kernel accepts a runtime graph as a partially-evaluated residual (Appendix~\ref{app:partial-eval}), so the compile-time versus runtime split is chosen per call site rather than baked into the architecture.
 
@@ -1317,7 +1318,7 @@ The static case is not forced, however: the same kernel accepts a runtime graph 
 \label{sec:complexity_class}
 
 Underneath both costs sits a single complexity fact, and it is algebraic rather than empirical.
-The necklace has $2^{k}$ distinct source-to-sink paths for its $k$ diamonds, exponential in the graph, yet the closure resolves the critical path in polynomial time and never enumerates a path ($\mathcal{O}(V^{3})$ as written; $\mathcal{O}(V + E)$ with a topological pass).
+The necklace has $2^{k}$ distinct source-to-sink paths for its $k$ diamonds, exponential in the graph, yet the closure resolves the critical path in polynomial time and never enumerates a path ($\mathcal{O}(V^{2} + E)$: the $V^{2}$ node-pair materialisation plus the $\mathcal{O}(E)$ fold).
 The reason it need not enumerate is the distributivity of the semiring, $a \otimes (b \oplus c) = (a \otimes b) \oplus (a \otimes c)$: distributivity is exactly what lets the sum over all paths be computed as a fold over the $V$ nodes, which is dynamic programming stated as an axiom.
 So the \cppinline{IsSemiring} gate of §\ref{sec:optimization_lp} is not only the correctness condition; its distributive law is the \emph{complexity guarantee}, and the polynomial residual the compiler ships is a theorem about the algebra rather than a measured quantity.
 
@@ -1375,13 +1376,14 @@ This is partial evaluation~\cite{jones1993partial} in the precise sense: freezin
 \label{lst:partial-eval}
 \begin{cpp}
 // Endpoints static  -> constant expression -> ret i64 8 (full collapse).
-constexpr auto opt = semiring_closure<MaxPlus<long long>, Cap>(
+constexpr auto opt = semiring_closure<MaxPlus<unsigned long long>, Cap>(
     SRC, SINK, edges, cpm_cost);            // SRC, SINK literals
 
 // Endpoints runtime -> residual: the fold over the edges, max/add inlined,
 // indexed by (source, sink); no generic solver, no dispatch.
 int64_t critical_between(std::size_t source, std::size_t sink) {
-  return semiring_closure<MaxPlus<long long>, Cap>(
+  if (source >= Cap || sink >= Cap) return -1;  // bound is compile-time; folds
+  return semiring_closure<MaxPlus<unsigned long long>, Cap>(
       source, sink, edges, cpm_cost).val;    // source, sink runtime
 }
 \end{cpp}

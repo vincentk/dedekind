@@ -80,8 +80,13 @@ constexpr S semiring_closure(std::size_t source, std::size_t sink,
 /**
  * @brief Collapse the edge relation to the critical-path FUNCTION @c pred :
  *        V → V (each node's predecessor on the longest path).  Gated on
- *        @c IsTropical: a dioid's @c ⊕ is @b selective, which is what makes
- *        @c argmax --- and hence a single-valued @c pred --- well defined.
+ *        @c IsTropical (idempotent @c ⊕).  @b Precondition beyond the gate:
+ *        @c ⊕ must be @b selective (its result is one of its two operands),
+ *        which is what makes @c argmax --- and hence a single-valued @c pred
+ *        --- well defined.  @c MaxPlus satisfies this; @c IsTropical alone does
+ *        @b not guarantee it (a non-selective dioid such as powerset-union
+ *        would yield a third value and need a set-valued @c pred).
+ *        FIXME(#769): tighten the gate to a selectivity concept.
  */
 export template <
     typename S, std::size_t Cap,
