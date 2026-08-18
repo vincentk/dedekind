@@ -223,6 +223,7 @@ add_library(set-pruning-ir-fixture STATIC EXCLUDE_FROM_ALL
     src/test/cpp/modules/dedekind/python/showcase_07_lattice_real_interval.cpp
     src/test/cpp/modules/dedekind/python/showcase_08_halfspace_2d_product.cpp
     src/test/cpp/modules/dedekind/python/showcase_09_lp_vertex_typed_constant.cpp
+    src/test/cpp/modules/dedekind/python/showcase_13_necklace_critical_path.cpp
     # showcase_09b is the runtime call site of the same kernel as 09:
     # the coefficients arrive as runtime arguments, the IR retains the
     # algorithm's residual structure.  Read side-by-side with 09's
