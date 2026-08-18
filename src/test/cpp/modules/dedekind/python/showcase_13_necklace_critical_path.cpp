@@ -134,9 +134,10 @@ witness_necklace_sensitivity_floated() {
  *  IR: a real fold loop, not a constant. */
 extern "C" __attribute__((noinline)) int64_t
 witness_necklace_critical_between(std::size_t source, std::size_t sink) {
-  if (source >= NCAP || sink >= NCAP) return -1;  // endpoints bounded by NCAP
-  return static_cast<int64_t>(
-      semiring_closure<MPu, NCAP>(source, sink, necklace_edges, cpm_cost).val);
+  if (source >= NCAP || sink >= NCAP) return -1;  // out-of-range query
+  const MPu d =
+      semiring_closure<MPu, NCAP>(source, sink, necklace_edges, cpm_cost);
+  return d.finite ? static_cast<int64_t>(d.val) : -1;  // unreachable -> -1
 }
 
 // --- The same result the ddk way: collapse the relation to the critical-path

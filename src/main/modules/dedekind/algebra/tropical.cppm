@@ -23,6 +23,7 @@ module;
 
 #include <concepts>
 #include <functional>
+#include <limits>
 
 export module dedekind.algebra:tropical;
 
@@ -43,12 +44,27 @@ struct Tropical {
   bool finite = false;
   T val = T{};
 
-  friend constexpr bool operator==(const Tropical&, const Tropical&) = default;
+  /** @brief All @c ∞ representations are equal: @c val is dead when
+   *  @c !finite, so a non-canonical @c {false, k} still compares equal to the
+   *  @c {false, T{}} sentinel (preserving the additive-identity law). */
+  friend constexpr bool operator==(const Tropical& a, const Tropical& b) {
+    if (a.finite != b.finite) return false;
+    return !a.finite || a.val == b.val;  // both ∞, or both finite w/ equal val
+  }
 
-  /** @brief @c ⊗ = @c + (the naturals' addition); @c ∞ absorbs. */
+  /** @brief @c ⊗ = @c + (the naturals' addition), @b saturating so it stays
+   *  monotone over @c ⊕ and hence @b distributive; @c ∞ absorbs.  For unsigned
+   *  @c T the finite sum clamps at @c max on overflow --- the bounded max-plus
+   *  dioid --- which is what makes the @c IsSemiring distributivity certificate
+   *  honest rather than false at the wraparound boundary. */
   friend constexpr Tropical operator+(const Tropical& a, const Tropical& b) {
     if (!a.finite || !b.finite) return Tropical{false, T{}};
-    return Tropical{true, a.val + b.val};
+    if constexpr (std::unsigned_integral<T>) {
+      const T s = a.val + b.val;
+      return Tropical{true, s < a.val ? std::numeric_limits<T>::max() : s};
+    } else {
+      return Tropical{true, a.val + b.val};
+    }
   }
 
   static constexpr Tropical of(T v) { return Tropical{true, v}; }
@@ -156,5 +172,17 @@ struct semiring_ops<bool> {
 // signed long long is correctly NOT certifiable (overflow is not a magma).
 static_assert(IsTropical<MaxPlus<unsigned long long>, TropicalPlus,
                          std::plus<MaxPlus<unsigned long long>>>);
+
+// Distributivity holds even at the overflow boundary, because the saturating
+// ⊗ is monotone over ⊕ (the Copilot #768 counterexample x=1, y=max, z=0, which
+// wrapping would break, now satisfies a ⊗ (b ⊕ c) == (a ⊗ b) ⊕ (a ⊗ c)).
+static_assert([] {
+  using S = MaxPlus<unsigned long long>;
+  constexpr std::plus<S> mul{};
+  constexpr TropicalPlus add{};
+  const S x = S::of(1), z = S::of(0);
+  const S y{true, std::numeric_limits<unsigned long long>::max()};
+  return mul(x, add(y, z)) == add(mul(x, y), mul(x, z));
+}());
 
 }  // namespace dedekind::algebra

@@ -84,6 +84,7 @@
 module;
 #include <concepts>
 #include <functional>  // std::plus / std::multiplies in IsAlgebra witnesses
+#include <limits>      // saturating componentwise + for unsigned carriers
 
 export module dedekind.analysis:dual;
 
@@ -148,7 +149,16 @@ struct Dual {
   }
 
   friend constexpr Dual operator+(const Dual& a, const Dual& b) {
-    return {a.val + b.val, a.der + b.der};
+    if constexpr (std::unsigned_integral<F>) {
+      // Saturate each component so + stays monotone over the lex order (hence
+      // a distributive tropical ⊗ when Dual is a MaxPlus carrier): clamp at max
+      // on wraparound rather than wrapping.
+      const F sv = a.val + b.val, sd = a.der + b.der;
+      return {sv < a.val ? std::numeric_limits<F>::max() : sv,
+              sd < a.der ? std::numeric_limits<F>::max() : sd};
+    } else {
+      return {a.val + b.val, a.der + b.der};
+    }
   }
 
   friend constexpr Dual operator-(const Dual& a, const Dual& b) {

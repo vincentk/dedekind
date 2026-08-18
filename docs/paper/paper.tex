@@ -1198,7 +1198,7 @@ constexpr S semiring_closure(std::size_t source, std::size_t sink,
 
 The tropical carrier \cppinline{Tropical<T>} $= T \cup \{\infty\}$ is a certified \cppinline{IsSemiring}, and in fact a \emph{dioid}: its addition $\oplus$ is the order-extremum (\cppinline{max} for the longest path), an idempotent semilattice, while its multiplication $\otimes$ is the carrier's own $+$.
 That idempotence is the whole difference from the naturals; the concept \cppinline{IsTropical} names it as \cppinline{IsSemiring} refined by an idempotent $\oplus$.
-\cppinline{MaxPlus<T>} aliases the longest-path direction, with $\infty$ the saturating sentinel the extended cardinal's $\aleph_0$ already plays.\footnote{The finite carrier is \cppinline{unsigned}: its $+$ is a \emph{periodic} magma (defined wraparound, not signed-overflow UB), so the $\otimes$-totality the \cppinline{IsSemiring} gate requires is certified \emph{honestly} rather than asserted over a hazard; signed \cppinline{long long} is correctly not certifiable.  This is the same discipline the library applies to \textsc{ieee} and signed integers: an operation is certified total only where the hardware genuinely closes it.}
+\cppinline{MaxPlus<T>} aliases the longest-path direction, with $\infty$ the saturating sentinel the extended cardinal's $\aleph_0$ already plays.\footnote{The finite carrier is \cppinline{unsigned} and the tropical $\otimes$ \emph{saturates} (clamps at \cppinline{max} on overflow rather than wrapping): saturating addition is total \emph{and} monotone over \cppinline{max}, so this is a genuine \emph{bounded max-plus dioid} --- the \cppinline{IsSemiring} distributivity certificate is honest all the way to the wraparound boundary, not merely below it (wrapping alone would fail, e.g. $1 + \max(2^{64}{-}1, 0) = 0 \ne 1$).  Signed \cppinline{long long} is correctly not certifiable (overflow is not a magma).  This is the same discipline the library applies to \textsc{ieee} and signed integers: an operation is certified only where the hardware genuinely closes it.}
 
 \subsection{A worked exhibit: the diamond necklace}
 \label{subsec:necklace}
@@ -1382,9 +1382,10 @@ constexpr auto opt = semiring_closure<MaxPlus<unsigned long long>, Cap>(
 // Endpoints runtime -> residual: the fold over the edges, max/add inlined,
 // indexed by (source, sink); no generic solver, no dispatch.
 int64_t critical_between(std::size_t source, std::size_t sink) {
-  if (source >= Cap || sink >= Cap) return -1;  // bound is compile-time; folds
-  return semiring_closure<MaxPlus<unsigned long long>, Cap>(
-      source, sink, edges, cpm_cost).val;    // source, sink runtime
+  if (source >= Cap || sink >= Cap) return -1;   // out-of-range query
+  const auto d = semiring_closure<MaxPlus<unsigned long long>, Cap>(
+      source, sink, edges, cpm_cost);            // source, sink runtime
+  return d.finite ? d.val : -1;                  // unreachable -> -1, not 0
 }
 \end{cpp}
 \end{listing}

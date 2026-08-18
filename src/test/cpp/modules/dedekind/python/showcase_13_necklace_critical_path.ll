@@ -36,7 +36,7 @@ define i64 @witness_necklace_critical_between(i64 noundef %0, i64 noundef %1) lo
   %4 = icmp ugt i64 %0, 26
   %5 = icmp ugt i64 %1, 26
   %6 = or i1 %4, %5
-  br i1 %6, label %47, label %7
+  br i1 %6, label %50, label %7
 
 7:                                                ; preds = %2
   call void @llvm.lifetime.start.p0(ptr nonnull %3)
@@ -68,8 +68,8 @@ define i64 @witness_necklace_critical_between(i64 noundef %0, i64 noundef %1) lo
   %29 = sext i32 %28 to i64
   %30 = mul nsw i64 %27, %29
   %31 = tail call i64 @llvm.smax.i64(i64 %30, i64 0)
-  %32 = trunc nuw i8 %20 to i1
-  %33 = add i64 %31, %22
+  %32 = trunc i8 %20 to i1
+  %33 = tail call i64 @llvm.uadd.sat.i64(i64 %22, i64 %31)
   %34 = and i8 %20, 1
   %35 = select i1 %32, i64 %33, i64 0
   %36 = trunc nuw i8 %15 to i1
@@ -85,14 +85,17 @@ define i64 @witness_necklace_critical_between(i64 noundef %0, i64 noundef %1) lo
 
 43:                                               ; preds = %9
   %44 = getelementptr inbounds nuw %"struct.dedekind::algebra::Tropical", ptr %3, i64 %1
-  %45 = getelementptr inbounds nuw i8, ptr %44, i64 8
-  %46 = load i64, ptr %45, align 8
+  %45 = load i8, ptr %44, align 8
+  %46 = getelementptr inbounds nuw i8, ptr %44, i64 8
+  %47 = load i64, ptr %46, align 8
   call void @llvm.lifetime.end.p0(ptr nonnull %3)
-  br label %47
+  %48 = trunc i8 %45 to i1
+  %49 = select i1 %48, i64 %47, i64 -1
+  br label %50
 
-47:                                               ; preds = %2, %43
-  %48 = phi i64 [ %46, %43 ], [ -1, %2 ]
-  ret i64 %48
+50:                                               ; preds = %2, %43
+  %51 = phi i64 [ %49, %43 ], [ -1, %2 ]
+  ret i64 %51
 }
 
 ; Function Attrs: mustprogress nocallback nofree nosync nounwind willreturn memory(argmem: readwrite)
@@ -131,6 +134,9 @@ define internal void @_GLOBAL__sub_I_showcase_13_necklace_critical_path.cpp() #4
 
 ; Function Attrs: nocallback nocreateundeforpoison nofree nosync nounwind speculatable willreturn memory(none)
 declare i64 @llvm.smax.i64(i64, i64) #5
+
+; Function Attrs: nocallback nocreateundeforpoison nofree nosync nounwind speculatable willreturn memory(none)
+declare i64 @llvm.uadd.sat.i64(i64, i64) #5
 
 ; Function Attrs: nocallback nocreateundeforpoison nofree nosync nounwind speculatable willreturn memory(none)
 declare i64 @llvm.umax.i64(i64, i64) #5
