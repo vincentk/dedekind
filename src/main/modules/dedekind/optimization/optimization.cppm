@@ -26,4 +26,5 @@
  */
 export module dedekind.optimization;
 
+export import :closure;  // semiring_closure — reachability / critical path
 export import :lp;

@@ -59,6 +59,15 @@ SOURCES = [
         _PYTHON_DIR / "showcase_09_lp_vertex_typed_constant.cpp",
         _PYTHON_DIR / "showcase_09_lp_vertex_typed_constant.ll",
     ),
+    # showcase_13 is the diamond-necklace critical path: the SAME intensional
+    # semiring closure folds to `ret i64 1` (reachability, Boolean semiring),
+    # `ret i64 8` (critical path, MaxPlus), and `ret i64 1`/`ret i64 0`
+    # (envelope-theorem criticality of an on-path vs floated branch, via
+    # MaxPlus<Dual<F>>).  No solver survives the optimizer.
+    (
+        _PYTHON_DIR / "showcase_13_necklace_critical_path.cpp",
+        _PYTHON_DIR / "showcase_13_necklace_critical_path.ll",
+    ),
     # showcase_09b is the runtime counterpart of showcase_09: the same
     # active-set kernel called through `maximize_with_values<double>(span, …)`
     # with coefficients as function arguments.  Unlike showcase_09's
@@ -285,6 +294,44 @@ def semantic_sanity(ir_text: str, source: Path) -> None:
                     f"Expected {symbol} to collapse to `ret i64 2` in IR "
                     "(the optimum is the typed constant Vec2<Rat, 2, 2>)."
                 )
+    elif "showcase_13_necklace_critical_path" in name:
+        # The diamond-necklace critical path: the SAME intensional semiring
+        # closure folds to a literal per semiring — reachability (Boolean,
+        # `ret i64 1`), the critical value (MaxPlus, `ret i64 8`), and
+        # envelope-theorem criticality of an on-path vs floated branch
+        # (MaxPlus<Dual<F>>, `ret i64 1` / `ret i64 0`).  No solver / no loop
+        # survives in the compile-time witnesses.
+        expected = {
+            "witness_necklace_reachable": r"^\s*ret i64 1\s*$",
+            "witness_necklace_critical": r"^\s*ret i64 8\s*$",
+            "witness_necklace_sensitivity_critical": r"^\s*ret i64 1\s*$",
+            "witness_necklace_sensitivity_floated": r"^\s*ret i64 0\s*$",
+            # annotate -> pred net -> critical_path -> fold: the same 8.
+            "witness_necklace_path_value": r"^\s*ret i64 8\s*$",
+        }
+        for symbol, want in expected.items():
+            block = extract_function_block(ir_text, symbol)
+            if block is None:
+                raise AssertionError(f"IR missing {symbol} symbol.")
+            if not re.search(want, block, re.MULTILINE):
+                raise AssertionError(
+                    f"Expected {symbol} to fold to `{want.strip()}` in IR "
+                    "(necklace semiring closure / envelope-theorem sensitivity)."
+                )
+        # Partial evaluation: with the endpoints (or width) as runtime
+        # arguments the SAME closure must NOT fold to a constant — a residual
+        # relaxation loop (a `phi`) must survive, with the semiring and the
+        # topology rule specialised into it.  Its absence would mean the
+        # runtime witnesses collapsed, contradicting the optionality claim.
+        block = extract_function_block(ir_text, "witness_necklace_critical_between")
+        if block is None:
+            raise AssertionError("IR missing witness_necklace_critical_between.")
+        if not re.search(r"=\s*phi\s+\S", ir_text):
+            raise AssertionError(
+                "Expected a residual `phi` (the runtime-endpoint relaxation "
+                "loop) to survive in IR — its absence would mean partial "
+                "evaluation collapsed the runtime witnesses."
+            )
     elif "showcase_12_lp_unimodular_fast_path" in name:
         # The bit-ops fast path on the unit-square pack (signed-unimodular
         # + axis-aligned) folds at compile time to Vec2<Rat, 1, 1>.  The

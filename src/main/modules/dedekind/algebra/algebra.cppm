@@ -55,5 +55,6 @@ export import :registration;
 export import :ring;
 export import :scout_algebra;  // GroupScout — algebraic gating of the
                                // in-line comprehension surface (#664)
+export import :tropical;       // MaxPlus<T> — the (max,+) semiring
 export import :universal;      // IsAlgebra meta-pattern (Burris-Sankappanavar)
 export import :vectorspace;
