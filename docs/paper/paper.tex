@@ -195,11 +195,40 @@ b) its default runtime requirements should be modest so as not to preclude embed
 c) its type system should be rich enough to perform many of the desired type checks.
 \end{enumerate}
 
-Practical boundaries of this architecture were anticipated: general computability remains undecidable, mainstream toolchains permit non-termination, and the underlying physical hardware model remains fixed.
-Thus, \texttt{dedekind} functions as a bounded, engineering intermediary between abstract category theory and a disciplined fragment of C++ execution, as sketched in the operational cycle of Figure~\ref{fig:target_model}. 
-The framework is architected so that verified mathematical evidence accumulates uniformly in a single direction.
-Once an axiom or theorem has been imported, the compiler can engage in mechanical validation or further derivations~\cite{wadler2015propositions}.
+\begin{figure}[htbp]
+\centering
+\begin{tikzcd}[column sep=3.8em, row sep=3.4em, ampersand replacement=\&]
+\mathbb{B} \arrow[loop, out=160, in=115, looseness=6, "\oplus" description] \arrow[loop, out=65, in=20, looseness=6, "\wedge" description] \arrow[ddr, dashed, "U"]
+\&
+\& \mathbb{N} \arrow[loop, out=160, in=115, looseness=6, "\oplus" description] \arrow[loop, out=65, in=20, looseness=6, "\otimes" description] \arrow[ddr, dashed] \arrow[rr, hook, "\text{hom}"]
+\&
+\& \mathbb{Z} \arrow[loop, out=160, in=115, looseness=6, "\oplus" description] \arrow[loop, out=65, in=20, looseness=6, "\otimes" description] \arrow[ddr, dashed]
+\& \\
+\& \mathbb{B} \arrow[loop, out=160, in=115, looseness=6, "\wedge" description] \arrow[loop, out=65, in=20, looseness=6, "\vee" description] \arrow[d, dashed]
+\&
+\& \mathbb{N} \arrow[loop, out=160, in=115, looseness=6, "+" description] \arrow[loop, out=65, in=20, looseness=6, "\times" description] \arrow[d, dashed] \arrow[rr, hook, "\text{hom}"]
+\&
+\& \mathbb{Z} \arrow[loop, out=160, in=115, looseness=6, "+" description] \arrow[loop, out=65, in=20, looseness=6, "\times" description] \arrow[d, dashed] \\
+\& \mathbb{B} \arrow[loop, out=205, in=250, looseness=5, "\cup" description] \arrow[loop, out=290, in=335, looseness=5, "\cap" description] \arrow[rr, dotted, thick, bend right=16, "\mathfrak{i}"']
+\&
+\& \mathbb{N} \arrow[loop, out=205, in=250, looseness=5, "\cup" description] \arrow[loop, out=290, in=335, looseness=5, "\cap" description] \arrow[ll, dotted, thick, bend right=16, "x\,\%\,2=0"'] \arrow[rr, dotted, thick, bend right=16, "-x"']
+\&
+\& \mathbb{Z} \arrow[loop, out=205, in=250, looseness=5, "\cup" description] \arrow[loop, out=290, in=335, looseness=5, "\cap" description] \arrow[ll, dotted, thick, bend right=16, "x^2"']
+\end{tikzcd}
+\caption{
+A sketch of the domain the paper builds on: familiar carriers and their operations, packaged as algebraic sets.
+The bottom row holds example carrier sets $\mathbb{B}, \mathbb{N}, \mathbb{Z}$, the objects of $\mathbf{Set}$, each carrying its set operations --- union $\cup$ and intersection $\cap$ as loops, with complement $\complement$ and the power object $\mathcal{P}$.
+Above them, staggered across two tiers, sit algebraic sets, the objects of $\mathbf{Alg}(\Sigma)$: each carrier decorated with its set element operations as loops, from the Boolean lattice and Galois field $\mathbb{F}_2$ on $\mathbb{B}$ to ordinary $(+, \times)$ and tropical $(\oplus, \otimes) = (\max, +)$ arithmetic on $\mathbb{N}, \mathbb{Z}$.
+The dashed forgetful functor $U$ recovers the bare carrier; the solid arrows preserve structure, the dotted ones do not.
+The subsequent sections develop the reading.
+}
+\label{fig:hub-spoke-bnz}
+\end{figure}
 
+Figure~\ref{fig:hub-spoke-bnz} sketches the domain of the first pillar.
+It is deliberately vanilla: carrier sets such as $\mathbb{B}, \mathbb{N}, \mathbb{Z}$ with the arithmetic and set operations of elementary mathematics, packaged as algebraic structures.
+The rules are not in doubt, being pre-validated and universally agreed, yet only very little is reified and programmatically accessible: a C++ operator or method signature may carry closure, but only little in terms of associativity, no distributivity, no units and no inverses.
+Supplying that knowledge once, and letting the compiler enforce it thereafter, is what turns these familiar rules into build-time checks and optimizations.
 
 \begin{figure}[htbp]
 \centering
@@ -218,6 +247,11 @@ The steps of a single development cycle are:
 \label{fig:target_model}
 \end{figure}
 
+Practical boundaries of this architecture were anticipated: general computability remains undecidable, mainstream toolchains permit non-termination, and the underlying physical hardware model remains fixed.
+Thus, \texttt{dedekind} functions as a bounded, engineering intermediary between abstract category theory and a disciplined fragment of C++ execution, as sketched in the operational cycle of Figure~\ref{fig:target_model}. 
+The framework is architected so that verified mathematical evidence accumulates uniformly in a single direction.
+Once an axiom or theorem has been imported, the compiler can engage in mechanical validation or further derivations~\cite{wadler2015propositions}.
+
 The resulting posture is explicit: \texttt{dedekind} is a systems-programming library that treats pre-validated mathematical concepts as first-class compile-time entities.
 This layout prevents downstream developers from bolting fragile, ad-hoc traits onto unverified numeric types.
 Choosing to land semantics at the compile-time layer, rather than as runtime abstractions or external DSLs, is a structural commitment that shapes what the compiler can enforce and what remains the developer's responsibility.
@@ -230,7 +264,7 @@ Two recent developments are the \emph{key enablers}, not tricks or shortcuts.
 First, the C++23 standard~\cite{cpp23standard} delivers the key features the technique needs --- \cppinline{constexpr}, \cppinline{concept}s, NTTPs, and named \cppinline{module}s in an open source mainstream toolchain.
 Previous template-metaprogramming traditions had to encode these implicitly at steep readability and review cost.
 Second, modern coding-assistant LLMs~\cite{chen2021evaluating} compress the time and expertise needed to do literature search and carry out the implementation and validation work.
-What was once a metaprogramming curiousity is now a actionable workflow for working software engineers.
+What was once a metaprogramming curiosity is now an actionable workflow for working software engineers.
 The correctness story is largely unchanged, as the type system and \cppinline{static_assert} obligations are what the compiler discharges, both checked mechanically.
 It is the cost story that has shifted, and that is what increases the discipline's viability at industrial scale rather than as only a paper artifact.
 
@@ -402,7 +436,7 @@ static_assert(
   % silence demarcation
   \draw[densely dashed, gray!70!black, thick] (-0.05,1.05) -- (10.4,1.05);
 \end{tikzpicture}
-\caption{\textbf{The two axes of the trait registry (draft).}  Axis 1 (horizontal) is the operator surface: which types compose under which operators.  This axis is validated by \emph{inspection} of the standard library --- overload resolution and concept binding answer it without further human input.  Axis 2 (vertical) is the algebraic-law stack: closure-only, then $+$ associativity, $+$ commutativity, $+$ identities, $+$ inverses.  Above the dashed line the standard library is silent: each law must be \emph{certified by hand}, per carrier, in the trait registry of §\ref{sec:algebraic_lattice_carriers}.  Carrier placements illustrate the typical shape of the silence: \texttt{int} closes the ring surface but signed-overflow UB defeats associativity (\textsc{ub}); \texttt{unsigned} reaches commutativity via modular arithmetic; \texttt{double} closes the field surface but IEEE-754 rounding defeats associativity; \texttt{Rational<int>} reaches the full field stack; matrix multiplication is associative without being commutative (a non-monotone point this stacked axis under-resolves --- see TODO note in source).  The placements are indicative; the audited data lives in the carrier rosettas (§\ref{sec:carrier-rosetta}).}
+\caption{\textbf{The two axes of the trait registry (draft).}  Figure~\ref{fig:hub-spoke-bnz} draws the algebra one would hope the primitive carriers realise; this figure records what the built-in types, IEEE-754 included, actually deliver.  Axis 1 (horizontal) is the operator surface: which types compose under which operators.  This axis is validated by \emph{inspection} of the standard library --- overload resolution and concept binding answer it without further human input.  Axis 2 (vertical) is the algebraic-law stack: closure-only, then $+$ associativity, $+$ commutativity, $+$ identities, $+$ inverses.  Above the dashed line the standard library is silent: each law must be \emph{certified by hand}, per carrier, in the trait registry of §\ref{sec:algebraic_lattice_carriers}.  Carrier placements illustrate the typical shape of the silence: \texttt{int} closes the ring surface but signed-overflow UB defeats associativity (\textsc{ub}); \texttt{unsigned} reaches commutativity via modular arithmetic; \texttt{double} closes the field surface but IEEE-754 rounding defeats associativity; \texttt{Rational<int>} reaches the full field stack; matrix multiplication is associative without being commutative (a non-monotone point this stacked axis under-resolves --- see TODO note in source).  The placements are indicative; the audited data lives in the carrier rosettas (§\ref{sec:carrier-rosetta}).}
 \label{fig:two-axes}
 \end{figure}
 
@@ -422,42 +456,9 @@ This forms the exact Cartesian Closed Category needed to bootstrap formal set co
 \section{Intensional Sets as Type-Checked Predicates}
 \label{sec:intensional_sets}
 
-\begin{figure}[htbp]
-\centering
-\begin{tikzcd}[column sep=3.8em, row sep=3.4em, ampersand replacement=\&]
-\mathbb{B} \arrow[loop, out=160, in=115, looseness=6, "\oplus" description] \arrow[loop, out=65, in=20, looseness=6, "\wedge" description] \arrow[ddr, dashed, "U"]
-\&
-\& \mathbb{N} \arrow[loop, out=160, in=115, looseness=6, "\oplus" description] \arrow[loop, out=65, in=20, looseness=6, "\otimes" description] \arrow[ddr, dashed] \arrow[rr, hook, "\text{hom}"]
-\&
-\& \mathbb{Z} \arrow[loop, out=160, in=115, looseness=6, "\oplus" description] \arrow[loop, out=65, in=20, looseness=6, "\otimes" description] \arrow[ddr, dashed]
-\& \\
-\& \mathbb{B} \arrow[loop, out=160, in=115, looseness=6, "\wedge" description] \arrow[loop, out=65, in=20, looseness=6, "\vee" description] \arrow[d, dashed]
-\&
-\& \mathbb{N} \arrow[loop, out=160, in=115, looseness=6, "+" description] \arrow[loop, out=65, in=20, looseness=6, "\times" description] \arrow[d, dashed] \arrow[rr, hook, "\text{hom}"]
-\&
-\& \mathbb{Z} \arrow[loop, out=160, in=115, looseness=6, "+" description] \arrow[loop, out=65, in=20, looseness=6, "\times" description] \arrow[d, dashed] \\
-\& \mathbb{B} \arrow[loop, out=205, in=250, looseness=5, "\cup" description] \arrow[loop, out=290, in=335, looseness=5, "\cap" description] \arrow[rr, dotted, thick, bend right=16, "\mathfrak{i}"']
-\&
-\& \mathbb{N} \arrow[loop, out=205, in=250, looseness=5, "\cup" description] \arrow[loop, out=290, in=335, looseness=5, "\cap" description] \arrow[ll, dotted, thick, bend right=16, "x\,\%\,2=0"'] \arrow[rr, dotted, thick, bend right=16, "-x"']
-\&
-\& \mathbb{Z} \arrow[loop, out=205, in=250, looseness=5, "\cup" description] \arrow[loop, out=290, in=335, looseness=5, "\cap" description] \arrow[ll, dotted, thick, bend right=16, "x^2"']
-\end{tikzcd}
-\caption{
-A sketch of the desired functionality to be supported by the \texttt{dedekind} set DSL, drawn to separate the two categories it straddles.
-The bottom row holds the carrier sets $\mathbb{B}, \mathbb{N}, \mathbb{Z}$, the objects of $\mathbf{Set}$; above them sit algebraic sets, the objects of $\mathbf{Alg}(\Sigma)$, staggered across two tiers so one carrier can support several without the arrows crossing.
-The carriers are not inert: as objects of the set DSL they carry the set operations, union $\cup$ and intersection $\cap$ drawn as loops (the same lattice as $\mathbb{B}$'s $\wedge, \vee$, now on subsets), with complement $\complement$ and the power object $\mathcal{P}$ completing the Boolean algebra of sets.
-Each node above the carriers is that carrier decorated with its operations, the family $F$ of the algebra, drawn as loops: $\mathbb{B}$ as the Boolean lattice $(\wedge, \vee)$ and the Galois field $\mathbb{F}_2$ $(\oplus, \wedge)$, and $\mathbb{N}, \mathbb{Z}$ each with their usual arithmetic $(+, \times)$ on the lower tier and a tropical semiring on the upper, its sum $\oplus = \max$ and product $\otimes = +$, the classical-versus-tropical pairing §\ref{sec:optimization_lp} exploits as a semiring swap.
-A loop is an operation, so a binary one such as $\wedge$ or $+$ is a map $A \times A \to A$ decorating $A$, not a category endomorphism.
-The dashed forgetful functor $U : \mathbf{Alg}(\Sigma) \to \mathbf{Set}$ strips those operations; it is not injective on objects, as the two algebras over each carrier show.
-The two hooked arrows are the inclusion $\mathbb{N} \hookrightarrow \mathbb{Z}$, a homomorphism in each semiring: it preserves $(+, \times)$ classically and $(\oplus, \otimes)$ tropically.
-Dotted arrows are typed maps that are \emph{not} homomorphisms, so they live downstairs in $\mathbf{Set}$: the embedding $\mathfrak{i}$ with the parity classifier back, and $x \mapsto -x$ (preserves $+$, not $\times$) with $x \mapsto x^2$ (preserves $\times$, not $+$).
-}
-\label{fig:hub-spoke-bnz}
-\end{figure}
-
 With a deterministic, structurally-typed substrate established in Section~\ref{sec:jlt_posture}, mathematical sets can be bootstrapped inside the type system.
 Here, we aim to model both the syntax and the semantics of mathematical set builder notation in executable $\mathbf{Jlt}$ hoping to achieve a system that lends itself to the expression and subsequent evaluation of precisely those kinds of problems that one might also encounter in a pure math blackboard setting.
-A sketch of some desired supported functionality is provided in Figure~\ref{fig:hub-spoke-bnz}.
+Figure~\ref{fig:hub-spoke-bnz} in the introduction previews the functionality this section builds.
 
 In this section, we first show working code (§\ref{sec:ddk_comprehension}) to illustrate the expected payoff, then discuss the theoretical foundations in set theory, specifically the category-theoretical elementary theory of sets (§\ref{sec:ddk_etcs}).
 
@@ -859,9 +860,10 @@ A type inhabits the category $\mathbf{Ddk}$ exactly when it type-checks against 
 the algebraic sets expressible as C++ types.
 Because membership is structural, admission is after the fact: a type is presented as a set by a concept, with no change to the type and no upstream opt-in.
 
-Figure~\ref{fig:hub-spoke-bnz} is a sketch of this category, and it is worth keeping in hand for the rest of the section.
+Figure~\ref{fig:hub-spoke-bnz} from the introduction is a sketch of this category, worth keeping in hand for the rest of the section.
 Its objects are algebraic sets: a carrier decorated with operations, the loops, with the bare carriers on the bottom row and the forgetful functor $U : \mathbf{Alg}(-) \to \mathbf{Set}$ dropping the operations to reach them.
 One carrier can support several algebras, so $U$ is not injective on objects; the hooked homomorphisms are the carrier maps that preserve the operations, and the dotted maps are carrier maps that break one, falling to $\mathbf{Set}$.
+A loop is an operation, so a binary one such as $\wedge$ or $+$ decorates its carrier as a map $A \times A \to A$, not a category endomorphism; concretely the two hooked inclusions $\mathbb{N} \hookrightarrow \mathbb{Z}$ preserve $(+, \times)$ and $(\oplus, \otimes)$, while $x \mapsto -x$ breaks $\times$ and $x \mapsto x^2$ breaks $+$.
 $\mathbf{Alg}(-)$ is universal algebra in the textbook sense~\cite{burris1981universalalgebra}: sets equipped with operations of fixed arity, where the dash is a placeholder for whatever signature a carrier happens to supply.\footnote{We leave the signature unbound and let the per-shape \cppinline{Has*Operators} concepts pin it at each carrier's definition, so $\mathbf{Ddk}$ stays as wide as the library needs while a concrete variety such as $\mathbf{Mon}$ or $\mathbf{Ring}$ is one fixed choice of dash (the same $F_\Sigma$-algebra fragment a functional programmer would recognise~\cite{pierce1991basic}).  We also fix a smallness ceiling of $\beth_1$, carriers no larger than the continuum, which is enough for $\mathbb{R}$, $\mathbb{C}$, and $\mathbb{D}$ while keeping the encoding clear of the proper-class self-reference that $\mathbf{Set}$ and $\mathbf{Cat}$ court; the meta-categorical bookkeeping this defers (size-hierarchy adjunctions, $\mathrm{Disc} \dashv U$) survives as the engineer's honesty obligation, treated in the companion report.  The simply-typed-$\lambda$-calculus and System~F reading of the same fragment is Appendix~\ref{app:jlt-systemf}.}
 
 The smallest inhabitant makes the shape concrete.
