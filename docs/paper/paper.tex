@@ -399,44 +399,22 @@ static_assert(
 
 \begin{figure}[ht]
 \centering
-\begin{tikzpicture}[
-  >={Stealth[length=2.5mm]},
-  carrier/.style={circle, fill=black, inner sep=1.5pt},
-  every node/.style={font=\small},
-]
-  % background bands
-  \fill[gray!8] (-0.05,-0.05) rectangle (10.4,1.05);
-  \fill[blue!4] (-0.05,1.05) rectangle (10.4,5.6);
-  \node[anchor=west, font=\footnotesize\itshape, gray] at (5.2,0.5) {std::library territory (overload resolution)};
-  \node[anchor=west, font=\footnotesize\itshape, blue!50!black] at (5.2,5.3) {trait registry territory (certified by hand)};
-
-  % axes
-  \draw[->, thick] (0,0) -- (10.2,0) node[anchor=west] {axis 1: operator surface};
-  \draw[->, thick] (0,0) -- (0,5.5) node[anchor=south] {axis 2: algebraic laws};
-
-  % horizontal ticks
-  \foreach \x/\lbl in {1.5/{none}, 4.5/{\texttt{HasRingOperators}}, 8/{\texttt{HasFieldOperators}}} {
-    \draw[thick] (\x,-0.1) -- (\x,0.1);
-    \node[anchor=north] at (\x,-0.15) {\lbl};
-  }
-
-  % vertical ticks
-  \foreach \y/\lbl in {1/{closure only}, 2/{+ associativity}, 3/{+ commutativity}, 4/{+ identities}, 5/{+ inverses}} {
-    \draw[thick] (-0.1,\y) -- (0.1,\y);
-    \node[anchor=east] at (-0.15,\y) {\lbl};
-  }
-
-  % carriers
-  \node[carrier, label={[label distance=0pt]above:{\texttt{int}}}] at (4.5,1) {};
-  \node[carrier, label={[label distance=0pt]above:{\texttt{unsigned}}}] at (4.5,3) {};
-  \node[carrier, label={[label distance=0pt]above:{\texttt{double}}}] at (8,1) {};
-  \node[carrier, label={[label distance=0pt]above:{\texttt{Rational<int>}}}] at (8,5) {};
-  \node[carrier, label={[label distance=0pt]above:{\texttt{Matrix<R>}}}] at (4.5,2) {};
-
-  % silence demarcation
-  \draw[densely dashed, gray!70!black, thick] (-0.05,1.05) -- (10.4,1.05);
-\end{tikzpicture}
-\caption{\textbf{The trait registry's two axes: syntactic surface, semantic law.}  A carrier is placed by the operators it supports (horizontal, which the compiler settles by overload resolution) and by how many algebraic laws it obeys (vertical, from closure up to inverses).  Below the dashed line the standard library answers mechanically; above it, each law is the engineer's honesty obligation.  \texttt{int} and \texttt{double} carry the operators but stall low, their associativity lost to overflow and to IEEE rounding, while \texttt{Rational<int>} reaches a full field.}
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+ & Bitwise & \multicolumn{3}{c}{Arithmetic} \\
+\cmidrule(lr){2-2} \cmidrule(l){3-5}
+ & \texttt{bool} & \texttt{int} & \texttt{unsigned} & \texttt{double} \\
+\midrule
+closure           & $\vdash$    & $\vdash$  & $\vdash$    & $\vdash$  \\
+$+$ associativity & \checkmark  & $\times$  & \checkmark  & $\times$  \\
+$+$ commutativity & \checkmark  & $\times$  & \checkmark  & $\times$  \\
+$+$ identities    & \checkmark  & $\times$  & \checkmark  & $\times$  \\
+$+$ inverses      & \checkmark  & $\times$  & \checkmark  & $\times$  \\
+\midrule
+structure     & $\mathbb{F}_2$ (field) & closure only & $\mathbb{Z}/2^{n}$ (ring) & closure only \\
+\bottomrule
+\end{tabular}
+\caption{\textbf{What the built-in primitives actually certify.}  Columns are the operators a type offers (in the \Cpp{} sense); rows are a cumulative ladder of algebraic laws, each rung assuming the ones below.  Closure the compiler settles by itself ($\vdash$); every rung above is semantic, so it is either certified by hand in the trait registry (\checkmark) or absent, in which case the type is rejected at the gate ($\times$).  The bit-exact primitives \texttt{bool} and \texttt{unsigned} climb the whole ladder; \texttt{int} and \texttt{double} stall at closure, their associativity already lost to overflow and to IEEE rounding.  Under the \emph{logical} operators \texttt{bool} is only a Boolean lattice, without inverses; the field $\mathbb{F}_2$ is the bitwise reading.}
 \label{fig:two-axes}
 \end{figure}
 
