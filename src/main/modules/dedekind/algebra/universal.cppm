@@ -153,9 +153,11 @@ concept IsAlgebra = std::regular<T> && (... && IsClosedUnderEither<T, Ops>);
  *     contract (not merely @c IsArrow), so @c X::Domain stays well-formed.
  *   - Closure of each @c Op is the @c Alg half.  Algebraic closure is the
  *     defining property of an algebraic set, so it is surfaced as its own
- *     conjunct rather than left implicit inside @c IsAlgebra.  A closed n-ary
- *     operation @b corresponds to endomorphisms of the carrier (fix all but one
- *     argument, modulo currying); it is not itself unary.
+ *     conjunct rather than left implicit inside @c IsAlgebra.
+ *     @c IsClosedUnderEither admits exactly the two operation shapes the
+ *     carrier uses: a unary @c Op is already an endomap @c A @c → @c A, and a
+ *     binary @c Op @c A×A @c → @c A @b corresponds to endomorphisms once one
+ *     argument is fixed (currying).  Neither shape is an arbitrary n-ary API.
  *
  * @tparam X    The set object (@c IsSet).
  * @tparam Ops  The family of operations on @c X::Domain.

@@ -838,9 +838,9 @@ The type system can consequently treat arbitrary transformations as well-behaved
 \begin{cpp}
 export template <typename X, typename... Ops>
 concept IsAlgebraOnSet =
-    IsSet<X>                                          // Trsk: X is a set
-    && (... && IsClosedUnderEither<X::Domain, Ops>)   // closure: each op corresponds to endomorphisms
-    && IsAlgebra<X::Domain, Ops...>;                  // the (A, F) algebra
+    IsSet<X>                                                  // Trsk: X is a set
+    && (... && IsClosedUnderEither<typename X::Domain, Ops>)  // Alg: ops close on the carrier
+    && IsAlgebra<typename X::Domain, Ops...>;                 // the (A, F) algebra
 \end{cpp}
 \end{listing}
 A carrier in \texttt{dedekind} is an \emph{algebraic set}: a C++ type that is a set in the sense of §\ref{sec:intensional_sets} and carries operations on that set.
@@ -859,7 +859,7 @@ Reading a hub as a bare carrier, forgetting its operations, is the forgetful fun
 $\mathbf{Alg}(-)$ is universal algebra in the textbook sense~\cite{burris1981universalalgebra}: sets equipped with operations of fixed arity, where the dash is a placeholder for whatever signature a carrier happens to supply.\footnote{We leave the signature unbound and let the per-shape \cppinline{Has*Operators} concepts pin it at each carrier's definition, so $\mathbf{Ddk}$ stays as wide as the library needs while a concrete variety such as $\mathbf{Mon}$ or $\mathbf{Ring}$ is one fixed choice of dash (the same $F_\Sigma$-algebra fragment a functional programmer would recognise~\cite{pierce1991basic}).  We also fix a smallness ceiling of $\beth_1$, carriers no larger than the continuum, which is enough for $\mathbb{R}$, $\mathbb{C}$, and $\mathbb{D}$ while keeping the encoding clear of the proper-class self-reference that $\mathbf{Set}$ and $\mathbf{Cat}$ court; the meta-categorical bookkeeping this defers (size-hierarchy adjunctions, $\mathrm{Disc} \dashv U$) survives as the engineer's honesty obligation, treated in the companion report.  The simply-typed-$\lambda$-calculus and System~F reading of the same fragment is Appendix~\ref{app:jlt-systemf}.}
 
 The smallest inhabitant makes the shape concrete.
-The Boolean carrier $\mathbb{B}$ is an algebraic set the moment it type-checks as $\mathbf{Alg}(\wedge, \vee, \neg)$ over \cppinline{bool} (Listing~\ref{lst:algebra:boolean_case}): the object is the set, the three operators are its self-loops.
+The Boolean carrier $\mathbb{B}$ is an algebraic set the moment it type-checks as $\mathbf{Alg}(\wedge, \vee, \neg)$ over \cppinline{bool} (Listing~\ref{lst:algebra:boolean_case}): the object is the set, and $\wedge, \vee, \neg$ are the operations it closes under ($\neg$ the self-loop drawn in Figure~\ref{fig:hub-spoke-bnz}, $\wedge$ and $\vee$ binary $\mathbb{B} \times \mathbb{B} \to \mathbb{B}$).
 
 % Source excerpt from dedekind.algebra:boolean.
 \begin{listing}[ht]
@@ -933,7 +933,7 @@ static_assert(is_commutative_v<P,  std::plus<P>>);
 \subsection{Dual numbers, for the sensitivity exhibit}
 \label{sec:dual_numbers_quotient}
 
-The one carrier worth a second look, because §\ref{sec:optimization_lp} differentiates with it, is the dual numbers, mathematically the quotient ring $\mathbb{D} = \mathbb{R}[\varepsilon]/(\varepsilon^2)$.
+The one carrier worth a second look, because §\ref{sec:optimization_lp} differentiates with it, is the dual numbers $\mathbb{D}$, mathematically the quotient ring $F[\varepsilon]/(\varepsilon^2)$ over a coefficient carrier $F$ (classically $\mathbb{R}$; the sensitivity exhibit of §\ref{sec:optimization_lp} takes $F$ the saturating-unsigned cost carrier, the companion matrix listing takes $F = \mathbb{Q}$).
 The implementation is that quotient's direct realisation: a pair $(a, b)$ whose multiplication is written as $(a, b)(c, d) = (ac,\, ad + bc)$, with the truncation $\varepsilon^2 = 0$ already discharged in the formula.
 The operator is \cppinline{constexpr}, so a product of compile-time operands folds during translation, and the $\varepsilon$-coordinate carries the derivative: forward-mode automatic differentiation as a ring law (Listing~\ref{lst:lin-alg-embeddings}).
 
