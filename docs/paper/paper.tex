@@ -217,7 +217,7 @@ c) its type system should be rich enough to perform many of the desired type che
 \end{tikzcd}
 \caption{
 A sketch of the domain the paper builds on: familiar carriers and their operations, packaged as algebraic sets.
-The bottom row holds example carrier sets $\mathbb{B}, \mathbb{N}, \mathbb{Z}$, the objects of $\mathbf{Set}$, each carrying its set operations --- union $\cup$ and intersection $\cap$ as loops, with complement $\complement$ and the power object $\mathcal{P}$.
+The bottom row holds example carrier sets $\mathbb{B}, \mathbb{N}, \mathbb{Z}$, the objects of $\mathbf{Set}$, each carrying its set operations: union $\cup$ and intersection $\cap$ are drawn as loops, while complement $\complement$ and the power object $\mathcal{P}$ complete the Boolean algebra of sets but are left off the diagram.
 Above them, staggered across two tiers, sit algebraic sets, the objects of $\mathbf{Alg}(\Sigma)$: each carrier decorated with its set element operations as loops, from the Boolean lattice and Galois field $\mathbb{F}_2$ on $\mathbb{B}$ to ordinary $(+, \times)$ and tropical $(\oplus, \otimes) = (\max, +)$ arithmetic on $\mathbb{N}, \mathbb{Z}$.
 The dashed forgetful functor $U$ recovers the bare carrier; the solid arrows preserve structure, the dotted ones do not.
 The subsequent sections develop the reading.
@@ -1191,7 +1191,7 @@ The family of law-carrying specialisations, however, has no obvious ceiling shor
 \section{The Algebra of the Built-in Types}
 \label{sec:builtin-algebra}
 
-Table~\ref{tab:primitive-algebra} gives the headline; the four tables below are the exhaustive per-type breakdown, one per standard concept, split because the built-in primitives do not share a single operator surface.
+Table~\ref{tab:primitive-algebra} gives the headline; the four tables below break the principal built-in types down by operator surface, grouped by the standard concept each family satisfies (\cppinline{bool} on its own), split because the built-in primitives do not share a single operator surface.
 A \checkmark marks a law certified in the trait registry, $\times$ one that is absent (hence rejected at the gate), and $\circ$ one that holds only in part.
 
 \begin{table}[htbp]
@@ -1239,7 +1239,7 @@ type(s) & arithmetic & bitwise & comparison \\
 
 \begin{table}[htbp]
 \centering
-\caption{\textbf{\cppinline{std::floating_point}.}  IEEE-754 rounding defeats associativity, and \cppinline{NaN} defeats even the order; almost nothing survives.}
+\caption{\textbf{\cppinline{std::floating_point}.}  On IEC 60559 (IEEE-754) targets, rounding defeats associativity and \cppinline{NaN} defeats even the order; almost nothing survives.}
 \label{tab:prim-floating}
 \begin{tabular}{@{}p{0.34\textwidth}ll@{}}
 \toprule
@@ -1915,7 +1915,7 @@ None of the calculus underneath is new.
 Templates have always been a System-F-flavoured substrate \emph{within a carefully selected subset of C++}: type-parameter polymorphism, $\beta$-style substitution via \cppinline{using} aliases, normalisation through \cppinline{constexpr} evaluation --- the Lambek--Scott correspondence~\cite{lambek1988introduction} and the Curry--Howard reading~\cite{wadler2015propositions} have applied to that fragment for as long as it has existed.
 What changed in C++20/23 was not the lambda calculus underneath; it was the addition of \cppinline{concept}, \cppinline{requires}-clauses, and NTTPs, which together turned a long-standing latent capability into a surface the type checker can discharge mechanically.
 Practitioners with deep template-metaprogramming experience --- Boost.Hana~\cite{chagnon2016hana} and CTRE~\cite{dusikova2018ctre} are the visible end of a long lineage --- have known this terrain for over a decade; the contribution of this paper is to walk it under the named-structure / discharged-by-the-compiler discipline, end-to-end, in standard C++23.
-The translation table at §\ref{sec:algebraic_lattice_carriers} is the dictionary between what was always there and what the modern surface now lets one say out loud.
+The translation table above (Table~\ref{tab:structuralist-bridge}) is the dictionary between what was always there and what the modern surface now lets one say out loud.
 
 
 \subsubsection{The Traits Registry: Abstract Naturals vs.\ IEEE Numerics}

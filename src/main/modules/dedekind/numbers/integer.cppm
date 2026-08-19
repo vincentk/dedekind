@@ -100,8 +100,8 @@ static_assert(dedekind::algebra::IsOrderedAdditiveGroup<
 // ℤ inhabits Ddk: it is an algebraic set.  The universe ℤ is an IsSet over
 // the SignedCardinality carrier, which is closed under its ring operations
 // +, *, and --- unlike ℕ --- unary - (SignedCardinality is an abelian group
-// under +, so the negation loop of Figure 3 closes).  So IsAlgebraOnSet
-// fires: ℤ as an object of Ddk = Trsk ∩ Alg, a ring with the negation loop.
+// under +, so negation closes on ℤ).  So IsAlgebraOnSet
+// fires: ℤ as an object of Ddk = Trsk ∩ Alg (Figure 1), a ring.
 static_assert(
     dedekind::algebra::IsAlgebraOnSet<
         decltype(ℤ), std::plus<dedekind::sets::SignedCardinality>,

@@ -202,7 +202,7 @@ static_assert(
 //     !IsClosedUnderUnary<Cardinality, std::negate<>> in :sets:cardinality).
 //     So IsAlgebraOnSet fires: the same witness 𝔹 carries in :algebra:boolean,
 //     now on ℕ.  This is the mechanical reading of ℕ as an object of
-//     Ddk = Trsk ∩ Alg (Figure 3), a rig without the negation loop.
+//     Ddk = Trsk ∩ Alg (Figure 1): a rig, closed under + and × but not −.
 static_assert(dedekind::algebra::IsAlgebraOnSet<decltype(dedekind::sets::ℕ),
                                                 std::plus<Cardinality>,
                                                 std::multiplies<Cardinality>>,
