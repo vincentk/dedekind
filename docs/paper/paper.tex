@@ -228,7 +228,7 @@ The subsequent sections develop the reading.
 Figure~\ref{fig:hub-spoke-bnz} sketches the domain of the first pillar.
 It is deliberately vanilla: carrier sets such as $\mathbb{B}, \mathbb{N}, \mathbb{Z}$ with the arithmetic and set operations of elementary mathematics, packaged as algebraic structures.
 The rules are not in doubt, being pre-validated and universally agreed, yet only very little is reified and programmatically accessible: a C++ operator or method signature may carry closure, but only little in terms of associativity, no distributivity, no units and no inverses.
-Supplying that knowledge once, and letting the compiler enforce it thereafter, is what turns these familiar rules into build-time checks and optimizations.
+Supplying that knowledge once, and letting the compiler enforce it thereafter, is what turns these familiar rules into build-time checks and optimizations; Appendix~\ref{sec:trait-registry} records, per carrier, which laws the type system can and cannot certify.
 
 \begin{figure}[htbp]
 \centering
@@ -329,6 +329,7 @@ As established in classic type system taxonomy~\cite{pierce2002tapl, cardelli199
 \emph{nominal typing}, where lineage is checked by declared names or inheritance;
 \emph{duck typing}, where behavior is verified by call-site probing at runtime; and
 \emph{static structural typing}, where invariants are checked at compile time via explicit constraints.
+Appendix~\ref{app:jlt-systemf} develops this discipline as a System~F $\leftrightarrow$ Bourbaki structuralist bridge~\cite{bourbaki1968theoryofsets, marquis2022structuralist}.
 
 $\mathbf{Jlt}$ embraces the third school, leveraging language features like \texttt{concept}, \texttt{constexpr}, and non-type template parameters (NTTPs).
 The posture does not forbid template partial ordering or constraint subsumption.
@@ -416,6 +417,7 @@ static_assert(
 The boundary of this architecture matches the core distinction in standard \Cpp{} between \emph{satisfying} a concept (syntactic structure) and \emph{modeling} it (semantic lawfulness).
 Syntactic properties are mechanically decidable by the compiler.
 Semantic properties---such as associativity or distributivity---resist mechanical verification inside standard \Cpp{} and remain the engineer's honesty obligation.
+The three concept tiers that grade this gap---literal operators, functor-parametric shape, and strict categorical proof---are set out in Appendix~\ref{par:concept-tiers}.
 The discrepancy between the aspirational semantic model sketched in Figure~\ref{fig:hub-spoke-bnz} and the reality of IEEE numerical primitives as exposed in \Cpp{23} is highlighted in Table~\ref{tab:primitive-algebra}.
 Here, $\mathbf{Jlt}$ defaults to an \emph{Honest Rejection Policy} which asserts that if neither mechanical nor manual certification is available at compile-time, then a violation of the corresponding axioms is assumed and the type is rejected at the gate.
 For example, \texttt{int} satisfies the syntactic operators for a ring, but signed-overflow undefined behavior defeats associativity.
@@ -1588,6 +1590,7 @@ $\mathbb{D}$ (dual) & \cppinline{.val} (primal only; tangent discarded) & \cppin
 \end{tabular}
 \end{table}
 
+\phantomsection\label{par:concept-tiers}%
 A fourth table addresses where textbook ring structure and literal
 C++ operators diverge: the library expresses the disagreement
 through three concept tiers --- \emph{strict} (categorical proof),
