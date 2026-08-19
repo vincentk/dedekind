@@ -36,10 +36,16 @@
 
 import dedekind.algebra;
 import dedekind.category;
+import dedekind.sets;
 
 using dedekind::algebra::IsAlgebra;
+using dedekind::algebra::IsAlgebraOnSet;
+using dedekind::category::arrow;
+using dedekind::category::IsArrow;
 using dedekind::category::IsClosedUnder;
 using dedekind::category::IsClosedUnderUnary;
+using dedekind::category::IsSet;
+using dedekind::sets::Ω;
 
 TEST_CASE(
     "Universal algebra: closure-tier witness on canonical primitive carriers",
@@ -74,6 +80,32 @@ TEST_CASE("Universal algebra: same underlying set, two distinct (A, F) tuples",
   // Both fire on the same underlying set; the operation tuple is the
   // disambiguator.  See dedekind/algebra/f2_test.cpp for the value-
   // level Cayley-table exercise of the second reading.
+}
+
+TEST_CASE(
+    "Universal algebra: IsAlgebraOnSet gates on IsSet, not merely IsArrow",
+    "[algebra][universal][set][regression]") {
+  // Regression guard for the IsArrow -> IsSet tightening of IsAlgebraOnSet
+  // (Copilot #774): an inhabitant of Ddk is an algebraic *set*, so the concept
+  // must accept a genuine ETCS set object and reject a bare arrow that merely
+  // happens to carry a Domain.
+
+  // Positive: Ω<int> is a set object (IsSet) whose carrier int closes under
+  // (+, *), so it type-checks against IsAlgebraOnSet.  (𝔹 = Ω<bool> is the
+  // sibling witness pinned in :algebra:boolean; ℕ/ℤ/ℚ downstream in :numbers.)
+  STATIC_CHECK(IsSet<decltype(Ω<int>)>);
+  STATIC_CHECK(
+      IsAlgebraOnSet<decltype(Ω<int>), std::plus<int>, std::multiplies<int>>);
+
+  // Negative: a plain arrow int -> int is IsArrow with Domain = int, and int
+  // closes under (+, *), so the OLD IsArrow-gated concept would have wrongly
+  // accepted it.  The tightened IsSet gate rejects it: a morphism is not a set
+  // object.  This static_assert flips the moment the gate reverts to IsArrow.
+  using PlainArrow = decltype(arrow<int, int>(std::negate<int>{}));
+  STATIC_CHECK(IsArrow<PlainArrow>);
+  STATIC_CHECK(!IsSet<PlainArrow>);
+  STATIC_CHECK(
+      !IsAlgebraOnSet<PlainArrow, std::plus<int>, std::multiplies<int>>);
 }
 
 // Note: a composite-carrier exhibit (e.g.\ @c IsAlgebra<Rational<...>,

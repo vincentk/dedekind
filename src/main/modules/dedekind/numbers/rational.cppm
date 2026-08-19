@@ -525,6 +525,19 @@ static_assert(
     "ℚ's underlying carrier IS Rational<default_integer> — the textbook "
     "universe-over-carrier reading.");
 
+// ℚ inhabits Ddk: it is an algebraic set.  The universe ℚ is an IsSet over
+// the Rational<default_integer> carrier, which is closed under its field
+// operations +, *, and unary - (IsField fires on the carrier; see the probe
+// near the bottom of this file).  So IsAlgebraOnSet fires: ℚ as an object of
+// Ddk = Trsk ∩ Alg, the field completing the ℕ → ℤ → ℚ tower.
+static_assert(dedekind::algebra::IsAlgebraOnSet<
+                  decltype(ℚ), std::plus<Rational<default_integer>>,
+                  std::multiplies<Rational<default_integer>>,
+                  std::negate<Rational<default_integer>>>,
+              "ℚ is an algebraic set (Ddk): a set whose carrier "
+              "Rational<default_integer> is closed under the field operations "
+              "+, *, and unary -.");
+
 // #573 slice 4 pilot witness: ℚ walks SetAsProduct.  Post-#681 structural
 // refactor: @c SetAsProduct's Classifier dimension is now the codomain
 // of the carrier-as-predicate (the @c L::Ω value at any @c a), not the
