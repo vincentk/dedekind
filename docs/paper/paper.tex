@@ -436,15 +436,16 @@ This forms the exact Cartesian Closed Category needed to bootstrap formal set co
 \& \mathbb{N} \arrow[loop, out=160, in=115, looseness=6, "+" description] \arrow[loop, out=65, in=20, looseness=6, "\times" description] \arrow[d, dashed] \arrow[rr, hook, "\text{hom}"]
 \&
 \& \mathbb{Z} \arrow[loop, out=160, in=115, looseness=6, "+" description] \arrow[loop, out=65, in=20, looseness=6, "\times" description] \arrow[d, dashed] \\
-\& \mathbb{B} \arrow[rr, dotted, thick, bend right=18, "\mathfrak{i}"']
+\& \mathbb{B} \arrow[loop, out=205, in=250, looseness=5, "\cup" description] \arrow[loop, out=290, in=335, looseness=5, "\cap" description] \arrow[rr, dotted, thick, bend right=16, "\mathfrak{i}"']
 \&
-\& \mathbb{N} \arrow[ll, dotted, thick, bend right=18, "x\,\%\,2=0"] \arrow[rr, dotted, thick, bend right=18, "-x"']
+\& \mathbb{N} \arrow[loop, out=205, in=250, looseness=5, "\cup" description] \arrow[loop, out=290, in=335, looseness=5, "\cap" description] \arrow[ll, dotted, thick, bend right=16, "x\,\%\,2=0"'] \arrow[rr, dotted, thick, bend right=16, "-x"']
 \&
-\& \mathbb{Z} \arrow[ll, dotted, thick, bend right=18, "x^2"]
+\& \mathbb{Z} \arrow[loop, out=205, in=250, looseness=5, "\cup" description] \arrow[loop, out=290, in=335, looseness=5, "\cap" description] \arrow[ll, dotted, thick, bend right=16, "x^2"']
 \end{tikzcd}
 \caption{
 A sketch of the desired functionality to be supported by the \texttt{dedekind} set DSL, drawn to separate the two categories it straddles.
 The bottom row holds the carrier sets $\mathbb{B}, \mathbb{N}, \mathbb{Z}$, the objects of $\mathbf{Set}$; above them sit algebraic sets, the objects of $\mathbf{Alg}(\Sigma)$, staggered across two tiers so one carrier can support several without the arrows crossing.
+The carriers are not inert: as objects of the set DSL they carry the set operations, union $\cup$ and intersection $\cap$ drawn as loops (the same lattice as $\mathbb{B}$'s $\wedge, \vee$, now on subsets), with complement $\complement$ and the power object $\mathcal{P}$ completing the Boolean algebra of sets.
 Each node above the carriers is that carrier decorated with its operations, the family $F$ of the algebra, drawn as loops: $\mathbb{B}$ as the Boolean lattice $(\wedge, \vee)$ and the Galois field $\mathbb{F}_2$ $(\oplus, \wedge)$, and $\mathbb{N}, \mathbb{Z}$ each with their usual arithmetic $(+, \times)$ on the lower tier and a tropical semiring on the upper, its sum $\oplus = \max$ and product $\otimes = +$, the classical-versus-tropical pairing §\ref{sec:optimization_lp} exploits as a semiring swap.
 A loop is an operation, so a binary one such as $\wedge$ or $+$ is a map $A \times A \to A$ decorating $A$, not a category endomorphism.
 The dashed forgetful functor $U : \mathbf{Alg}(\Sigma) \to \mathbf{Set}$ strips those operations; it is not injective on objects, as the two algebras over each carrier show.
