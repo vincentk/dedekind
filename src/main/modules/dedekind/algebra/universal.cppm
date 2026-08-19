@@ -134,23 +134,37 @@ export template <typename T, typename... Ops>
 concept IsAlgebra = std::regular<T> && (... && IsClosedUnderEither<T, Ops>);
 // Should probably include HasCarrier (see below).
 
-//
-//   X       — the set object (HAS-A its underlying carrier via X::Domain).
-//   X::Domain — the carrier element type (the A in BS §I.1's (A, F)).
-//   Ops...  — element-level operations on the carrier
-//             (the F; set-level ops like complement / | / & live on X
-//              itself, not in Ops, so they're never confused with F).
-//
-// Gated by @c IsArrow on @c X (#623): under the project's current
-// set-as-characteristic-morphism encoding, a "set" @b is its @c χ :
-// @c T @c → @c Ω --- so @c IsArrow<X> implies @c typename @c X::Domain
-// is well-formed.  Gating at the concept level shortens diagnostics
-// on mis-use compared to the inlined @c requires @c { @c typename @c
-// X::Domain; @c } pattern.  If the encoding later decouples sets
-// from arrows, the gate is the natural site to revisit.
+/**
+ * @concept IsAlgebraOnSet
+ * @brief An @b algebraic @b set: a Tarski set whose carrier is closed under a
+ *        family of operations.  This is the @c Ddk @c = @c Trsk @c ∩ @c Alg
+ *        layer, spelt out as its two conjuncts.
+ *
+ * @details The parameters name the three pieces of an (A, F) algebra carried on
+ * a set object:
+ *   - @c X --- the set object (HAS-A its carrier via @c X::Domain).
+ *   - @c X::Domain --- the carrier element type (the A in BS §I.1's (A, F)).
+ *   - @c Ops... --- element-level operations on the carrier (the F).  Set-level
+ *     ops (complement, @c |, @c &) live on @c X itself, not in @c Ops, so they
+ *     are never confused with F.
+ *
+ * The definition factors as @c Ddk @c = @c Trsk @c ∩ @c Alg:
+ *   - @c IsSet<X> is the @c Trsk (set) half: @c X satisfies the full ETCS set
+ *     contract (not merely @c IsArrow), so @c X::Domain stays well-formed.
+ *   - Closure of each @c Op is the @c Alg half.  Algebraic closure is the
+ *     defining property of an algebraic set, so it is surfaced as its own
+ *     conjunct rather than left implicit inside @c IsAlgebra.  A closed n-ary
+ *     operation @b corresponds to endomorphisms of the carrier (fix all but one
+ *     argument, modulo currying); it is not itself unary.
+ *
+ * @tparam X    The set object (@c IsSet).
+ * @tparam Ops  The family of operations on @c X::Domain.
+ */
 export template <typename X, typename... Ops>
 concept IsAlgebraOnSet =
-    dedekind::category::IsArrow<X> && IsAlgebra<typename X::Domain, Ops...>;
+    dedekind::category::IsSet<X> &&
+    (... && IsClosedUnderEither<typename X::Domain, Ops>) &&
+    IsAlgebra<typename X::Domain, Ops...>;
 
 // ---------------------------------------------------------------------------
 // IsTotalAlgebra: the totality-tier anchor between :universal and :total

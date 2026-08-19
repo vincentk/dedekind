@@ -837,11 +837,14 @@ The type system can consequently treat arbitrary transformations as well-behaved
 \label{lst:algebra:universal}
 \begin{cpp}
 export template <typename X, typename... Ops>
-concept IsAlgebraOnSet = IsAlgebra<typename X::Domain, Ops...>;
+concept IsAlgebraOnSet =
+    IsSet<X>                                          // Trsk: X is a set
+    && (... && IsClosedUnderEither<X::Domain, Ops>)   // closure: each op corresponds to endomorphisms
+    && IsAlgebra<X::Domain, Ops...>;                  // the (A, F) algebra
 \end{cpp}
 \end{listing}
 A carrier in \texttt{dedekind} is an \emph{algebraic set}: a C++ type that is a set in the sense of §\ref{sec:intensional_sets} and carries operations on that set.
-Membership is the two conditions together: the type is a set (the Tarski layer $\mathbf{Trsk}$ of §\ref{sec:intensional_sets}), and its carrier passes the algebra gate \cppinline{IsAlgebraOnSet} of Listing~\ref{lst:algebra:universal}, which asks that the carrier be closed under the operations it supplies:
+A type inhabits the category $\mathbf{Ddk}$ exactly when it type-checks against \cppinline{IsAlgebraOnSet} (Listing~\ref{lst:algebra:universal}), which asks for both halves at once: that the type is a set (the Tarski layer $\mathbf{Trsk}$ of §\ref{sec:intensional_sets}) and that its carrier is closed under the operations it supplies:
 \begin{equation}
     \mathbf{Ddk} \;=\; \mathbf{Trsk} \,\cap\, \mathbf{Alg}(-),
 \end{equation}

@@ -14,6 +14,7 @@
 module;
 
 #include <concepts>
+#include <functional>
 #include <numeric>
 #include <type_traits>
 
@@ -95,6 +96,19 @@ static_assert(dedekind::algebra::IsOrderedAdditiveGroup<
               "IsOrderedAdditiveGroup --- the structural binding "
               "between ℤ and the in-line scout-algebra halfspace "
               "pipe (#664 / #670).");
+
+// ℤ inhabits Ddk: it is an algebraic set.  The universe ℤ is an IsSet over
+// the SignedCardinality carrier, which is closed under its ring operations
+// +, *, and --- unlike ℕ --- unary - (SignedCardinality is an abelian group
+// under +, so the negation loop of Figure 3 closes).  So IsAlgebraOnSet
+// fires: ℤ as an object of Ddk = Trsk ∩ Alg, a ring with the negation loop.
+static_assert(
+    dedekind::algebra::IsAlgebraOnSet<
+        decltype(ℤ), std::plus<dedekind::sets::SignedCardinality>,
+        std::multiplies<dedekind::sets::SignedCardinality>,
+        std::negate<dedekind::sets::SignedCardinality>>,
+    "ℤ is an algebraic set (Ddk): a set whose carrier SignedCardinality is "
+    "closed under the ring operations +, *, and the unary - negation loop.");
 
 // ===========================================================================
 // Initial Ring + Grothendieck Group witnesses on @c SignedCardinality

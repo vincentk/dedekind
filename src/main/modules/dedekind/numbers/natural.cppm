@@ -195,12 +195,27 @@ static_assert(
     "ℕ's underlying carrier IS Cardinality — the textbook "
     "universe-over-carrier reading.");
 
-// (0a) Relationship between ℕ (the carrier) and NaturalNumbersOf<>
+// (0a′) ℕ inhabits Ddk: it is an algebraic set.  The universe ℕ is an
+//     IsSet over the Cardinality carrier, and Cardinality is closed under
+//     its rig operations +, * (but @b not under unary -, since ℕ carries
+//     no additive inverses --- see the deliberate
+//     !IsClosedUnderUnary<Cardinality, std::negate<>> in :sets:cardinality).
+//     So IsAlgebraOnSet fires: the same witness 𝔹 carries in :algebra:boolean,
+//     now on ℕ.  This is the mechanical reading of ℕ as an object of
+//     Ddk = Trsk ∩ Alg (Figure 3), a rig without the negation loop.
+static_assert(dedekind::algebra::IsAlgebraOnSet<decltype(dedekind::sets::ℕ),
+                                                std::plus<Cardinality>,
+                                                std::multiplies<Cardinality>>,
+              "ℕ is an algebraic set (Ddk): a set whose carrier Cardinality is "
+              "closed under the rig operations +, *.");
+
+// (0a) Relationship between the carrier Cardinality and NaturalNumbersOf<>
 //      (the predicate-set / classifier).  The predicate-set's @c Domain
 //      @b is the carrier — same shape as the 𝔹 ↔ UniversalSet<bool>
-//      relationship from #400.  IsSet<ℕ> itself does @b not fire (carrier types
-//      carry no predicate-set surface); to participate as a set, lift
-//      through the predicate-set.
+//      relationship from #400.  The bare @b carrier type @c Cardinality
+//      carries no predicate-set surface, so @c NaturalNumbersOf<> (below)
+//      anchors the set-builder DSL; the universe @b value ℕ = Ω<Cardinality>
+//      is itself an @c IsSet, which is exactly what (0a′) above relies on.
 static_assert(std::same_as<typename NaturalNumbersOf<>::Domain, Cardinality>,
               "NaturalNumbersOf<>::Domain is the variant ℕ-proxy carrier "
               "ℕ — predicate-set's underlying element type IS the "
