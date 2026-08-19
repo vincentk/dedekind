@@ -343,16 +343,32 @@ In practice, this posture materializes across progressive feature tiers: i) basi
 \paragraph{The Syntactic vs. Semantic Split}
 \label{sec:syntactic_semantic_split}
 
+\begin{table}[ht]
+\centering
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+ & Bitwise & \multicolumn{3}{c}{Arithmetic} \\
+\cmidrule(lr){2-2} \cmidrule(l){3-5}
+ & \texttt{bool} & \texttt{int} & \texttt{unsigned} & \texttt{double} \\
+\midrule
+closure           & $\vdash$    & $\vdash$  & $\vdash$    & $\vdash$  \\
+$+$ associativity & \checkmark  & $\times$  & \checkmark  & $\times$  \\
+$+$ commutativity & \checkmark  & $\times$  & \checkmark  & $\times$  \\
+$+$ identities    & \checkmark  & $\times$  & \checkmark  & $\times$  \\
+$+$ inverses      & \checkmark  & $\times$  & \checkmark  & $\times$  \\
+\midrule
+structure     & $\mathbb{F}_2$ (field) & closure only & $\mathbb{Z}/2^{n}$ (ring) & closure only \\
+\bottomrule
+\end{tabular}
+\caption{Algebraic certification of the built-in primitives as a feature table. Columns are the operators a type offers (in the \Cpp{} sense); rows are a cumulative ladder of algebraic laws, each rung assuming the ones above.  Closure the compiler settles by itself ($\vdash$); every rung below is semantic, so it is either certified by hand in the trait registry (\checkmark) or absent, in which case the type is rejected at the gate ($\times$).  The bit-exact primitives \texttt{bool} and \texttt{unsigned} climb the whole ladder; \texttt{int} and \texttt{double} stall at closure, their associativity already lost to overflow and to IEEE rounding.  Under the \emph{logical} operators \texttt{bool} is only a Boolean lattice, without inverses; the field $\mathbb{F}_2$ is the bitwise reading.  Appendix~\ref{sec:builtin-algebra} tabulates the full per-type detail.}
+\label{tab:primitive-algebra}
+\end{table}
+
 \begin{listing}[ht]
-\caption{Illustration of the Juliet Posture and the Honest Rejection Policy as well as the split between syntactical and semantic check.
-Type constraints are supplied as after the fact as \cppinline{concept} type predicates and can be applied regardless of provenance or lineage.
-In this case, they are applied to built-in primitive types.
+\caption{Algebraic certification of the built-in primitives as type-checked code.
+The \cppinline{concept}s resolve the certifications listed in Table~\ref{tab:primitive-algebra} and can be applied regardless of provenance or lineage.
 Left panel: case study of the primitive \cppinline{bool} type which is an exact model of the Galois field $\mathbb{F}_2$ over $\mathbb{B}$.
-Logical conjunction is associative.
-A corresponding trait certification has been provided.
 Right panel: case study of the primitive \cppinline{int} type which is often used to mimick the ring $\mathbb{Z}$.
-Addition is not associative due to finite representation and overflow.
-A corresponding manual trait certification has been withheld, the type check fails.
 }
 \label{lst:honest_rejection}
 \noindent
@@ -397,31 +413,10 @@ static_assert(
 \end{minipage}
 \end{listing}
 
-\begin{figure}[ht]
-\centering
-\begin{tabular}{@{}lcccc@{}}
-\toprule
- & Bitwise & \multicolumn{3}{c}{Arithmetic} \\
-\cmidrule(lr){2-2} \cmidrule(l){3-5}
- & \texttt{bool} & \texttt{int} & \texttt{unsigned} & \texttt{double} \\
-\midrule
-closure           & $\vdash$    & $\vdash$  & $\vdash$    & $\vdash$  \\
-$+$ associativity & \checkmark  & $\times$  & \checkmark  & $\times$  \\
-$+$ commutativity & \checkmark  & $\times$  & \checkmark  & $\times$  \\
-$+$ identities    & \checkmark  & $\times$  & \checkmark  & $\times$  \\
-$+$ inverses      & \checkmark  & $\times$  & \checkmark  & $\times$  \\
-\midrule
-structure     & $\mathbb{F}_2$ (field) & closure only & $\mathbb{Z}/2^{n}$ (ring) & closure only \\
-\bottomrule
-\end{tabular}
-\caption{\textbf{What the built-in primitives actually certify.}  Columns are the operators a type offers (in the \Cpp{} sense); rows are a cumulative ladder of algebraic laws, each rung assuming the ones below.  Closure the compiler settles by itself ($\vdash$); every rung above is semantic, so it is either certified by hand in the trait registry (\checkmark) or absent, in which case the type is rejected at the gate ($\times$).  The bit-exact primitives \texttt{bool} and \texttt{unsigned} climb the whole ladder; \texttt{int} and \texttt{double} stall at closure, their associativity already lost to overflow and to IEEE rounding.  Under the \emph{logical} operators \texttt{bool} is only a Boolean lattice, without inverses; the field $\mathbb{F}_2$ is the bitwise reading.}
-\label{fig:two-axes}
-\end{figure}
-
 The boundary of this architecture matches the core distinction in standard \Cpp{} between \emph{satisfying} a concept (syntactic structure) and \emph{modeling} it (semantic lawfulness).
 Syntactic properties are mechanically decidable by the compiler.
 Semantic properties---such as associativity or distributivity---resist mechanical verification inside standard \Cpp{} and remain the engineer's honesty obligation.
-The discrepancy between the aspirational semantic model sketched in Figure~\ref{fig:hub-spoke-bnz} and the reality of IEEE numerical primitives as exposed in \Cpp{23} is highlighted in Figure~\ref{fig:two-axes}.
+The discrepancy between the aspirational semantic model sketched in Figure~\ref{fig:hub-spoke-bnz} and the reality of IEEE numerical primitives as exposed in \Cpp{23} is highlighted in Table~\ref{tab:primitive-algebra}.
 Here, $\mathbf{Jlt}$ defaults to an \emph{Honest Rejection Policy} which asserts that if neither mechanical nor manual certification is available at compile-time, then a violation of the corresponding axioms is assumed and the type is rejected at the gate.
 For example, \texttt{int} satisfies the syntactic operators for a ring, but signed-overflow undefined behavior defeats associativity.
 Conversely, \texttt{bool} is safely accepted as the Galois Field $\mathbb{F}_2$ because its bit-perfect operations never overflow or round, as demonstrated in Listing~\ref{lst:honest_rejection}.
@@ -1191,6 +1186,69 @@ The family of law-carrying specialisations, however, has no obvious ceiling shor
 
 \appendix
 
+
+%%%
+\section{The Algebra of the Built-in Types}
+\label{sec:builtin-algebra}
+
+Table~\ref{tab:primitive-algebra} gives the headline; the four tables below are the exhaustive per-type breakdown, one per standard concept, split because the built-in primitives do not share a single operator surface.
+A \checkmark marks a law certified in the trait registry, $\times$ one that is absent (hence rejected at the gate), and $\circ$ one that holds only in part.
+
+\begin{table}[htbp]
+\centering
+\caption{\textbf{\cppinline{bool}.}  The two-element type carries a different algebra under each operator surface.}
+\label{tab:prim-bool}
+\begin{tabular}{@{}ll@{}}
+\toprule
+operator surface & structure \\
+\midrule
+logical    & Boolean algebra \checkmark \\
+bitwise    & Galois field $\mathbb{F}_2$ \checkmark \\
+comparison & total order ($\mathrm{false} < \mathrm{true}$) \checkmark \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{\textbf{\cppinline{std::unsigned_integral}.}  Modular arithmetic gives a genuine ring; the narrow types leak through integer promotion.}
+\label{tab:prim-unsigned}
+\begin{tabular}{@{}p{0.34\textwidth}lll@{}}
+\toprule
+type(s) & arithmetic & bitwise & comparison \\
+\midrule
+\cppinline{unsigned int}, \cppinline{unsigned long}, \cppinline{unsigned long long}, \cppinline{size_t} & ring $\mathbb{Z}/2^n$ \checkmark & Boolean algebra \checkmark & total order \checkmark \\
+\cppinline{unsigned short}, \cppinline{unsigned char} & ring $\mathbb{Z}/2^n$ $\circ$ (promotes) & Boolean algebra \checkmark & total order \checkmark \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{\textbf{\cppinline{std::signed_integral}.}  Signed-overflow UB denies the ring; the two's-complement bits (guaranteed since \Cpp{20}) and the order survive.}
+\label{tab:prim-signed}
+\begin{tabular}{@{}p{0.28\textwidth}lll@{}}
+\toprule
+type(s) & arithmetic & bitwise & comparison \\
+\midrule
+\cppinline{int}, \cppinline{long}, \cppinline{long long} & partial $\times$ (overflow UB) & Boolean algebra \checkmark & total order \checkmark \\
+\cppinline{signed char}, \cppinline{short} & partial $\times$ (UB, promotes) & Boolean algebra \checkmark & total order \checkmark \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{\textbf{\cppinline{std::floating_point}.}  IEEE-754 rounding defeats associativity, and \cppinline{NaN} defeats even the order; almost nothing survives.}
+\label{tab:prim-floating}
+\begin{tabular}{@{}p{0.34\textwidth}ll@{}}
+\toprule
+type(s) & arithmetic & comparison \\
+\midrule
+\cppinline{float}, \cppinline{double}, \cppinline{long double} & closure only $\times$ (rounding) & not a total order $\times$ (\cppinline{NaN} incomparable) \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 %%%
 \section{Partial Evaluation on the Analytic Necklace}
@@ -2099,11 +2157,10 @@ Section~\ref{sec:compiler-wall}.
 
 \begin{table}[htbp]
 \centering
-\caption{\textbf{Math textbook $\leftrightarrow$ C++ standard.} Where the
+\caption{\textbf{Math textbook $\leftrightarrow$ C++ standard} (library carriers; the built-in primitives are itemised per operator surface in Appendix~\ref{sec:builtin-algebra}). Where the
 literal C++ operators agree with the textbook (rows that tick all
 columns), the bundled seal \cppinline{IsArithmeticRing} fires and
-generic code can be written in plain syntax. Where they diverge
-(integer promotion, signed-overflow UB), the table names the precise
+generic code can be written in plain syntax. Where they diverge, the table names the precise
 failure point and the tier that still fires. ``$\circ$'' marks an
 assertion that fires only at the literal-shape tier (the strict half
 is gated by an open FIXME on the species-trait registry); ``--''
@@ -2114,10 +2171,6 @@ marks not-currently-asserted.}
 \toprule
 \textbf{Carrier} & \textbf{Math claim} & \textbf{Strict} & \textbf{Functor} & \textbf{Literal} & \textbf{Seal} \\
 \midrule
-\cppinline{unsigned int}, \cppinline{unsigned long}, \cppinline{size_t} & ring $\mathbb{Z}/2^N\mathbb{Z}$ & \checkmark & \checkmark & \checkmark & \checkmark \\
-\cppinline{unsigned short}, \cppinline{unsigned char} & ring $\mathbb{Z}/2^N\mathbb{Z}$ & \checkmark & \checkmark & $\times$\textsuperscript{a} & $\times$ \\
-\cppinline{int}, \cppinline{long} & partial (signed-overflow UB) & $\times$\textsuperscript{b} & \checkmark & \checkmark & $\times$ \\
-\cppinline{bool} under $(\oplus, \wedge)$ & Galois field $\mathbb{F}_2$ & \checkmark & \checkmark & $\times$\textsuperscript{a} & $\times$\textsuperscript{c} \\
 \cppinline{Rational<long>} & field $\mathbb{Q}$ & $\circ$\textsuperscript{d} & $\circ$ & \checkmark & $\circ$ \\
 \cppinline{RigPolynomial<unsigned int>} & polynomial ring $R[x]$ & \checkmark & \checkmark & \checkmark & \checkmark \\
 \cppinline{Matrix2x2V<unsigned int>} & non-commutative ring & $\circ$ & $\circ$ & \checkmark & -- \\
@@ -2128,11 +2181,8 @@ marks not-currently-asserted.}
 \vspace{0.5em}
 {\footnotesize
 \begin{tabular}{@{}l p{0.85\textwidth}@{}}
-\textsuperscript{a} & integer promotion lifts the result of literal \cppinline{+} / \cppinline{*} to \cppinline{int}; the functor surface returns \cppinline{T} by signature. \\
-\textsuperscript{b} & signed-overflow UB means the carrier admits no \cppinline{IsTotal} label (it is neither periodic, nor idempotent, nor saturating); the categorical \cppinline{IsRing} chain --- which composes \cppinline{IsTotal} --- therefore breaks for this carrier. \\
-\textsuperscript{c} & \cppinline{bool}'s ring structure lives over $(\oplus, \wedge)$, not $(+, *)$; \cppinline{IsArithmeticRing}, which fixes \cppinline{(std::plus, std::multiplies)}, asks the wrong question for this carrier. \\
 \textsuperscript{d} & operational under the active numeric policy: \cppinline{HasFieldOperators} is the operational variant, the categorical proof is intentionally not specialised. \\
-\textsuperscript{e} & vectors have no internal product \cppinline{Vec2V $\times$ Vec2V $\to$ Vec2V}, only scalar multiplication; the shape concept correctly refuses. \\
+\textsuperscript{e} & vectors have no internal product \cppinline{Vec2V} $\times$ \cppinline{Vec2V} $\to$ \cppinline{Vec2V}, only scalar multiplication; the shape concept correctly refuses. \\
 \end{tabular}
 }
 \end{table}
@@ -2158,6 +2208,7 @@ concept cell records (e.g.\ loss of associativity under
 The rule: \textbf{start correct, finish fast, and the type system
 enforces that the laws your code relies on are the laws the carrier
 actually provides --- or fails to compile.}
+
 
 
 The second pillar.  Sets as predicates over an ambient species (the
