@@ -376,20 +376,20 @@ Right panel: case study of the primitive \cppinline{int} type which is often use
 \textbf{Associative algebra \texttt{(bool, \veebar, \land)}}
 \begin{cpp}
 template <typename T = bool>
-concept HasLogicalOperators = 
+concept HasLatticeOperators =
 requires(T a, T b) {
-  { a && b } -> std::same_as<T>;
-  { a || b } -> std::same_as<T>;
-  { a ^ b  } -> std::same_as<T>;
-  { !a     } -> std::same_as<T>;
+  { a & b } -> std::convertible_to<T>;
+  { a | b } -> std::convertible_to<T>;
+  { a ^ b } -> std::convertible_to<T>;
+  { ~a    } -> std::convertible_to<T>;
 };
 static_assert(
-  HasLogicalOperators<bool>); 
+  HasLatticeOperators<bool>);
 static_assert(
   IsGaloisField<
-    bool, 
-    std::logical_xor<bool>,
-    std::logical_and<bool>>);
+    bool,
+    std::bit_xor<bool>,
+    std::bit_and<bool>>);
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.48\linewidth}
