@@ -150,8 +150,8 @@
 % Core Thesis:
 A structurally-typed fragment of C++23 termed the \emph{Juliet Posture} $\mathbf{Jlt} = \mathbf{Per} \cap \mathbf{Cpp}$ is identified.\footnote{The architecture is written throughout as a chain of category intersections, each layer adding one commitment.  We mean these equations loosely: they say where each layer sits and carry the spirit of the thesis, not identities the paper proves.}
 It is assembled from \cppinline{constexpr} evaluation, \cppinline{concept} checks, and template instantiation and permits a System~F reading of the underlying type system.
-$\mathbf{Jlt}$ was then used to bootstrap first, a lazy, intensional set comprehension engine under an ETCS reading ($\mathbf{Trsk} = \mathbf{Jlt} \cap \mathbf{Set}$), and second, an intersection with universal algebraic signatures, forming the core category $\mathbf{Ddk} = \mathbf{Trsk} \cap \mathbf{Alg}$.
-The resulting embedded DSL allows for the reification of coordinate-free analytic graphs as relations on sets, augmented with algebraic laws.
+$\mathbf{Jlt}$ was then used to bootstrap i) a lazy, intensional set comprehension engine under an ETCS reading ($\mathbf{Trsk} = \mathbf{Jlt} \cap \mathbf{Set}$), and ii) an intersection with universal algebraic signatures, forming the core category $\mathbf{Ddk} = \mathbf{Trsk} \cap \mathbf{Alg}$.
+The resulting embedded DSL allows for the reification of coordinate-free analytic graphs as operators, functions and relations on algebraic sets.
 The compiler can then use those laws to not only verify but also optimize the corresponding expression tree, with full compile-time evaluation being a limiting case.
 
 % Demonstration of the Principle by way of a worked non-trivial example:
@@ -849,12 +849,11 @@ A type inhabits the category $\mathbf{Ddk}$ exactly when it type-checks against 
 the algebraic sets expressible as C++ types.
 Because membership is structural, a pre-existing type such as \cppinline{std::pair} joins $\mathbf{Ddk}$ the moment a concept accepts it, with no change to the carrier.
 
-Figure~\ref{fig:hub-spoke-bnz} is this category drawn out, and it is worth keeping in hand for the rest of the section.
-Its objects are the algebraic sets, the hubs $\mathbb{B}, \mathbb{N}, \mathbb{Z}$.
+Figure~\ref{fig:hub-spoke-bnz} is a sketch of this category, and it is worth keeping in hand for the rest of the section.
+Its objects are algebraic sets, the hubs $\mathbb{B}, \mathbb{N}, \mathbb{Z}$.
 The loop on each hub is that carrier's own algebraic operations, $\wedge$ and $\vee$ on $\mathbb{B}$, $+$ and $\times$ on $\mathbb{Z}$: the arrows a carrier composes with itself.
 The arrows between hubs are the embeddings, the canonical inclusions $\mathbb{B} \hookrightarrow \mathbb{N} \hookrightarrow \mathbb{Z} \hookrightarrow \mathbb{Q}$ that the \cppinline{embed_*_*} family ships.
 Reading a hub as a bare carrier, forgetting its operations, is the forgetful functor $U : \mathbf{Alg}(-) \to \mathbf{Set}$, and a plain set is the degenerate hub whose loop is empty.
-
 $\mathbf{Alg}(-)$ is universal algebra in the textbook sense~\cite{burris1981universalalgebra}: sets equipped with operations of fixed arity, where the dash is a placeholder for whatever signature a carrier happens to supply.\footnote{We leave the signature unbound and let the per-shape \cppinline{Has*Operators} concepts pin it at each carrier's definition, so $\mathbf{Ddk}$ stays as wide as the library needs while a concrete variety such as $\mathbf{Mon}$ or $\mathbf{Ring}$ is one fixed choice of dash (the same $F_\Sigma$-algebra fragment a functional programmer would recognise~\cite{pierce1991basic}).  We also fix a smallness ceiling of $\beth_1$, carriers no larger than the continuum, which is enough for $\mathbb{R}$, $\mathbb{C}$, and $\mathbb{D}$ while keeping the encoding clear of the proper-class self-reference that $\mathbf{Set}$ and $\mathbf{Cat}$ court; the meta-categorical bookkeeping this defers (size-hierarchy adjunctions, $\mathrm{Disc} \dashv U$) survives as the engineer's honesty obligation, treated in the companion report.  The simply-typed-$\lambda$-calculus and System~F reading of the same fragment is Appendix~\ref{app:jlt-systemf}.}
 
 The smallest inhabitant makes the shape concrete.
