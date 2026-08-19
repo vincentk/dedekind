@@ -424,25 +424,32 @@ This forms the exact Cartesian Closed Category needed to bootstrap formal set co
 
 \begin{figure}[htbp]
 \centering
-\begin{tikzcd}[column sep=5em, row sep=4em, ampersand replacement=\&]
-\mathbb{B} \arrow[loop above, "\neg"]
-   \arrow[r, bend left=20, "\mathfrak{i}"]
-\& \mathbb{N} \arrow[loop above, "x^2"]
-   \arrow[l, bend left=20, "x \,\%\, 2 = 0"]
-   \arrow[r, bend left=20, "-x"]
-\& \mathbb{Z} \arrow[loop above, "-x"]
-   \arrow[l, bend left=20, "x^2"]
+\begin{tikzcd}[column sep=3.8em, row sep=3.4em, ampersand replacement=\&]
+\mathbb{B} \arrow[loop, out=160, in=115, looseness=6, "\oplus" description] \arrow[loop, out=65, in=20, looseness=6, "\wedge" description] \arrow[ddr, dashed, "U"]
+\&
+\& \mathbb{N} \arrow[loop, out=160, in=115, looseness=6, "\oplus" description] \arrow[loop, out=65, in=20, looseness=6, "\otimes" description] \arrow[ddr, dashed] \arrow[rr, hook, "\text{hom}"]
+\&
+\& \mathbb{Z} \arrow[loop, out=160, in=115, looseness=6, "\oplus" description] \arrow[loop, out=65, in=20, looseness=6, "\otimes" description] \arrow[ddr, dashed]
+\& \\
+\& \mathbb{B} \arrow[loop, out=160, in=115, looseness=6, "\wedge" description] \arrow[loop, out=65, in=20, looseness=6, "\vee" description] \arrow[d, dashed]
+\&
+\& \mathbb{N} \arrow[loop, out=160, in=115, looseness=6, "+" description] \arrow[loop, out=65, in=20, looseness=6, "\times" description] \arrow[d, dashed] \arrow[rr, hook, "\text{hom}"]
+\&
+\& \mathbb{Z} \arrow[loop, out=160, in=115, looseness=6, "+" description] \arrow[loop, out=65, in=20, looseness=6, "\times" description] \arrow[d, dashed] \\
+\& \mathbb{B} \arrow[rr, dotted, thick, bend right=18, "\mathfrak{i}"']
+\&
+\& \mathbb{N} \arrow[ll, dotted, thick, bend right=18, "x\,\%\,2=0"] \arrow[rr, dotted, thick, bend right=18, "-x"']
+\&
+\& \mathbb{Z} \arrow[ll, dotted, thick, bend right=18, "x^2"]
 \end{tikzcd}
 \caption{
-A sketch of the desired functionality to be supported by the \texttt{dedekind} set DSL.
-The items shown correspond to a small example subset of $\mathbf{Alg}(\Sigma)$, the category of universal algebras.
-Example canonical underlying carrier sets $\mathbb{B}$, $\mathbb{N}$, $\mathbb{Z}$ are shown as single objects, the individual set elements are omitted for brevity.
-Most arrows on each carrier and most inter-carrier arrows are suppressed for clarity.
-Selected endomorphisms are shown as loops: negation on $\mathbb B$, squaring on $\mathbb N$, negation on $\mathbb Z$.
-Inter-carrier arrows are typed maps $\mathrm{T} \to \mathrm{S}$.
-$\mathbb{B} \rightleftarrows \mathbb{N}$: forward $\mathfrak{i}$ the canonical embedding, reverse the parity classifier.
-$\mathbb{N} \rightleftarrows \mathbb{Z}$: forward $x \mapsto -x$ (negation, well-typed as $\mathbb{N} \to \mathbb{Z}$ because $\mathbb{N}$ is not closed under additive inverse); reverse $x \mapsto x^2$ (squaring closes into $\mathbb{N}$ from any $\mathbb{Z}$ input).
-The interested reader is referred to definitions of the category $\mathbf{FPL}$~\cite{pierce1991basic} which outlines similar steps in formal detail.
+A sketch of the desired functionality to be supported by the \texttt{dedekind} set DSL, drawn to separate the two categories it straddles.
+The bottom row holds the carrier sets $\mathbb{B}, \mathbb{N}, \mathbb{Z}$, the objects of $\mathbf{Set}$; above them sit algebraic sets, the objects of $\mathbf{Alg}(\Sigma)$, staggered across two tiers so one carrier can support several without the arrows crossing.
+Each node above the carriers is that carrier decorated with its operations, the family $F$ of the algebra, drawn as loops: $\mathbb{B}$ as the Boolean lattice $(\wedge, \vee)$ and the Galois field $\mathbb{F}_2$ $(\oplus, \wedge)$, and $\mathbb{N}, \mathbb{Z}$ each with their usual arithmetic $(+, \times)$ on the lower tier and a tropical semiring on the upper, its sum $\oplus = \max$ and product $\otimes = +$, the classical-versus-tropical pairing §\ref{sec:optimization_lp} exploits as a semiring swap.
+A loop is an operation, so a binary one such as $\wedge$ or $+$ is a map $A \times A \to A$ decorating $A$, not a category endomorphism.
+The dashed forgetful functor $U : \mathbf{Alg}(\Sigma) \to \mathbf{Set}$ strips those operations; it is not injective on objects, as the two algebras over each carrier show.
+The two hooked arrows are the inclusion $\mathbb{N} \hookrightarrow \mathbb{Z}$, a homomorphism in each semiring: it preserves $(+, \times)$ classically and $(\oplus, \otimes)$ tropically.
+Dotted arrows are typed maps that are \emph{not} homomorphisms, so they live downstairs in $\mathbf{Set}$: the embedding $\mathfrak{i}$ with the parity classifier back, and $x \mapsto -x$ (preserves $+$, not $\times$) with $x \mapsto x^2$ (preserves $\times$, not $+$).
 }
 \label{fig:hub-spoke-bnz}
 \end{figure}
@@ -824,7 +831,7 @@ constexpr Singleton<16u> max_square = max(sqs);
 
 By utilizing the \texttt{mono\_retract} partial witness, the compiler can evaluate codomain properties purely as a local lookup on the intermediate type boundary.
 This structural approach ensures that even highly complex or non-linear functional images can be safely validated at compile time.
-The type system can consequently treat arbitrary transformations as well-behaved objects, laying a reliable foundation for the universal algebraic operators and endofunction loops developed in the subsequent section.
+The type system can consequently treat arbitrary transformations as well-behaved objects, laying a reliable foundation for the universal-algebraic operators developed in the subsequent section.
 
 %------
 \section{Universal Algebra and the Algebraic Lattice of Carriers}
@@ -852,14 +859,12 @@ the algebraic sets expressible as C++ types.
 Because membership is structural, admission is after the fact: a type is presented as a set by a concept, with no change to the type and no upstream opt-in.
 
 Figure~\ref{fig:hub-spoke-bnz} is a sketch of this category, and it is worth keeping in hand for the rest of the section.
-Its objects are algebraic sets, the hubs $\mathbb{B}, \mathbb{N}, \mathbb{Z}$, drawn with a few representative arrows and the rest suppressed.
-The loops are endomorphisms of a carrier: negation on $\mathbb{B}$, squaring on $\mathbb{N}$, negation on $\mathbb{Z}$.
-The arrows between hubs are typed maps $\mathrm{T} \to \mathrm{S}$: the canonical embedding $\mathbb{B} \hookrightarrow \mathbb{N}$ with the parity classifier back, and $x \mapsto -x$ from $\mathbb{N}$ into $\mathbb{Z}$ (well-typed precisely because $\mathbb{N}$ has no additive inverse) with squaring back.
-Reading a hub as a bare carrier, forgetting its operations, is the forgetful functor $U : \mathbf{Alg}(-) \to \mathbf{Set}$, and a plain set is the degenerate hub whose loop is empty.
+Its objects are algebraic sets: a carrier decorated with operations, the loops, with the bare carriers on the bottom row and the forgetful functor $U : \mathbf{Alg}(-) \to \mathbf{Set}$ dropping the operations to reach them.
+One carrier can support several algebras, so $U$ is not injective on objects; the hooked homomorphisms are the carrier maps that preserve the operations, and the dotted maps are carrier maps that break one, falling to $\mathbf{Set}$.
 $\mathbf{Alg}(-)$ is universal algebra in the textbook sense~\cite{burris1981universalalgebra}: sets equipped with operations of fixed arity, where the dash is a placeholder for whatever signature a carrier happens to supply.\footnote{We leave the signature unbound and let the per-shape \cppinline{Has*Operators} concepts pin it at each carrier's definition, so $\mathbf{Ddk}$ stays as wide as the library needs while a concrete variety such as $\mathbf{Mon}$ or $\mathbf{Ring}$ is one fixed choice of dash (the same $F_\Sigma$-algebra fragment a functional programmer would recognise~\cite{pierce1991basic}).  We also fix a smallness ceiling of $\beth_1$, carriers no larger than the continuum, which is enough for $\mathbb{R}$, $\mathbb{C}$, and $\mathbb{D}$ while keeping the encoding clear of the proper-class self-reference that $\mathbf{Set}$ and $\mathbf{Cat}$ court; the meta-categorical bookkeeping this defers (size-hierarchy adjunctions, $\mathrm{Disc} \dashv U$) survives as the engineer's honesty obligation, treated in the companion report.  The simply-typed-$\lambda$-calculus and System~F reading of the same fragment is Appendix~\ref{app:jlt-systemf}.}
 
 The smallest inhabitant makes the shape concrete.
-The Boolean carrier $\mathbb{B}$ is an algebraic set the moment it type-checks as $\mathbf{Alg}(\wedge, \vee, \neg)$ over \cppinline{bool} (Listing~\ref{lst:algebra:boolean_case}): the object is the set, and $\wedge, \vee, \neg$ are the operations it closes under ($\neg$ the self-loop drawn in Figure~\ref{fig:hub-spoke-bnz}, $\wedge$ and $\vee$ binary $\mathbb{B} \times \mathbb{B} \to \mathbb{B}$).
+The Boolean carrier $\mathbb{B}$ is an algebraic set the moment it type-checks as $\mathbf{Alg}(\wedge, \vee, \neg)$ over \cppinline{bool} (Listing~\ref{lst:algebra:boolean_case}): the object is the set, and $\wedge, \vee, \neg$ are the operations it closes under, with $\wedge$ and $\vee$ (both binary $\mathbb{B} \times \mathbb{B} \to \mathbb{B}$) drawn as loops on its Boolean-lattice node in Figure~\ref{fig:hub-spoke-bnz}.
 
 % Source excerpt from dedekind.algebra:boolean.
 \begin{listing}[ht]
@@ -886,7 +891,7 @@ The carriers form a lattice, and the library builds it the way the textbooks do,
 The bottom is the Boolean semiring $\mathbb{B}$ above, with the naturals $\mathbb{N}$ just over it.
 From there the tower is the standard one: the Grothendieck completion of $(\mathbb{N}, +)$ to the integers $\mathbb{Z}$ and their field of fractions $\mathbb{Q} = \operatorname{Frac}(\mathbb{Z})$, Dedekind cuts to the reals $\mathbb{R}$, free modules to the vector and matrix carriers $R^n$ and $M_n(R)$, and polynomial quotients to the complex and dual numbers, $\mathbb{C} = \mathbb{R}[i]/(i^2{+}1)$ and $\mathbb{D} = \mathbb{R}[\varepsilon]/(\varepsilon^2)$.
 None of this is ours to reprove: it is Bourbaki's structuralist tower~\cite{bourbaki1968theoryofsets, marquis2022structuralist} carried down to the type level, and the textbooks treat it better than we could.
-The only discipline the library adds is that each rung lifts at the type level the moment a hub naming it passes its concept gate, so it is the compiler, not the reader, that checks each construction is what it claims to be.
+The only discipline the library adds is that each rung lifts at the type level the moment a type naming it passes its concept gate, so it is the compiler, not the reader, that checks each construction is what it claims to be.
 
 The quotient rung is backed by the First Isomorphism Theorem, $A/\ker f \cong \operatorname{im} f$~\cite{burris1981universalalgebra}, which \texttt{category:image} records as a typed claim: the quotient and image are registered per homomorphism, and a supplied isomorphism is type-checked against them.
 
@@ -1263,7 +1268,7 @@ To bridge this abstract mathematical formalism with systems-programming primitiv
         \item \textit{Smallness:} both collections are \emph{sets}, not proper classes. This holds \emph{by construction}, since the objects and arrows are the value-sets of single C++ types (\cppinline{Cat::Species} and \cppinline{Cat::Arrow}), and a type's value-set is a set in the metatheory. (Requiring only the hom-collection to be a set gives the weaker notion of a \emph{locally small} category.)
     \end{enumerate}
     \item \textbf{C++ Reification:} The \cppinline{concept IsSmallCategory} gates the structure. Per $\mathbf{Jlt}$~\ref{sec:jlt_posture}, objects are \cppinline{std::regular} carriers. Morphisms are values of a single arrow type satisfying \cppinline{concept IsArrow}, with \texttt{::Domain} and \texttt{::Codomain} typedefs and a callable \cppinline{f(x)} from the domain into the codomain. Composition is the overloaded \cppinline{operator>>}, with the identity laws \cppinline{id >> g == g} and \cppinline{f >> id == f} discharged as overloads; identity arrows come from an \cppinline{id_c(x)} factory.
-    \item \textbf{Explanatory Note:} Instead of data-hiding containers, a ``set'' at this entry rung is simply a well-behaved C++ type acting as a domain, and a ``function'' is a side-effect-free arrow mapping inputs to outputs. In its single-object mode, with the carrier type as the sole object and its arrows as endomorphisms, composition makes the category a \textbf{monoid} (a one-object category). These are exactly the endomorphism loops drawn on each carrier hub of Figure~\ref{fig:hub-spoke-bnz}.
+    \item \textbf{Explanatory Note:} Instead of data-hiding containers, a ``set'' at this entry rung is simply a well-behaved C++ type acting as a domain, and a ``function'' is a side-effect-free arrow mapping inputs to outputs. In its single-object mode, with the carrier type as the sole object and its arrows as endomorphisms, composition makes the category a \textbf{monoid} (a one-object category).
 \end{itemize}
 
 \subsection{Cartesian Categories (\texttt{:limit} partition)}
