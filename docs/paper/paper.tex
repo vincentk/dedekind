@@ -156,7 +156,7 @@ The compiler can then use those laws to not only verify but also optimize the co
 
 % Demonstration of the Principle by way of a worked non-trivial example:
 The feasibility of the approach is demonstrated by a worked example: the computation of a directed acyclic network's critical path, computed by semiring closure and cast entirely in the type system.
-If all arguments can be applied at compile-time, the compiler folds the optimum and the emitted IR is simply a constant result, typed to the semiring used to describe the cost function ($\mathbb B$ for reachability, $\mathbb N$ for cost estimates, dual numbers for sensitivity analysis).
+If all arguments can be applied at compile-time, the compiler folds the optimum and the emitted IR is simply a constant result, typed to the semiring used to describe the cost function (the Boolean semiring for reachability, max-plus over $\mathbb N$ for cost estimates, max-plus over dual numbers for sensitivity analysis).
 
 % Concluding remarks:
 Crucially, this compile-time collapse is \emph{optional}: if not all arguments are supplied, an optimized, partially evaluated intermediate representation is emitted.
@@ -841,18 +841,17 @@ concept IsAlgebraOnSet = IsAlgebra<typename X::Domain, Ops...>;
 \end{cpp}
 \end{listing}
 A carrier in \texttt{dedekind} is an \emph{algebraic set}: a C++ type that is a set in the sense of §\ref{sec:intensional_sets} and carries operations on that set.
-Listing~\ref{lst:algebra:universal} is the whole of the membership test.
-A type inhabits the category $\mathbf{Ddk}$ exactly when it type-checks against \cppinline{IsAlgebraOnSet}, which imposes universal-algebra structure on the Tarski set layer $\mathbf{Trsk}$ of §\ref{sec:intensional_sets}:
+Membership is the two conditions together: the type is a set (the Tarski layer $\mathbf{Trsk}$ of §\ref{sec:intensional_sets}), and its carrier passes the algebra gate \cppinline{IsAlgebraOnSet} of Listing~\ref{lst:algebra:universal}, which asks that the carrier be closed under the operations it supplies:
 \begin{equation}
     \mathbf{Ddk} \;=\; \mathbf{Trsk} \,\cap\, \mathbf{Alg}(-),
 \end{equation}
 the algebraic sets expressible as C++ types.
-Because membership is structural, a pre-existing type such as \cppinline{std::pair} joins $\mathbf{Ddk}$ the moment a concept accepts it, with no change to the carrier.
+Because membership is structural, admission is after the fact: a type is presented as a set by a concept, with no change to the type and no upstream opt-in.
 
 Figure~\ref{fig:hub-spoke-bnz} is a sketch of this category, and it is worth keeping in hand for the rest of the section.
-Its objects are algebraic sets, the hubs $\mathbb{B}, \mathbb{N}, \mathbb{Z}$.
-The loop on each hub is that carrier's own algebraic operations, $\wedge$ and $\vee$ on $\mathbb{B}$, $+$ and $\times$ on $\mathbb{Z}$: the arrows a carrier composes with itself.
-The arrows between hubs are the embeddings, the canonical inclusions $\mathbb{B} \hookrightarrow \mathbb{N} \hookrightarrow \mathbb{Z} \hookrightarrow \mathbb{Q}$ that the \cppinline{embed_*_*} family ships.
+Its objects are algebraic sets, the hubs $\mathbb{B}, \mathbb{N}, \mathbb{Z}$, drawn with a few representative arrows and the rest suppressed.
+The loops are endomorphisms of a carrier: negation on $\mathbb{B}$, squaring on $\mathbb{N}$, negation on $\mathbb{Z}$.
+The arrows between hubs are typed maps $\mathrm{T} \to \mathrm{S}$: the canonical embedding $\mathbb{B} \hookrightarrow \mathbb{N}$ with the parity classifier back, and $x \mapsto -x$ from $\mathbb{N}$ into $\mathbb{Z}$ (well-typed precisely because $\mathbb{N}$ has no additive inverse) with squaring back.
 Reading a hub as a bare carrier, forgetting its operations, is the forgetful functor $U : \mathbf{Alg}(-) \to \mathbf{Set}$, and a plain set is the degenerate hub whose loop is empty.
 $\mathbf{Alg}(-)$ is universal algebra in the textbook sense~\cite{burris1981universalalgebra}: sets equipped with operations of fixed arity, where the dash is a placeholder for whatever signature a carrier happens to supply.\footnote{We leave the signature unbound and let the per-shape \cppinline{Has*Operators} concepts pin it at each carrier's definition, so $\mathbf{Ddk}$ stays as wide as the library needs while a concrete variety such as $\mathbf{Mon}$ or $\mathbf{Ring}$ is one fixed choice of dash (the same $F_\Sigma$-algebra fragment a functional programmer would recognise~\cite{pierce1991basic}).  We also fix a smallness ceiling of $\beth_1$, carriers no larger than the continuum, which is enough for $\mathbb{R}$, $\mathbb{C}$, and $\mathbb{D}$ while keeping the encoding clear of the proper-class self-reference that $\mathbf{Set}$ and $\mathbf{Cat}$ court; the meta-categorical bookkeeping this defers (size-hierarchy adjunctions, $\mathrm{Disc} \dashv U$) survives as the engineer's honesty obligation, treated in the companion report.  The simply-typed-$\lambda$-calculus and System~F reading of the same fragment is Appendix~\ref{app:jlt-systemf}.}
 
@@ -881,20 +880,20 @@ static_assert(
 \label{sec:carrier-lattice}
 
 The carriers form a lattice, and the library builds it the way the textbooks do, one universal-property construction at a time.
-The bottom is the Boolean semiring $\mathbb{B}$ above.
-From there the tower is the standard one: a Grothendieck completion to the integers $\mathbb{Z}$ and their field of fractions $\mathbb{Q} = \operatorname{Frac}(\mathbb{Z})$, Dedekind cuts to the reals $\mathbb{R}$, free modules to the vector and matrix carriers $R^n$ and $M_n(R)$, and polynomial quotients to the complex and dual numbers, $\mathbb{C} = \mathbb{R}[i]/(i^2{+}1)$ and $\mathbb{D} = \mathbb{R}[\varepsilon]/(\varepsilon^2)$.
+The bottom is the Boolean semiring $\mathbb{B}$ above, with the naturals $\mathbb{N}$ just over it.
+From there the tower is the standard one: the Grothendieck completion of $(\mathbb{N}, +)$ to the integers $\mathbb{Z}$ and their field of fractions $\mathbb{Q} = \operatorname{Frac}(\mathbb{Z})$, Dedekind cuts to the reals $\mathbb{R}$, free modules to the vector and matrix carriers $R^n$ and $M_n(R)$, and polynomial quotients to the complex and dual numbers, $\mathbb{C} = \mathbb{R}[i]/(i^2{+}1)$ and $\mathbb{D} = \mathbb{R}[\varepsilon]/(\varepsilon^2)$.
 None of this is ours to reprove: it is Bourbaki's structuralist tower~\cite{bourbaki1968theoryofsets, marquis2022structuralist} carried down to the type level, and the textbooks treat it better than we could.
 The only discipline the library adds is that each rung lifts at the type level the moment a hub naming it passes its concept gate, so it is the compiler, not the reader, that checks each construction is what it claims to be.
 
-The quotient rung is backed by the First Isomorphism Theorem, $A/\ker f \cong \operatorname{im} f$~\cite{burris1981universalalgebra}, which the library discharges as a typed witness in \texttt{category:image} rather than as prose.
+The quotient rung is backed by the First Isomorphism Theorem, $A/\ker f \cong \operatorname{im} f$~\cite{burris1981universalalgebra}, which \texttt{category:image} records as a typed claim: the quotient and image are registered per homomorphism, and a supplied isomorphism is type-checked against them.
 
 \subsection{Certified laws travel with the carrier}
 \label{sec:hsp_varieties}
 
 What makes these carriers usable downstream is that their \emph{laws} propagate.
-A class of algebras closed under homomorphic images, subalgebras, and products is a variety (Birkhoff~\cite{burris1981universalalgebra}), and the library realises that closure as \emph{trait propagation}: when a carrier is derived by an H, S, or P construction, the species traits it satisfies (\cppinline{is_associative_v}, \cppinline{is_commutative_v}, \cppinline{is_distributive_v}, and the rest) lift to the derived carrier and are re-checked at compile time.
+A class of algebras closed under homomorphic images, subalgebras, and products is a variety (Birkhoff~\cite{burris1981universalalgebra}), and the library realises that closure as \emph{trait propagation}: when a carrier is derived by an H, S, or P construction, the species traits it satisfies (\cppinline{is_associative_v}, \cppinline{is_commutative_v}, \cppinline{is_distributive_v}, and the rest) propagate to the derived carrier, confirmed there by \cppinline{static_assert}.
 Listing~\ref{lst:hsp-closed} pins this at the cyclic base $\mathbb{Z}/6\mathbb{Z}$: the variety ``associative and commutative $+$'' stays closed across its H, S, and P images, witnessed by eight \cppinline{static_assert}s.
-These are the same traits §\ref{sec:optimization_lp}'s \cppinline{IsSemiring} gate reads, so the exhibit there does not re-establish that its carrier is a dioid; it inherits the certification from here.
+The gate §\ref{sec:optimization_lp} uses, \cppinline{IsSemiring}, reads this same species-trait registry; the tropical carrier registers its own entries directly rather than as an H, S, or P image, so the exhibit's gate is a registry lookup, not a re-proof.
 
 \begin{listing}[ht]
 \caption{Birkhoff's HSP closure typed.  Base $\mathbb{Z}/6\mathbb{Z}$ + three synthetic HSP markers wired to the carrier-side registries; the trait propagation lifts both axioms of the variety uniformly to all three HSP-derived carriers.  Any future H/S/P construction over $\mathbb{Z}/6\mathbb{Z}$ (or any other base in the variety) follows the same one-line opt-in pattern.}
@@ -931,9 +930,9 @@ static_assert(is_commutative_v<P,  std::plus<P>>);
 \subsection{Dual numbers, for the sensitivity exhibit}
 \label{sec:dual_numbers_quotient}
 
-The one carrier worth a second look, because §\ref{sec:optimization_lp} differentiates with it, is the dual numbers $\mathbb{D} = \mathbb{R}[\varepsilon]/(\varepsilon^2)$.
-A dual number is a pair $(a, b)$ whose second coordinate carries the coefficient of $\varepsilon$, and the truncation $\varepsilon^2 = 0$ is enforced as a compile-time reduction, so a product collapses to $(a, b)(c, d) = (ac,\, ad + bc)$ during translation.
-That is forward-mode automatic differentiation obtained as a ring law rather than a hand-written container: the $\varepsilon$-coordinate is the derivative and the truncation is the product rule (Listing~\ref{lst:lin-alg-embeddings}).
+The one carrier worth a second look, because §\ref{sec:optimization_lp} differentiates with it, is the dual numbers, mathematically the quotient ring $\mathbb{D} = \mathbb{R}[\varepsilon]/(\varepsilon^2)$.
+The implementation is that quotient's direct realisation: a pair $(a, b)$ whose multiplication is written as $(a, b)(c, d) = (ac,\, ad + bc)$, with the truncation $\varepsilon^2 = 0$ already discharged in the formula.
+The operator is \cppinline{constexpr}, so a product of compile-time operands folds during translation, and the $\varepsilon$-coordinate carries the derivative: forward-mode automatic differentiation as a ring law (Listing~\ref{lst:lin-alg-embeddings}).
 
 % Source: src/test/cpp/modules/dedekind/linear_algebra/embeddings_test.cpp
 \begin{listing}[htbp]
