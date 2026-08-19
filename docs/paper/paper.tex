@@ -60,7 +60,6 @@
 \usepackage[figuresright]{rotating}
 \usepackage[table]{xcolor}
 \usepackage{pdflscape}
-\usepackage{threeparttable}             % table notes that travel with the table (survive landscape floats)
 \usepackage{tabularx}
 \usepackage{booktabs}
 
@@ -1202,13 +1201,12 @@ This appendix records the artefact: a row-by-row mapping across the three vocabu
 \begin{landscape}
 \begin{table}[p]
 \centering
-\caption{The structuralist bridge.  Each row reads three ways: a System F property (logic / type-theory tradition, Pierce~\cite{pierce2002tapl}~ch.~23, 29 + Wadler~\cite{wadler1989theorems}); the Juliet-Posture restriction in C++23 that recovers it; and the corresponding Bourbaki-structuralist move (Marquis~\cite{marquis2022structuralist}; Bourbaki's \emph{L'Architecture des mathématiques} 1948).  Each row is a \emph{correspondence}, not a strict equivalence: the C++ discipline recovers the \emph{flavour} of the System F property on the disciplined fragment.  Some rows are close (type erasure, universal quantification); others are partial, and the footnotes mark where the analogy stops.  The C++ column states the \emph{discipline} an engineer adopts; the consequences live in the outer columns.}
+\caption{The structuralist bridge (Pierce~\cite{pierce2002tapl}~ch.~23, 29; Wadler~\cite{wadler1989theorems}; Marquis~\cite{marquis2022structuralist}; Bourbaki 1948).  Each row is a \emph{correspondence}, not a strict equivalence: the C++ discipline (middle column) recovers the \emph{flavour} of the System F property, exactly for some rows and only in part for others.}
 \label{tab:structuralist-bridge}
-\begin{threeparttable}
-\begin{tabular}{@{}p{0.4\textwidth}p{0.7\textwidth}p{0.4\textwidth}@{}}
+\begin{tabular}{@{}p{0.3\textwidth}p{0.8\textwidth}p{0.4\textwidth}@{}}
 \toprule
 \textbf{System F property} & \textbf{Juliet Posture (C++)} & \textbf{Structuralist style (Bourbaki)} \\ \midrule
-\textbf{Parametricity} (\emph{Theorems for Free!}~\cite{wadler1989theorems})\tnote{a}  &
+\textbf{Parametricity} (\emph{Theorems for Free!}~\cite{wadler1989theorems})  &
 \textbf{Concept-gating}: \cppinline{requires}-clauses fix the interface to a \emph{scent}, so a caller interacts only through the axiom-shape concepts.  Parametric use \emph{inside} the body stays a convention, not a compiler guarantee. &
 \textbf{Typification}: ignoring internal set-elements in favour of relations among them. \\ \addlinespace
 \textbf{Universal quantification} ($\forall\alpha.\dots$) &
@@ -1217,24 +1215,25 @@ This appendix records the artefact: a row-by-row mapping across the three vocabu
 \textbf{Type erasure} (computation is type-blind) &
 \textbf{Zero-cost abstraction}: \cppinline{std::regular} objects with transparent value semantics let the compiler optimise on structure while the program's logic remains independent of the carrier name. &
 \textbf{Indistinguishability}: isomorphic structures are functionally identical. \\ \addlinespace
-\textbf{Strong normalisation} (termination)\tnote{b}  &
+\textbf{Strong normalisation} (termination)  &
 \textbf{Structural pruning}: rejecting Turing-complete template recursion in favour of finite algebraic compositions bounds \emph{type-level} expansion to a decidable cone (and collapses logically empty constructions to zero machine instructions).  It is weaker than strong normalisation: over-deep instantiation errors out rather than normalising. &
 \textbf{Echelon construction}: finite, well-founded builds from base sets and axioms. \\ \addlinespace
-\textbf{Impredicativity} (types quantified over types)\tnote{c}  &
+\textbf{Impredicativity} (types quantified over types)  &
 \textbf{Meta-concepts}: concepts defined in terms of other concepts (higher-order \emph{constraint} composition) let the library name 2-arrow structures at the type level.  This is an analogy, not System F impredicativity. &
 \textbf{Higher-order structure}: structures built upon structures. \\ \addlinespace
 \textbf{Ad-hoc rejection} (no lineage-based dispatch: overload resolution, ADL, specialisation) &
 \textbf{Ban on ADL / specialisation}: ADL beyond textbook operators, public-API specialisation, and SFINAE branching are excluded so that lineage cannot hijack scent (Table~\ref{tab:admissibility-rules}). &
 \textbf{Axiomatic purity}: rejection of ``substance'' or non-law behaviour at the level of the structure. \\ \bottomrule
 \end{tabular}
-\begin{tablenotes}[flushleft]\footnotesize
-\item[a] C++23 concepts realise parametricity in an \emph{implicit-style} discipline: the constraint is checked at instantiation but no concept witness is passed at runtime.  This is closer to Haskell-style type classes than to pure System F's explicit type abstraction.  The admissibility rules exclude ad-hoc \emph{dispatch} (SFINAE, ADL beyond textbook operators, public specialisation; Table~\ref{tab:admissibility-rules}), but not body-level type inspection: a constrained function may still branch on \cppinline{std::is_integral_v<T>}.  Full parametricity is therefore a discipline on the disciplined fragment, not a property the compiler discharges.
-\item[b] C++ template instantiation is Turing-complete in general~\cite{veldhuizen2003templates}; Table~\ref{tab:admissibility-rules}'s bounded-instantiation-depth rule caps \emph{type-level} expansion; it is not full strong normalisation.  Over-deep instantiation ends in a compiler depth error rather than a normal form, and \cppinline{constexpr} / runtime recursion is outside the rule's scope.  The analogy is to the terminating type-level fragment, not to System F's normalisation theorem.
-\item[c] System F impredicativity instantiates type variables with universally-quantified types.  The C++ analogue here is weaker: concepts \emph{composed from} concepts (higher-order constraints), and these range over concrete types (\cppinline{IsFunctor<F>} takes a \cppinline{typename F}), not over $\forall$-types.  We keep the row as a structural analogy (``structures built on structures''), not an identity.
-\end{tablenotes}
-\end{threeparttable}
 \end{table}
 \end{landscape}
+
+\paragraph{Where the correspondence is partial.}
+Three rows recover the \emph{flavour} of a System F property without the full theorem, and it is worth marking where the analogy stops.
+\emph{Parametricity} holds at the interface, not inside the body: the admissibility rules (Table~\ref{tab:admissibility-rules}) exclude ad-hoc dispatch (SFINAE, ADL beyond textbook operators, public specialisation) but not body-level type inspection, so a constrained function may still branch on \cppinline{std::is_integral_v<T>}; it is a discipline on the fragment, not a property the compiler discharges.
+\emph{Strong normalisation} is only partial: the bounded-depth rule caps type-level expansion, but over-deep instantiation is a compiler error rather than a normal form, and \cppinline{constexpr} / runtime recursion is out of scope.
+\emph{Impredicativity} is weaker still: the C++ analogue is concepts composed from concepts (higher-order constraints) ranging over concrete types (\cppinline{IsFunctor<F>} takes a \cppinline{typename F}), not System F's quantification over $\forall$-types.
+Each is a structural analogy, not an identity.
 
 \paragraph{Admissibility rules.}
 ``Carefully selected'' is not informal: the library polices a fixed list of admissibility rules on every \cppinline{export}-qualified declaration.
@@ -1290,7 +1289,7 @@ keeps the type checker's work within a decidable cone. \\
 Three threads run through the rosetta and stand on their own as the substantive claims of the System-F recovery:
 
 \begin{enumerate}
-\item \textbf{The postural ban on overloading.}  System F does not admit ad-hoc polymorphism: a function cannot behave differently for \cppinline{int} versus \cppinline{float}.
+\item \textbf{The postural ban on overloading.}  System F does not admit ad-hoc polymorphism: overload resolution cannot make a call mean different things for \cppinline{int} versus \cppinline{float}.
 $\mathbf{Jlt}$ recovers this by banning ADL beyond textbook operator overloads and public-API specialisation.
 If a function is defined for \cppinline{Scent T}, it must work the same for every rose that smells like \cppinline{T}.
 \item \textbf{Axiomatic honesty.}  System F assumes its types follow their definitions perfectly.
