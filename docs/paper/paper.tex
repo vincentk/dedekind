@@ -1439,34 +1439,7 @@ A generic algorithm requiring associativity therefore fails to compile on \textt
 \subsection{Carriers: From Exact Rationals to Packed Integers}
 \label{sec:carrier-rosetta}
 
-A \emph{carrier} in this paper is the underlying set on which an
-algebraic structure lives, the substrate of operations.  The
-universal-algebra formulation is introduced in §\ref{sec:algebraic_lattice_carriers}
-and applies here.  The same set may serve as carrier for several
-distinct algebras (e.g.\ $\mathbb{B}$ as $(\{0,1\}, \lor, \land)$
-vs as $(\mathbb{F}_2, \oplus, \land)$); and the same algebra may be
-obtained as either a primitive (a chosen carrier) or as the result
-of a construction (a quotient, free, or localisation functor)
-applied to a smaller carrier.  $\mathbb{Q}$ is
-both a carrier (the rationals, used as base for
-\cppinline{Rational<I>}) and the field-of-fractions construction
-$\operatorname{Frac}(\mathbb{Z})$~\cite{lang2002algebra}; $\mathbb{C}$
-is both a carrier and the quotient
-$\mathbb{R}[i]/(i^2 + 1)$.  The Algebraic Lattice
-separates these two readings onto
-distinct axes; the rosetta tables that follow itemise each axis.\footnote{%
-\emph{Meets vs. joins.} Type-level meets (the largest shared
-substructure of two algebras) are computed via dispatch;
-\cppinline{structured_and} on intersecting predicate-sets is the
-canonical example.  Joins (the smallest common extension) are
-\emph{not} synthesised by the library: pushouts / tensor products
-require ambient choice (which base, which extension functor) that
-the project's Honest Rejection stance refuses to make
-automatically.  Joins are handled instead via named carrier-crossing
-arrows the user invokes explicitly (\cppinline{embed_ℤ_ℚ} for
-$\mathbb{Z} \hookrightarrow \mathbb{Q}$, etc.).  The trade-off is
-honest: the library refuses to fabricate the answers that aren't
-canonical.}
+This section records, per carrier, which algebraic laws the type system certifies, and at which tier of §\ref{par:concept-tiers}; recall (Figure~\ref{fig:hub-spoke-bnz}) that a carrier is the underlying set beneath an algebraic structure.
 
 \paragraph{Re-enabling refused carriers.}  The Honest Rejection
 policy refuses carriers like \cppinline{int} as a witness for
