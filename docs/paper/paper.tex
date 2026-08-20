@@ -1406,40 +1406,34 @@ technical sense, wrong---it just happens not to be wrong on most inputs.
 
 \texttt{dedekind} encodes these divergences explicitly in the \texttt{:species} trait registry:
 
-% Source: src/main/modules/dedekind/category/species.cppm (partial specialisations around ll. 485-500)
+% Source: src/main/modules/dedekind/category/species.cppm (false-by-default primary l. 91; std::plus specialisations ll. 565-612)
 \begin{listing}[htbp]
-\caption{The species registry records algebraic properties---and their absence. Signed \texttt{int} is explicitly rejected as associative under \texttt{+} because signed overflow is undefined behaviour.}
+\caption{The species registry records algebraic properties and their absence. Signed \texttt{int} is explicitly rejected as associative under \texttt{+} (signed overflow is undefined behaviour); IEEE \texttt{double} is rejected by the false-by-default primary, with no per-carrier line.}
 \label{lst:species}
 \begin{cpp}
 
-// Variable template: is_associative_v<T, Op> is the structural trait.
-// The library partial-specialises it per-carrier, per-operation.
+// is_associative_v<T, Op> is the structural trait.  Its primary template
+// defaults to false: a carrier/op pair is non-associative unless an
+// explicit specialisation certifies otherwise.
 
-// Unsigned integrals are associative under +  (modular arithmetic).
+// Unsigned integrals are certified associative under +  (modular arithmetic).
 template <std::unsigned_integral T>
 inline constexpr bool is_associative_v<T, std::plus<T>> = true;
 
-// Signed integrals are REJECTED: overflow of a signed integer is
-// undefined behaviour, so the addition operator is not a law-abiding
-// monoid on signed carriers.
+// Signed integrals are explicitly REJECTED: signed overflow is undefined
+// behaviour, so + is not a law-abiding monoid on signed carriers.
 template <std::signed_integral T>
 inline constexpr bool is_associative_v<T, std::plus<T>> = false;
 
-// IEEE double is rejected for a different reason: rounding breaks
-// bit-exact associativity.
-template <>
-inline constexpr bool is_associative_v<double, std::plus<double>> = false;
+// IEEE double needs no specialisation of its own: with no certificate it
+// falls to the false-by-default primary, so rounding non-associativity is
+// rejected without a per-carrier line.
 
-static_assert(is_associative_v<unsigned int, std::plus<unsigned int>>);
-static_assert(!is_associative_v<int,         std::plus<int>>);
-static_assert(!is_associative_v<double,      std::plus<double>>);
+static_assert( is_associative_v<unsigned int, std::plus<unsigned int>>);  // certified
+static_assert(!is_associative_v<int,          std::plus<int>>);           // explicit reject
+static_assert(!is_associative_v<double,       std::plus<double>>);        // reject by default
 \end{cpp}
 \end{listing}
-% FIXME(appendix-b-sweep): the double row above reads as an explicit
-% is_associative_v<double, std::plus<double>> specialisation, but in the code
-% double inherits false from the primary trait (species.cppm); only the
-% integral std::plus specialisations are explicit. Show the fallback mechanism
-% accurately. Tracked in the Appendix-B sweep PR (Copilot #775).
 
 Generic algorithms that require associativity will fail to compile for
 \texttt{int} or \texttt{double} alike, unless an explicit numeric policy
@@ -1594,14 +1588,6 @@ move between exact and primitive sides, per role. Each row shows
 certified carrier). A dash marks a direction that requires going
 through an intermediate role.}
 \label{tab:carriers-crossings}
-% FIXME(appendix-b-sweep): three rows are inaccurate vs the code (Copilot #775):
-%  (Z) static_cast<int64_t>(x) is not a valid realise --- SignedExtensionalCardinal
-%      exposes only operator std::size_t(), which drops the sign;
-%  (Q) Rational<I> has no .resolve() (Q->double routes via an R proxy), and the
-%      double->Q embed is embed_double_Q<I>, not the num/den ctor shown;
-%  (R policy) the assume_ieee / discharge_ieee columns are swapped
-%      (assume_ieee: Real->IEEE = realise; discharge_ieee: IEEE->Real = embed).
-% Tracked in the Appendix-B sweep PR.
 \small
 \begin{tabular}{@{}l l l@{}}
 \toprule
@@ -1610,9 +1596,9 @@ through an intermediate role.}
 $\mathbb{B}$ & (identity) & (identity) \\
 $\mathbb{N}$ & \cppinline{.realize_to_size_t(sentinel)} & \cppinline{embed_unsigned_integral<N>(v)} \\
 $\mathbb{Z}$ & \cppinline{static_cast<int64_t>(x)} & \cppinline{embed_signed_integral<Z>(v)} \\
-$\mathbb{Q}$ & \cppinline{.resolve()} $\to$ \cppinline{double} & \cppinline{Rational<Z>(num, den)} \\
+$\mathbb{Q}$ & through $\mathbb{R}$ proxy (\cppinline{Real<Rational<Z>>}) & \cppinline{embed_double_ℚ<I>(v)} \\
 $\mathbb{R}$ symbolic & evaluate cut at a rational bound & (intensional; no simple lift) \\
-$\mathbb{R}$ policy & \cppinline{discharge_ieee(IEEE<double>)} & \cppinline{assume_ieee(Real<double>)} \\
+$\mathbb{R}$ policy & \cppinline{assume_ieee(Real<double>)} & \cppinline{discharge_ieee(IEEE<double>)} \\
 $\mathbb{C}$ & per-component \cppinline{.resolve()} & \cppinline{Complex<R>(re, im)} \\
 $\mathbb{D}$ (dual) & \cppinline{.val} (primal only; tangent discarded) & \cppinline{Dual<F>(v, d)} \\
 \bottomrule
