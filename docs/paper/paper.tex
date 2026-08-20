@@ -229,7 +229,7 @@ Figure~\ref{fig:hub-spoke-bnz} sketches the domain of the first pillar.
 It is deliberately vanilla: carrier sets such as $\mathbb{B}, \mathbb{N}, \mathbb{Z}$ with the arithmetic and set operations of elementary mathematics, packaged as algebraic structures.
 Throughout, a \emph{carrier} is such an underlying set (the bottom row of Figure~\ref{fig:hub-spoke-bnz}), and an \emph{algebraic set} is a carrier decorated with operations (a tier above it).
 The rules are not in doubt, being pre-validated and universally agreed, yet only very little is reified and programmatically accessible: a C++ operator or method signature may carry closure, but only little in terms of associativity, no distributivity, no units and no inverses.
-Supplying that knowledge once, and letting the compiler enforce it thereafter, is what turns these familiar rules into build-time checks and optimizations; Appendix~\ref{sec:trait-registry} records, per carrier, which laws the type system can and cannot certify.
+Supplying that knowledge once, and letting the compiler enforce it thereafter, is what turns these familiar rules into build-time checks and optimizations; Appendix~\ref{sec:trait-registry} records which laws the type system can and cannot certify, and Appendix~\ref{sec:carrier-rosetta} catalogues them across the lattice of carriers.
 
 \begin{figure}[htbp]
 \centering
@@ -1376,8 +1376,147 @@ Listing~\ref{lst:species} exhibits the certification of associativity of additio
 \end{equation}
 By default, a generic algorithm requiring associativity therefore fails to compile on \texttt{int} or \texttt{double} without an explicit numeric policy: modular semantics, compensated summation, an interval wrapper, or a lift to an exact field such as $\mathbb{Q}$ or $\mathbb{C}$.
 
+%%%
 \clearpage
-\subsection{Reference: The Algebraic Lattice and its Carriers}
+\subsection{The Algebra of the Built-in Types}
+\label{sec:builtin-algebra}
+
+Table~\ref{tab:primitive-algebra} gives the headline; the four tables below break the principal built-in types down by operator surface, one table per standard-concept family (\cppinline{bool} on its own), since the built-in primitives share no single operator surface.
+The same carriers, organised by algebraic structure, are catalogued in the master table of the algebraic-lattice appendix (Table~\ref{tab:lattice-carriers}).
+A \checkmark marks a law certified in the trait registry, $\times$ one that is absent (hence rejected at the gate), and $\circ$ one that holds only in part.
+
+\begin{table}[htbp]
+\centering
+\caption{\textbf{\cppinline{bool}.}  The two-element type carries a different algebra under each operator surface.}
+\label{tab:prim-bool}
+\begin{tabular}{@{}ll@{}}
+\toprule
+operator surface & structure \\
+\midrule
+logical    & Boolean algebra \checkmark \\
+bitwise    & Galois field $\mathbb{F}_2$ \checkmark \\
+comparison & total order ($\mathrm{false} < \mathrm{true}$) \checkmark \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{\textbf{\cppinline{std::unsigned_integral}.}  Modular arithmetic gives a genuine ring; the narrow types leak through integer promotion.}
+\label{tab:prim-unsigned}
+\begin{tabular}{@{}p{0.34\textwidth}lll@{}}
+\toprule
+type(s) & arithmetic & bitwise & comparison \\
+\midrule
+\cppinline{unsigned int}, \cppinline{unsigned long}, \cppinline{unsigned long long}, \cppinline{size_t} & ring $\mathbb{Z}/2^n$ \checkmark & Boolean algebra \checkmark & total order \checkmark \\
+\cppinline{unsigned short}, \cppinline{unsigned char} & ring $\mathbb{Z}/2^n$ $\circ$ (promotes) & Boolean algebra \checkmark & total order \checkmark \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{\textbf{\cppinline{std::signed_integral}.}  Signed-overflow UB denies the ring; the two's-complement bits (guaranteed since \Cpp{20}) and the order survive.}
+\label{tab:prim-signed}
+\begin{tabular}{@{}p{0.28\textwidth}lll@{}}
+\toprule
+type(s) & arithmetic & bitwise & comparison \\
+\midrule
+\cppinline{int}, \cppinline{long}, \cppinline{long long} & partial $\times$ (overflow UB) & Boolean algebra \checkmark & total order \checkmark \\
+\cppinline{signed char}, \cppinline{short} & partial $\times$ (UB, promotes) & Boolean algebra \checkmark & total order \checkmark \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{\textbf{\cppinline{std::floating_point}.}  On IEC 60559 (IEEE-754) targets, rounding defeats associativity and \cppinline{NaN} defeats even the order; almost nothing survives.}
+\label{tab:prim-floating}
+\begin{tabular}{@{}p{0.34\textwidth}ll@{}}
+\toprule
+type(s) & arithmetic & comparison \\
+\midrule
+\cppinline{float}, \cppinline{double}, \cppinline{long double} & closure only $\times$ (rounding) & not a total order $\times$ (\cppinline{NaN} incomparable) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+%%%
+\clearpage
+\section{An Elementary Theory of the Category of Sets}
+\label{sec:etcs}
+
+With a deterministic, structurally-typed substrate established in Section~\ref{sec:jlt_posture}, mathematical sets can be bootstrapped inside the type system. Here, we aim to model both the syntax and the semantics of mathematical set-builder notation in executable \textbf{Jlt}, hoping to achieve a system that lends itself to the expression and subsequent evaluation of precisely those kinds of problems that one might also encounter in a pure math blackboard setting.
+
+A common implementation approach follows material Zermelo-Fraenkel (ZF) set theory, where the discussion starts from an element membership relation $\in$ acting on a cumulative universe of sets. Implementations such as \texttt{std::set} use this as a starting point and model sets as \textit{extensional memory containers}. The identity of a set is determined by explicitly enumerating its members in physical allocations, and membership is evaluated by traversing a data structure (e.g., a balanced binary search tree). This approach exhibits prohibitive shortcomings when applied to algebraic and engineering problems: for example, it cannot natively model infinite sets like the natural numbers $\mathbb{N}$, or non-enumerable continuous intervals over the real numbers $\mathbb{R}$. As a result, both the structural guarantees a compiler can infer and the optimizations it can perform on such problems are severely restricted.
+
+By contrast, the \textit{structural categorical comprehension} view pioneered by William Lawvere~\cite{lawvere1964etcs} abandons element-centric containment. Instead, it defines a set entirely through its relational behavior using objects and functions (\textit{morphisms}). In this framework, we do not ask what an element \textit{is} internally; we ask how it behaves under functional composition. Lawvere’s Elementary Theory of the Category of Sets (\textbf{ETCS}) posits that the category of sets (\textbf{Set}) is a well-pointed, Cartesian Closed Category with a subobject classifier, a natural numbers object, and the axiom of choice.
+
+To bridge this abstract mathematical formalism with systems-programming primitives, we translate the foundational axioms of ETCS into explicit C++23 type-predicates (\texttt{concept IsSet}) distributed across six localized compile-time partitions:
+
+\subsection{Small Categories (\texttt{:small} partition)}
+\begin{itemize}
+    \item \textbf{Axioms of Categories \& Smallness:}
+    \begin{enumerate}
+        \item \textit{Category:} a collection of objects and arrows (morphisms) closed under an associative composition with identities.
+        \item \textit{Smallness:} both collections are \emph{sets}, not proper classes. This holds \emph{by construction}, since the objects and arrows are the value-sets of single C++ types (\cppinline{Cat::Species} and \cppinline{Cat::Arrow}), and a type's value-set is a set in the metatheory. (Requiring only the hom-collection to be a set gives the weaker notion of a \emph{locally small} category.)
+    \end{enumerate}
+    \item \textbf{C++ Reification:} The \cppinline{concept IsSmallCategory} gates the structure. Per $\mathbf{Jlt}$~\ref{sec:jlt_posture}, objects are \cppinline{std::regular} carriers. Morphisms are values of a single arrow type satisfying \cppinline{concept IsArrow}, with \texttt{::Domain} and \texttt{::Codomain} typedefs and a callable \cppinline{f(x)} from the domain into the codomain. Composition is the overloaded \cppinline{operator>>}, with the identity laws \cppinline{id >> g == g} and \cppinline{f >> id == f} discharged as overloads; identity arrows come from an \cppinline{id_c(x)} factory.
+    \item \textbf{Explanatory Note:} Instead of data-hiding containers, a ``set'' at this entry rung is simply a well-behaved C++ type acting as a domain, and a ``function'' is a side-effect-free arrow mapping inputs to outputs. In its single-object mode, with the carrier type as the sole object and its arrows as endomorphisms, composition makes the category a \textbf{monoid} (a one-object category).
+\end{itemize}
+
+\subsection{Cartesian Categories (\texttt{:limit} partition)}
+\begin{itemize}
+    \item \textbf{Axioms of Terminal Object \& Finite Products:}
+    \begin{enumerate}
+        \item \textit{Terminal Object:} There is a terminal object $1$, characterised purely by its universal property: every set $A$ has exactly one arrow $A \to 1$.
+        \item \textit{Binary Products:} For any sets $A$ and $B$ there is a product $A \times B$ with projections $\pi_1: A \times B \to A$ and $\pi_2: A \times B \to B$, universal in that every pair $f: X \to A$, $g: X \to B$ factors through a unique $\langle f, g\rangle: X \to A \times B$.
+    \end{enumerate}
+    \item \textbf{C++ Reification:} \cppinline{concept IsTerminalObject} and \cppinline{concept IsProduct} gate the structure, and the standard library satisfies them out of the box: \cppinline{std::monostate} \emph{is} the terminal object (exported as \texttt{One}), and \cppinline{std::pair} \emph{is} the binary product, with projections $\pi_1 / \pi_2$ reading \cppinline{.first} / \cppinline{.second}. The universal factorisation $\langle f, g\rangle$ is the one piece \cppinline{std} does not provide; the library supplies it as the default \cppinline{mediate_product} arrow.
+    \item \textbf{Explanatory Note:} This layer turns relational coordinate tables into type-safe tuples. The terminal object lets us define ``elements'' of a set $A$ structurally, as arrows \texttt{One} $\to A$.
+\end{itemize}
+
+\subsection{Cartesian Closed Categories (\texttt{:cartesian} partition)}
+\begin{itemize}
+    \item \textbf{Axiom of Exponentials:} For any sets $A$ and $B$ there is an exponential $B^A$: the set of functions $A \to B$ with an evaluation map $\mathrm{eval}: B^A \times A \to B$, universal in that every $f: X \times A \to B$ factors through a unique $\mathrm{curry}(f): X \to B^A$ (the adjunction $(-\times A) \dashv (-)^A$).
+    \item \textbf{C++ Reification:} The exponential $B^A$ is the internal hom, whose inhabitants are the functions $A \to B$. It is required by \cppinline{concept IsCartesianClosed} via \cppinline{concept IsExponential}. The adjunction arrows \cppinline{curry} / \cppinline{uncurry} / \cppinline{eval} are library-provided.
+    \item \textbf{Explanatory Note:} This licenses function \textit{Currying} at compile time via the \cppinline{constexpr} lambdas. It guarantees that functions are first-class citizens that can be passed, stored, and transformed by other functions without dropping out of the type-checking engine.
+\end{itemize}
+
+\subsection{Elementary Topoi (\texttt{:topoi} partition)}
+\begin{itemize}
+    \item \textbf{Axioms of Subobject Classifier \& Equalizers:}
+    \begin{enumerate}
+        \item \textit{Subobject Classifier:} a truth-value object $\Omega$ with an element $\mathrm{true}: 1 \to \Omega$ such that every mono $S \hookrightarrow A$ arises as the pullback of $\mathrm{true}$ along a \emph{unique} characteristic map $\chi: A \to \Omega$.
+        \item \textit{Equalizers:} for parallel arrows $f, g: A \to B$, the subobject $\{x \in A \mid f(x) = g(x)\}$.
+    \end{enumerate}
+    \item \textbf{C++ Reification:} The classifier $\Omega$ is Boolean. What a carrier plugs in is the codomain of its (possibly partial) characteristic map, fixed by a \emph{logic species} \cppinline{L} (the code names this codomain \cppinline{L::Omega}). \cppinline{ClassicalLogic} gives $\mathbb{B}$ (\cppinline{bool}), a total map; \cppinline{TernaryLogic} gives the lifted Boolean (\cppinline{Ternary}, $\mathbb{B}+\text{U}$, under strong-Kleene connectives), the codomain of a partial $\chi$. \cppinline{concept IsLogicalSpecies} gates such a species; the predicate of a \cppinline{Set<T, L, P>} is $\chi$, and \cppinline{concept IsSubobject} recognises it. Which codomain a carrier receives is the decidability split of Section~\ref{sec:ddk_etcs}: $\mathbb{B}$ where membership is decidable, the lifted Boolean where it is not. Equalizers are named by \cppinline{concept IsEqualizer}, the subobject solving $f = g$.
+    \item \textbf{Explanatory Note:} An \textit{intensional} set is a rule, not an array. Testing $x \in S$ evaluates $\chi(x)$ instead of searching memory.
+\end{itemize}
+
+\subsection{Concrete Topoi (\texttt{:concrete} partition)}
+\begin{itemize}
+    \item \textbf{Axioms of the Powerset Monad \& Elementality:} Every set $A$ maps functorially to its powerset $\mathcal{P}(A)$ via a unit morphism $\eta_A: A \to \mathcal{P}(A)$.
+    \item \textbf{C++ Reification:} Expressed via the \texttt{SetAsProduct} layout template, which combines a raw underlying C++ data type primitive with its corresponding logical evaluator lambda.
+    \item \textbf{Explanatory Note:} This layer implements a faithful \textit{forgetful functor} $U$, which strips away structural categorical formatting to expose underlying raw C++ hardware types when evaluation is explicitly required. Constructing lazy evaluation pipelines (e.g., using \texttt{std::views::transform}) functions as monadic composition, chaining transformations without intermediate memory allocations.
+\end{itemize}
+Axiom 9: Power Set / Exponential Restriction (\(\beth _{1}\)). For any set X, there exists an object \(\mathcal{P}(X)\) classifying its subobjects. By Cantor’s theorem (Lawvere’s Fixed-Point Theorem), this explicitly bounds the cardinality of classical constructible sets in the base theory below the second transfinite cardinal. Russell's paradox is ruled out by construction. Library Reification: Restricts carrier predicates from modeling uncountably infinite domains beyond the continuum \(\beth _{1}\), avoiding type-system divergence and ensuring all logical intersections resolve during template translation.
+
+\subsection{Set-Modeling Topoi (\texttt{:etcs} partition)}
+\begin{itemize}
+    \item \textbf{Axioms of Well-Pointedness, Infinity, and Choice:}
+    \begin{enumerate}
+        \item \textit{Well-Pointedness:} If two functions $f, g: A \to B$ are distinct, there must exist a single element $x: 1 \to A$ such that $f(x) \neq g(x)$.
+        \item \textit{Infinity:} There exists a Natural Numbers Object (NNO) $\mathbb{N}$ that enables primitive recursion without structural loops.
+        \item \textit{Choice:} Every surjective function has a right inverse section.
+    \end{enumerate}
+    \item \textbf{C++ Reification:} Enforced via the \texttt{IsSet} concept constraint. Well-pointedness enforces referential transparency and forbids hidden mutable states. Infinity is preserved by generating strict element-level partial orderings via \texttt{std::three\_way\_comparable} rather than managing physical loop limits.
+    \item \textbf{Explanatory Note:} The NNO lets the library model \textit{transfinite spaces} (e.g., continuous mathematical boundaries or infinite sequence generators) lazily. The Axiom of Choice ensures that the template engine can constructively find or instantiate witness values for non-empty subset selections during compile-time verification passes.
+\end{itemize}
+
+%%%
+\clearpage
+\section{The Algebraic Lattice and its Carriers}
 \label{sec:carrier-rosetta}
 
 This reference is indexed by algebraic structure (the branching poset of §\ref{sec:algebraic_lattice_carriers}), not by carrier.
@@ -1467,71 +1606,9 @@ $\mathbb{D}$ (dual) & \cppinline{.val} (primal only; tangent discarded) & \cppin
 
 
 
+
+
 %%%
-\clearpage
-\subsubsection{Reverse lookup: the built-in primitives by operator surface}
-\label{sec:builtin-algebra}
-
-Table~\ref{tab:primitive-algebra} gives the headline; the four tables below break the principal built-in types down by operator surface, one table per standard-concept family (\cppinline{bool} on its own), since the built-in primitives share no single operator surface.
-The library carriers built on these primitives appear in the master table above (Table~\ref{tab:lattice-carriers}).
-A \checkmark marks a law certified in the trait registry, $\times$ one that is absent (hence rejected at the gate), and $\circ$ one that holds only in part.
-
-\begin{table}[htbp]
-\centering
-\caption{\textbf{\cppinline{bool}.}  The two-element type carries a different algebra under each operator surface.}
-\label{tab:prim-bool}
-\begin{tabular}{@{}ll@{}}
-\toprule
-operator surface & structure \\
-\midrule
-logical    & Boolean algebra \checkmark \\
-bitwise    & Galois field $\mathbb{F}_2$ \checkmark \\
-comparison & total order ($\mathrm{false} < \mathrm{true}$) \checkmark \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\begin{table}[htbp]
-\centering
-\caption{\textbf{\cppinline{std::unsigned_integral}.}  Modular arithmetic gives a genuine ring; the narrow types leak through integer promotion.}
-\label{tab:prim-unsigned}
-\begin{tabular}{@{}p{0.34\textwidth}lll@{}}
-\toprule
-type(s) & arithmetic & bitwise & comparison \\
-\midrule
-\cppinline{unsigned int}, \cppinline{unsigned long}, \cppinline{unsigned long long}, \cppinline{size_t} & ring $\mathbb{Z}/2^n$ \checkmark & Boolean algebra \checkmark & total order \checkmark \\
-\cppinline{unsigned short}, \cppinline{unsigned char} & ring $\mathbb{Z}/2^n$ $\circ$ (promotes) & Boolean algebra \checkmark & total order \checkmark \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\begin{table}[htbp]
-\centering
-\caption{\textbf{\cppinline{std::signed_integral}.}  Signed-overflow UB denies the ring; the two's-complement bits (guaranteed since \Cpp{20}) and the order survive.}
-\label{tab:prim-signed}
-\begin{tabular}{@{}p{0.28\textwidth}lll@{}}
-\toprule
-type(s) & arithmetic & bitwise & comparison \\
-\midrule
-\cppinline{int}, \cppinline{long}, \cppinline{long long} & partial $\times$ (overflow UB) & Boolean algebra \checkmark & total order \checkmark \\
-\cppinline{signed char}, \cppinline{short} & partial $\times$ (UB, promotes) & Boolean algebra \checkmark & total order \checkmark \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\begin{table}[htbp]
-\centering
-\caption{\textbf{\cppinline{std::floating_point}.}  On IEC 60559 (IEEE-754) targets, rounding defeats associativity and \cppinline{NaN} defeats even the order; almost nothing survives.}
-\label{tab:prim-floating}
-\begin{tabular}{@{}p{0.34\textwidth}ll@{}}
-\toprule
-type(s) & arithmetic & comparison \\
-\midrule
-\cppinline{float}, \cppinline{double}, \cppinline{long double} & closure only $\times$ (rounding) & not a total order $\times$ (\cppinline{NaN} incomparable) \\
-\bottomrule
-\end{tabular}
-\end{table}
-
 \clearpage
 \section{Partial Evaluation on the Analytic Necklace}
 \label{app:partial-eval}
@@ -1571,79 +1648,6 @@ The residual is the fold over the edge sequence rather than a straight-line kern
 The point the two call sites make is that the collapse is optional and the boundary is the programmer's to place.
 
 %%%
-\clearpage
-\section{An Elementary Theory of the Category of Sets}
-\label{sec:etcs}
-
-With a deterministic, structurally-typed substrate established in Section~\ref{sec:jlt_posture}, mathematical sets can be bootstrapped inside the type system. Here, we aim to model both the syntax and the semantics of mathematical set-builder notation in executable \textbf{Jlt}, hoping to achieve a system that lends itself to the expression and subsequent evaluation of precisely those kinds of problems that one might also encounter in a pure math blackboard setting.
-
-A common implementation approach follows material Zermelo-Fraenkel (ZF) set theory, where the discussion starts from an element membership relation $\in$ acting on a cumulative universe of sets. Implementations such as \texttt{std::set} use this as a starting point and model sets as \textit{extensional memory containers}. The identity of a set is determined by explicitly enumerating its members in physical allocations, and membership is evaluated by traversing a data structure (e.g., a balanced binary search tree). This approach exhibits prohibitive shortcomings when applied to algebraic and engineering problems: for example, it cannot natively model infinite sets like the natural numbers $\mathbb{N}$, or non-enumerable continuous intervals over the real numbers $\mathbb{R}$. As a result, both the structural guarantees a compiler can infer and the optimizations it can perform on such problems are severely restricted.
-
-By contrast, the \textit{structural categorical comprehension} view pioneered by William Lawvere~\cite{lawvere1964etcs} abandons element-centric containment. Instead, it defines a set entirely through its relational behavior using objects and functions (\textit{morphisms}). In this framework, we do not ask what an element \textit{is} internally; we ask how it behaves under functional composition. Lawvere’s Elementary Theory of the Category of Sets (\textbf{ETCS}) posits that the category of sets (\textbf{Set}) is a well-pointed, Cartesian Closed Category with a subobject classifier, a natural numbers object, and the axiom of choice.
-
-To bridge this abstract mathematical formalism with systems-programming primitives, we translate the foundational axioms of ETCS into explicit C++23 type-predicates (\texttt{concept IsSet}) distributed across six localized compile-time partitions:
-
-\subsection{Small Categories (\texttt{:small} partition)}
-\begin{itemize}
-    \item \textbf{Axioms of Categories \& Smallness:}
-    \begin{enumerate}
-        \item \textit{Category:} a collection of objects and arrows (morphisms) closed under an associative composition with identities.
-        \item \textit{Smallness:} both collections are \emph{sets}, not proper classes. This holds \emph{by construction}, since the objects and arrows are the value-sets of single C++ types (\cppinline{Cat::Species} and \cppinline{Cat::Arrow}), and a type's value-set is a set in the metatheory. (Requiring only the hom-collection to be a set gives the weaker notion of a \emph{locally small} category.)
-    \end{enumerate}
-    \item \textbf{C++ Reification:} The \cppinline{concept IsSmallCategory} gates the structure. Per $\mathbf{Jlt}$~\ref{sec:jlt_posture}, objects are \cppinline{std::regular} carriers. Morphisms are values of a single arrow type satisfying \cppinline{concept IsArrow}, with \texttt{::Domain} and \texttt{::Codomain} typedefs and a callable \cppinline{f(x)} from the domain into the codomain. Composition is the overloaded \cppinline{operator>>}, with the identity laws \cppinline{id >> g == g} and \cppinline{f >> id == f} discharged as overloads; identity arrows come from an \cppinline{id_c(x)} factory.
-    \item \textbf{Explanatory Note:} Instead of data-hiding containers, a ``set'' at this entry rung is simply a well-behaved C++ type acting as a domain, and a ``function'' is a side-effect-free arrow mapping inputs to outputs. In its single-object mode, with the carrier type as the sole object and its arrows as endomorphisms, composition makes the category a \textbf{monoid} (a one-object category).
-\end{itemize}
-
-\subsection{Cartesian Categories (\texttt{:limit} partition)}
-\begin{itemize}
-    \item \textbf{Axioms of Terminal Object \& Finite Products:}
-    \begin{enumerate}
-        \item \textit{Terminal Object:} There is a terminal object $1$, characterised purely by its universal property: every set $A$ has exactly one arrow $A \to 1$.
-        \item \textit{Binary Products:} For any sets $A$ and $B$ there is a product $A \times B$ with projections $\pi_1: A \times B \to A$ and $\pi_2: A \times B \to B$, universal in that every pair $f: X \to A$, $g: X \to B$ factors through a unique $\langle f, g\rangle: X \to A \times B$.
-    \end{enumerate}
-    \item \textbf{C++ Reification:} \cppinline{concept IsTerminalObject} and \cppinline{concept IsProduct} gate the structure, and the standard library satisfies them out of the box: \cppinline{std::monostate} \emph{is} the terminal object (exported as \texttt{One}), and \cppinline{std::pair} \emph{is} the binary product, with projections $\pi_1 / \pi_2$ reading \cppinline{.first} / \cppinline{.second}. The universal factorisation $\langle f, g\rangle$ is the one piece \cppinline{std} does not provide; the library supplies it as the default \cppinline{mediate_product} arrow.
-    \item \textbf{Explanatory Note:} This layer turns relational coordinate tables into type-safe tuples. The terminal object lets us define ``elements'' of a set $A$ structurally, as arrows \texttt{One} $\to A$.
-\end{itemize}
-
-\subsection{Cartesian Closed Categories (\texttt{:cartesian} partition)}
-\begin{itemize}
-    \item \textbf{Axiom of Exponentials:} For any sets $A$ and $B$ there is an exponential $B^A$: the set of functions $A \to B$ with an evaluation map $\mathrm{eval}: B^A \times A \to B$, universal in that every $f: X \times A \to B$ factors through a unique $\mathrm{curry}(f): X \to B^A$ (the adjunction $(-\times A) \dashv (-)^A$).
-    \item \textbf{C++ Reification:} The exponential $B^A$ is the internal hom, whose inhabitants are the functions $A \to B$. It is required by \cppinline{concept IsCartesianClosed} via \cppinline{concept IsExponential}. The adjunction arrows \cppinline{curry} / \cppinline{uncurry} / \cppinline{eval} are library-provided.
-    \item \textbf{Explanatory Note:} This licenses function \textit{Currying} at compile time via the \cppinline{constexpr} lambdas. It guarantees that functions are first-class citizens that can be passed, stored, and transformed by other functions without dropping out of the type-checking engine.
-\end{itemize}
-
-\subsection{Elementary Topoi (\texttt{:topoi} partition)}
-\begin{itemize}
-    \item \textbf{Axioms of Subobject Classifier \& Equalizers:}
-    \begin{enumerate}
-        \item \textit{Subobject Classifier:} a truth-value object $\Omega$ with an element $\mathrm{true}: 1 \to \Omega$ such that every mono $S \hookrightarrow A$ arises as the pullback of $\mathrm{true}$ along a \emph{unique} characteristic map $\chi: A \to \Omega$.
-        \item \textit{Equalizers:} for parallel arrows $f, g: A \to B$, the subobject $\{x \in A \mid f(x) = g(x)\}$.
-    \end{enumerate}
-    \item \textbf{C++ Reification:} The classifier $\Omega$ is Boolean. What a carrier plugs in is the codomain of its (possibly partial) characteristic map, fixed by a \emph{logic species} \cppinline{L} (the code names this codomain \cppinline{L::Omega}). \cppinline{ClassicalLogic} gives $\mathbb{B}$ (\cppinline{bool}), a total map; \cppinline{TernaryLogic} gives the lifted Boolean (\cppinline{Ternary}, $\mathbb{B}+\text{U}$, under strong-Kleene connectives), the codomain of a partial $\chi$. \cppinline{concept IsLogicalSpecies} gates such a species; the predicate of a \cppinline{Set<T, L, P>} is $\chi$, and \cppinline{concept IsSubobject} recognises it. Which codomain a carrier receives is the decidability split of Section~\ref{sec:ddk_etcs}: $\mathbb{B}$ where membership is decidable, the lifted Boolean where it is not. Equalizers are named by \cppinline{concept IsEqualizer}, the subobject solving $f = g$.
-    \item \textbf{Explanatory Note:} An \textit{intensional} set is a rule, not an array. Testing $x \in S$ evaluates $\chi(x)$ instead of searching memory.
-\end{itemize}
-
-\subsection{Concrete Topoi (\texttt{:concrete} partition)}
-\begin{itemize}
-    \item \textbf{Axioms of the Powerset Monad \& Elementality:} Every set $A$ maps functorially to its powerset $\mathcal{P}(A)$ via a unit morphism $\eta_A: A \to \mathcal{P}(A)$.
-    \item \textbf{C++ Reification:} Expressed via the \texttt{SetAsProduct} layout template, which combines a raw underlying C++ data type primitive with its corresponding logical evaluator lambda.
-    \item \textbf{Explanatory Note:} This layer implements a faithful \textit{forgetful functor} $U$, which strips away structural categorical formatting to expose underlying raw C++ hardware types when evaluation is explicitly required. Constructing lazy evaluation pipelines (e.g., using \texttt{std::views::transform}) functions as monadic composition, chaining transformations without intermediate memory allocations.
-\end{itemize}
-Axiom 9: Power Set / Exponential Restriction (\(\beth _{1}\)). For any set X, there exists an object \(\mathcal{P}(X)\) classifying its subobjects. By Cantor’s theorem (Lawvere’s Fixed-Point Theorem), this explicitly bounds the cardinality of classical constructible sets in the base theory below the second transfinite cardinal. Russell's paradox is ruled out by construction. Library Reification: Restricts carrier predicates from modeling uncountably infinite domains beyond the continuum \(\beth _{1}\), avoiding type-system divergence and ensuring all logical intersections resolve during template translation.
-
-\subsection{Set-Modeling Topoi (\texttt{:etcs} partition)}
-\begin{itemize}
-    \item \textbf{Axioms of Well-Pointedness, Infinity, and Choice:}
-    \begin{enumerate}
-        \item \textit{Well-Pointedness:} If two functions $f, g: A \to B$ are distinct, there must exist a single element $x: 1 \to A$ such that $f(x) \neq g(x)$.
-        \item \textit{Infinity:} There exists a Natural Numbers Object (NNO) $\mathbb{N}$ that enables primitive recursion without structural loops.
-        \item \textit{Choice:} Every surjective function has a right inverse section.
-    \end{enumerate}
-    \item \textbf{C++ Reification:} Enforced via the \texttt{IsSet} concept constraint. Well-pointedness enforces referential transparency and forbids hidden mutable states. Infinity is preserved by generating strict element-level partial orderings via \texttt{std::three\_way\_comparable} rather than managing physical loop limits.
-    \item \textbf{Explanatory Note:} The NNO lets the library model \textit{transfinite spaces} (e.g., continuous mathematical boundaries or infinite sequence generators) lazily. The Axiom of Choice ensures that the template engine can constructively find or instantiate witness values for non-empty subset selections during compile-time verification passes.
-\end{itemize}
-
-%%% 
 \clearpage
 \section{From Cardinality Pruning to Type-Directed Collapse}
 \label{sec:gap}
