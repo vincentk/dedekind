@@ -117,10 +117,21 @@ struct Ø final {
   /** @section boundaries__Extensionality_Proof */
   constexpr std::size_t size() const { return 0; }
 
-  /** @section boundaries__Lattice_Axiom: Initiality */
-  // The Empty Set is a part of everything (including itself)
-  // We use a simple template to avoid recursion with IsSet
+  /** @section boundaries__Lattice_Axiom: Initiality
+   *
+   *  @brief The Empty Set is a part of everything (including itself).
+   *
+   *  @details We use a simple template (rather than @c IsSet<S>) to
+   *  avoid recursion with the @c IsSet concept itself.  The
+   *  @c is_universal_boundary exclusion avoids ambiguity with @c
+   *  UniversalSet's symmetric @c operator<= friend: both overloads
+   *  return @c L::True for the @c Ø → @c UniversalSet direction, but
+   *  the compiler can't choose without help; we cede the call to the
+   *  friend on @c UniversalSet so the universe sits as the unambiguous
+   *  top of the lattice.
+   */
   template <typename S>
+    requires(!requires { typename S::is_universal_boundary; })
   constexpr typename L::Ω operator<=(const S&) const {
     return L::True;
   }
@@ -147,8 +158,29 @@ struct Ø final {
   // Forward declaration to satisfy the compiler for the UniversalSet.
   constexpr auto operator!() const;
 
-  // The Axiom: Total Absence
+  /** @brief The Axiom of Total Absence — @c Ø has no members at all,
+   *         so membership-on-carrier returns @c L::False unconditionally. */
   constexpr typename L::Ω operator()(const T&) const { return L::False; }
+
+  /** @brief Heterogeneous membership: @c Ø has no members of @b any
+   *         type, so a foreign-typed query is structurally @c False.
+   *
+   *  @details Enables set-theoretic uniform-membership queries on
+   *  nested-set carriers (e.g.\ @c Ø<Ø<int>> queried with @c
+   *  SingletonSet<Ø<int>>) — the question "is @c x in @c Ø?" is always
+   *  answerable regardless of @c x's type.
+   *
+   *  Constrained to types @b structurally distinct from the carrier:
+   *  @c !std::convertible_to<U, T> avoids stealing implicit-conversion
+   *  membership queries (e.g.\ @c unsigned literals lifting into
+   *  @c Cardinality on @c Ω<ℕ>-flavoured carriers) that should still
+   *  reach the homogeneous overload via the lift.
+   */
+  template <typename U>
+    requires(!std::convertible_to<U, T>)
+  constexpr typename L::Ω operator()(const U&) const {
+    return L::False;
+  }
 
   // Required by IsInitialObject
   constexpr cardinality_type cardinality() const { return cardinality_type{}; }
@@ -176,6 +208,18 @@ struct Ø final {
     requires(IsSet<S>)
   constexpr auto operator^(const S& s) const {
     return s;
+  }
+
+  /** @brief Set difference @c Ø - S = Ø.
+   *
+   *  @details Canonical reduction @c A - B = A & !B; for @c A = ∅ this
+   *  collapses structurally to @c ∅ regardless of @c B (empty
+   *  annihilates the difference on the left).
+   */
+  template <typename S>
+    requires(IsSet<S>)
+  constexpr auto operator-(const S&) const {
+    return *this;
   }
 
   /** @brief Ø × S = Ø<pair<T, S::Ambient>, L> — empty annihilates the
@@ -283,8 +327,29 @@ struct UniversalSet final {
   // Universal | Any = Universal
   // Universal & Any = Any
 
-  // The Axiom: Total Presence
+  /** @brief The Axiom of Total Presence — every value of carrier type
+   *         @c T is in @c UniversalSet<T>. */
   constexpr typename L::Ω operator()(const T&) const { return L::True; }
+
+  /** @brief Heterogeneous membership: a value whose type is structurally
+   *         distinct from the carrier @c T is not in @c UniversalSet<T>
+   *         — the universe is typed.
+   *
+   *  @details Enables set-theoretic uniform-membership queries on
+   *  nested-set carriers (e.g.\ @c UniversalSet<int> queried with
+   *  @c Ø<int>: the empty-set @b value is not an @c int, so it's not
+   *  in the int universe).
+   *
+   *  Constrained on @c !std::convertible_to<U, T> so the homogeneous
+   *  overload above continues to win on implicit-conversion paths
+   *  (e.g.\ @c unsigned literals lifting into @c Cardinality on the
+   *  @c Ω<ℕ>-flavoured carriers).
+   */
+  template <typename U>
+    requires(!std::convertible_to<U, T>)
+  constexpr typename L::Ω operator()(const U&) const {
+    return L::False;
+  }
 
   // Value-level membership query (sugar over operator()) per #551.
   // @c UniversalSet<T>.contains(v) reads more directly than @c
@@ -312,6 +377,17 @@ struct UniversalSet final {
   // so x ∈ U △ S iff x ∉ S, i.e. the complement of S.
   template <typename S>
   constexpr auto operator^(const S& s) const {
+    return !s;
+  }
+
+  /** @brief Set difference @c U - S = ¬S.
+   *
+   *  @details Canonical reduction @c A - B = A & !B; for @c A = U this
+   *  is @c U & !B = !B, the complement of @c S — pointwise: @c x ∈
+   *  @c U - S iff @c x ∉ S.
+   */
+  template <typename S>
+  constexpr auto operator-(const S& s) const {
     return !s;
   }
 };
