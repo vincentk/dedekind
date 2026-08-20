@@ -1435,6 +1435,11 @@ static_assert(!is_associative_v<int,         std::plus<int>>);
 static_assert(!is_associative_v<double,      std::plus<double>>);
 \end{cpp}
 \end{listing}
+% FIXME(appendix-b-sweep): the double row above reads as an explicit
+% is_associative_v<double, std::plus<double>> specialisation, but in the code
+% double inherits false from the primary trait (species.cppm); only the
+% integral std::plus specialisations are explicit. Show the fallback mechanism
+% accurately. Tracked in the Appendix-B sweep PR (Copilot #775).
 
 Generic algorithms that require associativity will fail to compile for
 \texttt{int} or \texttt{double} alike, unless an explicit numeric policy
@@ -1589,6 +1594,14 @@ move between exact and primitive sides, per role. Each row shows
 certified carrier). A dash marks a direction that requires going
 through an intermediate role.}
 \label{tab:carriers-crossings}
+% FIXME(appendix-b-sweep): three rows are inaccurate vs the code (Copilot #775):
+%  (Z) static_cast<int64_t>(x) is not a valid realise --- SignedExtensionalCardinal
+%      exposes only operator std::size_t(), which drops the sign;
+%  (Q) Rational<I> has no .resolve() (Q->double routes via an R proxy), and the
+%      double->Q embed is embed_double_Q<I>, not the num/den ctor shown;
+%  (R policy) the assume_ieee / discharge_ieee columns are swapped
+%      (assume_ieee: Real->IEEE = realise; discharge_ieee: IEEE->Real = embed).
+% Tracked in the Appendix-B sweep PR.
 \small
 \begin{tabular}{@{}l l l@{}}
 \toprule
