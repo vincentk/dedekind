@@ -1432,12 +1432,12 @@ static_assert(!is_associative_v<double,       std::plus<double>>);        // rej
 \end{cpp}
 \end{listing}
 
-Many algebraic laws are certified the trait registry in \cppinline{dedekind.category:species} via \Cpp{23} template traits.
-Table~\ref{lst:species} exhibits the certification of associativity of addition, which is a given for additive rings, specifically $\mathbb{N}$, $\mathbb{Z}$,  $\mathbb{R}$:
+Many algebraic laws are certified by the trait registry in \cppinline{dedekind.category:species} via \Cpp{23} template traits.
+Listing~\ref{lst:species} exhibits the certification of associativity of addition, which is a given for additive monoids, specifically $\mathbb{N}$, $\mathbb{Z}$, $\mathbb{R}$:
 \begin{equation}
 (a + b) + c = a + (b + c)
 \end{equation}
-By default, a generic algorithm requiring associativity therefore fails to compile on \texttt{int} or \texttt{double}: modular semantics, compensated summation, an interval wrapper, or a lift to a quotient ring such as $\mathbb{Q}$ or $\mathbb{C}$.
+By default, a generic algorithm requiring associativity therefore fails to compile on \texttt{int} or \texttt{double} without an explicit numeric policy: modular semantics, compensated summation, an interval wrapper, or a lift to an exact field such as $\mathbb{Q}$ or $\mathbb{C}$.
 
 \clearpage
 \subsection{Carriers: From Exact Rationals to Packed Integers}
