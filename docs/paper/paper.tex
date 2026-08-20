@@ -1192,7 +1192,7 @@ The family of law-carrying specialisations, however, has no obvious ceiling shor
 
 %%%
 \clearpage
-\section{The System F $\leftrightarrow$ Juliet Posture $\leftrightarrow$ Bourbaki Bridge}
+\section{Triangulating System F, Structuralism and $\mathbf{Jlt}$}
 \label{app:jlt-systemf}
 
 §\ref{sec:jlt_posture} reports the System-F reading as a side effect of the Juliet Posture rather than a design goal: the disciplined subset chosen for alignment with $\mathbf{Alg}(\Sigma)$ and clean integration with \cppinline{std::regular} carriers turns out to be a faithful image of System~F (Pierce~\cite{pierce2002tapl} ch.~23, 29) and of the simply-typed $\lambda$-calculus under Lambek--Scott~\cite{lambek1988introduction}, and the same fragment lines up with Bourbaki structuralism~\cite{marquis2022structuralist}.
@@ -1396,17 +1396,16 @@ type(s) & arithmetic & comparison \\
 
 %%%
 \clearpage
-\subsection{The Traits Registry: Abstract Naturals vs.\ IEEE Numerics}
+\subsection{Case Study: Algebraic Certification of IEEE Numerics}
 \label{sec:numeric-tension}
-
-The library records these divergences one algebraic law at a time in the \texttt{:species} trait registry.
-Take associativity of addition as the exhibit.
-The ring $\mathbb{Z}$ has it; a 32-bit signed \texttt{int} does not, because overflow is undefined behaviour; and IEEE~754 \texttt{double}~\cite{ieee754_2019} does not either, because rounding happens at every step.
-The registry states each case directly:
 
 % Source: src/main/modules/dedekind/category/species.cppm (false-by-default primary l. 91; std::plus specialisations ll. 565-612)
 \begin{listing}[htbp]
-\caption{The species registry records algebraic properties and their absence. Signed \texttt{int} is explicitly rejected as associative under \texttt{+} (signed overflow is undefined behaviour); IEEE \texttt{double} is rejected by the false-by-default primary, with no per-carrier line.}
+\caption{
+The species registry records default algebraic properties (or their absence).
+\cppinline{std::unsigned_integral} types such as \cppinline{std::size_t} are certified \cppinline{is_associative_v}.
+\cppinline{std::signed_integral} types such as \cppinline{int} are explicitly black-listed due to overflow.
+\cppinline{double} fails the honest rejection default policy.}
 \label{lst:species}
 \begin{cpp}
 
@@ -1433,8 +1432,12 @@ static_assert(!is_associative_v<double,       std::plus<double>>);        // rej
 \end{cpp}
 \end{listing}
 
-A generic algorithm requiring associativity therefore fails to compile on \texttt{int} or \texttt{double} unless the programmer supplies an explicit numeric policy: modular semantics, compensated summation, an interval wrapper, or a lift to \cppinline{Rational<long>}.
-
+Many algebraic laws are certified the trait registry in \cppinline{dedekind.category:species} via \Cpp{23} template traits.
+Table~\ref{lst:species} exhibits the certification of associativity of addition, which is a given for additive rings, specifically $\mathbb{N}$, $\mathbb{Z}$,  $\mathbb{R}$:
+\begin{equation}
+(a + b) + c = a + (b + c)
+\end{equation}
+By default, a generic algorithm requiring associativity therefore fails to compile on \texttt{int} or \texttt{double}: modular semantics, compensated summation, an interval wrapper, or a lift to a quotient ring such as $\mathbb{Q}$ or $\mathbb{C}$.
 
 \clearpage
 \subsection{Carriers: From Exact Rationals to Packed Integers}
