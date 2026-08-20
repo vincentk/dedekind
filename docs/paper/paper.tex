@@ -1312,14 +1312,13 @@ The translation table above (Table~\ref{tab:structuralist-bridge}) is the dictio
 
 %%%
 \clearpage
-\section{Certification of Carrier Semantics: The Traits Registry}
+\section{Certification and Honest Rejection of Carrier Semantics: The Traits Registry}
 \label{sec:trait-registry}
 
-Where Appendix~\ref{app:jlt-systemf} grounds the structural surface, this appendix records what the type system can certify about the algebra of each carrier, with a special focus on the built-in primitive types.
-Specifically, it explores the tension between the definitions of the IEEE standard which are largely informed by the bounded physical substrate of computation on the one hand and the abstract definitions of algebra on the other hand.
+Where Appendix~\ref{app:jlt-systemf} grounds the structural surface, this appendix expands on how the type system can be used to certify the semantics layer of a carrier, with a special focus on the built-in primitive types and the laws of basic arithmetic.
+Specifically, it explores the tension between the definitions of the IEEE standard, largely informed by the bounded physical substrate of computation on the one hand, and the abstract definitions of algebra that we aim to model on the other.
 A fully general, automatic reconciliation is out of reach: deciding whether an arbitrary carrier obeys a given algebraic law is a non-trivial semantic property of its operations, hence undecidable by Rice's theorem.
 Certification is therefore supplied on a case-by-case basis.
-Notable examples are exhibited in this appendix.
 
 \subsection{Three Tiers of Certification}
 \label{par:concept-tiers}
@@ -1327,9 +1326,13 @@ Notable examples are exhibited in this appendix.
 Every law in the tables that follow is graded by \emph{how} the type system knows it holds, on three tiers of increasing strength.
 \emph{Literal shape} is the weakest: the C++ operators \cppinline{+}, \cppinline{-}, \cppinline{*} close on the carrier directly, so \cppinline{a + b} compiles and returns the carrier type.
 \emph{Functor-parametric shape} lifts this to the chosen function objects: \cppinline{std::plus<T>} and \cppinline{std::multiplies<T>} return \cppinline{T} by signature, so the operators close under the functors a generic algorithm actually names.
-\emph{Strict} is the categorical proof: the carrier satisfies the axiom bundle itself (\cppinline{IsRing}, \cppinline{IsField}), not merely its operator shape.
-When all three agree under \cppinline{(std::plus, std::multiplies)}, the bundled seal \cppinline{IsArithmeticRing} fires and generic code may be written in plain syntax over the carrier.
-The distinction earns its keep because the tiers can disagree: a carrier can pass the literal tier (the operators compile) yet fail the strict tier (the axioms do not hold), which is exactly the IEEE and signed-overflow situation this appendix catalogues.
+\emph{Strict} is the categorical proof: the carrier satisfies an axiom bundle itself (\cppinline{concept IsRing}, \cppinline{concept IsField}), not merely its operator shape.
+When all three agree under \cppinline{(std::plus, std::multiplies)}, the bundled \cppinline{concept IsArithmeticRing} fires and generic code may be written in plain syntax over the carrier.
+This distinction is necessary because the tiers can disagree: a carrier can 
+\begin{itemize}
+\item fail the literal tier yet pass the functor shape. For example: some operators promote \cppinline{bool} to \cppinline{int} while the functors indicate closure.
+\item pass the literal tier (the operators compile) yet fail the strict tier (the axioms do not hold). Example: the IEEE and signed-overflow situation this appendix catalogues.
+\end{itemize}
 
 %%%
 \clearpage
