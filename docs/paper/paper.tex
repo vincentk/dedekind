@@ -1396,7 +1396,7 @@ type(s) & arithmetic & comparison \\
 
 %%%
 \clearpage
-\subsection{Case Study: Algebraic Certification of IEEE Numerics}
+\subsection{An Example Algebraic Certification of IEEE Numerics}
 \label{sec:numeric-tension}
 
 % Source: src/main/modules/dedekind/category/species.cppm (false-by-default primary l. 91; std::plus specialisations ll. 565-612)
@@ -1453,18 +1453,15 @@ local proof that overflow cannot occur on their inputs has two
 sanctioned re-entry paths:
 
 \begin{itemize}
-\item \emph{Operator-surface tier.}  \cppinline{HasRingOperators<int>}
+\item \emph{Operator-surface tier.}  \cppinline{concept HasRingOperators<int>}
 fires unconditionally; downstream combinators that bind to this
-weaker concept (rather than to the strict \cppinline{IsRing} bundle)
+weaker concept (rather than to the strict \cppinline{concept IsRing} bundle)
 admit \cppinline{int} directly.  Most paper showcases bind to the
 operator-surface tier for exactly this reason.
 \item \emph{Opt-in trait specialisation.}  Where a stronger axiom is
-needed, the engineer specialises the relevant species trait
-explicitly: e.g.\ \cppinline{is_associative_v<MyType, std::plus<>> = true;}
-for a user-defined type whose addition is provably associative.  The
-specialisation is a public statement under the truthfulness canons
-(NSPE Code of Ethics, Canons~III + IV \cite{nspe_ethics}); the
-engineer carries the proof obligation, the library trusts the trait.
+needed, the relevant species trait is specialised explicitly: e.g.\ \cppinline{is_associative_v<MyType, std::plus<>> = true;}
+for a user-defined type whose addition is provably associative.
+The implementor carries the proof obligation~\cite{nspe_ethics}), the library trusts the trait.
 \end{itemize}
 
 The mechanism is intentionally narrow: the engineer can re-enable a
