@@ -1311,16 +1311,30 @@ The translation table above (Table~\ref{tab:structuralist-bridge}) is the dictio
 
 %%%
 \clearpage
-\section{The Trait Registry and the Carriers}
+\section{Certification of Carrier Semantics: The Traits Registry}
 \label{sec:trait-registry}
 
-Where Appendix~\ref{app:jlt-systemf} grounds the structural surface, this appendix records what the type system can certify about the algebra of each carrier: the built-in primitives, the abstract-versus-IEEE tension that forces hand-certification, and the per-carrier rosetta.
+Where Appendix~\ref{app:jlt-systemf} grounds the structural surface, this appendix records what the type system can certify about the algebra of each carrier, with a special focus on the built-in primitive types.
+Specifically, it explores the tension between the definitions of the IEEE standard which are largely informed by the bounded physical substrate of computation on the one hand and the abstract definitions of algebra on the other hand.
+A fully general, automatic reconciliation is out of reach: deciding whether an arbitrary carrier obeys a given algebraic law is a non-trivial semantic property of its operations, hence undecidable by Rice's theorem.
+Certification is therefore supplied on a case-by-case basis.
+Notable examples are exhibited in this appendix.
+
+\subsection{Three Tiers of Certification}
+\label{par:concept-tiers}
+
+Every law in the tables that follow is graded by \emph{how} the type system knows it holds, on three tiers of increasing strength.
+\emph{Literal shape} is the weakest: the C++ operators \cppinline{+}, \cppinline{-}, \cppinline{*} close on the carrier directly, so \cppinline{a + b} compiles and returns the carrier type.
+\emph{Functor-parametric shape} lifts this to the chosen function objects: \cppinline{std::plus<T>} and \cppinline{std::multiplies<T>} return \cppinline{T} by signature, so the operators close under the functors a generic algorithm actually names.
+\emph{Strict} is the categorical proof: the carrier satisfies the axiom bundle itself (\cppinline{IsRing}, \cppinline{IsField}), not merely its operator shape.
+When all three agree under \cppinline{(std::plus, std::multiplies)}, the bundled seal \cppinline{IsArithmeticRing} fires and generic code may be written in plain syntax over the carrier.
+The distinction earns its keep because the tiers can disagree: a carrier can pass the literal tier (the operators compile) yet fail the strict tier (the axioms do not hold), which is exactly the IEEE and signed-overflow situation this appendix catalogues.
 
 \subsection{The Algebra of the Built-in Types}
 \label{sec:builtin-algebra}
 
 Table~\ref{tab:primitive-algebra} gives the headline; the four tables below break the principal built-in types down by operator surface, one table per standard-concept family (\cppinline{bool} on its own), since the built-in primitives share no single operator surface.
-The library carriers built on these primitives, and the strict/functor/literal tiers they are graded by, are catalogued in §\ref{sec:carrier-rosetta}.
+The library carriers built on these primitives, graded by the tiers of §\ref{par:concept-tiers}, are catalogued in §\ref{sec:carrier-rosetta}.
 A \checkmark marks a law certified in the trait registry, $\times$ one that is absent (hence rejected at the gate), and $\circ$ one that holds only in part.
 
 \begin{table}[htbp]
@@ -1611,19 +1625,8 @@ $\mathbb{D}$ (dual) & \cppinline{.val} (primal only; tangent discarded) & \cppin
 \end{tabular}
 \end{table}
 
-\phantomsection\label{par:concept-tiers}%
-A fourth table addresses where textbook ring structure and literal
-C++ operators diverge.  The library expresses the disagreement
-through three concept tiers: \emph{strict} (categorical proof),
-\emph{functor-parametric shape} (operators close on the chosen
-functors), and \emph{literal shape} (the C++ \cppinline{+},
-\cppinline{-}, \cppinline{*} close on the carrier directly),
-sealed by \cppinline{IsArithmeticRing} when all three agree under
-\cppinline{(std::plus, std::multiplies)}.
-Table~\ref{tab:rosetta-textbook-vs-cpp} catalogues the divergences
-on the carriers used in the worked examples (Issue~\#393); the
-friction list is summarised structurally in
-Section~\ref{sec:compiler-wall}.
+Table~\ref{tab:rosetta-textbook-vs-cpp} catalogues, per carrier, where textbook ring structure and the literal C++ operators diverge, grading each by the tiers of §\ref{par:concept-tiers} and the \cppinline{IsArithmeticRing} seal.
+The carriers are those used in the worked examples (Issue~\#393); the friction list is summarised structurally in Section~\ref{sec:compiler-wall}.
 
 \begin{table}[htbp]
 \centering
