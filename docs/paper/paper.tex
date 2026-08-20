@@ -1398,27 +1398,10 @@ type(s) & arithmetic & comparison \\
 \subsection{The Traits Registry: Abstract Naturals vs.\ IEEE Numerics}
 \label{sec:numeric-tension}
 
-Here is the tension in one sentence: the \texttt{int} in your source
-file is not the $\mathbb{Z}$ in your textbook, and everybody quietly
-agrees to pretend it is. The ring $\mathbb{Z}$ obeys a few laws:
-
-\begin{itemize}
-  \item Associativity of addition: $(a + b) + c = a + (b + c)$.
-  \item Existence of additive inverse: $\forall a,\, \exists -a$ such that $a + (-a) = 0$.
-  \item No upper or lower bound.
-\end{itemize}
-
-A 32-bit signed \texttt{int} obeys \emph{none} of them exactly: addition
-overflows, negation of \texttt{INT\_MIN} is undefined behaviour, and the
-representable range is finite. IEEE~754 \texttt{double}~\cite{ieee754_2019}
-is further out still: addition is non-associative because rounding
-happens every step, and \texttt{NaN} and $\pm\infty$ puncture the law of
-excluded middle in the exact way Section~\ref{sec:ddk_comprehension} will ask
-the subobject classifier $\Omega$ to repair. A generic algorithm that
-silently assumes the ring laws on these carriers is, in the literal
-technical sense, wrong.  It just happens not to be wrong on most inputs.
-
-\texttt{dedekind} encodes these divergences explicitly in the \texttt{:species} trait registry:
+The library records these divergences one algebraic law at a time in the \texttt{:species} trait registry.
+Take associativity of addition as the exhibit.
+The ring $\mathbb{Z}$ has it; a 32-bit signed \texttt{int} does not, because overflow is undefined behaviour; and IEEE~754 \texttt{double}~\cite{ieee754_2019} does not either, because rounding happens at every step.
+The registry states each case directly:
 
 % Source: src/main/modules/dedekind/category/species.cppm (false-by-default primary l. 91; std::plus specialisations ll. 565-612)
 \begin{listing}[htbp]
@@ -1449,12 +1432,7 @@ static_assert(!is_associative_v<double,       std::plus<double>>);        // rej
 \end{cpp}
 \end{listing}
 
-Generic algorithms that require associativity will fail to compile for
-\texttt{int} or \texttt{double} alike, unless an explicit numeric policy
-(modular semantics on signed overflow, compensated summation, an
-interval-arithmetic wrapper, or a lift to \cppinline{Rational<long>})
-is supplied. The realization boundary is the point at which the
-programmer chooses which policy to apply.
+A generic algorithm requiring associativity therefore fails to compile on \texttt{int} or \texttt{double} unless the programmer supplies an explicit numeric policy: modular semantics, compensated summation, an interval wrapper, or a lift to \cppinline{Rational<long>}.
 
 
 \clearpage
