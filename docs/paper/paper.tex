@@ -1319,7 +1319,7 @@ Where Appendix~\ref{app:jlt-systemf} grounds the structural surface, this append
 \subsection{The Algebra of the Built-in Types}
 \label{sec:builtin-algebra}
 
-Table~\ref{tab:primitive-algebra} gives the headline; the four tables below break the principal built-in types down by operator surface, grouped by the standard concept each family satisfies (\cppinline{bool} on its own), split because the built-in primitives do not share a single operator surface.
+Table~\ref{tab:primitive-algebra} gives the headline; the four tables below break the principal built-in types down by operator surface, one table per standard-concept family (\cppinline{bool} on its own), since the built-in primitives share no single operator surface.
 The library carriers built on these primitives, and the strict/functor/literal tiers they are graded by, are catalogued in §\ref{sec:carrier-rosetta}.
 A \checkmark marks a law certified in the trait registry, $\times$ one that is absent (hence rejected at the gate), and $\circ$ one that holds only in part.
 
@@ -1402,7 +1402,7 @@ happens every step, and \texttt{NaN} and $\pm\infty$ puncture the law of
 excluded middle in the exact way Section~\ref{sec:ddk_comprehension} will ask
 the subobject classifier $\Omega$ to repair. A generic algorithm that
 silently assumes the ring laws on these carriers is, in the literal
-technical sense, wrong---it just happens not to be wrong on most inputs.
+technical sense, wrong.  It just happens not to be wrong on most inputs.
 
 \texttt{dedekind} encodes these divergences explicitly in the \texttt{:species} trait registry:
 
@@ -1448,7 +1448,7 @@ programmer chooses which policy to apply.
 \label{sec:carrier-rosetta}
 
 A \emph{carrier} in this paper is the underlying set on which an
-algebraic structure lives --- the substrate of operations.  The
+algebraic structure lives, the substrate of operations.  The
 universal-algebra formulation is introduced in §\ref{sec:algebraic_lattice_carriers}
 and applies here.  The same set may serve as carrier for several
 distinct algebras (e.g.\ $\mathbb{B}$ as $(\{0,1\}, \lor, \land)$
@@ -1464,7 +1464,7 @@ $\mathbb{R}[i]/(i^2 + 1)$.  The Algebraic Lattice
 separates these two readings onto
 distinct axes; the rosetta tables that follow itemise each axis.\footnote{%
 \emph{Meets vs. joins.} Type-level meets (the largest shared
-substructure of two algebras) are computed via dispatch ---
+substructure of two algebras) are computed via dispatch;
 \cppinline{structured_and} on intersecting predicate-sets is the
 canonical example.  Joins (the smallest common extension) are
 \emph{not} synthesised by the library: pushouts / tensor products
@@ -1526,7 +1526,7 @@ The crossings (Table~\ref{tab:carriers-crossings}) are then the one place a call
 \caption{\textbf{Exact carriers.} The library's intensional types, one
 per mathematical role, together with the algebraic concept each
 satisfies. These are the carriers a disciplined engineer writes the
-\emph{reference implementation} against --- laws are provably
+\emph{reference implementation} against: laws are provably
 satisfied, not approximated.}
 \label{tab:carriers-exact}
 \small
@@ -1581,7 +1581,7 @@ the reference implementation on the exact side.}
 \begin{flushleft}
 {\footnotesize \textsuperscript{a} \cppinline{HasRingOperators} holds (literal $+$, binary $-$, unary $-$, $*$ all close on the carrier); the strict \cppinline{IsRing} bundle refuses because signed-overflow UB makes the operation partial, which doesn't satisfy any of the \cppinline{IsTotal} paths (\cppinline{IsPeriodic} / \cppinline{IsIdempotent} / \cppinline{IsSaturating}) the totality gate admits (math-wins-over-C++). Total alternatives: \cppinline{SignedCardinality} (saturating), \cppinline{SignedExtensionalCardinal<>} (cyclic), or the \cppinline{:partial} Maybe-monad chain for honest fail-on-overflow.
 
-\textsuperscript{b} For narrow signed integers \cppinline{HasRingOperators} \emph{refuses}: integer promotion (C++ [conv.prom]) lifts \cppinline{int8_t + int8_t} to \cppinline{int}, so literal arithmetic does not close on the carrier.  The functor-parametric surface \cppinline{IsAlgebra<T, std::plus<T>, std::multiplies<T>>} fires because \cppinline{std::plus<T>} returns \cppinline{T} by signature --- this is the structural-shape level, not a ring-axiom certification: signed-overflow UB still defeats the strict \cppinline{IsRing} bundle along the same path footnote~a names for \cppinline{int} / \cppinline{long}, and the project's math-wins-over-C++ stance therefore withholds ring-axiom certification on narrow signed carriers.  Total alternatives are the same as in footnote~a.}
+\textsuperscript{b} For narrow signed integers \cppinline{HasRingOperators} \emph{refuses}: integer promotion (C++ [conv.prom]) lifts \cppinline{int8_t + int8_t} to \cppinline{int}, so literal arithmetic does not close on the carrier.  The functor-parametric surface \cppinline{IsAlgebra<T, std::plus<T>, std::multiplies<T>>} fires because \cppinline{std::plus<T>} returns \cppinline{T} by signature.  This is the structural-shape level, not a ring-axiom certification: signed-overflow UB still defeats the strict \cppinline{IsRing} bundle along the same path footnote~a names for \cppinline{int} / \cppinline{long}, and the project's math-wins-over-C++ stance therefore withholds ring-axiom certification on narrow signed carriers.  Total alternatives are the same as in footnote~a.}
 \end{flushleft}
 \end{table}
 
@@ -1613,11 +1613,11 @@ $\mathbb{D}$ (dual) & \cppinline{.val} (primal only; tangent discarded) & \cppin
 
 \phantomsection\label{par:concept-tiers}%
 A fourth table addresses where textbook ring structure and literal
-C++ operators diverge: the library expresses the disagreement
-through three concept tiers --- \emph{strict} (categorical proof),
+C++ operators diverge.  The library expresses the disagreement
+through three concept tiers: \emph{strict} (categorical proof),
 \emph{functor-parametric shape} (operators close on the chosen
 functors), and \emph{literal shape} (the C++ \cppinline{+},
-\cppinline{-}, \cppinline{*} close on the carrier directly) ---
+\cppinline{-}, \cppinline{*} close on the carrier directly),
 sealed by \cppinline{IsArithmeticRing} when all three agree under
 \cppinline{(std::plus, std::multiplies)}.
 Table~\ref{tab:rosetta-textbook-vs-cpp} catalogues the divergences
@@ -1677,7 +1677,7 @@ concept cell records (e.g.\ loss of associativity under
 \cppinline{+}, which some algorithms tolerate and others do not).
 The rule: \textbf{start correct, finish fast, and the type system
 enforces that the laws your code relies on are the laws the carrier
-actually provides --- or fails to compile.}
+actually provides, or fails to compile.}
 
 
 
@@ -1685,7 +1685,7 @@ The second pillar.  Sets as predicates over an ambient species (the
 Comprehension View), and the symbolic composition of set operations
 under the subobject classifier $\Omega$.  Where §\ref{sec:algebraic_lattice_carriers}
 fixes the substrate, the sets layer reifies its first concrete
-inhabitants --- \emph{Rules on Buckets are Set}.  The sequence-layer
+inhabitants: \emph{Rules on Buckets are Set}.  The sequence-layer
 counterpart (functions $\mathbb{N} \to T$ as infinite-dimensional
 vectors, sharing the same intensional posture) extends this pillar
 in a sibling slice.
