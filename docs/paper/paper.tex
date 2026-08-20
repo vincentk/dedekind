@@ -1515,6 +1515,12 @@ state-machine that connects the two: given a role, which named
 embedding or realisation arrow moves you from exact to primitive, and
 which moves you back.
 
+\paragraph{Suggested pattern.}
+Constrain generic numeric code on the algebraic concept, not the carrier.
+One signature bounded by \cppinline{HasSemiringOperators<T>} admits a machine primitive (\cppinline{unsigned}) and an exact carrier (\cppinline{Cardinality}) alike, so the same algorithm compiles for both.
+The strict \cppinline{IsSemiring<T>} is where an unsound carrier is turned away: \cppinline{int} under \cppinline{+} fails it, signed overflow breaking associativity.
+The crossings (Table~\ref{tab:carriers-crossings}) are then the one place a caller deliberately steps off the concept onto a concrete machine type.
+
 \begin{table}[htbp]
 \centering
 \caption{\textbf{Exact carriers.} The library's intensional types, one
@@ -1599,7 +1605,7 @@ $\mathbb{Z}$ & \cppinline{static_cast<int64_t>(x)} & \cppinline{embed_signed_int
 $\mathbb{Q}$ & through $\mathbb{R}$ proxy (\cppinline{Real<Rational<Z>>}) & \cppinline{embed_double_ℚ<I>(v)} \\
 $\mathbb{R}$ symbolic & evaluate cut at a rational bound & (intensional; no simple lift) \\
 $\mathbb{R}$ policy & \cppinline{assume_ieee(Real<double>)} & \cppinline{discharge_ieee(IEEE<double>)} \\
-$\mathbb{C}$ & per-component \cppinline{.resolve()} & \cppinline{Complex<R>(re, im)} \\
+$\mathbb{C}$ & per-component through $\mathbb{R}$ proxy & \cppinline{Complex<R>(re, im)} \\
 $\mathbb{D}$ (dual) & \cppinline{.val} (primal only; tangent discarded) & \cppinline{Dual<F>(v, d)} \\
 \bottomrule
 \end{tabular}
