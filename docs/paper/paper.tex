@@ -1376,71 +1376,6 @@ Listing~\ref{lst:species} exhibits the certification of associativity of additio
 \end{equation}
 By default, a generic algorithm requiring associativity therefore fails to compile on \texttt{int} or \texttt{double} without an explicit numeric policy: modular semantics, compensated summation, an interval wrapper, or a lift to an exact field such as $\mathbb{Q}$ or $\mathbb{C}$.
 
-%%%
-\clearpage
-\subsection{The Algebra of the Built-in Types}
-\label{sec:builtin-algebra}
-
-Table~\ref{tab:primitive-algebra} gives the headline; the four tables below break the principal built-in types down by operator surface, one table per standard-concept family (\cppinline{bool} on its own), since the built-in primitives share no single operator surface.
-The library carriers built on these primitives, graded by the tiers of §\ref{par:concept-tiers}, are catalogued in §\ref{sec:carrier-rosetta}.
-A \checkmark marks a law certified in the trait registry, $\times$ one that is absent (hence rejected at the gate), and $\circ$ one that holds only in part.
-
-\begin{table}[htbp]
-\centering
-\caption{\textbf{\cppinline{bool}.}  The two-element type carries a different algebra under each operator surface.}
-\label{tab:prim-bool}
-\begin{tabular}{@{}ll@{}}
-\toprule
-operator surface & structure \\
-\midrule
-logical    & Boolean algebra \checkmark \\
-bitwise    & Galois field $\mathbb{F}_2$ \checkmark \\
-comparison & total order ($\mathrm{false} < \mathrm{true}$) \checkmark \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\begin{table}[htbp]
-\centering
-\caption{\textbf{\cppinline{std::unsigned_integral}.}  Modular arithmetic gives a genuine ring; the narrow types leak through integer promotion.}
-\label{tab:prim-unsigned}
-\begin{tabular}{@{}p{0.34\textwidth}lll@{}}
-\toprule
-type(s) & arithmetic & bitwise & comparison \\
-\midrule
-\cppinline{unsigned int}, \cppinline{unsigned long}, \cppinline{unsigned long long}, \cppinline{size_t} & ring $\mathbb{Z}/2^n$ \checkmark & Boolean algebra \checkmark & total order \checkmark \\
-\cppinline{unsigned short}, \cppinline{unsigned char} & ring $\mathbb{Z}/2^n$ $\circ$ (promotes) & Boolean algebra \checkmark & total order \checkmark \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\begin{table}[htbp]
-\centering
-\caption{\textbf{\cppinline{std::signed_integral}.}  Signed-overflow UB denies the ring; the two's-complement bits (guaranteed since \Cpp{20}) and the order survive.}
-\label{tab:prim-signed}
-\begin{tabular}{@{}p{0.28\textwidth}lll@{}}
-\toprule
-type(s) & arithmetic & bitwise & comparison \\
-\midrule
-\cppinline{int}, \cppinline{long}, \cppinline{long long} & partial $\times$ (overflow UB) & Boolean algebra \checkmark & total order \checkmark \\
-\cppinline{signed char}, \cppinline{short} & partial $\times$ (UB, promotes) & Boolean algebra \checkmark & total order \checkmark \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\begin{table}[htbp]
-\centering
-\caption{\textbf{\cppinline{std::floating_point}.}  On IEC 60559 (IEEE-754) targets, rounding defeats associativity and \cppinline{NaN} defeats even the order; almost nothing survives.}
-\label{tab:prim-floating}
-\begin{tabular}{@{}p{0.34\textwidth}ll@{}}
-\toprule
-type(s) & arithmetic & comparison \\
-\midrule
-\cppinline{float}, \cppinline{double}, \cppinline{long double} & closure only $\times$ (rounding) & not a total order $\times$ (\cppinline{NaN} incomparable) \\
-\bottomrule
-\end{tabular}
-\end{table}
-
 \clearpage
 \subsection{Reference: The Algebraic Lattice and its Carriers}
 \label{sec:carrier-rosetta}
@@ -1526,6 +1461,71 @@ $\mathbb{D}$ (dual) & \cppinline{.val} (primal only; tangent discarded) & \cppin
 
 
 
+
+%%%
+\clearpage
+\subsubsection{Reverse lookup: the built-in primitives by operator surface}
+\label{sec:builtin-algebra}
+
+Table~\ref{tab:primitive-algebra} gives the headline; the four tables below break the principal built-in types down by operator surface, one table per standard-concept family (\cppinline{bool} on its own), since the built-in primitives share no single operator surface.
+The library carriers built on these primitives appear in the master table above (Table~\ref{tab:lattice-carriers}).
+A \checkmark marks a law certified in the trait registry, $\times$ one that is absent (hence rejected at the gate), and $\circ$ one that holds only in part.
+
+\begin{table}[htbp]
+\centering
+\caption{\textbf{\cppinline{bool}.}  The two-element type carries a different algebra under each operator surface.}
+\label{tab:prim-bool}
+\begin{tabular}{@{}ll@{}}
+\toprule
+operator surface & structure \\
+\midrule
+logical    & Boolean algebra \checkmark \\
+bitwise    & Galois field $\mathbb{F}_2$ \checkmark \\
+comparison & total order ($\mathrm{false} < \mathrm{true}$) \checkmark \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{\textbf{\cppinline{std::unsigned_integral}.}  Modular arithmetic gives a genuine ring; the narrow types leak through integer promotion.}
+\label{tab:prim-unsigned}
+\begin{tabular}{@{}p{0.34\textwidth}lll@{}}
+\toprule
+type(s) & arithmetic & bitwise & comparison \\
+\midrule
+\cppinline{unsigned int}, \cppinline{unsigned long}, \cppinline{unsigned long long}, \cppinline{size_t} & ring $\mathbb{Z}/2^n$ \checkmark & Boolean algebra \checkmark & total order \checkmark \\
+\cppinline{unsigned short}, \cppinline{unsigned char} & ring $\mathbb{Z}/2^n$ $\circ$ (promotes) & Boolean algebra \checkmark & total order \checkmark \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{\textbf{\cppinline{std::signed_integral}.}  Signed-overflow UB denies the ring; the two's-complement bits (guaranteed since \Cpp{20}) and the order survive.}
+\label{tab:prim-signed}
+\begin{tabular}{@{}p{0.28\textwidth}lll@{}}
+\toprule
+type(s) & arithmetic & bitwise & comparison \\
+\midrule
+\cppinline{int}, \cppinline{long}, \cppinline{long long} & partial $\times$ (overflow UB) & Boolean algebra \checkmark & total order \checkmark \\
+\cppinline{signed char}, \cppinline{short} & partial $\times$ (UB, promotes) & Boolean algebra \checkmark & total order \checkmark \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{\textbf{\cppinline{std::floating_point}.}  On IEC 60559 (IEEE-754) targets, rounding defeats associativity and \cppinline{NaN} defeats even the order; almost nothing survives.}
+\label{tab:prim-floating}
+\begin{tabular}{@{}p{0.34\textwidth}ll@{}}
+\toprule
+type(s) & arithmetic & comparison \\
+\midrule
+\cppinline{float}, \cppinline{double}, \cppinline{long double} & closure only $\times$ (rounding) & not a total order $\times$ (\cppinline{NaN} incomparable) \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \clearpage
 \section{Partial Evaluation on the Analytic Necklace}
