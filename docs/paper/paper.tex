@@ -1385,7 +1385,7 @@ To answer ``I need structure $X$'', read its row in Table~\ref{tab:lattice-carri
 
 \begin{table}[htbp]
 \centering
-\caption{\textbf{The algebraic lattice and its carriers.} Each structure of the branching poset (§\ref{sec:algebraic_lattice_carriers}), the concept that certifies it, and the carriers that realise it on the built-in (\cppinline{std} / IEEE) side and the exact-library side. \cppinline{I} abbreviates \cppinline{SignedExtensionalCardinal<>}.}
+\caption{\textbf{The algebraic lattice and its carriers.} Each structure of the branching poset (§\ref{sec:algebraic_lattice_carriers}), the concept that certifies it, and the carriers that realise it on the built-in (\cppinline{std} / IEEE) side and the exact-library side. Each carrier is listed under the strongest structure the code \emph{strictly} certifies; \textsuperscript{$\dagger$} marks operator-surface-only certification (the strict axiomatic witness is queued). \cppinline{I} abbreviates \cppinline{SignedExtensionalCardinal<>}.}
 \label{tab:lattice-carriers}
 \footnotesize
 \begin{tabular}{@{}l l p{0.26\textwidth} p{0.30\textwidth}@{}}
@@ -1393,14 +1393,19 @@ To answer ``I need structure $X$'', read its row in Table~\ref{tab:lattice-carri
 \textbf{Structure} & \textbf{Concept} & \textbf{Built-in realisation} & \textbf{Exact-library carrier} \\
 \midrule
 Magma & \cppinline{IsMagma} & \cppinline{unsigned} under $+$ / $*$ (modular) & any closed carrier \\
-Comm.\ monoid & \cppinline{IsMonoid} & \cppinline{unsigned} under $+$ ($\mathbb{Z}/2^n$) & $\mathbb{N}$: \cppinline{Cardinality} \\
+Comm.\ monoid & \cppinline{IsCommutativeMonoid} & \cppinline{unsigned} under $+$ ($\mathbb{Z}/2^n$) & $\mathbb{N}$: \cppinline{Cardinality} \\
 Abelian group & \cppinline{IsAbelianGroup} & \cppinline{unsigned} under $+$ (cyclic) & $\mathbb{Z}$: \cppinline{SignedExtensionalCardinal<N>} \\
-Ring & \cppinline{IsRing} & \cppinline{unsigned} under $(+,*)$; signed \cppinline{int} \emph{refused} (overflow UB) & $\mathbb{Z}$; $\mathbb{D}$: \cppinline{Dual<Rational<I>>}; \cppinline{RigPolynomial} \\
-Field & \cppinline{IsField} & \cppinline{bool} under $(\oplus,\land)$ ($\mathbb{F}_2$) & $\mathbb{Q}$: \cppinline{Rational<I>}; $\mathbb{C}$: \cppinline{Complex}; $\mathbb{R}$: \cppinline{ExactReal} \\
+Ring & \cppinline{IsRing} & \cppinline{unsigned} under $(+,*)$; signed \cppinline{int} \emph{refused} (overflow UB) & $\mathbb{Z}$: \cppinline{SignedExtensionalCardinal<N>}; \cppinline{RigPolynomial} \\
+Field & \cppinline{IsField} & \cppinline{bool} under $(\oplus,\land)$ ($\mathbb{F}_2$) & $\mathbb{Q}$: \cppinline{Rational<I>}; $\mathbb{C}$: \cppinline{Complex}\textsuperscript{$\dagger$}; $\mathbb{R}$: \cppinline{ExactReal}\textsuperscript{$\dagger$} \\
 Galois field & \cppinline{IsGaloisField} & \cppinline{bool} ($\mathbb{F}_2$, order 2) & \cppinline{𝔽64} (order 64) \\
-Module / v.\ space & \cppinline{IsModule} / \cppinline{IsVectorSpace} & \cppinline{uint64_t} under $\oplus$, \cppinline{bool} scalars ($\mathbb{F}_2^{64}$) & \cppinline{Vec2V} \\
+Module / v.\ space & \cppinline{IsModule} / \cppinline{IsVectorSpace} & \cppinline{uint64_t} under $\oplus$, \cppinline{bool} scalars ($\mathbb{F}_2^{64}$) & \cppinline{Vec2V}; $\mathbb{D}$: \cppinline{Dual<Rational<I>>} \\
 \bottomrule
 \end{tabular}
+
+\vspace{0.3em}
+\begin{flushleft}
+{\footnotesize \textsuperscript{$\dagger$} \cppinline{Complex} and \cppinline{ExactReal} certify only the ring/field \emph{operator surface} (\cppinline{HasRingOperators} / \cppinline{HasFieldOperators}); the strict \cppinline{IsField} witness is blocked behind the \cppinline{IsTotal} / species-trait gate.  \cppinline{Dual} is a strict module over $\mathbb{Q}$ carrying ring operators, but $\varepsilon^2 = 0$ has no strict \cppinline{IsRing} witness, so it sits with the modules.}
+\end{flushleft}
 \end{table}
 
 \paragraph{Re-enabling refused carriers.}  The Honest Rejection
