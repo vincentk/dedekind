@@ -227,6 +227,7 @@ The subsequent sections develop the reading.
 
 Figure~\ref{fig:hub-spoke-bnz} sketches the domain of the first pillar.
 It is deliberately vanilla: carrier sets such as $\mathbb{B}, \mathbb{N}, \mathbb{Z}$ with the arithmetic and set operations of elementary mathematics, packaged as algebraic structures.
+Throughout, a \emph{carrier} is such an underlying set (the bottom row of Figure~\ref{fig:hub-spoke-bnz}), and an \emph{algebraic set} is a carrier decorated with operations (a tier above it).
 The rules are not in doubt, being pre-validated and universally agreed, yet only very little is reified and programmatically accessible: a C++ operator or method signature may carry closure, but only little in terms of associativity, no distributivity, no units and no inverses.
 Supplying that knowledge once, and letting the compiler enforce it thereafter, is what turns these familiar rules into build-time checks and optimizations; Appendix~\ref{sec:trait-registry} records, per carrier, which laws the type system can and cannot certify.
 
@@ -1439,7 +1440,7 @@ A generic algorithm requiring associativity therefore fails to compile on \textt
 \subsection{Carriers: From Exact Rationals to Packed Integers}
 \label{sec:carrier-rosetta}
 
-This section records, per carrier, which algebraic laws the type system certifies, and at which tier of §\ref{par:concept-tiers}; recall (Figure~\ref{fig:hub-spoke-bnz}) that a carrier is the underlying set beneath an algebraic structure.
+This section records, per carrier (Figure~\ref{fig:hub-spoke-bnz}), which algebraic laws the type system certifies, and at which tier of §\ref{par:concept-tiers}.
 
 \paragraph{Re-enabling refused carriers.}  The Honest Rejection
 policy refuses carriers like \cppinline{int} as a witness for
