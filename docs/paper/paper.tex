@@ -133,8 +133,8 @@
     semiring closure, under the disciplined fragment of C++23 described
     here.
     The implementation is open source as \texttt{dedekind}~\cite{dedekind2026};
-    the broader library (categorical foundations, algebra tower, numeric
-    tower, geometry, linear algebra, morphologies, Python facade) is
+    the broader library (categorical foundations, algebra, numbers,
+    geometry, linear algebra, morphologies, Python facade) is
     documented in the companion Report distributed alongside the source
     tree.}}
 \author{The \texttt{dedekind} Authors}
@@ -229,7 +229,7 @@ Figure~\ref{fig:hub-spoke-bnz} sketches the domain of the first pillar.
 It is deliberately vanilla: carrier sets such as $\mathbb{B}, \mathbb{N}, \mathbb{Z}$ with the arithmetic and set operations of elementary mathematics, packaged as algebraic structures.
 Throughout, a \emph{carrier} is such an underlying set (the bottom row of Figure~\ref{fig:hub-spoke-bnz}), and an \emph{algebraic set} is a carrier decorated with operations (a tier above it).
 The rules are not in doubt, being pre-validated and universally agreed, yet only very little is reified and programmatically accessible: a C++ operator or method signature may carry closure, but only little in terms of associativity, no distributivity, no units and no inverses.
-Supplying that knowledge once, and letting the compiler enforce it thereafter, is what turns these familiar rules into build-time checks and optimizations; Appendix~\ref{sec:trait-registry} records which laws the type system can and cannot certify, and Appendix~\ref{sec:carrier-rosetta} catalogues them across the lattice of carriers.
+Supplying that knowledge once, and letting the compiler enforce it thereafter, is what turns these familiar rules into build-time checks and optimizations; Appendix~\ref{sec:trait-registry} records which laws the type system can and cannot certify, and Appendix~\ref{sec:carrier-rosetta} catalogues them across the poset of carriers.
 
 \begin{figure}[htbp]
 \centering
@@ -285,7 +285,7 @@ The difference here is only the checker, an optimising C++ compiler rather than 
 
 \paragraph{What this buys, concretely.}
 Guided by the rule ``name the structure in the type, let the compiler discharge the laws,'' the library systematically constructs an algebraic hierarchy entirely at compile time.
-From a handful of structural primitives (morphisms and small categories), \texttt{dedekind} builds a domain specific language to describe sets, a numeric lattice ($\mathbb{B}$, $\mathbb{N}$, $\mathbb{Z}$, $\mathbb{Q}$, $\mathbb{R}$, $\mathbb{C}$, \ldots) and a point-free linear algebra layer, among other things,
+From a handful of structural primitives (morphisms and small categories), \texttt{dedekind} builds a domain specific language to describe sets, a poset of numbers ($\mathbb{B}$, $\mathbb{N}$, $\mathbb{Z}$, $\mathbb{Q}$, $\mathbb{R}$, $\mathbb{C}$, \ldots) and a point-free linear algebra layer, among other things,
 Programs are partially or fully evaluated at compile-time as they are brought to single static assignment form potentially resulting in operator fusion or complete reduction to a statically computed constant result.
 The resulting capabilities are demonstrated by the compile-time critical path of a directed acyclic network, computed by semiring closure, in Section~\ref{sec:optimization_lp}.
 This categorical vocabulary is not decorative; intensional sets acting as predicates into a subobject classifier are the uniform engine driving both type-level structural pruning and compile-time law enforcement.
@@ -305,7 +305,7 @@ The remainder of this paper substantiates these contributions by evaluating thre
 (3) standard compilers can reliably function as validation and optimization engines for mathematical invariants.
 Section~\ref{sec:jlt_posture} isolates the disciplined fragment of C++23, the Juliet Posture.
 Section~\ref{sec:intensional_sets} bootstraps intensional sets as type-checked predicates and the type-directed collapse they license, and Section~\ref{sec:relations_functions_blueprint} lifts these to point-free mappings between sets.
-Section~\ref{sec:algebraic_lattice_carriers} builds the universal-algebra tower of carriers, and Section~\ref{sec:operational_calculus} recasts linear algebra as coordinate-free, matrix-free operators over them.
+Section~\ref{sec:algebraic_lattice_carriers} builds the universal-algebra poset of carriers, and Section~\ref{sec:operational_calculus} recasts linear algebra as coordinate-free, matrix-free operators over them.
 Section~\ref{sec:optimization_lp} works the network critical path by semiring closure as the compile-time centrepiece; Section~\ref{sec:evaluation_benchmarks} models its cost, and Section~\ref{sec:discussion} sets out the limitations and follow-up.
 
 
@@ -820,7 +820,7 @@ This structural approach ensures that even highly complex or non-linear function
 The type system can consequently treat arbitrary transformations as well-behaved objects, laying a reliable foundation for the universal-algebraic operators developed in the subsequent section.
 
 %------
-\section{Universal Algebra and the Algebraic Lattice of Carriers}
+\section{Universal Algebra and the Poset of Carriers}
 \label{sec:algebraic_lattice_carriers}
 %-------
 
@@ -891,13 +891,13 @@ static_assert(IsField<ℚ>);
 \end{minipage}
 \end{listing}
 
-\subsection{The carrier lattice}
+\subsection{The carrier poset}
 \label{sec:carrier-lattice}
 
-The carriers form a lattice, and the library builds it the way the textbooks do, one universal-property construction at a time.
-The bottom is the Boolean semiring $\mathbb{B}$ above, with the naturals $\mathbb{N}$ just over it.
-From there the tower is the standard one: the Grothendieck completion of $(\mathbb{N}, +)$ to the integers $\mathbb{Z}$ and their field of fractions $\mathbb{Q} = \operatorname{Frac}(\mathbb{Z})$, Dedekind cuts to the reals $\mathbb{R}$, free modules to the vector and matrix carriers $R^n$ and $M_n(R)$, and polynomial quotients to the complex and dual numbers, $\mathbb{C} = \mathbb{R}[i]/(i^2{+}1)$ and $\mathbb{D} = \mathbb{R}[\varepsilon]/(\varepsilon^2)$.
-None of this is ours to reprove: it is Bourbaki's structuralist tower~\cite{bourbaki1968theoryofsets, marquis2022structuralist} carried down to the type level, and the textbooks treat it better than we could.
+The carriers form a poset, and the library builds it the way the textbooks do, one universal-property construction at a time.
+The bottom is the Boolean semiring $\mathbb{B}$, with the naturals $\mathbb{N}$ just over it.
+From there the spine is the standard chain: the Grothendieck completion of $(\mathbb{N}, +)$ to the integers $\mathbb{Z}$ and their field of fractions $\mathbb{Q} = \operatorname{Frac}(\mathbb{Z})$, then Dedekind cuts to the reals $\mathbb{R}$, where it branches: free modules to the vector and matrix carriers $R^n$ and $M_n(R)$, and polynomial quotients to the complex and dual numbers, $\mathbb{C} = \mathbb{R}[i]/(i^2{+}1)$ and $\mathbb{D} = \mathbb{R}[\varepsilon]/(\varepsilon^2)$.
+None of this is ours to reprove: it is Bourbaki's structuralist hierarchy~\cite{bourbaki1968theoryofsets, marquis2022structuralist} carried down to the type level, and the textbooks treat it better than we could.
 The only discipline the library adds is that each rung lifts at the type level the moment a type naming it passes its concept gate, so it is the compiler, not the reader, that checks each construction is what it claims to be.
 
 The quotient rung is backed by the First Isomorphism Theorem, $A/\ker f \cong \operatorname{im} f$~\cite{burris1981universalalgebra}, which \texttt{category:image} records as a typed claim: the quotient and image are registered per homomorphism, and a supplied isomorphism is type-checked against them.
@@ -1209,7 +1209,7 @@ Rather than extrapolate that trade from a single benchmark point, we characteris
 The compiler evaluates \cppinline{constexpr} reductions with an abstract-syntax-tree interpreter, so translation-time work is interpretive rather than compiled, and its absolute magnitude is not small.
 Its \emph{scaling}, though, is fixed by structure.
 The first parameter is the template instantiation depth.
-The disciplined fragment of §\ref{sec:jlt_posture} admits no unbounded type-level recursion, so the depth stays bounded and each reduction remains inside a decidable cone rather than diverging; the carrier tower, for instance, is capped at scalar, shape, and quotient axes, a depth of at most three in the current surface.
+The disciplined fragment of §\ref{sec:jlt_posture} admits no unbounded type-level recursion, so the depth stays bounded and each reduction remains inside a decidable cone rather than diverging; the carrier poset, for instance, is capped at scalar, shape, and quotient axes, a depth of at most three in the current surface.
 The second parameter is the size of the graph the closure relaxes.
 For the necklace of §\ref{sec:optimization_lp}, each round scans the edge relation once, and an acyclic graph stabilises within a number of rounds bounded by its depth, so the work is polynomial in the edge count $E$.
 Composing the two, the translation-time cost is polynomial in the problem size at bounded instantiation depth, precisely because the depth is capped.
@@ -1358,7 +1358,7 @@ algebraic claim that is reviewed and CI-checked against a
 \cppinline{static_assert}. \\
 Bounded template instantiation depth. &
 The Turing-complete instantiation machinery is bounded by the
-carrier-lattice depth (scalar,
+carrier-poset depth (scalar,
 shape, quotient axes; depth $\leq 3$ in the current surface), which
 keeps the type checker's work within a decidable cone. \\
 \bottomrule
@@ -1464,7 +1464,7 @@ By default, a generic algorithm requiring associativity therefore fails to compi
 \label{sec:builtin-algebra}
 
 Table~\ref{tab:primitive-algebra} gives the headline; the four tables below break the principal primitive types down by operator surface, one table per standard-concept family (\cppinline{bool} on its own), since the built-in primitives share no single operator surface.
-The same carriers, organised by algebraic structure, are catalogued in the master table of the algebraic-lattice appendix (Table~\ref{tab:lattice-carriers}).
+The same carriers, organised by algebraic structure, are catalogued in the master table of the carrier-poset appendix (Table~\ref{tab:lattice-carriers}).
 A \checkmark marks a law certified in the trait registry, $\times$ one that is absent (hence rejected at the gate), and $\circ$ one that holds only in part.
 
 \begin{table}[htbp]
@@ -1614,15 +1614,15 @@ The worked internals are deferred to a follow-up revision.
 
 %%%
 \clearpage
-\section{The Algebraic Lattice and its Carriers}
+\section{The Carrier Poset and its Realisations}
 \label{sec:carrier-rosetta}
 
-This reference is indexed by algebraic structure (the branching poset of §\ref{sec:algebraic_lattice_carriers}), not by carrier.
+This reference is indexed by algebraic structure (the poset of §\ref{sec:algebraic_lattice_carriers}), not by carrier.
 To answer ``I need structure $X$'', read its row in Table~\ref{tab:lattice-carriers}; to place a type you already hold, scan the realisation columns, or the by-operator-surface tables of §\ref{sec:builtin-algebra}.
 
 \begin{table}[htbp]
 \centering
-\caption{\textbf{The algebraic lattice and its carriers.} Each structure of the branching poset (§\ref{sec:algebraic_lattice_carriers}), the concept that certifies it, and the carriers that realise it on the built-in (\cppinline{std} / IEEE) side and the exact-library side. Each row names \emph{representative} carriers that strictly realise the structure; a carrier recurs across the rows it satisfies (\cppinline{unsigned} is a magma, monoid, group, and ring; \cppinline{bool} is both a field and a Galois field). \textsuperscript{$\dagger$} marks operator-surface-only certification, the strict axiomatic witness being queued. \cppinline{I} abbreviates \cppinline{SignedExtensionalCardinal<>}.}
+\caption{\textbf{The carrier poset and its realisations.} Each structure of the poset (§\ref{sec:algebraic_lattice_carriers}), the concept that certifies it, and the carriers that realise it on the built-in (\cppinline{std} / IEEE) side and the exact-library side. Each row names \emph{representative} carriers that strictly realise the structure; a carrier recurs across the rows it satisfies (\cppinline{unsigned} is a magma, monoid, group, and ring; \cppinline{bool} is both a field and a Galois field). \textsuperscript{$\dagger$} marks operator-surface-only certification, the strict axiomatic witness being queued. \cppinline{I} abbreviates \cppinline{SignedExtensionalCardinal<>}.}
 \label{tab:lattice-carriers}
 \footnotesize
 \begin{tabular}{@{}l l p{0.23\textwidth} p{0.35\textwidth}@{}}
@@ -2021,7 +2021,7 @@ sketches that do not.
 \begin{itemize}
   \item \textbf{Carrier tightening.} Intersecting a subset of
     $\mathbb{N}$ with a subset of $\mathbb{R}$ should land in $\mathbb{N}$:
-    the carrier lattice contributes its own structural reduction via the
+    the carrier poset contributes its own structural reduction via the
     existing canonical embeddings (\cppinline{embed_uint_sint_},
     \cppinline{embed_ℚ_ℝ}, \ldots).
   \item \textbf{Smooth optimization.} The stationary set
