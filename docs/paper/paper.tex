@@ -248,17 +248,9 @@ The steps of a single development cycle are:
 \label{fig:target_model}
 \end{figure}
 
-Practical boundaries of this architecture were anticipated: general computability remains undecidable, mainstream toolchains permit non-termination, and the underlying physical hardware model remains fixed.
-Thus, \texttt{dedekind} functions as a bounded, engineering intermediary between abstract category theory and a disciplined fragment of C++ execution, as sketched in the operational cycle of Figure~\ref{fig:target_model}. 
-The framework is architected so that verified mathematical evidence accumulates uniformly in a single direction.
-Once an axiom or theorem has been imported, the compiler can engage in mechanical validation or further derivations~\cite{wadler2015propositions}.
-
-The resulting posture is explicit: \texttt{dedekind} is a systems-programming library that treats pre-validated mathematical concepts as first-class compile-time entities.
-This layout prevents downstream developers from bolting fragile, ad-hoc traits onto unverified numeric types.
-Choosing to land semantics at the compile-time layer, rather than as runtime abstractions or external DSLs, is a structural commitment that shapes what the compiler can enforce and what remains the developer's responsibility.
-The view is that naming algebraic structures at the type level and letting the compiler discharge their governing laws narrows the gap between abstract mathematics and machine code without relying on an external proof assistant.
-While compile-time verification is native to languages like Agda or Coq, and partial automatic differentiation loops exist in specialized production environments~\cite{elliott2018simple, jakob2019enoki}, \texttt{dedekind} contributes an end-to-end realization of this discipline inside unmodified standard C++23.
-Thus, it serves as an existence proof, showing that a C++23 template engine can successfully collapse many highly non-trivial algorithmic problems down to LLVM object primitives which may be highly specialized and optimized.
+The cycle of Figure~\ref{fig:target_model} runs in one direction: a pre-validated proof is cited from $\mathbf{Cat}$, encoded and type-checked in the $\mathbf{Cpp}$ fragment, and compared back to its source, so verified evidence accumulates and the compiler can validate an imported axiom or derive further from it~\cite{wadler2015propositions}.
+The posture is explicit: \texttt{dedekind} is a systems-programming library that treats pre-validated mathematical concepts as first-class compile-time entities, which keeps downstream developers from bolting fragile, ad-hoc traits onto unverified numeric types.
+Landing semantics at the compile-time layer, rather than as runtime abstractions or an external DSL, is the structural commitment that shapes what the compiler can enforce; against a backdrop where partial automatic differentiation exists in specialised environments~\cite{elliott2018simple, jakob2019enoki}, \texttt{dedekind} contributes an end-to-end realization inside unmodified standard C++23, an existence proof that a template engine can collapse many highly non-trivial algorithmic problems down to specialized, optimized LLVM primitives.
 
 \paragraph{A recent shift in the cost--benefit calculus.}
 Two recent developments are the \emph{key enablers}, not tricks or shortcuts.
@@ -279,6 +271,17 @@ Clang++ is used a formal system where a successful type check serves as a struct
 The \Cpp{23} type system, while limited, is sufficiently rich to name predicates, enforce structural boundaries, and license the LLVM backend to completely remove dead code paths that have been resolved at translation time.
 This architecture thus enforces a clear division of labor: the library user holds an out-of-band honesty obligation when registering trait axioms, and the compiler mechanically discharges every subsequent \cppinline{static_assert}, \cppinline{requires} clause, or \cppinline{constexpr} evaluation.
 A simple proof search is mimicked by operator resolution.
+
+\paragraph{Existential proofs, not universal ones.}
+That division of labour is forced by a limit, not chosen for convenience.
+Whether an arbitrary carrier obeys a given algebraic law is a non-trivial semantic property, and so undecidable in general (Rice's theorem~\cite{rice1953classes}).
+A universal proof would imply the existential over any inhabited domain, so the existential is the strictly weaker claim, and the one within reach: the library does not decide a law for every carrier, it names a specific carrier, a specific law, a specific reduction, and lets the compiler discharge it.
+Rice's theorem is thus less a wall than an invitation to contribute: it marks the seam Figure~\ref{fig:target_model} operationalizes, between the aspirational $\mathbf{Cat}$ (a universal conjecture, a general automatic verifier) on the one hand and the $\mathbf{Cpp}$ fragment of current best practice (checkable existential demonstrations with mechanical support) on the other, and a plausible conjecture is precisely an invitation to search for the existential witness.\footnote{Penrose~\cite{penrose2004roadtoreality} reads G\"odel's incompleteness in the same spirit: a formal system closing at one level motivates the next, not as exhaustion but as a natural successor.}
+
+\paragraph{Mechanical discharge is not a proof.}
+The discharge is not itself a proof of the law: for an unbounded carrier the author registers the axiom (the honesty obligation above) and the compiler mechanically checks its consequences.
+This is the bargain the proof assistants already accept: Coq~\cite{Coq} and Lean~\cite{Moura2015Lean} check a development against a trusted kernel and a base of accepted axioms, and their \cppinline{Admitted} and \cppinline{sorry} escape hatches admit as much.
+The difference here is only the checker, an optimising C++ compiler rather than a dedicated prover, which is why the same discipline returns optimised machine code as a by-product.
 
 \paragraph{What this buys, concretely.}
 Guided by the rule ``name the structure in the type, let the compiler discharge the laws,'' the library systematically constructs an algebraic hierarchy entirely at compile time.
@@ -1519,6 +1522,22 @@ Axiom 9: Power Set / Exponential Restriction (\(\beth _{1}\)). For any set X, th
 
 %%%
 \clearpage
+\section{Point-Free Morphisms: Relations and Factorization Gates}
+\label{sec:morphisms-appendix}
+
+% STUB (follow-up PR): supporting detail dual to §\ref{sec:relations_functions_blueprint}.
+% To collect: the Kleisli / powerset-monad relation internals (the fish operator >>),
+% the epic--monic factorization gates (IsSingleton, mono_retract), and the
+% :relations / :functions partition surfaces.  Kept minimal for now to pin the
+% section<->appendix correspondence; fleshed out with worked witnesses later.
+
+Dual to §\ref{sec:relations_functions_blueprint}, this appendix collects the supporting detail for the point-free morphism layer: relations presented as Kleisli arrows over the powerset monad, and the epic--monic factorization gates ($A \twoheadrightarrow I \hookrightarrow B$) that make a general function's codomain queries decidable.
+It is another instance of the paper's recurring seam.
+General first-order quantification over open intensional sets is undecidable at compile time (Rice's theorem), so rather than attempt the aspirational universal search the library supplies mechanical support for the \emph{existential} case: lazy Kleisli predicate transformation for composition, and a developer-supplied factorization for image membership.
+The worked internals are deferred to a follow-up revision.
+
+%%%
+\clearpage
 \section{The Algebraic Lattice and its Carriers}
 \label{sec:carrier-rosetta}
 
@@ -2143,15 +2162,13 @@ proofs, universe hierarchies) is not available in C++23; what
 ruled out exposes a next class that the current machinery does not
 handle but the library's structural vocabulary already names; the four
 axes of Section~\ref{sec:gap} fall out of the halfspace reductions
-almost by construction.\footnote{Penrose's \emph{The Road to
-Reality}~\cite{penrose2004roadtoreality} offers an analogous
-observation about G\"odel's incompleteness theorem --- a formal
-system closing at one level motivates the next, not as exhaustion
-but as natural successor; the closest formal analogue is Turing's
-ordinal logics~\cite{turing1939ordinals}, where each stage's
-consistency feeds the next stage's formation rule.  The
-systems-programming reading is benign: the issue tracker plays the
-successor role.}
+almost by construction.\footnote{The introduction's G\"odel reading
+applies here: a formal system closing at one level motivates the next,
+not as exhaustion but as successor.  The closest formal analogue is
+Turing's ordinal logics~\cite{turing1939ordinals}, where each stage's
+consistency feeds the next stage's formation rule; the operational
+reading is benign, with the development cycle of
+Figure~\ref{fig:target_model} playing the successor role.}
 
 \paragraph{Three honesty-anchoring constraints.}
 Three compounding constraints keep the library's artefacts honest:

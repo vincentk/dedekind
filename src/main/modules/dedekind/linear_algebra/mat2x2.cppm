@@ -687,6 +687,15 @@ using Mat2_Q = dedekind::linear_algebra::Matrix2x2V<Q>;
 static_assert(dedekind::algebra::is_module_v<Vec2_Q, Q>,
               "Vec2V<ℚ> is a ℚ-module — P step composes with the "
               "ℤ → ℚ Frac (H) step.");
+// Certificate lift over a field: IsVectorSpace = IsModule && IsField, so the
+// ℚ-module witness above auto-upgrades to a strict ℚ-vector space with no
+// per-carrier code.  This is the functorial lift Vec2V : Field → VectorSpace
+// (cf. the algebraic-lattice appendix); it is derivable but was previously
+// unwitnessed.
+static_assert(dedekind::algebra::is_vector_space_v<Vec2_Q, Q>,
+              "Vec2V<ℚ> is a strict ℚ-vector space: the ℚ-module certificate "
+              "composes with category::IsField<ℚ> to lift Vec2V over the "
+              "field ℚ, mechanically and without per-carrier opt-in.");
 static_assert(is_free_module_v<Vec2_Q, Q, 2>,
               "Vec2V<ℚ> is a free ℚ-module of rank 2.");
 static_assert(
