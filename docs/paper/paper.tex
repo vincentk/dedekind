@@ -894,11 +894,34 @@ static_assert(IsField<ℚ>);
 \subsection{The carrier poset}
 \label{sec:carrier-lattice}
 
-The carriers form a poset, and the library builds it the way the textbooks do, one universal-property construction at a time.
-The bottom is the Boolean semiring $\mathbb{B}$, with the naturals $\mathbb{N}$ just over it.
-From there the spine is the standard chain: the Grothendieck completion of $(\mathbb{N}, +)$ to the integers $\mathbb{Z}$ and their field of fractions $\mathbb{Q} = \operatorname{Frac}(\mathbb{Z})$, then Dedekind cuts to the reals $\mathbb{R}$, where it branches: free modules to the vector and matrix carriers $R^n$ and $M_n(R)$, and polynomial quotients to the complex and dual numbers, $\mathbb{C} = \mathbb{R}[i]/(i^2{+}1)$ and $\mathbb{D} = \mathbb{R}[\varepsilon]/(\varepsilon^2)$.
-None of this is ours to reprove: it is Bourbaki's structuralist hierarchy~\cite{bourbaki1968theoryofsets, marquis2022structuralist} carried down to the type level, and the textbooks treat it better than we could.
-The only discipline the library adds is that each rung lifts at the type level the moment a type naming it passes its concept gate, so it is the compiler, not the reader, that checks each construction is what it claims to be.
+The carriers form a poset: a spine $\mathbb{B}, \mathbb{N}, \mathbb{Z}, \mathbb{Q}, \mathbb{R}$ that branches at $\mathbb{R}$ into the complex and dual numbers, $\mathbb{C} = \mathbb{R}[i]/(i^2{+}1)$ and $\mathbb{D} = \mathbb{R}[\varepsilon]/(\varepsilon^2)$, and the module carriers $R^n$ and $M_n(R)$.
+Each edge is a \emph{universal construction}, a canonical way to make a new carrier from an old one; none is ours to invent, they are textbook, and the library only checks that each type is what it claims.
+Three of these constructions preserve algebraic laws for a single reason, one theorem (Birkhoff~\cite{burris1981universalalgebra}): whatever laws the ingredients satisfy, their product, their quotients, and their subalgebras satisfy too.
+That one theorem is what the trait engine turns into mechanical propagation, and it is the whole of Rule~2 (§\ref{sec:hsp_varieties}).
+The library's other carrier-building moves, fractions ($\mathbb{Z} \to \mathbb{Q}$), completion ($\mathbb{Q} \to \mathbb{R}$), and the matrix algebra ($R^n \to M_n(R)$), are equally canonical but each preserves structure by its own theorem, from a different branch of mathematics, so no single closure rule reaches them (Table~\ref{tab:constructions}).
+
+\begin{table}[ht]
+\centering
+\caption{The universal constructions that build the carrier poset, the theorem by which each preserves algebraic laws, and whether the trait engine mechanizes it.  The three Birkhoff operations~\cite{burris1981universalalgebra} (product, quotient, subalgebra) share one closure theorem and \emph{are} Rule~2; localization~\cite{atiyahmacdonald1969commutative} and completion~\cite{rudin1976principles} preserve structure by their own theorems, from other branches, and are not Birkhoff-closed (fields are not a variety, so no set of identities pins them down).}
+\label{tab:constructions}
+\small
+\begin{tabular}{@{}l l l l@{}}
+\toprule
+construction & builds & law-preservation & in the engine \\
+\midrule
+product / free module & scalar $\to$ vector & Birkhoff HSP (P)~\cite{burris1981universalalgebra} & yes \\
+quotient by an ideal & $\mathbb{R} \to \mathbb{C}, \mathbb{D}$ & Birkhoff HSP (H)~\cite{atiyahmacdonald1969commutative} & yes \\
+subalgebra & a closed sub-part & Birkhoff HSP (S)~\cite{burris1981universalalgebra} & mechanism only \\
+localization (fractions) & $\mathbb{Z} \to \mathbb{Q}$ & commutative algebra~\cite{atiyahmacdonald1969commutative} & filed under quotient \\
+completion & $\mathbb{Q} \to \mathbb{R}$ & analysis, Dedekind cuts~\cite{rudin1976principles} & by hand \\
+endomorphism algebra & $R^n \to M_n(R)$ & module theory~\cite{lang2002algebra} & by hand \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+So the engine mechanizes exactly the Birkhoff-closed core, the fragment where one theorem does all the work, and files fractions there too because $\operatorname{Frac}$ behaves enough like a quotient to ride the same machinery.
+Completion and the matrix step it does not model as law-preserving constructions at all; it builds them by hand.
+The honest statement is therefore narrow and true: \texttt{dedekind} propagates certificates across the Birkhoff-closed fragment of the carrier poset, and leaves the rest as the engineer's obligation, the same seam the rest of §\ref{sec:algebraic_lattice_carriers} works.
 
 The quotient rung is backed by the First Isomorphism Theorem, $A/\ker f \cong \operatorname{im} f$~\cite{burris1981universalalgebra}, which \texttt{category:image} records as a typed claim: the quotient and image are registered per homomorphism, and a supplied isomorphism is type-checked against them.
 
