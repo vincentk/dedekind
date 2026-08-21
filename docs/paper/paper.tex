@@ -248,17 +248,9 @@ The steps of a single development cycle are:
 \label{fig:target_model}
 \end{figure}
 
-Practical boundaries of this architecture were anticipated: general computability remains undecidable, mainstream toolchains permit non-termination, and the underlying physical hardware model remains fixed.
-Thus, \texttt{dedekind} functions as a bounded, engineering intermediary between abstract category theory and a disciplined fragment of C++ execution, as sketched in the operational cycle of Figure~\ref{fig:target_model}. 
-The framework is architected so that verified mathematical evidence accumulates uniformly in a single direction.
-Once an axiom or theorem has been imported, the compiler can engage in mechanical validation or further derivations~\cite{wadler2015propositions}.
-
-The resulting posture is explicit: \texttt{dedekind} is a systems-programming library that treats pre-validated mathematical concepts as first-class compile-time entities.
-This layout prevents downstream developers from bolting fragile, ad-hoc traits onto unverified numeric types.
-Choosing to land semantics at the compile-time layer, rather than as runtime abstractions or external DSLs, is a structural commitment that shapes what the compiler can enforce and what remains the developer's responsibility.
-The view is that naming algebraic structures at the type level and letting the compiler discharge their governing laws narrows the gap between abstract mathematics and machine code without relying on an external proof assistant.
-While compile-time verification is native to languages like Agda or Coq, and partial automatic differentiation loops exist in specialized production environments~\cite{elliott2018simple, jakob2019enoki}, \texttt{dedekind} contributes an end-to-end realization of this discipline inside unmodified standard C++23.
-Thus, it serves as an existence proof, showing that a C++23 template engine can successfully collapse many highly non-trivial algorithmic problems down to LLVM object primitives which may be highly specialized and optimized.
+The cycle of Figure~\ref{fig:target_model} runs in one direction: a pre-validated proof is cited from $\mathbf{Cat}$, encoded and type-checked in the $\mathbf{Cpp}$ fragment, and compared back to its source, so verified evidence accumulates and the compiler can validate an imported axiom or derive further from it~\cite{wadler2015propositions}.
+The posture is explicit: \texttt{dedekind} is a systems-programming library that treats pre-validated mathematical concepts as first-class compile-time entities, which keeps downstream developers from bolting fragile, ad-hoc traits onto unverified numeric types.
+Landing semantics at the compile-time layer, rather than as runtime abstractions or an external DSL, is the structural commitment that shapes what the compiler can enforce; against a backdrop where partial automatic differentiation exists in specialised environments~\cite{elliott2018simple, jakob2019enoki}, \texttt{dedekind} contributes an end-to-end realization inside unmodified standard C++23, an existence proof that a template engine can collapse many highly non-trivial algorithmic problems down to specialized, optimized LLVM primitives.
 
 \paragraph{A recent shift in the cost--benefit calculus.}
 Two recent developments are the \emph{key enablers}, not tricks or shortcuts.
@@ -284,7 +276,7 @@ A simple proof search is mimicked by operator resolution.
 That division of labour is forced by a limit, not chosen for convenience.
 Whether an arbitrary carrier obeys a given algebraic law is a non-trivial semantic property, and so undecidable in general (Rice's theorem~\cite{rice1953classes}).
 A universal proof would imply the existential over any inhabited domain, so the existential is the strictly weaker claim, and the one within reach: the library does not decide a law for every carrier, it names a specific carrier, a specific law, a specific reduction, and lets the compiler discharge it.
-Rice's theorem is thus less a wall than an invitation to contribute: it marks the seam between the aspirational (a universal conjecture, a general automatic verifier) on the one hand and current best practice (checkable existential demonstrations with mechanical support) on the other, and a plausible conjecture is precisely an invitation to search for the existential witness.\footnote{Penrose~\cite{penrose2004roadtoreality} reads G\"odel's incompleteness in the same spirit: a formal system closing at one level motivates the next, not as exhaustion but as a natural successor.}
+Rice's theorem is thus less a wall than an invitation to contribute: it marks the seam Figure~\ref{fig:target_model} operationalizes, between the aspirational $\mathbf{Cat}$ (a universal conjecture, a general automatic verifier) on the one hand and the $\mathbf{Cpp}$ fragment of current best practice (checkable existential demonstrations with mechanical support) on the other, and a plausible conjecture is precisely an invitation to search for the existential witness.\footnote{Penrose~\cite{penrose2004roadtoreality} reads G\"odel's incompleteness in the same spirit: a formal system closing at one level motivates the next, not as exhaustion but as a natural successor.}
 
 \paragraph{Mechanical discharge is not a proof.}
 The discharge is not itself a proof of the law: for an unbounded carrier the author registers the axiom (the honesty obligation above) and the compiler mechanically checks its consequences.
@@ -2174,9 +2166,9 @@ almost by construction.\footnote{The introduction's G\"odel reading
 applies here: a formal system closing at one level motivates the next,
 not as exhaustion but as successor.  The closest formal analogue is
 Turing's ordinal logics~\cite{turing1939ordinals}, where each stage's
-consistency feeds the next stage's formation rule; the
-systems-programming reading is benign, with the issue tracker playing
-the successor role.}
+consistency feeds the next stage's formation rule; the operational
+reading is benign, with the development cycle of
+Figure~\ref{fig:target_model} playing the successor role.}
 
 \paragraph{Three honesty-anchoring constraints.}
 Three compounding constraints keep the library's artefacts honest:
