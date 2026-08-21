@@ -962,6 +962,54 @@ static_assert(is_commutative_v<P,  std::plus<P>>);
 \end{listing}
 
 
+\subsection{The ladder, and its honest edge}
+\label{sec:certificate_ladder}
+
+The two rules compose into a ladder, and over the rationals the whole of it type-checks.
+Each rung is a certificate the compiler discharges, none re-proven (Listing~\ref{lst:certificate-ladder}): the scalar $\mathbb{Q}$ as the field of fractions of $\mathbb{Z}$, the rank-2 free module $\mathbb{Q}^2$, that module read as a vector space once its scalars form a field, and the $2\times2$ matrices as the endomorphism ring $M_2(\mathbb{Q}) = \operatorname{End}(\mathbb{Q}^2)$, matrix multiplication being composition of linear maps.
+
+% Source excerpt from dedekind.linear_algebra:mat2x2 (compositional pin).
+\begin{listing}[ht]
+\caption{The certificate ladder over $\mathbb{Q}$: four rungs, each a \cppinline{static_assert} the compiler discharges.}
+\label{lst:certificate-ladder}
+\begin{cpp}
+using Q = Rational<default_integer>;         // scalar: ℚ = Frac(ℤ)
+using V = Vec2V<Q>;  using M = Matrix2x2V<Q>;
+
+static_assert(is_module_v<V, Q>);            // module
+static_assert(is_vector_space_v<V, Q>);      // vector space  (Rule 1)
+static_assert(is_endomorphism_ring_v<M, V>); // operator: M₂ = End(V)
+\end{cpp}
+\end{listing}
+
+These rungs are existential, and deliberately so.
+One would like the universal, a single lift certifying scalar to module to vector space to operator for \emph{every} carrier.
+That is the aspiration of §\ref{sec:introduction}, and Rice's theorem is why it stays one: whether an arbitrary carrier satisfies a given law is undecidable, so the library exhibits witnesses and reads the universal as an invitation rather than a theorem.
+
+The edge shows when the same vector-space lift is asked over three scalars (Table~\ref{tab:lift-spectrum}).
+Over $\mathbb{Q}$ it is clean.
+Over $\mathbb{C}$ the field certificate is withheld on purpose, because $x^2+1$ is reducible for some field parameters (over $\mathbb{F}_2$ it factors as $(x+1)^2$), so a blanket lift would be false.
+Over $\mathbb{R}$ the strict field is stopped by the \cppinline{IsTotal} policy gate rather than by any mathematics, a gate $\mathbb{Q}$ clears only because its base registers a saturating totality path and $\mathbb{R}$ registers none.
+
+\begin{table}[ht]
+\centering
+\caption{One lift, three honest answers: the vector-space certificate asked over three scalar carriers.}
+\label{tab:lift-spectrum}
+\small
+\begin{tabular}{@{}l l l@{}}
+\toprule
+scalar & vector-space lift & reason \\
+\midrule
+$\mathbb{Q}$ & clean, witnessed above & a module over a field, no side condition \\
+$\mathbb{C}$ & field certificate withheld & $x^2+1$ reducible over $\mathbb{F}_2$; a blanket lift would be false \\
+$\mathbb{R}$ & blocked by \cppinline{IsTotal} & a policy gate, not a genuine obstruction \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The top rung repays a closer look, because an operator wears two faces.
+The next subsection separates them.
+
 \subsection{Dual numbers, for the sensitivity exhibit}
 \label{sec:dual_numbers_quotient}
 
