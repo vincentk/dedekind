@@ -1345,7 +1345,7 @@ This distinction is necessary because the tiers can disagree: a carrier can
 The species registry records default algebraic properties (or their absence).
 \cppinline{std::unsigned_integral} types such as \cppinline{std::size_t} are certified \cppinline{is_associative_v}.
 \cppinline{std::signed_integral} types such as \cppinline{int} are explicitly black-listed due to overflow.
-\cppinline{double} fails the honest rejection default policy.}
+\cppinline{double} is rejected by the false-by-default policy, with no certificate of its own.}
 \label{lst:species}
 \begin{cpp}
 
@@ -1527,10 +1527,10 @@ To answer ``I need structure $X$'', read its row in Table~\ref{tab:lattice-carri
 
 \begin{table}[htbp]
 \centering
-\caption{\textbf{The algebraic lattice and its carriers.} Each structure of the branching poset (§\ref{sec:algebraic_lattice_carriers}), the concept that certifies it, and the carriers that realise it on the built-in (\cppinline{std} / IEEE) side and the exact-library side. Each carrier is listed under the strongest structure the code \emph{strictly} certifies; \textsuperscript{$\dagger$} marks operator-surface-only certification (the strict axiomatic witness is queued). \cppinline{I} abbreviates \cppinline{SignedExtensionalCardinal<>}.}
+\caption{\textbf{The algebraic lattice and its carriers.} Each structure of the branching poset (§\ref{sec:algebraic_lattice_carriers}), the concept that certifies it, and the carriers that realise it on the built-in (\cppinline{std} / IEEE) side and the exact-library side. Each row names \emph{representative} carriers that strictly realise the structure; a carrier recurs across the rows it satisfies (\cppinline{unsigned} is a magma, monoid, group, and ring; \cppinline{bool} is both a field and a Galois field). \textsuperscript{$\dagger$} marks operator-surface-only certification, the strict axiomatic witness being queued. \cppinline{I} abbreviates \cppinline{SignedExtensionalCardinal<>}.}
 \label{tab:lattice-carriers}
 \footnotesize
-\begin{tabular}{@{}l l p{0.26\textwidth} p{0.30\textwidth}@{}}
+\begin{tabular}{@{}l l p{0.23\textwidth} p{0.35\textwidth}@{}}
 \toprule
 \textbf{Structure} & \textbf{Concept} & \textbf{Built-in realisation} & \textbf{Exact-library carrier} \\
 \midrule
@@ -1538,15 +1538,15 @@ Magma & \cppinline{IsMagma} & \cppinline{unsigned} under $+$ / $*$ (modular) & a
 Comm.\ monoid & \cppinline{IsCommutativeMonoid} & \cppinline{unsigned} under $+$ ($\mathbb{Z}/2^n$) & $\mathbb{N}$: \cppinline{Cardinality} \\
 Abelian group & \cppinline{IsAbelianGroup} & \cppinline{unsigned} under $+$ (cyclic) & $\mathbb{Z}$: \cppinline{SignedExtensionalCardinal<N>} \\
 Ring & \cppinline{IsRing} & \cppinline{unsigned} under $(+,*)$; signed \cppinline{int} \emph{refused} (overflow UB) & $\mathbb{Z}$: \cppinline{SignedExtensionalCardinal<N>}; \cppinline{RigPolynomial} \\
-Field & \cppinline{IsField} & \cppinline{bool} under $(\oplus,\land)$ ($\mathbb{F}_2$) & $\mathbb{Q}$: \cppinline{Rational<I>}; $\mathbb{C}$: \cppinline{Complex}\textsuperscript{$\dagger$}; $\mathbb{R}$: \cppinline{ExactReal}\textsuperscript{$\dagger$} \\
+Field & \cppinline{IsField} & \cppinline{bool} under $(\oplus,\land)$ ($\mathbb{F}_2$) & $\mathbb{Q}$: \cppinline{Rational<I>}; $\mathbb{C}$: \cppinline{Complex<Rational<I>>}\textsuperscript{$\dagger$}; $\mathbb{R}$: \cppinline{ExactReal<I>}\textsuperscript{$\dagger$} \\
 Galois field & \cppinline{IsGaloisField} & \cppinline{bool} ($\mathbb{F}_2$, order 2) & \cppinline{𝔽64} (order 64) \\
-Module / v.\ space & \cppinline{IsModule} / \cppinline{IsVectorSpace} & \cppinline{uint64_t} under $\oplus$, \cppinline{bool} scalars ($\mathbb{F}_2^{64}$) & \cppinline{Vec2V}; $\mathbb{D}$: \cppinline{Dual<Rational<I>>} \\
+Module / v.\ space & \cppinline{IsModule} / \cppinline{IsVectorSpace} & \cppinline{uint64_t} under $\oplus$, \cppinline{bool} scalars ($\mathbb{F}_2^{64}$) & \cppinline{Vec2V<Rational<I>>}; $\mathbb{D}$: \cppinline{Dual<Rational<I>>} \\
 \bottomrule
 \end{tabular}
 
 \vspace{0.3em}
 \begin{flushleft}
-{\footnotesize \textsuperscript{$\dagger$} \cppinline{Complex} and \cppinline{ExactReal} certify only the ring/field \emph{operator surface} (\cppinline{HasRingOperators} / \cppinline{HasFieldOperators}); the strict \cppinline{IsField} witness is blocked behind the \cppinline{IsTotal} / species-trait gate.  \cppinline{Dual} is a strict module over $\mathbb{Q}$ carrying ring operators, but $\varepsilon^2 = 0$ has no strict \cppinline{IsRing} witness, so it sits with the modules.}
+{\footnotesize \textsuperscript{$\dagger$} \cppinline{Complex<Rational<I>>} and \cppinline{ExactReal<I>} certify only the ring/field \emph{operator surface} (\cppinline{HasRingOperators} / \cppinline{HasFieldOperators}), for two \emph{different} reasons.  \cppinline{Complex<R>} gets no generic field witness because $x^2 + 1$ is reducible over some field parameters (notably $\mathbb{F}_2$, where it is $(x+1)^2$), so field-ness is deliberately not lifted through the constructor.  \cppinline{ExactReal} is instead blocked by the architectural \cppinline{IsTotal} gate (no exact totality path is registered).  \cppinline{Dual} is a strict module over $\mathbb{Q}$ carrying ring operators, but $\varepsilon^2 = 0$ leaves it without a strict \cppinline{IsRing} witness, so it sits with the modules.}
 \end{flushleft}
 \end{table}
 
@@ -1564,9 +1564,8 @@ weaker concept (rather than to the strict \cppinline{concept IsRing} bundle)
 admit \cppinline{int} directly.  Most paper showcases bind to the
 operator-surface tier for exactly this reason.
 \item \emph{Opt-in trait specialisation.}  Where a stronger axiom is
-needed, the relevant species trait is specialised explicitly: e.g.\ \cppinline{is_associative_v<MyType, std::plus<>> = true;}
-for a user-defined type whose addition is provably associative.
-The implementor carries the proof obligation~\cite{nspe_ethics}), the library trusts the trait.
+needed, the relevant species trait is specialised explicitly, e.g.\ \cppinline{template<> inline constexpr bool dedekind::category::is_associative_v<MyType, std::plus<>> = true;}, for a user-defined type whose addition is provably associative.
+The implementor carries the proof obligation~\cite{nspe_ethics}; the library trusts the trait.
 \end{itemize}
 
 The mechanism is intentionally narrow: the engineer can re-enable a
@@ -1597,10 +1596,10 @@ through an intermediate role.}
 $\mathbb{B}$ & (identity) & (identity) \\
 $\mathbb{N}$ & \cppinline{.realize_to_size_t(sentinel)} & \cppinline{embed_unsigned_integral<N>(v)} \\
 $\mathbb{Z}$ & \cppinline{static_cast<int64_t>(x)} & \cppinline{embed_signed_integral<Z>(v)} \\
-$\mathbb{Q}$ & through $\mathbb{R}$ proxy (\cppinline{Real<Rational<Z>>}) & \cppinline{embed_double_ℚ<I>(v)} \\
+$\mathbb{Q}$ & (none; no direct $\mathbb{Q} \to$ primitive arrow) & \cppinline{embed_double_ℚ<I>(v)} \\
 $\mathbb{R}$ symbolic & evaluate cut at a rational bound & (intensional; no simple lift) \\
 $\mathbb{R}$ policy & \cppinline{assume_ieee(Real<double>)} & \cppinline{discharge_ieee(IEEE<double>)} \\
-$\mathbb{C}$ & per-component through $\mathbb{R}$ proxy & \cppinline{Complex<R>(re, im)} \\
+$\mathbb{C}$ & (none; per-component, no direct arrow) & \cppinline{Complex<R>(re, im)} \\
 $\mathbb{D}$ (dual) & \cppinline{.val} (primal only; tangent discarded) & \cppinline{Dual<F>(v, d)} \\
 \bottomrule
 \end{tabular}
