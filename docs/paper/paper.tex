@@ -853,34 +853,42 @@ concept IsMonoid = IsMagma<T, Op>       // closure
 \end{minipage}
 \end{listing}
 
-Listing~\ref{lst:algebra:universal} illustrates the reification of \emph{algebraic sets} as sketched in Figure~\ref{fig:hub-spoke-bnz}.
-By reinterpreting logical conjunction of predicates as set intersection, we can define a family $\mathbf{Ddk}$ of algebraic sets expressible in \Cpp{23} as the intersection of the previously introduced reified intensional sets $\mathbf{Trsk}$~\eqref{eqn:trsk} with $\mathbf{Alg}(-)$:
+Listing~\ref{lst:algebra:universal} reifies the \emph{algebraic sets} of Figure~\ref{fig:hub-spoke-bnz} as \Cpp{} types: the family $\mathbf{Ddk}$ is the reified intensional sets $\mathbf{Trsk}$~\eqref{eqn:trsk} met with universal algebra in the textbook sense~\cite{burris1981universalalgebra}, $\mathbf{Alg}(-)$\footnote{The dash is left unbound, the same $F_\Sigma$-algebra fragment a functional programmer would recognise~\cite{pierce1991basic}.  The smallness ceiling that keeps $\mathbf{Ddk}$ clear of proper-class self-reference is the ETCS power-object bound (Appendix~\ref{sec:etcs}, Axiom~9, $\beth_1$).}:
 \begin{equation}
 \label{eqn:ddk}
-    \mathbf{Ddk} \;=\; \mathbf{Trsk} \,\cap\, \mathbf{Alg}(-),
+    \mathbf{Ddk} \;=\; \mathbf{Trsk} \,\cap\, \mathbf{Alg}(-).
 \end{equation}
+Listing~\ref{lst:algebra:boolean_case} exhibits two inhabitants: the primitive \cppinline{bool}, at once a lattice and the field $\mathbb{F}_2$, and the exact rationals $\mathbb{Q}$.
 
-$\mathbf{Alg}(-)$ is universal algebra in the textbook sense~\cite{burris1981universalalgebra}: sets equipped with operations of fixed arity.\footnote{The dash is left unbound, the same $F_\Sigma$-algebra fragment a functional programmer would recognise~\cite{pierce1991basic}.  The smallness ceiling that keeps $\mathbf{Ddk}$ clear of proper-class self-reference is the ETCS power-object bound (Appendix~\ref{sec:etcs}, Axiom~9, $\beth_1$).}
-
-The smallest inhabitant makes the shape concrete.
-The Boolean carrier $\mathbb{B}$ is an algebraic set the moment it type-checks as $\mathbf{Alg}(\wedge, \vee, \neg)$ over \cppinline{bool} (Listing~\ref{lst:algebra:boolean_case}), with $\wedge$ and $\vee$ (both binary $\mathbb{B} \times \mathbb{B} \to \mathbb{B}$) drawn as loops on its Boolean-lattice node in Figure~\ref{fig:hub-spoke-bnz}.
-
-% Source excerpt from dedekind.algebra:boolean.
+% Source excerpts from dedekind.algebra:boolean and dedekind.numbers:rational.
 \begin{listing}[ht]
-\caption{Case Study: \cppinline{𝔹} is a bit-perfect algebraic set in $\mathbf{Ddk}$ by way of inhabiting $\mathbf{Jlt}$ as well as $\mathbf{Alg}(∧, ∨, ¬)$.}
+\caption{Concrete carriers inhabiting the concepts of Listing~\ref{lst:algebra:universal}.  \textbf{Left:} the Boolean universe on the primitive \cppinline{bool}, at once a lattice under the logical operators $(\vee, \wedge)$ and the field $\mathbb{F}_2$ under the bitwise operators $(\oplus, \wedge)$; the carrier is a primitive type.  \textbf{Right:} the exact rationals $\mathbb{Q}$, a field under standard arithmetic.}
 \label{lst:algebra:boolean_case}
+\noindent
+\begin{minipage}[t]{0.52\linewidth}
+Boolean universe (primitive \cppinline{bool})
 \begin{cpp}
-export inline constexpr UniversalSet<bool, ClassicalLogic, Finite> 𝔹 =
-    sets::Ω<bool>;
+constexpr UniversalSet<bool, ClassicalLogic, Finite>
+    𝔹 = sets::Ω<bool>;
 
-static_assert(
-    IsAlgebraOnSet<decltype(𝔹),             // X = decltype(𝔹) —
-                                            // the SET
-                   std::logical_and<bool>,  // ∧  ┐
-                   std::logical_or<bool>,   // ∨  ├ F = element-level ops
-                   std::logical_not<bool>   // ¬  ┘   on the carrier bool
-                   >);
+// logical (∨, ∧): a lattice
+static_assert(IsLattice<bool,
+    std::logical_or<bool>, std::logical_and<bool>>);
+// bitwise (⊕, ∧): the field F_2
+static_assert(IsGaloisField<bool,
+    std::bit_xor<bool>, std::bit_and<bool>>);
 \end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.45\linewidth}
+Rationals $\mathbb{Q}$ (exact)
+\begin{cpp}
+using ℚ = Rational<default_integer>;
+                    // exact Frac(ℤ)
+
+// arithmetic (+, ×): a field
+static_assert(IsField<ℚ>);
+\end{cpp}
+\end{minipage}
 \end{listing}
 
 \subsection{The carrier lattice}
