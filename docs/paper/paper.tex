@@ -882,7 +882,7 @@ The quotient rung is backed by the First Isomorphism Theorem, $A/\ker f \cong \o
 \label{sec:hsp_varieties}
 
 A carrier's certificates, the laws it is known to satisfy, are not re-proven for each new type.
-They \emph{lift}, by two composing rules, and the section spends a listing on each because they are the mechanism everything downstream leans on.
+They \emph{lift}, by two composing rules: a concept that composes certificates, and an engine that propagates them.
 
 \paragraph{Rule 1: composition on the parameter.}
 Some certificates are a weaker certificate conjoined with a property of the parameter.
@@ -903,63 +903,13 @@ static_assert(is_vector_space_v<Vec2V<ℚ>, ℚ>);  // discharged, no per-carrie
 
 \paragraph{Rule 2: propagation through a constructor.}
 The other rule carries a certificate from a base carrier to one built from it.
-A class of algebras closed under homomorphic images, subalgebras, and products is a variety (Birkhoff~\cite{burris1981universalalgebra}), and the library realises that closure as \emph{trait propagation}.
-A one-line registration names the base, and the species traits (\cppinline{is_associative_v}, \cppinline{is_commutative_v}, and the rest) forward to the derived carrier for every parameter.
-The engine is small enough to show in full (Listing~\ref{lst:rule2-engine}): a registration point, the concept that reads it, and one forwarding specialisation standing for the family.
-
-% Source excerpt from dedekind.algebra:quotient.
-\begin{listing}[ht]
-\caption{Rule 2, engine core.  The H (quotient) family; P (product) and S (subalgebra) mirror it.  Registering a base is one line, and the forwarding specialisation reads the base's own trait, so no law is re-proven on the derived carrier.}
-\label{lst:rule2-engine}
-\begin{cpp}
-template <typename Q> struct quotient_algebra_base {};      // registration point
-template <typename Q>
-concept IsQuotientAlgebra = requires { typename quotient_algebra_base<Q>::type; };
-
-// The derived carrier's trait forwards to its base's trait.
-template <typename Q> requires IsQuotientAlgebra<Q>
-inline constexpr bool is_associative_v<Q, std::plus<Q>> =
-    is_associative_v<quotient_algebra_base_t<Q>, std::plus<quotient_algebra_base_t<Q>>>;
-\end{cpp}
-\end{listing}
-
-Listing~\ref{lst:hsp-closed} pins the outcome at the cyclic base $\mathbb{Z}/6\mathbb{Z}$: the variety ``associative and commutative $+$'' stays closed across its H, S, and P images, witnessed by eight \cppinline{static_assert}s.
-The gate §\ref{sec:optimization_lp} uses, \cppinline{IsSemiring}, reads this same species-trait registry; the tropical carrier registers its own entries directly rather than as an H, S, or P image, so the exhibit's gate is a registry lookup, not a re-proof.
+A class of algebras closed under homomorphic images, subalgebras, and products is a variety (Birkhoff~\cite{burris1981universalalgebra}), and the library realises that closure as \emph{trait propagation}: a one-line registration names the base, and the species traits (\cppinline{is_associative_v}, \cppinline{is_commutative_v}, and the rest) forward to the derived carrier for every parameter.
+The engine, a registration point plus one forwarding specialisation per trait, and a worked closure over $\mathbb{Z}/6\mathbb{Z}$ are in Appendix~\ref{sec:carrier-rosetta} (Listings~\ref{lst:rule2-engine} and~\ref{lst:hsp-closed}).
+The gate §\ref{sec:optimization_lp} uses, \cppinline{IsSemiring}, reads this same registry, so its exhibit's gate is a lookup, not a re-proof.
 
 \paragraph{The two compose.}
 Rule 2 lifts \cppinline{IsModule} onto \cppinline{Vec2V<T>} for every \cppinline{T}, which is registered as a product algebra, and Rule 1 upgrades that to \cppinline{IsVectorSpace} over any field.
 Module and vector space are the first two rungs of a ladder that reaches linear operators, climbed in the subsections that follow.
-
-\begin{listing}[ht]
-\caption{Birkhoff's HSP closure typed.  Base $\mathbb{Z}/6\mathbb{Z}$ + three synthetic HSP markers wired to the carrier-side registries; the trait propagation lifts both axioms of the variety uniformly to all three HSP-derived carriers.  Any future H/S/P construction over $\mathbb{Z}/6\mathbb{Z}$ (or any other base in the variety) follows the same one-line opt-in pattern.}
-\label{lst:hsp-closed}
-\begin{cpp}
-// --- Synthetic HSP markers wired to Modular<6> -----------------------
-struct H_image_of_Z6 {};   // type-level placeholder for any H-image of Z/6Z
-struct S_subalg_of_Z6 {};  // ... S-subalgebra ...
-struct P_product_of_Z6 {}; // ... P-direct-product ...
-
-template <> struct quotient_algebra_base<H_image_of_Z6> { using type = Modular<6>; };
-template <> struct subalgebra_base      <S_subalg_of_Z6> { using type = Modular<6>; };
-template <> struct product_algebra_base <P_product_of_Z6>{ using type = Modular<6>; };
-
-// --- THE Birkhoff HSP-closed crown -----------------------------------
-// Variety V: carriers with associative + AND commutative +.
-// V is HSP-closed by the propagation specs.
-
-using Z6 = Modular<6>;  using H = H_image_of_Z6;
-using S  = S_subalg_of_Z6;  using P = P_product_of_Z6;
-
-static_assert(is_associative_v<Z6, std::plus<Z6>>);  // base ∈ V
-static_assert(is_associative_v<H,  std::plus<H>>);   // H closure (quotient)
-static_assert(is_associative_v<S,  std::plus<S>>);   // S closure (subalgebra)
-static_assert(is_associative_v<P,  std::plus<P>>);   // P closure (product)
-static_assert(is_commutative_v<Z6, std::plus<Z6>>);  // (same four, both axioms)
-static_assert(is_commutative_v<H,  std::plus<H>>);
-static_assert(is_commutative_v<S,  std::plus<S>>);
-static_assert(is_commutative_v<P,  std::plus<P>>);
-\end{cpp}
-\end{listing}
 
 
 \subsection{The ladder, and its honest edge}
@@ -1667,9 +1617,65 @@ Module / v.\ space & \cppinline{IsModule} / \cppinline{IsVectorSpace} & \cppinli
 
 \vspace{0.3em}
 \begin{flushleft}
-{\footnotesize \textsuperscript{$\dagger$} \cppinline{Complex<Rational<I>>} and \cppinline{ExactReal<I>} certify only the ring/field \emph{operator surface} (\cppinline{HasRingOperators} / \cppinline{HasFieldOperators}), for two \emph{different} reasons.  \cppinline{Complex<R>} gets no generic field witness because $x^2 + 1$ is reducible over some field parameters (notably $\mathbb{F}_2$, where it is $(x+1)^2$), so field-ness is deliberately not lifted through the constructor.  \cppinline{ExactReal} is instead blocked by the architectural \cppinline{IsTotal} gate (no exact totality path is registered).  \cppinline{Dual} is a strict module over $\mathbb{Q}$ carrying ring operators, but $\varepsilon^2 = 0$ leaves it without a strict \cppinline{IsRing} witness, so it sits with the modules.}
+{\footnotesize \textsuperscript{$\dagger$} Operator-surface certification only (\cppinline{HasRingOperators} / \cppinline{HasFieldOperators}); the three honest outcomes of the vector-space lift (clean, withheld because false, blocked by policy) are laid out in §\ref{sec:certificate_ladder}, Table~\ref{tab:lift-spectrum}.  \cppinline{Dual} carries ring operators, but $\varepsilon^2 = 0$ leaves it without a strict \cppinline{IsRing} witness, so it sits with the modules.}
 \end{flushleft}
 \end{table}
+
+\subsection{How the certificates lift}
+\label{sec:appendixE-lift}
+
+The two rules of §\ref{sec:hsp_varieties} are shown in full here.
+Rule 2, propagation, is a small engine: a registration point, the concept that reads it, and one forwarding specialisation per species trait (Listing~\ref{lst:rule2-engine}), given for the H (quotient) family, with P (product) and S (subalgebra) identical up to the base name.
+
+% Source excerpt from dedekind.algebra:quotient.
+\begin{listing}[ht]
+\caption{Rule 2, engine core.  The H (quotient) family; P (product) and S (subalgebra) mirror it.  Registering a base is one line, and the forwarding specialisation reads the base's own trait, so no law is re-proven on the derived carrier.}
+\label{lst:rule2-engine}
+\begin{cpp}
+template <typename Q> struct quotient_algebra_base {};      // registration point
+template <typename Q>
+concept IsQuotientAlgebra = requires { typename quotient_algebra_base<Q>::type; };
+
+// The derived carrier's trait forwards to its base's trait.
+template <typename Q> requires IsQuotientAlgebra<Q>
+inline constexpr bool is_associative_v<Q, std::plus<Q>> =
+    is_associative_v<quotient_algebra_base_t<Q>, std::plus<quotient_algebra_base_t<Q>>>;
+\end{cpp}
+\end{listing}
+
+Registering \cppinline{Vec2V} is the single line \cppinline{template <typename T> struct product_algebra_base<Vec2V<T>> { using type = T; };}, after which every species trait \cppinline{Vec2V<T>} carries forwards to \cppinline{T}; that is why \cppinline{IsModule} holds for the whole family and Rule 1 upgrades it to \cppinline{IsVectorSpace} over any field.
+A synthetic base makes the closure visible end to end (Listing~\ref{lst:hsp-closed}): three markers stand for the H, S, and P images of $\mathbb{Z}/6\mathbb{Z}$, and the variety ``associative and commutative $+$'' propagates to all three, witnessed by eight \cppinline{static_assert}s.
+
+\begin{listing}[ht]
+\caption{Birkhoff's HSP closure typed.  Base $\mathbb{Z}/6\mathbb{Z}$ + three synthetic HSP markers wired to the carrier-side registries; the trait propagation lifts both axioms of the variety uniformly to all three HSP-derived carriers.  Any future H/S/P construction over $\mathbb{Z}/6\mathbb{Z}$ (or any other base in the variety) follows the same one-line opt-in pattern.}
+\label{lst:hsp-closed}
+\begin{cpp}
+// --- Synthetic HSP markers wired to Modular<6> -----------------------
+struct H_image_of_Z6 {};   // type-level placeholder for any H-image of Z/6Z
+struct S_subalg_of_Z6 {};  // ... S-subalgebra ...
+struct P_product_of_Z6 {}; // ... P-direct-product ...
+
+template <> struct quotient_algebra_base<H_image_of_Z6> { using type = Modular<6>; };
+template <> struct subalgebra_base      <S_subalg_of_Z6> { using type = Modular<6>; };
+template <> struct product_algebra_base <P_product_of_Z6>{ using type = Modular<6>; };
+
+// --- THE Birkhoff HSP-closed crown -----------------------------------
+// Variety V: carriers with associative + AND commutative +.
+// V is HSP-closed by the propagation specs.
+
+using Z6 = Modular<6>;  using H = H_image_of_Z6;
+using S  = S_subalg_of_Z6;  using P = P_product_of_Z6;
+
+static_assert(is_associative_v<Z6, std::plus<Z6>>);  // base ∈ V
+static_assert(is_associative_v<H,  std::plus<H>>);   // H closure (quotient)
+static_assert(is_associative_v<S,  std::plus<S>>);   // S closure (subalgebra)
+static_assert(is_associative_v<P,  std::plus<P>>);   // P closure (product)
+static_assert(is_commutative_v<Z6, std::plus<Z6>>);  // (same four, both axioms)
+static_assert(is_commutative_v<H,  std::plus<H>>);
+static_assert(is_commutative_v<S,  std::plus<S>>);
+static_assert(is_commutative_v<P,  std::plus<P>>);
+\end{cpp}
+\end{listing}
 
 \paragraph{Re-enabling refused carriers.}  The Honest Rejection
 policy refuses carriers like \cppinline{int} as a witness for
