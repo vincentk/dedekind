@@ -227,8 +227,9 @@ The subsequent sections develop the reading.
 
 Figure~\ref{fig:hub-spoke-bnz} sketches the domain of the first pillar.
 It is deliberately vanilla: carrier sets such as $\mathbb{B}, \mathbb{N}, \mathbb{Z}$ with the arithmetic and set operations of elementary mathematics, packaged as algebraic structures.
+Throughout, a \emph{carrier} is such an underlying set (the bottom row of Figure~\ref{fig:hub-spoke-bnz}), and an \emph{algebraic set} is a carrier decorated with operations (a tier above it).
 The rules are not in doubt, being pre-validated and universally agreed, yet only very little is reified and programmatically accessible: a C++ operator or method signature may carry closure, but only little in terms of associativity, no distributivity, no units and no inverses.
-Supplying that knowledge once, and letting the compiler enforce it thereafter, is what turns these familiar rules into build-time checks and optimizations; Appendix~\ref{sec:trait-registry} records, per carrier, which laws the type system can and cannot certify.
+Supplying that knowledge once, and letting the compiler enforce it thereafter, is what turns these familiar rules into build-time checks and optimizations; Appendix~\ref{sec:trait-registry} records which laws the type system can and cannot certify, and Appendix~\ref{sec:carrier-rosetta} catalogues them across the lattice of carriers.
 
 \begin{figure}[htbp]
 \centering
@@ -828,7 +829,7 @@ concept IsAlgebraOnSet =
     && IsAlgebra<typename X::Domain, Ops...>;                 // the (A, F) algebra
 \end{cpp}
 \end{listing}
-A carrier in \texttt{dedekind} is an \emph{algebraic set}: a C++ type that is a set in the sense of §\ref{sec:intensional_sets} and carries operations on that set.
+An \emph{algebraic set} in \texttt{dedekind} is a C++ type that is a set in the sense of §\ref{sec:intensional_sets} and carries operations on that set (its \emph{carrier}).
 A type inhabits the category $\mathbf{Ddk}$ exactly when it type-checks against \cppinline{IsAlgebraOnSet} (Listing~\ref{lst:algebra:universal}), which asks for both halves at once: that the type is a set (the Tarski layer $\mathbf{Trsk}$ of §\ref{sec:intensional_sets}) and that its carrier is closed under the operations it supplies:
 \begin{equation}
     \mathbf{Ddk} \;=\; \mathbf{Trsk} \,\cap\, \mathbf{Alg}(-),
@@ -1191,7 +1192,7 @@ The family of law-carrying specialisations, however, has no obvious ceiling shor
 
 %%%
 \clearpage
-\section{The System F $\leftrightarrow$ Juliet Posture $\leftrightarrow$ Bourbaki Bridge}
+\section{System F, Structuralism, and $\mathbf{Jlt}$}
 \label{app:jlt-systemf}
 
 §\ref{sec:jlt_posture} reports the System-F reading as a side effect of the Juliet Posture rather than a design goal: the disciplined subset chosen for alignment with $\mathbf{Alg}(\Sigma)$ and clean integration with \cppinline{std::regular} carriers turns out to be a faithful image of System~F (Pierce~\cite{pierce2002tapl} ch.~23, 29) and of the simply-typed $\lambda$-calculus under Lambek--Scott~\cite{lambek1988introduction}, and the same fragment lines up with Bourbaki structuralism~\cite{marquis2022structuralist}.
@@ -1311,16 +1312,80 @@ The translation table above (Table~\ref{tab:structuralist-bridge}) is the dictio
 
 %%%
 \clearpage
-\section{The Trait Registry and the Carriers}
+\section{Certification and Honest Rejection of Carrier Semantics: The Traits Registry}
 \label{sec:trait-registry}
 
-Where Appendix~\ref{app:jlt-systemf} grounds the structural surface, this appendix records what the type system can certify about the algebra of each carrier: the built-in primitives, the abstract-versus-IEEE tension that forces hand-certification, and the per-carrier rosetta.
+Where Appendix~\ref{app:jlt-systemf} grounds the structural surface, this appendix expands on how the type system can be used to certify the semantics layer of a carrier, with a special focus on the built-in primitive types and the laws of basic arithmetic.
+Specifically, it explores the tension between the definitions of the IEEE standard, largely informed by the bounded physical substrate of computation on the one hand, and the abstract definitions of algebra that we aim to model on the other.
+A fully general, automatic reconciliation is out of reach: deciding whether an arbitrary carrier obeys a given algebraic law is a non-trivial semantic property of its operations, hence undecidable by Rice's theorem.
+Certification is therefore supplied on a case-by-case basis.
 
-\subsection{The Algebra of the Built-in Types}
+\subsection{Three Tiers of Certification}
+\label{par:concept-tiers}
+
+Every law in the tables that follow is graded by \emph{how} the type system knows it holds, on three tiers of increasing strength.
+\emph{Literal shape} is the weakest: the C++ operators \cppinline{+}, \cppinline{-}, \cppinline{*} close on the carrier directly, so \cppinline{a + b} compiles and returns the carrier type.
+\emph{Functor-parametric shape} lifts this to the chosen function objects: \cppinline{std::plus<T>} and \cppinline{std::multiplies<T>} return \cppinline{T} by signature, so the operators close under the functors a generic algorithm actually names.
+\emph{Strict} is the categorical proof: the carrier satisfies an axiom bundle itself (\cppinline{concept IsRing}, \cppinline{concept IsField}), not merely its operator shape.
+When all three agree under \cppinline{(std::plus, std::multiplies)}, the bundled \cppinline{concept IsArithmeticRing} fires and generic code may be written in plain syntax over the carrier.
+This distinction is necessary because the tiers can disagree: a carrier can 
+\begin{itemize}
+\item fail the literal tier yet pass the functor shape. For example: some operators promote \cppinline{bool} to \cppinline{int} while the functors indicate closure.
+\item pass the literal tier (the operators compile) yet fail the strict tier (the axioms do not hold). Example: the IEEE and signed-overflow situation this appendix catalogues.
+\end{itemize}
+
+%%%
+\clearpage
+\subsection{Certification and Rejection of Basic Arithmetic}
+\label{sec:numeric-tension}
+
+% Source: src/main/modules/dedekind/category/species.cppm (false-by-default primary l. 91; std::plus specialisations ll. 565-612)
+\begin{listing}[htbp]
+\caption{
+The species registry records default algebraic properties (or their absence).
+\cppinline{std::unsigned_integral} types such as \cppinline{std::size_t} are certified \cppinline{is_associative_v}.
+\cppinline{std::signed_integral} types such as \cppinline{int} are explicitly black-listed due to overflow.
+\cppinline{double} is rejected by the false-by-default policy, with no certificate of its own.}
+\label{lst:species}
+\begin{cpp}
+
+// is_associative_v<T, Op> is the structural trait.  Its primary template
+// defaults to false: a carrier/op pair is non-associative unless an
+// explicit specialisation certifies otherwise.
+
+// Unsigned integrals are certified associative under +  (modular arithmetic).
+template <std::unsigned_integral T>
+inline constexpr bool is_associative_v<T, std::plus<T>> = true;
+
+// Signed integrals are explicitly REJECTED: signed overflow is undefined
+// behaviour, so + is not a law-abiding monoid on signed carriers.
+template <std::signed_integral T>
+inline constexpr bool is_associative_v<T, std::plus<T>> = false;
+
+// IEEE double needs no specialisation of its own: with no certificate it
+// falls to the false-by-default primary, so rounding non-associativity is
+// rejected without a per-carrier line.
+
+static_assert( is_associative_v<unsigned int, std::plus<unsigned int>>);  // certified
+static_assert(!is_associative_v<int,          std::plus<int>>);           // explicit reject
+static_assert(!is_associative_v<double,       std::plus<double>>);        // reject by default
+\end{cpp}
+\end{listing}
+
+Many algebraic laws are certified by the trait registry in \cppinline{dedekind.category:species} via \Cpp{23} template traits.
+Listing~\ref{lst:species} exhibits the certification of associativity of addition, which is a given for additive monoids, specifically $\mathbb{N}$, $\mathbb{Z}$, $\mathbb{R}$:
+\begin{equation}
+(a + b) + c = a + (b + c)
+\end{equation}
+By default, a generic algorithm requiring associativity therefore fails to compile on \texttt{int} or \texttt{double} without an explicit numeric policy: modular semantics, compensated summation, an interval wrapper, or a lift to an exact field such as $\mathbb{Q}$ or $\mathbb{C}$.
+
+%%%
+\clearpage
+\subsection{Algebras of the Primitive Types}
 \label{sec:builtin-algebra}
 
-Table~\ref{tab:primitive-algebra} gives the headline; the four tables below break the principal built-in types down by operator surface, grouped by the standard concept each family satisfies (\cppinline{bool} on its own), split because the built-in primitives do not share a single operator surface.
-The library carriers built on these primitives, and the strict/functor/literal tiers they are graded by, are catalogued in §\ref{sec:carrier-rosetta}.
+Table~\ref{tab:primitive-algebra} gives the headline; the four tables below break the principal primitive types down by operator surface, one table per standard-concept family (\cppinline{bool} on its own), since the built-in primitives share no single operator surface.
+The same carriers, organised by algebraic structure, are catalogued in the master table of the algebraic-lattice appendix (Table~\ref{tab:lattice-carriers}).
 A \checkmark marks a law certified in the trait registry, $\times$ one that is absent (hence rejected at the gate), and $\circ$ one that holds only in part.
 
 \begin{table}[htbp]
@@ -1378,349 +1443,6 @@ type(s) & arithmetic & comparison \\
 \bottomrule
 \end{tabular}
 \end{table}
-
-%%%
-\clearpage
-\subsection{The Traits Registry: Abstract Naturals vs.\ IEEE Numerics}
-\label{sec:numeric-tension}
-
-Here is the tension in one sentence: the \texttt{int} in your source
-file is not the $\mathbb{Z}$ in your textbook, and everybody quietly
-agrees to pretend it is. The ring $\mathbb{Z}$ obeys a few laws:
-
-\begin{itemize}
-  \item Associativity of addition: $(a + b) + c = a + (b + c)$.
-  \item Existence of additive inverse: $\forall a,\, \exists -a$ such that $a + (-a) = 0$.
-  \item No upper or lower bound.
-\end{itemize}
-
-A 32-bit signed \texttt{int} obeys \emph{none} of them exactly: addition
-overflows, negation of \texttt{INT\_MIN} is undefined behaviour, and the
-representable range is finite. IEEE~754 \texttt{double}~\cite{ieee754_2019}
-is further out still: addition is non-associative because rounding
-happens every step, and \texttt{NaN} and $\pm\infty$ puncture the law of
-excluded middle in the exact way Section~\ref{sec:ddk_comprehension} will ask
-the subobject classifier $\Omega$ to repair. A generic algorithm that
-silently assumes the ring laws on these carriers is, in the literal
-technical sense, wrong---it just happens not to be wrong on most inputs.
-
-\texttt{dedekind} encodes these divergences explicitly in the \texttt{:species} trait registry:
-
-% Source: src/main/modules/dedekind/category/species.cppm (partial specialisations around ll. 485-500)
-\begin{listing}[htbp]
-\caption{The species registry records algebraic properties---and their absence. Signed \texttt{int} is explicitly rejected as associative under \texttt{+} because signed overflow is undefined behaviour.}
-\label{lst:species}
-\begin{cpp}
-
-// Variable template: is_associative_v<T, Op> is the structural trait.
-// The library partial-specialises it per-carrier, per-operation.
-
-// Unsigned integrals are associative under +  (modular arithmetic).
-template <std::unsigned_integral T>
-inline constexpr bool is_associative_v<T, std::plus<T>> = true;
-
-// Signed integrals are REJECTED: overflow of a signed integer is
-// undefined behaviour, so the addition operator is not a law-abiding
-// monoid on signed carriers.
-template <std::signed_integral T>
-inline constexpr bool is_associative_v<T, std::plus<T>> = false;
-
-// IEEE double is rejected for a different reason: rounding breaks
-// bit-exact associativity.
-template <>
-inline constexpr bool is_associative_v<double, std::plus<double>> = false;
-
-static_assert(is_associative_v<unsigned int, std::plus<unsigned int>>);
-static_assert(!is_associative_v<int,         std::plus<int>>);
-static_assert(!is_associative_v<double,      std::plus<double>>);
-\end{cpp}
-\end{listing}
-
-Generic algorithms that require associativity will fail to compile for
-\texttt{int} or \texttt{double} alike, unless an explicit numeric policy
-(modular semantics on signed overflow, compensated summation, an
-interval-arithmetic wrapper, or a lift to \cppinline{Rational<long>})
-is supplied. The realization boundary is the point at which the
-programmer chooses which policy to apply.
-
-
-\clearpage
-\subsection{Carriers: From Exact Rationals to Packed Integers}
-\label{sec:carrier-rosetta}
-
-A \emph{carrier} in this paper is the underlying set on which an
-algebraic structure lives --- the substrate of operations.  The
-universal-algebra formulation is introduced in §\ref{sec:algebraic_lattice_carriers}
-and applies here.  The same set may serve as carrier for several
-distinct algebras (e.g.\ $\mathbb{B}$ as $(\{0,1\}, \lor, \land)$
-vs as $(\mathbb{F}_2, \oplus, \land)$); and the same algebra may be
-obtained as either a primitive (a chosen carrier) or as the result
-of a construction (a quotient, free, or localisation functor)
-applied to a smaller carrier.  $\mathbb{Q}$ is
-both a carrier (the rationals, used as base for
-\cppinline{Rational<I>}) and the field-of-fractions construction
-$\operatorname{Frac}(\mathbb{Z})$~\cite{lang2002algebra}; $\mathbb{C}$
-is both a carrier and the quotient
-$\mathbb{R}[i]/(i^2 + 1)$.  The Algebraic Lattice
-separates these two readings onto
-distinct axes; the rosetta tables that follow itemise each axis.\footnote{%
-\emph{Meets vs. joins.} Type-level meets (the largest shared
-substructure of two algebras) are computed via dispatch ---
-\cppinline{structured_and} on intersecting predicate-sets is the
-canonical example.  Joins (the smallest common extension) are
-\emph{not} synthesised by the library: pushouts / tensor products
-require ambient choice (which base, which extension functor) that
-the project's Honest Rejection stance refuses to make
-automatically.  Joins are handled instead via named carrier-crossing
-arrows the user invokes explicitly (\cppinline{embed_ℤ_ℚ} for
-$\mathbb{Z} \hookrightarrow \mathbb{Q}$, etc.).  The trade-off is
-honest: the library refuses to fabricate the answers that aren't
-canonical.}
-
-\paragraph{Re-enabling refused carriers.}  The Honest Rejection
-policy refuses carriers like \cppinline{int} as a witness for
-\emph{axiomatic} ring laws (signed-overflow UB defeats closure as a
-stable axiom, per Listing~\ref{lst:species}).  An engineer with a
-local proof that overflow cannot occur on their inputs has two
-sanctioned re-entry paths:
-
-\begin{itemize}
-\item \emph{Operator-surface tier.}  \cppinline{HasRingOperators<int>}
-fires unconditionally; downstream combinators that bind to this
-weaker concept (rather than to the strict \cppinline{IsRing} bundle)
-admit \cppinline{int} directly.  Most paper showcases bind to the
-operator-surface tier for exactly this reason.
-\item \emph{Opt-in trait specialisation.}  Where a stronger axiom is
-needed, the engineer specialises the relevant species trait
-explicitly: e.g.\ \cppinline{is_associative_v<MyType, std::plus<>> = true;}
-for a user-defined type whose addition is provably associative.  The
-specialisation is a public statement under the truthfulness canons
-(NSPE Code of Ethics, Canons~III + IV \cite{nspe_ethics}); the
-engineer carries the proof obligation, the library trusts the trait.
-\end{itemize}
-
-The mechanism is intentionally narrow: the engineer can re-enable a
-specific (carrier, axiom) pair, but cannot re-enable an entire
-concept bundle without specialising each axiom trait individually.
-Pedantic by default; opt-in by deliberate engineer action.
-
-The intensional-first rule applied to \emph{every} numeric role at
-once is spelled out in three tables. Table~\ref{tab:carriers-exact}
-catalogs the \emph{exact} side: the library's own intensional
-carriers for each mathematical role, and the algebraic concept each
-realises. Table~\ref{tab:carriers-primitive} catalogs the
-\emph{primitive} side: the \cppinline{std}-library types the hardware
-runs natively, and the concept each of them carries (with the usual
-IEEE / overflow caveats). Table~\ref{tab:carriers-crossings} is the
-state-machine that connects the two: given a role, which named
-embedding or realisation arrow moves you from exact to primitive, and
-which moves you back.
-
-\begin{table}[htbp]
-\centering
-\caption{\textbf{Exact carriers.} The library's intensional types, one
-per mathematical role, together with the algebraic concept each
-satisfies. These are the carriers a disciplined engineer writes the
-\emph{reference implementation} against --- laws are provably
-satisfied, not approximated.}
-\label{tab:carriers-exact}
-\small
-\begin{tabular}{@{}l l l@{}}
-\toprule
-\textbf{Role} & \textbf{Exact carrier} & \textbf{Concept satisfied} \\
-\midrule
-$\mathbb{B}$ & \cppinline{bool} under $\land, \lor$ & \cppinline{IsBoolean} \\
-$\mathbb{F}_2$ & \cppinline{bool} under $(\oplus, \land)$ & \cppinline{IsGaloisField<bool,^,&>} (order 2) \\
-$\mathbb{F}_{64}$ & \texttt{𝔽64} ($\mathbb{F}_2[x]/(x^6{+}x{+}1)$, 6-bit in \cppinline{uint8_t}) & \cppinline{IsGaloisField<T,+,*>} (order 64) \\
-$\mathbb{F}_2^{64}$ & \cppinline{uint64_t} under $\oplus$, scalar action \cppinline{Bit2U64Action} & \cppinline{IsVectorSpace<uint64_t, bool>} \\
-$\mathbb{N}$ bounded & \cppinline{ExtensionalCardinal<N>} & \cppinline{IsCyclicGroup}, \cppinline{IsAbelianGroup<T,+>} \\
-$\mathbb{N}$ unbounded & \cppinline{Cardinality} (variant over $\aleph_0$) & saturating commutative monoid via \cppinline{add}/\cppinline{mul} helpers \\
-$\mathbb{Z}$ bounded & \cppinline{SignedExtensionalCardinal<N>} & \cppinline{IsAbelianGroup<T,+>}, \cppinline{IsRing} \\
-$\mathbb{Z}$ unbounded & \cppinline{SignedCardinality} (variant over $\pm \aleph_0$, NaZ) & \cppinline{IsAbelianGroup<T,+>}, \cppinline{IsRing} \\
-$\mathbb{Q}$ & \cppinline{Rational<SignedExtensionalCardinal<>>} & \cppinline{HasFieldOperators<Rational<I>>}\textsuperscript{$\dagger$} \\
-$\mathbb{R}$ exact & \cppinline{ExactReal<I>} = \cppinline{Real<Rational<I>>} & \cppinline{IsDedekindComplete} (exact rational scalar) \\
-$\mathbb{C}$ & \cppinline{Complex<Rational<SignedExtensionalCardinal<>>>} & \cppinline{Algebra_}$\mathbb{C}$ \\
-$\mathbb{D}$ (dual) & \cppinline{Dual<Rational<SignedExtensionalCardinal<>>>} & \cppinline{IsRing<T,+,*>}, $\varepsilon^2 = 0$ \\
-\bottomrule
-\end{tabular}
-
-\vspace{0.3em}
-\begin{flushleft}
-{\footnotesize \textsuperscript{$\dagger$} The operator-surface concept \cppinline{HasFieldOperators<Rational<I>>} fires today; the strict axiomatic \cppinline{category::IsField} witness on $\mathbb{Q}$ is parked behind an architectural gate (the \cppinline{IsTotal} ladder admits periodic / idempotent / saturating paths but not yet an exact path).  The operator surface is what ships; the strict axiomatic certificate is queued.}
-\end{flushleft}
-\end{table}
-
-\begin{table}[htbp]
-\centering
-\caption{\textbf{Primitive carriers.} The \cppinline{std}-library types
-the hardware runs natively, with the algebraic concept each carries
-under its C++-standard arithmetic semantics. These are the carriers a
-disciplined engineer drops to for performance, \emph{after} verifying
-the reference implementation on the exact side.}
-\label{tab:carriers-primitive}
-\small
-\begin{tabular}{@{}l l l@{}}
-\toprule
-\textbf{Primitive type} & \textbf{Arithmetic semantics} & \textbf{Concept satisfied} \\
-\midrule
-\cppinline{bool} & Galois field $\mathbb{F}_2$ under $(\oplus, \land)$; Boolean lattice under $(\lor, \land)$ on the same carrier & \cppinline{category::IsField<bool, std::bit_xor<bool>, std::bit_and<bool>>}; \cppinline{order::HasLatticeOperators<bool>} \\
-\cppinline{unsigned long}, \cppinline{size_t} & Modular, wraps at $2^{N}$ & \cppinline{IsCyclicGroup}, \cppinline{IsAbelianGroup<T,+>} \\
-\cppinline{int}, \cppinline{long} & Partial (UB on signed overflow) & \cppinline{HasRingOperators}\textsuperscript{a} \\
-\cppinline{int8_t}, \cppinline{int16_t} & Functor-surface only (literal arithmetic promotes to \cppinline{int}) + SIMD-vectorisable & \cppinline{IsAlgebra<T, std::plus<T>, std::multiplies<T>>}\textsuperscript{b} \\
-\cppinline{float}, \cppinline{double} & IEEE 754, rounded, non-associative & \cppinline{Continuum_}$\mathbb{R}$ (non-assoc.\ \cppinline{+}) \\
-\cppinline{std::complex<double>} & Cartesian pair over IEEE \cppinline{double} & \cppinline{Algebra_}$\mathbb{C}$ (non-assoc.) \\
-\bottomrule
-\end{tabular}
-
-\vspace{0.3em}
-\begin{flushleft}
-{\footnotesize \textsuperscript{a} \cppinline{HasRingOperators} holds (literal $+$, binary $-$, unary $-$, $*$ all close on the carrier); the strict \cppinline{IsRing} bundle refuses because signed-overflow UB makes the operation partial, which doesn't satisfy any of the \cppinline{IsTotal} paths (\cppinline{IsPeriodic} / \cppinline{IsIdempotent} / \cppinline{IsSaturating}) the totality gate admits (math-wins-over-C++). Total alternatives: \cppinline{SignedCardinality} (saturating), \cppinline{SignedExtensionalCardinal<>} (cyclic), or the \cppinline{:partial} Maybe-monad chain for honest fail-on-overflow.
-
-\textsuperscript{b} For narrow signed integers \cppinline{HasRingOperators} \emph{refuses}: integer promotion (C++ [conv.prom]) lifts \cppinline{int8_t + int8_t} to \cppinline{int}, so literal arithmetic does not close on the carrier.  The functor-parametric surface \cppinline{IsAlgebra<T, std::plus<T>, std::multiplies<T>>} fires because \cppinline{std::plus<T>} returns \cppinline{T} by signature --- this is the structural-shape level, not a ring-axiom certification: signed-overflow UB still defeats the strict \cppinline{IsRing} bundle along the same path footnote~a names for \cppinline{int} / \cppinline{long}, and the project's math-wins-over-C++ stance therefore withholds ring-axiom certification on narrow signed carriers.  Total alternatives are the same as in footnote~a.}
-\end{flushleft}
-\end{table}
-
-\begin{table}[htbp]
-\centering
-\caption{\textbf{Crossings state-machine.} The named morphisms that
-move between exact and primitive sides, per role. Each row shows
-\emph{realise} (exact $\to$ primitive: drop exactness for speed) and
-\emph{embed} (primitive $\to$ exact: lift a machine value into the
-certified carrier). A dash marks a direction that requires going
-through an intermediate role.}
-\label{tab:carriers-crossings}
-\small
-\begin{tabular}{@{}l l l@{}}
-\toprule
-\textbf{Role} & \textbf{Realise: exact $\to$ primitive} & \textbf{Embed: primitive $\to$ exact} \\
-\midrule
-$\mathbb{B}$ & (identity) & (identity) \\
-$\mathbb{N}$ & \cppinline{.realize_to_size_t(sentinel)} & \cppinline{embed_unsigned_integral<N>(v)} \\
-$\mathbb{Z}$ & \cppinline{static_cast<int64_t>(x)} & \cppinline{embed_signed_integral<Z>(v)} \\
-$\mathbb{Q}$ & \cppinline{.resolve()} $\to$ \cppinline{double} & \cppinline{Rational<Z>(num, den)} \\
-$\mathbb{R}$ symbolic & evaluate cut at a rational bound & (intensional; no simple lift) \\
-$\mathbb{R}$ policy & \cppinline{discharge_ieee(IEEE<double>)} & \cppinline{assume_ieee(Real<double>)} \\
-$\mathbb{C}$ & per-component \cppinline{.resolve()} & \cppinline{Complex<R>(re, im)} \\
-$\mathbb{D}$ (dual) & \cppinline{.val} (primal only; tangent discarded) & \cppinline{Dual<F>(v, d)} \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\phantomsection\label{par:concept-tiers}%
-A fourth table addresses where textbook ring structure and literal
-C++ operators diverge: the library expresses the disagreement
-through three concept tiers --- \emph{strict} (categorical proof),
-\emph{functor-parametric shape} (operators close on the chosen
-functors), and \emph{literal shape} (the C++ \cppinline{+},
-\cppinline{-}, \cppinline{*} close on the carrier directly) ---
-sealed by \cppinline{IsArithmeticRing} when all three agree under
-\cppinline{(std::plus, std::multiplies)}.
-Table~\ref{tab:rosetta-textbook-vs-cpp} catalogues the divergences
-on the carriers used in the worked examples (Issue~\#393); the
-friction list is summarised structurally in
-Section~\ref{sec:compiler-wall}.
-
-\begin{table}[htbp]
-\centering
-\caption{\textbf{Math textbook $\leftrightarrow$ C++ standard} (library carriers; the built-in primitives are itemised per operator surface in Appendix~\ref{sec:builtin-algebra}). Where the
-literal C++ operators agree with the textbook (rows that tick all
-columns), the bundled seal \cppinline{IsArithmeticRing} fires and
-generic code can be written in plain syntax. Where they diverge, the table names the precise
-failure point and the tier that still fires. ``$\circ$'' marks an
-assertion that fires only at the literal-shape tier (the strict half
-is gated by an open FIXME on the species-trait registry); ``--''
-marks not-currently-asserted.}
-\label{tab:rosetta-textbook-vs-cpp}
-\small
-\begin{tabular}{@{}l l c c c c@{}}
-\toprule
-\textbf{Carrier} & \textbf{Math claim} & \textbf{Strict} & \textbf{Functor} & \textbf{Literal} & \textbf{Seal} \\
-\midrule
-\cppinline{Rational<long>} & field $\mathbb{Q}$ & $\circ$\textsuperscript{d} & $\circ$ & \checkmark & $\circ$ \\
-\cppinline{RigPolynomial<unsigned int>} & polynomial ring $R[x]$ & \checkmark & \checkmark & \checkmark & \checkmark \\
-\cppinline{Matrix2x2V<unsigned int>} & non-commutative ring & $\circ$ & $\circ$ & \checkmark & -- \\
-\cppinline{Vec2V<T>} & module / vector space, \emph{not a ring} & n/a & n/a & $\times$\textsuperscript{e} & n/a \\
-\bottomrule
-\end{tabular}
-
-\vspace{0.5em}
-{\footnotesize
-\begin{tabular}{@{}l p{0.85\textwidth}@{}}
-\textsuperscript{d} & operational under the active numeric policy: \cppinline{HasFieldOperators} is the operational variant, the categorical proof is intentionally not specialised. \\
-\textsuperscript{e} & vectors have no internal product \cppinline{Vec2V} $\times$ \cppinline{Vec2V} $\to$ \cppinline{Vec2V}, only scalar multiplication; the shape concept correctly refuses. \\
-\end{tabular}
-}
-\end{table}
-
-Reading rule for callsites: pick \emph{seal} for plain C++ syntax
-over a textbook-aligned carrier; pick \emph{strict + functor} when
-the carrier carries its ring structure over non-standard functors
-(\cppinline{bool} as $\mathbb{F}_2$, narrow unsigneds with
-\cppinline{std::plus} / \cppinline{std::multiplies}); pick
-\emph{literal} for the operator surface without the algebraic
-axioms (elementwise-lifted matrix bodies, halfspace evaluation).
-
-\paragraph{Migration discipline.}
-The three tables form a migration map: \emph{start correct} on
-Table~\ref{tab:carriers-exact} (typically
-\cppinline{Rational<SignedExtensionalCardinal<>>} for
-arithmetic-heavy code, with bit-for-bit provable laws); \emph{cross
-over} via Table~\ref{tab:carriers-crossings} only in profiled inner
-loops where arithmetic cost dominates; \emph{land} on
-Table~\ref{tab:carriers-primitive} with the named caveat the
-concept cell records (e.g.\ loss of associativity under
-\cppinline{+}, which some algorithms tolerate and others do not).
-The rule: \textbf{start correct, finish fast, and the type system
-enforces that the laws your code relies on are the laws the carrier
-actually provides --- or fails to compile.}
-
-
-
-The second pillar.  Sets as predicates over an ambient species (the
-Comprehension View), and the symbolic composition of set operations
-under the subobject classifier $\Omega$.  Where §\ref{sec:algebraic_lattice_carriers}
-fixes the substrate, the sets layer reifies its first concrete
-inhabitants --- \emph{Rules on Buckets are Set}.  The sequence-layer
-counterpart (functions $\mathbb{N} \to T$ as infinite-dimensional
-vectors, sharing the same intensional posture) extends this pillar
-in a sibling slice.
-\clearpage
-\section{Partial Evaluation on the Analytic Necklace}
-\label{app:partial-eval}
-
-The diamond necklace of §\ref{sec:optimization_lp} is an \emph{analytic} graph: its edges are a rule on a pair of nodes, $E((x,y),(x',y')) \iff x' = x+1 \wedge |y'-y| = 1$, with no intrinsic size.
-The closure materialises a finite window of it as a budget, and where its endpoints are fixed decides how much of the computation the compiler performs.
-
-\paragraph{Endpoints at compile time: full collapse.}
-When source and sink are compile-time constants, the whole reduction is a constant expression and folds to a literal, the \texttt{ret i64 8} of Listing~\ref{lst:necklace-ir}.
-Nothing of the graph, the semiring, or the traversal survives into the binary.
-
-\paragraph{Endpoints at run time: a specialised residual.}
-When source and sink instead arrive as runtime arguments, the identical \cppinline{semiring_closure} cannot fold, and the emitted code is its \emph{residual}.
-That residual is not a generic solver: the semiring is specialised in ($\oplus = \max$ is a \cppinline{select}, $\otimes = {+}$ is an \cppinline{add}), the topology rule is the inlined coordinate decode, and the cost formula $y'(K-x')$ is inlined arithmetic; what remains parametric is only the pair of runtime endpoints.
-This is partial evaluation~\cite{jones1993partial} in the precise sense: freezing the structure and leaving the data specialises one expression into a family of optimised kernels, one per graph query, with the query itself as the runtime-parametric continuation.
-
-\begin{listing}[htbp]
-\caption{The same necklace closure, two call sites (checked-in witnesses).  Static endpoints fold to a constant; runtime endpoints leave a specialised residual.}
-\label{lst:partial-eval}
-\begin{cpp}
-// Endpoints static  -> constant expression -> ret i64 8 (full collapse).
-constexpr auto opt = semiring_closure<MaxPlus<unsigned long long>, Cap>(
-    SRC, SINK, edges, cpm_cost);            // SRC, SINK literals
-
-// Endpoints runtime -> residual: the fold over the edges, max/add inlined,
-// indexed by (source, sink); no generic solver, no dispatch.
-int64_t critical_between(std::size_t source, std::size_t sink) {
-  if (source >= Cap || sink >= Cap) return -1;   // out-of-range query
-  const auto d = semiring_closure<MaxPlus<unsigned long long>, Cap>(
-      source, sink, edges, cpm_cost);            // source, sink runtime
-  return d.finite ? d.val : -1;                  // unreachable -> -1, not 0
-}
-\end{cpp}
-\end{listing}
-
-The residual is the fold over the edge sequence rather than a straight-line kernel: the optimiser keeps the loop that threads the potential, specialised but not flattened.
-The point the two call sites make is that the collapse is optional and the boundary is the programmer's to place.
 
 %%%
 \clearpage
@@ -1795,7 +1517,139 @@ Axiom 9: Power Set / Exponential Restriction (\(\beth _{1}\)). For any set X, th
     \item \textbf{Explanatory Note:} The NNO lets the library model \textit{transfinite spaces} (e.g., continuous mathematical boundaries or infinite sequence generators) lazily. The Axiom of Choice ensures that the template engine can constructively find or instantiate witness values for non-empty subset selections during compile-time verification passes.
 \end{itemize}
 
-%%% 
+%%%
+\clearpage
+\section{The Algebraic Lattice and its Carriers}
+\label{sec:carrier-rosetta}
+
+This reference is indexed by algebraic structure (the branching poset of §\ref{sec:algebraic_lattice_carriers}), not by carrier.
+To answer ``I need structure $X$'', read its row in Table~\ref{tab:lattice-carriers}; to place a type you already hold, scan the realisation columns, or the by-operator-surface tables of §\ref{sec:builtin-algebra}.
+
+\begin{table}[htbp]
+\centering
+\caption{\textbf{The algebraic lattice and its carriers.} Each structure of the branching poset (§\ref{sec:algebraic_lattice_carriers}), the concept that certifies it, and the carriers that realise it on the built-in (\cppinline{std} / IEEE) side and the exact-library side. Each row names \emph{representative} carriers that strictly realise the structure; a carrier recurs across the rows it satisfies (\cppinline{unsigned} is a magma, monoid, group, and ring; \cppinline{bool} is both a field and a Galois field). \textsuperscript{$\dagger$} marks operator-surface-only certification, the strict axiomatic witness being queued. \cppinline{I} abbreviates \cppinline{SignedExtensionalCardinal<>}.}
+\label{tab:lattice-carriers}
+\footnotesize
+\begin{tabular}{@{}l l p{0.23\textwidth} p{0.35\textwidth}@{}}
+\toprule
+\textbf{Structure} & \textbf{Concept} & \textbf{Built-in realisation} & \textbf{Exact-library carrier} \\
+\midrule
+Magma & \cppinline{IsMagma} & \cppinline{unsigned} under $+$ / $*$ (modular) & any closed carrier \\
+Comm.\ monoid & \cppinline{IsCommutativeMonoid} & \cppinline{unsigned} under $+$ ($\mathbb{Z}/2^n$) & $\mathbb{N}$: \cppinline{Cardinality} \\
+Abelian group & \cppinline{IsAbelianGroup} & \cppinline{unsigned} under $+$ (cyclic) & $\mathbb{Z}$: \cppinline{SignedExtensionalCardinal<N>} \\
+Ring & \cppinline{IsRing} & \cppinline{unsigned} under $(+,*)$; signed \cppinline{int} \emph{refused} (overflow UB) & $\mathbb{Z}$: \cppinline{SignedExtensionalCardinal<N>}; \cppinline{RigPolynomial} \\
+Field & \cppinline{IsField} & \cppinline{bool} under $(\oplus,\land)$ ($\mathbb{F}_2$) & $\mathbb{Q}$: \cppinline{Rational<I>}; $\mathbb{C}$: \cppinline{Complex<Rational<I>>}\textsuperscript{$\dagger$}; $\mathbb{R}$: \cppinline{ExactReal<I>}\textsuperscript{$\dagger$} \\
+Galois field & \cppinline{IsGaloisField} & \cppinline{bool} ($\mathbb{F}_2$, order 2) & \cppinline{𝔽64} (order 64) \\
+Module / v.\ space & \cppinline{IsModule} / \cppinline{IsVectorSpace} & \cppinline{uint64_t} under $\oplus$, \cppinline{bool} scalars ($\mathbb{F}_2^{64}$) & \cppinline{Vec2V<Rational<I>>}; $\mathbb{D}$: \cppinline{Dual<Rational<I>>} \\
+\bottomrule
+\end{tabular}
+
+\vspace{0.3em}
+\begin{flushleft}
+{\footnotesize \textsuperscript{$\dagger$} \cppinline{Complex<Rational<I>>} and \cppinline{ExactReal<I>} certify only the ring/field \emph{operator surface} (\cppinline{HasRingOperators} / \cppinline{HasFieldOperators}), for two \emph{different} reasons.  \cppinline{Complex<R>} gets no generic field witness because $x^2 + 1$ is reducible over some field parameters (notably $\mathbb{F}_2$, where it is $(x+1)^2$), so field-ness is deliberately not lifted through the constructor.  \cppinline{ExactReal} is instead blocked by the architectural \cppinline{IsTotal} gate (no exact totality path is registered).  \cppinline{Dual} is a strict module over $\mathbb{Q}$ carrying ring operators, but $\varepsilon^2 = 0$ leaves it without a strict \cppinline{IsRing} witness, so it sits with the modules.}
+\end{flushleft}
+\end{table}
+
+\paragraph{Re-enabling refused carriers.}  The Honest Rejection
+policy refuses carriers like \cppinline{int} as a witness for
+\emph{axiomatic} ring laws (signed-overflow UB defeats closure as a
+stable axiom, per Listing~\ref{lst:species}).  An engineer with a
+local proof that overflow cannot occur on their inputs has two
+sanctioned re-entry paths:
+
+\begin{itemize}
+\item \emph{Operator-surface tier.}  \cppinline{concept HasRingOperators<int>}
+fires unconditionally; downstream combinators that bind to this
+weaker concept (rather than to the strict \cppinline{concept IsRing} bundle)
+admit \cppinline{int} directly.  Most paper showcases bind to the
+operator-surface tier for exactly this reason.
+\item \emph{Opt-in trait specialisation.}  Where a stronger axiom is
+needed, the relevant species trait is specialised explicitly, e.g.\ \cppinline{template<> inline constexpr bool dedekind::category::is_associative_v<MyType, std::plus<>> = true;}, for a user-defined type whose addition is provably associative.
+The implementor carries the proof obligation~\cite{nspe_ethics}; the library trusts the trait.
+\end{itemize}
+
+The mechanism is intentionally narrow: the engineer can re-enable a
+specific (carrier, axiom) pair, but cannot re-enable an entire
+concept bundle without specialising each axiom trait individually.
+Pedantic by default; opt-in by deliberate engineer action.
+
+\paragraph{Suggested pattern.}
+Constrain generic numeric code on the algebraic concept, not the carrier.
+One signature bounded by \cppinline{HasSemiringOperators<T>} admits a machine primitive (\cppinline{unsigned}) and an exact carrier (\cppinline{Cardinality}) alike, so the same algorithm compiles for both.
+The strict \cppinline{IsSemiring<T>} is where an unsound carrier is turned away: \cppinline{int} under \cppinline{+} fails it, signed overflow breaking associativity.
+The crossings (Table~\ref{tab:carriers-crossings}) are then the one place a caller deliberately steps off the concept onto a concrete machine type.
+
+\begin{table}[htbp]
+\centering
+\caption{\textbf{Crossings state-machine.} The named morphisms that
+move between exact and primitive sides, per role. Each row shows
+\emph{realise} (exact $\to$ primitive: drop exactness for speed) and
+\emph{embed} (primitive $\to$ exact: lift a machine value into the
+certified carrier). A dash marks a direction that requires going
+through an intermediate role.}
+\label{tab:carriers-crossings}
+\small
+\begin{tabular}{@{}l l l@{}}
+\toprule
+\textbf{Role} & \textbf{Realise: exact $\to$ primitive} & \textbf{Embed: primitive $\to$ exact} \\
+\midrule
+$\mathbb{B}$ & (identity) & (identity) \\
+$\mathbb{N}$ & \cppinline{.realize_to_size_t(sentinel)} & \cppinline{embed_unsigned_integral<N>(v)} \\
+$\mathbb{Z}$ & \cppinline{static_cast<int64_t>(x)} & \cppinline{embed_signed_integral<Z>(v)} \\
+$\mathbb{Q}$ & (none; no direct $\mathbb{Q} \to$ primitive arrow) & \cppinline{embed_double_ℚ<I>(v)} \\
+$\mathbb{R}$ symbolic & evaluate cut at a rational bound & (intensional; no simple lift) \\
+$\mathbb{R}$ policy & \cppinline{assume_ieee(Real<double>)} & \cppinline{discharge_ieee(IEEE<double>)} \\
+$\mathbb{C}$ & (none; per-component, no direct arrow) & \cppinline{Complex<R>(re, im)} \\
+$\mathbb{D}$ (dual) & \cppinline{.val} (primal only; tangent discarded) & \cppinline{Dual<F>(v, d)} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+
+
+
+
+%%%
+\clearpage
+\section{Partial Evaluation on the Analytic Necklace}
+\label{app:partial-eval}
+
+The diamond necklace of §\ref{sec:optimization_lp} is an \emph{analytic} graph: its edges are a rule on a pair of nodes, $E((x,y),(x',y')) \iff x' = x+1 \wedge |y'-y| = 1$, with no intrinsic size.
+The closure materialises a finite window of it as a budget, and where its endpoints are fixed decides how much of the computation the compiler performs.
+
+\paragraph{Endpoints at compile time: full collapse.}
+When source and sink are compile-time constants, the whole reduction is a constant expression and folds to a literal, the \texttt{ret i64 8} of Listing~\ref{lst:necklace-ir}.
+Nothing of the graph, the semiring, or the traversal survives into the binary.
+
+\paragraph{Endpoints at run time: a specialised residual.}
+When source and sink instead arrive as runtime arguments, the identical \cppinline{semiring_closure} cannot fold, and the emitted code is its \emph{residual}.
+That residual is not a generic solver: the semiring is specialised in ($\oplus = \max$ is a \cppinline{select}, $\otimes = {+}$ is an \cppinline{add}), the topology rule is the inlined coordinate decode, and the cost formula $y'(K-x')$ is inlined arithmetic; what remains parametric is only the pair of runtime endpoints.
+This is partial evaluation~\cite{jones1993partial} in the precise sense: freezing the structure and leaving the data specialises one expression into a family of optimised kernels, one per graph query, with the query itself as the runtime-parametric continuation.
+
+\begin{listing}[htbp]
+\caption{The same necklace closure, two call sites (checked-in witnesses).  Static endpoints fold to a constant; runtime endpoints leave a specialised residual.}
+\label{lst:partial-eval}
+\begin{cpp}
+// Endpoints static  -> constant expression -> ret i64 8 (full collapse).
+constexpr auto opt = semiring_closure<MaxPlus<unsigned long long>, Cap>(
+    SRC, SINK, edges, cpm_cost);            // SRC, SINK literals
+
+// Endpoints runtime -> residual: the fold over the edges, max/add inlined,
+// indexed by (source, sink); no generic solver, no dispatch.
+int64_t critical_between(std::size_t source, std::size_t sink) {
+  if (source >= Cap || sink >= Cap) return -1;   // out-of-range query
+  const auto d = semiring_closure<MaxPlus<unsigned long long>, Cap>(
+      source, sink, edges, cpm_cost);            // source, sink runtime
+  return d.finite ? d.val : -1;                  // unreachable -> -1, not 0
+}
+\end{cpp}
+\end{listing}
+
+The residual is the fold over the edge sequence rather than a straight-line kernel: the optimiser keeps the loop that threads the potential, specialised but not flattened.
+The point the two call sites make is that the collapse is optional and the boundary is the programmer's to place.
+
+%%%
 \clearpage
 \section{From Cardinality Pruning to Type-Directed Collapse}
 \label{sec:gap}
