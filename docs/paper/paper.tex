@@ -1519,6 +1519,22 @@ Axiom 9: Power Set / Exponential Restriction (\(\beth _{1}\)). For any set X, th
 
 %%%
 \clearpage
+\section{Point-Free Morphisms: Relations and Factorization Gates}
+\label{sec:morphisms-appendix}
+
+% STUB (follow-up PR): supporting detail dual to §\ref{sec:relations_functions_blueprint}.
+% To collect: the Kleisli / powerset-monad relation internals (the fish operator >>),
+% the epic--monic factorization gates (IsSingleton, mono_retract), and the
+% :relations / :functions partition surfaces.  Kept minimal for now to pin the
+% section<->appendix correspondence; fleshed out with worked witnesses later.
+
+Dual to §\ref{sec:relations_functions_blueprint}, this appendix collects the supporting detail for the point-free morphism layer: relations presented as Kleisli arrows over the powerset monad, and the epic--monic factorization gates ($A \twoheadrightarrow I \hookrightarrow B$) that make a general function's codomain queries decidable.
+It is another instance of the paper's recurring seam.
+General first-order quantification over open intensional sets is undecidable at compile time (Rice's theorem), so rather than attempt the aspirational universal search the library supplies mechanical support for the \emph{existential} case: lazy Kleisli predicate transformation for composition, and a developer-supplied factorization for image membership.
+The worked internals are deferred to a follow-up revision.
+
+%%%
+\clearpage
 \section{The Algebraic Lattice and its Carriers}
 \label{sec:carrier-rosetta}
 
