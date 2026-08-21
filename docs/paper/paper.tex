@@ -280,6 +280,13 @@ The \Cpp{23} type system, while limited, is sufficiently rich to name predicates
 This architecture thus enforces a clear division of labor: the library user holds an out-of-band honesty obligation when registering trait axioms, and the compiler mechanically discharges every subsequent \cppinline{static_assert}, \cppinline{requires} clause, or \cppinline{constexpr} evaluation.
 A simple proof search is mimicked by operator resolution.
 
+\paragraph{Existential proofs, not universal ones.}
+That division of labour is forced by a limit, not chosen for convenience.
+Whether an arbitrary carrier obeys a given algebraic law, or an arbitrary program computes a given function, is a non-trivial semantic property, and so undecidable in general (Rice's theorem).
+The library therefore does not attempt the universal claim; it supplies mechanical support for the \emph{existential} one.
+A specific carrier, a specific law, a specific reduction can be named in the type and discharged by the compiler even where no general procedure could.
+Read this way, Rice's theorem is less a wall than an invitation to contribute: it marks the seam between the aspirational (a general, automatic verifier) on the one hand and current best practice (checkable existential demonstrations with mechanical support) on the other.
+
 \paragraph{What this buys, concretely.}
 Guided by the rule ``name the structure in the type, let the compiler discharge the laws,'' the library systematically constructs an algebraic hierarchy entirely at compile time.
 From a handful of structural primitives (morphisms and small categories), \texttt{dedekind} builds a domain specific language to describe sets, a numeric lattice ($\mathbb{B}$, $\mathbb{N}$, $\mathbb{Z}$, $\mathbb{Q}$, $\mathbb{R}$, $\mathbb{C}$, \ldots) and a point-free linear algebra layer, among other things,
