@@ -534,7 +534,11 @@ witness function for set membership constant-folds to \texttt{ret i1 false} in t
 % ============================================================
 
 With the syntactic behavior of the set comprehension DSL established, what follows formalizes its semantic engine.
-This intensional set layer is the disciplined fragment of §\ref{sec:jlt_posture} intersected with $\mathbf{Set}$, namely $\mathbf{Trsk} = \mathbf{Jlt} \cap \mathbf{Set}$: the Tarski layer where a set is a predicate and a graph is a relation, on which §\ref{sec:algebraic_lattice_carriers} imposes algebraic laws to reach $\mathbf{Ddk} = \mathbf{Trsk} \cap \mathbf{Alg}$.
+This intensional set layer is the disciplined fragment of §\ref{sec:jlt_posture} intersected with $\mathbf{Set}$, where a set is a predicate and a graph is a relation: 
+\begin{equation}
+\label{eqn:trsk}
+\mathbf{Trsk} := \mathbf{Jlt} \cap \mathbf{Set}
+\end{equation}
 Loosely speaking, a set here is just its membership test.
 A reader who wants only the API can keep that picture and skim the rest of this subsection, which makes it precise in the language of topos theory.
 The more common description of sets, the one \cppinline{std::set} follows, is Zermelo-Fraenkel (ZF): a set is built from the bottom up from atoms such as $\emptyset$ via union and intersection, with membership tested by an element relation ($\in$).
@@ -832,18 +836,14 @@ concept IsAlgebraOnSet =
     && IsAlgebra<typename X::Domain, Ops...>;                 // the (A, F) algebra
 \end{cpp}
 \end{listing}
-An \emph{algebraic set} in \texttt{dedekind} is a C++ type that is a set in the sense of §\ref{sec:intensional_sets} and carries operations on that set (its \emph{carrier}).
-A type inhabits the category $\mathbf{Ddk}$ exactly when it type-checks against \cppinline{IsAlgebraOnSet} (Listing~\ref{lst:algebra:universal}), which asks for both halves at once: that the type is a set (the Tarski layer $\mathbf{Trsk}$ of §\ref{sec:intensional_sets}) and that its carrier is closed under the operations it supplies:
+
+Listing~\ref{lst:algebra:universal} illustrates the reification of \emph{algebraic sets} as sketched in Figure~\ref{fig:hub-spoke-bnz}.
+By reinterpreting logical conjunction of predicates as set intersection, we can define a family $\mathbf{Ddk}$ of algebraic sets expressible in \Cpp{23} as the intersection of the previously introduced reified intensional sets $\mathbf{Trsk}$~\eqref{eqn:trsk} with $\mathbf{Alg}(-)$:
 \begin{equation}
+\label{eqn:ddk}
     \mathbf{Ddk} \;=\; \mathbf{Trsk} \,\cap\, \mathbf{Alg}(-),
 \end{equation}
-the algebraic sets expressible as C++ types.
-Because membership is structural, admission is after the fact: a type is presented as a set by a concept, with no change to the type and no upstream opt-in.
 
-Figure~\ref{fig:hub-spoke-bnz} from the introduction is a sketch of this category, worth keeping in hand for the rest of the section.
-Its objects are algebraic sets: a carrier decorated with operations, the loops, with the bare carriers on the bottom row and the forgetful functor $U : \mathbf{Alg}(-) \to \mathbf{Set}$ dropping the operations to reach them.
-One carrier can support several algebras, so $U$ is not injective on objects; the hooked homomorphisms are the carrier maps that preserve the operations, and the dotted maps are carrier maps that break one, falling to $\mathbf{Set}$.
-A loop is an operation, so a binary one such as $\wedge$ or $+$ decorates its carrier as a map $A \times A \to A$, not a category endomorphism; concretely the two hooked inclusions $\mathbb{N} \hookrightarrow \mathbb{Z}$ preserve $(+, \times)$ and $(\oplus, \otimes)$, while $x \mapsto -x$ breaks $\times$ and $x \mapsto x^2$ breaks $+$.
 $\mathbf{Alg}(-)$ is universal algebra in the textbook sense~\cite{burris1981universalalgebra}: sets equipped with operations of fixed arity, where the dash is a placeholder for whatever signature a carrier happens to supply.\footnote{We leave the signature unbound and let the per-shape \cppinline{Has*Operators} concepts pin it at each carrier's definition, so $\mathbf{Ddk}$ stays as wide as the library needs while a concrete variety such as $\mathbf{Mon}$ or $\mathbf{Ring}$ is one fixed choice of dash (the same $F_\Sigma$-algebra fragment a functional programmer would recognise~\cite{pierce1991basic}).  We also fix a smallness ceiling of $\beth_1$, carriers no larger than the continuum, which is enough for $\mathbb{R}$, $\mathbb{C}$, and $\mathbb{D}$ while keeping the encoding clear of the proper-class self-reference that $\mathbf{Set}$ and $\mathbf{Cat}$ court; the meta-categorical bookkeeping this defers (size-hierarchy adjunctions, $\mathrm{Disc} \dashv U$) survives as the engineer's honesty obligation, treated in the companion report.  The simply-typed-$\lambda$-calculus and System~F reading of the same fragment is Appendix~\ref{app:jlt-systemf}.}
 
 The smallest inhabitant makes the shape concrete.
