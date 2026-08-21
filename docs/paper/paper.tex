@@ -824,17 +824,33 @@ The type system can consequently treat arbitrary transformations as well-behaved
 \label{sec:algebraic_lattice_carriers}
 %-------
 
-% Source excerpt from dedekind.algebra:universal.
+% Source excerpts from dedekind.algebra:universal and dedekind.category:total.
 \begin{listing}[ht]
-\caption{A type that type-checks against \cppinline{IsAlgebraOnSet} inhabits $\mathbf{Ddk}$.}
+\caption{An \emph{algebraic set} reified, assembled from smaller concepts.  \textbf{Left:} \cppinline{IsAlgebraOnSet} conjoins \cppinline{IsSet} (the $\mathbf{Trsk}$ layer of Listing~\ref{lst:concept_isset}) with \cppinline{IsAlgebra}, the universal-algebra $(A, F)$ pattern that checks the operations close on the carrier.  \textbf{Right:} a sample structure built the same bottom-up way, the monoid: a magma (closure) refined by associativity and a unit.  The per-shape \cppinline{Has*Operators} concepts pin which operator signature each carrier supplies, so $\mathbf{Ddk}$ stays as wide as needed while a concrete variety is one fixed choice.}
 \label{lst:algebra:universal}
+\noindent
+\begin{minipage}[t]{0.5\linewidth}
+$\mathbf{Ddk} = \mathbf{Trsk} \cap \mathbf{Alg}$
 \begin{cpp}
 export template <typename X, typename... Ops>
 concept IsAlgebraOnSet =
-    IsSet<X>                                                  // Trsk: X is a set
-    && (... && IsClosedUnderEither<typename X::Domain, Ops>)  // Alg: ops close on the carrier
-    && IsAlgebra<typename X::Domain, Ops...>;                 // the (A, F) algebra
+    IsSet<X>          // Trsk: X is a set
+ && IsAlgebra<typename X::Domain, Ops...>;
+                      // Alg: (A,F), ops closed
 \end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.47\linewidth}
+a sample algebra: the monoid
+\begin{cpp}
+template <class T, class Op>
+concept IsMagma  = IsTotal<T,Op>
+                && /* Op closed on T */;
+template <class T, class Op>
+concept IsMonoid = IsMagma<T,Op>    // closure
+   && IsAssociative<T,Op>  // semigroup
+   && IsPointed<T,Op>;     // has a unit
+\end{cpp}
+\end{minipage}
 \end{listing}
 
 Listing~\ref{lst:algebra:universal} illustrates the reification of \emph{algebraic sets} as sketched in Figure~\ref{fig:hub-spoke-bnz}.
@@ -844,10 +860,10 @@ By reinterpreting logical conjunction of predicates as set intersection, we can 
     \mathbf{Ddk} \;=\; \mathbf{Trsk} \,\cap\, \mathbf{Alg}(-),
 \end{equation}
 
-$\mathbf{Alg}(-)$ is universal algebra in the textbook sense~\cite{burris1981universalalgebra}: sets equipped with operations of fixed arity, where the dash is a placeholder for whatever signature a carrier happens to supply.\footnote{We leave the signature unbound and let the per-shape \cppinline{Has*Operators} concepts pin it at each carrier's definition, so $\mathbf{Ddk}$ stays as wide as the library needs while a concrete variety such as $\mathbf{Mon}$ or $\mathbf{Ring}$ is one fixed choice of dash (the same $F_\Sigma$-algebra fragment a functional programmer would recognise~\cite{pierce1991basic}).  We also fix a smallness ceiling of $\beth_1$, carriers no larger than the continuum, which is enough for $\mathbb{R}$, $\mathbb{C}$, and $\mathbb{D}$ while keeping the encoding clear of the proper-class self-reference that $\mathbf{Set}$ and $\mathbf{Cat}$ court; the meta-categorical bookkeeping this defers (size-hierarchy adjunctions, $\mathrm{Disc} \dashv U$) survives as the engineer's honesty obligation, treated in the companion report.  The simply-typed-$\lambda$-calculus and System~F reading of the same fragment is Appendix~\ref{app:jlt-systemf}.}
+$\mathbf{Alg}(-)$ is universal algebra in the textbook sense~\cite{burris1981universalalgebra}: sets equipped with operations of fixed arity.\footnote{The dash is left unbound, the same $F_\Sigma$-algebra fragment a functional programmer would recognise~\cite{pierce1991basic}.  The smallness ceiling that keeps $\mathbf{Ddk}$ clear of proper-class self-reference is the ETCS power-object bound (Appendix~\ref{sec:etcs}, Axiom~9, $\beth_1$).}
 
 The smallest inhabitant makes the shape concrete.
-The Boolean carrier $\mathbb{B}$ is an algebraic set the moment it type-checks as $\mathbf{Alg}(\wedge, \vee, \neg)$ over \cppinline{bool} (Listing~\ref{lst:algebra:boolean_case}): the object is the set, and $\wedge, \vee, \neg$ are the operations it closes under, with $\wedge$ and $\vee$ (both binary $\mathbb{B} \times \mathbb{B} \to \mathbb{B}$) drawn as loops on its Boolean-lattice node in Figure~\ref{fig:hub-spoke-bnz}.
+The Boolean carrier $\mathbb{B}$ is an algebraic set the moment it type-checks as $\mathbf{Alg}(\wedge, \vee, \neg)$ over \cppinline{bool} (Listing~\ref{lst:algebra:boolean_case}), with $\wedge$ and $\vee$ (both binary $\mathbb{B} \times \mathbb{B} \to \mathbb{B}$) drawn as loops on its Boolean-lattice node in Figure~\ref{fig:hub-spoke-bnz}.
 
 % Source excerpt from dedekind.algebra:boolean.
 \begin{listing}[ht]
