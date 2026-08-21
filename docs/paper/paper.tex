@@ -878,13 +878,57 @@ The only discipline the library adds is that each rung lifts at the type level t
 
 The quotient rung is backed by the First Isomorphism Theorem, $A/\ker f \cong \operatorname{im} f$~\cite{burris1981universalalgebra}, which \texttt{category:image} records as a typed claim: the quotient and image are registered per homomorphism, and a supplied isomorphism is type-checked against them.
 
-\subsection{Certified laws travel with the carrier}
+\subsection{How certificates lift}
 \label{sec:hsp_varieties}
 
-What makes these carriers usable downstream is that their \emph{laws} propagate.
-A class of algebras closed under homomorphic images, subalgebras, and products is a variety (Birkhoff~\cite{burris1981universalalgebra}), and the library realises that closure as \emph{trait propagation}: when a carrier is derived by an H, S, or P construction, the species traits it satisfies (\cppinline{is_associative_v}, \cppinline{is_commutative_v}, \cppinline{is_distributive_v}, and the rest) propagate to the derived carrier, confirmed there by \cppinline{static_assert}.
-Listing~\ref{lst:hsp-closed} pins this at the cyclic base $\mathbb{Z}/6\mathbb{Z}$: the variety ``associative and commutative $+$'' stays closed across its H, S, and P images, witnessed by eight \cppinline{static_assert}s.
+A carrier's certificates, the laws it is known to satisfy, are not re-proven for each new type.
+They \emph{lift}, by two composing rules, and the section spends a listing on each because they are the mechanism everything downstream leans on.
+
+\paragraph{Rule 1: composition on the parameter.}
+Some certificates are a weaker certificate conjoined with a property of the parameter.
+A vector space is the textbook case, a module whose scalars form a field.
+The library says exactly that as a concept rather than a comment (Listing~\ref{lst:rule1-compose}), so it gates a \cppinline{requires} clause the way \cppinline{IsRing} does, and the compiler discharges it with no per-carrier opt-in.
+
+% Source excerpt from dedekind.algebra:vectorspace.
+\begin{listing}[ht]
+\caption{Rule 1: a vector space is a module over a field, one concept composed from two existing certificates.  \cppinline{is_vector_space_v} is the boolean witness the compiler discharges.}
+\label{lst:rule1-compose}
+\begin{cpp}
+template <typename V, typename F, /* operator defaults */>
+concept IsVectorSpace = IsModule<V, F, ...> && category::IsField<F, ...>;
+
+static_assert(is_vector_space_v<Vec2V<ℚ>, ℚ>);  // discharged, no per-carrier code
+\end{cpp}
+\end{listing}
+
+\paragraph{Rule 2: propagation through a constructor.}
+The other rule carries a certificate from a base carrier to one built from it.
+A class of algebras closed under homomorphic images, subalgebras, and products is a variety (Birkhoff~\cite{burris1981universalalgebra}), and the library realises that closure as \emph{trait propagation}.
+A one-line registration names the base, and the species traits (\cppinline{is_associative_v}, \cppinline{is_commutative_v}, and the rest) forward to the derived carrier for every parameter.
+The engine is small enough to show in full (Listing~\ref{lst:rule2-engine}): a registration point, the concept that reads it, and one forwarding specialisation standing for the family.
+
+% Source excerpt from dedekind.algebra:quotient.
+\begin{listing}[ht]
+\caption{Rule 2, engine core.  The H (quotient) family; P (product) and S (subalgebra) mirror it.  Registering a base is one line, and the forwarding specialisation reads the base's own trait, so no law is re-proven on the derived carrier.}
+\label{lst:rule2-engine}
+\begin{cpp}
+template <typename Q> struct quotient_algebra_base {};      // registration point
+template <typename Q>
+concept IsQuotientAlgebra = requires { typename quotient_algebra_base<Q>::type; };
+
+// The derived carrier's trait forwards to its base's trait.
+template <typename Q> requires IsQuotientAlgebra<Q>
+inline constexpr bool is_associative_v<Q, std::plus<Q>> =
+    is_associative_v<quotient_algebra_base_t<Q>, std::plus<quotient_algebra_base_t<Q>>>;
+\end{cpp}
+\end{listing}
+
+Listing~\ref{lst:hsp-closed} pins the outcome at the cyclic base $\mathbb{Z}/6\mathbb{Z}$: the variety ``associative and commutative $+$'' stays closed across its H, S, and P images, witnessed by eight \cppinline{static_assert}s.
 The gate §\ref{sec:optimization_lp} uses, \cppinline{IsSemiring}, reads this same species-trait registry; the tropical carrier registers its own entries directly rather than as an H, S, or P image, so the exhibit's gate is a registry lookup, not a re-proof.
+
+\paragraph{The two compose.}
+Rule 2 lifts \cppinline{IsModule} onto \cppinline{Vec2V<T>} for every \cppinline{T}, which is registered as a product algebra, and Rule 1 upgrades that to \cppinline{IsVectorSpace} over any field.
+Module and vector space are the first two rungs of a ladder that reaches linear operators, climbed in the subsections that follow.
 
 \begin{listing}[ht]
 \caption{Birkhoff's HSP closure typed.  Base $\mathbb{Z}/6\mathbb{Z}$ + three synthetic HSP markers wired to the carrier-side registries; the trait propagation lifts both axioms of the variety uniformly to all three HSP-derived carriers.  Any future H/S/P construction over $\mathbb{Z}/6\mathbb{Z}$ (or any other base in the variety) follows the same one-line opt-in pattern.}
