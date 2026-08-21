@@ -1010,6 +1010,40 @@ $\mathbb{R}$ & blocked by \cppinline{IsTotal} & a policy gate, not a genuine obs
 The top rung repays a closer look, because an operator wears two faces.
 The next subsection separates them.
 
+\subsection{Operators, two faces}
+\label{sec:operators_two_faces}
+\label{sec:operational_calculus}
+\label{sec:geometric_mappings}
+
+The operators at the top of the ladder come in two forms, and \texttt{dedekind} keeps both.
+
+\paragraph{Materialised: matrices.}
+The first face is the endomorphism ring $M_2(F) = \operatorname{End}(V)$ of §\ref{sec:certificate_ladder}: an operator is an endofunction on the carrier, written as a grid of coefficients, and composition is matrix multiplication.
+Here the honest edge is sharpest, because the rung has three layers and only two are mechanical.
+That an operator is \emph{linear} the compiler checks as a concept, \cppinline{IsLinearMorphism} ($f(s \cdot x) = s \cdot f(x)$), and that the matrices carry a ring is another, \cppinline{HasRingOperators}.
+But the identity that this ring \emph{is} the endomorphism ring, $M_2(F) = \operatorname{End}(V)$, is registered as a trait rather than derived as a concept, because no concept derives it from the operator surface alone.
+It is a declaration the author makes and the compiler records, the honesty obligation of §\ref{sec:introduction} arriving at the top of the ladder.
+
+\paragraph{Coordinate-free: boundary and coboundary.}
+The second face never builds the grid.
+With the carriers of §\ref{sec:algebraic_lattice_carriers} in place, the linear algebra over them stays matrix-free: the two operators a graph actually needs are kept as structural mappings between functions on its cells.
+A graph is a one-dimensional complex, a node potential a 0-form $d : \mathcal{V} \to S$, an edge value a 1-form on $\mathcal{E}$.
+The \emph{coboundary} $\delta$ is the discrete gradient, sending a node 0-form to the edge 1-form of its differences,
+\begin{equation}
+    (\delta d)(u \to v) = d(v) - d(u),
+\end{equation}
+and the \emph{boundary} $\partial$ is its adjoint, sending a directed chain to its signed endpoints, $\partial[\,s \to t\,] = \{t\} - \{s\}$.
+Neither is materialised; each is an expression over the incidence structure, the intensional reading of §\ref{sec:intensional_sets} carried up from sets to operators.
+The mnemonic is calculus: $\delta$ is the differential, $\partial$ is evaluation at the endpoints, and the discrete Stokes theorem $\int_\gamma \delta d = \langle d,\ \partial\gamma\rangle$ ties them.
+
+The two faces meet in the graph Laplacian $\Delta = \delta\partial + \partial\delta$, an endomorphism assembled from the grade-shifting maps that individually are not.
+They also pose the problem §\ref{sec:optimization_lp} solves: the critical-path duration is the boundary pairing $\langle d,\ \partial\gamma\rangle = d(t) - d(s)$, and the precedence constraints the coboundary bound $\delta d \ge c$, so the dual program is
+\begin{equation}
+    \text{minimise}\ \langle d,\ \partial\gamma\rangle \quad\text{s.t.}\quad \delta d \ge c .
+\end{equation}
+Section~\ref{sec:optimization_lp} is that program's solver in the tropical semiring, its closure the integral that inverts $\delta$, accumulating cost along paths to recover $d$ (a fold, not a reified operator).
+So these operators are not adjacent to the exhibit; they are what it is written in.
+
 \subsection{Dual numbers, for the sensitivity exhibit}
 \label{sec:dual_numbers_quotient}
 
@@ -1030,30 +1064,6 @@ constexpr Dual<Rat> eps{Rat{0}, Rat{1}};
 static_assert(as_matrix2x2(eps) * as_matrix2x2(eps) == zero_matrix2x2_v<Rat>);
 \end{cpp}
 \end{listing}
-
-\section{Coordinate-Free Operators: Boundary and Coboundary}
-\label{sec:operational_calculus}
-\label{sec:geometric_mappings}
-
-With the carriers of §\ref{sec:algebraic_lattice_carriers} in place, the linear algebra over them stays coordinate-free.
-A linear map is not stored as a grid of coefficients and walked by index; the two operators a graph actually needs are kept as structural, matrix-free mappings between functions on its cells.
-A graph is a one-dimensional complex: a node potential is a 0-form $d : \mathcal{V} \to S$, an edge value a 1-form on $\mathcal{E}$.
-
-The \emph{coboundary} $\delta$ is the discrete gradient, sending a node 0-form to the edge 1-form of its differences,
-\begin{equation}
-    (\delta d)(u \to v) = d(v) - d(u),
-\end{equation}
-and the \emph{boundary} $\partial$ is its adjoint, sending a directed chain to its signed endpoints, $\partial[\,s \to t\,] = \{t\} - \{s\}$.
-Neither is materialised; each is an expression over the incidence structure.
-The mnemonic is calculus: $\delta$ is the differential (a difference of potentials), $\partial$ is evaluation at the endpoints, and the discrete Stokes theorem $\int_\gamma \delta d = \langle d,\ \partial\gamma\rangle$ ties them.
-
-These two operators are what pose the problem §\ref{sec:optimization_lp} solves.
-The critical-path duration is the boundary pairing $\langle d,\ \partial\gamma\rangle = d(t) - d(s)$, and the precedence constraints are the coboundary bound $\delta d \ge c$, so the dual program is
-\begin{equation}
-    \text{minimise}\ \langle d,\ \partial\gamma\rangle \quad\text{s.t.}\quad \delta d \ge c .
-\end{equation}
-Section~\ref{sec:optimization_lp} is that program's solver in the tropical semiring: its closure is the integral that inverts $\delta$, accumulating cost along paths to recover $d$ (realised as a fold, not a reified operator).
-So this section is not adjacent to the exhibit; it supplies the operators the exhibit is written in.
 
 \section{Optimization by Semiring Closure}
 \label{sec:optimization_lp}
