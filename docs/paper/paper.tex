@@ -320,8 +320,8 @@ All of these are properties that defeat static verification.
 The \emph{Juliet Posture} ($\mathbf{Jlt}$) is therefore defined as a disciplined fragment of standard \Cpp{23} which is characterized by constraints that force standard code to behave like an ideal type system:
 
 \begin{enumerate}
-    \item \textbf{Equational Extensionality:} We restrict acceptable objects to types satisfying the \Cpp{} standard concept \texttt{std::regular}.
-    Values must possess a stable identity, ensuring that $a = b \implies f(a) = f(b)$.
+    \item \textbf{Equational Extensionality:} We restrict acceptable objects to types satisfying the \Cpp{} standard concept \texttt{std::regular}, for two reasons.
+    Values must possess a stable identity, ensuring that $a = b \implies f(a) = f(b)$ (which \texttt{std::equality\_comparable} alone would already secure); and \texttt{std::regular}'s transparent value semantics let computation stay type-blind, the zero-cost image of System~F type erasure (Appendix~\ref{app:jlt-systemf}).
     \item \textbf{Pure, Terminating Arrows:} Morphisms are restricted to \texttt{constexpr} lambda expressions.
     Mutable captures and \texttt{reinterpret\_cast} are ruled out, thus enforcing effect-free evaluation and bounded template instantiation depth.
     \item \textbf{Cartesian Closure:} Products are mapped to \texttt{std::pair} with structured bindings, and exponentials to first-class lambdas that package arrows as values.
@@ -842,13 +842,13 @@ concept IsAlgebraOnSet =
 \begin{minipage}[t]{0.47\linewidth}
 a sample algebra: the monoid
 \begin{cpp}
-template <class T, class Op>
-concept IsMagma  = IsTotal<T,Op>
-                && /* Op closed on T */;
-template <class T, class Op>
-concept IsMonoid = IsMagma<T,Op>    // closure
-   && IsAssociative<T,Op>  // semigroup
-   && IsPointed<T,Op>;     // has a unit
+export template <typename T, typename Op>
+concept IsMagma  = IsTotal<T, Op>
+                && /* Op closes: A×A → A */;
+export template <typename T, typename Op>
+concept IsMonoid = IsMagma<T, Op>       // closure
+   && IsAssociative<T, Op>   // + assoc
+   && IsPointed<T, Op>;      // + unit
 \end{cpp}
 \end{minipage}
 \end{listing}
