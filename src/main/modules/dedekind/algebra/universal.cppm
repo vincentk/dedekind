@@ -151,9 +151,9 @@ concept IsAlgebra = std::regular<T> && (... && IsClosedUnderEither<T, Ops>);
  * The definition factors as @c Ddk @c = @c Trsk @c ∩ @c Alg:
  *   - @c IsSet<X> is the @c Trsk (set) half: @c X satisfies the full ETCS set
  *     contract (not merely @c IsArrow), so @c X::Domain stays well-formed.
- *   - Closure of each @c Op is the @c Alg half.  Algebraic closure is the
- *     defining property of an algebraic set, so it is surfaced as its own
- *     conjunct rather than left implicit inside @c IsAlgebra.
+ *   - @c IsAlgebra is the @c Alg half: a @c std::regular carrier whose
+ *     operations close.  The closure check lives inside @c IsAlgebra (which
+ *     @b is @c regular @c && @c closure), so it is not surfaced a second time.
  *     @c IsClosedUnderEither admits exactly the two operation shapes the
  *     carrier uses: a unary @c Op is already an endomap @c A @c → @c A, and a
  *     binary @c Op @c A×A @c → @c A @b corresponds to endomorphisms once one
@@ -165,7 +165,6 @@ concept IsAlgebra = std::regular<T> && (... && IsClosedUnderEither<T, Ops>);
 export template <typename X, typename... Ops>
 concept IsAlgebraOnSet =
     dedekind::category::IsSet<X> &&
-    (... && IsClosedUnderEither<typename X::Domain, Ops>) &&
     IsAlgebra<typename X::Domain, Ops...>;
 
 // ---------------------------------------------------------------------------
