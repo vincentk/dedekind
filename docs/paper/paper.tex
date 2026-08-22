@@ -891,7 +891,7 @@ concept IsMonoid = IsSet<X>
 \begin{listing}[!ht]
 \caption{Concrete carriers inhabiting Listing~\ref{lst:algebra:universal}, shown at the \emph{pointwise} (element) layer --- every check is on the element type \cppinline{X::Domain}.  The complementary \emph{set} layer for these carriers (membership and the $\cup,\cap$ subobject lattice) is Listing~\ref{lst:pruning}.
 \textbf{Left:} \cppinline{bool}, at once a lattice under the logical operators $(\vee,\wedge)$ and the field $\mathbb{F}_2$ under the bitwise operators $(\oplus,\wedge)$.
-\textbf{Right:} \cppinline{std::size_t}, the modular ring $\mathbb{Z}/2^{64}\mathbb{Z}$ under $(+,\times)$; composite carriers such as $\mathbb{Q}$ appear in \S\ref{sec:hsp_varieties}.}
+\textbf{Right:} \cppinline{std::size_t}, the modular ring $\mathbb{Z}/2^{w}\mathbb{Z}$ under $(+,\times)$ (width $w$ implementation-defined); composite carriers such as $\mathbb{Q}$ appear in \S\ref{sec:hsp_varieties}.}
 \label{lst:algebra:boolean_case}
 \noindent
 \begin{minipage}[t]{0.52\linewidth}
@@ -925,7 +925,7 @@ Listing~\ref{lst:algebra:universal} reifies the \emph{algebraic sets} of Figure~
 \label{eqn:ddk}
     \mathbf{Ddk} \;=\; \mathbf{Trsk} \,\cap\, \mathbf{Alg}(-).
 \end{equation}
-Listing~\ref{lst:algebra:boolean_case} exhibits two primitive inhabitants at the pointwise layer: \cppinline{bool} (a lattice and the field $\mathbb{F}_2$) and \cppinline{std::size_t} (the modular ring $\mathbb{Z}/2^{64}\mathbb{Z}$); their set layer is Listing~\ref{lst:pruning}, and composite carriers such as $\mathbb{Q}$ follow in \S\ref{sec:hsp_varieties}.\footnote{The two operator layers carry two \emph{different} theories.  The pointwise operations $(+,\times)$ make the carrier a model of a finitary Lawvere theory, i.e.\ the algebras of a free-$\Sigma$ term monad~\cite{hylandpower2007}; the set operations $(\cup,\cap)$ come from the powerset functor, whose Eilenberg--Moore algebras are complete lattices, not rings.  The set-indexed concept pairs the two, and is deliberately \emph{not} the Eilenberg--Moore construction of the powerset monad.}
+Listing~\ref{lst:algebra:boolean_case} exhibits two primitive inhabitants at the pointwise layer: \cppinline{bool} (a lattice and the field $\mathbb{F}_2$) and \cppinline{std::size_t} (the modular ring $\mathbb{Z}/2^{w}\mathbb{Z}$, width $w$ implementation-defined); their set layer is Listing~\ref{lst:pruning}, and composite carriers such as $\mathbb{Q}$ follow in \S\ref{sec:hsp_varieties}.\footnote{The two operator layers carry two \emph{different} theories.  The pointwise operations $(+,\times)$ make the carrier a model of a finitary Lawvere theory, i.e.\ the algebras of a free-$\Sigma$ term monad~\cite{hylandpower2007}; the set operations $(\cup,\cap)$ come from the powerset functor, whose Eilenberg--Moore algebras are complete lattices, not rings.  The set-indexed concept pairs the two, and is deliberately \emph{not} the Eilenberg--Moore construction of the powerset monad.}
 
 \subsection{Mechanical Support for Advanced Carriers}
 \label{sec:hsp_varieties}
@@ -961,7 +961,7 @@ This reaches exactly the Birkhoff-closed constructions, product, quotient, and s
 
 % Source excerpts from dedekind.algebra:quotient and dedekind.analysis:dual.
 \begin{listing}[!ht]
-\caption{The HSP combinators (left) and one application (right).  Registering \cppinline{Dual} as a quotient of \cppinline{F} forwards \cppinline{F}'s ring certificate to the dual numbers $\mathbb{D} = F[\varepsilon]/(\varepsilon^2)$, and the nilpotent axiom $\varepsilon^2 = 0$ is checked at compile time.  The H (quotient) family is shown; P (product) and S (subalgebra) mirror it.}
+\caption{The HSP combinators (left) and one application (right).  The dual numbers $\mathbb{D} = F[\varepsilon]/(\varepsilon^2)$ are the quotient of the polynomial ring $F[x]$; registering \cppinline{F} as the trait-propagation base of \cppinline{Dual<F>} forwards \cppinline{F}'s ring traits to $\mathbb{D}$, and the nilpotent axiom $\varepsilon^2 = 0$ is checked at compile time.  The H (quotient) family is shown; P (product) and S (subalgebra) mirror it.}
 \label{lst:hsp-combinators}
 \noindent
 \begin{minipage}[t]{0.52\linewidth}
@@ -983,8 +983,8 @@ inline constexpr bool is_associative_v<Q, std::plus<Q>> =
 \begin{minipage}[t]{0.45\linewidth}
 a success: the dual numbers $\mathbb{D}$
 \begin{cpp}
-// 𝔻 = F[ε]/(ε²): one line registers
-//   the quotient of F...
+// 𝔻 = F[ε]/(ε²) = F[x]/(ε²); register
+//   F as the trait-propagation base...
 template <typename F> requires std::regular<F>
 struct quotient_algebra_base<Dual<F>> {
   using type = F;
@@ -1013,6 +1013,7 @@ Materialised, an operator is the matrix ring $M_n(F) = \operatorname{End}(V)$, t
 using Q = Rational<default_integer>;         // scalar: ℚ = Frac(ℤ)
 using V = Vec2V<Q>;  using M = Matrix2x2V<Q>;
 
+static_assert(IsField<Q>);                   // scalar: ℚ is a field
 static_assert(is_module_v<V, Q>);            // module
 static_assert(is_vector_space_v<V, Q>);      // vector space  (Rule 1)
 static_assert(is_endomorphism_ring_v<M, V>); // operator: M₂ = End(V)
@@ -1632,7 +1633,7 @@ Module / v.\ space & \cppinline{IsModule} / \cppinline{IsVectorSpace} & \cppinli
 \label{sec:appendixE-lift}
 
 This appendix is the deep dive behind §\ref{sec:hsp_varieties}: the HSP combinators of Listing~\ref{lst:hsp-combinators} put to work across all three families and both lift rules.
-Registering \cppinline{Vec2V} is the single line \cppinline{template <typename T> struct product_algebra_base<Vec2V<T>> { using type = T; };}, after which every species trait \cppinline{Vec2V<T>} carries forwards to \cppinline{T}; that is why \cppinline{IsModule} holds for the whole family and Rule 1 upgrades it to \cppinline{IsVectorSpace} over any field.
+Registering \cppinline{Vec2V} is the single line \cppinline{template <typename T> struct product_algebra_base<Vec2V<T>> { using type = T; };}, which makes \cppinline{T} the base: \cppinline{T}'s species traits carry forward to \cppinline{Vec2V<T>}.  So whenever \cppinline{T} is a ring, \cppinline{IsModule<Vec2V<T>, T>} follows once the ring, identity, inverse, and action witnesses hold, and Rule 1 upgrades it to \cppinline{IsVectorSpace} over any field.
 A synthetic base makes the closure visible end to end (Listing~\ref{lst:hsp-closed}): three markers stand for the H, S, and P images of $\mathbb{Z}/6\mathbb{Z}$, and the variety ``associative and commutative $+$'' propagates to all three, witnessed by eight \cppinline{static_assert}s.
 
 \begin{listing}[ht]
