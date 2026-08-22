@@ -984,14 +984,18 @@ inline constexpr bool is_associative_v<Q, std::plus<Q>> =
 a success: the dual numbers $\mathbb{D}$
 \begin{cpp}
 // 𝔻 = F[ε]/(ε²) = F[x]/(ε²); register
-//   F as the trait-propagation base...
+//   F as the trait-propagation base:
 template <typename F> requires std::regular<F>
 struct quotient_algebra_base<Dual<F>> {
   using type = F;
 };
 
-// ...and F's ring cert is now 𝔻's:
-static_assert(HasRingOperators<Dual<int>>);
+// a forwarded trait: 𝔻's commutativity
+//   IS F's, via quotient_algebra_base:
+static_assert(is_commutative_v<Dual<int>,
+                std::plus<Dual<int>>>);
+// nilpotent core, evaluated directly:
+constexpr Dual<int> eps{0, 1};
 static_assert(eps * eps == Dual<int>{0,0});
 \end{cpp}
 \end{minipage}
