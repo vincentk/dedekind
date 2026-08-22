@@ -316,8 +316,8 @@ concept IsSubobject = requires(S s, typename S::Member m, A const& a) {
   { s(a) } -> LogicalValue;
 
   // Metadata verification: The declared ambient must match A.
-  typename S::Ambient;
-  requires std::same_as<typename S::Ambient, A>;
+  typename S::Domain;
+  requires std::same_as<typename S::Domain, A>;
 };
 
 /**
@@ -330,7 +330,7 @@ concept IsSubobject = requires(S s, typename S::Member m, A const& a) {
  */
 export template <typename A, typename Chi>
 struct Subobject {
-  using Ambient = A;
+  using Domain = A;
 
   /** @brief The logic species @c L is derived from the characteristic
    *  morphism's codomain @c Cod<Chi> via @c GetLogic.  Concretely:
@@ -488,9 +488,9 @@ concept IsQuotient = requires(Q q) {
   { q.r } -> IsPredicate;
 
   // Metadata verification: declared ambient must match A.
-  typename Q::Ambient;
+  typename Q::Domain;
   typename Q::Class;
-  requires std::same_as<typename Q::Ambient, A>;
+  requires std::same_as<typename Q::Domain, A>;
 
   // Arrow signatures: q : A ⟶ Q::Class.
   requires std::same_as<Dom<decltype(q.q)>, A>;

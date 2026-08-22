@@ -89,7 +89,7 @@ namespace {
 // functions land in Slice 9 with the :etcs harmonisation; this fixture
 // exists to prove the concept's metadata clause fires structurally.
 struct FauxSubobject {
-  using Ambient = bool;
+  using Domain = bool;
   using logic_species = dedekind::category::ClassicalLogic;
 };
 
@@ -111,7 +111,7 @@ TEST_CASE(
    *  commit: the metadata shape is what we want, and the carriers
    *  already expose @c Ambient + @c logic_species. */
   STATIC_CHECK(IsLogicalSpecies<FauxSubobject::logic_species>);
-  STATIC_CHECK(std::same_as<FauxSubobject::Ambient, bool>);
+  STATIC_CHECK(std::same_as<FauxSubobject::Domain, bool>);
 
   /** @brief Negative witness: without @c SubsetEqRel + the free
    *         functions, the full concept does @b not fire.  Slice 9

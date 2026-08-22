@@ -436,8 +436,8 @@ static_assert(
  *
  * @code
  *   AlgebraAsProduct<A, Set, Ops...>
- *     := IsSetObject<Set, Set::Ambient>        (Set is a set object)
- *      ∧ HasCarrier<A, Set::Ambient, Ops...>   (A has Set::Ambient as
+ *     := IsSetObject<Set, Set::Domain>        (Set is a set object)
+ *      ∧ HasCarrier<A, Set::Domain, Ops...>   (A has Set::Domain as
  *                                               carrier with these Ops)
  * @endcode
  *
@@ -452,7 +452,7 @@ static_assert(
  * @tparam A    The algebra (whole).
  * @tparam Set  The underlying set object (an @c IsSetObject; the left
  *              part of the (Set, Operations) pair).
- * @tparam Ops  The operations on @c Set::Ambient (the right part).
+ * @tparam Ops  The operations on @c Set::Domain (the right part).
  *
  * @see @c HasCarrier above (element-level sibling, this partition).
  * @see @c SetAsProduct (set-level sibling, @c :category:concrete; #644
@@ -461,8 +461,8 @@ static_assert(
  */
 export template <typename A, typename Set, typename... Ops>
 concept AlgebraAsProduct =
-    dedekind::category::IsSetObject<Set, typename Set::Ambient> &&
-    HasCarrier<A, typename Set::Ambient, Ops...>;
+    dedekind::category::IsSetObject<Set, typename Set::Domain> &&
+    HasCarrier<A, typename Set::Domain, Ops...>;
 
 // Pilot witness for AlgebraAsProduct ships in #573 slice 4 (#646) ---
 // see Rational<I>'s static_assert at its definition site.  Witnesses

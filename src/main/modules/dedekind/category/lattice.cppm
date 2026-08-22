@@ -854,16 +854,16 @@ concept IsSubobjectFamilyMember = requires {
    *  types, and the family-membership check is properties-of-the-
    *  type, not properties-of-the-expression-category (#712 review,
    *  Copilot). */
-  typename std::remove_cvref_t<R>::Ambient;
+  typename std::remove_cvref_t<R>::Domain;
   typename std::remove_cvref_t<R>::logic_species;
-  requires std::same_as<typename std::remove_cvref_t<R>::Ambient, A>;
+  requires std::same_as<typename std::remove_cvref_t<R>::Domain, A>;
   requires std::same_as<typename std::remove_cvref_t<R>::logic_species, L>;
 };
 
 /**
  * @concept IsSubobjectLattice
  * @brief A type @c S is the carrier of a subobject lattice over
- *        @c S::Ambient, with lattice structure induced pointwise from
+ *        @c S::Domain, with lattice structure induced pointwise from
  *        the classifier @c S::logic_species::Ω.
  *
  * @details
@@ -914,21 +914,21 @@ export template <typename S>
 concept IsSubobjectLattice = requires(S a, S b) {
   /** @brief CT-vocabulary metadata: @c S exposes an ambient and a
    *         classifier logic species. */
-  typename S::Ambient;
+  typename S::Domain;
   typename S::logic_species;
   requires IsLogicalSpecies<typename S::logic_species>;
 
   /** @brief CT-vocabulary free functions for the binary lattice
    *         operations (binary product / coproduct in the subobject
    *         category).  Results inhabit the same subobject family —
-   *         anchored on @c (S::Ambient, S::logic_species) per the
+   *         anchored on @c (S::Domain, S::logic_species) per the
    *         family concept. */
   {
     meet(a, b)
-  } -> IsSubobjectFamilyMember<typename S::Ambient, typename S::logic_species>;
+  } -> IsSubobjectFamilyMember<typename S::Domain, typename S::logic_species>;
   {
     join(a, b)
-  } -> IsSubobjectFamilyMember<typename S::Ambient, typename S::logic_species>;
+  } -> IsSubobjectFamilyMember<typename S::Domain, typename S::logic_species>;
 } && requires(S a) {
   /** @brief Complement is required unconditionally: classical carriers
    *         get a bona-fide Boolean complement, Kleene carriers get
@@ -937,7 +937,7 @@ concept IsSubobjectLattice = requires(S a, S b) {
    *         at the @c L-witness level, not the concept boundary. */
   {
     complement(a)
-  } -> IsSubobjectFamilyMember<typename S::Ambient, typename S::logic_species>;
+  } -> IsSubobjectFamilyMember<typename S::Domain, typename S::logic_species>;
 };
 
 /** @section lattice__IsSubobjectLattice_Order_Derivability

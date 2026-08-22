@@ -72,8 +72,8 @@ TEST_CASE("discrete_lift_t distinguishes refined subobjects of ℚ",
   using S2 = decltype(open_unit_interval);
 
   // Same ambient, distinct types.
-  STATIC_CHECK(std::same_as<typename S1::Ambient, Rational<default_integer>>);
-  STATIC_CHECK(std::same_as<typename S2::Ambient, Rational<default_integer>>);
+  STATIC_CHECK(std::same_as<typename S1::Domain, Rational<default_integer>>);
+  STATIC_CHECK(std::same_as<typename S2::Domain, Rational<default_integer>>);
   STATIC_CHECK_FALSE(std::same_as<S1, S2>);
 
   // The lift produces distinct discrete categories — subobject
@@ -163,7 +163,7 @@ TEST_CASE("discrete_lift_t illustrates 'simple set vs. complex algebra' on 𝔹"
 
   // Simple-view structural facts.
   STATIC_CHECK(IsSet<BoolSet>);
-  STATIC_CHECK(std::same_as<typename BoolSet::Ambient, bool>);
+  STATIC_CHECK(std::same_as<typename BoolSet::Domain, bool>);
 
   // Disc(𝔹) is the discrete category on the 2-element ambient.
   using DiscB = discrete_lift_t<BoolSet>;

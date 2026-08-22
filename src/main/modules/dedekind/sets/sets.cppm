@@ -95,7 +95,7 @@ struct set_meet {
  *         convertible to the set's logic species @c Ω. */
 export template <typename S>
 concept HasMembershipOperator =
-    requires(const S& s, const typename S::Ambient& v) {
+    requires(const S& s, const typename S::Domain& v) {
       { s(v) } -> std::convertible_to<typename S::logic_species::Ω>;
     };
 

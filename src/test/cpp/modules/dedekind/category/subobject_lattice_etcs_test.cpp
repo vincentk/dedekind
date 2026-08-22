@@ -50,6 +50,6 @@ TEST_CASE("category:subobject-lattice-etcs — Subobject exposes logic_species",
    *         returning @c bool resolve to @c ClassicalLogic. */
   auto pred = [](const bool&) { return true; };
   using SubBool = decltype(classify<bool>(pred));
-  STATIC_CHECK(std::same_as<SubBool::Ambient, bool>);
+  STATIC_CHECK(std::same_as<SubBool::Domain, bool>);
   STATIC_CHECK(std::same_as<SubBool::logic_species, ClassicalLogic>);
 }

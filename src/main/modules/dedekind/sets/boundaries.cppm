@@ -68,8 +68,6 @@ struct Ø final {
   // ~ arrow / morphism / subobject classifier jargon
   using Domain = T;
   using Codomain = typename L::Ω;
-  // ~ set expressions jargon:
-  using Ambient = T;
 
   // ~ topoi jargon;
   /** @brief Member-shape mirror of Subobject's.  Vacuously inhabited (Ø has
@@ -178,26 +176,26 @@ struct Ø final {
     return s;
   }
 
-  /** @brief Ø × S = Ø<pair<T, S::Ambient>, L> — empty annihilates the
+  /** @brief Ø × S = Ø<pair<T, S::Domain>, L> — empty annihilates the
    *         cartesian product on the @b left.  Carrier widens to the
    *         pair type so the result is type-correct as a set of pairs. */
   template <typename S>
     requires(IsSet<S>)
   constexpr auto operator*(const S&) const {
-    return Ø<std::pair<T, typename S::Ambient>, L>{};
+    return Ø<std::pair<T, typename S::Domain>, L>{};
   }
 };
 
 template <typename T, typename L>
 inline const Ø<T, L> Ø<T, L>::χ{};
 
-/** @brief S × Ø = Ø<pair<S::Ambient, T2>, L> — empty annihilates the
+/** @brief S × Ø = Ø<pair<S::Domain, T2>, L> — empty annihilates the
  *         cartesian product on the @b right.  Symmetric companion to
  *         @c Ø::operator*; carrier widens to the pair type. */
 export template <typename S, typename T2, typename L>
-  requires(IsSet<S> && !std::same_as<S, Ø<typename S::Ambient, L>>)
+  requires(IsSet<S> && !std::same_as<S, Ø<typename S::Domain, L>>)
 constexpr auto operator*(const S&, const Ø<T2, L>&) {
-  return Ø<std::pair<typename S::Ambient, T2>, L>{};
+  return Ø<std::pair<typename S::Domain, T2>, L>{};
 }
 
 /**
@@ -222,8 +220,6 @@ struct UniversalSet final {
   // ~ arrow / morphism / subobject classifier jargon
   using Domain = T;
   using Codomain = typename L::Ω;
-  // ~ set expressions jargon:
-  using Ambient = T;
 
   // ~ topoi jargon;
   /** @brief Member-shape mirror of Subobject's: every element of T

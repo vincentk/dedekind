@@ -574,8 +574,6 @@ class Set {
   // ~ arrow / morphism / subobject classifier jargon
   using Domain = T;
   using Codomain = typename L::Ω;
-  // ~ set expressions jargon:
-  using Ambient = T;
 
   // ~ topoi jargon: Member-shape mirror of Subobject's; the IsSubobject
   // contract reads the Member-to-T projection through ι below.  Same

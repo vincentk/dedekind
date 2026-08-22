@@ -39,7 +39,7 @@ TEST_CASE("Concrete: SetAsProduct seam — Set := (Underlying, Classifier)",
     STATIC_CHECK(SetAsProduct<decltype(s_even), int, ClassifierΩ>);
   }
 
-  SECTION("Underlying must match S::Ambient") {
+  SECTION("Underlying must match S::Domain") {
     // A wrong Underlying must not satisfy the concept (fails on the
     // IsSetObject prerequisite, not on the Classifier match).
     STATIC_CHECK_FALSE(SetAsProduct<decltype(s_even), bool, ClassifierΩ>);

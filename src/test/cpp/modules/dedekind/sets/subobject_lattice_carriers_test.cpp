@@ -11,7 +11,7 @@
  *   - The free @c meet / @c join / @c complement (Slice 9 added the
  *     @c complement alias in @c :etcs::concrete) produce
  *     @c IsSubobjectFamilyMember-shaped results — the family is
- *     anchored on (@c S::Ambient, @c S::logic_species).
+ *     anchored on (@c S::Domain, @c S::logic_species).
  *
  * The concept body uses @b structural recognition: it checks the
  * carrier's CT-vocabulary metadata (Ambient + logic_species) plus the

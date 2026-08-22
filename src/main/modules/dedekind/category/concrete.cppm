@@ -81,8 +81,8 @@ namespace dedekind::category {
  */
 export template <typename S, typename A>
 concept IsSetObject = IsSubobject<S, A> && requires {
-  typename S::Ambient;
-  requires std::same_as<typename S::Ambient, A>;
+  typename S::Domain;
+  requires std::same_as<typename S::Domain, A>;
 };
 
 /**
@@ -93,7 +93,7 @@ concept IsSetObject = IsSubobject<S, A> && requires {
  * @details
  * Names the @em product reading of a set object explicitly --- a set is a
  * pair of (i) its underlying ambient species @p Underlying, accessed
- * type-level via @c S::Ambient, and (ii) its classifier codomain
+ * type-level via @c S::Domain, and (ii) its classifier codomain
  * @p Classifier, recognised structurally via the call shape
  * @c S(a) @c -> @c Classifier.  Sibling to @c IsSetObject, which names
  * the @em predicate reading "S is a subobject of A".  The two readings
@@ -192,8 +192,8 @@ concept IsConcrete = IsSmallCategory<C> && IsSpecies<typename C::Species>;
  */
 export template <typename S>
 concept HasTernarySupport =
-    IsSubobject<S, typename S::Ambient> &&
-    std::same_as<std::invoke_result_t<S const&, typename S::Ambient const&>,
+    IsSubobject<S, typename S::Domain> &&
+    std::same_as<std::invoke_result_t<S const&, typename S::Domain const&>,
                  Ternary>;
 
 /**
@@ -202,11 +202,11 @@ concept HasTernarySupport =
  */
 export template <typename S1, typename S2>
 concept IsCompatibleSetPair =
-    IsSubobject<S1, typename S1::Ambient> &&
-    IsSubobject<S2, typename S2::Ambient> &&
-    std::same_as<typename S1::Ambient, typename S2::Ambient> &&
-    std::same_as<std::invoke_result_t<S1 const&, typename S1::Ambient const&>,
-                 std::invoke_result_t<S2 const&, typename S2::Ambient const&>>;
+    IsSubobject<S1, typename S1::Domain> &&
+    IsSubobject<S2, typename S2::Domain> &&
+    std::same_as<typename S1::Domain, typename S2::Domain> &&
+    std::same_as<std::invoke_result_t<S1 const&, typename S1::Domain const&>,
+                 std::invoke_result_t<S2 const&, typename S2::Domain const&>>;
 
 /** @brief Set intersection: materialize @c A @c ∩ @c B from the
  *         carriers-as-predicates @c S1, @c S2.  Post-#681 structural
@@ -217,7 +217,7 @@ concept IsCompatibleSetPair =
 export template <typename S1, typename S2>
   requires IsCompatibleSetPair<S1, S2>
 constexpr auto set_intersection(const S1& lhs, const S2& rhs) {
-  using A = typename S1::Ambient;
+  using A = typename S1::Domain;
   using L = typename GetLogic<std::invoke_result_t<S1 const&, A const&>>::type;
   return classify<A>([lhs, rhs](const A& a) { return L::AND(lhs(a), rhs(a)); });
 }
@@ -227,7 +227,7 @@ constexpr auto set_intersection(const S1& lhs, const S2& rhs) {
 export template <typename S1, typename S2>
   requires IsCompatibleSetPair<S1, S2>
 constexpr auto set_union(const S1& lhs, const S2& rhs) {
-  using A = typename S1::Ambient;
+  using A = typename S1::Domain;
   using L = typename GetLogic<std::invoke_result_t<S1 const&, A const&>>::type;
   return classify<A>([lhs, rhs](const A& a) { return L::OR(lhs(a), rhs(a)); });
 }
@@ -235,9 +235,9 @@ constexpr auto set_union(const S1& lhs, const S2& rhs) {
 /** @brief Set complement: materialize @c A^c from carrier-as-predicate.
  *         Uses @c L::NOT directly per #715 review. */
 export template <typename S>
-  requires IsSubobject<S, typename S::Ambient>
+  requires IsSubobject<S, typename S::Domain>
 constexpr auto set_complement(const S& s) {
-  using A = typename S::Ambient;
+  using A = typename S::Domain;
   using L = typename GetLogic<std::invoke_result_t<S const&, A const&>>::type;
   return classify<A>([s](const A& a) { return L::NOT(s(a)); });
 }
@@ -245,8 +245,8 @@ constexpr auto set_complement(const S& s) {
 /** @brief Membership: @c x @c ∈ @c S evaluated via @c S's structural
  *         call (the carrier IS the characteristic morphism). */
 export template <typename S>
-  requires IsSubobject<S, typename S::Ambient>
-constexpr auto in(const typename S::Ambient& x, const S& s) {
+  requires IsSubobject<S, typename S::Domain>
+constexpr auto in(const typename S::Domain& x, const S& s) {
   return s(x);
 }
 
@@ -256,8 +256,8 @@ constexpr auto in(const typename S::Ambient& x, const S& s) {
  *        @c s(e(x)).
  */
 export template <typename S, IsArrow E>
-  requires IsSubobject<S, typename S::Ambient> &&
-           std::same_as<Cod<E>, typename S::Ambient>
+  requires IsSubobject<S, typename S::Domain> &&
+           std::same_as<Cod<E>, typename S::Domain>
 constexpr auto in_via(const Dom<E>& x, E&& embedding, const S& s) {
   return s(std::forward<E>(embedding)(x));
 }
@@ -310,7 +310,7 @@ constexpr auto join(const S1& lhs, const S2& rhs) {
  *  the semantic strength is established at the @c L-witness level
  *  (Slice 7's @c is_complement_v opt-in trait). */
 export template <typename S>
-  requires IsSubobject<S, typename S::Ambient>
+  requires IsSubobject<S, typename S::Domain>
 constexpr auto complement(const S& s) {
   return set_complement(s);
 }
