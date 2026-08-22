@@ -133,8 +133,8 @@
     semiring closure, under the disciplined fragment of C++23 described
     here.
     The implementation is open source as \texttt{dedekind}~\cite{dedekind2026};
-    the broader library (categorical foundations, algebra tower, numeric
-    tower, geometry, linear algebra, morphologies, Python facade) is
+    the broader library (categorical foundations, algebra, numbers,
+    geometry, linear algebra, morphologies, Python facade) is
     documented in the companion Report distributed alongside the source
     tree.}}
 \author{The \texttt{dedekind} Authors}
@@ -229,7 +229,7 @@ Figure~\ref{fig:hub-spoke-bnz} sketches the domain of the first pillar.
 It is deliberately vanilla: carrier sets such as $\mathbb{B}, \mathbb{N}, \mathbb{Z}$ with the arithmetic and set operations of elementary mathematics, packaged as algebraic structures.
 Throughout, a \emph{carrier} is such an underlying set (the bottom row of Figure~\ref{fig:hub-spoke-bnz}), and an \emph{algebraic set} is a carrier decorated with operations (a tier above it).
 The rules are not in doubt, being pre-validated and universally agreed, yet only very little is reified and programmatically accessible: a C++ operator or method signature may carry closure, but only little in terms of associativity, no distributivity, no units and no inverses.
-Supplying that knowledge once, and letting the compiler enforce it thereafter, is what turns these familiar rules into build-time checks and optimizations; Appendix~\ref{sec:trait-registry} records which laws the type system can and cannot certify, and Appendix~\ref{sec:carrier-rosetta} catalogues them across the lattice of carriers.
+Supplying that knowledge once, and letting the compiler enforce it thereafter, is what turns these familiar rules into build-time checks and optimizations; Appendix~\ref{sec:trait-registry} records which laws the type system can and cannot certify, and Appendix~\ref{sec:carrier-rosetta} catalogues them across the poset of carriers.
 
 \begin{figure}[htbp]
 \centering
@@ -248,21 +248,13 @@ The steps of a single development cycle are:
 \label{fig:target_model}
 \end{figure}
 
-Practical boundaries of this architecture were anticipated: general computability remains undecidable, mainstream toolchains permit non-termination, and the underlying physical hardware model remains fixed.
-Thus, \texttt{dedekind} functions as a bounded, engineering intermediary between abstract category theory and a disciplined fragment of C++ execution, as sketched in the operational cycle of Figure~\ref{fig:target_model}. 
-The framework is architected so that verified mathematical evidence accumulates uniformly in a single direction.
-Once an axiom or theorem has been imported, the compiler can engage in mechanical validation or further derivations~\cite{wadler2015propositions}.
-
-The resulting posture is explicit: \texttt{dedekind} is a systems-programming library that treats pre-validated mathematical concepts as first-class compile-time entities.
-This layout prevents downstream developers from bolting fragile, ad-hoc traits onto unverified numeric types.
-Choosing to land semantics at the compile-time layer, rather than as runtime abstractions or external DSLs, is a structural commitment that shapes what the compiler can enforce and what remains the developer's responsibility.
-The view is that naming algebraic structures at the type level and letting the compiler discharge their governing laws narrows the gap between abstract mathematics and machine code without relying on an external proof assistant.
-While compile-time verification is native to languages like Agda or Coq, and partial automatic differentiation loops exist in specialized production environments~\cite{elliott2018simple, jakob2019enoki}, \texttt{dedekind} contributes an end-to-end realization of this discipline inside unmodified standard C++23.
-Thus, it serves as an existence proof, showing that a C++23 template engine can successfully collapse many highly non-trivial algorithmic problems down to LLVM object primitives which may be highly specialized and optimized.
+The cycle of Figure~\ref{fig:target_model} runs in one direction: a pre-validated proof is cited from $\mathbf{Cat}$, encoded and type-checked in the $\mathbf{Cpp}$ fragment, and compared back to its source, so verified evidence accumulates and the compiler can validate an imported axiom or derive further from it~\cite{wadler2015propositions}.
+The posture is explicit: \texttt{dedekind} is a systems-programming library that treats pre-validated mathematical concepts as first-class compile-time entities, which keeps downstream developers from bolting fragile, ad-hoc traits onto unverified numeric types.
+Landing semantics at the compile-time layer, rather than as runtime abstractions or an external DSL, is the structural commitment that shapes what the compiler can enforce; against a backdrop where partial automatic differentiation exists in specialised environments~\cite{elliott2018simple, jakob2019enoki}, \texttt{dedekind} contributes an end-to-end realization inside unmodified standard C++23, an existence proof that a template engine can collapse many highly non-trivial algorithmic problems down to specialized, optimized LLVM primitives.
 
 \paragraph{A recent shift in the cost--benefit calculus.}
 Two recent developments are the \emph{key enablers}, not tricks or shortcuts.
-First, the C++23 standard~\cite{cpp23standard} delivers the key features the technique needs --- \cppinline{constexpr}, \cppinline{concept}s, NTTPs, and named \cppinline{module}s in an open source mainstream toolchain.
+First, the C++23 standard~\cite{cpp23standard} delivers the key features the technique needs: \cppinline{constexpr}, \cppinline{concept}s, NTTPs, and named \cppinline{module}s in an open source mainstream toolchain.
 Previous template-metaprogramming traditions had to encode these implicitly at steep readability and review cost.
 Second, modern coding-assistant LLMs~\cite{chen2021evaluating} compress the time and expertise needed to do literature search and carry out the implementation and validation work.
 What was once a metaprogramming curiosity is now an actionable workflow for working software engineers.
@@ -280,9 +272,20 @@ The \Cpp{23} type system, while limited, is sufficiently rich to name predicates
 This architecture thus enforces a clear division of labor: the library user holds an out-of-band honesty obligation when registering trait axioms, and the compiler mechanically discharges every subsequent \cppinline{static_assert}, \cppinline{requires} clause, or \cppinline{constexpr} evaluation.
 A simple proof search is mimicked by operator resolution.
 
+\paragraph{Existential proofs, not universal ones.}
+That division of labour is forced by a limit, not chosen for convenience.
+Whether an arbitrary carrier obeys a given algebraic law is a non-trivial semantic property, and so undecidable in general (Rice's theorem~\cite{rice1953classes}).
+A universal proof would imply the existential over any inhabited domain, so the existential is the strictly weaker claim, and the one within reach: the library does not decide a law for every carrier, it names a specific carrier, a specific law, a specific reduction, and lets the compiler discharge it.
+Rice's theorem is thus less a wall than an invitation to contribute: it marks the seam Figure~\ref{fig:target_model} operationalizes, between the aspirational $\mathbf{Cat}$ (a universal conjecture, a general automatic verifier) on the one hand and the $\mathbf{Cpp}$ fragment of current best practice (checkable existential demonstrations with mechanical support) on the other, and a plausible conjecture is precisely an invitation to search for the existential witness.\footnote{Penrose~\cite{penrose2004roadtoreality} reads G\"odel's incompleteness in the same spirit: a formal system closing at one level motivates the next, not as exhaustion but as a natural successor.}
+
+\paragraph{Mechanical discharge is not a proof.}
+The discharge is not itself a proof of the law: for an unbounded carrier the author registers the axiom (the honesty obligation above) and the compiler mechanically checks its consequences.
+This is the bargain the proof assistants already accept: Coq~\cite{Coq} and Lean~\cite{Moura2015Lean} check a development against a trusted kernel and a base of accepted axioms, and their \cppinline{Admitted} and \cppinline{sorry} escape hatches admit as much.
+The difference here is only the checker, an optimising C++ compiler rather than a dedicated prover, which is why the same discipline returns optimised machine code as a by-product.
+
 \paragraph{What this buys, concretely.}
 Guided by the rule ``name the structure in the type, let the compiler discharge the laws,'' the library systematically constructs an algebraic hierarchy entirely at compile time.
-From a handful of structural primitives (morphisms and small categories), \texttt{dedekind} builds a domain specific language to describe sets, a numeric lattice ($\mathbb{B}$, $\mathbb{N}$, $\mathbb{Z}$, $\mathbb{Q}$, $\mathbb{R}$, $\mathbb{C}$, \ldots) and a point-free linear algebra layer, among other things,
+From a handful of structural primitives (morphisms and small categories), \texttt{dedekind} builds a domain specific language to describe sets, a poset of numbers ($\mathbb{B}$, $\mathbb{N}$, $\mathbb{Z}$, $\mathbb{Q}$, $\mathbb{R}$, $\mathbb{C}$, \ldots) and a point-free linear algebra layer, among other things,
 Programs are partially or fully evaluated at compile-time as they are brought to single static assignment form potentially resulting in operator fusion or complete reduction to a statically computed constant result.
 The resulting capabilities are demonstrated by the compile-time critical path of a directed acyclic network, computed by semiring closure, in Section~\ref{sec:optimization_lp}.
 This categorical vocabulary is not decorative; intensional sets acting as predicates into a subobject classifier are the uniform engine driving both type-level structural pruning and compile-time law enforcement.
@@ -302,7 +305,7 @@ The remainder of this paper substantiates these contributions by evaluating thre
 (3) standard compilers can reliably function as validation and optimization engines for mathematical invariants.
 Section~\ref{sec:jlt_posture} isolates the disciplined fragment of C++23, the Juliet Posture.
 Section~\ref{sec:intensional_sets} bootstraps intensional sets as type-checked predicates and the type-directed collapse they license, and Section~\ref{sec:relations_functions_blueprint} lifts these to point-free mappings between sets.
-Section~\ref{sec:algebraic_lattice_carriers} builds the universal-algebra tower of carriers, and Section~\ref{sec:operational_calculus} recasts linear algebra as coordinate-free, matrix-free operators over them.
+Section~\ref{sec:algebraic_lattice_carriers} builds the universal-algebra poset of carriers, and Section~\ref{sec:operational_calculus} recasts linear algebra as coordinate-free, matrix-free operators over them.
 Section~\ref{sec:optimization_lp} works the network critical path by semiring closure as the compile-time centrepiece; Section~\ref{sec:evaluation_benchmarks} models its cost, and Section~\ref{sec:discussion} sets out the limitations and follow-up.
 
 
@@ -317,8 +320,8 @@ All of these are properties that defeat static verification.
 The \emph{Juliet Posture} ($\mathbf{Jlt}$) is therefore defined as a disciplined fragment of standard \Cpp{23} which is characterized by constraints that force standard code to behave like an ideal type system:
 
 \begin{enumerate}
-    \item \textbf{Equational Extensionality:} We restrict acceptable objects to types satisfying the \Cpp{} standard concept \texttt{std::regular}.
-    Values must possess a stable identity, ensuring that $a = b \implies f(a) = f(b)$.
+    \item \textbf{Equational Extensionality:} We restrict acceptable objects to types satisfying the \Cpp{} standard concept \texttt{std::regular}, for two reasons.
+    Values must possess a stable identity, ensuring that $a = b \implies f(a) = f(b)$ (which \texttt{std::equality\_comparable} alone would already secure); and \texttt{std::regular}'s transparent value semantics let computation stay type-blind, the zero-cost image of System~F type erasure (Appendix~\ref{app:jlt-systemf}).
     \item \textbf{Pure, Terminating Arrows:} Morphisms are restricted to \texttt{constexpr} lambda expressions.
     Mutable captures and \texttt{reinterpret\_cast} are ruled out, thus enforcing effect-free evaluation and bounded template instantiation depth.
     \item \textbf{Cartesian Closure:} Products are mapped to \texttt{std::pair} with structured bindings, and exponentials to first-class lambdas that package arrows as values.
@@ -446,29 +449,52 @@ In this section, we first show working code (§\ref{sec:ddk_comprehension}) to i
 
 % Source: src/test/cpp/modules/dedekind/python/showcase_alpha_prime.cpp
 \begin{listing}[htbp]
-\caption{A code extract from the project's test suite intended to model set builder notation in C++23.
-\cppinline{Set{...}} is a variadic constructor.
-The combinators \cppinline{in} and \cppinline{bound} construct a scout variable and a half-space predicate respectively.
-The scout variable appears on both sides of the bar: introduced on the left, and referred back to on the right, so the predicate to the right reads as the constraint $x > 5$.
-\cppinline{operator()} is a shorthand for \cppinline{a.contains(e)}.
-As evidenced by the \cppinline{static_assert}, the set operations are evaluated at compile time.}
+\caption{Two set constructions, evaluated entirely at compile time.
+\textbf{Left:} the canonical Boolean set $\mathbb{B}$, the universal set of \cppinline{bool} (every value of the type), reified as \cppinline{sets::Ω<bool>}.
+The \cppinline{static_assert}s witness that it is an ETCS set (\cppinline{IsSet}) whose subsets form a lattice under $\cup$, $\cap$, and complement (\cppinline{IsSubobjectLattice}, the pre-defined subobject-lattice concept $\mathrm{Sub}(A) \cong \Omega^A$).
+This is the lattice of the \emph{set} operations, not the lattice of \cppinline{bool} itself under $(\vee, \wedge)$.
+\textbf{Right:} set-builder notation modelled in C++23.
+\cppinline{Set{...}} is a variadic constructor; the combinators \cppinline{in} and \cppinline{bound} construct a scout variable and a half-space predicate.
+The scout variable appears on both sides of the bar: introduced on the left, referred back to on the right, so the predicate reads as the constraint $x > 5$.
+\cppinline{operator()} is shorthand for \cppinline{a.contains(e)}.}
 \label{lst:pruning}
+\noindent
+\begin{minipage}[t]{0.44\linewidth}
+the canonical Boolean set $\mathbb{B}$
+\begin{cpp}
+constexpr auto 𝔹 = sets::Ω<bool>;
+static_assert(IsSet<decltype(𝔹)>);
+static_assert(𝔹(true));
+static_assert(𝔹(false));
+
+// Subsets form a lattice
+// under the set operations |, &, !
+// (not bool's ∨, ∧):
+static_assert(
+  IsSubobjectLattice<decltype(𝔹)>);
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.54\linewidth}
+a comprehension over $\mathbb{N}$
 \begin{cpp}
 // {x in ℕ | x > 5}
 constexpr auto a = Set{in(ℕ) | in(ℕ) > bound<5>};
 static_assert(a(7u) == a.contains(7u));
 
 constexpr auto b = Set{in(ℕ) | in(ℕ) > bound<6>};
-constexpr Singleton<6> c = a - b; 
+constexpr Singleton<6> c = a - b;
 constexpr auto d = Set{in(ℕ) | in(ℕ) < bound<7>};
-constexpr Singleton<6> e = c & d;   
-constexpr Ø<Cardinality> f = c & !c;                       
+constexpr Singleton<6> e = c & d;
+constexpr Ø<Cardinality> f = c & !c;
 
-// {x in ℕ | ∃y ∈ e : x * y == 42}
-constexpr Singleton<7> q = Set{in(ℕ) | Exists(e, [](auto y, auto x) { 
-    return x * y == bound<42>; 
-})};
+// {x in ℕ | ∃y ∈ e : x*y == 42}
+constexpr Singleton<7> q =
+  Set{in(ℕ) | Exists(e,
+    [](auto y, auto x) {
+      return x * y == bound<42>;
+    })};
 \end{cpp}
+\end{minipage}
 \end{listing}
 
 The combinator \cppinline{in} constructs a \emph{scout variable}.
@@ -483,6 +509,7 @@ The template engine expands these composed expressions during compilation, trigg
 
 The correspondence is exact on the decidable track, and it is what makes the algebra optimizable.
 Because a set is its predicate, the lattice of sets over a domain $A$ with decidable membership is the Boolean lattice lifted pointwise, $\mathcal{P}(A) \cong \mathbb{B}^A$ (Table~\ref{tab:lattice-lift}).
+Its top element, the universal set $A$ itself, is reified as \cppinline{sets::Ω<T>}; Listing~\ref{lst:pruning} (left) exhibits the canonical case, the Booleans $\mathbb{B} = $ \cppinline{Ω<bool>}.
 Where membership is undecided the codomain lifts to $\mathbb{B}+\text{U}$ and the operations become the three-valued Kleene ones, a de Morgan structure but no longer a Boolean algebra, since complement has no inverse at $\text{U}$.
 Optimization is then the simplification of these predicate compositions at translation time: an empty meet prunes, $\bot \wedge p \Rightarrow \bot$, and constant conjuncts fold away.
 The induced order, set inclusion, is pointwise implication $\chi_S \Rightarrow \chi_T$; it ranges over the domain, and keeping it decidable is the task of the specializations in §\ref{sec:ddk_etcs}.
@@ -531,7 +558,11 @@ witness function for set membership constant-folds to \texttt{ret i1 false} in t
 % ============================================================
 
 With the syntactic behavior of the set comprehension DSL established, what follows formalizes its semantic engine.
-This intensional set layer is the disciplined fragment of §\ref{sec:jlt_posture} intersected with $\mathbf{Set}$, namely $\mathbf{Trsk} = \mathbf{Jlt} \cap \mathbf{Set}$: the Tarski layer where a set is a predicate and a graph is a relation, on which §\ref{sec:algebraic_lattice_carriers} imposes algebraic laws to reach $\mathbf{Ddk} = \mathbf{Trsk} \cap \mathbf{Alg}$.
+This intensional set layer is the disciplined fragment of §\ref{sec:jlt_posture} intersected with $\mathbf{Set}$, where a set is a predicate and a graph is a relation: 
+\begin{equation}
+\label{eqn:trsk}
+\mathbf{Trsk} := \mathbf{Jlt} \cap \mathbf{Set}
+\end{equation}
 Loosely speaking, a set here is just its membership test.
 A reader who wants only the API can keep that picture and skim the rest of this subsection, which makes it precise in the language of topos theory.
 The more common description of sets, the one \cppinline{std::set} follows, is Zermelo-Fraenkel (ZF): a set is built from the bottom up from atoms such as $\emptyset$ via union and intersection, with membership tested by an element relation ($\in$).
@@ -813,152 +844,188 @@ This structural approach ensures that even highly complex or non-linear function
 The type system can consequently treat arbitrary transformations as well-behaved objects, laying a reliable foundation for the universal-algebraic operators developed in the subsequent section.
 
 %------
-\section{Universal Algebra and the Algebraic Lattice of Carriers}
+\section{Universal Algebra and the Poset of Carriers}
 \label{sec:algebraic_lattice_carriers}
-%-------
 
-% Source excerpt from dedekind.algebra:universal.
-\begin{listing}[ht]
-\caption{A type that type-checks against \cppinline{IsAlgebraOnSet} inhabits $\mathbf{Ddk}$.}
+% Source excerpts from dedekind.algebra:universal and dedekind.category:total.
+\begin{listing}[!ht]
+\caption{The two layers of $\mathbf{Ddk} = \mathbf{Trsk} \cap \mathbf{Alg}$.
+\textbf{Left, the type layer} (\cppinline{category}): the pointwise axioms on a carrier \emph{type} --- a model of a Birkhoff/Lawvere theory~\cite{burris1981universalalgebra,hylandpower2007}, a magma refined to a monoid by associativity and a unit.
+\textbf{Right, the set layer} (\cppinline{algebra}): a set \emph{object} whose carrier is such a model, the subobject-over-carrier pattern familiar from proof assistants~\cite{mathlib2020}.  \cppinline{IsAlgebraOnSet} is the generic $(A,F)$ form available today; the named rungs \cppinline{algebra::IsMonoid<X>} are the set-indexed lift of the left column, the target the library is converging on.}
 \label{lst:algebra:universal}
+\noindent
+\begin{minipage}[t]{0.5\linewidth}
+type layer (\cppinline{category}): pointwise
 \begin{cpp}
-export template <typename X, typename... Ops>
-concept IsAlgebraOnSet =
-    IsSet<X>                                                  // Trsk: X is a set
-    && (... && IsClosedUnderEither<typename X::Domain, Ops>)  // Alg: ops close on the carrier
-    && IsAlgebra<typename X::Domain, Ops...>;                 // the (A, F) algebra
+template <typename T, typename Op>
+concept IsMagma  = IsTotal<T, Op>
+                && /* Op closes: A×A → A */;
+template <typename T, typename Op>
+concept IsMonoid = IsMagma<T, Op>
+   && IsAssociative<T, Op>
+   && IsPointed<T, Op>;
 \end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.47\linewidth}
+set layer (\cppinline{algebra}): the lift
+\begin{cpp}
+// generic (A,F), today:
+template <typename X, typename... Ops>
+concept IsAlgebraOnSet = IsSet<X>
+  && IsAlgebra<typename X::Domain, Ops...>;
+
+// named rung, target:
+template <typename X, typename Op>
+concept IsMonoid = IsSet<X>
+  && category::IsMonoid<
+       typename X::Domain, Op>;
+\end{cpp}
+\end{minipage}
 \end{listing}
-An \emph{algebraic set} in \texttt{dedekind} is a C++ type that is a set in the sense of §\ref{sec:intensional_sets} and carries operations on that set (its \emph{carrier}).
-A type inhabits the category $\mathbf{Ddk}$ exactly when it type-checks against \cppinline{IsAlgebraOnSet} (Listing~\ref{lst:algebra:universal}), which asks for both halves at once: that the type is a set (the Tarski layer $\mathbf{Trsk}$ of §\ref{sec:intensional_sets}) and that its carrier is closed under the operations it supplies:
-\begin{equation}
-    \mathbf{Ddk} \;=\; \mathbf{Trsk} \,\cap\, \mathbf{Alg}(-),
-\end{equation}
-the algebraic sets expressible as C++ types.
-Because membership is structural, admission is after the fact: a type is presented as a set by a concept, with no change to the type and no upstream opt-in.
 
-Figure~\ref{fig:hub-spoke-bnz} from the introduction is a sketch of this category, worth keeping in hand for the rest of the section.
-Its objects are algebraic sets: a carrier decorated with operations, the loops, with the bare carriers on the bottom row and the forgetful functor $U : \mathbf{Alg}(-) \to \mathbf{Set}$ dropping the operations to reach them.
-One carrier can support several algebras, so $U$ is not injective on objects; the hooked homomorphisms are the carrier maps that preserve the operations, and the dotted maps are carrier maps that break one, falling to $\mathbf{Set}$.
-A loop is an operation, so a binary one such as $\wedge$ or $+$ decorates its carrier as a map $A \times A \to A$, not a category endomorphism; concretely the two hooked inclusions $\mathbb{N} \hookrightarrow \mathbb{Z}$ preserve $(+, \times)$ and $(\oplus, \otimes)$, while $x \mapsto -x$ breaks $\times$ and $x \mapsto x^2$ breaks $+$.
-$\mathbf{Alg}(-)$ is universal algebra in the textbook sense~\cite{burris1981universalalgebra}: sets equipped with operations of fixed arity, where the dash is a placeholder for whatever signature a carrier happens to supply.\footnote{We leave the signature unbound and let the per-shape \cppinline{Has*Operators} concepts pin it at each carrier's definition, so $\mathbf{Ddk}$ stays as wide as the library needs while a concrete variety such as $\mathbf{Mon}$ or $\mathbf{Ring}$ is one fixed choice of dash (the same $F_\Sigma$-algebra fragment a functional programmer would recognise~\cite{pierce1991basic}).  We also fix a smallness ceiling of $\beth_1$, carriers no larger than the continuum, which is enough for $\mathbb{R}$, $\mathbb{C}$, and $\mathbb{D}$ while keeping the encoding clear of the proper-class self-reference that $\mathbf{Set}$ and $\mathbf{Cat}$ court; the meta-categorical bookkeeping this defers (size-hierarchy adjunctions, $\mathrm{Disc} \dashv U$) survives as the engineer's honesty obligation, treated in the companion report.  The simply-typed-$\lambda$-calculus and System~F reading of the same fragment is Appendix~\ref{app:jlt-systemf}.}
+\subsection{Algebraic Sets on the Primitive Carriers}
+\label{sec:algebraic_sets_primitives}
 
-The smallest inhabitant makes the shape concrete.
-The Boolean carrier $\mathbb{B}$ is an algebraic set the moment it type-checks as $\mathbf{Alg}(\wedge, \vee, \neg)$ over \cppinline{bool} (Listing~\ref{lst:algebra:boolean_case}): the object is the set, and $\wedge, \vee, \neg$ are the operations it closes under, with $\wedge$ and $\vee$ (both binary $\mathbb{B} \times \mathbb{B} \to \mathbb{B}$) drawn as loops on its Boolean-lattice node in Figure~\ref{fig:hub-spoke-bnz}.
 
-% Source excerpt from dedekind.algebra:boolean.
-\begin{listing}[ht]
-\caption{Case Study: \cppinline{𝔹} is a bit-perfect algebraic set in $\mathbf{Ddk}$ by way of inhabiting $\mathbf{Jlt}$ as well as $\mathbf{Alg}(∧, ∨, ¬)$.}
+% Source excerpts from dedekind.algebra:boolean and dedekind.numbers:rational.
+\begin{listing}[!ht]
+\caption{Concrete carriers inhabiting Listing~\ref{lst:algebra:universal}, shown at the \emph{pointwise} (element) layer --- every check is on the element type \cppinline{X::Domain}.  The complementary \emph{set} layer for these carriers (membership and the $\cup,\cap$ subobject lattice) is Listing~\ref{lst:pruning}.
+\textbf{Left:} \cppinline{bool}, at once a lattice under the logical operators $(\vee,\wedge)$ and the field $\mathbb{F}_2$ under the bitwise operators $(\oplus,\wedge)$.
+\textbf{Right:} \cppinline{std::size_t}, the modular ring $\mathbb{Z}/2^{w}\mathbb{Z}$ under $(+,\times)$ (width $w$ implementation-defined); composite carriers such as $\mathbb{Q}$ appear in \S\ref{sec:hsp_varieties}.}
 \label{lst:algebra:boolean_case}
+\noindent
+\begin{minipage}[t]{0.52\linewidth}
+pointwise on \cppinline{decltype(𝔹)::Domain}
 \begin{cpp}
-export inline constexpr UniversalSet<bool, ClassicalLogic, Finite> 𝔹 =
-    sets::Ω<bool>;
-
 static_assert(
-    IsAlgebraOnSet<decltype(𝔹),             // X = decltype(𝔹) —
-                                            // the SET
-                   std::logical_and<bool>,  // ∧  ┐
-                   std::logical_or<bool>,   // ∨  ├ F = element-level ops
-                   std::logical_not<bool>   // ¬  ┘   on the carrier bool
-                   >);
+  IsLattice<decltype(𝔹)::Domain,
+    std::logical_or<bool>,
+    std::logical_and<bool>>);
+static_assert(
+  IsGaloisField<decltype(𝔹)::Domain,
+    std::bit_xor<bool>,
+    std::bit_and<bool>>);
 \end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.45\linewidth}
+pointwise on \cppinline{decltype(𝕊)::Domain}
+\begin{cpp}
+constexpr auto 𝕊 = sets::Ω<std::size_t>;
+static_assert(
+  IsCommutativeRing<
+    decltype(𝕊)::Domain,
+    std::plus<std::size_t>,
+    std::multiplies<std::size_t>>);
+\end{cpp}
+\end{minipage}
 \end{listing}
 
-\subsection{The carrier lattice}
+Listing~\ref{lst:algebra:universal} reifies the \emph{algebraic sets} of Figure~\ref{fig:hub-spoke-bnz} as \Cpp{23} types: the family $\mathbf{Ddk}$ is the reified intensional sets $\mathbf{Trsk}$~\eqref{eqn:trsk} met with universal algebra in the textbook sense~\cite{burris1981universalalgebra}, $\mathbf{Alg}(-)$\footnote{The dash is left unbound, the same $F_\Sigma$-algebra fragment a functional programmer would recognise~\cite{pierce1991basic}.  The smallness ceiling that keeps $\mathbf{Ddk}$ clear of proper-class self-reference is the ETCS power-object bound (Appendix~\ref{sec:etcs}, Axiom~9, $\beth_1$).}:
+\begin{equation}
+\label{eqn:ddk}
+    \mathbf{Ddk} \;=\; \mathbf{Trsk} \,\cap\, \mathbf{Alg}(-).
+\end{equation}
+Listing~\ref{lst:algebra:boolean_case} exhibits two primitive inhabitants at the pointwise layer: \cppinline{bool} (a lattice and the field $\mathbb{F}_2$) and \cppinline{std::size_t} (the modular ring $\mathbb{Z}/2^{w}\mathbb{Z}$, width $w$ implementation-defined); their set layer is Listing~\ref{lst:pruning}, and composite carriers such as $\mathbb{Q}$ follow in \S\ref{sec:hsp_varieties}.\footnote{The two operator layers carry two \emph{different} theories.  The pointwise operations $(+,\times)$ make the carrier a model of a finitary Lawvere theory, i.e.\ the algebras of a free-$\Sigma$ term monad~\cite{hylandpower2007}; the set operations $(\cup,\cap)$ come from the powerset functor, whose Eilenberg--Moore algebras are complete lattices, not rings.  The set-indexed concept pairs the two, and is deliberately \emph{not} the Eilenberg--Moore construction of the powerset monad.}
+
+\subsection{Mechanical Support for Advanced Carriers}
+\label{sec:hsp_varieties}
 \label{sec:carrier-lattice}
 
-The carriers form a lattice, and the library builds it the way the textbooks do, one universal-property construction at a time.
-The bottom is the Boolean semiring $\mathbb{B}$ above, with the naturals $\mathbb{N}$ just over it.
-From there the tower is the standard one: the Grothendieck completion of $(\mathbb{N}, +)$ to the integers $\mathbb{Z}$ and their field of fractions $\mathbb{Q} = \operatorname{Frac}(\mathbb{Z})$, Dedekind cuts to the reals $\mathbb{R}$, free modules to the vector and matrix carriers $R^n$ and $M_n(R)$, and polynomial quotients to the complex and dual numbers, $\mathbb{C} = \mathbb{R}[i]/(i^2{+}1)$ and $\mathbb{D} = \mathbb{R}[\varepsilon]/(\varepsilon^2)$.
-None of this is ours to reprove: it is Bourbaki's structuralist tower~\cite{bourbaki1968theoryofsets, marquis2022structuralist} carried down to the type level, and the textbooks treat it better than we could.
-The only discipline the library adds is that each rung lifts at the type level the moment a type naming it passes its concept gate, so it is the compiler, not the reader, that checks each construction is what it claims to be.
+\begin{table}[!ht]
+\centering
+\caption{The universal constructions that build the carrier poset, the theorem by which each preserves algebraic laws, and whether the trait engine mechanizes it.  The three Birkhoff operations~\cite{burris1981universalalgebra} (product, quotient, subalgebra) share one closure theorem and \emph{are} Rule~2; localization~\cite{atiyahmacdonald1969commutative} and completion~\cite{rudin1976principles} preserve structure by their own theorems, from other branches, and are not Birkhoff-closed (fields are not a variety, so no set of identities pins them down).}
+\label{tab:constructions}
+\small
+\begin{tabular}{@{}l l l l@{}}
+\toprule
+construction & builds & law-preservation & in the engine \\
+\midrule
+product / free module & scalar $\to$ vector & Birkhoff HSP (P)~\cite{burris1981universalalgebra} & yes \\
+quotient by an ideal & $\mathbb{R} \to \mathbb{C}, \mathbb{D}$ & Birkhoff HSP (H)~\cite{atiyahmacdonald1969commutative} & yes \\
+subalgebra & a closed sub-part & Birkhoff HSP (S)~\cite{burris1981universalalgebra} & mechanism only \\
+localization (fractions) & $\mathbb{Z} \to \mathbb{Q}$ & commutative algebra~\cite{atiyahmacdonald1969commutative} & filed under quotient \\
+completion & $\mathbb{Q} \to \mathbb{R}$ & analysis, Dedekind cuts~\cite{rudin1976principles} & by hand \\
+endomorphism algebra & $R^n \to M_n(R)$ & module theory~\cite{lang2002algebra} & by hand \\
+\bottomrule
+\end{tabular}
+\end{table}
 
-The quotient rung is backed by the First Isomorphism Theorem, $A/\ker f \cong \operatorname{im} f$~\cite{burris1981universalalgebra}, which \texttt{category:image} records as a typed claim: the quotient and image are registered per homomorphism, and a supplied isomorphism is type-checked against them.
+Beyond the primitives, mechanical support comes from Birkhoff's HSP theorem~\cite{burris1981universalalgebra}: a certificate proven for a base carrier propagates to the carriers built from it.
+Two rules carry it (Listing~\ref{lst:hsp-combinators}):
+\begin{enumerate}
+    \item \textbf{Composition on the parameter.}  A concept conjoins a certificate with a property of its parameter: a module over a field \emph{is} a vector space, so \cppinline{is_vector_space_v} holds with no per-carrier code.
+    \item \textbf{Propagation through a construction.}  A one-line registration names the base, and the species traits (associativity, commutativity, and the rest) forward through the construction to the derived carrier.
+\end{enumerate}
+This reaches exactly the Birkhoff-closed constructions, product, quotient, and subalgebra; localization, completion, and the endomorphism-algebra step preserve structure by other theorems and are not covered (Table~\ref{tab:constructions}).
 
-\subsection{Certified laws travel with the carrier}
-\label{sec:hsp_varieties}
 
-What makes these carriers usable downstream is that their \emph{laws} propagate.
-A class of algebras closed under homomorphic images, subalgebras, and products is a variety (Birkhoff~\cite{burris1981universalalgebra}), and the library realises that closure as \emph{trait propagation}: when a carrier is derived by an H, S, or P construction, the species traits it satisfies (\cppinline{is_associative_v}, \cppinline{is_commutative_v}, \cppinline{is_distributive_v}, and the rest) propagate to the derived carrier, confirmed there by \cppinline{static_assert}.
-Listing~\ref{lst:hsp-closed} pins this at the cyclic base $\mathbb{Z}/6\mathbb{Z}$: the variety ``associative and commutative $+$'' stays closed across its H, S, and P images, witnessed by eight \cppinline{static_assert}s.
-The gate §\ref{sec:optimization_lp} uses, \cppinline{IsSemiring}, reads this same species-trait registry; the tropical carrier registers its own entries directly rather than as an H, S, or P image, so the exhibit's gate is a registry lookup, not a re-proof.
-
-\begin{listing}[ht]
-\caption{Birkhoff's HSP closure typed.  Base $\mathbb{Z}/6\mathbb{Z}$ + three synthetic HSP markers wired to the carrier-side registries; the trait propagation lifts both axioms of the variety uniformly to all three HSP-derived carriers.  Any future H/S/P construction over $\mathbb{Z}/6\mathbb{Z}$ (or any other base in the variety) follows the same one-line opt-in pattern.}
-\label{lst:hsp-closed}
+% Source excerpts from dedekind.algebra:quotient and dedekind.analysis:dual.
+\begin{listing}[!ht]
+\caption{The HSP combinators (left) and one application (right).  The dual numbers $\mathbb{D} = F[\varepsilon]/(\varepsilon^2)$ are the quotient of the polynomial ring $F[x]$; registering \cppinline{F} as the trait-propagation base of \cppinline{Dual<F>} forwards \cppinline{F}'s ring traits to $\mathbb{D}$, and the nilpotent axiom $\varepsilon^2 = 0$ is checked at compile time.  The H (quotient) family is shown; P (product) and S (subalgebra) mirror it.}
+\label{lst:hsp-combinators}
+\noindent
+\begin{minipage}[t]{0.52\linewidth}
+the HSP combinators
 \begin{cpp}
-// --- Synthetic HSP markers wired to Modular<6> -----------------------
-struct H_image_of_Z6 {};   // type-level placeholder for any H-image of Z/6Z
-struct S_subalg_of_Z6 {};  // ... S-subalgebra ...
-struct P_product_of_Z6 {}; // ... P-direct-product ...
+template <typename Q>
+struct quotient_algebra_base {};   // register a base
+template <typename Q>
+concept IsQuotientAlgebra =
+    requires { typename quotient_algebra_base<Q>::type; };
 
-template <> struct quotient_algebra_base<H_image_of_Z6> { using type = Modular<6>; };
-template <> struct subalgebra_base      <S_subalg_of_Z6> { using type = Modular<6>; };
-template <> struct product_algebra_base <P_product_of_Z6>{ using type = Modular<6>; };
-
-// --- THE Birkhoff HSP-closed crown -----------------------------------
-// Variety V: carriers with associative + AND commutative +.
-// V is HSP-closed by the propagation specs.
-
-using Z6 = Modular<6>;  using H = H_image_of_Z6;
-using S  = S_subalg_of_Z6;  using P = P_product_of_Z6;
-
-static_assert(is_associative_v<Z6, std::plus<Z6>>);  // base ∈ V
-static_assert(is_associative_v<H,  std::plus<H>>);   // H closure (quotient)
-static_assert(is_associative_v<S,  std::plus<S>>);   // S closure (subalgebra)
-static_assert(is_associative_v<P,  std::plus<P>>);   // P closure (product)
-static_assert(is_commutative_v<Z6, std::plus<Z6>>);  // (same four, both axioms)
-static_assert(is_commutative_v<H,  std::plus<H>>);
-static_assert(is_commutative_v<S,  std::plus<S>>);
-static_assert(is_commutative_v<P,  std::plus<P>>);
+// a species trait forwards to the base's:
+template <typename Q> requires IsQuotientAlgebra<Q>
+inline constexpr bool is_associative_v<Q, std::plus<Q>> =
+    is_associative_v<quotient_algebra_base_t<Q>,
+                     std::plus<quotient_algebra_base_t<Q>>>;
 \end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.45\linewidth}
+a success: the dual numbers $\mathbb{D}$
+\begin{cpp}
+// 𝔻 = F[ε]/(ε²) = F[x]/(ε²); register
+//   F as the trait-propagation base:
+template <typename F> requires std::regular<F>
+struct quotient_algebra_base<Dual<F>> {
+  using type = F;
+};
+
+// a forwarded trait: 𝔻's commutativity
+//   IS F's, via quotient_algebra_base:
+static_assert(is_commutative_v<Dual<int>,
+                std::plus<Dual<int>>>);
+// nilpotent core, evaluated directly:
+constexpr Dual<int> eps{0, 1};
+static_assert(eps * eps == Dual<int>{0,0});
+\end{cpp}
+\end{minipage}
 \end{listing}
 
-
-\subsection{Dual numbers, for the sensitivity exhibit}
-\label{sec:dual_numbers_quotient}
-
-The one carrier worth a second look, because §\ref{sec:optimization_lp} differentiates with it, is the dual numbers $\mathbb{D}$, mathematically the quotient ring $F[\varepsilon]/(\varepsilon^2)$ over a coefficient carrier $F$ (classically $\mathbb{R}$; the sensitivity exhibit of §\ref{sec:optimization_lp} takes $F$ the saturating-unsigned cost carrier, the companion matrix listing takes $F = \mathbb{Q}$).
-The implementation is that quotient's direct realisation: a pair $(a, b)$ whose multiplication is written as $(a, b)(c, d) = (ac,\, ad + bc)$, with the truncation $\varepsilon^2 = 0$ already discharged in the formula.
-The operator is \cppinline{constexpr}, so a product of compile-time operands folds during translation, and the $\varepsilon$-coordinate carries the derivative: forward-mode automatic differentiation as a ring law (Listing~\ref{lst:lin-alg-embeddings}).
-
-% Source: src/test/cpp/modules/dedekind/linear_algebra/embeddings_test.cpp
-\begin{listing}[htbp]
-\caption{Dual numbers embed faithfully as $2 \times 2$ matrices over $\mathbb{Q}$, with the infinitesimal squaring to zero.}
-\label{lst:lin-alg-embeddings}
-\begin{cpp}
-using Rat = Rational<SignedExtensionalCardinal<>>;
-constexpr Dual<Rat> d{Rat{2}, Rat{3}}, e{Rat{-1}, Rat{5}};
-static_assert(as_matrix2x2(d + e) == as_matrix2x2(d) + as_matrix2x2(e));
-static_assert(as_matrix2x2(d * e) == as_matrix2x2(d) * as_matrix2x2(e));
-constexpr Dual<Rat> eps{Rat{0}, Rat{1}};
-static_assert(as_matrix2x2(eps) * as_matrix2x2(eps) == zero_matrix2x2_v<Rat>);
-\end{cpp}
-\end{listing}
-
-\section{Coordinate-Free Operators: Boundary and Coboundary}
+\subsection{Applicability to Linear Algebra}
+\label{sec:certificate_ladder}
 \label{sec:operational_calculus}
 \label{sec:geometric_mappings}
 
-With the carriers of §\ref{sec:algebraic_lattice_carriers} in place, the linear algebra over them stays coordinate-free.
-A linear map is not stored as a grid of coefficients and walked by index; the two operators a graph actually needs are kept as structural, matrix-free mappings between functions on its cells.
-A graph is a one-dimensional complex: a node potential is a 0-form $d : \mathcal{V} \to S$, an edge value a 1-form on $\mathcal{E}$.
+Linear algebra over these carriers takes two forms.
+Materialised, an operator is the matrix ring $M_n(F) = \operatorname{End}(V)$, the top of a ladder that type-checks over the rationals from scalar to matrix (Listing~\ref{lst:certificate-ladder}); the identity $M_n(F) = \operatorname{End}(V)$ is a registered declaration rather than a derived concept, since no concept recovers it from the operator surface alone (the honesty obligation of §\ref{sec:introduction}).
 
-The \emph{coboundary} $\delta$ is the discrete gradient, sending a node 0-form to the edge 1-form of its differences,
-\begin{equation}
-    (\delta d)(u \to v) = d(v) - d(u),
-\end{equation}
-and the \emph{boundary} $\partial$ is its adjoint, sending a directed chain to its signed endpoints, $\partial[\,s \to t\,] = \{t\} - \{s\}$.
-Neither is materialised; each is an expression over the incidence structure.
-The mnemonic is calculus: $\delta$ is the differential (a difference of potentials), $\partial$ is evaluation at the endpoints, and the discrete Stokes theorem $\int_\gamma \delta d = \langle d,\ \partial\gamma\rangle$ ties them.
+% Source excerpt from dedekind.linear_algebra:mat2x2 (compositional pin).
+\begin{listing}[!ht]
+\caption{The certificate ladder over $\mathbb{Q}$: four rungs, each a \cppinline{static_assert} the compiler discharges.}
+\label{lst:certificate-ladder}
+\begin{cpp}
+using Q = Rational<default_integer>;         // scalar: ℚ = Frac(ℤ)
+using V = Vec2V<Q>;  using M = Matrix2x2V<Q>;
 
-These two operators are what pose the problem §\ref{sec:optimization_lp} solves.
-The critical-path duration is the boundary pairing $\langle d,\ \partial\gamma\rangle = d(t) - d(s)$, and the precedence constraints are the coboundary bound $\delta d \ge c$, so the dual program is
-\begin{equation}
-    \text{minimise}\ \langle d,\ \partial\gamma\rangle \quad\text{s.t.}\quad \delta d \ge c .
-\end{equation}
-Section~\ref{sec:optimization_lp} is that program's solver in the tropical semiring: its closure is the integral that inverts $\delta$, accumulating cost along paths to recover $d$ (realised as a fold, not a reified operator).
-So this section is not adjacent to the exhibit; it supplies the operators the exhibit is written in.
+static_assert(IsField<Q>);                   // scalar: ℚ is a field
+static_assert(is_module_v<V, Q>);            // module
+static_assert(is_vector_space_v<V, Q>);      // vector space  (Rule 1)
+static_assert(is_endomorphism_ring_v<M, V>); // operator: M₂ = End(V)
+\end{cpp}
+\end{listing}
+
+Coordinate-free, an operator never builds the grid: the coboundary $\delta$, with $(\delta d)(u \to v) = d(v) - d(u)$, and its adjoint the boundary $\partial$ are expressions over the incidence structure, the intensional reading of §\ref{sec:intensional_sets} lifted from sets to operators, and they are what §\ref{sec:optimization_lp} is written in.
+The practical rule is one line: constrain generic code on the concept, not the carrier; a routine bounded by \cppinline{IsVectorSpace<V, F>} admits every carrier the closed core certifies, from $\mathbb{Q}$-vector-spaces to matrices over the dual numbers, and outside the core the certificate is the engineer's to supply.
 
 \section{Optimization by Semiring Closure}
 \label{sec:optimization_lp}
@@ -1130,7 +1197,7 @@ Rather than extrapolate that trade from a single benchmark point, we characteris
 The compiler evaluates \cppinline{constexpr} reductions with an abstract-syntax-tree interpreter, so translation-time work is interpretive rather than compiled, and its absolute magnitude is not small.
 Its \emph{scaling}, though, is fixed by structure.
 The first parameter is the template instantiation depth.
-The disciplined fragment of §\ref{sec:jlt_posture} admits no unbounded type-level recursion, so the depth stays bounded and each reduction remains inside a decidable cone rather than diverging; the carrier tower, for instance, is capped at scalar, shape, and quotient axes, a depth of at most three in the current surface.
+The disciplined fragment of §\ref{sec:jlt_posture} admits no unbounded type-level recursion, so the depth stays bounded and each reduction remains inside a decidable cone rather than diverging; the carrier poset, for instance, is capped at scalar, shape, and quotient axes, a depth of at most three in the current surface.
 The second parameter is the size of the graph the closure relaxes.
 For the necklace of §\ref{sec:optimization_lp}, each round scans the edge relation once, and an acyclic graph stabilises within a number of rounds bounded by its depth, so the work is polynomial in the edge count $E$.
 Composing the two, the translation-time cost is polynomial in the problem size at bounded instantiation depth, precisely because the depth is capped.
@@ -1279,7 +1346,7 @@ algebraic claim that is reviewed and CI-checked against a
 \cppinline{static_assert}. \\
 Bounded template instantiation depth. &
 The Turing-complete instantiation machinery is bounded by the
-carrier-lattice depth (scalar,
+carrier-poset depth (scalar,
 shape, quotient axes; depth $\leq 3$ in the current surface), which
 keeps the type checker's work within a decidable cone. \\
 \bottomrule
@@ -1385,7 +1452,7 @@ By default, a generic algorithm requiring associativity therefore fails to compi
 \label{sec:builtin-algebra}
 
 Table~\ref{tab:primitive-algebra} gives the headline; the four tables below break the principal primitive types down by operator surface, one table per standard-concept family (\cppinline{bool} on its own), since the built-in primitives share no single operator surface.
-The same carriers, organised by algebraic structure, are catalogued in the master table of the algebraic-lattice appendix (Table~\ref{tab:lattice-carriers}).
+The same carriers, organised by algebraic structure, are catalogued in the master table of the carrier-poset appendix (Table~\ref{tab:lattice-carriers}).
 A \checkmark marks a law certified in the trait registry, $\times$ one that is absent (hence rejected at the gate), and $\circ$ one that holds only in part.
 
 \begin{table}[htbp]
@@ -1519,15 +1586,31 @@ Axiom 9: Power Set / Exponential Restriction (\(\beth _{1}\)). For any set X, th
 
 %%%
 \clearpage
-\section{The Algebraic Lattice and its Carriers}
+\section{Point-Free Morphisms: Relations and Factorization Gates}
+\label{sec:morphisms-appendix}
+
+% STUB (follow-up PR): supporting detail dual to §\ref{sec:relations_functions_blueprint}.
+% To collect: the Kleisli / powerset-monad relation internals (the fish operator >>),
+% the epic--monic factorization gates (IsSingleton, mono_retract), and the
+% :relations / :functions partition surfaces.  Kept minimal for now to pin the
+% section<->appendix correspondence; fleshed out with worked witnesses later.
+
+Dual to §\ref{sec:relations_functions_blueprint}, this appendix collects the supporting detail for the point-free morphism layer: relations presented as Kleisli arrows over the powerset monad, and the epic--monic factorization gates ($A \twoheadrightarrow I \hookrightarrow B$) that make a general function's codomain queries decidable.
+It is another instance of the paper's recurring seam.
+General first-order quantification over open intensional sets is undecidable at compile time (Rice's theorem), so rather than attempt the aspirational universal search the library supplies mechanical support for the \emph{existential} case: lazy Kleisli predicate transformation for composition, and a developer-supplied factorization for image membership.
+The worked internals are deferred to a follow-up revision.
+
+%%%
+\clearpage
+\section{The Carrier Poset and its Realisations}
 \label{sec:carrier-rosetta}
 
-This reference is indexed by algebraic structure (the branching poset of §\ref{sec:algebraic_lattice_carriers}), not by carrier.
+This reference is indexed by algebraic structure (the poset of §\ref{sec:algebraic_lattice_carriers}), not by carrier.
 To answer ``I need structure $X$'', read its row in Table~\ref{tab:lattice-carriers}; to place a type you already hold, scan the realisation columns, or the by-operator-surface tables of §\ref{sec:builtin-algebra}.
 
 \begin{table}[htbp]
 \centering
-\caption{\textbf{The algebraic lattice and its carriers.} Each structure of the branching poset (§\ref{sec:algebraic_lattice_carriers}), the concept that certifies it, and the carriers that realise it on the built-in (\cppinline{std} / IEEE) side and the exact-library side. Each row names \emph{representative} carriers that strictly realise the structure; a carrier recurs across the rows it satisfies (\cppinline{unsigned} is a magma, monoid, group, and ring; \cppinline{bool} is both a field and a Galois field). \textsuperscript{$\dagger$} marks operator-surface-only certification, the strict axiomatic witness being queued. \cppinline{I} abbreviates \cppinline{SignedExtensionalCardinal<>}.}
+\caption{\textbf{The carrier poset and its realisations.} Each structure of the poset (§\ref{sec:algebraic_lattice_carriers}), the concept that certifies it, and the carriers that realise it on the built-in (\cppinline{std} / IEEE) side and the exact-library side. Each row names \emph{representative} carriers that strictly realise the structure; a carrier recurs across the rows it satisfies (\cppinline{unsigned} is a magma, monoid, group, and ring; \cppinline{bool} is both a field and a Galois field). \textsuperscript{$\dagger$} marks operator-surface-only certification, the strict axiomatic witness being queued. \cppinline{I} abbreviates \cppinline{SignedExtensionalCardinal<>}.}
 \label{tab:lattice-carriers}
 \footnotesize
 \begin{tabular}{@{}l l p{0.23\textwidth} p{0.35\textwidth}@{}}
@@ -1546,9 +1629,63 @@ Module / v.\ space & \cppinline{IsModule} / \cppinline{IsVectorSpace} & \cppinli
 
 \vspace{0.3em}
 \begin{flushleft}
-{\footnotesize \textsuperscript{$\dagger$} \cppinline{Complex<Rational<I>>} and \cppinline{ExactReal<I>} certify only the ring/field \emph{operator surface} (\cppinline{HasRingOperators} / \cppinline{HasFieldOperators}), for two \emph{different} reasons.  \cppinline{Complex<R>} gets no generic field witness because $x^2 + 1$ is reducible over some field parameters (notably $\mathbb{F}_2$, where it is $(x+1)^2$), so field-ness is deliberately not lifted through the constructor.  \cppinline{ExactReal} is instead blocked by the architectural \cppinline{IsTotal} gate (no exact totality path is registered).  \cppinline{Dual} is a strict module over $\mathbb{Q}$ carrying ring operators, but $\varepsilon^2 = 0$ leaves it without a strict \cppinline{IsRing} witness, so it sits with the modules.}
+{\footnotesize \textsuperscript{$\dagger$} Operator-surface certification only (\cppinline{HasRingOperators} / \cppinline{HasFieldOperators}); the vector-space lift of §\ref{sec:hsp_varieties} gives three honest outcomes, clean for $\mathbb{Q}$, withheld for $\mathbb{C}$ (the field certificate is false over $\mathbb{F}_2$, where $x^2+1 = (x+1)^2$), and blocked for $\mathbb{R}$ by the \cppinline{IsTotal} policy gate rather than by any mathematics.  \cppinline{Dual} carries ring operators, but $\varepsilon^2 = 0$ leaves it without a strict \cppinline{IsRing} witness, so it sits with the modules.}
 \end{flushleft}
 \end{table}
+
+\subsection{How the certificates lift}
+\label{sec:appendixE-lift}
+
+This appendix is the deep dive behind §\ref{sec:hsp_varieties}: the HSP combinators of Listing~\ref{lst:hsp-combinators} put to work across all three families and both lift rules.
+Registering \cppinline{Vec2V} is the single line \cppinline{template <typename T> struct product_algebra_base<Vec2V<T>> { using type = T; };}, which makes \cppinline{T} the base: \cppinline{T}'s species traits carry forward to \cppinline{Vec2V<T>}.  So whenever \cppinline{T} is a ring, \cppinline{IsModule<Vec2V<T>, T>} follows once the ring, identity, inverse, and action witnesses hold, and Rule 1 upgrades it to \cppinline{IsVectorSpace} over any field.
+A synthetic base makes the closure visible end to end (Listing~\ref{lst:hsp-closed}): three markers stand for the H, S, and P images of $\mathbb{Z}/6\mathbb{Z}$, and the variety ``associative and commutative $+$'' propagates to all three, witnessed by eight \cppinline{static_assert}s.
+
+\begin{listing}[ht]
+\caption{Birkhoff's HSP closure typed.  Base $\mathbb{Z}/6\mathbb{Z}$ + three synthetic HSP markers wired to the carrier-side registries; the trait propagation lifts both axioms of the variety uniformly to all three HSP-derived carriers.  Any future H/S/P construction over $\mathbb{Z}/6\mathbb{Z}$ (or any other base in the variety) follows the same one-line opt-in pattern.}
+\label{lst:hsp-closed}
+\begin{cpp}
+// --- Synthetic HSP markers wired to Modular<6> -----------------------
+struct H_image_of_Z6 {};   // type-level placeholder for any H-image of Z/6Z
+struct S_subalg_of_Z6 {};  // ... S-subalgebra ...
+struct P_product_of_Z6 {}; // ... P-direct-product ...
+
+template <> struct quotient_algebra_base<H_image_of_Z6> { using type = Modular<6>; };
+template <> struct subalgebra_base      <S_subalg_of_Z6> { using type = Modular<6>; };
+template <> struct product_algebra_base <P_product_of_Z6>{ using type = Modular<6>; };
+
+// --- THE Birkhoff HSP-closed crown -----------------------------------
+// Variety V: carriers with associative + AND commutative +.
+// V is HSP-closed by the propagation specs.
+
+using Z6 = Modular<6>;  using H = H_image_of_Z6;
+using S  = S_subalg_of_Z6;  using P = P_product_of_Z6;
+
+static_assert(is_associative_v<Z6, std::plus<Z6>>);  // base ∈ V
+static_assert(is_associative_v<H,  std::plus<H>>);   // H closure (quotient)
+static_assert(is_associative_v<S,  std::plus<S>>);   // S closure (subalgebra)
+static_assert(is_associative_v<P,  std::plus<P>>);   // P closure (product)
+static_assert(is_commutative_v<Z6, std::plus<Z6>>);  // (same four, both axioms)
+static_assert(is_commutative_v<H,  std::plus<H>>);
+static_assert(is_commutative_v<S,  std::plus<S>>);
+static_assert(is_commutative_v<P,  std::plus<P>>);
+\end{cpp}
+\end{listing}
+
+The quotient combinator carries the dual numbers all the way to a faithful matrix embedding (Listing~\ref{lst:lin-alg-embeddings}): $\mathbb{D}$ sits inside $M_2(\mathbb{Q})$ as $2\times2$ matrices, with the infinitesimal $\varepsilon$ squaring to zero.
+
+% Source: src/test/cpp/modules/dedekind/linear_algebra/embeddings_test.cpp
+\begin{listing}[htbp]
+\caption{Dual numbers embed faithfully as $2 \times 2$ matrices over $\mathbb{Q}$, with the infinitesimal squaring to zero.}
+\label{lst:lin-alg-embeddings}
+\begin{cpp}
+using Rat = Rational<SignedExtensionalCardinal<>>;
+constexpr Dual<Rat> d{Rat{2}, Rat{3}}, e{Rat{-1}, Rat{5}};
+static_assert(as_matrix2x2(d + e) == as_matrix2x2(d) + as_matrix2x2(e));
+static_assert(as_matrix2x2(d * e) == as_matrix2x2(d) * as_matrix2x2(e));
+constexpr Dual<Rat> eps{Rat{0}, Rat{1}};
+static_assert(as_matrix2x2(eps) * as_matrix2x2(eps) == zero_matrix2x2_v<Rat>);
+\end{cpp}
+\end{listing}
 
 \paragraph{Re-enabling refused carriers.}  The Honest Rejection
 policy refuses carriers like \cppinline{int} as a witness for
@@ -1870,7 +2007,7 @@ sketches that do not.
 \begin{itemize}
   \item \textbf{Carrier tightening.} Intersecting a subset of
     $\mathbb{N}$ with a subset of $\mathbb{R}$ should land in $\mathbb{N}$:
-    the carrier lattice contributes its own structural reduction via the
+    the carrier poset contributes its own structural reduction via the
     existing canonical embeddings (\cppinline{embed_uint_sint_},
     \cppinline{embed_ℚ_ℝ}, \ldots).
   \item \textbf{Smooth optimization.} The stationary set
@@ -2143,15 +2280,13 @@ proofs, universe hierarchies) is not available in C++23; what
 ruled out exposes a next class that the current machinery does not
 handle but the library's structural vocabulary already names; the four
 axes of Section~\ref{sec:gap} fall out of the halfspace reductions
-almost by construction.\footnote{Penrose's \emph{The Road to
-Reality}~\cite{penrose2004roadtoreality} offers an analogous
-observation about G\"odel's incompleteness theorem --- a formal
-system closing at one level motivates the next, not as exhaustion
-but as natural successor; the closest formal analogue is Turing's
-ordinal logics~\cite{turing1939ordinals}, where each stage's
-consistency feeds the next stage's formation rule.  The
-systems-programming reading is benign: the issue tracker plays the
-successor role.}
+almost by construction.\footnote{The introduction's G\"odel reading
+applies here: a formal system closing at one level motivates the next,
+not as exhaustion but as successor.  The closest formal analogue is
+Turing's ordinal logics~\cite{turing1939ordinals}, where each stage's
+consistency feeds the next stage's formation rule; the operational
+reading is benign, with the development cycle of
+Figure~\ref{fig:target_model} playing the successor role.}
 
 \paragraph{Three honesty-anchoring constraints.}
 Three compounding constraints keep the library's artefacts honest:

@@ -41,6 +41,8 @@ export import :boolean;
 export import :division;
 export import :field;
 export import :galois;
+export import :magma;   // base rung of the algebra tower (algebraic-set magma)
+export import :monoid;  // additive / multiplicative / generic monoid rungs
 export import :group;
 export import :initial_ring;  // SignedExtensionalCardinal<> as Initial Ring +
                               // Grothendieck Group of ℕ (closes part of #446)

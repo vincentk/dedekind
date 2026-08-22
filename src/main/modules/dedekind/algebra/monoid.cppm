@@ -35,21 +35,35 @@ namespace dedekind::algebra {
 using namespace dedekind::category;
 
 /**
+ * @concept IsMonoid
+ * @brief Proposition: the species (T, Op) forms a monoid, as an
+ *        algebraic set.
+ * @details The axiomatic @c category::IsMonoid<T, Op> strengthened
+ * with the algebra-layer closure tier @c IsAlgebra<T, Op> --- which
+ * adds @c std::regular<T> and strict closure, matching
+ * Burris--Sankappanavar's value-semantics carrier convention.  The
+ * upstream @c category::IsMonoid is intentionally lighter (no @c
+ * std::regular requirement); this algebra-layer rung strengthens it.
+ * The Op-defaulted @c IsAdditiveMonoid / @c IsMultiplicativeMonoid
+ * siblings below name the canonical additive / multiplicative
+ * witnesses.
+ * @tparam T The carrier type (@c std::regular).
+ * @tparam Op The binary operation witness.
+ */
+export template <typename T, typename Op>
+concept IsMonoid = dedekind::category::IsMonoid<T, Op> && IsAlgebra<T, Op>;
+
+/**
  * @concept IsAdditiveMonoid
  * @brief Proposition: The species (T, +) forms a Monoid.
- * @details Operator is configurable; default witness is `std::plus<T>`
- * (the canonical `+`) to align with category:total.  At the
- * algebra layer the wrapper also pins the universal-algebra
- * closure tier @c IsAlgebra<T, Add> --- which adds @c std::regular<T>,
- * matching Burris--Sankappanavar's value-semantics carrier
- * convention.  The upstream @c category::IsMonoid is intentionally
- * lighter (no @c std::regular requirement); the algebra-layer
- * wrappers in this partition strengthen it.
+ * @details The @c std::plus<T>-defaulted additive witness of the
+ * algebra-layer @c IsMonoid; the closure tier @c IsAlgebra travels in
+ * via @c IsMonoid.
  * @tparam T The carrier type (@c std::regular).
  * @tparam Add The additive operation witness (defaults to `std::plus<T>`).
  */
 export template <typename T, typename Add = std::plus<T>>
-concept IsAdditiveMonoid = IsMonoid<T, Add> && IsAlgebra<T, Add>;
+concept IsAdditiveMonoid = IsMonoid<T, Add>;
 
 /**
  * @concept IsMultiplicativeMonoid
@@ -57,14 +71,14 @@ concept IsAdditiveMonoid = IsMonoid<T, Add> && IsAlgebra<T, Add>;
  * @details Operator is configurable; default witness is
  * `std::multiplies<T>` (the canonical `*`) to align with
  * category:total.  Sibling of @c IsAdditiveMonoid; same
- * @c IsAlgebra<T, Mult> strengthening at the algebra-layer wrapper
+ * @c IsAlgebra<T, Mult> strengthening travelling in via @c IsMonoid
  * (#517).
  * @tparam T The carrier type (@c std::regular).
  * @tparam Mult The multiplicative operation witness (defaults to
  * `std::multiplies<T>`).
  */
 export template <typename T, typename Mult = std::multiplies<T>>
-concept IsMultiplicativeMonoid = IsMonoid<T, Mult> && IsAlgebra<T, Mult>;
+concept IsMultiplicativeMonoid = IsMonoid<T, Mult>;
 
 /** @section monoid__Formal_Verification */
 
