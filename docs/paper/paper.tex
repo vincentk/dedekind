@@ -462,16 +462,12 @@ The scout variable appears on both sides of the bar: introduced on the left, ref
 \begin{minipage}[t]{0.44\linewidth}
 the canonical Boolean set $\mathbb{B}$
 \begin{cpp}
-// 𝔹: the universal set of bool,
-//    every value of the type
-constexpr UniversalSet<bool,
-    ClassicalLogic, Finite>
-  𝔹 = sets::Ω<bool>;
-
-// 𝔹 is an ETCS set...
+constexpr auto 𝔹 = sets::Ω<bool>;
 static_assert(IsSet<decltype(𝔹)>);
+static_assert(𝔹(true));
+static_assert(𝔹(false));
 
-// ...whose subsets form a lattice
+// Subsets form a lattice
 // under the set operations |, &, !
 // (not bool's ∨, ∧):
 static_assert(
@@ -853,37 +849,36 @@ The type system can consequently treat arbitrary transformations as well-behaved
 
 % Source excerpts from dedekind.algebra:universal and dedekind.category:total.
 \begin{listing}[!ht]
-\caption{An \emph{algebraic set} reified, assembled from smaller concepts.
-\textbf{Left:} Reification of Eq.~\ref{eqn:ddk} \cppinline{concept IsAlgebraOnSet} corresponds to $\mathbf Ddk$, \cppinline{concept IsSet} to $\mathbf{Trsk}$ (Listing~\ref{lst:concept_isset})) and \cppinline{concept IsAlgebra} enforces operator closure as required by $\mathbf{Alg}(-)$.
-\textbf{Right:} a sample structure built the same bottom-up way, the monoid: a magma (closure) refined by associativity and a unit.}
+\caption{The two layers of $\mathbf{Ddk} = \mathbf{Trsk} \cap \mathbf{Alg}$.
+\textbf{Left, the type layer} (\cppinline{category}): the pointwise axioms on a carrier \emph{type} --- a model of a Birkhoff/Lawvere theory~\cite{burris1981universalalgebra,hylandpower2007}, a magma refined to a monoid by associativity and a unit.
+\textbf{Right, the set layer} (\cppinline{algebra}): a set \emph{object} whose carrier is such a model, the subobject-over-carrier pattern familiar from proof assistants~\cite{mathlib2020}.  \cppinline{IsAlgebraOnSet} is the generic $(A,F)$ form available today; the named rungs \cppinline{algebra::IsMonoid<X>} are the set-indexed lift of the left column, the target the library is converging on.}
 \label{lst:algebra:universal}
 \noindent
 \begin{minipage}[t]{0.5\linewidth}
-$\mathbf{Ddk} = \mathbf{Trsk} \cap \mathbf{Alg}$
+type layer (\cppinline{category}): pointwise
 \begin{cpp}
-export template <
-  typename X,
-  typename... Ops
->
-concept IsAlgebraOnSet =
-  IsSet<X>
-  && 
-  IsAlgebra<
-    typename X::Domain,
-    Ops...
-  >;
-\end{cpp}
-\end{minipage}\hfill
-\begin{minipage}[t]{0.47\linewidth}
-a sample algebra: the monoid
-\begin{cpp}
-export template <typename T, typename Op>
+template <typename T, typename Op>
 concept IsMagma  = IsTotal<T, Op>
                 && /* Op closes: A×A → A */;
-export template <typename T, typename Op>
+template <typename T, typename Op>
 concept IsMonoid = IsMagma<T, Op>
    && IsAssociative<T, Op>
    && IsPointed<T, Op>;
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.47\linewidth}
+set layer (\cppinline{algebra}): the lift
+\begin{cpp}
+// generic (A,F), today:
+template <typename X, typename... Ops>
+concept IsAlgebraOnSet = IsSet<X>
+  && IsAlgebra<typename X::Domain, Ops...>;
+
+// named rung, target:
+template <typename X, typename Op>
+concept IsMonoid = IsSet<X>
+  && category::IsMonoid<
+       typename X::Domain, Op>;
 \end{cpp}
 \end{minipage}
 \end{listing}
@@ -894,41 +889,43 @@ concept IsMonoid = IsMagma<T, Op>
 
 % Source excerpts from dedekind.algebra:boolean and dedekind.numbers:rational.
 \begin{listing}[!ht]
-\caption{Concrete carriers inhabiting the concepts of Listing~\ref{lst:algebra:universal}.  \textbf{Left:} the primitive \cppinline{bool}, at once a lattice under the logical operators $(\vee, \wedge)$ and the field $\mathbb{F}_2$ under the bitwise operators $(\oplus, \wedge)$; the Boolean \emph{set} $\mathbb{B} = $ \cppinline{Ω<bool>} it carries is introduced in Listing~\ref{lst:pruning}.  \textbf{Right:} the exact rationals $\mathbb{Q}$, a field under standard arithmetic.}
+\caption{Concrete carriers inhabiting Listing~\ref{lst:algebra:universal}, shown at the \emph{pointwise} (element) layer --- every check is on the element type \cppinline{X::Domain}.  The complementary \emph{set} layer for these carriers (membership and the $\cup,\cap$ subobject lattice) is Listing~\ref{lst:pruning}.
+\textbf{Left:} \cppinline{bool}, at once a lattice under the logical operators $(\vee,\wedge)$ and the field $\mathbb{F}_2$ under the bitwise operators $(\oplus,\wedge)$.
+\textbf{Right:} \cppinline{std::size_t}, the modular ring $\mathbb{Z}/2^{64}\mathbb{Z}$ under $(+,\times)$; composite carriers such as $\mathbb{Q}$ appear in \S\ref{sec:hsp_varieties}.}
 \label{lst:algebra:boolean_case}
 \noindent
 \begin{minipage}[t]{0.52\linewidth}
-the primitive \cppinline{bool} as carrier
+pointwise on \cppinline{decltype(𝔹)::Domain}
 \begin{cpp}
-// bool the carrier; the set 𝔹 = Ω<bool>
-// is introduced in §3. Here its algebra:
-
-// logical (∨, ∧): a lattice
-static_assert(IsLattice<bool,
-    std::logical_or<bool>, std::logical_and<bool>>);
-// bitwise (⊕, ∧): the field F_2
-static_assert(IsGaloisField<bool,
-    std::bit_xor<bool>, std::bit_and<bool>>);
+static_assert(
+  IsLattice<decltype(𝔹)::Domain,
+    std::logical_or<bool>,
+    std::logical_and<bool>>);
+static_assert(
+  IsGaloisField<decltype(𝔹)::Domain,
+    std::bit_xor<bool>,
+    std::bit_and<bool>>);
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.45\linewidth}
-Rationals $\mathbb{Q}$ (exact)
+pointwise on \cppinline{decltype(𝕊)::Domain}
 \begin{cpp}
-using ℚ = Rational<default_integer>;
-                    // exact Frac(ℤ)
-
-// arithmetic (+, ×): a field
-static_assert(IsField<ℚ>);
+constexpr auto 𝕊 = sets::Ω<std::size_t>;
+static_assert(
+  IsCommutativeRing<
+    decltype(𝕊)::Domain,
+    std::plus<std::size_t>,
+    std::multiplies<std::size_t>>);
 \end{cpp}
 \end{minipage}
 \end{listing}
 
-Listing~\ref{lst:algebra:universal} reifies the \emph{algebraic sets} of Figure~\ref{fig:hub-spoke-bnz} as \Cpp{} types: the family $\mathbf{Ddk}$ is the reified intensional sets $\mathbf{Trsk}$~\eqref{eqn:trsk} met with universal algebra in the textbook sense~\cite{burris1981universalalgebra}, $\mathbf{Alg}(-)$\footnote{The dash is left unbound, the same $F_\Sigma$-algebra fragment a functional programmer would recognise~\cite{pierce1991basic}.  The smallness ceiling that keeps $\mathbf{Ddk}$ clear of proper-class self-reference is the ETCS power-object bound (Appendix~\ref{sec:etcs}, Axiom~9, $\beth_1$).}:
+Listing~\ref{lst:algebra:universal} reifies the \emph{algebraic sets} of Figure~\ref{fig:hub-spoke-bnz} as \Cpp{23} types: the family $\mathbf{Ddk}$ is the reified intensional sets $\mathbf{Trsk}$~\eqref{eqn:trsk} met with universal algebra in the textbook sense~\cite{burris1981universalalgebra}, $\mathbf{Alg}(-)$\footnote{The dash is left unbound, the same $F_\Sigma$-algebra fragment a functional programmer would recognise~\cite{pierce1991basic}.  The smallness ceiling that keeps $\mathbf{Ddk}$ clear of proper-class self-reference is the ETCS power-object bound (Appendix~\ref{sec:etcs}, Axiom~9, $\beth_1$).}:
 \begin{equation}
 \label{eqn:ddk}
     \mathbf{Ddk} \;=\; \mathbf{Trsk} \,\cap\, \mathbf{Alg}(-).
 \end{equation}
-Listing~\ref{lst:algebra:boolean_case} exhibits two inhabitants with real programmatic access: the primitive \cppinline{bool}, at once a lattice and the field $\mathbb{F}_2$, and the exact rationals $\mathbb{Q}$.
+Listing~\ref{lst:algebra:boolean_case} exhibits two primitive inhabitants at the pointwise layer: \cppinline{bool} (a lattice and the field $\mathbb{F}_2$) and \cppinline{std::size_t} (the modular ring $\mathbb{Z}/2^{64}\mathbb{Z}$); their set layer is Listing~\ref{lst:pruning}, and composite carriers such as $\mathbb{Q}$ follow in \S\ref{sec:hsp_varieties}.\footnote{The two operator layers carry two \emph{different} theories.  The pointwise operations $(+,\times)$ make the carrier a model of a finitary Lawvere theory, i.e.\ the algebras of a free-$\Sigma$ term monad~\cite{hylandpower2007}; the set operations $(\cup,\cap)$ come from the powerset functor, whose Eilenberg--Moore algebras are complete lattices, not rings.  The set-indexed concept pairs the two, and is deliberately \emph{not} the Eilenberg--Moore construction of the powerset monad.}
 
 \subsection{Mechanical Support for Advanced Carriers}
 \label{sec:hsp_varieties}
