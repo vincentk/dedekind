@@ -898,7 +898,11 @@ static_assert(IsField<ℚ>);
 \label{sec:carrier-lattice}
 
 Beyond the primitives, mechanical support comes from Birkhoff's HSP theorem~\cite{burris1981universalalgebra}: a certificate proven for a base carrier propagates to the carriers built from it.
-Two rules carry it: a concept composes a certificate with a property of its parameter (a module over a field \emph{is} a vector space), and a one-line registration forwards the species traits through a construction to the derived carrier (Listing~\ref{lst:hsp-combinators}).
+Two rules carry it (Listing~\ref{lst:hsp-combinators}):
+\begin{enumerate}
+    \item \textbf{Composition on the parameter.}  A concept conjoins a certificate with a property of its parameter: a module over a field \emph{is} a vector space, so \cppinline{is_vector_space_v} holds with no per-carrier code.
+    \item \textbf{Propagation through a construction.}  A one-line registration names the base, and the species traits (associativity, commutativity, and the rest) forward through the construction to the derived carrier.
+\end{enumerate}
 This reaches exactly the Birkhoff-closed constructions, product, quotient, and subalgebra; localization, completion, and the endomorphism-algebra step preserve structure by other theorems and are not covered (Table~\ref{tab:constructions}).
 
 \begin{table}[!ht]
