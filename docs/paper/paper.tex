@@ -449,29 +449,56 @@ In this section, we first show working code (§\ref{sec:ddk_comprehension}) to i
 
 % Source: src/test/cpp/modules/dedekind/python/showcase_alpha_prime.cpp
 \begin{listing}[htbp]
-\caption{A code extract from the project's test suite intended to model set builder notation in C++23.
-\cppinline{Set{...}} is a variadic constructor.
-The combinators \cppinline{in} and \cppinline{bound} construct a scout variable and a half-space predicate respectively.
-The scout variable appears on both sides of the bar: introduced on the left, and referred back to on the right, so the predicate to the right reads as the constraint $x > 5$.
-\cppinline{operator()} is a shorthand for \cppinline{a.contains(e)}.
-As evidenced by the \cppinline{static_assert}, the set operations are evaluated at compile time.}
+\caption{Two set constructions, evaluated entirely at compile time.
+\textbf{Left:} the canonical Boolean set $\mathbb{B}$, the universal set of \cppinline{bool} (every value of the type), reified as \cppinline{sets::Ω<bool>}.
+The \cppinline{static_assert}s witness that it is an ETCS set (\cppinline{IsSet}) whose subsets form a lattice under $\cup$, $\cap$, and complement (\cppinline{IsSubobjectLattice}, the pre-defined subobject-lattice concept $\mathrm{Sub}(A) \cong \Omega^A$).
+This is the lattice of the \emph{set} operations, not the lattice of \cppinline{bool} itself under $(\vee, \wedge)$.
+\textbf{Right:} set-builder notation modelled in C++23.
+\cppinline{Set{...}} is a variadic constructor; the combinators \cppinline{in} and \cppinline{bound} construct a scout variable and a half-space predicate.
+The scout variable appears on both sides of the bar: introduced on the left, referred back to on the right, so the predicate reads as the constraint $x > 5$.
+\cppinline{operator()} is shorthand for \cppinline{a.contains(e)}.}
 \label{lst:pruning}
+\noindent
+\begin{minipage}[t]{0.44\linewidth}
+the canonical Boolean set $\mathbb{B}$
+\begin{cpp}
+// 𝔹: the universal set of bool,
+//    every value of the type
+constexpr UniversalSet<bool,
+    ClassicalLogic, Finite>
+  𝔹 = sets::Ω<bool>;
+
+// 𝔹 is an ETCS set...
+static_assert(IsSet<decltype(𝔹)>);
+
+// ...whose subsets form a lattice
+// under the set operations |, &, !
+// (not bool's ∨, ∧):
+static_assert(
+  IsSubobjectLattice<decltype(𝔹)>);
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.54\linewidth}
+a comprehension over $\mathbb{N}$
 \begin{cpp}
 // {x in ℕ | x > 5}
 constexpr auto a = Set{in(ℕ) | in(ℕ) > bound<5>};
 static_assert(a(7u) == a.contains(7u));
 
 constexpr auto b = Set{in(ℕ) | in(ℕ) > bound<6>};
-constexpr Singleton<6> c = a - b; 
+constexpr Singleton<6> c = a - b;
 constexpr auto d = Set{in(ℕ) | in(ℕ) < bound<7>};
-constexpr Singleton<6> e = c & d;   
-constexpr Ø<Cardinality> f = c & !c;                       
+constexpr Singleton<6> e = c & d;
+constexpr Ø<Cardinality> f = c & !c;
 
-// {x in ℕ | ∃y ∈ e : x * y == 42}
-constexpr Singleton<7> q = Set{in(ℕ) | Exists(e, [](auto y, auto x) { 
-    return x * y == bound<42>; 
-})};
+// {x in ℕ | ∃y ∈ e : x*y == 42}
+constexpr Singleton<7> q =
+  Set{in(ℕ) | Exists(e,
+    [](auto y, auto x) {
+      return x * y == bound<42>;
+    })};
 \end{cpp}
+\end{minipage}
 \end{listing}
 
 The combinator \cppinline{in} constructs a \emph{scout variable}.
@@ -486,6 +513,7 @@ The template engine expands these composed expressions during compilation, trigg
 
 The correspondence is exact on the decidable track, and it is what makes the algebra optimizable.
 Because a set is its predicate, the lattice of sets over a domain $A$ with decidable membership is the Boolean lattice lifted pointwise, $\mathcal{P}(A) \cong \mathbb{B}^A$ (Table~\ref{tab:lattice-lift}).
+Its top element, the universal set $A$ itself, is reified as \cppinline{sets::Ω<T>}; Listing~\ref{lst:pruning} (left) exhibits the canonical case, the Booleans $\mathbb{B} = $ \cppinline{Ω<bool>}.
 Where membership is undecided the codomain lifts to $\mathbb{B}+\text{U}$ and the operations become the three-valued Kleene ones, a de Morgan structure but no longer a Boolean algebra, since complement has no inverse at $\text{U}$.
 Optimization is then the simplification of these predicate compositions at translation time: an empty meet prunes, $\bot \wedge p \Rightarrow \bot$, and constant conjuncts fold away.
 The induced order, set inclusion, is pointwise implication $\chi_S \Rightarrow \chi_T$; it ranges over the domain, and keeping it decidable is the task of the specializations in §\ref{sec:ddk_etcs}.
@@ -823,22 +851,27 @@ The type system can consequently treat arbitrary transformations as well-behaved
 \section{Universal Algebra and the Poset of Carriers}
 \label{sec:algebraic_lattice_carriers}
 
-\subsection{Algebraic Sets on the Primitive Carriers}
-\label{sec:algebraic_sets_primitives}
-
 % Source excerpts from dedekind.algebra:universal and dedekind.category:total.
 \begin{listing}[!ht]
-\caption{An \emph{algebraic set} reified, assembled from smaller concepts.  \textbf{Left:} \cppinline{IsAlgebraOnSet} conjoins \cppinline{IsSet} (the $\mathbf{Trsk}$ layer of Listing~\ref{lst:concept_isset}) with \cppinline{IsAlgebra}, the universal-algebra $(A, F)$ pattern that checks the operations close on the carrier.  \textbf{Right:} a sample structure built the same bottom-up way, the monoid: a magma (closure) refined by associativity and a unit.  The per-shape \cppinline{Has*Operators} concepts pin which operator signature each carrier supplies, so $\mathbf{Ddk}$ stays as wide as needed while a concrete variety is one fixed choice.}
+\caption{An \emph{algebraic set} reified, assembled from smaller concepts.
+\textbf{Left:} Reification of Eq.~\ref{eqn:ddk} \cppinline{concept IsAlgebraOnSet} corresponds to $\mathbf Ddk$, \cppinline{concept IsSet} to $\mathbf{Trsk}$ (Listing~\ref{lst:concept_isset})) and \cppinline{concept IsAlgebra} enforces operator closure as required by $\mathbf{Alg}(-)$.
+\textbf{Right:} a sample structure built the same bottom-up way, the monoid: a magma (closure) refined by associativity and a unit.}
 \label{lst:algebra:universal}
 \noindent
 \begin{minipage}[t]{0.5\linewidth}
 $\mathbf{Ddk} = \mathbf{Trsk} \cap \mathbf{Alg}$
 \begin{cpp}
-export template <typename X, typename... Ops>
+export template <
+  typename X,
+  typename... Ops
+>
 concept IsAlgebraOnSet =
-    IsSet<X>          // Trsk: X is a set
- && IsAlgebra<typename X::Domain, Ops...>;
-                      // Alg: (A,F), ops closed
+  IsSet<X>
+  && 
+  IsAlgebra<
+    typename X::Domain,
+    Ops...
+  >;
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.47\linewidth}
@@ -848,30 +881,27 @@ export template <typename T, typename Op>
 concept IsMagma  = IsTotal<T, Op>
                 && /* Op closes: A×A → A */;
 export template <typename T, typename Op>
-concept IsMonoid = IsMagma<T, Op>       // closure
-   && IsAssociative<T, Op>   // + assoc
-   && IsPointed<T, Op>;      // + unit
+concept IsMonoid = IsMagma<T, Op>
+   && IsAssociative<T, Op>
+   && IsPointed<T, Op>;
 \end{cpp}
 \end{minipage}
 \end{listing}
 
-Listing~\ref{lst:algebra:universal} reifies the \emph{algebraic sets} of Figure~\ref{fig:hub-spoke-bnz} as \Cpp{} types: the family $\mathbf{Ddk}$ is the reified intensional sets $\mathbf{Trsk}$~\eqref{eqn:trsk} met with universal algebra in the textbook sense~\cite{burris1981universalalgebra}, $\mathbf{Alg}(-)$\footnote{The dash is left unbound, the same $F_\Sigma$-algebra fragment a functional programmer would recognise~\cite{pierce1991basic}.  The smallness ceiling that keeps $\mathbf{Ddk}$ clear of proper-class self-reference is the ETCS power-object bound (Appendix~\ref{sec:etcs}, Axiom~9, $\beth_1$).}:
-\begin{equation}
-\label{eqn:ddk}
-    \mathbf{Ddk} \;=\; \mathbf{Trsk} \,\cap\, \mathbf{Alg}(-).
-\end{equation}
-Listing~\ref{lst:algebra:boolean_case} exhibits two inhabitants with real programmatic access: the primitive \cppinline{bool}, at once a lattice and the field $\mathbb{F}_2$, and the exact rationals $\mathbb{Q}$.
+\subsection{Algebraic Sets on the Primitive Carriers}
+\label{sec:algebraic_sets_primitives}
+
 
 % Source excerpts from dedekind.algebra:boolean and dedekind.numbers:rational.
 \begin{listing}[!ht]
-\caption{Concrete carriers inhabiting the concepts of Listing~\ref{lst:algebra:universal}.  \textbf{Left:} the Boolean universe on the primitive \cppinline{bool}, at once a lattice under the logical operators $(\vee, \wedge)$ and the field $\mathbb{F}_2$ under the bitwise operators $(\oplus, \wedge)$; the carrier is a primitive type.  \textbf{Right:} the exact rationals $\mathbb{Q}$, a field under standard arithmetic.}
+\caption{Concrete carriers inhabiting the concepts of Listing~\ref{lst:algebra:universal}.  \textbf{Left:} the primitive \cppinline{bool}, at once a lattice under the logical operators $(\vee, \wedge)$ and the field $\mathbb{F}_2$ under the bitwise operators $(\oplus, \wedge)$; the Boolean \emph{set} $\mathbb{B} = $ \cppinline{Ω<bool>} it carries is introduced in Listing~\ref{lst:pruning}.  \textbf{Right:} the exact rationals $\mathbb{Q}$, a field under standard arithmetic.}
 \label{lst:algebra:boolean_case}
 \noindent
 \begin{minipage}[t]{0.52\linewidth}
-Boolean universe (primitive \cppinline{bool})
+the primitive \cppinline{bool} as carrier
 \begin{cpp}
-constexpr UniversalSet<bool, ClassicalLogic, Finite>
-    𝔹 = sets::Ω<bool>;
+// bool the carrier; the set 𝔹 = Ω<bool>
+// is introduced in §3. Here its algebra:
 
 // logical (∨, ∧): a lattice
 static_assert(IsLattice<bool,
@@ -893,17 +923,16 @@ static_assert(IsField<ℚ>);
 \end{minipage}
 \end{listing}
 
+Listing~\ref{lst:algebra:universal} reifies the \emph{algebraic sets} of Figure~\ref{fig:hub-spoke-bnz} as \Cpp{} types: the family $\mathbf{Ddk}$ is the reified intensional sets $\mathbf{Trsk}$~\eqref{eqn:trsk} met with universal algebra in the textbook sense~\cite{burris1981universalalgebra}, $\mathbf{Alg}(-)$\footnote{The dash is left unbound, the same $F_\Sigma$-algebra fragment a functional programmer would recognise~\cite{pierce1991basic}.  The smallness ceiling that keeps $\mathbf{Ddk}$ clear of proper-class self-reference is the ETCS power-object bound (Appendix~\ref{sec:etcs}, Axiom~9, $\beth_1$).}:
+\begin{equation}
+\label{eqn:ddk}
+    \mathbf{Ddk} \;=\; \mathbf{Trsk} \,\cap\, \mathbf{Alg}(-).
+\end{equation}
+Listing~\ref{lst:algebra:boolean_case} exhibits two inhabitants with real programmatic access: the primitive \cppinline{bool}, at once a lattice and the field $\mathbb{F}_2$, and the exact rationals $\mathbb{Q}$.
+
 \subsection{Mechanical Support for Advanced Carriers}
 \label{sec:hsp_varieties}
 \label{sec:carrier-lattice}
-
-Beyond the primitives, mechanical support comes from Birkhoff's HSP theorem~\cite{burris1981universalalgebra}: a certificate proven for a base carrier propagates to the carriers built from it.
-Two rules carry it (Listing~\ref{lst:hsp-combinators}):
-\begin{enumerate}
-    \item \textbf{Composition on the parameter.}  A concept conjoins a certificate with a property of its parameter: a module over a field \emph{is} a vector space, so \cppinline{is_vector_space_v} holds with no per-carrier code.
-    \item \textbf{Propagation through a construction.}  A one-line registration names the base, and the species traits (associativity, commutativity, and the rest) forward through the construction to the derived carrier.
-\end{enumerate}
-This reaches exactly the Birkhoff-closed constructions, product, quotient, and subalgebra; localization, completion, and the endomorphism-algebra step preserve structure by other theorems and are not covered (Table~\ref{tab:constructions}).
 
 \begin{table}[!ht]
 \centering
@@ -923,6 +952,15 @@ endomorphism algebra & $R^n \to M_n(R)$ & module theory~\cite{lang2002algebra} &
 \bottomrule
 \end{tabular}
 \end{table}
+
+Beyond the primitives, mechanical support comes from Birkhoff's HSP theorem~\cite{burris1981universalalgebra}: a certificate proven for a base carrier propagates to the carriers built from it.
+Two rules carry it (Listing~\ref{lst:hsp-combinators}):
+\begin{enumerate}
+    \item \textbf{Composition on the parameter.}  A concept conjoins a certificate with a property of its parameter: a module over a field \emph{is} a vector space, so \cppinline{is_vector_space_v} holds with no per-carrier code.
+    \item \textbf{Propagation through a construction.}  A one-line registration names the base, and the species traits (associativity, commutativity, and the rest) forward through the construction to the derived carrier.
+\end{enumerate}
+This reaches exactly the Birkhoff-closed constructions, product, quotient, and subalgebra; localization, completion, and the endomorphism-algebra step preserve structure by other theorems and are not covered (Table~\ref{tab:constructions}).
+
 
 % Source excerpts from dedekind.algebra:quotient and dedekind.analysis:dual.
 \begin{listing}[!ht]
