@@ -212,15 +212,31 @@ concept HasCompoundGroupOperatorsMul = requires(T a, T b) {
 };
 
 /**
+ * @concept IsGroup
+ * @brief Proposition: the species (T, Op) forms a group, as an
+ *        algebraic set.
+ * @details The axiomatic @c category::IsGroup<T, Op> strengthened with
+ * the algebra-layer closure tier @c IsAlgebra<T, Op> (@c
+ * std::regular<T> + strict closure).  The Op-defaulted
+ * @c IsAdditiveGroup / @c IsMultiplicativeGroup siblings below name the
+ * canonical additive / multiplicative witnesses.
+ * @tparam T The carrier type (@c std::regular).
+ * @tparam Op The binary operation witness.
+ */
+export template <typename T, typename Op>
+concept IsGroup = dedekind::category::IsGroup<T, Op> && IsAlgebra<T, Op>;
+
+/**
  * @concept IsAdditiveGroup
  * @brief Proposition: The species (T, +) forms an Abelian Group (ℤ).
- * @details Operator is configurable; default witness is `std::plus<T>`
- * (the canonical `+`).
+ * @details The @c std::plus<T>-defaulted additive witness of the
+ * algebra-layer @c IsGroup; the closure tier @c IsAlgebra travels in
+ * via @c IsGroup.
  * @tparam T The carrier type.
  * @tparam Add The additive operation witness (defaults to `std::plus<T>`).
  */
 export template <typename T, typename Add = std::plus<T>>
-concept IsAdditiveGroup = IsGroup<T, Add> && IsAlgebra<T, Add>;
+concept IsAdditiveGroup = IsGroup<T, Add>;
 
 /**
  * @concept IsMultiplicativeGroup
@@ -232,8 +248,7 @@ concept IsAdditiveGroup = IsGroup<T, Add> && IsAlgebra<T, Add>;
  * `std::multiplies<T>`).
  */
 export template <typename T, typename Mult = std::multiplies<T>>
-concept IsMultiplicativeGroup =
-    dedekind::category::IsGroup<T, Mult> && IsAlgebra<T, Mult>;
+concept IsMultiplicativeGroup = IsGroup<T, Mult>;
 
 /**
  * @concept IsArithmeticAdditiveGroup

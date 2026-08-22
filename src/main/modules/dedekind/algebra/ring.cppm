@@ -100,15 +100,27 @@ concept IsSemiring =
     IsAdditiveMonoid<T, Add> && IsMultiplicativeMonoid<T, Mult> &&
     dedekind::category::IsLinearAction<T, T, Mult, Add>;
 
-/** @concept IsRig: The "Natural" Harmony (No negatives) */
+/** @concept IsRig: The "Natural" Harmony (No negatives).
+ *
+ *  As with @c IsSemiring, the algebra-layer rig is a bona-fide
+ *  algebraic set: the axiomatic @c category::IsRig proof conjoined
+ *  with the additive- and multiplicative-monoid rungs (each of which
+ *  pins the @c IsAlgebra closure tier). */
 export template <typename T, typename Add = std::plus<T>,
                  typename Mult = std::multiplies<T>>
-concept IsRig = dedekind::category::IsRig<T, Add, Mult>;
+concept IsRig = dedekind::category::IsRig<T, Add, Mult> &&
+                IsAdditiveMonoid<T, Add> && IsMultiplicativeMonoid<T, Mult>;
 
-/** @concept IsRng: The "Identity-less" Harmony (No unit) */
+/** @concept IsRng: The "Identity-less" Harmony (No unit).
+ *
+ *  A rng has no multiplicative identity, so it does not go through the
+ *  multiplicative-monoid rung; the algebraic-set discipline is pinned
+ *  directly via @c IsAlgebra (@c std::regular + closure under both
+ *  operations). */
 export template <typename T, typename Add = std::plus<T>,
                  typename Mult = std::multiplies<T>>
-concept IsRng = dedekind::category::IsRng<T, Add, Mult>;
+concept IsRng =
+    dedekind::category::IsRng<T, Add, Mult> && IsAlgebra<T, Add, Mult>;
 
 /**
  * @concept IsRing
