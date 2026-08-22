@@ -164,8 +164,7 @@ concept IsAlgebra = std::regular<T> && (... && IsClosedUnderEither<T, Ops>);
  */
 export template <typename X, typename... Ops>
 concept IsAlgebraOnSet =
-    dedekind::category::IsSet<X> &&
-    IsAlgebra<typename X::Domain, Ops...>;
+    dedekind::category::IsSet<X> && IsAlgebra<typename X::Domain, Ops...>;
 
 // ---------------------------------------------------------------------------
 // IsTotalAlgebra: the totality-tier anchor between :universal and :total
