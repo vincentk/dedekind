@@ -822,10 +822,12 @@ The type system can consequently treat arbitrary transformations as well-behaved
 %------
 \section{Universal Algebra and the Poset of Carriers}
 \label{sec:algebraic_lattice_carriers}
-%-------
+
+\subsection{Algebraic Sets on the Primitive Carriers}
+\label{sec:algebraic_sets_primitives}
 
 % Source excerpts from dedekind.algebra:universal and dedekind.category:total.
-\begin{listing}[ht]
+\begin{listing}[!ht]
 \caption{An \emph{algebraic set} reified, assembled from smaller concepts.  \textbf{Left:} \cppinline{IsAlgebraOnSet} conjoins \cppinline{IsSet} (the $\mathbf{Trsk}$ layer of Listing~\ref{lst:concept_isset}) with \cppinline{IsAlgebra}, the universal-algebra $(A, F)$ pattern that checks the operations close on the carrier.  \textbf{Right:} a sample structure built the same bottom-up way, the monoid: a magma (closure) refined by associativity and a unit.  The per-shape \cppinline{Has*Operators} concepts pin which operator signature each carrier supplies, so $\mathbf{Ddk}$ stays as wide as needed while a concrete variety is one fixed choice.}
 \label{lst:algebra:universal}
 \noindent
@@ -858,10 +860,10 @@ Listing~\ref{lst:algebra:universal} reifies the \emph{algebraic sets} of Figure~
 \label{eqn:ddk}
     \mathbf{Ddk} \;=\; \mathbf{Trsk} \,\cap\, \mathbf{Alg}(-).
 \end{equation}
-Listing~\ref{lst:algebra:boolean_case} exhibits two inhabitants: the primitive \cppinline{bool}, at once a lattice and the field $\mathbb{F}_2$, and the exact rationals $\mathbb{Q}$.
+Listing~\ref{lst:algebra:boolean_case} exhibits two inhabitants with real programmatic access: the primitive \cppinline{bool}, at once a lattice and the field $\mathbb{F}_2$, and the exact rationals $\mathbb{Q}$.
 
 % Source excerpts from dedekind.algebra:boolean and dedekind.numbers:rational.
-\begin{listing}[ht]
+\begin{listing}[!ht]
 \caption{Concrete carriers inhabiting the concepts of Listing~\ref{lst:algebra:universal}.  \textbf{Left:} the Boolean universe on the primitive \cppinline{bool}, at once a lattice under the logical operators $(\vee, \wedge)$ and the field $\mathbb{F}_2$ under the bitwise operators $(\oplus, \wedge)$; the carrier is a primitive type.  \textbf{Right:} the exact rationals $\mathbb{Q}$, a field under standard arithmetic.}
 \label{lst:algebra:boolean_case}
 \noindent
@@ -891,16 +893,15 @@ static_assert(IsField<ℚ>);
 \end{minipage}
 \end{listing}
 
-\subsection{The carrier poset}
+\subsection{Mechanical Support for Advanced Carriers}
+\label{sec:hsp_varieties}
 \label{sec:carrier-lattice}
 
-The carriers form a poset: a spine $\mathbb{B}, \mathbb{N}, \mathbb{Z}, \mathbb{Q}, \mathbb{R}$ that branches at $\mathbb{R}$ into the complex and dual numbers, $\mathbb{C} = \mathbb{R}[i]/(i^2{+}1)$ and $\mathbb{D} = \mathbb{R}[\varepsilon]/(\varepsilon^2)$, and the module carriers $R^n$ and $M_n(R)$.
-Each edge is a \emph{universal construction}, a canonical way to make a new carrier from an old one; none is ours to invent, they are textbook, and the library only checks that each type is what it claims.
-Three of these constructions preserve algebraic laws for a single reason, one theorem (Birkhoff~\cite{burris1981universalalgebra}): whatever laws the ingredients satisfy, their product, their quotients, and their subalgebras satisfy too.
-That one theorem is what the trait engine turns into mechanical propagation, and it is the whole of Rule~2 (§\ref{sec:hsp_varieties}).
-The library's other carrier-building moves, fractions ($\mathbb{Z} \to \mathbb{Q}$), completion ($\mathbb{Q} \to \mathbb{R}$), and the matrix algebra ($R^n \to M_n(R)$), are equally canonical but each preserves structure by its own theorem, from a different branch of mathematics, so no single closure rule reaches them (Table~\ref{tab:constructions}).
+Beyond the primitives, mechanical support comes from Birkhoff's HSP theorem~\cite{burris1981universalalgebra}: a certificate proven for a base carrier propagates to the carriers built from it.
+Two rules carry it: a concept composes a certificate with a property of its parameter (a module over a field \emph{is} a vector space), and a one-line registration forwards the species traits through a construction to the derived carrier (Listing~\ref{lst:hsp-combinators}).
+This reaches exactly the Birkhoff-closed constructions, product, quotient, and subalgebra; localization, completion, and the endomorphism-algebra step preserve structure by other theorems and are not covered (Table~\ref{tab:constructions}).
 
-\begin{table}[ht]
+\begin{table}[!ht]
 \centering
 \caption{The universal constructions that build the carrier poset, the theorem by which each preserves algebraic laws, and whether the trait engine mechanizes it.  The three Birkhoff operations~\cite{burris1981universalalgebra} (product, quotient, subalgebra) share one closure theorem and \emph{are} Rule~2; localization~\cite{atiyahmacdonald1969commutative} and completion~\cite{rudin1976principles} preserve structure by their own theorems, from other branches, and are not Birkhoff-closed (fields are not a variety, so no set of identities pins them down).}
 \label{tab:constructions}
@@ -919,54 +920,54 @@ endomorphism algebra & $R^n \to M_n(R)$ & module theory~\cite{lang2002algebra} &
 \end{tabular}
 \end{table}
 
-So the engine mechanizes exactly the Birkhoff-closed core, the fragment where one theorem does all the work, and files fractions there too because $\operatorname{Frac}$ behaves enough like a quotient to ride the same machinery.
-Completion and the matrix step it does not model as law-preserving constructions at all; it builds them by hand.
-The honest statement is therefore narrow and true: \texttt{dedekind} propagates certificates across the Birkhoff-closed fragment of the carrier poset, and leaves the rest as the engineer's obligation, the same seam the rest of §\ref{sec:algebraic_lattice_carriers} works.
-
-The quotient rung is backed by the First Isomorphism Theorem, $A/\ker f \cong \operatorname{im} f$~\cite{burris1981universalalgebra}, which \texttt{category:image} records as a typed claim: the quotient and image are registered per homomorphism, and a supplied isomorphism is type-checked against them.
-
-\subsection{How certificates lift}
-\label{sec:hsp_varieties}
-
-A carrier's certificates, the laws it is known to satisfy, are not re-proven for each new type.
-They \emph{lift}, by two composing rules: a concept that composes certificates, and an engine that propagates them.
-
-\paragraph{Rule 1: composition on the parameter.}
-Some certificates are a weaker certificate conjoined with a property of the parameter.
-A vector space is the textbook case, a module whose scalars form a field.
-The library says exactly that as a concept rather than a comment (Listing~\ref{lst:rule1-compose}), so it gates a \cppinline{requires} clause the way \cppinline{IsRing} does, and the compiler discharges it with no per-carrier opt-in.
-
-% Source excerpt from dedekind.algebra:vectorspace.
-\begin{listing}[ht]
-\caption{Rule 1: a vector space is a module over a field, one concept composed from two existing certificates.  \cppinline{is_vector_space_v} is the boolean witness the compiler discharges.}
-\label{lst:rule1-compose}
+% Source excerpts from dedekind.algebra:quotient and dedekind.analysis:dual.
+\begin{listing}[!ht]
+\caption{The HSP combinators (left) and one application (right).  Registering \cppinline{Dual} as a quotient of \cppinline{F} forwards \cppinline{F}'s ring certificate to the dual numbers $\mathbb{D} = F[\varepsilon]/(\varepsilon^2)$, and the nilpotent axiom $\varepsilon^2 = 0$ is checked at compile time.  The H (quotient) family is shown; P (product) and S (subalgebra) mirror it.}
+\label{lst:hsp-combinators}
+\noindent
+\begin{minipage}[t]{0.52\linewidth}
+the HSP combinators
 \begin{cpp}
-template <typename V, typename F, /* operator defaults */>
-concept IsVectorSpace = IsModule<V, F, ...> && category::IsField<F, ...>;
+template <typename Q>
+struct quotient_algebra_base {};   // register a base
+template <typename Q>
+concept IsQuotientAlgebra =
+    requires { typename quotient_algebra_base<Q>::type; };
 
-static_assert(is_vector_space_v<Vec2V<ℚ>, ℚ>);  // discharged, no per-carrier code
+// a species trait forwards to the base's:
+template <typename Q> requires IsQuotientAlgebra<Q>
+inline constexpr bool is_associative_v<Q, std::plus<Q>> =
+    is_associative_v<quotient_algebra_base_t<Q>,
+                     std::plus<quotient_algebra_base_t<Q>>>;
 \end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.45\linewidth}
+a success: the dual numbers $\mathbb{D}$
+\begin{cpp}
+// 𝔻 = F[ε]/(ε²): one line registers
+//   the quotient of F...
+template <typename F> requires std::regular<F>
+struct quotient_algebra_base<Dual<F>> {
+  using type = F;
+};
+
+// ...and F's ring cert is now 𝔻's:
+static_assert(HasRingOperators<Dual<int>>);
+static_assert(eps * eps == Dual<int>{0,0});
+\end{cpp}
+\end{minipage}
 \end{listing}
 
-\paragraph{Rule 2: propagation through a constructor.}
-The other rule carries a certificate from a base carrier to one built from it.
-A class of algebras closed under homomorphic images, subalgebras, and products is a variety (Birkhoff~\cite{burris1981universalalgebra}), and the library realises that closure as \emph{trait propagation}: a one-line registration names the base, and the species traits (\cppinline{is_associative_v}, \cppinline{is_commutative_v}, and the rest) forward to the derived carrier for every parameter.
-The engine, a registration point plus one forwarding specialisation per trait, and a worked closure over $\mathbb{Z}/6\mathbb{Z}$ are in Appendix~\ref{sec:carrier-rosetta} (Listings~\ref{lst:rule2-engine} and~\ref{lst:hsp-closed}).
-The gate §\ref{sec:optimization_lp} uses, \cppinline{IsSemiring}, reads this same registry, so its exhibit's gate is a lookup, not a re-proof.
-
-\paragraph{The two compose.}
-Rule 2 lifts \cppinline{IsModule} onto \cppinline{Vec2V<T>} for every \cppinline{T}, which is registered as a product algebra, and Rule 1 upgrades that to \cppinline{IsVectorSpace} over any field.
-Module and vector space are the first two rungs of a ladder that reaches linear operators, climbed in the subsections that follow.
-
-
-\subsection{The ladder, and its honest edge}
+\subsection{Applicability to Linear Algebra}
 \label{sec:certificate_ladder}
+\label{sec:operational_calculus}
+\label{sec:geometric_mappings}
 
-The two rules compose into a ladder, and over the rationals the whole of it type-checks.
-Each rung is a certificate the compiler discharges, none re-proven (Listing~\ref{lst:certificate-ladder}): the scalar $\mathbb{Q}$ as the field of fractions of $\mathbb{Z}$, the rank-2 free module $\mathbb{Q}^2$, that module read as a vector space once its scalars form a field, and the $2\times2$ matrices as the endomorphism ring $M_2(\mathbb{Q}) = \operatorname{End}(\mathbb{Q}^2)$, matrix multiplication being composition of linear maps.
+Linear algebra over these carriers takes two forms.
+Materialised, an operator is the matrix ring $M_n(F) = \operatorname{End}(V)$, the top of a ladder that type-checks over the rationals from scalar to matrix (Listing~\ref{lst:certificate-ladder}); the identity $M_n(F) = \operatorname{End}(V)$ is a registered declaration rather than a derived concept, since no concept recovers it from the operator surface alone (the honesty obligation of §\ref{sec:introduction}).
 
 % Source excerpt from dedekind.linear_algebra:mat2x2 (compositional pin).
-\begin{listing}[ht]
+\begin{listing}[!ht]
 \caption{The certificate ladder over $\mathbb{Q}$: four rungs, each a \cppinline{static_assert} the compiler discharges.}
 \label{lst:certificate-ladder}
 \begin{cpp}
@@ -979,88 +980,8 @@ static_assert(is_endomorphism_ring_v<M, V>); // operator: M₂ = End(V)
 \end{cpp}
 \end{listing}
 
-These rungs are existential, and deliberately so.
-One would like the universal, a single lift certifying scalar to module to vector space to operator for \emph{every} carrier.
-That is the aspiration of §\ref{sec:introduction}, and Rice's theorem is why it stays one: whether an arbitrary carrier satisfies a given law is undecidable, so the library exhibits witnesses and reads the universal as an invitation rather than a theorem.
-
-The edge shows when the same vector-space lift is asked over three scalars (Table~\ref{tab:lift-spectrum}).
-Over $\mathbb{Q}$ it is clean.
-Over $\mathbb{C}$ the field certificate is withheld on purpose, because $x^2+1$ is reducible for some field parameters (over $\mathbb{F}_2$ it factors as $(x+1)^2$), so a blanket lift would be false.
-Over $\mathbb{R}$ the strict field is stopped by the \cppinline{IsTotal} policy gate rather than by any mathematics, a gate $\mathbb{Q}$ clears only because its base registers a saturating totality path and $\mathbb{R}$ registers none.
-
-\begin{table}[ht]
-\centering
-\caption{One lift, three honest answers: the vector-space certificate asked over three scalar carriers.}
-\label{tab:lift-spectrum}
-\small
-\begin{tabular}{@{}l l l@{}}
-\toprule
-scalar & vector-space lift & reason \\
-\midrule
-$\mathbb{Q}$ & clean, witnessed above & a module over a field, no side condition \\
-$\mathbb{C}$ & field certificate withheld & $x^2+1$ reducible over $\mathbb{F}_2$; a blanket lift would be false \\
-$\mathbb{R}$ & blocked by \cppinline{IsTotal} & a policy gate, not a genuine obstruction \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-The top rung repays a closer look, because an operator wears two faces.
-The next subsection separates them.
-
-\subsection{Operators, two faces}
-\label{sec:operators_two_faces}
-\label{sec:operational_calculus}
-\label{sec:geometric_mappings}
-
-The operators at the top of the ladder come in two forms, and \texttt{dedekind} keeps both.
-
-\paragraph{Materialised: matrices.}
-The first face is the endomorphism ring $M_2(F) = \operatorname{End}(V)$ of §\ref{sec:certificate_ladder}: an operator is an endofunction on the carrier, written as a grid of coefficients, and composition is matrix multiplication.
-Here the honest edge is sharpest, because the rung has three layers and only two are mechanical.
-That an operator is \emph{linear} the compiler checks as a concept, \cppinline{IsLinearMorphism} ($f(s \cdot x) = s \cdot f(x)$), and that the matrices carry a ring is another, \cppinline{HasRingOperators}.
-But the identity that this ring \emph{is} the endomorphism ring, $M_2(F) = \operatorname{End}(V)$, is registered as a trait rather than derived as a concept, because no concept derives it from the operator surface alone.
-It is a declaration the author makes and the compiler records, the honesty obligation of §\ref{sec:introduction} arriving at the top of the ladder.
-
-\paragraph{Coordinate-free: boundary and coboundary.}
-The second face never builds the grid.
-With the carriers of §\ref{sec:algebraic_lattice_carriers} in place, the linear algebra over them stays matrix-free: the two operators a graph actually needs are kept as structural mappings between functions on its cells.
-A graph is a one-dimensional complex, a node potential a 0-form $d : \mathcal{V} \to S$, an edge value a 1-form on $\mathcal{E}$.
-The \emph{coboundary} $\delta$ is the discrete gradient, sending a node 0-form to the edge 1-form of its differences,
-\begin{equation}
-    (\delta d)(u \to v) = d(v) - d(u),
-\end{equation}
-and the \emph{boundary} $\partial$ is its adjoint, sending a directed chain to its signed endpoints, $\partial[\,s \to t\,] = \{t\} - \{s\}$.
-Neither is materialised; each is an expression over the incidence structure, the intensional reading of §\ref{sec:intensional_sets} carried up from sets to operators.
-The mnemonic is calculus: $\delta$ is the differential, $\partial$ is evaluation at the endpoints, and the discrete Stokes theorem $\int_\gamma \delta d = \langle d,\ \partial\gamma\rangle$ ties them.
-
-The two faces meet in the graph Laplacian $\Delta = \delta\partial + \partial\delta$, an endomorphism assembled from the grade-shifting maps that individually are not.
-They also pose the problem §\ref{sec:optimization_lp} solves: the critical-path duration is the boundary pairing $\langle d,\ \partial\gamma\rangle = d(t) - d(s)$, and the precedence constraints the coboundary bound $\delta d \ge c$, so the dual program is
-\begin{equation}
-    \text{minimise}\ \langle d,\ \partial\gamma\rangle \quad\text{s.t.}\quad \delta d \ge c .
-\end{equation}
-Section~\ref{sec:optimization_lp} is that program's solver in the tropical semiring, its closure the integral that inverts $\delta$, accumulating cost along paths to recover $d$ (a fold, not a reified operator).
-So these operators are not adjacent to the exhibit; they are what it is written in.
-
-\subsection{Dual numbers, for the sensitivity exhibit}
-\label{sec:dual_numbers_quotient}
-
-The one carrier worth a second look, because §\ref{sec:optimization_lp} differentiates with it, is the dual numbers $\mathbb{D}$, mathematically the quotient ring $F[\varepsilon]/(\varepsilon^2)$ over a coefficient carrier $F$ (classically $\mathbb{R}$; the sensitivity exhibit of §\ref{sec:optimization_lp} takes $F$ the saturating-unsigned cost carrier, the companion matrix listing takes $F = \mathbb{Q}$).
-The implementation is that quotient's direct realisation: a pair $(a, b)$ whose multiplication is written as $(a, b)(c, d) = (ac,\, ad + bc)$, with the truncation $\varepsilon^2 = 0$ already discharged in the formula.
-The operator is \cppinline{constexpr}, so a product of compile-time operands folds during translation, and the $\varepsilon$-coordinate carries the derivative: forward-mode automatic differentiation as a ring law (Listing~\ref{lst:lin-alg-embeddings}).
-
-% Source: src/test/cpp/modules/dedekind/linear_algebra/embeddings_test.cpp
-\begin{listing}[htbp]
-\caption{Dual numbers embed faithfully as $2 \times 2$ matrices over $\mathbb{Q}$, with the infinitesimal squaring to zero.}
-\label{lst:lin-alg-embeddings}
-\begin{cpp}
-using Rat = Rational<SignedExtensionalCardinal<>>;
-constexpr Dual<Rat> d{Rat{2}, Rat{3}}, e{Rat{-1}, Rat{5}};
-static_assert(as_matrix2x2(d + e) == as_matrix2x2(d) + as_matrix2x2(e));
-static_assert(as_matrix2x2(d * e) == as_matrix2x2(d) * as_matrix2x2(e));
-constexpr Dual<Rat> eps{Rat{0}, Rat{1}};
-static_assert(as_matrix2x2(eps) * as_matrix2x2(eps) == zero_matrix2x2_v<Rat>);
-\end{cpp}
-\end{listing}
+Coordinate-free, an operator never builds the grid: the coboundary $\delta$, with $(\delta d)(u \to v) = d(v) - d(u)$, and its adjoint the boundary $\partial$ are expressions over the incidence structure, the intensional reading of §\ref{sec:intensional_sets} lifted from sets to operators, and they are what §\ref{sec:optimization_lp} is written in.
+The practical rule is one line: constrain generic code on the concept, not the carrier; a routine bounded by \cppinline{IsVectorSpace<V, F>} admits every carrier the closed core certifies, from $\mathbb{Q}$-vector-spaces to matrices over the dual numbers, and outside the core the certificate is the engineer's to supply.
 
 \section{Optimization by Semiring Closure}
 \label{sec:optimization_lp}
@@ -1664,32 +1585,14 @@ Module / v.\ space & \cppinline{IsModule} / \cppinline{IsVectorSpace} & \cppinli
 
 \vspace{0.3em}
 \begin{flushleft}
-{\footnotesize \textsuperscript{$\dagger$} Operator-surface certification only (\cppinline{HasRingOperators} / \cppinline{HasFieldOperators}); the three honest outcomes of the vector-space lift (clean, withheld because false, blocked by policy) are laid out in §\ref{sec:certificate_ladder}, Table~\ref{tab:lift-spectrum}.  \cppinline{Dual} carries ring operators, but $\varepsilon^2 = 0$ leaves it without a strict \cppinline{IsRing} witness, so it sits with the modules.}
+{\footnotesize \textsuperscript{$\dagger$} Operator-surface certification only (\cppinline{HasRingOperators} / \cppinline{HasFieldOperators}); the vector-space lift of §\ref{sec:hsp_varieties} gives three honest outcomes, clean for $\mathbb{Q}$, withheld for $\mathbb{C}$ (the field certificate is false over $\mathbb{F}_2$, where $x^2+1 = (x+1)^2$), and blocked for $\mathbb{R}$ by the \cppinline{IsTotal} policy gate rather than by any mathematics.  \cppinline{Dual} carries ring operators, but $\varepsilon^2 = 0$ leaves it without a strict \cppinline{IsRing} witness, so it sits with the modules.}
 \end{flushleft}
 \end{table}
 
 \subsection{How the certificates lift}
 \label{sec:appendixE-lift}
 
-The two rules of §\ref{sec:hsp_varieties} are shown in full here.
-Rule 2, propagation, is a small engine: a registration point, the concept that reads it, and one forwarding specialisation per species trait (Listing~\ref{lst:rule2-engine}), given for the H (quotient) family, with P (product) and S (subalgebra) identical up to the base name.
-
-% Source excerpt from dedekind.algebra:quotient.
-\begin{listing}[ht]
-\caption{Rule 2, engine core.  The H (quotient) family; P (product) and S (subalgebra) mirror it.  Registering a base is one line, and the forwarding specialisation reads the base's own trait, so no law is re-proven on the derived carrier.}
-\label{lst:rule2-engine}
-\begin{cpp}
-template <typename Q> struct quotient_algebra_base {};      // registration point
-template <typename Q>
-concept IsQuotientAlgebra = requires { typename quotient_algebra_base<Q>::type; };
-
-// The derived carrier's trait forwards to its base's trait.
-template <typename Q> requires IsQuotientAlgebra<Q>
-inline constexpr bool is_associative_v<Q, std::plus<Q>> =
-    is_associative_v<quotient_algebra_base_t<Q>, std::plus<quotient_algebra_base_t<Q>>>;
-\end{cpp}
-\end{listing}
-
+This appendix is the deep dive behind §\ref{sec:hsp_varieties}: the HSP combinators of Listing~\ref{lst:hsp-combinators} put to work across all three families and both lift rules.
 Registering \cppinline{Vec2V} is the single line \cppinline{template <typename T> struct product_algebra_base<Vec2V<T>> { using type = T; };}, after which every species trait \cppinline{Vec2V<T>} carries forwards to \cppinline{T}; that is why \cppinline{IsModule} holds for the whole family and Rule 1 upgrades it to \cppinline{IsVectorSpace} over any field.
 A synthetic base makes the closure visible end to end (Listing~\ref{lst:hsp-closed}): three markers stand for the H, S, and P images of $\mathbb{Z}/6\mathbb{Z}$, and the variety ``associative and commutative $+$'' propagates to all three, witnessed by eight \cppinline{static_assert}s.
 
@@ -1721,6 +1624,22 @@ static_assert(is_commutative_v<Z6, std::plus<Z6>>);  // (same four, both axioms)
 static_assert(is_commutative_v<H,  std::plus<H>>);
 static_assert(is_commutative_v<S,  std::plus<S>>);
 static_assert(is_commutative_v<P,  std::plus<P>>);
+\end{cpp}
+\end{listing}
+
+The quotient combinator carries the dual numbers all the way to a faithful matrix embedding (Listing~\ref{lst:lin-alg-embeddings}): $\mathbb{D}$ sits inside $M_2(\mathbb{Q})$ as $2\times2$ matrices, with the infinitesimal $\varepsilon$ squaring to zero.
+
+% Source: src/test/cpp/modules/dedekind/linear_algebra/embeddings_test.cpp
+\begin{listing}[htbp]
+\caption{Dual numbers embed faithfully as $2 \times 2$ matrices over $\mathbb{Q}$, with the infinitesimal squaring to zero.}
+\label{lst:lin-alg-embeddings}
+\begin{cpp}
+using Rat = Rational<SignedExtensionalCardinal<>>;
+constexpr Dual<Rat> d{Rat{2}, Rat{3}}, e{Rat{-1}, Rat{5}};
+static_assert(as_matrix2x2(d + e) == as_matrix2x2(d) + as_matrix2x2(e));
+static_assert(as_matrix2x2(d * e) == as_matrix2x2(d) * as_matrix2x2(e));
+constexpr Dual<Rat> eps{Rat{0}, Rat{1}};
+static_assert(as_matrix2x2(eps) * as_matrix2x2(eps) == zero_matrix2x2_v<Rat>);
 \end{cpp}
 \end{listing}
 
