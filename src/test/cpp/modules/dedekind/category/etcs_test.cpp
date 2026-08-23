@@ -40,8 +40,7 @@ TEST_CASE("ETCS: canonical int ambient satisfies ETCS witnesses",
   STATIC_CHECK(IsSet<CanonicalIntSetObject>);
   STATIC_CHECK(
       HasAxiom5CartesianProduct<typename CanonicalIntSetObject::Domain>);
-  STATIC_CHECK(
-      HasAxiom6Exponentiation<typename CanonicalIntSetObject::Domain>);
+  STATIC_CHECK(HasAxiom6Exponentiation<typename CanonicalIntSetObject::Domain>);
 
   CHECK(true);
 }

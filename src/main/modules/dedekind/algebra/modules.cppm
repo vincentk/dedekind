@@ -84,10 +84,9 @@ export template <typename M, typename S, typename AddM = std::plus<M>,
                  typename AddS = std::plus<S>,
                  typename MultS = std::multiplies<S>,
                  typename Act = std::multiplies<>>
-concept IsSemimodule =
-    IsCommutativeMonoid<M, AddM> &&
-    dedekind::category::IsSemiring<S, AddS, MultS> &&
-    IsLinearAction<S, M, Act, AddS>;
+concept IsSemimodule = IsCommutativeMonoid<M, AddM> &&
+                       dedekind::category::IsSemiring<S, AddS, MultS> &&
+                       IsLinearAction<S, M, Act, AddS>;
 
 /**
  * @concept IsModule

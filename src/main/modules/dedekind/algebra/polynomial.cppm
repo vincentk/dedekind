@@ -260,11 +260,11 @@ export template <typename Poly, typename Coeff>
   requires dedekind::category::IsField<Coeff, std::plus<Coeff>,
                                        std::multiplies<Coeff>> &&
            requires(Poly p, Coeff c) {
-    { p.is_zero() } -> std::convertible_to<bool>;
-    { p.degree() };
-    { p.leading_coefficient() } -> std::same_as<Coeff>;
-    Poly{c};
-  }
+             { p.is_zero() } -> std::convertible_to<bool>;
+             { p.degree() };
+             { p.leading_coefficient() } -> std::same_as<Coeff>;
+             Poly{c};
+           }
 constexpr std::pair<Poly, Poly> div_rem(const Poly& a, const Poly& b) {
   if (b.is_zero()) throw std::domain_error("Division by zero.");
 
@@ -392,7 +392,8 @@ namespace dedekind::algebra {
  */
 
 using PolyUInt = RigPolynomial<unsigned int>;
-static_assert(dedekind::category::IsCommutativeRing<PolyUInt, std::plus<PolyUInt>, std::multiplies<PolyUInt>>,
+static_assert(dedekind::category::IsCommutativeRing<
+                  PolyUInt, std::plus<PolyUInt>, std::multiplies<PolyUInt>>,
               "RigPolynomial<unsigned int> must satisfy IsCommutativeRing "
               "(coefficient wrapping lifts to the polynomial level).");
 
@@ -417,7 +418,8 @@ static_assert(IsArithmeticRing<PolyUInt>,
 
 using PolyEC = RigPolynomial<dedekind::sets::ExtensionalCardinal<>>;
 static_assert(
-    dedekind::category::IsCommutativeRing<PolyEC, std::plus<PolyEC>, std::multiplies<PolyEC>>,
+    dedekind::category::IsCommutativeRing<PolyEC, std::plus<PolyEC>,
+                                          std::multiplies<PolyEC>>,
     "RigPolynomial<ExtensionalCardinal<>> must satisfy IsCommutativeRing.");
 
 }  // namespace dedekind::algebra

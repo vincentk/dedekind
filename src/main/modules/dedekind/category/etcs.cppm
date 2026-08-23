@@ -149,8 +149,8 @@ concept HasAxiom7SubobjectClassifier =
                                classifier_false<typename S::Domain>())),
                            typename S::Domain>;
       requires IsPullback<
-          decltype(pullback<ClassicalLogic, std::pair<typename S::Domain,
-                                                      typename S::Domain>>(
+          decltype(pullback<ClassicalLogic,
+                            std::pair<typename S::Domain, typename S::Domain>>(
               id<typename S::Domain>(), id<typename S::Domain>())),
           Identity<typename S::Domain>, Identity<typename S::Domain>>;
     };

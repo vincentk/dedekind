@@ -109,9 +109,8 @@ concept IsSemiring =
  *  pins the @c IsAlgebra closure tier). */
 export template <typename X, typename Add = std::plus<>,
                  typename Mult = std::multiplies<>>
-concept IsRig =
-    dedekind::category::IsRig<typename X::Domain, Add, Mult> &&
-    IsAdditiveMonoid<X, Add> && IsMultiplicativeMonoid<X, Mult>;
+concept IsRig = dedekind::category::IsRig<typename X::Domain, Add, Mult> &&
+                IsAdditiveMonoid<X, Add> && IsMultiplicativeMonoid<X, Mult>;
 
 /** @concept IsRng: The "Identity-less" Harmony (No unit).
  *
@@ -150,10 +149,9 @@ concept IsRng = dedekind::category::IsSet<X> &&
 // explicitly via `IsRing<T> && HasRingOperators<T>`.
 export template <typename X, typename Add = std::plus<>,
                  typename Mult = std::multiplies<>>
-concept IsRing =
-    dedekind::category::IsRing<typename X::Domain, Add, Mult> &&
-    IsSemiring<X, Add, Mult> && IsAdditiveGroup<X, Add> &&
-    IsAlgebra<typename X::Domain, Add, Mult>;
+concept IsRing = dedekind::category::IsRing<typename X::Domain, Add, Mult> &&
+                 IsSemiring<X, Add, Mult> && IsAdditiveGroup<X, Add> &&
+                 IsAlgebra<typename X::Domain, Add, Mult>;
 
 /**
  * @concept IsArithmeticRing
@@ -390,10 +388,13 @@ static_assert(IsArithmeticRing<unsigned int>,
 // unsigned int with wrapping arithmetic is the canonical total commutative
 // ring: IsPeriodic (wraps at 2^N) satisfies IsTotal → IsMagma → IsMonoid →
 // IsGroup.
-static_assert(dedekind::category::IsRing<unsigned int, std::plus<unsigned int>, std::multiplies<unsigned int>>,
+static_assert(dedekind::category::IsRing<unsigned int, std::plus<unsigned int>,
+                                         std::multiplies<unsigned int>>,
               "unsigned int must satisfy IsRing (wrapping arithmetic).");
-static_assert(dedekind::category::IsCommutativeRing<unsigned int, std::plus<unsigned int>, std::multiplies<unsigned int>>,
-              "unsigned int must satisfy IsCommutativeRing.");
+static_assert(
+    dedekind::category::IsCommutativeRing<unsigned int, std::plus<unsigned int>,
+                                          std::multiplies<unsigned int>>,
+    "unsigned int must satisfy IsCommutativeRing.");
 
 /** @subsection Narrow_Unsigned_Audit
  *
@@ -463,16 +464,25 @@ static_assert(IsArithmeticRing<std::size_t>,
 // and the std::plus / std::multiplies functors close on U by signature.
 // `IsArithmeticRing` (the strict literal-operator seal) is the
 // stronger claim and is only available on the wide ones.
-static_assert(dedekind::category::IsRing<unsigned char, std::plus<unsigned char>, std::multiplies<unsigned char>>,
-              "unsigned char is a ring under (std::plus, std::multiplies) "
-              "via the functor surface, even though its literal operators "
-              "promote to int.");
-static_assert(dedekind::category::IsRing<unsigned short, std::plus<unsigned short>, std::multiplies<unsigned short>>,
-              "unsigned short is likewise a functor-surface ring.");
-static_assert(dedekind::category::IsRing<unsigned long, std::plus<unsigned long>, std::multiplies<unsigned long>>,
-              "unsigned long is a ring (also IsArithmeticRing -- both "
-              "halves agree on wide unsigned carriers).");
-static_assert(dedekind::category::IsRing<unsigned long long, std::plus<unsigned long long>, std::multiplies<unsigned long long>>, "unsigned long long is a ring.");
+static_assert(
+    dedekind::category::IsRing<unsigned char, std::plus<unsigned char>,
+                               std::multiplies<unsigned char>>,
+    "unsigned char is a ring under (std::plus, std::multiplies) "
+    "via the functor surface, even though its literal operators "
+    "promote to int.");
+static_assert(
+    dedekind::category::IsRing<unsigned short, std::plus<unsigned short>,
+                               std::multiplies<unsigned short>>,
+    "unsigned short is likewise a functor-surface ring.");
+static_assert(
+    dedekind::category::IsRing<unsigned long, std::plus<unsigned long>,
+                               std::multiplies<unsigned long>>,
+    "unsigned long is a ring (also IsArithmeticRing -- both "
+    "halves agree on wide unsigned carriers).");
+static_assert(dedekind::category::IsRing<unsigned long long,
+                                         std::plus<unsigned long long>,
+                                         std::multiplies<unsigned long long>>,
+              "unsigned long long is a ring.");
 
 // Negative witness: signed narrow types fail the strict ring proof
 // (signed-overflow UB defeats IsPeriodic) AND the literal-operator
@@ -486,7 +496,8 @@ static_assert(dedekind::category::IsRing<unsigned long long, std::plus<unsigned 
 
 // bool with OR/AND is an idempotent commutative semiring (the Boolean rig).
 // It is not a Ring: there is no additive inverse for True (True + x != False).
-static_assert(dedekind::category::IsRig<bool, std::logical_or<bool>, std::logical_and<bool>>,
+static_assert(dedekind::category::IsRig<bool, std::logical_or<bool>,
+                                        std::logical_and<bool>>,
               "bool must satisfy IsRig (Boolean semiring under OR/AND).");
 
 }  // namespace dedekind::algebra

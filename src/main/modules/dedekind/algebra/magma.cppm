@@ -56,8 +56,9 @@ concept IsMagma = dedekind::category::IsSet<X> &&
 // canonical magma carrier; signed int is not (overflow is UB, not total).
 // The set-indexed IsMagma<X> itself is witnessed in the test suite (it needs
 // a set carrier, which this upstream partition does not import).
-static_assert(dedekind::category::IsMagma<unsigned int, std::plus<unsigned int>>,
-              "unsigned int under + is the canonical magma carrier.");
+static_assert(
+    dedekind::category::IsMagma<unsigned int, std::plus<unsigned int>>,
+    "unsigned int under + is the canonical magma carrier.");
 static_assert(!dedekind::category::IsMagma<int, std::plus<int>>,
               "signed int under + is not a magma: overflow is UB (not total).");
 

@@ -281,7 +281,7 @@ static_assert(
 // to the abstract ℕ; the machine carrier is a stricter ring under
 // modular wrap.
 static_assert(dedekind::category::IsRig<unsigned int, std::plus<unsigned int>,
-                                       std::multiplies<unsigned int>>,
+                                        std::multiplies<unsigned int>>,
               "unsigned int satisfies the IsRig witness under + and * on "
               "the canonical machine carrier; records semiring "
               "closure/structure only, not stronger textbook ℕ laws "
