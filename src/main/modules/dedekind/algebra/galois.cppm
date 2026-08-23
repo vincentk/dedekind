@@ -49,7 +49,7 @@ module;
 export module dedekind.algebra:galois;
 
 import dedekind.category;
-import dedekind.sets;       // Ω<T> — the set carrier for the set-indexed witnesses
+import dedekind.sets; // Ω<T> — the set carrier for the set-indexed witnesses
 import dedekind.sequences; // FinitePath / IsFiniteSequence — for the
     // 𝔽64^× primitive-element enumeration witness (#388).
 import :field;
@@ -129,7 +129,8 @@ inline constexpr std::size_t galois_order_v = galois_order<T, Add, Mult>::value;
  *          code needing division composes separately with @c IsDivisionRing.
  * @tparam X    The set object (@c category::IsSet).
  * @tparam Add  Additive op on @c X::Domain (defaults to @c std::plus).
- * @tparam Mult Multiplicative op on @c X::Domain (defaults to @c std::multiplies).
+ * @tparam Mult Multiplicative op on @c X::Domain (defaults to @c
+ * std::multiplies).
  */
 export template <typename X, typename Add = std::plus<typename X::Domain>,
                  typename Mult = std::multiplies<typename X::Domain>>
@@ -361,8 +362,8 @@ static_assert(
     "axiomatic category::IsField above, this is algebra::IsField's carrier "
     "content: division ring + axiomatic field).");
 
-static_assert(IsGaloisField<decltype(dedekind::sets::Ω<𝔽64>),
-                            std::plus<𝔽64>, std::multiplies<𝔽64>>,
+static_assert(IsGaloisField<decltype(dedekind::sets::Ω<𝔽64>), std::plus<𝔽64>,
+                            std::multiplies<𝔽64>>,
               "Ω<𝔽64> must satisfy IsGaloisField (the algebraic set over "
               "GF(2^6), order 64).");
 
