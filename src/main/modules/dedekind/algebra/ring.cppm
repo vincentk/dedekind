@@ -86,20 +86,25 @@ concept HasRingOperators = requires(T a, T b) {
 
 /**
  * @concept IsSemiring
- * @brief The Unification of Algebra and Action (The Rig).
- * @details A species where (T,+) is a Commutative Monoid and (T,*) is a Monoid.
- *          In the Dedekind topos, this is a "Semimodule over itself."
- * @tparam T The carrier type.
- * @tparam Add Additive operation witness (defaults to `std::plus<T>`).
- * @tparam Mult Multiplicative operation witness
- * (defaults to `std::multiplies<T>`).
+ * @brief The set-indexed lift of @c category::IsSemiring (an exact alias
+ *        of @c category::IsRig): the "rig" rung of the tower.
+ * @details The faithful lift, matching every other rung:
+ *          @c IsAlgebraOnSet supplies the carrier discipline and
+ *          @c category::IsSemiring<X::Domain, Add, Mult> supplies the full
+ *          axioms --- commutative additive monoid, multiplicative monoid,
+ *          and the registered distributive laws.  (The earlier composition
+ *          via @c IsLinearAction only checked action/call shapes and was
+ *          strictly weaker than the category rung it names.)
+ * @tparam X    The set object (@c category::IsSet).
+ * @tparam Add Additive operation witness (defaults to `std::plus`).
+ * @tparam Mult Multiplicative operation witness (defaults to
+ * `std::multiplies`).
  */
 export template <typename X, typename Add = std::plus<typename X::Domain>,
                  typename Mult = std::multiplies<typename X::Domain>>
 concept IsSemiring =
-    IsAdditiveMonoid<X, Add> && IsMultiplicativeMonoid<X, Mult> &&
-    dedekind::category::IsLinearAction<typename X::Domain, typename X::Domain,
-                                       Mult, Add>;
+    IsAlgebraOnSet<X, Add, Mult> &&
+    dedekind::category::IsSemiring<typename X::Domain, Add, Mult>;
 
 /** @concept IsRig: The "Natural" Harmony (No negatives).
  *

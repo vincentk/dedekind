@@ -54,6 +54,8 @@ import dedekind.sequences; // FinitePath / IsFiniteSequence — for the
     // 𝔽64^× primitive-element enumeration witness (#388).
 import :field;
 import :registration;
+import :universal;  // IsAlgebraOnSet (the shared algebraic-set base)
+import :division;   // IsDivisionRing (𝔽64 operator-surface witness below)
 
 namespace dedekind::algebra {
 using namespace dedekind::category;
@@ -135,7 +137,7 @@ inline constexpr std::size_t galois_order_v = galois_order<T, Add, Mult>::value;
 export template <typename X, typename Add = std::plus<typename X::Domain>,
                  typename Mult = std::multiplies<typename X::Domain>>
 concept IsGaloisField =
-    dedekind::category::IsSet<X> &&
+    IsAlgebraOnSet<X, Add, Mult> &&
     dedekind::category::IsField<typename X::Domain, Add, Mult> &&
     is_galois_field_v<typename X::Domain, Add, Mult>;
 

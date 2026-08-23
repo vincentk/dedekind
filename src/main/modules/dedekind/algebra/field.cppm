@@ -48,9 +48,8 @@ import dedekind.order;
 import dedekind.sets;
 
 import :ring;
-import :group;  // HasGroupOperatorsMul (HasFieldOperators's mul half)
-import :division;
-import :universal;  // IsAlgebra (closure tier on the carrier)
+import :group;      // HasGroupOperatorsMul (HasFieldOperators's mul half)
+import :universal;  // IsAlgebraOnSet (the shared algebraic-set base)
 
 namespace dedekind::algebra {
 using namespace dedekind::category;
@@ -150,35 +149,35 @@ static_assert(std::is_arithmetic_v<unsigned short> &&
 
 /**
  * @concept IsField
- * @brief The "Painless" Field: a Commutative Ring that admits Division,
- *        with both the axiomatic witness and the operator surface.
+ * @brief The set-indexed lift of the axiomatic @c category::IsField: a
+ *        set object @c X whose carrier @c X::Domain is a field.
  *
- * @tparam T A species already established as a Commutative Ring.
- * @tparam Add Additive operation witness (defaults to `std::plus<T>`).
- * @tparam Mult Multiplicative operation witness
- * (defaults to `std::multiplies<T>`).
+ * @tparam X    The set object (@c category::IsSet).
+ * @tparam Add Additive operation witness (defaults to `std::plus`).
+ * @tparam Mult Multiplicative operation witness (defaults to
+ * `std::multiplies`).
  *
  * @details
- * Composes the axiomatic field witness from the category layer
- * (`dedekind::category::IsField`, which requires the species-trait
- * structure including `IsAbelianGroup<T, Mult>` --- i.e. every
- * non-zero element is multiplicatively invertible per
- * `is_invertible_v<T, Mult>`) with the operator-level witness
- * (`IsDivisionRing`, which requires `operator/`, `.inverse()`, and
- * `std::divides`). Carriers that satisfy this concept are proper
- * fields in both the algebraic and the arithmetic sense: the laws
- * hold via traits, the operations are spelled out.
+ * The faithful lift, matching every other rung: @c IsAlgebraOnSet supplies
+ * the carrier discipline (@c IsSet roots @c std::regular on @c X::Domain,
+ * @c IsClosedAlgebra pins strict closure) and
+ * @c category::IsField<X::Domain, Add, Mult> supplies the axioms --- a
+ * commutative ring whose non-zero elements are multiplicatively invertible
+ * (via @c is_invertible_v / @c IsAbelianGroup<X::Domain, Mult>).
  *
- * The split mirrors the rest of the library's layering:
- * `category:total` carries structural / axiomatic concepts without
- * operator requirements; `algebra` builds on them by adding operator
- * closures.
+ * @note The division @b operator @b surface (@c operator/, @c .inverse(),
+ * @c std::divides) is deliberately @b not required here.  It is a syntactic
+ * concern carried by the @b separate concepts @c HasFieldOperators (shape
+ * only) and @c IsDivisionRing (ring + surface).  Keeping it out makes
+ * @c IsField a pure axiomatic lift, so a genuine field with no division
+ * operator --- @f$\mathbb{F}_2 = \Omega\langle\texttt{bool}\rangle@f$ under
+ * @c (bit_xor, bit_and) --- qualifies.  A callsite that needs to write
+ * @c a/b on field elements constrains additionally on @c HasFieldOperators.
  */
 export template <typename X, typename Add = std::plus<typename X::Domain>,
                  typename Mult = std::multiplies<typename X::Domain>>
 concept IsField = IsAlgebraOnSet<X, Add, Mult> &&
-                  dedekind::category::IsField<typename X::Domain, Add, Mult> &&
-                  IsDivisionRing<typename X::Domain, Add, Mult>;
+                  dedekind::category::IsField<typename X::Domain, Add, Mult>;
 
 /** @section field__Formal_Verification: bool is the Galois field 𝔽2
  *
@@ -201,13 +200,11 @@ concept IsField = IsAlgebraOnSet<X, Add, Mult> &&
  * from the multiplicative-invertibility clause by convention (the
  * only non-zero element is @c true, which is self-inverse under AND).
  *
- * The operator-level @c algebra::IsField (which additionally requires
- * @c operator/, @c .inverse(), and @c std::divides) is \emph{not}
- * asserted on @c bool: the division surface is absent at the
- * primitive-type level.  Downstream carriers that need the division
- * surface (e.g.\ a division-based templated algorithm) can wrap
- * @c bool in a struct with @c operator/ and @c .inverse() members,
- * but the abstract-algebraic claim itself does not require that.
+ * The set-indexed @c algebra::IsField is a @b pure @b axiomatic lift, so
+ * it too holds on the set object @f$\Omega\langle\texttt{bool}\rangle@f$
+ * (asserted below): no division @b operator surface is demanded.  A
+ * callsite that needs to write @c a/b constrains additionally on
+ * @c HasFieldOperators, which @c bool's bitwise surface does not satisfy.
  */
 static_assert(dedekind::category::IsCommutativeRing<bool, std::bit_xor<bool>,
                                                     std::bit_and<bool>>,
@@ -218,6 +215,13 @@ static_assert(
     dedekind::category::IsField<bool, std::bit_xor<bool>, std::bit_and<bool>>,
     "bool under (XOR, AND) must satisfy the axiomatic "
     "category::IsField: it is literally the Galois field 𝔽2.");
+
+// The pure-lift payoff: the set object Ω<bool> is a set-indexed algebra
+// field under (XOR, AND) --- 𝔽2 qualifies with no division operator surface.
+static_assert(
+    IsField<decltype(Ω<bool>), std::bit_xor<bool>, std::bit_and<bool>>,
+    "𝔽2 = Ω<bool> under (XOR, AND) is a set-indexed algebra::IsField: "
+    "the lift is purely axiomatic, no operator/ or .inverse() required.");
 
 /**
  * @concept IsAlgebraicallyClosed
