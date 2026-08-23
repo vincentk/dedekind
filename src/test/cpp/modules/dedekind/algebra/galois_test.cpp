@@ -35,6 +35,7 @@
 import dedekind.algebra;
 import dedekind.category;
 import dedekind.sequences;
+import dedekind.sets;  // Ω<T> — set carrier for set-indexed IsGaloisField
 
 using dedekind::algebra::galois_order_v;
 using dedekind::algebra::is_galois_field_v;
@@ -62,7 +63,8 @@ constexpr 𝔽64 pow(𝔽64 a, int n) {
 
 TEST_CASE("Galois — structural: bool is the Galois field 𝔽2",
           "[algebra][galois][F2]") {
-  STATIC_CHECK(IsGaloisField<bool, std::bit_xor<bool>, std::bit_and<bool>>);
+  STATIC_CHECK(IsGaloisField<decltype(dedekind::sets::Ω<bool>),
+               std::bit_xor<bool>, std::bit_and<bool>>);
   STATIC_CHECK(is_galois_field_v<bool, std::bit_xor<bool>, std::bit_and<bool>>);
   STATIC_CHECK(galois_order_v<bool, std::bit_xor<bool>, std::bit_and<bool>> ==
                2);
@@ -70,7 +72,8 @@ TEST_CASE("Galois — structural: bool is the Galois field 𝔽2",
 
 TEST_CASE("Galois — structural: 𝔽64 is the Galois field of order 64",
           "[algebra][galois][F64]") {
-  STATIC_CHECK(IsGaloisField<𝔽64, std::plus<𝔽64>, std::multiplies<𝔽64>>);
+  STATIC_CHECK(IsGaloisField<decltype(dedekind::sets::Ω<𝔽64>),
+               std::plus<𝔽64>, std::multiplies<𝔽64>>);
   STATIC_CHECK(is_galois_field_v<𝔽64, std::plus<𝔽64>, std::multiplies<𝔽64>>);
   STATIC_CHECK(galois_order_v<𝔽64, std::plus<𝔽64>, std::multiplies<𝔽64>> == 64);
 }
