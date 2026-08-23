@@ -382,9 +382,8 @@ concept HasETCSAxioms =
  * @c algebra::IsClosedAlgebra).
  */
 export template <typename A>
-concept IsSet =
-    std::regular<typename A::Domain> && HasETCSAxioms<A> &&
-    IsCartesianClosed<CanonicalSetCCC<typename A::Domain>>;
+concept IsSet = std::regular<typename A::Domain> && HasETCSAxioms<A> &&
+                IsCartesianClosed<CanonicalSetCCC<typename A::Domain>>;
 
 /**
  * @brief Construct a set object over ambient species A from a characteristic
