@@ -176,10 +176,9 @@ static_assert(std::is_arithmetic_v<unsigned short> &&
  */
 export template <typename X, typename Add = std::plus<>,
                  typename Mult = std::multiplies<>>
-concept IsField = dedekind::category::IsSet<X> &&
+concept IsField = IsAlgebraOnSet<X, Add, Mult> &&
                   dedekind::category::IsField<typename X::Domain, Add, Mult> &&
-                  IsDivisionRing<typename X::Domain, Add, Mult> &&
-                  IsClosedAlgebra<typename X::Domain, Add, Mult>;
+                  IsDivisionRing<typename X::Domain, Add, Mult>;
 
 /** @section field__Formal_Verification: bool is the Galois field 𝔽2
  *

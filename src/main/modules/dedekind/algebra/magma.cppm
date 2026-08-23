@@ -46,9 +46,8 @@ using namespace dedekind::category;
  * @tparam Op The binary operation on @c X::Domain (defaults to @c std::plus).
  */
 export template <typename X, typename Op = std::plus<>>
-concept IsMagma = dedekind::category::IsSet<X> &&
-                  dedekind::category::IsMagma<typename X::Domain, Op> &&
-                  IsClosedAlgebra<typename X::Domain, Op>;
+concept IsMagma = IsAlgebraOnSet<X, Op> &&
+                  dedekind::category::IsMagma<typename X::Domain, Op>;
 
 /** @section magma__Formal_Verification */
 

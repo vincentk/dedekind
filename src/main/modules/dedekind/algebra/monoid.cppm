@@ -47,9 +47,8 @@ using namespace dedekind::category;
  * @tparam Op The binary operation on @c X::Domain (defaults to @c std::plus).
  */
 export template <typename X, typename Op = std::plus<>>
-concept IsMonoid = dedekind::category::IsSet<X> &&
-                   dedekind::category::IsMonoid<typename X::Domain, Op> &&
-                   IsClosedAlgebra<typename X::Domain, Op>;
+concept IsMonoid = IsAlgebraOnSet<X, Op> &&
+                   dedekind::category::IsMonoid<typename X::Domain, Op>;
 
 /**
  * @concept IsAdditiveMonoid

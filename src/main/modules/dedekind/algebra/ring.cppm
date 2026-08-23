@@ -120,9 +120,8 @@ concept IsRig = dedekind::category::IsRig<typename X::Domain, Add, Mult> &&
  *  operations). */
 export template <typename X, typename Add = std::plus<>,
                  typename Mult = std::multiplies<>>
-concept IsRng = dedekind::category::IsSet<X> &&
-                dedekind::category::IsRng<typename X::Domain, Add, Mult> &&
-                IsClosedAlgebra<typename X::Domain, Add, Mult>;
+concept IsRng = IsAlgebraOnSet<X, Add, Mult> &&
+                dedekind::category::IsRng<typename X::Domain, Add, Mult>;
 
 /**
  * @concept IsRing
@@ -150,8 +149,7 @@ concept IsRng = dedekind::category::IsSet<X> &&
 export template <typename X, typename Add = std::plus<>,
                  typename Mult = std::multiplies<>>
 concept IsRing = dedekind::category::IsRing<typename X::Domain, Add, Mult> &&
-                 IsSemiring<X, Add, Mult> && IsAdditiveGroup<X, Add> &&
-                 IsClosedAlgebra<typename X::Domain, Add, Mult>;
+                 IsSemiring<X, Add, Mult> && IsAdditiveGroup<X, Add>;
 
 /**
  * @concept IsArithmeticRing

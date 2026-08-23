@@ -224,9 +224,8 @@ concept HasCompoundGroupOperatorsMul = requires(T a, T b) {
  * @tparam Op The binary operation on @c X::Domain (defaults to @c std::plus).
  */
 export template <typename X, typename Op = std::plus<>>
-concept IsGroup = dedekind::category::IsSet<X> &&
-                  dedekind::category::IsGroup<typename X::Domain, Op> &&
-                  IsClosedAlgebra<typename X::Domain, Op>;
+concept IsGroup = IsAlgebraOnSet<X, Op> &&
+                  dedekind::category::IsGroup<typename X::Domain, Op>;
 
 /**
  * @concept IsAdditiveGroup
