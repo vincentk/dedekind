@@ -174,8 +174,8 @@ static_assert(std::is_arithmetic_v<unsigned short> &&
  * operator requirements; `algebra` builds on them by adding operator
  * closures.
  */
-export template <typename X, typename Add = std::plus<>,
-                 typename Mult = std::multiplies<>>
+export template <typename X, typename Add = std::plus<typename X::Domain>,
+                 typename Mult = std::multiplies<typename X::Domain>>
 concept IsField = IsAlgebraOnSet<X, Add, Mult> &&
                   dedekind::category::IsField<typename X::Domain, Add, Mult> &&
                   IsDivisionRing<typename X::Domain, Add, Mult>;
@@ -232,8 +232,8 @@ static_assert(
  * @tparam Mult Multiplicative operation witness
  * (defaults to `std::multiplies<T>`).
  */
-export template <typename X, typename Add = std::plus<>,
-                 typename Mult = std::multiplies<>>
+export template <typename X, typename Add = std::plus<typename X::Domain>,
+                 typename Mult = std::multiplies<typename X::Domain>>
 concept IsAlgebraicallyClosed = IsField<X, Add, Mult> && true;
 
 static_assert(

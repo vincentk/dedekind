@@ -223,7 +223,7 @@ concept HasCompoundGroupOperatorsMul = requires(T a, T b) {
  * @tparam X  The set object (@c category::IsSet).
  * @tparam Op The binary operation on @c X::Domain (defaults to @c std::plus).
  */
-export template <typename X, typename Op = std::plus<>>
+export template <typename X, typename Op = std::plus<typename X::Domain>>
 concept IsGroup = IsAlgebraOnSet<X, Op> &&
                   dedekind::category::IsGroup<typename X::Domain, Op>;
 
@@ -235,7 +235,7 @@ concept IsGroup = IsAlgebraOnSet<X, Op> &&
  * @tparam X   The set object.
  * @tparam Add The additive operation (defaults to `std::plus<X::Domain>`).
  */
-export template <typename X, typename Add = std::plus<>>
+export template <typename X, typename Add = std::plus<typename X::Domain>>
 concept IsAdditiveGroup = IsGroup<X, Add>;
 
 /**
@@ -247,7 +247,7 @@ concept IsAdditiveGroup = IsGroup<X, Add>;
  * @tparam Mult The multiplicative operation (defaults to
  *              `std::multiplies<X::Domain>`).
  */
-export template <typename X, typename Mult = std::multiplies<>>
+export template <typename X, typename Mult = std::multiplies<typename X::Domain>>
 concept IsMultiplicativeGroup = IsGroup<X, Mult>;
 
 /**

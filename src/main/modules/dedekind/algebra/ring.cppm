@@ -94,8 +94,8 @@ concept HasRingOperators = requires(T a, T b) {
  * @tparam Mult Multiplicative operation witness
  * (defaults to `std::multiplies<T>`).
  */
-export template <typename X, typename Add = std::plus<>,
-                 typename Mult = std::multiplies<>>
+export template <typename X, typename Add = std::plus<typename X::Domain>,
+                 typename Mult = std::multiplies<typename X::Domain>>
 concept IsSemiring =
     IsAdditiveMonoid<X, Add> && IsMultiplicativeMonoid<X, Mult> &&
     dedekind::category::IsLinearAction<typename X::Domain, typename X::Domain,
@@ -107,8 +107,8 @@ concept IsSemiring =
  *  algebraic set: the axiomatic @c category::IsRig proof conjoined
  *  with the additive- and multiplicative-monoid rungs (each of which
  *  pins the @c IsAlgebra closure tier). */
-export template <typename X, typename Add = std::plus<>,
-                 typename Mult = std::multiplies<>>
+export template <typename X, typename Add = std::plus<typename X::Domain>,
+                 typename Mult = std::multiplies<typename X::Domain>>
 concept IsRig = dedekind::category::IsRig<typename X::Domain, Add, Mult> &&
                 IsAdditiveMonoid<X, Add> && IsMultiplicativeMonoid<X, Mult>;
 
@@ -118,8 +118,8 @@ concept IsRig = dedekind::category::IsRig<typename X::Domain, Add, Mult> &&
  *  multiplicative-monoid rung; the algebraic-set discipline is pinned
  *  directly via @c IsAlgebra (@c std::regular + closure under both
  *  operations). */
-export template <typename X, typename Add = std::plus<>,
-                 typename Mult = std::multiplies<>>
+export template <typename X, typename Add = std::plus<typename X::Domain>,
+                 typename Mult = std::multiplies<typename X::Domain>>
 concept IsRng = IsAlgebraOnSet<X, Add, Mult> &&
                 dedekind::category::IsRng<typename X::Domain, Add, Mult>;
 
@@ -146,8 +146,8 @@ concept IsRng = IsAlgebraOnSet<X, Add, Mult> &&
 // ring's operations.  A callsite that wants the literal-operator
 // surface @b in @b addition to the strict ring proof says so
 // explicitly via `IsRing<T> && HasRingOperators<T>`.
-export template <typename X, typename Add = std::plus<>,
-                 typename Mult = std::multiplies<>>
+export template <typename X, typename Add = std::plus<typename X::Domain>,
+                 typename Mult = std::multiplies<typename X::Domain>>
 concept IsRing = dedekind::category::IsRing<typename X::Domain, Add, Mult> &&
                  IsSemiring<X, Add, Mult> && IsAdditiveGroup<X, Add>;
 
@@ -214,8 +214,8 @@ concept IsArithmeticRing =
  * @tparam Mult Multiplicative operation witness
  * (defaults to `std::multiplies<T>`).
  */
-export template <typename X, typename Add = std::plus<>,
-                 typename Mult = std::multiplies<>>
+export template <typename X, typename Add = std::plus<typename X::Domain>,
+                 typename Mult = std::multiplies<typename X::Domain>>
 concept IsCommutativeRing =
     IsRing<X, Add, Mult> &&
     dedekind::category::IsCommutative<typename X::Domain, Mult>;

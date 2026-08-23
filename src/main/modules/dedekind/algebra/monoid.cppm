@@ -46,7 +46,7 @@ using namespace dedekind::category;
  * @tparam X  The set object (@c category::IsSet).
  * @tparam Op The binary operation on @c X::Domain (defaults to @c std::plus).
  */
-export template <typename X, typename Op = std::plus<>>
+export template <typename X, typename Op = std::plus<typename X::Domain>>
 concept IsMonoid = IsAlgebraOnSet<X, Op> &&
                    dedekind::category::IsMonoid<typename X::Domain, Op>;
 
@@ -58,7 +58,7 @@ concept IsMonoid = IsAlgebraOnSet<X, Op> &&
  * @tparam X   The set object.
  * @tparam Add The additive operation (defaults to `std::plus<X::Domain>`).
  */
-export template <typename X, typename Add = std::plus<>>
+export template <typename X, typename Add = std::plus<typename X::Domain>>
 concept IsAdditiveMonoid = IsMonoid<X, Add>;
 
 /**
@@ -70,7 +70,7 @@ concept IsAdditiveMonoid = IsMonoid<X, Add>;
  * @tparam Mult The multiplicative operation (defaults to
  *              `std::multiplies<X::Domain>`).
  */
-export template <typename X, typename Mult = std::multiplies<>>
+export template <typename X, typename Mult = std::multiplies<typename X::Domain>>
 concept IsMultiplicativeMonoid = IsMonoid<X, Mult>;
 
 /** @section monoid__Formal_Verification */

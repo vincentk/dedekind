@@ -45,7 +45,7 @@ using namespace dedekind::category;
  * @tparam X  The set object (@c category::IsSet).
  * @tparam Op The binary operation on @c X::Domain (defaults to @c std::plus).
  */
-export template <typename X, typename Op = std::plus<>>
+export template <typename X, typename Op = std::plus<typename X::Domain>>
 concept IsMagma = IsAlgebraOnSet<X, Op> &&
                   dedekind::category::IsMagma<typename X::Domain, Op>;
 
