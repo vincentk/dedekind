@@ -226,7 +226,7 @@ concept HasCompoundGroupOperatorsMul = requires(T a, T b) {
 export template <typename X, typename Op = std::plus<>>
 concept IsGroup = dedekind::category::IsSet<X> &&
                   dedekind::category::IsGroup<typename X::Domain, Op> &&
-                  IsAlgebra<typename X::Domain, Op>;
+                  IsClosedAlgebra<typename X::Domain, Op>;
 
 /**
  * @concept IsAdditiveGroup

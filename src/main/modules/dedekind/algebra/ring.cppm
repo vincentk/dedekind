@@ -122,7 +122,7 @@ export template <typename X, typename Add = std::plus<>,
                  typename Mult = std::multiplies<>>
 concept IsRng = dedekind::category::IsSet<X> &&
                 dedekind::category::IsRng<typename X::Domain, Add, Mult> &&
-                IsAlgebra<typename X::Domain, Add, Mult>;
+                IsClosedAlgebra<typename X::Domain, Add, Mult>;
 
 /**
  * @concept IsRing
@@ -151,7 +151,7 @@ export template <typename X, typename Add = std::plus<>,
                  typename Mult = std::multiplies<>>
 concept IsRing = dedekind::category::IsRing<typename X::Domain, Add, Mult> &&
                  IsSemiring<X, Add, Mult> && IsAdditiveGroup<X, Add> &&
-                 IsAlgebra<typename X::Domain, Add, Mult>;
+                 IsClosedAlgebra<typename X::Domain, Add, Mult>;
 
 /**
  * @concept IsArithmeticRing

@@ -179,7 +179,7 @@ export template <typename X, typename Add = std::plus<>,
 concept IsField = dedekind::category::IsSet<X> &&
                   dedekind::category::IsField<typename X::Domain, Add, Mult> &&
                   IsDivisionRing<typename X::Domain, Add, Mult> &&
-                  IsAlgebra<typename X::Domain, Add, Mult>;
+                  IsClosedAlgebra<typename X::Domain, Add, Mult>;
 
 /** @section field__Formal_Verification: bool is the Galois field 𝔽2
  *

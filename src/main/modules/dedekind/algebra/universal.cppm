@@ -130,8 +130,23 @@ using namespace dedekind::category;
  *      (field of fractions) --- specific instances of the
  *      construction-on-an-algebra pattern.
  */
+/**
+ * @concept IsClosedAlgebra
+ * @brief The @b closure-only tier of an @c (A, F) algebra: each @c Op
+ *        closes on @c T, @b without the @c std::regular value-semantics
+ *        requirement.
+ *
+ * @details Factored out of @c IsAlgebra so that set-indexed callers can
+ * compose it with @c IsSet (which now roots @c std::regular on the
+ * carrier, since @c Trsk @c = @c Jlt @c ∩ @c Set) instead of pinning
+ * @c std::regular a second time.  Standalone type-level callers keep
+ * @c IsAlgebra, which adds the @c std::regular clause.
+ */
 export template <typename T, typename... Ops>
-concept IsAlgebra = std::regular<T> && (... && IsClosedUnderEither<T, Ops>);
+concept IsClosedAlgebra = (... && IsClosedUnderEither<T, Ops>);
+
+export template <typename T, typename... Ops>
+concept IsAlgebra = std::regular<T> && IsClosedAlgebra<T, Ops...>;
 // Should probably include HasCarrier (see below).
 
 /**
@@ -150,10 +165,12 @@ concept IsAlgebra = std::regular<T> && (... && IsClosedUnderEither<T, Ops>);
  *
  * The definition factors as @c Ddk @c = @c Trsk @c ∩ @c Alg:
  *   - @c IsSet<X> is the @c Trsk (set) half: @c X satisfies the full ETCS set
- *     contract (not merely @c IsArrow), so @c X::Domain stays well-formed.
- *   - @c IsAlgebra is the @c Alg half: a @c std::regular carrier whose
- *     operations close.  The closure check lives inside @c IsAlgebra (which
- *     @b is @c regular @c && @c closure), so it is not surfaced a second time.
+ *     contract (not merely @c IsArrow), so @c X::Domain stays well-formed ---
+ *     and, since @c Trsk @c = @c Jlt @c ∩ @c Set, @c IsSet now roots
+ *     @c std::regular on @c X::Domain (the @c Jlt value-semantics half).
+ *   - @c IsClosedAlgebra is the @c Alg half: the operations close on the
+ *     carrier.  @c std::regular is @b not re-pinned here (it already comes
+ *     from @c IsSet), so the carrier's regularity is asserted exactly once.
  *     @c IsClosedUnderEither admits exactly the two operation shapes the
  *     carrier uses: a unary @c Op is already an endomap @c A @c → @c A, and a
  *     binary @c Op @c A×A @c → @c A @b corresponds to endomorphisms once one
@@ -163,8 +180,8 @@ concept IsAlgebra = std::regular<T> && (... && IsClosedUnderEither<T, Ops>);
  * @tparam Ops  The family of operations on @c X::Domain.
  */
 export template <typename X, typename... Ops>
-concept IsAlgebraOnSet =
-    dedekind::category::IsSet<X> && IsAlgebra<typename X::Domain, Ops...>;
+concept IsAlgebraOnSet = dedekind::category::IsSet<X> &&
+                         IsClosedAlgebra<typename X::Domain, Ops...>;
 
 // ---------------------------------------------------------------------------
 // IsTotalAlgebra: the totality-tier anchor between :universal and :total

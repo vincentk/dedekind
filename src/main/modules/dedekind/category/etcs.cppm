@@ -373,10 +373,18 @@ concept HasETCSAxioms =
  * category, but most CCCs are not ETCS.  The additional axioms beyond CCC
  * (4 well-pointed, 7 subobject classifier, 9 NNO, 10 choice / power-object
  * lattice) are precisely what fails for general CCCs.
+ *
+ * @section etcs__Regular_carrier
+ * The carrier @c A::Domain is additionally required to be @c std::regular
+ * --- the @c Jlt value-semantics half of @c Trsk @c = @c Jlt @c ∩ @c Set.
+ * Rooting it here means downstream algebraic-set concepts inherit carrier
+ * regularity from @c IsSet rather than re-pinning it (see
+ * @c algebra::IsClosedAlgebra).
  */
 export template <typename A>
 concept IsSet =
-    HasETCSAxioms<A> && IsCartesianClosed<CanonicalSetCCC<typename A::Domain>>;
+    std::regular<typename A::Domain> && HasETCSAxioms<A> &&
+    IsCartesianClosed<CanonicalSetCCC<typename A::Domain>>;
 
 /**
  * @brief Construct a set object over ambient species A from a characteristic

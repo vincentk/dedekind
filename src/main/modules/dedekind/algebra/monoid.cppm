@@ -49,7 +49,7 @@ using namespace dedekind::category;
 export template <typename X, typename Op = std::plus<>>
 concept IsMonoid = dedekind::category::IsSet<X> &&
                    dedekind::category::IsMonoid<typename X::Domain, Op> &&
-                   IsAlgebra<typename X::Domain, Op>;
+                   IsClosedAlgebra<typename X::Domain, Op>;
 
 /**
  * @concept IsAdditiveMonoid

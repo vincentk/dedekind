@@ -48,7 +48,7 @@ using namespace dedekind::category;
 export template <typename X, typename Op = std::plus<>>
 concept IsMagma = dedekind::category::IsSet<X> &&
                   dedekind::category::IsMagma<typename X::Domain, Op> &&
-                  IsAlgebra<typename X::Domain, Op>;
+                  IsClosedAlgebra<typename X::Domain, Op>;
 
 /** @section magma__Formal_Verification */
 
