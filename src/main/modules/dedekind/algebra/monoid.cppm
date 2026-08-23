@@ -70,7 +70,8 @@ concept IsAdditiveMonoid = IsMonoid<X, Add>;
  * @tparam Mult The multiplicative operation (defaults to
  *              `std::multiplies<X::Domain>`).
  */
-export template <typename X, typename Mult = std::multiplies<typename X::Domain>>
+export template <typename X,
+                 typename Mult = std::multiplies<typename X::Domain>>
 concept IsMultiplicativeMonoid = IsMonoid<X, Mult>;
 
 /** @section monoid__Formal_Verification */
