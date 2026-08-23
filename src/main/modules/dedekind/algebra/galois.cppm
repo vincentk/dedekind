@@ -341,10 +341,11 @@ namespace dedekind::algebra {
 
 /** @section galois__Formal_Verification */
 
-// bool is the Galois field 𝔽2 under (XOR, AND).
-static_assert(IsGaloisField<bool, std::bit_xor<bool>, std::bit_and<bool>>,
-              "bool must satisfy IsGaloisField under (XOR, AND): it is "
-              "the Galois field 𝔽2 (order 2).");
+// Ω<bool> is the Galois field 𝔽2 under (XOR, AND).
+static_assert(IsGaloisField<decltype(dedekind::sets::Ω<bool>),
+                            std::bit_xor<bool>, std::bit_and<bool>>,
+              "Ω<bool> must satisfy IsGaloisField under (XOR, AND): its "
+              "carrier is the Galois field 𝔽2 (order 2).");
 
 // 𝔽64 is the Galois field of order 64 under its polynomial arithmetic.
 static_assert(dedekind::category::IsCommutativeRing<𝔽64, std::plus<𝔽64>,
