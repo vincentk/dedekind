@@ -861,7 +861,7 @@ type layer (\cppinline{category}): pointwise
 \begin{cpp}
 template <typename T, typename Op>
 concept IsMagma  = IsTotal<T, Op>
-                && /* Op closes: A×A → A */;
+                && IsClosedUnder<T, Op>;
 template <typename T, typename Op>
 concept IsMonoid = IsMagma<T, Op>
    && IsAssociative<T, Op>

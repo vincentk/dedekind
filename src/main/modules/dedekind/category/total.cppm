@@ -267,9 +267,7 @@ static_assert(IsTotalArrow<decltype(unit<int, int>())>,
  * behaviour and therefore a "hazard").
  */
 export template <typename T, typename Op>
-concept IsMagma = IsTotal<T, Op> && requires(T a, T b) {
-  { Op{}(a, b) } -> std::convertible_to<T>;
-};
+concept IsMagma = IsTotal<T, Op> && IsClosedUnder<T, Op>;
 
 // REJECTION: Signed addition is NOT a Magma (No Periodicity, No Idempotency).
 // It is correctly identified as a Hazard/Partial function.
