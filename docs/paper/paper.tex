@@ -895,9 +895,7 @@ concept IsMonoid = IsAlgebraOnSet<X, Op> && category::IsMonoid<typename X::Domai
 
 % Source excerpts from dedekind.algebra:boolean and dedekind.numbers:rational.
 \begin{listing}[!ht]
-\caption{Primitive carriers as \emph{algebraic sets}, inhabiting the set-indexed concepts of Listing~\ref{lst:algebra:universal}.  \textbf{Left:} $\mathbb{B} = \Omega\langle\texttt{bool}\rangle$ needs \emph{explicit} operators --- a Boolean rig under logical $(\vee,\wedge)$ and the Galois field $\mathbb{F}_2$ under bitwise $(\oplus,\wedge)$.  \textbf{Right:} $\mathbb{S} = \Omega\langle\texttt{size\_t}\rangle$ is a commutative ring under the \emph{default} arithmetic $(+,\times)$, so the operators are omitted.  The complementary set-lattice layer ($\cup,\cap$) is Listing~\ref{lst:pruning}.
-\textbf{Left:} \cppinline{bool}, at once a lattice under the logical operators $(\vee,\wedge)$ and the field $\mathbb{F}_2$ under the bitwise operators $(\oplus,\wedge)$.
-\textbf{Right:} \cppinline{std::size_t}, the modular ring $\mathbb{Z}/2^{w}\mathbb{Z}$ under $(+,\times)$ (width $w$ implementation-defined); composite carriers such as $\mathbb{Q}$ appear in \S\ref{sec:hsp_varieties}.}
+\caption{Primitive carriers as \emph{algebraic sets}, inhabiting the set-indexed concepts of Listing~\ref{lst:algebra:universal}.  \textbf{Left:} $\mathbb{B} = \Omega\langle\texttt{bool}\rangle$ needs \emph{explicit} operators --- a Boolean rig under logical $(\vee,\wedge)$ and the Galois field $\mathbb{F}_2$ under bitwise $(\oplus,\wedge)$.  \textbf{Right:} $\mathbb{S} = \Omega\langle\texttt{size\_t}\rangle$, the modular ring $\mathbb{Z}/2^{w}\mathbb{Z}$ (width $w$ implementation-defined), is a commutative ring under the \emph{default} arithmetic $(+,\times)$, so the operators are omitted.  The complementary set-lattice layer ($\cup,\cap$) is Listing~\ref{lst:pruning}; composite carriers such as $\mathbb{Q}$ appear in \S\ref{sec:hsp_varieties}.}
 \label{lst:algebra:boolean_case}
 \noindent
 \begin{minipage}[t]{0.52\linewidth}

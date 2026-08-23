@@ -37,6 +37,7 @@ module;
 #include <cmath>
 #include <concepts>
 #include <cstddef>
+#include <functional>  // for std::plus, std::multiplies (type-indexed IsRing ops)
 
 export module dedekind.analysis:hamilton;
 
@@ -97,9 +98,11 @@ constexpr R poisson_bracket(auto&& f, auto&& g, const Vector<R, N>& state) {
  * @brief A Ring equipped with a bracket satisfying the Jacobi Identity.
  */
 export template <typename A>
-concept IsPoissonAlgebra = IsRing<A> && requires(A f, A g) {
-  { bracket(f, g) } -> std::same_as<A>;
-};
+concept IsPoissonAlgebra =
+    dedekind::category::IsRing<A, std::plus<A>, std::multiplies<A>> &&
+    requires(A f, A g) {
+      { bracket(f, g) } -> std::same_as<A>;
+    };
 
 /** @brief Canonical 1D phase-space state (q, p). */
 export template <std::floating_point R>

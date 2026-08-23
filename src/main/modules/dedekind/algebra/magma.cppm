@@ -38,10 +38,9 @@ using namespace dedekind::category;
  * @details The base rung of the algebra tower, as the set monad's image
  * of the type-indexed @c category::IsMagma: @c X is an ETCS set
  * (@c category::IsSet), its carrier @c X::Domain satisfies the axiomatic
- * @c category::IsMagma<X::Domain, Op>, and the algebra-layer closure tier
- * @c IsAlgebra pins @c std::regular + strict closure on the carrier.
- * (Once @c IsSet roots @c std::regular on its carrier, the @c IsAlgebra
- * regular clause here becomes redundant.)
+ * @c category::IsMagma<X::Domain, Op>, and @c IsAlgebraOnSet supplies the
+ * carrier discipline: @c IsSet roots @c std::regular on @c X::Domain and
+ * @c IsClosedAlgebra pins strict closure under @c Op.
  * @tparam X  The set object (@c category::IsSet).
  * @tparam Op The binary operation on @c X::Domain (defaults to @c std::plus).
  */
@@ -53,8 +52,9 @@ concept IsMagma = IsAlgebraOnSet<X, Op> &&
 
 // Seal the axiom substrate the lift rests on: unsigned int under + is the
 // canonical magma carrier; signed int is not (overflow is UB, not total).
-// The set-indexed IsMagma<X> itself is witnessed in the test suite (it needs
-// a set carrier, which this upstream partition does not import).
+// The set-indexed IsMagma<X> itself is witnessed on Ω<unsigned int> in
+// algebra/monoid_test.cpp (it needs a set carrier, which this upstream
+// partition does not import).
 static_assert(
     dedekind::category::IsMagma<unsigned int, std::plus<unsigned int>>,
     "unsigned int under + is the canonical magma carrier.");
