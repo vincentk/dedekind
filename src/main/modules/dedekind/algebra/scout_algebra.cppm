@@ -282,7 +282,8 @@ concept IsOrderedAdditiveGroup =
  */
 export template <typename T>
 concept IsOrderedMultiplicativeGroup =
-    dedekind::algebra::IsField<T> && dedekind::order::IsTotallyOrdered<T>;
+    dedekind::category::IsField<T, std::plus<T>, std::multiplies<T>> &&
+    dedekind::order::IsTotallyOrdered<T>;
 
 /**
  * @concept IsOrderedCommutativeRing

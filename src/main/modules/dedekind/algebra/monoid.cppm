@@ -36,49 +36,43 @@ using namespace dedekind::category;
 
 /**
  * @concept IsMonoid
- * @brief Proposition: the species (T, Op) forms a monoid, as an
- *        algebraic set.
- * @details The axiomatic @c category::IsMonoid<T, Op> strengthened
- * with the algebra-layer closure tier @c IsAlgebra<T, Op> --- which
- * adds @c std::regular<T> and strict closure, matching
- * Burris--Sankappanavar's value-semantics carrier convention.  The
- * upstream @c category::IsMonoid is intentionally lighter (no @c
- * std::regular requirement); this algebra-layer rung strengthens it.
- * The Op-defaulted @c IsAdditiveMonoid / @c IsMultiplicativeMonoid
- * siblings below name the canonical additive / multiplicative
- * witnesses.
- * @tparam T The carrier type (@c std::regular).
- * @tparam Op The binary operation witness.
+ * @brief Proposition: a set object @c X whose carrier @c X::Domain forms
+ *        a monoid --- the set-indexed lift of @c category::IsMonoid.
+ * @details @c X is an ETCS set, its carrier @c X::Domain satisfies the
+ * axiomatic @c category::IsMonoid<X::Domain, Op>, and @c IsAlgebra pins
+ * @c std::regular + strict closure on the carrier.  The Op-defaulted
+ * @c IsAdditiveMonoid / @c IsMultiplicativeMonoid siblings name the
+ * canonical additive / multiplicative witnesses.
+ * @tparam X  The set object (@c category::IsSet).
+ * @tparam Op The binary operation on @c X::Domain (defaults to @c std::plus).
  */
-export template <typename T, typename Op>
-concept IsMonoid = dedekind::category::IsMonoid<T, Op> && IsAlgebra<T, Op>;
+export template <typename X, typename Op = std::plus<>>
+concept IsMonoid = dedekind::category::IsSet<X> &&
+                   dedekind::category::IsMonoid<typename X::Domain, Op> &&
+                   IsAlgebra<typename X::Domain, Op>;
 
 /**
  * @concept IsAdditiveMonoid
- * @brief Proposition: The species (T, +) forms a Monoid.
- * @details The @c std::plus<T>-defaulted additive witness of the
- * algebra-layer @c IsMonoid; the closure tier @c IsAlgebra travels in
- * via @c IsMonoid.
- * @tparam T The carrier type (@c std::regular).
- * @tparam Add The additive operation witness (defaults to `std::plus<T>`).
+ * @brief Proposition: a set object @c X whose carrier is a monoid under +.
+ * @details The @c std::plus-defaulted additive witness of the set-indexed
+ * @c IsMonoid.
+ * @tparam X   The set object.
+ * @tparam Add The additive operation (defaults to `std::plus<X::Domain>`).
  */
-export template <typename T, typename Add = std::plus<T>>
-concept IsAdditiveMonoid = IsMonoid<T, Add>;
+export template <typename X, typename Add = std::plus<>>
+concept IsAdditiveMonoid = IsMonoid<X, Add>;
 
 /**
  * @concept IsMultiplicativeMonoid
- * @brief Proposition: The species (T, *) forms a Monoid.
- * @details Operator is configurable; default witness is
- * `std::multiplies<T>` (the canonical `*`) to align with
- * category:total.  Sibling of @c IsAdditiveMonoid; same
- * @c IsAlgebra<T, Mult> strengthening travelling in via @c IsMonoid
- * (#517).
- * @tparam T The carrier type (@c std::regular).
- * @tparam Mult The multiplicative operation witness (defaults to
- * `std::multiplies<T>`).
+ * @brief Proposition: a set object @c X whose carrier is a monoid under *.
+ * @details Sibling of @c IsAdditiveMonoid; the @c std::multiplies-defaulted
+ * multiplicative witness of the set-indexed @c IsMonoid (#517).
+ * @tparam X    The set object.
+ * @tparam Mult The multiplicative operation (defaults to
+ *              `std::multiplies<X::Domain>`).
  */
-export template <typename T, typename Mult = std::multiplies<T>>
-concept IsMultiplicativeMonoid = IsMonoid<T, Mult>;
+export template <typename X, typename Mult = std::multiplies<>>
+concept IsMultiplicativeMonoid = IsMonoid<X, Mult>;
 
 /** @section monoid__Formal_Verification */
 

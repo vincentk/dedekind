@@ -50,6 +50,7 @@ import dedekind.sets;
 import :ring;
 import :group;  // HasGroupOperatorsMul (HasFieldOperators's mul half)
 import :division;
+import :universal;  // IsAlgebra (closure tier on the carrier)
 
 namespace dedekind::algebra {
 using namespace dedekind::category;
@@ -173,10 +174,13 @@ static_assert(std::is_arithmetic_v<unsigned short> &&
  * operator requirements; `algebra` builds on them by adding operator
  * closures.
  */
-export template <typename T, typename Add = std::plus<T>,
-                 typename Mult = std::multiplies<T>>
+export template <typename X, typename Add = std::plus<>,
+                 typename Mult = std::multiplies<>>
 concept IsField =
-    dedekind::category::IsField<T, Add, Mult> && IsDivisionRing<T, Add, Mult>;
+    dedekind::category::IsSet<X> &&
+    dedekind::category::IsField<typename X::Domain, Add, Mult> &&
+    IsDivisionRing<typename X::Domain, Add, Mult> &&
+    IsAlgebra<typename X::Domain, Add, Mult>;
 
 /** @section field__Formal_Verification: bool is the Galois field 𝔽2
  *
@@ -230,10 +234,12 @@ static_assert(
  * @tparam Mult Multiplicative operation witness
  * (defaults to `std::multiplies<T>`).
  */
-export template <typename T, typename Add = std::plus<T>,
-                 typename Mult = std::multiplies<T>>
-concept IsAlgebraicallyClosed = IsField<T, Add, Mult> && true;
+export template <typename X, typename Add = std::plus<>,
+                 typename Mult = std::multiplies<>>
+concept IsAlgebraicallyClosed = IsField<X, Add, Mult> && true;
 
-static_assert(!IsField<int>, "Structural Integrity: Integers are not a Field.");
+static_assert(
+    !dedekind::category::IsField<int, std::plus<int>, std::multiplies<int>>,
+    "Structural Integrity: Integers are not a Field.");
 
 }  // namespace dedekind::algebra

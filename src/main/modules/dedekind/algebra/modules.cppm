@@ -85,7 +85,8 @@ export template <typename M, typename S, typename AddM = std::plus<M>,
                  typename MultS = std::multiplies<S>,
                  typename Act = std::multiplies<>>
 concept IsSemimodule =
-    IsCommutativeMonoid<M, AddM> && IsSemiring<S, AddS, MultS> &&
+    IsCommutativeMonoid<M, AddM> &&
+    dedekind::category::IsSemiring<S, AddS, MultS> &&
     IsLinearAction<S, M, Act, AddS>;
 
 /**
@@ -103,7 +104,8 @@ export template <typename M, typename S, typename AddM = std::plus<M>,
                  typename AddS = std::plus<S>,
                  typename MultS = std::multiplies<S>,
                  typename Act = std::multiplies<>>
-concept IsModule = IsAdditiveGroup<M, AddM> && IsRing<S, AddS, MultS> &&
+concept IsModule = dedekind::category::IsAbelianGroup<M, AddM> &&
+                   dedekind::category::IsRing<S, AddS, MultS> &&
                    IsSemimodule<M, S, AddM, AddS, MultS, Act>;
 
 /**

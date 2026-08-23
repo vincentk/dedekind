@@ -53,7 +53,8 @@ using namespace dedekind::order;
 export template <typename T, typename Add = std::plus<T>,
                  typename Mult = std::multiplies<T>,
                  typename Div = std::divides<T>>
-concept IsDivisionRing = IsRing<T, Add, Mult> && requires(T a, T b) {
+concept IsDivisionRing =
+    dedekind::category::IsRing<T, Add, Mult> && requires(T a, T b) {
   { a.inverse() } -> std::same_as<T>;
   { a / b } -> std::same_as<T>;
   { Div{}(a, b) } -> std::same_as<T>;
@@ -72,7 +73,8 @@ concept IsDivisionRing = IsRing<T, Add, Mult> && requires(T a, T b) {
 export template <typename T, typename Add = std::plus<T>,
                  typename Mult = std::multiplies<T>,
                  typename Div = std::divides<T>, typename Rem = std::modulus<T>>
-concept IsEuclidean = IsCommutativeRing<T, Add, Mult> && IsDividableChain<T> &&
+concept IsEuclidean = dedekind::category::IsCommutativeRing<T, Add, Mult> &&
+                      IsDividableChain<T> &&
                       requires(T a, T b) {
                         { a / b } -> std::same_as<T>;
                         { a % b } -> std::same_as<T>;

@@ -345,9 +345,11 @@ static_assert(
     dedekind::category::IsField<𝔽64, std::plus<𝔽64>, std::multiplies<𝔽64>>,
     "𝔽64 must satisfy the axiomatic category::IsField.");
 
-static_assert(IsField<𝔽64, std::plus<𝔽64>, std::multiplies<𝔽64>>,
-              "𝔽64 must satisfy algebra::IsField (division ring + "
-              "axiomatic field).");
+static_assert(
+    dedekind::algebra::IsDivisionRing<𝔽64, std::plus<𝔽64>, std::multiplies<𝔽64>>,
+    "𝔽64 must satisfy the division-ring operator surface (with the "
+    "axiomatic category::IsField above, this is algebra::IsField's carrier "
+    "content: division ring + axiomatic field).");
 
 static_assert(IsGaloisField<𝔽64, std::plus<𝔽64>, std::multiplies<𝔽64>>,
               "𝔽64 must satisfy IsGaloisField (order 64 = 2^6).");

@@ -109,7 +109,7 @@ TEST_CASE(
   // Both rejections are symmetric in form — each carrier's claim is
   // mismatched with the textbook structure it would purport to inhabit.
   STATIC_CHECK(!dedekind::algebra::IsArithmeticAdditiveGroup<int>);
-  STATIC_CHECK(!dedekind::algebra::IsField<  // unsigned: too MUCH structure
+  STATIC_CHECK(!dedekind::category::IsField<  // unsigned: too MUCH structure
                unsigned int, std::plus<unsigned int>,
                std::multiplies<unsigned int>>);
   // Both partitions DO claim the operator surface honestly.

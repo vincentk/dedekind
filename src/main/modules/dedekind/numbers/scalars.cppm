@@ -83,7 +83,7 @@ concept IsFloatingScalar = dedekind::algebra::IsFloatingScalar<S>;
  */
 export template <typename M, typename C>
 concept IsScalar =
-    dedekind::algebra::IsSemiring<M> && IsCardinality<C> && requires {
+    dedekind::category::IsSemiring<M, std::plus<M>, std::multiplies<M>> && IsCardinality<C> && requires {
       // This "locks" the structure to the ruler
       requires std::same_as<typename M::cardinality_type, C>;
     };

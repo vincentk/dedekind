@@ -208,7 +208,7 @@ static_assert(dedekind::order::HasLatticeOperators<bool>,
 //     PR #394): 𝔹 under (bit_xor, bit_and) certifies as a commutative
 //     ring AND has the lattice operator surface.
 static_assert(
-    dedekind::algebra::IsRig<bool, std::logical_or<bool>,
+    dedekind::category::IsRig<bool, std::logical_or<bool>,
                              std::logical_and<bool>>,
     "𝔹 under (∨, ∧) is the canonical Boolean rig (idempotent commutative "
     "semiring; no additive inverse on the carrier).");

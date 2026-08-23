@@ -280,7 +280,7 @@ static_assert(
 // textbook "rig = semiring without additive inverse" reading applies
 // to the abstract ℕ; the machine carrier is a stricter ring under
 // modular wrap.
-static_assert(dedekind::algebra::IsRig<unsigned int, std::plus<unsigned int>,
+static_assert(dedekind::category::IsRig<unsigned int, std::plus<unsigned int>,
                                        std::multiplies<unsigned int>>,
               "unsigned int satisfies the IsRig witness under + and * on "
               "the canonical machine carrier; records semiring "
