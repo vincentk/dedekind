@@ -96,6 +96,21 @@ using namespace dedekind::category;
 // ---------------------------------------------------------------------------
 
 /**
+ * @concept IsClosedAlgebra
+ * @brief The @b closure-only tier of an @c (A, F) algebra: each @c Op
+ *        closes on @c T, @b without the @c std::regular value-semantics
+ *        requirement.
+ *
+ * @details Factored out of @c IsAlgebra so that set-indexed callers can
+ * compose it with @c IsSet (which now roots @c std::regular on the
+ * carrier, since @c Trsk @c = @c Jlt @c ∩ @c Set) instead of pinning
+ * @c std::regular a second time.  Standalone type-level callers keep
+ * @c IsAlgebra, which adds the @c std::regular clause.
+ */
+export template <typename T, typename... Ops>
+concept IsClosedAlgebra = (... && IsClosedUnderEither<T, Ops>);
+
+/**
  * @concept IsAlgebra
  * @brief The universal-algebra (A, F) pattern at the closure tier.
  *
@@ -130,21 +145,6 @@ using namespace dedekind::category;
  *      (field of fractions) --- specific instances of the
  *      construction-on-an-algebra pattern.
  */
-/**
- * @concept IsClosedAlgebra
- * @brief The @b closure-only tier of an @c (A, F) algebra: each @c Op
- *        closes on @c T, @b without the @c std::regular value-semantics
- *        requirement.
- *
- * @details Factored out of @c IsAlgebra so that set-indexed callers can
- * compose it with @c IsSet (which now roots @c std::regular on the
- * carrier, since @c Trsk @c = @c Jlt @c ∩ @c Set) instead of pinning
- * @c std::regular a second time.  Standalone type-level callers keep
- * @c IsAlgebra, which adds the @c std::regular clause.
- */
-export template <typename T, typename... Ops>
-concept IsClosedAlgebra = (... && IsClosedUnderEither<T, Ops>);
-
 export template <typename T, typename... Ops>
 concept IsAlgebra = std::regular<T> && IsClosedAlgebra<T, Ops...>;
 // Should probably include HasCarrier (see below).
