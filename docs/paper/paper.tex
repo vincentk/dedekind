@@ -1052,6 +1052,21 @@ which is Tarski's closure with the join $\cup$ and the relative product $\circ$ 
 The Boolean semiring recovers $R^{*}$ itself, that is, reachability; other semirings weight the same paths differently.
 The choice of semiring \emph{is} the choice of problem, one branch of the algebra apart.
 
+Stacked over the nodes, that scalar fixed point is a linear system read in the semiring.
+Write $A$ for the weighted adjacency matrix, $A_{uv} = c(u,v)$, and $b$ for the source indicator, $\bar{1}$ at the source and $\bar{0}$ elsewhere.
+The potentials solve
+\begin{equation}
+    d \;=\; A \otimes d \;\oplus\; b,
+    \qquad\text{with least solution}\qquad
+    d \;=\; A^{*} \otimes b,
+    \quad A^{*} = \bigoplus_{k \ge 0} A^{\otimes k}.
+    \label{eq:semiring_linear_system}
+\end{equation}
+The classical case is one branch away.
+Over the ring $(\mathbb{R}, +, \times)$ the identical fixed point $x = A x + b$ has the solution $x = (I - A)^{-1} b = \sum_{k \ge 0} A^{k} b$, the Neumann series, and $(I - A)^{-1}$ is the matrix inverse behind solving a linear system, the normal equations of least squares among them.
+Replace the ring $(+, \times)$ by the tropical dioid $(\max, +)$ and the same inverse $A^{*}$ is the critical path.
+The star is the semiring's matrix inverse, so the choice of semiring is equally the choice of linear algebra.
+
 \begin{table}[htbp]
 \centering
 \caption{One closure, three problems, selected by the semiring.}
