@@ -433,7 +433,7 @@ By establishing this pure, disciplined substrate first, we gain an environment w
 In category theory terms, we can write $\mathbf{Jlt} \subset \mathbf{Cpp}$.
 This forms the exact Cartesian Closed Category needed to bootstrap formal set comprehension and universal algebra in the following sections.
 
-\section{Intensional Sets as Type-Checked Predicates}
+\section{A Reification of $\mathbf{Set}$}
 \label{sec:intensional_sets}
 
 With a deterministic, structurally-typed substrate established in Section~\ref{sec:jlt_posture}, mathematical sets can be bootstrapped inside the type system.
@@ -553,7 +553,7 @@ Listing~\ref{lst:pruning_ir} shows how this collapse is made mechanically observ
 witness function for set membership constant-folds to \texttt{ret i1 false} in the emitted LLVM IR.
 
 % ============================================================
-\subsection{Reifying A Category of Sets}
+\subsection{A Categorical Notion of Set}
 \label{sec:ddk_etcs}
 % ============================================================
 
@@ -696,7 +696,7 @@ The implementation tracks this definition literally at compile time.
 First-order quantification is restricted to domains satisfying \cppinline{IsExtensional}, as unconstrained evaluation over infinite intensional spaces is undecidable at compile time.
 For these bounded domains, the quantifiers $\exists$ (\cppinline{Exists}) and $\forall$ (\cppinline{ForAll}) map directly onto finite coordinate-wise reductions ($\bigvee$ and $\bigwedge$) over $\Omega$, executing as zero-overhead variadic fold expansions during template translation.
 
-\section{Point-Free Mappings: Functors between Sets}
+\subsection{Morphisms: Point-Free Relations and Functions}
 \label{sec:relations_functions_blueprint}
 
 To transition seamlessly from static intensional sets to dynamic mappings, binary relations can be formalized as morphisms \cppinline{IsArrow<A, B>} where both domain and codomain \cppinline{require} the ETCS axioms via \cppinline{IsSet}. 
@@ -784,7 +784,7 @@ The existential requirement is thus safely re-encoded as a lazy, zero-cost symbo
 
 The compiler unifies the constituent predicates into a single, synthesized type-level constraint that governs the end-to-end mapping from $A$ to $C$. Listing~\ref{lst:kleisli_fish_composition} illustrates how this monadic relation concept and its corresponding Kleisli composition operator are structurally declared inside the toolchain.
 
-\subsection{Functions and Morphism Factorization Gates}
+\subsubsection{Functions and Morphism Factorization Gates}
 \label{sec:functions_morphism_factorization}
 
 While the relational composition operator ($\gg$) detailed in Section~\ref{sec:relations_functions_blueprint} bypasses the need for intermediate set materialization by maintaining a lazy symbolic predicate chain, specialized functional mappings impose a more stringent computational burden.
