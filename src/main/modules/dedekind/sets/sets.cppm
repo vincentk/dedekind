@@ -46,6 +46,7 @@ export import :boundaries;
 export import :computability;
 export import :expressions;
 export import :extensional;
+export import :quantifier;
 export import :mereology;
 export import :singleton;
 export import :relational;
