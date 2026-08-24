@@ -738,21 +738,20 @@ export template <typename T, typename Cardinality, typename Index,
                  typename Pred>
   requires LogicalMap<Pred, T>
 constexpr auto exists(const Path<T, Cardinality, Index>& path, Pred&& pred) {
-  using Omega = OmegaOf<Pred, T>;
-  using Logic = LogicOf<Omega>;
-
-  auto predicate = std::forward<Pred>(pred);
-  Omega witness = Logic::False;
-  for (std::size_t i = 0;; ++i) {
-    if constexpr (dedekind::sets::IsFinite<Cardinality>) {
-      if (i >= path.size()) break;
-    }
-    witness = Logic::OR(witness,
-                        std::invoke(predicate, path.at(static_cast<Index>(i))));
-    if (witness == Logic::True)
-      break;  // short-circuit: absorbing element found
+  // Single source: delegate to the range-generic dedekind::sets::exists
+  // (⋁-reduction over Ω, short-circuiting).  A finite Path is itself a
+  // std::ranges::input_range; an infinite Path is presented as an unbounded
+  // iota/transform view so the same fold applies and short-circuits (the
+  // co-recursive ∃).
+  if constexpr (dedekind::sets::IsFinite<Cardinality>) {
+    return dedekind::sets::exists(path, std::forward<Pred>(pred));
+  } else {
+    auto view = std::views::iota(std::size_t{0}) |
+                std::views::transform([&path](std::size_t i) {
+                  return path.at(static_cast<Index>(i));
+                });
+    return dedekind::sets::exists(view, std::forward<Pred>(pred));
   }
-  return witness;
 }
 
 /**
@@ -792,21 +791,20 @@ export template <typename T, typename Cardinality, typename Index,
                  typename Pred>
   requires LogicalMap<Pred, T>
 constexpr auto forall(const Path<T, Cardinality, Index>& path, Pred&& pred) {
-  using Omega = OmegaOf<Pred, T>;
-  using Logic = LogicOf<Omega>;
-
-  auto predicate = std::forward<Pred>(pred);
-  Omega witness = Logic::True;
-  for (std::size_t i = 0;; ++i) {
-    if constexpr (dedekind::sets::IsFinite<Cardinality>) {
-      if (i >= path.size()) break;
-    }
-    witness = Logic::AND(
-        witness, std::invoke(predicate, path.at(static_cast<Index>(i))));
-    if (witness == Logic::False)
-      break;  // short-circuit: absorbing element found
+  // Single source: delegate to the range-generic dedekind::sets::forall
+  // (⋀-reduction over Ω, short-circuiting).  A finite Path is itself a
+  // std::ranges::input_range; an infinite Path is presented as an unbounded
+  // iota/transform view so the same fold applies and short-circuits (the
+  // co-recursive ∀).
+  if constexpr (dedekind::sets::IsFinite<Cardinality>) {
+    return dedekind::sets::forall(path, std::forward<Pred>(pred));
+  } else {
+    auto view = std::views::iota(std::size_t{0}) |
+                std::views::transform([&path](std::size_t i) {
+                  return path.at(static_cast<Index>(i));
+                });
+    return dedekind::sets::forall(view, std::forward<Pred>(pred));
   }
-  return witness;
 }
 
 }  // namespace dedekind::sequences
