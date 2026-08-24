@@ -109,4 +109,88 @@ static_assert(
             dedekind::category::Identity<int>{}}(7, 7),
     "graph(f) membership must agree with arrow_as_relation<F> pointwise.");
 
+/**
+ * @section graph__The_Relation_Function_Lattice
+ * The standard characterisation (nLab; Freyd and Scedrov, @em Categories,
+ * @em Allegories; Bird and de Moor, @em Algebra @em of @em Programming): a
+ * relation is @b functional (single-valued / right-unique) and @b entire
+ * (total / left-total), and @em a @em function @em is @em precisely @em a
+ * @em relation @em that @em is @em both @em functional @em and @em entire.
+ * These property faces are thin aliases over the @c :cartesian opt-in traits
+ * (one source of truth), so @c IsFunction is definitionally the same claim as
+ * @c category::IsBinaryFunction and cannot drift from it.  Because
+ * @c IsFunction @b refines @c IsBinaryRelation, the inclusion
+ * @f$\{\text{functions}\} \subset \{\text{relations}\}@f$ is genuine C++
+ * concept subsumption: a function type-checks anywhere a relation is required.
+ */
+
+// FUNCTIONAL (single-valued, right-unique) --- nLab / allegory "functional",
+// Bird and de Moor "simple".
+export template <typename R>
+concept IsFunctional = dedekind::category::is_right_unique_v<R>;
+
+// ENTIRE (total, left-total) --- nLab / allegory / Bird and de Moor "entire".
+export template <typename R>
+concept IsEntire = dedekind::category::is_left_total_v<R>;
+
+// A FUNCTION is a relation that is functional and entire (nLab, verbatim).
+// Refines IsBinaryRelation, so IsFunction subsumes it: {function} ⊂ {relation}.
+export template <typename R, typename A, typename B>
+concept IsFunction = dedekind::category::IsBinaryRelation<R, A, B> &&
+                     IsFunctional<R> && IsEntire<R>;
+
+// IsGraph IS A IsRelation: the Bourbaki / graph-theory vocabulary as a
+// subsuming synonym of the (nLab-canonical) IsRelation base, so "graph" stays
+// available for the §6 "a graph is a relation" reading without a second
+// definition to drift.
+export template <typename S, typename T1, typename T2>
+concept IsGraph = dedekind::sets::IsRelation<S, T1, T2>;
+
+/** @section graph__Formal_Verification_Lattice */
+
+// A general relation that is NOT a function: b % a == 0 relates 1 to every b,
+// so it is not single-valued.  It is a relation but not functional/entire.
+namespace {
+struct Divides {
+  constexpr bool operator()(int a, int b) const { return a != 0 && b % a == 0; }
+};
+}  // namespace
+
+// The graph of an arrow is a function (functional ∧ entire, by construction).
+static_assert(
+    IsFunction<dedekind::category::arrow_as_relation<
+                   dedekind::category::Identity<int>>,
+               int, int>,
+    "arrow_as_relation<Identity> is a function: functional ∧ entire.");
+
+// Subtyping witness: {function} ⊂ {relation}.  A function IS A relation...
+static_assert(
+    dedekind::category::IsBinaryRelation<dedekind::category::arrow_as_relation<
+                                             dedekind::category::Identity<int>>,
+                                         int, int>,
+    "every function is a relation (IsFunction refines IsBinaryRelation).");
+
+// ...but the inclusion is strict: Divides is a relation, not a function.
+static_assert(dedekind::category::IsBinaryRelation<Divides, int, int>,
+              "Divides is a binary relation on int × int.");
+static_assert(!IsFunction<Divides, int, int>,
+              "Divides is a relation but NOT a function (not single-valued).");
+
+// Pullback / drift-detector: IsFunction (functional ∧ entire) is exactly
+// category::IsBinaryFunction.  Spelled independently here, so a future change
+// to either definition that broke the equivalence would fail this witness.
+static_assert(
+    IsFunction<dedekind::category::arrow_as_relation<
+                   dedekind::category::Identity<int>>,
+               int, int> ==
+        dedekind::category::IsBinaryFunction<
+            dedekind::category::arrow_as_relation<
+                dedekind::category::Identity<int>>,
+            int, int>,
+    "IsFunction (functional ∧ entire) must coincide with IsBinaryFunction.");
+
+// graph(f) participates as a relation (IsGraph = IsRelation) on its pair type.
+static_assert(IsGraph<decltype(Γ_id), int, int>,
+              "graph(f) is a relation (a Set of pairs on A × B).");
+
 }  // namespace dedekind::sets
