@@ -55,6 +55,7 @@ module;
 
 #include <concepts>
 #include <cstddef>
+#include <functional>  // std::plus / std::multiplies (IsField op witnesses)
 
 export module dedekind.geometry:outer_product;
 
@@ -89,7 +90,7 @@ concept IsOuterProductSpace = requires(U const& u, V const& v) {
  *
  *  @c dyad(u, @c v) is the outer-product constructor under the
  *  concept's expected name, gated to strict-field scalars
- *  (@c dedekind::algebra::IsField<F>).  This deliberately tightens
+ *  (@c dedekind::category::IsField<F>).  This deliberately tightens
  *  past @c IsMatrixScalar (which today admits @c double under the
  *  @c DEDEKIND_ENABLE_DOUBLE_REAL_PROXY policy gate) — @c double is
  *  not a strict field (rounding-non-associativity), so the new
@@ -105,7 +106,7 @@ concept IsOuterProductSpace = requires(U const& u, V const& v) {
  *  @c geometry::outer remains available.
  */
 export template <IsMatrixScalar F, std::size_t M, std::size_t N>
-  requires dedekind::algebra::IsField<F>
+  requires dedekind::category::IsField<F, std::plus<F>, std::multiplies<F>>
 constexpr LinearMap<F, M, N> dyad(const Vector<F, M>& u,
                                   const Vector<F, N>& v) {
   return outer(u, v);
@@ -127,7 +128,7 @@ constexpr LinearMap<F, M, N> dyad(const Vector<F, M>& u,
  *  in particular).
  */
 export template <IsMatrixScalar F, std::size_t M, std::size_t N>
-  requires dedekind::algebra::IsField<F>
+  requires dedekind::category::IsField<F, std::plus<F>, std::multiplies<F>>
 constexpr LinearMap<F, M, N> operator*(const Vector<F, M>& u,
                                        const Covector<F, N>& phi) {
   LinearMap<F, M, N> result;

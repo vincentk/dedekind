@@ -488,7 +488,7 @@ TEST_CASE(
     STATIC_CHECK(
         std::same_as<typename decltype(img)::logic_species, ClassicalLogic>);
     // Ambient is preserved.
-    STATIC_CHECK(std::same_as<typename decltype(img)::Ambient, int>);
+    STATIC_CHECK(std::same_as<typename decltype(img)::Domain, int>);
     // Decidable: same truth values as the source through the identity.
     CHECK(img(5) == true);
     CHECK(img(-1) == false);
@@ -525,7 +525,7 @@ TEST_CASE(
     // IsArrow-fallback result).
     STATIC_CHECK(
         std::same_as<typename decltype(img)::logic_species, ClassicalLogic>);
-    STATIC_CHECK(std::same_as<typename decltype(img)::Ambient, int>);
+    STATIC_CHECK(std::same_as<typename decltype(img)::Domain, int>);
 
     // y = 10 is even, 10/2 = 5 > 0, so in image.
     CHECK(img(10) == true);

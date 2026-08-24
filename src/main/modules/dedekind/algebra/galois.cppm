@@ -49,10 +49,13 @@ module;
 export module dedekind.algebra:galois;
 
 import dedekind.category;
+import dedekind.sets; // Ω<T> — the set carrier for the set-indexed witnesses
 import dedekind.sequences; // FinitePath / IsFiniteSequence — for the
     // 𝔽64^× primitive-element enumeration witness (#388).
 import :field;
 import :registration;
+import :universal;  // IsAlgebraOnSet (the shared algebraic-set base)
+import :division;   // IsDivisionRing (𝔽64 operator-surface witness below)
 
 namespace dedekind::algebra {
 using namespace dedekind::category;
@@ -112,22 +115,31 @@ inline constexpr std::size_t galois_order_v = galois_order<T, Add, Mult>::value;
 
 /**
  * @concept IsGaloisField
- * @brief A finite field: axiomatic @c category::IsField plus the
- *        carrier-author finite-cardinality opt-in.
+ * @brief A finite field, as an @b algebraic @b set: an ETCS set @c X whose
+ *        carrier @c X::Domain is an axiomatic field with the carrier-author
+ *        finite-cardinality opt-in.
  *
- * @details Uses the axiomatic @c dedekind::category::IsField so the
- *          concept holds on carriers without the division-operator
- *          surface (e.g.\ @c bool under @c (std::bit_xor,
- *          std::bit_and)), which genuinely is a Galois field but
- *          does not expose @c operator/ or @c .inverse().  Downstream
- *          code that needs division on a Galois field should
- *          separately compose with @c IsDivisionRing; the two
- *          concerns are kept orthogonal.
+ * @details Set-indexed (like the rest of the algebra tower), so it sits at
+ *          the algebraic-set layer.  Uses the @b axiomatic
+ *          @c dedekind::category::IsField on @c X::Domain so the concept
+ *          holds on carriers without the division-operator surface (e.g.\
+ *          @c bool under @c (std::bit_xor, std::bit_and)), which genuinely is
+ *          a Galois field but does not expose @c operator/ or @c .inverse().
+ *          Finiteness is the carrier-author opt-in @c is_galois_field_v; a
+ *          cardinality-derived pin (via @c X::cardinality_type) is a
+ *          follow-up once the cardinality layer is consolidated.  Downstream
+ *          code needing division composes separately with @c IsDivisionRing.
+ * @tparam X    The set object (@c category::IsSet).
+ * @tparam Add  Additive op on @c X::Domain (defaults to @c std::plus).
+ * @tparam Mult Multiplicative op on @c X::Domain (defaults to @c
+ * std::multiplies).
  */
-export template <typename T, typename Add = std::plus<T>,
-                 typename Mult = std::multiplies<T>>
-concept IsGaloisField = dedekind::category::IsField<T, Add, Mult> &&
-                        is_galois_field_v<T, Add, Mult>;
+export template <typename X, typename Add = std::plus<typename X::Domain>,
+                 typename Mult = std::multiplies<typename X::Domain>>
+concept IsGaloisField =
+    IsAlgebraOnSet<X, Add, Mult> &&
+    dedekind::category::IsField<typename X::Domain, Add, Mult> &&
+    is_galois_field_v<typename X::Domain, Add, Mult>;
 
 /**
  * @struct 𝔽64
@@ -331,10 +343,11 @@ namespace dedekind::algebra {
 
 /** @section galois__Formal_Verification */
 
-// bool is the Galois field 𝔽2 under (XOR, AND).
-static_assert(IsGaloisField<bool, std::bit_xor<bool>, std::bit_and<bool>>,
-              "bool must satisfy IsGaloisField under (XOR, AND): it is "
-              "the Galois field 𝔽2 (order 2).");
+// Ω<bool> is the Galois field 𝔽2 under (XOR, AND).
+static_assert(IsGaloisField<decltype(dedekind::sets::Ω<bool>),
+                            std::bit_xor<bool>, std::bit_and<bool>>,
+              "Ω<bool> must satisfy IsGaloisField under (XOR, AND): its "
+              "carrier is the Galois field 𝔽2 (order 2).");
 
 // 𝔽64 is the Galois field of order 64 under its polynomial arithmetic.
 static_assert(dedekind::category::IsCommutativeRing<𝔽64, std::plus<𝔽64>,
@@ -345,12 +358,17 @@ static_assert(
     dedekind::category::IsField<𝔽64, std::plus<𝔽64>, std::multiplies<𝔽64>>,
     "𝔽64 must satisfy the axiomatic category::IsField.");
 
-static_assert(IsField<𝔽64, std::plus<𝔽64>, std::multiplies<𝔽64>>,
-              "𝔽64 must satisfy algebra::IsField (division ring + "
-              "axiomatic field).");
+static_assert(
+    dedekind::algebra::IsDivisionRing<𝔽64, std::plus<𝔽64>,
+                                      std::multiplies<𝔽64>>,
+    "𝔽64 must satisfy the division-ring operator surface (with the "
+    "axiomatic category::IsField above, this is algebra::IsField's carrier "
+    "content: division ring + axiomatic field).");
 
-static_assert(IsGaloisField<𝔽64, std::plus<𝔽64>, std::multiplies<𝔽64>>,
-              "𝔽64 must satisfy IsGaloisField (order 64 = 2^6).");
+static_assert(IsGaloisField<decltype(dedekind::sets::Ω<𝔽64>), std::plus<𝔽64>,
+                            std::multiplies<𝔽64>>,
+              "Ω<𝔽64> must satisfy IsGaloisField (the algebraic set over "
+              "GF(2^6), order 64).");
 
 // IsCyclicGroup main-source assertions, visible to downstream modules
 // (per the user request: assertions should travel with the carrier

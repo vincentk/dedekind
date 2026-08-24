@@ -33,32 +33,32 @@ using namespace dedekind::category;
 
 /**
  * @concept IsMagma
- * @brief Proposition: the species (T, Op) forms a magma, as an
- *        algebraic set.
- * @details The axiomatic @c category::IsMagma<T, Op> (closed and total
- * binary operation) strengthened with the algebra-layer closure tier
- * @c IsAlgebra<T, Op> --- which pins @c std::regular<T> and strict
- * closure, matching Burris--Sankappanavar's value-semantics carrier
- * convention.  The upstream @c category::IsMagma is intentionally
- * lighter (no @c std::regular requirement); this algebra-layer rung
- * strengthens it, and the whole algebra tower builds on the same
- * pattern.
- * @tparam T The carrier type (@c std::regular).
- * @tparam Op The binary operation witness.
+ * @brief Proposition: a set object @c X whose carrier @c X::Domain forms
+ *        a magma --- the set-indexed lift of @c category::IsMagma.
+ * @details The base rung of the algebra tower, as the set monad's image
+ * of the type-indexed @c category::IsMagma: @c X is an ETCS set
+ * (@c category::IsSet), its carrier @c X::Domain satisfies the axiomatic
+ * @c category::IsMagma<X::Domain, Op>, and @c IsAlgebraOnSet supplies the
+ * carrier discipline: @c IsSet roots @c std::regular on @c X::Domain and
+ * @c IsClosedAlgebra pins strict closure under @c Op.
+ * @tparam X  The set object (@c category::IsSet).
+ * @tparam Op The binary operation on @c X::Domain (defaults to @c std::plus).
  */
-export template <typename T, typename Op>
-concept IsMagma = dedekind::category::IsMagma<T, Op> && IsAlgebra<T, Op>;
+export template <typename X, typename Op = std::plus<typename X::Domain>>
+concept IsMagma = IsAlgebraOnSet<X, Op> &&
+                  dedekind::category::IsMagma<typename X::Domain, Op>;
 
 /** @section magma__Formal_Verification */
 
-// Seal: the base rung fires on the canonical machine carrier, and
-// rejects the hazard carrier.  Signed @c int under @c + is not a magma
-// (signed overflow is UB, so the operation is not total); the algebra
-// layer additionally demands @c std::regular closure, which @c unsigned
-// int supplies via modular wrap.
-static_assert(IsMagma<unsigned int, std::plus<unsigned int>>,
-              "unsigned int under + is the canonical algebraic-set magma.");
-static_assert(!IsMagma<int, std::plus<int>>,
+// Seal the axiom substrate the lift rests on: unsigned int under + is the
+// canonical magma carrier; signed int is not (overflow is UB, not total).
+// The set-indexed IsMagma<X> itself is witnessed on Ω<unsigned int> in
+// algebra/monoid_test.cpp (it needs a set carrier, which this upstream
+// partition does not import).
+static_assert(
+    dedekind::category::IsMagma<unsigned int, std::plus<unsigned int>>,
+    "unsigned int under + is the canonical magma carrier.");
+static_assert(!dedekind::category::IsMagma<int, std::plus<int>>,
               "signed int under + is not a magma: overflow is UB (not total).");
 
 }  // namespace dedekind::algebra

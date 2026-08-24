@@ -41,7 +41,7 @@ struct even_chi {
  *         exercises the @c IsSubalgebra concept body, not the
  *         downstream @c Subobject machinery). */
 struct even_ints {
-  using Ambient = int;
+  using Domain = int;
   struct Member {
     int value;
   };

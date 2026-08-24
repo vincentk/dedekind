@@ -213,42 +213,44 @@ concept HasCompoundGroupOperatorsMul = requires(T a, T b) {
 
 /**
  * @concept IsGroup
- * @brief Proposition: the species (T, Op) forms a group, as an
- *        algebraic set.
- * @details The axiomatic @c category::IsGroup<T, Op> strengthened with
- * the algebra-layer closure tier @c IsAlgebra<T, Op> (@c
- * std::regular<T> + strict closure).  The Op-defaulted
- * @c IsAdditiveGroup / @c IsMultiplicativeGroup siblings below name the
+ * @brief Proposition: a set object @c X whose carrier @c X::Domain forms
+ *        a group --- the set-indexed lift of @c category::IsGroup.
+ * @details @c X is an ETCS set, its carrier @c X::Domain satisfies the
+ * axiomatic @c category::IsGroup<X::Domain, Op>, and @c IsAlgebraOnSet
+ * supplies the carrier discipline (@c IsSet roots @c std::regular on
+ * @c X::Domain, @c IsClosedAlgebra pins strict closure).  The Op-defaulted
+ * @c IsAdditiveGroup / @c IsMultiplicativeGroup siblings name the
  * canonical additive / multiplicative witnesses.
- * @tparam T The carrier type (@c std::regular).
- * @tparam Op The binary operation witness.
+ * @tparam X  The set object (@c category::IsSet).
+ * @tparam Op The binary operation on @c X::Domain (defaults to @c std::plus).
  */
-export template <typename T, typename Op>
-concept IsGroup = dedekind::category::IsGroup<T, Op> && IsAlgebra<T, Op>;
+export template <typename X, typename Op = std::plus<typename X::Domain>>
+concept IsGroup = IsAlgebraOnSet<X, Op> &&
+                  dedekind::category::IsGroup<typename X::Domain, Op>;
 
 /**
  * @concept IsAdditiveGroup
- * @brief Proposition: The species (T, +) forms an Abelian Group (ℤ).
- * @details The @c std::plus<T>-defaulted additive witness of the
- * algebra-layer @c IsGroup; the closure tier @c IsAlgebra travels in
- * via @c IsGroup.
- * @tparam T The carrier type.
- * @tparam Add The additive operation witness (defaults to `std::plus<T>`).
+ * @brief Proposition: a set object @c X whose carrier is a group under +.
+ * @details The @c std::plus-defaulted additive witness of the set-indexed
+ * @c IsGroup.
+ * @tparam X   The set object.
+ * @tparam Add The additive operation (defaults to `std::plus<X::Domain>`).
  */
-export template <typename T, typename Add = std::plus<T>>
-concept IsAdditiveGroup = IsGroup<T, Add>;
+export template <typename X, typename Add = std::plus<typename X::Domain>>
+concept IsAdditiveGroup = IsGroup<X, Add>;
 
 /**
  * @concept IsMultiplicativeGroup
- * @brief Proposition: The non-zero species (T*, *) forms a Group (ℚ*).
- * @details Operator is configurable; default witness is
- * `std::multiplies<T>` (the canonical `*`).
- * @tparam T The carrier type.
- * @tparam Mult The multiplicative operation witness (defaults to
- * `std::multiplies<T>`).
+ * @brief Proposition: a set object @c X whose carrier is a group under *.
+ * @details The @c std::multiplies-defaulted multiplicative witness of the
+ * set-indexed @c IsGroup.
+ * @tparam X    The set object.
+ * @tparam Mult The multiplicative operation (defaults to
+ *              `std::multiplies<X::Domain>`).
  */
-export template <typename T, typename Mult = std::multiplies<T>>
-concept IsMultiplicativeGroup = IsGroup<T, Mult>;
+export template <typename X,
+                 typename Mult = std::multiplies<typename X::Domain>>
+concept IsMultiplicativeGroup = IsGroup<X, Mult>;
 
 /**
  * @concept IsArithmeticAdditiveGroup
@@ -261,8 +263,9 @@ concept IsMultiplicativeGroup = IsGroup<T, Mult>;
  * to @c IsArithmeticRing (@c :ring) for the ring surface.
  * @c IsArithmeticAdditiveGroup<T> requires both:
  *
- *   - @c IsAdditiveGroup<T, std::plus<T>> --- the strict categorical
- *     additive-group proof under the canonical @c + functor;
+ *   - @c category::IsGroup<T, std::plus<T>> + @c IsAlgebra --- the strict
+ *     categorical additive-group proof (type level) under the canonical
+ *     @c + functor, with @c std::regular + closure;
  *   - @c HasGroupOperatorsAdd<T> --- the literal C++ operators
  *     @c +, @c -, unary @c - close strictly on @c T.
  *
@@ -276,7 +279,8 @@ concept IsMultiplicativeGroup = IsGroup<T, Mult>;
  */
 export template <typename T>
 concept IsArithmeticAdditiveGroup =
-    IsAdditiveGroup<T, std::plus<T>> && HasGroupOperatorsAdd<T>;
+    dedekind::category::IsGroup<T, std::plus<T>> &&
+    IsAlgebra<T, std::plus<T>> && HasGroupOperatorsAdd<T>;
 
 /** @section group__Formal_Verification */
 

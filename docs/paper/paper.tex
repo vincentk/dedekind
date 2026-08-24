@@ -669,8 +669,9 @@ concept IsSubobject = requires(S s, typename S::Member m, A a) {
 
 template <typename A>
 concept IsSet =
+  std::regular<typename A::Domain> &&
   HasETCSAxioms<A> &&
-  IsCartesianClosed<CanonicalSetCCC<typename A::Ambient>>;
+  IsCartesianClosed<CanonicalSetCCC<typename A::Domain>>;
 \end{cpp}
 \end{minipage}
 \end{listing}
@@ -849,36 +850,41 @@ The type system can consequently treat arbitrary transformations as well-behaved
 
 % Source excerpts from dedekind.algebra:universal and dedekind.category:total.
 \begin{listing}[!ht]
-\caption{The two layers of $\mathbf{Ddk} = \mathbf{Trsk} \cap \mathbf{Alg}$.
-\textbf{Left, the type layer} (\cppinline{category}): the pointwise axioms on a carrier \emph{type} --- a model of a Birkhoff/Lawvere theory~\cite{burris1981universalalgebra,hylandpower2007}, a magma refined to a monoid by associativity and a unit.
-\textbf{Right, the set layer} (\cppinline{algebra}): a set \emph{object} whose carrier is such a model, the subobject-over-carrier pattern familiar from proof assistants~\cite{mathlib2020}.  \cppinline{IsAlgebraOnSet} is the generic $(A,F)$ form available today; the named rungs \cppinline{algebra::IsMonoid<X>} are the set-indexed lift of the left column, the target the library is converging on.}
+\caption{$\mathbf{Ddk} = \mathbf{Trsk} \cap \mathbf{Alg}$, in three panels.
+\textbf{Top-left, the type layer} (\cppinline{category}): the pointwise axioms on a carrier \emph{type} --- a model of a Birkhoff/Lawvere theory~\cite{burris1981universalalgebra,hylandpower2007}, a magma refined to a monoid by associativity and a unit.
+\textbf{Top-right, the lift base} (\cppinline{algebra}): \cppinline{IsAlgebraOnSet}, a set \emph{object} whose carrier is closed --- the subobject-over-carrier pattern familiar from proof assistants~\cite{mathlib2020}, i.e.\ $\mathbf{Trsk}$ met with carrier closure.
+\textbf{Bottom, a lifted rung}: \cppinline{algebra::IsMonoid} is the lift base refined by the pointwise monoid axioms of the top-left.}
 \label{lst:algebra:universal}
 \noindent
-\begin{minipage}[t]{0.5\linewidth}
+\begin{minipage}[t]{0.49\linewidth}
 type layer (\cppinline{category}): pointwise
 \begin{cpp}
 template <typename T, typename Op>
 concept IsMagma  = IsTotal<T, Op>
-                && /* Op closes: A×A → A */;
+                && IsClosedUnder<T, Op>;
 template <typename T, typename Op>
 concept IsMonoid = IsMagma<T, Op>
    && IsAssociative<T, Op>
    && IsPointed<T, Op>;
 \end{cpp}
 \end{minipage}\hfill
-\begin{minipage}[t]{0.47\linewidth}
-set layer (\cppinline{algebra}): the lift
+\begin{minipage}[t]{0.49\linewidth}
+lift base (\cppinline{algebra}): \cppinline{IsAlgebraOnSet}
 \begin{cpp}
-// generic (A,F), today:
 template <typename X, typename... Ops>
 concept IsAlgebraOnSet = IsSet<X>
-  && IsAlgebra<typename X::Domain, Ops...>;
+  && IsClosedAlgebra<typename X::Domain,
+                     Ops...>;
+\end{cpp}
+\end{minipage}
 
-// named rung, target:
-template <typename X, typename Op>
-concept IsMonoid = IsSet<X>
-  && category::IsMonoid<
-       typename X::Domain, Op>;
+\vspace{0.6ex}
+\noindent
+\begin{minipage}[t]{\linewidth}
+the lifted rung (\cppinline{algebra}): \cppinline{IsMonoid}
+\begin{cpp}
+template <typename X, typename Op = std::plus<typename X::Domain>>
+concept IsMonoid = IsAlgebraOnSet<X, Op> && category::IsMonoid<typename X::Domain, Op>;
 \end{cpp}
 \end{minipage}
 \end{listing}
@@ -889,33 +895,29 @@ concept IsMonoid = IsSet<X>
 
 % Source excerpts from dedekind.algebra:boolean and dedekind.numbers:rational.
 \begin{listing}[!ht]
-\caption{Concrete carriers inhabiting Listing~\ref{lst:algebra:universal}, shown at the \emph{pointwise} (element) layer --- every check is on the element type \cppinline{X::Domain}.  The complementary \emph{set} layer for these carriers (membership and the $\cup,\cap$ subobject lattice) is Listing~\ref{lst:pruning}.
-\textbf{Left:} \cppinline{bool}, at once a lattice under the logical operators $(\vee,\wedge)$ and the field $\mathbb{F}_2$ under the bitwise operators $(\oplus,\wedge)$.
-\textbf{Right:} \cppinline{std::size_t}, the modular ring $\mathbb{Z}/2^{w}\mathbb{Z}$ under $(+,\times)$ (width $w$ implementation-defined); composite carriers such as $\mathbb{Q}$ appear in \S\ref{sec:hsp_varieties}.}
+\caption{Primitive carriers as \emph{algebraic sets}, inhabiting the set-indexed concepts of Listing~\ref{lst:algebra:universal}.  \textbf{Left:} $\mathbb{B} = \Omega\langle\texttt{bool}\rangle$ needs \emph{explicit} operators --- a Boolean rig under logical $(\vee,\wedge)$ and the Galois field $\mathbb{F}_2$ under bitwise $(\oplus,\wedge)$.  \textbf{Right:} $\mathbb{S} = \Omega\langle\texttt{size\_t}\rangle$, the modular ring $\mathbb{Z}/2^{w}\mathbb{Z}$ (width $w$ implementation-defined), is a commutative ring under the \emph{default} arithmetic $(+,\times)$, so the operators are omitted.  The complementary set-lattice layer ($\cup,\cap$) is Listing~\ref{lst:pruning}; composite carriers such as $\mathbb{Q}$ appear in \S\ref{sec:hsp_varieties}.}
 \label{lst:algebra:boolean_case}
 \noindent
 \begin{minipage}[t]{0.52\linewidth}
-pointwise on \cppinline{decltype(𝔹)::Domain}
+$\mathbb{B}$ as an algebraic set (explicit ops)
 \begin{cpp}
-static_assert(
-  IsLattice<decltype(𝔹)::Domain,
+// 𝔹 under logical (∨, ∧): a Boolean rig
+static_assert(IsRig<decltype(𝔹),
     std::logical_or<bool>,
     std::logical_and<bool>>);
-static_assert(
-  IsGaloisField<decltype(𝔹)::Domain,
+// 𝔹 as the Galois field 𝔽₂ (bitwise ⊕, ∧)
+static_assert(IsGaloisField<decltype(𝔹),
     std::bit_xor<bool>,
     std::bit_and<bool>>);
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.45\linewidth}
-pointwise on \cppinline{decltype(𝕊)::Domain}
+$\mathbb{S}$ as an algebraic set (default ops)
 \begin{cpp}
 constexpr auto 𝕊 = sets::Ω<std::size_t>;
+// (+, ×) are the defaults, so omitted:
 static_assert(
-  IsCommutativeRing<
-    decltype(𝕊)::Domain,
-    std::plus<std::size_t>,
-    std::multiplies<std::size_t>>);
+  IsCommutativeRing<decltype(𝕊)>);
 \end{cpp}
 \end{minipage}
 \end{listing}
@@ -925,7 +927,7 @@ Listing~\ref{lst:algebra:universal} reifies the \emph{algebraic sets} of Figure~
 \label{eqn:ddk}
     \mathbf{Ddk} \;=\; \mathbf{Trsk} \,\cap\, \mathbf{Alg}(-).
 \end{equation}
-Listing~\ref{lst:algebra:boolean_case} exhibits two primitive inhabitants at the pointwise layer: \cppinline{bool} (a lattice and the field $\mathbb{F}_2$) and \cppinline{std::size_t} (the modular ring $\mathbb{Z}/2^{w}\mathbb{Z}$, width $w$ implementation-defined); their set layer is Listing~\ref{lst:pruning}, and composite carriers such as $\mathbb{Q}$ follow in \S\ref{sec:hsp_varieties}.\footnote{The two operator layers carry two \emph{different} theories.  The pointwise operations $(+,\times)$ make the carrier a model of a finitary Lawvere theory, i.e.\ the algebras of a free-$\Sigma$ term monad~\cite{hylandpower2007}; the set operations $(\cup,\cap)$ come from the powerset functor, whose Eilenberg--Moore algebras are complete lattices, not rings.  The set-indexed concept pairs the two, and is deliberately \emph{not} the Eilenberg--Moore construction of the powerset monad.}
+Listing~\ref{lst:algebra:boolean_case} exhibits two primitive algebraic sets: $\mathbb{B}$ (a Boolean rig under $\vee,\wedge$, its carrier the field $\mathbb{F}_2$ under $\oplus,\wedge$) and $\mathbb{S}$ (the modular ring $\mathbb{Z}/2^{w}\mathbb{Z}$, width $w$ implementation-defined, under the default $+,\times$); their set-lattice layer is Listing~\ref{lst:pruning}, and composite carriers such as $\mathbb{Q}$ follow in \S\ref{sec:hsp_varieties}.\footnote{The two operator layers carry two \emph{different} theories.  The pointwise operations $(+,\times)$ make the carrier a model of a finitary Lawvere theory, i.e.\ the algebras of a free-$\Sigma$ term monad~\cite{hylandpower2007}; the set operations $(\cup,\cap)$ come from the powerset functor, whose Eilenberg--Moore algebras are complete lattices, not rings.  The set-indexed concept pairs the two, and is deliberately \emph{not} the Eilenberg--Moore construction of the powerset monad.}
 
 \subsection{Mechanical Support for Advanced Carriers}
 \label{sec:hsp_varieties}
@@ -1014,10 +1016,11 @@ Materialised, an operator is the matrix ring $M_n(F) = \operatorname{End}(V)$, t
 \caption{The certificate ladder over $\mathbb{Q}$: four rungs, each a \cppinline{static_assert} the compiler discharges.}
 \label{lst:certificate-ladder}
 \begin{cpp}
-using Q = Rational<default_integer>;         // scalar: ℚ = Frac(ℤ)
+using Q = Rational<default_integer>;         // the ℚ carrier = Frac(ℤ)
+constexpr auto ℚ = sets::Ω<Q>;               // ℚ as an algebraic set
 using V = Vec2V<Q>;  using M = Matrix2x2V<Q>;
 
-static_assert(IsField<Q>);                   // scalar: ℚ is a field
+static_assert(IsField<decltype(ℚ)>);         // scalar: ℚ is a field
 static_assert(is_module_v<V, Q>);            // module
 static_assert(is_vector_space_v<V, Q>);      // vector space  (Rule 1)
 static_assert(is_endomorphism_ring_v<M, V>); // operator: M₂ = End(V)

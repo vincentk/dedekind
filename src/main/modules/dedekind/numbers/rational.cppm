@@ -990,9 +990,13 @@ static_assert(
     "surface (*, /, T{1}).");
 
 // Algebraic witness: @c Rational<default_integer> is a field
-// (Lang, @em Algebra §III.1).  @c algebra::IsField subsumes the
-// axiomatic @c category::IsField via @c IsDivisionRing.
-static_assert(dedekind::algebra::IsField<Rational<default_integer>>);
+// (Lang, @em Algebra §III.1).  This asserts the axiomatic
+// @c category::IsField directly on the carrier; the set-indexed
+// @c algebra::IsField lifts the same axioms over a set object
+// (e.g.\ @c Ω<Rational<default_integer>>).
+static_assert(dedekind::category::IsField<
+              Rational<default_integer>, std::plus<Rational<default_integer>>,
+              std::multiplies<Rational<default_integer>>>);
 
 /**
  * @brief Canonical polynomial ring over the rationals: Q[x].

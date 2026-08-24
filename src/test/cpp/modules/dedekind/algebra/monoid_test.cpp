@@ -2,8 +2,22 @@
 
 import dedekind.algebra;
 import dedekind.category;
+import dedekind.sets; // Ω<T> — set carrier for the set-indexed rungs
 using namespace dedekind::algebra;
 using namespace dedekind::category;
+
+// Set-indexed base rung: algebra::IsMagma is a claim about a *set object*,
+// not a raw carrier.  The magma partition sits upstream of :sets and cannot
+// import a set carrier, so its positive witness lives here.
+static_assert(
+    dedekind::algebra::IsMagma<decltype(dedekind::sets::Ω<unsigned int>)>,
+    "Ω<unsigned int> under + is a set-indexed magma.");
+// Regression guard on the IsSet/Domain composition: a bare carrier is not a
+// set object, so the set-indexed concept must reject it (explicit Op keeps
+// the default-argument substitution out of the picture).
+static_assert(
+    !dedekind::algebra::IsMagma<unsigned int, std::plus<unsigned int>>,
+    "A raw carrier is not a set object: set-indexed IsMagma rejects it.");
 
 TEST_CASE("Algebra: Monoid Axioms (Atomic)", "[algebra][monoid]") {
   SECTION("Additive Identity (0)") {

@@ -305,18 +305,18 @@ static_assert(dedekind::algebra::HasGroupOperatorsAdd<std::size_t>,
 // commonly 32 on LP64 / LLP64 systems but not guaranteed by the
 // standard).  Witness messages are kept width-agnostic.
 static_assert(
-    dedekind::algebra::IsCommutativeRing<unsigned int, std::plus<unsigned int>,
-                                         std::multiplies<unsigned int>>,
+    dedekind::category::IsCommutativeRing<unsigned int, std::plus<unsigned int>,
+                                          std::multiplies<unsigned int>>,
     "unsigned int IS the commutative ring ℤ/2^wℤ at the unsigned-int width "
     "under modular arithmetic — additive inverses via mod wrap, * commutes.");
-static_assert(dedekind::algebra::IsCommutativeRing<
+static_assert(dedekind::category::IsCommutativeRing<
                   unsigned long, std::plus<unsigned long>,
                   std::multiplies<unsigned long>>,
               "unsigned long IS the commutative ring ℤ/2^wℤ at the platform "
               "long width.");
 static_assert(
-    dedekind::algebra::IsCommutativeRing<std::size_t, std::plus<std::size_t>,
-                                         std::multiplies<std::size_t>>,
+    dedekind::category::IsCommutativeRing<std::size_t, std::plus<std::size_t>,
+                                          std::multiplies<std::size_t>>,
     "std::size_t IS the commutative ring ℤ/2^wℤ at the pointer "
     "width.");
 
@@ -347,10 +347,11 @@ static_assert(
 // it isn't for @c w @c ≥ @c 2.  Pinned as an explicit honesty
 // statement: the commutative-ring claim is real, but it stops short of
 // field.
-static_assert(!dedekind::algebra::IsField<unsigned int, std::plus<unsigned int>,
-                                          std::multiplies<unsigned int>>,
-              "unsigned int is NOT a field: 0 has no multiplicative inverse, "
-              "and ℤ/2^wℤ has zero divisors (2 · 2^(w-1) ≡ 0).");
+static_assert(
+    !dedekind::category::IsField<unsigned int, std::plus<unsigned int>,
+                                 std::multiplies<unsigned int>>,
+    "unsigned int is NOT a field: 0 has no multiplicative inverse, "
+    "and ℤ/2^wℤ has zero divisors (2 · 2^(w-1) ≡ 0).");
 
 // Order surface — every @c std::unsigned_integral is totally ordered at
 // the machine layer.

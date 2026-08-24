@@ -15,6 +15,7 @@ module;
 #include <cmath>
 #include <concepts>
 #include <cstddef>
+#include <functional>  // std::plus / std::multiplies (IsField op witnesses)
 
 export module dedekind.geometry:inner_product;
 
@@ -107,7 +108,7 @@ constexpr F norm(const Vector<F, N>& v) {
  *  @c IsMatrixScalar gate (#535).
  */
 export template <typename F, std::size_t N>
-  requires dedekind::algebra::IsField<F>
+  requires dedekind::category::IsField<F, std::plus<F>, std::multiplies<F>>
 constexpr F operator*(const Covector<F, N>& phi, const Vector<F, N>& v) {
   F res{};
   for (std::size_t i = 0; i < N; ++i) res = res + phi.coefficient(0, i) * v[i];

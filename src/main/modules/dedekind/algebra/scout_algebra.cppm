@@ -202,7 +202,8 @@ inline constexpr bool is_translation_invariant_ordered_v =
 // the multiplicative case's consumers are ordered-field carriers
 // (e.g.\ @c Rational<I>) whose @c <=> is @c std::strong_ordering and
 // which therefore satisfy @c std::totally_ordered structurally.  The
-// composition @c algebra::IsField<T> @c && @c order::IsTotallyOrdered<T>
+// composition @c category::IsField<T, ...> @c && @c
+// order::IsTotallyOrdered<T>
 // in @c IsOrderedMultiplicativeGroup below is the upstream-rooted
 // expression of "ordered multiplicative group on the non-zero cone";
 // a separate marker would only re-state what the upstream concepts
@@ -250,8 +251,9 @@ concept IsOrderedAdditiveGroup =
  *
  * @details
  * Composes two upstream concepts directly:
- *   * @c algebra::IsField<T> --- @c T is a field (post-PR #674's
- *     @c IsField cert on @c Rational<I>), so the multiplicative
+ *   * @c category::IsField<T, ...> --- the type-indexed field axioms
+ *     on the carrier @c T (post-PR #674's @c IsField cert on
+ *     @c Rational<I>), so the multiplicative
  *     group on the non-zero cone @c (T \\ {0}, @c *) is an abelian
  *     group with multiplicative inverses.
  *   * @c order::IsTotallyOrdered<T> --- @c T's @c <=> decides every
@@ -267,7 +269,7 @@ concept IsOrderedAdditiveGroup =
  *
  * No carrier-promise marker (unlike the additive sibling): the
  * upstream concepts cover everything.  @c Rational<I> satisfies both
- * (@c IsField via PR #674's @c is_invertible_v registration,
+ * (@c category::IsField via PR #674's @c is_invertible_v registration,
  * @c IsTotallyOrdered via @c Rational 's @c std::strong_ordering
  * @c <=>); @c bool / 𝔽₂ satisfies @c IsTotallyOrdered trivially on
  * the 2-element set but the halfspace pivot-transport pattern doesn't
@@ -282,7 +284,8 @@ concept IsOrderedAdditiveGroup =
  */
 export template <typename T>
 concept IsOrderedMultiplicativeGroup =
-    dedekind::algebra::IsField<T> && dedekind::order::IsTotallyOrdered<T>;
+    dedekind::category::IsField<T, std::plus<T>, std::multiplies<T>> &&
+    dedekind::order::IsTotallyOrdered<T>;
 
 /**
  * @concept IsOrderedCommutativeRing
@@ -941,8 +944,8 @@ constexpr auto operator-(BoundScout<Ambient>, dedekind::order::Bound<K>) {
  * @c IsAbelianGroup<SignedCardinality, std::multiplies> is @b false
  * --- the saturating ℤ proxy is a ring but @b not a field; ℤ has no
  * multiplicative inverses for non-units).  On ℚ the gate fires:
- * @c IsField<Rational<default_integer>> is the post-#674 witness that
- * @c (ℚ\\{0}, @c *) is a multiplicative abelian group.
+ * @c category::IsField<Rational<default_integer>, ...> is the post-#674
+ * witness that @c (ℚ\\{0}, @c *) is a multiplicative abelian group.
  */
 export template <auto Ambient, auto K>
   requires dedekind::category::IsAbelianGroup<

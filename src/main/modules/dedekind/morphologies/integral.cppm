@@ -149,10 +149,11 @@ concept IsCyclicInteger =
  * here so the umbrella reader does not silently inherit the XOR / AND
  * result.
  */
-static_assert(!IsField<bool, std::plus<bool>, std::multiplies<bool>>,
-              "bool is NOT a field under std::plus / std::multiplies: "
-              "the arithmetic operators promote to int; the field reading "
-              "of bool lives at std::bit_xor / std::bit_and (see :boolean).");
+static_assert(
+    !dedekind::category::IsField<bool, std::plus<bool>, std::multiplies<bool>>,
+    "bool is NOT a field under std::plus / std::multiplies: "
+    "the arithmetic operators promote to int; the field reading "
+    "of bool lives at std::bit_xor / std::bit_and (see :boolean).");
 
 static_assert(!dedekind::category::IsClosedUnder<bool, std::plus<>>,
               "bool is NOT closed under std::plus / std::multiplies. Instead, "

@@ -76,15 +76,14 @@ using namespace dedekind::category;
  *           involution: @c !!s @b is @c s as the same object. */
 export template <typename S>
 struct Complement {
-  using Ambient = typename S::Ambient;
-  using Domain = Ambient;
+  using Domain = typename S::Domain;
   using Codomain = typename S::Codomain;
   using logic_species = typename S::logic_species;
   using cardinality_type = ℵ_0;
 
   /** @brief Member-shape mirror for the @c IsSubobject contract. */
   struct Member {
-    Ambient value;
+    Domain value;
   };
 
   S const* source = nullptr;
@@ -98,12 +97,12 @@ struct Complement {
    *         is vacuously false). */
   static const Complement χ;
 
-  constexpr Ambient ι(const Member& m) const { return m.value; }
+  constexpr Domain ι(const Member& m) const { return m.value; }
 
   /** @brief Membership: @c v @c ∈ @c !S iff @c v @c ∉ @c S.
    *  @details Null-source path returns @c L::False (the static @c χ
    *           witness uses nullptr — see above). */
-  constexpr auto operator()(const Ambient& v) const {
+  constexpr auto operator()(const Domain& v) const {
     return source ? !((*source)(v)) : Codomain{logic_species::False};
   }
 
@@ -139,8 +138,6 @@ struct SingletonSet {
   // ~ arrow / morphism / subobject classifier jargon
   using Domain = T;
   using Codomain = typename L::Ω;
-  // ~ set expressions jargon:
-  using Ambient = T;
 
   // ~ topoi jargon: Member-shape mirror of Subobject's; the IsSubobject
   // contract reads the Member-to-T projection through ι below.  The

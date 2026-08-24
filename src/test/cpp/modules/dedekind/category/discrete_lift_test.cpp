@@ -40,7 +40,7 @@ TEST_CASE("discrete_lift_t produces a DiscreteCategory for any IsSet carrier",
   STATIC_CHECK(IsSmallCategory<discrete_lift_t<BoolTrueSet>>);
   STATIC_CHECK(IsSmallCategory<discrete_lift_t<UIntEvenSet>>);
 
-  // The lift uses S itself, not S::Ambient — the static-type witness.
+  // The lift uses S itself, not S::Domain — the static-type witness.
   STATIC_CHECK(std::same_as<discrete_lift_t<IntNonNegSet>,
                             DiscreteCategory<IntNonNegSet>>);
 }
@@ -62,8 +62,8 @@ TEST_CASE("discrete_lift_t preserves subobject identity (Disc(S1) /= Disc(S2))",
 
   // Both have the same Ambient (int) but are structurally distinct
   // IsSet types.
-  STATIC_CHECK(std::same_as<typename S1::Ambient, int>);
-  STATIC_CHECK(std::same_as<typename S2::Ambient, int>);
+  STATIC_CHECK(std::same_as<typename S1::Domain, int>);
+  STATIC_CHECK(std::same_as<typename S2::Domain, int>);
   STATIC_CHECK_FALSE(std::same_as<S1, S2>);
 
   // The lift therefore produces distinct discrete categories — the

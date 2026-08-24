@@ -125,7 +125,7 @@ concept HasAxiom3TerminalObject = IsTerminalObject<One>;
  *  @c { s(a) } @c -> @c LogicalValue, so the membership-as-evaluation
  *  reading lands on the @c IsSubobject witness itself. */
 export template <typename S>
-concept HasAxiom4WellPointedness = IsSubobject<S, typename S::Ambient>;
+concept HasAxiom4WellPointedness = IsSubobject<S, typename S::Domain>;
 
 /** @brief ETCS axiom 5 witness: products exist for ambient species A. */
 export template <typename A>
@@ -141,18 +141,18 @@ concept HasAxiom6Exponentiation = IsArrowExponential<Exponential<A, A>, A, A>;
 /** @brief ETCS axiom 7 witness: every set is represented by a subobject. */
 export template <typename S>
 concept HasAxiom7SubobjectClassifier =
-    IsSubobject<S, typename S::Ambient> && requires {
-      requires IsSetObject<decltype(classify<typename S::Ambient>(
-                               classifier_true<typename S::Ambient>())),
-                           typename S::Ambient>;
-      requires IsSetObject<decltype(classify<typename S::Ambient>(
-                               classifier_false<typename S::Ambient>())),
-                           typename S::Ambient>;
+    IsSubobject<S, typename S::Domain> && requires {
+      requires IsSetObject<decltype(classify<typename S::Domain>(
+                               classifier_true<typename S::Domain>())),
+                           typename S::Domain>;
+      requires IsSetObject<decltype(classify<typename S::Domain>(
+                               classifier_false<typename S::Domain>())),
+                           typename S::Domain>;
       requires IsPullback<
-          decltype(pullback<ClassicalLogic, std::pair<typename S::Ambient,
-                                                      typename S::Ambient>>(
-              id<typename S::Ambient>(), id<typename S::Ambient>())),
-          Identity<typename S::Ambient>, Identity<typename S::Ambient>>;
+          decltype(pullback<ClassicalLogic,
+                            std::pair<typename S::Domain, typename S::Domain>>(
+              id<typename S::Domain>(), id<typename S::Domain>())),
+          Identity<typename S::Domain>, Identity<typename S::Domain>>;
     };
 
 /**
@@ -167,7 +167,7 @@ concept HasAxiom7SubobjectClassifier =
 export template <typename S, typename Α, typename F, typename G>
 concept HasAxiom7ClassifierNaturalityWitness =
     HasAxiom7SubobjectClassifier<S> && IsNaturalTransformation<Α, F, G> &&
-    std::same_as<typename F::Σ_cat::Species, typename S::Ambient>;
+    std::same_as<typename F::Σ_cat::Species, typename S::Domain>;
 
 /** @brief ETCS axiom 8 witness: initial object 0 is present. */
 export template <typename A>
@@ -197,8 +197,8 @@ concept IsSplitEpicPair = IsEpicArrow<Epi> && IsArrow<Section> &&
  */
 export template <typename S, typename Epi, typename Section>
 concept HasAxiom10ChoiceSplitEpicWitness =
-    IsSetObject<S, typename S::Ambient> && IsSplitEpicPair<Epi, Section> &&
-    std::same_as<Cod<Epi>, typename S::Ambient>;
+    IsSetObject<S, typename S::Domain> && IsSplitEpicPair<Epi, Section> &&
+    std::same_as<Cod<Epi>, typename S::Domain>;
 
 /**
  * @brief Law check for split epimorphisms at a concrete codomain element.
@@ -232,10 +232,10 @@ concept HasAxiom10ChoiceSplitEpicLawSurface =
  * transparency of the embedding arrow.
  */
 export template <typename S, IsArrow E>
-  requires IsSubobject<S, typename S::Ambient> &&
-           std::same_as<Cod<E>, typename S::Ambient> &&
+  requires IsSubobject<S, typename S::Domain> &&
+           std::same_as<Cod<E>, typename S::Domain> &&
            std::equality_comparable<
-               std::invoke_result_t<S const&, typename S::Ambient const&>>
+               std::invoke_result_t<S const&, typename S::Domain const&>>
 constexpr bool classifier_reindexing_definitional_witness_at(const S& s,
                                                              const E& embedding,
                                                              const Dom<E>& x) {
@@ -253,9 +253,9 @@ constexpr bool classifier_reindexing_definitional_witness_at(const S& s,
 export template <typename S, typename E>
 concept HasAxiom7PullbackReindexingDefinitionalSurface =
     HasAxiom7SubobjectClassifier<S> && IsArrow<E> &&
-    std::same_as<Cod<E>, typename S::Ambient> &&
+    std::same_as<Cod<E>, typename S::Domain> &&
     std::equality_comparable<
-        std::invoke_result_t<S const&, typename S::Ambient const&>>;
+        std::invoke_result_t<S const&, typename S::Domain const&>>;
 
 /**
  * @brief ETCS axiom 10 witness: power-object lattice completeness.
@@ -283,7 +283,7 @@ concept HasAxiom7PullbackReindexingDefinitionalSurface =
  */
 export template <typename S>
 concept HasAxiom10PowerObjectLattice =
-    IsSetObject<S, typename S::Ambient> && IsCompatibleSetPair<S, S> &&
+    IsSetObject<S, typename S::Domain> && IsCompatibleSetPair<S, S> &&
     requires {
       /** @brief @c logic_species typedef anchors the classifier @c L
        *  (Slice 9 — required by @c :lattice::IsSubobjectLattice).
@@ -293,8 +293,8 @@ concept HasAxiom10PowerObjectLattice =
       typename S::logic_species;
       requires IsLogicalSpecies<typename S::logic_species>;
     } && requires(S lhs, S rhs) {
-      requires IsSetObject<decltype(meet(lhs, rhs)), typename S::Ambient>;
-      requires IsSetObject<decltype(join(lhs, rhs)), typename S::Ambient>;
+      requires IsSetObject<decltype(meet(lhs, rhs)), typename S::Domain>;
+      requires IsSetObject<decltype(join(lhs, rhs)), typename S::Domain>;
     };
 
 /** @section etcs__Axiom_10_Diaconescu_Note
@@ -342,15 +342,15 @@ concept HasAxiom10PowerObjectLattice =
  */
 export template <typename T>
 concept HasETCSAxioms =
-    IsSetObject<T, typename T::Ambient> &&
-    HasAxiom1Composition<typename T::Ambient> &&
-    HasAxiom2Identity<typename T::Ambient> &&
-    HasAxiom3TerminalObject<typename T::Ambient> &&
+    IsSetObject<T, typename T::Domain> &&
+    HasAxiom1Composition<typename T::Domain> &&
+    HasAxiom2Identity<typename T::Domain> &&
+    HasAxiom3TerminalObject<typename T::Domain> &&
     HasAxiom4WellPointedness<T> &&
-    HasAxiom5CartesianProduct<typename T::Ambient> &&
-    HasAxiom6Exponentiation<typename T::Ambient> &&
-    HasAxiom7SubobjectClassifier<T> && HasAxiom8EmptySet<typename T::Ambient> &&
-    HasAxiom9NNO<typename T::Ambient> && HasAxiom10PowerObjectLattice<T>;
+    HasAxiom5CartesianProduct<typename T::Domain> &&
+    HasAxiom6Exponentiation<typename T::Domain> &&
+    HasAxiom7SubobjectClassifier<T> && HasAxiom8EmptySet<typename T::Domain> &&
+    HasAxiom9NNO<typename T::Domain> && HasAxiom10PowerObjectLattice<T>;
 
 /**
  * @concept IsSet
@@ -358,7 +358,7 @@ concept HasETCSAxioms =
  *        the canonical Set-CCC witness over its ambient species.
  *
  * @details Conjoins @c HasETCSAxioms<A> with @c IsCartesianClosed over
- * @c CanonicalSetCCC<A::Ambient>.  Every ETCS category is a CCC --- axioms
+ * @c CanonicalSetCCC<A::Domain>.  Every ETCS category is a CCC --- axioms
  * 3 (terminal), 5 (products), 6 (exponentials) are exactly the structural
  * ingredients of a CCC --- so the second half of the conjunction is
  * structurally entailed by the first; carrying it in the body makes the
@@ -373,10 +373,27 @@ concept HasETCSAxioms =
  * category, but most CCCs are not ETCS.  The additional axioms beyond CCC
  * (4 well-pointed, 7 subobject classifier, 9 NNO, 10 choice / power-object
  * lattice) are precisely what fails for general CCCs.
+ *
+ * @section etcs__Regular_carrier
+ * The carrier @c A::Domain is additionally required to be @c std::regular
+ * --- the @c Jlt value-semantics half of @c Trsk @c = @c Jlt @c ∩ @c Set.
+ * Rooting it here means downstream algebraic-set concepts inherit carrier
+ * regularity from @c IsSet rather than re-pinning it (see
+ * @c algebra::IsClosedAlgebra).
+ *
+ * @note @c std::regular @b must stay the @b first conjunct.
+ * @c HasETCSAxioms is not yet a total predicate: on a non-regular domain
+ * it is @b ill-formed (a hard error in the subobject-classifier
+ * construction @c make_χ, which needs decidable equality), not merely
+ * unsatisfied.  The leading @c std::regular clause short-circuits to
+ * @c false first, shielding @c IsSet from that hard error (witnessed in
+ * @c sets/subobject_lattice_carriers_test.cpp).  FIXME(#779): make
+ * @c HasETCSAxioms SFINAE-total, after which this ordering becomes
+ * defensive rather than load-bearing.
  */
 export template <typename A>
-concept IsSet =
-    HasETCSAxioms<A> && IsCartesianClosed<CanonicalSetCCC<typename A::Ambient>>;
+concept IsSet = std::regular<typename A::Domain> && HasETCSAxioms<A> &&
+                IsCartesianClosed<CanonicalSetCCC<typename A::Domain>>;
 
 /**
  * @brief Construct a set object over ambient species A from a characteristic
@@ -473,7 +490,7 @@ static_assert(IsSet<decltype(ambient_set(std::declval<std::set<int>&&>()))>,
  * @section etcs__IsSet_entails_CCC_directional_witness
  * Representative sanity check for the ETCS \f$\subset\f$ CCC
  * implication.  The second @c static_assert checks the implication
- * @c IsSet<S> ==> HasCanonicalSetCCC<typename S::Ambient> for the
+ * @c IsSet<S> ==> HasCanonicalSetCCC<typename S::Domain> for the
  * chosen witness type @c _isset_witness_t by spelling it as
  * @c !IsSet<_isset_witness_t> || HasCanonicalSetCCC<...>.
  *
@@ -491,7 +508,7 @@ static_assert(IsSet<_isset_witness_t>,
               "Witness: representative carrier satisfies IsSet "
               "(axioms + canonical CCC over the ambient).");
 static_assert(
-    IsCartesianClosed<CanonicalSetCCC<typename _isset_witness_t::Ambient>>,
+    IsCartesianClosed<CanonicalSetCCC<typename _isset_witness_t::Domain>>,
     "Directional witness: the CCC half of IsSet pinned independently --- "
     "the canonical Set-CCC over the witness's ambient species is "
     "Cartesian-closed.  (Pre-#629 this was carried by the "
@@ -567,7 +584,7 @@ static_assert(std::same_as<discrete_lift_t<_isset_witness_t>,
                            DiscreteCategory<_isset_witness_t>>,
               "Set ↪ Cat lift: discrete_lift_t<S> resolves to "
               "DiscreteCategory<S>; subobject information in S is "
-              "preserved by lifting S itself rather than S::Ambient.");
+              "preserved by lifting S itself rather than S::Domain.");
 
 // Bona fide adjunction-machinery witnesses on the representative
 // IsSet carrier.  These are the type-level mechanical realisation of

@@ -6,15 +6,15 @@
  * @c SingletonSet) participate in @c :lattice::IsSubobjectLattice
  * structurally:
  *
- *   - All three already exposed @c Ambient + @c logic_species
+ *   - All three already exposed @c Domain + @c logic_species
  *     pre-Slice-9.
  *   - The free @c meet / @c join / @c complement (Slice 9 added the
  *     @c complement alias in @c :etcs::concrete) produce
  *     @c IsSubobjectFamilyMember-shaped results — the family is
- *     anchored on (@c S::Ambient, @c S::logic_species).
+ *     anchored on (@c S::Domain, @c S::logic_species).
  *
  * The concept body uses @b structural recognition: it checks the
- * carrier's CT-vocabulary metadata (Ambient + logic_species) plus the
+ * carrier's CT-vocabulary metadata (Domain + logic_species) plus the
  * shape of @c meet / @c join / @c complement free functions — no
  * carrier-side @c SubsetEqRel typedef, no @c operator<= clause.  The
  * Form-chain row-1 @c ≤ relation is @b derivable from @c meet
@@ -42,6 +42,17 @@ import dedekind.sets;
 
 using namespace dedekind::category;
 using namespace dedekind::sets;
+
+namespace {
+/** @brief A copyable domain that deliberately lacks equality: it is
+ *  @c std::semiregular but @b not @c std::regular.  Used to witness that
+ *  @c IsSet's @c std::regular<Domain> clause is load-bearing --- the
+ *  @c Jlt value-semantics half of @c Trsk @c = @c Jlt @c ∩ @c Set. */
+struct NonRegularDomain {
+  int v;
+  bool operator==(const NonRegularDomain&) const = delete;
+};
+}  // namespace
 
 TEST_CASE("sets:subobject-lattice — Ø participates in IsSubobjectLattice",
           "[sets][lattice][subobject][etcs][empty]") {
@@ -108,4 +119,28 @@ TEST_CASE("sets:subobject-lattice — IsSet still fires post-Axiom-10 update",
   STATIC_CHECK(IsSet<Ø<bool>>);
   STATIC_CHECK(IsSet<UniversalSet<bool>>);
   STATIC_CHECK(IsSet<SingletonSet<bool>>);
+}
+
+TEST_CASE("sets:etcs — IsSet's std::regular<Domain> clause is load-bearing",
+          "[sets][etcs][isset][regular][regression]") {
+  /** @brief Negative witness for the @c std::regular<Domain> clause of
+   *  @c IsSet.  @c NonRegularDomain is copyable (@c std::semiregular) but
+   *  has no equality, so it is @b not @c std::regular.  @c IsSet rejects a
+   *  set object over it --- the @c Jlt value-semantics half of
+   *  @c Trsk @c = @c Jlt @c ∩ @c Set.
+   *
+   *  The clause is load-bearing as the @b first conjunct: it short-circuits
+   *  to @c false before @c HasETCSAxioms is evaluated.  That ordering
+   *  matters --- @c HasETCSAxioms over a non-regular domain is not merely
+   *  unsatisfied, it is @b ill-formed (the subobject-classifier
+   *  construction @c make_χ needs decidable equality).  Remove or reorder
+   *  the @c std::regular clause and the assertion below stops being a clean
+   *  @c false and becomes a hard compile error.  (For the same reason the
+   *  witness cannot assert @c HasETCSAxioms<...> directly --- that is the
+   *  ill-formed instantiation the clause guards against.)  FIXME(#779):
+   *  once @c HasETCSAxioms is SFINAE-total the ordering becomes defensive
+   *  rather than load-bearing. */
+  STATIC_CHECK(std::semiregular<NonRegularDomain>);
+  STATIC_CHECK_FALSE(std::regular<NonRegularDomain>);
+  STATIC_CHECK_FALSE(IsSet<UniversalSet<NonRegularDomain>>);
 }
