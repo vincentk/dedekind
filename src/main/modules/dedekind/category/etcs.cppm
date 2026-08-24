@@ -66,8 +66,10 @@
 
 module;
 
+#include <algorithm>  // std::ranges::find (range-lift membership test)
 #include <concepts>
 #include <functional>
+#include <ranges>  // std::ranges::input_range (std views ↪ IsSet)
 #include <set>
 #include <type_traits>
 #include <unordered_set>
@@ -469,11 +471,41 @@ constexpr auto ambient_set(std::set<T, Compare, Alloc>&& s)
       [s = std::move(s)](const T& x) -> bool { return s.contains(x); });
 }
 
+/** @brief Lift any @c std::ranges::input_range (a view, span, or container)
+ *         into an @c IsSet object by wrapping @c std::ranges::find as the
+ *         membership test.  This is the Jlt-clean reading of a set --- @b the
+ *         @b set @b is @b its @b membership @b test --- carried down to the
+ *         @c std::ranges layer: a lazy view is a first-class @c IsSet, and it
+ *         is @c constexpr where @c std::unordered_set (not
+ *         constexpr-constructible with contents) is not.  Excludes the keyed
+ *         containers above by refusing a @c .contains() member, so those more
+ *         specific overloads still win.  The range is moved into the predicate
+ *         (a view is cheap to own; the lifted Subobject carries its own copy).
+ *         (#607 --- the range slice of the wrapper-dissolution plan.) */
+export template <std::ranges::input_range R>
+  requires IsSpecies<std::ranges::range_value_t<R>> &&
+           (!requires(R& r, std::ranges::range_value_t<R> x) { r.contains(x); })
+constexpr auto ambient_set(R&& r) {
+  using T = std::ranges::range_value_t<R>;
+  return ambient_set<T>([r = std::forward<R>(r)](const T& x) -> bool {
+    return std::ranges::find(r, x) != std::ranges::end(r);
+  });
+}
+
 // Witnesses: std-containers satisfy IsSet directly via the lift.
 static_assert(IsSet<decltype(ambient_set(
                   std::declval<const std::unordered_set<int>&>()))>,
               "std::unordered_set<int> lifts to IsSet via ambient_set (lvalue) "
               "without a project-shipped wrapper.");
+
+// Witness: a std::ranges view lifts to IsSet structurally --- and, unlike the
+// unordered_set lift, it is usable in a constant expression.
+static_assert(
+    IsSet<decltype(ambient_set(std::views::single(6)))>,
+    "std::views::single lifts to IsSet: a std range is a set by its "
+    "membership test (Jlt --- the set IS the test), constexpr-clean.");
+static_assert(IsSet<decltype(ambient_set(std::views::iota(0, 5)))>,
+              "std::views::iota lifts to IsSet via ambient_set.");
 
 static_assert(
     IsSet<decltype(ambient_set(std::declval<std::unordered_set<int>&&>()))>,
