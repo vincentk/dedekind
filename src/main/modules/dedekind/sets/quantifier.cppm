@@ -102,4 +102,45 @@ static_assert(exists(std::views::iota(0, 5), [](int x) { return x == 3; }),
 static_assert(!exists(std::views::iota(0, 3), [](int x) { return x > 9; }),
               "no element of [0,3) is > 9.");
 
+/**
+ * @section quantifier__Combinators
+ * @c ForAll / @c Exists are the quantifier @b combinators: they bind the
+ * @b inner variable @c y over the enumerable domain @c dom and leave a
+ * predicate in the @b outer variable @c x.  @c Exists(dom, p2) is
+ * @f$\lambda x.\;\exists y \in \mathrm{dom}.\; p_2(y,x)@f$; @c ForAll dually.
+ * The result is an ordinary unary predicate, so it drops straight into a
+ * @c Set comprehension --- this is how a bounded quantifier defines a new set.
+ * Both are built on the range-generic @c exists / @c forall above (one fold),
+ * and the domain is any @c std::ranges::input_range: the general concept
+ * reached through the @c std iterator interface, not a fixed container.
+ */
+export template <std::ranges::input_range Dom, typename P2>
+constexpr auto Exists(Dom dom, P2 p2) {
+  return [dom, p2](const auto& x) {
+    return exists(dom, [&p2, &x](const auto& y) { return p2(y, x); });
+  };
+}
+
+export template <std::ranges::input_range Dom, typename P2>
+constexpr auto ForAll(Dom dom, P2 p2) {
+  return [dom, p2](const auto& x) {
+    return forall(dom, [&p2, &x](const auto& y) { return p2(y, x); });
+  };
+}
+
+/** @section quantifier__Formal_Verification_Combinators */
+
+// { x | ∃ y ∈ {6} : x*y == 42 } selects x = 7 --- the existential combinator
+// binds y, leaving a predicate in x that the compiler collapses.
+inline constexpr auto has_factor_of_42_in_6 =
+    Exists(std::views::single(6), [](int y, int x) { return x * y == 42; });
+static_assert(has_factor_of_42_in_6(7), "7·6 == 42, so 7 satisfies ∃y∈{6}.");
+static_assert(!has_factor_of_42_in_6(8), "8·6 != 42.");
+
+// { x | ∀ y ∈ {2,3} : x % y == 0 } selects the common multiples of 2 and 3.
+inline constexpr auto divisible_by_2_and_3 =
+    ForAll(std::views::iota(2, 4), [](int y, int x) { return x % y == 0; });
+static_assert(divisible_by_2_and_3(6), "6 is divisible by both 2 and 3.");
+static_assert(!divisible_by_2_and_3(9), "9 is not divisible by 2.");
+
 }  // namespace dedekind::sets
