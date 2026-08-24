@@ -130,16 +130,28 @@ constexpr auto ForAll(Dom dom, P2 p2) {
 
 /** @section quantifier__Formal_Verification_Combinators */
 
+// The quantifier domain is a genuine set: a std::views range lifts to IsSet
+// via ambient_set (Jlt --- the set IS its membership test), so Exists / ForAll
+// range over the elements of an ETCS set, not a bare container.
+inline constexpr auto six = std::views::single(6);
+static_assert(
+    dedekind::category::IsSet<decltype(dedekind::category::ambient_set(six))>,
+    "the existential's domain {6} is an ETCS set.");
+inline constexpr auto two_three = std::views::iota(2, 4);
+static_assert(dedekind::category::IsSet<
+                  decltype(dedekind::category::ambient_set(two_three))>,
+              "the universal's domain {2,3} is an ETCS set.");
+
 // { x | ∃ y ∈ {6} : x*y == 42 } selects x = 7 --- the existential combinator
 // binds y, leaving a predicate in x that the compiler collapses.
 inline constexpr auto has_factor_of_42_in_6 =
-    Exists(std::views::single(6), [](int y, int x) { return x * y == 42; });
+    Exists(six, [](int y, int x) { return x * y == 42; });
 static_assert(has_factor_of_42_in_6(7), "7·6 == 42, so 7 satisfies ∃y∈{6}.");
 static_assert(!has_factor_of_42_in_6(8), "8·6 != 42.");
 
 // { x | ∀ y ∈ {2,3} : x % y == 0 } selects the common multiples of 2 and 3.
 inline constexpr auto divisible_by_2_and_3 =
-    ForAll(std::views::iota(2, 4), [](int y, int x) { return x % y == 0; });
+    ForAll(two_three, [](int y, int x) { return x % y == 0; });
 static_assert(divisible_by_2_and_3(6), "6 is divisible by both 2 and 3.");
 static_assert(!divisible_by_2_and_3(9), "9 is not divisible by 2.");
 
