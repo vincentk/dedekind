@@ -36,8 +36,12 @@
  * same carrier discipline @c IsSet roots).  Enumerating the graph, or
  * deciding that a given relation @b is a graph, additionally needs a
  * finite / enumerable domain; past that boundary the honest answer is
- * @c Unknown (Rice's theorem).  That finite witness is @c IsGraphOf
- * (forthcoming in this partition).
+ * @c Unknown (Rice's theorem).  That finite witness is @c is_graph_of below:
+ * a value-level pointwise check over an enumerable domain, expressed with the
+ * range-generic @c forall.  It is not a type-level concept precisely because
+ * deciding "this relation is that function's graph" is undecidable in general
+ * (Rice); the codebase keeps single-valuedness value-level
+ * (@c is_single_valued_at) for the same reason.
  *
  * @build_order after :expressions, :relational
  * @dependency :category, :expressions
@@ -47,7 +51,8 @@
  */
 module;
 
-#include <concepts>     // std::equality_comparable
+#include <concepts>     // std::equality_comparable, std::same_as
+#include <ranges>       // std::ranges::input_range, range_value_t
 #include <type_traits>  // std::remove_cvref_t
 #include <utility>      // std::pair
 
@@ -55,6 +60,7 @@ export module dedekind.sets:graph;
 
 import dedekind.category; // IsArrow, Dom, Cod, arrow_as_relation, ClassicalLogic
 import :expressions;      // Set, Relation
+import :quantifier;       // forall — the ⋀-reduction over a domain range
 
 namespace dedekind::sets {
 
@@ -192,5 +198,61 @@ static_assert(
 // graph(f) participates as a relation (IsGraph = IsRelation) on its pair type.
 static_assert(IsGraph<decltype(Γ_id), int, int>,
               "graph(f) is a relation (a Set of pairs on A × B).");
+
+/**
+ * @brief @c is_graph_of(r, f, dom) --- the finite witness that a relation
+ *        @c r @b is the graph of the arrow @c f, by pointwise agreement with
+ *        @c graph(f) over the enumerable domain @c dom.
+ *
+ * @details The mechanical form of "the compiler knows @c r and @c f are one
+ * and the same function": over the finite @c dom it compares @c r against the
+ * canonical @c graph(f) at every @c (a,b) in @c dom × dom, via the
+ * range-generic @c forall (the ⋀-reduction over Ω).  Value-level, not a
+ * concept: deciding graph-equality of two independently given presentations is
+ * undecidable in general (Rice), so the honest witness is bounded to an
+ * enumerable domain.  (When @c r @b is @c graph(f) by construction no check is
+ * needed --- provenance is the proof; this is for an @c r obtained
+ * independently, e.g.\ an enumerated / materialised list.)  The domain is a
+ * plain @c std::ranges::input_range of the arrow's @c Domain --- the general
+ * concept, reached through the @c std iterator interface, not a container.
+ *
+ * @tparam R        A relation callable on @c std::pair.
+ * @tparam F        An @c IsArrow.
+ * @tparam DomRange A @c std::ranges::input_range of the arrow's @c Domain.
+ */
+export template <typename R, typename F, std::ranges::input_range DomRange>
+  requires dedekind::category::IsArrow<F> &&
+           std::same_as<std::ranges::range_value_t<DomRange>,
+                        dedekind::category::Dom<F>>
+constexpr auto is_graph_of(const R& r, F f, const DomRange& dom) {
+  const auto g = graph(f);
+  return forall(dom, [&r, &g, &dom](const auto& a) {
+    return forall(dom, [&r, &g, &a](const auto& b) {
+      return static_cast<bool>(r(std::pair{a, b})) ==
+             static_cast<bool>(g(std::pair{a, b}));
+    });
+  });
+}
+
+/** @section graph__Formal_Verification_IsGraphOf */
+
+namespace {
+struct Succ {
+  using Domain = int;
+  using Codomain = int;
+  constexpr int operator()(int x) const { return x + 1; }
+};
+}  // namespace
+
+// The compiler knows graph(id) IS the graph of id over the finite domain [0,4).
+static_assert(is_graph_of(Γ_id, dedekind::category::Identity<int>{},
+                          std::views::iota(0, 4)),
+              "graph(id) is the graph of the identity on [0,4).");
+
+// ...and distinguishes it from a different function: graph(succ) is NOT the
+// graph of id.  The witness genuinely decides equality on the finite sample.
+static_assert(!is_graph_of(graph(Succ{}), dedekind::category::Identity<int>{},
+                           std::views::iota(0, 4)),
+              "graph(succ) differs from the graph of id on [0,4).");
 
 }  // namespace dedekind::sets
