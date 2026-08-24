@@ -130,27 +130,23 @@ concept IsRng = IsAlgebraOnSet<X, Add, Mult> &&
 
 /**
  * @concept IsRing
- * @brief A set that is both a Semiring AND an Abelian Group under addition.
- * @tparam T The carrier type.
- * @tparam Add Additive operation witness (defaults to `std::plus<T>`).
- * @tparam Mult Multiplicative operation witness
- * (defaults to `std::multiplies<T>`).
+ * @brief The set-indexed lift: a set object @c X whose carrier
+ *        @c X::Domain is both a Semiring AND an Abelian Group under
+ *        addition.
+ * @tparam X    The set object (@c category::IsSet).
+ * @tparam Add Additive operation witness (defaults to `std::plus`).
+ * @tparam Mult Multiplicative operation witness (defaults to
+ * `std::multiplies`).
  */
-// Bundle (#393): algebra::IsRing requires the strict categorical
-// proof, the redundant IsSemiring + IsAdditiveGroup decomposition,
-// AND the @b functor-parametric operator surface via the universal-
-// algebra anchor @c IsAlgebra<T, Add, Mult> (which checks both
-// @c add(a, b) -> T and @c mult(a, b) -> T).  Math-wins-over-C++
-// semantics (per the README): if a carrier's @b literal operators
-// don't close on T (e.g.\ bool's `+` returns int via promotion),
-// then T is textbook-not-closed under those operators; but the same
-// carrier may genuinely be a ring under @b non-standard functors
-// (bool under std::bit_xor / std::bit_and is the Boolean ring 𝔽_2).
-// The functor-parametric @c IsAlgebra shape captures the textbook
-// closure regardless of which C++ operators happen to alias the
-// ring's operations.  A callsite that wants the literal-operator
-// surface @b in @b addition to the strict ring proof says so
-// explicitly via `IsRing<T> && HasRingOperators<T>`.
+// The faithful set-indexed lift, matching every other rung: the strict
+// categorical proof @c category::IsRing<X::Domain, Add, Mult> conjoined
+// with the @c IsSemiring<X> and @c IsAdditiveGroup<X> rungs (each of
+// which pins the @c IsAlgebraOnSet carrier discipline: @c IsSet roots
+// @c std::regular on @c X::Domain, @c IsClosedAlgebra pins closure).
+// The @b literal C++ operator surface is deliberately @b not bundled
+// here --- that is the job of the separate type-indexed
+// @c IsArithmeticRing below (@c category::IsRing @c && @c IsAlgebra @c &&
+// @c HasRingOperators on the carrier type).
 export template <typename X, typename Add = std::plus<typename X::Domain>,
                  typename Mult = std::multiplies<typename X::Domain>>
 concept IsRing = dedekind::category::IsRing<typename X::Domain, Add, Mult> &&
@@ -164,8 +160,8 @@ concept IsRing = dedekind::category::IsRing<typename X::Domain, Add, Mult> &&
  * @details
  * Where the concepts meet.  @c IsArithmeticRing<T> requires both:
  *
- *   - @c IsRing<T, std::plus<T>, std::multiplies<T>> --- the strict
- *     categorical proof, with the canonical Add/Mult functors;
+ *   - @c category::IsRing<T, std::plus<T>, std::multiplies<T>> --- the
+ *     strict categorical proof, with the canonical Add/Mult functors;
  *   - @c HasRingOperators<T> --- the literal C++ operators @c +,
  *     @c -, @c *, unary @c - close strictly on @c T.
  *
@@ -185,8 +181,9 @@ concept IsRing = dedekind::category::IsRing<typename X::Domain, Add, Mult> &&
  * the literal operators close on the carrier (see witness comment
  * below).
  *
- * Carriers that satisfy @c IsRing but @b not @c IsArithmeticRing
- * include @c bool under @c (std::bit_xor, std::bit_and) (the
+ * Carriers that satisfy @c category::IsRing but @b not
+ * @c IsArithmeticRing include @c bool under @c (std::bit_xor,
+ * std::bit_and) (the
  * Boolean ring @f$\mathbb{F}_2@f$): the strict ring claim holds
  * via the functors, but @c bool's literal @c + returns @c int via
  * integer promotion --- the ring structure does @b not align with
@@ -196,9 +193,9 @@ concept IsRing = dedekind::category::IsRing<typename X::Domain, Add, Mult> &&
  *
  * Use @c IsArithmeticRing where the callsite wants to write the
  * ring operations in plain C++ syntax and trust the result stays in
- * the carrier; use @c IsRing where the callsite is willing to
- * accept any ring proof, including ones expressed through
- * functor-parametric Add/Mult.
+ * the carrier; use @c category::IsRing<T, ...> where the callsite is
+ * willing to accept any type-level ring proof, including ones expressed
+ * through functor-parametric Add/Mult.
  *
  * Introduced under #393 as the user-requested "where the concepts
  * meet" point.

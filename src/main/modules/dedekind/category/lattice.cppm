@@ -900,19 +900,19 @@ concept IsSubobjectFamilyMember = requires {
  *
  * @section lattice__IsSubobjectLattice_CT_Vocabulary
  * The concept body uses CT-vocabulary primitives: the carrier exposes
- * @c Ambient and @c logic_species typedefs, and free functions
+ * @c Domain and @c logic_species typedefs, and free functions
  * @c meet, @c join, @c complement exist with the right shape.
  * Operator sugar (@c <=, @c &, @c |, @c !) lives in @c :sets as
  * forwarders.  Pierce-style stratification: abstract content in the
  * body, set-theoretic hints in the defaults.
  *
- * @tparam S The subobject carrier.  Must expose @c Ambient and
+ * @tparam S The subobject carrier.  Must expose @c Domain and
  *           @c logic_species typedefs (the latter satisfying
  *           @c IsLogicalSpecies).
  */
 export template <typename S>
 concept IsSubobjectLattice = requires(S a, S b) {
-  /** @brief CT-vocabulary metadata: @c S exposes an ambient and a
+  /** @brief CT-vocabulary metadata: @c S exposes a domain and a
    *         classifier logic species. */
   typename S::Domain;
   typename S::logic_species;

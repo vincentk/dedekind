@@ -380,6 +380,16 @@ concept HasETCSAxioms =
  * Rooting it here means downstream algebraic-set concepts inherit carrier
  * regularity from @c IsSet rather than re-pinning it (see
  * @c algebra::IsClosedAlgebra).
+ *
+ * @note @c std::regular @b must stay the @b first conjunct.
+ * @c HasETCSAxioms is not yet a total predicate: on a non-regular domain
+ * it is @b ill-formed (a hard error in the subobject-classifier
+ * construction @c make_χ, which needs decidable equality), not merely
+ * unsatisfied.  The leading @c std::regular clause short-circuits to
+ * @c false first, shielding @c IsSet from that hard error (witnessed in
+ * @c sets/subobject_lattice_carriers_test.cpp).  FIXME(#779): make
+ * @c HasETCSAxioms SFINAE-total, after which this ordering becomes
+ * defensive rather than load-bearing.
  */
 export template <typename A>
 concept IsSet = std::regular<typename A::Domain> && HasETCSAxioms<A> &&
