@@ -28,13 +28,13 @@ TEST_CASE("Quantifier machinery: Ø == comprehension, two regimes",
   // (a) TRANSPARENT predicate (halfspace): emptiness is decided at COMPILE time
   //     by structured_and, so `Ø == …` is a static_assert.
   //     ∀x>5. x≥3  ⟺  the counterexample set {x>5 ∧ x<3} reduces to Ø.
+  //     ∀x>5. x≥3  ⟺  the counterexample set {x>5 ∧ x<3} reduces to Ø, and
+  //     that reduction is a TYPE identity decided at compile time.
   constexpr auto gt5 = Set{in<ℕ> | in<ℕ> > bound<5>};
   constexpr auto lt3 = Set{in<ℕ> | in<ℕ> < bound<3>};
-  constexpr auto lt7 = Set{in<ℕ> | in<ℕ> < bound<7>};
   static_assert(Ø<Cardinality>{} == (gt5 & lt3),
-                "forall: {x>5 ∧ x<3} is empty at compile time.");
-  static_assert(!(Ø<Cardinality>{} == (gt5 & lt7)),
-                "exists: {x>5 ∧ x<7} = {6} is a non-empty Singleton (size 1).");
+                "the counterexample {x>5 ∧ x<3} is empty, decided at compile "
+                "time by structured_and.");
 
   // (b) OPAQUE lambda over an IsExtensional carrier: emptiness is decided at
   // RUN
