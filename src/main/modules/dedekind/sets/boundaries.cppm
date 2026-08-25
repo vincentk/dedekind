@@ -43,8 +43,10 @@ module;
 #include <algorithm>
 #include <compare>
 #include <concepts>
+#include <cstddef>  // std::size_t (emptiness-by-size overload)
 #include <functional>
 #include <limits>
+#include <ranges>  // std::ranges::range / begin / end (emptiness-by-iterator overload)
 #include <utility>  // std::pair (Ø × S cartesian-product return type)
 
 export module dedekind.sets:boundaries;
@@ -134,24 +136,28 @@ struct Ø final {
     return true;
   }
 
-  // Ø == S with an EXTENSIONAL operand: decidable emptiness by size(), at
-  // runtime.  This is regime (b) of the quantifier machinery (an opaque
-  // predicate over an IsExtensional carrier resolves to size() == 0).
+  // Ø == S: constrained emptiness tests only.  There is deliberately NO
+  // catch-all; a set whose emptiness cannot be decided here matches no
+  // overload, so `Ø == it` is a compile error (the honest Rice wall) rather
+  // than a fabricated answer.  Each overload rules out a wrong result.
+
+  // (i) a set-like operand exposing size(): empty iff 0 == size().  Fires for a
+  //     Singleton at COMPILE time and for an extensional carrier at RUN time.
   template <typename S>
-    requires requires(const S& s) { s.size(); } && (!std::same_as<S, Ø>)
+    requires(IsSet<S> || std::ranges::range<S>) && (!std::same_as<S, Ø>) &&
+            requires(const S& s) {
+              { s.size() } -> std::convertible_to<std::size_t>;
+            }
   constexpr bool operator==(const S& s) const {
-    return s.size() == 0;
+    return 0 == s.size();
   }
 
-  // Necessary for (a | b) == b where b might be Ø.  A non-sized operand that
-  // survived the transparent regime is non-empty (an empty structured set has
-  // already reduced to Ø and matched the Ø overloads above).  A genuinely
-  // opaque, non-extensional operand has NO suitable overload here, which is
-  // the honest Rice wall: a compile error, not a fabricated answer.
+  // (ii) a std::ranges-backed operand with no size(): empty iff begin == end.
   template <typename S>
-  constexpr bool operator==(const S&) const {
-    if constexpr (std::is_same_v<S, Ø>) return true;
-    return false;
+    requires std::ranges::range<S> && (!std::same_as<S, Ø>) &&
+             (!requires(const S& s) { s.size(); })
+  constexpr bool operator==(const S& s) const {
+    return std::ranges::begin(s) == std::ranges::end(s);
   }
 
   // The Duality: !∅ = V

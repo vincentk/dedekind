@@ -30,10 +30,11 @@ TEST_CASE("Quantifier machinery: Ø == comprehension, two regimes",
   //     ∀x>5. x≥3  ⟺  the counterexample set {x>5 ∧ x<3} reduces to Ø.
   constexpr auto gt5 = Set{in<ℕ> | in<ℕ> > bound<5>};
   constexpr auto lt3 = Set{in<ℕ> | in<ℕ> < bound<3>};
+  constexpr auto lt7 = Set{in<ℕ> | in<ℕ> < bound<7>};
   static_assert(Ø<Cardinality>{} == (gt5 & lt3),
                 "forall: {x>5 ∧ x<3} is empty at compile time.");
-  static_assert(!(Ø<Cardinality>{} == gt5),
-                "exists: {x>5} is non-empty at compile time.");
+  static_assert(!(Ø<Cardinality>{} == (gt5 & lt7)),
+                "exists: {x>5 ∧ x<7} = {6} is a non-empty Singleton (size 1).");
 
   // (b) OPAQUE lambda over an IsExtensional carrier: emptiness is decided at
   // RUN
