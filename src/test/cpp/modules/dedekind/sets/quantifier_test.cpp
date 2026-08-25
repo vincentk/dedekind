@@ -11,7 +11,7 @@ import dedekind.sets;
 
 using namespace dedekind::sets;
 
-TEST_CASE("quantifier: forall / exists reductions over a range",
+TEST_CASE("quantifier: forall / exists set operations over a range",
           "[sets][quantifier]") {
   CHECK(forall(std::views::iota(2, 8), [](int x) { return x > 1; }));
   CHECK_FALSE(forall(std::views::iota(0, 3), [](int x) { return x > 0; }));

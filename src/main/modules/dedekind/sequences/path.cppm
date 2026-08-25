@@ -738,11 +738,12 @@ export template <typename T, typename Cardinality, typename Index,
                  typename Pred>
   requires LogicalMap<Pred, T>
 constexpr auto exists(const Path<T, Cardinality, Index>& path, Pred&& pred) {
-  // Single source: delegate to the range-generic dedekind::sets::exists
-  // (⋁-reduction over Ω, short-circuiting).  A finite Path is itself a
+  // Single source: delegate to the set-operation dedekind::sets::exists
+  // (∃ as non-emptiness of the comprehension, decided by Ø::operator== and
+  // short-circuiting at the first witness).  A finite Path is itself a
   // std::ranges::input_range; an infinite Path is presented as an unbounded
-  // iota/transform view so the same fold applies and short-circuits (the
-  // co-recursive ∃).
+  // iota/transform view so the same emptiness test applies and short-circuits
+  // (the co-recursive ∃).
   if constexpr (dedekind::sets::IsFinite<Cardinality>) {
     return dedekind::sets::exists(path, std::forward<Pred>(pred));
   } else {
@@ -791,11 +792,12 @@ export template <typename T, typename Cardinality, typename Index,
                  typename Pred>
   requires LogicalMap<Pred, T>
 constexpr auto forall(const Path<T, Cardinality, Index>& path, Pred&& pred) {
-  // Single source: delegate to the range-generic dedekind::sets::forall
-  // (⋀-reduction over Ω, short-circuiting).  A finite Path is itself a
+  // Single source: delegate to the set-operation dedekind::sets::forall
+  // (∀ as the ¬∃¬ dual: emptiness of the counterexample set, short-circuiting
+  // at the first counterexample).  A finite Path is itself a
   // std::ranges::input_range; an infinite Path is presented as an unbounded
-  // iota/transform view so the same fold applies and short-circuits (the
-  // co-recursive ∀).
+  // iota/transform view so the same emptiness test applies and short-circuits
+  // (the co-recursive ∀).
   if constexpr (dedekind::sets::IsFinite<Cardinality>) {
     return dedekind::sets::forall(path, std::forward<Pred>(pred));
   } else {

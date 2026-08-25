@@ -60,7 +60,7 @@ export module dedekind.sets:graph;
 
 import dedekind.category; // IsArrow, Dom, Cod, arrow_as_relation, ClassicalLogic
 import :expressions;      // Set, Relation
-import :quantifier;       // forall — the ⋀-reduction over a domain range
+import :quantifier;       // forall — the ¬∃¬ set-operation over a domain range
 
 namespace dedekind::sets {
 
@@ -207,8 +207,9 @@ static_assert(IsGraph<decltype(Γ_id), int, int>,
  * @details The mechanical form of "the compiler knows @c r and @c f are one
  * and the same function": over the finite @c dom it compares @c r against the
  * canonical @c graph(f) at every @c (a,b) in @c dom × dom, via the
- * range-generic @c forall (the ⋀-reduction over Ω).  Value-level, not a
- * concept: deciding graph-equality of two independently given presentations is
+ * range-generic @c forall (the ¬∃¬ set-operation over a domain).  Value-level,
+ * not a concept: deciding graph-equality of two independently given
+ * presentations is
  * undecidable in general (Rice), so the honest witness is bounded to an
  * enumerable domain.  (When @c r @b is @c graph(f) by construction no check is
  * needed --- provenance is the proof; this is for an @c r obtained
