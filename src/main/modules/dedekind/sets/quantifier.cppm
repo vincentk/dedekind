@@ -32,6 +32,7 @@
  */
 module;
 
+#include <algorithm>   // std::ranges::count_if (structural characterisation)
 #include <functional>  // std::invoke
 #include <ranges>      // std::ranges::input_range, range_value_t
 #include <utility>     // std::forward
@@ -154,5 +155,32 @@ inline constexpr auto divisible_by_2_and_3 =
     ForAll(two_three, [](int y, int x) { return x % y == 0; });
 static_assert(divisible_by_2_and_3(6), "6 is divisible by both 2 and 3.");
 static_assert(!divisible_by_2_and_3(9), "9 is not divisible by 2.");
+
+/**
+ * @section quantifier__Structural_Characterisation
+ * The Bourbaki (structural) reading: a quantifier @b is a set operation.
+ * @f$\exists@f$ is non-emptiness of the comprehension; @f$\forall@f$ is
+ * emptiness of its complement (no counterexample --- the @f$\neg\exists\neg@f$
+ * dual):
+ * @f[ \exists x \in S.\,P(x) \iff \{x\in S \mid P(x)\} \neq \varnothing,
+ *     \quad \forall x \in S.\,P(x) \iff \{x\in S \mid \neg P(x)\} =
+ * \varnothing. @f] The short-circuiting @f$\bigvee@f$/@f$\bigwedge@f$
+ * reductions above are the efficient implementation; the identities below
+ * witness that they coincide with this extensional characterisation, so it is a
+ * @b theorem, not prose. (Cardinality of a comprehension is well defined only
+ * on a finite domain --- the same @c IsExtensional gate the reductions carry.)
+ */
+namespace {
+inline constexpr auto q_dom = std::views::iota(0, 6);
+inline constexpr auto q_pred = [](int x) { return x > 3; };
+inline constexpr auto q_neg = [](int x) { return !(x > 3); };  // ¬P
+}  // namespace
+
+// ∃x∈S. P(x)  ⟺  {x∈S | P(x)} ≠ ∅
+static_assert(static_cast<bool>(exists(q_dom, q_pred)) ==
+              (std::ranges::count_if(q_dom, q_pred) != 0));
+// ∀x∈S. P(x)  ⟺  {x∈S | ¬P(x)} = ∅   (no counterexample)
+static_assert(static_cast<bool>(forall(q_dom, q_pred)) ==
+              (std::ranges::count_if(q_dom, q_neg) == 0));
 
 }  // namespace dedekind::sets
