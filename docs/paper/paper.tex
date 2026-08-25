@@ -693,9 +693,18 @@ Identity is denoted by an identity arrow, and set membership is tested by evalua
 The steps taken to reify intensional sets in the code base form a core category $\mathbf{Ddk} \subset \mathbf{Jlt} \cap \mathbf{Set}$, which occupies the intersection of pure $\mathbf{Jlt}$ types and universal-algebraic set structures.
 The implementation tracks this definition literally at compile time.
 
-First-order quantification is restricted to domains satisfying \cppinline{IsExtensional}, as unconstrained evaluation over infinite intensional spaces is undecidable at compile time (Rice's theorem).
-For these bounded domains, the quantifiers $\exists$ (\cppinline{Exists}) and $\forall$ (\cppinline{ForAll}) are the $\bigvee$ and $\bigwedge$ reductions of a predicate over $\Omega$, short-circuiting at the absorbing truth value and folding to a literal under \cppinline{constexpr} evaluation (Listing~\ref{lst:quantifiers}).
-As combinators they bind the inner variable over the domain and leave a predicate in the outer variable, which is exactly the shape a comprehension turns into a new set.
+First-order quantification is restricted to enumerable domains (\cppinline{IsExtensional}), since unconstrained evaluation over an infinite intensional space is undecidable at compile time (Rice's theorem).
+On such a domain the quantifier \emph{is} a set operation, and we take that structural (Bourbaki) reading as the definition rather than as a later coincidence:
+\begin{equation}
+\exists x \in S.\,P(x) \;:\equiv\; \{x\in S \mid P(x)\} \neq \varnothing,
+\qquad
+\forall x \in S.\,P(x) \;:\equiv\; \neg\,\exists x \in S.\,\neg P(x).
+\end{equation}
+In code the comprehension is \cppinline{set(S,P)}, the emptiness test is an overload of \cppinline{Ø::operator==}, and $\forall$ is the double negation of $\exists$: \cppinline{exists(S,P)} is \cppinline{!(Ø{} == set(S,P))} and \cppinline{forall} is \cppinline{!exists(S,!P)}.
+There is no separate $\bigvee$/$\bigwedge$ fold.
+The whole reduction lives in how \cppinline{Ø::operator==} decides emptiness, so the Rice boundary is a \emph{type check}: an operand with no suitable overload is a compile error, not a fabricated answer, and the wall never spills into prose.
+
+The combinators \cppinline{Exists} and \cppinline{ForAll} build on this definition: they bind the inner variable over the domain and leave a predicate in the outer variable, exactly the shape a comprehension turns into a new set (Listing~\ref{lst:quantifiers}).
 
 \begin{listing}[htbp]
 \caption{The bounded quantifiers as combinators.  A finite domain given as a \cppinline{std::views} range is itself an \cppinline{IsSet}, since a set is its membership test, so the lift is \cppinline{std::ranges::find}.  \cppinline{Exists} binds the inner variable over that domain, leaving a predicate in the outer variable; every line is a compile-time witness.}
@@ -713,21 +722,24 @@ static_assert(!has42(8));
 \end{cpp}
 \end{listing}
 
-The quantifier also has a purely \emph{structural} (Bourbaki) reading: it \emph{is} a set operation.
-\begin{equation}
-\exists x \in S.\,P(x) \iff \{x\in S \mid P(x)\} \neq \varnothing,
-\qquad
-\forall x \in S.\,P(x) \iff \{x\in S \mid \neg P(x)\} = \varnothing.
-\end{equation}
-The short-circuiting $\bigvee$/$\bigwedge$ reductions of Listing~\ref{lst:quantifiers} are the efficient implementation; that they \emph{coincide} with this extensional characterisation ($\exists$ as non-emptiness of the comprehension, $\forall$ as the absence of a counterexample, the $\neg\exists\neg$ dual) is a mechanically checked identity, not prose:
+The two decidable regimes are exactly the two \cppinline{Ø::operator==} overloads, selected structurally by the shape of the comprehension, and they fall at two architectural layers.
+A transparent halfspace meet collapses to $\varnothing$ at the type level through the \cppinline{dedekind.order} specialization of \cppinline{structured_and}, so $\forall x>5.\,x\ge 3$ is a \cppinline{static_assert} on the empty counterexample set $\{x>5 \wedge x<3\}$.
+That collapse is an order-layer capability, reached through the \cppinline{\&} meet combinator rather than \cppinline{set}, since it needs the halfspace types themselves.
+Over an enumerable domain \cppinline{set(S,P)} is instead a lazy \cppinline{std::views::filter}, and the same \cppinline{==} decides emptiness by \cppinline{begin == end}, short-circuiting at the first witness (Listing~\ref{lst:quantifier_regimes}).
 
 \begin{listing}[htbp]
-\caption{The structural characterisation, witnessed: the fold and the set operation agree.}
-\label{lst:quantifier_structural}
+\caption{One definition, two regimes selected by \cppinline{Ø::operator==}.  Compile time: the order-specialized \cppinline{\&} meet collapses two disjoint halfspaces to $\varnothing$ by type.  Run time: \cppinline{set} filters an enumerable domain and emptiness is \cppinline{begin == end}.  A non-enumerable, opaque operand matches no overload: the honest Rice wall.}
+\label{lst:quantifier_regimes}
 \begin{cpp}
-// ∃ = non-emptiness of the comprehension; ∀ = no counterexample
-static_assert(bool(exists(S, P)) == (count_if(S, P)  != 0));
-static_assert(bool(forall(S, P)) == (count_if(S, !P) == 0));
+// (a) transparent: the order-specialized & meet collapses BY TYPE
+constexpr auto gt5 = Set{in<ℕ> | in<ℕ> > bound<5>};
+constexpr auto lt3 = Set{in<ℕ> | in<ℕ> < bound<3>};
+static_assert(Ø<Cardinality>{} == (gt5 & lt3));  // {x>5 ∧ x<3} = ∅
+
+// (b) enumerable: set() is a lazy filter; Ø== is begin==end
+std::unordered_set<int> dom{1, 2, 3, 4, 5};
+assert( exists(dom, [](int x){ return x >  3; }));  // 4 ∈ dom
+assert(!forall(dom, [](int x){ return x >  2; }));  // 1,2 counter
 \end{cpp}
 \end{listing}
 
