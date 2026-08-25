@@ -455,7 +455,7 @@ The \cppinline{static_assert}s witness that it is an ETCS set (\cppinline{IsSet}
 This is the lattice of the \emph{set} operations, not the lattice of \cppinline{bool} itself under $(\vee, \wedge)$.
 \textbf{Right:} set-builder notation modelled in C++23.
 \cppinline{Set{...}} is a variadic constructor; the combinators \cppinline{in} and \cppinline{bound} construct a scout variable and a half-space predicate, so the bar reads as the constraint $x > 5$.
-The intensional set \cppinline{S} lives on the transfinite carrier $\mathbb{N}$, yet its meet with a bounding half-space collapses at compile time to the extensional \cppinline{Singleton<6>}, and its meet with its own complement to the empty set (\cppinline{Ø}) --- the realisation boundary that \cppinline{constexpr} evaluation crosses.}
+The intensional set \cppinline{S} lives on the transfinite carrier $\mathbb{N}$, yet its meet with a bounding half-space collapses at compile time to the extensional \cppinline{Singleton<6>}, and its meet with its own complement to the empty set (\cppinline{Ø}): the realisation boundary that \cppinline{constexpr} evaluation crosses.}
 \label{lst:pruning}
 \noindent
 \begin{minipage}[t]{0.44\linewidth}
@@ -698,7 +698,7 @@ For these bounded domains, the quantifiers $\exists$ (\cppinline{Exists}) and $\
 As combinators they bind the inner variable over the domain and leave a predicate in the outer variable, which is exactly the shape a comprehension turns into a new set.
 
 \begin{listing}[htbp]
-\caption{The bounded quantifiers as combinators.  A finite domain given as a \cppinline{std::views} range is itself an \cppinline{IsSet} --- a set is its membership test, so the lift is \cppinline{std::ranges::find}.  \cppinline{Exists} binds the inner variable over that domain, leaving a predicate in the outer variable; every line is a compile-time witness.}
+\caption{The bounded quantifiers as combinators.  A finite domain given as a \cppinline{std::views} range is itself an \cppinline{IsSet}, since a set is its membership test, so the lift is \cppinline{std::ranges::find}.  \cppinline{Exists} binds the inner variable over that domain, leaving a predicate in the outer variable; every line is a compile-time witness.}
 \label{lst:quantifiers}
 \begin{cpp}
 // a finite domain given as a std::ranges view IS a set:
@@ -719,7 +719,7 @@ The quantifier also has a purely \emph{structural} (Bourbaki) reading: it \emph{
 \qquad
 \forall x \in S.\,P(x) \iff \{x\in S \mid \neg P(x)\} = \varnothing.
 \end{equation}
-The short-circuiting $\bigvee$/$\bigwedge$ reductions of Listing~\ref{lst:quantifiers} are the efficient implementation; that they \emph{coincide} with this extensional characterisation --- $\exists$ as non-emptiness of the comprehension, $\forall$ as the absence of a counterexample (the $\neg\exists\neg$ dual) --- is a mechanically checked identity, not prose:
+The short-circuiting $\bigvee$/$\bigwedge$ reductions of Listing~\ref{lst:quantifiers} are the efficient implementation; that they \emph{coincide} with this extensional characterisation ($\exists$ as non-emptiness of the comprehension, $\forall$ as the absence of a counterexample, the $\neg\exists\neg$ dual) is a mechanically checked identity, not prose:
 
 \begin{listing}[htbp]
 \caption{The structural characterisation, witnessed: the fold and the set operation agree.}
@@ -750,7 +750,7 @@ Equivalently, relations can be represented as sets whose elements satisfy the pr
 A relation that is both total and functional is a \emph{function}.
 In the library this is the concept refinement \cppinline{IsFunction = IsRelation \&\& IsEntire \&\& IsFunctional}, so \cppinline{IsFunction} subsumes \cppinline{IsRelation}: the inclusion $\{\text{functions}\} \subset \{\text{relations}\}$ is genuine subtyping in the concept lattice, not an analogy.
 The bridge from an analytic arrow to its relational form is \cppinline{graph(f)}, the graph $\Gamma_f = \{(a, f(a)) \mid a \in A\}$; its \cppinline{is_graph_of} witness makes ``the rule and its set of pairs are the same function'' a compile-time fact rather than a claim.
-These two readings --- the intensional rule \cppinline{f} and the extensional set of pairs $\Gamma_f$ --- are the horizontal axis of the same picture whose vertical axis is the relation/function refinement above, bridged by \cppinline{graph} one way and enumeration (\cppinline{materialise}) the other.
+These two readings, the intensional rule \cppinline{f} and the extensional set of pairs $\Gamma_f$, are the horizontal axis of the same picture whose vertical axis is the relation/function refinement above, bridged by \cppinline{graph} one way and enumeration (\cppinline{materialise}) the other.
 
 \begin{listing}[htbp]
 \caption{Intensional specification of a binary relation predicate over an algebraic product space and its pointwise validation.}
@@ -832,17 +832,17 @@ For total functions where elements must be explicitly mapped and verified as cer
 If a function lacks a strict structural inverse or is evaluated over an unconstrained, transfinite domain, constructively determining image containment or mapping preimages becomes undecidable at translation time. Consequently, if a generic result-set construction is impossible for general functions, it is similarly precluded for general relations.
 To resolve this boundary, the library introduces an architectural gate based on the categorical principle of epic-monic factorization.
 
-Mathematically, a relation $R : A \to \mathcal{P}(B)$ is a total function if and only if it maps every input to a singleton --- equivalently, it is \emph{functional} (single-valued) and \emph{entire} (total).
+Mathematically, a relation $R : A \to \mathcal{P}(B)$ is a total function if and only if it maps every input to a singleton; equivalently, it is \emph{functional} (single-valued) and \emph{entire} (total).
 In the codebase this is the concept \cppinline{IsFunction}: a relation refined by the right-unique and left-total witnesses, with \cppinline{is_single_valued_at} discharging single-valuedness pointwise.
-A function is thus not a distinct primitive but a relation satisfying both properties, so \cppinline{IsFunction} subsumes \cppinline{IsRelation} --- the inclusion $\{\text{functions}\} \subset \{\text{relations}\}$ made mechanical by concept refinement.
+A function is thus not a distinct primitive but a relation satisfying both properties, so \cppinline{IsFunction} subsumes \cppinline{IsRelation}: the inclusion $\{\text{functions}\} \subset \{\text{relations}\}$ is made mechanical by concept refinement.
 
 Reifying functions in this manner allows the type system to mechanically verify classical mapping properties at translation time.
 For specialized mappings, codomain membership tests, checking whether a given element $b \in B$ lies within the actual image of the transformation, are easily discharged by the compiler.
 If a function is certified as surjective, every element of the target space is a valid image, meaning a codomain membership query trivially constant-folds to logical truth.
-More generally, if the mono leg of the factorization carries a \emph{retract} --- a partial inverse returning the preimage of a codomain element when one exists --- the type system decides membership as a local lookup on the image boundary, with no search of the domain (Listing~\ref{lst:functional_image_bijection}).
+More generally, if the mono leg of the factorization carries a \emph{retract} (a partial inverse returning the preimage of a codomain element when one exists), the type system decides membership as a local lookup on the image boundary, with no search of the domain (Listing~\ref{lst:functional_image_bijection}).
 
 \begin{listing}[htbp]
-\caption{A retract makes image membership decidable.  A monic arrow \cppinline{Double} carries a \cppinline{retract} (a partial inverse $y \mapsto$ preimage, if any); with it, $y \in \mathrm{image}(f, S)$ is decided as ``the retract has a value that lies in $S$'' --- a local lookup on the image boundary, never a search of the domain (abridged from the checked-in test).}
+\caption{A retract makes image membership decidable.  A monic arrow \cppinline{Double} carries a \cppinline{retract} (a partial inverse $y \mapsto$ preimage, if any); with it, $y \in \mathrm{image}(f, S)$ is decided as ``the retract has a value that lies in $S$'': a local lookup on the image boundary, never a search of the domain (abridged from the checked-in test).}
 \label{lst:functional_image_bijection}
 \begin{cpp}
 // a monic arrow with a retract (partial inverse):
