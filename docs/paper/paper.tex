@@ -713,6 +713,24 @@ static_assert(!has42(8));
 \end{cpp}
 \end{listing}
 
+The quantifier also has a purely \emph{structural} (Bourbaki) reading: it \emph{is} a set operation.
+\begin{equation}
+\exists x \in S.\,P(x) \iff \{x\in S \mid P(x)\} \neq \varnothing,
+\qquad
+\forall x \in S.\,P(x) \iff \{x\in S \mid \neg P(x)\} = \varnothing.
+\end{equation}
+The short-circuiting $\bigvee$/$\bigwedge$ reductions of Listing~\ref{lst:quantifiers} are the efficient implementation; that they \emph{coincide} with this extensional characterisation --- $\exists$ as non-emptiness of the comprehension, $\forall$ as the absence of a counterexample (the $\neg\exists\neg$ dual) --- is a mechanically checked identity, not prose:
+
+\begin{listing}[htbp]
+\caption{The structural characterisation, witnessed: the fold and the set operation agree.}
+\label{lst:quantifier_structural}
+\begin{cpp}
+// ∃ = non-emptiness of the comprehension; ∀ = no counterexample
+static_assert(bool(exists(S, P)) == (count_if(S, P)  != 0));
+static_assert(bool(forall(S, P)) == (count_if(S, !P) == 0));
+\end{cpp}
+\end{listing}
+
 \subsection{Morphisms: Point-Free Relations and Functions}
 \label{sec:relations_functions_blueprint}
 
