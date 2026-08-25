@@ -454,9 +454,8 @@ In this section, we first show working code (§\ref{sec:ddk_comprehension}) to i
 The \cppinline{static_assert}s witness that it is an ETCS set (\cppinline{IsSet}) whose subsets form a lattice under $\cup$, $\cap$, and complement (\cppinline{IsSubobjectLattice}, the pre-defined subobject-lattice concept $\mathrm{Sub}(A) \cong \Omega^A$).
 This is the lattice of the \emph{set} operations, not the lattice of \cppinline{bool} itself under $(\vee, \wedge)$.
 \textbf{Right:} set-builder notation modelled in C++23.
-\cppinline{Set{...}} is a variadic constructor; the combinators \cppinline{in} and \cppinline{bound} construct a scout variable and a half-space predicate.
-The scout variable appears on both sides of the bar: introduced on the left, referred back to on the right, so the predicate reads as the constraint $x > 5$.
-\cppinline{operator()} is shorthand for \cppinline{a.contains(e)}.}
+\cppinline{Set{...}} is a variadic constructor; the combinators \cppinline{in} and \cppinline{bound} construct a scout variable and a half-space predicate, so the bar reads as the constraint $x > 5$.
+The intensional set \cppinline{S} lives on the transfinite carrier $\mathbb{N}$, yet its meet with a bounding half-space collapses at compile time to the extensional \cppinline{Singleton<6>}, and its meet with its own complement to the empty set (\cppinline{Ø}) --- the realisation boundary that \cppinline{constexpr} evaluation crosses.}
 \label{lst:pruning}
 \noindent
 \begin{minipage}[t]{0.44\linewidth}
@@ -477,22 +476,23 @@ static_assert(
 \begin{minipage}[t]{0.54\linewidth}
 a comprehension over $\mathbb{N}$
 \begin{cpp}
-// {x in ℕ | x > 5}
-constexpr auto a = Set{in(ℕ) | in(ℕ) > bound<5>};
-static_assert(a(7u) == a.contains(7u));
+// {x in ℕ | x > 5}: comprehension via the soft alias in<>
+constexpr auto S = Set{in<ℕ> | in<ℕ> > bound<5>};
+static_assert(S.contains(7u));
 
-constexpr auto b = Set{in(ℕ) | in(ℕ) > bound<6>};
-constexpr Singleton<6> c = a - b;
-constexpr auto d = Set{in(ℕ) | in(ℕ) < bound<7>};
-constexpr Singleton<6> e = c & d;
-constexpr Ø<Cardinality> f = c & !c;
+// set difference (no C++ '\' operator):
+constexpr auto T =
+  set_difference(S, Set{in<ℕ> | in<ℕ> > bound<10>});
+static_assert(T.contains(8u));    // 5 < 8 <= 10
+static_assert(!T.contains(11u));
 
-// {x in ℕ | ∃y ∈ e : x*y == 42}
-constexpr Singleton<7> q =
-  Set{in(ℕ) | Exists(e,
-    [](auto y, auto x) {
-      return x * y == bound<42>;
-    })};
+// meet collapses to a value singleton at compile time:
+// {x > 5} & {x < 7} on ℕ has cardinality 1
+constexpr Singleton<6> a =
+  S & Set{in<ℕ> | in<ℕ> < bound<7>};
+
+// complement via LEM: S & !S is the empty set
+constexpr Ø<Cardinality> b = S & !S;
 \end{cpp}
 \end{minipage}
 \end{listing}
@@ -693,8 +693,25 @@ Identity is denoted by an identity arrow, and set membership is tested by evalua
 The steps taken to reify intensional sets in the code base form a core category $\mathbf{Ddk} \subset \mathbf{Jlt} \cap \mathbf{Set}$, which occupies the intersection of pure $\mathbf{Jlt}$ types and universal-algebraic set structures.
 The implementation tracks this definition literally at compile time.
 
-First-order quantification is restricted to domains satisfying \cppinline{IsExtensional}, as unconstrained evaluation over infinite intensional spaces is undecidable at compile time.
-For these bounded domains, the quantifiers $\exists$ (\cppinline{Exists}) and $\forall$ (\cppinline{ForAll}) map directly onto finite coordinate-wise reductions ($\bigvee$ and $\bigwedge$) over $\Omega$, executing as zero-overhead variadic fold expansions during template translation.
+First-order quantification is restricted to domains satisfying \cppinline{IsExtensional}, as unconstrained evaluation over infinite intensional spaces is undecidable at compile time (Rice's theorem).
+For these bounded domains, the quantifiers $\exists$ (\cppinline{Exists}) and $\forall$ (\cppinline{ForAll}) are the $\bigvee$ and $\bigwedge$ reductions of a predicate over $\Omega$, short-circuiting at the absorbing truth value and folding to a literal under \cppinline{constexpr} evaluation (Listing~\ref{lst:quantifiers}).
+As combinators they bind the inner variable over the domain and leave a predicate in the outer variable, which is exactly the shape a comprehension turns into a new set.
+
+\begin{listing}[htbp]
+\caption{The bounded quantifiers as combinators.  A finite domain given as a \cppinline{std::views} range is itself an \cppinline{IsSet} --- a set is its membership test, so the lift is \cppinline{std::ranges::find}.  \cppinline{Exists} binds the inner variable over that domain, leaving a predicate in the outer variable; every line is a compile-time witness.}
+\label{lst:quantifiers}
+\begin{cpp}
+// a finite domain given as a std::ranges view IS a set:
+constexpr auto e = std::views::single(6);
+static_assert(IsSet<decltype(ambient_set(e))>);
+
+// { x | ∃ y ∈ {6} : x*y == 42 } selects 7
+constexpr auto has42 =
+  Exists(e, [](int y, int x){ return x*y == 42; });
+static_assert( has42(7));   // 7*6 == 42
+static_assert(!has42(8));
+\end{cpp}
+\end{listing}
 
 \subsection{Morphisms: Point-Free Relations and Functions}
 \label{sec:relations_functions_blueprint}
