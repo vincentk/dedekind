@@ -1,125 +1,114 @@
 /**
  * @file dedekind/sets/quantifier.cppm
  * @partition :quantifier
- * @brief Bounded first-order quantifiers as logic-species-aware reductions
- *        over a range: @f$\forall@f$ is a @f$\bigwedge@f$, @f$\exists@f$ a
- *        @f$\bigvee@f$, over the truth object @f$\Omega@f$.
+ * @brief Bounded first-order quantifiers as @b set operations: @f$\exists@f$ is
+ *        non-emptiness of a comprehension, @f$\forall@f$ its
+ * @f$\neg\exists\neg@f$ dual.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @section quantifier__The_Single_Source
- * @c forall / @c exists fold a predicate over any @c std::ranges::input_range,
- * accumulating in the predicate's own truth object @f$\Omega@f$ (not a bare
- * @c bool) and short-circuiting at the absorbing element (@c False for
- * @f$\wedge@f$, @c True for @f$\vee@f$).  This is the @b single implementation
- * of bounded quantification in the library: the @c sequences layer's
- * @c Path -shaped @c forall / @c exists delegate here (a @c Path exposes an
- * iterator range), so there is one fold, not two.  Keeping it range-generic
- * --- rather than specialised to a concrete finite container --- states the
- * general concept (quantify over @b any enumerable domain) at the right
- * altitude; the domain is reached through the @c std iterator interface.
+ * @section quantifier__The_Definition
+ * A quantifier @b is a set operation (the Bourbaki / structural reading).  We
+ * take that literally as the definition, not merely as a characterisation:
+ * @f[ \exists x \in S.\,P(x) \;:\equiv\; \{x\in S \mid P(x)\} \neq \varnothing,
+ *     \qquad
+ *     \forall x \in S.\,P(x) \;:\equiv\; \neg\,\exists x \in S.\,\neg P(x). @f]
+ * In code this is @c !(Ø{} @c == @c set(S,P)) and @c !exists(S, @c !P): the
+ * comprehension is @c set(S,P), the emptiness test is an overload of
+ * @c Ø::operator== , and @c forall is the double negation of @c exists.  There
+ * is no separate fold; the reduction lives entirely in how @c Ø::operator==
+ * decides emptiness, and the Rice boundary is therefore a @b type check (an
+ * operand with no suitable @c == overload is a compile error) rather than
+ * hand-waved prose.
  *
- * @section quantifier__Decidability
- * A total fold terminates only over a @b finite range.  Over an unbounded
- * intensional domain, general first-order quantification is undecidable at
- * compile time (Rice's theorem); the library therefore restricts the
- * combinators to enumerable (@c IsExtensional / @c IsEnumerated) domains.
- * This partition is the mechanical realisation of that restriction.
+ * @section quantifier__Two_Regimes
+ * The two decidable regimes are the two @c Ø::operator== overloads, chosen
+ * structurally by the comprehension's shape:
+ *   - @b compile @b time: a transparent halfspace meet collapses to @c Ø at the
+ *     TYPE level via the @c dedekind.order @c structured_and specialization, so
+ *     @c Ø @c == @c (gt5 @c & @c lt3) is a @c static_assert.  That collapse is
+ *     an @b order-layer capability (it needs the halfspace types), reached
+ *     through the @c & meet combinator, not through @c set (see below).
+ *   - @b run @b time: over an enumerable domain, @c set(S,P) is a lazy
+ *     @c std::views::filter and @c Ø @c == decides emptiness by @c begin @c ==
+ *     @c end, short-circuiting at the first witness.
+ * A genuinely opaque, non-enumerable operand matches no @c == overload: the
+ * honest Rice wall, a compile error rather than a fabricated answer.
  *
  * @build_order after :cardinality
  * @dependency :category
  */
 module;
 
-#include <algorithm>    // std::ranges::count_if (structural characterisation)
-#include <functional>   // std::invoke
-#include <ranges>       // std::ranges::input_range, range_value_t
+#include <ranges>       // std::views::filter, input_range, range_value_t
 #include <type_traits>  // std::remove_cvref_t (set(S,P) predicate dispatch)
-#include <utility>      // std::forward, std::move
+#include <utility>      // std::move
 
 export module dedekind.sets:quantifier;
 
-import dedekind.category; // LogicalMap, OmegaOf, LogicOf, the Logic species
-import :boundaries;  // Ø — the emptiness anchor the quantifiers compare against
-import :expressions;  // Set, operator& (the structured_and refinement)
-import :extensional;  // filter (the extensional refinement)
+import dedekind.category; // IsSet, ambient_set (the domain-is-a-set witness)
+import :boundaries;       // Ø — the emptiness anchor the quantifiers compare to
 
 namespace dedekind::sets {
 
 /**
  * @brief @c set(S, P): the ETCS refinement @f$\{x \in S \mid P(x)\}@f$ over an
- *        @b extensional carrier --- a callable predicate applied to an
- *        enumerable domain, realised as a @c filter that preserves @c size().
+ *        enumerable domain, as a lazy @c std::views::filter.
  *
  * @details This is the @b runtime refinement combinator (pure @c dedekind.sets:
- * no order specialization needed).  The @b intensional meet of two predicate
- * sets is spelled @c s @c & @c p directly: @c & is the open meet combinator
- * whose halfspace collapse is a downstream @c dedekind.order specialization,
- * and it must be invoked where that specialization is reachable (below
- * @c order) --- re-wrapping it in an upstream @c sets factory would freeze the
- * lookup and silently drop the collapse.  So the two refinement regimes have
- * two honest surfaces: @c & (intensional, order-specialized, compile time) and
- * @c set (extensional, sets-only, run time).
+ * no order specialization).  It is deliberately lazy: emptiness is decided by
+ * @c Ø::operator== advancing @c filter's @c begin() to the first witness, so
+ * @c exists short-circuits without materialising the comprehension.  The
+ * @b intensional meet of two predicate sets is spelled @c s @c & @c p directly:
+ * @c & is the open meet combinator whose halfspace collapse is a downstream
+ * @c dedekind.order specialization, reachable only where that specialization is
+ * (below @c order).  Re-wrapping it in an upstream @c sets factory would freeze
+ * the ADL lookup and silently drop the collapse, so the two refinement regimes
+ * keep two honest surfaces: @c & (intensional, order-specialized, compile time)
+ * and @c set (extensional, sets-only, run time).
  */
 export template <typename S, typename P>
-  requires(!dedekind::category::IsSet<std::remove_cvref_t<P>>) &&
-          requires(P& p, const S& s) { filter(p, s); }
+  requires std::ranges::input_range<S> &&
+           (!dedekind::category::IsSet<std::remove_cvref_t<P>>)
 constexpr auto set(const S& s, P p) {
-  return filter(std::move(p), s);
+  return std::views::filter(s, std::move(p));
 }
 
 /**
- * @brief @f$\forall x \in R.\; \text{pred}(x)@f$ --- the @f$\bigwedge@f$
- *        reduction of @c pred over the range @c R, in @c pred's truth object.
+ * @brief @f$\exists x \in S.\; P(x)@f$ --- non-emptiness of the comprehension
+ *        @c set(S,P).
  *
- * @details Logic-species-aware: accumulates in @c OmegaOf<Pred, T> and
- * short-circuits at the absorbing element @c Logic::False.  Terminates for a
- * finite range; over an infinite range it is the co-recursive @f$\wedge@f$
- * that the enumerability restriction (@c IsExtensional) exists to forbid.
+ * @details @c !(Ø == set(S,P)).  The Rice boundary is the availability of an
+ * @c Ø::operator== overload for the comprehension: an enumerable domain
+ * resolves at run time (@c begin @c == @c end), a transparent collapse at
+ * compile time, and anything else is a compile error.
  */
-export template <std::ranges::input_range R, typename Pred>
-  requires dedekind::category::LogicalMap<Pred, std::ranges::range_value_t<R>>
-constexpr auto forall(R&& range, Pred&& pred) {
-  using T = std::ranges::range_value_t<R>;
-  using Omega = dedekind::category::OmegaOf<Pred, T>;
-  using Logic = dedekind::category::LogicOf<Omega>;
-
-  auto predicate = std::forward<Pred>(pred);
-  Omega witness = Logic::True;
-  for (const auto& x : range) {
-    witness = Logic::AND(witness, std::invoke(predicate, x));
-    if (witness == Logic::False) break;  // short-circuit: ⊥ is absorbing
-  }
-  return witness;
+export template <std::ranges::input_range S, typename P>
+  requires(!dedekind::category::IsSet<std::remove_cvref_t<P>>)
+constexpr bool exists(const S& s, P p) {
+  using V = std::ranges::range_value_t<S>;
+  return !(Ø<V>{} == set(s, std::move(p)));
 }
 
 /**
- * @brief @f$\exists x \in R.\; \text{pred}(x)@f$ --- the @f$\bigvee@f$
- *        reduction of @c pred over the range @c R, in @c pred's truth object.
+ * @brief @f$\forall x \in S.\; P(x)@f$ --- the @f$\neg\exists\neg@f$ dual: no
+ *        counterexample.
  *
- * @details Dual of @c forall: accumulates in @c OmegaOf<Pred, T> and
- * short-circuits at the absorbing element @c Logic::True.
+ * @details @c !exists(S, !P): @f$\forall@f$ holds iff the counterexample set
+ * @f$\{x\in S \mid \neg P(x)\}@f$ is empty.  Building @f$\forall@f$ on
+ * @f$\exists@f$ keeps a single emptiness primitive.
  */
-export template <std::ranges::input_range R, typename Pred>
-  requires dedekind::category::LogicalMap<Pred, std::ranges::range_value_t<R>>
-constexpr auto exists(R&& range, Pred&& pred) {
-  using T = std::ranges::range_value_t<R>;
-  using Omega = dedekind::category::OmegaOf<Pred, T>;
-  using Logic = dedekind::category::LogicOf<Omega>;
-
-  auto predicate = std::forward<Pred>(pred);
-  Omega witness = Logic::False;
-  for (const auto& x : range) {
-    witness = Logic::OR(witness, std::invoke(predicate, x));
-    if (witness == Logic::True) break;  // short-circuit: ⊤ is absorbing
-  }
-  return witness;
+export template <std::ranges::input_range S, typename P>
+  requires(!dedekind::category::IsSet<std::remove_cvref_t<P>>)
+constexpr bool forall(const S& s, P p) {
+  return !exists(s, [p = std::move(p)](const auto& x) { return !p(x); });
 }
 
 /** @section quantifier__Formal_Verification */
 
-// ∀ / ∃ over a finite integer range (std::views::iota), ClassicalLogic Ω.
+// ∀ / ∃ over a finite integer range (std::views::iota) — the enumerable
+// (runtime-shaped) regime, evaluated here at compile time.
 static_assert(forall(std::views::iota(2, 8), [](int x) { return x > 1; }),
               "every element of [2,8) is > 1.");
 static_assert(!forall(std::views::iota(0, 3), [](int x) { return x > 0; }),
@@ -137,9 +126,9 @@ static_assert(!exists(std::views::iota(0, 3), [](int x) { return x > 9; }),
  * @f$\lambda x.\;\exists y \in \mathrm{dom}.\; p_2(y,x)@f$; @c ForAll dually.
  * The result is an ordinary unary predicate, so it drops straight into a
  * @c Set comprehension --- this is how a bounded quantifier defines a new set.
- * Both are built on the range-generic @c exists / @c forall above (one fold),
- * and the domain is any @c std::ranges::input_range: the general concept
- * reached through the @c std iterator interface, not a fixed container.
+ * Both are built on the set-operation @c exists / @c forall above, and the
+ * domain is any @c std::ranges::input_range: the general concept reached
+ * through the @c std iterator interface, not a fixed container.
  */
 export template <std::ranges::input_range Dom, typename P2>
 constexpr auto Exists(Dom dom, P2 p2) {
@@ -181,32 +170,5 @@ inline constexpr auto divisible_by_2_and_3 =
     ForAll(two_three, [](int y, int x) { return x % y == 0; });
 static_assert(divisible_by_2_and_3(6), "6 is divisible by both 2 and 3.");
 static_assert(!divisible_by_2_and_3(9), "9 is not divisible by 2.");
-
-/**
- * @section quantifier__Structural_Characterisation
- * The Bourbaki (structural) reading: a quantifier @b is a set operation.
- * @f$\exists@f$ is non-emptiness of the comprehension; @f$\forall@f$ is
- * emptiness of its complement (no counterexample --- the @f$\neg\exists\neg@f$
- * dual):
- * @f[ \exists x \in S.\,P(x) \iff \{x\in S \mid P(x)\} \neq \varnothing,
- *     \quad \forall x \in S.\,P(x) \iff \{x\in S \mid \neg P(x)\} =
- * \varnothing. @f] The short-circuiting @f$\bigvee@f$/@f$\bigwedge@f$
- * reductions above are the efficient implementation; the identities below
- * witness that they coincide with this extensional characterisation, so it is a
- * @b theorem, not prose. (Cardinality of a comprehension is well defined only
- * on a finite domain --- the same @c IsExtensional gate the reductions carry.)
- */
-namespace {
-inline constexpr auto q_dom = std::views::iota(0, 6);
-inline constexpr auto q_pred = [](int x) { return x > 3; };
-inline constexpr auto q_neg = [](int x) { return !(x > 3); };  // ¬P
-}  // namespace
-
-// ∃x∈S. P(x)  ⟺  {x∈S | P(x)} ≠ ∅
-static_assert(static_cast<bool>(exists(q_dom, q_pred)) ==
-              (std::ranges::count_if(q_dom, q_pred) != 0));
-// ∀x∈S. P(x)  ⟺  {x∈S | ¬P(x)} = ∅   (no counterexample)
-static_assert(static_cast<bool>(forall(q_dom, q_pred)) ==
-              (std::ranges::count_if(q_dom, q_neg) == 0));
 
 }  // namespace dedekind::sets

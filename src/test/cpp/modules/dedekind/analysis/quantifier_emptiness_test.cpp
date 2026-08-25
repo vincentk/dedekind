@@ -41,11 +41,20 @@ TEST_CASE("Quantifier machinery: Ø == comprehension, two regimes",
   static_assert(Ø<Cardinality>{} == (gt5 & lt3),
                 "{x>5 ∧ x<3} collapses to Ø at compile time (order layer).");
 
-  // (b) RUN time, pure sets: set(S, P)'s extensional arm filters an
-  //     IsExtensional carrier, and Ø == … decides emptiness via size().  No
-  //     specialization needed — the combinator alone suffices at this layer.
+  // (b) RUN time, pure sets: over an enumerable domain, set(S, P) is a lazy
+  //     views::filter and Ø == … decides emptiness by begin == end, short-
+  //     circuiting at the first witness.  No specialization needed.
   const std::unordered_set<int> dom{1, 2, 3, 4, 5};
-  CHECK(Ø<int>{} == set(dom, [](const int& x) { return x > 100; }));  // ∅
+
+  //     The definition: ∃ is non-emptiness of the comprehension.
+  CHECK(Ø<int>{} == set(dom, [](const int& x) { return x > 100; }));  // ∅ : ∄
   CHECK_FALSE(Ø<int>{} ==
               set(dom, [](const int& x) { return x > 3; }));  // {4,5}
+
+  //     The surface: exists / forall read that same emptiness.  forall is the
+  //     ¬∃¬ dual, so it holds iff the counterexample set is empty.
+  CHECK(exists(dom, [](const int& x) { return x > 3; }));  // 4 witnesses
+  CHECK_FALSE(exists(dom, [](const int& x) { return x > 100; }));  // none
+  CHECK(forall(dom, [](const int& x) { return x <= 5; }));  // no counterexample
+  CHECK_FALSE(forall(dom, [](const int& x) { return x > 2; }));  // 1,2 counter
 }

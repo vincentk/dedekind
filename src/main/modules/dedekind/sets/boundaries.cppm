@@ -153,10 +153,16 @@ struct Ø final {
   }
 
   // (ii) a std::ranges-backed operand with no size(): empty iff begin == end.
+  //      Taken @b by value, not by const ref: an unsized range is typically a
+  //      lazy view (e.g. std::views::filter), whose begin() caches and so is
+  //      non-const-iterable; a by-value copy is a mutable local we can advance
+  //      (and short-circuit) at both run time and compile time.  Copying a view
+  //      is cheap by construction; owning containers expose size() and route to
+  //      (i) instead, so they never reach here.
   template <typename S>
     requires std::ranges::range<S> && (!std::same_as<S, Ø>) &&
              (!requires(const S& s) { s.size(); })
-  constexpr bool operator==(const S& s) const {
+  constexpr bool operator==(S s) const {
     return std::ranges::begin(s) == std::ranges::end(s);
   }
 
