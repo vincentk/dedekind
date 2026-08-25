@@ -700,9 +700,8 @@ On such a domain the quantifier \emph{is} a set operation, and we take that stru
 \qquad
 \forall x \in S.\,P(x) \;:\equiv\; \neg\,\exists x \in S.\,\neg P(x).
 \end{equation}
-In code the enumerable comprehension is \cppinline{set(S,P)}, the emptiness test is an overload of \cppinline{Ø::operator==}, and $\forall$ is the double negation of $\exists$: \cppinline{exists(S,P)} is \cppinline{!(Ø{} == set(S,P))} and \cppinline{forall} is \cppinline{!exists(S,!P)}.
-There is no separate $\bigvee$/$\bigwedge$ fold.
-The whole reduction lives in how \cppinline{Ø::operator==} decides emptiness, so the Rice boundary is a \emph{type check}: an operand with no suitable overload is a compile error, not a fabricated answer, and the wall never spills into prose.
+In code the enumerable comprehension is \cppinline{set(S,P)} and the emptiness test an overload of \cppinline{Ø::operator==}, so \cppinline{exists(S,P)} is \cppinline{!(Ø{} == set(S,P))} and \cppinline{forall} is \cppinline{!exists(S,!P)}.
+There is no fold: the reduction lives in \cppinline{Ø::operator==}, so the Rice boundary is a \emph{type check}, an operand with no overload being a compile error rather than a fabricated answer.
 
 The combinators \cppinline{Exists} and \cppinline{ForAll} build on this definition: they bind the inner variable over the domain and leave a predicate in the outer variable, exactly the shape a comprehension turns into a new set (Listing~\ref{lst:quantifiers}).
 
@@ -722,13 +721,12 @@ static_assert(!has42(8));
 \end{cpp}
 \end{listing}
 
-The two decidable regimes are exactly the two \cppinline{Ø::operator==} overloads, selected structurally by the shape of the comprehension, and they fall at two architectural layers.
-A transparent halfspace meet collapses to $\varnothing$ at the type level through the \cppinline{dedekind.order} specialization of \cppinline{structured_and}, so $\forall x>5.\,x\ge 3$ is a \cppinline{static_assert} on the empty counterexample set $\{x>5 \wedge x<3\}$.
-That collapse is an order-layer capability, reached through the \cppinline{\&} meet combinator rather than \cppinline{set}, since it needs the halfspace types themselves.
-Over an enumerable domain \cppinline{set(S,P)} is instead a lazy \cppinline{std::views::filter}, and the same \cppinline{==} decides emptiness by \cppinline{begin == end}, short-circuiting at the first witness (Listing~\ref{lst:quantifier_regimes}).
+Which overload resolves the test is where the two regimes, at two layers, show.
+A transparent halfspace meet collapses to $\varnothing$ by type through the \cppinline{dedekind.order} specialization of \cppinline{structured_and}, so $\forall x>5.\,x\ge 3$ is a \cppinline{static_assert} on the empty counterexample $\{x>5 \wedge x<3\}$, reached through the \cppinline{\&} meet rather than \cppinline{set} since it needs the halfspace types.
+Over an enumerable domain \cppinline{set(S,P)} is a lazy \cppinline{std::views::filter}, and the same \cppinline{==} is \cppinline{begin == end}, short-circuiting at the first witness (Listing~\ref{lst:quantifier_regimes}).
 
 \begin{listing}[htbp]
-\caption{One definition, two regimes selected by \cppinline{Ø::operator==}.  Compile time: the order-specialized \cppinline{\&} meet collapses two disjoint halfspaces to $\varnothing$ by type.  Run time: \cppinline{set} filters an enumerable domain and emptiness is \cppinline{begin == end}.  A non-enumerable, opaque operand matches no overload: the honest Rice wall.}
+\caption{One definition, two regimes selected by \cppinline{Ø::operator==}.  Compile time: the order-specialized \cppinline{\&} meet collapses disjoint halfspaces to $\varnothing$ by type.  Run time: \cppinline{set} filters and emptiness is \cppinline{begin == end}.  An opaque, non-enumerable operand matches no overload: the Rice wall.}
 \label{lst:quantifier_regimes}
 \begin{cpp}
 // (a) transparent: the order-specialized & meet collapses BY TYPE
