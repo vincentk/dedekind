@@ -32,16 +32,48 @@
  */
 module;
 
-#include <algorithm>   // std::ranges::count_if (structural characterisation)
-#include <functional>  // std::invoke
-#include <ranges>      // std::ranges::input_range, range_value_t
-#include <utility>     // std::forward
+#include <algorithm>    // std::ranges::count_if (structural characterisation)
+#include <functional>   // std::invoke
+#include <ranges>       // std::ranges::input_range, range_value_t
+#include <type_traits>  // std::remove_cvref_t (set(S,P) predicate dispatch)
+#include <utility>      // std::forward, std::move
 
 export module dedekind.sets:quantifier;
 
 import dedekind.category; // LogicalMap, OmegaOf, LogicOf, the Logic species
+import :boundaries;  // Ø — the emptiness anchor the quantifiers compare against
+import :expressions;  // Set, operator& (the structured_and refinement)
+import :extensional;  // filter (the extensional refinement)
 
 namespace dedekind::sets {
+
+/**
+ * @brief @c set(S, P): the ETCS refinement @f$\{x \in S \mid P(x)\}@f$ --- a
+ *        predicate applied to an underlying set.
+ *
+ * @details Regime-preserving @b coproduct.  The arm is chosen by watertight
+ * structural dispatch on how @c P is represented, and each arm returns its own
+ * concrete type (so the transparent arm keeps a collapsed @c Ø / @c Singleton
+ * type and stays a compile-time result; it is a compile-time sum, not a
+ * runtime @c variant).  @c Set{...} is one constrained arm of this sum.
+ */
+// Intensional arm: P is itself a Set, so the refinement is the meet, routed
+// through structured_and, which may collapse to Ø or a Singleton.
+export template <typename S, typename P>
+  requires dedekind::category::IsSet<std::remove_cvref_t<P>> &&
+           requires(const S& s, const P& p) { s & p; }
+constexpr auto set(const S& s, const P& p) {
+  return s & p;
+}
+
+// Extensional arm: P is a callable predicate over an extensional carrier, so
+// the refinement is a filter and the result preserves size().
+export template <typename S, typename P>
+  requires(!dedekind::category::IsSet<std::remove_cvref_t<P>>) &&
+          requires(P& p, const S& s) { filter(p, s); }
+constexpr auto set(const S& s, P p) {
+  return filter(std::move(p), s);
+}
 
 /**
  * @brief @f$\forall x \in R.\; \text{pred}(x)@f$ --- the @f$\bigwedge@f$

@@ -30,18 +30,20 @@ TEST_CASE("Quantifier machinery: Ø == comprehension, two regimes",
   //     ∀x>5. x≥3  ⟺  the counterexample set {x>5 ∧ x<3} reduces to Ø.
   //     ∀x>5. x≥3  ⟺  the counterexample set {x>5 ∧ x<3} reduces to Ø, and
   //     that reduction is a TYPE identity decided at compile time.
+  //     set(S, P) is the ETCS refinement; its intensional arm routes the meet
+  //     through structured_and, collapsing {x>5 ∧ x<3} to Ø at COMPILE time.
   constexpr auto gt5 = Set{in<ℕ> | in<ℕ> > bound<5>};
   constexpr auto lt3 = Set{in<ℕ> | in<ℕ> < bound<3>};
-  static_assert(Ø<Cardinality>{} == (gt5 & lt3),
-                "the counterexample {x>5 ∧ x<3} is empty, decided at compile "
-                "time by structured_and.");
+  static_assert(
+      Ø<Cardinality>{} == set(gt5, lt3),
+      "set(gt5, lt3) = {x>5 ∧ x<3} is empty, decided at compile time.");
 
-  // (b) OPAQUE lambda over an IsExtensional carrier: emptiness is decided at
-  // RUN
-  //     time by size() — a different operator== overload, identical syntax.
+  // (b) OPAQUE lambda over an IsExtensional carrier: set(S, P)'s extensional
+  // arm
+  //     filters, and emptiness is decided at RUN time by size().  Same set(...)
+  //     surface, the coproduct arm chosen structurally by the carrier.
   const std::unordered_set<int> dom{1, 2, 3, 4, 5};
-  const auto none = filter([](const int& x) { return x > 100; }, dom);  // ∅
-  const auto some = filter([](const int& x) { return x > 3; }, dom);    // {4,5}
-  CHECK(Ø<int>{} == none);        // size()==0 → true, at run time
-  CHECK_FALSE(Ø<int>{} == some);  // size()==2 → false, at run time
+  CHECK(Ø<int>{} == set(dom, [](const int& x) { return x > 100; }));  // ∅
+  CHECK_FALSE(Ø<int>{} ==
+              set(dom, [](const int& x) { return x > 3; }));  // {4,5}
 }
