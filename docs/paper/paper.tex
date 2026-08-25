@@ -693,7 +693,7 @@ Identity is denoted by an identity arrow, and set membership is tested by evalua
 The steps taken to reify intensional sets in the code base form a core category $\mathbf{Ddk} \subset \mathbf{Jlt} \cap \mathbf{Set}$, which occupies the intersection of pure $\mathbf{Jlt}$ types and universal-algebraic set structures.
 The implementation tracks this definition literally at compile time.
 
-First-order quantification is restricted to enumerable domains (\cppinline{IsExtensional}), since unconstrained evaluation over an infinite intensional space is undecidable at compile time (Rice's theorem).
+First-order quantification is restricted to enumerable domains (\cppinline{IsExtensional}): over an infinite domain it would demand an unbounded search and is undecidable (Rice's theorem), whereas a bounded domain makes that search finite.
 On such a domain the quantifier \emph{is} a set operation, and we take that structural (Bourbaki) reading as the definition rather than as a later coincidence:
 \begin{equation}
 \exists x \in S.\,P(x) \;:\equiv\; \{x\in S \mid P(x)\} \neq \varnothing,
@@ -793,7 +793,7 @@ R \circ S = \{ (a, c) \in A \times C \mid \exists b \in B : (a, b) \in R \land (
 On a finite (\cppinline{IsExtensional}) intermediate domain $B$, that $\exists b$ is exactly the \cppinline{Exists} combinator of \S\ref{sec:intensional_sets} (Listing~\ref{lst:quantifiers}): relative composition is a bounded existential over the middle set.
 General first-order existential ($\exists$) and universal ($\forall$) quantification cannot, however, be implemented generically over \emph{infinite} intensional sets at compile time, as the enumeration of open predicate domains induces infinite compiler loop regression.
 
-To circumvent this translation-time decidability bottleneck, the library rejects identifying a relation extensionally as a static subobject pair $R \subseteq A \times B$. Instead, it implements a monadic presentation where a relation is an active functional morphism. Concretely, a binary relation $R$ from a domain set $A$ to a codomain set $B$ is defined as a total arrow of the form $R : A \to \mathcal{P}(B)$, where $\mathcal{P}(B)$ represents the intensional power set of the target space. This architectural choice ensures that when an element $a \in A$ is supplied to the relation, the compiler immediately evaluates the image as a native, optimized intensional set type in the destination space.
+To circumvent this translation-time search bottleneck, the library rejects identifying a relation extensionally as a static subobject pair $R \subseteq A \times B$. Instead, it implements a monadic presentation where a relation is an active functional morphism. Concretely, a binary relation $R$ from a domain set $A$ to a codomain set $B$ is defined as a total arrow of the form $R : A \to \mathcal{P}(B)$, where $\mathcal{P}(B)$ represents the intensional power set of the target space. This architectural choice ensures that when an element $a \in A$ is supplied to the relation, the compiler immediately evaluates the image as a native, optimized intensional set type in the destination space.
 
 Under this functional presentation, Tarski's relative composition resolves elegantly as standard Kleisli arrow composition over the power set monad. We explicitly reify this step within the \texttt{:relations} partition via the infix pipeline operator ($\gg$), allowing the point-free composition to be expressed textually as:
 \begin{equation}
@@ -839,7 +839,7 @@ The compiler unifies the constituent predicates into a single, synthesized type-
 
 While the relational composition operator ($\gg$) detailed in Section~\ref{sec:relations_functions_blueprint} bypasses the need for intermediate set materialization by maintaining a lazy symbolic predicate chain, specialized functional mappings impose a more stringent computational burden.
 For total functions where elements must be explicitly mapped and verified as certified singleton images, the template engine cannot rely solely on passive predicate encapsulation.
-If a function lacks a strict structural inverse or is evaluated over an unconstrained, transfinite domain, constructively determining image containment or mapping preimages becomes undecidable at translation time. Consequently, if a generic result-set construction is impossible for general functions, it is similarly precluded for general relations.
+If a function lacks a strict structural inverse or is evaluated over an unconstrained, transfinite domain, constructively determining image containment or mapping preimages demands an unbounded search of the domain and is undecidable. Consequently, if a generic result-set construction is impossible for general functions, it is similarly precluded for general relations.
 To resolve this boundary, the library introduces an architectural gate based on the categorical principle of epic-monic factorization.
 
 Mathematically, a relation $R : A \to \mathcal{P}(B)$ is a total function if and only if it maps every input to a singleton; equivalently, it is \emph{functional} (single-valued) and \emph{entire} (total).
@@ -1675,7 +1675,7 @@ Axiom 9: Power Set / Exponential Restriction (\(\beth _{1}\)). For any set X, th
 
 Dual to §\ref{sec:relations_functions_blueprint}, this appendix collects the supporting detail for the point-free morphism layer: relations presented as Kleisli arrows over the powerset monad, and the epic--monic factorization gates ($A \twoheadrightarrow I \hookrightarrow B$) that make a general function's codomain queries decidable.
 It is another instance of the paper's recurring seam.
-General first-order quantification over open intensional sets is undecidable at compile time (Rice's theorem), so rather than attempt the aspirational universal search the library supplies mechanical support for the \emph{existential} case: lazy Kleisli predicate transformation for composition, and a developer-supplied factorization for image membership.
+General first-order quantification over open intensional sets is undecidable (Rice's theorem), so rather than attempt the aspirational universal search the library supplies mechanical support for the \emph{existential} case: lazy Kleisli predicate transformation for composition, and a developer-supplied factorization for image membership.
 The worked internals are deferred to a follow-up revision.
 
 %%%
