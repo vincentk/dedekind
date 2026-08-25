@@ -134,11 +134,28 @@ struct Ø final {
     return true;
   }
 
-  // Necessary for (a | b) == b where b might be Ø
+  // Emptiness comparison Ø == S: the dispatch point for the quantifier
+  // regimes, and a mechanical realisation of the Rice boundary.  Collapsed-Ø
+  // operands are caught by the Ø/Ø overloads above (→ True); here S is not Ø:
+  //   * S extensional (has size())     → decidable, size() == 0 (runtime)
+  //   * S intensional & TernaryLogic   → honestly Ternary::Unknown     (Rice
+  //   wall)
+  //   * S intensional & ClassicalLogic → non-empty by the collapse invariant
+  //     (an empty halfspace would have reduced to Ø and hit the overloads
+  //     above).
   template <typename S>
-  constexpr bool operator==(const S&) const {
-    if constexpr (std::is_same_v<S, Ø>) return true;
-    return false;  // A non-empty set cannot be equal to Ø
+  constexpr auto operator==(const S& s) const {
+    if constexpr (std::is_same_v<S, Ø>) {
+      return true;  // defensive; the Ø/Ø overloads normally take this
+    } else if constexpr (requires { s.size(); }) {
+      return s.size() == 0;  // decidable emptiness (ClassicalLogic)
+    } else if constexpr (requires { typename S::logic_species; } &&
+                         std::same_as<typename S::logic_species,
+                                      dedekind::category::TernaryLogic>) {
+      return dedekind::category::TernaryLogic::Unknown;  // Rice wall
+    } else {
+      return false;  // structural non-empty (ClassicalLogic intensional)
+    }
   }
 
   // The Duality: !∅ = V
