@@ -729,36 +729,41 @@ Such morphisms are then classified by the following properties, if one focuses o
 \end{itemize}
 Equivalently, relations can be represented as sets whose elements satisfy the product axioms (\cppinline{IsProduct}), for example via the signature \cppinline{IsSet<std::pair>}.
 
+A relation that is both total and functional is a \emph{function}.
+In the library this is the concept refinement \cppinline{IsFunction = IsRelation \&\& IsEntire \&\& IsFunctional}, so \cppinline{IsFunction} subsumes \cppinline{IsRelation}: the inclusion $\{\text{functions}\} \subset \{\text{relations}\}$ is genuine subtyping in the concept lattice, not an analogy.
+The bridge from an analytic arrow to its relational form is \cppinline{graph(f)}, the graph $\Gamma_f = \{(a, f(a)) \mid a \in A\}$; its \cppinline{is_graph_of} witness makes ``the rule and its set of pairs are the same function'' a compile-time fact rather than a claim.
+These two readings --- the intensional rule \cppinline{f} and the extensional set of pairs $\Gamma_f$ --- are the horizontal axis of the same picture whose vertical axis is the relation/function refinement above, bridged by \cppinline{graph} one way and enumeration (\cppinline{materialise}) the other.
+
 \begin{listing}[htbp]
 \caption{Intensional specification of a binary relation predicate over an algebraic product space and its pointwise validation.}
 \label{lst:intensional_relation_validation}
 \begin{cpp}
-// R = { (a, b) ∈ ℕ × ℕ | b % a == 0 }
-constexpr auto x = var(ℕ * ℕ);
-constexpr auto R = Set{
-    x | (π_2(x) % π_1(x) == bound<0>)
-};
+// R = { (a, b) ∈ ℕ × ℕ | b % a == 0 } — a general relation (set of pairs)
+using P = std::pair<unsigned, unsigned>;
+constexpr auto R = Set{ element<Ω<P>> % UniversalSet<P>{} |
+    [](const P& p){ return p.second % p.first == 0; } };
 
-// Pure pointwise validation via indicator properties
-static_assert(R(std::pair{2u, 6u})); // Validated: 6 % 2 == 0
-static_assert(!R(std::pair{4u, 6u})); // Rejected: 6 % 4 != 0
+// pointwise membership constant-folds:
+static_assert( R(std::pair{2u, 6u})); // 6 % 2 == 0
+static_assert(!R(std::pair{4u, 6u})); // 6 % 4 != 0
 \end{cpp}
 \end{listing}
 
 The design of the relation $R$ in Listing~\ref{lst:intensional_relation_validation} highlights the core architectural boundary between symbolic specification and type-level evaluation.
 Structurally, the relation is defined entirely through an intensional presentation.
-Rather than relying on explicit, verbose template-parameter bindings, the expression leverages the functional factory \texttt{var(}\dots\texttt{)} to inject a value-level token carrying the underlying product domain mechanics of $(\mathbb{N} \times \mathbb{N})$.
-This variable placeholder binds the relational invariant as a native type-directed predicate. 
+Rather than relying on explicit, verbose template-parameter bindings, the expression binds a scout element over the product domain $(\mathbb{N} \times \mathbb{N})$ and refines it by a predicate on the pair.
+This scout binds the relational invariant as a native type-directed predicate.
 
 This intensional rule collapses into an extensional, pointwise evaluation context when interrogated by a concrete element via the indicator property \texttt{operator()}.
-During compilation, the \texttt{static\_assert} forces the template engine to substitute the candidate literal pair into the projection bindings $\pi_1$ and $\pi_2$, reducing the symbolic constraint down to a primitive boolean literal.
+During compilation, the \texttt{static\_assert} forces the template engine to substitute the candidate literal pair into the predicate, reducing the symbolic constraint down to a primitive boolean literal.
 Consequently, the library maintains the abstract economy of mathematical logic right up until specific domain elements witness the correctness of the constraint at compile time.
 
 In classical relational calculus, the relative composition of two relations $R \subseteq A \times B$ and $S \subseteq B \times C$ requires an existential quantification step over the intermediate domain $B$:
 \begin{equation}
 R \circ S = \{ (a, c) \in A \times C \mid \exists b \in B : (a, b) \in R \land (b, c) \in S \}
 \end{equation}
-However, general first-order existential ($\exists$) and universal ($\forall$) quantification cannot be implemented generically over infinite intensional sets at compile time, as the enumeration of open predicate domains induces infinite compiler loop regression. 
+On a finite (\cppinline{IsExtensional}) intermediate domain $B$, that $\exists b$ is exactly the \cppinline{Exists} combinator of \S\ref{sec:intensional_sets} (Listing~\ref{lst:quantifiers}): relative composition is a bounded existential over the middle set.
+General first-order existential ($\exists$) and universal ($\forall$) quantification cannot, however, be implemented generically over \emph{infinite} intensional sets at compile time, as the enumeration of open predicate domains induces infinite compiler loop regression.
 
 To circumvent this translation-time decidability bottleneck, the library rejects identifying a relation extensionally as a static subobject pair $R \subseteq A \times B$. Instead, it implements a monadic presentation where a relation is an active functional morphism. Concretely, a binary relation $R$ from a domain set $A$ to a codomain set $B$ is defined as a total arrow of the form $R : A \to \mathcal{P}(B)$, where $\mathcal{P}(B)$ represents the intensional power set of the target space. This architectural choice ensures that when an element $a \in A$ is supplied to the relation, the compiler immediately evaluates the image as a native, optimized intensional set type in the destination space.
 
