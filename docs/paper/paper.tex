@@ -810,12 +810,12 @@ The template engine executes this composition by mapping $R$ over an input eleme
 \begin{cpp}
 // R : ℕ → P(ℕ) where R(a) = { b ∈ ℕ | b % a == 0 }
 constexpr auto R = [](auto a) {
-    constexpr auto b = var(ℕ);
+    constexpr auto b = in<ℕ>;
     return Set{ b | (b % a == bound<0u>) };
 };
 // S : ℕ → P(ℕ) where S(b) = { c ∈ ℕ | b < c }
 constexpr auto S = [](auto b) {
-    constexpr auto c = var(ℕ);
+    constexpr auto c = in<ℕ>;
     return Set{ c | (b < c) };
 };
 // Point-free Tarskian relative composition via the fish operator
