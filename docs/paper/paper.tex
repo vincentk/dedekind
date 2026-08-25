@@ -816,16 +816,23 @@ A function is thus not a distinct primitive but a relation satisfying both prope
 Reifying functions in this manner allows the type system to mechanically verify classical mapping properties at translation time.
 For specialized mappings, codomain membership tests, checking whether a given element $b \in B$ lies within the actual image of the transformation, are easily discharged by the compiler.
 If a function is certified as surjective, every element of the target space is a valid image, meaning a codomain membership query trivially constant-folds to logical truth.
-If a function is bijective, as is already implemented and leveraged within the core set eDSL, the type system utilizes a structural left-and-right inverse witness to map elements bi-directionally between spaces with zero runtime overhead.
+More generally, if the mono leg of the factorization carries a \emph{retract} --- a partial inverse returning the preimage of a codomain element when one exists --- the type system decides membership as a local lookup on the image boundary, with no search of the domain (Listing~\ref{lst:functional_image_bijection}).
 
 \begin{listing}[htbp]
-\caption{Intensional specification of a functional range via analytical inversion of a bijective function.}
+\caption{A retract makes image membership decidable.  A monic arrow \cppinline{Double} carries a \cppinline{retract} (a partial inverse $y \mapsto$ preimage, if any); with it, $y \in \mathrm{image}(f, S)$ is decided as ``the retract has a value that lies in $S$'' --- a local lookup on the image boundary, never a search of the domain (abridged from the checked-in test).}
 \label{lst:functional_image_bijection}
 \begin{cpp}
-// Bijective case: { n + 2 ∈ ℕ }
-constexpr HalfSpace<2> p2 = Set{in(ℕ) + bound<2u>}; 
-static_assert(!p2(0));
-static_assert(p2(3));
+// a monic arrow with a retract (partial inverse):
+struct Double { using Domain = int; using Codomain = int;
+  constexpr int operator()(int x) const { return 2*x; } };
+constexpr auto retract(Double) {         // y -> preimage, if any
+  return [](int y) -> std::optional<int> {
+    return (y%2==0) ? std::optional{y/2} : std::nullopt; }; }
+
+// the retract decides image membership as a local lookup:
+// y in image(Double, S)  <=>  retract(Double)(y) is a value in S
+// (10 -> 5 in {x>0}: in;  7 -> nullopt: out) -- no domain search
+constexpr auto img = image(Double{}, positive);   // positive = {x>0}
 \end{cpp}
 \end{listing}
 
@@ -841,19 +848,22 @@ Since the second leg of the factorization chain is a strict injection, it guaran
 Listing~\ref{lst:functional_image_factorization} illustrates how this epic-monic gate and its corresponding image validation assertions are codified within the C++23 template engine.
 
 \begin{listing}[htbp]
-\caption{Intensional specification of a functional image set via forward epic-monic composition inside a set comprehension block, followed by an intensional \cppinline{max} collapse to a value singleton.}
+\caption{The image of an intensional set under an arrow, and the honest indecision it carries.  \cppinline{image(succ, {n>5})} realises \cppinline{IsImageOf} (it is a subobject of the codomain), yet its membership is \cppinline{TernaryLogic::Unknown}: the existential $\exists x.\,x>5 \wedge y = \mathrm{succ}(x)$ is undecidable on the transfinite carrier without a factorization.  The Rice boundary, made visible (abridged from the checked-in showcase).}
 \label{lst:functional_image_factorization}
 \begin{cpp}
-constexpr auto x = var(ℕ);
-// Non-bijective case via explicit factorization:
-// { x * x ∈ ℕ | x < 5 }
-// The left-hand side pipes the epi leg into the mono gate via operator>>
-constexpr auto sqs = Set{ 
-    (x * x) >> is_square | x < bound<5u> 
-};
+// f = succ : ℕ → ℕ, the NNO successor arrow
+constexpr auto succ = arrow<ℕ, ℕ>(
+  [](ℕ m){ return m + finite_cardinality(1); });
 
-// An intensional max reduction extracts the peak element from the image set
-constexpr Singleton<16u> max_square = max(sqs);
+// image of {n > 5} under succ: a Subobject of the codomain ℕ
+constexpr auto img =
+  image(succ, Set{in<ℕ> | in<ℕ> > bound<5>});
+static_assert(IsImageOf<decltype(img), decltype(succ)>);
+
+// ...yet membership is honestly Unknown: the existential
+// ∃x. x > 5 ∧ y == succ(x) is undecidable on the transfinite
+// carrier without a factorization / retract:
+static_assert(img(finite_cardinality(7)) == Ternary::Unknown);
 \end{cpp}
 \end{listing}
 
