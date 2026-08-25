@@ -134,28 +134,24 @@ struct Ø final {
     return true;
   }
 
-  // Emptiness comparison Ø == S: the dispatch point for the quantifier
-  // regimes, and a mechanical realisation of the Rice boundary.  Collapsed-Ø
-  // operands are caught by the Ø/Ø overloads above (→ True); here S is not Ø:
-  //   * S extensional (has size())     → decidable, size() == 0 (runtime)
-  //   * S intensional & TernaryLogic   → honestly Ternary::Unknown     (Rice
-  //   wall)
-  //   * S intensional & ClassicalLogic → non-empty by the collapse invariant
-  //     (an empty halfspace would have reduced to Ø and hit the overloads
-  //     above).
+  // Ø == S with an EXTENSIONAL operand: decidable emptiness by size(), at
+  // runtime.  This is regime (b) of the quantifier machinery (an opaque
+  // predicate over an IsExtensional carrier resolves to size() == 0).
   template <typename S>
-  constexpr auto operator==(const S& s) const {
-    if constexpr (std::is_same_v<S, Ø>) {
-      return true;  // defensive; the Ø/Ø overloads normally take this
-    } else if constexpr (requires { s.size(); }) {
-      return s.size() == 0;  // decidable emptiness (ClassicalLogic)
-    } else if constexpr (requires { typename S::logic_species; } &&
-                         std::same_as<typename S::logic_species,
-                                      dedekind::category::TernaryLogic>) {
-      return dedekind::category::TernaryLogic::Unknown;  // Rice wall
-    } else {
-      return false;  // structural non-empty (ClassicalLogic intensional)
-    }
+    requires requires(const S& s) { s.size(); } && (!std::same_as<S, Ø>)
+  constexpr bool operator==(const S& s) const {
+    return s.size() == 0;
+  }
+
+  // Necessary for (a | b) == b where b might be Ø.  A non-sized operand that
+  // survived the transparent regime is non-empty (an empty structured set has
+  // already reduced to Ø and matched the Ø overloads above).  A genuinely
+  // opaque, non-extensional operand has NO suitable overload here, which is
+  // the honest Rice wall: a compile error, not a fabricated answer.
+  template <typename S>
+  constexpr bool operator==(const S&) const {
+    if constexpr (std::is_same_v<S, Ø>) return true;
+    return false;
   }
 
   // The Duality: !∅ = V
