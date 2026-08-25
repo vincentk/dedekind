@@ -809,9 +809,9 @@ For total functions where elements must be explicitly mapped and verified as cer
 If a function lacks a strict structural inverse or is evaluated over an unconstrained, transfinite domain, constructively determining image containment or mapping preimages becomes undecidable at translation time. Consequently, if a generic result-set construction is impossible for general functions, it is similarly precluded for general relations.
 To resolve this boundary, the library introduces an architectural gate based on the categorical principle of epic-monic factorization.
 
-Mathematically, a relation $R : A \to \mathcal{P}(B)$ is identified as a total function if and only if it maps every input element $a \in A$ to a certified singleton subset in the codomain.
-In the codebase, this structural guarantee is enforced within the \texttt{:functions} partition by wrapping the underlying relation inside a specialized function adapter and guarding its evaluation site with an \texttt{IsSingleton} concept constraint.
-This architecture preserves the structural continuity of the library: functions are not distinct primitives, but are well-behaved, deterministic relations whose output logic is structurally bounded.
+Mathematically, a relation $R : A \to \mathcal{P}(B)$ is a total function if and only if it maps every input to a singleton --- equivalently, it is \emph{functional} (single-valued) and \emph{entire} (total).
+In the codebase this is the concept \cppinline{IsFunction}: a relation refined by the right-unique and left-total witnesses, with \cppinline{is_single_valued_at} discharging single-valuedness pointwise.
+A function is thus not a distinct primitive but a relation satisfying both properties, so \cppinline{IsFunction} subsumes \cppinline{IsRelation} --- the inclusion $\{\text{functions}\} \subset \{\text{relations}\}$ made mechanical by concept refinement.
 
 Reifying functions in this manner allows the type system to mechanically verify classical mapping properties at translation time.
 For specialized mappings, codomain membership tests, checking whether a given element $b \in B$ lies within the actual image of the transformation, are easily discharged by the compiler.
@@ -831,12 +831,12 @@ static_assert(p2(3));
 
 For general or non-bijective functions, however, validating whether an arbitrary element $b \in B$ possesses a valid preimage in the domain $A$ presents a severe decidability barrier if evaluated via standard search techniques.
 Rather than treating this as an impassable restriction, the library provides specialized support for functional relations by introducing an architectural gate based on the categorical principle of epic-monic factorization.
-Every general functional arrow $f : A \to B$ can be factored into a regular surjection (epi) onto an intermediate image set $I$, followed by a regular injection (mono) from $I$ into the destination space $B$:
+Every general functional arrow $f : A \to B$ factors into a regular surjection (epi, \cppinline{IsRegularEpi}) onto its image $I$, followed by a regular injection (mono, \cppinline{IsRegularMono}) from $I$ into $B$, the image leg witnessed by \cppinline{IsImageOf}:
 \begin{equation}
 A \twoheadrightarrow I \hookrightarrow B.
 \end{equation}
 
-By requiring the developer to provide this factorization mapping when declaring an arbitrary \cppinline{IsTotalFunction}, the compiler gains the exact structural properties needed to handle general codomain membership tests.
+By requiring the developer to provide this factorization when declaring an arbitrary \cppinline{IsFunction} (equivalently, an \cppinline{IsArrow} whose graph is functional), the compiler gains the exact structural properties needed to handle general codomain membership tests.
 Since the second leg of the factorization chain is a strict injection, it guarantees a one-to-one mapping from the intermediate image set $I$ into the target space $B$, allowing the type-checker to reason about the embedding without exploring the raw domain space $A$.
 Listing~\ref{lst:functional_image_factorization} illustrates how this epic-monic gate and its corresponding image validation assertions are codified within the C++23 template engine.
 
@@ -857,7 +857,7 @@ constexpr Singleton<16u> max_square = max(sqs);
 \end{cpp}
 \end{listing}
 
-By utilizing the \texttt{mono\_retract} partial witness, the compiler can evaluate codomain properties purely as a local lookup on the intermediate type boundary.
+By utilizing the \cppinline{retract} partial witness of an \cppinline{IsRetractableArrow} (the mono leg's partial inverse, returning \cppinline{std::optional}), the compiler evaluates codomain membership as a local lookup on the image boundary rather than a search of the domain.
 This structural approach ensures that even highly complex or non-linear functional images can be safely validated at compile time.
 The type system can consequently treat arbitrary transformations as well-behaved objects, laying a reliable foundation for the universal-algebraic operators developed in the subsequent section.
 
@@ -1626,8 +1626,8 @@ Axiom 9: Power Set / Exponential Restriction (\(\beth _{1}\)). For any set X, th
 
 % STUB (follow-up PR): supporting detail dual to §\ref{sec:relations_functions_blueprint}.
 % To collect: the Kleisli / powerset-monad relation internals (the fish operator >>),
-% the epic--monic factorization gates (IsSingleton, mono_retract), and the
-% :relations / :functions partition surfaces.  Kept minimal for now to pin the
+% the epic--monic factorization gates (IsRetractableArrow / retract, IsImageOf),
+% and the :relational / :graph partition surfaces.  Kept minimal for now to pin the
 % section<->appendix correspondence; fleshed out with worked witnesses later.
 
 Dual to §\ref{sec:relations_functions_blueprint}, this appendix collects the supporting detail for the point-free morphism layer: relations presented as Kleisli arrows over the powerset monad, and the epic--monic factorization gates ($A \twoheadrightarrow I \hookrightarrow B$) that make a general function's codomain queries decidable.
