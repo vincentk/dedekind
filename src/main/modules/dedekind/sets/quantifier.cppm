@@ -48,26 +48,20 @@ import :extensional;  // filter (the extensional refinement)
 namespace dedekind::sets {
 
 /**
- * @brief @c set(S, P): the ETCS refinement @f$\{x \in S \mid P(x)\}@f$ --- a
- *        predicate applied to an underlying set.
+ * @brief @c set(S, P): the ETCS refinement @f$\{x \in S \mid P(x)\}@f$ over an
+ *        @b extensional carrier --- a callable predicate applied to an
+ *        enumerable domain, realised as a @c filter that preserves @c size().
  *
- * @details Regime-preserving @b coproduct.  The arm is chosen by watertight
- * structural dispatch on how @c P is represented, and each arm returns its own
- * concrete type (so the transparent arm keeps a collapsed @c Ø / @c Singleton
- * type and stays a compile-time result; it is a compile-time sum, not a
- * runtime @c variant).  @c Set{...} is one constrained arm of this sum.
+ * @details This is the @b runtime refinement combinator (pure @c dedekind.sets:
+ * no order specialization needed).  The @b intensional meet of two predicate
+ * sets is spelled @c s @c & @c p directly: @c & is the open meet combinator
+ * whose halfspace collapse is a downstream @c dedekind.order specialization,
+ * and it must be invoked where that specialization is reachable (below
+ * @c order) --- re-wrapping it in an upstream @c sets factory would freeze the
+ * lookup and silently drop the collapse.  So the two refinement regimes have
+ * two honest surfaces: @c & (intensional, order-specialized, compile time) and
+ * @c set (extensional, sets-only, run time).
  */
-// Intensional arm: P is itself a Set, so the refinement is the meet, routed
-// through structured_and, which may collapse to Ø or a Singleton.
-export template <typename S, typename P>
-  requires dedekind::category::IsSet<std::remove_cvref_t<P>> &&
-           requires(const S& s, const P& p) { s & p; }
-constexpr auto set(const S& s, const P& p) {
-  return s & p;
-}
-
-// Extensional arm: P is a callable predicate over an extensional carrier, so
-// the refinement is a filter and the result preserves size().
 export template <typename S, typename P>
   requires(!dedekind::category::IsSet<std::remove_cvref_t<P>>) &&
           requires(P& p, const S& s) { filter(p, s); }
