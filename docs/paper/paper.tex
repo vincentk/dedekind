@@ -700,7 +700,7 @@ On such a domain the quantifier \emph{is} a set operation, and we take that stru
 \qquad
 \forall x \in S.\,P(x) \;:\equiv\; \neg\,\exists x \in S.\,\neg P(x).
 \end{equation}
-In code the comprehension is \cppinline{set(S,P)}, the emptiness test is an overload of \cppinline{Ø::operator==}, and $\forall$ is the double negation of $\exists$: \cppinline{exists(S,P)} is \cppinline{!(Ø{} == set(S,P))} and \cppinline{forall} is \cppinline{!exists(S,!P)}.
+In code the enumerable comprehension is \cppinline{set(S,P)}, the emptiness test is an overload of \cppinline{Ø::operator==}, and $\forall$ is the double negation of $\exists$: \cppinline{exists(S,P)} is \cppinline{!(Ø{} == set(S,P))} and \cppinline{forall} is \cppinline{!exists(S,!P)}.
 There is no separate $\bigvee$/$\bigwedge$ fold.
 The whole reduction lives in how \cppinline{Ø::operator==} decides emptiness, so the Rice boundary is a \emph{type check}: an operand with no suitable overload is a compile error, not a fabricated answer, and the wall never spills into prose.
 
