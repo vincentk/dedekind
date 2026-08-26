@@ -484,9 +484,6 @@ constexpr Ø<Cardinality>
   empty = le_5 & gt_5;
 \end{cpp}
 \end{minipage}
-
-\vspace{0.6em}
-\hrule\vspace{0.4em}
 \begin{cpp}
 // membership on that empty meet, at -O2 — the collapse, made observable:
 define noundef zeroext i1 @witness_empty_halfspace_meet() { ret i1 false }
@@ -497,18 +494,16 @@ define noundef zeroext i1 @witness_empty_halfspace_meet() { ret i1 false }
 \centering
 \begin{tabular}{@{}lcccccc@{}}
 \toprule
-lattice operation & meet & join & complement & bottom & top & order \\
+set & meet & join & complement & bottom & top & order \\
 \midrule
-Boolean lattice $\mathbb{B}$ & $\wedge$ & $\vee$ & $\neg$ & $\bot$ & $\top$ & $\Rightarrow$ \\
-set lattice $\mathcal{P}(A)$ & $\cap$ & $\cup$ & $\complement$ & $\varnothing$ & $A$ & $\subseteq$ \\
-$\mathbf{Trsk}$ (C\texttt{++}) & \cppinline{&} & \cppinline{|} & \cppinline{~} & \cppinline{Ø} & \cppinline{Ω} & \cppinline{<=} \\
+$\mathbb{B}$ & $\wedge$ & $\vee$ & $\neg$ & $\bot$ & $\top$ & $\Rightarrow$ \\
+$\mathcal{P}(A)$ & $\cap$ & $\cup$ & $\complement$ & $\varnothing$ & $A$ & $\subseteq$ \\
+$\mathbf{Trsk}$ & \cppinline{&} & \cppinline{|} & \cppinline{~} & \cppinline{Ø} & \cppinline{Ω} & \cppinline{<=} \\
 \bottomrule
 \end{tabular}
 \caption{
-The set lattice \emph{is} the Boolean lattice, lifted pointwise, and the collapse in Listing~\ref{lst:pruning} is that lift at work.
-An intensional set with decidable membership is its own total characteristic predicate $\chi : A \to \mathbb{B}$, so the powerset lattice over $A$ is the Boolean algebra of predicates, $\mathcal{P}(A) \cong \mathbb{B}^A$.
-Each set operation compiles to the corresponding Boolean operation on predicates, no element materialized; the third row is the $\mathbf{Trsk}$ operator surface that realises it (the order $\subseteq$ is \cppinline{operator<=}, pointwise implication $\chi_S \Rightarrow \chi_T$).
-Undecidable membership lifts the codomain to $\mathbb{B}+\text{U}$, a three-valued Kleene structure that is not Boolean.
+Operator mapping table relating pointwise operations on three lattices: the Booleans (with logical operations), the powersets (with set operations), the reification of powersets $\mathbf{Trsk} \subset \mathbf{Cpp}$ discussed here (Section~\ref{sec:ddk_etcs}, Eqn~\ref{eqn:trsk}).
+The set lattice \emph{is} the Boolean lattice, lifted pointwise, and the collapse in Listing~\ref{lst:pruning} is that lift at work in the form of type-checked \Cpp{23}.
 }
 \label{tab:lattice-lift}
 \end{table}
