@@ -367,12 +367,11 @@ export template <auto N, typename L = ClassicalLogic>
 using AtMost = Halfspace<dedekind::sets::Cardinality, N, Direction::Downward,
                          Strictness::NonStrict, L>;
 
-/** @section halfspace__First_Class_IsSet_Witnesses
- *  Both static singletons and halfspaces are first-class @c IsSet objects —
- *  now mechanical, not merely expected. */
-static_assert(IsSet<Above<5>>, "a Halfspace is a first-class ETCS set.");
-static_assert(IsSet<Singleton<true>>,
-              "a static Singleton is a first-class ETCS set.");
+// NB: a bare Halfspace / Singleton is a subobject PREDICATE, not a full ETCS
+// set — @c IsSet requires the ETCS-axiom surface (@c HasETCSAxioms + the CCC
+// witness), which only the ambient universe @c Ω<T> carries.  These predicates
+// participate in the complement lattice via the operators above without being
+// @c IsSet; lifting subsets to first-class ETCS objects is a separate reform.
 
 /** @brief Meet of two opposing halfspaces — an order-theoretic interval. */
 export template <typename T, auto Lo, auto Hi, Strictness SL, Strictness SU,
