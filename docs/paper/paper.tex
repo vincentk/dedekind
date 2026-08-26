@@ -535,11 +535,24 @@ Listing~\ref{lst:pruning} exhibits a checked-in extract that tests this type-dir
 % ============================================================
 
 With the syntactic behavior of the set comprehension DSL established, what follows formalizes its semantic engine.
-This intensional set layer is the disciplined fragment of §\ref{sec:jlt_posture} intersected with $\mathbf{Set}$, where a set is a predicate and a graph is a relation: 
+This intensional set layer is the disciplined fragment of §\ref{sec:jlt_posture} intersected with $\mathbf{Set}$, where a set is a predicate and a graph is a relation (Definition~\ref{def:etcs-set}).
+
+\begin{center}
+\fbox{\begin{minipage}{0.95\linewidth}
+\begin{definition}[ETCS Set]
+\label{def:etcs-set}
+A \emph{set} over a carrier type $A$ is presented by its characteristic morphism $\chi_S : A \to \Omega$ into the truth object $\Omega$, with membership $x \in S$ meaning $\chi_S(x) = \top$.
+Sets and the functions between them form the category $\mathbf{Set}$ of the elementary theory of the category of sets: a well-pointed topos with a natural-numbers object and choice.
+Its intensional realisation inside $\mathbf{Jlt}$ is
 \begin{equation}
 \label{eqn:trsk}
-\mathbf{Trsk} := \mathbf{Jlt} \cap \mathbf{Set}
+\mathbf{Trsk} := \mathbf{Jlt} \cap \mathbf{Set},
 \end{equation}
+in which the predicate $\chi_S$ \emph{is} the set.
+\end{definition}
+\end{minipage}}
+\end{center}
+
 Loosely speaking, a set here is just its membership test.
 A reader who wants only the API can keep that picture and skim the rest of this subsection, which makes it precise in the language of topos theory.
 The more common description of sets, the one \cppinline{std::set} follows, is Zermelo-Fraenkel (ZF): a set is built from the bottom up from atoms such as $\emptyset$ via union and intersection, with membership tested by an element relation ($\in$).
