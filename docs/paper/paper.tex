@@ -455,7 +455,7 @@ In this section, we first show working code (§\ref{sec:ddk_comprehension}) to i
 \caption{The two absorbing laws of the complement lattice (Table~\ref{tab:lattice-lift}), as compile-time \textbf{type} collapses on an \textbf{extensional} carrier ($\mathbb{B}$, a static \cppinline{Singleton}) and an \textbf{intensional} one ($\mathbb{N}$, a \cppinline{Halfspace}).
 Complement (\cppinline{~}) turns a subset into its dual; \textbf{union} with the dual round-trips to the universe ($a \cup \neg a = \top$), while \textbf{intersection} with it falls to the empty set ($a \cap \neg a = \bot$).
 The collapse is a type identity, the same on both carriers: no element is ever enumerated.
-\textbf{Bottom:} its payoff in the emitted code --- a membership query on the empty meet constant-folds to \texttt{ret i1 false} at \texttt{-O2} (\texttt{clang++-22}).}
+\textbf{Bottom:} the payoff in the emitted code, a membership query on the empty meet constant-folding to \texttt{ret i1 false} at \texttt{-O2} (\texttt{clang++-22}).}
 \label{lst:pruning}
 \noindent
 \begin{minipage}[t]{0.49\linewidth}
@@ -509,7 +509,7 @@ The set lattice \emph{is} the Boolean lattice, lifted pointwise, and the collaps
 \end{table}
 
 The combinator \cppinline{in} constructs a \emph{scout variable}: in the blackboard form $\{\,x \in \mathbb{N} \mid P(x)\,\}$ it is the bound variable $x$, a stand-in for an arbitrary element that a predicate then constrains.
-It carries its domain in its own type --- \cppinline{BoundScout} is an empty structural type whose type-level ambient records the domain --- so the compiler knows what the variable ranges over.
+It carries its domain in its own type (\cppinline{BoundScout} is an empty structural type whose type-level ambient records the domain), so the compiler knows what the variable ranges over.
 A predicate on the scout \emph{is} the set, since a set is its own characteristic morphism: \cppinline{in<ℕ> > bound<5>} already denotes $\{x \in \mathbb{N} \mid x > 5\}$, a \cppinline{Halfspace}, with no wrapper (Listing~\ref{lst:pruning}).
 The set-builder syntax thus survives without a variadic constructor; the \cppinline{Set{scout | predicate}} form is reserved for the opaque case, a raw lambda that does not reify to a set type on its own (§\ref{sec:relations_functions_blueprint}).
 
