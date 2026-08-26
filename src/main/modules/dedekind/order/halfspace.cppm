@@ -265,6 +265,53 @@ struct Singleton {
   }
 };
 
+/** @section halfspace__Static_Singleton_Complement_Lattice
+ *
+ * The absorbing laws of the complement lattice, at the type level, for the
+ * @b static singleton (value in the type).  These make @c Singleton a
+ * first-class member of the lattice the §3 pruning listing exhibits, on a
+ * finite carrier: the collapse is structural (never enumerated), and the
+ * bool-only gates encode the two facts that hold only on a two-element
+ * universe.  Left as free functions, mirroring the @c structured_and surface.
+ */
+
+/** @brief Complement of a static singleton on a @b two-element (bool) carrier:
+ *         the other singleton.  On a larger carrier the complement of a point
+ *         is not a point, so there is deliberately no overload there. */
+export template <auto Value, typename L>
+  requires std::same_as<decltype(Value), bool>
+constexpr auto operator~(const Singleton<Value, L>&) {
+  return Singleton<!Value, L>{};
+}
+
+/** @brief Meet of two static singletons: the same singleton if the values
+ *         coincide, otherwise @c Ø.  Distinct points are disjoint, so the
+ *         empty collapse is structural on @b any carrier. */
+export template <auto A, typename LA, auto B, typename LB>
+  requires std::same_as<decltype(A), decltype(B)>
+constexpr auto operator&(const Singleton<A, LA>& a, const Singleton<B, LB>&) {
+  if constexpr (A == B) {
+    return a;
+  } else {
+    return dedekind::sets::Ø<decltype(A), LA>{};
+  }
+}
+
+/** @brief Join of two static singletons: the same singleton if the values
+ *         coincide; on a @b two-element (bool) carrier two distinct points
+ *         @b cover the universe, so @c UniversalSet.  On a larger carrier the
+ *         join is a two-point set, out of scope here, so no overload fires. */
+export template <auto A, typename LA, auto B, typename LB>
+  requires std::same_as<decltype(A), decltype(B)> &&
+           (A == B || std::same_as<decltype(A), bool>)
+constexpr auto operator|(const Singleton<A, LA>& a, const Singleton<B, LB>&) {
+  if constexpr (A == B) {
+    return a;
+  } else {
+    return dedekind::sets::UniversalSet<bool, LA>{};
+  }
+}
+
 /** @brief Meet of two opposing halfspaces — an order-theoretic interval. */
 export template <typename T, auto Lo, auto Hi, Strictness SL, Strictness SU,
                  typename L = ClassicalLogic>

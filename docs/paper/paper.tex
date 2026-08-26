@@ -458,19 +458,13 @@ The reduction is a type identity, the same on both carriers: no element is ever 
 \begin{minipage}[t]{0.49\linewidth}
 $\mathbb{B} =$ \cppinline{Ω<bool>}: extensional
 \begin{cpp}
+// {true, false}:
 constexpr auto 𝔹 = Ω<bool>;
 static_assert(IsSet<decltype(𝔹)>);
-static_assert(
-  IsSubobjectLattice<decltype(𝔹)>);
-
-constexpr auto B    = Set{in<𝔹> | in<𝔹>};
-constexpr auto notB = 𝔹 - B;   // {false}
-
-// | B: round-trip to the universe
-static_assert((notB | B) == 𝔹);
-
-// & B: collapse to the empty set
-constexpr Ø<𝔹> empty = notB & B;
+constexpr Singleton<true> T    = set{𝔹 | isTrue()};
+constexpr Singleton<false> F = ~T;
+static_assert((F | T) == 𝔹);
+constexpr Ø<𝔹> empty = F & T;
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.49\linewidth}
@@ -478,17 +472,10 @@ $\mathbb{N} =$ \cppinline{Ω<Cardinality>}: intensional
 \begin{cpp}
 // ℕ is a library global
 static_assert(IsSet<decltype(ℕ)>);
-
-
-constexpr auto B = Set{
-  in<ℕ> | in<ℕ> > bound<5>};    // {x>5}
-constexpr auto notB = ℕ - B;   // {x<=5}
-
-// | B: round-trip to the universe
-static_assert((notB | B) == ℕ);
-
-// & B: collapse to the empty set
-constexpr Ø<ℕ> empty = notB & B;
+constexpr Halfspace<5, P> gt_5 = set(ℕ | gt(5))
+constexpr Halfspace<5, L> le_5 = ~gt_5;
+static_assert((le_5 | gt_5 ) == ℕ);
+constexpr Ø<ℕ> empty = le_5 & gt_5;
 \end{cpp}
 \end{minipage}
 \end{listing}

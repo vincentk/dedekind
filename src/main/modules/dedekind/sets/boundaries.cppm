@@ -300,6 +300,17 @@ struct UniversalSet final {
   // Explicitly define equality if <=> is being deleted by members
   constexpr bool operator==(const UniversalSet&) const { return true; }
 
+  // Cross-(L, C) identity: the universe of a carrier T is the universe
+  // regardless of logic species or cardinality annotation.  Enables
+  // `Ω<T> == r` when a complement-pair join elevates r to a UniversalSet<T,
+  // L2, C2> whose C differs from the reference (e.g. bool's Finite vs the
+  // ℵ_0 default), the same spirit as Ø's cross-carrier equality above.
+  template <typename L2, typename C2>
+    requires(!std::same_as<L2, L> || !std::same_as<C2, C>)
+  constexpr bool operator==(const UniversalSet<T, L2, C2>&) const {
+    return true;
+  }
+
   // Note: You'll eventually want overloads for:
   // Universal | Any = Universal
   // Universal & Any = Any
