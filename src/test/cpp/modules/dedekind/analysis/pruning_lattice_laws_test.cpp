@@ -26,7 +26,10 @@ TEST_CASE("complement-lattice absorbing laws collapse (𝔹 and ℕ)",
           "[sets][lattice][pruning]") {
   // ── 𝔹 : extensional carrier — the value is in the type (static Singleton) ──
   {
-    constexpr Singleton<true> T{};      // {true} ⊂ 𝔹
+    static_assert(
+        dedekind::category::IsSet<decltype(Ω<bool>)>);  // the universe IS an
+                                                        // ETCS set
+    constexpr Singleton<true> T{};                      // {true} ⊂ 𝔹
     constexpr Singleton<false> F = ~T;  // complement: the other singleton
     static_assert((F | T) == Ω<bool>);  // | : round-trip to the universe (⊤)
     constexpr Ø<bool> empty = F & T;    // & : collapse to the empty set (⊥)
@@ -35,8 +38,10 @@ TEST_CASE("complement-lattice absorbing laws collapse (𝔹 and ℕ)",
   // ── ℕ : intensional carrier — bare, first-class Halfspaces (telling types)
   // ──
   {
-    constexpr Above<5> gt_5 = in<ℕ> > bound<5>;  // {x > 5} ⊂ ℕ
-    constexpr AtMost<5> le_5 = ~gt_5;            // {x <= 5}, the complement
+    static_assert(
+        dedekind::category::IsSet<decltype(ℕ)>);  // the universe IS an ETCS set
+    constexpr Above<5> gt_5 = in<ℕ> > bound<5>;   // {x > 5} ⊂ ℕ
+    constexpr AtMost<5> le_5 = ~gt_5;             // {x <= 5}, the complement
     static_assert((le_5 | gt_5) == ℕ);  // | : round-trip to the universe (⊤)
     constexpr Ø<Cardinality> empty = le_5 & gt_5;  // & : the empty set (⊥)
     static_assert(Ø<Cardinality>{} == empty);
