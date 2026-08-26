@@ -516,11 +516,12 @@ The set lattice \emph{is} the Boolean lattice lifted pointwise ($\mathcal{P}(A) 
 \label{def:trsk-set}
 In $\mathbf{Trsk}$:
 \begin{enumerate}
-\item A \emph{set} in $\mathbf{Trsk}$ is a regularized carrier type \cppinline{A} in $\mathbf{Jlt}$ satisfying \cppinline{concept IsSetObject} combined with a \textbf{characteristic predicate} that defines set membership.
-\item A \emph{relation} is a subset of the \textbf{Cartesian Product} of the \cppinline{::Domain} and \cppinline{::Codomain}.
-\item A \emph{set} is thus a relation between the carrier type and \cppinline{bool}.
+\item A \emph{set} over a regular (\cppinline{std::regular}) carrier \cppinline{A} in $\mathbf{Jlt}$ is a \emph{subobject} of \cppinline{A}: a type \cppinline{S} satisfying \cppinline{IsSubobject<S, A>}, whose characteristic predicate $\chi_S : A \to \Omega$ decides membership.
+\item A \emph{relation} is a subobject of the Cartesian product \cppinline{::Domain} $\times$ \cppinline{::Codomain}.
+\item A \emph{set} is thus a relation between its carrier and \cppinline{bool}, the graph of $\chi_S$.
 \end{enumerate}
-The definition of \cppinline{concept IsSetObject} follows the definition of $\mathbf{Set}$ in the ETCS sense (Definition~\ref{def:etcs-set}) and so one can write:
+The full ETCS axioms live not on the individual set but on its ambient \emph{universe}: the top element $\Omega\langle A\rangle$ is itself an ETCS set-object, satisfying the heavier \cppinline{concept IsSet} (Definition~\ref{def:etcs-set}).
+A $\mathbf{Trsk}$ set is a subobject of such a universe over a $\mathbf{Jlt}$ carrier, so one can write:
 \begin{equation}
 \label{eqn:trsk}
 \mathbf{Trsk} := \mathbf{Jlt} \cap \mathbf{Set},
