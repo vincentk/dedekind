@@ -447,52 +447,48 @@ In this section, we first show working code (§\ref{sec:ddk_comprehension}) to i
 \label{sec:ddk_comprehension}
 % ============================================================
 
-% Source: src/test/cpp/modules/dedekind/python/showcase_alpha_prime.cpp
+% Source: SPEC — implementation follows before merge (operator-, Ø<ambient>);
+%         verify test src/test/.../pruning_lattice_laws_test.cpp (TBD).
 \begin{listing}[htbp]
-\caption{Two set constructions, evaluated entirely at compile time.
-\textbf{Left:} the canonical Boolean set $\mathbb{B}$, the universal set of \cppinline{bool} (every value of the type), reified as \cppinline{sets::Ω<bool>}.
-The \cppinline{static_assert}s witness that it is an ETCS set (\cppinline{IsSet}) whose subsets form a lattice under $\cup$, $\cap$, and complement (\cppinline{IsSubobjectLattice}, the pre-defined subobject-lattice concept $\mathrm{Sub}(A) \cong \Omega^A$).
-This is the lattice of the \emph{set} operations, not the lattice of \cppinline{bool} itself under $(\vee, \wedge)$.
-\textbf{Right:} set-builder notation modelled in C++23.
-\cppinline{Set{...}} is a variadic constructor; the combinators \cppinline{in} and \cppinline{bound} construct a scout variable and a half-space predicate, so the bar reads as the constraint $x > 5$.
-The intensional set \cppinline{S} lives on the transfinite carrier $\mathbb{N}$, yet its meet with a bounding half-space collapses at compile time to the extensional \cppinline{Singleton<6>}, and its meet with its own complement to the empty set (\cppinline{Ø}): the realisation boundary that \cppinline{constexpr} evaluation crosses.}
+\caption{The two absorbing laws of the complement lattice, witnessed as compile-time collapses on an \textbf{extensional} carrier ($\mathbb{B}$, whose two values enumerate) and an \textbf{intensional} one ($\mathbb{N}$, infinite and predicate-only).
+From the universe, \cppinline{operator-} removes a subset $B$ to reach $\neg B$; \textbf{union} with $B$ round-trips back to the universe ($a \cup \neg a = \top$), while \textbf{intersection} with $B$ falls to the empty set ($a \cap \neg a = \bot$).
+The reduction is a type identity, the same on both carriers: no element is ever enumerated.}
 \label{lst:pruning}
 \noindent
-\begin{minipage}[t]{0.44\linewidth}
-the canonical Boolean set $\mathbb{B}$
+\begin{minipage}[t]{0.49\linewidth}
+$\mathbb{B} =$ \cppinline{Ω<bool>}: extensional
 \begin{cpp}
-constexpr auto 𝔹 = sets::Ω<bool>;
+constexpr auto 𝔹 = Ω<bool>;
 static_assert(IsSet<decltype(𝔹)>);
-static_assert(𝔹(true));
-static_assert(𝔹(false));
-
-// Subsets form a lattice
-// under the set operations |, &, !
-// (not bool's ∨, ∧):
 static_assert(
   IsSubobjectLattice<decltype(𝔹)>);
+
+constexpr auto B    = Set{in<𝔹> | in<𝔹>};
+constexpr auto notB = 𝔹 - B;   // {false}
+
+// | B: round-trip to the universe
+static_assert((notB | B) == 𝔹);
+
+// & B: collapse to the empty set
+constexpr Ø<𝔹> empty = notB & B;
 \end{cpp}
 \end{minipage}\hfill
-\begin{minipage}[t]{0.54\linewidth}
-a comprehension over $\mathbb{N}$
+\begin{minipage}[t]{0.49\linewidth}
+$\mathbb{N} =$ \cppinline{Ω<Cardinality>}: intensional
 \begin{cpp}
-// {x in ℕ | x > 5}: comprehension via the soft alias in<>
-constexpr auto S = Set{in<ℕ> | in<ℕ> > bound<5>};
-static_assert(S.contains(7u));
+// ℕ is a library global
+static_assert(IsSet<decltype(ℕ)>);
 
-// set difference (no C++ '\' operator):
-constexpr auto T =
-  set_difference(S, Set{in<ℕ> | in<ℕ> > bound<10>});
-static_assert(T.contains(8u));    // 5 < 8 <= 10
-static_assert(!T.contains(11u));
 
-// meet collapses to a value singleton at compile time:
-// {x > 5} & {x < 7} on ℕ has cardinality 1
-constexpr Singleton<6> a =
-  S & Set{in<ℕ> | in<ℕ> < bound<7>};
+constexpr auto B = Set{
+  in<ℕ> | in<ℕ> > bound<5>};    // {x>5}
+constexpr auto notB = ℕ - B;   // {x<=5}
 
-// complement via LEM: S & !S is the empty set
-constexpr Ø<Cardinality> b = S & !S;
+// | B: round-trip to the universe
+static_assert((notB | B) == ℕ);
+
+// & B: collapse to the empty set
+constexpr Ø<ℕ> empty = notB & B;
 \end{cpp}
 \end{minipage}
 \end{listing}
