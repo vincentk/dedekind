@@ -494,19 +494,37 @@ define noundef zeroext i1 @witness_empty_halfspace_meet() { ret i1 false }
 \centering
 \begin{tabular}{@{}lcccccc@{}}
 \toprule
-set & meet & join & complement & bottom & top & order \\
+ & meet & join & complement & bottom & top & order \\
 \midrule
+$\mathbf{Set}$ & $\times$ & $\sqcup$ & $\neg$ & $\mathbf{0}$ & $\mathbf{1}$ & $B^A$ \\
 $\mathbb{B}$ & $\wedge$ & $\vee$ & $\neg$ & $\bot$ & $\top$ & $\Rightarrow$ \\
 $\mathcal{P}(A)$ & $\cap$ & $\cup$ & $\complement$ & $\varnothing$ & $A$ & $\subseteq$ \\
 $\mathbf{Trsk}$ & \cppinline{&} & \cppinline{|} & \cppinline{~} & \cppinline{Ø} & \cppinline{Ω} & \cppinline{<=} \\
 \bottomrule
 \end{tabular}
 \caption{
-Operator mapping table relating pointwise operations on three lattices: the Booleans (with logical operations), the powersets (with set operations), the reification of powersets $\mathbf{Trsk} \subset \mathbf{Cpp}$ discussed here (Section~\ref{sec:ddk_etcs}, Eqn~\ref{eqn:trsk}).
-The set lattice \emph{is} the Boolean lattice, lifted pointwise, and the collapse in Listing~\ref{lst:pruning} is that lift at work in the form of type-checked \Cpp{23}.
+Operator-mapping table: each column is one construction spelled in four languages.
+The top row names the categorical (topos / Cartesian-closed) universal constructions of $\mathbf{Set}$ (product, coproduct, negation, initial and terminal objects, exponential); the lattice rows realise them as the Boolean (logical) operations, the powerset (set-theoretic) operations, and the reification $\mathbf{Trsk} \subset \mathbf{Cpp}$ discussed here (Section~\ref{sec:ddk_etcs}, Eqn~\ref{eqn:trsk}).
+The set lattice \emph{is} the Boolean lattice lifted pointwise ($\mathcal{P}(A) \cong \mathbb{B}^A$), and the collapse in Listing~\ref{lst:pruning} is that lift at work in the form of type-checked \Cpp{23}.
 }
 \label{tab:lattice-lift}
 \end{table}
+
+\begin{definition}[$\mathbf{Trsk} := \mathbf{Jlt} \cap \mathbf{Set}$]
+\label{def:trsk-set}
+In $\mathbf{Trsk}$:
+\begin{enumerate}
+\item A \emph{set} in $\mathbf{Trsk}$ is a regularized carrier type \cppinline{A} in $\mathbf{Jlt}$ satisfying \cppinline{concept IsSetObject} combined with a \textbf{characteristic predicate} that defines set membership.
+\item A \emph{relation} is a subset of the \textbf{Cartesian Product} of the \cppinline{::Domain} and \cppinline{::Codomain}.
+\item A \emph{set} is thus a relation between the carrier type and \cppinline{bool}.
+\end{enumerate}
+The definition of \cppinline{concept IsSetObject} follows the definition of $\mathbf{Set}$ in the ETCS sense (Definition~\ref{def:etcs-set}) and so one can write:
+\begin{equation}
+\label{eqn:trsk}
+\mathbf{Trsk} := \mathbf{Jlt} \cap \mathbf{Set},
+\end{equation}
+in which the predicate $\chi_S$ \emph{is} the set.
+\end{definition}
 
 The combinator \cppinline{in} constructs a \emph{scout variable}: in the blackboard form $\{\,x \in \mathbb{N} \mid P(x)\,\}$ it is the bound variable $x$, a stand-in for an arbitrary element that a predicate then constrains.
 It carries its domain in its own type (\cppinline{BoundScout} is an empty structural type whose type-level ambient records the domain), so the compiler knows what the variable ranges over.
@@ -537,21 +555,11 @@ Listing~\ref{lst:pruning} exhibits a checked-in extract that tests this type-dir
 With the syntactic behavior of the set comprehension DSL established, what follows formalizes its semantic engine.
 This intensional set layer is the disciplined fragment of §\ref{sec:jlt_posture} intersected with $\mathbf{Set}$, where a set is a predicate and a graph is a relation (Definition~\ref{def:etcs-set}).
 
-\begin{center}
-\fbox{\begin{minipage}{0.95\linewidth}
+Here, we use the following literature definition~\cite{nlab:nlab}: 
 \begin{definition}[ETCS Set]
 \label{def:etcs-set}
-A \emph{set} over a carrier type $A$ is presented by its characteristic morphism $\chi_S : A \to \Omega$ into the truth object $\Omega$, with membership $x \in S$ meaning $\chi_S(x) = \top$.
-Sets and the functions between them form the category $\mathbf{Set}$ of the elementary theory of the category of sets: a well-pointed topos with a natural-numbers object and choice.
-Its intensional realisation inside $\mathbf{Jlt}$ is
-\begin{equation}
-\label{eqn:trsk}
-\mathbf{Trsk} := \mathbf{Jlt} \cap \mathbf{Set},
-\end{equation}
-in which the predicate $\chi_S$ \emph{is} the set.
+\emph{$\mathbf{Set}$ is a \textbf{well-pointed}, \textbf{Cartesian Closed Category} with a \textbf{subobject classifier}, a \textbf{natural numbers object}, and the \textbf{axiom of choice}}.
 \end{definition}
-\end{minipage}}
-\end{center}
 
 Loosely speaking, a set here is just its membership test.
 A reader who wants only the API can keep that picture and skim the rest of this subsection, which makes it precise in the language of topos theory.
