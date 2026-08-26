@@ -205,6 +205,14 @@ struct Halfspace {
       return hit ? L::True : L::False;
     }
   }
+
+  // Subobject inclusion ι: S ↣ T — the missing arrow that makes a bare
+  // Halfspace a first-class @c IsSubobject (it already IS its own χ via
+  // @c operator() above).  Same Member-unwrap pattern as SingletonSet.
+  struct Member {
+    T value;
+  };
+  constexpr T ι(const Member& m) const { return m.value; }
 };
 
 /**
@@ -263,6 +271,13 @@ struct Singleton {
   constexpr bool operator==(const Singleton<Value, OtherL>&) const {
     return true;
   }
+
+  // Subobject inclusion ι: {value} ↣ Domain — makes the static Singleton a
+  // first-class @c IsSubobject (it already IS its own χ via @c operator()).
+  struct Member {
+    Domain value;
+  };
+  constexpr Domain ι(const Member& m) const { return m.value; }
 };
 
 /** @section halfspace__Static_Singleton_Complement_Lattice
@@ -367,11 +382,15 @@ export template <auto N, typename L = ClassicalLogic>
 using AtMost = Halfspace<dedekind::sets::Cardinality, N, Direction::Downward,
                          Strictness::NonStrict, L>;
 
-// NB: a bare Halfspace / Singleton is a subobject PREDICATE, not a full ETCS
-// set — @c IsSet requires the ETCS-axiom surface (@c HasETCSAxioms + the CCC
-// witness), which only the ambient universe @c Ω<T> carries.  These predicates
-// participate in the complement lattice via the operators above without being
-// @c IsSet; lifting subsets to first-class ETCS objects is a separate reform.
+// A bare Halfspace / Singleton is a first-class @c IsSubobject (ι: S ↣ A plus
+// its own χ), though NOT a full ETCS @c IsSet: @c IsSet additionally demands
+// the ETCS-axiom surface (@c HasETCSAxioms + the CCC witness) that only the
+// ambient universe @c Ω<T> carries.  Subobject-hood is the right membership —
+// it is what the complement-lattice operators above operate on.
+static_assert(IsSubobject<Above<5>, dedekind::sets::Cardinality>,
+              "a Halfspace is a first-class subobject ι: S ↣ ℕ.");
+static_assert(IsSubobject<Singleton<true>, bool>,
+              "a static Singleton is a first-class subobject.");
 
 /** @brief Meet of two opposing halfspaces — an order-theoretic interval. */
 export template <typename T, auto Lo, auto Hi, Strictness SL, Strictness SU,

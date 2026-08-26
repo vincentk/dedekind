@@ -447,35 +447,41 @@ In this section, we first show working code (§\ref{sec:ddk_comprehension}) to i
 \label{sec:ddk_comprehension}
 % ============================================================
 
-% Source: SPEC — implementation follows before merge (operator-, Ø<ambient>);
-%         verify test src/test/.../pruning_lattice_laws_test.cpp (TBD).
+% Source: src/test/cpp/modules/dedekind/analysis/pruning_lattice_laws_test.cpp
+%         (Ø<bool>/Ø<Cardinality> spelling; the ambient Ø<𝔹>/Ø<ℕ> is a
+%          pending empty-set-on-ambient migration.)
 \begin{listing}[htbp]
-\caption{The two absorbing laws of the complement lattice, witnessed as compile-time collapses on an \textbf{extensional} carrier ($\mathbb{B}$, whose two values enumerate) and an \textbf{intensional} one ($\mathbb{N}$, infinite and predicate-only).
-From the universe, \cppinline{operator-} removes a subset $B$ to reach $\neg B$; \textbf{union} with $B$ round-trips back to the universe ($a \cup \neg a = \top$), while \textbf{intersection} with $B$ falls to the empty set ($a \cap \neg a = \bot$).
-The reduction is a type identity, the same on both carriers: no element is ever enumerated.}
+\caption{The two absorbing laws of the complement lattice, as compile-time \textbf{type} collapses on an \textbf{extensional} carrier ($\mathbb{B}$, a static \cppinline{Singleton}) and an \textbf{intensional} one ($\mathbb{N}$, a \cppinline{Halfspace}).
+Complement (\cppinline{~}) turns a subset into its dual; \textbf{union} with the dual round-trips to the universe ($a \cup \neg a = \top$), while \textbf{intersection} with it falls to the empty set ($a \cap \neg a = \bot$).
+The collapse is a type identity, the same on both carriers: no element is ever enumerated.}
 \label{lst:pruning}
 \noindent
 \begin{minipage}[t]{0.49\linewidth}
 $\mathbb{B} =$ \cppinline{Ω<bool>}: extensional
 \begin{cpp}
-// {true, false}:
-constexpr auto 𝔹 = Ω<bool>;
-static_assert(IsSet<decltype(𝔹)>);
-constexpr Singleton<true> T    = set{𝔹 | isTrue()};
+// 𝔹 = Ω<bool>, the universe of bool
+static_assert(IsSet<decltype(Ω<bool>)>);
+// {true}: the value is IN the type
+constexpr Singleton<true>  T{};
+// complement: the other singleton
 constexpr Singleton<false> F = ~T;
-static_assert((F | T) == 𝔹);
-constexpr Ø<𝔹> empty = F & T;
+// | : round-trip to the universe
+static_assert((F | T) == Ω<bool>);
+// & : the empty set, by type
+constexpr Ø<bool> empty = F & T;
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.49\linewidth}
 $\mathbb{N} =$ \cppinline{Ω<Cardinality>}: intensional
 \begin{cpp}
-// ℕ is a library global
+// ℕ = Ω<Cardinality>, a library global
 static_assert(IsSet<decltype(ℕ)>);
-constexpr Halfspace<5, P> gt_5 = set(ℕ | gt(5))
-constexpr Halfspace<5, L> le_5 = ~gt_5;
-static_assert((le_5 | gt_5 ) == ℕ);
-constexpr Ø<ℕ> empty = le_5 & gt_5;
+constexpr Above<5>  gt_5 = in<ℕ> > bound<5>;
+constexpr AtMost<5> le_5 = ~gt_5;  // {x<=5}
+// | : round-trip to all of ℕ
+static_assert((le_5 | gt_5) == ℕ);
+// & : the empty set, by type
+constexpr Ø<Cardinality> empty = le_5 & gt_5;
 \end{cpp}
 \end{minipage}
 \end{listing}
