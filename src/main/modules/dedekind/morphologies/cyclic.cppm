@@ -170,6 +170,39 @@ struct Modular {
   }
 };
 
+/**
+ * @struct Congruence
+ * @brief The residue-class predicate @f$x \equiv R \pmod N@f$: the
+ *        characteristic map of the fiber of the reduction
+ *        @f$\mathbb{Z} \twoheadrightarrow \mathbb{Z}/N\mathbb{Z} =@f$
+ *        @c Modular<N> over the residue @c R.
+ *
+ * @details @c isEven is @c Congruence<2,0>.  Because the predicate factors
+ * through the @b finite quotient @c Modular<N> (the reduction is the
+ * @c Modular<N> constructor), a quantifier over an @b infinite carrier reduces
+ * to exhausting the @c N residues: @f$\exists@f$ and @f$\forall@f$ both become
+ * decidable in finite time (see the @c sets:quantifier finite-carrier path and
+ * the numbers-level @c Ω<Cardinality> bridge).  The modulus @c N is carried in
+ * the type, so the compiler sees the quotient; an opaque lambda could not.
+ *
+ * FIXME(#797): promote to @c IsPredicate (add @c Domain / @c Codomain) as part
+ * of the predicate-as-arrow tightening; may later subsume into a
+ * factor-through-quotient combinator (§3 morphisms / §4 quotients).
+ */
+export template <auto N, decltype(N) R = decltype(N){}>
+struct Congruence {
+  template <typename X>
+  constexpr bool operator()(const X& x) const {
+    return Modular<N>{static_cast<typename Modular<N>::machine_type>(x)} ==
+           Modular<N>{R};
+  }
+};
+
+// Congruence factors through the finite quotient Modular<N>: witnessed at the
+// lowest rung, on the reduction alone (no quantifier machinery yet).
+static_assert(Congruence<2, 0>{}(4u), "4 ≡ 0 (mod 2): even.");
+static_assert(!Congruence<2, 0>{}(3u), "3 ≢ 0 (mod 2): odd.");
+
 }  // namespace dedekind::morphologies
 
 namespace dedekind::category {
