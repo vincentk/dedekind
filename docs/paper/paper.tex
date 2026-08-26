@@ -443,7 +443,7 @@ Figure~\ref{fig:hub-spoke-bnz} in the introduction previews the functionality th
 In this section, we first show working code (§\ref{sec:ddk_comprehension}) to illustrate the expected payoff, then discuss the theoretical foundations in set theory, specifically the category-theoretical elementary theory of sets (§\ref{sec:ddk_etcs}).
 
 % ============================================================
-\subsection{A Set Comprehension DSL}
+\subsection{An Algebra of Sets}
 \label{sec:ddk_comprehension}
 % ============================================================
 
@@ -508,15 +508,13 @@ The set lattice \emph{is} the Boolean lattice, lifted pointwise, and the collaps
 \label{tab:lattice-lift}
 \end{table}
 
-The combinator \cppinline{in} constructs a \emph{scout variable}.
-In the blackboard form $\{\,x \in \mathbb{N} \mid P(x)\,\}$ it plays the role of the bound variable $x$: a stand-in for an arbitrary element of the domain, which the bar then constrains by a predicate.
-What makes it more than a name is that it carries its domain in its own type, so the compiler knows what the variable ranges over.
-Informally it just names an arbitrary element of that domain.
-Formally it is the handle that the comprehension pipe (\cppinline{operator|}) binds to a predicate: in the code, \cppinline{BoundScout} is an empty structural type whose type-level ambient records the domain, gated by \cppinline{IsArrow} since a set is its own characteristic morphism.
+The combinator \cppinline{in} constructs a \emph{scout variable}: in the blackboard form $\{\,x \in \mathbb{N} \mid P(x)\,\}$ it is the bound variable $x$, a stand-in for an arbitrary element that a predicate then constrains.
+It carries its domain in its own type --- \cppinline{BoundScout} is an empty structural type whose type-level ambient records the domain --- so the compiler knows what the variable ranges over.
+A predicate on the scout \emph{is} the set, since a set is its own characteristic morphism: \cppinline{in<ℕ> > bound<5>} already denotes $\{x \in \mathbb{N} \mid x > 5\}$, a \cppinline{Halfspace}, with no wrapper (Listing~\ref{lst:pruning}).
+The set-builder syntax thus survives without a variadic constructor; the \cppinline{Set{scout | predicate}} form is reserved for the opaque case, a raw lambda that does not reify to a set type on its own (§\ref{sec:relations_functions_blueprint}).
 
-This predicate-composition algebra is not merely a shorthand notation; it functions as an embedded syntax engine that allows the declaration of infinite spaces at the type level.
-When operations like intersection (\texttt{\&}), union, or complement (\texttt{!}) are written as boolean logic combinations, the compiler parses the abstract syntax tree into a unified predicate chain.
-The template engine expands these composed expressions during compilation, triggering type-level constant folding and dead-code elimination.
+The set operations are then the algebra on these predicates.
+Intersection (\cppinline{&}), union (\cppinline{|}) and complement (\cppinline{~}) compose the scouts' predicates into one type-level predicate, which the template engine reduces during instantiation: it constant-folds, and on a complement pair collapses to \cppinline{Ø} or the universe by type (Listing~\ref{lst:pruning}).
 
 The correspondence is exact on the decidable track, and it is what makes the algebra optimizable.
 Because a set is its predicate, the lattice of sets over a domain $A$ with decidable membership is the Boolean lattice lifted pointwise, $\mathcal{P}(A) \cong \mathbb{B}^A$ (Table~\ref{tab:lattice-lift}).
