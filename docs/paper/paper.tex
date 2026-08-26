@@ -450,10 +450,12 @@ In this section, we first show working code (§\ref{sec:ddk_comprehension}) to i
 % Source: src/test/cpp/modules/dedekind/analysis/pruning_lattice_laws_test.cpp
 %         (Ø<bool>/Ø<Cardinality> spelling; the ambient Ø<𝔹>/Ø<ℕ> is a
 %          pending empty-set-on-ambient migration.)
+%   Bottom IR panel: .../python/showcase_03_halfspace_contradiction.ll
 \begin{listing}[htbp]
-\caption{The two absorbing laws of the complement lattice, as compile-time \textbf{type} collapses on an \textbf{extensional} carrier ($\mathbb{B}$, a static \cppinline{Singleton}) and an \textbf{intensional} one ($\mathbb{N}$, a \cppinline{Halfspace}).
+\caption{The two absorbing laws of the complement lattice (Table~\ref{tab:lattice-lift}), as compile-time \textbf{type} collapses on an \textbf{extensional} carrier ($\mathbb{B}$, a static \cppinline{Singleton}) and an \textbf{intensional} one ($\mathbb{N}$, a \cppinline{Halfspace}).
 Complement (\cppinline{~}) turns a subset into its dual; \textbf{union} with the dual round-trips to the universe ($a \cup \neg a = \top$), while \textbf{intersection} with it falls to the empty set ($a \cap \neg a = \bot$).
-The collapse is a type identity, the same on both carriers: no element is ever enumerated.}
+The collapse is a type identity, the same on both carriers: no element is ever enumerated.
+\textbf{Bottom:} its payoff in the emitted code --- a membership query on the empty meet constant-folds to \texttt{ret i1 false} at \texttt{-O2} (\texttt{clang++-22}).}
 \label{lst:pruning}
 \noindent
 \begin{minipage}[t]{0.49\linewidth}
@@ -482,7 +484,34 @@ constexpr Ø<Cardinality>
   empty = le_5 & gt_5;
 \end{cpp}
 \end{minipage}
+
+\vspace{0.6em}
+\hrule\vspace{0.4em}
+\begin{cpp}
+// membership on that empty meet, at -O2 — the collapse, made observable:
+define noundef zeroext i1 @witness_empty_halfspace_meet() { ret i1 false }
+\end{cpp}
 \end{listing}
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}lcccccc@{}}
+\toprule
+lattice operation & meet & join & complement & bottom & top & order \\
+\midrule
+Boolean lattice $\mathbb{B}$ & $\wedge$ & $\vee$ & $\neg$ & $\bot$ & $\top$ & $\Rightarrow$ \\
+set lattice $\mathcal{P}(A)$ & $\cap$ & $\cup$ & $\complement$ & $\varnothing$ & $A$ & $\subseteq$ \\
+$\mathbf{Trsk}$ (C\texttt{++}) & \cppinline{&} & \cppinline{|} & \cppinline{~} & \cppinline{Ø} & \cppinline{Ω} & \cppinline{<=} \\
+\bottomrule
+\end{tabular}
+\caption{
+The set lattice \emph{is} the Boolean lattice, lifted pointwise, and the collapse in Listing~\ref{lst:pruning} is that lift at work.
+An intensional set with decidable membership is its own total characteristic predicate $\chi : A \to \mathbb{B}$, so the powerset lattice over $A$ is the Boolean algebra of predicates, $\mathcal{P}(A) \cong \mathbb{B}^A$.
+Each set operation compiles to the corresponding Boolean operation on predicates, no element materialized; the third row is the $\mathbf{Trsk}$ operator surface that realises it (the order $\subseteq$ is \cppinline{operator<=}, pointwise implication $\chi_S \Rightarrow \chi_T$).
+Undecidable membership lifts the codomain to $\mathbb{B}+\text{U}$, a three-valued Kleene structure that is not Boolean.
+}
+\label{tab:lattice-lift}
+\end{table}
 
 The combinator \cppinline{in} constructs a \emph{scout variable}.
 In the blackboard form $\{\,x \in \mathbb{N} \mid P(x)\,\}$ it plays the role of the bound variable $x$: a stand-in for an arbitrary element of the domain, which the bar then constrains by a predicate.
@@ -501,43 +530,11 @@ Where membership is undecided the codomain lifts to $\mathbb{B}+\text{U}$ and th
 Optimization is then the simplification of these predicate compositions at translation time: an empty meet prunes, $\bot \wedge p \Rightarrow \bot$, and constant conjuncts fold away.
 The induced order, set inclusion, is pointwise implication $\chi_S \Rightarrow \chi_T$; it ranges over the domain, and keeping it decidable is the task of the specializations in §\ref{sec:ddk_etcs}.
 
-\begin{table}[htbp]
-\centering
-\begin{tabular}{@{}lccccc@{}}
-\toprule
-lattice operation & meet & join & complement & bottom & top \\
-\midrule
-Boolean lattice $\mathbb{B}$ & $\wedge$ & $\vee$ & $\neg$ & $\bot$ & $\top$ \\
-set lattice $\mathcal{P}(A)$ & $\cap$ & $\cup$ & $\complement$ & $\varnothing$ & $A$ \\
-\bottomrule
-\end{tabular}
-\caption{
-On the decidable track, the set lattice is the Boolean lattice, lifted pointwise.
-An intensional set with decidable membership is its own total characteristic predicate $\chi : A \to \mathbb{B}$, so the powerset lattice over $A$ is the Boolean algebra of predicates, $\mathcal{P}(A) \cong \mathbb{B}^A$.
-Each set operation is compiled as the corresponding Boolean operation on predicates, with no element materialized.
-Undecidable membership lifts the codomain to $\mathbb{B}+\text{U}$, a three-valued Kleene structure that is not Boolean.
-}
-\label{tab:lattice-lift}
-\end{table}
-
-% Source: src/test/cpp/modules/dedekind/python/showcase_03_halfspace_contradiction.ll
-\begin{listing}[htbp]
-\caption{LLVM IR for the empty-meet witness in Listing~\ref{lst:pruning} (\texttt{clang++-22 -O2}): the membership query constant-folds to \texttt{ret i1 false}.}
-\label{lst:pruning_ir}
-\begin{cpp}
-define noundef zeroext i1 @witness_empty_halfspace_meet() local_unnamed_addr #0 {
-  ret i1 false
-}
-\end{cpp}
-\end{listing}
-
 The compiler is then allowed to perform aggressive compile-time verification and type-directed optimization.
 When a membership test or set relation is encountered, the template engine expands the composed predicates and evaluates them during compilation.
 If an intersection yields a logical contradiction, the type system reduces the resulting expression directly to the empty set $\emptyset$ before code generation occurs.
 As a direct consequence, downstream runtime membership queries for statically impossible configurations are completely eliminated by the LLVM optimizer backend, collapsing into literal constant returns within the emitted machine instructions.
-Listing~\ref{lst:pruning} exhibits a code base extract that tests this type-directed collapse in practice.
-Listing~\ref{lst:pruning_ir} shows how this collapse is made mechanically observable during the build: the
-witness function for set membership constant-folds to \texttt{ret i1 false} in the emitted LLVM IR.
+Listing~\ref{lst:pruning} exhibits a checked-in extract that tests this type-directed collapse in practice, and its bottom panel makes the collapse mechanically observable during the build: the witness function for set membership constant-folds to \texttt{ret i1 false} in the emitted LLVM IR.
 
 % ============================================================
 \subsection{A Categorical Notion of Set}
@@ -1941,7 +1938,7 @@ is resolved at compile time to exactly one of:
 The meet of the effective lower- and upper-bound halfspaces resolves at compile time into exactly one of three typed constants, selected by the side condition on the pivots: an \cppinline{OrderInterval<a*, b*>} for the generic bounded case ($a^\star < b^\star$); a \cppinline{Singleton<v>} for the degenerate equality case ($a^\star = b^\star = v$) \emph{when $T$ is integral} (the integrality guard from Theorem~\ref{thm:type-directed-collapse-1d} case 2; on a non-integral $T$ the equality case stays in the (degenerate) \cppinline{OrderInterval<a*, a*>} branch instead); and \cppinline{EmptyPredicate<T>} (lifted to $\varnothing$ at the topos level) for the contradiction case ($a^\star > b^\star$).
 The diagram commutes on elements: $x$ inhabits the source meet iff $x$ inhabits the target type the side-condition selects.
 Implementation hook: the meet is realised by \cppinline{structured_and(Halfspace<...,Upward,...>, Halfspace<...,Downward,...>)} in \texttt{dedekind.order:halfspace}, which case-splits the pivot comparison at compile time and returns the corresponding typed constant directly; the empty-result type \cppinline{EmptyPredicate<T>} lives in \texttt{dedekind.order} and lifts to \cppinline{Ø<T,L>} in \texttt{dedekind.sets:boundaries}.
-Mechanically witnessed by Showcase~3 (\cppinline{EmptyPredicate<T>} branch, \texttt{showcase\_03\_halfspace\_contradiction.cpp}) and Showcase~4 (\cppinline{Singleton<6>} branch, the cardinality-1 reduction in Listing~\ref{lst:pruning}); both fold to constant IR returns under \texttt{-O2}, as Listing~\ref{lst:pruning_ir} demonstrates for the empty-meet branch.}
+Mechanically witnessed by Showcase~3 (\cppinline{EmptyPredicate<T>} branch, \texttt{showcase\_03\_halfspace\_contradiction.cpp}) and Showcase~4 (\cppinline{Singleton<6>} branch, the cardinality-1 reduction in Listing~\ref{lst:pruning}); both fold to constant IR returns under \texttt{-O2}, as the bottom panel of Listing~\ref{lst:pruning} demonstrates for the empty-meet branch.}
 \label{fig:type-directed-collapse-1d}
 \end{figure}
 
