@@ -496,7 +496,7 @@ define noundef zeroext i1 @witness_empty_halfspace_meet() { ret i1 false }
 \toprule
  & meet & join & complement & bottom & top & order \\
 \midrule
-$\mathbf{Set}$ & $\times$ & $\sqcup$ & $\neg$ & $\mathbf{0}$ & $\mathbf{1}$ & $B^A$ \\
+$\mathbf{CCC}$ & $\times$ & $\sqcup$ & $\neg$ & $\mathbf{0}$ & $\mathbf{1}$ & $B^A$ \\
 $\mathbb{B}$ & $\wedge$ & $\vee$ & $\neg$ & $\bot$ & $\top$ & $\Rightarrow$ \\
 $\mathcal{P}(A)$ & $\cap$ & $\cup$ & $\complement$ & $\varnothing$ & $A$ & $\subseteq$ \\
 $\mathbf{Trsk}$ & \cppinline{&} & \cppinline{|} & \cppinline{~} & \cppinline{Ø} & \cppinline{Ω} & \cppinline{<=} \\
@@ -504,7 +504,9 @@ $\mathbf{Trsk}$ & \cppinline{&} & \cppinline{|} & \cppinline{~} & \cppinline{Ø}
 \end{tabular}
 \caption{
 Operator-mapping table: each column is one construction spelled in four languages.
-The top row names the categorical (topos / Cartesian-closed) universal constructions of $\mathbf{Set}$ (product, coproduct, negation, initial and terminal objects, exponential); the lattice rows realise them as the Boolean (logical) operations, the powerset (set-theoretic) operations, and the reification $\mathbf{Trsk} \subset \mathbf{Cpp}$ discussed here (Section~\ref{sec:ddk_etcs}, Eqn~\ref{eqn:trsk}).
+The top row names the universal constructions of a Cartesian-closed category (product, coproduct, negation, initial and terminal objects, exponential).
+Each lattice is itself a Cartesian-closed poset, so it realises those constructions concretely: the meet \emph{is} the categorical product, the implication the exponential.
+The rows below give the Boolean (logical), powerset (set-theoretic), and $\mathbf{Trsk} \subset \mathbf{Cpp}$ (Section~\ref{sec:ddk_etcs}, Eqn~\ref{eqn:trsk}) readings.
 The set lattice \emph{is} the Boolean lattice lifted pointwise ($\mathcal{P}(A) \cong \mathbb{B}^A$), and the collapse in Listing~\ref{lst:pruning} is that lift at work in the form of type-checked \Cpp{23}.
 }
 \label{tab:lattice-lift}
