@@ -32,10 +32,11 @@ TEST_CASE("complement-lattice absorbing laws collapse (𝔹 and ℕ)",
     constexpr Ø<bool> empty = F & T;    // & : collapse to the empty set (⊥)
     static_assert(Ø<bool>{} == empty);
   }
-  // ── ℕ : intensional carrier — the complement is a Halfspace ──
+  // ── ℕ : intensional carrier — bare, first-class Halfspaces (telling types)
+  // ──
   {
-    constexpr auto gt_5 = Set{in<ℕ> | in<ℕ> > bound<5>};  // {x > 5} ⊂ ℕ
-    constexpr auto le_5 = ~gt_5;                          // {x <= 5}
+    constexpr Above<5> gt_5 = in<ℕ> > bound<5>;  // {x > 5} ⊂ ℕ
+    constexpr AtMost<5> le_5 = ~gt_5;            // {x <= 5}, the complement
     static_assert((le_5 | gt_5) == ℕ);  // | : round-trip to the universe (⊤)
     constexpr Ø<Cardinality> empty = le_5 & gt_5;  // & : the empty set (⊥)
     static_assert(Ø<Cardinality>{} == empty);

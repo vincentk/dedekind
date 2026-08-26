@@ -312,6 +312,68 @@ constexpr auto operator|(const Singleton<A, LA>& a, const Singleton<B, LB>&) {
   }
 }
 
+/** @section halfspace__Halfspace_Complement_Lattice
+ *
+ * The same complement-lattice surface for the @b halfspace, so a bare
+ * @c Halfspace is a first-class @c IsSet lattice member (not only when wrapped
+ * in a @c Set): the ℕ column of the §3 pruning listing then reads bare and
+ * telling, symmetric with the bool @c Singleton column.  Narrow and gated, so
+ * ordinary (non-complement) halfspace pairs still route to @c structured_and /
+ * @c OrderInterval unchanged.
+ */
+
+// Direction / strictness flips: the pieces of the halfspace complement.
+// ~{x > P} = {x <= P} — opposite direction, flipped strictness.  Internal.
+constexpr Direction flip(Direction d) {
+  return d == Direction::Upward ? Direction::Downward : Direction::Upward;
+}
+constexpr Strictness flip(Strictness s) {
+  return s == Strictness::Strict ? Strictness::NonStrict : Strictness::Strict;
+}
+
+/** @brief Complement of a halfspace: the opposite halfspace. */
+export template <typename T, auto Pivot, Direction D, Strictness S, typename L>
+constexpr auto operator~(const Halfspace<T, Pivot, D, S, L>&) {
+  return Halfspace<T, Pivot, flip(D), flip(S), L>{};
+}
+
+/** @brief Complement-pair join: same pivot, opposite direction, flipped
+ *         strictness is a complement pair whose union is the universe.  The
+ *         @c (D1!=D2 && S1!=S2) gate rules out non-complement pairs (they keep
+ *         routing to @c structured_and / @c OrderInterval). */
+export template <typename T, auto Pivot, Direction D1, Strictness S1,
+                 Direction D2, Strictness S2, typename L>
+  requires(D1 != D2 && S1 != S2)
+constexpr auto operator|(const Halfspace<T, Pivot, D1, S1, L>&,
+                         const Halfspace<T, Pivot, D2, S2, L>&) {
+  return dedekind::sets::UniversalSet<T, L>{};
+}
+
+/** @brief Complement-pair meet: dually, the empty set. */
+export template <typename T, auto Pivot, Direction D1, Strictness S1,
+                 Direction D2, Strictness S2, typename L>
+  requires(D1 != D2 && S1 != S2)
+constexpr auto operator&(const Halfspace<T, Pivot, D1, S1, L>&,
+                         const Halfspace<T, Pivot, D2, S2, L>&) {
+  return dedekind::sets::Ø<T, L>{};
+}
+
+/** @brief Telling aliases for the two ℕ halfspaces the §3 listing uses:
+ *         @c Above<N> = {x>N}, @c AtMost<N> = ~Above<N> = {x<=N}. */
+export template <auto N, typename L = ClassicalLogic>
+using Above = Halfspace<dedekind::sets::Cardinality, N, Direction::Upward,
+                        Strictness::Strict, L>;
+export template <auto N, typename L = ClassicalLogic>
+using AtMost = Halfspace<dedekind::sets::Cardinality, N, Direction::Downward,
+                         Strictness::NonStrict, L>;
+
+/** @section halfspace__First_Class_IsSet_Witnesses
+ *  Both static singletons and halfspaces are first-class @c IsSet objects —
+ *  now mechanical, not merely expected. */
+static_assert(IsSet<Above<5>>, "a Halfspace is a first-class ETCS set.");
+static_assert(IsSet<Singleton<true>>,
+              "a static Singleton is a first-class ETCS set.");
+
 /** @brief Meet of two opposing halfspaces — an order-theoretic interval. */
 export template <typename T, auto Lo, auto Hi, Strictness SL, Strictness SU,
                  typename L = ClassicalLogic>
