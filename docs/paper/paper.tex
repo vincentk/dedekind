@@ -457,31 +457,29 @@ The collapse is a type identity, the same on both carriers: no element is ever e
 \label{lst:pruning}
 \noindent
 \begin{minipage}[t]{0.49\linewidth}
-$\mathbb{B} =$ \cppinline{Ω<bool>}: extensional
 \begin{cpp}
-// 𝔹 = Ω<bool>, the universe of bool
-static_assert(IsSet<decltype(Ω<bool>)>);
-// {true}: the value is IN the type
-constexpr Singleton<true>  T{};
-// complement: the other singleton
-constexpr Singleton<false> F = ~T;
-// | : round-trip to the universe
-static_assert((F | T) == Ω<bool>);
-// & : the empty set, by type
-constexpr Ø<bool> empty = F & T;
+constexpr auto 𝔹 = Ω<bool>;
+static_assert(IsSet<decltype(𝔹)>);
+constexpr Singleton<true> 
+  T{};
+constexpr Singleton<false>
+  F = ~T;
+static_assert((F | T) == 𝔹);
+constexpr Ø<bool>
+  empty = F & T;
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.49\linewidth}
-$\mathbb{N} =$ \cppinline{Ω<Cardinality>}: intensional
 \begin{cpp}
-// ℕ = Ω<Cardinality>, a library global
+constexpr auto ℕ = Ω<Cardinality>;
 static_assert(IsSet<decltype(ℕ)>);
-constexpr Above<5>  gt_5 = in<ℕ> > bound<5>;
-constexpr AtMost<5> le_5 = ~gt_5;  // {x<=5}
-// | : round-trip to all of ℕ
+constexpr Above<5>
+  gt_5 = in<ℕ> > bound<5>;
+constexpr AtMost<5>
+  le_5 = ~gt_5;
 static_assert((le_5 | gt_5) == ℕ);
-// & : the empty set, by type
-constexpr Ø<Cardinality> empty = le_5 & gt_5;
+constexpr Ø<Cardinality>
+  empty = le_5 & gt_5;
 \end{cpp}
 \end{minipage}
 \end{listing}
