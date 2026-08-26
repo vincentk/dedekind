@@ -3,7 +3,7 @@
  *  Witness tests for the @c SetAsProduct seam (#573 slice 2 / #644).
  *
  *  The concept itself lives in @c :category:concrete next to
- *  @c IsSetObject (predicate reading).  The witness uses
+ *  @c IsSubobject (predicate reading).  The witness uses
  *  @c classify<T>(...) from @c :category:topoi (available through the
  *  @c dedekind.category umbrella) to materialise a @c Subobject<A, χ>
  *  test target; the @c :sets layer is the natural home for the test
@@ -34,14 +34,14 @@ TEST_CASE("Concrete: SetAsProduct seam — Set := (Underlying, Classifier)",
 
   SECTION("set object witnesses both readings (predicate and product)") {
     // Predicate reading (sibling): S is a subobject of int.
-    STATIC_CHECK(IsSetObject<decltype(s_even), int>);
+    STATIC_CHECK(IsSubobject<decltype(s_even), int>);
     // Product reading (this slice): S decomposes as (int, classifier-Ω).
     STATIC_CHECK(SetAsProduct<decltype(s_even), int, ClassifierΩ>);
   }
 
   SECTION("Underlying must match S::Domain") {
     // A wrong Underlying must not satisfy the concept (fails on the
-    // IsSetObject prerequisite, not on the Classifier match).
+    // IsSubobject prerequisite, not on the Classifier match).
     STATIC_CHECK_FALSE(SetAsProduct<decltype(s_even), bool, ClassifierΩ>);
   }
 }

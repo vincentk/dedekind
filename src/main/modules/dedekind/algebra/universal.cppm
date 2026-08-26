@@ -453,7 +453,7 @@ static_assert(
  *
  * @code
  *   AlgebraAsProduct<A, Set, Ops...>
- *     := IsSetObject<Set, Set::Domain>        (Set is a set object)
+ *     := IsSubobject<Set, Set::Domain>        (Set is a set object)
  *      ∧ HasCarrier<A, Set::Domain, Ops...>   (A has Set::Domain as
  *                                               carrier with these Ops)
  * @endcode
@@ -467,7 +467,7 @@ static_assert(
  * (@c Rational<I>) ships in #573 slice 4 (#646).
  *
  * @tparam A    The algebra (whole).
- * @tparam Set  The underlying set object (an @c IsSetObject; the left
+ * @tparam Set  The underlying set object (an @c IsSubobject; the left
  *              part of the (Set, Operations) pair).
  * @tparam Ops  The operations on @c Set::Domain (the right part).
  *
@@ -478,7 +478,7 @@ static_assert(
  */
 export template <typename A, typename Set, typename... Ops>
 concept AlgebraAsProduct =
-    dedekind::category::IsSetObject<Set, typename Set::Domain> &&
+    dedekind::category::IsSubobject<Set, typename Set::Domain> &&
     HasCarrier<A, typename Set::Domain, Ops...>;
 
 // Pilot witness for AlgebraAsProduct ships in #573 slice 4 (#646) ---

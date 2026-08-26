@@ -8,7 +8,7 @@
  *    - @c SetAsProduct: the @e set-level witness is in main code (a
  *      static_assert at the ℚ definition site in rational.cppm, since
  *      ℚ = UniversalSet<Rational<default_integer>> already walks
- *      IsSetObject without adapters).
+ *      IsSubobject without adapters).
  *    - @c AlgebraAsProduct: the @e algebra-level witness lives here in
  *      the test fork, via a thin @c RationalView<I> wrapper that
  *      exposes Rational<I> through the HasCarrier mereology arms
@@ -68,7 +68,7 @@ TEST_CASE(
 
   SECTION("closure tier (no Ops): set-level shape without operation closure") {
     // With no Ops, AlgebraAsProduct reduces to its closure-tier shape:
-    // IsSetObject<ℚ-type, Rational<I>> still holds AND HasCarrier's
+    // IsSubobject<ℚ-type, Rational<I>> still holds AND HasCarrier's
     // no-Ops form (std::regular + IsPartOfRelation + arrow_drill_down)
     // still holds on the View.  Only the per-operation closure
     // requirements simplify away.

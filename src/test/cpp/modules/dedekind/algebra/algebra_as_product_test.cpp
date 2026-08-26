@@ -53,7 +53,7 @@ TEST_CASE("Universal: AlgebraAsProduct seam — Algebra := (Set, Operations)",
 
   SECTION("closure tier (no Ops): set-level shape without operation closure") {
     // With no Ops, AlgebraAsProduct reduces to the closure-tier shape:
-    // IsSetObject<Set, Set::Domain> still holds (Set is a set object) AND
+    // IsSubobject<Set, Set::Domain> still holds (Set is a set object) AND
     // HasCarrier<A, Set::Domain> still holds at its no-Ops form ---
     // std::regular<Set::Domain> plus the IsPartOfRelation parthood witness
     // and the arrow_drill_down projector.  Only the per-operation closure

@@ -71,9 +71,9 @@ TEST_CASE("ETCS: set lattice operations", "[category][etcs][sets]") {
     const auto either = set_union(s_even, s_positive);
     const auto not_even = set_complement(s_even);
 
-    STATIC_CHECK(IsSetObject<decltype(both), int>);
-    STATIC_CHECK(IsSetObject<decltype(either), int>);
-    STATIC_CHECK(IsSetObject<decltype(not_even), int>);
+    STATIC_CHECK(IsSubobject<decltype(both), int>);
+    STATIC_CHECK(IsSubobject<decltype(either), int>);
+    STATIC_CHECK(IsSubobject<decltype(not_even), int>);
 
     CHECK(both.χ(2) == true);
     CHECK(both.χ(-2) == false);

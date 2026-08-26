@@ -49,7 +49,7 @@
  * @c :etcs sits one step down from @c :concrete on this chain: every
  * ETCS set @em is a concrete set object, plus the 10 ETCS axioms
  * (well-pointedness, NNO, choice, ...) that pick out @c Set specifically
- * among concrete categories.  The @c IsSetObject, @c IsConcrete, and
+ * among concrete categories.  The @c IsSubobject, @c IsConcrete, and
  * @c χ-based set-operation machinery (@c set_intersection / @c set_union
  * / @c set_complement / @c in / @c in_via / @c meet / @c join) all live
  * in @c :concrete; this partition imports it and adds the ETCS-specific
@@ -81,7 +81,7 @@ import :adjunction;  // HasAdjunctionShape / IsAdjunction — the bona fide
                      // adjunction machinery used to witness Disc ⊣ U at the
                      // type level (#572 review).
 import :cartesian;
-import :concrete;  // IsSetObject, IsConcrete, set_intersection / set_union /
+import :concrete;  // IsSubobject, IsConcrete, set_intersection / set_union /
                    // set_complement / in / in_via / meet / join — the
                    // concreteness layer (#636), prerequisite for ETCS axioms.
 import :discrete;  // DiscreteCategory<T> — target of the Set ↪ Cat lift (#572)
@@ -97,7 +97,7 @@ import :topoi;
 
 namespace dedekind::category {
 
-// NOTE (#636 re-home): the concreteness layer --- @c IsSetObject,
+// NOTE (#636 re-home): the concreteness layer --- @c IsSubobject,
 // @c HasTernarySupport, @c IsCompatibleSetPair, @c set_intersection / @c
 // set_union / @c set_complement, @c in / @c in_via, @c meet / @c join,
 // @c compose_embedding, and the new @c IsConcrete<C> umbrella ---
@@ -144,10 +144,10 @@ concept HasAxiom6Exponentiation = IsArrowExponential<Exponential<A, A>, A, A>;
 export template <typename S>
 concept HasAxiom7SubobjectClassifier =
     IsSubobject<S, typename S::Domain> && requires {
-      requires IsSetObject<decltype(classify<typename S::Domain>(
+      requires IsSubobject<decltype(classify<typename S::Domain>(
                                classifier_true<typename S::Domain>())),
                            typename S::Domain>;
-      requires IsSetObject<decltype(classify<typename S::Domain>(
+      requires IsSubobject<decltype(classify<typename S::Domain>(
                                classifier_false<typename S::Domain>())),
                            typename S::Domain>;
       requires IsPullback<
@@ -199,7 +199,7 @@ concept IsSplitEpicPair = IsEpicArrow<Epi> && IsArrow<Section> &&
  */
 export template <typename S, typename Epi, typename Section>
 concept HasAxiom10ChoiceSplitEpicWitness =
-    IsSetObject<S, typename S::Domain> && IsSplitEpicPair<Epi, Section> &&
+    IsSubobject<S, typename S::Domain> && IsSplitEpicPair<Epi, Section> &&
     std::same_as<Cod<Epi>, typename S::Domain>;
 
 /**
@@ -285,7 +285,7 @@ concept HasAxiom7PullbackReindexingDefinitionalSurface =
  */
 export template <typename S>
 concept HasAxiom10PowerObjectLattice =
-    IsSetObject<S, typename S::Domain> && IsCompatibleSetPair<S, S> &&
+    IsSubobject<S, typename S::Domain> && IsCompatibleSetPair<S, S> &&
     requires {
       /** @brief @c logic_species typedef anchors the classifier @c L
        *  (Slice 9 — required by @c :lattice::IsSubobjectLattice).
@@ -295,8 +295,8 @@ concept HasAxiom10PowerObjectLattice =
       typename S::logic_species;
       requires IsLogicalSpecies<typename S::logic_species>;
     } && requires(S lhs, S rhs) {
-      requires IsSetObject<decltype(meet(lhs, rhs)), typename S::Domain>;
-      requires IsSetObject<decltype(join(lhs, rhs)), typename S::Domain>;
+      requires IsSubobject<decltype(meet(lhs, rhs)), typename S::Domain>;
+      requires IsSubobject<decltype(join(lhs, rhs)), typename S::Domain>;
     };
 
 /** @section etcs__Axiom_10_Diaconescu_Note
@@ -344,7 +344,7 @@ concept HasAxiom10PowerObjectLattice =
  */
 export template <typename T>
 concept HasETCSAxioms =
-    IsSetObject<T, typename T::Domain> &&
+    IsSubobject<T, typename T::Domain> &&
     HasAxiom1Composition<typename T::Domain> &&
     HasAxiom2Identity<typename T::Domain> &&
     HasAxiom3TerminalObject<typename T::Domain> &&
