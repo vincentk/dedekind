@@ -49,6 +49,7 @@ export module dedekind.sets:quantifier;
 
 import dedekind.category; // IsSet, ambient_set (the domain-is-a-set witness)
 import :boundaries;       // Ø — the emptiness anchor the quantifiers compare to
+import :expressions;  // FiniteBooleanSet — finite-carrier materialisation (𝔹)
 
 namespace dedekind::sets {
 
@@ -105,7 +106,44 @@ constexpr bool forall(const S& s, P p) {
   return !exists(s, [p = std::move(p)](const auto& x) { return !p(x); });
 }
 
+/**
+ * @section quantifier__Finite_Quotient
+ * @brief Quantifiers over a @b finite carrier, decided @b by type through the
+ *        finite quotient rather than by enumeration.
+ *
+ * @details The extensional carrier @f$\mathbb{B}@f$ is the trivial case: its
+ * two values @b are the quotient.  @c set materialises the predicate over
+ * @c false and @c true into a @c FiniteBooleanSet, and @c Ø::operator== reads
+ * off the two stored truths (@f$\varnothing@f$ iff neither is a member).  No
+ * range, no @c begin/end walk: the proof is exhaustion of a 2-element quotient.
+ * The infinite, periodic case (@c isEven factoring through @c Modular<2>) is
+ * the same mechanism over @f$\mathbb{Z}/N\mathbb{Z}@f$; see the §3.1 exhibit.
+ */
+export template <typename L, typename P>
+constexpr auto set(const UniversalSet<bool, L, Finite>&, P p) {
+  return FiniteBooleanSet<L>{p(false), p(true)};
+}
+
+export template <typename L, typename P>
+constexpr bool exists(const UniversalSet<bool, L, Finite>& u, P p) {
+  return !(Ø<bool, L>{} == set(u, std::move(p)));
+}
+
+export template <typename L, typename P>
+constexpr bool forall(const UniversalSet<bool, L, Finite>& u, P p) {
+  return !exists(u, [p = std::move(p)](bool b) { return !p(b); });
+}
+
 /** @section quantifier__Formal_Verification */
+
+// ∀ / ∃ over the finite bool universe Ω<bool> = 𝔹, decided by materialising
+// the predicate over {false,true} (a proof by exhausting the 2-element carrier,
+// NOT by enumeration).  Source for the §3.1 exhibit (lst:quantifiers_def,
+// left).
+static_assert(exists(Ω<bool>, [](bool b) { return b; }),
+              "∃b∈𝔹. b — true is a member.");
+static_assert(!forall(Ω<bool>, [](bool b) { return b; }),
+              "¬∀b∈𝔹. b — false is a counterexample.");
 
 // ∀ / ∃ over a finite integer range (std::views::iota) — the enumerable
 // (runtime-shaped) regime, evaluated here at compile time.
