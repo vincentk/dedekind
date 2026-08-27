@@ -187,12 +187,15 @@ struct Modular {
  * the numbers-level @c Ω<Cardinality> bridge).  The modulus @c N is carried in
  * the type, so the compiler sees the quotient; an opaque lambda could not.
  *
- * FIXME(#797): promote to @c IsPredicate (add @c Domain / @c Codomain) as part
- * of the predicate-as-arrow tightening; may later subsume into a
- * factor-through-quotient combinator (§3 morphisms / §4 quotients).
+ * It is a characteristic morphism (@c IsPredicate): @c Domain is the integer
+ * the reduction consumes, @c Codomain is @c bool.  FIXME(#797): @c % may later
+ * subsume into a factor-through-quotient combinator (§3 morphisms / §4
+ * quotients).
  */
 export template <auto N, decltype(N) R = decltype(N){}>
 struct Congruence {
+  using Domain = decltype(N);  // the integer the reduction consumes
+  using Codomain = bool;       // membership truth
   template <typename X>
   constexpr bool operator()(const X& x) const {
     return Modular<N>{static_cast<typename Modular<N>::machine_type>(x)} ==
@@ -204,6 +207,8 @@ struct Congruence {
 // lowest rung, on the reduction alone (no quantifier machinery yet).
 static_assert(Congruence<2, 0>{}(4u), "4 ≡ 0 (mod 2): even.");
 static_assert(!Congruence<2, 0>{}(3u), "3 ≢ 0 (mod 2): odd.");
+static_assert(dedekind::category::IsPredicate<Congruence<2, 0>>,
+              "Congruence is a characteristic morphism (IsPredicate).");
 
 }  // namespace dedekind::morphologies
 

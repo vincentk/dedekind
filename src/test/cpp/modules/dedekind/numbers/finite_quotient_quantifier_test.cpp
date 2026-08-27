@@ -32,7 +32,8 @@ TEST_CASE("finite-quotient quantifiers decide exists/forall by type on 𝔹 and 
   }
 
   SECTION("𝔹 = Ω<bool>: finite carrier, materialised over {false, true}") {
-    auto isTrue = [](bool b) { return b; };
+    Singleton<true>
+        isTrue{};  // structural IsPredicate on bool (the set {true})
     CHECK(exists(Ω<bool>, isTrue));  // (A) {b | b} ≠ ∅ — true is a member
     CHECK_FALSE(forall(Ω<bool>,
                        isTrue));  // (B) {b | b} ≠ S — false is a counterexample

@@ -573,26 +573,28 @@ An operand that is neither a finite carrier nor a predicate factoring through a 
 
 \begin{listing}[htbp]
 \caption{The quantifiers \emph{are} set operations (Eqn~\ref{eqn:quantifiers}), decided \emph{by type} through a finite quotient.
-\textbf{Top:} the two lattice bounds: \cppinline{exists} tests \cppinline{set(S,P)} against $\varnothing$ (A), \cppinline{forall} against the input set $S$ (B); each recovers its partner by complementing the predicate, \cppinline{!P}.
-\textbf{Bottom:} over $\mathbb{B}$ (a finite carrier) \cppinline{set} materialises the two truth values; over $\mathbb{N}$, \cppinline{isDivisibleBy3} factors through $\mathbb{Z}/3\mathbb{Z} = $ \cppinline{Modular<3>}, so $\exists$ and $\forall$ exhaust its three residues.  Neither enumerates $\mathbb{N}$.}
+\textbf{Top:} the generic quantifiers over an \cppinline{IsSet} domain \cppinline{S} and an \cppinline{IsPredicate} query \cppinline{P}, as the two lattice bounds: (A) \cppinline{exists} tests \cppinline{set(S,P)} against $\varnothing$, (B) \cppinline{forall} against the input set $S$; each recovers its partner by complementing the predicate, \cppinline{!P}.
+\textbf{Bottom:} over $\mathbb{B}$ (a finite carrier) the structural predicate \cppinline{Singleton<true>} materialises over the two truth values; over $\mathbb{N}$, \cppinline{isDivisibleBy3} factors through $\mathbb{Z}/3\mathbb{Z} = $ \cppinline{Modular<3>}, so $\exists$ and $\forall$ exhaust its three residues.  Neither enumerates $\mathbb{N}$.}
 \label{lst:quantifiers_def}
 \noindent
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-// ∃x∈S.P := {x|P} ≠ ∅   (A)
+// (A) ∅-anchored
+template <IsSet S, IsPredicate P>
 constexpr bool
-exists(S s, P p) {
+exists(S s, P p) { // {x∈S|P}≠∅
   return !(Ø{} == set(s,p));
-}  // = !forall(s, !p)
+}  // ∀ = !exists(s, !p)
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-// ∀x∈S.P := {x|P} == S   (B)
+// (B) S-anchored
+template <IsSet S, IsPredicate P>
 constexpr bool
-forall(S s, P p) {
+forall(S s, P p) { // {x∈S|P}==S
   return set(s,p) == s;
-}  // = !exists(s, !p)
+}  // ∃ = !forall(s, !p)
 \end{cpp}
 \end{minipage}
 
@@ -602,8 +604,7 @@ forall(S s, P p) {
 \begin{cpp}
 // 𝔹 = Ω<bool> : finite carrier
 constexpr auto 𝔹 = Ω<bool>;
-constexpr auto isTrue =
-  [](bool b){ return b; };
+Singleton<true> isTrue;  // the {true}
 static_assert( exists(𝔹, isTrue));
 static_assert(!forall(𝔹, isTrue));
 // set → FiniteBooleanSet, 2 truths

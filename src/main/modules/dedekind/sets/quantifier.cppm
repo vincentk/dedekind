@@ -124,26 +124,31 @@ constexpr auto set(const UniversalSet<bool, L, Finite>&, P p) {
   return FiniteBooleanSet<L>{p(false), p(true)};
 }
 
-export template <typename L, typename P>
-constexpr bool exists(const UniversalSet<bool, L, Finite>& u, P p) {
-  return !(Ø<bool, L>{} == set(u, std::move(p)));
+// A quantifier is one comparison of the comprehension @c set(S,P) against a
+// lattice bound (Eqn 2): @c exists tests against @c ∅ (scheme A), @c forall
+// against the input set @c S (scheme B); each recovers its partner by
+// complementing the predicate, @c !P.  Generic over any @c IsSet domain @c S
+// and @c IsPredicate query @c P for which a @c set() comprehension is defined;
+// the per-carrier @c set() overloads (bool here, ℤ/Nℤ in :numbers) do the work.
+export template <dedekind::category::IsSet S, dedekind::category::IsPredicate P>
+  requires requires(const S& s, P p) { set(s, p); }
+constexpr bool exists(const S& s, P p) {
+  return !(Ø<typename S::Domain, typename S::logic_species>{} ==
+           set(s, std::move(p)));  // (A): {x ∈ S | P(x)} ≠ ∅
 }
 
-export template <typename L, typename P>
-constexpr bool forall(const UniversalSet<bool, L, Finite>& u, P p) {
-  return set(u, std::move(p)) == u;  // scheme (B): {x | P(x)} == Ω
+export template <dedekind::category::IsSet S, dedekind::category::IsPredicate P>
+  requires requires(const S& s, P p) { set(s, p); }
+constexpr bool forall(const S& s, P p) {
+  return set(s, std::move(p)) == s;  // (B): {x ∈ S | P(x)} == S
 }
 
 /** @section quantifier__Formal_Verification */
 
-// ∀ / ∃ over the finite bool universe Ω<bool> = 𝔹, decided by materialising
-// the predicate over {false,true} (a proof by exhausting the 2-element carrier,
-// NOT by enumeration).  Source for the §3.1 exhibit (lst:quantifiers_def,
-// left).
-static_assert(exists(Ω<bool>, [](bool b) { return b; }),
-              "∃b∈𝔹. b — true is a member.");
-static_assert(!forall(Ω<bool>, [](bool b) { return b; }),
-              "¬∀b∈𝔹. b — false is a counterexample.");
+// The finite-quotient witnesses (Ω<bool> with a structural Singleton predicate,
+// Ω<Cardinality> with a Congruence) live in :numbers, where the structural
+// IsPredicate operands (dedekind.order Singleton, morphologies Congruence) are
+// in scope.  Source for the §3.1 exhibit (lst:quantifiers_def).
 
 // ∀ / ∃ over a finite integer range (std::views::iota) — the enumerable
 // (runtime-shaped) regime, evaluated here at compile time.

@@ -582,31 +582,32 @@ constexpr auto set(const UniversalSet<Cardinality, L, C>&,
   return FiniteResidueSet<N, L>{at};
 }
 
-/** @brief ∃ over ℕ, scheme (A): @f$\{x\mid P(x)\} \neq \varnothing@f$. */
-export template <typename L, typename C, auto N, auto R>
-constexpr bool exists(const UniversalSet<Cardinality, L, C>& u,
-                      dedekind::morphologies::Congruence<N, R> c) {
-  return !(Ø<Cardinality, L>{} == set(u, c));
-}
-
-/** @brief ∀ over ℕ, scheme (B): @f$\{x\mid P(x)\} = \Omega@f$. */
-export template <typename L, typename C, auto N, auto R>
-constexpr bool forall(const UniversalSet<Cardinality, L, C>& u,
-                      dedekind::morphologies::Congruence<N, R> c) {
-  return set(u, c) == u;
-}
+// ∃ / ∀ over Ω<Cardinality> are the generic quantifiers of :quantifier
+// (template <IsSet S, IsPredicate P>); a Congruence is IsPredicate and the
+// set() overload above supplies the comprehension, so no ℕ-specific exists /
+// forall overload is needed.
 
 }  // namespace dedekind::sets
 
 namespace dedekind::numbers {
 
-// The §3.1 exhibit (lst:quantifiers_def, right): isDivBy3 built with the
-// telling scout sugar  in<ℕ> % Modular<3> == bound<0>,  which reifies to
-// Congruence<3,0> (carrying the modulus in the type).  Over the infinite ℕ, ∃/∀
-// are decided in FINITE time by the three residues of ℤ/3ℤ: ∃ finds residue 0
-// against the ∅ bound; ∀ fails on residues 1,2 against the S bound.  The
-// exists/forall overloads accept only a Congruence, so these witnesses also
-// prove the sugar reifies correctly.
+// The §3.1 exhibit (lst:quantifiers_def), decided by the generic
+// template <IsSet S, IsPredicate P> exists / forall of :quantifier against the
+// two lattice bounds (Eqn 2): ∃ vs ∅ (A), ∀ vs the input set S (B).
+
+// 𝔹 = Ω<bool>, a finite carrier: the structural predicate isTrue =
+// Singleton<true> (IsPredicate) materialises over {false, true}.
+inline constexpr dedekind::order::Singleton<true> isTrue{};
+static_assert(dedekind::sets::exists(dedekind::sets::Ω<bool>, isTrue),
+              "∃b∈𝔹. b — true is a member.");
+static_assert(!dedekind::sets::forall(dedekind::sets::Ω<bool>, isTrue),
+              "¬∀b∈𝔹. b — false is a counterexample.");
+
+// ℕ = Ω<Cardinality>, infinite: isDivBy3 built with the telling scout sugar
+// in<ℕ> % Modular<3> == bound<0>, which reifies to Congruence<3,0> (an
+// IsPredicate carrying the modulus).  ∃/∀ are decided in FINITE time by the
+// three residues of ℤ/3ℤ: ∃ finds residue 0 against ∅; ∀ fails on residues 1,2
+// against S.  These also prove the sugar reifies to a Congruence.
 inline constexpr auto isDivBy3 =
     dedekind::sets::in<dedekind::sets::Ω<dedekind::sets::Cardinality>> %
         dedekind::morphologies::Modular<3>{} ==
