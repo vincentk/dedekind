@@ -600,22 +600,22 @@ constexpr bool forall(const UniversalSet<Cardinality, L, C>& u,
 
 namespace dedekind::numbers {
 
-// The §3.1 exhibit (lst:quantifiers_def, right): isEven built with the telling
-// scout sugar  in<ℕ> % Modular<2> == bound<0>,  which reifies to
-// Congruence<2,0> (carrying the modulus in the type).  Over the infinite ℕ, ∃/∀
-// are decided in FINITE time by the two residues of ℤ/2ℤ: ∃ finds residue 0
-// (even) against the ∅ bound; ∀ fails on residue 1 against the Ω bound.  The
+// The §3.1 exhibit (lst:quantifiers_def, right): isDivBy3 built with the
+// telling scout sugar  in<ℕ> % Modular<3> == bound<0>,  which reifies to
+// Congruence<3,0> (carrying the modulus in the type).  Over the infinite ℕ, ∃/∀
+// are decided in FINITE time by the three residues of ℤ/3ℤ: ∃ finds residue 0
+// against the ∅ bound; ∀ fails on residues 1,2 against the S bound.  The
 // exists/forall overloads accept only a Congruence, so these witnesses also
 // prove the sugar reifies correctly.
-inline constexpr auto isEven =
+inline constexpr auto isDivBy3 =
     dedekind::sets::in<dedekind::sets::Ω<dedekind::sets::Cardinality>> %
-        dedekind::morphologies::Modular<2>{} ==
+        dedekind::morphologies::Modular<3>{} ==
     dedekind::order::bound<0>;
 static_assert(dedekind::sets::exists(
-                  dedekind::sets::Ω<dedekind::sets::Cardinality>, isEven),
-              "∃x∈ℕ. even(x) — residue 0 is even.");
+                  dedekind::sets::Ω<dedekind::sets::Cardinality>, isDivBy3),
+              "∃x∈ℕ. 3∣x — residue 0 is divisible by 3.");
 static_assert(!dedekind::sets::forall(
-                  dedekind::sets::Ω<dedekind::sets::Cardinality>, isEven),
-              "¬∀x∈ℕ. even(x) — residue 1 is a counterexample.");
+                  dedekind::sets::Ω<dedekind::sets::Cardinality>, isDivBy3),
+              "¬∀x∈ℕ. 3∣x — residues 1,2 are counterexamples.");
 
 }  // namespace dedekind::numbers

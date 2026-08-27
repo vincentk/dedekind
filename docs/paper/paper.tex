@@ -562,17 +562,19 @@ First-order quantification is the same reading once more: a quantifier \emph{is}
 &\quad \exists &\;:\equiv\; \neg\,\forall\,\neg\,.
 \end{aligned}
 \end{equation}
-In code the comprehension is \cppinline{set(S,P)} and each bound is an \cppinline{operator==} overload: scheme (A) reads \cppinline{exists(S,P)} as \cppinline{!(Ø{} == set(S,P))}, scheme (B) reads \cppinline{forall(S,P)} as \cppinline{Ω == set(S,P)}, and each derives its partner by complementing the predicate, \cppinline{!P} (Listing~\ref{lst:quantifiers_def}, top row).
-There is no fold: the reduction lives entirely in \cppinline{Ø::operator==}, so the Rice boundary is a \emph{type check}, an operand with no matching overload being a compile error rather than a fabricated answer.
-Both quantifiers are decidable in finite time exactly when the predicate factors through a \emph{finite quotient} of the domain, and the emptiness overload is then a proof by exhausting that quotient.
-A finite carrier is the trivial case: over $\mathbb{B}$, \cppinline{set} materialises the two truth values and \cppinline{Ø ==} reads them off.
-A periodic predicate earns the same finiteness on an infinite carrier: \cppinline{isEven} factors through $\mathbb{N} \twoheadrightarrow \mathbb{Z}/2\mathbb{Z} = $ \cppinline{Modular<2>}, so $\exists$ and $\forall$ reduce to its two residues (Listing~\ref{lst:quantifiers_def}, bottom row).
-The opaque lambda cannot be seen as periodic; the structural congruence, carrying its modulus in the type, can.
+In code the comprehension is \cppinline{set(S,P)} and each formulation is one \cppinline{operator==} against a bound: (A) \cppinline{exists(S,P)} is \cppinline{!(Ø{} == set(S,P))}, (B) \cppinline{forall(S,P)} is \cppinline{set(S,P) == S}, and each recovers its partner by complementing the predicate, \cppinline{!P} (Listing~\ref{lst:quantifiers_def}, top row).
+Read extensionally, as a loop over the elements of the carrier, the two formulations part ways.
+Formulation (A) asks for a single example (for $\exists$), or through $\neg\exists\neg$ a single counterexample (for $\forall$): find one and you are done, so it returns even on an infinite carrier whenever the witness sits at a finite position.
+Formulation (B) asks whether the comprehension fills the whole carrier, which extensionally means enumerating every element, so on an infinite carrier only (A) is on the table.
+Read the same definitions intensionally, as an algebra on the characteristic predicates, and both formulations collapse to one cheap question: does the composed predicate \cppinline{set(S,P)}, the meet $S \wedge P$, reduce to always-false (then $\exists$ fails) or to always-true (then $\forall$ holds)?
+The cost is then not a function of the carrier's cardinality but of the \emph{set relation}, the conjunction or disjunction of the characteristic predicates.
+That is what rescues $\forall$ over an infinite carrier: \cppinline{isDivisibleBy3} is periodic, and it factors through a finite codomain, the modular arithmetic $\mathbb{Z}/3\mathbb{Z}$ (Section~\ref{sec:functions_morphism_factorization}), so the collapse is settled on three residues rather than the countably many naturals, and both $\exists$ and $\forall$ return in finite time (Listing~\ref{lst:quantifiers_def}, bottom row).
+An operand that is neither a finite carrier nor a predicate factoring through a finite quotient matches no overload: the honest Rice wall, a compile error rather than a fabricated answer.
 
 \begin{listing}[htbp]
 \caption{The quantifiers \emph{are} set operations (Eqn~\ref{eqn:quantifiers}), decided \emph{by type} through a finite quotient.
-\textbf{Top:} the two lattice bounds: \cppinline{exists} tests \cppinline{set(S,P)} against $\varnothing$ (A), \cppinline{forall} against $\Omega$ (B); each derives its partner by complementing the predicate, \cppinline{!P}.
-\textbf{Bottom:} over $\mathbb{B}$ (a finite carrier) \cppinline{set} materialises the two truth values; over $\mathbb{N}$, \cppinline{isEven} factors through $\mathbb{Z}/2\mathbb{Z} = $ \cppinline{Modular<2>}, so $\exists$ and $\forall$ exhaust its two residues.  Neither enumerates $\mathbb{N}$.}
+\textbf{Top:} the two lattice bounds: \cppinline{exists} tests \cppinline{set(S,P)} against $\varnothing$ (A), \cppinline{forall} against the input set $S$ (B); each recovers its partner by complementing the predicate, \cppinline{!P}.
+\textbf{Bottom:} over $\mathbb{B}$ (a finite carrier) \cppinline{set} materialises the two truth values; over $\mathbb{N}$, \cppinline{isDivisibleBy3} factors through $\mathbb{Z}/3\mathbb{Z} = $ \cppinline{Modular<3>}, so $\exists$ and $\forall$ exhaust its three residues.  Neither enumerates $\mathbb{N}$.}
 \label{lst:quantifiers_def}
 \noindent
 \begin{minipage}[t]{0.49\linewidth}
@@ -586,10 +588,10 @@ exists(S s, P p) {
 \end{minipage}\hfill
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-// ∀x∈S.P := {x|P} == Ω   (B)
+// ∀x∈S.P := {x|P} == S   (B)
 constexpr bool
 forall(S s, P p) {
-  return Ω == set(s,p);
+  return set(s,p) == s;
 }  // = !exists(s, !p)
 \end{cpp}
 \end{minipage}
@@ -609,13 +611,13 @@ static_assert(!forall(𝔹, isTrue));
 \end{minipage}\hfill
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-// ℕ = Ω<Cardinality> : isEven is
-// periodic → factors thru Modular<2>
+// ℕ=Ω<Cardinality>: isDivisibleBy3 is
+// periodic → factors thru Modular<3>
 constexpr auto ℕ = Ω<Cardinality>;
-constexpr auto isEven =
-  in<ℕ> % Modular<2>{} == bound<0>;
-static_assert( exists(ℕ, isEven));
-static_assert(!forall(ℕ, isEven));
+constexpr auto isDivBy3 =
+  in<ℕ> % Modular<3>{} == bound<0>;
+static_assert( exists(ℕ, isDivBy3));
+static_assert(!forall(ℕ, isDivBy3));
 \end{cpp}
 \end{minipage}
 \end{listing}
