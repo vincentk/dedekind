@@ -503,11 +503,8 @@ $\mathbf{Trsk}$ & \cppinline{s(x)} & \cppinline{&} & \cppinline{|} & \cppinline{
 \bottomrule
 \end{tabular}
 \caption{
-Operator-mapping table: each column is one construction spelled in four languages, the rows ascending from the Boolean lattice $\mathbb{B}$ through the powerset $\mathcal{P}(A)$ and the abstract Cartesian-closed category $\mathbf{CCC}$ to the reification $\mathbf{Trsk} \subset \mathbf{Cpp}$ (Section~\ref{sec:ddk_etcs}, Eqn~\ref{eqn:trsk}).
-The lattice columns are the $\mathbf{CCC}$'s universal constructions realised concretely: the meet \emph{is} the categorical product, the implication the exponential.
-The \emph{member} column is the odd one out: membership $x \in S$ is not a lattice operation but the characteristic morphism $\chi : A \to \Omega$, the relation the whole lattice is built on.
-It is that one relation at four universes: $\in$ set membership over a general $A$, $\chi$ the classifier, \cppinline{s(x)} the set applied to a point, and, since $\mathbb{B} = \mathcal{P}(1)$ is the powerset of a single point, $\models$ satisfaction (membership of the sole point is just whether the proposition holds).
-The set lattice \emph{is} the Boolean lattice lifted pointwise ($\mathcal{P}(A) \cong \mathbb{B}^A$), and the collapse in Listing~\ref{lst:pruning} is that lift at work in the form of type-checked \Cpp{23}.
+Operator-mapping table: each column is one construction, spelled in four languages over the rows $\mathbb{B}$, $\mathcal{P}(A)$, $\mathbf{CCC}$, $\mathbf{Trsk}$ (Section~\ref{sec:ddk_etcs}, Eqn~\ref{eqn:trsk}).
+The \emph{member} column is membership, the characteristic morphism $\chi : A \to \Omega$ ($\models$ satisfaction, $\in$ set membership, $\chi$ the classifier, \cppinline{s(x)} the set applied to a point); the other columns are the lattice operations.
 }
 \label{tab:lattice-lift}
 \end{table}
@@ -529,6 +526,9 @@ A $\mathbf{Trsk}$ set is a subobject of such a universe over a $\mathbf{Jlt}$ ca
 in which the predicate $\chi_S$ \emph{is} the set.
 \end{definition}
 
+Because the carrier is \cppinline{std::regular}, the elements of a $\mathbf{Trsk}$ set are transparent value types with a decidable equality.
+This $\mathbf{Set}$ is therefore a subcategory of structural data types, not the universal mathematical blackboard: richer objects enter by regular representation rather than natively as elements, a function as its graph (item~2, a set of \cppinline{std::pair}s) and an equivalence class as a quotient of such a graph, but not, say, an arbitrary morphism whose equality is undecidable.
+
 The combinator \cppinline{in} constructs a \emph{scout variable}: in the blackboard form $\{\,x \in \mathbb{N} \mid P(x)\,\}$ it is the bound variable $x$, a stand-in for an arbitrary element that a predicate then constrains.
 It carries its domain in its own type (\cppinline{BoundScout} is an empty structural type whose type-level ambient records the domain), so the compiler knows what the variable ranges over.
 A predicate on the scout \emph{is} the set, since a set is its own characteristic morphism: \cppinline{in<ℕ> > bound<5>} already denotes $\{x \in \mathbb{N} \mid x > 5\}$, a \cppinline{Halfspace}, with no wrapper (Listing~\ref{lst:pruning}).
@@ -539,6 +539,8 @@ Intersection (\cppinline{&}), union (\cppinline{|}) and complement (\cppinline{~
 
 The correspondence is exact on the decidable track, and it is what makes the algebra optimizable.
 Because a set is its predicate, the lattice of sets over a domain $A$ with decidable membership is the Boolean lattice lifted pointwise, $\mathcal{P}(A) \cong \mathbb{B}^A$ (Table~\ref{tab:lattice-lift}).
+Each column of that table is one universal construction of a Cartesian-closed category in four languages: the meet \emph{is} the categorical product, the implication the exponential.
+Its \emph{member} column stands apart, being not a lattice operation but the characteristic morphism $\chi : A \to \Omega$ (membership), which degenerates to satisfaction when $A$ is a single point, since $\mathbb{B} = \mathcal{P}(1)$.
 Its top element, the universal set $A$ itself, is reified as \cppinline{sets::Ω<T>}; Listing~\ref{lst:pruning} (left) exhibits the canonical case, the Booleans $\mathbb{B} = $ \cppinline{Ω<bool>}.
 Where membership is undecided the codomain lifts to $\mathbb{B}+\text{U}$ and the operations become the three-valued Kleene ones, a de Morgan structure but no longer a Boolean algebra, since complement has no inverse at $\text{U}$.
 Optimization is then the simplification of these predicate compositions at translation time: an empty meet prunes, $\bot \wedge p \Rightarrow \bot$, and constant conjuncts fold away.
@@ -557,11 +559,10 @@ So $\mathbf{Trsk}$ is strictly more expressive than \cppinline{std::set}, the ex
 This is the extensional/intensional database distinction of deductive databases, \cppinline{std::set} playing the extensional store (EDB, facts) and $\mathbf{Trsk}$ the intensional one (IDB, rules), with materialisation the materialised view~\cite{abiteboul1995foundations}.
 
 \begin{listing}[htbp]
-\caption{$\mathbf{Trsk}$ is strictly more expressive than \cppinline{std::set}, the extensional container it generalises, and the two readings compose.
-\textbf{Left, top} ($\iota$, total): every container \emph{is} a $\mathbf{Trsk}$ set, its \cppinline{contains} the characteristic morphism, so \cppinline{ambient_set(from_std(·))} lifts any \cppinline{std::set} to an \cppinline{IsSet} object.
-\textbf{Left, bottom} ($\mu$, partial): \cppinline{materialise} enumerates the universe and keeps the $\chi$-matches, defined only for a finite, enumerable universe with a decidable predicate, so the naturals do not materialise.
-\textbf{Right} (composition): an extensional set bounds an intensional halfspace, making the universe finite, so their intersection \emph{always} materialises ($\{2,3,5\} \cap \{x>3\} = \{5\}$, $\cap\, \{x>5\} = \varnothing$).
-The price of staying purely intensional is discharging membership by proof, not by enumeration.}
+\caption{The two conversions between \cppinline{std::set} and $\mathbf{Trsk}$, and their composition.
+\textbf{Left, top} ($\iota$): \cppinline{ambient_set(from_std(·))} lifts a \cppinline{std::set} to an \cppinline{IsSet} object.
+\textbf{Left, bottom} ($\mu$): \cppinline{materialise} enumerates a finite universe and keeps the $\chi$-matches.
+\textbf{Right}: the intersection of an extensional set with the intensional halfspaces $\{x>3\}$ and $\{x>5\}$.}
 \label{lst:materialise}
 \noindent
 \begin{minipage}[t]{0.49\linewidth}
@@ -614,13 +615,16 @@ Formulation (A) asks for a single example (for $\exists$), or through $\neg\exis
 Formulation (B) asks whether the comprehension fills the whole carrier, which extensionally means enumerating every element, so on an infinite carrier only (A) is on the table.
 Read the same definitions intensionally, as an algebra on the characteristic predicates, and both formulations collapse to one cheap question: does the composed predicate \cppinline{set(S,P)}, the meet $S \wedge P$, reduce to always-false (then $\exists$ fails) or to always-true (then $\forall$ holds)?
 The cost is then not a function of the carrier's cardinality but of the \emph{set relation}, the conjunction or disjunction of the characteristic predicates.
-That is what rescues $\forall$ over an infinite carrier: \cppinline{isDivisibleBy3} is periodic, and it factors through a finite codomain, the modular arithmetic $\mathbb{Z}/3\mathbb{Z}$ (Section~\ref{sec:functions_morphism_factorization}), so the collapse is settled on three residues rather than the countably many naturals, and both $\exists$ and $\forall$ return in finite time (Listing~\ref{lst:quantifiers_def}, bottom row).
+This can rescue $\forall$ over an infinite carrier, but only in the exceptional case that the predicate factors through a finite quotient.
+\cppinline{isDivisibleBy3} is periodic, so it factors through the finite codomain $\mathbb{Z}/3\mathbb{Z}$ (Section~\ref{sec:functions_morphism_factorization}), the collapse is settled on three residues rather than the countably many naturals, and both $\exists$ and $\forall$ return in finite time (Listing~\ref{lst:quantifiers_def}, bottom row).
+The technique is confined to predicates carrying a \emph{certified} finite quotient or algebraic factorisation; a predicate with none (\cppinline{isPrime}, a Collatz-style recurrence) does not reduce, and $\forall$ over it stays undecidable at compile time.
+Intensional quantification is thus not a general escape from the infinite, only a lever where the predicate's own structure supplies the finite handle.
 An operand that is neither a finite carrier nor a predicate factoring through a finite quotient matches no overload: the honest Rice wall, a compile error rather than a fabricated answer.
 
 \begin{listing}[htbp]
-\caption{The quantifiers \emph{are} set operations (Eqn~\ref{eqn:quantifiers}), decided \emph{by type} through a finite quotient.
-\textbf{Top:} the generic quantifiers over an \cppinline{IsSet} domain \cppinline{S} and an \cppinline{IsPredicate} query \cppinline{P}, as the two lattice bounds: (A) \cppinline{exists} tests \cppinline{set(S,P)} against $\varnothing$, (B) \cppinline{forall} against the input set $S$; each recovers its partner by complementing the predicate, \cppinline{!P}.
-\textbf{Bottom:} over $\mathbb{B}$ (a finite carrier) the structural predicate \cppinline{Singleton<true>} materialises over the two truth values; over $\mathbb{N}$, \cppinline{isDivisibleBy3} factors through $\mathbb{Z}/3\mathbb{Z} = $ \cppinline{Modular<3>}, so $\exists$ and $\forall$ exhaust its three residues.  Neither enumerates $\mathbb{N}$.}
+\caption{The finite-quotient quantifiers.
+\textbf{Top}: the generic \cppinline{exists} / \cppinline{forall} over an \cppinline{IsSet} domain \cppinline{S} and an \cppinline{IsPredicate} query \cppinline{P}, as (A) a test of \cppinline{set(S,P)} against $\varnothing$ and (B) against the input set $S$.
+\textbf{Bottom}: the two worked cases, $\mathbb{B} = $\cppinline{Ω<bool>} with the predicate \cppinline{Singleton<true>}, and $\mathbb{N} = $\cppinline{Ω<Cardinality>} with \cppinline{isDivisibleBy3} (factored through \cppinline{Modular<3>}).}
 \label{lst:quantifiers_def}
 \noindent
 \begin{minipage}[t]{0.49\linewidth}
@@ -867,7 +871,7 @@ General first-order existential ($\exists$) and universal ($\forall$) quantifica
 
 To circumvent this translation-time search bottleneck, the library rejects identifying a relation extensionally as a static subobject pair $R \subseteq A \times B$. Instead, it implements a monadic presentation where a relation is an active functional morphism. Concretely, a binary relation $R$ from a domain set $A$ to a codomain set $B$ is defined as a total arrow of the form $R : A \to \mathcal{P}(B)$, where $\mathcal{P}(B)$ represents the intensional power set of the target space. This architectural choice ensures that when an element $a \in A$ is supplied to the relation, the compiler immediately evaluates the image as a native, optimized intensional set type in the destination space.
 
-Under this functional presentation, Tarski's relative composition resolves elegantly as standard Kleisli arrow composition over the power set monad. We explicitly reify this step within the \texttt{:relations} partition via the infix pipeline operator ($\gg$), allowing the point-free composition to be expressed textually as:
+Under this functional presentation, Tarski's relative composition resolves elegantly as standard Kleisli arrow composition over the power set monad. We reify this step within the \texttt{:relations} partition as the \emph{fish} operator $R \gg S$, realised in code as the overloaded \cppinline{>>} (Listing~\ref{lst:kleisli_fish_composition}), so the point-free composition is written:
 \begin{equation}
 R \mathbin{\gg} S : A \to \mathcal{P}(C)
 \end{equation}
@@ -877,7 +881,7 @@ The template engine executes this composition by mapping $R$ over an input eleme
 \end{equation}
 
 \begin{listing}[htbp]
-\caption{Point-free relational composition via Kleisli arrow piping over the power set monad, circumventing explicit existential quantification search bounds.}
+\caption{Point-free relational composition $R \gg S$, realised as the overloaded \cppinline{>>}.}
 \label{lst:kleisli_fish_composition}
 \begin{cpp}
 // R : ℕ → P(ℕ) where R(a) = { b ∈ ℕ | b % a == 0 }
@@ -950,6 +954,9 @@ A \twoheadrightarrow I \hookrightarrow B.
 
 By requiring the developer to provide this factorization when declaring an arbitrary \cppinline{IsFunction} (equivalently, an \cppinline{IsArrow} whose graph is functional), the compiler gains the exact structural properties needed to handle general codomain membership tests.
 Since the second leg of the factorization chain is a strict injection, it guarantees a one-to-one mapping from the intermediate image set $I$ into the target space $B$, allowing the type-checker to reason about the embedding without exploring the raw domain space $A$.
+This gate \emph{relocates} the guarantee rather than deriving it: the factorization is a \emph{trusted axiom}, the \Cpp{} analogue of Coq's \texttt{Admitted}, checked for shape (\cppinline{IsRegularEpi}, \cppinline{IsRegularMono}, \cppinline{IsImageOf}) but not for lawfulness.
+A factorization that is registered but wrong is unsound: the compiler trusts it, so a downstream membership test can fold a false constant into the emitted IR with no diagnostic.
+This is the honesty obligation of §\ref{sec:introduction} at the level of morphisms, and it marks where a standard \Cpp{} template engine reaches an undecidability wall and asks the developer to supply the witness it cannot itself compute.
 Listing~\ref{lst:functional_image_factorization} illustrates how this epic-monic gate and its corresponding image validation assertions are codified within the C++23 template engine.
 
 \begin{listing}[htbp]
@@ -1348,6 +1355,7 @@ The compiler evaluates \cppinline{constexpr} reductions with an abstract-syntax-
 Its \emph{scaling}, though, is fixed by structure.
 The first parameter is the template instantiation depth.
 The disciplined fragment of §\ref{sec:jlt_posture} admits no unbounded type-level recursion, so the depth stays bounded and each reduction remains inside a decidable cone rather than diverging; the carrier poset, for instance, is capped at scalar, shape, and quotient axes, a depth of at most three in the current surface.
+Point-free relational composition (§\ref{sec:relations_functions_blueprint}) is the case that stresses this parameter: a chain $R \gg S \gg \dots$ trades the runtime existential loop it circumvents for compile-time type-expansion, each link nesting a union cascade into the intermediate type, so a deep chain migrates the resource strain onto the instantiation depth rather than onto a runtime search.
 The second parameter is the size of the graph the closure relaxes.
 For the necklace of §\ref{sec:optimization_lp}, each round scans the edge relation once, and an acyclic graph stabilises within a number of rounds bounded by its depth, so the work is polynomial in the edge count $E$.
 Composing the two, the translation-time cost is polynomial in the problem size at bounded instantiation depth, precisely because the depth is capped.
