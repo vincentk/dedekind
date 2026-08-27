@@ -1153,13 +1153,11 @@ constexpr auto operator>>(const Set<std::pair<A, B>, L, PR>& r,
 }
 
 // ≤ ∘ ≤ = ≤ (transitivity), decidable because the intermediate is Boolean.
-static_assert(
-    static_cast<bool>(((𝔹 * 𝔹 | π1 <= π2) >> (𝔹 * 𝔹 | π1 <= π2))(
-        std::pair{false, true})),
-    "≤ ∘ ≤ contains (false, true).");
-static_assert(
-    !static_cast<bool>(((𝔹 * 𝔹 | π1 <= π2) >> (𝔹 * 𝔹 | π1 <= π2))(
-        std::pair{true, false})),
-    "≤ ∘ ≤ excludes (true, false): transitivity recovers ≤.");
+static_assert(static_cast<bool>(((𝔹 * 𝔹 | π1 <= π2) >>
+                                 (𝔹 * 𝔹 | π1 <= π2))(std::pair{false, true})),
+              "≤ ∘ ≤ contains (false, true).");
+static_assert(!static_cast<bool>(((𝔹 * 𝔹 | π1 <= π2) >>
+                                  (𝔹 * 𝔹 | π1 <= π2))(std::pair{true, false})),
+              "≤ ∘ ≤ excludes (true, false): transitivity recovers ≤.");
 
 }  // namespace dedekind::order
