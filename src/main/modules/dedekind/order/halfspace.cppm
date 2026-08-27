@@ -782,7 +782,7 @@ constexpr auto structured_and(OrderInterval<T, Lo1, Hi1, SL1, SU1, L>,
  * and pivot) as an @c UnboundHalfspace / @c UnboundSingleton; a later
  * @c carrier @c | @c ... instantiates it at the carrier's @c Domain, reusing
  * @c Halfspace / @c Singleton.  @c π is the unary projection; the product
- * coordinates @c π₁ / @c π₂ follow with the relational surface (#783), reusing
+ * coordinates @c π1 / @c π2 follow with the relational surface (#783), reusing
  * @c :cartesian projections where they fit.
  */
 export template <std::size_t Slot>
@@ -867,5 +867,160 @@ static_assert(((ℕ | (π > fix(5_c))) & ~(ℕ | (π > fix(5_c)))) == Ø{},
               "point-free: (n > 5) ∩ ¬(n > 5) == Ø.");
 static_assert(((𝔹 | (π == fix(true_c))) & ~(𝔹 | (π == fix(true_c)))) == Ø{},
               "point-free: {true} ∩ ¬{true} == Ø.");
+
+// ── Product projections: the relational (point-free) variables ─────────────
+/**
+ * @brief @c π1 / @c π2 --- the coordinate projections of a pair, the positional
+ *        variables of the point-free relational surface.
+ *
+ * @details A comparison @c π_I @c ⋈ @c π_J or @c π_I @c ⋈ @c fix(V) builds a
+ * @b strongly-typed predicate on a pair (no lambda); @c & conjoins them; and
+ * @c product @c | @c predicate restricts the product to the relation.  So
+ * @c ℕ*ℕ @c | @c π1 @c < @c π2 @c & @c π1 @c > @c fix(5_c) is the relation
+ * @f$\{(x,y) \mid x<y \wedge x>5\}@f$ as an @c IsSet on @c ℕ×ℕ.
+ */
+export inline constexpr Projection<1> π1{};
+export inline constexpr Projection<2> π2{};
+
+/** @brief The @c I-th component of a pair (1 = @c first, 2 = @c second). */
+template <std::size_t I, typename P>
+constexpr decltype(auto) coord(const P& p) {
+  if constexpr (I == 1)
+    return (p.first);
+  else
+    return (p.second);
+}
+
+/** @brief Comparison flavour for the relational predicates. */
+export enum class Rel { Lt, Le, Gt, Ge, Eq, Ne };
+
+template <Rel R, typename X, typename Y>
+constexpr bool rel_apply(const X& x, const Y& y) {
+  if constexpr (R == Rel::Lt)
+    return x < y;
+  else if constexpr (R == Rel::Le)
+    return x <= y;
+  else if constexpr (R == Rel::Gt)
+    return x > y;
+  else if constexpr (R == Rel::Ge)
+    return x >= y;
+  else if constexpr (R == Rel::Eq)
+    return x == y;
+  else
+    return x != y;
+}
+
+/** @brief Nested-typedef marker so @c & / @c | fire only on relational
+ *  predicates; kept off the class hierarchy so the predicates stay aggregates. */
+export template <typename T>
+concept IsRelPredicate = requires { typename T::is_rel_predicate; };
+
+/** @brief @f$\pi_I \bowtie \pi_J@f$ --- a strongly-typed predicate on a pair. */
+export template <std::size_t I, Rel R, std::size_t J>
+struct ProjProj {
+  using is_rel_predicate = void;
+  template <typename P>
+  constexpr bool operator()(const P& p) const {
+    return rel_apply<R>(coord<I>(p), coord<J>(p));
+  }
+};
+
+/** @brief @f$\pi_I \bowtie \mathrm{fix}(V)@f$ --- a strongly-typed pair
+ *  predicate. */
+export template <std::size_t I, Rel R, auto V>
+struct ProjBound {
+  using is_rel_predicate = void;
+  template <typename P>
+  constexpr bool operator()(const P& p) const {
+    return rel_apply<R>(coord<I>(p), V);
+  }
+};
+
+/** @brief Meet (conjunction) of two relational predicates. */
+export template <typename A, typename B>
+struct RelAnd {
+  using is_rel_predicate = void;
+  A a;
+  B b;
+  template <typename P>
+  constexpr bool operator()(const P& p) const {
+    return a(p) && b(p);
+  }
+};
+
+// π_I ⋈ π_J  →  ProjProj (projection-vs-projection).
+export template <std::size_t I, std::size_t J>
+constexpr ProjProj<I, Rel::Lt, J> operator<(Projection<I>, Projection<J>) {
+  return {};
+}
+export template <std::size_t I, std::size_t J>
+constexpr ProjProj<I, Rel::Le, J> operator<=(Projection<I>, Projection<J>) {
+  return {};
+}
+export template <std::size_t I, std::size_t J>
+constexpr ProjProj<I, Rel::Gt, J> operator>(Projection<I>, Projection<J>) {
+  return {};
+}
+export template <std::size_t I, std::size_t J>
+constexpr ProjProj<I, Rel::Ge, J> operator>=(Projection<I>, Projection<J>) {
+  return {};
+}
+export template <std::size_t I, std::size_t J>
+constexpr ProjProj<I, Rel::Eq, J> operator==(Projection<I>, Projection<J>) {
+  return {};
+}
+export template <std::size_t I, std::size_t J>
+constexpr ProjProj<I, Rel::Ne, J> operator!=(Projection<I>, Projection<J>) {
+  return {};
+}
+
+// π_I ⋈ fix(V), I >= 1  →  ProjBound (I == 0 is the unary π of §M1 above).
+export template <std::size_t I, auto V>
+  requires(I >= 1)
+constexpr ProjBound<I, Rel::Lt, V> operator<(Projection<I>, Bound<V>) {
+  return {};
+}
+export template <std::size_t I, auto V>
+  requires(I >= 1)
+constexpr ProjBound<I, Rel::Gt, V> operator>(Projection<I>, Bound<V>) {
+  return {};
+}
+export template <std::size_t I, auto V>
+  requires(I >= 1)
+constexpr ProjBound<I, Rel::Eq, V> operator==(Projection<I>, Bound<V>) {
+  return {};
+}
+export template <std::size_t I, auto V>
+  requires(I >= 1)
+constexpr ProjBound<I, Rel::Ne, V> operator!=(Projection<I>, Bound<V>) {
+  return {};
+}
+
+// meet of relational predicates.
+export template <IsRelPredicate A, IsRelPredicate B>
+constexpr RelAnd<A, B> operator&(A a, B b) {
+  return {a, b};
+}
+
+// product | relPred  →  the relation as an IsSet on A × B.
+export template <typename T1, typename T2, typename L, typename P,
+                 IsRelPredicate RP>
+constexpr auto operator|(const Set<std::pair<T1, T2>, L, P>&, RP rp) {
+  return Set<std::pair<T1, T2>, L, RP>{rp};
+}
+
+/** @section halfspace__Formal_Verification (relational surface) */
+
+// less-than on 𝔹×𝔹, a strongly-typed point-free relation, membership-checked.
+static_assert((𝔹 * 𝔹 | π1 < π2)(std::pair{false, true}),
+              "(false, true) ∈ {(x,y) | x < y}.");
+static_assert(!(𝔹 * 𝔹 | π1 < π2)(std::pair{true, true}),
+              "(true, true) ∉ {(x,y) | x < y}.");
+
+// a meet of two projection predicates: {(x,y) | x ≤ y ∧ y == true}.
+static_assert((𝔹 * 𝔹 | π1 <= π2 & π2 == fix(true_c))(std::pair{false, true}),
+              "(false, true) satisfies x ≤ y ∧ y = true.");
+static_assert(!(𝔹 * 𝔹 | π1 <= π2 & π2 == fix(true_c))(std::pair{false, false}),
+              "(false, false) fails y = true.");
 
 }  // namespace dedekind::order
