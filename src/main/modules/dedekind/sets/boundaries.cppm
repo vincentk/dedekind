@@ -64,8 +64,13 @@ using namespace dedekind::category;
  */
 namespace dedekind::sets {
 
-/** @brief ∅: The Initial Object. Extensional (Size 0). */
-export template <typename T, typename L = ClassicalLogic>
+/** @brief ∅: The Initial Object. Extensional (Size 0).
+ *
+ *  @c T defaults to @c std::nullptr_t (the project's @c Zero carrier), so the
+ *  bare @c Ø{} denotes "the empty set" with no carrier to name; it compares
+ *  equal to any @c Ø<T> through the cross-carrier @c operator== below, letting
+ *  a collapse be asserted as @c (a @c & @c ~a) @c == @c Ø{}. */
+export template <typename T = std::nullptr_t, typename L = ClassicalLogic>
 struct Ø final {
   // ~ arrow / morphism / subobject classifier jargon
   using Domain = T;

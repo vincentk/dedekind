@@ -460,12 +460,11 @@ The collapse is a type identity, the same on both carriers: no element is ever e
 \noindent
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-// 𝔹, ℕ, π, fix: the DSL surface
 constexpr auto T
   = 𝔹 | π == fix(true_c);
-constexpr auto F = ~T;   // {false}
+constexpr auto F = ~T;
 static_assert((F | T) == 𝔹);
-static_assert(is_empty(F & T));
+static_assert((F & T) == Ø{});
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.49\linewidth}
@@ -474,11 +473,10 @@ constexpr auto gt_5
   = ℕ | π > fix(5_c);
 constexpr auto le_5 = ~gt_5;
 static_assert((le_5 | gt_5) == ℕ);
-static_assert(is_empty(le_5 & gt_5));
+static_assert((le_5 & gt_5) == Ø{});
 \end{cpp}
 \end{minipage}
 \begin{cpp}
-// membership on that empty meet, at -O2 — the collapse, made observable:
 define noundef zeroext i1 @witness_empty_halfspace_meet() { ret i1 false }
 \end{cpp}
 \end{listing}
@@ -564,32 +562,26 @@ This is the extensional/intensional database distinction of deductive databases,
 \noindent
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-// ι : std::set ↪ Trsk   (total)
-std::set<int> c{2, 3, 5};  // contains IS χ
+std::set<int> c{2, 3, 5};
 static_assert(IsSet<decltype(
   ambient_set<int>(from_std(c)))>);
 \end{cpp}
 \vspace{0.4em}
 \begin{cpp}
-// μ : Trsk ⇀ std::set   (partial)
 auto isEven = [](int x){ return x % 2 == 0; };
 auto evens = materialise(
   std::views::iota(0, 10), isEven);
 assert((evens == std::set{0,2,4,6,8}));
-// {x∈ℕ|isEven}: ℕ unbounded → no μ
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-// the two worlds COMPOSE: an extensional
-// set bounds an intensional one, so their
-// intersection always materialises.
 std::set<int> ext{2, 3, 5};
-auto gt3 = in<ℕ> > bound<3>;  // {x>3}
-auto gt5 = in<ℕ> > bound<5>;  // {x>5}
-assert(materialise(ext, gt3)  // ext ∩ int1
+auto gt3 = ℕ | π > fix(3_c);
+auto gt5 = ℕ | π > fix(5_c);
+assert(materialise(ext, gt3)
        == std::set{5});
-assert(materialise(ext, gt5)  // ext ∩ int2
+assert(materialise(ext, gt5)
        == std::set<int>{});
 \end{cpp}
 \end{minipage}
@@ -864,20 +856,13 @@ Listing~\ref{lst:relation_spec} is the spec surface: \cppinline{IsRelation} as a
 \noindent
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-// R ⊆ A×B is a predicate on the
-// product, χ_R : A×B → Ω, so a
-// relation IS A Set on A×B:
 template <class R,class A,class B>
 concept IsRelation =
   IsSet<R> && IsProduct<Dom<R>,A,B>;
 
-// a Set is its own predicate:
 static_assert(IsPredicate<
   Set<pair<A,B>,Classical,P>>);
 
-// entire ∧ functional = function
-// (⟺ IsArrow<A,B>); the epi/mono
-// of the projection π_A (Table 3):
 template <class R> concept
 IsEntire = is_left_total_v<R>;
 template <class R> concept
@@ -891,27 +876,16 @@ concept IsFunction =
 \end{minipage}\hfill
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-// Tarski's calculus of relations;
-// §3.1's ∃/∀ do the work.
-
-// converse  R˘(b,a) = R(a,b)
 template <IsRelation R>
 constexpr auto converse(R);
 
-// composition = ∃-over-the-middle,
-// the SAME fish functions use:
-//  (R>>S)(a,c)=∃b.R(a,b)∧S(b,c)
 template <class R,class S>
 constexpr auto operator>>(R,S);
 
-// codomain-side axis, π_B (Table 3):
 template <class R> concept
 IsSurjective = is_right_total_v<R>;
 template <class R> concept
 IsInjective = is_left_unique_v<R>;
-
-// bijection: a function that is
-// surjective ∧ injective (π_B iso).
 \end{cpp}
 \end{minipage}
 \end{listing}
@@ -998,32 +972,25 @@ Listing~\ref{lst:relation_examples} spells relations out in the point-free surfa
 \noindent
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-// implication ⇒ as a relation
-// on 𝔹×𝔹:  a ≤ b
 constexpr auto imp =
   𝔹 * 𝔹 | π₁ <= π₂;
 static_assert(is_relation(imp));
 static_assert( imp(pair{false,true}));
 static_assert(!imp(pair{true,false}));
-
-// converse: reverse implication b ≤ a
 constexpr auto rimp = converse(imp);
 static_assert(rimp(pair{true,false}));
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-// less-than as a relation on ℕ×ℕ
 constexpr auto lt =
   ℕ * ℕ | π₁ < π₂;
 static_assert( lt(pair{2,5}));
 static_assert(!lt(pair{5,2}));
-
-// {(x,y) | x < y ∧ x > 5}
 constexpr auto R =
   ℕ * ℕ | π₁ < π₂ & π₁ > fix(5_c);
 static_assert( R(pair{6,9}));
-static_assert(!R(pair{3,9})); // 3 ≯ 5
+static_assert(!R(pair{3,9}));
 \end{cpp}
 \end{minipage}
 \end{listing}

@@ -862,11 +862,10 @@ static_assert(
                            bound<5>)&~(dedekind::sets::in<ℕ> > bound<5>))>,
     "point-free complement-meet is identical to the scout collapse (→ Ø).");
 
-// is_empty witnesses the collapse bracket-free --- the exact Listing 2
-// spelling.
-static_assert(is_empty((ℕ | (π > fix(5_c))) & ~(ℕ | (π > fix(5_c)))),
-              "point-free: (n > 5) ∩ ¬(n > 5) is empty.");
-static_assert(is_empty((𝔹 | (π == fix(true_c))) & ~(𝔹 | (π == fix(true_c)))),
-              "point-free: {true} ∩ ¬{true} is empty.");
+// The collapse compared to the bare empty set --- the exact Listing 2 spelling.
+static_assert(((ℕ | (π > fix(5_c))) & ~(ℕ | (π > fix(5_c)))) == Ø{},
+              "point-free: (n > 5) ∩ ¬(n > 5) == Ø.");
+static_assert(((𝔹 | (π == fix(true_c))) & ~(𝔹 | (π == fix(true_c)))) == Ø{},
+              "point-free: {true} ∩ ¬{true} == Ø.");
 
 }  // namespace dedekind::order

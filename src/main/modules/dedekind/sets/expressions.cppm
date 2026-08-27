@@ -313,29 +313,6 @@ struct EmptyPredicate {
   constexpr bool operator()(const T&) const { return false; }
 };
 
-/**
- * @brief @c is_empty(s) --- the bracket-free emptiness witness.
- *
- * @details @c true when the set @c s has collapsed to the empty set: it is
- * @c Ø, or its predicate is @c EmptyPredicate.  A value-level query over the
- * type-level collapse, so the DSL surface asserts @c is_empty(a @c & @c ~a)
- * with no @c <> --- the reader-facing spelling of @c decltype(a @c & @c ~a)
- * @c == @c Ø.
- */
-namespace detail_is_empty {
-template <typename S>
-struct tag : std::false_type {};
-template <typename T, typename L>
-struct tag<Ø<T, L>> : std::true_type {};
-template <typename T>
-struct tag<EmptyPredicate<T>> : std::true_type {};
-}  // namespace detail_is_empty
-
-export template <typename S>
-consteval bool is_empty(const S&) {
-  return detail_is_empty::tag<std::remove_cvref_t<S>>::value;
-}
-
 /** @brief Predicate-level complement wrapper used for set-collapse detection.
  */
 export template <typename Predicate>
