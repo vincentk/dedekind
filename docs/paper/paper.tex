@@ -870,8 +870,8 @@ concept IsFunction =
 \end{minipage}\hfill
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-template <IsRelation R>
-constexpr auto converse(R);
+template <class A,class B,class L,class P>
+auto converse(Set<pair<A,B>,L,P>);
 
 template <class R,class S>
 constexpr auto operator>>(R,S);

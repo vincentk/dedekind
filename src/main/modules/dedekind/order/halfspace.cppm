@@ -183,10 +183,12 @@ inline constexpr Bound<V> bound{};
  * @details The bracket-free way to lift a value to the type level: a
  * user-defined literal encodes the value in the *type* of the returned object
  * with no @c <> in sight.  Paired with @c fix below, so the DSL surface spells
- * a compile-time bound @c fix(5_c) instead of @c bound<5>.  Digits only (the
- * sign is a separate unary @c operator- on the result).
+ * a compile-time bound @c fix(5_c) instead of @c bound<5>.  Decimal digits
+ * only: a non-decimal spelling (@c 1.5_c, @c 0x10_c) is a hard error, not a
+ * silently mis-parsed value.
  */
 export template <char... Cs>
+  requires((('0' <= Cs && Cs <= '9') && ...))
 consteval auto operator""_c() {
   constexpr int v = [] {
     int r = 0;
@@ -882,8 +884,11 @@ static_assert(((𝔹 | (π == fix(true_c))) & ~(𝔹 | (π == fix(true_c)))) == 
 export inline constexpr Projection<1> π1{};
 export inline constexpr Projection<2> π2{};
 
-/** @brief The @c I-th component of a pair (1 = @c first, 2 = @c second). */
+/** @brief The @c I-th component of a pair (1 = @c first, 2 = @c second).
+ *  Binary products only, so an out-of-range slot (the unary @c π, or @c π3) is
+ *  a hard error rather than a silent alias for @c .second. */
 template <std::size_t I, typename P>
+  requires(I == 1 || I == 2)
 constexpr decltype(auto) coord(const P& p) {
   if constexpr (I == 1)
     return (p.first);
@@ -1004,11 +1009,27 @@ constexpr RelAnd<A, B> operator&(A a, B b) {
   return {a, b};
 }
 
-// product | relPred  →  the relation as an IsSet on A × B.
+/** @brief The product's own membership conjoined with a relational
+ *  restriction, so a bind over a @b restricted product keeps that membership
+ *  and cannot admit pairs outside it (a full product contributes a
+ *  trivially-true @c product). */
+export template <typename P, typename RP>
+struct ProductRestrict {
+  P product;
+  RP rp;
+  template <typename Pair>
+  constexpr bool operator()(const Pair& p) const {
+    return static_cast<bool>(product(p)) && rp(p);
+  }
+};
+
+// product | relPred  →  the relation as an IsSet on A × B, keeping the
+// product's own membership (so a restricted product bounds the relation).
 export template <typename T1, typename T2, typename L, typename P,
                  IsRelPredicate RP>
-constexpr auto operator|(const Set<std::pair<T1, T2>, L, P>&, RP rp) {
-  return Set<std::pair<T1, T2>, L, RP>{rp};
+constexpr auto operator|(const Set<std::pair<T1, T2>, L, P>& prod, RP rp) {
+  return Set<std::pair<T1, T2>, L, ProductRestrict<P, RP>>{
+      ProductRestrict<P, RP>{prod.predicate(), rp}};
 }
 
 /** @section halfspace__Formal_Verification (relational surface) */
@@ -1056,7 +1077,10 @@ concept IsPairLike = requires {
  *  @c IsSet whose Domain is a product @f$A \times B@f$. */
 export template <typename S>
 consteval bool is_relation(const S&) {
-  return dedekind::category::IsSet<S> && IsPairLike<typename S::Domain>;
+  if constexpr (requires { typename S::Domain; })
+    return dedekind::category::IsSet<S> && IsPairLike<typename S::Domain>;
+  else
+    return false;  // no Domain: not a set, hence not a relation (total query)
 }
 
 // converse swaps the coordinates; is_relation certifies the product Domain.
