@@ -553,11 +553,16 @@ Listing~\ref{lst:pruning} exhibits a checked-in extract that tests this type-dir
 First-order quantification is the same reading once more: a quantifier \emph{is} a set operation, and we take that structural (Bourbaki) sense as the definition, not as a later coincidence.
 \begin{equation}
 \label{eqn:quantifiers}
-\exists x \in S.\,P(x) \;:\equiv\; \{x\in S \mid P(x)\} \neq \varnothing,
-\qquad
-\forall x \in S.\,P(x) \;:\equiv\; \neg\,\exists x \in S.\,\neg P(x).
+\begin{aligned}
+\text{(A)}\quad
+\exists x \in S.\,P(x) &\;:\equiv\; \{x\in S \mid P(x)\} \neq \varnothing,
+&\quad \forall &\;:\equiv\; \neg\,\exists\,\neg\,;\\
+\text{(B)}\quad
+\forall x \in S.\,P(x) &\;:\equiv\; \{x\in S \mid P(x)\} = S,
+&\quad \exists &\;:\equiv\; \neg\,\forall\,\neg\,.
+\end{aligned}
 \end{equation}
-In code the comprehension is \cppinline{set(S,P)} and the emptiness test is an overload of \cppinline{Ø::operator==}, so \cppinline{exists(S,P)} is \cppinline{!(Ø{} == set(S,P))} and \cppinline{forall} its $\neg\exists\neg$ dual (Listing~\ref{lst:quantifiers_def}, top row).
+In code the comprehension is \cppinline{set(S,P)} and each bound is an \cppinline{operator==} overload: scheme (A) reads \cppinline{exists(S,P)} as \cppinline{!(Ø{} == set(S,P))}, scheme (B) reads \cppinline{forall(S,P)} as \cppinline{Ω == set(S,P)}, and each derives its partner by complementing the predicate, \cppinline{!P} (Listing~\ref{lst:quantifiers_def}, top row).
 There is no fold: the reduction lives entirely in \cppinline{Ø::operator==}, so the Rice boundary is a \emph{type check}, an operand with no matching overload being a compile error rather than a fabricated answer.
 Both quantifiers are decidable in finite time exactly when the predicate factors through a \emph{finite quotient} of the domain, and the emptiness overload is then a proof by exhausting that quotient.
 A finite carrier is the trivial case: over $\mathbb{B}$, \cppinline{set} materialises the two truth values and \cppinline{Ø ==} reads them off.
@@ -566,27 +571,26 @@ The opaque lambda cannot be seen as periodic; the structural congruence, carryin
 
 \begin{listing}[htbp]
 \caption{The quantifiers \emph{are} set operations (Eqn~\ref{eqn:quantifiers}), decided \emph{by type} through a finite quotient.
-\textbf{Top:} \cppinline{exists} is non-emptiness of the comprehension \cppinline{set(S,P)}; \cppinline{forall} its $\neg\exists\neg$ dual.
+\textbf{Top:} the two lattice bounds: \cppinline{exists} tests \cppinline{set(S,P)} against $\varnothing$ (A), \cppinline{forall} against $\Omega$ (B); each derives its partner by complementing the predicate, \cppinline{!P}.
 \textbf{Bottom:} over $\mathbb{B}$ (a finite carrier) \cppinline{set} materialises the two truth values; over $\mathbb{N}$, \cppinline{isEven} factors through $\mathbb{Z}/2\mathbb{Z} = $ \cppinline{Modular<2>}, so $\exists$ and $\forall$ exhaust its two residues.  Neither enumerates $\mathbb{N}$.}
 \label{lst:quantifiers_def}
 \noindent
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-// ∃x∈S.P(x) := {x|P(x)} ≠ ∅
+// ∃x∈S.P := {x|P} ≠ ∅   (A)
 constexpr bool
 exists(S s, P p) {
   return !(Ø{} == set(s,p));
-}  // set: lazy views::filter
+}  // = !forall(s, !p)
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-// ∀x∈S.P(x) := ¬∃x∈S.¬P(x)
+// ∀x∈S.P := {x|P} == Ω   (B)
 constexpr bool
 forall(S s, P p) {
-  return !exists(s,
-    [&](auto x){return !p(x);});
-}
+  return Ω == set(s,p);
+}  // = !exists(s, !p)
 \end{cpp}
 \end{minipage}
 
