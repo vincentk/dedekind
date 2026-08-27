@@ -177,6 +177,52 @@ export template <auto V>
 inline constexpr Bound<V> bound{};
 
 /**
+ * @brief Compile-time integer literal: @c 5_c carries @c 5 in its type as a
+ *        @c std::integral_constant.
+ *
+ * @details The bracket-free way to lift a value to the type level: a
+ * user-defined literal encodes the value in the *type* of the returned object
+ * with no @c <> in sight.  Paired with @c fix below, so the DSL surface spells
+ * a compile-time bound @c fix(5_c) instead of @c bound<5>.  Digits only (the
+ * sign is a separate unary @c operator- on the result).
+ */
+export template <char... Cs>
+consteval auto operator""_c() {
+  constexpr int v = [] {
+    int r = 0;
+    ((r = r * 10 + (Cs - '0')), ...);
+    return r;
+  }();
+  return std::integral_constant<int, v>{};
+}
+
+/** @brief Named compile-time boolean constants; @c true / @c false are not
+ *  literal tokens a user-defined literal can suffix, so @c true_c / @c false_c
+ *  are the @c bool analogues of @c 5_c for @c fix(true_c). */
+export inline constexpr std::integral_constant<bool, true> true_c{};
+export inline constexpr std::integral_constant<bool, false> false_c{};
+
+/**
+ * @brief @c fix lifts a compile-time constant to a @c Bound pivot --- the
+ *        bracket-free spelling of @c bound<V>, so @c fix(5_c) @b is @c bound<5>.
+ *
+ * @details The runtime companion @c fix(v) (a value-level bound, for the
+ * dynamic / future-Python path) is a separate overload added with the
+ * value-carrier machinery; this one is the compile-time, type-level lift.
+ */
+export template <typename T, T V>
+consteval Bound<V> fix(std::integral_constant<T, V>) {
+  return {};
+}
+
+// The compile-time literal round-trips to the existing bound tag.
+static_assert(std::same_as<decltype(fix(5_c)), Bound<5>>,
+              "fix(5_c) is the bracket-free spelling of bound<5>.");
+static_assert(fix(5_c).value == 5, "5_c carries its value in the type.");
+static_assert(std::same_as<decltype(fix(true_c)), Bound<true>>,
+              "fix(true_c) is bound<true>, the bool analogue.");
+
+/**
  * @brief Halfspace predicate { x ∈ T | x ⋈ Pivot } with Pivot at the type
  * level.
  *
