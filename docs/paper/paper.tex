@@ -911,40 +911,21 @@ R \circ S = \{ (a, c) \in A \times C \mid \exists b \in B : (a, b) \in R \land (
 On a finite (\cppinline{IsExtensional}) intermediate domain $B$, that $\exists b$ is exactly the bounded existential of §\ref{sec:ddk_comprehension}: relative composition is quantification over the middle set.
 General first-order existential ($\exists$) and universal ($\forall$) quantification cannot, however, be implemented generically over \emph{infinite} intensional sets at compile time, as the enumeration of open predicate domains induces infinite compiler loop regression.
 
-To circumvent this translation-time search bottleneck, the library's \emph{compositional} presentation of a relation is not the static subobject pair $R \subseteq A \times B$ (which it still reifies, as a \texttt{Set} of pairs) but a monadic one, where a relation is an active functional morphism. Concretely, a binary relation $R$ from a domain set $A$ to a codomain set $B$ is defined as a total arrow of the form $R : A \to \mathcal{P}(B)$, where $\mathcal{P}(B)$ represents the intensional power set of the target space. This architectural choice ensures that when an element $a \in A$ is supplied to the relation, the compiler immediately evaluates the image as a native, optimized intensional set type in the destination space.
-
-Under this functional presentation, Tarski's relative composition resolves elegantly as standard Kleisli arrow composition over the power set monad. We reify this step within the \texttt{:relations} partition as the \emph{fish} operator $R \gg S$, realised in code as the overloaded \cppinline{>>} (Listing~\ref{lst:kleisli_fish_composition}), so the point-free composition is written:
-\begin{equation}
-R \mathbin{\gg} S : A \to \mathcal{P}(C)
-\end{equation}
-The template engine executes this composition by mapping $R$ over an input element to yield an intermediate set, and then binding $S$ across that resulting image via an intensional set-theoretic union cascade:
-\begin{equation}
-(R \mathbin{\gg} S)(a) = \bigcup_{b \in R(a)} S(b)
-\end{equation}
+Over a \emph{finite} intermediate this $\exists b$ enumerates and folds at compile time.
+Listing~\ref{lst:kleisli_fish_composition} composes $\le$ with itself over $\mathbb{B}$: the relative product $R \gg S$, spelled with the overloaded \cppinline{>>}, decides the $\exists b$ on the two Boolean witnesses and recovers $\le$ (transitivity, $\le \circ \le = \le$).
 
 \begin{listing}[htbp]
-\caption{Point-free relational composition $R \gg S$, realised as the overloaded \cppinline{>>}.}
+\caption{Composition of relations as the relative product $R \gg S = \{(a,c) \mid \exists b.\, R(a,b) \wedge S(b,c)\}$.  Over $\mathbb{B}$ the $\exists b$ enumerates the two Booleans and folds, so $\le \circ \le = \le$ (transitivity).}
 \label{lst:kleisli_fish_composition}
 \begin{cpp}
-constexpr auto R = [](auto a) {
-    constexpr auto b = in<ℕ>;
-    return Set{ b | (b % a == bound<0u>) };
-};
-constexpr auto S = [](auto b) {
-    constexpr auto c = in<ℕ>;
-    return Set{ c | (b < c) };
-};
-constexpr auto R_then_S = R >> S;
-static_assert((R_then_S(2u))(5u));
-static_assert(!(R_then_S(4u))(3u));
+constexpr auto imp = 𝔹 * 𝔹 | π1 <= π2;
+static_assert( (imp >> imp)(pair{false,true}));
+static_assert(!(imp >> imp)(pair{true,false}));
 \end{cpp}
 \end{listing}
 
-Because the underlying power set operations evaluate purely as compile-time predicate transformations, the composition of two relations does not trigger a runtime search loop over the intermediate space.
-The infix pipeline operator ($\gg$) implements true Kleisli composition; when evaluated at a point $a$, the template engine skips any raw search loop and instead transforms the symbolic predicate of $R$ directly into the input of $S$.
-The existential requirement is thus safely re-encoded as a lazy, zero-cost symbolic predicate transformation pipeline. 
-
-The compiler unifies the constituent predicates into a single, synthesized type-level constraint that governs the end-to-end mapping from $A$ to $C$. Listing~\ref{lst:kleisli_fish_composition} illustrates how this monadic relation concept and its corresponding Kleisli composition operator are structurally declared inside the toolchain.
+Over an \emph{infinite} intermediate the enumeration would not terminate, so the library also carries the \emph{monadic} presentation of a relation, $R : A \to \mathcal{P}(B)$: composition is then Kleisli arrow composition over the power-set monad, $(R \mathbin{\gg} S)(a) = \bigcup_{b \in R(a)} S(b)$, a lazy symbolic pipeline that never materialises the middle set.
+The two are the currying transposes of one relation, so the same \cppinline{>>} spells both; the choice of presentation is the choice of which intermediate you can afford to enumerate.
 
 Listing~\ref{lst:relation_examples} spells relations out in the point-free surface: a comprehension over the product $A \times B$ whose predicate compares the projections $\pi_1, \pi_2$, with \cppinline{converse} the one relational operator shown (functions follow in a later slice).
 
