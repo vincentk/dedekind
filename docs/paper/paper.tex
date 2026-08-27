@@ -831,6 +831,31 @@ Such morphisms are then classified by the following properties, if one focuses o
 \end{itemize}
 Equivalently, relations can be represented as sets whose elements satisfy the product axioms (\cppinline{IsProduct}), for example via the signature \cppinline{IsSet<std::pair>}.
 
+Table~\ref{tab:relation-quantifier} organises these four properties as one structure: the quantifiers $\exists$ ($\ge 1$) and $\forall$ ($\le 1$) applied to each projection of $R \subseteq A \times B$, read across the quantifier, set-theoretic, and categorical vocabularies.
+Here $\exists$ and $\forall$ are the indexed join $\bigvee$ and meet $\bigwedge$ of Table~\ref{tab:lattice-lift}, now ranging over a projection fibre rather than a binary pair.
+A projection turning into an isomorphism marks the two composite notions: $\pi_A$ an iso is a function, $\pi_B$ an iso a bijection.
+The epic-monic factorization $R = m \circ e$ places the retract on the mono leg $m$, where it later discharges image-membership and function application (§\ref{sec:functions_morphism_factorization}).
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+ & \multicolumn{2}{c}{$\pi_A : R \to A$} & \multicolumn{2}{c}{$\pi_B : R \to B$} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}
+ & entire & functional & surjective & injective \\
+\midrule
+Trsk quantifier & $\forall a\,\exists b$ & $\forall a\,{\le}1\,b$ & $\forall b\,\exists a$ & $\forall b\,{\le}1\,a$ \\
+\addlinespace
+set theory & total & single-valued & onto & one-to-one \\
+\addlinespace
+category theory & $\pi_A$ epi & $\pi_A$ mono & $\pi_B$ epi & $\pi_B$ mono \\
+\bottomrule
+\end{tabular}
+\caption{The four properties of a relation $R \subseteq A \times B$ as $\exists$ ($\ge 1$) and $\forall$ ($\le 1$) on its two projections, in three vocabularies.
+Columns pair up: entire with functional on $\pi_A$, surjective with injective on $\pi_B$.}
+\label{tab:relation-quantifier}
+\end{table}
+
 A relation that is both total and functional is a \emph{function}.
 In the library this is the concept refinement \cppinline{IsFunction = IsRelation \&\& IsEntire \&\& IsFunctional}, so \cppinline{IsFunction} subsumes \cppinline{IsRelation}: the inclusion $\{\text{functions}\} \subset \{\text{relations}\}$ is genuine subtyping in the concept lattice, not an analogy.
 The bridge from an analytic arrow to its relational form is \cppinline{graph(f)}, the graph $\Gamma_f = \{(a, f(a)) \mid a \in A\}$; its \cppinline{is_graph_of} witness makes ``the rule and its set of pairs are the same function'' a compile-time fact rather than a claim.
