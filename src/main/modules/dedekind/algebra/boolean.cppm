@@ -100,8 +100,11 @@ using BooleanSet = BooleanSetOf<>;
  *  static_asserts were migrated to @c bool directly in step 1 of this
  *  PR (#559, slice 𝔹).
  */
-export inline constexpr UniversalSet<bool, ClassicalLogic, Finite> 𝔹 =
-    sets::Ω<bool>;
+// Canonical home moved upstream to @c dedekind::sets (#784), so the point-free
+// set DSL in @c :order --- upstream of @c :algebra --- can spell @c 𝔹 too;
+// re-exported here for the established @c dedekind::algebra::𝔹 name.  Same
+// entity, so the two spellings never disambiguate.
+export using ::dedekind::sets::𝔹;
 
 static_assert(
     IsAlgebraOnSet<decltype(𝔹),

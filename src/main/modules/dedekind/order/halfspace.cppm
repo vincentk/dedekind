@@ -177,6 +177,55 @@ export template <auto V>
 inline constexpr Bound<V> bound{};
 
 /**
+ * @brief Compile-time integer literal: @c 5_c carries @c 5 in its type as a
+ *        @c std::integral_constant.
+ *
+ * @details The bracket-free way to lift a value to the type level: a
+ * user-defined literal encodes the value in the *type* of the returned object
+ * with no @c <> in sight.  Paired with @c fix below, so the DSL surface spells
+ * a compile-time bound @c fix(5_c) instead of @c bound<5>.  Decimal digits
+ * only: a non-decimal spelling (@c 1.5_c, @c 0x10_c) is a hard error, not a
+ * silently mis-parsed value.
+ */
+export template <char... Cs>
+  requires((('0' <= Cs && Cs <= '9') && ...))
+consteval auto operator""_c() {
+  constexpr int v = [] {
+    int r = 0;
+    ((r = r * 10 + (Cs - '0')), ...);
+    return r;
+  }();
+  return std::integral_constant<int, v>{};
+}
+
+/** @brief Named compile-time boolean constants; @c true / @c false are not
+ *  literal tokens a user-defined literal can suffix, so @c true_c / @c false_c
+ *  are the @c bool analogues of @c 5_c for @c fix(true_c). */
+export inline constexpr std::integral_constant<bool, true> true_c{};
+export inline constexpr std::integral_constant<bool, false> false_c{};
+
+/**
+ * @brief @c fix lifts a compile-time constant to a @c Bound pivot --- the
+ *        bracket-free spelling of @c bound<V>, so @c fix(5_c) @b is @c
+ * bound<5>.
+ *
+ * @details The runtime companion @c fix(v) (a value-level bound, for the
+ * dynamic / future-Python path) is a separate overload added with the
+ * value-carrier machinery; this one is the compile-time, type-level lift.
+ */
+export template <typename T, T V>
+consteval Bound<V> fix(std::integral_constant<T, V>) {
+  return {};
+}
+
+// The compile-time literal round-trips to the existing bound tag.
+static_assert(std::same_as<decltype(fix(5_c)), Bound<5>>,
+              "fix(5_c) is the bracket-free spelling of bound<5>.");
+static_assert(fix(5_c).value == 5, "5_c carries its value in the type.");
+static_assert(std::same_as<decltype(fix(true_c)), Bound<true>>,
+              "fix(true_c) is bound<true>, the bool analogue.");
+
+/**
  * @brief Halfspace predicate { x ∈ T | x ⋈ Pivot } with Pivot at the type
  * level.
  *
@@ -725,5 +774,405 @@ constexpr auto structured_and(OrderInterval<T, Lo1, Hi1, SL1, SU1, L>,
 
   return OrderInterval<T, new_lo, new_hi, new_SL, new_SU, L>{};
 }
+
+// ── The point-free projection scout ────────────────────────────────────────
+/**
+ * @brief @c π --- the point-free variable, a @b domain-less scout.
+ *
+ * @details Where @c in<ℕ> bakes the carrier into the scout's type, @c π leaves
+ * it open.  A comparison @c π @c ⋈ @c fix(V) fixes only the @b shape (direction
+ * and pivot) as an @c UnboundHalfspace / @c UnboundSingleton; a later
+ * @c carrier @c | @c ... instantiates it at the carrier's @c Domain, reusing
+ * @c Halfspace / @c Singleton.  @c π is the unary projection; the product
+ * coordinates @c π1 / @c π2 follow with the relational surface (#783), reusing
+ * @c :cartesian projections where they fit.
+ */
+export template <std::size_t Slot>
+struct Projection {};
+
+export inline constexpr Projection<0> π{};
+
+/** @brief Unbound predicates: shape fixed, @c Domain deferred until a carrier
+ *  binds them via @c operator| below. */
+export template <Direction D, Strictness S, auto V>
+struct UnboundHalfspace {};
+export template <auto V>
+struct UnboundSingleton {};
+
+// π ⋈ fix(V) → the unbound halfspace / singleton (pivot fixed, carrier open).
+export template <auto V>
+constexpr UnboundHalfspace<Direction::Upward, Strictness::Strict, V> operator>(
+    Projection<0>, Bound<V>) {
+  return {};
+}
+export template <auto V>
+constexpr UnboundHalfspace<Direction::Upward, Strictness::NonStrict, V>
+operator>=(Projection<0>, Bound<V>) {
+  return {};
+}
+export template <auto V>
+constexpr UnboundHalfspace<Direction::Downward, Strictness::Strict, V>
+operator<(Projection<0>, Bound<V>) {
+  return {};
+}
+export template <auto V>
+constexpr UnboundHalfspace<Direction::Downward, Strictness::NonStrict, V>
+operator<=(Projection<0>, Bound<V>) {
+  return {};
+}
+export template <auto V>
+constexpr UnboundSingleton<V> operator==(Projection<0>, Bound<V>) {
+  return {};
+}
+
+// carrier | unbound → the Domain-bound predicate, reusing Halfspace /
+// Singleton. The RHS type is distinct from Set, so this does not clash with the
+// union operator| on a UniversalSet (that one takes a Set).
+export template <typename T, typename L, typename C, Direction D, Strictness S,
+                 auto V>
+constexpr Halfspace<T, V, D, S, L> operator|(const UniversalSet<T, L, C>&,
+                                             const UnboundHalfspace<D, S, V>&) {
+  return {};
+}
+// Restricted to a carrier whose value type IS the pivot's type: Singleton<V,L>
+// has Domain = decltype(V), so a mismatch (e.g. ℕ | π == fix(5_c), Cardinality
+// vs int) would give the singleton the wrong carrier.  It is an honest compile
+// error there; a singleton over such a carrier needs a T-valued pivot.
+export template <typename T, typename L, typename C, auto V>
+  requires std::same_as<T, decltype(V)>
+constexpr Singleton<V, L> operator|(const UniversalSet<T, L, C>&,
+                                    const UnboundSingleton<V>&) {
+  return {};
+}
+
+// The point-free surface reproduces the existing halfspace exactly.
+static_assert(
+    std::same_as<decltype(ℕ | (π > fix(5_c))),
+                 decltype(dedekind::sets::in<ℕ> > bound<5>)>,
+    "ℕ | π > fix(5_c) is the Above<5> halfspace, spelled point-free.");
+
+// And the equality shape gives the extensional Singleton, membership-checked.
+static_assert(std::same_as<decltype(𝔹 | (π == fix(true_c))),
+                           Singleton<true, ClassicalLogic>>,
+              "𝔹 | π == fix(true_c) is Singleton<true>, spelled point-free.");
+static_assert(static_cast<bool>((𝔹 | (π == fix(true_c)))(true)),
+              "true ∈ {true}.");
+static_assert(!static_cast<bool>((𝔹 | (π == fix(true_c)))(false)),
+              "false ∉ {true}.");
+
+// The complement-pair collapse is unchanged by the point-free spelling: the
+// meet of a halfspace with its complement gives the same empty result as the
+// scout spelling (the §5 Theorem-1 witness, now bracket-free).
+static_assert(
+    std::same_as<decltype((ℕ | (π > fix(5_c))) & ~(ℕ | (π > fix(5_c)))),
+                 decltype((dedekind::sets::in<ℕ> >
+                           bound<5>)&~(dedekind::sets::in<ℕ> > bound<5>))>,
+    "point-free complement-meet is identical to the scout collapse (→ Ø).");
+
+// The collapse compared to the bare empty set --- the exact Listing 2 spelling.
+static_assert(((ℕ | (π > fix(5_c))) & ~(ℕ | (π > fix(5_c)))) == Ø{},
+              "point-free: (n > 5) ∩ ¬(n > 5) == Ø.");
+static_assert(((𝔹 | (π == fix(true_c))) & ~(𝔹 | (π == fix(true_c)))) == Ø{},
+              "point-free: {true} ∩ ¬{true} == Ø.");
+
+// ── Product projections: the relational (point-free) variables ─────────────
+/**
+ * @brief @c π1 / @c π2 --- the coordinate projections of a pair, the positional
+ *        variables of the point-free relational surface.
+ *
+ * @details A comparison @c π_I @c ⋈ @c π_J or @c π_I @c ⋈ @c fix(V) builds a
+ * @b strongly-typed predicate on a pair (no lambda); @c & conjoins them; and
+ * @c product @c | @c predicate restricts the product to the relation.  So
+ * @c ℕ*ℕ @c | @c π1 @c < @c π2 @c & @c π1 @c > @c fix(5_c) is the relation
+ * @f$\{(x,y) \mid x<y \wedge x>5\}@f$ as an @c IsSet on @c ℕ×ℕ.
+ */
+export inline constexpr Projection<1> π1{};
+export inline constexpr Projection<2> π2{};
+
+/** @brief The @c I-th component of a pair (1 = @c first, 2 = @c second).
+ *  Binary products only, so an out-of-range slot (the unary @c π, or @c π3) is
+ *  a hard error rather than a silent alias for @c .second. */
+template <std::size_t I, typename P>
+  requires(I == 1 || I == 2)
+constexpr decltype(auto) coord(const P& p) {
+  if constexpr (I == 1)
+    return (p.first);
+  else
+    return (p.second);
+}
+
+/** @brief Comparison flavour for the relational predicates. */
+export enum class Rel { Lt, Le, Gt, Ge, Eq, Ne };
+
+template <Rel R, typename X, typename Y>
+constexpr bool rel_apply(const X& x, const Y& y) {
+  if constexpr (R == Rel::Lt)
+    return x < y;
+  else if constexpr (R == Rel::Le)
+    return x <= y;
+  else if constexpr (R == Rel::Gt)
+    return x > y;
+  else if constexpr (R == Rel::Ge)
+    return x >= y;
+  else if constexpr (R == Rel::Eq)
+    return x == y;
+  else
+    return x != y;
+}
+
+/** @brief Nested-typedef marker so @c & / @c | fire only on relational
+ *  predicates; kept off the class hierarchy so the predicates stay aggregates.
+ */
+export template <typename T>
+concept IsRelPredicate = requires { typename T::is_rel_predicate; };
+
+/** @brief @f$\pi_I \bowtie \pi_J@f$ --- a strongly-typed predicate on a pair.
+ */
+export template <std::size_t I, Rel R, std::size_t J>
+struct ProjProj {
+  using is_rel_predicate = void;
+  template <typename P>
+  constexpr bool operator()(const P& p) const {
+    return rel_apply<R>(coord<I>(p), coord<J>(p));
+  }
+};
+
+/** @brief @f$\pi_I \bowtie \mathrm{fix}(V)@f$ --- a strongly-typed pair
+ *  predicate. */
+export template <std::size_t I, Rel R, auto V>
+struct ProjBound {
+  using is_rel_predicate = void;
+  template <typename P>
+  constexpr bool operator()(const P& p) const {
+    return rel_apply<R>(coord<I>(p), V);
+  }
+};
+
+/** @brief Meet (conjunction) of two relational predicates. */
+export template <typename A, typename B>
+struct RelAnd {
+  using is_rel_predicate = void;
+  A a;
+  B b;
+  template <typename P>
+  constexpr bool operator()(const P& p) const {
+    return a(p) && b(p);
+  }
+};
+
+// π_I ⋈ π_J  →  ProjProj (projection-vs-projection).
+export template <std::size_t I, std::size_t J>
+constexpr ProjProj<I, Rel::Lt, J> operator<(Projection<I>, Projection<J>) {
+  return {};
+}
+export template <std::size_t I, std::size_t J>
+constexpr ProjProj<I, Rel::Le, J> operator<=(Projection<I>, Projection<J>) {
+  return {};
+}
+export template <std::size_t I, std::size_t J>
+constexpr ProjProj<I, Rel::Gt, J> operator>(Projection<I>, Projection<J>) {
+  return {};
+}
+export template <std::size_t I, std::size_t J>
+constexpr ProjProj<I, Rel::Ge, J> operator>=(Projection<I>, Projection<J>) {
+  return {};
+}
+export template <std::size_t I, std::size_t J>
+constexpr ProjProj<I, Rel::Eq, J> operator==(Projection<I>, Projection<J>) {
+  return {};
+}
+export template <std::size_t I, std::size_t J>
+constexpr ProjProj<I, Rel::Ne, J> operator!=(Projection<I>, Projection<J>) {
+  return {};
+}
+
+// π_I ⋈ fix(V), I >= 1  →  ProjBound (I == 0 is the unary π of §M1 above).
+export template <std::size_t I, auto V>
+  requires(I >= 1)
+constexpr ProjBound<I, Rel::Lt, V> operator<(Projection<I>, Bound<V>) {
+  return {};
+}
+export template <std::size_t I, auto V>
+  requires(I >= 1)
+constexpr ProjBound<I, Rel::Le, V> operator<=(Projection<I>, Bound<V>) {
+  return {};
+}
+export template <std::size_t I, auto V>
+  requires(I >= 1)
+constexpr ProjBound<I, Rel::Gt, V> operator>(Projection<I>, Bound<V>) {
+  return {};
+}
+export template <std::size_t I, auto V>
+  requires(I >= 1)
+constexpr ProjBound<I, Rel::Ge, V> operator>=(Projection<I>, Bound<V>) {
+  return {};
+}
+export template <std::size_t I, auto V>
+  requires(I >= 1)
+constexpr ProjBound<I, Rel::Eq, V> operator==(Projection<I>, Bound<V>) {
+  return {};
+}
+export template <std::size_t I, auto V>
+  requires(I >= 1)
+constexpr ProjBound<I, Rel::Ne, V> operator!=(Projection<I>, Bound<V>) {
+  return {};
+}
+
+// meet of relational predicates.
+export template <IsRelPredicate A, IsRelPredicate B>
+constexpr RelAnd<A, B> operator&(A a, B b) {
+  return {a, b};
+}
+
+/** @brief The product's own membership conjoined with a relational
+ *  restriction, so a bind over a @b restricted product keeps that membership
+ *  and cannot admit pairs outside it (a full product contributes a
+ *  trivially-true @c product). */
+export template <typename P, typename RP>
+struct ProductRestrict {
+  P product;
+  RP rp;
+  template <typename Pair>
+  constexpr bool operator()(const Pair& p) const {
+    return static_cast<bool>(product(p)) && rp(p);
+  }
+};
+
+// product | relPred  →  the relation as an IsSet on A × B, keeping the
+// product's own membership (so a restricted product bounds the relation).
+export template <typename T1, typename T2, typename L, typename P,
+                 IsRelPredicate RP>
+constexpr auto operator|(const Set<std::pair<T1, T2>, L, P>& prod, RP rp) {
+  return Set<std::pair<T1, T2>, L, ProductRestrict<P, RP>>{
+      ProductRestrict<P, RP>{prod.predicate(), rp}};
+}
+
+/** @section halfspace__Formal_Verification (relational surface) */
+
+// less-than on 𝔹×𝔹, a strongly-typed point-free relation, membership-checked.
+static_assert((𝔹 * 𝔹 | π1 < π2)(std::pair{false, true}),
+              "(false, true) ∈ {(x,y) | x < y}.");
+static_assert(!(𝔹 * 𝔹 | π1 < π2)(std::pair{true, true}),
+              "(true, true) ∉ {(x,y) | x < y}.");
+
+// a meet of two projection predicates: {(x,y) | x ≤ y ∧ y == true}.
+static_assert((𝔹 * 𝔹 | π1 <= π2 & π2 == fix(true_c))(std::pair{false, true}),
+              "(false, true) satisfies x ≤ y ∧ y = true.");
+static_assert(!(𝔹 * 𝔹 | π1 <= π2 & π2 == fix(true_c))(std::pair{false, false}),
+              "(false, false) fails y = true.");
+
+// ── converse and the bracket-free relation query ───────────────────────────
+/** @brief The swapped predicate for @c converse: @f$R^\smile(b,a) = R(a,b)@f$.
+ */
+export template <typename P>
+struct SwapPred {
+  using is_rel_predicate = void;
+  P p;
+  template <typename Pair>
+  constexpr auto operator()(const Pair& pr) const {
+    return p(std::pair{pr.second, pr.first});
+  }
+};
+
+/** @brief @c converse(R) --- the transpose @f$R^\smile \subseteq B \times A@f$
+ *  of a relation @f$R \subseteq A \times B@f$ (Tarski's @f$R^\smile@f$). */
+export template <typename A, typename B, typename L, typename P>
+constexpr auto converse(const Set<std::pair<A, B>, L, P>& r) {
+  return Set<std::pair<B, A>, L, SwapPred<P>>{SwapPred<P>{r.predicate()}};
+}
+
+/** @brief Pair-like Domain test for @c is_relation. */
+template <typename D>
+concept IsPairLike = requires {
+  typename D::first_type;
+  typename D::second_type;
+};
+
+/** @brief @c is_relation(R) --- the bracket-free query: @c R is a relation, an
+ *  @c IsSet whose Domain is a product @f$A \times B@f$. */
+export template <typename S>
+consteval bool is_relation(const S&) {
+  if constexpr (requires { typename S::Domain; })
+    return dedekind::category::IsSet<S> && IsPairLike<typename S::Domain>;
+  else
+    return false;  // no Domain: not a set, hence not a relation (total query)
+}
+
+// converse swaps the coordinates; is_relation certifies the product Domain.
+static_assert(converse(𝔹* 𝔹 | π1 < π2)(std::pair{true, false}),
+              "converse of < contains (true, false): false < true.");
+static_assert(is_relation(𝔹* 𝔹 | π1 < π2),
+              "𝔹*𝔹 | π1 < π2 is a relation (IsSet on a product).");
+
+// ── Projection arithmetic (for the divides relation, Listing 7) ────────────
+/** @brief @f$\pi_I \% \pi_J@f$ --- a value expression on a pair, awaiting a
+ *  comparison to a bound. */
+export template <std::size_t I, std::size_t J>
+struct ProjMod {};
+export template <std::size_t I, std::size_t J>
+constexpr ProjMod<I, J> operator%(Projection<I>, Projection<J>) {
+  return {};
+}
+
+/** @brief @f$(\pi_I \% \pi_J) \bowtie \mathrm{fix}(V)@f$ --- a strongly-typed
+ *  pair predicate (the modular / divisibility shape). */
+export template <std::size_t I, std::size_t J, Rel R, auto V>
+struct ProjModBound {
+  using is_rel_predicate = void;
+  template <typename P>
+  constexpr bool operator()(const P& p) const {
+    return rel_apply<R>(coord<I>(p) % coord<J>(p), V);
+  }
+};
+export template <std::size_t I, std::size_t J, auto V>
+constexpr ProjModBound<I, J, Rel::Eq, V> operator==(ProjMod<I, J>, Bound<V>) {
+  return {};
+}
+
+// divides: {(a,b) | b % a == 0 ∧ a != 0} = ℕ*ℕ | π2 % π1 == fix(0_c) & π1 != 0.
+// The && in RelAnd short-circuits the guard first, so a == 0 never reaches %.
+static_assert((ℕ * ℕ | π1 != fix(0_c) & π2 % π1 == fix(0_c))(std::pair{
+                  finite_cardinality(2), finite_cardinality(6)}),
+              "6 % 2 == 0: (2,6) ∈ divides.");
+static_assert(!(ℕ * ℕ | π1 != fix(0_c) & π2 % π1 == fix(0_c))(std::pair{
+                  finite_cardinality(4), finite_cardinality(6)}),
+              "6 % 4 != 0: (4,6) ∉ divides.");
+
+// ── Relative product: composition of relations (Tarski) ────────────────────
+/** @brief The composed predicate @f$(R \gg S)(a,c) = \exists b.\, R(a,b) \wedge
+ *  S(b,c)@f$.  Decidable exactly when the intermediate carrier is finite; here
+ *  the @f$\exists b@f$ enumerates the two Booleans, so it folds at compile
+ *  time. */
+template <typename PR, typename PS>
+struct ComposePred {
+  PR r;
+  PS s;
+  template <typename Pair>
+  constexpr bool operator()(const Pair& ac) const {
+    return (r(std::pair{ac.first, false}) && s(std::pair{false, ac.second})) ||
+           (r(std::pair{ac.first, true}) && s(std::pair{true, ac.second}));
+  }
+};
+
+/** @brief @c R @c >> @c S --- the relative product of two relations over a
+ *  @b Boolean intermediate, the ∃-over-the-middle enumerated on @c {false,
+ *  true}.  A larger intermediate needs the finite-quotient handle (§3.1);
+ *  there is deliberately no overload, so it is an honest compile error. */
+export template <typename A, typename B, typename C, typename L, typename PR,
+                 typename PS>
+  requires std::same_as<B, bool>
+constexpr auto operator>>(const Set<std::pair<A, B>, L, PR>& r,
+                          const Set<std::pair<B, C>, L, PS>& s) {
+  return Set<std::pair<A, C>, L, ComposePred<PR, PS>>{
+      ComposePred<PR, PS>{r.predicate(), s.predicate()}};
+}
+
+// ≤ ∘ ≤ = ≤ (transitivity), decidable because the intermediate is Boolean.
+static_assert(static_cast<bool>(((𝔹 * 𝔹 | π1 <= π2) >>
+                                 (𝔹 * 𝔹 | π1 <= π2))(std::pair{false, true})),
+              "≤ ∘ ≤ contains (false, true).");
+static_assert(!static_cast<bool>(((𝔹 * 𝔹 | π1 <= π2) >>
+                                  (𝔹 * 𝔹 | π1 <= π2))(std::pair{true, false})),
+              "≤ ∘ ≤ excludes (true, false): transitivity recovers ≤.");
 
 }  // namespace dedekind::order

@@ -64,8 +64,13 @@ using namespace dedekind::category;
  */
 namespace dedekind::sets {
 
-/** @brief ∅: The Initial Object. Extensional (Size 0). */
-export template <typename T, typename L = ClassicalLogic>
+/** @brief ∅: The Initial Object. Extensional (Size 0).
+ *
+ *  @c T defaults to @c std::nullptr_t (the project's @c Zero carrier), so the
+ *  bare @c Ø{} denotes "the empty set" with no carrier to name; it compares
+ *  equal to any @c Ø<T> through the cross-carrier @c operator== below, letting
+ *  a collapse be asserted as @c (a @c & @c ~a) @c == @c Ø{}. */
+export template <typename T = std::nullptr_t, typename L = ClassicalLogic>
 struct Ø final {
   // ~ arrow / morphism / subobject classifier jargon
   using Domain = T;
@@ -327,8 +332,12 @@ struct UniversalSet final {
 
   constexpr cardinality_type cardinality() const { return cardinality_type{}; }
 
-  // U | S = U
+  // U | S = U, for a set-like S (one carrying a @c Domain).  An unbound
+  // predicate fragment (e.g.\ the point-free @c π > fix(5) shape in
+  // @c :order:halfspace) has no @c Domain and instead binds to this universe
+  // via its own @c operator|, spelling the set-builder where-clause.
   template <typename S>
+    requires requires { typename S::Domain; }
   constexpr auto operator|(const S&) const {
     return *this;
   }
@@ -515,6 +524,12 @@ using NaturalNumbers = NaturalNumbersOf<>;
  *  are now expressed against @c Cardinality directly.
  */
 export inline constexpr auto ℕ = Ω<Cardinality>;
+
+/** @brief @c 𝔹 --- the Boolean carrier as a value-tag, @c Ω<bool>, the
+ *  finite universe @f$\{\mathtt{false},\mathtt{true}\}@f$.  Companion to @c ℕ
+ *  for the point-free set-builder surface @c 𝔹 @c | @c π @c == @c fix(true_c).
+ */
+export inline constexpr auto 𝔹 = Ω<bool>;
 
 // Canonical ambient-set value used by the sets DSL tests.
 export inline constexpr NaturalNumbersOf<> N{};
