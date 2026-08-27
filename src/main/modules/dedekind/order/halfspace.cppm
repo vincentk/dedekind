@@ -1023,4 +1023,43 @@ static_assert((𝔹 * 𝔹 | π1 <= π2 & π2 == fix(true_c))(std::pair{false, t
 static_assert(!(𝔹 * 𝔹 | π1 <= π2 & π2 == fix(true_c))(std::pair{false, false}),
               "(false, false) fails y = true.");
 
+// ── converse and the bracket-free relation query ───────────────────────────
+/** @brief The swapped predicate for @c converse: @f$R^\smile(b,a) = R(a,b)@f$. */
+export template <typename P>
+struct SwapPred {
+  using is_rel_predicate = void;
+  P p;
+  template <typename Pair>
+  constexpr auto operator()(const Pair& pr) const {
+    return p(std::pair{pr.second, pr.first});
+  }
+};
+
+/** @brief @c converse(R) --- the transpose @f$R^\smile \subseteq B \times A@f$
+ *  of a relation @f$R \subseteq A \times B@f$ (Tarski's @f$R^\smile@f$). */
+export template <typename A, typename B, typename L, typename P>
+constexpr auto converse(const Set<std::pair<A, B>, L, P>& r) {
+  return Set<std::pair<B, A>, L, SwapPred<P>>{SwapPred<P>{r.predicate()}};
+}
+
+/** @brief Pair-like Domain test for @c is_relation. */
+template <typename D>
+concept IsPairLike = requires {
+  typename D::first_type;
+  typename D::second_type;
+};
+
+/** @brief @c is_relation(R) --- the bracket-free query: @c R is a relation, an
+ *  @c IsSet whose Domain is a product @f$A \times B@f$. */
+export template <typename S>
+consteval bool is_relation(const S&) {
+  return dedekind::category::IsSet<S> && IsPairLike<typename S::Domain>;
+}
+
+// converse swaps the coordinates; is_relation certifies the product Domain.
+static_assert(converse(𝔹 * 𝔹 | π1 < π2)(std::pair{true, false}),
+              "converse of < contains (true, false): false < true.");
+static_assert(is_relation(𝔹 * 𝔹 | π1 < π2),
+              "𝔹*𝔹 | π1 < π2 is a relation (IsSet on a product).");
+
 }  // namespace dedekind::order
