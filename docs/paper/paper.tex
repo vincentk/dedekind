@@ -497,8 +497,11 @@ define noundef zeroext i1 @witness_empty_halfspace_meet() { ret i1 false }
  & member & meet & join & complement & bottom & top & order \\
 \midrule
 $\mathbb{B}$ & $\models$ & $\wedge$ & $\vee$ & $\neg$ & $\bot$ & $\top$ & $\Rightarrow$ \\
+\addlinespace
 $\mathcal{P}(A)$ & $\in$ & $\cap$ & $\cup$ & $\complement$ & $\varnothing$ & $A$ & $\subseteq$ \\
+\addlinespace
 $\mathbf{CCC}$ & $\chi$ & $\times$ & $\sqcup$ & $\neg$ & $\mathbf{0}$ & $\mathbf{1}$ & $B^A$ \\
+\addlinespace
 $\mathbf{Trsk}$ & \cppinline{s(x)} & \cppinline{&} & \cppinline{|} & \cppinline{~} & \cppinline{Ø} & \cppinline{Ω} & \cppinline{<=} \\
 \bottomrule
 \end{tabular}
@@ -760,18 +763,13 @@ The upshot is that a query the compiler cannot enumerate returns a definite \tex
 Figure~\ref{fig:compiler_decision_tree} shows the decision.
 
 \begin{listing}[ht]
-\caption{
-Excerpts from \texttt{dedekind} illustrating the \cppinline{concept} definitions used in the reification of $\mathbf {Ddk} \subseteq (\mathbf{Set} \cap \mathbf{Jlt})$.
-Fundamental \cppinline{concept} definitions (objects, morphisms, small categories, \ldots) are composed to reify the considerably more complex \cppinline{concept IsSet}.
-\cppinline{concept IsSet} can then be used to mechanically test candidate implementations of set theory in the ETCS sense.
-Left: definition of morphisms and small categories: \cppinline{concept IsArrow}, \cppinline{IsMonicArrow}, \cppinline{IsEpicArrow}, \cppinline{IsIsomorphism}, \cppinline{IsSmallCategory}.
-Right: the characteristic-map axiom \cppinline{IsSubobject}, where a subobject's own call shape \cppinline{s(a)} is the classifier $\chi : A \to \Omega$ (it returns a \cppinline{LogicalValue}); and the composite \cppinline{IsSet}, a \cppinline{Jlt} carrier that conjoins the ten ETCS axiom witnesses (\cppinline{HasETCSAxioms}) with the Set-as-Cartesian-closed-category witness.
-The interested reader is referred to the reference implementation~\cite{Krautler_dedekind_2026} for full implementation details.
-}
+\caption{Excerpts of the \cppinline{concept} definitions reifying $\mathbf{Ddk} \subseteq (\mathbf{Set} \cap \mathbf{Jlt})$.
+\textbf{Top} ($\mathbf{Cat}$ in $\mathbf{Jlt}$): \cppinline{IsArrow}, a type carrying its own \cppinline{Domain} and \cppinline{Codomain}.
+\textbf{Bottom} ($\mathbf{Set}$ in $\mathbf{Jlt}$): \cppinline{IsSubobject}, whose call shape \cppinline{s(a)} is the classifier $\chi : A \to \Omega$, and the composite \cppinline{IsSet}.
+See the reference implementation~\cite{Krautler_dedekind_2026} for detail.}
 \label{lst:concept_isset}
-\noindent
-\begin{minipage}[t]{0.48\linewidth}
-$\mathbf{Cat}$ in $\mathbf{Jlt}$
+
+\noindent $\mathbf{Cat}$ in $\mathbf{Jlt}$:
 \begin{cpp}
 export template <typename F>
 concept IsArrow = requires {
@@ -781,9 +779,8 @@ concept IsArrow = requires {
   { f(x) } -> std::convertible_to<typename std::remove_cvref_t<F>::Codomain>;
 };
 \end{cpp}
-\end{minipage}\hfill
-\begin{minipage}[t]{0.48\linewidth}
-$\mathbf{Set}$ in $\mathbf{Jlt}$
+
+\noindent $\mathbf{Set}$ in $\mathbf{Jlt}$:
 \begin{cpp}
 template <typename S, typename A>
 concept IsSubobject = requires(S s, typename S::Member m, A a) {
@@ -797,7 +794,6 @@ concept IsSet =
   HasETCSAxioms<A> &&
   IsCartesianClosed<CanonicalSetCCC<typename A::Domain>>;
 \end{cpp}
-\end{minipage}
 \end{listing}
 
 The semantic engine above presupposes a categorical, rather than extensional, notion of set.
