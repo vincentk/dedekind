@@ -853,4 +853,20 @@ static_assert(static_cast<bool>((𝔹 | (π == fix(true_c)))(true)),
 static_assert(!static_cast<bool>((𝔹 | (π == fix(true_c)))(false)),
               "false ∉ {true}.");
 
+// The complement-pair collapse is unchanged by the point-free spelling: the
+// meet of a halfspace with its complement gives the same empty result as the
+// scout spelling (the §5 Theorem-1 witness, now bracket-free).
+static_assert(
+    std::same_as<decltype((ℕ | (π > fix(5_c))) & ~(ℕ | (π > fix(5_c)))),
+                 decltype((dedekind::sets::in<ℕ> >
+                           bound<5>)&~(dedekind::sets::in<ℕ> > bound<5>))>,
+    "point-free complement-meet is identical to the scout collapse (→ Ø).");
+
+// is_empty witnesses the collapse bracket-free --- the exact Listing 2
+// spelling.
+static_assert(is_empty((ℕ | (π > fix(5_c))) & ~(ℕ | (π > fix(5_c)))),
+              "point-free: (n > 5) ∩ ¬(n > 5) is empty.");
+static_assert(is_empty((𝔹 | (π == fix(true_c))) & ~(𝔹 | (π == fix(true_c)))),
+              "point-free: {true} ∩ ¬{true} is empty.");
+
 }  // namespace dedekind::order
