@@ -1123,4 +1123,43 @@ static_assert(!(ℕ * ℕ | π1 != fix(0_c) & π2 % π1 == fix(0_c))(std::pair{
                   finite_cardinality(4), finite_cardinality(6)}),
               "6 % 4 != 0: (4,6) ∉ divides.");
 
+// ── Relative product: composition of relations (Tarski) ────────────────────
+/** @brief The composed predicate @f$(R \gg S)(a,c) = \exists b.\, R(a,b) \wedge
+ *  S(b,c)@f$.  Decidable exactly when the intermediate carrier is finite; here
+ *  the @f$\exists b@f$ enumerates the two Booleans, so it folds at compile
+ *  time. */
+template <typename PR, typename PS>
+struct ComposePred {
+  PR r;
+  PS s;
+  template <typename Pair>
+  constexpr bool operator()(const Pair& ac) const {
+    return (r(std::pair{ac.first, false}) && s(std::pair{false, ac.second})) ||
+           (r(std::pair{ac.first, true}) && s(std::pair{true, ac.second}));
+  }
+};
+
+/** @brief @c R @c >> @c S --- the relative product of two relations over a
+ *  @b Boolean intermediate, the ∃-over-the-middle enumerated on @c {false,
+ *  true}.  A larger intermediate needs the finite-quotient handle (§3.1);
+ *  there is deliberately no overload, so it is an honest compile error. */
+export template <typename A, typename B, typename C, typename L, typename PR,
+                 typename PS>
+  requires std::same_as<B, bool>
+constexpr auto operator>>(const Set<std::pair<A, B>, L, PR>& r,
+                          const Set<std::pair<B, C>, L, PS>& s) {
+  return Set<std::pair<A, C>, L, ComposePred<PR, PS>>{
+      ComposePred<PR, PS>{r.predicate(), s.predicate()}};
+}
+
+// ≤ ∘ ≤ = ≤ (transitivity), decidable because the intermediate is Boolean.
+static_assert(
+    static_cast<bool>(((𝔹 * 𝔹 | π1 <= π2) >> (𝔹 * 𝔹 | π1 <= π2))(
+        std::pair{false, true})),
+    "≤ ∘ ≤ contains (false, true).");
+static_assert(
+    !static_cast<bool>(((𝔹 * 𝔹 | π1 <= π2) >> (𝔹 * 𝔹 | π1 <= π2))(
+        std::pair{true, false})),
+    "≤ ∘ ≤ excludes (true, false): transitivity recovers ≤.");
+
 }  // namespace dedekind::order
