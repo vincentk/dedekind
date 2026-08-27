@@ -550,6 +550,38 @@ If an intersection yields a logical contradiction, the type system reduces the r
 As a direct consequence, downstream runtime membership queries for statically impossible configurations are completely eliminated by the LLVM optimizer backend, collapsing into literal constant returns within the emitted machine instructions.
 Listing~\ref{lst:pruning} exhibits a checked-in extract that tests this type-directed collapse in practice, and its bottom panel makes the collapse mechanically observable during the build: the witness function for set membership constant-folds to \texttt{ret i1 false} in the emitted LLVM IR.
 
+The container reading and the predicate reading are almost interconvertible, and the asymmetry is the point (Listing~\ref{lst:materialise}).
+Any \cppinline{std::set} is a $\mathbf{Trsk}$ set for free, its \cppinline{contains} the characteristic predicate; call that embedding $\iota$, and it is total.
+Only a finite, enumerable $\mathbf{Trsk}$ set materialises back to a container; call that $\mu$, and it is partial, the naturals having no finite materialisation.
+So $\mathbf{Trsk}$ is strictly more expressive than \cppinline{std::set}, the extensional container it generalises, and the price is paid in \emph{proof obligations}: where $\mu$ is unavailable, membership is settled by the concept constraints and factorisations of this section, not by enumeration.
+
+\begin{listing}[htbp]
+\caption{$\mathbf{Trsk}$ is strictly more expressive than \cppinline{std::set}, the extensional container it generalises.
+\textbf{Left} ($\iota$, total): every container \emph{is} a $\mathbf{Trsk}$ set, its \cppinline{contains} the characteristic morphism, so \cppinline{ambient_set(from_std(·))} lifts any \cppinline{std::set} to an \cppinline{IsSet} object.
+\textbf{Right} ($\mu$, partial): \cppinline{materialise} enumerates the universe and keeps the $\chi$-matches, defined only for a finite, enumerable universe with a decidable predicate.
+The naturals do not materialise; the price of staying intensional is discharging membership by proof, not by enumeration.}
+\label{lst:materialise}
+\noindent
+\begin{minipage}[t]{0.49\linewidth}
+\begin{cpp}
+// ι : std::set ↪ Trsk   (total)
+std::set<int> c{2, 3, 5};
+// contains(x) IS the predicate χ
+static_assert(IsSet<decltype(
+  ambient_set<int>(from_std(c)))>);
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\linewidth}
+\begin{cpp}
+// μ : Trsk ⇀ std::set   (partial)
+auto evens = materialise(
+  std::views::iota(0, 10), isEven);
+assert((evens == std::set{0,2,4,6,8}));
+// {x∈ℕ|isEven}: ℕ unbounded → no μ
+\end{cpp}
+\end{minipage}
+\end{listing}
+
 First-order quantification is the same reading once more: a quantifier \emph{is} a set operation, and we take that structural (Bourbaki) sense as the definition, not as a later coincidence.
 \begin{equation}
 \label{eqn:quantifiers}
