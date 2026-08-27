@@ -924,8 +924,8 @@ static_assert(!(imp >> imp)(pair{true,false}));
 \end{cpp}
 \end{listing}
 
-Over an \emph{infinite} intermediate the enumeration would not terminate, so the library also carries the \emph{monadic} presentation of a relation, $R : A \to \mathcal{P}(B)$: composition is then Kleisli arrow composition over the power-set monad, $(R \mathbin{\gg} S)(a) = \bigcup_{b \in R(a)} S(b)$, a lazy symbolic pipeline that never materialises the middle set.
-The two are the currying transposes of one relation, so the same \cppinline{>>} spells both; the choice of presentation is the choice of which intermediate you can afford to enumerate.
+Over an \emph{infinite} intermediate the enumeration does not terminate: the $\exists b$ is then decidable only through one of the certificates of §\ref{sec:ddk_comprehension}, the finite quotient or (on the function side) the retract of §\ref{sec:functions_morphism_factorization}.
+The standard lazy alternative is the \emph{monadic} presentation of a relation, $R : A \to \mathcal{P}(B)$, under which composition is Kleisli arrow composition over the power-set monad, $(R \mathbin{\gg} S)(a) = \bigcup_{b \in R(a)} S(b)$, a symbolic pipeline that never materialises the middle set; it is the currying transpose of the relative product, so both are one relation composed two ways, differing only in which intermediate you can afford to enumerate.
 
 Listing~\ref{lst:relation_examples} spells relations out in the point-free surface: a comprehension over the product $A \times B$ whose predicate compares the projections $\pi_1, \pi_2$, with \cppinline{converse} the one relational operator shown (functions follow in a later slice).
 
@@ -963,10 +963,11 @@ static_assert(!R(pair{3,9}));
 \subsubsection{Functions and Morphism Factorization Gates}
 \label{sec:functions_morphism_factorization}
 
-While the relational composition operator ($\gg$) detailed in Section~\ref{sec:relations_functions_blueprint} bypasses the need for intermediate set materialization by maintaining a lazy symbolic predicate chain, specialized functional mappings impose a more stringent computational burden.
-For total functions where elements must be explicitly mapped and verified as certified singleton images, the template engine cannot rely solely on passive predicate encapsulation.
-If a function lacks a strict structural inverse or is evaluated over an unconstrained, transfinite domain, constructively determining image containment or mapping preimages demands an unbounded search of the domain and is undecidable. Consequently, if a generic result-set construction is impossible for general functions, it is similarly precluded for general relations.
-To resolve this boundary, the library introduces an architectural gate based on the categorical principle of epic-monic factorization.
+Image membership, $y \in \mathrm{image}(f)$, is the same existential once more, now on the domain side: $\exists x.\, f(x) = y$.
+Over a finite or finite-quotient domain the certificates of §\ref{sec:ddk_comprehension} discharge it; over an unconstrained, transfinite domain neither applies, and a raw search of the domain is undecidable.
+The remaining handle is a \emph{closed-form} certificate: a \emph{retract}, the partial inverse of the mono leg of the map's epic-monic factorization, which \emph{computes} the witness $x$ rather than searching for it.
+This is not a rival to the quantifier but the case where the existential has a closed-form solution: the same $\exists x.\, f(x)=y$, discharged by construction.
+The library reifies it as an architectural gate based on the categorical principle of epic-monic factorization.
 
 Mathematically, a relation $R : A \to \mathcal{P}(B)$ is a total function if and only if it maps every input to a singleton; equivalently, it is \emph{functional} (single-valued) and \emph{entire} (total).
 In the codebase this is the concept \cppinline{IsFunction}: a relation refined by the right-unique and left-total witnesses, with \cppinline{is_single_valued_at} discharging single-valuedness pointwise.

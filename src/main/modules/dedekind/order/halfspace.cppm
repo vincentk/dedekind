@@ -834,7 +834,12 @@ constexpr Halfspace<T, V, D, S, L> operator|(const UniversalSet<T, L, C>&,
                                              const UnboundHalfspace<D, S, V>&) {
   return {};
 }
+// Restricted to a carrier whose value type IS the pivot's type: Singleton<V,L>
+// has Domain = decltype(V), so a mismatch (e.g. ℕ | π == fix(5_c), Cardinality
+// vs int) would give the singleton the wrong carrier.  It is an honest compile
+// error there; a singleton over such a carrier needs a T-valued pivot.
 export template <typename T, typename L, typename C, auto V>
+  requires std::same_as<T, decltype(V)>
 constexpr Singleton<V, L> operator|(const UniversalSet<T, L, C>&,
                                     const UnboundSingleton<V>&) {
   return {};
@@ -989,7 +994,17 @@ constexpr ProjBound<I, Rel::Lt, V> operator<(Projection<I>, Bound<V>) {
 }
 export template <std::size_t I, auto V>
   requires(I >= 1)
+constexpr ProjBound<I, Rel::Le, V> operator<=(Projection<I>, Bound<V>) {
+  return {};
+}
+export template <std::size_t I, auto V>
+  requires(I >= 1)
 constexpr ProjBound<I, Rel::Gt, V> operator>(Projection<I>, Bound<V>) {
+  return {};
+}
+export template <std::size_t I, auto V>
+  requires(I >= 1)
+constexpr ProjBound<I, Rel::Ge, V> operator>=(Projection<I>, Bound<V>) {
   return {};
 }
 export template <std::size_t I, auto V>
