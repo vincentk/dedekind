@@ -204,7 +204,8 @@ export inline constexpr std::integral_constant<bool, false> false_c{};
 
 /**
  * @brief @c fix lifts a compile-time constant to a @c Bound pivot --- the
- *        bracket-free spelling of @c bound<V>, so @c fix(5_c) @b is @c bound<5>.
+ *        bracket-free spelling of @c bound<V>, so @c fix(5_c) @b is @c
+ * bound<5>.
  *
  * @details The runtime companion @c fix(v) (a value-level bound, for the
  * dynamic / future-Python path) is a separate overload added with the
@@ -771,5 +772,85 @@ constexpr auto structured_and(OrderInterval<T, Lo1, Hi1, SL1, SU1, L>,
 
   return OrderInterval<T, new_lo, new_hi, new_SL, new_SU, L>{};
 }
+
+// ── The point-free projection scout ────────────────────────────────────────
+/**
+ * @brief @c π --- the point-free variable, a @b domain-less scout.
+ *
+ * @details Where @c in<ℕ> bakes the carrier into the scout's type, @c π leaves
+ * it open.  A comparison @c π @c ⋈ @c fix(V) fixes only the @b shape (direction
+ * and pivot) as an @c UnboundHalfspace / @c UnboundSingleton; a later
+ * @c carrier @c | @c ... instantiates it at the carrier's @c Domain, reusing
+ * @c Halfspace / @c Singleton.  @c π is the unary projection; the product
+ * coordinates @c π₁ / @c π₂ follow with the relational surface (#783), reusing
+ * @c :cartesian projections where they fit.
+ */
+export template <std::size_t Slot>
+struct Projection {};
+
+export inline constexpr Projection<0> π{};
+
+/** @brief Unbound predicates: shape fixed, @c Domain deferred until a carrier
+ *  binds them via @c operator| below. */
+export template <Direction D, Strictness S, auto V>
+struct UnboundHalfspace {};
+export template <auto V>
+struct UnboundSingleton {};
+
+// π ⋈ fix(V) → the unbound halfspace / singleton (pivot fixed, carrier open).
+export template <auto V>
+constexpr UnboundHalfspace<Direction::Upward, Strictness::Strict, V> operator>(
+    Projection<0>, Bound<V>) {
+  return {};
+}
+export template <auto V>
+constexpr UnboundHalfspace<Direction::Upward, Strictness::NonStrict, V>
+operator>=(Projection<0>, Bound<V>) {
+  return {};
+}
+export template <auto V>
+constexpr UnboundHalfspace<Direction::Downward, Strictness::Strict, V>
+operator<(Projection<0>, Bound<V>) {
+  return {};
+}
+export template <auto V>
+constexpr UnboundHalfspace<Direction::Downward, Strictness::NonStrict, V>
+operator<=(Projection<0>, Bound<V>) {
+  return {};
+}
+export template <auto V>
+constexpr UnboundSingleton<V> operator==(Projection<0>, Bound<V>) {
+  return {};
+}
+
+// carrier | unbound → the Domain-bound predicate, reusing Halfspace /
+// Singleton. The RHS type is distinct from Set, so this does not clash with the
+// union operator| on a UniversalSet (that one takes a Set).
+export template <typename T, typename L, typename C, Direction D, Strictness S,
+                 auto V>
+constexpr Halfspace<T, V, D, S, L> operator|(const UniversalSet<T, L, C>&,
+                                             const UnboundHalfspace<D, S, V>&) {
+  return {};
+}
+export template <typename T, typename L, typename C, auto V>
+constexpr Singleton<V, L> operator|(const UniversalSet<T, L, C>&,
+                                    const UnboundSingleton<V>&) {
+  return {};
+}
+
+// The point-free surface reproduces the existing halfspace exactly.
+static_assert(
+    std::same_as<decltype(ℕ | (π > fix(5_c))),
+                 decltype(dedekind::sets::in<ℕ> > bound<5>)>,
+    "ℕ | π > fix(5_c) is the Above<5> halfspace, spelled point-free.");
+
+// And the equality shape gives the extensional Singleton, membership-checked.
+static_assert(std::same_as<decltype(𝔹 | (π == fix(true_c))),
+                           Singleton<true, ClassicalLogic>>,
+              "𝔹 | π == fix(true_c) is Singleton<true>, spelled point-free.");
+static_assert(static_cast<bool>((𝔹 | (π == fix(true_c)))(true)),
+              "true ∈ {true}.");
+static_assert(!static_cast<bool>((𝔹 | (π == fix(true_c)))(false)),
+              "false ∉ {true}.");
 
 }  // namespace dedekind::order
