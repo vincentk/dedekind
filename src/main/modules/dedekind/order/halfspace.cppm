@@ -911,11 +911,13 @@ constexpr bool rel_apply(const X& x, const Y& y) {
 }
 
 /** @brief Nested-typedef marker so @c & / @c | fire only on relational
- *  predicates; kept off the class hierarchy so the predicates stay aggregates. */
+ *  predicates; kept off the class hierarchy so the predicates stay aggregates.
+ */
 export template <typename T>
 concept IsRelPredicate = requires { typename T::is_rel_predicate; };
 
-/** @brief @f$\pi_I \bowtie \pi_J@f$ --- a strongly-typed predicate on a pair. */
+/** @brief @f$\pi_I \bowtie \pi_J@f$ --- a strongly-typed predicate on a pair.
+ */
 export template <std::size_t I, Rel R, std::size_t J>
 struct ProjProj {
   using is_rel_predicate = void;
@@ -1024,7 +1026,8 @@ static_assert(!(𝔹 * 𝔹 | π1 <= π2 & π2 == fix(true_c))(std::pair{false, 
               "(false, false) fails y = true.");
 
 // ── converse and the bracket-free relation query ───────────────────────────
-/** @brief The swapped predicate for @c converse: @f$R^\smile(b,a) = R(a,b)@f$. */
+/** @brief The swapped predicate for @c converse: @f$R^\smile(b,a) = R(a,b)@f$.
+ */
 export template <typename P>
 struct SwapPred {
   using is_rel_predicate = void;
@@ -1057,9 +1060,9 @@ consteval bool is_relation(const S&) {
 }
 
 // converse swaps the coordinates; is_relation certifies the product Domain.
-static_assert(converse(𝔹 * 𝔹 | π1 < π2)(std::pair{true, false}),
+static_assert(converse(𝔹* 𝔹 | π1 < π2)(std::pair{true, false}),
               "converse of < contains (true, false): false < true.");
-static_assert(is_relation(𝔹 * 𝔹 | π1 < π2),
+static_assert(is_relation(𝔹* 𝔹 | π1 < π2),
               "𝔹*𝔹 | π1 < π2 is a relation (IsSet on a product).");
 
 // ── Projection arithmetic (for the divides relation, Listing 7) ────────────
@@ -1089,11 +1092,11 @@ constexpr ProjModBound<I, J, Rel::Eq, V> operator==(ProjMod<I, J>, Bound<V>) {
 
 // divides: {(a,b) | b % a == 0 ∧ a != 0} = ℕ*ℕ | π2 % π1 == fix(0_c) & π1 != 0.
 // The && in RelAnd short-circuits the guard first, so a == 0 never reaches %.
-static_assert((ℕ * ℕ | π1 != fix(0_c) & π2 % π1 == fix(0_c))(
-                  std::pair{finite_cardinality(2), finite_cardinality(6)}),
+static_assert((ℕ * ℕ | π1 != fix(0_c) & π2 % π1 == fix(0_c))(std::pair{
+                  finite_cardinality(2), finite_cardinality(6)}),
               "6 % 2 == 0: (2,6) ∈ divides.");
-static_assert(!(ℕ * ℕ | π1 != fix(0_c) & π2 % π1 == fix(0_c))(
-                  std::pair{finite_cardinality(4), finite_cardinality(6)}),
+static_assert(!(ℕ * ℕ | π1 != fix(0_c) & π2 % π1 == fix(0_c))(std::pair{
+                  finite_cardinality(4), finite_cardinality(6)}),
               "6 % 4 != 0: (4,6) ∉ divides.");
 
 }  // namespace dedekind::order
