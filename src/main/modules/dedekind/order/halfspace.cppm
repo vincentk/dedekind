@@ -1062,4 +1062,38 @@ static_assert(converse(𝔹 * 𝔹 | π1 < π2)(std::pair{true, false}),
 static_assert(is_relation(𝔹 * 𝔹 | π1 < π2),
               "𝔹*𝔹 | π1 < π2 is a relation (IsSet on a product).");
 
+// ── Projection arithmetic (for the divides relation, Listing 7) ────────────
+/** @brief @f$\pi_I \% \pi_J@f$ --- a value expression on a pair, awaiting a
+ *  comparison to a bound. */
+export template <std::size_t I, std::size_t J>
+struct ProjMod {};
+export template <std::size_t I, std::size_t J>
+constexpr ProjMod<I, J> operator%(Projection<I>, Projection<J>) {
+  return {};
+}
+
+/** @brief @f$(\pi_I \% \pi_J) \bowtie \mathrm{fix}(V)@f$ --- a strongly-typed
+ *  pair predicate (the modular / divisibility shape). */
+export template <std::size_t I, std::size_t J, Rel R, auto V>
+struct ProjModBound {
+  using is_rel_predicate = void;
+  template <typename P>
+  constexpr bool operator()(const P& p) const {
+    return rel_apply<R>(coord<I>(p) % coord<J>(p), V);
+  }
+};
+export template <std::size_t I, std::size_t J, auto V>
+constexpr ProjModBound<I, J, Rel::Eq, V> operator==(ProjMod<I, J>, Bound<V>) {
+  return {};
+}
+
+// divides: {(a,b) | b % a == 0 ∧ a != 0} = ℕ*ℕ | π2 % π1 == fix(0_c) & π1 != 0.
+// The && in RelAnd short-circuits the guard first, so a == 0 never reaches %.
+static_assert((ℕ * ℕ | π1 != fix(0_c) & π2 % π1 == fix(0_c))(
+                  std::pair{finite_cardinality(2), finite_cardinality(6)}),
+              "6 % 2 == 0: (2,6) ∈ divides.");
+static_assert(!(ℕ * ℕ | π1 != fix(0_c) & π2 % π1 == fix(0_c))(
+                  std::pair{finite_cardinality(4), finite_cardinality(6)}),
+              "6 % 4 != 0: (4,6) ∉ divides.");
+
 }  // namespace dedekind::order
