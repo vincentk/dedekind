@@ -35,8 +35,8 @@ TEST_CASE("graph: is_graph_of decides equality on a finite domain",
   const auto id = dedekind::category::Identity<int>{};
   const auto dom = std::views::iota(0, 4);
 
-  // graph(id) IS the graph of id...
-  CHECK(is_graph_of(graph(id), id, dom));
+  // graph(id) IS the graph of id... (int -> int, so codomain range == dom)
+  CHECK(is_graph_of(graph(id), id, dom, dom));
   // ...and graph(succ) is NOT: the witness distinguishes the two functions.
-  CHECK_FALSE(is_graph_of(graph(Succ{}), id, dom));
+  CHECK_FALSE(is_graph_of(graph(Succ{}), id, dom, dom));
 }
