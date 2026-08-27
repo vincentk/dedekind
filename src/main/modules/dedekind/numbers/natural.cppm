@@ -503,6 +503,37 @@ static_assert(IsMonotone<std::decay_t<decltype(dedekind::numbers::embed_𝔹_ℕ
 namespace dedekind::sets {
 
 /**
+ * @struct ScoutModN
+ * @brief A bound scout reduced modulo @c N: the intermediate of
+ *        @c in<ℕ> @c % @c Modular<N>, awaiting a residue to compare against.
+ *
+ * @details Mirrors the halfspace DSL @c in<ℕ> @c > @c bound<5>: the telling
+ * @c operator% factors the scout through the finite quotient @c Modular<N>,
+ * then @c == @c bound<R> selects the residue class, reifying @c
+ * Congruence<N,R>.
+ * FIXME(#797): as §3 morphism-factorisation / §4 quotients mature, @c % may
+ * generalise to a factor-through-quotient combinator.
+ */
+template <auto N>
+struct ScoutModN {};
+
+/** @brief @c in<ℕ> @c % @c Modular<N>{}: factor the scout through
+ * @f$\mathbb{Z}/N\mathbb{Z}@f$. */
+template <auto Ambient, auto N>
+  requires std::same_as<typename BoundScout<Ambient>::T, Cardinality>
+constexpr auto operator%(const BoundScout<Ambient>&,
+                         dedekind::morphologies::Modular<N>) {
+  return ScoutModN<N>{};
+}
+
+/** @brief @c (in<ℕ> % Modular<N>) @c == @c bound<R>: reify the residue class.
+ */
+template <auto N, auto R>
+constexpr auto operator==(ScoutModN<N>, dedekind::order::Bound<R>) {
+  return dedekind::morphologies::Congruence<N, R>{};
+}
+
+/**
  * @struct FiniteResidueSet
  * @brief The image of a Modular<N>-factoring predicate, materialised over the N
  *        residues of ℤ/Nℤ: @c at[r] is the membership of residue @c r.
@@ -569,17 +600,22 @@ constexpr bool forall(const UniversalSet<Cardinality, L, C>& u,
 
 namespace dedekind::numbers {
 
-// The §3.1 exhibit (lst:quantifiers_def, right): isEven = Congruence<2,0> over
-// the infinite ℕ, decided in FINITE time by the two residues of ℤ/2ℤ.  ∃ finds
-// residue 0 (even) against the ∅ bound; ∀ fails on residue 1 against the Ω
-// bound.
-static_assert(
-    dedekind::sets::exists(dedekind::sets::Ω<dedekind::sets::Cardinality>,
-                           dedekind::morphologies::Congruence<2, 0>{}),
-    "∃x∈ℕ. even(x) — residue 0 is even.");
-static_assert(
-    !dedekind::sets::forall(dedekind::sets::Ω<dedekind::sets::Cardinality>,
-                            dedekind::morphologies::Congruence<2, 0>{}),
-    "¬∀x∈ℕ. even(x) — residue 1 is a counterexample.");
+// The §3.1 exhibit (lst:quantifiers_def, right): isEven built with the telling
+// scout sugar  in<ℕ> % Modular<2> == bound<0>,  which reifies to
+// Congruence<2,0> (carrying the modulus in the type).  Over the infinite ℕ, ∃/∀
+// are decided in FINITE time by the two residues of ℤ/2ℤ: ∃ finds residue 0
+// (even) against the ∅ bound; ∀ fails on residue 1 against the Ω bound.  The
+// exists/forall overloads accept only a Congruence, so these witnesses also
+// prove the sugar reifies correctly.
+inline constexpr auto isEven =
+    dedekind::sets::in<dedekind::sets::Ω<dedekind::sets::Cardinality>> %
+        dedekind::morphologies::Modular<2>{} ==
+    dedekind::order::bound<0>;
+static_assert(dedekind::sets::exists(
+                  dedekind::sets::Ω<dedekind::sets::Cardinality>, isEven),
+              "∃x∈ℕ. even(x) — residue 0 is even.");
+static_assert(!dedekind::sets::forall(
+                  dedekind::sets::Ω<dedekind::sets::Cardinality>, isEven),
+              "¬∀x∈ℕ. even(x) — residue 1 is a counterexample.");
 
 }  // namespace dedekind::numbers

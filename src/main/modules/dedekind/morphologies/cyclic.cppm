@@ -131,7 +131,9 @@ struct Modular {
   // @c machine_type, @c (-1 % N) yields @c -1 in C++; we shift the
   // result back into the canonical range so @c operator== respects
   // @f$\mathbb{Z}/N\mathbb{Z}@f$ semantics.
-  explicit constexpr Modular(machine_type v) : value(normalize(v)) {}
+  // Default to 0, the additive identity; also lets @c Modular<N>{} name the
+  // carrier as a value (e.g. the scout sugar @c in<ℕ> @c % @c Modular<N>{}).
+  explicit constexpr Modular(machine_type v = 0) : value(normalize(v)) {}
 
   // morphologies::IsCyclic shape API: 1 generates Z/NZ; successor
   // walks the chain.

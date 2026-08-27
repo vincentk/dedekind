@@ -613,7 +613,7 @@ static_assert(!forall(𝔹, isTrue));
 // periodic → factors thru Modular<2>
 constexpr auto ℕ = Ω<Cardinality>;
 constexpr auto isEven =
-  in<ℕ> % Modular<2>{} == 0;
+  in<ℕ> % Modular<2>{} == bound<0>;
 static_assert( exists(ℕ, isEven));
 static_assert(!forall(ℕ, isEven));
 \end{cpp}
