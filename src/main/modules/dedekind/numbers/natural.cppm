@@ -514,12 +514,12 @@ namespace dedekind::sets {
  * FIXME(#797): as §3 morphism-factorisation / §4 quotients mature, @c % may
  * generalise to a factor-through-quotient combinator.
  */
-template <auto N>
+export template <auto N>
 struct ScoutModN {};
 
 /** @brief @c in<ℕ> @c % @c Modular<N>{}: factor the scout through
  * @f$\mathbb{Z}/N\mathbb{Z}@f$. */
-template <auto Ambient, auto N>
+export template <auto Ambient, auto N>
   requires std::same_as<typename BoundScout<Ambient>::T, Cardinality>
 constexpr auto operator%(const BoundScout<Ambient>&,
                          dedekind::morphologies::Modular<N>) {
@@ -528,7 +528,7 @@ constexpr auto operator%(const BoundScout<Ambient>&,
 
 /** @brief @c (in<ℕ> % Modular<N>) @c == @c bound<R>: reify the residue class.
  */
-template <auto N, auto R>
+export template <auto N, auto R>
 constexpr auto operator==(ScoutModN<N>, dedekind::order::Bound<R>) {
   return dedekind::morphologies::Congruence<N, R>{};
 }
@@ -545,7 +545,7 @@ constexpr auto operator==(ScoutModN<N>, dedekind::order::Bound<R>) {
  * finite quotient: no residue is a member iff no natural is, since every
  * natural has a residue.
  */
-template <auto N, typename L>
+export template <auto N, typename L>
 struct FiniteResidueSet {
   std::array<typename L::Ω, N> at;
 
@@ -573,7 +573,7 @@ struct FiniteResidueSet {
 
 /** @brief @c set(ℕ, congruence): materialise the predicate over the N residues
  *  of @c Modular<N> (the reduction is the @c Modular<N> constructor). */
-template <typename L, typename C, auto N, auto R>
+export template <typename L, typename C, auto N, auto R>
 constexpr auto set(const UniversalSet<Cardinality, L, C>&,
                    dedekind::morphologies::Congruence<N, R> c) {
   std::array<typename L::Ω, N> at{};
@@ -583,14 +583,14 @@ constexpr auto set(const UniversalSet<Cardinality, L, C>&,
 }
 
 /** @brief ∃ over ℕ, scheme (A): @f$\{x\mid P(x)\} \neq \varnothing@f$. */
-template <typename L, typename C, auto N, auto R>
+export template <typename L, typename C, auto N, auto R>
 constexpr bool exists(const UniversalSet<Cardinality, L, C>& u,
                       dedekind::morphologies::Congruence<N, R> c) {
   return !(Ø<Cardinality, L>{} == set(u, c));
 }
 
 /** @brief ∀ over ℕ, scheme (B): @f$\{x\mid P(x)\} = \Omega@f$. */
-template <typename L, typename C, auto N, auto R>
+export template <typename L, typename C, auto N, auto R>
 constexpr bool forall(const UniversalSet<Cardinality, L, C>& u,
                       dedekind::morphologies::Congruence<N, R> c) {
   return set(u, c) == u;
