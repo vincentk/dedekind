@@ -810,9 +810,9 @@ Such morphisms are then classified by the following properties, if one focuses o
 \end{itemize}
 Equivalently, relations can be represented as sets whose elements satisfy the product axioms (\cppinline{IsProduct}), for example via the signature \cppinline{IsSet<std::pair>}.
 
-Table~\ref{tab:relation-quantifier} organises these four properties as one structure: the quantifiers $\exists$ ($\ge 1$) and $\forall$ ($\le 1$) applied to each projection of $R \subseteq A \times B$, read across the quantifier, set-theoretic, and categorical vocabularies.
-Here $\exists$ and $\forall$ are the indexed join $\bigvee$ and meet $\bigwedge$ of Table~\ref{tab:lattice-lift}, now ranging over a projection fibre rather than a binary pair.
-A projection turning into an isomorphism marks the two composite notions: $\pi_A$ an iso is a function, $\pi_B$ an iso a bijection.
+Table~\ref{tab:relation-quantifier} organises these four properties as one structure: an \emph{existence} bound ($\ge 1$) and a \emph{uniqueness} bound ($\le 1$) on each projection fibre of $R \subseteq A \times B$, holding for every base point, read across three vocabularies.
+The existence bound is the bounded existential $\exists$, the indexed join $\bigvee$ of Table~\ref{tab:lattice-lift} over the fibre; the uniqueness bound is the at-most-one condition $\exists^{\le 1}$, distinct from the fibre's indexed meet $\bigwedge$ (which would instead demand relation to \emph{every} element).
+A projection becoming an isomorphism needs both bounds at once: $\pi_A$ an iso makes $R$ a function, $\pi_B$ an iso makes the \emph{converse} a function, and both together a bijection.
 The epic-monic factorization $R = m \circ e$ places the retract on the mono leg $m$, where it later discharges image-membership and function application (§\ref{sec:functions_morphism_factorization}).
 
 \begin{table}[htbp]
@@ -830,7 +830,7 @@ set theory & total & single-valued & onto & one-to-one \\
 category theory & $\pi_A$ epi & $\pi_A$ mono & $\pi_B$ epi & $\pi_B$ mono \\
 \bottomrule
 \end{tabular}
-\caption{The four properties of a relation $R \subseteq A \times B$ as $\exists$ ($\ge 1$) and $\forall$ ($\le 1$) on its two projections, in three vocabularies.
+\caption{The four properties of a relation $R \subseteq A \times B$ as an existence bound ($\ge 1$) and a uniqueness bound ($\le 1$) on its two projections, in three vocabularies.
 Columns pair up: entire with functional on $\pi_A$, surjective with injective on $\pi_B$.}
 \label{tab:relation-quantifier}
 \end{table}
