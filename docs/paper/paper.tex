@@ -505,7 +505,8 @@ $\mathbf{Trsk}$ & \cppinline{s(x)} & \cppinline{&} & \cppinline{|} & \cppinline{
 \caption{
 Operator-mapping table: each column is one construction spelled in four languages, the rows ascending from the Boolean lattice $\mathbb{B}$ through the powerset $\mathcal{P}(A)$ and the abstract Cartesian-closed category $\mathbf{CCC}$ to the reification $\mathbf{Trsk} \subset \mathbf{Cpp}$ (Section~\ref{sec:ddk_etcs}, Eqn~\ref{eqn:trsk}).
 The lattice columns are the $\mathbf{CCC}$'s universal constructions realised concretely: the meet \emph{is} the categorical product, the implication the exponential.
-The \emph{member} column is the odd one out: membership $x \in S$ is not a lattice operation but the characteristic morphism $\chi : A \to \Omega$, the relation the whole lattice is built on ($\models$ satisfaction, $\in$ set membership, $\chi$ the classifier, \cppinline{s(x)} the set applied to a point).
+The \emph{member} column is the odd one out: membership $x \in S$ is not a lattice operation but the characteristic morphism $\chi : A \to \Omega$, the relation the whole lattice is built on.
+It is that one relation at four universes: $\in$ set membership over a general $A$, $\chi$ the classifier, \cppinline{s(x)} the set applied to a point, and, since $\mathbb{B} = \mathcal{P}(1)$ is the powerset of a single point, $\models$ satisfaction (membership of the sole point is just whether the proposition holds).
 The set lattice \emph{is} the Boolean lattice lifted pointwise ($\mathcal{P}(A) \cong \mathbb{B}^A$), and the collapse in Listing~\ref{lst:pruning} is that lift at work in the form of type-checked \Cpp{23}.
 }
 \label{tab:lattice-lift}
@@ -556,28 +557,41 @@ So $\mathbf{Trsk}$ is strictly more expressive than \cppinline{std::set}, the ex
 This is the extensional/intensional database distinction of deductive databases, \cppinline{std::set} playing the extensional store (EDB, facts) and $\mathbf{Trsk}$ the intensional one (IDB, rules), with materialisation the materialised view~\cite{abiteboul1995foundations}.
 
 \begin{listing}[htbp]
-\caption{$\mathbf{Trsk}$ is strictly more expressive than \cppinline{std::set}, the extensional container it generalises.
-\textbf{Left} ($\iota$, total): every container \emph{is} a $\mathbf{Trsk}$ set, its \cppinline{contains} the characteristic morphism, so \cppinline{ambient_set(from_std(·))} lifts any \cppinline{std::set} to an \cppinline{IsSet} object.
-\textbf{Right} ($\mu$, partial): \cppinline{materialise} enumerates the universe and keeps the $\chi$-matches, defined only for a finite, enumerable universe with a decidable predicate.
-The naturals do not materialise; the price of staying intensional is discharging membership by proof, not by enumeration.}
+\caption{$\mathbf{Trsk}$ is strictly more expressive than \cppinline{std::set}, the extensional container it generalises, and the two readings compose.
+\textbf{Left, top} ($\iota$, total): every container \emph{is} a $\mathbf{Trsk}$ set, its \cppinline{contains} the characteristic morphism, so \cppinline{ambient_set(from_std(·))} lifts any \cppinline{std::set} to an \cppinline{IsSet} object.
+\textbf{Left, bottom} ($\mu$, partial): \cppinline{materialise} enumerates the universe and keeps the $\chi$-matches, defined only for a finite, enumerable universe with a decidable predicate, so the naturals do not materialise.
+\textbf{Right} (composition): an extensional set bounds an intensional halfspace, making the universe finite, so their intersection \emph{always} materialises ($\{2,3,5\} \cap \{x>3\} = \{5\}$, $\cap\, \{x>5\} = \varnothing$).
+The price of staying purely intensional is discharging membership by proof, not by enumeration.}
 \label{lst:materialise}
 \noindent
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
 // ι : std::set ↪ Trsk   (total)
-std::set<int> c{2, 3, 5};
-// contains(x) IS the predicate χ
+std::set<int> c{2, 3, 5};  // contains IS χ
 static_assert(IsSet<decltype(
   ambient_set<int>(from_std(c)))>);
 \end{cpp}
-\end{minipage}\hfill
-\begin{minipage}[t]{0.49\linewidth}
+\vspace{0.4em}
 \begin{cpp}
 // μ : Trsk ⇀ std::set   (partial)
 auto evens = materialise(
   std::views::iota(0, 10), isEven);
 assert((evens == std::set{0,2,4,6,8}));
 // {x∈ℕ|isEven}: ℕ unbounded → no μ
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\linewidth}
+\begin{cpp}
+// the two worlds COMPOSE: an extensional
+// set bounds an intensional one, so their
+// intersection always materialises.
+std::set<int> ext{2, 3, 5};
+auto gt3 = in<ℕ> > bound<3>;  // {x>3}
+auto gt5 = in<ℕ> > bound<5>;  // {x>5}
+assert(materialise(ext, gt3)  // ext ∩ int1
+       == std::set{5});
+assert(materialise(ext, gt5)  // ext ∩ int2
+       == std::set<int>{});
 \end{cpp}
 \end{minipage}
 \end{listing}
