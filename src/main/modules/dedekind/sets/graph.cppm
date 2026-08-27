@@ -162,7 +162,13 @@ struct Divides {
 };
 }  // namespace
 
-// The graph of an arrow is a function (functional ∧ entire, by construction).
+// The IsFunction certificate (functional ∧ entire, by construction) is carried
+// by arrow_as_relation<F> --- the 2-arg form to which graph(f)'s membership is
+// definitionally equal pointwise (Γ_id witness above).  graph(f) itself is the
+// Set<pair> reification, certified IsSet (a subobject of A × B); reifying
+// IsFunction on the unary-on-pair Set form is deferred.
+// FIXME(#783): forward is_right_unique / is_left_total onto the graph type so
+// this assertion lands on graph(f) directly, not only on the adapter.
 static_assert(
     IsFunction<dedekind::category::arrow_as_relation<
                    dedekind::category::Identity<int>>,
