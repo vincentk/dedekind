@@ -714,14 +714,21 @@ class Set {
         // Cardinality-1 reduction (e.g. integer halfspace meet): elevate to a
         // bare Singleton-typed value, paralleling the Ø collapse for empty.
         return reduced;
-      } else if constexpr (requires { typename Result::cardinality_type; } &&
-                           std::same_as<typename Result::cardinality_type,
-                                        Finite>) {
-        // Structured reduction to a named finite object (e.g. an integer
-        // OrderInterval with compile-time-computed size): elevate it out of
-        // the Set wrapper so downstream code can observe size() / bounds /
-        // computability classification directly on the reduced type.
-        return reduced;
+      } else if constexpr (requires { typename Result::cardinality_type; }) {
+        // The probe must be nested, not `&&`-chained: a logical-and of two
+        // bool operands instantiates BOTH, so a `Result` without
+        // `cardinality_type` (e.g. a bare Halfspace reached when a downstream
+        // structured_and overload is out of ADL range) would hard-error on the
+        // second operand.  Nesting keeps the type probe guarded.
+        if constexpr (std::same_as<typename Result::cardinality_type, Finite>) {
+          // Structured reduction to a named finite object (e.g. an integer
+          // OrderInterval with compile-time-computed size): elevate it out of
+          // the Set wrapper so downstream code can observe size() / bounds /
+          // computability classification directly on the reduced type.
+          return reduced;
+        } else {
+          return Set<T, L, Result>{std::move(reduced)};
+        }
       } else {
         return Set<T, L, Result>{std::move(reduced)};
       }

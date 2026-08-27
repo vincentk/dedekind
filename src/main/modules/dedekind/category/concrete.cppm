@@ -32,7 +32,7 @@
  *
  * @section concrete__Std_Namespace_Mappings
  *
- *  - @c IsSetObject<S, @c A>: per-object concreteness ---
+ *  - @c IsSubobject<S, @c A>: per-object concreteness ---
  *    @c S is a Subobject of ambient @c A.
  *  - @c IsConcrete<C>: per-category concreteness ---
  *    @c C is small AND its objects are sets.
@@ -70,22 +70,6 @@ import :topoi;      // IsSubobject, IsPredicate --- subobject machinery
 namespace dedekind::category {
 
 /**
- * @concept IsSetObject
- * @brief A categorical set object represented as a subobject @c S @c ↣ @c A.
- *
- * @details The per-object concreteness witness: @c S is a Subobject of its
- *          @c Ambient type, so @c S "is" a set (the subset of @c Ambient
- *          carved out by its characteristic morphism @c χ).  Re-homed from
- *          @c :etcs to @c :concrete under #636 --- this is the concreteness
- *          atom, independent of the further ETCS-specific axioms.
- */
-export template <typename S, typename A>
-concept IsSetObject = IsSubobject<S, A> && requires {
-  typename S::Domain;
-  requires std::same_as<typename S::Domain, A>;
-};
-
-/**
  * @concept SetAsProduct
  * @brief Set := (Underlying, Classifier) read as a product, in the
  *        projection-access sense.
@@ -95,7 +79,7 @@ concept IsSetObject = IsSubobject<S, A> && requires {
  * pair of (i) its underlying ambient species @p Underlying, accessed
  * type-level via @c S::Domain, and (ii) its classifier codomain
  * @p Classifier, recognised structurally via the call shape
- * @c S(a) @c -> @c Classifier.  Sibling to @c IsSetObject, which names
+ * @c S(a) @c -> @c Classifier.  Sibling to @c IsSubobject, which names
  * the @em predicate reading "S is a subobject of A".  The two readings
  * carve the same surface from different angles.
  *
@@ -112,7 +96,7 @@ concept IsSetObject = IsSubobject<S, A> && requires {
  * @par Why this concept exists (#573 / #644 --- Sollbruchstelle)
  * The user's framing for the HAS-A maturation: "a set should be a product
  * in the @c :cartesian sense of an underlying and predicates."  This
- * concept names that seam.  It refines @c IsSetObject by adding a typed
+ * concept names that seam.  It refines @c IsSubobject by adding a typed
  * obligation that the classifier codomain @b is @p Classifier ---
  * a structural witness that the (Underlying, Classifier) decomposition
  * is recoverable.  Downstream slices (#573 slice 3 @c AlgebraAsProduct,
@@ -131,7 +115,7 @@ concept IsSetObject = IsSubobject<S, A> && requires {
  * @tparam Classifier  The codomain of @c S-as-predicate (@c L::Ω).
  */
 export template <typename S, typename Underlying, typename Classifier>
-concept SetAsProduct = IsSetObject<S, Underlying> && requires {
+concept SetAsProduct = IsSubobject<S, Underlying> && requires {
   // Post-#681 structural refactor: the carrier IS the characteristic
   // morphism, so there is no named @c s.χ projector to match against
   // @c Classifier.  We capture the (Underlying, Classifier) seam

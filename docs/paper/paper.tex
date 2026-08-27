@@ -433,7 +433,7 @@ By establishing this pure, disciplined substrate first, we gain an environment w
 In category theory terms, we can write $\mathbf{Jlt} \subset \mathbf{Cpp}$.
 This forms the exact Cartesian Closed Category needed to bootstrap formal set comprehension and universal algebra in the following sections.
 
-\section{Intensional Sets as Type-Checked Predicates}
+\section{A Reification of $\mathbf{Set}$}
 \label{sec:intensional_sets}
 
 With a deterministic, structurally-typed substrate established in Section~\ref{sec:jlt_posture}, mathematical sets can be bootstrapped inside the type system.
@@ -443,126 +443,255 @@ Figure~\ref{fig:hub-spoke-bnz} in the introduction previews the functionality th
 In this section, we first show working code (§\ref{sec:ddk_comprehension}) to illustrate the expected payoff, then discuss the theoretical foundations in set theory, specifically the category-theoretical elementary theory of sets (§\ref{sec:ddk_etcs}).
 
 % ============================================================
-\subsection{A Set Comprehension DSL}
+\subsection{An Algebra of Sets}
 \label{sec:ddk_comprehension}
 % ============================================================
 
-% Source: src/test/cpp/modules/dedekind/python/showcase_alpha_prime.cpp
+% Source: src/test/cpp/modules/dedekind/analysis/pruning_lattice_laws_test.cpp
+%         (Ø<bool>/Ø<Cardinality> spelling; the ambient Ø<𝔹>/Ø<ℕ> is a
+%          pending empty-set-on-ambient migration.)
+%   Bottom IR panel: .../python/showcase_03_halfspace_contradiction.ll
 \begin{listing}[htbp]
-\caption{Two set constructions, evaluated entirely at compile time.
-\textbf{Left:} the canonical Boolean set $\mathbb{B}$, the universal set of \cppinline{bool} (every value of the type), reified as \cppinline{sets::Ω<bool>}.
-The \cppinline{static_assert}s witness that it is an ETCS set (\cppinline{IsSet}) whose subsets form a lattice under $\cup$, $\cap$, and complement (\cppinline{IsSubobjectLattice}, the pre-defined subobject-lattice concept $\mathrm{Sub}(A) \cong \Omega^A$).
-This is the lattice of the \emph{set} operations, not the lattice of \cppinline{bool} itself under $(\vee, \wedge)$.
-\textbf{Right:} set-builder notation modelled in C++23.
-\cppinline{Set{...}} is a variadic constructor; the combinators \cppinline{in} and \cppinline{bound} construct a scout variable and a half-space predicate.
-The scout variable appears on both sides of the bar: introduced on the left, referred back to on the right, so the predicate reads as the constraint $x > 5$.
-\cppinline{operator()} is shorthand for \cppinline{a.contains(e)}.}
+\caption{The two absorbing laws of the complement lattice (Table~\ref{tab:lattice-lift}), as compile-time \textbf{type} collapses on an \textbf{extensional} carrier ($\mathbb{B}$, a static \cppinline{Singleton}) and an \textbf{intensional} one ($\mathbb{N}$, a \cppinline{Halfspace}).
+Complement (\cppinline{~}) turns a subset into its dual; \textbf{union} with the dual round-trips to the universe ($a \cup \neg a = \top$), while \textbf{intersection} with it falls to the empty set ($a \cap \neg a = \bot$).
+The collapse is a type identity, the same on both carriers: no element is ever enumerated.
+\textbf{Bottom:} the payoff in the emitted code, a membership query on the empty meet constant-folding to \texttt{ret i1 false} at \texttt{-O2} (\texttt{clang++-22}).}
 \label{lst:pruning}
 \noindent
-\begin{minipage}[t]{0.44\linewidth}
-the canonical Boolean set $\mathbb{B}$
+\begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-constexpr auto 𝔹 = sets::Ω<bool>;
+constexpr auto 𝔹 = Ω<bool>;
 static_assert(IsSet<decltype(𝔹)>);
-static_assert(𝔹(true));
-static_assert(𝔹(false));
-
-// Subsets form a lattice
-// under the set operations |, &, !
-// (not bool's ∨, ∧):
-static_assert(
-  IsSubobjectLattice<decltype(𝔹)>);
+constexpr Singleton<true> 
+  T{};
+constexpr Singleton<false>
+  F = ~T;
+static_assert((F | T) == 𝔹);
+constexpr Ø<bool>
+  empty = F & T;
 \end{cpp}
 \end{minipage}\hfill
-\begin{minipage}[t]{0.54\linewidth}
-a comprehension over $\mathbb{N}$
+\begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-// {x in ℕ | x > 5}
-constexpr auto a = Set{in(ℕ) | in(ℕ) > bound<5>};
-static_assert(a(7u) == a.contains(7u));
-
-constexpr auto b = Set{in(ℕ) | in(ℕ) > bound<6>};
-constexpr Singleton<6> c = a - b;
-constexpr auto d = Set{in(ℕ) | in(ℕ) < bound<7>};
-constexpr Singleton<6> e = c & d;
-constexpr Ø<Cardinality> f = c & !c;
-
-// {x in ℕ | ∃y ∈ e : x*y == 42}
-constexpr Singleton<7> q =
-  Set{in(ℕ) | Exists(e,
-    [](auto y, auto x) {
-      return x * y == bound<42>;
-    })};
+constexpr auto ℕ = Ω<Cardinality>;
+static_assert(IsSet<decltype(ℕ)>);
+constexpr Above<5>
+  gt_5 = in<ℕ> > bound<5>;
+constexpr AtMost<5>
+  le_5 = ~gt_5;
+static_assert((le_5 | gt_5) == ℕ);
+constexpr Ø<Cardinality>
+  empty = le_5 & gt_5;
 \end{cpp}
 \end{minipage}
+\begin{cpp}
+// membership on that empty meet, at -O2 — the collapse, made observable:
+define noundef zeroext i1 @witness_empty_halfspace_meet() { ret i1 false }
+\end{cpp}
 \end{listing}
 
-The combinator \cppinline{in} constructs a \emph{scout variable}.
-In the blackboard form $\{\,x \in \mathbb{N} \mid P(x)\,\}$ it plays the role of the bound variable $x$: a stand-in for an arbitrary element of the domain, which the bar then constrains by a predicate.
-What makes it more than a name is that it carries its domain in its own type, so the compiler knows what the variable ranges over.
-Informally it just names an arbitrary element of that domain.
-Formally it is the handle that the comprehension pipe (\cppinline{operator|}) binds to a predicate: in the code, \cppinline{BoundScout} is an empty structural type whose type-level ambient records the domain, gated by \cppinline{IsArrow} since a set is its own characteristic morphism.
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}lccccccc@{}}
+\toprule
+ & member & meet & join & complement & bottom & top & order \\
+\midrule
+$\mathbb{B}$ & $\models$ & $\wedge$ & $\vee$ & $\neg$ & $\bot$ & $\top$ & $\Rightarrow$ \\
+\addlinespace
+$\mathcal{P}(A)$ & $\in$ & $\cap$ & $\cup$ & $\complement$ & $\varnothing$ & $A$ & $\subseteq$ \\
+\addlinespace
+$\mathbf{Topos}$ & $\chi$ & $\times$ & $\sqcup$ & $\neg$ & $\mathbf{0}$ & $\mathbf{1}$ & $B^A$ \\
+\addlinespace
+$\mathbf{Trsk}$ & \cppinline{s(x)} & \cppinline{&} & \cppinline{|} & \cppinline{~} & \cppinline{Ø} & \cppinline{Ω} & \cppinline{<=} \\
+\bottomrule
+\end{tabular}
+\caption{
+Operator-mapping table: each column is one construction, spelled in four languages over the rows $\mathbb{B}$, $\mathcal{P}(A)$, $\mathbf{Topos}$, $\mathbf{Trsk}$ (Section~\ref{sec:ddk_etcs}, Eqn~\ref{eqn:trsk}).
+The $\mathbf{Topos}$ row is the Boolean case realised by $\mathbf{Set}$, where the Heyting pseudo-complement is a genuine $\neg$.
+The \emph{member} column is membership, the characteristic morphism $\chi : A \to \Omega$ ($\models$ satisfaction, $\in$ set membership, $\chi$ the classifier, \cppinline{s(x)} the set applied to a point); the other columns are the lattice operations.
+}
+\label{tab:lattice-lift}
+\end{table}
 
-This predicate-composition algebra is not merely a shorthand notation; it functions as an embedded syntax engine that allows the declaration of infinite spaces at the type level.
-When operations like intersection (\texttt{\&}), union, or complement (\texttt{!}) are written as boolean logic combinations, the compiler parses the abstract syntax tree into a unified predicate chain.
-The template engine expands these composed expressions during compilation, triggering type-level constant folding and dead-code elimination.
+\begin{definition}[$\mathbf{Trsk} := \mathbf{Jlt} \cap \mathbf{Set}$]
+\label{def:trsk-set}
+In $\mathbf{Trsk}$:
+\begin{enumerate}
+\item A \emph{set} over a regular (\cppinline{std::regular}) carrier \cppinline{A} in $\mathbf{Jlt}$ is a \emph{subobject} of \cppinline{A}: a type \cppinline{S} satisfying \cppinline{IsSubobject<S, A>}, whose characteristic predicate $\chi_S : A \to \Omega$ decides membership.
+\item A \emph{relation} is a subobject of the Cartesian product \cppinline{::Domain} $\times$ \cppinline{::Codomain}.
+\item A \emph{set} is thus the true-fiber of its characteristic morphism $\chi_S : A \to \Omega$: the pullback of $\top$ along $\chi_S$, the true-slice of the graph of $\chi_S$ rather than the whole graph (which also carries the \cppinline{false} pairs).
+\end{enumerate}
+The full ETCS axioms live not on the individual set but on its ambient \emph{universe}: the top element $\Omega\langle A\rangle$ is itself an ETCS set-object, satisfying the heavier \cppinline{concept IsSet} (Definition~\ref{def:etcs-set}).
+A $\mathbf{Trsk}$ set is a subobject of such a universe over a $\mathbf{Jlt}$ carrier, so one can write:
+\begin{equation}
+\label{eqn:trsk}
+\mathbf{Trsk} := \mathbf{Jlt} \cap \mathbf{Set},
+\end{equation}
+in which the predicate $\chi_S$ \emph{is} the set.
+\end{definition}
+
+Because the carrier is \cppinline{std::regular}, the elements of a $\mathbf{Trsk}$ set are transparent value types with a decidable equality.
+This $\mathbf{Set}$ is therefore a subcategory of structural data types, not the universal mathematical blackboard: richer objects enter by regular representation rather than natively as elements, a function as its graph (item~2, a set of \cppinline{std::pair}s) and an equivalence class as a quotient of such a graph, but not, say, an arbitrary morphism whose equality is undecidable.
+
+The combinator \cppinline{in} constructs a \emph{scout variable}: in the blackboard form $\{\,x \in \mathbb{N} \mid P(x)\,\}$ it is the bound variable $x$, a stand-in for an arbitrary element that a predicate then constrains.
+It carries its domain in its own type (\cppinline{BoundScout} is an empty structural type whose type-level ambient records the domain), so the compiler knows what the variable ranges over.
+A predicate on the scout \emph{is} the set, since a set is its own characteristic morphism: \cppinline{in<ℕ> > bound<5>} already denotes $\{x \in \mathbb{N} \mid x > 5\}$, a \cppinline{Halfspace}, with no wrapper (Listing~\ref{lst:pruning}).
+The set-builder syntax thus survives without a variadic constructor; the \cppinline{Set{scout | predicate}} form is reserved for the opaque case, a raw lambda that does not reify to a set type on its own (§\ref{sec:relations_functions_blueprint}).
+
+The set operations are then the algebra on these predicates.
+Intersection (\cppinline{&}), union (\cppinline{|}) and complement (\cppinline{~}) compose the scouts' predicates into one type-level predicate, which the template engine reduces during instantiation: it constant-folds, and on a complement pair collapses to \cppinline{Ø} or the universe by type (Listing~\ref{lst:pruning}).
 
 The correspondence is exact on the decidable track, and it is what makes the algebra optimizable.
 Because a set is its predicate, the lattice of sets over a domain $A$ with decidable membership is the Boolean lattice lifted pointwise, $\mathcal{P}(A) \cong \mathbb{B}^A$ (Table~\ref{tab:lattice-lift}).
+Each column of that table is one universal construction of an elementary topos in four languages: the meet \emph{is} the categorical product, the join the coproduct, the implication the exponential, and membership the subobject classifier $\chi$.
+Its \emph{member} column stands apart, being not a lattice operation but the characteristic morphism $\chi : A \to \Omega$ (membership), which degenerates to satisfaction when $A$ is a single point, since $\mathbb{B} = \mathcal{P}(1)$.
 Its top element, the universal set $A$ itself, is reified as \cppinline{sets::Ω<T>}; Listing~\ref{lst:pruning} (left) exhibits the canonical case, the Booleans $\mathbb{B} = $ \cppinline{Ω<bool>}.
 Where membership is undecided the codomain lifts to $\mathbb{B}+\text{U}$ and the operations become the three-valued Kleene ones, a de Morgan structure but no longer a Boolean algebra, since complement has no inverse at $\text{U}$.
 Optimization is then the simplification of these predicate compositions at translation time: an empty meet prunes, $\bot \wedge p \Rightarrow \bot$, and constant conjuncts fold away.
 The induced order, set inclusion, is pointwise implication $\chi_S \Rightarrow \chi_T$; it ranges over the domain, and keeping it decidable is the task of the specializations in §\ref{sec:ddk_etcs}.
 
-\begin{table}[htbp]
-\centering
-\begin{tabular}{@{}lccccc@{}}
-\toprule
-lattice operation & meet & join & complement & bottom & top \\
-\midrule
-Boolean lattice $\mathbb{B}$ & $\wedge$ & $\vee$ & $\neg$ & $\bot$ & $\top$ \\
-set lattice $\mathcal{P}(A)$ & $\cap$ & $\cup$ & $\complement$ & $\varnothing$ & $A$ \\
-\bottomrule
-\end{tabular}
-\caption{
-On the decidable track, the set lattice is the Boolean lattice, lifted pointwise.
-An intensional set with decidable membership is its own total characteristic predicate $\chi : A \to \mathbb{B}$, so the powerset lattice over $A$ is the Boolean algebra of predicates, $\mathcal{P}(A) \cong \mathbb{B}^A$.
-Each set operation is compiled as the corresponding Boolean operation on predicates, with no element materialized.
-Undecidable membership lifts the codomain to $\mathbb{B}+\text{U}$, a three-valued Kleene structure that is not Boolean.
-}
-\label{tab:lattice-lift}
-\end{table}
-
-% Source: src/test/cpp/modules/dedekind/python/showcase_03_halfspace_contradiction.ll
-\begin{listing}[htbp]
-\caption{LLVM IR for the empty-meet witness in Listing~\ref{lst:pruning} (\texttt{clang++-22 -O2}): the membership query constant-folds to \texttt{ret i1 false}.}
-\label{lst:pruning_ir}
-\begin{cpp}
-define noundef zeroext i1 @witness_empty_halfspace_meet() local_unnamed_addr #0 {
-  ret i1 false
-}
-\end{cpp}
-\end{listing}
-
 The compiler is then allowed to perform aggressive compile-time verification and type-directed optimization.
 When a membership test or set relation is encountered, the template engine expands the composed predicates and evaluates them during compilation.
 If an intersection yields a logical contradiction, the type system reduces the resulting expression directly to the empty set $\emptyset$ before code generation occurs.
 As a direct consequence, downstream runtime membership queries for statically impossible configurations are completely eliminated by the LLVM optimizer backend, collapsing into literal constant returns within the emitted machine instructions.
-Listing~\ref{lst:pruning} exhibits a code base extract that tests this type-directed collapse in practice.
-Listing~\ref{lst:pruning_ir} shows how this collapse is made mechanically observable during the build: the
-witness function for set membership constant-folds to \texttt{ret i1 false} in the emitted LLVM IR.
+Listing~\ref{lst:pruning} exhibits a checked-in extract that tests this type-directed collapse in practice, and its bottom panel makes the collapse mechanically observable during the build: the witness function for set membership constant-folds to \texttt{ret i1 false} in the emitted LLVM IR.
+
+The container reading and the predicate reading are almost interconvertible, and the asymmetry is the point (Listing~\ref{lst:materialise}).
+Any \cppinline{std::set} is a $\mathbf{Trsk}$ set for free, its \cppinline{contains} the characteristic predicate; call that embedding $\iota$, and it is total.
+Only a finite, enumerable $\mathbf{Trsk}$ set materialises back to a container; call that $\mu$, and it is partial, the naturals having no finite materialisation.
+So $\mathbf{Trsk}$ is strictly more expressive than \cppinline{std::set}, the extensional container it generalises, and the price is paid in \emph{proof obligations}: where $\mu$ is unavailable, membership is settled by the concept constraints and factorisations of this section, not by enumeration.
+This is the extensional/intensional database distinction of deductive databases, \cppinline{std::set} playing the extensional store (EDB, facts) and $\mathbf{Trsk}$ the intensional one (IDB, rules), with materialisation the materialised view~\cite{abiteboul1995foundations}.
+
+\begin{listing}[htbp]
+\caption{The two conversions between \cppinline{std::set} and $\mathbf{Trsk}$, and their composition.
+\textbf{Left, top} ($\iota$): \cppinline{ambient_set(from_std(·))} lifts a \cppinline{std::set} to an \cppinline{IsSet} object.
+\textbf{Left, bottom} ($\mu$): \cppinline{materialise} enumerates a finite universe and keeps the $\chi$-matches.
+\textbf{Right}: the intersection of an extensional set with the intensional halfspaces $\{x>3\}$ and $\{x>5\}$.}
+\label{lst:materialise}
+\noindent
+\begin{minipage}[t]{0.49\linewidth}
+\begin{cpp}
+// ι : std::set ↪ Trsk   (total)
+std::set<int> c{2, 3, 5};  // contains IS χ
+static_assert(IsSet<decltype(
+  ambient_set<int>(from_std(c)))>);
+\end{cpp}
+\vspace{0.4em}
+\begin{cpp}
+// μ : Trsk ⇀ std::set   (partial)
+auto isEven = [](int x){ return x % 2 == 0; };
+auto evens = materialise(
+  std::views::iota(0, 10), isEven);
+assert((evens == std::set{0,2,4,6,8}));
+// {x∈ℕ|isEven}: ℕ unbounded → no μ
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\linewidth}
+\begin{cpp}
+// the two worlds COMPOSE: an extensional
+// set bounds an intensional one, so their
+// intersection always materialises.
+std::set<int> ext{2, 3, 5};
+auto gt3 = in<ℕ> > bound<3>;  // {x>3}
+auto gt5 = in<ℕ> > bound<5>;  // {x>5}
+assert(materialise(ext, gt3)  // ext ∩ int1
+       == std::set{5});
+assert(materialise(ext, gt5)  // ext ∩ int2
+       == std::set<int>{});
+\end{cpp}
+\end{minipage}
+\end{listing}
+
+First-order quantification is the same reading once more: a quantifier \emph{is} a set operation, and we take that structural (Bourbaki) sense as the definition, not as a later coincidence.
+\begin{equation}
+\label{eqn:quantifiers}
+\begin{aligned}
+\text{(A)}\quad
+\exists x \in S.\,P(x) &\;:\equiv\; \{x\in S \mid P(x)\} \neq \varnothing,
+&\quad \forall &\;:\equiv\; \neg\,\exists\,\neg\,;\\
+\text{(B)}\quad
+\forall x \in S.\,P(x) &\;:\equiv\; \{x\in S \mid P(x)\} = S,
+&\quad \exists &\;:\equiv\; \neg\,\forall\,\neg\,.
+\end{aligned}
+\end{equation}
+In code the comprehension is \cppinline{set(S,P)} and each formulation is one \cppinline{operator==} against a bound: (A) \cppinline{exists(S,P)} is \cppinline{!(Ø{} == set(S,P))}, (B) \cppinline{forall(S,P)} is \cppinline{set(S,P) == S}, and each recovers its partner by De Morgan's duality, complementing the predicate, \cppinline{!P} (Listing~\ref{lst:quantifiers_def}, top row).
+Read extensionally, as a loop over the elements of the carrier, the two formulations part ways.
+Formulation (A) asks for a single example (for $\exists$), or through $\neg\exists\neg$ a single counterexample (for $\forall$): find one and you are done, so it returns even on an infinite carrier whenever the witness sits at a finite position.
+Formulation (B) asks whether the comprehension fills the whole carrier, which extensionally means enumerating every element, so on an infinite carrier only (A) is on the table.
+Read the same definitions intensionally, as an algebra on the characteristic predicates, and both formulations collapse to one cheap question: does the composed predicate \cppinline{set(S,P)}, the meet $S \wedge P$, reduce to always-false (then $\exists$ fails) or to always-true (then $\forall$ holds)?
+The cost is then not a function of the carrier's cardinality but of the \emph{set relation}, the conjunction or disjunction of the characteristic predicates.
+This can rescue $\forall$ over an infinite carrier, but only in the exceptional case that the predicate factors through a finite quotient.
+\cppinline{isDivisibleBy3} is periodic, so it factors through the finite codomain $\mathbb{Z}/3\mathbb{Z}$ (Section~\ref{sec:functions_morphism_factorization}), the collapse is settled on three residues rather than the countably many naturals, and both $\exists$ and $\forall$ return in finite time (Listing~\ref{lst:quantifiers_def}, bottom row).
+The technique is confined to predicates carrying a \emph{certified} finite quotient or algebraic factorisation; a predicate with none (\cppinline{isPrime}, a Collatz-style recurrence) does not reduce, and $\forall$ over it stays undecidable at compile time.
+Intensional quantification is thus not a general escape from the infinite, only a lever where the predicate's own structure supplies the finite handle.
+An operand that is neither a finite carrier nor a predicate factoring through a finite quotient matches no overload: the honest Rice wall, a compile error rather than a fabricated answer.
+
+\begin{listing}[htbp]
+\caption{The finite-quotient quantifiers.
+\textbf{Top}: the generic \cppinline{exists} / \cppinline{forall} over an \cppinline{IsSet} domain \cppinline{S} and an \cppinline{IsPredicate} query \cppinline{P}, as (A) a test of \cppinline{set(S,P)} against $\varnothing$ and (B) against the input set $S$.
+\textbf{Bottom}: the two worked cases, $\mathbb{B} = $\cppinline{Ω<bool>} with the predicate \cppinline{Singleton<true>}, and $\mathbb{N} = $\cppinline{Ω<Cardinality>} with \cppinline{isDivisibleBy3} (factored through \cppinline{Modular<3>}).}
+\label{lst:quantifiers_def}
+\noindent
+\begin{minipage}[t]{0.49\linewidth}
+\begin{cpp}
+// (A) ∅-anchored
+template <IsSet S, IsPredicate P>
+constexpr bool
+exists(S s, P p) { // {x∈S|P}≠∅
+  return !(Ø{} == set(s,p));
+}  // ∀ = !exists(s, !p)
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\linewidth}
+\begin{cpp}
+// (B) S-anchored
+template <IsSet S, IsPredicate P>
+constexpr bool
+forall(S s, P p) { // {x∈S|P}==S
+  return set(s,p) == s;
+}  // ∃ = !forall(s, !p)
+\end{cpp}
+\end{minipage}
+
+\vspace{0.4em}
+\noindent
+\begin{minipage}[t]{0.49\linewidth}
+\begin{cpp}
+// 𝔹 = Ω<bool> : finite carrier
+constexpr auto 𝔹 = Ω<bool>;
+Singleton<true> isTrue;  // the {true}
+static_assert( exists(𝔹, isTrue));
+static_assert(!forall(𝔹, isTrue));
+// set → FiniteBooleanSet, 2 truths
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\linewidth}
+\begin{cpp}
+// ℕ=Ω<Cardinality>: isDivisibleBy3 is
+// periodic → factors thru Modular<3>
+constexpr auto ℕ = Ω<Cardinality>;
+constexpr auto isDivBy3 =
+  in<ℕ> % Modular<3>{} == bound<0>;
+static_assert( exists(ℕ, isDivBy3));
+static_assert(!forall(ℕ, isDivBy3));
+\end{cpp}
+\end{minipage}
+\end{listing}
 
 % ============================================================
-\subsection{Reifying A Category of Sets}
+\subsection{A Categorical Notion of Set}
 \label{sec:ddk_etcs}
 % ============================================================
 
 With the syntactic behavior of the set comprehension DSL established, what follows formalizes its semantic engine.
-This intensional set layer is the disciplined fragment of §\ref{sec:jlt_posture} intersected with $\mathbf{Set}$, where a set is a predicate and a graph is a relation: 
-\begin{equation}
-\label{eqn:trsk}
-\mathbf{Trsk} := \mathbf{Jlt} \cap \mathbf{Set}
-\end{equation}
+This intensional set layer is the disciplined fragment of §\ref{sec:jlt_posture} intersected with $\mathbf{Set}$, where a set is a predicate and a graph is a relation (Definition~\ref{def:etcs-set}).
+
+Here, we use the following literature definition~\cite{nlab:nlab}: 
+\begin{definition}[ETCS Set]
+\label{def:etcs-set}
+\emph{$\mathbf{Set}$ is a \textbf{well-pointed}, \textbf{Cartesian Closed Category} with a \textbf{subobject classifier}, a \textbf{natural numbers object}, and the \textbf{axiom of choice}}.
+\end{definition}
+
 Loosely speaking, a set here is just its membership test.
 A reader who wants only the API can keep that picture and skim the rest of this subsection, which makes it precise in the language of topos theory.
 The more common description of sets, the one \cppinline{std::set} follows, is Zermelo-Fraenkel (ZF): a set is built from the bottom up from atoms such as $\emptyset$ via union and intersection, with membership tested by an element relation ($\in$).
@@ -636,18 +765,13 @@ The upshot is that a query the compiler cannot enumerate returns a definite \tex
 Figure~\ref{fig:compiler_decision_tree} shows the decision.
 
 \begin{listing}[ht]
-\caption{
-Excerpts from \texttt{dedekind} illustrating the \cppinline{concept} definitions used in the reification of $\mathbf {Ddk} \subseteq (\mathbf{Set} \cap \mathbf{Jlt})$.
-Fundamental \cppinline{concept} definitions (objects, morphisms, small categories, \ldots) are composed to reify the considerably more complex \cppinline{concept IsSet}.
-\cppinline{concept IsSet} can then be used to mechanically test candidate implementations of set theory in the ETCS sense.
-Left: definition of morphisms and small categories: \cppinline{concept IsArrow}, \cppinline{IsMonicArrow}, \cppinline{IsEpicArrow}, \cppinline{IsIsomorphism}, \cppinline{IsSmallCategory}.
-Right: the characteristic-map axiom \cppinline{IsSubobject}, where a subobject's own call shape \cppinline{s(a)} is the classifier $\chi : A \to \Omega$ (it returns a \cppinline{LogicalValue}); and the composite \cppinline{IsSet}, a \cppinline{Jlt} carrier that conjoins the ten ETCS axiom witnesses (\cppinline{HasETCSAxioms}) with the Set-as-Cartesian-closed-category witness.
-The interested reader is referred to the reference implementation~\cite{Krautler_dedekind_2026} for full implementation details.
-}
+\caption{Excerpts of the \cppinline{concept} definitions reifying $\mathbf{Ddk} \subseteq (\mathbf{Set} \cap \mathbf{Jlt})$.
+\textbf{Top} ($\mathbf{Cat}$ in $\mathbf{Jlt}$): \cppinline{IsArrow}, a type carrying its own \cppinline{Domain} and \cppinline{Codomain}.
+\textbf{Bottom} ($\mathbf{Set}$ in $\mathbf{Jlt}$): \cppinline{IsSubobject}, whose call shape \cppinline{s(a)} is the classifier $\chi : A \to \Omega$, and the composite \cppinline{IsSet}.
+See the reference implementation~\cite{Krautler_dedekind_2026} for detail.}
 \label{lst:concept_isset}
-\noindent
-\begin{minipage}[t]{0.48\linewidth}
-$\mathbf{Cat}$ in $\mathbf{Jlt}$
+
+\noindent $\mathbf{Cat}$ in $\mathbf{Jlt}$:
 \begin{cpp}
 export template <typename F>
 concept IsArrow = requires {
@@ -657,9 +781,8 @@ concept IsArrow = requires {
   { f(x) } -> std::convertible_to<typename std::remove_cvref_t<F>::Codomain>;
 };
 \end{cpp}
-\end{minipage}\hfill
-\begin{minipage}[t]{0.48\linewidth}
-$\mathbf{Set}$ in $\mathbf{Jlt}$
+
+\noindent $\mathbf{Set}$ in $\mathbf{Jlt}$:
 \begin{cpp}
 template <typename S, typename A>
 concept IsSubobject = requires(S s, typename S::Member m, A a) {
@@ -673,7 +796,6 @@ concept IsSet =
   HasETCSAxioms<A> &&
   IsCartesianClosed<CanonicalSetCCC<typename A::Domain>>;
 \end{cpp}
-\end{minipage}
 \end{listing}
 
 The semantic engine above presupposes a categorical, rather than extensional, notion of set.
@@ -693,10 +815,7 @@ Identity is denoted by an identity arrow, and set membership is tested by evalua
 The steps taken to reify intensional sets in the code base form a core category $\mathbf{Ddk} \subset \mathbf{Jlt} \cap \mathbf{Set}$, which occupies the intersection of pure $\mathbf{Jlt}$ types and universal-algebraic set structures.
 The implementation tracks this definition literally at compile time.
 
-First-order quantification is restricted to domains satisfying \cppinline{IsExtensional}, as unconstrained evaluation over infinite intensional spaces is undecidable at compile time.
-For these bounded domains, the quantifiers $\exists$ (\cppinline{Exists}) and $\forall$ (\cppinline{ForAll}) map directly onto finite coordinate-wise reductions ($\bigvee$ and $\bigwedge$) over $\Omega$, executing as zero-overhead variadic fold expansions during template translation.
-
-\section{Point-Free Mappings: Functors between Sets}
+\subsection{Morphisms: Point-Free Relations and Functions}
 \label{sec:relations_functions_blueprint}
 
 To transition seamlessly from static intensional sets to dynamic mappings, binary relations can be formalized as morphisms \cppinline{IsArrow<A, B>} where both domain and codomain \cppinline{require} the ETCS axioms via \cppinline{IsSet}. 
@@ -712,40 +831,45 @@ Such morphisms are then classified by the following properties, if one focuses o
 \end{itemize}
 Equivalently, relations can be represented as sets whose elements satisfy the product axioms (\cppinline{IsProduct}), for example via the signature \cppinline{IsSet<std::pair>}.
 
+A relation that is both total and functional is a \emph{function}.
+In the library this is the concept refinement \cppinline{IsFunction = IsRelation \&\& IsEntire \&\& IsFunctional}, so \cppinline{IsFunction} subsumes \cppinline{IsRelation}: the inclusion $\{\text{functions}\} \subset \{\text{relations}\}$ is genuine subtyping in the concept lattice, not an analogy.
+The bridge from an analytic arrow to its relational form is \cppinline{graph(f)}, the graph $\Gamma_f = \{(a, f(a)) \mid a \in A\}$; its \cppinline{is_graph_of} witness makes ``the rule and its set of pairs are the same function'' a compile-time fact rather than a claim.
+These two readings, the intensional rule \cppinline{f} and the extensional set of pairs $\Gamma_f$, are the horizontal axis of the same picture whose vertical axis is the relation/function refinement above, bridged by \cppinline{graph} one way and enumeration (\cppinline{materialise}) the other.
+
 \begin{listing}[htbp]
 \caption{Intensional specification of a binary relation predicate over an algebraic product space and its pointwise validation.}
 \label{lst:intensional_relation_validation}
 \begin{cpp}
-// R = { (a, b) ∈ ℕ × ℕ | b % a == 0 }
-constexpr auto x = var(ℕ * ℕ);
-constexpr auto R = Set{
-    x | (π_2(x) % π_1(x) == bound<0>)
-};
+// R = { (a, b) ∈ ℕ × ℕ | b % a == 0 } — a general relation (set of pairs)
+using P = std::pair<unsigned, unsigned>;
+constexpr auto R = Set{ element<Ω<P>> % UniversalSet<P>{} |
+    [](const P& p){ return p.first != 0 && p.second % p.first == 0; } };
 
-// Pure pointwise validation via indicator properties
-static_assert(R(std::pair{2u, 6u})); // Validated: 6 % 2 == 0
-static_assert(!R(std::pair{4u, 6u})); // Rejected: 6 % 4 != 0
+// pointwise membership constant-folds:
+static_assert( R(std::pair{2u, 6u})); // 6 % 2 == 0
+static_assert(!R(std::pair{4u, 6u})); // 6 % 4 != 0
 \end{cpp}
 \end{listing}
 
 The design of the relation $R$ in Listing~\ref{lst:intensional_relation_validation} highlights the core architectural boundary between symbolic specification and type-level evaluation.
 Structurally, the relation is defined entirely through an intensional presentation.
-Rather than relying on explicit, verbose template-parameter bindings, the expression leverages the functional factory \texttt{var(}\dots\texttt{)} to inject a value-level token carrying the underlying product domain mechanics of $(\mathbb{N} \times \mathbb{N})$.
-This variable placeholder binds the relational invariant as a native type-directed predicate. 
+Rather than relying on explicit, verbose template-parameter bindings, the expression binds a scout element over the product domain $(\mathbb{N} \times \mathbb{N})$ and refines it by a predicate on the pair.
+This scout binds the relational invariant as a native type-directed predicate.
 
 This intensional rule collapses into an extensional, pointwise evaluation context when interrogated by a concrete element via the indicator property \texttt{operator()}.
-During compilation, the \texttt{static\_assert} forces the template engine to substitute the candidate literal pair into the projection bindings $\pi_1$ and $\pi_2$, reducing the symbolic constraint down to a primitive boolean literal.
+During compilation, the \texttt{static\_assert} forces the template engine to substitute the candidate literal pair into the predicate, reducing the symbolic constraint down to a primitive boolean literal.
 Consequently, the library maintains the abstract economy of mathematical logic right up until specific domain elements witness the correctness of the constraint at compile time.
 
 In classical relational calculus, the relative composition of two relations $R \subseteq A \times B$ and $S \subseteq B \times C$ requires an existential quantification step over the intermediate domain $B$:
 \begin{equation}
 R \circ S = \{ (a, c) \in A \times C \mid \exists b \in B : (a, b) \in R \land (b, c) \in S \}
 \end{equation}
-However, general first-order existential ($\exists$) and universal ($\forall$) quantification cannot be implemented generically over infinite intensional sets at compile time, as the enumeration of open predicate domains induces infinite compiler loop regression. 
+On a finite (\cppinline{IsExtensional}) intermediate domain $B$, that $\exists b$ is exactly the bounded existential of §\ref{sec:ddk_comprehension}: relative composition is quantification over the middle set.
+General first-order existential ($\exists$) and universal ($\forall$) quantification cannot, however, be implemented generically over \emph{infinite} intensional sets at compile time, as the enumeration of open predicate domains induces infinite compiler loop regression.
 
-To circumvent this translation-time decidability bottleneck, the library rejects identifying a relation extensionally as a static subobject pair $R \subseteq A \times B$. Instead, it implements a monadic presentation where a relation is an active functional morphism. Concretely, a binary relation $R$ from a domain set $A$ to a codomain set $B$ is defined as a total arrow of the form $R : A \to \mathcal{P}(B)$, where $\mathcal{P}(B)$ represents the intensional power set of the target space. This architectural choice ensures that when an element $a \in A$ is supplied to the relation, the compiler immediately evaluates the image as a native, optimized intensional set type in the destination space.
+To circumvent this translation-time search bottleneck, the library's \emph{compositional} presentation of a relation is not the static subobject pair $R \subseteq A \times B$ (which it still reifies, as a \texttt{Set} of pairs) but a monadic one, where a relation is an active functional morphism. Concretely, a binary relation $R$ from a domain set $A$ to a codomain set $B$ is defined as a total arrow of the form $R : A \to \mathcal{P}(B)$, where $\mathcal{P}(B)$ represents the intensional power set of the target space. This architectural choice ensures that when an element $a \in A$ is supplied to the relation, the compiler immediately evaluates the image as a native, optimized intensional set type in the destination space.
 
-Under this functional presentation, Tarski's relative composition resolves elegantly as standard Kleisli arrow composition over the power set monad. We explicitly reify this step within the \texttt{:relations} partition via the infix pipeline operator ($\gg$), allowing the point-free composition to be expressed textually as:
+Under this functional presentation, Tarski's relative composition resolves elegantly as standard Kleisli arrow composition over the power set monad. We reify this step within the \texttt{:relations} partition as the \emph{fish} operator $R \gg S$, realised in code as the overloaded \cppinline{>>} (Listing~\ref{lst:kleisli_fish_composition}), so the point-free composition is written:
 \begin{equation}
 R \mathbin{\gg} S : A \to \mathcal{P}(C)
 \end{equation}
@@ -755,17 +879,17 @@ The template engine executes this composition by mapping $R$ over an input eleme
 \end{equation}
 
 \begin{listing}[htbp]
-\caption{Point-free relational composition via Kleisli arrow piping over the power set monad, circumventing explicit existential quantification search bounds.}
+\caption{Point-free relational composition $R \gg S$, realised as the overloaded \cppinline{>>}.}
 \label{lst:kleisli_fish_composition}
 \begin{cpp}
 // R : ℕ → P(ℕ) where R(a) = { b ∈ ℕ | b % a == 0 }
 constexpr auto R = [](auto a) {
-    constexpr auto b = var(ℕ);
+    constexpr auto b = in<ℕ>;
     return Set{ b | (b % a == bound<0u>) };
 };
 // S : ℕ → P(ℕ) where S(b) = { c ∈ ℕ | b < c }
 constexpr auto S = [](auto b) {
-    constexpr auto c = var(ℕ);
+    constexpr auto c = in<ℕ>;
     return Set{ c | (b < c) };
 };
 // Point-free Tarskian relative composition via the fish operator
@@ -784,63 +908,76 @@ The existential requirement is thus safely re-encoded as a lazy, zero-cost symbo
 
 The compiler unifies the constituent predicates into a single, synthesized type-level constraint that governs the end-to-end mapping from $A$ to $C$. Listing~\ref{lst:kleisli_fish_composition} illustrates how this monadic relation concept and its corresponding Kleisli composition operator are structurally declared inside the toolchain.
 
-\subsection{Functions and Morphism Factorization Gates}
+\subsubsection{Functions and Morphism Factorization Gates}
 \label{sec:functions_morphism_factorization}
 
 While the relational composition operator ($\gg$) detailed in Section~\ref{sec:relations_functions_blueprint} bypasses the need for intermediate set materialization by maintaining a lazy symbolic predicate chain, specialized functional mappings impose a more stringent computational burden.
 For total functions where elements must be explicitly mapped and verified as certified singleton images, the template engine cannot rely solely on passive predicate encapsulation.
-If a function lacks a strict structural inverse or is evaluated over an unconstrained, transfinite domain, constructively determining image containment or mapping preimages becomes undecidable at translation time. Consequently, if a generic result-set construction is impossible for general functions, it is similarly precluded for general relations.
+If a function lacks a strict structural inverse or is evaluated over an unconstrained, transfinite domain, constructively determining image containment or mapping preimages demands an unbounded search of the domain and is undecidable. Consequently, if a generic result-set construction is impossible for general functions, it is similarly precluded for general relations.
 To resolve this boundary, the library introduces an architectural gate based on the categorical principle of epic-monic factorization.
 
-Mathematically, a relation $R : A \to \mathcal{P}(B)$ is identified as a total function if and only if it maps every input element $a \in A$ to a certified singleton subset in the codomain.
-In the codebase, this structural guarantee is enforced within the \texttt{:functions} partition by wrapping the underlying relation inside a specialized function adapter and guarding its evaluation site with an \texttt{IsSingleton} concept constraint.
-This architecture preserves the structural continuity of the library: functions are not distinct primitives, but are well-behaved, deterministic relations whose output logic is structurally bounded.
+Mathematically, a relation $R : A \to \mathcal{P}(B)$ is a total function if and only if it maps every input to a singleton; equivalently, it is \emph{functional} (single-valued) and \emph{entire} (total).
+In the codebase this is the concept \cppinline{IsFunction}: a relation refined by the right-unique and left-total witnesses, with \cppinline{is_single_valued_at} discharging single-valuedness pointwise.
+A function is thus not a distinct primitive but a relation satisfying both properties, so \cppinline{IsFunction} subsumes \cppinline{IsRelation}: the inclusion $\{\text{functions}\} \subset \{\text{relations}\}$ is made mechanical by concept refinement.
 
 Reifying functions in this manner allows the type system to mechanically verify classical mapping properties at translation time.
 For specialized mappings, codomain membership tests, checking whether a given element $b \in B$ lies within the actual image of the transformation, are easily discharged by the compiler.
 If a function is certified as surjective, every element of the target space is a valid image, meaning a codomain membership query trivially constant-folds to logical truth.
-If a function is bijective, as is already implemented and leveraged within the core set eDSL, the type system utilizes a structural left-and-right inverse witness to map elements bi-directionally between spaces with zero runtime overhead.
+More generally, if the mono leg of the factorization carries a \emph{retract} (a partial inverse returning the preimage of a codomain element when one exists), the type system decides membership as a local lookup on the image boundary, with no search of the domain (Listing~\ref{lst:functional_image_bijection}).
 
 \begin{listing}[htbp]
-\caption{Intensional specification of a functional range via analytical inversion of a bijective function.}
+\caption{A retract makes image membership decidable.  A monic arrow \cppinline{Double} carries a \cppinline{retract} (a partial inverse $y \mapsto$ preimage, if any); with it, $y \in \mathrm{image}(f, S)$ is decided as ``the retract has a value that lies in $S$'': a local lookup on the image boundary, never a search of the domain (abridged from the checked-in test).}
 \label{lst:functional_image_bijection}
 \begin{cpp}
-// Bijective case: { n + 2 ∈ ℕ }
-constexpr HalfSpace<2> p2 = Set{in(ℕ) + bound<2u>}; 
-static_assert(!p2(0));
-static_assert(p2(3));
+// a monic arrow with a retract (partial inverse):
+struct Double { using Domain = int; using Codomain = int;
+  constexpr int operator()(int x) const { return 2*x; } };
+constexpr auto retract(Double) {         // y -> preimage, if any
+  return [](int y) -> std::optional<int> {
+    return (y%2==0) ? std::optional{y/2} : std::nullopt; }; }
+
+// the retract decides image membership as a local lookup:
+// y in image(Double, S)  <=>  retract(Double)(y) is a value in S
+// (10 -> 5 in {x>0}: in;  7 -> nullopt: out) -- no domain search
+constexpr auto img = image(Double{}, positive);   // positive = {x>0}
 \end{cpp}
 \end{listing}
 
 For general or non-bijective functions, however, validating whether an arbitrary element $b \in B$ possesses a valid preimage in the domain $A$ presents a severe decidability barrier if evaluated via standard search techniques.
 Rather than treating this as an impassable restriction, the library provides specialized support for functional relations by introducing an architectural gate based on the categorical principle of epic-monic factorization.
-Every general functional arrow $f : A \to B$ can be factored into a regular surjection (epi) onto an intermediate image set $I$, followed by a regular injection (mono) from $I$ into the destination space $B$:
+Every general functional arrow $f : A \to B$ factors into a regular surjection (epi, \cppinline{IsRegularEpi}) onto its image $I$, followed by a regular injection (mono, \cppinline{IsRegularMono}) from $I$ into $B$, the image leg witnessed by \cppinline{IsImageOf}:
 \begin{equation}
 A \twoheadrightarrow I \hookrightarrow B.
 \end{equation}
 
-By requiring the developer to provide this factorization mapping when declaring an arbitrary \cppinline{IsTotalFunction}, the compiler gains the exact structural properties needed to handle general codomain membership tests.
+By requiring the developer to provide this factorization when declaring an arbitrary \cppinline{IsFunction} (equivalently, an \cppinline{IsArrow} whose graph is functional), the compiler gains the exact structural properties needed to handle general codomain membership tests.
 Since the second leg of the factorization chain is a strict injection, it guarantees a one-to-one mapping from the intermediate image set $I$ into the target space $B$, allowing the type-checker to reason about the embedding without exploring the raw domain space $A$.
+This gate \emph{relocates} the guarantee rather than deriving it: the factorization is a \emph{trusted axiom}, the \Cpp{} analogue of Coq's \texttt{Admitted}, checked for shape (\cppinline{IsRegularEpi}, \cppinline{IsRegularMono}, \cppinline{IsImageOf}) but not for lawfulness.
+A factorization that is registered but wrong is unsound: the compiler trusts it, so a downstream membership test can fold a false constant into the emitted IR with no diagnostic.
+This is the honesty obligation of §\ref{sec:introduction} at the level of morphisms, and it marks where a standard \Cpp{} template engine reaches an undecidability wall and asks the developer to supply the witness it cannot itself compute.
 Listing~\ref{lst:functional_image_factorization} illustrates how this epic-monic gate and its corresponding image validation assertions are codified within the C++23 template engine.
 
 \begin{listing}[htbp]
-\caption{Intensional specification of a functional image set via forward epic-monic composition inside a set comprehension block, followed by an intensional \cppinline{max} collapse to a value singleton.}
+\caption{The image of an intensional set under an arrow, and the honest indecision it carries.  \cppinline{image(succ, {n>5})} realises \cppinline{IsImageOf} (it is a subobject of the codomain), yet its membership is \cppinline{TernaryLogic::Unknown}: the existential $\exists x.\,x>5 \wedge y = \mathrm{succ}(x)$ is undecidable on the transfinite carrier without a factorization.  The Rice boundary, made visible (abridged from the checked-in showcase).}
 \label{lst:functional_image_factorization}
 \begin{cpp}
-constexpr auto x = var(ℕ);
-// Non-bijective case via explicit factorization:
-// { x * x ∈ ℕ | x < 5 }
-// The left-hand side pipes the epi leg into the mono gate via operator>>
-constexpr auto sqs = Set{ 
-    (x * x) >> is_square | x < bound<5u> 
-};
+// f = succ : ℕ → ℕ, the NNO successor arrow
+constexpr auto succ = arrow<ℕ, ℕ>(
+  [](ℕ m){ return m + finite_cardinality(1); });
 
-// An intensional max reduction extracts the peak element from the image set
-constexpr Singleton<16u> max_square = max(sqs);
+// image of {n > 5} under succ: a Subobject of the codomain ℕ
+constexpr auto img =
+  image(succ, Set{in<ℕ> | in<ℕ> > bound<5>});
+static_assert(IsImageOf<decltype(img), decltype(succ)>);
+
+// ...yet membership is honestly Unknown: the existential
+// ∃x. x > 5 ∧ y == succ(x) is undecidable on the transfinite
+// carrier without a factorization / retract:
+static_assert(img(finite_cardinality(7)) == Ternary::Unknown);
 \end{cpp}
 \end{listing}
 
-By utilizing the \texttt{mono\_retract} partial witness, the compiler can evaluate codomain properties purely as a local lookup on the intermediate type boundary.
+By utilizing the \cppinline{retract} partial witness of an \cppinline{IsRetractableArrow} (the mono leg's partial inverse, returning \cppinline{std::optional}), the compiler evaluates codomain membership as a local lookup on the image boundary rather than a search of the domain.
 This structural approach ensures that even highly complex or non-linear functional images can be safely validated at compile time.
 The type system can consequently treat arbitrary transformations as well-behaved objects, laying a reliable foundation for the universal-algebraic operators developed in the subsequent section.
 
@@ -1052,6 +1189,22 @@ which is Tarski's closure with the join $\cup$ and the relative product $\circ$ 
 The Boolean semiring recovers $R^{*}$ itself, that is, reachability; other semirings weight the same paths differently.
 The choice of semiring \emph{is} the choice of problem, one branch of the algebra apart.
 
+Stacked over the nodes, that scalar fixed point is a linear system read in the semiring.
+Write $A$ for the weighted adjacency matrix, $A_{vu} = c(u,v)$ so that row $v$ gathers the edges into $v$, and $b$ for the source indicator, $\bar{1}$ at the source and $\bar{0}$ elsewhere.
+The potentials solve
+\begin{equation}
+    d \;=\; A \otimes d \;\oplus\; b,
+    \qquad\text{with least solution}\qquad
+    d \;=\; A^{*} \otimes b,
+    \quad A^{*} = \bigoplus_{k \ge 0} A^{\otimes k}.
+    \label{eq:semiring_linear_system}
+\end{equation}
+The classical case is one branch away.
+Over the ring $(\mathbb{R}, +, \times)$ the identical fixed point $x = A x + b$ has the solution $x = (I - A)^{-1} b = \sum_{k \ge 0} A^{k} b$, the Neumann series, and $(I - A)^{-1}$ is the matrix inverse behind solving a linear system, the normal equations of least squares among them.
+Replace the ring $(+, \times)$ by the tropical dioid $(\max, +)$ and the same inverse $A^{*}$ is the critical path.
+A general dioid has no subtraction, so $A^{*}$ is not literally $(I - A)^{-1}$ but its role-equivalent, the Neumann series standing in where the inverse cannot be formed.
+The choice of semiring is thus equally the choice of linear algebra.
+
 \begin{table}[htbp]
 \centering
 \caption{One closure, three problems, selected by the semiring.}
@@ -1201,6 +1354,7 @@ The compiler evaluates \cppinline{constexpr} reductions with an abstract-syntax-
 Its \emph{scaling}, though, is fixed by structure.
 The first parameter is the template instantiation depth.
 The disciplined fragment of §\ref{sec:jlt_posture} admits no unbounded type-level recursion, so the depth stays bounded and each reduction remains inside a decidable cone rather than diverging; the carrier poset, for instance, is capped at scalar, shape, and quotient axes, a depth of at most three in the current surface.
+Point-free relational composition (§\ref{sec:relations_functions_blueprint}) is the case that stresses this parameter: a chain $R \gg S \gg \dots$ trades the runtime existential loop it circumvents for compile-time type-expansion, each link nesting a union cascade into the intermediate type, so a deep chain migrates the resource strain onto the instantiation depth rather than onto a runtime search.
 The second parameter is the size of the graph the closure relaxes.
 For the necklace of §\ref{sec:optimization_lp}, each round scans the edge relation once, and an acyclic graph stabilises within a number of rounds bounded by its depth, so the work is polynomial in the edge count $E$.
 Composing the two, the translation-time cost is polynomial in the problem size at bounded instantiation depth, precisely because the depth is capped.
@@ -1594,13 +1748,13 @@ Axiom 9: Power Set / Exponential Restriction (\(\beth _{1}\)). For any set X, th
 
 % STUB (follow-up PR): supporting detail dual to §\ref{sec:relations_functions_blueprint}.
 % To collect: the Kleisli / powerset-monad relation internals (the fish operator >>),
-% the epic--monic factorization gates (IsSingleton, mono_retract), and the
-% :relations / :functions partition surfaces.  Kept minimal for now to pin the
+% the epic--monic factorization gates (IsRetractableArrow / retract, IsImageOf),
+% and the :relational / :graph partition surfaces.  Kept minimal for now to pin the
 % section<->appendix correspondence; fleshed out with worked witnesses later.
 
 Dual to §\ref{sec:relations_functions_blueprint}, this appendix collects the supporting detail for the point-free morphism layer: relations presented as Kleisli arrows over the powerset monad, and the epic--monic factorization gates ($A \twoheadrightarrow I \hookrightarrow B$) that make a general function's codomain queries decidable.
 It is another instance of the paper's recurring seam.
-General first-order quantification over open intensional sets is undecidable at compile time (Rice's theorem), so rather than attempt the aspirational universal search the library supplies mechanical support for the \emph{existential} case: lazy Kleisli predicate transformation for composition, and a developer-supplied factorization for image membership.
+General first-order quantification over open intensional sets is undecidable (Rice's theorem), so rather than attempt the aspirational universal search the library supplies mechanical support for the \emph{existential} case: lazy Kleisli predicate transformation for composition, and a developer-supplied factorization for image membership.
 The worked internals are deferred to a follow-up revision.
 
 %%%
@@ -1879,7 +2033,7 @@ is resolved at compile time to exactly one of:
 The meet of the effective lower- and upper-bound halfspaces resolves at compile time into exactly one of three typed constants, selected by the side condition on the pivots: an \cppinline{OrderInterval<a*, b*>} for the generic bounded case ($a^\star < b^\star$); a \cppinline{Singleton<v>} for the degenerate equality case ($a^\star = b^\star = v$) \emph{when $T$ is integral} (the integrality guard from Theorem~\ref{thm:type-directed-collapse-1d} case 2; on a non-integral $T$ the equality case stays in the (degenerate) \cppinline{OrderInterval<a*, a*>} branch instead); and \cppinline{EmptyPredicate<T>} (lifted to $\varnothing$ at the topos level) for the contradiction case ($a^\star > b^\star$).
 The diagram commutes on elements: $x$ inhabits the source meet iff $x$ inhabits the target type the side-condition selects.
 Implementation hook: the meet is realised by \cppinline{structured_and(Halfspace<...,Upward,...>, Halfspace<...,Downward,...>)} in \texttt{dedekind.order:halfspace}, which case-splits the pivot comparison at compile time and returns the corresponding typed constant directly; the empty-result type \cppinline{EmptyPredicate<T>} lives in \texttt{dedekind.order} and lifts to \cppinline{Ø<T,L>} in \texttt{dedekind.sets:boundaries}.
-Mechanically witnessed by Showcase~3 (\cppinline{EmptyPredicate<T>} branch, \texttt{showcase\_03\_halfspace\_contradiction.cpp}) and Showcase~4 (\cppinline{Singleton<6>} branch, the cardinality-1 reduction in Listing~\ref{lst:pruning}); both fold to constant IR returns under \texttt{-O2}, as Listing~\ref{lst:pruning_ir} demonstrates for the empty-meet branch.}
+Mechanically witnessed by Showcase~3 (\cppinline{EmptyPredicate<T>} branch, \texttt{showcase\_03\_halfspace\_contradiction.cpp}) and Showcase~4 (\cppinline{Singleton<6>} branch, the cardinality-1 reduction in Listing~\ref{lst:pruning}); both fold to constant IR returns under \texttt{-O2}, as the bottom panel of Listing~\ref{lst:pruning} demonstrates for the empty-meet branch.}
 \label{fig:type-directed-collapse-1d}
 \end{figure}
 

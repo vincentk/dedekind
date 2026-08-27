@@ -40,6 +40,7 @@ module;
 #include <cstddef>
 #include <functional>
 #include <iterator>
+#include <ranges>  // materialise: enumerate a universe range
 #include <set>
 #include <type_traits>
 #include <unordered_set>
@@ -322,6 +323,31 @@ static_assert(
         from_std(std::declval<const std::unordered_set<int>&>())))>,
     "from_std(std::unordered_set<int>) round-trip preserves IsSet "
     "membership through the same ambient_set<int>(...) gate (#598).");
+
+/**
+ * @brief @c μ: @b Int @c ⇀ @b Ext, the partial retraction of @c ambient_set.
+ *
+ * @details Enumerate a finite, enumerable @p universe and collect the elements
+ * the characteristic predicate @p chi accepts into a @c std::set (the
+ * container).  Total only when the universe is finite/enumerable and @c χ
+ * decidable; the naturals themselves have no finite materialisation.  This is
+ * why @c Trsk is @b strictly @b more @b expressive than @c std::set (the
+ * embedding @c ambient_set is total, this retraction is not), and why the price
+ * of staying in the purely intensional regime is discharging membership by
+ * proof (concepts, factorisations) rather than by enumeration.
+ */
+// The @c std::set target additionally requires the value type to be totally
+// ordered; a regular-but-unordered carrier is rejected at the constraint rather
+// than hard-erroring in the body.
+export template <std::ranges::input_range U, typename Chi>
+  requires std::totally_ordered<
+      std::ranges::range_value_t<std::remove_cvref_t<U>>>
+auto materialise(U&& universe, Chi chi) {
+  std::set<std::ranges::range_value_t<std::remove_cvref_t<U>>> out;
+  for (auto&& x : universe)
+    if (chi(x)) out.insert(x);
+  return out;
+}
 
 // ---------------------------------------------------------------------------
 // image / filter on std-container carriers — concrete realisations of

@@ -134,7 +134,31 @@ constexpr auto set_union(const Set<T, L, P1>& a, const Set<T, L, P2>& b) {
  */
 export template <typename T, typename L, typename P1, typename P2>
 constexpr auto set_difference(const Set<T, L, P1>& a, const Set<T, L, P2>& b) {
-  return a & !b;
+  return a & ~b;
+}
+
+/**
+ * @brief @c operator- : the set-difference operator, @f$A \setminus B = A \cap
+ *        \sim\! B@f$.
+ *
+ * @details The operator spelling of @c set_difference, completing the bitwise
+ * set-operator surface (@c & = @f$\cap@f$, @c | = @f$\cup@f$, @c ~ =
+ * complement,
+ * @c ^ = @f$\triangle@f$, @c - = @f$\setminus@f$).  Defined via @c ~ (the
+ * bitwise complement, aligned with the bitwise set semantics) rather than the
+ * logical @c !.  Gated on @c IsSet for both operands (so it never shadows
+ * arithmetic @c operator- on numeric carriers) and on @c a @c & @c ~b being
+ * well formed, so it also accepts a @c UniversalSet minuend (@c U @c - @c B
+ * collapses through the universal-set identity to @c ~B).  There is no C++
+ * set-minus glyph; this is the idiomatic stand-in for the blackboard
+ * @f$\setminus@f$.
+ */
+export template <typename A, typename B>
+  requires dedekind::category::IsSet<std::remove_cvref_t<A>> &&
+           dedekind::category::IsSet<std::remove_cvref_t<B>> &&
+           requires(const A& a, const B& b) { a & ~b; }
+constexpr auto operator-(const A& a, const B& b) {
+  return a & ~b;
 }
 
 /**

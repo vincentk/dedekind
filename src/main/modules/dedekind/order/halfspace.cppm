@@ -205,6 +205,14 @@ struct Halfspace {
       return hit ? L::True : L::False;
     }
   }
+
+  // Subobject inclusion ι: S ↣ T — the missing arrow that makes a bare
+  // Halfspace a first-class @c IsSubobject (it already IS its own χ via
+  // @c operator() above).  Same Member-unwrap pattern as SingletonSet.
+  struct Member {
+    T value;
+  };
+  constexpr T ι(const Member& m) const { return m.value; }
 };
 
 /**
@@ -263,7 +271,126 @@ struct Singleton {
   constexpr bool operator==(const Singleton<Value, OtherL>&) const {
     return true;
   }
+
+  // Subobject inclusion ι: {value} ↣ Domain — makes the static Singleton a
+  // first-class @c IsSubobject (it already IS its own χ via @c operator()).
+  struct Member {
+    Domain value;
+  };
+  constexpr Domain ι(const Member& m) const { return m.value; }
 };
+
+/** @section halfspace__Static_Singleton_Complement_Lattice
+ *
+ * The absorbing laws of the complement lattice, at the type level, for the
+ * @b static singleton (value in the type).  These make @c Singleton a
+ * first-class member of the lattice the §3 pruning listing exhibits, on a
+ * finite carrier: the collapse is structural (never enumerated), and the
+ * bool-only gates encode the two facts that hold only on a two-element
+ * universe.  Left as free functions, mirroring the @c structured_and surface.
+ */
+
+/** @brief Complement of a static singleton on a @b two-element (bool) carrier:
+ *         the other singleton.  On a larger carrier the complement of a point
+ *         is not a point, so there is deliberately no overload there. */
+export template <auto Value, typename L>
+  requires std::same_as<decltype(Value), bool>
+constexpr auto operator~(const Singleton<Value, L>&) {
+  return Singleton<!Value, L>{};
+}
+
+/** @brief Meet of two static singletons: the same singleton if the values
+ *         coincide, otherwise @c Ø.  Distinct points are disjoint, so the
+ *         empty collapse is structural on @b any carrier. */
+export template <auto A, typename LA, auto B, typename LB>
+  requires std::same_as<decltype(A), decltype(B)>
+constexpr auto operator&(const Singleton<A, LA>& a, const Singleton<B, LB>&) {
+  if constexpr (A == B) {
+    return a;
+  } else {
+    return dedekind::sets::Ø<decltype(A), LA>{};
+  }
+}
+
+/** @brief Join of two static singletons: the same singleton if the values
+ *         coincide; on a @b two-element (bool) carrier two distinct points
+ *         @b cover the universe, so @c UniversalSet.  On a larger carrier the
+ *         join is a two-point set, out of scope here, so no overload fires. */
+export template <auto A, typename LA, auto B, typename LB>
+  requires std::same_as<decltype(A), decltype(B)> &&
+           (A == B || std::same_as<decltype(A), bool>)
+constexpr auto operator|(const Singleton<A, LA>& a, const Singleton<B, LB>&) {
+  if constexpr (A == B) {
+    return a;
+  } else {
+    return dedekind::sets::UniversalSet<bool, LA>{};
+  }
+}
+
+/** @section halfspace__Halfspace_Complement_Lattice
+ *
+ * The same complement-lattice surface for the @b halfspace, so a bare
+ * @c Halfspace is a first-class @c IsSet lattice member (not only when wrapped
+ * in a @c Set): the ℕ column of the §3 pruning listing then reads bare and
+ * telling, symmetric with the bool @c Singleton column.  Narrow and gated, so
+ * ordinary (non-complement) halfspace pairs still route to @c structured_and /
+ * @c OrderInterval unchanged.
+ */
+
+// Direction / strictness flips: the pieces of the halfspace complement.
+// ~{x > P} = {x <= P} — opposite direction, flipped strictness.  Internal.
+constexpr Direction flip(Direction d) {
+  return d == Direction::Upward ? Direction::Downward : Direction::Upward;
+}
+constexpr Strictness flip(Strictness s) {
+  return s == Strictness::Strict ? Strictness::NonStrict : Strictness::Strict;
+}
+
+/** @brief Complement of a halfspace: the opposite halfspace. */
+export template <typename T, auto Pivot, Direction D, Strictness S, typename L>
+constexpr auto operator~(const Halfspace<T, Pivot, D, S, L>&) {
+  return Halfspace<T, Pivot, flip(D), flip(S), L>{};
+}
+
+/** @brief Complement-pair join: same pivot, opposite direction, flipped
+ *         strictness is a complement pair whose union is the universe.  The
+ *         @c (D1!=D2 && S1!=S2) gate rules out non-complement pairs (they keep
+ *         routing to @c structured_and / @c OrderInterval). */
+export template <typename T, auto Pivot, Direction D1, Strictness S1,
+                 Direction D2, Strictness S2, typename L>
+  requires(D1 != D2 && S1 != S2)
+constexpr auto operator|(const Halfspace<T, Pivot, D1, S1, L>&,
+                         const Halfspace<T, Pivot, D2, S2, L>&) {
+  return dedekind::sets::UniversalSet<T, L>{};
+}
+
+/** @brief Complement-pair meet: dually, the empty set. */
+export template <typename T, auto Pivot, Direction D1, Strictness S1,
+                 Direction D2, Strictness S2, typename L>
+  requires(D1 != D2 && S1 != S2)
+constexpr auto operator&(const Halfspace<T, Pivot, D1, S1, L>&,
+                         const Halfspace<T, Pivot, D2, S2, L>&) {
+  return dedekind::sets::Ø<T, L>{};
+}
+
+/** @brief Telling aliases for the two ℕ halfspaces the §3 listing uses:
+ *         @c Above<N> = {x>N}, @c AtMost<N> = ~Above<N> = {x<=N}. */
+export template <auto N, typename L = ClassicalLogic>
+using Above = Halfspace<dedekind::sets::Cardinality, N, Direction::Upward,
+                        Strictness::Strict, L>;
+export template <auto N, typename L = ClassicalLogic>
+using AtMost = Halfspace<dedekind::sets::Cardinality, N, Direction::Downward,
+                         Strictness::NonStrict, L>;
+
+// A bare Halfspace / Singleton is a first-class @c IsSubobject (ι: S ↣ A plus
+// its own χ), though NOT a full ETCS @c IsSet: @c IsSet additionally demands
+// the ETCS-axiom surface (@c HasETCSAxioms + the CCC witness) that only the
+// ambient universe @c Ω<T> carries.  Subobject-hood is the right membership —
+// it is what the complement-lattice operators above operate on.
+static_assert(IsSubobject<Above<5>, dedekind::sets::Cardinality>,
+              "a Halfspace is a first-class subobject ι: S ↣ ℕ.");
+static_assert(IsSubobject<Singleton<true>, bool>,
+              "a static Singleton is a first-class subobject.");
 
 /** @brief Meet of two opposing halfspaces — an order-theoretic interval. */
 export template <typename T, auto Lo, auto Hi, Strictness SL, Strictness SU,

@@ -1,11 +1,28 @@
 /** @file test/cpp/modules/dedekind/category/etcs_test.cpp */
 #include <catch2/catch_test_macros.hpp>
+#include <ranges>
 #include <set>
 #include <unordered_set>
 
 import dedekind.category;
 
 using namespace dedekind::category;
+
+TEST_CASE("ETCS: std::ranges views lift to sets via ambient_set",
+          "[category][etcs][sets][ranges]") {
+  // A lazy view IS a set — membership is std::ranges::find (Jlt: the set is
+  // its membership test).  Exercised at runtime so the lift is covered.
+  const auto six = ambient_set(std::views::single(6));
+  const auto small = ambient_set(std::views::iota(0, 5));
+
+  STATIC_CHECK(IsSet<decltype(six)>);
+  STATIC_CHECK(IsSet<decltype(small)>);
+
+  CHECK(six.χ(6));
+  CHECK_FALSE(six.χ(7));
+  CHECK(small.χ(3));
+  CHECK_FALSE(small.χ(9));
+}
 
 TEST_CASE("ETCS: primitive ambient species can be materialized as sets",
           "[category][etcs][sets][primitives]") {
@@ -54,9 +71,9 @@ TEST_CASE("ETCS: set lattice operations", "[category][etcs][sets]") {
     const auto either = set_union(s_even, s_positive);
     const auto not_even = set_complement(s_even);
 
-    STATIC_CHECK(IsSetObject<decltype(both), int>);
-    STATIC_CHECK(IsSetObject<decltype(either), int>);
-    STATIC_CHECK(IsSetObject<decltype(not_even), int>);
+    STATIC_CHECK(IsSubobject<decltype(both), int>);
+    STATIC_CHECK(IsSubobject<decltype(either), int>);
+    STATIC_CHECK(IsSubobject<decltype(not_even), int>);
 
     CHECK(both.χ(2) == true);
     CHECK(both.χ(-2) == false);

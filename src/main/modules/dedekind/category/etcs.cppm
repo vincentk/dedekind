@@ -49,7 +49,7 @@
  * @c :etcs sits one step down from @c :concrete on this chain: every
  * ETCS set @em is a concrete set object, plus the 10 ETCS axioms
  * (well-pointedness, NNO, choice, ...) that pick out @c Set specifically
- * among concrete categories.  The @c IsSetObject, @c IsConcrete, and
+ * among concrete categories.  The @c IsSubobject, @c IsConcrete, and
  * @c χ-based set-operation machinery (@c set_intersection / @c set_union
  * / @c set_complement / @c in / @c in_via / @c meet / @c join) all live
  * in @c :concrete; this partition imports it and adds the ETCS-specific
@@ -66,8 +66,10 @@
 
 module;
 
+#include <algorithm>  // std::ranges::find (range-lift membership test)
 #include <concepts>
 #include <functional>
+#include <ranges>  // std::ranges::input_range (std views ↪ IsSet)
 #include <set>
 #include <type_traits>
 #include <unordered_set>
@@ -79,7 +81,7 @@ import :adjunction;  // HasAdjunctionShape / IsAdjunction — the bona fide
                      // adjunction machinery used to witness Disc ⊣ U at the
                      // type level (#572 review).
 import :cartesian;
-import :concrete;  // IsSetObject, IsConcrete, set_intersection / set_union /
+import :concrete;  // IsSubobject, IsConcrete, set_intersection / set_union /
                    // set_complement / in / in_via / meet / join — the
                    // concreteness layer (#636), prerequisite for ETCS axioms.
 import :discrete;  // DiscreteCategory<T> — target of the Set ↪ Cat lift (#572)
@@ -95,7 +97,7 @@ import :topoi;
 
 namespace dedekind::category {
 
-// NOTE (#636 re-home): the concreteness layer --- @c IsSetObject,
+// NOTE (#636 re-home): the concreteness layer --- @c IsSubobject,
 // @c HasTernarySupport, @c IsCompatibleSetPair, @c set_intersection / @c
 // set_union / @c set_complement, @c in / @c in_via, @c meet / @c join,
 // @c compose_embedding, and the new @c IsConcrete<C> umbrella ---
@@ -142,10 +144,10 @@ concept HasAxiom6Exponentiation = IsArrowExponential<Exponential<A, A>, A, A>;
 export template <typename S>
 concept HasAxiom7SubobjectClassifier =
     IsSubobject<S, typename S::Domain> && requires {
-      requires IsSetObject<decltype(classify<typename S::Domain>(
+      requires IsSubobject<decltype(classify<typename S::Domain>(
                                classifier_true<typename S::Domain>())),
                            typename S::Domain>;
-      requires IsSetObject<decltype(classify<typename S::Domain>(
+      requires IsSubobject<decltype(classify<typename S::Domain>(
                                classifier_false<typename S::Domain>())),
                            typename S::Domain>;
       requires IsPullback<
@@ -197,7 +199,7 @@ concept IsSplitEpicPair = IsEpicArrow<Epi> && IsArrow<Section> &&
  */
 export template <typename S, typename Epi, typename Section>
 concept HasAxiom10ChoiceSplitEpicWitness =
-    IsSetObject<S, typename S::Domain> && IsSplitEpicPair<Epi, Section> &&
+    IsSubobject<S, typename S::Domain> && IsSplitEpicPair<Epi, Section> &&
     std::same_as<Cod<Epi>, typename S::Domain>;
 
 /**
@@ -283,7 +285,7 @@ concept HasAxiom7PullbackReindexingDefinitionalSurface =
  */
 export template <typename S>
 concept HasAxiom10PowerObjectLattice =
-    IsSetObject<S, typename S::Domain> && IsCompatibleSetPair<S, S> &&
+    IsSubobject<S, typename S::Domain> && IsCompatibleSetPair<S, S> &&
     requires {
       /** @brief @c logic_species typedef anchors the classifier @c L
        *  (Slice 9 — required by @c :lattice::IsSubobjectLattice).
@@ -293,8 +295,8 @@ concept HasAxiom10PowerObjectLattice =
       typename S::logic_species;
       requires IsLogicalSpecies<typename S::logic_species>;
     } && requires(S lhs, S rhs) {
-      requires IsSetObject<decltype(meet(lhs, rhs)), typename S::Domain>;
-      requires IsSetObject<decltype(join(lhs, rhs)), typename S::Domain>;
+      requires IsSubobject<decltype(meet(lhs, rhs)), typename S::Domain>;
+      requires IsSubobject<decltype(join(lhs, rhs)), typename S::Domain>;
     };
 
 /** @section etcs__Axiom_10_Diaconescu_Note
@@ -342,7 +344,7 @@ concept HasAxiom10PowerObjectLattice =
  */
 export template <typename T>
 concept HasETCSAxioms =
-    IsSetObject<T, typename T::Domain> &&
+    IsSubobject<T, typename T::Domain> &&
     HasAxiom1Composition<typename T::Domain> &&
     HasAxiom2Identity<typename T::Domain> &&
     HasAxiom3TerminalObject<typename T::Domain> &&
@@ -469,11 +471,46 @@ constexpr auto ambient_set(std::set<T, Compare, Alloc>&& s)
       [s = std::move(s)](const T& x) -> bool { return s.contains(x); });
 }
 
+/** @brief Lift any @c std::ranges::input_range (a view, span, or container)
+ *         into an @c IsSet object by wrapping @c std::ranges::find as the
+ *         membership test.  This is the Jlt-clean reading of a set --- @b the
+ *         @b set @b is @b its @b membership @b test --- carried down to the
+ *         @c std::ranges layer: a lazy view is a first-class @c IsSet, and it
+ *         is @c constexpr where @c std::unordered_set (not
+ *         constexpr-constructible with contents) is not.  Excludes the keyed
+ *         containers above by refusing a @c .contains() member, so those more
+ *         specific overloads still win.  The range is moved into the predicate
+ *         (a view is cheap to own; the lifted Subobject carries its own copy).
+ *         (#607 --- the range slice of the wrapper-dissolution plan.) */
+// @c forward_range (multipass), not merely @c input_range: membership re-scans
+// @c r on every query via @c std::ranges::find, so a single-pass range would be
+// exhausted after the first test.  The captured @c r is owned (copied/moved
+// into the closure) and must be const-iterable, since the membership test is @c
+// const.
+export template <std::ranges::forward_range R>
+  requires IsSpecies<std::ranges::range_value_t<R>> &&
+           (!requires(R& r, std::ranges::range_value_t<R> x) { r.contains(x); })
+constexpr auto ambient_set(R&& r) {
+  using T = std::ranges::range_value_t<R>;
+  return ambient_set<T>([r = std::forward<R>(r)](const T& x) -> bool {
+    return std::ranges::find(r, x) != std::ranges::end(r);
+  });
+}
+
 // Witnesses: std-containers satisfy IsSet directly via the lift.
 static_assert(IsSet<decltype(ambient_set(
                   std::declval<const std::unordered_set<int>&>()))>,
               "std::unordered_set<int> lifts to IsSet via ambient_set (lvalue) "
               "without a project-shipped wrapper.");
+
+// Witness: a std::ranges view lifts to IsSet structurally --- and, unlike the
+// unordered_set lift, it is usable in a constant expression.
+static_assert(
+    IsSet<decltype(ambient_set(std::views::single(6)))>,
+    "std::views::single lifts to IsSet: a std range is a set by its "
+    "membership test (Jlt --- the set IS the test), constexpr-clean.");
+static_assert(IsSet<decltype(ambient_set(std::views::iota(0, 5)))>,
+              "std::views::iota lifts to IsSet via ambient_set.");
 
 static_assert(
     IsSet<decltype(ambient_set(std::declval<std::unordered_set<int>&&>()))>,

@@ -131,7 +131,9 @@ struct Modular {
   // @c machine_type, @c (-1 % N) yields @c -1 in C++; we shift the
   // result back into the canonical range so @c operator== respects
   // @f$\mathbb{Z}/N\mathbb{Z}@f$ semantics.
-  explicit constexpr Modular(machine_type v) : value(normalize(v)) {}
+  // Default to 0, the additive identity; also lets @c Modular<N>{} name the
+  // carrier as a value (e.g. the scout sugar @c in<ℕ> @c % @c Modular<N>{}).
+  explicit constexpr Modular(machine_type v = 0) : value(normalize(v)) {}
 
   // morphologies::IsCyclic shape API: 1 generates Z/NZ; successor
   // walks the chain.
@@ -169,6 +171,44 @@ struct Modular {
     }
   }
 };
+
+/**
+ * @struct Congruence
+ * @brief The residue-class predicate @f$x \equiv R \pmod N@f$: the
+ *        characteristic map of the fiber of the reduction
+ *        @f$\mathbb{Z} \twoheadrightarrow \mathbb{Z}/N\mathbb{Z} =@f$
+ *        @c Modular<N> over the residue @c R.
+ *
+ * @details @c isEven is @c Congruence<2,0>.  Because the predicate factors
+ * through the @b finite quotient @c Modular<N> (the reduction is the
+ * @c Modular<N> constructor), a quantifier over an @b infinite carrier reduces
+ * to exhausting the @c N residues: @f$\exists@f$ and @f$\forall@f$ both become
+ * decidable in finite time (see the @c sets:quantifier finite-carrier path and
+ * the numbers-level @c Ω<Cardinality> bridge).  The modulus @c N is carried in
+ * the type, so the compiler sees the quotient; an opaque lambda could not.
+ *
+ * It is a characteristic morphism (@c IsPredicate): @c Domain is the integer
+ * the reduction consumes, @c Codomain is @c bool.  FIXME(#797): @c % may later
+ * subsume into a factor-through-quotient combinator (§3 morphisms / §4
+ * quotients).
+ */
+export template <auto N, decltype(N) R = decltype(N){}>
+struct Congruence {
+  using Domain = decltype(N);  // the integer the reduction consumes
+  using Codomain = bool;       // membership truth
+  template <typename X>
+  constexpr bool operator()(const X& x) const {
+    return Modular<N>{static_cast<typename Modular<N>::machine_type>(x)} ==
+           Modular<N>{R};
+  }
+};
+
+// Congruence factors through the finite quotient Modular<N>: witnessed at the
+// lowest rung, on the reduction alone (no quantifier machinery yet).
+static_assert(Congruence<2, 0>{}(4u), "4 ≡ 0 (mod 2): even.");
+static_assert(!Congruence<2, 0>{}(3u), "3 ≢ 0 (mod 2): odd.");
+static_assert(dedekind::category::IsPredicate<Congruence<2, 0>>,
+              "Congruence is a characteristic morphism (IsPredicate).");
 
 }  // namespace dedekind::morphologies
 

@@ -43,8 +43,10 @@ module;
 #include <algorithm>
 #include <compare>
 #include <concepts>
+#include <cstddef>  // std::size_t (emptiness-by-size overload)
 #include <functional>
 #include <limits>
+#include <ranges>  // std::ranges::range / begin / end (emptiness-by-iterator overload)
 #include <utility>  // std::pair (Ø × S cartesian-product return type)
 
 export module dedekind.sets:boundaries;
@@ -134,11 +136,34 @@ struct Ø final {
     return true;
   }
 
-  // Necessary for (a | b) == b where b might be Ø
+  // Ø == S: constrained emptiness tests only.  There is deliberately NO
+  // catch-all; a set whose emptiness cannot be decided here matches no
+  // overload, so `Ø == it` is a compile error (the honest Rice wall) rather
+  // than a fabricated answer.  Each overload rules out a wrong result.
+
+  // (i) a set-like operand exposing size(): empty iff 0 == size().  Fires for a
+  //     Singleton at COMPILE time and for an extensional carrier at RUN time.
   template <typename S>
-  constexpr bool operator==(const S&) const {
-    if constexpr (std::is_same_v<S, Ø>) return true;
-    return false;  // A non-empty set cannot be equal to Ø
+    requires(IsSet<S> || std::ranges::range<S>) && (!std::same_as<S, Ø>) &&
+            requires(const S& s) {
+              { s.size() } -> std::convertible_to<std::size_t>;
+            }
+  constexpr bool operator==(const S& s) const {
+    return 0 == s.size();
+  }
+
+  // (ii) a std::ranges-backed operand with no size(): empty iff begin == end.
+  //      Taken @b by value, not by const ref: an unsized range is typically a
+  //      lazy view (e.g. std::views::filter), whose begin() caches and so is
+  //      non-const-iterable; a by-value copy is a mutable local we can advance
+  //      (and short-circuit) at both run time and compile time.  Copying a view
+  //      is cheap by construction; owning containers expose size() and route to
+  //      (i) instead, so they never reach here.
+  template <typename S>
+    requires std::ranges::range<S> && (!std::same_as<S, Ø>) &&
+             (!requires(const S& s) { s.size(); })
+  constexpr bool operator==(S s) const {
+    return std::ranges::begin(s) == std::ranges::end(s);
   }
 
   // The Duality: !∅ = V
@@ -274,6 +299,17 @@ struct UniversalSet final {
 
   // Explicitly define equality if <=> is being deleted by members
   constexpr bool operator==(const UniversalSet&) const { return true; }
+
+  // Cross-(L, C) identity: the universe of a carrier T is the universe
+  // regardless of logic species or cardinality annotation.  Enables
+  // `Ω<T> == r` when a complement-pair join elevates r to a UniversalSet<T,
+  // L2, C2> whose C differs from the reference (e.g. bool's Finite vs the
+  // ℵ_0 default), the same spirit as Ø's cross-carrier equality above.
+  template <typename L2, typename C2>
+    requires(!std::same_as<L2, L> || !std::same_as<C2, C>)
+  constexpr bool operator==(const UniversalSet<T, L2, C2>&) const {
+    return true;
+  }
 
   // Note: You'll eventually want overloads for:
   // Universal | Any = Universal

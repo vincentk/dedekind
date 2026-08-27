@@ -52,7 +52,9 @@
  */
 module;
 
+#include <array>  // FiniteResidueSet: membership per residue of ℤ/Nℤ
 #include <concepts>
+#include <cstddef>  // std::size_t (residue loop)
 #include <functional>
 #include <utility>  // std::forward (used in embed_𝔹_ℕ's set-level lift)
 
@@ -60,7 +62,8 @@ export module dedekind.numbers:natural;
 
 import dedekind.algebra; // HasRingOperators / HasSemiringOperators / IsArithmeticRing (canonical-spine witnesses)
 import dedekind.category;
-import dedekind.order; // HasLatticeOperators (canonical-spine witnesses)
+import dedekind.morphologies; // Modular<N> / Congruence<N,R> — the finite quotient the ℕ quantifier factors through
+import dedekind.order;        // HasLatticeOperators (canonical-spine witnesses)
 import dedekind.sequences; // IsFiniteSequence (canonical-spine witnesses on FinitePath<Cardinality>)
 import dedekind.sets;
 import :scalars;
@@ -482,3 +485,138 @@ static_assert(IsMonotone<std::decay_t<decltype(dedekind::numbers::embed_𝔹_ℕ
               "embed_𝔹_ℕ_ (𝔹 ↪ ℕ via Cardinality) is monotone — preserves the "
               "Boolean / cardinality order.");
 }  // namespace dedekind::category
+
+// ───────────────────────────────────────────────────────────────────────────
+// Finite-quotient quantifier bridge for ℕ (the numbers rung).
+//
+// A predicate that factors through the FINITE quotient Modular<N> (a
+// morphologies::Congruence<N,R>) reduces ∃/∀ over the INFINITE carrier
+// Cardinality to exhausting the N residues.  This lives at :natural because it
+// is the lowest rung where both dependency branches resolve: sets
+// (Ω<Cardinality>, Ø, the exists/forall primaries) and morphologies (Modular,
+// Congruence), which are parallel branches meeting first at numbers.  The
+// overloads sit in namespace dedekind::sets so ADL on the UniversalSet operand
+// finds them, as a sibling to sets:FiniteBooleanSet (folding the two into one
+// FiniteCarrierSet was not clean — the bool carrier is load-bearing;
+// FIXME(#798)).
+// ───────────────────────────────────────────────────────────────────────────
+namespace dedekind::sets {
+
+/**
+ * @struct ScoutModN
+ * @brief A bound scout reduced modulo @c N: the intermediate of
+ *        @c in<ℕ> @c % @c Modular<N>, awaiting a residue to compare against.
+ *
+ * @details Mirrors the halfspace DSL @c in<ℕ> @c > @c bound<5>: the telling
+ * @c operator% factors the scout through the finite quotient @c Modular<N>,
+ * then @c == @c bound<R> selects the residue class, reifying @c
+ * Congruence<N,R>.
+ * FIXME(#797): as §3 morphism-factorisation / §4 quotients mature, @c % may
+ * generalise to a factor-through-quotient combinator.
+ */
+export template <auto N>
+struct ScoutModN {};
+
+/** @brief @c in<ℕ> @c % @c Modular<N>{}: factor the scout through
+ * @f$\mathbb{Z}/N\mathbb{Z}@f$. */
+export template <auto Ambient, auto N>
+  requires std::same_as<typename BoundScout<Ambient>::T, Cardinality>
+constexpr auto operator%(const BoundScout<Ambient>&,
+                         dedekind::morphologies::Modular<N>) {
+  return ScoutModN<N>{};
+}
+
+/** @brief @c (in<ℕ> % Modular<N>) @c == @c bound<R>: reify the residue class.
+ */
+export template <auto N, auto R>
+constexpr auto operator==(ScoutModN<N>, dedekind::order::Bound<R>) {
+  return dedekind::morphologies::Congruence<N, R>{};
+}
+
+/**
+ * @struct FiniteResidueSet
+ * @brief The image of a Modular<N>-factoring predicate, materialised over the N
+ *        residues of ℤ/Nℤ: @c at[r] is the membership of residue @c r.
+ *
+ * @details Sibling to @c FiniteBooleanSet.  Carries BOTH lattice-bound
+ * comparisons (Eqn 2): @c ==Ø (scheme A anchor: every residue a non-member) and
+ * @c ==Ω (scheme B anchor: every residue a member).  Emptiness of the
+ * @f$\aleph_0@f$-sized @f$\{x\in\mathbb{N}\mid P(x)\}@f$ is decided on the
+ * finite quotient: no residue is a member iff no natural is, since every
+ * natural has a residue.
+ */
+export template <auto N, typename L>
+struct FiniteResidueSet {
+  std::array<typename L::Ω, N> at;
+
+  constexpr bool operator==(const Ø<Cardinality, L>&) const {
+    for (const auto& v : at)
+      if (!(v == L::False)) return false;
+    return true;  // (A) ∅ iff every residue is a non-member
+  }
+  template <typename C>
+  constexpr bool operator==(const UniversalSet<Cardinality, L, C>&) const {
+    for (const auto& v : at)
+      if (!(v == L::True)) return false;
+    return true;  // (B) Ω iff every residue is a member
+  }
+  friend constexpr bool operator==(const Ø<Cardinality, L>& e,
+                                   const FiniteResidueSet& s) {
+    return s == e;
+  }
+  template <typename C>
+  friend constexpr bool operator==(const UniversalSet<Cardinality, L, C>& u,
+                                   const FiniteResidueSet& s) {
+    return s == u;
+  }
+};
+
+/** @brief @c set(ℕ, congruence): materialise the predicate over the N residues
+ *  of @c Modular<N> (the reduction is the @c Modular<N> constructor). */
+export template <typename L, typename C, auto N, auto R>
+constexpr auto set(const UniversalSet<Cardinality, L, C>&,
+                   dedekind::morphologies::Congruence<N, R> c) {
+  std::array<typename L::Ω, N> at{};
+  for (std::size_t r = 0; r < static_cast<std::size_t>(N); ++r)
+    at[r] = c(r) ? L::True : L::False;
+  return FiniteResidueSet<N, L>{at};
+}
+
+// ∃ / ∀ over Ω<Cardinality> are the generic quantifiers of :quantifier
+// (template <IsSet S, IsPredicate P>); a Congruence is IsPredicate and the
+// set() overload above supplies the comprehension, so no ℕ-specific exists /
+// forall overload is needed.
+
+}  // namespace dedekind::sets
+
+namespace dedekind::numbers {
+
+// The §3.1 exhibit (lst:quantifiers_def), decided by the generic
+// template <IsSet S, IsPredicate P> exists / forall of :quantifier against the
+// two lattice bounds (Eqn 2): ∃ vs ∅ (A), ∀ vs the input set S (B).
+
+// 𝔹 = Ω<bool>, a finite carrier: the structural predicate isTrue =
+// Singleton<true> (IsPredicate) materialises over {false, true}.
+inline constexpr dedekind::order::Singleton<true> isTrue{};
+static_assert(dedekind::sets::exists(dedekind::sets::Ω<bool>, isTrue),
+              "∃b∈𝔹. b — true is a member.");
+static_assert(!dedekind::sets::forall(dedekind::sets::Ω<bool>, isTrue),
+              "¬∀b∈𝔹. b — false is a counterexample.");
+
+// ℕ = Ω<Cardinality>, infinite: isDivBy3 built with the telling scout sugar
+// in<ℕ> % Modular<3> == bound<0>, which reifies to Congruence<3,0> (an
+// IsPredicate carrying the modulus).  ∃/∀ are decided in FINITE time by the
+// three residues of ℤ/3ℤ: ∃ finds residue 0 against ∅; ∀ fails on residues 1,2
+// against S.  These also prove the sugar reifies to a Congruence.
+inline constexpr auto isDivBy3 =
+    dedekind::sets::in<dedekind::sets::Ω<dedekind::sets::Cardinality>> %
+        dedekind::morphologies::Modular<3>{} ==
+    dedekind::order::bound<0>;
+static_assert(dedekind::sets::exists(
+                  dedekind::sets::Ω<dedekind::sets::Cardinality>, isDivBy3),
+              "∃x∈ℕ. 3∣x — residue 0 is divisible by 3.");
+static_assert(!dedekind::sets::forall(
+                  dedekind::sets::Ω<dedekind::sets::Cardinality>, isDivBy3),
+              "¬∀x∈ℕ. 3∣x — residues 1,2 are counterexamples.");
+
+}  // namespace dedekind::numbers
