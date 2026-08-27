@@ -131,7 +131,7 @@ constexpr bool exists(const UniversalSet<bool, L, Finite>& u, P p) {
 
 export template <typename L, typename P>
 constexpr bool forall(const UniversalSet<bool, L, Finite>& u, P p) {
-  return !exists(u, [p = std::move(p)](bool b) { return !p(b); });
+  return set(u, std::move(p)) == u;  // scheme (B): {x | P(x)} == Ω
 }
 
 /** @section quantifier__Formal_Verification */
