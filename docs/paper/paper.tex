@@ -766,44 +766,6 @@ Identity is denoted by an identity arrow, and set membership is tested by evalua
 The steps taken to reify intensional sets in the code base form a core category $\mathbf{Ddk} \subset \mathbf{Jlt} \cap \mathbf{Set}$, which occupies the intersection of pure $\mathbf{Jlt}$ types and universal-algebraic set structures.
 The implementation tracks this definition literally at compile time.
 
-The combinators \cppinline{Exists} and \cppinline{ForAll} build on the set-operation definition of §\ref{sec:ddk_comprehension} (Listing~\ref{lst:quantifiers_def}): they bind the inner variable over the domain and leave a predicate in the outer variable, exactly the shape a comprehension turns into a new set (Listing~\ref{lst:quantifiers}).
-
-\begin{listing}[htbp]
-\caption{The bounded quantifiers as combinators.  A finite domain given as a \cppinline{std::views} range is itself an \cppinline{IsSet}, since a set is its membership test, so the lift is \cppinline{std::ranges::find}.  \cppinline{Exists} binds the inner variable over that domain, leaving a predicate in the outer variable; every line is a compile-time witness.}
-\label{lst:quantifiers}
-\begin{cpp}
-// a finite domain given as a std::ranges view IS a set:
-constexpr auto e = std::views::single(6);
-static_assert(IsSet<decltype(ambient_set(e))>);
-
-// { x | ∃ y ∈ {6} : x*y == 42 } selects 7
-constexpr auto has42 =
-  Exists(e, [](int y, int x){ return x*y == 42; });
-static_assert( has42(7));   // 7*6 == 42
-static_assert(!has42(8));
-\end{cpp}
-\end{listing}
-
-Which overload resolves the test is where the two regimes, at two layers, show.
-A transparent halfspace meet collapses to $\varnothing$ by type through the \cppinline{dedekind.order} specialization of \cppinline{structured_and}, so $\forall x>5.\,x\ge 3$ is a \cppinline{static_assert} on the empty counterexample $\{x>5 \wedge x<3\}$, reached through the \cppinline{\&} meet rather than \cppinline{set} since it needs the halfspace types.
-Over an enumerable domain \cppinline{set(S,P)} is a lazy \cppinline{std::views::filter}, and the same \cppinline{==} is \cppinline{begin == end}, short-circuiting at the first witness (Listing~\ref{lst:quantifier_regimes}).
-
-\begin{listing}[htbp]
-\caption{One definition, two regimes selected by \cppinline{Ø::operator==}.  Compile time: the order-specialized \cppinline{\&} meet collapses disjoint halfspaces to $\varnothing$ by type.  Run time: \cppinline{set} filters and emptiness is \cppinline{begin == end}.  An opaque, non-enumerable operand matches no overload: the Rice wall.}
-\label{lst:quantifier_regimes}
-\begin{cpp}
-// (a) transparent: the order-specialized & meet collapses BY TYPE
-constexpr auto gt5 = Set{in<ℕ> | in<ℕ> > bound<5>};
-constexpr auto lt3 = Set{in<ℕ> | in<ℕ> < bound<3>};
-static_assert(Ø<Cardinality>{} == (gt5 & lt3));  // {x>5 ∧ x<3} = ∅
-
-// (b) enumerable: set() is a lazy filter; Ø== is begin==end
-std::unordered_set<int> dom{1, 2, 3, 4, 5};
-assert( exists(dom, [](int x){ return x >  3; }));  // 4 ∈ dom
-assert(!forall(dom, [](int x){ return x >  2; }));  // 1,2 counter
-\end{cpp}
-\end{listing}
-
 \subsection{Morphisms: Point-Free Relations and Functions}
 \label{sec:relations_functions_blueprint}
 
@@ -853,7 +815,7 @@ In classical relational calculus, the relative composition of two relations $R \
 \begin{equation}
 R \circ S = \{ (a, c) \in A \times C \mid \exists b \in B : (a, b) \in R \land (b, c) \in S \}
 \end{equation}
-On a finite (\cppinline{IsExtensional}) intermediate domain $B$, that $\exists b$ is exactly the \cppinline{Exists} combinator of \S\ref{sec:intensional_sets} (Listing~\ref{lst:quantifiers}): relative composition is a bounded existential over the middle set.
+On a finite (\cppinline{IsExtensional}) intermediate domain $B$, that $\exists b$ is exactly the bounded existential of §\ref{sec:ddk_comprehension}: relative composition is quantification over the middle set.
 General first-order existential ($\exists$) and universal ($\forall$) quantification cannot, however, be implemented generically over \emph{infinite} intensional sets at compile time, as the enumeration of open predicate domains induces infinite compiler loop regression.
 
 To circumvent this translation-time search bottleneck, the library rejects identifying a relation extensionally as a static subobject pair $R \subseteq A \times B$. Instead, it implements a monadic presentation where a relation is an active functional morphism. Concretely, a binary relation $R$ from a domain set $A$ to a codomain set $B$ is defined as a total arrow of the form $R : A \to \mathcal{P}(B)$, where $\mathcal{P}(B)$ represents the intensional power set of the target space. This architectural choice ensures that when an element $a \in A$ is supplied to the relation, the compiler immediately evaluates the image as a native, optimized intensional set type in the destination space.
