@@ -885,22 +885,20 @@ IsInjective = is_left_unique_v<R>;
 \end{listing}
 
 \begin{listing}[htbp]
-\caption{Intensional specification of a binary relation predicate over an algebraic product space and its pointwise validation.}
+\caption{The divides relation $\{(a,b) \in \mathbb{N}\times\mathbb{N} \mid b \bmod a = 0\}$ as a strongly-typed point-free predicate, and its pointwise validation.  The $a \neq 0$ guard short-circuits before the modulus, so the predicate is total.}
 \label{lst:intensional_relation_validation}
 \begin{cpp}
-using P = std::pair<unsigned, unsigned>;
-constexpr auto R = Set{ element<Ω<P>> % UniversalSet<P>{} |
-    [](const P& p){ return p.first != 0 && p.second % p.first == 0; } };
-
-static_assert( R(std::pair{2u, 6u}));
-static_assert(!R(std::pair{4u, 6u}));
+constexpr auto R
+  = ℕ * ℕ | π₁ != fix(0_c) & π₂ % π₁ == fix(0_c);
+static_assert( R(pair{2,6}));
+static_assert(!R(pair{4,6}));
 \end{cpp}
 \end{listing}
 
 The design of the relation $R$ in Listing~\ref{lst:intensional_relation_validation} highlights the core architectural boundary between symbolic specification and type-level evaluation.
 Structurally, the relation is defined entirely through an intensional presentation.
-Rather than relying on explicit, verbose template-parameter bindings, the expression binds a scout element over the product domain $(\mathbb{N} \times \mathbb{N})$ and refines it by a predicate on the pair.
-This scout binds the relational invariant as a native type-directed predicate.
+Rather than an opaque lambda over the pair, its predicate is built point-free from the projections $\pi_1, \pi_2$: a strongly-typed, type-level composition the compiler can inspect, not a closure it must treat as a black box.
+The $a \neq 0$ guard and the modulus $\pi_2 \bmod \pi_1$ are conjoined by the meet, whose short-circuit keeps the predicate total.
 
 This intensional rule collapses into an extensional, pointwise evaluation context when interrogated by a concrete element via the indicator property \texttt{operator()}.
 During compilation, the \texttt{static\_assert} forces the template engine to substitute the candidate literal pair into the predicate, reducing the symbolic constraint down to a primitive boolean literal.
