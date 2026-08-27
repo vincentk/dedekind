@@ -492,21 +492,20 @@ define noundef zeroext i1 @witness_empty_halfspace_meet() { ret i1 false }
 
 \begin{table}[htbp]
 \centering
-\begin{tabular}{@{}lcccccc@{}}
+\begin{tabular}{@{}lccccccc@{}}
 \toprule
- & meet & join & complement & bottom & top & order \\
+ & member & meet & join & complement & bottom & top & order \\
 \midrule
-$\mathbf{CCC}$ & $\times$ & $\sqcup$ & $\neg$ & $\mathbf{0}$ & $\mathbf{1}$ & $B^A$ \\
-$\mathbb{B}$ & $\wedge$ & $\vee$ & $\neg$ & $\bot$ & $\top$ & $\Rightarrow$ \\
-$\mathcal{P}(A)$ & $\cap$ & $\cup$ & $\complement$ & $\varnothing$ & $A$ & $\subseteq$ \\
-$\mathbf{Trsk}$ & \cppinline{&} & \cppinline{|} & \cppinline{~} & \cppinline{Ø} & \cppinline{Ω} & \cppinline{<=} \\
+$\mathbb{B}$ & $\models$ & $\wedge$ & $\vee$ & $\neg$ & $\bot$ & $\top$ & $\Rightarrow$ \\
+$\mathcal{P}(A)$ & $\in$ & $\cap$ & $\cup$ & $\complement$ & $\varnothing$ & $A$ & $\subseteq$ \\
+$\mathbf{CCC}$ & $\chi$ & $\times$ & $\sqcup$ & $\neg$ & $\mathbf{0}$ & $\mathbf{1}$ & $B^A$ \\
+$\mathbf{Trsk}$ & \cppinline{s(x)} & \cppinline{&} & \cppinline{|} & \cppinline{~} & \cppinline{Ø} & \cppinline{Ω} & \cppinline{<=} \\
 \bottomrule
 \end{tabular}
 \caption{
-Operator-mapping table: each column is one construction spelled in four languages.
-The top row names the universal constructions of a Cartesian-closed category (product, coproduct, negation, initial and terminal objects, exponential).
-Each lattice is itself a Cartesian-closed poset, so it realises those constructions concretely: the meet \emph{is} the categorical product, the implication the exponential.
-The rows below give the Boolean (logical), powerset (set-theoretic), and $\mathbf{Trsk} \subset \mathbf{Cpp}$ (Section~\ref{sec:ddk_etcs}, Eqn~\ref{eqn:trsk}) readings.
+Operator-mapping table: each column is one construction spelled in four languages, the rows ascending from the Boolean lattice $\mathbb{B}$ through the powerset $\mathcal{P}(A)$ and the abstract Cartesian-closed category $\mathbf{CCC}$ to the reification $\mathbf{Trsk} \subset \mathbf{Cpp}$ (Section~\ref{sec:ddk_etcs}, Eqn~\ref{eqn:trsk}).
+The lattice columns are the $\mathbf{CCC}$'s universal constructions realised concretely: the meet \emph{is} the categorical product, the implication the exponential.
+The \emph{member} column is the odd one out: membership $x \in S$ is not a lattice operation but the characteristic morphism $\chi : A \to \Omega$, the relation the whole lattice is built on ($\models$ satisfaction, $\in$ set membership, $\chi$ the classifier, \cppinline{s(x)} the set applied to a point).
 The set lattice \emph{is} the Boolean lattice lifted pointwise ($\mathcal{P}(A) \cong \mathbb{B}^A$), and the collapse in Listing~\ref{lst:pruning} is that lift at work in the form of type-checked \Cpp{23}.
 }
 \label{tab:lattice-lift}
@@ -554,6 +553,7 @@ The container reading and the predicate reading are almost interconvertible, and
 Any \cppinline{std::set} is a $\mathbf{Trsk}$ set for free, its \cppinline{contains} the characteristic predicate; call that embedding $\iota$, and it is total.
 Only a finite, enumerable $\mathbf{Trsk}$ set materialises back to a container; call that $\mu$, and it is partial, the naturals having no finite materialisation.
 So $\mathbf{Trsk}$ is strictly more expressive than \cppinline{std::set}, the extensional container it generalises, and the price is paid in \emph{proof obligations}: where $\mu$ is unavailable, membership is settled by the concept constraints and factorisations of this section, not by enumeration.
+This is the extensional/intensional database distinction of deductive databases, \cppinline{std::set} playing the extensional store (EDB, facts) and $\mathbf{Trsk}$ the intensional one (IDB, rules), with materialisation the materialised view~\cite{abiteboul1995foundations}.
 
 \begin{listing}[htbp]
 \caption{$\mathbf{Trsk}$ is strictly more expressive than \cppinline{std::set}, the extensional container it generalises.
@@ -594,7 +594,7 @@ First-order quantification is the same reading once more: a quantifier \emph{is}
 &\quad \exists &\;:\equiv\; \neg\,\forall\,\neg\,.
 \end{aligned}
 \end{equation}
-In code the comprehension is \cppinline{set(S,P)} and each formulation is one \cppinline{operator==} against a bound: (A) \cppinline{exists(S,P)} is \cppinline{!(Ø{} == set(S,P))}, (B) \cppinline{forall(S,P)} is \cppinline{set(S,P) == S}, and each recovers its partner by complementing the predicate, \cppinline{!P} (Listing~\ref{lst:quantifiers_def}, top row).
+In code the comprehension is \cppinline{set(S,P)} and each formulation is one \cppinline{operator==} against a bound: (A) \cppinline{exists(S,P)} is \cppinline{!(Ø{} == set(S,P))}, (B) \cppinline{forall(S,P)} is \cppinline{set(S,P) == S}, and each recovers its partner by De Morgan's duality, complementing the predicate, \cppinline{!P} (Listing~\ref{lst:quantifiers_def}, top row).
 Read extensionally, as a loop over the elements of the carrier, the two formulations part ways.
 Formulation (A) asks for a single example (for $\exists$), or through $\neg\exists\neg$ a single counterexample (for $\forall$): find one and you are done, so it returns even on an infinite carrier whenever the witness sits at a finite position.
 Formulation (B) asks whether the comprehension fills the whole carrier, which extensionally means enumerating every element, so on an infinite carrier only (A) is on the table.
