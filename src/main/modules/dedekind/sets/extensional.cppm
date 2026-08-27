@@ -336,7 +336,12 @@ static_assert(
  * of staying in the purely intensional regime is discharging membership by
  * proof (concepts, factorisations) rather than by enumeration.
  */
+// The @c std::set target additionally requires the value type to be totally
+// ordered; a regular-but-unordered carrier is rejected at the constraint rather
+// than hard-erroring in the body.
 export template <std::ranges::input_range U, typename Chi>
+  requires std::totally_ordered<
+      std::ranges::range_value_t<std::remove_cvref_t<U>>>
 auto materialise(U&& universe, Chi chi) {
   std::set<std::ranges::range_value_t<std::remove_cvref_t<U>>> out;
   for (auto&& x : universe)

@@ -69,11 +69,12 @@ namespace dedekind::sets {
  * keep two honest surfaces: @c & (intensional, order-specialized, compile time)
  * and @c set (extensional, sets-only, run time).
  */
-export template <typename S, typename P>
-  requires std::ranges::input_range<S> &&
-           (!dedekind::category::IsSet<std::remove_cvref_t<P>>)
-constexpr auto set(const S& s, P p) {
-  return std::views::filter(s, std::move(p));
+// @c S&& is a forwarding reference over a @c viewable_range: an rvalue range is
+// moved into an owning @c filter_view (no dangling), an lvalue is referenced.
+export template <std::ranges::viewable_range S, typename P>
+  requires(!dedekind::category::IsSet<std::remove_cvref_t<P>>)
+constexpr auto set(S&& s, P p) {
+  return std::views::filter(std::forward<S>(s), std::move(p));
 }
 
 /**

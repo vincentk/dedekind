@@ -578,6 +578,7 @@ static_assert(IsSet<decltype(
 \vspace{0.4em}
 \begin{cpp}
 // μ : Trsk ⇀ std::set   (partial)
+auto isEven = [](int x){ return x % 2 == 0; };
 auto evens = materialise(
   std::views::iota(0, 10), isEven);
 assert((evens == std::set{0,2,4,6,8}));
@@ -841,7 +842,7 @@ These two readings, the intensional rule \cppinline{f} and the extensional set o
 // R = { (a, b) ∈ ℕ × ℕ | b % a == 0 } — a general relation (set of pairs)
 using P = std::pair<unsigned, unsigned>;
 constexpr auto R = Set{ element<Ω<P>> % UniversalSet<P>{} |
-    [](const P& p){ return p.second % p.first == 0; } };
+    [](const P& p){ return p.first != 0 && p.second % p.first == 0; } };
 
 // pointwise membership constant-folds:
 static_assert( R(std::pair{2u, 6u})); // 6 % 2 == 0
@@ -865,7 +866,7 @@ R \circ S = \{ (a, c) \in A \times C \mid \exists b \in B : (a, b) \in R \land (
 On a finite (\cppinline{IsExtensional}) intermediate domain $B$, that $\exists b$ is exactly the bounded existential of §\ref{sec:ddk_comprehension}: relative composition is quantification over the middle set.
 General first-order existential ($\exists$) and universal ($\forall$) quantification cannot, however, be implemented generically over \emph{infinite} intensional sets at compile time, as the enumeration of open predicate domains induces infinite compiler loop regression.
 
-To circumvent this translation-time search bottleneck, the library rejects identifying a relation extensionally as a static subobject pair $R \subseteq A \times B$. Instead, it implements a monadic presentation where a relation is an active functional morphism. Concretely, a binary relation $R$ from a domain set $A$ to a codomain set $B$ is defined as a total arrow of the form $R : A \to \mathcal{P}(B)$, where $\mathcal{P}(B)$ represents the intensional power set of the target space. This architectural choice ensures that when an element $a \in A$ is supplied to the relation, the compiler immediately evaluates the image as a native, optimized intensional set type in the destination space.
+To circumvent this translation-time search bottleneck, the library's \emph{compositional} presentation of a relation is not the static subobject pair $R \subseteq A \times B$ (which it still reifies, as a \texttt{Set} of pairs) but a monadic one, where a relation is an active functional morphism. Concretely, a binary relation $R$ from a domain set $A$ to a codomain set $B$ is defined as a total arrow of the form $R : A \to \mathcal{P}(B)$, where $\mathcal{P}(B)$ represents the intensional power set of the target space. This architectural choice ensures that when an element $a \in A$ is supplied to the relation, the compiler immediately evaluates the image as a native, optimized intensional set type in the destination space.
 
 Under this functional presentation, Tarski's relative composition resolves elegantly as standard Kleisli arrow composition over the power set monad. We reify this step within the \texttt{:relations} partition as the \emph{fish} operator $R \gg S$, realised in code as the overloaded \cppinline{>>} (Listing~\ref{lst:kleisli_fish_composition}), so the point-free composition is written:
 \begin{equation}
@@ -1188,7 +1189,7 @@ The Boolean semiring recovers $R^{*}$ itself, that is, reachability; other semir
 The choice of semiring \emph{is} the choice of problem, one branch of the algebra apart.
 
 Stacked over the nodes, that scalar fixed point is a linear system read in the semiring.
-Write $A$ for the weighted adjacency matrix, $A_{uv} = c(u,v)$, and $b$ for the source indicator, $\bar{1}$ at the source and $\bar{0}$ elsewhere.
+Write $A$ for the weighted adjacency matrix, $A_{vu} = c(u,v)$ so that row $v$ gathers the edges into $v$, and $b$ for the source indicator, $\bar{1}$ at the source and $\bar{0}$ elsewhere.
 The potentials solve
 \begin{equation}
     d \;=\; A \otimes d \;\oplus\; b,
@@ -1200,7 +1201,8 @@ The potentials solve
 The classical case is one branch away.
 Over the ring $(\mathbb{R}, +, \times)$ the identical fixed point $x = A x + b$ has the solution $x = (I - A)^{-1} b = \sum_{k \ge 0} A^{k} b$, the Neumann series, and $(I - A)^{-1}$ is the matrix inverse behind solving a linear system, the normal equations of least squares among them.
 Replace the ring $(+, \times)$ by the tropical dioid $(\max, +)$ and the same inverse $A^{*}$ is the critical path.
-The star is the semiring's matrix inverse, so the choice of semiring is equally the choice of linear algebra.
+A general dioid has no subtraction, so $A^{*}$ is not literally $(I - A)^{-1}$ but its role-equivalent, the Neumann series standing in where the inverse cannot be formed.
+The choice of semiring is thus equally the choice of linear algebra.
 
 \begin{table}[htbp]
 \centering

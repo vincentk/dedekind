@@ -482,7 +482,12 @@ constexpr auto ambient_set(std::set<T, Compare, Alloc>&& s)
  *         specific overloads still win.  The range is moved into the predicate
  *         (a view is cheap to own; the lifted Subobject carries its own copy).
  *         (#607 --- the range slice of the wrapper-dissolution plan.) */
-export template <std::ranges::input_range R>
+// @c forward_range (multipass), not merely @c input_range: membership re-scans
+// @c r on every query via @c std::ranges::find, so a single-pass range would be
+// exhausted after the first test.  The captured @c r is owned (copied/moved
+// into the closure) and must be const-iterable, since the membership test is @c
+// const.
+export template <std::ranges::forward_range R>
   requires IsSpecies<std::ranges::range_value_t<R>> &&
            (!requires(R& r, std::ranges::range_value_t<R> x) { r.contains(x); })
 constexpr auto ambient_set(R&& r) {

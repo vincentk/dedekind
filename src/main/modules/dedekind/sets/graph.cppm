@@ -220,15 +220,22 @@ static_assert(IsGraph<decltype(Γ_id), int, int>,
  * @tparam R        A relation callable on @c std::pair.
  * @tparam F        An @c IsArrow.
  * @tparam DomRange A @c std::ranges::input_range of the arrow's @c Domain.
+ * @tparam CodRange A @c std::ranges::input_range of the arrow's @c Codomain ---
+ *                  the second factor of @c A × B, distinct from @c dom whenever
+ *                  @c Domain and @c Codomain differ.
  */
-export template <typename R, typename F, std::ranges::input_range DomRange>
+export template <typename R, typename F, std::ranges::input_range DomRange,
+                 std::ranges::input_range CodRange>
   requires dedekind::category::IsArrow<F> &&
            std::same_as<std::ranges::range_value_t<DomRange>,
-                        dedekind::category::Dom<F>>
-constexpr auto is_graph_of(const R& r, F f, const DomRange& dom) {
+                        dedekind::category::Dom<F>> &&
+           std::same_as<std::ranges::range_value_t<CodRange>,
+                        dedekind::category::Cod<F>>
+constexpr auto is_graph_of(const R& r, F f, const DomRange& dom,
+                           const CodRange& cod) {
   const auto g = graph(f);
-  return forall(dom, [&r, &g, &dom](const auto& a) {
-    return forall(dom, [&r, &g, &a](const auto& b) {
+  return forall(dom, [&r, &g, &cod](const auto& a) {
+    return forall(cod, [&r, &g, &a](const auto& b) {
       return static_cast<bool>(r(std::pair{a, b})) ==
              static_cast<bool>(g(std::pair{a, b}));
     });
@@ -247,13 +254,13 @@ struct Succ {
 
 // The compiler knows graph(id) IS the graph of id over the finite domain [0,4).
 static_assert(is_graph_of(Γ_id, dedekind::category::Identity<int>{},
-                          std::views::iota(0, 4)),
+                          std::views::iota(0, 4), std::views::iota(0, 4)),
               "graph(id) is the graph of the identity on [0,4).");
 
 // ...and distinguishes it from a different function: graph(succ) is NOT the
 // graph of id.  The witness genuinely decides equality on the finite sample.
 static_assert(!is_graph_of(graph(Succ{}), dedekind::category::Identity<int>{},
-                           std::views::iota(0, 4)),
+                           std::views::iota(0, 4), std::views::iota(0, 4)),
               "graph(succ) differs from the graph of id on [0,4).");
 
 }  // namespace dedekind::sets

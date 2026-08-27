@@ -736,7 +736,7 @@ constexpr std::optional<std::size_t> first_where(const FinitePath<T>& path,
 
 export template <typename T, typename Cardinality, typename Index,
                  typename Pred>
-  requires LogicalMap<Pred, T>
+  requires std::predicate<const std::decay_t<Pred>&, const T&>
 constexpr auto exists(const Path<T, Cardinality, Index>& path, Pred&& pred) {
   // Single source: delegate to the set-operation dedekind::sets::exists
   // (∃ as non-emptiness of the comprehension, decided by Ø::operator== and
@@ -790,7 +790,7 @@ constexpr auto scan(F&& f, const Path<T, ℵ_0, Index>& path) -> Path<
 
 export template <typename T, typename Cardinality, typename Index,
                  typename Pred>
-  requires LogicalMap<Pred, T>
+  requires std::predicate<const std::decay_t<Pred>&, const T&>
 constexpr auto forall(const Path<T, Cardinality, Index>& path, Pred&& pred) {
   // Single source: delegate to the set-operation dedekind::sets::forall
   // (∀ as the ¬∃¬ dual: emptiness of the counterexample set, short-circuiting
