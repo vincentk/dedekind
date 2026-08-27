@@ -995,64 +995,42 @@ The existential requirement is thus safely re-encoded as a lazy, zero-cost symbo
 
 The compiler unifies the constituent predicates into a single, synthesized type-level constraint that governs the end-to-end mapping from $A$ to $C$. Listing~\ref{lst:kleisli_fish_composition} illustrates how this monadic relation concept and its corresponding Kleisli composition operator are structurally declared inside the toolchain.
 
-Listing~\ref{lst:relation_examples} works the surface over the two carriers: on each of $\mathbb{B}$ and $\mathbb{N}$ a relation that is not a function and a function, with functions composing through the same \cppinline{>>} that composed relations above.
+Listing~\ref{lst:relation_examples} spells relations out in the point-free surface: a comprehension over the product $A \times B$ whose predicate compares the projections $\pi_1, \pi_2$, with \cppinline{converse} the one relational operator shown (functions follow in a later slice).
 
 \begin{listing}[htbp]
-\caption{Worked examples.
-\textbf{Left} ($\mathbb{B}$): implication as a relation (not single-valued), negation as a function, the two negations composing to the identity.
-\textbf{Right} ($\mathbb{N}$): divisibility as a relation (not a function), successor as a function, both composing with the same \cppinline{>>}.}
+\caption{Relations as comprehensions over a product, point-free in the projections $\pi_1, \pi_2$.
+\textbf{Left} ($\mathbb{B}$): implication $a \le b$ on $\mathbb{B}\times\mathbb{B}$, and its \cppinline{converse}.
+\textbf{Right} ($\mathbb{N}$): less-than, and the bounded relation $\{(x,y) \mid x<y \land x>5\}$.}
 \label{lst:relation_examples}
 \noindent
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-// Relations on 𝔹, decided by
-// exhausting the two values.
-using P = pair<bool,bool>;
+// implication ⇒ as a relation
+// on 𝔹×𝔹:  a ≤ b
+constexpr auto imp =
+  𝔹 * 𝔹 | π₁ <= π₂;
+static_assert(is_relation(imp));
+static_assert( imp(pair{false,true}));
+static_assert(!imp(pair{true,false}));
 
-// ⇒ as a relation, a ≤ b:
-constexpr auto imp = Set{
-  element<Ω<P>> % UniversalSet<P>{}
-  | [](P p){ return !p.first
-             || p.second; } };
-static_assert(IsRelation<
-  decltype(imp),bool,bool>);
-// false ⇒ {false,true}: many images
-static_assert(
-  !IsFunctional<decltype(imp)>);
-
-// ¬ as a FUNCTION, via graph:
-constexpr auto neg =
-  graph([](bool b){ return !b; });
-static_assert(IsFunction<
-  decltype(neg),bool,bool>);
-// functions compose via >> : ¬∘¬=id
-static_assert(
-  (neg>>neg)(pair{true,true}));
+// converse: reverse implication b ≤ a
+constexpr auto rimp = converse(imp);
+static_assert(rimp(pair{true,false}));
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-// Relations on ℕ, decidable where
-// the predicate factors finitely.
-using Q = pair<ℕ,ℕ>;
+// less-than as a relation on ℕ×ℕ
+constexpr auto lt =
+  ℕ * ℕ | π₁ < π₂;
+static_assert( lt(pair{2,5}));
+static_assert(!lt(pair{5,2}));
 
-// divides: a relation, NOT a fn
-// (1 divides every n):
-constexpr auto div = Set{
-  element<Ω<Q>> % UniversalSet<Q>{}
-  | [](Q p){ return p.first
-    && p.second%p.first==0; } };
-static_assert(
-  !IsFunctional<decltype(div)>);
-
-// succ: a FUNCTION, composes via >>
-constexpr auto succ =
-  graph([](ℕ n){ return n+1; });
-static_assert(IsFunction<
-  decltype(succ),ℕ,ℕ>);
-// succ ∘ succ = "+2":
-static_assert(
-  (succ>>succ)(pair{2u,4u}));
+// {(x,y) | x < y ∧ x > 5}
+constexpr auto R =
+  ℕ * ℕ | π₁ < π₂ & π₁ > fix(5_c);
+static_assert( R(pair{6,9}));
+static_assert(!R(pair{3,9})); // 3 ≯ 5
 \end{cpp}
 \end{minipage}
 \end{listing}
