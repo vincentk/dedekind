@@ -889,7 +889,7 @@ IsInjective = is_left_unique_v<R>;
 \label{lst:intensional_relation_validation}
 \begin{cpp}
 constexpr auto R
-  = ℕ * ℕ | π₁ != fix(0_c) & π₂ % π₁ == fix(0_c);
+  = ℕ * ℕ | π1 != fix(0_c) & π2 % π1 == fix(0_c);
 static_assert( R(pair{2,6}));
 static_assert(!R(pair{4,6}));
 \end{cpp}
@@ -957,7 +957,7 @@ Listing~\ref{lst:relation_examples} spells relations out in the point-free surfa
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
 constexpr auto imp =
-  𝔹 * 𝔹 | π₁ <= π₂;
+  𝔹 * 𝔹 | π1 <= π2;
 static_assert(is_relation(imp));
 static_assert( imp(pair{false,true}));
 static_assert(!imp(pair{true,false}));
@@ -968,11 +968,11 @@ static_assert(rimp(pair{true,false}));
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
 constexpr auto lt =
-  ℕ * ℕ | π₁ < π₂;
+  ℕ * ℕ | π1 < π2;
 static_assert( lt(pair{2,5}));
 static_assert(!lt(pair{5,2}));
 constexpr auto R =
-  ℕ * ℕ | π₁ < π₂ & π₁ > fix(5_c);
+  ℕ * ℕ | π1 < π2 & π1 > fix(5_c);
 static_assert( R(pair{6,9}));
 static_assert(!R(pair{3,9}));
 \end{cpp}
