@@ -215,4 +215,55 @@ inline constexpr auto divisible_by_2_and_3 =
 static_assert(divisible_by_2_and_3(6), "6 is divisible by both 2 and 3.");
 static_assert(!divisible_by_2_and_3(9), "9 is not divisible by 2.");
 
+/**
+ * @section quantifier__Extrema
+ * @brief @c maximum / @c minimum --- the @b order analogue of the quantifiers.
+ *
+ * @details Where @c exists / @c forall filter a set and read a @b truth bound
+ * (∅ / S; Eqn 2), @c maximum / @c minimum filter a set and read an @b order
+ * bound.  @c maximum(s) is the greatest-element set
+ * @f$\{x\in s \mid \forall x'\in s.\; x'\le x\}@f$ --- a comprehension whose
+ * predicate is a @c ForAll over @c ≤ --- and @c minimum is its @b order dual
+ * (reverse @c ≤), exactly as @c forall is the De Morgan dual @c ¬∃¬ of
+ * @c exists.  The result is a @b set: empty when there is no greatest element,
+ * a singleton for a total order's max, possibly larger on a partial order; the
+ * @b value is the element of that singleton, when it exists.  Decidability is
+ * the quantifier's own --- over a finite / finite-quotient carrier the
+ * @c ForAll settles, otherwise it is the honest Rice wall at the call site.
+ * Here @c ≤ is a bare comparison predicate; §3.3 reveals it as a @b relation
+ * and re-spells these point-free.
+ */
+export template <std::ranges::viewable_range S>
+constexpr auto maximum(S&& s) {
+  // dominates(b) = ∀ a ∈ s. a ≤ b   (b is ≥ every element)
+  auto dominates = ForAll(s, [](const auto& a, const auto& b) { return a <= b; });
+  return set(std::forward<S>(s), std::move(dominates));
+}
+export template <std::ranges::viewable_range S>
+constexpr auto minimum(S&& s) {
+  // dominated(b) = ∀ a ∈ s. b ≤ a   (b is ≤ every element) --- the order dual
+  auto dominated = ForAll(s, [](const auto& a, const auto& b) { return b <= a; });
+  return set(std::forward<S>(s), std::move(dominated));
+}
+
+/** @section quantifier__Formal_Verification_Extrema */
+
+// The sole element of a singleton extremum over a finite range (the extremum
+// is a lazy filter_view, so it is walked, not queried via exists).
+constexpr auto only_element = [](auto&& r) {
+  int count = 0, value = 0;
+  for (auto x : r) {
+    ++count;
+    value = x;
+  }
+  return std::pair{count, value};
+};
+
+// max / min of a finite integer range are its greatest / least element (as a
+// singleton set): max [2,6) = {5}, min [2,6) = {2}.
+static_assert(only_element(maximum(std::views::iota(2, 6))) == std::pair{1, 5},
+              "max [2,6) = {5}.");
+static_assert(only_element(minimum(std::views::iota(2, 6))) == std::pair{1, 2},
+              "min [2,6) = {2}.");
+
 }  // namespace dedekind::sets

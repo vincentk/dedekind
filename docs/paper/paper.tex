@@ -657,6 +657,58 @@ static_assert(!forall(ℕ, isDivBy3));
 \end{minipage}
 \end{listing}
 
+The order runs the same play once more.
+Read $\le$ as the predicate and the extremum \emph{is} a set operation: the greatest elements of $S$ are those no element of $S$ beats.
+Where $\exists$ and $\forall$ test the comprehension against a bound and return a truth value, $\max$ and $\min$ keep the comprehension and return the extremal \emph{subset}.
+\begin{equation}
+\label{eqn:extrema}
+\max S \;:\equiv\; \{x \in S \mid \forall x' \in S.\; x' \le x\},
+\qquad
+\min \;:\equiv\; \max \text{ under } {\le} \mapsto {\ge}.
+\end{equation}
+The membership condition is a bounded $\forall$, so an extremum is literally \cppinline{forall} composed with the order (Listing~\ref{lst:extrema_def}, top), and $\min$ is $\max$ read in the dual order, the way $\forall$ was $\exists$ under $\neg$.
+No inverse, product, or projection enters yet; a bare comparison suffices, which is why the extremum of a set lands before relations do.
+The answer is a set, so the degenerate cases need no special casing: an empty carrier gives $\varnothing$, a total order gives a singleton whose sole element is the bound, and ties give a larger set (Listing~\ref{lst:extrema_def}, bottom).
+Being a comprehension, the extremum is lazy and inherits the quantifier's call-site bargain: it types in for any set and order, but decides only where the carrier is finite (walk it) or the order hands over a finite quotient.
+The dominance $\forall$ over an unbounded halfspace on $\mathbb{N}$ that carries no such handle stays undecided, the same Rice wall as before, and $\max$ over it returns \texttt{Unknown} rather than a fabricated bound.
+Section~\ref{sec:relations_functions_blueprint} lifts $\le$ from a bare comparison to a function's graph, and the same filter becomes $\arg\max$.
+
+\begin{listing}[htbp]
+\caption{The extremal sets.
+\textbf{Top}: \cppinline{maximum} / \cppinline{minimum} over an \cppinline{IsSet} domain \cppinline{S}, each the comprehension whose predicate is a bounded \cppinline{forall} over the order (\cppinline{minimum} is \cppinline{maximum} in the dual order).
+\textbf{Bottom}: over the finite range $[2,6)$ each extremum is a singleton; \cppinline{sole} walks the lazy view to its unique element.}
+\label{lst:extrema_def}
+\noindent
+\begin{minipage}[t]{0.49\linewidth}
+\begin{cpp}
+template <IsSet S>
+constexpr auto
+maximum(S s) {          // ∀a∈s. a ≤ b
+  return set(s, ForAll(s, a<=b));
+}
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\linewidth}
+\begin{cpp}
+template <IsSet S>
+constexpr auto
+minimum(S s) {          // ∀a∈s. b ≤ a
+  return set(s, ForAll(s, b<=a));
+}
+\end{cpp}
+\end{minipage}
+
+\vspace{0.4em}
+\noindent
+\begin{minipage}[t]{0.99\linewidth}
+\begin{cpp}
+constexpr auto R = iota(2, 6);            // the finite range [2,6)
+static_assert(sole(maximum(R)) == 5);     // greatest element, as {5}
+static_assert(sole(minimum(R)) == 2);     // least element,    as {2}
+\end{cpp}
+\end{minipage}
+\end{listing}
+
 % ============================================================
 \subsection{A Categorical Notion of Set}
 \label{sec:ddk_etcs}
