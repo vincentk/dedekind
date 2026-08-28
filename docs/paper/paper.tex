@@ -1012,6 +1012,49 @@ static_assert(!R(pair{3,9}));
 \end{minipage}
 \end{listing}
 
+The order playbook of §\ref{sec:ddk_comprehension} now meets a function.
+Reading $\le$ through a map $f\colon \mathrm{dom}\to C$ turns $\max$ into $\arg\max$: not the greatest \emph{value} but every \emph{argument} that attains it.
+The definition is the same forward filter as Equation~\ref{eqn:extrema}, with the carrier's own order replaced by the order $f$ pulls back onto its domain, and it asks nothing of $f$ beyond a comparable codomain: no inverse, no injectivity.
+\begin{equation}
+\label{eqn:argmax}
+\arg\max_{f} \mathrm{dom} \;:\equiv\; \{x \in \mathrm{dom} \mid \forall x' \in \mathrm{dom}.\; f(x') \le f(x)\},
+\qquad
+\arg\min \;:\equiv\; \arg\max \text{ under } {\le}\mapsto{\ge}.
+\end{equation}
+Read as a relation this is the pulled-back comparison $f(\pi_1) \le f(\pi_2)$ on $\mathrm{dom}\times\mathrm{dom}$, universally quantified over $\pi_1$: Listing~\ref{lst:relation_examples}'s $\pi_1 \le \pi_2$ with each side seen through $f$.
+The objective $f$ is generic, any map into a comparable codomain; supply a point-free $f$ and the whole relation stays compiler-inspectable, but the filter asks only for its values, never its inverse.
+Because the answer is a set, the (domain, codomain, constraint) triple hands back the degenerate cases as a \emph{cardinality} rather than as special code: the fibre $f^{-1}(\max f(\mathrm{dom}))$ is empty when there is no maximum, a singleton exactly when the optimiser is unique (so $\arg\max$ is a function), and larger under ties (so $\arg\max$ is a proper relation), the same fibre bookkeeping Table~\ref{tab:relation-quantifier} reads off a projection (Listing~\ref{lst:argmax_def}, bottom).
+
+\begin{listing}[htbp]
+\caption{$\arg\max$ / $\arg\min$ as Equation~\ref{eqn:extrema}'s extremum with $\le$ pulled back through $f$.
+\textbf{Top}: the forward filter, a \cppinline{forall} over $f(x')\le f(x)$; no inverse of $f$ enters.
+\textbf{Bottom}: over $\{0,\dots,6\}$ the concave $x(6-x)$ has the unique peak $x=3$ (a singleton fibre, so $\arg\max$ is a function), while $x \bmod 2$ ties across every odd argument (fibre $\{1,3,5\}$, a proper relation); \cppinline{sole} / \cppinline{size} read the fibre's cardinality.}
+\label{lst:argmax_def}
+\noindent
+\begin{minipage}[t]{0.99\linewidth}
+\begin{cpp}
+template <IsSet S, class F>
+constexpr auto argmax(S dom, F f) {     // {x∈dom | ∀x'∈dom. f(x') ≤ f(x)}
+  return set(dom, ForAll(dom, f(a) <= f(b)));
+}
+\end{cpp}
+\end{minipage}
+
+\vspace{0.4em}
+\noindent
+\begin{minipage}[t]{0.99\linewidth}
+\begin{cpp}
+constexpr auto D = iota(0, 7);                    // {0,…,6}
+static_assert(sole(argmax(D, [](int x){ return x*(6-x); })) == 3);  // {3}
+static_assert(size(argmax(D, [](int x){ return x % 2;   })) == 3);  // {1,3,5}
+\end{cpp}
+\end{minipage}
+\end{listing}
+
+The filter types in for any domain and any $f$; it \emph{decides} only where §\ref{sec:ddk_comprehension}'s certificates reach.
+A finite or finite-quotient domain is walked, but an unbounded one leaves both the codomain maximum and its winning fibre as existentials over $f$, decidable only through $f$'s own structure.
+That closed-form certificate, the retract, is the next slice.
+
 \subsubsection{Functions and Morphism Factorization Gates}
 \label{sec:functions_morphism_factorization}
 

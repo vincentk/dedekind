@@ -246,6 +246,40 @@ constexpr auto minimum(S&& s) {
   return set(std::forward<S>(s), std::move(dominated));
 }
 
+/**
+ * @section quantifier__Argmax
+ * @brief @c argmax / @c argmin --- the extremum with @c ≤ pulled back through a
+ * function @c f.
+ *
+ * @details @c maximum reads the carrier's own order; @c argmax reads the order
+ * @f$f(x')\le f(x)@f$ that @c f induces on its domain.  So @c argmax is
+ * literally @c maximum with @c ≤ replaced by the pullback comparison, the
+ * forward filter
+ * @f$\arg\max_{\!f} := \{x\in \mathrm{dom} \mid \forall x'\in\mathrm{dom}.\;
+ *   f(x')\le f(x)\}@f$, no inverse of @c f required.
+ * Point-free (§3.3) this is the relation @c dom*dom filtered by
+ * @f$f(\pi_1)\le f(\pi_2)@f$, universally quantified over @f$\pi_1@f$.
+ * The result is the @b fibre @f$f^{-1}(\max f(\mathrm{dom}))@f$, the whole
+ * domain-subset achieving the max, so its degenerate cases are just its
+ * @b cardinality: @c ∅ (no maximum), a @b singleton (a unique optimiser ⟺
+ * @c argmax is a function), a @b larger set (ties ⟺ @c argmax is a relation).
+ * Decidability is again the quantifier's: finite / finite-quotient domain
+ * settles; an infinite non-enumerable domain needs @c f's own structure ---
+ * the pluggable @b retract of §3.3.1 --- else the honest Rice wall.
+ */
+export template <std::ranges::viewable_range S, typename F>
+constexpr auto argmax(S&& s, F f) {
+  // dominates_f(x) = ∀ x' ∈ s. f(x') ≤ f(x)
+  auto dom_f = ForAll(s, [f](const auto& xp, const auto& x) { return f(xp) <= f(x); });
+  return set(std::forward<S>(s), std::move(dom_f));
+}
+export template <std::ranges::viewable_range S, typename F>
+constexpr auto argmin(S&& s, F f) {
+  // dominated_f(x) = ∀ x' ∈ s. f(x) ≤ f(x')   --- the order dual
+  auto dom_f = ForAll(s, [f](const auto& xp, const auto& x) { return f(x) <= f(xp); });
+  return set(std::forward<S>(s), std::move(dom_f));
+}
+
 /** @section quantifier__Formal_Verification_Extrema */
 
 // The sole element of a singleton extremum over a finite range (the extremum
@@ -265,5 +299,23 @@ static_assert(only_element(maximum(std::views::iota(2, 6))) == std::pair{1, 5},
               "max [2,6) = {5}.");
 static_assert(only_element(minimum(std::views::iota(2, 6))) == std::pair{1, 2},
               "min [2,6) = {2}.");
+
+// argmax of the concave f(x) = x·(6−x) over {0,…,6}: the unique peak is x = 3,
+// so the fibre is the singleton {3} --- argmax is a function here.
+static_assert(only_element(argmax(std::views::iota(0, 7),
+                                  [](int x) { return x * (6 - x); })) ==
+                  std::pair{1, 3},
+              "argmax x·(6−x) over {0..6} = {3}.");
+// A genuine tie: f(x) = x mod 2 is maximised by every odd x, so the fibre
+// {1,3,5} has three elements --- argmax is a proper relation, not a function.
+static_assert(only_element(argmax(std::views::iota(0, 7),
+                                  [](int x) { return x % 2; })) ==
+                  std::pair{3, 5},
+              "argmax (x mod 2) over {0..6} = {1,3,5} (a tie).");
+// argmin of the same concave f: the minima sit at both ends {0,6}, fibre size 2.
+static_assert(only_element(argmin(std::views::iota(0, 7),
+                                  [](int x) { return x * (6 - x); })) ==
+                  std::pair{2, 6},
+              "argmin x·(6−x) over {0..6} = {0,6}.");
 
 }  // namespace dedekind::sets
