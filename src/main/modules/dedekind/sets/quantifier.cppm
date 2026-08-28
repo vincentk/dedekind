@@ -163,164 +163,115 @@ static_assert(!exists(std::views::iota(0, 3), [](int x) { return x > 9; }),
               "no element of [0,3) is > 9.");
 
 /**
- * @section quantifier__Combinators
- * @c ForAll / @c Exists are the quantifier @b combinators: they bind the
- * @b inner variable @c y over the enumerable domain @c dom and leave a
- * predicate in the @b outer variable @c x.  @c Exists(dom, p2) is
- * @f$\lambda x.\;\exists y \in \mathrm{dom}.\; p_2(y,x)@f$; @c ForAll dually.
- * The result is an ordinary unary predicate, so it drops straight into a
- * @c Set comprehension --- this is how a bounded quantifier defines a new set.
- * Both are built on the set-operation @c exists / @c forall above, and the
- * domain is any @c std::ranges::input_range: the general concept reached
- * through the @c std iterator interface, not a fixed container.
- */
-export template <std::ranges::input_range Dom, typename P2>
-constexpr auto Exists(Dom dom, P2 p2) {
-  return [dom, p2](const auto& x) {
-    return exists(dom, [&p2, &x](const auto& y) { return p2(y, x); });
-  };
-}
-
-export template <std::ranges::input_range Dom, typename P2>
-constexpr auto ForAll(Dom dom, P2 p2) {
-  return [dom, p2](const auto& x) {
-    return forall(dom, [&p2, &x](const auto& y) { return p2(y, x); });
-  };
-}
-
-/** @section quantifier__Formal_Verification_Combinators */
-
-// The quantifier domain is a genuine set: a std::views range lifts to IsSet
-// via ambient_set (Jlt --- the set IS its membership test), so Exists / ForAll
-// range over the elements of an ETCS set, not a bare container.
-inline constexpr auto six = std::views::single(6);
-static_assert(
-    dedekind::category::IsSet<decltype(dedekind::category::ambient_set(six))>,
-    "the existential's domain {6} is an ETCS set.");
-inline constexpr auto two_three = std::views::iota(2, 4);
-static_assert(dedekind::category::IsSet<
-                  decltype(dedekind::category::ambient_set(two_three))>,
-              "the universal's domain {2,3} is an ETCS set.");
-
-// { x | ∃ y ∈ {6} : x*y == 42 } selects x = 7 --- the existential combinator
-// binds y, leaving a predicate in x that the compiler collapses.
-inline constexpr auto has_factor_of_42_in_6 =
-    Exists(six, [](int y, int x) { return x * y == 42; });
-static_assert(has_factor_of_42_in_6(7), "7·6 == 42, so 7 satisfies ∃y∈{6}.");
-static_assert(!has_factor_of_42_in_6(8), "8·6 != 42.");
-
-// { x | ∀ y ∈ {2,3} : x % y == 0 } selects the common multiples of 2 and 3.
-inline constexpr auto divisible_by_2_and_3 =
-    ForAll(two_three, [](int y, int x) { return x % y == 0; });
-static_assert(divisible_by_2_and_3(6), "6 is divisible by both 2 and 3.");
-static_assert(!divisible_by_2_and_3(9), "9 is not divisible by 2.");
-
-/**
  * @section quantifier__Extrema
- * @brief @c maximum / @c minimum --- the @b order analogue of the quantifiers.
+ * @brief @c max / @c min --- the @b order analogue of the quantifiers ---
+ * and @c argmax / @c argmin --- the same filter with @c ≤ pulled back
+ * through a map @c f.
  *
- * @details Where @c exists / @c forall filter a set and read a @b truth bound
- * (∅ / S; Eqn 2), @c maximum / @c minimum filter a set and read an @b order
- * bound.  @c maximum(s) is the greatest-element set
- * @f$\{x\in s \mid \forall x'\in s.\; x'\le x\}@f$ --- a comprehension whose
- * predicate is a @c ForAll over @c ≤ --- and @c minimum is its @b order dual
- * (reverse @c ≤), exactly as @c forall is the De Morgan dual @c ¬∃¬ of
- * @c exists.  The result is a @b set: empty when there is no greatest element,
- * a singleton for a total order's max, possibly larger on a partial order; the
- * @b value is the element of that singleton, when it exists.  Decidability is
- * the quantifier's own --- over a finite / finite-quotient carrier the
- * @c ForAll settles, otherwise it is the honest Rice wall at the call site.
- * Here @c ≤ is a bare comparison predicate; §3.3 reveals it as a @b relation
- * and re-spells these point-free.
+ * @details Where @c exists / @c forall read a @b truth bound off a
+ * comprehension (∅ / S; Eqn 2), @c max / @c min read an @b order bound.
+ * @c max(s) is the greatest-element set
+ * @f$\{x\in s \mid \forall a\in s.\; a\le x\}@f$ --- a comprehension whose
+ * membership test is a bare @c forall over @c ≤ --- and @c min is its
+ * @b order dual, exactly as @c forall is the @c ¬∃¬ dual of @c exists.
+ * The result is itself a first-class @c IsSet, so membership is @c max(s)(x):
+ * empty when there is no greatest element, a singleton for a total order,
+ * larger under ties or a partial order.  @c argmax pulls @c ≤ back through
+ * @c f, reading the order @f$f(a)\le f(x)@f$ that @c f induces on the domain,
+ * with no inverse of @c f required; the result is the @b fibre
+ * @f$f^{-1}(\max f(s))@f$, so unique-optimiser (a function) vs ties
+ * (a relation) is just its cardinality.  Decidability is the quantifier's
+ * own: a finite / finite-quotient domain settles the @c forall, else the
+ * honest Rice wall at the call site (for @c argmax over an infinite domain,
+ * the pluggable @b retract of §3.3.1).
+ *
+ * The domain is any @c IsEnumerableSet: a genuine set (it lifts to @c IsSet)
+ * that is also @b walkable, since the dominance @c forall ranges over it.
+ * A bare @c IsSet is membership-only and cannot be enumerated; the finite
+ * exhibits use a lifted @c iota, which is both.
  */
-export template <std::ranges::viewable_range S>
-constexpr auto maximum(S&& s) {
-  // dominates(b) = ∀ a ∈ s. a ≤ b   (b is ≥ every element)
-  auto dominates =
-      ForAll(s, [](const auto& a, const auto& b) { return a <= b; });
-  return set(std::forward<S>(s), std::move(dominates));
-}
-export template <std::ranges::viewable_range S>
-constexpr auto minimum(S&& s) {
-  // dominated(b) = ∀ a ∈ s. b ≤ a   (b is ≤ every element) --- the order dual
-  auto dominated =
-      ForAll(s, [](const auto& a, const auto& b) { return b <= a; });
-  return set(std::forward<S>(s), std::move(dominated));
+export template <typename S>
+concept IsEnumerableSet =
+    std::ranges::forward_range<S> &&
+    dedekind::category::IsSet<decltype(dedekind::category::ambient_set(
+        std::declval<S>()))>;
+
+export template <IsEnumerableSet S>
+constexpr auto max(S s) {
+  using T = std::ranges::range_value_t<S>;
+  auto dom = dedekind::category::ambient_set(s);  // the domain as an IsSet
+  // { x ∈ s | ∀ a ∈ s. a ≤ x }
+  auto dominates = [dom, s](const T& x) {
+    return dom(x) && forall(s, [&x](const T& a) { return a <= x; });
+  };
+  return Set<T, typename decltype(dom)::logic_species, decltype(dominates)>{
+      dominates};
 }
 
-/**
- * @section quantifier__Argmax
- * @brief @c argmax / @c argmin --- the extremum with @c ≤ pulled back through a
- * function @c f.
- *
- * @details @c maximum reads the carrier's own order; @c argmax reads the order
- * @f$f(x')\le f(x)@f$ that @c f induces on its domain.  So @c argmax is
- * literally @c maximum with @c ≤ replaced by the pullback comparison, the
- * forward filter
- * @f$\arg\max_{\!f} := \{x\in \mathrm{dom} \mid \forall x'\in\mathrm{dom}.\;
- *   f(x')\le f(x)\}@f$, no inverse of @c f required.
- * Point-free (§3.3) this is the relation @c dom*dom filtered by
- * @f$f(\pi_1)\le f(\pi_2)@f$, universally quantified over @f$\pi_1@f$.
- * The result is the @b fibre @f$f^{-1}(\max f(\mathrm{dom}))@f$, the whole
- * domain-subset achieving the max, so its degenerate cases are just its
- * @b cardinality: @c ∅ (no maximum), a @b singleton (a unique optimiser ⟺
- * @c argmax is a function), a @b larger set (ties ⟺ @c argmax is a relation).
- * Decidability is again the quantifier's: finite / finite-quotient domain
- * settles; an infinite non-enumerable domain needs @c f's own structure ---
- * the pluggable @b retract of §3.3.1 --- else the honest Rice wall.
- */
-export template <std::ranges::viewable_range S, typename F>
-constexpr auto argmax(S&& s, F f) {
-  // dominates_f(x) = ∀ x' ∈ s. f(x') ≤ f(x)
-  auto dom_f =
-      ForAll(s, [f](const auto& xp, const auto& x) { return f(xp) <= f(x); });
-  return set(std::forward<S>(s), std::move(dom_f));
+export template <IsEnumerableSet S>
+constexpr auto min(S s) {
+  using T = std::ranges::range_value_t<S>;
+  auto dom = dedekind::category::ambient_set(s);
+  // { x ∈ s | ∀ a ∈ s. x ≤ a } --- the order dual
+  auto dominated = [dom, s](const T& x) {
+    return dom(x) && forall(s, [&x](const T& a) { return x <= a; });
+  };
+  return Set<T, typename decltype(dom)::logic_species, decltype(dominated)>{
+      dominated};
 }
-export template <std::ranges::viewable_range S, typename F>
-constexpr auto argmin(S&& s, F f) {
-  // dominated_f(x) = ∀ x' ∈ s. f(x) ≤ f(x')   --- the order dual
-  auto dom_f =
-      ForAll(s, [f](const auto& xp, const auto& x) { return f(x) <= f(xp); });
-  return set(std::forward<S>(s), std::move(dom_f));
+
+export template <IsEnumerableSet S, typename F>
+constexpr auto argmax(S s, F f) {
+  using T = std::ranges::range_value_t<S>;
+  auto dom = dedekind::category::ambient_set(s);
+  // { x ∈ s | ∀ a ∈ s. f(a) ≤ f(x) }
+  auto dominates = [dom, s, f](const T& x) {
+    return dom(x) && forall(s, [&x, &f](const T& a) { return f(a) <= f(x); });
+  };
+  return Set<T, typename decltype(dom)::logic_species, decltype(dominates)>{
+      dominates};
+}
+
+export template <IsEnumerableSet S, typename F>
+constexpr auto argmin(S s, F f) {
+  using T = std::ranges::range_value_t<S>;
+  auto dom = dedekind::category::ambient_set(s);
+  // { x ∈ s | ∀ a ∈ s. f(x) ≤ f(a) } --- the order dual
+  auto dominated = [dom, s, f](const T& x) {
+    return dom(x) && forall(s, [&x, &f](const T& a) { return f(x) <= f(a); });
+  };
+  return Set<T, typename decltype(dom)::logic_species, decltype(dominated)>{
+      dominated};
 }
 
 /** @section quantifier__Formal_Verification_Extrema */
 
-// The sole element of a singleton extremum over a finite range (the extremum
-// is a lazy filter_view, so it is walked, not queried via exists).
-constexpr auto only_element = [](auto&& r) {
-  int count = 0, value = 0;
-  for (auto x : r) {
-    ++count;
-    value = x;
-  }
-  return std::pair{count, value};
-};
+// max / min of the finite set [2,6) (a lifted iota): 5 is the greatest
+// element, 2 the least.  Membership is the extremum test --- max(s)(x).
+static_assert(max(std::views::iota(2, 6))(5), "5 = max [2,6).");
+static_assert(!max(std::views::iota(2, 6))(4), "4 is not the greatest.");
+static_assert(min(std::views::iota(2, 6))(2), "2 = min [2,6).");
+static_assert(!min(std::views::iota(2, 6))(3), "3 is not the least.");
 
-// max / min of a finite integer range are its greatest / least element (as a
-// singleton set): max [2,6) = {5}, min [2,6) = {2}.
-static_assert(only_element(maximum(std::views::iota(2, 6))) == std::pair{1, 5},
-              "max [2,6) = {5}.");
-static_assert(only_element(minimum(std::views::iota(2, 6))) == std::pair{1, 2},
-              "min [2,6) = {2}.");
-
-// argmax of the concave f(x) = x·(6−x) over {0,…,6}: the unique peak is x = 3,
+// argmax of the concave f(x) = x·(6−x) over [0,7): the unique peak is x = 3,
 // so the fibre is the singleton {3} --- argmax is a function here.
-static_assert(only_element(argmax(std::views::iota(0, 7),
-                                  [](int x) { return x * (6 - x); })) ==
-                  std::pair{1, 3},
-              "argmax x·(6−x) over {0..6} = {3}.");
-// A genuine tie: f(x) = x mod 2 is maximised by every odd x, so the fibre
-// {1,3,5} has three elements --- argmax is a proper relation, not a function.
-static_assert(only_element(argmax(std::views::iota(0, 7),
-                                  [](int x) { return x % 2; })) ==
-                  std::pair{3, 5},
-              "argmax (x mod 2) over {0..6} = {1,3,5} (a tie).");
-// argmin of the same concave f: the minima sit at both ends {0,6}, fibre
-// size 2.
-static_assert(only_element(argmin(std::views::iota(0, 7),
-                                  [](int x) { return x * (6 - x); })) ==
-                  std::pair{2, 6},
-              "argmin x·(6−x) over {0..6} = {0,6}.");
+static_assert(argmax(std::views::iota(0, 7),
+                     [](int x) { return x * (6 - x); })(3),
+              "3 = argmax x·(6−x): the unique optimiser (a function).");
+static_assert(!argmax(std::views::iota(0, 7),
+                      [](int x) { return x * (6 - x); })(2),
+              "2 ∉ argmax x·(6−x).");
+// A genuine tie: f(x) = x mod 2 is maximised by every odd argument, so the
+// fibre {1,3,5} has more than one element --- argmax is a proper relation.
+static_assert(argmax(std::views::iota(0, 7), [](int x) { return x % 2; })(1) &&
+                  argmax(std::views::iota(0, 7),
+                         [](int x) { return x % 2; })(5),
+              "{1,3,5} ⊆ argmax (x mod 2): a tie (a proper relation).");
+// argmin of the concave f sits at both ends: the fibre is {0,6}.
+static_assert(argmin(std::views::iota(0, 7),
+                     [](int x) { return x * (6 - x); })(0) &&
+                  argmin(std::views::iota(0, 7),
+                         [](int x) { return x * (6 - x); })(6),
+              "{0,6} ⊆ argmin x·(6−x).");
 
 }  // namespace dedekind::sets
