@@ -236,13 +236,15 @@ static_assert(!divisible_by_2_and_3(9), "9 is not divisible by 2.");
 export template <std::ranges::viewable_range S>
 constexpr auto maximum(S&& s) {
   // dominates(b) = ∀ a ∈ s. a ≤ b   (b is ≥ every element)
-  auto dominates = ForAll(s, [](const auto& a, const auto& b) { return a <= b; });
+  auto dominates =
+      ForAll(s, [](const auto& a, const auto& b) { return a <= b; });
   return set(std::forward<S>(s), std::move(dominates));
 }
 export template <std::ranges::viewable_range S>
 constexpr auto minimum(S&& s) {
   // dominated(b) = ∀ a ∈ s. b ≤ a   (b is ≤ every element) --- the order dual
-  auto dominated = ForAll(s, [](const auto& a, const auto& b) { return b <= a; });
+  auto dominated =
+      ForAll(s, [](const auto& a, const auto& b) { return b <= a; });
   return set(std::forward<S>(s), std::move(dominated));
 }
 
@@ -270,13 +272,15 @@ constexpr auto minimum(S&& s) {
 export template <std::ranges::viewable_range S, typename F>
 constexpr auto argmax(S&& s, F f) {
   // dominates_f(x) = ∀ x' ∈ s. f(x') ≤ f(x)
-  auto dom_f = ForAll(s, [f](const auto& xp, const auto& x) { return f(xp) <= f(x); });
+  auto dom_f =
+      ForAll(s, [f](const auto& xp, const auto& x) { return f(xp) <= f(x); });
   return set(std::forward<S>(s), std::move(dom_f));
 }
 export template <std::ranges::viewable_range S, typename F>
 constexpr auto argmin(S&& s, F f) {
   // dominated_f(x) = ∀ x' ∈ s. f(x) ≤ f(x')   --- the order dual
-  auto dom_f = ForAll(s, [f](const auto& xp, const auto& x) { return f(x) <= f(xp); });
+  auto dom_f =
+      ForAll(s, [f](const auto& xp, const auto& x) { return f(x) <= f(xp); });
   return set(std::forward<S>(s), std::move(dom_f));
 }
 
@@ -312,7 +316,8 @@ static_assert(only_element(argmax(std::views::iota(0, 7),
                                   [](int x) { return x % 2; })) ==
                   std::pair{3, 5},
               "argmax (x mod 2) over {0..6} = {1,3,5} (a tie).");
-// argmin of the same concave f: the minima sit at both ends {0,6}, fibre size 2.
+// argmin of the same concave f: the minima sit at both ends {0,6}, fibre
+// size 2.
 static_assert(only_element(argmin(std::views::iota(0, 7),
                                   [](int x) { return x * (6 - x); })) ==
                   std::pair{2, 6},
