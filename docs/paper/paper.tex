@@ -1090,32 +1090,32 @@ constexpr auto img = image(Double{}, positive);
 \end{cpp}
 \end{listing}
 
-\cppinline{Double} is the appetizer: linear, injective, its retract the obvious halving.
-The main course keeps the machinery and drops the linearity.
-Take $f(x) = x^2$.
-On the nonnegative branch $x^2$ is strictly monotone, so it is monic, and its retract is the integer square root: $y \mapsto {+}\sqrt{y}$ when $y$ is a perfect square, \cppinline{nullopt} otherwise (Listing~\ref{lst:functional_image_square}).
-Monotonicity is the certificate that this retract is \emph{complete}: $\mathrm{isqrt}$ returns \emph{the} unique nonnegative preimage, so no square in the image is missed, while the soundness check $r^2 = y$ is free.
-Membership $y \in x^2(S)$ is then the same local lookup as the appetizer, now nonlinear: take $\sqrt{y}$, test that it squares back and lands in $S$, and never search the domain.
-This is also what discharges the $\arg\max$ of §\ref{sec:relations_functions_blueprint} over an infinite domain: an optimiser's extreme value and its fibre are the same $\exists x.\,f(x){=}y$, and for $x^2$ the fibre of any $y$ is $\{\pm\,\mathrm{isqrt}(y)\}$, computed by the retract rather than searched for.
+\cppinline{Double} is the appetizer: injective, its retract the obvious halving.
+The main course keeps the machinery and drops the injectivity.
+Take $f(x) = 2|x|$.
+On $\mathbb{Z}$ it is two-to-one, the fibre of $y$ being $\{{+}y/2, {-}y/2\}$, so $f$ is \emph{not} monic and cannot simply ship a retract.
+It ships its \emph{factorization} instead, $\mathbb{Z} \twoheadrightarrow \mathbb{N} \hookrightarrow \mathbb{Z}$ (fold the sign, then double): the mono leg's retract names one preimage, the canonical ${+}y/2$, and the epi leg's \emph{cofibre} expands a point to its whole class $\{{+}x, {-}x\}$ (Listing~\ref{lst:functional_image_fold}).
+Membership $y \in f(S)$ then ORs the source over the \emph{entire} fibre, and that is exactly what keeps it sound.
+A lone retract would answer $6 \in f(\{x<0\})$ with the canonical ${+}3 \notin \{x<0\}$ and wrongly say no, where the fibre also holds ${-}3$, which is in; the epi leg's cofibre is what supplies it.
+This is also what discharges the $\arg\max$ of §\ref{sec:relations_functions_blueprint} over an infinite domain: an optimiser and its fibre are the same $\exists x.\,f(x){=}y$, read off the factorization rather than searched for.
 
 \begin{listing}[htbp]
-\caption{The nonlinear main course: $x^2$ with an \cppinline{isqrt} retract.  On the nonnegative branch $x^2$ is monic, and image membership $y \in x^2(S)$ is decided by the closed-form root ($25 \mapsto 5$, a perfect square in \cppinline{positive}; $7 \mapsto$ \cppinline{nullopt}, not a square; $0 \mapsto 0 \notin$ \cppinline{positive}), never a search of the domain (abridged from the checked-in test).}
-\label{lst:functional_image_square}
+\caption{The non-injective main course: $2|x|$ decided through its (regular epi, mono) factorization.  It is not monic, so it ships a \cppinline{retract} (the mono leg: the canonical preimage ${+}y/2$) and a \cppinline{cofibre} (the epi leg: the class $\{{+}x,{-}x\}$), and \cppinline{image} ORs the source over the whole fibre.  Sound where a lone retract is not: $6 \in 2|x|(\{x<0\})$ holds via ${-}3$, though the canonical ${+}3$ is not in the source (abridged from the checked-in test).}
+\label{lst:functional_image_fold}
 \begin{cpp}
-constexpr int isqrt(int y) {                     // principal root, y ≥ 0
-  int r = 0; while ((r+1)*(r+1) <= y) ++r; return r; }
-struct Square { using Domain = int; using Codomain = int;
-  constexpr int operator()(int x) const { return x*x; } };
-constexpr auto retract(Square) {
-  return [](int y) -> std::optional<int> { int r = isqrt(y);
-    return (y >= 0 && r*r == y) ? std::optional{r} : std::nullopt; }; }
+struct Fold { using Domain = int; using Codomain = int;
+  constexpr int operator()(int x) const { return 2*(x<0?-x:x); } };
+constexpr auto retract(Fold) {          // mono leg: canonical +y/2
+  return [](int y) -> std::optional<int> {
+    return (y>=0 && y%2==0) ? std::optional{y/2} : std::nullopt; }; }
+constexpr auto cofibre(Fold) {          // epi leg: the class {+x, -x}
+  return [](int x) { return std::array{x, -x}; }; }
 
-constexpr auto img = image(Square{}, positive);
+constexpr auto img = image(Fold{}, negative);   // img(6) == true, via -3
 \end{cpp}
 \end{listing}
 
-On all of $\mathbb{Z}$ the same $x^2$ is two-to-one: the fibre of $y$ is $\{{+}\sqrt{y}, {-}\sqrt{y}\}$, and no single-valued retract can name the preimage.
-That is precisely the non-injective case the factorization is built for.
+The factorization here is \emph{consumed}, not narrated: \cppinline{image} routes a non-monic arrow through its two legs, so the non-injective case is decided rather than deferred.
 For general or non-bijective functions, validating whether an arbitrary element $b \in B$ possesses a valid preimage in the domain $A$ presents a severe decidability barrier if evaluated via standard search techniques.
 Rather than treating this as an impassable restriction, the library provides specialized support for functional relations by introducing an architectural gate based on the categorical principle of epic-monic factorization.
 Every general functional arrow $f : A \to B$ factors into a regular surjection (epi, \cppinline{IsRegularEpi}) onto its image $I$, followed by a regular injection (mono, \cppinline{IsRegularMono}) from $I$ into $B$, the image leg witnessed by \cppinline{IsImageOf}:

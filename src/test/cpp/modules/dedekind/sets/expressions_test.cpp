@@ -1,3 +1,4 @@
+#include <array>
 #include <catch2/catch_test_macros.hpp>
 #include <optional>
 
@@ -30,43 +31,43 @@ constexpr auto retract(DoubleArrow) {
 }
 }  // namespace retract_image_test
 
-// SquareArrow: int → int, x ↦ x².  The nonlinear main course after the
-// linear DoubleArrow appetizer.  On all of ℤ the map is 2-to-1 (the fibre
-// of y is {±√y}); the epi leg of the factorisation ℤ ↠ image collapses the
-// sign, and on the principal (nonnegative) branch x² is strictly monotone,
-// hence monic, so the retract lives on the mono leg.  That retract is the
-// integer square root: y ↦ +√y when y is a perfect square, else nullopt.
-// The monotonicity (convexity) certificate is what makes it complete: isqrt
-// returns THE unique nonnegative preimage, so no perfect square is missed.
+// Fold: int → int, x ↦ 2·|x|.  The NON-injective main course after the
+// injective DoubleArrow appetizer.  On ℤ the map is 2-to-1: the fibre of y
+// is {+y/2, −y/2}, so Fold is NOT monic (we deliberately do not register it
+// so).  It factors as ℤ ↠ ℕ ↪ ℤ (x ↦ |x|, then n ↦ 2n): the epi folds the
+// sign, the mono is the doubler.  The mono leg's retract names ONE preimage
+// (+y/2 when y is a nonnegative even), and the epi leg's cofibre expands a
+// point to its whole class {+x, −x}.  Image membership ORs the source over
+// that fibre --- which is why it stays sound where a single retract would
+// not (e.g. 6 ∈ 2|x|({x<0}) via −3, though the canonical preimage is +3).
 namespace retract_image_test {
-constexpr int isqrt(int y) {  // principal integer square root, for y >= 0
-  int r = 0;
-  while ((r + 1) * (r + 1) <= y) ++r;
-  return r;
-}
-struct SquareArrow {
+struct Fold {
   using Domain = int;
   using Codomain = int;
-  constexpr int operator()(int x) const { return x * x; }
+  constexpr int operator()(int x) const { return 2 * (x < 0 ? -x : x); }
 };
-constexpr auto retract(SquareArrow) {
+// mono leg (n ↦ 2n) inverse ∘ epi section: the canonical preimage +y/2.
+constexpr auto retract(Fold) {
   return [](const int& y) -> std::optional<int> {
-    if (y < 0) return std::nullopt;  // negatives are outside the image
-    const int r = isqrt(y);
-    return (r * r == y) ? std::optional{r} : std::nullopt;  // perfect square?
+    return (y >= 0 && y % 2 == 0) ? std::optional{y / 2} : std::nullopt;
   };
+}
+// epi leg (x ↦ |x|) fibre: the equivalence class {+x, −x} through x.
+constexpr auto cofibre(Fold) {
+  return [](const int& x) { return std::array<int, 2>{x, -x}; };
 }
 }  // namespace retract_image_test
 
-// Register the monic trait so IsMonicArrow (and IsRetractableArrow)
-// fire on the test wrappers.
+// Register the monic trait so IsMonicArrow (and IsRetractableArrow) fire on
+// DoubleArrow.  Fold is deliberately NOT monic; instead it opts into an
+// operational (regular epi, mono) factorisation (retract + cofibre above).
 template <>
 inline constexpr bool
     dedekind::category::is_monic_arrow_v<retract_image_test::DoubleArrow> =
         true;
 template <>
 inline constexpr bool
-    dedekind::category::is_monic_arrow_v<retract_image_test::SquareArrow> =
+    dedekind::category::has_regular_factorisation_v<retract_image_test::Fold> =
         true;
 
 TEST_CASE("Dedekind MVP: Basic Membership and Symbols", "[sets]") {
@@ -573,34 +574,48 @@ TEST_CASE(
 }
 
 TEST_CASE(
-    "Dedekind Sets: image(x² with isqrt retract, Set) — nonlinear main course",
-    "[sets][image][retract][monic][layer2][602]") {
-  // SquareArrow generalises DoubleArrow from a linear to a nonlinear monic
-  // arrow: image membership y ∈ x²(S) is decided by the closed-form isqrt
-  // retract (no search of the domain), and the same three properties hold:
-  //   (i)   the source's logic species is preserved (no TernaryLogic demote);
-  //   (ii)  y in image iff y is a perfect square AND +√y in S;
-  //   (iii) a non-perfect-square y is out of image (retract returns nullopt).
-  SECTION("Classical: nonlinear image stays decidable through the retract") {
+    "Dedekind Sets: image(non-injective 2|x| via factorisation, Set) — "
+    "the whole fibre",
+    "[sets][image][retract][factorisation][layer2][602]") {
+  // Fold = 2|x| is NON-injective (fibre of y is {±y/2}), so it is not monic;
+  // it opts into an operational (regular epi, mono) factorisation instead.
+  // image(Fold, S)(y) ORs the source over the WHOLE fibre, so it stays sound
+  // where a single canonical retract (+y/2) would not.
+  SECTION("Classical: membership ORs the source over the entire fibre") {
     const auto positive_pred = [](const int& v) { return v > 0; };
     const Set<int, ClassicalLogic, decltype(positive_pred)> positive{
         positive_pred};
 
-    auto img = image(retract_image_test::SquareArrow{}, positive);
+    auto img = image(retract_image_test::Fold{}, positive);
 
+    // Logic species / ambient preserved (no TernaryLogic demotion).
     STATIC_CHECK(
         std::same_as<typename decltype(img)::logic_species, ClassicalLogic>);
     STATIC_CHECK(std::same_as<typename decltype(img)::Domain, int>);
 
-    // y = 25 = 5², and +√25 = 5 > 0, so in image.
-    CHECK(img(25) == true);
-    // y = 1 = 1², and 1 > 0, so in image.
-    CHECK(img(1) == true);
-    // y = 0 = 0², but +√0 = 0 is not > 0, so NOT in the positive image.
+    // y = 6 = 2|±3|, and +3 > 0 is in the fibre and in positive → in image.
+    CHECK(img(6) == true);
+    // y = 5 is odd → not in the image of 2|x| at all → out.
+    CHECK(img(5) == false);
+    // y = 0 = 2|0|, fibre {0}, but 0 is not > 0 → out.
     CHECK(img(0) == false);
-    // y = 7 is not a perfect square → retract nullopt → NOT in image.
-    CHECK(img(7) == false);
-    // y = -4 < 0 lies outside x²'s image entirely → nullopt → NOT in image.
+    // y = -4 < 0 lies outside the image of 2|x| → out.
     CHECK(img(-4) == false);
+  }
+
+  SECTION("Soundness: the fibre element in the source is the NEGATIVE one") {
+    // The canonical preimage retract names for 6 is +3, which is NOT in the
+    // source {x<0}; membership is nonetheless true because the fibre {+3,-3}
+    // also contains -3, which IS.  A single-valued retract would be unsound
+    // here --- this is exactly what the epi leg's cofibre buys.
+    const auto negative_pred = [](const int& v) { return v < 0; };
+    const Set<int, ClassicalLogic, decltype(negative_pred)> negative{
+        negative_pred};
+
+    auto img = image(retract_image_test::Fold{}, negative);
+
+    CHECK(img(6) == true);   // via -3 ∈ {x<0}, though the canonical +3 is not
+    CHECK(img(0) == false);  // fibre {0}: 0 is not < 0
+    CHECK(img(5) == false);  // odd: no preimage at all
   }
 }

@@ -1117,6 +1117,67 @@ constexpr auto image(F&& f, const Set<T, L, P>& s) {
   return Set<U, L, NewPredicate>{NewPredicate{s, std::move(retract_fn)}};
 }
 
+/** @brief Composed predicate for the @b factored @c image(f, Set)
+ *         specialisation (a @b non-injective @c f): @c y @c ↦ @c let @c mx
+ *         @c = @c retract(f)(y); @c mx.has_value() @c ?
+ *         @f$\bigvee_{x \in \mathrm{cofibre}(f)(*mx)} S(x)@f$ @c : @c L::False.
+ *
+ *  @details Where @c ComposedRetractImagePredicate checks the single
+ *  canonical preimage, this ORs the source over the @b whole fibre
+ *  @c cofibre(f)(*mx) --- the epi leg's equivalence class.  That is what
+ *  makes membership @b sound for a non-injective @c f: the source may
+ *  contain a fibre element other than the canonical one @c retract names
+ *  (with @c f @c = @c 2|x|, @c retract(6) @c = @c +3, yet @c {x<0}
+ *  contains @c −3).  For a monic arrow the class is a singleton and this
+ *  collapses to the retract predicate above.
+ */
+template <typename SourceSet, typename RetractFn, typename CofibreFn,
+          typename L>
+struct ComposedFactoredImagePredicate {
+  SourceSet source;
+  RetractFn retract_fn;
+  CofibreFn cofibre_fn;
+
+  template <typename U>
+  constexpr typename L::Ω operator()(const U& y) const {
+    auto mx = retract_fn(y);
+    if (!mx.has_value()) return L::False;
+    for (const auto& x : cofibre_fn(*mx)) {
+      if (source(x)) return source(x);  // first witness in the fibre
+    }
+    return L::False;
+  }
+};
+
+/** @brief image(non-monic factored f, Set<T, L, P>) --- @b decidable
+ *         specialisation for a @b non-injective arrow that ships an
+ *         operational (regular epi, mono) factorisation (§3.3.1).
+ *
+ *  @details The mono leg's @c retract names a canonical preimage of @c y;
+ *  the epi leg's @c cofibre expands it to the whole fibre; membership ORs
+ *  the source over that fibre, which is @b sound for a non-injective @c f
+ *  (a single-valued retract alone would be unsound --- it would miss
+ *  preimages the source contains but the canonical one omits).  Sibling of
+ *  the monic @c IsRetractableArrow overload above; the two are disjoint
+ *  (@c IsFactoredRetractableArrow requires @c !IsMonicArrow), and this
+ *  concept subsumes @c IsArrow so it out-ranks the always-Unknown fallback.
+ */
+export template <typename T, typename L, typename P,
+                 dedekind::category::IsFactoredRetractableArrow F>
+  requires std::same_as<dedekind::category::Dom<std::remove_cvref_t<F>>, T>
+constexpr auto image(F&& f, const Set<T, L, P>& s) {
+  using U = dedekind::category::Cod<std::remove_cvref_t<F>>;
+  // Unqualified calls so ADL routes to the retract / cofibre overloads
+  // registered for f's type; IsFactoredRetractableArrow guarantees both.
+  auto retract_fn = retract(f);
+  auto cofibre_fn = cofibre(f);
+  using NewPredicate = ComposedFactoredImagePredicate<
+      Set<T, L, P>, std::remove_cvref_t<decltype(retract_fn)>,
+      std::remove_cvref_t<decltype(cofibre_fn)>, L>;
+  return Set<U, L, NewPredicate>{
+      NewPredicate{s, std::move(retract_fn), std::move(cofibre_fn)}};
+}
+
 /** @brief Explicit set complement overload to avoid picking category morphism
  * `!`. */
 export template <typename T, typename L, typename Predicate>
