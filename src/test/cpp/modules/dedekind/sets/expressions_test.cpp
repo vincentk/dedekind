@@ -573,6 +573,36 @@ TEST_CASE(
   }
 }
 
+TEST_CASE("Dedekind Sets: image(iso translation, Set) — total inverse decides",
+          "[sets][image][iso][translation]") {
+  // A point-free translation x ↦ x+3 is a genuine ISO: its retract is the
+  // TOTAL inverse x−3 (no optional, no fibre), so b ∈ image(f, S) is the
+  // single lookup f⁻¹(b) ∈ S.  This is the π_B / injective side of Table 3
+  // discharged by the inverse, the iso case that "always wins" over the
+  // partial-retract path.
+  constexpr auto f = translation<int, 3>;
+  STATIC_CHECK(IsIsomorphism<decltype(f)>);
+  STATIC_CHECK(retract(f)(10) == 7);  // retract = total inverse x − 3
+  STATIC_CHECK(inverse(f)(10) == 7);
+
+  SECTION("Classical: image membership decides via the inverse") {
+    const auto positive_pred = [](const int& v) { return v > 0; };
+    const Set<int, ClassicalLogic, decltype(positive_pred)> positive{
+        positive_pred};
+
+    auto img = image(f, positive);  // {b | b − 3 ∈ positive}
+
+    STATIC_CHECK(
+        std::same_as<typename decltype(img)::logic_species, ClassicalLogic>);
+    STATIC_CHECK(std::same_as<typename decltype(img)::Domain, int>);
+
+    CHECK(img(8) == true);   // 8 − 3 = 5 > 0
+    CHECK(img(4) == true);   // 4 − 3 = 1 > 0
+    CHECK(img(3) == false);  // 3 − 3 = 0, not > 0
+    CHECK(img(2) == false);  // 2 − 3 = −1, not > 0
+  }
+}
+
 TEST_CASE(
     "Dedekind Sets: image(non-injective 2|x| via factorisation, Set) — "
     "the whole fibre",

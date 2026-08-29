@@ -1089,7 +1089,7 @@ A function is thus not a distinct primitive but a relation satisfying both prope
 Reifying functions in this manner allows the type system to mechanically verify classical mapping properties at translation time.
 For specialized mappings, codomain membership tests, checking whether a given element $b \in B$ lies within the actual image of the transformation, are easily discharged by the compiler.
 If a function is certified as surjective, every element of the target space is a valid image, meaning a codomain membership query trivially constant-folds to logical truth.
-More generally, if the mono leg of the factorization carries a \emph{retract} (a partial inverse returning the preimage of a codomain element when one exists), the type system decides membership as a local lookup on the image boundary, with no search of the domain (Listing~\ref{lst:functional_image_bijection}).
+More generally, if the mono leg of the factorization carries a \emph{retract} (an inverse on the image, total when the arrow is an iso and partial when it is merely monic), the type system decides membership as a local lookup on the image boundary, with no search of the domain (Listing~\ref{lst:functional_image_bijection}).
 
 The four maps that read a relation, its \cppinline{dom} and \cppinline{cod} and the \cppinline{image} and \cppinline{preimage} of a set, are one cell each of Table~\ref{tab:relation-quantifier}: one bound on one projection.
 \cppinline{preimage} and \cppinline{dom} read the $\pi_A$ side and never leave the domain, so they cost nothing beyond a forward call: $\mathrm{preimage}(f, S) = \{a \mid f(a) \in S\}$ is apply-and-test, decided by single-valuedness alone, and $\mathrm{dom}$ is all of $A$ the moment $f$ is entire.
@@ -1098,20 +1098,16 @@ The forward image is thus the one whose membership needs the inverse, and that i
 An isomorphism meets all four bounds and collapses every cell to a constant-time answer; a plain function gets its $\pi_A$ side for free and waits on injectivity for its $\pi_B$ side, which is exactly where the retract is required.
 
 \begin{listing}[htbp]
-\caption{A retract makes image membership decidable.  A monic arrow \cppinline{Double} carries a \cppinline{retract} (a partial inverse $y \mapsto$ preimage, if any); with it, $y \in \mathrm{image}(f, S)$ is decided as ``the retract has a value that lies in $S$'': a local lookup on the image boundary, never a search of the domain (here \cppinline{positive} is the halfspace $\{x>0\}$; $10 \mapsto 5 \in$ \cppinline{positive}, $7 \mapsto$ \cppinline{nullopt}; abridged from the checked-in test).}
+\caption{An iso makes image membership a lookup through the inverse.  The point-free translation \cppinline{translation<int,3>} ($x \mapsto x+3$) is a two-sided iso, so its \cppinline{retract} is the \emph{total} inverse $x-3$, a named combinator whose inverse falls out of the type with nothing to prove.  Then $b \in \mathrm{image}(f, S)$ is just $f^{-1}(b) \in S$, a lookup on the image boundary with no search of the domain and no partiality (here \cppinline{positive} is the halfspace $\{x>0\}$; $8 \mapsto 5 \in$ \cppinline{positive}, $2 \mapsto -1 \notin$; abridged from the checked-in test).}
 \label{lst:functional_image_bijection}
 \begin{cpp}
-struct Double { using Domain = int; using Codomain = int;
-  constexpr int operator()(int x) const { return 2*x; } };
-constexpr auto retract(Double) {
-  return [](int y) -> std::optional<int> {
-    return (y%2==0) ? std::optional{y/2} : std::nullopt; }; }
-
-constexpr auto img = image(Double{}, positive);
+constexpr auto f = translation<int, 3>;   // x ↦ x+3, a point-free iso
+static_assert(retract(f)(10) == 7);        // retract = total inverse x−3
+constexpr auto img = image(f, positive);   // {b | b−3 ∈ positive}
 \end{cpp}
 \end{listing}
 
-\cppinline{Double} is the injective case: its retract is the obvious halving.
+The translation is the iso case: entire, functional, surjective and injective at once, so its retract is a total inverse and image membership always decides.
 The non-injective case keeps the machinery and drops the injectivity.
 Take $f(x) = 2|x|$.
 On $\mathbb{Z}$ it is two-to-one, the fibre of $y$ being $\{{+}y/2, {-}y/2\}$, so $f$ is \emph{not} monic and cannot simply ship a retract.

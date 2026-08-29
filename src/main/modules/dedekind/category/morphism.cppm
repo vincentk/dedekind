@@ -874,8 +874,10 @@ export template <typename F>
 concept IsIsomorphism = IsArrow<F> && requires(F f) {
   // An isomorphism must provide its own inverse arrow
   { inverse(f) } -> IsArrow;
-  // And the domain of the inverse must be the codomain of the original
-  requires std::same_as<typename F::Codomain,
+  // And the domain of the inverse must be the codomain of the original.
+  // remove_cvref_t so a reference-deduced F (e.g. an lvalue arrow forwarded
+  // into image(F&&, S)) still resolves its member types, matching IsArrow.
+  requires std::same_as<typename std::remove_cvref_t<F>::Codomain,
                         typename decltype(inverse(f))::Domain>;
 };
 
@@ -903,6 +905,51 @@ export template <typename A, typename B, typename Impl>
 // Proof: Tagged Negation is a formal Isomorphism.
 static_assert(IsIsomorphism<TaggedNegate>,
               "Negation must be recognized as a reversible Morphism.");
+
+/**
+ * @brief Translation @f$T_K : T \to T,\; x \mapsto x + K@f$ --- a point-free
+ *        @b iso arrow whose inverse is the reverse translation @c
+ *        Translation<T,-K>, @b total, so its "undo" is a genuine two-sided
+ *        inverse rather than a partial retract.
+ *
+ * @details A named combinator (like @c Halfspace), so the inverse falls out of
+ * the @b type with nothing to prove, and the @c retract of §3.3 coincides with
+ * that inverse: the mono leg is the whole arrow.  The carrier @c T must be a
+ * group under @c + for the shift to be invertible (a signed integer, @f$\mathbb
+ * {Z}@f$; the affine analogue on a field @f$\mathbb{Q}@f$ is scaling).
+ *
+ * @tparam T The additive carrier.
+ * @tparam K The compile-time shift.
+ */
+export template <typename T, auto K>
+struct Translation final {
+  using Domain = T;
+  using Codomain = T;
+  constexpr T operator()(const T& x) const { return x + static_cast<T>(K); }
+};
+
+/** @brief The inverse of a translation is the reverse translation (total). */
+export template <typename T, auto K>
+[[nodiscard]] constexpr Translation<T, -K> inverse(Translation<T, K>) noexcept {
+  return {};
+}
+
+/** @brief An iso's @c retract @b is its total inverse (§3.3, mono leg = the
+ *  whole arrow): the reverse translation, with no @c optional to case-split. */
+export template <typename T, auto K>
+[[nodiscard]] constexpr Translation<T, -K> retract(Translation<T, K>) noexcept {
+  return {};
+}
+
+/** @brief Value handle: @c translation<int,3> is @f$x \mapsto x + 3@f$. */
+export template <typename T, auto K>
+inline constexpr Translation<T, K> translation{};
+
+static_assert(IsIsomorphism<Translation<int, 3>>,
+              "A translation is a two-sided iso (inverse = reverse shift).");
+static_assert(inverse(translation<int, 3>)(10) == 7, "T₃⁻¹(10) = 10 − 3 = 7.");
+static_assert(retract(translation<int, 3>)(10) == 7,
+              "retract = inverse for an iso.");
 /**
  * @section morphism__Pipe_Operator
  * @brief Proposition: A Value x can be piped into a Morphism f: A -> B.
