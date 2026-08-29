@@ -164,29 +164,32 @@ static_assert(!exists(std::views::iota(0, 3), [](int x) { return x > 9; }),
 
 /**
  * @section quantifier__Extrema
- * @brief @c max / @c min --- the @b order analogue of the quantifiers ---
- * and @c argmax / @c argmin --- the same filter with @c ≤ pulled back
- * through a map @c f.
+ * @brief @c max / @c min / @c argmax / @c argmin --- the relational
+ * optimisation operators of Bird \& de~Moor @cite birddemoor1997aop.
  *
- * @details Where @c exists / @c forall read a @b truth bound off a
- * comprehension (∅ / S; Eqn 2), @c max / @c min read an @b order bound.
- * @c max(s) is the greatest-element set
- * @f$\{x\in s \mid \forall a\in s.\; a\le x\}@f$ --- a comprehension whose
- * membership test is a bare @c forall over @c ≤ --- and @c min is its
- * @b order dual, exactly as @c forall is the @c ¬∃¬ dual of @c exists.
- * The result is itself a first-class @c IsSet, so membership is @c max(s)(x):
- * empty when there is no greatest element, a singleton for a total order,
- * larger under ties or a partial order.  @c argmax pulls @c ≤ back through
- * @c f, reading the order @f$f(a)\le f(x)@f$ that @c f induces on the domain,
- * with no inverse of @c f required; the result is the @b fibre
- * @f$f^{-1}(\max f(s))@f$, so unique-optimiser (a function) vs ties
- * (a relation) is just its cardinality.  Decidability is the quantifier's
- * own: a finite / finite-quotient domain settles the @c forall, else the
- * honest Rice wall at the call site (for @c argmax over an infinite domain,
- * the pluggable @b retract of §3.3.1).
+ * @details @c max(s) is the set of @f$R@f$-greatest elements
+ * @f$\{x\in s \mid \forall a\in s.\; a\, R\, x\}@f$ --- the point-free
+ * @f$\max R = (\in) \cap (R / \ni)@f$ of the Algebra of Programming
+ * (Ch.~10, @cite birddemoor1997aop): membership @f$\in@f$ (the @c s @c |
+ * binder) intersected with the relational @b division @f$R/\ni@f$, which @b is
+ * the universal quantifier --- our @c forall.  @c min is the @b order dual,
+ * exactly as @c forall is the @c ¬∃¬ dual of @c exists.  The comparison @f$R@f$
+ * is a @b preorder on the codomain (@c dedekind::order::IsPreOrdered ---
+ * reflexive and transitive, @b not necessarily antisymmetric), which is why
+ * the answer is a @b set: ties or incomparable elements give several maxima
+ * (a partial preorder is the Pareto front), an empty domain gives none.
+ *
+ * @c argmax is @c max composed with the @b power @b transpose
+ * @f$\Lambda F@f$ (@c apply, the relation read as a set-valued map):
+ * @f$\arg\max = \max R \cdot \Lambda F@f$, the @f$R@f$-optimal fibre in the
+ * domain, with no inverse of @c F required.  The present overload takes the
+ * carrier's own order over an @c IsEnumerableSet domain; the relation-form
+ * @c argmax(F) gates the codomain on @c IsPreOrdered (§3.3 / §4).
+ * Decidability is the quantifier's own: a finite / finite-quotient domain
+ * settles the division @c forall, else the honest Rice wall at the call site.
  *
  * The domain is any @c IsEnumerableSet: a genuine set (it lifts to @c IsSet)
- * that is also @b walkable, since the dominance @c forall ranges over it.
+ * that is also @b walkable, since the division @c forall ranges over it.
  * A bare @c IsSet is membership-only and cannot be enumerated; the finite
  * exhibits use a lifted @c iota, which is both.
  */

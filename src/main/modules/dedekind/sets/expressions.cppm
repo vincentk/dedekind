@@ -1520,6 +1520,55 @@ constexpr typename L::Ω relates(const Relation<T1, T2, L, P>& r, const T1& a,
 }
 
 /**
+ * @brief The @b declared domain of a relation @c R ⊆ A×B: the universal set
+ *        @c Ω<A> over the first factor --- @c π₁'s codomain.
+ *
+ * @details A relation @b is a @c Set on the product carrier @c pair<A,B>, so
+ * it @b is @c IsProduct and its projections fall out of the type: the factor
+ * @b type @c A survives in @c R::Domain (@c pair<A,B>) even though the factor
+ * @b set is not retained, so the @b declared domain @c Ω<A> is recoverable
+ * total and free, with no @c ∃.  This is deliberately @b not the @b effective
+ * domain @f$\{a \mid \exists b.\ R(a,b)\}@f$ (the @c π₁-image), which is a
+ * separate existential carrying its own decidability certificate --- the Rice
+ * wall stays quarantined to that one operation.
+ */
+export template <typename T1, typename T2, typename L, typename P>
+constexpr auto dom(const Relation<T1, T2, L, P>&) {
+  return Ω<T1>;
+}
+
+/** @brief The @b declared codomain of a relation @c R ⊆ A×B: @c Ω<B>, the
+ *         second factor (@c π₂'s codomain).  Dual to @c dom. */
+export template <typename T1, typename T2, typename L, typename P>
+constexpr auto cod(const Relation<T1, T2, L, P>&) {
+  return Ω<T2>;
+}
+
+/**
+ * @brief Relational @b application: the image of @c x under @c R, the fibre
+ *        @f$\{b \in B \mid (x,b) \in R\}@f$ as a @c Set on the codomain.
+ *
+ * @details This is the @b power @b transpose @f$\Lambda R : A \to
+ * \mathcal{P}(B)@f$ of Bird \& de~Moor @cite birddemoor1997aop --- the relation
+ * read as a set-valued map --- and it is the form on which the optimisation
+ * calculus is built: @c argmax is @f$\max R \cdot \Lambda F@f$ (§3.3 / §4).
+ * The @b general form.  @c R IS-A relation (and @c IsFunction refines
+ * @c IsRelation), so a @b functional @c R gives a @b singleton fibre --- the
+ * value @c f(x) --- and a general relation the full image; the degenerate cases
+ * fall out as the fibre's @b cardinality, with no special-casing (the
+ * singleton-valued specialisation is a later overload gated on the functional
+ * certificate).  The fibre is @b lazy and membership-testable
+ * (@c apply(R,x)(b) is @c (x,b)∈R), so it types in for any relation and the
+ * existential --- is it nonempty? what is its max? --- is deferred to whoever
+ * reduces it.
+ */
+export template <typename T1, typename T2, typename L, typename P>
+constexpr auto apply(const Relation<T1, T2, L, P>& r, const T1& x) {
+  auto fibre = [r, x](const T2& b) { return r(std::pair<T1, T2>{x, b}); };
+  return Set<T2, L, decltype(fibre)>{fibre};
+}
+
+/**
  * @brief Point-wise single-valuedness witness for a set-function relation.
  *
  * If both y1 and y2 are related to x, they must be equal.

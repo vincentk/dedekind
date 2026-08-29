@@ -1138,6 +1138,61 @@ static_assert(!(ℕ * ℕ | π1 != fix(0_c) & π2 % π1 == fix(0_c))(std::pair{
                   finite_cardinality(4), finite_cardinality(6)}),
               "6 % 4 != 0: (4,6) ∉ divides.");
 
+/** @brief @f$\pi_I \% \mathrm{fix}(V)@f$ --- projection mod a @b constant, a
+ *  value expression on a pair awaiting a comparison (sibling of @c ProjMod,
+ *  whose modulus is the projection @c π_J rather than a fixed @c V). */
+export template <std::size_t I, auto V>
+struct ProjModConst {};
+export template <std::size_t I, auto V>
+constexpr ProjModConst<I, V> operator%(Projection<I>, Bound<V>) {
+  return {};
+}
+
+/** @brief @f$(\pi_I \% \mathrm{fix}(V)) \bowtie \pi_J@f$ --- compare a
+ *  projection-mod-constant to another projection: the residue-class graph
+ *  @f$b = a \bmod V@f$. */
+export template <std::size_t I, auto V, Rel R, std::size_t J>
+struct ProjModConstProj {
+  using is_rel_predicate = void;
+  template <typename P>
+  constexpr bool operator()(const P& p) const {
+    return rel_apply<R>(coord<I>(p) % V, coord<J>(p));
+  }
+};
+export template <std::size_t I, auto V, std::size_t J>
+constexpr ProjModConstProj<I, V, Rel::Eq, J> operator==(ProjModConst<I, V>,
+                                                        Projection<J>) {
+  return {};
+}
+
+// residue-class graph: {(a,b) | b = a % 17} = ℕ * ℕ | π1 % fix(17_c) == π2.
+static_assert((ℕ * ℕ | π1 % fix(17_c) == π2)(std::pair{finite_cardinality(20),
+                                                       finite_cardinality(3)}),
+              "20 % 17 == 3: (20,3) ∈ the residue graph.");
+static_assert(!(ℕ * ℕ | π1 % fix(17_c) == π2)(std::pair{finite_cardinality(20),
+                                                        finite_cardinality(4)}),
+              "20 % 17 != 4: (20,4) ∉ the residue graph.");
+
+// dom / cod read the DECLARED factors off the relation's pair carrier: both
+// are ℕ (the ambient first / second factor), independent of the predicate.
+static_assert(dedekind::sets::dom(ℕ* ℕ | π1 % fix(17_c) ==
+                                             π2)(finite_cardinality(100)),
+              "dom(R) = ℕ (the declared domain) contains 100.");
+static_assert(dedekind::sets::cod(ℕ* ℕ |
+                                  π1 % fix(17_c) == π2)(finite_cardinality(3)),
+              "cod(R) = ℕ (the declared codomain) contains 3.");
+
+// relational application: apply(R, a) is the fibre {b | (a,b) ∈ R}.  For the
+// residue graph (a function) it is the singleton {a % 17}: apply(R,20) = {3}.
+static_assert(
+    dedekind::sets::apply(ℕ* ℕ | π1 % fix(17_c) == π2,
+                          finite_cardinality(20))(finite_cardinality(3)),
+    "apply(R,20) = {3}: (20,3) ∈ R since 20 % 17 == 3.");
+static_assert(
+    !dedekind::sets::apply(ℕ * ℕ | π1 % fix(17_c) == π2,
+                           finite_cardinality(20))(finite_cardinality(4)),
+    "apply(R,20) does not contain 4.");
+
 // ── Relative product: composition of relations (Tarski) ────────────────────
 /** @brief The composed predicate @f$(R \gg S)(a,c) = \exists b.\, R(a,b) \wedge
  *  S(b,c)@f$.  Decidable exactly when the intermediate carrier is finite; here
