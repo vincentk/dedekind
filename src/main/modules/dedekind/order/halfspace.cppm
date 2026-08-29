@@ -1030,6 +1030,7 @@ constexpr RelAnd<A, B> operator&(A a, B b) {
  *  trivially-true @c product). */
 export template <typename P, typename RP>
 struct ProductRestrict {
+  using is_rel_predicate = void;
   P product;
   RP rp;
   template <typename Pair>
@@ -1112,6 +1113,85 @@ export template <typename Ta, auto Pa, Direction Da, Strictness Sa, typename La,
 constexpr auto operator*(const Halfspace<Ta, Pa, Da, Sa, La>& a,
                          const Halfspace<Tb, Qb, Db, Sb, Lb>& b) {
   return Ω<std::pair<Ta, Tb>, La> | (cylinder<1>(a) & cylinder<2>(b));
+}
+
+/**
+ * @section halfspace__Projections
+ * @brief @c dom / @c cod as the projections @f$\pi_A / \pi_B@f$, recovering the
+ *        factor from the relation's @b structure (the inverse of @c cylinder).
+ *
+ * @details These are the @b π_A / π_B side of Table 3 (the four properties of a
+ * relation): @c dom is @f$\pi_A(R)@f$, @c cod is @f$\pi_B(R)@f$.  Read off the
+ * axis-@f$I@f$ cylinder @c ProjBound structurally: a comparison bound becomes
+ * the halfspace factor, no axis-@f$I@f$ bound leaves the declared universe
+ * @c Ω<T_I> (honest exactly when @c R is entire on that side).  This is the
+ * @b free case; the @b existential @f$\{a\mid\exists b.R(a,b)\}@f$ that a
+ * coupled, non-entire relation needs is the separate Rice-gated operation.
+ * The order-layer overloads specialise the sets-layer @c Ω<T1> fallback (they
+ * win by @c IsRelPredicate, and ADL reaches them through the @c ProjBound
+ * predicate's own namespace).
+ */
+
+/** @brief The @c Direction a comparison @c Rel lifts a halfspace to. */
+export constexpr Direction dir_of(Rel r) {
+  return (r == Rel::Gt || r == Rel::Ge) ? Direction::Upward
+                                        : Direction::Downward;
+}
+/** @brief The @c Strictness a comparison @c Rel lifts a halfspace to. */
+export constexpr Strictness strict_of(Rel r) {
+  return (r == Rel::Gt || r == Rel::Lt) ? Strictness::Strict
+                                        : Strictness::NonStrict;
+}
+/** @brief Whether a @c Rel is one of the four order comparisons (not Eq/Ne). */
+export constexpr bool is_order_rel(Rel r) {
+  return r == Rel::Lt || r == Rel::Le || r == Rel::Gt || r == Rel::Ge;
+}
+
+/** @brief Recover the axis-@c I factor from a relational predicate.  Default:
+ *  no axis-@c I structure, so the declared universe @c Ω<TI>. */
+export template <std::size_t I, typename TI, typename P>
+constexpr auto axis_factor(const P&) {
+  return Ω<TI>;
+}
+
+/** @brief A cylinder @c ProjBound on axis @c I: the halfspace it lifted from
+ *  (only an order comparison is a halfspace; Eq/Ne fall to the default). */
+export template <std::size_t I, typename TI, Rel R, auto V>
+  requires(is_order_rel(R))
+constexpr auto axis_factor(const ProjBound<I, R, V>&) {
+  return Halfspace<TI, V, dir_of(R), strict_of(R)>{};
+}
+
+/** @brief A meet of cylinders: whichever child constrains axis @c I (our
+ *  products place at most one bound per axis; a second is a FIXME(#785)). */
+export template <std::size_t I, typename TI, typename A, typename B>
+constexpr auto axis_factor(const RelAnd<A, B>& r) {
+  auto fa = axis_factor<I, TI>(r.a);
+  if constexpr (requires { typename decltype(fa)::is_universal_boundary; }) {
+    return axis_factor<I, TI>(r.b);
+  } else {
+    return fa;
+  }
+}
+
+/** @brief A restricted product bounding a graph: the factor lives on the
+ *  product (cylinder) side; the graph @c rp couples the axes, so it is
+ *  transparent to a single-axis projection. */
+export template <std::size_t I, typename TI, typename Pp, typename RP>
+constexpr auto axis_factor(const ProductRestrict<Pp, RP>& r) {
+  return axis_factor<I, TI>(r.product);
+}
+
+/** @brief @f$\pi_A(R)@f$ --- the domain factor, recovered structurally. */
+export template <typename T1, typename T2, typename L, IsRelPredicate P>
+constexpr auto dom(const Set<std::pair<T1, T2>, L, P>& r) {
+  return axis_factor<1, T1>(r.predicate());
+}
+
+/** @brief @f$\pi_B(R)@f$ --- the codomain factor, recovered structurally. */
+export template <typename T1, typename T2, typename L, IsRelPredicate P>
+constexpr auto cod(const Set<std::pair<T1, T2>, L, P>& r) {
+  return axis_factor<2, T2>(r.predicate());
 }
 
 /** @section halfspace__Formal_Verification (relational surface) */
@@ -1317,14 +1397,27 @@ static_assert(!(ℕ * ℕ | π1 * fix(2_c) == π2)(std::pair{finite_cardinality(
                                                        finite_cardinality(7)}),
               "3 * 2 != 7: (3,7) ∉ the doubling graph.");
 
-// dom / cod read the DECLARED factors off the relation's pair carrier: both
-// are ℕ (the ambient first / second factor), independent of the predicate.
-static_assert(dedekind::sets::dom(ℕ* ℕ | π1 % fix(17_c) ==
-                                             π2)(finite_cardinality(100)),
-              "dom(R) = ℕ (the declared domain) contains 100.");
-static_assert(dedekind::sets::cod(ℕ* ℕ |
-                                  π1 % fix(17_c) == π2)(finite_cardinality(3)),
-              "cod(R) = ℕ (the declared codomain) contains 3.");
+// dom / cod are the projections π_A / π_B (Table 3).  The residue graph has no
+// axis cylinder and is entire on both sides, so both recover the universe ℕ
+// (unqualified so ADL finds the order-layer structural recovery).
+static_assert(dom(ℕ* ℕ | π1 % fix(17_c) == π2)(finite_cardinality(100)),
+              "π_A of the residue graph = ℕ (entire), contains 100.");
+static_assert(cod(ℕ* ℕ | π1 % fix(17_c) == π2)(finite_cardinality(3)),
+              "π_B of the residue graph = ℕ (surjective), contains 3.");
+
+// With a RESTRICTED factor, dom recovers the halfspace off the π1 cylinder:
+// π_A((ℕ|≤5)*ℕ) = {a ≤ 5}, while cod stays the unrestricted ℕ.
+static_assert(dom((ℕ | (π <= fix(5_c))) * ℕ)(finite_cardinality(4)),
+              "π_A recovers {a ≤ 5}: 4 ≤ 5.");
+static_assert(!dom((ℕ | (π <= fix(5_c))) * ℕ)(finite_cardinality(7)),
+              "π_A recovers {a ≤ 5}: 7 ≰ 5.");
+static_assert(cod((ℕ | (π <= fix(5_c))) * ℕ)(finite_cardinality(99)),
+              "π_B is unrestricted ℕ: contains 99.");
+// The restriction survives a graph refinement (dom digs through
+// ProductRestrict).
+static_assert(dom((ℕ | (π <= fix(5_c))) * ℕ |
+                  π1 + fix(1_c) == π2)(finite_cardinality(4)),
+              "π_A of the restricted successor still recovers {a ≤ 5}.");
 
 // relational application: apply(R, a) is the fibre {b | (a,b) ∈ R}.  For the
 // residue graph (a function) it is the singleton {a % 17}: apply(R,20) = {3}.

@@ -1091,6 +1091,12 @@ For specialized mappings, codomain membership tests, checking whether a given el
 If a function is certified as surjective, every element of the target space is a valid image, meaning a codomain membership query trivially constant-folds to logical truth.
 More generally, if the mono leg of the factorization carries a \emph{retract} (a partial inverse returning the preimage of a codomain element when one exists), the type system decides membership as a local lookup on the image boundary, with no search of the domain (Listing~\ref{lst:functional_image_bijection}).
 
+The four maps that read a relation, its \cppinline{dom} and \cppinline{cod} and the \cppinline{image} and \cppinline{preimage} of a set, are one cell each of Table~\ref{tab:relation-quantifier}: one bound on one projection.
+\cppinline{preimage} and \cppinline{dom} read the $\pi_A$ side and never leave the domain, so they cost nothing beyond a forward call: $\mathrm{preimage}(f, S) = \{a \mid f(a) \in S\}$ is apply-and-test, decided by single-valuedness alone, and $\mathrm{dom}$ is all of $A$ the moment $f$ is entire.
+\cppinline{image} and \cppinline{cod} read the $\pi_B$ side and have to cross back: $\mathrm{cod}$ is all of $B$ once $f$ is surjective, and $b \in \mathrm{image}(f, S)$ is the question $\exists x \in S.\, f(x) = b$, which injectivity turns into the single lookup $f^{-1}(b) \in S$.
+The forward image is thus the one whose membership needs the inverse, and that inverse is the retract on the mono leg.
+An isomorphism meets all four bounds and collapses every cell to a constant-time answer; a plain function gets its $\pi_A$ side for free and waits on injectivity for its $\pi_B$ side, which is exactly where the retract is required.
+
 \begin{listing}[htbp]
 \caption{A retract makes image membership decidable.  A monic arrow \cppinline{Double} carries a \cppinline{retract} (a partial inverse $y \mapsto$ preimage, if any); with it, $y \in \mathrm{image}(f, S)$ is decided as ``the retract has a value that lies in $S$'': a local lookup on the image boundary, never a search of the domain (here \cppinline{positive} is the halfspace $\{x>0\}$; $10 \mapsto 5 \in$ \cppinline{positive}, $7 \mapsto$ \cppinline{nullopt}; abridged from the checked-in test).}
 \label{lst:functional_image_bijection}
