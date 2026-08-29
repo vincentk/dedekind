@@ -378,3 +378,22 @@ TEST_CASE("order:halfspace — translation shifts a halfspace, fixes the line",
 
   CHECK(dedekind::category::retract(f)(int(ten)) == 7);  // total inverse
 }
+
+// Runtime coverage for the relation-reading of a function (Listing 13): the
+// graph of x+3, its inverse read backwards, and its image pushed forward.
+TEST_CASE("order:halfspace — a function is its graph: inverse and image",
+          "[order][relation][function][inverse][image]") {
+  constexpr auto Z = Ω<SignedCardinality>;
+  const auto f = Z * Z | π1 + fix(3_c) == π2;  // graph of x ↦ x+3
+
+  STATIC_CHECK(is_function(f));
+
+  volatile int ten = 10;
+  CHECK(inverse(f)(int(ten)) == 7);  // read the graph backwards: 10 ↦ 7
+
+  const auto s = image(f | π1 <= fix(5_c));  // range over {x≤5} = {y≤8}
+  volatile int eight = 8, nine = 9;
+  CHECK(s(int(eight)));       // 8 ≤ 8
+  CHECK_FALSE(s(int(nine)));  // 9 ≰ 8
+  CHECK(image(f) == Z);       // the whole range: a translation is onto
+}

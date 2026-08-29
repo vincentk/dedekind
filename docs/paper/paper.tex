@@ -1098,19 +1098,20 @@ The forward image is thus the one whose membership needs the inverse, and that i
 An isomorphism meets all four bounds and collapses every cell to a constant-time answer; a plain function gets its $\pi_A$ side for free and waits on injectivity for its $\pi_B$ side, which is exactly where the retract is required.
 
 \begin{listing}[htbp]
-\caption{A translation acts on \emph{sets} through its total inverse: it shifts a bounded halfspace and fixes the unbounded line.  \cppinline{translation<ℤ,3>} ($x\mapsto x+3$) is a point-free iso, so its \cppinline{retract} is the total inverse $x-3$, a named combinator whose inverse falls out of the type.  \cppinline{image} of the bounded $\{x\le5\}$ is again a halfspace, the pivot advanced to $\{x\le8\}$, structurally the same type and not an opaque predicate, while the unbounded $\mathbb{Z}$ comes back unchanged (abridged from the checked-in witnesses).}
+\caption{A function \emph{is} its graph.  \cppinline{f = ℤ*ℤ | π1+fix(3_c)==π2} is the point-free relation $\{(x, x{+}3)\}$, a bona fide function: functional and entire, the two bounds of Table~\ref{tab:relation-quantifier}'s $\pi_A$ column.  Its \cppinline{inverse} is the graph read backwards, $x{-}3$, applied as a function; \cppinline{image} is the range, the whole line for a total (surjective) function, and a domain bound pushes forward through the graph, $\{x\le5\}$ to $\{y\le8\}$, again a halfspace of the same shape (abridged from the checked-in witnesses).}
 \label{lst:functional_image_bijection}
 \begin{cpp}
-constexpr auto f = translation<ℤ, 3>;             // x ↦ x+3, a point-free iso
-static_assert(retract(f)(10) == 7);                // total inverse x−3
-constexpr auto s = image(f, ℤ | π <= fix(5_c));   // {x≤5} ↦ {x≤8}, still a halfspace
-static_assert(s(8) && !s(9));                       // the bound moved to 8
-static_assert(image(f, ℤ) == ℤ);                   // the unbounded line is fixed
+constexpr auto f = ℤ * ℤ | π1 + fix(3_c) == π2;   // x ↦ x+3 as its graph
+static_assert(is_function(f));                     // functional ∧ entire
+static_assert(inverse(f)(10) == 7);                // the graph read backwards, x−3
+static_assert(image(f) == ℤ);                      // total ⇒ onto ℤ
+static_assert(image(f | π1 <= fix(5_c))            // {x≤5} pushes forward
+              == (ℤ | π <= fix(8_c)));             //   ... to {y≤8}
 \end{cpp}
 \end{listing}
 
-The translation is the iso case: entire, functional, surjective and injective at once, so its retract is a total inverse, and because it is surjective its image of a set is decided by that inverse alone, $b \in \mathrm{image}(f,S) \iff f^{-1}(b) \in S$.
-A bounded halfspace stays a halfspace with its bound advanced, and the unbounded line is fixed.
+The graph is the whole surface: the same \cppinline{*}, \cppinline{|}, and projection arithmetic that spell a relation spell a function, and \cppinline{inverse} and \cppinline{image} are relational operations on it, not a separate arrow calculus.
+Because a translation is surjective its image is decided by the inverse alone, so a bounded halfspace pushes forward to a halfspace with its bound advanced while the unbounded line is fixed.
 The non-injective case keeps the machinery and drops the injectivity.
 Take $f(x) = 2|x|$.
 On $\mathbb{Z}$ it is two-to-one, the fibre of $y$ being $\{{+}y/2, {-}y/2\}$, so $f$ is \emph{not} monic and cannot simply ship a retract.

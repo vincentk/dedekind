@@ -1465,6 +1465,62 @@ static_assert(!max(le5)(3), "3 is not the greatest element of {x ≤ 5}.");
 static_assert(min(ge5)(5), "5 = min {x ≥ 5}.");
 static_assert(!min(ge5)(7), "7 is not the least element of {x ≥ 5}.");
 
+// inverse of a translation-graph relation: recognise the graph π1+fix(K)==π2
+// and read it BACKWARDS as the applicable inverse arrow x ↦ x−K.  The graph is
+// the surface; the arrow is what @c inverse hands back (Translation internal).
+// Functions ARE graphs here, so retract / inverse are operations on relations.
+export template <typename T, auto K, typename L>
+constexpr auto inverse(
+    const Set<std::pair<T, T>, L, ProjAddConstProj<1, K, Rel::Eq, 2>>&) {
+  return dedekind::category::Translation<T, -K>{};
+}
+static_assert(inverse(ℤ* ℤ | π1 + fix(3_c) == π2)(10) == 7,
+              "inverse(graph of x+3)(10) = 7: the graph read backwards.");
+
+/** @brief Two halfspaces are the same set iff they share pivot, direction and
+ *  strictness (the carrier and logic already match): structural set equality,
+ *  compile-time. */
+export template <typename T, auto P1, Direction D1, Strictness S1, auto P2,
+                 Direction D2, Strictness S2, typename L>
+constexpr bool operator==(Halfspace<T, P1, D1, S1, L>,
+                          Halfspace<T, P2, D2, S2, L>) {
+  return P1 == P2 && D1 == D2 && S1 == S2;
+}
+
+// image = the RANGE (π_B projection) of a functional graph, read structurally.
+// A translation is surjective, so the range of the unrestricted graph is the
+// whole line; bounded by a π1-halfspace the range is that halfspace pushed
+// forward by K --- the AFFINE PUSHFORWARD, again a halfspace of the same shape.
+export template <typename T, auto K, typename L>
+constexpr auto image(
+    const Set<std::pair<T, T>, L, ProjAddConstProj<1, K, Rel::Eq, 2>>&) {
+  return Ω<T>;
+}
+export template <typename T, auto K, Rel R, auto P, typename L>
+constexpr auto image(
+    const Set<std::pair<T, T>, L,
+              ProductRestrict<ProjAddConstProj<1, K, Rel::Eq, 2>,
+                              ProjBound<1, R, P>>>&) {
+  return Halfspace<T, P + K, dir_of(R), strict_of(R)>{};
+}
+static_assert(image(ℤ* ℤ | π1 + fix(3_c) == π2) == ℤ,
+              "image(graph of x+3) = ℤ: a translation is onto.");
+static_assert(image((ℤ * ℤ | π1 + fix(3_c) == π2) | π1 <= fix(5_c)) ==
+                  (ℤ | (π <= fix(8_c))),
+              "image over {x ≤ 5} pushes forward to {y ≤ 8}.");
+
+/** @brief @c is_function(R) --- the bracket-free query: @c R is a bona fide
+ *  function.  A graph @f$\pi_2 = \pi_1 + K@f$ is single-valued in @f$\pi_2@f$
+ *  (functional) and total (entire, a translation is defined everywhere), so it
+ *  meets both bounds of Table~3's @f$\pi_A@f$ column. */
+export template <typename T, auto K, typename L>
+consteval bool is_function(
+    const Set<std::pair<T, T>, L, ProjAddConstProj<1, K, Rel::Eq, 2>>&) {
+  return true;
+}
+static_assert(is_function(ℤ* ℤ | π1 + fix(3_c) == π2),
+              "the graph of x+3 is a total function (functional ∧ entire).");
+
 // Modelling witness ("Theorems for Free", type-checked): the SPECIFIC pivot
 // overload AGREES with the ABSTRACT definition max R = (∈) ∩ (R/∋) at the
 // pivot.  5 is the max because 5 ∈ {x≤5} AND ∀a∈{x≤5}. a ≤ 5 --- the latter
