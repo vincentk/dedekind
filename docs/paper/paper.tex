@@ -1000,13 +1000,12 @@ static_assert(rimp(pair{true,false}));
 constexpr auto lt =
   ℕ * ℕ | π1 < π2;
 static_assert(lt(pair{2,5}));
-// functional graphs, point-free:
 constexpr auto succ =
   ℕ * ℕ | π1 + fix(1_c) == π2;
 constexpr auto dbl =
   ℕ * ℕ | π1 * fix(2_c) == π2;
-static_assert(succ(pair{4,5}));  // 5=4+1
-static_assert(dbl(pair{3,6}));   // 6=2·3
+static_assert(succ(pair{4,5}));
+static_assert(dbl(pair{3,6}));
 \end{cpp}
 \end{minipage}
 \end{listing}

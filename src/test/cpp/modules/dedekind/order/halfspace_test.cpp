@@ -337,3 +337,25 @@ TEST_CASE("order:halfspace — IntervalProduct preserves cardinality",
     STATIC_CHECK(box(std::pair{0, 0}) == Logic::False);
   }
 }
+
+// Runtime coverage for the projection-arithmetic functional graphs (the
+// static_asserts in halfspace.cppm are invisible to coverage).  volatile
+// coords force the predicate bodies to actually execute at run time.
+TEST_CASE("order:halfspace — projection-arithmetic functional graphs (runtime)",
+          "[order][relation][projection-arithmetic]") {
+  volatile std::size_t a = 4, m = 20;
+  const auto A = finite_cardinality(std::size_t(a));  // 4
+  const auto M = finite_cardinality(std::size_t(m));  // 20
+
+  const auto succ = ℕ * ℕ | π1 + fix(1_c) == π2;  // b = a + 1
+  CHECK(succ(std::pair{A, finite_cardinality(5)}));
+  CHECK_FALSE(succ(std::pair{A, finite_cardinality(6)}));
+
+  const auto dbl = ℕ * ℕ | π1 * fix(2_c) == π2;  // b = 2a
+  CHECK(dbl(std::pair{finite_cardinality(3), finite_cardinality(6)}));
+  CHECK_FALSE(dbl(std::pair{finite_cardinality(3), finite_cardinality(7)}));
+
+  const auto res = ℕ * ℕ | π1 % fix(17_c) == π2;  // b = a % 17
+  CHECK(res(std::pair{M, finite_cardinality(3)}));
+  CHECK_FALSE(res(std::pair{M, finite_cardinality(4)}));
+}
