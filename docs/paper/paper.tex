@@ -1098,16 +1098,19 @@ The forward image is thus the one whose membership needs the inverse, and that i
 An isomorphism meets all four bounds and collapses every cell to a constant-time answer; a plain function gets its $\pi_A$ side for free and waits on injectivity for its $\pi_B$ side, which is exactly where the retract is required.
 
 \begin{listing}[htbp]
-\caption{An iso makes image membership a lookup through the inverse.  The point-free translation \cppinline{translation<int,3>} ($x \mapsto x+3$) is a two-sided iso, so its \cppinline{retract} is the \emph{total} inverse $x-3$, a named combinator whose inverse falls out of the type with nothing to prove.  Then $b \in \mathrm{image}(f, S)$ is just $f^{-1}(b) \in S$, a lookup on the image boundary with no search of the domain and no partiality (here \cppinline{positive} is the halfspace $\{x>0\}$; $8 \mapsto 5 \in$ \cppinline{positive}, $2 \mapsto -1 \notin$; abridged from the checked-in test).}
+\caption{A translation acts on \emph{sets} through its total inverse: it shifts a bounded halfspace and fixes the unbounded line.  \cppinline{translation<ℤ,3>} ($x\mapsto x+3$) is a point-free iso, so its \cppinline{retract} is the total inverse $x-3$, a named combinator whose inverse falls out of the type.  \cppinline{image} of the bounded $\{x\le5\}$ is again a halfspace, the pivot advanced to $\{x\le8\}$, structurally the same type and not an opaque predicate, while the unbounded $\mathbb{Z}$ comes back unchanged (abridged from the checked-in witnesses).}
 \label{lst:functional_image_bijection}
 \begin{cpp}
-constexpr auto f = translation<int, 3>;   // x ↦ x+3, a point-free iso
-static_assert(retract(f)(10) == 7);        // retract = total inverse x−3
-constexpr auto img = image(f, positive);   // {b | b−3 ∈ positive}
+constexpr auto f = translation<ℤ, 3>;             // x ↦ x+3, a point-free iso
+static_assert(retract(f)(10) == 7);                // total inverse x−3
+constexpr auto s = image(f, ℤ | π <= fix(5_c));   // {x≤5} ↦ {x≤8}, still a halfspace
+static_assert(s(8) && !s(9));                       // the bound moved to 8
+static_assert(image(f, ℤ) == ℤ);                   // the unbounded line is fixed
 \end{cpp}
 \end{listing}
 
-The translation is the iso case: entire, functional, surjective and injective at once, so its retract is a total inverse and image membership always decides.
+The translation is the iso case: entire, functional, surjective and injective at once, so its retract is a total inverse, and because it is surjective its image of a set is decided by that inverse alone, $b \in \mathrm{image}(f,S) \iff f^{-1}(b) \in S$.
+A bounded halfspace stays a halfspace with its bound advanced, and the unbounded line is fixed.
 The non-injective case keeps the machinery and drops the injectivity.
 Take $f(x) = 2|x|$.
 On $\mathbb{Z}$ it is two-to-one, the fibre of $y$ being $\{{+}y/2, {-}y/2\}$, so $f$ is \emph{not} monic and cannot simply ship a retract.

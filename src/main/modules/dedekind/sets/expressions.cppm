@@ -1027,6 +1027,17 @@ constexpr auto image(F&& f, const Set<T, L, P>& s) {
   return Set<U, L, NewPredicate>{NewPredicate{s, std::move(f_inv)}};
 }
 
+/** @brief image of the @b unbounded universe under an iso is the universe: an
+ *  iso is surjective, so it fixes @c Ω setwise.  The unbounded companion to
+ *  the bounded case (@c image(Translation, Halfspace) in @c :order shifts a
+ *  halfspace's pivot); here nothing to shift, so @c Ω comes back unchanged. */
+export template <typename T, typename L, typename C,
+                 dedekind::category::IsIsomorphism F>
+  requires std::same_as<dedekind::category::Dom<std::remove_cvref_t<F>>, T>
+constexpr auto image(F&&, const UniversalSet<T, L, C>& u) {
+  return u;
+}
+
 /** @brief Composed predicate for the retract-decidable @c image(f, Set)
  *         specialisation: @c y @c ↦ @c let @c mx @c = @c retract(f)(y);
  *         @c mx.has_value() @c ? @c S(mx.value()) @c : @c L::False.

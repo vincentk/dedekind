@@ -1504,6 +1504,56 @@ static_assert(max(Ω<bool>)(false) ==
                    forall(Ω<bool>, Ω<bool> | (π <= fix(false_c)))),
               "specific max(𝔹) models (∈) ∩ (R/∋), structurally.");
 
+/**
+ * @section halfspace__Translated_Halfspace
+ * @brief The @b image of a halfspace under a translation is again a halfspace,
+ *        its pivot shifted by @c K: @f$T_K(\{x \bowtie p\}) = \{y \bowtie
+ *        p+K\}@f$.
+ *
+ * @details A @b bounded set translated stays bounded --- the bound just moves.
+ * Because a translation is a surjective iso, membership decides through its
+ * inverse (@f$y \in T_K(S) \iff y-K \in S@f$), and for a halfspace that is
+ * @f$y-K \bowtie p \iff y \bowtie p+K@f$: the direction and strictness carry
+ * over untouched, only the pivot advances.  So the image is not an opaque
+ * composed predicate but the @b same structural halfspace type, the pivot a
+ * compile-time @c Pivot @c + @c K.  ADL routes here through the @c Halfspace
+ * operand (an @c order type); the @c Translation is the upstream @c category
+ * iso.
+ */
+export template <typename T, auto K, auto Pivot, Direction D, Strictness S,
+                 typename L>
+constexpr auto image(dedekind::category::Translation<T, K>,
+                     Halfspace<T, Pivot, D, S, L>) {
+  return Halfspace<T, Pivot + K, D, S, L>{};
+}
+
+// Exhibit: translating the bounded {x ≤ 5} by +3 shifts the bound to {x ≤ 8},
+// and it is again a halfspace (the same TYPE as ℤ | π ≤ fix(8_c)), not an
+// opaque composed predicate.
+static_assert(
+    std::same_as<
+        decltype(image(dedekind::category::translation<SignedCardinality, 3>,
+                       le5)),
+        Halfspace<SignedCardinality, 8, Direction::Downward,
+                  Strictness::NonStrict>>,
+    "image(x↦x+3, {x ≤ 5}) = {x ≤ 8}: the bound moves, the shape stays.");
+static_assert(image(dedekind::category::translation<SignedCardinality, 3>,
+                    le5)(8),
+              "8 ≤ 8: in the translated halfspace.");
+static_assert(!image(dedekind::category::translation<SignedCardinality, 3>,
+                     le5)(9),
+              "9 ≰ 8: past the translated bound.");
+
+// The UNBOUNDED companion: a translation is surjective, so it fixes the whole
+// line ℤ setwise (image(Ω) = Ω, nothing to shift), and its retract is the
+// TOTAL inverse (contrast the bounded case, where the pivot moves).
+static_assert(image(dedekind::category::translation<SignedCardinality, 3>, ℤ) ==
+                  ℤ,
+              "translating the unbounded line fixes it: image(x↦x+3, ℤ) = ℤ.");
+static_assert(
+    retract(dedekind::category::translation<SignedCardinality, 3>)(10) == 7,
+    "retract = total inverse: (x↦x+3)⁻¹(10) = 7.");
+
 // ── Relative product: composition of relations (Tarski) ────────────────────
 /** @brief The composed predicate @f$(R \gg S)(a,c) = \exists b.\, R(a,b) \wedge
  *  S(b,c)@f$.  Decidable exactly when the intermediate carrier is finite; here
