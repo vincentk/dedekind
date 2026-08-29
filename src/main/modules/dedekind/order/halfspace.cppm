@@ -1173,6 +1173,74 @@ static_assert(!(ℕ * ℕ | π1 % fix(17_c) == π2)(std::pair{finite_cardinality
                                                         finite_cardinality(4)}),
               "20 % 17 != 4: (20,4) ∉ the residue graph.");
 
+/** @brief @f$\pi_I + \mathrm{fix}(V)@f$ / @f$\pi_I \cdot \mathrm{fix}(V)@f$ ---
+ *  a projection plus / times a @b constant, a value expression on a pair
+ *  awaiting a comparison to another projection (siblings of @c ProjModConst).
+ *  Enough to spell the successor and scaling graphs natively point-free. */
+export template <std::size_t I, auto V>
+struct ProjAddConst {};
+export template <std::size_t I, auto V>
+constexpr ProjAddConst<I, V> operator+(Projection<I>, Bound<V>) {
+  return {};
+}
+export template <std::size_t I, auto V>
+struct ProjMulConst {};
+export template <std::size_t I, auto V>
+constexpr ProjMulConst<I, V> operator*(Projection<I>, Bound<V>) {
+  return {};
+}
+
+/** @brief @f$(\pi_I + \mathrm{fix}(V)) \bowtie \pi_J@f$ --- the
+ * successor-shaped graph @f$b = a + V@f$. */
+export template <std::size_t I, auto V, Rel R, std::size_t J>
+struct ProjAddConstProj {
+  using is_rel_predicate = void;
+  template <typename P>
+  constexpr bool operator()(const P& p) const {
+    const auto a = coord<I>(p);  // cast V into the carrier: Cardinality + int
+    using C = std::remove_cvref_t<decltype(a)>;  // is ambiguous, + Cardinality
+    return rel_apply<R>(a + static_cast<C>(V), coord<J>(p));  // is not
+  }
+};
+export template <std::size_t I, auto V, std::size_t J>
+constexpr ProjAddConstProj<I, V, Rel::Eq, J> operator==(ProjAddConst<I, V>,
+                                                        Projection<J>) {
+  return {};
+}
+
+/** @brief @f$(\pi_I \cdot \mathrm{fix}(V)) \bowtie \pi_J@f$ --- the scaling
+ *  graph @f$b = a \cdot V@f$ (e.g. the doubler @f$b = 2a@f$). */
+export template <std::size_t I, auto V, Rel R, std::size_t J>
+struct ProjMulConstProj {
+  using is_rel_predicate = void;
+  template <typename P>
+  constexpr bool operator()(const P& p) const {
+    const auto a = coord<I>(p);
+    using C = std::remove_cvref_t<decltype(a)>;
+    return rel_apply<R>(a * static_cast<C>(V), coord<J>(p));
+  }
+};
+export template <std::size_t I, auto V, std::size_t J>
+constexpr ProjMulConstProj<I, V, Rel::Eq, J> operator==(ProjMulConst<I, V>,
+                                                        Projection<J>) {
+  return {};
+}
+
+// successor graph: {(a,b) | b = a + 1} = ℕ * ℕ | π1 + fix(1_c) == π2.
+static_assert((ℕ * ℕ | π1 + fix(1_c) == π2)(std::pair{finite_cardinality(4),
+                                                      finite_cardinality(5)}),
+              "4 + 1 == 5: (4,5) ∈ the successor graph.");
+static_assert(!(ℕ * ℕ | π1 + fix(1_c) == π2)(std::pair{finite_cardinality(4),
+                                                       finite_cardinality(6)}),
+              "4 + 1 != 6: (4,6) ∉ the successor graph.");
+// doubling graph: {(a,b) | b = 2a} = ℕ * ℕ | π1 * fix(2_c) == π2.
+static_assert((ℕ * ℕ | π1 * fix(2_c) == π2)(std::pair{finite_cardinality(3),
+                                                      finite_cardinality(6)}),
+              "3 * 2 == 6: (3,6) ∈ the doubling graph.");
+static_assert(!(ℕ * ℕ | π1 * fix(2_c) == π2)(std::pair{finite_cardinality(3),
+                                                       finite_cardinality(7)}),
+              "3 * 2 != 7: (3,7) ∉ the doubling graph.");
+
 // dom / cod read the DECLARED factors off the relation's pair carrier: both
 // are ℕ (the ambient first / second factor), independent of the predicate.
 static_assert(dedekind::sets::dom(ℕ* ℕ | π1 % fix(17_c) ==

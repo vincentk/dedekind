@@ -981,7 +981,7 @@ Listing~\ref{lst:relation_examples} spells relations out in the point-free surfa
 \begin{listing}[htbp]
 \caption{Relations as comprehensions over a product, point-free in the projections $\pi_1, \pi_2$.
 \textbf{Left} ($\mathbb{B}$): implication $a \le b$ on $\mathbb{B}\times\mathbb{B}$, and its \cppinline{converse}.
-\textbf{Right} ($\mathbb{N}$): less-than, and the bounded relation $\{(x,y) \mid x<y \land x>5\}$.}
+\textbf{Right} ($\mathbb{N}$): less-than, and two \emph{functional} graphs written point-free via the projection arithmetic --- the successor $b = a{+}1$ and the doubler $b = 2a$.}
 \label{lst:relation_examples}
 \noindent
 \begin{minipage}[t]{0.49\linewidth}
@@ -999,12 +999,14 @@ static_assert(rimp(pair{true,false}));
 \begin{cpp}
 constexpr auto lt =
   ℕ * ℕ | π1 < π2;
-static_assert( lt(pair{2,5}));
-static_assert(!lt(pair{5,2}));
-constexpr auto R =
-  ℕ * ℕ | π1 < π2 & π1 > fix(5_c);
-static_assert( R(pair{6,9}));
-static_assert(!R(pair{3,9}));
+static_assert(lt(pair{2,5}));
+// functional graphs, point-free:
+constexpr auto succ =
+  ℕ * ℕ | π1 + fix(1_c) == π2;
+constexpr auto dbl =
+  ℕ * ℕ | π1 * fix(2_c) == π2;
+static_assert(succ(pair{4,5}));  // 5=4+1
+static_assert(dbl(pair{3,6}));   // 6=2·3
 \end{cpp}
 \end{minipage}
 \end{listing}
@@ -1087,8 +1089,8 @@ constexpr auto img = image(Double{}, positive);
 \end{cpp}
 \end{listing}
 
-\cppinline{Double} is the appetizer: injective, its retract the obvious halving.
-The main course keeps the machinery and drops the injectivity.
+\cppinline{Double} is the injective case: its retract is the obvious halving.
+The non-injective case keeps the machinery and drops the injectivity.
 Take $f(x) = 2|x|$.
 On $\mathbb{Z}$ it is two-to-one, the fibre of $y$ being $\{{+}y/2, {-}y/2\}$, so $f$ is \emph{not} monic and cannot simply ship a retract.
 It ships its \emph{factorization} instead, $\mathbb{Z} \twoheadrightarrow \mathbb{N} \hookrightarrow \mathbb{Z}$ (fold the sign, then double): the mono leg's retract names one preimage, the canonical ${+}y/2$, and the epi leg's \emph{cofibre} expands a point to its whole class $\{{+}x, {-}x\}$ (Listing~\ref{lst:functional_image_fold}).
@@ -1097,7 +1099,7 @@ A lone retract would answer $6 \in f(\{x<0\})$ with the canonical ${+}3 \notin \
 This is also what discharges the $\arg\max$ of §\ref{sec:relations_functions_blueprint} over an infinite domain: an optimiser and its fibre are the same $\exists x.\,f(x){=}y$, read off the factorization rather than searched for.
 
 \begin{listing}[htbp]
-\caption{The non-injective main course: $2|x|$ decided through its (regular epi, mono) factorization.  It is not monic, so it ships a \cppinline{retract} (the mono leg: the canonical preimage ${+}y/2$) and a \cppinline{cofibre} (the epi leg: the class $\{{+}x,{-}x\}$), and \cppinline{image} ORs the source over the whole fibre.  Sound where a lone retract is not: $6 \in 2|x|(\{x<0\})$ holds via ${-}3$, though the canonical ${+}3$ is not in the source (abridged from the checked-in test).}
+\caption{A non-injective map decided through its (regular epi, mono) factorization: $2|x|$.  It is not monic, so it ships a \cppinline{retract} (the mono leg: the canonical preimage ${+}y/2$) and a \cppinline{cofibre} (the epi leg: the class $\{{+}x,{-}x\}$), and \cppinline{image} ORs the source over the whole fibre.  Sound where a lone retract is not: $6 \in 2|x|(\{x<0\})$ holds via ${-}3$, though the canonical ${+}3$ is not in the source (abridged from the checked-in test).}
 \label{lst:functional_image_fold}
 \begin{cpp}
 struct Fold { using Domain = int; using Codomain = int;
