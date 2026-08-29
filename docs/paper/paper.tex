@@ -622,7 +622,7 @@ An operand that is neither a finite carrier nor a predicate factoring through a 
 template <IsSet S, IsPredicate P>
 constexpr bool
 exists(S s, P p) {
-  return !(Ø{} == set(s,p));
+  return !(Ø{} == (s | p));
 }
 \end{cpp}
 \end{minipage}\hfill
@@ -631,7 +631,7 @@ exists(S s, P p) {
 template <IsSet S, IsPredicate P>
 constexpr bool
 forall(S s, P p) {
-  return set(s,p) == s;
+  return (s | p) == s;
 }
 \end{cpp}
 \end{minipage}
@@ -681,19 +681,16 @@ Section~\ref{sec:relations_functions_blueprint} lifts $\le$ from a bare comparis
 \noindent
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-template <IsEnumerableSet S>
-constexpr auto max(S s) {
-  // { x ∈ s | ∀ a ∈ s. a ≤ x }
-  return Set{s | forall(s, a <= x)};
-}
+// 𝔹 (finite): the top / bottom, via the where-clause
+auto max(Ω<bool> s) { return s | (π == fix(true_c)); }
+auto min(Ω<bool> s) { return s | (π == fix(false_c)); }
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-template <IsEnumerableSet S>
-constexpr auto min(S s) {
-  // { x ∈ s | ∀ a ∈ s. x ≤ a }
-  return Set{s | forall(s, x <= a)};
+// a halfspace: the pivot, read off the type — no walk
+auto max(Halfspace<T,p,Down,NonStrict>) {
+  return Singleton<p>{};   // greatest = p
 }
 \end{cpp}
 \end{minipage}
@@ -702,9 +699,9 @@ constexpr auto min(S s) {
 \noindent
 \begin{minipage}[t]{0.99\linewidth}
 \begin{cpp}
-constexpr auto D = iota(2, 6);   // the finite set [2,6), a set by its membership
-static_assert(max(D)(5));        // 5 is the greatest element of [2,6)
-static_assert(min(D)(2));        // 2 is the least
+static_assert(max(𝔹)(true));   static_assert(min(𝔹)(false)); // finite: {true} / {false}
+static_assert(max(ℤ | (π <= fix(5_c)))(5));   // intensional (infinite): max {x ≤ 5} = {5}
+static_assert(min(ℤ | (π >= fix(5_c)))(5));   //                         min {x ≥ 5} = {5}
 \end{cpp}
 \end{minipage}
 \end{listing}
