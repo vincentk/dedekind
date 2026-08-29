@@ -1193,6 +1193,80 @@ static_assert(
                            finite_cardinality(20))(finite_cardinality(4)),
     "apply(R,20) does not contain 4.");
 
+// ── Intensional extrema on halfspaces (Bird & de Moor @cite birddemoor1997aop)
+// The SPECIFIC decidable overloads of the abstract @f$\max R = (\in) \cap
+// (R/\ni)@f$: a halfspace bounded ABOVE (@c {x ≤ p}, @c Downward + non-strict)
+// has greatest element @c p, read off the @b pivot rather than searched for;
+// the unbounded / strict directions have no greatest element, so @c max is the
+// empty set.  Dually @c min solves a LOWER bound.  Jlt-clean: a specific
+// overload per decidable structure, no generic search.
+export template <typename T, auto Pivot, Direction D, Strictness S, typename L>
+constexpr auto max(Halfspace<T, Pivot, D, S, L>) {
+  if constexpr (D == Direction::Downward && S == Strictness::NonStrict) {
+    return Singleton<Pivot, L>{};  // {p}: the attained greatest element
+  } else {
+    return Ø<T, L>{};  // unbounded above, or the supremum is not attained
+  }
+}
+export template <typename T, auto Pivot, Direction D, Strictness S, typename L>
+constexpr auto min(Halfspace<T, Pivot, D, S, L>) {
+  if constexpr (D == Direction::Upward && S == Strictness::NonStrict) {
+    return Singleton<Pivot, L>{};  // {p}: the attained least element
+  } else {
+    return Ø<T, L>{};
+  }
+}
+
+// Exhibit (intensional, infinite case): over ℤ, max{x ≤ 5} = {5} and
+// min{x ≥ 5} = {5}, decided from the pivot with no enumeration.
+inline constexpr auto ℤ =
+    Ω<SignedCardinality>;  // local alias (:integer is downstream)
+inline constexpr auto le5 = ℤ | (π <= fix(5_c));  // {x ∈ ℤ | x ≤ 5}
+inline constexpr auto ge5 = ℤ | (π >= fix(5_c));  // {x ∈ ℤ | x ≥ 5}
+static_assert(max(le5)(5), "5 = max {x ≤ 5} (read off the pivot).");
+static_assert(!max(le5)(3), "3 is not the greatest element of {x ≤ 5}.");
+static_assert(min(ge5)(5), "5 = min {x ≥ 5}.");
+static_assert(!min(ge5)(7), "7 is not the least element of {x ≥ 5}.");
+
+// Modelling witness ("Theorems for Free", type-checked): the SPECIFIC pivot
+// overload AGREES with the ABSTRACT definition max R = (∈) ∩ (R/∋) at the
+// pivot.  5 is the max because 5 ∈ {x≤5} AND ∀a∈{x≤5}. a ≤ 5 --- the latter
+// (the R/∋ division) decided by the counterexample set {x≤5} ∩ {x>5} collapsing
+// to ∅ via the complement-pair meet.  So the specialisation is checked against
+// the general law, not merely trusted (the Wadler free theorem, mechanised).
+static_assert(max(le5)(5) == (le5(5) && ((le5 & (ℤ | (π > fix(5_c)))) == Ø{})),
+              "specific max(le5) models (∈) ∩ (R/∋) at the pivot.");
+static_assert(min(ge5)(5) == (ge5(5) && ((ge5 & (ℤ | (π < fix(5_c)))) == Ø{})),
+              "specific min(ge5) models (∈) ∩ (R/∋) at the pivot.");
+
+// max / min over 𝔹 (the finite case): the top / bottom element, via the
+// structured intensional refinement 𝔹 | (· == true/false) → Singleton --- the
+// DSL idiom, no set().  Sibling of max(Halfspace): both read the extremum off
+// the structure rather than searching.
+export template <typename L, typename C>
+constexpr auto max(const UniversalSet<bool, L, C>& s) {
+  return s | (π == fix(true_c));  // {true} = the greatest element of 𝔹
+}
+export template <typename L, typename C>
+constexpr auto min(const UniversalSet<bool, L, C>& s) {
+  return s | (π == fix(false_c));  // {false} = the least element of 𝔹
+}
+
+// Exhibit (finite case): max 𝔹 = {true}, min 𝔹 = {false}.
+static_assert(max(Ω<bool>)(true), "max 𝔹 = {true}.");
+static_assert(!max(Ω<bool>)(false), "false is not the greatest element of 𝔹.");
+static_assert(min(Ω<bool>)(false), "min 𝔹 = {false}.");
+static_assert(!min(Ω<bool>)(true), "true is not the least element of 𝔹.");
+// Modelling witness ("Theorems for Free", type-checked) with a STRUCTURAL
+// IsPredicate --- not an opaque lambda, which cannot feed the collapse.  The
+// specific max(𝔹) models the abstract (∈) ∩ (R/∋): at false the dominance
+// ∀a∈𝔹. a ≤ false FAILS (true ⋠ false), spelled as the halfspace {a ≤ false},
+// so false is correctly NOT the max.
+static_assert(max(Ω<bool>)(false) ==
+                  (Ω<bool>(false) &&
+                   forall(Ω<bool>, Ω<bool> | (π <= fix(false_c)))),
+              "specific max(𝔹) models (∈) ∩ (R/∋), structurally.");
+
 // ── Relative product: composition of relations (Tarski) ────────────────────
 /** @brief The composed predicate @f$(R \gg S)(a,c) = \exists b.\, R(a,b) \wedge
  *  S(b,c)@f$.  Decidable exactly when the intermediate carrier is finite; here
