@@ -11,6 +11,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <concepts>
+#include <ranges>
 #include <type_traits>
 #include <utility>
 
@@ -336,4 +337,37 @@ TEST_CASE("order:halfspace — IntervalProduct preserves cardinality",
     STATIC_CHECK(box(std::pair{2, 0}) == Logic::False);  // 0 ∉ b
     STATIC_CHECK(box(std::pair{0, 0}) == Logic::False);
   }
+}
+
+// Generic extrema (relocated from :quantifier when max/min/argmax moved to the
+// order layer, gated on IsPreOrdered).  Runtime driving for coverage; the
+// compile-time witnesses are static_asserts in halfspace.cppm.
+TEST_CASE("order: max / min are the extremal sets (membership)",
+          "[order][extrema]") {
+  const auto s = std::views::iota(2, 6);  // [2,6)
+  CHECK(max(s)(5));
+  CHECK_FALSE(max(s)(4));
+  CHECK_FALSE(max(s)(6));  // 6 ∉ [2,6): not in the domain at all
+  CHECK(min(s)(2));
+  CHECK_FALSE(min(s)(3));
+}
+
+TEST_CASE("order: argmax / argmin return the optimiser fibre",
+          "[order][extrema][argmax]") {
+  const auto d = std::views::iota(0, 7);               // {0,…,6}
+  const auto cap = [](int x) { return x * (6 - x); };  // concave, peak at 3
+
+  // Unique optimiser: argmax is a function (singleton fibre {3}).
+  CHECK(argmax(d, cap)(3));
+  CHECK_FALSE(argmax(d, cap)(2));
+  // A tie: x mod 2 is maximised by every odd argument (fibre {1,3,5}).
+  const auto odd = [](int x) { return x % 2; };
+  CHECK(argmax(d, odd)(1));
+  CHECK(argmax(d, odd)(3));
+  CHECK(argmax(d, odd)(5));
+  CHECK_FALSE(argmax(d, odd)(2));
+  // argmin of the concave map sits at both ends {0,6}.
+  CHECK(argmin(d, cap)(0));
+  CHECK(argmin(d, cap)(6));
+  CHECK_FALSE(argmin(d, cap)(3));
 }

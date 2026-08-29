@@ -34,6 +34,7 @@ module;
 #include <algorithm>
 #include <concepts>
 #include <cstddef>
+#include <ranges>  // forward_range / range_value_t / views::iota (generic extrema)
 #include <type_traits>
 #include <utility>
 
@@ -41,6 +42,7 @@ export module dedekind.order:halfspace;
 
 import dedekind.category;
 import dedekind.sets;
+import :poset;  // IsPreOrdered — the order gate for the generic extrema
 
 namespace dedekind::order {
 using namespace dedekind::sets;
@@ -1266,6 +1268,84 @@ static_assert(max(Ω<bool>)(false) ==
                   (Ω<bool>(false) &&
                    forall(Ω<bool>, Ω<bool> | (π <= fix(false_c)))),
               "specific max(𝔹) models (∈) ∩ (R/∋), structurally.");
+
+// ── Generic extrema over an enumerable ORDERED set ─────────────────────────
+// max/min/argmax/argmin over an IsEnumerableSet, gated on the ORDER (not
+// finiteness): the carrier (max/min) or the objective's codomain
+// (argmax/argmin) must be @c dedekind::order::IsPreOrdered.  This overload's
+// decidability happens to be the enumerable walk; the halfspace / 𝔹 overloads
+// above decide the SAME family intensionally from structure --- order-gated
+// throughout, finiteness never required.  The comprehension @f$\{x\in s \mid
+// \forall a\in s.\ a\le x\}@f$ is the Bird \& de~Moor @f$\max R =
+// (\in)\cap(R/\ni)@f$ @cite birddemoor1997aop;
+// @c min is the dual, and @c argmax pulls @c ≤ back through @c f.
+export template <typename S>
+concept IsEnumerableSet =
+    std::ranges::forward_range<S> &&
+    dedekind::category::IsSet<decltype(dedekind::category::ambient_set(
+        std::declval<S>()))>;
+
+export template <IsEnumerableSet S>
+  requires IsPreOrdered<std::ranges::range_value_t<S>>
+constexpr auto max(S s) {
+  using T = std::ranges::range_value_t<S>;
+  auto dom = dedekind::category::ambient_set(s);
+  auto dominates = [dom, s](const T& x) {
+    return dom(x) && forall(s, [&x](const T& a) { return a <= x; });
+  };
+  return Set<T, typename decltype(dom)::logic_species, decltype(dominates)>{
+      dominates};
+}
+
+export template <IsEnumerableSet S>
+  requires IsPreOrdered<std::ranges::range_value_t<S>>
+constexpr auto min(S s) {
+  using T = std::ranges::range_value_t<S>;
+  auto dom = dedekind::category::ambient_set(s);
+  auto dominated = [dom, s](const T& x) {
+    return dom(x) && forall(s, [&x](const T& a) { return x <= a; });
+  };
+  return Set<T, typename decltype(dom)::logic_species, decltype(dominated)>{
+      dominated};
+}
+
+export template <IsEnumerableSet S, typename F>
+  requires IsPreOrdered<std::invoke_result_t<F&, std::ranges::range_value_t<S>>>
+constexpr auto argmax(S s, F f) {
+  using T = std::ranges::range_value_t<S>;
+  auto dom = dedekind::category::ambient_set(s);
+  auto dominates = [dom, s, f](const T& x) {
+    return dom(x) && forall(s, [&x, &f](const T& a) { return f(a) <= f(x); });
+  };
+  return Set<T, typename decltype(dom)::logic_species, decltype(dominates)>{
+      dominates};
+}
+
+export template <IsEnumerableSet S, typename F>
+  requires IsPreOrdered<std::invoke_result_t<F&, std::ranges::range_value_t<S>>>
+constexpr auto argmin(S s, F f) {
+  using T = std::ranges::range_value_t<S>;
+  auto dom = dedekind::category::ambient_set(s);
+  auto dominated = [dom, s, f](const T& x) {
+    return dom(x) && forall(s, [&x, &f](const T& a) { return f(x) <= f(a); });
+  };
+  return Set<T, typename decltype(dom)::logic_species, decltype(dominated)>{
+      dominated};
+}
+
+// Extrema over the finite set [2,6) (a lifted iota; the int carrier
+// IsPreOrdered).
+static_assert(max(std::views::iota(2, 6))(5), "5 = max [2,6).");
+static_assert(!max(std::views::iota(2, 6))(4), "4 is not the greatest.");
+static_assert(min(std::views::iota(2, 6))(2), "2 = min [2,6).");
+static_assert(argmax(std::views::iota(0, 7),
+                     [](int x) { return x * (6 - x); })(3),
+              "3 = argmax x·(6−x): the unique optimiser.");
+static_assert(argmin(std::views::iota(0, 7),
+                     [](int x) { return x * (6 - x); })(0) &&
+                  argmin(std::views::iota(0, 7),
+                         [](int x) { return x * (6 - x); })(6),
+              "{0,6} ⊆ argmin x·(6−x).");
 
 // ── Relative product: composition of relations (Tarski) ────────────────────
 /** @brief The composed predicate @f$(R \gg S)(a,c) = \exists b.\, R(a,b) \wedge
