@@ -1038,6 +1038,15 @@ struct ProductRestrict {
   }
 };
 
+// Ω<A×B> | relPred  →  the relation as an IsSet on A × B.  The @b universal
+// product carries no factor restriction, so the relation's membership @b is
+// the rel-predicate: the pure product universe refined to a subobject.
+export template <typename T1, typename T2, typename L, typename C,
+                 IsRelPredicate RP>
+constexpr auto operator|(const UniversalSet<std::pair<T1, T2>, L, C>&, RP rp) {
+  return Set<std::pair<T1, T2>, L, RP>{rp};
+}
+
 // product | relPred  →  the relation as an IsSet on A × B, keeping the
 // product's own membership (so a restricted product bounds the relation).
 export template <typename T1, typename T2, typename L, typename P,
@@ -1045,6 +1054,64 @@ export template <typename T1, typename T2, typename L, typename P,
 constexpr auto operator|(const Set<std::pair<T1, T2>, L, P>& prod, RP rp) {
   return Set<std::pair<T1, T2>, L, ProductRestrict<P, RP>>{
       ProductRestrict<P, RP>{prod.predicate(), rp}};
+}
+
+/**
+ * @section halfspace__Restricted_Products
+ * @brief A @b restricted factor lifts to a @b cylinder on its axis, so
+ *        @c operator* keeps the factor predicates instead of dropping them.
+ *
+ * @details The product is the universal set of products @c Ω<pair> refined by
+ * the two @b cylinders @f$A\times B = \pi_1^{-1}(A)\cap\pi_2^{-1}(B)@f$.  A
+ * total factor's cylinder is the whole universe (nothing to add); a halfspace
+ * factor @f$\{x \bowtie p\}@f$ lifts to the projection halfspace
+ * @f$\pi_I \bowtie \mathrm{fix}(p)@f$ --- the @b same @c ProjBound
+ * rel-predicate the graph surface uses, so a restricted domain and a functional
+ * graph read in one vocabulary and @c dom can recover the factor from the @c
+ * π_I conjunct.
+ */
+
+/** @brief The comparison a halfspace @c (Direction, Strictness) lifts to. */
+export constexpr Rel rel_of(Direction d, Strictness s) {
+  if (d == Direction::Upward) {
+    return s == Strictness::Strict ? Rel::Gt : Rel::Ge;
+  }
+  return s == Strictness::Strict ? Rel::Lt : Rel::Le;
+}
+
+/** @brief @f$\pi_I^{-1}@f$ of a halfspace factor: the cylinder
+ *  @f$\pi_I \bowtie \mathrm{fix}(\text{pivot})@f$ on the product. */
+export template <std::size_t I, typename T, auto Pivot, Direction D,
+                 Strictness S, typename L>
+constexpr auto cylinder(const Halfspace<T, Pivot, D, S, L>&) {
+  return ProjBound<I, rel_of(D, S), Pivot>{};
+}
+
+// restricted × total:  {x ⋈ p} × Ω  =  Ω<pair> | (π1 ⋈ fix(p)).
+export template <typename T, auto P, Direction D, Strictness S, typename L,
+                 typename T2, typename L2, typename C2>
+  requires std::same_as<L, L2>
+constexpr auto operator*(const Halfspace<T, P, D, S, L>& a,
+                         const UniversalSet<T2, L2, C2>&) {
+  return Ω<std::pair<T, T2>, L> | cylinder<1>(a);
+}
+
+// total × restricted:  Ω × {y ⋈ q}  =  Ω<pair> | (π2 ⋈ fix(q)).
+export template <typename T1, typename L1, typename C1, typename T, auto Q,
+                 Direction D, Strictness S, typename L>
+  requires std::same_as<L1, L>
+constexpr auto operator*(const UniversalSet<T1, L1, C1>&,
+                         const Halfspace<T, Q, D, S, L>& b) {
+  return Ω<std::pair<T1, T>, L> | cylinder<2>(b);
+}
+
+// restricted × restricted:  Ω<pair> | (π1 ⋈ fix(p)) & (π2 ⋈ fix(q)).
+export template <typename Ta, auto Pa, Direction Da, Strictness Sa, typename La,
+                 typename Tb, auto Qb, Direction Db, Strictness Sb, typename Lb>
+  requires std::same_as<La, Lb>
+constexpr auto operator*(const Halfspace<Ta, Pa, Da, Sa, La>& a,
+                         const Halfspace<Tb, Qb, Db, Sb, Lb>& b) {
+  return Ω<std::pair<Ta, Tb>, La> | (cylinder<1>(a) & cylinder<2>(b));
 }
 
 /** @section halfspace__Formal_Verification (relational surface) */
@@ -1233,6 +1300,15 @@ static_assert((ℕ * ℕ | π1 + fix(1_c) == π2)(std::pair{finite_cardinality(4
 static_assert(!(ℕ * ℕ | π1 + fix(1_c) == π2)(std::pair{finite_cardinality(4),
                                                        finite_cardinality(6)}),
               "4 + 1 != 6: (4,6) ∉ the successor graph.");
+// A RESTRICTED domain: the successor graph over {x ≤ 5} × ℕ.  operator* keeps
+// the ≤5 bound by lifting it to the π1 cylinder, so x = 7 is excluded even
+// though 8 = 7+1: the factor predicate is not dropped.
+static_assert(((ℕ | (π <= fix(5_c))) * ℕ | π1 + fix(1_c) == π2)(std::pair{
+                  finite_cardinality(4), finite_cardinality(5)}),
+              "(4,5): 4 ≤ 5 ∧ 5 = 4+1, in the restricted successor graph.");
+static_assert(!((ℕ | (π <= fix(5_c))) * ℕ | π1 + fix(1_c) == π2)(std::pair{
+                  finite_cardinality(7), finite_cardinality(8)}),
+              "(7,8): 7 ≰ 5, excluded though 8 = 7+1.");
 // doubling graph: {(a,b) | b = 2a} = ℕ * ℕ | π1 * fix(2_c) == π2.
 static_assert((ℕ * ℕ | π1 * fix(2_c) == π2)(std::pair{finite_cardinality(3),
                                                       finite_cardinality(6)}),

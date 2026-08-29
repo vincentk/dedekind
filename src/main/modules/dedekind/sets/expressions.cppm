@@ -1420,6 +1420,30 @@ constexpr auto cartesian_product(const A& a, const B& b) {
   return cartesian_product(left, right);
 }
 
+/**
+ * @brief The @b universal set of products: @f$\Omega_A \times \Omega_B =
+ *        \Omega_{A\times B}@f$, spelled as the universe over the product
+ *        carrier (@c IsProduct).
+ *
+ * @details Two @b total factors carry no restriction to lift, so the product
+ * @b is the pure product universe @c Ω<pair<A,B>> --- not a refinement of it.
+ * This is the base case of the cylinder decomposition @f$A\times B =
+ * \pi_1^{-1}(A)\cap\pi_2^{-1}(B)@f$: with @c A, @c B universal both cylinders
+ * are the whole universe, so their intersection is too.  A @b restricted
+ * factor instead lifts its predicate onto its axis (@c dedekind.order:
+ * @c π_I over a halfspace), refining this universe into a proper subobject.
+ * The old melting form (@c pa(first) @c && @c pb(second) captured in an
+ * anonymous closure) discarded the factor structure; keeping the universe
+ * explicit lets @c dom / @c cod read the factors back.
+ */
+export template <typename A, typename LA, typename CA, typename B, typename LB,
+                 typename CB>
+  requires std::same_as<LA, LB>
+constexpr auto operator*(const UniversalSet<A, LA, CA>&,
+                         const UniversalSet<B, LB, CB>&) {
+  return Ω<std::pair<A, B>, LA>;
+}
+
 /** @brief Infix sugar for cartesian product over sets. */
 export template <typename T1, typename L1, typename P1, typename T2,
                  typename L2, typename P2>

@@ -1010,6 +1010,23 @@ static_assert(
 \end{minipage}
 \end{listing}
 
+The product itself is a first-class set: $A \times B$ is the universal set of pairs $\Omega_{A\times B}$.
+A \emph{restricted} factor is then a refinement of that universe, not a special case, since $A \times B = \pi_1^{-1}(A) \cap \pi_2^{-1}(B)$.
+Restricting a factor lifts its predicate onto the matching projection, the same $\pi_I$ vocabulary the graph uses, so the bound is carried rather than dropped (Listing~\ref{lst:restricted_product}).
+
+\begin{listing}[htbp]
+\caption{A restricted domain is a cylinder on the product.
+The bound $\le 5$ on the first factor lifts to $\pi_1 \le \mathrm{fix}(5)$, so it survives into the relation instead of being discarded.}
+\label{lst:restricted_product}
+\begin{cpp}
+constexpr auto R =
+  (ℕ | (π <= fix(5_c))) * ℕ   // {x ≤ 5} × ℕ = Ω<pair> | π1 ≤ fix(5)
+  | π1 + fix(1_c) == π2;
+static_assert( R(pair{4,5}));
+static_assert(!R(pair{7,8}));  // 7 ≰ 5: bound not dropped
+\end{cpp}
+\end{listing}
+
 The order playbook of §\ref{sec:ddk_comprehension} now meets a function.
 Reading $\le$ through a map $f\colon \mathrm{dom}\to C$ turns $\max$ into $\arg\max$: not the greatest \emph{value} but every \emph{argument} that attains it.
 The definition is the same forward filter as Equation~\ref{eqn:extrema}, with the carrier's own order replaced by the order $f$ pulls back onto its domain, and it asks nothing of $f$ beyond a comparable codomain: no inverse, no injectivity.
