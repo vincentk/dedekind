@@ -1020,10 +1020,10 @@ The bound $\le 5$ on the first factor lifts to $\pi_1 \le \mathrm{fix}(5)$, so i
 \label{lst:restricted_product}
 \begin{cpp}
 constexpr auto R =
-  (ℕ | (π <= fix(5_c))) * ℕ   // {x ≤ 5} × ℕ = Ω<pair> | π1 ≤ fix(5)
+  (ℕ | (π <= fix(5_c))) * ℕ
   | π1 + fix(1_c) == π2;
 static_assert( R(pair{4,5}));
-static_assert(!R(pair{7,8}));  // 7 ≰ 5: bound not dropped
+static_assert(!R(pair{7,8}));
 \end{cpp}
 \end{listing}
 
