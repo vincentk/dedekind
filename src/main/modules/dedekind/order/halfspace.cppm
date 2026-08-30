@@ -198,6 +198,15 @@ consteval auto operator""_c() {
   return std::integral_constant<int, v>{};
 }
 
+/** @brief Unary minus on a compile-time @c _c constant, so a NEGATIVE pivot or
+ *  shift spells @c -3_c (@c = @c integral_constant<int,-3>) and @c fix(-3_c) is
+ *  @c Bound<-3> --- e.g. the converse of a translation graph, @c fix(-K). */
+export template <int V>
+consteval std::integral_constant<int, -V> operator-(
+    std::integral_constant<int, V>) {
+  return {};
+}
+
 /** @brief Named compile-time boolean constants; @c true / @c false are not
  *  literal tokens a user-defined literal can suffix, so @c true_c / @c false_c
  *  are the @c bool analogues of @c 5_c for @c fix(true_c). */
@@ -1483,17 +1492,54 @@ static_assert(!max(le5)(3), "3 is not the greatest element of {x ≤ 5}.");
 static_assert(min(ge5)(5), "5 = min {x ≥ 5}.");
 static_assert(!min(ge5)(7), "7 is not the least element of {x ≥ 5}.");
 
-// inverse of a translation-graph relation: recognise the graph π1+fix(K)==π2
-// and read it BACKWARDS as the applicable inverse arrow x ↦ x−K.  The graph is
-// the surface; the arrow is what @c inverse hands back (Translation internal).
-// Functions ARE graphs here, so retract / inverse are operations on relations.
+// inverse of a translation-graph relation = its CONVERSE B*A | P⁻¹: the same
+// graph read backwards, x ↦ x−K, again a GRAPH (a relation, not an arrow), so
+// it stays on the surface and composes.  Functions ARE graphs here, so inverse
+// is a relational operation --- the converse with the shift negated.
 export template <typename T, auto K, typename L>
 constexpr auto inverse(
     const Set<std::pair<T, T>, L, ProjAddConstProj<1, K, Rel::Eq, 2>>&) {
-  return dedekind::category::Translation<T, -K>{};
+  return Set<std::pair<T, T>, L, ProjAddConstProj<1, -K, Rel::Eq, 2>>{
+      ProjAddConstProj<1, -K, Rel::Eq, 2>{}};
 }
-static_assert(inverse(ℤ* ℤ | π1 + fix(3_c) == π2)(10) == 7,
-              "inverse(graph of x+3)(10) = 7: the graph read backwards.");
+
+/** @brief Two translation graphs are the same relation iff they carry the same
+ *  shift: structural equality on the graph, compile-time. */
+export template <typename T, auto K1, auto K2, typename L>
+constexpr bool operator==(
+    const Set<std::pair<T, T>, L, ProjAddConstProj<1, K1, Rel::Eq, 2>>&,
+    const Set<std::pair<T, T>, L, ProjAddConstProj<1, K2, Rel::Eq, 2>>&) {
+  return K1 == K2;
+}
+
+/** @brief @b Symbolic composition of translation graphs: @f$T_a \circ T_b =
+ *  T_{a+b}@f$, the shifts added, with @b no @f$\exists@f$ over the intermediate
+ *  (contrast the Boolean relative product below).  This is the group law read
+ *  off the structure; @c + commutes, so the order of composition is immaterial
+ *  --- the abelian translation group, at compile time. */
+export template <typename T, auto A, auto B, typename L>
+constexpr auto operator>>(
+    const Set<std::pair<T, T>, L, ProjAddConstProj<1, A, Rel::Eq, 2>>&,
+    const Set<std::pair<T, T>, L, ProjAddConstProj<1, B, Rel::Eq, 2>>&) {
+  return Set<std::pair<T, T>, L, ProjAddConstProj<1, A + B, Rel::Eq, 2>>{
+      ProjAddConstProj<1, A + B, Rel::Eq, 2>{}};
+}
+
+// The translation group, at compile time: closure (T₂∘T₃ = T₅), the converse as
+// inverse (T₃⁻¹ = T₋₃), and the abelian cancellation f∘g∘h∘g⁻¹ = f∘h (g and its
+// inverse annihilate through h because + commutes).
+static_assert(((ℤ * ℤ | π1 + fix(2_c) == π2) >>
+               (ℤ * ℤ | π1 + fix(3_c) == π2)) == (ℤ * ℤ | π1 + fix(5_c) == π2),
+              "closure: T₂ ∘ T₃ = T₅ (shifts add, symbolically).");
+static_assert(inverse(ℤ* ℤ | π1 + fix(3_c) == π2) ==
+                  (ℤ * ℤ | π1 + fix(-3_c) == π2),
+              "inverse = converse graph: T₃⁻¹ = T₋₃.");
+static_assert(((ℤ * ℤ | π1 + fix(2_c) == π2) >> (ℤ * ℤ | π1 + fix(3_c) == π2) >>
+               (ℤ * ℤ | π1 + fix(5_c) == π2) >>
+               inverse(ℤ * ℤ | π1 + fix(3_c) == π2)) ==
+                  ((ℤ * ℤ | π1 + fix(2_c) == π2) >>
+                   (ℤ * ℤ | π1 + fix(5_c) == π2)),
+              "abelian: f∘g∘h∘g⁻¹ = f∘h (g cancels through h; + commutes).");
 
 /** @brief Two halfspaces are the same set iff they share pivot, direction and
  *  strictness (the carrier and logic already match): structural set equality,
@@ -1526,6 +1572,17 @@ static_assert(image(ℤ* ℤ | π1 + fix(3_c) == π2) == ℤ,
 static_assert(image((ℤ * ℤ | π1 + fix(3_c) == π2) | π1 <= fix(5_c)) ==
                   (ℤ | (π <= fix(8_c))),
               "image over {x ≤ 5} pushes forward to {y ≤ 8}.");
+
+// Circle back to the complement-lattice collapse of Listing 2: the constrained
+// image of a COMPOSITE folds to ∅.  hc = T₂∘T₃ = T₅ pushes the domain {x≤1}
+// forward to {y≤6}, which meets the incompatible codomain {y>6}; the two
+// complementary halfspaces collapse to Ø --- the SAME meet-to-empty as
+// {x≤5}∩{x>5}, now EMERGENT from composition rather than posited.
+static_assert(
+    (image(((ℤ * ℤ | π1 + fix(2_c) == π2) >> (ℤ * ℤ | π1 + fix(3_c) == π2)) |
+           π1 <= fix(1_c)) &
+     (ℤ | (π > fix(6_c)))) == Ø{},
+    "constrained image of the composite T₂∘T₃ collapses: {y≤6} ∩ {y>6} = ∅.");
 
 /** @brief @c is_function(R) --- the bracket-free query: @c R is a bona fide
  *  function.  A graph @f$\pi_2 = \pi_1 + K@f$ is single-valued in @f$\pi_2@f$

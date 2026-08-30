@@ -389,7 +389,8 @@ TEST_CASE("order:halfspace — a function is its graph: inverse and image",
   STATIC_CHECK(is_function(f));
 
   volatile int ten = 10;
-  CHECK(inverse(f)(int(ten)) == 7);  // read the graph backwards: 10 ↦ 7
+  CHECK(inverse(f)(std::pair{int(ten), 7}));        // (10,7) ∈ f⁻¹ (converse)
+  CHECK_FALSE(inverse(f)(std::pair{int(ten), 8}));  // (10,8) ∉ f⁻¹
 
   const auto s = image(f | π1 <= fix(5_c));  // range over {x≤5} = {y≤8}
   volatile int eight = 8, nine = 9;
