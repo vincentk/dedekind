@@ -112,18 +112,14 @@ constexpr bool forall(const S& s, P p) {
  * @brief Quantifiers over a @b finite carrier, decided @b by type through the
  *        finite quotient rather than by enumeration.
  *
- * @details The extensional carrier @f$\mathbb{B}@f$ is the trivial case: its
- * two values @b are the quotient.  @c set materialises the predicate over
- * @c false and @c true into a @c FiniteBooleanSet, and @c Ø::operator== reads
- * off the two stored truths (@f$\varnothing@f$ iff neither is a member).  No
- * range, no @c begin/end walk: the proof is exhaustion of a 2-element quotient.
- * The infinite, periodic case (@c isEven factoring through @c Modular<2>) is
- * the same mechanism over @f$\mathbb{Z}/N\mathbb{Z}@f$; see the §3.1 exhibit.
+ * @details The comprehension is the where-clause @c S @c | @c P: on
+ * @f$\mathbb{B}@f$ a fragment collapses structurally (@c π==fix(v) to a @c
+ * Singleton, @c π⋈fix(v) to a @c Halfspace), each carrying a finite @c ==Ø /
+ * @c ==Ω over @c {false, true}; on @f$\mathbb{N}@f$ a congruence @c π%fix(N)==
+ * fix(R) materialises to a @c FiniteResidueSet over
+ * @f$\mathbb{Z}/N\mathbb{Z}@f$. No range, no @c begin/end walk: the proof is
+ * exhaustion of a finite quotient. See the §3.1 exhibit.
  */
-export template <typename L, typename P>
-constexpr auto set(const UniversalSet<bool, L, Finite>&, P p) {
-  return FiniteBooleanSet<L>{p(false), p(true)};
-}
 
 // A quantifier is one comparison of the comprehension @c set(S,P) against a
 // lattice bound (Eqn 2): @c exists tests against @c ∅ (scheme A), @c forall

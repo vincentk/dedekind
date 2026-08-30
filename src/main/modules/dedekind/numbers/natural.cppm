@@ -502,36 +502,9 @@ static_assert(IsMonotone<std::decay_t<decltype(dedekind::numbers::embed_𝔹_ℕ
 // ───────────────────────────────────────────────────────────────────────────
 namespace dedekind::sets {
 
-/**
- * @struct ScoutModN
- * @brief A bound scout reduced modulo @c N: the intermediate of
- *        @c in<ℕ> @c % @c Modular<N>, awaiting a residue to compare against.
- *
- * @details Mirrors the halfspace DSL @c in<ℕ> @c > @c bound<5>: the telling
- * @c operator% factors the scout through the finite quotient @c Modular<N>,
- * then @c == @c bound<R> selects the residue class, reifying @c
- * Congruence<N,R>.
- * FIXME(#797): as §3 morphism-factorisation / §4 quotients mature, @c % may
- * generalise to a factor-through-quotient combinator.
- */
-export template <auto N>
-struct ScoutModN {};
-
-/** @brief @c in<ℕ> @c % @c Modular<N>{}: factor the scout through
- * @f$\mathbb{Z}/N\mathbb{Z}@f$. */
-export template <auto Ambient, auto N>
-  requires std::same_as<typename BoundScout<Ambient>::T, Cardinality>
-constexpr auto operator%(const BoundScout<Ambient>&,
-                         dedekind::morphologies::Modular<N>) {
-  return ScoutModN<N>{};
-}
-
-/** @brief @c (in<ℕ> % Modular<N>) @c == @c bound<R>: reify the residue class.
- */
-export template <auto N, auto R>
-constexpr auto operator==(ScoutModN<N>, dedekind::order::Bound<R>) {
-  return dedekind::morphologies::Congruence<N, R>{};
-}
+// (The in<ℕ> % Modular<N> == bound<R> scout that reified Congruence<N,R> lived
+// here; retired with the S | P fold --- the point-free congruence fragment is
+// π % fix(N) == fix(R), materialised by the operator| bridge below.)
 
 /**
  * @struct FiniteResidueSet
@@ -570,19 +543,6 @@ struct FiniteResidueSet {
     return s == u;
   }
 };
-
-/** @brief @c set(ℕ, congruence): materialise the predicate over the N residues
- *  of @c Modular<N> (the reduction is the @c Modular<N> constructor).
- *  TRANSITIONAL: retired once the s|p fold lands; kept while the scout path and
- *  the operator| bridge below coexist. */
-export template <typename L, typename C, auto N, auto R>
-constexpr auto set(const UniversalSet<Cardinality, L, C>&,
-                   dedekind::morphologies::Congruence<N, R> c) {
-  std::array<typename L::Ω, N> at{};
-  for (std::size_t r = 0; r < static_cast<std::size_t>(N); ++r)
-    at[r] = c(r) ? L::True : L::False;
-  return FiniteResidueSet<N, L>{at};
-}
 
 /** @brief @c ℕ @c | @c (π % fix(N) == fix(R)): the point-free residue class,
  *  materialised over the N residues of @f$\mathbb{Z}/N\mathbb{Z}@f$.  The
