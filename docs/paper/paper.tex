@@ -1028,41 +1028,12 @@ static_assert(!R(pair{7,8}));
 \end{listing}
 
 The order playbook of §\ref{sec:ddk_comprehension} now meets a function.
-Reading $\le$ through a map $f\colon \mathrm{dom}\to C$ turns $\max$ into $\arg\max$: not the greatest \emph{value} but every \emph{argument} that attains it.
-The definition is the same forward filter as Equation~\ref{eqn:extrema}, with the carrier's own order replaced by the order $f$ pulls back onto its domain, and it asks nothing of $f$ beyond a comparable codomain: no inverse, no injectivity.
-\begin{equation}
-\label{eqn:argmax}
-\begin{aligned}
-\arg\max_{f} &\;:\equiv\; \{x \in \mathrm{dom} \mid \forall x' \in \mathrm{dom}.\; f(x') \le f(x)\},\\
-\arg\min &\;:\equiv\; \arg\max \text{ under } {\le}\mapsto{\ge}.
-\end{aligned}
-\end{equation}
-Read as a relation this is the pulled-back comparison $f(\pi_1) \le f(\pi_2)$ on $\mathrm{dom}\times\mathrm{dom}$, universally quantified over $\pi_1$: Listing~\ref{lst:relation_examples}'s $\pi_1 \le \pi_2$ with each side seen through $f$.
-The objective $f$ is generic, any map into a comparable codomain; supply a point-free $f$ and the whole relation stays compiler-inspectable, but the filter asks only for its values, never its inverse.
-Because the answer is a set, the (domain, codomain, constraint) triple hands back the degenerate cases as a \emph{cardinality} rather than as special code: the fibre $f^{-1}(\max f(\mathrm{dom}))$ is empty when there is no maximum, a singleton exactly when the optimiser is unique (so $\arg\max$ is a function), and larger under ties (so $\arg\max$ is a proper relation), the same fibre bookkeeping Table~\ref{tab:relation-quantifier} reads off a projection (Listing~\ref{lst:argmax_def}).
-
-\begin{listing}[htbp]
-\caption{$\arg\max$ over a \emph{partial function}: a compile-time constrained optimum.
-Constraining the codomain of the graph $x \mapsto x+3$, bounded ($\pi_2 \le 8$) and restricted to a residue class ($\pi_2 \equiv 0 \bmod 3$), drops \emph{entire} but keeps \emph{functional} (Table~\ref{tab:relation-quantifier}): the same graph is now a partial function.
-Its feasible domain is that codomain constraint pulled back through the graph, $\{x \le 5 \wedge x \equiv 0 \bmod 3\}$, and because a translation is monotone $\arg\max$ is that domain's greatest element, $3$, read off structurally with no search.}
-\label{lst:argmax_def}
-\begin{cpp}
-constexpr auto g = ℤ * ℤ | π1 + fix(3_c) == π2   // x ↦ x+3 ...
-                     | π2 <= fix(8_c)              //   ... into a bounded ...
-                     & π2 % fix(3_c) == fix(0_c);  //   ... residue codomain
-static_assert(!is_entire(g));                       // a partial function now
-static_assert( argmax(g)(3));                       // max{x≤5, x≡0 mod 3} = 3
-static_assert(!argmax(g)(4));                        // 4 ≢ 0 mod 3
-\end{cpp}
-\end{listing}
-
-The optimum is not searched for but read off the structure: the codomain bound and the congruence, pulled back through the graph, fix the feasible domain, and a monotone objective makes $\arg\max$ its greatest element.
-Where the objective is not monotone, or the domain not so structured, the filter still types but decides only where §\ref{sec:ddk_comprehension}'s certificates reach.
+Before optimising over one, we settle what a function \emph{is} on this surface, and how its image is decided.
 
 \subsubsection{Functions and Morphism Factorization Gates}
 \label{sec:functions_morphism_factorization}
 
-Image membership, $y \in \mathrm{image}(f)$, is the same existential once more, now on the domain side: $\exists x.\, f(x) = y$.
+Image membership, $y \in \mathrm{image}(f)$, is an existential on the domain side: $\exists x.\, f(x) = y$.
 Over a finite or finite-quotient domain the certificates of §\ref{sec:ddk_comprehension} discharge it; over an unconstrained, transfinite domain neither applies, and a raw search of the domain is undecidable.
 The remaining handle is a \emph{closed-form} certificate: a \emph{retract}, the partial inverse of the mono leg of the map's epic-monic factorization, which \emph{computes} the witness $x$ rather than searching for it.
 This is not a rival to the quantifier but the case where the existential has a closed-form solution: the same $\exists x.\, f(x)=y$, discharged by construction.
@@ -1154,7 +1125,42 @@ static_assert(img(finite_cardinality(7)) == Ternary::Unknown);
 
 By utilizing the \cppinline{retract} partial witness of an \cppinline{IsRetractableArrow} (the mono leg's partial inverse, returning \cppinline{std::optional}), the compiler evaluates codomain membership as a local lookup on the image boundary rather than a search of the domain.
 This structural approach ensures that even highly complex or non-linear functional images can be safely validated at compile time.
-The type system can consequently treat arbitrary transformations as well-behaved objects, laying a reliable foundation for the universal-algebraic operators developed in the subsequent section.
+The type system can consequently treat arbitrary transformations as well-behaved objects, the foundation on which the optimisation that closes this section, and the universal algebra beyond it, are built.
+
+\subsubsection{Optimization: $\arg\max$ over a Function}
+\label{sec:argmax}
+
+With functions and their images in hand, optimising over one is the same order playbook read through a map.
+Reading $\le$ through $f\colon \mathrm{dom}\to C$ turns $\max$ into $\arg\max$: not the greatest \emph{value} but every \emph{argument} that attains it.
+The definition is the forward filter of Equation~\ref{eqn:extrema}, with the carrier's own order replaced by the order $f$ pulls back onto its domain, and it asks nothing of $f$ beyond a comparable codomain: no inverse, no injectivity.
+\begin{equation}
+\label{eqn:argmax}
+\begin{aligned}
+\arg\max_{f} &\;:\equiv\; \{x \in \mathrm{dom} \mid \forall x' \in \mathrm{dom}.\; f(x') \le f(x)\},\\
+\arg\min &\;:\equiv\; \arg\max \text{ under } {\le}\mapsto{\ge}.
+\end{aligned}
+\end{equation}
+Read as a relation this is the pulled-back comparison $f(\pi_1) \le f(\pi_2)$ on $\mathrm{dom}\times\mathrm{dom}$, universally quantified over $\pi_1$: Listing~\ref{lst:relation_examples}'s $\pi_1 \le \pi_2$ with each side seen through $f$.
+Because the answer is a set, the degenerate cases fall out as a \emph{cardinality} rather than as special code: the winning fibre is empty when there is no maximum, a singleton exactly when the optimiser is unique (so $\arg\max$ is a function), and larger under ties (so $\arg\max$ is a proper relation), the same fibre bookkeeping Table~\ref{tab:relation-quantifier} reads off a projection.
+Constraining the codomain, as in §\ref{sec:functions_morphism_factorization}, turns the graph into a partial function whose feasible domain is the codomain constraint pulled back through it; a monotone objective then makes $\arg\max$ that domain's greatest element (Listing~\ref{lst:argmax_def}).
+
+\begin{listing}[htbp]
+\caption{$\arg\max$ over a \emph{partial function}: a compile-time constrained optimum.
+Constraining the codomain of the graph $x \mapsto x+3$, bounded ($\pi_2 \le 8$) and restricted to a residue class ($\pi_2 \equiv 0 \bmod 3$), drops \emph{entire} but keeps \emph{functional} (Table~\ref{tab:relation-quantifier}): the same graph is now a partial function.
+Its feasible domain is that codomain constraint pulled back through the graph, $\{x \le 5 \wedge x \equiv 0 \bmod 3\}$, and because a translation is monotone $\arg\max$ is that domain's greatest element, $3$, read off structurally with no search.}
+\label{lst:argmax_def}
+\begin{cpp}
+constexpr auto g = ℤ * ℤ | π1 + fix(3_c) == π2   // x ↦ x+3 ...
+                     | π2 <= fix(8_c)              //   ... into a bounded ...
+                     & π2 % fix(3_c) == fix(0_c);  //   ... residue codomain
+static_assert(!is_entire(g));                       // a partial function now
+static_assert( argmax(g)(3));                       // max{x≤5, x≡0 mod 3} = 3
+static_assert(!argmax(g)(4));                        // 4 ≢ 0 mod 3
+\end{cpp}
+\end{listing}
+
+The optimum is not searched for but read off the structure: the codomain bound and the congruence, pulled back through the graph, fix the feasible domain, and a monotone objective makes $\arg\max$ its greatest element.
+Where the objective is not monotone, or the domain not so structured, the filter still types but decides only where §\ref{sec:ddk_comprehension}'s certificates reach.
 
 %------
 \section{Universal Algebra and the Poset of Carriers}
