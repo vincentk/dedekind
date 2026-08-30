@@ -1093,15 +1093,15 @@ This is also what discharges the $\arg\max$ of §\ref{sec:relations_functions_bl
 \caption{A non-injective map decided through its (regular epi, mono) factorization: $2|x|$.  It is not monic, so it ships a \cppinline{retract} (the mono leg: the canonical preimage ${+}y/2$) and a \cppinline{cofibre} (the epi leg: the class $\{{+}x,{-}x\}$), and \cppinline{image} ORs the source over the whole fibre.  Sound where a lone retract is not: $6 \in 2|x|(\{x<0\})$ holds via ${-}3$, though the canonical ${+}3$ is not in the source (abridged from the checked-in test).}
 \label{lst:functional_image_fold}
 \begin{cpp}
-struct Fold { using Domain = int; using Codomain = int;
+struct AbsDouble { using Domain = int; using Codomain = int;
   constexpr int operator()(int x) const { return 2*(x<0?-x:x); } };
-constexpr auto retract(Fold) {          // mono leg: canonical +y/2
+constexpr auto retract(AbsDouble) {          // mono leg: canonical +y/2
   return [](int y) -> std::optional<int> {
     return (y>=0 && y%2==0) ? std::optional{y/2} : std::nullopt; }; }
-constexpr auto cofibre(Fold) {          // epi leg: the class {+x, -x}
+constexpr auto cofibre(AbsDouble) {          // epi leg: the class {+x, -x}
   return [](int x) { return std::array{x, -x}; }; }
 
-constexpr auto img = image(Fold{}, negative);   // img(6) == true, via -3
+constexpr auto img = image(AbsDouble{}, negative);   // img(6) == true, via -3
 \end{cpp}
 \end{listing}
 

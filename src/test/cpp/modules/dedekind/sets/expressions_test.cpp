@@ -31,44 +31,43 @@ constexpr auto retract(DoubleArrow) {
 }
 }  // namespace retract_image_test
 
-// Fold: int → int, x ↦ 2·|x|.  The NON-injective main course after the
+// AbsDouble: int → int, x ↦ 2·|x|.  The NON-injective main course after the
 // injective DoubleArrow appetizer.  On ℤ the map is 2-to-1: the fibre of y
-// is {+y/2, −y/2}, so Fold is NOT monic (we deliberately do not register it
-// so).  It factors as ℤ ↠ ℕ ↪ ℤ (x ↦ |x|, then n ↦ 2n): the epi folds the
+// is {+y/2, −y/2}, so AbsDouble is NOT monic (we deliberately do not register
+// it so).  It factors as ℤ ↠ ℕ ↪ ℤ (x ↦ |x|, then n ↦ 2n): the epi folds the
 // sign, the mono is the doubler.  The mono leg's retract names ONE preimage
 // (+y/2 when y is a nonnegative even), and the epi leg's cofibre expands a
 // point to its whole class {+x, −x}.  Image membership ORs the source over
 // that fibre --- which is why it stays sound where a single retract would
 // not (e.g. 6 ∈ 2|x|({x<0}) via −3, though the canonical preimage is +3).
 namespace retract_image_test {
-struct Fold {
+struct AbsDouble {
   using Domain = int;
   using Codomain = int;
   constexpr int operator()(int x) const { return 2 * (x < 0 ? -x : x); }
 };
 // mono leg (n ↦ 2n) inverse ∘ epi section: the canonical preimage +y/2.
-constexpr auto retract(Fold) {
+constexpr auto retract(AbsDouble) {
   return [](const int& y) -> std::optional<int> {
     return (y >= 0 && y % 2 == 0) ? std::optional{y / 2} : std::nullopt;
   };
 }
 // epi leg (x ↦ |x|) fibre: the equivalence class {+x, −x} through x.
-constexpr auto cofibre(Fold) {
+constexpr auto cofibre(AbsDouble) {
   return [](const int& x) { return std::array<int, 2>{x, -x}; };
 }
 }  // namespace retract_image_test
 
 // Register the monic trait so IsMonicArrow (and IsRetractableArrow) fire on
-// DoubleArrow.  Fold is deliberately NOT monic; instead it opts into an
+// DoubleArrow.  AbsDouble is deliberately NOT monic; instead it opts into an
 // operational (regular epi, mono) factorisation (retract + cofibre above).
 template <>
 inline constexpr bool
     dedekind::category::is_monic_arrow_v<retract_image_test::DoubleArrow> =
         true;
 template <>
-inline constexpr bool
-    dedekind::category::has_regular_factorisation_v<retract_image_test::Fold> =
-        true;
+inline constexpr bool dedekind::category::has_regular_factorisation_v<
+    retract_image_test::AbsDouble> = true;
 
 TEST_CASE("Dedekind MVP: Basic Membership and Symbols", "[sets]") {
   SECTION("Integer Universe Membership") {
@@ -577,16 +576,16 @@ TEST_CASE(
     "Dedekind Sets: image(non-injective 2|x| via factorisation, Set) — "
     "the whole fibre",
     "[sets][image][retract][factorisation][layer2][602]") {
-  // Fold = 2|x| is NON-injective (fibre of y is {±y/2}), so it is not monic;
-  // it opts into an operational (regular epi, mono) factorisation instead.
-  // image(Fold, S)(y) ORs the source over the WHOLE fibre, so it stays sound
-  // where a single canonical retract (+y/2) would not.
+  // AbsDouble = 2|x| is NON-injective (fibre of y is {±y/2}), so it is not
+  // monic; it opts into an operational (regular epi, mono) factorisation
+  // instead. image(AbsDouble, S)(y) ORs the source over the WHOLE fibre, so it
+  // stays sound where a single canonical retract (+y/2) would not.
   SECTION("Classical: membership ORs the source over the entire fibre") {
     const auto positive_pred = [](const int& v) { return v > 0; };
     const Set<int, ClassicalLogic, decltype(positive_pred)> positive{
         positive_pred};
 
-    auto img = image(retract_image_test::Fold{}, positive);
+    auto img = image(retract_image_test::AbsDouble{}, positive);
 
     // Logic species / ambient preserved (no TernaryLogic demotion).
     STATIC_CHECK(
@@ -612,7 +611,7 @@ TEST_CASE(
     const Set<int, ClassicalLogic, decltype(negative_pred)> negative{
         negative_pred};
 
-    auto img = image(retract_image_test::Fold{}, negative);
+    auto img = image(retract_image_test::AbsDouble{}, negative);
 
     CHECK(img(6) == true);   // via -3 ∈ {x<0}, though the canonical +3 is not
     CHECK(img(0) == false);  // fibre {0}: 0 is not < 0
