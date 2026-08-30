@@ -664,32 +664,31 @@ Where $\exists$ and $\forall$ test the comprehension against a bound and return 
 \qquad
 \min \;:\equiv\; \max \text{ under } {\le} \mapsto {\ge}.
 \end{equation}
-The membership condition is a bounded $\forall$, so an extremum is literally \cppinline{forall} composed with the order (Listing~\ref{lst:extrema_def}, top), and $\min$ is $\max$ read in the dual order, the way $\forall$ was $\exists$ under $\neg$.
-No inverse, product, or projection enters yet; a bare comparison suffices, which is why the extremum of a set lands before relations do.
-The answer is a set, so the degenerate cases need no special casing: an empty carrier gives $\varnothing$, and a total or partial order gives a singleton (a greatest element, when it exists, is unique by antisymmetry) or $\varnothing$; a larger set arises only under a \emph{preorder}, where distinct elements can be equivalent and tie for the top (Listing~\ref{lst:extrema_def}, bottom).
-Being a comprehension, the extremum is lazy and inherits the quantifier's call-site bargain: it types in for any set and order, but decides only where the carrier is finite (walk it) or the order hands over a finite quotient.
-The dominance $\forall$ over an unbounded halfspace on $\mathbb{N}$ that carries no such handle stays undecided, the same Rice wall as before, and $\max$ over it returns \texttt{Unknown} rather than a fabricated bound.
+In code it is one generic definition: $S$ met with its \cppinline{upperbounds}, the region $R/\ni$ that dominates all of $S$ (Listing~\ref{lst:extrema_def}, top).
+Read relationally, \cppinline{upperbounds} is the $\forall$-projection of the order relation \cppinline{S * S | π1 <= π2} onto its second coordinate, so $\max$ keeps the $\pi_2$ that every $\pi_1$ precedes; $\min$ is the same in the dual order, the way $\forall$ was $\exists$ under $\neg$.
+The implementation builds no product and needs no inverse: the meet of $S$ with a comparison-defined halfspace suffices, which is why the extremum of a set lands before relations do.
+The answer is a set, so the degenerate cases need no special casing: an empty carrier gives $\varnothing$, and a total or partial order gives a singleton (a greatest element, when it exists, is unique by antisymmetry) or $\varnothing$; a larger set arises only under a \emph{preorder}, where distinct elements can be equivalent and tie for the top.
+Being generic, $\max$ types in for any ordered carrier and decides wherever \cppinline{upperbounds} is settled by structure: a halfspace's dual (an upward halfspace, unbounded above, has none, so $\max$ is $\varnothing$) or a finite carrier's top.
+A carrier that hands over no such handle matches no \cppinline{upperbounds}, hence no \cppinline{max}: a compile error, the same Rice wall as the quantifiers, rather than a fabricated bound.
 Section~\ref{sec:relations_functions_blueprint} lifts $\le$ from a bare comparison to a function's graph, and the same filter becomes $\arg\max$.
 
 \begin{listing}[htbp]
-\caption{The extremal sets.
-\textbf{Top}: \cppinline{max} / \cppinline{min} over an enumerable set \cppinline{S}, each the comprehension whose membership test is a bounded \cppinline{forall} over the order (\cppinline{min} is \cppinline{max} in the dual order); the result is itself an \cppinline{IsSet}.
-\textbf{Bottom}: over the lifted range $[2,6)$ each extremum is a singleton, so membership \cppinline{max(D)(x)} is the extremum test.}
+\caption{The extremal sets: one generic definition, its $\forall$-projection decided by structure.
+\textbf{Top}: \cppinline{max} is \cppinline{S} met with its \cppinline{upperbounds} (the $\forall$-projection $R/\ni$, $\{\pi_2\in S \mid \forall\pi_1\in S.\; \pi_1\le\pi_2\}$, Equation~\ref{eqn:extrema}); \cppinline{min} is the dual.
+\cppinline{upperbounds} is the pluggable point (as $\forall$/$\exists$ plug into \cppinline{==}), settled \emph{symbolically} per structure, so no candidate is enumerated; the meet then collapses $\{x\le p\}\cap\{x\ge p\}$ to the attained pivot $\{p\}$, or to $\varnothing$ when the bound is unattained (strict) or absent (unbounded).
+\textbf{Bottom}: witnesses on $\mathbb{B}$ (finite) and an infinite halfspace.}
 \label{lst:extrema_def}
 \noindent
-\begin{minipage}[t]{0.49\linewidth}
+\begin{minipage}[t]{0.99\linewidth}
 \begin{cpp}
-// 𝔹 (finite): the top / bottom, via the where-clause
-auto max(Ω<bool> s) { return s | (π == fix(true_c)); }
-auto min(Ω<bool> s) { return s | (π == fix(false_c)); }
-\end{cpp}
-\end{minipage}\hfill
-\begin{minipage}[t]{0.49\linewidth}
-\begin{cpp}
-// a halfspace: the pivot, read off the type — no walk
-auto max(Halfspace<T,p,Down,NonStrict>) {
-  return Singleton<p>{};   // greatest = p
-}
+// One generic definition — S met with its ∀-dominators (Bird & de Moor):
+//   max S = structured_and(S, upperbounds(S)) = S ∩ (R/∋) = {π2∈S | ∀π1∈S. π1 ≤ π2}
+auto max(S s) { return structured_and(s, upperbounds(s)); }  // min: S ∩ lowerbounds(S)
+
+// upperbounds = the ∀-projection R/∋, decided by structure (the pluggable point):
+auto upperbounds(Halfspace<T,p,Down,_>) { return Halfspace<T,p,Up,NonStrict>{}; } // {x≥p}
+auto upperbounds(Halfspace<T,p,Up,_>)   { return Ø<T>{}; }        // unbounded → no bound
+auto upperbounds(Ω<bool>)               { return Singleton<true>{}; }   // 𝔹: the top ⊤
 \end{cpp}
 \end{minipage}
 
@@ -697,9 +696,9 @@ auto max(Halfspace<T,p,Down,NonStrict>) {
 \noindent
 \begin{minipage}[t]{0.99\linewidth}
 \begin{cpp}
-static_assert(max(𝔹)(true));   static_assert(min(𝔹)(false)); // finite: {true} / {false}
-static_assert(max(ℤ | (π <= fix(5_c)))(5));   // intensional (infinite): max {x ≤ 5} = {5}
-static_assert(min(ℤ | (π >= fix(5_c)))(5));   //                         min {x ≥ 5} = {5}
+static_assert(max(𝔹)(true));   static_assert(min(𝔹)(false)); // 𝔹 ∩ {⊤}/{⊥} = {true}/{false}
+static_assert(max(ℤ | (π <= fix(5_c)))(5));   // {x≤5} ∩ {x≥5} = {5}: the attained sup
+static_assert(min(ℤ | (π >= fix(5_c)))(5));   // {x≥5} ∩ {x≤5} = {5}
 \end{cpp}
 \end{minipage}
 \end{listing}

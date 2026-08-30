@@ -1457,28 +1457,76 @@ static_assert(
                            finite_cardinality(20))(finite_cardinality(4)),
     "apply(R,20) does not contain 4.");
 
-// ── Intensional extrema on halfspaces (Bird & de Moor @cite birddemoor1997aop)
-// The SPECIFIC decidable overloads of the abstract @f$\max R = (\in) \cap
-// (R/\ni)@f$: a halfspace bounded ABOVE (@c {x ≤ p}, @c Downward + non-strict)
-// has greatest element @c p, read off the @b pivot rather than searched for;
-// the unbounded / strict directions have no greatest element, so @c max is the
-// empty set.  Dually @c min solves a LOWER bound.  Jlt-clean: a specific
-// overload per decidable structure, no generic search.
-export template <typename T, auto Pivot, Direction D, Strictness S, typename L>
-constexpr auto max(Halfspace<T, Pivot, D, S, L>) {
-  if constexpr (D == Direction::Downward && S == Strictness::NonStrict) {
-    return Singleton<Pivot, L>{};  // {p}: the attained greatest element
-  } else {
-    return Ø<T, L>{};  // unbounded above, or the supremum is not attained
-  }
+// ── Intensional extrema (Bird & de Moor @cite birddemoor1997aop)
+// ──────────────
+// @f$\max@f$ is one GENERIC definition, the @f$\forall@f$-projection of the
+// order relation onto its second coordinate:
+// @f[ \max S \;=\; \{\pi_2 \in S \mid \forall \pi_1 \in S.\; \pi_1 \le \pi_2\}
+//              \;=\; S \cap \mathrm{upperbounds}(S) \;=\; (\in) \cap (R/\ni).
+//              @f]
+// The @f$\forall@f$-projection @c R/\ni @b is @c upperbounds: the region
+// dominating all of @c S.  IT is the pluggable point (as @f$\forall@f$/
+// @f$\exists@f$ plug into @c Ø::operator==), decided SYMBOLICALLY per structure
+// so no candidate is enumerated: a halfspace bounded ABOVE (@c {x ≤ p}) is
+// dominated exactly by @c {x ≥ p}; one unbounded above (@c {x ≥ p}) has no
+// upper bound (@c Ø).  @c lowerbounds is the dual.  The generic @c max/min
+// below then meet @c S with them --- and the meet, @c structured_and, collapses
+// the interval to the attained pivot (@c {x≤p} ∩ {x≥p} = @c {p}) or, when the
+// sup is not attained (strict) or absent (unbounded), to @c Ø.
+export template <typename T, auto p, Strictness S, typename L>
+constexpr auto upperbounds(Halfspace<T, p, Direction::Downward, S, L>) {
+  return Halfspace<T, p, Direction::Upward, Strictness::NonStrict, L>{};
 }
-export template <typename T, auto Pivot, Direction D, Strictness S, typename L>
-constexpr auto min(Halfspace<T, Pivot, D, S, L>) {
-  if constexpr (D == Direction::Upward && S == Strictness::NonStrict) {
-    return Singleton<Pivot, L>{};  // {p}: the attained least element
-  } else {
-    return Ø<T, L>{};
-  }
+export template <typename T, auto p, Strictness S, typename L>
+constexpr auto upperbounds(Halfspace<T, p, Direction::Upward, S, L>) {
+  return Ø<T, L>{};  // unbounded above: no upper bound
+}
+export template <typename T, auto p, Strictness S, typename L>
+constexpr auto lowerbounds(Halfspace<T, p, Direction::Upward, S, L>) {
+  return Halfspace<T, p, Direction::Downward, Strictness::NonStrict, L>{};
+}
+export template <typename T, auto p, Strictness S, typename L>
+constexpr auto lowerbounds(Halfspace<T, p, Direction::Downward, S, L>) {
+  return Ø<T, L>{};  // unbounded below: no lower bound
+}
+// 𝔹: the whole carrier is bounded --- ⊤ dominates it, ⊥ is dominated by it.
+export template <typename L, typename C>
+constexpr auto upperbounds(const UniversalSet<bool, L, C>&) {
+  return Singleton<true, L>{};
+}
+export template <typename L, typename C>
+constexpr auto lowerbounds(const UniversalSet<bool, L, C>&) {
+  return Singleton<false, L>{};
+}
+
+// Meet completions the @f$\forall@f$-projection needs: @c Ø absorbs (no upper
+// bound ⟹ no max), and the universe is the meet identity (@c Ω ∩ X = X, so
+// @c 𝔹 ∩ {⊤} = {⊤}).  Ordinary halfspace pairs keep routing to the
+// direction/strictness @c structured_and overloads above.
+export template <typename T, auto p, Direction D, Strictness S, typename L,
+                 typename LZ>
+constexpr auto structured_and(Halfspace<T, p, D, S, L>, Ø<T, LZ>) {
+  return Ø<T, L>{};
+}
+export template <typename T, typename L, typename C, typename X>
+constexpr auto structured_and(const UniversalSet<T, L, C>&, X x) {
+  return x;
+}
+
+// The generic extremum: @c S met with its own @f$\forall@f$-dominators.  One
+// definition for any ordered @c S whose @c upperbounds and meet are defined;
+// the structural collapse lives entirely in @c upperbounds + @c structured_and,
+// so there is no generic search.  @c min is the dual (@c S met with its
+// minorants).
+export template <typename S>
+  requires requires(const S& s) { structured_and(s, upperbounds(s)); }
+constexpr auto max(const S& s) {
+  return structured_and(s, upperbounds(s));
+}
+export template <typename S>
+  requires requires(const S& s) { structured_and(s, lowerbounds(s)); }
+constexpr auto min(const S& s) {
+  return structured_and(s, lowerbounds(s));
 }
 
 // Exhibit (intensional, infinite case): over ℤ, max{x ≤ 5} = {5} and
@@ -1716,20 +1764,9 @@ static_assert(max(le5)(5) == (le5(5) && ((le5 & (ℤ | (π > fix(5_c)))) == Ø{}
 static_assert(min(ge5)(5) == (ge5(5) && ((ge5 & (ℤ | (π < fix(5_c)))) == Ø{})),
               "specific min(ge5) models (∈) ∩ (R/∋) at the pivot.");
 
-// max / min over 𝔹 (the finite case): the top / bottom element, via the
-// structured intensional refinement 𝔹 | (· == true/false) → Singleton --- the
-// DSL idiom, no set().  Sibling of max(Halfspace): both read the extremum off
-// the structure rather than searching.
-export template <typename L, typename C>
-constexpr auto max(const UniversalSet<bool, L, C>& s) {
-  return s | (π == fix(true_c));  // {true} = the greatest element of 𝔹
-}
-export template <typename L, typename C>
-constexpr auto min(const UniversalSet<bool, L, C>& s) {
-  return s | (π == fix(false_c));  // {false} = the least element of 𝔹
-}
-
-// Exhibit (finite case): max 𝔹 = {true}, min 𝔹 = {false}.
+// Exhibit (finite case): max 𝔹 = {true}, min 𝔹 = {false} --- the SAME generic
+// max/min above, its ∀-projection settled by 𝔹's upperbounds/lowerbounds ({⊤} /
+// {⊥}) and the universe-identity meet 𝔹 ∩ {⊤} = {⊤}.
 static_assert(max(Ω<bool>)(true), "max 𝔹 = {true}.");
 static_assert(!max(Ω<bool>)(false), "false is not the greatest element of 𝔹.");
 static_assert(min(Ω<bool>)(false), "min 𝔹 = {false}.");
