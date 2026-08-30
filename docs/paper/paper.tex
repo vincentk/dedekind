@@ -683,9 +683,9 @@ Section~\ref{sec:relations_functions_blueprint} lifts $\le$ from a bare comparis
 \begin{cpp}
 auto max(S s) { return s & upperbounds(s); }
 
-auto upperbounds(Halfspace<T,p,Down,_>) { return Halfspace<T,p,Up,NonStrict>{}; }
-auto upperbounds(Halfspace<T,p,Up,_>)   { return Ø<T>{}; }
-auto upperbounds(Ω<bool>)               { return Singleton<true>{}; }
+auto upperbounds(Halfspace<T,p,Down>) { return Halfspace<T,p,Up,NonStrict>{}; }
+auto upperbounds(Halfspace<T,p,Up>)   { return Ø<T>{}; }
+auto upperbounds(Ω<bool>)             { return Singleton<true>{}; }
 \end{cpp}
 \end{minipage}
 
