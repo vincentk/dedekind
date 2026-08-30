@@ -1,4 +1,3 @@
-#include <array>
 #include <catch2/catch_test_macros.hpp>
 #include <optional>
 
@@ -31,43 +30,16 @@ constexpr auto retract(DoubleArrow) {
 }
 }  // namespace retract_image_test
 
-// AbsDouble: int → int, x ↦ 2·|x|.  The NON-injective main course after the
-// injective DoubleArrow appetizer.  On ℤ the map is 2-to-1: the fibre of y
-// is {+y/2, −y/2}, so AbsDouble is NOT monic (we deliberately do not register
-// it so).  It factors as ℤ ↠ ℕ ↪ ℤ (x ↦ |x|, then n ↦ 2n): the epi folds the
-// sign, the mono is the doubler.  The mono leg's retract names ONE preimage
-// (+y/2 when y is a nonnegative even), and the epi leg's cofibre expands a
-// point to its whole class {+x, −x}.  Image membership ORs the source over
-// that fibre --- which is why it stays sound where a single retract would
-// not (e.g. 6 ∈ 2|x|({x<0}) via −3, though the canonical preimage is +3).
-namespace retract_image_test {
-struct AbsDouble {
-  using Domain = int;
-  using Codomain = int;
-  constexpr int operator()(int x) const { return 2 * (x < 0 ? -x : x); }
-};
-// mono leg (n ↦ 2n) inverse ∘ epi section: the canonical preimage +y/2.
-constexpr auto retract(AbsDouble) {
-  return [](const int& y) -> std::optional<int> {
-    return (y >= 0 && y % 2 == 0) ? std::optional{y / 2} : std::nullopt;
-  };
-}
-// epi leg (x ↦ |x|) fibre: the equivalence class {+x, −x} through x.
-constexpr auto cofibre(AbsDouble) {
-  return [](const int& x) { return std::array<int, 2>{x, -x}; };
-}
-}  // namespace retract_image_test
+// The NON-injective case (the sign-fold epi abs = 2|x|) is decided
+// ANALYTICALLY and point-free in dedekind.order --- image over the union of the
+// mono reflection branches, no retract/cofibre fibre-walk (§3.3, Listing 13).
 
 // Register the monic trait so IsMonicArrow (and IsRetractableArrow) fire on
-// DoubleArrow.  AbsDouble is deliberately NOT monic; instead it opts into an
-// operational (regular epi, mono) factorisation (retract + cofibre above).
+// DoubleArrow (the single-lookup retract path, no enumeration).
 template <>
 inline constexpr bool
     dedekind::category::is_monic_arrow_v<retract_image_test::DoubleArrow> =
         true;
-template <>
-inline constexpr bool dedekind::category::has_regular_factorisation_v<
-    retract_image_test::AbsDouble> = true;
 
 TEST_CASE("Dedekind MVP: Basic Membership and Symbols", "[sets]") {
   SECTION("Integer Universe Membership") {
@@ -569,52 +541,5 @@ TEST_CASE(
     CHECK(img(7) == false);
     // y = -3 is odd, same story.
     CHECK(img(-3) == false);
-  }
-}
-
-TEST_CASE(
-    "Dedekind Sets: image(non-injective 2|x| via factorisation, Set) — "
-    "the whole fibre",
-    "[sets][image][retract][factorisation][layer2][602]") {
-  // AbsDouble = 2|x| is NON-injective (fibre of y is {±y/2}), so it is not
-  // monic; it opts into an operational (regular epi, mono) factorisation
-  // instead. image(AbsDouble, S)(y) ORs the source over the WHOLE fibre, so it
-  // stays sound where a single canonical retract (+y/2) would not.
-  SECTION("Classical: membership ORs the source over the entire fibre") {
-    const auto positive_pred = [](const int& v) { return v > 0; };
-    const Set<int, ClassicalLogic, decltype(positive_pred)> positive{
-        positive_pred};
-
-    auto img = image(retract_image_test::AbsDouble{}, positive);
-
-    // Logic species / ambient preserved (no TernaryLogic demotion).
-    STATIC_CHECK(
-        std::same_as<typename decltype(img)::logic_species, ClassicalLogic>);
-    STATIC_CHECK(std::same_as<typename decltype(img)::Domain, int>);
-
-    // y = 6 = 2|±3|, and +3 > 0 is in the fibre and in positive → in image.
-    CHECK(img(6) == true);
-    // y = 5 is odd → not in the image of 2|x| at all → out.
-    CHECK(img(5) == false);
-    // y = 0 = 2|0|, fibre {0}, but 0 is not > 0 → out.
-    CHECK(img(0) == false);
-    // y = -4 < 0 lies outside the image of 2|x| → out.
-    CHECK(img(-4) == false);
-  }
-
-  SECTION("Soundness: the fibre element in the source is the NEGATIVE one") {
-    // The canonical preimage retract names for 6 is +3, which is NOT in the
-    // source {x<0}; membership is nonetheless true because the fibre {+3,-3}
-    // also contains -3, which IS.  A single-valued retract would be unsound
-    // here --- this is exactly what the epi leg's cofibre buys.
-    const auto negative_pred = [](const int& v) { return v < 0; };
-    const Set<int, ClassicalLogic, decltype(negative_pred)> negative{
-        negative_pred};
-
-    auto img = image(retract_image_test::AbsDouble{}, negative);
-
-    CHECK(img(6) == true);   // via -3 ∈ {x<0}, though the canonical +3 is not
-    CHECK(img(0) == false);  // fibre {0}: 0 is not < 0
-    CHECK(img(5) == false);  // odd: no preimage at all
   }
 }

@@ -75,8 +75,6 @@
 module;
 
 #include <concepts>
-#include <optional>  // retract(f) : Cod<F> → std::optional<Dom<F>>
-#include <ranges>    // cofibre(f) : Dom<F> → input_range of Dom<F>
 
 export module dedekind.category:factorisation;
 
@@ -182,59 +180,10 @@ export template <typename C>
 concept IsFactorisationSystem =
     IsSmallCategoryShape<C> && is_factorisation_system_v<C>;
 
-// ---------------------------------------------------------------------------
-// Operational factorisation — the image-membership bridge for a NON-injective
-// arrow.  The concepts above record the (regular epi, mono) INTENT; deciding
-// image membership of a non-injective f makes it OPERATIONAL: the mono leg
-// supplies a @c retract (a canonical preimage of y, when one exists) and the
-// epi leg supplies the @c cofibre through that preimage (its whole
-// equivalence class).  Membership then ORs the source over the ENTIRE fibre
-// --- sound for a non-injective f, where a single-valued retract would miss
-// preimages the source contains but the canonical one omits (e.g.\ with
-// f = 2|x|, the source {x<0} still contains −3 in the fibre of 6).
-// ---------------------------------------------------------------------------
-
-/**
- * @brief User-declared witness: arrow @c F ships an @b operational
- *        (regular epi, mono) factorisation --- a @c retract(f) (mono leg)
- *        and a @c cofibre(f) (epi leg) that together decide image
- *        membership.  The honesty obligation (opted in at the arrow's
- *        registration site) is that these genuinely realise the
- *        factorisation @c A @c ↠ @c Im(F) @c ↪ @c B of @c F.
- */
-export template <typename F>
-inline constexpr bool has_regular_factorisation_v = false;
-
-/**
- * @concept HasCofibre
- * @brief @c F ships an ADL @c cofibre(f) @c : @c Dom<F> @c → @c range @c of
- *        @c Dom<F> --- the fibre through @c x, @f$\{x' : f(x') = f(x)\}@f$,
- *        the epi leg's equivalence class.  A monic arrow's classes are
- *        singletons; a non-injective arrow ships wider ones.
- */
-export template <typename F>
-concept HasCofibre = requires(F f, const Dom<F>& x) {
-  { cofibre(f)(x) } -> std::ranges::input_range;
-};
-
-/**
- * @concept IsFactoredRetractableArrow
- * @brief A @b non-monic arrow that still decides image membership through
- *        its operational (regular epi, mono) factorisation: @c retract(f)
- *        names one preimage (the mono leg's inverse composed with an epi
- *        section) and @c cofibre(f) expands it to the whole fibre (the epi
- *        leg's class).  The non-injective sibling of @c IsRetractableArrow,
- *        sound precisely because membership ORs the source over the entire
- *        fibre.  The @c IsArrow conjunct makes the concept subsume the
- *        general @c image fallback, so this decidable path wins by partial
- *        ordering; @c !IsMonicArrow keeps it disjoint from the monic path.
- */
-export template <typename F>
-concept IsFactoredRetractableArrow =
-    IsArrow<F> && has_regular_factorisation_v<F> && !IsMonicArrow<F> &&
-    HasCofibre<F> && requires(F f, const Cod<F>& y) {
-      { retract(f)(y) } -> std::same_as<std::optional<Dom<F>>>;
-    };
+// A NON-injective arrow's image is decided ANALYTICALLY, point-free, as the
+// union of its (mono) branch images: no operational retract/cofibre gate, no
+// fibre walk.  See @c image on the reflection branches of the sign-fold @c abs
+// in @c dedekind.order (§3.3, Listing 13).
 
 // ---------------------------------------------------------------------------
 // Regular and exact categories — Sollbruchstellen named here; downstream
