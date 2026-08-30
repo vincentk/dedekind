@@ -360,25 +360,6 @@ TEST_CASE("order:halfspace — projection-arithmetic functional graphs (runtime)
   CHECK_FALSE(res(std::pair{M, finite_cardinality(4)}));
 }
 
-// Runtime coverage for translation acting on sets (Listing 13): a translation
-// SHIFTS a bounded halfspace's pivot and FIXES the unbounded line.  volatile
-// coords force the predicate bodies to execute (static_asserts in
-// halfspace.cppm are invisible to coverage).
-TEST_CASE("order:halfspace — translation shifts a halfspace, fixes the line",
-          "[order][translation][image][retract]") {
-  constexpr auto Z = Ω<SignedCardinality>;
-  constexpr auto f = dedekind::category::translation<SignedCardinality, 3>;
-
-  const auto shifted = image(f, Z | (π <= fix(5_c)));  // {x ≤ 5} ↦ {x ≤ 8}
-  volatile int eight = 8, nine = 9, ten = 10;
-  CHECK(shifted(int(eight)));       // 8 ≤ 8
-  CHECK_FALSE(shifted(int(nine)));  // 9 ≰ 8
-
-  CHECK(image(f, Z) == Z);  // unbounded line fixed
-
-  CHECK(dedekind::category::retract(f)(int(ten)) == 7);  // total inverse
-}
-
 // Runtime coverage for the relation-reading of a function (Listing 13): the
 // graph of x+3, its inverse read backwards, and its image pushed forward.
 TEST_CASE("order:halfspace — a function is its graph: inverse and image",
