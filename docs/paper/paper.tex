@@ -599,27 +599,27 @@ First-order quantification is the same reading once more: a quantifier \emph{is}
 &\quad \exists &\;:\equiv\; \neg\,\forall\,\neg\,.
 \end{aligned}
 \end{equation}
-In code the comprehension is \cppinline{set(S,P)} and each formulation is one \cppinline{operator==} against a bound: (A) \cppinline{exists(S,P)} is \cppinline{!(Ø{} == set(S,P))}, (B) \cppinline{forall(S,P)} is \cppinline{set(S,P) == S}, and each recovers its partner by De Morgan's duality, complementing the predicate, \cppinline{!P} (Listing~\ref{lst:quantifiers_def}, top row).
+In code the comprehension is the where-clause \cppinline{S | P} and each formulation is one \cppinline{operator==} against a bound: (A) \cppinline{exists(S,P)} is \cppinline{!(Ø{} == (S | P))}, (B) \cppinline{forall(S,P)} is \cppinline{(S | P) == S}, and each recovers its partner by De Morgan's duality, complementing the predicate, \cppinline{!P} (Listing~\ref{lst:quantifiers_def}, top row).
 Read extensionally, as a loop over the elements of the carrier, the two formulations part ways.
 Formulation (A) asks for a single example (for $\exists$), or through $\neg\exists\neg$ a single counterexample (for $\forall$): find one and you are done, so it returns even on an infinite carrier whenever the witness sits at a finite position.
 Formulation (B) asks whether the comprehension fills the whole carrier, which extensionally means enumerating every element, so on an infinite carrier only (A) is on the table.
-Read the same definitions intensionally, as an algebra on the characteristic predicates, and both formulations collapse to one cheap question: does the composed predicate \cppinline{set(S,P)}, the meet $S \wedge P$, reduce to always-false (then $\exists$ fails) or to always-true (then $\forall$ holds)?
+Read the same definitions intensionally, as an algebra on the characteristic predicates, and both formulations collapse to one cheap question: does the comprehension \cppinline{S | P}, the meet $S \wedge P$, reduce to always-false (then $\exists$ fails) or to always-true (then $\forall$ holds)?
 The cost is then not a function of the carrier's cardinality but of the \emph{set relation}, the conjunction or disjunction of the characteristic predicates.
 This can rescue $\forall$ over an infinite carrier, but only in the exceptional case that the predicate factors through a finite quotient.
-\cppinline{isDivisibleBy3} is periodic, so it factors through the finite codomain $\mathbb{Z}/3\mathbb{Z}$ (Section~\ref{sec:functions_morphism_factorization}), the collapse is settled on three residues rather than the countably many naturals, and both $\exists$ and $\forall$ return in finite time (Listing~\ref{lst:quantifiers_def}, bottom row).
+The congruence $\pi \equiv 0 \pmod 3$ is periodic, so it factors through the finite codomain $\mathbb{Z}/3\mathbb{Z}$ (Section~\ref{sec:functions_morphism_factorization}), the collapse is settled on three residues rather than the countably many naturals, and both $\exists$ and $\forall$ return in finite time (Listing~\ref{lst:quantifiers_def}, bottom row).
 The technique is confined to predicates carrying a \emph{certified} finite quotient or algebraic factorisation; a predicate with none (\cppinline{isPrime}, a Collatz-style recurrence) does not reduce, and $\forall$ over it stays undecidable at compile time.
 Intensional quantification is thus not a general escape from the infinite, only a lever where the predicate's own structure supplies the finite handle.
 An operand that is neither a finite carrier nor a predicate factoring through a finite quotient matches no overload: the honest Rice wall, a compile error rather than a fabricated answer.
 
 \begin{listing}[htbp]
-\caption{The finite-quotient quantifiers.
-\textbf{Top}: the generic \cppinline{exists} / \cppinline{forall} over an \cppinline{IsSet} domain \cppinline{S} and an \cppinline{IsPredicate} query \cppinline{P}, as (A) a test of \cppinline{set(S,P)} against $\varnothing$ and (B) against the input set $S$.
-\textbf{Bottom}: the two worked cases, $\mathbb{B} = $\cppinline{Ω<bool>} with the predicate \cppinline{Singleton<true>}, and $\mathbb{N} = $\cppinline{Ω<Cardinality>} with \cppinline{isDivisibleBy3} (factored through \cppinline{Modular<3>}).}
+\caption{The finite-quotient quantifiers, point-free.
+\textbf{Top}: the generic \cppinline{exists} / \cppinline{forall} over an \cppinline{IsSet} domain \cppinline{S} and a point-free \emph{fragment} \cppinline{P} (gated by \cppinline{S | P} being well-formed), as (A) a test of \cppinline{S | P} against $\varnothing$ and (B) against the input set $S$.
+\textbf{Bottom}: the two worked cases, $\mathbb{B} = $\cppinline{Ω<bool>} with the fragment \cppinline{π == fix(true_c)}, and $\mathbb{N} = $\cppinline{Ω<Cardinality>} with the congruence fragment $\pi \equiv 0 \pmod 3$ (materialised over the residues of $\mathbb{Z}/3\mathbb{Z}$).}
 \label{lst:quantifiers_def}
 \noindent
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-template <IsSet S, IsPredicate P>
+template <IsSet S, class P>
 constexpr bool
 exists(S s, P p) {
   return !(Ø{} == (s | p));
@@ -628,7 +628,7 @@ exists(S s, P p) {
 \end{minipage}\hfill
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-template <IsSet S, IsPredicate P>
+template <IsSet S, class P>
 constexpr bool
 forall(S s, P p) {
   return (s | p) == s;
@@ -641,18 +641,16 @@ forall(S s, P p) {
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
 constexpr auto 𝔹 = Ω<bool>;
-Singleton<true> isTrue;
-static_assert( exists(𝔹, isTrue));
-static_assert(!forall(𝔹, isTrue));
+static_assert( exists(𝔹, π == fix(true_c)));
+static_assert(!forall(𝔹, π == fix(true_c)));
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
 constexpr auto ℕ = Ω<Cardinality>;
-constexpr auto isDivBy3 =
-  in<ℕ> % Modular<3>{} == bound<0>;
-static_assert( exists(ℕ, isDivBy3));
-static_assert(!forall(ℕ, isDivBy3));
+constexpr auto div3 = π % fix(3_c) == fix(0_c);
+static_assert( exists(ℕ, div3));
+static_assert(!forall(ℕ, div3));
 \end{cpp}
 \end{minipage}
 \end{listing}
