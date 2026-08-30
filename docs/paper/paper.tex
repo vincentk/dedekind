@@ -1051,7 +1051,7 @@ An isomorphism meets all four bounds and collapses every cell to a constant-time
 \begin{listing}[htbp]
 \caption{A function \emph{is} its graph, and translations form a \emph{group} under composition.
 \textbf{Left}: \cppinline{f = ℤ*ℤ | π1+fix(3_c)==π2} is the point-free relation $\{(x, x{+}3)\}$, functional and entire (Table~\ref{tab:relation-quantifier}'s $\pi_A$ column); its \cppinline{inverse} is the converse relation $x{-}3$, and \cppinline{image} pushes a domain bound forward, $\{x\le5\}$ to $\{y\le8\}$, again a halfspace.
-\textbf{Right}: composition \cppinline{>>} is symbolic --- the shifts add, no $\exists$ over the intermediate --- so closure, the inverse law, and \emph{associativity, invertibility, commutativity} are compile-time facts; the conjugate $g\,f\,g^{-1}=f$ collapses because $+$ commutes (abridged from the checked-in witnesses).}
+\textbf{Right}: composition \cppinline{>>} is symbolic --- the shifts add, no $\exists$ over the intermediate --- so closure, \emph{contravariant inversion} $(f\circ g)^{-1}=g^{-1}\circ f^{-1}$, and \emph{associativity, commutativity} are compile-time facts; the conjugate $g\,f\,g^{-1}=f$ collapses because $+$ commutes.  For an invertible map the inverse \emph{is} the retract, so this is retract composition in the total case (abridged from the checked-in witnesses).}
 \label{lst:functional_image_bijection}
 \noindent
 \begin{minipage}[t]{0.49\linewidth}
@@ -1071,8 +1071,8 @@ constexpr auto g =                  // x ↦ x+2
   ℤ * ℤ | π1 + fix(2_c) == π2;
 static_assert((f >> g)              // closure: T₃∘T₂=T₅
   == (ℤ*ℤ | π1+fix(5_c)==π2));
-static_assert((g >> inverse(g))     // g∘g⁻¹ = id
-  == (ℤ*ℤ | π1+fix(0_c)==π2));
+static_assert(inverse(f >> g)       // contravariant: (f∘g)⁻¹=g⁻¹∘f⁻¹
+  == (inverse(g) >> inverse(f)));
 static_assert(                      // g∘f∘g⁻¹ = f (abelian)
   (g >> f >> inverse(g)) == f);
 \end{cpp}

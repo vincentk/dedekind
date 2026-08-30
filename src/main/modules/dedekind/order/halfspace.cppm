@@ -1592,6 +1592,14 @@ static_assert(((ℤ * ℤ | π1 + fix(2_c) == π2) >>
 static_assert(inverse(ℤ* ℤ | π1 + fix(3_c) == π2) ==
                   (ℤ * ℤ | π1 + fix(-3_c) == π2),
               "inverse = converse graph: T₃⁻¹ = T₋₃.");
+// Contravariant inversion: (f∘g)⁻¹ = g⁻¹∘f⁻¹.  For an invertible map the
+// inverse IS the retract, so this is retract composition in the total case
+// (Listing 12).
+static_assert(inverse((ℤ * ℤ | π1 + fix(3_c) == π2) >>
+                      (ℤ * ℤ | π1 + fix(2_c) == π2)) ==
+                  (inverse(ℤ * ℤ | π1 + fix(2_c) == π2) >>
+                   inverse(ℤ * ℤ | π1 + fix(3_c) == π2)),
+              "contravariant inversion: (f∘g)⁻¹ = g⁻¹∘f⁻¹.");
 static_assert(((ℤ * ℤ | π1 + fix(2_c) == π2) >> (ℤ * ℤ | π1 + fix(3_c) == π2) >>
                (ℤ * ℤ | π1 + fix(5_c) == π2) >>
                inverse(ℤ * ℤ | π1 + fix(3_c) == π2)) ==
