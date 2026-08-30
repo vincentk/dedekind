@@ -1112,32 +1112,29 @@ static_assert(                      // g∘f∘g⁻¹ = f (abelian)
 
 The graph is the whole surface: the same \cppinline{*}, \cppinline{|}, and projection arithmetic that spell a relation spell a function, and \cppinline{inverse} and \cppinline{image} are relational operations on it, not a separate arrow calculus.
 Because a translation is surjective its image is decided by the inverse alone, so a bounded halfspace pushes forward to a halfspace with its bound advanced while the unbounded line is fixed.
-The non-injective case keeps the machinery and drops the injectivity.
-Take $f(x) = 2|x|$.
-On $\mathbb{Z}$ it is two-to-one, the fibre of $y$ being $\{{+}y/2, {-}y/2\}$, so $f$ is \emph{not} monic and cannot simply ship a retract.
-It ships its \emph{factorization} instead, $\mathbb{Z} \twoheadrightarrow \mathbb{N} \hookrightarrow \mathbb{Z}$ (fold the sign, then double): the mono leg's retract names one preimage, the canonical ${+}y/2$, and the epi leg's \emph{cofibre} expands a point to its whole class $\{{+}x, {-}x\}$ (Listing~\ref{lst:functional_image_fold}).
-Membership $y \in f(S)$ then ORs the source over the \emph{entire} fibre, and that is exactly what keeps it sound.
-A lone retract would answer $6 \in f(\{x<0\})$ with the canonical ${+}3 \notin \{x<0\}$ and wrongly say no, where the fibre also holds ${-}3$, which is in; the epi leg's cofibre is what supplies it.
-This is also what discharges the $\arg\max$ of §\ref{sec:relations_functions_blueprint} over an infinite domain: an optimiser and its fibre are the same $\exists x.\,f(x){=}y$, read off the factorization rather than searched for.
+The non-injective case drops the injectivity and stays point-free.
+Take the sign-fold $\mathrm{abs}\colon \mathbb{Z} \twoheadrightarrow \mathbb{N}$, the epi that identifies $x$ with $-x$.
+It is two-to-one, the fibre of $y$ being $\{{+}y, {-}y\}$, so it is \emph{not} monic; but it is a \emph{union} of two reflection branches, $x\mapsto x$ on $\{x\ge 0\}$ and $x\mapsto -x$ on $\{x<0\}$, each a mono whose image is a halfspace pushed forward (Listing~\ref{lst:functional_image_fold}).
+Membership $y \in \mathrm{abs}(S)$ is the join of the branch images, Equation~\ref{eqn:image-fibre}, decided analytically with no fibre walk.
+That join is what keeps it sound: $3 \in \mathrm{abs}(\{x<0\})$ holds through the negate branch, which carries the preimage ${-}3$, where the canonical ${+}3 \notin \{x<0\}$ that a lone retract would name says nothing.
+This is also what discharges the $\arg\max$ of §\ref{sec:relations_functions_blueprint} over an infinite domain: an optimiser and its fibre are the same $\exists x.\,f(x){=}y$, read off the union of branches rather than searched for.
 
 \begin{listing}[htbp]
-\caption{A non-injective map decided through its (regular epi, mono) factorization: $2|x|$.  It is not monic, so it ships a \cppinline{retract} (the mono leg: the canonical preimage ${+}y/2$) and a \cppinline{cofibre} (the epi leg: the class $\{{+}x,{-}x\}$), and \cppinline{image} ORs the source over the whole fibre.  Sound where a lone retract is not: $6 \in 2|x|(\{x<0\})$ holds via ${-}3$, though the canonical ${+}3$ is not in the source (abridged from the checked-in test).}
+\caption{The sign-fold epi $\mathrm{abs}\colon \mathbb{Z}\twoheadrightarrow\mathbb{N}$ decided \emph{point-free}: a union of two reflection branches ($x\mapsto x$ on $\{x\ge0\}$, $x\mapsto -x$ on $\{x<0\}$), each a mono whose \cppinline{image} is a halfspace pushed forward (the negate branch flips $\le$ to $>$).
+Non-injective yet analytic: $3 \in \mathrm{abs}(\{x<0\})$ holds through the negate branch's preimage $-3$, where the canonical $+3 \notin \{x<0\}$ that a lone retract names says nothing --- soundness from the fibre join, no enumeration (checked-in witnesses).}
 \label{lst:functional_image_fold}
 \begin{cpp}
-struct AbsDouble { using Domain = int; using Codomain = int;
-  constexpr int operator()(int x) const { return 2*(x<0?-x:x); } };
-constexpr auto retract(AbsDouble) {          // mono leg: canonical +y/2
-  return [](int y) -> std::optional<int> {
-    return (y>=0 && y%2==0) ? std::optional{y/2} : std::nullopt; }; }
-constexpr auto cofibre(AbsDouble) {          // epi leg: the class {+x, -x}
-  return [](int x) { return std::array{x, -x}; }; }
-
-constexpr auto img = image(AbsDouble{}, negative);   // img(6) == true, via -3
+constexpr auto absPos = ℤ*ℤ | π1*fix(1_c)==π2  | π1>=fix(0_c);  // x ↦  x  on x≥0
+constexpr auto absNeg = ℤ*ℤ | π1*fix(-1_c)==π2 | π1< fix(0_c);  // x ↦ −x  on x<0
+static_assert(image(absPos) == (ℤ | π>=fix(0_c)));  // {y≥0}
+static_assert(image(absNeg) == (ℤ | π> fix(0_c)));  // {y>0}: negate flips the sense
+static_assert( image(absNeg)(3));   // 3 ∈ abs({x<0}) via −3, no fibre walk
+static_assert(!image(absNeg)(-2));  // abs is never negative
 \end{cpp}
 \end{listing}
 
-The factorization here is \emph{consumed}, not narrated: \cppinline{image} routes a non-monic arrow through its two legs, so the non-injective case is decided rather than deferred.
-For general or non-bijective functions, validating whether an arbitrary element $b \in B$ possesses a valid preimage in the domain $A$ presents a severe decidability barrier if evaluated via standard search techniques.
+The factorization here is \emph{consumed} point-free, not narrated: \cppinline{image} is the join of the two branch images (Equation~\ref{eqn:image-fibre}), so the non-injective case is decided analytically rather than walked.
+Not every map is analytic like $\mathrm{abs}$, though: for a general function whose fibre is \emph{not} a union of graph branches, validating whether an arbitrary element $b \in B$ possesses a valid preimage in the domain $A$ presents a severe decidability barrier if evaluated via standard search techniques.
 Rather than treating this as an impassable restriction, the library provides specialized support for functional relations by introducing an architectural gate based on the categorical principle of epic-monic factorization.
 Every general functional arrow $f : A \to B$ factors into a regular surjection (epi, \cppinline{IsRegularEpi}) onto its image $I$, followed by a regular injection (mono, \cppinline{IsRegularMono}) from $I$ into $B$, the image leg witnessed by \cppinline{IsImageOf}:
 \begin{equation}

@@ -399,3 +399,21 @@ TEST_CASE(
   CHECK_FALSE(opt(int(four)));  // 4 ≢ 0 mod 3
   CHECK_FALSE(opt(int(zero)));  // 0 feasible but not maximal
 }
+
+// Runtime coverage for the point-free non-injective image (Listing 13): the
+// sign-fold epi abs = union of two reflection branches, each a mono whose image
+// is a halfspace pushed forward.  Sound where a lone retract is not; no walk.
+TEST_CASE("order:halfspace — image of the sign-fold reflection branches",
+          "[order][image][reflection]") {
+  constexpr auto Z = Ω<SignedCardinality>;
+  const auto absNeg =
+      Z * Z | π1 * fix(-1_c) == π2 | π1 < fix(0_c);  // x↦-x, x<0
+  const auto img = image(absNeg);                    // {y>0}
+  volatile int three = 3, minus2 = -2, zero = 0;
+  CHECK(img(int(three)));  // 3 ∈ abs({x<0}) via -3 (canonical +3 ∉ {x<0})
+  CHECK_FALSE(img(int(minus2)));  // abs is never negative
+  CHECK_FALSE(img(int(zero)));    // 0 not > 0 (the x<0 branch is strict)
+  const auto absPos = Z * Z | π1 * fix(1_c) == π2 | π1 >= fix(0_c);  // x↦x, x≥0
+  const auto imgP = image(absPos);                                   // {y≥0}
+  CHECK(imgP(int(zero)));  // 0 ≥ 0: the identity branch includes it
+}

@@ -1692,6 +1692,37 @@ static_assert(image((ℤ * ℤ | π1 + fix(3_c) == π2) | π1 <= fix(5_c)) ==
                   (ℤ | (π <= fix(8_c))),
               "image over {x ≤ 5} pushes forward to {y ≤ 8}.");
 
+// image of a restricted REFLECTION x ↦ c·x (c = ±1) on {x ⋈ P}: the domain
+// halfspace scaled by c --- pivot c·P, with the sense FLIPPED when c<0.  These
+// are the branches of the sign-fold epi @c abs = (x↦x on x≥0) ⊔ (x↦−x on x<0):
+// each branch is a mono reflection, so its image is a plain halfspace pushed
+// forward, no search.  (|c|>1 would also induce the residue @c {y≡0 mod c},
+// whose materialisation is a downstream :numbers concern; the sign-fold is
+// c=±1, so the range stays a bare halfspace here.)
+export template <typename T, auto C, Rel R, auto P, typename L>
+  requires(C == 1 || C == -1)
+constexpr auto image(
+    const Set<std::pair<T, T>, L,
+              ProductRestrict<ProjMulConstProj<1, C, Rel::Eq, 2>,
+                              ProjBound<1, R, P>>>&) {
+  constexpr Direction d = (C < 0) ? flip(dir_of(R)) : dir_of(R);
+  return Halfspace<T, C * P, d, strict_of(R)>{};
+}
+// The sign-fold epi's two branches, and its non-injective image decided
+// point-free: abs over {x<0} is the negate branch, whose image {y>0} catches
+// the preimage −3 of 3 that a canonical retract (+3 ∉ {x<0}) would miss ---
+// soundness from the fibre, no enumeration.
+static_assert(image(ℤ* ℤ | π1 * fix(1_c) == π2 | π1 >= fix(0_c)) ==
+                  (ℤ | π >= fix(0_c)),
+              "image(abs on x≥0) = {y≥0}: the identity reflection.");
+static_assert(
+    image(ℤ* ℤ | π1 * fix(-1_c) == π2 | π1 < fix(0_c)) == (ℤ | π > fix(0_c)),
+    "image(abs on x<0) = {y>0}: the negate reflection flips the sense.");
+static_assert(image(ℤ* ℤ | π1 * fix(-1_c) == π2 | π1 < fix(0_c))(3),
+              "3 ∈ abs({x<0}) via −3, though the canonical +3 ∉ {x<0}.");
+static_assert(!image(ℤ * ℤ | π1 * fix(-1_c) == π2 | π1 < fix(0_c))(-2),
+              "abs is never negative: −2 ∉ image(abs).");
+
 // The successor graph over ℕ: the image the OPAQUE arrow leaves Unknown (the
 // Rice wall of Listing 15) is DECIDED here by the pushforward --- {n>5} ↦
 // {n>6}, structure buying decidability that opacity cannot.
