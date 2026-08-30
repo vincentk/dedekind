@@ -397,3 +397,23 @@ TEST_CASE("order:halfspace — a function is its graph: inverse and image",
   CHECK_FALSE(s(int(nine)));  // 9 ≰ 8
   CHECK(image(f) == Z);       // the whole range: a translation is onto
 }
+
+// Runtime coverage for argmax over a PARTIAL function (Listing 12): constrain
+// the codomain and the same graph becomes partial; its feasible domain is the
+// pullback {x≤5 ∧ x≡0 mod3}, and argmax reads the constrained optimum (3)
+// structurally.  volatile coords force the predicate bodies to execute.
+TEST_CASE(
+    "order:halfspace — argmax over a partial function (constrained optimum)",
+    "[order][argmax][partial][optimization]") {
+  constexpr auto Z = Ω<SignedCardinality>;
+  const auto g =
+      Z * Z | π1 + fix(3_c) == π2 | π2 <= fix(8_c) & π2 % fix(3_c) == fix(0_c);
+  STATIC_CHECK(!is_entire(g));
+  STATIC_CHECK(is_entire(Z * Z | π1 + fix(3_c) == π2));
+
+  const auto opt = argmax(g);
+  volatile int three = 3, four = 4, zero = 0;
+  CHECK(opt(int(three)));       // 3 = max{x≤5, x≡0 mod3}
+  CHECK_FALSE(opt(int(four)));  // 4 ≢ 0 mod 3
+  CHECK_FALSE(opt(int(zero)));  // 0 feasible but not maximal
+}

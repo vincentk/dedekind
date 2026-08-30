@@ -1312,6 +1312,24 @@ constexpr ProjModConstProj<I, V, Rel::Eq, J> operator==(ProjModConst<I, V>,
   return {};
 }
 
+/** @brief @f$(\pi_I \% \mathrm{fix}(V)) \bowtie \mathrm{fix}(W)@f$ --- a
+ *  @b congruence @b class predicate @f$\pi_I \equiv W \pmod V@f$ (sibling of
+ *  @c ProjModConstProj, whose right side is the projection @c π_J rather than a
+ *  fixed residue @c W).  Restricts an axis to a residue class. */
+export template <std::size_t I, auto V, Rel R, auto W>
+struct ProjModConstBound {
+  using is_rel_predicate = void;
+  template <typename P>
+  constexpr bool operator()(const P& p) const {
+    return rel_apply<R>(coord<I>(p) % V, W);
+  }
+};
+export template <std::size_t I, auto V, auto W>
+constexpr ProjModConstBound<I, V, Rel::Eq, W> operator==(ProjModConst<I, V>,
+                                                         Bound<W>) {
+  return {};
+}
+
 // residue-class graph: {(a,b) | b = a % 17} = ℕ * ℕ | π1 % fix(17_c) == π2.
 static_assert((ℕ * ℕ | π1 % fix(17_c) == π2)(std::pair{finite_cardinality(20),
                                                        finite_cardinality(3)}),
@@ -1520,6 +1538,54 @@ consteval bool is_function(
 }
 static_assert(is_function(ℤ* ℤ | π1 + fix(3_c) == π2),
               "the graph of x+3 is a total function (functional ∧ entire).");
+
+/** @brief @c is_entire(R): does @c R cover its whole declared domain?  The bare
+ *  translation graph is total; ANY restriction --- here a codomain constraint
+ *  on @f$\pi_2@f$ --- pulls its domain back to a proper subset, so it drops to
+ *  a @b partial function (functional, not entire; Table~3). */
+export template <typename T, auto K, typename L>
+consteval bool is_entire(
+    const Set<std::pair<T, T>, L, ProjAddConstProj<1, K, Rel::Eq, 2>>&) {
+  return true;
+}
+export template <typename T, auto K, typename RP, typename L>
+consteval bool is_entire(
+    const Set<std::pair<T, T>, L,
+              ProductRestrict<ProjAddConstProj<1, K, Rel::Eq, 2>, RP>>&) {
+  return false;
+}
+
+/** @brief @f$\arg\max@f$ over a @b partial function: the translation graph
+ *  @f$x \mapsto x+K@f$ into a codomain bounded above (@f$\pi_2 \le P@f$) and
+ *  restricted to a residue class (@f$\pi_2 \equiv W \pmod V@f$).  A translation
+ *  is monotone, so @f$\arg\max = \max@f$ of the @b feasible domain
+ *  @f$\{x \le P-K \wedge x \equiv W-K \pmod V\}@f$ = the largest such @f$x@f$,
+ *  read off structurally: a compile-time constrained integer optimum, no
+ *  search.  The codomain constraint, pulled back through the graph, IS the
+ *  domain restriction (§3.3). */
+export template <typename T, auto K, auto P, auto V, auto W, typename L>
+constexpr auto argmax(
+    const Set<std::pair<T, T>, L,
+              ProductRestrict<ProjAddConstProj<1, K, Rel::Eq, 2>,
+                              RelAnd<ProjBound<2, Rel::Le, P>,
+                                     ProjModConstBound<2, V, Rel::Eq, W>>>>&) {
+  constexpr auto p = P - K;                      // domain bound {x ≤ P−K}
+  constexpr auto r = ((W - K) % V + V) % V;      // residue x ≡ (W−K) mod V
+  constexpr auto m = p - ((p - r) % V + V) % V;  // largest x ≤ p with x ≡ r
+  return Singleton<m, L>{};
+}
+static_assert(is_entire(ℤ* ℤ | π1 + fix(3_c) == π2),
+              "the bare translation graph is total (entire).");
+static_assert(!is_entire(ℤ * ℤ | π1 + fix(3_c) == π2 |
+                         π2 <= fix(8_c) & π2 % fix(3_c) == fix(0_c)),
+              "constraining the codomain makes the graph a partial function.");
+static_assert(argmax(ℤ* ℤ | π1 + fix(3_c) == π2 |
+                     π2 <= fix(8_c) & π2 % fix(3_c) == fix(0_c))(3),
+              "argmax = max{x ≤ 5 ∧ x ≡ 0 mod 3} = 3: a compile-time "
+              "constrained optimum.");
+static_assert(!argmax(ℤ * ℤ | π1 + fix(3_c) == π2 |
+                      π2 <= fix(8_c) & π2 % fix(3_c) == fix(0_c))(4),
+              "4 is feasible-adjacent but not the optimiser (4 ≢ 0 mod 3).");
 
 // Modelling witness ("Theorems for Free", type-checked): the SPECIFIC pivot
 // overload AGREES with the ABSTRACT definition max R = (∈) ∩ (R/∋) at the

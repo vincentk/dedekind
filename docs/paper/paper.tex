@@ -1039,39 +1039,25 @@ The definition is the same forward filter as Equation~\ref{eqn:extrema}, with th
 \end{equation}
 Read as a relation this is the pulled-back comparison $f(\pi_1) \le f(\pi_2)$ on $\mathrm{dom}\times\mathrm{dom}$, universally quantified over $\pi_1$: Listing~\ref{lst:relation_examples}'s $\pi_1 \le \pi_2$ with each side seen through $f$.
 The objective $f$ is generic, any map into a comparable codomain; supply a point-free $f$ and the whole relation stays compiler-inspectable, but the filter asks only for its values, never its inverse.
-Because the answer is a set, the (domain, codomain, constraint) triple hands back the degenerate cases as a \emph{cardinality} rather than as special code: the fibre $f^{-1}(\max f(\mathrm{dom}))$ is empty when there is no maximum, a singleton exactly when the optimiser is unique (so $\arg\max$ is a function), and larger under ties (so $\arg\max$ is a proper relation), the same fibre bookkeeping Table~\ref{tab:relation-quantifier} reads off a projection (Listing~\ref{lst:argmax_def}, bottom).
+Because the answer is a set, the (domain, codomain, constraint) triple hands back the degenerate cases as a \emph{cardinality} rather than as special code: the fibre $f^{-1}(\max f(\mathrm{dom}))$ is empty when there is no maximum, a singleton exactly when the optimiser is unique (so $\arg\max$ is a function), and larger under ties (so $\arg\max$ is a proper relation), the same fibre bookkeeping Table~\ref{tab:relation-quantifier} reads off a projection (Listing~\ref{lst:argmax_def}).
 
 \begin{listing}[htbp]
-\caption{$\arg\max$ / $\arg\min$ as Equation~\ref{eqn:extrema}'s extremum with $\le$ pulled back through $f$.
-\textbf{Top}: the forward filter, a \cppinline{forall} over $f(a)\le f(x)$; no inverse of $f$ enters, and the result is again an \cppinline{IsSet}.
-\textbf{Bottom}: over $\{0,\dots,6\}$ the concave \cppinline{cap} has the unique peak $x=3$ (a singleton fibre, so $\arg\max$ is a function), while \cppinline{parity} ties across every odd argument (fibre $\{1,3,5\}$, a proper relation); membership \cppinline{argmax(D,f)(x)} reads the fibre.}
+\caption{$\arg\max$ over a \emph{partial function}: a compile-time constrained optimum.
+Constraining the codomain of the graph $x \mapsto x+3$, bounded ($\pi_2 \le 8$) and restricted to a residue class ($\pi_2 \equiv 0 \bmod 3$), drops \emph{entire} but keeps \emph{functional} (Table~\ref{tab:relation-quantifier}): the same graph is now a partial function.
+Its feasible domain is that codomain constraint pulled back through the graph, $\{x \le 5 \wedge x \equiv 0 \bmod 3\}$, and because a translation is monotone $\arg\max$ is that domain's greatest element, $3$, read off structurally with no search.}
 \label{lst:argmax_def}
-\noindent
-\begin{minipage}[t]{0.99\linewidth}
 \begin{cpp}
-template <IsEnumerableSet S, class F>
-constexpr auto argmax(S dom, F f) {     // { x ∈ dom | ∀ a ∈ dom. f(a) ≤ f(x) }
-  return Set{dom | forall(dom, f(a) <= f(x))};
-}
+constexpr auto g = ℤ * ℤ | π1 + fix(3_c) == π2   // x ↦ x+3 ...
+                     | π2 <= fix(8_c)              //   ... into a bounded ...
+                     & π2 % fix(3_c) == fix(0_c);  //   ... residue codomain
+static_assert(!is_entire(g));                       // a partial function now
+static_assert( argmax(g)(3));                       // max{x≤5, x≡0 mod 3} = 3
+static_assert(!argmax(g)(4));                        // 4 ≢ 0 mod 3
 \end{cpp}
-\end{minipage}
-
-\vspace{0.4em}
-\noindent
-\begin{minipage}[t]{0.99\linewidth}
-\begin{cpp}
-constexpr int cap(int x)    { return x*(6-x); }  // concave, unique peak at 3
-constexpr int parity(int x) { return x % 2;    }  // ties across the odds
-constexpr auto D = iota(0, 7);                     // {0,…,6}
-static_assert(argmax(D, cap)(3));                 // {3}: unique optimiser (a fn)
-static_assert(argmax(D, parity)(1) && argmax(D, parity)(5));  // {1,3,5}: a tie
-\end{cpp}
-\end{minipage}
 \end{listing}
 
-The filter types in for any domain and any $f$; it \emph{decides} only where §\ref{sec:ddk_comprehension}'s certificates reach.
-A finite or finite-quotient domain is walked, but an unbounded one leaves both the codomain maximum and its winning fibre as existentials over $f$, decidable only through $f$'s own structure.
-That closed-form certificate, the retract, is the next slice.
+The optimum is not searched for but read off the structure: the codomain bound and the congruence, pulled back through the graph, fix the feasible domain, and a monotone objective makes $\arg\max$ its greatest element.
+Where the objective is not monotone, or the domain not so structured, the filter still types but decides only where §\ref{sec:ddk_comprehension}'s certificates reach.
 
 \subsubsection{Functions and Morphism Factorization Gates}
 \label{sec:functions_morphism_factorization}
