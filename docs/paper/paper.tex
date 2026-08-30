@@ -1055,16 +1055,34 @@ The forward image is thus the one whose membership needs the inverse, and that i
 An isomorphism meets all four bounds and collapses every cell to a constant-time answer; a plain function gets its $\pi_A$ side for free and waits on injectivity for its $\pi_B$ side, which is exactly where the retract is required.
 
 \begin{listing}[htbp]
-\caption{A function \emph{is} its graph.  \cppinline{f = ℤ*ℤ | π1+fix(3_c)==π2} is the point-free relation $\{(x, x{+}3)\}$, a bona fide function: functional and entire, the two bounds of Table~\ref{tab:relation-quantifier}'s $\pi_A$ column.  Its \cppinline{inverse} is the graph read backwards, the converse relation $x{-}3$; \cppinline{image} is the range, the whole line for a total (surjective) function, and a domain bound pushes forward through the graph, $\{x\le5\}$ to $\{y\le8\}$, again a halfspace of the same shape (abridged from the checked-in witnesses).}
+\caption{A function \emph{is} its graph, and translations form a \emph{group} under composition.
+\textbf{Left}: \cppinline{f = ℤ*ℤ | π1+fix(3_c)==π2} is the point-free relation $\{(x, x{+}3)\}$, functional and entire (Table~\ref{tab:relation-quantifier}'s $\pi_A$ column); its \cppinline{inverse} is the converse relation $x{-}3$, and \cppinline{image} pushes a domain bound forward, $\{x\le5\}$ to $\{y\le8\}$, again a halfspace.
+\textbf{Right}: composition \cppinline{>>} is symbolic --- the shifts add, no $\exists$ over the intermediate --- so closure, the inverse law, and \emph{associativity, invertibility, commutativity} are compile-time facts; the conjugate $g\,f\,g^{-1}=f$ collapses because $+$ commutes (abridged from the checked-in witnesses).}
 \label{lst:functional_image_bijection}
+\noindent
+\begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-constexpr auto f = ℤ * ℤ | π1 + fix(3_c) == π2;   // x ↦ x+3 as its graph
-static_assert(is_function(f));                     // functional ∧ entire
-static_assert(inverse(f) == (ℤ*ℤ | π1+fix(-3_c)==π2));  // converse graph: x−3
-static_assert(image(f) == ℤ);                      // total ⇒ onto ℤ
-static_assert(image(f | π1 <= fix(5_c))            // {x≤5} pushes forward
-              == (ℤ | π <= fix(8_c)));             //   ... to {y≤8}
+constexpr auto f =                  // x ↦ x+3
+  ℤ * ℤ | π1 + fix(3_c) == π2;
+static_assert(is_function(f));
+static_assert(inverse(f)            // converse: x−3
+  == (ℤ*ℤ | π1+fix(-3_c)==π2));
+static_assert(image(f|π1<=fix(5_c)) // {x≤5}↦{y≤8}
+  == (ℤ | π<=fix(8_c)));
 \end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\linewidth}
+\begin{cpp}
+constexpr auto g =                  // x ↦ x+2
+  ℤ * ℤ | π1 + fix(2_c) == π2;
+static_assert((f >> g)              // closure: T₃∘T₂=T₅
+  == (ℤ*ℤ | π1+fix(5_c)==π2));
+static_assert((g >> inverse(g))     // g∘g⁻¹ = id
+  == (ℤ*ℤ | π1+fix(0_c)==π2));
+static_assert(                      // g∘f∘g⁻¹ = f (abelian)
+  (g >> f >> inverse(g)) == f);
+\end{cpp}
+\end{minipage}
 \end{listing}
 
 The graph is the whole surface: the same \cppinline{*}, \cppinline{|}, and projection arithmetic that spell a relation spell a function, and \cppinline{inverse} and \cppinline{image} are relational operations on it, not a separate arrow calculus.

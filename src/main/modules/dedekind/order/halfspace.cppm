@@ -1540,6 +1540,17 @@ static_assert(((ℤ * ℤ | π1 + fix(2_c) == π2) >> (ℤ * ℤ | π1 + fix(3_c
                   ((ℤ * ℤ | π1 + fix(2_c) == π2) >>
                    (ℤ * ℤ | π1 + fix(5_c) == π2)),
               "abelian: f∘g∘h∘g⁻¹ = f∘h (g cancels through h; + commutes).");
+// Identity element and conjugation, for the group panel of Listing 12: g∘g⁻¹ is
+// the identity translation T₀, and conjugating f by g is trivial (g∘f∘g⁻¹ = f)
+// because + commutes.  Associativity is implicit in the flat >> chains.
+static_assert(((ℤ * ℤ | π1 + fix(2_c) == π2) >>
+               inverse(ℤ * ℤ | π1 + fix(2_c) == π2)) ==
+                  (ℤ * ℤ | π1 + fix(0_c) == π2),
+              "inverse law: g ∘ g⁻¹ = id (T₀).");
+static_assert(((ℤ * ℤ | π1 + fix(2_c) == π2) >> (ℤ * ℤ | π1 + fix(3_c) == π2) >>
+               inverse(ℤ * ℤ | π1 + fix(2_c) == π2)) ==
+                  (ℤ * ℤ | π1 + fix(3_c) == π2),
+              "abelian conjugation: g ∘ f ∘ g⁻¹ = f (+ commutes).");
 
 /** @brief Two halfspaces are the same set iff they share pivot, direction and
  *  strictness (the carrier and logic already match): structural set equality,
