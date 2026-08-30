@@ -674,21 +674,18 @@ Section~\ref{sec:relations_functions_blueprint} lifts $\le$ from a bare comparis
 
 \begin{listing}[htbp]
 \caption{The extremal sets: one generic definition, its $\forall$-projection decided by structure.
-\textbf{Top}: \cppinline{max} is \cppinline{S} met with its \cppinline{upperbounds} (the $\forall$-projection $R/\ni$, $\{\pi_2\in S \mid \forall\pi_1\in S.\; \pi_1\le\pi_2\}$, Equation~\ref{eqn:extrema}); \cppinline{min} is the dual.
+\textbf{Top}: \cppinline{max} is \cppinline{S} met ($\cap$, the operator \cppinline{&}) with its \cppinline{upperbounds} (the $\forall$-projection $R/\ni$, $\{\pi_2\in S \mid \forall\pi_1\in S.\; \pi_1\le\pi_2\}$, Equation~\ref{eqn:extrema}); \cppinline{min} is the dual, over \cppinline{lowerbounds}.
 \cppinline{upperbounds} is the pluggable point (as $\forall$/$\exists$ plug into \cppinline{==}), settled \emph{symbolically} per structure, so no candidate is enumerated; the meet then collapses $\{x\le p\}\cap\{x\ge p\}$ to the attained pivot $\{p\}$, or to $\varnothing$ when the bound is unattained (strict) or absent (unbounded).
 \textbf{Bottom}: witnesses on $\mathbb{B}$ (finite) and an infinite halfspace.}
 \label{lst:extrema_def}
 \noindent
 \begin{minipage}[t]{0.99\linewidth}
 \begin{cpp}
-// One generic definition — S met with its ∀-dominators (Bird & de Moor):
-//   max S = structured_and(S, upperbounds(S)) = S ∩ (R/∋) = {π2∈S | ∀π1∈S. π1 ≤ π2}
-auto max(S s) { return structured_and(s, upperbounds(s)); }  // min: S ∩ lowerbounds(S)
+auto max(S s) { return s & upperbounds(s); }
 
-// upperbounds = the ∀-projection R/∋, decided by structure (the pluggable point):
-auto upperbounds(Halfspace<T,p,Down,_>) { return Halfspace<T,p,Up,NonStrict>{}; } // {x≥p}
-auto upperbounds(Halfspace<T,p,Up,_>)   { return Ø<T>{}; }        // unbounded → no bound
-auto upperbounds(Ω<bool>)               { return Singleton<true>{}; }   // 𝔹: the top ⊤
+auto upperbounds(Halfspace<T,p,Down,_>) { return Halfspace<T,p,Up,NonStrict>{}; }
+auto upperbounds(Halfspace<T,p,Up,_>)   { return Ø<T>{}; }
+auto upperbounds(Ω<bool>)               { return Singleton<true>{}; }
 \end{cpp}
 \end{minipage}
 
@@ -696,9 +693,9 @@ auto upperbounds(Ω<bool>)               { return Singleton<true>{}; }   // 𝔹
 \noindent
 \begin{minipage}[t]{0.99\linewidth}
 \begin{cpp}
-static_assert(max(𝔹)(true));   static_assert(min(𝔹)(false)); // 𝔹 ∩ {⊤}/{⊥} = {true}/{false}
-static_assert(max(ℤ | (π <= fix(5_c)))(5));   // {x≤5} ∩ {x≥5} = {5}: the attained sup
-static_assert(min(ℤ | (π >= fix(5_c)))(5));   // {x≥5} ∩ {x≤5} = {5}
+static_assert(max(𝔹)(true));   static_assert(min(𝔹)(false));
+static_assert(max(ℤ | (π <= fix(5_c)))(5));
+static_assert(min(ℤ | (π >= fix(5_c)))(5));
 \end{cpp}
 \end{minipage}
 \end{listing}

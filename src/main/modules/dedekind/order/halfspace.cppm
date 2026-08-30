@@ -1499,34 +1499,44 @@ constexpr auto lowerbounds(const UniversalSet<bool, L, C>&) {
   return Singleton<false, L>{};
 }
 
-// Meet completions the @f$\forall@f$-projection needs: @c Ø absorbs (no upper
-// bound ⟹ no max), and the universe is the meet identity (@c Ω ∩ X = X, so
-// @c 𝔹 ∩ {⊤} = {⊤}).  Ordinary halfspace pairs keep routing to the
-// direction/strictness @c structured_and overloads above.
+// @c & IS the meet on bare order operands: it forwards to the
+// @c structured_and customization point, exactly as @c Set::operator& does for
+// wrapped predicates, so no @c Set{} wrapping is needed.  The complement-pair
+// @c operator& above (opposite direction AND flipped strictness → @c Ø) is more
+// specialized and still claims its case; every other halfspace pair
+// (overlapping, same-direction) routes here.
+export template <typename T, auto P1, Direction D1, Strictness S1, auto P2,
+                 Direction D2, Strictness S2, typename L>
+constexpr auto operator&(Halfspace<T, P1, D1, S1, L> a,
+                         Halfspace<T, P2, D2, S2, L> b)
+  requires requires { structured_and(a, b); }
+{
+  return structured_and(a, b);
+}
+// @c Ø absorbs the meet (no upper bound ⟹ no max) --- the completion the
+// @f$\forall@f$-projection needs at the unbounded end.  (The finite end, the
+// universe meet-identity @c Ω ∩ X = X so @c 𝔹 ∩ {⊤} = {⊤}, is already the
+// universe's own @c operator& member in @c :boundaries.)
 export template <typename T, auto p, Direction D, Strictness S, typename L,
                  typename LZ>
-constexpr auto structured_and(Halfspace<T, p, D, S, L>, Ø<T, LZ>) {
+constexpr auto operator&(Halfspace<T, p, D, S, L>, Ø<T, LZ>) {
   return Ø<T, L>{};
 }
-export template <typename T, typename L, typename C, typename X>
-constexpr auto structured_and(const UniversalSet<T, L, C>&, X x) {
-  return x;
-}
 
-// The generic extremum: @c S met with its own @f$\forall@f$-dominators.  One
-// definition for any ordered @c S whose @c upperbounds and meet are defined;
-// the structural collapse lives entirely in @c upperbounds + @c structured_and,
+// The generic extremum: @c S met (@c ∩) with its own @f$\forall@f$-dominators.
+// One definition for any ordered @c S whose @c upperbounds and meet are
+// defined; the structural collapse lives entirely in @c upperbounds + the meet,
 // so there is no generic search.  @c min is the dual (@c S met with its
 // minorants).
 export template <typename S>
-  requires requires(const S& s) { structured_and(s, upperbounds(s)); }
+  requires requires(const S& s) { s & upperbounds(s); }
 constexpr auto max(const S& s) {
-  return structured_and(s, upperbounds(s));
+  return s & upperbounds(s);
 }
 export template <typename S>
-  requires requires(const S& s) { structured_and(s, lowerbounds(s)); }
+  requires requires(const S& s) { s & lowerbounds(s); }
 constexpr auto min(const S& s) {
-  return structured_and(s, lowerbounds(s));
+  return s & lowerbounds(s);
 }
 
 // Exhibit (intensional, infinite case): over ℤ, max{x ≤ 5} = {5} and
