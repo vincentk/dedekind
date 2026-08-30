@@ -1048,6 +1048,37 @@ The four maps that read a relation, its \cppinline{dom} and \cppinline{cod} and 
 The forward image is thus the one whose membership needs the inverse, and that inverse is the retract on the mono leg.
 An isomorphism meets all four bounds and collapses every cell to a constant-time answer; a plain function gets its $\pi_A$ side for free and waits on injectivity for its $\pi_B$ side, which is exactly where the retract is required.
 
+Table~\ref{tab:relation-quantifier} classifies the arrow; the same projection bounds fix the shape of its \emph{inverse}, and with it the whole of image-membership.
+Every case is the one law
+\begin{equation}
+\label{eqn:image-fibre}
+y \in \mathrm{image}(f, S) \iff \bigvee_{x \,\in\, f^{-1}(y)} S(x),
+\end{equation}
+the fibre $f^{-1}(y)$ met against the source $S$; what changes across Table~\ref{tab:inverse-image-laws} is only the fibre's \emph{shape}.
+An iso or a mono has a fibre of at most one point, so the join is a single lookup through a total or partial inverse.
+An epi or a general map has a many-point fibre, which is a point-free \emph{union} of branches, so the join is the union $\bigcup_i \mathrm{preimage}(b_i, S)$ of the branches' pullbacks, decided analytically with no enumeration.
+The one-sided inverses all compose \emph{contravariantly}, so retractability and section-ability are closed under composition and, in particular, are preserved by pre- or post-composition with an iso (Listing~\ref{lst:functional_image_bijection}).
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}llll@{}}
+\toprule
+arrow $f$ & one-sided inverse & fibre $f^{-1}(y)$ & composition $h = g \circ f$ \\
+\midrule
+iso              & $f^{-1}$ (two-sided)                     & $\{f^{-1}(y)\}$                                    & $h^{-1} = f^{-1}\!\circ g^{-1}$ \\
+\addlinespace
+mono / injective & retract $r$, $\;r\circ f = \mathrm{id}$   & $\{r(y)\}$ if $f(r(y)){=}y$, else $\varnothing$   & $r_h = r_f\!\circ r_g$ \\
+\addlinespace
+epi / surjective & section $s$, $\;f\circ s = \mathrm{id}$   & a union, containing $s(y)$                         & $s_h = s_f\!\circ s_g$ \\
+\addlinespace
+general $m\circ e$ & retract of $m$, section of $e$          & a union of branches                               & converse composes contravariantly \\
+\bottomrule
+\end{tabular}
+\caption{How Table~\ref{tab:relation-quantifier}'s arrow class fixes the inverse structure, hence image-membership (Equation~\ref{eqn:image-fibre}) and its composition law.
+The fibre is a single point (iso, mono) or a point-free union (epi, general); image is the fibre met against the source, and the one-sided inverses all compose contravariantly, so retractability is closed under composition.}
+\label{tab:inverse-image-laws}
+\end{table}
+
 \begin{listing}[htbp]
 \caption{A function \emph{is} its graph, and translations form a \emph{group} under composition.
 \textbf{Left}: \cppinline{f = ℤ*ℤ | π1+fix(3_c)==π2} is the point-free relation $\{(x, x{+}3)\}$, functional and entire (Table~\ref{tab:relation-quantifier}'s $\pi_A$ column); its \cppinline{inverse} is the converse relation $x{-}3$, and \cppinline{image} pushes a domain bound forward, $\{x\le5\}$ to $\{y\le8\}$, again a halfspace.
