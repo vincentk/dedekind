@@ -1562,6 +1562,48 @@ constexpr bool operator==(Halfspace<T, P1, D1, S1, L>,
   return P1 == P2 && D1 == D2 && S1 == S2;
 }
 
+/** @brief A halfspace over the @b finite carrier @c bool decides emptiness /
+ *  totality by exhausting @c {false, true}: the 𝔹 leg of the s|p quantifier,
+ *  so @c forall(𝔹, π ⋈ fix(v)) and @c exists(𝔹, …) materialise for a ≤/≥
+ *  fragment (the == fragment goes through @c Singleton).  ADL via @c Halfspace
+ *  / @c Ø / @c UniversalSet. */
+export template <auto P, Direction D, Strictness S, typename L>
+constexpr bool operator==(const Halfspace<bool, P, D, S, L>& h,
+                          const Ø<bool, L>&) {
+  return !static_cast<bool>(h(false)) && !static_cast<bool>(h(true));
+}
+export template <auto P, Direction D, Strictness S, typename L>
+constexpr bool operator==(const Ø<bool, L>& e,
+                          const Halfspace<bool, P, D, S, L>& h) {
+  return h == e;
+}
+export template <auto P, Direction D, Strictness S, typename L, typename C>
+constexpr bool operator==(const Halfspace<bool, P, D, S, L>& h,
+                          const UniversalSet<bool, L, C>&) {
+  return static_cast<bool>(h(false)) && static_cast<bool>(h(true));
+}
+export template <auto P, Direction D, Strictness S, typename L, typename C>
+constexpr bool operator==(const UniversalSet<bool, L, C>& u,
+                          const Halfspace<bool, P, D, S, L>& h) {
+  return h == u;
+}
+
+/** @brief A @c Singleton over @c bool is never all of @c 𝔹 (two elements), so
+ *  @c == Ω is @c false: the forall (scheme B) leg for the @c == fragment on 𝔹
+ *  (@c Ω<bool> | (π == fix(v)) collapses to @c Singleton<v>). */
+export template <auto V, typename L, typename C>
+  requires std::same_as<decltype(V), bool>
+constexpr bool operator==(const Singleton<V, L>&,
+                          const UniversalSet<bool, L, C>&) {
+  return false;
+}
+export template <auto V, typename L, typename C>
+  requires std::same_as<decltype(V), bool>
+constexpr bool operator==(const UniversalSet<bool, L, C>& u,
+                          const Singleton<V, L>& s) {
+  return s == u;
+}
+
 // image = the RANGE (π_B projection) of a functional graph, read structurally.
 // A translation is surjective, so the range of the unrestricted graph is the
 // whole line; bounded by a π1-halfspace the range is that halfspace pushed
@@ -1698,8 +1740,7 @@ static_assert(!min(Ω<bool>)(true), "true is not the least element of 𝔹.");
 // ∀a∈𝔹. a ≤ false FAILS (true ⋠ false), spelled as the halfspace {a ≤ false},
 // so false is correctly NOT the max.
 static_assert(max(Ω<bool>)(false) ==
-                  (Ω<bool>(false) &&
-                   forall(Ω<bool>, Ω<bool> | (π <= fix(false_c)))),
+                  (Ω<bool>(false) && forall(Ω<bool>, π <= fix(false_c))),
               "specific max(𝔹) models (∈) ∩ (R/∋), structurally.");
 
 // (The image of a halfspace under a translation --- the pivot shifted by K ---

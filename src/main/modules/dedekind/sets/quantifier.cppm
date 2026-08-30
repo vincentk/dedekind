@@ -131,17 +131,23 @@ constexpr auto set(const UniversalSet<bool, L, Finite>&, P p) {
 // complementing the predicate, @c !P.  Generic over any @c IsSet domain @c S
 // and @c IsPredicate query @c P for which a @c set() comprehension is defined;
 // the per-carrier @c set() overloads (bool here, ℤ/Nℤ in :numbers) do the work.
-export template <dedekind::category::IsSet S, dedekind::category::IsPredicate P>
-  requires requires(const S& s, P p) { set(s, p); }
+// The point-free query @c P is an UNBOUND fragment (@c π == fix(v), @c π %
+// fix(N) == fix(R), a halfspace) --- it has no @c Domain, so it is not
+// @c IsPredicate; the gate is simply that @c s @c | @c p is well-formed (the
+// where-clause materialises the comprehension).  A raw lambda has no @c
+// operator| against the universe, so it falls through to the enumerable
+// (@c input_range) surface instead, keeping the two regimes honestly apart.
+export template <dedekind::category::IsSet S, typename P>
+  requires requires(const S& s, P p) { s | p; }
 constexpr bool exists(const S& s, P p) {
   return !(Ø<typename S::Domain, typename S::logic_species>{} ==
-           set(s, std::move(p)));  // (A): {x ∈ S | P(x)} ≠ ∅
+           (s | std::move(p)));  // (A): {x ∈ S | P(x)} ≠ ∅
 }
 
-export template <dedekind::category::IsSet S, dedekind::category::IsPredicate P>
-  requires requires(const S& s, P p) { set(s, p); }
+export template <dedekind::category::IsSet S, typename P>
+  requires requires(const S& s, P p) { s | p; }
 constexpr bool forall(const S& s, P p) {
-  return set(s, std::move(p)) == s;  // (B): {x ∈ S | P(x)} == S
+  return (s | std::move(p)) == s;  // (B): {x ∈ S | P(x)} == S
 }
 
 /** @section quantifier__Formal_Verification */

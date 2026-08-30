@@ -32,20 +32,19 @@ TEST_CASE("finite-quotient quantifiers decide exists/forall by type on 𝔹 and 
   }
 
   SECTION("𝔹 = Ω<bool>: finite carrier, materialised over {false, true}") {
-    Singleton<true>
-        isTrue{};  // structural IsPredicate on bool (the set {true})
-    CHECK(exists(Ω<bool>, isTrue));  // (A) {b | b} ≠ ∅ — true is a member
-    CHECK_FALSE(forall(Ω<bool>,
-                       isTrue));  // (B) {b | b} ≠ S — false is a counterexample
+    // Point-free membership fragment: π == fix(true_c), materialised via s | p.
+    CHECK(
+        exists(Ω<bool>, π == fix(true_c)));  // (A) {b | b} ≠ ∅ — true a member
+    CHECK_FALSE(
+        forall(Ω<bool>, π == fix(true_c)));  // (B) ≠ S — false a counterexample
   }
 
   SECTION("ℕ = Ω<Cardinality>: infinite carrier, factored through ℤ/3ℤ") {
-    // The telling scout sugar: in<ℕ> % Modular<3> == bound<0>  →
-    // Congruence<3,0>.
-    constexpr auto isDivBy3 = in<Ω<Cardinality>> % Modular<3>{} == bound<0>;
+    // Point-free congruence fragment π % fix(3_c) == fix(0_c) (≡ 0 mod 3); s |
+    // p materialises it over the three residues of ℤ/3ℤ.
     CHECK(exists(Ω<Cardinality>,
-                 isDivBy3));  // (A) ∃ x divisible by 3 (residue 0 vs ∅)
+                 π % fix(3_c) == fix(0_c)));  // (A) ∃ x ≡ 0 (residue 0 vs ∅)
     CHECK_FALSE(forall(Ω<Cardinality>,
-                       isDivBy3));  // (B) ¬∀ divisible (residues 1,2 vs S)
+                       π % fix(3_c) == fix(0_c)));  // (B) residues 1,2 vs S
   }
 }

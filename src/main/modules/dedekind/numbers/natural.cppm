@@ -572,7 +572,9 @@ struct FiniteResidueSet {
 };
 
 /** @brief @c set(ℕ, congruence): materialise the predicate over the N residues
- *  of @c Modular<N> (the reduction is the @c Modular<N> constructor). */
+ *  of @c Modular<N> (the reduction is the @c Modular<N> constructor).
+ *  TRANSITIONAL: retired once the s|p fold lands; kept while the scout path and
+ *  the operator| bridge below coexist. */
 export template <typename L, typename C, auto N, auto R>
 constexpr auto set(const UniversalSet<Cardinality, L, C>&,
                    dedekind::morphologies::Congruence<N, R> c) {
@@ -582,10 +584,28 @@ constexpr auto set(const UniversalSet<Cardinality, L, C>&,
   return FiniteResidueSet<N, L>{at};
 }
 
-// ∃ / ∀ over Ω<Cardinality> are the generic quantifiers of :quantifier
-// (template <IsSet S, IsPredicate P>); a Congruence is IsPredicate and the
-// set() overload above supplies the comprehension, so no ℕ-specific exists /
-// forall overload is needed.
+/** @brief @c ℕ @c | @c (π % fix(N) == fix(R)): the point-free residue class,
+ *  materialised over the N residues of @f$\mathbb{Z}/N\mathbb{Z}@f$.  The
+ *  where-clause form of the finite-quotient comprehension --- @c
+ *  ProjModConstBound is the order-layer congruence fragment (@c π % fix(N) ==
+ *  fix(R)), and this is @c {x ∈ ℕ | x ≡ R mod N} decided on the N residues.
+ *  ADL finds it through the @c Ω<Cardinality> (sets) operand. */
+export template <typename L, typename C, auto N, auto R>
+constexpr auto operator|(
+    const UniversalSet<Cardinality, L, C>&,
+    dedekind::order::ProjModConstBound<0, N, dedekind::order::Rel::Eq, R>) {
+  std::array<typename L::Ω, N> at{};
+  for (std::size_t r = 0; r < static_cast<std::size_t>(N); ++r)
+    at[r] = ((r % static_cast<std::size_t>(N)) == static_cast<std::size_t>(R))
+                ? L::True
+                : L::False;
+  return FiniteResidueSet<N, L>{at};
+}
+
+// ∃ / ∀ over Ω<Cardinality> are the generic structural quantifiers of
+// :quantifier (template <IsSet S, IsPredicate P>, folded onto s | p): the
+// point-free congruence fragment π % fix(N) == fix(R) materialises through the
+// operator| above into a FiniteResidueSet, whose == Ø / == Ω decide.
 
 }  // namespace dedekind::sets
 
@@ -595,28 +615,30 @@ namespace dedekind::numbers {
 // template <IsSet S, IsPredicate P> exists / forall of :quantifier against the
 // two lattice bounds (Eqn 2): ∃ vs ∅ (A), ∀ vs the input set S (B).
 
-// 𝔹 = Ω<bool>, a finite carrier: the structural predicate isTrue =
-// Singleton<true> (IsPredicate) materialises over {false, true}.
-inline constexpr dedekind::order::Singleton<true> isTrue{};
-static_assert(dedekind::sets::exists(dedekind::sets::Ω<bool>, isTrue),
+using dedekind::order::fix;
+using dedekind::order::true_c;
+using dedekind::order::π;
+using dedekind::order::operator""_c;
+
+// 𝔹 = Ω<bool>, a finite carrier: the point-free membership fragment
+// π == fix(true_c) materialises over {false, true} through s | p.
+static_assert(dedekind::sets::exists(dedekind::sets::Ω<bool>, π == fix(true_c)),
               "∃b∈𝔹. b — true is a member.");
-static_assert(!dedekind::sets::forall(dedekind::sets::Ω<bool>, isTrue),
+static_assert(!dedekind::sets::forall(dedekind::sets::Ω<bool>,
+                                      π == fix(true_c)),
               "¬∀b∈𝔹. b — false is a counterexample.");
 
-// ℕ = Ω<Cardinality>, infinite: isDivBy3 built with the telling scout sugar
-// in<ℕ> % Modular<3> == bound<0>, which reifies to Congruence<3,0> (an
-// IsPredicate carrying the modulus).  ∃/∀ are decided in FINITE time by the
+// ℕ = Ω<Cardinality>, infinite: the point-free congruence fragment
+// π % fix(3_c) == fix(0_c) (≡ 0 mod 3).  ∃/∀ are decided in FINITE time by the
 // three residues of ℤ/3ℤ: ∃ finds residue 0 against ∅; ∀ fails on residues 1,2
-// against S.  These also prove the sugar reifies to a Congruence.
-inline constexpr auto isDivBy3 =
-    dedekind::sets::in<dedekind::sets::Ω<dedekind::sets::Cardinality>> %
-        dedekind::morphologies::Modular<3>{} ==
-    dedekind::order::bound<0>;
-static_assert(dedekind::sets::exists(
-                  dedekind::sets::Ω<dedekind::sets::Cardinality>, isDivBy3),
-              "∃x∈ℕ. 3∣x — residue 0 is divisible by 3.");
-static_assert(!dedekind::sets::forall(
-                  dedekind::sets::Ω<dedekind::sets::Cardinality>, isDivBy3),
-              "¬∀x∈ℕ. 3∣x — residues 1,2 are counterexamples.");
+// against S --- s | p materialises the fragment into a FiniteResidueSet.
+static_assert(
+    dedekind::sets::exists(dedekind::sets::Ω<dedekind::sets::Cardinality>,
+                           π % fix(3_c) == fix(0_c)),
+    "∃x∈ℕ. 3∣x — residue 0 is divisible by 3.");
+static_assert(
+    !dedekind::sets::forall(dedekind::sets::Ω<dedekind::sets::Cardinality>,
+                            π % fix(3_c) == fix(0_c)),
+    "¬∀x∈ℕ. 3∣x — residues 1,2 are counterexamples.");
 
 }  // namespace dedekind::numbers
