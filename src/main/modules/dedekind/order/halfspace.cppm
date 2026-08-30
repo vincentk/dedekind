@@ -1584,6 +1584,14 @@ static_assert(image((ℤ * ℤ | π1 + fix(3_c) == π2) | π1 <= fix(5_c)) ==
                   (ℤ | (π <= fix(8_c))),
               "image over {x ≤ 5} pushes forward to {y ≤ 8}.");
 
+// The successor graph over ℕ: the image the OPAQUE arrow leaves Unknown (the
+// Rice wall of Listing 15) is DECIDED here by the pushforward --- {n>5} ↦
+// {n>6}, structure buying decidability that opacity cannot.
+static_assert(
+    image((ℕ * ℕ | π1 + fix(1_c) == π2) | π1 > fix(5_c)) ==
+        (ℕ | (π > fix(6_c))),
+    "image(succ, {n>5}) = {n>6}: the graph decides where opacity walls.");
+
 // Circle back to the complement-lattice collapse of Listing 2: the constrained
 // image of a COMPOSITE folds to ∅.  hc = T₂∘T₃ = T₅ pushes the domain {x≤1}
 // forward to {y≤6}, which meets the incompatible codomain {y>6}; the two

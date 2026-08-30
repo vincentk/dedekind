@@ -1127,18 +1127,30 @@ This is the honesty obligation of §\ref{sec:introduction} at the level of morph
 Listing~\ref{lst:functional_image_factorization} illustrates how this epic-monic gate and its corresponding image validation assertions are codified within the C++23 template engine.
 
 \begin{listing}[htbp]
-\caption{The image of an intensional set under an arrow, and the honest indecision it carries.  \cppinline{image(succ, {n>5})} realises \cppinline{IsImageOf} (it is a subobject of the codomain), yet its membership is \cppinline{TernaryLogic::Unknown}: the existential $\exists x.\,x>5 \wedge y = \mathrm{succ}(x)$ is undecidable on the transfinite carrier without a factorization.  The Rice boundary, made visible (abridged from the checked-in showcase).}
+\caption{Structure decides where opacity walls.
+\textbf{Left}: the successor as a \emph{graph}; its image over $\{n>5\}$ is the affine pushforward $\{n>6\}$, decided with no search of the domain.
+\textbf{Right}: the same map as an \emph{opaque} arrow the compiler cannot see through, so the existential $\exists x.\,x>5 \wedge y=\mathrm{succ}(x)$ is undecidable on the transfinite carrier: \cppinline{image} realises \cppinline{IsImageOf} yet its membership is honestly \cppinline{Unknown}.  The Rice boundary is for opacity, not for functions (abridged from the checked-in witnesses).}
 \label{lst:functional_image_factorization}
+\noindent
+\begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-constexpr auto succ = arrow<ℕ, ℕ>(
-  [](ℕ m){ return m + finite_cardinality(1); });
-
-constexpr auto img =
-  image(succ, Set{in<ℕ> | in<ℕ> > bound<5>});
-static_assert(IsImageOf<decltype(img), decltype(succ)>);
-
-static_assert(img(finite_cardinality(7)) == Ternary::Unknown);
+constexpr auto succ =        // as a graph
+  ℕ * ℕ | π1 + fix(1_c) == π2;
+static_assert(
+  image(succ | π1 > fix(5_c))  // {n>5}
+  == (ℕ | π > fix(6_c)));      //  ↦ {n>6}
 \end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\linewidth}
+\begin{cpp}
+constexpr auto op = arrow<ℕ,ℕ>(   // opaque λ
+  [](ℕ m){ return m + fix(1_c); });
+constexpr auto img =
+  image(op, Set{in<ℕ> | in<ℕ> > bound<5>});
+static_assert(               // honest wall
+  img(fix(7)) == Ternary::Unknown);
+\end{cpp}
+\end{minipage}
 \end{listing}
 
 By utilizing the \cppinline{retract} partial witness of an \cppinline{IsRetractableArrow} (the mono leg's partial inverse, returning \cppinline{std::optional}), the compiler evaluates codomain membership as a local lookup on the image boundary rather than a search of the domain.
