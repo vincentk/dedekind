@@ -440,25 +440,32 @@ constexpr auto drop(const Path<T, Cardinality, Index>& path, std::size_t n) {
  * categorical identity "a sequence IS a countable set of pairs" is
  * thus type-system-discharged rather than asserted in prose.
  */
+/** @brief The graph predicate of a sequence: @c (i,t) ∈ graph ⟺ @c t == seq(i)
+ *  (within bounds for a finite sequence).  A NAMED predicate carrier --- not
+ * the earlier lambda --- so the four-property traits below can attach and
+ * certify a sequence as a @b FUNCTION: @c IsSequence @c ⟹ @c IsFunction @c ⟹ @c
+ *  IsRelation. */
+export template <typename PathT>
+struct SequenceGraph {
+  PathT path;
+  template <typename Pair>
+  constexpr bool operator()(const Pair& p) const {
+    if constexpr (dedekind::sets::IsFinite<typename PathT::cardinality_type>) {
+      if (static_cast<std::size_t>(p.first) >= path.size()) return false;
+    }
+    return p.second == path.at(p.first);
+  }
+};
+
 export template <typename T, typename Cardinality, typename Index>
   requires std::equality_comparable<T>
 constexpr auto as_relation(const Path<T, Cardinality, Index>& path) {
-  // The relation's index column type IS the Path's @c Domain (i.e.\
-  // its @c Index template parameter), gated on @c IsRingIntegral via
-  // the @c IsSequence concept.  After the Path::Domain lift, the
-  // Form-shaped choice @c dedekind::sets::ExtensionalCardinal<> flows
-  // through here without a @c size_t cast at the entry point — only
-  // the finite-cardinality bound check needs a size_t conversion (to
-  // compare against @c path.size() which is a stdlib container size).
-  using Pair = std::pair<Index, T>;
-  auto graph_pred = [path](const Pair& p) -> bool {
-    if constexpr (dedekind::sets::IsFinite<Cardinality>) {
-      const auto i_size = static_cast<std::size_t>(p.first);
-      if (i_size >= path.size()) return false;
-    }
-    return p.second == path.at(p.first);
-  };
-  return Set<Pair, ClassicalLogic, decltype(graph_pred)>{graph_pred};
+  // The relation's index column type IS the Path's @c Domain (its @c Index),
+  // gated on @c IsRingIntegral via @c IsSequence; the finite-cardinality bound
+  // check lives in @c SequenceGraph.
+  using P = Path<T, Cardinality, Index>;
+  return Set<std::pair<Index, T>, ClassicalLogic, SequenceGraph<P>>{
+      SequenceGraph<P>{path}};
 }
 
 // @c take / @c drop / @c limit on the relation form are @em not separately
@@ -1189,4 +1196,41 @@ static_assert(
     std::same_as<Net<int>, Path<int>>,
     "Net<T> with default D = ℕ is a textbook-name alias for Path<T>.");
 
+}  // namespace dedekind::sequences
+
+// ── A sequence IS a function on a totally-ordered set --- so IsSequence ⟹
+// IsFunction ⟹ IsRelation.  Certify the four-property traits on the named
+// SequenceGraph carrier (impossible on the old lambda), reusing the #785
+// relation-property inference: a sequence's graph is FUNCTIONAL (single-valued,
+// at(i) is one value) always, and ENTIRE (total on its index) exactly when the
+// sequence is INFINITE; a finite sequence is a PARTIAL function (undefined past
+// its size), left at the primary false.
+namespace dedekind::category {
+template <typename I, typename T, typename L, typename PathT>
+inline constexpr bool is_right_unique_v<dedekind::sets::Set<
+    std::pair<I, T>, L, dedekind::sequences::SequenceGraph<PathT>>> = true;
+template <typename I, typename T, typename L, typename PathT>
+  requires(!dedekind::sets::IsFinite<typename PathT::cardinality_type>)
+inline constexpr bool is_left_total_v<dedekind::sets::Set<
+    std::pair<I, T>, L, dedekind::sequences::SequenceGraph<PathT>>> = true;
+}  // namespace dedekind::category
+
+namespace dedekind::sequences {
+// IsSequence ⟹ IsFunction ⟹ IsRelation, mechanically (the hierarchy is now
+// type-checked, not asserted in prose): a sequence's graph is a function.
+static_assert(
+    dedekind::sets::IsFunctional<
+        decltype(as_relation(std::declval<const Path<int>&>()))>,
+    "a sequence is FUNCTIONAL (single-valued): IsSequence ⟹ IsFunction.");
+static_assert(
+    dedekind::sets::IsEntire<
+        decltype(as_relation(std::declval<const Path<int>&>()))>,
+    "an INFINITE sequence is ENTIRE (total on its index): a total function.");
+static_assert(dedekind::sets::IsFunctional<decltype(as_relation(
+                  std::declval<const FinitePath<int>&>()))>,
+              "a FINITE sequence is still functional (single-valued)...");
+static_assert(
+    !dedekind::sets::IsEntire<
+        decltype(as_relation(std::declval<const FinitePath<int>&>()))>,
+    "...but a PARTIAL function: not entire on its index past its finite size.");
 }  // namespace dedekind::sequences
