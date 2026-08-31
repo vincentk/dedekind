@@ -663,6 +663,76 @@ constexpr auto structured_and(Halfspace<T, P1, Direction::Downward, S1, L>,
   }
 }
 
+/** @section halfspace__Halfspace_Structural_Join — @c structured_or, the JOIN
+ *  (∪) dual of @c structured_and: it makes the union COLLAPSE symmetrically to
+ *  the meet, so the join is no longer a declared-but-unimplemented hook.
+ *  Same-direction halfspaces union to the WEAKER bound (the smaller pivot up /
+ *  larger pivot down, non-strict winning at an equal pivot).  Opposing
+ *  halfspaces that OVERLAP cover the line (→ universe); a genuine GAP does not
+ *  collapse, so no overload matches and @c operator|| falls to the honest
+ *  point-wise union.  This is why @c image(abs) = @c image(x↦x on x≥0) ∪
+ *  @c image(x↦−x on x<0) = @c {y≥0} ∪ @c {y>0} collapses to @c {y≥0}. */
+
+/** @brief Same-direction upward union: {x≥p1} ∪ {x≥p2} = {x ≥ min(p1,p2)}. */
+export template <typename T, auto P1, auto P2, Strictness S1, Strictness S2,
+                 typename L>
+constexpr auto structured_or(Halfspace<T, P1, Direction::Upward, S1, L>,
+                             Halfspace<T, P2, Direction::Upward, S2, L>) {
+  if constexpr (P1 < P2) {
+    return Halfspace<T, P1, Direction::Upward, S1, L>{};
+  } else if constexpr (P2 < P1) {
+    return Halfspace<T, P2, Direction::Upward, S2, L>{};
+  } else {
+    // Same pivot: the WEAKER (non-strict) bound wins the union.
+    constexpr Strictness S =
+        (S1 == Strictness::NonStrict || S2 == Strictness::NonStrict)
+            ? Strictness::NonStrict
+            : Strictness::Strict;
+    return Halfspace<T, P1, Direction::Upward, S, L>{};
+  }
+}
+
+/** @brief Same-direction downward union: {x≤p1} ∪ {x≤p2} = {x ≤ max(p1,p2)}. */
+export template <typename T, auto P1, auto P2, Strictness S1, Strictness S2,
+                 typename L>
+constexpr auto structured_or(Halfspace<T, P1, Direction::Downward, S1, L>,
+                             Halfspace<T, P2, Direction::Downward, S2, L>) {
+  if constexpr (P1 > P2) {
+    return Halfspace<T, P1, Direction::Downward, S1, L>{};
+  } else if constexpr (P2 > P1) {
+    return Halfspace<T, P2, Direction::Downward, S2, L>{};
+  } else {
+    constexpr Strictness S =
+        (S1 == Strictness::NonStrict || S2 == Strictness::NonStrict)
+            ? Strictness::NonStrict
+            : Strictness::Strict;
+    return Halfspace<T, P1, Direction::Downward, S, L>{};
+  }
+}
+
+/** @brief Opposing union that COVERS the line → universe.  {x≥Lo} ∪ {x≤Hi}
+ *  covers iff every point is in one, i.e. @c Lo≤Hi (or @c Lo<Hi when both are
+ *  strict) --- the exact dual of @c structured_and's disjointness test.  A GAP
+ *  (@c Lo>Hi) is deliberately unmatched: it does not collapse to a halfspace,
+ * so
+ *  @c operator|| keeps the honest point-wise union. */
+export template <typename T, auto Lo, auto Hi, Strictness SL, Strictness SU,
+                 typename L>
+  requires((SL == Strictness::Strict && SU == Strictness::Strict) ? (Lo < Hi)
+                                                                  : (Lo <= Hi))
+constexpr auto structured_or(Halfspace<T, Lo, Direction::Upward, SL, L>,
+                             Halfspace<T, Hi, Direction::Downward, SU, L>) {
+  return dedekind::sets::UniversalSet<T, L>{};
+}
+export template <typename T, auto Hi, auto Lo, Strictness SU, Strictness SL,
+                 typename L>
+  requires((SL == Strictness::Strict && SU == Strictness::Strict) ? (Lo < Hi)
+                                                                  : (Lo <= Hi))
+constexpr auto structured_or(Halfspace<T, Hi, Direction::Downward, SU, L>,
+                             Halfspace<T, Lo, Direction::Upward, SL, L>) {
+  return dedekind::sets::UniversalSet<T, L>{};
+}
+
 /** @section halfspace__Interval_Cartesian_Product — 2D structural products. */
 
 /**
@@ -1540,6 +1610,20 @@ constexpr auto operator&(Halfspace<T, P1, D1, S1, L> a,
 {
   return structured_and(a, b);
 }
+// @c | IS the join on bare order operands, dual to the @c & meet: it forwards
+// to
+// @c structured_or, so a same-direction or overlapping halfspace union
+// collapses.  The complement-pair @c operator| above (→ universe) is more
+// specialized and still claims its case; a genuine GAP has no @c structured_or,
+// so @c | there is an honest hard error (use the Set-level union instead).
+export template <typename T, auto P1, Direction D1, Strictness S1, auto P2,
+                 Direction D2, Strictness S2, typename L>
+constexpr auto operator|(Halfspace<T, P1, D1, S1, L> a,
+                         Halfspace<T, P2, D2, S2, L> b)
+  requires requires { structured_or(a, b); }
+{
+  return structured_or(a, b);
+}
 // @c Ø absorbs the meet (no upper bound ⟹ no max) --- the completion the
 // @f$\forall@f$-projection needs at the unbounded end.  (The finite end, the
 // universe meet-identity @c Ω ∩ X = X so @c 𝔹 ∩ {⊤} = {⊤}, is already the
@@ -1768,6 +1852,13 @@ static_assert(image(ℤ* ℤ | π1 * fix(-1_c) == π2 | π1 < fix(0_c))(3),
               "3 ∈ abs({x<0}) via −3, though the canonical +3 ∉ {x<0}.");
 static_assert(!image(ℤ * ℤ | π1 * fix(-1_c) == π2 | π1 < fix(0_c))(-2),
               "abs is never negative: −2 ∉ image(abs).");
+// The FULL image of abs is the JOIN of the two branch images, and structured_or
+// collapses it: {y≥0} ∪ {y>0} = {y≥0} (the weaker, non-strict bound wins) = ℕ,
+// so abs is onto ℕ.  The join is now symmetric with the meet, no easter egg.
+static_assert((image(ℤ * ℤ | π1 * fix(1_c) == π2 | π1 >= fix(0_c)) |
+               image(ℤ * ℤ | π1 * fix(-1_c) == π2 | π1 < fix(0_c))) ==
+                  (ℤ | π >= fix(0_c)),
+              "image(abs) = {y≥0} ∪ {y>0} = {y≥0}: the sign-fold is onto ℕ.");
 
 // The successor graph over ℕ: the image the OPAQUE arrow leaves Unknown (the
 // Rice wall of Listing 15) is DECIDED here by the pushforward --- {n>5} ↦

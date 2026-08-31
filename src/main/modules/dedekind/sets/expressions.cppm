@@ -1038,7 +1038,7 @@ export template <typename T, typename L, typename C,
   requires std::same_as<dedekind::category::Dom<std::remove_cvref_t<F>>, T>
 constexpr auto image(F&&, const UniversalSet<T, L, C>&) {
   using U = dedekind::category::Cod<std::remove_cvref_t<F>>;
-  return UniversalSet<U, L, C>{};  // iso |U| = |T|, so the cardinality carries
+  return Ω<U, L, C>;  // iso |U| = |T|, so the cardinality carries
 }
 
 /** @brief Composed predicate for the retract-decidable @c image(f, Set)
@@ -1406,7 +1406,7 @@ constexpr auto operator*(const UniversalSet<A, LA, CA>&,
   using CC =
       std::conditional_t<std::same_as<CA, Finite> && std::same_as<CB, Finite>,
                          Finite, ℵ_0>;
-  return UniversalSet<std::pair<A, B>, LA, CC>{};
+  return Ω<std::pair<A, B>, LA, CC>;
 }
 
 /** @brief Infix sugar for cartesian product over sets. */
