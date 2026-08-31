@@ -39,7 +39,10 @@ using R2Point = typename decltype(R2)::Domain;
 // FIXME(#399 slice 4-6): see showcase_01 source for the same comment.
 constexpr auto xy = element<Ω<R2Point>>;
 
-constexpr auto diagonal =
+// Named @c diag (not @c diagonal) to avoid colliding with the first-class
+// DSL relation @c dedekind::order::diagonal (the Δ identity) now in scope via
+// @c using @c namespace @c dedekind::order above.
+constexpr auto diag =
     Set{xy % R2 | [](R2Point p) { return p.first == p.second; }};
 constexpr auto strip = Set{
     xy % R2 | [](R2Point p) { return (p.first > 5.0) && (p.second < 3.0); }};
@@ -48,7 +51,7 @@ constexpr auto strip = Set{
 
 TEST_CASE("Pruning showcase 1: diagonal × strip on ℝ² is empty",
           "[analysis][pruning][showcase][showcase01]") {
-  constexpr auto empty_diagonal_cut = diagonal & strip;
+  constexpr auto empty_diagonal_cut = diag & strip;
   using R2Logic = typename decltype(empty_diagonal_cut)::logic_species;
 
   // On the diagonal x = y, the strip x>5 ∧ y<3 is contradictory.
