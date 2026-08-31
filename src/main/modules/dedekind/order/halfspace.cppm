@@ -44,6 +44,8 @@ import dedekind.category;
 import dedekind.sets;
 import :poset;  // IsPartiallyOrdered — the SEMANTIC order certificate for
                 // max/min
+import :total;  // IsTotallyOrdered — the no-incomparable-element certificate
+                // that keeps the covering join sound (excludes NaZ carriers)
 
 namespace dedekind::order {
 using namespace dedekind::sets;
@@ -154,6 +156,32 @@ static_assert(IsRingIntegral<dedekind::sets::SignedCardinality&&>);
 static_assert(!IsRingIntegral<double>);
 static_assert(!IsRingIntegral<float>);
 static_assert(!IsRingIntegral<long double>);
+
+/**
+ * @concept IsUnboundedBelow
+ * @brief An integer-range order that extends below every element: no least
+ *        element, so a strict lower cut @c {x<p} is non-empty (and has a
+ *        greatest element @c p−1) for @b every pivot @c p.
+ *
+ * @details A pure @b order property (this is @c order, not @c algebra): it does
+ * NOT mention @c + or group structure.  It is what the @c max / @c min
+ * predecessor branch actually needs --- whether @c {x<p} bottoms out.  The
+ * signed built-in integers extend below 0 (down to @c INT_MIN), as does the
+ * @c ℤ-proxy @c SignedCardinality (down to @c −ℵ_0); @c ℕ = @c Cardinality,
+ * @c unsigned, and @c bool are all bounded below at their least element, so a
+ * strict cut at or below it is empty and has no @c max.
+ */
+export template <typename T>
+concept IsUnboundedBelow =
+    std::signed_integral<std::remove_cvref_t<T>> ||
+    std::same_as<std::remove_cvref_t<T>, dedekind::sets::SignedCardinality>;
+
+static_assert(IsUnboundedBelow<int>);
+static_assert(IsUnboundedBelow<dedekind::sets::SignedCardinality>);
+static_assert(!IsUnboundedBelow<dedekind::sets::Cardinality>,
+              "ℕ is bounded below at 0: {x<0} is empty, no max.");
+static_assert(!IsUnboundedBelow<unsigned int>);
+static_assert(!IsUnboundedBelow<bool>);
 
 /** @brief Orientation of a halfspace along the chain. */
 export enum class Direction { Upward, Downward };
@@ -399,8 +427,10 @@ constexpr auto operator|(const Singleton<A, LA>& a, const Singleton<B, LB>&) {
  */
 
 // Direction / strictness flips: the pieces of the halfspace complement.
-// ~{x > P} = {x <= P} — opposite direction, flipped strictness.  Internal.
-constexpr Direction flip(Direction d) {
+// ~{x > P} = {x <= P} — opposite direction, flipped strictness.  Exported: the
+// reflection-image pushforward (dedekind.algebra:halfspace_transport) reuses it
+// to flip a halfspace's sense under x↦−x.
+export constexpr Direction flip(Direction d) {
   return d == Direction::Upward ? Direction::Downward : Direction::Upward;
 }
 constexpr Strictness flip(Strictness s) {
@@ -718,22 +748,24 @@ constexpr auto structured_or(Halfspace<T, P1, Direction::Downward, S1, L>,
  *  @c operator|| keeps the honest point-wise union. */
 export template <typename T, auto Lo, auto Hi, Strictness SL, Strictness SU,
                  typename L>
-  requires((SL == Strictness::Strict && SU == Strictness::Strict) ? (Lo < Hi)
-           : (SL == Strictness::NonStrict && SU == Strictness::NonStrict &&
-              IsRingIntegral<T>)
-               ? (Lo <= Hi + 1)  // discrete: adjacent bounds cover (no int gap)
-               : (Lo <= Hi))
+  requires(IsTotallyOrdered<T> &&
+           ((SL == Strictness::Strict && SU == Strictness::Strict) ? (Lo < Hi)
+            : (SL == Strictness::NonStrict && SU == Strictness::NonStrict &&
+               IsRingIntegral<T>)
+                ? (Lo <= Hi + 1)  // discrete: adjacent bounds cover, no int gap
+                : (Lo <= Hi)))
 constexpr auto structured_or(Halfspace<T, Lo, Direction::Upward, SL, L>,
                              Halfspace<T, Hi, Direction::Downward, SU, L>) {
   return dedekind::sets::UniversalSet<T, L>{};
 }
 export template <typename T, auto Hi, auto Lo, Strictness SU, Strictness SL,
                  typename L>
-  requires((SL == Strictness::Strict && SU == Strictness::Strict) ? (Lo < Hi)
-           : (SL == Strictness::NonStrict && SU == Strictness::NonStrict &&
-              IsRingIntegral<T>)
-               ? (Lo <= Hi + 1)  // discrete: adjacent bounds cover (no int gap)
-               : (Lo <= Hi))
+  requires(IsTotallyOrdered<T> &&
+           ((SL == Strictness::Strict && SU == Strictness::Strict) ? (Lo < Hi)
+            : (SL == Strictness::NonStrict && SU == Strictness::NonStrict &&
+               IsRingIntegral<T>)
+                ? (Lo <= Hi + 1)  // discrete: adjacent bounds cover, no int gap
+                : (Lo <= Hi)))
 constexpr auto structured_or(Halfspace<T, Hi, Direction::Downward, SU, L>,
                              Halfspace<T, Lo, Direction::Upward, SL, L>) {
   return dedekind::sets::UniversalSet<T, L>{};
@@ -1584,10 +1616,14 @@ static_assert(
 export template <typename T, auto p, Strictness S, typename L>
 constexpr auto upperbounds(Halfspace<T, p, Direction::Downward, S, L>) {
   if constexpr (S == Strictness::Strict && IsRingIntegral<T> &&
-                !IsAbelianGroup<T, std::plus<T>> && p <= 0) {
-    // NON-group carrier bounded below at 0 (ℕ): {x<p} is EMPTY for p≤0, so
-    // there is no max.  Returning Ø keeps the predecessor p−1 (which would
-    // leave the carrier) from producing a spurious Singleton<p−1>.
+                !IsUnboundedBelow<T> && p <= 0) {
+    // Carrier bounded below (ℕ / unsigned / bool, least element 0): {x<p} is
+    // EMPTY for p≤0, so there is no max.  Returning Ø keeps the predecessor p−1
+    // (which would leave the carrier, or WRAP on unsigned) from producing a
+    // bogus Singleton<p−1>.  The gate is the pure ORDER property @c
+    // IsUnboundedBelow --- whether the strict cut bottoms out --- not a group
+    // notion; a signed carrier extends below 0 and takes the predecessor
+    // branch.
     return Ø<T, L>{};
   } else if constexpr (S == Strictness::Strict && IsRingIntegral<T>) {
     // DISCRETE strict {x<p} with the predecessor IN the carrier (a group, or ℕ
@@ -1606,9 +1642,9 @@ constexpr auto upperbounds(Halfspace<T, p, Direction::Upward, S, L>) {
 export template <typename T, auto p, Strictness S, typename L>
 constexpr auto lowerbounds(Halfspace<T, p, Direction::Upward, S, L>) {
   if constexpr (S == Strictness::Strict && IsRingIntegral<T> &&
-                !IsAbelianGroup<T, std::plus<T>> && p + 1 < 0) {
-    // NON-group carrier bounded below at 0 (ℕ): the successor p+1 falls below
-    // the carrier, so the min clamps to the carrier minimum 0.
+                !IsUnboundedBelow<T> && p + 1 < 0) {
+    // Carrier bounded below (ℕ / unsigned, least element 0): the successor p+1
+    // falls below the carrier, so the min clamps to the carrier minimum 0.
     return Halfspace<T, 0, Direction::Downward, Strictness::NonStrict, L>{};
   } else if constexpr (S == Strictness::Strict && IsRingIntegral<T>) {
     // DISCRETE strict {x>p}: the min is the attained successor p+1.
@@ -1728,24 +1764,6 @@ static_assert(max(ℕ | (π < fix(5_c)))(4),
 static_assert(!max(ℕ | (π < fix(5_c)))(5), "5 ∉ {x < 5}, so not its max.");
 static_assert(min(ℕ | (π > fix(5_c)))(6), "6 = min {x > 5} on ℕ (successor).");
 
-/** @brief @c inverse of a translation-graph relation = its CONVERSE
- *  @c B*A|P⁻¹: the same graph read backwards, @c x↦x−K, again a GRAPH (a
- *  relation, not an arrow), so it stays on the surface and composes.
- *
- *  @details Functions ARE graphs here, so @c inverse is a relational operation,
- *  the converse with the shift negated.  Gated on the additive GROUP: negating
- *  the shift (@c K→−K) is the predecessor relation only where the carrier has
- *  additive inverses.  On ℕ (@c Cardinality) @c −K wraps rather than computing
- *  the predecessor, so the inverse of the successor is NOT its converse there;
- *  the overload is withheld. */
-export template <typename T, auto K, typename L>
-  requires dedekind::category::IsAbelianGroup<T, std::plus<T>>
-constexpr auto inverse(
-    const Set<std::pair<T, T>, L, ProjAddConstProj<1, K, Rel::Eq, 2>>&) {
-  return Set<std::pair<T, T>, L, ProjAddConstProj<1, -K, Rel::Eq, 2>>{
-      ProjAddConstProj<1, -K, Rel::Eq, 2>{}};
-}
-
 /** @brief Two translation graphs are the same relation iff they carry the same
  *  shift: structural equality on the graph, compile-time. */
 export template <typename T, auto K1, auto K2, typename L>
@@ -1767,41 +1785,6 @@ constexpr auto operator>>(
   return Set<std::pair<T, T>, L, ProjAddConstProj<1, A + B, Rel::Eq, 2>>{
       ProjAddConstProj<1, A + B, Rel::Eq, 2>{}};
 }
-
-// The translation group, at compile time: closure (T₂∘T₃ = T₅), the converse as
-// inverse (T₃⁻¹ = T₋₃), and the abelian cancellation f∘g∘h∘g⁻¹ = f∘h (g and its
-// inverse annihilate through h because + commutes).
-static_assert(((ℤ * ℤ | π1 + fix(2_c) == π2) >>
-               (ℤ * ℤ | π1 + fix(3_c) == π2)) == (ℤ * ℤ | π1 + fix(5_c) == π2),
-              "closure: T₂ ∘ T₃ = T₅ (shifts add, symbolically).");
-static_assert(inverse(ℤ* ℤ | π1 + fix(3_c) == π2) ==
-                  (ℤ * ℤ | π1 + fix(-3_c) == π2),
-              "inverse = converse graph: T₃⁻¹ = T₋₃.");
-// Contravariant inversion: (f∘g)⁻¹ = g⁻¹∘f⁻¹.  For an invertible map the
-// inverse IS the retract, so this is retract composition in the total case
-// (Listing 12).
-static_assert(inverse((ℤ * ℤ | π1 + fix(3_c) == π2) >>
-                      (ℤ * ℤ | π1 + fix(2_c) == π2)) ==
-                  (inverse(ℤ * ℤ | π1 + fix(2_c) == π2) >>
-                   inverse(ℤ * ℤ | π1 + fix(3_c) == π2)),
-              "contravariant inversion: (f∘g)⁻¹ = g⁻¹∘f⁻¹.");
-static_assert(((ℤ * ℤ | π1 + fix(2_c) == π2) >> (ℤ * ℤ | π1 + fix(3_c) == π2) >>
-               (ℤ * ℤ | π1 + fix(5_c) == π2) >>
-               inverse(ℤ * ℤ | π1 + fix(3_c) == π2)) ==
-                  ((ℤ * ℤ | π1 + fix(2_c) == π2) >>
-                   (ℤ * ℤ | π1 + fix(5_c) == π2)),
-              "abelian: f∘g∘h∘g⁻¹ = f∘h (g cancels through h; + commutes).");
-// Identity element and conjugation, for the group panel of Listing 12: g∘g⁻¹ is
-// the identity translation T₀, and conjugating f by g is trivial (g∘f∘g⁻¹ = f)
-// because + commutes.  Associativity is implicit in the flat >> chains.
-static_assert(((ℤ * ℤ | π1 + fix(2_c) == π2) >>
-               inverse(ℤ * ℤ | π1 + fix(2_c) == π2)) ==
-                  (ℤ * ℤ | π1 + fix(0_c) == π2),
-              "inverse law: g ∘ g⁻¹ = id (T₀).");
-static_assert(((ℤ * ℤ | π1 + fix(2_c) == π2) >> (ℤ * ℤ | π1 + fix(3_c) == π2) >>
-               inverse(ℤ * ℤ | π1 + fix(2_c) == π2)) ==
-                  (ℤ * ℤ | π1 + fix(3_c) == π2),
-              "abelian conjugation: g ∘ f ∘ g⁻¹ = f (+ commutes).");
 
 /** @brief Two halfspaces are the same set iff they share pivot, direction and
  *  strictness (the carrier and logic already match): structural set equality,
@@ -1855,198 +1838,6 @@ constexpr bool operator==(const UniversalSet<bool, L, C>& u,
   return s == u;
 }
 
-// image = the RANGE (π_B projection) of a functional graph, read structurally.
-// A translation is surjective ONLY on a GROUP carrier (@c IsAbelianGroup under
-// +): on ℤ the range of the unbounded graph is the whole line, but on ℕ the map
-// x↦x+K misses {0,…,K−1}, so this overload is gated to the group case (the same
-// additive-inverse assumption @c argmax carries).  Bounded by a π1-halfspace
-// the range is that halfspace pushed forward by K --- an affine pushforward
-// that holds on any carrier (below).
-export template <typename T, auto K, typename L>
-  requires dedekind::category::IsAbelianGroup<T, std::plus<T>>
-constexpr auto image(
-    const Set<std::pair<T, T>, L, ProjAddConstProj<1, K, Rel::Eq, 2>>&) {
-  return Ω<T, L>;  // preserve the relation's logic species
-}
-/** @brief image of a translation graph restricted to a halfspace @c {x⋈P}: the
- *  affine pushforward @c {y⋈P+K}, a halfspace of the same shape.
- *
- *  @details Constrained to ORDER relations (Lt/Le/Gt/Ge): @c dir_of / @c
- * strict_of only model a halfspace bound.  An EQUALITY restriction (@c
- * π1==fix(p)) is a singleton domain, not a halfspace, so it must NOT match here
- * (that would give
- *  @c {y≤p+K} instead of the singleton @c {p+K}); it is left to a separate
- *  singleton path. */
-export template <typename T, auto K, Rel R, auto P, typename L>
-  requires(R == Rel::Lt || R == Rel::Le || R == Rel::Gt || R == Rel::Ge)
-constexpr auto image(
-    const Set<std::pair<T, T>, L,
-              ProductRestrict<ProjAddConstProj<1, K, Rel::Eq, 2>,
-                              ProjBound<1, R, P>>>&) {
-  return Halfspace<T, P + K, dir_of(R), strict_of(R), L>{};  // keep L
-}
-static_assert(image(ℤ* ℤ | π1 + fix(3_c) == π2) == ℤ,
-              "image(graph of x+3) = ℤ: a translation is onto.");
-static_assert(image((ℤ * ℤ | π1 + fix(3_c) == π2) | π1 <= fix(5_c)) ==
-                  (ℤ | (π <= fix(8_c))),
-              "image over {x ≤ 5} pushes forward to {y ≤ 8}.");
-
-/** @brief image of a restricted REFLECTION @c x↦c·x (@c c=±1) on @c {x⋈P}: the
- *  domain halfspace scaled by @c c (pivot @c c·P, sense FLIPPED when @c c<0).
- *
- *  @details These are the branches of the sign-fold epi @c abs = @c (x↦x on
- * x≥0)
- *  @c ⊔ @c (x↦−x on x<0): each is a mono reflection, so its image is a plain
- *  halfspace pushed forward, no search.  (@c |c|>1 would also induce the
- * residue
- *  @c {y≡0 mod c}, a downstream @c :numbers concern; the sign-fold is @c c=±1,
- * so the range stays a bare halfspace here.)  Constrained to ORDER relations
- *  (equality is a singleton, not a halfspace), and the NEGATE branch (@c C=−1)
- *  additionally requires a genuine additive inverse, so on a non-group carrier
- *  (@c Cardinality) @c x↦−x is not modelled by wrapping. */
-export template <typename T, auto C, Rel R, auto P, typename L>
-  requires((R == Rel::Lt || R == Rel::Le || R == Rel::Gt || R == Rel::Ge) &&
-           (C == 1 ||
-            (C == -1 && dedekind::category::IsAbelianGroup<T, std::plus<T>>)))
-constexpr auto image(
-    const Set<std::pair<T, T>, L,
-              ProductRestrict<ProjMulConstProj<1, C, Rel::Eq, 2>,
-                              ProjBound<1, R, P>>>&) {
-  constexpr Direction d = (C < 0) ? flip(dir_of(R)) : dir_of(R);
-  return Halfspace<T, C * P, d, strict_of(R), L>{};  // keep L
-}
-// The sign-fold epi's two branches, and its non-injective image decided
-// point-free: abs over {x<0} is the negate branch, whose image {y>0} catches
-// the preimage −3 of 3 that a canonical retract (+3 ∉ {x<0}) would miss ---
-// soundness from the fibre, no enumeration.
-static_assert(image(ℤ* ℤ | π1 * fix(1_c) == π2 | π1 >= fix(0_c)) ==
-                  (ℤ | π >= fix(0_c)),
-              "image(abs on x≥0) = {y≥0}: the identity reflection.");
-static_assert(
-    image(ℤ* ℤ | π1 * fix(-1_c) == π2 | π1 < fix(0_c)) == (ℤ | π > fix(0_c)),
-    "image(abs on x<0) = {y>0}: the negate reflection flips the sense.");
-static_assert(image(ℤ* ℤ | π1 * fix(-1_c) == π2 | π1 < fix(0_c))(3),
-              "3 ∈ abs({x<0}) via −3, though the canonical +3 ∉ {x<0}.");
-static_assert(!image(ℤ * ℤ | π1 * fix(-1_c) == π2 | π1 < fix(0_c))(-2),
-              "abs is never negative: −2 ∉ image(abs).");
-// The FULL image of |x| is the JOIN of the two branch images, and structured_or
-// collapses it: {y≥0} ∪ {y>0} = {y≥0} (the weaker, non-strict bound wins). This
-// is the NON-NEGATIVE SUBOBJECT {y≥0} ⊆ ℤ (order-isomorphic to ℕ, but a subset
-// of ℤ here, not a constructed ℤ→ℕ map); the join is symmetric with the meet.
-static_assert((image(ℤ * ℤ | π1 * fix(1_c) == π2 | π1 >= fix(0_c)) |
-               image(ℤ * ℤ | π1 * fix(-1_c) == π2 | π1 < fix(0_c))) ==
-                  (ℤ | π >= fix(0_c)),
-              "image(|x|) = {y≥0} ∪ {y>0} = {y≥0}: the non-negative subobject "
-              "of ℤ (≅ ℕ).");
-
-// The successor graph over ℕ: the image the OPAQUE arrow leaves Unknown (the
-// Rice wall of Listing 15) is DECIDED here by the pushforward --- {n>5} ↦
-// {n>6}, structure buying decidability that opacity cannot.
-static_assert(
-    image((ℕ * ℕ | π1 + fix(1_c) == π2) | π1 > fix(5_c)) ==
-        (ℕ | (π > fix(6_c))),
-    "image(succ, {n>5}) = {n>6}: the graph decides where opacity walls.");
-
-// Circle back to the complement-lattice collapse of Listing 2: the constrained
-// image of a COMPOSITE folds to ∅.  hc = T₂∘T₃ = T₅ pushes the domain {x≤1}
-// forward to {y≤6}, which meets the incompatible codomain {y>6}; the two
-// complementary halfspaces collapse to Ø --- the SAME meet-to-empty as
-// {x≤5}∩{x>5}, now EMERGENT from composition rather than posited.
-static_assert(
-    (image(((ℤ * ℤ | π1 + fix(2_c) == π2) >> (ℤ * ℤ | π1 + fix(3_c) == π2)) |
-           π1 <= fix(1_c)) &
-     (ℤ | (π > fix(6_c)))) == Ø{},
-    "constrained image of the composite T₂∘T₃ collapses: {y≤6} ∩ {y>6} = ∅.");
-
-/** @brief @c is_function(R) --- the bracket-free query: @c R is a bona fide
- *  function.  A graph @f$\pi_2 = \pi_1 + K@f$ is single-valued in @f$\pi_2@f$
- *  (functional) and total (entire, a translation is defined everywhere), so it
- *  meets both bounds of Table~3's @f$\pi_A@f$ column. */
-export template <typename T, auto K, typename L>
-consteval bool is_function(
-    const Set<std::pair<T, T>, L, ProjAddConstProj<1, K, Rel::Eq, 2>>&) {
-  return true;
-}
-static_assert(is_function(ℤ* ℤ | π1 + fix(3_c) == π2),
-              "the graph of x+3 is a total function (functional ∧ entire).");
-
-/** @brief @c is_entire(R): does @c R cover its whole declared domain?  The bare
- *  translation graph is total; ANY restriction --- here a codomain constraint
- *  on @f$\pi_2@f$ --- pulls its domain back to a proper subset, so it drops to
- *  a @b partial function (functional, not entire; Table~3). */
-export template <typename T, auto K, typename L>
-consteval bool is_entire(
-    const Set<std::pair<T, T>, L, ProjAddConstProj<1, K, Rel::Eq, 2>>&) {
-  return true;
-}
-// A CODOMAIN constraint on π2 (an upper/lower bound, or its meet with a
-// residue) pulls the domain back to a PROPER subset through the graph, so the
-// graph drops to a partial function.  Narrowed to π2 shapes deliberately: a
-// restriction that does NOT shrink the domain (e.g. re-imposing the graph
-// itself) is not matched here, so is_entire makes no false non-entire claim for
-// it.
-export template <typename T, auto K, Rel R, auto P, typename L>
-consteval bool is_entire(
-    const Set<std::pair<T, T>, L,
-              ProductRestrict<ProjAddConstProj<1, K, Rel::Eq, 2>,
-                              ProjBound<2, R, P>>>&) {
-  return false;
-}
-export template <typename T, auto K, Rel R, auto P, auto V, auto W, typename L>
-consteval bool is_entire(
-    const Set<std::pair<T, T>, L,
-              ProductRestrict<ProjAddConstProj<1, K, Rel::Eq, 2>,
-                              RelAnd<ProjBound<2, R, P>,
-                                     ProjModConstBound<2, V, Rel::Eq, W>>>>&) {
-  return false;
-}
-
-/** @brief @f$\arg\max@f$ over a @b partial function: the translation graph
- *  @f$x \mapsto x+K@f$ into a codomain bounded above (@f$\pi_2 \le P@f$) and
- *  restricted to a residue class (@f$\pi_2 \equiv W \pmod V@f$).  A translation
- *  is monotone, so @f$\arg\max = \max@f$ of the @b feasible domain
- *  @f$\{x \le P-K \wedge x \equiv W-K \pmod V\}@f$ = the largest such @f$x@f$,
- *  read off structurally: a compile-time constrained integer optimum, no
- *  search.  The codomain constraint, pulled back through the graph, IS the
- *  domain restriction (§3.3). */
-/** @brief @c argmax over a partial function: the translation @c x↦x+K into a
- *  codomain bounded above (@c π2≤P) and restricted to a residue class
- *  (@c π2≡W mod V), read off structurally (a compile-time constrained optimum).
- *
- *  @details Gated on the carrier being an ADDITIVE GROUP (@c IsAbelianGroup
- * under
- *  @c +): the arithmetic assumes a domain unbounded below, so
- *  @c {x≤P−K ∧ x≡r mod V} is always non-empty and @c m is a valid optimum.
- *  Additive inverses are exactly what make an integral carrier unbounded below
- *  (ℤ certifies it; ℕ = @c Cardinality is a rig, no negation, bounded below by
- *  0), so this admits any signed integral carrier and excludes ℕ, where a
- *  codomain bound @c P<K would pull the feasible domain empty while the formula
- *  still returned a negative singleton. */
-export template <typename T, auto K, auto P, auto V, auto W, typename L>
-  requires dedekind::category::IsAbelianGroup<T, std::plus<T>>
-constexpr auto argmax(
-    const Set<std::pair<T, T>, L,
-              ProductRestrict<ProjAddConstProj<1, K, Rel::Eq, 2>,
-                              RelAnd<ProjBound<2, Rel::Le, P>,
-                                     ProjModConstBound<2, V, Rel::Eq, W>>>>&) {
-  constexpr auto p = P - K;                      // domain bound {x ≤ P−K}
-  constexpr auto r = ((W - K) % V + V) % V;      // residue x ≡ (W−K) mod V
-  constexpr auto m = p - ((p - r) % V + V) % V;  // largest x ≤ p with x ≡ r
-  return Singleton<m, L>{};
-}
-static_assert(is_entire(ℤ* ℤ | π1 + fix(3_c) == π2),
-              "the bare translation graph is total (entire).");
-static_assert(!is_entire(ℤ * ℤ | π1 + fix(3_c) == π2 |
-                         π2 <= fix(8_c) & π2 % fix(3_c) == fix(0_c)),
-              "constraining the codomain makes the graph a partial function.");
-static_assert(argmax(ℤ* ℤ | π1 + fix(3_c) == π2 |
-                     π2 <= fix(8_c) & π2 % fix(3_c) == fix(0_c))(3),
-              "argmax = max{x ≤ 5 ∧ x ≡ 0 mod 3} = 3: a compile-time "
-              "constrained optimum.");
-static_assert(!argmax(ℤ * ℤ | π1 + fix(3_c) == π2 |
-                      π2 <= fix(8_c) & π2 % fix(3_c) == fix(0_c))(4),
-              "4 is feasible-adjacent but not the optimiser (4 ≢ 0 mod 3).");
-
 // Modelling witness ("Theorems for Free", type-checked): the SPECIFIC pivot
 // overload AGREES with the ABSTRACT definition max R = (∈) ∩ (R/∋) at the
 // pivot.  5 is the max because 5 ∈ {x≤5} AND ∀a∈{x≤5}. a ≤ 5 --- the latter
@@ -2087,7 +1878,7 @@ static_assert(max(Ω<bool>)(false) ==
 // it is what lets the compositional property-inference below reconstruct the
 // two factor relations @c Set<pair<A,B>,PR> and @c Set<pair<B,C>,PS> (§3.2
 // Table 3).
-template <typename PR, typename PS, typename B = bool>
+export template <typename PR, typename PS, typename B = bool>
 struct ComposePred {
   PR r;
   PS s;
@@ -2133,91 +1924,54 @@ static_assert(!static_cast<bool>(((𝔹 * 𝔹 | π1 <= π2) >>
 // composes.
 namespace dedekind::category {
 
+// This block carries only FUNCTIONALITY (@c is_right_unique_v), the STRUCTURAL
+// half: a graph is single-valued by its shape, decidable in @c order alone.
+// ENTIRENESS (@c is_left_total_v) is the ALGEBRAIC half --- a translation is
+// total iff the carrier is an ordered additive group --- so those
+// specialisations live in @c dedekind.algebra:halfspace_transport, alongside
+// the transport operations.  (The @c ProductRestrict entireness is left at its
+// primary false there and in the primary: a restriction MAY drop the domain, so
+// entireness is conservatively not certified through a joint.)
+
 // LEAF: a translation graph x ↦ x+K is FUNCTIONAL on any carrier (single-valued
-// by construction).  It is ENTIRE where the shift stays in the carrier: always
-// on a GROUP (additive inverses), and on a carrier bounded below at 0 (ℕ)
-// exactly when K ≥ 0 (the successor x+1 is total on ℕ; the predecessor x−3 is
-// not).
+// by construction).
 template <typename T, auto K, typename L>
 inline constexpr bool is_right_unique_v<dedekind::sets::Set<
     std::pair<T, T>, L,
     dedekind::order::ProjAddConstProj<1, K, dedekind::order::Rel::Eq, 2>>> =
     true;
-template <typename T, auto K, typename L>
-inline constexpr bool is_left_total_v<dedekind::sets::Set<
-    std::pair<T, T>, L,
-    dedekind::order::ProjAddConstProj<1, K, dedekind::order::Rel::Eq, 2>>> =
-    IsAbelianGroup<T, std::plus<T>> || (K >= 0);
 
-// LEAF: the diagonal π1==π2 (the identity relation) is functional AND entire on
-// any carrier -- a ↦ a, single-valued and total.
+// LEAF: the diagonal π1==π2 (the identity relation) is functional on any
+// carrier
+// -- a ↦ a, single-valued.
 template <typename T, typename L>
 inline constexpr bool is_right_unique_v<dedekind::sets::Set<
-    std::pair<T, T>, L,
-    dedekind::order::ProjProj<1, dedekind::order::Rel::Eq, 2>>> = true;
-template <typename T, typename L>
-inline constexpr bool is_left_total_v<dedekind::sets::Set<
     std::pair<T, T>, L,
     dedekind::order::ProjProj<1, dedekind::order::Rel::Eq, 2>>> = true;
 
 // RESTRICTION preserves single-valuedness (it removes pairs, never adds), so
 // FUNCTIONALITY propagates through ProductRestrict: a restricted graph is still
-// functional (a PARTIAL function).  Entireness deliberately does NOT propagate
-// (the restriction is exactly what drops the domain to a proper subset), so
-// is_left_total_v is left at its primary false here.
+// functional (a PARTIAL function).
 template <typename A, typename B, typename L, typename P, typename RP>
 inline constexpr bool is_right_unique_v<dedekind::sets::Set<
     std::pair<A, B>, L, dedekind::order::ProductRestrict<P, RP>>> =
     is_right_unique_v<dedekind::sets::Set<std::pair<A, B>, L, P>>;
 
-// NODE (the compositional closure): the relative product R>>S is functional /
-// entire iff BOTH factors are -- the property propagates through >> (Table 3's
+// NODE (the compositional closure): the relative product R>>S is functional iff
+// BOTH factors are -- the property propagates through >> (Table 3's
 // containments composing).  The retained intermediate B reconstructs the two
-// factor relations.
+// factor relations.  (The entireness NODE rule is the algebraic sibling, in
+// :halfspace_transport.)
 template <typename A, typename C, typename L, typename PR, typename PS,
           typename B>
 inline constexpr bool is_right_unique_v<dedekind::sets::Set<
     std::pair<A, C>, L, dedekind::order::ComposePred<PR, PS, B>>> =
     is_right_unique_v<dedekind::sets::Set<std::pair<A, B>, L, PR>> &&
     is_right_unique_v<dedekind::sets::Set<std::pair<B, C>, L, PS>>;
-template <typename A, typename C, typename L, typename PR, typename PS,
-          typename B>
-inline constexpr bool is_left_total_v<dedekind::sets::Set<
-    std::pair<A, C>, L, dedekind::order::ComposePred<PR, PS, B>>> =
-    is_left_total_v<dedekind::sets::Set<std::pair<A, B>, L, PR>> &&
-    is_left_total_v<dedekind::sets::Set<std::pair<B, C>, L, PS>>;
 
 }  // namespace dedekind::category
 
 namespace dedekind::order {
-// EXISTENCE PROOF: the DSL's graph relations are FUNCTIONS (functional AND
-// entire) by structure, and the property is INFERRED through composition -- no
-// per-composite certificate.  (Read off @c IsFunctional / @c IsEntire, the
-// graph-level concepts over the pair-arg relations, not the two-arg
-// @c IsBinaryRelation surface.)
-static_assert(
-    dedekind::sets::IsFunctional<decltype(ℤ * ℤ | π1 + fix(3_c) == π2)> &&
-        dedekind::sets::IsEntire<decltype(ℤ * ℤ | π1 + fix(3_c) == π2)>,
-    "a translation graph is functional AND entire -- a function, "
-    "inferred from its predicate shape, with no opt-in flag.");
-static_assert(
-    dedekind::sets::IsFunctional<decltype((ℤ * ℤ | π1 + fix(3_c) == π2) >>
-                                          (ℤ * ℤ | π1 + fix(2_c) == π2))> &&
-        dedekind::sets::IsEntire<decltype((ℤ * ℤ | π1 + fix(3_c) == π2) >>
-                                          (ℤ * ℤ | π1 + fix(2_c) == π2))>,
-    "the composite (x+3) ∘ (x+2) is a function too -- INFERRED through the "
-    "relative product, no fresh certificate.");
-// The NODE rule on a NON-collapsing composite: id ∘ id over a Boolean
-// intermediate is a @c ComposePred (not a leaf), inferred a function purely
-// from its two functional factors -- the compositional closure, at the type
-// level.
-static_assert(
-    dedekind::sets::IsFunctional<decltype((𝔹 * 𝔹 | π1 == π2) >>
-                                          (𝔹 * 𝔹 | π1 == π2))> &&
-        dedekind::sets::IsEntire<decltype((𝔹 * 𝔹 | π1 == π2) >>
-                                          (𝔹 * 𝔹 | π1 == π2))>,
-    "id ∘ id (a ComposePred, not collapsed) is a function -- inferred from its "
-    "two functional factors, exercising the compositional NODE rule.");
 // A RESTRICTED translation graph is still FUNCTIONAL (a partial function),
 // inferred through ProductRestrict from the underlying translation's
 // certificate
