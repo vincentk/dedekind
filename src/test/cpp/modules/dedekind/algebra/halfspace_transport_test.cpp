@@ -35,26 +35,32 @@ static_assert(image((ℤ * ℤ | π1 + fix(3_c) == π2) | π1 <= fix(5_c)) ==
                   (ℤ | (π <= fix(8_c))),
               "image over {x ≤ 5} pushes forward to {y ≤ 8}.");
 
-// ── image of the sign-fold reflection branches (the non-injective abs) ───────
+// ── image of the two sign-fold reflection BRANCHES.  Each branch is a mono
+// (an injective reflection ℤ×ℤ), so its image is a plain halfspace pushed
+// forward.  This is a BRANCH-IMAGE calculation: it exhibits the branch images
+// and their union, NOT a constructed non-injective image(abs) on a single
+// relation, and NOT a heterogeneous epi ℤ↠ℕ (both branches are typed ℤ×ℤ, so
+// everything stays inside ℤ).
 static_assert(image(ℤ* ℤ | π1 * fix(1_c) == π2 | π1 >= fix(0_c)) ==
                   (ℤ | π >= fix(0_c)),
-              "image(abs on x≥0) = {y≥0}: the identity reflection.");
-static_assert(
-    image(ℤ* ℤ | π1 * fix(-1_c) == π2 | π1 < fix(0_c)) == (ℤ | π > fix(0_c)),
-    "image(abs on x<0) = {y>0}: the negate reflection flips the sense.");
+              "image of the identity branch on {x≥0} = {y≥0}.");
+static_assert(image(ℤ* ℤ | π1 * fix(-1_c) == π2 | π1 < fix(0_c)) ==
+                  (ℤ | π > fix(0_c)),
+              "image of the negate branch on {x<0} = {y>0} (the sense flips).");
 static_assert(image(ℤ* ℤ | π1 * fix(-1_c) == π2 | π1 < fix(0_c))(3),
-              "3 ∈ abs({x<0}) via −3, though the canonical +3 ∉ {x<0}.");
+              "3 ∈ image(negate branch) via −3 (the canonical +3 ∉ {x<0}).");
 static_assert(!image(ℤ * ℤ | π1 * fix(-1_c) == π2 | π1 < fix(0_c))(-2),
-              "abs is never negative: −2 ∉ image(abs).");
-// The FULL image of |x| is the JOIN of the two branch images, and structured_or
-// collapses it: {y≥0} ∪ {y>0} = {y≥0} (the weaker, non-strict bound wins).  The
-// NON-NEGATIVE SUBOBJECT {y≥0} ⊆ ℤ (order-isomorphic to ℕ); the join is
-// symmetric with the meet.
+              "the branch image is non-negative: −2 ∉ it.");
+// The JOIN of the two branch images collapses via structured_or: {y≥0} ∪ {y>0}
+// = {y≥0} (the weaker, non-strict bound wins).  The result is the NON-NEGATIVE
+// SUBOBJECT {y≥0} ⊆ ℤ (order-isomorphic to ℕ, but a subset of ℤ here) --- the
+// SET the two branches' outputs cover, symmetric with the meet.  It is NOT an
+// epi ℤ↠ℕ: no ℤ→ℕ arrow is constructed, only the branch images are unioned.
 static_assert((image(ℤ * ℤ | π1 * fix(1_c) == π2 | π1 >= fix(0_c)) |
                image(ℤ * ℤ | π1 * fix(-1_c) == π2 | π1 < fix(0_c))) ==
                   (ℤ | π >= fix(0_c)),
-              "image(|x|) = {y≥0} ∪ {y>0} = {y≥0}: the non-negative subobject "
-              "of ℤ (≅ ℕ).");
+              "branch images union to the non-negative subobject {y≥0} ⊆ ℤ "
+              "(≅ ℕ), via structured_or.");
 
 // The successor graph over ℕ (the SATURATING carrier admitted for K≥0): the
 // image the OPAQUE arrow leaves Unknown is DECIDED by the pushforward.

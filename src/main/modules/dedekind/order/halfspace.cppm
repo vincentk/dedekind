@@ -1802,7 +1802,13 @@ static_assert(min(ℕ | (π > fix(5_c)))(6), "6 = min {x > 5} on ℕ (successor)
 
 /** @brief Two translation graphs are the same relation iff they carry the same
  *  shift: structural equality on the graph, compile-time. */
+// Gated on @c IsSaturating: the shift arithmetic is only FAITHFUL on a carrier
+// whose @c + is well-behaved (the ℕ/ℤ proxies escalate).  On @c bool the shift
+// is cast into the carrier (@c +fix(1_c) and @c +fix(2_c) both become @c +true,
+// the SAME graph {false→true}), so a raw @c K1==K2 would wrongly separate them;
+// bool is declined rather than compared incorrectly.
 export template <typename T, auto K1, auto K2, typename L>
+  requires dedekind::category::IsSaturating<T>
 constexpr bool operator==(
     const Set<std::pair<T, T>, L, ProjAddConstProj<1, K1, Rel::Eq, 2>>&,
     const Set<std::pair<T, T>, L, ProjAddConstProj<1, K2, Rel::Eq, 2>>&) {
@@ -1813,8 +1819,13 @@ constexpr bool operator==(
  *  T_{a+b}@f$, the shifts added, with @b no @f$\exists@f$ over the intermediate
  *  (contrast the Boolean relative product below).  This is the group law read
  *  off the structure; @c + commutes, so the order of composition is immaterial
- *  --- the abelian translation group, at compile time. */
+ *  --- the abelian translation group, at compile time.  Gated on @c
+ *  IsSaturating: the symbolic @c a+b equals the actual composite only where the
+ *  carrier's @c + is faithful.  On @c bool the @c +1 graph is @c {false→true}
+ *  and composing it with itself is EMPTY, while the symbolic @c +2 graph is
+ *  non-empty --- so bool is declined rather than rewritten wrongly. */
 export template <typename T, auto A, auto B, typename L>
+  requires dedekind::category::IsSaturating<T>
 constexpr auto operator>>(
     const Set<std::pair<T, T>, L, ProjAddConstProj<1, A, Rel::Eq, 2>>&,
     const Set<std::pair<T, T>, L, ProjAddConstProj<1, B, Rel::Eq, 2>>&) {

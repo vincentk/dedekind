@@ -1035,11 +1035,16 @@ constexpr auto image(F&& f, const Set<T, L, P>& s) {
  */
 export template <typename T, typename L, typename C,
                  dedekind::category::IsIsomorphism F>
-  requires std::same_as<dedekind::category::Dom<std::remove_cvref_t<F>>, T>
+  requires(std::same_as<dedekind::category::Dom<std::remove_cvref_t<F>>, T> &&
+           !dedekind::category::IsTerminalMorphism<std::remove_cvref_t<F>>)
 constexpr auto image(F&&, const UniversalSet<T, L, C>&) {
   using U = dedekind::category::Cod<std::remove_cvref_t<F>>;
   return Ω<U, L, C>;  // iso |U| = |T|, so the cardinality carries
 }
+// The terminal case (@c id<One>, which is BOTH an iso and the unique One→One
+// terminal morphism) is excluded here and handled by the terminal-morphism
+// @c image overload in @c :singleton --- otherwise the two identically-typed
+// overloads are ambiguous for @c image(id<One>(), Ω<One>).
 
 /** @brief Composed predicate for the retract-decidable @c image(f, Set)
  *         specialisation: @c y @c ↦ @c let @c mx @c = @c retract(f)(y);

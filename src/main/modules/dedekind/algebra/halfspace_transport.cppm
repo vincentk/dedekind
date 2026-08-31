@@ -239,7 +239,8 @@ consteval bool is_entire(
  *  the formula still returned a negative singleton --- and @c unsigned alike.
  */
 export template <typename T, auto K, auto P, auto V, auto W, typename L>
-  requires dedekind::algebra::IsOrderedAdditiveGroup<T>
+  requires(dedekind::algebra::IsOrderedAdditiveGroup<T> &&
+           dedekind::order::IsRingIntegral<T>)
 constexpr auto argmax(
     const Set<std::pair<T, T>, L,
               ProductRestrict<ProjAddConstProj<1, K, Rel::Eq, 2>,
