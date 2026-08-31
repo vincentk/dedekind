@@ -1228,7 +1228,7 @@ static_assert(!argmax(g)(4));                        // 4 ≢ 0 mod 3
 \end{listing}
 
 The optimum is not searched for but read off the structure: the codomain bound and the congruence, pulled back through the graph, fix the feasible domain, and a monotone objective makes $\arg\max$ its greatest element.
-Where the objective is not monotone, or the domain not so structured, the filter still types but decides only where §\ref{sec:ddk_comprehension}'s certificates reach.
+The implemented $\arg\max$ is exactly this structural specialization (a group-carrier translation into a codomain bounded above and restricted to a residue class); a general filter over arbitrary, less-structured objectives is future work, decidable only where §\ref{sec:ddk_comprehension}'s certificates reach.
 
 %------
 \section{Universal Algebra and the Poset of Carriers}

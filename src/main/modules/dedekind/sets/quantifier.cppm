@@ -133,15 +133,21 @@ constexpr bool forall(const S& s, P p) {
 // where-clause materialises the comprehension).  A raw lambda has no @c
 // operator| against the universe, so it falls through to the enumerable
 // (@c input_range) surface instead, keeping the two regimes honestly apart.
+// The predicate must be an UNBOUND fragment, never an @c IsSet: for a
+// set-valued operand @c s|p resolves to set UNION (@c Ω|Ø = Ω), not the
+// comprehension, which would make @c exists(Ω<bool>, Ø{}) wrongly true.
+// Excluding @c IsSet keeps @c | bound to the where-clause here.
 export template <dedekind::category::IsSet S, typename P>
-  requires requires(const S& s, P p) { s | p; }
+  requires(!dedekind::category::IsSet<std::remove_cvref_t<P>> &&
+           requires(const S& s, P p) { s | p; })
 constexpr bool exists(const S& s, P p) {
   return !(Ø<typename S::Domain, typename S::logic_species>{} ==
            (s | std::move(p)));  // (A): {x ∈ S | P(x)} ≠ ∅
 }
 
 export template <dedekind::category::IsSet S, typename P>
-  requires requires(const S& s, P p) { s | p; }
+  requires(!dedekind::category::IsSet<std::remove_cvref_t<P>> &&
+           requires(const S& s, P p) { s | p; })
 constexpr bool forall(const S& s, P p) {
   return (s | std::move(p)) == s;  // (B): {x ∈ S | P(x)} == S
 }

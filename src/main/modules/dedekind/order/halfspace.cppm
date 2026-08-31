@@ -1243,27 +1243,27 @@ export constexpr bool is_order_rel(Rel r) {
 
 /** @brief Recover the axis-@c I factor from a relational predicate.  Default:
  *  no axis-@c I structure, so the declared universe @c Ω<TI>. */
-export template <std::size_t I, typename TI, typename P>
+export template <std::size_t I, typename TI, typename L, typename P>
 constexpr auto axis_factor(const P&) {
-  return Ω<TI>;
+  return Ω<TI, L>;  // preserve the relation's logic species
 }
 
 /** @brief A cylinder @c ProjBound on axis @c I: the halfspace it lifted from
  *  (only an order comparison is a halfspace; Eq/Ne fall to the default). */
-export template <std::size_t I, typename TI, Rel R, auto V>
+export template <std::size_t I, typename TI, typename L, Rel R, auto V>
   requires(is_order_rel(R))
 constexpr auto axis_factor(const ProjBound<I, R, V>&) {
-  return Halfspace<TI, V, dir_of(R), strict_of(R)>{};
+  return Halfspace<TI, V, dir_of(R), strict_of(R), L>{};
 }
 
 /** @brief A meet of cylinders: the factor on axis @c I is the @b intersection
  *  of both children's factors on that axis, so two bounds on the same axis
  *  (@c π1<=5 & @c π1<=3) meet to the tighter one rather than dropping either.
  */
-export template <std::size_t I, typename TI, typename A, typename B>
+export template <std::size_t I, typename TI, typename L, typename A, typename B>
 constexpr auto axis_factor(const RelAnd<A, B>& r) {
-  auto fa = axis_factor<I, TI>(r.a);
-  auto fb = axis_factor<I, TI>(r.b);
+  auto fa = axis_factor<I, TI, L>(r.a);
+  auto fb = axis_factor<I, TI, L>(r.b);
   if constexpr (requires { typename decltype(fa)::is_universal_boundary; }) {
     return fb;  // a does not constrain axis I; the factor is b's
   } else if constexpr (requires {
@@ -1278,21 +1278,23 @@ constexpr auto axis_factor(const RelAnd<A, B>& r) {
 /** @brief A restricted product bounding a graph: the factor lives on the
  *  product (cylinder) side; the graph @c rp couples the axes, so it is
  *  transparent to a single-axis projection. */
-export template <std::size_t I, typename TI, typename Pp, typename RP>
+export template <std::size_t I, typename TI, typename L, typename Pp,
+                 typename RP>
 constexpr auto axis_factor(const ProductRestrict<Pp, RP>& r) {
-  return axis_factor<I, TI>(r.product);
+  return axis_factor<I, TI, L>(r.product);
 }
 
-/** @brief @f$\pi_A(R)@f$ --- the domain factor, recovered structurally. */
+/** @brief @f$\pi_A(R)@f$ --- the domain factor, recovered structurally
+ *  (preserving the relation's logic species @c L). */
 export template <typename T1, typename T2, typename L, IsRelPredicate P>
 constexpr auto dom(const Set<std::pair<T1, T2>, L, P>& r) {
-  return axis_factor<1, T1>(r.predicate());
+  return axis_factor<1, T1, L>(r.predicate());
 }
 
 /** @brief @f$\pi_B(R)@f$ --- the codomain factor, recovered structurally. */
 export template <typename T1, typename T2, typename L, IsRelPredicate P>
 constexpr auto cod(const Set<std::pair<T1, T2>, L, P>& r) {
-  return axis_factor<2, T2>(r.predicate());
+  return axis_factor<2, T2, L>(r.predicate());
 }
 
 /** @section halfspace__Formal_Verification (relational surface) */
@@ -1728,7 +1730,12 @@ static_assert(min(ℕ | (π > fix(5_c)))(6), "6 = min {x > 5} on ℕ (successor)
 // graph read backwards, x ↦ x−K, again a GRAPH (a relation, not an arrow), so
 // it stays on the surface and composes.  Functions ARE graphs here, so inverse
 // is a relational operation --- the converse with the shift negated.
+// Gated on the additive GROUP: the converse negates the shift (K → −K), which
+// is the predecessor relation only where the carrier has additive inverses.  On
+// ℕ (Cardinality) −K wraps rather than computing the predecessor, so the
+// inverse of the successor is NOT its converse there; the overload is withheld.
 export template <typename T, auto K, typename L>
+  requires dedekind::category::IsAbelianGroup<T, std::plus<T>>
 constexpr auto inverse(
     const Set<std::pair<T, T>, L, ProjAddConstProj<1, K, Rel::Eq, 2>>&) {
   return Set<std::pair<T, T>, L, ProjAddConstProj<1, -K, Rel::Eq, 2>>{
@@ -1855,7 +1862,7 @@ export template <typename T, auto K, typename L>
   requires dedekind::category::IsAbelianGroup<T, std::plus<T>>
 constexpr auto image(
     const Set<std::pair<T, T>, L, ProjAddConstProj<1, K, Rel::Eq, 2>>&) {
-  return Ω<T>;
+  return Ω<T, L>;  // preserve the relation's logic species
 }
 // Constrained to ORDER relations (Lt/Le/Gt/Ge): dir_of / strict_of only model a
 // halfspace bound.  An EQUALITY restriction (π1==fix(p)) is a singleton domain,
@@ -1868,7 +1875,7 @@ constexpr auto image(
     const Set<std::pair<T, T>, L,
               ProductRestrict<ProjAddConstProj<1, K, Rel::Eq, 2>,
                               ProjBound<1, R, P>>>&) {
-  return Halfspace<T, P + K, dir_of(R), strict_of(R)>{};
+  return Halfspace<T, P + K, dir_of(R), strict_of(R), L>{};  // keep L
 }
 static_assert(image(ℤ* ℤ | π1 + fix(3_c) == π2) == ℤ,
               "image(graph of x+3) = ℤ: a translation is onto.");
@@ -1883,14 +1890,20 @@ static_assert(image((ℤ * ℤ | π1 + fix(3_c) == π2) | π1 <= fix(5_c)) ==
 // forward, no search.  (|c|>1 would also induce the residue @c {y≡0 mod c},
 // whose materialisation is a downstream :numbers concern; the sign-fold is
 // c=±1, so the range stays a bare halfspace here.)
+// Constrained to ORDER relations (equality is a singleton, not a halfspace),
+// and the NEGATE branch (C=−1) additionally requires a genuine additive
+// inverse, so on a non-group carrier (Cardinality) x↦−x is not modelled by
+// wrapping.
 export template <typename T, auto C, Rel R, auto P, typename L>
-  requires(C == 1 || C == -1)
+  requires((R == Rel::Lt || R == Rel::Le || R == Rel::Gt || R == Rel::Ge) &&
+           (C == 1 ||
+            (C == -1 && dedekind::category::IsAbelianGroup<T, std::plus<T>>)))
 constexpr auto image(
     const Set<std::pair<T, T>, L,
               ProductRestrict<ProjMulConstProj<1, C, Rel::Eq, 2>,
                               ProjBound<1, R, P>>>&) {
   constexpr Direction d = (C < 0) ? flip(dir_of(R)) : dir_of(R);
-  return Halfspace<T, C * P, d, strict_of(R)>{};
+  return Halfspace<T, C * P, d, strict_of(R), L>{};  // keep L
 }
 // The sign-fold epi's two branches, and its non-injective image decided
 // point-free: abs over {x<0} is the negate branch, whose image {y>0} catches
@@ -1906,13 +1919,15 @@ static_assert(image(ℤ* ℤ | π1 * fix(-1_c) == π2 | π1 < fix(0_c))(3),
               "3 ∈ abs({x<0}) via −3, though the canonical +3 ∉ {x<0}.");
 static_assert(!image(ℤ * ℤ | π1 * fix(-1_c) == π2 | π1 < fix(0_c))(-2),
               "abs is never negative: −2 ∉ image(abs).");
-// The FULL image of abs is the JOIN of the two branch images, and structured_or
-// collapses it: {y≥0} ∪ {y>0} = {y≥0} (the weaker, non-strict bound wins) = ℕ,
-// so abs is onto ℕ.  The join is now symmetric with the meet, no easter egg.
+// The FULL image of |x| is the JOIN of the two branch images, and structured_or
+// collapses it: {y≥0} ∪ {y>0} = {y≥0} (the weaker, non-strict bound wins). This
+// is the NON-NEGATIVE SUBOBJECT {y≥0} ⊆ ℤ (order-isomorphic to ℕ, but a subset
+// of ℤ here, not a constructed ℤ→ℕ map); the join is symmetric with the meet.
 static_assert((image(ℤ * ℤ | π1 * fix(1_c) == π2 | π1 >= fix(0_c)) |
                image(ℤ * ℤ | π1 * fix(-1_c) == π2 | π1 < fix(0_c))) ==
                   (ℤ | π >= fix(0_c)),
-              "image(abs) = {y≥0} ∪ {y>0} = {y≥0}: the sign-fold is onto ℕ.");
+              "image(|x|) = {y≥0} ∪ {y>0} = {y≥0}: the non-negative subobject "
+              "of ℤ (≅ ℕ).");
 
 // The successor graph over ℕ: the image the OPAQUE arrow leaves Unknown (the
 // Rice wall of Listing 15) is DECIDED here by the pushforward --- {n>5} ↦
@@ -2105,8 +2120,10 @@ static_assert(!static_cast<bool>(((𝔹 * 𝔹 | π1 <= π2) >>
 namespace dedekind::category {
 
 // LEAF: a translation graph x ↦ x+K is FUNCTIONAL on any carrier (single-valued
-// by construction), but ENTIRE only on a GROUP carrier -- on ℕ the shift x−3 is
-// undefined below 3, so entireness is exactly @c IsAbelianGroup under +.
+// by construction).  It is ENTIRE where the shift stays in the carrier: always
+// on a GROUP (additive inverses), and on a carrier bounded below at 0 (ℕ)
+// exactly when K ≥ 0 (the successor x+1 is total on ℕ; the predecessor x−3 is
+// not).
 template <typename T, auto K, typename L>
 inline constexpr bool is_right_unique_v<dedekind::sets::Set<
     std::pair<T, T>, L,
@@ -2116,7 +2133,7 @@ template <typename T, auto K, typename L>
 inline constexpr bool is_left_total_v<dedekind::sets::Set<
     std::pair<T, T>, L,
     dedekind::order::ProjAddConstProj<1, K, dedekind::order::Rel::Eq, 2>>> =
-    IsAbelianGroup<T, std::plus<T>>;
+    IsAbelianGroup<T, std::plus<T>> || (K >= 0);
 
 // LEAF: the diagonal π1==π2 (the identity relation) is functional AND entire on
 // any carrier -- a ↦ a, single-valued and total.

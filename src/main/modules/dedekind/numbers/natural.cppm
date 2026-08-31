@@ -554,11 +554,13 @@ export template <typename L, typename C, auto N, auto R>
 constexpr auto operator|(
     const UniversalSet<Cardinality, L, C>&,
     dedekind::order::ProjModConstBound<0, N, dedekind::order::Rel::Eq, R>) {
+  // Normalise R into [0,N) exactly as ProjModConstBound does (mathematical
+  // residue, not raw value), so equivalent fragments like π%fix(3_c)==fix(3_c)
+  // or fix(-1_c) materialise as residues 0 and N−1, not empty.
+  constexpr auto Rn = ((R % N) + N) % N;
   std::array<typename L::Ω, N> at{};
   for (std::size_t r = 0; r < static_cast<std::size_t>(N); ++r)
-    at[r] = ((r % static_cast<std::size_t>(N)) == static_cast<std::size_t>(R))
-                ? L::True
-                : L::False;
+    at[r] = (r == static_cast<std::size_t>(Rn)) ? L::True : L::False;
   return FiniteResidueSet<N, L>{at};
 }
 
