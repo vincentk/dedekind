@@ -59,6 +59,7 @@ module;
 
 #include <concepts>
 #include <cstddef>
+#include <functional>
 #include <type_traits>
 
 export module dedekind.linear_algebra:diagonal;
@@ -239,11 +240,19 @@ constexpr auto operator*(Diagonal<D, F> const& a, Diagonal<D, G> const& b) {
 
 /**
  * @brief Rank-1 matrix @c M @c = @c u@c ⊗@c v with @c M[i][j] @c =
- *        @c u(i)@c ·@c v(j).
+ *        @c u(i)@c ⊗@c v(j), the product taken in a @b semiring.
  *
- * @tparam U  Left factor (@c IsArrow with @c size_t domain).
- * @tparam V  Right factor (@c IsArrow with @c size_t domain, same
- *            scalar codomain as @c U).
+ * @tparam U    Left factor (@c IsArrow with @c size_t domain).
+ * @tparam V    Right factor (@c IsArrow with @c size_t domain, same
+ *              scalar codomain as @c U).
+ * @tparam Mult The scalar product functor @c ⊗.  Defaults to
+ *              @c std::multiplies (the ring @c ·, so every existing call
+ *              site and witness is unchanged), but any semiring @c ⊗ is
+ *              admissible — pass @c dedekind::algebra::semiring_ops<T>::mult
+ *              to build a @b tropical dyad (@c ⊗ @c = @c +), which the
+ *              @c :transfer partition folds into the bra·ket eigenvalue.
+ *              This is the sole hook that lets a max-plus carrier — which
+ *              has no C++ @c operator* — be a rank-1 matrix entry type.
  *
  * @details Stored intensionally — neither factor needs to be
  *          dense-materialised.  Either or both factors may be
@@ -251,10 +260,13 @@ constexpr auto operator*(Diagonal<D, F> const& a, Diagonal<D, G> const& b) {
  *          @c dedekind::sequences::Path<T>); the outer product itself
  *          carries no dense @c m@c ×@c n storage.
  */
-export template <typename U, typename V>
+export template <typename U, typename V,
+                 typename Mult =
+                     std::multiplies<typename std::remove_cvref_t<U>::Codomain>>
   requires dedekind::category::IsArrow<U> && dedekind::category::IsArrow<V>
 struct OuterProduct {
   using scalar_type = typename std::remove_cvref_t<U>::Codomain;
+  using mult_type = Mult;
   using row_domain_type = typename std::remove_cvref_t<U>::Domain;
   using col_domain_type = typename std::remove_cvref_t<V>::Domain;
   static_assert(
@@ -277,8 +289,8 @@ struct OuterProduct {
              std::convertible_to<I, row_domain_type> &&
              std::convertible_to<J, col_domain_type>
   constexpr scalar_type operator()(I const& i, J const& j) const {
-    return u(static_cast<row_domain_type>(i)) *
-           v(static_cast<col_domain_type>(j));
+    return Mult{}(u(static_cast<row_domain_type>(i)),
+                  v(static_cast<col_domain_type>(j)));
   }
 };
 
