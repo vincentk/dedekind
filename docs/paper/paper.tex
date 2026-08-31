@@ -1165,12 +1165,13 @@ static_assert(
 \end{minipage}\hfill
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-constexpr auto op = arrow<ℕ,ℕ>(   // opaque λ
-  [](ℕ m){ return m + fix(1_c); });
+constexpr auto op =          // opaque λ
+  arrow<Cardinality,Cardinality>(
+    [](Cardinality m){ return m + 1; });
 constexpr auto img =
-  image(op, Set{in<ℕ> | in<ℕ> > bound<5>});
+  image(op, ℕ | (π > fix(5_c)));
 static_assert(               // honest wall
-  img(fix(7)) == Ternary::Unknown);
+  img(finite_cardinality(7)) == Ternary::Unknown);
 \end{cpp}
 \end{minipage}
 \end{listing}

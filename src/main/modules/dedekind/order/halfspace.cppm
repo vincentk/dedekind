@@ -1507,13 +1507,18 @@ static_assert(!(ℕ * ℕ | π1 * fix(2_c) == π2)(std::pair{finite_cardinality(
                                                        finite_cardinality(7)}),
               "3 * 2 != 7: (3,7) ∉ the doubling graph.");
 
-// dom / cod are the projections π_A / π_B (Table 3).  The residue graph has no
-// axis cylinder and is entire on both sides, so both recover the universe ℕ
-// (unqualified so ADL finds the order-layer structural recovery).
+// dom / cod are the projections π_A / π_B (Table 3), recovered from the graph's
+// STRUCTURE: they return the DECLARED domain/codomain, not the effective image.
+// The residue graph has no axis cylinder, so both recover the declared universe
+// ℕ (unqualified so ADL finds the order-layer recovery).  cod is thus the
+// declared ℕ --- its EFFECTIVE second projection is only the residue class
+// {0,…,16}, but reading that off is the ∃-elimination behind the Rice wall
+// (§3.3), so cod does not claim surjectivity here.
 static_assert(dom(ℕ* ℕ | π1 % fix(17_c) == π2)(finite_cardinality(100)),
-              "π_A of the residue graph = ℕ (entire), contains 100.");
+              "π_A of the residue graph = declared ℕ (entire), contains 100.");
 static_assert(cod(ℕ* ℕ | π1 % fix(17_c) == π2)(finite_cardinality(3)),
-              "π_B of the residue graph = ℕ (surjective), contains 3.");
+              "π_B = declared codomain ℕ, contains 3 (NOT the effective "
+              "{0,…,16} residue image, which would need the ∃-projection).");
 
 // With a RESTRICTED factor, dom recovers the halfspace off the π1 cylinder:
 // π_A((ℕ|≤5)*ℕ) = {a ≤ 5}, while cod stays the unrestricted ℕ.
