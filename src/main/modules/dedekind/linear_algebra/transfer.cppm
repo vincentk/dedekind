@@ -135,6 +135,60 @@ constexpr auto eigenvalue(const OuterProduct<U, V, Mult>& m) {
   return inner_product<N>(m.v, m.u);
 }
 
+/**
+ * @brief The closure of a length-@c L chain of transfers: the @c ⊗-fold of
+ *        their per-bead eigenvalues @c ⊗_{m<L} @c bead(m).  A structured fold
+ *        whose accumulator is a @b single scalar — because each transfer is
+ *        rank-1, that scalar is the @b entire memo (@c dim @c = @c rank @c =
+ *        @c 1).  Intensional: @c bead is an @c index→λ map, and nothing
+ *        materialises until the value is forced ("realize it when you mean
+ * it").
+ */
+export template <
+    std::size_t L, typename Bead,
+    typename S = std::remove_cvref_t<std::invoke_result_t<Bead, std::size_t>>,
+    typename Mult = typename dedekind::algebra::semiring_ops<S>::mult>
+constexpr S transfer_chain(Bead bead) {
+  return add_fold<Mult>(std::make_index_sequence<L>{},
+                        dedekind::category::identity_v<S, Mult>,
+                        [&](std::size_t m) { return bead(m); });
+}
+
+/**
+ * @brief @b (B) the argmax-INDEX witness: the branch @c k whose @c w(k)⊗v(k)
+ *        @b wins the @c ⊕-join (a candidate wins iff @c ⊕(best,cand) @c ≠
+ *        @c best).  Returns the optimal branch, not merely the optimal value —
+ *        the filtration from @c N branches to one, i.e. where the optimization
+ *        "means it".  Requires a @b selective @c ⊕ (its result is one of its
+ *        operands), which @c MaxPlus / @c MinPlus satisfy (the same selectivity
+ *        @c annotate relies on); ties resolve to the first index.
+ */
+export template <
+    std::size_t N, typename Bra, typename Ket,
+    typename S = typename std::remove_cvref_t<Bra>::Codomain,
+    typename Add = typename dedekind::algebra::semiring_ops<S>::add,
+    typename Mult = typename dedekind::algebra::semiring_ops<S>::mult>
+  requires dedekind::category::IsArrow<Bra> &&
+           dedekind::category::IsArrow<Ket> &&
+           dedekind::category::IsSemiring<S, Add, Mult>
+constexpr std::size_t argmax_index(const Bra& w, const Ket& v) {
+  using WD = typename std::remove_cvref_t<Bra>::Domain;
+  using VD = typename std::remove_cvref_t<Ket>::Domain;
+  S best = dedekind::category::identity_v<S, Add>;  // ⊕-identity (0-bar)
+  std::size_t arg = 0;
+  const auto consider = [&](std::size_t k) {
+    const S cand = Mult{}(w(static_cast<WD>(k)), v(static_cast<VD>(k)));
+    if (Add{}(best, cand) != best) {  // cand wins the ⊕-join (selective ⊕)
+      best = cand;
+      arg = k;
+    }
+  };
+  [&]<std::size_t... K>(std::index_sequence<K...>) {
+    (consider(K), ...);
+  }(std::make_index_sequence<N>{});  // structured fold over the rank pack
+  return arg;
+}
+
 /** @section transfer__Witnesses */
 namespace detail_transfer {
 
@@ -188,6 +242,16 @@ static_assert(matmul_entry<2>(bead, bead, 0, 1) ==
               "rank-1 collapse M² = λ·M at (0,1) — off-diagonal.");
 static_assert(eigenvalue<2>(bead) == lambda,
               "eigenvalue(M) reads λ = ⟨w|v⟩ off the dyad's factors.");
+
+// (B) argmax-index: term(0)=5⊗3=8 beats term(1)=2⊗5=7, so branch 0 wins.
+static_assert(argmax_index<2>(mid_to_exit{}, entry_to_mid{}) == 0,
+              "argmax over the branches selects branch 0 (the ⊕-winner).");
+
+// transfer_chain: a length-3 chain of the uniform bead gain λ=8 closes to
+// λ⊗λ⊗λ = 8+8+8 = 24 — a structured ⊗-fold, one scalar of memo.
+static_assert(transfer_chain<3>([](std::size_t) { return lambda; }) ==
+                  MP::of(24),
+              "transfer_chain ⊗-folds three λ=8 beads to 24.");
 
 // The choice of semiring is the choice of problem.  Over 𝔹 the SAME bra·ket
 // is reachability: ⊕_k (w_k ∧ v_k) — is there a branch present end to end?
