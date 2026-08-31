@@ -49,8 +49,9 @@ module;
 export module dedekind.linear_algebra:transfer;
 
 import dedekind.algebra;  // IsSemiring, semiring_ops, Tropical/MaxPlus, ⊕/⊗
-import dedekind.category; // IsArrow, IsSemiring, identity_v
+import dedekind.category; // IsArrow, IsSemiring, IsSet, identity_v
 import dedekind.order;    // IsDirectedSet
+import dedekind.sets;     // Set, ClassicalLogic — the intensional argmax Set
 import :diagonal;         // OuterProduct — the rank-1 dyad carrier
 
 namespace dedekind::linear_algebra {
@@ -155,13 +156,43 @@ constexpr S transfer_chain(Bead bead) {
 }
 
 /**
- * @brief @b (B) the argmax-INDEX witness: the branch @c k whose @c w(k)⊗v(k)
- *        @b wins the @c ⊕-join (a candidate wins iff @c ⊕(best,cand) @c ≠
- *        @c best).  Returns the optimal branch, not merely the optimal value —
- *        the filtration from @c N branches to one, i.e. where the optimization
- *        "means it".  Requires a @b selective @c ⊕ (its result is one of its
- *        operands), which @c MaxPlus / @c MinPlus satisfy (the same selectivity
- *        @c annotate relies on); ties resolve to the first index.
+ * @brief The @b intensional argmax predicate over the @c N branches: the §3.3
+ *        forall-filter @c {k @c | @c ∀k'<N. @c f(k') @c ≤_⊕ @c f(k)} with
+ *        @c f(j) @c = @c w(j)⊗v(j).  A branch @c k is optimal iff it @c
+ *        ⊕-dominates every branch (@c ⊕(f(k'),f(k)) @c = @c f(k) for all @c k',
+ *        the selective-@c ⊕ reading of @c ≤).  Stored intensionally — nothing
+ *        is enumerated until membership is tested.
+ */
+template <std::size_t N, typename Bra, typename Ket, typename S, typename Add,
+          typename Mult>
+struct ArgmaxBranch {
+  Bra w;
+  Ket v;
+  constexpr S f(std::size_t j) const {
+    using WD = typename std::remove_cvref_t<Bra>::Domain;
+    using VD = typename std::remove_cvref_t<Ket>::Domain;
+    return Mult{}(w(static_cast<WD>(j)), v(static_cast<VD>(j)));
+  }
+  constexpr bool operator()(std::size_t k) const {
+    if (k >= N) return false;  // the branch domain is {0 … N−1}
+    const S fk = f(k);
+    bool dominant = true;  // ∀ k'<N: f(k') ≤_⊕ f(k)
+    [&]<std::size_t... K>(std::index_sequence<K...>) {
+      ((dominant = dominant && (Add{}(f(K), fk) == fk)), ...);
+    }(std::make_index_sequence<N>{});
+    return dominant;
+  }
+};
+
+/**
+ * @brief @b (B) argmax as an @b intensional Set: the branches maximising the
+ *        objective @c f(k) @c = @c ⟨w|v⟩'s @c k-th term, as the §3.3 forall-
+ *        filter carried by a real @c dedekind::sets::Set.  This is the "mean
+ *        it" filtration — and it is @b IsSet-valued, so the degenerate cases
+ *        fall out as cardinality: @c ∅ (no optimum), a @b singleton (unique
+ *        optimiser ⟺ argmax is a function), a larger set (ties ⟺ argmax is a
+ *        proper relation).  Materialise it (enumerate / test membership) only
+ *        when a consumer "means it"; the Set itself stays symbolic.
  */
 export template <
     std::size_t N, typename Bra, typename Ket,
@@ -171,22 +202,10 @@ export template <
   requires dedekind::category::IsArrow<Bra> &&
            dedekind::category::IsArrow<Ket> &&
            dedekind::category::IsSemiring<S, Add, Mult>
-constexpr std::size_t argmax_index(const Bra& w, const Ket& v) {
-  using WD = typename std::remove_cvref_t<Bra>::Domain;
-  using VD = typename std::remove_cvref_t<Ket>::Domain;
-  S best = dedekind::category::identity_v<S, Add>;  // ⊕-identity (0-bar)
-  std::size_t arg = 0;
-  const auto consider = [&](std::size_t k) {
-    const S cand = Mult{}(w(static_cast<WD>(k)), v(static_cast<VD>(k)));
-    if (Add{}(best, cand) != best) {  // cand wins the ⊕-join (selective ⊕)
-      best = cand;
-      arg = k;
-    }
-  };
-  [&]<std::size_t... K>(std::index_sequence<K...>) {
-    (consider(K), ...);
-  }(std::make_index_sequence<N>{});  // structured fold over the rank pack
-  return arg;
+constexpr auto argmax_set(const Bra& w, const Ket& v) {
+  using P = ArgmaxBranch<N, Bra, Ket, S, Add, Mult>;
+  return dedekind::sets::Set<std::size_t, dedekind::category::ClassicalLogic,
+                             P>{P{w, v}};
 }
 
 /** @section transfer__Witnesses */
@@ -243,9 +262,25 @@ static_assert(matmul_entry<2>(bead, bead, 0, 1) ==
 static_assert(eigenvalue<2>(bead) == lambda,
               "eigenvalue(M) reads λ = ⟨w|v⟩ off the dyad's factors.");
 
-// (B) argmax-index: term(0)=5⊗3=8 beats term(1)=2⊗5=7, so branch 0 wins.
-static_assert(argmax_index<2>(mid_to_exit{}, entry_to_mid{}) == 0,
-              "argmax over the branches selects branch 0 (the ⊕-winner).");
+// (B) argmax as an intensional Set: f(0)=5⊗3=8 beats f(1)=2⊗5=7, so the
+// optimal-branch Set is the singleton {0} — membership tested, not enumerated.
+inline constexpr auto amax = argmax_set<2>(mid_to_exit{}, entry_to_mid{});
+static_assert(dedekind::category::IsSet<decltype(amax)>,
+              "argmax_set returns a bona fide intensional Set.");
+static_assert(amax(0), "branch 0 (f=8) is in the argmax Set.");
+static_assert(!amax(1), "branch 1 (f=7) is not in the argmax Set.");
+
+// Ties are a PROPER relation, not collapsed: when both branches score equally
+// the argmax Set contains both (argmax is IsSet-valued, degenerate-honest).
+struct flat_one {  // f(0)=f(1)=1⊗1=2 against itself ⟹ a genuine tie
+  using Domain = std::size_t;
+  using Codomain = MP;
+  constexpr MP operator()(std::size_t) const { return MP::of(1); }
+};
+inline constexpr auto tie = argmax_set<2>(flat_one{}, flat_one{});
+static_assert(
+    tie(0) && tie(1),
+    "a tie keeps BOTH branches in the argmax Set (a proper relation).");
 
 // transfer_chain: a length-3 chain of the uniform bead gain λ=8 closes to
 // λ⊗λ⊗λ = 8+8+8 = 24 — a structured ⊗-fold, one scalar of memo.

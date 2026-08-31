@@ -3,12 +3,13 @@
 #include <cstddef>
 
 import dedekind.linear_algebra; // :transfer — inner_product, transfer_chain,
-                                // argmax_index
+                                // argmax_set
 import dedekind.algebra;        // MaxPlus, MinPlus, semiring_ops
+import dedekind.category;       // IsSet
 
 // The diamond necklace of showcase_13, re-expressed as `materialize(argmax(
 // cost_function))` over rank-1 transfers — no edge materialisation, no
-// FiniteNet potential, and the optimum is the ONLY realize point.
+// FiniteNet potential, and the OPTIMAL-PATH SET kept intensional/symbolic.
 //
 //        (1,1)     (3,1)     (5,1)     (7,1)
 //         / \       / \       / \       / \
@@ -20,9 +21,10 @@ import dedekind.algebra;        // MaxPlus, MinPlus, semiring_ops
 // branches are a 2-component ket (the mid-node arrival costs) contracted
 // against a bra (the exit-edge costs, all 0), so its eigenvalue is the tropical
 // bra·ket λ_m = ⟨w|v⟩ = max(peak, trough).  The closure `transfer_chain` is the
-// ⊗-fold of the four eigenvalues; because every transfer is rank-1 the streamed
-// memo is a SINGLE scalar (rank = 1 ⟹ dim(memo) = 1, Fliess).  `argmax_index`
-// recovers the optimal branch per diamond — the filtration where we "mean it".
+// ⊗-fold of the four eigenvalues (rank = 1 ⟹ dim(memo) = 1, Fliess).  Each
+// diamond's `argmax_set` is the INTENSIONAL Set of its optimal branch(es); a
+// path is optimal iff every diamond's choice lies in that Set — the optimal-
+// path set stays symbolic, materialised only when a concrete path is tested.
 
 using namespace dedekind::linear_algebra;
 using dedekind::algebra::MaxPlus;
@@ -72,31 +74,39 @@ constexpr MP necklace_value() {
       [](std::size_t m) { return bead_eigenvalue<MP>(static_cast<int>(m)); });
 }
 
-// argmax(cost_function): the optimal branch per diamond — realize (materialize)
-// the path as the concrete array of choices.  0 = up (peak), 1 = down (trough).
+// argmax(cost) for diamond m: the INTENSIONAL Set of its optimal branch(es).
 template <typename MP>
-constexpr std::array<std::size_t, 4> necklace_argmax() {
-  std::array<std::size_t, 4> path{};
+constexpr auto diamond_argmax(int m) {
+  return argmax_set<2>(exit_bra<MP>{}, ket_of<MP>(m));
+}
+
+// A path is optimal iff every diamond's choice lies in that diamond's argmax
+// Set.  The optimal-path SET stays intensional — this only tests membership of
+// a concrete candidate path (the "mean it" query), never enumerating it.
+template <typename MP>
+constexpr bool is_optimal_path(const std::array<std::size_t, 4>& path) {
+  bool ok = true;
   for (int m = 0; m < 4; ++m)
-    path[static_cast<std::size_t>(m)] =
-        argmax_index<2>(exit_bra<MP>{}, ket_of<MP>(m));
-  return path;
+    ok = ok && diamond_argmax<MP>(m)(path[static_cast<std::size_t>(m)]);
+  return ok;
 }
 
 }  // namespace
 
-// Per-diamond eigenvalues 3, 1, 1, 3 (the tropical bra·ket of each diamond).
-static_assert(bead_eigenvalue<MaxPlus<unsigned long long>>(0).val == 3);
-static_assert(bead_eigenvalue<MaxPlus<unsigned long long>>(3).val == 3);
+// Each diamond's argmax is a genuine intensional Set.
+static_assert(dedekind::category::IsSet<
+              decltype(diamond_argmax<MaxPlus<unsigned long long>>(0))>);
 
-// Critical path value = 3 ⊗ 1 ⊗ 1 ⊗ 3 = 8 — the same value showcase_13's
-// semiring_closure computes, with no FiniteNet and no edge sequence.
+// Critical path value = 3 ⊗ 1 ⊗ 1 ⊗ 3 = 8 — showcase_13's value, no FiniteNet.
 static_assert(necklace_value<MaxPlus<unsigned long long>>().val == 8);
 
-// argmax = [up, up, down, down] — exactly showcase_13's critical chevron,
-// recovered as the per-diamond ⊕-winners.
-static_assert(necklace_argmax<MaxPlus<unsigned long long>>() ==
-              std::array<std::size_t, 4>{0, 0, 1, 1});
+// The optimal-path set contains the up,up,down,down chevron of showcase_13, and
+// excludes a path that deviates at diamond 0 (forcing the dearer trough).
+static_assert(
+    is_optimal_path<MaxPlus<unsigned long long>>({0, 0, 1, 1}),
+    "the up,up,down,down chevron is in the (intensional) optimal-path set.");
+static_assert(!is_optimal_path<MaxPlus<unsigned long long>>({1, 0, 1, 1}),
+              "deviating at diamond 0 (trough) leaves the optimal-path set.");
 
 TEST_CASE("necklace: materialize(argmax(cost)) reproduces the CPM optimum",
           "[linear_algebra][transfer][necklace]") {
@@ -106,10 +116,15 @@ TEST_CASE("necklace: materialize(argmax(cost)) reproduces the CPM optimum",
   // streamed with a single-scalar memo.
   CHECK(necklace_value<MPu>().val == 8);
 
-  // The witness: argmax realizes the optimal path — the up,up,down,down
-  // chevron of showcase_13.
-  const auto path = necklace_argmax<MPu>();
-  CHECK(path == std::array<std::size_t, 4>{0, 0, 1, 1});
+  // The witness: the chevron is in the intensional optimal-path set; a
+  // deviation is not.  The set is never materialised — only membership tested.
+  CHECK(is_optimal_path<MPu>({0, 0, 1, 1}));
+  CHECK(!is_optimal_path<MPu>({1, 0, 1, 1}));
+
+  // Diamond 0 is a strict optimum (unique branch): {0} only.
+  const auto d0 = diamond_argmax<MPu>(0);
+  CHECK(d0(0));
+  CHECK(!d0(1));
 }
 
 TEST_CASE("necklace: the semiring is the choice of problem (transfer form)",
@@ -120,7 +135,9 @@ TEST_CASE("necklace: the semiring is the choice of problem (transfer form)",
   CHECK(bead_eigenvalue<MPl>(0).val == 0);  // min(3, 0)
   CHECK(necklace_value<MPl>().val == 0);    // 0 ⊗ 0 ⊗ 0 ⊗ 0
 
-  // Its argmax picks the cheap branch of each diamond: [down, down, up, up]
-  // (the trough where the peak is dearer, then the peak where the trough is).
-  CHECK(necklace_argmax<MPl>() == std::array<std::size_t, 4>{1, 1, 0, 0});
+  // Its argmax picks the cheap branch: diamond 0's optimum is the trough {1}.
+  const auto d0 = diamond_argmax<MPl>(0);
+  CHECK(d0(1));
+  CHECK(!d0(0));
+  CHECK(is_optimal_path<MPl>({1, 1, 0, 0}));
 }
