@@ -44,6 +44,7 @@ module;
 #include <cstddef>
 #include <functional>
 #include <type_traits>
+#include <utility>
 
 export module dedekind.linear_algebra:transfer;
 
@@ -53,6 +54,24 @@ import dedekind.order;    // IsDirectedSet
 import :diagonal;         // OuterProduct — the rank-1 dyad carrier
 
 namespace dedekind::linear_algebra {
+
+/**
+ * @brief The one reduction the transfer surface keeps: a structured @c ⊕-fold
+ *        @c ⊕_{k<N} @c term(k) over the (low, fixed) rank index, the empty fold
+ *        being the @c ⊕-identity.  A fold-expression, not an imperative loop —
+ *        the DSL folds @b structurally, so the reduction stays intensional
+ *        until an optimum "means it".
+ *
+ * @tparam Add  The @c ⊕ functor.
+ * @param  zero The @c ⊕-identity (0-bar), the value of the empty (@c N=0) fold.
+ * @param  term The intensional summand @c k @c ↦ @c term(k).
+ */
+template <typename Add, typename S, typename Term, std::size_t... K>
+constexpr S add_fold(std::index_sequence<K...>, S zero, Term term) {
+  S acc = zero;
+  ((acc = Add{}(acc, term(K))), ...);  // structured ⊕-fold over the rank pack
+  return acc;
+}
 
 /**
  * @brief The bra·ket inner product @c ⟨w|v⟩ @c = @c ⊕_{k<N} @c w(k) @c ⊗
@@ -75,10 +94,11 @@ export template <
 constexpr S inner_product(const Bra& w, const Ket& v) {
   using WD = typename std::remove_cvref_t<Bra>::Domain;
   using VD = typename std::remove_cvref_t<Ket>::Domain;
-  S acc = dedekind::category::identity_v<S, Add>;  // ⊕-identity (0-bar)
-  for (std::size_t k = 0; k < N; ++k)
-    acc = Add{}(acc, Mult{}(w(static_cast<WD>(k)), v(static_cast<VD>(k))));
-  return acc;
+  return add_fold<Add>(
+      std::make_index_sequence<N>{}, dedekind::category::identity_v<S, Add>,
+      [&](std::size_t k) {
+        return Mult{}(w(static_cast<WD>(k)), v(static_cast<VD>(k)));
+      });
 }
 
 /**
@@ -98,10 +118,9 @@ export template <
     typename Mult = typename dedekind::algebra::semiring_ops<S>::mult>
   requires dedekind::category::IsSemiring<S, Add, Mult>
 constexpr S matmul_entry(const A& a, const B& b, std::size_t i, std::size_t j) {
-  S acc = dedekind::category::identity_v<S, Add>;
-  for (std::size_t k = 0; k < N; ++k)
-    acc = Add{}(acc, Mult{}(a(i, k), b(k, j)));
-  return acc;
+  return add_fold<Add>(std::make_index_sequence<N>{},
+                       dedekind::category::identity_v<S, Add>,
+                       [&](std::size_t k) { return Mult{}(a(i, k), b(k, j)); });
 }
 
 /**
