@@ -719,7 +719,10 @@ constexpr auto structured_or(Halfspace<T, P1, Direction::Downward, S1, L>,
 export template <typename T, auto Lo, auto Hi, Strictness SL, Strictness SU,
                  typename L>
   requires((SL == Strictness::Strict && SU == Strictness::Strict) ? (Lo < Hi)
-                                                                  : (Lo <= Hi))
+           : (SL == Strictness::NonStrict && SU == Strictness::NonStrict &&
+              IsRingIntegral<T>)
+               ? (Lo <= Hi + 1)  // discrete: adjacent bounds cover (no int gap)
+               : (Lo <= Hi))
 constexpr auto structured_or(Halfspace<T, Lo, Direction::Upward, SL, L>,
                              Halfspace<T, Hi, Direction::Downward, SU, L>) {
   return dedekind::sets::UniversalSet<T, L>{};
@@ -727,7 +730,10 @@ constexpr auto structured_or(Halfspace<T, Lo, Direction::Upward, SL, L>,
 export template <typename T, auto Hi, auto Lo, Strictness SU, Strictness SL,
                  typename L>
   requires((SL == Strictness::Strict && SU == Strictness::Strict) ? (Lo < Hi)
-                                                                  : (Lo <= Hi))
+           : (SL == Strictness::NonStrict && SU == Strictness::NonStrict &&
+              IsRingIntegral<T>)
+               ? (Lo <= Hi + 1)  // discrete: adjacent bounds cover (no int gap)
+               : (Lo <= Hi))
 constexpr auto structured_or(Halfspace<T, Hi, Direction::Downward, SU, L>,
                              Halfspace<T, Lo, Direction::Upward, SL, L>) {
   return dedekind::sets::UniversalSet<T, L>{};
@@ -1567,6 +1573,10 @@ constexpr auto upperbounds(Halfspace<T, p, Direction::Downward, S, L>) {
     // DISCRETE strict {x<p}: the sup p is not in S, but the predecessor p−1 IS
     // (the greatest integer below p), so the upper bounds start at p−1 and the
     // meet {x<p} ∩ {x≥p−1} = {p−1} attains the max.
+    // FIXME: assumes p−1 is IN the carrier.  On a carrier bounded below (ℕ at
+    // 0) {x<0} is empty and p−1 = −1 leaves ℕ, so max collapses to
+    // Singleton<-1> -- membership-empty (correct answer) but a type-level lie
+    // (== Ø would fail).
     return Halfspace<T, p - 1, Direction::Upward, Strictness::NonStrict, L>{};
   } else {
     // {x≤p}: sup p attained.  Continuous {x<p}: sup p unattained (dense carrier
@@ -1806,10 +1816,14 @@ constexpr bool operator==(const UniversalSet<bool, L, C>& u,
 }
 
 // image = the RANGE (π_B projection) of a functional graph, read structurally.
-// A translation is surjective, so the range of the unrestricted graph is the
-// whole line; bounded by a π1-halfspace the range is that halfspace pushed
-// forward by K --- the AFFINE PUSHFORWARD, again a halfspace of the same shape.
+// A translation is surjective ONLY on a GROUP carrier (@c IsAbelianGroup under
+// +): on ℤ the range of the unbounded graph is the whole line, but on ℕ the map
+// x↦x+K misses {0,…,K−1}, so this overload is gated to the group case (the same
+// additive-inverse assumption @c argmax carries).  Bounded by a π1-halfspace
+// the range is that halfspace pushed forward by K --- an affine pushforward
+// that holds on any carrier (below).
 export template <typename T, auto K, typename L>
+  requires dedekind::category::IsAbelianGroup<T, std::plus<T>>
 constexpr auto image(
     const Set<std::pair<T, T>, L, ProjAddConstProj<1, K, Rel::Eq, 2>>&) {
   return Ω<T>;
@@ -2055,8 +2069,9 @@ static_assert(!static_cast<bool>(((𝔹 * 𝔹 | π1 <= π2) >>
 // composes.
 namespace dedekind::category {
 
-// LEAF: a translation graph x ↦ x+K is functional AND entire by construction --
-// certified from its predicate shape, with no opt-in flag.
+// LEAF: a translation graph x ↦ x+K is FUNCTIONAL on any carrier (single-valued
+// by construction), but ENTIRE only on a GROUP carrier -- on ℕ the shift x−3 is
+// undefined below 3, so entireness is exactly @c IsAbelianGroup under +.
 template <typename T, auto K, typename L>
 inline constexpr bool is_right_unique_v<dedekind::sets::Set<
     std::pair<T, T>, L,
@@ -2066,7 +2081,7 @@ template <typename T, auto K, typename L>
 inline constexpr bool is_left_total_v<dedekind::sets::Set<
     std::pair<T, T>, L,
     dedekind::order::ProjAddConstProj<1, K, dedekind::order::Rel::Eq, 2>>> =
-    true;
+    IsAbelianGroup<T, std::plus<T>>;
 
 // LEAF: the diagonal π1==π2 (the identity relation) is functional AND entire on
 // any carrier -- a ↦ a, single-valued and total.
