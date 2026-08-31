@@ -1563,22 +1563,24 @@ static_assert(
                            finite_cardinality(20))(finite_cardinality(4)),
     "apply(R,20) does not contain 4.");
 
-// ── Intensional extrema (Bird & de Moor @cite birddemoor1997aop)
-// ──────────────
-// @f$\max@f$ is one GENERIC definition, the @f$\forall@f$-projection of the
-// order relation onto its second coordinate:
-// @f[ \max S \;=\; \{\pi_2 \in S \mid \forall \pi_1 \in S.\; \pi_1 \le \pi_2\}
-//              \;=\; S \cap \mathrm{upperbounds}(S) \;=\; (\in) \cap (R/\ni).
-//              @f]
-// The @f$\forall@f$-projection @c R/\ni @b is @c upperbounds: the region
-// dominating all of @c S.  IT is the pluggable point (as @f$\forall@f$/
-// @f$\exists@f$ plug into @c Ø::operator==), decided SYMBOLICALLY per structure
-// so no candidate is enumerated: a halfspace bounded ABOVE (@c {x ≤ p}) is
-// dominated exactly by @c {x ≥ p}; one unbounded above (@c {x ≥ p}) has no
-// upper bound (@c Ø).  @c lowerbounds is the dual.  The generic @c max/min
-// below then meet @c S with them --- and the meet, @c structured_and, collapses
-// the interval to the attained pivot (@c {x≤p} ∩ {x≥p} = @c {p}) or, when the
-// sup is not attained (strict) or absent (unbounded), to @c Ø.
+/** @brief @c upperbounds(S) --- the @f$\forall@f$-projection @f$R/\ni@f$: the
+ *  region dominating all of @c S, and the pluggable point of the extremum
+ *  (Bird \& de~Moor @cite birddemoor1997aop).
+ *
+ *  @details @c max is one GENERIC definition, the @f$\forall@f$-projection of
+ * the order relation onto its second coordinate:
+ *  @f[ \max S \;=\; \{\pi_2 \in S \mid \forall \pi_1 \in S.\; \pi_1 \le \pi_2\}
+ *               \;=\; S \cap \mathrm{upperbounds}(S) \;=\; (\in) \cap (R/\ni).
+ * @f]
+ *  @c upperbounds is the pluggable point (as @f$\forall@f$ / @f$\exists@f$ plug
+ *  into @c Ø::operator==), decided SYMBOLICALLY per structure so no candidate
+ * is enumerated: a halfspace bounded ABOVE (@c {x≤p}) is dominated exactly by
+ *  @c {x≥p}; one unbounded above (@c {x≥p}) has no upper bound (@c Ø).
+ *  @c lowerbounds is the dual.  The generic @c max/min then meet @c S with
+ * them, and the meet @c structured_and collapses the interval to the attained
+ * pivot
+ *  (@c {x≤p} ∩ @c {x≥p} = @c {p}) or, when the sup is unattained (strict) or
+ *  absent (unbounded), to @c Ø. */
 export template <typename T, auto p, Strictness S, typename L>
 constexpr auto upperbounds(Halfspace<T, p, Direction::Downward, S, L>) {
   if constexpr (S == Strictness::Strict && IsRingIntegral<T> &&
@@ -1629,12 +1631,12 @@ constexpr auto lowerbounds(const UniversalSet<bool, L, C>&) {
   return Singleton<false, L>{};
 }
 
-// @c & IS the meet on bare order operands: it forwards to the
-// @c structured_and customization point, exactly as @c Set::operator& does for
-// wrapped predicates, so no @c Set{} wrapping is needed.  The complement-pair
-// @c operator& above (opposite direction AND flipped strictness → @c Ø) is more
-// specialized and still claims its case; every other halfspace pair
-// (overlapping, same-direction) routes here.
+/** @brief @c & IS the meet on bare order operands: it forwards to the
+ *  @c structured_and customization point, exactly as @c Set::operator& does for
+ *  wrapped predicates, so no @c Set{} wrapping is needed.  The complement-pair
+ *  @c operator& above (opposite direction AND flipped strictness → @c Ø) is
+ * more specialized and still claims its case; every other halfspace pair
+ *  (overlapping, same-direction) routes here. */
 export template <typename T, auto P1, Direction D1, Strictness S1, auto P2,
                  Direction D2, Strictness S2, typename L>
 constexpr auto operator&(Halfspace<T, P1, D1, S1, L> a,
@@ -1643,11 +1645,10 @@ constexpr auto operator&(Halfspace<T, P1, D1, S1, L> a,
 {
   return structured_and(a, b);
 }
-// @c | IS the join on bare order operands, dual to the @c & meet: it forwards
-// to
-// @c structured_or, so a same-direction or overlapping halfspace union
-// collapses.  The complement-pair @c operator| above (→ universe) is more
-// specialized and still claims its case.
+/** @brief @c | IS the join on bare order operands, dual to the @c & meet: it
+ *  forwards to @c structured_or, so a same-direction or overlapping halfspace
+ *  union collapses.  The complement-pair @c operator| above (→ universe) is
+ * more specialized and still claims its case. */
 export template <typename T, auto P1, Direction D1, Strictness S1, auto P2,
                  Direction D2, Strictness S2, typename L>
 constexpr auto operator|(Halfspace<T, P1, D1, S1, L> a,
@@ -1656,11 +1657,11 @@ constexpr auto operator|(Halfspace<T, P1, D1, S1, L> a,
 {
   return structured_or(a, b);
 }
-// FALLBACK: a genuine GAP does not collapse to a halfspace, so return the
-// honest POINT-WISE union --- a Set whose membership ORs the two operands in
-// the carrier's logic (@c L::OR).  Selected exactly when @c structured_or does
-// not apply, so @c | is total (no hard error) while still collapsing where it
-// can.
+/** @brief Fallback join for a genuine GAP that does not collapse to a
+ * halfspace: the honest POINT-WISE union, a @c Set whose membership ORs the two
+ * operands in the carrier's logic (@c L::OR).  Selected exactly when @c
+ * structured_or does not apply, so @c | is total (no hard error) while still
+ * collapsing where it can. */
 export template <typename T, auto P1, Direction D1, Strictness S1, auto P2,
                  Direction D2, Strictness S2, typename L>
   requires(!requires(Halfspace<T, P1, D1, S1, L> x,
@@ -1670,29 +1671,30 @@ constexpr auto operator|(Halfspace<T, P1, D1, S1, L> a,
   auto pred = [a, b](const T& v) { return L::OR(a(v), b(v)); };
   return dedekind::sets::Set<T, L, decltype(pred)>{pred};
 }
-// @c Ø absorbs the meet (no upper bound ⟹ no max) --- the completion the
-// @f$\forall@f$-projection needs at the unbounded end.  (The finite end, the
-// universe meet-identity @c Ω ∩ X = X so @c 𝔹 ∩ {⊤} = {⊤}, is already the
-// universe's own @c operator& member in @c :boundaries.)
+/** @brief @c Ø absorbs the meet (no upper bound ⟹ no max), the completion the
+ *  @f$\forall@f$-projection needs at the unbounded end.  (The finite end, the
+ *  universe meet-identity @c Ω∩X=X so @c 𝔹∩{⊤}={⊤}, is already the universe's
+ *  own @c operator& member in @c :boundaries.) */
 export template <typename T, auto p, Direction D, Strictness S, typename L,
                  typename LZ>
 constexpr auto operator&(Halfspace<T, p, D, S, L>, Ø<T, LZ>) {
   return Ø<T, L>{};
 }
 
-// The generic extremum: @c S met (@c ∩) with its own @f$\forall@f$-dominators.
-// One definition for any ordered @c S whose @c upperbounds and meet are
-// defined; the structural collapse lives entirely in @c upperbounds + the meet,
-// so there is no generic search.  @c min is the dual (@c S met with its
-// minorants).
-// Gated on the SEMANTIC order: greatest/least element is a @b partial-order
-// notion, so the carrier's domain must certify @c IsPartiallyOrdered
-// (dedekind's order axioms --- reflexive, transitive, antisymmetric --- which
-// subsume
-// @c std::totally_ordered one level up in @c IsTotallyOrdered).  A carrier that
-// is not an ordered set --- e.g.\ @c SignedCardinality, which carries the
-// unordered @c NaZ like an IEEE NaN --- is honestly rejected: you cannot take
-// the max of a set that may contain a NaN.
+/** @brief @c max(S) --- the generic extremum: @c S met (@c ∩) with its own
+ *  @f$\forall@f$-dominators, @f$S \cap \mathrm{upperbounds}(S)@f$.  @c min is
+ * the dual (@c S met with its minorants).
+ *
+ *  @details One definition for any ordered @c S whose @c upperbounds and meet
+ * are defined; the structural collapse lives entirely in @c upperbounds and the
+ *  meet, so there is no generic search.  Gated on the SEMANTIC order:
+ *  greatest/least element is a @b partial-order notion, so the domain must
+ *  certify @c IsPartiallyOrdered (dedekind's reflexive/transitive/antisymmetric
+ *  axioms, which subsume @c std::totally_ordered one level up in
+ *  @c IsTotallyOrdered).  A carrier that is not an ordered set --- e.g.\
+ *  @c SignedCardinality, which carries the unordered @c NaZ like an IEEE NaN
+ * --- is honestly rejected: you cannot take the max of a set that may contain a
+ *  NaN. */
 export template <typename S>
   requires IsPartiallyOrdered<typename S::Domain> &&
            requires(const S& s) { s & upperbounds(s); }
@@ -1726,14 +1728,16 @@ static_assert(max(ℕ | (π < fix(5_c)))(4),
 static_assert(!max(ℕ | (π < fix(5_c)))(5), "5 ∉ {x < 5}, so not its max.");
 static_assert(min(ℕ | (π > fix(5_c)))(6), "6 = min {x > 5} on ℕ (successor).");
 
-// inverse of a translation-graph relation = its CONVERSE B*A | P⁻¹: the same
-// graph read backwards, x ↦ x−K, again a GRAPH (a relation, not an arrow), so
-// it stays on the surface and composes.  Functions ARE graphs here, so inverse
-// is a relational operation --- the converse with the shift negated.
-// Gated on the additive GROUP: the converse negates the shift (K → −K), which
-// is the predecessor relation only where the carrier has additive inverses.  On
-// ℕ (Cardinality) −K wraps rather than computing the predecessor, so the
-// inverse of the successor is NOT its converse there; the overload is withheld.
+/** @brief @c inverse of a translation-graph relation = its CONVERSE
+ *  @c B*A|P⁻¹: the same graph read backwards, @c x↦x−K, again a GRAPH (a
+ *  relation, not an arrow), so it stays on the surface and composes.
+ *
+ *  @details Functions ARE graphs here, so @c inverse is a relational operation,
+ *  the converse with the shift negated.  Gated on the additive GROUP: negating
+ *  the shift (@c K→−K) is the predecessor relation only where the carrier has
+ *  additive inverses.  On ℕ (@c Cardinality) @c −K wraps rather than computing
+ *  the predecessor, so the inverse of the successor is NOT its converse there;
+ *  the overload is withheld. */
 export template <typename T, auto K, typename L>
   requires dedekind::category::IsAbelianGroup<T, std::plus<T>>
 constexpr auto inverse(
@@ -1864,11 +1868,15 @@ constexpr auto image(
     const Set<std::pair<T, T>, L, ProjAddConstProj<1, K, Rel::Eq, 2>>&) {
   return Ω<T, L>;  // preserve the relation's logic species
 }
-// Constrained to ORDER relations (Lt/Le/Gt/Ge): dir_of / strict_of only model a
-// halfspace bound.  An EQUALITY restriction (π1==fix(p)) is a singleton domain,
-// not a halfspace, so it must NOT match here (that would give {y≤p+K} instead
-// of the singleton {p+K}); it is deliberately left to a separate singleton
-// path.
+/** @brief image of a translation graph restricted to a halfspace @c {x⋈P}: the
+ *  affine pushforward @c {y⋈P+K}, a halfspace of the same shape.
+ *
+ *  @details Constrained to ORDER relations (Lt/Le/Gt/Ge): @c dir_of / @c
+ * strict_of only model a halfspace bound.  An EQUALITY restriction (@c
+ * π1==fix(p)) is a singleton domain, not a halfspace, so it must NOT match here
+ * (that would give
+ *  @c {y≤p+K} instead of the singleton @c {p+K}); it is left to a separate
+ *  singleton path. */
 export template <typename T, auto K, Rel R, auto P, typename L>
   requires(R == Rel::Lt || R == Rel::Le || R == Rel::Gt || R == Rel::Ge)
 constexpr auto image(
@@ -1883,17 +1891,19 @@ static_assert(image((ℤ * ℤ | π1 + fix(3_c) == π2) | π1 <= fix(5_c)) ==
                   (ℤ | (π <= fix(8_c))),
               "image over {x ≤ 5} pushes forward to {y ≤ 8}.");
 
-// image of a restricted REFLECTION x ↦ c·x (c = ±1) on {x ⋈ P}: the domain
-// halfspace scaled by c --- pivot c·P, with the sense FLIPPED when c<0.  These
-// are the branches of the sign-fold epi @c abs = (x↦x on x≥0) ⊔ (x↦−x on x<0):
-// each branch is a mono reflection, so its image is a plain halfspace pushed
-// forward, no search.  (|c|>1 would also induce the residue @c {y≡0 mod c},
-// whose materialisation is a downstream :numbers concern; the sign-fold is
-// c=±1, so the range stays a bare halfspace here.)
-// Constrained to ORDER relations (equality is a singleton, not a halfspace),
-// and the NEGATE branch (C=−1) additionally requires a genuine additive
-// inverse, so on a non-group carrier (Cardinality) x↦−x is not modelled by
-// wrapping.
+/** @brief image of a restricted REFLECTION @c x↦c·x (@c c=±1) on @c {x⋈P}: the
+ *  domain halfspace scaled by @c c (pivot @c c·P, sense FLIPPED when @c c<0).
+ *
+ *  @details These are the branches of the sign-fold epi @c abs = @c (x↦x on
+ * x≥0)
+ *  @c ⊔ @c (x↦−x on x<0): each is a mono reflection, so its image is a plain
+ *  halfspace pushed forward, no search.  (@c |c|>1 would also induce the
+ * residue
+ *  @c {y≡0 mod c}, a downstream @c :numbers concern; the sign-fold is @c c=±1,
+ * so the range stays a bare halfspace here.)  Constrained to ORDER relations
+ *  (equality is a singleton, not a halfspace), and the NEGATE branch (@c C=−1)
+ *  additionally requires a genuine additive inverse, so on a non-group carrier
+ *  (@c Cardinality) @c x↦−x is not modelled by wrapping. */
 export template <typename T, auto C, Rel R, auto P, typename L>
   requires((R == Rel::Lt || R == Rel::Le || R == Rel::Gt || R == Rel::Ge) &&
            (C == 1 ||
@@ -1999,15 +2009,19 @@ consteval bool is_entire(
  *  read off structurally: a compile-time constrained integer optimum, no
  *  search.  The codomain constraint, pulled back through the graph, IS the
  *  domain restriction (§3.3). */
-// Gated on the carrier being an ADDITIVE GROUP (@c IsAbelianGroup under @c +):
-// the arithmetic below assumes a domain unbounded below, so @c {x ≤ P−K ∧ x ≡ r
-// mod V} is always non-empty and @c m is a valid optimum.  Additive inverses
-// are exactly what make an integral carrier unbounded below (ℤ certifies it; ℕ
-// =
-// @c Cardinality is a rig, no negation, bounded below by 0), so this predicate
-// admits any signed integral carrier and excludes ℕ --- where a codomain bound
-// @c P<K would pull the feasible domain empty while the formula still returned
-// a negative singleton.
+/** @brief @c argmax over a partial function: the translation @c x↦x+K into a
+ *  codomain bounded above (@c π2≤P) and restricted to a residue class
+ *  (@c π2≡W mod V), read off structurally (a compile-time constrained optimum).
+ *
+ *  @details Gated on the carrier being an ADDITIVE GROUP (@c IsAbelianGroup
+ * under
+ *  @c +): the arithmetic assumes a domain unbounded below, so
+ *  @c {x≤P−K ∧ x≡r mod V} is always non-empty and @c m is a valid optimum.
+ *  Additive inverses are exactly what make an integral carrier unbounded below
+ *  (ℤ certifies it; ℕ = @c Cardinality is a rig, no negation, bounded below by
+ *  0), so this admits any signed integral carrier and excludes ℕ, where a
+ *  codomain bound @c P<K would pull the feasible domain empty while the formula
+ *  still returned a negative singleton. */
 export template <typename T, auto K, auto P, auto V, auto W, typename L>
   requires dedekind::category::IsAbelianGroup<T, std::plus<T>>
 constexpr auto argmax(
