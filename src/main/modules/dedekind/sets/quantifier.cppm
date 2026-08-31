@@ -112,36 +112,46 @@ constexpr bool forall(const S& s, P p) {
  * @brief Quantifiers over a @b finite carrier, decided @b by type through the
  *        finite quotient rather than by enumeration.
  *
- * @details The extensional carrier @f$\mathbb{B}@f$ is the trivial case: its
- * two values @b are the quotient.  @c set materialises the predicate over
- * @c false and @c true into a @c FiniteBooleanSet, and @c Ø::operator== reads
- * off the two stored truths (@f$\varnothing@f$ iff neither is a member).  No
- * range, no @c begin/end walk: the proof is exhaustion of a 2-element quotient.
- * The infinite, periodic case (@c isEven factoring through @c Modular<2>) is
- * the same mechanism over @f$\mathbb{Z}/N\mathbb{Z}@f$; see the §3.1 exhibit.
+ * @details The comprehension is the where-clause @c S @c | @c P: on
+ * @f$\mathbb{B}@f$ a fragment collapses structurally (@c π==fix(v) to a @c
+ * Singleton, @c π⋈fix(v) to a @c Halfspace), each carrying a finite @c ==Ø /
+ * @c ==Ω over @c {false, true}; on @f$\mathbb{N}@f$ a congruence @c π%fix(N)==
+ * fix(R) materialises to a @c FiniteResidueSet over
+ * @f$\mathbb{Z}/N\mathbb{Z}@f$. No range, no @c begin/end walk: the proof is
+ * exhaustion of a finite quotient. See the §3.1 exhibit.
  */
-export template <typename L, typename P>
-constexpr auto set(const UniversalSet<bool, L, Finite>&, P p) {
-  return FiniteBooleanSet<L>{p(false), p(true)};
-}
 
-// A quantifier is one comparison of the comprehension @c set(S,P) against a
-// lattice bound (Eqn 2): @c exists tests against @c ∅ (scheme A), @c forall
-// against the input set @c S (scheme B); each recovers its partner by
+// A quantifier is one comparison of the intensional comprehension @c s|p
+// against a lattice bound (Eqn 2): @c exists tests against @c ∅ (scheme A),
+// @c forall against the input set @c S (scheme B); each recovers its partner by
 // complementing the predicate, @c !P.  Generic over any @c IsSet domain @c S
-// and @c IsPredicate query @c P for which a @c set() comprehension is defined;
-// the per-carrier @c set() overloads (bool here, ℤ/Nℤ in :numbers) do the work.
-export template <dedekind::category::IsSet S, dedekind::category::IsPredicate P>
-  requires requires(const S& s, P p) { set(s, p); }
+// and a query @c P for which the where-clause @c s|p is well-formed (NOT the
+// retired
+// @c set(S,P) / @c IsPredicate surface): the @c | materialises the
+// comprehension per carrier (@c 𝔹 here, ℤ/Nℤ in :numbers). The point-free query
+// @c P is an UNBOUND fragment (@c π == fix(v), @c π % fix(N) == fix(R), a
+// halfspace) --- it has no @c Domain, so it is not
+// @c IsPredicate; the gate is simply that @c s @c | @c p is well-formed (the
+// where-clause materialises the comprehension).  A raw lambda has no @c
+// operator| against the universe, so it falls through to the enumerable
+// (@c input_range) surface instead, keeping the two regimes honestly apart.
+// The predicate must be an UNBOUND fragment, never an @c IsSet: for a
+// set-valued operand @c s|p resolves to set UNION (@c Ω|Ø = Ω), not the
+// comprehension, which would make @c exists(Ω<bool>, Ø{}) wrongly true.
+// Excluding @c IsSet keeps @c | bound to the where-clause here.
+export template <dedekind::category::IsSet S, typename P>
+  requires(!dedekind::category::IsSet<std::remove_cvref_t<P>> &&
+           requires(const S& s, P p) { s | p; })
 constexpr bool exists(const S& s, P p) {
   return !(Ø<typename S::Domain, typename S::logic_species>{} ==
-           set(s, std::move(p)));  // (A): {x ∈ S | P(x)} ≠ ∅
+           (s | std::move(p)));  // (A): {x ∈ S | P(x)} ≠ ∅
 }
 
-export template <dedekind::category::IsSet S, dedekind::category::IsPredicate P>
-  requires requires(const S& s, P p) { set(s, p); }
+export template <dedekind::category::IsSet S, typename P>
+  requires(!dedekind::category::IsSet<std::remove_cvref_t<P>> &&
+           requires(const S& s, P p) { s | p; })
 constexpr bool forall(const S& s, P p) {
-  return set(s, std::move(p)) == s;  // (B): {x ∈ S | P(x)} == S
+  return (s | std::move(p)) == s;  // (B): {x ∈ S | P(x)} == S
 }
 
 /** @section quantifier__Formal_Verification */
@@ -161,58 +171,5 @@ static_assert(exists(std::views::iota(0, 5), [](int x) { return x == 3; }),
               "3 ∈ [0,5), so ∃ holds.");
 static_assert(!exists(std::views::iota(0, 3), [](int x) { return x > 9; }),
               "no element of [0,3) is > 9.");
-
-/**
- * @section quantifier__Combinators
- * @c ForAll / @c Exists are the quantifier @b combinators: they bind the
- * @b inner variable @c y over the enumerable domain @c dom and leave a
- * predicate in the @b outer variable @c x.  @c Exists(dom, p2) is
- * @f$\lambda x.\;\exists y \in \mathrm{dom}.\; p_2(y,x)@f$; @c ForAll dually.
- * The result is an ordinary unary predicate, so it drops straight into a
- * @c Set comprehension --- this is how a bounded quantifier defines a new set.
- * Both are built on the set-operation @c exists / @c forall above, and the
- * domain is any @c std::ranges::input_range: the general concept reached
- * through the @c std iterator interface, not a fixed container.
- */
-export template <std::ranges::input_range Dom, typename P2>
-constexpr auto Exists(Dom dom, P2 p2) {
-  return [dom, p2](const auto& x) {
-    return exists(dom, [&p2, &x](const auto& y) { return p2(y, x); });
-  };
-}
-
-export template <std::ranges::input_range Dom, typename P2>
-constexpr auto ForAll(Dom dom, P2 p2) {
-  return [dom, p2](const auto& x) {
-    return forall(dom, [&p2, &x](const auto& y) { return p2(y, x); });
-  };
-}
-
-/** @section quantifier__Formal_Verification_Combinators */
-
-// The quantifier domain is a genuine set: a std::views range lifts to IsSet
-// via ambient_set (Jlt --- the set IS its membership test), so Exists / ForAll
-// range over the elements of an ETCS set, not a bare container.
-inline constexpr auto six = std::views::single(6);
-static_assert(
-    dedekind::category::IsSet<decltype(dedekind::category::ambient_set(six))>,
-    "the existential's domain {6} is an ETCS set.");
-inline constexpr auto two_three = std::views::iota(2, 4);
-static_assert(dedekind::category::IsSet<
-                  decltype(dedekind::category::ambient_set(two_three))>,
-              "the universal's domain {2,3} is an ETCS set.");
-
-// { x | ∃ y ∈ {6} : x*y == 42 } selects x = 7 --- the existential combinator
-// binds y, leaving a predicate in x that the compiler collapses.
-inline constexpr auto has_factor_of_42_in_6 =
-    Exists(six, [](int y, int x) { return x * y == 42; });
-static_assert(has_factor_of_42_in_6(7), "7·6 == 42, so 7 satisfies ∃y∈{6}.");
-static_assert(!has_factor_of_42_in_6(8), "8·6 != 42.");
-
-// { x | ∀ y ∈ {2,3} : x % y == 0 } selects the common multiples of 2 and 3.
-inline constexpr auto divisible_by_2_and_3 =
-    ForAll(two_three, [](int y, int x) { return x % y == 0; });
-static_assert(divisible_by_2_and_3(6), "6 is divisible by both 2 and 3.");
-static_assert(!divisible_by_2_and_3(9), "9 is not divisible by 2.");
 
 }  // namespace dedekind::sets

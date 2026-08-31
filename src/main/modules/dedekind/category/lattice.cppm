@@ -161,17 +161,18 @@ module;
 export module dedekind.category:lattice;
 
 import :logic;
-import :posetal;    // IsPosetal — row 2 (thin + antisymmetric);
-                    // IsOrderLatticeOperations — bottom-up algebraic surface
-import :filtered;   // IsFilteredCategory — row 3 (directed thin cat)
-import :species;    // is_codirected_v — cofiltered companion to is_directed_v
-import :limit;      // IsInitialObject / IsTerminalObject — row 5
-                    // universal-property witnesses (relaxed via tag
-                    // discovery to admit LatticeBottom/LatticeTop).
-import :cartesian;  // IsExponential — row 6 universal-property witness
-                    // (structural recogniser post-#698 Slice 6; admits
-                    // both Set/Cpp function-space exponentials AND
-                    // lattice-internal value exponentials uniformly).
+import :involution;  // is_involutive_v + IsInvolution (extracted from here)
+import :posetal;     // IsPosetal — row 2 (thin + antisymmetric);
+                     // IsOrderLatticeOperations — bottom-up algebraic surface
+import :filtered;    // IsFilteredCategory — row 3 (directed thin cat)
+import :species;     // is_codirected_v — cofiltered companion to is_directed_v
+import :limit;       // IsInitialObject / IsTerminalObject — row 5
+                     // universal-property witnesses (relaxed via tag
+                     // discovery to admit LatticeBottom/LatticeTop).
+import :cartesian;   // IsExponential — row 6 universal-property witness
+                     // (structural recogniser post-#698 Slice 6; admits
+                     // both Set/Cpp function-space exponentials AND
+                     // lattice-internal value exponentials uniformly).
 
 namespace dedekind::category {
 
@@ -412,68 +413,22 @@ static_assert(LatticeTop<bool, std::less_equal<bool>>::value == true,
  *  shared shape is "endofunctor + property of its second iteration".
  */
 
-/** @brief Trait: a callable @c F is involutive on @c T iff @c F(F(x))
- *         @c = @c x for all @c x @c ∈ @c T.  Primary template is
- *         @c std::false_type; opt-in via specialisation or member
- *         discovery.  @b Exported so downstream code can specialise
- *         this trait for its own carrier types (mirrors the
- *         @c :species::is_reflexive / @c is_transitive export pattern). */
-export template <typename F, typename T>
-struct is_involutive : std::false_type {};
-
-/** @brief Discovery: types may opt in via a nested @c is_involutive_v
- *         template member, mirroring the @c is_reflexive / @c
- *         is_transitive / @c is_directed pattern in @c :species. */
-template <typename F, typename T>
-  requires requires { F::template is_involutive_v<T>; }
-struct is_involutive<F, T>
-    : std::bool_constant<F::template is_involutive_v<T>> {};
-
-export template <typename F, typename T>
-inline constexpr bool is_involutive_v = is_involutive<F, T>::value;
-
-/** @brief Canonical specialisation: @c std::logical_not<bool> is the
- *         involution on @c bool. */
-template <>
-struct is_involutive<std::logical_not<bool>, bool> : std::true_type {};
-
-/** @brief Canonical specialisation: @c std::bit_not<T> is the
- *         involution on @b non-bool integral @c T (~~x = x).
- *
- *  @note @c bool is @b excluded: @c std::bit_not<bool>(x) computes
- *  @c ~x via integral promotion (yielding @c -1 or @c -2 in @c int),
- *  then converts back to @c bool — which is always @c true for any
- *  non-zero result.  So @c bit_not(bit_not(false)) @c == @c true,
- *  not @c false: @c std::bit_not<bool> is @b not an involution.
- *  Bool's involution is @c std::logical_not<bool>, specialised
- *  separately above. */
-template <typename T>
-  requires std::is_integral_v<T> && (!std::is_same_v<T, bool>)
-struct is_involutive<std::bit_not<T>, T> : std::true_type {};
+// The @c is_involutive trait machinery (@c is_involutive_v + the
+// @c logical_not / @c bit_not opt-ins) has been extracted to the @c :involution
+// atom --- its long-anticipated home (see @c :involution's @c @section
+// Why_A_Seed).  It is re-exported through the @c :involution import above.
 
 /**
  * @concept IsInvolutiveEndofunctor
- * @brief A callable @c F is an involutive endofunctor on @c T —
- *        invocable @c T @c → @c T with @c F² @c ≅ @c Id.
- *
- * @details
- * Three structural requirements:
- *
- *   - @c F is invocable on @c T (the endomap shape).
- *   - The invocation returns a value convertible to @c T (so @c F
- *     genuinely maps @c T to @c T, not to some larger codomain).
- *   - @c F² @c = @c Id, witnessed by @c is_involutive_v<F, T>.
- *
- * Used by @c IsBooleanLatticeCategory (#698 Slice 7) with @c F the
- * lattice complement.
- *
- * @tparam F The endofunctor (a callable).
- * @tparam T The carrier type on which @c F acts.
+ * @brief A callable @c F is an involutive endofunctor on @c T --- invocable
+ *        @c T @c → @c T with @c F² @c ≅ @c Id.  This is exactly @c
+ *        :involution's @c IsInvolution under the lattice-complement reading
+ *        (used by @c IsBooleanLatticeCategory, #698 Slice 7); it reuses that
+ *        concept rather than re-stating the shape + @c is_involutive_v
+ *        certificate.
  */
 export template <typename F, typename T>
-concept IsInvolutiveEndofunctor =
-    std::invocable<F, T> &&
-    std::convertible_to<std::invoke_result_t<F, T>, T> && is_involutive_v<F, T>;
+concept IsInvolutiveEndofunctor = IsInvolution<F, T>;
 
 /** @section lattice__Involution_Canonical_Witnesses */
 

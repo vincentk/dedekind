@@ -30,8 +30,13 @@ constexpr auto retract(DoubleArrow) {
 }
 }  // namespace retract_image_test
 
-// Register the monic trait so IsMonicArrow (and IsRetractableArrow)
-// fire on the test wrapper.
+// The NON-injective case (the sign-fold abs(x) = |x|, whose two branches are
+// the reflections x↦x and x↦−x) is decided ANALYTICALLY and point-free in
+// dedekind.order --- image over the union of the mono reflection branches, no
+// retract/cofibre fibre-walk (§3.3, Listing 13).
+
+// Register the monic trait so IsMonicArrow (and IsRetractableArrow) fire on
+// DoubleArrow (the single-lookup retract path, no enumeration).
 template <>
 inline constexpr bool
     dedekind::category::is_monic_arrow_v<retract_image_test::DoubleArrow> =

@@ -180,6 +180,11 @@ export template <typename C>
 concept IsFactorisationSystem =
     IsSmallCategoryShape<C> && is_factorisation_system_v<C>;
 
+// A NON-injective arrow's image is decided ANALYTICALLY, point-free, as the
+// union of its (mono) branch images: no operational retract/cofibre gate, no
+// fibre walk.  See @c image on the reflection branches of the sign-fold @c abs
+// in @c dedekind.order (§3.3, Listing 13).
+
 // ---------------------------------------------------------------------------
 // Regular and exact categories — Sollbruchstellen named here; downstream
 // carriers register the witnesses for @b Set, the @b Cartesian closed

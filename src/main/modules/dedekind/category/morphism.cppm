@@ -874,9 +874,17 @@ export template <typename F>
 concept IsIsomorphism = IsArrow<F> && requires(F f) {
   // An isomorphism must provide its own inverse arrow
   { inverse(f) } -> IsArrow;
-  // And the domain of the inverse must be the codomain of the original
-  requires std::same_as<typename F::Codomain,
-                        typename decltype(inverse(f))::Domain>;
+  // And the inverse must run BOTH ways: its domain is the original codomain
+  // AND its codomain is the original domain (a two-sided inverse B→A, not
+  // merely an arrow starting at B).  remove_cvref_t so a reference-deduced F
+  // (e.g. an lvalue arrow forwarded into image(F&&, S)) still resolves its
+  // member types.
+  requires std::same_as<
+      typename std::remove_cvref_t<F>::Codomain,
+      typename std::remove_cvref_t<decltype(inverse(f))>::Domain>;
+  requires std::same_as<
+      typename std::remove_cvref_t<F>::Domain,
+      typename std::remove_cvref_t<decltype(inverse(f))>::Codomain>;
 };
 
 /** @brief The structural inverse of an Identity is itself. */
@@ -903,6 +911,12 @@ export template <typename A, typename B, typename Impl>
 // Proof: Tagged Negation is a formal Isomorphism.
 static_assert(IsIsomorphism<TaggedNegate>,
               "Negation must be recognized as a reversible Morphism.");
+
+// (A standalone Translation<T,K> iso arrow lived here briefly; it is superseded
+// by the functions-are-graphs reading in dedekind.order --- a translation is
+// its graph ℤ*ℤ | π1+fix(K)==π2, with inverse = the converse graph and image
+// the affine pushforward.  The reified projection arithmetic (π+fix, ...) is
+// the surviving vocabulary; the arrow wrapper is not needed.)
 /**
  * @section morphism__Pipe_Operator
  * @brief Proposition: A Value x can be piped into a Morphism f: A -> B.

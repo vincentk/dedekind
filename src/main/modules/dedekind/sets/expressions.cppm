@@ -1027,6 +1027,25 @@ constexpr auto image(F&& f, const Set<T, L, P>& s) {
   return Set<U, L, NewPredicate>{NewPredicate{s, std::move(f_inv)}};
 }
 
+/** @brief image of the @b unbounded universe under an iso @c F:T→U is the
+ *  universe @b of the codomain, @c Ω<U>: an iso is surjective, so it fixes the
+ *  universe setwise --- but onto @c U, not @c T.  For an endo-iso (@c U==T)
+ * this is @c Ω<T> unchanged; for a heterogeneous iso (e.g.\ @c Modular<2> → @c
+ * bool) it correctly returns @c Ω<bool> so callers can query codomain values.
+ */
+export template <typename T, typename L, typename C,
+                 dedekind::category::IsIsomorphism F>
+  requires(std::same_as<dedekind::category::Dom<std::remove_cvref_t<F>>, T> &&
+           !dedekind::category::IsTerminalMorphism<std::remove_cvref_t<F>>)
+constexpr auto image(F&&, const UniversalSet<T, L, C>&) {
+  using U = dedekind::category::Cod<std::remove_cvref_t<F>>;
+  return Ω<U, L, C>;  // iso |U| = |T|, so the cardinality carries
+}
+// The terminal case (@c id<One>, which is BOTH an iso and the unique One→One
+// terminal morphism) is excluded here and handled by the terminal-morphism
+// @c image overload in @c :singleton --- otherwise the two identically-typed
+// overloads are ambiguous for @c image(id<One>(), Ω<One>).
+
 /** @brief Composed predicate for the retract-decidable @c image(f, Set)
  *         specialisation: @c y @c ↦ @c let @c mx @c = @c retract(f)(y);
  *         @c mx.has_value() @c ? @c S(mx.value()) @c : @c L::False.
@@ -1116,6 +1135,12 @@ constexpr auto image(F&& f, const Set<T, L, P>& s) {
       ComposedRetractImagePredicate<Set<T, L, P>, RetractFn, L>;
   return Set<U, L, NewPredicate>{NewPredicate{s, std::move(retract_fn)}};
 }
+
+// A NON-injective arrow's image is decided ANALYTICALLY, point-free, as the
+// union of its (mono) branch images --- @c image on the reflection branches of
+// the sign-fold @c abs in @c dedekind.order (§3.3, Listing 13).  There is no
+// operational retract/cofibre fibre-walk here: the monic @c IsRetractableArrow
+// overload above is the only retract path, and it is a single lookup.
 
 /** @brief Explicit set complement overload to avoid picking category morphism
  * `!`. */
@@ -1359,6 +1384,57 @@ constexpr auto cartesian_product(const A& a, const B& b) {
   return cartesian_product(left, right);
 }
 
+/**
+ * @brief The @b universal set of products: @f$\Omega_A \times \Omega_B =
+ *        \Omega_{A\times B}@f$, spelled as the universe over the product
+ *        carrier (@c IsProduct).
+ *
+ * @details Two @b total factors carry no restriction to lift, so the product
+ * @b is the pure product universe @c Ω<pair<A,B>> --- not a refinement of it.
+ * This is the base case of the cylinder decomposition @f$A\times B =
+ * \pi_1^{-1}(A)\cap\pi_2^{-1}(B)@f$: with @c A, @c B universal both cylinders
+ * are the whole universe, so their intersection is too.  A @b restricted
+ * factor instead lifts its predicate onto its axis (@c dedekind.order:
+ * @c π_I over a halfspace), refining this universe into a proper subobject.
+ * The old melting form (@c pa(first) @c && @c pb(second) captured in an
+ * anonymous closure) discarded the factor structure; keeping the universe
+ * explicit lets @c dom / @c cod read the factors back.
+ */
+// The cartesian-product cardinality is the JOIN of the factors on the lattice
+// Finite < ℵ<0> < ℵ<1> < …: |A×B| = |A|·|B| = max(|A|,|B|) for infinite
+// factors, Finite only when both are finite.  The primary is left INCOMPLETE
+// (no @c type): a cardinality pair outside the known lattice (Finite / ℵ<N>) is
+// HONESTLY REJECTED at compile time rather than silently downgraded to ℵ_0 ---
+// a blanket fallback would misclassify e.g. a custom uncountable tag × Finite
+// as countable.
+template <typename CA, typename CB>
+struct product_cardinality;
+template <>
+struct product_cardinality<Finite, Finite> {
+  using type = Finite;
+};
+template <std::size_t N>
+struct product_cardinality<Finite, ℵ<N>> {
+  using type = ℵ<N>;
+};
+template <std::size_t N>
+struct product_cardinality<ℵ<N>, Finite> {
+  using type = ℵ<N>;
+};
+template <std::size_t M, std::size_t N>
+struct product_cardinality<ℵ<M>, ℵ<N>> {
+  using type = ℵ<(M > N ? M : N)>;
+};
+
+export template <typename A, typename LA, typename CA, typename B, typename LB,
+                 typename CB>
+  requires std::same_as<LA, LB>
+constexpr auto operator*(const UniversalSet<A, LA, CA>&,
+                         const UniversalSet<B, LB, CB>&) {
+  using CC = typename product_cardinality<CA, CB>::type;
+  return Ω<std::pair<A, B>, LA, CC>;
+}
+
 /** @brief Infix sugar for cartesian product over sets. */
 export template <typename T1, typename L1, typename P1, typename T2,
                  typename L2, typename P2>
@@ -1456,6 +1532,55 @@ export template <typename T1, typename T2, typename L, typename P>
 constexpr typename L::Ω relates(const Relation<T1, T2, L, P>& r, const T1& a,
                                 const T2& b) {
   return r(std::pair<T1, T2>{a, b});
+}
+
+/**
+ * @brief The @b declared domain of a relation @c R ⊆ A×B: the universal set
+ *        @c Ω<A> over the first factor --- @c π₁'s codomain.
+ *
+ * @details A relation @b is a @c Set on the product carrier @c pair<A,B>, so
+ * it @b is @c IsProduct and its projections fall out of the type: the factor
+ * @b type @c A survives in @c R::Domain (@c pair<A,B>) even though the factor
+ * @b set is not retained, so the @b declared domain @c Ω<A> is recoverable
+ * total and free, with no @c ∃.  This is deliberately @b not the @b effective
+ * domain @f$\{a \mid \exists b.\ R(a,b)\}@f$ (the @c π₁-image), which is a
+ * separate existential carrying its own decidability certificate --- the Rice
+ * wall stays quarantined to that one operation.
+ */
+export template <typename T1, typename T2, typename L, typename P>
+constexpr auto dom(const Relation<T1, T2, L, P>&) {
+  return Ω<T1, L>;  // preserve the relation's logic species
+}
+
+/** @brief The @b declared codomain of a relation @c R ⊆ A×B: @c Ω<B>, the
+ *         second factor (@c π₂'s codomain).  Dual to @c dom. */
+export template <typename T1, typename T2, typename L, typename P>
+constexpr auto cod(const Relation<T1, T2, L, P>&) {
+  return Ω<T2, L>;  // preserve the relation's logic species
+}
+
+/**
+ * @brief Relational @b application: the image of @c x under @c R, the fibre
+ *        @f$\{b \in B \mid (x,b) \in R\}@f$ as a @c Set on the codomain.
+ *
+ * @details This is the @b power @b transpose @f$\Lambda R : A \to
+ * \mathcal{P}(B)@f$ of Bird \& de~Moor @cite birddemoor1997aop --- the relation
+ * read as a set-valued map --- and it is the form on which the optimisation
+ * calculus is built: @c argmax is @f$\max R \cdot \Lambda F@f$ (§3.3 / §4).
+ * The @b general form.  @c R IS-A relation (and @c IsFunction refines
+ * @c IsRelation), so a @b functional @c R gives a @b singleton fibre --- the
+ * value @c f(x) --- and a general relation the full image; the degenerate cases
+ * fall out as the fibre's @b cardinality, with no special-casing (the
+ * singleton-valued specialisation is a later overload gated on the functional
+ * certificate).  The fibre is @b lazy and membership-testable
+ * (@c apply(R,x)(b) is @c (x,b)∈R), so it types in for any relation and the
+ * existential --- is it nonempty? what is its max? --- is deferred to whoever
+ * reduces it.
+ */
+export template <typename T1, typename T2, typename L, typename P>
+constexpr auto apply(const Relation<T1, T2, L, P>& r, const T1& x) {
+  auto fibre = [r, x](const T2& b) { return r(std::pair<T1, T2>{x, b}); };
+  return Set<T2, L, decltype(fibre)>{fibre};
 }
 
 /**

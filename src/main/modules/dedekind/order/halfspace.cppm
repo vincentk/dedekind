@@ -34,6 +34,8 @@ module;
 #include <algorithm>
 #include <concepts>
 #include <cstddef>
+#include <functional>  // std::plus (the argmax carrier's additive-group gate)
+#include <limits>      // std::numeric_limits (machine-carrier boundary check)
 #include <type_traits>
 #include <utility>
 
@@ -41,6 +43,10 @@ export module dedekind.order:halfspace;
 
 import dedekind.category;
 import dedekind.sets;
+import :poset;  // IsPartiallyOrdered — the SEMANTIC order certificate for
+                // max/min
+import :total;  // IsTotallyOrdered — the no-incomparable-element certificate
+                // that keeps the covering join sound (excludes NaZ carriers)
 
 namespace dedekind::order {
 using namespace dedekind::sets;
@@ -196,6 +202,15 @@ consteval auto operator""_c() {
     return r;
   }();
   return std::integral_constant<int, v>{};
+}
+
+/** @brief Unary minus on a compile-time @c _c constant, so a NEGATIVE pivot or
+ *  shift spells @c -3_c (@c = @c integral_constant<int,-3>) and @c fix(-3_c) is
+ *  @c Bound<-3> --- e.g. the converse of a translation graph, @c fix(-K). */
+export template <int V>
+consteval std::integral_constant<int, -V> operator-(
+    std::integral_constant<int, V>) {
+  return {};
 }
 
 /** @brief Named compile-time boolean constants; @c true / @c false are not
@@ -387,8 +402,10 @@ constexpr auto operator|(const Singleton<A, LA>& a, const Singleton<B, LB>&) {
  */
 
 // Direction / strictness flips: the pieces of the halfspace complement.
-// ~{x > P} = {x <= P} — opposite direction, flipped strictness.  Internal.
-constexpr Direction flip(Direction d) {
+// ~{x > P} = {x <= P} — opposite direction, flipped strictness.  Exported: the
+// reflection-image pushforward (dedekind.algebra:halfspace_transport) reuses it
+// to flip a halfspace's sense under x↦−x.
+export constexpr Direction flip(Direction d) {
   return d == Direction::Upward ? Direction::Downward : Direction::Upward;
 }
 constexpr Strictness flip(Strictness s) {
@@ -649,6 +666,94 @@ constexpr auto structured_and(Halfspace<T, P1, Direction::Downward, S1, L>,
             : Strictness::NonStrict;
     return Halfspace<T, P1, Direction::Downward, S, L>{};
   }
+}
+
+/** @section halfspace__Halfspace_Structural_Join — @c structured_or, the JOIN
+ *  (∪) dual of @c structured_and: it makes the union COLLAPSE symmetrically to
+ *  the meet, so the join is no longer a declared-but-unimplemented hook.
+ *  Same-direction halfspaces union to the WEAKER bound (the smaller pivot up /
+ *  larger pivot down, non-strict winning at an equal pivot).  Opposing
+ *  halfspaces that OVERLAP cover the line (→ universe); a genuine GAP does not
+ *  collapse, so no overload matches and @c operator|| falls to the honest
+ *  point-wise union.  This is why @c image(abs) = @c image(x↦x on x≥0) ∪
+ *  @c image(x↦−x on x<0) = @c {y≥0} ∪ @c {y>0} collapses to @c {y≥0}. */
+
+/** @brief Same-direction upward union: {x≥p1} ∪ {x≥p2} = {x ≥ min(p1,p2)}. */
+export template <typename T, auto P1, auto P2, Strictness S1, Strictness S2,
+                 typename L>
+constexpr auto structured_or(Halfspace<T, P1, Direction::Upward, S1, L>,
+                             Halfspace<T, P2, Direction::Upward, S2, L>) {
+  if constexpr (P1 < P2) {
+    return Halfspace<T, P1, Direction::Upward, S1, L>{};
+  } else if constexpr (P2 < P1) {
+    return Halfspace<T, P2, Direction::Upward, S2, L>{};
+  } else {
+    // Same pivot: the WEAKER (non-strict) bound wins the union.
+    constexpr Strictness S =
+        (S1 == Strictness::NonStrict || S2 == Strictness::NonStrict)
+            ? Strictness::NonStrict
+            : Strictness::Strict;
+    return Halfspace<T, P1, Direction::Upward, S, L>{};
+  }
+}
+
+/** @brief Same-direction downward union: {x≤p1} ∪ {x≤p2} = {x ≤ max(p1,p2)}. */
+export template <typename T, auto P1, auto P2, Strictness S1, Strictness S2,
+                 typename L>
+constexpr auto structured_or(Halfspace<T, P1, Direction::Downward, S1, L>,
+                             Halfspace<T, P2, Direction::Downward, S2, L>) {
+  if constexpr (P1 > P2) {
+    return Halfspace<T, P1, Direction::Downward, S1, L>{};
+  } else if constexpr (P2 > P1) {
+    return Halfspace<T, P2, Direction::Downward, S2, L>{};
+  } else {
+    constexpr Strictness S =
+        (S1 == Strictness::NonStrict || S2 == Strictness::NonStrict)
+            ? Strictness::NonStrict
+            : Strictness::Strict;
+    return Halfspace<T, P1, Direction::Downward, S, L>{};
+  }
+}
+
+/** @brief Opposing union that COVERS the line → universe.  {x≥Lo} ∪ {x≤Hi}
+ *  covers iff every point is in one, i.e. @c Lo≤Hi (or @c Lo<Hi when both are
+ *  strict) --- the exact dual of @c structured_and's disjointness test.  A GAP
+ *  (@c Lo>Hi) is deliberately unmatched: it does not collapse to a halfspace,
+ * so
+ *  @c operator|| keeps the honest point-wise union. */
+export template <typename T, auto Lo, auto Hi, Strictness SL, Strictness SU,
+                 typename L>
+  requires(
+      IsTotallyOrdered<T> &&
+      ((SL == Strictness::Strict && SU == Strictness::Strict) ? (Lo < Hi)
+       : (SL == Strictness::NonStrict && SU == Strictness::NonStrict &&
+          IsRingIntegral<T>)
+           // discrete: adjacent bounds cover (no int gap).  Spelled
+           // Lo−1≤Hi (⟺ Lo≤Hi+1) but WITHOUT Hi+1: the short-circuit only
+           // reaches Lo−1 when Lo>Hi≥min, so the predecessor is boundary-
+           // safe where Hi+1 would overflow a signed / wrap an unsigned max.
+           ? (Lo <= Hi || Lo - 1 <= Hi)
+           : (Lo <= Hi)))
+constexpr auto structured_or(Halfspace<T, Lo, Direction::Upward, SL, L>,
+                             Halfspace<T, Hi, Direction::Downward, SU, L>) {
+  return dedekind::sets::UniversalSet<T, L>{};
+}
+export template <typename T, auto Hi, auto Lo, Strictness SU, Strictness SL,
+                 typename L>
+  requires(
+      IsTotallyOrdered<T> &&
+      ((SL == Strictness::Strict && SU == Strictness::Strict) ? (Lo < Hi)
+       : (SL == Strictness::NonStrict && SU == Strictness::NonStrict &&
+          IsRingIntegral<T>)
+           // discrete: adjacent bounds cover (no int gap).  Spelled
+           // Lo−1≤Hi (⟺ Lo≤Hi+1) but WITHOUT Hi+1: the short-circuit only
+           // reaches Lo−1 when Lo>Hi≥min, so the predecessor is boundary-
+           // safe where Hi+1 would overflow a signed / wrap an unsigned max.
+           ? (Lo <= Hi || Lo - 1 <= Hi)
+           : (Lo <= Hi)))
+constexpr auto structured_or(Halfspace<T, Hi, Direction::Downward, SU, L>,
+                             Halfspace<T, Lo, Direction::Upward, SL, L>) {
+  return dedekind::sets::UniversalSet<T, L>{};
 }
 
 /** @section halfspace__Interval_Cartesian_Product — 2D structural products. */
@@ -1030,13 +1135,29 @@ constexpr RelAnd<A, B> operator&(A a, B b) {
  *  trivially-true @c product). */
 export template <typename P, typename RP>
 struct ProductRestrict {
+  using is_rel_predicate = void;
   P product;
   RP rp;
+  // NOTE: @c product here is a bool-returning rel-predicate (or the always-true
+  // universal), so the boolean cast is safe in the graph DSL.  A ternary-valued
+  // product would corrupt via @c static_cast<bool> (Ternary::False's underlying
+  // −1 casts to true); a logic-preserving @c L::AND needs @c L threaded through
+  // @c ProductRestrict, tracked as a follow-up (not reachable by construction
+  // today, since restrictions are decidable comparisons).
   template <typename Pair>
   constexpr bool operator()(const Pair& p) const {
     return static_cast<bool>(product(p)) && rp(p);
   }
 };
+
+// Ω<A×B> | relPred  →  the relation as an IsSet on A × B.  The @b universal
+// product carries no factor restriction, so the relation's membership @b is
+// the rel-predicate: the pure product universe refined to a subobject.
+export template <typename T1, typename T2, typename L, typename C,
+                 IsRelPredicate RP>
+constexpr auto operator|(const UniversalSet<std::pair<T1, T2>, L, C>&, RP rp) {
+  return Set<std::pair<T1, T2>, L, RP>{rp};
+}
 
 // product | relPred  →  the relation as an IsSet on A × B, keeping the
 // product's own membership (so a restricted product bounds the relation).
@@ -1045,6 +1166,152 @@ export template <typename T1, typename T2, typename L, typename P,
 constexpr auto operator|(const Set<std::pair<T1, T2>, L, P>& prod, RP rp) {
   return Set<std::pair<T1, T2>, L, ProductRestrict<P, RP>>{
       ProductRestrict<P, RP>{prod.predicate(), rp}};
+}
+
+/**
+ * @section halfspace__Restricted_Products
+ * @brief A @b restricted factor lifts to a @b cylinder on its axis, so
+ *        @c operator* keeps the factor predicates instead of dropping them.
+ *
+ * @details The product is the universal set of products @c Ω<pair> refined by
+ * the two @b cylinders @f$A\times B = \pi_1^{-1}(A)\cap\pi_2^{-1}(B)@f$.  A
+ * total factor's cylinder is the whole universe (nothing to add); a halfspace
+ * factor @f$\{x \bowtie p\}@f$ lifts to the projection halfspace
+ * @f$\pi_I \bowtie \mathrm{fix}(p)@f$ --- the @b same @c ProjBound
+ * rel-predicate the graph surface uses, so a restricted domain and a functional
+ * graph read in one vocabulary and @c dom can recover the factor from the @c
+ * π_I conjunct.
+ */
+
+/** @brief The comparison a halfspace @c (Direction, Strictness) lifts to. */
+export constexpr Rel rel_of(Direction d, Strictness s) {
+  if (d == Direction::Upward) {
+    return s == Strictness::Strict ? Rel::Gt : Rel::Ge;
+  }
+  return s == Strictness::Strict ? Rel::Lt : Rel::Le;
+}
+
+/** @brief @f$\pi_I^{-1}@f$ of a halfspace factor: the cylinder
+ *  @f$\pi_I \bowtie \mathrm{fix}(\text{pivot})@f$ on the product. */
+export template <std::size_t I, typename T, auto Pivot, Direction D,
+                 Strictness S, typename L>
+constexpr auto cylinder(const Halfspace<T, Pivot, D, S, L>&) {
+  return ProjBound<I, rel_of(D, S), Pivot>{};
+}
+
+// restricted × total:  {x ⋈ p} × Ω  =  Ω<pair> | (π1 ⋈ fix(p)).
+export template <typename T, auto P, Direction D, Strictness S, typename L,
+                 typename T2, typename L2, typename C2>
+  requires std::same_as<L, L2>
+constexpr auto operator*(const Halfspace<T, P, D, S, L>& a,
+                         const UniversalSet<T2, L2, C2>&) {
+  return Ω<std::pair<T, T2>, L> | cylinder<1>(a);
+}
+
+// total × restricted:  Ω × {y ⋈ q}  =  Ω<pair> | (π2 ⋈ fix(q)).
+export template <typename T1, typename L1, typename C1, typename T, auto Q,
+                 Direction D, Strictness S, typename L>
+  requires std::same_as<L1, L>
+constexpr auto operator*(const UniversalSet<T1, L1, C1>&,
+                         const Halfspace<T, Q, D, S, L>& b) {
+  return Ω<std::pair<T1, T>, L> | cylinder<2>(b);
+}
+
+// restricted × restricted:  Ω<pair> | (π1 ⋈ fix(p)) & (π2 ⋈ fix(q)).
+export template <typename Ta, auto Pa, Direction Da, Strictness Sa, typename La,
+                 typename Tb, auto Qb, Direction Db, Strictness Sb, typename Lb>
+  requires std::same_as<La, Lb>
+constexpr auto operator*(const Halfspace<Ta, Pa, Da, Sa, La>& a,
+                         const Halfspace<Tb, Qb, Db, Sb, Lb>& b) {
+  return Ω<std::pair<Ta, Tb>, La> | (cylinder<1>(a) & cylinder<2>(b));
+}
+
+/**
+ * @section halfspace__Projections
+ * @brief @c dom / @c cod as the projections @f$\pi_A / \pi_B@f$, recovering the
+ *        factor from the relation's @b structure (the inverse of @c cylinder).
+ *
+ * @details These are the @b π_A / π_B side of Table 3 (the four properties of a
+ * relation): @c dom is @f$\pi_A(R)@f$, @c cod is @f$\pi_B(R)@f$.  Read off the
+ * axis-@f$I@f$ cylinder @c ProjBound structurally: a comparison bound becomes
+ * the halfspace factor, no axis-@f$I@f$ bound leaves the declared universe
+ * @c Ω<T_I> (honest exactly when @c R is entire on that side).  This is the
+ * @b free case; the @b existential @f$\{a\mid\exists b.R(a,b)\}@f$ that a
+ * coupled, non-entire relation needs is the separate Rice-gated operation.
+ * The order-layer overloads specialise the sets-layer @c Ω<T1> fallback (they
+ * win by @c IsRelPredicate, and ADL reaches them through the @c ProjBound
+ * predicate's own namespace).
+ */
+
+/** @brief The @c Direction a comparison @c Rel lifts a halfspace to. */
+export constexpr Direction dir_of(Rel r) {
+  return (r == Rel::Gt || r == Rel::Ge) ? Direction::Upward
+                                        : Direction::Downward;
+}
+/** @brief The @c Strictness a comparison @c Rel lifts a halfspace to. */
+export constexpr Strictness strict_of(Rel r) {
+  return (r == Rel::Gt || r == Rel::Lt) ? Strictness::Strict
+                                        : Strictness::NonStrict;
+}
+/** @brief Whether a @c Rel is one of the four order comparisons (not Eq/Ne). */
+export constexpr bool is_order_rel(Rel r) {
+  return r == Rel::Lt || r == Rel::Le || r == Rel::Gt || r == Rel::Ge;
+}
+
+/** @brief Recover the axis-@c I factor from a relational predicate.  Default:
+ *  no axis-@c I structure, so the declared universe @c Ω<TI>. */
+export template <std::size_t I, typename TI, typename L, typename P>
+constexpr auto axis_factor(const P&) {
+  return Ω<TI, L>;  // preserve the relation's logic species
+}
+
+/** @brief A cylinder @c ProjBound on axis @c I: the halfspace it lifted from
+ *  (only an order comparison is a halfspace; Eq/Ne fall to the default). */
+export template <std::size_t I, typename TI, typename L, Rel R, auto V>
+  requires(is_order_rel(R))
+constexpr auto axis_factor(const ProjBound<I, R, V>&) {
+  return Halfspace<TI, V, dir_of(R), strict_of(R), L>{};
+}
+
+/** @brief A meet of cylinders: the factor on axis @c I is the @b intersection
+ *  of both children's factors on that axis, so two bounds on the same axis
+ *  (@c π1<=5 & @c π1<=3) meet to the tighter one rather than dropping either.
+ */
+export template <std::size_t I, typename TI, typename L, typename A, typename B>
+constexpr auto axis_factor(const RelAnd<A, B>& r) {
+  auto fa = axis_factor<I, TI, L>(r.a);
+  auto fb = axis_factor<I, TI, L>(r.b);
+  if constexpr (requires { typename decltype(fa)::is_universal_boundary; }) {
+    return fb;  // a does not constrain axis I; the factor is b's
+  } else if constexpr (requires {
+                         typename decltype(fb)::is_universal_boundary;
+                       }) {
+    return fa;  // b does not constrain axis I; the factor is a's
+  } else {
+    return fa & fb;  // BOTH constrain axis I: intersect (structured_and)
+  }
+}
+
+/** @brief A restricted product bounding a graph: the factor lives on the
+ *  product (cylinder) side; the graph @c rp couples the axes, so it is
+ *  transparent to a single-axis projection. */
+export template <std::size_t I, typename TI, typename L, typename Pp,
+                 typename RP>
+constexpr auto axis_factor(const ProductRestrict<Pp, RP>& r) {
+  return axis_factor<I, TI, L>(r.product);
+}
+
+/** @brief @f$\pi_A(R)@f$ --- the domain factor, recovered structurally
+ *  (preserving the relation's logic species @c L). */
+export template <typename T1, typename T2, typename L, IsRelPredicate P>
+constexpr auto dom(const Set<std::pair<T1, T2>, L, P>& r) {
+  return axis_factor<1, T1, L>(r.predicate());
+}
+
+/** @brief @f$\pi_B(R)@f$ --- the codomain factor, recovered structurally. */
+export template <typename T1, typename T2, typename L, IsRelPredicate P>
+constexpr auto cod(const Set<std::pair<T1, T2>, L, P>& r) {
+  return axis_factor<2, T2, L>(r.predicate());
 }
 
 /** @section halfspace__Formal_Verification (relational surface) */
@@ -1138,19 +1405,543 @@ static_assert(!(ℕ * ℕ | π1 != fix(0_c) & π2 % π1 == fix(0_c))(std::pair{
                   finite_cardinality(4), finite_cardinality(6)}),
               "6 % 4 != 0: (4,6) ∉ divides.");
 
+/** @brief @f$\pi_I \% \mathrm{fix}(V)@f$ --- projection mod a @b constant, a
+ *  value expression on a pair awaiting a comparison (sibling of @c ProjMod,
+ *  whose modulus is the projection @c π_J rather than a fixed @c V). */
+export template <std::size_t I, auto V>
+struct ProjModConst {};
+// The modulus must be positive: @c coord % 0 is undefined behaviour (and fails
+// constant evaluation), matching the @c Modular<N> requirement @c N>0.
+export template <std::size_t I, auto V>
+  requires(V > 0)
+constexpr ProjModConst<I, V> operator%(Projection<I>, Bound<V>) {
+  return {};
+}
+
+/** @brief @f$(\pi_I \% \mathrm{fix}(V)) \bowtie \pi_J@f$ --- compare a
+ *  projection-mod-constant to another projection: the residue-class graph
+ *  @f$b = a \bmod V@f$. */
+export template <std::size_t I, auto V, Rel R, std::size_t J>
+struct ProjModConstProj {
+  using is_rel_predicate = void;
+  template <typename P>
+  constexpr bool operator()(const P& p) const {
+    return rel_apply<R>(coord<I>(p) % V, coord<J>(p));
+  }
+};
+export template <std::size_t I, auto V, std::size_t J>
+constexpr ProjModConstProj<I, V, Rel::Eq, J> operator==(ProjModConst<I, V>,
+                                                        Projection<J>) {
+  return {};
+}
+
+/** @brief @f$(\pi_I \% \mathrm{fix}(V)) \bowtie \mathrm{fix}(W)@f$ --- a
+ *  @b congruence @b class predicate @f$\pi_I \equiv W \pmod V@f$ (sibling of
+ *  @c ProjModConstProj, whose right side is the projection @c π_J rather than a
+ *  fixed residue @c W).  Restricts an axis to a residue class. */
+export template <std::size_t I, auto V, Rel R, auto W>
+struct ProjModConstBound {
+  using is_rel_predicate = void;
+  template <typename P>
+  constexpr bool operator()(const P& p) const {
+    // The MATHEMATICAL residue class, not C++ remainder: normalise both sides
+    // into [0,V) so signed values agree with the congruence (C++ −2 % 3 == −2,
+    // but −2 ≡ 1 (mod 3)), keeping this consistent with argmax's residue
+    // normalisation and the finite-residue materialisation.  Add V only to a
+    // negative remainder (which is already in (−V,0)), so the intermediate
+    // never overflows for a large valid modulus.
+    const auto lhs0 = coord<I>(p) % V;
+    const auto lhs = lhs0 < 0 ? lhs0 + V : lhs0;
+    constexpr auto rhs0 = W % V;
+    constexpr auto rhs = rhs0 < 0 ? rhs0 + V : rhs0;
+    return rel_apply<R>(lhs, rhs);
+  }
+};
+export template <std::size_t I, auto V, auto W>
+constexpr ProjModConstBound<I, V, Rel::Eq, W> operator==(ProjModConst<I, V>,
+                                                         Bound<W>) {
+  return {};
+}
+
+// residue-class graph: {(a,b) | b = a % 17} = ℕ * ℕ | π1 % fix(17_c) == π2.
+static_assert((ℕ * ℕ | π1 % fix(17_c) == π2)(std::pair{finite_cardinality(20),
+                                                       finite_cardinality(3)}),
+              "20 % 17 == 3: (20,3) ∈ the residue graph.");
+static_assert(!(ℕ * ℕ | π1 % fix(17_c) == π2)(std::pair{finite_cardinality(20),
+                                                        finite_cardinality(4)}),
+              "20 % 17 != 4: (20,4) ∉ the residue graph.");
+
+/** @brief @f$\pi_I + \mathrm{fix}(V)@f$ / @f$\pi_I \cdot \mathrm{fix}(V)@f$ ---
+ *  a projection plus / times a @b constant, a value expression on a pair
+ *  awaiting a comparison to another projection (siblings of @c ProjModConst).
+ *  Enough to spell the successor and scaling graphs natively point-free. */
+export template <std::size_t I, auto V>
+struct ProjAddConst {};
+export template <std::size_t I, auto V>
+constexpr ProjAddConst<I, V> operator+(Projection<I>, Bound<V>) {
+  return {};
+}
+export template <std::size_t I, auto V>
+struct ProjMulConst {};
+export template <std::size_t I, auto V>
+constexpr ProjMulConst<I, V> operator*(Projection<I>, Bound<V>) {
+  return {};
+}
+
+/** @brief @f$(\pi_I + \mathrm{fix}(V)) \bowtie \pi_J@f$ --- the
+ * successor-shaped graph @f$b = a + V@f$. */
+export template <std::size_t I, auto V, Rel R, std::size_t J>
+struct ProjAddConstProj {
+  using is_rel_predicate = void;
+  template <typename P>
+  constexpr bool operator()(const P& p) const {
+    const auto a = coord<I>(p);
+    using C = std::remove_cvref_t<decltype(a)>;
+    // Add through @c std::plus<C>, NOT the bare @c +: on a narrow carrier
+    // (@c unsigned @c char) bare @c + promotes to @c int, so @c 255+1 becomes
+    // @c 256 and the graph would omit @c (255,0); @c std::plus<C> converts back
+    // to @c C, keeping the carrier's certified (modular) semantics.
+    return rel_apply<R>(std::plus<C>{}(a, static_cast<C>(V)), coord<J>(p));
+  }
+};
+export template <std::size_t I, auto V, std::size_t J>
+constexpr ProjAddConstProj<I, V, Rel::Eq, J> operator==(ProjAddConst<I, V>,
+                                                        Projection<J>) {
+  return {};
+}
+
+/** @brief @f$(\pi_I \cdot \mathrm{fix}(V)) \bowtie \pi_J@f$ --- the scaling
+ *  graph @f$b = a \cdot V@f$ (e.g. the doubler @f$b = 2a@f$). */
+export template <std::size_t I, auto V, Rel R, std::size_t J>
+struct ProjMulConstProj {
+  using is_rel_predicate = void;
+  template <typename P>
+  constexpr bool operator()(const P& p) const {
+    const auto a = coord<I>(p);
+    using C = std::remove_cvref_t<decltype(a)>;
+    // Multiply through @c std::multiplies<C> (same narrow-promotion reason as
+    // @c ProjAddConstProj): keep the carrier's certified semantics.
+    return rel_apply<R>(std::multiplies<C>{}(a, static_cast<C>(V)),
+                        coord<J>(p));
+  }
+};
+export template <std::size_t I, auto V, std::size_t J>
+constexpr ProjMulConstProj<I, V, Rel::Eq, J> operator==(ProjMulConst<I, V>,
+                                                        Projection<J>) {
+  return {};
+}
+
+// successor graph: {(a,b) | b = a + 1} = ℕ * ℕ | π1 + fix(1_c) == π2.
+static_assert((ℕ * ℕ | π1 + fix(1_c) == π2)(std::pair{finite_cardinality(4),
+                                                      finite_cardinality(5)}),
+              "4 + 1 == 5: (4,5) ∈ the successor graph.");
+static_assert(!(ℕ * ℕ | π1 + fix(1_c) == π2)(std::pair{finite_cardinality(4),
+                                                       finite_cardinality(6)}),
+              "4 + 1 != 6: (4,6) ∉ the successor graph.");
+// A RESTRICTED domain: the successor graph over {x ≤ 5} × ℕ.  operator* keeps
+// the ≤5 bound by lifting it to the π1 cylinder, so x = 7 is excluded even
+// though 8 = 7+1: the factor predicate is not dropped.
+static_assert(((ℕ | (π <= fix(5_c))) * ℕ | π1 + fix(1_c) == π2)(std::pair{
+                  finite_cardinality(4), finite_cardinality(5)}),
+              "(4,5): 4 ≤ 5 ∧ 5 = 4+1, in the restricted successor graph.");
+static_assert(!((ℕ | (π <= fix(5_c))) * ℕ | π1 + fix(1_c) == π2)(std::pair{
+                  finite_cardinality(7), finite_cardinality(8)}),
+              "(7,8): 7 ≰ 5, excluded though 8 = 7+1.");
+// doubling graph: {(a,b) | b = 2a} = ℕ * ℕ | π1 * fix(2_c) == π2.
+static_assert((ℕ * ℕ | π1 * fix(2_c) == π2)(std::pair{finite_cardinality(3),
+                                                      finite_cardinality(6)}),
+              "3 * 2 == 6: (3,6) ∈ the doubling graph.");
+static_assert(!(ℕ * ℕ | π1 * fix(2_c) == π2)(std::pair{finite_cardinality(3),
+                                                       finite_cardinality(7)}),
+              "3 * 2 != 7: (3,7) ∉ the doubling graph.");
+
+// dom / cod are the projections π_A / π_B (Table 3), recovered from the graph's
+// STRUCTURE: they return the DECLARED domain/codomain, not the effective image.
+// The residue graph has no axis cylinder, so both recover the declared universe
+// ℕ (unqualified so ADL finds the order-layer recovery).  cod is thus the
+// declared ℕ --- its EFFECTIVE second projection is only the residue class
+// {0,…,16}, but reading that off is the ∃-elimination behind the Rice wall
+// (§3.3), so cod does not claim surjectivity here.
+static_assert(dom(ℕ* ℕ | π1 % fix(17_c) == π2)(finite_cardinality(100)),
+              "π_A of the residue graph = declared ℕ (entire), contains 100.");
+static_assert(cod(ℕ* ℕ | π1 % fix(17_c) == π2)(finite_cardinality(3)),
+              "π_B = declared codomain ℕ, contains 3 (NOT the effective "
+              "{0,…,16} residue image, which would need the ∃-projection).");
+
+// With a RESTRICTED factor, dom recovers the halfspace off the π1 cylinder:
+// π_A((ℕ|≤5)*ℕ) = {a ≤ 5}, while cod stays the unrestricted ℕ.
+static_assert(dom((ℕ | (π <= fix(5_c))) * ℕ)(finite_cardinality(4)),
+              "π_A recovers {a ≤ 5}: 4 ≤ 5.");
+static_assert(!dom((ℕ | (π <= fix(5_c))) * ℕ)(finite_cardinality(7)),
+              "π_A recovers {a ≤ 5}: 7 ≰ 5.");
+static_assert(cod((ℕ | (π <= fix(5_c))) * ℕ)(finite_cardinality(99)),
+              "π_B is unrestricted ℕ: contains 99.");
+// The restriction survives a graph refinement (dom digs through
+// ProductRestrict).
+static_assert(dom((ℕ | (π <= fix(5_c))) * ℕ |
+                  π1 + fix(1_c) == π2)(finite_cardinality(4)),
+              "π_A of the restricted successor still recovers {a ≤ 5}.");
+
+// relational application: apply(R, a) is the fibre {b | (a,b) ∈ R}.  For the
+// residue graph (a function) it is the singleton {a % 17}: apply(R,20) = {3}.
+static_assert(
+    dedekind::sets::apply(ℕ* ℕ | π1 % fix(17_c) == π2,
+                          finite_cardinality(20))(finite_cardinality(3)),
+    "apply(R,20) = {3}: (20,3) ∈ R since 20 % 17 == 3.");
+static_assert(
+    !dedekind::sets::apply(ℕ * ℕ | π1 % fix(17_c) == π2,
+                           finite_cardinality(20))(finite_cardinality(4)),
+    "apply(R,20) does not contain 4.");
+
+/** @brief Is the strict lower cut @c {x<p} empty (i.e. @c p at/below the
+ *  carrier's least element)?  The @c if constexpr isolates @c numeric_limits so
+ *  it is instantiated ONLY for a signed machine int --- a floor-0 carrier (ℕ /
+ *  unsigned / bool) tests @c p≤0, a dense/unbounded-below carrier never
+ * empties.
+ */
+template <typename T, auto p>
+consteval bool strict_lower_cut_empty() {
+  if constexpr (std::signed_integral<T>)
+    return p <= std::numeric_limits<T>::min();
+  else if constexpr (std::unsigned_integral<T> ||
+                     dedekind::category::IsSaturating<T>)
+    return p <= 0;
+  else
+    return false;
+}
+/** @brief Is the strict upper cut @c {x>p} empty (@c p at/above the carrier's
+ *  greatest element)?  Only a bounded MACHINE integer (@c numeric_limits::max)
+ *  can empty here; ℕ is unbounded above and a dense carrier never empties. */
+template <typename T, auto p>
+consteval bool strict_upper_cut_empty() {
+  if constexpr (std::integral<T>)
+    return p >= std::numeric_limits<T>::max();
+  else
+    return false;
+}
+
+/** @brief @c upperbounds(S) --- the @f$\forall@f$-projection @f$R/\ni@f$: the
+ *  region dominating all of @c S, and the pluggable point of the extremum
+ *  (Bird \& de~Moor @cite birddemoor1997aop).
+ *
+ *  @details @c max is one GENERIC definition, the @f$\forall@f$-projection of
+ * the order relation onto its second coordinate:
+ *  @f[ \max S \;=\; \{\pi_2 \in S \mid \forall \pi_1 \in S.\; \pi_1 \le \pi_2\}
+ *               \;=\; S \cap \mathrm{upperbounds}(S) \;=\; (\in) \cap (R/\ni).
+ * @f]
+ *  @c upperbounds is the pluggable point (as @f$\forall@f$ / @f$\exists@f$ plug
+ *  into @c Ø::operator==), decided SYMBOLICALLY per structure so no candidate
+ * is enumerated: a halfspace bounded ABOVE (@c {x≤p}) is dominated exactly by
+ *  @c {x≥p}; one unbounded above (@c {x≥p}) has no upper bound (@c Ø).
+ *  @c lowerbounds is the dual.  The generic @c max/min then meet @c S with
+ * them, and the meet @c structured_and collapses the interval to the attained
+ * pivot
+ *  (@c {x≤p} ∩ @c {x≥p} = @c {p}) or, when the sup is unattained (strict) or
+ *  absent (unbounded), to @c Ø. */
+export template <typename T, auto p, Strictness S, typename L>
+constexpr auto upperbounds(Halfspace<T, p, Direction::Downward, S, L>) {
+  if constexpr (S == Strictness::Strict && strict_lower_cut_empty<T, p>()) {
+    // The strict cut {x<p} is EMPTY (p at/below the carrier's least element),
+    // so EVERY element is vacuously an upper bound: the ∀-projection is the
+    // whole universe Ω (and max = S ∩ Ω = S = ∅).  Honouring the contract, not
+    // just the answer.
+    return dedekind::sets::UniversalSet<T, L>{};
+  } else if constexpr (S == Strictness::Strict &&
+                       (std::integral<T> ||
+                        dedekind::category::IsSaturating<T>)) {
+    // DISCRETE strict {x<p}, non-empty: the sup is the ATTAINED predecessor
+    // p−1, so {x<p} ∩ {x≥p−1} = {p−1}.  Boundary-safe: the empty branch already
+    // peeled off the floor, so p > the least element and p−1 neither underflows
+    // a machine int nor leaves ℕ (a saturating carrier escalates regardless).
+    return Halfspace<T, p - 1, Direction::Upward, Strictness::NonStrict, L>{};
+  } else {
+    // {x≤p}: sup p attained.  Dense {x<p}: sup p unattained (no predecessor),
+    // so upper bounds {x≥p} and the meet is Ø (no max).
+    return Halfspace<T, p, Direction::Upward, Strictness::NonStrict, L>{};
+  }
+}
+export template <typename T, auto p, Strictness S, typename L>
+constexpr auto upperbounds(Halfspace<T, p, Direction::Upward, S, L>) {
+  return Ø<T, L>{};  // unbounded above: no upper bound
+}
+export template <typename T, auto p, Strictness S, typename L>
+constexpr auto lowerbounds(Halfspace<T, p, Direction::Upward, S, L>) {
+  if constexpr (S == Strictness::Strict && strict_upper_cut_empty<T, p>()) {
+    // Machine discrete {x>p} is EMPTY at the ceiling (p at the type's greatest
+    // value: true for bool, INT_MAX for int), so every element bounds ∅ → the
+    // universe (min = S ∩ Ω = ∅).  No p+1 (which would overflow/wrap).
+    return dedekind::sets::UniversalSet<T, L>{};
+  } else if constexpr (S == Strictness::Strict &&
+                       dedekind::category::IsSaturating<T> && p + 1 < 0) {
+    // Saturating carrier bounded below at 0 (ℕ): the successor p+1 falls below
+    // the carrier, so the min clamps to the carrier minimum 0.
+    return Halfspace<T, 0, Direction::Downward, Strictness::NonStrict, L>{};
+  } else if constexpr (S == Strictness::Strict &&
+                       (std::integral<T> ||
+                        dedekind::category::IsSaturating<T>)) {
+    // DISCRETE strict {x>p}, non-empty: the min is the ATTAINED successor p+1.
+    // Boundary-safe: the ceiling branch (machine) already peeled off the top, ℕ
+    // is unbounded above, and a saturating carrier escalates regardless.
+    return Halfspace<T, p + 1, Direction::Downward, Strictness::NonStrict, L>{};
+  } else {
+    return Halfspace<T, p, Direction::Downward, Strictness::NonStrict, L>{};
+  }
+}
+export template <typename T, auto p, Strictness S, typename L>
+constexpr auto lowerbounds(Halfspace<T, p, Direction::Downward, S, L>) {
+  return Ø<T, L>{};  // unbounded below: no lower bound
+}
+// 𝔹: the whole carrier is bounded --- ⊤ dominates it, ⊥ is dominated by it.
+export template <typename L, typename C>
+constexpr auto upperbounds(const UniversalSet<bool, L, C>&) {
+  return Singleton<true, L>{};
+}
+export template <typename L, typename C>
+constexpr auto lowerbounds(const UniversalSet<bool, L, C>&) {
+  return Singleton<false, L>{};
+}
+
+/** @brief @c & IS the meet on bare order operands: it forwards to the
+ *  @c structured_and customization point, exactly as @c Set::operator& does for
+ *  wrapped predicates, so no @c Set{} wrapping is needed.  The complement-pair
+ *  @c operator& above (opposite direction AND flipped strictness → @c Ø) is
+ * more specialized and still claims its case; every other halfspace pair
+ *  (overlapping, same-direction) routes here. */
+export template <typename T, auto P1, Direction D1, Strictness S1, auto P2,
+                 Direction D2, Strictness S2, typename L>
+constexpr auto operator&(Halfspace<T, P1, D1, S1, L> a,
+                         Halfspace<T, P2, D2, S2, L> b)
+  requires requires { structured_and(a, b); }
+{
+  return structured_and(a, b);
+}
+/** @brief @c | IS the join on bare order operands, dual to the @c & meet: it
+ *  forwards to @c structured_or, so a same-direction or overlapping halfspace
+ *  union collapses.  The complement-pair @c operator| above (→ universe) is
+ * more specialized and still claims its case. */
+export template <typename T, auto P1, Direction D1, Strictness S1, auto P2,
+                 Direction D2, Strictness S2, typename L>
+constexpr auto operator|(Halfspace<T, P1, D1, S1, L> a,
+                         Halfspace<T, P2, D2, S2, L> b)
+  requires requires { structured_or(a, b); }
+{
+  return structured_or(a, b);
+}
+/** @brief Fallback join for a genuine GAP that does not collapse to a
+ * halfspace: the honest POINT-WISE union, a @c Set whose membership ORs the two
+ * operands in the carrier's logic (@c L::OR).  Selected exactly when @c
+ * structured_or does not apply, so @c | is total (no hard error) while still
+ * collapsing where it can. */
+export template <typename T, auto P1, Direction D1, Strictness S1, auto P2,
+                 Direction D2, Strictness S2, typename L>
+  requires(!requires(Halfspace<T, P1, D1, S1, L> x,
+                     Halfspace<T, P2, D2, S2, L> y) { structured_or(x, y); })
+constexpr auto operator|(Halfspace<T, P1, D1, S1, L> a,
+                         Halfspace<T, P2, D2, S2, L> b) {
+  auto pred = [a, b](const T& v) { return L::OR(a(v), b(v)); };
+  return dedekind::sets::Set<T, L, decltype(pred)>{pred};
+}
+/** @brief @c Ø absorbs the meet (no upper bound ⟹ no max), the completion the
+ *  @f$\forall@f$-projection needs at the unbounded end. */
+export template <typename T, auto p, Direction D, Strictness S, typename L,
+                 typename LZ>
+constexpr auto operator&(Halfspace<T, p, D, S, L>, Ø<T, LZ>) {
+  return Ø<T, L>{};
+}
+/** @brief @c Ω is the meet IDENTITY at the other end: @c {x⋈p} ∩ Ω = @c {x⋈p}.
+ *  The universe's own @c operator& handles @c Ω∩X; this is the halfspace-first
+ *  order @c X∩Ω, which @c max/min hit when @c upperbounds/lowerbounds of an
+ *  EMPTY source is the whole universe (the @f$\forall@f$-projection of @c ∅).
+ */
+export template <typename T, auto p, Direction D, Strictness S, typename L,
+                 typename LU, typename C>
+constexpr auto operator&(Halfspace<T, p, D, S, L> h,
+                         const dedekind::sets::UniversalSet<T, LU, C>&) {
+  return h;
+}
+
+/** @brief @c max(S) --- the generic extremum: @c S met (@c ∩) with its own
+ *  @f$\forall@f$-dominators, @f$S \cap \mathrm{upperbounds}(S)@f$.  @c min is
+ * the dual (@c S met with its minorants).
+ *
+ *  @details One definition for any ordered @c S whose @c upperbounds and meet
+ * are defined; the structural collapse lives entirely in @c upperbounds and the
+ *  meet, so there is no generic search.  Gated on the SEMANTIC order:
+ *  greatest/least element is a @b partial-order notion, so the domain must
+ *  certify @c IsPartiallyOrdered (dedekind's reflexive/transitive/antisymmetric
+ *  axioms, which subsume @c std::totally_ordered one level up in
+ *  @c IsTotallyOrdered).  A carrier that is not an ordered set --- e.g.\
+ *  @c SignedCardinality, which carries the unordered @c NaZ like an IEEE NaN
+ * --- is honestly rejected: you cannot take the max of a set that may contain a
+ *  NaN. */
+export template <typename S>
+  requires IsPartiallyOrdered<typename S::Domain> &&
+           requires(const S& s) { s & upperbounds(s); }
+constexpr auto max(const S& s) {
+  return s & upperbounds(s);
+}
+export template <typename S>
+  requires IsPartiallyOrdered<typename S::Domain> &&
+           requires(const S& s) { s & lowerbounds(s); }
+constexpr auto min(const S& s) {
+  return s & lowerbounds(s);
+}
+
+inline constexpr auto ℤ =
+    Ω<SignedCardinality>;  // local alias (:integer is downstream)
+// Exhibit (intensional, infinite case) over ℕ = @c Ω<Cardinality>, a registered
+// TOTAL order (⊃ partial).  @c ℤ = @c SignedCardinality carries the unordered
+// @c NaZ (NaN-like), so it is NOT an ordered set and the @c IsPartiallyOrdered
+// gate correctly rejects @c max/min on it; the max/min VALUES are identical on
+// ℕ (they are non-negative).
+inline constexpr auto ℕ = Ω<Cardinality>;
+inline constexpr auto le5 = ℕ | (π <= fix(5_c));  // {x ∈ ℕ | x ≤ 5}
+inline constexpr auto ge5 = ℕ | (π >= fix(5_c));  // {x ∈ ℕ | x ≥ 5}
+static_assert(max(le5)(5), "5 = max {x ≤ 5} (read off the pivot).");
+static_assert(!max(le5)(3), "3 is not the greatest element of {x ≤ 5}.");
+static_assert(min(ge5)(5), "5 = min {x ≥ 5}.");
+static_assert(!min(ge5)(7), "7 is not the least element of {x ≥ 5}.");
+// DISCRETE strict: {x<5} on ℕ has attained max 4 (the predecessor), NOT ∅.
+static_assert(max(ℕ | (π < fix(5_c)))(4),
+              "4 = max {x < 5} on ℕ (predecessor).");
+static_assert(!max(ℕ | (π < fix(5_c)))(5), "5 ∉ {x < 5}, so not its max.");
+static_assert(min(ℕ | (π > fix(5_c)))(6), "6 = min {x > 5} on ℕ (successor).");
+
+/** @brief Two translation graphs are the same relation iff they carry the same
+ *  shift: structural equality on the graph, compile-time. */
+// Gated on @c IsSaturating: the shift arithmetic is only FAITHFUL on a carrier
+// whose @c + is well-behaved (the ℕ/ℤ proxies escalate).  On @c bool the shift
+// is cast into the carrier (@c +fix(1_c) and @c +fix(2_c) both become @c +true,
+// the SAME graph {false→true}), so a raw @c K1==K2 would wrongly separate them;
+// bool is declined rather than compared incorrectly.
+export template <typename T, auto K1, auto K2, typename L>
+  requires dedekind::category::IsSaturating<T>
+constexpr bool operator==(
+    const Set<std::pair<T, T>, L, ProjAddConstProj<1, K1, Rel::Eq, 2>>&,
+    const Set<std::pair<T, T>, L, ProjAddConstProj<1, K2, Rel::Eq, 2>>&) {
+  return K1 == K2;
+}
+
+/** @brief @b Symbolic composition of translation graphs: @f$T_a \circ T_b =
+ *  T_{a+b}@f$, the shifts added, with @b no @f$\exists@f$ over the intermediate
+ *  (contrast the Boolean relative product below).  This is the group law read
+ *  off the structure; @c + commutes, so the order of composition is immaterial
+ *  --- the abelian translation group, at compile time.  Gated on @c
+ *  IsSaturating: the symbolic @c a+b equals the actual composite only where the
+ *  carrier's @c + is faithful.  On @c bool the @c +1 graph is @c {false→true}
+ *  and composing it with itself is EMPTY, while the symbolic @c +2 graph is
+ *  non-empty --- so bool is declined rather than rewritten wrongly. */
+export template <typename T, auto A, auto B, typename L>
+  requires dedekind::category::IsSaturating<T>
+constexpr auto operator>>(
+    const Set<std::pair<T, T>, L, ProjAddConstProj<1, A, Rel::Eq, 2>>&,
+    const Set<std::pair<T, T>, L, ProjAddConstProj<1, B, Rel::Eq, 2>>&) {
+  return Set<std::pair<T, T>, L, ProjAddConstProj<1, A + B, Rel::Eq, 2>>{
+      ProjAddConstProj<1, A + B, Rel::Eq, 2>{}};
+}
+
+/** @brief Two halfspaces are the same set iff they share pivot, direction and
+ *  strictness (the carrier and logic already match): structural set equality,
+ *  compile-time. */
+export template <typename T, auto P1, Direction D1, Strictness S1, auto P2,
+                 Direction D2, Strictness S2, typename L>
+constexpr bool operator==(Halfspace<T, P1, D1, S1, L>,
+                          Halfspace<T, P2, D2, S2, L>) {
+  return P1 == P2 && D1 == D2 && S1 == S2;
+}
+
+/** @brief A halfspace over the @b finite carrier @c bool decides emptiness /
+ *  totality by exhausting @c {false, true}: the 𝔹 leg of the s|p quantifier,
+ *  so @c forall(𝔹, π ⋈ fix(v)) and @c exists(𝔹, …) materialise for a ≤/≥
+ *  fragment (the == fragment goes through @c Singleton).  ADL via @c Halfspace
+ *  / @c Ø / @c UniversalSet. */
+export template <auto P, Direction D, Strictness S, typename L>
+constexpr bool operator==(const Halfspace<bool, P, D, S, L>& h,
+                          const Ø<bool, L>&) {
+  return !static_cast<bool>(h(false)) && !static_cast<bool>(h(true));
+}
+export template <auto P, Direction D, Strictness S, typename L>
+constexpr bool operator==(const Ø<bool, L>& e,
+                          const Halfspace<bool, P, D, S, L>& h) {
+  return h == e;
+}
+export template <auto P, Direction D, Strictness S, typename L, typename C>
+constexpr bool operator==(const Halfspace<bool, P, D, S, L>& h,
+                          const UniversalSet<bool, L, C>&) {
+  return static_cast<bool>(h(false)) && static_cast<bool>(h(true));
+}
+export template <auto P, Direction D, Strictness S, typename L, typename C>
+constexpr bool operator==(const UniversalSet<bool, L, C>& u,
+                          const Halfspace<bool, P, D, S, L>& h) {
+  return h == u;
+}
+
+/** @brief A @c Singleton over @c bool is never all of @c 𝔹 (two elements), so
+ *  @c == Ω is @c false: the forall (scheme B) leg for the @c == fragment on 𝔹
+ *  (@c Ω<bool> | (π == fix(v)) collapses to @c Singleton<v>). */
+export template <auto V, typename L, typename C>
+  requires std::same_as<decltype(V), bool>
+constexpr bool operator==(const Singleton<V, L>&,
+                          const UniversalSet<bool, L, C>&) {
+  return false;
+}
+export template <auto V, typename L, typename C>
+  requires std::same_as<decltype(V), bool>
+constexpr bool operator==(const UniversalSet<bool, L, C>& u,
+                          const Singleton<V, L>& s) {
+  return s == u;
+}
+
+// Modelling witness ("Theorems for Free", type-checked): the SPECIFIC pivot
+// overload AGREES with the ABSTRACT definition max R = (∈) ∩ (R/∋) at the
+// pivot.  5 is the max because 5 ∈ {x≤5} AND ∀a∈{x≤5}. a ≤ 5 --- the latter
+// (the R/∋ division) decided by the counterexample set {x≤5} ∩ {x>5} collapsing
+// to ∅ via the complement-pair meet.  So the specialisation is checked against
+// the general law, not merely trusted (the Wadler free theorem, mechanised).
+static_assert(max(le5)(5) == (le5(5) && ((le5 & (ℕ | (π > fix(5_c)))) == Ø{})),
+              "specific max(le5) models (∈) ∩ (R/∋) at the pivot.");
+static_assert(min(ge5)(5) == (ge5(5) && ((ge5 & (ℕ | (π < fix(5_c)))) == Ø{})),
+              "specific min(ge5) models (∈) ∩ (R/∋) at the pivot.");
+
+// Exhibit (finite case): max 𝔹 = {true}, min 𝔹 = {false} --- the SAME generic
+// max/min above, its ∀-projection settled by 𝔹's upperbounds/lowerbounds ({⊤} /
+// {⊥}) and the universe-identity meet 𝔹 ∩ {⊤} = {⊤}.
+static_assert(max(Ω<bool>)(true), "max 𝔹 = {true}.");
+static_assert(!max(Ω<bool>)(false), "false is not the greatest element of 𝔹.");
+static_assert(min(Ω<bool>)(false), "min 𝔹 = {false}.");
+static_assert(!min(Ω<bool>)(true), "true is not the least element of 𝔹.");
+// Modelling witness ("Theorems for Free", type-checked) with a STRUCTURAL
+// IsPredicate --- not an opaque lambda, which cannot feed the collapse.  The
+// specific max(𝔹) models the abstract (∈) ∩ (R/∋): at false the dominance
+// ∀a∈𝔹. a ≤ false FAILS (true ⋠ false), spelled as the halfspace {a ≤ false},
+// so false is correctly NOT the max.
+static_assert(max(Ω<bool>)(false) ==
+                  (Ω<bool>(false) && forall(Ω<bool>, π <= fix(false_c))),
+              "specific max(𝔹) models (∈) ∩ (R/∋), structurally.");
+
+// (The image of a halfspace under a translation --- the pivot shifted by K ---
+// is now the affine pushforward on the GRAPH surface: image(graph | π1 ⋈ p) =
+// {y ⋈ p+K}, below.  The earlier Translation<T,K>-arrow version is superseded.)
+
 // ── Relative product: composition of relations (Tarski) ────────────────────
 /** @brief The composed predicate @f$(R \gg S)(a,c) = \exists b.\, R(a,b) \wedge
  *  S(b,c)@f$.  Decidable exactly when the intermediate carrier is finite; here
  *  the @f$\exists b@f$ enumerates the two Booleans, so it folds at compile
  *  time. */
-template <typename PR, typename PS>
+// @c B (the intermediate carrier) is retained as a type parameter, not erased:
+// it is what lets the compositional property-inference below reconstruct the
+// two factor relations @c Set<pair<A,B>,PR> and @c Set<pair<B,C>,PS> (§3.2
+// Table 3).
+export template <typename PR, typename PS, typename B = bool>
 struct ComposePred {
   PR r;
   PS s;
   template <typename Pair>
   constexpr bool operator()(const Pair& ac) const {
-    return (r(std::pair{ac.first, false}) && s(std::pair{false, ac.second})) ||
-           (r(std::pair{ac.first, true}) && s(std::pair{true, ac.second}));
+    return (r(std::pair{ac.first, B{false}}) &&
+            s(std::pair{B{false}, ac.second})) ||
+           (r(std::pair{ac.first, B{true}}) &&
+            s(std::pair{B{true}, ac.second}));
   }
 };
 
@@ -1163,8 +1954,8 @@ export template <typename A, typename B, typename C, typename L, typename PR,
   requires std::same_as<B, bool>
 constexpr auto operator>>(const Set<std::pair<A, B>, L, PR>& r,
                           const Set<std::pair<B, C>, L, PS>& s) {
-  return Set<std::pair<A, C>, L, ComposePred<PR, PS>>{
-      ComposePred<PR, PS>{r.predicate(), s.predicate()}};
+  return Set<std::pair<A, C>, L, ComposePred<PR, PS, B>>{
+      ComposePred<PR, PS, B>{r.predicate(), s.predicate()}};
 }
 
 // ≤ ∘ ≤ = ≤ (transitivity), decidable because the intermediate is Boolean.
@@ -1175,4 +1966,76 @@ static_assert(!static_cast<bool>(((𝔹 * 𝔹 | π1 <= π2) >>
                                   (𝔹 * 𝔹 | π1 <= π2))(std::pair{true, false})),
               "≤ ∘ ≤ excludes (true, false): transitivity recovers ≤.");
 
+}  // namespace dedekind::order
+
+// ── Structural inference of the relation properties (Table 3) ───────────────
+// The four properties are opt-in traits (trust at the leaves).  Here they are
+// INFERRED for the DSL's OWN graph relations, so the concepts are no longer
+// restrictive when structure decides.  is_right_unique_v (functional) and
+// is_left_total_v (entire) are the pluggable points; IsFunction reads off them.
+// This is Table 3's point-free reading realised: a LEAF carries the property by
+// its shape, a NODE (a relative product @c >>) inherits it because the property
+// composes.
+namespace dedekind::category {
+
+// This block carries only FUNCTIONALITY (@c is_right_unique_v), the STRUCTURAL
+// half: a graph is single-valued by its shape, decidable in @c order alone.
+// ENTIRENESS (@c is_left_total_v) is the ALGEBRAIC half --- a translation is
+// total iff the carrier is an ordered additive group --- so those
+// specialisations live in @c dedekind.algebra:halfspace_transport, alongside
+// the transport operations.  (The @c ProductRestrict entireness is left at its
+// primary false there and in the primary: a restriction MAY drop the domain, so
+// entireness is conservatively not certified through a joint.)
+
+// LEAF: a translation graph x ↦ x+K is FUNCTIONAL on any carrier (single-valued
+// by construction).
+template <typename T, auto K, typename L>
+inline constexpr bool is_right_unique_v<dedekind::sets::Set<
+    std::pair<T, T>, L,
+    dedekind::order::ProjAddConstProj<1, K, dedekind::order::Rel::Eq, 2>>> =
+    true;
+
+// LEAF: the diagonal π1==π2 (the identity relation) is functional on any
+// carrier
+// -- a ↦ a, single-valued.
+template <typename T, typename L>
+inline constexpr bool is_right_unique_v<dedekind::sets::Set<
+    std::pair<T, T>, L,
+    dedekind::order::ProjProj<1, dedekind::order::Rel::Eq, 2>>> = true;
+
+// RESTRICTION preserves single-valuedness (it removes pairs, never adds), so
+// FUNCTIONALITY propagates through ProductRestrict: a restricted graph is still
+// functional (a PARTIAL function).
+template <typename A, typename B, typename L, typename P, typename RP>
+inline constexpr bool is_right_unique_v<dedekind::sets::Set<
+    std::pair<A, B>, L, dedekind::order::ProductRestrict<P, RP>>> =
+    is_right_unique_v<dedekind::sets::Set<std::pair<A, B>, L, P>>;
+
+// NODE (the compositional closure): the relative product R>>S is functional iff
+// BOTH factors are -- the property propagates through >> (Table 3's
+// containments composing).  The retained intermediate B reconstructs the two
+// factor relations.  (The entireness NODE rule is the algebraic sibling, in
+// :halfspace_transport.)
+template <typename A, typename C, typename L, typename PR, typename PS,
+          typename B>
+inline constexpr bool is_right_unique_v<dedekind::sets::Set<
+    std::pair<A, C>, L, dedekind::order::ComposePred<PR, PS, B>>> =
+    is_right_unique_v<dedekind::sets::Set<std::pair<A, B>, L, PR>> &&
+    is_right_unique_v<dedekind::sets::Set<std::pair<B, C>, L, PS>>;
+
+}  // namespace dedekind::category
+
+namespace dedekind::order {
+// A RESTRICTED translation graph is still FUNCTIONAL (a partial function),
+// inferred through ProductRestrict from the underlying translation's
+// certificate
+// -- but NOT entire (the restriction drops the domain), so it is not a total
+// function, matching the paper's partial-function reading.
+static_assert(
+    dedekind::sets::IsFunctional<decltype((ℤ * ℤ | π1 + fix(3_c) == π2) |
+                                          π1 <= fix(5_c))> &&
+        !dedekind::sets::IsEntire<decltype((ℤ * ℤ | π1 + fix(3_c) == π2) |
+                                           π1 <= fix(5_c))>,
+    "a restricted translation graph is a functional-but-not-entire partial "
+    "function, inferred through ProductRestrict.");
 }  // namespace dedekind::order

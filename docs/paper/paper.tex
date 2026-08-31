@@ -420,8 +420,8 @@ static_assert(
 
 The boundary of this architecture matches the core distinction in standard \Cpp{} between \emph{satisfying} a concept (syntactic structure) and \emph{modeling} it (semantic lawfulness).
 Syntactic properties are mechanically decidable by the compiler.
-Semantic properties---such as associativity or distributivity---resist mechanical verification inside standard \Cpp{} and remain the engineer's honesty obligation.
-The three concept tiers that grade this gap---literal operators, functor-parametric shape, and strict categorical proof---are set out in Appendix~\ref{par:concept-tiers}.
+Semantic properties, such as associativity or distributivity, resist mechanical verification inside standard \Cpp{} and remain the engineer's honesty obligation.
+The three concept tiers that grade this gap (literal operators, functor-parametric shape, and strict categorical proof) are set out in Appendix~\ref{par:concept-tiers}.
 The discrepancy between the aspirational semantic model sketched in Figure~\ref{fig:hub-spoke-bnz} and the reality of IEEE numerical primitives as exposed in \Cpp{23} is highlighted in Table~\ref{tab:primitive-algebra}.
 Here, $\mathbf{Jlt}$ defaults to an \emph{Honest Rejection Policy} which asserts that if neither mechanical nor manual certification is available at compile-time, then a violation of the corresponding axioms is assumed and the type is rejected at the gate.
 For example, \texttt{int} satisfies the syntactic operators for a ring, but signed-overflow undefined behavior defeats associativity.
@@ -599,39 +599,39 @@ First-order quantification is the same reading once more: a quantifier \emph{is}
 &\quad \exists &\;:\equiv\; \neg\,\forall\,\neg\,.
 \end{aligned}
 \end{equation}
-In code the comprehension is \cppinline{set(S,P)} and each formulation is one \cppinline{operator==} against a bound: (A) \cppinline{exists(S,P)} is \cppinline{!(Ø{} == set(S,P))}, (B) \cppinline{forall(S,P)} is \cppinline{set(S,P) == S}, and each recovers its partner by De Morgan's duality, complementing the predicate, \cppinline{!P} (Listing~\ref{lst:quantifiers_def}, top row).
+In code the comprehension is the where-clause \cppinline{S | P} and each formulation is one \cppinline{operator==} against a bound: (A) \cppinline{exists(S,P)} is \cppinline{!(Ø{} == (S | P))}, (B) \cppinline{forall(S,P)} is \cppinline{(S | P) == S}, and each recovers its partner by De Morgan's duality, complementing the predicate, \cppinline{!P} (Listing~\ref{lst:quantifiers_def}, top row).
 Read extensionally, as a loop over the elements of the carrier, the two formulations part ways.
 Formulation (A) asks for a single example (for $\exists$), or through $\neg\exists\neg$ a single counterexample (for $\forall$): find one and you are done, so it returns even on an infinite carrier whenever the witness sits at a finite position.
 Formulation (B) asks whether the comprehension fills the whole carrier, which extensionally means enumerating every element, so on an infinite carrier only (A) is on the table.
-Read the same definitions intensionally, as an algebra on the characteristic predicates, and both formulations collapse to one cheap question: does the composed predicate \cppinline{set(S,P)}, the meet $S \wedge P$, reduce to always-false (then $\exists$ fails) or to always-true (then $\forall$ holds)?
+Read the same definitions intensionally, as an algebra on the characteristic predicates, and both formulations collapse to one cheap question: does the comprehension \cppinline{S | P}, the meet $S \wedge P$, reduce to always-false (then $\exists$ fails) or to always-true (then $\forall$ holds)?
 The cost is then not a function of the carrier's cardinality but of the \emph{set relation}, the conjunction or disjunction of the characteristic predicates.
 This can rescue $\forall$ over an infinite carrier, but only in the exceptional case that the predicate factors through a finite quotient.
-\cppinline{isDivisibleBy3} is periodic, so it factors through the finite codomain $\mathbb{Z}/3\mathbb{Z}$ (Section~\ref{sec:functions_morphism_factorization}), the collapse is settled on three residues rather than the countably many naturals, and both $\exists$ and $\forall$ return in finite time (Listing~\ref{lst:quantifiers_def}, bottom row).
+The congruence $\pi \equiv 0 \pmod 3$ is periodic, so it factors through the finite codomain $\mathbb{Z}/3\mathbb{Z}$ (Section~\ref{sec:functions_morphism_factorization}), the collapse is settled on three residues rather than the countably many naturals, and both $\exists$ and $\forall$ return in finite time (Listing~\ref{lst:quantifiers_def}, bottom row).
 The technique is confined to predicates carrying a \emph{certified} finite quotient or algebraic factorisation; a predicate with none (\cppinline{isPrime}, a Collatz-style recurrence) does not reduce, and $\forall$ over it stays undecidable at compile time.
 Intensional quantification is thus not a general escape from the infinite, only a lever where the predicate's own structure supplies the finite handle.
 An operand that is neither a finite carrier nor a predicate factoring through a finite quotient matches no overload: the honest Rice wall, a compile error rather than a fabricated answer.
 
 \begin{listing}[htbp]
-\caption{The finite-quotient quantifiers.
-\textbf{Top}: the generic \cppinline{exists} / \cppinline{forall} over an \cppinline{IsSet} domain \cppinline{S} and an \cppinline{IsPredicate} query \cppinline{P}, as (A) a test of \cppinline{set(S,P)} against $\varnothing$ and (B) against the input set $S$.
-\textbf{Bottom}: the two worked cases, $\mathbb{B} = $\cppinline{Ω<bool>} with the predicate \cppinline{Singleton<true>}, and $\mathbb{N} = $\cppinline{Ω<Cardinality>} with \cppinline{isDivisibleBy3} (factored through \cppinline{Modular<3>}).}
+\caption{The finite-quotient quantifiers, point-free.
+\textbf{Top}: the generic \cppinline{exists} / \cppinline{forall} over an \cppinline{IsSet} domain \cppinline{S} and a point-free \emph{fragment} \cppinline{P} (gated by \cppinline{S | P} being well-formed), as (A) a test of \cppinline{S | P} against $\varnothing$ and (B) against the input set $S$.
+\textbf{Bottom}: the two worked cases, $\mathbb{B} = $\cppinline{Ω<bool>} with the fragment \cppinline{π == fix(true_c)}, and $\mathbb{N} = $\cppinline{Ω<Cardinality>} with the congruence fragment $\pi \equiv 0 \pmod 3$ (materialised over the residues of $\mathbb{Z}/3\mathbb{Z}$).}
 \label{lst:quantifiers_def}
 \noindent
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-template <IsSet S, IsPredicate P>
+template <IsSet S, class P>
 constexpr bool
 exists(S s, P p) {
-  return !(Ø{} == set(s,p));
+  return !(Ø{} == (s | p));
 }
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-template <IsSet S, IsPredicate P>
+template <IsSet S, class P>
 constexpr bool
 forall(S s, P p) {
-  return set(s,p) == s;
+  return (s | p) == s;
 }
 \end{cpp}
 \end{minipage}
@@ -641,18 +641,61 @@ forall(S s, P p) {
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
 constexpr auto 𝔹 = Ω<bool>;
-Singleton<true> isTrue;
-static_assert( exists(𝔹, isTrue));
-static_assert(!forall(𝔹, isTrue));
+static_assert( exists(𝔹, π == fix(true_c)));
+static_assert(!forall(𝔹, π == fix(true_c)));
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
 constexpr auto ℕ = Ω<Cardinality>;
-constexpr auto isDivBy3 =
-  in<ℕ> % Modular<3>{} == bound<0>;
-static_assert( exists(ℕ, isDivBy3));
-static_assert(!forall(ℕ, isDivBy3));
+constexpr auto div3 = π % fix(3_c) == fix(0_c);
+static_assert( exists(ℕ, div3));
+static_assert(!forall(ℕ, div3));
+\end{cpp}
+\end{minipage}
+\end{listing}
+
+The order runs the same play once more.
+Read $\le$ as the predicate and the extremum \emph{is} a set operation: the greatest elements of $S$ are those no element of $S$ beats.
+Where $\exists$ and $\forall$ test the comprehension against a bound and return a truth value, $\max$ and $\min$ keep the comprehension and return the extremal \emph{subset}.
+\begin{equation}
+\label{eqn:extrema}
+\max S \;:\equiv\; \{x \in S \mid \forall x' \in S.\; x' \le x\},
+\qquad
+\min \;:\equiv\; \max \text{ under } {\le} \mapsto {\ge}.
+\end{equation}
+In code it is one generic definition: $S$ met with its \cppinline{upperbounds}, the region $R/\ni$ that dominates all of $S$ (Listing~\ref{lst:extrema_def}, top).
+Read relationally, \cppinline{upperbounds} is the $\forall$-projection of the order relation \cppinline{S * S | π1 <= π2} onto its second coordinate, so $\max$ keeps the $\pi_2$ that every $\pi_1$ precedes; $\min$ is the same in the dual order, the way $\forall$ was $\exists$ under $\neg$.
+The implementation builds no product and needs no inverse: the meet of $S$ with a comparison-defined halfspace suffices, which is why the extremum of a set lands before relations do.
+The answer is a set, so the degenerate cases need no special casing: an empty carrier gives $\varnothing$, and a total or partial order gives a singleton (a greatest element, when it exists, is unique by antisymmetry) or $\varnothing$; a larger set arises only under a \emph{preorder}, where distinct elements can be equivalent and tie for the top.
+Being generic, $\max$ types in for any ordered carrier and decides wherever \cppinline{upperbounds} is settled by structure: a halfspace's dual (an upward halfspace, unbounded above, has none, so $\max$ is $\varnothing$) or a finite carrier's top.
+A carrier that hands over no such handle matches no \cppinline{upperbounds}, hence no \cppinline{max}: a compile error, the same Rice wall as the quantifiers, rather than a fabricated bound.
+Section~\ref{sec:relations_functions_blueprint} lifts $\le$ from a bare comparison to a function's graph, and the same filter becomes $\arg\max$.
+
+\begin{listing}[htbp]
+\caption{The extremal sets: one generic definition, its $\forall$-projection decided by structure.
+\textbf{Top}: \cppinline{max} is \cppinline{S} met ($\cap$, the operator \cppinline{&}) with its \cppinline{upperbounds} (the $\forall$-projection $R/\ni$, $\{\pi_2\in S \mid \forall\pi_1\in S.\; \pi_1\le\pi_2\}$, Equation~\ref{eqn:extrema}); \cppinline{min} is the dual, over \cppinline{lowerbounds}.
+\cppinline{upperbounds} is the pluggable point (as $\forall$/$\exists$ plug into \cppinline{==}), settled \emph{symbolically} per structure, so no candidate is enumerated; the meet then collapses $\{x\le p\}\cap\{x\ge p\}$ to the attained pivot $\{p\}$, or to $\varnothing$ when the bound is unattained (strict) or absent (unbounded).
+\textbf{Bottom}: witnesses on $\mathbb{B}$ (finite) and an infinite halfspace.}
+\label{lst:extrema_def}
+\noindent
+\begin{minipage}[t]{0.99\linewidth}
+\begin{cpp}
+auto max(S s) { return s & upperbounds(s); }
+
+auto upperbounds(Halfspace<T,p,Down>) { return Halfspace<T,p,Up,NonStrict>{}; }
+auto upperbounds(Halfspace<T,p,Up>)   { return Ø<T>{}; }
+auto upperbounds(Ω<bool>)             { return Singleton<true>{}; }
+\end{cpp}
+\end{minipage}
+
+\vspace{0.4em}
+\noindent
+\begin{minipage}[t]{0.99\linewidth}
+\begin{cpp}
+static_assert(max(𝔹)(true));   static_assert(min(𝔹)(false));
+static_assert(max(ℕ | (π <= fix(5_c)))(5));   // ℤ = SignedCardinality carries NaZ,
+static_assert(min(ℕ | (π >= fix(5_c)))(5));   // so max/min run on the ordered ℕ
 \end{cpp}
 \end{minipage}
 \end{listing}
@@ -823,7 +866,7 @@ The epic-monic factorization $R = m \circ e$ places the retract on the mono leg 
 \cmidrule(lr){2-3}\cmidrule(lr){4-5}
  & entire & functional & surjective & injective \\
 \midrule
-Trsk quantifier & $\forall a\,\exists b$ & $\forall a\,{\le}1\,b$ & $\forall b\,\exists a$ & $\forall b\,{\le}1\,a$ \\
+Trsk (point-free) & $I \subseteq R\cdot R^{-1}$ & $R^{-1}\!\cdot R \subseteq I$ & $I \subseteq R^{-1}\!\cdot R$ & $R\cdot R^{-1} \subseteq I$ \\
 \addlinespace
 set theory & total & single-valued & onto & one-to-one \\
 \addlinespace
@@ -831,6 +874,7 @@ category theory & $\pi_A$ epi & $\pi_A$ mono & $\pi_B$ epi & $\pi_B$ mono \\
 \bottomrule
 \end{tabular}
 \caption{The four properties of a relation $R \subseteq A \times B$ as an existence bound ($\ge 1$) and a uniqueness bound ($\le 1$) on its two projections, in three vocabularies.
+The top row is Tarski's point-free calculus of relations~\cite{tarski1941calculus}, with no bound variables: existence bounds are $I \subseteq (\cdot)$, uniqueness bounds $(\cdot) \subseteq I$, and the relative product $R\cdot R^{-1}$ is the DSL's \cppinline{converse} and \cppinline{>>}.
 Columns pair up: entire with functional on $\pi_A$, surjective with injective on $\pi_B$.}
 \label{tab:relation-quantifier}
 \end{table}
@@ -843,9 +887,10 @@ These two readings, the intensional rule \cppinline{f} and the extensional set o
 Listing~\ref{lst:relation_spec} is the spec surface: \cppinline{IsRelation} as an \cppinline{IsSet} on the product, \cppinline{IsFunction} as its entire and functional refinement, and the calculus of relations whose composition \cppinline{>>} functions inherit as a special case.
 
 \begin{listing}[htbp]
-\caption{The spec surface.
+\caption{The spec surface, and where pluggability goes.
 \textbf{Left}: the core concepts, a relation as an \cppinline{IsSet} on the product $A \times B$, a function as its entire, functional refinement.
-\textbf{Right}: the combinators of the calculus of relations, composition the same \cppinline{>>} functions use.}
+\textbf{Right}: the combinators of the calculus of relations, composition the same \cppinline{>>} functions use.
+\textbf{Bottom}: the four properties are \emph{pluggable} traits (trust at the leaves), but inferred where structure decides: a leaf carries one by its predicate shape, and a composite inherits it through \cppinline{>>} (the compositional closure of Table~\ref{tab:relation-quantifier}'s containments), so a graph and its relative product are functions \emph{by structure}, with no opt-in flag.}
 \label{lst:relation_spec}
 \noindent
 \begin{minipage}[t]{0.49\linewidth}
@@ -880,6 +925,17 @@ template <class R> concept
 IsSurjective = is_right_total_v<R>;
 template <class R> concept
 IsInjective = is_left_unique_v<R>;
+\end{cpp}
+\end{minipage}
+
+\vspace{0.4em}
+\noindent
+\begin{minipage}[t]{0.99\linewidth}
+\begin{cpp}
+// inferred, not declared: leaf AND composite are functions BY STRUCTURE:
+static_assert(IsFunctional<decltype(ℤ*ℤ | π1+fix(3_c)==π2)>);  // leaf: x+3
+static_assert(IsFunctional<decltype(                           // composite:
+  (ℤ*ℤ | π1+fix(3_c)==π2) >> (ℤ*ℤ | π1+fix(2_c)==π2))>);       //  inherited via >>
 \end{cpp}
 \end{minipage}
 \end{listing}
@@ -932,7 +988,7 @@ Listing~\ref{lst:relation_examples} spells relations out in the point-free surfa
 \begin{listing}[htbp]
 \caption{Relations as comprehensions over a product, point-free in the projections $\pi_1, \pi_2$.
 \textbf{Left} ($\mathbb{B}$): implication $a \le b$ on $\mathbb{B}\times\mathbb{B}$, and its \cppinline{converse}.
-\textbf{Right} ($\mathbb{N}$): less-than, and the bounded relation $\{(x,y) \mid x<y \land x>5\}$.}
+\textbf{Right} ($\mathbb{N}$): less-than, and two \emph{functional} graphs written point-free via the projection arithmetic: the successor $b = a{+}1$ and the doubler $b = 2a$.}
 \label{lst:relation_examples}
 \noindent
 \begin{minipage}[t]{0.49\linewidth}
@@ -948,22 +1004,43 @@ static_assert(rimp(pair{true,false}));
 \end{minipage}\hfill
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-constexpr auto lt =
-  ℕ * ℕ | π1 < π2;
-static_assert( lt(pair{2,5}));
-static_assert(!lt(pair{5,2}));
-constexpr auto R =
-  ℕ * ℕ | π1 < π2 & π1 > fix(5_c);
-static_assert( R(pair{6,9}));
-static_assert(!R(pair{3,9}));
+static_assert(
+  (ℕ * ℕ | π1 < π2)
+  (pair{2,5}));
+static_assert(
+  (ℕ * ℕ | π1 + fix(1_c) == π2)
+  (pair{4,5}));
+static_assert(
+  (ℕ * ℕ | π1 * fix(2_c) == π2)
+  (pair{3,6}));
 \end{cpp}
 \end{minipage}
 \end{listing}
 
+The product itself is a first-class set: $A \times B$ is the universal set of pairs $\Omega_{A\times B}$.
+A \emph{restricted} factor is then a refinement of that universe, not a special case, since $A \times B = \pi_1^{-1}(A) \cap \pi_2^{-1}(B)$.
+Restricting a factor lifts its predicate onto the matching projection, the same $\pi_I$ vocabulary the graph uses, so the bound is carried rather than dropped (Listing~\ref{lst:restricted_product}).
+
+\begin{listing}[htbp]
+\caption{A restricted domain is a cylinder on the product.
+The bound $\le 5$ on the first factor lifts to $\pi_1 \le \mathrm{fix}(5)$, so it survives into the relation instead of being discarded.}
+\label{lst:restricted_product}
+\begin{cpp}
+constexpr auto R =
+  (ℕ | (π <= fix(5_c))) * ℕ
+  | π1 + fix(1_c) == π2;
+static_assert( R(pair{4,5}));
+static_assert(!R(pair{7,8}));
+\end{cpp}
+\end{listing}
+
+The order playbook of §\ref{sec:ddk_comprehension} now meets a function.
+Before optimising over one, we settle what a function \emph{is} on this surface, and how its image is decided.
+
 \subsubsection{Functions and Morphism Factorization Gates}
 \label{sec:functions_morphism_factorization}
 
-Image membership, $y \in \mathrm{image}(f)$, is the same existential once more, now on the domain side: $\exists x.\, f(x) = y$.
+Image membership, $y \in \mathrm{image}(f)$, is an existential on the domain side: $\exists x.\, f(x) = y$.
 Over a finite or finite-quotient domain the certificates of §\ref{sec:ddk_comprehension} discharge it; over an unconstrained, transfinite domain neither applies, and a raw search of the domain is undecidable.
 The remaining handle is a \emph{closed-form} certificate: a \emph{retract}, the partial inverse of the mono leg of the map's epic-monic factorization, which \emph{computes} the witness $x$ rather than searching for it.
 This is not a rival to the quantifier but the case where the existential has a closed-form solution: the same $\exists x.\, f(x)=y$, discharged by construction.
@@ -976,23 +1053,103 @@ A function is thus not a distinct primitive but a relation satisfying both prope
 Reifying functions in this manner allows the type system to mechanically verify classical mapping properties at translation time.
 For specialized mappings, codomain membership tests, checking whether a given element $b \in B$ lies within the actual image of the transformation, are easily discharged by the compiler.
 If a function is certified as surjective, every element of the target space is a valid image, meaning a codomain membership query trivially constant-folds to logical truth.
-More generally, if the mono leg of the factorization carries a \emph{retract} (a partial inverse returning the preimage of a codomain element when one exists), the type system decides membership as a local lookup on the image boundary, with no search of the domain (Listing~\ref{lst:functional_image_bijection}).
+More generally, if the mono leg of the factorization carries a \emph{retract} (an inverse on the image, total when the arrow is an iso and partial when it is merely monic), the type system decides membership as a local lookup on the image boundary, with no search of the domain (Listing~\ref{lst:functional_image_bijection}).
+
+The four maps that read a relation, its \cppinline{dom} and \cppinline{cod} and the \cppinline{image} and \cppinline{preimage} of a set, are one cell each of Table~\ref{tab:relation-quantifier}: one bound on one projection.
+\cppinline{preimage} and \cppinline{dom} read the $\pi_A$ side and never leave the domain, so they cost nothing beyond a forward call: $\mathrm{preimage}(f, S) = \{a \mid f(a) \in S\}$ is apply-and-test, decided by single-valuedness alone, and $\mathrm{dom}$ returns the \emph{declared} first factor $\Omega\langle A\rangle$ (the effective domain $\{a \mid \exists b.\, R(a,b)\}$, which equals $A$ only when $f$ is entire, is the separate $\exists$-projection behind the Rice wall).
+\cppinline{image} and \cppinline{cod} read the $\pi_B$ side: $\mathrm{cod}$ likewise returns the \emph{declared} second factor $\Omega\langle B\rangle$ (all of $B$ effectively only when $f$ is surjective), and $b \in \mathrm{image}(f, S)$ is the question $\exists x \in S.\, f(x) = b$, which injectivity turns into the single lookup $f^{-1}(b) \in S$ and does have to cross back.
+The forward image is thus the one whose membership needs the inverse, and that inverse is the retract on the mono leg.
+An isomorphism meets all four bounds and collapses every cell to a constant-time answer; a plain function gets its $\pi_A$ side for free and waits on injectivity for its $\pi_B$ side, which is exactly where the retract is required.
+
+Table~\ref{tab:relation-quantifier} classifies the arrow; the same projection bounds fix the shape of its \emph{inverse}, and with it the whole of image-membership.
+Every case is the one law
+\begin{equation}
+\label{eqn:image-fibre}
+y \in \mathrm{image}(f, S) \iff \bigvee_{x \,\in\, f^{-1}(y)} S(x),
+\end{equation}
+the fibre $f^{-1}(y)$ met against the source $S$; what changes across Table~\ref{tab:inverse-image-laws} is only the fibre's \emph{shape}.
+An iso or a mono has a fibre of at most one point, so the join is a single lookup through a total or partial inverse.
+An epi or a general map has a many-point fibre, which is a point-free \emph{union} of branches, so the join is the union $\bigcup_i \mathrm{preimage}(b_i, S)$ of the branches' pullbacks, decided analytically with no enumeration.
+The one-sided inverses all compose \emph{contravariantly}, so retractability and section-ability are closed under composition and, in particular, are preserved by pre- or post-composition with an iso (Listing~\ref{lst:functional_image_bijection}).
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}llll@{}}
+\toprule
+arrow $f$ & one-sided inverse & fibre $f^{-1}(y)$ & composition $h = g \circ f$ \\
+\midrule
+iso              & $f^{-1}$ (two-sided)                     & $\{f^{-1}(y)\}$                                    & $h^{-1} = f^{-1}\!\circ g^{-1}$ \\
+\addlinespace
+mono / injective & retract $r$, $\;r\circ f = \mathrm{id}$   & $\{r(y)\}$ if $f(r(y)){=}y$, else $\varnothing$   & $r_h = r_f\!\circ r_g$ \\
+\addlinespace
+epi / surjective & section $s$, $\;f\circ s = \mathrm{id}$   & a union, containing $s(y)$                         & $s_h = s_f\!\circ s_g$ \\
+\addlinespace
+general $m\circ e$ & retract of $m$, section of $e$          & a union of branches                               & converse composes contravariantly \\
+\bottomrule
+\end{tabular}
+\caption{How Table~\ref{tab:relation-quantifier}'s arrow class fixes the inverse structure, hence image-membership (Equation~\ref{eqn:image-fibre}) and its composition law.
+The fibre is a single point (iso, mono) or a point-free union (epi, general); image is the fibre met against the source, and the one-sided inverses all compose contravariantly, so retractability is closed under composition.}
+\label{tab:inverse-image-laws}
+\end{table}
 
 \begin{listing}[htbp]
-\caption{A retract makes image membership decidable.  A monic arrow \cppinline{Double} carries a \cppinline{retract} (a partial inverse $y \mapsto$ preimage, if any); with it, $y \in \mathrm{image}(f, S)$ is decided as ``the retract has a value that lies in $S$'': a local lookup on the image boundary, never a search of the domain (here \cppinline{positive} is the halfspace $\{x>0\}$; $10 \mapsto 5 \in$ \cppinline{positive}, $7 \mapsto$ \cppinline{nullopt}; abridged from the checked-in test).}
+\caption{A function \emph{is} its graph, and translations form a \emph{group} under composition.
+\textbf{Left}: \cppinline{f = ℤ*ℤ | π1+fix(3_c)==π2} is the point-free relation $\{(x, x{+}3)\}$, functional and entire (Table~\ref{tab:relation-quantifier}'s $\pi_A$ column); its \cppinline{inverse} is the converse relation $x{-}3$, and \cppinline{image} pushes a domain bound forward, $\{x\le5\}$ to $\{y\le8\}$, again a halfspace.
+\textbf{Right}: composition \cppinline{>>} is symbolic (the shifts add, no $\exists$ over the intermediate), so closure, the inverse-of-a-composite law $(f\circ g)^{-1}=g^{-1}\circ f^{-1}$, and \emph{associativity, commutativity} are compile-time facts; the conjugate $g\,f\,g^{-1}=f$ collapses because $+$ commutes.
+The law is contravariant in general, but this group is abelian, so the order-reversal is degenerate here ($g^{-1}\circ f^{-1}=f^{-1}\circ g^{-1}$); the non-abelian affine group exercises it.
+For an invertible map the inverse \emph{is} the retract, so this is retract composition in the total case (abridged from the checked-in witnesses).}
 \label{lst:functional_image_bijection}
+\noindent
+\begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-struct Double { using Domain = int; using Codomain = int;
-  constexpr int operator()(int x) const { return 2*x; } };
-constexpr auto retract(Double) {
-  return [](int y) -> std::optional<int> {
-    return (y%2==0) ? std::optional{y/2} : std::nullopt; }; }
+constexpr auto f =                  // x ↦ x+3
+  ℤ * ℤ | π1 + fix(3_c) == π2;
+static_assert(is_function(f));
+static_assert(inverse(f)            // converse: x−3
+  == (ℤ*ℤ | π1+fix(-3_c)==π2));
+static_assert(image(f|π1<=fix(5_c)) // {x≤5}↦{y≤8}
+  == (ℤ | π<=fix(8_c)));
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\linewidth}
+\begin{cpp}
+constexpr auto g =                  // x ↦ x+2
+  ℤ * ℤ | π1 + fix(2_c) == π2;
+static_assert((f >> g)              // closure: T₃∘T₂=T₅
+  == (ℤ*ℤ | π1+fix(5_c)==π2));
+static_assert(inverse(f >> g)       // contravariant: (f∘g)⁻¹=g⁻¹∘f⁻¹
+  == (inverse(g) >> inverse(f)));
+static_assert(                      // g∘f∘g⁻¹ = f (abelian)
+  (g >> f >> inverse(g)) == f);
+\end{cpp}
+\end{minipage}
+\end{listing}
 
-constexpr auto img = image(Double{}, positive);
+The graph is the whole surface: the same \cppinline{*}, \cppinline{|}, and projection arithmetic that spell a relation spell a function, and \cppinline{inverse} and \cppinline{image} are relational operations on it, not a separate arrow calculus.
+Because a translation is surjective its image is decided by the inverse alone, so a bounded halfspace pushes forward to a halfspace with its bound advanced while the unbounded line is fixed.
+The non-injective case drops the injectivity and stays point-free.
+Take the sign-fold $\mathrm{abs}\colon \mathbb{Z} \twoheadrightarrow \mathbb{N}$, the epi that identifies $x$ with $-x$.
+It is two-to-one, the fibre of $y$ being $\{{+}y, {-}y\}$, so it is \emph{not} monic; but it is a \emph{union} of two reflection branches, $x\mapsto x$ on $\{x\ge 0\}$ and $x\mapsto -x$ on $\{x<0\}$, each a mono whose image is a halfspace pushed forward (Listing~\ref{lst:functional_image_fold}).
+Membership $y \in \mathrm{abs}(S)$ is the join of the branch images, Equation~\ref{eqn:image-fibre}, decided analytically with no fibre walk.
+That join is what keeps it sound: $3 \in \mathrm{abs}(\{x<0\})$ holds through the negate branch, which carries the preimage ${-}3$, where the canonical ${+}3 \notin \{x<0\}$ that a lone retract would name says nothing.
+This is also what discharges the $\arg\max$ of §\ref{sec:relations_functions_blueprint} over an infinite domain: an optimiser and its fibre are the same $\exists x.\,f(x){=}y$, read off the union of branches rather than searched for.
+
+\begin{listing}[htbp]
+\caption{The sign-fold epi $\mathrm{abs}\colon \mathbb{Z}\twoheadrightarrow\mathbb{N}$ decided \emph{point-free}: a union of two reflection branches ($x\mapsto x$ on $\{x\ge0\}$, $x\mapsto -x$ on $\{x<0\}$), each a mono whose \cppinline{image} is a halfspace pushed forward (the negate branch flips $\le$ to $>$).
+Non-injective yet analytic: $3 \in \mathrm{abs}(\{x<0\})$ holds through the negate branch's preimage $-3$, where the canonical $+3 \notin \{x<0\}$ that a lone retract names says nothing: soundness from the fibre join, no enumeration (checked-in witnesses).}
+\label{lst:functional_image_fold}
+\begin{cpp}
+constexpr auto absPos = ℤ*ℤ | π1*fix(1_c)==π2  | π1>=fix(0_c);  // x ↦  x  on x≥0
+constexpr auto absNeg = ℤ*ℤ | π1*fix(-1_c)==π2 | π1< fix(0_c);  // x ↦ −x  on x<0
+static_assert(image(absPos) == (ℤ | π>=fix(0_c)));  // {y≥0}
+static_assert(image(absNeg) == (ℤ | π> fix(0_c)));  // {y>0}: negate flips the sense
+static_assert( image(absNeg)(3));   // 3 ∈ abs({x<0}) via −3, no fibre walk
+static_assert(!image(absNeg)(-2));  // abs is never negative
 \end{cpp}
 \end{listing}
 
-For general or non-bijective functions, however, validating whether an arbitrary element $b \in B$ possesses a valid preimage in the domain $A$ presents a severe decidability barrier if evaluated via standard search techniques.
+The factorization here is \emph{consumed} point-free, not narrated: \cppinline{image} is the join of the two branch images (Equation~\ref{eqn:image-fibre}), so the non-injective case is decided analytically rather than walked.
+Not every map is analytic like $\mathrm{abs}$, though: for a general function whose fibre is \emph{not} a union of graph branches, validating whether an arbitrary element $b \in B$ possesses a valid preimage in the domain $A$ presents a severe decidability barrier if evaluated via standard search techniques.
 Rather than treating this as an impassable restriction, the library provides specialized support for functional relations by introducing an architectural gate based on the categorical principle of epic-monic factorization.
 Every general functional arrow $f : A \to B$ factors into a regular surjection (epi, \cppinline{IsRegularEpi}) onto its image $I$, followed by a regular injection (mono, \cppinline{IsRegularMono}) from $I$ into $B$, the image leg witnessed by \cppinline{IsImageOf}:
 \begin{equation}
@@ -1007,23 +1164,71 @@ This is the honesty obligation of §\ref{sec:introduction} at the level of morph
 Listing~\ref{lst:functional_image_factorization} illustrates how this epic-monic gate and its corresponding image validation assertions are codified within the C++23 template engine.
 
 \begin{listing}[htbp]
-\caption{The image of an intensional set under an arrow, and the honest indecision it carries.  \cppinline{image(succ, {n>5})} realises \cppinline{IsImageOf} (it is a subobject of the codomain), yet its membership is \cppinline{TernaryLogic::Unknown}: the existential $\exists x.\,x>5 \wedge y = \mathrm{succ}(x)$ is undecidable on the transfinite carrier without a factorization.  The Rice boundary, made visible (abridged from the checked-in showcase).}
+\caption{Structure decides where opacity walls.
+\textbf{Left}: the successor as a \emph{graph}; its image over $\{n>5\}$ is the affine pushforward $\{n>6\}$, decided with no search of the domain.
+\textbf{Right}: the same map as an \emph{opaque} arrow the compiler cannot see through, so the existential $\exists x.\,x>5 \wedge y=\mathrm{succ}(x)$ is undecidable on the transfinite carrier: \cppinline{image} realises \cppinline{IsImageOf} yet its membership is honestly \cppinline{Unknown}.  The Rice boundary is for opacity, not for functions (abridged from the checked-in witnesses).}
 \label{lst:functional_image_factorization}
+\noindent
+\begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-constexpr auto succ = arrow<ℕ, ℕ>(
-  [](ℕ m){ return m + finite_cardinality(1); });
-
-constexpr auto img =
-  image(succ, Set{in<ℕ> | in<ℕ> > bound<5>});
-static_assert(IsImageOf<decltype(img), decltype(succ)>);
-
-static_assert(img(finite_cardinality(7)) == Ternary::Unknown);
+constexpr auto succ =        // as a graph
+  ℕ * ℕ | π1 + fix(1_c) == π2;
+static_assert(
+  image(succ | π1 > fix(5_c))  // {n>5}
+  == (ℕ | π > fix(6_c)));      //  ↦ {n>6}
 \end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\linewidth}
+\begin{cpp}
+constexpr auto op =          // opaque λ
+  arrow<Cardinality,Cardinality>(
+    [](Cardinality m){ return m + 1; });
+constexpr auto img =
+  image(op, ℕ | (π > fix(5_c)));
+static_assert(               // honest wall
+  img(finite_cardinality(7)) == Ternary::Unknown);
+\end{cpp}
+\end{minipage}
 \end{listing}
 
 By utilizing the \cppinline{retract} partial witness of an \cppinline{IsRetractableArrow} (the mono leg's partial inverse, returning \cppinline{std::optional}), the compiler evaluates codomain membership as a local lookup on the image boundary rather than a search of the domain.
 This structural approach ensures that even highly complex or non-linear functional images can be safely validated at compile time.
-The type system can consequently treat arbitrary transformations as well-behaved objects, laying a reliable foundation for the universal-algebraic operators developed in the subsequent section.
+The type system can consequently treat arbitrary transformations as well-behaved objects, the foundation on which the optimisation that closes this section, and the universal algebra beyond it, are built.
+
+\subsubsection{Optimization: $\arg\max$ over a Function}
+\label{sec:argmax}
+
+With functions and their images in hand, optimising over one is the same order playbook read through a map.
+Reading $\le$ through $f\colon \mathrm{dom}\to C$ turns $\max$ into $\arg\max$: not the greatest \emph{value} but every \emph{argument} that attains it.
+The definition is the forward filter of Equation~\ref{eqn:extrema}, with the carrier's own order replaced by the order $f$ pulls back onto its domain, and it asks nothing of $f$ beyond a comparable codomain: no inverse, no injectivity.
+\begin{equation}
+\label{eqn:argmax}
+\begin{aligned}
+\arg\max_{f} &\;:\equiv\; \{x \in \mathrm{dom} \mid \forall x' \in \mathrm{dom}.\; f(x') \le f(x)\},\\
+\arg\min &\;:\equiv\; \arg\max \text{ under } {\le}\mapsto{\ge}.
+\end{aligned}
+\end{equation}
+Read as a relation this is the pulled-back comparison $f(\pi_1) \le f(\pi_2)$ on $\mathrm{dom}\times\mathrm{dom}$, universally quantified over $\pi_1$: Listing~\ref{lst:relation_examples}'s $\pi_1 \le \pi_2$ with each side seen through $f$.
+Because the answer is a set, the degenerate cases fall out as a \emph{cardinality} rather than as special code: the winning fibre is empty when there is no maximum, a singleton exactly when the optimiser is unique (so $\arg\max$ is a function), and larger under ties (so $\arg\max$ is a proper relation), the same fibre bookkeeping Table~\ref{tab:relation-quantifier} reads off a projection.
+Constraining the codomain, as in §\ref{sec:functions_morphism_factorization}, turns the graph into a partial function whose feasible domain is the codomain constraint pulled back through it; a monotone objective then makes $\arg\max$ that domain's greatest element (Listing~\ref{lst:argmax_def}).
+
+\begin{listing}[htbp]
+\caption{$\arg\max$ over a \emph{partial function}: a compile-time constrained optimum.
+Constraining the codomain of the graph $x \mapsto x+3$, bounded ($\pi_2 \le 8$) and restricted to a residue class ($\pi_2 \equiv 0 \bmod 3$), drops \emph{entire} but keeps \emph{functional} (Table~\ref{tab:relation-quantifier}): the same graph is now a partial function.
+Its feasible domain is that codomain constraint pulled back through the graph, $\{x \le 5 \wedge x \equiv 0 \bmod 3\}$, and because a translation is monotone $\arg\max$ is that domain's greatest element, $3$, read off structurally with no search.}
+\label{lst:argmax_def}
+\begin{cpp}
+constexpr auto g = ℤ * ℤ | π1 + fix(3_c) == π2   // x ↦ x+3 ...
+                     | π2 <= fix(8_c)              //   ... into a bounded ...
+                     & π2 % fix(3_c) == fix(0_c);  //   ... residue codomain
+static_assert(!is_entire(g));                       // a partial function now
+static_assert( argmax(g)(3));                       // max{x≤5, x≡0 mod 3} = 3
+static_assert(!argmax(g)(4));                        // 4 ≢ 0 mod 3
+\end{cpp}
+\end{listing}
+
+The optimum is not searched for but read off the structure: the codomain bound and the congruence, pulled back through the graph, fix the feasible domain, and a monotone objective makes $\arg\max$ its greatest element.
+The implemented $\arg\max$ is exactly this structural specialization (a group-carrier translation into a codomain bounded above and restricted to a residue class); a general filter over arbitrary, less-structured objectives is future work, decidable only where §\ref{sec:ddk_comprehension}'s certificates reach.
 
 %------
 \section{Universal Algebra and the Poset of Carriers}
@@ -1032,8 +1237,8 @@ The type system can consequently treat arbitrary transformations as well-behaved
 % Source excerpts from dedekind.algebra:universal and dedekind.category:total.
 \begin{listing}[!ht]
 \caption{$\mathbf{Ddk} = \mathbf{Trsk} \cap \mathbf{Alg}$, in three panels.
-\textbf{Top-left, the type layer} (\cppinline{category}): the pointwise axioms on a carrier \emph{type} --- a model of a Birkhoff/Lawvere theory~\cite{burris1981universalalgebra,hylandpower2007}, a magma refined to a monoid by associativity and a unit.
-\textbf{Top-right, the lift base} (\cppinline{algebra}): \cppinline{IsAlgebraOnSet}, a set \emph{object} whose carrier is closed --- the subobject-over-carrier pattern familiar from proof assistants~\cite{mathlib2020}, i.e.\ $\mathbf{Trsk}$ met with carrier closure.
+\textbf{Top-left, the type layer} (\cppinline{category}): the pointwise axioms on a carrier \emph{type}: a model of a Birkhoff/Lawvere theory~\cite{burris1981universalalgebra,hylandpower2007}, a magma refined to a monoid by associativity and a unit.
+\textbf{Top-right, the lift base} (\cppinline{algebra}): \cppinline{IsAlgebraOnSet}, a set \emph{object} whose carrier is closed: the subobject-over-carrier pattern familiar from proof assistants~\cite{mathlib2020}, i.e.\ $\mathbf{Trsk}$ met with carrier closure.
 \textbf{Bottom, a lifted rung}: \cppinline{algebra::IsMonoid} is the lift base refined by the pointwise monoid axioms of the top-left.}
 \label{lst:algebra:universal}
 \noindent
@@ -1076,7 +1281,7 @@ concept IsMonoid = IsAlgebraOnSet<X, Op> && category::IsMonoid<typename X::Domai
 
 % Source excerpts from dedekind.algebra:boolean and dedekind.numbers:rational.
 \begin{listing}[!ht]
-\caption{Primitive carriers as \emph{algebraic sets}, inhabiting the set-indexed concepts of Listing~\ref{lst:algebra:universal}.  \textbf{Left:} $\mathbb{B} = \Omega\langle\texttt{bool}\rangle$ needs \emph{explicit} operators --- a Boolean rig under logical $(\vee,\wedge)$ and the Galois field $\mathbb{F}_2$ under bitwise $(\oplus,\wedge)$.  \textbf{Right:} $\mathbb{S} = \Omega\langle\texttt{size\_t}\rangle$, the modular ring $\mathbb{Z}/2^{w}\mathbb{Z}$ (width $w$ implementation-defined), is a commutative ring under the \emph{default} arithmetic $(+,\times)$, so the operators are omitted.  The complementary set-lattice layer ($\cup,\cap$) is Listing~\ref{lst:pruning}; composite carriers such as $\mathbb{Q}$ appear in \S\ref{sec:hsp_varieties}.}
+\caption{Primitive carriers as \emph{algebraic sets}, inhabiting the set-indexed concepts of Listing~\ref{lst:algebra:universal}.  \textbf{Left:} $\mathbb{B} = \Omega\langle\texttt{bool}\rangle$ needs \emph{explicit} operators: a Boolean rig under logical $(\vee,\wedge)$ and the Galois field $\mathbb{F}_2$ under bitwise $(\oplus,\wedge)$.  \textbf{Right:} $\mathbb{S} = \Omega\langle\texttt{size\_t}\rangle$, the modular ring $\mathbb{Z}/2^{w}\mathbb{Z}$ (width $w$ implementation-defined), is a commutative ring under the \emph{default} arithmetic $(+,\times)$, so the operators are omitted.  The complementary set-lattice layer ($\cup,\cap$) is Listing~\ref{lst:pruning}; composite carriers such as $\mathbb{Q}$ appear in \S\ref{sec:hsp_varieties}.}
 \label{lst:algebra:boolean_case}
 \noindent
 \begin{minipage}[t]{0.52\linewidth}
@@ -1300,7 +1505,7 @@ constexpr S semiring_closure(std::size_t source, std::size_t sink,
 
 The tropical carrier \cppinline{Tropical<T>} $= T \cup \{\infty\}$ is a certified \cppinline{IsSemiring}, and in fact a \emph{dioid}: its addition $\oplus$ is the order-extremum (\cppinline{max} for the longest path), an idempotent semilattice, while its multiplication $\otimes$ is the carrier's own $+$.
 That idempotence is the whole difference from the naturals; the concept \cppinline{IsTropical} names it as \cppinline{IsSemiring} refined by an idempotent $\oplus$.
-\cppinline{MaxPlus<T>} aliases the longest-path direction, with $\infty$ the saturating sentinel the extended cardinal's $\aleph_0$ already plays.\footnote{The finite carrier is \cppinline{unsigned} and the tropical $\otimes$ \emph{saturates} (clamps at \cppinline{max} on overflow rather than wrapping): saturating addition is total \emph{and} monotone over \cppinline{max}, so this is a genuine \emph{bounded max-plus dioid} --- the \cppinline{IsSemiring} distributivity certificate is honest all the way to the wraparound boundary, not merely below it (wrapping alone would fail, e.g. $1 + \max(2^{64}{-}1, 0) = 0 \ne 1$).  Signed \cppinline{long long} is correctly not certifiable (overflow is not a magma).  This is the same discipline the library applies to \textsc{ieee} and signed integers: an operation is certified only where the hardware genuinely closes it.}
+\cppinline{MaxPlus<T>} aliases the longest-path direction, with $\infty$ the saturating sentinel the extended cardinal's $\aleph_0$ already plays.\footnote{The finite carrier is \cppinline{unsigned} and the tropical $\otimes$ \emph{saturates} (clamps at \cppinline{max} on overflow rather than wrapping): saturating addition is total \emph{and} monotone over \cppinline{max}, so this is a genuine \emph{bounded max-plus dioid}: the \cppinline{IsSemiring} distributivity certificate is honest all the way to the wraparound boundary, not merely below it (wrapping alone would fail, e.g. $1 + \max(2^{64}{-}1, 0) = 0 \ne 1$).  Signed \cppinline{long long} is correctly not certifiable (overflow is not a magma).  This is the same discipline the library applies to \textsc{ieee} and signed integers: an operation is certified only where the hardware genuinely closes it.}
 
 \subsection{A worked exhibit: the diamond necklace}
 \label{subsec:necklace}
@@ -1801,6 +2006,11 @@ It is another instance of the paper's recurring seam.
 General first-order quantification over open intensional sets is undecidable (Rice's theorem), so rather than attempt the aspirational universal search the library supplies mechanical support for the \emph{existential} case: lazy Kleisli predicate transformation for composition, and a developer-supplied factorization for image membership.
 The worked internals are deferred to a follow-up revision.
 
+The optimisation operators of §\ref{sec:relations_functions_blueprint} ($\min$, $\max$, $\arg\max$) are the relational calculus of Bird and de~Moor~\cite{birddemoor1997aop}.
+On a codomain preorder $R$, the maximum is the point-free $\max R = (\in) \cap (R / \ni)$: membership $\in$ intersected with the relational \emph{division} (residual) $R / \ni$, which is the point-free spelling of the universal quantifier, and $\arg\max = \max R \cdot \Lambda F$ selects the $R$-optimal element of the fibre generated by the power transpose $\Lambda F : A \to \mathcal{P}(B)$ (the \cppinline{apply} of §\ref{sec:relations_functions_blueprint}).
+Because $R$ is only a \emph{preorder} (reflexive and transitive, not antisymmetric), distinct elements that are $R$-equivalent tie for the top and are held by the relation rather than collapsed to one, so $\max R$ is genuinely set-valued: argmax as the set-valued correspondence of Berge's maximum theorem~\cite{berge1963topological}.  (The Pareto front, by contrast, is the \emph{maximal} elements, a distinct operator: $\max R$ selects the \emph{greatest}, so it is empty where the front has several incomparable points.)
+Decidability is the same seam once more: the division $R / \ni$ is a bounded universal, decided by structure (a finite carrier ($\mathbb{B}$), a halfspace pivot on $\mathbb{N}$ or $\mathbb{Z}$, or a finite quotient) rather than by search, so no finiteness is required (the least element of a halfspace is read from its pivot, not enumerated).
+
 %%%
 \clearpage
 \section{The Carrier Poset and its Realisations}
@@ -1994,7 +2204,7 @@ The point the two call sites make is that the collapse is optional and the bound
 %%% 
 
 Step back from the showcases for a moment. What is the pattern? In every
-one of them we started with an intensional set---a predicate---and we
+one of them we started with an intensional set (a predicate) and we
 ended with a named extensional object whose \emph{type} carries the
 answer: $\varnothing$, a singleton, an order interval of known
 cardinality, an LP vertex. The collapse is not incidental; it is a
@@ -2131,7 +2341,7 @@ witness when case 2 is to fire) to a carrier-level reduction of any
 finite intersection of half-line constraints. The engineer's
 honesty obligation is the axiom set; the collapse is
 type-level free. The proof above is one demonstration that the
-discharge is mechanical---the inductive argument does not depend on
+discharge is mechanical: the inductive argument does not depend on
 which carrier or which pivot type, only on the axiom slots being
 filled.
 
@@ -2195,8 +2405,8 @@ happens to live in the C++ type system, and whose action is
 monotone-ascending in a lattice of decidability. The halfspace case is
 the smallest non-trivial instance we know how to prove mechanically.
 Four further axes appear to obey the same pattern; the project tracker
-carries one existential proof per axis---one worked instance, one IR
-fixture, one compile-time witness---rather than a general framework.
+carries one existential proof per axis (one worked instance, one IR
+fixture, one compile-time witness) rather than a general framework.
 We would rather ship one reduction that fully collapses than four
 sketches that do not.
 
@@ -2250,7 +2460,7 @@ yields another intensional object whose identity with a target is
 discharged by the compiler.
 
 \paragraph{Scaling beyond atomic carriers via structure-preserving combinators.}
-The same partition---atoms below, runtime above---governs the
+The same partition (atoms below, runtime above) governs the
 linear-algebra surface the paper exhibits at the $2 \times 2$ scale.
 The library ships \texttt{Invertible2x2}, \texttt{Matrix2x2V},
 \texttt{Vec2V} as statically-validated atoms; larger systems are
@@ -2317,7 +2527,7 @@ at the \cppinline{using} declaration.  Error messages, by contrast,
 are a more universal C++ pain: a failed \texttt{static\_assert} in a
 deep reduction can produce a multi-page expansion trail that no
 library can fully repair.  The realistic ambition is to \emph{fail
-fast at the named axiom} --- the first message the reader sees should
+fast at the named axiom}: the first message the reader sees should
 be the predicate that genuinely broke, not the cascade of downstream
 failures it triggered.  The library structures concept ladders so
 that each rung adds a single named requirement, and uses targeted
@@ -2332,8 +2542,8 @@ predicate sits inside the class body as a literal
 \texttt{static\_assert} rather than as a \cppinline{requires}-clause
 to be probed, so the diagnostic fires at the named axiom directly.}
 
-In short: the compiler wall has a predictable shape---depth, steps,
-combinatorics, numeric range, diagnostics---and each is either
+In short: the compiler wall has a predictable shape (depth, steps,
+combinatorics, numeric range, diagnostics), and each is either
 pushable by a flag, avoidable by staying within the instance regime
 for which this technique is intended, or a known limitation we do not
 claim to have solved. The paper's contribution lies entirely to the
@@ -2434,7 +2644,7 @@ In short, where Section~\ref{sec:compiler-wall} names the
 this subsection names the \emph{algebraic} boundary: which axioms
 discharge cleanly on which carriers, where the obligation falls to
 the engineer, and which frictions block the discharge. The empirical
-artefacts of the showcases sit one level below this chain---they
+artefacts of the showcases sit one level below this chain: they
 demonstrate that the library realises the axiom~$\to$~theorem
 discipline in C++23 today, on the carriers in the Rosetta tables of
 Section~\ref{sec:carrier-rosetta}.
@@ -2451,7 +2661,7 @@ of which requires the compiler to be a theorem prover:
         concept requirements makes every instantiation of a generic template an
         implicit proof obligation discharged at translation time.  Failed
         obligations are type errors, not runtime exceptions.  The obligation
-        itself is finite, decidable, and mechanical---the compiler \emph{checks}
+        itself is finite, decidable, and mechanical: the compiler \emph{checks}
         it, but does not \emph{search for} it.  Failed obligations surface
         as named-axiom messages (e.g.\ \texttt{Invertible2x2 requires full
         rank: a*d - b*c != 0}) rather than as deep template-cascade
@@ -2470,7 +2680,7 @@ Both uses are bounded but open-ended.  clang's type checker is not a
 theorem prover: it has no dependent types, no universal-quantification
 inference, no proof-search engine.  What it does have is
 \cppinline{static_assert}, \cppinline{requires}-clauses, and
-\cppinline{constexpr} evaluation---enough to verify a predetermined
+\cppinline{constexpr} evaluation, enough to verify a predetermined
 proof sketch, not enough to generate one.  The paradigm claims the
 reliable half: ruling out, and optimizing under, the classes of
 structural failures the programmer has named in the type system.  The
@@ -2492,13 +2702,13 @@ Figure~\ref{fig:target_model} playing the successor role.}
 \paragraph{Three honesty-anchoring constraints.}
 Three compounding constraints keep the library's artefacts honest:
 \emph{domain textbook anchoring} (concept names and law statements
-taken directly from the published mathematical vocabulary ---
+taken directly from the published mathematical vocabulary:
 Lawvere, Mac Lane, Lambek, Wadler, Moggi); \emph{mechanical
 validation} (every algebraic claim becomes a
 \cppinline{static_assert} the compiler discharges; every concept
 composes through a named-module DAG; every behavioural claim passes
 CI); and \emph{codomain textbook anchoring} (concepts validated
-against the C++ standard library's own ontology ---
+against the C++ standard library's own ontology:
 \cppinline{std::ranges::input_range}, \cppinline{std::regular},
 \cppinline{std::numeric_limits}, the iterator
 hierarchy).\footnote{The library is developed with AI assistance
@@ -2524,10 +2734,10 @@ Regressions would lead to build failures and be flagged during CI as blocking th
 \clearpage
 \section{Use of Agentic Systems and AI-Assistance Disclosure}
 
-Agentic systems --- LLMs invoked as code-review and refactoring assistants --- enter this picture as a third party that can act on either side of the universal/existential split, provided the source carries enough domain context to prime them on each invocation.
+Agentic systems (LLMs invoked as code-review and refactoring assistants) enter this picture as a third party that can act on either side of the universal/existential split, provided the source carries enough domain context to prime them on each invocation.
 The library therefore embeds the domain language deliberately deep into the source: exhaustive Doxygen on every public surface, opinionated quotes from practitioners (e.g.\ references to the Polish school of logic and semantic epistemology~\cite{ajdukiewicz1985jezyk} where the underlying register is at issue), and named provenance on each trait specialisation.
 The audience is not only the human reader; it is also the agentic context window on every pull-request review.
-Prompts to such systems are accordingly written liberally and in \emph{loose language} --- in the careful, sparing register of RFC~2119~§6~\cite{bradner1997rfc2119}, where the normative weight of \textsc{MUST} / \textsc{SHOULD} / \textsc{MAY} is reserved for the cases that actually demand it --- so that the agent can catalyse convergence not only at the syntactic layer the conventional build pipeline polices, but also at the semantic layer where loose intent has to be translated into precise concept-discharge obligations.
+Prompts to such systems are accordingly written liberally and in \emph{loose language}, in the careful, sparing register of RFC~2119~§6~\cite{bradner1997rfc2119} (where the normative weight of \textsc{MUST} / \textsc{SHOULD} / \textsc{MAY} is reserved for the cases that actually demand it), so that the agent can catalyse convergence not only at the syntactic layer the conventional build pipeline polices, but also at the semantic layer where loose intent has to be translated into precise concept-discharge obligations.
 
 
 

@@ -261,7 +261,7 @@ concept IsAbsorptive =
  *
  * Introduced under #377 for @c sets::SignedCardinality.
  */
-export template <typename T, typename Op>
+export template <typename T, typename Op = std::plus<T>>
 concept IsSaturating = is_saturating_v<T, Op>;
 
 /**
