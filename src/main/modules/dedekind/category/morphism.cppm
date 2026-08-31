@@ -874,12 +874,17 @@ export template <typename F>
 concept IsIsomorphism = IsArrow<F> && requires(F f) {
   // An isomorphism must provide its own inverse arrow
   { inverse(f) } -> IsArrow;
-  // And the domain of the inverse must be the codomain of the original.
-  // remove_cvref_t so a reference-deduced F (e.g. an lvalue arrow forwarded
-  // into image(F&&, S)) still resolves its member types, matching IsArrow.
+  // And the inverse must run BOTH ways: its domain is the original codomain
+  // AND its codomain is the original domain (a two-sided inverse B→A, not
+  // merely an arrow starting at B).  remove_cvref_t so a reference-deduced F
+  // (e.g. an lvalue arrow forwarded into image(F&&, S)) still resolves its
+  // member types.
   requires std::same_as<
       typename std::remove_cvref_t<F>::Codomain,
       typename std::remove_cvref_t<decltype(inverse(f))>::Domain>;
+  requires std::same_as<
+      typename std::remove_cvref_t<F>::Domain,
+      typename std::remove_cvref_t<decltype(inverse(f))>::Codomain>;
 };
 
 /** @brief The structural inverse of an Identity is itself. */

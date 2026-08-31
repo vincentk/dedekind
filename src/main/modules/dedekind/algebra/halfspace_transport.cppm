@@ -135,6 +135,13 @@ constexpr auto image(
     const Set<std::pair<T, T>, L,
               ProductRestrict<ProjAddConstProj<1, K, Rel::Eq, 2>,
                               ProjBound<1, R, P>>>&) {
+  // The shifted pivot P+K stays in the NTTPs' own type (unlike argmax's
+  // Singleton value, a Halfspace pivot's TYPE is load-bearing: structured_and's
+  // complement-pair detection is type-sensitive, so widening here would make a
+  // meet like {y≤6} ∩ {y>6} miss its collapse).  A pivot at the type's boundary
+  // with a positive shift is thus the same extreme-NTTP-value limitation the
+  // rest of the DSL carries; the ordinary pivots the DSL is written against are
+  // far from it.
   return Halfspace<T, P + K, dir_of(R), strict_of(R), L>{};  // keep L
 }
 

@@ -35,6 +35,7 @@ module;
 #include <concepts>
 #include <cstddef>
 #include <functional>  // std::plus (the argmax carrier's additive-group gate)
+#include <limits>      // std::numeric_limits (machine-carrier boundary check)
 #include <type_traits>
 #include <utility>
 
@@ -722,24 +723,34 @@ constexpr auto structured_or(Halfspace<T, P1, Direction::Downward, S1, L>,
  *  @c operator|| keeps the honest point-wise union. */
 export template <typename T, auto Lo, auto Hi, Strictness SL, Strictness SU,
                  typename L>
-  requires(IsTotallyOrdered<T> &&
-           ((SL == Strictness::Strict && SU == Strictness::Strict) ? (Lo < Hi)
-            : (SL == Strictness::NonStrict && SU == Strictness::NonStrict &&
-               IsRingIntegral<T>)
-                ? (Lo <= Hi + 1)  // discrete: adjacent bounds cover, no int gap
-                : (Lo <= Hi)))
+  requires(
+      IsTotallyOrdered<T> &&
+      ((SL == Strictness::Strict && SU == Strictness::Strict) ? (Lo < Hi)
+       : (SL == Strictness::NonStrict && SU == Strictness::NonStrict &&
+          IsRingIntegral<T>)
+           // discrete: adjacent bounds cover (no int gap).  Spelled
+           // Lo−1≤Hi (⟺ Lo≤Hi+1) but WITHOUT Hi+1: the short-circuit only
+           // reaches Lo−1 when Lo>Hi≥min, so the predecessor is boundary-
+           // safe where Hi+1 would overflow a signed / wrap an unsigned max.
+           ? (Lo <= Hi || Lo - 1 <= Hi)
+           : (Lo <= Hi)))
 constexpr auto structured_or(Halfspace<T, Lo, Direction::Upward, SL, L>,
                              Halfspace<T, Hi, Direction::Downward, SU, L>) {
   return dedekind::sets::UniversalSet<T, L>{};
 }
 export template <typename T, auto Hi, auto Lo, Strictness SU, Strictness SL,
                  typename L>
-  requires(IsTotallyOrdered<T> &&
-           ((SL == Strictness::Strict && SU == Strictness::Strict) ? (Lo < Hi)
-            : (SL == Strictness::NonStrict && SU == Strictness::NonStrict &&
-               IsRingIntegral<T>)
-                ? (Lo <= Hi + 1)  // discrete: adjacent bounds cover, no int gap
-                : (Lo <= Hi)))
+  requires(
+      IsTotallyOrdered<T> &&
+      ((SL == Strictness::Strict && SU == Strictness::Strict) ? (Lo < Hi)
+       : (SL == Strictness::NonStrict && SU == Strictness::NonStrict &&
+          IsRingIntegral<T>)
+           // discrete: adjacent bounds cover (no int gap).  Spelled
+           // Lo−1≤Hi (⟺ Lo≤Hi+1) but WITHOUT Hi+1: the short-circuit only
+           // reaches Lo−1 when Lo>Hi≥min, so the predecessor is boundary-
+           // safe where Hi+1 would overflow a signed / wrap an unsigned max.
+           ? (Lo <= Hi || Lo - 1 <= Hi)
+           : (Lo <= Hi)))
 constexpr auto structured_or(Halfspace<T, Hi, Direction::Downward, SU, L>,
                              Halfspace<T, Lo, Direction::Upward, SL, L>) {
   return dedekind::sets::UniversalSet<T, L>{};
@@ -1436,8 +1447,14 @@ struct ProjModConstBound {
     // The MATHEMATICAL residue class, not C++ remainder: normalise both sides
     // into [0,V) so signed values agree with the congruence (C++ −2 % 3 == −2,
     // but −2 ≡ 1 (mod 3)), keeping this consistent with argmax's residue
-    // normalisation and the finite-residue materialisation.
-    return rel_apply<R>(((coord<I>(p) % V) + V) % V, ((W % V) + V) % V);
+    // normalisation and the finite-residue materialisation.  Add V only to a
+    // negative remainder (which is already in (−V,0)), so the intermediate
+    // never overflows for a large valid modulus.
+    const auto lhs0 = coord<I>(p) % V;
+    const auto lhs = lhs0 < 0 ? lhs0 + V : lhs0;
+    constexpr auto rhs0 = W % V;
+    constexpr auto rhs = rhs0 < 0 ? rhs0 + V : rhs0;
+    return rel_apply<R>(lhs, rhs);
   }
 };
 export template <std::size_t I, auto V, auto W>
@@ -1569,6 +1586,33 @@ static_assert(
                            finite_cardinality(20))(finite_cardinality(4)),
     "apply(R,20) does not contain 4.");
 
+/** @brief Is the strict lower cut @c {x<p} empty (i.e. @c p at/below the
+ *  carrier's least element)?  The @c if constexpr isolates @c numeric_limits so
+ *  it is instantiated ONLY for a signed machine int --- a floor-0 carrier (ℕ /
+ *  unsigned / bool) tests @c p≤0, a dense/unbounded-below carrier never
+ * empties.
+ */
+template <typename T, auto p>
+consteval bool strict_lower_cut_empty() {
+  if constexpr (std::signed_integral<T>)
+    return p <= std::numeric_limits<T>::min();
+  else if constexpr (std::unsigned_integral<T> ||
+                     dedekind::category::IsSaturating<T>)
+    return p <= 0;
+  else
+    return false;
+}
+/** @brief Is the strict upper cut @c {x>p} empty (@c p at/above the carrier's
+ *  greatest element)?  Only a bounded MACHINE integer (@c numeric_limits::max)
+ *  can empty here; ℕ is unbounded above and a dense carrier never empties. */
+template <typename T, auto p>
+consteval bool strict_upper_cut_empty() {
+  if constexpr (std::integral<T>)
+    return p >= std::numeric_limits<T>::max();
+  else
+    return false;
+}
+
 /** @brief @c upperbounds(S) --- the @f$\forall@f$-projection @f$R/\ni@f$: the
  *  region dominating all of @c S, and the pluggable point of the extremum
  *  (Bird \& de~Moor @cite birddemoor1997aop).
@@ -1589,25 +1633,23 @@ static_assert(
  *  absent (unbounded), to @c Ø. */
 export template <typename T, auto p, Strictness S, typename L>
 constexpr auto upperbounds(Halfspace<T, p, Direction::Downward, S, L>) {
-  if constexpr (S == Strictness::Strict &&
-                dedekind::category::IsSaturating<T> && p <= 0) {
-    // Saturating carrier bounded below at 0 (ℕ): {x<p} is EMPTY for p≤0, so
-    // there is no max.  Return Ø rather than the predecessor p−1 (which would
-    // leave the carrier).
-    return Ø<T, L>{};
+  if constexpr (S == Strictness::Strict && strict_lower_cut_empty<T, p>()) {
+    // The strict cut {x<p} is EMPTY (p at/below the carrier's least element),
+    // so EVERY element is vacuously an upper bound: the ∀-projection is the
+    // whole universe Ω (and max = S ∩ Ω = S = ∅).  Honouring the contract, not
+    // just the answer.
+    return dedekind::sets::UniversalSet<T, L>{};
   } else if constexpr (S == Strictness::Strict &&
-                       dedekind::category::IsSaturating<T>) {
-    // DISCRETE strict {x<p} on a SATURATING carrier (ℕ with p>0; @c
-    // is_saturating means @c +/− escalate rather than overflow): p−1 is the
-    // greatest element, so {x<p} ∩ {x≥p−1} = {p−1}.  The gate is the algebraic
-    // saturation property (@c category:species), NOT a carrier-type list: a
-    // bounded MACHINE integer (@c int/@c unsigned) is NOT saturating, so its
-    // p−1 could overflow/wrap and it falls through to the unattained branch
-    // (@c max declines rather than reads a spurious extremum).
+                       (std::integral<T> ||
+                        dedekind::category::IsSaturating<T>)) {
+    // DISCRETE strict {x<p}, non-empty: the sup is the ATTAINED predecessor
+    // p−1, so {x<p} ∩ {x≥p−1} = {p−1}.  Boundary-safe: the empty branch already
+    // peeled off the floor, so p > the least element and p−1 neither underflows
+    // a machine int nor leaves ℕ (a saturating carrier escalates regardless).
     return Halfspace<T, p - 1, Direction::Upward, Strictness::NonStrict, L>{};
   } else {
-    // {x≤p}: sup p attained.  Continuous/non-saturating {x<p}: sup p unattained
-    // (no safe predecessor), so upper bounds {x≥p} and the meet is Ø (no max).
+    // {x≤p}: sup p attained.  Dense {x<p}: sup p unattained (no predecessor),
+    // so upper bounds {x≥p} and the meet is Ø (no max).
     return Halfspace<T, p, Direction::Upward, Strictness::NonStrict, L>{};
   }
 }
@@ -1617,18 +1659,22 @@ constexpr auto upperbounds(Halfspace<T, p, Direction::Upward, S, L>) {
 }
 export template <typename T, auto p, Strictness S, typename L>
 constexpr auto lowerbounds(Halfspace<T, p, Direction::Upward, S, L>) {
-  if constexpr (S == Strictness::Strict &&
-                dedekind::category::IsSaturating<T> && p + 1 < 0) {
+  if constexpr (S == Strictness::Strict && strict_upper_cut_empty<T, p>()) {
+    // Machine discrete {x>p} is EMPTY at the ceiling (p at the type's greatest
+    // value: true for bool, INT_MAX for int), so every element bounds ∅ → the
+    // universe (min = S ∩ Ω = ∅).  No p+1 (which would overflow/wrap).
+    return dedekind::sets::UniversalSet<T, L>{};
+  } else if constexpr (S == Strictness::Strict &&
+                       dedekind::category::IsSaturating<T> && p + 1 < 0) {
     // Saturating carrier bounded below at 0 (ℕ): the successor p+1 falls below
     // the carrier, so the min clamps to the carrier minimum 0.
     return Halfspace<T, 0, Direction::Downward, Strictness::NonStrict, L>{};
   } else if constexpr (S == Strictness::Strict &&
-                       dedekind::category::IsSaturating<T>) {
-    // DISCRETE strict {x>p} on a SATURATING carrier: the min is the attained
-    // successor p+1 (escalates, never overflows).  A bounded MACHINE/finite
-    // carrier (int/unsigned/bool) is NOT saturating — p+1 could overflow, wrap,
-    // or leave the carrier (bool: true+1=2) — so it falls through to the
-    // unattained branch and min declines rather than reading a spurious value.
+                       (std::integral<T> ||
+                        dedekind::category::IsSaturating<T>)) {
+    // DISCRETE strict {x>p}, non-empty: the min is the ATTAINED successor p+1.
+    // Boundary-safe: the ceiling branch (machine) already peeled off the top, ℕ
+    // is unbounded above, and a saturating carrier escalates regardless.
     return Halfspace<T, p + 1, Direction::Downward, Strictness::NonStrict, L>{};
   } else {
     return Halfspace<T, p, Direction::Downward, Strictness::NonStrict, L>{};
@@ -1689,13 +1735,22 @@ constexpr auto operator|(Halfspace<T, P1, D1, S1, L> a,
   return dedekind::sets::Set<T, L, decltype(pred)>{pred};
 }
 /** @brief @c Ø absorbs the meet (no upper bound ⟹ no max), the completion the
- *  @f$\forall@f$-projection needs at the unbounded end.  (The finite end, the
- *  universe meet-identity @c Ω∩X=X so @c 𝔹∩{⊤}={⊤}, is already the universe's
- *  own @c operator& member in @c :boundaries.) */
+ *  @f$\forall@f$-projection needs at the unbounded end. */
 export template <typename T, auto p, Direction D, Strictness S, typename L,
                  typename LZ>
 constexpr auto operator&(Halfspace<T, p, D, S, L>, Ø<T, LZ>) {
   return Ø<T, L>{};
+}
+/** @brief @c Ω is the meet IDENTITY at the other end: @c {x⋈p} ∩ Ω = @c {x⋈p}.
+ *  The universe's own @c operator& handles @c Ω∩X; this is the halfspace-first
+ *  order @c X∩Ω, which @c max/min hit when @c upperbounds/lowerbounds of an
+ *  EMPTY source is the whole universe (the @f$\forall@f$-projection of @c ∅).
+ */
+export template <typename T, auto p, Direction D, Strictness S, typename L,
+                 typename LU, typename C>
+constexpr auto operator&(Halfspace<T, p, D, S, L> h,
+                         const dedekind::sets::UniversalSet<T, LU, C>&) {
+  return h;
 }
 
 /** @brief @c max(S) --- the generic extremum: @c S met (@c ∩) with its own

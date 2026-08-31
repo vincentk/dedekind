@@ -1397,12 +1397,13 @@ constexpr auto cartesian_product(const A& a, const B& b) {
  */
 // The cartesian-product cardinality is the JOIN of the factors on the lattice
 // Finite < ℵ<0> < ℵ<1> < …: |A×B| = |A|·|B| = max(|A|,|B|) for infinite
-// factors, Finite only when both are finite.  (A blanket ℵ_0 would wrongly
-// downgrade an uncountable product such as ℝ×ℝ = ℶ_1 = ℵ<1> to countable.)
+// factors, Finite only when both are finite.  The primary is left INCOMPLETE
+// (no @c type): a cardinality pair outside the known lattice (Finite / ℵ<N>) is
+// HONESTLY REJECTED at compile time rather than silently downgraded to ℵ_0 ---
+// a blanket fallback would misclassify e.g. a custom uncountable tag × Finite
+// as countable.
 template <typename CA, typename CB>
-struct product_cardinality {
-  using type = ℵ_0;
-};
+struct product_cardinality;
 template <>
 struct product_cardinality<Finite, Finite> {
   using type = Finite;
