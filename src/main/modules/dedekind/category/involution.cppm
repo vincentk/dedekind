@@ -46,39 +46,71 @@
  */
 module;
 
-#include <concepts>    // std::convertible_to
-#include <functional>  // std::logical_not (the canonical trivial involution)
+#include <concepts>    // std::invocable, std::convertible_to
+#include <functional>  // std::logical_not / std::bit_not (canonical involutions)
+#include <type_traits>  // std::invoke_result_t, std::is_integral_v
 
 export module dedekind.category:involution;
 
 namespace dedekind::category {
 
+/** @brief Trait: a callable @c F is involutive on @c T iff @c F(F(x)) = x for
+ *         all @c x ∈ @c T.  Primary is @c std::false_type; opt-in via
+ *         specialisation or member discovery (mirrors @c :species's
+ *         @c is_reflexive / @c is_transitive export pattern).  It is the
+ *         CERTIFICATE the shape cannot supply: @c F² = @c Id is a claim about
+ *         @c F, not a syntactic property of its call. */
+export template <typename F, typename T>
+struct is_involutive : std::false_type {};
+
+/** @brief Discovery: a type may opt in via a nested @c is_involutive_v template
+ *         member. */
+template <typename F, typename T>
+  requires requires { F::template is_involutive_v<T>; }
+struct is_involutive<F, T>
+    : std::bool_constant<F::template is_involutive_v<T>> {};
+
+export template <typename F, typename T>
+inline constexpr bool is_involutive_v = is_involutive<F, T>::value;
+
+/** @brief Canonical: @c std::logical_not<bool> is the involution on @c bool. */
+template <>
+struct is_involutive<std::logical_not<bool>, bool> : std::true_type {};
+
+/** @brief Canonical: @c std::bit_not<T> is the involution on @b non-bool
+ *  integral @c T (@c ~~x = x).  @c bool is EXCLUDED: @c ~x promotes to @c int
+ *  (@c −1/−2) then converts back to @c true, so @c bit_not is not an involution
+ *  on @c bool --- its involution is @c std::logical_not. */
+template <typename T>
+  requires std::is_integral_v<T> && (!std::is_same_v<T, bool>)
+struct is_involutive<std::bit_not<T>, T> : std::true_type {};
+
 /**
  * @concept IsInvolution
- * @brief An endomap @f$f : T \to T@f$ that is its own inverse:
+ * @brief An endomap @f$f : T \to T@f$ that is CERTIFIED its own inverse:
  *        @f$f \circ f = \mathrm{id}_T@f$.
  *
- * @details The atomic seed of the @f$\dagger@f$ notion.  This is the
- * @b shape-level check (@c f is a callable @c T @c → @c T composable with
- * itself); the semantic law @f$f(f(x)) = x@f$ is a @c static_assert obligation
- * at the point of certification, in the library's usual "concept carries the
- * shape, witness carries the law" style.
+ * @details The atomic seed of the @f$\dagger@f$ notion.  It is NOT shape-only:
+ * beyond the endomap shape (@c f invocable @c T @c → @c T) it requires the
+ * @c is_involutive_v certificate, so a merely-composable map like
+ * @c [](int x){return x+1;} is @b rejected --- consumers can rely on
+ * @f$f(f(x)) = x@f$.  @c :lattice's @c IsInvolutiveEndofunctor is this same
+ * predicate under the lattice-complement reading.
  */
 export template <typename F, typename T>
-concept IsInvolution = requires(const F& f, const T& x) {
-  { f(x) } -> std::convertible_to<T>;
-  { f(f(x)) } -> std::convertible_to<T>;
-};
+concept IsInvolution =
+    std::invocable<F, T> &&
+    std::convertible_to<std::invoke_result_t<F, T>, T> && is_involutive_v<F, T>;
 
 /** @section involution__Formal_Verification
  *  @c std::logical_not on @c bool is the canonical trivial involution
- *  (@c !!x = x): a shape witness that the seed compiles and a law witness that
- *  the double application is the identity. */
+ *  (@c !!x = x): a certified witness that the seed rejects non-involutions. */
 static_assert(IsInvolution<std::logical_not<bool>, bool>);
+static_assert(IsInvolution<std::bit_not<int>, int>);
+static_assert(!IsInvolution<decltype([](int x) { return x + 1; }), int>,
+              "a merely-composable endomap is NOT an involution: the seed "
+              "requires the is_involutive_v certificate, not just the shape.");
 static_assert(std::logical_not<bool>{}(std::logical_not<bool>{}(true)) == true,
               "!!true = true: negation is an involution.");
-static_assert(std::logical_not<bool>{}(std::logical_not<bool>{}(false)) ==
-                  false,
-              "!!false = false: negation is an involution.");
 
 }  // namespace dedekind::category

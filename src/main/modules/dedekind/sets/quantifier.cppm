@@ -121,14 +121,16 @@ constexpr bool forall(const S& s, P p) {
  * exhaustion of a finite quotient. See the §3.1 exhibit.
  */
 
-// A quantifier is one comparison of the comprehension @c set(S,P) against a
-// lattice bound (Eqn 2): @c exists tests against @c ∅ (scheme A), @c forall
-// against the input set @c S (scheme B); each recovers its partner by
+// A quantifier is one comparison of the intensional comprehension @c s|p
+// against a lattice bound (Eqn 2): @c exists tests against @c ∅ (scheme A),
+// @c forall against the input set @c S (scheme B); each recovers its partner by
 // complementing the predicate, @c !P.  Generic over any @c IsSet domain @c S
-// and @c IsPredicate query @c P for which a @c set() comprehension is defined;
-// the per-carrier @c set() overloads (bool here, ℤ/Nℤ in :numbers) do the work.
-// The point-free query @c P is an UNBOUND fragment (@c π == fix(v), @c π %
-// fix(N) == fix(R), a halfspace) --- it has no @c Domain, so it is not
+// and a query @c P for which the where-clause @c s|p is well-formed (NOT the
+// retired
+// @c set(S,P) / @c IsPredicate surface): the @c | materialises the
+// comprehension per carrier (@c 𝔹 here, ℤ/Nℤ in :numbers). The point-free query
+// @c P is an UNBOUND fragment (@c π == fix(v), @c π % fix(N) == fix(R), a
+// halfspace) --- it has no @c Domain, so it is not
 // @c IsPredicate; the gate is simply that @c s @c | @c p is well-formed (the
 // where-clause materialises the comprehension).  A raw lambda has no @c
 // operator| against the universe, so it falls through to the enumerable

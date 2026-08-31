@@ -568,9 +568,10 @@ constexpr auto operator|(
 }
 
 // ∃ / ∀ over Ω<Cardinality> are the generic structural quantifiers of
-// :quantifier (template <IsSet S, IsPredicate P>, folded onto s | p): the
-// point-free congruence fragment π % fix(N) == fix(R) materialises through the
-// operator| above into a FiniteResidueSet, whose == Ø / == Ω decide.
+// :quantifier (template <IsSet S, typename P> with !IsSet<P>, folded onto s |
+// p; the point-free fragment is NOT an IsPredicate): the congruence fragment π
+// % fix(N) == fix(R) materialises through the operator| above into a
+// FiniteResidueSet, whose == Ø / == Ω decide.
 
 }  // namespace dedekind::sets
 

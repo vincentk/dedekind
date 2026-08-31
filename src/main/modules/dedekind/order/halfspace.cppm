@@ -1495,9 +1495,13 @@ struct ProjAddConstProj {
   using is_rel_predicate = void;
   template <typename P>
   constexpr bool operator()(const P& p) const {
-    const auto a = coord<I>(p);  // cast V into the carrier: Cardinality + int
-    using C = std::remove_cvref_t<decltype(a)>;  // is ambiguous, + Cardinality
-    return rel_apply<R>(a + static_cast<C>(V), coord<J>(p));  // is not
+    const auto a = coord<I>(p);
+    using C = std::remove_cvref_t<decltype(a)>;
+    // Add through @c std::plus<C>, NOT the bare @c +: on a narrow carrier
+    // (@c unsigned @c char) bare @c + promotes to @c int, so @c 255+1 becomes
+    // @c 256 and the graph would omit @c (255,0); @c std::plus<C> converts back
+    // to @c C, keeping the carrier's certified (modular) semantics.
+    return rel_apply<R>(std::plus<C>{}(a, static_cast<C>(V)), coord<J>(p));
   }
 };
 export template <std::size_t I, auto V, std::size_t J>
@@ -1515,7 +1519,10 @@ struct ProjMulConstProj {
   constexpr bool operator()(const P& p) const {
     const auto a = coord<I>(p);
     using C = std::remove_cvref_t<decltype(a)>;
-    return rel_apply<R>(a * static_cast<C>(V), coord<J>(p));
+    // Multiply through @c std::multiplies<C> (same narrow-promotion reason as
+    // @c ProjAddConstProj): keep the carrier's certified semantics.
+    return rel_apply<R>(std::multiplies<C>{}(a, static_cast<C>(V)),
+                        coord<J>(p));
   }
 };
 export template <std::size_t I, auto V, std::size_t J>
