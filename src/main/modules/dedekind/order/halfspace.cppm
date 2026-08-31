@@ -1995,6 +1995,16 @@ constexpr auto operator+(const Set<std::pair<A, B>, L, PR>& r,
       RelOr<PR, PS>{r.predicate(), s.predicate()}};
 }
 
+/** @brief @c R @c & @c S --- the INTERSECTION (meet) of two relations over the
+ *  same product, dual to the union @c +: membership is both predicates
+ *  (@c RelAnd).  The Boolean-lattice ∩ on relations. */
+export template <typename A, typename B, typename L, typename PR, typename PS>
+constexpr auto operator&(const Set<std::pair<A, B>, L, PR>& r,
+                         const Set<std::pair<A, B>, L, PS>& s) {
+  return Set<std::pair<A, B>, L, RelAnd<PR, PS>>{
+      RelAnd<PR, PS>{r.predicate(), s.predicate()}};
+}
+
 /** @brief The DIAGONAL (identity relation) @f$\Delta = \{(a,a)\}@f$ on a
  * carrier
  *  @c A --- @c {π1==π2} --- the reflexive-closure unit and the @c 1 of the
@@ -2051,6 +2061,32 @@ static_assert(
                            converse(𝔹 * 𝔹 | π1 < π2))(std::pair{true, false})),
     "(R;S)° = S°;R° at (true,false): the converse reverses composition "
     "(dagger contravariance).");
+
+// Kleene / relation-algebra laws on the DSL, witnessed on 𝔹: Δ is the
+// composition unit (R;Δ = R, the algebra's 1); composition distributes over
+// union (R;(S+T) = R;S + R;T); and --- the Schröder property-gated rewrite ---
+// a FUNCTIONAL relation's composition distributes over MEET too (R;(S∩T) =
+// R;S ∩ R;T), which fails for a non-functional relation.
+static_assert(static_cast<bool>(((𝔹 * 𝔹 | π1 < π2) >>
+                                 diagonal<bool>())(std::pair{false, true})) ==
+                  static_cast<bool>((𝔹 * 𝔹 | π1 < π2)(std::pair{false, true})),
+              "R;Δ = R: the diagonal is the composition unit (the 1).");
+static_assert(
+    static_cast<bool>(((𝔹 * 𝔹 | π1 <= π2) >>
+                       ((𝔹 * 𝔹 | π1 < π2) + (𝔹 * 𝔹 | π1 == π2)))(std::pair{
+        false, true})) ==
+        static_cast<bool>((((𝔹 * 𝔹 | π1 <= π2) >> (𝔹 * 𝔹 | π1 < π2)) +
+                           ((𝔹 * 𝔹 | π1 <= π2) >>
+                            (𝔹 * 𝔹 | π1 == π2)))(std::pair{false, true})),
+    "R;(S+T) = R;S + R;T: composition distributes over union.");
+static_assert(
+    static_cast<bool>(((𝔹 * 𝔹 | π1 != π2) >>
+                       ((𝔹 * 𝔹 | π1 <= π2) & (𝔹 * 𝔹 | π1 == π2)))(std::pair{
+        true, false})) ==
+        static_cast<bool>((((𝔹 * 𝔹 | π1 != π2) >> (𝔹 * 𝔹 | π1 <= π2)) &
+                           ((𝔹 * 𝔹 | π1 != π2) >>
+                            (𝔹 * 𝔹 | π1 == π2)))(std::pair{true, false})),
+    "functional R ⟹ R;(S∩T) = R;S ∩ R;T: the property-gated Schröder rewrite.");
 
 // ── FIXME(#786): the reflexive-TRANSITIVE closure (the Kleene star R*) is the
 // remaining brick that turns §7's CPM exhibit into a one-liner (R* at a
