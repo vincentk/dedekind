@@ -2033,6 +2033,25 @@ static_assert(!static_cast<bool>(symmetric(𝔹 * 𝔹 |
                                            π1 < π2)(std::pair{false, false})),
               "symmetric(<) excludes the diagonal: (false,false) ∉ ≠.");
 
+// The converse is the DAGGER of Rel: an INVOLUTION (R°° = R) that REVERSES
+// composition ((R;S)° = S°;R°) --- the two laws that make it a dagger functor,
+// and the reason a bijective relation's converse IS its inverse (Component A).
+static_assert(static_cast<bool>(converse(converse(𝔹* 𝔹 | π1 < π2))(std::pair{
+                  false, true})) ==
+                  static_cast<bool>((𝔹 * 𝔹 | π1 < π2)(std::pair{false, true})),
+              "R°° = R at (false,true): the converse is an involution.");
+static_assert(static_cast<bool>(converse(converse(𝔹* 𝔹 | π1 < π2))(std::pair{
+                  true, false})) ==
+                  static_cast<bool>((𝔹 * 𝔹 | π1 < π2)(std::pair{true, false})),
+              "R°° = R at (true,false): agrees on the excluded pair too.");
+static_assert(
+    static_cast<bool>(converse((𝔹 * 𝔹 | π1 < π2) >>
+                               (𝔹 * 𝔹 | π1 <= π2))(std::pair{true, false})) ==
+        static_cast<bool>((converse(𝔹 * 𝔹 | π1 <= π2) >>
+                           converse(𝔹 * 𝔹 | π1 < π2))(std::pair{true, false})),
+    "(R;S)° = S°;R° at (true,false): the converse reverses composition "
+    "(dagger contravariance).");
+
 // ── FIXME(#786): the reflexive-TRANSITIVE closure (the Kleene star R*) is the
 // remaining brick that turns §7's CPM exhibit into a one-liner (R* at a
 // tropical semiring).  R* = Δ + R⁺ = Δ + R + R² + ... needs powers Rⁿ = the
