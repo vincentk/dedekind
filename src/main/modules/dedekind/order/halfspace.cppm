@@ -1121,6 +1121,12 @@ struct ProductRestrict {
   using is_rel_predicate = void;
   P product;
   RP rp;
+  // NOTE: @c product here is a bool-returning rel-predicate (or the always-true
+  // universal), so the boolean cast is safe in the graph DSL.  A ternary-valued
+  // product would corrupt via @c static_cast<bool> (Ternary::False's underlying
+  // −1 casts to true); a logic-preserving @c L::AND needs @c L threaded through
+  // @c ProductRestrict, tracked as a follow-up (not reachable by construction
+  // today, since restrictions are decidable comparisons).
   template <typename Pair>
   constexpr bool operator()(const Pair& p) const {
     return static_cast<bool>(product(p)) && rp(p);
@@ -1419,7 +1425,11 @@ struct ProjModConstBound {
   using is_rel_predicate = void;
   template <typename P>
   constexpr bool operator()(const P& p) const {
-    return rel_apply<R>(coord<I>(p) % V, W);
+    // The MATHEMATICAL residue class, not C++ remainder: normalise both sides
+    // into [0,V) so signed values agree with the congruence (C++ −2 % 3 == −2,
+    // but −2 ≡ 1 (mod 3)), keeping this consistent with argmax's residue
+    // normalisation and the finite-residue materialisation.
+    return rel_apply<R>(((coord<I>(p) % V) + V) % V, ((W % V) + V) % V);
   }
 };
 export template <std::size_t I, auto V, auto W>
@@ -1569,14 +1579,15 @@ static_assert(
 // sup is not attained (strict) or absent (unbounded), to @c Ø.
 export template <typename T, auto p, Strictness S, typename L>
 constexpr auto upperbounds(Halfspace<T, p, Direction::Downward, S, L>) {
-  if constexpr (S == Strictness::Strict && IsRingIntegral<T>) {
-    // DISCRETE strict {x<p}: the sup p is not in S, but the predecessor p−1 IS
-    // (the greatest integer below p), so the upper bounds start at p−1 and the
-    // meet {x<p} ∩ {x≥p−1} = {p−1} attains the max.
-    // FIXME: assumes p−1 is IN the carrier.  On a carrier bounded below (ℕ at
-    // 0) {x<0} is empty and p−1 = −1 leaves ℕ, so max collapses to
-    // Singleton<-1> -- membership-empty (correct answer) but a type-level lie
-    // (== Ø would fail).
+  if constexpr (S == Strictness::Strict && IsRingIntegral<T> &&
+                !IsAbelianGroup<T, std::plus<T>> && p <= 0) {
+    // NON-group carrier bounded below at 0 (ℕ): {x<p} is EMPTY for p≤0, so
+    // there is no max.  Returning Ø keeps the predecessor p−1 (which would
+    // leave the carrier) from producing a spurious Singleton<p−1>.
+    return Ø<T, L>{};
+  } else if constexpr (S == Strictness::Strict && IsRingIntegral<T>) {
+    // DISCRETE strict {x<p} with the predecessor IN the carrier (a group, or ℕ
+    // with p>0): p−1 is the greatest element, so {x<p} ∩ {x≥p−1} = {p−1}.
     return Halfspace<T, p - 1, Direction::Upward, Strictness::NonStrict, L>{};
   } else {
     // {x≤p}: sup p attained.  Continuous {x<p}: sup p unattained (dense carrier
@@ -1590,7 +1601,12 @@ constexpr auto upperbounds(Halfspace<T, p, Direction::Upward, S, L>) {
 }
 export template <typename T, auto p, Strictness S, typename L>
 constexpr auto lowerbounds(Halfspace<T, p, Direction::Upward, S, L>) {
-  if constexpr (S == Strictness::Strict && IsRingIntegral<T>) {
+  if constexpr (S == Strictness::Strict && IsRingIntegral<T> &&
+                !IsAbelianGroup<T, std::plus<T>> && p + 1 < 0) {
+    // NON-group carrier bounded below at 0 (ℕ): the successor p+1 falls below
+    // the carrier, so the min clamps to the carrier minimum 0.
+    return Halfspace<T, 0, Direction::Downward, Strictness::NonStrict, L>{};
+  } else if constexpr (S == Strictness::Strict && IsRingIntegral<T>) {
     // DISCRETE strict {x>p}: the min is the attained successor p+1.
     return Halfspace<T, p + 1, Direction::Downward, Strictness::NonStrict, L>{};
   } else {
@@ -1629,8 +1645,7 @@ constexpr auto operator&(Halfspace<T, P1, D1, S1, L> a,
 // to
 // @c structured_or, so a same-direction or overlapping halfspace union
 // collapses.  The complement-pair @c operator| above (→ universe) is more
-// specialized and still claims its case; a genuine GAP has no @c structured_or,
-// so @c | there is an honest hard error (use the Set-level union instead).
+// specialized and still claims its case.
 export template <typename T, auto P1, Direction D1, Strictness S1, auto P2,
                  Direction D2, Strictness S2, typename L>
 constexpr auto operator|(Halfspace<T, P1, D1, S1, L> a,
@@ -1638,6 +1653,20 @@ constexpr auto operator|(Halfspace<T, P1, D1, S1, L> a,
   requires requires { structured_or(a, b); }
 {
   return structured_or(a, b);
+}
+// FALLBACK: a genuine GAP does not collapse to a halfspace, so return the
+// honest POINT-WISE union --- a Set whose membership ORs the two operands in
+// the carrier's logic (@c L::OR).  Selected exactly when @c structured_or does
+// not apply, so @c | is total (no hard error) while still collapsing where it
+// can.
+export template <typename T, auto P1, Direction D1, Strictness S1, auto P2,
+                 Direction D2, Strictness S2, typename L>
+  requires(!requires(Halfspace<T, P1, D1, S1, L> x,
+                     Halfspace<T, P2, D2, S2, L> y) { structured_or(x, y); })
+constexpr auto operator|(Halfspace<T, P1, D1, S1, L> a,
+                         Halfspace<T, P2, D2, S2, L> b) {
+  auto pred = [a, b](const T& v) { return L::OR(a(v), b(v)); };
+  return dedekind::sets::Set<T, L, decltype(pred)>{pred};
 }
 // @c Ø absorbs the meet (no upper bound ⟹ no max) --- the completion the
 // @f$\forall@f$-projection needs at the unbounded end.  (The finite end, the
@@ -1828,7 +1857,13 @@ constexpr auto image(
     const Set<std::pair<T, T>, L, ProjAddConstProj<1, K, Rel::Eq, 2>>&) {
   return Ω<T>;
 }
+// Constrained to ORDER relations (Lt/Le/Gt/Ge): dir_of / strict_of only model a
+// halfspace bound.  An EQUALITY restriction (π1==fix(p)) is a singleton domain,
+// not a halfspace, so it must NOT match here (that would give {y≤p+K} instead
+// of the singleton {p+K}); it is deliberately left to a separate singleton
+// path.
 export template <typename T, auto K, Rel R, auto P, typename L>
+  requires(R == Rel::Lt || R == Rel::Le || R == Rel::Gt || R == Rel::Ge)
 constexpr auto image(
     const Set<std::pair<T, T>, L,
               ProductRestrict<ProjAddConstProj<1, K, Rel::Eq, 2>,
@@ -2094,6 +2129,16 @@ inline constexpr bool is_left_total_v<dedekind::sets::Set<
     std::pair<T, T>, L,
     dedekind::order::ProjProj<1, dedekind::order::Rel::Eq, 2>>> = true;
 
+// RESTRICTION preserves single-valuedness (it removes pairs, never adds), so
+// FUNCTIONALITY propagates through ProductRestrict: a restricted graph is still
+// functional (a PARTIAL function).  Entireness deliberately does NOT propagate
+// (the restriction is exactly what drops the domain to a proper subset), so
+// is_left_total_v is left at its primary false here.
+template <typename A, typename B, typename L, typename P, typename RP>
+inline constexpr bool is_right_unique_v<dedekind::sets::Set<
+    std::pair<A, B>, L, dedekind::order::ProductRestrict<P, RP>>> =
+    is_right_unique_v<dedekind::sets::Set<std::pair<A, B>, L, P>>;
+
 // NODE (the compositional closure): the relative product R>>S is functional /
 // entire iff BOTH factors are -- the property propagates through >> (Table 3's
 // containments composing).  The retained intermediate B reconstructs the two
@@ -2142,4 +2187,16 @@ static_assert(
                                           (𝔹 * 𝔹 | π1 == π2))>,
     "id ∘ id (a ComposePred, not collapsed) is a function -- inferred from its "
     "two functional factors, exercising the compositional NODE rule.");
+// A RESTRICTED translation graph is still FUNCTIONAL (a partial function),
+// inferred through ProductRestrict from the underlying translation's
+// certificate
+// -- but NOT entire (the restriction drops the domain), so it is not a total
+// function, matching the paper's partial-function reading.
+static_assert(
+    dedekind::sets::IsFunctional<decltype((ℤ * ℤ | π1 + fix(3_c) == π2) |
+                                          π1 <= fix(5_c))> &&
+        !dedekind::sets::IsEntire<decltype((ℤ * ℤ | π1 + fix(3_c) == π2) |
+                                           π1 <= fix(5_c))>,
+    "a restricted translation graph is a functional-but-not-entire partial "
+    "function, inferred through ProductRestrict.");
 }  // namespace dedekind::order

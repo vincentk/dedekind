@@ -694,8 +694,8 @@ auto upperbounds(Ω<bool>)             { return Singleton<true>{}; }
 \begin{minipage}[t]{0.99\linewidth}
 \begin{cpp}
 static_assert(max(𝔹)(true));   static_assert(min(𝔹)(false));
-static_assert(max(ℤ | (π <= fix(5_c)))(5));
-static_assert(min(ℤ | (π >= fix(5_c)))(5));
+static_assert(max(ℕ | (π <= fix(5_c)))(5));   // ℤ = SignedCardinality carries NaZ,
+static_assert(min(ℕ | (π >= fix(5_c)))(5));   // so max/min run on the ordered ℕ
 \end{cpp}
 \end{minipage}
 \end{listing}
@@ -1056,8 +1056,8 @@ If a function is certified as surjective, every element of the target space is a
 More generally, if the mono leg of the factorization carries a \emph{retract} (an inverse on the image, total when the arrow is an iso and partial when it is merely monic), the type system decides membership as a local lookup on the image boundary, with no search of the domain (Listing~\ref{lst:functional_image_bijection}).
 
 The four maps that read a relation, its \cppinline{dom} and \cppinline{cod} and the \cppinline{image} and \cppinline{preimage} of a set, are one cell each of Table~\ref{tab:relation-quantifier}: one bound on one projection.
-\cppinline{preimage} and \cppinline{dom} read the $\pi_A$ side and never leave the domain, so they cost nothing beyond a forward call: $\mathrm{preimage}(f, S) = \{a \mid f(a) \in S\}$ is apply-and-test, decided by single-valuedness alone, and $\mathrm{dom}$ is all of $A$ the moment $f$ is entire.
-\cppinline{image} and \cppinline{cod} read the $\pi_B$ side and have to cross back: $\mathrm{cod}$ is all of $B$ once $f$ is surjective, and $b \in \mathrm{image}(f, S)$ is the question $\exists x \in S.\, f(x) = b$, which injectivity turns into the single lookup $f^{-1}(b) \in S$.
+\cppinline{preimage} and \cppinline{dom} read the $\pi_A$ side and never leave the domain, so they cost nothing beyond a forward call: $\mathrm{preimage}(f, S) = \{a \mid f(a) \in S\}$ is apply-and-test, decided by single-valuedness alone, and $\mathrm{dom}$ returns the \emph{declared} first factor $\Omega\langle A\rangle$ (the effective domain $\{a \mid \exists b.\, R(a,b)\}$, which equals $A$ only when $f$ is entire, is the separate $\exists$-projection behind the Rice wall).
+\cppinline{image} and \cppinline{cod} read the $\pi_B$ side: $\mathrm{cod}$ likewise returns the \emph{declared} second factor $\Omega\langle B\rangle$ (all of $B$ effectively only when $f$ is surjective), and $b \in \mathrm{image}(f, S)$ is the question $\exists x \in S.\, f(x) = b$, which injectivity turns into the single lookup $f^{-1}(b) \in S$ and does have to cross back.
 The forward image is thus the one whose membership needs the inverse, and that inverse is the retract on the mono leg.
 An isomorphism meets all four bounds and collapses every cell to a constant-time answer; a plain function gets its $\pi_A$ side for free and waits on injectivity for its $\pi_B$ side, which is exactly where the retract is required.
 

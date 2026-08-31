@@ -1395,17 +1395,37 @@ constexpr auto cartesian_product(const A& a, const B& b) {
  * anonymous closure) discarded the factor structure; keeping the universe
  * explicit lets @c dom / @c cod read the factors back.
  */
+// The cartesian-product cardinality is the JOIN of the factors on the lattice
+// Finite < ℵ<0> < ℵ<1> < …: |A×B| = |A|·|B| = max(|A|,|B|) for infinite
+// factors, Finite only when both are finite.  (A blanket ℵ_0 would wrongly
+// downgrade an uncountable product such as ℝ×ℝ = ℶ_1 = ℵ<1> to countable.)
+template <typename CA, typename CB>
+struct product_cardinality {
+  using type = ℵ_0;
+};
+template <>
+struct product_cardinality<Finite, Finite> {
+  using type = Finite;
+};
+template <std::size_t N>
+struct product_cardinality<Finite, ℵ<N>> {
+  using type = ℵ<N>;
+};
+template <std::size_t N>
+struct product_cardinality<ℵ<N>, Finite> {
+  using type = ℵ<N>;
+};
+template <std::size_t M, std::size_t N>
+struct product_cardinality<ℵ<M>, ℵ<N>> {
+  using type = ℵ<(M > N ? M : N)>;
+};
+
 export template <typename A, typename LA, typename CA, typename B, typename LB,
                  typename CB>
   requires std::same_as<LA, LB>
 constexpr auto operator*(const UniversalSet<A, LA, CA>&,
                          const UniversalSet<B, LB, CB>&) {
-  // |A×B| = |A|·|B|: finite iff BOTH factors are finite, else countable (ℵ_0).
-  // Derived from the factors' cardinalities so a product of finite universes
-  // (e.g. Ω<bool> * Ω<bool>) stays Finite rather than defaulting to ℵ_0.
-  using CC =
-      std::conditional_t<std::same_as<CA, Finite> && std::same_as<CB, Finite>,
-                         Finite, ℵ_0>;
+  using CC = typename product_cardinality<CA, CB>::type;
   return Ω<std::pair<A, B>, LA, CC>;
 }
 
@@ -1523,14 +1543,14 @@ constexpr typename L::Ω relates(const Relation<T1, T2, L, P>& r, const T1& a,
  */
 export template <typename T1, typename T2, typename L, typename P>
 constexpr auto dom(const Relation<T1, T2, L, P>&) {
-  return Ω<T1>;
+  return Ω<T1, L>;  // preserve the relation's logic species
 }
 
 /** @brief The @b declared codomain of a relation @c R ⊆ A×B: @c Ω<B>, the
  *         second factor (@c π₂'s codomain).  Dual to @c dom. */
 export template <typename T1, typename T2, typename L, typename P>
 constexpr auto cod(const Relation<T1, T2, L, P>&) {
-  return Ω<T2>;
+  return Ω<T2, L>;  // preserve the relation's logic species
 }
 
 /**
