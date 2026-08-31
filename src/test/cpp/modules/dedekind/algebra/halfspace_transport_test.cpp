@@ -142,6 +142,30 @@ static_assert(
         IsEntire<decltype((𝔹 * 𝔹 | π1 == π2) >> (𝔹 * 𝔹 | π1 == π2))>,
     "id ∘ id (a ComposePred, not collapsed) is a function -- inferred from its "
     "two functional factors, exercising the compositional NODE rule.");
+
+// ── A relation IS an arrow (dom/cod), and a BIJECTIVE relation is an
+// ISOMORPHISM in Rel -- total ∧ functional ∧ injective ∧ surjective -- with the
+// CONVERSE as its two-sided inverse.  A translation x↦x+K is a bijection, so
+// inverse (= the converse, K↦−K) is BOTH a left inverse (retract) and a right
+// inverse (section); the identity is the diagonal T₀ = {π2 = π1}.  (Tarski /
+// Table 3: f⁻¹∘f = id ⟺ f functional ∧ surjective; f∘f⁻¹ = id ⟺ f total ∧
+// injective.  Together: a two-sided inverse ⟺ a bijection ⟺ an iso.)  In a
+// general allegory the converse is only the DAGGER, an iso exactly here.
+static_assert(
+    (inverse(ℤ * ℤ | π1 + fix(3_c) == π2) >> (ℤ * ℤ | π1 + fix(3_c) == π2)) ==
+            (ℤ * ℤ | π1 + fix(0_c) == π2) &&
+        ((ℤ * ℤ | π1 + fix(3_c) == π2) >>
+         inverse(ℤ * ℤ | π1 + fix(3_c) == π2)) == (ℤ * ℤ | π1 + fix(0_c) == π2),
+    "f⁻¹∘f = f∘f⁻¹ = id (T₀): the converse is a TWO-SIDED inverse, so "
+    "the translation graph is an ISOMORPHISM in Rel.");
+// A PARTIAL (restricted) graph is functional but NOT entire, hence NOT a
+// bijection and NOT an iso: the converse loses the pruned domain on the
+// round-trip, so it is at most a one-sided dagger, never a two-sided inverse.
+static_assert(
+    IsFunctional<decltype((ℤ * ℤ | π1 + fix(3_c) == π2) | π1 <= fix(5_c))> &&
+        !IsEntire<decltype((ℤ * ℤ | π1 + fix(3_c) == π2) | π1 <= fix(5_c))>,
+    "a restricted graph is a partial function, NOT a bijection, so "
+    "NOT an iso -- its converse is a one-sided section at most.");
 }  // namespace
 
 // Runtime coverage for the relation-reading of a function: the graph of x+3,

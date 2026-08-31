@@ -556,8 +556,11 @@ constexpr auto operator|(
     dedekind::order::ProjModConstBound<0, N, dedekind::order::Rel::Eq, R>) {
   // Normalise R into [0,N) exactly as ProjModConstBound does (mathematical
   // residue, not raw value), so equivalent fragments like π%fix(3_c)==fix(3_c)
-  // or fix(-1_c) materialise as residues 0 and N−1, not empty.
-  constexpr auto Rn = ((R % N) + N) % N;
+  // or fix(-1_c) materialise as residues 0 and N−1, not empty.  Add N only when
+  // the first remainder is negative, so the intermediate never overflows for a
+  // large valid residue (R%N is already in (−N,N), so R%N+N stays in range).
+  constexpr auto r0 = R % N;
+  constexpr auto Rn = r0 < 0 ? r0 + N : r0;
   std::array<typename L::Ω, N> at{};
   for (std::size_t r = 0; r < static_cast<std::size_t>(N); ++r)
     at[r] = (r == static_cast<std::size_t>(Rn)) ? L::True : L::False;

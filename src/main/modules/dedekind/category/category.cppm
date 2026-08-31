@@ -43,6 +43,8 @@ export module dedekind.category;
 // Level 0: The Taxonomic Bricks (Atoms)
 export import :species;      // The Raw Machine Data
 export import :morphism;     // The Base Arrow (Prerequisite for everything)
+export import :involution;   // f∘f = id — the dagger seed (converse/transpose;
+                             // future home of the †-category / unitary surface)
 export import :mereology;    // Parthood (Prerequisite for Logic/Sets)
 export import :equivalence;  // Equivalence relations (Mazur up-to relaxation;
                              // #591)

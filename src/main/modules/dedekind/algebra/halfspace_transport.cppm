@@ -238,9 +238,19 @@ constexpr auto argmax(
               ProductRestrict<ProjAddConstProj<1, K, Rel::Eq, 2>,
                               RelAnd<ProjBound<2, Rel::Le, P>,
                                      ProjModConstBound<2, V, Rel::Eq, W>>>>&) {
-  constexpr auto p = P - K;                      // domain bound {x ≤ P−K}
-  constexpr auto r = ((W - K) % V + V) % V;      // residue x ≡ (W−K) mod V
-  constexpr auto m = p - ((p - r) % V + V) % V;  // largest x ≤ p with x ≡ r
+  // The optimum is read off in the NTTPs' arithmetic.  Even though @c T is a
+  // saturating ordered group, the pivots @c P/@c K/@c W/@c V are compile-time
+  // integers, so the intermediates are computed with headroom (a wider signed
+  // type) rather than the pivots' own type: @c P−K and the residue folds cannot
+  // then overflow for pivots anywhere in the pivot type's range.  Residue
+  // normalisation adds @c V only when the remainder is negative (never
+  // overflowing, cf. the ℤ/N materialisation in :numbers).
+  using W_ = long long;            // wider bound: no pivot overflow
+  constexpr W_ p = W_(P) - W_(K);  // domain bound {x ≤ P−K}
+  constexpr W_ r0 = (W_(W) - W_(K)) % W_(V);
+  constexpr W_ r = r0 < 0 ? r0 + W_(V) : r0;  // residue x ≡ (W−K) mod V
+  constexpr W_ d0 = (p - r) % W_(V);
+  constexpr W_ m = p - (d0 < 0 ? d0 + W_(V) : d0);  // largest x ≤ p with x ≡ r
   return Singleton<m, L>{};
 }
 

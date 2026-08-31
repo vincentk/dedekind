@@ -157,32 +157,6 @@ static_assert(!IsRingIntegral<double>);
 static_assert(!IsRingIntegral<float>);
 static_assert(!IsRingIntegral<long double>);
 
-/**
- * @concept IsUnboundedBelow
- * @brief An integer-range order that extends below every element: no least
- *        element, so a strict lower cut @c {x<p} is non-empty (and has a
- *        greatest element @c p−1) for @b every pivot @c p.
- *
- * @details A pure @b order property (this is @c order, not @c algebra): it does
- * NOT mention @c + or group structure.  It is what the @c max / @c min
- * predecessor branch actually needs --- whether @c {x<p} bottoms out.  The
- * signed built-in integers extend below 0 (down to @c INT_MIN), as does the
- * @c ℤ-proxy @c SignedCardinality (down to @c −ℵ_0); @c ℕ = @c Cardinality,
- * @c unsigned, and @c bool are all bounded below at their least element, so a
- * strict cut at or below it is empty and has no @c max.
- */
-export template <typename T>
-concept IsUnboundedBelow =
-    std::signed_integral<std::remove_cvref_t<T>> ||
-    std::same_as<std::remove_cvref_t<T>, dedekind::sets::SignedCardinality>;
-
-static_assert(IsUnboundedBelow<int>);
-static_assert(IsUnboundedBelow<dedekind::sets::SignedCardinality>);
-static_assert(!IsUnboundedBelow<dedekind::sets::Cardinality>,
-              "ℕ is bounded below at 0: {x<0} is empty, no max.");
-static_assert(!IsUnboundedBelow<unsigned int>);
-static_assert(!IsUnboundedBelow<bool>);
-
 /** @brief Orientation of a halfspace along the chain. */
 export enum class Direction { Upward, Downward };
 
@@ -1615,23 +1589,25 @@ static_assert(
  *  absent (unbounded), to @c Ø. */
 export template <typename T, auto p, Strictness S, typename L>
 constexpr auto upperbounds(Halfspace<T, p, Direction::Downward, S, L>) {
-  if constexpr (S == Strictness::Strict && IsRingIntegral<T> &&
-                !IsUnboundedBelow<T> && p <= 0) {
-    // Carrier bounded below (ℕ / unsigned / bool, least element 0): {x<p} is
-    // EMPTY for p≤0, so there is no max.  Returning Ø keeps the predecessor p−1
-    // (which would leave the carrier, or WRAP on unsigned) from producing a
-    // bogus Singleton<p−1>.  The gate is the pure ORDER property @c
-    // IsUnboundedBelow --- whether the strict cut bottoms out --- not a group
-    // notion; a signed carrier extends below 0 and takes the predecessor
-    // branch.
+  if constexpr (S == Strictness::Strict &&
+                dedekind::category::IsSaturating<T> && p <= 0) {
+    // Saturating carrier bounded below at 0 (ℕ): {x<p} is EMPTY for p≤0, so
+    // there is no max.  Return Ø rather than the predecessor p−1 (which would
+    // leave the carrier).
     return Ø<T, L>{};
-  } else if constexpr (S == Strictness::Strict && IsRingIntegral<T>) {
-    // DISCRETE strict {x<p} with the predecessor IN the carrier (a group, or ℕ
-    // with p>0): p−1 is the greatest element, so {x<p} ∩ {x≥p−1} = {p−1}.
+  } else if constexpr (S == Strictness::Strict &&
+                       dedekind::category::IsSaturating<T>) {
+    // DISCRETE strict {x<p} on a SATURATING carrier (ℕ with p>0; @c
+    // is_saturating means @c +/− escalate rather than overflow): p−1 is the
+    // greatest element, so {x<p} ∩ {x≥p−1} = {p−1}.  The gate is the algebraic
+    // saturation property (@c category:species), NOT a carrier-type list: a
+    // bounded MACHINE integer (@c int/@c unsigned) is NOT saturating, so its
+    // p−1 could overflow/wrap and it falls through to the unattained branch
+    // (@c max declines rather than reads a spurious extremum).
     return Halfspace<T, p - 1, Direction::Upward, Strictness::NonStrict, L>{};
   } else {
-    // {x≤p}: sup p attained.  Continuous {x<p}: sup p unattained (dense carrier
-    // has no predecessor), so upper bounds {x≥p} and the meet is Ø (no max).
+    // {x≤p}: sup p attained.  Continuous/non-saturating {x<p}: sup p unattained
+    // (no safe predecessor), so upper bounds {x≥p} and the meet is Ø (no max).
     return Halfspace<T, p, Direction::Upward, Strictness::NonStrict, L>{};
   }
 }
@@ -1641,13 +1617,18 @@ constexpr auto upperbounds(Halfspace<T, p, Direction::Upward, S, L>) {
 }
 export template <typename T, auto p, Strictness S, typename L>
 constexpr auto lowerbounds(Halfspace<T, p, Direction::Upward, S, L>) {
-  if constexpr (S == Strictness::Strict && IsRingIntegral<T> &&
-                !IsUnboundedBelow<T> && p + 1 < 0) {
-    // Carrier bounded below (ℕ / unsigned, least element 0): the successor p+1
-    // falls below the carrier, so the min clamps to the carrier minimum 0.
+  if constexpr (S == Strictness::Strict &&
+                dedekind::category::IsSaturating<T> && p + 1 < 0) {
+    // Saturating carrier bounded below at 0 (ℕ): the successor p+1 falls below
+    // the carrier, so the min clamps to the carrier minimum 0.
     return Halfspace<T, 0, Direction::Downward, Strictness::NonStrict, L>{};
-  } else if constexpr (S == Strictness::Strict && IsRingIntegral<T>) {
-    // DISCRETE strict {x>p}: the min is the attained successor p+1.
+  } else if constexpr (S == Strictness::Strict &&
+                       dedekind::category::IsSaturating<T>) {
+    // DISCRETE strict {x>p} on a SATURATING carrier: the min is the attained
+    // successor p+1 (escalates, never overflows).  A bounded MACHINE/finite
+    // carrier (int/unsigned/bool) is NOT saturating — p+1 could overflow, wrap,
+    // or leave the carrier (bool: true+1=2) — so it falls through to the
+    // unattained branch and min declines rather than reading a spurious value.
     return Halfspace<T, p + 1, Direction::Downward, Strictness::NonStrict, L>{};
   } else {
     return Halfspace<T, p, Direction::Downward, Strictness::NonStrict, L>{};
