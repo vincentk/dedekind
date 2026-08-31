@@ -866,7 +866,7 @@ The epic-monic factorization $R = m \circ e$ places the retract on the mono leg 
 \cmidrule(lr){2-3}\cmidrule(lr){4-5}
  & entire & functional & surjective & injective \\
 \midrule
-Trsk quantifier & $\forall a\,\exists b$ & $\forall a\,{\le}1\,b$ & $\forall b\,\exists a$ & $\forall b\,{\le}1\,a$ \\
+Trsk (point-free) & $I \subseteq R\cdot R^{-1}$ & $R^{-1}\!\cdot R \subseteq I$ & $I \subseteq R^{-1}\!\cdot R$ & $R\cdot R^{-1} \subseteq I$ \\
 \addlinespace
 set theory & total & single-valued & onto & one-to-one \\
 \addlinespace
@@ -874,6 +874,7 @@ category theory & $\pi_A$ epi & $\pi_A$ mono & $\pi_B$ epi & $\pi_B$ mono \\
 \bottomrule
 \end{tabular}
 \caption{The four properties of a relation $R \subseteq A \times B$ as an existence bound ($\ge 1$) and a uniqueness bound ($\le 1$) on its two projections, in three vocabularies.
+The top row is Tarski's point-free calculus of relations~\cite{tarski1941calculus}, with no bound variables: existence bounds are $I \subseteq (\cdot)$, uniqueness bounds $(\cdot) \subseteq I$, and the relative product $R\cdot R^{-1}$ is the DSL's \cppinline{converse} and \cppinline{>>}.
 Columns pair up: entire with functional on $\pi_A$, surjective with injective on $\pi_B$.}
 \label{tab:relation-quantifier}
 \end{table}
