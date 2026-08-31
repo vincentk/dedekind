@@ -887,9 +887,10 @@ These two readings, the intensional rule \cppinline{f} and the extensional set o
 Listing~\ref{lst:relation_spec} is the spec surface: \cppinline{IsRelation} as an \cppinline{IsSet} on the product, \cppinline{IsFunction} as its entire and functional refinement, and the calculus of relations whose composition \cppinline{>>} functions inherit as a special case.
 
 \begin{listing}[htbp]
-\caption{The spec surface.
+\caption{The spec surface, and where pluggability goes.
 \textbf{Left}: the core concepts, a relation as an \cppinline{IsSet} on the product $A \times B$, a function as its entire, functional refinement.
-\textbf{Right}: the combinators of the calculus of relations, composition the same \cppinline{>>} functions use.}
+\textbf{Right}: the combinators of the calculus of relations, composition the same \cppinline{>>} functions use.
+\textbf{Bottom}: the four properties are \emph{pluggable} traits (trust at the leaves), but inferred where structure decides --- a leaf carries one by its predicate shape, and a composite inherits it through \cppinline{>>} (the compositional closure of Table~\ref{tab:relation-quantifier}'s containments), so a graph and its relative product are functions \emph{by structure}, with no opt-in flag.}
 \label{lst:relation_spec}
 \noindent
 \begin{minipage}[t]{0.49\linewidth}
@@ -924,6 +925,17 @@ template <class R> concept
 IsSurjective = is_right_total_v<R>;
 template <class R> concept
 IsInjective = is_left_unique_v<R>;
+\end{cpp}
+\end{minipage}
+
+\vspace{0.4em}
+\noindent
+\begin{minipage}[t]{0.99\linewidth}
+\begin{cpp}
+// inferred, not declared: leaf AND composite are functions BY STRUCTURE:
+static_assert(IsFunctional<decltype(ℤ*ℤ | π1+fix(3_c)==π2)>);  // leaf: x+3
+static_assert(IsFunctional<decltype(                           // composite:
+  (ℤ*ℤ | π1+fix(3_c)==π2) >> (ℤ*ℤ | π1+fix(2_c)==π2))>);       //  inherited via >>
 \end{cpp}
 \end{minipage}
 \end{listing}

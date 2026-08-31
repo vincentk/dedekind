@@ -2005,14 +2005,20 @@ static_assert(max(Ω<bool>)(false) ==
  *  S(b,c)@f$.  Decidable exactly when the intermediate carrier is finite; here
  *  the @f$\exists b@f$ enumerates the two Booleans, so it folds at compile
  *  time. */
-template <typename PR, typename PS>
+// @c B (the intermediate carrier) is retained as a type parameter, not erased:
+// it is what lets the compositional property-inference below reconstruct the
+// two factor relations @c Set<pair<A,B>,PR> and @c Set<pair<B,C>,PS> (§3.2
+// Table 3).
+template <typename PR, typename PS, typename B = bool>
 struct ComposePred {
   PR r;
   PS s;
   template <typename Pair>
   constexpr bool operator()(const Pair& ac) const {
-    return (r(std::pair{ac.first, false}) && s(std::pair{false, ac.second})) ||
-           (r(std::pair{ac.first, true}) && s(std::pair{true, ac.second}));
+    return (r(std::pair{ac.first, B{false}}) &&
+            s(std::pair{B{false}, ac.second})) ||
+           (r(std::pair{ac.first, B{true}}) &&
+            s(std::pair{B{true}, ac.second}));
   }
 };
 
@@ -2025,8 +2031,8 @@ export template <typename A, typename B, typename C, typename L, typename PR,
   requires std::same_as<B, bool>
 constexpr auto operator>>(const Set<std::pair<A, B>, L, PR>& r,
                           const Set<std::pair<B, C>, L, PS>& s) {
-  return Set<std::pair<A, C>, L, ComposePred<PR, PS>>{
-      ComposePred<PR, PS>{r.predicate(), s.predicate()}};
+  return Set<std::pair<A, C>, L, ComposePred<PR, PS, B>>{
+      ComposePred<PR, PS, B>{r.predicate(), s.predicate()}};
 }
 
 // ≤ ∘ ≤ = ≤ (transitivity), decidable because the intermediate is Boolean.
@@ -2037,4 +2043,88 @@ static_assert(!static_cast<bool>(((𝔹 * 𝔹 | π1 <= π2) >>
                                   (𝔹 * 𝔹 | π1 <= π2))(std::pair{true, false})),
               "≤ ∘ ≤ excludes (true, false): transitivity recovers ≤.");
 
+}  // namespace dedekind::order
+
+// ── Structural inference of the relation properties (Table 3) ───────────────
+// The four properties are opt-in traits (trust at the leaves).  Here they are
+// INFERRED for the DSL's OWN graph relations, so the concepts are no longer
+// restrictive when structure decides.  is_right_unique_v (functional) and
+// is_left_total_v (entire) are the pluggable points; IsFunction reads off them.
+// This is Table 3's point-free reading realised: a LEAF carries the property by
+// its shape, a NODE (a relative product @c >>) inherits it because the property
+// composes.
+namespace dedekind::category {
+
+// LEAF: a translation graph x ↦ x+K is functional AND entire by construction --
+// certified from its predicate shape, with no opt-in flag.
+template <typename T, auto K, typename L>
+inline constexpr bool is_right_unique_v<dedekind::sets::Set<
+    std::pair<T, T>, L,
+    dedekind::order::ProjAddConstProj<1, K, dedekind::order::Rel::Eq, 2>>> =
+    true;
+template <typename T, auto K, typename L>
+inline constexpr bool is_left_total_v<dedekind::sets::Set<
+    std::pair<T, T>, L,
+    dedekind::order::ProjAddConstProj<1, K, dedekind::order::Rel::Eq, 2>>> =
+    true;
+
+// LEAF: the diagonal π1==π2 (the identity relation) is functional AND entire on
+// any carrier -- a ↦ a, single-valued and total.
+template <typename T, typename L>
+inline constexpr bool is_right_unique_v<dedekind::sets::Set<
+    std::pair<T, T>, L,
+    dedekind::order::ProjProj<1, dedekind::order::Rel::Eq, 2>>> = true;
+template <typename T, typename L>
+inline constexpr bool is_left_total_v<dedekind::sets::Set<
+    std::pair<T, T>, L,
+    dedekind::order::ProjProj<1, dedekind::order::Rel::Eq, 2>>> = true;
+
+// NODE (the compositional closure): the relative product R>>S is functional /
+// entire iff BOTH factors are -- the property propagates through >> (Table 3's
+// containments composing).  The retained intermediate B reconstructs the two
+// factor relations.
+template <typename A, typename C, typename L, typename PR, typename PS,
+          typename B>
+inline constexpr bool is_right_unique_v<dedekind::sets::Set<
+    std::pair<A, C>, L, dedekind::order::ComposePred<PR, PS, B>>> =
+    is_right_unique_v<dedekind::sets::Set<std::pair<A, B>, L, PR>> &&
+    is_right_unique_v<dedekind::sets::Set<std::pair<B, C>, L, PS>>;
+template <typename A, typename C, typename L, typename PR, typename PS,
+          typename B>
+inline constexpr bool is_left_total_v<dedekind::sets::Set<
+    std::pair<A, C>, L, dedekind::order::ComposePred<PR, PS, B>>> =
+    is_left_total_v<dedekind::sets::Set<std::pair<A, B>, L, PR>> &&
+    is_left_total_v<dedekind::sets::Set<std::pair<B, C>, L, PS>>;
+
+}  // namespace dedekind::category
+
+namespace dedekind::order {
+// EXISTENCE PROOF: the DSL's graph relations are FUNCTIONS (functional AND
+// entire) by structure, and the property is INFERRED through composition -- no
+// per-composite certificate.  (Read off @c IsFunctional / @c IsEntire, the
+// graph-level concepts over the pair-arg relations, not the two-arg
+// @c IsBinaryRelation surface.)
+static_assert(
+    dedekind::sets::IsFunctional<decltype(ℤ * ℤ | π1 + fix(3_c) == π2)> &&
+        dedekind::sets::IsEntire<decltype(ℤ * ℤ | π1 + fix(3_c) == π2)>,
+    "a translation graph is functional AND entire -- a function, "
+    "inferred from its predicate shape, with no opt-in flag.");
+static_assert(
+    dedekind::sets::IsFunctional<decltype((ℤ * ℤ | π1 + fix(3_c) == π2) >>
+                                          (ℤ * ℤ | π1 + fix(2_c) == π2))> &&
+        dedekind::sets::IsEntire<decltype((ℤ * ℤ | π1 + fix(3_c) == π2) >>
+                                          (ℤ * ℤ | π1 + fix(2_c) == π2))>,
+    "the composite (x+3) ∘ (x+2) is a function too -- INFERRED through the "
+    "relative product, no fresh certificate.");
+// The NODE rule on a NON-collapsing composite: id ∘ id over a Boolean
+// intermediate is a @c ComposePred (not a leaf), inferred a function purely
+// from its two functional factors -- the compositional closure, at the type
+// level.
+static_assert(
+    dedekind::sets::IsFunctional<decltype((𝔹 * 𝔹 | π1 == π2) >>
+                                          (𝔹 * 𝔹 | π1 == π2))> &&
+        dedekind::sets::IsEntire<decltype((𝔹 * 𝔹 | π1 == π2) >>
+                                          (𝔹 * 𝔹 | π1 == π2))>,
+    "id ∘ id (a ComposePred, not collapsed) is a function -- inferred from its "
+    "two functional factors, exercising the compositional NODE rule.");
 }  // namespace dedekind::order
