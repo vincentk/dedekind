@@ -1027,15 +1027,18 @@ constexpr auto image(F&& f, const Set<T, L, P>& s) {
   return Set<U, L, NewPredicate>{NewPredicate{s, std::move(f_inv)}};
 }
 
-/** @brief image of the @b unbounded universe under an iso is the universe: an
- *  iso is surjective, so it fixes @c Ω setwise.  The unbounded companion to
- *  the bounded case (@c image(Translation, Halfspace) in @c :order shifts a
- *  halfspace's pivot); here nothing to shift, so @c Ω comes back unchanged. */
+/** @brief image of the @b unbounded universe under an iso @c F:T→U is the
+ *  universe @b of the codomain, @c Ω<U>: an iso is surjective, so it fixes the
+ *  universe setwise --- but onto @c U, not @c T.  For an endo-iso (@c U==T)
+ * this is @c Ω<T> unchanged; for a heterogeneous iso (e.g.\ @c Modular<2> → @c
+ * bool) it correctly returns @c Ω<bool> so callers can query codomain values.
+ */
 export template <typename T, typename L, typename C,
                  dedekind::category::IsIsomorphism F>
   requires std::same_as<dedekind::category::Dom<std::remove_cvref_t<F>>, T>
-constexpr auto image(F&&, const UniversalSet<T, L, C>& u) {
-  return u;
+constexpr auto image(F&&, const UniversalSet<T, L, C>&) {
+  using U = dedekind::category::Cod<std::remove_cvref_t<F>>;
+  return UniversalSet<U, L, C>{};  // iso |U| = |T|, so the cardinality carries
 }
 
 /** @brief Composed predicate for the retract-decidable @c image(f, Set)
@@ -1397,7 +1400,13 @@ export template <typename A, typename LA, typename CA, typename B, typename LB,
   requires std::same_as<LA, LB>
 constexpr auto operator*(const UniversalSet<A, LA, CA>&,
                          const UniversalSet<B, LB, CB>&) {
-  return Ω<std::pair<A, B>, LA>;
+  // |A×B| = |A|·|B|: finite iff BOTH factors are finite, else countable (ℵ_0).
+  // Derived from the factors' cardinalities so a product of finite universes
+  // (e.g. Ω<bool> * Ω<bool>) stays Finite rather than defaulting to ℵ_0.
+  using CC =
+      std::conditional_t<std::same_as<CA, Finite> && std::same_as<CB, Finite>,
+                         Finite, ℵ_0>;
+  return UniversalSet<std::pair<A, B>, LA, CC>{};
 }
 
 /** @brief Infix sugar for cartesian product over sets. */

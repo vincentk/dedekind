@@ -34,6 +34,7 @@ module;
 #include <algorithm>
 #include <concepts>
 #include <cstddef>
+#include <functional>  // std::plus (the argmax carrier's additive-group gate)
 #include <type_traits>
 #include <utility>
 
@@ -41,6 +42,8 @@ export module dedekind.order:halfspace;
 
 import dedekind.category;
 import dedekind.sets;
+import :poset;  // IsPartiallyOrdered — the SEMANTIC order certificate for
+                // max/min
 
 namespace dedekind::order {
 using namespace dedekind::sets;
@@ -1171,15 +1174,22 @@ constexpr auto axis_factor(const ProjBound<I, R, V>&) {
   return Halfspace<TI, V, dir_of(R), strict_of(R)>{};
 }
 
-/** @brief A meet of cylinders: whichever child constrains axis @c I (our
- *  products place at most one bound per axis; a second is a FIXME(#785)). */
+/** @brief A meet of cylinders: the factor on axis @c I is the @b intersection
+ *  of both children's factors on that axis, so two bounds on the same axis
+ *  (@c π1<=5 & @c π1<=3) meet to the tighter one rather than dropping either.
+ */
 export template <std::size_t I, typename TI, typename A, typename B>
 constexpr auto axis_factor(const RelAnd<A, B>& r) {
   auto fa = axis_factor<I, TI>(r.a);
+  auto fb = axis_factor<I, TI>(r.b);
   if constexpr (requires { typename decltype(fa)::is_universal_boundary; }) {
-    return axis_factor<I, TI>(r.b);
+    return fb;  // a does not constrain axis I; the factor is b's
+  } else if constexpr (requires {
+                         typename decltype(fb)::is_universal_boundary;
+                       }) {
+    return fa;  // b does not constrain axis I; the factor is a's
   } else {
-    return fa;
+    return fa & fb;  // BOTH constrain axis I: intersect (structured_and)
   }
 }
 
@@ -1299,7 +1309,10 @@ static_assert(!(ℕ * ℕ | π1 != fix(0_c) & π2 % π1 == fix(0_c))(std::pair{
  *  whose modulus is the projection @c π_J rather than a fixed @c V). */
 export template <std::size_t I, auto V>
 struct ProjModConst {};
+// The modulus must be positive: @c coord % 0 is undefined behaviour (and fails
+// constant evaluation), matching the @c Modular<N> requirement @c N>0.
 export template <std::size_t I, auto V>
+  requires(V > 0)
 constexpr ProjModConst<I, V> operator%(Projection<I>, Bound<V>) {
   return {};
 }
@@ -1475,7 +1488,16 @@ static_assert(
 // sup is not attained (strict) or absent (unbounded), to @c Ø.
 export template <typename T, auto p, Strictness S, typename L>
 constexpr auto upperbounds(Halfspace<T, p, Direction::Downward, S, L>) {
-  return Halfspace<T, p, Direction::Upward, Strictness::NonStrict, L>{};
+  if constexpr (S == Strictness::Strict && IsRingIntegral<T>) {
+    // DISCRETE strict {x<p}: the sup p is not in S, but the predecessor p−1 IS
+    // (the greatest integer below p), so the upper bounds start at p−1 and the
+    // meet {x<p} ∩ {x≥p−1} = {p−1} attains the max.
+    return Halfspace<T, p - 1, Direction::Upward, Strictness::NonStrict, L>{};
+  } else {
+    // {x≤p}: sup p attained.  Continuous {x<p}: sup p unattained (dense carrier
+    // has no predecessor), so upper bounds {x≥p} and the meet is Ø (no max).
+    return Halfspace<T, p, Direction::Upward, Strictness::NonStrict, L>{};
+  }
 }
 export template <typename T, auto p, Strictness S, typename L>
 constexpr auto upperbounds(Halfspace<T, p, Direction::Upward, S, L>) {
@@ -1483,7 +1505,12 @@ constexpr auto upperbounds(Halfspace<T, p, Direction::Upward, S, L>) {
 }
 export template <typename T, auto p, Strictness S, typename L>
 constexpr auto lowerbounds(Halfspace<T, p, Direction::Upward, S, L>) {
-  return Halfspace<T, p, Direction::Downward, Strictness::NonStrict, L>{};
+  if constexpr (S == Strictness::Strict && IsRingIntegral<T>) {
+    // DISCRETE strict {x>p}: the min is the attained successor p+1.
+    return Halfspace<T, p + 1, Direction::Downward, Strictness::NonStrict, L>{};
+  } else {
+    return Halfspace<T, p, Direction::Downward, Strictness::NonStrict, L>{};
+  }
 }
 export template <typename T, auto p, Strictness S, typename L>
 constexpr auto lowerbounds(Halfspace<T, p, Direction::Downward, S, L>) {
@@ -1528,27 +1555,46 @@ constexpr auto operator&(Halfspace<T, p, D, S, L>, Ø<T, LZ>) {
 // defined; the structural collapse lives entirely in @c upperbounds + the meet,
 // so there is no generic search.  @c min is the dual (@c S met with its
 // minorants).
+// Gated on the SEMANTIC order: greatest/least element is a @b partial-order
+// notion, so the carrier's domain must certify @c IsPartiallyOrdered
+// (dedekind's order axioms --- reflexive, transitive, antisymmetric --- which
+// subsume
+// @c std::totally_ordered one level up in @c IsTotallyOrdered).  A carrier that
+// is not an ordered set --- e.g.\ @c SignedCardinality, which carries the
+// unordered @c NaZ like an IEEE NaN --- is honestly rejected: you cannot take
+// the max of a set that may contain a NaN.
 export template <typename S>
-  requires requires(const S& s) { s & upperbounds(s); }
+  requires IsPartiallyOrdered<typename S::Domain> &&
+           requires(const S& s) { s & upperbounds(s); }
 constexpr auto max(const S& s) {
   return s & upperbounds(s);
 }
 export template <typename S>
-  requires requires(const S& s) { s & lowerbounds(s); }
+  requires IsPartiallyOrdered<typename S::Domain> &&
+           requires(const S& s) { s & lowerbounds(s); }
 constexpr auto min(const S& s) {
   return s & lowerbounds(s);
 }
 
-// Exhibit (intensional, infinite case): over ℤ, max{x ≤ 5} = {5} and
-// min{x ≥ 5} = {5}, decided from the pivot with no enumeration.
 inline constexpr auto ℤ =
     Ω<SignedCardinality>;  // local alias (:integer is downstream)
-inline constexpr auto le5 = ℤ | (π <= fix(5_c));  // {x ∈ ℤ | x ≤ 5}
-inline constexpr auto ge5 = ℤ | (π >= fix(5_c));  // {x ∈ ℤ | x ≥ 5}
+// Exhibit (intensional, infinite case) over ℕ = @c Ω<Cardinality>, a registered
+// TOTAL order (⊃ partial).  @c ℤ = @c SignedCardinality carries the unordered
+// @c NaZ (NaN-like), so it is NOT an ordered set and the @c IsPartiallyOrdered
+// gate correctly rejects @c max/min on it; the max/min VALUES are identical on
+// ℕ (they are non-negative).
+inline constexpr auto ℕ = Ω<Cardinality>;
+inline constexpr auto le5 = ℕ | (π <= fix(5_c));  // {x ∈ ℕ | x ≤ 5}
+inline constexpr auto ge5 = ℕ | (π >= fix(5_c));  // {x ∈ ℕ | x ≥ 5}
 static_assert(max(le5)(5), "5 = max {x ≤ 5} (read off the pivot).");
 static_assert(!max(le5)(3), "3 is not the greatest element of {x ≤ 5}.");
 static_assert(min(ge5)(5), "5 = min {x ≥ 5}.");
 static_assert(!min(ge5)(7), "7 is not the least element of {x ≥ 5}.");
+// DISCRETE strict: {x<5} on ℕ has attained max 4 (the predecessor), NOT ∅.
+static_assert(max(ℕ | (π < fix(5_c)))(4),
+              "4 = max {x < 5} on ℕ (predecessor).");
+static_assert(!max(ℕ | (π < fix(5_c)))(5), "5 ∉ {x < 5}, so not its max.");
+static_assert(min(ℕ | (π > fix(5_c)))(6), "6 = min {x > 5} on ℕ (successor).");
 
 // inverse of a translation-graph relation = its CONVERSE B*A | P⁻¹: the same
 // graph read backwards, x ↦ x−K, again a GRAPH (a relation, not an arrow), so
@@ -1763,10 +1809,25 @@ consteval bool is_entire(
     const Set<std::pair<T, T>, L, ProjAddConstProj<1, K, Rel::Eq, 2>>&) {
   return true;
 }
-export template <typename T, auto K, typename RP, typename L>
+// A CODOMAIN constraint on π2 (an upper/lower bound, or its meet with a
+// residue) pulls the domain back to a PROPER subset through the graph, so the
+// graph drops to a partial function.  Narrowed to π2 shapes deliberately: a
+// restriction that does NOT shrink the domain (e.g. re-imposing the graph
+// itself) is not matched here, so is_entire makes no false non-entire claim for
+// it.
+export template <typename T, auto K, Rel R, auto P, typename L>
 consteval bool is_entire(
     const Set<std::pair<T, T>, L,
-              ProductRestrict<ProjAddConstProj<1, K, Rel::Eq, 2>, RP>>&) {
+              ProductRestrict<ProjAddConstProj<1, K, Rel::Eq, 2>,
+                              ProjBound<2, R, P>>>&) {
+  return false;
+}
+export template <typename T, auto K, Rel R, auto P, auto V, auto W, typename L>
+consteval bool is_entire(
+    const Set<std::pair<T, T>, L,
+              ProductRestrict<ProjAddConstProj<1, K, Rel::Eq, 2>,
+                              RelAnd<ProjBound<2, R, P>,
+                                     ProjModConstBound<2, V, Rel::Eq, W>>>>&) {
   return false;
 }
 
@@ -1778,7 +1839,17 @@ consteval bool is_entire(
  *  read off structurally: a compile-time constrained integer optimum, no
  *  search.  The codomain constraint, pulled back through the graph, IS the
  *  domain restriction (§3.3). */
+// Gated on the carrier being an ADDITIVE GROUP (@c IsAbelianGroup under @c +):
+// the arithmetic below assumes a domain unbounded below, so @c {x ≤ P−K ∧ x ≡ r
+// mod V} is always non-empty and @c m is a valid optimum.  Additive inverses
+// are exactly what make an integral carrier unbounded below (ℤ certifies it; ℕ
+// =
+// @c Cardinality is a rig, no negation, bounded below by 0), so this predicate
+// admits any signed integral carrier and excludes ℕ --- where a codomain bound
+// @c P<K would pull the feasible domain empty while the formula still returned
+// a negative singleton.
 export template <typename T, auto K, auto P, auto V, auto W, typename L>
+  requires dedekind::category::IsAbelianGroup<T, std::plus<T>>
 constexpr auto argmax(
     const Set<std::pair<T, T>, L,
               ProductRestrict<ProjAddConstProj<1, K, Rel::Eq, 2>,
@@ -1808,9 +1879,9 @@ static_assert(!argmax(ℤ * ℤ | π1 + fix(3_c) == π2 |
 // (the R/∋ division) decided by the counterexample set {x≤5} ∩ {x>5} collapsing
 // to ∅ via the complement-pair meet.  So the specialisation is checked against
 // the general law, not merely trusted (the Wadler free theorem, mechanised).
-static_assert(max(le5)(5) == (le5(5) && ((le5 & (ℤ | (π > fix(5_c)))) == Ø{})),
+static_assert(max(le5)(5) == (le5(5) && ((le5 & (ℕ | (π > fix(5_c)))) == Ø{})),
               "specific max(le5) models (∈) ∩ (R/∋) at the pivot.");
-static_assert(min(ge5)(5) == (ge5(5) && ((ge5 & (ℤ | (π < fix(5_c)))) == Ø{})),
+static_assert(min(ge5)(5) == (ge5(5) && ((ge5 & (ℕ | (π < fix(5_c)))) == Ø{})),
               "specific min(ge5) models (∈) ∩ (R/∋) at the pivot.");
 
 // Exhibit (finite case): max 𝔹 = {true}, min 𝔹 = {false} --- the SAME generic
