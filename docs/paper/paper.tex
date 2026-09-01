@@ -1592,6 +1592,7 @@ The closure is then the $\otimes$-fold of the eigenvalues, with no potential net
 \end{equation}
 The semiring is still the choice of problem, and because the transfer asks only for \cppinline{IsSemiring} the same fold carries the sensitivity of \S\ref{subsec:necklace} on the dual-number semiring, its tangent the winning branch's derivative by the envelope theorem.
 The optimum is the filtration of Equation~\ref{eqn:argmax}, realized to an extensional set only at the end by \cppinline{materialize}, gated on \cppinline{IsExtensional}: finite and addressable, not merely finite.
+\cppinline{materialize} is the realize boundary, our \cppinline{runST}~\cite{launchbury1994st}: the enumeration runs inside and \cppinline{constexpr} seals it, and \cppinline{IsExtensional} is the type-level guarantee that makes extraction sound, the role the rank-2 $\forall s$ plays for state locality played here for finiteness.
 
 \begin{listing}[htbp]
 \caption{Equations~\ref{eqn:braket}--\ref{eqn:transfer-closure} and Equation~\ref{eqn:argmax}, as code (abridged from the checked-in transfer showcase).}
