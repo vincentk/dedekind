@@ -329,6 +329,38 @@ constexpr std::ranges::iota_view<T, T> to_iota_view(
   return std::ranges::views::iota(B::start, B::bound);
 }
 
+/** @section ranges__Materialize — the last plank of the bridge
+ *  @c intensional @c → @c intensional-finite @c → @c materialize @c → @c
+ *  extensional.
+ *
+ *  @brief Realise a finite interval domain into its @c ExtensionalSet, keeping
+ *         the members that satisfy @c chi.  The interval is the @b bounded meet
+ *         that carries the finiteness certificate (@c cardinality_type @c =
+ *         @c Finite, so @c IsExtensional); @ref to_iota_view is the @b only
+ *         on-ramp from that bounded meet to a scannable range, and the fold is
+ *         the existing @c dedekind::sets::materialise.  An @b unbounded set has
+ *         no @c to_iota_view and cannot reach here — the Rice wall made
+ *         structural rather than checked.  Two-argument form takes the
+ *         @c argmax (or any) predicate; the one-argument form realises the
+ * whole interval (@c chi @c = @c ⊤).
+ */
+export template <std::integral T, auto Lo, auto Hi,
+                 dedekind::order::Strictness SL, dedekind::order::Strictness SU,
+                 typename L, typename Chi>
+auto materialize(const dedekind::order::OrderInterval<T, Lo, Hi, SL, SU, L>& oi,
+                 Chi chi) {
+  return dedekind::sets::from_std(
+      dedekind::sets::materialise(to_iota_view(oi), chi));
+}
+
+export template <std::integral T, auto Lo, auto Hi,
+                 dedekind::order::Strictness SL, dedekind::order::Strictness SU,
+                 typename L>
+auto materialize(
+    const dedekind::order::OrderInterval<T, Lo, Hi, SL, SU, L>& oi) {
+  return materialize(oi, [](const T&) { return true; });
+}
+
 /** @brief The runtime→typed half of the iso (verifying, partial): check
  *         whether the runtime @c iota_view matches what @c to_iota_view
  *         would produce for the target @c OI, and return @c OI{} on match,
