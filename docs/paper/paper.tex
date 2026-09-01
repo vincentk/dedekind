@@ -1475,33 +1475,8 @@ The longest path over a single-source, single-sink directed acyclic graph is the
 It is also the dual of a network-flow linear program: the flow variables live on the edges, the dual potentials live on the nodes, and total unimodularity of the node-arc incidence makes both optima integral.
 Computing the critical path is therefore solving one side of a linear program, and complementary slackness reads off the other side, namely which edges carry flow and so which activities are critical, in the sense of carrying zero float.
 
-\subsection{The closure, gated on an algebraic concept}
-\label{subsec:semiring_closure}
-
-The reduction is a \cppinline{fold} over the graph's edges (Listing~\ref{lst:closure}), gated on the \emph{algebraic} concept \cppinline{IsSemiring<S, Add, Mult>} rather than a syntactic operator list.
-Each edge relaxes one potential, $d[\mathrm{head}] := d[\mathrm{head}] \oplus d[\mathrm{tail}] \otimes c$; one pass in topological order suffices on a DAG.\footnote{\cppinline{materialise} (in the checked-in showcase) emits edges tail-ascending, a topological order whenever the nodes are numbered compatibly with the DAG; such a numbering always exists, and the necklace's $(x,y)$-index is one. A topologically shuffled edge list would instead need the usual $|\mathcal{V}| - 1$ relaxation passes.}
-The operators default to the carrier's canonical pair, so neither the reachability nor the critical-path call site spells them out.
-
-\begin{listing}[htbp]
-\caption{The \emph{net fiber} of the closure operator (Table~\ref{tab:relation-matrix-map}): the single-source semiring closure as a fold over the edge sequence, gated on \cppinline{IsSemiring}, the operators defaulted per carrier.
-The fold threads its accumulator in place, but the potential net never escapes the call, so \cppinline{constexpr} evaluation still folds it to the literal IR of Listing~\ref{lst:necklace-ir}.}
-\label{lst:closure}
-\begin{cpp}
-template <typename S, std::size_t Cap,
-          typename Add = semiring_ops<S>::add,
-          typename Mult = semiring_ops<S>::mult, typename Edges, typename CostFn>
-  requires IsSemiring<S, Add, Mult>
-constexpr S semiring_closure(std::size_t source, std::size_t sink,
-                             const Edges& edges, CostFn cost) {
-  static_assert(S{} == identity_v<S, Add>);  // net default IS the semiring 0-bar
-  FiniteNet<S, Cap> d{};               // 0-bar everywhere (-inf under MaxPlus)
-  d.at(source) = identity_v<S, Mult>;  // 1-bar at the source
-  return fold(edges, d, [&](auto& acc, Edge e) {   // thread the net in place
-    acc.at(e.head) = Add{}(acc(e.head), Mult{}(acc(e.tail), cost(e.tail, e.head)));
-  })(sink);
-}
-\end{cpp}
-\end{listing}
+The closure is gated on the \emph{algebraic} concept \cppinline{IsSemiring<S, Add, Mult>} rather than a syntactic operator list, with the operators defaulting to the carrier's canonical pair so no call site spells them out.
+Its \emph{net fiber} (Table~\ref{tab:relation-matrix-map}) is a \cppinline{fold} over the graph's edges relaxing one potential per edge, $d[\mathrm{head}] := d[\mathrm{head}] \oplus d[\mathrm{tail}] \otimes c$, in one topological pass on a DAG; the checked-in \cppinline{semiring_closure} is that fold, threading its potential net in place under \cppinline{constexpr}.
 
 The tropical carrier \cppinline{Tropical<T>} $= T \cup \{\infty\}$ is a certified \cppinline{IsSemiring}, and in fact a \emph{dioid}: its addition $\oplus$ is the order-extremum (\cppinline{max} for the longest path), an idempotent semilattice, while its multiplication $\otimes$ is the carrier's own $+$.
 That idempotence is the whole difference from the naturals; the concept \cppinline{IsTropical} names it as \cppinline{IsSemiring} refined by an idempotent $\oplus$.
@@ -1567,13 +1542,7 @@ This is forward-mode automatic differentiation in Elliott's sense~\cite{elliott2
 \subsection{The same closure, as rank-1 linear algebra}
 \label{subsec:transfer-necklace}
 
-The net fold of \S\ref{subsec:semiring_closure} is one \emph{instance} of a single operator, the closure of a seed under a one-step expansion,
-\begin{equation}
-\label{eqn:closure}
-\mathrm{closure}(X, Y) \;=\; \bigsqcup_{n} Y^{n}(X),
-\end{equation}
-the least fixpoint of $S \mapsto X \sqcup Y(S)$.
-Reachability is $R^{*} = \mathrm{closure}(\Delta,\ \lambda S.\, S ; R)$ over the Boolean semiring, and the critical path is the same closure over the tropical dioid; the iteration bound is the finite-subgraph selection a partial evaluation performs (Appendix~\ref{app:partial-eval}).
+The net fold above is one \emph{instance} of the closure $A^{*}$ of Equation~\ref{eq:semiring_linear_system}, read as the least fixpoint of $S \mapsto X \sqcup Y(S)$ (the closure of a seed under a one-step expansion): reachability is $R^{*} = \mathrm{closure}(\Delta,\ \lambda S.\, S ; R)$ over the Boolean semiring, the critical path the same closure over the tropical dioid, and the iteration bound is the finite-subgraph selection a partial evaluation performs (Appendix~\ref{app:partial-eval}).
 The necklace carries more structure: each diamond is a \emph{rank-1} transfer, its two parallel branches a bra and a ket, so its gain is their tropical inner product, the max-plus eigenvalue
 \begin{equation}
 \label{eqn:braket}
