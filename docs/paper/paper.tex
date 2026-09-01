@@ -1477,11 +1477,11 @@ Computing the critical path is therefore solving one side of a linear program, a
 \label{subsec:semiring_closure}
 
 The reduction is a \cppinline{fold} over the graph's edges (Listing~\ref{lst:closure}), gated on the \emph{algebraic} concept \cppinline{IsSemiring<S, Add, Mult>} rather than a syntactic operator list.
-Each edge relaxes one potential, $d[\mathrm{head}] := d[\mathrm{head}] \oplus d[\mathrm{tail}] \otimes c$; one pass in topological order suffices on a DAG.\footnote{\cppinline{materialise} (Listing~\ref{lst:necklace}) emits edges tail-ascending, a topological order whenever the nodes are numbered compatibly with the DAG; such a numbering always exists, and the necklace's $(x,y)$-index is one. A topologically shuffled edge list would instead need the usual $|\mathcal{V}| - 1$ relaxation passes.}
+Each edge relaxes one potential, $d[\mathrm{head}] := d[\mathrm{head}] \oplus d[\mathrm{tail}] \otimes c$; one pass in topological order suffices on a DAG.\footnote{\cppinline{materialise} (in the checked-in showcase) emits edges tail-ascending, a topological order whenever the nodes are numbered compatibly with the DAG; such a numbering always exists, and the necklace's $(x,y)$-index is one. A topologically shuffled edge list would instead need the usual $|\mathcal{V}| - 1$ relaxation passes.}
 The operators default to the carrier's canonical pair, so neither the reachability nor the critical-path call site spells them out.
 
 \begin{listing}[htbp]
-\caption{The single-source semiring closure: a fold over the edge sequence, gated on \cppinline{IsSemiring}, the operators defaulted per carrier.
+\caption{The \emph{net fiber} of the closure operator (Table~\ref{tab:relation-matrix-map}): the single-source semiring closure as a fold over the edge sequence, gated on \cppinline{IsSemiring}, the operators defaulted per carrier.
 The fold threads its accumulator in place, so the relaxation step is not side-effect-free.
 The effect stays local, the potential net never escapes the call, and \cppinline{constexpr} evaluation is the proof: a function leaking an observable effect could not fold to the literal IR of Listing~\ref{lst:necklace-ir}.
 This is the role Haskell reserves for \cppinline{runST}, sealing an in-place computation so it reads as pure from the outside.}
@@ -1536,33 +1536,8 @@ The cost of arriving at $(x', y')$ is $\max\big(y'(K - x'),\, 0\big)$, a non-neg
 It is $0$ on the axis, so merges are free, positive at the early peaks and late valleys, and clamped to $0$ where $y'(K - x') < 0$; the critical chevron is already non-negative, so the clamp leaves its value unchanged.
 Up pays early and down pays late, so the longest path is a chevron, up, up, down, down, of value $3 + 1 + 1 + 3 = 8$.
 
-Listing~\ref{lst:necklace} drives the one closure over three semirings, and Listing~\ref{lst:necklace-ir} is the LLVM IR it emits.
-
-\begin{listing}[htbp]
-\caption{One intensional relation, three semirings.  Reachability, the critical-path value, and its edge-cost sensitivity, all from the same \cppinline{semiring_closure} (abridged from the checked-in showcase).}
-\label{lst:necklace}
-\begin{cpp}
-// The analytic rule E((x,y),(x',y')) <=> x'=x+1 & |y'-y|=1, materialised
-// (once) as a topological edge sequence -- the extensional form the fold needs.
-constexpr auto edges = materialise(nedge);
-
-// Reachability: Boolean semiring, operators defaulted to (OR, AND).
-constexpr bool reaches = semiring_closure<bool, Cap>(
-    src, sink, edges, [](auto, auto){ return true; });
-
-// Critical path, point-free: collapse the relation to the critical-path
-// FUNCTION (a net V -> V), iterate it to the path, fold the path to a scalar.
-constexpr FiniteNet<size_t, Cap> pred = annotate<MaxPlus<unsigned long long>, Cap>(src, edges, cost);
-constexpr auto path  = critical_path(pred, src, sink);
-constexpr long long value = fold(path, 0LL,
-    [](long long& acc, Edge e){ acc += cost(e.tail, e.head).val; });
-static_assert(value == 8);
-
-// Sensitivity is membership: an edge is critical iff it lies on the path.
-static_assert( on_path(path, up_branch(1)));   // up @ x=1: critical
-static_assert(!on_path(path, up_branch(7)));   // up @ x=7: floated
-\end{cpp}
-\end{listing}
+The checked-in showcase drives this one closure over three semirings, reachability, the critical-path value, and its edge-cost sensitivity; Listing~\ref{lst:necklace-ir} is the LLVM IR it emits.
+The idiomatic, rank-1 rendering of the same exhibit is Listing~\ref{lst:transfer-necklace} in \S\ref{subsec:transfer-necklace}.
 
 \begin{listing}[htbp]
 \caption{The emitted IR at \texttt{-O2}: a literal load per witness, no solver and no loop.  These are checked-in fixtures, not a specification.}
