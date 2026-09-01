@@ -1482,9 +1482,7 @@ The operators default to the carrier's canonical pair, so neither the reachabili
 
 \begin{listing}[htbp]
 \caption{The \emph{net fiber} of the closure operator (Table~\ref{tab:relation-matrix-map}): the single-source semiring closure as a fold over the edge sequence, gated on \cppinline{IsSemiring}, the operators defaulted per carrier.
-The fold threads its accumulator in place, so the relaxation step is not side-effect-free.
-The effect stays local, the potential net never escapes the call, and \cppinline{constexpr} evaluation is the proof: a function leaking an observable effect could not fold to the literal IR of Listing~\ref{lst:necklace-ir}.
-This is the role Haskell reserves for \cppinline{runST}, sealing an in-place computation so it reads as pure from the outside.}
+The fold threads its accumulator in place, but the potential net never escapes the call, so \cppinline{constexpr} evaluation still folds it to the literal IR of Listing~\ref{lst:necklace-ir}.}
 \label{lst:closure}
 \begin{cpp}
 template <typename S, std::size_t Cap,
