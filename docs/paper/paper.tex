@@ -1453,6 +1453,8 @@ Over the ring $(\mathbb{R}, +, \times)$ the identical fixed point $x = A x + b$ 
 Replace the ring $(+, \times)$ by the tropical dioid $(\max, +)$ and the same inverse $A^{*}$ is the critical path.
 A general dioid has no subtraction, so $A^{*}$ is not literally $(I - A)^{-1}$ but its role-equivalent, the Neumann series standing in where the inverse cannot be formed.
 The choice of semiring is thus equally the choice of linear algebra.
+This is the \emph{algebraic path problem}: semiring linear algebra in the sense of Dolan's functional pearl~\cite{dolan2013semirings}, with the matrix closure $A^{*}$ its star, and categorically Master's open version~\cite{master2021openapp}.
+The algebra is theirs; what we add is the \emph{delivery} --- the same closure in C++ and hence in an optimizing compiler toolchain, where it folds to a literal at compile time (Listing~\ref{lst:necklace-ir}) for a mainstream developer, rather than from a hand-written functional typeclass.
 
 \begin{table}[htbp]
 \centering
