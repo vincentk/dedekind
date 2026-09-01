@@ -301,7 +301,7 @@ This categorical vocabulary is not decorative; intensional sets acting as predic
 \paragraph{Structure of the paper.}
 The remainder of this paper substantiates these contributions by evaluating three core architectural claims:
 (1) sets operate as intensional type-checked rules rather than extensional memory containers;
-(2) algebraic computation remains purely symbolic until explicitly materialized; and
+(2) algebraic computation remains purely symbolic until explicitly materialised; and
 (3) standard compilers can reliably function as validation and optimization engines for mathematical invariants.
 Section~\ref{sec:jlt_posture} isolates the disciplined fragment of C++23, the Juliet Posture.
 Section~\ref{sec:intensional_sets} bootstraps intensional sets as type-checked predicates and the type-directed collapse they license, and Section~\ref{sec:relations_functions_blueprint} lifts these to point-free mappings between sets.
@@ -343,7 +343,7 @@ The naming followed the observation that a rose by any other name would smell as
 
 The structural discipline enforces that while behavior-branching based on nominal lineage is rejected, algebraic specialization via partial ordering is embraced, provided all matching paths satisfy strict \emph{semantic equivalence}.
 The choice of path is then treated purely as a translation-time optimization detail.
-In practice, this posture materializes across progressive feature tiers: i) basic \texttt{constexpr} branching; ii) concept-constrained templates and structural subsumption; and iii) utilization of developer trait axioms for manual certification.
+In practice, this posture materialises across progressive feature tiers: i) basic \texttt{constexpr} branching; ii) concept-constrained templates and structural subsumption; and iii) utilization of developer trait axioms for manual certification.
 
 \paragraph{The Syntactic vs. Semantic Split}
 \label{sec:syntactic_semantic_split}
@@ -1560,8 +1560,8 @@ The closure is then the $\otimes$-fold of the eigenvalues, with no potential net
 \mathrm{value} \;=\; \bigotimes_{m} \lambda_m .
 \end{equation}
 The semiring is still the choice of problem, and because the transfer asks only for \cppinline{IsSemiring} the same fold carries the sensitivity of \S\ref{subsec:necklace} on the dual-number semiring, its tangent the winning branch's derivative by the envelope theorem.
-The optimum is the filtration of Equation~\ref{eqn:argmax}, realized to an extensional set only at the end by \cppinline{materialize}, gated on \cppinline{IsExtensional}: finite and addressable, not merely finite.
-\cppinline{materialize} is the realize boundary, our \cppinline{runST}~\cite{launchbury1994st}: the enumeration runs inside and \cppinline{constexpr} seals it, and \cppinline{IsExtensional} is the type-level guarantee that makes extraction sound, the role the rank-2 $\forall s$ plays for state locality played here for finiteness.
+The optimum is the filtration of Equation~\ref{eqn:argmax}, realized to an extensional set only at the end by \cppinline{materialise}, gated on \cppinline{IsExtensional}: finite and addressable, not merely finite.
+\cppinline{materialise} is the realize boundary, our \cppinline{runST}~\cite{launchbury1994st}: the enumeration runs inside and \cppinline{constexpr} seals it, and \cppinline{IsExtensional} is the type-level guarantee that makes extraction sound, the role the rank-2 $\forall s$ plays for state locality played here for finiteness.
 
 \begin{listing}[htbp]
 \caption{Equations~\ref{eqn:braket}--\ref{eqn:transfer-closure} and Equation~\ref{eqn:argmax}, as code (abridged from the checked-in transfer showcase).}
@@ -1579,17 +1579,17 @@ static_assert( transfer_chain<4>(bead<MinPlus>).val     == 0 );  // shortest pat
 static_assert( bead<MaxPlus<Dual>>(0).val.der           == 1 );  // sensitivity (AD)
 
 // Optimum: the forall-filter, realized at one IsExtensional step.  (Eqn argmax)
-constexpr auto opt = materialize(argmax(omega_N | interval(0,6), cap));  // {3}
+constexpr auto opt = materialise(argmax(omega_N | interval(0,6), cap));  // {3}
 \end{cpp}
 \end{listing}
 
-The joint is not a black box: which matrix a relation materialises to is fixed by its \emph{classification}, so \cppinline{materialize} is a structure-preserving functor rather than a dense dump (Table~\ref{tab:relation-matrix-map}).
+The joint is not a black box: which matrix a relation materialises to is fixed by its \emph{classification}, so \cppinline{materialise} is a structure-preserving functor rather than a dense dump (Table~\ref{tab:relation-matrix-map}).
 The dense fiber is provided for a binary endorelation on a semiring, the generic base case; the rank-1 fiber is the transfer's own \cppinline{OuterProduct}, whose power collapses to $\lambda^{n-1}M$ by Equation~\ref{eqn:rank1}.
 The remaining fibers are read off the four properties the relation calculus already infers (\S\ref{sec:relations_functions_blueprint}): a functional relation is sparse, and a bijection is a permutation, a $0$/$1$ orthogonal matrix, the dagger of the same calculus.
 
 \begin{table}[htbp]
 \centering
-\caption{The relation-to-matrix map: \cppinline{materialize} as a structure-preserving functor, the relation's classification fixing the matrix type. The dense and rank-1 fibers are implemented; the rest are read off the inferred four properties.}
+\caption{The relation-to-matrix map: \cppinline{materialise} as a structure-preserving functor, the relation's classification fixing the matrix type. The dense and rank-1 fibers are implemented; the rest are read off the inferred four properties.}
 \label{tab:relation-matrix-map}
 \begin{tabular}{lll}
 \toprule

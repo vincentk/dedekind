@@ -42,6 +42,7 @@ module;
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <limits>
 #include <optional>
 #include <ranges>
@@ -332,7 +333,7 @@ constexpr std::ranges::iota_view<T, T> to_iota_view(
 }
 
 /** @section ranges__Materialize — the last plank of the bridge
- *  @c intensional @c → @c intensional-finite @c → @c materialize @c → @c
+ *  @c intensional @c → @c intensional-finite @c → @c materialise @c → @c
  *  extensional.
  *
  *  @brief Realise a finite interval domain into its @c ExtensionalSet, keeping
@@ -349,7 +350,7 @@ constexpr std::ranges::iota_view<T, T> to_iota_view(
 export template <std::integral T, auto Lo, auto Hi,
                  dedekind::order::Strictness SL, dedekind::order::Strictness SU,
                  typename L, typename Chi>
-auto materialize(const dedekind::order::OrderInterval<T, Lo, Hi, SL, SU, L>& oi,
+auto materialise(const dedekind::order::OrderInterval<T, Lo, Hi, SL, SU, L>& oi,
                  Chi chi) {
   return dedekind::sets::from_std(
       dedekind::sets::materialise(to_iota_view(oi), chi));
@@ -358,23 +359,23 @@ auto materialize(const dedekind::order::OrderInterval<T, Lo, Hi, SL, SU, L>& oi,
 export template <std::integral T, auto Lo, auto Hi,
                  dedekind::order::Strictness SL, dedekind::order::Strictness SU,
                  typename L>
-auto materialize(
+auto materialise(
     const dedekind::order::OrderInterval<T, Lo, Hi, SL, SU, L>& oi) {
-  return materialize(oi, [](const T&) { return true; });
+  return materialise(oi, [](const T&) { return true; });
 }
 
 /** @section ranges__Argmax_Over_A_Bounded_Domain
  *
  *  The optimum as a filtration, carried with its own finite domain so it flows
- *  straight into @ref materialize as the single argument the endorsed surface
- *  @c materialize(argmax(Ω|[0,N], cost)) calls.
+ *  straight into @ref materialise as the single argument the endorsed surface
+ *  @c materialise(argmax(Ω|[0,N], cost)) calls.
  */
 
 /** @brief A finite set bundled with its scannable domain: an @c argmax result
  *         (or any refinement of a bounded interval) carrying both the interval
  *         (the @c IsExtensional range to scan) and the membership predicate
  * (the optimal filter).  This is the "domain-carrying bounded set" that lets
- *         @c materialize take a single argument. */
+ *         @c materialise take a single argument. */
 export template <typename OI, typename P>
 struct BoundedSet {
   OI domain;
@@ -393,45 +394,49 @@ struct BoundedSet {
  *         filter @c {x ∈ dom | ∀x'∈dom. cost(x') ≤ cost(x)}, with @c ≤ pulled
  *         back through @c cost.  Returns a @ref BoundedSet — intensional (the
  *         @c ∀ is decidable @b because @c dom is finite) and carrying its
- *         domain, so @c materialize realises it.  IsSet-valued: @c ∅ /
+ *         domain, so @c materialise realises it.  IsSet-valued: @c ∅ /
  * singleton (unique optimiser, a function) / larger (ties, a proper relation).
  */
 export template <std::integral T, auto Lo, auto Hi,
                  dedekind::order::Strictness SL, dedekind::order::Strictness SU,
-                 typename L, typename Cost>
+                 typename L, typename Cost, typename Order = std::less_equal<>>
 constexpr auto argmax(
-    const dedekind::order::OrderInterval<T, Lo, Hi, SL, SU, L>& dom,
-    Cost cost) {
-  auto pred = [dom, cost](const T& x) {
-    bool dominant = true;  // ∀ x' ∈ dom: cost(x') ≤ cost(x)
+    const dedekind::order::OrderInterval<T, Lo, Hi, SL, SU, L>& dom, Cost cost,
+    Order order = {}) {
+  // @c x is optimal iff @c ∀x'∈dom. @c order(cost(x'), cost(x)) --- "no x'
+  // beats x under @c order".  @c Order defaults to @c ≤ (argmax); pass @c
+  // std::greater_equal for @b argmin, or a semiring @c ⊕-relative comparator to
+  // rank by a dioid's order rather than the codomain's.
+  auto pred = [dom, cost, order](const T& x) {
+    bool dominant = true;
     for (const T xp : to_iota_view(dom))
-      dominant = dominant && (cost(xp) <= cost(x));
+      dominant = dominant && order(cost(xp), cost(x));
     return dominant;
   };
   using OI = dedekind::order::OrderInterval<T, Lo, Hi, SL, SU, L>;
   return BoundedSet<OI, decltype(pred)>{dom, pred};
 }
 
-/** @brief @c materialize a @ref BoundedSet: scan its domain, keep the members
+/** @brief @c materialise a @ref BoundedSet: scan its domain, keep the members
  *         its predicate accepts — an ordered @c ExtensionalSet (the @c std::set
  *         flavour).  This is the single-argument call the endorsed
- *         @c materialize(argmax(dom, cost)) surface makes. */
+ *         @c materialise(argmax(dom, cost)) surface makes. */
 export template <typename OI, typename P>
-auto materialize(const BoundedSet<OI, P>& bs) {
-  return materialize(bs.domain, bs.pred);
+auto materialise(const BoundedSet<OI, P>& bs) {
+  return materialise(bs.domain, bs.pred);
 }
 
-/** @brief The @b sequence flavour of @c materialize: realise the first @c N
+/** @brief The @b sequence flavour of @c materialise: realise the first @c N
  *         terms of a sequence (a bra/ket / @c Path / any @c index→value arrow)
  *         into a @c std::array — @b positional and indexed, dual to the set
  *         flavour's @c std::set.  The compile-time @c N is the Kleene bound
  *         (the finite prefix); this is the QM realise — an infinite bra/ket,
  *         bounded to @c [0,N), becomes a concrete finite-dimensional vector.
- *         Selected by the explicit @c N (@c materialize<N>(seq)); the no-@c N
+ *         Selected by the explicit @c N (@c materialise<N>(seq)); the no-@c N
  *         form realises a bounded @b set instead. */
 export template <std::size_t N, typename Seq>
 constexpr std::array<typename std::remove_cvref_t<Seq>::Codomain, N>
-materialize(const Seq& s) {
+materialise(const Seq& s) {
   using D = typename std::remove_cvref_t<Seq>::Domain;
   std::array<typename std::remove_cvref_t<Seq>::Codomain, N> out{};
   for (std::size_t i = 0; i < N; ++i) out[i] = s(static_cast<D>(i));
