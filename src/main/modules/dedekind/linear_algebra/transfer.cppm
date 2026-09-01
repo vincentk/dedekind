@@ -40,6 +40,7 @@
  */
 module;
 
+#include <array>
 #include <concepts>
 #include <cstddef>
 #include <functional>
@@ -208,6 +209,108 @@ constexpr auto argmax_set(const Bra& w, const Ket& v) {
                              P>{P{w, v}};
 }
 
+/** @section transfer__The_Intensional_Extensional_Joint
+ *
+ *  The secret sauce that turns the general theorem @c R* @c = @c closure(Δ, @c
+ *  λS.@c S;R) into an @b executable corollary: the map from an intensional
+ *  relation (a predicate over a possibly-infinite carrier, whose @b type grows
+ *  under @c ; and @c ∪) to its extensional adjacency matrix (a @b fixed,
+ *  type-stable carrier), on which a fixpoint can run.  The extensionality
+ *  constraint is spelled out @b in @b the @b type: @ref materialize demands the
+ *  finite bound @c N (the @c IsExtensional licence), and @ref star only accepts
+ *  the resulting @ref SquareMatrix.  So @c R* @c = @c star(materialize<N>(R))
+ *  type-checks exactly when the carrier is finite; the infinite case is a type
+ *  error, not a runtime check --- the Rice wall, made structural.
+ */
+
+/** @brief A dense @c N×N semiring matrix --- the extensional adjacency carrier
+ *  a relation materialises to.  Finite @c N by construction, hence the
+ *  @c IsExtensional witness the star's fixpoint needs. */
+export template <typename S, std::size_t N>
+using SquareMatrix = std::array<std::array<S, N>, N>;
+
+/** @brief @b THE @b JOINT: materialise an intensional relation over the finite
+ *  carrier @c [0,N)² into its extensional adjacency @ref SquareMatrix.  The
+ *  compile-time bound @c N @b is the extensionality constraint --- an infinite
+ *  relation has no such @c N and cannot form a matrix, so the Rice wall lives
+ * in this signature.  @c rel is any @c (i,j)@c →@c S membership/weight map (a
+ * DSL relation, an edge rule, a cost). */
+export template <std::size_t N, typename Rel,
+                 typename S = std::remove_cvref_t<
+                     std::invoke_result_t<Rel, std::size_t, std::size_t>>>
+constexpr SquareMatrix<S, N> materialize(const Rel& rel) {
+  SquareMatrix<S, N> m{};
+  for (std::size_t i = 0; i < N; ++i)
+    for (std::size_t j = 0; j < N; ++j) m[i][j] = rel(i, j);
+  return m;
+}
+
+/** @brief Elementwise @c ⊕-sum of two matrices (the semilattice join). */
+export template <
+    std::size_t N, typename S,
+    typename Add = typename dedekind::algebra::semiring_ops<S>::add>
+constexpr SquareMatrix<S, N> mat_add(const SquareMatrix<S, N>& A,
+                                     const SquareMatrix<S, N>& B) {
+  SquareMatrix<S, N> C{};
+  for (std::size_t i = 0; i < N; ++i)
+    for (std::size_t j = 0; j < N; ++j) C[i][j] = Add{}(A[i][j], B[i][j]);
+  return C;
+}
+
+/** @brief The @c ⊕/⊗ matrix product --- the transfer product over a semiring.
+ */
+export template <
+    std::size_t N, typename S,
+    typename Add = typename dedekind::algebra::semiring_ops<S>::add,
+    typename Mult = typename dedekind::algebra::semiring_ops<S>::mult>
+constexpr SquareMatrix<S, N> mat_mul(const SquareMatrix<S, N>& A,
+                                     const SquareMatrix<S, N>& B) {
+  SquareMatrix<S, N> C{};
+  for (std::size_t i = 0; i < N; ++i)
+    for (std::size_t j = 0; j < N; ++j) {
+      C[i][j] = dedekind::category::identity_v<S, Add>;
+      for (std::size_t k = 0; k < N; ++k)
+        C[i][j] = Add{}(C[i][j], Mult{}(A[i][k], B[k][j]));
+    }
+  return C;
+}
+
+/** @brief The identity matrix @c Δ: @c 1-bar on the diagonal, @c 0-bar off. */
+export template <
+    std::size_t N, typename S,
+    typename Add = typename dedekind::algebra::semiring_ops<S>::add,
+    typename Mult = typename dedekind::algebra::semiring_ops<S>::mult>
+constexpr SquareMatrix<S, N> mat_identity() {
+  SquareMatrix<S, N> I{};
+  for (std::size_t i = 0; i < N; ++i)
+    for (std::size_t j = 0; j < N; ++j)
+      I[i][j] = (i == j) ? dedekind::category::identity_v<S, Mult>
+                         : dedekind::category::identity_v<S, Add>;
+  return I;
+}
+
+/** @brief The Kleene star @c A* @c = @c ⨆ₙ @c Aⁿ @c = @c Δ @c ⊕ @c A @c ⊕ @c A²
+ *  @c ⊕ @c … --- @c R* as a @b running corollary of the generic @c closure,
+ *  iterating @c M @c ↦ @c Δ @c ⊕ @c M⊗A to its fixpoint on the @b extensional
+ *  matrix.  Over @c Bool it is reachability; over @c MaxPlus the longest path
+ *  (the algebraic path problem).  Discharges @c FIXME(#786) for @c R* as a
+ *  matrix corollary; the @ref SquareMatrix argument is the extensionality the
+ *  intensional relation lacked. */
+export template <
+    std::size_t N, typename S,
+    typename Add = typename dedekind::algebra::semiring_ops<S>::add,
+    typename Mult = typename dedekind::algebra::semiring_ops<S>::mult>
+constexpr SquareMatrix<S, N> star(const SquareMatrix<S, N>& A) {
+  return dedekind::category::closure(
+      mat_identity<N, S, Add, Mult>(),
+      [A](const SquareMatrix<S, N>& M) {
+        return mat_mul<N, S, Add, Mult>(M, A);
+      },
+      [](const SquareMatrix<S, N>& x, const SquareMatrix<S, N>& y) {
+        return mat_add<N, S, Add>(x, y);
+      });
+}
+
 /** @section transfer__Witnesses */
 namespace detail_transfer {
 
@@ -302,6 +405,32 @@ struct branch_out {  // w: only the k=0 branch present
 };
 static_assert(inner_product<2>(branch_out{}, branch_in{}),
               "𝔹 bra·ket = reachability: some branch is present end to end.");
+
+// ── R* as a MATRIX corollary of closure: the intensional→extensional joint
+// made executable.  The path relation 0→1→2→3 is materialised to its adjacency
+// matrix (the joint, which mints the extensionality) and then starred (closure
+// over the fixed carrier).  R* = star(materialize<N>(R)).
+inline constexpr auto path_rel = [](std::size_t i, std::size_t j) {
+  return j == i + 1;  // the edge i → i+1
+};
+
+// Over 𝔹 the star is REACHABILITY, R*[i][j] = (i ≤ j).
+inline constexpr auto Bstar = star<4>(materialize<4>(path_rel));
+static_assert(Bstar[0][0], "reflexive: Δ ⊆ R* (0 reaches 0).");
+static_assert(Bstar[0][3], "transitive: 0 reaches 3 along the path.");
+static_assert(!Bstar[3][0], "acyclic: 3 does not reach 0.");
+
+// Over MaxPlus with unit edges the SAME star is the LONGEST path (the algebraic
+// path problem) — one semiring apart.
+using TropAdd = typename dedekind::algebra::semiring_ops<MP>::add;
+inline constexpr MP mp_bot = dedekind::category::identity_v<MP, TropAdd>;
+inline constexpr auto wpath = [](std::size_t i, std::size_t j) {
+  return (j == i + 1) ? MP::of(1) : mp_bot;
+};
+inline constexpr auto Tstar = star<4>(materialize<4>(wpath));
+static_assert(Tstar[0][3] == MP::of(3),
+              "MaxPlus star = longest path: 0→1→2→3 costs 3.");
+static_assert(Tstar[3][0] == mp_bot, "unreachable = the ⊕-identity.");
 
 }  // namespace detail_transfer
 
