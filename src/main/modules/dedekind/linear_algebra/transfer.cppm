@@ -273,6 +273,23 @@ constexpr SquareMatrix<S, N> star(const SquareMatrix<S, N>& A) {
       });
 }
 
+/** @brief The @b extensional dagger: the transpose @c Aᵀ (swap @c i,j) of an
+ *  already-materialised matrix.  The dagger @b itself is @c converse (the
+ *  intensional predicate swap @c R°(i,j) @c = @c R(j,i), see the witnesses);
+ * this transpose is only its materialised realisation, worth forming when a
+ * physical layout is wanted (cache locality) rather than as the operation.  On
+ * @c Rel the dagger is @c converse, on a real space the transpose, on a Hilbert
+ * space the adjoint; it reverses every arrow, so @c (R°)* @c = @c (R*)° is
+ * CPM's
+ *  @b backward pass (the latest-start times). */
+export template <std::size_t N, typename S>
+constexpr SquareMatrix<S, N> transpose(const SquareMatrix<S, N>& A) {
+  SquareMatrix<S, N> T{};
+  for (std::size_t i = 0; i < N; ++i)
+    for (std::size_t j = 0; j < N; ++j) T[i][j] = A[j][i];
+  return T;
+}
+
 /** @section transfer__Witnesses */
 namespace detail_transfer {
 
@@ -377,6 +394,29 @@ inline constexpr auto Tstar = star<4>(materialise<4>(wpath));
 static_assert(Tstar[0][3] == MP::of(3),
               "MaxPlus star = longest path: 0→1→2→3 costs 3.");
 static_assert(Tstar[3][0] == mp_bot, "unreachable = the ⊕-identity.");
+
+// ── The DAGGER is CONVERSE: the intensional predicate swap R°(i,j) = R(j,i),
+// no materialisation. CPM is a forward/backward problem: the BACKWARD pass is
+// the closure of the CONVERSE relation, materialised only at the star's finite
+// fixpoint, and equals the transposed forward star, (R°)* = (R*)°. Over MaxPlus
+// this is the latest-start times to the sink; complementary slackness (forward
+// + backward = total) reads off which edges are critical.
+inline constexpr auto converse = [](auto rel) {
+  return [rel](std::size_t i, std::size_t j) { return rel(j, i); };
+};
+static_assert(star<4>(materialise<4>(converse(wpath))) == transpose(Tstar),
+              "backward pass = the dagger's closure: (R°)* = (R*)°.");
+
+// ── UNITARY, intensionally: a permutation's converse IS its inverse, P° ; P =
+// Δ, with ; the relative product (⊕/⊗ over the finite carrier) — no matrix
+// materialised. Component A's "converse = transpose = adjoint = inverse" as one
+// fact; the critical path (a unique optimum) is exactly such a permutation.
+inline constexpr auto perm_rel = [](std::size_t i, std::size_t j) {
+  return j == (i + 1) % 4;  // the cyclic shift 0→1→2→3→0
+};
+static_assert(matmul_entry<4>(converse(perm_rel), perm_rel, 0, 0) &&
+                  !matmul_entry<4>(converse(perm_rel), perm_rel, 0, 1),
+              "a permutation is UNITARY: P° ; P = Δ (converse IS inverse).");
 
 }  // namespace detail_transfer
 
