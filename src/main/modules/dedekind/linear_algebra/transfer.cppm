@@ -423,10 +423,35 @@ static_assert(dedekind::order::is_relation(perm_rel),
 inline constexpr auto Pmat = materialise<4>(perm_rel);
 inline constexpr auto PdaggerMat =
     materialise<4>(dedekind::order::converse(perm_rel));
-static_assert(matmul_entry<4>(PdaggerMat, Pmat, 0, 0) &&
-                  !matmul_entry<4>(PdaggerMat, Pmat, 0, 1),
+// P° ; P = Δ over 𝔹, all 16 entries (the relative product via ⊕/⊗): the full
+// certificate the is_unitary trait attaches to below, not merely a spot check.
+constexpr bool perm_dagger_is_inverse() {
+  for (std::size_t i = 0; i < 4; ++i)
+    for (std::size_t j = 0; j < 4; ++j)
+      if (matmul_entry<4>(PdaggerMat, Pmat, i, j) != (i == j)) return false;
+  return true;
+}
+static_assert(perm_dagger_is_inverse(),
               "a permutation is UNITARY: P° ; P = Δ (converse IS inverse).");
 
 }  // namespace detail_transfer
 
 }  // namespace dedekind::linear_algebra
+
+// ── Wire the @c is_unitary SEED (Component A): the cyclic-shift permutation is
+// the first per-carrier witness the seed anticipated "with the linear-algebra
+// consumer".  In @c Rel the dagger is the converse, and a permutation's
+// converse IS its inverse (P° ; P = Δ, certified just above), so @c CyclicShift
+// is
+// @b unitary.  This collapses "converse = transpose = adjoint = inverse" onto
+// one certificate for the bijective case.
+namespace dedekind::category {
+template <>
+struct is_unitary<dedekind::linear_algebra::detail_transfer::CyclicShift,
+                  std::size_t> : std::true_type {};
+static_assert(
+    is_unitary_v<dedekind::linear_algebra::detail_transfer::CyclicShift,
+                 std::size_t>,
+    "Component A: the cyclic-shift permutation's dagger (the converse) is its "
+    "inverse --- a unitary arrow of Rel.");
+}  // namespace dedekind::category
