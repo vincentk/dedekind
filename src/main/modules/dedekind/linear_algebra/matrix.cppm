@@ -43,3 +43,4 @@
 export module dedekind.linear_algebra:matrix;
 
 export import :mat2x2;
+export import :matnxn;  // Mat(S): the N×N, semiring-generic generalisation
