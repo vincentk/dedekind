@@ -1638,6 +1638,26 @@ constexpr auto opt = materialize(argmax(omega_N | interval(0,6), cap));  // {3}
 \end{cpp}
 \end{listing}
 
+The joint is not a black box: which matrix a relation materialises to is fixed by its \emph{classification}, so \cppinline{materialize} is a structure-preserving functor rather than a dense dump (Table~\ref{tab:relation-matrix-map}).
+The dense fiber is provided for a binary endorelation on a semiring, the generic base case; the rank-1 fiber is the transfer's own \cppinline{OuterProduct}, whose power collapses to $\lambda^{n-1}M$ by Equation~\ref{eqn:rank1}.
+The remaining fibers are read off the four properties the relation calculus already infers (\S\ref{sec:relations_functions_blueprint}): a functional relation is sparse, and a bijection is a permutation, a $0$/$1$ orthogonal matrix, the dagger of the same calculus.
+
+\begin{table}[htbp]
+\centering
+\caption{The relation-to-matrix map: \cppinline{materialize} as a structure-preserving functor, the relation's classification fixing the matrix type. The dense and rank-1 fibers are implemented; the rest are read off the inferred four properties.}
+\label{tab:relation-matrix-map}
+\begin{tabular}{lll}
+\toprule
+relation classification & matrix type & status \\
+\midrule
+binary endorelation, codomain a semiring & dense operator over the semiring & implemented \\
+rank-1 (outer product) & low-rank \cppinline{OuterProduct} ($M^n = \lambda^{n-1}M$) & implemented \\
+functional & sparse (one entry per row) & follows \\
+bijective & permutation / $0$-$1$ orthogonal (the dagger) & follows \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 
 \section{Compile-Time Cost and Complexity}
 \label{sec:evaluation_benchmarks}
