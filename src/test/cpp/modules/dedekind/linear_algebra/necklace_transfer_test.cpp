@@ -5,6 +5,7 @@
 import dedekind.linear_algebra; // :transfer — inner_product, transfer_chain,
                                 // argmax_set
 import dedekind.algebra;        // MaxPlus, MinPlus, semiring_ops
+import dedekind.analysis;       // Dual — forward-mode AD carrier
 import dedekind.category;       // IsSet
 
 // The diamond necklace of showcase_13, re-expressed as `materialize(argmax(
@@ -140,4 +141,41 @@ TEST_CASE("necklace: the semiring is the choice of problem (transfer form)",
   CHECK(d0(1));
   CHECK(!d0(0));
   CHECK(is_optimal_path<MPl>({1, 1, 0, 0}));
+}
+
+TEST_CASE(
+    "necklace generalizes to dual numbers: sensitivity = envelope theorem",
+    "[linear_algebra][transfer][necklace][dual]") {
+  using DUL = dedekind::analysis::Dual<unsigned long long>;
+  using MPd = MaxPlus<DUL>;
+
+  // A dual-valued diamond: probe the PEAK branch with a unit tangent (∂=1), the
+  // trough with none.  The transfer machinery is UNCHANGED — it asked only for
+  // IsSemiring, which MaxPlus<Dual> satisfies — so the same inner_product /
+  // transfer_chain carry the derivative.
+  struct probe_peak_ket {
+    using Domain = std::size_t;
+    using Codomain = MPd;
+    constexpr MPd operator()(std::size_t k) const {
+      return k == 0 ? MPd::of(DUL{3, 1}) : MPd::of(DUL{0, 0});
+    }
+  };
+  struct zero_bra {
+    using Domain = std::size_t;
+    using Codomain = MPd;
+    constexpr MPd operator()(std::size_t) const { return MPd::of(DUL{0, 0}); }
+  };
+
+  // λ = ⟨w|v⟩ over MaxPlus<Dual>: ⊕ (= max) forwards the WINNING branch's
+  // tangent.  The peak (cost 3) wins, so the eigenvalue carries its derivative
+  // — forward-mode AD, the envelope theorem, with no change to the closure.
+  const MPd lam = inner_product<2>(zero_bra{}, probe_peak_ket{});
+  CHECK(lam.val.val == 3);  // the critical value
+  CHECK(lam.val.der == 1);  // the peak branch lies on the critical path
+
+  // Along a chain the derivative accumulates (⊗ adds both value and tangent):
+  // two critical beads give value 6 with sensitivity 2.
+  const MPd two = transfer_chain<2>([&](std::size_t) { return lam; });
+  CHECK(two.val.val == 6);
+  CHECK(two.val.der == 2);
 }
