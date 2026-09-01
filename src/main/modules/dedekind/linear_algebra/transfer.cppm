@@ -53,6 +53,7 @@ import dedekind.algebra;  // IsSemiring, semiring_ops, Tropical/MaxPlus, ⊕/⊗
 import dedekind.category; // IsArrow, IsSemiring, identity_v, closure
 import dedekind.order;    // IsDirectedSet
 import :diagonal;         // OuterProduct — the rank-1 dyad carrier
+import :matnxn;  // Mat(S) = MatNxNV<S,N>: the certified matrix semiring
 
 namespace dedekind::linear_algebra {
 
@@ -176,9 +177,12 @@ constexpr S transfer_chain(Bead bead) {
 
 /** @brief A dense @c N×N semiring matrix --- the extensional adjacency carrier
  *  a relation materialises to.  Finite @c N by construction, hence the
- *  @c IsExtensional witness the star's fixpoint needs. */
+ *  @c IsExtensional witness the star's fixpoint needs.  This @b is @c Mat(S)
+ *  (@ref MatNxNV, @c :matnxn), the certified matrix semiring; the alias keeps
+ *  the transfer-local spelling while @c ⊕/⊗ and the @c *-closure come from
+ *  @c semiring_ops<Mat(S)>, not hand-rolled here. */
 export template <typename S, std::size_t N>
-using SquareMatrix = std::array<std::array<S, N>, N>;
+using SquareMatrix = MatNxNV<S, N>;
 
 /** @brief @b THE @b JOINT: materialise a @b binary @b endorelation @b on @b a
  *  @b semiring into its dense extensional adjacency @ref SquareMatrix --- the
@@ -206,71 +210,32 @@ constexpr SquareMatrix<S, N> materialise(const Rel& rel) {
   return m;
 }
 
-/** @brief Elementwise @c ⊕-sum of two matrices (the semilattice join). */
-export template <
-    std::size_t N, typename S,
-    typename Add = typename dedekind::algebra::semiring_ops<S>::add>
-constexpr SquareMatrix<S, N> mat_add(const SquareMatrix<S, N>& A,
-                                     const SquareMatrix<S, N>& B) {
-  SquareMatrix<S, N> C{};
-  for (std::size_t i = 0; i < N; ++i)
-    for (std::size_t j = 0; j < N; ++j) C[i][j] = Add{}(A[i][j], B[i][j]);
-  return C;
-}
-
-/** @brief The @c ⊕/⊗ matrix product --- the transfer product over a semiring.
- */
-export template <
-    std::size_t N, typename S,
-    typename Add = typename dedekind::algebra::semiring_ops<S>::add,
-    typename Mult = typename dedekind::algebra::semiring_ops<S>::mult>
-constexpr SquareMatrix<S, N> mat_mul(const SquareMatrix<S, N>& A,
-                                     const SquareMatrix<S, N>& B) {
-  SquareMatrix<S, N> C{};
-  for (std::size_t i = 0; i < N; ++i)
-    for (std::size_t j = 0; j < N; ++j) {
-      C[i][j] = dedekind::category::identity_v<S, Add>;
-      for (std::size_t k = 0; k < N; ++k)
-        C[i][j] = Add{}(C[i][j], Mult{}(A[i][k], B[k][j]));
-    }
-  return C;
-}
-
-/** @brief The identity matrix @c Δ: @c 1-bar on the diagonal, @c 0-bar off. */
-export template <
-    std::size_t N, typename S,
-    typename Add = typename dedekind::algebra::semiring_ops<S>::add,
-    typename Mult = typename dedekind::algebra::semiring_ops<S>::mult>
-constexpr SquareMatrix<S, N> mat_identity() {
-  SquareMatrix<S, N> I{};
-  for (std::size_t i = 0; i < N; ++i)
-    for (std::size_t j = 0; j < N; ++j)
-      I[i][j] = (i == j) ? dedekind::category::identity_v<S, Mult>
-                         : dedekind::category::identity_v<S, Add>;
-  return I;
-}
-
 /** @brief The Kleene star @c A* @c = @c ⨆ₙ @c Aⁿ @c = @c Δ @c ⊕ @c A @c ⊕ @c A²
  *  @c ⊕ @c … --- @c R* as a @b running corollary of the generic @c closure,
  *  iterating @c M @c ↦ @c Δ @c ⊕ @c M⊗A to its fixpoint on the @b extensional
  *  matrix.  Over @c Bool it is reachability; over @c MaxPlus the longest path
  *  (the algebraic path problem).  Discharges @c FIXME(#786) for @c R* as a
  *  matrix corollary; the @ref SquareMatrix argument is the extensionality the
- *  intensional relation lacked. */
+ *  intensional relation lacked.
+ *
+ *  @c ⊕/⊗ and @c Δ are @b not hand-rolled: they are @c Mat(S)'s own semiring
+ *  operations (@c semiring_ops<Mat(S)> = @c MatPlus / @c MatTimes) and unit
+ *  (@ref identity_matrix), so @c star is literally the @c *-closure of the
+ *  certified matrix semiring --- the same generic @c closure that computes any
+ *  semiring's star, instantiated at @c Mat(S). */
 export template <
     std::size_t N, typename S,
     typename Add = typename dedekind::algebra::semiring_ops<S>::add,
     typename Mult = typename dedekind::algebra::semiring_ops<S>::mult>
   requires dedekind::category::IsSemiring<S, Add, Mult>
 constexpr SquareMatrix<S, N> star(const SquareMatrix<S, N>& A) {
+  using Mat = MatNxNV<S, N>;
+  using MatAdd = typename dedekind::algebra::semiring_ops<Mat>::add;
+  using MatMult = typename dedekind::algebra::semiring_ops<Mat>::mult;
   return dedekind::category::closure(
-      mat_identity<N, S, Add, Mult>(),
-      [A](const SquareMatrix<S, N>& M) {
-        return mat_mul<N, S, Add, Mult>(M, A);
-      },
-      [](const SquareMatrix<S, N>& x, const SquareMatrix<S, N>& y) {
-        return mat_add<N, S, Add>(x, y);
-      });
+      identity_matrix<S, N>(),  // Δ = ⊗-identity of Mat(S)
+      [A](const Mat& M) { return MatMult{}(M, A); },               // M ↦ M ⊗ A
+      [](const Mat& x, const Mat& y) { return MatAdd{}(x, y); });  // ⊕
 }
 
 /** @brief The @b extensional dagger: the transpose @c Aᵀ (swap @c i,j) of an
@@ -284,10 +249,8 @@ constexpr SquareMatrix<S, N> star(const SquareMatrix<S, N>& A) {
  *  @b backward pass (the latest-start times). */
 export template <std::size_t N, typename S>
 constexpr SquareMatrix<S, N> transpose(const SquareMatrix<S, N>& A) {
-  SquareMatrix<S, N> T{};
-  for (std::size_t i = 0; i < N; ++i)
-    for (std::size_t j = 0; j < N; ++j) T[i][j] = A[j][i];
-  return T;
+  return A
+      .transpose();  // Mat(S) owns the reflection; this is the free spelling
 }
 
 /** @section transfer__Witnesses */
