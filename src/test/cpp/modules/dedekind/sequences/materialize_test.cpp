@@ -57,3 +57,26 @@ TEST_CASE("materialize: the filtered form realises argmax over a finite domain",
   const auto empty = materialize(oi, [](int) { return false; });
   CHECK(empty.size() == 0);
 }
+
+TEST_CASE("materialize(argmax(interval, cost)): the endorsed one-liner",
+          "[sequences][ranges][materialize][argmax]") {
+  // A unique optimum: the concave cap x·(6−x) over [0,6] peaks at x=3.
+  constexpr OrderInterval<int, 0, 6, Strictness::NonStrict,
+                          Strictness::NonStrict, ClassicalLogic>
+      dom6{};
+  const auto peak =
+      materialize(argmax(dom6, [](int x) { return x * (6 - x); }));
+  CHECK(peak.size() == 1);  // {3} — argmax is a function
+  CHECK(peak.contains(3));
+
+  // A tie: parity x mod 2 over [0,5] is maximal (=1) at every odd argument.
+  constexpr OrderInterval<int, 0, 5, Strictness::NonStrict,
+                          Strictness::NonStrict, ClassicalLogic>
+      dom5{};
+  const auto odds = materialize(argmax(dom5, [](int x) { return x % 2; }));
+  CHECK(odds.size() == 3);  // {1,3,5} — argmax is a proper relation
+  CHECK(odds.contains(1));
+  CHECK(odds.contains(3));
+  CHECK(odds.contains(5));
+  CHECK(!odds.contains(0));
+}

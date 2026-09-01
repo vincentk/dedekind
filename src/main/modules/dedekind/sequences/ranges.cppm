@@ -361,6 +361,64 @@ auto materialize(
   return materialize(oi, [](const T&) { return true; });
 }
 
+/** @section ranges__Argmax_Over_A_Bounded_Domain
+ *
+ *  The optimum as a filtration, carried with its own finite domain so it flows
+ *  straight into @ref materialize as the single argument the endorsed surface
+ *  @c materialize(argmax(Ω|[0,N], cost)) calls.
+ */
+
+/** @brief A finite set bundled with its scannable domain: an @c argmax result
+ *         (or any refinement of a bounded interval) carrying both the interval
+ *         (the @c IsExtensional range to scan) and the membership predicate
+ * (the optimal filter).  This is the "domain-carrying bounded set" that lets
+ *         @c materialize take a single argument. */
+export template <typename OI, typename P>
+struct BoundedSet {
+  OI domain;
+  P pred;
+  using Domain = typename OI::Domain;
+  /** @brief Membership: in the domain @b and optimal. */
+  constexpr bool operator()(const Domain& x) const {
+    return static_cast<bool>(domain(x)) && pred(x);
+  }
+  /** @brief The scannable bound (@c IsExtensional): the domain's cardinality is
+   *  an addressable @c size_t — the licence to realise. */
+  constexpr std::size_t size() const { return domain.size(); }
+};
+
+/** @brief @c argmax over a bounded (closed-interval) domain: the §3.3 forall-
+ *         filter @c {x ∈ dom | ∀x'∈dom. cost(x') ≤ cost(x)}, with @c ≤ pulled
+ *         back through @c cost.  Returns a @ref BoundedSet — intensional (the
+ *         @c ∀ is decidable @b because @c dom is finite) and carrying its
+ *         domain, so @c materialize realises it.  IsSet-valued: @c ∅ /
+ * singleton (unique optimiser, a function) / larger (ties, a proper relation).
+ */
+export template <std::integral T, auto Lo, auto Hi,
+                 dedekind::order::Strictness SL, dedekind::order::Strictness SU,
+                 typename L, typename Cost>
+constexpr auto argmax(
+    const dedekind::order::OrderInterval<T, Lo, Hi, SL, SU, L>& dom,
+    Cost cost) {
+  auto pred = [dom, cost](const T& x) {
+    bool dominant = true;  // ∀ x' ∈ dom: cost(x') ≤ cost(x)
+    for (const T xp : to_iota_view(dom))
+      dominant = dominant && (cost(xp) <= cost(x));
+    return dominant;
+  };
+  using OI = dedekind::order::OrderInterval<T, Lo, Hi, SL, SU, L>;
+  return BoundedSet<OI, decltype(pred)>{dom, pred};
+}
+
+/** @brief @c materialize a @ref BoundedSet: scan its domain, keep the members
+ *         its predicate accepts — an ordered @c ExtensionalSet (the @c std::set
+ *         flavour).  This is the single-argument call the endorsed
+ *         @c materialize(argmax(dom, cost)) surface makes. */
+export template <typename OI, typename P>
+auto materialize(const BoundedSet<OI, P>& bs) {
+  return materialize(bs.domain, bs.pred);
+}
+
 /** @brief The runtime→typed half of the iso (verifying, partial): check
  *         whether the runtime @c iota_view matches what @c to_iota_view
  *         would produce for the target @c OI, and return @c OI{} on match,
