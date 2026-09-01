@@ -39,6 +39,8 @@ export module dedekind.linear_algebra:matnxn;
 import dedekind.algebra;  // semiring_ops, IsSemiring, MaxPlus (witness)
 import dedekind.category; // IsSemiring, identity_v, identity_registry, traits
 import dedekind.sets;     // Finite (dimension tag)
+import :contracts;        // ColumnOrientation/RowOrientation, IsMatrix,
+                          // IsColumnVector
 
 namespace dedekind::linear_algebra {
 
@@ -46,6 +48,84 @@ template <typename S, std::size_t N>
 struct MatPlus;
 template <typename S, std::size_t N>
 struct MatTimes;
+
+/**
+ * @brief @c |v⟩: a column of @c Mat(S) --- an N-entry @b semimodule vector over
+ *        the semiring @c S, read as an index→scalar @b ket.  It is
+ *        @c IsColumnVector by the default (semimodule) contract: @c ⊕ and the
+ *        two-sided scalar @c ⊗ action, but @b no negation (a dioid has none).
+ *        The bra·ket language of @c :transfer, made a first-class carrier: this
+ *        @b is the "matrix column is a vector" slogan for a semiring.
+ */
+export template <typename S, std::size_t N>
+struct Ket {
+  using scalar_type = S;
+  using orientation = ColumnOrientation;
+  using dimension_type = dedekind::sets::Finite;
+  static constexpr std::size_t dimension = N;
+
+  std::array<S, N> c{};
+
+  constexpr S operator()(std::size_t i) const {
+    return c[i];
+  }  // index → scalar
+  constexpr S operator[](std::size_t i) const { return c[i]; }
+  friend constexpr bool operator==(const Ket&, const Ket&) = default;
+
+  friend constexpr Ket operator+(const Ket& a, const Ket& b) {
+    using Add = typename dedekind::algebra::semiring_ops<S>::add;
+    Ket r{};
+    for (std::size_t i = 0; i < N; ++i) r.c[i] = Add{}(a.c[i], b.c[i]);
+    return r;
+  }
+  friend constexpr Ket operator*(const S& s, const Ket& a) {
+    using Mult = typename dedekind::algebra::semiring_ops<S>::mult;
+    Ket r{};
+    for (std::size_t i = 0; i < N; ++i) r.c[i] = Mult{}(s, a.c[i]);
+    return r;
+  }
+  friend constexpr Ket operator*(const Ket& a, const S& s) {
+    using Mult = typename dedekind::algebra::semiring_ops<S>::mult;
+    Ket r{};
+    for (std::size_t i = 0; i < N; ++i) r.c[i] = Mult{}(a.c[i], s);
+    return r;
+  }
+};
+
+/** @brief @c ⟨w|: a row of @c Mat(S) --- the @c RowOrientation twin of @ref
+ * Ket, an @c IsCovector semimodule vector (the bra). */
+export template <typename S, std::size_t N>
+struct Bra {
+  using scalar_type = S;
+  using orientation = RowOrientation;
+  using dimension_type = dedekind::sets::Finite;
+  static constexpr std::size_t dimension = N;
+
+  std::array<S, N> c{};
+
+  constexpr S operator()(std::size_t i) const { return c[i]; }
+  constexpr S operator[](std::size_t i) const { return c[i]; }
+  friend constexpr bool operator==(const Bra&, const Bra&) = default;
+
+  friend constexpr Bra operator+(const Bra& a, const Bra& b) {
+    using Add = typename dedekind::algebra::semiring_ops<S>::add;
+    Bra r{};
+    for (std::size_t i = 0; i < N; ++i) r.c[i] = Add{}(a.c[i], b.c[i]);
+    return r;
+  }
+  friend constexpr Bra operator*(const S& s, const Bra& a) {
+    using Mult = typename dedekind::algebra::semiring_ops<S>::mult;
+    Bra r{};
+    for (std::size_t i = 0; i < N; ++i) r.c[i] = Mult{}(s, a.c[i]);
+    return r;
+  }
+  friend constexpr Bra operator*(const Bra& a, const S& s) {
+    using Mult = typename dedekind::algebra::semiring_ops<S>::mult;
+    Bra r{};
+    for (std::size_t i = 0; i < N; ++i) r.c[i] = Mult{}(a.c[i], s);
+    return r;
+  }
+};
 
 /**
  * @brief @c Mat(S): the N×N matrix over a semiring @c S.  Entries are stored
@@ -66,6 +146,10 @@ struct MatNxNV {
   using dimension_type = dedekind::sets::Finite;
   static constexpr std::size_t row_count = N;
   static constexpr std::size_t column_count = N;
+  /// @brief A column is a @ref Ket, a row a @ref Bra --- the bra·ket @b are the
+  ///        matrix's column/row vectors, so @c Mat(S) is an @c IsMatrix.
+  using column_type = Ket<S, N>;
+  using row_type = Bra<S, N>;
 
   std::array<std::array<S, N>, N> e{};
 
@@ -97,6 +181,19 @@ struct MatNxNV {
     for (std::size_t i = 0; i < N; ++i)
       for (std::size_t j = 0; j < N; ++j) t.e[j][i] = e[i][j];
     return t;
+  }
+
+  /// @brief The @c j-th column as a @ref Ket (the horizontal decomposition).
+  constexpr column_type column(std::size_t j) const {
+    column_type k{};
+    for (std::size_t i = 0; i < N; ++i) k.c[i] = e[i][j];
+    return k;
+  }
+  /// @brief The @c i-th row as a @ref Bra (the vertical decomposition).
+  constexpr row_type row(std::size_t i) const {
+    row_type b{};
+    b.c = e[i];
+    return b;
   }
 };
 
@@ -233,5 +330,17 @@ static_assert(
                                    MatTimes<MPll, 3>>,
     "Mat(S) over a semiring S is itself a semiring (Kleene algebra of "
     "matrices).");
+
+// The bra·ket ARE the row/column vectors: a Ket is an IsColumnVector, a Bra an
+// IsCovector, under the DEFAULT (semimodule) contract --- MaxPlus has no
+// negation, and none is asked.  Hence Mat(S) over a dioid is a genuine
+// IsMatrix, not merely a semiring blob.
+static_assert(IsColumnVector<Ket<MPll, 3>>, "a Ket is a (semimodule) column.");
+static_assert(IsCovector<Bra<MPll, 3>>, "a Bra is a (semimodule) row.");
+static_assert(!IsVectorSpaceLike<Ket<MPll, 3>>,
+              "a MaxPlus Ket is NOT a vector space: the dioid has no −a.");
+static_assert(IsMatrix<MatNxNV<MPll, 3>>,
+              "Mat(S) is a matrix: shape + Ket columns + Bra rows + both "
+              "decompositions, all over a semiring.");
 
 }  // namespace dedekind::linear_algebra

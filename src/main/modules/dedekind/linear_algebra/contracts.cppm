@@ -127,25 +127,45 @@ concept HasOrientation =
 
 /** @section contracts__Vectors and covectors.
  *
- *  Operational witnesses: we check additive closure, unary negation, and a
- *  left scalar action `S × V → V`, alongside a finite dimension. This is the
- *  `HasVectorSpaceOperators` pattern from `dedekind.algebra:modules` projected
- * onto a carrier that exposes `scalar_type` and `dimension`.
+ *  Operational witnesses: additive closure and a two-sided scalar action
+ *  `S × V → V`, alongside a finite dimension.  The @b default is the
+ *  @b semimodule surface (no negation): the carriers here are semimodules over
+ *  a @b semiring, because that is the structure a max-plus / tropical vector
+ *  actually has — a dioid has no additive inverse.  Additive inverses are the
+ *  @ref IsVectorSpaceLike refinement (a module over a ring, a vector space over
+ *  a field), which the ring carriers @c Vec2V<Field> / @c Covec2V<Field> also
+ *  satisfy.  Cf. the @c HasVectorSpaceOperators pattern in
+ *  @c dedekind.algebra:modules, here split at the semiring/ring seam.
  */
 
 /**
  * @concept IsVectorLike
- * @brief Common structural content shared by column and row vectors.
+ * @brief The @b default 1-tensor surface: a @b semimodule element over a
+ *        semiring — additive commutative monoid + a two-sided scalar action.
+ *        @b No negation, so a @c MaxPlus (dioid) vector qualifies.  This is the
+ *        base every column/row vector shares; @ref IsVectorSpaceLike adds the
+ *        additive inverse for the ring/field case.
  */
 template <typename V>
 concept IsVectorLike = HasDimensionCount<V> && HasOrientation<V> && requires {
   typename V::scalar_type;
 } && requires(V a, V b, typename V::scalar_type s) {
   { a + b } -> std::same_as<V>;
-  { a - b } -> std::same_as<V>;
-  { -a } -> std::same_as<V>;
   { s * a } -> std::same_as<V>;
   { a * s } -> std::same_as<V>;
+};
+
+/**
+ * @concept IsVectorSpaceLike
+ * @brief The @b refinement for carriers over a @b ring: an @ref IsVectorLike
+ *        semimodule whose additive monoid is a @b group — it also has @c −a and
+ *        @c a−b.  A module over a ring, a vector space over a field.
+ *        @c Vec2V<Field> models this; a tropical/@c MaxPlus vector does @b not.
+ */
+template <typename V>
+concept IsVectorSpaceLike = IsVectorLike<V> && requires(V a, V b) {
+  { a - b } -> std::same_as<V>;
+  { -a } -> std::same_as<V>;
 };
 
 /**
