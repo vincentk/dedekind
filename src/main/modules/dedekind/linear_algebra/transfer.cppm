@@ -229,15 +229,25 @@ constexpr auto argmax_set(const Bra& w, const Ket& v) {
 export template <typename S, std::size_t N>
 using SquareMatrix = std::array<std::array<S, N>, N>;
 
-/** @brief @b THE @b JOINT: materialise an intensional relation over the finite
- *  carrier @c [0,N)² into its extensional adjacency @ref SquareMatrix.  The
- *  compile-time bound @c N @b is the extensionality constraint --- an infinite
- *  relation has no such @c N and cannot form a matrix, so the Rice wall lives
- * in this signature.  @c rel is any @c (i,j)@c →@c S membership/weight map (a
- * DSL relation, an edge rule, a cost). */
-export template <std::size_t N, typename Rel,
-                 typename S = std::remove_cvref_t<
-                     std::invoke_result_t<Rel, std::size_t, std::size_t>>>
+/** @brief @b THE @b JOINT: materialise a @b binary @b endorelation @b on @b a
+ *  @b semiring into its dense extensional adjacency @ref SquareMatrix --- the
+ *  generic (black-box) fiber of the @c relation→matrix map (§ the paper's
+ *  classification table).  @c rel is @c (i,j)@c →@c S over the @b same finite
+ *  index carrier @c [0,N) on both sides (hence @b endo, hence @b square), with
+ *  the codomain @c S an @c IsSemiring (so @c ⊕/⊗ and thus @ref star are
+ *  defined).  The compile-time bound @c N @b is the extensionality constraint:
+ *  an infinite relation has no such @c N and cannot form a matrix, so the Rice
+ *  wall lives in this signature.  Structured relations (functional, bijective,
+ *  rank-1) admit specialised fibers (sparse, orthogonal, low-rank); this is the
+ *  base case. */
+export template <
+    std::size_t N, typename Rel,
+    typename S = std::remove_cvref_t<
+        std::invoke_result_t<Rel, std::size_t, std::size_t>>,
+    typename Add = typename dedekind::algebra::semiring_ops<S>::add,
+    typename Mult = typename dedekind::algebra::semiring_ops<S>::mult>
+  requires std::invocable<const Rel&, std::size_t, std::size_t> &&
+           dedekind::category::IsSemiring<S, Add, Mult>
 constexpr SquareMatrix<S, N> materialize(const Rel& rel) {
   SquareMatrix<S, N> m{};
   for (std::size_t i = 0; i < N; ++i)
@@ -300,6 +310,7 @@ export template <
     std::size_t N, typename S,
     typename Add = typename dedekind::algebra::semiring_ops<S>::add,
     typename Mult = typename dedekind::algebra::semiring_ops<S>::mult>
+  requires dedekind::category::IsSemiring<S, Add, Mult>
 constexpr SquareMatrix<S, N> star(const SquareMatrix<S, N>& A) {
   return dedekind::category::closure(
       mat_identity<N, S, Add, Mult>(),
