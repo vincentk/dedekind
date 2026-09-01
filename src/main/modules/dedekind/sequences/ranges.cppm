@@ -38,12 +38,14 @@
  */
 module;
 
+#include <array>
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
 #include <optional>
 #include <ranges>
+#include <type_traits>
 
 export module dedekind.sequences:ranges;
 
@@ -417,6 +419,23 @@ constexpr auto argmax(
 export template <typename OI, typename P>
 auto materialize(const BoundedSet<OI, P>& bs) {
   return materialize(bs.domain, bs.pred);
+}
+
+/** @brief The @b sequence flavour of @c materialize: realise the first @c N
+ *         terms of a sequence (a bra/ket / @c Path / any @c index→value arrow)
+ *         into a @c std::array — @b positional and indexed, dual to the set
+ *         flavour's @c std::set.  The compile-time @c N is the Kleene bound
+ *         (the finite prefix); this is the QM realise — an infinite bra/ket,
+ *         bounded to @c [0,N), becomes a concrete finite-dimensional vector.
+ *         Selected by the explicit @c N (@c materialize<N>(seq)); the no-@c N
+ *         form realises a bounded @b set instead. */
+export template <std::size_t N, typename Seq>
+constexpr std::array<typename std::remove_cvref_t<Seq>::Codomain, N>
+materialize(const Seq& s) {
+  using D = typename std::remove_cvref_t<Seq>::Domain;
+  std::array<typename std::remove_cvref_t<Seq>::Codomain, N> out{};
+  for (std::size_t i = 0; i < N; ++i) out[i] = s(static_cast<D>(i));
+  return out;
 }
 
 /** @brief The runtime→typed half of the iso (verifying, partial): check

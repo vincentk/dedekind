@@ -7,7 +7,11 @@
  * it cannot reach `materialize` at all — the Rice wall made structural.
  */
 
+#include <array>
 #include <catch2/catch_test_macros.hpp>
+#include <concepts>
+#include <cstddef>
+#include <type_traits>
 
 import dedekind.sequences; // materialize, to_iota_view
 import dedekind.order;     // OrderInterval, Strictness
@@ -22,6 +26,15 @@ namespace {
 // [0, 4] — a closed integer interval, the finite prefix {0,1,2,3,4} of ℕ.
 using Prefix5 = OrderInterval<int, 0, 4, Strictness::NonStrict,
                               Strictness::NonStrict, ClassicalLogic>;
+
+// A sequence (index → value) — the bra/ket / Path shape.
+struct squares {
+  using Domain = std::size_t;
+  using Codomain = int;
+  constexpr int operator()(std::size_t i) const {
+    return static_cast<int>(i * i);
+  }
+};
 }  // namespace
 
 TEST_CASE("materialize: a closed interval becomes its ExtensionalSet",
@@ -79,4 +92,18 @@ TEST_CASE("materialize(argmax(interval, cost)): the endorsed one-liner",
   CHECK(odds.contains(3));
   CHECK(odds.contains(5));
   CHECK(!odds.contains(0));
+}
+
+TEST_CASE("materialize<N>: a sequence realises to a positional std::array",
+          "[sequences][ranges][materialize]") {
+  // The sequence flavour (dual to the set flavour): a bra/ket / Path bounded to
+  // its first N terms becomes a concrete finite-dimensional vector.
+  constexpr auto vec = materialize<4>(squares{});
+  static_assert(
+      std::same_as<std::remove_cvref_t<decltype(vec)>, std::array<int, 4>>,
+      "sequence materialize yields a std::array, not a std::set.");
+  CHECK(vec[0] == 0);
+  CHECK(vec[1] == 1);
+  CHECK(vec[2] == 4);
+  CHECK(vec[3] == 9);
 }
