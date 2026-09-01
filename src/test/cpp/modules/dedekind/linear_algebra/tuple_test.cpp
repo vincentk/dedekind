@@ -17,7 +17,10 @@ using namespace dedekind::numbers;
 using namespace dedekind::linear_algebra;
 
 namespace {
-using Rat = Rational<long>;
+using Rat = Rational<default_integer>;  // ℚ over the saturating-cardinal
+                                        // integer (total), not the signed-long
+                                        // shortcut: the vector/matrix concepts
+                                        // are now strict IsSemimodule.
 }  // namespace
 
 TEST_CASE("linear_algebra:tuple — NTTP Vec2 carries entries at the type level",

@@ -27,7 +27,9 @@ using namespace dedekind::linear_algebra;
 
 namespace {
 // Canonical paper-facing carrier: ℚ as a proxy for ℝ (exact arithmetic).
-using Rat = Rational<long>;
+using Rat =
+    Rational<default_integer>;  // total ℚ (saturating cardinal), not the
+                                // signed-long shortcut — strict concepts
 }  // namespace
 
 TEST_CASE("linear_algebra:matrix — identity at the type level",

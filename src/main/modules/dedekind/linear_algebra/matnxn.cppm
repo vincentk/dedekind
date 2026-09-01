@@ -32,6 +32,7 @@ module;
 #include <array>
 #include <concepts>
 #include <cstddef>
+#include <functional>
 #include <type_traits>
 
 export module dedekind.linear_algebra:matnxn;
@@ -65,6 +66,15 @@ struct Ket {
   static constexpr std::size_t dimension = N;
 
   std::array<S, N> c{};
+
+  /// @brief The additive monoid @c (Ket, ⊕) inherits the scalar's laws: since
+  ///        @c S is a semiring, its @c ⊕ is an associative + commutative
+  ///        monoid, and so is the elementwise Ket-@c ⊕.  Totality distributes
+  ///        separately (see the @c is_saturating registration below).
+  template <typename Op>
+  static constexpr bool is_associative_v = true;
+  template <typename Op>
+  static constexpr bool is_commutative_v = true;
 
   constexpr S operator()(std::size_t i) const {
     return c[i];
@@ -102,6 +112,11 @@ struct Bra {
   static constexpr std::size_t dimension = N;
 
   std::array<S, N> c{};
+
+  template <typename Op>
+  static constexpr bool is_associative_v = true;
+  template <typename Op>
+  static constexpr bool is_commutative_v = true;
 
   constexpr S operator()(std::size_t i) const { return c[i]; }
   constexpr S operator[](std::size_t i) const { return c[i]; }
@@ -275,6 +290,32 @@ struct identity_trait<dedekind::linear_algebra::MatNxNV<S, N>,
       dedekind::linear_algebra::identity_matrix<S, N>();
 };
 
+/** @brief The @c ⊕-identity of a @ref dedekind::linear_algebra::Ket /
+ *         @ref dedekind::linear_algebra::Bra is the zero vector (every entry
+ *         the base @c ⊕-identity) --- what makes it an @c IsCommutativeMonoid,
+ *         hence an @c IsSemimodule, hence an @c IsColumnVector / @c IsCovector.
+ */
+template <typename S, std::size_t N>
+struct identity_trait<dedekind::linear_algebra::Ket<S, N>,
+                      std::plus<dedekind::linear_algebra::Ket<S, N>>> {
+  static constexpr auto value = [] {
+    dedekind::linear_algebra::Ket<S, N> z{};
+    for (std::size_t i = 0; i < N; ++i)
+      z.c[i] = identity_v<S, typename dedekind::algebra::semiring_ops<S>::add>;
+    return z;
+  }();
+};
+template <typename S, std::size_t N>
+struct identity_trait<dedekind::linear_algebra::Bra<S, N>,
+                      std::plus<dedekind::linear_algebra::Bra<S, N>>> {
+  static constexpr auto value = [] {
+    dedekind::linear_algebra::Bra<S, N> z{};
+    for (std::size_t i = 0; i < N; ++i)
+      z.c[i] = identity_v<S, typename dedekind::algebra::semiring_ops<S>::add>;
+    return z;
+  }();
+};
+
 /** @brief @c ⊗ distributes over @c ⊕ in @c Mat(S) (inherited from @c S). */
 template <typename S, std::size_t N>
 inline constexpr bool
@@ -299,6 +340,25 @@ struct is_saturating<dedekind::linear_algebra::MatNxNV<S, N>,
     : std::bool_constant<
           IsMagma<S, typename dedekind::algebra::semiring_ops<S>::add> &&
           IsMagma<S, typename dedekind::algebra::semiring_ops<S>::mult>> {};
+
+/** @brief Totality @b distributes over the vector construction (§4 property
+ *  distribution): a @ref dedekind::linear_algebra::Ket /
+ *  @ref dedekind::linear_algebra::Bra is a total magma under its elementwise
+ *  @c ⊕ exactly when the @b scalar @c ⊕ is.  Parametric on @c S --- the
+ * decision is settled at the call site by which scalar the exhibit uses (a
+ * total field such as @c Rational<default_integer> or the max-plus dioid: yes;
+ * a signed
+ *  @c long-backed @c Rational: no), never asserted near the carrier. */
+template <typename S, std::size_t N>
+struct is_saturating<dedekind::linear_algebra::Ket<S, N>,
+                     std::plus<dedekind::linear_algebra::Ket<S, N>>>
+    : std::bool_constant<
+          IsMagma<S, typename dedekind::algebra::semiring_ops<S>::add>> {};
+template <typename S, std::size_t N>
+struct is_saturating<dedekind::linear_algebra::Bra<S, N>,
+                     std::plus<dedekind::linear_algebra::Bra<S, N>>>
+    : std::bool_constant<
+          IsMagma<S, typename dedekind::algebra::semiring_ops<S>::add>> {};
 
 }  // namespace dedekind::category
 
@@ -331,14 +391,18 @@ static_assert(
     "Mat(S) over a semiring S is itself a semiring (Kleene algebra of "
     "matrices).");
 
-// The bra·ket ARE the row/column vectors: a Ket is an IsColumnVector, a Bra an
-// IsCovector, under the DEFAULT (semimodule) contract --- MaxPlus has no
-// negation, and none is asked.  Hence Mat(S) over a dioid is a genuine
-// IsMatrix, not merely a semiring blob.
+// The bra·ket ARE the row/column vectors: a Ket is the canonical IsSemimodule
+// (an IsColumnVector), a Bra an IsCovector --- MaxPlus has no negation, and the
+// semimodule contract asks none.  But it is NOT a module: IsModule needs the
+// scalar to be a ring (an additive group), which the dioid MaxPlus is not.
 static_assert(IsColumnVector<Ket<MPll, 3>>, "a Ket is a (semimodule) column.");
 static_assert(IsCovector<Bra<MPll, 3>>, "a Bra is a (semimodule) row.");
-static_assert(!IsVectorSpaceLike<Ket<MPll, 3>>,
-              "a MaxPlus Ket is NOT a vector space: the dioid has no −a.");
+static_assert(
+    !dedekind::algebra::IsModule<
+        Ket<MPll, 3>, MPll, std::plus<Ket<MPll, 3>>,
+        typename dedekind::algebra::semiring_ops<MPll>::add,
+        typename dedekind::algebra::semiring_ops<MPll>::mult>,
+    "a MaxPlus Ket is a semimodule but NOT a module: the dioid has no −a.");
 static_assert(IsMatrix<MatNxNV<MPll, 3>>,
               "Mat(S) is a matrix: shape + Ket columns + Bra rows + both "
               "decompositions, all over a semiring.");

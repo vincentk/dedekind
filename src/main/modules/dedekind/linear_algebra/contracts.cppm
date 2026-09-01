@@ -127,68 +127,68 @@ concept HasOrientation =
 
 /** @section contracts__Vectors and covectors.
  *
- *  Operational witnesses: additive closure and a two-sided scalar action
- *  `S × V → V`, alongside a finite dimension.  The @b default is the
- *  @b semimodule surface (no negation): the carriers here are semimodules over
- *  a @b semiring, because that is the structure a max-plus / tropical vector
- *  actually has — a dioid has no additive inverse.  Additive inverses are the
- *  @ref IsVectorSpaceLike refinement (a module over a ring, a vector space over
- *  a field), which the ring carriers @c Vec2V<Field> / @c Covec2V<Field> also
- *  satisfy.  Cf. the @c HasVectorSpaceOperators pattern in
- *  @c dedekind.algebra:modules, here split at the semiring/ring seam.
+ *  A column/row vector is not a new operational predicate --- it @b is the
+ *  canonical @c dedekind::algebra::IsSemimodule (an additive commutative monoid
+ *  under a linear scalar action), plus a @c ColumnOrientation / @c
+ * RowOrientation tag and a finite dimension.  The @b default is the semimodule
+ * (over a
+ *  @b semiring), because that is the structure a max-plus / tropical vector
+ *  actually has --- a dioid has no additive inverse.  The ring/field carriers
+ *  (@c Vec2V<Field>) refine it to @c dedekind::algebra::IsModule /
+ *  @c IsVectorSpace, the concepts that @b add the inverse; there is no
+ *  bespoke @c *Like duplicate here (that operational family was retired in
+ *  @c algebra:modules).
+ *
+ *  The scalar's @c ⊕/⊗ come straight from its semiring structure --- if @c S
+ *  @c IsSemiring, it @b has the ops, so we use them.  @ref semiring_ops_of
+ *  reads @c dedekind::algebra::semiring_ops<S> where @c S declares one
+ *  (tropical, bool, @c Mat(S)) and falls back to the standard @c +/@c · for an
+ *  ordinary ring; it @b registers nothing (a ring scalar needs no
+ *  @c semiring_ops entry).
  */
-
-/**
- * @concept IsVectorLike
- * @brief The @b default 1-tensor surface: a @b semimodule element over a
- *        semiring — additive commutative monoid + a two-sided scalar action.
- *        @b No negation, so a @c MaxPlus (dioid) vector qualifies.  This is the
- *        base every column/row vector shares; @ref IsVectorSpaceLike adds the
- *        additive inverse for the ring/field case.
- */
-template <typename V>
-concept IsVectorLike = HasDimensionCount<V> && HasOrientation<V> && requires {
-  typename V::scalar_type;
-} && requires(V a, V b, typename V::scalar_type s) {
-  { a + b } -> std::same_as<V>;
-  { s * a } -> std::same_as<V>;
-  { a * s } -> std::same_as<V>;
+template <typename S>
+struct semiring_ops_of {
+  using add = std::plus<S>;
+  using mult = std::multiplies<S>;
 };
-
-/**
- * @concept IsVectorSpaceLike
- * @brief The @b refinement for carriers over a @b ring: an @ref IsVectorLike
- *        semimodule whose additive monoid is a @b group — it also has @c −a and
- *        @c a−b.  A module over a ring, a vector space over a field.
- *        @c Vec2V<Field> models this; a tropical/@c MaxPlus vector does @b not.
- */
-template <typename V>
-concept IsVectorSpaceLike = IsVectorLike<V> && requires(V a, V b) {
-  { a - b } -> std::same_as<V>;
-  { -a } -> std::same_as<V>;
+template <typename S>
+  requires requires { typename dedekind::algebra::semiring_ops<S>::add; }
+struct semiring_ops_of<S> {
+  using add = typename dedekind::algebra::semiring_ops<S>::add;
+  using mult = typename dedekind::algebra::semiring_ops<S>::mult;
 };
 
 /**
  * @concept IsColumnVector
- * @brief A column vector: a vector-like carrier with column orientation.
- *
- *  Encodes the slogan "a matrix column is a vector" — every `column_type`
- *  on an `IsMatrix` carrier models this concept.
+ * @brief A column vector: an @c IsSemimodule with @c ColumnOrientation and a
+ *        finite dimension.  "A matrix column is a (semimodule) vector" ---
+ * every
+ *        @c column_type on an @c IsMatrix carrier models this.  Over a ring the
+ *        carrier further satisfies @c dedekind::algebra::IsModule; over a dioid
+ *        (@c MaxPlus) it does not, and none is asked.
  */
 template <typename V>
 concept IsColumnVector =
-    IsVectorLike<V> && std::same_as<typename V::orientation, ColumnOrientation>;
+    HasDimensionCount<V> && HasOrientation<V> &&
+    std::same_as<typename V::orientation, ColumnOrientation> &&
+    dedekind::algebra::IsSemimodule<
+        V, typename V::scalar_type, std::plus<V>,
+        typename semiring_ops_of<typename V::scalar_type>::add,
+        typename semiring_ops_of<typename V::scalar_type>::mult>;
 
 /**
  * @concept IsCovector
- * @brief A row vector / covector: a vector-like carrier with row orientation.
- *
- *  Encodes the slogan "a matrix row is a row vector" — every `row_type` on
- *  an `IsMatrix` carrier models this concept.
+ * @brief A row vector / covector: the @c RowOrientation twin of
+ *        @ref IsColumnVector --- an @c IsSemimodule row.
  */
 template <typename V>
 concept IsCovector =
-    IsVectorLike<V> && std::same_as<typename V::orientation, RowOrientation>;
+    HasDimensionCount<V> && HasOrientation<V> &&
+    std::same_as<typename V::orientation, RowOrientation> &&
+    dedekind::algebra::IsSemimodule<
+        V, typename V::scalar_type, std::plus<V>,
+        typename semiring_ops_of<typename V::scalar_type>::add,
+        typename semiring_ops_of<typename V::scalar_type>::mult>;
 
 /** @section contracts__Matrix shape and decomposition. */
 

@@ -812,7 +812,13 @@ constexpr Matrix2x2V<T> operator/(const Covec2V<T>& a, const Covec2V<T>& b) {
  */
 namespace detail {
 
-using Rat = dedekind::numbers::Rational<long>;
+// The canonical total field ℚ = Rational<default_integer> (default_integer is
+// the saturating SignedCardinality), NOT the raw signed-`long` shortcut: since
+// #559 these witnesses are strict (they thread through the semimodule
+// contract), and `long`'s `+` is an overflow hazard the honest `IsTotal`
+// refuses.  Totality distributes from this scalar to Vec2V / Matrix2x2V (the §4
+// property law).
+using Rat = dedekind::numbers::Rational<dedekind::numbers::default_integer>;
 
 /** @subsection Upstream_Concept_Witnesses — algebra concepts on ℚ carriers.
  *
