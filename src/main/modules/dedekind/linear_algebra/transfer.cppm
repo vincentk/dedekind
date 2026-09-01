@@ -49,11 +49,12 @@ module;
 
 export module dedekind.linear_algebra:transfer;
 
-import dedekind.algebra;  // IsSemiring, semiring_ops, Tropical/MaxPlus, ⊕/⊗
-import dedekind.category; // IsArrow, IsSemiring, identity_v, closure
-import dedekind.order;    // IsDirectedSet
-import :diagonal;         // OuterProduct — the rank-1 dyad carrier
-import :matnxn;  // Mat(S) = MatNxNV<S,N>: the certified matrix semiring
+import dedekind.algebra; // IsSemiring, semiring_ops, Tropical/MaxPlus, ⊕/⊗
+import dedekind.category; // IsArrow, IsSemiring, identity_v, closure, ClassicalLogic
+import dedekind.order; // IsDirectedSet; converse / is_relation (Rel dagger)
+import dedekind.sets;  // Set<pair,L,P> — the DSL relation carrier
+import :diagonal;      // OuterProduct — the rank-1 dyad carrier
+import :matnxn;        // Mat(S) = MatNxNV<S,N>: the certified matrix semiring
 
 namespace dedekind::linear_algebra {
 
@@ -195,18 +196,31 @@ using SquareMatrix = MatNxNV<S, N>;
  *  wall lives in this signature.  Structured relations (functional, bijective,
  *  rank-1) admit specialised fibers (sparse, orthogonal, low-rank); this is the
  *  base case. */
+/** @brief Read a relation's @c (i,j) entry, accepting EITHER the two-index
+ *  weighted call @c rel(i,j) (a semiring-adjacency arrow) OR the point-free DSL
+ *  call @c rel({i,j}) (a @c Set<pair> relation).  This one seam is what lets a
+ *  @b typed Ddk relation --- not a raw lambda --- feed @ref materialise. */
+template <typename Rel>
+constexpr auto rel_entry(const Rel& rel, std::size_t i, std::size_t j) {
+  if constexpr (std::invocable<const Rel&, std::size_t, std::size_t>)
+    return rel(i, j);
+  else
+    return rel(std::pair<std::size_t, std::size_t>{i, j});
+}
+template <typename Rel>
+using rel_codomain_t = std::remove_cvref_t<decltype(rel_entry(
+    std::declval<const Rel&>(), std::size_t{0}, std::size_t{0}))>;
+
 export template <
-    std::size_t N, typename Rel,
-    typename S = std::remove_cvref_t<
-        std::invoke_result_t<Rel, std::size_t, std::size_t>>,
+    std::size_t N, typename Rel, typename S = rel_codomain_t<Rel>,
     typename Add = typename dedekind::algebra::semiring_ops<S>::add,
     typename Mult = typename dedekind::algebra::semiring_ops<S>::mult>
-  requires std::invocable<const Rel&, std::size_t, std::size_t> &&
-           dedekind::category::IsSemiring<S, Add, Mult>
+  requires dedekind::category::IsSemiring<S, Add, Mult>
 constexpr SquareMatrix<S, N> materialise(const Rel& rel) {
   SquareMatrix<S, N> m{};
   for (std::size_t i = 0; i < N; ++i)
-    for (std::size_t j = 0; j < N; ++j) m[i][j] = rel(i, j);
+    for (std::size_t j = 0; j < N; ++j)
+      m[i][j] = static_cast<S>(rel_entry(rel, i, j));
   return m;
 }
 
@@ -333,12 +347,27 @@ static_assert(inner_product<2>(branch_out{}, branch_in{}),
               "𝔹 bra·ket = reachability: some branch is present end to end.");
 
 // ── R* as a MATRIX corollary of closure: the intensional→extensional joint
-// made executable.  The path relation 0→1→2→3 is materialised to its adjacency
-// matrix (the joint, which mints the extensionality) and then starred (closure
-// over the fixed carrier).  R* = star(materialise<N>(R)).
-inline constexpr auto path_rel = [](std::size_t i, std::size_t j) {
-  return j == i + 1;  // the edge i → i+1
+// made executable.  The relations here are @b typed Ddk carriers, not raw
+// lambdas: a bool edge relation is a @c Set<pair> (the DSL @c converse and the
+// four-property traits attach to it), and its adjacency is minted by
+// @ref materialise.  R* = star(materialise<N>(R)).
+using Idx2 = std::pair<std::size_t, std::size_t>;
+
+/** @brief The path DAG's edge relation @c i → i+1, a NAMED predicate carrier
+ *  (un-lambda'd, so it is a typed relation the DSL converse and relation traits
+ *  attach to). */
+struct EdgeSucc {
+  template <typename Pair>
+  constexpr bool operator()(const Pair& p) const {
+    return static_cast<std::size_t>(p.second) ==
+           static_cast<std::size_t>(p.first) + 1;
+  }
 };
+inline constexpr auto path_rel =
+    dedekind::sets::Set<Idx2, dedekind::category::ClassicalLogic, EdgeSucc>{
+        EdgeSucc{}};
+static_assert(dedekind::order::is_relation(path_rel),
+              "path_rel is a Ddk relation: an IsSet on a product domain.");
 
 // Over 𝔹 the star is REACHABILITY, R*[i][j] = (i ≤ j).
 inline constexpr auto Bstar = star<4>(materialise<4>(path_rel));
@@ -347,38 +376,55 @@ static_assert(Bstar[0][3], "transitive: 0 reaches 3 along the path.");
 static_assert(!Bstar[3][0], "acyclic: 3 does not reach 0.");
 
 // Over MaxPlus with unit edges the SAME star is the LONGEST path (the algebraic
-// path problem) — one semiring apart.
+// path problem) — one semiring apart.  A WEIGHTED (semiring-valued) relation is
+// not a bool Set<pair>; it is Mat(S)'s vocabulary, so a named @c (i,j)→MP
+// adjacency carrier.
 using TropAdd = typename dedekind::algebra::semiring_ops<MP>::add;
 inline constexpr MP mp_bot = dedekind::category::identity_v<MP, TropAdd>;
-inline constexpr auto wpath = [](std::size_t i, std::size_t j) {
-  return (j == i + 1) ? MP::of(1) : mp_bot;
+struct WeightedUnitPath {
+  constexpr MP operator()(std::size_t i, std::size_t j) const {
+    return (j == i + 1) ? MP::of(1) : mp_bot;
+  }
 };
+inline constexpr WeightedUnitPath wpath{};
 inline constexpr auto Tstar = star<4>(materialise<4>(wpath));
 static_assert(Tstar[0][3] == MP::of(3),
               "MaxPlus star = longest path: 0→1→2→3 costs 3.");
 static_assert(Tstar[3][0] == mp_bot, "unreachable = the ⊕-identity.");
 
-// ── The DAGGER is CONVERSE: the intensional predicate swap R°(i,j) = R(j,i),
-// no materialisation. CPM is a forward/backward problem: the BACKWARD pass is
-// the closure of the CONVERSE relation, materialised only at the star's finite
-// fixpoint, and equals the transposed forward star, (R°)* = (R*)°. Over MaxPlus
-// this is the latest-start times to the sink; complementary slackness (forward
-// + backward = total) reads off which edges are critical.
-inline constexpr auto converse = [](auto rel) {
-  return [rel](std::size_t i, std::size_t j) { return rel(j, i); };
-};
-static_assert(star<4>(materialise<4>(converse(wpath))) == transpose(Tstar),
+// ── The DAGGER, two vocabularies.  On a WEIGHTED relation it is the matrix
+// TRANSPOSE (the real-space form of the converse): CPM's BACKWARD pass is the
+// closure of the transposed adjacency, and equals the transposed forward star,
+// (R°)* = (R*)°.  A fact of Mat(S): the *-closure commutes with transpose (over
+// MaxPlus these are the latest-start times to the sink).
+static_assert(star<4>(materialise<4>(wpath).transpose()) == transpose(Tstar),
               "backward pass = the dagger's closure: (R°)* = (R*)°.");
 
-// ── UNITARY, intensionally: a permutation's converse IS its inverse, P° ; P =
-// Δ, with ; the relative product (⊕/⊗ over the finite carrier) — no matrix
-// materialised. Component A's "converse = transpose = adjoint = inverse" as one
-// fact; the critical path (a unique optimum) is exactly such a permutation.
-inline constexpr auto perm_rel = [](std::size_t i, std::size_t j) {
-  return j == (i + 1) % 4;  // the cyclic shift 0→1→2→3→0
+// ── UNITARY via the Rel DAGGER.  On a BOOL relation the dagger IS the DSL
+// @c converse (the intensional coordinate swap, @ref
+// dedekind::order::converse), no transfer-local lambda.  A permutation's
+// converse is its inverse: P° ; P = Δ.  perm is the cyclic shift, a genuine Ddk
+// relation; the relative product is read at the 𝔹 matrix level (materialise
+// both, ⊕/⊗ over 𝔹).  Component A's "converse = transpose = adjoint = inverse"
+// as one fact; the critical path (a unique optimum) is exactly such a
+// permutation.
+struct CyclicShift {
+  template <typename Pair>
+  constexpr bool operator()(const Pair& p) const {
+    return static_cast<std::size_t>(p.second) ==
+           (static_cast<std::size_t>(p.first) + 1) % 4;
+  }
 };
-static_assert(matmul_entry<4>(converse(perm_rel), perm_rel, 0, 0) &&
-                  !matmul_entry<4>(converse(perm_rel), perm_rel, 0, 1),
+inline constexpr auto perm_rel =
+    dedekind::sets::Set<Idx2, dedekind::category::ClassicalLogic, CyclicShift>{
+        CyclicShift{}};
+static_assert(dedekind::order::is_relation(perm_rel),
+              "perm_rel is a Ddk relation: the cyclic-shift permutation.");
+inline constexpr auto Pmat = materialise<4>(perm_rel);
+inline constexpr auto PdaggerMat =
+    materialise<4>(dedekind::order::converse(perm_rel));
+static_assert(matmul_entry<4>(PdaggerMat, Pmat, 0, 0) &&
+                  !matmul_entry<4>(PdaggerMat, Pmat, 0, 1),
               "a permutation is UNITARY: P° ; P = Δ (converse IS inverse).");
 
 }  // namespace detail_transfer
