@@ -441,10 +441,12 @@ constexpr auto drop(const Path<T, Cardinality, Index>& path, std::size_t n) {
  * thus type-system-discharged rather than asserted in prose.
  */
 /** @brief The graph predicate of a sequence: @c (i,t) ∈ graph ⟺ @c t == seq(i)
- *  (within bounds for a finite sequence).  A NAMED predicate carrier --- not
- * the earlier lambda --- so the four-property traits below can attach and
- * certify a sequence as a @b FUNCTION: @c IsSequence @c ⟹ @c IsFunction @c ⟹ @c
- *  IsRelation. */
+ *  (within bounds for a finite sequence).
+ *
+ *  @details Why a @b struct rather than a lambda: relation traits (reflexive,
+ *  symmetric, ...) are registered by @b type, and a closure type is anonymous.
+ *  @c SequenceGraph<PathT> is the named carrier those traits attach to, which
+ *  is what certifies @c IsSequence @c ⟹ @c IsFunction @c ⟹ @c IsRelation. */
 export template <typename PathT>
 struct SequenceGraph {
   PathT path;
