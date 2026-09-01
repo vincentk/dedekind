@@ -1589,6 +1589,55 @@ The tropical dual-number instantiation carries $\partial(\mathrm{optimum}) / \pa
 Because $\max$ selects the winning branch and forwards that branch's derivative, the tangent is $1$ on an edge that lies on the critical path and $0$ on an edge with float, which is exactly the primal flow recovered from the dual by complementary slackness.
 This is forward-mode automatic differentiation in Elliott's sense~\cite{elliott2018simple}, the value-and-derivative product $(f, f')$, with the chain rule falling out of the dual-number ring laws, and the \cppinline{Dual<F>} carrier drops into the closure without special-casing.
 
+\subsection{The same closure, as rank-1 linear algebra}
+\label{subsec:transfer-necklace}
+
+The net fold of \S\ref{subsec:semiring_closure} is one \emph{instance} of a single operator, the closure of a seed under a one-step expansion,
+\begin{equation}
+\label{eqn:closure}
+\mathrm{closure}(X, Y) \;=\; \bigsqcup_{n} Y^{n}(X),
+\end{equation}
+the least fixpoint of $S \mapsto X \sqcup Y(S)$.
+Reachability is $R^{*} = \mathrm{closure}(\Delta,\ \lambda S.\, S ; R)$ over the Boolean semiring, and the critical path is the same closure over the tropical dioid; the iteration bound is the finite-subgraph selection a partial evaluation performs (Appendix~\ref{app:partial-eval}).
+The necklace carries more structure: each diamond is a \emph{rank-1} transfer, its two parallel branches a bra and a ket, so its gain is their tropical inner product, the max-plus eigenvalue
+\begin{equation}
+\label{eqn:braket}
+\lambda_m \;=\; \langle w_m \mid v_m \rangle \;=\; \bigoplus_k w_{m,k} \otimes v_{m,k} \;=\; \max(\mathrm{peak}_m,\ \mathrm{trough}_m).
+\end{equation}
+A rank-1 transfer collapses under composition, so its power never iterates,
+\begin{equation}
+\label{eqn:rank1}
+M^{2} \;=\; \lambda\, M, \qquad M^{n} \;=\; \lambda^{\,n-1}\, M,
+\end{equation}
+and the entire memo is the single scalar $\lambda$: the rank is the dimension of the minimal linear realization, and here it is one.
+The closure is then the $\otimes$-fold of the eigenvalues, with no potential net and no edge list,
+\begin{equation}
+\label{eqn:transfer-closure}
+\mathrm{value} \;=\; \bigotimes_{m} \lambda_m .
+\end{equation}
+The semiring is still the choice of problem, and because the transfer asks only for \cppinline{IsSemiring} the same fold carries the sensitivity of \S\ref{subsec:necklace} on the dual-number semiring, its tangent the winning branch's derivative by the envelope theorem.
+The optimum is the filtration of Equation~\ref{eqn:argmax}, realized to an extensional set only at the end by \cppinline{materialize}, gated on \cppinline{IsExtensional}: finite and addressable, not merely finite.
+
+\begin{listing}[htbp]
+\caption{Equations~\ref{eqn:braket}--\ref{eqn:transfer-closure} and Equation~\ref{eqn:argmax}, as code (abridged from the checked-in transfer showcase).}
+\label{lst:transfer-necklace}
+\begin{cpp}
+// Bead: a rank-1 transfer; its two branches are a bra.ket.       (Eqn braket)
+template <class S>
+constexpr S bead(int m) { return inner_product<2>(exit_bra<S>{}, ket_of<S>(m)); }
+
+// Closure = the tensor-fold of the eigenvalues, an instance of   (Eqns rank1,
+// closure(X, Y).  One closure, four problems a semiring apart:   transfer-closure)
+static_assert( transfer_chain<4>(bead<Bool>)                 );  // reachability
+static_assert( transfer_chain<4>(bead<MaxPlus>).val     == 8 );  // critical path
+static_assert( transfer_chain<4>(bead<MinPlus>).val     == 0 );  // shortest path
+static_assert( bead<MaxPlus<Dual>>(0).val.der           == 1 );  // sensitivity (AD)
+
+// Optimum: the forall-filter, realized at one IsExtensional step.  (Eqn argmax)
+constexpr auto opt = materialize(argmax(omega_N | interval(0,6), cap));  // {3}
+\end{cpp}
+\end{listing}
+
 
 \section{Compile-Time Cost and Complexity}
 \label{sec:evaluation_benchmarks}
