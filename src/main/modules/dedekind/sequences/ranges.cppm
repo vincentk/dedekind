@@ -401,6 +401,12 @@ struct BoundedSet
   OI domain;
   P pred;
   using Domain = typename OI::Domain;
+  /** @brief Explicit two-argument constructor.  @ref dedekind::sets::SetExpr is
+   *  a base class, so @c BoundedSet is no longer an aggregate --- the
+   *  @c BoundedSet{dom, pred} site in @ref argmax routes here instead of
+   * through aggregate init. */
+  constexpr BoundedSet(OI d, P p)
+      : domain(static_cast<OI&&>(d)), pred(static_cast<P&&>(p)) {}
   /** @brief The interval is finite (an @c IsExtensional bounded meet), so the
    *  comprehension over it is too --- the licence @ref materialise reads. */
   using cardinality_type = dedekind::sets::Finite;
