@@ -48,6 +48,7 @@ export module dedekind.algebra:halfspace_transport;
 import dedekind.category; // IsAbelianGroup, is_left_total_v (the trait primary)
 import dedekind.sets;     // Set, Ω, Singleton, Cardinality, SignedCardinality
 import dedekind.order; // Halfspace, ProjAddConstProj, Rel, dir_of/strict_of/flip
+import dedekind.relational; // ComposePred (Tarski :dyadic) — the >> trait NODE (#792)
 import :scout_algebra;  // IsOrderedAdditiveGroup — the canonical gate
 
 // Mirror order/halfspace.cppm's directives so the DSL names (Set, Ω, Singleton
@@ -298,7 +299,7 @@ inline constexpr bool is_left_total_v<dedekind::sets::Set<
 template <typename A, typename C, typename L, typename PR, typename PS,
           typename B>
 inline constexpr bool is_left_total_v<dedekind::sets::Set<
-    std::pair<A, C>, L, dedekind::order::ComposePred<PR, PS, B>>> =
+    std::pair<A, C>, L, dedekind::sets::ComposePred<PR, PS, B>>> =
     is_left_total_v<dedekind::sets::Set<std::pair<A, B>, L, PR>> &&
     is_left_total_v<dedekind::sets::Set<std::pair<B, C>, L, PS>>;
 

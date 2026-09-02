@@ -31,8 +31,7 @@
  *   @li @c :dyadic  --- @b Tarski's calculus of relations (1941): converse
  *       @f$R^{\circ}@f$, relative product @f$R;S@f$, diagonal @f$\Delta@f$,
  *       @f$R^{*}@f$; relations are dyadic (binary), one carrier under a
- *       Boolean involutive monoid.  (Extraction from @c order/halfspace is
- *       slice 3b of #792; not yet landed.)
+ *       Boolean involutive monoid.  The BASE the other two build on.
  *   @li @c :graph   --- endorelations: the graph @f$\Gamma_f@f$ of an arrow,
  *       @c is_graph_of.  A graph @b is a relation, so it tags along here.
  *
@@ -45,5 +44,6 @@
  */
 export module dedekind.relational;
 
-export import :tables; // Codd: σ ⋈ ∪ ∖ ∩ (dedekind::sets namespace, by ADL)
-export import :graph;  // endorelations: graph(f), is_graph_of
+export import :dyadic;  // Tarski BASE: converse °, relative product ;, Δ, +, &
+export import :tables;  // Codd: σ ⋈ ∪ ∖ ∩ (dedekind::sets namespace, by ADL)
+export import :graph;   // endorelations: graph(f), is_graph_of

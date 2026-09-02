@@ -59,9 +59,13 @@ export module dedekind.relational:tables;
 
 import dedekind.category;
 import dedekind.sets; // Set, Relation, lift_logic, cartesian_product (:expressions)
+import :dyadic;       // the Tarski BASE.  FIXME(#TABLES_ON_DYADIC): re-target
+                 // natural_join ⋈ onto the relative product ; (Codd's join IS
+                 // Tarski's ; with the pivot retained) --- seeded here as the
+                 // dependency + intention, not yet wired.
 
-// The symbols keep the dedekind::sets namespace (not dedekind::relational): they
-// resolve by ADL on their dedekind::sets::Set / Relation arguments, so the
+// The symbols keep the dedekind::sets namespace (not dedekind::relational):
+// they resolve by ADL on their dedekind::sets::Set / Relation arguments, so the
 // module moved OUT of :sets while the namespace stays for call-site stability
 // (the transport-op precedent, #785).
 

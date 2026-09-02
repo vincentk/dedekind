@@ -61,6 +61,7 @@ export module dedekind.relational:graph;
 
 import dedekind.category; // IsArrow, Dom, Cod, arrow_as_relation, ClassicalLogic
 import dedekind.sets;     // Set, Relation (:expressions); forall (:quantifier)
+import :dyadic;           // the Tarski BASE: a graph Γ_f IS a dyadic relation
 
 // Namespace stays dedekind::sets (ADL on Set/Relation arguments); only the
 // module moved — a graph belongs with the relations.  See :tables.

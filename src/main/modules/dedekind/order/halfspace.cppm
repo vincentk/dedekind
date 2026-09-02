@@ -1055,40 +1055,10 @@ struct ProjBound {
   }
 };
 
-/** @brief Meet (conjunction) of two relational predicates. */
-export template <typename A, typename B>
-struct RelAnd {
-  using is_rel_predicate = void;
-  A a;
-  B b;
-  // @c auto (not @c bool): the result inherits the operands' own logic, so over
-  // a @c TernaryLogic relation this is the Kleene @c ∧ (a @c bool cast would
-  // collapse @c Unknown).  FIXME(#780): mixed Boolean/Ternary operands (a
-  // ternary relation @c & @c diagonal()) still need a lift on the bool side.
-  template <typename P>
-  constexpr auto operator()(const P& p) const {
-    return a(p) && b(p);
-  }
-};
-
-/** @brief Join (disjunction) of two relational predicates --- the relation
- *  UNION carrier, dual to @c RelAnd.  It is the Kleene @c + of the relation
- *  algebra @f$(+, ;, {}^{*})@f$: @c ; is the relative product @c >>, and @c *
- *  the reflexive-transitive closure below. */
-export template <typename A, typename B>
-struct RelOr {
-  using is_rel_predicate = void;
-  A a;
-  B b;
-  // @c auto (not @c bool): the result inherits the operands' own logic, so over
-  // a @c TernaryLogic relation this is the Kleene @c ∨ (a @c bool cast would
-  // collapse @c Unknown).  FIXME(#780): mixed Boolean/Ternary operands still
-  // need a lift on the bool side.
-  template <typename P>
-  constexpr auto operator()(const P& p) const {
-    return a(p) || b(p);
-  }
-};
+// RelAnd / RelOr (the meet / join predicate carriers) moved DOWN to
+// dedekind.relational:dyadic (#792); halfspace still USES them (the
+// predicate-level operator& below, axis_factor, the >> functional trait) as
+// dedekind::sets::RelAnd / RelOr, imported from :dyadic.
 
 // π_I ⋈ π_J  →  ProjProj (projection-vs-projection).
 export template <std::size_t I, std::size_t J>
@@ -1148,9 +1118,9 @@ constexpr ProjBound<I, Rel::Ne, V> operator!=(Projection<I>, Bound<V>) {
   return {};
 }
 
-// meet of relational predicates.
+// meet of relational predicates.  RelAnd now lives in :dyadic (#792).
 export template <IsRelPredicate A, IsRelPredicate B>
-constexpr RelAnd<A, B> operator&(A a, B b) {
+constexpr dedekind::sets::RelAnd<A, B> operator&(A a, B b) {
   return {a, b};
 }
 
@@ -1303,7 +1273,7 @@ constexpr auto axis_factor(const ProjBound<I, R, V>&) {
  *  (@c π1<=5 & @c π1<=3) meet to the tighter one rather than dropping either.
  */
 export template <std::size_t I, typename TI, typename L, typename A, typename B>
-constexpr auto axis_factor(const RelAnd<A, B>& r) {
+constexpr auto axis_factor(const dedekind::sets::RelAnd<A, B>& r) {
   auto fa = axis_factor<I, TI, L>(r.a);
   auto fb = axis_factor<I, TI, L>(r.b);
   if constexpr (requires { typename decltype(fa)::is_universal_boundary; }) {
@@ -1354,41 +1324,10 @@ static_assert(!(𝔹 * 𝔹 | π1 <= π2 & π2 == fix(true_c))(std::pair{false, 
               "(false, false) fails y = true.");
 
 // ── converse and the bracket-free relation query ───────────────────────────
-/** @brief The swapped predicate for @c converse: @f$R^\smile(b,a) = R(a,b)@f$.
- */
-export template <typename P>
-struct SwapPred {
-  using is_rel_predicate = void;
-  P p;
-  template <typename Pair>
-  constexpr auto operator()(const Pair& pr) const {
-    return p(std::pair{pr.second, pr.first});
-  }
-};
-
-/** @brief @c converse(R) --- the transpose @f$R^\smile \subseteq B \times A@f$
- *  of a relation @f$R \subseteq A \times B@f$ (Tarski's @f$R^\smile@f$). */
-export template <typename A, typename B, typename L, typename P>
-constexpr auto converse(const Set<std::pair<A, B>, L, P>& r) {
-  return Set<std::pair<B, A>, L, SwapPred<P>>{SwapPred<P>{r.predicate()}};
-}
-
-/** @brief Pair-like Domain test for @c is_relation. */
-template <typename D>
-concept IsPairLike = requires {
-  typename D::first_type;
-  typename D::second_type;
-};
-
-/** @brief @c is_relation(R) --- the bracket-free query: @c R is a relation, an
- *  @c IsSet whose Domain is a product @f$A \times B@f$. */
-export template <typename S>
-consteval bool is_relation(const S&) {
-  if constexpr (requires { typename S::Domain; })
-    return dedekind::category::IsSet<S> && IsPairLike<typename S::Domain>;
-  else
-    return false;  // no Domain: not a set, hence not a relation (total query)
-}
+// SwapPred / converse and IsPairLike / is_relation moved DOWN to
+// dedekind.relational:dyadic (#792) --- pure Set<pair> algebra, no ordering.
+// The ordered witnesses below stay here and reach them by ADL on their
+// dedekind::sets::Set arguments (order imports dedekind.relational).
 
 // converse swaps the coordinates; is_relation certifies the product Domain.
 static_assert(converse(𝔹* 𝔹 | π1 < π2)(std::pair{true, false}),
@@ -1949,39 +1888,11 @@ static_assert(max(Ω<bool>)(false) ==
 // {y ⋈ p+K}, below.  The earlier Translation<T,K>-arrow version is superseded.)
 
 // ── Relative product: composition of relations (Tarski) ────────────────────
-/** @brief The composed predicate @f$(R \gg S)(a,c) = \exists b.\, R(a,b) \wedge
- *  S(b,c)@f$.  Decidable exactly when the intermediate carrier is finite; here
- *  the @f$\exists b@f$ enumerates the two Booleans, so it folds at compile
- *  time. */
-// @c B (the intermediate carrier) is retained as a type parameter, not erased:
-// it is what lets the compositional property-inference below reconstruct the
-// two factor relations @c Set<pair<A,B>,PR> and @c Set<pair<B,C>,PS> (§3.2
-// Table 3).
-export template <typename PR, typename PS, typename B = bool>
-struct ComposePred {
-  PR r;
-  PS s;
-  template <typename Pair>
-  constexpr bool operator()(const Pair& ac) const {
-    return (r(std::pair{ac.first, B{false}}) &&
-            s(std::pair{B{false}, ac.second})) ||
-           (r(std::pair{ac.first, B{true}}) &&
-            s(std::pair{B{true}, ac.second}));
-  }
-};
-
-/** @brief @c R @c >> @c S --- the relative product of two relations over a
- *  @b Boolean intermediate, the ∃-over-the-middle enumerated on @c {false,
- *  true}.  A larger intermediate needs the finite-quotient handle (§3.1);
- *  there is deliberately no overload, so it is an honest compile error. */
-export template <typename A, typename B, typename C, typename L, typename PR,
-                 typename PS>
-  requires std::same_as<B, bool>
-constexpr auto operator>>(const Set<std::pair<A, B>, L, PR>& r,
-                          const Set<std::pair<B, C>, L, PS>& s) {
-  return Set<std::pair<A, C>, L, ComposePred<PR, PS, B>>{
-      ComposePred<PR, PS, B>{r.predicate(), s.predicate()}};
-}
+// ComposePred and the Boolean-middle relative product operator>> moved DOWN to
+// dedekind.relational:dyadic (#792).  The functional-propagation trait for
+// ComposePred (is_right_unique_v, §3.2 Table 3) stays here in :halfspace's
+// registry block below (it registers a dedekind::category trait), qualified as
+// dedekind::sets::ComposePred; the >> witnesses reach the operator by ADL.
 
 // ≤ ∘ ≤ = ≤ (transitivity), decidable because the intermediate is Boolean.
 static_assert(static_cast<bool>(((𝔹 * 𝔹 | π1 <= π2) >>
@@ -1992,52 +1903,11 @@ static_assert(!static_cast<bool>(((𝔹 * 𝔹 | π1 <= π2) >>
               "≤ ∘ ≤ excludes (true, false): transitivity recovers ≤.");
 
 // ── Relation algebra: union (Kleene +), the diagonal, and the reflexive /
-// symmetric closures.  With the relative product >> (Kleene ;) these are the
-// (+, ;, *) of Tarski's calculus; the reflexive-transitive closure * follows.
-/** @brief @c R @c + @c S --- the UNION of two relations over the same product
- *  @f$A \times B@f$: membership is either predicate (@c RelOr).  The Kleene @c
- * +
- *  (@c ; is the relative product @c >>). */
-export template <typename A, typename B, typename L, typename PR, typename PS>
-constexpr auto operator+(const Set<std::pair<A, B>, L, PR>& r,
-                         const Set<std::pair<A, B>, L, PS>& s) {
-  return Set<std::pair<A, B>, L, RelOr<PR, PS>>{
-      RelOr<PR, PS>{r.predicate(), s.predicate()}};
-}
-
-/** @brief @c R @c & @c S --- the INTERSECTION (meet) of two relations over the
- *  same product, dual to the union @c +: membership is both predicates
- *  (@c RelAnd).  The Boolean-lattice ∩ on relations. */
-export template <typename A, typename B, typename L, typename PR, typename PS>
-constexpr auto operator&(const Set<std::pair<A, B>, L, PR>& r,
-                         const Set<std::pair<A, B>, L, PS>& s) {
-  return Set<std::pair<A, B>, L, RelAnd<PR, PS>>{
-      RelAnd<PR, PS>{r.predicate(), s.predicate()}};
-}
-
-/** @brief The DIAGONAL (identity relation) @f$\Delta = \{(a,a)\}@f$ on a
- * carrier
- *  @c A --- @c {π1==π2} --- the reflexive-closure unit and the @c 1 of the
- *  relation algebra. */
-export template <typename A, typename L = ClassicalLogic>
-constexpr auto diagonal() {
-  return Set<std::pair<A, A>, L, ProjProj<1, Rel::Eq, 2>>{
-      ProjProj<1, Rel::Eq, 2>{}};
-}
-
-/** @brief @c reflexive(R) = @c R @c + @c Δ --- the smallest reflexive relation
- *  containing an endorelation @c R (add the self-loops). */
-export template <typename A, typename L, typename P>
-constexpr auto reflexive(const Set<std::pair<A, A>, L, P>& r) {
-  return r + diagonal<A, L>();
-}
-
-/** @brief @c symmetric(R) = @c R @c + @c R° --- the smallest symmetric relation
- *  containing @c R (add the reversed edges; @c R° is the @c converse). */
-export template <typename A, typename L, typename P>
-constexpr auto symmetric(const Set<std::pair<A, A>, L, P>& r) {
-  return r + converse(r);
-}
+// symmetric closures.  The relation operator+ / operator& (union / meet), the
+// diagonal Δ (reframed from ProjProj<Eq> to a plain equality DiagPred), and the
+// reflexive / symmetric closures moved DOWN to dedekind.relational:dyadic
+// (#792) --- pure Set<pair> algebra.  The ordered witnesses below stay and
+// reach them by ADL on their dedekind::sets::Set arguments.
 
 // reflexive(<) = < ∪ Δ = ≤ on 𝔹; symmetric(<) = < ∪ <° = ≠ on 𝔹.
 static_assert(static_cast<bool>(reflexive(𝔹* 𝔹 |
@@ -2078,7 +1948,8 @@ static_assert(
 // a FUNCTIONAL relation's composition distributes over MEET too (R;(S∩T) =
 // R;S ∩ R;T), which fails for a non-functional relation.
 static_assert(static_cast<bool>(((𝔹 * 𝔹 | π1 < π2) >>
-                                 diagonal<bool>())(std::pair{false, true})) ==
+                                 dedekind::sets::diagonal<bool>())(std::pair{
+                  false, true})) ==
                   static_cast<bool>((𝔹 * 𝔹 | π1 < π2)(std::pair{false, true})),
               "R;Δ = R: the diagonal is the composition unit (the 1).");
 static_assert(
@@ -2169,7 +2040,7 @@ inline constexpr bool is_right_unique_v<dedekind::sets::Set<
 template <typename A, typename C, typename L, typename PR, typename PS,
           typename B>
 inline constexpr bool is_right_unique_v<dedekind::sets::Set<
-    std::pair<A, C>, L, dedekind::order::ComposePred<PR, PS, B>>> =
+    std::pair<A, C>, L, dedekind::sets::ComposePred<PR, PS, B>>> =
     is_right_unique_v<dedekind::sets::Set<std::pair<A, B>, L, PR>> &&
     is_right_unique_v<dedekind::sets::Set<std::pair<B, C>, L, PS>>;
 
