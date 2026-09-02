@@ -17,6 +17,7 @@
 
 import dedekind.category;
 import dedekind.sets;
+import dedekind.relational;
 import dedekind.order;
 import dedekind.algebra;
 

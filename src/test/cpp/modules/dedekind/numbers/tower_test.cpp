@@ -18,6 +18,7 @@ import dedekind.ieee;
 import dedekind.morphologies;
 import dedekind.numbers;
 import dedekind.sets;
+import dedekind.relational;
 
 using namespace dedekind::category;
 using namespace dedekind::ieee;

@@ -59,7 +59,7 @@ export module dedekind.relational:tables;
 
 import dedekind.category;
 import dedekind.sets; // Set, Relation, lift_logic, cartesian_product (:expressions)
-import :dyadic;       // the Tarski BASE.  FIXME(#TABLES_ON_DYADIC): re-target
+import :dyadic;       // the Tarski BASE.  FIXME(#798): re-target
                  // natural_join ⋈ onto the relative product ; (Codd's join IS
                  // Tarski's ; with the pivot retained) --- seeded here as the
                  // dependency + intention, not yet wired.

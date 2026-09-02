@@ -1,4 +1,4 @@
-/** @file test/cpp/modules/dedekind/sets/graph_test.cpp
+/** @file test/cpp/modules/dedekind/relational/graph_test.cpp
  *
  * Runtime exercises for :graph — graph(f), the relation/function lattice,
  * and is_graph_of.  The partition's witnesses are static_asserts (invisible
@@ -10,6 +10,7 @@
 #include <utility>
 
 import dedekind.sets;
+import dedekind.relational;
 import dedekind.category;
 
 using namespace dedekind::sets;

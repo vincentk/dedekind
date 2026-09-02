@@ -36,10 +36,10 @@
  * @section dyadic__Seeded_Intentions
  * Two algebraic reframings are @b seeded here as dependency + intention, not
  * yet wired (deferred to the post-architecture algebraic phase):
- *   @li FIXME(#TABLES_ON_DYADIC): re-target @c :tables' @c natural_join onto
+ *   @li FIXME(#798): re-target @c :tables' @c natural_join onto
  *       @c operator>> so Codd's ⋈ is literally Tarski's ; (tagged vs. projected
  *       relative product).
- *   @li FIXME(#TUPLE_PRODUCT): frame n-ary products as flat @c std::tuple
+ *   @li FIXME(#799): frame n-ary products as flat @c std::tuple
  * rather than nested @c std::pair (get / apply / structured bindings for free).
  *
  * @note Namespace stays @c dedekind::sets (ADL on Set/Relation arguments; the

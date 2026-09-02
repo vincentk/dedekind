@@ -18,6 +18,7 @@
 import dedekind.category;
 import dedekind.sequences;
 import dedekind.sets;
+import dedekind.relational;
 
 using namespace dedekind::category;
 using namespace dedekind::sequences;

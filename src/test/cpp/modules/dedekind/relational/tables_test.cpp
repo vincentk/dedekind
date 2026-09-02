@@ -2,6 +2,7 @@
 
 import dedekind.category;
 import dedekind.sets;
+import dedekind.relational;
 
 using namespace dedekind::category;
 using namespace dedekind::sets;
