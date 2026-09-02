@@ -264,17 +264,22 @@ concept IsUnitary = IsIsometry<F, Dagger, Op> &&
 
 /** @section involution__Concept_Verification
  *  @brief The concepts are @b instantiated here, so an ill-formed constraint is
- *  a @b compile error rather than latent: @c std::bit_not is a certified dagger
- *  (an involution) on @c int, but @c int is @b not unitary under @c + because
- *  @c ~0 @c + @c 0 @c = @c -1 @c ≠ @c 0 (the @c +-identity) --- the dagger is
- * not the inverse.  A @b positive concept witness needs a @b singleton
- *  morphism-carrier whose default value @b is a unitary arrow, which arrives
- *  with the arrow surface (follow-up); the value-level @c is_unitary predicate
- *  is witnessed over @c Mat(𝔹) (a permutation) in @c linear_algebra.  The real
- * / complex (orthogonal / unitary) reading is the @b same predicate, left
- *  unexhibited only for want of a @b constexpr real-field carrier. */
+ *  a @b compile error rather than latent.  @c std::bit_not is an @b involution
+ *  on @c int, hence satisfies @c IsDagger --- which is @b only the involutive
+ *  core.  It is @b not a dagger of @c + in the full sense (@c ~(a+b) @c ≠
+ *  @c ~a+~b: not a contravariant anti-homomorphism); that law is the
+ *  dagger-category surface (#787), @b not certified by @c IsDagger.  What
+ *  actually gates is the (co)isometry @b law, and it computes @b false here:
+ *  @c int is not unitary under @c + because @c ~0 @c + @c 0 @c = @c -1 @c ≠ @c
+ * 0 (the @c +-identity).  A @b positive concept witness needs a @b singleton
+ *  morphism-carrier whose default value @b is a unitary arrow (follow-up #787);
+ *  the value-level @c is_unitary predicate is witnessed over @c Mat(𝔹) (a
+ *  permutation) in @c linear_algebra, and the real / complex (orthogonal /
+ *  unitary) reading is the @b same predicate, left unexhibited for want of a
+ *  @b constexpr real-field carrier (#790). */
 static_assert(IsDagger<std::bit_not<int>, int>,
-              "bit_not is a certified dagger (an involution) on int.");
+              "bit_not is an involution on int (IsDagger's involutive core, "
+              "NOT a contravariant dagger of +).");
 static_assert(!IsIsometry<int, std::bit_not<int>, std::plus<int>>,
               "int is not an isometry under (bit_not, +).");
 static_assert(!IsUnitary<int, std::bit_not<int>, std::plus<int>>,

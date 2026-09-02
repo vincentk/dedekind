@@ -24,10 +24,16 @@
  * @f[
  *   (M \cdot M)(i,j) \;=\; \bigoplus_k v_i \otimes w_k \otimes v_k \otimes w_j
  *     \;=\; v_i \otimes \Big(\underbrace{\bigoplus_k w_k \otimes v_k}_{\lambda
- *     \,=\, \langle w | v \rangle}\Big) \otimes w_j \;=\; \lambda \otimes
- * M(i,j).
+ *     \,=\, \langle w | v \rangle}\Big) \otimes w_j
+ * \;\stackrel{\text{comm.}}{=}\;
+ * \lambda \otimes M(i,j).
  * @f]
- * So @c M^n @c = @c λ^{n-1}@c M and the transfer power never iterates: the
+ * The last step (moving @c λ left past @c v_i) needs a @b commutative @c ⊗, so
+ * @c λ is central; the tropical carriers (max-plus / min-plus) are commutative.
+ * Over a @b noncommutative semiring the middle scalar stays put
+ * (@c M²(i,j) @c = @c v_i @c ⊗ @c λ @c ⊗ @c w_j) and does not collapse.
+ * So (for commutative @c ⊗) @c M^n @c = @c λ^{n-1}@c M and the transfer power
+ * never iterates: the
  * @b whole memo is the one scalar @c λ.  This is @c rank @c = @c 1 of the
  * Fliess / Carlyle–Paz law @c rank(Hankel) @c = @c dim(minimal @c memo).  For
  * a max-plus carrier @c λ @c = @c ⟨w|v⟩ @c = @c max_k(w_k @c + @c v_k) is the
@@ -128,8 +134,14 @@ constexpr S matmul_entry(const A& a, const B& b, std::size_t i, std::size_t j) {
 
 /**
  * @brief The rank-1 eigenvalue of a dyad @c M @c = @c |v⟩⟨w|: @c λ @c =
- *        @c ⟨w|v⟩, the scalar for which @c M² @c = @c λ@c ·@c M.  Reads the
- *        dyad's factors straight off the @ref OuterProduct.
+ *        @c ⟨w|v⟩.  Over a @b commutative semiring @c M² @c = @c λ@c ·@c M ---
+ *        @c λ is central, so it factors out of @c M²(i,j) @c = @c v_i @c ⊗
+ *        @c λ @c ⊗ @c w_j; the tropical carriers (max-plus / min-plus) are
+ *        commutative.  Over a @b noncommutative semiring the middle scalar
+ *        @b stays put (@c v_i @c ⊗ @c λ @c ⊗ @c w_j) and does @b not collapse
+ * to
+ *        @c λ@c ·@c M.  Reads the dyad's factors straight off the
+ *        @ref OuterProduct.
  */
 export template <std::size_t N, typename U, typename V, typename Mult>
 constexpr auto eigenvalue(const OuterProduct<U, V, Mult>& m) {
@@ -150,7 +162,9 @@ constexpr auto eigenvalue(const OuterProduct<U, V, Mult>& m) {
 export template <
     std::size_t L, typename Bead,
     typename S = std::remove_cvref_t<std::invoke_result_t<Bead, std::size_t>>,
+    typename Add = typename dedekind::algebra::semiring_ops<S>::add,
     typename Mult = typename dedekind::algebra::semiring_ops<S>::mult>
+  requires dedekind::category::IsSemiring<S, Add, Mult>
 constexpr S transfer_chain(Bead bead) {
   return add_fold<Mult>(std::make_index_sequence<L>{},
                         dedekind::category::identity_v<S, Mult>,

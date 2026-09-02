@@ -107,7 +107,10 @@ export template <typename Base, typename Predicate>
 struct Comprehension
     : SetExpr<Comprehension<Base, Predicate>, typename Base::Domain,
               typename Base::logic_species> {
-  const Base& base;
+  Base base;  // by VALUE: a comprehension OWNS its base.  A reference member
+              // would dangle when the constructor binds an rvalue base (the
+              // aggregate form extended the temporary's lifetime; a constructor
+              // parameter does not).
   Predicate predicate;
 
   /** @brief Explicit two-argument constructor.  Needed because @ref SetExpr is
@@ -131,7 +134,11 @@ struct Comprehension
    * it
    *  @b is its own predicate (@c IsSet @c ⟹ @c IsPredicate). */
   constexpr auto operator()(const typename Base::Domain& x) const {
-    return static_cast<bool>(base(x)) && static_cast<bool>(predicate(x));
+    // Combine under the base's logic (@c L::AND), NOT a @c bool cast: a bool
+    // cast would destroy ternary membership (@c Ternary::False, underlying −1,
+    // would read as @c true).  A comprehension @c {S|P} is S-membership ∧ P.
+    using L = typename Base::logic_species;
+    return L::AND(base(x), predicate(x));
   }
 
   /** @brief Size when the base exposes a probe element (@c pivot) and a

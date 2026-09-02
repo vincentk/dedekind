@@ -1059,8 +1059,12 @@ struct RelAnd {
   using is_rel_predicate = void;
   A a;
   B b;
+  // @c auto (not @c bool): the result inherits the operands' own logic, so over
+  // a @c TernaryLogic relation this is the Kleene @c ∧ (a @c bool cast would
+  // collapse @c Unknown).  FIXME(#780): mixed Boolean/Ternary operands (a
+  // ternary relation @c & @c diagonal()) still need a lift on the bool side.
   template <typename P>
-  constexpr bool operator()(const P& p) const {
+  constexpr auto operator()(const P& p) const {
     return a(p) && b(p);
   }
 };
@@ -1074,8 +1078,12 @@ struct RelOr {
   using is_rel_predicate = void;
   A a;
   B b;
+  // @c auto (not @c bool): the result inherits the operands' own logic, so over
+  // a @c TernaryLogic relation this is the Kleene @c ∨ (a @c bool cast would
+  // collapse @c Unknown).  FIXME(#780): mixed Boolean/Ternary operands still
+  // need a lift on the bool side.
   template <typename P>
-  constexpr bool operator()(const P& p) const {
+  constexpr auto operator()(const P& p) const {
     return a(p) || b(p);
   }
 };

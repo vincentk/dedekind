@@ -75,14 +75,21 @@ struct SemimoduleVec {
 
   std::array<S, N> c{};
 
-  /// @brief The additive monoid @c (·, ⊕) inherits the scalar's laws: since
-  ///        @c S is a semiring, its @c ⊕ is an associative + commutative
-  ///        monoid, and so is the elementwise @c ⊕.  Totality distributes
-  ///        separately (see the @c is_saturating registration below).
+  /// @brief The additive monoid @c (·, ⊕) @b inherits the scalar's laws (§4
+  ///        property distribution): the elementwise @c ⊕ is associative /
+  ///        commutative exactly when the base @c ⊕ is, and @b only for the
+  ///        vector's own @c std::plus --- an arbitrary @c Op is not certified.
+  ///        Totality distributes separately (@c is_saturating below).
   template <typename Op>
-  static constexpr bool is_associative_v = true;
+  static constexpr bool is_associative_v =
+      std::same_as<Op, std::plus<SemimoduleVec>> &&
+      dedekind::category::is_associative_v<
+          S, typename dedekind::algebra::semiring_ops<S>::add>;
   template <typename Op>
-  static constexpr bool is_commutative_v = true;
+  static constexpr bool is_commutative_v =
+      std::same_as<Op, std::plus<SemimoduleVec>> &&
+      dedekind::category::is_commutative_v<
+          S, typename dedekind::algebra::semiring_ops<S>::add>;
 
   constexpr S operator()(std::size_t i) const {
     return c[i];
@@ -145,12 +152,28 @@ struct MatNxNV {
 
   std::array<std::array<S, N>, N> e{};
 
-  /// @brief Matrix @c ⊕ and @c ⊗ are both associative.
+  /// @brief §4 property distribution: matrix @c ⊕ (@ref MatPlus) is associative
+  ///        exactly when the base @c ⊕ is; matrix @c ⊗ (@ref MatTimes) is
+  ///        associative exactly when @c S is a @b semiring (the @c ⊕/⊗
+  ///        contraction's associativity needs @c S's associativity AND
+  ///        distributivity), so a non-semiring @c S no longer certifies
+  ///        @c IsSemiring<Mat(S)>.
   template <typename Op>
-  static constexpr bool is_associative_v = true;
-  /// @brief Only @c ⊕ (@ref MatPlus) is commutative; @c ⊗ is not.
+  static constexpr bool is_associative_v =
+      (std::same_as<Op, MatPlus<S, N>> &&
+       dedekind::category::is_associative_v<
+           S, typename dedekind::algebra::semiring_ops<S>::add>) ||
+      (std::same_as<Op, MatTimes<S, N>> &&
+       dedekind::category::IsSemiring<
+           S, typename dedekind::algebra::semiring_ops<S>::add,
+           typename dedekind::algebra::semiring_ops<S>::mult>);
+  /// @brief Only @c ⊕ (@ref MatPlus) is commutative (@c ⊗ is not), and only
+  ///        when the base @c ⊕ is.
   template <typename Op>
-  static constexpr bool is_commutative_v = std::same_as<Op, MatPlus<S, N>>;
+  static constexpr bool is_commutative_v =
+      std::same_as<Op, MatPlus<S, N>> &&
+      dedekind::category::is_commutative_v<
+          S, typename dedekind::algebra::semiring_ops<S>::add>;
   /// @brief @c ⊕ is idempotent exactly when the base @c ⊕ is (dioid lift).
   template <typename Op>
   static constexpr bool is_idempotent_v =
@@ -307,12 +330,15 @@ struct identity_trait<
   }();
 };
 
-/** @brief @c ⊗ distributes over @c ⊕ in @c Mat(S) (inherited from @c S). */
+/** @brief @c ⊗ distributes over @c ⊕ in @c Mat(S) exactly when it does in @c S
+ *         (§4 property distribution) --- not unconditionally. */
 template <typename S, std::size_t N>
 inline constexpr bool
     is_distributive_v<dedekind::linear_algebra::MatNxNV<S, N>,
                       dedekind::linear_algebra::MatTimes<S, N>,
-                      dedekind::linear_algebra::MatPlus<S, N>> = true;
+                      dedekind::linear_algebra::MatPlus<S, N>> =
+        is_distributive_v<S, typename dedekind::algebra::semiring_ops<S>::mult,
+                          typename dedekind::algebra::semiring_ops<S>::add>;
 
 /** @brief Totality of @c Mat(S)'s monoids is @b inherited, honestly: matrix
  *         @c ⊕ is total exactly when the base @c ⊕ is a magma, and matrix
