@@ -438,45 +438,18 @@ static_assert(perm_dagger_is_inverse(),
 
 }  // namespace dedekind::linear_algebra
 
-// ── Wire the @c is_unitary SEED (Component A): the cyclic-shift permutation is
-// the first per-carrier witness the seed anticipated "with the linear-algebra
-// consumer".  In @c Rel the dagger is the converse, and a permutation's
-// converse IS its inverse (P° ; P = Δ), so @c CyclicShift is @b unitary.  This
-// collapses "converse = transpose = adjoint = inverse" onto one certificate for
-// the bijective case.  (The categorical @c IsUnitary CONCEPT --- dagger +
-// inverse + composition, which vary per category --- stays the deferred design
-// @c :involution flags; this is its first per-carrier certificate.)
-namespace dedekind::category {
-// The certificate is DERIVED from the proof, not asserted beside it: it is
-// exactly the outcome of the ⊕/⊗ relative product P° ; P compared to Δ.  Change
-// CyclicShift to a non-permutation and the trait goes false, honestly.
-template <>
-struct is_unitary<dedekind::linear_algebra::detail_transfer::CyclicShift,
-                  std::size_t>
-    : std::bool_constant<
-          dedekind::linear_algebra::detail_transfer::perm_dagger_is_inverse()> {
-};
-static_assert(
-    is_unitary_v<dedekind::linear_algebra::detail_transfer::CyclicShift,
-                 std::size_t>,
-    "Component A: the cyclic-shift permutation's dagger (the converse) is its "
-    "inverse --- a unitary arrow of Rel (certificate = the P°;P=Δ "
-    "computation).");
-
-// Seed the COMPOSITION law: unitaries are closed under the relative product ; .
-// The dagger is contravariant, (A;B)° = B°;A°, so if A° = A⁻¹ and B° = B⁻¹ then
-// (A;B)° = (A;B)⁻¹ --- the composite is unitary.  Derived from the factors (the
-// relation-algebra ComposePred carries them by TYPE), so it is the structural
-// GROUP law, not a per-carrier assertion; it holds regardless of whether the ;
-// itself evaluates (the DSL >> is boolean-middle-only, a separate FIXME(#786)).
-template <typename PA, typename PB, typename Mid, typename T>
-struct is_unitary<dedekind::order::ComposePred<PA, PB, Mid>, T>
-    : std::bool_constant<is_unitary_v<PA, T> && is_unitary_v<PB, T>> {};
-static_assert(
-    is_unitary_v<dedekind::order::ComposePred<
-                     dedekind::linear_algebra::detail_transfer::CyclicShift,
-                     dedekind::linear_algebra::detail_transfer::CyclicShift>,
-                 std::size_t>,
-    "unitary is closed under composition (the unitary group): P ; P is unitary "
-    "because both factors are.");
-}  // namespace dedekind::category
+// ── IsUnitary is a @b derived predicate, NOT a registration.  Textbook: a
+// transformation is unitary iff it is a linear operation, HAS a converse (its
+// dagger), and that converse IS its inverse.  So @c IsUnitary<T> should read
+// off @c IsDagger<T> (the operation has a converse / transpose / adjoint --- a
+// contravariant involution) and @c IsGroup<T> (it is invertible), the two
+// coinciding --- with @b no separate per-carrier @c is_unitary trait to
+// register (a registration, even one bound to a proof, can drift out of sync
+// with the thing it claims).  That concept arrives with the dagger-category
+// surface
+// @c :involution defers; unitaries are then automatically closed under
+// composition because a group is.  Here the load-bearing fact is proven
+// @b directly, no trait: the cyclic-shift permutation's dagger (the DSL
+// converse) IS its inverse --- @c perm_dagger_is_inverse (P° ; P = Δ, all 16
+// entries) in @c detail_transfer above --- so it @b will be unitary under that
+// derived predicate, with nothing to keep in sync.

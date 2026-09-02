@@ -138,3 +138,72 @@ TEST_CASE(
     CHECK(Sstar[3][0] == top);        // unreachable = +∞
   }
 }
+
+TEST_CASE(
+    "transfer: Mat(S) — the matrix semiring and its bra·ket vectors at runtime",
+    "[linear_algebra][matnxn][semiring]") {
+  using MP = MaxPlus<unsigned long long>;
+  using Mat = MatNxNV<MP, 2>;
+  using Add =
+      typename dedekind::algebra::semiring_ops<Mat>::add;  // ⊕ = MatPlus
+  using Mult =
+      typename dedekind::algebra::semiring_ops<Mat>::mult;  // ⊗ = MatTimes
+  using SAdd = typename dedekind::algebra::semiring_ops<MP>::add;
+  const MP bot = dedekind::category::identity_v<MP, SAdd>;  // ⊕-identity (−∞)
+
+  auto mk = [](MP a, MP b, MP c, MP d) {
+    Mat m{};
+    m.e[0] = {a, b};
+    m.e[1] = {c, d};
+    return m;
+  };
+  const Mat A = mk(MP::of(1), MP::of(2), MP::of(3), MP::of(4));
+  const Mat B = mk(MP::of(0), MP::of(5), MP::of(6), MP::of(0));
+
+  SECTION("entry access, ==, and transpose (the extensional dagger)") {
+    CHECK(A(0, 1) == MP::of(2));
+    CHECK(A[1][0] == MP::of(3));
+    CHECK(A == A);
+    CHECK_FALSE(A == B);
+    const Mat At = A.transpose();
+    CHECK(At(1, 0) == A(0, 1));
+    CHECK(At(0, 1) == A(1, 0));
+  }
+
+  SECTION("⊕ is elementwise max; ⊗ is the tropical matrix product") {
+    const Mat sum = Add{}(A, B);
+    CHECK(sum(0, 0) == MP::of(1));  // max(1, 0)
+    CHECK(sum(0, 1) == MP::of(5));  // max(2, 5)
+    const Mat prod = Mult{}(A, B);
+    CHECK(prod(0, 0) == MP::of(8));  // max(1+0, 2+6) = 8
+    CHECK(prod(1, 1) == MP::of(8));  // max(3+5, 4+0) = 8
+  }
+
+  SECTION("the identity and zero matrices") {
+    const Mat I = identity_matrix<MP, 2>();
+    CHECK(I(0, 0) == MP::of(0));  // ⊗-identity on the diagonal
+    CHECK(I(0, 1) == bot);        // ⊕-identity off it
+    const Mat Z = zero_matrix<MP, 2>();
+    CHECK(Z(0, 0) == bot);
+    CHECK(Mult{}(A, I) == A);  // Δ is the ⊗-unit
+  }
+
+  SECTION(
+      "column / row ARE Ket / Bra, carrying the semimodule ⊕ and scalar ⊗") {
+    const auto col = A.column(1);  // |v⟩ = [2, 4]
+    CHECK(col[0] == MP::of(2));
+    CHECK(col[1] == MP::of(4));
+    const auto row = A.row(0);  // ⟨w| = [1, 2]
+    CHECK(row[0] == MP::of(1));
+    CHECK(row[1] == MP::of(2));
+
+    const auto col0 = A.column(0);   // [1, 3]
+    const auto joined = col + col0;  // elementwise max: [2, 4]
+    CHECK(joined[0] == MP::of(2));
+    CHECK(joined[1] == MP::of(4));
+    const auto scaled = MP::of(3) * col;  // scalar ⊗ (= +): [5, 7]
+    CHECK(scaled[0] == MP::of(5));
+    CHECK(scaled[1] == MP::of(7));
+    CHECK(col * MP::of(3) == scaled);  // the two-sided action agrees
+  }
+}
