@@ -29,18 +29,25 @@
  *       σ select, ⋈ natural_join, ∪ set_union, ∖ set_difference, ∩; relations
  *       are n-ary tables of tuples.
  *   @li @c :dyadic  --- @b Tarski's calculus of relations (1941): converse
- *       @f$R^{\circ}@f$, relative product @f$R;S@f$, diagonal @f$\Delta@f$,
- *       @f$R^{*}@f$; relations are dyadic (binary), one carrier under a
- *       Boolean involutive monoid.  The BASE the other two build on.
+ *       @f$R^{\circ}@f$, relative product @f$R;S@f$ (over a Boolean middle),
+ *       diagonal @f$\Delta@f$, union @f$+@f$ / meet @f$\&@f$; relations are
+ *       dyadic (binary), one carrier under a Boolean involutive monoid.  The
+ *       BASE the other two build on.  (The reflexive-transitive closure
+ *       @f$R^{*}@f$ is not yet a provided operator; FIXME(#786).)
  *   @li @c :graph   --- endorelations: the graph @f$\Gamma_f@f$ of an arrow,
  *       @c is_graph_of.  A graph @b is a relation, so it tags along here.
  *
  * @section relational__Namespace
- * The extracted symbols keep the @c dedekind::sets namespace: they resolve by
- * ADL on their @c dedekind::sets::Set / @c Relation arguments, so only the
- * @b module boundary moved, not the call-site spelling (the transport-op
- * precedent of #785).  A namespace rename to @c dedekind::relational would be a
- * separate, purely mechanical churn against the ADL wall.
+ * All extracted symbols land in the @c dedekind::sets namespace (NOT
+ * @c dedekind::relational): they resolve by ADL on their @c dedekind::sets::Set
+ * / @c Relation arguments, which is what keeps the unqualified operators
+ * (@c >> / @c + / @c &) and the bare @c converse / @c select call sites
+ * working. For @c :tables and @c :graph this is a pure @b module move --- they
+ * were already @c dedekind::sets.  For @c :dyadic the namespace ALSO moved
+ * (@c dedekind::order → @c dedekind::sets, since it was buried in the
+ * halfspace), so its callers repoint @c dedekind::order:: → @c dedekind::sets::
+ * (transfer, halfspace_transport).  A rename to @c dedekind::relational would
+ * be a separate mechanical churn against the ADL wall.
  */
 export module dedekind.relational;
 

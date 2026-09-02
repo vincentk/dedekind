@@ -16,7 +16,9 @@
  * @c ComposePred), union @f$R\cup S@f$ (@c operator+ / @c RelOr), meet
  * @f$R\cap S@f$ (@c operator& / @c RelAnd), the diagonal @f$\Delta@f$
  * (@c diagonal), and the derived @c reflexive / @c symmetric closures.  The
- * reflexive-transitive closure @f$R^{*}@f$ is the Kleene star over @f$(+,;)@f$.
+ * reflexive-transitive closure @f$R^{*}@f$ would be the Kleene star over
+ * @f$(+,;)@f$ --- not yet a provided operator (@c >> is Boolean-middle only;
+ * FIXME(#786)).
  *
  * These combinators moved DOWN out of @c order/halfspace.cppm (#792): they are
  * pure @c Set<pair> algebra with @b no ordering, so they belong below @c order.
@@ -42,10 +44,15 @@
  *   @li FIXME(#799): frame n-ary products as flat @c std::tuple
  * rather than nested @c std::pair (get / apply / structured bindings for free).
  *
- * @note Namespace stays @c dedekind::sets (ADL on Set/Relation arguments; the
- * unqualified operators @c >> / @c + / @c & require it).  Only the module
- * boundary moved from @c order to @c relational (the transport-op precedent,
- * #785).
+ * @note These @c :dyadic symbols were @c dedekind::order on the halfspace; the
+ * move lands them in @c dedekind::sets (NOT @c dedekind::relational) so the
+ * unqualified operators @c >> / @c + / @c & resolve by ADL on their
+ * @c dedekind::sets::Set arguments.  So BOTH the module (@c order → @c
+ * relational) and the namespace (@c order → @c sets) moved for @c :dyadic ---
+ * unlike @c :tables / @c :graph, which were already @c dedekind::sets and kept
+ * it.  Callers that spelled @c dedekind::order::converse / @c is_relation /
+ * @c ComposePred repoint to @c dedekind::sets:: (transfer,
+ * halfspace_transport).
  */
 module;
 
@@ -241,3 +248,21 @@ static_assert(symmetric(diagonal<bool>())(std::pair{true, true}),
               "symmetric(Δ) = Δ ∪ Δ° = Δ.");
 
 }  // namespace dedekind::sets
+
+// ── Trait registry: the diagonal is FUNCTIONAL ─────────────────────────────
+// Δ = {(a,a)} is single-valued (a ↦ a).  order/halfspace registered this for
+// the @c ProjProj<1,Eq,2> spelling of the diagonal; the @c DiagPred reframe
+// (#792) carries the certificate along so @c diagonal() keeps its
+// @c is_right_unique trait.  A dropped trait is invisible to a build --- the
+// witness below turns a future regression into a compile error.
+// (Entireness was never registered for the ProjProj diagonal, so none here.)
+namespace dedekind::category {
+template <typename A, typename L>
+inline constexpr bool is_right_unique_v<
+    dedekind::sets::Set<std::pair<A, A>, L, dedekind::sets::DiagPred<A>>> =
+    true;
+
+static_assert(is_right_unique_v<decltype(dedekind::sets::diagonal<bool>())>,
+              "Δ is FUNCTIONAL (a ↦ a): the reframed diagonal keeps its "
+              "single-valued certificate.");
+}  // namespace dedekind::category
