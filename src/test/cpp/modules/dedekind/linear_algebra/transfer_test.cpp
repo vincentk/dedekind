@@ -91,3 +91,50 @@ TEST_CASE("transfer: the semiring is the choice of problem",
     CHECK(!inner_product<2>(none_present{}, all_present{}));  // no branch
   }
 }
+
+TEST_CASE(
+    "transfer: the matrix star R* — reachability (𝔹) and longest path "
+    "(MaxPlus)",
+    "[linear_algebra][transfer][star][closure]") {
+  // The edge relation i → i+1 on the 4-node line graph, materialised to its
+  // adjacency matrix then STARRED: R* = Δ ⊕ R ⊕ R² ⊕ … , the Kleene closure of
+  // the matrix semiring Mat(S).  This exercises `star` / `materialise` at
+  // runtime (the in-module witnesses are compile-time only).
+  auto edge = [](std::size_t i, std::size_t j) { return j == i + 1; };
+
+  SECTION("𝔹: the star is reachability, R*(i,j) = (i ≤ j)") {
+    const auto Rstar = star<4>(materialise<4>(edge));
+    CHECK(Rstar[0][0]);        // reflexive: 0 reaches 0 (empty path)
+    CHECK(Rstar[0][3]);        // transitive: 0 reaches 3 along the path
+    CHECK(Rstar[1][3]);        // 1 reaches 3
+    CHECK_FALSE(Rstar[3][0]);  // acyclic: 3 does not reach 0
+    CHECK_FALSE(Rstar[2][1]);  // no back-edge
+  }
+
+  SECTION(
+      "MaxPlus: the SAME star is the longest path (algebraic path problem)") {
+    using MP = MaxPlus<unsigned long long>;
+    using Add = typename dedekind::algebra::semiring_ops<MP>::add;
+    const MP bot = dedekind::category::identity_v<MP, Add>;
+    auto wedge = [bot](std::size_t i, std::size_t j) {
+      return (j == i + 1) ? MP::of(1) : bot;
+    };
+    const auto Tstar = star<4>(materialise<4>(wedge));
+    CHECK(Tstar[0][3] == MP::of(3));  // longest path 0→1→2→3 costs 3
+    CHECK(Tstar[1][3] == MP::of(2));  // 1→2→3 costs 2
+    CHECK(Tstar[0][0] == MP::of(0));  // ⊗-identity on the diagonal (empty path)
+    CHECK(Tstar[3][0] == bot);        // unreachable = the ⊕-identity
+  }
+
+  SECTION("MinPlus: one semiring apart, the star is the shortest path") {
+    using MP = MinPlus<unsigned long long>;
+    using Add = typename dedekind::algebra::semiring_ops<MP>::add;
+    const MP top = dedekind::category::identity_v<MP, Add>;  // ⊕-id = +∞
+    auto wedge = [top](std::size_t i, std::size_t j) {
+      return (j == i + 1) ? MP::of(1) : top;
+    };
+    const auto Sstar = star<4>(materialise<4>(wedge));
+    CHECK(Sstar[0][3] == MP::of(3));  // the only 0→3 path costs 3
+    CHECK(Sstar[3][0] == top);        // unreachable = +∞
+  }
+}

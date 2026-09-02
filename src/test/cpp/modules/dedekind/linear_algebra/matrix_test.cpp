@@ -27,9 +27,13 @@ using namespace dedekind::linear_algebra;
 
 namespace {
 // Canonical paper-facing carrier: ℚ as a proxy for ℝ (exact arithmetic).
-using Rat =
-    Rational<default_integer>;  // total ℚ (saturating cardinal), not the
-                                // signed-long shortcut — strict concepts
+// The finite-bignum rational, NOT Rational<default_integer>: this file uses Rat
+// as a NON-TYPE template parameter (Invertible2x2<Rat, Rat{1L}, ...>), which
+// requires a STRUCTURAL type.  default_integer is std::variant<...> (a private
+// member ⟹ non-structural).  SignedExtensionalCardinal<> is all-public
+// (structural) AND total (IsAlgebra), so it serves both the NTTP inversion
+// tests and the strict semimodule concept witnesses.
+using Rat = Rational<dedekind::sets::SignedExtensionalCardinal<>>;
 }  // namespace
 
 TEST_CASE("linear_algebra:matrix — identity at the type level",

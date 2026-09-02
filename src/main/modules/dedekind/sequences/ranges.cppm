@@ -376,24 +376,18 @@ auto materialise(
  * a bounded interval), carrying both the interval (the @c IsExtensional range
  * to scan) and the refinement predicate @c P.
  *
- *  @details Why a struct and not @c dedekind::sets::Comprehension (the DSL's
- *  @f$\{S\mid P\}@f$)?  Two contracts the DSL comprehension does not meet as an
- *  @c argmax @b result:
- *    @li @b value @b ownership --- @c Comprehension holds @c const @c Base& (a
- *        reference into a named ambient set); an @c argmax result must @b own
- *        its (stateless but @b typed) @c OrderInterval domain by value to be
- *        returned safely, so the scannable bounds survive in the return value's
- *        type.
- *    @li @b membership @b call --- @c Comprehension has no @c operator()(x);
- * the
- *        @c argmax result @b is invoked as the optimal-set predicate (e.g.
- *        @c is_optimal_path in the necklace exhibit).  A comprehension @b is
- * its own characteristic map here: @c x @c ∈ @c {dom @c | @c P} @c ⟺
- *        @c dom(x) @c ∧ @c P(x).
- *  So this is the @b callable, @b value-owning finite comprehension.  @c size()
- *  is the interval's cardinality --- the @c IsExtensional licence @ref
- * materialise needs; the @c OrderInterval domain is stateless, so owning it by
- * value is free. */
+ *  @details Both this and @c dedekind::sets::Comprehension (the DSL's
+ *  @f$\{S\mid P\}@f$) are now @c IsSet via @c dedekind::sets::SetExpr, and both
+ *  are callable.  The @b one contract @c Comprehension does not meet as an
+ *  @c argmax @b result is @b value @b ownership: @c Comprehension holds
+ *  @c const @c Base& (a reference into a named ambient set), whereas an
+ *  @c argmax result must @b own its (stateless but @b typed) @c OrderInterval
+ *  domain by value to be returned safely, so the scannable bounds survive in
+ *  the return value's type.  So @c BoundedSet is precisely the @b value-owning
+ *  finite comprehension.  Its membership χ is @c x @c ∈ @c {dom @c | @c P} @c ⟺
+ *  @c dom(x) @c ∧ @c P(x); @c size() is the interval's cardinality (the
+ *  @c IsExtensional licence @ref materialise needs), free because the
+ *  @c OrderInterval domain is stateless. */
 export template <typename OI, typename P>
 struct BoundedSet
     : dedekind::sets::SetExpr<BoundedSet<OI, P>, typename OI::Domain,

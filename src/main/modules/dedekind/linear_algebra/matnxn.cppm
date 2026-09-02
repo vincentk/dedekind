@@ -51,25 +51,28 @@ template <typename S, std::size_t N>
 struct MatTimes;
 
 /**
- * @brief @c |v⟩: a column of @c Mat(S) --- an N-entry @b semimodule vector over
- *        the semiring @c S, read as an index→scalar @b ket.  It is
- *        @c IsColumnVector by the default (semimodule) contract: @c ⊕ and the
- *        two-sided scalar @c ⊗ action, but @b no negation (a dioid has none).
- *        The bra·ket language of @c :transfer, made a first-class carrier: this
- *        @b is the "matrix column is a vector" slogan for a semiring.
+ * @brief An N-entry @b semimodule vector over the semiring @c S, read as an
+ *        index→scalar arrow.  @c IsColumnVector / @c IsCovector by the default
+ *        (semimodule) contract: @c ⊕ and the two-sided scalar @c ⊗ action, but
+ *        @b no negation (a dioid has none).  @ref Ket (@c ColumnOrientation,
+ *        @c |v⟩) and @ref Bra (@c RowOrientation, @c ⟨w|) are its two
+ *        orientations --- the bra·ket language of @c :transfer made first-class
+ *        carriers, the "matrix column/row @b is a vector" slogan for a
+ * semiring. One carrier, orientation as a template parameter (the tag is the @b
+ *        only difference between a column and a row).
  */
-export template <typename S, std::size_t N>
-struct Ket {
+export template <typename S, std::size_t N, typename Orientation>
+struct SemimoduleVec {
   using scalar_type = S;
-  using orientation = ColumnOrientation;
+  using orientation = Orientation;
   using dimension_type = dedekind::sets::Finite;
   static constexpr std::size_t dimension = N;
 
   std::array<S, N> c{};
 
-  /// @brief The additive monoid @c (Ket, ⊕) inherits the scalar's laws: since
+  /// @brief The additive monoid @c (·, ⊕) inherits the scalar's laws: since
   ///        @c S is a semiring, its @c ⊕ is an associative + commutative
-  ///        monoid, and so is the elementwise Ket-@c ⊕.  Totality distributes
+  ///        monoid, and so is the elementwise @c ⊕.  Totality distributes
   ///        separately (see the @c is_saturating registration below).
   template <typename Op>
   static constexpr bool is_associative_v = true;
@@ -80,67 +83,36 @@ struct Ket {
     return c[i];
   }  // index → scalar
   constexpr S operator[](std::size_t i) const { return c[i]; }
-  friend constexpr bool operator==(const Ket&, const Ket&) = default;
+  friend constexpr bool operator==(const SemimoduleVec&,
+                                   const SemimoduleVec&) = default;
 
-  friend constexpr Ket operator+(const Ket& a, const Ket& b) {
+  friend constexpr SemimoduleVec operator+(const SemimoduleVec& a,
+                                           const SemimoduleVec& b) {
     using Add = typename dedekind::algebra::semiring_ops<S>::add;
-    Ket r{};
+    SemimoduleVec r{};
     for (std::size_t i = 0; i < N; ++i) r.c[i] = Add{}(a.c[i], b.c[i]);
     return r;
   }
-  friend constexpr Ket operator*(const S& s, const Ket& a) {
+  friend constexpr SemimoduleVec operator*(const S& s, const SemimoduleVec& a) {
     using Mult = typename dedekind::algebra::semiring_ops<S>::mult;
-    Ket r{};
+    SemimoduleVec r{};
     for (std::size_t i = 0; i < N; ++i) r.c[i] = Mult{}(s, a.c[i]);
     return r;
   }
-  friend constexpr Ket operator*(const Ket& a, const S& s) {
+  friend constexpr SemimoduleVec operator*(const SemimoduleVec& a, const S& s) {
     using Mult = typename dedekind::algebra::semiring_ops<S>::mult;
-    Ket r{};
+    SemimoduleVec r{};
     for (std::size_t i = 0; i < N; ++i) r.c[i] = Mult{}(a.c[i], s);
     return r;
   }
 };
 
-/** @brief @c ⟨w|: a row of @c Mat(S) --- the @c RowOrientation twin of @ref
- * Ket, an @c IsCovector semimodule vector (the bra). */
+/** @brief @c |v⟩: a column of @c Mat(S) (a @c ColumnOrientation vector). */
 export template <typename S, std::size_t N>
-struct Bra {
-  using scalar_type = S;
-  using orientation = RowOrientation;
-  using dimension_type = dedekind::sets::Finite;
-  static constexpr std::size_t dimension = N;
-
-  std::array<S, N> c{};
-
-  template <typename Op>
-  static constexpr bool is_associative_v = true;
-  template <typename Op>
-  static constexpr bool is_commutative_v = true;
-
-  constexpr S operator()(std::size_t i) const { return c[i]; }
-  constexpr S operator[](std::size_t i) const { return c[i]; }
-  friend constexpr bool operator==(const Bra&, const Bra&) = default;
-
-  friend constexpr Bra operator+(const Bra& a, const Bra& b) {
-    using Add = typename dedekind::algebra::semiring_ops<S>::add;
-    Bra r{};
-    for (std::size_t i = 0; i < N; ++i) r.c[i] = Add{}(a.c[i], b.c[i]);
-    return r;
-  }
-  friend constexpr Bra operator*(const S& s, const Bra& a) {
-    using Mult = typename dedekind::algebra::semiring_ops<S>::mult;
-    Bra r{};
-    for (std::size_t i = 0; i < N; ++i) r.c[i] = Mult{}(s, a.c[i]);
-    return r;
-  }
-  friend constexpr Bra operator*(const Bra& a, const S& s) {
-    using Mult = typename dedekind::algebra::semiring_ops<S>::mult;
-    Bra r{};
-    for (std::size_t i = 0; i < N; ++i) r.c[i] = Mult{}(a.c[i], s);
-    return r;
-  }
-};
+using Ket = SemimoduleVec<S, N, ColumnOrientation>;
+/** @brief @c ⟨w|: a row of @c Mat(S) (a @c RowOrientation covector). */
+export template <typename S, std::size_t N>
+using Bra = SemimoduleVec<S, N, RowOrientation>;
 
 /**
  * @brief @c Mat(S): the N×N matrix over a semiring @c S.  Entries are stored
@@ -290,26 +262,17 @@ struct identity_trait<dedekind::linear_algebra::MatNxNV<S, N>,
       dedekind::linear_algebra::identity_matrix<S, N>();
 };
 
-/** @brief The @c ⊕-identity of a @ref dedekind::linear_algebra::Ket /
- *         @ref dedekind::linear_algebra::Bra is the zero vector (every entry
- *         the base @c ⊕-identity) --- what makes it an @c IsCommutativeMonoid,
- *         hence an @c IsSemimodule, hence an @c IsColumnVector / @c IsCovector.
- */
-template <typename S, std::size_t N>
-struct identity_trait<dedekind::linear_algebra::Ket<S, N>,
-                      std::plus<dedekind::linear_algebra::Ket<S, N>>> {
+/** @brief The @c ⊕-identity of a @ref dedekind::linear_algebra::SemimoduleVec
+ *         (a @ref Ket or @ref Bra) is the zero vector (every entry the base
+ *         @c ⊕-identity) --- what makes it an @c IsCommutativeMonoid, hence an
+ *         @c IsSemimodule, hence an @c IsColumnVector / @c IsCovector.  One
+ *         registration for both orientations. */
+template <typename S, std::size_t N, typename O>
+struct identity_trait<
+    dedekind::linear_algebra::SemimoduleVec<S, N, O>,
+    std::plus<dedekind::linear_algebra::SemimoduleVec<S, N, O>>> {
   static constexpr auto value = [] {
-    dedekind::linear_algebra::Ket<S, N> z{};
-    for (std::size_t i = 0; i < N; ++i)
-      z.c[i] = identity_v<S, typename dedekind::algebra::semiring_ops<S>::add>;
-    return z;
-  }();
-};
-template <typename S, std::size_t N>
-struct identity_trait<dedekind::linear_algebra::Bra<S, N>,
-                      std::plus<dedekind::linear_algebra::Bra<S, N>>> {
-  static constexpr auto value = [] {
-    dedekind::linear_algebra::Bra<S, N> z{};
+    dedekind::linear_algebra::SemimoduleVec<S, N, O> z{};
     for (std::size_t i = 0; i < N; ++i)
       z.c[i] = identity_v<S, typename dedekind::algebra::semiring_ops<S>::add>;
     return z;
@@ -349,14 +312,10 @@ struct is_saturating<dedekind::linear_algebra::MatNxNV<S, N>,
  * total field such as @c Rational<default_integer> or the max-plus dioid: yes;
  * a signed
  *  @c long-backed @c Rational: no), never asserted near the carrier. */
-template <typename S, std::size_t N>
-struct is_saturating<dedekind::linear_algebra::Ket<S, N>,
-                     std::plus<dedekind::linear_algebra::Ket<S, N>>>
-    : std::bool_constant<
-          IsMagma<S, typename dedekind::algebra::semiring_ops<S>::add>> {};
-template <typename S, std::size_t N>
-struct is_saturating<dedekind::linear_algebra::Bra<S, N>,
-                     std::plus<dedekind::linear_algebra::Bra<S, N>>>
+template <typename S, std::size_t N, typename O>
+struct is_saturating<
+    dedekind::linear_algebra::SemimoduleVec<S, N, O>,
+    std::plus<dedekind::linear_algebra::SemimoduleVec<S, N, O>>>
     : std::bool_constant<
           IsMagma<S, typename dedekind::algebra::semiring_ops<S>::add>> {};
 

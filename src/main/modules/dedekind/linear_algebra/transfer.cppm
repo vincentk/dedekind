@@ -441,17 +441,42 @@ static_assert(perm_dagger_is_inverse(),
 // ── Wire the @c is_unitary SEED (Component A): the cyclic-shift permutation is
 // the first per-carrier witness the seed anticipated "with the linear-algebra
 // consumer".  In @c Rel the dagger is the converse, and a permutation's
-// converse IS its inverse (P° ; P = Δ, certified just above), so @c CyclicShift
-// is
-// @b unitary.  This collapses "converse = transpose = adjoint = inverse" onto
-// one certificate for the bijective case.
+// converse IS its inverse (P° ; P = Δ), so @c CyclicShift is @b unitary.  This
+// collapses "converse = transpose = adjoint = inverse" onto one certificate for
+// the bijective case.  (The categorical @c IsUnitary CONCEPT --- dagger +
+// inverse + composition, which vary per category --- stays the deferred design
+// @c :involution flags; this is its first per-carrier certificate.)
 namespace dedekind::category {
+// The certificate is DERIVED from the proof, not asserted beside it: it is
+// exactly the outcome of the ⊕/⊗ relative product P° ; P compared to Δ.  Change
+// CyclicShift to a non-permutation and the trait goes false, honestly.
 template <>
 struct is_unitary<dedekind::linear_algebra::detail_transfer::CyclicShift,
-                  std::size_t> : std::true_type {};
+                  std::size_t>
+    : std::bool_constant<
+          dedekind::linear_algebra::detail_transfer::perm_dagger_is_inverse()> {
+};
 static_assert(
     is_unitary_v<dedekind::linear_algebra::detail_transfer::CyclicShift,
                  std::size_t>,
     "Component A: the cyclic-shift permutation's dagger (the converse) is its "
-    "inverse --- a unitary arrow of Rel.");
+    "inverse --- a unitary arrow of Rel (certificate = the P°;P=Δ "
+    "computation).");
+
+// Seed the COMPOSITION law: unitaries are closed under the relative product ; .
+// The dagger is contravariant, (A;B)° = B°;A°, so if A° = A⁻¹ and B° = B⁻¹ then
+// (A;B)° = (A;B)⁻¹ --- the composite is unitary.  Derived from the factors (the
+// relation-algebra ComposePred carries them by TYPE), so it is the structural
+// GROUP law, not a per-carrier assertion; it holds regardless of whether the ;
+// itself evaluates (the DSL >> is boolean-middle-only, a separate FIXME(#786)).
+template <typename PA, typename PB, typename Mid, typename T>
+struct is_unitary<dedekind::order::ComposePred<PA, PB, Mid>, T>
+    : std::bool_constant<is_unitary_v<PA, T> && is_unitary_v<PB, T>> {};
+static_assert(
+    is_unitary_v<dedekind::order::ComposePred<
+                     dedekind::linear_algebra::detail_transfer::CyclicShift,
+                     dedekind::linear_algebra::detail_transfer::CyclicShift>,
+                 std::size_t>,
+    "unitary is closed under composition (the unitary group): P ; P is unitary "
+    "because both factors are.");
 }  // namespace dedekind::category
