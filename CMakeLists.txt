@@ -185,6 +185,9 @@ add_dedekind_layer(category "")
 add_dedekind_layer(ieee dedekind_category)
 add_dedekind_layer(sets dedekind_ieee)
 add_dedekind_layer(order dedekind_sets)
+# dedekind.relational (#792) — the relation-algebra's own module, above order
+# (it receives order/halfspace's converse/relative-product/closure surface).
+add_dedekind_layer(relational dedekind_order)
 add_dedekind_layer(topology dedekind_order)
 add_dedekind_layer(sequences dedekind_topology)
 add_dedekind_layer(algebra dedekind_sequences)
@@ -375,14 +378,14 @@ endif()
 # corresponds to a module interface unit.
 # The "dedekind" library is the final product
 add_library(dedekind INTERFACE)
-add_dependencies(dedekind dedekind_category dedekind_ieee dedekind_sets dedekind_order dedekind_topology dedekind_sequences dedekind_algebra dedekind_morphologies dedekind_geometry dedekind_numbers dedekind_analysis dedekind_linear_algebra dedekind_python)
+add_dependencies(dedekind dedekind_category dedekind_ieee dedekind_sets dedekind_order dedekind_relational dedekind_topology dedekind_sequences dedekind_algebra dedekind_morphologies dedekind_geometry dedekind_numbers dedekind_analysis dedekind_linear_algebra dedekind_python)
 # No source files needed here; it just bundles the objects
-target_link_libraries(dedekind INTERFACE dedekind_category dedekind_ieee dedekind_sets dedekind_order dedekind_topology dedekind_sequences dedekind_algebra dedekind_morphologies dedekind_geometry dedekind_numbers dedekind_analysis dedekind_linear_algebra dedekind_python)
+target_link_libraries(dedekind INTERFACE dedekind_category dedekind_ieee dedekind_sets dedekind_order dedekind_relational dedekind_topology dedekind_sequences dedekind_algebra dedekind_morphologies dedekind_geometry dedekind_numbers dedekind_analysis dedekind_linear_algebra dedekind_python)
 target_compile_features(dedekind INTERFACE cxx_std_23)
 
 target_compile_options(dedekind INTERFACE ${DEDEKIND_WARNING_FLAGS})
 
-install(TARGETS dedekind dedekind_category dedekind_ieee dedekind_sets dedekind_order dedekind_topology dedekind_sequences dedekind_algebra dedekind_morphologies dedekind_geometry dedekind_numbers dedekind_analysis dedekind_linear_algebra dedekind_optimization dedekind_python
+install(TARGETS dedekind dedekind_category dedekind_ieee dedekind_sets dedekind_order dedekind_relational dedekind_topology dedekind_sequences dedekind_algebra dedekind_morphologies dedekind_geometry dedekind_numbers dedekind_analysis dedekind_linear_algebra dedekind_optimization dedekind_python
     EXPORT dedekind-targets
     # Ensure CXX_MODULES are installed for all targets
     FILE_SET CXX_MODULES DESTINATION lib/modules/dedekind
