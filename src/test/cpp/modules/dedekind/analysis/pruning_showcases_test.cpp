@@ -39,8 +39,11 @@ using R2Point = typename decltype(R2)::Domain;
 // FIXME(#399 slice 4-6): see showcase_01 source for the same comment.
 constexpr auto xy = element<Ω<R2Point>>;
 
-constexpr auto diagonal =
-    Set{xy % R2 | [](R2Point p) { return p.first == p.second; }};
+// The diagonal {x == y}: reuse the set-expression operator== on the projections
+// (π1 == π2), not a hand lambda — over the SAME xy % R2 base as `strip`, so the
+// element type tracks R2 (Real<double> under the double-real proxy, else
+// double) and diag & strip stays well-typed.
+constexpr auto diag = Set{xy % R2 | π1 == π2};
 constexpr auto strip = Set{
     xy % R2 | [](R2Point p) { return (p.first > 5.0) && (p.second < 3.0); }};
 
@@ -48,7 +51,7 @@ constexpr auto strip = Set{
 
 TEST_CASE("Pruning showcase 1: diagonal × strip on ℝ² is empty",
           "[analysis][pruning][showcase][showcase01]") {
-  constexpr auto empty_diagonal_cut = diagonal & strip;
+  constexpr auto empty_diagonal_cut = diag & strip;
   using R2Logic = typename decltype(empty_diagonal_cut)::logic_species;
 
   // On the diagonal x = y, the strip x>5 ∧ y<3 is contradictory.

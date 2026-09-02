@@ -360,10 +360,12 @@ static_assert(IsExponential<std::move_only_function<bool(int)>, int, bool>,
 #endif
 
 // 3. The "Light" Exponential: Anonymous Structural Closure
-// This captures the 'essence' without the 'lineage'
-auto closure = [limit = 42](int x) { return x < limit; };
+// This captures the 'essence' without the 'lineage'.  (Named @c bounded_pred,
+// not @c closure, so the canonical name is free for the @c closure operator in
+// @c :functor --- "closure of X under Y".)
+auto bounded_pred = [limit = 42](int x) { return x < limit; };
 static_assert(
-    IsExponential<decltype(closure), int, bool>,
+    IsExponential<decltype(bounded_pred), int, bool>,
     "Structural: A lambda is discovered as an Exponential by its scent.");
 
 // 4. The "Honest Rejection": Mismatched Signature

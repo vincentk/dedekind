@@ -172,3 +172,17 @@ TEST_CASE("Sets: Composition of Operations: The Functor Highway",
                   "The Composition Axiom must be resolved at compile-time.");
   }
 }
+
+TEST_CASE("Sets: Comprehension runtime membership (χ coverage)",
+          "[sets][comprehension][runtime]") {
+  // Runtime companion to the STATIC_REQUIRE witnesses: call the comprehension's
+  // characteristic map (operator() / contains) at RUNTIME so its
+  // L::AND-and-lift body is exercised, not only compile-time-asserted.
+  auto _s = ι<size_t>(42);
+  const auto self_meet = _s & _s;         // Comprehension<UniversalSet, lambda>
+  CHECK(self_meet(size_t{42}));           // 42 ∈ {42} ∧ 42 ∈ {42}
+  CHECK_FALSE(self_meet(size_t{7}));      // 7 ∉ {42}
+  CHECK(self_meet.contains(size_t{42}));  // via SetExpr::contains → χ
+  CHECK_FALSE(self_meet.contains(size_t{7}));
+  CHECK(self_meet.size() == 1);
+}

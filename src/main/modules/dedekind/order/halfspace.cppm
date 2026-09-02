@@ -1059,9 +1059,32 @@ struct RelAnd {
   using is_rel_predicate = void;
   A a;
   B b;
+  // @c auto (not @c bool): the result inherits the operands' own logic, so over
+  // a @c TernaryLogic relation this is the Kleene @c ∧ (a @c bool cast would
+  // collapse @c Unknown).  FIXME(#780): mixed Boolean/Ternary operands (a
+  // ternary relation @c & @c diagonal()) still need a lift on the bool side.
   template <typename P>
-  constexpr bool operator()(const P& p) const {
+  constexpr auto operator()(const P& p) const {
     return a(p) && b(p);
+  }
+};
+
+/** @brief Join (disjunction) of two relational predicates --- the relation
+ *  UNION carrier, dual to @c RelAnd.  It is the Kleene @c + of the relation
+ *  algebra @f$(+, ;, {}^{*})@f$: @c ; is the relative product @c >>, and @c *
+ *  the reflexive-transitive closure below. */
+export template <typename A, typename B>
+struct RelOr {
+  using is_rel_predicate = void;
+  A a;
+  B b;
+  // @c auto (not @c bool): the result inherits the operands' own logic, so over
+  // a @c TernaryLogic relation this is the Kleene @c ∨ (a @c bool cast would
+  // collapse @c Unknown).  FIXME(#780): mixed Boolean/Ternary operands still
+  // need a lift on the bool side.
+  template <typename P>
+  constexpr auto operator()(const P& p) const {
+    return a(p) || b(p);
   }
 };
 
@@ -1965,6 +1988,131 @@ static_assert(static_cast<bool>(((𝔹 * 𝔹 | π1 <= π2) >>
 static_assert(!static_cast<bool>(((𝔹 * 𝔹 | π1 <= π2) >>
                                   (𝔹 * 𝔹 | π1 <= π2))(std::pair{true, false})),
               "≤ ∘ ≤ excludes (true, false): transitivity recovers ≤.");
+
+// ── Relation algebra: union (Kleene +), the diagonal, and the reflexive /
+// symmetric closures.  With the relative product >> (Kleene ;) these are the
+// (+, ;, *) of Tarski's calculus; the reflexive-transitive closure * follows.
+/** @brief @c R @c + @c S --- the UNION of two relations over the same product
+ *  @f$A \times B@f$: membership is either predicate (@c RelOr).  The Kleene @c
+ * +
+ *  (@c ; is the relative product @c >>). */
+export template <typename A, typename B, typename L, typename PR, typename PS>
+constexpr auto operator+(const Set<std::pair<A, B>, L, PR>& r,
+                         const Set<std::pair<A, B>, L, PS>& s) {
+  return Set<std::pair<A, B>, L, RelOr<PR, PS>>{
+      RelOr<PR, PS>{r.predicate(), s.predicate()}};
+}
+
+/** @brief @c R @c & @c S --- the INTERSECTION (meet) of two relations over the
+ *  same product, dual to the union @c +: membership is both predicates
+ *  (@c RelAnd).  The Boolean-lattice ∩ on relations. */
+export template <typename A, typename B, typename L, typename PR, typename PS>
+constexpr auto operator&(const Set<std::pair<A, B>, L, PR>& r,
+                         const Set<std::pair<A, B>, L, PS>& s) {
+  return Set<std::pair<A, B>, L, RelAnd<PR, PS>>{
+      RelAnd<PR, PS>{r.predicate(), s.predicate()}};
+}
+
+/** @brief The DIAGONAL (identity relation) @f$\Delta = \{(a,a)\}@f$ on a
+ * carrier
+ *  @c A --- @c {π1==π2} --- the reflexive-closure unit and the @c 1 of the
+ *  relation algebra. */
+export template <typename A, typename L = ClassicalLogic>
+constexpr auto diagonal() {
+  return Set<std::pair<A, A>, L, ProjProj<1, Rel::Eq, 2>>{
+      ProjProj<1, Rel::Eq, 2>{}};
+}
+
+/** @brief @c reflexive(R) = @c R @c + @c Δ --- the smallest reflexive relation
+ *  containing an endorelation @c R (add the self-loops). */
+export template <typename A, typename L, typename P>
+constexpr auto reflexive(const Set<std::pair<A, A>, L, P>& r) {
+  return r + diagonal<A, L>();
+}
+
+/** @brief @c symmetric(R) = @c R @c + @c R° --- the smallest symmetric relation
+ *  containing @c R (add the reversed edges; @c R° is the @c converse). */
+export template <typename A, typename L, typename P>
+constexpr auto symmetric(const Set<std::pair<A, A>, L, P>& r) {
+  return r + converse(r);
+}
+
+// reflexive(<) = < ∪ Δ = ≤ on 𝔹; symmetric(<) = < ∪ <° = ≠ on 𝔹.
+static_assert(static_cast<bool>(reflexive(𝔹* 𝔹 |
+                                          π1 < π2)(std::pair{false, false})),
+              "reflexive(<) adds the diagonal: (false,false) ∈ < ∪ Δ = ≤.");
+static_assert(!static_cast<bool>(reflexive(𝔹 * 𝔹 |
+                                           π1 < π2)(std::pair{true, false})),
+              "reflexive(<) is still ≤: (true,false) ∉ ≤.");
+static_assert(static_cast<bool>(symmetric(𝔹* 𝔹 |
+                                          π1 < π2)(std::pair{true, false})),
+              "symmetric(<) adds the converse: (true,false) ∈ < ∪ <° = ≠.");
+static_assert(!static_cast<bool>(symmetric(𝔹 * 𝔹 |
+                                           π1 < π2)(std::pair{false, false})),
+              "symmetric(<) excludes the diagonal: (false,false) ∉ ≠.");
+
+// The converse is the DAGGER of Rel: an INVOLUTION (R°° = R) that REVERSES
+// composition ((R;S)° = S°;R°) --- the two laws that make it a dagger functor,
+// and the reason a bijective relation's converse IS its inverse (Component A).
+static_assert(static_cast<bool>(converse(converse(𝔹* 𝔹 | π1 < π2))(std::pair{
+                  false, true})) ==
+                  static_cast<bool>((𝔹 * 𝔹 | π1 < π2)(std::pair{false, true})),
+              "R°° = R at (false,true): the converse is an involution.");
+static_assert(static_cast<bool>(converse(converse(𝔹* 𝔹 | π1 < π2))(std::pair{
+                  true, false})) ==
+                  static_cast<bool>((𝔹 * 𝔹 | π1 < π2)(std::pair{true, false})),
+              "R°° = R at (true,false): agrees on the excluded pair too.");
+static_assert(
+    static_cast<bool>(converse((𝔹 * 𝔹 | π1 < π2) >>
+                               (𝔹 * 𝔹 | π1 <= π2))(std::pair{true, false})) ==
+        static_cast<bool>((converse(𝔹 * 𝔹 | π1 <= π2) >>
+                           converse(𝔹 * 𝔹 | π1 < π2))(std::pair{true, false})),
+    "(R;S)° = S°;R° at (true,false): the converse reverses composition "
+    "(dagger contravariance).");
+
+// Kleene / relation-algebra laws on the DSL, witnessed on 𝔹: Δ is the
+// composition unit (R;Δ = R, the algebra's 1); composition distributes over
+// union (R;(S+T) = R;S + R;T); and --- the Schröder property-gated rewrite ---
+// a FUNCTIONAL relation's composition distributes over MEET too (R;(S∩T) =
+// R;S ∩ R;T), which fails for a non-functional relation.
+static_assert(static_cast<bool>(((𝔹 * 𝔹 | π1 < π2) >>
+                                 diagonal<bool>())(std::pair{false, true})) ==
+                  static_cast<bool>((𝔹 * 𝔹 | π1 < π2)(std::pair{false, true})),
+              "R;Δ = R: the diagonal is the composition unit (the 1).");
+static_assert(
+    static_cast<bool>(((𝔹 * 𝔹 | π1 <= π2) >>
+                       ((𝔹 * 𝔹 | π1 < π2) + (𝔹 * 𝔹 | π1 == π2)))(std::pair{
+        false, true})) ==
+        static_cast<bool>((((𝔹 * 𝔹 | π1 <= π2) >> (𝔹 * 𝔹 | π1 < π2)) +
+                           ((𝔹 * 𝔹 | π1 <= π2) >>
+                            (𝔹 * 𝔹 | π1 == π2)))(std::pair{false, true})),
+    "R;(S+T) = R;S + R;T: composition distributes over union.");
+static_assert(
+    static_cast<bool>(((𝔹 * 𝔹 | π1 != π2) >>
+                       ((𝔹 * 𝔹 | π1 <= π2) & (𝔹 * 𝔹 | π1 == π2)))(std::pair{
+        true, false})) ==
+        static_cast<bool>((((𝔹 * 𝔹 | π1 != π2) >> (𝔹 * 𝔹 | π1 <= π2)) &
+                           ((𝔹 * 𝔹 | π1 != π2) >>
+                            (𝔹 * 𝔹 | π1 == π2)))(std::pair{true, false})),
+    "functional R ⟹ R;(S∩T) = R;S ∩ R;T: the property-gated Schröder rewrite.");
+
+// ── FIXME(#786): the reflexive-TRANSITIVE closure (the Kleene star R*) is the
+// remaining brick that turns §7's CPM exhibit into a one-liner (R* at a
+// tropical semiring).  R* = Δ + R⁺ = Δ + R + R² + ... needs powers Rⁿ = the
+// relative product iterated, but @c operator>> above is BOOLEAN-MIDDLE ONLY
+// (requires std::same_as<B, bool>), so on 𝔹 the star degenerates to Δ + R (two
+// nodes reach in ≤1 step) — no genuine iteration.  Two bricks, in order:
+//   1. a FINITE-CARRIER relative product: enumerate a finite middle carrier
+//      (the finite-quotient handle, §3.1) so Rⁿ is computable for >2 nodes, and
+//      bound the star by the carrier size (Rⁿ stabilises at n = |carrier|).
+//   2. a SEMIRING-PARAMETRIC >> and star: (R;S)(a,c) = ⊕_b R(a,b)⊗S(b,c), so
+//      R* over (∨,∧) = reachability and over Tropical(max,+) = the critical
+//      path (CPM) — the SAME closure, one semiring apart, re-expressing
+//      showcase_13 through the DSL star and retiring the net/DSL duality.
+// Brick 2's semiring choice + the carrier-enumeration protocol are design
+// decisions best made with the author (not guessed); this seed lands the union
+// (+), the diagonal (1), and the reflexive/symmetric closures (half the Kleene
+// algebra), leaving the star for the next pass.
 
 }  // namespace dedekind::order
 

@@ -301,7 +301,7 @@ This categorical vocabulary is not decorative; intensional sets acting as predic
 \paragraph{Structure of the paper.}
 The remainder of this paper substantiates these contributions by evaluating three core architectural claims:
 (1) sets operate as intensional type-checked rules rather than extensional memory containers;
-(2) algebraic computation remains purely symbolic until explicitly materialized; and
+(2) algebraic computation remains purely symbolic until explicitly materialised; and
 (3) standard compilers can reliably function as validation and optimization engines for mathematical invariants.
 Section~\ref{sec:jlt_posture} isolates the disciplined fragment of C++23, the Juliet Posture.
 Section~\ref{sec:intensional_sets} bootstraps intensional sets as type-checked predicates and the type-directed collapse they license, and Section~\ref{sec:relations_functions_blueprint} lifts these to point-free mappings between sets.
@@ -343,7 +343,7 @@ The naming followed the observation that a rose by any other name would smell as
 
 The structural discipline enforces that while behavior-branching based on nominal lineage is rejected, algebraic specialization via partial ordering is embraced, provided all matching paths satisfy strict \emph{semantic equivalence}.
 The choice of path is then treated purely as a translation-time optimization detail.
-In practice, this posture materializes across progressive feature tiers: i) basic \texttt{constexpr} branching; ii) concept-constrained templates and structural subsumption; and iii) utilization of developer trait axioms for manual certification.
+In practice, this posture materialises across progressive feature tiers: i) basic \texttt{constexpr} branching; ii) concept-constrained templates and structural subsumption; and iii) utilization of developer trait axioms for manual certification.
 
 \paragraph{The Syntactic vs. Semantic Split}
 \label{sec:syntactic_semantic_split}
@@ -1072,23 +1072,32 @@ An iso or a mono has a fibre of at most one point, so the join is a single looku
 An epi or a general map has a many-point fibre, which is a point-free \emph{union} of branches, so the join is the union $\bigcup_i \mathrm{preimage}(b_i, S)$ of the branches' pullbacks, decided analytically with no enumeration.
 The one-sided inverses all compose \emph{contravariantly}, so retractability and section-ability are closed under composition and, in particular, are preserved by pre- or post-composition with an iso (Listing~\ref{lst:functional_image_bijection}).
 
+We note a deep connection between converse and inverse, which Table~\ref{tab:inverse-image-laws}'s final column summarises.
+Each factorisation class has a \emph{dagger refinement} in which the dagger itself supplies the one-sided inverse: an isometry ($f^\dagger f = \mathrm{id}$) is a split mono with retract $f^\dagger$, a coisometry ($f f^\dagger = \mathrm{id}$) a split epi with section $f^\dagger$, a unitary (both) an iso with $f^{-1} = f^\dagger$, and a partial isometry ($f f^\dagger f = f$) a general arrow factoring as a dagger-mono after a dagger-epi.
+The implication runs one way (an ordinary mono need not be an isometry), but where it holds ``the converse is the inverse'' (a bijective relation) and ``the transpose is the inverse'' (an orthogonal matrix) are one theorem.
+The interested reader is referred to \cite{heunen2019categories,selinger2007dagger,heunenkarvonen2019limits,nlab_dagger}.
+
 \begin{table}[htbp]
 \centering
-\begin{tabular}{@{}llll@{}}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}lllll@{}}
 \toprule
-arrow $f$ & one-sided inverse & fibre $f^{-1}(y)$ & composition $h = g \circ f$ \\
+arrow $f$ & one-sided inverse & fibre $f^{-1}(y)$ & composition $h = g \circ f$ & $\dagger$-refinement \\
 \midrule
-iso              & $f^{-1}$ (two-sided)                     & $\{f^{-1}(y)\}$                                    & $h^{-1} = f^{-1}\!\circ g^{-1}$ \\
+iso              & $f^{-1}$ (two-sided)                     & $\{f^{-1}(y)\}$                                    & $h^{-1} = f^{-1}\!\circ g^{-1}$ & unitary \\
 \addlinespace
-mono / injective & retract $r$, $\;r\circ f = \mathrm{id}$   & $\{r(y)\}$ if $f(r(y)){=}y$, else $\varnothing$   & $r_h = r_f\!\circ r_g$ \\
+mono / injective & retract $r$, $\;r\circ f = \mathrm{id}$   & $\{r(y)\}$ if $f(r(y)){=}y$, else $\varnothing$   & $r_h = r_f\!\circ r_g$ & isometry \\
 \addlinespace
-epi / surjective & section $s$, $\;f\circ s = \mathrm{id}$   & a union, containing $s(y)$                         & $s_h = s_f\!\circ s_g$ \\
+epi / surjective & section $s$, $\;f\circ s = \mathrm{id}$   & a union, containing $s(y)$                         & $s_h = s_f\!\circ s_g$ & coisometry \\
 \addlinespace
-general $m\circ e$ & retract of $m$, section of $e$          & a union of branches                               & converse composes contravariantly \\
+general $m\circ e$ & $g$, $\;f g f = f$                       & $\bigcup_i \{s_i(y)\}$                             & converse composes contravariantly & partial isometry \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \caption{How Table~\ref{tab:relation-quantifier}'s arrow class fixes the inverse structure, hence image-membership (Equation~\ref{eqn:image-fibre}) and its composition law.
-The fibre is a single point (iso, mono) or a point-free union (epi, general); image is the fibre met against the source, and the one-sided inverses all compose contravariantly, so retractability is closed under composition.}
+The fibre is a single point (iso, mono) or a point-free union (epi, general); image is the fibre met against the source, and the one-sided inverses all compose contravariantly, so retractability is closed under composition.
+The final column names each class's \emph{dagger refinement}: the special case, in a dagger category, where the dagger itself supplies the one-sided inverse (unitary $f^{-1}=f^\dagger$, isometry retract $r=f^\dagger$, coisometry section $s=f^\dagger$, and for a general $m\circ e$ that factors as a dagger-mono after a dagger-epi, partial isometry with $g=f^\dagger$, the Moore--Penrose pseudoinverse in the Hilbert case).
+The refinement runs one way (an ordinary mono need not be an isometry), and partial isometries, unlike the other three classes, are not closed under composition.}
 \label{tab:inverse-image-laws}
 \end{table}
 
@@ -1453,6 +1462,8 @@ Over the ring $(\mathbb{R}, +, \times)$ the identical fixed point $x = A x + b$ 
 Replace the ring $(+, \times)$ by the tropical dioid $(\max, +)$ and the same inverse $A^{*}$ is the critical path.
 A general dioid has no subtraction, so $A^{*}$ is not literally $(I - A)^{-1}$ but its role-equivalent, the Neumann series standing in where the inverse cannot be formed.
 The choice of semiring is thus equally the choice of linear algebra.
+This is the \emph{algebraic path problem}: semiring linear algebra in the sense of Dolan's functional pearl~\cite{dolan2013semirings}, with the matrix closure $A^{*}$ its star, and categorically Master's open version~\cite{master2021openapp}.
+The algebra is theirs; what we add is the \emph{delivery}: the same closure in C++ and hence in an optimizing compiler toolchain, where it folds to a literal at compile time (Listing~\ref{lst:necklace-ir}) for a mainstream developer, rather than from a hand-written functional typeclass.
 
 \begin{table}[htbp]
 \centering
@@ -1473,35 +1484,8 @@ The longest path over a single-source, single-sink directed acyclic graph is the
 It is also the dual of a network-flow linear program: the flow variables live on the edges, the dual potentials live on the nodes, and total unimodularity of the node-arc incidence makes both optima integral.
 Computing the critical path is therefore solving one side of a linear program, and complementary slackness reads off the other side, namely which edges carry flow and so which activities are critical, in the sense of carrying zero float.
 
-\subsection{The closure, gated on an algebraic concept}
-\label{subsec:semiring_closure}
-
-The reduction is a \cppinline{fold} over the graph's edges (Listing~\ref{lst:closure}), gated on the \emph{algebraic} concept \cppinline{IsSemiring<S, Add, Mult>} rather than a syntactic operator list.
-Each edge relaxes one potential, $d[\mathrm{head}] := d[\mathrm{head}] \oplus d[\mathrm{tail}] \otimes c$; one pass in topological order suffices on a DAG.\footnote{\cppinline{materialise} (Listing~\ref{lst:necklace}) emits edges tail-ascending, a topological order whenever the nodes are numbered compatibly with the DAG; such a numbering always exists, and the necklace's $(x,y)$-index is one. A topologically shuffled edge list would instead need the usual $|\mathcal{V}| - 1$ relaxation passes.}
-The operators default to the carrier's canonical pair, so neither the reachability nor the critical-path call site spells them out.
-
-\begin{listing}[htbp]
-\caption{The single-source semiring closure: a fold over the edge sequence, gated on \cppinline{IsSemiring}, the operators defaulted per carrier.
-The fold threads its accumulator in place, so the relaxation step is not side-effect-free.
-The effect stays local, the potential net never escapes the call, and \cppinline{constexpr} evaluation is the proof: a function leaking an observable effect could not fold to the literal IR of Listing~\ref{lst:necklace-ir}.
-This is the role Haskell reserves for \cppinline{runST}, sealing an in-place computation so it reads as pure from the outside.}
-\label{lst:closure}
-\begin{cpp}
-template <typename S, std::size_t Cap,
-          typename Add = semiring_ops<S>::add,
-          typename Mult = semiring_ops<S>::mult, typename Edges, typename CostFn>
-  requires IsSemiring<S, Add, Mult>
-constexpr S semiring_closure(std::size_t source, std::size_t sink,
-                             const Edges& edges, CostFn cost) {
-  static_assert(S{} == identity_v<S, Add>);  // net default IS the semiring 0-bar
-  FiniteNet<S, Cap> d{};               // 0-bar everywhere (-inf under MaxPlus)
-  d.at(source) = identity_v<S, Mult>;  // 1-bar at the source
-  return fold(edges, d, [&](auto& acc, Edge e) {   // thread the net in place
-    acc.at(e.head) = Add{}(acc(e.head), Mult{}(acc(e.tail), cost(e.tail, e.head)));
-  })(sink);
-}
-\end{cpp}
-\end{listing}
+The closure is gated on the \emph{algebraic} concept \cppinline{IsSemiring<S, Add, Mult>} rather than a syntactic operator list, with the operators defaulting to the carrier's canonical pair so no call site spells them out.
+Its \emph{net fiber} (Table~\ref{tab:relation-matrix-map}) is a \cppinline{fold} over the graph's edges relaxing one potential per edge, $d[\mathrm{head}] := d[\mathrm{head}] \oplus d[\mathrm{tail}] \otimes c$, in one topological pass on a DAG; the checked-in \cppinline{semiring_closure} is that fold, threading its potential net in place under \cppinline{constexpr}.
 
 The tropical carrier \cppinline{Tropical<T>} $= T \cup \{\infty\}$ is a certified \cppinline{IsSemiring}, and in fact a \emph{dioid}: its addition $\oplus$ is the order-extremum (\cppinline{max} for the longest path), an idempotent semilattice, while its multiplication $\otimes$ is the carrier's own $+$.
 That idempotence is the whole difference from the naturals; the concept \cppinline{IsTropical} names it as \cppinline{IsSemiring} refined by an idempotent $\oplus$.
@@ -1536,33 +1520,8 @@ The cost of arriving at $(x', y')$ is $\max\big(y'(K - x'),\, 0\big)$, a non-neg
 It is $0$ on the axis, so merges are free, positive at the early peaks and late valleys, and clamped to $0$ where $y'(K - x') < 0$; the critical chevron is already non-negative, so the clamp leaves its value unchanged.
 Up pays early and down pays late, so the longest path is a chevron, up, up, down, down, of value $3 + 1 + 1 + 3 = 8$.
 
-Listing~\ref{lst:necklace} drives the one closure over three semirings, and Listing~\ref{lst:necklace-ir} is the LLVM IR it emits.
-
-\begin{listing}[htbp]
-\caption{One intensional relation, three semirings.  Reachability, the critical-path value, and its edge-cost sensitivity, all from the same \cppinline{semiring_closure} (abridged from the checked-in showcase).}
-\label{lst:necklace}
-\begin{cpp}
-// The analytic rule E((x,y),(x',y')) <=> x'=x+1 & |y'-y|=1, materialised
-// (once) as a topological edge sequence -- the extensional form the fold needs.
-constexpr auto edges = materialise(nedge);
-
-// Reachability: Boolean semiring, operators defaulted to (OR, AND).
-constexpr bool reaches = semiring_closure<bool, Cap>(
-    src, sink, edges, [](auto, auto){ return true; });
-
-// Critical path, point-free: collapse the relation to the critical-path
-// FUNCTION (a net V -> V), iterate it to the path, fold the path to a scalar.
-constexpr FiniteNet<size_t, Cap> pred = annotate<MaxPlus<unsigned long long>, Cap>(src, edges, cost);
-constexpr auto path  = critical_path(pred, src, sink);
-constexpr long long value = fold(path, 0LL,
-    [](long long& acc, Edge e){ acc += cost(e.tail, e.head).val; });
-static_assert(value == 8);
-
-// Sensitivity is membership: an edge is critical iff it lies on the path.
-static_assert( on_path(path, up_branch(1)));   // up @ x=1: critical
-static_assert(!on_path(path, up_branch(7)));   // up @ x=7: floated
-\end{cpp}
-\end{listing}
+The checked-in showcase drives this one closure over three semirings, reachability, the critical-path value, and its edge-cost sensitivity; Listing~\ref{lst:necklace-ir} is the LLVM IR it emits.
+The idiomatic, rank-1 rendering of the same exhibit is Listing~\ref{lst:transfer-necklace} in \S\ref{subsec:transfer-necklace}.
 
 \begin{listing}[htbp]
 \caption{The emitted IR at \texttt{-O2}: a literal load per witness, no solver and no loop.  These are checked-in fixtures, not a specification.}
@@ -1588,6 +1547,70 @@ This is the Juliet Posture's two-way bridge for graphs, and what carries the app
 The tropical dual-number instantiation carries $\partial(\mathrm{optimum}) / \partial c_e$ in its tangent.
 Because $\max$ selects the winning branch and forwards that branch's derivative, the tangent is $1$ on an edge that lies on the critical path and $0$ on an edge with float, which is exactly the primal flow recovered from the dual by complementary slackness.
 This is forward-mode automatic differentiation in Elliott's sense~\cite{elliott2018simple}, the value-and-derivative product $(f, f')$, with the chain rule falling out of the dual-number ring laws, and the \cppinline{Dual<F>} carrier drops into the closure without special-casing.
+
+\subsection{The same closure, as rank-1 linear algebra}
+\label{subsec:transfer-necklace}
+
+The net fold above is one \emph{instance} of the closure $A^{*}$ of Equation~\ref{eq:semiring_linear_system}, read as the least fixpoint of $S \mapsto X \sqcup Y(S)$ (the closure of a seed under a one-step expansion): reachability is $R^{*} = \mathrm{closure}(\Delta,\ \lambda S.\, S ; R)$ over the Boolean semiring, the critical path the same closure over the tropical dioid, and the iteration bound is the finite-subgraph selection a partial evaluation performs (Appendix~\ref{app:partial-eval}).
+The necklace carries more structure: each diamond is a \emph{rank-1} transfer, its two parallel branches a bra and a ket, so its gain is their tropical inner product, the max-plus eigenvalue
+\begin{equation}
+\label{eqn:braket}
+\lambda_m \;=\; \langle w_m \mid v_m \rangle \;=\; \bigoplus_k w_{m,k} \otimes v_{m,k} \;=\; \max(\mathrm{peak}_m,\ \mathrm{trough}_m).
+\end{equation}
+A rank-1 transfer collapses under composition over a commutative semiring, where $\lambda$ is central (the tropical carriers here are commutative; a noncommutative semiring keeps the middle scalar, $M^2(i,j) = v_i \otimes \lambda \otimes w_j$), so its power never iterates,
+\begin{equation}
+\label{eqn:rank1}
+M^{2} \;=\; \lambda\, M, \qquad M^{n} \;=\; \lambda^{\,n-1}\, M,
+\end{equation}
+and the entire memo is the single scalar $\lambda$: the rank is the dimension of the minimal linear realization, and here it is one.
+The closure is then the $\otimes$-fold of the eigenvalues, with no potential net and no edge list,
+\begin{equation}
+\label{eqn:transfer-closure}
+\mathrm{value} \;=\; \bigotimes_{m} \lambda_m .
+\end{equation}
+The semiring is still the choice of problem, and because the transfer asks only for \cppinline{IsSemiring} the same fold carries the sensitivity of \S\ref{subsec:necklace} on the dual-number semiring, its tangent the winning branch's derivative by the envelope theorem.
+The optimum is the filtration of Equation~\ref{eqn:argmax}, realized to an extensional set only at the end by \cppinline{materialise}, gated on \cppinline{IsExtensional}: finite and addressable, not merely finite.
+\cppinline{materialise} is the realize boundary, our \cppinline{runST}~\cite{launchbury1994st}: the enumeration runs inside and \cppinline{constexpr} seals it, and \cppinline{IsExtensional} is the type-level guarantee that makes extraction sound, the role the rank-2 $\forall s$ plays for state locality played here for finiteness.
+
+\begin{listing}[htbp]
+\caption{Equations~\ref{eqn:braket}--\ref{eqn:transfer-closure} and Equation~\ref{eqn:argmax}, as code (abridged from the checked-in transfer showcase).}
+\label{lst:transfer-necklace}
+\begin{cpp}
+// Bead: a rank-1 transfer; its two branches are a bra.ket.       (Eqn braket)
+template <class S>
+constexpr S bead(int m) { return inner_product<2>(exit_bra<S>{}, ket_of<S>(m)); }
+
+// Closure = the tensor-fold of the eigenvalues, an instance of   (Eqns rank1,
+// closure(X, Y).  One closure, four problems a semiring apart:   transfer-closure)
+static_assert( transfer_chain<4>(bead<Bool>)                 );  // reachability
+static_assert( transfer_chain<4>(bead<MaxPlus>).val     == 8 );  // critical path
+static_assert( transfer_chain<4>(bead<MinPlus>).val     == 0 );  // shortest path
+static_assert( bead<MaxPlus<Dual>>(0).val.der           == 1 );  // sensitivity (AD)
+
+// Optimum: the forall-filter, realized at one IsExtensional step.  (Eqn argmax)
+constexpr auto opt = materialise(argmax(omega_N | interval(0,6), cap));  // {3}
+\end{cpp}
+\end{listing}
+
+The joint is not a black box: which matrix a relation materialises to is fixed by its \emph{classification}, so \cppinline{materialise} is a structure-preserving functor rather than a dense dump (Table~\ref{tab:relation-matrix-map}).
+The dense fiber is provided for a binary endorelation on a semiring, the generic base case; the rank-1 fiber is the transfer's own \cppinline{OuterProduct}, whose power collapses to $\lambda^{n-1}M$ by Equation~\ref{eqn:rank1}.
+The remaining fibers are read off the four properties the relation calculus already infers (\S\ref{sec:relations_functions_blueprint}): a functional relation is sparse, and a bijection is a permutation, a $0$/$1$ orthogonal matrix, the dagger of the same calculus.
+
+\begin{table}[htbp]
+\centering
+\caption{The relation-to-matrix map: \cppinline{materialise} as a structure-preserving functor, the relation's classification fixing the matrix type. The dense and rank-1 fibers are implemented; the rest are read off the inferred four properties.}
+\label{tab:relation-matrix-map}
+\begin{tabular}{lll}
+\toprule
+relation classification & matrix type & status \\
+\midrule
+binary endorelation, codomain a semiring & dense operator over the semiring & implemented \\
+rank-1 (outer product) & low-rank \cppinline{OuterProduct} ($M^n = \lambda^{n-1}M$) & implemented \\
+functional & sparse (one entry per row) & follows \\
+bijective & permutation / $0$-$1$ orthogonal (the dagger) & follows \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 
 \section{Compile-Time Cost and Complexity}

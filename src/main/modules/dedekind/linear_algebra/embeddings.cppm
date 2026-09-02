@@ -127,11 +127,12 @@ constexpr Dual<T> dual_from_matrix2x2(const Matrix2x2V<T>& M) {
 /** @section embeddings__Ring_Homomorphism_Witnesses_over_ℚ
  *
  *  The paper-facing existential proofs that both embeddings are ring
- *  homomorphisms — exact at compile time over `Rational<long>`.
+ *  homomorphisms — exact at compile time over ℚ = `Rational<default_integer>`
+ *  (the saturating-cardinal field, not the signed-`long` shortcut).
  */
 namespace detail {
 
-using Rat = dedekind::numbers::Rational<long>;
+using Rat = dedekind::numbers::Rational<dedekind::numbers::default_integer>;
 
 // Two concrete ℚ-valued complex numbers with non-trivial real and imaginary
 // parts, chosen so that z*w has distinct real and imaginary components and
