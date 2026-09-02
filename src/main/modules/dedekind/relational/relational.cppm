@@ -1,59 +1,49 @@
 /**
  * @file dedekind/relational/relational.cppm
- * @brief @b dedekind.relational --- a first-class module for the relation
- *        algebra (RAlg): converse, the relative product, and the Kleene
- *        @f$(+, ;, {}^{*})@f$ surface, extracted from where they were
- * squatting.
+ * @brief @b dedekind.relational --- a first-class module for relations, popped
+ *        out of @c :sets: Codd's relational model, Tarski's calculus of
+ *        relations, and graphs (endorelations).
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
  * @section relational__Why_A_Module
- * Relations are first-class in Trsk (hence the name), so they deserve their own
- * module rather than living as a @c :sets partition (@c sets/relational.cppm)
- * plus a scattering of combinators inside @c order/halfspace.cppm.  This is the
- * @b SEED for that extraction (GH #792); nothing has moved yet.
+ * Relations are first-class in Trsk, so they deserve their own module rather
+ * than living as a scattering of @c :sets partitions (@c relational, @c graph)
+ * plus combinators buried in @c order/halfspace.cppm.  This module is the
+ * @b Reification of RAlg (GH #792), the relational counterpart to the
+ * @c :sets reification of Set.
  *
- * @section relational__Layering_Finding
- * The move is @b not a flat relocation.  The relation-algebra splits across two
- * DAG layers, and they cannot be collapsed into one module without a cycle:
- *   @li the @b order-free @b core (@c sets/relational.cppm's combinators) is
- *       consumed by @c sets/graph.cppm and @c sequences/path.cppm, i.e. from
- *       @b below @c order --- it must stay low;
- *   @li the @b order-dependent relation-algebra (the halfspace combinators
- *       @c converse / @c SwapPred, @c RelAnd / @c RelOr (@c operator& /
- *       @c operator+), @c ComposePred / relative-product @c operator>>,
- *       @c diagonal, @c reflexive, @c symmetric, @c is_relation, with their
- *       @c ProjProj witnesses) sits @b above @c order.
- * Putting the whole thing above @c order would make @c sets → @c relational →
- * @c order → @c sets circular.  So @c dedekind.relational (this module) is the
- * @b upper home: it depends on @c order and receives the order-dependent
- * relation-algebra; the order-free core is either left in @c sets or its
- * ordered examples relocated to tests.
+ * @section relational__Layering
+ * @c category → @c sets → @b relational → @c order.  The module sits @b above
+ * @c sets (it builds on the @c Set / @c Relation DSL) and @b below @c order:
+ * @c order/halfspace's ordered relation-algebra (@c converse, the relative
+ * product, @c diagonal) moves DOWN into @ref relational__Partitions so the
+ * ordered predicates can @b consume it, not the other way around.  The
+ * order-free relation combinators were consumed from below @c order (by
+ * @c sequences::path, @c linear_algebra::transfer), which is exactly why the
+ * whole surface belongs on this low rung and not above @c order.
  *
- * @section relational__Extraction_Plan
- * Incremental, each slice built + green (@c git @c mv where a whole file moves,
- * cut-and-relocate verbatim for embedded symbols so the diff reads as a move):
- *   1. Move the halfspace relation-algebra symbols here, repointing consumers
- *      (@c linear_algebra:transfer imports @c dedekind::order::converse /
- *      @c is_relation → @c dedekind::relational::…).
- *   2. Repoint the @c FIXME(#795) breadcrumbs (@c >> boolean-middle) that still
- *      cite the merged #786.
- *   3. Decide the namespace: @c dedekind::relational vs keeping @c
- * dedekind::order for ADL (the transport-op precedent kept the namespace on the
- * move).
- *   4. Paper: upgrade §3.3 to a Section "A Reification of RAlg" (parallels
- *      "A Reification of Set").
+ * @section relational__Partitions
+ *   @li @c :tables  --- @b Codd's relational model (1970): the query algebra
+ *       σ select, ⋈ natural_join, ∪ set_union, ∖ set_difference, ∩; relations
+ *       are n-ary tables of tuples.
+ *   @li @c :dyadic  --- @b Tarski's calculus of relations (1941): converse
+ *       @f$R^{\circ}@f$, relative product @f$R;S@f$, diagonal @f$\Delta@f$,
+ *       @f$R^{*}@f$; relations are dyadic (binary), one carrier under a
+ *       Boolean involutive monoid.  (Extraction from @c order/halfspace is
+ *       slice 3b of #792; not yet landed.)
+ *   @li @c :graph   --- endorelations: the graph @f$\Gamma_f@f$ of an arrow,
+ *       @c is_graph_of.  A graph @b is a relation, so it tags along here.
+ *
+ * @section relational__Namespace
+ * The extracted symbols keep the @c dedekind::sets namespace: they resolve by
+ * ADL on their @c dedekind::sets::Set / @c Relation arguments, so only the
+ * @b module boundary moved, not the call-site spelling (the transport-op
+ * precedent of #785).  A namespace rename to @c dedekind::relational would be a
+ * separate, purely mechanical churn against the ADL wall.
  */
-module;
-
 export module dedekind.relational;
 
-import dedekind.order; // the halfspace relation-algebra to be extracted here
-import dedekind.sets;  // Set<pair, L, P> --- the DSL relation carrier
-
-namespace dedekind::relational {
-
-// (Extraction to follow --- see @ref relational__Extraction_Plan and GH #792.)
-
-}  // namespace dedekind::relational
+export import :tables; // Codd: σ ⋈ ∪ ∖ ∩ (dedekind::sets namespace, by ADL)
+export import :graph;  // endorelations: graph(f), is_graph_of

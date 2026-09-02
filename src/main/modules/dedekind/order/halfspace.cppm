@@ -43,6 +43,8 @@ export module dedekind.order:halfspace;
 
 import dedekind.category;
 import dedekind.sets;
+import dedekind.relational; // IsFunctional/IsEntire (:graph), used by the order
+                            // relation witnesses below (#792)
 import :poset;  // IsPartiallyOrdered — the SEMANTIC order certificate for
                 // max/min
 import :total;  // IsTotallyOrdered — the no-incomparable-element certificate

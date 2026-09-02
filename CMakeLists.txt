@@ -184,10 +184,14 @@ endfunction()
 add_dedekind_layer(category "")
 add_dedekind_layer(ieee dedekind_category)
 add_dedekind_layer(sets dedekind_ieee)
-add_dedekind_layer(order dedekind_sets)
-# dedekind.relational (#792) — the relation-algebra's own module, above order
-# (it receives order/halfspace's converse/relative-product/closure surface).
-add_dedekind_layer(relational dedekind_order)
+# dedekind.relational (#792) — the relation-algebra's own module, popped OUT of
+# sets (above sets, below order).  Partitions: :tables (Codd's relational model
+# σ π ⋈ ∪ −), :dyadic (Tarski's calculus of relations R° R;S Δ R*), :graph
+# (endorelations — a graph IS a relation, so it tags along).  order/halfspace's
+# converse/relative-product surface moves DOWN into :dyadic, hence order depends
+# on relational, not the reverse.
+add_dedekind_layer(relational dedekind_sets)
+add_dedekind_layer(order dedekind_relational)
 add_dedekind_layer(topology dedekind_order)
 add_dedekind_layer(sequences dedekind_topology)
 add_dedekind_layer(algebra dedekind_sequences)
