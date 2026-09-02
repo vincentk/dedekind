@@ -140,23 +140,11 @@ concept HasOrientation =
  *  @c algebra:modules).
  *
  *  The scalar's @c ⊕/⊗ come straight from its semiring structure --- if @c S
- *  @c IsSemiring, it @b has the ops, so we use them.  @ref semiring_ops_of
- *  reads @c dedekind::algebra::semiring_ops<S> where @c S declares one
- *  (tropical, bool, @c Mat(S)) and falls back to the standard @c +/@c · for an
- *  ordinary ring; it @b registers nothing (a ring scalar needs no
- *  @c semiring_ops entry).
+ *  @c IsSemiring it @b has the ops, so we read them off the single defaulted
+ *  seam @c dedekind::algebra::semiring_ops<S> (default @c +/@c · for an
+ * ordinary ring, specialized for tropical / bool / @c Mat(S)).  The old
+ *  @c semiring_ops_of fallback resolver is retired now that the seam defaults.
  */
-template <typename S>
-struct semiring_ops_of {
-  using add = std::plus<S>;
-  using mult = std::multiplies<S>;
-};
-template <typename S>
-  requires requires { typename dedekind::algebra::semiring_ops<S>::add; }
-struct semiring_ops_of<S> {
-  using add = typename dedekind::algebra::semiring_ops<S>::add;
-  using mult = typename dedekind::algebra::semiring_ops<S>::mult;
-};
 
 /**
  * @concept IsColumnVector
@@ -173,8 +161,9 @@ concept IsColumnVector =
     std::same_as<typename V::orientation, ColumnOrientation> &&
     dedekind::algebra::IsSemimodule<
         V, typename V::scalar_type, std::plus<V>,
-        typename semiring_ops_of<typename V::scalar_type>::add,
-        typename semiring_ops_of<typename V::scalar_type>::mult>;
+        typename dedekind::algebra::semiring_ops<typename V::scalar_type>::add,
+        typename dedekind::algebra::semiring_ops<
+            typename V::scalar_type>::mult>;
 
 /**
  * @concept IsCovector
@@ -187,8 +176,9 @@ concept IsCovector =
     std::same_as<typename V::orientation, RowOrientation> &&
     dedekind::algebra::IsSemimodule<
         V, typename V::scalar_type, std::plus<V>,
-        typename semiring_ops_of<typename V::scalar_type>::add,
-        typename semiring_ops_of<typename V::scalar_type>::mult>;
+        typename dedekind::algebra::semiring_ops<typename V::scalar_type>::add,
+        typename dedekind::algebra::semiring_ops<
+            typename V::scalar_type>::mult>;
 
 /** @section contracts__Matrix shape and decomposition. */
 

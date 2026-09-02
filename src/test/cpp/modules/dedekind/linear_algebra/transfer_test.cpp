@@ -145,6 +145,10 @@ TEST_CASE(
     const Mat prod = Mult{}(A, B);
     CHECK(prod(0, 0) == MP::of(8));  // max(1+0, 2+6) = 8
     CHECK(prod(1, 1) == MP::of(8));  // max(3+5, 4+0) = 8
+    // #796: operator+/* are terse SYNTAX over the SAME seam ops
+    // (MatPlus/MatTimes).
+    CHECK((A + B) == sum);
+    CHECK((A * B) == prod);
   }
 
   SECTION("the identity and zero matrices") {
