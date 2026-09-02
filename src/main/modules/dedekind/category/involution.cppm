@@ -144,11 +144,12 @@ static_assert(std::logical_not<bool>{}(std::logical_not<bool>{}(true)) == true,
  * @concept IsDagger
  * @brief A @b certified dagger on @c T: a direction-reversal
  * @f$f \mapsto f^\dagger@f$ that is an @b involution
- * (@f$f^{\dagger\dagger} = f@f$).  At the endomap level this @b is
- * @c IsInvolution; the contravariance @f$(f\,g)^\dagger = g^\dagger
- * f^\dagger@f$ is a law of the ambient composition, asserted where one exists
- * (converse in
- * @c order::halfspace, transpose in @c linear_algebra).
+ * (@f$f^{\dagger\dagger} = f@f$).  At the endomap level a dagger @b is exactly
+ * this involutive core, so @c IsDagger is @b deliberately @c IsInvolution; the
+ * contravariance @f$(f\,g)^\dagger = g^\dagger f^\dagger@f$ and
+ * identity-on-objects structure are @b not re-checked here (they hold for the
+ * daggers the library registers: converse in @c order::halfspace, transpose in
+ * @c linear_algebra).
  */
 export template <typename Dagger, typename T>
 concept IsDagger = IsInvolution<Dagger, T>;
@@ -202,9 +203,12 @@ concept IsDagger = IsInvolution<Dagger, T>;
  * neither @c f†f nor @c ff† being @c id but each a projection.  No concept yet
  * (see the follow-up); paper Table @c tab:inverse-image-laws carries all four.
  * @c IsIsometry is the @b named intermediate (Heunen &amp; Vicary): @b no
- * linearity --- a split mono in @b any @f$\dagger@f$-category, so bijective
- * relation, orthogonal matrix and unitary matrix are @b one theorem.  The @b
- * real subsumption @c IsIsometry @f$\Rightarrow@f$ split mono (and coisometry
+ * linearity --- a split mono in a @f$\dagger@f$-monoid (the @b one-object case:
+ * @c f is an endo-arrow, @c Op its composition; a general @f$f:A\to B@f$ needs
+ * the multi-object surface), so bijective relation, orthogonal matrix and
+ * unitary matrix are @b one theorem.  The implication runs @b one way (a mono
+ * need not be an isometry).  The @b real subsumption @c IsIsometry
+ * @f$\Rightarrow@f$ split mono (and coisometry
  * @f$\Rightarrow@f$ split epi, unitary @f$\Rightarrow@f$ @c IsIsomorphism, by
  * registering @c inverse(f)@c =@c f†) needs the dagger carriers lifted into the
  * @c :morphism arrow surface --- a @b follow-up (tracking issue).  Here the
@@ -215,7 +219,9 @@ concept IsDagger = IsInvolution<Dagger, T>;
 /** @brief The isometry law, @b computed on an arrow @c f:
  *  @f$f^\dagger \circ f = \mathrm{id}@f$ --- the dagger is a @b left inverse.
  *  General over the dagger @c Dagger and composition @c Op (@c id is the
- *  @c Op-identity @c identity_v); @b no linearity. */
+ *  @c Op-identity @c identity_v); @b no linearity.  @c f is an @b endo-arrow
+ *  (@c Op a monoid on the single object @c T); a general @f$f:A\to B@f$
+ * isometry is the multi-object case, left to the arrow surface. */
 export template <typename Dagger, typename Op, typename T>
 constexpr bool is_isometry(const T& f) {
   return Op{}(Dagger{}(f), f) == identity_v<T, Op>;
@@ -230,9 +236,10 @@ constexpr bool is_coisometry(const T& f) {
 
 /** @brief The unitary law: isometry @b and coisometry, hence
  *  @f$f^\dagger = f^{-1}@f$ (a dagger-iso).  Generalises the permutation's
- *  P° ; P = Δ check: over @c Mat(𝔹) it reads "the converse is the inverse"
- *  (bijection), over @c Mat(ℝ) "the transpose is the inverse" (orthogonal) ---
- *  @b one predicate, one semiring apart. */
+ *  P° ; P = Δ check: the @b one predicate reads as "the converse is the
+ * inverse" (bijection, @c Mat(𝔹)), "the transpose is the inverse" (orthogonal,
+ *  @c Mat(ℝ)) and "the adjoint is the inverse" (unitary, @c Mat(ℂ)) --- the
+ *  real / complex face of the same law. */
 export template <typename Dagger, typename Op, typename T>
 constexpr bool is_unitary(const T& f) {
   return is_isometry<Dagger, Op>(f) && is_coisometry<Dagger, Op>(f);
@@ -254,5 +261,23 @@ concept IsIsometry = IsDagger<Dagger, F> && std::default_initializable<F> &&
 export template <typename F, typename Dagger, typename Op>
 concept IsUnitary = IsIsometry<F, Dagger, Op> &&
                     requires { requires is_coisometry<Dagger, Op>(F{}); };
+
+/** @section involution__Concept_Verification
+ *  @brief The concepts are @b instantiated here, so an ill-formed constraint is
+ *  a @b compile error rather than latent: @c std::bit_not is a certified dagger
+ *  (an involution) on @c int, but @c int is @b not unitary under @c + because
+ *  @c ~0 @c + @c 0 @c = @c -1 @c ≠ @c 0 (the @c +-identity) --- the dagger is
+ * not the inverse.  A @b positive concept witness needs a @b singleton
+ *  morphism-carrier whose default value @b is a unitary arrow, which arrives
+ *  with the arrow surface (follow-up); the value-level @c is_unitary predicate
+ *  is witnessed over @c Mat(𝔹) (a permutation) in @c linear_algebra.  The real
+ * / complex (orthogonal / unitary) reading is the @b same predicate, left
+ *  unexhibited only for want of a @b constexpr real-field carrier. */
+static_assert(IsDagger<std::bit_not<int>, int>,
+              "bit_not is a certified dagger (an involution) on int.");
+static_assert(!IsIsometry<int, std::bit_not<int>, std::plus<int>>,
+              "int is not an isometry under (bit_not, +).");
+static_assert(!IsUnitary<int, std::bit_not<int>, std::plus<int>>,
+              "int is not unitary under (bit_not, +): ~0 + 0 = -1 ≠ 0.");
 
 }  // namespace dedekind::category

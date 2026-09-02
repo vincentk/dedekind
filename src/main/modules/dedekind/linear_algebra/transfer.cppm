@@ -425,10 +425,10 @@ static_assert(PDagger{}(Pmat) == PdaggerMat,
 
 // (3) the dagger IS the inverse: P°·P = Δ AND P·P° = Δ, by the generic
 // predicate
-//     dedekind::category::is_unitary --- the SAME predicate an orthogonal
-//     Mat(ℝ) or unitary Mat(ℂ) satisfies, one semiring apart.  Value-level
-//     (Pmat is a value, not a singleton type): unitarity is a property of the
-//     ARROW, not the type (see :involution).
+//     dedekind::category::is_unitary --- the SAME predicate that reads as
+//     orthogonal (Mat(ℝ)) or unitary (Mat(ℂ)), the real/complex face of the one
+//     law.  Value-level (Pmat is a value, not a singleton type): unitarity is a
+//     property of the ARROW, not the type (see :involution).
 static_assert(dedekind::category::is_unitary<PDagger, PMatMult>(Pmat),
               "the cyclic shift is UNITARY: P° ; P = Δ and P ; P° = Δ "
               "(converse IS inverse), via the generic dagger predicate.");
@@ -451,7 +451,7 @@ static_assert(dedekind::category::is_unitary<PDagger, PMatMult>(Pmat),
 // @b read @b off directly.  The witnesses in @c detail_transfer above discharge
 // it for the cyclic-shift permutation: its dagger (the DSL converse, =
 // transpose over 𝔹) is a certified @c IsDagger, and @c is_unitary confirms P° ;
-// P = Δ and P ; P° = Δ --- the SAME predicate an orthogonal Mat(ℝ) satisfies.
+// P = Δ and P ; P° = Δ --- the same predicate reads as orthogonal over Mat(ℝ).
 // Two open follow-ups: (a) lift the dagger carriers into the @c :morphism arrow
 // surface so @c IsIsometry @f$\Rightarrow@f$ split mono / @c IsUnitary
 // @f$\Rightarrow@f$ @c IsIsomorphism becomes real subsumption (register
