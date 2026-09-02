@@ -15,12 +15,13 @@
  * (@f$(A^{\top})^{\top} = A@f$), conjugation, and the @b converse of a relation
  * (@f$R^{\smile\smile} = R@f$).
  *
- * @section involution__Why_A_Seed
- * This partition is deliberately @b almost @b empty.  It is the extraction
- * target flagged by @c :lattice's @c Involutive_Endofunctor (an involution at
- * the @b functor level, @f$F^2 \cong \mathrm{Id}@f$) and the natural home for a
- * notion the library keeps re-discovering under different names --- in each the
- * dagger @f$\dagger@f$ coincides with the inverse exactly on the "good" arrows:
+ * @section involution__What_Lives_Here
+ * This partition grew from an atomic seed into the @f$\dagger@f$-category
+ * surface.  It is the extraction target flagged by @c :lattice's
+ * @c Involutive_Endofunctor (an involution at the @b functor level,
+ * @f$F^2 \cong \mathrm{Id}@f$) and the home for a notion the library keeps
+ * re-discovering under different names --- in each the dagger @f$\dagger@f$
+ * coincides with the inverse exactly on the "good" arrows:
  *
  *  @li @b Rel: dagger = converse @f$R^{\smile}@f$; @f$R^{\smile}=R^{-1}@f$ iff
  *      @c R is a @b bijection.
@@ -31,18 +32,19 @@
  *  @li a Boolean subobject lattice: dagger = complement @f$\neg@f$ (self-dual).
  *
  * The unifying statement --- an arrow in a @f$\dagger@f$-category whose dagger
- * @b is its inverse (a @b unitary / dagger-iso) --- is what makes "the converse
- * is the inverse" (bijective relation) and "the transpose is the inverse"
- * (orthogonal matrix) @b one theorem.  Building that @f$\dagger@f$/unitary
- * surface here (so an orthogonal/unitary matrix gets a @b default @c inverse
- * from its transpose/adjoint, and a bijective relation from its converse) is
- * the follow-up this seed exists to receive.  For now it carries only the
- * atomic
- * @c IsInvolution concept; the @f$\dagger@f$-category and @c IsUnitary layers,
- * and the migration of @c Involutive_Endofunctor, land when the second consumer
- * (linear algebra) arrives.
+ * @b is its inverse (a @b unitary / dagger-iso) --- makes "the converse is the
+ * inverse" (bijective relation) and "the transpose is the inverse" (orthogonal
+ * matrix) @b one theorem.  That surface is now @b built here: @c IsInvolution
+ * (the atom), @c IsDagger, the computed @c is_isometry / @c is_coisometry /
+ * @c is_unitary predicates, and the @c IsIsometry / @c IsUnitary concepts ---
+ * with the linear-algebra consumer (@c TransposeF over @c Mat(S)) as the first
+ * witness.  Still a @b follow-up (#787): the @b default @c inverse from the
+ * dagger (so an orthogonal matrix / bijective relation gets @c inverse for
+ * free) and the migration of @c Involutive_Endofunctor, which need the
+ * @c :morphism arrow surface.
  *
- * @build_order atom (Level 0); no intra-category dependencies.
+ * @build_order imports @c :species (@c identity_v); upstream of @c :lattice /
+ *              @c :category.
  */
 module;
 
