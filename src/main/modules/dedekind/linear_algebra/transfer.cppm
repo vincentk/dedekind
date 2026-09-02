@@ -423,33 +423,54 @@ static_assert(dedekind::order::is_relation(perm_rel),
 inline constexpr auto Pmat = materialise<4>(perm_rel);
 inline constexpr auto PdaggerMat =
     materialise<4>(dedekind::order::converse(perm_rel));
-// P° ; P = Δ over 𝔹, all 16 entries (the relative product via ⊕/⊗): the full
-// certificate the is_unitary trait attaches to below, not merely a spot check.
-constexpr bool perm_dagger_is_inverse() {
-  for (std::size_t i = 0; i < 4; ++i)
-    for (std::size_t j = 0; j < 4; ++j)
-      if (matmul_entry<4>(PdaggerMat, Pmat, i, j) != (i == j)) return false;
-  return true;
-}
-static_assert(perm_dagger_is_inverse(),
-              "a permutation is UNITARY: P° ; P = Δ (converse IS inverse).");
+// ── The cyclic shift is UNITARY, read off by the GENERIC dagger surface
+// (dedekind::category, :involution) --- not a bespoke loop.  Three facts:
+using PMat = std::remove_cvref_t<decltype(Pmat)>;  // Mat(𝔹), 4×4
+using PDagger = TransposeF<bool, 4>;               // the dagger functor
+using PMatMult =
+    typename dedekind::algebra::semiring_ops<PMat>::mult;  // Mat(𝔹)'s ⊗
+
+// (1) the transpose is a certified dagger (an involution) on Mat(𝔹):
+static_assert(dedekind::category::IsDagger<PDagger, PMat>,
+              "transpose is a dagger: Aᵀᵀ = A.");
+
+// (2) the intensional dagger (converse R°) and the extensional one (Aᵀ) agree
+//     once materialised --- ONE dagger, two spellings:
+static_assert(PDagger{}(Pmat) == PdaggerMat,
+              "converse materialised IS transpose: R° and Aᵀ are one dagger.");
+
+// (3) the dagger IS the inverse: P°·P = Δ AND P·P° = Δ, by the generic
+// predicate
+//     dedekind::category::is_unitary --- the SAME predicate an orthogonal
+//     Mat(ℝ) or unitary Mat(ℂ) satisfies, one semiring apart.  Value-level
+//     (Pmat is a value, not a singleton type): unitarity is a property of the
+//     ARROW, not the type (see :involution).
+static_assert(dedekind::category::is_unitary<PDagger, PMatMult>(Pmat),
+              "the cyclic shift is UNITARY: P° ; P = Δ and P ; P° = Δ "
+              "(converse IS inverse), via the generic dagger predicate.");
 
 }  // namespace detail_transfer
 
 }  // namespace dedekind::linear_algebra
 
-// ── IsUnitary is a @b derived predicate, NOT a registration.  Textbook: a
-// transformation is unitary iff it is a linear operation, HAS a converse (its
-// dagger), and that converse IS its inverse.  So @c IsUnitary<T> should read
-// off @c IsDagger<T> (the operation has a converse / transpose / adjoint --- a
-// contravariant involution) and @c IsGroup<T> (it is invertible), the two
-// coinciding --- with @b no separate per-carrier @c is_unitary trait to
-// register (a registration, even one bound to a proof, can drift out of sync
-// with the thing it claims).  That concept arrives with the dagger-category
-// surface
-// @c :involution defers; unitaries are then automatically closed under
-// composition because a group is.  Here the load-bearing fact is proven
-// @b directly, no trait: the cyclic-shift permutation's dagger (the DSL
-// converse) IS its inverse --- @c perm_dagger_is_inverse (P° ; P = Δ, all 16
-// entries) in @c detail_transfer above --- so it @b will be unitary under that
-// derived predicate, with nothing to keep in sync.
+// ── IsUnitary is a @b computed predicate, NOT a registration.  Textbook: a
+// transformation is unitary iff it has a dagger (converse / transpose /
+// adjoint, a contravariant involution --- @c IsDagger) and that dagger IS its
+// inverse
+// (@f$f^\dagger \circ f = \mathrm{id}@f$).  The dagger surface that makes this
+// one law across Rel / matrices / Hilbert now lives in @c dedekind::category
+// (@c :involution): the @c is_isometry / @c is_coisometry / @c is_unitary
+// predicates and the @c IsDagger / @c IsIsometry / @c IsUnitary concepts. There
+// is @b no per-carrier @c is_unitary trait to register (a registration, even
+// one bound to a proof, can drift out of sync with the thing it claims); the
+// fact is
+// @b read @b off directly.  The witnesses in @c detail_transfer above discharge
+// it for the cyclic-shift permutation: its dagger (the DSL converse, =
+// transpose over 𝔹) is a certified @c IsDagger, and @c is_unitary confirms P° ;
+// P = Δ and P ; P° = Δ --- the SAME predicate an orthogonal Mat(ℝ) satisfies.
+// Two open follow-ups: (a) lift the dagger carriers into the @c :morphism arrow
+// surface so @c IsIsometry @f$\Rightarrow@f$ split mono / @c IsUnitary
+// @f$\Rightarrow@f$ @c IsIsomorphism becomes real subsumption (register
+// @c inverse(f) = f†); (b) a @b singleton matrix-morphism carrier would let the
+// @c IsUnitary @b concept (not just the predicate) bite here --- see
+// @c :involution on why unitarity is a value property.

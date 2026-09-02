@@ -207,3 +207,42 @@ TEST_CASE(
     CHECK(col * MP::of(3) == scaled);  // the two-sided action agrees
   }
 }
+
+TEST_CASE(
+    "transfer: the dagger surface — isometry / unitary as computed predicates",
+    "[linear_algebra][involution][dagger]") {
+  // Runtime companion to the compile-time witnesses in :transfer.  The dagger
+  // predicates (dedekind::category, :involution) are computed on the ARROW
+  // value: over Mat(𝔹) "the converse is the inverse" is exactly f° ; f = Δ.
+  using Mat = MatNxNV<bool, 2>;
+  using Dag = dedekind::linear_algebra::TransposeF<bool, 2>;
+  using Mult = typename dedekind::algebra::semiring_ops<Mat>::mult;
+  namespace cat = dedekind::category;
+
+  auto mk = [](bool a, bool b, bool c, bool d) {
+    Mat m{};
+    m.e[0] = {a, b};
+    m.e[1] = {c, d};
+    return m;
+  };
+  const Mat swap = mk(false, true, true, false);  // the 2-cycle (a permutation)
+  const Mat id2 = mk(true, false, false, true);   // the identity
+  const Mat shear = mk(true, true, false, true);  // NOT a permutation
+
+  SECTION("transpose is a certified dagger (an involution)") {
+    CHECK(cat::IsDagger<Dag, Mat>);
+    CHECK(Dag{}(swap) == swap);           // the swap is symmetric: sᵀ = s
+    CHECK(Dag{}(Dag{}(shear)) == shear);  // Aᵀᵀ = A
+  }
+  SECTION("a permutation is UNITARY: s° ; s = Δ and s ; s° = Δ") {
+    CHECK(cat::is_isometry<Dag, Mult>(swap));
+    CHECK(cat::is_coisometry<Dag, Mult>(swap));
+    CHECK(cat::is_unitary<Dag, Mult>(swap));
+    CHECK(
+        cat::is_unitary<Dag, Mult>(id2));  // the identity is trivially unitary
+  }
+  SECTION("a non-permutation is NOT unitary (the predicate is honest)") {
+    CHECK_FALSE(cat::is_isometry<Dag, Mult>(shear));
+    CHECK_FALSE(cat::is_unitary<Dag, Mult>(shear));
+  }
+}

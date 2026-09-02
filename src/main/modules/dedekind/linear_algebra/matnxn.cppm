@@ -240,6 +240,19 @@ struct MatTimes {
   }
 };
 
+/** @brief The transpose reified as a @b dagger functor: @c TransposeF{}(A) =
+ *  @c Aᵀ.  A value/type (not a free call), so the point-free
+ *  @c dedekind::category dagger predicates and concepts (@c is_unitary,
+ *  @c IsDagger, @c IsUnitary) can take it as their @c Dagger argument.  On
+ *  @c Mat(S) the dagger is the transpose; on @c Rel it is @c converse; on a
+ *  Hilbert space the adjoint --- @c :involution unifies the three. */
+export template <typename S, std::size_t N>
+struct TransposeF {
+  constexpr MatNxNV<S, N> operator()(const MatNxNV<S, N>& a) const {
+    return a.transpose();
+  }
+};
+
 }  // namespace dedekind::linear_algebra
 
 namespace dedekind::category {
@@ -260,6 +273,16 @@ struct identity_trait<dedekind::linear_algebra::MatNxNV<S, N>,
                       dedekind::linear_algebra::MatTimes<S, N>> {
   static constexpr auto value =
       dedekind::linear_algebra::identity_matrix<S, N>();
+};
+
+/** @brief The transpose is an @b involution (@c Aᵀᵀ = @c A), so @c TransposeF
+ * is a certified @c IsDagger on @c Mat(S) --- what the dagger predicates
+ *  (@c is_unitary) require.  A @b structural fact about the operation, @b not a
+ *  per-arrow unitarity claim (unitarity is a @b value property; see
+ *  @c :involution). */
+template <typename S, std::size_t N>
+struct is_involutive<dedekind::linear_algebra::TransposeF<S, N>,
+                     dedekind::linear_algebra::MatNxNV<S, N>> : std::true_type {
 };
 
 /** @brief The @c ⊕-identity of a @ref dedekind::linear_algebra::SemimoduleVec
