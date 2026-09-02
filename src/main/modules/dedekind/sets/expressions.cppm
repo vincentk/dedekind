@@ -134,11 +134,19 @@ struct Comprehension
    * it
    *  @b is its own predicate (@c IsSet @c ⟹ @c IsPredicate). */
   constexpr auto operator()(const typename Base::Domain& x) const {
-    // Combine under the base's logic (@c L::AND), NOT a @c bool cast: a bool
-    // cast would destroy ternary membership (@c Ternary::False, underlying −1,
-    // would read as @c true).  A comprehension @c {S|P} is S-membership ∧ P.
+    // Combine under the base's logic (@c L::AND), first @b lifting the
+    // (commonly
+    // @c bool) predicate result into @c L::Ω.  A @c bool cast would collapse
+    // ternary membership (@c Ternary::False, underlying −1, reads as @c true),
+    // and @c L::AND(Ternary, bool) is ill-formed (@c Ternary is a scoped enum),
+    // so a @c TernaryLogic base needs the lift.  A comprehension @c {S|P} is
+    // S-membership ∧ P.
     using L = typename Base::logic_species;
-    return L::AND(base(x), predicate(x));
+    const auto p = predicate(x);
+    if constexpr (std::same_as<std::remove_cvref_t<decltype(p)>, typename L::Ω>)
+      return L::AND(base(x), p);
+    else
+      return L::AND(base(x), p ? L::True : L::False);
   }
 
   /** @brief Size when the base exposes a probe element (@c pivot) and a

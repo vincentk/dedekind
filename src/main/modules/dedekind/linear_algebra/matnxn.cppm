@@ -16,7 +16,8 @@
  * @c operator+ is @b ⊗ (honest addition) and @c ⊕ is a @b separate functor
  * (@c TropicalPlus), so native operators route the wrong monoids.  The
  * fix is the same one @c :transfer already uses — read @c ⊕ / @c ⊗ off
- * @c dedekind::algebra::semiring_ops<S> — lifted to a first-class carrier.
+ * @c dedekind::linear_algebra::semiring_ops_of<S> — lifted to a first-class
+ * carrier.
  *
  * @c MatNxNV<S,N> is therefore the double generalisation
  * (2×2 → N×N, ring → semiring) that @c :matrix reserves the slot for:
@@ -84,12 +85,12 @@ struct SemimoduleVec {
   static constexpr bool is_associative_v =
       std::same_as<Op, std::plus<SemimoduleVec>> &&
       dedekind::category::is_associative_v<
-          S, typename dedekind::algebra::semiring_ops<S>::add>;
+          S, typename dedekind::linear_algebra::semiring_ops_of<S>::add>;
   template <typename Op>
   static constexpr bool is_commutative_v =
       std::same_as<Op, std::plus<SemimoduleVec>> &&
       dedekind::category::is_commutative_v<
-          S, typename dedekind::algebra::semiring_ops<S>::add>;
+          S, typename dedekind::linear_algebra::semiring_ops_of<S>::add>;
 
   constexpr S operator()(std::size_t i) const {
     return c[i];
@@ -100,19 +101,19 @@ struct SemimoduleVec {
 
   friend constexpr SemimoduleVec operator+(const SemimoduleVec& a,
                                            const SemimoduleVec& b) {
-    using Add = typename dedekind::algebra::semiring_ops<S>::add;
+    using Add = typename dedekind::linear_algebra::semiring_ops_of<S>::add;
     SemimoduleVec r{};
     for (std::size_t i = 0; i < N; ++i) r.c[i] = Add{}(a.c[i], b.c[i]);
     return r;
   }
   friend constexpr SemimoduleVec operator*(const S& s, const SemimoduleVec& a) {
-    using Mult = typename dedekind::algebra::semiring_ops<S>::mult;
+    using Mult = typename dedekind::linear_algebra::semiring_ops_of<S>::mult;
     SemimoduleVec r{};
     for (std::size_t i = 0; i < N; ++i) r.c[i] = Mult{}(s, a.c[i]);
     return r;
   }
   friend constexpr SemimoduleVec operator*(const SemimoduleVec& a, const S& s) {
-    using Mult = typename dedekind::algebra::semiring_ops<S>::mult;
+    using Mult = typename dedekind::linear_algebra::semiring_ops_of<S>::mult;
     SemimoduleVec r{};
     for (std::size_t i = 0; i < N; ++i) r.c[i] = Mult{}(a.c[i], s);
     return r;
@@ -129,8 +130,8 @@ using Bra = SemimoduleVec<S, N, RowOrientation>;
 /**
  * @brief @c Mat(S): the N×N matrix over a semiring @c S.  Entries are stored
  *        row-major; @c ⊕ / @c ⊗ are @c S's semiring operations, read off
- *        @c dedekind::algebra::semiring_ops<S> (never native @c operator+/@c *,
- *        which the tropical carriers skew).
+ *        @c dedekind::linear_algebra::semiring_ops_of<S> (never native @c
+ * operator+/@c *, which the tropical carriers skew).
  *
  * @details The semiring trait opt-ins (@c is_associative_v, @c
  * is_commutative_v,
@@ -162,24 +163,24 @@ struct MatNxNV {
   static constexpr bool is_associative_v =
       (std::same_as<Op, MatPlus<S, N>> &&
        dedekind::category::is_associative_v<
-           S, typename dedekind::algebra::semiring_ops<S>::add>) ||
+           S, typename dedekind::linear_algebra::semiring_ops_of<S>::add>) ||
       (std::same_as<Op, MatTimes<S, N>> &&
        dedekind::category::IsSemiring<
-           S, typename dedekind::algebra::semiring_ops<S>::add,
-           typename dedekind::algebra::semiring_ops<S>::mult>);
+           S, typename dedekind::linear_algebra::semiring_ops_of<S>::add,
+           typename dedekind::linear_algebra::semiring_ops_of<S>::mult>);
   /// @brief Only @c ⊕ (@ref MatPlus) is commutative (@c ⊗ is not), and only
   ///        when the base @c ⊕ is.
   template <typename Op>
   static constexpr bool is_commutative_v =
       std::same_as<Op, MatPlus<S, N>> &&
       dedekind::category::is_commutative_v<
-          S, typename dedekind::algebra::semiring_ops<S>::add>;
+          S, typename dedekind::linear_algebra::semiring_ops_of<S>::add>;
   /// @brief @c ⊕ is idempotent exactly when the base @c ⊕ is (dioid lift).
   template <typename Op>
   static constexpr bool is_idempotent_v =
       std::same_as<Op, MatPlus<S, N>> &&
       dedekind::category::is_idempotent_v<
-          S, typename dedekind::algebra::semiring_ops<S>::add>;
+          S, typename dedekind::linear_algebra::semiring_ops_of<S>::add>;
 
   constexpr S operator()(std::size_t i, std::size_t j) const { return e[i][j]; }
   constexpr const std::array<S, N>& operator[](std::size_t i) const {
@@ -215,7 +216,7 @@ struct MatNxNV {
 /** @brief The zero matrix — every entry the base @c ⊕-identity (0̄). */
 export template <typename S, std::size_t N>
 constexpr MatNxNV<S, N> zero_matrix() {
-  using Add = typename dedekind::algebra::semiring_ops<S>::add;
+  using Add = typename dedekind::linear_algebra::semiring_ops_of<S>::add;
   MatNxNV<S, N> z{};
   for (std::size_t i = 0; i < N; ++i)
     for (std::size_t j = 0; j < N; ++j)
@@ -226,7 +227,7 @@ constexpr MatNxNV<S, N> zero_matrix() {
 /** @brief The identity matrix — @c ⊗-identity (1̄) on the diagonal, 0̄ off it. */
 export template <typename S, std::size_t N>
 constexpr MatNxNV<S, N> identity_matrix() {
-  using Mult = typename dedekind::algebra::semiring_ops<S>::mult;
+  using Mult = typename dedekind::linear_algebra::semiring_ops_of<S>::mult;
   MatNxNV<S, N> id = zero_matrix<S, N>();
   for (std::size_t i = 0; i < N; ++i)
     id.e[i][i] = dedekind::category::identity_v<S, Mult>;
@@ -238,7 +239,7 @@ template <typename S, std::size_t N>
 struct MatPlus {
   constexpr MatNxNV<S, N> operator()(const MatNxNV<S, N>& a,
                                      const MatNxNV<S, N>& b) const {
-    using Add = typename dedekind::algebra::semiring_ops<S>::add;
+    using Add = typename dedekind::linear_algebra::semiring_ops_of<S>::add;
     MatNxNV<S, N> c{};
     for (std::size_t i = 0; i < N; ++i)
       for (std::size_t j = 0; j < N; ++j)
@@ -253,8 +254,8 @@ template <typename S, std::size_t N>
 struct MatTimes {
   constexpr MatNxNV<S, N> operator()(const MatNxNV<S, N>& a,
                                      const MatNxNV<S, N>& b) const {
-    using Add = typename dedekind::algebra::semiring_ops<S>::add;
-    using Mult = typename dedekind::algebra::semiring_ops<S>::mult;
+    using Add = typename dedekind::linear_algebra::semiring_ops_of<S>::add;
+    using Mult = typename dedekind::linear_algebra::semiring_ops_of<S>::mult;
     const S zero = dedekind::category::identity_v<S, Add>;
     MatNxNV<S, N> c{};
     for (std::size_t i = 0; i < N; ++i)
@@ -325,7 +326,8 @@ struct identity_trait<
   static constexpr auto value = [] {
     dedekind::linear_algebra::SemimoduleVec<S, N, O> z{};
     for (std::size_t i = 0; i < N; ++i)
-      z.c[i] = identity_v<S, typename dedekind::algebra::semiring_ops<S>::add>;
+      z.c[i] = identity_v<
+          S, typename dedekind::linear_algebra::semiring_ops_of<S>::add>;
     return z;
   }();
 };
@@ -337,8 +339,9 @@ inline constexpr bool
     is_distributive_v<dedekind::linear_algebra::MatNxNV<S, N>,
                       dedekind::linear_algebra::MatTimes<S, N>,
                       dedekind::linear_algebra::MatPlus<S, N>> =
-        is_distributive_v<S, typename dedekind::algebra::semiring_ops<S>::mult,
-                          typename dedekind::algebra::semiring_ops<S>::add>;
+        is_distributive_v<
+            S, typename dedekind::linear_algebra::semiring_ops_of<S>::mult,
+            typename dedekind::linear_algebra::semiring_ops_of<S>::add>;
 
 /** @brief Totality of @c Mat(S)'s monoids is @b inherited, honestly: matrix
  *         @c ⊕ is total exactly when the base @c ⊕ is a magma, and matrix
@@ -349,14 +352,17 @@ inline constexpr bool
 template <typename S, std::size_t N>
 struct is_saturating<dedekind::linear_algebra::MatNxNV<S, N>,
                      dedekind::linear_algebra::MatPlus<S, N>>
-    : std::bool_constant<
-          IsMagma<S, typename dedekind::algebra::semiring_ops<S>::add>> {};
+    : std::bool_constant<IsMagma<
+          S, typename dedekind::linear_algebra::semiring_ops_of<S>::add>> {};
 template <typename S, std::size_t N>
 struct is_saturating<dedekind::linear_algebra::MatNxNV<S, N>,
                      dedekind::linear_algebra::MatTimes<S, N>>
     : std::bool_constant<
-          IsMagma<S, typename dedekind::algebra::semiring_ops<S>::add> &&
-          IsMagma<S, typename dedekind::algebra::semiring_ops<S>::mult>> {};
+          IsMagma<S,
+                  typename dedekind::linear_algebra::semiring_ops_of<S>::add> &&
+          IsMagma<
+              S, typename dedekind::linear_algebra::semiring_ops_of<S>::mult>> {
+};
 
 /** @brief Totality @b distributes over the vector construction (§4 property
  *  distribution): a @ref dedekind::linear_algebra::Ket /
@@ -370,8 +376,8 @@ template <typename S, std::size_t N, typename O>
 struct is_saturating<
     dedekind::linear_algebra::SemimoduleVec<S, N, O>,
     std::plus<dedekind::linear_algebra::SemimoduleVec<S, N, O>>>
-    : std::bool_constant<
-          IsMagma<S, typename dedekind::algebra::semiring_ops<S>::add>> {};
+    : std::bool_constant<IsMagma<
+          S, typename dedekind::linear_algebra::semiring_ops_of<S>::add>> {};
 
 }  // namespace dedekind::category
 

@@ -146,8 +146,12 @@ constexpr S matmul_entry(const A& a, const B& b, std::size_t i, std::size_t j) {
 export template <std::size_t N, typename U, typename V, typename Mult>
 constexpr auto eigenvalue(const OuterProduct<U, V, Mult>& m) {
   // ⟨w|v⟩ contracts the RIGHT factor (bra w = m.v) against the LEFT factor
-  // (ket v = m.u) over the shared middle dimension.
-  return inner_product<N>(m.v, m.u);
+  // (ket v = m.u) over the shared middle dimension --- using the @b same
+  // @c Mult the dyad was built with, not the scalar's default ⊗, so the dyad's
+  // entries and its eigenvalue are computed with one and the same operation.
+  using S = typename std::remove_cvref_t<V>::Codomain;
+  using Add = typename dedekind::algebra::semiring_ops<S>::add;
+  return inner_product<N, V, U, S, Add, Mult>(m.v, m.u);
 }
 
 /**
