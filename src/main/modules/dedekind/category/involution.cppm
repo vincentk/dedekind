@@ -190,7 +190,15 @@ concept IsDagger = IsInvolution<Dagger, T>;
  *   f† ∘ f = id  (isometry)    split MONO       retraction  r = f†   (r∘f = id)
  *   f ∘ f† = id  (coisometry)  split EPI        section     s = f†   (f∘s = id)
  *   both         (unitary)     ISO              inverse     f⁻¹ = f†
+ *   f f† f = f   (partial iso) general m∘e      generalized inv. f†
+ * (Moore–Penrose)
  * @endverbatim
+ * The fourth row completes the ladder: a general arrow @c f=m∘e (dagger-mono
+ * @c m ∘ dagger-epi @c e) is a @b partial @b isometry, its dagger the
+ * @b generalized (Moore–Penrose) inverse (@f$f f^\dagger f = f@f$, and
+ * @f$f^\dagger f f^\dagger = f^\dagger@f$) --- a two-sided @b partial inverse,
+ * neither @c f†f nor @c ff† being @c id but each a projection.  No concept yet
+ * (see the follow-up); paper Table @c tab:inverse-image-laws carries all four.
  * @c IsIsometry is the @b named intermediate (Heunen &amp; Vicary): @b no
  * linearity --- a split mono in @b any @f$\dagger@f$-category, so bijective
  * relation, orthogonal matrix and unitary matrix are @b one theorem.  The @b

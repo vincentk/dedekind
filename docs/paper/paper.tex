@@ -1073,7 +1073,7 @@ An epi or a general map has a many-point fibre, which is a point-free \emph{unio
 The one-sided inverses all compose \emph{contravariantly}, so retractability and section-ability are closed under composition and, in particular, are preserved by pre- or post-composition with an iso (Listing~\ref{lst:functional_image_bijection}).
 
 We note a deep connection between converse and inverse, which we summarise in Table~\ref{tab:inverse-image-laws}'s $\dagger$-class column.
-In a dagger category the dagger is itself the one-sided inverse, so the isometry, coisometry and unitary conditions ($f^\dagger f = \mathrm{id}$, $f f^\dagger = \mathrm{id}$, both) name the mono, epi and iso classes and supply their witness at no cost: ``the converse is the inverse'' (a bijective relation) and ``the transpose is the inverse'' (an orthogonal matrix) become one theorem.
+In a dagger category the dagger is itself the inverse, so the isometry, coisometry, unitary and partial-isometry conditions ($f^\dagger f = \mathrm{id}$, $f f^\dagger = \mathrm{id}$, both, $f f^\dagger f = f$) name the mono, epi, iso and general classes and supply their witness at no cost: ``the converse is the inverse'' (a bijective relation) and ``the transpose is the inverse'' (an orthogonal matrix) become one theorem.
 The interested reader is referred to \cite{heunen2019categories,selinger2007dagger,heunenkarvonen2019limits,nlab_dagger}.
 
 \begin{table}[htbp]
@@ -1089,13 +1089,13 @@ mono / injective & retract $r$, $\;r\circ f = \mathrm{id}$   & $\{r(y)\}$ if $f(
 \addlinespace
 epi / surjective & section $s$, $\;f\circ s = \mathrm{id}$   & a union, containing $s(y)$                         & $s_h = s_f\!\circ s_g$ & coisometry \\
 \addlinespace
-general $m\circ e$ & retract of $m$, section of $e$          & a union of branches                               & converse composes contravariantly & --- \\
+general $m\circ e$ & $f^\dagger$, $\;f f^\dagger\! f = f$      & $\bigcup_i \{s_i(y)\}$                             & $(g\circ f)^\dagger = f^\dagger\!\circ g^\dagger$ & partial isometry \\
 \bottomrule
 \end{tabular}%
 }
 \caption{How Table~\ref{tab:relation-quantifier}'s arrow class fixes the inverse structure, hence image-membership (Equation~\ref{eqn:image-fibre}) and its composition law.
 The fibre is a single point (iso, mono) or a point-free union (epi, general); image is the fibre met against the source, and the one-sided inverses all compose contravariantly, so retractability is closed under composition.
-The final column names the arrow's $\dagger$-class when a dagger is present: the dagger then \emph{is} the one-sided inverse (unitary $f^{-1}=f^\dagger$, isometry retract $r=f^\dagger$, coisometry section $s=f^\dagger$), a witness a general $m\circ e$ arrow has no claim to.}
+The final column names the arrow's $\dagger$-class when a dagger is present: the dagger then \emph{is} the inverse (unitary $f^{-1}=f^\dagger$, isometry retract $r=f^\dagger$, coisometry section $s=f^\dagger$), and for a general $m\circ e$ the \emph{generalized} inverse $f^\dagger$ with $f f^\dagger f = f$, a partial isometry (the Moore--Penrose pseudoinverse in the Hilbert case).}
 \label{tab:inverse-image-laws}
 \end{table}
 
