@@ -105,3 +105,25 @@ TEST_CASE(
           std::size_t, std::less_equal<std::size_t>, decltype(std::ranges::max),
           decltype(std::ranges::min), std::bit_not<std::size_t>>);
 }
+
+TEST_CASE(
+    "order:bitwise-boolean — bit_closure is reachability over the power-set "
+    "lattice",
+    "[order][lattice][bitwise][closure]") {
+  // The 4-node path 0→1→2→3, nodes as bit positions; the one-step adjacency ORs
+  // in each present node's successor.  bit_closure is the generic closure
+  // (category:functor) instanced at THIS lattice (join = bit_or) — the
+  // long-range tie between the fixpoint operator and the power-set lattice.
+  constexpr auto edge_step = [](unsigned s) -> unsigned {
+    unsigned out = 0;
+    if (s & 0b0001u) out |= 0b0010u;  // 0 → 1
+    if (s & 0b0010u) out |= 0b0100u;  // 1 → 2
+    if (s & 0b0100u) out |= 0b1000u;  // 2 → 3
+    return out;
+  };
+  CHECK(dedekind::order::bit_closure(0b0001u, edge_step) ==
+        0b1111u);  // {0}→all
+  CHECK(dedekind::order::bit_closure(0b0100u, edge_step) ==
+        0b1100u);  // {2}→{2,3}
+  CHECK(dedekind::order::bit_closure(0b1000u, edge_step) == 0b1000u);  // sink
+}

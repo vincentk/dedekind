@@ -640,25 +640,12 @@ constexpr T closure(const T& x, Expand expand, Join join, Equal equal = {},
       equal, max_iterations);
 }
 
-namespace detail_closure {
-// Proof by implementation: REACHABILITY is the closure of {source} under
-// "follow an edge".  Nodes 0..3 as bits of an @c unsigned; @c expand ORs in
-// each present node's successors along the path 0→1→2→3; the fixpoint is the
-// reachable set. This is @c closure over the Boolean semiring (join = ∨, expand
-// = the edge step), the same reachability the necklace exhibit computes.
-inline constexpr auto edge_step = [](unsigned s) -> unsigned {
-  unsigned out = 0;
-  if (s & 0b0001u) out |= 0b0010u;  // 0 → 1
-  if (s & 0b0010u) out |= 0b0100u;  // 1 → 2
-  if (s & 0b0100u) out |= 0b1000u;  // 2 → 3
-  return out;
-};
-static_assert(closure(0b0001u, edge_step, std::bit_or<unsigned>{}) == 0b1111u,
-              "reachability = closure of {0} under the edge step = {0,1,2,3}.");
-static_assert(
-    closure(0b0100u, edge_step, std::bit_or<unsigned>{}) == 0b1100u,
-    "from {2} only {2,3} are reachable — the closure stabilises early.");
-}  // namespace detail_closure
+// @c closure's Boolean / power-set instance --- the reachability of a bitmask
+// under a one-step edge relation --- is bona-fide functionality
+// @c dedekind::order::bit_closure (@c order:lattice), which owns the power-set
+// lattice (@c bit_subset_eq, join @c bit_or) and carries the worked 0→1→2→3
+// reachability witness.  The raw-bitmask example lives there, with the lattice
+// it uses, not here.
 
 /**
  * @brief TraceFunctor: Maps Set -> StringCategory.
