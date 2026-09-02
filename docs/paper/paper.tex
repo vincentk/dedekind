@@ -1078,6 +1078,7 @@ The interested reader is referred to \cite{heunen2019categories,selinger2007dagg
 
 \begin{table}[htbp]
 \centering
+\resizebox{\textwidth}{!}{%
 \begin{tabular}{@{}lllll@{}}
 \toprule
 arrow $f$ & one-sided inverse & fibre $f^{-1}(y)$ & composition $h = g \circ f$ & $\dagger$-class \\
@@ -1090,7 +1091,8 @@ epi / surjective & section $s$, $\;f\circ s = \mathrm{id}$   & a union, containi
 \addlinespace
 general $m\circ e$ & retract of $m$, section of $e$          & a union of branches                               & converse composes contravariantly & --- \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \caption{How Table~\ref{tab:relation-quantifier}'s arrow class fixes the inverse structure, hence image-membership (Equation~\ref{eqn:image-fibre}) and its composition law.
 The fibre is a single point (iso, mono) or a point-free union (epi, general); image is the fibre met against the source, and the one-sided inverses all compose contravariantly, so retractability is closed under composition.
 The final column names the arrow's $\dagger$-class when a dagger is present: the dagger then \emph{is} the one-sided inverse (unitary $f^{-1}=f^\dagger$, isometry retract $r=f^\dagger$, coisometry section $s=f^\dagger$), a witness a general $m\circ e$ arrow has no claim to.}
