@@ -371,17 +371,36 @@ auto materialise(
  *  @c materialise(argmax(Ω|[0,N], cost)) calls.
  */
 
-/** @brief A finite set bundled with its scannable domain: an @c argmax result
- *         (or any refinement of a bounded interval) carrying both the interval
- *         (the @c IsExtensional range to scan) and the membership predicate
- * (the optimal filter).  This is the "domain-carrying bounded set" that lets
- *         @c materialise take a single argument. */
+/** @brief The value-semantic comprehension @f$\{x \in \mathrm{dom} \mid
+ * P(x)\}@f$ over a @b finite domain: an @c argmax result (or any refinement of
+ * a bounded interval), carrying both the interval (the @c IsExtensional range
+ * to scan) and the refinement predicate @c P.
+ *
+ *  @details Why a struct and not @c dedekind::sets::Comprehension (the DSL's
+ *  @f$\{S\mid P\}@f$)?  Two contracts the DSL comprehension does not meet as an
+ *  @c argmax @b result:
+ *    @li @b value @b ownership --- @c Comprehension holds @c const @c Base& (a
+ *        reference into a named ambient set); an @c argmax result must @b own
+ *        its (stateless but @b typed) @c OrderInterval domain by value to be
+ *        returned safely, so the scannable bounds survive in the return value's
+ *        type.
+ *    @li @b membership @b call --- @c Comprehension has no @c operator()(x);
+ * the
+ *        @c argmax result @b is invoked as the optimal-set predicate (e.g.
+ *        @c is_optimal_path in the necklace exhibit).  A comprehension @b is
+ * its own characteristic map here: @c x @c ∈ @c {dom @c | @c P} @c ⟺
+ *        @c dom(x) @c ∧ @c P(x).
+ *  So this is the @b callable, @b value-owning finite comprehension.  @c size()
+ *  is the interval's cardinality --- the @c IsExtensional licence @ref
+ * materialise needs; the @c OrderInterval domain is stateless, so owning it by
+ * value is free. */
 export template <typename OI, typename P>
 struct BoundedSet {
   OI domain;
   P pred;
   using Domain = typename OI::Domain;
-  /** @brief Membership: in the domain @b and optimal. */
+  /** @brief Membership: @c x @c ∈ @c {dom @c | @c P} @c ⟺ in the domain @b and
+   *  @c P-optimal --- the comprehension's own characteristic map. */
   constexpr bool operator()(const Domain& x) const {
     return static_cast<bool>(domain(x)) && pred(x);
   }
