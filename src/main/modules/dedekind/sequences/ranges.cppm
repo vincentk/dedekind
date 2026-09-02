@@ -395,12 +395,19 @@ auto materialise(
  * materialise needs; the @c OrderInterval domain is stateless, so owning it by
  * value is free. */
 export template <typename OI, typename P>
-struct BoundedSet {
+struct BoundedSet
+    : dedekind::sets::SetExpr<BoundedSet<OI, P>, typename OI::Domain,
+                              typename OI::logic_species> {
   OI domain;
   P pred;
   using Domain = typename OI::Domain;
-  /** @brief Membership: @c x @c ∈ @c {dom @c | @c P} @c ⟺ in the domain @b and
-   *  @c P-optimal --- the comprehension's own characteristic map. */
+  /** @brief The interval is finite (an @c IsExtensional bounded meet), so the
+   *  comprehension over it is too --- the licence @ref materialise reads. */
+  using cardinality_type = dedekind::sets::Finite;
+  /** @brief χ / membership: @c x @c ∈ @c {dom @c | @c P} @c ⟺ in the domain
+   *  @b and @c P-optimal.  A comprehension @b is its own characteristic map,
+   *  which (with @ref dedekind::sets::SetExpr) makes @c BoundedSet an
+   *  @c IsSet --- a first-class DSL citizen, not a bespoke struct. */
   constexpr bool operator()(const Domain& x) const {
     return static_cast<bool>(domain(x)) && pred(x);
   }
@@ -408,6 +415,22 @@ struct BoundedSet {
    *  an addressable @c size_t — the licence to realise. */
   constexpr std::size_t size() const { return domain.size(); }
 };
+
+/** @brief Witness: @c BoundedSet @b is a set.  @c IsSet is reached by
+ * inheriting
+ *  @c dedekind::sets::SetExpr and supplying the χ --- the same opt-in surface
+ *  @c Comprehension uses; nominal, never a precondition. */
+namespace detail_boundedset_witness {
+struct all_ok {
+  constexpr bool operator()(int) const { return true; }
+};
+using WOI = dedekind::order::OrderInterval<
+    int, 0, 1, dedekind::order::Strictness::NonStrict,
+    dedekind::order::Strictness::NonStrict, dedekind::category::ClassicalLogic>;
+static_assert(dedekind::category::IsSet<BoundedSet<WOI, all_ok>>,
+              "BoundedSet is a first-class DSL set: the value-owning finite "
+              "comprehension {x ∈ dom | P}.");
+}  // namespace detail_boundedset_witness
 
 /** @brief @c argmax over a bounded (closed-interval) domain: the §3.3 forall-
  *         filter @c {x ∈ dom | ∀x'∈dom. cost(x') ≤ cost(x)}, with @c ≤ pulled

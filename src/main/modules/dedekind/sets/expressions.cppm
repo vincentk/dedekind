@@ -67,11 +67,55 @@ import :computability;  // For NaturalLogic / HasDecidableMembership
 namespace dedekind::sets {
 using namespace dedekind::category;
 
+/** @brief Opt-in CRTP base that supplies the ETCS @b set surface --- @c Member
+ * /
+ *  @c ι (the subobject inclusion), @c Codomain / @c logic_species, the
+ *  set-lattice trait members, and @c contains --- to a @b specialized set
+ *  expression, keying the classifier χ off the @c Derived's own @c operator().
+ *
+ *  @details This makes @c IsSet reachable by @b inheritance for expression
+ *  structs (@ref Comprehension, and any wrapper that is "morally a set"),
+ *  removing the surface boilerplate each would otherwise duplicate.  It is
+ *  @b opt-in, @b never a precondition: @c IsSet stays a @b structural concept,
+ *  and @c Set<T,L,P> / @c SingletonSet keep satisfying it by hand.  The
+ *  @c Derived must expose @c operator()(Domain)@c → @c Codomain (its χ). */
+export template <typename Derived, typename DomainT, typename L>
+struct SetExpr {
+  using Domain = DomainT;
+  using Codomain = typename L::Ω;
+  using logic_species = L;
+
+  /** @brief A member is a carrier value; @c ι projects it back into the
+   *  ambient (the subobject inclusion the ETCS axioms read). */
+  struct Member {
+    DomainT value;
+  };
+  constexpr DomainT ι(const Member& m) const { return m.value; }
+
+  /** @brief Membership sugar, routed to @c Derived's χ (@c operator()). */
+  constexpr auto contains(const DomainT& x) const {
+    return static_cast<const Derived&>(*this)(x);
+  }
+
+  template <typename Op>
+  static constexpr bool is_associative_v = true;
+  template <typename Op>
+  static constexpr bool is_idempotent_v = true;
+};
+
 export template <typename Base, typename Predicate>
-struct Comprehension {
+struct Comprehension
+    : SetExpr<Comprehension<Base, Predicate>, typename Base::Domain,
+              typename Base::logic_species> {
   const Base& base;
   Predicate predicate;
-  using Domain = typename Base::Domain;
+
+  /** @brief Explicit two-argument constructor.  Needed because @ref SetExpr is
+   * a base class, so @c Comprehension is no longer an aggregate --- the
+   *  @c Comprehension{base, pred} sites (e.g. @c SingletonSet::operator|) route
+   *  here instead of through aggregate init. */
+  constexpr Comprehension(const Base& b, Predicate p)
+      : base(b), predicate(static_cast<Predicate&&>(p)) {}
 
   // Forward Base's cardinality so NaturalLogic / IsCountable can read off
   // the carrier axis on a comprehension's effective magnitude.  A
@@ -82,10 +126,13 @@ struct Comprehension {
   // tracked via the @c size() probe below, not via this typedef.
   using cardinality_type = typename Base::cardinality_type;
 
-  template <typename Op>
-  static constexpr bool is_associative_v = true;
-  template <typename Op>
-  static constexpr bool is_idempotent_v = true;
+  /** @brief χ: the comprehension's characteristic map --- @c x @c ∈ @c {S @c |
+   *  @c P} @c ⟺ @c x @c ∈ @c S @c ∧ @c P(x).  A comprehension @b is a set, so
+   * it
+   *  @b is its own predicate (@c IsSet @c ⟹ @c IsPredicate). */
+  constexpr auto operator()(const typename Base::Domain& x) const {
+    return static_cast<bool>(base(x)) && static_cast<bool>(predicate(x));
+  }
 
   /** @brief Size when the base exposes a probe element (@c pivot) and a
    *         @c size().  For singleton-bounded bases (size 1), the
@@ -1599,5 +1646,20 @@ constexpr typename L::Ω is_single_valued_at(const SetFunction<T1, T2, L, P>& f,
   // ((x,y1) ∈ f && (x,y2) ∈ f) => (y1 == y2)
   return L::OR(L::NOT(both_related), equal_outputs);
 }
+
+/** @section expressions__SetExpr_Witnesses
+ *  A @ref Comprehension @b is a set --- @c IsSet is reached by inheriting
+ *  @ref SetExpr and supplying the χ.  Witnessed over the universal and empty
+ *  bases (the two extremes of the subobject lattice); the same holds for any
+ *  @c IsSet base a comprehension refines. */
+namespace detail_setexpr_witness {
+struct all_in {
+  constexpr bool operator()(int) const { return true; }
+};
+static_assert(IsSet<Comprehension<UniversalSet<int>, all_in>>,
+              "{Ω | P} is a first-class set: IsSet by SetExpr + its own χ.");
+static_assert(IsSet<Comprehension<Ø<int>, all_in>>,
+              "{Ø | P} is a first-class set.");
+}  // namespace detail_setexpr_witness
 
 }  // namespace dedekind::sets
