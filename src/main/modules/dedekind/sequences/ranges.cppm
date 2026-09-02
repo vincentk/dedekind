@@ -408,8 +408,17 @@ struct BoundedSet
    *  @b and @c P-optimal.  A comprehension @b is its own characteristic map,
    *  which (with @ref dedekind::sets::SetExpr) makes @c BoundedSet an
    *  @c IsSet --- a first-class DSL citizen, not a bespoke struct. */
-  constexpr bool operator()(const Domain& x) const {
-    return static_cast<bool>(domain(x)) && pred(x);
+  constexpr auto operator()(const Domain& x) const {
+    // Combine under the domain's logic (@c L::AND), first lifting the (commonly
+    // @c bool) predicate into @c L::Ω --- a @c bool cast would collapse ternary
+    // membership (@c Ternary::False, underlying −1, reads as @c true), exactly
+    // as @c dedekind::sets::Comprehension guards against.
+    using L = typename OI::logic_species;
+    const auto p = pred(x);
+    if constexpr (std::same_as<std::remove_cvref_t<decltype(p)>, typename L::Ω>)
+      return L::AND(domain(x), p);
+    else
+      return L::AND(domain(x), p ? L::True : L::False);
   }
   /** @brief The scannable bound (@c IsExtensional): the domain's cardinality is
    *  an addressable @c size_t — the licence to realise. */
