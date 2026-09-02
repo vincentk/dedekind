@@ -33,33 +33,18 @@ constexpr unsigned long long cost(int x, int y) {
   return c > 0 ? static_cast<unsigned long long>(c) : 0ULL;
 }
 
-// The mid-layer ket of diamond m: 0 ↦ peak (y=+1) arrival, 1 ↦ trough (y=−1).
+// The mid-layer ket of diamond m: 0 ↦ peak (y=+1) arrival, 1 ↦ trough (y=−1) —
+// a plain Ket<MP,2> literal (IsArrow), not a bespoke index→scalar struct.
 template <typename MP>
-struct branch_ket {
-  MP peak, trough;
-  using Domain = std::size_t;
-  using Codomain = MP;
-  constexpr MP operator()(std::size_t k) const {
-    return k == 0 ? peak : trough;
-  }
-};
-// The exit-edge bra: both exit edges land on the rail node (x+1, 0), cost 0.
-template <typename MP>
-struct exit_bra {
-  using Domain = std::size_t;
-  using Codomain = MP;
-  constexpr MP operator()(std::size_t) const { return MP::of(0); }
-};
-
-template <typename MP>
-constexpr branch_ket<MP> ket_of(int m) {
-  return {MP::of(cost(2 * m + 1, +1)), MP::of(cost(2 * m + 1, -1))};
+constexpr Ket<MP, 2> ket_of(int m) {
+  return {{MP::of(cost(2 * m + 1, +1)), MP::of(cost(2 * m + 1, -1))}};
 }
 
-// diamond m's rank-1 eigenvalue λ_m = ⟨w|v⟩.
+// diamond m's rank-1 eigenvalue λ_m = ⟨w|v⟩.  The exit-edge bra is the constant
+// cost-0 Bra (both exit edges land on the rail node (x+1, 0)).
 template <typename MP>
 constexpr MP bead_eigenvalue(int m) {
-  return inner_product<2>(exit_bra<MP>{}, ket_of<MP>(m));
+  return inner_product<2>(Bra<MP, 2>{{MP::of(0), MP::of(0)}}, ket_of<MP>(m));
 }
 
 // The closure: ⊗-fold the four eigenvalues via the structured transfer_chain.

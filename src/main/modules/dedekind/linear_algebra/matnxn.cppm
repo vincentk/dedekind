@@ -67,6 +67,11 @@ struct SemimoduleVec {
   using orientation = Orientation;
   using dimension_type = dedekind::sets::Finite;
   static constexpr std::size_t dimension = N;
+  /// @brief A vector @b is an index→scalar arrow, so @c Ket / @c Bra are
+  ///        @c IsArrow --- they feed @c :transfer's @c inner_product /
+  ///        @c OuterProduct directly, retiring the ad-hoc bra/ket structs.
+  using Domain = std::size_t;
+  using Codomain = S;
 
   std::array<S, N> c{};
 

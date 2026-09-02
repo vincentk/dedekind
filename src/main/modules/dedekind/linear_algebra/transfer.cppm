@@ -276,31 +276,22 @@ using MP = MaxPlus<unsigned long long>;
 // A diamond bead: two parallel branches with entry→mid weights (a1,b1) as the
 // ket, and mid→exit weights (a2,b2) as the bra.  The tropical inner product is
 // the bead gain max(a1+a2, b1+b2) — the diamond's parallelism as a bra·ket.
-struct entry_to_mid {  // ket v: 0 ↦ a1 = 3, 1 ↦ b1 = 5
-  using Domain = std::size_t;
-  using Codomain = MP;
-  constexpr MP operator()(std::size_t k) const {
-    return k == 0 ? MP::of(3) : MP::of(5);
-  }
-};
-struct mid_to_exit {  // bra w: 0 ↦ a2 = 5, 1 ↦ b2 = 2
-  using Domain = std::size_t;
-  using Codomain = MP;
-  constexpr MP operator()(std::size_t k) const {
-    return k == 0 ? MP::of(5) : MP::of(2);
-  }
-};
-static_assert(dedekind::category::IsArrow<entry_to_mid>);
-static_assert(dedekind::category::IsArrow<mid_to_exit>);
+// The ket/bra are plain @c Ket / @c Bra literals (both @c IsArrow), not bespoke
+// index→scalar structs.
+inline constexpr Ket<MP, 2> v_entry{{MP::of(3), MP::of(5)}};  // 0↦3, 1↦5
+inline constexpr Bra<MP, 2> w_exit{{MP::of(5), MP::of(2)}};   // 0↦5, 1↦2
+static_assert(dedekind::category::IsArrow<Ket<MP, 2>>);
+static_assert(dedekind::category::IsArrow<Bra<MP, 2>>);
 
 // λ = ⟨w|v⟩ = max(3+5, 5+2) = max(8, 7) = 8 — the long branch wins.
-inline constexpr MP lambda = inner_product<2>(mid_to_exit{}, entry_to_mid{});
+inline constexpr MP lambda = inner_product<2>(w_exit, v_entry);
 static_assert(lambda == MP::of(8),
               "tropical bra·ket eigenvalue max(3+5, 5+2) = 8.");
 
 // The rank-1 dyad M = |v⟩⟨w| over the tropical ⊗ (= saturating +).
 using TropMult = typename dedekind::algebra::semiring_ops<MP>::mult;
-inline constexpr OuterProduct<entry_to_mid, mid_to_exit, TropMult> bead{};
+inline constexpr OuterProduct<Ket<MP, 2>, Bra<MP, 2>, TropMult> bead{v_entry,
+                                                                     w_exit};
 
 // Entry law: M(i,j) = v_i ⊗ w_j (tropical + ).  M(0,0) = 3+5 = 8.
 static_assert(bead(0, 0) == MP::of(8), "dyad entry (0,0) = 3 ⊗ 5 = 8.");
@@ -333,17 +324,10 @@ static_assert(transfer_chain<3>([](std::size_t) { return lambda; }) ==
 
 // The choice of semiring is the choice of problem.  Over 𝔹 the SAME bra·ket
 // is reachability: ⊕_k (w_k ∧ v_k) — is there a branch present end to end?
-struct branch_in {  // v: both branches present
-  using Domain = std::size_t;
-  using Codomain = bool;
-  constexpr bool operator()(std::size_t) const { return true; }
-};
-struct branch_out {  // w: only the k=0 branch present
-  using Domain = std::size_t;
-  using Codomain = bool;
-  constexpr bool operator()(std::size_t k) const { return k == 0; }
-};
-static_assert(inner_product<2>(branch_out{}, branch_in{}),
+// Again plain Ket/Bra literals: v both branches present, w only the k=0 branch.
+inline constexpr Ket<bool, 2> v_present{{true, true}};
+inline constexpr Bra<bool, 2> w_first{{true, false}};
+static_assert(inner_product<2>(w_first, v_present),
               "𝔹 bra·ket = reachability: some branch is present end to end.");
 
 // ── R* as a MATRIX corollary of closure: the intensional→extensional joint

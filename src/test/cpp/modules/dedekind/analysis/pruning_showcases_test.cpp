@@ -39,11 +39,10 @@ using R2Point = typename decltype(R2)::Domain;
 // FIXME(#399 slice 4-6): see showcase_01 source for the same comment.
 constexpr auto xy = element<Ω<R2Point>>;
 
-// Named @c diag (not @c diagonal) to avoid colliding with the first-class
-// DSL relation @c dedekind::order::diagonal (the Δ identity) now in scope via
-// @c using @c namespace @c dedekind::order above.
-constexpr auto diag =
-    Set{xy % R2 | [](R2Point p) { return p.first == p.second; }};
+// The diagonal {x == y} is the first-class DSL relation, not a hand lambda
+// (fully qualified to dodge the @c diagonal name now in scope via
+// @c using @c namespace @c dedekind::order above).
+constexpr auto diag = dedekind::order::diagonal<double>();
 constexpr auto strip = Set{
     xy % R2 | [](R2Point p) { return (p.first > 5.0) && (p.second < 3.0); }};
 
