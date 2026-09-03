@@ -2,8 +2,10 @@
  * @file dedekind/relational/graph.cppm
  * @partition :graph
  * @brief The graph of a function as a relation: the analytic arrow @c f and
- *        its set of pairs are one object.  A graph @b is an endorelation, so it
- *        lives with the relations (@c dedekind.relational), not in @c :sets.
+ *        its set of pairs are one object.  A graph @b is a dyadic (binary)
+ *        relation (functional @f$R\subseteq A\times B@f$ for @f$f:A\to B@f$;
+ *        an endorelation only when @f$A=B@f$), so it lives with the relations
+ *        (@c dedekind.relational), not in @c :sets.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.

@@ -187,7 +187,7 @@ add_dedekind_layer(sets dedekind_ieee)
 # dedekind.relational (#792) — the relation-algebra's own module, popped OUT of
 # sets (above sets, below order).  Partitions: :tables (Codd's relational model
 # σ ⋈ ∪ −), :dyadic (Tarski's calculus of relations R° R;S Δ +), :graph
-# (endorelations — a graph IS a relation, so it tags along).  order/halfspace's
+# (graphs of arrows, binary relations — a graph IS a relation, so it tags along).  order/halfspace's
 # converse/relative-product surface moves DOWN into :dyadic, hence order depends
 # on relational, not the reverse.
 add_dedekind_layer(relational dedekind_sets)

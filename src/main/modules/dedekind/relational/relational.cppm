@@ -2,7 +2,7 @@
  * @file dedekind/relational/relational.cppm
  * @brief @b dedekind.relational --- a first-class module for relations, popped
  *        out of @c :sets: Codd's relational model, Tarski's calculus of
- *        relations, and graphs (endorelations).
+ *        relations, and graphs (of arrows, binary relations).
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -34,7 +34,7 @@
  *       dyadic (binary), one carrier under a Boolean involutive monoid.  The
  *       BASE the other two build on.  (The reflexive-transitive closure
  *       @f$R^{*}@f$ is not yet a provided operator; FIXME(#786).)
- *   @li @c :graph   --- endorelations: the graph @f$\Gamma_f@f$ of an arrow,
+ *   @li @c :graph   --- graphs of arrows as binary relations: @f$\Gamma_f@f$,
  *       @c is_graph_of.  A graph @b is a relation, so it tags along here.
  *
  * @section relational__Namespace
@@ -53,4 +53,5 @@ export module dedekind.relational;
 
 export import :dyadic;  // Tarski BASE: converse °, relative product ;, Δ, +, &
 export import :tables;  // Codd: σ ⋈ ∪ ∖ ∩ (dedekind::sets namespace, by ADL)
-export import :graph;   // endorelations: graph(f), is_graph_of
+export import :graph;   // graphs of arrows (binary relations): graph(f),
+                        // is_graph_of

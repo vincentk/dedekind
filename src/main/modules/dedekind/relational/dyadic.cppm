@@ -29,8 +29,8 @@
  * dedekind::sets::Set arguments (order imports @c dedekind.relational).
  *
  * @section dyadic__Base_Of_The_Others
- * @c :graph (endorelations) and @c :tables (Codd's n-ary model) both build on
- * this base: @c :dyadic → (:graph, :tables).  A graph
+ * @c :graph (graphs of arrows) and @c :tables (Codd's n-ary model) both build
+ * on this base: @c :dyadic → (:graph, :tables).  A graph
  * @f$\Gamma_f=\{(a,f(a))\}@f$ is a dyad; and Codd's @c natural_join
  * @f$R_1\bowtie R_2@f$ IS the relative product @f$R_1;R_2@f$ with the pivot
  * retained (one @f$\exists@f$ apart from @c >>).

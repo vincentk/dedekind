@@ -864,7 +864,8 @@ involution & \multicolumn{2}{l}{$(\cdot)^{\circ}$ converse: $\;(R\odot S)^{\circ
 The multiplicative monoid is composition $R \gg S$ with unit the \emph{diagonal} $\Delta = \{\pi_1 = \pi_2\}$; it is what makes the structure a dioid and what the \emph{product} buys, since a bare set has one coordinate, nothing to compose and no diagonal to compare.
 The additive monoid is idempotent ($R\cup R = R$), a join-semilattice; that half coincides with the Boolean-lattice join a relation carries \emph{as a set} (Section~\ref{sec:intensional_sets}, Table~\ref{tab:lattice-lift}), which is why the two units differ: $\varnothing$ is the semilattice bottom, $\Delta$ the composition one, and the lattice top $A\times B$ is neither.
 $\Delta$ is $\mathrm{graph}(\mathrm{id})$, definable on every carrier because equality is universal.
-\cppinline{materialise} (Table~\ref{tab:relation-matrix-map}) is a \emph{dioid homomorphism} onto the matrix semiring $\mathrm{Mat}(S)$, sending $\varnothing\mapsto 0$, $\Delta\mapsto I$, $\cup\mapsto\oplus$, $\mathbin{;}\mapsto\otimes$, so reachability is this dioid at $S=\mathbb{B}$ and shortest path a semiring apart (Table~\ref{tab:semirings}).}
+\cppinline{materialise} (Table~\ref{tab:relation-matrix-map}) sends this dioid into the Boolean matrix semiring $\mathrm{Mat}(\mathbb{B})$ as a homomorphism, $\varnothing\mapsto 0$, $\Delta\mapsto I$, $\cup\mapsto\oplus$, $\mathbin{;}\mapsto\otimes$; that instance is reachability.
+A weighted $\mathrm{Mat}(S)$, shortest path and the wider algebraic path problem, is one semiring swap away (Table~\ref{tab:semirings}), taken there through the extensional matrix since the point-free product $\mathbin{;}$ composes only through a Boolean middle.}
 \label{tab:relation-dioid}
 \end{table}
 
