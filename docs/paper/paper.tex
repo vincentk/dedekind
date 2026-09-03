@@ -840,34 +840,32 @@ The implementation tracks this definition literally at compile time.
 \section{A Reification of $\mathbf{RAlg}$}
 \label{sec:relations_functions_blueprint}
 
-A relation is a set on a product, and that one fact is the whole of this section.
-The product turns the Boolean lattice of sets (Section~\ref{sec:intensional_sets}, Table~\ref{tab:lattice-lift}) into a \emph{semiring} of relations, whose multiplicative unit is the diagonal (Table~\ref{tab:set-to-relation}).
-The two halves of that semiring, the inherited lattice and the product-born composition, are what the rest of the section spells out.
+Relations are a \emph{dioid}, an idempotent semiring $(\mathrm{Rel}, \cup, \mathbin{;}, \varnothing, \Delta)$ under union and relative product, and that structure is the spine of this section (Table~\ref{tab:relation-dioid}).
+It stands on its own two monoids: a join-semilattice for $\cup$, and a composition monoid for $\mathbin{;}$ whose unit is the diagonal $\Delta$.
+The additive half happens to be the Boolean lattice a relation already carries \emph{as a set} (Section~\ref{sec:intensional_sets}, Table~\ref{tab:lattice-lift}); the multiplicative half, composition with unit the diagonal, is what the \emph{product} adds and is the reason the section exists.
 
 \begin{table}[htbp]
 \centering
 \begin{tabular}{@{}lll@{}}
 \toprule
- & \textbf{Set} $\subseteq A$ & \textbf{Relation} $\subseteq A \times B$ \\
+ & \textbf{additive} $\;\oplus = \cup$ & \textbf{multiplicative} $\;\odot = \mathbin{;}$ \\
 \midrule
-lives on   & a carrier $A$          & a \emph{product} ($\pi_1, \pi_2$) \\
-structure  & Boolean \emph{lattice} & dagger-\emph{semiring} \\
-\addlinespace
-\multicolumn{3}{@{}l}{\emph{the lattice}, inherited (a relation \emph{is} a set):} \\
-join / meet          & $\cup$ / $\cap$ \; (\cppinline{|} / \cppinline{&}) & $\cup$ / $\cap$ \\
-bounds $\bot$ / $\top$ & $\varnothing$ / $A$ & $\varnothing$ / $A \times B$ \\
-\addlinespace
-\multicolumn{3}{@{}l}{\emph{what the product adds}, a second (multiplicative) monoid:} \\
-composition $\mathbin{;}$ & --- & $R \gg S$ \; (match $\pi_2 = \pi_1$) \\
-\quad its unit $\mathbf{1}$ & --- & $\Delta = \{\pi_1 = \pi_2\}$ \; (the diagonal) \\
-converse $(\cdot)^{\circ}$ & --- & swap $\pi_1 \leftrightarrow \pi_2$ \\
+spelling   & \cppinline{|} \; (union)                    & \cppinline{>>} \; (relative product) \\
+unit       & $\mathbf{0} = \varnothing$ \; (empty)       & $\mathbf{1} = \Delta = \{\pi_1{=}\pi_2\}$ \; (diagonal) \\
+monoid     & comm., \textbf{idempotent} (a semilattice)  & assoc., \textbf{non-commutative} \\
+involution & \multicolumn{2}{l}{$(\cdot)^{\circ}$ converse: $\;(R\odot S)^{\circ}=S^{\circ}\odot R^{\circ}$, \quad $(R\oplus S)^{\circ}=R^{\circ}\oplus S^{\circ}$} \\
+\midrule
+\multicolumn{3}{@{}l}{\emph{dioid laws}: $\;\odot$ distributes over $\oplus$; \quad $R\odot\varnothing=\varnothing=\varnothing\odot R$ \; (annihilation)} \\
+\midrule
+\cppinline{materialise} & $\mapsto$ matrix sum $\oplus$ & $\mapsto$ matrix product $\otimes$, \; unit $I$ \\
 \bottomrule
 \end{tabular}
-\caption{\textbf{The product turns the set-lattice into the relation-semiring; the diagonal is its unit.}
-A relation is a set on a product $A \times B$, so it keeps the Boolean lattice every set has (Section~\ref{sec:intensional_sets}, Table~\ref{tab:lattice-lift}) and \emph{gains} a second, multiplicative monoid: composition $R \gg S$ with unit the diagonal $\Delta = \{\pi_1 = \pi_2\}$, and the converse involution $(\cdot)^{\circ}$.
-None of the three can be written on a bare set, which has one coordinate to compare, swap, or match; each needs the product's two projections.
-The diagonal is the semiring's $\mathbf{1}$: it is $\mathrm{graph}(\mathrm{id})$, definable on every carrier because equality is universal (the relational counterpart of the identity arrow), and \cppinline{materialise} (Table~\ref{tab:relation-matrix-map}) sends it to the identity operator, composition to operator product, converse to the adjoint.}
-\label{tab:set-to-relation}
+\caption{\textbf{Relations are a dioid} $(\mathrm{Rel}, \cup, \mathbin{;}, \varnothing, \Delta)$, an idempotent semiring standing on its own two monoids.
+The multiplicative monoid is composition $R \gg S$ with unit the \emph{diagonal} $\Delta = \{\pi_1 = \pi_2\}$; it is what makes the structure a dioid and what the \emph{product} buys, since a bare set has one coordinate, nothing to compose and no diagonal to compare.
+The additive monoid is idempotent ($R\cup R = R$), a join-semilattice; that half coincides with the Boolean-lattice join a relation carries \emph{as a set} (Section~\ref{sec:intensional_sets}, Table~\ref{tab:lattice-lift}), which is why the two units differ: $\varnothing$ is the semilattice bottom, $\Delta$ the composition one, and the lattice top $A\times B$ is neither.
+$\Delta$ is $\mathrm{graph}(\mathrm{id})$, definable on every carrier because equality is universal.
+\cppinline{materialise} (Table~\ref{tab:relation-matrix-map}) is a \emph{dioid homomorphism} onto the matrix semiring $\mathrm{Mat}(S)$, sending $\varnothing\mapsto 0$, $\Delta\mapsto I$, $\cup\mapsto\oplus$, $\mathbin{;}\mapsto\otimes$, so reachability is this dioid at $S=\mathbb{B}$ and shortest path a semiring apart (Table~\ref{tab:semirings}).}
+\label{tab:relation-dioid}
 \end{table}
 
 To transition seamlessly from static intensional sets to dynamic mappings, binary relations can be formalized as morphisms \cppinline{IsArrow<A, B>} where both domain and codomain \cppinline{require} the ETCS axioms via \cppinline{IsSet}.
