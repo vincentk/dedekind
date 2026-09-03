@@ -870,30 +870,45 @@ $\Delta$ is $\mathrm{graph}(\mathrm{id})$, definable on every carrier because eq
 
 \begin{table}[htbp]
 \centering
-\begin{tabular}{@{}lll@{}}
+\begin{tabular}{@{}lcccccc@{}}
 \toprule
-overload & operation & unit / note \\
+ & add & mult & $\mathbf{0}$ & $\mathbf{1}$ & converse & residual \\
 \midrule
-\multicolumn{3}{@{}l}{\emph{objects} form types, \emph{arrows} compose:} \\
-\cppinline{A >> B} & the hom / ambient $A\times B$ ($=\top$) & the type of relations $A\to B$ \\
-\cppinline{f * g}  & composition $\mathbin{;}$ (the multiply)  & $\mathbf{1}=\mathrm{id}=\Delta$ \\
+dioid $(S, \oplus, \otimes)$ & $\oplus$ & $\otimes$ & $\bar{0}$ & $\bar{1}$ & $(\cdot)^{\ast}$ & $/$ \\
 \addlinespace
-\multicolumn{3}{@{}l}{\emph{the dioid} adds, on relations:} \\
-\cppinline{R + S}  & $\cup$ union (join)                       & $\mathbf{0}=\varnothing$, idempotent \\
-\cppinline{R / S}  & residual $\bigvee\{X:X\mathbin{;}S\subseteq R\}$ & the $\otimes$-adjoint \\
-$R^{\circ}$ (\cppinline{converse}) & converse (dagger / transpose) & $=R^{-1}$ iff bijection \\
+relation $R \subseteq A\times B$ & $\cup$ & $\mathbin{;}$ & $\varnothing$ & $\Delta$ & $R^{\circ}$ & $R/S$ \\
 \addlinespace
-\multicolumn{3}{@{}l}{\emph{the lattice}, inherited bitwise: \cppinline{|} $\cup$, \cppinline{&} $\cap$, \cppinline{~} complement, \cppinline{^} $\triangle$} \\
-\midrule
-\multicolumn{3}{@{}l}{\emph{withheld}: \cppinline{-} and reciprocal, since a dioid is a semiring, no inverses} \\
+operator / $\mathrm{Mat}(S)$ & $\oplus$ & $\otimes$ & $0$ & $I$ & $A^{\dagger}$ & $A^{+}$ \\
+\addlinespace
+$\mathbf{Trsk}$ & \cppinline{+} & \cppinline{*} & \cppinline{Ø} & \cppinline{diagonal} & \cppinline{converse} & \cppinline{/} \\
 \bottomrule
 \end{tabular}
-\caption{The operator surface \cppinline{IsRelation} presents as a dioid, the counterpart to the lattice surface of \cppinline{IsSet} (Table~\ref{tab:lattice-lift}): a distinct alphabet for a distinct concept, chosen for legibility rather than reuse, exactly as the set lattice took the \emph{bitwise} operators rather than logic's \cppinline{&&} / \cppinline{||}.
-Objects form types with \cppinline{>>} (the ambient $A\times B$); every arrow composes with \cppinline{*} (composition is the categorical multiply, unit the diagonal, and \cppinline{IsRelation} implies \cppinline{IsArrow} by design, so a relation composes as the arrow it is); the dioid adds join \cppinline{+}, the residual \cppinline{/}, and the converse.
-What the surface \emph{withholds} is as telling as what it offers: no \cppinline{-}, no reciprocal, because a semiring has no inverses (the diagnostic of Table~\ref{tab:primitive-algebra}).
-Reading an expression names its level and its concept: \cppinline{>>} a type, \cppinline{*} a composite, \cppinline{+} a union, \cppinline{|} a lattice.
-\emph{Caveat:} this is the surface the dioid structure prescribes, a design target rather than the current spelling: assigning composition to \cppinline{*} (and so freeing \cppinline{>>} to form the arrow-type) is a category-wide operator pass still underway, since \cppinline{IsRelation} implies \cppinline{IsArrow} and composition must therefore migrate uniformly across every arrow, not just relations.}
+\caption{Operator-mapping for \cppinline{IsRelation} as a dioid, the counterpart to the lattice map of Table~\ref{tab:lattice-lift}: each column is one dioid construction, spelled in four vocabularies (the abstract semiring, Tarski's relations, the matrix / operator semiring $\mathrm{Mat}(S)$, and \cppinline{Trsk}).
+Multiplication $\otimes$ is composition ($\mathbin{;}$, the matrix product), unit the diagonal $\Delta = I$; addition $\oplus$ is union (elementwise join), unit the empty relation.
+Two constructions sit \emph{off} the table because they are not dioid operations: the object-level \emph{type former} \cppinline{A >> B} (the ambient $A\times B$, how a relation space is built, one level above the algebra), and the \emph{withheld} inverses (no \cppinline{-}, no reciprocal), whose very absence is the signature of a semiring (the diagnostic of Table~\ref{tab:primitive-algebra}).
+The distinct alphabet is deliberate, chosen for legibility over reuse, exactly as the set lattice took the \emph{bitwise} operators rather than logic's \cppinline{&&} / \cppinline{||}.
+\emph{Caveat:} the \cppinline{Trsk} row is the design target; assigning composition to \cppinline{*} (freeing \cppinline{>>} for the type former) is a category-wide operator pass still underway, since \cppinline{IsRelation} implies \cppinline{IsArrow} and composition must therefore migrate uniformly across every arrow.}
 \label{tab:relation-operators}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}llcccc@{}}
+\toprule
+concept & structure & \cppinline{+} & \cppinline{-} & \cppinline{*} & \cppinline{/} \\
+\midrule
+\cppinline{IsRelation}    & dioid  & $\cup$ & --- & $\mathbin{;}$ & --- \\
+\cppinline{IsFunction}    & monoid & --- & --- & $\mathbin{;}$ & --- \\
+\cppinline{IsIsomorphism} & group  & --- & --- & $\mathbin{;}$ & $R^{-1}\!=\!R^{\circ}$ \\
+\midrule
+$\mathrm{End}$ of a line  & field  & $+$ & $-$ & $\times$ & $\div$ \\
+\bottomrule
+\end{tabular}
+\caption{The specialization ladder beneath \cppinline{IsRelation}, and the inverse each concept restores.
+Restricting the morphism class sharpens the algebra: a \emph{function} is single-valued, so union drops and only composition survives (a monoid); an \emph{isomorphism} is invertible, so the \emph{multiplicative} inverse returns as the converse ($R^{\circ}=R^{-1}$, Table~\ref{tab:inverse-image-laws}), a group.
+The \emph{additive} inverse returns only at the scalar level: the endomorphisms of a line form a \emph{field} (Schur), the full arithmetic $+\;-\;\times\;\div$, and the isomorphisms are exactly its group of units ($F^{\ast}$, or $\mathrm{GL}$ in several dimensions).
+So the inverses the dioid withholds (Table~\ref{tab:relation-operators}) are restored one specialization at a time, and the field is where they all return.}
+\label{tab:relation-ladder}
 \end{table}
 
 To transition seamlessly from static intensional sets to dynamic mappings, binary relations can be formalized as morphisms \cppinline{IsArrow<A, B>} where both domain and codomain \cppinline{require} the ETCS axioms via \cppinline{IsSet}.
