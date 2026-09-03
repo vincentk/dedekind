@@ -1382,49 +1382,57 @@ Beyond the primitives, mechanical support comes from Birkhoff's HSP theorem~\cit
 Two rules carry it (Listing~\ref{lst:hsp-combinators}):
 \begin{enumerate}
     \item \textbf{Composition on the parameter.}  A concept conjoins a certificate with a property of its parameter: a module over a field \emph{is} a vector space, so \cppinline{is_vector_space_v} holds with no per-carrier code.
-    \item \textbf{Propagation through a construction.}  A one-line registration names the base, and the species traits (associativity, commutativity, and the rest) forward through the construction to the derived carrier.
+    \item \textbf{Propagation through a construction.}  A one-line registration, a congruence relation for a quotient (Listing~\ref{lst:hsp-combinators}) or a base carrier for a product or subalgebra, forwards the species traits through the construction to the derived carrier.
 \end{enumerate}
 This reaches exactly the Birkhoff-closed constructions, product, quotient, and subalgebra; localization, completion, and the endomorphism-algebra step preserve structure by other theorems and are not covered (Table~\ref{tab:constructions}).
 
 
-% Source excerpts from dedekind.algebra:quotient and dedekind.analysis:dual.
+% Source excerpts from dedekind.algebra:quotient and dedekind.morphologies:cyclic.
 \begin{listing}[!ht]
-\caption{The HSP combinators (left) and one application (right).  The dual numbers $\mathbb{D} = F[\varepsilon]/(\varepsilon^2)$ are the quotient of the polynomial ring $F[x]$; registering \cppinline{F} as the trait-propagation base of \cppinline{Dual<F>} forwards \cppinline{F}'s ring traits to $\mathbb{D}$, and the nilpotent axiom $\varepsilon^2 = 0$ is checked at compile time.  The H (quotient) family is shown; P (product) and S (subalgebra) mirror it.}
+\caption{The relational H (quotient) leg: a quotient $Q = V/R$ is declared by naming its \emph{congruence} relation $R$ on the carrier $V$ (left), and \cppinline{Modular<N>} $= \mathbb{Z}/N\mathbb{Z}$ names the mod-$N$ relation as its congruence (right).  \cppinline{IsCongruence} checks that $R$ is an equivalence preserved by the operation, so \cppinline{IsCongruenceQuotient} holds and the certificate rides the relation.  Carriers whose pre-quotient is not itself a reified carrier (the dual numbers $\mathbb{D} = F[\varepsilon]/(\varepsilon^2)$, $\mathbb{C}$, $\mathbb{Q}$) instead declare a trait-propagation base; the P (product) and S (subalgebra) legs mirror the same shape.}
 \label{lst:hsp-combinators}
 \noindent
 \begin{minipage}[t]{0.52\linewidth}
-the HSP combinators
+the relational H combinator
 \begin{cpp}
+// a quotient Q = V/R is witnessed by a
+// CONGRUENCE relation R on the carrier V:
 template <typename Q>
-struct quotient_algebra_base {};   // register a base
-template <typename Q>
-concept IsQuotientAlgebra =
-    requires { typename quotient_algebra_base<Q>::type; };
+struct quotient_congruence {};
+//   ::type = R,  ::carrier = V
 
-// a species trait forwards to the base's:
-template <typename Q> requires IsQuotientAlgebra<Q>
-inline constexpr bool is_associative_v<Q, std::plus<Q>> =
-    is_associative_v<quotient_algebra_base_t<Q>,
-                     std::plus<quotient_algebra_base_t<Q>>>;
+template <typename Q, typename Op>
+concept IsCongruenceQuotient =
+  requires {
+    typename quotient_congruence<Q>::type;
+    typename quotient_congruence<Q>::carrier;
+  } && IsCongruence<
+    quotient_congruence_t<Q>,
+    quotient_congruence_carrier_t<Q>, Op>;
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.45\linewidth}
-a success: the dual numbers $\mathbb{D}$
+a success: clock arithmetic $\mathbb{Z}/N\mathbb{Z}$
 \begin{cpp}
-// 𝔻 = F[ε]/(ε²) = F[x]/(ε²); register
-//   F as the trait-propagation base:
-template <typename F> requires std::regular<F>
-struct quotient_algebra_base<Dual<F>> {
-  using type = F;
+// x ≡ y (mod N): the kernel of the reduction
+// ℤ ↠ ℤ/Nℤ = Modular<N>, a genuine
+// congruence for both + and ×.
+template <auto N>
+struct ModularCongruence {
+  constexpr bool operator()(auto a, auto b)
+  const { return Modular<N>{a}
+              == Modular<N>{b}; }
 };
-
-// a forwarded trait: 𝔻's commutativity
-//   IS F's, via quotient_algebra_base:
-static_assert(is_commutative_v<Dual<int>,
-                std::plus<Dual<int>>>);
-// nilpotent core, evaluated directly:
-constexpr Dual<int> eps{0, 1};
-static_assert(eps * eps == Dual<int>{0,0});
+template <auto N>
+struct quotient_congruence<Modular<N>> {
+  using type    = ModularCongruence<N>;
+  using carrier =
+    typename Modular<N>::machine_type;
+};
+// the relation IS a congruence, so the
+// quotient rides it:
+static_assert(IsCongruenceQuotient<
+    Modular<12>, std::plus<int>>);
 \end{cpp}
 \end{minipage}
 \end{listing}
