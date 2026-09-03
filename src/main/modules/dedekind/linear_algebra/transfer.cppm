@@ -57,10 +57,11 @@ export module dedekind.linear_algebra:transfer;
 
 import dedekind.algebra; // IsSemiring, semiring_ops, Tropical/MaxPlus, ⊕/⊗
 import dedekind.category; // IsArrow, IsSemiring, identity_v, closure, ClassicalLogic
-import dedekind.order; // IsDirectedSet; converse / is_relation (Rel dagger)
-import dedekind.sets;  // Set<pair,L,P> — the DSL relation carrier
-import :diagonal;      // OuterProduct — the rank-1 dyad carrier
-import :matnxn;        // Mat(S) = MatNxNV<S,N>: the certified matrix semiring
+import dedekind.order;      // IsDirectedSet
+import dedekind.relational; // converse / is_relation (Tarski :dyadic, #792)
+import dedekind.sets;       // Set<pair,L,P> — the DSL relation carrier
+import :diagonal;           // OuterProduct — the rank-1 dyad carrier
+import :matnxn;  // Mat(S) = MatNxNV<S,N>: the certified matrix semiring
 
 namespace dedekind::linear_algebra {
 
@@ -368,7 +369,7 @@ struct EdgeSucc {
 inline constexpr auto path_rel =
     dedekind::sets::Set<Idx2, dedekind::category::ClassicalLogic, EdgeSucc>{
         EdgeSucc{}};
-static_assert(dedekind::order::is_relation(path_rel),
+static_assert(dedekind::sets::is_relation(path_rel),
               "path_rel is a Ddk relation: an IsSet on a product domain.");
 
 // Over 𝔹 the star is REACHABILITY, R*[i][j] = (i ≤ j).
@@ -404,7 +405,7 @@ static_assert(star<4>(materialise<4>(wpath).transpose()) == transpose(Tstar),
 
 // ── UNITARY via the Rel DAGGER.  On a BOOL relation the dagger IS the DSL
 // @c converse (the intensional coordinate swap, @ref
-// dedekind::order::converse), no transfer-local lambda.  A permutation's
+// dedekind::sets::converse), no transfer-local lambda.  A permutation's
 // converse is its inverse: P° ; P = Δ.  perm is the cyclic shift, a genuine Ddk
 // relation; the relative product is read at the 𝔹 matrix level (materialise
 // both, ⊕/⊗ over 𝔹).  Component A's "converse = transpose = adjoint = inverse"
@@ -420,11 +421,11 @@ struct CyclicShift {
 inline constexpr auto perm_rel =
     dedekind::sets::Set<Idx2, dedekind::category::ClassicalLogic, CyclicShift>{
         CyclicShift{}};
-static_assert(dedekind::order::is_relation(perm_rel),
+static_assert(dedekind::sets::is_relation(perm_rel),
               "perm_rel is a Ddk relation: the cyclic-shift permutation.");
 inline constexpr auto Pmat = materialise<4>(perm_rel);
 inline constexpr auto PdaggerMat =
-    materialise<4>(dedekind::order::converse(perm_rel));
+    materialise<4>(dedekind::sets::converse(perm_rel));
 // ── The cyclic shift is UNITARY, read off by the GENERIC dagger surface
 // (dedekind::category, :involution) --- not a bespoke loop.  Three facts:
 using PMat = std::remove_cvref_t<decltype(Pmat)>;  // Mat(𝔹), 4×4

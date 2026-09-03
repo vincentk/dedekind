@@ -31,6 +31,7 @@
 
 import dedekind.sequences;
 import dedekind.sets;
+import dedekind.relational;
 
 using namespace dedekind::sequences;
 using namespace dedekind::sets;

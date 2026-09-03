@@ -41,6 +41,7 @@
 
 import dedekind.category;
 import dedekind.sets;
+import dedekind.relational;
 import dedekind.algebra;
 import dedekind.numbers;
 import dedekind.order;

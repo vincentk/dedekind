@@ -151,10 +151,20 @@ concept IsTropical = dedekind::category::IsSemiring<S, Add, Mult> &&
 /**
  * @brief Canonical semiring operations of a carrier, so combinators can
  *        default their @c Add / @c Mult without a call site spelling them.
- *        @c Tropical → @c (⊕ = TropicalPlus, ⊗ = +); @c bool → @c (∨, ∧).
+ *        The @b default (this primary) is the ordinary ring @c (+, ×), which is
+ *        correct for any carrier whose native operators @b are its semiring
+ * ops; carriers whose ops differ @b specialize (the burden of proof sits at the
+ * implementation site): @c Tropical → @c (⊕ = TropicalPlus, ⊗ = +),
+ *        @c bool → @c (∨, ∧) --- @c bool must NOT take the default (@c bool @c
+ * +
+ *        @c bool promotes to @c int).  This single defaulted seam replaces the
+ *        old detection(empty-primary)/resolution(@c semiring_ops_of) split.
  */
 export template <typename S>
-struct semiring_ops;
+struct semiring_ops {
+  using add = std::plus<S>;
+  using mult = std::multiplies<S>;
+};
 
 template <typename T, bool M>
 struct semiring_ops<Tropical<T, M>> {

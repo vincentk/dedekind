@@ -49,9 +49,9 @@ export import :extensional;
 export import :quantifier;
 export import :mereology;
 export import :singleton;
-export import :relational;
-export import :graph;
 export import :quotient;
+// :relational (Codd's σ ⋈ ∪ ∖) and :graph (graphs of arrows) were popped OUT of
+// :sets into the dedekind.relational module (above sets, below order; GH #792).
 
 import dedekind.category; // IsSet (the ETCS-axiomatic gate composed by HasSetSurface)
 

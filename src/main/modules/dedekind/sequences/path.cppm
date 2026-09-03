@@ -49,6 +49,7 @@ export module dedekind.sequences:path;
 
 import dedekind.category;
 import dedekind.sets;
+import dedekind.relational; // IsFunctional/IsGraph + natural_join (#792, ex-:sets)
 import dedekind.order;
 import :net;
 

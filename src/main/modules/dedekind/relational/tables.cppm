@@ -1,7 +1,8 @@
 /**
- * @file dedekind/sets/relational.cppm
- * @partition :relational
- * @brief Relational Algebra — combinators for Sets and Relations.
+ * @file dedekind/relational/tables.cppm
+ * @partition :tables
+ * @brief Codd's relational model — the query algebra over typed, intensional
+ *        Sets and Relations (σ select, π-elided, ⋈ join, ∪, ∖, ∩).
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -54,10 +55,19 @@ module;
 #include <type_traits>
 #include <utility>
 
-export module dedekind.sets:relational;
+export module dedekind.relational:tables;
 
 import dedekind.category;
-import :expressions;
+import dedekind.sets; // Set, Relation, lift_logic, cartesian_product (:expressions)
+import :dyadic;       // the Tarski BASE.  FIXME(#798): re-target
+                 // natural_join ⋈ onto the relative product ; (Codd's join IS
+                 // Tarski's ; with the pivot retained) --- seeded here as the
+                 // dependency + intention, not yet wired.
+
+// The symbols keep the dedekind::sets namespace (not dedekind::relational):
+// they resolve by ADL on their dedekind::sets::Set / Relation arguments, so the
+// module moved OUT of :sets while the namespace stays for call-site stability
+// (the transport-op precedent, #785).
 
 namespace dedekind::sets {
 using namespace dedekind::category;

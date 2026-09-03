@@ -837,10 +837,39 @@ Identity is denoted by an identity arrow, and set membership is tested by evalua
 The steps taken to reify intensional sets in the code base form a core category $\mathbf{Ddk} \subset \mathbf{Jlt} \cap \mathbf{Set}$, which occupies the intersection of pure $\mathbf{Jlt}$ types and universal-algebraic set structures.
 The implementation tracks this definition literally at compile time.
 
-\subsection{Morphisms: Point-Free Relations and Functions}
+\section{A Reification of $\mathbf{RAlg}$}
 \label{sec:relations_functions_blueprint}
 
-To transition seamlessly from static intensional sets to dynamic mappings, binary relations can be formalized as morphisms \cppinline{IsArrow<A, B>} where both domain and codomain \cppinline{require} the ETCS axioms via \cppinline{IsSet}. 
+Relations are a \emph{dioid}, an idempotent semiring $(\mathrm{Rel}, \cup, \mathbin{;}, \varnothing, \Delta)$ under union and relative product, and that structure is the spine of this section (Table~\ref{tab:relation-dioid}).
+It stands on its own two monoids: a join-semilattice for $\cup$, and a composition monoid for $\mathbin{;}$ whose unit is the diagonal $\Delta$.
+The additive half happens to be the Boolean lattice a relation already carries \emph{as a set} (Section~\ref{sec:intensional_sets}, Table~\ref{tab:lattice-lift}); the multiplicative half, composition with unit the diagonal, is what the \emph{product} adds and is the reason the section exists.
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}lll@{}}
+\toprule
+ & \textbf{additive} $\;\oplus = \cup$ & \textbf{multiplicative} $\;\odot = \mathbin{;}$ \\
+\midrule
+spelling   & \cppinline{|} \; (union)                    & \cppinline{>>} \; (relative product) \\
+unit       & $\mathbf{0} = \varnothing$ \; (empty)       & $\mathbf{1} = \Delta = \{\pi_1{=}\pi_2\}$ \; (diagonal) \\
+monoid     & comm., \textbf{idempotent} (a semilattice)  & assoc., \textbf{non-commutative} \\
+involution & \multicolumn{2}{l}{$(\cdot)^{\circ}$ converse: $\;(R\odot S)^{\circ}=S^{\circ}\odot R^{\circ}$, \quad $(R\oplus S)^{\circ}=R^{\circ}\oplus S^{\circ}$} \\
+\midrule
+\multicolumn{3}{@{}l}{\emph{dioid laws}: $\;\odot$ distributes over $\oplus$; \quad $R\odot\varnothing=\varnothing=\varnothing\odot R$ \; (annihilation)} \\
+\midrule
+\cppinline{materialise} & $\mapsto$ matrix sum $\oplus$ & $\mapsto$ matrix product $\otimes$, \; unit $I$ \\
+\bottomrule
+\end{tabular}
+\caption{\textbf{Relations are a dioid} $(\mathrm{Rel}, \cup, \mathbin{;}, \varnothing, \Delta)$, an idempotent semiring standing on its own two monoids.
+The multiplicative monoid is composition $R \gg S$ with unit the \emph{diagonal} $\Delta = \{\pi_1 = \pi_2\}$; it is what makes the structure a dioid and what the \emph{product} buys, since a bare set has one coordinate, nothing to compose and no diagonal to compare.
+The additive monoid is idempotent ($R\cup R = R$), a join-semilattice; that half coincides with the Boolean-lattice join a relation carries \emph{as a set} (Section~\ref{sec:intensional_sets}, Table~\ref{tab:lattice-lift}), which is why the two units differ: $\varnothing$ is the semilattice bottom, $\Delta$ the composition one, and the lattice top $A\times B$ is neither.
+$\Delta$ is $\mathrm{graph}(\mathrm{id})$, definable on every carrier because equality is universal.
+\cppinline{materialise} (Table~\ref{tab:relation-matrix-map}) sends this dioid into the Boolean matrix semiring $\mathrm{Mat}(\mathbb{B})$ as a homomorphism, $\varnothing\mapsto 0$, $\Delta\mapsto I$, $\cup\mapsto\oplus$, $\mathbin{;}\mapsto\otimes$; that instance is reachability.
+A weighted $\mathrm{Mat}(S)$, shortest path and the wider algebraic path problem, is one semiring swap away (Table~\ref{tab:semirings}), taken there through the extensional matrix since the point-free product $\mathbin{;}$ composes only through a Boolean middle.}
+\label{tab:relation-dioid}
+\end{table}
+
+To transition seamlessly from static intensional sets to dynamic mappings, binary relations can be formalized as morphisms \cppinline{IsArrow<A, B>} where both domain and codomain \cppinline{require} the ETCS axioms via \cppinline{IsSet}.
 Such morphisms are then classified by the following properties, if one focuses on the domain:
 \begin{itemize}
     \item \textbf{Totality}: Outgoing arrows per input $\ge 1$.

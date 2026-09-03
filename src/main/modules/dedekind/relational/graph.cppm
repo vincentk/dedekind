@@ -1,8 +1,11 @@
 /**
- * @file dedekind/sets/graph.cppm
+ * @file dedekind/relational/graph.cppm
  * @partition :graph
  * @brief The graph of a function as a relation: the analytic arrow @c f and
- *        its set of pairs are one object.
+ *        its set of pairs are one object.  A graph @b is a dyadic (binary)
+ *        relation (functional @f$R\subseteq A\times B@f$ for @f$f:A\to B@f$;
+ *        an endorelation only when @f$A=B@f$), so it lives with the relations
+ *        (@c dedekind.relational), not in @c :sets.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -43,8 +46,8 @@
  * (Rice); the codebase keeps single-valuedness value-level
  * (@c is_single_valued_at) for the same reason.
  *
- * @build_order after :expressions, :relational
- * @dependency :category, :expressions
+ * @build_order after dedekind.sets (:expressions, :quantifier)
+ * @dependency :category, dedekind.sets
  *
  * @see dedekind.sequences:path (@c as_relation --- the @c Path special case)
  * @see dedekind.category:cartesian (@c arrow_as_relation --- the 2-arg form)
@@ -56,11 +59,14 @@ module;
 #include <type_traits>  // std::remove_cvref_t
 #include <utility>      // std::pair
 
-export module dedekind.sets:graph;
+export module dedekind.relational:graph;
 
 import dedekind.category; // IsArrow, Dom, Cod, arrow_as_relation, ClassicalLogic
-import :expressions;      // Set, Relation
-import :quantifier;       // forall — the ¬∃¬ set-operation over a domain range
+import dedekind.sets;     // Set, Relation (:expressions); forall (:quantifier)
+import :dyadic;           // the Tarski BASE: a graph Γ_f IS a dyadic relation
+
+// Namespace stays dedekind::sets (ADL on Set/Relation arguments); only the
+// module moved — a graph belongs with the relations.  See :tables.
 
 namespace dedekind::sets {
 
