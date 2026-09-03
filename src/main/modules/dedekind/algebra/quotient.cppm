@@ -1,8 +1,9 @@
 /**
  * @file dedekind/algebra/quotient.cppm
  * @partition :quotient
- * @brief HSP structure-preserving operations on algebras — H (quotient)
- *        + P (direct product) carrier-side concepts and structural-trait
+ * @brief HSP structure-preserving operations on algebras — H (quotient,
+ *        with a relational congruence reading) + P (direct product) + S
+ *        (subalgebra) carrier-side concepts and structural-trait
  *        propagation.
  *
  * @copyright 2026 The Dedekind Authors
@@ -182,6 +183,74 @@ template <typename Q>
 struct is_idempotent<Q, std::multiplies<Q>>
     : is_idempotent<quotient_algebra_base_t<Q>,
                     std::multiplies<quotient_algebra_base_t<Q>>> {};
+
+// --- H-leg, relationally: the quotient rides a CONGRUENCE (a relation) ------
+//
+// The propagation above rides @c quotient_algebra_base<Q>::type --- the
+// base carrier, a bare type pointer.  This block adds the @b relational
+// reading, symmetric with the S-leg's @c is_closed_under_v / @c IsSubalgebra
+// (below): a quotient @c Q @c = @c Base/R is witnessed by a @b congruence
+// relation @c R on @c Base --- an equivalence preserved by the operation,
+// @c :cartesian's @c IsCongruence.  Declaring @c R makes the H-leg's
+// Birkhoff justification @b a @b relation @b you @b can @b see, and the same
+// @c is_associative_v propagation then reads as "riding the congruence"
+// (Birkhoff H: a congruence-quotient of an associative base is associative).
+// This connects @c :cartesian's congruence surface to the algebra-quotient
+// side, closing the asymmetry where H carried only a type pointer while S
+// already carried a relation.
+
+/** @brief @c quotient_congruence<Q>: carrier-side declaration of the
+ *  congruence relation @c R witnessing @c Q @c = @c Base/R.  The @c ::type
+ *  member is @c R, a homogeneous relation on @c quotient_algebra_base_t<Q>.
+ *  Mirrors @c subalgebra_base<S> (S-leg) and @c quotient_algebra_base<Q>
+ *  (the trait-propagation base). */
+export template <typename Q>
+struct quotient_congruence {};
+
+/** @brief Convenience alias for @c quotient_congruence<Q>::type. */
+export template <typename Q>
+using quotient_congruence_t = typename quotient_congruence<Q>::type;
+
+/** @concept IsCongruenceQuotient
+ *  @brief @c Q is a quotient of its base by a @b declared @b congruence for
+ *         @c Op --- the relational reading of the H leg.
+ *  @details @c Q inherits @c Base's @c Op-laws because the declared relation
+ *           @c R @c = @c quotient_congruence_t<Q> is a genuine congruence
+ *           (@c IsCongruence<R, @c Base, @c Op>), not merely because @c Q was
+ *           asserted a quotient.  H-leg analogue of @c IsSubalgebra (S),
+ *           closing the asymmetry noted above.
+ *  @tparam Q  the quotient carrier (declares @c quotient_algebra_base and
+ *             @c quotient_congruence).
+ *  @tparam Op the base operation whose laws propagate (e.g.\ @c std::plus).
+ */
+export template <typename Q, typename Op>
+concept IsCongruenceQuotient = IsQuotientAlgebra<Q> && requires {
+  typename quotient_congruence<Q>::type;
+} && IsCongruence<quotient_congruence_t<Q>, quotient_algebra_base_t<Q>, Op>;
+
+// Self-contained witness that the relational H-leg plumbing composes.
+// @c std::equal_to is the diagonal congruence (@c :cartesian), so the
+// identity quotient @c int/(=) --- declared by both hooks --- satisfies the
+// concept.  A genuine non-trivial carrier (e.g.\ @c Modular<N>) declaring
+// its congruence is the natural next step; the concept is ready for it.
+namespace detail_quotient {
+struct IntByEquality {};
+}  // namespace detail_quotient
+
+template <>
+struct quotient_algebra_base<detail_quotient::IntByEquality> {
+  using type = int;
+};
+template <>
+struct quotient_congruence<detail_quotient::IntByEquality> {
+  using type = std::equal_to<int>;
+};
+
+static_assert(
+    IsCongruenceQuotient<detail_quotient::IntByEquality, std::plus<int>>,
+    "H-leg relational reading: a quotient by a declared congruence (here "
+    "int/(=), the diagonal congruence) is recognised as a congruence "
+    "quotient.");
 
 // ---------------------------------------------------------------------------
 // P (Direct Product) — Birkhoff's HSP, Burris-Sankappanavar §II.10.
