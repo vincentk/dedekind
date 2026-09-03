@@ -175,3 +175,32 @@ TEST_CASE(
   STATIC_CHECK(is_periodic_v<Z6, std::plus<Z6>>);
   STATIC_CHECK(is_periodic_v<S, std::plus<S>>);
 }
+
+TEST_CASE(
+    "algebra:hsp_closed — H leg, relationally: Modular<N> is a congruence "
+    "quotient V/(≡ mod N)",
+    "[algebra][quotient][HSP][birkhoff][H][relational]") {
+  /** @brief The @b relational reading of the H leg (#801).  Where the
+   *         synthetic H marker above rides @c quotient_algebra_base (trait
+   *         propagation), @c Modular<N> @b itself is witnessed as
+   *         @f$V/({\equiv}\bmod N)@f$ by a genuine congruence relation
+   *         (@c ModularCongruence<N>), via @c IsCongruenceQuotient.  @c Modular
+   *         certifies its own (total, wraparound) traits directly, so this is
+   *         the congruence @b witness — decoupled from propagation, since its
+   *         non-total integer carrier must not lift its traits to @c Modular.
+   */
+  using dedekind::morphologies::ModularCongruence;
+  using Cong6 = ModularCongruence<6>;
+
+  // The mod-6 relation is a genuine congruence for + (equivalence + preserved):
+  STATIC_CHECK(IsEquivalenceRelation<Cong6, int>);
+  STATIC_CHECK(IsCongruence<Cong6, int, std::plus<int>>);
+  // ... hence Modular<6> = ℤ/(≡ mod 6) is a congruence quotient:
+  STATIC_CHECK(IsCongruenceQuotient<Z6, std::plus<int>>);
+
+  // Runtime exercise of the congruence relation (codecov):
+  Cong6 cong{};
+  CHECK(cong(1, 7));        // 1 ≡ 7 (mod 6)
+  CHECK(cong(0, 6));        // 0 ≡ 6 (mod 6)
+  CHECK_FALSE(cong(1, 2));  // 1 ≢ 2 (mod 6)
+}

@@ -39,6 +39,7 @@ module;
 export module dedekind.morphologies:cyclic;
 
 import dedekind.category;
+import dedekind.algebra; // quotient_congruence / IsCongruenceQuotient (H-leg)
 import :archimedean;  // for IsCyclic / IsCyclicRing concepts (audit witnesses)
 
 namespace dedekind::morphologies {
@@ -210,6 +211,30 @@ static_assert(!Congruence<2, 0>{}(3u), "3 ≢ 0 (mod 2): odd.");
 static_assert(dedekind::category::IsPredicate<Congruence<2, 0>>,
               "Congruence is a characteristic morphism (IsPredicate).");
 
+/**
+ * @struct ModularCongruence
+ * @brief The @b binary congruence relation @f$x \equiv y \pmod N@f$ on the
+ *        integer carrier: the kernel of the reduction
+ *        @f$\mathbb{Z} \twoheadrightarrow \mathbb{Z}/N\mathbb{Z} =@f$
+ *        @c Modular<N>.
+ *
+ * @details Where @c Congruence<N,R> is the @b unary residue-class predicate
+ *          (the fiber over @c R), @c ModularCongruence<N> is the @b equivalence
+ *          relation whose quotient @b is @c Modular<N> --- the relation the
+ *          H-leg rides (@c IsCongruenceQuotient, @c :algebra::quotient).  It is
+ *          a genuine congruence for @c + and @c × (@f$x \equiv x' \wedge y
+ *          \equiv y' \Rightarrow x{+}y \equiv x'{+}y'@f$), so @c Modular<N> is
+ *          witnessed relationally as @f$V/({\equiv}\bmod N)@f$ --- the
+ *          non-trivial companion to the @c int/(=) diagonal witness upstream.
+ */
+export template <auto N>
+struct ModularCongruence {
+  using machine_type = typename Modular<N>::machine_type;
+  constexpr bool operator()(machine_type a, machine_type b) const {
+    return Modular<N>{a} == Modular<N>{b};
+  }
+};
+
 }  // namespace dedekind::morphologies
 
 namespace dedekind::category {
@@ -325,6 +350,63 @@ struct cyclic_order<dedekind::morphologies::Modular<N>,
                              (N <= std::numeric_limits<std::size_t>::max())
                                  ? static_cast<std::size_t>(N)
                                  : std::size_t{0}> {};
+
+/** @section cyclic__Modular_Is_A_Congruence_Quotient
+ *  @c Modular<N> @c = @c V/({\equiv}\bmod N): the mod-N relation
+ *  @c ModularCongruence<N> is a genuine @c IsCongruence for @c + and @c ×, so
+ *  the H-leg's @b relational reading fires (@c IsCongruenceQuotient,
+ *  @c :algebra::quotient).  @c Modular<N> certifies its own (total, wraparound)
+ *  species traits @b directly above --- it does @b not propagate them from the
+ *  non-total integer carrier @c V --- so this is the congruence @b witness
+ *  only, deliberately decoupled from @c quotient_algebra_base.  The
+ *  non-trivial companion to the @c int/(=) diagonal witness in
+ *  @c :algebra::quotient. */
+
+template <auto N>
+inline constexpr bool
+    is_reflexive_relation_v<dedekind::morphologies::ModularCongruence<N>> =
+        true;
+template <auto N>
+inline constexpr bool
+    is_symmetric_relation_v<dedekind::morphologies::ModularCongruence<N>> =
+        true;
+template <auto N>
+inline constexpr bool
+    is_transitive_relation_v<dedekind::morphologies::ModularCongruence<N>> =
+        true;
+
+template <auto N>
+inline constexpr bool is_congruence_v<
+    dedekind::morphologies::ModularCongruence<N>,
+    typename dedekind::morphologies::Modular<N>::machine_type,
+    std::plus<typename dedekind::morphologies::Modular<N>::machine_type>> =
+    true;
+template <auto N>
+inline constexpr bool is_congruence_v<
+    dedekind::morphologies::ModularCongruence<N>,
+    typename dedekind::morphologies::Modular<N>::machine_type,
+    std::multiplies<
+        typename dedekind::morphologies::Modular<N>::machine_type>> = true;
+
+template <auto N>
+struct quotient_congruence<dedekind::morphologies::Modular<N>> {
+  using type = dedekind::morphologies::ModularCongruence<N>;
+  using carrier = typename dedekind::morphologies::Modular<N>::machine_type;
+};
+
+// Witnesses: the mod-12 congruence is an equivalence, a congruence for +, and
+// Modular<12> = V/(≡ mod 12) is the genuine (non-trivial) H-leg congruence
+// quotient --- witnessed by a relation, not a bare type pointer.
+static_assert(IsEquivalenceRelation<
+                  dedekind::morphologies::ModularCongruence<12u>, unsigned>,
+              "x ≡ y (mod 12) is reflexive, symmetric, transitive.");
+static_assert(IsCongruence<dedekind::morphologies::ModularCongruence<12u>,
+                           unsigned, std::plus<unsigned>>,
+              "x ≡ y (mod 12) is preserved by +: a genuine congruence.");
+static_assert(
+    IsCongruenceQuotient<dedekind::morphologies::Modular<12u>,
+                         std::plus<unsigned>>,
+    "Modular<12> = ℤ/(≡ mod 12): the genuine H-leg congruence quotient.");
 
 }  // namespace dedekind::category
 

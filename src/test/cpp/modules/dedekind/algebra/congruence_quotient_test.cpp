@@ -50,30 +50,24 @@ struct int_by_bogus {};
 
 }  // namespace _congruence_quotient_witnesses
 
-// --- Positive witness: int/(=) declares both hooks with a real congruence. --
-template <>
-struct quotient_algebra_base<_congruence_quotient_witnesses::int_by_equality> {
-  using type = int;
-};
+// --- Positive witness: int/(=) declares the congruence (relation + carrier). -
 template <>
 struct quotient_congruence<_congruence_quotient_witnesses::int_by_equality> {
   using type = std::equal_to<int>;
+  using carrier = int;
 };
 
-// --- Type-declaration path: base only, no congruence declared. --------------
+// --- Type-declaration path: a trait-propagation base but no congruence. ------
 template <>
 struct quotient_algebra_base<_congruence_quotient_witnesses::int_type_only> {
   using type = int;
 };
 
-// --- Non-congruence relation declared as the congruence hook. ---------------
-template <>
-struct quotient_algebra_base<_congruence_quotient_witnesses::int_by_bogus> {
-  using type = int;
-};
+// --- Non-congruence relation declared as the congruence. --------------------
 template <>
 struct quotient_congruence<_congruence_quotient_witnesses::int_by_bogus> {
   using type = _congruence_quotient_witnesses::bogus_relation;
+  using carrier = int;
 };
 
 }  // namespace dedekind::category
