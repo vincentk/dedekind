@@ -868,6 +868,34 @@ $\Delta$ is $\mathrm{graph}(\mathrm{id})$, definable on every carrier because eq
 \label{tab:relation-dioid}
 \end{table}
 
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}lll@{}}
+\toprule
+overload & operation & unit / note \\
+\midrule
+\multicolumn{3}{@{}l}{\emph{objects} form types, \emph{arrows} compose:} \\
+\cppinline{A >> B} & the hom / ambient $A\times B$ ($=\top$) & the type of relations $A\to B$ \\
+\cppinline{f * g}  & composition $\mathbin{;}$ (the multiply)  & $\mathbf{1}=\mathrm{id}=\Delta$ \\
+\addlinespace
+\multicolumn{3}{@{}l}{\emph{the dioid} adds, on relations:} \\
+\cppinline{R + S}  & $\cup$ union (join)                       & $\mathbf{0}=\varnothing$, idempotent \\
+\cppinline{R / S}  & residual $\bigvee\{X:X\mathbin{;}S\subseteq R\}$ & the $\otimes$-adjoint \\
+$R^{\circ}$ (\cppinline{converse}) & converse (dagger / transpose) & $=R^{-1}$ iff bijection \\
+\addlinespace
+\multicolumn{3}{@{}l}{\emph{the lattice}, inherited bitwise: \cppinline{|} $\cup$, \cppinline{&} $\cap$, \cppinline{~} complement, \cppinline{^} $\triangle$} \\
+\midrule
+\multicolumn{3}{@{}l}{\emph{withheld}: \cppinline{-} and reciprocal, since a dioid is a semiring, no inverses} \\
+\bottomrule
+\end{tabular}
+\caption{The operator surface \cppinline{IsRelation} presents as a dioid, the counterpart to the lattice surface of \cppinline{IsSet} (Table~\ref{tab:lattice-lift}): a distinct alphabet for a distinct concept, chosen for legibility rather than reuse, exactly as the set lattice took the \emph{bitwise} operators rather than logic's \cppinline{&&} / \cppinline{||}.
+Objects form types with \cppinline{>>} (the ambient $A\times B$); every arrow composes with \cppinline{*} (composition is the categorical multiply, unit the diagonal, and \cppinline{IsRelation} implies \cppinline{IsArrow} by design, so a relation composes as the arrow it is); the dioid adds join \cppinline{+}, the residual \cppinline{/}, and the converse.
+What the surface \emph{withholds} is as telling as what it offers: no \cppinline{-}, no reciprocal, because a semiring has no inverses (the diagnostic of Table~\ref{tab:primitive-algebra}).
+Reading an expression names its level and its concept: \cppinline{>>} a type, \cppinline{*} a composite, \cppinline{+} a union, \cppinline{|} a lattice.
+\emph{Caveat:} this is the surface the dioid structure prescribes, a design target rather than the current spelling: assigning composition to \cppinline{*} (and so freeing \cppinline{>>} to form the arrow-type) is a category-wide operator pass still underway, since \cppinline{IsRelation} implies \cppinline{IsArrow} and composition must therefore migrate uniformly across every arrow, not just relations.}
+\label{tab:relation-operators}
+\end{table}
+
 To transition seamlessly from static intensional sets to dynamic mappings, binary relations can be formalized as morphisms \cppinline{IsArrow<A, B>} where both domain and codomain \cppinline{require} the ETCS axioms via \cppinline{IsSet}.
 Such morphisms are then classified by the following properties, if one focuses on the domain:
 \begin{itemize}
