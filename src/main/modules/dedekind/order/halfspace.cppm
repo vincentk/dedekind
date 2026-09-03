@@ -2034,8 +2034,9 @@ inline constexpr bool is_right_unique_v<dedekind::sets::Set<
 
 // NODE (the compositional closure) for ComposePred's FUNCTIONALITY moved to
 // dedekind.relational:dyadic (PR #797, Copilot review) --- it is
-// structure-independent relation-algebra (R>>S functional iff both factors are),
-// so it lives with ComposePred so a client importing only :relational sees it.
+// structure-independent relation-algebra (R>>S functional iff both factors
+// are), so it lives with ComposePred so a client importing only :relational
+// sees it.
 
 }  // namespace dedekind::category
 
