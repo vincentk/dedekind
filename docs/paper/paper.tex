@@ -870,45 +870,35 @@ $\Delta$ is $\mathrm{graph}(\mathrm{id})$, definable on every carrier because eq
 
 \begin{table}[htbp]
 \centering
-\begin{tabular}{@{}lcccccc@{}}
+\begin{tabular}{@{}lccccccc@{}}
 \toprule
- & add & mult & $\mathbf{0}$ & $\mathbf{1}$ & converse & residual \\
+ & $+$ & $-$ & $\times$ & $\div$ & $(\cdot)^{\circ}$ & $\mathbf{0}$ & $\mathbf{1}$ \\
 \midrule
-dioid $(S, \oplus, \otimes)$ & $\oplus$ & $\otimes$ & $\bar{0}$ & $\bar{1}$ & $(\cdot)^{\ast}$ & $/$ \\
-\addlinespace
-relation $R \subseteq A\times B$ & $\cup$ & $\mathbin{;}$ & $\varnothing$ & $\Delta$ & $R^{\circ}$ & $R/S$ \\
-\addlinespace
-operator / $\mathrm{Mat}(S)$ & $\oplus$ & $\otimes$ & $0$ & $I$ & $A^{\dagger}$ & $A^{+}$ \\
-\addlinespace
-$\mathbf{Trsk}$ & \cppinline{+} & \cppinline{*} & \cppinline{Ø} & \cppinline{diagonal} & \cppinline{converse} & \cppinline{/} \\
+\multicolumn{8}{@{}l}{\emph{dioid} --- \cppinline{IsRelation} \; ($\approx \mathbb{N}$)} \\
+\quad abstract $(S,\oplus,\otimes)$ & $\oplus$ & --- & $\otimes$ & --- & $(\cdot)^{\ast}$ & $\bar{0}$ & $\bar{1}$ \\
+\quad relation $A\times B$ & $\cup$ & --- & $\mathbin{;}$ & --- & $R^{\circ}$ & $\varnothing$ & $\Delta$ \\
+\quad $\mathrm{Mat}(S)$ & $\oplus$ & --- & $\otimes$ & --- & $A^{\dagger}$ & $0$ & $I$ \\
+\quad \cppinline{Trsk} & \cppinline{+} & --- & \cppinline{*} & --- & \cppinline{converse} & \cppinline{Ø} & \cppinline{diagonal} \\
+\midrule
+\multicolumn{8}{@{}l}{\emph{restrict} $\downarrow$ (contravariant): \cppinline{IsIsomorphism} $\subseteq$ \cppinline{IsFunction} $\subseteq$ \cppinline{IsRelation}} \\
+\quad \cppinline{IsFunction} (monoid) & $\cup$ & --- & $\mathbin{;}$ & --- & $R^{\circ}$ & $\varnothing$ & $\Delta$ \\
+\quad \cppinline{IsIsomorphism} (group, $\approx \mathbb{Z}^{\times}$) & $\cup$ & --- & $\mathbin{;}$ & $R^{-1}\!\!=\!R^{\circ}$ & $R^{\circ}$ & $\varnothing$ & $\Delta$ \\
+\midrule
+\multicolumn{8}{@{}l}{\emph{complete} $\downarrow$ (switch / dagger)} \\
+\quad $\mathrm{End}(\mathbf{1})=\mathbb{F}_2$ (field) & $\triangle$ & $\triangle$ & $\cap$ & $\cap$ & $\mathrm{id}$ & $\varnothing$ & $\Delta$ \\
+\quad $\mathrm{End}(I)=\mathbb{C}$ ($\dagger$-compl.) & $+$ & $-$ & $\circ$ & ${}^{-1}$ & $\dagger$ & $0$ & $1$ \\
 \bottomrule
 \end{tabular}
-\caption{Operator-mapping for \cppinline{IsRelation} as a dioid, the counterpart to the lattice map of Table~\ref{tab:lattice-lift}: each column is one dioid construction, spelled in four vocabularies (the abstract semiring, Tarski's relations, the matrix / operator semiring $\mathrm{Mat}(S)$, and \cppinline{Trsk}).
-Multiplication $\otimes$ is composition ($\mathbin{;}$, the matrix product), unit the diagonal $\Delta = I$; addition $\oplus$ is union (elementwise join), unit the empty relation.
-Two constructions sit \emph{off} the table because they are not dioid operations: the object-level \emph{type former} \cppinline{A >> B} (the ambient $A\times B$, how a relation space is built, one level above the algebra), and the \emph{withheld} inverses (no \cppinline{-}, no reciprocal), whose very absence is the signature of a semiring (the diagnostic of Table~\ref{tab:primitive-algebra}).
-The distinct alphabet is deliberate, chosen for legibility over reuse, exactly as the set lattice took the \emph{bitwise} operators rather than logic's \cppinline{&&} / \cppinline{||}.
-\emph{Caveat:} the \cppinline{Trsk} row is the design target; assigning composition to \cppinline{*} (freeing \cppinline{>>} for the type former) is a category-wide operator pass still underway, since \cppinline{IsRelation} implies \cppinline{IsArrow} and composition must therefore migrate uniformly across every arrow.}
-\label{tab:relation-operators}
-\end{table}
-
-\begin{table}[htbp]
-\centering
-\begin{tabular}{@{}llcccc@{}}
-\toprule
-concept & structure & \cppinline{+} & \cppinline{-} & \cppinline{*} & \cppinline{/} \\
-\midrule
-\cppinline{IsRelation}    & dioid  & $\cup$ & --- & $\mathbin{;}$ & --- \\
-\cppinline{IsFunction}    & monoid & --- & --- & $\mathbin{;}$ & --- \\
-\cppinline{IsIsomorphism} & group  & --- & --- & $\mathbin{;}$ & $R^{-1}\!=\!R^{\circ}$ \\
-\midrule
-$\mathrm{End}$ of a line  & field  & $+$ & $-$ & $\times$ & $\div$ \\
-\bottomrule
-\end{tabular}
-\caption{The specialization ladder beneath \cppinline{IsRelation}, and the inverse each concept restores.
-Restricting the morphism class sharpens the algebra: a \emph{function} is single-valued, so union drops and only composition survives (a monoid); an \emph{isomorphism} is invertible, so the \emph{multiplicative} inverse returns as the converse ($R^{\circ}=R^{-1}$, Table~\ref{tab:inverse-image-laws}), a group.
-The \emph{additive} inverse returns only at the scalar level: the endomorphisms of a line form a \emph{field} (Schur), the full arithmetic $+\;-\;\times\;\div$, and the isomorphisms are exactly its group of units ($F^{\ast}$, or $\mathrm{GL}$ in several dimensions).
-So the inverses the dioid withholds (Table~\ref{tab:relation-operators}) are restored one specialization at a time, and the field is where they all return.}
-\label{tab:relation-ladder}
+\caption{The relation algebra as one ladder, in the shape of the lattice map (Table~\ref{tab:lattice-lift}) but with the columns of a \emph{field}, left undefined where a tier lacks the operation.
+The top block is \cppinline{IsRelation} as a \emph{dioid} in four vocabularies; multiplication is composition, addition is union, units the diagonal and the empty relation.
+\textbf{Two directions cross here, and both run opposite to the number ladder.}
+\emph{Restriction} of the morphism class runs \emph{downward} and \emph{contravariantly}: \cppinline{IsIsomorphism} $\subseteq$ \cppinline{IsFunction} $\subseteq$ \cppinline{IsRelation}, every function a relation, the reverse of $\mathbb{N}\subseteq\mathbb{Z}\subseteq\mathbb{Q}$.
+It is a subtyping / coreflection: the isomorphisms are the \emph{core}, the maximal subgroupoid, right adjoint to $\mathbf{Grpd}\hookrightarrow\mathbf{Cat}$~\cite{maclane1971categories}; the type-theoretic reading is function-domain contravariance~\cite{cardelli1996typesystems, pierce2002tapl}.
+\emph{Completion} (a left adjoint, as $\mathbb{N}\to\mathbb{Z}$ is the Grothendieck group) is instead \emph{obstructed} on relations: $\cup$ is idempotent, so its group completion is trivial, and $\mathbin{;}$ has zero divisors ($R\mathbin{;}\varnothing=\varnothing$).
+So inverses arrive by restriction, not completion: $\div$ at the group is the converse itself ($R^{-1}=R^{\circ}$), and $-$ only after a \emph{switch} $\cup\!\to\!\triangle$ (symmetric difference) at a point, where $\mathrm{End}(\mathbf{1})=\{\varnothing,\Delta\}=\mathbb{F}_2$, the scalars of $\mathbf{Rel}$~\cite{kellylaplaza1980coherence} and §\ref{sec:intensional_sets}'s bitwise field again.
+The one genuine completion is the last row: the operator-norm / dagger completion into $\mathbf{FdHilb}$, scalars $\mathbb{C}$, converse the adjoint $\dagger$~\cite{abramskycoecke2004categorical}.
+The converse tracks the variance exactly --- covariant on the commutative scalars, contravariant ($(R\mathbin{;}S)^{\circ}=S^{\circ}\mathbin{;}R^{\circ}$, Tarski B7~\cite{tarski1941calculus}) on the non-commutative relations --- and throughout $\mathbf{0}=\varnothing$, $\mathbf{1}=\Delta$: the field's zero and one \emph{are} the empty relation and the diagonal.}
+\label{tab:relation-algebra}
 \end{table}
 
 To transition seamlessly from static intensional sets to dynamic mappings, binary relations can be formalized as morphisms \cppinline{IsArrow<A, B>} where both domain and codomain \cppinline{require} the ETCS axioms via \cppinline{IsSet}.
