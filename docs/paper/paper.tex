@@ -903,6 +903,27 @@ Addition is union $\cup$ with inverse the symmetric difference $\triangle$; mult
 \label{tab:relation-algebra}
 \end{table}
 
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{@{}lcccccccc@{}}
+\toprule
+ & $\subseteq$ & $+$ & $-$ & $\times$ & $\div$ & $(\cdot)^{\circ}$ & $\mathbf{0}$ & $\mathbf{1}$ \\
+\midrule
+$R^{A}$ (set: diagonal algebra) & --- & $+$ & $-$ & $\odot$ & --- & $\overline{(\cdot)}$ & $0$ & $\mathbf{1}$ \\
+$\mathrm{Mat}_A(R)=R[C]$ (relation) & --- & $\oplus$ & $\ominus$ & $\ast$ & --- & $(\cdot)^{\top}$ & $0$ & $I$ \\
+monomial matrices (function) & --- & --- & --- & $\ast$ & --- & $(\cdot)^{\top}$ & --- & $I$ \\
+$R[G]$ (iso: group algebra) & --- & $\oplus$ & $\ominus$ & $\ast$ & $g^{-1}$ & $(\cdot)^{\ast}$ & $0$ & $\delta_e$ \\
+$R=R[\mathbf{1}]$ (scalar: field) & --- & $+$ & $-$ & $\cdot$ & $\div$ & $\overline{(\cdot)}$ & $0$ & $1$ \\
+\bottomrule
+\end{tabular}
+\caption{The same ladder \emph{linearised}: each Boolean relation is replaced by its $R$-linearisation, the \emph{category algebra} $R[C]$ --- the free $R$-module on the arrows with \emph{convolution} $\ast$ (the sum $\sum_j R_{ij}\,S_{jk}$, i.e.\ the matrix product) as multiplication; columns as in Table~\ref{tab:relation-algebra}, a dash marking an absent operation.
+Rows: the diagonal algebra $R^{A}$ (a set's linearisation), the matrix / category algebra $\mathrm{Mat}_A(R)=R[C]$ (a relation's), its deterministic monomial part (a function's), the group algebra $R[G]$ (an isomorphism's), and the coefficient ring $R=R[\mathbf{1}]$ (a scalar's); the incidence algebra of a poset~\cite{rota1964foundations} and the path algebra of a quiver~\cite{assem2006elements} are the order and graph cases.
+Addition is the $R$-linear sum with inverse from $R$; multiplication is convolution $\ast$; the involution is the transpose/adjoint; $\mathbf{0}$ is the zero, $\mathbf{1}$ the identity element $\delta_e=I$.
+Read against Table~\ref{tab:relation-algebra}: the linear form carries the additive inverse $-$ but not the order $\subseteq$; the Boolean form the reverse.}
+\label{tab:relation-algebra-linear}
+\end{table}
+
 To transition seamlessly from static intensional sets to dynamic mappings, binary relations can be formalized as morphisms \cppinline{IsArrow<A, B>} where both domain and codomain \cppinline{require} the ETCS axioms via \cppinline{IsSet}.
 Such morphisms are then classified by the following properties, if one focuses on the domain:
 \begin{itemize}
