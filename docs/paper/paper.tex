@@ -896,13 +896,10 @@ $\mathrm{End}(I)=\mathbb{C}$ & --- & $+$ & $-$ & $\circ$ & ${}^{-1}$ & $\dagger$
 \cppinline{IsScalar} $\subset$ \cppinline{IsField} & \cppinline{<=} & \cppinline{+} & \cppinline{-} & \cppinline{*} & \cppinline{/} & \cppinline{conj} & \cppinline{0} & \cppinline{1} \\
 \bottomrule
 \end{tabular}
-\caption{The relation algebra sliced by concept (\cppinline{IsX} $\subset$ \cppinline{IsY}), each closed by its \cppinline{Trsk} row; the columns are a field's structure, undefined where a slice lacks it.
-A function \emph{is} a relation (\cppinline{IsFunction} $\subset$ \cppinline{IsRelation}); the monoid/group is only what that sub-class forms under $\mathbin{;}$.
-\textbf{The two inverses enter by different routes.}
-The additive $-$ is symmetric difference $\triangle$ ($R\triangle R=\varnothing$: the $\mathrm{GF}(2)$ ring, Stone) --- available \emph{early}, on every Boolean rung (set, relation, scalar), by switching $\cup\!\to\!\triangle$ --- but lost where the class goes rigid, and there the lattice order $\subseteq$ collapses to $=$ (a function is a \emph{maximal} single-valued relation: no proper sub-function).
-The multiplicative $\div$ enters \emph{late}, only by restricting to the invertibles: at the group it is compose-with-converse ($R/S=R\mathbin{;}S^{\circ}$, so $R^{-1}=R^{\circ}$), and at the scalars it is division in $\mathrm{End}(\mathbf{1})=\mathbb{F}_2$~\cite{kellylaplaza1980coherence} / $\mathbb{C}$~\cite{abramskycoecke2004categorical}.
-A set is itself a relation --- its classifier $\chi\colon A\to\Omega$ (equivalently a coreflexive, $\mathbin{;}=\cap$) --- so it carries a dagger $\chi^{\circ}$, real in ETCS but \emph{unreified} in Trsk (parenthesised), since reifying it would cycle the set/relation bootstrap.
-The converse is contravariant on relations (Tarski B7~\cite{tarski1941calculus}, cf.\ function-domain contravariance~\cite{cardelli1996typesystems, pierce2002tapl}), covariant on the commutative scalars; $\mathbf{0}=\varnothing$, $\mathbf{1}=\Delta$ throughout.}
+\caption{The relation algebra sliced by concept: each slice pairs a relational concept with an algebraic one (\cppinline{IsX} $\subset$ \cppinline{IsY}), listed over several vocabularies and closed by its \cppinline{Trsk} row; a dash marks a column the slice does not carry.
+The columns are the order $\subseteq$, addition $+$ and its inverse $-$, multiplication $\times$ and its inverse $\div$, the involution $(\cdot)^{\circ}$, and the units $\mathbf{0}$, $\mathbf{1}$.
+Top to bottom the slices are: sets (the classifier $\chi\colon A\to\Omega$, equivalently the coreflexive relations $R\subseteq\Delta$; its dagger $\chi^{\circ}$ is parenthesised, unreified in Trsk); relations (the dioid, and the matrix semiring $\mathrm{Mat}(S)$); functions (monoid); isomorphisms (group); scalars ($\mathrm{End}(\mathbf{1})=\mathbb{F}_2$ and $\mathrm{End}(I)=\mathbb{C}$~\cite{kellylaplaza1980coherence, abramskycoecke2004categorical}; field).
+Addition is union $\cup$ with inverse the symmetric difference $\triangle$; multiplication is composition $\mathbin{;}$ (meet $\cap$ on coreflexives) with inverse $R\mathbin{;}S^{\circ}$; the units are $\mathbf{0}=\varnothing$ and $\mathbf{1}=\Delta$.}
 \label{tab:relation-algebra}
 \end{table}
 
