@@ -870,36 +870,39 @@ $\Delta$ is $\mathrm{graph}(\mathrm{id})$, definable on every carrier because eq
 
 \begin{table}[htbp]
 \centering
-\begin{tabular}{@{}lccccccc@{}}
+\small
+\begin{tabular}{@{}lcccccccc@{}}
 \toprule
- & $+$ & $-$ & $\times$ & $\div$ & $(\cdot)^{\circ}$ & $\mathbf{0}$ & $\mathbf{1}$ \\
+ & $\subseteq$ & $+$ & $-$ & $\times$ & $\div$ & $(\cdot)^{\circ}$ & $\mathbf{0}$ & $\mathbf{1}$ \\
 \midrule
-$\mathcal{P}(A) \cong \{R\subseteq\Delta\}$ & $\cup$ & --- & $\cap$ & --- & $\mathrm{id}$ & $\varnothing$ & $\Delta$ \\
-\cppinline{IsSet} $\subset$ \cppinline{IsBooleanAlgebra} & \cppinline{|} & --- & \cppinline{&} & --- & --- & \cppinline{Ø} & \cppinline{Ω} \\
+$\chi\colon A\to\Omega \;(\cong \{R\subseteq\Delta\})$ & $\subseteq$ & $\cup$ & $\triangle$ & $\cap$ & --- & $\chi^{\circ}$ & $\varnothing$ & $\Delta$ \\
+\cppinline{IsSet} $\subset$ \cppinline{IsBooleanAlg} & \cppinline{<=} & \cppinline{|} & \cppinline{^} & \cppinline{&} & --- & ($\chi^{\circ}$) & \cppinline{Ø} & \cppinline{Ω} \\
 \midrule
-dioid $(S,\oplus,\otimes)$ & $\oplus$ & --- & $\otimes$ & --- & $(\cdot)^{\ast}$ & $\bar{0}$ & $\bar{1}$ \\
-relation $A\times B$ & $\cup$ & --- & $\mathbin{;}$ & --- & $R^{\circ}$ & $\varnothing$ & $\Delta$ \\
-$\mathrm{Mat}(S)$ & $\oplus$ & --- & $\otimes$ & --- & $A^{\dagger}$ & $0$ & $I$ \\
-\cppinline{IsRelation} $\subset$ \cppinline{IsDioid} & \cppinline{+} & --- & \cppinline{*} & --- & \cppinline{conv} & \cppinline{Ø} & \cppinline{diagonal} \\
+dioid $(S,\oplus,\otimes)$ & $\subseteq$ & $\oplus$ & --- & $\otimes$ & --- & $(\cdot)^{\ast}$ & $\bar{0}$ & $\bar{1}$ \\
+relation $A\times B$ & $\subseteq$ & $\cup$ & $\triangle$ & $\mathbin{;}$ & --- & $R^{\circ}$ & $\varnothing$ & $\Delta$ \\
+$\mathrm{Mat}(S)$ & $\subseteq$ & $\oplus$ & --- & $\otimes$ & --- & $A^{\dagger}$ & $0$ & $I$ \\
+\cppinline{IsRelation} $\subset$ \cppinline{IsDioid} & \cppinline{<=} & \cppinline{+} & \cppinline{^} & \cppinline{*} & --- & \cppinline{conv} & \cppinline{Ø} & \cppinline{diagonal} \\
 \midrule
-monoid $(M,\circ,e)$ & --- & --- & $\circ$ & --- & --- & --- & $e$ \\
-function $A\to A$ & $\cup$ & --- & $\mathbin{;}$ & --- & $R^{\circ}$ & $\varnothing$ & $\Delta$ \\
-\cppinline{IsFunction} $\subset$ \cppinline{IsMonoid} & \cppinline{+} & --- & \cppinline{*} & --- & \cppinline{conv} & \cppinline{Ø} & \cppinline{diagonal} \\
+monoid $(M,\circ,e)$ & $=$ & --- & --- & $\circ$ & --- & --- & --- & $e$ \\
+function $A\to A$ & $=$ & --- & --- & $\mathbin{;}$ & --- & $R^{\circ}$ & $\varnothing$ & $\Delta$ \\
+\cppinline{IsFunction} $\subset$ \cppinline{IsMonoid} & \cppinline{==} & --- & --- & \cppinline{*} & --- & \cppinline{conv} & \cppinline{Ø} & \cppinline{diagonal} \\
 \midrule
-group $(G,\circ,{}^{-1}\!,e)$ & --- & --- & $\circ$ & ${}^{-1}$ & --- & --- & $e$ \\
-permutation $P$ & $\cup$ & --- & $\mathbin{;}$ & $P^{-1}\!\!=\!P^{\top}$ & $P^{\circ}$ & $\varnothing$ & $\Delta$ \\
-\cppinline{IsIsomorphism} $\subset$ \cppinline{IsGroup} & \cppinline{+} & --- & \cppinline{*} & \cppinline{inv} & \cppinline{conv} & \cppinline{Ø} & \cppinline{diagonal} \\
+group $(G,\circ,{}^{-1}\!,e)$ & $=$ & --- & --- & $\circ$ & ${}^{-1}$ & ${}^{-1}$ & --- & $e$ \\
+permutation $P$ & $=$ & --- & --- & $\mathbin{;}$ & $\mathbin{;}P^{\top}$ & $P^{\top}\!\!=\!P^{\circ}$ & $\varnothing$ & $\Delta$ \\
+\cppinline{IsIsomorphism} $\subset$ \cppinline{IsGroup} & \cppinline{==} & --- & --- & \cppinline{*} & \cppinline{/} & \cppinline{inv} & \cppinline{Ø} & \cppinline{diagonal} \\
 \midrule
-field $(F,+,\times)$ & $+$ & $-$ & $\times$ & $\div$ & $\overline{(\cdot)}$ & $0$ & $1$ \\
-$\mathrm{End}(\mathbf{1})=\mathbb{F}_2$ & $\triangle$ & $\triangle$ & $\cap$ & $\cap$ & $\mathrm{id}$ & $\varnothing$ & $\Delta$ \\
-$\mathrm{End}(I)=\mathbb{C}$ & $+$ & $-$ & $\circ$ & ${}^{-1}$ & $\dagger$ & $0$ & $1$ \\
-\cppinline{IsScalar} $\subset$ \cppinline{IsField} & \cppinline{+} & \cppinline{-} & \cppinline{*} & \cppinline{/} & \cppinline{conj} & \cppinline{0} & \cppinline{1} \\
+$\mathrm{End}(\mathbf{1})=\mathbb{F}_2$ & $\subseteq$ & $\triangle$ & $\triangle$ & $\cap$ & $\cap$ & $\mathrm{id}$ & $\varnothing$ & $\Delta$ \\
+$\mathrm{End}(I)=\mathbb{C}$ & --- & $+$ & $-$ & $\circ$ & ${}^{-1}$ & $\dagger$ & $0$ & $1$ \\
+\cppinline{IsScalar} $\subset$ \cppinline{IsField} & \cppinline{<=} & \cppinline{+} & \cppinline{-} & \cppinline{*} & \cppinline{/} & \cppinline{conj} & \cppinline{0} & \cppinline{1} \\
 \bottomrule
 \end{tabular}
-\caption{The relation algebra sliced by concept, each slice pairing a relation concept with the algebra it satisfies (\cppinline{IsX} $\subset$ \cppinline{IsY}) and closed by its \cppinline{Trsk} row (overloads \cppinline{+} \cppinline{*}, named \cppinline{conv} \cppinline{inv} \cppinline{conj}); columns are the field's arithmetic, undefined where a slice lacks it.
-Sets are the coreflexive relations ($R\subseteq\Delta$), where composition is meet ($\mathbin{;}=\cap$); relations generalise it.
-Down the slices the morphism class is \emph{restricted} --- \emph{contravariantly}: every function a relation, opposite $\mathbb{N}\subseteq\mathbb{Z}$ (a coreflection, the isomorphisms being the core~\cite{maclane1971categories}; function-domain contravariance~\cite{cardelli1996typesystems, pierce2002tapl}) --- and the withheld inverses return: $\div$ at the group as the converse ($R^{-1}=R^{\circ}$), $-$ at the field $\mathrm{End}(\mathbf{1})=\mathbb{F}_2$, the scalars of $\mathbf{Rel}$~\cite{kellylaplaza1980coherence} (§\ref{sec:intensional_sets}'s bitwise field), and the adjoint $\dagger$ at the Hilbert completion~\cite{abramskycoecke2004categorical}.
-Throughout $\mathbf{0}=\varnothing$, $\mathbf{1}=\Delta$; the converse is contravariant on relations (Tarski B7~\cite{tarski1941calculus}), covariant on the commutative scalars.}
+\caption{The relation algebra sliced by concept (\cppinline{IsX} $\subset$ \cppinline{IsY}), each closed by its \cppinline{Trsk} row; the columns are a field's structure, undefined where a slice lacks it.
+A function \emph{is} a relation (\cppinline{IsFunction} $\subset$ \cppinline{IsRelation}); the monoid/group is only what that sub-class forms under $\mathbin{;}$.
+\textbf{The two inverses enter by different routes.}
+The additive $-$ is symmetric difference $\triangle$ ($R\triangle R=\varnothing$: the $\mathrm{GF}(2)$ ring, Stone) --- available \emph{early}, on every Boolean rung (set, relation, scalar), by switching $\cup\!\to\!\triangle$ --- but lost where the class goes rigid, and there the lattice order $\subseteq$ collapses to $=$ (a function is a \emph{maximal} single-valued relation: no proper sub-function).
+The multiplicative $\div$ enters \emph{late}, only by restricting to the invertibles: at the group it is compose-with-converse ($R/S=R\mathbin{;}S^{\circ}$, so $R^{-1}=R^{\circ}$), and at the scalars it is division in $\mathrm{End}(\mathbf{1})=\mathbb{F}_2$~\cite{kellylaplaza1980coherence} / $\mathbb{C}$~\cite{abramskycoecke2004categorical}.
+A set is itself a relation --- its classifier $\chi\colon A\to\Omega$ (equivalently a coreflexive, $\mathbin{;}=\cap$) --- so it carries a dagger $\chi^{\circ}$, real in ETCS but \emph{unreified} in Trsk (parenthesised), since reifying it would cycle the set/relation bootstrap.
+The converse is contravariant on relations (Tarski B7~\cite{tarski1941calculus}, cf.\ function-domain contravariance~\cite{cardelli1996typesystems, pierce2002tapl}), covariant on the commutative scalars; $\mathbf{0}=\varnothing$, $\mathbf{1}=\Delta$ throughout.}
 \label{tab:relation-algebra}
 \end{table}
 
