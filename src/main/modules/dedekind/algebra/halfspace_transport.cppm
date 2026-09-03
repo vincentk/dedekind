@@ -291,16 +291,10 @@ inline constexpr bool is_left_total_v<dedekind::sets::Set<
     std::pair<T, T>, L,
     dedekind::order::ProjProj<1, dedekind::order::Rel::Eq, 2>>> = true;
 
-// NODE (the compositional closure): the relative product R>>S is entire iff
-// BOTH factors are -- the property propagates through >> (Table 3's
-// containments composing).  The retained intermediate B reconstructs the two
-// factor relations.  (Functionality's NODE rule is the structural sibling in @c
-// order.)
-template <typename A, typename C, typename L, typename PR, typename PS,
-          typename B>
-inline constexpr bool is_left_total_v<dedekind::sets::Set<
-    std::pair<A, C>, L, dedekind::sets::ComposePred<PR, PS, B>>> =
-    is_left_total_v<dedekind::sets::Set<std::pair<A, B>, L, PR>> &&
-    is_left_total_v<dedekind::sets::Set<std::pair<B, C>, L, PS>>;
+// NODE (the compositional closure) for ComposePred's ENTIRENESS moved to
+// dedekind.relational:dyadic (PR #797, Copilot review), alongside its
+// functionality sibling --- both are structure-independent relation-algebra
+// (R>>S entire iff both factors are), so they live with ComposePred and are
+// reachable from :relational alone, not only via @c order / @c algebra.
 
 }  // namespace dedekind::category

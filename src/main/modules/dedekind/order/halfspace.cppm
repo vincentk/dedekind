@@ -2032,17 +2032,10 @@ inline constexpr bool is_right_unique_v<dedekind::sets::Set<
     std::pair<A, B>, L, dedekind::order::ProductRestrict<P, RP>>> =
     is_right_unique_v<dedekind::sets::Set<std::pair<A, B>, L, P>>;
 
-// NODE (the compositional closure): the relative product R>>S is functional iff
-// BOTH factors are -- the property propagates through >> (Table 3's
-// containments composing).  The retained intermediate B reconstructs the two
-// factor relations.  (The entireness NODE rule is the algebraic sibling, in
-// :halfspace_transport.)
-template <typename A, typename C, typename L, typename PR, typename PS,
-          typename B>
-inline constexpr bool is_right_unique_v<dedekind::sets::Set<
-    std::pair<A, C>, L, dedekind::sets::ComposePred<PR, PS, B>>> =
-    is_right_unique_v<dedekind::sets::Set<std::pair<A, B>, L, PR>> &&
-    is_right_unique_v<dedekind::sets::Set<std::pair<B, C>, L, PS>>;
+// NODE (the compositional closure) for ComposePred's FUNCTIONALITY moved to
+// dedekind.relational:dyadic (PR #797, Copilot review) --- it is
+// structure-independent relation-algebra (R>>S functional iff both factors are),
+// so it lives with ComposePred so a client importing only :relational sees it.
 
 }  // namespace dedekind::category
 

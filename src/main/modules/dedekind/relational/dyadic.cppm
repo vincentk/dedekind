@@ -249,20 +249,56 @@ static_assert(symmetric(diagonal<bool>())(std::pair{true, true}),
 
 }  // namespace dedekind::sets
 
-// ── Trait registry: the diagonal is FUNCTIONAL ─────────────────────────────
-// Δ = {(a,a)} is single-valued (a ↦ a).  order/halfspace registered this for
-// the @c ProjProj<1,Eq,2> spelling of the diagonal; the @c DiagPred reframe
-// (#792) carries the certificate along so @c diagonal() keeps its
-// @c is_right_unique trait.  A dropped trait is invisible to a build --- the
-// witness below turns a future regression into a compile error.
-// (Entireness was never registered for the ProjProj diagonal, so none here.)
+// ── Trait registry: relation-property certificates for :dyadic's predicates ──
+// These are STRUCTURE-INDEPENDENT relation-algebra facts about the predicates
+// defined in THIS partition (Δ = @c DiagPred, the relative product =
+// @c ComposePred), so they live here: a client importing only
+// @c dedekind.relational sees them, without pulling in @c order / @c algebra.
+// The @c ProjProj / @c ProjAddConstProj DSL spellings keep their OWN
+// certificates in @c order/halfspace + @c algebra/halfspace_transport (those
+// depend on the ordered projection machinery).  Moved here in PR #797 (Copilot
+// review) so relation semantics are self-contained; a dropped certificate is
+// invisible to a build, so each is witnessed below (compile error on regress).
 namespace dedekind::category {
+
+// LEAF: the diagonal Δ = {(a,a)} is a TOTAL FUNCTION (a ↦ a) --- single-valued
+// (right-unique) AND entire (left-total).
 template <typename A, typename L>
 inline constexpr bool is_right_unique_v<
     dedekind::sets::Set<std::pair<A, A>, L, dedekind::sets::DiagPred<A>>> =
     true;
+template <typename A, typename L>
+inline constexpr bool is_left_total_v<
+    dedekind::sets::Set<std::pair<A, A>, L, dedekind::sets::DiagPred<A>>> =
+    true;
+
+// NODE: the relative product R;S propagates BOTH properties through @c >> ---
+// it is functional iff both factors are, and entire iff both factors are (§3.2
+// Table 3's containments composing; the retained intermediate @c B reconstructs
+// the two factor relations).  Functionality was @c order-level, entireness
+// @c algebra-level before the extraction; both are pure relation-algebra, so
+// both live here now.
+template <typename A, typename C, typename L, typename PR, typename PS,
+          typename B>
+inline constexpr bool is_right_unique_v<dedekind::sets::Set<
+    std::pair<A, C>, L, dedekind::sets::ComposePred<PR, PS, B>>> =
+    is_right_unique_v<dedekind::sets::Set<std::pair<A, B>, L, PR>> &&
+    is_right_unique_v<dedekind::sets::Set<std::pair<B, C>, L, PS>>;
+template <typename A, typename C, typename L, typename PR, typename PS,
+          typename B>
+inline constexpr bool is_left_total_v<dedekind::sets::Set<
+    std::pair<A, C>, L, dedekind::sets::ComposePred<PR, PS, B>>> =
+    is_left_total_v<dedekind::sets::Set<std::pair<A, B>, L, PR>> &&
+    is_left_total_v<dedekind::sets::Set<std::pair<B, C>, L, PS>>;
 
 static_assert(is_right_unique_v<decltype(dedekind::sets::diagonal<bool>())>,
-              "Δ is FUNCTIONAL (a ↦ a): the reframed diagonal keeps its "
-              "single-valued certificate.");
+              "Δ is FUNCTIONAL (single-valued).");
+static_assert(is_left_total_v<decltype(dedekind::sets::diagonal<bool>())>,
+              "Δ is ENTIRE (total): a ↦ a for every a.");
+static_assert(is_right_unique_v<decltype(dedekind::sets::diagonal<bool>() >>
+                                         dedekind::sets::diagonal<bool>())>,
+              "Δ;Δ is FUNCTIONAL: the NODE rule composes through >>.");
+static_assert(is_left_total_v<decltype(dedekind::sets::diagonal<bool>() >>
+                                       dedekind::sets::diagonal<bool>())>,
+              "Δ;Δ is ENTIRE: the NODE rule composes through >>.");
 }  // namespace dedekind::category
