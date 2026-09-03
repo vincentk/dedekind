@@ -874,30 +874,32 @@ $\Delta$ is $\mathrm{graph}(\mathrm{id})$, definable on every carrier because eq
 \toprule
  & $+$ & $-$ & $\times$ & $\div$ & $(\cdot)^{\circ}$ & $\mathbf{0}$ & $\mathbf{1}$ \\
 \midrule
-\multicolumn{8}{@{}l}{\emph{dioid} --- \cppinline{IsRelation} \; ($\approx \mathbb{N}$)} \\
-\quad abstract $(S,\oplus,\otimes)$ & $\oplus$ & --- & $\otimes$ & --- & $(\cdot)^{\ast}$ & $\bar{0}$ & $\bar{1}$ \\
-\quad relation $A\times B$ & $\cup$ & --- & $\mathbin{;}$ & --- & $R^{\circ}$ & $\varnothing$ & $\Delta$ \\
-\quad $\mathrm{Mat}(S)$ & $\oplus$ & --- & $\otimes$ & --- & $A^{\dagger}$ & $0$ & $I$ \\
-\quad \cppinline{Trsk} & \cppinline{+} & --- & \cppinline{*} & --- & \cppinline{converse} & \cppinline{Ø} & \cppinline{diagonal} \\
+$\mathcal{P}(A) \cong \{R\subseteq\Delta\}$ & $\cup$ & --- & $\cap$ & --- & $\mathrm{id}$ & $\varnothing$ & $\Delta$ \\
+\cppinline{IsSet} $\subset$ \cppinline{IsBooleanAlgebra} & \cppinline{|} & --- & \cppinline{&} & --- & --- & \cppinline{Ø} & \cppinline{Ω} \\
 \midrule
-\multicolumn{8}{@{}l}{\emph{restrict} $\downarrow$ (contravariant): \cppinline{IsIsomorphism} $\subseteq$ \cppinline{IsFunction} $\subseteq$ \cppinline{IsRelation}} \\
-\quad \cppinline{IsFunction} (monoid) & $\cup$ & --- & $\mathbin{;}$ & --- & $R^{\circ}$ & $\varnothing$ & $\Delta$ \\
-\quad \cppinline{IsIsomorphism} (group, $\approx \mathbb{Z}^{\times}$) & $\cup$ & --- & $\mathbin{;}$ & $R^{-1}\!\!=\!R^{\circ}$ & $R^{\circ}$ & $\varnothing$ & $\Delta$ \\
+dioid $(S,\oplus,\otimes)$ & $\oplus$ & --- & $\otimes$ & --- & $(\cdot)^{\ast}$ & $\bar{0}$ & $\bar{1}$ \\
+relation $A\times B$ & $\cup$ & --- & $\mathbin{;}$ & --- & $R^{\circ}$ & $\varnothing$ & $\Delta$ \\
+$\mathrm{Mat}(S)$ & $\oplus$ & --- & $\otimes$ & --- & $A^{\dagger}$ & $0$ & $I$ \\
+\cppinline{IsRelation} $\subset$ \cppinline{IsDioid} & \cppinline{+} & --- & \cppinline{*} & --- & \cppinline{conv} & \cppinline{Ø} & \cppinline{diagonal} \\
 \midrule
-\multicolumn{8}{@{}l}{\emph{complete} $\downarrow$ (switch / dagger)} \\
-\quad $\mathrm{End}(\mathbf{1})=\mathbb{F}_2$ (field) & $\triangle$ & $\triangle$ & $\cap$ & $\cap$ & $\mathrm{id}$ & $\varnothing$ & $\Delta$ \\
-\quad $\mathrm{End}(I)=\mathbb{C}$ ($\dagger$-compl.) & $+$ & $-$ & $\circ$ & ${}^{-1}$ & $\dagger$ & $0$ & $1$ \\
+monoid $(M,\circ,e)$ & --- & --- & $\circ$ & --- & --- & --- & $e$ \\
+function $A\to A$ & $\cup$ & --- & $\mathbin{;}$ & --- & $R^{\circ}$ & $\varnothing$ & $\Delta$ \\
+\cppinline{IsFunction} $\subset$ \cppinline{IsMonoid} & \cppinline{+} & --- & \cppinline{*} & --- & \cppinline{conv} & \cppinline{Ø} & \cppinline{diagonal} \\
+\midrule
+group $(G,\circ,{}^{-1}\!,e)$ & --- & --- & $\circ$ & ${}^{-1}$ & --- & --- & $e$ \\
+permutation $P$ & $\cup$ & --- & $\mathbin{;}$ & $P^{-1}\!\!=\!P^{\top}$ & $P^{\circ}$ & $\varnothing$ & $\Delta$ \\
+\cppinline{IsIsomorphism} $\subset$ \cppinline{IsGroup} & \cppinline{+} & --- & \cppinline{*} & \cppinline{inv} & \cppinline{conv} & \cppinline{Ø} & \cppinline{diagonal} \\
+\midrule
+field $(F,+,\times)$ & $+$ & $-$ & $\times$ & $\div$ & $\overline{(\cdot)}$ & $0$ & $1$ \\
+$\mathrm{End}(\mathbf{1})=\mathbb{F}_2$ & $\triangle$ & $\triangle$ & $\cap$ & $\cap$ & $\mathrm{id}$ & $\varnothing$ & $\Delta$ \\
+$\mathrm{End}(I)=\mathbb{C}$ & $+$ & $-$ & $\circ$ & ${}^{-1}$ & $\dagger$ & $0$ & $1$ \\
+\cppinline{IsScalar} $\subset$ \cppinline{IsField} & \cppinline{+} & \cppinline{-} & \cppinline{*} & \cppinline{/} & \cppinline{conj} & \cppinline{0} & \cppinline{1} \\
 \bottomrule
 \end{tabular}
-\caption{The relation algebra as one ladder, in the shape of the lattice map (Table~\ref{tab:lattice-lift}) but with the columns of a \emph{field}, left undefined where a tier lacks the operation.
-The top block is \cppinline{IsRelation} as a \emph{dioid} in four vocabularies; multiplication is composition, addition is union, units the diagonal and the empty relation.
-\textbf{Two directions cross here, and both run opposite to the number ladder.}
-\emph{Restriction} of the morphism class runs \emph{downward} and \emph{contravariantly}: \cppinline{IsIsomorphism} $\subseteq$ \cppinline{IsFunction} $\subseteq$ \cppinline{IsRelation}, every function a relation, the reverse of $\mathbb{N}\subseteq\mathbb{Z}\subseteq\mathbb{Q}$.
-It is a subtyping / coreflection: the isomorphisms are the \emph{core}, the maximal subgroupoid, right adjoint to $\mathbf{Grpd}\hookrightarrow\mathbf{Cat}$~\cite{maclane1971categories}; the type-theoretic reading is function-domain contravariance~\cite{cardelli1996typesystems, pierce2002tapl}.
-\emph{Completion} (a left adjoint, as $\mathbb{N}\to\mathbb{Z}$ is the Grothendieck group) is instead \emph{obstructed} on relations: $\cup$ is idempotent, so its group completion is trivial, and $\mathbin{;}$ has zero divisors ($R\mathbin{;}\varnothing=\varnothing$).
-So inverses arrive by restriction, not completion: $\div$ at the group is the converse itself ($R^{-1}=R^{\circ}$), and $-$ only after a \emph{switch} $\cup\!\to\!\triangle$ (symmetric difference) at a point, where $\mathrm{End}(\mathbf{1})=\{\varnothing,\Delta\}=\mathbb{F}_2$, the scalars of $\mathbf{Rel}$~\cite{kellylaplaza1980coherence} and §\ref{sec:intensional_sets}'s bitwise field again.
-The one genuine completion is the last row: the operator-norm / dagger completion into $\mathbf{FdHilb}$, scalars $\mathbb{C}$, converse the adjoint $\dagger$~\cite{abramskycoecke2004categorical}.
-The converse tracks the variance exactly --- covariant on the commutative scalars, contravariant ($(R\mathbin{;}S)^{\circ}=S^{\circ}\mathbin{;}R^{\circ}$, Tarski B7~\cite{tarski1941calculus}) on the non-commutative relations --- and throughout $\mathbf{0}=\varnothing$, $\mathbf{1}=\Delta$: the field's zero and one \emph{are} the empty relation and the diagonal.}
+\caption{The relation algebra sliced by concept, each slice pairing a relation concept with the algebra it satisfies (\cppinline{IsX} $\subset$ \cppinline{IsY}) and closed by its \cppinline{Trsk} row (overloads \cppinline{+} \cppinline{*}, named \cppinline{conv} \cppinline{inv} \cppinline{conj}); columns are the field's arithmetic, undefined where a slice lacks it.
+Sets are the coreflexive relations ($R\subseteq\Delta$), where composition is meet ($\mathbin{;}=\cap$); relations generalise it.
+Down the slices the morphism class is \emph{restricted} --- \emph{contravariantly}: every function a relation, opposite $\mathbb{N}\subseteq\mathbb{Z}$ (a coreflection, the isomorphisms being the core~\cite{maclane1971categories}; function-domain contravariance~\cite{cardelli1996typesystems, pierce2002tapl}) --- and the withheld inverses return: $\div$ at the group as the converse ($R^{-1}=R^{\circ}$), $-$ at the field $\mathrm{End}(\mathbf{1})=\mathbb{F}_2$, the scalars of $\mathbf{Rel}$~\cite{kellylaplaza1980coherence} (§\ref{sec:intensional_sets}'s bitwise field), and the adjoint $\dagger$ at the Hilbert completion~\cite{abramskycoecke2004categorical}.
+Throughout $\mathbf{0}=\varnothing$, $\mathbf{1}=\Delta$; the converse is contravariant on relations (Tarski B7~\cite{tarski1941calculus}), covariant on the commutative scalars.}
 \label{tab:relation-algebra}
 \end{table}
 
