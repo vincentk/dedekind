@@ -840,7 +840,37 @@ The implementation tracks this definition literally at compile time.
 \section{A Reification of $\mathbf{RAlg}$}
 \label{sec:relations_functions_blueprint}
 
-To transition seamlessly from static intensional sets to dynamic mappings, binary relations can be formalized as morphisms \cppinline{IsArrow<A, B>} where both domain and codomain \cppinline{require} the ETCS axioms via \cppinline{IsSet}. 
+A relation is a set on a product, and that one fact is the whole of this section.
+The product turns the Boolean lattice of sets (Section~\ref{sec:intensional_sets}, Table~\ref{tab:lattice-lift}) into a \emph{semiring} of relations, whose multiplicative unit is the diagonal (Table~\ref{tab:set-to-relation}).
+The two halves of that semiring, the inherited lattice and the product-born composition, are what the rest of the section spells out.
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}lll@{}}
+\toprule
+ & \textbf{Set} $\subseteq A$ & \textbf{Relation} $\subseteq A \times B$ \\
+\midrule
+lives on   & a carrier $A$          & a \emph{product} ($\pi_1, \pi_2$) \\
+structure  & Boolean \emph{lattice} & dagger-\emph{semiring} \\
+\addlinespace
+\multicolumn{3}{@{}l}{\emph{the lattice}, inherited (a relation \emph{is} a set):} \\
+join / meet          & $\cup$ / $\cap$ \; (\cppinline{|} / \cppinline{&}) & $\cup$ / $\cap$ \\
+bounds $\bot$ / $\top$ & $\varnothing$ / $A$ & $\varnothing$ / $A \times B$ \\
+\addlinespace
+\multicolumn{3}{@{}l}{\emph{what the product adds}, a second (multiplicative) monoid:} \\
+composition $\mathbin{;}$ & --- & $R \gg S$ \; (match $\pi_2 = \pi_1$) \\
+\quad its unit $\mathbf{1}$ & --- & $\Delta = \{\pi_1 = \pi_2\}$ \; (the diagonal) \\
+converse $(\cdot)^{\circ}$ & --- & swap $\pi_1 \leftrightarrow \pi_2$ \\
+\bottomrule
+\end{tabular}
+\caption{\textbf{The product turns the set-lattice into the relation-semiring; the diagonal is its unit.}
+A relation is a set on a product $A \times B$, so it keeps the Boolean lattice every set has (Section~\ref{sec:intensional_sets}, Table~\ref{tab:lattice-lift}) and \emph{gains} a second, multiplicative monoid: composition $R \gg S$ with unit the diagonal $\Delta = \{\pi_1 = \pi_2\}$, and the converse involution $(\cdot)^{\circ}$.
+None of the three can be written on a bare set, which has one coordinate to compare, swap, or match; each needs the product's two projections.
+The diagonal is the semiring's $\mathbf{1}$: it is $\mathrm{graph}(\mathrm{id})$, definable on every carrier because equality is universal (the relational counterpart of the identity arrow), and \cppinline{materialise} (Table~\ref{tab:relation-matrix-map}) sends it to the identity operator, composition to operator product, converse to the adjoint.}
+\label{tab:set-to-relation}
+\end{table}
+
+To transition seamlessly from static intensional sets to dynamic mappings, binary relations can be formalized as morphisms \cppinline{IsArrow<A, B>} where both domain and codomain \cppinline{require} the ETCS axioms via \cppinline{IsSet}.
 Such morphisms are then classified by the following properties, if one focuses on the domain:
 \begin{itemize}
     \item \textbf{Totality}: Outgoing arrows per input $\ge 1$.
