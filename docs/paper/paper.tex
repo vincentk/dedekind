@@ -1273,6 +1273,42 @@ The implemented $\arg\max$ is exactly this structural specialization (a group-ca
 \label{sec:algebraic_lattice_carriers}
 
 We reify $\mathbf{Alg}(-)$ as the \emph{relational magmas} over $\mathbf{Trsk}$: a carrier with a pointwise operation $A \times A \to A$, read as the functional relation that is its graph and refined by the laws it keeps (Equation~\ref{eqn:ddk}).
+The section is four capabilities, each a compile-time certificate (Listing~\ref{lst:alg-capabilities}): a magma is a carrier with a closed operation, and Birkhoff's three constructions, quotient (H), subalgebra (S), and direct product (P), each build a new carrier and carry the certificate across to it.
+
+% Source excerpts from dedekind.algebra:quotient, :morphologies:cyclic, :sequences, :linear_algebra:vec2.
+\begin{listing}[!ht]
+\caption{Section~\ref{sec:algebraic_lattice_carriers} at a glance: four capabilities, each a checked-in \cppinline{static_assert}.  A magma is a carrier with a closed operation; the three Birkhoff constructions each build a new carrier from it and carry the certificate across.  The section develops each below.}
+\label{lst:alg-capabilities}
+\noindent
+\begin{minipage}[t]{0.49\linewidth}
+\textbf{magma} --- a carrier with a closed operation
+\begin{cpp}
+// ℤ/12ℤ: + closes on the carrier
+static_assert(IsMagma<Modular<12>,
+                std::plus<Modular<12>>>);
+\end{cpp}
+\textbf{H} --- quotient by a congruence
+\begin{cpp}
+// Modular<12> = ℤ/(≡ mod 12)
+static_assert(IsCongruenceQuotient<
+    Modular<12>, std::plus<int>>);
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\linewidth}
+\textbf{S} --- subalgebra (a closed subset)
+\begin{cpp}
+// even integers ⊆ (ℤ, +)
+static_assert(IsSubalgebra<EvenInts,
+                int, std::plus<int>>);
+\end{cpp}
+\textbf{P} --- direct product (componentwise)
+\begin{cpp}
+// Vec2<T> = T × T
+static_assert(
+    IsProductAlgebra<Vec2V<int>>);
+\end{cpp}
+\end{minipage}
+\end{listing}
 
 % Source excerpts from dedekind.algebra:universal and dedekind.category:total.
 \begin{listing}[!ht]
