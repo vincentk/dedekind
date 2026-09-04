@@ -1310,9 +1310,22 @@ static_assert(
 \end{minipage}
 \end{listing}
 
+Two facts organise the columns.
+Every homomorphism $f\colon A\to B$ factors through its image, an epimorphism $\pi$ (a quotient, H) followed by a monomorphism $\iota$ (a subalgebra inclusion, S), the arrow classes of Table~\ref{tab:relation-quantifier}:
+\begin{equation}
+\label{eqn:image-factorization}
+  A \;\twoheadrightarrow\; \operatorname{im}(f) \;\hookrightarrow\; B,
+  \qquad f = \iota \circ \pi .
+\end{equation}
+And the disciplined fragment of \S\ref{sec:jlt_posture} \emph{models} carriers up to the continuum but \emph{materialises} only finite ones, so of the three constructions only the product carries an arity bound:
+\begin{equation}
+\label{eqn:model-materialise}
+  \mathbf{Jlt}\ \text{models} \le \beth_1, \qquad \mathbf{Jlt}\ \text{materialises} < \aleph_0 .
+\end{equation}
+
 \begin{table}[htbp]
 \centering
-\caption{The three Birkhoff constructions H, S, P read across vocabularies.  H and S are the epi and mono of the arrow classification of \S\ref{sec:relations_functions_blueprint} (Table~\ref{tab:relation-quantifier}): every homomorphism factors as an \emph{epi} onto its image (H) followed by a \emph{mono} into the codomain (S), so a subalgebra is the mono half and an \emph{embedding} is its arrow.  P is the product.  The \emph{finitary} row marks that only finite products are type-level constructible.}
+\caption{The three Birkhoff constructions H, S, P read across vocabularies; the arrow-class row is Equation~\ref{eqn:image-factorization}, the finitary bound Equation~\ref{eqn:model-materialise}.}
 \label{tab:hsp-rosetta}
 \small
 \begin{tabular}{@{}llll@{}}
@@ -1320,12 +1333,10 @@ static_assert(
  & \textbf{H} (quotient) & \textbf{S} (subalgebra) & \textbf{P} (product) \\
 \midrule
 universal algebra    & $A/\theta$, a congruence $\theta$       & closed $B \subseteq A$          & direct product $\prod_i A_i$ \\
-arrow class          & epi: a surjection                       & mono: an injection ($=$ embedding) & product: a limit \\
+arrow class          & epi (surjection)                        & mono (injection $=$ embedding)  & product (limit) \\
 relation (\textbf{Trsk}) & a congruence relation               & a closed predicate              & componentwise on a tuple \\
 concept              & \cppinline{IsCongruenceQuotient}        & \cppinline{IsSubalgebra}        & \cppinline{IsProductAlgebra} \\
-optimization         & normalise / fold                        & strength-reduce                 & prune (dead lanes) \\
 exemplar             & $\mathbb{Z}/N\mathbb{Z}$, $F[\varepsilon]/(\varepsilon^2)$ & $\mathbb{N} \subseteq \mathbb{Z}$ & $T^n$ (vector, matrix) \\
-finitary             & yes                                     & yes                             & \emph{finite} products only \\
 \bottomrule
 \end{tabular}
 \end{table}
