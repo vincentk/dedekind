@@ -1310,6 +1310,26 @@ static_assert(
 \end{minipage}
 \end{listing}
 
+\begin{table}[htbp]
+\centering
+\caption{The three Birkhoff constructions H, S, P read across vocabularies.  Each column builds a new carrier from a given one and propagates its certificate; the \emph{finitary} row marks that only finite products are type-level constructible.}
+\label{tab:hsp-rosetta}
+\small
+\begin{tabular}{@{}llll@{}}
+\toprule
+ & \textbf{H} (quotient) & \textbf{S} (subalgebra) & \textbf{P} (product) \\
+\midrule
+universal algebra    & $A/\theta$, a congruence $\theta$       & closed $B \subseteq A$          & direct product $\prod_i A_i$ \\
+category theory      & coequalizer (regular epi)               & subobject (mono)                & product (limit) \\
+relation (\textbf{Trsk}) & a congruence relation               & a closed predicate              & componentwise on a tuple \\
+concept              & \cppinline{IsCongruenceQuotient}        & \cppinline{IsSubalgebra}        & \cppinline{IsProductAlgebra} \\
+optimization         & normalise / fold                        & strength-reduce                 & prune (dead lanes) \\
+exemplar             & $\mathbb{Z}/N\mathbb{Z}$, $F[\varepsilon]/(\varepsilon^2)$ & $\mathbb{N} \subseteq \mathbb{Z}$ & $T^n$ (vector, matrix) \\
+finitary             & yes                                     & yes                             & \emph{finite} products only \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 % Source excerpts from dedekind.algebra:universal and dedekind.category:total.
 \begin{listing}[!ht]
 \caption{$\mathbf{Ddk} = \mathbf{Trsk} \cap \mathbf{Alg}$, in three panels.
