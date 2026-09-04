@@ -264,6 +264,20 @@ concept IsCongruenceQuotient =
       { Q{v} } -> std::same_as<Q>;  // the canonical projection V ->> Q
     };
 
+// @note WITNESS, not law-forwarder (Copilot #803).  Law-trait forwarding rides
+// the TYPE-POINTER path (@c IsQuotientAlgebra, above), which lifts laws from a
+// well-behaved base (@c Rational @c = @c Frac(I), @c Complex, @c Dual).
+// Forwarding via the CONGRUENCE is deliberately NOT done, and would be @b
+// unsound for a machine-carrier quotient: @c Modular<N>'s carrier @c V
+// (@c unsigned/@c int) has broken arithmetic --- @c is_associative_v<int,
+// std::plus<int>> is @b false (overflow) --- so forwarding @c V's laws to @c Q
+// would make @c Modular<N> non-associative, which is @b wrong: @c Modular<N> is
+// associative by its own total mod-N construction.  Its laws are @b intrinsic,
+// not inherited; the congruence merely @b witnesses @c Q @c = @c V/R.  The two
+// paths (forward-from-base vs.\ witness-intrinsic) serve disjoint quotient
+// classes and coexist by design; #801's "retire @c quotient_algebra_base" is
+// unsound to merge for exactly this reason.
+//
 // Self-contained witness that the relational H-leg plumbing composes.  @c
 // IntByEquality is the identity quotient @c int/(=): @c std::equal_to is the
 // diagonal (finest) congruence (@c :cartesian), and the projection @c int ->> Q

@@ -384,21 +384,26 @@ inline constexpr bool
 // is a power of two.  The carrier is unsigned = ℤ/2^w, whose congruence
 // quotients are exactly the ℤ/2^k; for N ∤ 2^w (e.g.\ 12) native wrapping
 // breaks the congruence at the 2^w boundary (UINT_MAX + 1 wraps to 0, not to
-// its mod-N successor).  Gating on @c std::has_single_bit keeps the trait
-// SOUND: the claim is withheld for non-power-of-two N rather than falsely
-// certified (such moduli are quotients of abstract ℤ, not of the machine
+// its mod-N successor).  The carrier must also be @b unsigned so that
+// wraparound is @b defined: signed @c int has undefined-behaviour overflow, so
+// @c std::plus<int> is not a total @c V×V→V operation (Copilot #803).  Gating
+// on @c std::unsigned_integral @b and @c std::has_single_bit keeps the trait
+// SOUND: the claim is withheld for signed or non-power-of-two N rather than
+// falsely certified (those moduli quotient abstract ℤ, not the machine
 // carrier).
 template <auto N>
-  requires(std::has_single_bit(
-              static_cast<std::make_unsigned_t<decltype(N)>>(N)))
+  requires(std::unsigned_integral<decltype(N)> &&
+           std::has_single_bit(
+               static_cast<std::make_unsigned_t<decltype(N)>>(N)))
 inline constexpr bool is_congruence_v<
     dedekind::morphologies::ModularCongruence<N>,
     typename dedekind::morphologies::Modular<N>::machine_type,
     std::plus<typename dedekind::morphologies::Modular<N>::machine_type>> =
     true;
 template <auto N>
-  requires(std::has_single_bit(
-              static_cast<std::make_unsigned_t<decltype(N)>>(N)))
+  requires(std::unsigned_integral<decltype(N)> &&
+           std::has_single_bit(
+               static_cast<std::make_unsigned_t<decltype(N)>>(N)))
 inline constexpr bool is_congruence_v<
     dedekind::morphologies::ModularCongruence<N>,
     typename dedekind::morphologies::Modular<N>::machine_type,
