@@ -1327,7 +1327,7 @@ And the disciplined fragment of \S\ref{sec:jlt_posture} \emph{models} carriers u
 \centering
 \caption{The three Birkhoff constructions H, S, P read across vocabularies; the arrow-class row is Equation~\ref{eqn:image-factorization}, the finitary bound Equation~\ref{eqn:model-materialise}.}
 \label{tab:hsp-rosetta}
-\small
+\footnotesize
 \begin{tabular}{@{}llll@{}}
 \toprule
  & \textbf{H} (quotient) & \textbf{S} (subalgebra) & \textbf{P} (product) \\
@@ -1343,7 +1343,10 @@ exemplar             & $\mathbb{Z}/N\mathbb{Z}$, $F[\varepsilon]/(\varepsilon^2)
 
 \begin{figure}[htbp]
 \centering
-\begin{tikzpicture}[scale=1.05, every node/.style={font=\small},
+\begin{minipage}[b]{0.52\linewidth}
+\centering
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[every node/.style={font=\small},
                     axlbl/.style={font=\footnotesize\itshape}]
   \coordinate (o)   at (0,0);
   \coordinate (p)   at (3.1,0);
@@ -1353,18 +1356,14 @@ exemplar             & $\mathbb{Z}/N\mathbb{Z}$, $F[\varepsilon]/(\varepsilon^2)
   \coordinate (ph)  at (4.45,1.05);
   \coordinate (sh)  at (1.35,3.45);
   \coordinate (psh) at (4.45,3.45);
-  % hidden (back) edges
   \draw[dashed,gray] (h)--(ph);
   \draw[dashed,gray] (h)--(sh);
-  % cube edges
   \draw (o)--(p)--(ps)--(s)--(o);
   \draw (p)--(ph) (s)--(sh) (ps)--(psh);
   \draw (ph)--(psh)--(sh);
-  % axes (the three edges from the origin)
   \draw[->,thick] (o)--(p) node[axlbl,pos=0.55,below]{P (product)};
   \draw[->,thick] (o)--(s) node[axlbl,pos=0.55,left]{S (subalg.)};
   \draw[->,thick,dashed,gray] (o)--(h) node[axlbl,pos=0.62,above left,black]{H (quotient)};
-  % vertices
   \node[below left]  at (o)   {$\mathbb{B}$};
   \node[below]       at (p)   {$\mathbb{B}^{n}$};
   \node[left]        at (s)   {$\mathbb{N}\hookrightarrow\mathbb{Z}$};
@@ -1373,8 +1372,29 @@ exemplar             & $\mathbb{Z}/N\mathbb{Z}$, $F[\varepsilon]/(\varepsilon^2)
   \node[right]       at (ph)  {$(\mathbb{Z}/n\mathbb{Z})^{n}$};
   \node[above left]  at (sh)  {$F[\varepsilon]/(\varepsilon^{2})$};
   \node[above right] at (psh) {$M_n(\mathbb{D})$};
-\end{tikzpicture}
-\caption{The construction cube: the three Birkhoff axes H (quotient), S (subalgebra), P (product) span a space of carriers, a lattice reading of Table~\ref{tab:hsp-rosetta} in the spirit of the lambda cube.  The origin is a base magma ($\mathbb{B}$); each axis applies one construction; composites sit at the corners, up to a matrix of dual numbers $M_n(\mathbb{D})$ at the far vertex.  Labels are representative carriers, not a functor on a fixed base.}
+\end{tikzpicture}}
+\\[0.4ex]{\footnotesize (a) the HSP cube (Birkhoff-closed)}
+\end{minipage}\hfill
+\begin{minipage}[b]{0.40\linewidth}
+\centering
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[every node/.style={font=\small},
+                    axlbl/.style={font=\footnotesize\itshape}]
+  \coordinate (z)  at (0,0);
+  \coordinate (q)  at (2.7,0);
+  \coordinate (r)  at (2.7,2.2);
+  \coordinate (qp) at (4.7,0);
+  \draw[->,thick] (z)--(q)  node[axlbl,pos=0.5,below]{localize};
+  \draw[->,thick] (q)--(r)  node[axlbl,pos=0.5,right]{complete};
+  \draw[->,thick,dashed,gray] (q)--(qp) node[axlbl,pos=0.5,below,black]{$p$-adic};
+  \node[below left]  at (z)  {$\mathbb{Z}$};
+  \node[below]       at (q)  {$\mathbb{Q}$};
+  \node[above]       at (r)  {$\mathbb{R}$};
+  \node[below right] at (qp) {$\mathbb{Q}_p$};
+\end{tikzpicture}}
+\\[0.4ex]{\footnotesize (b) localization / completion}
+\end{minipage}
+\caption{Two construction spaces.  \textbf{(a)} The HSP cube: the Birkhoff axes H (quotient), S (subalgebra), P (product) span the carriers, a lattice reading of Table~\ref{tab:hsp-rosetta} in the spirit of the lambda cube; the origin is a base magma ($\mathbb{B}$), composites sit at the corners up to $M_n(\mathbb{D})$ (labels are representative carriers, not a functor on a fixed base).  \textbf{(b)} The two \emph{non-}Birkhoff constructions at the cube's boundary (Table~\ref{tab:constructions}): \emph{localization} ($\mathbb{Z}\to\mathbb{Q}=\operatorname{Frac}\mathbb{Z}$, a colimit adjoining inverses) and \emph{completion} ($\mathbb{Q}\to\mathbb{R}$, a limit filling limit points, with the $p$-adic $\mathbb{Q}_p$ the other completion by Ostrowski).  Neither is finitary-equational: localization needs $\exists$ (inverses), completion needs infinite limits.}
 \label{fig:hsp-cube}
 \end{figure}
 
