@@ -150,7 +150,7 @@
 % Core Thesis:
 A structurally-typed fragment of C++23 termed the \emph{Juliet Posture} $\mathbf{Jlt} = \mathbf{Per} \cap \mathbf{Cpp}$ is identified.\footnote{The architecture is written throughout as a chain of category intersections, each layer adding one commitment.  We mean these equations loosely: they say where each layer sits and carry the spirit of the thesis, not identities the paper proves.}
 It is assembled from \cppinline{constexpr} evaluation, \cppinline{concept} checks, and template instantiation and permits a System~F reading of the underlying type system.
-$\mathbf{Jlt}$ was then used to bootstrap i) a lazy, intensional set comprehension engine under an ETCS reading ($\mathbf{Trsk} = \mathbf{Jlt} \cap \mathbf{Set}$), and ii) an intersection with universal algebraic signatures, forming the core category $\mathbf{Ddk} = \mathbf{Trsk} \cap \mathbf{Alg}$.
+$\mathbf{Jlt}$ was then used to bootstrap i) a lazy, intensional set comprehension engine under an ETCS reading ($\mathbf{Lwv} = \mathbf{Jlt} \cap \mathbf{Set}$), refined to a point-free relational calculus ($\mathbf{Trsk} = \mathbf{Lwv} \cap \mathbf{Rel}$), and ii) an intersection with universal algebraic signatures, forming the core category $\mathbf{Ddk} = \mathbf{Trsk} \cap \mathbf{Alg}$.
 The resulting embedded DSL allows for the reification of coordinate-free analytic graphs as operators, functions and relations on algebraic sets.
 The compiler can then use those laws to not only verify but also optimize the corresponding expression tree, with full compile-time evaluation being a limiting case.
 
@@ -493,35 +493,35 @@ $\mathcal{P}(A)$ & $\in$ & $\cap$ & $\cup$ & $\complement$ & $\varnothing$ & $A$
 \addlinespace
 $\mathbf{Topos}$ & $\chi$ & $\times$ & $\sqcup$ & $\neg$ & $\mathbf{0}$ & $\mathbf{1}$ & $B^A$ \\
 \addlinespace
-$\mathbf{Trsk}$ & \cppinline{s(x)} & \cppinline{&} & \cppinline{|} & \cppinline{~} & \cppinline{Ø} & \cppinline{Ω} & \cppinline{<=} \\
+$\mathbf{Lwv}$ & \cppinline{s(x)} & \cppinline{&} & \cppinline{|} & \cppinline{~} & \cppinline{Ø} & \cppinline{Ω} & \cppinline{<=} \\
 \bottomrule
 \end{tabular}
 \caption{
-Operator-mapping table: each column is one construction, spelled in four languages over the rows $\mathbb{B}$, $\mathcal{P}(A)$, $\mathbf{Topos}$, $\mathbf{Trsk}$ (Section~\ref{sec:ddk_etcs}, Eqn~\ref{eqn:trsk}).
+Operator-mapping table: each column is one construction, spelled in four languages over the rows $\mathbb{B}$, $\mathcal{P}(A)$, $\mathbf{Topos}$, $\mathbf{Lwv}$ (Section~\ref{sec:ddk_etcs}, Eqn~\ref{eqn:lwv}).
 The $\mathbf{Topos}$ row is the Boolean case realised by $\mathbf{Set}$, where the Heyting pseudo-complement is a genuine $\neg$.
 The \emph{member} column is membership, the characteristic morphism $\chi : A \to \Omega$ ($\models$ satisfaction, $\in$ set membership, $\chi$ the classifier, \cppinline{s(x)} the set applied to a point); the other columns are the lattice operations.
 }
 \label{tab:lattice-lift}
 \end{table}
 
-\begin{definition}[$\mathbf{Trsk} := \mathbf{Jlt} \cap \mathbf{Set}$]
-\label{def:trsk-set}
-In $\mathbf{Trsk}$:
+\begin{definition}[$\mathbf{Lwv} := \mathbf{Jlt} \cap \mathbf{Set}$]
+\label{def:lwv-set}
+In $\mathbf{Lwv}$:
 \begin{enumerate}
 \item A \emph{set} over a regular (\cppinline{std::regular}) carrier \cppinline{A} in $\mathbf{Jlt}$ is a \emph{subobject} of \cppinline{A}: a type \cppinline{S} satisfying \cppinline{IsSubobject<S, A>}, whose characteristic predicate $\chi_S : A \to \Omega$ decides membership.
 \item A \emph{relation} is a subobject of the Cartesian product \cppinline{::Domain} $\times$ \cppinline{::Codomain}.
 \item A \emph{set} is thus the true-fiber of its characteristic morphism $\chi_S : A \to \Omega$: the pullback of $\top$ along $\chi_S$, the true-slice of the graph of $\chi_S$ rather than the whole graph (which also carries the \cppinline{false} pairs).
 \end{enumerate}
 The full ETCS axioms live not on the individual set but on its ambient \emph{universe}: the top element $\Omega\langle A\rangle$ is itself an ETCS set-object, satisfying the heavier \cppinline{concept IsSet} (Definition~\ref{def:etcs-set}).
-A $\mathbf{Trsk}$ set is a subobject of such a universe over a $\mathbf{Jlt}$ carrier, so one can write:
+A $\mathbf{Lwv}$ set is a subobject of such a universe over a $\mathbf{Jlt}$ carrier, so one can write:
 \begin{equation}
-\label{eqn:trsk}
-\mathbf{Trsk} := \mathbf{Jlt} \cap \mathbf{Set},
+\label{eqn:lwv}
+\mathbf{Lwv} := \mathbf{Jlt} \cap \mathbf{Set},
 \end{equation}
 in which the predicate $\chi_S$ \emph{is} the set.
 \end{definition}
 
-Because the carrier is \cppinline{std::regular}, the elements of a $\mathbf{Trsk}$ set are transparent value types with a decidable equality.
+Because the carrier is \cppinline{std::regular}, the elements of a $\mathbf{Lwv}$ set are transparent value types with a decidable equality.
 This $\mathbf{Set}$ is therefore a subcategory of structural data types, not the universal mathematical blackboard: richer objects enter by regular representation rather than natively as elements, a function as its graph (item~2, a set of \cppinline{std::pair}s) and an equivalence class as a quotient of such a graph, but not, say, an arbitrary morphism whose equality is undecidable.
 
 The combinator \cppinline{in} constructs a \emph{scout variable}: in the blackboard form $\{\,x \in \mathbb{N} \mid P(x)\,\}$ it is the bound variable $x$, a stand-in for an arbitrary element that a predicate then constrains.
@@ -548,13 +548,19 @@ As a direct consequence, downstream runtime membership queries for statically im
 Listing~\ref{lst:pruning} exhibits a checked-in extract that tests this type-directed collapse in practice, and its bottom panel makes the collapse mechanically observable during the build: the witness function for set membership constant-folds to \texttt{ret i1 false} in the emitted LLVM IR.
 
 The container reading and the predicate reading are almost interconvertible, and the asymmetry is the point (Listing~\ref{lst:materialise}).
-Any \cppinline{std::set} is a $\mathbf{Trsk}$ set for free, its \cppinline{contains} the characteristic predicate; call that embedding $\iota$, and it is total.
-Only a finite, enumerable $\mathbf{Trsk}$ set materialises back to a container; call that $\mu$, and it is partial, the naturals having no finite materialisation.
-So $\mathbf{Trsk}$ is strictly more expressive than \cppinline{std::set}, the extensional container it generalises, and the price is paid in \emph{proof obligations}: where $\mu$ is unavailable, membership is settled by the concept constraints and factorisations of this section, not by enumeration.
-This is the extensional/intensional database distinction of deductive databases, \cppinline{std::set} playing the extensional store (EDB, facts) and $\mathbf{Trsk}$ the intensional one (IDB, rules), with materialisation the materialised view~\cite{abiteboul1995foundations}.
+Any \cppinline{std::set} is a $\mathbf{Lwv}$ set for free, its \cppinline{contains} the characteristic predicate; call that embedding $\iota$, and it is total.
+Only a finite, enumerable $\mathbf{Lwv}$ set materialises back to a container; call that $\mu$, and it is partial, the naturals having no finite materialisation.
+This asymmetry is the model/materialise gap of the whole framework: $\mathbf{Jlt}$ \emph{models} carriers up to the continuum but \emph{materialises} only finite ones,
+\begin{equation}
+\label{eqn:model-materialise}
+  \mathbf{Jlt}\ \text{models} \le \beth_1, \qquad \mathbf{Jlt}\ \text{materialises} < \aleph_0 ,
+\end{equation}
+the ETCS power-object bound $\beth_1$ above (Appendix~\ref{sec:etcs}, Axiom~9) meeting the finite reach of $\mu$ below.
+So $\mathbf{Lwv}$ is strictly more expressive than \cppinline{std::set}, the extensional container it generalises, and the price is paid in \emph{proof obligations}: where $\mu$ is unavailable, membership is settled by the concept constraints and factorisations of this section, not by enumeration.
+This is the extensional/intensional database distinction of deductive databases, \cppinline{std::set} playing the extensional store (EDB, facts) and $\mathbf{Lwv}$ the intensional one (IDB, rules), with materialisation the materialised view~\cite{abiteboul1995foundations}.
 
 \begin{listing}[htbp]
-\caption{The two conversions between \cppinline{std::set} and $\mathbf{Trsk}$, and their composition.
+\caption{The two conversions between \cppinline{std::set} and $\mathbf{Lwv}$, and their composition.
 \textbf{Left, top} ($\iota$): \cppinline{ambient_set(from_std(·))} lifts a \cppinline{std::set} to an \cppinline{IsSet} object.
 \textbf{Left, bottom} ($\mu$): \cppinline{materialise} enumerates a finite universe and keeps the $\chi$-matches.
 \textbf{Right}: the intersection of an extensional set with the intensional halfspaces $\{x>3\}$ and $\{x>5\}$.}
@@ -843,6 +849,16 @@ The implementation tracks this definition literally at compile time.
 Relations are a \emph{dioid}, an idempotent semiring $(\mathrm{Rel}, \cup, \mathbin{;}, \varnothing, \Delta)$ under union and relative product, and that structure is the spine of this section (Table~\ref{tab:relation-dioid}).
 It stands on its own two monoids: a join-semilattice for $\cup$, and a composition monoid for $\mathbin{;}$ whose unit is the diagonal $\Delta$.
 The additive half happens to be the Boolean lattice a relation already carries \emph{as a set} (Section~\ref{sec:intensional_sets}, Table~\ref{tab:lattice-lift}); the multiplicative half, composition with unit the diagonal, is what the \emph{product} adds and is the reason the section exists.
+
+\begin{definition}[$\mathbf{Trsk} := \mathbf{Lwv} \cap \mathbf{Rel}$]
+\label{def:trsk-rel}
+A $\mathbf{Trsk}$ relation is an $\mathbf{Lwv}$ subobject (Definition~\ref{def:lwv-set}) of a Cartesian product $A \times B$ that also carries the dioid structure of this section --- converse, relative product, and the diagonal unit.  Where $\mathbf{Lwv}$ is the set fragment, $\mathbf{Trsk}$ is its point-free relational refinement,
+\begin{equation}
+\label{eqn:trsk}
+\mathbf{Trsk} := \mathbf{Lwv} \cap \mathbf{Rel},
+\end{equation}
+the Tarskian calculus on which the algebra of \S\ref{sec:algebraic_lattice_carriers} stands.
+\end{definition}
 
 \begin{table}[htbp]
 \centering
@@ -1317,11 +1333,7 @@ Every homomorphism $f\colon A\to B$ factors through its image, an epimorphism $\
   A \;\twoheadrightarrow\; \operatorname{im}(f) \;\hookrightarrow\; B,
   \qquad f = \iota \circ \pi .
 \end{equation}
-And the disciplined fragment of \S\ref{sec:jlt_posture} \emph{models} carriers up to the continuum but \emph{materialises} only finite ones, so of the three constructions only the product carries an arity bound:
-\begin{equation}
-\label{eqn:model-materialise}
-  \mathbf{Jlt}\ \text{models} \le \beth_1, \qquad \mathbf{Jlt}\ \text{materialises} < \aleph_0 .
-\end{equation}
+And because $\mathbf{Jlt}$ materialises only finite carriers (the model/materialise gap of \S\ref{sec:intensional_sets}, Equation~\ref{eqn:model-materialise}), of the three constructions only the product carries an arity bound.
 
 \begin{table}[htbp]
 \centering
@@ -1498,7 +1510,7 @@ static_assert(
 \end{minipage}
 \end{listing}
 
-Listing~\ref{lst:algebra:universal} reifies the \emph{algebraic sets} of Figure~\ref{fig:hub-spoke-bnz} as \Cpp{23} types: the family $\mathbf{Ddk}$ is the reified intensional sets $\mathbf{Trsk}$~\eqref{eqn:trsk} met with universal algebra in the textbook sense~\cite{burris1981universalalgebra}, $\mathbf{Alg}(-)$\footnote{The dash is left unbound, the same $F_\Sigma$-algebra fragment a functional programmer would recognise~\cite{pierce1991basic}.  The smallness ceiling that keeps $\mathbf{Ddk}$ clear of proper-class self-reference is the ETCS power-object bound (Appendix~\ref{sec:etcs}, Axiom~9, $\beth_1$).}:
+Listing~\ref{lst:algebra:universal} reifies the \emph{algebraic sets} of Figure~\ref{fig:hub-spoke-bnz} as \Cpp{23} types: the family $\mathbf{Ddk}$ is the point-free relational calculus $\mathbf{Trsk}$~\eqref{eqn:trsk} met with universal algebra in the textbook sense~\cite{burris1981universalalgebra}, $\mathbf{Alg}(-)$\footnote{The dash is left unbound, the same $F_\Sigma$-algebra fragment a functional programmer would recognise~\cite{pierce1991basic}.  The smallness ceiling that keeps $\mathbf{Ddk}$ clear of proper-class self-reference is the ETCS power-object bound (Appendix~\ref{sec:etcs}, Axiom~9, $\beth_1$).}:
 \begin{equation}
 \label{eqn:ddk}
     \mathbf{Ddk} \;=\; \mathbf{Trsk} \,\cap\, \mathbf{Alg}(-).
