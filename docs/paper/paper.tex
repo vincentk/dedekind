@@ -1312,7 +1312,7 @@ static_assert(
 
 \begin{table}[htbp]
 \centering
-\caption{The three Birkhoff constructions H, S, P read across vocabularies.  Each column builds a new carrier from a given one and propagates its certificate; the \emph{finitary} row marks that only finite products are type-level constructible.}
+\caption{The three Birkhoff constructions H, S, P read across vocabularies.  H and S are the epi and mono of the arrow classification of \S\ref{sec:relations_functions_blueprint} (Table~\ref{tab:relation-quantifier}): every homomorphism factors as an \emph{epi} onto its image (H) followed by a \emph{mono} into the codomain (S), so a subalgebra is the mono half and an \emph{embedding} is its arrow.  P is the product.  The \emph{finitary} row marks that only finite products are type-level constructible.}
 \label{tab:hsp-rosetta}
 \small
 \begin{tabular}{@{}llll@{}}
@@ -1320,7 +1320,7 @@ static_assert(
  & \textbf{H} (quotient) & \textbf{S} (subalgebra) & \textbf{P} (product) \\
 \midrule
 universal algebra    & $A/\theta$, a congruence $\theta$       & closed $B \subseteq A$          & direct product $\prod_i A_i$ \\
-category theory      & coequalizer (regular epi)               & subobject (mono)                & product (limit) \\
+arrow class          & epi: a surjection                       & mono: an injection ($=$ embedding) & product: a limit \\
 relation (\textbf{Trsk}) & a congruence relation               & a closed predicate              & componentwise on a tuple \\
 concept              & \cppinline{IsCongruenceQuotient}        & \cppinline{IsSubalgebra}        & \cppinline{IsProductAlgebra} \\
 optimization         & normalise / fold                        & strength-reduce                 & prune (dead lanes) \\
