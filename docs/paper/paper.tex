@@ -1437,42 +1437,38 @@ exemplar             & $\mathbb{Z}/N\mathbb{Z}$, $F[\varepsilon]/(\varepsilon^2)
 
 \begin{figure}[htbp]
 \centering
-\begin{minipage}[b]{0.31\linewidth}\centering
 \resizebox{\linewidth}{!}{%
 \begin{tikzpicture}[every node/.style={font=\small}]
-  \node (b) at (1.2,0) {\texttt{bool}};
-  \node (f) at (0.2,1.7) {$\mathbb{F}_2$};
-  \node (l) at (2.2,1.7) {lattice};
-  \draw[->,thick] (b)--(f) node[midway,left=-2pt,font=\scriptsize]{$\oplus,\wedge$};
-  \draw[->,thick] (b)--(l) node[midway,right=-2pt,font=\scriptsize]{$\vee,\wedge$};
+  % bool
+  \node (b)  at (1,0) {\texttt{bool}};
+  \node (bf) at (0.1,1.6) {$\mathbb{F}_2$};
+  \node (bl) at (1.9,1.6) {lattice};
+  \draw[->,thick] (b)--(bf) node[midway,left=-2pt,font=\scriptsize]{$\oplus,\wedge$};
+  \draw[->,thick] (b)--(bl) node[midway,right=-2pt,font=\scriptsize]{$\vee,\wedge$};
+  % unsigned
+  \node (u)  at (5,0) {\texttt{unsigned}};
+  \node (ur) at (3.9,1.6) {$\mathbb{Z}/2^{w}\mathbb{Z}$};
+  \node (ul) at (6.1,1.6) {lattice};
+  \draw[->,thick] (u)--(ur) node[midway,left=-2pt,font=\scriptsize]{$+,\times$};
+  \draw[->,thick] (u)--(ul) node[midway,right=-2pt,font=\scriptsize]{$\max,\min$};
+  % double
+  \node (d)  at (9.6,0) {\texttt{double}};
+  \node (dc) at (8.4,1.6) {$\mathbb{R}/L\mathbb{Z}$};
+  \node (dx) at (10.8,1.6) {fixed-pt};
+  \node (dR) at (9.6,3.0) {$\mathbb{R}$};
+  \draw[->,thick] (d)--(dc) node[midway,left=-2pt,font=\scriptsize]{$+\bmod L$};
+  \draw[->,thick] (d)--(dx) node[midway,right=-2pt,font=\scriptsize]{bounded};
+  \draw[->,dashed,gray] (d)--(dR) node[midway,right,font=\scriptsize,black]{models};
+  % inter-cluster arrows (the tower)
+  \draw[->,thick] (b.east)--(u.west) node[midway,above,font=\scriptsize\itshape]{embed};
+  \draw[->,thick] (u.east)--(d.west) node[midway,above,font=\scriptsize\itshape]{to the continuum};
+  % materialise boundary
+  \draw[dashed] (7.25,-0.7) -- (7.25,2.3);
+  \node[font=\scriptsize\itshape,align=center] at (7.25,2.65) {materialise\\ boundary};
+  \node[font=\scriptsize\itshape] at (5.9,-0.65) {finite: exact};
+  \node[font=\scriptsize\itshape] at (8.7,-0.65) {infinite: modelled};
 \end{tikzpicture}}
-\\[0.3ex]{\footnotesize (a) \texttt{bool}: finite, exact}
-\end{minipage}\hfill
-\begin{minipage}[b]{0.33\linewidth}\centering
-\resizebox{\linewidth}{!}{%
-\begin{tikzpicture}[every node/.style={font=\small}]
-  \node (u) at (1.2,0) {\texttt{unsigned}};
-  \node (r) at (0.0,1.7) {$\mathbb{Z}/2^{w}\mathbb{Z}$};
-  \node (l) at (2.5,1.7) {lattice};
-  \draw[->,thick] (u)--(r) node[midway,left=-2pt,font=\scriptsize]{$+,\times$};
-  \draw[->,thick] (u)--(l) node[midway,right=-2pt,font=\scriptsize]{$\max,\min$};
-\end{tikzpicture}}
-\\[0.3ex]{\footnotesize (b) \texttt{unsigned}: finite ring, exact}
-\end{minipage}\hfill
-\begin{minipage}[b]{0.31\linewidth}\centering
-\resizebox{\linewidth}{!}{%
-\begin{tikzpicture}[every node/.style={font=\small}]
-  \node (d) at (1.2,0) {\texttt{double}};
-  \node (c) at (-0.1,1.7) {$\mathbb{R}/L\mathbb{Z}$};
-  \node (x) at (2.5,1.7) {fixed-pt};
-  \node (R) at (1.2,3.1) {$\mathbb{R}$};
-  \draw[->,thick] (d)--(c) node[midway,left=-2pt,font=\scriptsize]{$+\bmod L$};
-  \draw[->,thick] (d)--(x) node[midway,right=-2pt,font=\scriptsize]{bounded};
-  \draw[->,dashed,gray] (d)--(R) node[midway,right,font=\scriptsize,black]{models};
-\end{tikzpicture}}
-\\[0.3ex]{\footnotesize (c) \texttt{double}: compact = controlled, $\mathbb{R}$ = modelled}
-\end{minipage}
-\caption{Three primitive carriers, reconciled.  \textbf{(a)} \texttt{bool} is finite, so its algebras ($\mathbb{F}_2$, the Boolean lattice) are carried \emph{exactly} --- the algebra \emph{is} the carrier.  \textbf{(b)} \texttt{unsigned} is still finite and exact: a full commutative ring $\mathbb{Z}/2^{w}\mathbb{Z}$ that wraps cleanly.  \textbf{(c)} \texttt{double} \emph{models} $\mathbb{R}$ but cannot materialise it (overflow, rounding --- the dashed arrow); yet on \emph{compact} targets it is controlled --- a modulus gives the circle group $\mathbb{R}/L\mathbb{Z}$, the \emph{continuous} $\mathbb{Z}/n\mathbb{Z}$, and a bounded range gives fixed-point.  The same ``mod a subgroup'' that makes \texttt{unsigned} an exact ring makes \texttt{double} an honest carrier --- discrete in (b), continuous in (c).  None is rejected; the boundary is only the unbounded claim $\texttt{double} = \mathbb{R}$ (Equation~\ref{eqn:model-materialise}).}
+\caption{The primitive carriers as a tower, reconciled.  \texttt{bool} carries its algebras ($\mathbb{F}_2$, the Boolean lattice) \emph{exactly} --- the algebra \emph{is} the carrier --- and embeds into \texttt{unsigned}, still finite and exact: a full commutative ring $\mathbb{Z}/2^{w}\mathbb{Z}$ that wraps cleanly.  Crossing to the continuum, \texttt{double} \emph{models} $\mathbb{R}$ but cannot materialise it (overflow, rounding --- the dashed arrow); yet on \emph{compact} targets it is controlled --- a modulus gives the circle group $\mathbb{R}/L\mathbb{Z}$, the \emph{continuous} $\mathbb{Z}/n\mathbb{Z}$, and a bounded range gives fixed-point.  The same ``mod a subgroup'' that makes \texttt{unsigned} an exact ring makes \texttt{double} an honest carrier --- discrete on the left of the materialise boundary, continuous on the right.  None is rejected; the only rejection is the unbounded claim $\texttt{double} = \mathbb{R}$ (Equation~\ref{eqn:model-materialise}).}
 \label{fig:primitive-reconciliation}
 \end{figure}
 
