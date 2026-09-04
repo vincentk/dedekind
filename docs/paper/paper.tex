@@ -1341,6 +1341,43 @@ exemplar             & $\mathbb{Z}/N\mathbb{Z}$, $F[\varepsilon]/(\varepsilon^2)
 \end{tabular}
 \end{table}
 
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[scale=1.05, every node/.style={font=\small},
+                    axlbl/.style={font=\footnotesize\itshape}]
+  \coordinate (o)   at (0,0);
+  \coordinate (p)   at (3.1,0);
+  \coordinate (s)   at (0,2.4);
+  \coordinate (h)   at (1.35,1.05);
+  \coordinate (ps)  at (3.1,2.4);
+  \coordinate (ph)  at (4.45,1.05);
+  \coordinate (sh)  at (1.35,3.45);
+  \coordinate (psh) at (4.45,3.45);
+  % hidden (back) edges
+  \draw[dashed,gray] (h)--(ph);
+  \draw[dashed,gray] (h)--(sh);
+  % cube edges
+  \draw (o)--(p)--(ps)--(s)--(o);
+  \draw (p)--(ph) (s)--(sh) (ps)--(psh);
+  \draw (ph)--(psh)--(sh);
+  % axes (the three edges from the origin)
+  \draw[->,thick] (o)--(p) node[axlbl,pos=0.55,below]{P (product)};
+  \draw[->,thick] (o)--(s) node[axlbl,pos=0.55,left]{S (subalg.)};
+  \draw[->,thick,dashed,gray] (o)--(h) node[axlbl,pos=0.62,above left,black]{H (quotient)};
+  % vertices
+  \node[below left]  at (o)   {$\mathbb{B}$};
+  \node[below]       at (p)   {$\mathbb{B}^{n}$};
+  \node[left]        at (s)   {$\mathbb{N}\hookrightarrow\mathbb{Z}$};
+  \node[below right] at (h)   {$\mathbb{Z}/n\mathbb{Z}$};
+  \node[above left]  at (ps)  {$\mathbb{Z}^{n}$};
+  \node[right]       at (ph)  {$(\mathbb{Z}/n\mathbb{Z})^{n}$};
+  \node[above left]  at (sh)  {$F[\varepsilon]/(\varepsilon^{2})$};
+  \node[above right] at (psh) {$M_n(\mathbb{D})$};
+\end{tikzpicture}
+\caption{The construction cube: the three Birkhoff axes H (quotient), S (subalgebra), P (product) span a space of carriers, a lattice reading of Table~\ref{tab:hsp-rosetta} in the spirit of the lambda cube.  The origin is a base magma ($\mathbb{B}$); each axis applies one construction; composites sit at the corners, up to a matrix of dual numbers $M_n(\mathbb{D})$ at the far vertex.  Labels are representative carriers, not a functor on a fixed base.}
+\label{fig:hsp-cube}
+\end{figure}
+
 % Source excerpts from dedekind.algebra:universal and dedekind.category:total.
 \begin{listing}[!ht]
 \caption{$\mathbf{Ddk} = \mathbf{Trsk} \cap \mathbf{Alg}$, in three panels.
