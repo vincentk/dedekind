@@ -65,8 +65,10 @@
  */
 module;
 
+#include <cmath>  // std::isfinite (the finite-subset gate)
 #include <concepts>
 #include <functional>
+#include <optional>  // Kleisli lift F -> Maybe<safe_float<F>>
 
 export module dedekind.morphologies:floating_point;
 
@@ -176,5 +178,112 @@ static_assert(!dedekind::order::IsTotallyOrdered<double>,
               "Use IsOrderedField for the operational reading.");
 static_assert(!dedekind::order::IsTotallyOrdered<long double>,
               "long double is NOT IsTotallyOrdered: NaN breaks reflexivity.");
+
+// (3) Positive reconstruction on the finite subset -------------------------
+//
+// Claim (2) isolates NaN as the sole obstruction to reflexivity of <=.
+// Filter it out (finite = neither NaN nor +/-inf) and the order is total
+// again, so the subset is a genuine distributive lattice under (min, max):
+// the "double is sound after all" certificate, complementary to the
+// negative axiomatic pins above.  min / max select an operand -- no
+// arithmetic, no rounding -- so unlike (+, x) they close on the subset and
+// are exact and associative (a selection, not arithmetic; minsd / maxsd
+// -eligible).  This is the first
+// slice of the safe-float refined-type discipline (#496); the lattice pins
+// realise the carrier-lattice showcase (#452) / carrier-reflex sweep (#544)
+// for the IEEE carrier whose exact-real tension #191 tracks.
+//
+// (safe_float carries the FINITE invariant of #496; the lattice needs only
+//  !isnan, so a bare-NaN-free variant would retain +/-inf as top / bottom.)
+
+/** @brief Finite IEEE-754 subset: the invariant @c std::isfinite makes the
+ *  order total, so (unlike raw @c F) this carrier reflexively compares.
+ *
+ *  @details The representative is @b private and the sole construction path
+ *  is @c lift / @c try_safe_float: aggregate-initialising a NaN is ill-formed,
+ *  so the reflexivity certificate below rests on a @b guarantee, not a
+ *  convention.  This is the enforced form of the #496 @c safe_float.
+ *
+ *  @note @b Signed @b zeros.  @c -0.0 and @c +0.0 are distinct bit patterns
+ *  that compare @b equal, so @c <= is antisymmetric only @e up @e to @c ==,
+ *  which the defaulted @c operator== absorbs (they collapse to one lattice
+ *  element).  A hostile reader will poke here; the collapse is sound. */
+export template <std::floating_point F>
+class safe_float {
+  F value_;  ///< invariant: std::isfinite(value_), enforced by the private ctor
+  constexpr explicit safe_float(F x) noexcept : value_(x) {}  // the gate
+
+ public:
+  /** @brief Kleisli lift @f$F \to
+   *  \mathrm{Maybe}\langle\mathtt{safe\_float}\rangle@f$: @c nullopt on the
+   *  rejected boundary (NaN / +/-inf), else the finite value.  Sole entry. */
+  [[nodiscard]] static constexpr std::optional<safe_float> lift(F x) noexcept {
+    if (std::isfinite(x)) return safe_float(x);
+    return std::nullopt;
+  }
+
+  /** @brief Read the finite representative. */
+  [[nodiscard]] constexpr F value() const noexcept { return value_; }
+
+  friend constexpr auto operator<=>(const safe_float&,
+                                    const safe_float&) noexcept = default;
+  friend constexpr bool operator==(const safe_float&,
+                                   const safe_float&) noexcept = default;
+};
+
+/** @brief Free-function spelling of @c safe_float<F>::lift. */
+export template <std::floating_point F>
+[[nodiscard]] constexpr std::optional<safe_float<F>> try_safe_float(
+    F x) noexcept {
+  return safe_float<F>::lift(x);
+}
+
+/** @brief @f$\mathbb{L}\langle F\rangle@f$ --- the algebraic handle for the
+ *  finite-float @b lattice.  Names the @c (min, max) lattice @b reduct only;
+ *  the carrier's @c (+, x) arithmetic is deliberately @b not claimed (it is
+ *  non-associative under rounding).  @c safe_float<F> is the ASCII spelling. */
+export template <std::floating_point F>
+using 𝕃 = safe_float<F>;
+
+}  // namespace dedekind::morphologies
+
+namespace dedekind::category {
+
+// The finite invariant restores the order axioms that raw @c double lacks
+// (NaN breaks reflexivity); on @c safe_float they hold SOUNDLY.  Mirrors the
+// Rational<I> registration in numbers/rational.cppm.
+template <std::floating_point F>
+inline constexpr bool
+    is_reflexive_v<dedekind::morphologies::safe_float<F>, std::less_equal<>> =
+        true;
+template <std::floating_point F>
+inline constexpr bool
+    is_transitive_v<dedekind::morphologies::safe_float<F>, std::less_equal<>> =
+        true;
+template <std::floating_point F>
+inline constexpr bool is_antisymmetric_v<dedekind::morphologies::safe_float<F>,
+                                         std::less_equal<>> = true;
+
+}  // namespace dedekind::category
+
+namespace dedekind::morphologies {
+
+// The positive lattice certificates for the finite double subset.
+static_assert(dedekind::order::IsTotallyOrdered<safe_float<double>>,
+              "safe_float<double> IS totally ordered: excluding NaN restores "
+              "reflexivity of <=, the sole obstruction on raw double.");
+// Pin the full DISTRIBUTIVE lattice, not the two semilattices separately: this
+// bundles meet + join + absorption + both distributivity directions, so a
+// future concept/trait change cannot leave 𝕃 passing only the weaker
+// semilattice checks (min/max distributivity + absorption ride the blanket
+// registrations in category/species.cppm; a chain is distributive).  min/max
+// are selections -- exact and associative -- so minsd/maxsd-eligible.
+static_assert(dedekind::order::IsOrderDistributiveLattice<safe_float<double>>,
+              "safe_float<double> is a distributive lattice under (min, max).");
+
+// The 𝕃 handle in action: 𝕃<double> IS the finite-double distributive lattice.
+static_assert(
+    dedekind::order::IsOrderDistributiveLattice<𝕃<double>>,
+    "𝕃<double> is the finite-double distributive lattice (min, max).");
 
 }  // namespace dedekind::morphologies
