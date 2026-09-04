@@ -1299,15 +1299,15 @@ The section is four capabilities, each a compile-time certificate (Listing~\ref{
 \begin{minipage}[t]{0.49\linewidth}
 \textbf{magma} --- a carrier with a closed operation
 \begin{cpp}
-// ℤ/12ℤ: + closes on the carrier
-static_assert(IsMagma<Modular<12>,
-                std::plus<Modular<12>>>);
+// ℤ/8ℤ: + closes on the carrier
+static_assert(IsMagma<Modular<8u>,
+                std::plus<Modular<8u>>>);
 \end{cpp}
 \textbf{H} --- quotient by a congruence
 \begin{cpp}
-// Modular<12> = ℤ/(≡ mod 12)
+// Modular<8> = unsigned/(≡ mod 8), 8|2^w
 static_assert(IsCongruenceQuotient<
-    Modular<12>, std::plus<int>>);
+    Modular<8u>, std::plus<unsigned>>);
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.49\linewidth}
@@ -1551,7 +1551,7 @@ This reaches exactly the Birkhoff-closed constructions, product, quotient, and s
 
 % Source excerpts from dedekind.algebra:quotient and dedekind.morphologies:cyclic.
 \begin{listing}[!ht]
-\caption{The relational H (quotient) leg: a quotient $Q = V/R$ is declared by naming its \emph{congruence} relation $R$ on the carrier $V$ (left), and \cppinline{Modular<N>} $= \mathbb{Z}/N\mathbb{Z}$ names the mod-$N$ relation as its congruence (right).  \cppinline{IsCongruence} checks that $R$ is an equivalence preserved by the operation, so \cppinline{IsCongruenceQuotient} holds and the certificate rides the relation.  Carriers whose pre-quotient is not itself a reified carrier (the dual numbers $\mathbb{D} = F[\varepsilon]/(\varepsilon^2)$, $\mathbb{C}$, $\mathbb{Q}$) instead declare a trait-propagation base; the P (product) and S (subalgebra) legs mirror the same shape.}
+\caption{The relational H (quotient) leg: a quotient $Q = V/R$ is declared by naming its \emph{congruence} relation $R$ on the carrier $V$ (left), and \cppinline{Modular<N>} $= \mathbb{Z}/N\mathbb{Z}$ names the mod-$N$ relation as its congruence (right).  \cppinline{IsCongruence} checks that $R$ is an equivalence preserved by the operation, so \cppinline{IsCongruenceQuotient} holds --- on the machine carrier $\mathbb{Z}/2^{w}\mathbb{Z}$ this needs $N$ a power of two ($N=8$ here), so that native wraparound agrees with mod-$N$ reduction --- and the certificate rides the relation.  Carriers whose pre-quotient is not itself a reified carrier (the dual numbers $\mathbb{D} = F[\varepsilon]/(\varepsilon^2)$, $\mathbb{C}$, $\mathbb{Q}$) instead declare a trait-propagation base; the P (product) and S (subalgebra) legs mirror the same shape.}
 \label{lst:hsp-combinators}
 \noindent
 \begin{minipage}[t]{0.52\linewidth}
@@ -1591,10 +1591,10 @@ struct quotient_congruence<Modular<N>> {
   using carrier =
     typename Modular<N>::machine_type;
 };
-// the relation IS a congruence, so the
-// quotient rides it:
+// a congruence for native + iff N|2^w;
+// Modular<8> = unsigned/(≡ mod 8):
 static_assert(IsCongruenceQuotient<
-    Modular<12>, std::plus<int>>);
+    Modular<8u>, std::plus<unsigned>>);
 \end{cpp}
 \end{minipage}
 \end{listing}
