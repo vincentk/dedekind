@@ -83,8 +83,5 @@ TEST_CASE(
 TEST_CASE("morphologies:safe_float — the lattice concepts fire",
           "[morphologies][safe_float][lattice][concepts]") {
   STATIC_CHECK(dedekind::order::IsTotallyOrdered<SF>);
-  STATIC_CHECK(
-      dedekind::category::IsCertifiedOrderMeetSemilattice<mo::𝕃<double>>);
-  STATIC_CHECK(
-      dedekind::category::IsCertifiedOrderJoinSemilattice<mo::𝕃<double>>);
+  STATIC_CHECK(dedekind::order::IsOrderDistributiveLattice<mo::𝕃<double>>);
 }

@@ -272,19 +272,18 @@ namespace dedekind::morphologies {
 static_assert(dedekind::order::IsTotallyOrdered<safe_float<double>>,
               "safe_float<double> IS totally ordered: excluding NaN restores "
               "reflexivity of <=, the sole obstruction on raw double.");
-static_assert(
-    dedekind::category::IsCertifiedOrderMeetSemilattice<safe_float<double>>,
-    "safe_float<double> is a meet-semilattice under std::ranges::min "
-    "(a selection, so exact and associative -- no rounding; minsd-eligible).");
-static_assert(
-    dedekind::category::IsCertifiedOrderJoinSemilattice<safe_float<double>>,
-    "safe_float<double> is a join-semilattice under std::ranges::max "
-    "(maxsd-eligible).  Meet + Join on a chain = a distributive lattice.");
+// Pin the full DISTRIBUTIVE lattice, not the two semilattices separately: this
+// bundles meet + join + absorption + both distributivity directions, so a
+// future concept/trait change cannot leave 𝕃 passing only the weaker
+// semilattice checks (min/max distributivity + absorption ride the blanket
+// registrations in category/species.cppm; a chain is distributive).  min/max
+// are selections -- exact and associative -- so minsd/maxsd-eligible.
+static_assert(dedekind::order::IsOrderDistributiveLattice<safe_float<double>>,
+              "safe_float<double> is a distributive lattice under (min, max).");
 
-// The 𝕃 handle in action: 𝕃<double> IS the finite-double (min, max) lattice.
+// The 𝕃 handle in action: 𝕃<double> IS the finite-double distributive lattice.
 static_assert(
-    dedekind::category::IsCertifiedOrderMeetSemilattice<𝕃<double>> &&
-        dedekind::category::IsCertifiedOrderJoinSemilattice<𝕃<double>>,
-    "𝕃<double> is the finite-double lattice (min, max).");
+    dedekind::order::IsOrderDistributiveLattice<𝕃<double>>,
+    "𝕃<double> is the finite-double distributive lattice (min, max).");
 
 }  // namespace dedekind::morphologies
