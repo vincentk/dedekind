@@ -1439,36 +1439,33 @@ exemplar             & $\mathbb{Z}/N\mathbb{Z}$, $F[\varepsilon]/(\varepsilon^2)
 \centering
 \resizebox{\linewidth}{!}{%
 \begin{tikzpicture}[every node/.style={font=\small}]
-  % bool
-  \node (b)  at (1,0) {\texttt{bool}};
-  \node (bf) at (0.1,1.6) {$\mathbb{F}_2$};
-  \node (bl) at (1.9,1.6) {lattice};
-  \draw[->,thick] (b)--(bf) node[midway,left=-2pt,font=\scriptsize]{$\oplus,\wedge$};
-  \draw[->,thick] (b)--(bl) node[midway,right=-2pt,font=\scriptsize]{$\vee,\wedge$};
-  % unsigned
-  \node (u)  at (5,0) {\texttt{unsigned}};
-  \node (ur) at (3.9,1.6) {$\mathbb{Z}/2^{w}\mathbb{Z}$};
-  \node (ul) at (6.1,1.6) {lattice};
-  \draw[->,thick] (u)--(ur) node[midway,left=-2pt,font=\scriptsize]{$+,\times$};
-  \draw[->,thick] (u)--(ul) node[midway,right=-2pt,font=\scriptsize]{$\max,\min$};
-  % double
-  \node (d)  at (9.6,0) {\texttt{double}};
-  \node (dc) at (8.4,1.6) {$\mathbb{R}/L\mathbb{Z}$};
-  \node (dx) at (10.8,1.6) {fixed-pt};
-  \node (dR) at (9.6,3.0) {$\mathbb{R}$};
-  \draw[->,thick] (d)--(dc) node[midway,left=-2pt,font=\scriptsize]{$+\bmod L$};
-  \draw[->,thick] (d)--(dx) node[midway,right=-2pt,font=\scriptsize]{bounded};
-  \draw[->,dashed,gray] (d)--(dR) node[midway,right,font=\scriptsize,black]{models};
-  % inter-cluster arrows (the tower)
-  \draw[->,thick] (b.east)--(u.west) node[midway,above,font=\scriptsize\itshape]{embed};
-  \draw[->,thick] (u.east)--(d.west) node[midway,above,font=\scriptsize\itshape]{to the continuum};
-  % materialise boundary
-  \draw[dashed] (7.25,-0.7) -- (7.25,2.3);
-  \node[font=\scriptsize\itshape,align=center] at (7.25,2.65) {materialise\\ boundary};
-  \node[font=\scriptsize\itshape] at (5.9,-0.65) {finite: exact};
-  \node[font=\scriptsize\itshape] at (8.7,-0.65) {infinite: modelled};
+  % each machine type is an EXACT shadow of a modular Form
+  \foreach \C/\Cube/\Type in {%
+      1.5/{$\mathbb{B}$}/bool,
+      5.5/{$\mathbb{Z}/2^{w}\mathbb{Z}$}/{size\_t},
+      9.5/{$\mathbb{Q}\bmod L$}/double}{
+    \draw[thick] (\C-0.5,1.3)--(\C+0.5,1.3)--(\C+0.5,2.3)--(\C-0.5,2.3)--cycle;
+    \draw[thick] (\C-0.15,1.65)--(\C+0.85,1.65)--(\C+0.85,2.65)--(\C-0.15,2.65)--cycle;
+    \draw[thick] (\C-0.5,1.3)--(\C-0.15,1.65) (\C+0.5,1.3)--(\C+0.85,1.65)
+                 (\C+0.5,2.3)--(\C+0.85,2.65) (\C-0.5,2.3)--(\C-0.15,2.65);
+    \node[font=\footnotesize] at (\C+0.17,0.95) {\Cube};
+    \draw[fill=black!12] (\C+0.17,-0.05) ellipse (0.8 and 0.2);
+    \node at (\C+0.17,-0.7) {\texttt{\Type}};
+    \draw[dashed,gray] (\C-0.5,1.3)--(\C-0.6,0.12) (\C+0.85,1.65)--(\C+0.95,0.1);
+    \node[font=\scriptsize\itshape,gray] at (\C+0.17,0.4) {exact};
+  }
+  % the infinite ideals, reached as period -> infinity
+  \node[font=\footnotesize] at (5.67,3.7) {$\mathbb{Z}$};
+  \draw[->,dashed] (5.67,2.75)--(5.67,3.45) node[midway,right,font=\scriptsize\itshape]{$w\to\infty$};
+  \node[font=\footnotesize] at (9.67,3.7) {$\mathbb{R}$};
+  \draw[->,dashed] (9.67,2.75)--(9.67,3.45) node[midway,right,font=\scriptsize\itshape]{$L\to\infty$};
+  \node[font=\scriptsize\itshape] at (1.67,3.55) {already finite};
+  % the tower of forms
+  \draw[->,thick] (2.5,1.8)--(4.5,1.8) node[midway,above,font=\scriptsize\itshape]{$\subset$};
+  \draw[->,thick] (6.6,1.8)--(8.5,1.8) node[midway,above,font=\scriptsize\itshape]{$\subset$};
+  \node[font=\scriptsize\itshape] at (5.67,-1.25) {machine primitives $=$ exact shadows of modular Forms; the ideals are their period-$\infty$ limits};
 \end{tikzpicture}}
-\caption{The primitive carriers as a tower, reconciled.  \texttt{bool} carries its algebras ($\mathbb{F}_2$, the Boolean lattice) \emph{exactly} --- the algebra \emph{is} the carrier --- and embeds into \texttt{unsigned}, still finite and exact: a full commutative ring $\mathbb{Z}/2^{w}\mathbb{Z}$ that wraps cleanly.  Crossing to the continuum, \texttt{double} \emph{models} $\mathbb{R}$ but cannot materialise it (overflow, rounding --- the dashed arrow); yet on \emph{compact} targets it is controlled --- a modulus gives the circle group $\mathbb{R}/L\mathbb{Z}$, the \emph{continuous} $\mathbb{Z}/n\mathbb{Z}$, and a bounded range gives fixed-point.  The same ``mod a subgroup'' that makes \texttt{unsigned} an exact ring makes \texttt{double} an honest carrier --- discrete on the left of the materialise boundary, continuous on the right.  None is rejected; the only rejection is the unbounded claim $\texttt{double} = \mathbb{R}$ (Equation~\ref{eqn:model-materialise}).}
+\caption{The primitive carriers are \emph{exact} shadows of modular Forms.  Each machine type materialises a finite, periodic algebra exactly: \texttt{bool} is $\mathbb{B}$; \texttt{size\_t} is the modular ring $\mathbb{Z}/2^{w}\mathbb{Z}$; \texttt{double}, being a dyadic rational, realises a bounded modular-rational carrier ($\mathbb{Q}\bmod L$) as a genuine subalgebra.  The infinite ideals are not \emph{lost} but \emph{approached}: as the period grows ($w\to\infty$, $L\to\infty$) the modular Form becomes an ever more faithful shadow of the algebra being modelled --- $\mathbb{Z}/2^{w}\mathbb{Z}\to\mathbb{Z}$, and the refining modular-rational circle $\to\mathbb{R}$.  So the materialise boundary is not a wall but a limit: the machine gives \emph{exact} algebra at every finite stage, and the continuum is the colimit no finite stage reaches (Equation~\ref{eqn:model-materialise}).}
 \label{fig:primitive-reconciliation}
 \end{figure}
 
