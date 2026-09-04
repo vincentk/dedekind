@@ -18,6 +18,10 @@
  * use) honestly rejects — the relational reading requires the congruence.
  *  - Negative gate (not a congruence): a declared relation that is not an
  *    @c IsCongruence honestly rejects.
+ *  - Negative gate (no projection): a genuine congruence on a non-reducing
+ *    empty marker rejects — the concept ties @c Q to @c V/R via the canonical
+ *    projection @f$V\to Q@f$ (Copilot #803), so a free-floating congruence is
+ *    not enough.
  *  - Runtime exercise of the congruence relation (codecov).
  */
 
@@ -30,14 +34,18 @@ import dedekind.category;
 namespace dedekind::category {
 namespace _congruence_quotient_witnesses {
 
-/** @brief Carrier declaring @b both hooks: a quotient of @c int by the
- *         diagonal congruence @c (=).  @c std::equal_to is a registered
- *         congruence for @c + and @c × (@c :cartesian), so this is the
- *         canonical positive: the identity quotient @c int/(=). */
-struct int_by_equality {};
+/** @brief Positive: a quotient of @c int by the diagonal congruence @c (=),
+ *         @b reducing from @c int (the projection is the identity).
+ *         @c std::equal_to is a registered congruence for @c + and @c ×
+ *         (@c :cartesian), so this is the canonical identity quotient
+ *         @c int/(=). */
+struct int_by_equality {
+  int value;
+  constexpr explicit int_by_equality(int v) : value(v) {}
+};
 
-/** @brief Carrier declaring @b only the trait-propagation base
- *         (@c quotient_algebra_base), no congruence — the type-declaration
+/** @brief Negative (no congruence): declares @b only the trait-propagation
+ *         base (@c quotient_algebra_base), no congruence — the type-declaration
  *         path that @c Dual / @c Complex / @c Rational currently use. */
 struct int_type_only {};
 
@@ -45,8 +53,18 @@ struct int_type_only {};
  *         used to exercise the @c IsCongruence gate inside the concept. */
 struct bogus_relation {};
 
-/** @brief Carrier declaring a congruence hook that names a non-congruence. */
-struct int_by_bogus {};
+/** @brief Negative (not a congruence): reduces from @c int but names a
+ *         non-congruence relation — isolates the @c IsCongruence gate. */
+struct int_by_bogus {
+  int value;
+  constexpr explicit int_by_bogus(int v) : value(v) {}
+};
+
+/** @brief Negative (no projection): declares a @b genuine congruence but is an
+ *         empty marker @b not constructible from its carrier @c int, so it is
+ *         not tied to @c V/R.  This is the Copilot #803 case: a free-floating
+ *         congruence on an unrelated type must be rejected by clause (2). */
+struct int_marker_no_proj {};
 
 }  // namespace _congruence_quotient_witnesses
 
@@ -67,6 +85,13 @@ struct quotient_algebra_base<_congruence_quotient_witnesses::int_type_only> {
 template <>
 struct quotient_congruence<_congruence_quotient_witnesses::int_by_bogus> {
   using type = _congruence_quotient_witnesses::bogus_relation;
+  using carrier = int;
+};
+
+// --- Genuine congruence, but the carrier is a non-reducing empty marker. -----
+template <>
+struct quotient_congruence<_congruence_quotient_witnesses::int_marker_no_proj> {
+  using type = std::equal_to<int>;
   using carrier = int;
 };
 
@@ -115,6 +140,21 @@ TEST_CASE(
    *         the congruence obligation is real, not a formality. */
   STATIC_CHECK_FALSE(
       IsCongruenceQuotient<_congruence_quotient_witnesses::int_by_bogus,
+                           std::plus<int>>);
+}
+
+TEST_CASE(
+    "algebra:congruence-quotient — negative gate: a genuine congruence on a "
+    "non-reducing marker is not tied to V/R",
+    "[algebra][quotient][HSP-H][negative][projection-gate]") {
+  /** @brief The Copilot #803 case: @c int_marker_no_proj declares a @b genuine
+   *         congruence (@c int/(=)) but is an empty type not constructible from
+   *         its carrier @c int, so the canonical projection @f$V\to Q@f$ is
+   *         absent and the concept honestly rejects.  This pins clause (2): a
+   *         free-floating congruence on an unrelated type is not a congruence
+   *         quotient. */
+  STATIC_CHECK_FALSE(
+      IsCongruenceQuotient<_congruence_quotient_witnesses::int_marker_no_proj,
                            std::plus<int>>);
 }
 

@@ -68,6 +68,7 @@
  */
 module;
 
+#include <concepts>  // std::same_as (the projection tie in IsCongruenceQuotient)
 #include <functional>  // std::plus / std::multiplies in the propagation
 
 export module dedekind.algebra:quotient;
@@ -226,15 +227,28 @@ using quotient_congruence_carrier_t = typename quotient_congruence<Q>::carrier;
 
 /** @concept IsCongruenceQuotient
  *  @brief @c Q is a quotient of a carrier @c V by a @b declared @b congruence
- *         for @c Op --- the relational reading of the H leg.
- *  @details Holds when @c Q declares a @c quotient_congruence whose relation
- *           @c R is a genuine congruence on its carrier @c V
- *           (@c IsCongruence<R, @c V, @c Op>): an equivalence preserved by
- *           @c Op.  The H-leg analogue of @c IsSubalgebra (S).  Independent of
- *           @c IsQuotientAlgebra (see the note above): a carrier may certify
- *           its own traits directly yet still be witnessed relationally as
- *           @c V/R.
- *  @tparam Q  the quotient carrier (declares @c quotient_congruence).
+ *         @c R for @c Op @b and reduces from @c V --- the relational reading of
+ *         the H leg.
+ *  @details Holds when
+ *           (1) @c Q declares a @c quotient_congruence whose relation @c R is a
+ *               genuine congruence on its carrier @c V (@c
+ * IsCongruence<R,V,Op>: an equivalence preserved by @c Op), @b and (2) the
+ * canonical projection @f$V \twoheadrightarrow Q@f$ exists ---
+ *               @c Q is constructible from a carrier value (@c Q{v}) --- so
+ *               @c Q is @b tied to @c V/R, not merely accompanied by a
+ *               free-floating congruence.  A bare marker type with no reduction
+ *               is rejected.
+ *
+ *           Clause (2) is the honest ceiling: a full quotient @b proof
+ *           (@f$\forall a,b:\ \mathrm{proj}\,a=\mathrm{proj}\,b \iff R(a,b)@f$)
+ *           is Rice-undecidable, so the concept certifies the @b structural tie
+ *           (a congruence on @c V plus a reduction @c V\to Q), not the
+ *           extensional identity.  The H-leg analogue of @c IsSubalgebra (S),
+ *           and independent of @c IsQuotientAlgebra (see the note above): a
+ *           carrier may certify its own traits directly yet still be witnessed
+ *           relationally as @c V/R.
+ *  @tparam Q  the quotient carrier (declares @c quotient_congruence, reduces
+ *             from @c V).
  *  @tparam Op the carrier operation the congruence must respect (e.g.\
  *             @c std::plus).
  */
@@ -243,16 +257,25 @@ concept IsCongruenceQuotient =
     requires {
       typename quotient_congruence<Q>::type;
       typename quotient_congruence<Q>::carrier;
-    } && IsCongruence<quotient_congruence_t<Q>,
-                      quotient_congruence_carrier_t<Q>, Op>;
+    } &&
+    IsCongruence<quotient_congruence_t<Q>, quotient_congruence_carrier_t<Q>,
+                 Op> &&
+    requires(quotient_congruence_carrier_t<Q> v) {
+      { Q{v} } -> std::same_as<Q>;  // the canonical projection V ->> Q
+    };
 
-// Self-contained witness that the relational H-leg plumbing composes.
-// @c std::equal_to is the diagonal congruence (@c :cartesian), so the identity
-// quotient @c int/(=) satisfies the concept.  A genuine non-trivial carrier
-// (@c Modular<N> @c = @c V/(≡ mod N)) declares its congruence downstream in
-// @c morphologies:cyclic.
+// Self-contained witness that the relational H-leg plumbing composes.  @c
+// IntByEquality is the identity quotient @c int/(=): @c std::equal_to is the
+// diagonal (finest) congruence (@c :cartesian), and the projection @c int ->> Q
+// is the identity (the ctor from @c int).  Being a real reducing type, not an
+// empty marker, it satisfies clause (2).  A genuine non-trivial carrier
+// (@c Modular<2^k> @c = @c unsigned/(≡ mod 2^k), @c N a power of two) declares
+// its congruence downstream in @c morphologies:cyclic.
 namespace detail_quotient {
-struct IntByEquality {};
+struct IntByEquality {
+  int value;  ///< int / (=) ≅ int; the projection V ->> Q is the identity.
+  constexpr explicit IntByEquality(int v) : value(v) {}
+};
 }  // namespace detail_quotient
 
 template <>
@@ -263,9 +286,9 @@ struct quotient_congruence<detail_quotient::IntByEquality> {
 
 static_assert(
     IsCongruenceQuotient<detail_quotient::IntByEquality, std::plus<int>>,
-    "H-leg relational reading: a quotient by a declared congruence (here "
-    "int/(=), the diagonal congruence) is recognised as a congruence "
-    "quotient.");
+    "H-leg relational reading: a quotient by a declared congruence that also "
+    "reduces from its carrier (here int/(=), the diagonal congruence, reducing "
+    "by the identity) is recognised as a congruence quotient.");
 
 // ---------------------------------------------------------------------------
 // P (Direct Product) — Birkhoff's HSP, Burris-Sankappanavar §II.10.
