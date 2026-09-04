@@ -1,8 +1,9 @@
 /**
  * @file dedekind/algebra/quotient.cppm
  * @partition :quotient
- * @brief HSP structure-preserving operations on algebras — H (quotient)
- *        + P (direct product) carrier-side concepts and structural-trait
+ * @brief HSP structure-preserving operations on algebras — H (quotient,
+ *        with a relational congruence reading) + P (direct product) + S
+ *        (subalgebra) carrier-side concepts and structural-trait
  *        propagation.
  *
  * @copyright 2026 The Dedekind Authors
@@ -67,6 +68,7 @@
  */
 module;
 
+#include <concepts>  // std::same_as (the projection tie in IsCongruenceQuotient)
 #include <functional>  // std::plus / std::multiplies in the propagation
 
 export module dedekind.algebra:quotient;
@@ -182,6 +184,125 @@ template <typename Q>
 struct is_idempotent<Q, std::multiplies<Q>>
     : is_idempotent<quotient_algebra_base_t<Q>,
                     std::multiplies<quotient_algebra_base_t<Q>>> {};
+
+// --- H-leg, relationally: the quotient rides a CONGRUENCE (a relation) ------
+//
+// The propagation above rides @c quotient_algebra_base<Q>::type --- the
+// base carrier, a bare type pointer.  This block adds the @b relational
+// reading, symmetric with the S-leg's @c is_closed_under_v / @c IsSubalgebra
+// (below): a quotient @c Q @c = @c V/R is witnessed by a @b congruence
+// relation @c R on the carrier @c V --- an equivalence preserved by the
+// operation, @c :cartesian's @c IsCongruence.  Declaring @c R makes the
+// H-leg's Birkhoff justification @b a @b relation @b you @b can @b see,
+// closing the asymmetry where H carried only a type pointer while S already
+// carried a relation.
+//
+// @b Deliberately @b decoupled from @c IsQuotientAlgebra (the trait-
+// propagation base).  The two are separate concerns: propagation lifts a
+// base's traits to @c Q via @c quotient_algebra_base, whereas the congruence
+// merely @b witnesses that @c Q @c = @c V/R.  A carrier may set its traits
+// @b directly and still be a congruence quotient --- e.g.\ @c Modular<N> is
+// total by wraparound while its integer carrier @c V is not, so it must
+// @b not inherit @c V's (non-total) traits by propagation, yet @c Modular<N>
+// @c = @c V/(≡ mod N) is a genuine congruence quotient.  Coupling the two
+// would corrupt such a carrier's certification; keeping them apart is the
+// honest factoring.
+
+/** @brief @c quotient_congruence<Q>: carrier-side declaration of the
+ *  congruence witnessing @c Q @c = @c V/R.  @c ::type is the relation @c R,
+ *  @c ::carrier is the carrier @c V that @c R lives on (@c R is a homogeneous
+ *  relation on @c V).  Mirrors the S-leg's @c subalgebra_base<S>. */
+export template <typename Q>
+struct quotient_congruence {};
+
+/** @brief Convenience alias for @c quotient_congruence<Q>::type (the
+ *  congruence relation @c R). */
+export template <typename Q>
+using quotient_congruence_t = typename quotient_congruence<Q>::type;
+
+/** @brief Convenience alias for @c quotient_congruence<Q>::carrier (the
+ *  carrier @c V that the congruence lives on). */
+export template <typename Q>
+using quotient_congruence_carrier_t = typename quotient_congruence<Q>::carrier;
+
+/** @concept IsCongruenceQuotient
+ *  @brief @c Q is a quotient of a carrier @c V by a @b declared @b congruence
+ *         @c R for @c Op @b and reduces from @c V --- the relational reading of
+ *         the H leg.
+ *  @details Holds when
+ *           (1) @c Q declares a @c quotient_congruence whose relation @c R is a
+ *               genuine congruence on its carrier @c V (@c
+ * IsCongruence<R,V,Op>: an equivalence preserved by @c Op), @b and (2) the
+ * canonical projection @f$V \twoheadrightarrow Q@f$ exists ---
+ *               @c Q is constructible from a carrier value (@c Q{v}) --- so
+ *               @c Q is @b tied to @c V/R, not merely accompanied by a
+ *               free-floating congruence.  A bare marker type with no reduction
+ *               is rejected.
+ *
+ *           Clause (2) is the honest ceiling: a full quotient @b proof
+ *           (@f$\forall a,b:\ \mathrm{proj}\,a=\mathrm{proj}\,b \iff R(a,b)@f$)
+ *           is Rice-undecidable, so the concept certifies the @b structural tie
+ *           (a congruence on @c V plus a reduction @c V\to Q), not the
+ *           extensional identity.  The H-leg analogue of @c IsSubalgebra (S),
+ *           and independent of @c IsQuotientAlgebra (see the note above): a
+ *           carrier may certify its own traits directly yet still be witnessed
+ *           relationally as @c V/R.
+ *  @tparam Q  the quotient carrier (declares @c quotient_congruence, reduces
+ *             from @c V).
+ *  @tparam Op the carrier operation the congruence must respect (e.g.\
+ *             @c std::plus).
+ */
+export template <typename Q, typename Op>
+concept IsCongruenceQuotient =
+    requires {
+      typename quotient_congruence<Q>::type;
+      typename quotient_congruence<Q>::carrier;
+    } &&
+    IsCongruence<quotient_congruence_t<Q>, quotient_congruence_carrier_t<Q>,
+                 Op> &&
+    requires(quotient_congruence_carrier_t<Q> v) {
+      { Q{v} } -> std::same_as<Q>;  // the canonical projection V ->> Q
+    };
+
+// @note WITNESS, not law-forwarder (Copilot #803).  Law-trait forwarding rides
+// the TYPE-POINTER path (@c IsQuotientAlgebra, above), which lifts laws from a
+// well-behaved base (@c Rational @c = @c Frac(I), @c Complex, @c Dual).
+// Forwarding via the CONGRUENCE is deliberately NOT done, and would be @b
+// unsound for a machine-carrier quotient: @c Modular<N>'s carrier @c V
+// (@c unsigned/@c int) has broken arithmetic --- @c is_associative_v<int,
+// std::plus<int>> is @b false (overflow) --- so forwarding @c V's laws to @c Q
+// would make @c Modular<N> non-associative, which is @b wrong: @c Modular<N> is
+// associative by its own total mod-N construction.  Its laws are @b intrinsic,
+// not inherited; the congruence merely @b witnesses @c Q @c = @c V/R.  The two
+// paths (forward-from-base vs.\ witness-intrinsic) serve disjoint quotient
+// classes and coexist by design; #801's "retire @c quotient_algebra_base" is
+// unsound to merge for exactly this reason.
+//
+// Self-contained witness that the relational H-leg plumbing composes.  @c
+// IntByEquality is the identity quotient @c int/(=): @c std::equal_to is the
+// diagonal (finest) congruence (@c :cartesian), and the projection @c int ->> Q
+// is the identity (the ctor from @c int).  Being a real reducing type, not an
+// empty marker, it satisfies clause (2).  A genuine non-trivial carrier
+// (@c Modular<2^k> @c = @c unsigned/(≡ mod 2^k), @c N a power of two) declares
+// its congruence downstream in @c morphologies:cyclic.
+namespace detail_quotient {
+struct IntByEquality {
+  int value;  ///< int / (=) ≅ int; the projection V ->> Q is the identity.
+  constexpr explicit IntByEquality(int v) : value(v) {}
+};
+}  // namespace detail_quotient
+
+template <>
+struct quotient_congruence<detail_quotient::IntByEquality> {
+  using type = std::equal_to<int>;
+  using carrier = int;
+};
+
+static_assert(
+    IsCongruenceQuotient<detail_quotient::IntByEquality, std::plus<int>>,
+    "H-leg relational reading: a quotient by a declared congruence that also "
+    "reduces from its carrier (here int/(=), the diagonal congruence, reducing "
+    "by the identity) is recognised as a congruence quotient.");
 
 // ---------------------------------------------------------------------------
 // P (Direct Product) — Birkhoff's HSP, Burris-Sankappanavar §II.10.

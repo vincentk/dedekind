@@ -175,3 +175,40 @@ TEST_CASE(
   STATIC_CHECK(is_periodic_v<Z6, std::plus<Z6>>);
   STATIC_CHECK(is_periodic_v<S, std::plus<S>>);
 }
+
+TEST_CASE(
+    "algebra:hsp_closed — H leg, relationally: Modular<N> is a congruence "
+    "quotient V/(≡ mod N)",
+    "[algebra][quotient][HSP][birkhoff][H][relational]") {
+  /** @brief The @b relational reading of the H leg (#801).  Where the
+   *         synthetic H marker above rides @c quotient_algebra_base (trait
+   *         propagation), @c Modular<N> @b itself is witnessed as
+   *         @f$V/({\equiv}\bmod N)@f$ by a genuine congruence relation
+   *         (@c ModularCongruence<N>), via @c IsCongruenceQuotient.  @c Modular
+   *         certifies its own (total, wraparound) traits directly, so this is
+   *         the congruence @b witness — decoupled from propagation, since its
+   *         non-total integer carrier must not lift its traits to @c Modular.
+   */
+  using dedekind::morphologies::ModularCongruence;
+  using Z8 = Modular<8u>;
+  using Cong8 = ModularCongruence<8u>;
+
+  // At a power-of-two modulus (8 | 2^w) native + preserves ≡ mod 8, so the
+  // relation is a genuine congruence and Modular<8> = unsigned/(≡ mod 8) is a
+  // machine congruence quotient:
+  STATIC_CHECK(IsEquivalenceRelation<Cong8, unsigned>);
+  STATIC_CHECK(IsCongruence<Cong8, unsigned, std::plus<unsigned>>);
+  STATIC_CHECK(IsCongruenceQuotient<Z8, std::plus<unsigned>>);
+
+  // Honest negative: the file's base Modular<6> is NOT a machine congruence
+  // quotient (6 ∤ 2^w, so native + wraps inconsistently with mod 6).  The
+  // type-pointer H/S/P propagation above is base-agnostic and still holds for
+  // Modular<6>; only the relational reading requires N | 2^w (Copilot #803).
+  STATIC_CHECK_FALSE(IsCongruenceQuotient<Z6, std::plus<int>>);
+
+  // Runtime exercise of the congruence relation (codecov):
+  Cong8 cong{};
+  CHECK(cong(1u, 9u));        // 1 ≡ 9 (mod 8)
+  CHECK(cong(0u, 8u));        // 0 ≡ 8 (mod 8)
+  CHECK_FALSE(cong(1u, 2u));  // 1 ≢ 2 (mod 8)
+}

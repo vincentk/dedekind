@@ -30,6 +30,7 @@
  */
 module;
 
+#include <bit>  // std::has_single_bit (N | 2^w gate on the congruence)
 #include <concepts>
 #include <cstddef>      // for std::size_t (cyclic_order_v specialisation)
 #include <functional>   // for std::plus, std::multiplies
@@ -39,6 +40,7 @@ module;
 export module dedekind.morphologies:cyclic;
 
 import dedekind.category;
+import dedekind.algebra; // quotient_congruence / IsCongruenceQuotient (H-leg)
 import :archimedean;  // for IsCyclic / IsCyclicRing concepts (audit witnesses)
 
 namespace dedekind::morphologies {
@@ -210,6 +212,30 @@ static_assert(!Congruence<2, 0>{}(3u), "3 ≢ 0 (mod 2): odd.");
 static_assert(dedekind::category::IsPredicate<Congruence<2, 0>>,
               "Congruence is a characteristic morphism (IsPredicate).");
 
+/**
+ * @struct ModularCongruence
+ * @brief The @b binary congruence relation @f$x \equiv y \pmod N@f$ on the
+ *        integer carrier: the kernel of the reduction
+ *        @f$\mathbb{Z} \twoheadrightarrow \mathbb{Z}/N\mathbb{Z} =@f$
+ *        @c Modular<N>.
+ *
+ * @details Where @c Congruence<N,R> is the @b unary residue-class predicate
+ *          (the fiber over @c R), @c ModularCongruence<N> is the @b equivalence
+ *          relation whose quotient @b is @c Modular<N> --- the relation the
+ *          H-leg rides (@c IsCongruenceQuotient, @c :algebra::quotient).  It is
+ *          a genuine congruence for @c + and @c × (@f$x \equiv x' \wedge y
+ *          \equiv y' \Rightarrow x{+}y \equiv x'{+}y'@f$), so @c Modular<N> is
+ *          witnessed relationally as @f$V/({\equiv}\bmod N)@f$ --- the
+ *          non-trivial companion to the @c int/(=) diagonal witness upstream.
+ */
+export template <auto N>
+struct ModularCongruence {
+  using machine_type = typename Modular<N>::machine_type;
+  constexpr bool operator()(machine_type a, machine_type b) const {
+    return Modular<N>{a} == Modular<N>{b};
+  }
+};
+
 }  // namespace dedekind::morphologies
 
 namespace dedekind::category {
@@ -325,6 +351,94 @@ struct cyclic_order<dedekind::morphologies::Modular<N>,
                              (N <= std::numeric_limits<std::size_t>::max())
                                  ? static_cast<std::size_t>(N)
                                  : std::size_t{0}> {};
+
+/** @section cyclic__Modular_Is_A_Congruence_Quotient
+ *  @c Modular<N> @c = @c V/({\equiv}\bmod N) @b for @c N @b a @b power @b of
+ *  @b two: on the machine carrier @c V @c = @c unsigned @c = @c ℤ/2^w, the
+ * mod-N relation @c ModularCongruence<N> is a genuine @c IsCongruence for the
+ *  @b native @c + and @c × @b iff @c N @c | @c 2^w (Copilot #803).  For such N
+ *  the H-leg's @b relational reading fires (@c IsCongruenceQuotient,
+ *  @c :algebra::quotient); for @c N ∤ 2^w it is honestly withheld --- those
+ *  moduli quotient @b abstract @c ℤ, not the machine carrier, and there is no
+ *  total-@c ℤ machine carrier to host them (every one wraps or saturates).
+ *  @c Modular<N> certifies its own (total, wraparound) species traits @b
+ *  directly above --- it does @b not propagate them from the non-total integer
+ *  carrier @c V --- so this is the congruence @b witness only, deliberately
+ *  decoupled from @c quotient_algebra_base.  The non-trivial companion to the
+ *  @c int/(=) diagonal witness in @c :algebra::quotient. */
+
+template <auto N>
+inline constexpr bool
+    is_reflexive_relation_v<dedekind::morphologies::ModularCongruence<N>> =
+        true;
+template <auto N>
+inline constexpr bool
+    is_symmetric_relation_v<dedekind::morphologies::ModularCongruence<N>> =
+        true;
+template <auto N>
+inline constexpr bool
+    is_transitive_relation_v<dedekind::morphologies::ModularCongruence<N>> =
+        true;
+
+// The native machine op preserves ≡ mod N only when N | 2^w --- i.e.\ when N
+// is a power of two.  The carrier is unsigned = ℤ/2^w, whose congruence
+// quotients are exactly the ℤ/2^k; for N ∤ 2^w (e.g.\ 12) native wrapping
+// breaks the congruence at the 2^w boundary (UINT_MAX + 1 wraps to 0, not to
+// its mod-N successor).  The carrier must also be @b unsigned so that
+// wraparound is @b defined: signed @c int has undefined-behaviour overflow, so
+// @c std::plus<int> is not a total @c V×V→V operation (Copilot #803).  Gating
+// on @c std::unsigned_integral @b and @c std::has_single_bit keeps the trait
+// SOUND: the claim is withheld for signed or non-power-of-two N rather than
+// falsely certified (those moduli quotient abstract ℤ, not the machine
+// carrier).
+template <auto N>
+  requires(std::unsigned_integral<decltype(N)> &&
+           std::has_single_bit(
+               static_cast<std::make_unsigned_t<decltype(N)>>(N)))
+inline constexpr bool is_congruence_v<
+    dedekind::morphologies::ModularCongruence<N>,
+    typename dedekind::morphologies::Modular<N>::machine_type,
+    std::plus<typename dedekind::morphologies::Modular<N>::machine_type>> =
+    true;
+template <auto N>
+  requires(std::unsigned_integral<decltype(N)> &&
+           std::has_single_bit(
+               static_cast<std::make_unsigned_t<decltype(N)>>(N)))
+inline constexpr bool is_congruence_v<
+    dedekind::morphologies::ModularCongruence<N>,
+    typename dedekind::morphologies::Modular<N>::machine_type,
+    std::multiplies<
+        typename dedekind::morphologies::Modular<N>::machine_type>> = true;
+
+template <auto N>
+struct quotient_congruence<dedekind::morphologies::Modular<N>> {
+  using type = dedekind::morphologies::ModularCongruence<N>;
+  using carrier = typename dedekind::morphologies::Modular<N>::machine_type;
+};
+
+// Witnesses at a power-of-two modulus (8 | 2^w), where native wrapping DOES
+// preserve the congruence: the mod-8 relation is an equivalence, a congruence
+// for +, and Modular<8> = unsigned/(≡ mod 8) is the genuine (non-trivial) H-leg
+// congruence quotient --- witnessed by a relation, not a bare type pointer.
+static_assert(IsEquivalenceRelation<
+                  dedekind::morphologies::ModularCongruence<8u>, unsigned>,
+              "x ≡ y (mod 8) is reflexive, symmetric, transitive.");
+static_assert(IsCongruence<dedekind::morphologies::ModularCongruence<8u>,
+                           unsigned, std::plus<unsigned>>,
+              "x ≡ y (mod 8) is preserved by native + (8 | 2^w): a genuine "
+              "congruence.");
+static_assert(
+    IsCongruenceQuotient<dedekind::morphologies::Modular<8u>,
+                         std::plus<unsigned>>,
+    "Modular<8> = unsigned/(≡ mod 8): the machine-native H-leg congruence "
+    "quotient (8 is a power of two).");
+// And the honest negative: Modular<12> is NOT a congruence quotient of the
+// machine carrier (12 ∤ 2^w), so the native-op reading is correctly withheld.
+static_assert(
+    !IsCongruenceQuotient<dedekind::morphologies::Modular<12u>,
+                          std::plus<unsigned>>,
+    "Modular<12> is NOT a machine congruence quotient: native + wraps at 2^w, "
+    "which does not preserve ≡ mod 12 (12 ∤ 2^w).");
 
 }  // namespace dedekind::category
 
