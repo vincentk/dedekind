@@ -1380,21 +1380,28 @@ exemplar             & $\mathbb{Z}/N\mathbb{Z}$, $F[\varepsilon]/(\varepsilon^2)
 \resizebox{\linewidth}{!}{%
 \begin{tikzpicture}[every node/.style={font=\small},
                     axlbl/.style={font=\footnotesize\itshape}]
-  \coordinate (z)  at (0,0);
-  \coordinate (q)  at (2.7,0);
-  \coordinate (r)  at (2.7,2.2);
-  \coordinate (qp) at (4.7,0);
-  \draw[->,thick] (z)--(q)  node[axlbl,pos=0.5,below]{localize};
-  \draw[->,thick] (q)--(r)  node[axlbl,pos=0.5,right]{complete};
-  \draw[->,thick,dashed,gray] (q)--(qp) node[axlbl,pos=0.5,below,black]{$p$-adic};
-  \node[below left]  at (z)  {$\mathbb{Z}$};
-  \node[below]       at (q)  {$\mathbb{Q}$};
-  \node[above]       at (r)  {$\mathbb{R}$};
+  \coordinate (z)  at (0,1.6);
+  \coordinate (q)  at (2.7,1.6);
+  \coordinate (zp) at (0,0);
+  \coordinate (qp) at (2.7,0);
+  \coordinate (r)  at (2.7,3.3);
+  % commuting p-adic square
+  \draw[->] (z)--(q)   node[axlbl,pos=0.5,above]{localize};
+  \draw[->] (zp)--(qp) node[axlbl,pos=0.5,below]{localize};
+  \draw[->] (z)--(zp)  node[axlbl,pos=0.5,left]{compl.\,$p$};
+  \draw[->] (q)--(qp)  node[axlbl,pos=0.5,right]{compl.\,$p$};
+  \node[font=\scriptsize] at (1.35,0.8) {$\circlearrowleft$};
+  % archimedean place
+  \draw[->,thick] (q)--(r) node[axlbl,pos=0.5,right]{compl.\,$\infty$};
+  \node[above left]  at (z)  {$\mathbb{Z}$};
+  \node[below right] at (q)  {$\mathbb{Q}$};
+  \node[below left]  at (zp) {$\mathbb{Z}_p$};
   \node[below right] at (qp) {$\mathbb{Q}_p$};
+  \node[above]       at (r)  {$\mathbb{R}$};
 \end{tikzpicture}}
 \\[0.4ex]{\footnotesize (b) localization / completion}
 \end{minipage}
-\caption{Two construction spaces.  \textbf{(a)} The HSP cube: the Birkhoff axes H (quotient), S (subalgebra), P (product) span the carriers, a lattice reading of Table~\ref{tab:hsp-rosetta} in the spirit of the lambda cube; the origin is a base magma ($\mathbb{B}$), composites sit at the corners up to $M_n(\mathbb{D})$ (labels are representative carriers, not a functor on a fixed base).  \textbf{(b)} The two \emph{non-}Birkhoff constructions at the cube's boundary (Table~\ref{tab:constructions}): \emph{localization} ($\mathbb{Z}\to\mathbb{Q}=\operatorname{Frac}\mathbb{Z}$, a colimit adjoining inverses) and \emph{completion} ($\mathbb{Q}\to\mathbb{R}$, a limit filling limit points, with the $p$-adic $\mathbb{Q}_p$ the other completion by Ostrowski).  Neither is finitary-equational: localization needs $\exists$ (inverses), completion needs infinite limits.}
+\caption{Two construction spaces.  \textbf{(a)} The HSP cube: the Birkhoff axes H (quotient), S (subalgebra), P (product) span the carriers, a lattice reading of Table~\ref{tab:hsp-rosetta} in the spirit of the lambda cube; the origin is a base magma ($\mathbb{B}$), composites sit at the corners up to $M_n(\mathbb{D})$ (labels are representative carriers, not a functor on a fixed base).  \textbf{(b)} The two \emph{non-}Birkhoff constructions at the cube's boundary (Table~\ref{tab:constructions}): \emph{localization} (invert, a colimit) and \emph{completion} (fill limits, a limit).  Over the finite ($p$-adic) places they \emph{commute} ($\circlearrowleft$): completing then localizing $\mathbb{Z}\to\mathbb{Z}_p\to\mathbb{Q}_p$ agrees with localizing then completing $\mathbb{Z}\to\mathbb{Q}\to\mathbb{Q}_p$, with $\mathbb{Z}_p$ the completed-but-unlocalized corner.  The archimedean place $\mathbb{R}$ is the exception (Ostrowski): completing $\mathbb{Z}$ archimedean does nothing, so $\mathbb{R}$ hangs off $\mathbb{Q}$ alone.  Neither is finitary-equational: localization needs $\exists$, completion infinite limits.}
 \label{fig:hsp-cube}
 \end{figure}
 
