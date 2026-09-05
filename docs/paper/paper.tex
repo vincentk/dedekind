@@ -1439,13 +1439,15 @@ static_assert(IsProductAlgebra<Torus>);
 \end{minipage}\hfill
 \begin{minipage}[c]{0.57\linewidth}
 \begin{minted}[fontsize=\footnotesize]{cpp}
-using Torus = ProductAlgebra<Modular<256u>, Modular<256u>>;
-using Field = FunctionAlgebra<Torus, Complex<Q>>;   // waves
-using Mode  = Subalgebra<Field, Symmetric>;         // S
-auto shadow = materialise(step(Mode{u0}));  // → pixels
+using M     = Modular<256u>;
+using Torus = ProductAlgebra<M, M>;         // P·H
+using Field = FunctionAlgebra<Torus, Complex<Q>>;
+using Mode  = Subalgebra<Field, Symmetric>; // S
+auto px = materialise(step(Mode{u0})); // shadow
 \end{minted}
 \end{minipage}
-\caption{\textbf{The Birkhoff constructions compose} (paper-as-spec).  Each row is a sound composition --- a geometry (left) and its idiomatic $\mathbf{Ddk}$ realisation (right) --- and each \cppinline{materialise}s to a numerical shadow (Figure~\ref{fig:primitive-reconciliation}).  \textbf{H$\cdot$S}: the Gaussian integers $\mathbb{Z}[i]\subset\mathbb{C}$ (a subalgebra) fold modulo a prime into a finite field.  \textbf{S$\cdot$P}: a coarse closed sublattice inside a componentwise grid (strength reduction).  \textbf{P$\cdot$H}: two power-of-two modular axes producted into the flat torus.  \textbf{H$\cdot$S$\cdot$P}: a complex amplitude field on the torus, symmetry-reduced (S), stepped by a transfer operator --- \emph{endomorphism} composition (\S\ref{sec:operational_calculus}), not P --- and materialised to its pixels.  The S$\cdot$P and P$\cdot$H rows check in today (\S\ref{sec:hsp_varieties}); the others are the spec the code grows into.}
+\caption{\textbf{The Birkhoff constructions compose} (paper-as-spec).  Each row is a sound composition: a geometry (left) and its idiomatic $\mathbf{Ddk}$ realisation (right).
+Each row \emph{materialises} to a numerical shadow (Figure~\ref{fig:primitive-reconciliation}).  \textbf{H$\cdot$S}: the Gaussian integers $\mathbb{Z}[i]\subset\mathbb{C}$ (a subalgebra) fold modulo a prime into a finite field.  \textbf{S$\cdot$P}: a coarse closed sublattice inside a componentwise grid (strength reduction).  \textbf{P$\cdot$H}: two power-of-two modular axes producted into the flat torus.  \textbf{H$\cdot$S$\cdot$P}: a complex amplitude field on the torus, symmetry-reduced (S), stepped by a transfer operator (\emph{endomorphism} composition, \S\ref{sec:operational_calculus}, not P), and materialised to its pixels.  The S$\cdot$P and P$\cdot$H rows check in today (\S\ref{sec:hsp_varieties}); the others are the spec the code grows into.}
 \label{fig:hsp-combos}
 \end{figure}
 
