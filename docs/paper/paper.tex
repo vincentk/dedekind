@@ -1361,7 +1361,7 @@ exemplar             & $\mathbb{Z}/N\mathbb{Z}$, $F[\varepsilon]/(\varepsilon^2)
   \foreach \C/\Cube/\Type/\Fid in {%
       1.5/{$\mathbb{B}$}/bool/{exact},
       4.8/{$\mathbb{Z}/2^{w}\mathbb{Z}$}/{size\_t}/{exact},
-      8.1/{$\mathbb{Z}$ (bdd.)}/int/{partial${}^{\dagger}$},
+      8.1/{$\mathbb{Z}$ (bdd.)}/int/{partial},
       11.4/{$\mathbb{Q}\bmod L$}/double/{exact}}{
     \draw[thick] (\C-0.5,1.3)--(\C+0.5,1.3)--(\C+0.5,2.3)--(\C-0.5,2.3)--cycle;
     \draw[thick] (\C-0.15,1.65)--(\C+0.85,1.65)--(\C+0.85,2.65)--(\C-0.15,2.65)--cycle;
@@ -1387,9 +1387,9 @@ exemplar             & $\mathbb{Z}/N\mathbb{Z}$, $F[\varepsilon]/(\varepsilon^2)
   \draw[->,gray] (2.45,1.8)--(4.2,1.8);
   \draw[->,gray] (5.75,1.8)--(7.5,1.8);
   \draw[->,gray] (9.05,1.8)--(10.8,1.8);
-  \node[font=\scriptsize\itshape] at (6.45,-1.3) {machine primitives $=$ exact shadows of modular Forms; ideals are their period-$\infty$ limits};
+  \node[font=\scriptsize\itshape] at (6.45,-1.3) {machine primitives shadow modular Forms (exact on a closed subset); ideals are their period-$\infty$ limits};
 \end{tikzpicture}}
-\\[0.3ex]{\footnotesize (a) the shadow plot: four primitives as exact shadows}\\[1.6ex]
+\\[0.3ex]{\footnotesize (a) the shadow plot: four primitives as shadows of modular Forms}\\[1.6ex]
 % ===== BOTTOM: two of the cubes, opened as HSP-varieties =====
 \begin{minipage}[b]{0.47\linewidth}\centering
 \resizebox{\linewidth}{!}{%
