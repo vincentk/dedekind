@@ -5,8 +5,17 @@
  * the triple with the existing H (IsQuotientAlgebra) and P
  * (IsProductAlgebra) legs already in the partition.
  *
+ * The ambient is @c unsigned = @c ℤ/2^wℤ, a @b total ambient algebra
+ * (@c IsMagma<unsigned, std::plus<unsigned>> holds; wraparound is
+ * defined).  @c (int, +) is deliberately @b not used: signed overflow
+ * is undefined, so @c !IsMagma<int, std::plus<int>> and @c int is not
+ * a bona fide ambient under the project's Honest-Rejection policy
+ * (Copilot #802).  The even residues @c {0, 2, …, 2^w−2} are closed
+ * under @c + (even + even = even, mod the even modulus @c 2^w), a
+ * genuine subalgebra of the additive group.
+ *
  * Coverage targets:
- *  - Structural witness: a subobject closed under @c std::plus<int>
+ *  - Structural witness: a subobject closed under @c std::plus<unsigned>
  *    satisfies @c IsSubalgebra<...>.
  *  - Negative gate (closure): a subobject @b not registered as closed
  *    under @c Op honestly rejects.
@@ -25,50 +34,51 @@ import dedekind.category;
 namespace dedekind::category {
 namespace _subalgebra_witnesses {
 
-/** @brief Characteristic predicate of "even integer".  Closed under
- *         @c std::plus<int>: even + even = even (textbook). */
+/** @brief Characteristic predicate of "even" over the total ambient
+ *         @c unsigned.  Closed under @c std::plus<unsigned>: even + even
+ *         = even (mod the even modulus @c 2^w). */
 struct even_chi {
-  using Domain = int;
+  using Domain = unsigned;
   using Codomain = bool;
-  constexpr bool operator()(int x) const noexcept { return (x & 1) == 0; }
+  constexpr bool operator()(unsigned x) const noexcept {
+    return (x & 1u) == 0u;
+  }
 };
 
-/** @brief The even-integers subobject of @c int.  Mirrors the
+/** @brief The even-residues subobject of @c unsigned.  Mirrors the
  *         @c :topoi::Subobject<A, Chi> shape with explicit
- *         @c Ambient / @c Member / @c ι / @c operator() fields, so
- *         it satisfies @c IsSubobject<EvenInts, int> directly
+ *         @c Domain / @c Member / @c ι / @c operator() fields, so
+ *         it satisfies @c IsSubobject<even_unsigned, unsigned> directly
  *         without going through the @c Subobject struct (the test
  *         exercises the @c IsSubalgebra concept body, not the
  *         downstream @c Subobject machinery). */
-struct even_ints {
-  using Domain = int;
+struct even_unsigned {
+  using Domain = unsigned;
   struct Member {
-    int value;
+    unsigned value;
   };
   even_chi χ;
-  constexpr int ι(const Member& m) const noexcept { return m.value; }
-  constexpr bool operator()(int a) const noexcept { return χ(a); }
+  constexpr unsigned ι(const Member& m) const noexcept { return m.value; }
+  constexpr bool operator()(unsigned a) const noexcept { return χ(a); }
 };
 
-/** @brief "Malformed" Op witness: takes a @c double, not a binary
- *         @c int × @c int operation.  Used below to exercise the
- *         @c IsSubalgebra concept body's @c { op(a, a) } @c
- *         @c -> @c std::convertible_to<A> Op-shape gate.
- *         @c std::convertible_to<int> still admits @c double via
- *         narrowing conversion, so we deliberately return a
- *         @c std::string — a type that has no conversion to @c int. */
+/** @brief "Malformed" Op witness: returns a @c std::string from a binary
+ *         @c (unsigned, unsigned) call, not a @c V @c × @c V @c → @c V
+ *         operation.  Used below to exercise the @c IsSubalgebra concept
+ *         body's @c { op(a, a) } @c -> @c std::convertible_to<A> Op-shape
+ *         gate: @c std::string has no conversion to @c unsigned. */
 struct malformed_op {
-  constexpr std::string operator()(int, int) const { return {}; }
+  constexpr std::string operator()(unsigned, unsigned) const { return {}; }
 };
 
 }  // namespace _subalgebra_witnesses
 
-/** @brief Closure registration: the even integers are closed under
- *         @c std::plus<int>.  Textbook subalgebra of @c (ℤ, +). */
+/** @brief Closure registration: the even residues are closed under
+ *         @c std::plus<unsigned>.  Subalgebra of the additive group
+ *         @c (ℤ/2^wℤ, +). */
 template <>
-inline constexpr bool
-    is_closed_under_v<_subalgebra_witnesses::even_ints, int, std::plus<int>> =
-        true;
+inline constexpr bool is_closed_under_v<_subalgebra_witnesses::even_unsigned,
+                                        unsigned, std::plus<unsigned>> = true;
 
 /** @brief Op-shape-gate test: closure is force-registered for the
  *         malformed Op, so the Op-shape @c requires clause in the
@@ -76,23 +86,24 @@ inline constexpr bool
  *         preventing the concept from firing.  A regression that
  *         removes the gate would now fail this static_assert. */
 template <>
-inline constexpr bool is_closed_under_v<_subalgebra_witnesses::even_ints, int,
-                                        _subalgebra_witnesses::malformed_op> =
-    true;
+inline constexpr bool
+    is_closed_under_v<_subalgebra_witnesses::even_unsigned, unsigned,
+                      _subalgebra_witnesses::malformed_op> = true;
 
 }  // namespace dedekind::category
 
 using namespace dedekind::category;
 
-TEST_CASE("algebra:subalgebra — even integers are a subalgebra of (ℤ, +)",
+TEST_CASE("algebra:subalgebra — even residues are a subalgebra of (ℤ/2^wℤ, +)",
           "[algebra][subalgebra][HSP-S][canonical]") {
-  /** @brief Even integers @c {…, -2, 0, 2, 4, …} form a subalgebra of
-   *         @c ℤ under @c +: the sum of two even integers is even.
-   *         This is the canonical textbook subalgebra (Burris-Sank
-   *         §II.5) — the S leg of HSP. */
-  STATIC_CHECK(IsSubobject<_subalgebra_witnesses::even_ints, int>);
-  STATIC_CHECK(
-      IsSubalgebra<_subalgebra_witnesses::even_ints, int, std::plus<int>>);
+  /** @brief The even residues @c {0, 2, 4, …} form a subalgebra of the
+   *         total ambient @c unsigned @c = @c ℤ/2^wℤ under @c +: the sum
+   *         of two even residues is even (Burris-Sank §II.5) — the S leg
+   *         of HSP, over a bona fide ambient (unlike @c (int, +), whose
+   *         signed overflow is undefined). */
+  STATIC_CHECK(IsSubobject<_subalgebra_witnesses::even_unsigned, unsigned>);
+  STATIC_CHECK(IsSubalgebra<_subalgebra_witnesses::even_unsigned, unsigned,
+                            std::plus<unsigned>>);
 }
 
 TEST_CASE(
@@ -102,11 +113,11 @@ TEST_CASE(
   /** @brief A subobject that hasn't opted into @c is_closed_under_v<…,
    *         Op> for a given @c Op honestly rejects @c IsSubalgebra
    *         — the closure obligation must be declared.  Here we use
-   *         @c std::multiplies<int> (no closure registration above)
+   *         @c std::multiplies<unsigned> (no closure registration above)
    *         to demonstrate the rejection. */
-  STATIC_CHECK_FALSE(IsSubalgebra<_subalgebra_witnesses::even_ints, int,
-                                  std::multiplies<int>>);
-  // (For the record: even integers ARE closed under multiplication too —
+  STATIC_CHECK_FALSE(IsSubalgebra<_subalgebra_witnesses::even_unsigned,
+                                  unsigned, std::multiplies<unsigned>>);
+  // (For the record: even residues ARE closed under multiplication too —
   // even * anything = even.  But this test demonstrates that without an
   // explicit opt-in registration the concept honestly rejects, which is
   // the project's Honest-Rejection discipline.)
@@ -118,30 +129,31 @@ TEST_CASE(
     "[algebra][subalgebra][HSP-S][negative][op-shape-gate]") {
   /** @brief Op-shape gate is the second negative cover: a
    *         @c malformed_op (returns @c std::string from a binary
-   *         @c (int, int) call) cannot satisfy
+   *         @c (unsigned, unsigned) call) cannot satisfy
    *         @c { op(a, a) } @c -> @c std::convertible_to<A>.
    *         Closure is force-registered to true above, so the
    *         @c requires clause is the @b only thing preventing the
    *         concept from firing.  A regression that removes the gate
    *         would surface here at compile time. */
-  STATIC_CHECK_FALSE(IsSubalgebra<_subalgebra_witnesses::even_ints, int,
-                                  _subalgebra_witnesses::malformed_op>);
+  STATIC_CHECK_FALSE(
+      IsSubalgebra<_subalgebra_witnesses::even_unsigned, unsigned,
+                   _subalgebra_witnesses::malformed_op>);
 }
 
-TEST_CASE("algebra:subalgebra — runtime exercise of the even-ints witness",
+TEST_CASE("algebra:subalgebra — runtime exercise of the even-residues witness",
           "[algebra][subalgebra][runtime]") {
   /** @brief Runtime exercise of the canonical witness's @c χ predicate
    *         and @c ι inclusion arrow — keeps codecov happy and pins
    *         the operational shape (the witness is a real working
    *         subobject, not just a type-level marker). */
-  _subalgebra_witnesses::even_ints e{};
-  CHECK(e(0));        // 0 is even
-  CHECK(e(2));        // 2 is even
-  CHECK(e(-4));       // -4 is even
-  CHECK_FALSE(e(1));  // 1 is odd
-  CHECK_FALSE(e(7));  // 7 is odd
+  _subalgebra_witnesses::even_unsigned e{};
+  CHECK(e(0u));        // 0 is even
+  CHECK(e(2u));        // 2 is even
+  CHECK(e(4u));        // 4 is even
+  CHECK_FALSE(e(1u));  // 1 is odd
+  CHECK_FALSE(e(7u));  // 7 is odd
 
-  // Inclusion arrow ι : Member ↣ int.
-  _subalgebra_witnesses::even_ints::Member m{42};
-  CHECK(e.ι(m) == 42);
+  // Inclusion arrow ι : Member ↣ unsigned.
+  _subalgebra_witnesses::even_unsigned::Member m{42u};
+  CHECK(e.ι(m) == 42u);
 }
