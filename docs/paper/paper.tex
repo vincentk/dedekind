@@ -1420,7 +1420,7 @@ static_assert(materialise(pt(5,4)) == pt(1,1));
 \par\vspace{0.5ex}\hrule\vspace{0.9ex}
 
 % ===== Row 4: H·S·P =====
-\noindent\textbf{H$\cdot$S$\cdot$P}\enspace\emph{Waves on the torus: two sources add, a node cancels.}\par\smallskip
+\noindent\textbf{H$\cdot$S$\cdot$P}\enspace\emph{Waves on the torus: two sources add, a node cancels} (dialled up in Figure~\ref{fig:hsp-spiral}).\par\smallskip
 \begin{minipage}[c]{0.40\linewidth}\centering
 \begin{tikzpicture}[scale=0.82,>=stealth,font=\scriptsize]
   \foreach \r in {0.3,0.6,0.9,1.2}{\draw[blue!50] (0.7,1.0) circle(\r);}
@@ -1455,6 +1455,51 @@ Predicates are point-free expressions over projections (\cppinline{re}, \cppinli
 A carrier's \emph{own} operation then computes within it: the two H$\cdot$S$\cdot$P sources add by superposition (\cppinline{+}, the field's operation), \emph{not} the filter \cppinline{|} that built the subalgebra.
 The S$\cdot$P and P$\cdot$H rows rest on witnesses that check in today (\S\ref{sec:hsp_varieties}); the surface syntax, and the other two rows, are the spec the code grows into.}
 \label{fig:hsp-combos}
+\end{figure}
+
+% ===== H·S·P dialled up: the spiral wave, velocity via dual numbers =====
+\begin{figure}[tp]
+\centering
+\begin{tikzpicture}[>=Stealth,font=\small,scale=0.9]
+\foreach \panel/\rot/\lbl in {0/0/{$t_0$}, 6.2/28/{$t_1=t_0+\Delta t$}}{
+  \begin{scope}[shift={(\panel,0)}]
+    \foreach \j in {0,120,240}{
+      \draw[teal!65!black,line width=1pt,domain=0:7.6,samples=110,variable=\t]
+        plot ({0.085*exp(0.40*\t)*cos(deg(\t)+\rot+\j)},
+              {0.085*exp(0.40*\t)*sin(deg(\t)+\rot+\j)});}
+    \draw[gray!35] (0,0) circle (2.0);
+    \draw[gray!60,dashed] (0,0) circle (1.0);
+    \fill[black] (0,0) circle (1.3pt); \node[font=\scriptsize] at (0.3,-0.24){$O$};
+    \foreach \j in {0,120,240}{
+      \pgfmathsetmacro\ang{deg(ln(1/0.085)/0.40)+\rot+\j}
+      \fill[red] (\ang:1.0) circle (2.3pt);
+      \draw[->,red,line width=0.9pt] (\ang:1.0)
+        -- ({cos(\ang)+0.55*cos(\ang+90)},{sin(\ang)+0.55*sin(\ang+90)});}
+    \node[font=\scriptsize,gray] at (1.32,1.05){$r_0$};
+    \node at (0,-2.5){\lbl};
+  \end{scope}}
+\node[font=\scriptsize,red] at (3.1,2.3){velocity $=\partial_t\,\text{position}$ (the dual $\varepsilon$-part)};
+\end{tikzpicture}
+\par\smallskip
+$\displaystyle \psi(r,\theta,t) = e^{-r^2/2\sigma^2}\; e^{\,i\left(k\ln r + m\theta - \omega t\right)}$
+\par\smallskip
+\begin{minipage}{0.86\linewidth}
+\begin{minted}[fontsize=\footnotesize]{cpp}
+using D = Dual<Q>;             // ℝ[ε]/(ε²): value ⊕ rate
+using F = Complex<D>;          // complex amplitude over duals
+auto ψ = env(r) * cexp(i*(k*ln(r) + m*θ - ω*t)); // m-arm spiral
+auto x0 = materialise(cross(ψ, r0, t0 + ε));  // one dual instant
+auto x1 = materialise(cross(ψ, r0, t1 + ε));  // Δt later
+static_assert(x0.val == pos0 && x0.eps == vel0); // pos ⊕ velocity
+static_assert(x1.val == pos1 && x1.eps == vel1);
+\end{minted}
+\end{minipage}
+\caption{\textbf{H$\cdot$S$\cdot$P, dialled up: a spiral wave whose velocity is a dual number.}
+The carrier is a complex amplitude over the \emph{dual} reals $\mathbb{R}[\varepsilon]/(\varepsilon^2)$ on a periodic, $m$-fold-symmetric torus: P builds the field, H is the $\varepsilon^2{=}0$ quotient, S is the symmetric arm.
+Evaluating at a \emph{dual instant} $t+\varepsilon$ differentiates automatically, so one \cppinline{materialise} returns each arm-crossing of the circle $r_0$ as its position (the value) \emph{and} its velocity (the $\varepsilon$-part, drawn as the red arrows).
+Left and right are two times; the pattern rotates rigidly at $\omega/m$.
+The $\varepsilon^2{=}0$ node of the shadow plot (Figure~\ref{fig:primitive-reconciliation}) is here doing the work of a derivative.}
+\label{fig:hsp-spiral}
 \end{figure}
 
 \begin{figure}[htbp]
