@@ -1331,26 +1331,28 @@ exemplar             & $\mathbb{Z}/N\mathbb{Z}$, $F[\varepsilon]/(\varepsilon^2)
   \node[orange!60!black] at (2.4,-0.9){$(+,-)$};
   \draw[->,gray!60] (-2.7,0)--(3.7,0) node[right]{Re};
   \draw[->,gray!60] (0,-3.5)--(0,2.6) node[above]{Im};
-  \foreach \x in {-2,...,3}\foreach \y in {-3,...,2}\fill[blue!60] (\x,\y) circle(2pt);
-  \draw[red,very thick] (3,-2) circle(6pt);
-  \node[red] at (1.3,-2.7){$3\!-\!2i$};
-  \draw[->,line width=1pt] (4.2,-0.6)--(5.6,-0.6) node[midway,above]{$/\,\pi$};
-  \begin{scope}[shift={(6.6,-1.6)}]
+  \foreach \x in {-2,...,3}\foreach \y in {-3,...,2}\fill[blue!60] (\x,\y) circle(1.7pt);
+  \fill[black] (0,0) circle(2.2pt); \node at (-0.45,0.5){$0$};
+  \foreach \p in {(3,-2),(3,1),(0,-2)}{\draw[red,very thick] \p circle(4pt);}
+  \node[red] at (1.2,-2.75){$3\!-\!2i$};
+  % three ℤ[i] points ≡ i (mod π) share one fibre → the i cell
+  \draw[->,red!65,thin] (3,-2) to[bend right=8] (6.55,-0.5);
+  \draw[->,red!65,thin] (3,1) to[bend left=8] (6.55,-0.5);
+  \draw[->,red!65,thin] (0,-2) to[bend right=16] (6.55,-0.5);
+  \node[red!65] at (5.2,-2.5){$/\,\pi$};
+  \begin{scope}[shift={(6.8,-1.5)}]
     \foreach \x in {0,1,2}\foreach \y in {0,1,2}\fill[teal!70!black] (\x,\y) circle(2pt);
-    \draw[red,very thick] (0,1) circle(6pt);
+    \draw[red,very thick] (0,1) circle(5pt);
     \node[teal!70!black] at (1,-0.95){$\mathbb{F}_9\ni i$};
   \end{scope}
 \end{tikzpicture}
 \end{minipage}\hfill
 \begin{minipage}[c]{0.58\linewidth}
 \begin{minted}[fontsize=\footnotesize]{cpp}
-auto gauss = [](auto z){        // ℤ[i]: integral
-  return int(z.re)==z.re && int(z.im)==z.im; };
-auto quad  = [](auto z){ return z.re>0&&z.im<0; };
-auto se = Ω<Complex<Q>>
-        | gauss    // S: Gaussian lattice
-        | quad;    // ∩ (+,−) quadrant
-using F9 = Quotient<decltype(se), ByPrime<3>>;
+auto pts = Ω<Complex<Q>>   // ℂ
+     | is_int(re) && is_int(im)   // S: ℤ[i]
+     | re > 0 && im < 0;          // (+,−) cut
+using F9 = Quotient<decltype(pts), ByPrime<3>>;
 static_assert(materialise(3 - 2*i) == F9{i});
 \end{minted}
 \end{minipage}
@@ -1359,23 +1361,26 @@ static_assert(materialise(3 - 2*i) == F9{i});
 % ===== Row 2: S·P =====
 \noindent\textbf{S$\cdot$P}\enspace\emph{A chessboard: the parity-even squares are a subalgebra.}\par\smallskip
 \begin{minipage}[c]{0.40\linewidth}\centering
-\begin{tikzpicture}[x=0.46cm,y=0.46cm,font=\scriptsize]
+\begin{tikzpicture}[x=0.46cm,y=0.46cm,>=stealth,font=\scriptsize]
   \foreach \x in {0,...,7}\foreach \y in {0,...,7}{%
     \ifodd\numexpr\x+\y\relax\else\fill[gray!40] (\x,\y) rectangle +(1,1);\fi}
   \draw[gray!55] (0,0) rectangle (8,8);
+  \draw[->,gray!70] (0,-0.5)--(8.4,-0.5) node[right]{$x$};
+  \draw[->,gray!70] (-0.5,0)--(-0.5,8.4) node[above]{$y$};
+  \fill[black] (0,0) circle(2.4pt); \node at (-0.6,-0.6){$0$};
+  \node[gray,font=\tiny] at (4.5,-1.0){4};  \node[gray,font=\tiny] at (-1.0,6.5){6};
   \draw[teal!70!black,very thick] (4.5,6.5) circle(0.32);
-  \node[teal!70!black] at (4.5,8.6){$(4,6)\in S$};
+  \node[teal!70!black] at (5.0,8.7){$(4,6)\in S$};
   \draw[red,very thick] (3.15,6.15)--(3.85,6.85) (3.15,6.85)--(3.85,6.15);
-  \node[red] at (2.0,6.5){$(3,6)$};
+  \node[red] at (2.1,6.5){$(3,6)$};
 \end{tikzpicture}
 \end{minipage}\hfill
 \begin{minipage}[c]{0.58\linewidth}
 \begin{minted}[fontsize=\footnotesize]{cpp}
 using M    = Modular<8u>;
 auto board = Ω<M> * Ω<M>;   // P: 8×8 board
-auto dark  = [](auto p){ return (p.x+p.y)%2==0; };
-auto S     = board & dark;  // S: the ∩
-static_assert(size(S) == 32);   // half of 64
+auto S = board | (x+y)%2 == 0;   // S: parity ∩
+static_assert(size(S) == 32);    // half of 64
 static_assert( S(pt(4,6)));  // 4+6 even → in ✓
 static_assert(!S(pt(3,6)));  // 3+6 odd  → out ✗
 \end{minted}
@@ -1389,11 +1394,18 @@ static_assert(!S(pt(3,6)));  // 3+6 odd  → out ✗
   \foreach \x in {-1,...,6}\foreach \y in {-1,...,4}\fill[gray!30] (\x,\y) circle(1.3pt);
   \fill[teal!10] (-0.4,-0.4) rectangle (3.4,2.4);
   \draw[teal!70!black,thick] (-0.4,-0.4) rectangle (3.4,2.4);
-  \foreach \x in {0,1,2,3}\foreach \y in {0,1,2}\fill[teal!70!black] (\x,\y) circle(2.2pt);
-  \node[teal!70!black] at (1.5,-0.95){$\mathbb{Z}^2\!\twoheadrightarrow\!\mathbb{Z}/4\!\times\!\mathbb{Z}/3$};
-  \fill[red] (5,4) circle(2.4pt); \node[red] at (5,4.5){$(5,4)$};
-  \fill[orange!90!black] (1,1) circle(3pt); \node[orange!80!black] at (1.75,1.35){$(1,1)$};
-  \draw[->,gray,line width=0.8pt] (5,4) to[bend right=15] (1.2,1.1);
+  \foreach \x in {0,1,2,3}\foreach \y in {0,1,2}\fill[teal!70!black] (\x,\y) circle(2pt);
+  \draw[->,gray!70] (-1.4,0)--(6.5,0) node[right]{$x$};
+  \draw[->,gray!70] (0,-1.4)--(0,4.7) node[above]{$y$};
+  \fill[black] (0,0) circle(2.4pt); \node at (-0.4,-0.5){$0$};
+  \node[teal!70!black] at (1.5,-1.05){$\mathbb{Z}^2\!\twoheadrightarrow\!\mathbb{Z}/4\!\times\!\mathbb{Z}/3$};
+  % the coset {(5,4),(5,1),(1,4)} all wrap onto (1,1): one fibre
+  \foreach \p in {(5,4),(5,1),(1,4)}{\fill[red] \p circle(2.2pt);}
+  \node[red] at (5.0,4.5){$(5,4)$};
+  \fill[orange!90!black] (1,1) circle(3.2pt); \node[orange!80!black] at (1.85,1.4){$(1,1)$};
+  \draw[->,orange!80!black,thin] (5,4) to[bend right=13] (1.15,1.12);
+  \draw[->,orange!80!black,thin] (5,1) to[bend right=13] (1.2,1);
+  \draw[->,orange!80!black,thin] (1,4) to[bend left=18] (1,1.2);
 \end{tikzpicture}
 \end{minipage}\hfill
 \begin{minipage}[c]{0.58\linewidth}
@@ -1411,33 +1423,36 @@ static_assert(materialise(pt(5,4)) == pt(1,1));
 \noindent\textbf{H$\cdot$S$\cdot$P}\enspace\emph{Waves on the torus: two sources add, a node cancels.}\par\smallskip
 \begin{minipage}[c]{0.40\linewidth}\centering
 \begin{tikzpicture}[scale=0.82,>=stealth,font=\scriptsize]
-  \foreach \r in {0.25,0.55,0.85,1.15,1.45}{\draw[blue!55] (0.7,1.0) circle(\r);}
-  \foreach \r in {0.25,0.55,0.85,1.15,1.45}{\draw[red!55] (2.1,1.0) circle(\r);}
-  \fill[blue!70] (0.7,1.0) circle(2pt); \node[blue!70] at (0.7,-0.4){src $a$};
-  \fill[red!70] (2.1,1.0) circle(2pt); \node[red!70] at (2.1,-0.4){src $b$};
-  \draw[black,very thick] (1.4,2.05) circle(0.13);
-  \node at (1.4,2.5){node};
-  \draw[->,line width=1pt] (3.2,1.0)--(3.9,1.0);
-  \foreach \x in {0,1,2,3}\foreach \y in {0,1,2,3}{\pgfmathtruncatemacro\g{15+13*(\x+\y)}\fill[red!\g!yellow] (4.2+0.42*\x,-0.1+0.42*\y) rectangle +(0.4,0.4);}
-  \fill[black] (5.04,0.74) rectangle +(0.4,0.4);
-  \draw[black,very thick] (5.24,0.94) circle(0.16);
-  \node at (5.1,-0.5){$|\psi|$};
+  \foreach \r in {0.3,0.6,0.9,1.2}{\draw[blue!50] (0.7,1.0) circle(\r);}
+  \foreach \r in {0.3,0.6,0.9,1.2}{\draw[red!50] (2.1,1.0) circle(\r);}
+  \fill[blue!70] (0.7,1.0) circle(2pt); \node[blue!70] at (0.7,-0.35){src $a$};
+  \fill[red!70] (2.1,1.0) circle(2pt); \node[red!70] at (2.1,-0.35){src $b$};
+  \fill[black] (1.4,1.0) circle(2pt); \node at (1.63,0.78){$O$};
+  \fill[teal!70!black] (0.95,1.75) circle(2pt); \node[teal!70!black] at (0.68,1.95){$P$};
+  \fill[teal!70!black] (1.85,0.25) circle(2pt); \node[teal!70!black] at (2.18,0.1){$-P$};
+  \draw[teal!70!black,dashed] (0.95,1.75)--(1.85,0.25);
+  \draw[black,very thick] (1.4,2.0) circle(0.12); \node at (1.4,2.4){node};
+  \draw[->,line width=1pt] (3.1,1.0)--(3.7,1.0);
+  \foreach \x in {0,1,2,3}\foreach \y in {0,1,2,3}{\pgfmathtruncatemacro\g{15+13*(\x+\y)}\fill[red!\g!yellow] (4.0+0.42*\x,-0.1+0.42*\y) rectangle +(0.4,0.4);}
+  \fill[black] (4.84,0.74) rectangle +(0.4,0.4);
+  \draw[black,very thick] (5.04,0.94) circle(0.15);
+  \node at (4.9,-0.5){$|\psi|$};
 \end{tikzpicture}
 \end{minipage}\hfill
 \begin{minipage}[c]{0.58\linewidth}
 \begin{minted}[fontsize=\footnotesize]{cpp}
+auto flip  = pt(-x, -y);   // reflect through 0
 auto Field = Function<Torus, Complex<Q>>;
-auto flip  = [](auto p){ return pt(-p.x,-p.y); };
-auto sym   = [](auto f){ return f == f(flip); };
-auto waves = Field & sym;   // S: symmetric ∩
+auto waves = Field | f == f(flip);  // S: even
 auto a = source(p1), b = source(p2); // 2 sources
-auto psi = a + b;   // + = superpose, not ∩ (&)
+auto psi = a + b;   // + superpose, not | (S)
 static_assert(materialise(psi[node]) == 0);
 \end{minted}
 \end{minipage}
 \caption{\textbf{Idiomatic universal algebra, at compile time.}  Each row (glossed above it) starts from an \emph{infinite} domain, carves out an extensional subset with $\mathbf{Trsk}$'s relational primitives, and ends in a value a \cppinline{static_assert} pins down.
-The Birkhoff constructions \emph{are} those primitives: product P is the cartesian product \cppinline{*}, subalgebra S is an intersection \cppinline{&}, quotient H is \cppinline{/}.
-A carrier's \emph{own} operation then computes within it: the two H$\cdot$S$\cdot$P sources add by superposition (\cppinline{+}, the field's operation), \emph{not} the \cppinline{&} that built the subalgebra.
+The Birkhoff constructions \emph{are} Trsk operators: product P is \cppinline{*}, quotient H is \cppinline{/}, and a subalgebra S is a filter \cppinline{|} by a closed predicate.
+Predicates are point-free expressions over projections (\cppinline{re}, \cppinline{im}, \cppinline{x}, \cppinline{y}), not opaque lambdas, so they compose and certify at the type level.
+A carrier's \emph{own} operation then computes within it: the two H$\cdot$S$\cdot$P sources add by superposition (\cppinline{+}, the field's operation), \emph{not} the filter \cppinline{|} that built the subalgebra.
 The S$\cdot$P and P$\cdot$H rows rest on witnesses that check in today (\S\ref{sec:hsp_varieties}); the surface syntax, and the other two rows, are the spec the code grows into.}
 \label{fig:hsp-combos}
 \end{figure}
