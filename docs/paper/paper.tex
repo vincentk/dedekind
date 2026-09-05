@@ -555,7 +555,7 @@ This asymmetry is the model/materialise gap of the whole framework: $\mathbf{Jlt
 \label{eqn:model-materialise}
   \mathbf{Jlt}\ \text{models} \le \beth_1, \qquad \mathbf{Jlt}\ \text{materialises} < \aleph_0 ,
 \end{equation}
-the ETCS power-object bound $\beth_1$ above (Appendix~\ref{sec:etcs}, Axiom~9) meeting the finite reach of $\mu$ below.
+the library's Axiom-9 restriction of carrier predicates to $\beth_1$ (Appendix~\ref{sec:etcs}) above, meeting the finite reach of $\mu$ below.
 So $\mathbf{Lwv}$ is strictly more expressive than \cppinline{std::set}, the extensional container it generalises, and the price is paid in \emph{proof obligations}: where $\mu$ is unavailable, membership is settled by the concept constraints and factorisations of this section, not by enumeration.
 This is the extensional/intensional database distinction of deductive databases, \cppinline{std::set} playing the extensional store (EDB, facts) and $\mathbf{Lwv}$ the intensional one (IDB, rules), with materialisation the materialised view~\cite{abiteboul1995foundations}.
 
@@ -852,7 +852,7 @@ The additive half happens to be the Boolean lattice a relation already carries \
 
 \begin{definition}[$\mathbf{Trsk} := \mathbf{Lwv} \cap \mathbf{Rel}$]
 \label{def:trsk-rel}
-A $\mathbf{Trsk}$ relation is an $\mathbf{Lwv}$ subobject (Definition~\ref{def:lwv-set}) of a Cartesian product $A \times B$ that also carries the dioid structure of this section --- converse, relative product, and the diagonal unit.  Where $\mathbf{Lwv}$ is the set fragment, $\mathbf{Trsk}$ is its point-free relational refinement,
+A $\mathbf{Trsk}$ relation is an $\mathbf{Lwv}$ subobject (Definition~\ref{def:lwv-set}) of a Cartesian product $A \times B$; the \emph{family} of such relations carries the dioid (allegory) structure of this section --- converse $(\cdot)^{\circ}$, relative product $\mathbin{;}$, and, on the endorelations $\mathrm{Rel}(A,A)$, the diagonal unit $\Delta$.  Where $\mathbf{Lwv}$ is the set fragment, $\mathbf{Trsk}$ is its point-free relational refinement,
 \begin{equation}
 \label{eqn:trsk}
 \mathbf{Trsk} := \mathbf{Lwv} \cap \mathbf{Rel},
@@ -1289,11 +1289,11 @@ The implemented $\arg\max$ is exactly this structural specialization (a group-ca
 \label{sec:algebraic_lattice_carriers}
 
 We reify $\mathbf{Alg}(-)$ as the \emph{relational magmas} over $\mathbf{Trsk}$: a carrier with a pointwise operation $A \times A \to A$, read as the functional relation that is its graph and refined by the laws it keeps (Equation~\ref{eqn:ddk}).
-The section is four capabilities, each a compile-time certificate (Listing~\ref{lst:alg-capabilities}): a magma is a carrier with a closed operation, and Birkhoff's three constructions, quotient (H), subalgebra (S), and direct product (P), each build a new carrier and carry the certificate across to it.
+The section is four capabilities, each a compile-time certificate (Listing~\ref{lst:alg-capabilities}): a magma is a carrier with a closed operation, and Birkhoff's three constructions --- quotient (H), subalgebra (S), and direct product (P) --- each build a new carrier from it, the base's certificate carried across for S and P by trait propagation, and, for the relational H shown here, the quotient \emph{witnessed} by its congruence rather than by propagation (\S\ref{sec:relations_functions_blueprint}).
 
 % Source excerpts from dedekind.algebra:quotient, :morphologies:cyclic, :sequences, :linear_algebra:vec2.
 \begin{listing}[!ht]
-\caption{Section~\ref{sec:algebraic_lattice_carriers} at a glance: four capabilities, each a checked-in \cppinline{static_assert}.  A magma is a carrier with a closed operation; the three Birkhoff constructions each build a new carrier from it and carry the certificate across.  The section develops each below.}
+\caption{Section~\ref{sec:algebraic_lattice_carriers} at a glance: four capabilities, each a checked-in \cppinline{static_assert}.  A magma is a carrier with a closed operation; the three Birkhoff constructions each build a new carrier from it --- S and P carry the certificate across by trait propagation, while the relational H \emph{witnesses} the quotient by its congruence.  The section develops each below.}
 \label{lst:alg-capabilities}
 \noindent
 \begin{minipage}[t]{0.49\linewidth}
@@ -1571,7 +1571,11 @@ concept IsCongruenceQuotient =
     typename quotient_congruence<Q>::carrier;
   } && IsCongruence<
     quotient_congruence_t<Q>,
-    quotient_congruence_carrier_t<Q>, Op>;
+    quotient_congruence_carrier_t<Q>, Op>
+  // ...and Q reduces from V (V ↠ Q):
+  && requires(
+       quotient_congruence_carrier_t<Q> v)
+     { { Q{v} } -> std::same_as<Q>; };
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.45\linewidth}
