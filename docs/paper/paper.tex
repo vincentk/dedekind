@@ -1457,48 +1457,50 @@ The S$\cdot$P and P$\cdot$H rows rest on witnesses that check in today (\S\ref{s
 \label{fig:hsp-combos}
 \end{figure}
 
-% ===== H·S·P dialled up: the spiral wave, velocity via dual numbers =====
+% ===== H·S·P dialled up: two superposed vortices, velocity via dual numbers =====
 \begin{figure}[tp]
 \centering
-\begin{tikzpicture}[>=Stealth,font=\small,scale=0.9]
-\foreach \panel/\rot/\lbl in {0/0/{$t_0$}, 6.2/28/{$t_1=t_0+\Delta t$}}{
+\begin{tikzpicture}[>=Stealth,font=\small]
+\def\cx{0.9}
+\foreach \panel/\rot/\lbl in {0/0/{$t_0$}, 5.2/50/{$t_1=t_0+\Delta t$}}{
   \begin{scope}[shift={(\panel,0)}]
-    \foreach \j in {0,120,240}{
-      \draw[teal!65!black,line width=1pt,domain=0:7.6,samples=110,variable=\t]
-        plot ({0.085*exp(0.40*\t)*cos(deg(\t)+\rot+\j)},
-              {0.085*exp(0.40*\t)*sin(deg(\t)+\rot+\j)});}
-    \draw[gray!35] (0,0) circle (2.0);
-    \draw[gray!60,dashed] (0,0) circle (1.0);
-    \fill[black] (0,0) circle (1.3pt); \node[font=\scriptsize] at (0.3,-0.24){$O$};
-    \foreach \j in {0,120,240}{
-      \pgfmathsetmacro\ang{deg(ln(1/0.085)/0.40)+\rot+\j}
-      \fill[red] (\ang:1.0) circle (2.3pt);
-      \draw[->,red,line width=0.9pt] (\ang:1.0)
-        -- ({cos(\ang)+0.55*cos(\ang+90)},{sin(\ang)+0.55*sin(\ang+90)});}
-    \node[font=\scriptsize,gray] at (1.32,1.05){$r_0$};
-    \node at (0,-2.5){\lbl};
+    % computed |psi_a + psi_b|^2: two co-rotating m=2 log-spiral vortices
+    \foreach \i in {0,...,29}{\foreach \j in {0,...,29}{
+      \pgfmathsetmacro\X{-2.1+0.14*\i}
+      \pgfmathsetmacro\Y{-2.1+0.14*\j}
+      \pgfmathsetmacro\ra{sqrt((\X+\cx)^2+\Y*\Y)}
+      \pgfmathsetmacro\rb{sqrt((\X-\cx)^2+\Y*\Y)}
+      \pgfmathsetmacro\pa{130*ln(\ra+0.18)+2*atan2(\Y,\X+\cx)-\rot}
+      \pgfmathsetmacro\pb{130*ln(\rb+0.18)+2*atan2(\Y,\X-\cx)-\rot}
+      \pgfmathsetmacro\v{(cos(\pa)+cos(\pb))^2}
+      \pgfmathsetmacro\pct{max(2,min(92,90-22*\v))}
+      \fill[black!\pct] (\X,\Y) rectangle ++(0.14,0.14);}}
+    \fill[teal!80] (-\cx,0) circle (2pt);
+    \fill[teal!80] (\cx,0) circle (2pt);
+    \node at (0,-2.55){\lbl};
   \end{scope}}
-\node[font=\scriptsize,red] at (3.1,2.3){velocity $=\partial_t\,\text{position}$ (the dual $\varepsilon$-part)};
+\node[font=\scriptsize] at (2.6,2.45){nodes (dark) $=\{\,|\psi|=0\,\}$; they drift as the pair turns $\Rightarrow$ velocity};
 \end{tikzpicture}
 \par\smallskip
-$\displaystyle \psi(r,\theta,t) = e^{-r^2/2\sigma^2}\; e^{\,i\left(k\ln r + m\theta - \omega t\right)}$
+$\displaystyle \psi = a + b,\qquad a(x,t)=e^{-|x-c|^2/2\sigma^2}\,e^{\,i\left(k\ln|x-c| + m\arg(x-c) - \omega t\right)}$
 \par\smallskip
 \begin{minipage}{0.86\linewidth}
 \begin{minted}[fontsize=\footnotesize]{cpp}
-using D = Dual<Q>;             // ℝ[ε]/(ε²): value ⊕ rate
-using F = Complex<D>;          // complex amplitude over duals
-auto ψ = env(r) * cexp(i*(k*ln(r) + m*θ - ω*t)); // m-arm spiral
-auto x0 = materialise(cross(ψ, r0, t0 + ε));  // one dual instant
-auto x1 = materialise(cross(ψ, r0, t1 + ε));  // Δt later
-static_assert(x0.val == pos0 && x0.eps == vel0); // pos ⊕ velocity
-static_assert(x1.val == pos1 && x1.eps == vel1);
+using D = Dual<Q>;                // ℝ[ε]/(ε²): value ⊕ rate
+using F = Complex<D>;             // complex amplitude over duals
+using Field = Function<R*R, F>;   // a Trsk field: ℝ×ℝ → F
+Field a = vortex(-c, m), b = vortex(+c, m);  // two co-rotating
+auto ψ = a + b;                   // + : superpose (Field's op)
+auto nodes = ψ | abs == 0;        // | : select the nodal set
+auto x = materialise(nodes, t + ε);  // dual instant → pos ⊕ vel
+static_assert(x.pos == p0 && x.vel == v0);
 \end{minted}
 \end{minipage}
-\caption{\textbf{H$\cdot$S$\cdot$P, dialled up: a spiral wave whose velocity is a dual number.}
-The carrier is a complex amplitude over the \emph{dual} reals $\mathbb{R}[\varepsilon]/(\varepsilon^2)$ on a periodic, $m$-fold-symmetric torus: P builds the field, H is the $\varepsilon^2{=}0$ quotient, S is the symmetric arm.
-Evaluating at a \emph{dual instant} $t+\varepsilon$ differentiates automatically, so one \cppinline{materialise} returns each arm-crossing of the circle $r_0$ as its position (the value) \emph{and} its velocity (the $\varepsilon$-part, drawn as the red arrows).
-Left and right are two times; the pattern rotates rigidly at $\omega/m$.
-The $\varepsilon^2{=}0$ node of the shadow plot (Figure~\ref{fig:primitive-reconciliation}) is here doing the work of a derivative.}
+\caption{\textbf{H$\cdot$S$\cdot$P, dialled up: two vortices, superposed, velocity from a dual number.}
+The carrier is a complex amplitude over the \emph{dual} reals $\mathbb{R}[\varepsilon]/(\varepsilon^2)$; the field is a Trsk function $\mathbb{R}\times\mathbb{R}\to F$.
+Two co-rotating $m$-armed vortices are \emph{superposed} with the field's own \cppinline{+}; the filter \cppinline{|} then \emph{selects} the nodal set $\{|\psi|=0\}$ (the dark curves of the computed $|\psi|^2$).
+Evaluating at a \emph{dual instant} $t+\varepsilon$ differentiates automatically, so one \cppinline{materialise} returns each node's position (the value) \emph{and} its velocity (the $\varepsilon$-part) as the pair turns ($t_0,t_1$).
+The velocity half is real today (the $\varepsilon^2{=}0$ node of Figure~\ref{fig:primitive-reconciliation}); solving the selection $|\psi|=0$ in closed form, rather than by scanning, is the symbolic-algebra seam this exhibit marks.}
 \label{fig:hsp-spiral}
 \end{figure}
 
