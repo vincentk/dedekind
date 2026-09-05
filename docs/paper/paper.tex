@@ -150,7 +150,7 @@
 % Core Thesis:
 A structurally-typed fragment of C++23 termed the \emph{Juliet Posture} $\mathbf{Jlt} = \mathbf{Per} \cap \mathbf{Cpp}$ is identified.\footnote{The architecture is written throughout as a chain of category intersections, each layer adding one commitment.  We mean these equations loosely: they say where each layer sits and carry the spirit of the thesis, not identities the paper proves.}
 It is assembled from \cppinline{constexpr} evaluation, \cppinline{concept} checks, and template instantiation and permits a System~F reading of the underlying type system.
-$\mathbf{Jlt}$ was then used to bootstrap i) a lazy, intensional set comprehension engine under an ETCS reading ($\mathbf{Trsk} = \mathbf{Jlt} \cap \mathbf{Set}$), and ii) an intersection with universal algebraic signatures, forming the core category $\mathbf{Ddk} = \mathbf{Trsk} \cap \mathbf{Alg}$.
+$\mathbf{Jlt}$ was then used to bootstrap i) a lazy, intensional set comprehension engine under an ETCS reading ($\mathbf{Lwv} = \mathbf{Jlt} \cap \mathbf{Set}$), refined to a point-free relational calculus ($\mathbf{Trsk} = \mathbf{Lwv} \cap \mathbf{Rel}$), and ii) an intersection with universal algebraic signatures, forming the core category $\mathbf{Ddk} = \mathbf{Trsk} \cap \mathbf{Alg}$.
 The resulting embedded DSL allows for the reification of coordinate-free analytic graphs as operators, functions and relations on algebraic sets.
 The compiler can then use those laws to not only verify but also optimize the corresponding expression tree, with full compile-time evaluation being a limiting case.
 
@@ -493,35 +493,35 @@ $\mathcal{P}(A)$ & $\in$ & $\cap$ & $\cup$ & $\complement$ & $\varnothing$ & $A$
 \addlinespace
 $\mathbf{Topos}$ & $\chi$ & $\times$ & $\sqcup$ & $\neg$ & $\mathbf{0}$ & $\mathbf{1}$ & $B^A$ \\
 \addlinespace
-$\mathbf{Trsk}$ & \cppinline{s(x)} & \cppinline{&} & \cppinline{|} & \cppinline{~} & \cppinline{Ø} & \cppinline{Ω} & \cppinline{<=} \\
+$\mathbf{Lwv}$ & \cppinline{s(x)} & \cppinline{&} & \cppinline{|} & \cppinline{~} & \cppinline{Ø} & \cppinline{Ω} & \cppinline{<=} \\
 \bottomrule
 \end{tabular}
 \caption{
-Operator-mapping table: each column is one construction, spelled in four languages over the rows $\mathbb{B}$, $\mathcal{P}(A)$, $\mathbf{Topos}$, $\mathbf{Trsk}$ (Section~\ref{sec:ddk_etcs}, Eqn~\ref{eqn:trsk}).
+Operator-mapping table: each column is one construction, spelled in four languages over the rows $\mathbb{B}$, $\mathcal{P}(A)$, $\mathbf{Topos}$, $\mathbf{Lwv}$ (Section~\ref{sec:ddk_etcs}, Eqn~\ref{eqn:lwv}).
 The $\mathbf{Topos}$ row is the Boolean case realised by $\mathbf{Set}$, where the Heyting pseudo-complement is a genuine $\neg$.
 The \emph{member} column is membership, the characteristic morphism $\chi : A \to \Omega$ ($\models$ satisfaction, $\in$ set membership, $\chi$ the classifier, \cppinline{s(x)} the set applied to a point); the other columns are the lattice operations.
 }
 \label{tab:lattice-lift}
 \end{table}
 
-\begin{definition}[$\mathbf{Trsk} := \mathbf{Jlt} \cap \mathbf{Set}$]
-\label{def:trsk-set}
-In $\mathbf{Trsk}$:
+\begin{definition}[$\mathbf{Lwv} := \mathbf{Jlt} \cap \mathbf{Set}$]
+\label{def:lwv-set}
+In $\mathbf{Lwv}$:
 \begin{enumerate}
 \item A \emph{set} over a regular (\cppinline{std::regular}) carrier \cppinline{A} in $\mathbf{Jlt}$ is a \emph{subobject} of \cppinline{A}: a type \cppinline{S} satisfying \cppinline{IsSubobject<S, A>}, whose characteristic predicate $\chi_S : A \to \Omega$ decides membership.
 \item A \emph{relation} is a subobject of the Cartesian product \cppinline{::Domain} $\times$ \cppinline{::Codomain}.
 \item A \emph{set} is thus the true-fiber of its characteristic morphism $\chi_S : A \to \Omega$: the pullback of $\top$ along $\chi_S$, the true-slice of the graph of $\chi_S$ rather than the whole graph (which also carries the \cppinline{false} pairs).
 \end{enumerate}
 The full ETCS axioms live not on the individual set but on its ambient \emph{universe}: the top element $\Omega\langle A\rangle$ is itself an ETCS set-object, satisfying the heavier \cppinline{concept IsSet} (Definition~\ref{def:etcs-set}).
-A $\mathbf{Trsk}$ set is a subobject of such a universe over a $\mathbf{Jlt}$ carrier, so one can write:
+A $\mathbf{Lwv}$ set is a subobject of such a universe over a $\mathbf{Jlt}$ carrier, so one can write:
 \begin{equation}
-\label{eqn:trsk}
-\mathbf{Trsk} := \mathbf{Jlt} \cap \mathbf{Set},
+\label{eqn:lwv}
+\mathbf{Lwv} := \mathbf{Jlt} \cap \mathbf{Set},
 \end{equation}
 in which the predicate $\chi_S$ \emph{is} the set.
 \end{definition}
 
-Because the carrier is \cppinline{std::regular}, the elements of a $\mathbf{Trsk}$ set are transparent value types with a decidable equality.
+Because the carrier is \cppinline{std::regular}, the elements of a $\mathbf{Lwv}$ set are transparent value types with a decidable equality.
 This $\mathbf{Set}$ is therefore a subcategory of structural data types, not the universal mathematical blackboard: richer objects enter by regular representation rather than natively as elements, a function as its graph (item~2, a set of \cppinline{std::pair}s) and an equivalence class as a quotient of such a graph, but not, say, an arbitrary morphism whose equality is undecidable.
 
 The combinator \cppinline{in} constructs a \emph{scout variable}: in the blackboard form $\{\,x \in \mathbb{N} \mid P(x)\,\}$ it is the bound variable $x$, a stand-in for an arbitrary element that a predicate then constrains.
@@ -548,13 +548,19 @@ As a direct consequence, downstream runtime membership queries for statically im
 Listing~\ref{lst:pruning} exhibits a checked-in extract that tests this type-directed collapse in practice, and its bottom panel makes the collapse mechanically observable during the build: the witness function for set membership constant-folds to \texttt{ret i1 false} in the emitted LLVM IR.
 
 The container reading and the predicate reading are almost interconvertible, and the asymmetry is the point (Listing~\ref{lst:materialise}).
-Any \cppinline{std::set} is a $\mathbf{Trsk}$ set for free, its \cppinline{contains} the characteristic predicate; call that embedding $\iota$, and it is total.
-Only a finite, enumerable $\mathbf{Trsk}$ set materialises back to a container; call that $\mu$, and it is partial, the naturals having no finite materialisation.
-So $\mathbf{Trsk}$ is strictly more expressive than \cppinline{std::set}, the extensional container it generalises, and the price is paid in \emph{proof obligations}: where $\mu$ is unavailable, membership is settled by the concept constraints and factorisations of this section, not by enumeration.
-This is the extensional/intensional database distinction of deductive databases, \cppinline{std::set} playing the extensional store (EDB, facts) and $\mathbf{Trsk}$ the intensional one (IDB, rules), with materialisation the materialised view~\cite{abiteboul1995foundations}.
+Any \cppinline{std::set} is a $\mathbf{Lwv}$ set for free, its \cppinline{contains} the characteristic predicate; call that embedding $\iota$, and it is total.
+Only a finite, enumerable $\mathbf{Lwv}$ set materialises back to a container; call that $\mu$, and it is partial, the naturals having no finite materialisation.
+This asymmetry is the model/materialise gap of the whole framework: $\mathbf{Jlt}$ \emph{models} carriers up to the continuum but \emph{materialises} only finite ones,
+\begin{equation}
+\label{eqn:model-materialise}
+  \mathbf{Jlt}\ \text{models} \le \beth_1, \qquad \mathbf{Jlt}\ \text{materialises} < \aleph_0 ,
+\end{equation}
+the library's Axiom-9 restriction of carrier predicates to $\beth_1$ (Appendix~\ref{sec:etcs}) above, meeting the finite reach of $\mu$ below.
+So $\mathbf{Lwv}$ is strictly more expressive than \cppinline{std::set}, the extensional container it generalises, and the price is paid in \emph{proof obligations}: where $\mu$ is unavailable, membership is settled by the concept constraints and factorisations of this section, not by enumeration.
+This is the extensional/intensional database distinction of deductive databases, \cppinline{std::set} playing the extensional store (EDB, facts) and $\mathbf{Lwv}$ the intensional one (IDB, rules), with materialisation the materialised view~\cite{abiteboul1995foundations}.
 
 \begin{listing}[htbp]
-\caption{The two conversions between \cppinline{std::set} and $\mathbf{Trsk}$, and their composition.
+\caption{The two conversions between \cppinline{std::set} and $\mathbf{Lwv}$, and their composition.
 \textbf{Left, top} ($\iota$): \cppinline{ambient_set(from_std(·))} lifts a \cppinline{std::set} to an \cppinline{IsSet} object.
 \textbf{Left, bottom} ($\mu$): \cppinline{materialise} enumerates a finite universe and keeps the $\chi$-matches.
 \textbf{Right}: the intersection of an extensional set with the intensional halfspaces $\{x>3\}$ and $\{x>5\}$.}
@@ -843,6 +849,16 @@ The implementation tracks this definition literally at compile time.
 Relations are a \emph{dioid}, an idempotent semiring $(\mathrm{Rel}, \cup, \mathbin{;}, \varnothing, \Delta)$ under union and relative product, and that structure is the spine of this section (Table~\ref{tab:relation-dioid}).
 It stands on its own two monoids: a join-semilattice for $\cup$, and a composition monoid for $\mathbin{;}$ whose unit is the diagonal $\Delta$.
 The additive half happens to be the Boolean lattice a relation already carries \emph{as a set} (Section~\ref{sec:intensional_sets}, Table~\ref{tab:lattice-lift}); the multiplicative half, composition with unit the diagonal, is what the \emph{product} adds and is the reason the section exists.
+
+\begin{definition}[$\mathbf{Trsk} := \mathbf{Lwv} \cap \mathbf{Rel}$]
+\label{def:trsk-rel}
+A $\mathbf{Trsk}$ relation is an $\mathbf{Lwv}$ subobject (Definition~\ref{def:lwv-set}) of a Cartesian product $A \times B$; the \emph{family} of such relations carries the dioid (allegory) structure of this section --- converse $(\cdot)^{\circ}$, relative product $\mathbin{;}$, and, on the endorelations $\mathrm{Rel}(A,A)$, the diagonal unit $\Delta$.  Where $\mathbf{Lwv}$ is the set fragment, $\mathbf{Trsk}$ is its point-free relational refinement,
+\begin{equation}
+\label{eqn:trsk}
+\mathbf{Trsk} := \mathbf{Lwv} \cap \mathbf{Rel},
+\end{equation}
+the Tarskian calculus on which the algebra of \S\ref{sec:algebraic_lattice_carriers} stands.
+\end{definition}
 
 \begin{table}[htbp]
 \centering
@@ -1269,8 +1285,156 @@ The optimum is not searched for but read off the structure: the codomain bound a
 The implemented $\arg\max$ is exactly this structural specialization (a group-carrier translation into a codomain bounded above and restricted to a residue class); a general filter over arbitrary, less-structured objectives is future work, decidable only where §\ref{sec:ddk_comprehension}'s certificates reach.
 
 %------
-\section{Universal Algebra and the Poset of Carriers}
+\section{A Reification of $\mathbf{Alg}(-)$}
 \label{sec:algebraic_lattice_carriers}
+
+We reify $\mathbf{Alg}(-)$ as the \emph{relational magmas} over $\mathbf{Trsk}$: a carrier with a pointwise operation $A \times A \to A$, read as the functional relation that is its graph and refined by the laws it keeps (Equation~\ref{eqn:ddk}).
+The section is four capabilities, each a compile-time certificate (Listing~\ref{lst:alg-capabilities}): a magma is a carrier with a closed operation, and Birkhoff's three constructions --- quotient (H), subalgebra (S), and direct product (P) --- each build a new carrier from it, the base's certificate carried across for S and P by trait propagation, and, for the relational H shown here, the quotient \emph{witnessed} by its congruence rather than by propagation (\S\ref{sec:relations_functions_blueprint}).
+
+% Source excerpts from dedekind.algebra:quotient, :morphologies:cyclic, :sequences, :linear_algebra:vec2.
+\begin{listing}[!ht]
+\caption{Section~\ref{sec:algebraic_lattice_carriers} at a glance: four capabilities, each a checked-in \cppinline{static_assert}.  A magma is a carrier with a closed operation; the three Birkhoff constructions each build a new carrier from it --- S and P carry the certificate across by trait propagation, while the relational H \emph{witnesses} the quotient by its congruence.  The section develops each below.}
+\label{lst:alg-capabilities}
+\noindent
+\begin{minipage}[t]{0.49\linewidth}
+\textbf{magma} --- a carrier with a closed operation
+\begin{cpp}
+// ℤ/8ℤ: + closes on the carrier
+static_assert(IsMagma<Modular<8u>,
+                std::plus<Modular<8u>>>);
+\end{cpp}
+\textbf{H} --- quotient by a congruence
+\begin{cpp}
+// Modular<8> = unsigned/(≡ mod 8), 8|2^w
+static_assert(IsCongruenceQuotient<
+    Modular<8u>, std::plus<unsigned>>);
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\linewidth}
+\textbf{S} --- subalgebra (a closed subset)
+\begin{cpp}
+// even ⊆ (unsigned, +): total ambient
+static_assert(IsSubalgebra<EvenUnsigned,
+    unsigned, std::plus<unsigned>>);
+\end{cpp}
+\textbf{P} --- direct product (componentwise)
+\begin{cpp}
+// Vec2<T> = T × T
+static_assert(
+    IsProductAlgebra<Vec2V<int>>);
+\end{cpp}
+\end{minipage}
+\end{listing}
+
+Two facts organise the columns.
+Every homomorphism $f\colon A\to B$ factors through its image, an epimorphism $\pi$ (a quotient, H) followed by a monomorphism $\iota$ (a subalgebra inclusion, S), the arrow classes of Table~\ref{tab:relation-quantifier}:
+\begin{equation}
+\label{eqn:image-factorization}
+  A \;\twoheadrightarrow\; \operatorname{im}(f) \;\hookrightarrow\; B,
+  \qquad f = \iota \circ \pi .
+\end{equation}
+And because $\mathbf{Jlt}$ materialises only finite carriers (the model/materialise gap of \S\ref{sec:intensional_sets}, Equation~\ref{eqn:model-materialise}), of the three constructions only the product carries an arity bound.
+
+\begin{table}[htbp]
+\centering
+\caption{The three Birkhoff constructions H, S, P read across vocabularies; the arrow-class row is Equation~\ref{eqn:image-factorization}, the finitary bound Equation~\ref{eqn:model-materialise}.}
+\label{tab:hsp-rosetta}
+\footnotesize
+\begin{tabular}{@{}llll@{}}
+\toprule
+ & \textbf{H} (quotient) & \textbf{S} (subalgebra) & \textbf{P} (product) \\
+\midrule
+universal algebra    & $A/\theta$, a congruence $\theta$       & closed $B \subseteq A$          & direct product $\prod_i A_i$ \\
+arrow class          & epi (surjection)                        & mono (injection $=$ embedding)  & product (limit) \\
+relation (\textbf{Trsk}) & a congruence relation               & a closed predicate              & componentwise on a tuple \\
+concept              & \cppinline{IsCongruenceQuotient}        & \cppinline{IsSubalgebra}        & \cppinline{IsProductAlgebra} \\
+exemplar             & $\mathbb{Z}/N\mathbb{Z}$, $F[\varepsilon]/(\varepsilon^2)$ & $\mathbb{N} \subseteq \mathbb{Z}$ & $T^n$ (vector, matrix) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[htbp]
+\centering
+% ===== TOP: the shadow plot, four primitives =====
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[every node/.style={font=\small}]
+  \foreach \C/\Cube/\Type/\Fid in {%
+      1.5/{$\mathbb{B}$}/bool/{exact},
+      4.8/{$\mathbb{Z}/2^{w}\mathbb{Z}$}/{size\_t}/{exact},
+      8.1/{$\mathbb{Z}$ (bdd.)}/int/{partial},
+      11.4/{$\mathbb{Q}\bmod L$}/double/{subset-exact}}{
+    \draw[thick] (\C-0.5,1.3)--(\C+0.5,1.3)--(\C+0.5,2.3)--(\C-0.5,2.3)--cycle;
+    \draw[thick] (\C-0.15,1.65)--(\C+0.85,1.65)--(\C+0.85,2.65)--(\C-0.15,2.65)--cycle;
+    \draw[thick] (\C-0.5,1.3)--(\C-0.15,1.65) (\C+0.5,1.3)--(\C+0.85,1.65)
+                 (\C+0.5,2.3)--(\C+0.85,2.65) (\C-0.5,2.3)--(\C-0.15,2.65);
+    \node[font=\footnotesize] at (\C+0.17,0.95) {\Cube};
+    \draw[fill=black!12] (\C+0.17,-0.05) ellipse (0.8 and 0.2);
+    \node at (\C+0.17,-0.7) {\texttt{\Type}};
+    \draw[dashed,gray] (\C-0.5,1.3)--(\C-0.6,0.12) (\C+0.85,1.65)--(\C+0.95,0.1);
+    \node[font=\scriptsize\itshape,gray] at (\C+0.17,0.4) {\Fid};
+  }
+  % ideals, reached as period -> infinity
+  \node[font=\footnotesize] at (1.67,3.7) {$\mathbb{B}$};
+  \node[font=\scriptsize\itshape] at (1.67,3.12) {(finite)};
+  \foreach \C/\Ideal/\Lim in {4.8/{$\mathbb{N}$}/{$w\to\infty$},
+                              8.1/{$\mathbb{Z}$}/{$w\to\infty$},
+                              11.4/{$\mathbb{R}$}/{$L\to\infty$}}{
+    \node[font=\footnotesize] at (\C+0.17,3.7) {\Ideal};
+    \draw[->,dashed] (\C+0.17,2.75)--(\C+0.17,3.45)
+      node[midway,right,font=\scriptsize\itshape]{\Lim};
+  }
+  % the (non-uniform) tower, drawn light -- explained in the caption
+  \draw[->,gray] (2.45,1.8)--(4.2,1.8);
+  \draw[->,gray] (5.75,1.8)--(7.5,1.8);
+  \draw[->,gray] (9.05,1.8)--(10.8,1.8);
+  \node[font=\scriptsize\itshape] at (6.45,-1.3) {machine primitives shadow modular Forms (exact on a closed subset); ideals are their period-$\infty$ limits};
+\end{tikzpicture}}
+\\[0.3ex]{\footnotesize (a) the shadow plot: four primitives as shadows of modular Forms}\\[1.6ex]
+% ===== BOTTOM: two of the cubes, opened as HSP-varieties =====
+\begin{minipage}[b]{0.47\linewidth}\centering
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[every node/.style={font=\small},
+                    axlbl/.style={font=\footnotesize\itshape}]
+  \coordinate (o) at (0,0); \coordinate (p) at (2.7,0);
+  \coordinate (s) at (0,2.1); \coordinate (h) at (1.15,0.9);
+  \coordinate (ps) at (2.7,2.1); \coordinate (ph) at (3.85,0.9);
+  \coordinate (sh) at (1.15,3.0); \coordinate (psh) at (3.85,3.0);
+  \draw[gray!55] (o)--(s)--(ps)--(p) (p)--(ph)--(psh)--(sh)--(s);
+  \draw[dashed,gray!55] (h)--(ph) (h)--(sh) (o)--(h);
+  \draw (o)--(p);
+  \draw[->,thick] (o)--(p) node[axlbl,pos=0.55,below,black]{P};
+  \draw[->,gray] (o)--(s) node[axlbl,pos=0.6,left,black]{S (triv.)};
+  \draw[->,dashed,gray] (o)--(h) node[axlbl,pos=0.6,above left,black]{H (triv.)};
+  \node[below left] at (o) {$\mathbb{B}$};
+  \node[below] at (p) {$\mathbb{B}^{n}$};
+  \node[above right] at (ps) {$\mathbb{B}^{n\times m}$};
+\end{tikzpicture}}
+\\[0.3ex]{\footnotesize (b) HSP on \texttt{bool}: P-rich, S/H trivial --- $\mathbb{B}^{n}$, $\mathbb{B}^{n\times m}$ (componentwise)}
+\end{minipage}\hfill
+\begin{minipage}[b]{0.50\linewidth}\centering
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[every node/.style={font=\small},
+                    axlbl/.style={font=\footnotesize\itshape}]
+  \coordinate (o) at (0,0); \coordinate (p) at (2.7,0);
+  \coordinate (s) at (0,2.1); \coordinate (h) at (1.15,0.9);
+  \coordinate (ps) at (2.7,2.1); \coordinate (ph) at (3.85,0.9);
+  \coordinate (sh) at (1.15,3.0); \coordinate (psh) at (3.85,3.0);
+  \draw[dashed,gray] (h)--(ph) (h)--(sh);
+  \draw (o)--(p)--(ps)--(s)--(o) (p)--(ph) (s)--(sh) (ps)--(psh) (ph)--(psh)--(sh);
+  \draw[->,thick] (o)--(p) node[axlbl,pos=0.55,below]{P};
+  \draw[->,thick] (o)--(s) node[axlbl,pos=0.55,left]{S};
+  \draw[->,thick,dashed,gray] (o)--(h) node[axlbl,pos=0.6,above left,black]{H};
+  \node[below left] at (o) {$\mathbb{Z}/2^{w}\mathbb{Z}$};
+  \node[below] at (p) {$(\mathbb{Z}/2^{w}\mathbb{Z})^{n}$};
+  \node[left] at (s) {$2^{k}\tfrac{\mathbb{Z}}{2^{w}\mathbb{Z}}$};
+  \node[below right] at (h) {$\mathbb{Z}/2^{k}\mathbb{Z}$};
+  \node[above right] at (psh) {$(\mathbb{Z}/2^{w}\mathbb{Z})^{n\times m}$};
+\end{tikzpicture}}
+\\[0.3ex]{\footnotesize (c) HSP on \texttt{size\_t}: full H/S/P; H reduces $\mathbb{Z}/2^{k}\mathbb{Z}\to\mathbb{B}$}
+\end{minipage}
+\caption{The primitive carriers, two readings stacked.  \textbf{(a)} The \emph{shadow plot} (vertical axis): each machine type is a shadow of a finite modular Form --- \emph{exact} where the Form is finite (\texttt{bool}$=\mathbb{B}$, \texttt{size\_t}$=\mathbb{Z}/2^{w}\mathbb{Z}$), and exact only on a \emph{closed subset} otherwise.  \texttt{int} is a \emph{partial} $\mathbb{Z}$ (signed overflow is undefined); \texttt{double} is exact on its integer / bounded-dyadic subset --- closed and associative there ($1+1+2$ is exact), while general $+$ rounds, the price of leaving it --- approximating $\mathbb{Q}\bmod L$.  The ideals ($\mathbb{N},\mathbb{Z},\mathbb{R}$) are \emph{approached}, not lost: as the period grows ($w,L\to\infty$) the Form becomes an ever more faithful shadow, and $\mathbb{R}$ is the \emph{completion} no finite stage reaches (Equation~\ref{eqn:model-materialise}).  The horizontal tower is \emph{not} one construction; that lateral structure lives in the cubes, not a single arrow.  \textbf{(b,c)} Two Forms opened as HSP-varieties (Figure~\ref{fig:hub-spoke-bnz}'s constructions, re-based).  On \texttt{bool}, S and H are trivial ($\mathbb{B}$ is simple), so P carries it: $\mathbb{B}^{n}$ and the \emph{componentwise} $\mathbb{B}^{n\times m}$ (all finite Boolean algebras, by Stone).  On \texttt{size\_t} all three legs are live over the \emph{additive group} $(\mathbb{Z}/2^{w}\mathbb{Z},+)$ --- P the componentwise arrays, S the subgroups $2^{k}\mathbb{Z}/2^{w}\mathbb{Z}$, H the quotient groups $\mathbb{Z}/2^{k}\mathbb{Z}$ (at $k=1$, $\mathbb{B}$, so the \texttt{bool} cube \emph{is} the H-corner); the multiplicative structure would leave S trivial ($1$ generates the whole ring).  Birkhoff P is \emph{componentwise}; the relational / matrix product $M_n(\mathbb{B})=\mathbf{Rel}$ (summing over an index) is the separate \emph{endomorphism} construction --- composition, \S\ref{sec:relations_functions_blueprint} and \S\ref{sec:optimization_lp} (Table~\ref{tab:constructions}) --- not P.  HSP furnishes the cubes; matrix multiplication and the vertical limits are the axes it does not span.}
+\label{fig:primitive-reconciliation}
+\end{figure}
 
 % Source excerpts from dedekind.algebra:universal and dedekind.category:total.
 \begin{listing}[!ht]
@@ -1316,6 +1480,7 @@ concept IsMonoid = IsAlgebraOnSet<X, Op> && category::IsMonoid<typename X::Domai
 \subsection{Algebraic Sets on the Primitive Carriers}
 \label{sec:algebraic_sets_primitives}
 
+The primitive machine carriers sit at the base of the tower as shadows of finite modular Forms (Figure~\ref{fig:primitive-reconciliation}): \texttt{bool} ($\mathbb{B}$) and \texttt{size\_t} ($\mathbb{Z}/2^{w}\mathbb{Z}$) exactly, \texttt{int} as a \emph{partial} $\mathbb{Z}$ (overflow is undefined), and \texttt{double} exactly on its integer / bounded-dyadic subset (rounding the price of leaving it); the infinite ideals ($\mathbb{N}$, $\mathbb{Z}$, $\mathbb{R}$) are the period-$\infty$ limits.
 
 % Source excerpts from dedekind.algebra:boolean and dedekind.numbers:rational.
 \begin{listing}[!ht]
@@ -1346,7 +1511,7 @@ static_assert(
 \end{minipage}
 \end{listing}
 
-Listing~\ref{lst:algebra:universal} reifies the \emph{algebraic sets} of Figure~\ref{fig:hub-spoke-bnz} as \Cpp{23} types: the family $\mathbf{Ddk}$ is the reified intensional sets $\mathbf{Trsk}$~\eqref{eqn:trsk} met with universal algebra in the textbook sense~\cite{burris1981universalalgebra}, $\mathbf{Alg}(-)$\footnote{The dash is left unbound, the same $F_\Sigma$-algebra fragment a functional programmer would recognise~\cite{pierce1991basic}.  The smallness ceiling that keeps $\mathbf{Ddk}$ clear of proper-class self-reference is the ETCS power-object bound (Appendix~\ref{sec:etcs}, Axiom~9, $\beth_1$).}:
+Listing~\ref{lst:algebra:universal} reifies the \emph{algebraic sets} of Figure~\ref{fig:hub-spoke-bnz} as \Cpp{23} types: the family $\mathbf{Ddk}$ is the point-free relational calculus $\mathbf{Trsk}$~\eqref{eqn:trsk} met with universal algebra in the textbook sense~\cite{burris1981universalalgebra}, $\mathbf{Alg}(-)$\footnote{The dash is left unbound, the same $F_\Sigma$-algebra fragment a functional programmer would recognise~\cite{pierce1991basic}.  The smallness ceiling that keeps $\mathbf{Ddk}$ clear of proper-class self-reference is the library's Axiom-9 restriction of carrier predicates to $\beth_1$ (Appendix~\ref{sec:etcs}), not a general ETCS bound.}:
 \begin{equation}
 \label{eqn:ddk}
     \mathbf{Ddk} \;=\; \mathbf{Trsk} \,\cap\, \mathbf{Alg}(-).
@@ -1380,49 +1545,61 @@ Beyond the primitives, mechanical support comes from Birkhoff's HSP theorem~\cit
 Two rules carry it (Listing~\ref{lst:hsp-combinators}):
 \begin{enumerate}
     \item \textbf{Composition on the parameter.}  A concept conjoins a certificate with a property of its parameter: a module over a field \emph{is} a vector space, so \cppinline{is_vector_space_v} holds with no per-carrier code.
-    \item \textbf{Propagation through a construction.}  A one-line registration names the base, and the species traits (associativity, commutativity, and the rest) forward through the construction to the derived carrier.
+    \item \textbf{Propagation through a construction.}  A one-line registration of a base carrier --- for a product, a subalgebra, or a quotient --- forwards the species traits through the construction to the derived carrier.  A quotient may \emph{additionally} name its congruence relation (Listing~\ref{lst:hsp-combinators}), which \emph{witnesses} $Q = V/R$; the law-forwarding itself rides the base-carrier registration, not the congruence.
 \end{enumerate}
 This reaches exactly the Birkhoff-closed constructions, product, quotient, and subalgebra; localization, completion, and the endomorphism-algebra step preserve structure by other theorems and are not covered (Table~\ref{tab:constructions}).
 
 
-% Source excerpts from dedekind.algebra:quotient and dedekind.analysis:dual.
+% Source excerpts from dedekind.algebra:quotient and dedekind.morphologies:cyclic.
 \begin{listing}[!ht]
-\caption{The HSP combinators (left) and one application (right).  The dual numbers $\mathbb{D} = F[\varepsilon]/(\varepsilon^2)$ are the quotient of the polynomial ring $F[x]$; registering \cppinline{F} as the trait-propagation base of \cppinline{Dual<F>} forwards \cppinline{F}'s ring traits to $\mathbb{D}$, and the nilpotent axiom $\varepsilon^2 = 0$ is checked at compile time.  The H (quotient) family is shown; P (product) and S (subalgebra) mirror it.}
+\caption{The relational H (quotient) leg: a quotient $Q = V/R$ is declared by naming its \emph{congruence} relation $R$ on the carrier $V$ (left), and \cppinline{Modular<N>} $= \mathbb{Z}/N\mathbb{Z}$ names the mod-$N$ relation as its congruence (right).  \cppinline{IsCongruence} checks that $R$ is an equivalence preserved by the operation, so \cppinline{IsCongruenceQuotient} holds --- on the machine carrier $\mathbb{Z}/2^{w}\mathbb{Z}$ this needs $N$ a power of two ($N=8$ here), so that native wraparound agrees with mod-$N$ reduction --- and the certificate rides the relation.  Carriers whose pre-quotient is not itself a reified carrier (the dual numbers $\mathbb{D} = F[\varepsilon]/(\varepsilon^2)$, $\mathbb{C}$, $\mathbb{Q}$) instead declare a trait-propagation base; the P (product) and S (subalgebra) legs mirror the same shape.}
 \label{lst:hsp-combinators}
 \noindent
 \begin{minipage}[t]{0.52\linewidth}
-the HSP combinators
+the relational H combinator
 \begin{cpp}
+// a quotient Q = V/R is witnessed by a
+// CONGRUENCE relation R on the carrier V:
 template <typename Q>
-struct quotient_algebra_base {};   // register a base
-template <typename Q>
-concept IsQuotientAlgebra =
-    requires { typename quotient_algebra_base<Q>::type; };
+struct quotient_congruence {};
+//   ::type = R,  ::carrier = V
 
-// a species trait forwards to the base's:
-template <typename Q> requires IsQuotientAlgebra<Q>
-inline constexpr bool is_associative_v<Q, std::plus<Q>> =
-    is_associative_v<quotient_algebra_base_t<Q>,
-                     std::plus<quotient_algebra_base_t<Q>>>;
+template <typename Q, typename Op>
+concept IsCongruenceQuotient =
+  requires {
+    typename quotient_congruence<Q>::type;
+    typename quotient_congruence<Q>::carrier;
+  } && IsCongruence<
+    quotient_congruence_t<Q>,
+    quotient_congruence_carrier_t<Q>, Op>
+  // ...and Q reduces from V (V ↠ Q):
+  && requires(
+       quotient_congruence_carrier_t<Q> v)
+     { { Q{v} } -> std::same_as<Q>; };
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.45\linewidth}
-a success: the dual numbers $\mathbb{D}$
+a success: clock arithmetic $\mathbb{Z}/N\mathbb{Z}$
 \begin{cpp}
-// 𝔻 = F[ε]/(ε²) = F[x]/(ε²); register
-//   F as the trait-propagation base:
-template <typename F> requires std::regular<F>
-struct quotient_algebra_base<Dual<F>> {
-  using type = F;
+// x ≡ y (mod N): the kernel of the reduction
+// ℤ ↠ ℤ/Nℤ = Modular<N>, a genuine
+// congruence for both + and ×.
+template <auto N>
+struct ModularCongruence {
+  constexpr bool operator()(auto a, auto b)
+  const { return Modular<N>{a}
+              == Modular<N>{b}; }
 };
-
-// a forwarded trait: 𝔻's commutativity
-//   IS F's, via quotient_algebra_base:
-static_assert(is_commutative_v<Dual<int>,
-                std::plus<Dual<int>>>);
-// nilpotent core, evaluated directly:
-constexpr Dual<int> eps{0, 1};
-static_assert(eps * eps == Dual<int>{0,0});
+template <auto N>
+struct quotient_congruence<Modular<N>> {
+  using type    = ModularCongruence<N>;
+  using carrier =
+    typename Modular<N>::machine_type;
+};
+// a congruence for native + iff N|2^w;
+// Modular<8> = unsigned/(≡ mod 8):
+static_assert(IsCongruenceQuotient<
+    Modular<8u>, std::plus<unsigned>>);
 \end{cpp}
 \end{minipage}
 \end{listing}
