@@ -1290,6 +1290,7 @@ The implemented $\arg\max$ is exactly this structural specialization (a group-ca
 
 We reify $\mathbf{Alg}(-)$ as the \emph{relational magmas} over $\mathbf{Trsk}$: a carrier with a pointwise operation $A \times A \to A$, read as the functional relation that is its graph and refined by the laws it keeps (Equation~\ref{eqn:ddk}).
 The section is four capabilities, each a compile-time certificate (Listing~\ref{lst:alg-capabilities}): a magma is a carrier with a closed operation, and Birkhoff's three constructions --- quotient (H), subalgebra (S), and direct product (P) --- each build a new carrier from it, the base's certificate carried across for S and P by trait propagation, and, for the relational H shown here, the quotient \emph{witnessed} by its congruence rather than by propagation (\S\ref{sec:relations_functions_blueprint}).
+These constructions \emph{compose}: Figure~\ref{fig:hsp-combos} pairs H$\cdot$S, S$\cdot$P, P$\cdot$H, and the full H$\cdot$S$\cdot$P synthesis with their idiomatic $\mathbf{Ddk}$ realisations, each materialising to a numerical shadow (Figure~\ref{fig:primitive-reconciliation}).
 
 % Source excerpts from dedekind.algebra:quotient, :morphologies:cyclic, :sequences, :linear_algebra:vec2.
 \begin{listing}[!ht]
@@ -1352,6 +1353,98 @@ exemplar             & $\mathbb{Z}/N\mathbb{Z}$, $F[\varepsilon]/(\varepsilon^2)
 \bottomrule
 \end{tabular}
 \end{table}
+
+\begin{figure}[tbp]
+\centering
+
+% ===== Row 1: H·S =====
+\noindent
+\begin{minipage}[c]{0.07\linewidth}\centering\rotatebox{90}{\footnotesize\textbf{H$\cdot$S}}\end{minipage}\hfill
+\begin{minipage}[c]{0.33\linewidth}\centering
+\begin{tikzpicture}[every node/.style={font=\tiny}]
+  \foreach \x in {0,1,2,3}\foreach \y in {0,1,2,3}\fill (0.32*\x,0.32*\y) circle(1.1pt);
+  \node at (0.48,-0.34){$\mathbb{Z}[i]$};
+  \draw[->,thick] (1.45,0.48)--(2.15,0.48) node[midway,above]{$\bmod\,\pi$};
+  \foreach \x in {0,1,2}\foreach \y in {0,1,2}\fill (2.55+0.32*\x,0.16+0.32*\y) circle(1.1pt);
+  \node at (2.95,-0.34){$\mathbb{F}_9$};
+\end{tikzpicture}
+\end{minipage}\hfill
+\begin{minipage}[c]{0.57\linewidth}
+\begin{minted}[fontsize=\footnotesize]{cpp}
+// S: Gaussian integers ℤ[i] ⊂ ℂ
+using GZ = Subalgebra<Complex<Q>, GaussInt>;
+// H: fold mod a Gaussian prime → 𝔽₉
+using F9 = Quotient<GZ, ByPrime<3>>;
+static_assert(IsField<F9>);
+\end{minted}
+\end{minipage}
+\par\vspace{0.4ex}\hrule\vspace{0.8ex}
+
+% ===== Row 2: S·P =====
+\noindent
+\begin{minipage}[c]{0.07\linewidth}\centering\rotatebox{90}{\footnotesize\textbf{S$\cdot$P}}\end{minipage}\hfill
+\begin{minipage}[c]{0.33\linewidth}\centering
+\begin{tikzpicture}
+  \foreach \x in {0,...,5}\foreach \y in {0,...,5}\fill[gray!45] (0.26*\x,0.26*\y) circle(0.8pt);
+  \foreach \x in {0,2,4}\foreach \y in {0,2,4}\fill (0.26*\x,0.26*\y) circle(2pt);
+  \node[font=\tiny] at (0.65,-0.35){coarse $\subseteq$ fine};
+\end{tikzpicture}
+\end{minipage}\hfill
+\begin{minipage}[c]{0.57\linewidth}
+\begin{minted}[fontsize=\footnotesize]{cpp}
+// P: componentwise 2-D grid
+using Grid = Vec2V<Modular<256u>>;
+// S: coarse (even) closed sublattice
+using S = Subalgebra<Grid, EvenCoords>;
+static_assert(IsSubalgebra<S, Grid, plus<>>);
+\end{minted}
+\end{minipage}
+\par\vspace{0.4ex}\hrule\vspace{0.8ex}
+
+% ===== Row 3: P·H =====
+\noindent
+\begin{minipage}[c]{0.07\linewidth}\centering\rotatebox{90}{\footnotesize\textbf{P$\cdot$H}}\end{minipage}\hfill
+\begin{minipage}[c]{0.33\linewidth}\centering
+\begin{tikzpicture}
+  \foreach \x in {0,...,4}\foreach \y in {0,...,4}\fill (0.3*\x,0.3*\y) circle(1pt);
+  \draw[->,gray!70] (1.4,0.9) to[bend left=45] (-0.2,0.9);
+  \draw[->,gray!70] (0.9,1.4) to[bend right=45] (0.9,-0.2);
+  \node[font=\tiny] at (0.6,-0.5){$\mathbb{S}^1\!\times\!\mathbb{S}^1$};
+\end{tikzpicture}
+\end{minipage}\hfill
+\begin{minipage}[c]{0.57\linewidth}
+\begin{minted}[fontsize=\footnotesize]{cpp}
+// H: two periodic axes (powers of two)
+using X = Modular<1024u>; using Y = Modular<512u>;
+// P: their product = the flat torus
+using Torus = ProductAlgebra<X, Y>;
+static_assert(IsProductAlgebra<Torus>);
+\end{minted}
+\end{minipage}
+\par\vspace{0.4ex}\hrule\vspace{0.8ex}
+
+% ===== Row 4: H·S·P =====
+\noindent
+\begin{minipage}[c]{0.07\linewidth}\centering\rotatebox{90}{\footnotesize\textbf{H$\cdot$S$\cdot$P}}\end{minipage}\hfill
+\begin{minipage}[c]{0.33\linewidth}\centering
+\begin{tikzpicture}
+  \foreach \r in {0.18,0.4,0.62}{\draw[gray,thin] (0.35,0.5) circle(\r);\draw[gray,thin] (1.05,0.5) circle(\r);}
+  \draw[->,thick] (1.65,0.5)--(2.2,0.5);
+  \foreach \x in {0,1,2}\foreach \y in {0,1,2}{\pgfmathtruncatemacro\g{20+15*(\x+\y)}\fill[black!\g] (2.5+0.3*\x,0.05+0.3*\y) rectangle +(0.26,0.26);}
+  \node[font=\tiny] at (0.7,-0.35){wave $\to$ pixels};
+\end{tikzpicture}
+\end{minipage}\hfill
+\begin{minipage}[c]{0.57\linewidth}
+\begin{minted}[fontsize=\footnotesize]{cpp}
+using Torus = ProductAlgebra<Modular<256u>, Modular<256u>>;
+using Field = FunctionAlgebra<Torus, Complex<Q>>;   // waves
+using Mode  = Subalgebra<Field, Symmetric>;         // S
+auto shadow = materialise(step(Mode{u0}));  // → pixels
+\end{minted}
+\end{minipage}
+\caption{\textbf{The Birkhoff constructions compose} (paper-as-spec).  Each row is a sound composition --- a geometry (left) and its idiomatic $\mathbf{Ddk}$ realisation (right) --- and each \cppinline{materialise}s to a numerical shadow (Figure~\ref{fig:primitive-reconciliation}).  \textbf{H$\cdot$S}: the Gaussian integers $\mathbb{Z}[i]\subset\mathbb{C}$ (a subalgebra) fold modulo a prime into a finite field.  \textbf{S$\cdot$P}: a coarse closed sublattice inside a componentwise grid (strength reduction).  \textbf{P$\cdot$H}: two power-of-two modular axes producted into the flat torus.  \textbf{H$\cdot$S$\cdot$P}: a complex amplitude field on the torus, symmetry-reduced (S), stepped by a transfer operator --- \emph{endomorphism} composition (\S\ref{sec:operational_calculus}), not P --- and materialised to its pixels.  The S$\cdot$P and P$\cdot$H rows check in today (\S\ref{sec:hsp_varieties}); the others are the spec the code grows into.}
+\label{fig:hsp-combos}
+\end{figure}
 
 \begin{figure}[htbp]
 \centering
