@@ -1322,114 +1322,123 @@ exemplar             & $\mathbb{Z}/N\mathbb{Z}$, $F[\varepsilon]/(\varepsilon^2)
 \begin{figure}[tbp]
 \centering
 
-% ===== Row 1: H·S  (ℂ → Gaussian integers → SE quadrant → 𝔽₉) =====
-\noindent
-\begin{minipage}[c]{0.07\linewidth}\centering\rotatebox{90}{\footnotesize\textbf{H$\cdot$S}}\end{minipage}\hfill
-\begin{minipage}[c]{0.31\linewidth}\centering
-\begin{tikzpicture}[every node/.style={font=\tiny},x=0.19cm,y=0.19cm]
-  \fill[blue!6] (-2.5,-3.5) rectangle (3.5,2.5);            % ℂ (infinite)
-  \fill[orange!22] (0,-3.5) rectangle (3.5,0);             % (+,−) quadrant cut
-  \draw[->,gray!55] (-2.6,0)--(3.7,0); \draw[->,gray!55] (0,-3.6)--(0,2.7);
-  \foreach \x in {-2,...,3}\foreach \y in {-3,...,2}\fill[blue!60] (\x,\y) circle(1.2pt);
-  \draw[red,thick] (3,-2) circle(2.4pt);
-  \node[red] at (3.0,-3.05){$3{-}2i$};
-  \node[blue!55] at (-1.7,2.1){$\mathbb{C}$};
-  \draw[->,thick] (4.3,-0.6)--(5.7,-0.6) node[midway,above]{$/\,\pi$};
-  \begin{scope}[shift={(6.4,-1.6)}]
-    \foreach \x in {0,1,2}\foreach \y in {0,1,2}\fill[teal!70!black] (\x,\y) circle(1.2pt);
-    \draw[red,thick] (0,1) circle(2.4pt);
-    \node[teal!70!black] at (1,-0.95){$\mathbb{F}_9\!\ni\!i$};
+% ===== Row 1: H·S =====
+\noindent\textbf{H$\cdot$S}\enspace\emph{Gaussian integers, cut to a quadrant, folded to a finite field.}\par\smallskip
+\begin{minipage}[c]{0.40\linewidth}\centering
+\begin{tikzpicture}[x=0.42cm,y=0.42cm,>=stealth,font=\scriptsize]
+  \fill[blue!5] (-2.6,-3.4) rectangle (3.4,2.4);
+  \fill[orange!20] (0,-3.4) rectangle (3.4,0);
+  \node[orange!60!black] at (2.4,-0.9){$(+,-)$};
+  \draw[->,gray!60] (-2.7,0)--(3.7,0) node[right]{Re};
+  \draw[->,gray!60] (0,-3.5)--(0,2.6) node[above]{Im};
+  \foreach \x in {-2,...,3}\foreach \y in {-3,...,2}\fill[blue!60] (\x,\y) circle(2pt);
+  \draw[red,very thick] (3,-2) circle(6pt);
+  \node[red] at (1.3,-2.7){$3\!-\!2i$};
+  \draw[->,line width=1pt] (4.2,-0.6)--(5.6,-0.6) node[midway,above]{$/\,\pi$};
+  \begin{scope}[shift={(6.6,-1.6)}]
+    \foreach \x in {0,1,2}\foreach \y in {0,1,2}\fill[teal!70!black] (\x,\y) circle(2pt);
+    \draw[red,very thick] (0,1) circle(6pt);
+    \node[teal!70!black] at (1,-0.95){$\mathbb{F}_9\ni i$};
   \end{scope}
 \end{tikzpicture}
 \end{minipage}\hfill
-\begin{minipage}[c]{0.60\linewidth}
+\begin{minipage}[c]{0.58\linewidth}
 \begin{minted}[fontsize=\footnotesize]{cpp}
-auto se = Ω<Complex<Q>> | gauss_int | quad;
+auto gauss = [](auto z){        // ℤ[i]: integral
+  return int(z.re)==z.re && int(z.im)==z.im; };
+auto quad  = [](auto z){ return z.re>0&&z.im<0; };
+auto se = Ω<Complex<Q>>
+        | gauss    // S: Gaussian lattice
+        | quad;    // ∩ (+,−) quadrant
 using F9 = Quotient<decltype(se), ByPrime<3>>;
 static_assert(materialise(3 - 2*i) == F9{i});
 \end{minted}
 \end{minipage}
-\par\vspace{0.4ex}\hrule\vspace{0.8ex}
+\par\vspace{0.5ex}\hrule\vspace{0.9ex}
 
-% ===== Row 2: S·P  (ℝ² → cartesian grid → even∩ → (4,6) survives) =====
-\noindent
-\begin{minipage}[c]{0.07\linewidth}\centering\rotatebox{90}{\footnotesize\textbf{S$\cdot$P}}\end{minipage}\hfill
-\begin{minipage}[c]{0.31\linewidth}\centering
-\begin{tikzpicture}[every node/.style={font=\tiny},x=0.17cm,y=0.17cm]
-  \fill[blue!5] (-0.6,-0.6) rectangle (7.4,7.6);            % ℝ² (infinite)
-  \foreach \x in {0,...,7}\foreach \y in {0,...,7}\fill[gray!45] (\x,\y) circle(0.7pt);   % fine ℤ²
-  \foreach \x in {0,2,4,6}\foreach \y in {0,2,4,6}\fill[orange!85!black] (\x,\y) circle(1.5pt); % even × even = ∩
-  \draw[teal!70!black,thick] (4,6) circle(2.8pt); \node[teal!70!black] at (4.6,7.2){$(4,6)$};
-  \draw[red,thick] (2.6,5.6)--(3.4,6.4) (2.6,6.4)--(3.4,5.6);
-  \node[red] at (2.4,4.7){$(3,6)$};
-  \node[gray!60] at (6.7,7.2){$\mathbb{R}^2$};
+% ===== Row 2: S·P =====
+\noindent\textbf{S$\cdot$P}\enspace\emph{A chessboard: the parity-even squares are a subalgebra.}\par\smallskip
+\begin{minipage}[c]{0.40\linewidth}\centering
+\begin{tikzpicture}[x=0.46cm,y=0.46cm,font=\scriptsize]
+  \foreach \x in {0,...,7}\foreach \y in {0,...,7}{%
+    \ifodd\numexpr\x+\y\relax\else\fill[gray!40] (\x,\y) rectangle +(1,1);\fi}
+  \draw[gray!55] (0,0) rectangle (8,8);
+  \draw[teal!70!black,very thick] (4.5,6.5) circle(0.32);
+  \node[teal!70!black] at (4.5,8.6){$(4,6)\in S$};
+  \draw[red,very thick] (3.15,6.15)--(3.85,6.85) (3.15,6.85)--(3.85,6.15);
+  \node[red] at (2.0,6.5){$(3,6)$};
 \end{tikzpicture}
 \end{minipage}\hfill
-\begin{minipage}[c]{0.60\linewidth}
+\begin{minipage}[c]{0.58\linewidth}
 \begin{minted}[fontsize=\footnotesize]{cpp}
-using M   = Modular<256u>;
-auto grid = Ω<M> * Ω<M>;            // P = ×
-auto S    = grid & (even * even);   // S = ∩
-static_assert(materialise(S{pt(4,6)}) == pt(4,6));
-static_assert(!S(pt(3,6)));
+using M    = Modular<8u>;
+auto board = Ω<M> * Ω<M>;   // P: 8×8 board
+auto dark  = [](auto p){ return (p.x+p.y)%2==0; };
+auto S     = board & dark;  // S: the ∩
+static_assert(size(S) == 32);   // half of 64
+static_assert( S(pt(4,6)));  // 4+6 even → in ✓
+static_assert(!S(pt(3,6)));  // 3+6 odd  → out ✗
 \end{minted}
 \end{minipage}
-\par\vspace{0.4ex}\hrule\vspace{0.8ex}
+\par\vspace{0.5ex}\hrule\vspace{0.9ex}
 
-% ===== Row 3: P·H  (ℝ² → quotient tiling → (1030,520) wraps to (6,8)) =====
-\noindent
-\begin{minipage}[c]{0.07\linewidth}\centering\rotatebox{90}{\footnotesize\textbf{P$\cdot$H}}\end{minipage}\hfill
-\begin{minipage}[c]{0.31\linewidth}\centering
-\begin{tikzpicture}[every node/.style={font=\tiny}]
-  \fill[blue!5] (-0.35,-0.35) rectangle (2.05,1.55);        % ℝ² (infinite)
-  \fill[teal!12] (0,0) rectangle (1.35,1.0);                % fundamental tile ℝ²/Λ
-  \draw[teal!70!black,thick] (0,0) rectangle (1.35,1.0);
-  \node[teal!70!black,scale=0.85] at (0.67,-0.22){$\mathbb{R}^2/\Lambda$};
-  \fill[red] (1.55,1.18) circle(1.3pt); \node[red,scale=0.8] at (1.55,1.4){$(1030,520)$};
-  \fill[teal!70!black] (0.09,0.16) circle(1.6pt); \node[teal!70!black,scale=0.8] at (0.5,0.12){$(6,8)$};
-  \draw[->,gray,thick] (1.5,1.12) to[bend right=22] (0.15,0.2);
+% ===== Row 3: P·H =====
+\noindent\textbf{P$\cdot$H}\enspace\emph{An infinite lattice wraps onto a small torus (count it).}\par\smallskip
+\begin{minipage}[c]{0.40\linewidth}\centering
+\begin{tikzpicture}[x=0.55cm,y=0.55cm,>=stealth,font=\scriptsize]
+  \foreach \x in {-1,...,6}\foreach \y in {-1,...,4}\fill[gray!30] (\x,\y) circle(1.3pt);
+  \fill[teal!10] (-0.4,-0.4) rectangle (3.4,2.4);
+  \draw[teal!70!black,thick] (-0.4,-0.4) rectangle (3.4,2.4);
+  \foreach \x in {0,1,2,3}\foreach \y in {0,1,2}\fill[teal!70!black] (\x,\y) circle(2.2pt);
+  \node[teal!70!black] at (1.5,-0.95){$\mathbb{Z}^2\!\twoheadrightarrow\!\mathbb{Z}/4\!\times\!\mathbb{Z}/3$};
+  \fill[red] (5,4) circle(2.4pt); \node[red] at (5,4.5){$(5,4)$};
+  \fill[orange!90!black] (1,1) circle(3pt); \node[orange!80!black] at (1.75,1.35){$(1,1)$};
+  \draw[->,gray,line width=0.8pt] (5,4) to[bend right=15] (1.2,1.1);
 \end{tikzpicture}
 \end{minipage}\hfill
-\begin{minipage}[c]{0.60\linewidth}
+\begin{minipage}[c]{0.58\linewidth}
 \begin{minted}[fontsize=\footnotesize]{cpp}
-using X = Quotient<Q, Lattice<1024>>;   // H
-using Y = Quotient<Q, Lattice<512>>;    // H
-auto torus = Ω<X> * Ω<Y>;               // P = ×
-static_assert(materialise({1030,520}) == pt(6,8));
+using X = Quotient<Z, Mod<4>>;   // H: ℤ ↠ ℤ/4
+using Y = Quotient<Z, Mod<3>>;   // H: ℤ ↠ ℤ/3
+auto torus = Ω<X> * Ω<Y>;   // P: 4×3 torus
+static_assert(size(torus) == 12);   // 4·3
+static_assert(materialise(pt(5,4)) == pt(1,1));
 \end{minted}
 \end{minipage}
-\par\vspace{0.4ex}\hrule\vspace{0.8ex}
+\par\vspace{0.5ex}\hrule\vspace{0.9ex}
 
-% ===== Row 4: H·S·P  (ℂ-field → interference → node materialises to 0) =====
-\noindent
-\begin{minipage}[c]{0.07\linewidth}\centering\rotatebox{90}{\footnotesize\textbf{H$\cdot$S$\cdot$P}}\end{minipage}\hfill
-\begin{minipage}[c]{0.31\linewidth}\centering
-\begin{tikzpicture}[every node/.style={font=\tiny}]
-  \foreach \r in {0.16,0.36,0.56,0.76}{\draw[blue!55,thin] (0.28,0.5) circle(\r);\draw[red!55,thin] (1.02,0.5) circle(\r);}
-  \draw[black,thick] (0.65,0.5) circle(2.4pt);
-  \node[scale=0.85] at (0.65,-0.05){node};
-  \draw[->,thick] (1.65,0.5)--(2.15,0.5);
-  \foreach \x in {0,1,2,3}\foreach \y in {0,1,2,3}{\pgfmathtruncatemacro\g{15+13*(\x+\y)}\fill[red!\g!yellow] (2.4+0.26*\x,0.02+0.26*\y) rectangle +(0.24,0.24);}
-  \fill[black] (2.66,0.28) rectangle +(0.24,0.24);
-  \draw[black,thick] (2.78,0.4) circle(3pt);
-  \node[scale=0.85] at (3.0,-0.32){$\psi=0$};
+% ===== Row 4: H·S·P =====
+\noindent\textbf{H$\cdot$S$\cdot$P}\enspace\emph{Waves on the torus: two sources add, a node cancels.}\par\smallskip
+\begin{minipage}[c]{0.40\linewidth}\centering
+\begin{tikzpicture}[scale=0.82,>=stealth,font=\scriptsize]
+  \foreach \r in {0.25,0.55,0.85,1.15,1.45}{\draw[blue!55] (0.7,1.0) circle(\r);}
+  \foreach \r in {0.25,0.55,0.85,1.15,1.45}{\draw[red!55] (2.1,1.0) circle(\r);}
+  \fill[blue!70] (0.7,1.0) circle(2pt); \node[blue!70] at (0.7,-0.4){src $a$};
+  \fill[red!70] (2.1,1.0) circle(2pt); \node[red!70] at (2.1,-0.4){src $b$};
+  \draw[black,very thick] (1.4,2.05) circle(0.13);
+  \node at (1.4,2.5){node};
+  \draw[->,line width=1pt] (3.2,1.0)--(3.9,1.0);
+  \foreach \x in {0,1,2,3}\foreach \y in {0,1,2,3}{\pgfmathtruncatemacro\g{15+13*(\x+\y)}\fill[red!\g!yellow] (4.2+0.42*\x,-0.1+0.42*\y) rectangle +(0.4,0.4);}
+  \fill[black] (5.04,0.74) rectangle +(0.4,0.4);
+  \draw[black,very thick] (5.24,0.94) circle(0.16);
+  \node at (5.1,-0.5){$|\psi|$};
 \end{tikzpicture}
 \end{minipage}\hfill
-\begin{minipage}[c]{0.60\linewidth}
+\begin{minipage}[c]{0.58\linewidth}
 \begin{minted}[fontsize=\footnotesize]{cpp}
-auto field = Fun<Torus, Complex<Q>>;
-auto mode  = field & symmetric;         // S = ∩
-auto psi   = source(a) + source(b);
+auto Field = Function<Torus, Complex<Q>>;
+auto flip  = [](auto p){ return pt(-p.x,-p.y); };
+auto sym   = [](auto f){ return f == f(flip); };
+auto waves = Field & sym;   // S: symmetric ∩
+auto a = source(p1), b = source(p2); // 2 sources
+auto psi = a + b;   // + = superpose, not ∩ (&)
 static_assert(materialise(psi[node]) == 0);
 \end{minted}
 \end{minipage}
-\caption{\textbf{Idiomatic universal algebra, at compile time.}  Each row starts from an \emph{infinite} domain (left: the plane $\mathbb{C}$ or $\mathbb{R}^2$), carves out an extensional subset with $\mathbf{Trsk}$'s relational primitives, and ends in a concrete value that a \cppinline{static_assert} on \cppinline{materialise} pins down.
-The three Birkhoff constructions \emph{are} those primitives: the product P is the cartesian product \cppinline{*}, the strength-reducing subalgebra S is an intersection \cppinline{&}, and the quotient H is \cppinline{/}.
-\textbf{H$\cdot$S}: the Gaussian integers, cut to the $(+,-)$ quadrant, fold modulo a Gaussian prime; $3-2i \mapsto i \in \mathbb{F}_9$.
-\textbf{S$\cdot$P}: the even sublattice of a $256\times256$ grid; $(4,6)$ survives, $(3,6)$ does not.
-\textbf{P$\cdot$H}: two circles produced into the flat torus; the cover point $(1030,520)$ wraps to $(6,8)$.
-\textbf{H$\cdot$S$\cdot$P}: a symmetry-reduced complex field whose two sources interfere; the amplitude at a node materialises to $0$.
-The S$\cdot$P and P$\cdot$H rows rest on witnesses that check in today (\S\ref{sec:hsp_varieties}); the surface syntax here, and the other two rows, are the spec the code grows into.}
+\caption{\textbf{Idiomatic universal algebra, at compile time.}  Each row (glossed above it) starts from an \emph{infinite} domain, carves out an extensional subset with $\mathbf{Trsk}$'s relational primitives, and ends in a value a \cppinline{static_assert} pins down.
+The Birkhoff constructions \emph{are} those primitives: product P is the cartesian product \cppinline{*}, subalgebra S is an intersection \cppinline{&}, quotient H is \cppinline{/}.
+A carrier's \emph{own} operation then computes within it: the two H$\cdot$S$\cdot$P sources add by superposition (\cppinline{+}, the field's operation), \emph{not} the \cppinline{&} that built the subalgebra.
+The S$\cdot$P and P$\cdot$H rows rest on witnesses that check in today (\S\ref{sec:hsp_varieties}); the surface syntax, and the other two rows, are the spec the code grows into.}
 \label{fig:hsp-combos}
 \end{figure}
 
