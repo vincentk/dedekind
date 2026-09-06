@@ -365,6 +365,36 @@ export class PlatonicReal {
   /// @brief Decidable @b only because the carrier is @f$\{0,1\}@f$-poor.
   friend constexpr bool operator==(const PlatonicReal&,
                                    const PlatonicReal&) = default;
+  /// @brief Total order (postulated); realisable only on @f$\{0,1\}@f$.
+  friend constexpr std::strong_ordering operator<=>(const PlatonicReal& a,
+                                                    const PlatonicReal& b) {
+    return a.tag_ <=> b.tag_;
+  }
+
+  /// @name Postulated ordered-field operations
+  /// @brief Closed @b by @b axiom (the field laws hold); @b unrealisable ---
+  /// ℝ is uninhabited, so these are never called.  The bodies are placeholders
+  /// that never execute; they exist only so the closure/axiom concepts see a
+  /// @c V @c × @c V @c → @c V surface.  ℝ is @b modelled, not @b materialised.
+  /// @{
+  friend constexpr PlatonicReal operator+(const PlatonicReal&,
+                                          const PlatonicReal&) {
+    return PlatonicReal{};
+  }
+  friend constexpr PlatonicReal operator-(const PlatonicReal&,
+                                          const PlatonicReal&) {
+    return PlatonicReal{};
+  }
+  friend constexpr PlatonicReal operator*(const PlatonicReal&,
+                                          const PlatonicReal&) {
+    return PlatonicReal{};
+  }
+  friend constexpr PlatonicReal operator/(const PlatonicReal&,
+                                          const PlatonicReal&) {
+    return PlatonicReal{};
+  }
+  constexpr PlatonicReal operator-() const { return PlatonicReal{}; }
+  /// @}
 
  private:
   constexpr explicit PlatonicReal(int tag) : tag_(tag) {}  // {0,1} only
@@ -423,6 +453,16 @@ static_assert(std::same_as<typename std::remove_cvref_t<decltype(ℝ)>::Domain,
               "continuum is modelled, not materialised.");
 
 export inline constexpr RealsOf<> R{};
+
+/** @brief The @b reified machine-real ambient
+ *  @c Ω<Real<double>, ClassicalLogic, ℶ_1> --- the @b materialisable reals: a
+ *  subalgebra of the hostile ℝ carried by @c Real<double>, so its elements
+ *  resolve to concrete values while keeping the continuum's cardinality (hence
+ *  Ternary routing).  This is what the old ℝ was before the carrier was made
+ *  hostile.  Rule of thumb: compute on @c ℝ_d (or @c ℚ); use @c ℝ only to
+ *  @b model.  ℝ is modelled, @c ℝ_d is materialised. */
+export inline constexpr auto ℝ_d =
+    dedekind::sets::Ω<Real<machine_real_scalar>, ClassicalLogic, ℶ_1>;
 
 }  // namespace dedekind::numbers
 

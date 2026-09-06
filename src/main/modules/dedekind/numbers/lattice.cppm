@@ -149,11 +149,11 @@ struct LatticeFactory<R, 1> {
   }
 
   constexpr auto bounded(int n) const {
-    // Post-#559 ℝ is the universe value Ω<PlatonicReal>;
-    // element<ℝ> is the canonical scout spelling.  Spelt directly with
-    // @c Real<double> here because this lattice specialisation is keyed
-    // on the @c R (classifier) value rather than the universe symbol.
-    auto r = element<ℝ>;
+    // ℝ's carrier is now the hostile, uninhabited PlatonicReal (modelled,
+    // not materialised), so this *computable* lattice scouts over the reified
+    // machine-real ambient ℝ_d (= Ω<Real<double>, ClassicalLogic, ℶ_1>, the
+    // subalgebra of ℝ where values resolve) — exactly what the old ℝ was.
+    auto r = element<ℝ_d>;
     return Set{r | [n](const Real<double>& x) {
       const double v = x.resolve();
       if (!detail::is_integral_coordinate(v)) return false;

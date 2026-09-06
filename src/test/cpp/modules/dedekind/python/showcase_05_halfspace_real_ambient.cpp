@@ -38,7 +38,8 @@ using namespace dedekind::order;
 // which would default-route ℵ_0) is what threads the ℶ_1 cardinality
 // into @c NaturalLogic's carrier-axis verdict — TernaryLogic, as the
 // uncountable carrier mandates.
-constexpr auto x = element<ℝ>;
+constexpr auto x =
+    element<ℝ_d>;  // reified machine-real ambient (hostile ℝ is uninhabited)
 
 // Opposing halfspaces with compile-time double-valued pivots.
 constexpr auto gt_five = Set{x | (x > bound<5.0>)};

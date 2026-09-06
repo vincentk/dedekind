@@ -16,7 +16,7 @@ namespace {
 // cardinality cut — Ω<Real<double>> with the default ℵ_0 would route
 // the carrier-axis resolver to ClassicalLogic, contradicting ℝ's
 // actual ℶ_1 cardinality and the Ternary semantics this test relies on.
-constexpr auto r = element<ℝ>;
+constexpr auto r = element<ℝ_d>;  // hostile ℝ -> reified machine-real ambient
 constexpr auto c = element<ℂ>;
 
 constexpr auto real_gt_zero = [](const Real<double>& x) {
