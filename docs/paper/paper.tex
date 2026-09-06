@@ -1473,7 +1473,7 @@ The S$\cdot$P and P$\cdot$H rows rest on witnesses that check in today (\S\ref{s
 \end{scope}
 % arrow: f=flip(f) (S)
 \draw[->,line width=0.9pt] (8.5,0)--(9.9,0);
-\node[font=\scriptsize] at (9.2,0.34){$f=f\circ\mathrm{flip}$};\node[font=\small] at (9.2,-0.34){\textbf{S}};
+\node[font=\scriptsize] at (9.2,0.34){$f=f\circ(-p)$};\node[font=\small] at (9.2,-0.34){\textbf{S}};
 % ---------- the function space (even, non-separable wave; nodes) ----------
 \begin{scope}[shift={(11.55,0)}]
   \begin{scope}
@@ -1496,13 +1496,12 @@ The S$\cdot$P and P$\cdot$H rows rest on witnesses that check in today (\S\ref{s
 \end{tikzpicture}}
 \par\smallskip
 \begin{minipage}{0.92\linewidth}
-\begin{minted}[fontsize=\footnotesize,escapeinside=@@]{cpp}
-using X     = Modular<8u>;           // H: a periodic axis, ℤ/8ℤ (wrap-around)
-using Torus = ProductAlgebra<X, X>;  // P: two periodic axes = the box
-auto flip = [](X x, X y){ return pt(-x, -y); };  // the carrier's own inversion
-auto ψ = Torus * ℂ | z == wave(x+y) + i*wave(x-y);  // two diagonal gratings: non-separable
-static_assert(ψ @$\circ$@ flip == ψ);  // S: even under inversion
-auto nodes = Ω<Torus> | abs2(ψ) < fix(ε);        // node SET: |ψ|² = ψ·ψ̄ < ε
+\begin{minted}[fontsize=\footnotesize]{cpp}
+using X     = Modular<8u>;
+using Torus = ProductAlgebra<X, X>;
+auto ψ = Torus * ℂ | z == wave(x+y) + i*wave(x-y);
+static_assert((pt(-x,-y) >> ψ) == ψ);
+auto nodes = Ω<Torus> | abs2(ψ) < fix(ε);
 static_assert(materialise(nodes) ==
   std::set{{2,0},{6,0},{0,2},{4,2},{2,4},{6,4},{0,6},{4,6}});
 \end{minted}
@@ -1510,7 +1509,7 @@ static_assert(materialise(nodes) ==
 \caption{\textbf{An even wave in a periodic box, built in the order the code builds it: H, then P, then S.}  Read left to right.
 \textbf{H} --- wrapping the integer line $\mathbb{Z}$ into a circle $\mathbb{Z}/L\mathbb{Z}$ is the quotient, exactly \texttt{Modular} in code ($L=8$; the red mark is the seam where $L\equiv 0$).
 \textbf{P} --- pairing two such circles is the product \cppinline{ProductAlgebra<X,X>}: a torus, drawn flat as the $L\times L$ periodic box whose opposite edges are identified (red $=$ the $x$-circle, blue $=$ the $y$-circle; the faded copies are its periodic images).
-\textbf{S} --- the subalgebra of functions fixed by the carrier's \emph{own} inversion $p\mapsto-p$ (point inversion, a $180^\circ$ rotation): the code keeps $\psi\circ\mathrm{flip}=\psi$ with \cppinline{flip(x,y)=(-x,-y)}.  Spin the last panel a half turn and it is unchanged; that is S.
+\textbf{S} --- the subalgebra of functions fixed by the carrier's \emph{own} inversion $p\mapsto-p$ (point inversion, a $180^\circ$ rotation), written point-free in \textbf{Trsk} as \cppinline{pt(-x,-y)} and composed into $\psi$ with \cppinline{>>}: inverting the domain then applying $\psi$ returns $\psi$.  Spin the last panel a half turn and it is unchanged; that is S.
 The wave is two cosine gratings along the diagonals, $\psi=\mathrm{wave}(x{+}y)+i\,\mathrm{wave}(x{-}y)$, and it is \emph{non-separable}: $\cos k(x{+}y)$ carries a $\sin\!\cdot\!\sin$ cross term, so it cannot be written one axis at a time.  Its nodes $\{\,|\psi|^2<\varepsilon\,\}$ (the conjugate product $\psi\bar\psi$) are therefore a \emph{diamond, not a rectangle}: a non-rectangular relation on the product, the eight lattice points the \cppinline{static_assert} pins down.  That is exactly what makes P carry its weight, since a separable wave would factor through the two circles and leave the product inert.  (Colour: $\mathrm{Re}\,\psi$ red, $\mathrm{Im}\,\psi$ blue, mixtures purple, nodes black.)}
 \label{fig:hsp-torus}
 \end{figure}
