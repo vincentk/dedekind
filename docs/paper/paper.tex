@@ -550,10 +550,10 @@ Listing~\ref{lst:pruning} exhibits a checked-in extract that tests this type-dir
 The container reading and the predicate reading are almost interconvertible, and the asymmetry is the point (Listing~\ref{lst:materialise}).
 Any \cppinline{std::set} is a $\mathbf{Lwv}$ set for free, its \cppinline{contains} the characteristic predicate; call that embedding $\iota$, and it is total.
 Only a finite, enumerable $\mathbf{Lwv}$ set materialises back to a container; call that $\mu$, and it is partial, the naturals having no finite materialisation.
-This asymmetry is the model/materialise gap of the whole framework: $\mathbf{Jlt}$ \emph{models} carriers up to the continuum but \emph{materialises} only finite ones,
+This asymmetry is the model/materialise gap of the whole framework: $\mathbf{Lwv}$ \emph{models} carriers up to the continuum but \emph{materialises} only finite ones,
 \begin{equation}
 \label{eqn:model-materialise}
-  \mathbf{Jlt}\ \text{models} \le \beth_1, \qquad \mathbf{Jlt}\ \text{materialises} < \aleph_0 ,
+  \mathbf{Lwv}\ \text{models} \le \beth_1, \qquad \mathbf{Lwv}\ \text{materialises} < \aleph_0 ,
 \end{equation}
 the library's Axiom-9 restriction of carrier predicates to $\beth_1$ (Appendix~\ref{sec:etcs}) above, meeting the finite reach of $\mu$ below.
 So $\mathbf{Lwv}$ is strictly more expressive than \cppinline{std::set}, the extensional container it generalises, and the price is paid in \emph{proof obligations}: where $\mu$ is unavailable, membership is settled by the concept constraints and factorisations of this section, not by enumeration.
