@@ -1498,19 +1498,24 @@ The S$\cdot$P and P$\cdot$H rows rest on witnesses that check in today (\S\ref{s
 \begin{minipage}{0.92\linewidth}
 \begin{minted}[fontsize=\footnotesize]{cpp}
 using X     = Modular<8u>;
-using Torus = ProductAlgebra<X, X>;
-auto ψ = Torus * ℂ | z == wave(x+y) + i*wave(x-y);
+using Torus = X * X;
+auto ψ = Torus * ℂ
+  | z == wave(x+y) + i*wave(x-y);
 static_assert((pt(-x,-y) >> ψ) == ψ);
-auto nodes = Ω<Torus> | abs2(ψ) < fix(ε);
-static_assert(materialise(nodes) ==
-  std::set{{2,0},{6,0},{0,2},{4,2},{2,4},{6,4},{0,6},{4,6}});
+auto nodes = Ω<Torus>
+  | abs2(ψ) < fix(ε)
+  | x <= fix(4) | y <= fix(4);
+static_assert(materialise(nodes) == std::set{{2,0},{0,2},{4,2},{2,4}});
 \end{minted}
 \end{minipage}
-\caption{\textbf{An even wave in a periodic box, built in the order the code builds it: H, then P, then S.}  Read left to right.
-\textbf{H} --- wrapping the integer line $\mathbb{Z}$ into a circle $\mathbb{Z}/L\mathbb{Z}$ is the quotient, exactly \texttt{Modular} in code ($L=8$; the red mark is the seam where $L\equiv 0$).
-\textbf{P} --- pairing two such circles is the product \cppinline{ProductAlgebra<X,X>}: a torus, drawn flat as the $L\times L$ periodic box whose opposite edges are identified (red $=$ the $x$-circle, blue $=$ the $y$-circle; the faded copies are its periodic images).
-\textbf{S} --- the subalgebra of functions fixed by the carrier's \emph{own} inversion $p\mapsto-p$ (point inversion, a $180^\circ$ rotation), written point-free in \textbf{Trsk} as \cppinline{pt(-x,-y)} and composed into $\psi$ with \cppinline{>>}: inverting the domain then applying $\psi$ returns $\psi$.  Spin the last panel a half turn and it is unchanged; that is S.
-The wave is two cosine gratings along the diagonals, $\psi=\mathrm{wave}(x{+}y)+i\,\mathrm{wave}(x{-}y)$, and it is \emph{non-separable}: $\cos k(x{+}y)$ carries a $\sin\!\cdot\!\sin$ cross term, so it cannot be written one axis at a time.  Its nodes $\{\,|\psi|^2<\varepsilon\,\}$ (the conjugate product $\psi\bar\psi$) are therefore a \emph{diamond, not a rectangle}: a non-rectangular relation on the product, the eight lattice points the \cppinline{static_assert} pins down.  That is exactly what makes P carry its weight, since a separable wave would factor through the two circles and leave the product inert.  (Colour: $\mathrm{Re}\,\psi$ red, $\mathrm{Im}\,\psi$ blue, mixtures purple, nodes black.)}
+\caption{\textbf{A reification of H, then P, then S: An even wave in a 2D periodic box.} 
+Read left to right:
+\textbf{H}: the integer line $\mathbb{Z}$ is wrapped into a circle $\mathbb{Z}/L\mathbb{Z}$. This particular quotient is shown in the code as \cppinline{using X     = Modular<8u>}. The red mark is the seam where $L\equiv 0$.
+\textbf{P}: pairing two such algebraic circles is the product algebra \cppinline{X * X}.
+Geometrically, this forms a torus, which is here drawn flat as the $L\times L$ periodic box whose opposite edges are identified (red $=$ the $x$-circle, blue $=$ the $y$-circle; the faded copies are its periodic images).
+\textbf{S}: a symmetric wave function (inversion about the origin;  $p\mapsto-p$) is chosen to illustrate the concept of a subalgebra.
+Colour: $\mathrm{Re}\,\psi$ red, $\mathrm{Im}\,\psi$ blue, mixtures purple, nodes black.
+}
 \label{fig:hsp-torus}
 \end{figure}
 
