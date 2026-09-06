@@ -1417,43 +1417,11 @@ static_assert(size(torus) == 12);   // 4·3
 static_assert(materialise(pt(5,4)) == pt(1,1));
 \end{minted}
 \end{minipage}
-\par\vspace{0.5ex}\hrule\vspace{0.9ex}
-
-% ===== Row 4: H·S·P =====
-\noindent\textbf{H$\cdot$S$\cdot$P}\enspace\emph{Waves in a periodic box: an even complex wave, its nodes an orbit of four} (built up in Figure~\ref{fig:hsp-torus}).\par\smallskip
-\begin{minipage}[c]{0.40\linewidth}\centering
-\begin{tikzpicture}[scale=0.82,>=stealth,font=\scriptsize]
-  \foreach \r in {0.3,0.6,0.9,1.2}{\draw[blue!50] (0.7,1.0) circle(\r);}
-  \foreach \r in {0.3,0.6,0.9,1.2}{\draw[red!50] (2.1,1.0) circle(\r);}
-  \fill[blue!70] (0.7,1.0) circle(2pt); \node[blue!70] at (0.7,-0.35){src $a$};
-  \fill[red!70] (2.1,1.0) circle(2pt); \node[red!70] at (2.1,-0.35){src $b$};
-  \fill[black] (1.4,1.0) circle(2pt); \node at (1.63,0.78){$O$};
-  \fill[teal!70!black] (0.95,1.75) circle(2pt); \node[teal!70!black] at (0.68,1.95){$P$};
-  \fill[teal!70!black] (1.85,0.25) circle(2pt); \node[teal!70!black] at (2.18,0.1){$-P$};
-  \draw[teal!70!black,dashed] (0.95,1.75)--(1.85,0.25);
-  \draw[black,very thick] (1.4,2.0) circle(0.12); \node at (1.4,2.4){node};
-  \draw[->,line width=1pt] (3.1,1.0)--(3.7,1.0);
-  \foreach \x in {0,1,2,3}\foreach \y in {0,1,2,3}{\pgfmathtruncatemacro\g{15+13*(\x+\y)}\fill[red!\g!yellow] (4.0+0.42*\x,-0.1+0.42*\y) rectangle +(0.4,0.4);}
-  \fill[black] (4.84,0.74) rectangle +(0.4,0.4);
-  \draw[black,very thick] (5.04,0.94) circle(0.15);
-  \node at (4.9,-0.5){$|\psi|$};
-\end{tikzpicture}
-\end{minipage}\hfill
-\begin{minipage}[c]{0.58\linewidth}
-\begin{minted}[fontsize=\footnotesize]{cpp}
-auto flip  = pt(-x, -y);   // reflect through 0
-auto Field = Function<Torus, Complex<Q>>;
-auto waves = Field | f == f(flip);  // S: even
-auto a = source(p1), b = source(p2); // 2 sources
-auto psi = a + b;   // + superpose, not | (S)
-static_assert(materialise(psi[node]) == 0);
-\end{minted}
-\end{minipage}
 \caption{\textbf{Idiomatic universal algebra, at compile time.}  Each row (glossed above it) starts from an \emph{infinite} domain, carves out an extensional subset with $\mathbf{Trsk}$'s relational primitives, and ends in a value a \cppinline{static_assert} pins down.
 The Birkhoff constructions \emph{are} Trsk operators: product P is \cppinline{*}, quotient H is \cppinline{/}, and a subalgebra S is a filter \cppinline{|} by a closed predicate.
 Predicates are point-free expressions over projections (\cppinline{re}, \cppinline{im}, \cppinline{x}, \cppinline{y}), not opaque lambdas, so they compose and certify at the type level.
-A carrier's \emph{own} operation then computes within it: the two H$\cdot$S$\cdot$P sources add by superposition (\cppinline{+}, the field's operation), \emph{not} the filter \cppinline{|} that built the subalgebra.
-The S$\cdot$P and P$\cdot$H rows rest on witnesses that check in today (\S\ref{sec:hsp_varieties}); the surface syntax, and the other two rows, are the spec the code grows into.}
+A carrier's \emph{own} operation then computes within it, \emph{not} the filter \cppinline{|} that built the subalgebra: the full triple is worked out in Figure~\ref{fig:hsp-torus}, where the field's elements combine with \cppinline{+}.
+The S$\cdot$P and P$\cdot$H rows rest on witnesses that check in today (\S\ref{sec:hsp_varieties}); the surface syntax, and the H$\cdot$S row, are the spec the code grows into.}
 \label{fig:hsp-combos}
 \end{figure}
 
@@ -1505,36 +1473,45 @@ The S$\cdot$P and P$\cdot$H rows rest on witnesses that check in today (\S\ref{s
 \end{scope}
 % arrow: f=flip(f) (S)
 \draw[->,line width=0.9pt] (8.5,0)--(9.9,0);
-\node[font=\scriptsize] at (9.2,0.34){$f=\mathrm{flip}(f)$};\node[font=\small] at (9.2,-0.34){\textbf{S}};
-% ---------- the function space (even wave, nodes) ----------
+\node[font=\scriptsize] at (9.2,0.34){$f=f\circ\mathrm{flip}$};\node[font=\small] at (9.2,-0.34){\textbf{S}};
+% ---------- the function space (even, non-separable wave; nodes) ----------
 \begin{scope}[shift={(11.55,0)}]
-  \foreach \i in {0,...,19}{\foreach \j in {0,...,19}{
-    \pgfmathsetmacro\xx{-0.8+(\i+0.5)*0.08}\pgfmathsetmacro\yy{-0.8+(\j+0.5)*0.08}
-    \pgfmathsetmacro\rr{abs(cos(225*\xx))}\pgfmathsetmacro\bb{abs(cos(225*\yy))}
-    \definecolor{cell}{rgb}{\rr,0,\bb}
-    \fill[cell] (-0.8+\i*0.08,-0.8+\j*0.08) rectangle ++(0.081,0.081);}}
+  \begin{scope}
+    \clip (-0.8,-0.8) rectangle (0.8,0.8);
+    \foreach \i in {0,...,23}{\foreach \j in {0,...,23}{
+      \pgfmathsetmacro\xx{-0.8+(\i+0.5)/24*1.6}\pgfmathsetmacro\yy{-0.8+(\j+0.5)/24*1.6}
+      \pgfmathsetmacro\rr{abs(cos(225*(\xx+\yy)))}\pgfmathsetmacro\bb{abs(cos(225*(\xx-\yy)))}
+      \definecolor{cell}{rgb}{\rr,0,\bb}
+      \fill[cell] (-0.8+\i/24*1.6,-0.8+\j/24*1.6) rectangle ++(0.071,0.071);}}
+    \draw[white!70,line width=0.4pt] (0.4,0)--(-0.4,0) (0,0.4)--(0,-0.4);
+    \foreach \p in {(0.4,0),(-0.4,0),(0,0.4),(0,-0.4),
+                    (0.8,0.4),(0.8,-0.4),(-0.8,0.4),(-0.8,-0.4),
+                    (0.4,0.8),(-0.4,0.8),(0.4,-0.8),(-0.4,-0.8)}{
+      \draw[white,line width=0.6pt] \p circle(0.075);\fill[black] \p circle(1.0pt);}
+  \end{scope}
   \draw[thick] (-0.8,-0.8) rectangle (0.8,0.8);
-  \foreach \sx in {-0.4,0.4}{\foreach \sy in {-0.4,0.4}{
-    \draw[white,line width=0.7pt] (\sx,\sy) circle(0.1);\fill[black] (\sx,\sy) circle(1.3pt);}}
-  \node[font=\scriptsize] at (0,-1.5){even wave $\psi$, nodes $\bullet$};
+  \node[white,font=\scriptsize] at (0,0){$\circlearrowleft$};
+  \node[font=\scriptsize] at (0,-1.5){$\psi$ even under $p\mapsto-p$};
 \end{scope}
 \end{tikzpicture}}
 \par\smallskip
 \begin{minipage}{0.92\linewidth}
-\begin{minted}[fontsize=\footnotesize]{cpp}
+\begin{minted}[fontsize=\footnotesize,escapeinside=@@]{cpp}
 using X     = Modular<8u>;           // H: a periodic axis, ℤ/8ℤ (wrap-around)
 using Torus = ProductAlgebra<X, X>;  // P: two periodic axes = the box
-auto ψ = Torus * ℂ | z == wave(x) + i*wave(y);   // ψ: Torus → ℂ  (its graph)
-static_assert(flip(ψ) == ψ);         // S: mirror-symmetric (even)
+auto flip = [](X x, X y){ return pt(-x, -y); };  // the carrier's own inversion
+auto ψ = Torus * ℂ | z == wave(x+y) + i*wave(x-y);  // two diagonal gratings: non-separable
+static_assert(ψ @$\circ$@ flip == ψ);  // S: even under inversion
 auto nodes = Ω<Torus> | abs2(ψ) < fix(ε);        // node SET: |ψ|² = ψ·ψ̄ < ε
-static_assert(materialise(nodes) == std::set{{2,2},{6,2},{2,6},{6,6}});
+static_assert(materialise(nodes) ==
+  std::set{{2,0},{6,0},{0,2},{4,2},{2,4},{6,4},{0,6},{4,6}});
 \end{minted}
 \end{minipage}
-\caption{\textbf{Symmetric waves in a periodic box, built in the order the code builds them: H, then P, then S.}  Read left to right.
+\caption{\textbf{An even wave in a periodic box, built in the order the code builds it: H, then P, then S.}  Read left to right.
 \textbf{H} --- wrapping the integer line $\mathbb{Z}$ into a circle $\mathbb{Z}/L\mathbb{Z}$ is the quotient, exactly \texttt{Modular} in code ($L=8$; the red mark is the seam where $L\equiv 0$).
-\textbf{P} --- pairing two such circles is the product \cppinline{ProductAlgebra<X,X>}: a torus, drawn flat as the $L\times L$ periodic box whose opposite edges are identified (red $=$ the $x$-circle, blue $=$ the $y$-circle); the faded copies are its periodic images.
-\textbf{S} --- keeping the even waves $\{f : f = f\circ\mathrm{flip}\}$ is the subalgebra, and the mirror symmetry you see \emph{is} S.
-Because $\psi$ is \emph{complex} (an $x$-mode plus an $i\,y$-mode) its nodes are \emph{isolated} --- both parts vanish at once.  The selection is the node \emph{set} $\{\,|\psi|^2<\varepsilon\,\}$ (the conjugate product $\psi\bar\psi$), which \cppinline{materialise}s to a finite set of lattice points; fixed by the symmetry they form an orbit of four, and across the periodic images (panel P) they tile into a \emph{sublattice} of the torus --- the concrete face of S.  (Colour: $\mathrm{Re}\,\psi$ red, $\mathrm{Im}\,\psi$ blue, mixtures purple, nodes black.)}
+\textbf{P} --- pairing two such circles is the product \cppinline{ProductAlgebra<X,X>}: a torus, drawn flat as the $L\times L$ periodic box whose opposite edges are identified (red $=$ the $x$-circle, blue $=$ the $y$-circle; the faded copies are its periodic images).
+\textbf{S} --- the subalgebra of functions fixed by the carrier's \emph{own} inversion $p\mapsto-p$ (point inversion, a $180^\circ$ rotation): the code keeps $\psi\circ\mathrm{flip}=\psi$ with \cppinline{flip(x,y)=(-x,-y)}.  Spin the last panel a half turn and it is unchanged; that is S.
+The wave is two cosine gratings along the diagonals, $\psi=\mathrm{wave}(x{+}y)+i\,\mathrm{wave}(x{-}y)$, and it is \emph{non-separable}: $\cos k(x{+}y)$ carries a $\sin\!\cdot\!\sin$ cross term, so it cannot be written one axis at a time.  Its nodes $\{\,|\psi|^2<\varepsilon\,\}$ (the conjugate product $\psi\bar\psi$) are therefore a \emph{diamond, not a rectangle}: a non-rectangular relation on the product, the eight lattice points the \cppinline{static_assert} pins down.  That is exactly what makes P carry its weight, since a separable wave would factor through the two circles and leave the product inert.  (Colour: $\mathrm{Re}\,\psi$ red, $\mathrm{Im}\,\psi$ blue, mixtures purple, nodes black.)}
 \label{fig:hsp-torus}
 \end{figure}
 
