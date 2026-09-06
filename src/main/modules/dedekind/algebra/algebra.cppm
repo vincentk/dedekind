@@ -61,5 +61,7 @@ export import :halfspace_transport;  // image / inverse / argmax — the
                                      // ordered-group transport of halfspaces
                                      // (DSL surface in namespace order)
 export import :tropical;             // MaxPlus<T> — the (max,+) semiring
-export import :universal;  // IsAlgebra meta-pattern (Burris-Sankappanavar)
+export import :universal;   // IsAlgebra meta-pattern (Burris-Sankappanavar)
+export import :subalgebra;  // IsSubalgebra<Sub,Super,Ops...>
+                            // (signature-relative)
 export import :vectorspace;
