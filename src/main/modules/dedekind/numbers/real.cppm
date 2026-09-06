@@ -646,4 +646,58 @@ static_assert(dedekind::algebra::HasFieldOperators<ExactReal<>>,
               "ExactReal<> closes the field operator surface "
               "(+, binary -, unary -, *, /, T{1}).");
 
+/** @section real__Q_embeds_in_R (the worked bridge example)
+ *
+ * @brief @f$\mathbb{Q}\hookrightarrow\mathbb{R}@f$ --- the faithful embedding
+ * of the rationals as a @b subfield of ℝ.
+ *
+ * @details ℚ (@c Rational<I>) is @b not a subobject of ℝ's carrier (the
+ * uninhabited @c PlatonicReal): they are unrelated types.  What holds is the
+ * @b categorical reading of "ℚ ⊆ ℝ" --- a structure-preserving @b monomorphism
+ * @f$\iota@f$ whose image is a subfield (@c EmbedsAsSubalgebra).  It is
+ * @b postulated: ℝ is uninhabited, so @f$\iota@f$ carries the right
+ * domain/codomain and is @b never executed --- the image of a rational is a
+ * real no finite carrier can exhibit.  This is the concrete example that
+ * pins the bridge: ℝ is modelled (a field), reached only through such
+ * certified embeddings.
+ */
+export template <dedekind::morphologies::IsInteger I = default_integer>
+struct EmbedQtoR {
+  using Domain = Rational<I>;
+  using Codomain = PlatonicReal;
+  /// @brief Postulated image; unrealisable in the uninhabited carrier.
+  constexpr PlatonicReal operator()(const Rational<I>&) const {
+    return PlatonicReal{};
+  }
+};
+
+export template <dedekind::morphologies::IsInteger I = default_integer>
+inline constexpr EmbedQtoR<I> embed_ℚ_ℝ{};
+
+}  // namespace dedekind::numbers
+
+namespace dedekind::algebra {
+// ι = ℚ ↪ ℝ is a homomorphism (postulated: preserves +, ×, 0, 1).
+template <dedekind::morphologies::IsInteger I>
+inline constexpr bool is_homomorphism_v<dedekind::numbers::EmbedQtoR<I>> = true;
+}  // namespace dedekind::algebra
+
+namespace dedekind::category {
+// ι = ℚ ↪ ℝ is monic (postulated: distinct rationals name distinct reals).
+template <dedekind::morphologies::IsInteger I>
+inline constexpr bool is_monic_arrow_v<dedekind::numbers::EmbedQtoR<I>> = true;
+}  // namespace dedekind::category
+
+namespace dedekind::numbers {
+// Witness: ℚ embeds as a subfield of ℝ (faithful monomorphism), even though
+// ℚ is not a subobject of ℝ's uninhabited carrier.
+static_assert(
+    dedekind::algebra::EmbedsAsSubalgebra<EmbedQtoR<>>,
+    "ℚ embeds as a subfield of ℝ: a faithful (postulated) monomorphism — ℚ is "
+    "not a subobject of ℝ's carrier, but its image is a subfield.");
+static_assert(
+    std::same_as<typename EmbedQtoR<>::Domain, Rational<default_integer>>,
+    "the embedding's domain is ℚ = Rational<default_integer>.");
+static_assert(std::same_as<typename EmbedQtoR<>::Codomain, PlatonicReal>,
+              "the embedding's codomain is ℝ's carrier, PlatonicReal.");
 }  // namespace dedekind::numbers

@@ -605,6 +605,36 @@ export template <typename Arrow>
 concept IsQuotientMorphism =
     IsHomomorphism<Arrow> && dedekind::category::IsSurjective<Arrow>;
 
+/**
+ * @concept EmbedsAsSubalgebra
+ * @brief An arrow @b declared to be both a homomorphism (via
+ *        @c is_homomorphism_v) @b and a monomorphism (via
+ *        @c category::is_monic_arrow_v): a @b faithful @b embedding of one
+ *        algebra as a subalgebra of another.
+ *
+ * @details The @b monic sibling of @c IsQuotientMorphism (epic).  Where the
+ * subobject concept @c IsSubalgebra<S, A, Op> (@c :quotient) requires @c S to
+ * be a subset of the @b same carrier @c A, this reads "subalgebra" the
+ * @b categorical way: @c S embeds into @c A via a structure-preserving
+ * monomorphism @f$\iota@f$, with @c S and @c A possibly @b different carriers.
+ * It is the relation @f$\mathbb{Q}\hookrightarrow\mathbb{R}@f$ demands ---
+ * @f$\mathbb{Q}@f$ is @b not a subobject of @f$\mathbb{R}@f$'s carrier, but
+ * there is a faithful embedding whose image is a subfield.  The subobject case
+ * is the degenerate special case (@f$\iota@f$ = the inclusion of a subset of
+ * one carrier).
+ *
+ * Into an @b uninhabited ambient (the hostile @f$\mathbb{R}@f$) the
+ * preservation and injectivity are @b postulated --- @f$\iota@f$ is declared
+ * with the right domain/codomain and never executed --- which is exactly the
+ * opt-in tier @c is_homomorphism_v / @c is_monic_arrow_v provide.
+ *
+ * @see @c IsSubalgebra (@c :quotient), the subobject/subset reading.
+ * @see @c IsQuotientMorphism, the surjective (epi) dual.
+ */
+export template <typename Arrow>
+concept EmbedsAsSubalgebra =
+    IsHomomorphism<Arrow> && dedekind::category::IsMonicArrow<Arrow>;
+
 }  // namespace dedekind::algebra
 
 // ---------------------------------------------------------------------------
