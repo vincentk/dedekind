@@ -473,6 +473,86 @@ struct SpeciesTraits<dedekind::numbers::Real<Q>> {
   using machine_type = dedekind::numbers::Real<Q>;
 };
 
+// ── ℝ's field, POSTULATED ────────────────────────────────────────────────
+// PlatonicReal is uninhabited (its unconstructibility Theorem), so ℝ's field
+// laws cannot be *checked* on witnesses — they are *declared* here in the trait
+// registry, exactly the shape Modular/Rational use.  This is what makes ℝ a
+// *modelled* field (and what the subalgebra propagation lifts to ℚ).  Strict
+// @c IsField stays gated by the @c IsTotal rung (exact carriers are not
+// periodic/idempotent/saturating — the same gate that keeps @c ExactReal on
+// the @c HasFieldOperators witness), so the structure lives in the registry.
+template <>
+struct is_associative<dedekind::numbers::PlatonicReal,
+                      std::plus<dedekind::numbers::PlatonicReal>>
+    : std::true_type {};
+template <>
+struct is_associative<dedekind::numbers::PlatonicReal,
+                      std::multiplies<dedekind::numbers::PlatonicReal>>
+    : std::true_type {};
+template <>
+struct is_commutative<dedekind::numbers::PlatonicReal,
+                      std::plus<dedekind::numbers::PlatonicReal>>
+    : std::true_type {};
+template <>
+struct is_commutative<dedekind::numbers::PlatonicReal,
+                      std::multiplies<dedekind::numbers::PlatonicReal>>
+    : std::true_type {};
+
+template <>
+inline constexpr bool
+    is_distributive_v<dedekind::numbers::PlatonicReal,
+                      std::multiplies<dedekind::numbers::PlatonicReal>,
+                      std::plus<dedekind::numbers::PlatonicReal>> = true;
+
+template <>
+inline constexpr bool
+    is_invertible_v<dedekind::numbers::PlatonicReal,
+                    std::plus<dedekind::numbers::PlatonicReal>> = true;
+template <>
+inline constexpr bool
+    is_invertible_v<dedekind::numbers::PlatonicReal,
+                    std::multiplies<dedekind::numbers::PlatonicReal>> = true;
+
+template <>
+struct identity_trait<dedekind::numbers::PlatonicReal,
+                      std::plus<dedekind::numbers::PlatonicReal>> {
+  using value_type = dedekind::numbers::PlatonicReal;
+  static constexpr value_type value = dedekind::numbers::PlatonicReal{};  // 0
+};
+template <>
+struct identity_trait<dedekind::numbers::PlatonicReal,
+                      std::multiplies<dedekind::numbers::PlatonicReal>> {
+  using value_type = dedekind::numbers::PlatonicReal;
+  static constexpr value_type value =
+      dedekind::numbers::PlatonicReal::one();  // 1
+};
+
+template <>
+struct inverse_trait<dedekind::numbers::PlatonicReal,
+                     std::plus<dedekind::numbers::PlatonicReal>> {
+  static constexpr bool exists = true;
+  using value_type = dedekind::numbers::PlatonicReal;
+  static constexpr value_type compute(
+      const dedekind::numbers::PlatonicReal& x) noexcept {
+    return -x;
+  }
+};
+
+// Field-defining traits are pinned: ℝ is a modelled field (no inhabitants).
+static_assert(
+    is_associative<dedekind::numbers::PlatonicReal,
+                   std::multiplies<dedekind::numbers::PlatonicReal>>::value &&
+        is_commutative<
+            dedekind::numbers::PlatonicReal,
+            std::multiplies<dedekind::numbers::PlatonicReal>>::value &&
+        is_invertible_v<dedekind::numbers::PlatonicReal,
+                        std::multiplies<dedekind::numbers::PlatonicReal>> &&
+        is_distributive_v<dedekind::numbers::PlatonicReal,
+                          std::multiplies<dedekind::numbers::PlatonicReal>,
+                          std::plus<dedekind::numbers::PlatonicReal>>,
+    "ℝ is a POSTULATED field: its laws are registered though no element can be "
+    "constructed — modelled, not materialised.");
+
 // embed_ℚ_ℝ monicity registration also removed (the arrow itself was
 // removed above; no `decltype` to register).
 }  // namespace dedekind::category
