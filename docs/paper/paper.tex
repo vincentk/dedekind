@@ -1420,7 +1420,7 @@ static_assert(materialise(pt(5,4)) == pt(1,1));
 \par\vspace{0.5ex}\hrule\vspace{0.9ex}
 
 % ===== Row 4: H·S·P =====
-\noindent\textbf{H$\cdot$S$\cdot$P}\enspace\emph{Waves in a periodic box: two sources add, a node cancels} (built up in Figure~\ref{fig:hsp-torus}).\par\smallskip
+\noindent\textbf{H$\cdot$S$\cdot$P}\enspace\emph{Waves in a periodic box: an even complex wave, its nodes an orbit of four} (built up in Figure~\ref{fig:hsp-torus}).\par\smallskip
 \begin{minipage}[c]{0.40\linewidth}\centering
 \begin{tikzpicture}[scale=0.82,>=stealth,font=\scriptsize]
   \foreach \r in {0.3,0.6,0.9,1.2}{\draw[blue!50] (0.7,1.0) circle(\r);}
@@ -1457,66 +1457,63 @@ The S$\cdot$P and P$\cdot$H rows rest on witnesses that check in today (\S\ref{s
 \label{fig:hsp-combos}
 \end{figure}
 
-% ===== Figure: waves in a periodic box, constructed step by step (P → H → S) =====
+% ===== Figure: waves in a periodic box, constructed step by step (H → P → S) =====
 \begin{figure}[tp]
 \centering
 \resizebox{\linewidth}{!}{%
 \begin{tikzpicture}[>=Stealth,font=\small]
-% ---- Panel A: patch of the integer lattice (P) ----
+% ================= Panel A: wrap the line into a circle (H) =================
 \begin{scope}[shift={(0,0)}]
-  \foreach \i in {-5,...,5}{\foreach \j in {-5,...,5}{\fill[gray!35] (0.3*\i,0.3*\j) circle(0.6pt);}}
-  \fill[blue!8] (-0.9,-0.9) rectangle (0.9,0.9);
-  \foreach \i in {0,...,5}{\foreach \j in {0,...,5}{\fill[blue!70] (-0.75+0.3*\i,-0.75+0.3*\j) circle(1.1pt);}}
-  \draw[blue!60,thick] (-0.9,-0.9) rectangle (0.9,0.9);
-  \node[font=\tiny] at (-0.9,-1.12){$0$}; \node[font=\tiny] at (0.9,-1.12){$L$};
-  \node[font=\scriptsize,align=center] at (0,-1.95){patch of $\mathbb{Z}\!\times\!\mathbb{Z}$\\[-1pt]\textbf{P}: $0\!\le\! x,y\!<\!L$};
-\end{scope}
-\node[font=\Large] at (2.55,0){$\rightarrow$};
-% ---- Panel B: wrap into a gridded torus (H) ----
-\begin{scope}[shift={(4.4,0)}]
-  \begin{scope}[rotate=-10]
-    \draw[teal!70!black,thick] (0,0) ellipse (1.2 and 0.72);
-    \draw[teal!70!black,thick] (-0.47,0.05) .. controls (-0.22,-0.18) and (0.22,-0.18) .. (0.47,0.05);
-    \draw[teal!70!black,thick] (-0.35,-0.01) .. controls (-0.17,0.12) and (0.17,0.12) .. (0.35,-0.01);
-    % a few faint grid lines (the N×N lattice)
-    \foreach \a in {0.55,0.82,1.05}{\draw[teal!25,thin] (0,0.01) ellipse ({\a} and {\a*0.60});}
-    \foreach \m in {-0.6,0.0,0.6}{\draw[teal!25,thin] (\m,-0.02) ellipse ({0.10+0.06*abs(\m)} and 0.40);}
-    \draw[red,thick] (0.88,-0.02) ellipse (0.14 and 0.36);
-    \draw[blue,thick] (0,0.01) ellipse (0.82 and 0.47);
+  \draw[gray!45,thin] (-1.05,0.35)--(1.15,0.35);
+  \foreach \i in {-1,...,9}{\pgfmathsetmacro\x{-0.7+0.2*\i}
+    \ifnum\i>-1\ifnum\i<8 \fill[blue!70] (\x,0.35) circle(1.4pt)\else \fill[gray!45] (\x,0.35) circle(1.1pt)\fi
+    \else \fill[gray!45] (\x,0.35) circle(1.1pt)\fi;}
+  \node[font=\tiny] at (-0.7,0.08){$0$};
+  \node[font=\tiny,gray] at (0.9,0.08){$8\!\equiv\!0$};
+  \node[font=\large] at (0,-0.55){$\downarrow$};
+  \begin{scope}[shift={(0,-1.55)}]
+    \draw[gray!45,thin] (0,0) circle(0.5);
+    \foreach \k in {0,...,7}{\pgfmathsetmacro\ang{90-45*\k}\fill[blue!70] ({0.5*cos(\ang)},{0.5*sin(\ang)}) circle(1.4pt);}
+    \fill[black] (0,0.5) circle(1.2pt);\node[font=\tiny] at (0.16,0.6){$0$};
+    \draw[red,line width=1pt] (0.5,0) arc(0:45:0.5);
   \end{scope}
-  \node[font=\tiny,red] at (1.15,0.05){glue $x$};
-  \node[font=\tiny,blue] at (-0.15,0.9){glue $y$};
-  \node[font=\scriptsize,align=center] at (0,-1.95){wrap: $\mathbb{Z}\!\to\!\mathbb{Z}/L$ (\texttt{Modular})\\[-1pt]\textbf{H}: quotient $=$ torus};
+  \node[font=\scriptsize,align=center] at (0,-2.85){\textbf{H}: wrap $\mathbb{Z}\!\to\!\mathbb{Z}/L$\\[-1pt]a line becomes a circle (\texttt{Modular})};
 \end{scope}
-\node[font=\Large] at (7.05,0){$\rightarrow$};
-% ---- Panel C: flat periodic box, N×N grid (reproducible) ----
-\begin{scope}[shift={(8.8,0)}]
-  \fill[teal!7] (-1,-1) rectangle (1,1);
-  \draw[gray!35,thin,step=0.25] (-1,-1) grid (1,1);
-  \draw[thick] (-1,-1) rectangle (1,1);
-  \draw[->,red,line width=1pt] (-1,-0.16)--(-1,0.16);
-  \draw[->,red,line width=1pt] (1,-0.16)--(1,0.16);
-  \draw[->,blue,line width=1pt] (-0.16,-1)--(0.16,-1);
-  \draw[->,blue,line width=1pt] (-0.16,1)--(0.16,1);
-  \node[font=\tiny] at (-1,-1.2){$0$}; \node[font=\tiny] at (1,-1.2){$L$};
-  \node[font=\scriptsize,align=center] at (0,-1.95){flat box, $L\!\times\!L$ lattice\\[-1pt]opposite edges identified};
+\node[font=\Large] at (2.3,-0.7){$\rightarrow$};
+% ================= Panel B: pair two circles = torus (P) =================
+\begin{scope}[shift={(3.3,0)}]
+  \draw[gray!55] (0,0.35) circle(0.28);\node[font=\tiny] at (0,0.35){$x$};
+  \node[font=\small] at (0,-0.05){$\times$};
+  \draw[gray!55] (0,-0.45) circle(0.28);\node[font=\tiny] at (0,-0.45){$y$};
+  \node[font=\large] at (0.85,-0.05){$\rightarrow$};
+  \begin{scope}[shift={(2.9,-0.05)}]
+    \foreach \dx in {-1,0,1}{\foreach \dy in {-1,0,1}{\ifnum\dx=0\ifnum\dy=0\else
+        \draw[gray!30,very thin] (1.7*\dx-0.8,1.7*\dy-0.8) rectangle ++(1.6,1.6);\fi
+      \else \draw[gray!30,very thin] (1.7*\dx-0.8,1.7*\dy-0.8) rectangle ++(1.6,1.6);\fi}}
+    \fill[teal!7] (-0.8,-0.8) rectangle (0.8,0.8);
+    \draw[gray!35,thin,step=0.2] (-0.8,-0.8) grid (0.8,0.8);
+    \draw[thick] (-0.8,-0.8) rectangle (0.8,0.8);
+    \draw[->,red,line width=1pt] (-0.8,-0.13)--(-0.8,0.13);
+    \draw[->,red,line width=1pt] (0.8,-0.13)--(0.8,0.13);
+    \draw[->,blue,line width=1pt] (-0.13,-0.8)--(0.13,-0.8);
+    \draw[->,blue,line width=1pt] (-0.13,0.8)--(0.13,0.8);
+    \draw[->,gray!70] (-0.8,-0.95)--(0.85,-0.95) node[font=\tiny,below]{$x$};
+    \draw[->,gray!70] (-0.95,-0.8)--(-0.95,0.85) node[font=\tiny,left]{$y$};
+  \end{scope}
+  \node[font=\scriptsize,align=center] at (2.9,-2.85){\textbf{P}: circle $\times$ circle $=$ torus\\[-1pt]the periodic box (\texttt{ProductAlgebra})};
 \end{scope}
-\node[font=\Large] at (11.05,0){$\rightarrow$};
-% ---- Panel D: complex wave, Re red / Im blue, nodes black, image halo (S) ----
-\begin{scope}[shift={(12.8,0)}]
-  \foreach \i in {0,...,31}{\foreach \j in {0,...,31}{
-    \pgfmathsetmacro\xx{-1.6+(\i+0.5)*3.2/32}\pgfmathsetmacro\yy{-1.6+(\j+0.5)*3.2/32}
-    \pgfmathsetmacro\rr{abs(cos(180*\xx))}\pgfmathsetmacro\bb{abs(cos(180*\yy))}
+\node[font=\Large] at (10.0,-0.7){$\rightarrow$};
+% ================= Panel C: the even wave, nodes selected (S) =================
+\begin{scope}[shift={(11.9,-0.05)}]
+  \foreach \i in {0,...,19}{\foreach \j in {0,...,19}{
+    \pgfmathsetmacro\xx{-0.8+(\i+0.5)*0.08}\pgfmathsetmacro\yy{-0.8+(\j+0.5)*0.08}
+    \pgfmathsetmacro\rr{abs(cos(225*\xx))}\pgfmathsetmacro\bb{abs(cos(225*\yy))}
     \definecolor{cell}{rgb}{\rr,0,\bb}
-    \pgfmathparse{((abs(\xx)<1)&&(abs(\yy)<1)) ? 1 : 0}
-    \ifnum\pgfmathresult=1
-      \fill[cell] (-1.6+\i*3.2/32,-1.6+\j*3.2/32) rectangle ++(0.1,0.1);
-    \else
-      \fill[cell,opacity=0.28] (-1.6+\i*3.2/32,-1.6+\j*3.2/32) rectangle ++(0.1,0.1);
-    \fi}}
-  \draw[thick] (-1,-1) rectangle (1,1);
-  \foreach \sx in {-0.5,0.5}{\foreach \sy in {-0.5,0.5}{\draw[white,line width=0.8pt] (\sx,\sy) circle(0.14);}}
-  \node[font=\scriptsize,align=center] at (0,-1.95){$\psi$: Re red, Im blue; faded $=$ images\\[-1pt]\textbf{S}; nodes black (4)};
+    \fill[cell] (-0.8+\i*0.08,-0.8+\j*0.08) rectangle ++(0.081,0.081);}}
+  \draw[thick] (-0.8,-0.8) rectangle (0.8,0.8);
+  \foreach \sx in {-0.4,0.4}{\foreach \sy in {-0.4,0.4}{
+    \draw[white,line width=0.7pt] (\sx,\sy) circle(0.1);\fill[black] (\sx,\sy) circle(1.3pt);}}
+  \node[font=\scriptsize,align=center] at (0,-2.85){\textbf{S}: keep the even waves $\psi=\psi\circ\mathrm{flip}$\\[-1pt]nodes (black): $|\psi|^2<\varepsilon$};
 \end{scope}
 \end{tikzpicture}}
 \par\smallskip
@@ -1530,11 +1527,11 @@ auto nodes = Ω<Torus> | abs2(ψ) < fix(ε);        // node SET: |ψ|² = ψ·ψ
 static_assert(materialise(nodes) == std::set{{2,2},{6,2},{2,6},{6,6}});
 \end{minted}
 \end{minipage}
-\caption{\textbf{H$\cdot$S$\cdot$P in detail: symmetric waves in a periodic box.}  Read left to right.
-\textbf{P} --- start from the integer lattice $\mathbb{Z}\times\mathbb{Z}$ and take the $L\times L$ patch $0\le x,y<L$ (leftmost).
-\textbf{H} --- glue opposite edges (\emph{periodic boundary conditions}): each axis becomes $\mathbb{Z}/L\mathbb{Z}$, the finite quotient that is exactly \texttt{Modular} in code, and the patch becomes a \emph{torus} carrying the same $L\times L$ grid (its red and blue circles are the two seams, glue-$x$ and glue-$y$).  The third panel is the flat picture we actually draw: the periodic box with opposite edges identified.
-\textbf{S} --- build the wave even (both 1-D modes are cosine): it then lives in the subalgebra of even waves $\{f : f = f\circ\mathrm{flip}\}$, and the mirror symmetry you see \emph{is} S.
-So the periodic box supplies P and H (it is the product of two \texttt{Modular} circles), and the wave's symmetry supplies S.  Because $\psi$ is \emph{complex} (an $x$-mode plus an $i\,y$-mode) its nodes are \emph{isolated} --- both parts vanish at once.  The selection is the node \emph{set} $\{\,|\psi|^2<\varepsilon\,\}$ (the conjugate product $\psi\bar\psi$), which \cppinline{materialise}s to a finite set of lattice points; fixed by the symmetry they form an orbit of four and tile into a periodic grid --- a \emph{sublattice} of the torus, the concrete face of S.  (Colour: $\mathrm{Re}\,\psi$ red, $\mathrm{Im}\,\psi$ blue --- mixtures purple, nodes black; the faded halo is the neighbouring periodic images.)}
+\caption{\textbf{Symmetric waves in a periodic box, built in the order the code builds them: H, then P, then S.}  Read left to right.
+\textbf{H} --- wrapping the integer line $\mathbb{Z}$ into a circle $\mathbb{Z}/L\mathbb{Z}$ is the quotient, exactly \texttt{Modular} in code ($L=8$; the red mark is the seam where $L\equiv 0$).
+\textbf{P} --- pairing two such circles is the product \cppinline{ProductAlgebra<X,X>}: a torus, drawn flat as the $L\times L$ periodic box whose opposite edges are identified (red $=$ the $x$-circle, blue $=$ the $y$-circle); the faded copies are its periodic images.
+\textbf{S} --- keeping the even waves $\{f : f = f\circ\mathrm{flip}\}$ is the subalgebra, and the mirror symmetry you see \emph{is} S.
+Because $\psi$ is \emph{complex} (an $x$-mode plus an $i\,y$-mode) its nodes are \emph{isolated} --- both parts vanish at once.  The selection is the node \emph{set} $\{\,|\psi|^2<\varepsilon\,\}$ (the conjugate product $\psi\bar\psi$), which \cppinline{materialise}s to a finite set of lattice points; fixed by the symmetry they form an orbit of four, and across the periodic images (panel P) they tile into a \emph{sublattice} of the torus --- the concrete face of S.  (Colour: $\mathrm{Re}\,\psi$ red, $\mathrm{Im}\,\psi$ blue, mixtures purple, nodes black.)}
 \label{fig:hsp-torus}
 \end{figure}
 
