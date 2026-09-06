@@ -1516,17 +1516,18 @@ The S$\cdot$P and P$\cdot$H rows rest on witnesses that check in today (\S\ref{s
 \begin{minipage}{0.92\linewidth}
 \begin{minted}[fontsize=\footnotesize]{cpp}
 using X     = Modular<8u>;           // H: a periodic axis, ℤ/8ℤ (wrap-around)
-using Torus = ProductAlgebra<X, X>;  // P: two periodic axes = the torus
-auto S = Ω<Function<Torus,Complex<R>>> | (f==f(flip)); // S: symmetric
-auto ψ = source(+p) + source(-p);    // complex ⇒ isolated nodes
-static_assert(materialise(ψ[node]) == 0);        // |ψ| = 0 at a node
+using Torus = ProductAlgebra<X, X>;  // P: two periodic axes = the box
+auto ψ = wave(x) + i*wave(y);        // two 1-D modes in quadrature: Torus → ℂ
+static_assert(ψ == ψ(flip));         // S: mirror-symmetric (even) ⇒ ψ ∈ Even
+auto nodes = Ω<Torus> | abs2(ψ) < ε; // node SET: |ψ|² = ψ·ψ̄ < ε  (finite scan)
+static_assert(materialise(nodes) == Set{ {2,2},{6,2},{2,6},{6,6} }); // 4-orbit
 \end{minted}
 \end{minipage}
 \caption{\textbf{H$\cdot$S$\cdot$P in detail: symmetric waves in a periodic box.}  Read left to right.
 \textbf{P} --- the plane is a product of two axes, $\mathbb{R}\times\mathbb{R}$.
 \textbf{H} --- impose \emph{periodic boundary conditions}: glue $x{=}0$ to $x{=}L$ and $y{=}0$ to $y{=}L$.  Each axis becomes a circle $\mathbb{R}/L\mathbb{Z}$ --- a quotient, which is exactly what \texttt{Modular} is in code --- and the box becomes a \emph{torus} (that is all ``torus'' means here).  The third panel is the flat picture we actually draw: a periodic box with opposite edges identified.
-\textbf{S} --- place the two wave sources symmetrically; the standing pattern is then \emph{mirror-symmetric}, i.e.\ it lives in the subalgebra of even waves $\{f : f = f\circ\mathrm{flip}\}$.  The symmetry you see \emph{is} S.
-So the periodic box supplies P and H (it is the product of two \texttt{Modular} circles), and the wave's symmetry supplies S.  With a \emph{complex} amplitude the nodes are \emph{isolated} points --- both parts of $\psi$ vanish at once --- \emph{selected} by \cppinline{materialise}$(\psi[\mathrm{node}])=0$.  Fixed by the same symmetry they come as an orbit of four per cell and tile into a periodic grid: a coarser \emph{sublattice} of the torus, the concrete face of S.  (A single node would break the symmetry that defines S.)}
+\textbf{S} --- build the wave even (both 1-D modes are cosine): it then lives in the subalgebra of even waves $\{f : f = f\circ\mathrm{flip}\}$, and the mirror symmetry you see \emph{is} S.
+So the periodic box supplies P and H (it is the product of two \texttt{Modular} circles), and the wave's symmetry supplies S.  Because $\psi$ is \emph{complex} (an $x$-mode plus an $i\,y$-mode) its nodes are \emph{isolated} --- both parts vanish at once.  The selection is the node \emph{set} $\{\,|\psi|^2<\varepsilon\,\}$ (the conjugate product $\psi\bar\psi$), which \cppinline{materialise}s to a finite set of lattice points; fixed by the symmetry they form an orbit of four and tile into a periodic grid --- a \emph{sublattice} of the torus, the concrete face of S.}
 \label{fig:hsp-torus}
 \end{figure}
 
