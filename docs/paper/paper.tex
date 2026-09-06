@@ -1491,7 +1491,7 @@ The S$\cdot$P and P$\cdot$H rows rest on witnesses that check in today (\S\ref{s
 \node[right] at (1.5,-1.1) {$x \in \mathbb{Z}/L$};
 \node[right] at (1.5,-3.5) {$(x, y) \in (\mathbb{Z}/L)^2$};
 \node[right] at (1.5,-7.0) {$\psi(x, y) = \psi(-x, -y)$};
-\node[right] at (1.5,-9.25){$|\psi|^2<\varepsilon$};
+\node[right] at (1.5,-9.25){$|\psi|^2\le\varepsilon$};
 \node[right] at (1.5,-10.4) {$[0,4]^2$ cell};
 \end{tikzpicture}
 \end{minipage}\hfill
@@ -1518,8 +1518,8 @@ static_assert((pt(-x,-y) >> ψ) == ψ);
 
 
 // Node selection:
-auto nodes = Ω<Torus>
-  | abs2(ψ) < fix(ε);
+auto nodes = preimage(abs2(ψ),
+  z <= fix(ε));
   
 auto selection = materialise(nodes
   | x <= fix(4) && y <= fix(4));
@@ -1536,7 +1536,7 @@ Each row pairs a construction with the code that builds it.
 \textbf{P}: pairing two such algebraic circles is the product algebra \cppinline{X * X}, a torus drawn flat as the $L\times L$ periodic box whose opposite edges are identified (red $=$ the $x$-circle, blue $=$ the $y$-circle; the faded copies are its periodic images).
 \textbf{S}: the subalgebra fixed by the carrier's own inversion $p\mapsto-p$ (a $180^\circ$ rotation; spin the panel a half turn and it is unchanged).
 The wave is deliberately \emph{non-separable}: $\psi=\mathrm{wave}(x{+}y)+i\,\mathrm{wave}(x{-}y)$ carries a $\sin\!\cdot\!\sin$ cross term, so its nodes form a \emph{diamond, not a rectangle}, a relation that cannot be recovered from the two circles alone.
-\textbf{select}: the node set $\{\,|\psi|^2<\varepsilon\,\}$ restricted to the $[0,4]^2$ fundamental cell, the four points the \cppinline{static_assert} pins down.
+\textbf{select}: the node set $\{\,|\psi|^2\le\varepsilon\,\}$ restricted to the $[0,4]^2$ fundamental cell, the four points the \cppinline{static_assert} pins down.
 Colour: $\mathrm{Re}\,\psi$ red, $\mathrm{Im}\,\psi$ blue, mixtures purple, nodes black.}
 \label{fig:hsp-torus}
 \end{figure}
