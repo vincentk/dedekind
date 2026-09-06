@@ -1501,19 +1501,15 @@ The S$\cdot$P and P$\cdot$H rows rest on witnesses that check in today (\S\ref{s
 \begin{scope}[shift={(12.8,0)}]
   \foreach \i in {0,...,19}{\foreach \j in {0,...,19}{
     \pgfmathsetmacro\xx{-1+(\i+0.5)*2/20}\pgfmathsetmacro\yy{-1+(\j+0.5)*2/20}
-    \pgfmathsetmacro\v{cos(180*\xx)*cos(180*\yy)}
-    \pgfmathparse{\v>0 ? 1 : 0}
-    \ifnum\pgfmathresult=1
-      \pgfmathsetmacro\p{min(80,88*\v)}\fill[red!\p!white] (-1+\i*2/20,-1+\j*2/20) rectangle ++(0.1,0.1);
-    \else
-      \pgfmathsetmacro\p{min(80,-88*\v)}\fill[blue!\p!white] (-1+\i*2/20,-1+\j*2/20) rectangle ++(0.1,0.1);
-    \fi}}
+    \pgfmathsetmacro\v{sqrt(cos(180*\xx)*cos(180*\xx)+cos(180*\yy)*cos(180*\yy))}
+    \pgfmathsetmacro\g{max(3,min(90,90-62*\v))}
+    \fill[black!\g] (-1+\i*2/20,-1+\j*2/20) rectangle ++(0.1,0.1);}}
   \draw[thick] (-1,-1) rectangle (1,1);
-  \draw[dashed,black!70] (0,-1)--(0,1); \draw[dashed,black!70] (-1,0)--(1,0);
-  \fill[black] (0.4,-0.1) rectangle (0.6,0.1);
-  \draw[white,line width=0.4pt] (0.4,-0.1) rectangle (0.6,0.1);
-  \node[font=\tiny,anchor=west] at (0.63,0.34){$\psi{=}0$};
-  \node[font=\scriptsize,align=center] at (0,-1.95){symmetric standing wave\\[-1pt]\textbf{S}; $\blacksquare$ node \emph{selected}};
+  \draw[dashed,black!40] (0,-1)--(0,1); \draw[dashed,black!40] (-1,0)--(1,0);
+  \foreach \sx in {-0.5,0.5}{\foreach \sy in {-0.5,0.5}{
+    \draw[red,line width=0.9pt] (\sx,\sy) circle(0.14);}}
+  \node[font=\tiny,red,anchor=west] at (0.68,0.5){$|\psi|{=}0$};
+  \node[font=\scriptsize,align=center] at (0,-1.95){$|\psi|$ of a complex wave\\[-1pt]\textbf{S}; 4 isolated nodes};
 \end{scope}
 \end{tikzpicture}}
 \par\smallskip
@@ -1521,16 +1517,16 @@ The S$\cdot$P and P$\cdot$H rows rest on witnesses that check in today (\S\ref{s
 \begin{minted}[fontsize=\footnotesize]{cpp}
 using X     = Modular<8u>;           // H: a periodic axis, ℤ/8ℤ (wrap-around)
 using Torus = ProductAlgebra<X, X>;  // P: two periodic axes = the torus
-auto S = Ω<Function<Torus,R>> | (f == f(flip)); // S: mirror-symmetric waves
-auto ψ = source(+p) + source(-p);    // symmetric sources ⇒ ψ ∈ S
-static_assert(materialise(ψ[node]) == 0);        // a node cancels
+auto S = Ω<Function<Torus,Complex<R>>> | (f==f(flip)); // S: symmetric
+auto ψ = source(+p) + source(-p);    // complex ⇒ isolated nodes
+static_assert(materialise(ψ[node]) == 0);        // |ψ| = 0 at a node
 \end{minted}
 \end{minipage}
 \caption{\textbf{H$\cdot$S$\cdot$P in detail: symmetric waves in a periodic box.}  Read left to right.
 \textbf{P} --- the plane is a product of two axes, $\mathbb{R}\times\mathbb{R}$.
 \textbf{H} --- impose \emph{periodic boundary conditions}: glue $x{=}0$ to $x{=}L$ and $y{=}0$ to $y{=}L$.  Each axis becomes a circle $\mathbb{R}/L\mathbb{Z}$ --- a quotient, which is exactly what \texttt{Modular} is in code --- and the box becomes a \emph{torus} (that is all ``torus'' means here).  The third panel is the flat picture we actually draw: a periodic box with opposite edges identified.
 \textbf{S} --- place the two wave sources symmetrically; the standing pattern is then \emph{mirror-symmetric}, i.e.\ it lives in the subalgebra of even waves $\{f : f = f\circ\mathrm{flip}\}$.  The symmetry you see \emph{is} S.
-So the periodic box supplies P and H (it is the product of two \texttt{Modular} circles), and the wave's symmetry supplies S.  The black cell marks a \emph{node} --- a point of perfect destructive interference --- \emph{selected} from the surface: \cppinline{materialise}$(\psi[\mathrm{node}])=0$.}
+So the periodic box supplies P and H (it is the product of two \texttt{Modular} circles), and the wave's symmetry supplies S.  With a \emph{complex} amplitude the nodes are \emph{isolated} points --- both parts of $\psi$ vanish at once --- \emph{selected} by \cppinline{materialise}$(\psi[\mathrm{node}])=0$.  Fixed by the same symmetry they come as an orbit of four per cell and tile into a periodic grid: a coarser \emph{sublattice} of the torus, the concrete face of S.  (A single node would break the symmetry that defines S.)}
 \label{fig:hsp-torus}
 \end{figure}
 
