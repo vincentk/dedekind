@@ -149,7 +149,7 @@ struct LatticeFactory<R, 1> {
   }
 
   constexpr auto bounded(int n) const {
-    // Post-#559 ℝ is the universe value Ω<Real<machine_real_scalar>>;
+    // Post-#559 ℝ is the universe value Ω<PlatonicReal>;
     // element<ℝ> is the canonical scout spelling.  Spelt directly with
     // @c Real<double> here because this lattice specialisation is keyed
     // on the @c R (classifier) value rather than the universe symbol.
