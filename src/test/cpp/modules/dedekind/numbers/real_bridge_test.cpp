@@ -16,6 +16,8 @@
  */
 #include <catch2/catch_test_macros.hpp>
 #include <concepts>
+#include <type_traits>
+#include <utility>
 
 import dedekind.algebra;
 import dedekind.category;
@@ -35,6 +37,15 @@ TEST_CASE("ℚ embeds as a subfield of ℝ (faithful, postulated)",
   SECTION("domain is ℚ; codomain is ℝ's (uninhabited) carrier") {
     STATIC_CHECK(std::same_as<typename EmbedQtoR<>::Domain, Rational<>>);
     STATIC_CHECK(std::same_as<typename EmbedQtoR<>::Codomain, PlatonicReal>);
+  }
+
+  SECTION("the reusable relation component: ι_ℚ_ℝ = graph(ι)") {
+    // A function IS its graph, so the inclusion is a first-class Trsk relation
+    // {(q, ι(q))} ⊆ ℚ × ℝ — modelled, not materialised (ℝ uninhabited).
+    STATIC_CHECK(dedekind::category::IsSet<decltype(ι_ℚ_ℝ)>);
+    STATIC_CHECK(
+        std::same_as<typename std::remove_cvref_t<decltype(ι_ℚ_ℝ)>::Domain,
+                     std::pair<Rational<>, PlatonicReal>>);
   }
 
   SECTION("the postulated ι is callable (codecov); its image is not asserted") {

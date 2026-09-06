@@ -57,6 +57,8 @@ export import :real;      // ℝ (universe value Ω<PlatonicReal,
                           // ClassicalLogic, ℶ_1>); RealsOf<> / RealSet (the
 // cross-carrier classifier); R (classifier instance) —
 // Dedekind Cut / Cauchy continuum
+export import :real_bridge;  // ℚ ↪ ℝ (and friends) as first-class Trsk
+                             // relations
 export import :cardinality;  // Draft finite/aleph0 carrier and policies
 
 /** @section numbers__Metadata */
