@@ -41,6 +41,7 @@ export import :integer;  // ℤ = Ω<SignedCardinality> (saturating variant
 /** @section numbers__Algebraic_Extensions */
 export import :rational;    // Rational<default_integer> (The Quotient Field)
 export import :cut;         // Cut<Q> — decidable Dedekind reals (ℚ + radicals)
+export import :quadratic;   // ℚ(√D) — a decidable quadratic real FIELD
 export import :complex;     // ℂ (The Cayley-Dickson construction)
 export import :quaternion;  // ℍ (Hamilton's division ring)
 export import :scalars;     // Floating-point anchors
