@@ -593,6 +593,79 @@ export using machine_integer = int;
 // rather than the deprecated machine-layer arrow.
 
 /**
+ * @brief Restored variant-layer subalgebra embedding @b ℤ ↪ ℚ:
+ *        @c SignedCardinality → @c Rational<default_integer>, @f$n\mapsto
+ * n/1@f$.
+ *
+ * @details Restores the arrow the comment above anticipated ("on the new @b ℤ
+ * carrier @c SignedCardinality"), replacing the removed machine-layer
+ * @c arrow<int,…>.  @f$n\mapsto n/1@f$ is the genuine ring embedding of ℤ into
+ * its field of fractions ℚ: an @c EmbedsAsSubalgebra @b S-leg (the canonical
+ * tower rung below @c embed_ℚ_ℝ) that is also @b order-preserving
+ * (@c is_monotone_v) — the property the halfspace strength-reduction pulls back
+ * through.  The homomorphism/injectivity laws are @b witnessed by computation
+ * below (finite fragment; the saturating ±∞ ends are order sentinels, not ring
+ * elements).
+ */
+export inline constexpr auto embed_ℤ_ℚ_ =
+    arrow<default_integer, Rational<default_integer>>(
+        [](const default_integer& n) noexcept {
+          return Rational<default_integer>{n};
+        });
+
+}  // namespace dedekind::numbers
+
+namespace dedekind::category {
+/** @brief ℤ ↪ ℚ is monic: @f$n/1 = m/1 \iff n = m@f$. */
+template <>
+inline constexpr bool
+    is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_ℤ_ℚ_)>> =
+        true;
+/** @brief ℤ ↪ ℚ preserves order — the monotonicity the strength-reduction
+ *  pullback rests on. */
+template <>
+inline constexpr bool is_monotone_v<
+    std::decay_t<decltype(dedekind::numbers::embed_ℤ_ℚ_)>, std::less_equal<>> =
+    true;
+}  // namespace dedekind::category
+
+namespace dedekind::algebra {
+/** @brief ℤ ↪ ℚ preserves @f$+,\times,0,1@f$ — the field-of-fractions ring
+ *  embedding. */
+template <>
+inline constexpr bool
+    is_homomorphism_v<std::decay_t<decltype(dedekind::numbers::embed_ℤ_ℚ_)>> =
+        true;
+}  // namespace dedekind::algebra
+
+namespace dedekind::numbers {
+
+/** @section rational__ℤ_ℚ_S_Leg_Witnesses
+ *  @c embed_ℤ_ℚ_ is a genuine Birkhoff S-leg, witnessed by computation. */
+namespace {
+using ℤ_carrier = default_integer;
+static_assert(
+    dedekind::category::IsMonicArrow<std::decay_t<decltype(embed_ℤ_ℚ_)>>,
+    "ℤ ↪ ℚ is monic.");
+static_assert(
+    dedekind::algebra::EmbedsAsSubalgebra<std::decay_t<decltype(embed_ℤ_ℚ_)>>,
+    "ℤ ↪ ℚ is a Birkhoff S-leg: a monic ring embedding into the field of "
+    "fractions (the tower rung below embed_ℚ_ℝ).");
+// Homomorphism, computed on the finite fragment (n ↦ n/1 preserves +, ×, 0, 1).
+static_assert(embed_ℤ_ℚ_(ℤ_carrier{2} + ℤ_carrier{3}) ==
+                  embed_ℤ_ℚ_(ℤ_carrier{2}) + embed_ℤ_ℚ_(ℤ_carrier{3}),
+              "ℤ ↪ ℚ preserves +.");
+static_assert(embed_ℤ_ℚ_(ℤ_carrier{2} * ℤ_carrier{3}) ==
+                  embed_ℤ_ℚ_(ℤ_carrier{2}) * embed_ℤ_ℚ_(ℤ_carrier{3}),
+              "ℤ ↪ ℚ preserves ×.");
+// Monic / order-preserving, computed.
+static_assert(embed_ℤ_ℚ_(ℤ_carrier{2}) != embed_ℤ_ℚ_(ℤ_carrier{3}),
+              "ℤ ↪ ℚ is injective on distinct integers.");
+static_assert(embed_ℤ_ℚ_(ℤ_carrier{2}) < embed_ℤ_ℚ_(ℤ_carrier{3}),
+              "ℤ ↪ ℚ preserves order (2/1 < 3/1).");
+}  // namespace
+
+/**
  * @brief Exact dyadic embedding @c double → ℚ.
  *
  * @details Every finite IEEE 754 @c double is exactly the dyadic
