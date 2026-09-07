@@ -124,6 +124,12 @@ class QuadraticReal {
   }
   /** @} */
 
+  /** @brief Extrema of the singleton @f$\{*this\}@f$ (inf = sup = the value).
+   *  Supplies @c HasExtrema, the structural prerequisite for
+   *  @c IsDedekindComplete (matching @c ExactReal). */
+  constexpr QuadraticReal infimum() const { return *this; }
+  constexpr QuadraticReal supremum() const { return *this; }
+
   /** @brief Total, @b decidable order: sign of @f$(a-a')+(b-b')\sqrt D@f$ by
    *  comparing squares.  This is what keeps @f$\mathbb{Q}(\sqrt D)@f$ a genuine
    *  @c IsTotallyOrdered field rather than a Ternary residue. */
@@ -301,11 +307,19 @@ static_assert(root2 * (R2{2} + root2) == root2 * R2{2} + root2 * root2,
 // operators, but the axiomatic IsField, now that Path-D (exact) totality lifts
 // it to a Magma.  Ω⟨ℚ(√2)⟩ is a real field as a first-class C++ value, exactly
 // the way ℚ = Ω⟨Rational⟩ is — the algebraic coat-hanger, on the reals.
-static_assert(dedekind::category::IsField<R2>,
-              "ℚ(√2)'s carrier satisfies the axiomatic IsField.");
+static_assert(
+    dedekind::category::IsField<R2, std::plus<R2>, std::multiplies<R2>>,
+    "ℚ(√2)'s carrier satisfies the axiomatic IsField.");
 static_assert(
     dedekind::algebra::IsField<
         std::remove_cvref_t<decltype(dedekind::sets::Ω<R2>)>>,
     "Ω⟨ℚ(√2)⟩ is a field as a first-class value, like ℚ = Ω⟨Rational⟩.");
+
+// The topological half of the coat-hanger, paired with IsField: ℚ(√2) is
+// order-complete — totally ordered + dense (midpoint (a+b)/T{2}) + extrema.
+static_assert(
+    dedekind::order::IsDedekindComplete<R2>,
+    "ℚ(√2) satisfies IsDedekindComplete — a real value that is at once a field "
+    "(IsField) and order-complete (IsComplete): the full concept pair.");
 
 }  // namespace dedekind::numbers
