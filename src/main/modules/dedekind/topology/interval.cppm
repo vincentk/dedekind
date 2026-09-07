@@ -128,10 +128,13 @@ export template <IsTotallyOrdered T, Direction D, Boundary B = Boundary::Open,
 class Ray : public detail::BoundaryTag<B>,
             public dedekind::sets::SetExpr<Ray<T, D, B, L>, T, L> {
  public:
-  // Domain / Codomain / logic_species / Member / ι and is_associative_v /
-  // is_idempotent_v are inherited from SetExpr — the same ETCS subobject mixin
-  // Interval / HalfSpace / order::Halfspace fold onto (#806 dedup).  A Ray thus
-  // becomes a first-class IsSubobject (ι: ray ↣ T) it previously lacked.
+  // Domain / Codomain / logic_species / Member / ι are inherited from SetExpr —
+  // the same ETCS subobject mixin Interval / HalfSpace / order::Halfspace fold
+  // onto (#806 dedup).  A Ray thus becomes a first-class IsSubobject (ι: ray ↣
+  // T) it previously lacked.  The old hand-rolled
+  // is_associative_v/is_idempotent_v (blanket-true for EVERY Op — dishonest
+  // under e.g. std::plus<Ray>) are intentionally dropped; subobject-hood
+  // carries no algebra-law claim.
   using is_ray_tag = void;
 
   constexpr explicit Ray(T pivot) : pivot_(pivot) {}
@@ -253,10 +256,12 @@ export template <IsTotallyOrdered T, Boundary B = Boundary::Open,
 class HalfSpace : public detail::BoundaryTag<B>,
                   public dedekind::sets::SetExpr<HalfSpace<T, B, L>, T, L> {
  public:
-  // Domain / Codomain / logic_species / Member / ι and is_associative_v /
-  // is_idempotent_v are inherited from SetExpr (#806 dedup): the runtime-
-  // direction HalfSpace gains the first-class IsSubobject surface (ι: S ↣ T) it
-  // previously lacked, matching Ray / Interval / order::Halfspace.
+  // Domain / Codomain / logic_species / Member / ι are inherited from SetExpr
+  // (#806 dedup): the runtime-direction HalfSpace gains the first-class
+  // IsSubobject surface (ι: S ↣ T) it previously lacked, matching Ray /
+  // Interval / order::Halfspace.  The old hand-rolled
+  // is_associative_v/is_idempotent_v (blanket-true for EVERY Op) are
+  // intentionally dropped; subobject-hood carries no algebra-law claim.
   using is_ray_tag = void;
 
   /** @brief Factory: { x | x > pivot } or { x | x >= pivot }. */

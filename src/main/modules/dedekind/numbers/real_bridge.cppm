@@ -2,8 +2,9 @@
  * @file real_bridge.cppm
  * @brief The Birkhoff @b S leg @f$\mathbb{Q}\hookrightarrow\mathbb{R}@f$: a
  *        genuine @b monic @b homomorphism into the @f$\mathbb{Q}(\sqrt2)@f$
- *        coat-hanger, with @b computed witnesses, plus its reified subobject
- *        inclusion @f$\iota=\operatorname{graph}(\text{embed})@f$.
+ *        coat-hanger, with @b computed witnesses, plus its @b graph
+ *        @f$\Gamma=\operatorname{graph}(\text{embed})\subseteq\mathbb{Q}\times
+ *        \mathbb{R}@f$ reifying the arrow relationally.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -129,19 +130,21 @@ static_assert(dedekind::algebra::EmbedsAsSubalgebra<Emb>,
               "ℚ ↪ ℝ = ℚ(√2) is a Birkhoff S-leg: a monic homomorphism onto a "
               "subalgebra --- the arrow Section 5's Figure 5 hangs on.");
 
-// --- The reification: ι = graph(embed) is the subobject inclusion ℚ ↪ ℝ, ---
-// --- a functional (single-valued) relation on ℚ×ℝ.  The ARROW is a function;
-// ---
-// --- its GRAPH is the IsRelation.  (It is NOT an IsFunctor: a field hom ---
-// --- preserves operations, not composition of arrows between categories.) ---
-constexpr auto ι_ℚ_ℝ = dedekind::sets::graph(embed_ℚ_ℝ);
+// --- The reification.  The inclusion ARROW is embed_ℚ_ℝ itself (a mono ℚ↪ℝ, a
+// --- subobject of ℝ).  Its GRAPH Γ = graph(embed) is a distinct object: a
+// --- functional (single-valued) relation Γ ⊆ ℚ×ℝ, i.e. an ETCS subobject of
+// --- the PRODUCT ℚ×ℝ, that reifies the arrow relationally (an IsRelation).  Γ
+// --- is NOT the inclusion subobject of ℝ, and NOT an IsFunctor (a field hom
+// --- preserves operations, not composition of arrows between categories).
+constexpr auto Γ_embed = dedekind::sets::graph(embed_ℚ_ℝ);
 static_assert(
-    dedekind::category::IsSet<decltype(ι_ℚ_ℝ)>,
-    "ι = graph(embed) is an ETCS subobject of ℚ×ℝ (a functional relation).");
-static_assert(ι_ℚ_ℝ(std::pair{a, embed_ℚ_ℝ(a)}),
-              "(q, q+0√2) lies on the inclusion ι.");
-static_assert(!ι_ℚ_ℝ(std::pair{a, R2::root()}),
-              "(q, √2) does not lie on ι — √2 is not in the image of ℚ.");
+    dedekind::category::IsSet<decltype(Γ_embed)>,
+    "Γ = graph(embed) is an ETCS subobject of the product ℚ×ℝ (a functional "
+    "relation).");
+static_assert(Γ_embed(std::pair{a, embed_ℚ_ℝ(a)}),
+              "(q, q+0√2) lies on the graph Γ of the inclusion.");
+static_assert(!Γ_embed(std::pair{a, R2::root()}),
+              "(q, √2) does not lie on Γ — √2 is not in the image of ℚ.");
 }  // namespace
 
 }  // namespace dedekind::numbers

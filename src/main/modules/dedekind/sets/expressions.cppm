@@ -97,10 +97,17 @@ struct SetExpr {
     return static_cast<const Derived&>(*this)(x);
   }
 
-  template <typename Op>
-  static constexpr bool is_associative_v = true;
-  template <typename Op>
-  static constexpr bool is_idempotent_v = true;
+  // NOTE: SetExpr is the ETCS @b subobject surface (Domain/Codomain/Member/ι/χ)
+  // and NOTHING more.  It deliberately does @b not register algebra laws:
+  // subobject-hood is orthogonal to whether any operation is associative or
+  // idempotent.  A blanket @c is_associative_v<Op>=true / @c
+  // is_idempotent_v<Op> here would be READ by @c category::is_associative_v's
+  // member-discovery
+  // (@c :species) for @b every @c Op — claiming, e.g., that a @c Halfspace is
+  // associative under @c std::plus<Halfspace>, an operation that does not
+  // exist. The honest default (@c is_associative<T,Op> = @c false_type) applies
+  // unless a carrier registers a specific @c (Op) it truly satisfies.  See #806
+  // review.
 };
 
 export template <typename Base, typename Predicate>

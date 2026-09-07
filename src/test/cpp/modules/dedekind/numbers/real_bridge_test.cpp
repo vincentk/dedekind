@@ -8,8 +8,8 @@
  * contrast with the retired @c PlatonicReal, whose subalgebra legs were
  * postulated on an uninhabited stub.  Those static_asserts are invisible to
  * coverage, so here we re-run the same laws at runtime over a spread of
- * rationals and exercise the reified inclusion @f$\iota=\operatorname{graph}
- * (\text{embed})@f$.
+ * rationals and exercise the arrow's graph @f$\Gamma=\operatorname{graph}
+ * (\text{embed})\subseteq\mathbb{Q}\times\mathbb{R}@f$.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -65,12 +65,14 @@ TEST_CASE("S-leg: embed is injective and lands in the ℚ-subfield {b = 0}",
   }
 }
 
-TEST_CASE("S-leg: ι = graph(embed) is the subobject inclusion ℚ ↪ ℝ",
+TEST_CASE("S-leg: Γ = graph(embed) is the arrow's graph on the product ℚ×ℝ",
           "[numbers][hsp][subalgebra][relational]") {
-  const auto ι = dedekind::sets::graph(embed_ℚ_ℝ);
+  // The inclusion arrow is embed_ℚ_ℝ; its graph Γ ⊆ ℚ×ℝ reifies it
+  // relationally.
+  const auto Γ = dedekind::sets::graph(embed_ℚ_ℝ);
   for (const Q& x : kSamples) {
-    // (q, q+0√2) lies on ι; (q, √2) does not — √2 ∉ image(ℚ).
-    CHECK(ι(std::pair{x, embed_ℚ_ℝ(x)}));
-    CHECK_FALSE(ι(std::pair{x, R2::root()}));
+    // (q, q+0√2) lies on Γ; (q, √2) does not — √2 ∉ image(ℚ).
+    CHECK(Γ(std::pair{x, embed_ℚ_ℝ(x)}));
+    CHECK_FALSE(Γ(std::pair{x, R2::root()}));
   }
 }

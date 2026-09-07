@@ -636,12 +636,13 @@ concept IsQuotientMorphism =
  *     ambient algebra structure (@c IsAlgebraOnSet on @c Ω<Domain>) is
  * witnessed at the declaration site, where the operations are in scope.
  *
- * @note This is the @b arrow.  Its reification as a @b subobject inclusion is a
- *       separate @c IsRelation: @f$\iota =
- * \operatorname{graph}(\text{embed})@f$, a functional, monic relation.  It is
- * @b not an @c IsFunctor --- a field homomorphism preserves operations, not
- * composition of arrows between categories; @f$\mathbb{Q},\mathbb{R}@f$ are
- * objects, not categories.
+ * @note This concept classifies the @b arrow (the inclusion mono itself).  Its
+ *       @b graph @f$\Gamma = \operatorname{graph}(\text{embed}) \subseteq A
+ *       \times B@f$ is a @b separate object: a functional, monic @c IsRelation
+ *       on the @b product that reifies the arrow relationally --- not the
+ *       inclusion subobject of the codomain, and @b not an @c IsFunctor (a
+ * field homomorphism preserves operations, not composition of arrows between
+ *       categories; @f$\mathbb{Q},\mathbb{R}@f$ are objects, not categories).
  *
  * Like both HSP siblings the monic/hom legs are opt-in (@c is_monic_arrow_v /
  * @c is_homomorphism_v declarations); the honest discipline is to pin them with
