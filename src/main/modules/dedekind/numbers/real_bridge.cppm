@@ -34,7 +34,7 @@ export module dedekind.numbers:real_bridge;
 
 import dedekind.algebra; // EmbedsAsSubalgebra, IsHomomorphism, is_homomorphism_v
 import dedekind.category;   // IsArrow, IsMonicArrow, is_monic_arrow_v, IsSet
-import dedekind.relational; // graph(f): the reified inclusion ι
+import dedekind.relational; // graph(f): the arrow's graph Γ (reified relation)
 import :rational;           // Rational<default_integer> — the ℚ carrier
 import :quadratic;  // QuadraticReal<2> — the ℝ = ℚ(√2) coat-hanger carrier
 

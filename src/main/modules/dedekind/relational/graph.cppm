@@ -126,10 +126,12 @@ constexpr Graph<std::remove_cvref_t<F>> graph(F f) {
 // A graph IS a functional (single-valued) AND entire (total) relation --- it is
 // the graph of a total function.  Mark both faces on the @c Graph<F> type (the
 // @c Set<pair> form), the same convention @c arrow_as_relation already carries,
-// so @c IsFunctional / @c IsEntire / @c IsFunction hold on @c graph(f) itself,
-// not only on the 2-argument indicator.  Closes the gap that a graph was a
-// relation but not yet a marked function, and lets the relative product below
-// gate on @c IsFunctional at this partition's own level.
+// so @c IsFunctional / @c IsEntire hold on @c graph(f) itself, not only on the
+// 2-argument indicator.  (@c IsFunction<R,A,B> stays the 2-argument reading ---
+// it needs the @c r(a,b) call shape, which the 1-argument @c Set<pair> graph
+// does not have.)  Closes the gap that a graph was a relation but not yet a
+// marked function, and lets the relative product below gate on @c IsFunctional
+// at this partition's own level.
 namespace dedekind::category {
 template <typename F>
 inline constexpr bool is_left_total_v<dedekind::sets::Graph<F>> = true;

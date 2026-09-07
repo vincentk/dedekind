@@ -650,7 +650,19 @@ inline constexpr bool is_monotone_v<
 
 namespace dedekind::algebra {
 /** @brief ℤ ↪ ℚ preserves @f$+,\times,0,1@f$ — the field-of-fractions ring
- *  embedding. */
+ *  embedding, on the @b finite fragment of the ℤ carrier.
+ *
+ *  FIXME(#680): the declared domain @c SignedCardinality is saturating, so
+ *  @b overflow can reach a sentinel (±∞ / NaZ) where @c Rational::simplify 's
+ *  @c euclidean_gcd loop does not terminate --- e.g. @c embed(a)+embed(b) can
+ *  diverge when @c a+b overflows, whereas @c embed(a+b) returns.  That is the
+ *  @b pre-existing #680 non-termination (the Honest-Rejection guard on
+ *  @c Rational is the structurally-right fix), inherited by @b every
+ * exact-carrier arrow (ℚ itself, @c embed_ℚ_ℝ), not introduced here.  This
+ * registration is the finite-fragment declaration under the "exact carriers are
+ * total for all practical purposes" posture --- distinct from @c
+ * embed_double_ℚ, which withholds its trait because @c double 's NaN/±∞ are @b
+ * common in-band IEEE values, not a saturation boundary. */
 template <>
 inline constexpr bool
     is_homomorphism_v<std::decay_t<decltype(dedekind::numbers::embed_ℤ_ℚ_)>> =
