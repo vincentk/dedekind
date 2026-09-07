@@ -28,6 +28,7 @@
  */
 module;
 
+#include <cassert>  // radicand precondition guard
 #include <compare>
 #include <concepts>
 #include <functional>  // std::less_equal (the poset-trait registration key)
@@ -77,6 +78,7 @@ class Cut {
   /** @brief The radical real @f$\sqrt{c}@f$ (requires @f$c\ge 0@f$; a perfect
    *  square is admitted --- it simply compares @c == to its rational root). */
   static constexpr Cut sqrt(Q radicand) {
+    assert(!(radicand < Q{}));  // √c is real only for c ≥ 0
     return Cut{radicand, Kind::Radical, /*neg=*/false};
   }
 
@@ -120,12 +122,6 @@ class Cut {
     }
     if (p > Q{}) return std::strong_ordering::greater;  // p>0 ≥ −√c
     return c <=> (p * p);  // p≤0: p<=>−√c reverses (−p)²<=>c
-  }
-
-  static constexpr std::strong_ordering reverse(std::strong_ordering o) {
-    if (o == std::strong_ordering::less) return std::strong_ordering::greater;
-    if (o == std::strong_ordering::greater) return std::strong_ordering::less;
-    return std::strong_ordering::equal;
   }
 
   /** @brief Signed value of a radical leaf: @f$-1,0,+1@f$ for

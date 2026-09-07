@@ -65,4 +65,12 @@ TEST_CASE("ℚ(√2): a decidable quadratic real field", "[numbers][quadratic]")
     STATIC_CHECK(same_place(-2));
     CHECK(same_place(1));  // codecov
   }
+
+  SECTION("mixed-sign order: both branches of sign_of") {
+    // a>0,b<0 (the sq branch) and a<0,b>0 (the reversed branch).
+    STATIC_CHECK(R2::of(Q{-2}, Q{1}) < R2{});  // −2+√2 < 0   (a²>b²D, reversed)
+    STATIC_CHECK(R2{} < R2::of(Q{-1}, Q{1}));  // 0 < −1+√2   (a²<b²D, reversed)
+    STATIC_CHECK(R2::of(Q{2}, Q{-1}) > R2{});  // 2−√2 > 0    (a²>b²D, sq)
+    CHECK(R2::of(Q{-2}, Q{1}) < R2{});         // codecov
+  }
 }

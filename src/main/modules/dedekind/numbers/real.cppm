@@ -1,7 +1,9 @@
 /**
  * @file dedekind/numbers/real.cppm
  * @partition :real
- * @brief Minimal real wrapper for experimental reintegration.
+ * @brief The real line: @c ℝ (the coat-hanger over @c QuadraticReal<2>, a field
+ *        and order-complete), the reified scalar carriers @c Real<Q> /
+ *        @c ExactReal, and the materialisable machine-real ambient @c ℝ_d.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.

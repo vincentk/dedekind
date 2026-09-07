@@ -63,6 +63,13 @@ TEST_CASE("(-√2, √2): a decidable real interval with irrational bounds",
     STATIC_CHECK((shadow(Q{2}) == Ternary::True) == in_band(2));
   }
 
+  SECTION("radical vs radical: the both-radical magnitude branch") {
+    // Distinct radicands (same sign) exercise compare()'s magnitude path.
+    STATIC_CHECK(Cut<>::sqrt(Q{2}) < Cut<>::sqrt(Q{3}));    // √2 < √3
+    STATIC_CHECK(-Cut<>::sqrt(Q{3}) < -Cut<>::sqrt(Q{2}));  // −√3 < −√2
+    CHECK(Cut<>::sqrt(Q{2}) < Cut<>::sqrt(Q{3}));           // codecov
+  }
+
   SECTION("runtime exercise (codecov): the same decisions at runtime") {
     CHECK(in_band(0));
     CHECK(in_band(1));

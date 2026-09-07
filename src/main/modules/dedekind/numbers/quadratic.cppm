@@ -29,6 +29,7 @@
  */
 module;
 
+#include <cassert>  // nonzero-norm guard on inverse()
 #include <compare>
 #include <concepts>
 #include <functional>
@@ -116,6 +117,7 @@ class QuadraticReal {
    *  nonzero for every nonzero element (@f$\sqrt D@f$ irrational). */
   constexpr QuadraticReal inverse() const {
     const Q norm = a_ * a_ - b_ * b_ * Q{D};
+    assert(norm != Q{});  // norm = 0 iff *this = 0, which has no inverse
     return of(a_ / norm, -b_ / norm);
   }
   friend constexpr QuadraticReal operator/(const QuadraticReal& x,
@@ -144,12 +146,6 @@ class QuadraticReal {
 
  private:
   constexpr QuadraticReal(Q a, Q b) : a_(a), b_(b) {}
-
-  static constexpr std::strong_ordering reverse(std::strong_ordering o) {
-    if (o == std::strong_ordering::less) return std::strong_ordering::greater;
-    if (o == std::strong_ordering::greater) return std::strong_ordering::less;
-    return std::strong_ordering::equal;
-  }
 
   /** @brief Sign of @f$a+b\sqrt D@f$ (@f$D>1@f$) as an ordering against 0. */
   static constexpr std::strong_ordering sign_of(const Q& a, const Q& b) {
@@ -317,9 +313,13 @@ static_assert(
 
 // The topological half of the coat-hanger, paired with IsField: ℚ(√2) is
 // order-complete — totally ordered + dense (midpoint (a+b)/T{2}) + extrema.
-static_assert(
-    dedekind::order::IsDedekindComplete<R2>,
-    "ℚ(√2) satisfies IsDedekindComplete — a real value that is at once a field "
-    "(IsField) and order-complete (IsComplete): the full concept pair.");
+// IsDedekindComplete is the library's STRUCTURAL surrogate (totally ordered +
+// dense + extrema), which ℚ itself also passes; ℚ(√2) is countable and so not
+// genuinely order-complete.  What is honest here is the concept pair holding on
+// one real value: a field AND the completeness surrogate — like ℚ =
+// Ω⟨Rational⟩.
+static_assert(dedekind::order::IsDedekindComplete<R2>,
+              "ℚ(√2) satisfies the structural IsDedekindComplete surrogate, "
+              "paired with IsField on the same real value.");
 
 }  // namespace dedekind::numbers
