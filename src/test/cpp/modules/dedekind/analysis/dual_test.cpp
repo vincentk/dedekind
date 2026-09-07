@@ -109,28 +109,33 @@ TEST_CASE(
 
 TEST_CASE("Analysis: 𝔻 / D / DualSet starter aliases",
           "[analysis][dual][starter]") {
-  // Post-#559: 𝔻 is the universe value Ω<Dual<machine_real_scalar>,
-  // ClassicalLogic, ℶ_1>, and D is the classifier instance DualSet{}
-  // (= DualSetOf<>{}).  The pair has the same shape as ℝ/ℂ.
-  STATIC_CHECK(std::same_as<
-               std::remove_cvref_t<decltype(𝔻)>,
-               UniversalSet<Dual<machine_real_scalar>, ClassicalLogic, ℶ_1>>);
+  // Post-HSP retarget: 𝔻 is the COAT-HANGER universe value
+  // Ω<Dual<QuadraticReal<2>>, ClassicalLogic, ℶ_1>; the machine-double ambient
+  // is 𝔻_d = Ω<Dual<machine_real_scalar>> (mirroring ℝ_d / ℂ_d).  D is the
+  // classifier instance DualSet{} (= DualSetOf<>{}).  The pair mirrors ℝ/ℂ.
+  using R2 = QuadraticReal<2>;
+  STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(𝔻)>,
+                            UniversalSet<Dual<R2>, ClassicalLogic, ℶ_1>>);
   STATIC_CHECK(std::same_as<typename std::remove_cvref_t<decltype(𝔻)>::Domain,
-                            Dual<machine_real_scalar>>);
+                            Dual<R2>>);
+  STATIC_CHECK(std::same_as<
+               std::remove_cvref_t<decltype(𝔻_d)>,
+               UniversalSet<Dual<machine_real_scalar>, ClassicalLogic, ℶ_1>>);
   STATIC_CHECK(std::same_as<decltype(D), const DualSet>);
 
-  constexpr auto d = element<𝔻>;
+  constexpr auto d = element<𝔻>;  // now a Dual<QuadraticReal<2>> scout
   constexpr auto duals = Set{d};
-  static_assert(duals(Dual<double>{1.0, 1.0}) == Ternary::True);
+  static_assert(duals(Dual<R2>{R2{1}, R2{1}}) == Ternary::True);
 }
 
 TEST_CASE("Analysis: 𝔻 lattice identity (U ∪ ¬U = top, U ∩ ¬U = bottom)",
           "[analysis][dual][starter][lattice]") {
-  constexpr auto d = element<𝔻>;
+  using R2 = QuadraticReal<2>;
+  constexpr auto d = element<𝔻>;  // now a Dual<QuadraticReal<2>> scout
   const auto U = Set{d};
   const auto O = !U;
-  CHECK((U | O)(Dual<double>{3.0, 1.0}) == Ternary::True);
-  CHECK((U & O)(Dual<double>{3.0, 1.0}) == Ternary::False);
+  CHECK((U | O)(Dual<R2>{R2{3}, R2{1}}) == Ternary::True);
+  CHECK((U & O)(Dual<R2>{R2{3}, R2{1}}) == Ternary::False);
 }
 
 // ---------------------------------------------------------------------------

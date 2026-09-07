@@ -279,18 +279,22 @@ using DualSetOf = UniversalSet<Dual<F>, L, C>;
 
 export using DualSet = DualSetOf<>;
 
-/** @brief The canonical dual-number universe 𝔻 = Ω<Dual<machine_real_scalar>,
- *         ClassicalLogic, ℶ_1> (post-#559).
+/** @brief The canonical dual-number universe 𝔻 = Ω<Dual<QuadraticReal<2>>,
+ *         ClassicalLogic, ℶ_1> — the coat-hanger 𝔻 = Dual(ℝ) over the
+ *         genuine ℝ = ℚ(√2) (mirroring ℝ and ℂ).
  *
  *  @details Per #559's chosen direction (option A): the named species
  *  symbols denote @b universe values (constexpr instances of
- *  @c UniversalSet over the carrier), not classifier-alias types.
- *  This slice closes #559 — with @c 𝔻 migrated, all seven species
- *  symbols (𝔹, ℕ, ℤ, ℚ, ℝ, ℂ, 𝔻) carry the canonical
+ *  @c UniversalSet over the carrier), not classifier-alias types.  All
+ *  seven species symbols (𝔹, ℕ, ℤ, ℚ, ℝ, ℂ, 𝔻) carry the canonical
  *  @c element<𝔻> scout spelling.
  *
- *  The carrier of @c 𝔻 is @c Dual<machine_real_scalar> directly; the
- *  classifier is reachable via @c DualSet @c = @c DualSetOf<>.
+ *  Post-HSP retarget: the carrier of @c 𝔻 is @c Dual<QuadraticReal<2>> —
+ *  the 2nd-order quotient ℝ[ε]/(ε²) over the coat-hanger ℝ, NOT
+ *  @c Dual<double>.  Machine-double forward-mode AD lives on the
+ *  materialisable ambient @c 𝔻_d = Ω<Dual<machine_real_scalar>> below
+ *  (mirroring ℝ_d / ℂ_d).  The classifier is reachable via
+ *  @c DualSet @c = @c DualSetOf<>.
  *
  *  Cardinality is set explicitly to @c ℶ_1 (continuum) — @c 𝔻 is in
  *  bijection with ℝ × ℝ via the @c (a, @c b) coefficient pair (the
@@ -310,21 +314,50 @@ export using DualSet = DualSetOf<>;
  *  is the universal-algebra side of that same construction.
  */
 export inline constexpr auto 𝔻 =
-    dedekind::sets::Ω<Dual<dedekind::numbers::machine_real_scalar>,
-                      ClassicalLogic, ℶ_1>;
+    dedekind::sets::Ω<Dual<dedekind::numbers::QuadraticReal<2>>, ClassicalLogic,
+                      ℶ_1>;
 
 static_assert(
     std::same_as<
         std::remove_cvref_t<decltype(𝔻)>,
-        dedekind::sets::UniversalSet<
-            Dual<dedekind::numbers::machine_real_scalar>, ClassicalLogic, ℶ_1>>,
-    "𝔻 is the universe Ω<Dual<machine_real_scalar>, ClassicalLogic, ℶ_1> "
-    "(post-#559).");
+        dedekind::sets::UniversalSet<Dual<dedekind::numbers::QuadraticReal<2>>,
+                                     ClassicalLogic, ℶ_1>>,
+    "𝔻 is the universe Ω<Dual<QuadraticReal<2>>, ClassicalLogic, ℶ_1> — the "
+    "coat-hanger 𝔻 = Dual(ℝ) = ℝ[ε]/(ε²) over the genuine ℝ = ℚ(√2), mirroring "
+    "ℝ and ℂ.  Not Dual<double>.");
 static_assert(std::same_as<typename std::remove_cvref_t<decltype(𝔻)>::Domain,
+                           Dual<dedekind::numbers::QuadraticReal<2>>>,
+              "𝔻's carrier IS Dual<QuadraticReal<2>> — the 2nd-order quotient "
+              "ℝ[ε]/(ε²) over the coat-hanger ℝ.");
+
+/** @brief The materialisable machine ambient @c 𝔻_d = @c Ω<Dual<double>>,
+ *  mirroring @c ℝ_d / @c ℂ_d.  Machine-double forward-mode AD lives here; the
+ *  abstract @c 𝔻 is the coat-hanger. */
+export inline constexpr auto 𝔻_d =
+    dedekind::sets::Ω<Dual<dedekind::numbers::machine_real_scalar>,
+                      ClassicalLogic, ℶ_1>;
+static_assert(std::same_as<typename std::remove_cvref_t<decltype(𝔻_d)>::Domain,
                            Dual<dedekind::numbers::machine_real_scalar>>,
-              "𝔻's underlying carrier IS Dual<machine_real_scalar>.");
+              "𝔻_d's carrier is Dual<machine_real_scalar> (machine ambient).");
 
 export inline constexpr DualSet D{};
+
+/**
+ * @brief The Birkhoff @b S leg @f$\mathbb{R}\hookrightarrow\mathbb{D}@f$ over
+ * the coat-hanger: @c QuadraticReal<2> → @c Dual<QuadraticReal<2>>,
+ *        @f$r\mapsto r+0\varepsilon@f$ (primal @c r, tangent @c 0).
+ *
+ * @details A genuine monic @b ring embedding (an @c EmbedsAsSubalgebra S-leg,
+ * the 𝔻 sibling of @c embed_ℝ_ℂ / @c embed_ℚ_ℝ): ℝ is the constant subring
+ * @f$\{\,\varepsilon\text{-part}=0\,\}\subset\mathbb{D}@f$ (the value-0-tangent
+ * duals).  Witnessed by computation below. */
+export inline constexpr auto embed_ℝ_𝔻 =
+    dedekind::category::arrow<dedekind::numbers::QuadraticReal<2>,
+                              Dual<dedekind::numbers::QuadraticReal<2>>>(
+        [](const dedekind::numbers::QuadraticReal<2>& r) noexcept {
+          return Dual<dedekind::numbers::QuadraticReal<2>>{
+              r, dedekind::numbers::QuadraticReal<2>{}};
+        });
 
 }  // namespace dedekind::analysis
 
@@ -386,7 +419,51 @@ struct inverse_trait<dedekind::analysis::Dual<F>,
   }
 };
 
+// ── S-leg ℝ ↪ 𝔻 (monic) + the HSP legs of the coat-hanger 𝔻 = ℝ[ε]/(ε²) ──────
+template <>
+inline constexpr bool
+    is_monic_arrow_v<std::decay_t<decltype(dedekind::analysis::embed_ℝ_𝔻)>> =
+        true;
+// P-leg: 𝔻 ≅ ℝ × ℝ via the (val, der) coefficient pair.  ℂ carries the
+// pair-like IsProduct (its storage is literally .first/.second, what
+// IsPairLikeProduct reads); 𝔻's storage is the semantic .val/.der, so its
+// product iso is witnessed directly --- projections + reconstruction --- in the
+// computed section below (dual__ℝ_𝔻_S_Leg_Witnesses).  Both ARE ℝ×ℝ. H-leg: 𝔻 =
+// ℝ[ε]/(ε²) is a quotient algebra over ℝ (quotient_algebra_base above).
+static_assert(
+    IsQuotientAlgebra<
+        dedekind::analysis::Dual<dedekind::numbers::QuadraticReal<2>>>,
+    "H-leg: the coat-hanger 𝔻 = ℝ[ε]/(ε²) is a quotient algebra over ℝ.");
+
+// Composability: the 2nd-order quotient functors nest over any ring.  Dual is
+// the outer functor here, so the cross-functor D<C<Q>> / D<C<R>> and the plain
+// D<R> / D<Q> instances are all bona-fide quotient algebras.
+static_assert(
+    IsQuotientAlgebra<dedekind::analysis::Dual<
+        dedekind::numbers::Complex<dedekind::numbers::QuadraticReal<2>>>>,
+    "D<C<R>>: Dual over Complex over the coat-hanger ℝ is a quotient algebra.");
+static_assert(
+    IsQuotientAlgebra<dedekind::analysis::Dual<dedekind::numbers::Complex<
+        dedekind::numbers::Rational<dedekind::numbers::default_integer>>>>,
+    "D<C<Q>>: Dual over Complex over ℚ is a quotient algebra (functors nest).");
+// ...and the other way round: Dual<R> is IsComplexScalar (has {}, +, -, *), so
+// Complex<Dual<R>> instantiates too --- the two 2nd-order functors compose in
+// EITHER order.
+static_assert(
+    IsQuotientAlgebra<dedekind::numbers::Complex<
+        dedekind::analysis::Dual<dedekind::numbers::QuadraticReal<2>>>>,
+    "C<D<R>>: Complex over Dual over the coat-hanger ℝ is a quotient algebra.");
+
 }  // namespace dedekind::category
+
+namespace dedekind::algebra {
+// S-leg: ℝ ↪ 𝔻 is a ring homomorphism (r ↦ r+0ε preserves +,×,0,1) — backed by
+// the computed witnesses below.
+template <>
+inline constexpr bool
+    is_homomorphism_v<std::decay_t<decltype(dedekind::analysis::embed_ℝ_𝔻)>> =
+        true;
+}  // namespace dedekind::algebra
 
 namespace dedekind::analysis {
 
@@ -398,5 +475,38 @@ static_assert(
         Dual<dedekind::numbers::Rational<dedekind::numbers::default_integer>>,
         dedekind::numbers::Rational<dedekind::numbers::default_integer>>,
     "Dual<ℚ> is a module over ℚ — the exact-arithmetic AD instance.");
+
+/** @section dual__ℝ_𝔻_S_Leg_Witnesses
+ *  The S-leg ℝ ↪ 𝔻 (r ↦ r+0ε) is a genuine ring homomorphism, @b computed. */
+namespace {
+using R2_d = dedekind::numbers::QuadraticReal<2>;
+using D2_d = Dual<dedekind::numbers::QuadraticReal<2>>;
+constexpr R2_d a_d = R2_d{2};
+constexpr R2_d b_d = R2_d{3};
+static_assert(embed_ℝ_𝔻(a_d + b_d) == embed_ℝ_𝔻(a_d) + embed_ℝ_𝔻(b_d),
+              "ℝ ↪ 𝔻 preserves +.");
+static_assert(embed_ℝ_𝔻(a_d* b_d) == embed_ℝ_𝔻(a_d) * embed_ℝ_𝔻(b_d),
+              "ℝ ↪ 𝔻 preserves ×.");
+static_assert(embed_ℝ_𝔻(R2_d{}) == D2_d{}, "ℝ ↪ 𝔻 preserves 0.");
+static_assert(embed_ℝ_𝔻(R2_d{1}) == D2_d{R2_d{1}, R2_d{}},
+              "ℝ ↪ 𝔻 preserves 1.");
+static_assert(a_d != b_d && embed_ℝ_𝔻(a_d) != embed_ℝ_𝔻(b_d),
+              "ℝ ↪ 𝔻 is injective (monic).");
+static_assert(embed_ℝ_𝔻(a_d).derivative() == R2_d{},
+              "image of ℝ ↪ 𝔻 lies in the constant subring {ε-part = 0} ⊂ 𝔻.");
+static_assert(
+    dedekind::algebra::EmbedsAsSubalgebra<std::decay_t<decltype(embed_ℝ_𝔻)>>,
+    "S-leg: ℝ ↪ 𝔻 (embed_ℝ_𝔻) is a Birkhoff S-leg — a monic ring embedding.");
+
+// --- P-leg (computed): 𝔻 ≅ ℝ × ℝ.  The two projections recover the
+// coefficients
+// --- and reconstruction from them is the identity — the product iso, run. ---
+constexpr D2_d d_pair = D2_d{a_d, b_d};
+static_assert(d_pair.value() == a_d, "P-leg: π₁ (value) recovers the ℝ val.");
+static_assert(d_pair.derivative() == b_d,
+              "P-leg: π₂ (derivative) recovers the ℝ der.");
+static_assert(D2_d{d_pair.value(), d_pair.derivative()} == d_pair,
+              "P-leg: ⟨π₁, π₂⟩ reconstruction is the identity — 𝔻 ≅ ℝ × ℝ.");
+}  // namespace
 
 }  // namespace dedekind::analysis

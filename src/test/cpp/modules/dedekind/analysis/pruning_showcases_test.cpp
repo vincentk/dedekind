@@ -62,23 +62,25 @@ TEST_CASE("Pruning showcase 1: diagonal × strip on ℝ² is empty",
 namespace {
 
 // Shared with showcase 2 (ℂ lattice × square singleton).
-// Post-#559: ℂ is the universe value Ω<Complex<machine_real_scalar>,
-// ClassicalLogic, ℶ_1>, so the canonical scout spelling is element<ℂ>.
+// Post-HSP retarget: ℂ is the coat-hanger Ω<Complex<QuadraticReal<2>>, ...>, so
+// showcase 2 runs on EXACT ℚ(√2) arithmetic; the scout stays element<ℂ> (now a
+// Complex<QuadraticReal<2>> scout).
+using QR = QuadraticReal<2>;  // exact real carrier (R2 is taken above for ℝ²)
+using Q = Rational<>;         // for the exact rational thresholds ½, 1½
 constexpr auto c = element<ℂ>;
 
-constexpr bool is_integral_coordinate(double x) {
-  const int xi = static_cast<int>(x);
-  return static_cast<double>(xi) == x;
+// A coordinate is a "small natural" iff it is one of 0,1,2,3 — on the EXACT
+// carrier the "integral ∧ 0 ≤ · ≤ 3" test IS membership in {0,1,2,3}.
+constexpr bool is_small_natural(const QR& t) {
+  return t == QR{} || t == QR{1} || t == QR{2} || t == QR{3};
 }
 
-constexpr auto natural_lattice_in_c = Set{c | [](const Complex<double>& z) {
-  return is_integral_coordinate(z.real()) && is_integral_coordinate(z.imag()) &&
-         (z.real() >= 0.0) && (z.real() <= 3.0) && (z.imag() >= 0.0) &&
-         (z.imag() <= 3.0);
+constexpr auto natural_lattice_in_c = Set{c | [](const Complex<QR>& z) {
+  return is_small_natural(z.real()) && is_small_natural(z.imag());
 }};
-constexpr auto square_c1_c2 = Set{c | [](const Complex<double>& z) {
-  return (z.real() >= 0.5) && (z.real() <= 1.5) && (z.imag() >= 0.5) &&
-         (z.imag() <= 1.5);
+constexpr auto square_c1_c2 = Set{c | [](const Complex<QR>& z) {
+  return (z.real() >= QR{Q{1, 2}}) && (z.real() <= QR{Q{3, 2}}) &&
+         (z.imag() >= QR{Q{1, 2}}) && (z.imag() <= QR{Q{3, 2}});
 }};
 
 }  // namespace
@@ -88,10 +90,10 @@ TEST_CASE("Pruning showcase 2: ℕ² lattice × [½,1½]² in ℂ = {1+i}",
   constexpr auto lattice_square = natural_lattice_in_c & square_c1_c2;
   using CLogic = typename decltype(lattice_square)::logic_species;
 
-  STATIC_CHECK(lattice_square(Complex<double>{1.0, 1.0}) == CLogic::True);
-  STATIC_CHECK(lattice_square(Complex<double>{0.0, 1.0}) == CLogic::False);
-  STATIC_CHECK(lattice_square(Complex<double>{1.0, 0.0}) == CLogic::False);
-  STATIC_CHECK(lattice_square(Complex<double>{2.0, 2.0}) == CLogic::False);
+  STATIC_CHECK(lattice_square(Complex<QR>{QR{1}, QR{1}}) == CLogic::True);
+  STATIC_CHECK(lattice_square(Complex<QR>{QR{}, QR{1}}) == CLogic::False);
+  STATIC_CHECK(lattice_square(Complex<QR>{QR{1}, QR{}}) == CLogic::False);
+  STATIC_CHECK(lattice_square(Complex<QR>{QR{2}, QR{2}}) == CLogic::False);
 }
 
 TEST_CASE("Pruning showcase 3: halfspace contradiction on ℕ collapses to Ø",
