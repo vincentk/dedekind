@@ -26,6 +26,7 @@ import dedekind.category;
 import dedekind.morphologies; // IsInteger (gated template parameter on Real<Rational<I>>)
 import dedekind.order;
 import dedekind.sets;
+import :quadratic;  // QuadraticReal — the coat-hanger carrier ℝ points to
 import :rational;
 
 namespace dedekind::numbers {
@@ -330,80 +331,8 @@ struct RealsOf {
 
 export using RealSet = RealsOf<>;
 
-/**
- * @brief The carrier of ℝ: a deliberately hostile, near-uninhabited stand-in
- *        for the real line --- the "hard-to-materialise, almost-platonic"
- *        model.
- *
- * @section real__Unconstructibility_Theorem
- * @b Theorem (there is no faithful finite model of ℝ).  Two independent
- * obstructions, and both force the same design (an inhabitant-poor carrier):
- *   -# @b Construction.  ℝ is the unique Dedekind-complete ordered field;
- *      order-completeness is not finitely (nor countably) representable, so no
- *      machine type can enumerate ℝ.  This carrier is therefore uninhabited
- *      beyond the two points every field must name: its constructor is
- *      @b private, and only @c 0 (default) and @c 1 (@c one()) are reachable.
- *   -# @b Equality.  Equality of reals (e.g.\ of two Cauchy sequences) is
- *      undecidable; a richly-inhabited carrier would owe a decidable @c ==
- *      that provably cannot exist.  Restricted to @f$\{0,1\}@f$, @c == is
- *      trivially decidable, so the type @b honestly satisfies @c std::regular.
- *
- * Both axes point the same way: the carrier must stay @b poor.  A real is
- * @b named only through a certified subalgebra embedding (@f$\mathbb{Q}@f$,
- * @c safe_float, @f$\mathbb{Z}@f$; see @c IsSubalgebra) or a Dedekind cut (a
- * halfspace on @f$\mathbb{Q}@f$) --- never by constructing an element here.
- * A tombstone you are meant to bounce off, on purpose.
- *
- * @note Carries @b no arithmetic operators: by the Theorem there is nothing to
- *       compute at this level.  Structure is reached only via subalgebras.
- */
-export class PlatonicReal {
- public:
-  constexpr PlatonicReal() = default;  ///< the additive identity @c 0
-  /// @brief The multiplicative identity @c 1 (the only other named point).
-  static constexpr PlatonicReal one() { return PlatonicReal{1}; }
-  /// @brief Decidable @b only because the carrier is @f$\{0,1\}@f$-poor.
-  friend constexpr bool operator==(const PlatonicReal&,
-                                   const PlatonicReal&) = default;
-  /// @brief Total order (postulated); realisable only on @f$\{0,1\}@f$.
-  friend constexpr std::strong_ordering operator<=>(const PlatonicReal& a,
-                                                    const PlatonicReal& b) {
-    return a.tag_ <=> b.tag_;
-  }
-
-  /// @name Postulated ordered-field operations
-  /// @brief Closed @b by @b axiom (the field laws hold); @b unrealisable ---
-  /// ℝ is uninhabited, so these are never called.  The bodies are placeholders
-  /// that never execute; they exist only so the closure/axiom concepts see a
-  /// @c V @c × @c V @c → @c V surface.  ℝ is @b modelled, not @b materialised.
-  /// @{
-  friend constexpr PlatonicReal operator+(const PlatonicReal&,
-                                          const PlatonicReal&) {
-    return PlatonicReal{};
-  }
-  friend constexpr PlatonicReal operator-(const PlatonicReal&,
-                                          const PlatonicReal&) {
-    return PlatonicReal{};
-  }
-  friend constexpr PlatonicReal operator*(const PlatonicReal&,
-                                          const PlatonicReal&) {
-    return PlatonicReal{};
-  }
-  friend constexpr PlatonicReal operator/(const PlatonicReal&,
-                                          const PlatonicReal&) {
-    return PlatonicReal{};
-  }
-  constexpr PlatonicReal operator-() const { return PlatonicReal{}; }
-  /// @}
-
- private:
-  constexpr explicit PlatonicReal(int tag) : tag_(tag) {}  // {0,1} only
-  int tag_{0};
-};
-
-/** @brief The canonical real-number universe ℝ = Ω<PlatonicReal,
- *         ClassicalLogic, ℶ_1> (post-#559; carrier made hostile per the
- *         unconstructibility Theorem on @c PlatonicReal).
+/** @brief The canonical real-number universe ℝ = Ω<Real<machine_real_scalar>,
+ *         ClassicalLogic, ℶ_1> (post-#559).
  *
  *  @details Per #559's chosen direction (option A): the named species
  *  symbols denote @b universe values (constexpr instances of
@@ -414,14 +343,9 @@ export class PlatonicReal {
  *  follow-up via the @c quotient operator (#567), since both are
  *  textbook quotient constructions (ℂ = ℝ[i]/(i²+1), 𝔻 = ℝ[ε]/(ε²)).
  *
- *  The carrier of @c ℝ is the hostile @c PlatonicReal (see its
- *  unconstructibility Theorem): a near-uninhabited stand-in with no
- *  arithmetic, so ℝ @b models the continuum but does not
- *  @b materialise it.  The reified carriers @c Real<Q> (@c double,
- *  @c ExactReal), @c safe_float, and @c ℚ are @b subalgebras of ℝ,
- *  reached by certified embeddings (@c IsSubalgebra).  The
- *  cross-carrier membership classifier (multi-overload @c operator()
- *  that delegates to @c RationalsOf<I>{} for non-real arguments) is
+ *  The carrier of @c ℝ is @c Real<machine_real_scalar> directly; the
+ *  classifier (multi-overload cross-carrier @c operator() that
+ *  delegates to @c RationalsOf<I>{} for non-real arguments) is
  *  reachable via @c RealSet @c = @c RealsOf<>.
  *
  *  Cardinality is set explicitly to @c ℶ_1 (continuum) — the textbook
@@ -438,31 +362,46 @@ export class PlatonicReal {
  *  extractions (@c typename @c ℝ::Domain etc.) were migrated to
  *  @c RealsOf<> directly in step 1 of this slice.
  */
+// ℝ --- the coat-hanger.  Realised (imperfectly, for now) as the decidable
+// Dedekind-COMPLETE FIELD ℚ(√2) = QuadraticReal<2>: a genuine real value that
+// satisfies both IsField and IsDedekindComplete, so the Ddk algebra can hang
+// off it exactly as one bootstraps analysis from ℝ.  It @b models the continuum
+// (cardinality ℶ_1) while @b materialising one algebraic extension ℚ(√2);
+// further extensions (numerical, via subalgebras) and transcendentals (symbolic
+// Expr) grow it as we go.  An honest placeholder --- not a false postulate on
+// an uninhabited carrier.
 export inline constexpr auto ℝ =
-    dedekind::sets::Ω<PlatonicReal, ClassicalLogic, ℶ_1>;
+    dedekind::sets::Ω<QuadraticReal<2>, ClassicalLogic, ℶ_1>;
 
 static_assert(
     std::same_as<
         std::remove_cvref_t<decltype(ℝ)>,
-        dedekind::sets::UniversalSet<PlatonicReal, ClassicalLogic, ℶ_1>>,
-    "ℝ is the universe Ω<PlatonicReal, ClassicalLogic, ℶ_1> (post-#559; "
-    "hostile carrier per the unconstructibility Theorem).");
+        dedekind::sets::UniversalSet<QuadraticReal<2>, ClassicalLogic, ℶ_1>>,
+    "ℝ is the universe Ω<QuadraticReal<2>, ClassicalLogic, ℶ_1> — the "
+    "coat-hanger realised as ℚ(√2).");
 static_assert(std::same_as<typename std::remove_cvref_t<decltype(ℝ)>::Domain,
-                           PlatonicReal>,
-              "ℝ's underlying carrier IS the hostile PlatonicReal — the "
-              "continuum is modelled, not materialised.");
+                           QuadraticReal<2>>,
+              "ℝ's carrier IS QuadraticReal<2> = ℚ(√2).");
 
-export inline constexpr RealsOf<> R{};
+// The coat-hanger is genuinely load-bearing: ℝ is a field AND order-complete.
+static_assert(
+    dedekind::algebra::IsField<std::remove_cvref_t<decltype(ℝ)>>,
+    "ℝ satisfies IsField — a real value with the algebraic relations, "
+    "like ℚ.");
+static_assert(IsDedekindComplete<QuadraticReal<2>>,
+              "ℝ's carrier satisfies IsDedekindComplete (the structural "
+              "completeness surrogate).");
 
-/** @brief The @b reified machine-real ambient
- *  @c Ω<Real<double>, ClassicalLogic, ℶ_1> --- the @b materialisable reals: a
- *  subalgebra of the hostile ℝ carried by @c Real<double>, so its elements
- *  resolve to concrete values while keeping the continuum's cardinality (hence
- *  Ternary routing).  This is what the old ℝ was before the carrier was made
- *  hostile.  Rule of thumb: compute on @c ℝ_d (or @c ℚ); use @c ℝ only to
- *  @b model.  ℝ is modelled, @c ℝ_d is materialised. */
+/** @brief The @b materialisable machine-real ambient: @c Real<double> with the
+ *  continuum's cardinality (@c ℶ_1, hence Ternary membership).  Distinct from
+ *  @c ℝ (the abstract coat-hanger over @c QuadraticReal<2>): @c ℝ_d is where
+ *  @b IEEE/double computations on reals live (halfspaces with decimal pivots,
+ *  integer-coordinate lattices).  Rule of thumb: compute on @c ℝ_d; model on
+ *  @c ℝ. */
 export inline constexpr auto ℝ_d =
     dedekind::sets::Ω<Real<machine_real_scalar>, ClassicalLogic, ℶ_1>;
+
+export inline constexpr RealsOf<> R{};
 
 }  // namespace dedekind::numbers
 
@@ -472,86 +411,6 @@ struct SpeciesTraits<dedekind::numbers::Real<Q>> {
   using Domain = dedekind::numbers::Real<Q>;
   using machine_type = dedekind::numbers::Real<Q>;
 };
-
-// ── ℝ's field, POSTULATED ────────────────────────────────────────────────
-// PlatonicReal is uninhabited (its unconstructibility Theorem), so ℝ's field
-// laws cannot be *checked* on witnesses — they are *declared* here in the trait
-// registry, exactly the shape Modular/Rational use.  This is what makes ℝ a
-// *modelled* field (and what the subalgebra propagation lifts to ℚ).  Strict
-// @c IsField stays gated by the @c IsTotal rung (exact carriers are not
-// periodic/idempotent/saturating — the same gate that keeps @c ExactReal on
-// the @c HasFieldOperators witness), so the structure lives in the registry.
-template <>
-struct is_associative<dedekind::numbers::PlatonicReal,
-                      std::plus<dedekind::numbers::PlatonicReal>>
-    : std::true_type {};
-template <>
-struct is_associative<dedekind::numbers::PlatonicReal,
-                      std::multiplies<dedekind::numbers::PlatonicReal>>
-    : std::true_type {};
-template <>
-struct is_commutative<dedekind::numbers::PlatonicReal,
-                      std::plus<dedekind::numbers::PlatonicReal>>
-    : std::true_type {};
-template <>
-struct is_commutative<dedekind::numbers::PlatonicReal,
-                      std::multiplies<dedekind::numbers::PlatonicReal>>
-    : std::true_type {};
-
-template <>
-inline constexpr bool
-    is_distributive_v<dedekind::numbers::PlatonicReal,
-                      std::multiplies<dedekind::numbers::PlatonicReal>,
-                      std::plus<dedekind::numbers::PlatonicReal>> = true;
-
-template <>
-inline constexpr bool
-    is_invertible_v<dedekind::numbers::PlatonicReal,
-                    std::plus<dedekind::numbers::PlatonicReal>> = true;
-template <>
-inline constexpr bool
-    is_invertible_v<dedekind::numbers::PlatonicReal,
-                    std::multiplies<dedekind::numbers::PlatonicReal>> = true;
-
-template <>
-struct identity_trait<dedekind::numbers::PlatonicReal,
-                      std::plus<dedekind::numbers::PlatonicReal>> {
-  using value_type = dedekind::numbers::PlatonicReal;
-  static constexpr value_type value = dedekind::numbers::PlatonicReal{};  // 0
-};
-template <>
-struct identity_trait<dedekind::numbers::PlatonicReal,
-                      std::multiplies<dedekind::numbers::PlatonicReal>> {
-  using value_type = dedekind::numbers::PlatonicReal;
-  static constexpr value_type value =
-      dedekind::numbers::PlatonicReal::one();  // 1
-};
-
-template <>
-struct inverse_trait<dedekind::numbers::PlatonicReal,
-                     std::plus<dedekind::numbers::PlatonicReal>> {
-  static constexpr bool exists = true;
-  using value_type = dedekind::numbers::PlatonicReal;
-  static constexpr value_type compute(
-      const dedekind::numbers::PlatonicReal& x) noexcept {
-    return -x;
-  }
-};
-
-// Field-defining traits are pinned: ℝ is a modelled field (no inhabitants).
-static_assert(
-    is_associative<dedekind::numbers::PlatonicReal,
-                   std::multiplies<dedekind::numbers::PlatonicReal>>::value &&
-        is_commutative<
-            dedekind::numbers::PlatonicReal,
-            std::multiplies<dedekind::numbers::PlatonicReal>>::value &&
-        is_invertible_v<dedekind::numbers::PlatonicReal,
-                        std::multiplies<dedekind::numbers::PlatonicReal>> &&
-        is_distributive_v<dedekind::numbers::PlatonicReal,
-                          std::multiplies<dedekind::numbers::PlatonicReal>,
-                          std::plus<dedekind::numbers::PlatonicReal>>,
-    "ℝ is a POSTULATED field: its laws are registered though no element can be "
-    "constructed — modelled, not materialised.");
 
 // embed_ℚ_ℝ monicity registration also removed (the arrow itself was
 // removed above; no `decltype` to register).
@@ -646,58 +505,4 @@ static_assert(dedekind::algebra::HasFieldOperators<ExactReal<>>,
               "ExactReal<> closes the field operator surface "
               "(+, binary -, unary -, *, /, T{1}).");
 
-/** @section real__Q_embeds_in_R (the worked bridge example)
- *
- * @brief @f$\mathbb{Q}\hookrightarrow\mathbb{R}@f$ --- the faithful embedding
- * of the rationals as a @b subfield of ℝ.
- *
- * @details ℚ (@c Rational<I>) is @b not a subobject of ℝ's carrier (the
- * uninhabited @c PlatonicReal): they are unrelated types.  What holds is the
- * @b categorical reading of "ℚ ⊆ ℝ" --- a structure-preserving @b monomorphism
- * @f$\iota@f$ whose image is a subfield (@c EmbedsAsSubalgebra).  It is
- * @b postulated: ℝ is uninhabited, so @f$\iota@f$ carries the right
- * domain/codomain and is @b never executed --- the image of a rational is a
- * real no finite carrier can exhibit.  This is the concrete example that
- * pins the bridge: ℝ is modelled (a field), reached only through such
- * certified embeddings.
- */
-export template <dedekind::morphologies::IsInteger I = default_integer>
-struct EmbedQtoR {
-  using Domain = Rational<I>;
-  using Codomain = PlatonicReal;
-  /// @brief Postulated image; unrealisable in the uninhabited carrier.
-  constexpr PlatonicReal operator()(const Rational<I>&) const {
-    return PlatonicReal{};
-  }
-};
-
-export template <dedekind::morphologies::IsInteger I = default_integer>
-inline constexpr EmbedQtoR<I> embed_ℚ_ℝ{};
-
-}  // namespace dedekind::numbers
-
-namespace dedekind::algebra {
-// ι = ℚ ↪ ℝ is a homomorphism (postulated: preserves +, ×, 0, 1).
-template <dedekind::morphologies::IsInteger I>
-inline constexpr bool is_homomorphism_v<dedekind::numbers::EmbedQtoR<I>> = true;
-}  // namespace dedekind::algebra
-
-namespace dedekind::category {
-// ι = ℚ ↪ ℝ is monic (postulated: distinct rationals name distinct reals).
-template <dedekind::morphologies::IsInteger I>
-inline constexpr bool is_monic_arrow_v<dedekind::numbers::EmbedQtoR<I>> = true;
-}  // namespace dedekind::category
-
-namespace dedekind::numbers {
-// Witness: ℚ embeds as a subfield of ℝ (faithful monomorphism), even though
-// ℚ is not a subobject of ℝ's uninhabited carrier.
-static_assert(
-    dedekind::algebra::EmbedsAsSubalgebra<EmbedQtoR<>>,
-    "ℚ embeds as a subfield of ℝ: a faithful (postulated) monomorphism — ℚ is "
-    "not a subobject of ℝ's carrier, but its image is a subfield.");
-static_assert(
-    std::same_as<typename EmbedQtoR<>::Domain, Rational<default_integer>>,
-    "the embedding's domain is ℚ = Rational<default_integer>.");
-static_assert(std::same_as<typename EmbedQtoR<>::Codomain, PlatonicReal>,
-              "the embedding's codomain is ℝ's carrier, PlatonicReal.");
 }  // namespace dedekind::numbers

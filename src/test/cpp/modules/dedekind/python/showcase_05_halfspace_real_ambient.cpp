@@ -32,18 +32,14 @@ using namespace dedekind::numbers;
 using namespace dedekind::order;
 
 // Symbolic scout ranging over the universal set Ω<Real<double>>.
-// Post-#559 / #622: ℝ is @c UniversalSet<Real<double>, ClassicalLogic,
-// ℶ_1>, the universe value with the correct continuum cardinality.
-// Spelling the scout as @c element<ℝ> (rather than @c element<Ω<Real<double>>>
-// which would default-route ℵ_0) is what threads the ℶ_1 cardinality
-// into @c NaturalLogic's carrier-axis verdict — TernaryLogic, as the
-// uncountable carrier mandates.
-constexpr auto x =
-    element<ℝ_d>;  // reified machine-real ambient (hostile ℝ is uninhabited)
-
-// Opposing halfspaces with compile-time double-valued pivots.
-constexpr auto gt_five = Set{x | (x > bound<5.0>)};
-constexpr auto lt_three = Set{x | (x < bound<3.0>)};
+// ℝ is now the ℚ(√2) coat-hanger, so machine-real (double) halfspaces live on
+// @c ℝ_d = @c Ω<Real<double>, ClassicalLogic, ℶ_1> --- the materialisable real
+// ambient whose ℶ_1 cardinality threads @c NaturalLogic to TernaryLogic (the
+// uncountable-carrier verdict), where @c Ω<Real<double>> alone would
+// default-route ℵ_0.  Spelt point-free in the Trsk idiom: restrict the
+// universe directly, @c S @c | @c (π @c ⋈ @c pivot).
+constexpr auto gt_five = Set{ℝ_d | (π > bound<5.0>)};
+constexpr auto lt_three = Set{ℝ_d | (π < bound<3.0>)};
 
 // Compile-time theorem: the meet IS the empty set on ℝ.
 constexpr Ø<Real<double>> empty_meet = gt_five & lt_three;

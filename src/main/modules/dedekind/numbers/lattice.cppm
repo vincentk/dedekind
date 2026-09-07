@@ -149,10 +149,9 @@ struct LatticeFactory<R, 1> {
   }
 
   constexpr auto bounded(int n) const {
-    // ℝ's carrier is now the hostile, uninhabited PlatonicReal (modelled,
-    // not materialised), so this *computable* lattice scouts over the reified
-    // machine-real ambient ℝ_d (= Ω<Real<double>, ClassicalLogic, ℶ_1>, the
-    // subalgebra of ℝ where values resolve) — exactly what the old ℝ was.
+    // This lattice specialisation computes on @c Real<double> (the machine
+    // real), so it scouts the materialisable ambient @c ℝ_d --- not the
+    // abstract @c ℝ (now the coat-hanger over @c QuadraticReal<2>).
     auto r = element<ℝ_d>;
     return Set{r | [n](const Real<double>& x) {
       const double v = x.resolve();
