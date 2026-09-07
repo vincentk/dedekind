@@ -290,6 +290,21 @@ static_assert(dedekind::category::IsRig<unsigned int, std::plus<unsigned int>,
               "closure/structure only, not stronger textbook ℕ laws "
               "(no idempotency claim; modular-wrap inverses exist for "
               "every element).");
+
+// The variant ℕ carrier @c Cardinality is now (Path D, #806 follow-up) a strict
+// @c IsSemiring (= @c IsRig): a commutative monoid under +, a monoid under *,
+// distributive --- but @b NOT a ring, since ℕ has no additive inverse.  Pins
+// the strict textbook reading of ℕ as a rig, alongside ℤ (ring) and ℚ (field).
+static_assert(
+    dedekind::category::IsSemiring<
+        dedekind::sets::Cardinality, std::plus<dedekind::sets::Cardinality>,
+        std::multiplies<dedekind::sets::Cardinality>>,
+    "ℕ = Cardinality is a strict category::IsSemiring (rig).");
+static_assert(
+    !dedekind::category::IsRing<dedekind::sets::Cardinality,
+                                std::plus<dedekind::sets::Cardinality>,
+                                std::multiplies<dedekind::sets::Cardinality>>,
+    "ℕ = Cardinality is NOT a ring --- no additive inverse (unlike ℤ).");
 // Order witnesses (explicit, for documentation purposes).  ℕ is the
 // canonical totally-ordered chain 0 ≤ 1 ≤ 2 ≤ ... at the literal
 // level; the spaceship and the four partial-order operators all
@@ -451,10 +466,24 @@ static_assert(
 
 namespace dedekind::category {
 
+// Path D (#806 follow-up): ℕ = @c Cardinality is an EXACT, unbounded rig
+// carrier --- @c + and @c * are total (exact for all practical values; @c ℵ_0
+// is the boundary, mirroring ±∞ on ℤ).  Mirrors R2 / ℤ / ℚ, lifting ℕ past the
+// @c IsTotal gate to the STRICT @c category::IsSemiring (= @c IsRig; ℕ has no
+// additive inverse, so it is a rig, @b not a ring) --- so ℕ/ℤ/ℚ/ℝ are
+// strict-total @b consistently.
 template <>
 inline constexpr bool
     is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_𝔹_ℕ_)>> =
         true;
+template <>
+struct is_exact_total<dedekind::sets::Cardinality,
+                      std::plus<dedekind::sets::Cardinality>> : std::true_type {
+};
+template <>
+struct is_exact_total<dedekind::sets::Cardinality,
+                      std::multiplies<dedekind::sets::Cardinality>>
+    : std::true_type {};
 static_assert(
     IsInjective<std::decay_t<decltype(dedekind::numbers::embed_𝔹_ℕ_)>>,
     "embed_𝔹_ℕ_ (𝔹 ↪ ℕ via Cardinality) is registered injective.");
