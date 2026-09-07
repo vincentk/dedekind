@@ -387,14 +387,17 @@ static_assert(std::same_as<typename std::remove_cvref_t<decltype(ℝ)>::Domain,
                            QuadraticReal<2>>,
               "ℝ's carrier IS QuadraticReal<2> = ℚ(√2).");
 
-// The coat-hanger is genuinely load-bearing: ℝ is a field AND order-complete.
-static_assert(
-    dedekind::algebra::IsField<std::remove_cvref_t<decltype(ℝ)>>,
-    "ℝ satisfies IsField — a real value with the algebraic relations, "
-    "like ℚ.");
+// The coat-hanger is load-bearing at TWO distinct levels (not one value
+// satisfying both concepts): the set-indexed @c algebra::IsField holds on the
+// UNIVERSE ℝ (exactly as it does on ℚ = Ω⟨Rational⟩), while order-completeness
+// is a CARRIER property — @c IsDedekindComplete is an order concept a
+// UniversalSet does not itself model — so it is asserted on ℚ(√2).  The claim
+// is therefore: ℝ is a field, and its carrier is order-complete (surrogate).
+static_assert(dedekind::algebra::IsField<std::remove_cvref_t<decltype(ℝ)>>,
+              "ℝ (the universe) is a set-indexed field, like ℚ = Ω⟨Rational⟩.");
 static_assert(IsDedekindComplete<QuadraticReal<2>>,
-              "ℝ's carrier satisfies IsDedekindComplete (the structural "
-              "completeness surrogate).");
+              "ℝ's CARRIER ℚ(√2) is order-complete (structural surrogate) — a "
+              "carrier-level property, not a property of the set ℝ itself.");
 
 /** @brief The @b materialisable machine-real ambient: @c Real<double> with the
  *  continuum's cardinality (@c ℶ_1, hence Ternary membership).  Distinct from

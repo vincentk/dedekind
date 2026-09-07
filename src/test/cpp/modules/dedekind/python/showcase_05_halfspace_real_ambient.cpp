@@ -31,15 +31,17 @@ using namespace dedekind::algebra;
 using namespace dedekind::numbers;
 using namespace dedekind::order;
 
-// Symbolic scout ranging over the universal set Ω<Real<double>>.
 // ℝ is now the ℚ(√2) coat-hanger, so machine-real (double) halfspaces live on
 // @c ℝ_d = @c Ω<Real<double>, ClassicalLogic, ℶ_1> --- the materialisable real
 // ambient whose ℶ_1 cardinality threads @c NaturalLogic to TernaryLogic (the
 // uncountable-carrier verdict), where @c Ω<Real<double>> alone would
-// default-route ℵ_0.  Spelt point-free in the Trsk idiom: restrict the
-// universe directly, @c S @c | @c (π @c ⋈ @c pivot).
-constexpr auto gt_five = Set{ℝ_d | (π > bound<5.0>)};
-constexpr auto lt_three = Set{ℝ_d | (π < bound<3.0>)};
+// default-route ℵ_0.  We keep the ambient-BEARING scout @c element<ℝ_d> (not a
+// point-free @c ℝ_d @c | @c … , which reduces to a bare @c Halfspace and drops
+// the ℶ_1 metadata before @c Set deduction --- defeating the very
+// cardinality-routing this showcase tests).
+constexpr auto x = element<ℝ_d>;
+constexpr auto gt_five = Set{x | (x > bound<5.0>)};
+constexpr auto lt_three = Set{x | (x < bound<3.0>)};
 
 // Compile-time theorem: the meet IS the empty set on ℝ.
 constexpr Ø<Real<double>> empty_meet = gt_five & lt_three;

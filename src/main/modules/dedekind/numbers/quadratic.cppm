@@ -78,13 +78,19 @@ consteval bool is_perfect_square(long n) {
  * @tparam Q the rational coefficient carrier.
  */
 export template <long D, typename Q = Rational<default_integer>>
-  requires(D > 1) && std::three_way_comparable<Q, std::strong_ordering>
+  requires(D > 1) && std::three_way_comparable<Q, std::strong_ordering> &&
+          dedekind::order::IsDense<Q> && (!std::integral<Q>)
 class QuadraticReal {
-  // Q must be STRONGLY ordered (the decidable field order returns
-  // std::strong_ordering; a partial carrier like floating-point cannot satisfy
-  // it) and exact.  The default Rational is strongly ordered and exact for all
-  // practical purposes — its precision boundary is physical/data-type, not a
-  // silent wraparound (see is_exact_total).
+  // Q must be a DENSE, strongly-ordered FIELD coefficient (a real's coefficient
+  // is continuous, not discrete).  @c IsDense names that property (and excludes
+  // floating-point, not totally ordered here); @c strong_ordering is required
+  // by the decidable field order's return; and @c !std::integral is a narrow
+  // belt for @c int, which @c IsDense cannot classify as discrete (@c
+  // IsDiscrete<int> is architecturally withheld — @c int is not a magma).
+  // Excluding integers also keeps the field honest: their division truncates
+  // (e.g. QuadraticReal<2,int>'s inverse would compute (-1)/(-2) = 0, so
+  // √2·(1/√2) ≠ 1). The default Rational is a dense, strongly-ordered field,
+  // exact for all practical purposes (see is_exact_total).
   static_assert(
       !detail_quadratic::is_perfect_square(D),
       "QuadraticReal<D> requires a NON-square D — else √D is rational "

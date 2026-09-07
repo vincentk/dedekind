@@ -54,13 +54,18 @@ using namespace dedekind::category;
  *         so every decision is exact.
  */
 export template <typename Q = Rational<default_integer>>
-  requires std::three_way_comparable<Q, std::strong_ordering>
+  requires std::three_way_comparable<Q, std::strong_ordering> &&
+           dedekind::order::IsDense<Q> && (!std::integral<Q>)
 class Cut {
-  // Q must be STRONGLY ordered: the decidable cut order returns
-  // std::strong_ordering, which a partial carrier (e.g. floating-point) cannot
-  // satisfy.  The default Rational is strongly ordered and exact for all
-  // practical purposes — its precision boundary is physical/data-type, not a
-  // silent wraparound (see is_exact_total).
+  // Q must be a DENSE, strongly-ordered field coefficient: a real's coefficient
+  // is continuous, not discrete.  @c IsDense names that property (and cleanly
+  // excludes floating-point, which is not totally ordered here); @c
+  // strong_ordering is required by the decidable cut order's return; and @c
+  // !std::integral is a narrow belt for @c int, which @c IsDense cannot
+  // classify as discrete (@c IsDiscrete<int> is architecturally withheld — @c
+  // int is not a magma).  The default Rational is a dense, strongly-ordered
+  // field, exact for all practical purposes (precision boundary
+  // physical/data-type; see is_exact_total).
  public:
   using Domain = Cut;
   using ScalarCarrier = Q;

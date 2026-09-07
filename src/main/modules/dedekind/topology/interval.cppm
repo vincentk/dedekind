@@ -201,7 +201,12 @@ class Interval
 
   constexpr Interval(T low, T high) : lower_(low), upper_(high) {}
 
-  constexpr auto operator()(const T& x) const { return lower_(x) && upper_(x); }
+  constexpr auto operator()(const T& x) const {
+    // Compose through the classifier's AND (not built-in &&), so the inherited
+    // SetExpr surface works for every logic species L (e.g. TernaryLogic, whose
+    // Ω is the scoped enum Ternary), not only bool.
+    return L::AND(lower_(x), upper_(x));
+  }
 
   constexpr T lower_bound() const { return lower_.pivot(); }
   constexpr T upper_bound() const { return upper_.pivot(); }
