@@ -304,7 +304,7 @@ namespace dedekind::numbers {
  * @tparam F Any std::floating_point source type.
  */
 export template <std::floating_point F>
-constexpr Real<machine_real_scalar> embed_floating_ℝ(F v) {
+constexpr Real<machine_real_scalar> embed_floating_ℝ_d(F v) {
   return Real<machine_real_scalar>{static_cast<machine_real_scalar>(v)};
 }
 
@@ -487,7 +487,7 @@ static_assert(dedekind::algebra::HasFieldOperators<ExactReal<>>,
  * (5) Adjacent-set arrows: @c ℚ @c ↪ @c ℝ was previously offered by
  *     @c embed_ℚ_ℝ; that arrow was removed under the ℚ retarget
  *     cleanup (no @c static_cast<int> on @c SignedCardinality carrier);
- *     ℝ ↪ ℂ via @c embed_ℝ_ℂ in @c :complex (downstream) remains.
+ *     ℝ_d ↪ ℂ via @c embed_ℝ_d_ℂ in @c :complex (downstream) remains.
  */
 static_assert(dedekind::algebra::HasRingOperators<ExactReal<>>,
               "ExactReal<> closes the ring operator surface.");
