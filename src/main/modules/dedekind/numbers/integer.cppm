@@ -167,36 +167,23 @@ static_assert(
 
 }  // namespace dedekind::numbers
 
-namespace dedekind::category {
-// Path D (#806 follow-up): ℤ = @c SignedCardinality is an EXACT, unbounded ring
-// carrier --- @c + and @c * are total (exact for all practical values; the
-// OOM/±∞ saturation boundary is the deployer's data-type choice, one reading of
-// Eqn 2).  Mirrors R2's @c is_exact_total (#806), lifting ℤ past the @c IsTotal
-// gate to the STRICT @c category::IsRing --- so ℕ/ℤ/ℚ/ℝ are strict-total
-// @b consistently (previously only ℝ carried Path D).  The @c #680 simplify
-// non-termination on sentinels is an orthogonal saturation cleanup (it should
-// saturate, not hang --- applies to R2/ℚ too), not a totality gap.
-template <>
-struct is_exact_total<dedekind::sets::SignedCardinality,
-                      std::plus<dedekind::sets::SignedCardinality>>
-    : std::true_type {};
-template <>
-struct is_exact_total<dedekind::sets::SignedCardinality,
-                      std::multiplies<dedekind::sets::SignedCardinality>>
-    : std::true_type {};
-}  // namespace dedekind::category
-
 namespace dedekind::numbers {
-// ℤ now satisfies the STRICT @c category::IsRing --- Path D lifted it past the
-// @c IsTotal gate, matching @c HasRingOperators + the scout-algebra ordered
-// additive-group / Initial-Ring pins above.
+// ℤ = @c SignedCardinality satisfies the STRICT @c category::IsRing.  This
+// holds via the carrier's @b saturating totality (@c is_saturating<SC,+/*> in
+// @c :cardinality --- overflow escalates to @f$\pm\aleph_0@f$, one reading of
+// Eqn 2), which already passes the @c IsTotal gate; the axiom traits
+// (associativity / commutativity / identity / distributivity + additive
+// inverse) are the ordered-additive-group / Initial-Ring pins above.  These
+// static_asserts merely @b pin what already held --- closing the gap that the
+// strict concept was documented but never mechanically witnessed here.  (ℤ is
+// @b not exact/unbounded; the honest totality posture is saturation.)
 static_assert(
     dedekind::category::IsRing<
         dedekind::sets::SignedCardinality,
         std::plus<dedekind::sets::SignedCardinality>,
         std::multiplies<dedekind::sets::SignedCardinality>>,
-    "ℤ = SignedCardinality is a strict category::IsRing (Path D, #806 "
-    "follow-up) --- ℕ/ℤ/ℚ/ℝ now strict-total consistently.");
+    "ℤ = SignedCardinality is a strict category::IsRing (via saturating "
+    "totality) --- ℕ/ℤ/ℚ all strict-total, now witnessed.");
 // A ring is a fortiori a semiring; and ℤ is NOT a field (non-units lack
 // multiplicative inverses) --- the textbook ℤ, pinned strictly.
 static_assert(dedekind::category::IsSemiring<

@@ -313,21 +313,14 @@ struct PartialEmbedIntegerToRational {
  */
 namespace dedekind::category {
 
-// Path D (#806 follow-up): ℚ = @c Rational<Z> is an EXACT field carrier --- @c
-// + and @c * are total (exact).  Lifts ℚ past the @c IsTotal gate to the STRICT
-// @c category::IsField, consistent with ℤ (ring) and ℝ=R2 (field).  This closes
-// the code-vs-paper gap: the paper states ℚ is a field, but only
-// @c HasFieldOperators held --- the strict @c IsField was blocked by @c IsTotal
-// (see the (3)-Semantics note below).  The @c #680 simplify non-termination on
-// sentinels is an orthogonal saturation cleanup, not a totality gap.
-template <dedekind::morphologies::IsInteger Z>
-struct is_exact_total<dedekind::numbers::Rational<Z>,
-                      std::plus<dedekind::numbers::Rational<Z>>>
-    : std::true_type {};
-template <dedekind::morphologies::IsInteger Z>
-struct is_exact_total<dedekind::numbers::Rational<Z>,
-                      std::multiplies<dedekind::numbers::Rational<Z>>>
-    : std::true_type {};
+// NOTE: ℚ = @c Rational<Z> is already @c IsTotal via @b saturation --- it
+// inherits @c is_saturating from its quotient base @c Z = @c SignedCardinality
+// (@c quotient_algebra_base propagation in @c :algebra:quotient), which passes
+// the @c IsTotal gate.  So the strict @c category::IsField<ℚ> holds without any
+// @c is_exact_total registration; the witness is pinned at the (3)-Semantics
+// static_assert below.  (No @c is_exact_total here: it would be a @b
+// contradictory posture --- these carriers @b saturate, they are not
+// exact/unbounded.)
 
 /** @brief Kleene traits for rational arithmetic. */
 template <dedekind::morphologies::IsInteger I>
@@ -667,22 +660,21 @@ inline constexpr bool is_monotone_v<
 namespace dedekind::algebra {
 /** @brief ℤ ↪ ℚ preserves @f$+,\times,0,1@f$ — the field-of-fractions ring
  *  embedding, between two @b strict-total algebras: ℤ is @c category::IsRing
- * and ℚ is @c category::IsField (both via the @c is_exact_total Path D landed
- * in this PR, #806 follow-up --- ℕ/ℤ/ℚ/ℝ are now strict-total @b consistently,
- * no longer just ℝ).  So @c is_homomorphism_v here is a fully-certified ring
+ * and ℚ is @c category::IsField, both via the carriers' @b saturating totality
+ *  (@c is_saturating in @c :cardinality, propagated to @c Rational through its
+ *  quotient base).  So @c is_homomorphism_v here is a fully-certified ring
  *  homomorphism, not merely an operational declaration.
  *
  *  FIXME(#680): the @b one orthogonal caveat --- ℕ/ℤ/ℚ are meant to behave
- *  identically at very large values (saturate at the OOM/±∞ boundary, a reading
- *  of Eqn 2).  ℤ/ℕ do; ℚ does not @b yet --- @c Rational::simplify 's
+ *  identically at very large values (saturate at the OOM/±ℵ_0 boundary, a
+ *  reading of Eqn 2).  ℤ/ℕ do; ℚ does not @b yet --- @c Rational::simplify 's
  *  @c euclidean_gcd @b hangs on a sentinel (@c NaZ @c % @c … @c == @c NaZ)
  *  instead of saturating, so @c embed(a)+embed(b) can diverge when @c a+b
  *  overflows.  The saturation / Honest-Rejection guard on @c Rational is the
  *  fix (it applies to every ℚ-valued arrow, e.g. @c embed_ℚ_ℝ, and to R2). This
- *  is a boundary-behaviour cleanup, not a totality gap --- @c is_exact_total is
- *  the "exact for all practical values" posture (contrast @c embed_double_ℚ,
- *  whose NaN/±∞ are @b common in-band IEEE values, not a saturation boundary).
- */
+ *  is a boundary-behaviour cleanup, not a totality gap (contrast
+ *  @c embed_double_ℚ, whose NaN/±∞ are @b common in-band IEEE values, not a
+ *  saturation boundary --- hence it withholds its trait). */
 template <>
 inline constexpr bool
     is_homomorphism_v<std::decay_t<decltype(dedekind::numbers::embed_ℤ_ℚ_)>> =
@@ -1042,19 +1034,21 @@ static_assert(
 
 // (3) Semantics (the algebraic structures Rational<default_integer> actually
 //     carries).  The strict @c category::IsField<ℚ, std::plus, std::multiplies>
-//     witness now HOLDS: the @c is_exact_total (Path D) registration above
-//     lifts ℚ past the @c IsTotal gate (#806 follow-up), so ℚ is a field by the
-//     strict concept, not only @c HasFieldOperators --- matching the paper and
-//     bringing ℚ in line with ℝ=R2.  The additive-group / commutative-ring
-//     pins on the integer carrier of ℚ live at @c :integer, where the
-//     species-trait registry on @c SignedCardinality is reachable.
+//     witness HOLDS --- and did all along: ℚ passes the @c IsTotal gate via
+//     @b saturation (it inherits @c is_saturating from its quotient base
+//     @c SignedCardinality; see the @c :cardinality / @c :quotient
+//     registrations), so no @c is_exact_total is needed.  Only
+//     @c HasFieldOperators was ever @b asserted before, though the strict
+//     concept already held; this static_assert closes that code-vs-paper gap
+//     (the paper states ℚ is a field) by pinning it.  The additive-group /
+//     commutative-ring pins on the integer carrier of ℚ live at @c :integer.
 static_assert(
     dedekind::category::IsField<Rational<default_integer>,
                                 std::plus<Rational<default_integer>>,
                                 std::multiplies<Rational<default_integer>>>,
-    "ℚ = Rational<default_integer> is a strict category::IsField (Path D, #806 "
-    "follow-up) --- closing the code-vs-paper gap (was HasFieldOperators "
-    "only).");
+    "ℚ = Rational<default_integer> is a strict category::IsField (via "
+    "saturating totality) --- closing the code-vs-paper gap (previously only "
+    "HasFieldOperators was witnessed).");
 // A field is a fortiori a ring and a semiring --- the full ladder on ℚ, pinned.
 static_assert(
     dedekind::category::IsRing<Rational<default_integer>,

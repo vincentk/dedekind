@@ -291,9 +291,11 @@ static_assert(dedekind::category::IsRig<unsigned int, std::plus<unsigned int>,
               "(no idempotency claim; modular-wrap inverses exist for "
               "every element).");
 
-// The variant ℕ carrier @c Cardinality is now (Path D, #806 follow-up) a strict
-// @c IsSemiring (= @c IsRig): a commutative monoid under +, a monoid under *,
-// distributive --- but @b NOT a ring, since ℕ has no additive inverse.  Pins
+// The variant ℕ carrier @c Cardinality is a strict @c IsSemiring (= @c IsRig):
+// a commutative monoid under +, a monoid under *, distributive --- but @b NOT a
+// ring, since ℕ has no additive inverse.  Totality holds via the carrier's
+// @b saturating discipline (@c is_saturating<Card,+/*> in @c :cardinality ---
+// overflow escalates to @f$\aleph_0@f$), which passes the @c IsTotal gate. Pins
 // the strict textbook reading of ℕ as a rig, alongside ℤ (ring) and ℚ (field).
 static_assert(
     dedekind::category::IsSemiring<
@@ -466,24 +468,10 @@ static_assert(
 
 namespace dedekind::category {
 
-// Path D (#806 follow-up): ℕ = @c Cardinality is an EXACT, unbounded rig
-// carrier --- @c + and @c * are total (exact for all practical values; @c ℵ_0
-// is the boundary, mirroring ±∞ on ℤ).  Mirrors R2 / ℤ / ℚ, lifting ℕ past the
-// @c IsTotal gate to the STRICT @c category::IsSemiring (= @c IsRig; ℕ has no
-// additive inverse, so it is a rig, @b not a ring) --- so ℕ/ℤ/ℚ/ℝ are
-// strict-total @b consistently.
 template <>
 inline constexpr bool
     is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_𝔹_ℕ_)>> =
         true;
-template <>
-struct is_exact_total<dedekind::sets::Cardinality,
-                      std::plus<dedekind::sets::Cardinality>> : std::true_type {
-};
-template <>
-struct is_exact_total<dedekind::sets::Cardinality,
-                      std::multiplies<dedekind::sets::Cardinality>>
-    : std::true_type {};
 static_assert(
     IsInjective<std::decay_t<decltype(dedekind::numbers::embed_𝔹_ℕ_)>>,
     "embed_𝔹_ℕ_ (𝔹 ↪ ℕ via Cardinality) is registered injective.");

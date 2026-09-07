@@ -668,11 +668,12 @@ class Set {
   using logic_species = L;
   using cardinality_type = ℵ_0;
 
-  template <typename Op>
-  static constexpr bool is_associative_v = true;
-
-  template <typename Op>
-  static constexpr bool is_idempotent_v = true;
+  // NOTE: no blanket is_associative_v<Op> / is_idempotent_v<Op> here.  Those
+  // would be read by category::is_associative_v's member-discovery for EVERY Op
+  // (claiming, e.g., that a Set --- or a graph(f), which is a Set<pair> --- is
+  // associative under std::plus, an operation it has no closed meaning for).
+  // Same honesty fix as SetExpr (#806 review); nothing consumed them for set
+  // types.  A carrier registers a specific (Op) it truly satisfies instead.
 
   // Store the predicate as a concrete type, not a std::function
   constexpr Set(Predicate p) : predicate_(std::move(p)) {}
