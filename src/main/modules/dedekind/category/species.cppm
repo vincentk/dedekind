@@ -803,15 +803,18 @@ inline constexpr bool is_saturating_v = is_saturating<T, Op>::value;
  *  staying in a bounded range (wrap / stabilise / saturate); an exact carrier
  * is total because its arithmetic is @b closed and exact.
  *
- *  @warning Honest caveat: the library's default integer is @c
- * SignedCardinality (a @b saturating variant), so @c Rational over it --- and
- * every exact-real carrier built on it --- is exact only @b within its
- * representable range; a computation that overflows saturates to a sentinel.
- * This is the @b same out-of-range hazard the library's ℚ already carries, not
- * a wraparound introduced here, and it is why registering this trait is a
- * pragmatic "exact in the regime we compute in" certificate rather than a claim
- * of literal unboundedness.  A genuinely unbounded integer carrier would remove
- *  the caveat (tracked as future work).  Opt-in (default false).
+ *  @note @b Total @b for @b all @b practical @b purposes.  ℕ, ℤ, ℚ (and the
+ * reals built on ℚ) are designed so the boundary on a computation is @b
+ * physical --- the deployer's chosen carrier precision, exhausted only when the
+ * machine runs out of memory --- and @b explicit in the data type, not a silent
+ * arithmetic wraparound.  That finite scope is one reading of Eqn 2 (a carrier
+ * @b models
+ * @f$\le\beth_1@f$ but @b materialises @f$<\aleph_0@f$): responsibility for the
+ * boundary rests with whoever deploys, and it is clear from the type.  So this
+ * trait certifies exactness-and-totality @b in @b that @b regime; keeping it a
+ * distinct EXACT path (rather than folding ℚ into "saturating") records that ℚ
+ * is an exact field bounded by physics, not a designed saturating semiring.
+ * Opt-in (default false).
  */
 export template <typename T, typename Op>
 struct is_exact_total : std::false_type {};

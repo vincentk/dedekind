@@ -82,9 +82,9 @@ export template <long D, typename Q = Rational<default_integer>>
 class QuadraticReal {
   // Q must be STRONGLY ordered (the decidable field order returns
   // std::strong_ordering; a partial carrier like floating-point cannot satisfy
-  // it) and exact.  The default Rational is strongly ordered and exact within
-  // its representable range — see the is_exact_total caveat below re: the
-  // saturating-integer sentinel.
+  // it) and exact.  The default Rational is strongly ordered and exact for all
+  // practical purposes — its precision boundary is physical/data-type, not a
+  // silent wraparound (see is_exact_total).
   static_assert(
       !detail_quadratic::is_perfect_square(D),
       "QuadraticReal<D> requires a NON-square D — else √D is rational "

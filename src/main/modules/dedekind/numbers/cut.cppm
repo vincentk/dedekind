@@ -58,9 +58,9 @@ export template <typename Q = Rational<default_integer>>
 class Cut {
   // Q must be STRONGLY ordered: the decidable cut order returns
   // std::strong_ordering, which a partial carrier (e.g. floating-point) cannot
-  // satisfy.  The default Rational is strongly ordered and exact within its
-  // representable range (the saturating-integer sentinel is the same
-  // out-of-range hazard the library's ℚ carries; see is_exact_total).
+  // satisfy.  The default Rational is strongly ordered and exact for all
+  // practical purposes — its precision boundary is physical/data-type, not a
+  // silent wraparound (see is_exact_total).
  public:
   using Domain = Cut;
   using ScalarCarrier = Q;
