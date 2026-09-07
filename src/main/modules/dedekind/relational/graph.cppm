@@ -71,29 +71,133 @@ import :dyadic;           // the Tarski BASE: a graph Γ_f IS a dyadic relation
 namespace dedekind::sets {
 
 /**
+ * @brief The membership predicate of a functional graph @f$\Gamma_f@f$:
+ *        @f$(a,b)\mapsto b = f(a)@f$.
+ *
+ * @details @b Named (not a lambda) so it @b carries its arrow @c f.  That is
+ * what lets two graphs compose by the @b relative product without enumerating
+ * the shared intermediate (@c operator>> below): @c GraphPredicate recovers the
+ * arrow, so @f$\Gamma_f;\Gamma_g = \Gamma_{f;g}@f$ is available on any carrier.
+ * Membership delegates to @c arrow_as_relation (one source of truth for
+ * @f$b=f(a)@f$).
+ */
+export template <typename F>
+struct GraphPredicate {
+  using ArrowType = std::remove_cvref_t<F>;
+  ArrowType arrow;
+  using Pair =
+      std::pair<typename ArrowType::Domain, typename ArrowType::Codomain>;
+  constexpr bool operator()(const Pair& p) const {
+    return dedekind::category::arrow_as_relation<ArrowType>{arrow}(p.first,
+                                                                   p.second);
+  }
+};
+
+/**
+ * @brief @c Graph<F> --- the type of @c graph(f): the @c Set<pair> relation
+ *        @f$\Gamma_f=\{(a,b)\mid b=f(a)\}\subseteq A\times B@f$ of @c F : A→B.
+ */
+export template <typename F>
+using Graph = Set<std::pair<typename F::Domain, typename F::Codomain>,
+                  dedekind::category::ClassicalLogic, GraphPredicate<F>>;
+
+/**
  * @brief @c graph(f) --- the graph of a function @c f : A → B as the @c Set
  *        of pairs @f$\{\,(a,b) \mid b = f(a)\,\} \subseteq A\times B@f$.
  *
  * @tparam F An @c IsArrow whose @c Codomain has decidable equality.
  * @param  f The analytic arrow.
- * @return A @c Set<std::pair<Dom<F>, Cod<F>>> (an @c :expressions Relation)
- *         whose membership delegates to @c arrow_as_relation<F>.
+ * @return A @c Graph<F> (a @c :expressions Relation) whose @c GraphPredicate<F>
+ *         membership carries @c f for composition.
  */
 export template <typename F>
   requires dedekind::category::IsArrow<F> &&
            std::equality_comparable<typename std::remove_cvref_t<F>::Codomain>
-constexpr auto graph(F f) {
-  using A = dedekind::category::Dom<F>;
-  using B = dedekind::category::Cod<F>;
-  using Pair = std::pair<A, B>;
-  // Encode-the-pullback: the graph's membership IS arrow_as_relation's
-  // indicator, so the Set<pair> form cannot diverge from the 2-arg form.
-  const dedekind::category::arrow_as_relation<std::remove_cvref_t<F>> indicator{
-      f};
-  auto pred = [indicator](const Pair& p) -> bool {
-    return indicator(p.first, p.second);
-  };
-  return Set<Pair, dedekind::category::ClassicalLogic, decltype(pred)>{pred};
+constexpr Graph<std::remove_cvref_t<F>> graph(F f) {
+  // Encode-the-pullback: membership IS arrow_as_relation's indicator (carried
+  // by the named GraphPredicate), so the Set<pair> form cannot diverge from the
+  // 2-arg form AND the arrow stays recoverable for composition.
+  return Graph<std::remove_cvref_t<F>>{
+      GraphPredicate<std::remove_cvref_t<F>>{f}};
+}
+
+}  // namespace dedekind::sets
+
+// A graph IS a functional (single-valued) AND entire (total) relation --- it is
+// the graph of a total function.  Mark both faces on the @c Graph<F> type (the
+// @c Set<pair> form), the same convention @c arrow_as_relation already carries,
+// so @c IsFunctional / @c IsEntire hold on @c graph(f) itself, not only on the
+// 2-argument indicator.  (@c IsFunction<R,A,B> stays the 2-argument reading ---
+// it needs the @c r(a,b) call shape, which the 1-argument @c Set<pair> graph
+// does not have.)  Closes the gap that a graph was a relation but not yet a
+// marked function, and lets the relative product below gate on @c IsFunctional
+// at this partition's own level.
+//
+// CAVEAT: @c is_left_total_v (entireness) below is registered unconditionally,
+// which assumes @c F is a @b total arrow.  @c is_right_unique_v (single-valued)
+// is always honest for a graph; entireness is not, if @c F is genuinely partial
+// (e.g. an arrow that @c throw s / rejects part of its domain, like
+// @c embed_double_ℚ).  No current caller graphs a partial arrow, so this is
+// latent; a partial-arrow graph would need @c is_left_total gated on the
+// arrow's totality (there is no general "arrow is total" trait yet --- FIXME if
+// one is needed).
+namespace dedekind::category {
+template <typename F>
+inline constexpr bool is_left_total_v<dedekind::sets::Graph<F>> = true;
+template <typename F>
+inline constexpr bool is_right_unique_v<dedekind::sets::Graph<F>> = true;
+}  // namespace dedekind::category
+
+namespace dedekind::sets {
+
+// ── The relation/function lattice, defined here (above the relative product)
+// so
+//    the composition can gate on IsFunctional.  Fuller exposition in the
+//    @section graph__The_Relation_Function_Lattice below (nLab; Freyd--Scedrov;
+//    Bird--de Moor). ──────────────────────────────────────────────────────────
+// FUNCTIONAL (single-valued, right-unique).
+export template <typename R>
+concept IsFunctional = dedekind::category::is_right_unique_v<R>;
+// ENTIRE (total, left-total).
+export template <typename R>
+concept IsEntire = dedekind::category::is_left_total_v<R>;
+// A FUNCTION is a relation that is functional and entire (nLab, verbatim).
+export template <typename R, typename A, typename B>
+concept IsFunction = dedekind::category::IsBinaryRelation<R, A, B> &&
+                     IsFunctional<R> && IsEntire<R>;
+
+/**
+ * @brief Relative product of two @b functional relations (graphs), over @b any
+ *        intermediate: @f$\Gamma_f\,;\,\Gamma_g = \Gamma_{f;g}@f$.
+ *
+ * @details The general relative product @f$(R;S)(a,c)=\exists b.\,R(a,b)\wedge
+ * S(b,c)@f$ needs @f$\exists b@f$ decidable --- which is why the @b dyadic @c ;
+ * (@c :dyadic) is Boolean-middle only.  Gating on @c IsFunctional (this
+ * partition's own concept) is exactly the property that lifts that restriction:
+ * a @b single-valued relation has @f$b=f(a)@f$ unique, so @f$\exists b@f$ is
+ * @b discharged and @f$(\Gamma_f;\Gamma_g)(a,c)=(c=g(f(a)))@f$ composes
+ * decidably over @f$\mathbb{Z}/\mathbb{Q}/\mathbb{R}@f$, letting arithmetic
+ * arrows sit @b between inclusion relations.  This is the allegory-arrow
+ * composition on the function subcategory; it @b recovers the two arrows (via
+ * @c GraphPredicate) and re-graphs their composite under the @b general arrow
+ * @c ∘ --- the general-carrier sibling of the affine @c ProjAddConstProj @c ;
+ * in
+ * @c :halfspace (which adds pivots).
+ *
+ * @note No overload clash: for a non-@c bool intermediate the dyadic @c ; (@c
+ * requires @c same_as<B,bool>) is non-viable; on a @c bool middle this overload
+ * is strictly more specialised (@c GraphPredicate ⊂ any @c PR); the categorical
+ * arrow @c >> (@c :morphism) is non-viable on @c Set<pair> operands.
+ */
+export template <typename F, typename G>
+  requires IsFunctional<Graph<F>> && IsFunctional<Graph<G>> &&
+           std::same_as<typename F::Codomain, typename G::Domain>
+constexpr auto operator>>(const Graph<F>& r, const Graph<G>& s) {
+  // Compose the two underlying functions with the GENERAL arrow ∘ (qualified so
+  // it is found regardless of the arrows' namespace), then re-graph f;g : A →
+  // C.
+  return graph(
+      dedekind::category::operator>>(r.predicate().arrow, s.predicate().arrow));
 }
 
 /** @section graph__Formal_Verification */
@@ -121,6 +225,36 @@ static_assert(
             dedekind::category::Identity<int>{}}(7, 7),
     "graph(f) membership must agree with arrow_as_relation<F> pointwise.");
 
+// ── Functional relative product: Γ_f ; Γ_g = Γ_{f;g}, over a NON-Boolean (int)
+//    intermediate — decidable because each graph is single-valued (∃b = f(a)).
+//    ─
+namespace graph_compose_witness {
+inline constexpr auto dbl =
+    dedekind::category::arrow<int, int>([](const int& n) { return 2 * n; });
+inline constexpr auto inc =
+    dedekind::category::arrow<int, int>([](const int& n) { return n + 1; });
+// (Γ_dbl ; Γ_inc)(a, c) ⟺ c == inc(dbl(a)) == 2a+1 — the ∃b discharged over ℤ.
+inline constexpr auto Γ_dbl_inc = graph(dbl) >> graph(inc);
+static_assert(
+    dedekind::category::IsSet<decltype(Γ_dbl_inc)>,
+    "the relative product of two graphs is again a functional graph.");
+static_assert(Γ_dbl_inc(std::pair{3, 7}), "(3, 7) ∈ Γ_dbl;Γ_inc  (2·3+1 = 7).");
+static_assert(!Γ_dbl_inc(std::pair{3, 6}), "(3, 6) ∉ Γ_dbl;Γ_inc.");
+// Drift-detector: Γ_f ; Γ_g agrees pointwise with the graph of the composite.
+static_assert(Γ_dbl_inc(std::pair{5, 11}) ==
+                  graph(dbl >> inc)(std::pair{5, 11}),
+              "Γ_f;Γ_g == Γ_{f;g} pointwise (relative product = graph of ∘).");
+// graph(f) itself is now IsFunctional AND IsEntire (not only the 2-arg
+// arrow_as_relation) --- the single-valuedness the relative product gates on.
+// (IsFunction<R,A,B> stays the 2-arg reading on arrow_as_relation; a Set<pair>
+// graph carries the 1-arg faces IsFunctional / IsEntire.)
+static_assert(IsFunctional<decltype(graph(inc))>, "graph(f) is functional.");
+static_assert(IsEntire<decltype(graph(inc))>, "graph(f) is entire (total).");
+static_assert(IsFunctional<std::remove_cvref_t<decltype(Γ_dbl_inc)>> &&
+                  IsEntire<std::remove_cvref_t<decltype(Γ_dbl_inc)>>,
+              "the relative product Γ_f;Γ_g is again functional + entire.");
+}  // namespace graph_compose_witness
+
 /**
  * @section graph__The_Relation_Function_Lattice
  * The standard characterisation (nLab; Freyd and Scedrov, @em Categories,
@@ -134,22 +268,9 @@ static_assert(
  * @c IsFunction @b refines @c IsBinaryRelation, the inclusion
  * @f$\{\text{functions}\} \subset \{\text{relations}\}@f$ is genuine C++
  * concept subsumption: a function type-checks anywhere a relation is required.
+ * (@c IsFunctional / @c IsEntire / @c IsFunction are defined @b above, ahead of
+ * the relative product that gates on them; this section is their exposition.)
  */
-
-// FUNCTIONAL (single-valued, right-unique) --- nLab / allegory "functional",
-// Bird and de Moor "simple".
-export template <typename R>
-concept IsFunctional = dedekind::category::is_right_unique_v<R>;
-
-// ENTIRE (total, left-total) --- nLab / allegory / Bird and de Moor "entire".
-export template <typename R>
-concept IsEntire = dedekind::category::is_left_total_v<R>;
-
-// A FUNCTION is a relation that is functional and entire (nLab, verbatim).
-// Refines IsBinaryRelation, so IsFunction subsumes it: {function} ⊂ {relation}.
-export template <typename R, typename A, typename B>
-concept IsFunction = dedekind::category::IsBinaryRelation<R, A, B> &&
-                     IsFunctional<R> && IsEntire<R>;
 
 // IsGraph IS A IsRelation: the Bourbaki / graph-theory vocabulary as a
 // subsuming synonym of the (nLab-canonical) IsRelation base, so "graph" stays

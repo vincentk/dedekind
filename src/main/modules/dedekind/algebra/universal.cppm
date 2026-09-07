@@ -76,6 +76,7 @@ module;
 
 #include <concepts>
 #include <functional>
+#include <type_traits>
 
 export module dedekind.algebra:universal;
 
@@ -604,6 +605,55 @@ concept IsHomomorphism =
 export template <typename Arrow>
 concept IsQuotientMorphism =
     IsHomomorphism<Arrow> && dedekind::category::IsSurjective<Arrow>;
+
+/**
+ * @concept EmbedsAsSubalgebra
+ * @brief The Birkhoff @b S leg as an arrow: a @b monic homomorphism, i.e. a
+ *        structure-preserving @b embedding whose image is a subalgebra.
+ *
+ * @details The monic dual of @c IsQuotientMorphism (the @b H leg): where a
+ * quotient morphism is a @b surjective homomorphism, a subalgebra embedding is
+ * an @b injective one.  Together they are the two directions of the HSP legs on
+ * arrows --- @c EmbedsAsSubalgebra for
+ * @f$\mathbb{Q}\hookrightarrow\mathbb{R}@f$ and
+ * @f$\mathbb{R}\hookrightarrow\mathbb{C}@f$, @c IsQuotientMorphism for
+ * @f$\mathbb{R}\twoheadrightarrow\mathbb{C} = \mathbb{R}[i]/(i^2+1)@f$.
+ *
+ * The property is a conjunction of exactly two legs plus a carrier shape:
+ *   - @c IsHomomorphism --- structure-preserving (preserves the @b F of an
+ *     @f$(A,F)@f$ algebra: @f$+,\cdot,0,1@f$).  This already implies @c
+ * IsArrow, so the @f$\text{Domain}\to\text{Codomain}@f$ shape is @b not
+ * restated.
+ *   - @c IsMonicArrow --- injective, so the image is a @b genuine subalgebra
+ *     (@c Domain = the subalgebra carrier, @c Codomain = the ambient algebra).
+ *   - @c Domain / @c Codomain are @c std::regular.  The embedding is the
+ *     @b pointwise arrow (@c f(q) takes a carrier @b element and
+ *     @c embed(a+b)==embed(a)+embed(b) is an element-level law), so the
+ * carriers are @c std::regular elements --- the @c Jlt value-semantics half
+ * that
+ *     @c IsSet roots on a carrier --- @b not @c IsAlgebraOnSet, which would
+ * make the arrow a @f$\text{Set}\to\text{Set}@f$ map and break the hom law. The
+ *     ambient algebra structure (@c IsAlgebraOnSet on @c Ω<Domain>) is
+ * witnessed at the declaration site, where the operations are in scope.
+ *
+ * @note This concept classifies the @b arrow (the inclusion mono itself).  Its
+ *       @b graph @f$\Gamma = \operatorname{graph}(\text{embed}) \subseteq A
+ *       \times B@f$ is a @b separate object: a functional, monic @c IsRelation
+ *       on the @b product that reifies the arrow relationally --- not the
+ *       inclusion subobject of the codomain, and @b not an @c IsFunctor (a
+ * field homomorphism preserves operations, not composition of arrows between
+ *       categories; @f$\mathbb{Q},\mathbb{R}@f$ are objects, not categories).
+ *
+ * Like both HSP siblings the monic/hom legs are opt-in (@c is_monic_arrow_v /
+ * @c is_homomorphism_v declarations); the honest discipline is to pin them with
+ * @b computed witnesses at the declaration site (the embedding of a genuine
+ * carrier @b can be run: @c embed(a+b)==embed(a)+embed(b), @c embed injective).
+ */
+export template <typename Arrow>
+concept EmbedsAsSubalgebra =
+    IsHomomorphism<Arrow> && dedekind::category::IsMonicArrow<Arrow> &&
+    std::regular<typename std::remove_cvref_t<Arrow>::Domain> &&
+    std::regular<typename std::remove_cvref_t<Arrow>::Codomain>;
 
 }  // namespace dedekind::algebra
 

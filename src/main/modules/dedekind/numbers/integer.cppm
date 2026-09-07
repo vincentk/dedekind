@@ -166,3 +166,36 @@ static_assert(
     "the right carrier for multiplicative halfspace scaling.");
 
 }  // namespace dedekind::numbers
+
+namespace dedekind::numbers {
+// ℤ = @c SignedCardinality satisfies the STRICT @c category::IsRing.  This
+// holds via the carrier's @b saturating totality (@c is_saturating<SC,+/*> in
+// @c :cardinality --- overflow escalates to @f$\pm\aleph_0@f$, one reading of
+// Eqn 2), which already passes the @c IsTotal gate; the axiom traits
+// (associativity / commutativity / identity / distributivity + additive
+// inverse) are the ordered-additive-group / Initial-Ring pins above.  These
+// static_asserts merely @b pin what already held --- closing the gap that the
+// strict concept was documented but never mechanically witnessed here.  (ℤ is
+// @b not exact/unbounded; the honest totality posture is saturation.)
+static_assert(
+    dedekind::category::IsRing<
+        dedekind::sets::SignedCardinality,
+        std::plus<dedekind::sets::SignedCardinality>,
+        std::multiplies<dedekind::sets::SignedCardinality>>,
+    "ℤ = SignedCardinality is a strict category::IsRing (via saturating "
+    "totality) --- ℕ/ℤ/ℚ all strict-total, now witnessed.");
+// A ring is a fortiori a semiring; and ℤ is NOT a field (non-units lack
+// multiplicative inverses) --- the textbook ℤ, pinned strictly.
+static_assert(dedekind::category::IsSemiring<
+                  dedekind::sets::SignedCardinality,
+                  std::plus<dedekind::sets::SignedCardinality>,
+                  std::multiplies<dedekind::sets::SignedCardinality>>,
+              "ℤ is a fortiori a strict category::IsSemiring.");
+static_assert(
+    !dedekind::category::IsField<
+        dedekind::sets::SignedCardinality,
+        std::plus<dedekind::sets::SignedCardinality>,
+        std::multiplies<dedekind::sets::SignedCardinality>>,
+    "ℤ is NOT a field --- only ±1 are multiplicative units (ℚ is its field "
+    "of fractions).");
+}  // namespace dedekind::numbers

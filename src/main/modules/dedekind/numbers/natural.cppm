@@ -290,6 +290,23 @@ static_assert(dedekind::category::IsRig<unsigned int, std::plus<unsigned int>,
               "closure/structure only, not stronger textbook ℕ laws "
               "(no idempotency claim; modular-wrap inverses exist for "
               "every element).");
+
+// The variant ℕ carrier @c Cardinality is a strict @c IsSemiring (= @c IsRig):
+// a commutative monoid under +, a monoid under *, distributive --- but @b NOT a
+// ring, since ℕ has no additive inverse.  Totality holds via the carrier's
+// @b saturating discipline (@c is_saturating<Card,+/*> in @c :cardinality ---
+// overflow escalates to @f$\aleph_0@f$), which passes the @c IsTotal gate. Pins
+// the strict textbook reading of ℕ as a rig, alongside ℤ (ring) and ℚ (field).
+static_assert(
+    dedekind::category::IsSemiring<
+        dedekind::sets::Cardinality, std::plus<dedekind::sets::Cardinality>,
+        std::multiplies<dedekind::sets::Cardinality>>,
+    "ℕ = Cardinality is a strict category::IsSemiring (rig).");
+static_assert(
+    !dedekind::category::IsRing<dedekind::sets::Cardinality,
+                                std::plus<dedekind::sets::Cardinality>,
+                                std::multiplies<dedekind::sets::Cardinality>>,
+    "ℕ = Cardinality is NOT a ring --- no additive inverse (unlike ℤ).");
 // Order witnesses (explicit, for documentation purposes).  ℕ is the
 // canonical totally-ordered chain 0 ≤ 1 ≤ 2 ≤ ... at the literal
 // level; the spaceship and the four partial-order operators all

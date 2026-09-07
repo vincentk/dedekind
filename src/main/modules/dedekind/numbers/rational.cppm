@@ -286,6 +286,11 @@ struct HonestDivRational {
  * The embedding of an integer Z into the rationals is **exact**:
  * every integer n corresponds uniquely to n/1.
  * This transform returns Ternary::True to signal no information loss.
+ *
+ * @see @c embed_ℤ_ℚ_ (below) --- the same @f$n\mapsto n/1@f$ as a categorical
+ * @c arrow over @c default_integer, carrying the monic/homomorphism/monotone
+ * registrations the tower S-leg needs.  This Ternary transform is the Kleene
+ * surface; the two are distinct, not a redundant fork.
  */
 export template <IsInteger I>
 struct PartialEmbedIntegerToRational {
@@ -307,6 +312,15 @@ struct PartialEmbedIntegerToRational {
  * template variables are declared.
  */
 namespace dedekind::category {
+
+// NOTE: ℚ = @c Rational<Z> is already @c IsTotal via @b saturation --- it
+// inherits @c is_saturating from its quotient base @c Z = @c SignedCardinality
+// (@c quotient_algebra_base propagation in @c :algebra:quotient), which passes
+// the @c IsTotal gate.  So the strict @c category::IsField<ℚ> holds without any
+// @c is_exact_total registration; the witness is pinned at the (3)-Semantics
+// static_assert below.  (No @c is_exact_total here: it would be a @b
+// contradictory posture --- these carriers @b saturate, they are not
+// exact/unbounded.)
 
 /** @brief Kleene traits for rational arithmetic. */
 template <dedekind::morphologies::IsInteger I>
@@ -591,6 +605,108 @@ export using machine_integer = int;
 // remains a valid target — the next iteration will restore @c Frac
 // on the new @c ℤ carrier (@c SignedCardinality) via @c embed_sint_ℤ
 // rather than the deprecated machine-layer arrow.
+
+/**
+ * @brief Restored variant-layer subalgebra embedding @b ℤ ↪ ℚ:
+ *        @c SignedCardinality → @c Rational<default_integer>, @f$n\mapsto
+ * n/1@f$.
+ *
+ * @details Restores the arrow the comment above anticipated ("on the new @b ℤ
+ * carrier @c SignedCardinality"), replacing the removed machine-layer
+ * @c arrow<int,…>.  @f$n\mapsto n/1@f$ is the genuine ring embedding of ℤ into
+ * its field of fractions ℚ: an @c EmbedsAsSubalgebra @b S-leg (the canonical
+ * tower rung below @c embed_ℚ_ℝ) that is also @b order-preserving
+ * (@c is_monotone_v) — the property the halfspace strength-reduction pulls back
+ * through.  The homomorphism/injectivity laws are @b witnessed by computation
+ * below on the ring ℤ.
+ *
+ * @note Why register the ring-embedding traits here when @c embed_double_ℚ
+ * (below) @b withholds @c is_monic_arrow_v?  @c double 's NaN/±∞ are @b in-band
+ * values that make @c embed_double_ℚ genuinely @b partial (it @c throw s), so a
+ * total-arrow trait would over-claim.  @c embed_ℤ_ℚ_ is @b total on the ring:
+ * @f$n\mapsto n/1@f$ closes on all of ℤ, and the saturating @c
+ * SignedCardinality sentinels (±∞, NaZ) are @b not ring elements.  Registering
+ * is honest here (the same convention @c embed_ℚ_ℝ follows); withholding is
+ * honest there.
+ *
+ * @see @c PartialEmbedIntegerToRational --- the @b same map @f$n\mapsto n/1@f$
+ * on the @b Ternary/Kleene surface, generic over @c I.  @c embed_ℤ_ℚ_ is the
+ * categorical @c arrow over the canonical @c default_integer, carrying the
+ * monic / homomorphism / monotone registrations the tower's S-leg needs; the
+ * two are distinct surfaces, not a redundant fork.
+ */
+export inline constexpr auto embed_ℤ_ℚ_ =
+    arrow<default_integer, Rational<default_integer>>(
+        [](const default_integer& n) noexcept {
+          return Rational<default_integer>{n};
+        });
+
+}  // namespace dedekind::numbers
+
+namespace dedekind::category {
+/** @brief ℤ ↪ ℚ is monic: @f$n/1 = m/1 \iff n = m@f$. */
+template <>
+inline constexpr bool
+    is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_ℤ_ℚ_)>> =
+        true;
+/** @brief ℤ ↪ ℚ preserves order — the monotonicity the strength-reduction
+ *  pullback rests on. */
+template <>
+inline constexpr bool is_monotone_v<
+    std::decay_t<decltype(dedekind::numbers::embed_ℤ_ℚ_)>, std::less_equal<>> =
+    true;
+}  // namespace dedekind::category
+
+namespace dedekind::algebra {
+/** @brief ℤ ↪ ℚ preserves @f$+,\times,0,1@f$ — the field-of-fractions ring
+ *  embedding, between two @b strict-total algebras: ℤ is @c category::IsRing
+ * and ℚ is @c category::IsField, both via the carriers' @b saturating totality
+ *  (@c is_saturating in @c :cardinality, propagated to @c Rational through its
+ *  quotient base).  So @c is_homomorphism_v here is a fully-certified ring
+ *  homomorphism, not merely an operational declaration.
+ *
+ *  FIXME(#680): the @b one orthogonal caveat --- ℕ/ℤ/ℚ are meant to behave
+ *  identically at very large values (saturate at the OOM/±ℵ_0 boundary, a
+ *  reading of Eqn 2).  ℤ/ℕ do; ℚ does not @b yet --- @c Rational::simplify 's
+ *  @c euclidean_gcd @b hangs on a sentinel (@c NaZ @c % @c … @c == @c NaZ)
+ *  instead of saturating, so @c embed(a)+embed(b) can diverge when @c a+b
+ *  overflows.  The saturation / Honest-Rejection guard on @c Rational is the
+ *  fix (it applies to every ℚ-valued arrow, e.g. @c embed_ℚ_ℝ, and to R2). This
+ *  is a boundary-behaviour cleanup, not a totality gap (contrast
+ *  @c embed_double_ℚ, whose NaN/±∞ are @b common in-band IEEE values, not a
+ *  saturation boundary --- hence it withholds its trait). */
+template <>
+inline constexpr bool
+    is_homomorphism_v<std::decay_t<decltype(dedekind::numbers::embed_ℤ_ℚ_)>> =
+        true;
+}  // namespace dedekind::algebra
+
+namespace dedekind::numbers {
+
+/** @section rational__ℤ_ℚ_S_Leg_Witnesses
+ *  @c embed_ℤ_ℚ_ is a genuine Birkhoff S-leg, witnessed by computation. */
+namespace {
+using ℤ_carrier = default_integer;
+static_assert(
+    dedekind::category::IsMonicArrow<std::decay_t<decltype(embed_ℤ_ℚ_)>>,
+    "ℤ ↪ ℚ is monic.");
+static_assert(
+    dedekind::algebra::EmbedsAsSubalgebra<std::decay_t<decltype(embed_ℤ_ℚ_)>>,
+    "ℤ ↪ ℚ is a Birkhoff S-leg: a monic ring embedding into the field of "
+    "fractions (the tower rung below embed_ℚ_ℝ).");
+// Homomorphism, computed on the finite fragment (n ↦ n/1 preserves +, ×, 0, 1).
+static_assert(embed_ℤ_ℚ_(ℤ_carrier{2} + ℤ_carrier{3}) ==
+                  embed_ℤ_ℚ_(ℤ_carrier{2}) + embed_ℤ_ℚ_(ℤ_carrier{3}),
+              "ℤ ↪ ℚ preserves +.");
+static_assert(embed_ℤ_ℚ_(ℤ_carrier{2} * ℤ_carrier{3}) ==
+                  embed_ℤ_ℚ_(ℤ_carrier{2}) * embed_ℤ_ℚ_(ℤ_carrier{3}),
+              "ℤ ↪ ℚ preserves ×.");
+// Monic / order-preserving, computed.
+static_assert(embed_ℤ_ℚ_(ℤ_carrier{2}) != embed_ℤ_ℚ_(ℤ_carrier{3}),
+              "ℤ ↪ ℚ is injective on distinct integers.");
+static_assert(embed_ℤ_ℚ_(ℤ_carrier{2}) < embed_ℤ_ℚ_(ℤ_carrier{3}),
+              "ℤ ↪ ℚ preserves order (2/1 < 3/1).");
+}  // namespace
 
 /**
  * @brief Exact dyadic embedding @c double → ℚ.
@@ -918,13 +1034,30 @@ static_assert(
 
 // (3) Semantics (the algebraic structures Rational<default_integer> actually
 //     carries).  The strict @c category::IsField<ℚ, std::plus, std::multiplies>
-//     witness is architecturally blocked by the @c IsTotal gate (exact carriers
-//     are neither periodic, idempotent, nor saturating); the operational
-//     reading via @c HasFieldOperators is the load-bearing
-//     field-arithmetic guarantee, asserted downstream in this file's
-//     Formal_Verification block.  The additive-group / commutative-ring
-//     pins on the integer carrier of ℚ live at @c :integer, where the
-//     species-trait registry on @c SignedCardinality is reachable.
+//     witness HOLDS --- and did all along: ℚ passes the @c IsTotal gate via
+//     @b saturation (it inherits @c is_saturating from its quotient base
+//     @c SignedCardinality; see the @c :cardinality / @c :quotient
+//     registrations), so no @c is_exact_total is needed.  Only
+//     @c HasFieldOperators was ever @b asserted before, though the strict
+//     concept already held; this static_assert closes that code-vs-paper gap
+//     (the paper states ℚ is a field) by pinning it.  The additive-group /
+//     commutative-ring pins on the integer carrier of ℚ live at @c :integer.
+static_assert(
+    dedekind::category::IsField<Rational<default_integer>,
+                                std::plus<Rational<default_integer>>,
+                                std::multiplies<Rational<default_integer>>>,
+    "ℚ = Rational<default_integer> is a strict category::IsField (via "
+    "saturating totality) --- closing the code-vs-paper gap (previously only "
+    "HasFieldOperators was witnessed).");
+// A field is a fortiori a ring and a semiring --- the full ladder on ℚ, pinned.
+static_assert(
+    dedekind::category::IsRing<Rational<default_integer>,
+                               std::plus<Rational<default_integer>>,
+                               std::multiplies<Rational<default_integer>>> &&
+        dedekind::category::IsSemiring<
+            Rational<default_integer>, std::plus<Rational<default_integer>>,
+            std::multiplies<Rational<default_integer>>>,
+    "ℚ is a fortiori a strict category::IsRing and IsSemiring.");
 
 // (4) Primitive-type arrows on ℚ:
 //   - Forward (machine → ℚ): @c embed_ℤ_ℚ promotes a @c machine_integer
