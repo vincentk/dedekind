@@ -71,13 +71,36 @@ import :dyadic;           // the Tarski BASE: a graph Γ_f IS a dyadic relation
 namespace dedekind::sets {
 
 /**
+ * @brief The membership predicate of a functional graph @f$\Gamma_f@f$:
+ *        @f$(a,b)\mapsto b = f(a)@f$.
+ *
+ * @details @b Named (not a lambda) so it @b carries its arrow @c f.  That is
+ * what lets two graphs compose by the @b relative product without enumerating
+ * the shared intermediate (@c operator>> below): @c GraphPredicate recovers the
+ * arrow, so @f$\Gamma_f;\Gamma_g = \Gamma_{f;g}@f$ is available on any carrier.
+ * Membership delegates to @c arrow_as_relation (one source of truth for
+ * @f$b=f(a)@f$).
+ */
+export template <typename F>
+struct GraphPredicate {
+  using ArrowType = std::remove_cvref_t<F>;
+  ArrowType arrow;
+  using Pair =
+      std::pair<typename ArrowType::Domain, typename ArrowType::Codomain>;
+  constexpr bool operator()(const Pair& p) const {
+    return dedekind::category::arrow_as_relation<ArrowType>{arrow}(p.first,
+                                                                   p.second);
+  }
+};
+
+/**
  * @brief @c graph(f) --- the graph of a function @c f : A → B as the @c Set
  *        of pairs @f$\{\,(a,b) \mid b = f(a)\,\} \subseteq A\times B@f$.
  *
  * @tparam F An @c IsArrow whose @c Codomain has decidable equality.
  * @param  f The analytic arrow.
  * @return A @c Set<std::pair<Dom<F>, Cod<F>>> (an @c :expressions Relation)
- *         whose membership delegates to @c arrow_as_relation<F>.
+ * with a @c GraphPredicate<F> membership (which carries @c f for composition).
  */
 export template <typename F>
   requires dedekind::category::IsArrow<F> &&
@@ -86,14 +109,42 @@ constexpr auto graph(F f) {
   using A = dedekind::category::Dom<F>;
   using B = dedekind::category::Cod<F>;
   using Pair = std::pair<A, B>;
-  // Encode-the-pullback: the graph's membership IS arrow_as_relation's
-  // indicator, so the Set<pair> form cannot diverge from the 2-arg form.
-  const dedekind::category::arrow_as_relation<std::remove_cvref_t<F>> indicator{
-      f};
-  auto pred = [indicator](const Pair& p) -> bool {
-    return indicator(p.first, p.second);
-  };
-  return Set<Pair, dedekind::category::ClassicalLogic, decltype(pred)>{pred};
+  // Encode-the-pullback: membership IS arrow_as_relation's indicator (carried
+  // by the named GraphPredicate), so the Set<pair> form cannot diverge from the
+  // 2-arg form AND the arrow stays recoverable for composition.
+  return Set<Pair, dedekind::category::ClassicalLogic,
+             GraphPredicate<std::remove_cvref_t<F>>>{
+      GraphPredicate<std::remove_cvref_t<F>>{f}};
+}
+
+/**
+ * @brief Relative product of two @b functional graphs, over @b any
+ * intermediate:
+ *        @f$\Gamma_f\,;\,\Gamma_g = \Gamma_{f;g}@f$.
+ *
+ * @details The general relative product @f$(R;S)(a,c)=\exists b.\,R(a,b)\wedge
+ * S(b,c)@f$ needs the @f$\exists b@f$ decidable, which is why the @b dyadic
+ * @c ; (@c :dyadic) is Boolean-middle only.  For @b functional relations the
+ * @f$\exists b@f$ is @b discharged --- @f$b=f(a)@f$ is unique --- so
+ * @f$(\Gamma_f;\Gamma_g)(a,c) = (c = g(f(a)))@f$ composes decidably over
+ * @f$\mathbb{Z}/\mathbb{Q}/\mathbb{R}@f$, letting arithmetic arrows sit @b
+ * between embeddings.  This is the allegory-arrow composition restricted to the
+ * function subcategory; it @b recovers the two arrows (via @c GraphPredicate)
+ * and re-graphs their categorical composite --- the general-carrier sibling of
+ * the affine @c ProjAddConstProj @c ; in @c :halfspace (which adds pivots).
+ */
+export template <typename F, typename G>
+  requires std::same_as<typename std::remove_cvref_t<F>::Codomain,
+                        typename std::remove_cvref_t<G>::Domain>
+constexpr auto operator>>(
+    const Set<std::pair<typename std::remove_cvref_t<F>::Domain,
+                        typename std::remove_cvref_t<F>::Codomain>,
+              dedekind::category::ClassicalLogic, GraphPredicate<F>>& r,
+    const Set<std::pair<typename std::remove_cvref_t<G>::Domain,
+                        typename std::remove_cvref_t<G>::Codomain>,
+              dedekind::category::ClassicalLogic, GraphPredicate<G>>& s) {
+  // Recover the arrows and re-graph their categorical composite f;g : A → C.
+  return graph(r.predicate().arrow >> s.predicate().arrow);
 }
 
 /** @section graph__Formal_Verification */
@@ -120,6 +171,27 @@ static_assert(
             dedekind::category::Identity<int>>{
             dedekind::category::Identity<int>{}}(7, 7),
     "graph(f) membership must agree with arrow_as_relation<F> pointwise.");
+
+// ── Functional relative product: Γ_f ; Γ_g = Γ_{f;g}, over a NON-Boolean (int)
+//    intermediate — decidable because each graph is single-valued (∃b = f(a)).
+//    ─
+namespace graph_compose_witness {
+inline constexpr auto dbl =
+    dedekind::category::arrow<int, int>([](const int& n) { return 2 * n; });
+inline constexpr auto inc =
+    dedekind::category::arrow<int, int>([](const int& n) { return n + 1; });
+// (Γ_dbl ; Γ_inc)(a, c) ⟺ c == inc(dbl(a)) == 2a+1 — the ∃b discharged over ℤ.
+inline constexpr auto Γ_dbl_inc = graph(dbl) >> graph(inc);
+static_assert(
+    dedekind::category::IsSet<decltype(Γ_dbl_inc)>,
+    "the relative product of two graphs is again a functional graph.");
+static_assert(Γ_dbl_inc(std::pair{3, 7}), "(3, 7) ∈ Γ_dbl;Γ_inc  (2·3+1 = 7).");
+static_assert(!Γ_dbl_inc(std::pair{3, 6}), "(3, 6) ∉ Γ_dbl;Γ_inc.");
+// Drift-detector: Γ_f ; Γ_g agrees pointwise with the graph of the composite.
+static_assert(Γ_dbl_inc(std::pair{5, 11}) ==
+                  graph(dbl >> inc)(std::pair{5, 11}),
+              "Γ_f;Γ_g == Γ_{f;g} pointwise (relative product = graph of ∘).");
+}  // namespace graph_compose_witness
 
 /**
  * @section graph__The_Relation_Function_Lattice

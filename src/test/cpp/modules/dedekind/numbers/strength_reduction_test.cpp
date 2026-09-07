@@ -126,6 +126,30 @@ static_assert((Φ(umax + 5u) <= ten) == (umax + 5u <= 10u),
 static_assert((Φ(umax) <= ten) == (umax <= 10u),
               "un-wrapped huge value obeys the pullback: both sides FALSE.");
 
+// =========  RELATIONAL composition: Γ_f ; Γ_g, arithmetic BETWEEN rungs ======
+// Φ above composes the ARROWS then graphs.  Here we compose the GRAPHS directly
+// via the relative product Γ_f ; Γ_g = Γ_{f;g} — the ∃b over the ℚ/ℝ
+// intermediate discharged by functionality (§graph.cppm).  This is the payoff
+// the user asked for: an arithmetic arrow (×2 on ℚ) sits BETWEEN two inclusion
+// relations, all composed relationally.
+constexpr auto scale2 = dedekind::category::arrow<Rational<>, Rational<>>(
+    [](const Rational<>& q) { return q * Rational<>{2}; });
+
+// Γ(ℤ↪ℚ) ; Γ(×2 on ℚ) ; Γ(ℚ↪ℝ)  :  a functional relation ℤ ↬ ℝ, r == 2·z.
+constexpr auto Γ_scaled = graph(embed_ℤ_ℚ_) >> graph(scale2) >>
+                          graph(embed_ℚ_ℝ);
+static_assert(IsSet<decltype(Γ_scaled)>,
+              "the relational composite is again a functional graph ℤ ↬ ℝ.");
+static_assert(
+    Γ_scaled(std::pair{default_integer{5}, R2{10}}),
+    "(5, 10) ∈ Γ: 2·5 = 10 in ℝ — arithmetic embedded between rungs.");
+static_assert(!Γ_scaled(std::pair{default_integer{5}, R2{11}}), "(5, 11) ∉ Γ.");
+// Relational composition and arrow composition coincide (Γ_f;Γ_g == Γ_{f;g}).
+static_assert(Γ_scaled(std::pair{default_integer{3}, R2{6}}) ==
+                  graph(embed_ℤ_ℚ_ >> scale2 >>
+                        embed_ℚ_ℝ)(std::pair{default_integer{3}, R2{6}}),
+              "relational ; and arrow ∘ agree pointwise.");
+
 }  // namespace
 
 TEST_CASE("Strength reduction: {x ≤ 10} on ℝ ⟵ native modular unsigned ≤ 10",
