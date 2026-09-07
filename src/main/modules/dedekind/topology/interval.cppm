@@ -129,6 +129,7 @@ class Ray : public detail::BoundaryTag<B> {
  public:
   using Domain = T;
   using Codomain = typename L::Ω;
+  using logic_species = L;  // carry the classifier's logic into the Lwv fabric
   using is_ray_tag = void;
 
   /** @section interval__Algebraic_Axioms */
@@ -190,6 +191,7 @@ class Interval : public detail::IntervalBoundaryTag<Lower, Upper> {
  public:
   using Domain = T;
   using Codomain = typename L::Ω;
+  using logic_species = L;  // carry the classifier's logic into the Lwv fabric
   using lower_ray_type = Ray<T, Direction::Upward, Lower, L>;
   using upper_ray_type = Ray<T, Direction::Downward, Upper, L>;
 
@@ -248,6 +250,7 @@ class HalfSpace : public detail::BoundaryTag<B> {
  public:
   using Domain = T;
   using Codomain = typename L::Ω;
+  using logic_species = L;  // carry the classifier's logic into the Lwv fabric
   using is_ray_tag = void;
 
   template <typename Op>
