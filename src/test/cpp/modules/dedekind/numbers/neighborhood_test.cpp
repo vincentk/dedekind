@@ -63,4 +63,19 @@ TEST_CASE("a rational neighborhood is a topological neighborhood AND a Lwv set",
     STATIC_CHECK(static_cast<bool>(rn(Cut<>::sqrt(Q{2}))));  // 7/5 < √2 < 3/2
     CHECK(static_cast<bool>(rn(Cut<>::sqrt(Q{2}))));         // codecov
   }
+
+  SECTION(
+      "non-Boolean logic: a TernaryLogic interval composes through L::AND") {
+    // The interval's operator() must combine its rays via L::AND, not built-in
+    // &&, so it works for a non-Boolean classifier (Ternary is a scoped enum).
+    // Guards against a regression on interval.cppm's membership.
+    using dedekind::category::Ternary;
+    using dedekind::category::TernaryLogic;
+    constexpr Interval<int, Boundary::Open, Boundary::Open, TernaryLogic> ti{1,
+                                                                             5};
+    STATIC_CHECK(ti(3) == Ternary::True);   // 1 < 3 < 5
+    STATIC_CHECK(ti(0) == Ternary::False);  // 0 ≤ 1 (open lower)
+    STATIC_CHECK(ti(5) == Ternary::False);  // 5 ≥ 5 (open upper)
+    CHECK(ti(3) == Ternary::True);          // codecov
+  }
 }

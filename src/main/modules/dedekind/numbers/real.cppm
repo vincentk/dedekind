@@ -1,9 +1,10 @@
 /**
  * @file dedekind/numbers/real.cppm
  * @partition :real
- * @brief The real line: @c ℝ (the coat-hanger over @c QuadraticReal<2>, a field
- *        and order-complete), the reified scalar carriers @c Real<Q> /
- *        @c ExactReal, and the materialisable machine-real ambient @c ℝ_d.
+ * @brief The real line: @c ℝ (the coat-hanger --- a set-indexed field over the
+ *        order-complete carrier @c QuadraticReal<2>), the reified scalar
+ * carriers
+ *        @c Real<Q> / @c ExactReal, and the materialisable ambient @c ℝ_d.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -333,47 +334,29 @@ struct RealsOf {
 
 export using RealSet = RealsOf<>;
 
-/** @brief The canonical real-number universe ℝ = Ω<Real<machine_real_scalar>,
- *         ClassicalLogic, ℶ_1> (post-#559).
+/** @brief The canonical real-number universe @c ℝ @c = @c
+ *         Ω<QuadraticReal<2>, ClassicalLogic, ℶ_1> --- the coat-hanger.
  *
- *  @details Per #559's chosen direction (option A): the named species
- *  symbols denote @b universe values (constexpr instances of
- *  @c UniversalSet over the carrier), not classifier-alias types.  At
- *  this slice's snapshot, @c 𝔹, @c ℕ, @c ℤ, @c ℚ, and (with this
- *  commit) @c ℝ have completed the migration; @c ℂ and @c 𝔻 are still
- *  exported as classifier aliases and are tracked under #559 for
- *  follow-up via the @c quotient operator (#567), since both are
- *  textbook quotient constructions (ℂ = ℝ[i]/(i²+1), 𝔻 = ℝ[ε]/(ε²)).
+ *  @details Per #559 the named species symbols denote @b universe values
+ *  (constexpr @c UniversalSet instances over the carrier).  @c ℝ's carrier is
+ *  the decidable FIELD @c QuadraticReal<2> @c = ℚ(√2): the @b universe @c ℝ is
+ * a set-indexed field (@c algebra::IsField, as @c ℚ @c = @c Ω<Rational> is),
+ * and its @b carrier is order-complete in the library's @b structural surrogate
+ *  sense (totally ordered + dense + extrema).  So the Ddk algebra hangs off
+ *  @c ℝ the way analysis bootstraps from the reals.
  *
- *  The carrier of @c ℝ is @c Real<machine_real_scalar> directly; the
- *  classifier (multi-overload cross-carrier @c operator() that
- *  delegates to @c RationalsOf<I>{} for non-real arguments) is
- *  reachable via @c RealSet @c = @c RealsOf<>.
+ *  @b Honest @b imperfection: ℚ(√2) is @b countable and so @b not genuinely
+ *  Dedekind-complete (it only passes the surrogate, which @c ℚ passes too); the
+ *  @c ℶ_1 cardinality tags the continuum we @b model, not the materialised
+ *  carrier.  Machine-@c double computation lives on @c ℝ_d (below).  Further
+ *  extensions (numerical subalgebras) and transcendentals (symbolic @c Expr)
+ *  grow it.  A documented placeholder --- not a false postulate on an
+ *  uninhabited carrier.
  *
- *  Cardinality is set explicitly to @c ℶ_1 (continuum) — the textbook
- *  cardinality of ℝ — overriding the @c Ω<...> variable template's
- *  @c ℵ_0 default.  Without this override, @c NaturalLogic<decltype(ℝ)>
- *  would still route through @c TernaryLogic (since both ℵ_0 and ℶ_1
- *  are transfinite), so the cardinality choice is honesty-only at this
- *  layer; downstream consumers that key on the precise cardinality
- *  distinction (e.g.\ Cantor's diagonal arguments, future
- *  cardinality-aware optimisations) get the correct value.
- *
- *  Pre-#559 the spelling was @c using @c ℝ @c = @c RealSet (the
- *  classifier alias); type-context sites in concept gates and member
- *  extractions (@c typename @c ℝ::Domain etc.) were migrated to
- *  @c RealsOf<> directly in step 1 of this slice.
+ *  @c ℂ and @c 𝔻 remain classifier aliases tracked under #559
+ *  (ℂ = ℝ[i]/(i²+1), 𝔻 = ℝ[ε]/(ε²)).  The cross-carrier membership classifier
+ *  is @c RealSet @c = @c RealsOf<>.
  */
-// ℝ --- the coat-hanger.  Realised (imperfectly, for now) as the decidable
-// FIELD ℚ(√2) = QuadraticReal<2>: a genuine real value that satisfies IsField
-// and the library's STRUCTURAL IsDedekindComplete surrogate (totally ordered +
-// dense + extrema), so the Ddk algebra can hang off it the way one bootstraps
-// from ℝ.  Be honest about the imperfection: ℚ(√2) is @b countable and so @b
-// not genuinely Dedekind-complete (it only passes the surrogate, which ℚ passes
-// too), and the @c ℶ_1 metadata tags the continuum we are @b modelling, not the
-// materialised carrier.  Further extensions (numerical, via subalgebras) and
-// transcendentals (symbolic Expr) grow it as we go.  A documented placeholder
-// --- not a false postulate on an uninhabited carrier.
 export inline constexpr auto ℝ =
     dedekind::sets::Ω<QuadraticReal<2>, ClassicalLogic, ℶ_1>;
 

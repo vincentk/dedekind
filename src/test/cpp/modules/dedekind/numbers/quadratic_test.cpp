@@ -29,10 +29,9 @@ using R2 = QuadraticReal<2>;
 constexpr R2 r2 = R2::root();            // √2 as a field element
 constexpr Cut<> c2 = Cut<>::sqrt(Q{2});  // √2 as an order-leaf
 
-// The two √2's agree on where √2 sits relative to the integer n.
-constexpr bool same_place(long n) {
-  return (Cut<>{n} <=> c2) == (R2{n} <=> r2);
-}
+// The two √2's agree on where √2 sits relative to the RATIONAL q (not only
+// integers — the documented agreement is "among the rationals").
+constexpr bool same_place(Q q) { return (Cut<>{q} <=> c2) == (R2{q} <=> r2); }
 }  // namespace
 
 TEST_CASE("ℚ(√2): a decidable quadratic real field", "[numbers][quadratic]") {
@@ -59,11 +58,15 @@ TEST_CASE("ℚ(√2): a decidable quadratic real field", "[numbers][quadratic]")
   }
 
   SECTION("coherence: Cut's √2 and ℚ(√2)'s √2 are the SAME real") {
-    STATIC_CHECK(same_place(0));
-    STATIC_CHECK(same_place(1));
-    STATIC_CHECK(same_place(2));
-    STATIC_CHECK(same_place(-2));
-    CHECK(same_place(1));  // codecov
+    STATIC_CHECK(same_place(Q{0}));
+    STATIC_CHECK(same_place(Q{1}));
+    STATIC_CHECK(same_place(Q{2}));
+    STATIC_CHECK(same_place(Q{-2}));
+    // Non-integral probes straddling √2 ≈ 1.4142 — agreement among the
+    // rationals.
+    STATIC_CHECK(same_place(Q{7, 5}));  // 7/5 = 1.4 < √2
+    STATIC_CHECK(same_place(Q{3, 2}));  // 3/2 = 1.5 > √2
+    CHECK(same_place(Q{7, 5}));         // codecov
   }
 
   SECTION("mixed-sign order: both branches of sign_of") {

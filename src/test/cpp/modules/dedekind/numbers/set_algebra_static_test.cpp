@@ -12,11 +12,12 @@ namespace {
 
 // Post-#559: ℂ is the universe value Ω<Complex<machine_real_scalar>,
 // ClassicalLogic, ℶ_1>, so the canonical scout spelling is element<ℂ>
-// (no double-Ω).  ℝ migration to element<ℝ> completed alongside #622's
-// cardinality cut — Ω<Real<double>> with the default ℵ_0 would route
-// the carrier-axis resolver to ClassicalLogic, contradicting the ℶ_1
-// cardinality and the Ternary semantics this test relies on.  ℝ_d is the
-// materialisable Real<double> ambient (ℝ itself is now the ℚ(√2) coat-hanger).
+// (no double-Ω).  The machine-real scout is element<ℝ_d> — ℝ itself is now the
+// ℚ(√2) coat-hanger, so Real<double> computations live on the materialisable
+// ambient ℝ_d = Ω<Real<double>, ClassicalLogic, ℶ_1>.  (A plain Ω<Real<double>>
+// with the default ℵ_0 would route the carrier-axis resolver to ClassicalLogic,
+// contradicting the ℶ_1 cardinality and the Ternary semantics this test relies
+// on.)
 constexpr auto r = element<ℝ_d>;
 constexpr auto c = element<ℂ>;
 

@@ -75,8 +75,8 @@ export constexpr std::strong_ordering reverse(std::strong_ordering o) noexcept {
  *  @b Relationship @b to @b @c IsTotal (defined further down): @c
  *  IsTotal is the @b stronger axiomatic claim that the operation is
  *  total as a function @c S @c × @c S @c → @c S (defined for all
- *  inputs, achieved via one of the periodic / idempotent / saturating
- *  paths).  @c IsClosedUnder is purely about the operator's return
+ *  inputs, achieved via one of the periodic / idempotent / saturating /
+ *  exact paths).  @c IsClosedUnder is purely about the operator's return
  *  type; it does @b not promise totality.  So @c IsTotal<T, @c Op>
  *  implies @c IsClosedUnder<T, @c Op>, but not vice-versa: @c int
  *  under @c std::plus<> satisfies @c IsClosedUnder (the operator
