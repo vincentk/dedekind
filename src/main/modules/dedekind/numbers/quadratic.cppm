@@ -36,6 +36,7 @@ module;
 
 export module dedekind.numbers:quadratic;
 
+import dedekind.algebra; // IsField / HasFieldOperators (the field witnesses)
 import dedekind.category;
 import dedekind.order;
 import dedekind.sets;
@@ -189,6 +190,77 @@ template <long D, typename Q>
 inline constexpr bool is_antisymmetric_v<dedekind::numbers::QuadraticReal<D, Q>,
                                          std::less_equal<>> = true;
 
+/** @section quadratic__Field_Axioms
+ *  ℚ(√D) is a GENUINE field: every axiom below is @b witnessed by computation
+ *  in the numbers-namespace static_asserts (√2·√2=2, (1+√2)(1−√2)=−1,
+ *  √2·(1/√2)=1, associativity / commutativity / distributivity).  Registered so
+ *  @c category::IsField holds --- the honest opposite of a postulated field on
+ *  an uninhabited carrier.  @c is_exact_total (Path D) admits @c + and @c * as
+ *  total (exact & unbounded), lifting ℚ(√D) to a Magma and thence up the
+ *  ring/field chain to @c IsField. */
+template <long D, typename Q>
+struct is_exact_total<dedekind::numbers::QuadraticReal<D, Q>,
+                      std::plus<dedekind::numbers::QuadraticReal<D, Q>>>
+    : std::true_type {};
+template <long D, typename Q>
+struct is_exact_total<dedekind::numbers::QuadraticReal<D, Q>,
+                      std::multiplies<dedekind::numbers::QuadraticReal<D, Q>>>
+    : std::true_type {};
+
+template <long D, typename Q>
+struct is_associative<dedekind::numbers::QuadraticReal<D, Q>,
+                      std::plus<dedekind::numbers::QuadraticReal<D, Q>>>
+    : std::true_type {};
+template <long D, typename Q>
+struct is_associative<dedekind::numbers::QuadraticReal<D, Q>,
+                      std::multiplies<dedekind::numbers::QuadraticReal<D, Q>>>
+    : std::true_type {};
+template <long D, typename Q>
+struct is_commutative<dedekind::numbers::QuadraticReal<D, Q>,
+                      std::plus<dedekind::numbers::QuadraticReal<D, Q>>>
+    : std::true_type {};
+template <long D, typename Q>
+struct is_commutative<dedekind::numbers::QuadraticReal<D, Q>,
+                      std::multiplies<dedekind::numbers::QuadraticReal<D, Q>>>
+    : std::true_type {};
+
+template <long D, typename Q>
+inline constexpr bool
+    is_distributive_v<dedekind::numbers::QuadraticReal<D, Q>,
+                      std::multiplies<dedekind::numbers::QuadraticReal<D, Q>>,
+                      std::plus<dedekind::numbers::QuadraticReal<D, Q>>> = true;
+
+template <long D, typename Q>
+inline constexpr bool
+    is_invertible_v<dedekind::numbers::QuadraticReal<D, Q>,
+                    std::plus<dedekind::numbers::QuadraticReal<D, Q>>> = true;
+template <long D, typename Q>
+inline constexpr bool
+    is_invertible_v<dedekind::numbers::QuadraticReal<D, Q>,
+                    std::multiplies<dedekind::numbers::QuadraticReal<D, Q>>> =
+        true;
+
+template <long D, typename Q>
+struct identity_trait<dedekind::numbers::QuadraticReal<D, Q>,
+                      std::plus<dedekind::numbers::QuadraticReal<D, Q>>> {
+  using value_type = dedekind::numbers::QuadraticReal<D, Q>;
+  static constexpr value_type value{};  // 0
+};
+template <long D, typename Q>
+struct identity_trait<dedekind::numbers::QuadraticReal<D, Q>,
+                      std::multiplies<dedekind::numbers::QuadraticReal<D, Q>>> {
+  using value_type = dedekind::numbers::QuadraticReal<D, Q>;
+  static constexpr value_type value{1};  // 1
+};
+
+template <long D, typename Q>
+struct inverse_trait<dedekind::numbers::QuadraticReal<D, Q>,
+                     std::plus<dedekind::numbers::QuadraticReal<D, Q>>> {
+  static constexpr bool exists = true;
+  using value_type = dedekind::numbers::QuadraticReal<D, Q>;
+  static constexpr value_type compute(const value_type& x) { return -x; }
+};
+
 }  // namespace dedekind::category
 
 namespace dedekind::numbers {
@@ -224,5 +296,16 @@ static_assert((root2 + R2{3}) + R2{5} == root2 + (R2{3} + R2{5}), "+ assoc.");
 static_assert(root2 * R2{3} == R2{3} * root2, "× comm.");
 static_assert(root2 * (R2{2} + root2) == root2 * R2{2} + root2 * root2,
               "× distributes over +.");
+
+// The concept-level payoff: ℚ(√2) is a bona-fide FIELD — not just field-shaped
+// operators, but the axiomatic IsField, now that Path-D (exact) totality lifts
+// it to a Magma.  Ω⟨ℚ(√2)⟩ is a real field as a first-class C++ value, exactly
+// the way ℚ = Ω⟨Rational⟩ is — the algebraic coat-hanger, on the reals.
+static_assert(dedekind::category::IsField<R2>,
+              "ℚ(√2)'s carrier satisfies the axiomatic IsField.");
+static_assert(
+    dedekind::algebra::IsField<
+        std::remove_cvref_t<decltype(dedekind::sets::Ω<R2>)>>,
+    "Ω⟨ℚ(√2)⟩ is a field as a first-class value, like ℚ = Ω⟨Rational⟩.");
 
 }  // namespace dedekind::numbers

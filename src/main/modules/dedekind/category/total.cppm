@@ -114,21 +114,27 @@ concept IsClosedUnderEither = IsClosedUnder<T, Op> || IsClosedUnderUnary<T, Op>;
  * @concept IsTotal
  * @brief The Master Safety Certificate for Level 0.
  * A morphism is total if it is Periodic (Circular), Idempotent
- * (Stable), or Saturating (escalating to an extended-range sentinel).
+ * (Stable), Saturating (escalating to an extended-range sentinel), or
+ * Exact (unbounded arbitrary-precision arithmetic that never overflows
+ * or rounds).
  *
  * Textbook note:
- * The three paths are orthogonal algebraic properties.  This concept
+ * The four paths are orthogonal algebraic properties.  This concept
  * is a pragmatic implementation certificate and not a canonical
  * algebraic taxonomy boundary; carriers opt in to whichever path
- * matches their machine-totality story.  The named concept @c
- * IsSaturating that wraps @c is_saturating_v lives in @c
- * dedekind.category:mereology (per #387's lift); here we reach for
- * the underlying trait variable directly so this upstream-
- * foundational layer does not depend on that partition.
+ * matches their totality story.  The first three are @b machine-finite
+ * (totality by staying in a bounded range); the fourth, @c
+ * is_exact_total_v, is the @b exact/unbounded path that lets the exact
+ * number fields (ℚ, @c ExactReal, ℚ(√D)) be Magmas --- and hence reach
+ * @c IsField --- rather than being excluded as "non-machine-total".
+ * The named concept @c IsSaturating that wraps @c is_saturating_v lives
+ * in @c dedekind.category:mereology (per #387's lift); here we reach for
+ * the underlying trait variables directly so this upstream-foundational
+ * layer does not depend on that partition.
  */
 export template <typename T, typename Op>
-concept IsTotal =
-    IsPeriodic<T, Op> || IsIdempotent<T, Op> || is_saturating_v<T, Op>;
+concept IsTotal = IsPeriodic<T, Op> || IsIdempotent<T, Op> ||
+                  is_saturating_v<T, Op> || is_exact_total_v<T, Op>;
 
 /**
  * @concept IsTotalArrow

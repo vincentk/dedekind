@@ -795,19 +795,36 @@ struct is_saturating : std::false_type {};
 export template <typename T, typename Op>
 inline constexpr bool is_saturating_v = is_saturating<T, Op>::value;
 
+/** @brief Path D to totality: the operation is total because the carrier is
+ *  @b exact and @b unbounded --- arbitrary precision, no wraparound and no
+ *  rounding, so @c Op(a,b) is always defined and lossless (no hazard).  The
+ *  archetypes are the exact number fields (@c Rational = ℚ, @c ExactReal,
+ *  @c QuadraticReal = ℚ(√D)) under @c + and @c *.  Distinct from the three
+ *  machine-finite paths: those carriers are total because they cannot leave a
+ *  bounded range (wrap / stabilise / saturate); an exact carrier is total
+ *  because its range is @b unbounded and its arithmetic is @b closed.  Opt-in
+ *  (default false), so only carriers that genuinely have the property qualify.
+ */
+export template <typename T, typename Op>
+struct is_exact_total : std::false_type {};
+
+export template <typename T, typename Op>
+inline constexpr bool is_exact_total_v = is_exact_total<T, Op>::value;
+
 /** @section species__totality
- *  Three pragmatic paths to totality, each a sufficient (not
+ *  Four pragmatic paths to totality, each a sufficient (not
  *  necessary) condition: periodicity (modular wrap), idempotence
- *  (globally stable), or saturation (escalation to an extended-range
- *  sentinel).  See the textbook note on @c IsTotal below.
+ *  (globally stable), saturation (escalation to an extended-range
+ *  sentinel), or exactness (unbounded arbitrary-precision arithmetic).
+ *  See the textbook note on @c IsTotal below.
  */
 export template <typename T, typename Op>
 struct is_total
     : std::bool_constant<
           is_periodic_v<T, Op> ||    // Path A: It wraps (Groups/Rings)
           is_idempotent_v<T, Op> ||  // Path B: It's stable (Lattices/Extrema)
-          is_saturating_v<T, Op>     // Path C: It escalates (extended
-                                     // SignedExtensionalCardinal<>, ±ℵ_0)
+          is_saturating_v<T, Op> ||  // Path C: It escalates (SEC<>, ±ℵ_0)
+          is_exact_total_v<T, Op>    // Path D: exact & unbounded (ℚ, ℝ-fields)
           > {};
 
 export template <typename T, typename Op>
