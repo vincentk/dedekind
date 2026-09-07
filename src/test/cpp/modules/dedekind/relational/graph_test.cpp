@@ -14,6 +14,7 @@ import dedekind.relational;
 import dedekind.category;
 
 using namespace dedekind::sets;
+using namespace dedekind::category;  // the arrow `>>` (Succ ∘ Succ) below
 
 namespace {
 // A distinct arrow to separate from the identity: succ(x) = x + 1.
@@ -23,6 +24,19 @@ struct Succ {
   constexpr int operator()(int x) const { return x + 1; }
 };
 }  // namespace
+
+TEST_CASE("graph: functional relative product Γ_f ; Γ_g = Γ_{f;g} at runtime",
+          "[sets][graph][compose]") {
+  const Succ succ{};
+  // Γ_succ ; Γ_succ = Γ_{x+2}: (a, a+2) lies on it, off-diagonal does not.  The
+  // ∃b of the relative product is discharged by functionality (b = succ(a)),
+  // so this composes over the int intermediate (not just a Boolean middle).
+  const auto twice = graph(succ) >> graph(succ);
+  CHECK(twice(std::pair{5, 7}));
+  CHECK_FALSE(twice(std::pair{5, 8}));
+  // Γ_f ; Γ_g agrees with the graph of the categorical composite.
+  CHECK(twice(std::pair{3, 5}) == graph(succ >> succ)(std::pair{3, 5}));
+}
 
 TEST_CASE("graph: graph(f) is the diagonal; membership is b == f(a)",
           "[sets][graph]") {

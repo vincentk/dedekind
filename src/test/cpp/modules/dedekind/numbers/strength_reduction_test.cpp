@@ -9,9 +9,13 @@
  *   \mathbb{Z} \;\hookrightarrow\; \mathbb{Q} \;\hookrightarrow\; \mathbb{R}
  * @f]
  *
- * The chain is four monic, order-preserving embeddings (@b S legs); the upper
- * three are ring embeddings (@c EmbedsAsSubalgebra).  Composed into one arrow
- * @c Φ, its graph @c graph(Φ) is the composite Trsk relation
+ * The chain is four monic, order-preserving embeddings (@b S legs).  The upper
+ * two rungs (@c embed_ℤ_ℚ_, @c embed_ℚ_ℝ) are @b ring embeddings, witnessed as
+ * @c EmbedsAsSubalgebra; the lower two (@c unsigned ↪ ℕ, @c ℕ ↪ ℤ) are
+ * witnessed
+ * @c IsMonicArrow --- ℕ is a rig, not a ring, so the ring-embedding claim
+ * starts at ℤ ↪ ℚ.  Composed into one arrow @c Φ, its graph @c graph(Φ) is the
+ * composite Trsk relation
  * @f$\texttt{unsigned}\times\mathbb{R}\;|\;r=\Phi(u)@f$ (an @c IsRelation).
  *
  * Applying the halfspace criterion @f$\{x \le 10\}@f$ on the ℝ image and
@@ -170,5 +174,18 @@ TEST_CASE("Strength reduction is robust to the ℤ/2^w wrap (modular pre-image)"
     const unsigned wrapped = umax + k;  // = k - 1 (mod 2^w)
     CAPTURE(k, wrapped);
     CHECK((Φ(wrapped) <= ten) == (wrapped <= 10u));
+  }
+}
+
+TEST_CASE(
+    "Relational composition of the tower graphs, arithmetic between rungs",
+    "[numbers][tower][strength-reduction][relational]") {
+  // graph(ℤ↪ℚ) ; graph(×2 on ℚ) ; graph(ℚ↪ℝ) at runtime: the functional
+  // relative product over the ℚ/ℝ intermediates, r == 2·z.
+  const auto Γ = graph(embed_ℤ_ℚ_) >> graph(scale2) >> graph(embed_ℚ_ℝ);
+  for (int z = 0; z <= 6; ++z) {
+    CAPTURE(z);
+    CHECK(Γ(std::pair{default_integer{z}, R2{2 * z}}));
+    CHECK_FALSE(Γ(std::pair{default_integer{z}, R2{2 * z + 1}}));
   }
 }

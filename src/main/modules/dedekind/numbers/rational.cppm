@@ -286,6 +286,11 @@ struct HonestDivRational {
  * The embedding of an integer Z into the rationals is **exact**:
  * every integer n corresponds uniquely to n/1.
  * This transform returns Ternary::True to signal no information loss.
+ *
+ * @see @c embed_ℤ_ℚ_ (below) --- the same @f$n\mapsto n/1@f$ as a categorical
+ * @c arrow over @c default_integer, carrying the monic/homomorphism/monotone
+ * registrations the tower S-leg needs.  This Ternary transform is the Kleene
+ * surface; the two are distinct, not a redundant fork.
  */
 export template <IsInteger I>
 struct PartialEmbedIntegerToRational {
@@ -604,8 +609,22 @@ export using machine_integer = int;
  * tower rung below @c embed_ℚ_ℝ) that is also @b order-preserving
  * (@c is_monotone_v) — the property the halfspace strength-reduction pulls back
  * through.  The homomorphism/injectivity laws are @b witnessed by computation
- * below (finite fragment; the saturating ±∞ ends are order sentinels, not ring
- * elements).
+ * below on the ring ℤ.
+ *
+ * @note Why register the ring-embedding traits here when @c embed_double_ℚ
+ * (below) @b withholds @c is_monic_arrow_v?  @c double 's NaN/±∞ are @b in-band
+ * values that make @c embed_double_ℚ genuinely @b partial (it @c throw s), so a
+ * total-arrow trait would over-claim.  @c embed_ℤ_ℚ_ is @b total on the ring:
+ * @f$n\mapsto n/1@f$ closes on all of ℤ, and the saturating @c
+ * SignedCardinality sentinels (±∞, NaZ) are @b not ring elements.  Registering
+ * is honest here (the same convention @c embed_ℚ_ℝ follows); withholding is
+ * honest there.
+ *
+ * @see @c PartialEmbedIntegerToRational --- the @b same map @f$n\mapsto n/1@f$
+ * on the @b Ternary/Kleene surface, generic over @c I.  @c embed_ℤ_ℚ_ is the
+ * categorical @c arrow over the canonical @c default_integer, carrying the
+ * monic / homomorphism / monotone registrations the tower's S-leg needs; the
+ * two are distinct surfaces, not a redundant fork.
  */
 export inline constexpr auto embed_ℤ_ℚ_ =
     arrow<default_integer, Rational<default_integer>>(
