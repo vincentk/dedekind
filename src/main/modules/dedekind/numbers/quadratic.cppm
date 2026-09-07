@@ -78,19 +78,18 @@ consteval bool is_perfect_square(long n) {
  * @tparam Q the rational coefficient carrier.
  */
 export template <long D, typename Q = Rational<default_integer>>
-  requires(D > 1) && std::three_way_comparable<Q, std::strong_ordering> &&
-          dedekind::order::IsDense<Q> && (!std::integral<Q>)
+  requires(D > 1) && IsRational<Q>
 class QuadraticReal {
-  // Q must be a DENSE, strongly-ordered FIELD coefficient (a real's coefficient
-  // is continuous, not discrete).  @c IsDense names that property (and excludes
-  // floating-point, not totally ordered here); @c strong_ordering is required
-  // by the decidable field order's return; and @c !std::integral is a narrow
-  // belt for @c int, which @c IsDense cannot classify as discrete (@c
-  // IsDiscrete<int> is architecturally withheld — @c int is not a magma).
-  // Excluding integers also keeps the field honest: their division truncates
-  // (e.g. QuadraticReal<2,int>'s inverse would compute (-1)/(-2) = 0, so
-  // √2·(1/√2) ≠ 1). The default Rational is a dense, strongly-ordered field,
-  // exact for all practical purposes (see is_exact_total).
+  // Q must be the rational field ℚ = Rational<Z>.  Then a nonsquare integer D
+  // has √D ∉ ℚ (a theorem), so a+b√D is a GENUINE degree-2 extension: the a/b
+  // representation is canonical, and the conjugate norm a²−b²D is nonzero on
+  // every nonzero element — the properties root() / inverse() / == rely on.  A
+  // coefficient field that already contains √D degenerates (its norm vanishes
+  // on nonzero elements and inverse() breaks): e.g. Q = QuadraticReal<2>, where
+  // √2 ∈ Q, gives the unsound QuadraticReal<2, QuadraticReal<2>>.  So the
+  // is_perfect_square(D) guard below (√D ∉ ℤ) is SUFFICIENT once Q = ℚ.  The
+  // rational gate also subsumes strong-ordering / dense / non-integral, and
+  // keeps division exact (integer truncation would make √2·(1/√2) ≠ 1).
   static_assert(
       !detail_quadratic::is_perfect_square(D),
       "QuadraticReal<D> requires a NON-square D — else √D is rational "
@@ -342,5 +341,13 @@ static_assert(
 static_assert(dedekind::order::IsDedekindComplete<R2>,
               "ℚ(√2) satisfies the structural IsDedekindComplete surrogate, "
               "paired with IsField on the same real value.");
+
+// The rational-carrier gate rules out the degenerate nesting √D ∈ Q: ℚ(√2) is
+// not a rational field, so QuadraticReal<2, QuadraticReal<2>> (whose conjugate
+// norm a²−b²D vanishes on nonzero elements, breaking inverse() and ==/<=>
+// consistency) is ill-formed and can never be instantiated.
+static_assert(!IsRational<R2>,
+              "ℚ(√2) is not a rational field — nesting it as the coefficient "
+              "carrier is the degenerate, ruled-out case.");
 
 }  // namespace dedekind::numbers
