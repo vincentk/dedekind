@@ -135,9 +135,12 @@ concept IsClosedUnderEither = IsClosedUnder<T, Op> || IsClosedUnderUnary<T, Op>;
  * algebraic taxonomy boundary; carriers opt in to whichever path
  * matches their totality story.  The first three are @b machine-finite
  * (totality by staying in a bounded range); the fourth, @c
- * is_exact_total_v, is the @b exact/unbounded path that lets the exact
- * number fields (ℚ, @c ExactReal, ℚ(√D)) be Magmas --- and hence reach
- * @c IsField --- rather than being excluded as "non-machine-total".
+ * is_exact_total_v, is the @b exact/unbounded path that lets an exact number
+ * field be a Magma --- and hence reach @c IsField --- rather than being
+ * excluded as "non-machine-total".  It is registered so far only for @c
+ * QuadraticReal = ℚ(√D); @c Rational = ℚ and @c ExactReal are the intended @b
+ * future users (they do not yet opt in, so @c IsField stays blocked for them
+ * per @c rational.cppm --- deferred, not claimed here).
  * The named concept @c IsSaturating that wraps @c is_saturating_v lives
  * in @c dedekind.category:mereology (per #387's lift); here we reach for
  * the underlying trait variables directly so this upstream-foundational

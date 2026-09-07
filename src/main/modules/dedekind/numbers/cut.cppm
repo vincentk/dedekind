@@ -28,10 +28,10 @@
  */
 module;
 
-#include <cassert>  // radicand precondition guard
 #include <compare>
 #include <concepts>
 #include <functional>  // std::less_equal (the poset-trait registration key)
+#include <stdexcept>   // std::domain_error (release-active radicand guard)
 #include <type_traits>
 
 export module dedekind.numbers:cut;
@@ -85,7 +85,9 @@ class Cut {
   /** @brief The radical real @f$\sqrt{c}@f$ (requires @f$c\ge 0@f$; a perfect
    *  square is admitted --- it simply compares @c == to its rational root). */
   static constexpr Cut sqrt(Q radicand) {
-    assert(!(radicand < Q{}));  // √c is real only for c ≥ 0
+    if (radicand < Q{})  // √c is real only for c ≥ 0 (release-active, like
+                         // Rational's div-by-zero — not an NDEBUG-only assert)
+      throw std::domain_error("Cut::sqrt: radicand must be non-negative");
     return Cut{radicand, Kind::Radical, /*neg=*/false};
   }
 

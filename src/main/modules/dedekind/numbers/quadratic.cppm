@@ -29,10 +29,10 @@
  */
 module;
 
-#include <cassert>  // nonzero-norm guard on inverse()
 #include <compare>
 #include <concepts>
 #include <functional>
+#include <stdexcept>  // std::domain_error (zero-inverse guard)
 #include <type_traits>
 
 export module dedekind.numbers:quadratic;
@@ -137,7 +137,9 @@ class QuadraticReal {
    *  nonzero for every nonzero element (@f$\sqrt D@f$ irrational). */
   constexpr QuadraticReal inverse() const {
     const Q norm = a_ * a_ - b_ * b_ * Q{D};
-    assert(norm != Q{});  // norm = 0 iff *this = 0, which has no inverse
+    if (norm == Q{})  // norm = 0 iff *this = 0 (√D ∉ ℚ); reject like
+                      // Rational::inverse, not an NDEBUG-only assert
+      throw std::domain_error("QuadraticReal::inverse: zero has no inverse");
     return of(a_ / norm, -b_ / norm);
   }
   friend constexpr QuadraticReal operator/(const QuadraticReal& x,
