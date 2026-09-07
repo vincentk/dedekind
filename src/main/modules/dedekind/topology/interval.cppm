@@ -187,11 +187,15 @@ class Ray : public detail::BoundaryTag<B> {
  */
 export template <IsTotallyOrdered T, Boundary Lower = Boundary::Open,
                  Boundary Upper = Boundary::Open, typename L = ClassicalLogic>
-class Interval : public detail::IntervalBoundaryTag<Lower, Upper> {
+class Interval
+    : public detail::IntervalBoundaryTag<Lower, Upper>,
+      public dedekind::sets::SetExpr<Interval<T, Lower, Upper, L>, T, L> {
  public:
-  using Domain = T;
-  using Codomain = typename L::Ω;
-  using logic_species = L;  // carry the classifier's logic into the Lwv fabric
+  // Domain / Codomain / logic_species / Member / ι are inherited from SetExpr —
+  // the ETCS subobject surface — so an OPEN Interval is at once a first-class
+  // Lwv set (IsSet, with generic meet/join) AND a topological neighborhood
+  // (is_open_tag from IntervalBoundaryTag).  This is the "neighborhood between
+  // two ℚ that also obeys the ETCS axioms" the continuum is approached through.
   using lower_ray_type = Ray<T, Direction::Upward, Lower, L>;
   using upper_ray_type = Ray<T, Direction::Downward, Upper, L>;
 
@@ -321,6 +325,20 @@ static_assert(IsConvex<Ray<int, Direction::Upward>>,
 static_assert(IsConvex<Interval<int>>,
               "An open interval must satisfy IsConvex.");
 static_assert(IsConvex<HalfSpace<int>>, "A half-space must satisfy IsConvex.");
+
+// The neighborhood ↔ Lwv bridge: an OPEN Interval is at once a first-class ETCS
+// set (Member/ι/meet/join via SetExpr) AND a topological neighborhood
+// (is_open_tag).  This is the object the continuum is approached through — a
+// "neighborhood between two points" that also obeys the ETCS axioms. (Witnessed
+// on int here; the ℚ instance lives in the numbers test, downstream of
+// Rational.)
+static_assert(
+    dedekind::category::IsSet<Interval<int, Boundary::Open>>,
+    "an open Interval is a first-class ETCS set (Member/ι via SetExpr).");
+static_assert(IsOpen<Interval<int, Boundary::Open>>,
+              "an open Interval carries is_open_tag → IsOpen.");
+static_assert(IsNeighborhood<Interval<int, Boundary::Open>, int>,
+              "an open Interval is a neighborhood of its points.");
 
 }  // namespace dedekind::topology
 
