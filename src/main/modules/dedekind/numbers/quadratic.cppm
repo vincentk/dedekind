@@ -52,8 +52,18 @@ namespace detail_quadratic {
  *  unique, and the "extension" degenerates to @f$\mathbb{Q}@f$). */
 consteval bool is_perfect_square(long n) {
   if (n < 0) return false;
-  for (long k = 0; k * k <= n; ++k)
-    if (k * k == n) return true;
+  if (n < 2) return true;  // 0, 1 are squares
+  // Binary-search the root comparing @c mid to @c n/mid (never forming
+  // @c mid*mid), so every positive @c long is checked without overflow.
+  for (long lo = 1, hi = n; lo <= hi;) {
+    const long mid = lo + (hi - lo) / 2;
+    const long q = n / mid;
+    if (q == mid && n % mid == 0) return true;  // mid² == n
+    if (mid <= q)
+      lo = mid + 1;  // mid² ≤ n → root ≥ mid
+    else
+      hi = mid - 1;  // mid² > n
+  }
   return false;
 }
 }  // namespace detail_quadratic
@@ -68,8 +78,13 @@ consteval bool is_perfect_square(long n) {
  * @tparam Q the rational coefficient carrier.
  */
 export template <long D, typename Q = Rational<default_integer>>
-  requires(D > 1)
+  requires(D > 1) && std::three_way_comparable<Q, std::strong_ordering>
 class QuadraticReal {
+  // Q must be STRONGLY ordered (the decidable field order returns
+  // std::strong_ordering; a partial carrier like floating-point cannot satisfy
+  // it) and exact.  The default Rational is strongly ordered and exact within
+  // its representable range — see the is_exact_total caveat below re: the
+  // saturating-integer sentinel.
   static_assert(
       !detail_quadratic::is_perfect_square(D),
       "QuadraticReal<D> requires a NON-square D — else √D is rational "

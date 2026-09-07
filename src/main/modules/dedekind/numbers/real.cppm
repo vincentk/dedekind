@@ -365,13 +365,15 @@ export using RealSet = RealsOf<>;
  *  @c RealsOf<> directly in step 1 of this slice.
  */
 // ℝ --- the coat-hanger.  Realised (imperfectly, for now) as the decidable
-// Dedekind-COMPLETE FIELD ℚ(√2) = QuadraticReal<2>: a genuine real value that
-// satisfies both IsField and IsDedekindComplete, so the Ddk algebra can hang
-// off it exactly as one bootstraps analysis from ℝ.  It @b models the continuum
-// (cardinality ℶ_1) while @b materialising one algebraic extension ℚ(√2);
-// further extensions (numerical, via subalgebras) and transcendentals (symbolic
-// Expr) grow it as we go.  An honest placeholder --- not a false postulate on
-// an uninhabited carrier.
+// FIELD ℚ(√2) = QuadraticReal<2>: a genuine real value that satisfies IsField
+// and the library's STRUCTURAL IsDedekindComplete surrogate (totally ordered +
+// dense + extrema), so the Ddk algebra can hang off it the way one bootstraps
+// from ℝ.  Be honest about the imperfection: ℚ(√2) is @b countable and so @b
+// not genuinely Dedekind-complete (it only passes the surrogate, which ℚ passes
+// too), and the @c ℶ_1 metadata tags the continuum we are @b modelling, not the
+// materialised carrier.  Further extensions (numerical, via subalgebras) and
+// transcendentals (symbolic Expr) grow it as we go.  A documented placeholder
+// --- not a false postulate on an uninhabited carrier.
 export inline constexpr auto ℝ =
     dedekind::sets::Ω<QuadraticReal<2>, ClassicalLogic, ℶ_1>;
 

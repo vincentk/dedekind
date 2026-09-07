@@ -55,8 +55,9 @@ export import :mandelbrot;  // Mandelbrot recurrence/orbit helpers
 // `import dedekind.analysis;` (downstream of :numbers in the build graph)
 // to reach Dual<F> and the 𝔻 alias.
 export import :symbolic;     // Formal symbols / Indeterminates
-export import :real;         // ℝ (universe value Ω<Real<machine_real_scalar>>);
-                             // RealsOf<> / RealSet; R (classifier instance)
+export import :real;         // ℝ = Ω<QuadraticReal<2>> (the ℚ(√2) coat-hanger);
+                             // materialisable ambient ℝ_d = Ω<Real<double>>;
+                             // Real<Q>/ExactReal; RealsOf<>/RealSet; R
 export import :cardinality;  // Draft finite/aleph0 carrier and policies
 
 /** @section numbers__Metadata */

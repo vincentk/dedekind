@@ -54,7 +54,13 @@ using namespace dedekind::category;
  *         so every decision is exact.
  */
 export template <typename Q = Rational<default_integer>>
+  requires std::three_way_comparable<Q, std::strong_ordering>
 class Cut {
+  // Q must be STRONGLY ordered: the decidable cut order returns
+  // std::strong_ordering, which a partial carrier (e.g. floating-point) cannot
+  // satisfy.  The default Rational is strongly ordered and exact within its
+  // representable range (the saturating-integer sentinel is the same
+  // out-of-range hazard the library's ℚ carries; see is_exact_total).
  public:
   using Domain = Cut;
   using ScalarCarrier = Q;
