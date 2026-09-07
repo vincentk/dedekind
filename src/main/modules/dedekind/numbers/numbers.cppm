@@ -58,6 +58,9 @@ export import :symbolic;     // Formal symbols / Indeterminates
 export import :real;         // ℝ = Ω<QuadraticReal<2>> (the ℚ(√2) coat-hanger);
                              // materialisable ambient ℝ_d = Ω<Real<double>>;
                              // Real<Q>/ExactReal; RealsOf<>/RealSet; R
+export import :real_bridge;  // HSP S-leg ℚ ↪ ℝ (monic hom EmbedsAsSubalgebra) +
+                             // ι = graph(embed), the reified subobject
+                             // inclusion
 export import :cardinality;  // Draft finite/aleph0 carrier and policies
 
 /** @section numbers__Metadata */
