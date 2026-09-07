@@ -40,6 +40,8 @@ export import :integer;  // ℤ = Ω<SignedCardinality> (saturating variant
                          // anchored on SignedCardinality (post-PR #676).
 /** @section numbers__Algebraic_Extensions */
 export import :rational;    // Rational<default_integer> (The Quotient Field)
+export import :cut;         // Cut<Q> — decidable Dedekind reals (ℚ + radicals)
+export import :quadratic;   // ℚ(√D) — a decidable quadratic real FIELD
 export import :complex;     // ℂ (The Cayley-Dickson construction)
 export import :quaternion;  // ℍ (Hamilton's division ring)
 export import :scalars;     // Floating-point anchors
@@ -52,11 +54,10 @@ export import :mandelbrot;  // Mandelbrot recurrence/orbit helpers
 // (:ftc, :forms, :hamilton) live in :analysis.  Consumers should
 // `import dedekind.analysis;` (downstream of :numbers in the build graph)
 // to reach Dual<F> and the 𝔻 alias.
-export import :symbolic;  // Formal symbols / Indeterminates
-export import :real;      // ℝ (universe value Ω<Real<machine_real_scalar>,
-                          // ClassicalLogic, ℶ_1>); RealsOf<> / RealSet (the
-// cross-carrier classifier); R (classifier instance) —
-// Dedekind Cut / Cauchy continuum
+export import :symbolic;     // Formal symbols / Indeterminates
+export import :real;         // ℝ = Ω<QuadraticReal<2>> (the ℚ(√2) coat-hanger);
+                             // materialisable ambient ℝ_d = Ω<Real<double>>;
+                             // Real<Q>/ExactReal; RealsOf<>/RealSet; R
 export import :cardinality;  // Draft finite/aleph0 carrier and policies
 
 /** @section numbers__Metadata */

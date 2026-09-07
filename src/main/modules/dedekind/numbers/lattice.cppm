@@ -149,11 +149,10 @@ struct LatticeFactory<R, 1> {
   }
 
   constexpr auto bounded(int n) const {
-    // Post-#559 ℝ is the universe value Ω<Real<machine_real_scalar>>;
-    // element<ℝ> is the canonical scout spelling.  Spelt directly with
-    // @c Real<double> here because this lattice specialisation is keyed
-    // on the @c R (classifier) value rather than the universe symbol.
-    auto r = element<ℝ>;
+    // This lattice specialisation computes on @c Real<double> (the machine
+    // real), so it scouts the materialisable ambient @c ℝ_d --- not the
+    // abstract @c ℝ (now the coat-hanger over @c QuadraticReal<2>).
+    auto r = element<ℝ_d>;
     return Set{r | [n](const Real<double>& x) {
       const double v = x.resolve();
       if (!detail::is_integral_coordinate(v)) return false;

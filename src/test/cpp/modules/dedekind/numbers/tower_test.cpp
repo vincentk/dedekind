@@ -38,7 +38,7 @@ static_assert(IsMonicArrow<std::decay_t<decltype(embed_𝕂3_ℤ_)>>);
 // embed_ℤ_ℚ removed under ℚ retarget chiselling (machine-layer arrow
 // scaffolding); embed_ℚ_ℝ removed alongside it (no static_cast<int>
 // on SignedCardinality variant carrier).
-static_assert(IsMonicArrow<std::decay_t<decltype(embed_ℝ_ℂ<>)>>);
+static_assert(IsMonicArrow<std::decay_t<decltype(embed_ℝ_d_ℂ<>)>>);
 
 // ---------------------------------------------------------------------------
 // Arrow types are correct (compile-time)
@@ -57,9 +57,9 @@ static_assert(std::same_as<Cod<std::decay_t<decltype(embed_𝕂3_ℤ_)>>,
 // embed_ℤ_ℚ + embed_ℚ_ℝ Dom/Cod static_asserts removed under ℚ
 // retarget chiselling (both arrows deleted).
 
-static_assert(std::same_as<Dom<std::decay_t<decltype(embed_ℝ_ℂ<>)>>,
+static_assert(std::same_as<Dom<std::decay_t<decltype(embed_ℝ_d_ℂ<>)>>,
                            Real<machine_real_scalar>>);
-static_assert(std::same_as<Cod<std::decay_t<decltype(embed_ℝ_ℂ<>)>>,
+static_assert(std::same_as<Cod<std::decay_t<decltype(embed_ℝ_d_ℂ<>)>>,
                            Complex<machine_real_scalar>>);
 
 static_assert(IsSpecies<Rational<machine_integer>>);
@@ -104,12 +104,12 @@ TEST_CASE("Tower: embed_uint_ℕ (universal machine→variant lift)",
 // use embed_sint_ℤ (the per-set lift) or embed_signed_integral<Z> from
 // :sint directly).
 
-TEST_CASE("Tower: embed_floating_ℝ<F> covers any floating_point",
+TEST_CASE("Tower: embed_floating_ℝ_d<F> covers any floating_point",
           "[numbers][tower][embedding]") {
   // float → Real<double>: widening conversion
-  CHECK(embed_floating_ℝ(1.0f).resolve() == static_cast<double>(1.0f));
+  CHECK(embed_floating_ℝ_d(1.0f).resolve() == static_cast<double>(1.0f));
   // double → Real<double>: identity wrap
-  CHECK(embed_floating_ℝ(2.5).resolve() == 2.5);
+  CHECK(embed_floating_ℝ_d(2.5).resolve() == 2.5);
 }
 
 // ---------------------------------------------------------------------------
@@ -173,15 +173,15 @@ TEST_CASE("Tower: K3 ↪ ℤ via embed_𝕂3_ℤ_", "[numbers][tower][embedding]
 // remains available for callers that want the lossy realisation.
 
 // ---------------------------------------------------------------------------
-// ℝ ↪ ℂ
+// ℝ_d ↪ ℂ
 // ---------------------------------------------------------------------------
 
-TEST_CASE("Tower: ℝ ↪ ℂ via embed_ℝ_ℂ", "[numbers][tower][embedding]") {
+TEST_CASE("Tower: ℝ_d ↪ ℂ via embed_ℝ_d_ℂ", "[numbers][tower][embedding]") {
   // Embedding: imaginary part is always 0.
-  CHECK(embed_ℝ_ℂ<>(Real<machine_real_scalar>{3.0}).real() == 3.0);
-  CHECK(embed_ℝ_ℂ<>(Real<machine_real_scalar>{3.0}).imag() == 0.0);
-  CHECK(embed_ℝ_ℂ<>(Real<machine_real_scalar>{-2.5}).real() == -2.5);
-  CHECK(embed_ℝ_ℂ<>(Real<machine_real_scalar>{-2.5}).imag() == 0.0);
+  CHECK(embed_ℝ_d_ℂ<>(Real<machine_real_scalar>{3.0}).real() == 3.0);
+  CHECK(embed_ℝ_d_ℂ<>(Real<machine_real_scalar>{3.0}).imag() == 0.0);
+  CHECK(embed_ℝ_d_ℂ<>(Real<machine_real_scalar>{-2.5}).real() == -2.5);
+  CHECK(embed_ℝ_d_ℂ<>(Real<machine_real_scalar>{-2.5}).imag() == 0.0);
 }
 
 // ---------------------------------------------------------------------------
@@ -306,7 +306,7 @@ TEST_CASE("Partial Embeddings with Ternary Status",
   CHECK(q_result.value.resolve() ==
         static_cast<machine_real_scalar>(1.0 / 3.0));
 
-  // ℝ ↪ ℂ: exact embedding (Ternary::True)
+  // ℝ_d ↪ ℂ: exact embedding (Ternary::True)
   const auto embed_r_to_c = PartialEmbedRealToComplex<machine_real_scalar>{};
   const auto r = Real<machine_real_scalar>{2.5};
   const auto r_result = embed_r_to_c(r);

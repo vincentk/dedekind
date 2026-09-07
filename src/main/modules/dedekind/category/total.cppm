@@ -38,6 +38,7 @@
 module;
 
 #include <algorithm>
+#include <compare>  // std::strong_ordering (the reverse utility)
 #include <concepts>
 #include <cstddef>  // for std::size_t (cyclic_order_v)
 #include <functional>
@@ -53,6 +54,16 @@ import :species;
 
 namespace dedekind::category {
 
+/** @brief Reverse a three-way comparison: @c less ↔ @c greater, @c equal fixed.
+ *  The shared helper for carriers that compute an ordering in one direction and
+ *  flip it (e.g.\ the reals' cut/field comparisons), so the idiom is written
+ *  once rather than cloned per carrier. */
+export constexpr std::strong_ordering reverse(std::strong_ordering o) noexcept {
+  if (o == std::strong_ordering::less) return std::strong_ordering::greater;
+  if (o == std::strong_ordering::greater) return std::strong_ordering::less;
+  return std::strong_ordering::equal;
+}
+
 /**
  * @concept IsClosedUnder
  * @brief @c (S, @c Op) is closed under a binary operation: @c
@@ -64,8 +75,8 @@ namespace dedekind::category {
  *  @b Relationship @b to @b @c IsTotal (defined further down): @c
  *  IsTotal is the @b stronger axiomatic claim that the operation is
  *  total as a function @c S @c × @c S @c → @c S (defined for all
- *  inputs, achieved via one of the periodic / idempotent / saturating
- *  paths).  @c IsClosedUnder is purely about the operator's return
+ *  inputs, achieved via one of the periodic / idempotent / saturating /
+ *  exact paths).  @c IsClosedUnder is purely about the operator's return
  *  type; it does @b not promise totality.  So @c IsTotal<T, @c Op>
  *  implies @c IsClosedUnder<T, @c Op>, but not vice-versa: @c int
  *  under @c std::plus<> satisfies @c IsClosedUnder (the operator
@@ -114,21 +125,30 @@ concept IsClosedUnderEither = IsClosedUnder<T, Op> || IsClosedUnderUnary<T, Op>;
  * @concept IsTotal
  * @brief The Master Safety Certificate for Level 0.
  * A morphism is total if it is Periodic (Circular), Idempotent
- * (Stable), or Saturating (escalating to an extended-range sentinel).
+ * (Stable), Saturating (escalating to an extended-range sentinel), or
+ * Exact (unbounded arbitrary-precision arithmetic that never overflows
+ * or rounds).
  *
  * Textbook note:
- * The three paths are orthogonal algebraic properties.  This concept
+ * The four paths are orthogonal algebraic properties.  This concept
  * is a pragmatic implementation certificate and not a canonical
  * algebraic taxonomy boundary; carriers opt in to whichever path
- * matches their machine-totality story.  The named concept @c
- * IsSaturating that wraps @c is_saturating_v lives in @c
- * dedekind.category:mereology (per #387's lift); here we reach for
- * the underlying trait variable directly so this upstream-
- * foundational layer does not depend on that partition.
+ * matches their totality story.  The first three are @b machine-finite
+ * (totality by staying in a bounded range); the fourth, @c
+ * is_exact_total_v, is the @b exact/unbounded path that lets an exact number
+ * field be a Magma --- and hence reach @c IsField --- rather than being
+ * excluded as "non-machine-total".  It is registered so far only for @c
+ * QuadraticReal = ℚ(√D); @c Rational = ℚ and @c ExactReal are the intended @b
+ * future users (they do not yet opt in, so @c IsField stays blocked for them
+ * per @c rational.cppm --- deferred, not claimed here).
+ * The named concept @c IsSaturating that wraps @c is_saturating_v lives
+ * in @c dedekind.category:mereology (per #387's lift); here we reach for
+ * the underlying trait variables directly so this upstream-foundational
+ * layer does not depend on that partition.
  */
 export template <typename T, typename Op>
-concept IsTotal =
-    IsPeriodic<T, Op> || IsIdempotent<T, Op> || is_saturating_v<T, Op>;
+concept IsTotal = IsPeriodic<T, Op> || IsIdempotent<T, Op> ||
+                  is_saturating_v<T, Op> || is_exact_total_v<T, Op>;
 
 /**
  * @concept IsTotalArrow

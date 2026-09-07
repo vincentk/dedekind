@@ -187,7 +187,8 @@ struct PartialMulComplex {
  */
 
 /**
- * @brief Embedding transform: ℝ ↪ ℂ with Ternary acknowledgment.
+ * @brief Embedding transform: ℝ_d ↪ ℂ (Real<R> → Complex<R>) with Ternary
+ *        acknowledgment.
  *
  * The embedding of a real R into the complex numbers is **exact**:
  * every real x corresponds uniquely to (x + 0i).
@@ -262,12 +263,12 @@ constexpr bool to_lattice_coordinate(
 }  // namespace detail
 
 /**
- * @brief Machine realization arrow ℝ ↪ ℂ: Real<R> → Complex<R>.
+ * @brief Machine realization arrow ℝ_d ↪ ℂ: Real<R> → Complex<R>.
  * @details Every real x embeds as the complex number (x + 0i).
  *          This is the current machine model lift of R → C.
  */
 export template <IsRealCarrier R = machine_real_scalar>
-inline constexpr auto embed_ℝ_ℂ = arrow<Real<R>, Complex<R>>(
+inline constexpr auto embed_ℝ_d_ℂ = arrow<Real<R>, Complex<R>>(
     [](const Real<R>& r) noexcept { return Complex<R>{r.resolve(), R{}}; });
 
 /**
@@ -292,7 +293,7 @@ struct ComplexesOf {
 
   // Direct parent: embed Real<R> into ℂ via the canonical arrow.
   constexpr typename L::Ω operator()(const Real<R>& r) const {
-    return operator()(embed_ℝ_ℂ<R>(r));
+    return operator()(embed_ℝ_d_ℂ<R>(r));
   }
 
   // Delegate non-parent ancestors to ambient ℝ.
@@ -319,7 +320,7 @@ export using ComplexSet = ComplexesOf<>;
  *
  *  The carrier of @c ℂ is @c Complex<machine_real_scalar> directly;
  *  the classifier (multi-overload cross-carrier @c operator() that
- *  delegates ℝ-side arguments through @c embed_ℝ_ℂ and lands non-
+ *  delegates ℝ_d-side arguments through @c embed_ℝ_d_ℂ and lands non-
  *  parent ancestors via @c RealsOf<>) is reachable via @c ComplexSet
  *  @c = @c ComplexesOf<>.
  *
@@ -364,11 +365,11 @@ struct SpeciesTraits<dedekind::numbers::Complex<R>> {
 
 template <>
 inline constexpr bool
-    is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_ℝ_ℂ<>)>> =
+    is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_ℝ_d_ℂ<>)>> =
         true;
 static_assert(
-    IsInjective<std::decay_t<decltype(dedekind::numbers::embed_ℝ_ℂ<>)>>,
-    "embed_ℝ_ℂ (ℝ ↪ ℂ) is registered injective.");
+    IsInjective<std::decay_t<decltype(dedekind::numbers::embed_ℝ_d_ℂ<>)>>,
+    "embed_ℝ_d_ℂ (ℝ_d ↪ ℂ) is registered injective.");
 }  // namespace dedekind::category
 
 namespace dedekind::numbers {
@@ -636,7 +637,7 @@ namespace dedekind::numbers {
  *     yet shipped --- a future @c embed_std_complex would close
  *     the loop, but the current path is to construct
  *     @c Complex<double>{re, im} directly.
- * (5) Adjacent-set arrow: ℝ ↪ ℂ via @c embed_ℝ_ℂ above
+ * (5) Adjacent-set arrow: ℝ_d ↪ ℂ via @c embed_ℝ_d_ℂ above
  *     (registered monic); reverse projections @c .real() / @c
  *     .imag() live on the carrier as accessors.  Higher: ℂ ↪ ℍ
  *     (quaternions) via @c Quaternion<R>'s zero-imaginary lift

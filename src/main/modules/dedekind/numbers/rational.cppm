@@ -186,6 +186,26 @@ class Rational {
   constexpr Rational operator-() const { return Rational(-first, second); }
 };
 
+namespace detail_rational {
+template <typename>
+struct is_rational : std::false_type {};
+template <typename Z>
+struct is_rational<Rational<Z>> : std::true_type {};
+}  // namespace detail_rational
+
+/** @concept IsRational
+ *  @brief @c Q @b is the rational field @c Rational<Z> --- the canonical exact,
+ *  dense, strongly-ordered coefficient carrier.  Used to gate the real carriers
+ *  (@c Cut, @c QuadraticReal): over @f$\mathbb{Q}@f$ a nonsquare integer @c D
+ * has
+ *  @f$\sqrt D\notin\mathbb{Q}@f$ (a theorem), so those carriers are genuine
+ *  (canonical representation, sound conjugate/norm) --- which fails for a
+ *  coefficient field that already contains @f$\sqrt D@f$ (e.g. the degenerate
+ *  @c QuadraticReal<2, QuadraticReal<2>>). */
+export template <typename Q>
+concept IsRational =
+    detail_rational::is_rational<std::remove_cvref_t<Q>>::value;
+
 /** @section rational__Partial_Arithmetic_with_Ternary_Logic */
 
 /**

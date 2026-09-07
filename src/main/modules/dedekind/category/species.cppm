@@ -795,19 +795,54 @@ struct is_saturating : std::false_type {};
 export template <typename T, typename Op>
 inline constexpr bool is_saturating_v = is_saturating<T, Op>::value;
 
+/** @brief Path D to totality: the operation is total because the carrier is
+ *  @b exact --- arbitrary-precision arithmetic with no rounding, @c Op(a,b)
+ *  always defined and lossless.  The archetypes are the exact number fields
+ *  (@c Rational = ℚ, @c ExactReal, @c QuadraticReal = ℚ(√D)) under @c + and
+ *  @c *.  Distinct from the three machine-finite paths, which are total by
+ *  staying in a bounded range (wrap / stabilise / saturate); an exact carrier
+ * is total because its arithmetic is @b closed and exact.
+ *
+ *  @note @b Total @b for @b all @b practical @b purposes.  ℕ, ℤ, ℚ (and the
+ * reals built on ℚ) are designed so the boundary on a computation is @b
+ * physical --- the deployer's chosen carrier precision, exhausted only when the
+ * machine runs out of memory --- and @b explicit in the data type, not a silent
+ * arithmetic wraparound.  That finite scope is one reading of Eqn 2 (a carrier
+ * @b models
+ * @f$\le\beth_1@f$ but @b materialises @f$<\aleph_0@f$): responsibility for the
+ * boundary rests with whoever deploys, and it is clear from the type.  So this
+ * trait certifies exactness-and-totality @b in @b that @b regime; keeping it a
+ * distinct EXACT path (rather than folding ℚ into "saturating") records that ℚ
+ * is an exact field bounded by physics, not a designed saturating semiring.
+ * Opt-in (default false).
+ */
+export template <typename T, typename Op>
+struct is_exact_total : std::false_type {};
+
+export template <typename T, typename Op>
+inline constexpr bool is_exact_total_v = is_exact_total<T, Op>::value;
+
+// FIXME(#806-followup): Path D is not yet forwarded by the H/S/P trait
+// propagation (@c algebra:quotient's subalgebra_base / quotient_algebra_base
+// carry only periodic/idempotent/saturating), so an exact quotient or
+// subalgebra currently loses @c IsTotal.  No exact carrier is quotiented or
+// sub-structured yet (the §5 subalgebra/quotient legs are deferred), so this is
+// latent; add exact-path forwarding there when those legs land.
+
 /** @section species__totality
- *  Three pragmatic paths to totality, each a sufficient (not
+ *  Four pragmatic paths to totality, each a sufficient (not
  *  necessary) condition: periodicity (modular wrap), idempotence
- *  (globally stable), or saturation (escalation to an extended-range
- *  sentinel).  See the textbook note on @c IsTotal below.
+ *  (globally stable), saturation (escalation to an extended-range
+ *  sentinel), or exactness (unbounded arbitrary-precision arithmetic).
+ *  See the textbook note on @c IsTotal below.
  */
 export template <typename T, typename Op>
 struct is_total
     : std::bool_constant<
           is_periodic_v<T, Op> ||    // Path A: It wraps (Groups/Rings)
           is_idempotent_v<T, Op> ||  // Path B: It's stable (Lattices/Extrema)
-          is_saturating_v<T, Op>     // Path C: It escalates (extended
-                                     // SignedExtensionalCardinal<>, ±ℵ_0)
+          is_saturating_v<T, Op> ||  // Path C: It escalates (SEC<>, ±ℵ_0)
+          is_exact_total_v<T, Op>    // Path D: exact & unbounded (ℚ, ℝ-fields)
           > {};
 
 export template <typename T, typename Op>
