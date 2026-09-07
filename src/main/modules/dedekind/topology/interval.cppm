@@ -125,19 +125,14 @@ struct IntervalBoundaryTag<Boundary::Closed, Boundary::Closed> {
  */
 export template <IsTotallyOrdered T, Direction D, Boundary B = Boundary::Open,
                  typename L = ClassicalLogic>
-class Ray : public detail::BoundaryTag<B> {
+class Ray : public detail::BoundaryTag<B>,
+            public dedekind::sets::SetExpr<Ray<T, D, B, L>, T, L> {
  public:
-  using Domain = T;
-  using Codomain = typename L::Ω;
-  using logic_species = L;  // carry the classifier's logic into the Lwv fabric
+  // Domain / Codomain / logic_species / Member / ι and is_associative_v /
+  // is_idempotent_v are inherited from SetExpr — the same ETCS subobject mixin
+  // Interval / HalfSpace / order::Halfspace fold onto (#806 dedup).  A Ray thus
+  // becomes a first-class IsSubobject (ι: ray ↣ T) it previously lacked.
   using is_ray_tag = void;
-
-  /** @section interval__Algebraic_Axioms */
-  template <typename Op>
-  static constexpr bool is_associative_v = true;
-
-  template <typename Op>
-  static constexpr bool is_idempotent_v = true;
 
   constexpr explicit Ray(T pivot) : pivot_(pivot) {}
 
@@ -255,17 +250,14 @@ inline constexpr bool is_convex_v<Interval<T, Lower, Upper, L>> = true;
  */
 export template <IsTotallyOrdered T, Boundary B = Boundary::Open,
                  typename L = ClassicalLogic>
-class HalfSpace : public detail::BoundaryTag<B> {
+class HalfSpace : public detail::BoundaryTag<B>,
+                  public dedekind::sets::SetExpr<HalfSpace<T, B, L>, T, L> {
  public:
-  using Domain = T;
-  using Codomain = typename L::Ω;
-  using logic_species = L;  // carry the classifier's logic into the Lwv fabric
+  // Domain / Codomain / logic_species / Member / ι and is_associative_v /
+  // is_idempotent_v are inherited from SetExpr (#806 dedup): the runtime-
+  // direction HalfSpace gains the first-class IsSubobject surface (ι: S ↣ T) it
+  // previously lacked, matching Ray / Interval / order::Halfspace.
   using is_ray_tag = void;
-
-  template <typename Op>
-  static constexpr bool is_associative_v = true;
-  template <typename Op>
-  static constexpr bool is_idempotent_v = true;
 
   /** @brief Factory: { x | x > pivot } or { x | x >= pivot }. */
   static constexpr HalfSpace upward_from(T pivot) {
@@ -284,8 +276,9 @@ class HalfSpace : public detail::BoundaryTag<B> {
   constexpr T pivot() const { return pivot_; }
   constexpr Direction direction() const { return dir_; }
 
-  /** @brief Characteristic morphism χ: T → Ω. */
-  constexpr Codomain operator()(const T& x) const {
+  /** @brief Characteristic morphism χ: T → Ω.  Return type spelt @c L::Ω, not
+   *  the inherited (dependent-base) @c Codomain. */
+  constexpr typename L::Ω operator()(const T& x) const {
     if (dir_ == Direction::Upward)
       return (B == Boundary::Open ? x > pivot_ : x >= pivot_) ? L::True
                                                               : L::False;
@@ -344,6 +337,16 @@ static_assert(IsOpen<Interval<int, Boundary::Open>>,
               "an open Interval carries is_open_tag → IsOpen.");
 static_assert(IsNeighborhood<Interval<int, Boundary::Open>, int>,
               "an open Interval is a neighborhood of its points.");
+
+// The #806 dedup payoff: folding Ray / HalfSpace onto the shared SetExpr mixin
+// makes them first-class @c IsSubobject (ι: S ↣ T) --- the subobject surface
+// they lacked while hand-rolling only Domain/Codomain.  Same status the order
+// twins (Above / Singleton / OrderInterval) already witness.
+static_assert(dedekind::category::IsSubobject<Ray<int, Direction::Upward>, int>,
+              "a Ray is now a first-class subobject ι: ray ↣ ℤ (via SetExpr).");
+static_assert(
+    dedekind::category::IsSubobject<HalfSpace<int>, int>,
+    "a HalfSpace is now a first-class subobject ι: S ↣ ℤ (via SetExpr).");
 
 }  // namespace dedekind::topology
 

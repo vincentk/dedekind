@@ -250,11 +250,12 @@ static_assert(std::same_as<decltype(fix(true_c)), Bound<true>>,
  */
 export template <typename T, auto Pivot, Direction D, Strictness S,
                  typename L = ClassicalLogic>
-struct Halfspace {
-  using Domain = T;
-  using Codomain = typename L::Ω;
-  using logic_species = L;
-
+struct Halfspace : dedekind::sets::SetExpr<Halfspace<T, Pivot, D, S, L>, T, L> {
+  // Domain / Codomain / logic_species / Member / ι are inherited from SetExpr
+  // (the ETCS subobject surface): a bare Halfspace is a first-class
+  // @c IsSubobject (ι: S ↣ T) whose χ is @c operator() below.  This is the same
+  // mixin @c Interval / @c Ray / @c Singleton fold onto, so the subobject
+  // boilerplate lives in exactly one place (#806 follow-up dedup).
   static constexpr auto pivot = Pivot;
   static constexpr Direction direction = D;
   static constexpr Strictness strictness = S;
@@ -262,7 +263,9 @@ struct Halfspace {
   // `Pivot` may be a different structural type than `T` (e.g., pivot = 5.0 as
   // double, T = Real<double>). The carrier's converting ctor / overload set
   // handles the comparison; we only assume `T` is comparable with the pivot.
-  constexpr Codomain operator()(const T& x) const {
+  // Return type is spelt @c L::Ω (not the inherited @c Codomain, which
+  // unqualified lookup would miss through the dependent SetExpr base).
+  constexpr typename L::Ω operator()(const T& x) const {
     if constexpr (D == Direction::Upward) {
       const bool hit = (S == Strictness::Strict) ? (x > Pivot) : (x >= Pivot);
       return hit ? L::True : L::False;
@@ -271,14 +274,6 @@ struct Halfspace {
       return hit ? L::True : L::False;
     }
   }
-
-  // Subobject inclusion ι: S ↣ T — the missing arrow that makes a bare
-  // Halfspace a first-class @c IsSubobject (it already IS its own χ via
-  // @c operator() above).  Same Member-unwrap pattern as SingletonSet.
-  struct Member {
-    T value;
-  };
-  constexpr T ι(const Member& m) const { return m.value; }
 };
 
 /**
@@ -294,10 +289,13 @@ struct Halfspace {
  * has decidable membership regardless of ambient logic species.
  */
 export template <auto Value, typename L = ClassicalLogic>
-struct Singleton {
+struct Singleton
+    : dedekind::sets::SetExpr<Singleton<Value, L>, decltype(Value), L> {
+  // Domain / Codomain / logic_species / Member / ι are inherited from SetExpr
+  // (the ETCS subobject surface): the static Singleton is a first-class
+  // @c IsSubobject (ι: {value} ↣ Domain) whose χ is @c operator() below — same
+  // mixin @c Halfspace / @c Interval / @c Ray fold onto (#806 follow-up dedup).
   using Domain = decltype(Value);
-  using Codomain = typename L::Ω;
-  using logic_species = L;
   using cardinality_type = Finite;
   using is_extensional_tag = void;
   using is_compile_time_extensional_tag = void;
@@ -306,7 +304,8 @@ struct Singleton {
 
   static constexpr Domain value = Value;
 
-  constexpr Codomain operator()(const Domain& x) const {
+  // Return type spelt @c L::Ω, not the inherited (dependent-base) @c Codomain.
+  constexpr typename L::Ω operator()(const Domain& x) const {
     return (x == Value) ? L::True : L::False;
   }
 
@@ -324,7 +323,7 @@ struct Singleton {
             requires(const U& x) {
               { x == Value } -> std::convertible_to<bool>;
             }
-  constexpr Codomain operator()(const U& x) const {
+  constexpr typename L::Ω operator()(const U& x) const {
     return (x == Value) ? L::True : L::False;
   }
 
@@ -337,13 +336,6 @@ struct Singleton {
   constexpr bool operator==(const Singleton<Value, OtherL>&) const {
     return true;
   }
-
-  // Subobject inclusion ι: {value} ↣ Domain — makes the static Singleton a
-  // first-class @c IsSubobject (it already IS its own χ via @c operator()).
-  struct Member {
-    Domain value;
-  };
-  constexpr Domain ι(const Member& m) const { return m.value; }
 };
 
 /** @section halfspace__Static_Singleton_Complement_Lattice
@@ -463,17 +455,18 @@ static_assert(IsSubobject<Singleton<true>, bool>,
 /** @brief Meet of two opposing halfspaces — an order-theoretic interval. */
 export template <typename T, auto Lo, auto Hi, Strictness SL, Strictness SU,
                  typename L = ClassicalLogic>
-struct OrderInterval {
-  using Domain = T;
-  using Codomain = typename L::Ω;
-  using logic_species = L;
-
+struct OrderInterval
+    : dedekind::sets::SetExpr<OrderInterval<T, Lo, Hi, SL, SU, L>, T, L> {
+  // Domain / Codomain / logic_species / Member / ι inherited from SetExpr — the
+  // order-layer twin of topology::Interval, now on the same subobject mixin
+  // (#806 follow-up dedup); χ is @c operator() below.
   static constexpr auto lower_pivot = Lo;
   static constexpr auto upper_pivot = Hi;
   static constexpr Strictness lower_strictness = SL;
   static constexpr Strictness upper_strictness = SU;
 
-  constexpr Codomain operator()(const T& x) const {
+  // Return type spelt @c L::Ω, not the inherited (dependent-base) @c Codomain.
+  constexpr typename L::Ω operator()(const T& x) const {
     const bool lo_ok = (SL == Strictness::Strict) ? (x > Lo) : (x >= Lo);
     const bool hi_ok = (SU == Strictness::Strict) ? (x < Hi) : (x <= Hi);
     return (lo_ok && hi_ok) ? L::True : L::False;
