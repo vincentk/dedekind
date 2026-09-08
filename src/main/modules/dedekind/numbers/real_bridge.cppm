@@ -106,14 +106,17 @@ namespace dedekind::numbers {
  *   a monic, structure-preserving arrow.
  * - @b IsFunctor (a structure-preserving map between categories): the endpoint
  *   @b sets @c Ω<Dom<F>>, @c Ω<Cod<F>> are @c IsSmallCategory.  The element
- *   carriers are not categories, but their SETS are (@c IsSet @c ⟹ @c
- *   IsSmallCategory --- a set is the discrete category on its elements; the
- *   paper's ETCS-embeddings appendix, after Lawvere's ETCS).
+ *   carriers are not categories, but their SETS are (the ETCS reading wired on
+ *   @c UniversalSet; the paper's ETCS-embeddings appendix, after Lawvere) ---
+ *   a map between the discrete categories on two sets IS a functor.
  *
- * Because that containment is now universal, the functor face holds for every
- * regular carrier: @b IsFunction @c ⟹ @b IsFunctor.  @c IsEmbedding is thus
- * exactly the injective structure-preserving arrow, typed as the
- * functor-embedding it always was.
+ * @note The functor conjunct is a @b grounding check, not a discriminating law:
+ * @c Ω<Dom<F>>, @c Ω<Cod<F>> are @c IsSmallCategory for @b any regular carrier
+ * (that is exactly the ETCS point --- @c IsFunction @c ⟹ @c IsFunctor), so the
+ * @b discriminating content is @c EmbedsAsSubalgebra (monic homomorphism). What
+ * @c IsEmbedding adds over @c EmbedsAsSubalgebra is the @b typed statement that
+ * the arrow's endpoints are set-categories, i.e. that it reads as a functor ---
+ * not a new law on @c F.
  */
 export template <typename F>
 concept IsEmbedding =
@@ -160,9 +163,10 @@ static_assert(dedekind::algebra::EmbedsAsSubalgebra<Emb>,
               "subalgebra --- the arrow Section 5's Figure 5 hangs on.");
 
 // The taxonomy payoff: ℚ ↪ ℝ is an IsEmbedding = IsFunction ∧ IsFunctor.  The
-// functor face is grounded by IsSet ⟹ IsSmallCategory: Ω<ℚ-carrier> and
-// Ω<ℝ-carrier> (the SETS) are small categories, so the injective homomorphism
-// IS a functor between them --- typed, not just asserted in prose.
+// functor face is grounded by the ETCS reading wired on UniversalSet: Ω<ℚ> and
+// Ω<ℝ> (the SETS) are small categories, so the injective homomorphism reads as
+// a functor between them.  (The functor conjunct holds for any regular carrier
+// --- see the IsEmbedding @note; the discriminating content is the monic hom.)
 static_assert(
     dedekind::category::IsSmallCategory<dedekind::sets::UniversalSet<Q>>,
     "the SET ℚ = Ω<Rational> is a small category (IsSet ⟹ "

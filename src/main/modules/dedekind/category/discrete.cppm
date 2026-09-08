@@ -91,10 +91,12 @@ inline constexpr bool is_associative_v<ConstantMorphism<A, B>, Op> = true;
  * @c U @c : @c Cat @c → @c Set; the adjunction @c Disc @c ⊣ @c U is
  * the textbook spelling of "every set IS a discrete category".  The
  * @c DiscreteCategory<T> realisation below witnesses the lift on
- * primitive carrier types; a generic @c IsSet-aware lift for the
- * project's set DSL is tracked as a follow-up (the @c IsSet concept
- * lives in @c category:etcs but the DSL sets live further downstream,
- * so a lift-aware partition would have to live downstream of both).
+ * primitive carrier types; the project's @c UniversalSet (@c Ω<T>, in
+ * @c sets:boundaries, downstream of this concept) now carries the same
+ * discrete-category members directly, so a set object @c Ω<T> IS a
+ * @c IsSmallCategory --- the @c IsSet-aware lift, realized on the
+ * @c Ω<carrier> objects.  Other DSL set shapes (@c SingletonSet, @c Ø)
+ * are not yet lifted; a fully generic lift remains a follow-up.
  */
 export template <typename Cat>
 concept IsDiscreteCategory =
