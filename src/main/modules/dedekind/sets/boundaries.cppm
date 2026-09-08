@@ -251,6 +251,22 @@ struct UniversalSet final {
   using Domain = T;
   using Codomain = typename L::Ω;
 
+  // ~ IsSmallCategory: the SET is a (discrete) small category over its carrier,
+  // wiring the documented IsSet ⟹ IsSmallCategory containment (concrete.cppm's
+  // IsSmallCategory ⊇ IsConcrete ⊇ IsSet chain).  This is what lets a set
+  // object (e.g. ℝ = Ω<QuadraticReal<2>>, ℂ = Ω<Complex<…>>) be a functor's
+  // endpoint: the element carrier is not a category, but the SET of elements is
+  // (ETCS: a set is the discrete category on its elements).  Objects = the
+  // single Species T, arrows = identities.  The set's OTHER role as the χ-arrow
+  // (Domain=T → Codomain=Ω) is orthogonal --- these are distinct nested
+  // members.
+  using Species = T;
+  using Arrow = dedekind::category::Identity<T>;
+  using Id = dedekind::category::Identity<T>;
+  static constexpr Id id_c(const T&) noexcept {
+    return dedekind::category::id<T>();
+  }
+
   // ~ topoi jargon;
   /** @brief Member-shape mirror of Subobject's: every element of T
    *  is a member of U via the always-True classifier; the wrapper
