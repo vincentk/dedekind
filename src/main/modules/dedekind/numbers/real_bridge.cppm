@@ -33,10 +33,11 @@ module;
 export module dedekind.numbers:real_bridge;
 
 import dedekind.algebra; // EmbedsAsSubalgebra, IsHomomorphism, is_homomorphism_v
-import dedekind.category;   // IsArrow, IsMonicArrow, is_monic_arrow_v, IsSet
+import dedekind.category; // IsArrow, IsMonicArrow, is_monic_arrow_v, IsSet, Dom/Cod
 import dedekind.relational; // graph(f): the arrow's graph Γ (reified relation)
-import :rational;           // Rational<default_integer> — the ℚ carrier
-import :quadratic;  // QuadraticReal<2> — the ℝ = ℚ(√2) coat-hanger carrier
+import dedekind.sets; // Ω / UniversalSet<T> — the endpoint SET (IsSmallCategory)
+import :rational;     // Rational<default_integer> — the ℚ carrier
+import :quadratic;    // QuadraticReal<2> — the ℝ = ℚ(√2) coat-hanger carrier
 
 namespace dedekind::numbers {
 
@@ -94,6 +95,33 @@ inline constexpr bool
 
 namespace dedekind::numbers {
 
+/**
+ * @concept IsEmbedding
+ * @brief A structure-preserving @b embedding: an injective homomorphism that is
+ *        @b also a functor between its endpoint sets --- @c IsFunction @c ∧
+ *        @c IsFunctor, on the arrow itself.
+ *
+ * @details Two faces, both now type-checked:
+ * - @b IsFunction (an injective homomorphism): @c EmbedsAsSubalgebra<F> ---
+ *   a monic, structure-preserving arrow.
+ * - @b IsFunctor (a structure-preserving map between categories): the endpoint
+ *   @b sets @c Ω<Dom<F>>, @c Ω<Cod<F>> are @c IsSmallCategory.  The element
+ *   carriers are not categories, but their SETS are (@c IsSet @c ⟹ @c
+ *   IsSmallCategory --- a set is the discrete category on its elements).
+ *
+ * Because that containment is now universal, the functor face holds for every
+ * regular carrier: @b IsFunction @c ⟹ @b IsFunctor.  @c IsEmbedding is thus
+ * exactly the injective structure-preserving arrow, typed as the
+ * functor-embedding it always was.
+ */
+export template <typename F>
+concept IsEmbedding =
+    dedekind::algebra::EmbedsAsSubalgebra<F> &&
+    dedekind::category::IsSmallCategory<
+        dedekind::sets::UniversalSet<dedekind::category::Dom<F>>> &&
+    dedekind::category::IsSmallCategory<
+        dedekind::sets::UniversalSet<dedekind::category::Cod<F>>>;
+
 /** @section real_bridge__Formal_Verification
  *  The S-leg's defining laws, @b computed over inhabited carriers.
  */
@@ -129,6 +157,18 @@ static_assert(dedekind::category::IsMonicArrow<Emb>, "S-leg is monic.");
 static_assert(dedekind::algebra::EmbedsAsSubalgebra<Emb>,
               "ℚ ↪ ℝ = ℚ(√2) is a Birkhoff S-leg: a monic homomorphism onto a "
               "subalgebra --- the arrow Section 5's Figure 5 hangs on.");
+
+// The taxonomy payoff: ℚ ↪ ℝ is an IsEmbedding = IsFunction ∧ IsFunctor.  The
+// functor face is grounded by IsSet ⟹ IsSmallCategory: Ω<ℚ-carrier> and
+// Ω<ℝ-carrier> (the SETS) are small categories, so the injective homomorphism
+// IS a functor between them --- typed, not just asserted in prose.
+static_assert(
+    dedekind::category::IsSmallCategory<dedekind::sets::UniversalSet<Q>>,
+    "the SET ℚ = Ω<Rational> is a small category (IsSet ⟹ "
+    "IsSmallCategory), a valid functor endpoint.");
+static_assert(IsEmbedding<Emb>,
+              "ℚ ↪ ℝ is an IsEmbedding: an injective homomorphism (IsFunction) "
+              "that is also a functor between the set-categories ℚ and ℝ.");
 
 // --- The reification.  The inclusion ARROW is embed_ℚ_ℝ itself (a mono ℚ↪ℝ, a
 // --- subobject of ℝ).  Its GRAPH Γ = graph(embed) is a distinct object: a
