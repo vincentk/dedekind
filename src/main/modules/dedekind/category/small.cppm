@@ -189,7 +189,7 @@ inline constexpr bool is_associative_v<T, Op> = true;
  *   2. @b Implementation @b cost.  A faithful higher-kinded locally-
  *      small concept requires a @c Cat::template Hom<A, @c B> slot,
  *      which is the same template-template territory the codebase
- *      otherwise tries to keep at arm's length (in the @c IsFunctor
+ *      otherwise tries to keep at arm's length (in the @c IsShapedFunctor
  *      Hub/Spoke pattern, etc.).  Paying that complexity without a
  *      load-bearing consumer would be the wrong trade.
  *

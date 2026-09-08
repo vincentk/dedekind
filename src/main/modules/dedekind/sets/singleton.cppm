@@ -482,7 +482,7 @@ namespace dedekind::sets {
 
 /** @section singleton__Functor_Hub (#687)
  *
- * @brief @c singleton_functor — the @c IsFunctor / @c IsFrobenius hub
+ * @brief @c singleton_functor — the @c IsShapedFunctor / @c IsFrobenius hub
  *        for @c SingletonSet<T>, the canonical η of the Set monad.
  *
  * @details Sibling of @c :category:functor::tuple_functor (the project's
@@ -544,8 +544,8 @@ struct counit_witness<dedekind::sets::singleton_functor<T>, T> final {
   }
 };
 
-static_assert(IsFunctor<dedekind::sets::singleton_functor<int>>,
-              "singleton_functor must satisfy IsFunctor (#687).");
+static_assert(IsShapedFunctor<dedekind::sets::singleton_functor<int>>,
+              "singleton_functor must satisfy IsShapedFunctor (#687).");
 static_assert(IsFrobenius<dedekind::sets::singleton_functor<int>, int, long>,
               "singleton_functor must satisfy IsFrobenius — Kleisli "
               "AND co-Kleisli extensions on SingletonSet<T> (#687).");

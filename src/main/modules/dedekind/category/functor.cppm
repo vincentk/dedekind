@@ -34,7 +34,7 @@
  * applied to values.
  *
  * 1. The Hub (Intensional Hub / Law):
- *    Represented by @ref IsFunctor, this is a stateless blueprint acting
+ *    Represented by @ref IsShapedFunctor, this is a stateless blueprint acting
  *    as a 1-morphism between categories. It owns the "Morphic Action" (φ)—the
  *    mathematical recipe for lifting arrows. It requires handles to its
  *    @ref Σ_cat and @ref Τ_cat to verify structural integrity (Identity and
@@ -56,7 +56,7 @@
  * @section functor__IsFunctor_Models
  * Partition
  *
- * The following types in this partition model @ref IsFunctor:
+ * The following types in this partition model @ref IsShapedFunctor:
  * - @ref identity_functor: Cat -> Cat.
  * - @ref maybe_functor: Set<T> -> Set<Maybe<T>>.
  * - @ref tuple_functor: Set<T> -> Set<std::tuple<T>> (the project's
@@ -65,11 +65,13 @@
  * - @ref composite_functor: composition G . F for any composable functors.
  *
  * Notes:
- * - @ref maybe_functor is a concrete @ref IsFunctor model in this partition,
- *   but under the current category choices it is not an @ref IsEndofunctor
- *   witness for @ref IsMonad (see `:monad` for the textbook constraint).
+ * - @ref maybe_functor is a concrete @ref IsShapedFunctor model in this
+ * partition, but under the current category choices it is not an @ref
+ * IsEndofunctor witness for @ref IsMonad (see `:monad` for the textbook
+ * constraint).
  * - Value-level overloads of φ for Maybe / Identity / std::tuple at the end
- *   of this file are lifting utilities, not IsFunctor hub models by themselves.
+ *   of this file are lifting utilities, not IsShapedFunctor hub models by
+ * themselves.
  *
  *
  * @note "If we do not succeed in solving a mathematical problem, the reason
@@ -99,7 +101,36 @@ namespace dedekind::category {
 
 /**
  * @concept IsFunctor
- * @brief A 1-morphism mapping CatS -> CatT.
+ * @brief The textbook functor (#633): an @c IsArrow whose Domain and Codomain
+ *        are @b (small) @b categories --- a 1-morphism in @b Cat, Mac Lane
+ * §I.3.
+ *
+ * @details This is the @b superinterface extracted from @c IsShapedFunctor: it
+ * drops the container-flavoured @c Shape<U> / @c φ requirements and keeps only
+ * the categorical signature @f$F\colon\Sigma\to\mathrm{T}@f$ with
+ * @c IsSmallCategory Domain and Codomain.  @c IsShapedFunctor (the fmap /
+ * type-constructor endofunctor: @c maybe_functor, @c tuple_functor, @c
+ * complex-/dual-style hubs) @b refines it with @c Shape<U> and the morphism map
+ * @c φ, so @c IsShapedFunctor @c ⟹ @c IsFunctor by construction.
+ *
+ * @note What @b does @b not land here yet: the carrier-lattice @c embed_*_*_
+ * family are functors @c Set<source> @c → @c Set<codomain> at the Mac Lane §I.3
+ * level, but are presented as @b bare @b arrows whose Domain/Codomain are the
+ * @b carriers (e.g.\ @c QuadraticReal<2>, @c Complex<R>), NOT reified small
+ * categories --- so @c IsFunctor is @c false on them.  The @c
+ * is_embedding_functor_v trait remains the bridge; reifying the carriers'
+ * arrows as a small category (so an embedding @f$A\hookrightarrow C\langle A
+ * \rangle@f$ satisfies @c IsFunctor directly) is the remaining #633 step.
+ */
+export template <typename F>
+concept IsFunctor =
+    IsArrow<F> && IsSmallCategory<Dom<F>> && IsSmallCategory<Cod<F>>;
+
+/**
+ * @concept IsShapedFunctor
+ * @brief A 1-morphism mapping CatS -> CatT, @b refined with the container
+ * shape: an @c IsFunctor that additionally exposes a type-level object map
+ *        @c Shape<U> and a morphism map @c φ (fmap).
  *
  * @details
  * 1. Mapping: F(f: A->B) -> F(f): F(A)->F(B)
@@ -111,11 +142,12 @@ namespace dedekind::category {
  * `id_c(c)`. Functorial object mapping is therefore observed indirectly through
  * the spoke `F(id_c(c))`, whose domain recovers the image object `F(c)`.
  *
+ * @c IsShapedFunctor @c ⟹ @c IsFunctor (it opens with @c IsFunctor<F>).
  * Canonical hub models provided in this partition are listed in
  * @ref IsFunctor_Models.
  */
 export template <typename F>
-concept IsFunctor = IsArrow<F> && requires {
+concept IsShapedFunctor = IsFunctor<F> && requires {
   typename F::Σ_cat;
   typename F::Τ_cat;
   requires IsSmallCategory<typename F::Σ_cat>;
@@ -170,7 +202,8 @@ concept IsFunctor = IsArrow<F> && requires {
  * "homeless" function (a raw morphism) into a bona fide arrow within the
  * Functorial context.
  *
- * @tparam 𝗙 The Functorial type (The Box/Shape). Must satisfy @ref IsFunctor.
+ * @tparam 𝗙 The Functorial type (The Box/Shape). Must satisfy @ref
+ * IsShapedFunctor.
  * @tparam 𝗳 The raw morphism type. Must be invocable with the source category's
  * species.
  *
@@ -184,7 +217,7 @@ concept IsFunctor = IsArrow<F> && requires {
  * functors.
  */
 template <typename 𝗙, typename 𝗳>
-  requires IsFunctor<𝗙> && std::invocable<𝗳, typename 𝗙::Σ_cat::Species>
+  requires IsShapedFunctor<𝗙> && std::invocable<𝗳, typename 𝗙::Σ_cat::Species>
 [[nodiscard]]
 constexpr auto φ(𝗙 const&, 𝗳&&) -> typename 𝗙::template Shape<
     std::invoke_result_t<𝗳, typename 𝗙::Σ_cat::Species>> = delete;
@@ -246,7 +279,7 @@ struct morphic_engine {
 
 /**
  * @brief The Intensional Functor for Optional (Maybe) values.
- * @details Concrete @ref IsFunctor model implementing
+ * @details Concrete @ref IsShapedFunctor model implementing
  * Set<T> -> Set<std::optional<T>>.
  */
 export template <typename T>
@@ -277,7 +310,7 @@ struct maybe_functor {
 /**
  * @brief The Intensional Functor for 1-tuple values.
  *
- * @details Concrete @ref IsFunctor model implementing
+ * @details Concrete @ref IsShapedFunctor model implementing
  * Set<T> -> Set<std::tuple<T>>.  Pinned as the project's bona-fide
  * Frobenius (= monad + comonad) carrier: std::tuple<T> always has a
  * single element, so ε via std::get<0> is total (no Some-fragment
@@ -309,11 +342,20 @@ struct tuple_functor {
   constexpr Τ_cat operator()(const Σ_cat&) const noexcept { return {}; }
 };
 
-static_assert(IsFunctor<tuple_functor<int>>,
-              "Verification Failed: tuple_functor must satisfy IsFunctor.");
+static_assert(
+    IsShapedFunctor<tuple_functor<int>>,
+    "Verification Failed: tuple_functor must satisfy IsShapedFunctor.");
 
-static_assert(IsFunctor<maybe_functor<int>>,
-              "Verification Failed: maybe_functor must satisfy IsFunctor.");
+static_assert(
+    IsShapedFunctor<maybe_functor<int>>,
+    "Verification Failed: maybe_functor must satisfy IsShapedFunctor.");
+
+// The extracted superinterface (#633): every IsShapedFunctor IS an IsFunctor
+// --- the container hubs also satisfy the textbook "arrow between small
+// categories" concept, since their Σ_cat / Τ_cat = Set<·> are IsSmallCategory.
+static_assert(IsFunctor<tuple_functor<int>> && IsFunctor<maybe_functor<int>>,
+              "IsShapedFunctor ⟹ IsFunctor: the fmap hubs are also textbook "
+              "functors (Set<T> → Set<Shape<T>>, Mac Lane §I.3).");
 
 /**
  * @brief Stage 1: The Functorial Applicator.
@@ -331,7 +373,7 @@ struct functor_applicator {
 
 // Now fmap is just a factory for the Applicator
 template <typename Hub>
-  requires IsFunctor<Hub>
+  requires IsShapedFunctor<Hub>
 [[nodiscard]] constexpr auto fmap(Hub const& h) {
   return functor_applicator<Hub>{h};
 }
@@ -370,7 +412,7 @@ constexpr auto immerse(Hub&& h, Spoke&& s) {
  * where F is a verified functor and f is an arrow in F::Σ_cat.
  */
 export template <typename Hub, typename Arrow>
-  requires IsFunctor<Hub> && IsSpokeArrow<std::remove_cvref_t<Arrow>>
+  requires IsShapedFunctor<Hub> && IsSpokeArrow<std::remove_cvref_t<Arrow>>
 [[nodiscard]]
 constexpr auto operator>>(Hub const& hub, Arrow&& f) {
   return hub.φ(std::forward<Arrow>(f));
@@ -381,10 +423,10 @@ constexpr auto operator>>(Hub const& hub, Arrow&& f) {
  *
  * Verifies that the target of the first functor matches the source
  * of the second, maintaining the structural spine.
- * This is a concrete @ref IsFunctor model whenever F and G are composable
+ * This is a concrete @ref IsShapedFunctor model whenever F and G are composable
  * functors.
  */
-export template <IsFunctor F, IsFunctor G>
+export template <IsShapedFunctor F, IsShapedFunctor G>
   requires std::same_as<typename F::Τ_cat, typename G::Σ_cat>
 struct composite_functor {
   using ArrowKind = hub_arrow_tag;
@@ -419,7 +461,7 @@ struct composite_functor {
 
 // f >> g  =>  g ∘ f      [Canonical Functorial Fish]
 export template <typename 𝗙, typename 𝗚>
-  requires IsFunctor<𝗙> && IsFunctor<𝗚> &&
+  requires IsShapedFunctor<𝗙> && IsShapedFunctor<𝗚> &&
            std::same_as<typename std::remove_cvref_t<𝗙>::Τ_cat,
                         typename std::remove_cvref_t<𝗚>::Σ_cat>
 [[nodiscard]]
@@ -433,7 +475,7 @@ constexpr auto operator>>(𝗙&& f, 𝗚&& g) {
  * g << f  =>  g ∘ f
  */
 export template <typename 𝗙, typename 𝗚>
-  requires IsFunctor<𝗙> && IsFunctor<𝗚> &&
+  requires IsShapedFunctor<𝗙> && IsShapedFunctor<𝗚> &&
            std::same_as<typename std::remove_cvref_t<𝗚>::Τ_cat,
                         typename std::remove_cvref_t<𝗙>::Σ_cat>
 [[nodiscard]]
@@ -453,7 +495,7 @@ constexpr auto operator<<(𝗙&& f, 𝗚&& g) {
  */
 export template <typename Context>
 concept IsEndofunctor =
-    IsFunctor<Context> &&
+    IsShapedFunctor<Context> &&
     std::same_as<typename Context::Σ_cat, typename Context::Τ_cat>;
 
 /**
@@ -652,7 +694,7 @@ constexpr T closure(const T& x, Expand expand, Join join, Equal equal = {},
  *
  * Instead of 'boxing' a value, this functor 'describes' the mapping.
  * It's perfect for verifying that fmap is called exactly when it should be.
- * Concrete @ref IsFunctor model.
+ * Concrete @ref IsShapedFunctor model.
  */
 export template <typename T>
 struct trace_functor {
@@ -675,8 +717,9 @@ struct trace_functor {
   constexpr Τ_cat operator()(const Σ_cat&) const noexcept { return {}; }
 };
 
-static_assert(IsFunctor<trace_functor<int>>,
-              "Verification Failed: trace_functor must satisfy IsFunctor.");
+static_assert(
+    IsShapedFunctor<trace_functor<int>>,
+    "Verification Failed: trace_functor must satisfy IsShapedFunctor.");
 
 /**
  * The "Identity Hub" for any category, which simply returns the input arrow
@@ -685,7 +728,7 @@ static_assert(IsFunctor<trace_functor<int>>,
  *
  * I.e. this is presumably the only functor which is truly *generic* across all
  * categories, since it doesn't rely on any specific structure of the category.
- * Concrete @ref IsFunctor model.
+ * Concrete @ref IsShapedFunctor model.
  */
 export template <typename Cat>
   requires IsSmallCategory<Cat>
@@ -843,7 +886,7 @@ constexpr auto φ(Identity<A> const& id, F&& f)
  *   - @b Container / Hask-endofunctor flavour: functor as polymorphic
  *     type-constructor.  Examples in this partition: @c maybe_functor,
  *     @c tuple_functor, @c identity_functor.  Type-system witness:
- *     these all satisfy @c IsFunctor with @c Σ_cat @c = @c Τ_cat ---
+ *     these all satisfy @c IsShapedFunctor with @c Σ_cat @c = @c Τ_cat ---
  *     i.e.\ they are @em endofunctors (which is the textbook name).
  *   - @b Algebraic-set / structural-CT flavour: functor as a
  *     structure-preserving map between two specific named categories,
@@ -852,7 +895,7 @@ constexpr auto φ(Identity<A> const& id, F&& f)
  *     witnesses; future quotient projections will be @c
  *     IsQuotientFunctor witnesses.
  *
- * The two intuitions are unified at the @c IsFunctor level (Mac Lane
+ * The two intuitions are unified at the @c IsShapedFunctor level (Mac Lane
  * §I.3): a functor is a structure-preserving map between two
  * categories, full stop.  Polymorphic / non-polymorphic is a
  * presentation choice for how F is given, not a structural CT
@@ -895,19 +938,23 @@ inline constexpr bool is_embedding_functor_v = false;
  *
  * @b Opt-in @b semantics (#641 review note): the type-system gate
  * here is @c IsArrow @c + @c IsMonicArrow @c + the @c
- * is_embedding_functor_v trait.  It does @b not require the bare
- * @c IsFunctor concept (which today carries the container-flavoured
- * @c Shape<U> requirement, see @c functor__Two_Intuition_Pumps), so
- * bare spoke arrows can register as @c IsEmbeddingFunctor witnesses
- * without first satisfying @c IsFunctor.  This is intentional: the
- * carrier-lattice @c embed_*_*_ family @b are functors @c Set<source>
- * @c → @c Set<codomain> at the Mac Lane §I.3 level, but they're
- * presented in the codebase as bare arrows rather than as @c IsFunctor
- * witnesses with @c Σ_cat / @c Τ_cat slots.  The @c
- * is_embedding_functor_v trait is the engineer's commitment to the
- * functorial reading; once the deferred @c IsFunctor refactor lands
- * (drop the @c Shape<U> requirement, per #633's "Implementation
- * sequence"), this concept will be tightened to require @c IsFunctor.
+ * is_embedding_functor_v trait.  It does @b not require @c IsShapedFunctor
+ * (which carries the container-flavoured @c Shape<U> requirement, see
+ * @c functor__Two_Intuition_Pumps), so bare spoke arrows can register as
+ * @c IsEmbeddingFunctor witnesses without first satisfying @c IsShapedFunctor.
+ * This is intentional: the carrier-lattice @c embed_*_*_ family @b are functors
+ * @c Set<source> @c → @c Set<codomain> at the Mac Lane §I.3 level, but they're
+ * presented in the codebase as @b bare @b arrows whose Domain/Codomain are the
+ * @b carriers, NOT reified small categories --- so even the (Shape-free)
+ * textbook
+ * @c IsFunctor is @c false on them.  The #633 superinterface split has now
+ * landed
+ * (@c IsFunctor = the Shape-free "arrow between small categories"; @c
+ * IsShapedFunctor refines it with @c Shape<U> / @c φ), so @c IsEmbeddingFunctor
+ * could be tightened to require @c IsFunctor once the @b remaining #633 step
+ * lands: reifying a carrier's arrows as a small category (giving the embedding
+ * @c Σ_cat / @c Τ_cat @c = @c Set<carrier> slots).  Until then the @c
+ * is_embedding_functor_v trait stays the engineer's commitment to the reading.
  *
  * @b Concrete @b witnesses (registered in @c :numbers and adjacent
  * partitions): @c embed_𝔹_ℕ_ (@c bool @c ↪ @c Cardinality), @c

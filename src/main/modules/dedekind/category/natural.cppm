@@ -272,7 +272,7 @@ concept IsPreTransformation = IsSmallCategory<CatS> && IsSmallCategory<CatT> &&
  */
 export template <typename Α, typename F, typename G>
 concept IsTwoMorphism =
-    IsFunctor<F> && IsFunctor<G> &&
+    IsShapedFunctor<F> && IsShapedFunctor<G> &&
     // Symmetry check: Both functors must connect the same Categories
     std::same_as<typename F::Σ_cat, typename G::Σ_cat> &&
     std::same_as<typename F::Τ_cat, typename G::Τ_cat> &&
@@ -308,7 +308,7 @@ concept IsNaturalTransformation =
  * @brief The Identity Natural Transformation for Functor F.
  * @details α(c) = id_{F(c)}.
  */
-export template <IsFunctor F>
+export template <IsShapedFunctor F>
 struct identity_transformation {
   using SourceFunctor = F;
   using TargetFunctor = F;
@@ -332,7 +332,8 @@ struct identity_transformation {
  * @brief Vertical composition of two 2-morphisms (β . α).
  * @details α: F => G, β: G => H. Result: F => H.
  */
-export template <typename Α, typename Β, IsFunctor F, IsFunctor G, IsFunctor H>
+export template <typename Α, typename Β, IsShapedFunctor F, IsShapedFunctor G,
+                 IsShapedFunctor H>
   requires IsNaturalTransformation<Α, F, G> && IsNaturalTransformation<Β, G, H>
 struct vertical_composition {
   Α α;
@@ -347,8 +348,9 @@ struct vertical_composition {
  * @brief Horizontal composition (Godement product).
  * @details F: C->D, G: D->E and α: F=>F', β: G=>G'.
  */
-export template <typename Α, typename Β, IsFunctor F, IsFunctor F_prime,
-                 IsFunctor G, IsFunctor G_prime>
+export template <typename Α, typename Β, IsShapedFunctor F,
+                 IsShapedFunctor F_prime, IsShapedFunctor G,
+                 IsShapedFunctor G_prime>
   requires IsNaturalTransformation<Α, F, F_prime> &&
            IsNaturalTransformation<Β, G, G_prime>
 struct horizontal_composition {

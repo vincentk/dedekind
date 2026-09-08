@@ -72,7 +72,7 @@ module;
 export module dedekind.linear_algebra:mat2x2;
 
 import dedekind.algebra; // HasRingOperators, HasFieldOperators, HasVectorSpaceOperators
-import dedekind.category; // IsFunctor / Set / arrow (for matrix2x2_functor witness)
+import dedekind.category; // IsShapedFunctor / Set / arrow (for matrix2x2_functor witness)
 import dedekind.numbers; // Rational<default_integer> — the rational carrier (post-#559 ℚ is the universe value Ω<Rational<default_integer>>)
 import dedekind.order; // IsDirectedSet — algebraic gate on operator[] index domain (any net domain)
 import dedekind.sets; // Finite cardinality tag (for dimension_type)
@@ -548,7 +548,7 @@ inline constexpr Matrix2x2V<T> zero_matrix2x2_v{T{0}, T{0}, T{0}, T{0}};
  *  `Matrix2x2V<·>` carries a 2×2 structural shape that is functorial in
  *  the element type @c T: an arrow @c f: T→T lifts elementwise to an
  *  arrow @c Matrix2x2V<T>→Matrix2x2V<T>.  The hub type below owns
- *  that lift and witnesses @c dedekind::category::IsFunctor; it
+ *  that lift and witnesses @c dedekind::category::IsShapedFunctor; it
  *  complements @c vec2_functor / @c covec2_functor in @c :vec2,
  *  closing the (1×1, 2×1, 1×2, 2×2) shape family below.
  */
@@ -578,7 +578,7 @@ struct matrix2x2_functor {
   constexpr Τ_cat operator()(const Σ_cat&) const noexcept { return {}; }
 };
 
-static_assert(dedekind::category::IsFunctor<matrix2x2_functor<int>>,
+static_assert(dedekind::category::IsShapedFunctor<matrix2x2_functor<int>>,
               "Matrix2x2V<·> is a functor Set<T> → Set<Matrix2x2V<T>>: "
               "lifts a T-arrow to the elementwise Matrix2x2V<T>-arrow.");
 
@@ -707,14 +707,14 @@ static_assert(
 
 /** @section matrix__Bifunctorial_And_Concept_Witnessed_Shapes
  *
- *  Higher matrix shapes do not fit the unary @c IsFunctor mould as
+ *  Higher matrix shapes do not fit the unary @c IsShapedFunctor mould as
  *  cleanly as the (1×1, 2×1, 1×2, 2×2) family above:
  *
  *  - @c DirectSum<A, B> and @c BlockUpperTriangular<A, B, D> are
  *    naturally bifunctors / trifunctors @c Mat × Mat → Mat:
  *    block-diagonal / block-UT composition is functorial in each
  *    argument separately but not unary.  Witnessing them via the
- *    unary @c IsFunctor concept would require either a partial
+ *    unary @c IsShapedFunctor concept would require either a partial
  *    application trick (functor for fixed B / fixed D) or an
  *    @c IsBifunctor extension to the category partition;
  *  - Orthogonality, rotation, diagonality etc. live as concept-level

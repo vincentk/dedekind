@@ -196,7 +196,7 @@ constexpr auto operator>>(T&& val, η_tag<η_t>) {
 // that domain type for the component selection to be valid (e.g., for the
 // identity monad, NestedContext = int = Domain, so the cast is a no-op).
 export template <typename NestedContext, typename T, typename μ_t>
-  requires IsFunctor<T> &&
+  requires IsShapedFunctor<T> &&
            std::convertible_to<NestedContext, typename T::Σ_cat::Arrow::Domain>
 constexpr auto operator>>(NestedContext&& nested, μ_tag<T, μ_t>) {
   using Domain = typename T::Σ_cat::Arrow::Domain;

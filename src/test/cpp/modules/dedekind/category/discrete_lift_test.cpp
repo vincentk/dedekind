@@ -93,9 +93,9 @@ TEST_CASE("discrete_lift_t participates in the bona fide adjunction surface",
   using DiscF = disc_self_endofunctor_t<DiscS>;
   using UnitT = disc_self_unit_t<DiscS>;
 
-  // The Disc-functor on Disc(S) is a bona fide IsFunctor (not just a
+  // The Disc-functor on Disc(S) is a bona fide IsShapedFunctor (not just a
   // type alias).
-  STATIC_CHECK(IsFunctor<DiscF>);
+  STATIC_CHECK(IsShapedFunctor<DiscF>);
 
   // The unit/counit is a bona fide natural transformation (the
   // identity transformation on DiscF).

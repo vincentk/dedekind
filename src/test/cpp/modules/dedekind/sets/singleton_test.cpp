@@ -143,7 +143,7 @@ TEST_CASE("Sets: Singleton Acceptance", "[sets][singleton][acceptance]") {
  *          surface: `singleton(value)` for η, `s.origin()` for ε,
  *          `s >>= f` for Kleisli bind (already exported by
  *          `:sets:singleton`).  The `singleton_functor` hub's
- *          `IsFunctor` / `IsFrobenius` witnesses pin the algebraic
+ *          `IsShapedFunctor` / `IsFrobenius` witnesses pin the algebraic
  *          claim at the type level; this TEST_CASE exercises the
  *          composition behaviour at the value level.
  */

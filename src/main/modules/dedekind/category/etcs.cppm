@@ -633,7 +633,7 @@ static_assert(std::same_as<discrete_lift_t<_isset_witness_t>,
 // system can certify here; the full meta-categorical
 // @c Disc @c ⊣ @c U is acknowledged as future work in the doc block.
 static_assert(
-    IsFunctor<disc_self_endofunctor_t<discrete_lift_t<_isset_witness_t>>>,
+    IsShapedFunctor<disc_self_endofunctor_t<discrete_lift_t<_isset_witness_t>>>,
     "Set ↪ Cat lift: the discrete-restriction Disc-functor is a bona "
     "fide functor on Disc(S).");
 static_assert(HasAdjunctionShape<
