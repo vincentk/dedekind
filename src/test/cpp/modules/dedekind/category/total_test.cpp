@@ -89,11 +89,12 @@ TEST_CASE("Total: Lattice Structures (Relational Presence)",
                                        std::logical_and<bool>>);
   }
 
-  SECTION("Boolean Algebra: the top of the lattice variety (#809)") {
-    // 𝔹 = bool sits at the top of the lattice variety: it is BOTH bounded and
-    // distributive (independent axes) and complemented, so it satisfies
-    // IsBooleanAlgebra --- mirroring 𝔽₂ = bool topping the ring variety at
-    // IsField.
+  SECTION("Boolean Algebra: top of the expanded signature Alg(∨,∧,¬) (#809)") {
+    // 𝔹 = bool is the initial Boolean algebra.  Note the signature: bounded +
+    // distributive is the top WITHIN Alg(∧,∨), but the complement ¬ (and bounds
+    // ⊥/⊤) EXPAND the signature to Alg(∨,∧,¬,⊥,⊤) --- IsBooleanAlgebra tops
+    // that expanded signature, not pure Alg(∧,∨).  Mirrors 𝔽₂ = bool topping
+    // the (signature-expanded) ring line at IsField.
     STATIC_CHECK(
         IsBoundedLattice<bool, std::logical_or<bool>, std::logical_and<bool>>);
     STATIC_CHECK(

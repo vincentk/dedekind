@@ -850,15 +850,15 @@ static_assert(IsBooleanAlgebra<bool, std::logical_or<bool>,
               "𝔹 is the initial Boolean algebra --- the top of the expanded "
               "signature Alg(∨,∧,¬,⊥,⊤).");
 
-// Honest negative separating the DistributiveLattice rung from the top: the
-// total order (int, max, min) IS a distributive lattice (asserted above) but is
-// NOT a Boolean algebra --- an unbounded chain of length > 2 has no
-// complements (is_complemented_v is unregistered, and genuinely cannot be:
-// interior points of a chain have no complement).
-static_assert(!IsBooleanAlgebra<int, decltype(std::ranges::max),
-                                decltype(std::ranges::min), std::negate<int>>,
-              "(int, max, min) is a distributive lattice but NOT a Boolean "
-              "algebra: a chain has no complements.");
+// (No `!IsBooleanAlgebra<int, max, min>` negative: it would not cleanly isolate
+// the complement rung --- in this encoding (int, max, min) also lacks
+// registered bounds ⊥/⊤, so the rejection is over-determined.  A clean
+// "distributive but not complemented" isolation needs a genuinely bounded
+// finite chain carrier (e.g. a 3-element chain, where an interior point has no
+// complement); not currently a typed carrier, so left to a follow-up rather
+// than asserted muddily. The signature-expansion prose above already states
+// that DistributiveLattice is the Alg(∧,∨) top and BooleanAlgebra is the
+// ¬-expansion.)
 
 /** @section total__Boolean_Ring_Negative_Proof */
 
