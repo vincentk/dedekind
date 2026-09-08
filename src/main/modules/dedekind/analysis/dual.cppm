@@ -183,6 +183,21 @@ struct Dual {
   }
 };
 
+/** @brief Canonical product projections for @c Dual (ADL customization of
+ *  @c dedekind::category::π_1 / @c π_2): 𝔻's storage is @c val / @c der, not
+ * the pair-like @c .first / @c .second the default projection reads, so we
+ * provide the overload here.  This is what makes @c Dual satisfy @c IsProduct
+ * uniformly with @c Complex (P-leg), while @c value() / @c derivative() stay as
+ * the domain-specific aliases that agree with @c π_1 / @c π_2. */
+export template <typename F>
+constexpr F π_1(const Dual<F>& d) {
+  return d.val;
+}
+export template <typename F>
+constexpr F π_2(const Dual<F>& d) {
+  return d.der;
+}
+
 // IsTangentBundle (the flat-case tangent-bundle concept) is defined
 // upstream in @c dedekind.geometry:tangent --- co-located with the
 // trivial @c TangentVector / @c CotangentVector aliases in
@@ -424,12 +439,18 @@ template <>
 inline constexpr bool
     is_monic_arrow_v<std::decay_t<decltype(dedekind::analysis::embed_ℝ_𝔻)>> =
         true;
-// P-leg: 𝔻 ≅ ℝ × ℝ via the (val, der) coefficient pair.  ℂ carries the
-// pair-like IsProduct (its storage is literally .first/.second, what
-// IsPairLikeProduct reads); 𝔻's storage is the semantic .val/.der, so its
-// product iso is witnessed directly --- projections + reconstruction --- in the
-// computed section below (dual__ℝ_𝔻_S_Leg_Witnesses).  Both ARE ℝ×ℝ. H-leg: 𝔻 =
-// ℝ[ε]/(ε²) is a quotient algebra over ℝ (quotient_algebra_base above).
+// P-leg: 𝔻 ≅ ℝ × ℝ.  Now UNIFORM with ℂ --- IsProduct tests the canonical
+// projections π_1 / π_2, and 𝔻's val/der overload (above) satisfies them, so
+// the concept holds through the coefficient pair despite the non-pair-like
+// storage.
+static_assert(
+    IsProduct<dedekind::analysis::Dual<dedekind::numbers::QuadraticReal<2>>,
+              dedekind::numbers::QuadraticReal<2>,
+              dedekind::numbers::QuadraticReal<2>>,
+    "P-leg: the coat-hanger 𝔻 ≅ ℝ × ℝ (Dual<QuadReal<2>> IsProduct via "
+    "π_1/π_2).");
+// H-leg: 𝔻 = ℝ[ε]/(ε²) is a quotient algebra over ℝ (quotient_algebra_base
+// above).
 static_assert(
     IsQuotientAlgebra<
         dedekind::analysis::Dual<dedekind::numbers::QuadraticReal<2>>>,
@@ -498,15 +519,17 @@ static_assert(
     dedekind::algebra::EmbedsAsSubalgebra<std::decay_t<decltype(embed_ℝ_𝔻)>>,
     "S-leg: ℝ ↪ 𝔻 (embed_ℝ_𝔻) is a Birkhoff S-leg — a monic ring embedding.");
 
-// --- P-leg (computed): 𝔻 ≅ ℝ × ℝ.  The two projections recover the
-// coefficients
-// --- and reconstruction from them is the identity — the product iso, run. ---
+// --- P-leg (computed): the canonical projections π_1 / π_2 recover the (val,
+// --- der) coefficients and agree with the value()/derivative() aliases;
+// --- reconstruction is the identity.  Corroborates the IsProduct witness
+// above.
 constexpr D2_d d_pair = D2_d{a_d, b_d};
-static_assert(d_pair.value() == a_d, "P-leg: π₁ (value) recovers the ℝ val.");
-static_assert(d_pair.derivative() == b_d,
-              "P-leg: π₂ (derivative) recovers the ℝ der.");
-static_assert(D2_d{d_pair.value(), d_pair.derivative()} == d_pair,
-              "P-leg: ⟨π₁, π₂⟩ reconstruction is the identity — 𝔻 ≅ ℝ × ℝ.");
+static_assert(π_1(d_pair) == a_d && π_1(d_pair) == d_pair.value(),
+              "P-leg: π_1 recovers the ℝ val (== value()).");
+static_assert(π_2(d_pair) == b_d && π_2(d_pair) == d_pair.derivative(),
+              "P-leg: π_2 recovers the ℝ der (== derivative()).");
+static_assert(D2_d{π_1(d_pair), π_2(d_pair)} == d_pair,
+              "P-leg: ⟨π_1, π_2⟩ reconstruction is the identity — 𝔻 ≅ ℝ × ℝ.");
 }  // namespace
 
 }  // namespace dedekind::analysis

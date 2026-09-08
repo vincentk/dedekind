@@ -40,6 +40,11 @@ constexpr std::array<R2, 5> kReals{R2{}, R2{1}, R2{Q{2, 3}}, R2{Q{-3, 5}},
 
 using EmbC = std::decay_t<decltype(embed_ℝ_ℂ)>;
 using EmbD = std::decay_t<decltype(embed_ℝ_𝔻)>;
+
+// The canonical projections: the pair-like default reaches ℂ (re/im, via
+// .first/.second) by ordinary lookup; 𝔻's val/der overload is found by ADL.
+using dedekind::category::π_1;
+using dedekind::category::π_2;
 }  // namespace
 
 // ── S-leg ────────────────────────────────────────────────────────────────────
@@ -85,20 +90,27 @@ TEST_CASE("HSP-S: the embeddings are injective, into the constant subalgebra",
 }
 
 // ── P-leg ────────────────────────────────────────────────────────────────────
-TEST_CASE("HSP-P: ℂ ≅ ℝ×ℝ (pair-like) and 𝔻 ≅ ℝ×ℝ (val/der) round-trip",
+TEST_CASE("HSP-P: ℂ and 𝔻 are both IsProduct ≅ ℝ×ℝ via the canonical π_1/π_2",
           "[analysis][numbers][hsp][product]") {
-  STATIC_REQUIRE(dedekind::category::IsProduct<Cx, R2, R2>);  // ℂ is pair-like
+  // UNIFORM now: both satisfy IsProduct through the canonical projections ---
+  // ℂ via the pair-like default (re/im), 𝔻 via its val/der overload.
+  STATIC_REQUIRE(dedekind::category::IsProduct<Cx, R2, R2>);
+  STATIC_REQUIRE(dedekind::category::IsProduct<Du, R2, R2>);
   for (const R2& a : kReals) {
     for (const R2& b : kReals) {
       const Cx z{a, b};
-      CHECK(z.real() == a);
-      CHECK(z.imag() == b);
-      CHECK(Cx{z.real(), z.imag()} == z);  // ⟨π₁, π₂⟩ = id
+      CHECK(π_1(z) == a);
+      CHECK(π_2(z) == b);
+      CHECK(π_1(z) == z.real());       // π_1 == the re alias
+      CHECK(π_2(z) == z.imag());       // π_2 == the im alias
+      CHECK(Cx{π_1(z), π_2(z)} == z);  // ⟨π₁, π₂⟩ = id
 
       const Du d{a, b};
-      CHECK(d.value() == a);
-      CHECK(d.derivative() == b);
-      CHECK(Du{d.value(), d.derivative()} == d);  // ⟨π₁, π₂⟩ = id
+      CHECK(π_1(d) == a);
+      CHECK(π_2(d) == b);
+      CHECK(π_1(d) == d.value());       // π_1 == the val alias
+      CHECK(π_2(d) == d.derivative());  // π_2 == the der alias
+      CHECK(Du{π_1(d), π_2(d)} == d);   // ⟨π₁, π₂⟩ = id
     }
   }
 }

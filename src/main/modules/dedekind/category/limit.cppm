@@ -263,6 +263,33 @@ concept IsProjectedInitialObject =
  */
 
 /**
+ * @brief The canonical product projections @c π_1 @c : @c P @c → @c A and
+ *        @c π_2 @c : @c P @c → @c B, named per Pierce (@em Basic Category
+ *        Theory for Computer Scientists §1.4).
+ *
+ * @details These are the SINGLE canonical accessor for a categorical product's
+ * two components --- what @c IsProduct tests against.  The default reads the
+ * pair-like @c .first / @c .second, so every type that exposes them
+ * (@c std::pair, @c Complex, @c Rational, the boundary witnesses, ...) carries
+ * @c π_1 / @c π_2 for free.  A carrier whose storage is named differently
+ * (@c Dual's @c val / @c der) provides its own overload in its home namespace,
+ * found by ADL; its domain-specific accessors (@c real / @c imag,
+ * @c value / @c derivative, @c first / @c second) stay as aliases that agree
+ * with @c π_1 / @c π_2.  Sister of the coproduct injections @c ι_1 / @c ι_2 in
+ * @c :cartesian.
+ */
+export template <typename P>
+  requires requires(const P& p) { p.first; }
+constexpr auto π_1(const P& p) {
+  return p.first;
+}
+export template <typename P>
+  requires requires(const P& p) { p.second; }
+constexpr auto π_2(const P& p) {
+  return p.second;
+}
+
+/**
  * @concept IsProduct
  * @brief Categorification of `std::pair<A, B>` as the categorical product
  * (A × B).
@@ -283,13 +310,16 @@ concept IsProjectedInitialObject =
  *   commutes:  f = π₁ ∘ u   and   g = π₂ ∘ u
  * @endcode
  *
- * `std::pair<A, B>` satisfies this concept via its `.first` (π₁) and
- * `.second` (π₂) members.
+ * The membership test is against the canonical projections @c π_1 / @c π_2
+ * (above), NOT the raw @c .first / @c .second: @c std::pair, @c Complex and
+ * @c Rational satisfy it through the default @c .first / @c .second projection,
+ * while @c Dual satisfies it through its @c val / @c der overload --- the P-leg
+ * is uniform across every product-shaped carrier regardless of storage names.
  */
 template <typename P, typename A, typename B>
 concept IsPairLikeProduct = requires(P p) {
-  { p.first } -> std::convertible_to<A>;
-  { p.second } -> std::convertible_to<B>;
+  { π_1(p) } -> std::convertible_to<A>;
+  { π_2(p) } -> std::convertible_to<B>;
 };
 
 export template <typename P, typename A, typename B>
@@ -385,35 +415,15 @@ concept IsArrowFromProduct =
     IsArrow<F> && IsProduct<Dom<F>, typename Dom<F>::first_type,
                             typename Dom<F>::second_type>;
 
-/**
- * @brief Left projection @c π_1 @c : @c A @c × @c B @c → @c A.
- * @details The canonical first projection out of a binary product, named per
- *          Pierce (@em Basic Category Theory for Computer Scientists §1.4).
- *          Sister of the coproduct injection @c ι_1 in @c :cartesian.
- */
-export template <typename A, typename B>
-constexpr auto π_1(const std::pair<A, B>& p) {
-  return p.first;
-}
-
-/**
- * @brief Right projection @c π_2 @c : @c A @c × @c B @c → @c B.
- * @details The canonical second projection out of a binary product, named per
- *          Pierce.  Sister of the coproduct injection @c ι_2 in @c :cartesian.
- */
-export template <typename A, typename B>
-constexpr auto π_2(const std::pair<A, B>& p) {
-  return p.second;
-}
-
-// Compiler-validated witnesses: π_1 / π_2 inhabit IsProductProjection.
+// Compiler-validated witnesses: π_1 / π_2 (defined above IsProduct) inhabit
+// IsProductProjection over the pair-like default.
 static_assert(IsProductProjection<decltype([](const std::pair<int, bool>& p) {
-                                    return π_1<int, bool>(p);
+                                    return π_1(p);
                                   }),
                                   std::pair<int, bool>, int>,
               "π_1 must inhabit IsProductProjection<Product → LeftPart>.");
 static_assert(IsProductProjection<decltype([](const std::pair<int, bool>& p) {
-                                    return π_2<int, bool>(p);
+                                    return π_2(p);
                                   }),
                                   std::pair<int, bool>, bool>,
               "π_2 must inhabit IsProductProjection<Product → RightPart>.");
