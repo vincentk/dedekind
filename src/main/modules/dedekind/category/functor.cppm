@@ -886,8 +886,12 @@ constexpr auto φ(Identity<A> const& id, F&& f)
  *   - @b Container / Hask-endofunctor flavour: functor as polymorphic
  *     type-constructor.  Examples in this partition: @c maybe_functor,
  *     @c tuple_functor, @c identity_functor.  Type-system witness:
- *     these all satisfy @c IsShapedFunctor with @c Σ_cat @c = @c Τ_cat ---
- *     i.e.\ they are @em endofunctors (which is the textbook name).
+ *     these all satisfy @c IsShapedFunctor.  At the textbook level they
+ *     are endofunctors on @c Set; in this library's single-species
+ *     encoding only @c identity_functor is literally @c Σ_cat @c = @c Τ_cat,
+ *     while @c maybe_functor / @c tuple_functor present as @c Set<T> @c →
+ *     @c Set<F<T>> (distinct single-species categories --- so not a literal
+ *     @c IsEndofunctor here; see the @c functor__IsFunctor_Models note).
  *   - @b Algebraic-set / structural-CT flavour: functor as a
  *     structure-preserving map between two specific named categories,
  *     with further modifiers for monic / epi / faithful / full / etc.
@@ -895,9 +899,10 @@ constexpr auto φ(Identity<A> const& id, F&& f)
  *     witnesses; future quotient projections will be @c
  *     IsQuotientFunctor witnesses.
  *
- * The two intuitions are unified at the @c IsShapedFunctor level (Mac Lane
+ * The two intuitions are unified at the @c IsFunctor level (Mac Lane
  * §I.3): a functor is a structure-preserving map between two
- * categories, full stop.  Polymorphic / non-polymorphic is a
+ * categories, full stop (@c IsShapedFunctor refines it with @c Shape<U> /
+ * @c φ).  Polymorphic / non-polymorphic is a
  * presentation choice for how F is given, not a structural CT
  * property; textbook CT therefore does not name umbrella concepts
  * "@c IsContainerFunctor" / "@c IsSpecificFunctor".  This project

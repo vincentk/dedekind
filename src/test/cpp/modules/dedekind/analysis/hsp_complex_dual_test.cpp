@@ -70,7 +70,7 @@ TEST_CASE("HSP-S: ℝ ↪ ℂ and ℝ ↪ 𝔻 classify as EmbedsAsSubalgebra",
   STATIC_REQUIRE(dedekind::algebra::EmbedsAsSubalgebra<EmbD>);
 }
 
-TEST_CASE("HSP-S: the embeddings preserve the field operations (+, ×, 0, 1)",
+TEST_CASE("HSP-S: the embeddings preserve the ring operations (+, ×, 0, 1)",
           "[analysis][numbers][hsp][subalgebra]") {
   for (const R2& x : kReals) {
     for (const R2& y : kReals) {
