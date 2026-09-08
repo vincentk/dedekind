@@ -691,10 +691,21 @@ concept IsDistributiveLattice =
  *        (@c identity_v<T,Meet>).
  * @details A lattice is @b bounded when it has a least and a greatest element,
  * @f$a \vee \bot = a@f$ and @f$a \wedge \top = a@f$; equivalently its join- and
- * meet-semilattices are each a commutative @ref IsMonoid.  For @c bool the
+ * meet-semilattices are each an @ref IsMonoid (commutativity is already forced
+ * by @ref IsLattice, so only the identity is new here).  For @c bool the
  * bounds are @c false (@f$\bot@f$, the @c logical_or identity) and @c true
  * (@f$\top@f$, the @c logical_and identity).  This is the bounded rung of the
  * lattice @b variety Alg(∧,∨), the ∧/∨ analogue of a unital ring in Alg(+,×).
+ *
+ * @note Name disambiguation.  Two siblings carry related names in other
+ * partitions: @c dedekind::sets::IsBoundedLattice<S> (1-param, @c :mereology)
+ * is the @b IsSet / powerset-specific bounded lattice, and @c
+ * dedekind::category::IsBoundedLatticeCategory (@c :lattice) is the
+ * @b relation-based categorical reading.  This one is the operation-parametric
+ * @b variety concept (matching the un-suffixed ring-ladder names @c IsRing /
+ * @c IsField in this partition).  The @c :mereology sibling is only used within
+ * @c namespace @c dedekind::sets, where its own declaration wins unqualified
+ * lookup, so the shared name does not collide in practice.
  */
 export template <typename T, typename Join, typename Meet>
 concept IsBoundedLattice =
@@ -789,8 +800,21 @@ inline constexpr bool
     is_complemented_v<bool, std::logical_or<bool>, std::logical_and<bool>,
                       std::logical_not<bool>> = true;
 
-// The full ladder on 𝔹: Semilattice → Lattice → BoundedLattice →
-// DistributiveLattice → BooleanAlgebra (each rung a strict refinement).
+// 𝔹 = bool sits at the TOP of the lattice variety.  The refinements above
+// IsLattice are NOT a linear chain: @c IsBoundedLattice (adds ⊥/⊤) and
+// @c IsDistributiveLattice (adds distributivity) are INDEPENDENT axes ---
+// neither implies the other (e.g. int under (max, min) is distributive but
+// unbounded, see below).  They form a diamond whose meet, plus complements, is
+// the Boolean algebra:
+//
+//                    BooleanAlgebra  (bounded ∧ distributive ∧ complemented)
+//                     /            \
+//        BoundedLattice            DistributiveLattice
+//                     \            /
+//                       IsLattice
+//                           |
+//                      (Join/Meet)Semilattice
+//
 static_assert(IsJoinSemilattice<bool, std::logical_or<bool>>);
 static_assert(IsMeetSemilattice<bool, std::logical_and<bool>>);
 static_assert(IsLattice<bool, std::logical_or<bool>, std::logical_and<bool>>);
@@ -800,6 +824,16 @@ static_assert(
 static_assert(IsBooleanAlgebra<bool, std::logical_or<bool>,
                                std::logical_and<bool>, std::logical_not<bool>>,
               "𝔹 is the initial Boolean algebra --- the top of Alg(∧,∨).");
+
+// Honest negative separating the DistributiveLattice rung from the top: the
+// total order (int, max, min) IS a distributive lattice (asserted above) but is
+// NOT a Boolean algebra --- an unbounded chain of length > 2 has no
+// complements (is_complemented_v is unregistered, and genuinely cannot be:
+// interior points of a chain have no complement).
+static_assert(!IsBooleanAlgebra<int, decltype(std::ranges::max),
+                                decltype(std::ranges::min), std::negate<int>>,
+              "(int, max, min) is a distributive lattice but NOT a Boolean "
+              "algebra: a chain has no complements.");
 
 /** @section total__Boolean_Ring_Negative_Proof */
 

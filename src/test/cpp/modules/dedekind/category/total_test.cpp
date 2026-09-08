@@ -90,8 +90,10 @@ TEST_CASE("Total: Lattice Structures (Relational Presence)",
   }
 
   SECTION("Boolean Algebra: the top of the lattice variety (#809)") {
-    // 𝔹 = bool climbs the full lattice ladder to BooleanAlgebra, mirroring
-    // 𝔽₂ = bool topping the ring variety at IsField.
+    // 𝔹 = bool sits at the top of the lattice variety: it is BOTH bounded and
+    // distributive (independent axes) and complemented, so it satisfies
+    // IsBooleanAlgebra --- mirroring 𝔽₂ = bool topping the ring variety at
+    // IsField.
     STATIC_CHECK(
         IsBoundedLattice<bool, std::logical_or<bool>, std::logical_and<bool>>);
     STATIC_CHECK(
