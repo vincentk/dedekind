@@ -694,8 +694,11 @@ concept IsDistributiveLattice =
  * meet-semilattices are each an @ref IsMonoid (commutativity is already forced
  * by @ref IsLattice, so only the identity is new here).  For @c bool the
  * bounds are @c false (@f$\bot@f$, the @c logical_or identity) and @c true
- * (@f$\top@f$, the @c logical_and identity).  This is the bounded rung of the
- * lattice @b variety Alg(∧,∨), the ∧/∨ analogue of a unital ring in Alg(+,×).
+ * (@f$\top@f$, the @c logical_and identity).  Adding the bounds @b expands the
+ * signature from @c Alg(∧,∨) to @c Alg(∧,∨,⊥,⊤) (two nullary constants), so
+ * bounded lattices are a variety over the @b expanded signature, not a
+ * subvariety of @c Alg(∧,∨) --- compare a unital ring expanding @c Alg(+,×)
+ * with the constant @c 1.
  *
  * @note Name disambiguation.  Two siblings carry related names in other
  * partitions: @c dedekind::sets::IsBoundedLattice<S> (1-param, @c :mereology)
@@ -727,14 +730,20 @@ inline constexpr bool is_complemented_v = false;
 
 /**
  * @concept IsBooleanAlgebra
- * @brief The @b top of the lattice variety Alg(∧,∨): a @b complemented
- *        @b distributive bounded lattice --- the ∧/∨ analogue of @ref IsField
- *        topping the ring variety Alg(+,×).
+ * @brief The @b top of the @b Boolean-algebra variety @c Alg(∨,∧,¬,⊥,⊤): a
+ *        @b complemented @b distributive bounded lattice --- the ∨/∧/¬ analogue
+ *        of @ref IsField topping the (signature-expanded) ring variety.
  * @details @f$(T, \vee, \wedge, \neg, \bot, \top)@f$ with distributivity and
  * complements.  @c bool under @c (logical_or, logical_and, logical_not) is the
  * initial Boolean algebra @f$\mathbb{B} = \{\bot < \top\}@f$.  This is the
  * @b variety reading (operation-parametric, Birkhoff), distinct from the
  * relation-based @c category::IsBooleanLatticeCategory in @c :lattice.
+ *
+ * @note This is @b not the top of the pure two-operation variety @c Alg(∧,∨)
+ * (which tops at @ref IsDistributiveLattice).  Complement @c ¬ and the bounds
+ * @c ⊥/⊤ @b expand the signature to @c Alg(∨,∧,¬,⊥,⊤); the pure @c (∧,∨)
+ * reducts of Boolean algebras are not even HSP-closed --- a 3-element chain is
+ * a @c (∧,∨)-sublattice of the 4-element Boolean algebra yet has no complement.
  *
  * @c Not is required to be a genuine unary operation @c T @c → @c T
  * (@ref IsClosedUnderUnary), not merely a trait key: the @c is_complemented_v
@@ -783,12 +792,16 @@ static_assert(IsDistributiveLattice<int, decltype(std::ranges::max),
 
 /** @section total__Lattice_Variety_Ladder (#809)
  *
- * The lattice variety Alg(∧,∨), pinned rung-by-rung on the initial Boolean
- * algebra @f$\mathbb{B}@f$ = @c bool under @c (logical_or, logical_and,
- * logical_not) --- the ∧/∨ mirror of the ring variety ladder
- * (@ref IsRng ... @ref IsField) above.  The bounds are
- * @f$\bot@f$ = @c false (join identity) and @f$\top@f$ = @c true (meet
- * identity).
+ * The lattice varieties, pinned on @f$\mathbb{B}@f$ = @c bool under
+ * @c (logical_or, logical_and, logical_not) --- the ∧/∨ mirror of the ring
+ * ladder (@ref IsRng ... @ref IsField) above.  Two orthogonal directions climb
+ * here: equational @b refinement within the @b pure signature @c Alg(∧,∨)
+ * (Semilattice ⊂ Lattice ⊂ DistributiveLattice), and signature @b expansion
+ * (@ref IsBoundedLattice adds the nullary bounds @c ⊥/⊤; @ref IsBooleanAlgebra
+ * adds the unary complement @c ¬) --- exactly as the ring ladder expands
+ * @c Alg(+,×) with @c 1 and inverses to reach @ref IsField.  The bounds on
+ * @c bool are @f$\bot@f$ = @c false (join identity) and @f$\top@f$ = @c true
+ * (meet identity).
  */
 
 // bool is complemented under (∨, ∧, ¬): a ∨ ¬a = ⊤ (true), a ∧ ¬a = ⊥ (false).
@@ -806,20 +819,25 @@ inline constexpr bool
     is_complemented_v<bool, std::logical_or<bool>, std::logical_and<bool>,
                       std::logical_not<bool>> = true;
 
-// 𝔹 = bool sits at the TOP of the lattice variety.  The refinements above
-// IsLattice are NOT a linear chain: @c IsBoundedLattice (adds ⊥/⊤) and
-// @c IsDistributiveLattice (adds distributivity) are INDEPENDENT axes ---
-// neither implies the other (e.g. int under (max, min) is distributive but
-// unbounded, see below).  They form a diamond whose meet, plus complements, is
-// the Boolean algebra:
+// 𝔹 = bool sits at the top.  The rungs are NOT one linear chain, and they mix
+// two kinds of step:
+//   * equational refinement, SAME signature Alg(∧,∨):
+//         (Join/Meet)Semilattice ⊂ Lattice ⊂ DistributiveLattice
+//   * signature EXPANSION (new operations) --- a variety over a LARGER
+//     signature, NOT a subvariety of Alg(∧,∨):
+//         + bounds ⊥,⊤   → BoundedLattice   over Alg(∧,∨,⊥,⊤)
+//         + complement ¬  → BooleanAlgebra   over Alg(∨,∧,¬,⊥,⊤)
+// Bounded and Distributive are independent (int/(max,min) is distributive but
+// unbounded, see below); BooleanAlgebra is their meet PLUS the ¬ expansion:
 //
-//                    BooleanAlgebra  (bounded ∧ distributive ∧ complemented)
-//                     /            \
-//        BoundedLattice            DistributiveLattice
-//                     \            /
-//                       IsLattice
-//                           |
-//                      (Join/Meet)Semilattice
+//        BooleanAlgebra = bounded ∧ distributive ∧ complemented
+//        [Alg(∨,∧,¬,⊥,⊤)]
+//         /            \
+//   BoundedLattice      DistributiveLattice  ← the pure-Alg(∧,∨) top
+//   [Alg(∧,∨,⊥,⊤)]  \  / [Alg(∧,∨)]
+//                 IsLattice
+//                     |
+//              (Join/Meet)Semilattice
 //
 static_assert(IsJoinSemilattice<bool, std::logical_or<bool>>);
 static_assert(IsMeetSemilattice<bool, std::logical_and<bool>>);
@@ -829,7 +847,8 @@ static_assert(
     "𝔹 is a bounded lattice: ⊥ = false (∨-identity), ⊤ = true (∧-identity).");
 static_assert(IsBooleanAlgebra<bool, std::logical_or<bool>,
                                std::logical_and<bool>, std::logical_not<bool>>,
-              "𝔹 is the initial Boolean algebra --- the top of Alg(∧,∨).");
+              "𝔹 is the initial Boolean algebra --- the top of the expanded "
+              "signature Alg(∨,∧,¬,⊥,⊤).");
 
 // Honest negative separating the DistributiveLattice rung from the top: the
 // total order (int, max, min) IS a distributive lattice (asserted above) but is

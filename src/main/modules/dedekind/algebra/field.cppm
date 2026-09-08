@@ -216,20 +216,21 @@ static_assert(
     "bool under (XOR, AND) must satisfy the axiomatic "
     "category::IsField: it is literally the Galois field 𝔽2.");
 
-// #809 --- the intersection object: the two Birkhoff VARIETIES meet at bool.
-// The SAME carrier tops BOTH variety ladders:
-//   * Alg(+,×)  ring variety     --- IsField<bool, ⊕, ∧>          = 𝔽₂ (above),
-//   * Alg(∧,∨)  lattice variety  --- IsBooleanAlgebra<bool, ∨, ∧, ¬> = 𝔹
-//   (below).
-// So the ring and lattice varieties are NOT disjoint --- bool is where they
-// overlap (the field 𝔽₂ and the Boolean algebra 𝔹 on one carrier), each read
-// off a DIFFERENT operation pair on the same underlying set {false, true}.
+// #809 --- the intersection object: two Birkhoff varieties meet at bool.  The
+// SAME carrier tops BOTH signature-expanded ladders:
+//   * ring line    --- IsField<bool, ⊕, ∧>           = 𝔽₂  (expands Alg(+,×)
+//                      with 1 and inverses; above),
+//   * lattice line --- IsBooleanAlgebra<bool, ∨, ∧, ¬> = 𝔹  (expands Alg(∧,∨)
+//                      with the bounds ⊥/⊤ and complement ¬; below).
+// So the two families are NOT disjoint --- bool is where they overlap (the
+// field 𝔽₂ and the Boolean algebra 𝔹 on one carrier), each read off a DIFFERENT
+// operation set on the same underlying set {false, true}.
 static_assert(
     dedekind::category::IsBooleanAlgebra<bool, std::logical_or<bool>,
                                          std::logical_and<bool>,
                                          std::logical_not<bool>>,
     "bool under (OR, AND, NOT) must be the initial Boolean algebra 𝔹: the top "
-    "of the lattice variety Alg(∧,∨), meeting the ring variety 𝔽₂ at bool.");
+    "of the expanded signature Alg(∨,∧,¬,⊥,⊤), meeting the field 𝔽₂ at bool.");
 
 // The pure-lift payoff: the set object Ω<bool> is a set-indexed algebra
 // field under (XOR, AND) --- 𝔽2 qualifies with no division operator surface.
