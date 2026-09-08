@@ -684,6 +684,52 @@ concept IsDistributiveLattice =
     IsLattice<T, Join, Meet> &&
     IsOrderDistributiveLatticeOperations<T, Join, Meet>;
 
+/**
+ * @concept IsBoundedLattice
+ * @brief A @ref IsLattice whose join and meet each carry an identity: the
+ *        bottom @f$\bot@f$ (@c identity_v<T,Join>) and top @f$\top@f$
+ *        (@c identity_v<T,Meet>).
+ * @details A lattice is @b bounded when it has a least and a greatest element,
+ * @f$a \vee \bot = a@f$ and @f$a \wedge \top = a@f$; equivalently its join- and
+ * meet-semilattices are each a commutative @ref IsMonoid.  For @c bool the
+ * bounds are @c false (@f$\bot@f$, the @c logical_or identity) and @c true
+ * (@f$\top@f$, the @c logical_and identity).  This is the bounded rung of the
+ * lattice @b variety Alg(∧,∨), the ∧/∨ analogue of a unital ring in Alg(+,×).
+ */
+export template <typename T, typename Join, typename Meet>
+concept IsBoundedLattice =
+    IsLattice<T, Join, Meet> && IsMonoid<T, Join> && IsMonoid<T, Meet>;
+
+/**
+ * @brief Opt-in complement law: @c T carries a complement @c Not w.r.t. the
+ *        bounded lattice @c (Join, Meet), i.e. @f$a \vee \neg a = \top@f$ and
+ *        @f$a \wedge \neg a = \bot@f$ for every @c a.
+ * @details Like the other algebraic laws (@c is_idempotent_v /
+ * @c is_absorptive_v) this is an opt-in trait defaulting to @c false; a carrier
+ * registers @c true and @b backs it with a computed witness at the registration
+ * site (the complement identity is a per-element fact the concept machinery
+ * cannot enumerate generically).  Kept local to @c :total because @ref
+ * IsBooleanAlgebra is its only consumer; promote to @c :species if reused.
+ */
+export template <typename T, typename Join, typename Meet, typename Not>
+inline constexpr bool is_complemented_v = false;
+
+/**
+ * @concept IsBooleanAlgebra
+ * @brief The @b top of the lattice variety Alg(∧,∨): a @b complemented
+ *        @b distributive bounded lattice --- the ∧/∨ analogue of @ref IsField
+ *        topping the ring variety Alg(+,×).
+ * @details @f$(T, \vee, \wedge, \neg, \bot, \top)@f$ with distributivity and
+ * complements.  @c bool under @c (logical_or, logical_and, logical_not) is the
+ * initial Boolean algebra @f$\mathbb{B} = \{\bot < \top\}@f$.  This is the
+ * @b variety reading (operation-parametric, Birkhoff), distinct from the
+ * relation-based @c category::IsBooleanLatticeCategory in @c :lattice.
+ */
+export template <typename T, typename Join, typename Meet, typename Not>
+concept IsBooleanAlgebra =
+    IsBoundedLattice<T, Join, Meet> && IsDistributiveLattice<T, Join, Meet> &&
+    is_complemented_v<T, Join, Meet, Not>;
+
 // Upstream ownership locks: :total aliases must track :posetal refinements.
 static_assert(IsSemilattice<int, decltype(std::ranges::min)> ==
               (IsTotal<int, decltype(std::ranges::min)> &&
@@ -717,6 +763,43 @@ static_assert(
 // Lattice laws for integers under max/min (Total Order).
 static_assert(IsDistributiveLattice<int, decltype(std::ranges::max),
                                     decltype(std::ranges::min)>);
+
+/** @section total__Lattice_Variety_Ladder (#809)
+ *
+ * The lattice variety Alg(∧,∨), pinned rung-by-rung on the initial Boolean
+ * algebra @f$\mathbb{B}@f$ = @c bool under @c (logical_or, logical_and,
+ * logical_not) --- the ∧/∨ mirror of the ring variety ladder
+ * (@ref IsRng ... @ref IsField) above.  The bounds are
+ * @f$\bot@f$ = @c false (join identity) and @f$\top@f$ = @c true (meet
+ * identity).
+ */
+
+// bool is complemented under (∨, ∧, ¬): a ∨ ¬a = ⊤ (true), a ∧ ¬a = ⊥ (false).
+// The registration below is BACKED by this computed witness over all of bool.
+static_assert(std::logical_or<bool>{}(false, std::logical_not<bool>{}(false)) &&
+                  std::logical_or<bool>{}(true, std::logical_not<bool>{}(true)),
+              "bool complement law: a ∨ ¬a = ⊤ for every a.");
+static_assert(!std::logical_and<bool>{}(false,
+                                        std::logical_not<bool>{}(false)) &&
+                  !std::logical_and<bool>{}(true,
+                                            std::logical_not<bool>{}(true)),
+              "bool complement law: a ∧ ¬a = ⊥ for every a.");
+template <>
+inline constexpr bool
+    is_complemented_v<bool, std::logical_or<bool>, std::logical_and<bool>,
+                      std::logical_not<bool>> = true;
+
+// The full ladder on 𝔹: Semilattice → Lattice → BoundedLattice →
+// DistributiveLattice → BooleanAlgebra (each rung a strict refinement).
+static_assert(IsJoinSemilattice<bool, std::logical_or<bool>>);
+static_assert(IsMeetSemilattice<bool, std::logical_and<bool>>);
+static_assert(IsLattice<bool, std::logical_or<bool>, std::logical_and<bool>>);
+static_assert(
+    IsBoundedLattice<bool, std::logical_or<bool>, std::logical_and<bool>>,
+    "𝔹 is a bounded lattice: ⊥ = false (∨-identity), ⊤ = true (∧-identity).");
+static_assert(IsBooleanAlgebra<bool, std::logical_or<bool>,
+                               std::logical_and<bool>, std::logical_not<bool>>,
+              "𝔹 is the initial Boolean algebra --- the top of Alg(∧,∨).");
 
 /** @section total__Boolean_Ring_Negative_Proof */
 
