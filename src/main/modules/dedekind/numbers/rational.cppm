@@ -1193,4 +1193,15 @@ static_assert(
                                   default_integer>,
     "Rational<Z> must satisfy IsProduct<Rational<Z>, Z, Z> (ℚ ≅ ℤ × ℤ / ~).");
 
+// The canonical projections π_1 / π_2 agree with the num() / den() aliases ---
+// ℚ's specialized names for the ℤ×ℤ/~ left/right components (the same
+// projection scheme ℂ carries as re/im, 𝔻 as val/der).
+namespace {
+constexpr Rational<default_integer> q_proj{3, 5};  // 3/5
+static_assert(dedekind::category::π_1(q_proj) == q_proj.num(),
+              "π_1 = numerator (the ℤ×ℤ/~ left projection).");
+static_assert(dedekind::category::π_2(q_proj) == q_proj.den(),
+              "π_2 = denominator (the ℤ×ℤ/~ right projection).");
+}  // namespace
+
 }  // namespace dedekind::numbers

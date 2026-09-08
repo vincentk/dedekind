@@ -57,7 +57,7 @@ module;
 export module dedekind.linear_algebra:vec2;
 
 import dedekind.algebra; // HasRingOperators, HasVectorSpaceOperators (upstream)
-import dedekind.category; // IsFunctor / Set / arrow (for vec2_functor witnesses)
+import dedekind.category; // IsShapedFunctor / Set / arrow (for vec2_functor witnesses)
 import dedekind.order; // IsDirectedSet — algebraic gate on the operator[] index domain (any net domain works)
 import dedekind.sets;  // Finite tag — the cardinal the tuple dimension lives in
 import :basis;         // is_free_module_v trait declaration
@@ -310,7 +310,7 @@ constexpr Covec2V<T> Vec2V<T>::transpose() const {
  *  element type @c T) that is functorial in @c T: an arrow @c f: T→T
  *  lifts elementwise to an arrow @c Vec2V<T>→Vec2V<T> (resp.\ Covec).
  *  The hub types below own that lift and witness
- *  @c dedekind::category::IsFunctor for each shape.  They mirror
+ *  @c dedekind::category::IsShapedFunctor for each shape.  They mirror
  *  @c dedekind::category::maybe_functor in pattern.
  */
 export template <typename T>
@@ -363,10 +363,10 @@ struct covec2_functor {
   constexpr Τ_cat operator()(const Σ_cat&) const noexcept { return {}; }
 };
 
-static_assert(dedekind::category::IsFunctor<vec2_functor<int>>,
+static_assert(dedekind::category::IsShapedFunctor<vec2_functor<int>>,
               "Vec2V<·> is a functor Set<T> → Set<Vec2V<T>>: lifts a T-arrow "
               "to the elementwise Vec2V<T>-arrow.");
-static_assert(dedekind::category::IsFunctor<covec2_functor<int>>,
+static_assert(dedekind::category::IsShapedFunctor<covec2_functor<int>>,
               "Covec2V<·> is a functor Set<T> → Set<Covec2V<T>>: lifts a "
               "T-arrow to the elementwise Covec2V<T>-arrow.");
 

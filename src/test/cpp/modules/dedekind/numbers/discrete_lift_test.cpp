@@ -175,7 +175,7 @@ TEST_CASE("discrete_lift_t illustrates 'simple set vs. complex algebra' on 𝔹"
   // discrete-restriction encoding of the meta-categorical Disc ⊣ U.
   using DiscFB = disc_self_endofunctor_t<DiscB>;
   using UnitTB = disc_self_unit_t<DiscB>;
-  STATIC_CHECK(IsFunctor<DiscFB>);
+  STATIC_CHECK(IsShapedFunctor<DiscFB>);
   STATIC_CHECK(IsNaturalTransformation<UnitTB, DiscFB, DiscFB>);
   STATIC_CHECK(HasAdjunctionShape<DiscFB, DiscFB>);
   STATIC_CHECK(IsAdjunction<DiscFB, DiscFB, UnitTB, UnitTB>);

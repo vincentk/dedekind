@@ -9,10 +9,10 @@ TEST_CASE("Category: Functor Concepts", "[category][functor]") {
   using IntCat = DiscreteCategory<int>;
   auto plus_one = arrow([](int x) { return x + 1; });
 
-  STATIC_CHECK(IsFunctor<identity_functor<IntCat>>);
+  STATIC_CHECK(IsShapedFunctor<identity_functor<IntCat>>);
   STATIC_CHECK(IsEndofunctor<identity_functor<IntCat>>);
-  STATIC_CHECK(IsFunctor<maybe_functor<int>>);
-  STATIC_CHECK(IsFunctor<trace_functor<int>>);
+  STATIC_CHECK(IsShapedFunctor<maybe_functor<int>>);
+  STATIC_CHECK(IsShapedFunctor<trace_functor<int>>);
   STATIC_CHECK(IsSpokeArrow<decltype(plus_one)>);
 }
 
@@ -60,7 +60,7 @@ TEST_CASE("Category: Functor composition", "[category][functor][composition]") {
   composite_functor<IdF, IdF> composed{};
 
   SECTION("Composed functor keeps category handles") {
-    static_assert(IsFunctor<decltype(composed)>);
+    static_assert(IsShapedFunctor<decltype(composed)>);
     static_assert(std::same_as<typename decltype(composed)::Σ_cat, IntCat>);
     static_assert(std::same_as<typename decltype(composed)::Τ_cat, IntCat>);
     SUCCEED();
@@ -85,8 +85,8 @@ TEST_CASE("Category: Functor composition", "[category][functor][composition]") {
     auto downstream = IdF{} >> IdF{};
     auto upstream = IdF{} << IdF{};
 
-    STATIC_CHECK(IsFunctor<decltype(downstream)>);
-    STATIC_CHECK(IsFunctor<decltype(upstream)>);
+    STATIC_CHECK(IsShapedFunctor<decltype(downstream)>);
+    STATIC_CHECK(IsShapedFunctor<decltype(upstream)>);
     CHECK(downstream.φ(plus_one)(9) == 10);
     CHECK(upstream.φ(plus_one)(9) == 10);
   }

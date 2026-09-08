@@ -535,7 +535,7 @@ constexpr auto tails(const Path<T, Cardinality, Index>& s)
  * @c IsComonad refines @c IsEndofunctor (@c Σ_cat @c == @c Τ_cat), and
  * @b no non-identity type-constructor in the library is an endofunctor —
  * every reified functor maps @c Set<T> @c → @c Set<F<T>> (so
- * @c maybe_functor and @c tuple_functor are @c IsFunctor but @b not
+ * @c maybe_functor and @c tuple_functor are @c IsShapedFunctor but @b not
  * @c IsEndofunctor; the only @c IsComonad witness in the codebase is
  * @c identity_functor).  @c Path is no exception, so the co-Kleisli
  * layer is the level on which the comonad is actually certified — see
@@ -856,8 +856,8 @@ namespace dedekind::category {
  *     and none of them are endofunctors — the @b only @c IsEndofunctor /
  *     @c IsComonad witness in the codebase is @c identity_functor.
  *     (Confirmed mechanically: @c maybe_functor and @c tuple_functor are
- *     @c IsFunctor but @b not @c IsEndofunctor.)  So reifying @c φ on
- *     @c path_functor would buy @c IsFunctor at best — never
+ *     @c IsShapedFunctor but @b not @c IsEndofunctor.)  So reifying @c φ on
+ *     @c path_functor would buy @c IsShapedFunctor at best — never
  *     @c IsComonad — because @c Path<T> changes the object type
  *     @c Set<T> @c → @c Set<Path<T>> exactly as @c maybe_functor does.
  *
@@ -1074,7 +1074,7 @@ static_assert(
 // category::IsComonad holds by the dual Kleisli-triple theorem, but is
 // NOT asserted here because IsComonad refines IsEndofunctor (Σ_cat ==
 // Τ_cat) and no non-identity type-constructor in the library is an
-// endofunctor (maybe_functor / tuple_functor are IsFunctor but not
+// endofunctor (maybe_functor / tuple_functor are IsShapedFunctor but not
 // IsEndofunctor; only identity_functor is).  path_functor is therefore
 // deliberately left below endofunctor level — the assertion pins that as
 // a Sollbruchstelle: if a future change reifies path_functor up to an

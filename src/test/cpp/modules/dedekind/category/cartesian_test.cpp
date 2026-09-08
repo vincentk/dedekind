@@ -150,8 +150,8 @@ TEST_CASE("Cartesian: Product Projection Semantics",
     // so coverage instrumentation sees the move.
 
     std::pair<int, bool> p{42, true};
-    CHECK(π_1<int, bool>(p) == 42);
-    CHECK(π_2<int, bool>(p) == true);
+    CHECK(π_1(p) == 42);
+    CHECK(π_2(p) == true);
 
     // mediate_product: given f: X → A and g: X → B, build the unique
     // u: X → A × B such that f = π_1 ∘ u and g = π_2 ∘ u.
@@ -160,12 +160,12 @@ TEST_CASE("Cartesian: Product Projection Semantics",
     auto u = mediate_product(f, g);
 
     auto y = u(7);
-    CHECK(π_1<int, bool>(y) == 14);    // (π_1 ∘ u)(7) = f(7) = 14
-    CHECK(π_2<int, bool>(y) == true);  // (π_2 ∘ u)(7) = g(7) = true
+    CHECK(π_1(y) == 14);    // (π_1 ∘ u)(7) = f(7) = 14
+    CHECK(π_2(y) == true);  // (π_2 ∘ u)(7) = g(7) = true
 
     auto y_neg = u(-3);
-    CHECK(π_1<int, bool>(y_neg) == -6);     // f(-3) = -6
-    CHECK(π_2<int, bool>(y_neg) == false);  // g(-3) = false
+    CHECK(π_1(y_neg) == -6);     // f(-3) = -6
+    CHECK(π_2(y_neg) == false);  // g(-3) = false
   }
 }
 

@@ -640,8 +640,8 @@ concept IsQuotientMorphism =
  *       @b graph @f$\Gamma = \operatorname{graph}(\text{embed}) \subseteq A
  *       \times B@f$ is a @b separate object: a functional, monic @c IsRelation
  *       on the @b product that reifies the arrow relationally --- not the
- *       inclusion subobject of the codomain, and @b not an @c IsFunctor (a
- * field homomorphism preserves operations, not composition of arrows between
+ *       inclusion subobject of the codomain, and @b not an @c IsShapedFunctor
+ * (a field homomorphism preserves operations, not composition of arrows between
  *       categories; @f$\mathbb{Q},\mathbb{R}@f$ are objects, not categories).
  *
  * Like both HSP siblings the monic/hom legs are opt-in (@c is_monic_arrow_v /

@@ -41,12 +41,21 @@
  *  - @c set_complement: @c ¬χ_A (Heyting complement).
  *  - @c in / @c in_via: membership @c x @c ∈ @c S evaluated via @c χ_S.
  *
- * Concept-as-predicate framing (cf. #635, #637):
+ * Concept-as-predicate framing (cf. #635, #637).  The chain ranges over
+ * CATEGORIES C: among small categories, the concrete ones (a faithful
+ * U: C→Set) contain the category @c Set itself (all 10 ETCS axioms).
  *
  * @code
- *   IsSmallCategory<C>      ⊇    IsConcrete<C>      ⊇    IsSet (= ETCS)
+ *   IsSmallCategory<C>      ⊇    IsConcrete<C>      ⊇    C = Set (ETCS)
  *   (size axis: small)        (concreteness)         (full ETCS axiomatisation)
  * @endcode
+ *
+ * @warning This is not @c IsSet<A> @c ⟹ @c IsSmallCategory<A>.  The concept
+ * @c IsSet<A> is a predicate on a set OBJECT A, not on a category: an
+ * individual set is an @em object of @c Set (Lawvere), a category only via
+ * the discrete embedding @c Disc: Set ↪ Cat.  @c IsSet<A> requires the
+ * categorical axioms of @c CanonicalSetCCC<A::Domain> (the @c Set-witness
+ * over the carrier), never @c IsSmallCategory<A>.
  *
  * @note "A set is a Many that allows itself to be thought of as a One."
  *  — Georg Cantor, letter to Richard Dedekind (1899)

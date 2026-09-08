@@ -31,9 +31,14 @@ constexpr bool is_integral_coordinate(double x) {
   return static_cast<double>(xi) == x;
 }
 
-// Post-#559: ℂ is the universe value Ω<Complex<machine_real_scalar>,
-// ClassicalLogic, ℶ_1>, so the canonical scout spelling is element<ℂ>.
-constexpr auto c = element<ℂ>;
+// This showcase is an IR-COLLAPSE fixture (its whole point is that the
+// singleton witness constant-folds to `ret i1 true` at -O2), so it stays on the
+// machine ambient ℂ_d = Ω<Complex<double>>: `double` comparisons fold, whereas
+// exact ℚ(√2) arithmetic (Rational gcd/simplify) does not.  The EXACT ℚ(√2)
+// version of this lattice∩square singleton lives in
+// analysis/pruning_showcases_test.cpp (showcase 2), which is a
+// static_assert/STATIC_CHECK test, not an IR fixture.
+constexpr auto c = element<ℂ_d>;
 
 // Lifted natural-number lattice: Gaussian integers with 0 ≤ Re, Im ≤ 3
 constexpr auto natural_lattice_in_c = Set{c | [](const Complex<double>& z) {

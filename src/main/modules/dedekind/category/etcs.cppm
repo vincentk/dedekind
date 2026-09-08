@@ -38,18 +38,26 @@
  * pins the @em ontological reading: each object @b is a set, equivalently
  * a faithful forgetful functor @c U @c : @c 𝒞 @c → @c Set.
  *
- * Concept-as-predicate framing (cf. paper §2.3):
+ * Concept-as-predicate framing (cf. paper §2.3).  The chain ranges over
+ * CATEGORIES C, not over set objects: among small categories, the concrete
+ * ones (a faithful U: C→Set) contain the category @c Set itself, the one
+ * satisfying all 10 ETCS axioms.
  *
  * @code
- *   IsSmallCategory<C>      ⊇    IsConcrete<C>      ⊇    IsSet (= ETCS)
+ *   IsSmallCategory<C>      ⊇    IsConcrete<C>      ⊇    C = Set (ETCS)
  *   (size axis: small)       (ontology: objects-are-   (full ETCS
  *                            sets; faithful U: C→Set)   axiomatisation)
  * @endcode
  *
- * @c :etcs sits one step down from @c :concrete on this chain: every
- * ETCS set @em is a concrete set object, plus the 10 ETCS axioms
- * (well-pointedness, NNO, choice, ...) that pick out @c Set specifically
- * among concrete categories.  The @c IsSubobject, @c IsConcrete, and
+ * @warning Do not read this as @c IsSet<A> @c ⟹ @c IsSmallCategory<A>.  The
+ * concept @c IsSet<A> is a predicate on a set OBJECT A (a carrier with a
+ * classifier), not on a category: an individual set is an @em object of
+ * @c Set (Lawvere), categorified only via the discrete embedding
+ * @c Disc: Set ↪ Cat.  Accordingly @c IsSet<A> requires the categorical
+ * axioms of @c CanonicalSetCCC<A::Domain> (the @c Set-witness over the
+ * carrier), never @c IsSmallCategory<A> of the set object itself.
+ *
+ * The @c IsSubobject, @c IsConcrete, and
  * @c χ-based set-operation machinery (@c set_intersection / @c set_union
  * / @c set_complement / @c in / @c in_via / @c meet / @c join) all live
  * in @c :concrete; this partition imports it and adds the ETCS-specific
@@ -104,7 +112,10 @@ namespace dedekind::category {
 // moved to @c :concrete.  @c :etcs retains the ETCS-specific axiom
 // witnesses (@c HasAxiom1..10, @c HasETCSAxioms, @c IsSet) and imports
 // @c :concrete as the structural prerequisite.  Concept-as-predicate
-// reading: @c IsSet @c = @c IsConcrete @c + ETCS axioms.
+// reading: @c IsSet<A> requires the ETCS axioms over the carrier's
+// @c Set-witness @c CanonicalSetCCC<A::Domain>; it does NOT assert
+// @c IsConcrete<A> / @c IsSmallCategory<A> of the set object A itself
+// (see the @c IsSmallCategory ⊇ IsConcrete chain warning above).
 
 /** @brief ETCS axiom 1 witness: composition is available for ambient arrows. */
 export template <typename A>
@@ -633,7 +644,7 @@ static_assert(std::same_as<discrete_lift_t<_isset_witness_t>,
 // system can certify here; the full meta-categorical
 // @c Disc @c ⊣ @c U is acknowledged as future work in the doc block.
 static_assert(
-    IsFunctor<disc_self_endofunctor_t<discrete_lift_t<_isset_witness_t>>>,
+    IsShapedFunctor<disc_self_endofunctor_t<discrete_lift_t<_isset_witness_t>>>,
     "Set ↪ Cat lift: the discrete-restriction Disc-functor is a bona "
     "fide functor on Disc(S).");
 static_assert(HasAdjunctionShape<

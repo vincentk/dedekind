@@ -153,7 +153,7 @@ namespace dedekind::category {
 //      @c IsSpokeArrow on both sides + matching middle types.
 //   2. @b Functor @c >> @b Functor (hub @c >> hub) — composition in
 //      @b Cat.  Owned by @c :functor (the @c composite_functor
-//      machinery).  Requires @c IsFunctor on both sides +
+//      machinery).  Requires @c IsShapedFunctor on both sides +
 //      @c F::Τ_cat @c == @c G::Σ_cat (so the source/target categories
 //      of the chain match up).
 //   3. @b Functor @c >> @b Morphism (hub @c >> spoke) — @b not

@@ -27,6 +27,8 @@ import dedekind.category;
 import dedekind.geometry;
 import dedekind.sets;
 import :real;
+import :quadratic;  // QuadraticReal<2> — the coat-hanger ℝ carrier that the
+                    // genuine ℂ = Complex<QuadraticReal<2>> is built over
 
 namespace dedekind::numbers {
 using namespace dedekind::category;
@@ -272,6 +274,26 @@ inline constexpr auto embed_ℝ_d_ℂ = arrow<Real<R>, Complex<R>>(
     [](const Real<R>& r) noexcept { return Complex<R>{r.resolve(), R{}}; });
 
 /**
+ * @brief The Birkhoff @b S leg @f$\mathbb{R}\hookrightarrow\mathbb{C}@f$ over
+ * the
+ *        @b coat-hanger: @c QuadraticReal<2> → @c Complex<QuadraticReal<2>>,
+ *        @f$r\mapsto (r,0)@f$.
+ *
+ * @details A genuine monic @b ring embedding (an @c EmbedsAsSubalgebra S-leg,
+ * the ℂ sibling of @c embed_ℚ_ℝ): ℝ is the real subfield
+ * @f$\{\,\mathrm{im}=0\,\}
+ * \subset\mathbb{C}@f$.  Distinct from the machine @c embed_ℝ_d_ℂ
+ * (@c Real<double> → @c Complex<double>); this is the coat-hanger arrow
+ * @f$r\mapsto r+0i@f$, witnessed by computation below.  Not registered
+ * @c is_monotone_v --- ℂ carries no total order (that is exactly what the
+ * quotient by @f$(i^2+1)@f$ forfeits vs. ℝ). */
+export inline constexpr auto embed_ℝ_ℂ =
+    arrow<QuadraticReal<2>, Complex<QuadraticReal<2>>>(
+        [](const QuadraticReal<2>& r) noexcept {
+          return Complex<QuadraticReal<2>>{r, QuadraticReal<2>{}};
+        });
+
+/**
  * @brief Characteristic morphism for ℂ: the complex numbers.
  * Accepts native Complex<R> and all embedded predecessors
  * (Real<R>, Rational<I>, int, unsigned, Ternary).
@@ -307,20 +329,21 @@ struct ComplexesOf {
 export using ComplexSet = ComplexesOf<>;
 
 /** @brief The canonical complex-number universe ℂ =
- * Ω<Complex<machine_real_scalar>, ClassicalLogic, ℶ_1> (post-#559).
+ * Ω<Complex<QuadraticReal<2>>, ClassicalLogic, ℶ_1> — the coat-hanger
+ * ℂ = Cplx(ℝ) over the genuine ℝ = ℚ(√2) (mirroring ℝ and 𝔻).
  *
  *  @details Per #559's chosen direction (option A): the named species
  *  symbols denote @b universe values (constexpr instances of
- *  @c UniversalSet over the carrier), not classifier-alias types.  At
- *  this slice's snapshot, @c 𝔹, @c ℕ, @c ℤ, @c ℚ, @c ℝ, and (with this
- *  commit) @c ℂ have completed the migration; @c 𝔻 is still exported
- *  as a classifier alias and is tracked under #559 for follow-up via
- *  the @c quotient operator (#567), since 𝔻 is the textbook quotient
- *  construction 𝔻 = ℝ[ε]/(ε²).
+ *  @c UniversalSet over the carrier), not classifier-alias types.  All
+ *  seven species symbols (@c 𝔹, @c ℕ, @c ℤ, @c ℚ, @c ℝ, @c ℂ, @c 𝔻)
+ *  carry the canonical @c element<ℂ> scout spelling.
  *
- *  The carrier of @c ℂ is @c Complex<machine_real_scalar> directly;
- *  the classifier (multi-overload cross-carrier @c operator() that
- *  delegates ℝ_d-side arguments through @c embed_ℝ_d_ℂ and lands non-
+ *  Post-HSP retarget: the carrier of @c ℂ is @c Complex<QuadraticReal<2>> ---
+ *  the 2nd-order quotient ℝ[i]/(i²+1) over the coat-hanger ℝ, NOT
+ *  @c Complex<double>.  Machine-double complex lives on the materialisable
+ *  ambient @c ℂ_d = Ω<Complex<machine_real_scalar>> below (mirroring
+ *  ℝ_d / 𝔻_d).  The classifier (multi-overload cross-carrier @c operator()
+ *  that delegates ℝ_d-side arguments through @c embed_ℝ_d_ℂ and lands non-
  *  parent ancestors via @c RealsOf<>) is reachable via @c ComplexSet
  *  @c = @c ComplexesOf<>.
  *
@@ -329,28 +352,35 @@ export using ComplexSet = ComplexesOf<>;
  *  template's @c ℵ_0 default.  ℂ is in bijection with ℝ × ℝ and
  *  therefore shares ℝ's continuum cardinality.
  *
- *  Pre-#559 the spelling was @c using @c ℂ @c = @c ComplexSet (the
- *  classifier alias); type-context sites in concept gates and member
- *  extractions (@c typename @c ℂ::Domain etc.) were migrated to
- *  @c ComplexesOf<> directly in step 1 of this slice.
- *
- *  Textbook construction: ℂ = ℝ[i]/(i²+1) — observable via the
- *  @c quotient operator from @c sets:quotient (the same DSL primitive
- *  ℚ rides on under #567).  The 𝔻 follow-up (𝔻 = ℝ[ε]/(ε²)) lands
- *  next under the same operator surface.
+ *  Textbook construction: ℂ = ℝ[i]/(i²+1) --- the H-leg witnessed below via
+ *  @c quotient_algebra_base<Complex<R>> = R (the sibling of 𝔻 = ℝ[ε]/(ε²)).
  */
 export inline constexpr auto ℂ =
-    dedekind::sets::Ω<Complex<machine_real_scalar>, ClassicalLogic, ℶ_1>;
+    dedekind::sets::Ω<Complex<QuadraticReal<2>>, ClassicalLogic, ℶ_1>;
 
 static_assert(
     std::same_as<std::remove_cvref_t<decltype(ℂ)>,
-                 dedekind::sets::UniversalSet<Complex<machine_real_scalar>,
+                 dedekind::sets::UniversalSet<Complex<QuadraticReal<2>>,
                                               ClassicalLogic, ℶ_1>>,
-    "ℂ is the universe Ω<Complex<machine_real_scalar>, ClassicalLogic, ℶ_1> "
-    "(post-#559).");
-static_assert(std::same_as<typename std::remove_cvref_t<decltype(ℂ)>::Domain,
-                           Complex<machine_real_scalar>>,
-              "ℂ's underlying carrier IS Complex<machine_real_scalar>.");
+    "ℂ is the universe Ω<Complex<QuadraticReal<2>>, ClassicalLogic, ℶ_1> — the "
+    "coat-hanger ℂ = Cplx(ℝ) over the genuine ℝ = ℚ(√2), mirroring "
+    "ℝ = Ω<QuadraticReal<2>> (#806).  Not Complex<double>.");
+static_assert(
+    std::same_as<typename std::remove_cvref_t<decltype(ℂ)>::Domain,
+                 Complex<QuadraticReal<2>>>,
+    "ℂ's carrier IS Complex<QuadraticReal<2>> — the 2nd-order quotient "
+    "ℝ[i]/(i²+1) over the coat-hanger ℝ.");
+
+/** @brief The materialisable machine ambient @c ℂ_d = @c Ω<Complex<double>>,
+ *  mirroring @c ℝ_d.  Machine-double complex work (showcases, Mandelbrot,
+ *  benchmarks, the Python facade) lives here, exactly as @c double reals moved
+ *  from @c ℝ to @c ℝ_d in #806.  The abstract @c ℂ is the coat-hanger. */
+export inline constexpr auto ℂ_d =
+    dedekind::sets::Ω<Complex<machine_real_scalar>, ClassicalLogic, ℶ_1>;
+static_assert(
+    std::same_as<typename std::remove_cvref_t<decltype(ℂ_d)>::Domain,
+                 Complex<machine_real_scalar>>,
+    "ℂ_d's carrier is Complex<machine_real_scalar> (machine ambient).");
 
 export inline constexpr ComplexSet C{};
 
@@ -370,7 +400,22 @@ inline constexpr bool
 static_assert(
     IsInjective<std::decay_t<decltype(dedekind::numbers::embed_ℝ_d_ℂ<>)>>,
     "embed_ℝ_d_ℂ (ℝ_d ↪ ℂ) is registered injective.");
+
+// The coat-hanger S-leg ℝ ↪ ℂ is monic (r ↦ (r,0) is injective).
+template <>
+inline constexpr bool
+    is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_ℝ_ℂ)>> =
+        true;
 }  // namespace dedekind::category
+
+namespace dedekind::algebra {
+// The coat-hanger S-leg ℝ ↪ ℂ is a ring homomorphism (r ↦ (r,0) preserves
+// +,×,0,1) — backed by the computed witnesses below.
+template <>
+inline constexpr bool
+    is_homomorphism_v<std::decay_t<decltype(dedekind::numbers::embed_ℝ_ℂ)>> =
+        true;
+}  // namespace dedekind::algebra
 
 namespace dedekind::numbers {
 
@@ -609,9 +654,51 @@ static_assert(
         dedekind::numbers::ExactReal<>, dedekind::numbers::ExactReal<>>,
     "Complex<ExactReal<>> must satisfy IsProduct (ℂ ≅ ℝ × ℝ over ℚ-based ℝ).");
 
+// ── The HSP legs of the coat-hanger ℂ = Cplx(ℝ) = ℝ[i]/(i²+1), ℝ = ℚ(√2)
+// ────── P (product): ℂ ≅ ℝ × ℝ as a set/module.
+static_assert(
+    dedekind::category::IsProduct<
+        dedekind::numbers::Complex<dedekind::numbers::QuadraticReal<2>>,
+        dedekind::numbers::QuadraticReal<2>,
+        dedekind::numbers::QuadraticReal<2>>,
+    "P-leg: the coat-hanger ℂ ≅ ℝ × ℝ (Complex<QuadReal<2>> IsProduct).");
+// S (subalgebra): ℝ ↪ ℂ is a monic ring embedding, r ↦ (r,0).
+static_assert(
+    dedekind::algebra::EmbedsAsSubalgebra<
+        std::decay_t<decltype(dedekind::numbers::embed_ℝ_ℂ)>>,
+    "S-leg: ℝ ↪ ℂ (embed_ℝ_ℂ) is a Birkhoff S-leg — a monic ring embedding.");
+// H (quotient): ℂ = ℝ[i]/(i²+1) is a quotient algebra over ℝ, via the
+// type-pointer quotient path (quotient_algebra_base<Complex<R>> = R; per #803
+// Complex uses IsQuotientAlgebra law-propagation, not the machine-carrier
+// IsCongruenceQuotient).
+static_assert(
+    dedekind::category::IsQuotientAlgebra<
+        dedekind::numbers::Complex<dedekind::numbers::QuadraticReal<2>>>,
+    "H-leg: the coat-hanger ℂ = ℝ[i]/(i²+1) is a quotient algebra over ℝ.");
+
 }  // namespace dedekind::category
 
 namespace dedekind::numbers {
+
+/** @section complex__ℝ_ℂ_S_Leg_Witnesses
+ *  The S-leg ℝ ↪ ℂ (r ↦ (r,0)) is a genuine ring homomorphism, @b computed. */
+namespace {
+using R2_cx = QuadraticReal<2>;
+using C2_cx = Complex<QuadraticReal<2>>;
+constexpr R2_cx a_cx = R2_cx{2};
+constexpr R2_cx b_cx = R2_cx{3};
+static_assert(embed_ℝ_ℂ(a_cx + b_cx) == embed_ℝ_ℂ(a_cx) + embed_ℝ_ℂ(b_cx),
+              "ℝ ↪ ℂ preserves +.");
+static_assert(embed_ℝ_ℂ(a_cx* b_cx) == embed_ℝ_ℂ(a_cx) * embed_ℝ_ℂ(b_cx),
+              "ℝ ↪ ℂ preserves ×.");
+static_assert(embed_ℝ_ℂ(R2_cx{}) == C2_cx{}, "ℝ ↪ ℂ preserves 0.");
+static_assert(embed_ℝ_ℂ(R2_cx{1}) == C2_cx{R2_cx{1}, R2_cx{}},
+              "ℝ ↪ ℂ preserves 1.");
+static_assert(a_cx != b_cx && embed_ℝ_ℂ(a_cx) != embed_ℝ_ℂ(b_cx),
+              "ℝ ↪ ℂ is injective (monic).");
+static_assert(embed_ℝ_ℂ(a_cx).imag() == R2_cx{},
+              "image of ℝ ↪ ℂ lies in the real subfield {im = 0} ⊂ ℂ.");
+}  // namespace
 
 /** @section complex__Canonical_Species_Spine (ℂ)
  *

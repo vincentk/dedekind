@@ -73,7 +73,7 @@ module;
 
 export module dedekind.algebra:quotient;
 
-import dedekind.category; // species traits, IsFunctor (the meta-symmetry context)
+import dedekind.category; // species traits, IsShapedFunctor (the meta-symmetry context)
 
 namespace dedekind::category {
 
