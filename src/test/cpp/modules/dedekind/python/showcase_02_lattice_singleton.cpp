@@ -26,29 +26,31 @@ using namespace dedekind::sets;
 using namespace dedekind::algebra;
 using namespace dedekind::numbers;
 
-using R2 = QuadraticReal<2>;  // the exact real carrier ℝ = ℚ(√2)
-using Q = Rational<>;         // for the exact rational thresholds ½, 1½
-
-// A coordinate is a "small natural" iff it is one of 0,1,2,3 — on the EXACT
-// carrier the "integral ∧ 0 ≤ · ≤ 3" test IS membership in {0,1,2,3}.
-constexpr bool is_small_natural(const R2& t) {
-  return t == R2{} || t == R2{1} || t == R2{2} || t == R2{3};
+constexpr bool is_integral_coordinate(double x) {
+  const int xi = static_cast<int>(x);
+  return static_cast<double>(xi) == x;
 }
 
-// Post-HSP retarget: ℂ is the coat-hanger Ω<Complex<QuadraticReal<2>>, ...>, so
-// this showcase proves the singleton over EXACT ℚ(√2) arithmetic.  The scout
-// stays element<ℂ> (now a Complex<QuadraticReal<2>> scout).
-constexpr auto c = element<ℂ>;
+// This showcase is an IR-COLLAPSE fixture (its whole point is that the
+// singleton witness constant-folds to `ret i1 true` at -O2), so it stays on the
+// machine ambient ℂ_d = Ω<Complex<double>>: `double` comparisons fold, whereas
+// exact ℚ(√2) arithmetic (Rational gcd/simplify) does not.  The EXACT ℚ(√2)
+// version of this lattice∩square singleton lives in
+// analysis/pruning_showcases_test.cpp (showcase 2), which is a
+// static_assert/STATIC_CHECK test, not an IR fixture.
+constexpr auto c = element<ℂ_d>;
 
-// Lifted natural-number lattice: Gaussian integers with 0 ≤ Re, Im ≤ 3.
-constexpr auto natural_lattice_in_c = Set{c | [](const Complex<R2>& z) {
-  return is_small_natural(z.real()) && is_small_natural(z.imag());
+// Lifted natural-number lattice: Gaussian integers with 0 ≤ Re, Im ≤ 3
+constexpr auto natural_lattice_in_c = Set{c | [](const Complex<double>& z) {
+  return is_integral_coordinate(z.real()) && is_integral_coordinate(z.imag()) &&
+         (z.real() >= 0.0) && (z.real() <= 3.0) && (z.imag() >= 0.0) &&
+         (z.imag() <= 3.0);
 }};
 
-// Square region [½, 1½] × [½, 1½] inside ℂ.
-constexpr auto square_c1_c2 = Set{c | [](const Complex<R2>& z) {
-  return (z.real() >= R2{Q{1, 2}}) && (z.real() <= R2{Q{3, 2}}) &&
-         (z.imag() >= R2{Q{1, 2}}) && (z.imag() <= R2{Q{3, 2}});
+// Square region [0.5, 1.5] × [0.5, 1.5] inside ℂ
+constexpr auto square_c1_c2 = Set{c | [](const Complex<double>& z) {
+  return (z.real() >= 0.5) && (z.real() <= 1.5) && (z.imag() >= 0.5) &&
+         (z.imag() <= 1.5);
 }};
 
 // Intersection contains exactly c₃ = 1 + i
@@ -57,11 +59,12 @@ constexpr auto lattice_square_intersection =
 using CLogic = typename decltype(lattice_square_intersection)::logic_species;
 
 // Representative test points
-constexpr Complex<R2> c3{R2{1}, R2{1}};     // 1 + i  → in intersection
-constexpr Complex<R2> c_left{R2{}, R2{1}};  // i      → outside square (Re < ½)
-constexpr Complex<R2> c_bottom{R2{1},
-                               R2{}};        // 1      → outside square (Im < ½)
-constexpr Complex<R2> c_diag{R2{2}, R2{2}};  // 2 + 2i → outside square
+constexpr Complex<double> c3{1.0, 1.0};  // 1 + i  → in intersection
+constexpr Complex<double> c_left{0.0,
+                                 1.0};  // i      → outside square (Re < 0.5)
+constexpr Complex<double> c_bottom{1.0,
+                                   0.0};  // 1      → outside square (Im < 0.5)
+constexpr Complex<double> c_diag{2.0, 2.0};  // 2 + 2i → outside square
 
 // Compile-time witnesses.
 static_assert(lattice_square_intersection(c3) == CLogic::True);
