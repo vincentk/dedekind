@@ -89,6 +89,27 @@ TEST_CASE("Total: Lattice Structures (Relational Presence)",
                                        std::logical_and<bool>>);
   }
 
+  SECTION("Boolean Algebra: top of the expanded signature Alg(∨,∧,¬) (#809)") {
+    // 𝔹 = bool is the initial Boolean algebra.  Note the signature: bounded +
+    // distributive is the top WITHIN Alg(∧,∨), but the complement ¬ (and bounds
+    // ⊥/⊤) EXPAND the signature to Alg(∨,∧,¬,⊥,⊤) --- IsBooleanAlgebra tops
+    // that expanded signature, not pure Alg(∧,∨).  Mirrors 𝔽₂ = bool topping
+    // the (signature-expanded) ring line at IsField.
+    STATIC_CHECK(
+        IsBoundedLattice<bool, std::logical_or<bool>, std::logical_and<bool>>);
+    STATIC_CHECK(
+        IsBooleanAlgebra<bool, std::logical_or<bool>, std::logical_and<bool>,
+                         std::logical_not<bool>>);
+
+    // Runtime companion for the complement law (Codecov-visible; the
+    // static witness is invisible to coverage): a ∨ ¬a = ⊤, a ∧ ¬a = ⊥
+    // over the whole carrier {false, true}.
+    for (bool a : {false, true}) {
+      CHECK(std::logical_or<bool>{}(a, std::logical_not<bool>{}(a)) == true);
+      CHECK(std::logical_and<bool>{}(a, std::logical_not<bool>{}(a)) == false);
+    }
+  }
+
   SECTION("Order Lattices (Total Order Species)") {
     // Fix: Capture the type of the niebloid/algorithm
     using Max = decltype(std::ranges::max);

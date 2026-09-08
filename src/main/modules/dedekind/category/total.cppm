@@ -22,7 +22,7 @@
  *
  * | Std type        | Highest algebraic structure                    |
  * |-----------------|------------------------------------------------|
- * | `bool`          | Rig (OR/AND), Distributive Lattice (OR/AND)    |
+ * | `bool`          | Rig (OR/AND), Boolean Algebra (OR/AND/NOT)     |
  * | `unsigned int`  | Abelian Group (+), Ring (+,*), Ring (XOR,AND)  |
  * | `int`           | Distributive Lattice (max,min)                 |
  * | `double`        | Distributive Lattice (max,min)                 |
@@ -684,6 +684,78 @@ concept IsDistributiveLattice =
     IsLattice<T, Join, Meet> &&
     IsOrderDistributiveLatticeOperations<T, Join, Meet>;
 
+/**
+ * @concept IsBoundedLattice
+ * @brief A @ref IsLattice whose join and meet each carry an identity: the
+ *        bottom @f$\bot@f$ (@c identity_v<T,Join>) and top @f$\top@f$
+ *        (@c identity_v<T,Meet>).
+ * @details A lattice is @b bounded when it has a least and a greatest element,
+ * @f$a \vee \bot = a@f$ and @f$a \wedge \top = a@f$; equivalently its join- and
+ * meet-semilattices are each an @ref IsMonoid (commutativity is already forced
+ * by @ref IsLattice, so only the identity is new here).  For @c bool the
+ * bounds are @c false (@f$\bot@f$, the @c logical_or identity) and @c true
+ * (@f$\top@f$, the @c logical_and identity).  Adding the bounds @b expands the
+ * signature from @c Alg(∧,∨) to @c Alg(∧,∨,⊥,⊤) (two nullary constants), so
+ * bounded lattices are a variety over the @b expanded signature, not a
+ * subvariety of @c Alg(∧,∨) --- compare a unital ring expanding @c Alg(+,×)
+ * with the constant @c 1.
+ *
+ * @note Name disambiguation.  Two siblings carry related names in other
+ * partitions: @c dedekind::sets::IsBoundedLattice<S> (1-param, @c :mereology)
+ * is the @b IsSet / powerset-specific bounded lattice, and @c
+ * dedekind::category::IsBoundedLatticeCategory (@c :lattice) is the
+ * @b relation-based categorical reading.  This one is the operation-parametric
+ * @b variety concept (matching the un-suffixed ring-ladder names @c IsRing /
+ * @c IsField in this partition).  The @c :mereology sibling is only used within
+ * @c namespace @c dedekind::sets, where its own declaration wins unqualified
+ * lookup, so the shared name does not collide in practice.
+ */
+export template <typename T, typename Join, typename Meet>
+concept IsBoundedLattice =
+    IsLattice<T, Join, Meet> && IsMonoid<T, Join> && IsMonoid<T, Meet>;
+
+/**
+ * @brief Opt-in complement law: @c T carries a complement @c Not w.r.t. the
+ *        bounded lattice @c (Join, Meet), i.e. @f$a \vee \neg a = \top@f$ and
+ *        @f$a \wedge \neg a = \bot@f$ for every @c a.
+ * @details Like the other algebraic laws (@c is_idempotent_v /
+ * @c is_absorptive_v) this is an opt-in trait defaulting to @c false; a carrier
+ * registers @c true and @b backs it with a computed witness at the registration
+ * site (the complement identity is a per-element fact the concept machinery
+ * cannot enumerate generically).  Kept local to @c :total because @ref
+ * IsBooleanAlgebra is its only consumer; promote to @c :species if reused.
+ */
+export template <typename T, typename Join, typename Meet, typename Not>
+inline constexpr bool is_complemented_v = false;
+
+/**
+ * @concept IsBooleanAlgebra
+ * @brief The @b top of the @b Boolean-algebra variety @c Alg(∨,∧,¬,⊥,⊤): a
+ *        @b complemented @b distributive bounded lattice --- the ∨/∧/¬ analogue
+ *        of @ref IsField topping the (signature-expanded) ring variety.
+ * @details @f$(T, \vee, \wedge, \neg, \bot, \top)@f$ with distributivity and
+ * complements.  @c bool under @c (logical_or, logical_and, logical_not) is the
+ * initial Boolean algebra @f$\mathbb{B} = \{\bot < \top\}@f$.  This is the
+ * @b variety reading (operation-parametric, Birkhoff), distinct from the
+ * relation-based @c category::IsBooleanLatticeCategory in @c :lattice.
+ *
+ * @note This is @b not the top of the pure two-operation variety @c Alg(∧,∨)
+ * (which tops at @ref IsDistributiveLattice).  Complement @c ¬ and the bounds
+ * @c ⊥/⊤ @b expand the signature to @c Alg(∨,∧,¬,⊥,⊤); the pure @c (∧,∨)
+ * reducts of Boolean algebras are not even HSP-closed --- a 3-element chain is
+ * a @c (∧,∨)-sublattice of the 4-element Boolean algebra yet has no complement.
+ *
+ * @c Not is required to be a genuine unary operation @c T @c → @c T
+ * (@ref IsClosedUnderUnary), not merely a trait key: the @c is_complemented_v
+ * certificate alone would let a non-callable @c Not satisfy the concept, so a
+ * consumer could not actually @b apply the advertised complement.  The closure
+ * clause makes @c ¬a well-formed before the semantic law is trusted.
+ */
+export template <typename T, typename Join, typename Meet, typename Not>
+concept IsBooleanAlgebra =
+    IsBoundedLattice<T, Join, Meet> && IsDistributiveLattice<T, Join, Meet> &&
+    IsClosedUnderUnary<T, Not> && is_complemented_v<T, Join, Meet, Not>;
+
 // Upstream ownership locks: :total aliases must track :posetal refinements.
 static_assert(IsSemilattice<int, decltype(std::ranges::min)> ==
               (IsTotal<int, decltype(std::ranges::min)> &&
@@ -717,6 +789,76 @@ static_assert(
 // Lattice laws for integers under max/min (Total Order).
 static_assert(IsDistributiveLattice<int, decltype(std::ranges::max),
                                     decltype(std::ranges::min)>);
+
+/** @section total__Lattice_Variety_Ladder (#809)
+ *
+ * The lattice varieties, pinned on @f$\mathbb{B}@f$ = @c bool under
+ * @c (logical_or, logical_and, logical_not) --- the ∧/∨ mirror of the ring
+ * ladder (@ref IsRng ... @ref IsField) above.  Two orthogonal directions climb
+ * here: equational @b refinement within the @b pure signature @c Alg(∧,∨)
+ * (Semilattice ⊂ Lattice ⊂ DistributiveLattice), and signature @b expansion
+ * (@ref IsBoundedLattice adds the nullary bounds @c ⊥/⊤; @ref IsBooleanAlgebra
+ * adds the unary complement @c ¬) --- exactly as the ring ladder expands
+ * @c Alg(+,×) with @c 1 and inverses to reach @ref IsField.  The bounds on
+ * @c bool are @f$\bot@f$ = @c false (join identity) and @f$\top@f$ = @c true
+ * (meet identity).
+ */
+
+// bool is complemented under (∨, ∧, ¬): a ∨ ¬a = ⊤ (true), a ∧ ¬a = ⊥ (false).
+// The registration below is BACKED by this computed witness over all of bool.
+static_assert(std::logical_or<bool>{}(false, std::logical_not<bool>{}(false)) &&
+                  std::logical_or<bool>{}(true, std::logical_not<bool>{}(true)),
+              "bool complement law: a ∨ ¬a = ⊤ for every a.");
+static_assert(!std::logical_and<bool>{}(false,
+                                        std::logical_not<bool>{}(false)) &&
+                  !std::logical_and<bool>{}(true,
+                                            std::logical_not<bool>{}(true)),
+              "bool complement law: a ∧ ¬a = ⊥ for every a.");
+template <>
+inline constexpr bool
+    is_complemented_v<bool, std::logical_or<bool>, std::logical_and<bool>,
+                      std::logical_not<bool>> = true;
+
+// 𝔹 = bool sits at the top.  The rungs are NOT one linear chain, and they mix
+// two kinds of step:
+//   * equational refinement, SAME signature Alg(∧,∨):
+//         (Join/Meet)Semilattice ⊂ Lattice ⊂ DistributiveLattice
+//   * signature EXPANSION (new operations) --- a variety over a LARGER
+//     signature, NOT a subvariety of Alg(∧,∨):
+//         + bounds ⊥,⊤   → BoundedLattice   over Alg(∧,∨,⊥,⊤)
+//         + complement ¬  → BooleanAlgebra   over Alg(∨,∧,¬,⊥,⊤)
+// Bounded and Distributive are independent (int/(max,min) is distributive but
+// unbounded, see below); BooleanAlgebra is their meet PLUS the ¬ expansion:
+//
+//        BooleanAlgebra = bounded ∧ distributive ∧ complemented
+//        [Alg(∨,∧,¬,⊥,⊤)]
+//         /            \
+//   BoundedLattice      DistributiveLattice  ← the pure-Alg(∧,∨) top
+//   [Alg(∧,∨,⊥,⊤)]  \  / [Alg(∧,∨)]
+//                 IsLattice
+//                     |
+//              (Join/Meet)Semilattice
+//
+static_assert(IsJoinSemilattice<bool, std::logical_or<bool>>);
+static_assert(IsMeetSemilattice<bool, std::logical_and<bool>>);
+static_assert(IsLattice<bool, std::logical_or<bool>, std::logical_and<bool>>);
+static_assert(
+    IsBoundedLattice<bool, std::logical_or<bool>, std::logical_and<bool>>,
+    "𝔹 is a bounded lattice: ⊥ = false (∨-identity), ⊤ = true (∧-identity).");
+static_assert(IsBooleanAlgebra<bool, std::logical_or<bool>,
+                               std::logical_and<bool>, std::logical_not<bool>>,
+              "𝔹 is the initial Boolean algebra --- the top of the expanded "
+              "signature Alg(∨,∧,¬,⊥,⊤).");
+
+// (No `!IsBooleanAlgebra<int, max, min>` negative: it would not cleanly isolate
+// the complement rung --- in this encoding (int, max, min) also lacks
+// registered bounds ⊥/⊤, so the rejection is over-determined.  A clean
+// "distributive but not complemented" isolation needs a genuinely bounded
+// finite chain carrier (e.g. a 3-element chain, where an interior point has no
+// complement); not currently a typed carrier, so left to a follow-up rather
+// than asserted muddily. The signature-expansion prose above already states
+// that DistributiveLattice is the Alg(∧,∨) top and BooleanAlgebra is the
+// ¬-expansion.)
 
 /** @section total__Boolean_Ring_Negative_Proof */
 
