@@ -353,9 +353,10 @@ export using RealSet = RealsOf<>;
  *  grow it.  A documented placeholder --- not a false postulate on an
  *  uninhabited carrier.
  *
- *  @c ℂ and @c 𝔻 remain classifier aliases tracked under #559
- *  (ℂ = ℝ[i]/(i²+1), 𝔻 = ℝ[ε]/(ε²)).  The cross-carrier membership classifier
- *  is @c RealSet @c = @c RealsOf<>.
+ *  @c ℂ and @c 𝔻 are the sibling coat-hanger universe values
+ *  (ℂ = ℝ[i]/(i²+1) = Ω<Complex<QuadraticReal<2>>>, 𝔻 = ℝ[ε]/(ε²) =
+ *  Ω<Dual<QuadraticReal<2>>>), the 2nd-order quotient functors over this same
+ *  ℝ.  The cross-carrier membership classifier is @c RealSet @c = @c RealsOf<>.
  */
 export inline constexpr auto ℝ =
     dedekind::sets::Ω<QuadraticReal<2>, ClassicalLogic, ℶ_1>;
