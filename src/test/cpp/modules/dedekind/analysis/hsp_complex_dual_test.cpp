@@ -18,11 +18,13 @@
  */
 #include <array>
 #include <catch2/catch_test_macros.hpp>
+#include <utility>
 
 import dedekind.algebra;
 import dedekind.analysis;
 import dedekind.category;
 import dedekind.numbers;
+import dedekind.relational; // graph(f), the functional relative product >>
 
 using namespace dedekind::numbers;
 using dedekind::analysis::Dual;
@@ -45,6 +47,15 @@ using EmbD = std::decay_t<decltype(embed_ℝ_𝔻)>;
 // .first/.second) by ordinary lookup; 𝔻's val/der overload is found by ADL.
 using dedekind::category::π_1;
 using dedekind::category::π_2;
+
+// The product-level maps ℂ ↔ 𝔻: both are ℝ×ℝ via π_1/π_2, so reconstructing one
+// from the other's projections is the canonical rank-2 ℝ-module iso.  NOT a
+// ring hom (ℂ is a field, 𝔻 has nilpotents) --- it exhibits the shared P-leg,
+// and gives the relative product a ℂ↬𝔻 leg to compose through.
+constexpr auto cx_to_du = dedekind::category::arrow<Cx, Du>(
+    [](const Cx& z) { return Du{π_1(z), π_2(z)}; });
+constexpr auto du_to_cx = dedekind::category::arrow<Du, Cx>(
+    [](const Du& d) { return Cx{π_1(d), π_2(d)}; });
 }  // namespace
 
 // ── S-leg ────────────────────────────────────────────────────────────────────
@@ -146,4 +157,36 @@ TEST_CASE("HSP: the quotient functors compose (D<C<·>>, C<D<·>>)",
   // C<D<R>>: w = (2+ε) + (1)i; Re(w²) = Re² − Im² = (2+ε)² − 1 = 3 + 4ε.
   const CDR w{Du{R2{2}, R2{1}}, Du{R2{1}, R2{}}};
   CHECK((w * w).real() == Du{R2{3}, R2{4}});
+}
+
+// ── The legs as graphs, threaded through the functional relative product
+// ──────
+TEST_CASE("HSP: the legs reify as functional graphs Γ ⊆ A×B and compose",
+          "[analysis][numbers][hsp][relational][compose]") {
+  using dedekind::sets::graph;
+  using namespace dedekind::category;  // the functional relative product >>
+
+  const Q q{2, 3};
+  const R2 r = embed_ℚ_ℝ(q);
+  const Cx c = embed_ℝ_ℂ(r);
+  const Du d = embed_ℝ_𝔻(r);
+
+  // Each leg reifies as a functional graph: (a, f(a)) lies on it, a wrong image
+  // does not.  ℚ↪ℝ↪ℂ / ↪𝔻 are the S-legs; ℂ↔𝔻 are the P-leg module isos.
+  CHECK(graph(embed_ℚ_ℝ)(std::pair{q, r}));
+  CHECK(graph(embed_ℝ_ℂ)(std::pair{r, c}));
+  CHECK(graph(embed_ℝ_𝔻)(std::pair{r, d}));
+  CHECK(graph(cx_to_du)(std::pair{c, cx_to_du(c)}));
+  CHECK(graph(du_to_cx)(std::pair{d, du_to_cx(d)}));
+  CHECK_FALSE(graph(embed_ℝ_ℂ)(std::pair{r, Cx{}}));
+
+  // Composition = the functional relative product (#807): graph(f);graph(g) =
+  // graph(f;g), the ∃-middle discharged by functionality.  ℚ ↬ ℝ ↬ ℂ:
+  const auto ΓQC = graph(embed_ℚ_ℝ) >> graph(embed_ℝ_ℂ);
+  CHECK(ΓQC(std::pair{q, c}));  // (q, embed_ℝ_ℂ(embed_ℚ_ℝ(q))) is on it
+  CHECK_FALSE(ΓQC(std::pair{q, Cx{}}));  // a wrong image is rejected
+
+  // ℝ ↬ ℂ ↬ 𝔻: an S-leg composed with the P-leg module iso.
+  const auto ΓRD_viaC = graph(embed_ℝ_ℂ) >> graph(cx_to_du);
+  CHECK(ΓRD_viaC(std::pair{r, cx_to_du(c)}));
 }
