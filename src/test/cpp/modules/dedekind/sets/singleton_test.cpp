@@ -135,17 +135,19 @@ TEST_CASE("Sets: Singleton Acceptance", "[sets][singleton][acceptance]") {
 }
 
 /**
- * @brief Functor Highway — exercises the @c singleton_functor monad-bind
- *        + co-monad-extract pipeline (#687, post-singleton_functor hub).
+ * @brief Functor Highway — exercises the @c SingletonSet monad-bind
+ *        + co-monad-extract pipeline (#687).
  *
  * @details Rewritten from the original `into<SingletonSet>` /
  *          `extract<SingletonSet>` factory syntax to the current
  *          surface: `singleton(value)` for η, `s.origin()` for ε,
- *          `s >>= f` for Kleisli bind (already exported by
- *          `:sets:singleton`).  The `singleton_functor` hub's
- *          `IsShapedFunctor` / `IsFrobenius` witnesses pin the algebraic
- *          claim at the type level; this TEST_CASE exercises the
- *          composition behaviour at the value level.
+ *          `s >>= f` for Kleisli bind (all exported by `:sets:singleton`).
+ *          The Set-monad structure lives directly on `SingletonSet`; this
+ *          TEST_CASE exercises the composition behaviour at the value level.
+ *          (The former `singleton_functor` witness struct was retired: it was
+ *          unused, and its codomain `category::Set<SingletonSet<T>>` was the
+ *          project's lone category-of-sets-as-objects --- a set is an object of
+ *          Set, not itself a category.)
  */
 TEST_CASE("Sets: Composition of Operations: The Functor Highway",
           "[sets][composition][monad]") {

@@ -251,31 +251,6 @@ struct UniversalSet final {
   using Domain = T;
   using Codomain = typename L::Ω;
 
-  // ~ IsSmallCategory: this @c UniversalSet is a (discrete) small category over
-  // its carrier.  This realizes the paper's ETCS reading (the ETCS-embeddings
-  // appendix; Lawvere's Elementary Theory of the Category of Sets --- a set IS
-  // a categorical object, defined by its morphisms not its elements) for the
-  // @c Ω<carrier> objects: the element carrier is not a category, but the SET
-  // of elements is, so a set object (e.g. ℝ = Ω<QuadraticReal<2>>, ℂ =
-  // Ω<Complex<…>>) can be a functor's endpoint.  SCOPE: this is the wired-on-
-  // @c UniversalSet realization, NOT a mechanical @c IsSet ⟹ @c IsSmallCategory
-  // entailment --- the concrete.cppm @c IsSmallCategory ⊇ @c IsConcrete ⊇ @c
-  // IsSet chain is a prose containment on different member surfaces (@c IsSet
-  // reads @c ::Domain, @c IsSmallCategory reads @c ::Arrow/@c ::Species). Other
-  // @c IsSet carriers (@c SingletonSet, @c Ø) are NOT wired here; @c
-  // IsEmbedding only ever wraps carriers in @c UniversalSet, so this covers its
-  // endpoints.
-  // FIXME: a general set-as-category (SingletonSet/Ø too) if ever needed.
-  // Objects = the single Species T, arrows =
-  // identities.  The set's OTHER role as the χ-arrow (Domain=T → Codomain=Ω) is
-  // orthogonal --- these are distinct nested members.
-  using Species = T;
-  using Arrow = dedekind::category::Identity<T>;
-  using Id = dedekind::category::Identity<T>;
-  static constexpr Id id_c(const T&) noexcept {
-    return dedekind::category::id<T>();
-  }
-
   // ~ topoi jargon;
   /** @brief Member-shape mirror of Subobject's: every element of T
    *  is a member of U via the always-True classifier; the wrapper

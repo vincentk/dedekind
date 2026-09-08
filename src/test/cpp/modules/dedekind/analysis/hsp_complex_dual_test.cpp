@@ -68,17 +68,6 @@ TEST_CASE("HSP-S: ℝ ↪ ℂ and ℝ ↪ 𝔻 classify as EmbedsAsSubalgebra",
   STATIC_REQUIRE(dedekind::algebra::IsHomomorphism<EmbD>);
   STATIC_REQUIRE(dedekind::category::IsMonicArrow<EmbD>);
   STATIC_REQUIRE(dedekind::algebra::EmbedsAsSubalgebra<EmbD>);
-
-  // IsEmbedding = IsFunction ∧ IsFunctor, on the arrow: injective homomorphism
-  // whose endpoint SETS (ℝ, ℂ / ℝ, 𝔻) are small categories (IsSet ⟹
-  // IsSmallCategory).  So ℝ ↪ ℂ and ℝ ↪ 𝔻 are typed as functor-embeddings.
-  STATIC_REQUIRE(IsEmbedding<EmbC>);
-  STATIC_REQUIRE(IsEmbedding<EmbD>);
-  // The functor endpoints, grounded: the SETS ℂ and 𝔻 are small categories.
-  STATIC_REQUIRE(dedekind::category::IsSmallCategory<
-                 std::remove_cvref_t<decltype(dedekind::numbers::ℂ)>>);
-  STATIC_REQUIRE(dedekind::category::IsSmallCategory<
-                 std::remove_cvref_t<decltype(dedekind::analysis::𝔻)>>);
 }
 
 TEST_CASE("HSP-S: the embeddings preserve the field operations (+, ×, 0, 1)",
