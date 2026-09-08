@@ -22,7 +22,7 @@
  *
  * | Std type        | Highest algebraic structure                    |
  * |-----------------|------------------------------------------------|
- * | `bool`          | Rig (OR/AND), Distributive Lattice (OR/AND)    |
+ * | `bool`          | Rig (OR/AND), Boolean Algebra (OR/AND/NOT)     |
  * | `unsigned int`  | Abelian Group (+), Ring (+,*), Ring (XOR,AND)  |
  * | `int`           | Distributive Lattice (max,min)                 |
  * | `double`        | Distributive Lattice (max,min)                 |
@@ -735,11 +735,17 @@ inline constexpr bool is_complemented_v = false;
  * initial Boolean algebra @f$\mathbb{B} = \{\bot < \top\}@f$.  This is the
  * @b variety reading (operation-parametric, Birkhoff), distinct from the
  * relation-based @c category::IsBooleanLatticeCategory in @c :lattice.
+ *
+ * @c Not is required to be a genuine unary operation @c T @c → @c T
+ * (@ref IsClosedUnderUnary), not merely a trait key: the @c is_complemented_v
+ * certificate alone would let a non-callable @c Not satisfy the concept, so a
+ * consumer could not actually @b apply the advertised complement.  The closure
+ * clause makes @c ¬a well-formed before the semantic law is trusted.
  */
 export template <typename T, typename Join, typename Meet, typename Not>
 concept IsBooleanAlgebra =
     IsBoundedLattice<T, Join, Meet> && IsDistributiveLattice<T, Join, Meet> &&
-    is_complemented_v<T, Join, Meet, Not>;
+    IsClosedUnderUnary<T, Not> && is_complemented_v<T, Join, Meet, Not>;
 
 // Upstream ownership locks: :total aliases must track :posetal refinements.
 static_assert(IsSemilattice<int, decltype(std::ranges::min)> ==
