@@ -255,11 +255,13 @@ struct UniversalSet final {
   // wiring the documented IsSet ⟹ IsSmallCategory containment (concrete.cppm's
   // IsSmallCategory ⊇ IsConcrete ⊇ IsSet chain).  This is what lets a set
   // object (e.g. ℝ = Ω<QuadraticReal<2>>, ℂ = Ω<Complex<…>>) be a functor's
-  // endpoint: the element carrier is not a category, but the SET of elements is
-  // (ETCS: a set is the discrete category on its elements).  Objects = the
-  // single Species T, arrows = identities.  The set's OTHER role as the χ-arrow
-  // (Domain=T → Codomain=Ω) is orthogonal --- these are distinct nested
-  // members.
+  // endpoint: the element carrier is not a category, but the SET of elements
+  // is. This is the paper's own ETCS reading (the ETCS-embeddings appendix;
+  // Lawvere's Elementary Theory of the Category of Sets --- a set IS a
+  // categorical object, defined by its morphisms not its elements); the wiring
+  // closes the code-vs-theory gap.  Objects = the single Species T, arrows =
+  // identities.  The set's OTHER role as the χ-arrow (Domain=T → Codomain=Ω) is
+  // orthogonal --- these are distinct nested members.
   using Species = T;
   using Arrow = dedekind::category::Identity<T>;
   using Id = dedekind::category::Identity<T>;

@@ -107,7 +107,8 @@ namespace dedekind::numbers {
  * - @b IsFunctor (a structure-preserving map between categories): the endpoint
  *   @b sets @c Ω<Dom<F>>, @c Ω<Cod<F>> are @c IsSmallCategory.  The element
  *   carriers are not categories, but their SETS are (@c IsSet @c ⟹ @c
- *   IsSmallCategory --- a set is the discrete category on its elements).
+ *   IsSmallCategory --- a set is the discrete category on its elements; the
+ *   paper's ETCS-embeddings appendix, after Lawvere's ETCS).
  *
  * Because that containment is now universal, the functor face holds for every
  * regular carrier: @b IsFunction @c ⟹ @b IsFunctor.  @c IsEmbedding is thus
