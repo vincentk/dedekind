@@ -63,6 +63,7 @@ module;
 #include <compare>  // std::three_way_comparable (gated in IsInteger)
 #include <concepts>
 #include <functional>
+#include <utility>  // std::pair (the translation-graph carrier in preimage)
 
 export module dedekind.morphologies:integral;
 
@@ -184,6 +185,51 @@ static_assert(IsInteger<SignedExtensionalCardinal<>>,
               "SignedExtensionalCardinal<> must satisfy IsInteger (Euclidean "
               "signed ring: sign-magnitude arithmetic, overflow-free up to "
               "2^{N*64 - 1}).");
+
+/** @section integral__Residue_Preimage
+ *
+ * @brief preimage of a residue class through the translation @f$x\mapsto
+ * x+K@f$: again a residue class, shifted.  @f$\{x \mid x+K \equiv R \pmod N\} =
+ *        \{x \mid x \equiv R-K \pmod N\} =@f$ @c Congruence<N, (R−K) mod N>.
+ *
+ * @details The RESIDUE sibling of the halfspace @c preimage
+ * (@c :halfspace_transport): where a bound's pivot shifts by @c −K, a residue
+ * class's representative shifts by @c −K (mod N).  On the finite quotient
+ * @f$\mathbb{Z}/L@f$ --- the discrete circle, one torus factor --- this is a
+ * @b rotation of the class: exactly the bound-PRESERVING closed form the torus
+ * needs, since the circle carries no order, so the residue class (not the
+ * halfspace) is the structured predicate.  Closes @c FIXME(#797): the @c %
+ * reduction's residue-class predicate @c Congruence now has its transport.  It
+ * is the closed-form specialisation of the general @c preimage (@c :graph): the
+ * defining property @f$\mathrm{preimage}(x{+}K, C)(a) \iff C(a+K)@f$ is
+ * witnessed in @c cyclic_test.
+ */
+export template <typename T, auto K, auto N, decltype(N) R, typename L>
+constexpr auto preimage(
+    const Set<std::pair<T, T>, L, ProjAddConstProj<1, K, Rel::Eq, 2>>&,
+    Congruence<N, R>) {
+  using W = long long;  // wide intermediate: sign-safe mod, no pivot overflow
+  constexpr auto r = static_cast<decltype(N)>(
+      ((static_cast<W>(R) - static_cast<W>(K)) % static_cast<W>(N) +
+       static_cast<W>(N)) %
+      static_cast<W>(N));
+  return Congruence<N, r>{};
+}
+
+namespace {
+// The residue shifts by −K (mod N): a rotation of the class on ℤ/N.
+inline constexpr auto ℤ_res = dedekind::sets::Ω<SignedCardinality>;
+static_assert(
+    std::same_as<decltype(preimage(ℤ_res * ℤ_res | π1 + fix(1_c) == π2,
+                                   Congruence<4, 2>{})),
+                 Congruence<4, 1>>,
+    "preimage(x↦x+1, {x≡2 mod4}) = {x≡1 mod4}.");
+static_assert(
+    std::same_as<decltype(preimage(ℤ_res * ℤ_res | π1 + fix(3_c) == π2,
+                                   Congruence<4, 2>{})),
+                 Congruence<4, 3>>,
+    "preimage(x↦x+3, {x≡2 mod4}) = {x≡3 mod4} (2−3 = −1 ≡ 3 mod 4).");
+}  // namespace
 
 /** @section integral__Classifier_Partition_Witnesses
  *
