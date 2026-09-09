@@ -263,6 +263,55 @@ constexpr auto argmax(
   return Singleton<m, L>{};
 }
 
+// ── preimage: the CONTRAVARIANT inverse of @c image ────────────────────────
+// Where @c image pushes a domain halfspace FORWARD along an affine map, @c
+// preimage pulls a CODOMAIN halfspace BACK to the domain, in closed form and
+// the same shape.  It is the missing inverse leg of the transport surface: the
+// point-free realisation of the by-hand "compose Φ, certify the reduced native
+// predicate" pattern (numbers/strength_reduction_test).  @c preimage is
+// contravariant --- @f$(f;g)^{*} = g^{*}\circ f^{*}@f$ --- so pulling a bound
+// back through a composite is the fold @c preimage(f, preimage(g, ...)); each
+// leg is a closed form, so the composite is too.  The defining property
+// @c preimage(f,P)(a) == P(f(a)) is witnessed per map in the exhibit.
+
+/** @brief preimage of a codomain halfspace @c {y⋈P} under the translation
+ *  @f$x\mapsto x+K@f$: the domain halfspace @c {x⋈(P−K)}, same direction and
+ *  strictness.  Exact inverse of the forward @c image (which sends @c {x⋈P} to
+ *  @c {y⋈P+K}).
+ *
+ *  @details Gated on @c IsOrderedAdditiveGroup: the equivalence
+ *  @f$(x+K)\bowtie P \iff x \bowtie (P-K)@f$ needs a translation-invariant order.
+ *  On a wrapping @c unsigned the shifted bound would admit wrapped values, so
+ *  the modular groups are declined (the same gate the forward pushforward
+ *  carries). */
+export template <typename T, auto K, auto P, Direction D, Strictness S,
+                 typename L>
+  requires dedekind::algebra::IsOrderedAdditiveGroup<T>
+constexpr auto preimage(
+    const Set<std::pair<T, T>, L, ProjAddConstProj<1, K, Rel::Eq, 2>>&,
+    const Halfspace<T, P, D, S, L>&) {
+  return Halfspace<T, P - K, D, S, L>{};  // keep D, S, L
+}
+
+/** @brief preimage of a codomain halfspace @c {y⋈P} under the reflection/scale
+ *  @f$x\mapsto C\cdot x@f$ (@c C=±1): @c {x⋈'(C·P)}, sense FLIPPED when @c C<0.
+ *  Self-inverse for @c C=±1, so it agrees with the forward @c image reflection.
+ *
+ *  @details @c C=1 (the identity) needs no order structure; @c C=−1 requires
+ *  @c IsOrderedAdditiveGroup --- a genuine order-REVERSING additive inverse (on
+ *  a bounded-below rig or a wrapping group @f$x\mapsto -x@f$ does not reverse
+ *  the order). */
+export template <typename T, auto C, auto P, Direction D, Strictness S,
+                 typename L>
+  requires(C == 1 ||
+           (C == -1 && dedekind::algebra::IsOrderedAdditiveGroup<T>))
+constexpr auto preimage(
+    const Set<std::pair<T, T>, L, ProjMulConstProj<1, C, Rel::Eq, 2>>&,
+    const Halfspace<T, P, D, S, L>&) {
+  constexpr Direction d = (C < 0) ? flip(D) : D;
+  return Halfspace<T, C * P, d, S, L>{};  // C=±1, so P/C = C·P
+}
+
 }  // namespace dedekind::order
 
 // ── Entireness inference (Table 3): the ALGEBRAIC half of the DSL's relation
