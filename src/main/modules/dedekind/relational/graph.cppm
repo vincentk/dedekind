@@ -254,6 +254,14 @@ struct PreimagePredicate {
  */
 export template <typename F, typename S>
   requires dedekind::category::IsArrow<F> &&
+           // F must be an ANALYTIC ARROW, not a relation-valued Set.  A
+           // relation Set<pair<A,B>, L, P> is itself IsArrow (an arrow to
+           // bool), so without this a non-viable graph-specific overload (e.g.
+           // an unsigned translation graph with Congruence<3u,2u>, N not a
+           // power of two) would fall through here and pull S back through the
+           // RELATION read as pair→bool, silently returning a set of pairs.
+           // Exclude IsSet (a graph is IsSet; a Morphism arrow is not).
+           (!dedekind::category::IsSet<std::remove_cvref_t<F>>) &&
            // The stored arrow is invoked from PreimagePredicate::operator()
            // CONST, so require const-invocability here (IsArrow alone checks a
            // mutable call): a stateful arrow with a non-const operator() is
