@@ -25,6 +25,8 @@ export module dedekind.numbers:complex;
 import dedekind.algebra; // HasRingOperators (canonical-spine witnesses)
 import dedekind.category;
 import dedekind.geometry;
+import dedekind.morphologies; // Modular<N> / Congruence<N,R> — the finite
+                              // quotient the de Moivre node set factors through
 import dedekind.sets;
 import :real;
 import :quadratic;  // QuadraticReal<2> — the coat-hanger ℝ carrier that the
@@ -123,14 +125,79 @@ class Complex {
 };
 
 /**
- * @brief Squared Euclidean norm on Complex<R>: |z|^2 = re^2 + im^2.
- * @details Kept squared to avoid introducing a square root in hot paths.
+ * @brief Complex conjugate: conj(a + bi) = a − bi.
+ *
+ * @details The canonical ring involution of ℂ = ℝ[i]/(i²+1) fixing the real
+ * subfield {im = 0}.  Previously lived only inline inside `operator/`
+ * (z / w = z · conj(w) / |w|²); exported here as a first-class library
+ * primitive because two downstream uses ride it: the norm identity
+ * |z|² = Re(z · conj z) (witnessed below) and the even-spectrum symmetry
+ * c_k = conj(c_{−k}) that the Figure-5 analytic symmetry check rests on.
+ *
+ * FIXME(#808): register as an `arrow<Complex<R>, Complex<R>>` carrying
+ * `is_involution_v` (@c category:involution) once the Spectrum<(ℤ/N)², ·>
+ * even-check (Tier 2) needs the arrow form; kept a plain function for now.
+ */
+export template <IsComplexScalar R>
+constexpr Complex<R> conj(const Complex<R>& z) {
+  return {z.real(), R{} - z.imag()};
+}
+
+/**
+ * @brief The real inner product on ℂ ≅ ℝ²: dot(z, w) = Re(z · conj w)
+ *        = re_z·re_w + im_z·im_w.
+ *
+ * @details The Hermitian form read through the ℝ²-realification of ℂ (scalar
+ * field R): the inner-product form of ℂ.  With @c abs2 it holds for @b every
+ * @c IsComplexScalar R (exact ℚ(√2) included); adding @c norm (on floating R)
+ * completes the full @c HasInnerProduct / @c IsInnerProductSpace surface for
+ * @c Complex<double>, while the exact ℂ(ℚ(√2)) keeps the exact @c abs2 without
+ * a
+ * @c norm.  @c abs2 and the Euclidean escape-test norm both derive from it,
+ * replacing the former bespoke |z|² = re²+im² formula with the
+ * inner-product-induced one.  The codomain is R, not
+ * @c Complex<R>: the sesquilinear ℂ-valued form z·conj w is a richer layer that
+ * would break the R-typed norm consumers (cf. the Mandelbrot escape radius),
+ * so the realification is the default that slots into the existing metric.
+ */
+export template <IsComplexScalar R>
+constexpr R dot(const Complex<R>& z, const Complex<R>& w) {
+  return (z.real() * w.real()) + (z.imag() * w.imag());
+}
+
+/**
+ * @brief Squared norm abs2(z) = <z, z> = |z|² = re² + im²: exact, √-free.
+ * @details The @c HasInnerProduct primitive for ℂ, available for every
+ * @c IsComplexScalar R --- including the exact, non-√-closed ℝ = ℚ(√2), where
+ * @c norm does not exist but @c abs2 does.  Equals Re(z · conj z) (pinned
+ * below).
+ */
+export template <IsComplexScalar R>
+constexpr R abs2(const Complex<R>& z) {
+  return dot(z, z);
+}
+
+/**
+ * @brief Squared Euclidean norm on Complex<R>: a synonym for @c abs2, kept so
+ * it stays reachable by ADL in @c dedekind::numbers for callers that do not
+ * import @c dedekind.geometry (e.g. the Mandelbrot escape test and the
+ * set-algebra predicates).  Kept squared to avoid a square root in hot paths.
  */
 export template <IsComplexScalar R>
 constexpr R euclidean_norm_squared(const Complex<R>& z) {
-  const R re = z.real();
-  const R im = z.imag();
-  return (re * re) + (im * im);
+  return abs2(z);
+}
+
+/**
+ * @brief Induced norm ||z|| = sqrt(<z, z>), for @b floating carriers only.
+ * @details Completes @c HasInnerProduct<Complex<F>, F> on the materialisable
+ * floating ℂ.  The exact coat-hanger ℂ(ℚ(√2)) deliberately has no @c norm ---
+ * its field is not closed under √ --- only the exact @c abs2.
+ */
+export template <IsComplexScalar R>
+  requires std::floating_point<R>
+constexpr R norm(const Complex<R>& z) {
+  return std::sqrt(abs2(z));
 }
 
 /** @section complex__Partial_Arithmetic_with_Ternary_Logic */
@@ -292,6 +359,109 @@ export inline constexpr auto embed_ℝ_ℂ =
         [](const QuadraticReal<2>& r) noexcept {
           return Complex<QuadraticReal<2>>{r, QuadraticReal<2>{}};
         });
+
+/** @section complex__Roots_of_Unity_de_Moivre
+ *
+ * @brief The exact de Moivre exponential @f$\zeta_8 : \mathbb{Z}/8 \to
+ * \mathbb{C}^\times@f$ over the coat-hanger ℝ = ℚ(√2):
+ * @f$k \mapsto \zeta_8^{\,k} = (\cos\tfrac{2\pi k}{8},\ \sin\tfrac{2\pi
+ * k}{8})@f$.
+ *
+ * @details The arithmetic heart of an 8-point DFT, made @b exact by the
+ * cyclotomic coincidence @f$\sqrt 2 = \zeta_8 + \zeta_8^{-1}@f$: hence
+ * ℚ(√2) = ℝ ∩ ℚ(ζ₈) already contains every 8th root of unity, and the sole
+ * irrational the table needs is ½√2 = cos(π/4).  The map is a group
+ * homomorphism @f$(\mathbb{Z}/8, +) \to (\mathbb{C}^\times, \cdot)@f$ --- angle
+ * addition @b is exponent addition, de Moivre as a ring identity (witnessed
+ * below).  Implemented via the half-turn fold @f$\zeta_8^4 = -1@f$ (@c k =
+ * 4q+r) so the whole μ₈ table --- and its real-zero set --- are shallow @b
+ * compile-time facts, not the deep iterated-multiplication chain that would
+ * exhaust the constant-evaluation budget.
+ *
+ * @b Library @b fact (the Figure-5 anchor): the cosine-node set
+ * @f$\{k : \operatorname{Re}\zeta_8^k = 0\}@f$ is @b exactly the residue class
+ * @f$2 \pmod 4@f$ --- a finite-quotient predicate
+ * @c morphologies::Congruence<4,2>.  So the ℂ(ℚ(√2)) node test factors through
+ * the finite quotient @c Modular<4>; the strength reduction that keeps
+ * materialisation on a cheap integer surrogate is this residue-class
+ * identity, not insight poured into the exhibit. */
+export inline constexpr auto root8 =
+    arrow<dedekind::morphologies::Modular<8u>, Complex<QuadraticReal<2>>>(
+        [](const dedekind::morphologies::Modular<8u>& k) noexcept {
+          using Rz = QuadraticReal<2>;
+          const Rz s = Rz::of(Rational<default_integer>{},
+                              Rational<default_integer>{1, 2});  // ½√2
+          const Complex<Rz> table[4] = {
+              {Rz{1}, Rz{}},  // ζ⁰ = 1
+              {s, s},         // ζ¹ = ½√2 + ½√2·i
+              {Rz{}, Rz{1}},  // ζ² = i
+              {Rz{} - s, s},  // ζ³ = −½√2 + ½√2·i
+          };
+          const unsigned r = k.value & 3u;               // k mod 4
+          const bool neg = ((k.value >> 2) & 1u) != 0u;  // ζ⁴ = −1 half-turn
+          const Complex<Rz> z = table[r];
+          return neg ? -z : z;
+        });
+
+/** @brief The primitive 8th root of unity ζ8 = e^{2πi/8} = ½√2 + ½√2·i, exact
+ * in ℂ(ℚ(√2)) --- the generator of the de Moivre map @c root8. */
+export inline constexpr Complex<QuadraticReal<2>> ζ8 =
+    root8(dedekind::morphologies::Modular<8u>{1});
+
+/** @section complex__Roots_of_Unity_Witnesses
+ *  @c root8 is the exact de Moivre homomorphism, @b computed.  Witnesses are
+ *  kept shallow: each @c root8 call folds a QuadReal table, so the loops below
+ *  stay small (primitivity, node set) and the homomorphism is pinned on
+ *  representative pairs; the exhaustive 64-pair sweep is a runtime check in the
+ *  @c roots_of_unity exhibit. */
+namespace {
+using M8_ru = dedekind::morphologies::Modular<8u>;
+using R2_ru = QuadraticReal<2>;
+using Cx_ru = Complex<QuadraticReal<2>>;
+
+static_assert(root8(M8_ru{2}) == Cx_ru{R2_ru{}, R2_ru{1}}, "ζ₈² = i.");
+static_assert(root8(M8_ru{4}) == -Cx_ru{R2_ru{1}, R2_ru{}}, "ζ₈⁴ = −1.");
+static_assert(root8(M8_ru{0}) == Cx_ru{R2_ru{1}, R2_ru{}}, "ζ₈⁰ = 1.");
+static_assert(ζ8 == Cx_ru{R2_ru::of(Rational<default_integer>{},
+                                    Rational<default_integer>{1, 2}),
+                          R2_ru::of(Rational<default_integer>{},
+                                    Rational<default_integer>{1, 2})},
+              "ζ8 = ½√2 + ½√2·i.");
+
+// Primitivity: no proper power (1..7) of ζ₈ is 1 (ζ₈⁸ = ζ₈⁰ = 1 by ℤ/8 wrap).
+static_assert(
+    [] {
+      for (unsigned k = 1; k < 8u; ++k)
+        if (root8(M8_ru{k}) == Cx_ru{R2_ru{1}, R2_ru{}}) return false;
+      return true;
+    }(),
+    "ζ₈ is a primitive 8th root: no proper power equals 1.");
+
+// De Moivre homomorphism (ℤ/8, +) → (ℂˣ, ·): ζ^a · ζ^b = ζ^{a+b}.  Pinned on
+// representative pairs at COMPILE TIME (kept shallow --- each root8 call is a
+// QuadReal-heavy fold, so the exhaustive 64-pair sweep is a runtime check in
+// the roots_of_unity exhibit, not a module-compile static_assert): a
+// non-wrapping pair, and two that wrap around ℤ/8.
+static_assert(root8(M8_ru{1}) * root8(M8_ru{2}) == root8(M8_ru{3}),
+              "ζ¹·ζ² = ζ³ (no wrap).");
+static_assert(root8(M8_ru{5}) * root8(M8_ru{5}) == root8(M8_ru{2}),
+              "ζ⁵·ζ⁵ = ζ^{10 mod 8} = ζ² (wrap).");
+static_assert(root8(M8_ru{3}) * root8(M8_ru{5}) == root8(M8_ru{0}),
+              "ζ³·ζ⁵ = ζ^{8 mod 8} = ζ⁰ = 1 (wrap to identity).");
+
+// The library fact: the cosine-node set {k : Re ζ₈^k = 0} IS the residue class
+// 2 (mod 4) = morphologies::Congruence<4,2>.  This is the strength-reduction
+// anchor, certified at compile time (the node set factors through Modular<4>).
+static_assert(
+    [] {
+      for (unsigned k = 0; k < 8u; ++k)
+        if ((root8(M8_ru{k}).real() == R2_ru{}) !=
+            dedekind::morphologies::Congruence<4, 2>{}(k))
+          return false;
+      return true;
+    }(),
+    "cosine-node set of the 8-point kernel is Congruence<4,2> (k ≡ 2 mod 4).");
+}  // namespace
 
 /**
  * @brief Characteristic morphism for ℂ: the complex numbers.
@@ -698,6 +868,40 @@ static_assert(a_cx != b_cx && embed_ℝ_ℂ(a_cx) != embed_ℝ_ℂ(b_cx),
               "ℝ ↪ ℂ is injective (monic).");
 static_assert(embed_ℝ_ℂ(a_cx).imag() == R2_cx{},
               "image of ℝ ↪ ℂ lies in the real subfield {im = 0} ⊂ ℂ.");
+
+// conj is the ring involution of ℂ, and the norm is the conjugate-product:
+// computed over the exact ℂ = ℂ(ℚ(√2)).
+constexpr C2_cx z_cx{a_cx, b_cx};
+static_assert(conj(conj(z_cx)) == z_cx,
+              "conj is an involution: conj∘conj = id.");
+static_assert(conj(z_cx) == C2_cx{a_cx, R2_cx{} - b_cx},
+              "conj(a + bi) = a − bi.");
+static_assert(
+    euclidean_norm_squared(z_cx) == (z_cx * conj(z_cx)).real(),
+    "|z|² = Re(z · conj z): the squared norm is the conjugate-product.");
+static_assert((z_cx * conj(z_cx)).imag() == R2_cx{},
+              "z · conj z is real (imaginary part vanishes).");
+
+// abs2 = ⟨z,z⟩ = euclidean_norm_squared, and it IS Re(z · conj z): the bespoke
+// |z|² formula is now the inner-product-induced one.
+static_assert(dot(z_cx, z_cx) == abs2(z_cx), "abs2(z) = ⟨z, z⟩.");
+static_assert(abs2(z_cx) == euclidean_norm_squared(z_cx),
+              "euclidean_norm_squared is the abs2 synonym.");
+static_assert(abs2(z_cx) == (z_cx * conj(z_cx)).real(),
+              "abs2(z) = Re(z · conj z).");
+
+// ℂ over a floating carrier is a genuine inner-product space (dot + abs2 +
+// norm); the EXACT coat-hanger ℂ(ℚ(√2)) has abs2 but no norm (no √-closure), so
+// it is not HasInnerProduct --- the exact/materialisable split, pinned.
+static_assert(
+    dedekind::geometry::HasInnerProduct<Complex<double>, double>,
+    "ℂ over double has the full inner-product surface (dot, abs2, norm).");
+static_assert(dedekind::geometry::IsInnerProductSpace<Complex<double>, double>,
+              "ℂ over double IS an inner-product space (Hilbert's example).");
+static_assert(
+    !dedekind::geometry::HasInnerProduct<Complex<QuadraticReal<2>>,
+                                         QuadraticReal<2>>,
+    "exact ℂ(ℚ(√2)) exposes abs2 but not norm (ℚ(√2) is not √-closed).");
 }  // namespace
 
 /** @section complex__Canonical_Species_Spine (ℂ)
