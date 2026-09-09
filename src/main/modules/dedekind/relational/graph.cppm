@@ -214,8 +214,13 @@ struct PreimagePredicate {
   using SetType = std::remove_cvref_t<S>;
   ArrowType arrow;
   SetType set;
-  constexpr bool operator()(const typename ArrowType::Domain& a) const {
-    return set(arrow(a)) == SetType::logic_species::True;  // f(a) ∈ S
+  // Returns the CLASSIFIER value χ_S(f(a)), not a bool: a bool collapse
+  // (== True) would drop @c Ternary::Unknown to false even though the result
+  // Set advertises this logic species.  Preserving @c L::Ω keeps the pullback
+  // of a ternary predicate honest.
+  constexpr typename SetType::logic_species::Ω operator()(
+      const typename ArrowType::Domain& a) const {
+    return set(arrow(a));  // χ_S ∘ f, classifier value preserved
   }
 };
 
@@ -236,12 +241,21 @@ struct PreimagePredicate {
  *
  * Closed-form specialisations refine this where a TYPED result adds
  * collapse-visible structure: the bound-MOVING affine maps
- * (@c :halfspace_transport translate/scale) and the bound-PRESERVING
- * @c EmbedsAsSubalgebra inclusions (monotone, value-preserving) --- each
- * certified to AGREE with this default pointwise.
+ * (@c :halfspace_transport translate/scale, the contravariant inverse of
+ * @c image) --- certified to AGREE with this default pointwise.  A
+ * bound-PRESERVING residue-class sibling (a @c Congruence rotation) is the
+ * @c morphologies analogue (@c FIXME(#797)).
+ *
+ * @c S must be a subobject of @c f's codomain: constrained to a set callable on
+ * @c F::Codomain, so the documented @f$S \subseteq B@f$ contract holds and an
+ * unrelated ambient cannot slip in by implicit conversion.
  */
 export template <typename F, typename S>
-  requires dedekind::category::IsArrow<F>
+  requires dedekind::category::IsArrow<F> &&
+           requires(const S& s,
+                    const typename std::remove_cvref_t<F>::Codomain& b) {
+             s(b);
+           }
 constexpr auto preimage(F f, S s) {
   using Arr = std::remove_cvref_t<F>;
   using St = std::remove_cvref_t<S>;

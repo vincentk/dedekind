@@ -203,8 +203,28 @@ static_assert(IsInteger<SignedExtensionalCardinal<>>,
  * is the closed-form specialisation of the general @c preimage (@c :graph): the
  * defining property @f$\mathrm{preimage}(x{+}K, C)(a) \iff C(a+K)@f$ is
  * witnessed in @c cyclic_test.
+ *
+ * @b Soundness gate @c IsSaturatingInteger<T>: the closed form is valid exactly
+ * where @c +K commutes with reduction @c mod @c N.  On the FAITHFUL-ℤ
+ * (saturating, non-wrapping) carrier @c SignedCardinality it does; on a
+ * WRAPPING carrier @c x+K folds modulo the machine width @b before the @c mod
+ * @c N, so
+ * @c (x+K)\bmod N would disagree with @c (x\bmod N + K) unless @c N divides
+ * that width --- so the cyclic and @c bool carriers are declined here (they
+ * would need the @c IsCongruenceQuotient side-condition, a future extension).
+ * This is why the CP-flagged @c T=bool case cannot match: @c bool is not
+ * @c IsSaturatingInteger.
+ *
+ * @b Domain: the result @c Congruence<N,r> is the residue class on ℤ --- a
+ * carrier-POLYMORPHIC predicate (its @c template @c operator() reduces any
+ * integer carrier, incl. the ℤ-proxy @c T, through @c Modular<N>).  Its @c
+ * Domain names the abstract residue integer @c decltype(N), not the ℤ-proxy
+ * @c T; the two are the same ℤ.  (A @c Set<T>-homogeneous wrapper, for chaining
+ * residue preimages, is a deferred refinement.)
  */
 export template <typename T, auto K, auto N, decltype(N) R, typename L>
+  requires IsSaturatingInteger<
+      T>  // faithful ℤ: +K commutes with mod N (no wrap)
 constexpr auto preimage(
     const Set<std::pair<T, T>, L, ProjAddConstProj<1, K, Rel::Eq, 2>>&,
     Congruence<N, R>) {
