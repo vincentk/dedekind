@@ -173,6 +173,34 @@ static_assert(
         !IsEntire<decltype((ℤ * ℤ | π1 + fix(3_c) == π2) | π1 <= fix(5_c))>,
     "a restricted graph is a partial function, NOT a bijection, so "
     "NOT an iso -- its converse is a one-sided section at most.");
+
+// ── preimage: the CONTRAVARIANT inverse of image ─────────────────────────────
+// image pushes a DOMAIN halfspace forward; preimage pulls a CODOMAIN halfspace
+// back, closed-form and the same shape.  It DERIVES the reduced native
+// predicate that numbers/strength_reduction_test writes by hand.
+// Translation x↦x+3: {y≤8} pulls back to {x≤5} (pivot P−K = 8−3).
+static_assert(preimage(ℤ* ℤ | π1 + fix(3_c) == π2, ℤ | (π <= fix(8_c))) ==
+                  (ℤ | (π <= fix(5_c))),
+              "preimage(x+3, {y≤8}) = {x≤5}: the exact inverse of image.");
+// The DEFINING property preimage(f,P)(a) ⟺ P(f(a)), pointwise on the boundary.
+static_assert(preimage(ℤ* ℤ | π1 + fix(3_c) == π2, ℤ | (π <= fix(8_c)))(5),
+              "5 ∈ preimage: f(5)=8 ≤ 8.");
+static_assert(!preimage(ℤ * ℤ | π1 + fix(3_c) == π2, ℤ | (π <= fix(8_c)))(6),
+              "6 ∉ preimage: f(6)=9 ≰ 8.");
+// Reflection x↦−x: {y≤5} pulls back to {x≥−5}, the sense FLIPS.
+static_assert(preimage(ℤ* ℤ | π1 * fix(-1_c) == π2, ℤ | (π <= fix(5_c))) ==
+                  (ℤ | (π >= fix(-5_c))),
+              "preimage(−x, {y≤5}) = {x≥−5}: reflection flips the sense.");
+// CONTRAVARIANCE (f;g)* = g*∘f*: pulling {y≤8} through T₂;T₃ = T₅ in one step
+// equals pulling through T₃ then T₂ (the closed forms compose).
+static_assert(
+    preimage(ℤ* ℤ | π1 + fix(5_c) == π2, ℤ | (π <= fix(8_c))) ==
+        preimage(ℤ * ℤ | π1 + fix(2_c) == π2,
+                 preimage(ℤ* ℤ | π1 + fix(3_c) == π2, ℤ | (π <= fix(8_c)))),
+    "contravariance: preimage(T₂;T₃, P) = preimage(T₂, preimage(T₃, P)).");
+static_assert(preimage(ℤ* ℤ | π1 + fix(5_c) == π2, ℤ | (π <= fix(8_c))) ==
+                  (ℤ | (π <= fix(3_c))),
+              "and that common value is {x≤3} (8−5).");
 }  // namespace
 
 // Runtime coverage for the relation-reading of a function: the graph of x+3,
@@ -230,4 +258,24 @@ TEST_CASE("algebra:halfspace_transport — image of the sign-fold reflection",
   const auto absPos = Z * Z | π1 * fix(1_c) == π2 | π1 >= fix(0_c);  // x↦x, x≥0
   const auto imgP = image(absPos);                                   // {y≥0}
   CHECK(imgP(int(zero)));  // 0 ≥ 0: the identity branch includes it
+}
+
+// Runtime coverage for preimage: the contravariant inverse of image.  The
+// derived domain predicate satisfies the defining property a ∈ preimage(f,P)
+// ⟺ f(a) ∈ P, checked at the boundary; reflection flips the sense.
+TEST_CASE("algebra:halfspace_transport — preimage, the contravariant inverse",
+          "[algebra][preimage][pullback][inverse]") {
+  constexpr auto Z = Ω<SignedCardinality>;
+  const auto f = Z * Z | π1 + fix(3_c) == π2;         // x ↦ x+3
+  const auto dom = preimage(f, Z | (π <= fix(8_c)));  // derived {x ≤ 5}
+  volatile int five = 5, six = 6;
+  CHECK(dom(int(five)));       // 5 ≤ 5, and f(5)=8 ≤ 8
+  CHECK_FALSE(dom(int(six)));  // 6 ≰ 5, and f(6)=9 ≰ 8
+  CHECK(dom == (Z | (π <= fix(5_c))));
+
+  const auto neg = Z * Z | π1 * fix(-1_c) == π2;         // x ↦ −x
+  const auto back = preimage(neg, Z | (π <= fix(5_c)));  // {x ≥ −5}
+  volatile int m5 = -5, m6 = -6;
+  CHECK(back(int(m5)));        // −5 ≥ −5, and −(−5)=5 ≤ 5
+  CHECK_FALSE(back(int(m6)));  // −6 ≱ −5, and −(−6)=6 ≰ 5
 }

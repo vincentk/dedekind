@@ -3,11 +3,13 @@
 import dedekind.category;
 import dedekind.algebra;
 import dedekind.sets;
+import dedekind.order; // the translation graph (Ω*Ω | π1+fix==π2) for preimage
 import dedekind.morphologies;
 
 using namespace dedekind::category;
 using namespace dedekind::algebra;
 using namespace dedekind::sets;
+using namespace dedekind::order;
 using namespace dedekind::morphologies;
 
 TEST_CASE("Morphology Verification: The Cyclic Ring",
@@ -38,4 +40,25 @@ TEST_CASE("Morphology Verification: The Cyclic Ring",
     static_assert(static_cast<int>(a + b) == 20);
     static_assert(static_cast<int>(a * b) == 0);
   }
+}
+
+// The residue-class preimage (integral.cppm, FIXME #797): pulling a Congruence
+// back through the translation x↦x+K rotates the class by −K (mod N).  The
+// bound-PRESERVING closed form the torus needs — the residue sibling of the
+// halfspace preimage.
+TEST_CASE("Congruence residue preimage: {x≡R mod N} ⟵ x↦x+K rotates by −K",
+          "[morphologies][congruence][preimage][residue]") {
+  // On the cyclic carrier unsigned = ℤ/2^w with N=4 a power of two (the
+  // discrete circle ℤ/L the torus rotates on); the graph carrier is the
+  // residue's own integer type (unsigned = decltype(N)).
+  constexpr auto ℤ4 = Ω<unsigned>;
+  // preimage(x↦x+1, {x≡2 mod4}) = {x≡1 mod4}: the class rotates by −1.
+  constexpr auto pre =
+      preimage(ℤ4 * ℤ4 | π1 + fix(1_c) == π2, Congruence<4u, 2u>{});
+  CHECK(pre(1u));        // 1 ≡ 1 (mod 4)
+  CHECK(pre(5u));        // 5 ≡ 1 (mod 4)
+  CHECK_FALSE(pre(2u));  // 2 ≢ 1 (mod 4)
+  // Defining property: preimage(x↦x+K, C)(a) ⟺ C(a+K), over a full period.
+  for (unsigned a = 0; a < 12u; ++a)
+    CHECK(pre(a) == Congruence<4u, 2u>{}(a + 1u));
 }

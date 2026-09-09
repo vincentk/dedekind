@@ -200,6 +200,92 @@ constexpr auto operator>>(const Graph<F>& r, const Graph<G>& s) {
       dedekind::category::operator>>(r.predicate().arrow, s.predicate().arrow));
 }
 
+/**
+ * @brief The preimage predicate @f$a \mapsto f(a)\in S@f$: the subobject @c S
+ *        pulled back along the functional arrow @c f (@f$\chi_S\circ f@f$).
+ *
+ * @details @b Named (not a lambda) so it carries both the arrow @c f and the
+ * codomain set @c S --- the reified @f$\chi_S\circ f@f$, the sibling of
+ * @c GraphPredicate for the pullback-of-a-subobject reading of §4.
+ */
+export template <typename F, typename S>
+struct PreimagePredicate {
+  using ArrowType = std::remove_cvref_t<F>;
+  using SetType = std::remove_cvref_t<S>;
+  ArrowType arrow;
+  SetType set;
+  // Returns the CLASSIFIER value χ_S(f(a)), not a bool: a bool collapse
+  // (== True) would drop @c Ternary::Unknown to false even though the result
+  // Set advertises this logic species.  Preserving @c L::Ω keeps the pullback
+  // of a ternary predicate honest.
+  constexpr typename SetType::logic_species::Ω operator()(
+      const typename ArrowType::Domain& a) const {
+    return set(arrow(a));  // χ_S ∘ f, classifier value preserved
+  }
+};
+
+/**
+ * @brief @c preimage(f, S) = @f$\{\,a \mid f(a)\in S\,\}@f$ --- the subobject
+ *        @c S ⊆ B pulled back along @c f : A → B, i.e.\ @c S's classifier
+ *        composed with @c f (@f$\chi_S\circ f@f$; every mono is a pullback of
+ *        @c true, so a preimage IS such a pullback).
+ *
+ * @details The DEFAULT preimage: apply-and-test, decided by single-valuedness
+ * alone (an @c IsArrow is functional), so it reads the @f$\pi_A@f$ side and
+ * never leaves the domain (§4, the relation-quantifier table).  The @b domain
+ * @b type is the clip: the predicate ranges over @c A, so a bound outside @c
+ * A's range (e.g.\ @c {≤−3} pulled to @c unsigned) is @c ∅ by construction ---
+ * there is no out-of-range witness to test, and no negative-pivot halfspace is
+ * ever built.  No enumeration: membership is the composite @f$\chi_S\circ f@f$,
+ * a point-free apply-and-test.
+ *
+ * Closed-form specialisations refine this where a TYPED result adds
+ * collapse-visible structure: the bound-MOVING affine maps
+ * (@c :halfspace_transport translate/scale, the contravariant inverse of
+ * @c image) --- certified to AGREE with this default pointwise.  A
+ * bound-PRESERVING residue-class sibling (a @c Congruence rotation) is the
+ * @c morphologies analogue (@c FIXME(#797)).
+ *
+ * @c S must be a SET over @c f's codomain: constrained to a set-shaped argument
+ * (one exposing @c logic_species) whose classifier accepts @c F::Codomain, so
+ * the documented @f$S \subseteq B@f$ contract is checked during overload
+ * resolution --- a bare callable without @c logic_species, or one over an
+ * unrelated ambient, is rejected here rather than hard-erroring in the body.
+ */
+export template <typename F, typename S>
+  requires dedekind::category::IsArrow<F> &&
+           // F must be an ANALYTIC ARROW, not a relation-valued Set.  A
+           // relation Set<pair<A,B>, L, P> is itself IsArrow (an arrow to
+           // bool), so without this a non-viable graph-specific overload (e.g.
+           // an unsigned translation graph with Congruence<3u,2u>, N not a
+           // power of two) would fall through here and pull S back through the
+           // RELATION read as pair→bool, silently returning a set of pairs.
+           // Exclude IsSet (a graph is IsSet; a Morphism arrow is not).
+           (!dedekind::category::IsSet<std::remove_cvref_t<F>>) &&
+           // The stored arrow is invoked from PreimagePredicate::operator()
+           // CONST, so require const-invocability here (IsArrow alone checks a
+           // mutable call): a stateful arrow with a non-const operator() is
+           // rejected at overload resolution, not deep in the body.
+           requires(const std::remove_cvref_t<F>& cf,
+                    const typename std::remove_cvref_t<F>::Domain& a) {
+             cf(a);
+           } &&
+           requires(const S& s,
+                    const typename std::remove_cvref_t<F>::Codomain& b) {
+             typename std::remove_cvref_t<S>::logic_species;
+             {
+               s(b)
+             }
+             -> std::same_as<typename std::remove_cvref_t<S>::logic_species::Ω>;
+           }
+constexpr auto preimage(F f, S s) {
+  using Arr = std::remove_cvref_t<F>;
+  using St = std::remove_cvref_t<S>;
+  using A = typename Arr::Domain;
+  return Set<A, typename St::logic_species, PreimagePredicate<Arr, St>>{
+      PreimagePredicate<Arr, St>{f, s}};
+}
+
 /** @section graph__Formal_Verification */
 
 // The graph of the identity id : int → int is the diagonal {(n, n)}.
