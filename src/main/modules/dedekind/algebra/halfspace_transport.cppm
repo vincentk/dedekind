@@ -288,7 +288,14 @@ export template <typename T, auto K, auto P, Direction D, Strictness S,
                  typename L>
   requires dedekind::algebra::IsOrderedAdditiveGroup<T> &&
            std::same_as<decltype(P), decltype(K)> &&
-           std::signed_integral<decltype(P)>
+           std::signed_integral<decltype(P)> &&
+           // Representability: even in one signed type, P−K overflows at the
+           // boundary (P = INT_MIN, K = 1).  Reject the non-representable case
+           // at overload resolution rather than emitting UB in the
+           // shifted-pivot template argument.  (The forward @c image documents
+           // this same extreme-pivot limitation; here it is enforced.)
+           (std::in_range<decltype(P)>(static_cast<long long>(P) -
+                                       static_cast<long long>(K)))
 constexpr auto preimage(
     const Set<std::pair<T, T>, L, ProjAddConstProj<1, K, Rel::Eq, 2>>&,
     const Halfspace<T, P, D, S, L>&) {
@@ -313,7 +320,12 @@ export template <typename T, auto C, auto P, Direction D, Strictness S,
   requires((C == 1 ||
             (C == -1 && dedekind::algebra::IsOrderedAdditiveGroup<T>)) &&
            std::same_as<decltype(P), decltype(C)> &&
-           std::signed_integral<decltype(P)>)
+           std::signed_integral<decltype(P)> &&
+           // Representability: C·P overflows at C=−1, P=INT_MIN (−P is not
+           // representable).  Rejected at overload resolution, not UB in the
+           // pivot template argument.
+           (std::in_range<decltype(P)>(static_cast<long long>(C) *
+                                       static_cast<long long>(P))))
 constexpr auto preimage(
     const Set<std::pair<T, T>, L, ProjMulConstProj<1, C, Rel::Eq, 2>>&,
     const Halfspace<T, P, D, S, L>&) {
