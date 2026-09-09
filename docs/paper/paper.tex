@@ -1541,6 +1541,67 @@ Colour: $\mathrm{Re}\,\psi$ red, $\mathrm{Im}\,\psi$ blue, mixtures purple, node
 \label{fig:hsp-torus}
 \end{figure}
 
+% ===== Figure: the same wave, made exact and kept at compile time =====
+\begin{figure}[tp]
+\centering
+\noindent\begin{minipage}[c]{0.45\linewidth}\centering
+\begin{tikzpicture}[>=Stealth,font=\scriptsize,scale=1.0]
+  \node[draw,rounded corners,align=center,fill=teal!8,inner sep=4pt] (exact) at (0,0)
+    {\textbf{exact layer}\;\; $\mathbb{C}=\mathrm{Complex}\langle\mathbb{Q}(\sqrt2)\rangle$\\[1pt]
+     $\psi=\zeta_8^{\,x+y}+i\,\zeta_8^{\,x-y}$ is exact\\[1pt]
+     proves $\cos\tfrac{2\pi k}{8}=0 \Leftrightarrow k\in\{2,6\}$};
+  \draw[->,line width=1pt] (0,-1.25)--(0,-2.15);
+  \node[right,align=left,font=\scriptsize] at (0.15,-1.7){\textbf{S}: strength-reduce\\ $\mathbb{Q}(\sqrt2)\to$ \cppinline{size_t}};
+  \node[draw,rounded corners,align=center,fill=gray!10,inner sep=4pt] (red) at (0,-3.5)
+    {\textbf{reduced layer}\;\; \cppinline{size_t}, $\bmod\,8$\\[1pt]
+     $|\psi|^2{=}0 \Leftrightarrow (x{+}y)\%8,\,(x{-}y)\%8\in\{2,6\}$\\[1pt]
+     nodes materialised at \emph{compile time}};
+  % the diamond node set on the [0,4]^2 cell
+  \begin{scope}[shift={(0,-5.6)}]
+    \draw[gray!40,thin,step=0.34](-0.68,-0.68)grid(0.68,0.68);
+    \draw[thick](-0.68,-0.68)rectangle(0.68,0.68);
+    \foreach \i in {-2,...,2}{\foreach \j in {-2,...,2}{\fill[gray!45](0.34*\i,0.34*\j)circle(0.8pt);}}
+    \draw[gray!55,thin](0,-0.68)--(0.68,0)--(0,0.68)--(-0.68,0)--cycle;
+    \foreach \p in {(0,-0.68),(-0.68,0),(0.68,0),(0,0.68)}{\fill[black]\p circle(1.2pt);\draw[white,line width=0.8pt]\p circle(1.9pt);}
+  \end{scope}
+\end{tikzpicture}
+\end{minipage}\hfill
+\begin{minipage}[c]{0.52\linewidth}
+\begin{minted}{cpp}
+// H, P: modular circle, then torus
+using X = Modular<8u>;
+using T = X * X;
+
+// S: the exact even wave over ℂ/ℚ(√2)
+//    (√2 = ζ₈+ζ₈⁻¹, so ζ₈ is exact)
+auto ψ = T * ℂ
+  | z == ζ8(x+y) + i*ζ8(x-y);
+static_assert((pt(-x,-y) >> ψ) == ψ);
+
+// S again: STRENGTH REDUCTION.
+// The exact algebra collapses the node
+// test to size_t modular arithmetic:
+//   abs2(ψ) == 0
+//   <=> (x+y)%8 in {2,6}
+//    && (x-y)%8 in {2,6}
+auto node = reduce_to<size_t>(abs2(ψ) == 0);
+
+// materialise on the cheap carrier:
+auto cell = materialise(
+  T | node && x <= 4 && y <= 4);
+static_assert(cell == std::set{  // compile-time
+  {2,0},{0,2},{4,2},{2,4}});
+\end{minted}
+\end{minipage}
+\caption{\textbf{The same construction, made exact and kept at compile time.}
+Where Figure~\ref{fig:hsp-torus} thresholds an abstract wave ($|\psi|^2\le\varepsilon$), here the wave is the genuine 8-point plane wave over $\mathbb{C}=\mathrm{Complex}\langle\mathbb{Q}(\sqrt2)\rangle$.
+Because $\sqrt2=\zeta_8+\zeta_8^{-1}$, every value is exact in $\mathbb{Q}(\sqrt2)=\mathbb{R}\cap\mathbb{Q}(\zeta_8)$ --- the real subfield the 8-point transform needs --- so the node set is $\{|\psi|^2=0\}$ \emph{exactly}, with no $\varepsilon$.
+The deep exact grid would exhaust the constant-evaluation budget; instead the exact algebra proves the node test is a pure modular condition ($\cos\tfrac{2\pi k}{8}=0\Leftrightarrow k\in\{2,6\}$), a second \textbf{S}-leg that \emph{strength-reduces} $\mathbb{Q}(\sqrt2)$ to \cppinline{size_t}.
+The nodes are then materialised on \cppinline{size_t} and pinned by \cppinline{static_assert} at compile time; the deep $\mathbb{Q}(\sqrt2)$ grid is never evaluated.
+The four diamond nodes are the same as Figure~\ref{fig:hsp-torus}, now exact and compile-time (the construction is machine-checked in the roots-of-unity test).}
+\label{fig:hsp-torus-exact}
+\end{figure}
+
 \begin{figure}[htbp]
 \centering
 % ===== TOP: the shadow plot, four primitives =====
