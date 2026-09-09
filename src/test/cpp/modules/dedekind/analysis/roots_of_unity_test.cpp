@@ -1,7 +1,7 @@
 /** @file test/cpp/modules/dedekind/analysis/roots_of_unity_test.cpp
  *
- * SPIKE (Figure-5 "waves on a torus"): exact plane-wave trigonometry over the
- * coat-hanger ℝ = ℚ(√2).
+ * Exact plane-wave trigonometry over the coat-hanger ℝ = ℚ(√2).  Groundwork for
+ * the Figure-5 "waves on a torus" exhibit.
  *
  * The claim under test: an 8-point Fourier / plane-wave basis is *exact* on
  * ℚ(√2), with de Moivre / Euler holding as a symbolic ring identity — no
@@ -54,10 +54,12 @@ constexpr Cx pow8(unsigned k) {
 TEST_CASE("Roots of unity: ζ₈ is a primitive 8th root, exact over ℚ(√2)",
           "[analysis][fourier][roots][exact]") {
   // ζ² = i, ζ⁴ = -1 --- EXACT at COMPILE TIME (½√2 ∈ ℚ(√2); no rounding).
-  // NOTE: exact ℚ(√2) arithmetic is constexpr-capable but step-heavy, so deep
-  // chains exceed clang's constexpr budget (~8 complex mults / assert).
-  // Compile- time witnesses stay shallow; deeper exact checks run at RUNTIME
-  // (still exact).
+  // NOTE: exact ℚ(√2) arithmetic admits constant evaluation but is step-heavy;
+  // forcing a deep enough fold (past ~8 chained complex mults) exhausts clang's
+  // constexpr step limit and is ill-formed, not slow.  So the compile-time
+  // witnesses stay shallow, and the exhaustive/deep checks run at RUNTIME,
+  // where the exact arithmetic yields the same values: the boundary is ours to
+  // place, and exactness makes the placement lossless.
   STATIC_REQUIRE(zeta * zeta == I);           // ζ² = i           (1 mult)
   STATIC_REQUIRE(pow8(4) == Cx{-one, zero});  // ζ⁴ = -1          (4 mults)
 

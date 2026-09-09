@@ -1878,9 +1878,9 @@ A natural way to reconcile the two is a \emph{controlled boundary}, in the sense
 Write the computation as a symbolic algebraic expression over an exact ring where the laws genuinely hold, let $\mathbf{Jlt}$ simplify and prune it at translation time, and only then lower the residual to IEEE floating-point for execution.
 The rewrites are sound because they happen on the exact ring.
 The lossy step is a single explicit evaluation map at the boundary, not a silent assumption threaded through every operation.
-One direction of that boundary is in fact already exercised, unbidden.
-Exact-carrier arithmetic admits constant evaluation but is step-heavy, so a deep enough exact computation exhausts the translator's constant-evaluation budget and spills to run time of its own accord (Appendix~\ref{app:partial-eval}); because the carrier stays exact across that spill the crossing is lossless, the run-time value being the very constant the compiler would have folded.
-The controlled boundary is therefore only half a conjecture: the exact-to-exact crossing already happens and already costs nothing; what remains to design is the deliberate, lossy exact-to-floating-point map, and it is the exactness of the ring that buys the distinction.
+Exactness earns a second dividend, on an axis orthogonal to that lowering.
+The lowering changes an expression's \emph{representation}, from the exact ring to floating-point, and that map is lossy; changing only \emph{when} the expression is evaluated, from translation time to run time, is not (Appendix~\ref{app:partial-eval}).
+So the single lossy crossing is the representation map, and it is independent of where evaluation falls: an exact term yields the same value folded early or computed late.
 This is the ring-swap machinery the \cppinline{Dual<F>} sensitivity exhibit (§\ref{sec:optimization_lp}) already uses in miniature, generalised from computing a derivative exactly to computing the whole expression exactly and rounding once.
 Whether the type system can carry that boundary crossing as a first-class, mechanically-checked seam rather than a convention is the question we would pursue next.
 
@@ -2429,9 +2429,9 @@ int64_t critical_between(std::size_t source, std::size_t sink) {
 The residual is the fold over the edge sequence rather than a straight-line kernel: the optimiser keeps the loop that threads the potential, specialised but not flattened.
 The point the two call sites make is that the collapse is optional and the boundary is the programmer's to place.
 
-The boundary can also place itself.
-An exact carrier admits constant evaluation but is step-heavy, so a deep enough computation exhausts the translator's constant-evaluation budget and spills to run time of its own accord.
-Because the carrier is exact that spill is lossless: the run-time value is the very constant the compiler would have folded, computed a moment later rather than during translation, so what is lost is the folding and never the answer.
+The step budget also bounds where the boundary can fall.
+An exact carrier admits constant evaluation but is step-heavy, so a deep enough fold exhausts the translator's constant-evaluation budget; forced past it a fold is ill-formed rather than merely slow, so such a term is left to run time.
+Because the carrier is exact that costs only the folding and never the answer: the run-time value is the very constant a fold would have produced, computed a moment later rather than during translation.
 
 %%%
 \clearpage
