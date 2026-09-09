@@ -60,10 +60,12 @@
  */
 module;
 
+#include <bit>      // std::has_single_bit (N | 2^w soundness on unsigned)
 #include <compare>  // std::three_way_comparable (gated in IsInteger)
 #include <concepts>
 #include <functional>
-#include <utility>  // std::pair (the translation-graph carrier in preimage)
+#include <type_traits>  // std::make_unsigned_t (has_single_bit well-formedness)
+#include <utility>      // std::pair (the translation-graph carrier in preimage)
 
 export module dedekind.morphologies:integral;
 
@@ -204,27 +206,28 @@ static_assert(IsInteger<SignedExtensionalCardinal<>>,
  * defining property @f$\mathrm{preimage}(x{+}K, C)(a) \iff C(a+K)@f$ is
  * witnessed in @c cyclic_test.
  *
- * @b Soundness gate @c IsSaturatingInteger<T>: the closed form is valid exactly
- * where @c +K commutes with reduction @c mod @c N.  On the FAITHFUL-ℤ
- * (saturating, non-wrapping) carrier @c SignedCardinality it does; on a
- * WRAPPING carrier @c x+K folds modulo the machine width @b before the @c mod
- * @c N, so
- * @c (x+K)\bmod N would disagree with @c (x\bmod N + K) unless @c N divides
- * that width --- so the cyclic and @c bool carriers are declined here (they
- * would need the @c IsCongruenceQuotient side-condition, a future extension).
- * This is why the CP-flagged @c T=bool case cannot match: @c bool is not
- * @c IsSaturatingInteger.
- *
- * @b Domain: the result @c Congruence<N,r> is the residue class on ℤ --- a
- * carrier-POLYMORPHIC predicate (its @c template @c operator() reduces any
- * integer carrier, incl. the ℤ-proxy @c T, through @c Modular<N>).  Its @c
- * Domain names the abstract residue integer @c decltype(N), not the ℤ-proxy
- * @c T; the two are the same ℤ.  (A @c Set<T>-homogeneous wrapper, for chaining
- * residue preimages, is a deferred refinement.)
+ * @b Carrier gate: @c T @c = @c decltype(N), a @b machine integer, so the graph
+ * carrier @b is the residue's own integer type --- the result @c
+ * Congruence<N,r> is a predicate on exactly that @c Domain (HOMOGENEOUS with
+ * the source, and
+ * @c Congruence reduces @c T natively, no cast).  Soundness (@c +K commutes
+ * with
+ * @c mod @c N) then splits by carrier: a @b signed integer is faithful ℤ
+ * in-range; an @b unsigned integer is @c ℤ/2^wℤ, where @c x+K folds mod the
+ * width @b before @c mod @c N, so the reduction agrees only when @c N @c | @c
+ * 2^w --- i.e.\ @c N is a power of two (@c std::has_single_bit), the @c
+ * IsCongruenceQuotient side-condition (#803).  This is exactly the discrete
+ * circle @c ℤ/L the torus rotates on (@c L a power of two).  @c bool and the
+ * saturating/variant ℤ-proxy @c SignedCardinality (whose @c ±ℵ_0 saturation
+ * breaks residue-equivalence, and which @c Congruence cannot reduce) are
+ * declined by construction.
  */
 export template <typename T, auto K, auto N, decltype(N) R, typename L>
-  requires IsSaturatingInteger<
-      T>  // faithful ℤ: +K commutes with mod N (no wrap)
+  requires std::same_as<std::remove_cvref_t<T>, decltype(N)> &&
+           (std::signed_integral<decltype(N)> ||
+            (std::unsigned_integral<decltype(N)> &&
+             std::has_single_bit(
+                 static_cast<std::make_unsigned_t<decltype(N)>>(N))))
 constexpr auto preimage(
     const Set<std::pair<T, T>, L, ProjAddConstProj<1, K, Rel::Eq, 2>>&,
     Congruence<N, R>) {
@@ -237,18 +240,19 @@ constexpr auto preimage(
 }
 
 namespace {
-// The residue shifts by −K (mod N): a rotation of the class on ℤ/N.
-inline constexpr auto ℤ_res = dedekind::sets::Ω<SignedCardinality>;
-static_assert(
-    std::same_as<decltype(preimage(ℤ_res * ℤ_res | π1 + fix(1_c) == π2,
-                                   Congruence<4, 2>{})),
-                 Congruence<4, 1>>,
-    "preimage(x↦x+1, {x≡2 mod4}) = {x≡1 mod4}.");
-static_assert(
-    std::same_as<decltype(preimage(ℤ_res * ℤ_res | π1 + fix(3_c) == π2,
-                                   Congruence<4, 2>{})),
-                 Congruence<4, 3>>,
-    "preimage(x↦x+3, {x≡2 mod4}) = {x≡3 mod4} (2−3 = −1 ≡ 3 mod 4).");
+// The residue rotates by −K (mod N) on ℤ/N.  Witnessed on the CYCLIC carrier
+// unsigned = ℤ/2^wℤ with N=4 a power of two (N | 2^w) --- the discrete circle
+// ℤ/L the torus rotates on.  The graph carrier is the residue's own integer
+// type (T = decltype(N) = unsigned), so the result is homogeneous.
+inline constexpr auto ℤ4 = dedekind::sets::Ω<unsigned>;
+static_assert(std::same_as<decltype(preimage(ℤ4 * ℤ4 | π1 + fix(1_c) == π2,
+                                             Congruence<4u, 2u>{})),
+                           Congruence<4u, 1u>>,
+              "preimage(x↦x+1, {x≡2 mod4}) = {x≡1 mod4} on ℤ/2^w.");
+static_assert(std::same_as<decltype(preimage(ℤ4 * ℤ4 | π1 + fix(3_c) == π2,
+                                             Congruence<4u, 2u>{})),
+                           Congruence<4u, 3u>>,
+              "preimage(x↦x+3, {x≡2 mod4}) = {x≡3 mod4} (2−3 ≡ 3 mod 4).");
 }  // namespace
 
 /** @section integral__Classifier_Partition_Witnesses

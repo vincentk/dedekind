@@ -246,15 +246,21 @@ struct PreimagePredicate {
  * bound-PRESERVING residue-class sibling (a @c Congruence rotation) is the
  * @c morphologies analogue (@c FIXME(#797)).
  *
- * @c S must be a subobject of @c f's codomain: constrained to a set callable on
- * @c F::Codomain, so the documented @f$S \subseteq B@f$ contract holds and an
- * unrelated ambient cannot slip in by implicit conversion.
+ * @c S must be a SET over @c f's codomain: constrained to a set-shaped argument
+ * (one exposing @c logic_species) whose classifier accepts @c F::Codomain, so
+ * the documented @f$S \subseteq B@f$ contract is checked during overload
+ * resolution --- a bare callable without @c logic_species, or one over an
+ * unrelated ambient, is rejected here rather than hard-erroring in the body.
  */
 export template <typename F, typename S>
   requires dedekind::category::IsArrow<F> &&
            requires(const S& s,
                     const typename std::remove_cvref_t<F>::Codomain& b) {
-             s(b);
+             typename std::remove_cvref_t<S>::logic_species;
+             {
+               s(b)
+             }
+             -> std::same_as<typename std::remove_cvref_t<S>::logic_species::Ω>;
            }
 constexpr auto preimage(F f, S s) {
   using Arr = std::remove_cvref_t<F>;

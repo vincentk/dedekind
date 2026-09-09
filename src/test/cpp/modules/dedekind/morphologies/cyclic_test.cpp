@@ -48,13 +48,17 @@ TEST_CASE("Morphology Verification: The Cyclic Ring",
 // halfspace preimage.
 TEST_CASE("Congruence residue preimage: {x≡R mod N} ⟵ x↦x+K rotates by −K",
           "[morphologies][congruence][preimage][residue]") {
-  constexpr auto ℤ = Ω<SignedCardinality>;
+  // On the cyclic carrier unsigned = ℤ/2^w with N=4 a power of two (the
+  // discrete circle ℤ/L the torus rotates on); the graph carrier is the
+  // residue's own integer type (unsigned = decltype(N)).
+  constexpr auto ℤ4 = Ω<unsigned>;
   // preimage(x↦x+1, {x≡2 mod4}) = {x≡1 mod4}: the class rotates by −1.
   constexpr auto pre =
-      preimage(ℤ * ℤ | π1 + fix(1_c) == π2, Congruence<4, 2>{});
-  CHECK(pre(1));        // 1 ≡ 1 (mod 4)
-  CHECK(pre(5));        // 5 ≡ 1 (mod 4)
-  CHECK_FALSE(pre(2));  // 2 ≢ 1 (mod 4)
+      preimage(ℤ4 * ℤ4 | π1 + fix(1_c) == π2, Congruence<4u, 2u>{});
+  CHECK(pre(1u));        // 1 ≡ 1 (mod 4)
+  CHECK(pre(5u));        // 5 ≡ 1 (mod 4)
+  CHECK_FALSE(pre(2u));  // 2 ≢ 1 (mod 4)
   // Defining property: preimage(x↦x+K, C)(a) ⟺ C(a+K), over a full period.
-  for (int a = 0; a < 12; ++a) CHECK(pre(a) == Congruence<4, 2>{}(a + 1));
+  for (unsigned a = 0; a < 12u; ++a)
+    CHECK(pre(a) == Congruence<4u, 2u>{}(a + 1u));
 }
