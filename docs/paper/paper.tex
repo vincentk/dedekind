@@ -1878,6 +1878,9 @@ A natural way to reconcile the two is a \emph{controlled boundary}, in the sense
 Write the computation as a symbolic algebraic expression over an exact ring where the laws genuinely hold, let $\mathbf{Jlt}$ simplify and prune it at translation time, and only then lower the residual to IEEE floating-point for execution.
 The rewrites are sound because they happen on the exact ring.
 The lossy step is a single explicit evaluation map at the boundary, not a silent assumption threaded through every operation.
+Exactness earns a second dividend, on an axis orthogonal to that lowering.
+The lowering changes an expression's \emph{representation}, from the exact ring to floating-point, and that map is lossy; changing only \emph{when} the expression is evaluated, from translation time to runtime, is not (Appendix~\ref{app:partial-eval}).
+So the single lossy crossing is the representation map, and it is independent of where evaluation falls: an exact term yields the same value folded early or computed late.
 This is the ring-swap machinery the \cppinline{Dual<F>} sensitivity exhibit (§\ref{sec:optimization_lp}) already uses in miniature, generalised from computing a derivative exactly to computing the whole expression exactly and rounding once.
 Whether the type system can carry that boundary crossing as a first-class, mechanically-checked seam rather than a convention is the question we would pursue next.
 
@@ -2425,6 +2428,10 @@ int64_t critical_between(std::size_t source, std::size_t sink) {
 
 The residual is the fold over the edge sequence rather than a straight-line kernel: the optimiser keeps the loop that threads the potential, specialised but not flattened.
 The point the two call sites make is that the collapse is optional and the boundary is the programmer's to place.
+
+The constant-evaluation limit bounds the boundary from the other side, and the two evaluation contexts behave differently.
+Where a value is \emph{required} to be constant, a \cppinline{static_assert} or a template argument, a fold too deep for the limit is ill-formed, so a deep exact computation is kept out of that position and written as an ordinary call.
+Such a call the compiler folds when it is cheap enough and emits as runtime code when it is not; because the carrier is exact either choice yields the same value, so the fallback costs only the folding and never the answer.
 
 %%%
 \clearpage
