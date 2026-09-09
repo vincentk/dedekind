@@ -286,10 +286,17 @@ constexpr auto argmax(
  * pushforward carries). */
 export template <typename T, auto K, auto P, Direction D, Strictness S,
                  typename L>
-  requires dedekind::algebra::IsOrderedAdditiveGroup<T>
+  requires dedekind::algebra::IsOrderedAdditiveGroup<T> &&
+           std::same_as<decltype(P), decltype(K)> &&
+           std::signed_integral<decltype(P)>
 constexpr auto preimage(
     const Set<std::pair<T, T>, L, ProjAddConstProj<1, K, Rel::Eq, 2>>&,
     const Halfspace<T, P, D, S, L>&) {
+  // P and K share a signed pivot type (the DSL's `fix(_c)` NTTPs are `int`), so
+  // P − K is exact: the mixed-sign case (e.g. P=−1, K=3u) that usual arithmetic
+  // conversions would fold to a large unsigned pivot is rejected here rather
+  // than producing a halfspace not pointwise equal to the preimage.  The pivot
+  // TYPE is preserved (load-bearing for structured_and's complement detection).
   return Halfspace<T, P - K, D, S, L>{};  // keep D, S, L
 }
 
@@ -303,11 +310,16 @@ constexpr auto preimage(
  *  the order). */
 export template <typename T, auto C, auto P, Direction D, Strictness S,
                  typename L>
-  requires(C == 1 || (C == -1 && dedekind::algebra::IsOrderedAdditiveGroup<T>))
+  requires((C == 1 ||
+            (C == -1 && dedekind::algebra::IsOrderedAdditiveGroup<T>)) &&
+           std::same_as<decltype(P), decltype(C)> &&
+           std::signed_integral<decltype(P)>)
 constexpr auto preimage(
     const Set<std::pair<T, T>, L, ProjMulConstProj<1, C, Rel::Eq, 2>>&,
     const Halfspace<T, P, D, S, L>&) {
   constexpr Direction d = (C < 0) ? flip(D) : D;
+  // C and P share a signed pivot type, so C·P is exact (C=±1); the mixed-sign
+  // conversion that would corrupt the pivot is rejected at overload resolution.
   return Halfspace<T, C * P, d, S, L>{};  // C=±1, so P/C = C·P
 }
 
