@@ -2426,6 +2426,10 @@ int64_t critical_between(std::size_t source, std::size_t sink) {
 The residual is the fold over the edge sequence rather than a straight-line kernel: the optimiser keeps the loop that threads the potential, specialised but not flattened.
 The point the two call sites make is that the collapse is optional and the boundary is the programmer's to place.
 
+The boundary can also place itself.
+An exact carrier admits constant evaluation but is step-heavy, so a deep enough computation exhausts the translator's constant-evaluation budget and spills to run time of its own accord.
+Because the carrier is exact that spill is lossless: the run-time value is the very constant the compiler would have folded, computed a moment later rather than during translation, so what is lost is the folding and never the answer.
+
 %%%
 \clearpage
 \section{From Cardinality Pruning to Type-Directed Collapse}
