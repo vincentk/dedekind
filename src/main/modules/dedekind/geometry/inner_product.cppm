@@ -30,12 +30,17 @@ using namespace dedekind::algebra;
 
 /**
  * @concept HasInnerProduct
- * @brief Carrier exposing a scalar-valued inner-product form and norm.
+ * @brief Carrier exposing a scalar-valued inner-product form, its exact squared
+ *        norm @c abs2, and the (√-induced) @c norm.
  */
 export template <typename V, typename F>
 concept HasInnerProduct = requires(V u, V v) {
   /** @brief The Inner Product: Maps two vectors to a scalar. */
   { dot(u, v) } -> std::same_as<F>;
+  /** @brief The squared norm abs2(v) = <v, v>: exact, √-free, the primitive
+   *  even carriers not closed under square roots (the coat-hanger ℂ = ℂ(ℚ(√2)))
+   *  still expose. */
+  { abs2(u) } -> std::convertible_to<F>;
   /** @brief The Norm: Induced by the inner product ||v|| = sqrt(<v, v>). */
   { norm(u) } -> std::convertible_to<F>;
 };
@@ -76,12 +81,31 @@ constexpr F dot(const Vector<F, N>& u, const Vector<F, N>& v) {
 }
 
 /**
- * @brief Squared Euclidean norm induced by the inner product: <v, v>.
+ * @brief The inner-product squared norm abs2(v) = <v, v> --- the canonical name
+ * for the squared magnitude, and the primitive the @c HasInnerProduct surface
+ * requires.
+ *
+ * @details Unlike @c norm it introduces no square root, so it is @b exact and
+ * is defined even on carriers whose scalar field is not closed under √ (e.g.
+ * the coat-hanger ℂ = ℂ(ℚ(√2)), which has @c abs2 but no @c norm).  Any carrier
+ * with a @c dot is covered generically; @c Complex<R> supplies its own @c dot
+ * (ℝ²-real Hermitian form) and so rides this definition.
+ */
+export template <typename V>
+  requires requires(const V& v) { dot(v, v); }
+constexpr auto abs2(const V& v) {
+  return dot(v, v);
+}
+
+/**
+ * @brief Squared Euclidean norm: a synonym for @c abs2, retained for the
+ * Euclidean-metric / escape-test consumers (@c IsEuclideanSpace,
+ * @c compare_euclidean_norm_squared).
  */
 export template <typename V>
   requires requires(const V& v) { dot(v, v); }
 constexpr auto euclidean_norm_squared(const V& v) {
-  return dot(v, v);
+  return abs2(v);
 }
 
 /** @brief Induced Norm for Real Species. */
