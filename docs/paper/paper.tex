@@ -2429,9 +2429,9 @@ int64_t critical_between(std::size_t source, std::size_t sink) {
 The residual is the fold over the edge sequence rather than a straight-line kernel: the optimiser keeps the loop that threads the potential, specialised but not flattened.
 The point the two call sites make is that the collapse is optional and the boundary is the programmer's to place.
 
-The step budget also bounds where the boundary can fall.
-An exact carrier admits constant evaluation but is step-heavy, so a deep enough fold exhausts the translator's constant-evaluation budget; forced past it a fold is ill-formed rather than merely slow, so such a term is left to run time.
-Because the carrier is exact that costs only the folding and never the answer: the run-time value is the very constant a fold would have produced, computed a moment later rather than during translation.
+The constant-evaluation limit bounds the boundary from the other side, and the two evaluation contexts behave differently.
+Where a value is \emph{required} to be constant, a \cppinline{static_assert} or a template argument, a fold too deep for the limit is ill-formed, so a deep exact computation is kept out of that position and written as an ordinary call.
+Such a call the compiler folds when it is cheap enough and emits as run-time code when it is not; because the carrier is exact either choice yields the same value, so the fallback costs only the folding and never the answer.
 
 %%%
 \clearpage

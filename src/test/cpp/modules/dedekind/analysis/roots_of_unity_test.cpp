@@ -54,12 +54,13 @@ constexpr Cx pow8(unsigned k) {
 TEST_CASE("Roots of unity: ζ₈ is a primitive 8th root, exact over ℚ(√2)",
           "[analysis][fourier][roots][exact]") {
   // ζ² = i, ζ⁴ = -1 --- EXACT at COMPILE TIME (½√2 ∈ ℚ(√2); no rounding).
-  // NOTE: exact ℚ(√2) arithmetic admits constant evaluation but is step-heavy;
-  // forcing a deep enough fold (past ~8 chained complex mults) exhausts clang's
-  // constexpr step limit and is ill-formed, not slow.  So the compile-time
-  // witnesses stay shallow, and the exhaustive/deep checks run at RUNTIME,
-  // where the exact arithmetic yields the same values: the boundary is ours to
-  // place, and exactness makes the placement lossless.
+  // NOTE: exact ℚ(√2) arithmetic admits constant evaluation but is step-heavy.
+  // A value REQUIRED to be constant (a STATIC_REQUIRE) is ill-formed once the
+  // fold exceeds the implementation's constant-evaluation limit, so the
+  // compile-time witnesses are kept shallow; the exhaustive/deep checks are
+  // ordinary runtime calls, where the exact arithmetic yields the same values
+  // (the boundary is ours to place, and exactness makes the placement
+  // lossless).
   STATIC_REQUIRE(zeta * zeta == I);           // ζ² = i           (1 mult)
   STATIC_REQUIRE(pow8(4) == Cx{-one, zero});  // ζ⁴ = -1          (4 mults)
 
