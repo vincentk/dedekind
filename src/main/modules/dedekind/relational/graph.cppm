@@ -200,6 +200,56 @@ constexpr auto operator>>(const Graph<F>& r, const Graph<G>& s) {
       dedekind::category::operator>>(r.predicate().arrow, s.predicate().arrow));
 }
 
+/**
+ * @brief The preimage predicate @f$a \mapsto f(a)\in S@f$: the subobject @c S
+ *        pulled back along the functional arrow @c f (@f$\chi_S\circ f@f$).
+ *
+ * @details @b Named (not a lambda) so it carries both the arrow @c f and the
+ * codomain set @c S --- the reified @f$\chi_S\circ f@f$, the sibling of
+ * @c GraphPredicate for the pullback-of-a-subobject reading of §4.
+ */
+export template <typename F, typename S>
+struct PreimagePredicate {
+  using ArrowType = std::remove_cvref_t<F>;
+  using SetType = std::remove_cvref_t<S>;
+  ArrowType arrow;
+  SetType set;
+  constexpr bool operator()(const typename ArrowType::Domain& a) const {
+    return set(arrow(a)) == SetType::logic_species::True;  // f(a) ∈ S
+  }
+};
+
+/**
+ * @brief @c preimage(f, S) = @f$\{\,a \mid f(a)\in S\,\}@f$ --- the subobject
+ *        @c S ⊆ B pulled back along @c f : A → B, i.e.\ @c S's classifier
+ *        composed with @c f (@f$\chi_S\circ f@f$; every mono is a pullback of
+ *        @c true, so a preimage IS such a pullback).
+ *
+ * @details The DEFAULT preimage: apply-and-test, decided by single-valuedness
+ * alone (an @c IsArrow is functional), so it reads the @f$\pi_A@f$ side and
+ * never leaves the domain (§4, the relation-quantifier table).  The @b domain
+ * @b type is the clip: the predicate ranges over @c A, so a bound outside @c
+ * A's range (e.g.\ @c {≤−3} pulled to @c unsigned) is @c ∅ by construction ---
+ * there is no out-of-range witness to test, and no negative-pivot halfspace is
+ * ever built.  No enumeration: membership is the composite @f$\chi_S\circ f@f$,
+ * a point-free apply-and-test.
+ *
+ * Closed-form specialisations refine this where a TYPED result adds
+ * collapse-visible structure: the bound-MOVING affine maps
+ * (@c :halfspace_transport translate/scale) and the bound-PRESERVING
+ * @c EmbedsAsSubalgebra inclusions (monotone, value-preserving) --- each
+ * certified to AGREE with this default pointwise.
+ */
+export template <typename F, typename S>
+  requires dedekind::category::IsArrow<F>
+constexpr auto preimage(F f, S s) {
+  using Arr = std::remove_cvref_t<F>;
+  using St = std::remove_cvref_t<S>;
+  using A = typename Arr::Domain;
+  return Set<A, typename St::logic_species, PreimagePredicate<Arr, St>>{
+      PreimagePredicate<Arr, St>{f, s}};
+}
+
 /** @section graph__Formal_Verification */
 
 // The graph of the identity id : int → int is the diagonal {(n, n)}.

@@ -97,6 +97,30 @@ static_assert((Φ(10u) <= ten) == (native_le_ten(10u) == ClassicalLogic::True));
 static_assert((Φ(10u) <= ten) && (10u <= 10u), "10 survives the pullback.");
 static_assert(!(Φ(11u) <= ten) && !(11u <= 10u), "11 does not.");
 
+// ======  preimage MECHANIZES the pullback (§4 apply-and-test, no by hand)
+// ===== The general `preimage(Φ, S) = {u | Φ(u) ∈ S}` DERIVES the reduced
+// predicate `native_le_ten` pins by hand above: no native Halfspace to write,
+// decided by single-valuedness alone (Φ is an arrow).  Point-free Trsk spelling
+// for the ℝ-side bound.
+constexpr auto le_ten_ℝ =
+    ℝ | (π <= fix(10_c));  // {x ≤ 10} on ℝ, new-style Trsk
+constexpr auto pulled =
+    dedekind::sets::preimage(Φ, le_ten_ℝ);  // {u | Φ(u) ≤ 10}
+static_assert(
+    pulled(10u) && !pulled(11u),
+    "preimage(Φ, {x≤10}) DERIVES the same boundary native_le_ten pins "
+    "by hand.");
+static_assert(pulled(10u) == (native_le_ten(10u) == ClassicalLogic::True),
+              "the derived preimage agrees with the hand-written reduction.");
+
+// The INTRINSIC clip: {x ≤ −3} pulls back to ∅ over unsigned BY CONSTRUCTION —
+// the predicate ranges over unsigned, so there is no negative u to try, and no
+// negative-pivot Halfspace<unsigned> is ever built (the ideal: unable to try).
+constexpr auto le_neg3_ℝ = ℝ | (π <= fix(-3_c));  // {x ≤ −3} on ℝ
+constexpr auto clipped = dedekind::sets::preimage(Φ, le_neg3_ℝ);
+static_assert(!clipped(0u) && !clipped(5u) && !clipped(100u),
+              "no unsigned u has Φ(u) ≤ −3: the domain type IS the clip.");
+
 // ==============  Arithmetic on the intermediate sets (ring rungs) ============
 // The upper rungs preserve +, × (they are ring embeddings) — arithmetic done in
 // ℤ / ℚ agrees with arithmetic done after embedding into ℝ.

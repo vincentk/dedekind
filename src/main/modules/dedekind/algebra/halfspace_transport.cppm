@@ -280,10 +280,10 @@ constexpr auto argmax(
  *  @c {y⋈P+K}).
  *
  *  @details Gated on @c IsOrderedAdditiveGroup: the equivalence
- *  @f$(x+K)\bowtie P \iff x \bowtie (P-K)@f$ needs a translation-invariant order.
- *  On a wrapping @c unsigned the shifted bound would admit wrapped values, so
- *  the modular groups are declined (the same gate the forward pushforward
- *  carries). */
+ *  @f$(x+K)\bowtie P \iff x \bowtie (P-K)@f$ needs a translation-invariant
+ * order. On a wrapping @c unsigned the shifted bound would admit wrapped
+ * values, so the modular groups are declined (the same gate the forward
+ * pushforward carries). */
 export template <typename T, auto K, auto P, Direction D, Strictness S,
                  typename L>
   requires dedekind::algebra::IsOrderedAdditiveGroup<T>
@@ -303,8 +303,7 @@ constexpr auto preimage(
  *  the order). */
 export template <typename T, auto C, auto P, Direction D, Strictness S,
                  typename L>
-  requires(C == 1 ||
-           (C == -1 && dedekind::algebra::IsOrderedAdditiveGroup<T>))
+  requires(C == 1 || (C == -1 && dedekind::algebra::IsOrderedAdditiveGroup<T>))
 constexpr auto preimage(
     const Set<std::pair<T, T>, L, ProjMulConstProj<1, C, Rel::Eq, 2>>&,
     const Halfspace<T, P, D, S, L>&) {

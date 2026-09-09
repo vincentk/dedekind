@@ -55,3 +55,8 @@ TEST_CASE("graph: is_graph_of decides equality on a finite domain",
   // ...and graph(succ) is NOT: the witness distinguishes the two functions.
   CHECK_FALSE(is_graph_of(graph(Succ{}), id, dom, dom));
 }
+
+// NOTE: `preimage(f, S)` is defined here (:graph) but exercised where the
+// point-free Trsk halfspace surface (`Ω | π ⋈ fix`, in :order) and faithful
+// tower inclusions are in scope --- downstream, in algebra's
+// halfspace_transport_test and numbers' strength_reduction_test.
