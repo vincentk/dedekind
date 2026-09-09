@@ -40,6 +40,7 @@ module;
 
 #include <concepts>     // std::same_as
 #include <functional>   // std::plus
+#include <limits>       // std::numeric_limits (overflow-safe pivot guards)
 #include <type_traits>  // std::remove_cvref_t
 #include <utility>      // std::pair
 
@@ -285,26 +286,27 @@ constexpr auto argmax(
  * values, so the modular groups are declined (the same gate the forward
  * pushforward carries). */
 export template <typename T, auto K, auto P, Direction D, Strictness S,
-                 typename L>
+                 typename LG, typename LH>
   requires dedekind::algebra::IsOrderedAdditiveGroup<T> &&
            std::same_as<decltype(P), decltype(K)> &&
            std::signed_integral<decltype(P)> &&
-           // Representability: even in one signed type, P−K overflows at the
-           // boundary (P = INT_MIN, K = 1).  Reject the non-representable case
-           // at overload resolution rather than emitting UB in the
-           // shifted-pivot template argument.  (The forward @c image documents
-           // this same extreme-pivot limitation; here it is enforced.)
-           (std::in_range<decltype(P)>(static_cast<long long>(P) -
-                                       static_cast<long long>(K)))
+           // Representability, OVERFLOW-SAFE: P−K must fit decltype(P). Checked
+           // by COMPARISON (not by evaluating P−K, which could itself overflow
+           // for a long long pivot): K≤0 ⇒ P ≤ MAX+K; K>0 ⇒ P ≥ MIN+K.  Each
+           // guarded sum (MAX+K with K≤0, MIN+K with K>0) is itself in range.
+           (K <= 0 ? (P <= std::numeric_limits<decltype(P)>::max() + K)
+                   : (P >= std::numeric_limits<decltype(P)>::min() + K))
 constexpr auto preimage(
-    const Set<std::pair<T, T>, L, ProjAddConstProj<1, K, Rel::Eq, 2>>&,
-    const Halfspace<T, P, D, S, L>&) {
+    const Set<std::pair<T, T>, LG, ProjAddConstProj<1, K, Rel::Eq, 2>>&,
+    const Halfspace<T, P, D, S, LH>&) {
   // P and K share a signed pivot type (the DSL's `fix(_c)` NTTPs are `int`), so
-  // P − K is exact: the mixed-sign case (e.g. P=−1, K=3u) that usual arithmetic
-  // conversions would fold to a large unsigned pivot is rejected here rather
-  // than producing a halfspace not pointwise equal to the preimage.  The pivot
-  // TYPE is preserved (load-bearing for structured_and's complement detection).
-  return Halfspace<T, P - K, D, S, L>{};  // keep D, S, L
+  // P − K is exact; the mixed-sign case (P=−1, K=3u) and the non-representable
+  // boundary are rejected above.  The graph's logic (LG) and the target's logic
+  // (LH) are deduced SEPARATELY: the pullback inherits the target set's logic,
+  // so a Classical translation graph can pull back a Ternary halfspace (mirrors
+  // the general :graph preimage).  Pivot TYPE preserved (load-bearing for
+  // structured_and's complement detection).
+  return Halfspace<T, P - K, D, S, LH>{};  // target's logic LH
 }
 
 /** @brief preimage of a codomain halfspace @c {y⋈P} under the reflection/scale
@@ -316,23 +318,22 @@ constexpr auto preimage(
  *  a bounded-below rig or a wrapping group @f$x\mapsto -x@f$ does not reverse
  *  the order). */
 export template <typename T, auto C, auto P, Direction D, Strictness S,
-                 typename L>
-  requires((C == 1 ||
-            (C == -1 && dedekind::algebra::IsOrderedAdditiveGroup<T>)) &&
-           std::same_as<decltype(P), decltype(C)> &&
-           std::signed_integral<decltype(P)> &&
-           // Representability: C·P overflows at C=−1, P=INT_MIN (−P is not
-           // representable).  Rejected at overload resolution, not UB in the
-           // pivot template argument.
-           (std::in_range<decltype(P)>(static_cast<long long>(C) *
-                                       static_cast<long long>(P))))
+                 typename LG, typename LH>
+  requires(
+      (C == 1 || (C == -1 && dedekind::algebra::IsOrderedAdditiveGroup<T>)) &&
+      std::same_as<decltype(P), decltype(C)> &&
+      std::signed_integral<decltype(P)> &&
+      // Representability (C=±1): C·P overflows only at C=−1, P=MIN, since
+      // −MIN is not representable.  Comparison-based, no product evaluated.
+      (C == 1 || P != std::numeric_limits<decltype(P)>::min()))
 constexpr auto preimage(
-    const Set<std::pair<T, T>, L, ProjMulConstProj<1, C, Rel::Eq, 2>>&,
-    const Halfspace<T, P, D, S, L>&) {
+    const Set<std::pair<T, T>, LG, ProjMulConstProj<1, C, Rel::Eq, 2>>&,
+    const Halfspace<T, P, D, S, LH>&) {
   constexpr Direction d = (C < 0) ? flip(D) : D;
-  // C and P share a signed pivot type, so C·P is exact (C=±1); the mixed-sign
-  // conversion that would corrupt the pivot is rejected at overload resolution.
-  return Halfspace<T, C * P, d, S, L>{};  // C=±1, so P/C = C·P
+  // C and P share a signed pivot type, so C·P is exact (C=±1); mixed-sign and
+  // the C=−1,P=MIN boundary are rejected above.  Graph logic (LG) and target
+  // logic (LH) deduced separately; the pullback inherits the target's LH.
+  return Halfspace<T, C * P, d, S, LH>{};  // target's logic LH
 }
 
 }  // namespace dedekind::order
