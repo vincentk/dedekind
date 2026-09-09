@@ -206,36 +206,40 @@ static_assert(IsInteger<SignedExtensionalCardinal<>>,
  * defining property @f$\mathrm{preimage}(x{+}K, C)(a) \iff C(a+K)@f$ is
  * witnessed in @c cyclic_test.
  *
- * @b Carrier gate: @c T @c = @c decltype(N), a @b machine integer, so the graph
- * carrier @b is the residue's own integer type --- the result @c
- * Congruence<N,r> is a predicate on exactly that @c Domain (HOMOGENEOUS with
- * the source, and
- * @c Congruence reduces @c T natively, no cast).  Soundness (@c +K commutes
- * with
- * @c mod @c N) then splits by carrier: a @b signed integer is faithful ℤ
- * in-range; an @b unsigned integer is @c ℤ/2^wℤ, where @c x+K folds mod the
- * width @b before @c mod @c N, so the reduction agrees only when @c N @c | @c
- * 2^w --- i.e.\ @c N is a power of two (@c std::has_single_bit), the @c
- * IsCongruenceQuotient side-condition (#803).  This is exactly the discrete
- * circle @c ℤ/L the torus rotates on (@c L a power of two).  @c bool and the
- * saturating/variant ℤ-proxy @c SignedCardinality (whose @c ±ℵ_0 saturation
- * breaks residue-equivalence, and which @c Congruence cannot reduce) are
- * declined by construction.
+ * @b Carrier gate: @c T @c = @c decltype(N), an @b UNSIGNED machine integer, so
+ * the graph carrier @b is the residue's own integer type --- the result
+ * @c Congruence<N,r> is a predicate on exactly that @c Domain (HOMOGENEOUS with
+ * the source, and @c Congruence reduces @c T natively, no cast).  The carrier
+ * is
+ * @c ℤ/2^wℤ, where the translation @f$x\mapsto x+K@f$ is @b total (it wraps, no
+ * overflow UB --- unlike a @b signed carrier, on which @c INT_MAX+K is
+ * undefined so the graph is not a total function and the defining property
+ * cannot hold at the boundary; the signed branch is therefore @b not admitted).
+ * @c x+K folds mod the width @b before @c mod @c N, so the reduction agrees
+ * exactly when
+ * @c N @c | @c 2^w --- i.e.\ @c N is a power of two (@c std::has_single_bit),
+ * the
+ * @c IsCongruenceQuotient side-condition (#803).  This is precisely the
+ * discrete circle @c ℤ/L the torus rotates on (@c L a power of two).  @c bool
+ * and the saturating/variant ℤ-proxy @c SignedCardinality (whose @c ±ℵ_0
+ * saturation breaks residue-equivalence, and which @c Congruence cannot reduce)
+ * are declined by construction.
  */
 export template <typename T, auto K, auto N, decltype(N) R, typename L>
   requires std::same_as<std::remove_cvref_t<T>, decltype(N)> &&
-           (std::signed_integral<decltype(N)> ||
-            (std::unsigned_integral<decltype(N)> &&
-             std::has_single_bit(
-                 static_cast<std::make_unsigned_t<decltype(N)>>(N))))
+           std::unsigned_integral<decltype(N)> &&
+           (std::has_single_bit(
+               static_cast<std::make_unsigned_t<decltype(N)>>(N)))
 constexpr auto preimage(
     const Set<std::pair<T, T>, L, ProjAddConstProj<1, K, Rel::Eq, 2>>&,
     Congruence<N, R>) {
-  using W = long long;  // wide intermediate: sign-safe mod, no pivot overflow
-  constexpr auto r = static_cast<decltype(N)>(
-      ((static_cast<W>(R) - static_cast<W>(K)) % static_cast<W>(N) +
-       static_cast<W>(N)) %
-      static_cast<W>(N));
+  // Compute in the carrier's own arithmetic (unsigned ℤ/2^w): apply the graph's
+  // static_cast<T>(K) FIRST (so a huge shift folds exactly as the graph sees
+  // it), then the modular subtraction.  The unsigned wrap of (R − k) is
+  // harmless because N | 2^w (has_single_bit): 2^w ≡ 0 (mod N), so (R − k) mod
+  // N is the true residue with no widening and no signed overflow.
+  constexpr decltype(N) k = static_cast<decltype(N)>(K);  // the graph's shift
+  constexpr decltype(N) r = static_cast<decltype(N)>(R - k) % N;
   return Congruence<N, r>{};
 }
 
