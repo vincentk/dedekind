@@ -60,14 +60,25 @@ using namespace dedekind::sets;
  * downstream); a retained @c NaZ/1 would force @c <=> to @c partial_ordering
  * and quietly demote ℚ to a non-total order.
  *
+ * @b Comparison is a tripwire too.  @c operator<=> cross-multiplies
+ * (@f$a/b \lessgtr c/d \iff ad \lessgtr cb@f$), and on the saturating carrier
+ * the cross-products can overflow even for two @b finite canonical rationals
+ * (e.g. @f$M/2@f$ vs @f$(M{-}1)/3@f$ near @c UINT64_MAX).  Rather than let a
+ * saturated intermediate read them EQUAL while @c == reads them unequal,
+ * @c <=> @b rejects an overflowed cross-product (@c reject_non_finite_product)
+ * --- the same OOM tripwire.  So the strong-total-order guarantee is precise:
+ * @b every @c <=> that @b returns is a genuine strong-total verdict; a
+ * comparison that would leave the finite backing throws instead.  Over the
+ * client-contracted finite subset the branch is never taken.
+ *
  * @par Client contract.
  * The fiction is @b deliberate: client code @b may pretend ℚ is truly infinite,
- * at the risk of hitting the OOM tripwire.  @b Robust client code constrains
- * itself to a finite subset a priori --- e.g. integers @f$-\text{max} < x <
- * \text{max}@f$, or the canonicalised rationals over that range --- so the
- * tripwire is never reached.  The library does @b not silently clamp on the
- * client's behalf; it @b throws, so the boundary stays visible (Honest
- * Rejection, the same posture as division-by-zero).
+ * at the risk of hitting the OOM tripwire (in construction @b or comparison).
+ * @b Robust client code constrains itself to a finite subset a priori --- e.g.
+ * integers @f$-\text{max} < x < \text{max}@f$, or the canonicalised rationals
+ * over that range --- so the tripwire is never reached.  The library does @b
+ * not silently clamp on the client's behalf; it @b throws, so the boundary
+ * stays visible (Honest Rejection, the same posture as division-by-zero).
  */
 export template <IsInteger Z = default_integer>
 class Rational {
@@ -152,6 +163,19 @@ class Rational {
     }
   }
 
+  /** @brief #680: the comparison-side OOM tripwire.  Throws @c
+   *  std::domain_error when a cross-product @c a.first*b.second (or its twin)
+   *  has saturated to a non-finite value, i.e. the comparison has left the
+   *  finite backing.  Compile-time no-op for carriers with no sentinels. */
+  static constexpr void reject_non_finite_product(const Z& lhs, const Z& rhs) {
+    if constexpr (std::same_as<Z, dedekind::sets::SignedCardinality>) {
+      if (!dedekind::sets::is_finite(lhs) || !dedekind::sets::is_finite(rhs))
+        throw std::domain_error(
+            "Rational: comparison cross-product overflowed the finite backing "
+            "(OOM tripwire).");
+    }
+  }
+
   /** @section rational__The_Simplification_Morphism */
   constexpr void simplify() {
     if (second == Z{0}) throw std::domain_error("Rational: Division by zero.");
@@ -176,6 +200,17 @@ class Rational {
                                                     const Rational& b) {
     const auto lhs = a.first * b.second;
     const auto rhs = b.first * a.second;
+    // #680: the cross-products are the OOM tripwire too.  On the saturating
+    // carrier, two *finite* canonical rationals can have cross-products that
+    // both overflow to the same +ℵ_0 (e.g. M/2 vs (M-1)/3 near UINT64_MAX);
+    // a silent fall-through would then read them EQUAL while == reads them
+    // unequal.  So a comparison whose cross-product leaves the finite backing
+    // is itself off the edge of the fiction — reject it (Honest Rejection),
+    // exactly as construction does.  Every <=> that RETURNS is therefore a
+    // genuine strong-total verdict.  (An overflow-free comparison over the
+    // full carrier would need a Stern-Brocot / continued-fraction walk; the
+    // client-contract finite subset never reaches this branch.)
+    reject_non_finite_product(lhs, rhs);
     if (lhs < rhs) return std::strong_ordering::less;
     if (rhs < lhs) return std::strong_ordering::greater;
     return std::strong_ordering::equal;
@@ -332,6 +367,17 @@ struct PartialEmbedIntegerToRational {
   using logic_species = TernaryLogic;
 
   TernaryResult<Rational<I>> operator()(I n) const noexcept {
+    // #680: a non-finite ℤ (NaZ / ±ℵ_0) is off the edge of the countably-
+    // infinite fiction, so it does not embed as a rational.  This is the
+    // PARTIAL (Kleene) twin of the total arrow @c embed_ℤ_ℚ_: where that arrow
+    // THROWS at the boundary, the ternary surface models the same partiality
+    // with @c Ternary::False and stays honestly @c noexcept.  (Constructing
+    // @c Rational<I>{n,1} on a sentinel would reject with @c domain_error and,
+    // under this @c noexcept, terminate.)  The default 0/1 is finite, so its
+    // construction cannot throw.
+    if constexpr (std::same_as<I, dedekind::sets::SignedCardinality>) {
+      if (!dedekind::sets::is_finite(n)) return {Ternary::False, Rational<I>{}};
+    }
     return {Ternary::True, Rational<I>{n, static_cast<I>(1)}};
   }
 };
