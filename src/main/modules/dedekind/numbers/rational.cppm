@@ -45,6 +45,40 @@ using namespace dedekind::sets;
 /**
  * @class Rational
  * @brief The Field of Fractions over an Integral Domain Z.
+ *
+ * @details @b The @b countably-infinite @b fiction.  Over the saturating
+ * carrier @c SignedCardinality this type @b models ℚ as a faithful,
+ * @b strong-totally-ordered field over a countably infinite ℤ --- even though
+ * no finite machine can hold arbitrarily large numerators / denominators.  The
+ * carrier's sentinels (@c NaZ, @c ±ℵ_0) are @b not inhabitants of that ℚ; they
+ * are the out-of-memory boundary of the finite backing.  Reaching one means the
+ * computation has run off the edge of the fiction, so a non-finite
+ * numerator / denominator is @b rejected (@c std::domain_error, see
+ * @c reject_non_finite) rather than admitted as a value --- the OOM tripwire.
+ * This is what keeps @c operator<=> a genuine @c std::strong_ordering and
+ * preserves @c IsTotal / @c IsField (both load-bearing for the ℝ coat-hanger
+ * downstream); a retained @c NaZ/1 would force @c <=> to @c partial_ordering
+ * and quietly demote ℚ to a non-total order.
+ *
+ * @b Comparison is a tripwire too.  @c operator<=> cross-multiplies
+ * (@f$a/b \lessgtr c/d \iff ad \lessgtr cb@f$), and on the saturating carrier
+ * the cross-products can overflow even for two @b finite canonical rationals
+ * (e.g. @f$M/2@f$ vs @f$(M{-}1)/3@f$ near @c UINT64_MAX).  Rather than let a
+ * saturated intermediate read them EQUAL while @c == reads them unequal,
+ * @c <=> @b rejects an overflowed cross-product (@c reject_non_finite_product)
+ * --- the same OOM tripwire.  So the strong-total-order guarantee is precise:
+ * @b every @c <=> that @b returns is a genuine strong-total verdict; a
+ * comparison that would leave the finite backing throws instead.  Over the
+ * client-contracted finite subset the branch is never taken.
+ *
+ * @par Client contract.
+ * The fiction is @b deliberate: client code @b may pretend ℚ is truly infinite,
+ * at the risk of hitting the OOM tripwire (in construction @b or comparison).
+ * @b Robust client code constrains itself to a finite subset a priori --- e.g.
+ * integers @f$-\text{max} < x < \text{max}@f$, or the canonicalised rationals
+ * over that range --- so the tripwire is never reached.  The library does @b
+ * not silently clamp on the client's behalf; it @b throws, so the boundary
+ * stays visible (Honest Rejection, the same posture as division-by-zero).
  */
 export template <IsInteger Z = default_integer>
 class Rational {
@@ -77,7 +111,9 @@ class Rational {
    *  reject.  This @c Rational(Z) form remains the canonical embedding
    *  when the caller already has a @c Z value in hand. */
   constexpr Rational(Z n)
-      : first(n), second(Z{1}) {}  // NOLINT(google-explicit-constructor)
+      : first(n), second(Z{1}) {  // NOLINT(google-explicit-constructor)
+    reject_non_finite();  // ℚ has no sentinels — reject a non-finite n (#680).
+  }
 
   /** @brief Embedding of any standard integral as a rational n/1, in @b one
    *  user-defined conversion.
@@ -109,19 +145,41 @@ class Rational {
   constexpr Rational(S n)  // NOLINT(google-explicit-constructor)
       : first(Z{n}), second(Z{1}) {}
 
-  /** @section rational__The_Simplification_Morphism
-   *
-   *  FIXME(#680): when @c Z is the saturating @c SignedCardinality and
-   *  either @c first or @c second is a non-finite sentinel (@c NaZ or
-   *  @c ±ℵ_0), @c euclidean_gcd's loop @c rhs != Z{0} can fail to
-   *  terminate (@c NaZ @c % anything @c == @c NaZ).  Typical inputs
-   *  stay in the finite fragment and avoid this; an Honest-Rejection
-   *  guard at the carrier boundary is the structurally-right fix.
-   *  Tracked separately so this PR's scope (the integer-classification
-   *  refactor) stays contained.
-   */
+  /** @brief #680: ℚ has no sentinels.  On the saturating @c SignedCardinality a
+   *  non-finite numerator/denominator (@c NaZ / @c ±ℵ_0) is @b not a rational,
+   *  so @b reject it with @c std::domain_error (Honest Rejection at the carrier
+   *  boundary, the same posture as division-by-zero, cf. the @c embed_double_ℚ
+   *  no-sentinels contract below).  This also avoids @c euclidean_gcd's
+   *  non-termination (@c NaZ @c % anything @c == @c NaZ) and the ordering
+   *  incoherence a retained @c NaZ/1 would cause (@c <=> would read it EQUAL to
+   *  @c 1/1 while @c == reads it unequal).  Compile-time no-op for carriers
+   * with no non-finite sentinels (plain integers). */
+  constexpr void reject_non_finite() const {
+    if constexpr (std::same_as<Z, dedekind::sets::SignedCardinality>) {
+      if (!dedekind::sets::is_finite(first) ||
+          !dedekind::sets::is_finite(second))
+        throw std::domain_error(
+            "Rational: non-finite ℤ (NaZ / ±ℵ_0) is not a rational.");
+    }
+  }
+
+  /** @brief #680: the comparison-side OOM tripwire.  Throws @c
+   *  std::domain_error when a cross-product @c a.first*b.second (or its twin)
+   *  has saturated to a non-finite value, i.e. the comparison has left the
+   *  finite backing.  Compile-time no-op for carriers with no sentinels. */
+  static constexpr void reject_non_finite_product(const Z& lhs, const Z& rhs) {
+    if constexpr (std::same_as<Z, dedekind::sets::SignedCardinality>) {
+      if (!dedekind::sets::is_finite(lhs) || !dedekind::sets::is_finite(rhs))
+        throw std::domain_error(
+            "Rational: comparison cross-product overflowed the finite backing "
+            "(OOM tripwire).");
+    }
+  }
+
+  /** @section rational__The_Simplification_Morphism */
   constexpr void simplify() {
     if (second == Z{0}) throw std::domain_error("Rational: Division by zero.");
+    reject_non_finite();  // #680: non-finite ℤ is not a rational (throw).
 
     Z common = euclidean_gcd(first, second);
     first = first / common;
@@ -142,6 +200,17 @@ class Rational {
                                                     const Rational& b) {
     const auto lhs = a.first * b.second;
     const auto rhs = b.first * a.second;
+    // #680: the cross-products are the OOM tripwire too.  On the saturating
+    // carrier, two *finite* canonical rationals can have cross-products that
+    // both overflow to the same +ℵ_0 (e.g. M/2 vs (M-1)/3 near UINT64_MAX);
+    // a silent fall-through would then read them EQUAL while == reads them
+    // unequal.  So a comparison whose cross-product leaves the finite backing
+    // is itself off the edge of the fiction — reject it (Honest Rejection),
+    // exactly as construction does.  Every <=> that RETURNS is therefore a
+    // genuine strong-total verdict.  (An overflow-free comparison over the
+    // full carrier would need a Stern-Brocot / continued-fraction walk; the
+    // client-contract finite subset never reaches this branch.)
+    reject_non_finite_product(lhs, rhs);
     if (lhs < rhs) return std::strong_ordering::less;
     if (rhs < lhs) return std::strong_ordering::greater;
     return std::strong_ordering::equal;
@@ -298,6 +367,17 @@ struct PartialEmbedIntegerToRational {
   using logic_species = TernaryLogic;
 
   TernaryResult<Rational<I>> operator()(I n) const noexcept {
+    // #680: a non-finite ℤ (NaZ / ±ℵ_0) is off the edge of the countably-
+    // infinite fiction, so it does not embed as a rational.  This is the
+    // PARTIAL (Kleene) twin of the total arrow @c embed_ℤ_ℚ_: where that arrow
+    // THROWS at the boundary, the ternary surface models the same partiality
+    // with @c Ternary::False and stays honestly @c noexcept.  (Constructing
+    // @c Rational<I>{n,1} on a sentinel would reject with @c domain_error and,
+    // under this @c noexcept, terminate.)  The default 0/1 is finite, so its
+    // construction cannot throw.
+    if constexpr (std::same_as<I, dedekind::sets::SignedCardinality>) {
+      if (!dedekind::sets::is_finite(n)) return {Ternary::False, Rational<I>{}};
+    }
     return {Ternary::True, Rational<I>{n, static_cast<I>(1)}};
   }
 };
@@ -637,7 +717,10 @@ export using machine_integer = int;
  */
 export inline constexpr auto embed_ℤ_ℚ_ =
     arrow<default_integer, Rational<default_integer>>(
-        [](const default_integer& n) noexcept {
+        [](const default_integer& n) {
+          // NOT noexcept: Rational(Z) rejects a non-finite ℤ (NaZ/±ℵ_0) with
+          // std::domain_error (#680), which must escape this arrow rather than
+          // hit std::terminate.
           return Rational<default_integer>{n};
         });
 
@@ -665,16 +748,18 @@ namespace dedekind::algebra {
  *  quotient base).  So @c is_homomorphism_v here is a fully-certified ring
  *  homomorphism, not merely an operational declaration.
  *
- *  FIXME(#680): the @b one orthogonal caveat --- ℕ/ℤ/ℚ are meant to behave
- *  identically at very large values (saturate at the OOM/±ℵ_0 boundary, a
- *  reading of Eqn 2).  ℤ/ℕ do; ℚ does not @b yet --- @c Rational::simplify 's
- *  @c euclidean_gcd @b hangs on a sentinel (@c NaZ @c % @c … @c == @c NaZ)
- *  instead of saturating, so @c embed(a)+embed(b) can diverge when @c a+b
- *  overflows.  The saturation / Honest-Rejection guard on @c Rational is the
- *  fix (it applies to every ℚ-valued arrow, e.g. @c embed_ℚ_ℝ, and to R2). This
- *  is a boundary-behaviour cleanup, not a totality gap (contrast
- *  @c embed_double_ℚ, whose NaN/±∞ are @b common in-band IEEE values, not a
- *  saturation boundary --- hence it withholds its trait). */
+ *  @b Boundary behaviour (#680, resolved): ℚ has @b no sentinels.  ℕ/ℤ
+ *  saturate at the OOM/±ℵ_0 boundary; ℚ instead @b rejects a non-finite ℤ
+ *  (@c NaZ / @c ±ℵ_0) at construction with @c std::domain_error --- the same
+ *  Honest-Rejection posture as @c 1/0.  This is why @c embed_ℤ_ℚ_'s arrow is
+ *  @b not @c noexcept: @c embed_ℤ_ℚ_(non-finite ℤ) propagates that
+ *  @c domain_error rather than diverging in @c euclidean_gcd (the old hang) or
+ *  fabricating an order-incoherent @c NaZ/1.  A retained sentinel would break
+ *  ℚ's total order (@c NaZ/1 @c <=> @c 1/1 equal while @c == false), so
+ *  rejection --- not saturation --- is the coherent fix.  Contrast
+ *  @c embed_double_ℚ, whose NaN/±∞ are @b common in-band IEEE values it must
+ *  likewise reject; the finite fragment is unaffected and still gcd-normalises
+ *  at compile time. */
 template <>
 inline constexpr bool
     is_homomorphism_v<std::decay_t<decltype(dedekind::numbers::embed_ℤ_ℚ_)>> =

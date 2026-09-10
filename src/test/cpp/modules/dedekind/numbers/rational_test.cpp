@@ -2,6 +2,7 @@
 #include <compare>
 #include <concepts>
 #include <limits>
+#include <stdexcept>  // std::domain_error (the #680 rejection)
 
 import dedekind.category;
 import dedekind.morphologies;
@@ -176,4 +177,93 @@ TEST_CASE("embed_double_ℚ: in-range injectivity (the partial-monic property)",
   CHECK(embed_double_ℚ<>(3.0) != embed_double_ℚ<>(2.0));
   CHECK(embed_double_ℚ<>(0.5) != embed_double_ℚ<>(0.25));
   CHECK(embed_double_ℚ<>(-0.75) != embed_double_ℚ<>(0.75));
+}
+
+// #680: ℚ has no sentinels — a non-finite SignedCardinality numerator/
+// denominator is REJECTED (std::domain_error), the same posture as /0.  So
+// simplify()'s euclidean_gcd never runs on a NaZ (no hang), and no
+// ordering-incoherent NaZ/1 is ever constructed.  The finite fragment still
+// gcd-normalises at COMPILE TIME (6/4 → 3/2).
+namespace {
+using Q680 = Rational<>;  // default carrier = SignedCardinality
+constexpr Q680 r680_half{dedekind::sets::finite_signed_cardinality(6),
+                         dedekind::sets::finite_signed_cardinality(4)};
+static_assert(r680_half.first == dedekind::sets::finite_signed_cardinality(3) &&
+                  r680_half.second ==
+                      dedekind::sets::finite_signed_cardinality(2),
+              "#680: finite rationals still normalise (6/4 = 3/2).");
+}  // namespace
+
+TEST_CASE("Rational: non-finite ℤ is rejected, no hang (#680)",
+          "[numbers][rational][saturating]") {
+  const auto one = dedekind::sets::finite_signed_cardinality(1);
+  const auto naz = dedekind::sets::SignedCardinality{dedekind::sets::NaZ{}};
+  const auto inf =
+      dedekind::sets::SignedCardinality{dedekind::sets::PositiveInfinity{}};
+  // Two-arg ctor (via simplify) rejects a non-finite numerator or denominator
+  // — domain_error, NOT a hang (the gcd never runs on the sentinel).
+  CHECK_THROWS_AS((Q680{naz, one}), std::domain_error);
+  CHECK_THROWS_AS((Q680{one, naz}), std::domain_error);
+  CHECK_THROWS_AS((Q680{inf, one}), std::domain_error);
+  // Single-arg Rational(Z) ctor (bypasses simplify) rejects too.
+  CHECK_THROWS_AS((Q680{naz}), std::domain_error);
+  // The finite fragment is unaffected: 6/4 = 3/2.
+  const Q680 half{dedekind::sets::finite_signed_cardinality(6),
+                  dedekind::sets::finite_signed_cardinality(4)};
+  CHECK(half.first == dedekind::sets::finite_signed_cardinality(3));
+}
+
+TEST_CASE(
+    "Rational: embed_ℤ_ℚ_ of a non-finite ℤ throws, not terminates (#680)",
+    "[numbers][rational][embedding][saturating]") {
+  // The public S-leg arrow ℤ ↪ ℚ is deliberately NOT noexcept: a non-finite
+  // ℤ must propagate Rational's domain_error, not trip std::terminate.
+  const auto naz = dedekind::sets::SignedCardinality{dedekind::sets::NaZ{}};
+  const auto inf =
+      dedekind::sets::SignedCardinality{dedekind::sets::PositiveInfinity{}};
+  CHECK_THROWS_AS(embed_ℤ_ℚ_(naz), std::domain_error);
+  CHECK_THROWS_AS(embed_ℤ_ℚ_(inf), std::domain_error);
+  // The finite fragment embeds cleanly: 5 ↦ 5/1.
+  const auto five = embed_ℤ_ℚ_(dedekind::sets::finite_signed_cardinality(5));
+  CHECK(five.first == dedekind::sets::finite_signed_cardinality(5));
+  CHECK(five.second == dedekind::sets::finite_signed_cardinality(1));
+}
+
+TEST_CASE(
+    "Rational: comparison cross-product overflow is the OOM tripwire (#680)",
+    "[numbers][rational][saturating][ordering]") {
+  const auto one = dedekind::sets::finite_signed_cardinality(1);
+  // M = 2^40: both operands are FINITE canonical rationals, but comparing
+  // M/1 against 1/M forms the cross-product M*M = 2^80, which overflows the
+  // 1-limb (2^63) finite backing and saturates to +ℵ_0.  The comparison has
+  // left the finite backing, so <=> rejects (throws) rather than fabricate an
+  // incoherent `equal`.
+  const auto big = dedekind::sets::finite_signed_cardinality(1LL << 40);
+  const Q680 a{big, one};  // M/1
+  const Q680 b{one, big};  // 1/M
+  CHECK_THROWS_AS((a <=> b), std::domain_error);
+  // Small finite rationals compare fine — the tripwire branch is not taken.
+  CHECK((Q680{one, dedekind::sets::finite_signed_cardinality(2)} <=>
+         Q680{one, dedekind::sets::finite_signed_cardinality(3)}) ==
+        std::strong_ordering::greater);  // 1/2 > 1/3
+}
+
+TEST_CASE(
+    "PartialEmbedIntegerToRational: non-finite ℤ → Ternary::False, no "
+    "terminate (#680)",
+    "[numbers][rational][saturating][ternary]") {
+  using SC = dedekind::sets::SignedCardinality;
+  const PartialEmbedIntegerToRational<SC> embed{};
+  const auto naz = SC{dedekind::sets::NaZ{}};
+  const auto inf = SC{dedekind::sets::PositiveInfinity{}};
+  // Off the edge of the fiction: the PARTIAL (Kleene) surface answers False
+  // (no throw, no terminate) where the total arrow embed_ℤ_ℚ_ throws.
+  CHECK(embed(naz).status == dedekind::category::Ternary::False);
+  CHECK(embed(inf).status == dedekind::category::Ternary::False);
+  // A finite integer embeds: True, value n/1.
+  const auto five = dedekind::sets::finite_signed_cardinality(5);
+  const auto r = embed(five);
+  CHECK(r.status == dedekind::category::Ternary::True);
+  CHECK(r.value.num() == five);
+  CHECK(r.value.den() == dedekind::sets::finite_signed_cardinality(1));
 }
