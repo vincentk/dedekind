@@ -314,6 +314,78 @@ inline constexpr bool
                             dedekind::numbers::PartialEmbedRealToComplex<R>> =
         true;
 
+// ---------------------------------------------------------------------------
+// Complex<R> is a rig / commutative ring (a FIELD when R is one), registered by
+// PROPAGATION from R.  So the exact coat-hanger ℂ = Complex<ℚ(√2)> is a
+// certified semiring, while Complex<double> is correctly NOT associative (IEEE
+// rounding, per the note above; associativity opt-in stays with ieee::IEEE<F>).
+// This is what lets ℂ satisfy category::IsSemiring (= IsRig), so the semiring
+// bra-ket inner_product ⟨·|·⟩ (linear_algebra:transfer) works over exact ℂ.
+template <typename R>
+struct is_exact_total<dedekind::numbers::Complex<R>,
+                      std::plus<dedekind::numbers::Complex<R>>>
+    : is_exact_total<R, std::plus<R>> {};
+template <typename R>
+struct is_exact_total<dedekind::numbers::Complex<R>,
+                      std::multiplies<dedekind::numbers::Complex<R>>>
+    : is_exact_total<R, std::multiplies<R>> {};
+
+template <typename R>
+struct is_associative<dedekind::numbers::Complex<R>,
+                      std::plus<dedekind::numbers::Complex<R>>>
+    : is_associative<R, std::plus<R>> {};
+template <typename R>
+struct is_associative<dedekind::numbers::Complex<R>,
+                      std::multiplies<dedekind::numbers::Complex<R>>>
+    : is_associative<R, std::multiplies<R>> {};
+template <typename R>
+struct is_commutative<dedekind::numbers::Complex<R>,
+                      std::plus<dedekind::numbers::Complex<R>>>
+    : is_commutative<R, std::plus<R>> {};
+template <typename R>
+struct is_commutative<dedekind::numbers::Complex<R>,
+                      std::multiplies<dedekind::numbers::Complex<R>>>
+    : is_commutative<R, std::multiplies<R>> {};
+
+template <typename R>
+inline constexpr bool
+    is_distributive_v<dedekind::numbers::Complex<R>,
+                      std::multiplies<dedekind::numbers::Complex<R>>,
+                      std::plus<dedekind::numbers::Complex<R>>> =
+        is_distributive_v<R, std::multiplies<R>, std::plus<R>>;
+
+template <typename R>
+struct identity_trait<dedekind::numbers::Complex<R>,
+                      std::plus<dedekind::numbers::Complex<R>>> {
+  using value_type = dedekind::numbers::Complex<R>;
+  static constexpr value_type value{};  // 0 = 0 + 0i
+};
+template <typename R>
+struct identity_trait<dedekind::numbers::Complex<R>,
+                      std::multiplies<dedekind::numbers::Complex<R>>> {
+  using value_type = dedekind::numbers::Complex<R>;
+  static constexpr value_type value{R{1}, R{}};  // 1 = 1 + 0i
+};
+
+template <typename R>
+inline constexpr bool
+    is_invertible_v<dedekind::numbers::Complex<R>,
+                    std::plus<dedekind::numbers::Complex<R>>> =
+        true;  // additive inverse −z always exists
+template <typename R>
+inline constexpr bool
+    is_invertible_v<dedekind::numbers::Complex<R>,
+                    std::multiplies<dedekind::numbers::Complex<R>>> =
+        is_invertible_v<R, std::multiplies<R>>;  // ℂ is a field iff R is
+
+template <typename R>
+struct inverse_trait<dedekind::numbers::Complex<R>,
+                     std::plus<dedekind::numbers::Complex<R>>> {
+  static constexpr bool exists = true;
+  using value_type = dedekind::numbers::Complex<R>;
+  static constexpr value_type compute(const value_type& z) { return -z; }
+};
+
 }  // namespace dedekind::category
 
 namespace dedekind::numbers {

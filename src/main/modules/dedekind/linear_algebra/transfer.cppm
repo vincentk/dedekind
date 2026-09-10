@@ -92,6 +92,14 @@ constexpr S add_fold(std::index_sequence<K...>, S zero, Term term) {
  *          max-plus eigenvalue that governs the rank-1 transfer power.  The
  *          @c ⊕-fold over the (low) rank dimension is the matrix-contraction
  *          kernel, evaluated as a bounded compile-time reduction.
+ *
+ * @note This folds an @b enumerated finite index @f$k<N@f$.  When the index is
+ *       @b intensional (a function space over an infinite domain) the fold
+ *       cannot enumerate; the sum must @b collapse via the domain's structure.
+ *       @c geometric_sum below is that structure-directed @f$\Sigma@f$ for the
+ *       geometric / cyclic case: it computes @f$\sum_{k<N} r^k@f$ in closed
+ *       form, so the DFT / character orthogonality falls out with @b no walk of
+ *       the domain.  Same reduction role, symbolic strategy.
  */
 export template <
     std::size_t N, typename Bra, typename Ket,
@@ -109,6 +117,73 @@ constexpr S inner_product(const Bra& w, const Ket& v) {
       [&](std::size_t k) {
         return Mult{}(w(static_cast<WD>(k)), v(static_cast<VD>(k)));
       });
+}
+
+// ---------------------------------------------------------------------------
+// The SYMBOLIC Σ: the structure-directed reduction that generalises the finite
+// add_fold above to an INTENSIONAL index.  Where inner_product walks an
+// enumerated k<N, geometric_sum COLLAPSES Σ_{k<N} r^k by the ring closed form
+// (r^N − 1)/(r − 1) — O(log N), never an O(N) enumeration, and for r an N-th
+// root of unity it is exactly 0 / N (the DFT / character orthogonality),
+// decided by the group structure alone.  This is the against-the-grain point:
+// the sum over a structured domain is a closed form, NOT a `for` over points.
+// ---------------------------------------------------------------------------
+
+/** @brief @f$r^n@f$ by fast exponentiation (@c O(log @c n)) — the closed
+ *  form's only cost. */
+template <typename S>
+constexpr S nat_pow(S r, std::size_t n) {
+  S acc = dedekind::category::identity_v<S, std::multiplies<S>>;  // 1
+  while (n) {
+    if (n & 1u) acc = acc * r;
+    r = r * r;
+    n >>= 1u;
+  }
+  return acc;
+}
+
+/** @brief The additive @f$n\cdot s@f$ by double-and-add (@c O(log @c n)) ---
+ * the
+ *  @c N-fold sum @f$\sum_{k<N} 1 = N\cdot 1@f$ in the @c r=1 degenerate case,
+ *  without an @c N-step walk. */
+template <typename S>
+constexpr S nat_scale(S s, std::size_t n) {
+  S acc = dedekind::category::identity_v<S, std::plus<S>>;  // 0
+  while (n) {
+    if (n & 1u) acc = acc + s;
+    s = s + s;
+    n >>= 1u;
+  }
+  return acc;
+}
+
+/**
+ * @brief The @b symbolic geometric reduction
+ *        @f$\sum_{k=0}^{N-1} r^k = \dfrac{r^N - 1}{r - 1}@f$
+ *        (@f$= N\cdot 1@f$ when @f$r = 1@f$).
+ *
+ * @details The closed-form sibling of @c inner_product's @c add_fold: it
+ *          collapses the geometric sum via the ring structure in @c O(log @c N)
+ *          rather than enumerating the @c N terms.  When @c r is an @c N-th
+ * root of unity (@f$r^N = 1@f$) it evaluates @b exactly to @f$0@f$
+ *          (@f$r\neq 1@f$) or @f$N\cdot 1@f$ (@f$r = 1@f$) --- the @b DFT /
+ *          character orthogonality
+ *          @f$\sum_{k\in\mathbb{Z}/N}\zeta^{\,mk} = N\,[\,N \mid m\,]@f$,
+ *          decided without touching a single grid point.  This is the
+ *          intensional-index @f$\Sigma_d@f$ that the finite fold cannot spell
+ *          point-free.  Requires a carrier with @f$-, /, \times@f$ (a field for
+ *          the general @f$r@f$; the character case only needs @f$r^N=1@f$).
+ */
+export template <typename S>
+  requires requires(S a, S b) {
+    a - b;
+    a / b;
+    a * b;
+  }
+constexpr S geometric_sum(S r, std::size_t N) {
+  const S one = dedekind::category::identity_v<S, std::multiplies<S>>;
+  if (r == one) return nat_scale(one, N);    // Σ 1 = N·1
+  return (nat_pow(r, N) - one) / (r - one);  // (r^N − 1)/(r − 1)
 }
 
 /**

@@ -1,4 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
+#include <functional>  // std::plus / std::multiplies for the IsSemiring witness
 
 // SPIKE (folds in #818): the even Reynolds projector as an OPERATOR on the
 // existing bra-ket surface — P = ½(I + U), U the inversion unitary — over the
@@ -12,6 +13,9 @@ import dedekind.linear_algebra;
 import dedekind.morphologies;
 import dedekind.numbers;
 
+using dedekind::linear_algebra::Bra;
+using dedekind::linear_algebra::geometric_sum;
+using dedekind::linear_algebra::inner_product;
 using dedekind::linear_algebra::Ket;
 using dedekind::morphologies::Modular;
 using dedekind::numbers::Complex;
@@ -65,10 +69,35 @@ TEST_CASE("Bra-ket: P=½(I+U) projects ζ₈ onto cos (the operator S-leg)",
   // Idempotent (P² = P): a genuine projection onto the even subspace (S-leg).
   CHECK(project_even(cos_ket) == cos_ket);
 
-  // FIXME(#818-followup): the bra-ket inner_product ⟨·|·⟩ is gated on
-  // IsSemiring<S>, which ℂ = Complex<ℚ(√2)> does NOT yet satisfy (the transfer
-  // machinery registered only tropical / bool).  ℂ is a field, hence a
-  // semiring — registering semiring_ops/IsSemiring for Complex<R> is a small
-  // follow-up that lights up ⟨·|·⟩ (and the Hermitian form via a bra dagger)
-  // on this exact carrier.
+  // Keystone 1: ℂ = Complex<ℚ(√2)> is now a certified semiring, so the
+  // semiring bra-ket inner_product ⟨·|·⟩ works over exact ℂ.
+  static_assert(
+      dedekind::category::IsSemiring<Cx, std::plus<Cx>, std::multiplies<Cx>>,
+      "the exact coat-hanger ℂ is a rig (registered by propagation "
+      "from ℚ(√2)).");
+  Ket<Cx, 8> e0{};
+  e0.c[0] = Cx{R2{1}, R2{}};
+  const Bra<Cx, 8> e0_bra{e0.c};
+  CHECK(inner_product<8>(e0_bra, plane_wave) ==
+        Cx{R2{1}, R2{}});  // ⟨e₀|v⟩ = v₀ = ζ⁰ = 1
+}
+
+TEST_CASE(
+    "Symbolic Σ: geometric_sum collapses the DFT / character orthogonality",
+    "[linear_algebra][braket][symbolic-sum][fourier][exact]") {
+  // The structure-directed sum over an enumerable index, in closed form:
+  //   Σ_{k<8} 2^k = 2^8 − 1 = 255, decided by (r^N−1)/(r−1), no walk of k.
+  static_assert(geometric_sum<unsigned>(2u, 8) == 255u, "Σ 2^k = 2^8 − 1");
+
+  // The DFT / character orthogonality over EXACT ℂ, decided symbolically:
+  //   ⟨χ_m|χ_n⟩ = Σ_{k∈ℤ/8} ζ₈^{Δk} = geometric_sum(ζ₈^Δ, 8) = 8·[Δ≡0], else 0.
+  // NO enumeration of k — the group structure (ζ₈⁸ = 1) collapses the sum.
+  // Δ = 0 (m = n): the diagonal, 8·1.
+  static_assert(geometric_sum(root8(M8{0}), 8) == Cx{R2{8}, R2{}},
+                "Δ=0: ⟨χ_m|χ_m⟩ = 8 (compile-time)");
+  // Δ ≠ 0 (m ≠ n): orthogonal, exactly 0.
+  CHECK(geometric_sum(root8(M8{1}), 8) == Cx{});
+  CHECK(geometric_sum(root8(M8{2}), 8) == Cx{});
+  CHECK(geometric_sum(root8(M8{3}), 8) == Cx{});
+  CHECK(geometric_sum(root8(M8{5}), 8) == Cx{});
 }
