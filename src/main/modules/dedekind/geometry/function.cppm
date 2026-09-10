@@ -78,6 +78,7 @@ export module dedekind.geometry:function;
 
 import dedekind.sequences; // Path<T, Cardinality> — the canonical infinite-dim function-space inhabitant
 import dedekind.sets; // ℵ_0 — the canonical infinite cardinality
+import dedekind.category; // IsArrow / arrow() — the constexpr function-space surface (#537 slice 2)
 
 namespace dedekind::geometry {
 
@@ -157,5 +158,103 @@ static_assert(
  *     @c ⟨f, @c g⟩ @c = @c Σ @c f(d) @c · @c g(d); deferred until the
  *     measure / summability story arrives in @c analysis.
  */
+
+/** @section function__Pointwise_And_Symmetrization
+ *
+ * @details #537 slice 2, @b value-side and @b constexpr.  The @c IsArrow
+ * surface gains the pointwise vector-space operations the concept above names
+ * (@c pointwise_add, @c scale) and, built on them, the @b Reynolds
+ * @b symmetrization @c symmetrize onto the invariant subalgebra of a finite
+ * group action.  An arrow-backed function is @c constexpr --- unlike @c
+ * sequences::Path (a @c std::function carrier) --- so these pin the
+ * function-space operations value-side at compile time (#764: a
+ * @c constexpr-usable function carrier for the CCC exponential).
+ *
+ * @c symmetrize is the @b constructive S-leg.  The @c G-invariant subalgebra
+ * @f$\{f : f\circ g = f\ \forall g\in G\}@f$ is exactly the image of the
+ * projector @f$P_G f = \tfrac1{|G|}\sum_{g\in G} f\circ g@f$; a @b finite
+ * group makes it a finite point-free combination --- @b no enumeration of the
+ * domain.  This is the engine of symmetry-adapted classification (even/odd
+ * parity, point groups), e.g. the even projection turns a plane wave
+ * @f$e^{ik\cdot r}@f$ into @f$\cos(k\cdot r)@f$ (Fourier foundations #228;
+ * function-space follow-up #783).
+ */
+
+using dedekind::category::IsArrow;
+
+/** @brief The identity arrow on @c D --- a finite group's neutral element. */
+export template <typename D>
+constexpr auto identity_arrow() {
+  return dedekind::category::arrow<D, D>([](const D& x) -> D { return x; });
+}
+
+/** @brief Pointwise sum @f$(f+g)(x) = f(x)+g(x)@f$ (shared domain; codomain
+ *  closed under @c +).  Point-free and @c constexpr. */
+export template <IsArrow F, IsArrow G>
+  requires std::same_as<typename std::remove_cvref_t<F>::Domain,
+                        typename std::remove_cvref_t<G>::Domain>
+constexpr auto pointwise_add(F f, G g) {
+  using D = typename std::remove_cvref_t<F>::Domain;
+  using T = typename std::remove_cvref_t<F>::Codomain;
+  return dedekind::category::arrow<D, T>(
+      [f, g](const D& x) -> T { return f(x) + g(x); });
+}
+
+/** @brief Scalar multiple @f$(s\cdot f)(x) = s\cdot f(x)@f$.  @c S may be the
+ *  codomain or its underlying scalar field (e.g. @c R for @c Complex<R>). */
+export template <typename S, IsArrow F>
+  requires requires(S s, F f, typename std::remove_cvref_t<F>::Domain x) {
+    s * f(x);
+  }
+constexpr auto scale(S s, F f) {
+  using D = typename std::remove_cvref_t<F>::Domain;
+  using T = decltype(s * f(std::declval<const D&>()));
+  return dedekind::category::arrow<D, T>(
+      [s, f](const D& x) -> T { return s * f(x); });
+}
+
+/** @brief Precomposition @f$(f\circ g)(x) = f(g(x))@f$ with a domain
+ *  endomorphism @c g (a group element acting on the domain). */
+export template <IsArrow F, IsArrow G>
+  requires std::same_as<typename std::remove_cvref_t<G>::Codomain,
+                        typename std::remove_cvref_t<F>::Domain>
+constexpr auto precompose(F f, G g) {
+  using D = typename std::remove_cvref_t<G>::Domain;
+  using T = typename std::remove_cvref_t<F>::Codomain;
+  return dedekind::category::arrow<D, T>(
+      [f, g](const D& x) -> T { return f(g(x)); });
+}
+
+/** @brief Orbit sum @f$\sum_{g\in G} f\circ g@f$ over the group elements
+ *  @c gs... (domain endomorphisms).  The un-normalized Reynolds sum. */
+export template <IsArrow F, IsArrow... Gs>
+constexpr auto orbit_sum(F f, Gs... gs) {
+  static_assert(sizeof...(Gs) >= 1, "orbit_sum needs a non-empty group.");
+  using D = typename std::remove_cvref_t<F>::Domain;
+  using T = typename std::remove_cvref_t<F>::Codomain;
+  return dedekind::category::arrow<D, T>(
+      [f, gs...](const D& x) -> T { return (f(gs(x)) + ...); });
+}
+
+/** @brief Reynolds symmetrization @f$P_G f = \tfrac1{|G|}\sum_{g} f\circ g@f$
+ *  --- the projection onto the @c G-invariant subalgebra (the constructive
+ *  S-leg).  @c inv_order is @f$1/|G|@f$ in the codomain's scalar ring; it is
+ *  kept explicit so no numeric-literal lift is assumed of the codomain
+ *  (auto-derivation from @c |G| is a tracked follow-up). */
+export template <typename Scalar, IsArrow F, IsArrow... Gs>
+constexpr auto symmetrize(Scalar inv_order, F f, Gs... gs) {
+  return scale(inv_order, orbit_sum(f, gs...));
+}
+
+/** @brief Even part under an involution @c inv (e.g. @f$x\mapsto -x@f$):
+ *  @f$\tfrac12(f + f\circ\mathrm{inv})@f$, the ℤ₂ Reynolds projection.
+ *  @c half is @f$1/2@f$ in the codomain's scalar ring. */
+export template <typename Scalar, IsArrow F, IsArrow Inv>
+  requires std::same_as<typename std::remove_cvref_t<Inv>::Domain,
+                        typename std::remove_cvref_t<Inv>::Codomain>
+constexpr auto even_part(Scalar half, F f, Inv inv) {
+  using D = typename std::remove_cvref_t<Inv>::Domain;
+  return symmetrize(half, f, identity_arrow<D>(), inv);
+}
 
 }  // namespace dedekind::geometry
