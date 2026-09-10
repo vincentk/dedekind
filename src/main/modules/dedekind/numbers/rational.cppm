@@ -45,6 +45,29 @@ using namespace dedekind::sets;
 /**
  * @class Rational
  * @brief The Field of Fractions over an Integral Domain Z.
+ *
+ * @details @b The @b countably-infinite @b fiction.  Over the saturating
+ * carrier @c SignedCardinality this type @b models ℚ as a faithful,
+ * @b strong-totally-ordered field over a countably infinite ℤ --- even though
+ * no finite machine can hold arbitrarily large numerators / denominators.  The
+ * carrier's sentinels (@c NaZ, @c ±ℵ_0) are @b not inhabitants of that ℚ; they
+ * are the out-of-memory boundary of the finite backing.  Reaching one means the
+ * computation has run off the edge of the fiction, so a non-finite
+ * numerator / denominator is @b rejected (@c std::domain_error, see
+ * @c reject_non_finite) rather than admitted as a value --- the OOM tripwire.
+ * This is what keeps @c operator<=> a genuine @c std::strong_ordering and
+ * preserves @c IsTotal / @c IsField (both load-bearing for the ℝ coat-hanger
+ * downstream); a retained @c NaZ/1 would force @c <=> to @c partial_ordering
+ * and quietly demote ℚ to a non-total order.
+ *
+ * @par Client contract.
+ * The fiction is @b deliberate: client code @b may pretend ℚ is truly infinite,
+ * at the risk of hitting the OOM tripwire.  @b Robust client code constrains
+ * itself to a finite subset a priori --- e.g. integers @f$-\text{max} < x <
+ * \text{max}@f$, or the canonicalised rationals over that range --- so the
+ * tripwire is never reached.  The library does @b not silently clamp on the
+ * client's behalf; it @b throws, so the boundary stays visible (Honest
+ * Rejection, the same posture as division-by-zero).
  */
 export template <IsInteger Z = default_integer>
 class Rational {
@@ -648,7 +671,10 @@ export using machine_integer = int;
  */
 export inline constexpr auto embed_ℤ_ℚ_ =
     arrow<default_integer, Rational<default_integer>>(
-        [](const default_integer& n) noexcept {
+        [](const default_integer& n) {
+          // NOT noexcept: Rational(Z) rejects a non-finite ℤ (NaZ/±ℵ_0) with
+          // std::domain_error (#680), which must escape this arrow rather than
+          // hit std::terminate.
           return Rational<default_integer>{n};
         });
 
@@ -676,16 +702,18 @@ namespace dedekind::algebra {
  *  quotient base).  So @c is_homomorphism_v here is a fully-certified ring
  *  homomorphism, not merely an operational declaration.
  *
- *  FIXME(#680): the @b one orthogonal caveat --- ℕ/ℤ/ℚ are meant to behave
- *  identically at very large values (saturate at the OOM/±ℵ_0 boundary, a
- *  reading of Eqn 2).  ℤ/ℕ do; ℚ does not @b yet --- @c Rational::simplify 's
- *  @c euclidean_gcd @b hangs on a sentinel (@c NaZ @c % @c … @c == @c NaZ)
- *  instead of saturating, so @c embed(a)+embed(b) can diverge when @c a+b
- *  overflows.  The saturation / Honest-Rejection guard on @c Rational is the
- *  fix (it applies to every ℚ-valued arrow, e.g. @c embed_ℚ_ℝ, and to R2). This
- *  is a boundary-behaviour cleanup, not a totality gap (contrast
- *  @c embed_double_ℚ, whose NaN/±∞ are @b common in-band IEEE values, not a
- *  saturation boundary --- hence it withholds its trait). */
+ *  @b Boundary behaviour (#680, resolved): ℚ has @b no sentinels.  ℕ/ℤ
+ *  saturate at the OOM/±ℵ_0 boundary; ℚ instead @b rejects a non-finite ℤ
+ *  (@c NaZ / @c ±ℵ_0) at construction with @c std::domain_error --- the same
+ *  Honest-Rejection posture as @c 1/0.  This is why @c embed_ℤ_ℚ_'s arrow is
+ *  @b not @c noexcept: @c embed_ℤ_ℚ_(non-finite ℤ) propagates that
+ *  @c domain_error rather than diverging in @c euclidean_gcd (the old hang) or
+ *  fabricating an order-incoherent @c NaZ/1.  A retained sentinel would break
+ *  ℚ's total order (@c NaZ/1 @c <=> @c 1/1 equal while @c == false), so
+ *  rejection --- not saturation --- is the coherent fix.  Contrast
+ *  @c embed_double_ℚ, whose NaN/±∞ are @b common in-band IEEE values it must
+ *  likewise reject; the finite fragment is unaffected and still gcd-normalises
+ *  at compile time. */
 template <>
 inline constexpr bool
     is_homomorphism_v<std::decay_t<decltype(dedekind::numbers::embed_ℤ_ℚ_)>> =

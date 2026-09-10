@@ -212,3 +212,19 @@ TEST_CASE("Rational: non-finite ℤ is rejected, no hang (#680)",
                   dedekind::sets::finite_signed_cardinality(4)};
   CHECK(half.first == dedekind::sets::finite_signed_cardinality(3));
 }
+
+TEST_CASE(
+    "Rational: embed_ℤ_ℚ_ of a non-finite ℤ throws, not terminates (#680)",
+    "[numbers][rational][embedding][saturating]") {
+  // The public S-leg arrow ℤ ↪ ℚ is deliberately NOT noexcept: a non-finite
+  // ℤ must propagate Rational's domain_error, not trip std::terminate.
+  const auto naz = dedekind::sets::SignedCardinality{dedekind::sets::NaZ{}};
+  const auto inf =
+      dedekind::sets::SignedCardinality{dedekind::sets::PositiveInfinity{}};
+  CHECK_THROWS_AS(embed_ℤ_ℚ_(naz), std::domain_error);
+  CHECK_THROWS_AS(embed_ℤ_ℚ_(inf), std::domain_error);
+  // The finite fragment embeds cleanly: 5 ↦ 5/1.
+  const auto five = embed_ℤ_ℚ_(dedekind::sets::finite_signed_cardinality(5));
+  CHECK(five.first == dedekind::sets::finite_signed_cardinality(5));
+  CHECK(five.second == dedekind::sets::finite_signed_cardinality(1));
+}
