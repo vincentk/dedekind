@@ -2,6 +2,7 @@
 #include <compare>
 #include <concepts>
 #include <limits>
+#include <stdexcept>  // std::domain_error (the #680 rejection)
 
 import dedekind.category;
 import dedekind.morphologies;
@@ -178,22 +179,13 @@ TEST_CASE("embed_double_ℚ: in-range injectivity (the partial-monic property)",
   CHECK(embed_double_ℚ<>(-0.75) != embed_double_ℚ<>(0.75));
 }
 
-// #680: a non-finite SignedCardinality numerator/denominator must NOT hang
-// simplify()'s euclidean_gcd (NaZ % · == NaZ).  Constructing at COMPILE TIME
-// proves termination — a hang would exhaust the constant-evaluation step limit.
+// #680: ℚ has no sentinels — a non-finite SignedCardinality numerator/
+// denominator is REJECTED (std::domain_error), the same posture as /0.  So
+// simplify()'s euclidean_gcd never runs on a NaZ (no hang), and no
+// ordering-incoherent NaZ/1 is ever constructed.  The finite fragment still
+// gcd-normalises at COMPILE TIME (6/4 → 3/2).
 namespace {
 using Q680 = Rational<>;  // default carrier = SignedCardinality
-constexpr auto sc_one_ = dedekind::sets::finite_signed_cardinality(1);
-constexpr Q680 r680_naz{
-    dedekind::sets::SignedCardinality{dedekind::sets::NaZ{}}, sc_one_};
-constexpr Q680 r680_inf{
-    dedekind::sets::SignedCardinality{dedekind::sets::PositiveInfinity{}},
-    sc_one_};
-static_assert(!dedekind::sets::is_finite(r680_naz.first),
-              "#680: NaZ numerator left unnormalised (gcd skipped, no hang).");
-static_assert(!dedekind::sets::is_finite(r680_inf.first),
-              "#680: +ℵ_0 numerator left unnormalised.");
-// The finite fragment still gcd-normalises: 6/4 → 3/2.
 constexpr Q680 r680_half{dedekind::sets::finite_signed_cardinality(6),
                          dedekind::sets::finite_signed_cardinality(4)};
 static_assert(r680_half.first == dedekind::sets::finite_signed_cardinality(3) &&
@@ -202,12 +194,20 @@ static_assert(r680_half.first == dedekind::sets::finite_signed_cardinality(3) &&
               "#680: finite rationals still normalise (6/4 = 3/2).");
 }  // namespace
 
-TEST_CASE("Rational: non-finite sentinel skips gcd, no hang (#680)",
+TEST_CASE("Rational: non-finite ℤ is rejected, no hang (#680)",
           "[numbers][rational][saturating]") {
-  // Runtime companion (Codecov-visible): the same constructions terminate.
-  const Q680 r{dedekind::sets::SignedCardinality{dedekind::sets::NaZ{}},
-               sc_one_};
-  CHECK_FALSE(dedekind::sets::is_finite(r.first));
+  const auto one = dedekind::sets::finite_signed_cardinality(1);
+  const auto naz = dedekind::sets::SignedCardinality{dedekind::sets::NaZ{}};
+  const auto inf =
+      dedekind::sets::SignedCardinality{dedekind::sets::PositiveInfinity{}};
+  // Two-arg ctor (via simplify) rejects a non-finite numerator or denominator
+  // — domain_error, NOT a hang (the gcd never runs on the sentinel).
+  CHECK_THROWS_AS((Q680{naz, one}), std::domain_error);
+  CHECK_THROWS_AS((Q680{one, naz}), std::domain_error);
+  CHECK_THROWS_AS((Q680{inf, one}), std::domain_error);
+  // Single-arg Rational(Z) ctor (bypasses simplify) rejects too.
+  CHECK_THROWS_AS((Q680{naz}), std::domain_error);
+  // The finite fragment is unaffected: 6/4 = 3/2.
   const Q680 half{dedekind::sets::finite_signed_cardinality(6),
                   dedekind::sets::finite_signed_cardinality(4)};
   CHECK(half.first == dedekind::sets::finite_signed_cardinality(3));

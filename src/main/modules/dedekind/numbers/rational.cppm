@@ -77,7 +77,9 @@ class Rational {
    *  reject.  This @c Rational(Z) form remains the canonical embedding
    *  when the caller already has a @c Z value in hand. */
   constexpr Rational(Z n)
-      : first(n), second(Z{1}) {}  // NOLINT(google-explicit-constructor)
+      : first(n), second(Z{1}) {  // NOLINT(google-explicit-constructor)
+    reject_non_finite();  // ℚ has no sentinels — reject a non-finite n (#680).
+  }
 
   /** @brief Embedding of any standard integral as a rational n/1, in @b one
    *  user-defined conversion.
@@ -109,29 +111,28 @@ class Rational {
   constexpr Rational(S n)  // NOLINT(google-explicit-constructor)
       : first(Z{n}), second(Z{1}) {}
 
-  /** @section rational__The_Simplification_Morphism
-   *
-   *  @details #680 GUARD: when @c Z is the saturating @c SignedCardinality and
-   *  either @c first or @c second is a non-finite sentinel (@c NaZ or
-   *  @c ±ℵ_0), @c euclidean_gcd's loop @c rhs != Z{0} would not terminate
-   *  (@c NaZ @c % anything @c == @c NaZ).  Such a sentinel is @b not a ring
-   *  element, so it is left UNNORMALISED (it is already its own canonical
-   *  form) --- Honest Rejection at the carrier boundary
-   * ([[project_division_by_zero_posture]]): gcd-normalisation applies only to
-   * the finite fragment.  The guard is a compile-time no-op for carriers with
-   * no non-finite sentinels (plain integers), so normalisation there is
-   * unchanged.
-   */
-  constexpr void simplify() {
-    if (second == Z{0}) throw std::domain_error("Rational: Division by zero.");
-
+  /** @brief #680: ℚ has no sentinels.  On the saturating @c SignedCardinality a
+   *  non-finite numerator/denominator (@c NaZ / @c ±ℵ_0) is @b not a rational,
+   *  so @b reject it with @c std::domain_error (Honest Rejection at the carrier
+   *  boundary, the same posture as division-by-zero, cf. the @c embed_double_ℚ
+   *  no-sentinels contract below).  This also avoids @c euclidean_gcd's
+   *  non-termination (@c NaZ @c % anything @c == @c NaZ) and the ordering
+   *  incoherence a retained @c NaZ/1 would cause (@c <=> would read it EQUAL to
+   *  @c 1/1 while @c == reads it unequal).  Compile-time no-op for carriers
+   * with no non-finite sentinels (plain integers). */
+  constexpr void reject_non_finite() const {
     if constexpr (std::same_as<Z, dedekind::sets::SignedCardinality>) {
-      // Non-finite sentinel (NaZ / ±ℵ_0): skip gcd (it would hang), leave
-      // as-is.
       if (!dedekind::sets::is_finite(first) ||
           !dedekind::sets::is_finite(second))
-        return;
+        throw std::domain_error(
+            "Rational: non-finite ℤ (NaZ / ±ℵ_0) is not a rational.");
     }
+  }
+
+  /** @section rational__The_Simplification_Morphism */
+  constexpr void simplify() {
+    if (second == Z{0}) throw std::domain_error("Rational: Division by zero.");
+    reject_non_finite();  // #680: non-finite ℤ is not a rational (throw).
 
     Z common = euclidean_gcd(first, second);
     first = first / common;
