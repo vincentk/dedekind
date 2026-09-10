@@ -400,6 +400,23 @@ struct quotient_algebra_base<dedekind::analysis::Dual<F>> {
   using type = F;
 };
 
+// The totality trait the ring/rig rungs require (IsMagma's exactness) is not
+// carried by quotient_algebra_base's forwarding, so lift it explicitly from F
+// (mirroring Complex<R>).  This is what makes 𝔻 = ℝ[ε]/(ε²) certify as
+// category::IsRing (a commutative RING; NOT a field --- ε is nilpotent, see the
+// is_invertible_v absence for std::multiplies): exact for F = ℚ(√2), correctly
+// not for F = double (IEEE).
+template <typename F>
+  requires std::regular<F>
+struct is_exact_total<dedekind::analysis::Dual<F>,
+                      std::plus<dedekind::analysis::Dual<F>>>
+    : is_exact_total<F, std::plus<F>> {};
+template <typename F>
+  requires std::regular<F>
+struct is_exact_total<dedekind::analysis::Dual<F>,
+                      std::multiplies<dedekind::analysis::Dual<F>>>
+    : is_exact_total<F, std::multiplies<F>> {};
+
 template <typename F>
   requires std::regular<F>
 struct identity_trait<dedekind::analysis::Dual<F>,
