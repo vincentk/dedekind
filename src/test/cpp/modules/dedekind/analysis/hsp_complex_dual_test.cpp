@@ -18,6 +18,7 @@
  */
 #include <array>
 #include <catch2/catch_test_macros.hpp>
+#include <functional>  // std::plus / std::multiplies for the ring/field witnesses
 #include <utility>
 
 import dedekind.algebra;
@@ -131,6 +132,22 @@ TEST_CASE("HSP-H: ℂ = ℝ[i]/(i²+1) and 𝔻 = ℝ[ε]/(ε²) as quotient alg
           "[analysis][numbers][hsp][quotient]") {
   STATIC_REQUIRE(dedekind::category::IsQuotientAlgebra<Cx>);
   STATIC_REQUIRE(dedekind::category::IsQuotientAlgebra<Du>);
+
+  // The ALGEBRAIC classification of the two H-leg quotients --- the
+  // discriminant trichotomy.  Both are commutative rings (rig traits lifted
+  // from ℝ by propagation); field-ness is discriminant-dependent:
+  //   ℂ = ℝ[i]/(x²+1): x²+1 IRREDUCIBLE over the formally-real ℝ ⇒ a FIELD;
+  //   𝔻 = ℝ[ε]/(ε²):  ε is NILPOTENT (ε²=0, a zero divisor) ⇒ a ring, NOT a
+  //                    field (the parabolic/local-ring sibling).
+  STATIC_REQUIRE(
+      dedekind::category::IsRing<Cx, std::plus<Cx>, std::multiplies<Cx>>);
+  STATIC_REQUIRE(
+      dedekind::category::IsRing<Du, std::plus<Du>, std::multiplies<Du>>);
+  STATIC_REQUIRE(
+      dedekind::category::is_invertible_v<Cx,
+                                          std::multiplies<Cx>>);  // ℂ: field
+  STATIC_REQUIRE(!dedekind::category::is_invertible_v<
+                 Du, std::multiplies<Du>>);  // 𝔻: ring, not a field
 
   // The defining quotient relations, run: i² = −1 and ε² = 0.
   const Cx i{R2{}, R2{1}};

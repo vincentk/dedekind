@@ -315,12 +315,15 @@ inline constexpr bool
         true;
 
 // ---------------------------------------------------------------------------
-// Complex<R> is a rig / commutative ring (a FIELD when R is one), registered by
-// PROPAGATION from R.  So the exact coat-hanger ℂ = Complex<ℚ(√2)> is a
-// certified semiring, while Complex<double> is correctly NOT associative (IEEE
-// rounding, per the note above; associativity opt-in stays with ieee::IEEE<F>).
-// This is what lets ℂ satisfy category::IsSemiring (= IsRig), so the semiring
+// Complex<R> = R[i]/(i²+1) is a rig / commutative ring (a FIELD when x²+1 is
+// irreducible over R), its rig traits lifted by PROPAGATION from R.  So the
+// exact coat-hanger ℂ = Complex<ℚ(√2)> is a certified semiring, while
+// Complex<double> is correctly NOT associative (IEEE; that opt-in stays with
+// ieee::IEEE<F>).  This lets ℂ satisfy category::IsSemiring, so the semiring
 // bra-ket inner_product ⟨·|·⟩ (linear_algebra:transfer) works over exact ℂ.
+// (The traits are lifted per-trait rather than via quotient_algebra_base ---
+// ℂ already carries its own IsQuotientAlgebra registration in the HSP-legs
+// block below, and a second quotient_algebra_base base would conflict.)
 template <typename R>
 struct is_exact_total<dedekind::numbers::Complex<R>,
                       std::plus<dedekind::numbers::Complex<R>>>
@@ -371,12 +374,7 @@ template <typename R>
 inline constexpr bool
     is_invertible_v<dedekind::numbers::Complex<R>,
                     std::plus<dedekind::numbers::Complex<R>>> =
-        true;  // additive inverse −z always exists
-template <typename R>
-inline constexpr bool
-    is_invertible_v<dedekind::numbers::Complex<R>,
-                    std::multiplies<dedekind::numbers::Complex<R>>> =
-        is_invertible_v<R, std::multiplies<R>>;  // ℂ is a field iff R is
+        true;  // additive inverse −z always exists (Complex<R> is a ring)
 
 template <typename R>
 struct inverse_trait<dedekind::numbers::Complex<R>,
@@ -385,6 +383,23 @@ struct inverse_trait<dedekind::numbers::Complex<R>,
   using value_type = dedekind::numbers::Complex<R>;
   static constexpr value_type compute(const value_type& z) { return -z; }
 };
+
+// FIELD-ness does NOT lift uniformly --- the discriminant classification.
+// Complex<R> = R[i]/(i²+1) is a field iff x²+1 is IRREDUCIBLE over R, i.e. R is
+// formally real (−1 not a square).  For our carriers that is exactly "R is
+// totally ordered": ℚ(√2) qualifies, so ℂ = Complex<ℚ(√2)> IS a field; but
+// Complex<ℚ(√2)> already contains i, so Complex<Complex<ℚ(√2)>> SPLITS into
+// zero divisors (NOT a field), and Complex<double> is excluded by
+// associativity above.  So gate multiplicative invertibility on the ORDER of
+// the base, not on R's own field flag (which would falsely certify the split
+// extension) --- this is the fix for the field over-certification.  Parabolic
+// sibling: Dual<F> = F[ε]/(ε²) registers NO multiplicative invertibility (ε is
+// nilpotent) --- a ring, never a field.
+template <typename R>
+inline constexpr bool
+    is_invertible_v<dedekind::numbers::Complex<R>,
+                    std::multiplies<dedekind::numbers::Complex<R>>> =
+        std::totally_ordered<R> && is_invertible_v<R, std::multiplies<R>>;
 
 }  // namespace dedekind::category
 

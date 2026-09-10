@@ -93,13 +93,14 @@ constexpr S add_fold(std::index_sequence<K...>, S zero, Term term) {
  *          @c ⊕-fold over the (low) rank dimension is the matrix-contraction
  *          kernel, evaluated as a bounded compile-time reduction.
  *
- * @note This folds an @b enumerated finite index @f$k<N@f$.  When the index is
- *       @b intensional (a function space over an infinite domain) the fold
- *       cannot enumerate; the sum must @b collapse via the domain's structure.
- *       @c geometric_sum below is that structure-directed @f$\Sigma@f$ for the
- *       geometric / cyclic case: it computes @f$\sum_{k<N} r^k@f$ in closed
- *       form, so the DFT / character orthogonality falls out with @b no walk of
- *       the domain.  Same reduction role, symbolic strategy.
+ * @note This folds an @b enumerated finite index @f$k<N@f$.  The general
+ *       ambition is a structure-directed @f$\Sigma@f$ that @b collapses the sum
+ *       instead of enumerating it --- the first concrete case being
+ *       @c geometric_sum below, the finite geometric / cyclic closed form (from
+ *       which the DFT / character orthogonality falls out with no walk of the
+ *       index).  A truly @b intensional @f$\Sigma_d@f$ over an infinite domain
+ *       is the tracked follow-up; both share this @b reduction role, differing
+ *       in strategy.
  */
 export template <
     std::size_t N, typename Bra, typename Ket,
@@ -120,70 +121,72 @@ constexpr S inner_product(const Bra& w, const Ket& v) {
 }
 
 // ---------------------------------------------------------------------------
-// The SYMBOLIC Σ: the structure-directed reduction that generalises the finite
-// add_fold above to an INTENSIONAL index.  Where inner_product walks an
-// enumerated k<N, geometric_sum COLLAPSES Σ_{k<N} r^k by the ring closed form
-// (r^N − 1)/(r − 1) — O(log N), never an O(N) enumeration, and for r an N-th
-// root of unity it is exactly 0 / N (the DFT / character orthogonality),
-// decided by the group structure alone.  This is the against-the-grain point:
-// the sum over a structured domain is a closed form, NOT a `for` over points.
+// The structure-directed Σ: geometric_sum collapses Σ_{k<N} r^k in O(log N) by
+// DOUBLING — S(2m) = S(m) ⊕ rᵐ ⊗ S(m) — using only the semiring ⊕/⊗.  So it is
+// DIVISION-FREE and correct over ANY rig (tropical, bool, ℤ/2^w, and a field
+// alike), never an O(N) walk of the index, and free of the overflow-prone
+// unconditional final square a plain fast-power would incur.  For r an N-th
+// root of unity the doubling makes the cancellation STRUCTURAL: the top factor
+// (1 ⊕ r^{N/2}) carries ζ^{N/2} = −1, so the whole sum is exactly 0 (the DFT /
+// character orthogonality Σ_{k∈ℤ/N} ζ^{mk} = N·[N|m]).  This is the FIRST
+// concrete structured reduction — the finite geometric / cyclic case; the
+// general intensional Σ_d over an infinite function-space domain (the L² inner
+// product) is a tracked follow-up that adds a domain/reduction abstraction on
+// top of this closed form.
 // ---------------------------------------------------------------------------
 
-/** @brief @f$r^n@f$ by fast exponentiation (@c O(log @c n)) — the closed
- *  form's only cost. */
-template <typename S>
-constexpr S nat_pow(S r, std::size_t n) {
-  S acc = dedekind::category::identity_v<S, std::multiplies<S>>;  // 1
-  while (n) {
-    if (n & 1u) acc = acc * r;
-    r = r * r;
-    n >>= 1u;
+namespace detail_geom {
+/** @brief @f$(\sum_{k<N} r^k,\ r^N)@f$ by @c O(log @c N) doubling,
+ *  @b division-free (only the semiring @c ⊕/@c ⊗), so correct over any rig and
+ *  free of an overflow-prone unconditional final square.
+ *  @c S(2m)=S(m)⊕rᵐ⊗S(m); the odd step adds the trailing term and advances the
+ *  running power. */
+template <typename S, typename Add, typename Mult>
+constexpr std::pair<S, S> geo_pair(const S& r, std::size_t N) {
+  const S zero = dedekind::category::identity_v<S, Add>;
+  const S one = dedekind::category::identity_v<S, Mult>;
+  if (N == 0) return {zero, one};
+  const std::pair<S, S> lo =
+      geo_pair<S, Add, Mult>(r, N / 2);                  // Σ_{k<⌊N/2⌋}, r^⌊N/2⌋
+  S sum = Add{}(lo.first, Mult{}(lo.second, lo.first));  // Σ_{k<2⌊N/2⌋}
+  S pow = Mult{}(lo.second, lo.second);                  // r^{2⌊N/2⌋}
+  if (N & 1u) {  // odd: + r^{N-1}, then r^N
+    sum = Add{}(sum, pow);
+    pow = Mult{}(pow, r);
   }
-  return acc;
+  return {sum, pow};
 }
-
-/** @brief The additive @f$n\cdot s@f$ by double-and-add (@c O(log @c n)) ---
- * the
- *  @c N-fold sum @f$\sum_{k<N} 1 = N\cdot 1@f$ in the @c r=1 degenerate case,
- *  without an @c N-step walk. */
-template <typename S>
-constexpr S nat_scale(S s, std::size_t n) {
-  S acc = dedekind::category::identity_v<S, std::plus<S>>;  // 0
-  while (n) {
-    if (n & 1u) acc = acc + s;
-    s = s + s;
-    n >>= 1u;
-  }
-  return acc;
-}
+}  // namespace detail_geom
 
 /**
- * @brief The @b symbolic geometric reduction
- *        @f$\sum_{k=0}^{N-1} r^k = \dfrac{r^N - 1}{r - 1}@f$
- *        (@f$= N\cdot 1@f$ when @f$r = 1@f$).
+ * @brief The @b structure-directed finite geometric sum
+ *        @f$\sum_{k=0}^{N-1} r^k@f$, in closed form.
  *
  * @details The closed-form sibling of @c inner_product's @c add_fold: it
- *          collapses the geometric sum via the ring structure in @c O(log @c N)
- *          rather than enumerating the @c N terms.  When @c r is an @c N-th
- * root of unity (@f$r^N = 1@f$) it evaluates @b exactly to @f$0@f$
- *          (@f$r\neq 1@f$) or @f$N\cdot 1@f$ (@f$r = 1@f$) --- the @b DFT /
- *          character orthogonality
+ *          collapses the geometric sum by @b doubling in @c O(log @c N) rather
+ *          than walking the @c N terms, using @b only the semiring @c ⊕/@c ⊗
+ *          --- @b division-free, hence correct over @b any rig (tropical,
+ *          @c bool, @c ℤ/2^w, and a field alike; no truncating-division or
+ *          modular-cancellation hazard).  When @c r is an @c N-th root of unity
+ *          it is @b exactly @f$0@f$ (@f$r\neq 1@f$: the top factor
+ *          @f$1\oplus r^{N/2}=1\oplus(-1)=0@f$) or @f$N\cdot 1@f$
+ *          (@f$r=1@f$): the @b DFT / character orthogonality
  *          @f$\sum_{k\in\mathbb{Z}/N}\zeta^{\,mk} = N\,[\,N \mid m\,]@f$,
- *          decided without touching a single grid point.  This is the
- *          intensional-index @f$\Sigma_d@f$ that the finite fold cannot spell
- *          point-free.  Requires a carrier with @f$-, /, \times@f$ (a field for
- *          the general @f$r@f$; the character case only needs @f$r^N=1@f$).
+ *          decided without touching a single grid point.
+ *
+ *          Scope: this is the @b first concrete structured reduction --- the
+ *          @b finite geometric / cyclic case (@c N is a finite @c size_t, @c r
+ *          a single ratio).  The general @b intensional @f$\Sigma_d@f$ over an
+ *          infinite function-space domain (the @c L² inner product) adds a
+ *          domain / reduction abstraction on top of this and is the tracked
+ *          follow-up; @c geometric_sum itself does @b not yet represent it.
  */
-export template <typename S>
-  requires requires(S a, S b) {
-    a - b;
-    a / b;
-    a * b;
-  }
-constexpr S geometric_sum(S r, std::size_t N) {
-  const S one = dedekind::category::identity_v<S, std::multiplies<S>>;
-  if (r == one) return nat_scale(one, N);    // Σ 1 = N·1
-  return (nat_pow(r, N) - one) / (r - one);  // (r^N − 1)/(r − 1)
+export template <
+    typename S, typename Add = typename dedekind::algebra::semiring_ops<S>::add,
+    typename Mult = typename dedekind::algebra::semiring_ops<S>::mult>
+  requires dedekind::category::IsSemiring<S, Add, Mult>
+constexpr S geometric_sum(const S& r, std::size_t N) {
+  return detail_geom::geo_pair<S, Add, Mult>(r, N).first;
 }
 
 /**

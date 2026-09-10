@@ -75,6 +75,22 @@ TEST_CASE("Bra-ket: P=½(I+U) projects ζ₈ onto cos (the operator S-leg)",
       dedekind::category::IsSemiring<Cx, std::plus<Cx>, std::multiplies<Cx>>,
       "the exact coat-hanger ℂ is a rig (registered by propagation "
       "from ℚ(√2)).");
+
+  // The discriminant classification of Complex<R> = R[i]/(i²+1) (the H-leg):
+  // R formally real (totally ordered) ⇒ x²+1 irreducible ⇒ ℂ is a FIELD; the
+  // rig structure propagates unconditionally, field-ness only conditionally.
+  static_assert(dedekind::category::is_invertible_v<Cx, std::multiplies<Cx>>,
+                "ℂ = Complex<ℚ(√2)> IS a field (x²+1 irreducible over the "
+                "formally-real, totally-ordered ℚ(√2)).");
+  static_assert(
+      !dedekind::category::is_invertible_v<Complex<Cx>,
+                                           std::multiplies<Complex<Cx>>>,
+      "Complex<ℂ> SPLITS (its base ℂ already contains i) — NOT a field.");
+  static_assert(
+      !dedekind::category::IsSemiring<Complex<double>,
+                                      std::plus<Complex<double>>,
+                                      std::multiplies<Complex<double>>>,
+      "Complex<double> is not even a semiring (IEEE breaks associativity).");
   Ket<Cx, 8> e0{};
   e0.c[0] = Cx{R2{1}, R2{}};
   const Bra<Cx, 8> e0_bra{e0.c};
@@ -92,9 +108,10 @@ TEST_CASE(
   // The DFT / character orthogonality over EXACT ℂ, decided symbolically:
   //   ⟨χ_m|χ_n⟩ = Σ_{k∈ℤ/8} ζ₈^{Δk} = geometric_sum(ζ₈^Δ, 8) = 8·[Δ≡0], else 0.
   // NO enumeration of k — the group structure (ζ₈⁸ = 1) collapses the sum.
-  // Δ = 0 (m = n): the diagonal, 8·1.
-  static_assert(geometric_sum(root8(M8{0}), 8) == Cx{R2{8}, R2{}},
-                "Δ=0: ⟨χ_m|χ_m⟩ = 8 (compile-time)");
+  // Δ = 0 (m = n): the diagonal, 8·1.  (Runtime: the exact ℚ(√2) doubling
+  // recursion exceeds the constant-evaluation budget; the unsigned sum above is
+  // the compile-time pin.)
+  CHECK(geometric_sum(root8(M8{0}), 8) == Cx{R2{8}, R2{}});
   // Δ ≠ 0 (m ≠ n): orthogonal, exactly 0.
   CHECK(geometric_sum(root8(M8{1}), 8) == Cx{});
   CHECK(geometric_sum(root8(M8{2}), 8) == Cx{});
