@@ -1038,6 +1038,15 @@ constexpr int sc_sign(const SignedCardinality& v) noexcept {
 }
 }  // namespace detail
 
+/** @brief Is this signed cardinal a FINITE ℤ value (not @c ±ℵ_0 / @c NaZ)?  The
+ *  public query behind Honest-Rejection guards at the carrier boundary --- e.g.
+ *  @c Rational::simplify skips @c euclidean_gcd (which would not terminate on a
+ *  @c NaZ, since @c NaZ @c % @c · @c == @c NaZ) when a numerator/denominator is
+ *  a non-finite sentinel (#680). */
+export constexpr bool is_finite(const SignedCardinality& v) noexcept {
+  return detail::sc_is_finite(v);
+}
+
 /** @brief Convenience constructor for finite signed values. */
 export template <std::integral S>
 constexpr SignedCardinality finite_signed_cardinality(S value) noexcept {

@@ -111,17 +111,27 @@ class Rational {
 
   /** @section rational__The_Simplification_Morphism
    *
-   *  FIXME(#680): when @c Z is the saturating @c SignedCardinality and
+   *  @details #680 GUARD: when @c Z is the saturating @c SignedCardinality and
    *  either @c first or @c second is a non-finite sentinel (@c NaZ or
-   *  @c ±ℵ_0), @c euclidean_gcd's loop @c rhs != Z{0} can fail to
-   *  terminate (@c NaZ @c % anything @c == @c NaZ).  Typical inputs
-   *  stay in the finite fragment and avoid this; an Honest-Rejection
-   *  guard at the carrier boundary is the structurally-right fix.
-   *  Tracked separately so this PR's scope (the integer-classification
-   *  refactor) stays contained.
+   *  @c ±ℵ_0), @c euclidean_gcd's loop @c rhs != Z{0} would not terminate
+   *  (@c NaZ @c % anything @c == @c NaZ).  Such a sentinel is @b not a ring
+   *  element, so it is left UNNORMALISED (it is already its own canonical
+   *  form) --- Honest Rejection at the carrier boundary
+   * ([[project_division_by_zero_posture]]): gcd-normalisation applies only to
+   * the finite fragment.  The guard is a compile-time no-op for carriers with
+   * no non-finite sentinels (plain integers), so normalisation there is
+   * unchanged.
    */
   constexpr void simplify() {
     if (second == Z{0}) throw std::domain_error("Rational: Division by zero.");
+
+    if constexpr (std::same_as<Z, dedekind::sets::SignedCardinality>) {
+      // Non-finite sentinel (NaZ / ±ℵ_0): skip gcd (it would hang), leave
+      // as-is.
+      if (!dedekind::sets::is_finite(first) ||
+          !dedekind::sets::is_finite(second))
+        return;
+    }
 
     Z common = euclidean_gcd(first, second);
     first = first / common;
