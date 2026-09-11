@@ -282,6 +282,16 @@ inline constexpr bool
 
 }  // namespace dedekind::category
 
+// NB: no order-compatibility markers (O1/O2) are registered for @c Real<Q>.
+// They would be inert: @c IsOrderedMultiplicativeGroup (and the @c Complex<R>
+// field gate) require @c category::IsField<R>, and strict @c category::IsField
+// on the exact Dedekind-cut @c Real is deliberately blocked (the @c IsTotal
+// exact-path gate --- see the @c ExactReal witness block below).  @c Real
+// carries only the @b set-indexed @c algebra::IsField (ℝ = Ω<Rational>), not
+// the type-indexed @c category::IsField, so @c Complex<Real> is NOT a certified
+// field.  Add the markers here only once @c category::IsField<Real> lands, with
+// a test (#818 keeps the certified reals to ℚ and ℚ(√D)).
+
 namespace dedekind::numbers {
 
 // embed_ℚ_ℝ removed under ℚ retarget cleanup: the arrow required

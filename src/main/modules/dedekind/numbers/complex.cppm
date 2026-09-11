@@ -18,6 +18,7 @@ module;
 #include <concepts>
 #include <functional>  // std::plus / std::multiplies in trait specialisations
 #include <limits>
+#include <type_traits>  // std::bool_constant for the composite exactness traits
 #include <utility>
 
 export module dedekind.numbers:complex;
@@ -313,6 +314,127 @@ inline constexpr bool
     is_kleene_associative_v<dedekind::numbers::Complex<R>,
                             dedekind::numbers::PartialEmbedRealToComplex<R>> =
         true;
+
+// ---------------------------------------------------------------------------
+// Complex<R> = R[i]/(i²+1) is a rig / commutative ring (a FIELD when x²+1 is
+// irreducible over R), its rig traits lifted by PROPAGATION from R.  So the
+// exact coat-hanger ℂ = Complex<ℚ(√2)> is a certified semiring, while
+// Complex<double> is correctly NOT associative (IEEE; that opt-in stays with
+// ieee::IEEE<F>).  This lets ℂ satisfy category::IsSemiring, so the semiring
+// bra-ket inner_product ⟨·|·⟩ (linear_algebra:transfer) works over exact ℂ.
+// (The traits are lifted per-trait rather than via quotient_algebra_base ---
+// ℂ already carries its own IsQuotientAlgebra registration in the HSP-legs
+// block below, and a second quotient_algebra_base base would conflict.)
+template <typename R>
+struct is_exact_total<dedekind::numbers::Complex<R>,
+                      std::plus<dedekind::numbers::Complex<R>>>
+    : is_exact_total<R, std::plus<R>> {};
+// ℂ's × = (ac−bd, ad+bc) uses R's × AND R's SUBTRACTION, so exact-total × needs
+// R's additive AND multiplicative exactness AND an additive GROUP (truncated −
+// on a semiring is total+exact-in-carrier yet not the real inverse, so × would
+// be falsely certified exact-total).
+template <typename R>
+struct is_exact_total<dedekind::numbers::Complex<R>,
+                      std::multiplies<dedekind::numbers::Complex<R>>>
+    : std::bool_constant<is_exact_total<R, std::multiplies<R>>::value &&
+                         is_exact_total<R, std::plus<R>>::value &&
+                         is_invertible_v<R, std::plus<R>>> {};
+
+// ℂ ADDITION is componentwise, so its associativity/commutativity lift from R's
+// additive laws alone (no cross-terms).  These stay struct specialisations:
+// only the MULTIPLICATIVE variables are shadowed by the quotient forwarding.
+template <typename R>
+struct is_associative<dedekind::numbers::Complex<R>,
+                      std::plus<dedekind::numbers::Complex<R>>>
+    : is_associative<R, std::plus<R>> {};
+template <typename R>
+struct is_commutative<dedekind::numbers::Complex<R>,
+                      std::plus<dedekind::numbers::Complex<R>>>
+    : is_commutative<R, std::plus<R>> {};
+
+// ℂ MULTIPLICATION (ac−bd, ad+bc) expands via R's SUBTRACTION and re-groups the
+// cross terms, so its associativity/commutativity/distributivity each rest on
+// the COMPLETE base-ring contract on R, not a piecewise conjunction: additive
+// associativity + commutativity + additive inverses + R's × associativity +
+// distributivity --- i.e. R is a rng.  A weaker gate (e.g. R's × associativity
+// plus an additive-inverse flag) can falsely certify IsSemigroup<ℂ, ×> for a
+// base whose ADDITION is not associative/commutative.  Gate on the named
+// IsRng<R> contract.  These MUST specialise the is_*_v VARIABLES directly: a
+// struct specialisation is shadowed by algebra/quotient.cppm's generic
+// is_associative_v / is_commutative_v / is_distributive_v<Q, ×> forwarding for
+// IsQuotientAlgebra<Q> (ℂ is one), which forwards ungated from R.
+template <typename R>
+inline constexpr bool
+    is_associative_v<dedekind::numbers::Complex<R>,
+                     std::multiplies<dedekind::numbers::Complex<R>>> =
+        IsRng<R, std::plus<R>, std::multiplies<R>>;
+// ℂ × commutativity additionally needs R's × commutative (ac−bd vs ca−db,
+// ad+bc vs da+cb) --- a commutative rng.
+template <typename R>
+inline constexpr bool
+    is_commutative_v<dedekind::numbers::Complex<R>,
+                     std::multiplies<dedekind::numbers::Complex<R>>> =
+        IsRng<R, std::plus<R>, std::multiplies<R>> &&
+        is_commutative_v<R, std::multiplies<R>>;
+
+template <typename R>
+inline constexpr bool
+    is_distributive_v<dedekind::numbers::Complex<R>,
+                      std::multiplies<dedekind::numbers::Complex<R>>,
+                      std::plus<dedekind::numbers::Complex<R>>> =
+        IsRng<R, std::plus<R>, std::multiplies<R>>;
+
+// (Additive identity/inverse and the multiplicative identity for Complex<R> are
+// registered once, next to quotient_algebra_base, under the more-constrained
+// IsComplexScalar R — see the block below.  No duplicate unconstrained set
+// here.)
+
+// FIELD-ness does NOT lift uniformly --- the discriminant classification.
+// Complex<R> = R[i]/(i²+1) is a field iff x²+1 is IRREDUCIBLE over R.  A
+// sufficient, certificate-decidable condition: R is a (documented) ORDERED
+// FIELD.  An order compatible with the field ops forces −1 < 0, so −1 is not a
+// sum of squares (R is formally real), hence x²+1 is irreducible and ℂ is a
+// field.  Gate on the algebraic concept
+// dedekind::algebra::IsOrderedMultiplicativeGroup<R>, which is
+// category::IsField plus the TWO order-compatibility axiom markers (O1
+// translation, O2 scaling)
+// --- a genuine ordered field.  The carriers with a type-indexed
+// category::IsField AND a compatible order --- ℚ and ℚ(√D) --- opt into both
+// markers, so Complex<ℚ> and Complex<ℚ(√D)> are certified fields through ONE
+// registration, not an ad-hoc per-carrier list.  (The Dedekind-cut ℝ = Real<·>
+// is NOT certified: it carries only the SET-indexed algebra::IsField, not the
+// type-indexed category::IsField the gate needs --- the IsTotal exact-path
+// gate, see real.cppm --- so it opts into no markers and Complex<ℝ> gets no
+// field cert yet.)  This is SUFFICIENT, not necessary (x²+1 is also irreducible
+// over the non-orderable 𝔽₃, which simply goes uncertified).  Crucially the
+// gate is NOT std::totally_ordered (mere syntactic comparability, which 𝔽₅
+// satisfies by representatives even though −1 = 2² is a square): the O2 marker
+// is a genuine value-level compatibility witness 𝔽₅ cannot opt into, so
+// Complex<𝔽₅> is correctly excluded (#818 round 8).  Non-orderable bases get NO
+// field certificate: Complex<double> (excluded upstream by associativity ---
+// IEEE), Complex<Complex<·>> (ℂ opts into neither marker, so the bicomplex base
+// is not an ordered field --- it splits into zero divisors).  Parabolic
+// sibling: Dual<F> = F[ε]/(ε²) registers no multiplicative inverse (ε
+// nilpotent) --- a ring, never a field.
+//
+// Existence witness only: IsField reads @c exists, never @c compute (nothing
+// in-tree invokes @c inverse_trait::compute; the public inverse is @c
+// operator/).  So we do NOT reimplement division --- @c compute delegates to
+// the one true @c operator/ (z⁻¹ = 1/z), keeping trait and division in
+// lock-step and sharing one honest fixed-precision story: the scalar carrier's
+// |z|² = a²+b² division can saturate for large z, a scalar-carrier limitation
+// (overflow-safe division is its concern, #228-family), not a ℂ-level one, and
+// it does not bear on the field certificate.
+template <typename R>
+  requires dedekind::algebra::IsOrderedMultiplicativeGroup<R>
+struct inverse_trait<dedekind::numbers::Complex<R>,
+                     std::multiplies<dedekind::numbers::Complex<R>>> {
+  static constexpr bool exists = true;
+  using value_type = dedekind::numbers::Complex<R>;
+  static constexpr value_type compute(const value_type& z) {
+    return value_type{R{1}, R{}} / z;
+  }
+};
 
 }  // namespace dedekind::category
 
@@ -653,10 +775,12 @@ struct identity_trait<dedekind::numbers::Complex<R>,
   static constexpr value_type value = value_type{R{1}, R{}};
 };
 
+// −z = (−a, −b) exists iff R itself is an additive group; over a bare additive
+// monoid (ℕ, truncated −) Complex<R> has no additive inverse either.
 template <dedekind::numbers::IsComplexScalar R>
 inline constexpr bool is_invertible_v<
     dedekind::numbers::Complex<R>, std::plus<dedekind::numbers::Complex<R>>> =
-    true;
+    is_invertible_v<R, std::plus<R>>;
 
 template <dedekind::numbers::IsComplexScalar R>
 struct inverse_trait<dedekind::numbers::Complex<R>,

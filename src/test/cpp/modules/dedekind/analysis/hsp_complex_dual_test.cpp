@@ -18,6 +18,7 @@
  */
 #include <array>
 #include <catch2/catch_test_macros.hpp>
+#include <functional>  // std::plus / std::multiplies for the ring/field witnesses
 #include <utility>
 
 import dedekind.algebra;
@@ -131,6 +132,29 @@ TEST_CASE("HSP-H: ℂ = ℝ[i]/(i²+1) and 𝔻 = ℝ[ε]/(ε²) as quotient alg
           "[analysis][numbers][hsp][quotient]") {
   STATIC_REQUIRE(dedekind::category::IsQuotientAlgebra<Cx>);
   STATIC_REQUIRE(dedekind::category::IsQuotientAlgebra<Du>);
+
+  // The ALGEBRAIC classification of the two H-leg quotients --- the
+  // discriminant trichotomy.  Both are commutative rings (rig traits lifted
+  // from ℝ by propagation); field-ness is discriminant-dependent:
+  //   ℂ = ℝ[i]/(x²+1): x²+1 IRREDUCIBLE over the formally-real ℝ ⇒ a FIELD;
+  //   𝔻 = ℝ[ε]/(ε²):  ε is NILPOTENT (ε²=0, a zero divisor) ⇒ a ring, NOT a
+  //                    field (the parabolic/local-ring sibling).
+  STATIC_REQUIRE(
+      dedekind::category::IsRing<Cx, std::plus<Cx>, std::multiplies<Cx>>);
+  STATIC_REQUIRE(
+      dedekind::category::IsRing<Du, std::plus<Du>, std::multiplies<Du>>);
+  // Assert the public IsField concept (composes commutative-ring +
+  // multiplicative-group), so the witness fails if any part of the field chain
+  // is missing --- not just the is_invertible_v flag.
+  STATIC_REQUIRE(
+      dedekind::category::IsField<Cx, std::plus<Cx>, std::multiplies<Cx>>);
+  // The field certificate is NOT ℚ(√2)-specific: it is gated on R being an
+  // ORDERED FIELD (formally real ⇒ x²+1 irreducible), so ℂ over the base
+  // rational field ℚ is a field through the same single registration.
+  STATIC_REQUIRE(dedekind::category::IsField<Complex<Q>, std::plus<Complex<Q>>,
+                                             std::multiplies<Complex<Q>>>);
+  STATIC_REQUIRE(  // 𝔻 is a ring, NOT a field (ε nilpotent)
+      !dedekind::category::IsField<Du, std::plus<Du>, std::multiplies<Du>>);
 
   // The defining quotient relations, run: i² = −1 and ε² = 0.
   const Cx i{R2{}, R2{1}};

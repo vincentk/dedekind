@@ -92,6 +92,16 @@ constexpr S add_fold(std::index_sequence<K...>, S zero, Term term) {
  *          max-plus eigenvalue that governs the rank-1 transfer power.  The
  *          @c ⊕-fold over the (low) rank dimension is the matrix-contraction
  *          kernel, evaluated as a bounded compile-time reduction.
+ *
+ * @note This folds an @b enumerated finite index @f$k<N@f$.  The general
+ *       ambition is a structure-directed @f$\Sigma@f$ that @b collapses the sum
+ *       instead of enumerating it --- the first concrete case being
+ *       @c geometric_sum below, the finite geometric / cyclic closed form (from
+ *       which the DFT --- @b Discrete @b Fourier @b Transform --- / character
+ *       orthogonality falls out with no walk of the index).  A truly
+ *       @b intensional @f$\Sigma_d@f$ over an infinite domain
+ *       is the tracked follow-up; both share this @b reduction role, differing
+ *       in strategy.
  */
 export template <
     std::size_t N, typename Bra, typename Ket,
@@ -109,6 +119,93 @@ constexpr S inner_product(const Bra& w, const Ket& v) {
       [&](std::size_t k) {
         return Mult{}(w(static_cast<WD>(k)), v(static_cast<VD>(k)));
       });
+}
+
+// ---------------------------------------------------------------------------
+// The structure-directed Σ: geometric_sum collapses Σ_{k<N} r^k in O(log N) by
+// DOUBLING — S(2m) = S(m) ⊕ rᵐ ⊗ S(m) — using only the semiring ⊕/⊗.  So it is
+// DIVISION-FREE and correct over ANY rig (tropical, bool, ℤ/2^w, and a field
+// alike), never an O(N) walk of the index, and free of the overflow-prone
+// unconditional final square a plain fast-power would incur.  Over a FIELD, for
+// a PRIMITIVE N-th root of unity ζ and ANY exponent m, the ratio r = ζ^m gives
+// the DFT / character orthogonality Σ_{k∈ℤ/N} ζ^{mk} = N·[N|m]: N·1 when N|m
+// (r=1), else exactly 0.  The doubling realises the cancellation --- at the top
+// factor (1 ⊕ ζ^{N/2}) = (1 ⊕ (−1)) = 0 ONLY in the even-N, coprime-m case
+// (ζ^{N/2}=−1 needs N even); for odd N or a non-primitive r = ζ^m (smaller
+// order, e.g. ζ₈² = i with i⁴ = 1 ≠ −1) the sum still vanishes, with the
+// cancellation occurring LOWER in the recursion instead.  That
+// orthogonality is FIELD-specific — it needs the additive inverse −1; the
+// ALGORITHM stays semiring-generic, but over a bare rig with only r^N = 1 the
+// sum need not vanish (e.g. r = 3 in ℤ/8: 3²=1 yet 1+3 = 4).
+// This is the FIRST concrete structured reduction — the finite geometric case;
+// the
+// general intensional Σ_d over an infinite function-space domain (the L² inner
+// product) is a tracked follow-up that adds a domain/reduction abstraction on
+// top of this closed form.
+// ---------------------------------------------------------------------------
+
+namespace detail_geom {
+/** @brief @f$(\sum_{k<N} r^k,\ r^N)@f$ by @c O(log @c N) doubling,
+ *  @b division-free (only the semiring @c ⊕/@c ⊗), so correct over any rig and
+ *  free of an overflow-prone unconditional final square.
+ *  @c S(2m)=S(m)⊕rᵐ⊗S(m); the odd step adds the trailing term and advances the
+ *  running power. */
+template <typename S, typename Add, typename Mult>
+constexpr std::pair<S, S> geo_pair(const S& r, std::size_t N) {
+  const S zero = dedekind::category::identity_v<S, Add>;
+  const S one = dedekind::category::identity_v<S, Mult>;
+  if (N == 0) return {zero, one};
+  const std::pair<S, S> lo =
+      geo_pair<S, Add, Mult>(r, N / 2);                  // Σ_{k<⌊N/2⌋}, r^⌊N/2⌋
+  S sum = Add{}(lo.first, Mult{}(lo.second, lo.first));  // Σ_{k<2⌊N/2⌋}
+  S pow = Mult{}(lo.second, lo.second);                  // r^{2⌊N/2⌋}
+  if (N & 1u) {  // odd: + r^{N-1}, then r^N
+    sum = Add{}(sum, pow);
+    pow = Mult{}(pow, r);
+  }
+  return {sum, pow};
+}
+}  // namespace detail_geom
+
+/**
+ * @brief The @b structure-directed finite geometric sum
+ *        @f$\sum_{k=0}^{N-1} r^k@f$, in closed form.
+ *
+ * @details The closed-form sibling of @c inner_product's @c add_fold: it
+ *          collapses the geometric sum by @b doubling in @c O(log @c N) rather
+ *          than walking the @c N terms, using @b only the semiring @c ⊕/@c ⊗
+ *          --- @b division-free, hence correct over @b any rig (tropical,
+ *          @c bool, @c ℤ/2^w, and a field alike; no truncating-division or
+ *          modular-cancellation hazard).  Over a @b field, for a @b primitive
+ *          @c N-th root of unity @f$\zeta@f$ and @b any exponent @c m, the
+ * ratio
+ *          @f$r=\zeta^m@f$ gives the @b DFT / character orthogonality
+ *          @f$\sum_{k\in\mathbb{Z}/N}\zeta^{\,mk} = N\,[\,N \mid m\,]@f$ ---
+ *          @f$N\cdot 1@f$ when @f$N\mid m@f$ (@f$r=1@f$), else @b exactly
+ *          @f$0@f$ --- decided without touching a single grid point.  The
+ *          doubling realises it: the top factor @f$1\oplus\zeta^{N/2}=0@f$ ONLY
+ *          in the @b even-@c N, coprime-@c m case (@f$\zeta^{N/2}=-1@f$ needs
+ *          @c N even); for odd @c N or a non-primitive @f$r=\zeta^m@f$ (smaller
+ *          order, e.g. @f$\zeta_8^2=i@f$ with @f$i^4=1\neq -1@f$) the sum still
+ *          vanishes, the cancellation occurring @b lower in the recursion. That
+ *          vanishing is @b field-specific (it needs the additive inverse
+ *          @f$-1@f$): the sum is semiring-generic but need @b not vanish over a
+ *          bare rig where merely @f$r^N=1@f$ (e.g. @f$r=3@f$ in @c ℤ/8, where
+ *          @f$3^2=1@f$ yet the sum is @f$1+3=4\neq 0@f$).
+ *
+ *          Scope: this is the @b first concrete structured reduction --- the
+ *          @b finite geometric / cyclic case (@c N is a finite @c size_t, @c r
+ *          a single ratio).  The general @b intensional @f$\Sigma_d@f$ over an
+ *          infinite function-space domain (the @c L² inner product) adds a
+ *          domain / reduction abstraction on top of this and is the tracked
+ *          follow-up; @c geometric_sum itself does @b not yet represent it.
+ */
+export template <
+    typename S, typename Add = typename dedekind::algebra::semiring_ops<S>::add,
+    typename Mult = typename dedekind::algebra::semiring_ops<S>::mult>
+  requires dedekind::category::IsSemiring<S, Add, Mult>
+constexpr S geometric_sum(const S& r, std::size_t N) {
+  return detail_geom::geo_pair<S, Add, Mult>(r, N).first;
 }
 
 /**
