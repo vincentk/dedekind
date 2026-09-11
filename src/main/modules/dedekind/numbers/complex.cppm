@@ -390,19 +390,23 @@ struct inverse_trait<dedekind::numbers::Complex<R>,
 };
 
 // FIELD-ness does NOT lift uniformly --- the discriminant classification.
-// Complex<R> = R[i]/(i²+1) is a field iff x²+1 is IRREDUCIBLE over R, i.e. R is
-// FORMALLY REAL (−1 is not a square).  This is NOT implied by
+// Complex<R> = R[i]/(i²+1) is a field iff x²+1 is IRREDUCIBLE over R (over a
+// field: iff −1 is not a square).  FORMAL REALITY of R (−1 not a SUM of
+// squares, i.e. R orderable) is a SUFFICIENT condition --- it implies −1 is not
+// a square, hence irreducibility --- but NOT necessary (e.g. x²+1 is
+// irreducible over the non-formally-real 𝔽₃).  It is also not implied by
 // std::totally_ordered<R> alone: a carrier can be totally ordered by its
-// representatives yet have −1 a square (e.g. 𝔽₅: −1 = 4 = 2²), which splits
+// representatives yet have −1 a square (𝔽₅: −1 = 4 = 2²), which splits
 // Complex<𝔽₅> into zero divisors.  So the multiplicative inverse is registered
 // only for the SUPPORTED formally-real bases --- the real quadratic fields
-// ℚ(√D) (D>1) --- rather than by a blanket order gate.  z⁻¹ = conj(z)/|z|² (the
-// is_invertible_v convention excludes z=0).  This provides the actual inverse,
-// so category::IsField<Complex<ℚ(√D)>> holds through the full chain, not just
+// ℚ(√D) (D>1) --- not by a blanket gate; other irreducible-but-not-supported
+// bases (𝔽₃) simply go uncertified. z⁻¹ = conj(z)/|z|² (the is_invertible_v
+// convention excludes z=0); this provides the actual inverse, so
+// category::IsField<Complex<ℚ(√D)>> holds through the full chain, not just
 // is_invertible_v.  Other bases (Complex<double> — excluded by associativity;
-// Complex<Complex<·>>; 𝔽₅-like carriers) get NO field certificate.  Parabolic
-// sibling: Dual<F> = F[ε]/(ε²) registers no multiplicative inverse (ε
-// nilpotent) --- a ring, never a field.
+// Complex<Complex<·>>; 𝔽₅-like) get NO field certificate.  Parabolic sibling:
+// Dual<F> = F[ε]/(ε²) registers no multiplicative inverse (ε nilpotent) --- a
+// ring, never a field.
 template <long D, typename Q>
 struct inverse_trait<
     dedekind::numbers::Complex<dedekind::numbers::QuadraticReal<D, Q>>,
@@ -413,8 +417,12 @@ struct inverse_trait<
       dedekind::numbers::Complex<dedekind::numbers::QuadraticReal<D, Q>>;
   static constexpr value_type compute(const value_type& z) {
     using Rq = dedekind::numbers::QuadraticReal<D, Q>;
-    return dedekind::numbers::conj(z) /
-           value_type{dedekind::numbers::abs2(z), Rq{}};  // conj(z)/|z|²
+    const Rq n = dedekind::numbers::abs2(z);  // |z|² = re²+im² (the norm)
+    // z⁻¹ = conj(z)/|z|²: divide the two real components by |z|² DIRECTLY.
+    // (value_type/value_type would invoke complex division, forming |z|⁴ and
+    // conj(z)·|z|² intermediates before cancellation --- avoidable blow-ups
+    // that can saturate the rational carrier even when z⁻¹ is representable.)
+    return value_type{z.real() / n, (Rq{} - z.imag()) / n};
   }
 };
 

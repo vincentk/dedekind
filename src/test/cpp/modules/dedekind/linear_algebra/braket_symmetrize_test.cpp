@@ -107,6 +107,11 @@ TEST_CASE(
   // O(log N) doubling (correct over any rig, unsigned included):
   //   Σ_{k<8} 2^k = 2^8 − 1 = 255, no walk of k.
   static_assert(geometric_sum<unsigned>(2u, 8) == 255u, "Σ 2^k = 2^8 − 1");
+  // Exercise both explicit branches of the doubling: the empty base case and a
+  // nontrivial ODD size (odd path adds the trailing term + advances the power).
+  static_assert(geometric_sum<unsigned>(2u, 0) == 0u, "empty sum (N=0) = 0");
+  static_assert(geometric_sum<unsigned>(2u, 3) == 7u,
+                "Σ_{k<3} 2^k = 1+2+4 = 7 (odd N)");
 
   // The DFT / character orthogonality over EXACT ℂ, decided symbolically:
   //   ⟨χ_m|χ_n⟩ = Σ_{k∈ℤ/8} ζ₈^{Δk} = geometric_sum(ζ₈^Δ, 8) = 8·[Δ≡0], else 0.
