@@ -398,20 +398,24 @@ inline constexpr bool
 // dedekind::algebra::IsOrderedMultiplicativeGroup<R>, which is
 // category::IsField plus the TWO order-compatibility axiom markers (O1
 // translation, O2 scaling)
-// --- a genuine ordered field.  The real carriers ℚ, ℚ(√D), ℝ all opt into both
-// markers, so Complex<ℚ>, Complex<ℚ(√D)>, Complex<ℝ> are ALL certified fields
-// through ONE registration, not an ad-hoc per-carrier list.  This is
-// SUFFICIENT, not necessary (x²+1 is also irreducible over the non-orderable
-// 𝔽₃, which simply goes uncertified).  Crucially the gate is NOT
-// std::totally_ordered (mere syntactic comparability, which 𝔽₅ satisfies by
-// representatives even though −1 = 2² is a square): the O2 marker is a genuine
-// value-level compatibility witness 𝔽₅ cannot opt into, so Complex<𝔽₅> is
-// correctly excluded (#818 round 8).  Non-orderable bases get NO field
-// certificate: Complex<double> (excluded upstream by associativity --- IEEE),
-// Complex<Complex<·>> (ℂ opts into neither marker, so the bicomplex base is not
-// an ordered field --- it splits into zero divisors).  Parabolic sibling:
-// Dual<F> = F[ε]/(ε²) registers no multiplicative inverse (ε nilpotent) --- a
-// ring, never a field.
+// --- a genuine ordered field.  The carriers with a type-indexed
+// category::IsField AND a compatible order --- ℚ and ℚ(√D) --- opt into both
+// markers, so Complex<ℚ> and Complex<ℚ(√D)> are certified fields through ONE
+// registration, not an ad-hoc per-carrier list.  (The Dedekind-cut ℝ = Real<·>
+// is NOT certified: it carries only the SET-indexed algebra::IsField, not the
+// type-indexed category::IsField the gate needs --- the IsTotal exact-path
+// gate, see real.cppm --- so it opts into no markers and Complex<ℝ> gets no
+// field cert yet.)  This is SUFFICIENT, not necessary (x²+1 is also irreducible
+// over the non-orderable 𝔽₃, which simply goes uncertified).  Crucially the
+// gate is NOT std::totally_ordered (mere syntactic comparability, which 𝔽₅
+// satisfies by representatives even though −1 = 2² is a square): the O2 marker
+// is a genuine value-level compatibility witness 𝔽₅ cannot opt into, so
+// Complex<𝔽₅> is correctly excluded (#818 round 8).  Non-orderable bases get NO
+// field certificate: Complex<double> (excluded upstream by associativity ---
+// IEEE), Complex<Complex<·>> (ℂ opts into neither marker, so the bicomplex base
+// is not an ordered field --- it splits into zero divisors).  Parabolic
+// sibling: Dual<F> = F[ε]/(ε²) registers no multiplicative inverse (ε
+// nilpotent) --- a ring, never a field.
 //
 // Existence witness only: IsField reads @c exists, never @c compute (nothing
 // in-tree invokes @c inverse_trait::compute; the public inverse is @c

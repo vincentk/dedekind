@@ -282,25 +282,15 @@ inline constexpr bool
 
 }  // namespace dedekind::category
 
-namespace dedekind::algebra {
-
-/** @brief Carrier-promise propagation: @c Real<Q> (the Dedekind completion of
- *  the ordered field @c Q) inherits @c Q's order-compatibility axioms.  The
- *  exact ℝ = @c Real<Rational<I>> earns both markers (base ℚ carries them),
- *  closing @c IsOrderedMultiplicativeGroup<Real<Rational<I>>> and hence
- *  certifying @c Complex<Real<Rational<I>>> as a field (#818).  The IEEE
- *  @c Real<double> does NOT: @c double registers no marker and its @c <=> is
- *  only a @c partial_ordering --- honest, not a silent pass. */
-template <typename Q>
-  requires is_translation_invariant_ordered_v<Q>
-struct is_translation_invariant_ordered<dedekind::numbers::Real<Q>>
-    : std::true_type {};
-template <typename Q>
-  requires is_scaling_invariant_ordered_v<Q>
-struct is_scaling_invariant_ordered<dedekind::numbers::Real<Q>>
-    : std::true_type {};
-
-}  // namespace dedekind::algebra
+// NB: no order-compatibility markers (O1/O2) are registered for @c Real<Q>.
+// They would be inert: @c IsOrderedMultiplicativeGroup (and the @c Complex<R>
+// field gate) require @c category::IsField<R>, and strict @c category::IsField
+// on the exact Dedekind-cut @c Real is deliberately blocked (the @c IsTotal
+// exact-path gate --- see the @c ExactReal witness block below).  @c Real
+// carries only the @b set-indexed @c algebra::IsField (ℝ = Ω<Rational>), not
+// the type-indexed @c category::IsField, so @c Complex<Real> is NOT a certified
+// field.  Add the markers here only once @c category::IsField<Real> lands, with
+// a test (#818 keeps the certified reals to ℚ and ℚ(√D)).
 
 namespace dedekind::numbers {
 
