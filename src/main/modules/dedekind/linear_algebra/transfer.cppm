@@ -208,6 +208,82 @@ constexpr S geometric_sum(const S& r, std::size_t N) {
   return detail_geom::geo_pair<S, Add, Mult>(r, N).first;
 }
 
+// ---------------------------------------------------------------------------
+// The INTENSIONAL semimodule operations on the function space @c Sᴰ = { arrows
+// @c D → @c S }: the pointwise @c ⊕ and the scalar @c ⊗-action, rule-backed.
+// These are the intensional siblings of @c SemimoduleVec's EXTENSIONAL (array)
+// @c ⊕ / @c ⊗ (@c :matnxn), reading the same @c ⊕/⊗ off @c semiring_ops<S>.
+// Gated on @c IsArrow + @c IsSemiring, so they stay @b constexpr and
+// @b std::function-free — the rule-type function-space surface (#537/#764)
+// built on @c IsArrow, never on the erased carrier.  Semiring-GENERIC: the same
+// combinators serve tropical CPM (max-plus), Boolean reachability, and the ℂ
+// Fourier/DFT basis — the vector-side companions of @ref geometric_sum 's
+// closed-form closure and @ref inner_product 's contraction.
+// ---------------------------------------------------------------------------
+
+/** @brief The scalar @c ⊗-action on an arrow @c f : D → S:
+ *  @f$(c \odot f)(x) = c \otimes f(x)@f$.  An @c IsArrow (the scaled vector),
+ *  carrying the scalar @c c and the arrow @c f. */
+export template <typename F,
+                 typename Mult = typename dedekind::algebra::semiring_ops<
+                     typename std::remove_cvref_t<F>::Codomain>::mult>
+struct Scaled {
+  using Domain = typename std::remove_cvref_t<F>::Domain;
+  using Codomain = typename std::remove_cvref_t<F>::Codomain;
+  Codomain c;
+  F f;
+  constexpr Codomain operator()(const Domain& x) const {
+    return Mult{}(c, f(x));
+  }
+};
+
+/** @brief The pointwise @c ⊕ of two arrows over a shared domain:
+ *  @f$(f \boxplus g)(x) = f(x) \oplus g(x)@f$.  An @c IsArrow (the sum vector).
+ */
+export template <typename F, typename G,
+                 typename Add = typename dedekind::algebra::semiring_ops<
+                     typename std::remove_cvref_t<F>::Codomain>::add>
+struct PointwiseSum {
+  using Domain = typename std::remove_cvref_t<F>::Domain;
+  using Codomain = typename std::remove_cvref_t<F>::Codomain;
+  F f;
+  G g;
+  constexpr Codomain operator()(const Domain& x) const {
+    return Add{}(f(x), g(x));
+  }
+};
+
+/** @brief Scale an arrow by a scalar --- the @f$c \odot f@f$ semimodule action.
+ *  @see Scaled */
+export template <
+    typename F, typename S = typename std::remove_cvref_t<F>::Codomain,
+    typename Add = typename dedekind::algebra::semiring_ops<S>::add,
+    typename Mult = typename dedekind::algebra::semiring_ops<S>::mult>
+  requires dedekind::category::IsArrow<F> &&
+           dedekind::category::IsSemiring<S, Add, Mult>
+constexpr Scaled<std::remove_cvref_t<F>, Mult> scaled(S c, F f) {
+  return Scaled<std::remove_cvref_t<F>, Mult>{c, f};
+}
+
+/** @brief Add two arrows pointwise --- the @f$f \boxplus g@f$ semimodule
+ *  addition.  Both factors must share @c Domain and @c Codomain.
+ *  @see PointwiseSum */
+export template <
+    typename F, typename G,
+    typename S = typename std::remove_cvref_t<F>::Codomain,
+    typename Add = typename dedekind::algebra::semiring_ops<S>::add,
+    typename Mult = typename dedekind::algebra::semiring_ops<S>::mult>
+  requires dedekind::category::IsArrow<F> && dedekind::category::IsArrow<G> &&
+           std::same_as<typename std::remove_cvref_t<F>::Domain,
+                        typename std::remove_cvref_t<G>::Domain> &&
+           std::same_as<S, typename std::remove_cvref_t<G>::Codomain> &&
+           dedekind::category::IsSemiring<S, Add, Mult>
+constexpr PointwiseSum<std::remove_cvref_t<F>, std::remove_cvref_t<G>, Add>
+pointwise_sum(F f, G g) {
+  return PointwiseSum<std::remove_cvref_t<F>, std::remove_cvref_t<G>, Add>{f,
+                                                                           g};
+}
+
 /**
  * @brief The semiring matrix-product entry @c (A@c ⊗@c B)(i,j) @c = @c
  *        @c ⊕_{k<N} @c A(i,k) @c ⊗ @c B(k,j).  @c A and @c B are any

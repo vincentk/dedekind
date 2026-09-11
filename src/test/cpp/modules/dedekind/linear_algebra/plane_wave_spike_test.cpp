@@ -18,8 +18,10 @@
 //       k∈ℤ² is the finite (2-D) vector; the wave ψ living in ℂ^(ℤ²) is the
 //       infinite one;
 //   (3) pointwise ⊕ and scalar · — the semimodule operations of that function
-//       space (built here as the `Sum` / `Scaled` combinator rules).  This is
-//       the "algebraic infrastructure" in one line: ℂ^(ℤ²) is a ℂ-semimodule;
+//       space, the INTENSIONAL siblings of SemimoduleVec's ⊕/⊗, promoted to
+//       linear_algebra:transfer as the semiring-generic `pointwise_sum` /
+//       `scaled` (this test only wires the narrow wave-vector operator sugar).
+//       The "algebraic infrastructure" in one line: ℂ^(ℤ²) is a ℂ-semimodule;
 //   (4) the reflection U : w ↦ −w, giving the even projector P = ½(I + U).
 //
 // Exactness forces the spectral (symbolic) form: the spatial wave exp(i k·x) is
@@ -29,6 +31,7 @@
 
 import dedekind.category; // IsArrow
 import dedekind.numbers;  // Complex, QuadraticReal, Rational
+import dedekind.linear_algebra; // scaled / pointwise_sum — the intensional semimodule ops
 import dedekind.sets; // IsRelation, Graph, graph(·) — the arrow ⟶ relation lift
 import dedekind.relational; // relative product on graphs
 
@@ -75,33 +78,19 @@ struct PlaneWave {
 };
 constexpr PlaneWave wave(Wave k) { return PlaneWave{k}; }
 
-// scalar ·  — the semimodule scaling of ℂ^(ℤ²): (c·f)(w) = c ⊗ f(w).
-template <class F>
-struct Scaled {
-  Cx c;
-  F f;
-  using Domain = Wave;
-  using Codomain = Cx;
-  constexpr Cx operator()(Wave w) const { return c * f(w); }
-};
+// scalar ·  and  ⊕  are the INTENSIONAL semimodule operations promoted to
+// linear_algebra:transfer (semiring-generic: scaled / pointwise_sum, the
+// rule-backed siblings of SemimoduleVec's ⊕/⊗).  We expose them as NARROW
+// operator sugar on wave-vectors — delegating to the generic combinators — so
+// plane-wave arithmetic reads naturally without a global operator+ leaking onto
+// every IsArrow (SemimoduleVec / Path already carry their own).
 template <IsWaveVector F>
-constexpr Scaled<std::remove_cvref_t<F>> operator*(Cx c, F f) {
-  return Scaled<std::remove_cvref_t<F>>{c, f};
+constexpr auto operator*(Cx c, F f) {
+  return dedekind::linear_algebra::scaled(c, f);
 }
-
-// ⊕  — the semimodule addition of ℂ^(ℤ²): (f ⊕ g)(w) = f(w) ⊕ g(w).
-template <class F, class G>
-struct Sum {
-  F f;
-  G g;
-  using Domain = Wave;
-  using Codomain = Cx;
-  constexpr Cx operator()(Wave w) const { return f(w) + g(w); }
-};
 template <IsWaveVector F, IsWaveVector G>
-constexpr Sum<std::remove_cvref_t<F>, std::remove_cvref_t<G>> operator+(F f,
-                                                                        G g) {
-  return Sum<std::remove_cvref_t<F>, std::remove_cvref_t<G>>{f, g};
+constexpr auto operator+(F f, G g) {
+  return dedekind::linear_algebra::pointwise_sum(f, g);
 }
 
 // The even-symmetry projector  P = ½(I + U),  U : w ↦ −w  (parity/reflection).
