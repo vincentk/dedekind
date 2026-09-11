@@ -148,6 +148,11 @@ TEST_CASE("HSP-H: ℂ = ℝ[i]/(i²+1) and 𝔻 = ℝ[ε]/(ε²) as quotient alg
   // is missing --- not just the is_invertible_v flag.
   STATIC_REQUIRE(
       dedekind::category::IsField<Cx, std::plus<Cx>, std::multiplies<Cx>>);
+  // The field certificate is NOT ℚ(√2)-specific: it is gated on R being an
+  // ORDERED FIELD (formally real ⇒ x²+1 irreducible), so ℂ over the base
+  // rational field ℚ is a field through the same single registration.
+  STATIC_REQUIRE(dedekind::category::IsField<Complex<Q>, std::plus<Complex<Q>>,
+                                             std::multiplies<Complex<Q>>>);
   STATIC_REQUIRE(  // 𝔻 is a ring, NOT a field (ε nilpotent)
       !dedekind::category::IsField<Du, std::plus<Du>, std::multiplies<Du>>);
 
