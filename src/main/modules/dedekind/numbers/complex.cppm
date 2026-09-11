@@ -342,10 +342,16 @@ template <typename R>
 struct is_associative<dedekind::numbers::Complex<R>,
                       std::plus<dedekind::numbers::Complex<R>>>
     : is_associative<R, std::plus<R>> {};
+// ℂ's × = (ac−bd, ad+bc) uses R's SUBTRACTION, so its associativity and
+// distributivity hold only when R is an additive GROUP (real −), not a bare
+// semiring: over ℕ with truncated subtraction complex × is not associative
+// (e.g. (2,1)·(1,2)·(0,1) reassociates differently).  Gate on
+// is_invertible_v<R, +> --- R has additive inverses.
 template <typename R>
 struct is_associative<dedekind::numbers::Complex<R>,
                       std::multiplies<dedekind::numbers::Complex<R>>>
-    : is_associative<R, std::multiplies<R>> {};
+    : std::bool_constant<is_associative<R, std::multiplies<R>>::value &&
+                         is_invertible_v<R, std::plus<R>>> {};
 template <typename R>
 struct is_commutative<dedekind::numbers::Complex<R>,
                       std::plus<dedekind::numbers::Complex<R>>>
@@ -356,11 +362,12 @@ struct is_commutative<dedekind::numbers::Complex<R>,
     : is_commutative<R, std::multiplies<R>> {};
 
 template <typename R>
-inline constexpr bool
-    is_distributive_v<dedekind::numbers::Complex<R>,
-                      std::multiplies<dedekind::numbers::Complex<R>>,
-                      std::plus<dedekind::numbers::Complex<R>>> =
-        is_distributive_v<R, std::multiplies<R>, std::plus<R>>;
+inline constexpr bool is_distributive_v<
+    dedekind::numbers::Complex<R>,
+    std::multiplies<dedekind::numbers::Complex<R>>,
+    std::plus<dedekind::numbers::Complex<R>>> =
+    is_distributive_v<R, std::multiplies<R>, std::plus<R>> &&
+    is_invertible_v<R, std::plus<R>>;  // × uses R's − ⇒ needs additive group
 
 template <typename R>
 struct identity_trait<dedekind::numbers::Complex<R>,
@@ -417,12 +424,25 @@ struct inverse_trait<
       dedekind::numbers::Complex<dedekind::numbers::QuadraticReal<D, Q>>;
   static constexpr value_type compute(const value_type& z) {
     using Rq = dedekind::numbers::QuadraticReal<D, Q>;
-    const Rq n = dedekind::numbers::abs2(z);  // |z|² = re²+im² (the norm)
-    // z⁻¹ = conj(z)/|z|²: divide the two real components by |z|² DIRECTLY.
-    // (value_type/value_type would invoke complex division, forming |z|⁴ and
-    // conj(z)·|z|² intermediates before cancellation --- avoidable blow-ups
-    // that can saturate the rational carrier even when z⁻¹ is representable.)
-    return value_type{z.real() / n, (Rq{} - z.imag()) / n};
+    const Rq a = z.real(), b = z.imag(), zero{}, one{1};
+    // Axis fast paths: no component square (|z|²) is ever formed.
+    if (b == zero) return value_type{one / a, zero};  // 1/a   (real axis)
+    if (a == zero) return value_type{zero, zero - one / b};  // 1/(bi) = −i/b
+    // Smith's scaled reciprocal: divide through by the LARGER-magnitude
+    // component so no re²+im² is formed --- the intermediates stay bounded by
+    // the larger component, hence representable whenever z⁻¹ is, avoiding
+    // saturation of the fixed-precision rational carrier.
+    //   z⁻¹ = conj(z)/|z|² = (a − bi)/(a²+b²).
+    const Rq abs_a = a < zero ? zero - a : a;
+    const Rq abs_b = b < zero ? zero - b : b;
+    if (abs_a >= abs_b) {
+      const Rq t = b / a;      // |t| ≤ 1
+      const Rq d = a + b * t;  // = a + b²/a, magnitude ~ |a|
+      return value_type{one / d, zero - t / d};
+    }
+    const Rq t = a / b;      // |t| ≤ 1
+    const Rq d = a * t + b;  // = a²/b + b, magnitude ~ |b|
+    return value_type{t / d, zero - one / d};
   }
 };
 
