@@ -1,6 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <concepts>
 #include <type_traits>
+#include <utility>
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SPIKE — Figure 6, rows 2–3 ("the same construction, made exact"), the
@@ -28,6 +29,8 @@
 
 import dedekind.category; // IsArrow
 import dedekind.numbers;  // Complex, QuadraticReal, Rational
+import dedekind.sets; // IsRelation, Graph, graph(·) — the arrow ⟶ relation lift
+import dedekind.relational; // relative product on graphs
 
 using dedekind::category::IsArrow;
 using dedekind::numbers::Complex;
@@ -132,6 +135,22 @@ TEST_CASE("Figure 6 row 2: ψ is a superposition of plane-wave symbols",
   // ψ IS a vector in the function space ℂ^(ℤ²): an IsArrow, no finiteness.
   static_assert(IsArrow<decltype(psi)>,
                 "ψ is a vector in the function space ℂ^(ℤ²) (an IsArrow).");
+
+  // The SAME ψ, lifted by graph(·), is the predicate-on-pairs view:
+  //   graph(ψ) = { (w, c) | c = ψ(w) } ⊆ ℤ² × ℂ
+  // graph(·) targets the Set<pair> relation ENCODING (IsRelation: Domain =
+  // pair<Wave,ℂ>) — NOT the curried 2-arg IsBinaryRelation/IsFunction form; the
+  // two are distinct encodings.  GraphPredicate carries ψ, so the lift is
+  // lossless (graphs compose by the relative product).  IsArrow stays the
+  // carrier; graph(·) is the bridge to the relational/predicate lattice where
+  // range/support predicates live.
+  static_assert(
+      dedekind::sets::IsRelation<decltype(dedekind::sets::graph(psi)), Wave,
+                                 Cx>,
+      "graph(ψ) is the Set<pair> relation view (a predicate on pairs).");
+  // Membership carries ψ:  (k1, 2) ∈ Γ_ψ,  (k1, 0) ∉ Γ_ψ.
+  CHECK(dedekind::sets::graph(psi)(std::pair<Wave, Cx>{k1, 2_re}));
+  CHECK_FALSE(dedekind::sets::graph(psi)(std::pair<Wave, Cx>{k1, Cx{}}));
 
   // Its spectrum, read off exactly — 2 at k1, i at k2, 0 elsewhere.
   static_assert(psi(k1) == 2_re, "c_{k1} = 2");
