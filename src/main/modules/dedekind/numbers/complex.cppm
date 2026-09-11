@@ -346,12 +346,17 @@ struct is_associative<dedekind::numbers::Complex<R>,
 // distributivity hold only when R is an additive GROUP (real −), not a bare
 // semiring: over ℕ with truncated subtraction complex × is not associative
 // (e.g. (2,1)·(1,2)·(0,1) reassociates differently).  Gate on
-// is_invertible_v<R, +> --- R has additive inverses.
+// is_invertible_v<R, +> --- R has additive inverses.  This MUST specialise the
+// is_associative_v VARIABLE directly (like is_distributive_v below): a struct
+// specialisation would be shadowed by algebra/quotient.cppm's generic
+// is_associative_v<Q, ×> forwarding for IsQuotientAlgebra<Q> (ℂ is one), which
+// forwards ungated from R and would bypass this gate.
 template <typename R>
-struct is_associative<dedekind::numbers::Complex<R>,
-                      std::multiplies<dedekind::numbers::Complex<R>>>
-    : std::bool_constant<is_associative<R, std::multiplies<R>>::value &&
-                         is_invertible_v<R, std::plus<R>>> {};
+inline constexpr bool
+    is_associative_v<dedekind::numbers::Complex<R>,
+                     std::multiplies<dedekind::numbers::Complex<R>>> =
+        is_associative_v<R, std::multiplies<R>> &&
+        is_invertible_v<R, std::plus<R>>;
 template <typename R>
 struct is_commutative<dedekind::numbers::Complex<R>,
                       std::plus<dedekind::numbers::Complex<R>>>

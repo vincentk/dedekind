@@ -130,9 +130,10 @@ constexpr S inner_product(const Bra& w, const Ket& v) {
 // a PRIMITIVE N-th root of unity ζ and ANY exponent m, the ratio r = ζ^m gives
 // the DFT / character orthogonality Σ_{k∈ℤ/N} ζ^{mk} = N·[N|m]: N·1 when N|m
 // (r=1), else exactly 0.  The doubling realises the cancellation --- at the top
-// factor (1 ⊕ ζ^{N/2}) = (1 ⊕ (−1)) = 0 when m is coprime to N; for a
-// non-primitive r = ζ^m (smaller order, e.g. ζ₈² = i with i⁴ = 1 ≠ −1) the sum
-// still vanishes, with the cancellation occurring LOWER in the recursion.  That
+// factor (1 ⊕ ζ^{N/2}) = (1 ⊕ (−1)) = 0 ONLY in the even-N, coprime-m case
+// (ζ^{N/2}=−1 needs N even); for odd N or a non-primitive r = ζ^m (smaller
+// order, e.g. ζ₈² = i with i⁴ = 1 ≠ −1) the sum still vanishes, with the
+// cancellation occurring LOWER in the recursion instead.  That
 // orthogonality is FIELD-specific — it needs the additive inverse −1; the
 // ALGORITHM stays semiring-generic, but over a bare rig with only r^N = 1 the
 // sum need not vanish (e.g. r = 3 in ℤ/8: 3²=1 yet 1+3 = 4).
@@ -182,9 +183,10 @@ constexpr std::pair<S, S> geo_pair(const S& r, std::size_t N) {
  *          @f$\sum_{k\in\mathbb{Z}/N}\zeta^{\,mk} = N\,[\,N \mid m\,]@f$ ---
  *          @f$N\cdot 1@f$ when @f$N\mid m@f$ (@f$r=1@f$), else @b exactly
  *          @f$0@f$ --- decided without touching a single grid point.  The
- *          doubling realises it: the top factor @f$1\oplus\zeta^{N/2}=0@f$ when
- *          @c m is coprime to @c N; for a non-primitive @f$r=\zeta^m@f$
- * (smaller order, e.g. @f$\zeta_8^2=i@f$ with @f$i^4=1\neq -1@f$) the sum still
+ *          doubling realises it: the top factor @f$1\oplus\zeta^{N/2}=0@f$ ONLY
+ *          in the @b even-@c N, coprime-@c m case (@f$\zeta^{N/2}=-1@f$ needs
+ *          @c N even); for odd @c N or a non-primitive @f$r=\zeta^m@f$ (smaller
+ *          order, e.g. @f$\zeta_8^2=i@f$ with @f$i^4=1\neq -1@f$) the sum still
  *          vanishes, the cancellation occurring @b lower in the recursion. That
  *          vanishing is @b field-specific (it needs the additive inverse
  *          @f$-1@f$): the sum is semiring-generic but need @b not vanish over a
