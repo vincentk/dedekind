@@ -18,6 +18,7 @@ module;
 #include <concepts>
 #include <functional>  // std::plus / std::multiplies in trait specialisations
 #include <limits>
+#include <type_traits>  // std::bool_constant for the composite exactness traits
 #include <utility>
 
 export module dedekind.numbers:complex;
@@ -328,10 +329,14 @@ template <typename R>
 struct is_exact_total<dedekind::numbers::Complex<R>,
                       std::plus<dedekind::numbers::Complex<R>>>
     : is_exact_total<R, std::plus<R>> {};
+// ℂ's × = (ac−bd, ad+bc) uses R's × AND R's +/−, so exact-total × needs BOTH
+// of R's additive and multiplicative exactness (mult exactness alone is not
+// enough — a carrier with exact × but inexact + must not be certified).
 template <typename R>
 struct is_exact_total<dedekind::numbers::Complex<R>,
                       std::multiplies<dedekind::numbers::Complex<R>>>
-    : is_exact_total<R, std::multiplies<R>> {};
+    : std::bool_constant<is_exact_total<R, std::multiplies<R>>::value &&
+                         is_exact_total<R, std::plus<R>>::value> {};
 
 template <typename R>
 struct is_associative<dedekind::numbers::Complex<R>,
@@ -386,20 +391,32 @@ struct inverse_trait<dedekind::numbers::Complex<R>,
 
 // FIELD-ness does NOT lift uniformly --- the discriminant classification.
 // Complex<R> = R[i]/(i²+1) is a field iff x²+1 is IRREDUCIBLE over R, i.e. R is
-// formally real (−1 not a square).  For our carriers that is exactly "R is
-// totally ordered": ℚ(√2) qualifies, so ℂ = Complex<ℚ(√2)> IS a field; but
-// Complex<ℚ(√2)> already contains i, so Complex<Complex<ℚ(√2)>> SPLITS into
-// zero divisors (NOT a field), and Complex<double> is excluded by
-// associativity above.  So gate multiplicative invertibility on the ORDER of
-// the base, not on R's own field flag (which would falsely certify the split
-// extension) --- this is the fix for the field over-certification.  Parabolic
-// sibling: Dual<F> = F[ε]/(ε²) registers NO multiplicative invertibility (ε is
+// FORMALLY REAL (−1 is not a square).  This is NOT implied by
+// std::totally_ordered<R> alone: a carrier can be totally ordered by its
+// representatives yet have −1 a square (e.g. 𝔽₅: −1 = 4 = 2²), which splits
+// Complex<𝔽₅> into zero divisors.  So the multiplicative inverse is registered
+// only for the SUPPORTED formally-real bases --- the real quadratic fields
+// ℚ(√D) (D>1) --- rather than by a blanket order gate.  z⁻¹ = conj(z)/|z|² (the
+// is_invertible_v convention excludes z=0).  This provides the actual inverse,
+// so category::IsField<Complex<ℚ(√D)>> holds through the full chain, not just
+// is_invertible_v.  Other bases (Complex<double> — excluded by associativity;
+// Complex<Complex<·>>; 𝔽₅-like carriers) get NO field certificate.  Parabolic
+// sibling: Dual<F> = F[ε]/(ε²) registers no multiplicative inverse (ε
 // nilpotent) --- a ring, never a field.
-template <typename R>
-inline constexpr bool
-    is_invertible_v<dedekind::numbers::Complex<R>,
-                    std::multiplies<dedekind::numbers::Complex<R>>> =
-        std::totally_ordered<R> && is_invertible_v<R, std::multiplies<R>>;
+template <long D, typename Q>
+struct inverse_trait<
+    dedekind::numbers::Complex<dedekind::numbers::QuadraticReal<D, Q>>,
+    std::multiplies<
+        dedekind::numbers::Complex<dedekind::numbers::QuadraticReal<D, Q>>>> {
+  static constexpr bool exists = true;
+  using value_type =
+      dedekind::numbers::Complex<dedekind::numbers::QuadraticReal<D, Q>>;
+  static constexpr value_type compute(const value_type& z) {
+    using Rq = dedekind::numbers::QuadraticReal<D, Q>;
+    return dedekind::numbers::conj(z) /
+           value_type{dedekind::numbers::abs2(z), Rq{}};  // conj(z)/|z|²
+  }
+};
 
 }  // namespace dedekind::category
 

@@ -143,11 +143,13 @@ TEST_CASE("HSP-H: ℂ = ℝ[i]/(i²+1) and 𝔻 = ℝ[ε]/(ε²) as quotient alg
       dedekind::category::IsRing<Cx, std::plus<Cx>, std::multiplies<Cx>>);
   STATIC_REQUIRE(
       dedekind::category::IsRing<Du, std::plus<Du>, std::multiplies<Du>>);
+  // Assert the public IsField concept (composes commutative-ring +
+  // multiplicative-group), so the witness fails if any part of the field chain
+  // is missing --- not just the is_invertible_v flag.
   STATIC_REQUIRE(
-      dedekind::category::is_invertible_v<Cx,
-                                          std::multiplies<Cx>>);  // ℂ: field
-  STATIC_REQUIRE(!dedekind::category::is_invertible_v<
-                 Du, std::multiplies<Du>>);  // 𝔻: ring, not a field
+      dedekind::category::IsField<Cx, std::plus<Cx>, std::multiplies<Cx>>);
+  STATIC_REQUIRE(  // 𝔻 is a ring, NOT a field (ε nilpotent)
+      !dedekind::category::IsField<Du, std::plus<Du>, std::multiplies<Du>>);
 
   // The defining quotient relations, run: i² = −1 and ε² = 0.
   const Cx i{R2{}, R2{1}};

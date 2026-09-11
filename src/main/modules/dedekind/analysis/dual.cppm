@@ -83,8 +83,9 @@
 
 module;
 #include <concepts>
-#include <functional>  // std::plus / std::multiplies in IsAlgebra witnesses
-#include <limits>      // saturating componentwise + for unsigned carriers
+#include <functional>   // std::plus / std::multiplies in IsAlgebra witnesses
+#include <limits>       // saturating componentwise + for unsigned carriers
+#include <type_traits>  // std::bool_constant for the composite exactness trait
 
 export module dedekind.analysis:dual;
 
@@ -411,11 +412,14 @@ template <typename F>
 struct is_exact_total<dedekind::analysis::Dual<F>,
                       std::plus<dedekind::analysis::Dual<F>>>
     : is_exact_total<F, std::plus<F>> {};
+// 𝔻's × derivative component uses F's × AND F's +, so exact-total × needs
+// BOTH of F's additive and multiplicative exactness (mult alone is not enough).
 template <typename F>
   requires std::regular<F>
 struct is_exact_total<dedekind::analysis::Dual<F>,
                       std::multiplies<dedekind::analysis::Dual<F>>>
-    : is_exact_total<F, std::multiplies<F>> {};
+    : std::bool_constant<is_exact_total<F, std::multiplies<F>>::value &&
+                         is_exact_total<F, std::plus<F>>::value> {};
 
 template <typename F>
   requires std::regular<F>

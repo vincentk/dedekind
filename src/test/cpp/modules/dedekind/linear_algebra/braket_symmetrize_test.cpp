@@ -77,14 +77,16 @@ TEST_CASE("Bra-ket: P=½(I+U) projects ζ₈ onto cos (the operator S-leg)",
       "from ℚ(√2)).");
 
   // The discriminant classification of Complex<R> = R[i]/(i²+1) (the H-leg):
-  // R formally real (totally ordered) ⇒ x²+1 irreducible ⇒ ℂ is a FIELD; the
-  // rig structure propagates unconditionally, field-ness only conditionally.
-  static_assert(dedekind::category::is_invertible_v<Cx, std::multiplies<Cx>>,
-                "ℂ = Complex<ℚ(√2)> IS a field (x²+1 irreducible over the "
-                "formally-real, totally-ordered ℚ(√2)).");
+  // R a formally-real field ⇒ x²+1 irreducible ⇒ ℂ is a FIELD; the rig
+  // structure propagates unconditionally, field-ness only for the supported
+  // formally-real bases.  Assert the public IsField concept (the whole chain).
   static_assert(
-      !dedekind::category::is_invertible_v<Complex<Cx>,
-                                           std::multiplies<Complex<Cx>>>,
+      dedekind::category::IsField<Cx, std::plus<Cx>, std::multiplies<Cx>>,
+      "ℂ = Complex<ℚ(√2)> IS a field (x²+1 irreducible over the formally-real "
+      "ℚ(√2)).");
+  static_assert(
+      !dedekind::category::IsField<Complex<Cx>, std::plus<Complex<Cx>>,
+                                   std::multiplies<Complex<Cx>>>,
       "Complex<ℂ> SPLITS (its base ℂ already contains i) — NOT a field.");
   static_assert(
       !dedekind::category::IsSemiring<Complex<double>,
@@ -101,8 +103,9 @@ TEST_CASE("Bra-ket: P=½(I+U) projects ζ₈ onto cos (the operator S-leg)",
 TEST_CASE(
     "Symbolic Σ: geometric_sum collapses the DFT / character orthogonality",
     "[linear_algebra][braket][symbolic-sum][fourier][exact]") {
-  // The structure-directed sum over an enumerable index, in closed form:
-  //   Σ_{k<8} 2^k = 2^8 − 1 = 255, decided by (r^N−1)/(r−1), no walk of k.
+  // The structure-directed sum over an enumerable index, by the division-free
+  // O(log N) doubling (correct over any rig, unsigned included):
+  //   Σ_{k<8} 2^k = 2^8 − 1 = 255, no walk of k.
   static_assert(geometric_sum<unsigned>(2u, 8) == 255u, "Σ 2^k = 2^8 − 1");
 
   // The DFT / character orthogonality over EXACT ℂ, decided symbolically:

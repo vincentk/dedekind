@@ -125,11 +125,15 @@ constexpr S inner_product(const Bra& w, const Ket& v) {
 // DOUBLING — S(2m) = S(m) ⊕ rᵐ ⊗ S(m) — using only the semiring ⊕/⊗.  So it is
 // DIVISION-FREE and correct over ANY rig (tropical, bool, ℤ/2^w, and a field
 // alike), never an O(N) walk of the index, and free of the overflow-prone
-// unconditional final square a plain fast-power would incur.  For r an N-th
-// root of unity the doubling makes the cancellation STRUCTURAL: the top factor
-// (1 ⊕ r^{N/2}) carries ζ^{N/2} = −1, so the whole sum is exactly 0 (the DFT /
-// character orthogonality Σ_{k∈ℤ/N} ζ^{mk} = N·[N|m]).  This is the FIRST
-// concrete structured reduction — the finite geometric / cyclic case; the
+// unconditional final square a plain fast-power would incur.  Over a FIELD with
+// a PRIMITIVE N-th root of unity (N even, r^{N/2} = −1) the doubling makes the
+// cancellation STRUCTURAL: the top factor (1 ⊕ r^{N/2}) = (1 ⊕ (−1)) = 0, so
+// the sum is exactly 0 (the DFT / character orthogonality Σ_{k∈ℤ/N} ζ^{mk} =
+// N·[N|m]).  That orthogonality is FIELD-specific — it needs the additive
+// inverse −1; the ALGORITHM stays semiring-generic, but over a bare rig with
+// only r^N = 1 the sum need not vanish (e.g. r = 3 in ℤ/8: 3²=1 yet 1+3 = 4).
+// This is the FIRST concrete structured reduction — the finite geometric case;
+// the
 // general intensional Σ_d over an infinite function-space domain (the L² inner
 // product) is a tracked follow-up that adds a domain/reduction abstraction on
 // top of this closed form.
@@ -167,12 +171,17 @@ constexpr std::pair<S, S> geo_pair(const S& r, std::size_t N) {
  *          than walking the @c N terms, using @b only the semiring @c ⊕/@c ⊗
  *          --- @b division-free, hence correct over @b any rig (tropical,
  *          @c bool, @c ℤ/2^w, and a field alike; no truncating-division or
- *          modular-cancellation hazard).  When @c r is an @c N-th root of unity
- *          it is @b exactly @f$0@f$ (@f$r\neq 1@f$: the top factor
- *          @f$1\oplus r^{N/2}=1\oplus(-1)=0@f$) or @f$N\cdot 1@f$
+ *          modular-cancellation hazard).  Over a @b field with a @b primitive
+ *          @c N-th root of unity (@c N even, @f$r^{N/2}=-1@f$) the doubling
+ *          collapses the sum to @b exactly @f$0@f$ (@f$r\neq 1@f$: the top
+ *          factor @f$1\oplus r^{N/2}=1\oplus(-1)=0@f$) or @f$N\cdot 1@f$
  *          (@f$r=1@f$): the @b DFT / character orthogonality
  *          @f$\sum_{k\in\mathbb{Z}/N}\zeta^{\,mk} = N\,[\,N \mid m\,]@f$,
- *          decided without touching a single grid point.
+ *          decided without touching a single grid point.  That vanishing is
+ *          @b field-specific (it needs the additive inverse @f$-1@f$): the sum
+ *          is semiring-generic but need @b not vanish over a bare rig where
+ *          merely @f$r^N=1@f$ (e.g. @f$r=3@f$ in @c ℤ/8, where @f$3^2=1@f$ yet
+ *          the sum is @f$1+3=4\neq 0@f$).
  *
  *          Scope: this is the @b first concrete structured reduction --- the
  *          @b finite geometric / cyclic case (@c N is a finite @c size_t, @c r
