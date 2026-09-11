@@ -329,14 +329,16 @@ template <typename R>
 struct is_exact_total<dedekind::numbers::Complex<R>,
                       std::plus<dedekind::numbers::Complex<R>>>
     : is_exact_total<R, std::plus<R>> {};
-// ℂ's × = (ac−bd, ad+bc) uses R's × AND R's +/−, so exact-total × needs BOTH
-// of R's additive and multiplicative exactness (mult exactness alone is not
-// enough — a carrier with exact × but inexact + must not be certified).
+// ℂ's × = (ac−bd, ad+bc) uses R's × AND R's SUBTRACTION, so exact-total × needs
+// R's additive AND multiplicative exactness AND an additive GROUP (truncated −
+// on a semiring is total+exact-in-carrier yet not the real inverse, so × would
+// be falsely certified exact-total).
 template <typename R>
 struct is_exact_total<dedekind::numbers::Complex<R>,
                       std::multiplies<dedekind::numbers::Complex<R>>>
     : std::bool_constant<is_exact_total<R, std::multiplies<R>>::value &&
-                         is_exact_total<R, std::plus<R>>::value> {};
+                         is_exact_total<R, std::plus<R>>::value &&
+                         is_invertible_v<R, std::plus<R>>> {};
 
 template <typename R>
 struct is_associative<dedekind::numbers::Complex<R>,
@@ -374,32 +376,10 @@ inline constexpr bool is_distributive_v<
     is_distributive_v<R, std::multiplies<R>, std::plus<R>> &&
     is_invertible_v<R, std::plus<R>>;  // × uses R's − ⇒ needs additive group
 
-template <typename R>
-struct identity_trait<dedekind::numbers::Complex<R>,
-                      std::plus<dedekind::numbers::Complex<R>>> {
-  using value_type = dedekind::numbers::Complex<R>;
-  static constexpr value_type value{};  // 0 = 0 + 0i
-};
-template <typename R>
-struct identity_trait<dedekind::numbers::Complex<R>,
-                      std::multiplies<dedekind::numbers::Complex<R>>> {
-  using value_type = dedekind::numbers::Complex<R>;
-  static constexpr value_type value{R{1}, R{}};  // 1 = 1 + 0i
-};
-
-template <typename R>
-inline constexpr bool
-    is_invertible_v<dedekind::numbers::Complex<R>,
-                    std::plus<dedekind::numbers::Complex<R>>> =
-        true;  // additive inverse −z always exists (Complex<R> is a ring)
-
-template <typename R>
-struct inverse_trait<dedekind::numbers::Complex<R>,
-                     std::plus<dedekind::numbers::Complex<R>>> {
-  static constexpr bool exists = true;
-  using value_type = dedekind::numbers::Complex<R>;
-  static constexpr value_type compute(const value_type& z) { return -z; }
-};
+// (Additive identity/inverse and the multiplicative identity for Complex<R> are
+// registered once, next to quotient_algebra_base, under the more-constrained
+// IsComplexScalar R — see the block below.  No duplicate unconstrained set
+// here.)
 
 // FIELD-ness does NOT lift uniformly --- the discriminant classification.
 // Complex<R> = R[i]/(i²+1) is a field iff x²+1 is IRREDUCIBLE over R (over a
@@ -427,27 +407,19 @@ struct inverse_trait<
   static constexpr bool exists = true;
   using value_type =
       dedekind::numbers::Complex<dedekind::numbers::QuadraticReal<D, Q>>;
+  // Existence witness only: IsField reads @c exists, never @c compute (no
+  // caller in-tree invokes @c inverse_trait::compute; the public inverse is @c
+  // operator/).  So we do NOT reimplement division here --- @c compute
+  // delegates to the one true @c operator/ (z⁻¹ = 1/z), keeping the trait and
+  // public division in lock-step and inheriting the SAME fixed-precision
+  // behaviour. The shared scalar division forms |z|² = a²+b², which can
+  // saturate the rational carrier for large z; that is a scalar-carrier
+  // limitation (overflow-safe division is its concern, see #228-family), not a
+  // ℂ-level one, and does not bear on the field certificate.
   static constexpr value_type compute(const value_type& z) {
-    using Rq = dedekind::numbers::QuadraticReal<D, Q>;
-    const Rq a = z.real(), b = z.imag(), zero{}, one{1};
-    // Axis fast paths: no component square (|z|²) is ever formed.
-    if (b == zero) return value_type{one / a, zero};  // 1/a   (real axis)
-    if (a == zero) return value_type{zero, zero - one / b};  // 1/(bi) = −i/b
-    // Smith's scaled reciprocal: divide through by the LARGER-magnitude
-    // component so no re²+im² is formed --- the intermediates stay bounded by
-    // the larger component, hence representable whenever z⁻¹ is, avoiding
-    // saturation of the fixed-precision rational carrier.
-    //   z⁻¹ = conj(z)/|z|² = (a − bi)/(a²+b²).
-    const Rq abs_a = a < zero ? zero - a : a;
-    const Rq abs_b = b < zero ? zero - b : b;
-    if (abs_a >= abs_b) {
-      const Rq t = b / a;      // |t| ≤ 1
-      const Rq d = a + b * t;  // = a + b²/a, magnitude ~ |a|
-      return value_type{one / d, zero - t / d};
-    }
-    const Rq t = a / b;      // |t| ≤ 1
-    const Rq d = a * t + b;  // = a²/b + b, magnitude ~ |b|
-    return value_type{t / d, zero - one / d};
+    return value_type{dedekind::numbers::QuadraticReal<D, Q>{1},
+                      dedekind::numbers::QuadraticReal<D, Q>{}} /
+           z;
   }
 };
 
@@ -790,10 +762,12 @@ struct identity_trait<dedekind::numbers::Complex<R>,
   static constexpr value_type value = value_type{R{1}, R{}};
 };
 
+// −z = (−a, −b) exists iff R itself is an additive group; over a bare additive
+// monoid (ℕ, truncated −) Complex<R> has no additive inverse either.
 template <dedekind::numbers::IsComplexScalar R>
 inline constexpr bool is_invertible_v<
     dedekind::numbers::Complex<R>, std::plus<dedekind::numbers::Complex<R>>> =
-    true;
+    is_invertible_v<R, std::plus<R>>;
 
 template <dedekind::numbers::IsComplexScalar R>
 struct inverse_trait<dedekind::numbers::Complex<R>,
