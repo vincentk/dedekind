@@ -196,18 +196,35 @@ export template <typename T>
 inline constexpr bool is_translation_invariant_ordered_v =
     is_translation_invariant_ordered<T>::value;
 
-// No multiplicative-side marker is exported: unlike the additive case
-// (where the @c is_translation_invariant_ordered marker carries the
-// order claim past @c SignedCardinality 's partial-ordering @c <=>),
-// the multiplicative case's consumers are ordered-field carriers
-// (e.g.\ @c Rational<I>) whose @c <=> is @c std::strong_ordering and
-// which therefore satisfy @c std::totally_ordered structurally.  The
-// composition @c category::IsField<T, ...> @c && @c
-// order::IsTotallyOrdered<T>
-// in @c IsOrderedMultiplicativeGroup below is the upstream-rooted
-// expression of "ordered multiplicative group on the non-zero cone";
-// a separate marker would only re-state what the upstream concepts
-// already prove.
+/**
+ * @brief The MULTIPLICATIVE order-compatibility axiom marker (O2): the
+ *        positive cone is closed under @c *, i.e.\ @c 0≤a ∧ @c 0≤b ⟹
+ *        @c 0≤a·b --- equivalently, scaling by a positive preserves the
+ *        order.  The multiplicative sibling of
+ *        @c is_translation_invariant_ordered (O1, scaling ↔ translation).
+ *
+ * @details Defaults @c false_type; a carrier opts in only when its order is
+ * genuinely compatible with @c * (an @b ordered @b field).  This cannot be a
+ * concept check: O2 is a @f$\forall@f$-law over VALUES, and a concept inspects
+ * only types / operation signatures --- the same wall that makes
+ * @c is_invertible_v / @c is_associative_v opt-in traits, not concept checks.
+ *
+ * @warning An earlier design leaned on @c order::IsTotallyOrdered<T> to stand
+ * in for this axiom ("a separate marker would only re-state what the upstream
+ * concepts prove").  That is FALSE: @c std::totally_ordered is mere syntactic
+ * comparability and does NOT prove O2.  @f$\mathbb{F}_5@f$ orders its
+ * representatives @c 0<1<2<3<4 (so it is @c std::totally_ordered) yet
+ * @c 1·3=3 > 2·3=1 flips the order and @c −1=2² is a square --- it is a field
+ * that is NOT formally real, and @c Complex<𝔽₅> splits into zero divisors.
+ * The structural @c <=> check belongs at this opt-in site (per carrier), not
+ * in the concept --- exactly as for the additive marker.
+ */
+export template <typename T>
+struct is_scaling_invariant_ordered : std::false_type {};
+
+export template <typename T>
+inline constexpr bool is_scaling_invariant_ordered_v =
+    is_scaling_invariant_ordered<T>::value;
 
 /**
  * @concept IsOrderedAdditiveGroup
@@ -250,32 +267,31 @@ concept IsOrderedAdditiveGroup =
  *        scaling of halfspaces.
  *
  * @details
- * Composes two upstream concepts directly:
+ * A field with a total order compatible with BOTH operations.  Composed,
+ * symmetrically with the additive sibling, from the field axioms plus the two
+ * order-compatibility axiom markers --- NOT from @c order::IsTotallyOrdered:
  *   * @c category::IsField<T, ...> --- the type-indexed field axioms
- *     on the carrier @c T (post-PR #674's @c IsField cert on
- *     @c Rational<I>), so the multiplicative
- *     group on the non-zero cone @c (T \\ {0}, @c *) is an abelian
- *     group with multiplicative inverses.
- *   * @c order::IsTotallyOrdered<T> --- @c T's @c <=> decides every
- *     pair via @c std::totally_ordered.  Combined with the field
- *     axiom, this gives an @b ordered @b field; the order is
- *     automatically compatible with @c * via the textbook
- *     positive/negative dichotomy.
+ *     on @c T (the multiplicative group on the non-zero cone
+ *     @c (T \\ {0}, @c *) is abelian with inverses).
+ *   * @c is_translation_invariant_ordered_v<T> --- O1, the additive
+ *     compatibility axiom (@c a≤b ⟹ @c a+c≤b+c).
+ *   * @c is_scaling_invariant_ordered_v<T> --- O2, the multiplicative
+ *     compatibility axiom (@c 0≤a,0≤b ⟹ @c 0≤a·b).
  *
- * This is the precondition for halfspace-pivot transport under
- * scaling: scaling @f$\{x \mid x > k\}@f$ by @c k_E yields
- * @f$\{y \mid y > k \cdot k_E\}@f$ when @c k_E > 0 and the
- * direction-flipped @f$\{y \mid y < k \cdot k_E\}@f$ when @c k_E < 0.
+ * O1 ∧ O2 on a field is exactly an ORDERED FIELD, hence (Artin--Schreier)
+ * FORMALLY REAL: @c −1 is not a sum of squares.  That is the precondition for
+ * halfspace-pivot transport under scaling (@f$\{x \mid x > k\}@f$ scaled by
+ * @c k_E>0 yields @f$\{y \mid y > k\cdot k_E\}@f$; @c k_E<0 flips direction),
+ * and for @c Complex<T>=T[i]/(x²+1) being a field (@c x²+1 irreducible).
  *
- * No carrier-promise marker (unlike the additive sibling): the
- * upstream concepts cover everything.  @c Rational<I> satisfies both
- * (@c category::IsField via PR #674's @c is_invertible_v registration,
- * @c IsTotallyOrdered via @c Rational 's @c std::strong_ordering
- * @c <=>); @c bool / 𝔽₂ satisfies @c IsTotallyOrdered trivially on
- * the 2-element set but the halfspace pivot-transport pattern doesn't
- * apply (no continuous-scaling interpretation on a 2-point carrier);
- * @c Complex<R> correctly fails @c IsTotallyOrdered (no order
- * compatible with the complex multiplication).
+ * @warning Do NOT reintroduce @c order::IsTotallyOrdered here.  It is mere
+ * syntactic comparability and does not prove O2: a field can be
+ * @c std::totally_ordered by representatives yet have @c −1 a square
+ * (@f$\mathbb{F}_5@f$), which this concept must reject.  Compatibility is a
+ * value-law, carried by the markers at their per-carrier opt-in sites --- the
+ * same design as @c IsOrderedAdditiveGroup.  @c Rational<I>, @c QuadraticReal,
+ * @c Real all opt into both markers; @c Complex<R> never opts into @c O2 (no
+ * order compatible with complex @c *).
  *
  * @note The @c k_E = 0 case is degenerate (the scout function
  *       collapses to the constant @c x @c ↦ @c 0; the image is the
@@ -285,7 +301,7 @@ concept IsOrderedAdditiveGroup =
 export template <typename T>
 concept IsOrderedMultiplicativeGroup =
     dedekind::category::IsField<T, std::plus<T>, std::multiplies<T>> &&
-    dedekind::order::IsTotallyOrdered<T>;
+    is_translation_invariant_ordered_v<T> && is_scaling_invariant_ordered_v<T>;
 
 /**
  * @concept IsOrderedCommutativeRing

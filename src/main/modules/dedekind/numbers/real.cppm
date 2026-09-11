@@ -282,6 +282,26 @@ inline constexpr bool
 
 }  // namespace dedekind::category
 
+namespace dedekind::algebra {
+
+/** @brief Carrier-promise propagation: @c Real<Q> (the Dedekind completion of
+ *  the ordered field @c Q) inherits @c Q's order-compatibility axioms.  The
+ *  exact ℝ = @c Real<Rational<I>> earns both markers (base ℚ carries them),
+ *  closing @c IsOrderedMultiplicativeGroup<Real<Rational<I>>> and hence
+ *  certifying @c Complex<Real<Rational<I>>> as a field (#818).  The IEEE
+ *  @c Real<double> does NOT: @c double registers no marker and its @c <=> is
+ *  only a @c partial_ordering --- honest, not a silent pass. */
+template <typename Q>
+  requires is_translation_invariant_ordered_v<Q>
+struct is_translation_invariant_ordered<dedekind::numbers::Real<Q>>
+    : std::true_type {};
+template <typename Q>
+  requires is_scaling_invariant_ordered_v<Q>
+struct is_scaling_invariant_ordered<dedekind::numbers::Real<Q>>
+    : std::true_type {};
+
+}  // namespace dedekind::algebra
+
 namespace dedekind::numbers {
 
 // embed_ℚ_ℝ removed under ℚ retarget cleanup: the arrow required

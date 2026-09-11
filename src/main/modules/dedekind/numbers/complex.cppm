@@ -394,18 +394,21 @@ inline constexpr bool
 // sufficient, certificate-decidable condition: R is a (documented) ORDERED
 // FIELD.  An order compatible with the field ops forces −1 < 0, so −1 is not a
 // sum of squares (R is formally real), hence x²+1 is irreducible and ℂ is a
-// field.  Gate on the existing algebraic concept
-// dedekind::algebra::IsOrderedMultiplicativeGroup<R> (= category::IsField<R> ∧
-// order::IsTotallyOrdered<R>), which the real carriers ℚ, ℚ(√D), ℝ all satisfy
-// --- so Complex<ℚ>, Complex<ℚ(√D)>, Complex<ℝ> are ALL certified fields
+// field.  Gate on the algebraic concept
+// dedekind::algebra::IsOrderedMultiplicativeGroup<R>, which is
+// category::IsField plus the TWO order-compatibility axiom markers (O1
+// translation, O2 scaling)
+// --- a genuine ordered field.  The real carriers ℚ, ℚ(√D), ℝ all opt into both
+// markers, so Complex<ℚ>, Complex<ℚ(√D)>, Complex<ℝ> are ALL certified fields
 // through ONE registration, not an ad-hoc per-carrier list.  This is
 // SUFFICIENT, not necessary (x²+1 is also irreducible over the non-orderable
-// 𝔽₃, which simply goes uncertified), and strictly stronger than
-// std::totally_ordered alone: 𝔽₅ is order-by-representatives yet −1 = 2² is a
-// square, but 𝔽₅ carries no order compatible with its field ops, so
-// IsOrderedMultiplicativeGroup excludes it.  Non-orderable bases get NO field
+// 𝔽₃, which simply goes uncertified).  Crucially the gate is NOT
+// std::totally_ordered (mere syntactic comparability, which 𝔽₅ satisfies by
+// representatives even though −1 = 2² is a square): the O2 marker is a genuine
+// value-level compatibility witness 𝔽₅ cannot opt into, so Complex<𝔽₅> is
+// correctly excluded (#818 round 8).  Non-orderable bases get NO field
 // certificate: Complex<double> (excluded upstream by associativity --- IEEE),
-// Complex<Complex<·>> (ℂ is not totally ordered, so the bicomplex base is not
+// Complex<Complex<·>> (ℂ opts into neither marker, so the bicomplex base is not
 // an ordered field --- it splits into zero divisors).  Parabolic sibling:
 // Dual<F> = F[ε]/(ε²) registers no multiplicative inverse (ε nilpotent) --- a
 // ring, never a field.

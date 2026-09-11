@@ -287,6 +287,25 @@ struct inverse_trait<dedekind::numbers::QuadraticReal<D, Q>,
 
 }  // namespace dedekind::category
 
+namespace dedekind::algebra {
+
+/** @brief Carrier-promise: @c QuadraticReal<D,Q> is an ORDERED FIELD.  The
+ *  template gate @c (D>1) ∧ @c IsRational<Q> makes this unconditional --- every
+ *  instantiation is a REAL quadratic field ℚ(√D) with D>1 (no imaginary ℚ(√−n)
+ *  case exists), hence formally real (−1 not a sum of squares), with a genuine
+ *  total order (strong_ordering @c <=>, by comparing squares).  So both
+ *  order-compatibility axiom markers hold: O1 (translation) and O2 (scaling),
+ *  closing @c IsOrderedMultiplicativeGroup<QuadraticReal<D,Q>> --- which in
+ * turn certifies @c Complex<QuadraticReal<D,Q>> as a field (#818). */
+template <long D, typename Q>
+struct is_translation_invariant_ordered<dedekind::numbers::QuadraticReal<D, Q>>
+    : std::true_type {};
+template <long D, typename Q>
+struct is_scaling_invariant_ordered<dedekind::numbers::QuadraticReal<D, Q>>
+    : std::true_type {};
+
+}  // namespace dedekind::algebra
+
 namespace dedekind::numbers {
 
 /** @section quadratic__Formal_Verification

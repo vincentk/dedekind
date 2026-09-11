@@ -562,18 +562,23 @@ inline constexpr bool
 
 namespace dedekind::algebra {
 
-// Carrier-promise: @c Rational<I> is a translation-invariant ordered
-// group under @c + --- ℚ is an ordered field (Lang, @em Algebra
-// §III.1), so the additive group inherits the order-compatibility
-// axiom.  Closes the marker half of @c IsOrderedAdditiveGroup<Rational<I>>
-// for the scout-algebra's additive translation slice (#664 Slice 2).
-// The multiplicative side is handled upstream: @c
-// IsOrderedMultiplicativeGroup composes @c algebra::IsField<T> @c &&
-// @c order::IsTotallyOrdered<T> directly, with no carrier-side marker
-// needed --- Rational satisfies both structurally (PR #674's @c
-// IsField cert + @c std::strong_ordering @c <=>).
+// Carrier-promise: @c Rational<I> is an ORDERED FIELD (Lang, @em Algebra
+// §III.1), so its order is compatible with BOTH operations.  @c Rational 's
+// @c <=> is @c std::strong_ordering, so the structural totality holds at this
+// opt-in site; we assert the two order-compatibility axiom markers:
+//   * O1 (@c is_translation_invariant_ordered) --- closes the marker half of
+//     @c IsOrderedAdditiveGroup<Rational<I>> (scout-algebra additive slice,
+//     #664 Slice 2).
+//   * O2 (@c is_scaling_invariant_ordered) --- closes the marker half of
+//     @c IsOrderedMultiplicativeGroup<Rational<I>> (multiplicative/ring-retract
+//     slice).  Formerly this concept leaned on @c order::IsTotallyOrdered; it
+//     now requires this explicit axiom marker, since syntactic comparability
+//     does not prove scaling-compatibility (the 𝔽₅ trap, #818).
 template <dedekind::numbers::IsInteger I>
 struct is_translation_invariant_ordered<dedekind::numbers::Rational<I>>
+    : std::true_type {};
+template <dedekind::numbers::IsInteger I>
+struct is_scaling_invariant_ordered<dedekind::numbers::Rational<I>>
     : std::true_type {};
 
 }  // namespace dedekind::algebra
@@ -581,12 +586,10 @@ struct is_translation_invariant_ordered<dedekind::numbers::Rational<I>>
 namespace dedekind::numbers {
 
 // Algebraic witness: @c Rational<default_integer> satisfies the
-// @c IsOrderedMultiplicativeGroup concept, which composes upstream
-// directly --- @c algebra::IsField<T> (closes via the
-// @c is_invertible_v / @c IsField cert in this file, PR #674) and
-// @c order::IsTotallyOrdered<T> (closes via Rational's @c <=>
-// returning @c std::strong_ordering).  No carrier-promise marker
-// needed.  Cross-partition invariant, pinned in main per the
+// @c IsOrderedMultiplicativeGroup concept --- @c algebra::IsField<T>
+// (closes via the @c is_invertible_v / @c IsField cert in this file, PR #674)
+// plus the two order-compatibility axiom markers (O1/O2) registered just
+// above.  Cross-partition invariant, pinned in main per the
 // static_assert-in-main pattern.
 static_assert(
     dedekind::algebra::IsOrderedMultiplicativeGroup<Rational<default_integer>>,
