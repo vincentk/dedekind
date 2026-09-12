@@ -76,14 +76,11 @@ concept IsWaveVector =
     IsArrow<F> && std::same_as<typename std::remove_cvref_t<F>::Domain, Wave> &&
     std::same_as<typename std::remove_cvref_t<F>::Codomain, Cx>;
 
-// The PLANE-WAVE SYMBOL χ_k, carried spectrally as the one-hot |k⟩:
-// the coefficient map w ↦ [w = k].  A single basis Ket of ℂ^(ℤ²).
-struct PlaneWave {
-  Wave k;
-  using Domain = Wave;
-  using Codomain = Cx;
-  constexpr Cx operator()(Wave w) const { return w == k ? 1_re : Cx{}; }
-};
+// The PLANE-WAVE SYMBOL χ_k = the spectral one-hot |k⟩ = e_k, now the LIBRARY
+// one_hot (linear_algebra:diagonal) — the coefficient map w ↦ δ(w,k) = [w=k],
+// the k-th COLUMN of the identity δ.  Was a bespoke struct; unified with the
+// Kronecker-δ Form.  A single basis Ket of ℂ^(ℤ²).
+using PlaneWave = dedekind::linear_algebra::one_hot<Cx, Wave>;
 constexpr PlaneWave wave(Wave k) { return PlaneWave{k}; }
 
 // scalar ·  and  ⊕  are the INTENSIONAL semimodule operations promoted to
@@ -243,4 +240,15 @@ TEST_CASE(
         Cx{R2{8}, R2{}});
   CHECK(eigenvalue<8>(OuterProduct<ChiKet, ChiBra>{ChiKet{1}, ChiBra{2}}) ==
         Cx{});
+
+  // (3) ORTHONORMAL COLLAPSE — the extensional inner product of two library
+  //   one_hots (the δ Form) FOLDS to the symbolic δ: ⟨e_m|e_n⟩ = Σ_k [k=m][k=n]
+  //   = [m=n].  The δ IS that value without the fold — the symbolic bra-ket is
+  //   an equality check, no index.  (one_hot is the shared Form: the spectral
+  //   |k⟩ above, and the identity's column.)
+  using dedekind::linear_algebra::one_hot;
+  CHECK(inner_product<8>(one_hot<Cx>{2}, one_hot<Cx>{2}) ==
+        Cx{R2{1}, R2{}});  // δ(2,2) = 1
+  CHECK(inner_product<8>(one_hot<Cx>{2}, one_hot<Cx>{5}) ==
+        Cx{});  // δ(2,5) = 0
 }
