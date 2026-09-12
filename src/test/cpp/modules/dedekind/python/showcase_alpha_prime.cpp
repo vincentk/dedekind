@@ -51,6 +51,7 @@ import dedekind.order;
 // `dedekind::category::in(x, S)` under unqualified name lookup.  `category`
 // names used here are spelled fully qualified.
 using namespace dedekind::sets;
+using namespace dedekind::relational;  // set_difference (∖) — relational-only
 using namespace dedekind::algebra;
 using namespace dedekind::numbers;
 using namespace dedekind::order;

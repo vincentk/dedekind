@@ -553,7 +553,7 @@ static_assert(IsProductCategory<Set<std::pair<int, bool>>>);
 //     that is left-total + right-unique by construction.
 //
 // The set-of-pairs / value-level reading of "relation" lives in
-// @c sets:expressions as @c Relation<T1, T2, L, P> = @c Set<pair<T1,
+// @c dedekind.relational:dyadic as @c Relation<T1, T2, L, P> = @c Set<pair<T1,
 // T2>, L, P>; the two readings are isomorphic.  This callable-
 // indicator reading is the type-level sibling, parallel to @c IsArrow.
 // ---------------------------------------------------------------------------
@@ -565,7 +565,7 @@ static_assert(IsProductCategory<Set<std::pair<int, bool>>>);
  *
  * @details Callable-indicator reading of @c R @c ⊆ @c A @c × @c B
  * (the predicate is the membership-of-pair indicator).  Sibling to
- * the value-level @c sets::Relation<T1, T2, L, P> alias, which models
+ * the value-level @c relational::Relation<T1, T2, L, P> alias, which models
  * the relation as a Set of pairs.  The two readings are isomorphic.
  */
 export template <typename R, typename A, typename B>
