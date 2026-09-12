@@ -1,5 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 #include <concepts>
+#include <cstddef>
 #include <type_traits>
 #include <utility>
 
@@ -29,16 +30,23 @@
 // on the torus (root8 at ℤ/N) — the NEXT tier.  Here nothing is discretized.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import dedekind.category; // IsArrow
-import dedekind.numbers;  // Complex, QuadraticReal, Rational
-import dedekind.linear_algebra; // scaled / pointwise_sum — the intensional semimodule ops
+import dedekind.category;     // IsArrow
+import dedekind.numbers;      // Complex, QuadraticReal, Rational, root8, conj
+import dedekind.morphologies; // Modular<N> — the ℤ/N index for the DFT bra-ket
+import dedekind.linear_algebra; // scaled / pointwise_sum, inner_product, OuterProduct, eigenvalue
 import dedekind.sets; // IsRelation, Graph, graph(·) — the arrow ⟶ relation lift
 import dedekind.relational; // relative product on graphs
 
 using dedekind::category::IsArrow;
+using dedekind::linear_algebra::eigenvalue;
+using dedekind::linear_algebra::inner_product;
+using dedekind::linear_algebra::OuterProduct;
+using dedekind::morphologies::Modular;
 using dedekind::numbers::Complex;
+using dedekind::numbers::conj;
 using dedekind::numbers::QuadraticReal;
 using dedekind::numbers::Rational;
+using dedekind::numbers::root8;
 
 namespace {
 using R2 = QuadraticReal<2>;  // ℝ = ℚ(√2), the coat-hanger
@@ -171,4 +179,68 @@ TEST_CASE("Figure 6 row 3: the even-symmetry projector P = ½(I+U)",
 
   CHECK(even(psi_even)(k) == psi_even(k));
   CHECK(projected(k) == Cx{R2{Q{1, 2}}, R2{}});
+}
+
+// ── The DFT kernel as bona-fide bra-kets over ℂ: inner AND outer product ────
+namespace {
+using M8 = Modular<8u>;
+
+// ℂ-valued de Moivre character |χ_m⟩ : k ↦ ζ_8^{mk}, materialised per point via
+// root8.  The inner / outer products SUM, so they live in ℂ (where + is) — the
+// symbolic μ_N is ×-only; this is where the harmonics re-enter the field.
+struct ChiKet {
+  unsigned m;
+  using Domain = std::size_t;
+  using Codomain = Cx;
+  constexpr Cx operator()(std::size_t k) const {
+    return root8(M8{m * static_cast<unsigned>(k)});
+  }
+};
+// The frequency BRA ⟨χ_m| — the CONJUGATE character (inner_product is bilinear,
+// so the conjugation lives in the bra): k ↦ conj ζ^{mk} = ζ^{-mk}.
+struct ChiBra {
+  unsigned m;
+  using Domain = std::size_t;
+  using Codomain = Cx;
+  constexpr Cx operator()(std::size_t k) const {
+    return conj(root8(M8{m * static_cast<unsigned>(k)}));
+  }
+};
+// The position one-hot |e_k⟩ : j ↦ [j = k].
+struct EKet {
+  std::size_t k;
+  using Domain = std::size_t;
+  using Codomain = Cx;
+  constexpr Cx operator()(std::size_t j) const {
+    return j == k ? Cx{R2{1}, R2{}} : Cx{};
+  }
+};
+}  // namespace
+
+TEST_CASE(
+    "bra-ket: ⟨m|k⟩ = ζ^{mk}, ⟨χ_m|χ_n⟩ = N·δ — the DFT kernel as inner + "
+    "outer",
+    "[linear_algebra][funcspace][fourier][braket][spike]") {
+  // (1) INNER PRODUCT — the DFT kernel entry ⟨m|k⟩ as a bona-fide bra-ket:
+  //   ⟨χ_m | e_k⟩ = Σ_j conj(ζ^{mj})·[j=k] = ζ^{-mk}.  The bracket the pun was
+  //   about, spelled on the library inner_product.
+  CHECK(inner_product<8>(ChiBra{3}, EKet{2}) == conj(root8(M8{3u * 2u})));
+
+  // (1') INNER PRODUCT — character orthogonality (the DFT basis is orthogonal,
+  //   norm N): ⟨χ_m | χ_n⟩ = Σ_j ζ^{(n-m)j} = 8·[m=n].
+  CHECK(inner_product<8>(ChiBra{1}, ChiKet{1}) == Cx{R2{8}, R2{}});  // diagonal
+  CHECK(inner_product<8>(ChiBra{1}, ChiKet{2}) == Cx{});             // off-diag
+
+  // (2) OUTER / TENSOR PRODUCT — the rank-1 dyad |χ_m⟩⟨χ_n| = χ_m ⊗ conj χ_n,
+  //   a first-class operator on the bra-ket surface: D(i,j) = ζ^{mi}·ζ^{-nj}.
+  constexpr auto D = OuterProduct<ChiKet, ChiBra>{ChiKet{1}, ChiBra{2}};
+  CHECK(D(std::size_t{1}, std::size_t{1}) ==
+        root8(M8{1u}) * conj(root8(M8{2u})));  // ζ¹ · ζ⁻²
+
+  // (2') INNER ⟷ OUTER: the dyad's rank-1 EIGENVALUE IS the inner product
+  //   (M² = λM):  λ(|χ_m⟩⟨χ_n|) = ⟨χ_n|χ_m⟩ = 8·[m=n].
+  CHECK(eigenvalue<8>(OuterProduct<ChiKet, ChiBra>{ChiKet{1}, ChiBra{1}}) ==
+        Cx{R2{8}, R2{}});
+  CHECK(eigenvalue<8>(OuterProduct<ChiKet, ChiBra>{ChiKet{1}, ChiBra{2}}) ==
+        Cx{});
 }
