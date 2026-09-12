@@ -260,9 +260,16 @@ export template <
     typename Add = typename dedekind::algebra::semiring_ops<S>::add,
     typename Mult = typename dedekind::algebra::semiring_ops<S>::mult>
   requires dedekind::category::IsArrow<F> &&
+           // The scalar must be the arrow's OWN codomain semiring: a semimodule
+           // scales values by their own ring.  Without this, S is deduced from
+           // the scalar and can pick a DIFFERENT semiring (e.g. a bool scalar
+           // on an unsigned-valued arrow selects semiring_ops<bool>, applying ∧
+           // to the values while still advertising Codomain = unsigned).
+           std::same_as<std::remove_cvref_t<S>,
+                        typename std::remove_cvref_t<F>::Codomain> &&
            dedekind::category::IsSemiring<S, Add, Mult>
 constexpr Scaled<std::remove_cvref_t<F>, Mult> scaled(S c, F f) {
-  return Scaled<std::remove_cvref_t<F>, Mult>{c, f};
+  return Scaled<std::remove_cvref_t<F>, Mult>{std::move(c), std::move(f)};
 }
 
 /** @brief Add two arrows pointwise --- the @f$f \boxplus g@f$ semimodule
@@ -280,8 +287,8 @@ export template <
            dedekind::category::IsSemiring<S, Add, Mult>
 constexpr PointwiseSum<std::remove_cvref_t<F>, std::remove_cvref_t<G>, Add>
 pointwise_sum(F f, G g) {
-  return PointwiseSum<std::remove_cvref_t<F>, std::remove_cvref_t<G>, Add>{f,
-                                                                           g};
+  return PointwiseSum<std::remove_cvref_t<F>, std::remove_cvref_t<G>, Add>{
+      std::move(f), std::move(g)};
 }
 
 /** @brief Reflect an arrow through the origin of its domain: @f$(U f)(x) =
@@ -319,7 +326,7 @@ export template <typename F>
   requires dedekind::category::IsArrow<F> &&
            requires(typename std::remove_cvref_t<F>::Domain x) { -x; }
 constexpr Reflected<std::remove_cvref_t<F>> reflected(F f) {
-  return Reflected<std::remove_cvref_t<F>>{f};
+  return Reflected<std::remove_cvref_t<F>>{std::move(f)};
 }
 
 /**

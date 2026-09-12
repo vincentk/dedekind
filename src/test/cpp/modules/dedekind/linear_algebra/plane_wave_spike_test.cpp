@@ -219,7 +219,7 @@ struct ChiBra {
 }  // namespace
 
 TEST_CASE(
-    "bra-ket: ⟨m|k⟩ = ζ^{mk}, ⟨χ_m|χ_n⟩ = N·δ — the DFT kernel as inner + "
+    "bra-ket: ⟨m|k⟩ = ζ^{−mk}, ⟨χ_m|χ_n⟩ = N·δ — the DFT kernel as inner + "
     "outer",
     "[linear_algebra][funcspace][fourier][braket][spike]") {
   // (1) INNER PRODUCT — the DFT kernel entry ⟨m|k⟩ as a bona-fide bra-ket:

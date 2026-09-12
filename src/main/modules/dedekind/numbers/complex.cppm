@@ -631,7 +631,14 @@ export template <unsigned N>
 struct DiscreteCos {
   using Domain = dedekind::morphologies::Modular<N>;
   using Codomain = QuadraticReal<2>;
-  constexpr QuadraticReal<2> operator()(Domain k) const {
+  // Constrained to N == 8, the only modulus where the character resolves to
+  // exact ℂ (ζ_8 ∈ ℚ(√2)).  Without this the signature is valid for every N,
+  // so IsArrow<DiscreteCos<N>> would report true and the unsupported-modulus
+  // error would be deferred to the body; gating here rejects it at the API
+  // boundary (a Sollbruchstelle, not a latent hard-error).
+  constexpr QuadraticReal<2> operator()(Domain k) const
+    requires(N == 8u)
+  {
     return character<N>(Domain(1))(k).resolve().real();
   }
 };
@@ -644,7 +651,11 @@ export template <unsigned N>
 struct DiscreteSin {
   using Domain = dedekind::morphologies::Modular<N>;
   using Codomain = QuadraticReal<2>;
-  constexpr QuadraticReal<2> operator()(Domain k) const {
+  // Constrained to N == 8 for the same reason as DiscreteCos (exact resolve
+  // only at ζ_8 ∈ ℚ(√2)); IsArrow is honest, unsupported moduli rejected here.
+  constexpr QuadraticReal<2> operator()(Domain k) const
+    requires(N == 8u)
+  {
     return character<N>(Domain(1))(k).resolve().imag();
   }
 };
@@ -652,12 +663,14 @@ struct DiscreteSin {
 /** @brief @f$\cos_N = \Re\,\zeta_N^{(\cdot)}@f$ as an arrow. @see DiscreteCos
  */
 export template <unsigned N>
+  requires(N == 8u)
 constexpr DiscreteCos<N> cos_n() {
   return {};
 }
 /** @brief @f$\sin_N = \Im\,\zeta_N^{(\cdot)}@f$ as an arrow. @see DiscreteSin
  */
 export template <unsigned N>
+  requires(N == 8u)
 constexpr DiscreteSin<N> sin_n() {
   return {};
 }
