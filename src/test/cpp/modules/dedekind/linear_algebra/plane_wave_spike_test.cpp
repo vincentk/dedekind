@@ -161,10 +161,13 @@ TEST_CASE("Figure 6 row 3: the even-symmetry projector P = ½(I+U)",
   // An already-even wave: spectrum symmetric under k ↦ −k  ⇒  P fixes it.
   // Witnessed at RUNTIME (CHECK, below), not static_assert: over the
   // SUPERPOSITION psi_even the even-projector's exact ℂ=ℚ(√2) arithmetic
-  // (Complex × routes through the big-integer limb comparisons of the
-  // Rational carrier) exceeds GCC's default -fconstexpr-ops-limit for this
-  // depth.  The SINGLE-wave projector witnesses below stay compile-time (they
-  // are shallower); the math is identical either way.
+  // (Complex × bottoms out in the big-integer limb comparisons of the Rational
+  // carrier, through std::variant/std::array operator<=>) crosses clang's
+  // -fconstexpr-steps limit at this depth --- but only under libstdc++ (CI
+  // Linux), whose variant/array constexpr comparisons cost more steps than
+  // libc++ (macOS), where it folds.  Same compiler (clang), different stdlib.
+  // The SINGLE-wave projector witnesses below stay compile-time (shallower);
+  // the math is identical either way.
   constexpr auto psi_even = 1_re * wave(k) + 1_re * wave(-k);
 
   // A single plane wave is NOT even; P projects it onto its even part:
