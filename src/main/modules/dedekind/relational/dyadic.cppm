@@ -48,16 +48,16 @@
  * now live in the @c dedekind::relational namespace --- the module's OWN
  * namespace, so the symbols match the module.  The carrier they operate on
  * (@c Set<pair>) stays @c dedekind::sets::Set; relations simply @b are sets of
- * pairs.  The named symbols (@c converse, @c diagonal, @c is_relation, the
- * predicate carriers) never benefited from sitting in @c dedekind::sets ---
- * they are called on @b arrows or used as @b type traits, which do not
- * ADL-reach
- * @c sets.  Only the infix operators @c >> / @c + / @c & took a @c Set<pair>
- * argument and thus resolved by ADL; with the move, a consumer that wants the
- * bare infix form brings them in with @c using @c namespace @c
- * dedekind::relational (the explicit price, paid once per consumer).  Callers
- * that spelled @c dedekind::sets::converse / @c is_relation / @c ComposePred
- * repoint to @c dedekind::relational::.
+ * pairs.  Migration impact: @c converse / @c is_relation / @c reflexive /
+ * @c symmetric / @c preimage take a @c Set argument, so they @b were
+ * ADL-reachable from @c dedekind::sets and now need qualification or a @c
+ * using; so do the infix operators @c >> / @c + / @c &.  (Only @c graph ---
+ * called on an @b arrow --- and the relation/function @b concepts never
+ * ADL-reached
+ * @c sets.)  A consumer that wants the bare forms brings them in with @c using
+ * @c namespace @c dedekind::relational once; callers that spelled
+ * @c dedekind::sets::converse / @c is_relation / @c ComposePred repoint to
+ * @c dedekind::relational::.
  */
 module;
 

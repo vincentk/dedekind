@@ -65,10 +65,12 @@ import :dyadic;       // the Tarski BASE.  FIXME(#798): re-target
                  // dependency + intention, not yet wired.
 
 // The symbols live in the dedekind::relational namespace --- the module's own
-// namespace.  The carriers they operate on (Set, Relation) stay dedekind::sets;
-// a relation simply IS a Set of pairs/tuples.  Consumers that want the bare
-// infix form (set_difference's operator-) bring these in with
-// `using namespace dedekind::relational`.
+// namespace.  Only the Set CARRIER stays dedekind::sets (a relation IS a Set of
+// pairs/tuples); Relation itself is native to this module now (:dyadic).  The
+// named Set-argument APIs here (select / set_union / set_difference /
+// natural_join) were ADL-reachable when they lived in dedekind::sets, so after
+// the move consumers reach them with `using namespace dedekind::relational` (or
+// qualification) --- not only the infix set-difference operator-.
 
 namespace dedekind::relational {
 using namespace dedekind::category;

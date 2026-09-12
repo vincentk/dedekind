@@ -267,6 +267,14 @@ export template <
            // to the values while still advertising Codomain = unsigned).
            std::same_as<std::remove_cvref_t<S>,
                         typename std::remove_cvref_t<F>::Codomain> &&
+           // Scaled::operator() is CONST, so the stored arrow must be
+           // const-invocable: IsArrow admits a mutable-only call operator,
+           // which would pass here yet leave the returned Scaled uncallable
+           // (same guard as graph.cppm's preimage).
+           requires(const std::remove_cvref_t<F>& cf,
+                    const typename std::remove_cvref_t<F>::Domain& x) {
+             cf(x);
+           } &&
            dedekind::category::IsSemiring<S, Add, Mult>
 constexpr Scaled<std::remove_cvref_t<F>, Mult> scaled(S c, F f) {
   return Scaled<std::remove_cvref_t<F>, Mult>{std::move(c), std::move(f)};
@@ -284,6 +292,17 @@ export template <
            std::same_as<typename std::remove_cvref_t<F>::Domain,
                         typename std::remove_cvref_t<G>::Domain> &&
            std::same_as<S, typename std::remove_cvref_t<G>::Codomain> &&
+           // Both arrows are invoked from PointwiseSum::operator() const → both
+           // must be const-invocable (IsArrow admits a mutable-only call
+           // operator, which would leave the returned wrapper uncallable).
+           requires(const std::remove_cvref_t<F>& cf,
+                    const typename std::remove_cvref_t<F>::Domain& x) {
+             cf(x);
+           } &&
+           requires(const std::remove_cvref_t<G>& cg,
+                    const typename std::remove_cvref_t<G>::Domain& x) {
+             cg(x);
+           } &&
            dedekind::category::IsSemiring<S, Add, Mult>
 constexpr PointwiseSum<std::remove_cvref_t<F>, std::remove_cvref_t<G>, Add>
 pointwise_sum(F f, G g) {
@@ -324,7 +343,14 @@ struct Reflected {
  *  @see Reflected */
 export template <typename F>
   requires dedekind::category::IsArrow<F> &&
-           requires(typename std::remove_cvref_t<F>::Domain x) { -x; }
+           // Domain carries unary negation AND the arrow is const-invocable on
+           // the negated point (Reflected::operator() const calls f(-x); a
+           // mutable-only IsArrow would otherwise leave the wrapper
+           // uncallable).
+           requires(const std::remove_cvref_t<F>& cf,
+                    const typename std::remove_cvref_t<F>::Domain& x) {
+             cf(-x);
+           }
 constexpr Reflected<std::remove_cvref_t<F>> reflected(F f) {
   return Reflected<std::remove_cvref_t<F>>{std::move(f)};
 }
