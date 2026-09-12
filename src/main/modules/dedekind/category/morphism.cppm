@@ -253,12 +253,23 @@ export struct hub_arrow_tag {};
  * @brief A type that knows its own Domain (A) and Codomain (B).
  */
 export template <typename F>
-concept IsArrow = requires {
-  typename std::remove_cvref_t<F>::Domain;
-  typename std::remove_cvref_t<F>::Codomain;
-} && requires(F f, typename std::remove_cvref_t<F>::Domain x) {
-  { f(x) } -> std::convertible_to<typename std::remove_cvref_t<F>::Codomain>;
-};
+concept IsArrow =
+    requires {
+      typename std::remove_cvref_t<F>::Domain;
+      typename std::remove_cvref_t<F>::Codomain;
+    } && requires(const std::remove_cvref_t<F>& f,
+                  const typename std::remove_cvref_t<F>::Domain& x) {
+      // CONST-invocable (not merely invocable on a mutable f): a morphism is
+      // pure (Juliet Posture §2 "Pure, Terminating Arrows ... effect-free"), so
+      // applying it must not mutate it.  A mutable-only operator() is a
+      // stateful callable, not a morphism, and would break extensionality (a =
+      // b ⟹ f(a) = f(b)); it is excluded here at the type boundary.  A memoized
+      // arrow (mutable cache + const operator()) stays const-invocable and
+      // observationally pure, so it survives.
+      {
+        f(x)
+      } -> std::convertible_to<typename std::remove_cvref_t<F>::Codomain>;
+    };
 
 // ---------------------------------------------------------------------------
 // Picking policy for Domain-resolving helpers (closes #411).
