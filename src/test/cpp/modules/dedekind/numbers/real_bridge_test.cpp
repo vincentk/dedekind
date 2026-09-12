@@ -69,7 +69,7 @@ TEST_CASE("S-leg: Γ = graph(embed) is the arrow's graph on the product ℚ×ℝ
           "[numbers][hsp][subalgebra][relational]") {
   // The inclusion arrow is embed_ℚ_ℝ; its graph Γ ⊆ ℚ×ℝ reifies it
   // relationally.
-  const auto Γ = dedekind::sets::graph(embed_ℚ_ℝ);
+  const auto Γ = dedekind::relational::graph(embed_ℚ_ℝ);
   for (const Q& x : kSamples) {
     // (q, q+0√2) lies on Γ; (q, √2) does not — √2 ∉ image(ℚ).
     CHECK(Γ(std::pair{x, embed_ℚ_ℝ(x)}));

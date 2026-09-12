@@ -38,20 +38,24 @@
  *       @c is_graph_of.  A graph @b is a relation, so it tags along here.
  *
  * @section relational__Namespace
- * All extracted symbols land in the @c dedekind::sets namespace (NOT
- * @c dedekind::relational): they resolve by ADL on their @c dedekind::sets::Set
- * / @c Relation arguments, which is what keeps the unqualified operators
- * (@c >> / @c + / @c &) and the bare @c converse / @c select call sites
- * working. For @c :tables and @c :graph this is a pure @b module move --- they
- * were already @c dedekind::sets.  For @c :dyadic the namespace ALSO moved
- * (@c dedekind::order → @c dedekind::sets, since it was buried in the
- * halfspace), so its callers repoint @c dedekind::order:: → @c dedekind::sets::
- * (transfer, halfspace_transport).  A rename to @c dedekind::relational would
- * be a separate mechanical churn against the ADL wall.
+ * All symbols live in the @c dedekind::relational namespace --- the module's
+ * OWN namespace, so the symbols match the module (no @c dedekind::sets
+ * leftover).  The CARRIERS they build on (@c Set, @c Relation) stay
+ * @c dedekind::sets: a relation simply @b is a @c Set of pairs/tuples, brought
+ * in by a @c using-declaration inside each partition.  The named symbols
+ * (@c converse, @c graph, @c diagonal, @c preimage, @c select, the relation /
+ * function concepts) are called on @b arrows or used as @b type traits and so
+ * never ADL-reached @c sets anyway; callers simply spell
+ * @c dedekind::relational:: (or @c using them).  The only symbols that took a
+ * @c Set argument and thus resolved by ADL are the infix operators (@c >> /
+ * @c + / @c & / the set-difference @c -); a consumer that wants the bare infix
+ * form brings them in with @c using @c namespace @c dedekind::relational ---
+ * the explicit price, paid once per consumer, for a module whose namespace is
+ * honest about where its symbols live.
  */
 export module dedekind.relational;
 
 export import :dyadic;  // Tarski BASE: converse °, relative product ;, Δ, +, &
-export import :tables;  // Codd: σ ⋈ ∪ ∖ ∩ (dedekind::sets namespace, by ADL)
+export import :tables;  // Codd: σ ⋈ ∪ ∖ ∩ (dedekind::relational namespace)
 export import :graph;   // graphs of arrows (binary relations): graph(f),
                         // is_graph_of

@@ -187,7 +187,7 @@ TEST_CASE("HSP: the quotient functors compose (D<C<·>>, C<D<·>>)",
 // ──────
 TEST_CASE("HSP: the legs reify as functional graphs Γ ⊆ A×B and compose",
           "[analysis][numbers][hsp][relational][compose]") {
-  using dedekind::sets::graph;
+  using dedekind::relational::graph;
   using namespace dedekind::category;  // the functional relative product >>
 
   const Q q{2, 3};

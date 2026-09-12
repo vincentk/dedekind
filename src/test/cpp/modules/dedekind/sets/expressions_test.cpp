@@ -346,8 +346,11 @@ TEST_CASE(
   CHECK(b_true_bare(true) == b_true_eq(true));
 }
 
-TEST_CASE("Dedekind Sets: Cartesian product and relation witnesses",
-          "[sets][relations][cartesian]") {
+TEST_CASE("Dedekind Sets: Cartesian product witnesses", "[sets][cartesian]") {
+  // The RELATION witnesses (Relation / IsRelation / relates / SetFunction /
+  // is_single_valued_at) moved with their concepts to
+  // relational/relation_core_test (the concept left :sets, so its test did
+  // too --- the test DAG imports upstream only).
   auto x = element<Ω<int>>;
 
   const auto positive = Set{x % UniversalSet<int>{} | (x > 0)};
@@ -363,20 +366,6 @@ TEST_CASE("Dedekind Sets: Cartesian product and relation witnesses",
   CHECK(product(ProductDomain{1, 2}));
   CHECK_FALSE(product(ProductDomain{-1, 2}));
   CHECK_FALSE(product(ProductDomain{1, 7}));
-
-  const auto graph_pred = [](const std::pair<int, int>& p) {
-    return p.second == 2 * p.first;
-  };
-  const Relation<int, int, ClassicalLogic, decltype(graph_pred)> R{graph_pred};
-
-  STATIC_CHECK(IsRelation<decltype(R), int, int>);
-  CHECK(relates(R, 3, 6) == true);
-  CHECK(relates(R, 3, 7) == false);
-
-  const SetFunction<int, int, ClassicalLogic, decltype(graph_pred)> F{
-      graph_pred};
-  CHECK(is_single_valued_at(F, 3, 6, 6) == true);
-  CHECK(is_single_valued_at(F, 3, 6, 7) == true);
 }
 
 TEST_CASE("Dedekind Sets: Ambient cartesian product ergonomics",
@@ -423,28 +412,9 @@ TEST_CASE("Dedekind Sets: Power-set preserves ambient logic",
   CHECK(p_gt_zero(gt_zero));
 }
 
-TEST_CASE("Dedekind Sets: Relation witnesses preserve ternary logic",
-          "[sets][relations][logic]") {
-  const auto tri_rel_pred = [](const std::pair<int, int>& p) {
-    if (p.first == 3 && p.second == 6) return Ternary::Unknown;
-    if (p.first == 3 && p.second == 7) return Ternary::True;
-    return Ternary::False;
-  };
-
-  const Relation<int, int, TernaryLogic, decltype(tri_rel_pred)> R{
-      tri_rel_pred};
-
-  // Relation R is explicitly TernaryLogic-parameterised (see the
-  // template-arg list above), so @c relates returns @c Ternary directly —
-  // these comparisons stay Ternary-valued regardless of the carrier-axis
-  // cut (#622).
-  CHECK(relates(R, 3, 6) == Ternary::Unknown);
-  CHECK(relates(R, 3, 7) == Ternary::True);
-
-  const SetFunction<int, int, TernaryLogic, decltype(tri_rel_pred)> F{
-      tri_rel_pred};
-  CHECK(is_single_valued_at(F, 3, 6, 7) == Ternary::Unknown);
-}
+// ("Relation witnesses preserve ternary logic" moved to
+// relational/relation_core_test with the Relation type and the relates /
+// is_single_valued_at surface.)
 
 TEST_CASE("Dedekind Sets: Heterogeneous subset semantics",
           "[sets][subset][logic]") {

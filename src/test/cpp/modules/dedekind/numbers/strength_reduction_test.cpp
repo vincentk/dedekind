@@ -52,6 +52,7 @@ using namespace dedekind::category;
 using namespace dedekind::morphologies;
 using namespace dedekind::order;
 using namespace dedekind::sets;
+using namespace dedekind::relational;
 
 namespace {
 
@@ -63,7 +64,7 @@ constexpr auto Φ = embed_uint_ℕ_ >> lift_ℕ_ℤ_ >> embed_ℤ_ℚ_ >> embed_
 
 // graph(Φ) IS the composite Trsk relation  unsigned × ℝ | r == Φ(u)
 // (§graph.cppm).
-constexpr auto Γ_Φ = dedekind::sets::graph(Φ);
+constexpr auto Γ_Φ = dedekind::relational::graph(Φ);
 
 constexpr R2 ten = R2{10};
 
@@ -105,7 +106,7 @@ static_assert(!(Φ(11u) <= ten) && !(11u <= 10u), "11 does not.");
 constexpr auto le_ten_ℝ =
     ℝ | (π <= fix(10_c));  // {x ≤ 10} on ℝ, new-style Trsk
 constexpr auto pulled =
-    dedekind::sets::preimage(Φ, le_ten_ℝ);  // {u | Φ(u) ≤ 10}
+    dedekind::relational::preimage(Φ, le_ten_ℝ);  // {u | Φ(u) ≤ 10}
 static_assert(
     pulled(10u) && !pulled(11u),
     "preimage(Φ, {x≤10}) DERIVES the same boundary native_le_ten pins "
@@ -117,7 +118,7 @@ static_assert(pulled(10u) == (native_le_ten(10u) == ClassicalLogic::True),
 // the predicate ranges over unsigned, so there is no negative u to try, and no
 // negative-pivot Halfspace<unsigned> is ever built (the ideal: unable to try).
 constexpr auto le_neg3_ℝ = ℝ | (π <= fix(-3_c));  // {x ≤ −3} on ℝ
-constexpr auto clipped = dedekind::sets::preimage(Φ, le_neg3_ℝ);
+constexpr auto clipped = dedekind::relational::preimage(Φ, le_neg3_ℝ);
 static_assert(!clipped(0u) && !clipped(5u) && !clipped(100u),
               "no unsigned u has Φ(u) ≤ −3: the domain type IS the clip.");
 

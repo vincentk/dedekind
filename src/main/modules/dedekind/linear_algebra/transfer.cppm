@@ -580,7 +580,7 @@ struct EdgeSucc {
 inline constexpr auto path_rel =
     dedekind::sets::Set<Idx2, dedekind::category::ClassicalLogic, EdgeSucc>{
         EdgeSucc{}};
-static_assert(dedekind::sets::is_relation(path_rel),
+static_assert(dedekind::relational::is_relation(path_rel),
               "path_rel is a Ddk relation: an IsSet on a product domain.");
 
 // Over 𝔹 the star is REACHABILITY, R*[i][j] = (i ≤ j).
@@ -632,11 +632,11 @@ struct CyclicShift {
 inline constexpr auto perm_rel =
     dedekind::sets::Set<Idx2, dedekind::category::ClassicalLogic, CyclicShift>{
         CyclicShift{}};
-static_assert(dedekind::sets::is_relation(perm_rel),
+static_assert(dedekind::relational::is_relation(perm_rel),
               "perm_rel is a Ddk relation: the cyclic-shift permutation.");
 inline constexpr auto Pmat = materialise<4>(perm_rel);
 inline constexpr auto PdaggerMat =
-    materialise<4>(dedekind::sets::converse(perm_rel));
+    materialise<4>(dedekind::relational::converse(perm_rel));
 // ── The cyclic shift is UNITARY, read off by the GENERIC dagger surface
 // (dedekind::category, :involution) --- not a bespoke loop.  Three facts:
 using PMat = std::remove_cvref_t<decltype(Pmat)>;  // Mat(𝔹), 4×4

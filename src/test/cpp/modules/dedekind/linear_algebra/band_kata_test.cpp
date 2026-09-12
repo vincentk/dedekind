@@ -39,6 +39,7 @@ import dedekind.linear_algebra; // OuterProduct — the rank-1 dyad carrier
 
 using namespace dedekind::category;
 using namespace dedekind::sets;
+using namespace dedekind::relational;
 using namespace dedekind::order;
 using dedekind::algebra::MaxPlus;
 using dedekind::algebra::semiring_ops;

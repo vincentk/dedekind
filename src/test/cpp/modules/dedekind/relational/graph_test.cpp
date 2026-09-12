@@ -14,6 +14,7 @@ import dedekind.relational;
 import dedekind.category;
 
 using namespace dedekind::sets;
+using namespace dedekind::relational;
 using namespace dedekind::category;  // the arrow `>>` (Succ ∘ Succ) below
 
 namespace {

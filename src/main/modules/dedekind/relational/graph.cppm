@@ -65,10 +65,14 @@ import dedekind.category; // IsArrow, Dom, Cod, arrow_as_relation, ClassicalLogi
 import dedekind.sets;     // Set, Relation (:expressions); forall (:quantifier)
 import :dyadic;           // the Tarski BASE: a graph Γ_f IS a dyadic relation
 
-// Namespace stays dedekind::sets (ADL on Set/Relation arguments); only the
-// module moved — a graph belongs with the relations.  See :tables.
+// Namespace is dedekind::relational — the module's own namespace, so the
+// symbols match the module.  A graph belongs with the relations.  The carrier
+// (Set<pair>) stays dedekind::sets::Set; a graph simply IS a Set of pairs.
+// See :tables.
 
-namespace dedekind::sets {
+namespace dedekind::relational {
+using dedekind::sets::forall;  // the ¬∃¬ quantifier used by is_graph_of
+using dedekind::sets::Set;     // the Set<pair> carrier (stays in :sets)
 
 /**
  * @brief The membership predicate of a functional graph @f$\Gamma_f@f$:
@@ -121,7 +125,7 @@ constexpr Graph<std::remove_cvref_t<F>> graph(F f) {
       GraphPredicate<std::remove_cvref_t<F>>{f}};
 }
 
-}  // namespace dedekind::sets
+}  // namespace dedekind::relational
 
 // A graph IS a functional (single-valued) AND entire (total) relation --- it is
 // the graph of a total function.  Mark both faces on the @c Graph<F> type (the
@@ -143,12 +147,12 @@ constexpr Graph<std::remove_cvref_t<F>> graph(F f) {
 // one is needed).
 namespace dedekind::category {
 template <typename F>
-inline constexpr bool is_left_total_v<dedekind::sets::Graph<F>> = true;
+inline constexpr bool is_left_total_v<dedekind::relational::Graph<F>> = true;
 template <typename F>
-inline constexpr bool is_right_unique_v<dedekind::sets::Graph<F>> = true;
+inline constexpr bool is_right_unique_v<dedekind::relational::Graph<F>> = true;
 }  // namespace dedekind::category
 
-namespace dedekind::sets {
+namespace dedekind::relational {
 
 // ── The relation/function lattice, defined here (above the relative product)
 // so
@@ -363,7 +367,7 @@ static_assert(IsFunctional<std::remove_cvref_t<decltype(Γ_dbl_inc)>> &&
 // available for the §6 "a graph is a relation" reading without a second
 // definition to drift.
 export template <typename S, typename T1, typename T2>
-concept IsGraph = dedekind::sets::IsRelation<S, T1, T2>;
+concept IsGraph = IsRelation<S, T1, T2>;  // IsRelation is native (:dyadic)
 
 /** @section graph__Formal_Verification_Lattice */
 
@@ -482,4 +486,4 @@ static_assert(!is_graph_of(graph(Succ{}), dedekind::category::Identity<int>{},
                            std::views::iota(0, 4), std::views::iota(0, 4)),
               "graph(succ) differs from the graph of id on [0,4).");
 
-}  // namespace dedekind::sets
+}  // namespace dedekind::relational

@@ -136,7 +136,7 @@ static_assert(dedekind::algebra::EmbedsAsSubalgebra<Emb>,
 // --- the PRODUCT ℚ×ℝ, that reifies the arrow relationally (an IsRelation).  Γ
 // --- is NOT the inclusion subobject of ℝ, and NOT an IsShapedFunctor (a field
 // --- hom preserves operations, not composition of arrows between categories).
-constexpr auto Γ_embed = dedekind::sets::graph(embed_ℚ_ℝ);
+constexpr auto Γ_embed = dedekind::relational::graph(embed_ℚ_ℝ);
 static_assert(
     dedekind::category::IsSet<decltype(Γ_embed)>,
     "Γ = graph(embed) is an ETCS subobject of the product ℚ×ℝ (a functional "

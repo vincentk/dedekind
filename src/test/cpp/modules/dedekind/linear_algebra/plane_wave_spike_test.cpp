@@ -138,12 +138,12 @@ TEST_CASE("Figure 6 row 2: ψ is a superposition of plane-wave symbols",
   // carrier; graph(·) is the bridge to the relational/predicate lattice where
   // range/support predicates live.
   static_assert(
-      dedekind::sets::IsRelation<decltype(dedekind::sets::graph(psi)), Wave,
-                                 Cx>,
+      dedekind::relational::IsRelation<
+          decltype(dedekind::relational::graph(psi)), Wave, Cx>,
       "graph(ψ) is the Set<pair> relation view (a predicate on pairs).");
   // Membership carries ψ:  (k1, 2) ∈ Γ_ψ,  (k1, 0) ∉ Γ_ψ.
-  CHECK(dedekind::sets::graph(psi)(std::pair<Wave, Cx>{k1, 2_re}));
-  CHECK_FALSE(dedekind::sets::graph(psi)(std::pair<Wave, Cx>{k1, Cx{}}));
+  CHECK(dedekind::relational::graph(psi)(std::pair<Wave, Cx>{k1, 2_re}));
+  CHECK_FALSE(dedekind::relational::graph(psi)(std::pair<Wave, Cx>{k1, Cx{}}));
 
   // Its spectrum, read off exactly — 2 at k1, i at k2, 0 elsewhere.
   static_assert(psi(k1) == 2_re, "c_{k1} = 2");

@@ -23,6 +23,7 @@ import dedekind.algebra;
 
 using namespace dedekind::category;
 using namespace dedekind::sets;
+using namespace dedekind::relational;
 using namespace dedekind::order;
 
 namespace {
