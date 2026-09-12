@@ -284,6 +284,44 @@ pointwise_sum(F f, G g) {
                                                                            g};
 }
 
+/** @brief Reflect an arrow through the origin of its domain: @f$(U f)(x) =
+ *  f(-x)@f$ --- the parity operator @c U precomposed onto @c f.  The third
+ *  intensional combinator (beside @ref Scaled / @ref PointwiseSum) that
+ *  completes the surface: with them it ASSEMBLES the even projector
+ *  @f$P = \tfrac12(I+U)@f$ as @c scaled(½, @c pointwise_sum(f, @c
+ * reflected(f))), rather than hand-rolling pointwise @c + and scalar @c ·.
+ * Requires the domain to carry unary negation (found by ADL on the domain
+ * type).
+ *
+ *  @note COLLINEAR with @c dedekind::algebra 's halfspace-transport reflection
+ *  (@c algebra/halfspace_transport.cppm: @c image / @c preimage of @c x↦c·x,
+ * the
+ *  @c c=−1 NEGATE branch, @f$\{x⋈P\}↦\{x⋈c·P\}@f$ with the sense flipped): the
+ *  @b same sign point-map @c x↦−x, pulled back CONTRAVARIANTLY.  There it lands
+ *  a @b typed @c Halfspace (the collapse-visible closed form, #816's
+ *  "typed result only where it adds structure"); here it lands a @b general
+ *  arrow --- the function-space face of one affine/sign transport (translate
+ *  @c +K, scale/reflect @c c·) over distinct carriers (predicate / arrow /
+ *  dense @c LinearMap).  @c preimage(f,S)=χ_S∘f is the predicate-side
+ *  "precompose with a point-map"; this is the arrow-side.  Consolidating the
+ *  point-map family across carriers is tracked as a follow-up. */
+export template <typename F>
+struct Reflected {
+  F f;
+  using Domain = typename std::remove_cvref_t<F>::Domain;
+  using Codomain = typename std::remove_cvref_t<F>::Codomain;
+  constexpr Codomain operator()(const Domain& x) const { return f(-x); }
+};
+
+/** @brief Reflect an arrow through its domain origin --- the parity @c U.
+ *  @see Reflected */
+export template <typename F>
+  requires dedekind::category::IsArrow<F> &&
+           requires(typename std::remove_cvref_t<F>::Domain x) { -x; }
+constexpr Reflected<std::remove_cvref_t<F>> reflected(F f) {
+  return Reflected<std::remove_cvref_t<F>>{f};
+}
+
 /**
  * @brief The semiring matrix-product entry @c (A@c ⊗@c B)(i,j) @c = @c
  *        @c ⊕_{k<N} @c A(i,k) @c ⊗ @c B(k,j).  @c A and @c B are any
