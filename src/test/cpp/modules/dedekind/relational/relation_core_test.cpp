@@ -34,6 +34,16 @@ TEST_CASE(
       graph_pred};
   CHECK(is_single_valued_at(F, 3, 6, 6) == true);
   CHECK(is_single_valued_at(F, 3, 6, 7) == true);
+
+  // The query surface relocated alongside the type (relates above; dom / cod /
+  // apply here) — runtime coverage, since the partition's own witnesses are
+  // static_asserts (invisible to coverage).
+  // apply(R, x) = the fibre {b | (x,b) ∈ R}; here R doubles, so apply(R,3)={6}.
+  CHECK(apply(R, 3)(6));        // (3,6) ∈ R  ⇒  6 ∈ apply(R,3)
+  CHECK_FALSE(apply(R, 3)(7));  // (3,7) ∉ R
+  // dom / cod are the DECLARED factor universals Ω<A> / Ω<B> (total, no ∃).
+  CHECK(dom(R)(42));  // declared domain is all of int
+  CHECK(cod(R)(42));  // declared codomain is all of int
 }
 
 TEST_CASE("relation core: witnesses preserve ternary logic",
