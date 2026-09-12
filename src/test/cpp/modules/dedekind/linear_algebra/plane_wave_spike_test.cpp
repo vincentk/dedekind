@@ -159,9 +159,13 @@ TEST_CASE("Figure 6 row 3: the even-symmetry projector P = ½(I+U)",
   constexpr Wave k{1, 0};
 
   // An already-even wave: spectrum symmetric under k ↦ −k  ⇒  P fixes it.
+  // Witnessed at RUNTIME (CHECK, below), not static_assert: over the
+  // SUPERPOSITION psi_even the even-projector's exact ℂ=ℚ(√2) arithmetic
+  // (Complex × routes through the big-integer limb comparisons of the
+  // Rational carrier) exceeds GCC's default -fconstexpr-ops-limit for this
+  // depth.  The SINGLE-wave projector witnesses below stay compile-time (they
+  // are shallower); the math is identical either way.
   constexpr auto psi_even = 1_re * wave(k) + 1_re * wave(-k);
-  static_assert(even(psi_even)(k) == psi_even(k), "P|ψ⟩ = |ψ⟩ at k (ψ even)");
-  static_assert(even(psi_even)(-k) == psi_even(-k), "… and at −k");
 
   // A single plane wave is NOT even; P projects it onto its even part:
   //   (P|k⟩)(±k) = ½,  so the ½(|k⟩ ⊕ |−k⟩) cosine-like standing wave.
@@ -173,7 +177,8 @@ TEST_CASE("Figure 6 row 3: the even-symmetry projector P = ½(I+U)",
   static_assert(even(projected)(k) == projected(k), "P² = P at k");
   static_assert(even(projected)(-k) == projected(-k), "P² = P at −k");
 
-  CHECK(even(psi_even)(k) == psi_even(k));
+  CHECK(even(psi_even)(k) == psi_even(k));    // P|ψ⟩ = |ψ⟩ at k (ψ even)
+  CHECK(even(psi_even)(-k) == psi_even(-k));  // … and at −k
   CHECK(projected(k) == kHalf);
 }
 
