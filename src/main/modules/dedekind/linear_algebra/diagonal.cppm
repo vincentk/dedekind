@@ -196,6 +196,37 @@ using Identity = Diagonal<D, identity_rule<T>>;
 export template <typename D, typename T>
 using DiagonalZero = Diagonal<D, zero_rule<T>>;
 
+/** @brief The one-hot / basis vector @c e_k : @c j @c ↦ @c δ(j,k) @c = @c [j=k]
+ *         (@c T{1} on its own index @c k, @c T{0} elsewhere) --- a 1-arg
+ *         @c IsArrow, the @c k-th @b COLUMN of the identity @ref Identity (the
+ *         Kronecker δ with one leg fixed; @ref Diagonal 's entry is @c δ_ij·F).
+ *
+ * @details The symbolic basis Ket.  An @c inner_product of two one-hots FOLDS
+ * to @c δ(m,n) = @c [m=n] (only the @c k=m=n term survives), but @c δ @b is
+ * that value @b without the fold --- the equality is the whole content.  So @c
+ * e_k is the shared Form behind the one-hot vector, the orthonormal @c ⟨·|·⟩
+ * (@f$\langle e_m|e_n\rangle = \delta_{mn}@f$, an equality, no sum), and the
+ * identity matrix (@f$I=\sum_k |e_k\rangle\langle e_k|@f$); on the predicate
+ * side it is the diagonal relation @c Δ (@c graph of the identity).
+ * Returns @c T{1} / @c T{0} --- the unit / zero of a @b ring or @b field
+ * codomain (where they coincide with the @c ⊗ / @c ⊕ identities); a sibling of
+ * @ref identity_rule (@c i↦1) and @ref zero_rule (@c i↦0).  @note NOT the units
+ * of a general rig whose identities differ from @c 1/@c 0 (e.g. the tropical
+ * dioid, @c ⊕-id @c = @c −∞); such a carrier would take @c identity_v<T,Mult> /
+ * @c identity_v<T,Add> instead --- not needed at the ℂ use sites here. */
+export template <typename T, typename D = std::size_t>
+struct one_hot {
+  D k;
+  using Domain = D;
+  using Codomain = T;
+  constexpr T operator()(D j) const { return j == k ? T{1} : T{0}; }
+};
+
+static_assert(dedekind::category::IsArrow<one_hot<int, int>>,
+              "one_hot<T, D> is an IsArrow basis vector.");
+static_assert(one_hot<int, int>{3}(3) == 1 && one_hot<int, int>{3}(2) == 0,
+              "e_k(j) = δ(j,k): unit on its own index, zero elsewhere.");
+
 /** @section diagonal__Componentwise_Product
  *
  *  @c Diagonal<D, @c F> @c · @c Diagonal<D, @c G> @c = @c Diagonal<D,

@@ -530,6 +530,268 @@ export inline constexpr auto root8 =
 export inline constexpr Complex<QuadraticReal<2>> ζ8 =
     root8(dedekind::morphologies::Modular<8u>{1});
 
+// ── Symbolic unit harmonics: the de Moivre GROUP μ_N, kept symbolic ─────────
+/**
+ * @brief A SYMBOLIC N-th root of unity @f$\zeta_N^{\,p}@f$, carried by its
+ *        exponent @c p ∈ ℤ/N (@c Modular<N>).  The @b unit @b harmonics
+ *        @f$\mu_N=\{z:z^N=1\}@f$: the torsion subgroup of the unit circle
+ *        @c U(1), cut out of ℂ, cyclic of order @c N and
+ * @f$\cong\mathbb{Z}/N@f$ via de Moivre.
+ *
+ * @details Arithmetic is @b multiplicative and @b symbolic --- @f$\zeta^p \cdot
+ *          \zeta^q = \zeta^{p+q}@f$, exponent addition in ℤ/N, never a numeric
+ * ℂ product.  A @b group, @b NOT a ring: a @b sum of harmonics generally leaves
+ * @f$\mu_N@f$ (that sum is the ℂ-linear span --- the function-space semimodule
+ * --- not the harmonics).  Collapse to an exact ℂ value is deferred to @c
+ * resolve() and exact @b only where
+ *          @f$\zeta_N@f$ lives in the base field: @c N=8 ⊂ ℚ(√2), via @c root8.
+ *          Other @c N would need the cyclotomic field @f$\mathbb{Q}(\zeta_N)@f$
+ *          and get @b no numeric collapse here (a compile-time Honest
+ *          Rejection). */
+export template <unsigned N>
+struct UnitRoot {
+  dedekind::morphologies::Modular<N> exponent{};  // p in ζ_N^p
+
+  friend constexpr bool operator==(const UnitRoot&, const UnitRoot&) = default;
+
+  /** @brief The μ_N group law: harmonic product = exponent sum (de Moivre). */
+  friend constexpr UnitRoot operator*(const UnitRoot& a, const UnitRoot& b) {
+    return UnitRoot{a.exponent + b.exponent};
+  }
+  /** @brief The inverse @f$\zeta^{-p}@f$ (= conjugate, on the unit circle). */
+  constexpr UnitRoot inverse() const {
+    using MT = decltype(exponent.value);
+    return UnitRoot{dedekind::morphologies::Modular<N>(static_cast<MT>(N) -
+                                                       exponent.value)};
+  }
+  /** @brief Collapse to the exact ℂ(ℚ(√2)) value via de Moivre --- @b only
+   *  @c N=8, where @f$\zeta_8\in\mathbb{Q}(\sqrt2)@f$; off that base this
+   *  member is unavailable (a compile-time Honest Rejection). */
+  constexpr Complex<QuadraticReal<2>> resolve() const
+    requires(N == 8u)
+  {
+    return root8(exponent);
+  }
+};
+
+/** @brief The primitive N-th root @f$\zeta_N=\zeta_N^{1}@f$ (the μ_N
+ * generator). */
+export template <unsigned N>
+constexpr UnitRoot<N> unit_root() {
+  return UnitRoot<N>{dedekind::morphologies::Modular<N>(1)};
+}
+
+/**
+ * @brief The de Moivre CHARACTER @f$\chi_m : \mathbb{Z}/N \to \mu_N@f$,
+ *        @f$k \mapsto \zeta_N^{\,mk}@f$ --- the plane wave "as such", carried
+ *        SYMBOLICALLY in @c UnitRoot<N> (consumes the μ_N layer; @c resolve()
+ *        collapses to exact ℂ at @c N=8).
+ *
+ * @details An @c IsArrow (position @c k → harmonic), so it feeds the
+ * function-space @b precompose / @b reflect combinators directly.  Its codomain
+ * @c UnitRoot<N> is a @b group, not a semiring, so for bra-ket @b contraction
+ * (@c inner_product, which needs @c IsSemiring) it is first @c resolve()d into
+ * ℂ
+ * --- see the @c ChiKet / @c ChiBra wrappers in @c plane_wave_spike_test.
+ * @c root8 is its eagerly-ℂ-collapsed @c m=1 instance.  A group
+ * homomorphism in @c k (@f$\chi_m(k)\,\chi_m(k')=\chi_m(k+k')@f$) AND in the
+ * dual @c m (it is the self-dual pairing @f$\langle m,k\rangle=\zeta^{mk}@f$,
+ * the DFT kernel).  The conjugate bra is just the negated frequency:
+ * @f$\overline{\chi_m}=\chi_{-m}@f$ (@f$\overline{\zeta^{mk}}=\zeta^{-mk}@f$)
+ * --- so no separate conjugation is needed, an equality/negation suffices. */
+export template <unsigned N>
+struct Character {
+  dedekind::morphologies::Modular<N> m{};  // the mode / frequency
+  using Domain = dedekind::morphologies::Modular<N>;
+  using Codomain = UnitRoot<N>;
+  constexpr UnitRoot<N> operator()(dedekind::morphologies::Modular<N> k) const {
+    return UnitRoot<N>{m * k};  // ζ_N^{mk}
+  }
+};
+
+/** @brief The character @f$\chi_m@f$ at frequency @c m. @see Character */
+export template <unsigned N>
+constexpr Character<N> character(dedekind::morphologies::Modular<N> m) {
+  return Character<N>{m};
+}
+
+// ── Discrete cos / sin over the Modular<N> angle (the Re / Im of the
+// character)
+/**
+ * @brief The exact discrete COSINE @f$\cos_N(k) = \cos(2\pi k/N) =
+ * \Re\,\zeta_N^k@f$ over the @c Modular<N> angle --- the EVEN part of the de
+ * Moivre character (@c = the @f$\tfrac12(I+U)@f$ projection's real value).
+ *
+ * @details NOT a new trig table: it is literally @c Re of @c character<N>(1)
+ * resolved.  An @c IsArrow @c Modular<N> → ℝ, EXACT where the character
+ * resolves (N=8, in ℚ(√2)).  With @ref DiscreteSin it gives Euler's formula
+ * exactly:
+ * @f$\zeta_N^k = \cos_N(k) + i\,\sin_N(k)@f$. */
+export template <unsigned N>
+struct DiscreteCos {
+  using Domain = dedekind::morphologies::Modular<N>;
+  using Codomain = QuadraticReal<2>;
+  // Constrained to N == 8, the only modulus where the character resolves to
+  // exact ℂ (ζ_8 ∈ ℚ(√2)).  Without this the signature is valid for every N,
+  // so IsArrow<DiscreteCos<N>> would report true and the unsupported-modulus
+  // error would be deferred to the body; gating here rejects it at the API
+  // boundary (a Sollbruchstelle, not a latent hard-error).
+  constexpr QuadraticReal<2> operator()(Domain k) const
+    requires(N == 8u)
+  {
+    return character<N>(Domain(1))(k).resolve().real();
+  }
+};
+
+/** @brief The exact discrete SINE @f$\sin_N(k) = \sin(2\pi k/N) =
+ * \Im\,\zeta_N^k@f$
+ *  --- the ODD part of the character (@c Im of @c character<N>(1) resolved). An
+ *  @c IsArrow @c Modular<N> → ℝ, exact at N=8.  @see DiscreteCos */
+export template <unsigned N>
+struct DiscreteSin {
+  using Domain = dedekind::morphologies::Modular<N>;
+  using Codomain = QuadraticReal<2>;
+  // Constrained to N == 8 for the same reason as DiscreteCos (exact resolve
+  // only at ζ_8 ∈ ℚ(√2)); IsArrow is honest, unsupported moduli rejected here.
+  constexpr QuadraticReal<2> operator()(Domain k) const
+    requires(N == 8u)
+  {
+    return character<N>(Domain(1))(k).resolve().imag();
+  }
+};
+
+/** @brief @f$\cos_N = \Re\,\zeta_N^{(\cdot)}@f$ as an arrow. @see DiscreteCos
+ */
+export template <unsigned N>
+  requires(N == 8u)
+constexpr DiscreteCos<N> cos_n() {
+  return {};
+}
+/** @brief @f$\sin_N = \Im\,\zeta_N^{(\cdot)}@f$ as an arrow. @see DiscreteSin
+ */
+export template <unsigned N>
+  requires(N == 8u)
+constexpr DiscreteSin<N> sin_n() {
+  return {};
+}
+
+}  // namespace dedekind::numbers
+
+namespace dedekind::category {
+
+// μ_N is a finite CYCLIC ABELIAN GROUP under × (the harmonic product) --- NOT a
+// ring (no closed +: a sum of roots of unity leaves μ_N).  Register only the
+// MULTIPLICATIVE-group traits, so IsAbelianGroup<UnitRoot<N>, ×> holds while
+// IsRing does not.  The op is exponent addition in ℤ/N: total/exact,
+// associative and commutative; the unit is ζ^0 = 1; every ζ^p inverts to
+// ζ^{-p}.
+template <unsigned N>
+struct is_exact_total<dedekind::numbers::UnitRoot<N>,
+                      std::multiplies<dedekind::numbers::UnitRoot<N>>>
+    : std::true_type {};
+template <unsigned N>
+struct is_associative<dedekind::numbers::UnitRoot<N>,
+                      std::multiplies<dedekind::numbers::UnitRoot<N>>>
+    : std::true_type {};
+template <unsigned N>
+struct is_commutative<dedekind::numbers::UnitRoot<N>,
+                      std::multiplies<dedekind::numbers::UnitRoot<N>>>
+    : std::true_type {};
+template <unsigned N>
+struct identity_trait<dedekind::numbers::UnitRoot<N>,
+                      std::multiplies<dedekind::numbers::UnitRoot<N>>> {
+  using value_type = dedekind::numbers::UnitRoot<N>;
+  static constexpr value_type value{};  // ζ^0 = 1
+};
+template <unsigned N>
+inline constexpr bool
+    is_invertible_v<dedekind::numbers::UnitRoot<N>,
+                    std::multiplies<dedekind::numbers::UnitRoot<N>>> = true;
+template <unsigned N>
+struct inverse_trait<dedekind::numbers::UnitRoot<N>,
+                     std::multiplies<dedekind::numbers::UnitRoot<N>>> {
+  static constexpr bool exists = true;
+  using value_type = dedekind::numbers::UnitRoot<N>;
+  static constexpr value_type compute(const value_type& z) {
+    return z.inverse();
+  }
+};
+
+// Register the overall algebraic STRUCTURE (not just the operation traits):
+// μ_N is the archetypal MULTIPLICATIVE cyclic group --- the N-th roots of
+// unity, generated by ζ_N = unit_root<N>(), of order N.  Mirrors Modular<N>'s
+// ADDITIVE is_cyclic_group / cyclic_order registration (morphologies:cyclic);
+// the two are the same group ℤ/N read multiplicatively vs additively (de
+// Moivre).
+template <unsigned N>
+struct is_cyclic_group<dedekind::numbers::UnitRoot<N>,
+                       std::multiplies<dedekind::numbers::UnitRoot<N>>>
+    : std::true_type {};
+template <unsigned N>
+struct cyclic_order<dedekind::numbers::UnitRoot<N>,
+                    std::multiplies<dedekind::numbers::UnitRoot<N>>>
+    : std::integral_constant<std::size_t, static_cast<std::size_t>(N)> {};
+
+// The classification, pinned: μ_8 is a finite CYCLIC abelian group under × of
+// order 8 (the accurate algebraic home of the unit harmonics — a group, NOT a
+// ring), μ_8 ≅ ℤ/8 via de Moivre.
+static_assert(
+    IsAbelianGroup<dedekind::numbers::UnitRoot<8u>,
+                   std::multiplies<dedekind::numbers::UnitRoot<8u>>>,
+    "μ_8 (the 8th unit harmonics) is a finite abelian group under ×.");
+static_assert(IsCyclicGroup<dedekind::numbers::UnitRoot<8u>,
+                            std::multiplies<dedekind::numbers::UnitRoot<8u>>>,
+              "μ_8 is CYCLIC (generated by ζ_8).");
+static_assert(
+    cyclic_order_v<dedekind::numbers::UnitRoot<8u>,
+                   std::multiplies<dedekind::numbers::UnitRoot<8u>>> == 8u,
+    "μ_8 has order 8.");
+
+}  // namespace dedekind::category
+
+namespace dedekind::numbers {
+
+// ½√2 = cos(π/4) — the sole irrational the μ_8 table needs, pinned as a LITERAL
+// so the witnesses below are independent of root8's own definition.
+constexpr QuadraticReal<2> half_root2 = QuadraticReal<2>::of(
+    Rational<default_integer>{}, Rational<default_integer>{1, 2});
+
+// de Moivre collapse is exact and a GROUP HOMOMORPHISM μ_8 → ℂ*.  Pin the
+// generator's collapse to its LITERAL value ½√2 + ½√2·i (NOT to ζ8's own
+// definiens), and the product-collapse to the ℂ product — the non-trivial
+// homomorphism root8(a+b) = root8(a)·root8(b).
+static_assert(unit_root<8u>().resolve() ==
+                  Complex<QuadraticReal<2>>{half_root2, half_root2},
+              "ζ_8 collapses to the exact literal ½√2 + ½√2·i.");
+static_assert((unit_root<8u>() * unit_root<8u>()).resolve() ==
+                  unit_root<8u>().resolve() * unit_root<8u>().resolve(),
+              "resolve is a homomorphism: root8(a+b) = root8(a)·root8(b).");
+
+// The μ_8 inverse LAW (backs the cyclic-group cert with the defining axiom, not
+// just the trait read): ζ·ζ⁻¹ = 1, and a non-generator ζ³·ζ⁵ = ζ⁸ = 1.
+static_assert(unit_root<8u>() * unit_root<8u>().inverse() == UnitRoot<8u>{},
+              "ζ_8 · ζ_8⁻¹ = ζ⁰ = 1 (the group inverse law).");
+static_assert(UnitRoot<8u>{dedekind::morphologies::Modular<8u>(3)} *
+                      UnitRoot<8u>{dedekind::morphologies::Modular<8u>(5)} ==
+                  UnitRoot<8u>{},
+              "ζ³ · ζ⁵ = ζ⁸ = ζ⁰ = 1 (μ_8 closure at a non-generator).");
+
+// cos_8 / sin_8 take the exact node values, pinned to LITERALS (independent of
+// their Re/Im definition — the k=2 pin, cos≠sin, would catch a cos/sin swap):
+// k=1 both ½√2 (cos π/4 = sin π/4); k=2 the quarter turn (cos 0, sin 1).  Euler
+// ζ_8^k = cos_8(k) + i·sin_8(k) then holds BY CONSTRUCTION (cos = Re, sin =
+// Im).
+static_assert(cos_n<8u>()(dedekind::morphologies::Modular<8u>(1)) ==
+                      half_root2 &&
+                  sin_n<8u>()(dedekind::morphologies::Modular<8u>(1)) ==
+                      half_root2,
+              "cos_8(1) = sin_8(1) = ½√2.");
+static_assert(sin_n<8u>()(dedekind::morphologies::Modular<8u>(2)) ==
+                      QuadraticReal<2>{1} &&
+                  cos_n<8u>()(dedekind::morphologies::Modular<8u>(2)) ==
+                      QuadraticReal<2>{},
+              "cos_8(2) = 0, sin_8(2) = 1 (the quarter turn, ζ_8^2 = i).");
+
 /** @section complex__Roots_of_Unity_Witnesses
  *  @c root8 is the exact de Moivre homomorphism, @b computed.  Witnesses are
  *  kept shallow: each @c root8 call folds a QuadReal table, so the loops below

@@ -1222,18 +1222,18 @@ namespace dedekind::sequences {
 // IsSequence ⟹ IsFunction ⟹ IsRelation, mechanically (the hierarchy is now
 // type-checked, not asserted in prose): a sequence's graph is a function.
 static_assert(
-    dedekind::sets::IsFunctional<
+    dedekind::relational::IsFunctional<
         decltype(as_relation(std::declval<const Path<int>&>()))>,
     "a sequence is FUNCTIONAL (single-valued): IsSequence ⟹ IsFunction.");
 static_assert(
-    dedekind::sets::IsEntire<
+    dedekind::relational::IsEntire<
         decltype(as_relation(std::declval<const Path<int>&>()))>,
     "an INFINITE sequence is ENTIRE (total on its index): a total function.");
-static_assert(dedekind::sets::IsFunctional<decltype(as_relation(
+static_assert(dedekind::relational::IsFunctional<decltype(as_relation(
                   std::declval<const FinitePath<int>&>()))>,
               "a FINITE sequence is still functional (single-valued)...");
 static_assert(
-    !dedekind::sets::IsEntire<
+    !dedekind::relational::IsEntire<
         decltype(as_relation(std::declval<const FinitePath<int>&>()))>,
     "...but a PARTIAL function: not entire on its index past its finite size.");
 }  // namespace dedekind::sequences

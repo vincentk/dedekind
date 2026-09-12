@@ -6,6 +6,7 @@ import dedekind.relational;
 
 using namespace dedekind::category;
 using namespace dedekind::sets;
+using namespace dedekind::relational;
 
 // ---------------------------------------------------------------------------
 // Fixtures: small integer-universe sets used across sections.

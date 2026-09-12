@@ -52,7 +52,18 @@ import :total;  // IsTotallyOrdered — the no-incomparable-element certificate
 
 namespace dedekind::order {
 using namespace dedekind::sets;
+using namespace dedekind::relational;  // converse/diagonal/reflexive/RelAnd/...
 using namespace dedekind::category;
+// The relation operators (moved to :relational, #792) must be pulled in by
+// NAME, not only the directive above: @c order declares its OWN operator>> /
+// operator+ / operator& (on halfspaces / projections), and a nearer-scope
+// declaration hides using-DIRECTIVE names from unqualified (operator) lookup.
+// Before the move these were reached by ADL on the @c Set<pair> operand (ADL
+// ignores such hiding); the using-DECLARATIONS restore exactly that candidate
+// set, joining --- not losing to --- order's own operators.
+using dedekind::relational::operator>>;  // the relative product R;S
+using dedekind::relational::operator+;   // relation union R + S
+using dedekind::relational::operator&;   // relation meet R & S
 
 /**
  * @concept IsRingIntegral
@@ -1113,7 +1124,7 @@ constexpr ProjBound<I, Rel::Ne, V> operator!=(Projection<I>, Bound<V>) {
 
 // meet of relational predicates.  RelAnd now lives in :dyadic (#792).
 export template <IsRelPredicate A, IsRelPredicate B>
-constexpr dedekind::sets::RelAnd<A, B> operator&(A a, B b) {
+constexpr dedekind::relational::RelAnd<A, B> operator&(A a, B b) {
   return {a, b};
 }
 
@@ -1266,7 +1277,7 @@ constexpr auto axis_factor(const ProjBound<I, R, V>&) {
  *  (@c π1<=5 & @c π1<=3) meet to the tighter one rather than dropping either.
  */
 export template <std::size_t I, typename TI, typename L, typename A, typename B>
-constexpr auto axis_factor(const dedekind::sets::RelAnd<A, B>& r) {
+constexpr auto axis_factor(const dedekind::relational::RelAnd<A, B>& r) {
   auto fa = axis_factor<I, TI, L>(r.a);
   auto fb = axis_factor<I, TI, L>(r.b);
   if constexpr (requires { typename decltype(fa)::is_universal_boundary; }) {
@@ -1542,12 +1553,12 @@ static_assert(dom((ℕ | (π <= fix(5_c))) * ℕ |
 // relational application: apply(R, a) is the fibre {b | (a,b) ∈ R}.  For the
 // residue graph (a function) it is the singleton {a % 17}: apply(R,20) = {3}.
 static_assert(
-    dedekind::sets::apply(ℕ* ℕ | π1 % fix(17_c) == π2,
-                          finite_cardinality(20))(finite_cardinality(3)),
+    dedekind::relational::apply(ℕ* ℕ | π1 % fix(17_c) == π2,
+                                finite_cardinality(20))(finite_cardinality(3)),
     "apply(R,20) = {3}: (20,3) ∈ R since 20 % 17 == 3.");
 static_assert(
-    !dedekind::sets::apply(ℕ * ℕ | π1 % fix(17_c) == π2,
-                           finite_cardinality(20))(finite_cardinality(4)),
+    !dedekind::relational::apply(ℕ * ℕ | π1 % fix(17_c) == π2,
+                                 finite_cardinality(20))(finite_cardinality(4)),
     "apply(R,20) does not contain 4.");
 
 /** @brief Is the strict lower cut @c {x<p} empty (i.e. @c p at/below the
@@ -1941,8 +1952,8 @@ static_assert(
 // a FUNCTIONAL relation's composition distributes over MEET too (R;(S∩T) =
 // R;S ∩ R;T), which fails for a non-functional relation.
 static_assert(static_cast<bool>(((𝔹 * 𝔹 | π1 < π2) >>
-                                 dedekind::sets::diagonal<bool>())(std::pair{
-                  false, true})) ==
+                                 dedekind::relational::diagonal<bool>())(
+                  std::pair{false, true})) ==
                   static_cast<bool>((𝔹 * 𝔹 | π1 < π2)(std::pair{false, true})),
               "R;Δ = R: the diagonal is the composition unit (the 1).");
 static_assert(
@@ -2040,10 +2051,10 @@ namespace dedekind::order {
 // -- but NOT entire (the restriction drops the domain), so it is not a total
 // function, matching the paper's partial-function reading.
 static_assert(
-    dedekind::sets::IsFunctional<decltype((ℤ * ℤ | π1 + fix(3_c) == π2) |
-                                          π1 <= fix(5_c))> &&
-        !dedekind::sets::IsEntire<decltype((ℤ * ℤ | π1 + fix(3_c) == π2) |
-                                           π1 <= fix(5_c))>,
+    dedekind::relational::IsFunctional<decltype((ℤ * ℤ | π1 + fix(3_c) == π2) |
+                                                π1 <= fix(5_c))> &&
+        !dedekind::relational::IsEntire<decltype((ℤ * ℤ | π1 + fix(3_c) == π2) |
+                                                 π1 <= fix(5_c))>,
     "a restricted translation graph is a functional-but-not-entire partial "
     "function, inferred through ProductRestrict.");
 }  // namespace dedekind::order

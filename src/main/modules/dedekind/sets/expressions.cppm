@@ -1537,36 +1537,14 @@ static_assert(
     dedekind::category::IsProduct<CanonicalIntProductDomain, int, int>,
     "sets::cartesian_product must expose a std::pair product domain.");
 
-/**
- * @brief A Relation from A to B is a set of pairs: a subset of A × B.
- * @details ETCS reading: relations are subobjects of products.
- * @see Lambek and Scott @cite lambek1988higher
- *
- * @tparam T1  Element type of domain set A.
- * @tparam T2  Element type of codomain set B.
- * @tparam L   Logic species shared by both component sets.
- * @tparam P   Predicate on std::pair<T1,T2>.
- */
-export template <typename T1, typename T2, typename L, typename P>
-using Relation = Set<std::pair<T1, T2>, L, P>;
-
-/**
- * @brief A (set-level) Function is a Relation where each domain element maps
- * to exactly one codomain element.  The type alias admits the same structure
- * as a Relation; functional totality and single-valuedness are enforced at the
- * call-site via witness elements.
- * @see Pierce @cite pierce1991basic
- */
-export template <typename T1, typename T2, typename L, typename P>
-using SetFunction = Relation<T1, T2, L, P>;
-
-/**
- * @brief Concept: a set S whose ambient type is std::pair<T1,T2> is a
- * valid binary relation on T1 and T2.
- */
-export template <typename S, typename T1, typename T2>
-concept IsRelation = requires { typename S::Domain; } &&
-                     std::same_as<typename S::Domain, std::pair<T1, T2>>;
+// The relation CORE --- the @c Relation / @c SetFunction aliases, the
+// @c IsRelation concept, and the @c relates / @c dom / @c cod / @c apply /
+// @c is_single_valued_at query surface --- moved OUT of @c :sets into
+// @c dedekind.relational:dyadic (#792 follow-up).  A relation is a downstream
+// concept (@c category → @c sets → @b relational), so keeping its type and
+// query surface in @c sets inverted the layering; breaking that cycle is the
+// point.  @c sets keeps only the @b powerset (below), which is genuine
+// set-theory, not relation algebra.
 
 /**
  * @brief Power set witness over same-predicate subsets.
@@ -1597,78 +1575,9 @@ constexpr auto 𝔓(const Set<T, L, P>& base) {
   return power_set(base);
 }
 
-/** @brief Relation membership witness: (a,b) ∈ R. */
-export template <typename T1, typename T2, typename L, typename P>
-constexpr typename L::Ω relates(const Relation<T1, T2, L, P>& r, const T1& a,
-                                const T2& b) {
-  return r(std::pair<T1, T2>{a, b});
-}
-
-/**
- * @brief The @b declared domain of a relation @c R ⊆ A×B: the universal set
- *        @c Ω<A> over the first factor --- @c π₁'s codomain.
- *
- * @details A relation @b is a @c Set on the product carrier @c pair<A,B>, so
- * it @b is @c IsProduct and its projections fall out of the type: the factor
- * @b type @c A survives in @c R::Domain (@c pair<A,B>) even though the factor
- * @b set is not retained, so the @b declared domain @c Ω<A> is recoverable
- * total and free, with no @c ∃.  This is deliberately @b not the @b effective
- * domain @f$\{a \mid \exists b.\ R(a,b)\}@f$ (the @c π₁-image), which is a
- * separate existential carrying its own decidability certificate --- the Rice
- * wall stays quarantined to that one operation.
- */
-export template <typename T1, typename T2, typename L, typename P>
-constexpr auto dom(const Relation<T1, T2, L, P>&) {
-  return Ω<T1, L>;  // preserve the relation's logic species
-}
-
-/** @brief The @b declared codomain of a relation @c R ⊆ A×B: @c Ω<B>, the
- *         second factor (@c π₂'s codomain).  Dual to @c dom. */
-export template <typename T1, typename T2, typename L, typename P>
-constexpr auto cod(const Relation<T1, T2, L, P>&) {
-  return Ω<T2, L>;  // preserve the relation's logic species
-}
-
-/**
- * @brief Relational @b application: the image of @c x under @c R, the fibre
- *        @f$\{b \in B \mid (x,b) \in R\}@f$ as a @c Set on the codomain.
- *
- * @details This is the @b power @b transpose @f$\Lambda R : A \to
- * \mathcal{P}(B)@f$ of Bird \& de~Moor @cite birddemoor1997aop --- the relation
- * read as a set-valued map --- and it is the form on which the optimisation
- * calculus is built: @c argmax is @f$\max R \cdot \Lambda F@f$ (§3.3 / §4).
- * The @b general form.  @c R IS-A relation (and @c IsFunction refines
- * @c IsRelation), so a @b functional @c R gives a @b singleton fibre --- the
- * value @c f(x) --- and a general relation the full image; the degenerate cases
- * fall out as the fibre's @b cardinality, with no special-casing (the
- * singleton-valued specialisation is a later overload gated on the functional
- * certificate).  The fibre is @b lazy and membership-testable
- * (@c apply(R,x)(b) is @c (x,b)∈R), so it types in for any relation and the
- * existential --- is it nonempty? what is its max? --- is deferred to whoever
- * reduces it.
- */
-export template <typename T1, typename T2, typename L, typename P>
-constexpr auto apply(const Relation<T1, T2, L, P>& r, const T1& x) {
-  auto fibre = [r, x](const T2& b) { return r(std::pair<T1, T2>{x, b}); };
-  return Set<T2, L, decltype(fibre)>{fibre};
-}
-
-/**
- * @brief Point-wise single-valuedness witness for a set-function relation.
- *
- * If both y1 and y2 are related to x, they must be equal.
- */
-export template <typename T1, typename T2, typename L, typename P>
-constexpr typename L::Ω is_single_valued_at(const SetFunction<T1, T2, L, P>& f,
-                                            const T1& x, const T2& y1,
-                                            const T2& y2) {
-  const auto m1 = relates(f, x, y1);
-  const auto m2 = relates(f, x, y2);
-  const auto both_related = L::AND(m1, m2);
-  const auto equal_outputs = lift_logic<L>(y1 == y2);
-  // ((x,y1) ∈ f && (x,y2) ∈ f) => (y1 == y2)
-  return L::OR(L::NOT(both_related), equal_outputs);
-}
+// NOTE: the relation query surface (@c relates / @c dom / @c cod / @c apply /
+// @c is_single_valued_at) moved to @c dedekind.relational:dyadic alongside the
+// @c Relation type --- see the relation-core note above the powerset.
 
 /** @section expressions__SetExpr_Witnesses
  *  A @ref Comprehension @b is a set --- @c IsSet is reached by inheriting

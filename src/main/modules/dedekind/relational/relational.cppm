@@ -38,20 +38,29 @@
  *       @c is_graph_of.  A graph @b is a relation, so it tags along here.
  *
  * @section relational__Namespace
- * All extracted symbols land in the @c dedekind::sets namespace (NOT
- * @c dedekind::relational): they resolve by ADL on their @c dedekind::sets::Set
- * / @c Relation arguments, which is what keeps the unqualified operators
- * (@c >> / @c + / @c &) and the bare @c converse / @c select call sites
- * working. For @c :tables and @c :graph this is a pure @b module move --- they
- * were already @c dedekind::sets.  For @c :dyadic the namespace ALSO moved
- * (@c dedekind::order → @c dedekind::sets, since it was buried in the
- * halfspace), so its callers repoint @c dedekind::order:: → @c dedekind::sets::
- * (transfer, halfspace_transport).  A rename to @c dedekind::relational would
- * be a separate mechanical churn against the ADL wall.
+ * All relational symbols --- including the @c Relation / @c SetFunction aliases
+ * and the @c IsRelation concept --- live in the @c dedekind::relational
+ * namespace, the module's OWN namespace (no @c dedekind::sets leftover).  Only
+ * the underlying @b carriers stay in @c dedekind::sets: @c Set (the
+ * @c Set<pair> a relation @b is) and @c Ω (the declared factor universals),
+ * brought in by a @c using-declaration inside each partition.
+ *
+ * Migration impact of the namespace move (do NOT under-state it): ADL searches
+ * the namespaces of a call's ARGUMENT types, so every named API that takes a
+ * @c Set / @c Relation argument --- @c converse, @c select, @c set_difference,
+ * @c natural_join, @c preimage, @c reflexive, @c symmetric --- @b was
+ * ADL-reachable from @c dedekind::sets and now is @b not; those bare calls need
+ * qualification or a @c using.  The infix operators (@c >> / @c + / @c & / the
+ * set-difference @c -) are the same story.  The ONLY symbols that never
+ * ADL-reached @c sets are @c graph (called on an @b arrow, whose type is not in
+ * @c sets) and the relation/function @b concepts (used as type traits, not
+ * calls).  In practice consumers add @c using @c namespace @c
+ * dedekind::relational once --- the explicit price for a module whose namespace
+ * is honest about where its symbols live.
  */
 export module dedekind.relational;
 
 export import :dyadic;  // Tarski BASE: converse °, relative product ;, Δ, +, &
-export import :tables;  // Codd: σ ⋈ ∪ ∖ ∩ (dedekind::sets namespace, by ADL)
+export import :tables;  // Codd: σ ⋈ ∪ ∖ ∩ (dedekind::relational namespace)
 export import :graph;   // graphs of arrows (binary relations): graph(f),
                         // is_graph_of

@@ -64,13 +64,18 @@ import :dyadic;       // the Tarski BASE.  FIXME(#798): re-target
                  // Tarski's ; with the pivot retained) --- seeded here as the
                  // dependency + intention, not yet wired.
 
-// The symbols keep the dedekind::sets namespace (not dedekind::relational):
-// they resolve by ADL on their dedekind::sets::Set / Relation arguments, so the
-// module moved OUT of :sets while the namespace stays for call-site stability
-// (the transport-op precedent, #785).
+// The symbols live in the dedekind::relational namespace --- the module's own
+// namespace.  Only the Set CARRIER stays dedekind::sets (a relation IS a Set of
+// pairs/tuples); Relation itself is native to this module now (:dyadic).  The
+// named Set-argument APIs here (select / set_union / set_difference /
+// natural_join) were ADL-reachable when they lived in dedekind::sets, so after
+// the move consumers reach them with `using namespace dedekind::relational` (or
+// qualification) --- not only the infix set-difference operator-.
 
-namespace dedekind::sets {
+namespace dedekind::relational {
 using namespace dedekind::category;
+using dedekind::sets::Set;  // the Set carrier (stays in :sets)
+// @c Relation is native to this module now (:dyadic), reached via import above.
 
 struct CanonicalPairPredicate {
   constexpr bool operator()(const std::pair<int, int>&) const { return true; }
@@ -240,4 +245,4 @@ static_assert(
 // @c limit(Path<T>) ), so naming relational σ-specialisations
 // identically would create overload ambiguity for no algebraic gain.
 
-}  // namespace dedekind::sets
+}  // namespace dedekind::relational

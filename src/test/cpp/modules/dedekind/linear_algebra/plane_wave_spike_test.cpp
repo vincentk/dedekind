@@ -1,0 +1,257 @@
+#include <catch2/catch_test_macros.hpp>
+#include <concepts>
+#include <cstddef>
+#include <type_traits>
+#include <utility>
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SPIKE — Figure 6, rows 2–3 ("the same construction, made exact"), the
+// CONTINUOUS/intensional tier, BEFORE any torus quotient or discretization.
+//
+// The whole of rows 2–3 is "simple arithmetic on plane-wave symbols".  The
+// algebraic infrastructure that lets the compiler do it:
+//   (1) exact ℂ = Complex<ℚ(√2)> as the scalar — a certified semiring/field
+//   (#818); (2) the PLANE WAVE carried SPECTRALLY as its coefficient map  w ↦
+//   c_w  — an
+//       `IsArrow` over the wave-vector lattice ℤ², i.e. a vector in the
+//       function space ℂ^(ℤ²).  This is infinite-dimensional (the
+//       "functions-as-vectors" layer), NOT a finite tuple: the domain point
+//       k∈ℤ² is the finite (2-D) vector; the wave ψ living in ℂ^(ℤ²) is the
+//       infinite one;
+//   (3) pointwise ⊕ and scalar · — the semimodule operations of that function
+//       space, the INTENSIONAL siblings of SemimoduleVec's ⊕/⊗, promoted to
+//       linear_algebra:transfer as the semiring-generic `pointwise_sum` /
+//       `scaled` (this test only wires the narrow wave-vector operator sugar).
+//       The "algebraic infrastructure" in one line: ℂ^(ℤ²) is a ℂ-semimodule;
+//   (4) the reflection U : w ↦ −w, giving the even projector P = ½(I + U).
+//
+// Exactness forces the spectral (symbolic) form: the spatial wave exp(i k·x) is
+// transcendental, NOT representable in ℚ(√2); it becomes exactly evaluable only
+// on the torus (root8 at ℤ/N) — the NEXT tier.  Here nothing is discretized.
+// ─────────────────────────────────────────────────────────────────────────────
+
+import dedekind.category;     // IsArrow
+import dedekind.numbers;      // Complex, QuadraticReal, Rational, root8, conj
+import dedekind.morphologies; // Modular<N> — the ℤ/N index for the DFT bra-ket
+import dedekind.linear_algebra; // scaled / pointwise_sum, inner_product, OuterProduct, eigenvalue
+import dedekind.sets;       // IsRelation, Graph
+import dedekind.relational; // owns graph(·) — the arrow ⟶ relation lift
+
+using dedekind::category::IsArrow;
+using dedekind::linear_algebra::eigenvalue;
+using dedekind::linear_algebra::geometric_sum;
+using dedekind::linear_algebra::inner_product;
+using dedekind::linear_algebra::one_hot;
+using dedekind::linear_algebra::OuterProduct;
+using dedekind::linear_algebra::pointwise_sum;
+using dedekind::linear_algebra::reflected;
+using dedekind::linear_algebra::scaled;
+using dedekind::morphologies::Modular;
+using dedekind::numbers::character;
+using dedekind::numbers::Complex;
+using dedekind::numbers::conj;
+using dedekind::numbers::QuadraticReal;
+using dedekind::numbers::Rational;
+using dedekind::numbers::root8;
+
+namespace {
+using R2 = QuadraticReal<2>;  // ℝ = ℚ(√2), the coat-hanger
+using Cx = Complex<R2>;       // ℂ over ℚ(√2), exact
+using Q = Rational<>;
+
+constexpr Cx operator""_re(unsigned long long n) {
+  return Cx{R2{long(n)}, R2{}};
+}
+constexpr Cx I{R2{}, R2{1}};            // the imaginary unit i
+constexpr Cx kHalf{R2{Q{1, 2}}, R2{}};  // ½ (file-local; was re-spelled)
+
+// A 2-D wave-vector on ℤ² — the FINITE (2-D product) domain.  k·x lives in ℝ
+// and its exp does not close over ℚ(√2); that is why ψ is carried spectrally
+// below.
+struct Wave {
+  int kx{}, ky{};
+  friend constexpr bool operator==(const Wave&, const Wave&) = default;
+};
+constexpr Wave operator-(const Wave& k) {
+  return {-k.kx, -k.ky};
+}  // reflection
+
+// Any Wave→ℂ arrow is a vector in the function space ℂ^(ℤ²).  The symbol
+// arithmetic (⊕, scalar·, even) is defined exactly on this surface.
+template <class F>
+concept IsWaveVector =
+    IsArrow<F> && std::same_as<typename std::remove_cvref_t<F>::Domain, Wave> &&
+    std::same_as<typename std::remove_cvref_t<F>::Codomain, Cx>;
+
+// The PLANE-WAVE SYMBOL χ_k = the spectral one-hot |k⟩ = e_k, now the LIBRARY
+// one_hot (linear_algebra:diagonal) — the coefficient map w ↦ δ(w,k) = [w=k],
+// the k-th COLUMN of the identity δ.  Was a bespoke struct; unified with the
+// Kronecker-δ Form.  A single basis Ket of ℂ^(ℤ²).
+using PlaneWave = dedekind::linear_algebra::one_hot<Cx, Wave>;
+constexpr PlaneWave wave(Wave k) { return PlaneWave{k}; }
+
+// scalar ·  and  ⊕  are the INTENSIONAL semimodule operations promoted to
+// linear_algebra:transfer (semiring-generic: scaled / pointwise_sum, the
+// rule-backed siblings of SemimoduleVec's ⊕/⊗).  We expose them as NARROW
+// operator sugar on wave-vectors — delegating to the generic combinators — so
+// plane-wave arithmetic reads naturally without a global operator+ leaking onto
+// every IsArrow (SemimoduleVec / Path already carry their own).
+template <IsWaveVector F>
+constexpr auto operator*(Cx c, F f) {
+  return scaled(c, f);
+}
+template <IsWaveVector F, IsWaveVector G>
+constexpr auto operator+(F f, G g) {
+  return pointwise_sum(f, g);
+}
+
+// The even-symmetry projector  P = ½(I + U),  U : w ↦ −w  — ASSEMBLED from the
+// promoted combinators (scaled ∘ pointwise_sum ∘ reflected), NOT hand-rolled:
+//   P f = ½ ⊗ (f ⊕ U f),   U f = reflected(f) = (w ↦ f(−w)).
+// So (Pψ)(w) = ½(ψ(w) ⊕ ψ(−w)); ψ is EVEN ⟺ Pψ = ψ ⟺ its spectrum is symmetric
+// under k ↦ −k.  Idempotent (P² = P): a projection onto the even
+// subspace — the constructive S-leg, here on the continuous spectral vector.
+template <IsWaveVector F>
+constexpr auto even(F f) {
+  return scaled(kHalf, pointwise_sum(f, reflected(f)));
+}
+}  // namespace
+
+TEST_CASE("Figure 6 row 2: ψ is a superposition of plane-wave symbols",
+          "[linear_algebra][funcspace][fourier][spike]") {
+  constexpr Wave k1{1, 0}, k2{0, 1};  // orthogonal wave-vectors in ℤ²
+
+  // ROW 2 — simple arithmetic on plane-wave symbols: a non-separable wave as a
+  // linear combination of unit waves with orthogonal wave-vectors.
+  constexpr auto psi = 2_re * wave(k1) + I * wave(k2);
+
+  // ψ IS a vector in the function space ℂ^(ℤ²): an IsArrow, no finiteness.
+  static_assert(IsArrow<decltype(psi)>,
+                "ψ is a vector in the function space ℂ^(ℤ²) (an IsArrow).");
+
+  // The SAME ψ, lifted by graph(·), is the predicate-on-pairs view:
+  //   graph(ψ) = { (w, c) | c = ψ(w) } ⊆ ℤ² × ℂ
+  // graph(·) targets the Set<pair> relation ENCODING (IsRelation: Domain =
+  // pair<Wave,ℂ>) — NOT the curried 2-arg IsBinaryRelation/IsFunction form; the
+  // two are distinct encodings.  GraphPredicate carries ψ, so the lift is
+  // lossless (graphs compose by the relative product).  IsArrow stays the
+  // carrier; graph(·) is the bridge to the relational/predicate lattice where
+  // range/support predicates live.
+  static_assert(
+      dedekind::relational::IsRelation<
+          decltype(dedekind::relational::graph(psi)), Wave, Cx>,
+      "graph(ψ) is the Set<pair> relation view (a predicate on pairs).");
+  // Membership carries ψ:  (k1, 2) ∈ Γ_ψ,  (k1, 0) ∉ Γ_ψ.
+  CHECK(dedekind::relational::graph(psi)(std::pair<Wave, Cx>{k1, 2_re}));
+  CHECK_FALSE(dedekind::relational::graph(psi)(std::pair<Wave, Cx>{k1, Cx{}}));
+
+  // Its spectrum, read off exactly — 2 at k1, i at k2, 0 elsewhere.
+  static_assert(psi(k1) == 2_re, "c_{k1} = 2");
+  static_assert(psi(k2) == I, "c_{k2} = i");
+  static_assert(psi(Wave{2, 3}) == Cx{}, "off-support coefficient is 0");
+
+  CHECK(psi(k1) == 2_re);
+  CHECK(psi(-k1) == Cx{});  // asymmetric: nothing at −k1 yet (see row 3)
+}
+
+TEST_CASE("Figure 6 row 3: the even-symmetry projector P = ½(I+U)",
+          "[linear_algebra][funcspace][symmetrize][spike]") {
+  constexpr Wave k{1, 0};
+
+  // An already-even wave: spectrum symmetric under k ↦ −k  ⇒  P fixes it.
+  // Witnessed at RUNTIME (CHECK, below), not static_assert: over the
+  // SUPERPOSITION psi_even the even-projector's exact ℂ=ℚ(√2) arithmetic
+  // (Complex × bottoms out in the big-integer limb comparisons of the Rational
+  // carrier, through std::variant/std::array operator<=>) crosses clang's
+  // -fconstexpr-steps limit at this depth --- but only under libstdc++ (CI
+  // Linux), whose variant/array constexpr comparisons cost more steps than
+  // libc++ (macOS), where it folds.  Same compiler (clang), different stdlib.
+  // The SINGLE-wave projector witnesses below stay compile-time (shallower);
+  // the math is identical either way.
+  constexpr auto psi_even = 1_re * wave(k) + 1_re * wave(-k);
+
+  // A single plane wave is NOT even; P projects it onto its even part:
+  //   (P|k⟩)(±k) = ½,  so the ½(|k⟩ ⊕ |−k⟩) cosine-like standing wave.
+  constexpr auto projected = even(wave(k));
+  static_assert(projected(k) == kHalf, "(P|k⟩)_k = ½");
+  static_assert(projected(-k) == kHalf, "(P|k⟩)_{−k} = ½");
+
+  // Idempotent P² = P — a projection (witnessed at the support).
+  static_assert(even(projected)(k) == projected(k), "P² = P at k");
+  static_assert(even(projected)(-k) == projected(-k), "P² = P at −k");
+
+  CHECK(even(psi_even)(k) == psi_even(k));    // P|ψ⟩ = |ψ⟩ at k (ψ even)
+  CHECK(even(psi_even)(-k) == psi_even(-k));  // … and at −k
+  CHECK(projected(k) == kHalf);
+}
+
+// ── The DFT kernel as bona-fide bra-kets over ℂ: inner AND outer product ────
+namespace {
+using M8 = Modular<8u>;
+
+// ℂ-valued de Moivre character |χ_m⟩ : k ↦ ζ_8^{mk}.  CONSUMES the symbolic μ_N
+// layer: the library character<8>(m) (UnitRoot-valued) RESOLVED to exact ℂ per
+// point.  A product of harmonics stays in μ_N (×-only), but the inner/outer
+// products SUM, so the value re-enters the field ℂ at resolve().
+struct ChiKet {
+  unsigned m;
+  using Domain = std::size_t;
+  using Codomain = Cx;
+  constexpr Cx operator()(std::size_t k) const {
+    return character<8u>(M8{m})(M8{static_cast<unsigned>(k)}).resolve();
+  }
+};
+// The frequency BRA ⟨χ_m| is the CONJUGATE = the NEGATED-frequency character
+// χ_{-m} (since conj ζ^{mk} = ζ^{-mk}) — SYMBOLIC, no conj: just negate m in
+// ℤ/8.
+struct ChiBra {
+  unsigned m;
+  using Domain = std::size_t;
+  using Codomain = Cx;
+  constexpr Cx operator()(std::size_t k) const {
+    return character<8u>(M8{(8u - m) % 8u})(M8{static_cast<unsigned>(k)})
+        .resolve();
+  }
+};
+// The position one-hot |e_k⟩ : j ↦ δ(j,k) is the LIBRARY one_hot
+// (diagonal.cppm) — no bespoke struct (it was a verbatim duplicate of
+// one_hot<Cx, std::size_t>).
+}  // namespace
+
+TEST_CASE(
+    "bra-ket: ⟨m|k⟩ = ζ^{−mk}, ⟨χ_m|χ_n⟩ = N·δ — the DFT kernel as inner + "
+    "outer",
+    "[linear_algebra][funcspace][fourier][braket][spike]") {
+  // (1) INNER PRODUCT — the DFT kernel entry ⟨m|k⟩ as a bona-fide bra-ket:
+  //   ⟨χ_m | e_k⟩ = Σ_j conj(ζ^{mj})·δ(j,k) = ζ^{-mk}.  The bracket the pun was
+  //   about, on the library inner_product; the position ket e_k is the library
+  //   one_hot.  (A genuine pointwise PICK, not a sum that wants collapsing.)
+  CHECK(inner_product<8>(ChiBra{3}, one_hot<Cx>{2}) ==
+        conj(root8(M8{3u * 2u})));
+
+  // (2) OUTER / TENSOR PRODUCT — the rank-1 dyad |χ_m⟩⟨χ_n| = χ_m ⊗ conj χ_n,
+  //   a first-class operator on the bra-ket surface: D(i,j) = ζ^{mi}·ζ^{-nj}.
+  constexpr auto D = OuterProduct<ChiKet, ChiBra>{ChiKet{1}, ChiBra{2}};
+  CHECK(D(std::size_t{1}, std::size_t{1}) ==
+        root8(M8{1u}) * conj(root8(M8{2u})));  // ζ¹ · ζ⁻²
+
+  // (2') INNER ⟷ OUTER ⟷ SYMBOLIC — the dyad's rank-1 EIGENVALUE IS the bra-ket
+  //   (M² = λM), and that bra-ket IS the closed-form geometric_sum, pinned
+  //   EQUAL (same Σ_j ζ^{(m-n)j}) so the fold, the dyad, and the symbolic form
+  //   agree:
+  //     λ(|χ_m⟩⟨χ_n|) = ⟨χ_n|χ_m⟩ = geometric_sum(ζ^{m-n}, 8) = 8·[m=n].
+  //   Character orthogonality's SYMBOLIC collapse (no walk of j) is owned by
+  //   the sibling braket_symmetrize_test.cpp; here we only tie the dyad to it.
+  CHECK(eigenvalue<8>(OuterProduct<ChiKet, ChiBra>{ChiKet{1}, ChiBra{1}}) ==
+        geometric_sum(root8(M8{0u}), 8));  // m=n: Σ ζ⁰ = 8
+  CHECK(eigenvalue<8>(OuterProduct<ChiKet, ChiBra>{ChiKet{1}, ChiBra{2}}) ==
+        geometric_sum(root8(M8{7u}), 8));  // m−n = 1−2 ≡ 7: Σ ζ^{7j} = 0
+
+  // (3) ORTHONORMAL δ, NO FOLD — the symbolic bra-ket of basis elements is a
+  //   pure EQUALITY: ⟨e_m|e_n⟩ = δ(m,n), read straight off the library one_hot
+  //   with NO inner_product and NO index.  (The extensional fold agrees — that
+  //   is the sibling's geometric_sum collapse — but δ IS the value.)
+  static_assert(one_hot<Cx, std::size_t>{2}(2) == Cx{R2{1}, R2{}},
+                "δ(2,2) = 1");
+  static_assert(one_hot<Cx, std::size_t>{2}(5) == Cx{}, "δ(2,5) = 0");
+}

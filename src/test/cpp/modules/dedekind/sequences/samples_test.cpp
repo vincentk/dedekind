@@ -23,6 +23,7 @@ import dedekind.relational;
 using namespace dedekind::category;
 using namespace dedekind::sequences;
 using namespace dedekind::sets;
+using namespace dedekind::relational;
 
 // Use the same Form-shaped ℕ alias the samples partition exports —
 // @c ExtensionalCardinal<> is the algebraically-certified finite ℕ

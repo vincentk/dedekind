@@ -208,6 +208,153 @@ constexpr S geometric_sum(const S& r, std::size_t N) {
   return detail_geom::geo_pair<S, Add, Mult>(r, N).first;
 }
 
+// ---------------------------------------------------------------------------
+// The INTENSIONAL semimodule operations on the function space @c Sᴰ = { arrows
+// @c D → @c S }: the pointwise @c ⊕ and the scalar @c ⊗-action, rule-backed.
+// These are the intensional siblings of @c SemimoduleVec's EXTENSIONAL (array)
+// @c ⊕ / @c ⊗ (@c :matnxn), reading the same @c ⊕/⊗ off @c semiring_ops<S>.
+// Gated on @c IsArrow + @c IsSemiring, so they stay @b constexpr and
+// @b std::function-free — the rule-type function-space surface (#537/#764)
+// built on @c IsArrow, never on the erased carrier.  Semiring-GENERIC: the same
+// combinators serve tropical CPM (max-plus), Boolean reachability, and the ℂ
+// Fourier/DFT basis — the vector-side companions of @ref geometric_sum 's
+// closed-form closure and @ref inner_product 's contraction.
+// ---------------------------------------------------------------------------
+
+/** @brief The scalar @c ⊗-action on an arrow @c f : D → S:
+ *  @f$(c \odot f)(x) = c \otimes f(x)@f$.  An @c IsArrow (the scaled vector),
+ *  carrying the scalar @c c and the arrow @c f. */
+export template <typename F,
+                 typename Mult = typename dedekind::algebra::semiring_ops<
+                     typename std::remove_cvref_t<F>::Codomain>::mult>
+struct Scaled {
+  using Domain = typename std::remove_cvref_t<F>::Domain;
+  using Codomain = typename std::remove_cvref_t<F>::Codomain;
+  Codomain c;
+  F f;
+  constexpr Codomain operator()(const Domain& x) const {
+    return Mult{}(c, f(x));
+  }
+};
+
+/** @brief The pointwise @c ⊕ of two arrows over a shared domain:
+ *  @f$(f \boxplus g)(x) = f(x) \oplus g(x)@f$.  An @c IsArrow (the sum vector).
+ */
+export template <typename F, typename G,
+                 typename Add = typename dedekind::algebra::semiring_ops<
+                     typename std::remove_cvref_t<F>::Codomain>::add>
+struct PointwiseSum {
+  using Domain = typename std::remove_cvref_t<F>::Domain;
+  using Codomain = typename std::remove_cvref_t<F>::Codomain;
+  F f;
+  G g;
+  constexpr Codomain operator()(const Domain& x) const {
+    return Add{}(f(x), g(x));
+  }
+};
+
+/** @brief Scale an arrow by a scalar --- the @f$c \odot f@f$ semimodule action.
+ *  @see Scaled */
+export template <
+    typename F, typename S = typename std::remove_cvref_t<F>::Codomain,
+    typename Add = typename dedekind::algebra::semiring_ops<S>::add,
+    typename Mult = typename dedekind::algebra::semiring_ops<S>::mult>
+  requires dedekind::category::IsArrow<F> &&
+           // The scalar must be the arrow's OWN codomain semiring: a semimodule
+           // scales values by their own ring.  Without this, S is deduced from
+           // the scalar and can pick a DIFFERENT semiring (e.g. a bool scalar
+           // on an unsigned-valued arrow selects semiring_ops<bool>, applying ∧
+           // to the values while still advertising Codomain = unsigned).
+           std::same_as<std::remove_cvref_t<S>,
+                        typename std::remove_cvref_t<F>::Codomain> &&
+           // Scaled::operator() is CONST, so the stored arrow must be
+           // const-invocable: IsArrow admits a mutable-only call operator,
+           // which would pass here yet leave the returned Scaled uncallable
+           // (same guard as graph.cppm's preimage).
+           requires(const std::remove_cvref_t<F>& cf,
+                    const typename std::remove_cvref_t<F>::Domain& x) {
+             cf(x);
+           } &&
+           dedekind::category::IsSemiring<S, Add, Mult>
+constexpr Scaled<std::remove_cvref_t<F>, Mult> scaled(S c, F f) {
+  return Scaled<std::remove_cvref_t<F>, Mult>{std::move(c), std::move(f)};
+}
+
+/** @brief Add two arrows pointwise --- the @f$f \boxplus g@f$ semimodule
+ *  addition.  Both factors must share @c Domain and @c Codomain.
+ *  @see PointwiseSum */
+export template <
+    typename F, typename G,
+    typename S = typename std::remove_cvref_t<F>::Codomain,
+    typename Add = typename dedekind::algebra::semiring_ops<S>::add,
+    typename Mult = typename dedekind::algebra::semiring_ops<S>::mult>
+  requires dedekind::category::IsArrow<F> && dedekind::category::IsArrow<G> &&
+           std::same_as<typename std::remove_cvref_t<F>::Domain,
+                        typename std::remove_cvref_t<G>::Domain> &&
+           std::same_as<S, typename std::remove_cvref_t<G>::Codomain> &&
+           // Both arrows are invoked from PointwiseSum::operator() const → both
+           // must be const-invocable (IsArrow admits a mutable-only call
+           // operator, which would leave the returned wrapper uncallable).
+           requires(const std::remove_cvref_t<F>& cf,
+                    const typename std::remove_cvref_t<F>::Domain& x) {
+             cf(x);
+           } &&
+           requires(const std::remove_cvref_t<G>& cg,
+                    const typename std::remove_cvref_t<G>::Domain& x) {
+             cg(x);
+           } &&
+           dedekind::category::IsSemiring<S, Add, Mult>
+constexpr PointwiseSum<std::remove_cvref_t<F>, std::remove_cvref_t<G>, Add>
+pointwise_sum(F f, G g) {
+  return PointwiseSum<std::remove_cvref_t<F>, std::remove_cvref_t<G>, Add>{
+      std::move(f), std::move(g)};
+}
+
+/** @brief Reflect an arrow through the origin of its domain: @f$(U f)(x) =
+ *  f(-x)@f$ --- the parity operator @c U precomposed onto @c f.  The third
+ *  intensional combinator (beside @ref Scaled / @ref PointwiseSum) that
+ *  completes the surface: with them it ASSEMBLES the even projector
+ *  @f$P = \tfrac12(I+U)@f$ as @c scaled(½, @c pointwise_sum(f, @c
+ * reflected(f))), rather than hand-rolling pointwise @c + and scalar @c ·.
+ * Requires the domain to carry unary negation (found by ADL on the domain
+ * type).
+ *
+ *  @note COLLINEAR with @c dedekind::algebra 's halfspace-transport reflection
+ *  (@c algebra/halfspace_transport.cppm: @c image / @c preimage of @c x↦c·x,
+ * the
+ *  @c c=−1 NEGATE branch, @f$\{x⋈P\}↦\{x⋈c·P\}@f$ with the sense flipped): the
+ *  @b same sign point-map @c x↦−x, pulled back CONTRAVARIANTLY.  There it lands
+ *  a @b typed @c Halfspace (the collapse-visible closed form, #816's
+ *  "typed result only where it adds structure"); here it lands a @b general
+ *  arrow --- the function-space face of one affine/sign transport (translate
+ *  @c +K, scale/reflect @c c·) over distinct carriers (predicate / arrow /
+ *  dense @c LinearMap).  @c preimage(f,S)=χ_S∘f is the predicate-side
+ *  "precompose with a point-map"; this is the arrow-side.  Consolidating the
+ *  point-map family across carriers is tracked as a follow-up. */
+export template <typename F>
+struct Reflected {
+  F f;
+  using Domain = typename std::remove_cvref_t<F>::Domain;
+  using Codomain = typename std::remove_cvref_t<F>::Codomain;
+  constexpr Codomain operator()(const Domain& x) const { return f(-x); }
+};
+
+/** @brief Reflect an arrow through its domain origin --- the parity @c U.
+ *  @see Reflected */
+export template <typename F>
+  requires dedekind::category::IsArrow<F> &&
+           // Domain carries unary negation AND the arrow is const-invocable on
+           // the negated point (Reflected::operator() const calls f(-x); a
+           // mutable-only IsArrow would otherwise leave the wrapper
+           // uncallable).
+           requires(const std::remove_cvref_t<F>& cf,
+                    const typename std::remove_cvref_t<F>::Domain& x) {
+             cf(-x);
+           }
+constexpr Reflected<std::remove_cvref_t<F>> reflected(F f) {
+  return Reflected<std::remove_cvref_t<F>>{std::move(f)};
+}
+
 /**
  * @brief The semiring matrix-product entry @c (A@c ⊗@c B)(i,j) @c = @c
  *        @c ⊕_{k<N} @c A(i,k) @c ⊗ @c B(k,j).  @c A and @c B are any
@@ -466,7 +613,7 @@ struct EdgeSucc {
 inline constexpr auto path_rel =
     dedekind::sets::Set<Idx2, dedekind::category::ClassicalLogic, EdgeSucc>{
         EdgeSucc{}};
-static_assert(dedekind::sets::is_relation(path_rel),
+static_assert(dedekind::relational::is_relation(path_rel),
               "path_rel is a Ddk relation: an IsSet on a product domain.");
 
 // Over 𝔹 the star is REACHABILITY, R*[i][j] = (i ≤ j).
@@ -518,11 +665,11 @@ struct CyclicShift {
 inline constexpr auto perm_rel =
     dedekind::sets::Set<Idx2, dedekind::category::ClassicalLogic, CyclicShift>{
         CyclicShift{}};
-static_assert(dedekind::sets::is_relation(perm_rel),
+static_assert(dedekind::relational::is_relation(perm_rel),
               "perm_rel is a Ddk relation: the cyclic-shift permutation.");
 inline constexpr auto Pmat = materialise<4>(perm_rel);
 inline constexpr auto PdaggerMat =
-    materialise<4>(dedekind::sets::converse(perm_rel));
+    materialise<4>(dedekind::relational::converse(perm_rel));
 // ── The cyclic shift is UNITARY, read off by the GENERIC dagger surface
 // (dedekind::category, :involution) --- not a bespoke loop.  Three facts:
 using PMat = std::remove_cvref_t<decltype(Pmat)>;  // Mat(𝔹), 4×4

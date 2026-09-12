@@ -56,6 +56,7 @@ import :scout_algebra;  // IsOrderedAdditiveGroup — the canonical gate
 // from sets; the trait primaries from category) resolve unqualified inside the
 // re-opened namespaces.  using-directives are TU-local (never exported).
 using namespace dedekind::sets;
+using namespace dedekind::relational;  // RelAnd (moved from :sets, #792)
 using namespace dedekind::category;
 
 namespace dedekind::order {

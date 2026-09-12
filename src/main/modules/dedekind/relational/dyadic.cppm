@@ -25,8 +25,8 @@
  * @c order keeps its projection DSL (@c π1/π2, @c ProjProj, the ordered
  * comparisons @c π1<π2, and the predicate-level @c operator& / @c
  * IsRelPredicate for building cylinder predicates) and its relation @b
- * witnesses, now consuming these combinators by ADL on their @c
- * dedekind::sets::Set arguments (order imports @c dedekind.relational).
+ * witnesses, now consuming these combinators via @c using @c namespace @c
+ * dedekind::relational (order imports @c dedekind.relational).
  *
  * @section dyadic__Base_Of_The_Others
  * @c :graph (graphs of arrows) and @c :tables (Codd's n-ary model) both build
@@ -44,15 +44,20 @@
  *   @li FIXME(#799): frame n-ary products as flat @c std::tuple
  * rather than nested @c std::pair (get / apply / structured bindings for free).
  *
- * @note These @c :dyadic symbols were @c dedekind::order on the halfspace; the
- * move lands them in @c dedekind::sets (NOT @c dedekind::relational) so the
- * unqualified operators @c >> / @c + / @c & resolve by ADL on their
- * @c dedekind::sets::Set arguments.  So BOTH the module (@c order → @c
- * relational) and the namespace (@c order → @c sets) moved for @c :dyadic ---
- * unlike @c :tables / @c :graph, which were already @c dedekind::sets and kept
- * it.  Callers that spelled @c dedekind::order::converse / @c is_relation /
- * @c ComposePred repoint to @c dedekind::sets:: (transfer,
- * halfspace_transport).
+ * @note These @c :dyadic symbols were @c dedekind::order on the halfspace; they
+ * now live in the @c dedekind::relational namespace --- the module's OWN
+ * namespace, so the symbols match the module.  The carrier they operate on
+ * (@c Set<pair>) stays @c dedekind::sets::Set; relations simply @b are sets of
+ * pairs.  Migration impact: @c converse / @c is_relation / @c reflexive /
+ * @c symmetric / @c preimage take a @c Set argument, so they @b were
+ * ADL-reachable from @c dedekind::sets and now need qualification or a @c
+ * using; so do the infix operators @c >> / @c + / @c &.  (Only @c graph ---
+ * called on an @b arrow --- and the relation/function @b concepts never
+ * ADL-reached
+ * @c sets.)  A consumer that wants the bare forms brings them in with @c using
+ * @c namespace @c dedekind::relational once; callers that spelled
+ * @c dedekind::sets::converse / @c is_relation / @c ComposePred repoint to
+ * @c dedekind::relational::.
  */
 module;
 
@@ -64,7 +69,115 @@ export module dedekind.relational:dyadic;
 import dedekind.category; // IsSet, ClassicalLogic
 import dedekind.sets;     // Set<std::pair<...>, L, P> (:expressions)
 
-namespace dedekind::sets {
+namespace dedekind::relational {
+using dedekind::sets::Set;  // relations ARE Set<pair>; the carrier stays in
+                            // :sets
+using dedekind::sets::Ω;    // the declared-domain/codomain universal set
+
+// ── The relation CORE (moved here from :sets/expressions, #792) ─────────────
+// A relation is a downstream concept (category → sets → relational), so its
+// TYPE and query surface belong in this module, not in :sets.  The carrier
+// (@c Set<pair>) and the powerset stay in :sets; everything relation-specific
+// lives here.
+
+/**
+ * @brief A Relation from A to B is a set of pairs: a subset of A × B.
+ * @details ETCS reading: relations are subobjects of products.
+ * @see Lambek and Scott @cite lambek1988higher
+ */
+export template <typename T1, typename T2, typename L, typename P>
+using Relation = Set<std::pair<T1, T2>, L, P>;
+
+/**
+ * @brief A (set-level) Function is a Relation where each domain element maps
+ * to exactly one codomain element.  The alias admits the same structure as a
+ * Relation; functional totality and single-valuedness are enforced at the
+ * call-site via witness elements.
+ * @see Pierce @cite pierce1991basic
+ */
+export template <typename T1, typename T2, typename L, typename P>
+using SetFunction = Relation<T1, T2, L, P>;
+
+/**
+ * @brief Concept: a set S whose ambient type is std::pair<T1,T2> is a valid
+ *        binary relation on T1 and T2.
+ */
+export template <typename S, typename T1, typename T2>
+concept IsRelation = requires { typename S::Domain; } &&
+                     std::same_as<typename S::Domain, std::pair<T1, T2>>;
+
+/** @brief Relation membership witness: (a,b) ∈ R. */
+export template <typename T1, typename T2, typename L, typename P>
+constexpr typename L::Ω relates(const Relation<T1, T2, L, P>& r, const T1& a,
+                                const T2& b) {
+  return r(std::pair<T1, T2>{a, b});
+}
+
+/**
+ * @brief The @b declared domain of a relation @c R ⊆ A×B: the universal set
+ *        @c Ω<A> over the first factor --- @c π₁'s codomain.
+ *
+ * @details A relation @b is a @c Set on the product carrier @c pair<A,B>, so
+ * it @b is @c IsProduct and its projections fall out of the type: the factor
+ * @b type @c A survives in @c R::Domain (@c pair<A,B>) even though the factor
+ * @b set is not retained, so the @b declared domain @c Ω<A> is recoverable
+ * total and free, with no @c ∃.  This is deliberately @b not the @b effective
+ * domain @f$\{a \mid \exists b.\ R(a,b)\}@f$ (the @c π₁-image), which is a
+ * separate existential carrying its own decidability certificate --- the Rice
+ * wall stays quarantined to that one operation.
+ */
+export template <typename T1, typename T2, typename L, typename P>
+constexpr auto dom(const Relation<T1, T2, L, P>&) {
+  return Ω<T1, L>;  // preserve the relation's logic species
+}
+
+/** @brief The @b declared codomain of a relation @c R ⊆ A×B: @c Ω<B>, the
+ *         second factor (@c π₂'s codomain).  Dual to @c dom. */
+export template <typename T1, typename T2, typename L, typename P>
+constexpr auto cod(const Relation<T1, T2, L, P>&) {
+  return Ω<T2, L>;  // preserve the relation's logic species
+}
+
+/**
+ * @brief Relational @b application: the image of @c x under @c R, the fibre
+ *        @f$\{b \in B \mid (x,b) \in R\}@f$ as a @c Set on the codomain.
+ *
+ * @details This is the @b power @b transpose @f$\Lambda R : A \to
+ * \mathcal{P}(B)@f$ of Bird \& de~Moor @cite birddemoor1997aop --- the relation
+ * read as a set-valued map --- and it is the form on which the optimisation
+ * calculus is built: @c argmax is @f$\max R \cdot \Lambda F@f$ (§3.3 / §4).
+ * The @b general form.  @c R IS-A relation (and @c IsFunction refines
+ * @c IsRelation), so a @b functional @c R gives a @b singleton fibre --- the
+ * value @c f(x) --- and a general relation the full image; the degenerate cases
+ * fall out as the fibre's @b cardinality, with no special-casing (the
+ * singleton-valued specialisation is a later overload gated on the functional
+ * certificate).  The fibre is @b lazy and membership-testable
+ * (@c apply(R,x)(b) is @c (x,b)∈R), so it types in for any relation and the
+ * existential --- is it nonempty? what is its max? --- is deferred to whoever
+ * reduces it.
+ */
+export template <typename T1, typename T2, typename L, typename P>
+constexpr auto apply(const Relation<T1, T2, L, P>& r, const T1& x) {
+  auto fibre = [r, x](const T2& b) { return r(std::pair<T1, T2>{x, b}); };
+  return Set<T2, L, decltype(fibre)>{fibre};
+}
+
+/**
+ * @brief Point-wise single-valuedness witness for a set-function relation.
+ *
+ * If both y1 and y2 are related to x, they must be equal.
+ */
+export template <typename T1, typename T2, typename L, typename P>
+constexpr typename L::Ω is_single_valued_at(const SetFunction<T1, T2, L, P>& f,
+                                            const T1& x, const T2& y1,
+                                            const T2& y2) {
+  const auto m1 = relates(f, x, y1);
+  const auto m2 = relates(f, x, y2);
+  const auto both_related = L::AND(m1, m2);
+  const auto equal_outputs = dedekind::category::lift_logic<L>(y1 == y2);
+  // ((x,y1) ∈ f && (x,y2) ∈ f) => (y1 == y2)
+  return L::OR(L::NOT(both_related), equal_outputs);
+}
 
 // ── Meet / join of relational predicates (the carriers of & and +) ─────────
 /** @brief Meet (conjunction) of two relational predicates. */
@@ -247,7 +360,7 @@ static_assert(reflexive(diagonal<bool>())(std::pair{false, false}),
 static_assert(symmetric(diagonal<bool>())(std::pair{true, true}),
               "symmetric(Δ) = Δ ∪ Δ° = Δ.");
 
-}  // namespace dedekind::sets
+}  // namespace dedekind::relational
 
 // ── Trait registry: relation-property certificates for :dyadic's predicates ──
 // These are STRUCTURE-INDEPENDENT relation-algebra facts about the predicates
@@ -264,13 +377,11 @@ namespace dedekind::category {
 // LEAF: the diagonal Δ = {(a,a)} is a TOTAL FUNCTION (a ↦ a) --- single-valued
 // (right-unique) AND entire (left-total).
 template <typename A, typename L>
-inline constexpr bool is_right_unique_v<
-    dedekind::sets::Set<std::pair<A, A>, L, dedekind::sets::DiagPred<A>>> =
-    true;
+inline constexpr bool is_right_unique_v<dedekind::sets::Set<
+    std::pair<A, A>, L, dedekind::relational::DiagPred<A>>> = true;
 template <typename A, typename L>
-inline constexpr bool is_left_total_v<
-    dedekind::sets::Set<std::pair<A, A>, L, dedekind::sets::DiagPred<A>>> =
-    true;
+inline constexpr bool is_left_total_v<dedekind::sets::Set<
+    std::pair<A, A>, L, dedekind::relational::DiagPred<A>>> = true;
 
 // NODE: the relative product R;S propagates BOTH properties through @c >> ---
 // it is functional iff both factors are, and entire iff both factors are (§3.2
@@ -281,24 +392,26 @@ inline constexpr bool is_left_total_v<
 template <typename A, typename C, typename L, typename PR, typename PS,
           typename B>
 inline constexpr bool is_right_unique_v<dedekind::sets::Set<
-    std::pair<A, C>, L, dedekind::sets::ComposePred<PR, PS, B>>> =
+    std::pair<A, C>, L, dedekind::relational::ComposePred<PR, PS, B>>> =
     is_right_unique_v<dedekind::sets::Set<std::pair<A, B>, L, PR>> &&
     is_right_unique_v<dedekind::sets::Set<std::pair<B, C>, L, PS>>;
 template <typename A, typename C, typename L, typename PR, typename PS,
           typename B>
 inline constexpr bool is_left_total_v<dedekind::sets::Set<
-    std::pair<A, C>, L, dedekind::sets::ComposePred<PR, PS, B>>> =
+    std::pair<A, C>, L, dedekind::relational::ComposePred<PR, PS, B>>> =
     is_left_total_v<dedekind::sets::Set<std::pair<A, B>, L, PR>> &&
     is_left_total_v<dedekind::sets::Set<std::pair<B, C>, L, PS>>;
 
-static_assert(is_right_unique_v<decltype(dedekind::sets::diagonal<bool>())>,
-              "Δ is FUNCTIONAL (single-valued).");
-static_assert(is_left_total_v<decltype(dedekind::sets::diagonal<bool>())>,
+static_assert(
+    is_right_unique_v<decltype(dedekind::relational::diagonal<bool>())>,
+    "Δ is FUNCTIONAL (single-valued).");
+static_assert(is_left_total_v<decltype(dedekind::relational::diagonal<bool>())>,
               "Δ is ENTIRE (total): a ↦ a for every a.");
-static_assert(is_right_unique_v<decltype(dedekind::sets::diagonal<bool>() >>
-                                         dedekind::sets::diagonal<bool>())>,
-              "Δ;Δ is FUNCTIONAL: the NODE rule composes through >>.");
-static_assert(is_left_total_v<decltype(dedekind::sets::diagonal<bool>() >>
-                                       dedekind::sets::diagonal<bool>())>,
+static_assert(
+    is_right_unique_v<decltype(dedekind::relational::diagonal<bool>() >>
+                               dedekind::relational::diagonal<bool>())>,
+    "Δ;Δ is FUNCTIONAL: the NODE rule composes through >>.");
+static_assert(is_left_total_v<decltype(dedekind::relational::diagonal<bool>() >>
+                                       dedekind::relational::diagonal<bool>())>,
               "Δ;Δ is ENTIRE: the NODE rule composes through >>.");
 }  // namespace dedekind::category
