@@ -423,8 +423,37 @@ struct Morphism {
   constexpr explicit Morphism(Func f) : transform(std::move(f)) {}
 
   // We provide the call operator, but NOT the composition (f ∘ g).
-  constexpr Codomain operator()(const Domain& x) const { return transform(x); }
+  // Constrained on CONST-invocability of the stored callable: the body invokes
+  // `transform` through `const` (const method → const Func&).  Without this the
+  // operator's DECLARATION is unconditional, so IsArrow's `f(x)` probe (which
+  // validates the signature, not the body) would accept a Morphism wrapping a
+  // mutable-only callable — then fail only when the body is instantiated.  The
+  // constraint makes the operator non-viable for a mutable-only Func, so such a
+  // Morphism is honestly !IsArrow at the boundary (#822).
+  constexpr Codomain operator()(const Domain& x) const
+    requires std::invocable<const Func&, const Domain&>
+  {
+    return transform(x);
+  }
 };
+
+// Regression (#822): a Morphism wrapping a MUTABLE-ONLY callable is NOT an
+// arrow.  A morphism is pure (Juliet Posture §2); the const-invocability
+// constraint on operator() above makes IsArrow reject it at the type boundary,
+// rather than admitting it and hard-erroring only when the body is called.
+namespace morphism_const_invocability_witness {
+struct MutableOnlyRule {
+  int state = 0;
+  constexpr int operator()(int x) { return state += x; }  // non-const: stateful
+};
+struct PureRule {
+  constexpr int operator()(int x) const { return x + 1; }
+};
+static_assert(!IsArrow<Morphism<int, int, MutableOnlyRule>>,
+              "a Morphism over a mutable-only callable is not a (pure) arrow.");
+static_assert(IsArrow<Morphism<int, int, PureRule>>,
+              "a Morphism over a const-invocable callable is an arrow.");
+}  // namespace morphism_const_invocability_witness
 
 /** @brief Universal inference for any Morphism signature f: Args... -> Codomain
  */

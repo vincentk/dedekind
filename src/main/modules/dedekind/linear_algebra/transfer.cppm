@@ -329,10 +329,15 @@ struct Reflected {
  *  @see Reflected */
 export template <typename F>
   requires dedekind::category::IsArrow<F> &&
-           // Domain must carry unary negation (Reflected calls f(-x)).  The
-           // arrow's const-invocability is now guaranteed by IsArrow (#822), so
-           // only the negation needs checking here.
-           requires(const typename std::remove_cvref_t<F>::Domain& x) { -x; }
+           // Check the EXACT call Reflected::operator() performs: f(-x).
+           // IsArrow only proves f on a Domain value, but unary negation may
+           // return a proxy or unrelated type, so f(-x) is not implied by
+           // IsArrow<F> — verify it (and that -x is well-formed) here rather
+           // than deferring to the wrapper body.
+           requires(const std::remove_cvref_t<F>& cf,
+                    const typename std::remove_cvref_t<F>::Domain& x) {
+             cf(-x);
+           }
 constexpr Reflected<std::remove_cvref_t<F>> reflected(F f) {
   return Reflected<std::remove_cvref_t<F>>{std::move(f)};
 }
