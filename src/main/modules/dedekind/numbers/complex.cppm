@@ -530,6 +530,119 @@ export inline constexpr auto root8 =
 export inline constexpr Complex<QuadraticReal<2>> ζ8 =
     root8(dedekind::morphologies::Modular<8u>{1});
 
+// ── Symbolic unit harmonics: the de Moivre GROUP μ_N, kept symbolic ─────────
+/**
+ * @brief A SYMBOLIC N-th root of unity @f$\zeta_N^{\,p}@f$, carried by its
+ *        exponent @c p ∈ ℤ/N (@c Modular<N>).  The @b unit @b harmonics
+ *        @f$\mu_N=\{z:z^N=1\}@f$: the torsion subgroup of the unit circle
+ *        @c U(1), cut out of ℂ, cyclic of order @c N and
+ * @f$\cong\mathbb{Z}/N@f$ via de Moivre.
+ *
+ * @details Arithmetic is @b multiplicative and @b symbolic --- @f$\zeta^p \cdot
+ *          \zeta^q = \zeta^{p+q}@f$, exponent addition in ℤ/N, never a numeric
+ * ℂ product.  A @b group, @b NOT a ring: a @b sum of harmonics generally leaves
+ * @f$\mu_N@f$ (that sum is the ℂ-linear span --- the function-space semimodule
+ * --- not the harmonics).  Collapse to an exact ℂ value is deferred to @c
+ * resolve() and exact @b only where
+ *          @f$\zeta_N@f$ lives in the base field: @c N=8 ⊂ ℚ(√2), via @c root8.
+ *          Other @c N would need the cyclotomic field @f$\mathbb{Q}(\zeta_N)@f$
+ *          and get @b no numeric collapse here (a compile-time Honest
+ *          Rejection). */
+export template <unsigned N>
+struct UnitRoot {
+  dedekind::morphologies::Modular<N> exponent{};  // p in ζ_N^p
+
+  friend constexpr bool operator==(const UnitRoot&, const UnitRoot&) = default;
+
+  /** @brief The μ_N group law: harmonic product = exponent sum (de Moivre). */
+  friend constexpr UnitRoot operator*(const UnitRoot& a, const UnitRoot& b) {
+    return UnitRoot{a.exponent + b.exponent};
+  }
+  /** @brief The inverse @f$\zeta^{-p}@f$ (= conjugate, on the unit circle). */
+  constexpr UnitRoot inverse() const {
+    using MT = decltype(exponent.value);
+    return UnitRoot{dedekind::morphologies::Modular<N>(static_cast<MT>(N) -
+                                                       exponent.value)};
+  }
+  /** @brief Collapse to the exact ℂ(ℚ(√2)) value via de Moivre --- @b only
+   *  @c N=8, where @f$\zeta_8\in\mathbb{Q}(\sqrt2)@f$; off that base this
+   *  member is unavailable (a compile-time Honest Rejection). */
+  constexpr Complex<QuadraticReal<2>> resolve() const
+    requires(N == 8u)
+  {
+    return root8(exponent);
+  }
+};
+
+/** @brief The primitive N-th root @f$\zeta_N=\zeta_N^{1}@f$ (the μ_N
+ * generator). */
+export template <unsigned N>
+constexpr UnitRoot<N> unit_root() {
+  return UnitRoot<N>{dedekind::morphologies::Modular<N>(1)};
+}
+
+}  // namespace dedekind::numbers
+
+namespace dedekind::category {
+
+// μ_N is a finite CYCLIC ABELIAN GROUP under × (the harmonic product) --- NOT a
+// ring (no closed +: a sum of roots of unity leaves μ_N).  Register only the
+// MULTIPLICATIVE-group traits, so IsAbelianGroup<UnitRoot<N>, ×> holds while
+// IsRing does not.  The op is exponent addition in ℤ/N: total/exact,
+// associative and commutative; the unit is ζ^0 = 1; every ζ^p inverts to
+// ζ^{-p}.
+template <unsigned N>
+struct is_exact_total<dedekind::numbers::UnitRoot<N>,
+                      std::multiplies<dedekind::numbers::UnitRoot<N>>>
+    : std::true_type {};
+template <unsigned N>
+struct is_associative<dedekind::numbers::UnitRoot<N>,
+                      std::multiplies<dedekind::numbers::UnitRoot<N>>>
+    : std::true_type {};
+template <unsigned N>
+struct is_commutative<dedekind::numbers::UnitRoot<N>,
+                      std::multiplies<dedekind::numbers::UnitRoot<N>>>
+    : std::true_type {};
+template <unsigned N>
+struct identity_trait<dedekind::numbers::UnitRoot<N>,
+                      std::multiplies<dedekind::numbers::UnitRoot<N>>> {
+  using value_type = dedekind::numbers::UnitRoot<N>;
+  static constexpr value_type value{};  // ζ^0 = 1
+};
+template <unsigned N>
+inline constexpr bool
+    is_invertible_v<dedekind::numbers::UnitRoot<N>,
+                    std::multiplies<dedekind::numbers::UnitRoot<N>>> = true;
+template <unsigned N>
+struct inverse_trait<dedekind::numbers::UnitRoot<N>,
+                     std::multiplies<dedekind::numbers::UnitRoot<N>>> {
+  static constexpr bool exists = true;
+  using value_type = dedekind::numbers::UnitRoot<N>;
+  static constexpr value_type compute(const value_type& z) {
+    return z.inverse();
+  }
+};
+
+// The classification, pinned: μ_8 is an abelian group under × (the accurate
+// algebraic home of the unit harmonics — a group, not a ring).
+static_assert(
+    IsAbelianGroup<dedekind::numbers::UnitRoot<8u>,
+                   std::multiplies<dedekind::numbers::UnitRoot<8u>>>,
+    "μ_8 (the 8th unit harmonics) is a finite cyclic abelian group under ×.");
+
+}  // namespace dedekind::category
+
+namespace dedekind::numbers {
+
+// de Moivre collapse is a GROUP HOMOMORPHISM μ_8 → ℂ*, exact: the generator
+// resolves to ζ8, and the harmonic product resolves to the ℂ product.
+static_assert(unit_root<8u>().resolve() == ζ8,
+              "ζ_8^1 collapses to the exact generator ζ8.");
+static_assert(
+    (unit_root<8u>() * unit_root<8u>()).resolve() ==
+        unit_root<8u>().resolve() * unit_root<8u>().resolve(),
+    "resolve is a homomorphism: (ζ·ζ) collapses to (resolve ζ)·(resolve ζ).");
+
 /** @section complex__Roots_of_Unity_Witnesses
  *  @c root8 is the exact de Moivre homomorphism, @b computed.  Witnesses are
  *  kept shallow: each @c root8 call folds a QuadReal table, so the loops below
