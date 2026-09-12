@@ -611,6 +611,53 @@ constexpr Character<N> character(dedekind::morphologies::Modular<N> m) {
   return Character<N>{m};
 }
 
+// ── Discrete cos / sin over the Modular<N> angle (the Re / Im of the
+// character)
+/**
+ * @brief The exact discrete COSINE @f$\cos_N(k) = \cos(2\pi k/N) =
+ * \Re\,\zeta_N^k@f$ over the @c Modular<N> angle --- the EVEN part of the de
+ * Moivre character (@c = the @f$\tfrac12(I+U)@f$ projection's real value).
+ *
+ * @details NOT a new trig table: it is literally @c Re of @c character<N>(1)
+ * resolved.  An @c IsArrow @c Modular<N> → ℝ, EXACT where the character
+ * resolves (N=8, in ℚ(√2)).  With @ref DiscreteSin it gives Euler's formula
+ * exactly:
+ * @f$\zeta_N^k = \cos_N(k) + i\,\sin_N(k)@f$. */
+export template <unsigned N>
+struct DiscreteCos {
+  using Domain = dedekind::morphologies::Modular<N>;
+  using Codomain = QuadraticReal<2>;
+  constexpr QuadraticReal<2> operator()(Domain k) const {
+    return character<N>(Domain(1))(k).resolve().real();
+  }
+};
+
+/** @brief The exact discrete SINE @f$\sin_N(k) = \sin(2\pi k/N) =
+ * \Im\,\zeta_N^k@f$
+ *  --- the ODD part of the character (@c Im of @c character<N>(1) resolved). An
+ *  @c IsArrow @c Modular<N> → ℝ, exact at N=8.  @see DiscreteCos */
+export template <unsigned N>
+struct DiscreteSin {
+  using Domain = dedekind::morphologies::Modular<N>;
+  using Codomain = QuadraticReal<2>;
+  constexpr QuadraticReal<2> operator()(Domain k) const {
+    return character<N>(Domain(1))(k).resolve().imag();
+  }
+};
+
+/** @brief @f$\cos_N = \Re\,\zeta_N^{(\cdot)}@f$ as an arrow. @see DiscreteCos
+ */
+export template <unsigned N>
+constexpr DiscreteCos<N> cos_n() {
+  return {};
+}
+/** @brief @f$\sin_N = \Im\,\zeta_N^{(\cdot)}@f$ as an arrow. @see DiscreteSin
+ */
+export template <unsigned N>
+constexpr DiscreteSin<N> sin_n() {
+  return {};
+}
+
 }  // namespace dedekind::numbers
 
 namespace dedekind::category {
@@ -695,6 +742,23 @@ static_assert(
     (unit_root<8u>() * unit_root<8u>()).resolve() ==
         unit_root<8u>().resolve() * unit_root<8u>().resolve(),
     "resolve is a homomorphism: (ζ·ζ) collapses to (resolve ζ)·(resolve ζ).");
+
+// EULER'S FORMULA, exact over the Modular angle: ζ_8^k = cos_8(k) + i·sin_8(k),
+// with cos_8 / sin_8 the Re / Im (even / odd parts) of the character — pinned
+// at the primitive node k=1 (cos π/4 = sin π/4 = ½√2) and at k=2 (cos = 0, sin
+// = 1).
+static_assert(character<8u>(dedekind::morphologies::Modular<8u>(1))(
+                  dedekind::morphologies::Modular<8u>(1))
+                      .resolve() ==
+                  Complex<QuadraticReal<2>>{
+                      cos_n<8u>()(dedekind::morphologies::Modular<8u>(1)),
+                      sin_n<8u>()(dedekind::morphologies::Modular<8u>(1))},
+              "Euler at k=1: ζ_8 = cos_8(1) + i·sin_8(1) = ½√2 + ½√2·i.");
+static_assert(sin_n<8u>()(dedekind::morphologies::Modular<8u>(2)) ==
+                      QuadraticReal<2>{1} &&
+                  cos_n<8u>()(dedekind::morphologies::Modular<8u>(2)) ==
+                      QuadraticReal<2>{},
+              "cos_8(2) = 0, sin_8(2) = 1 (the quarter turn, ζ_8^2 = i).");
 
 /** @section complex__Roots_of_Unity_Witnesses
  *  @c root8 is the exact de Moivre homomorphism, @b computed.  Witnesses are
