@@ -208,8 +208,12 @@ using DiagonalZero = Diagonal<D, zero_rule<T>>;
  * (@f$\langle e_m|e_n\rangle = \delta_{mn}@f$, an equality, no sum), and the
  * identity matrix (@f$I=\sum_k |e_k\rangle\langle e_k|@f$); on the predicate
  * side it is the diagonal relation @c Δ (@c graph of the identity).
- * Semiring-generic (@c T{1} / @c T{0} are the @c ⊗ / @c ⊕ units), a sibling of
- * @ref identity_rule (@c i↦1) and @ref zero_rule (@c i↦0). */
+ * Returns @c T{1} / @c T{0} --- the unit / zero of a @b ring or @b field
+ * codomain (where they coincide with the @c ⊗ / @c ⊕ identities); a sibling of
+ * @ref identity_rule (@c i↦1) and @ref zero_rule (@c i↦0).  @note NOT the units
+ * of a general rig whose identities differ from @c 1/@c 0 (e.g. the tropical
+ * dioid, @c ⊕-id @c = @c −∞); such a carrier would take @c identity_v<T,Mult> /
+ * @c identity_v<T,Add> instead --- not needed at the ℂ use sites here. */
 export template <typename T, typename D = std::size_t>
 struct one_hot {
   D k;

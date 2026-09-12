@@ -26,13 +26,13 @@
 //   (S2) value attachment is an OuterProduct, NOT the relative product >>
 //        (which composes relations over a Boolean middle only — FIXME #795).
 //   (S3) there is no masked-matrix / Hadamard-of-(relation, matrix) combinator
-//        yet; the support↔value fusion is done compositionally (the `entry`
-//        lambda gates the dyad by the band, ⊕-zero off-band).
+//        yet (#820); the support↔value fusion is done compositionally (the
+//        `banded_entry` helper gates the dyad by the band, ⊕-zero off-band).
 // ─────────────────────────────────────────────────────────────────────────────
 
 import dedekind.category; // IsArrow, identity_v
 import dedekind.algebra;  // MaxPlus, semiring_ops
-import dedekind.sets;     // ℕ, finite_cardinality, the product (*) / filter (|)
+import dedekind.sets;     // ℕ, Cardinality, finite_cardinality, the product (*)
 import dedekind.order;    // π1, π2, fix, _c — the relational-predicate DSL
 import dedekind.relational;     // RelOr — relation union (+)
 import dedekind.linear_algebra; // OuterProduct — the rank-1 dyad carrier
@@ -59,42 +59,50 @@ struct LogWeight {
     return MP::of(static_cast<unsigned long long>(x));
   }
 };
+
+// (S2) The rank-1 VALUE u(x) ⊗ u(y) as an OuterProduct (not >>), intensional
+//   over the infinite basis.  Tropical ⊗ = + : kValue(x,y) = x + y.
+constexpr OuterProduct<LogWeight, LogWeight, TropMult> kValue{LogWeight{},
+                                                              LogWeight{}};
+
+// (S1) The band SUPPORT |y−x| ≤ 1 as the DISJUNCTION of three adjacency graphs,
+//   point-free over ℕ×ℕ — intensional, infinite basis:
+const auto kBand = (ℕ * ℕ | π1 == π2)  // y = x       (main diagonal)
+                   +
+                   (ℕ * ℕ | π1 + fix(1_c) == π2)  // y = x + 1 (super-diagonal)
+                   + (ℕ * ℕ | π2 + fix(1_c) == π1);  // x = y + 1 (sub-diagonal)
+
+// Named helpers (no lambdas): the ℕ×ℕ index pair, and the masked band entry.
+constexpr std::pair<Cardinality, Cardinality> at(std::size_t x, std::size_t y) {
+  return {finite_cardinality(x), finite_cardinality(y)};
+}
+// (S3) The banded operator = kValue MASKED by kBand (no masked-matrix
+// combinator
+//   yet, #820): on-band → the dyad entry, off-band → the ⊕-zero (−∞).
+MP banded_entry(std::size_t x, std::size_t y) {
+  return kBand(at(x, y)) ? kValue(x, y) : kTropZero;
+}
 }  // namespace
 
 TEST_CASE("kata: a symbolic tridiagonal band over the infinite line ℕ",
           "[linear_algebra][funcspace][transfer][band][kata]") {
-  // (S1) The band support |y−x| ≤ 1 as the DISJUNCTION of three adjacency
-  //   graphs, point-free over ℕ×ℕ — intensional, infinite basis:
-  const auto band = (ℕ * ℕ | π1 == π2)  // y = x       (main diagonal)
-                    + (ℕ * ℕ | π1 + fix(1_c) == π2)   // y = x + 1 (super-diag)
-                    + (ℕ * ℕ | π2 + fix(1_c) == π1);  // x = y + 1 (sub-diag)
+  // (S1) the band support, point-free over ℕ×ℕ — intensional, infinite basis.
+  CHECK(kBand(at(3, 3)));        // on band: |0| ≤ 1
+  CHECK(kBand(at(3, 4)));        // on band: |1| ≤ 1  (super-diagonal)
+  CHECK(kBand(at(4, 3)));        // on band: |1| ≤ 1  (sub-diagonal)
+  CHECK_FALSE(kBand(at(3, 5)));  // OFF band: |2| > 1
 
-  const auto at = [](std::size_t x, std::size_t y) {
-    return std::pair{finite_cardinality(x), finite_cardinality(y)};
-  };
-  CHECK(band(at(3, 3)));        // on band: |0| ≤ 1
-  CHECK(band(at(3, 4)));        // on band: |1| ≤ 1  (super-diagonal)
-  CHECK(band(at(4, 3)));        // on band: |1| ≤ 1  (sub-diagonal)
-  CHECK_FALSE(band(at(3, 5)));  // OFF band: |2| > 1
+  // (S2) the rank-1 value, tropical ⊗ = + : u(x) ⊗ u(y) = x + y.
+  CHECK(kValue(std::size_t{3}, std::size_t{4}) == MP::of(7));  // 3 ⊗ 4 = 3+4
 
-  // (S2) The rank-1 VALUE u(x) ⊗ u(y) as an OuterProduct (not >>), intensional
-  //   over the infinite basis.  Tropical ⊗ = + : value(x,y) = x + y.
-  constexpr OuterProduct<LogWeight, LogWeight, TropMult> value{LogWeight{},
-                                                               LogWeight{}};
-  CHECK(value(std::size_t{3}, std::size_t{4}) == MP::of(7));  // 3 ⊗ 4 = 3+4
+  // (S3) the banded operator = value masked by the band.
+  CHECK(banded_entry(3, 3) == MP::of(6));  // diagonal:       3 + 3 = 6
+  CHECK(banded_entry(3, 4) == MP::of(7));  // super-diagonal: 3 + 4 = 7
+  CHECK(banded_entry(4, 3) == MP::of(7));  // sub-diagonal:   4 + 3 = 7
+  CHECK(banded_entry(3, 5) == kTropZero);  // OFF band:       ⊕-zero (−∞)
 
-  // (S3) The banded operator = value MASKED by the band (no masked-matrix
-  //   combinator yet): on-band → the dyad entry, off-band → the ⊕-zero (−∞).
-  const auto entry = [&](std::size_t x, std::size_t y) -> MP {
-    return band(at(x, y)) ? value(x, y) : kTropZero;
-  };
-  CHECK(entry(3, 3) == MP::of(6));  // diagonal:       3 + 3 = 6
-  CHECK(entry(3, 4) == MP::of(7));  // super-diagonal: 3 + 4 = 7
-  CHECK(entry(4, 3) == MP::of(7));  // sub-diagonal:   4 + 3 = 7
-  CHECK(entry(3, 5) == kTropZero);  // OFF band:       ⊕-zero (−∞)
-
-  // The value is genuinely INFINITE-basis: query a far-off-band pair — the band
-  // excludes it structurally, no tabulation of ℕ ever happens.
-  CHECK(entry(1000, 1000) == MP::of(2000));  // diagonal, deep in ℕ
-  CHECK(entry(1000, 1002) == kTropZero);     // off band, deep in ℕ
+  // Genuinely INFINITE-basis: query a far-off pair — the band excludes it
+  // structurally, no tabulation of ℕ ever happens.
+  CHECK(banded_entry(1000, 1000) == MP::of(2000));  // diagonal, deep in ℕ
+  CHECK(banded_entry(1000, 1002) == kTropZero);     // off band, deep in ℕ
 }

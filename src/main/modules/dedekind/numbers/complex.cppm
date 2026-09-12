@@ -588,8 +588,12 @@ constexpr UnitRoot<N> unit_root() {
  *        collapses to exact ℂ at @c N=8).
  *
  * @details An @c IsArrow (position @c k → harmonic), so it feeds the
- * @c linear_algebra function-space / bra-ket combinators directly as a basis
- * vector.  @c root8 is its eagerly-ℂ-collapsed @c m=1 instance.  A group
+ * function-space @b precompose / @b reflect combinators directly.  Its codomain
+ * @c UnitRoot<N> is a @b group, not a semiring, so for bra-ket @b contraction
+ * (@c inner_product, which needs @c IsSemiring) it is first @c resolve()d into
+ * ℂ
+ * --- see the @c ChiKet / @c ChiBra wrappers in @c plane_wave_spike_test.
+ * @c root8 is its eagerly-ℂ-collapsed @c m=1 instance.  A group
  * homomorphism in @c k (@f$\chi_m(k)\,\chi_m(k')=\chi_m(k+k')@f$) AND in the
  * dual @c m (it is the self-dual pairing @f$\langle m,k\rangle=\zeta^{mk}@f$,
  * the DFT kernel).  The conjugate bra is just the negated frequency:
@@ -734,26 +738,41 @@ static_assert(
 
 namespace dedekind::numbers {
 
-// de Moivre collapse is a GROUP HOMOMORPHISM μ_8 → ℂ*, exact: the generator
-// resolves to ζ8, and the harmonic product resolves to the ℂ product.
-static_assert(unit_root<8u>().resolve() == ζ8,
-              "ζ_8^1 collapses to the exact generator ζ8.");
-static_assert(
-    (unit_root<8u>() * unit_root<8u>()).resolve() ==
-        unit_root<8u>().resolve() * unit_root<8u>().resolve(),
-    "resolve is a homomorphism: (ζ·ζ) collapses to (resolve ζ)·(resolve ζ).");
+// ½√2 = cos(π/4) — the sole irrational the μ_8 table needs, pinned as a LITERAL
+// so the witnesses below are independent of root8's own definition.
+constexpr QuadraticReal<2> half_root2 = QuadraticReal<2>::of(
+    Rational<default_integer>{}, Rational<default_integer>{1, 2});
 
-// EULER'S FORMULA, exact over the Modular angle: ζ_8^k = cos_8(k) + i·sin_8(k),
-// with cos_8 / sin_8 the Re / Im (even / odd parts) of the character — pinned
-// at the primitive node k=1 (cos π/4 = sin π/4 = ½√2) and at k=2 (cos = 0, sin
-// = 1).
-static_assert(character<8u>(dedekind::morphologies::Modular<8u>(1))(
-                  dedekind::morphologies::Modular<8u>(1))
-                      .resolve() ==
-                  Complex<QuadraticReal<2>>{
-                      cos_n<8u>()(dedekind::morphologies::Modular<8u>(1)),
-                      sin_n<8u>()(dedekind::morphologies::Modular<8u>(1))},
-              "Euler at k=1: ζ_8 = cos_8(1) + i·sin_8(1) = ½√2 + ½√2·i.");
+// de Moivre collapse is exact and a GROUP HOMOMORPHISM μ_8 → ℂ*.  Pin the
+// generator's collapse to its LITERAL value ½√2 + ½√2·i (NOT to ζ8's own
+// definiens), and the product-collapse to the ℂ product — the non-trivial
+// homomorphism root8(a+b) = root8(a)·root8(b).
+static_assert(unit_root<8u>().resolve() ==
+                  Complex<QuadraticReal<2>>{half_root2, half_root2},
+              "ζ_8 collapses to the exact literal ½√2 + ½√2·i.");
+static_assert((unit_root<8u>() * unit_root<8u>()).resolve() ==
+                  unit_root<8u>().resolve() * unit_root<8u>().resolve(),
+              "resolve is a homomorphism: root8(a+b) = root8(a)·root8(b).");
+
+// The μ_8 inverse LAW (backs the cyclic-group cert with the defining axiom, not
+// just the trait read): ζ·ζ⁻¹ = 1, and a non-generator ζ³·ζ⁵ = ζ⁸ = 1.
+static_assert(unit_root<8u>() * unit_root<8u>().inverse() == UnitRoot<8u>{},
+              "ζ_8 · ζ_8⁻¹ = ζ⁰ = 1 (the group inverse law).");
+static_assert(UnitRoot<8u>{dedekind::morphologies::Modular<8u>(3)} *
+                      UnitRoot<8u>{dedekind::morphologies::Modular<8u>(5)} ==
+                  UnitRoot<8u>{},
+              "ζ³ · ζ⁵ = ζ⁸ = ζ⁰ = 1 (μ_8 closure at a non-generator).");
+
+// cos_8 / sin_8 take the exact node values, pinned to LITERALS (independent of
+// their Re/Im definition — the k=2 pin, cos≠sin, would catch a cos/sin swap):
+// k=1 both ½√2 (cos π/4 = sin π/4); k=2 the quarter turn (cos 0, sin 1).  Euler
+// ζ_8^k = cos_8(k) + i·sin_8(k) then holds BY CONSTRUCTION (cos = Re, sin =
+// Im).
+static_assert(cos_n<8u>()(dedekind::morphologies::Modular<8u>(1)) ==
+                      half_root2 &&
+                  sin_n<8u>()(dedekind::morphologies::Modular<8u>(1)) ==
+                      half_root2,
+              "cos_8(1) = sin_8(1) = ½√2.");
 static_assert(sin_n<8u>()(dedekind::morphologies::Modular<8u>(2)) ==
                       QuadraticReal<2>{1} &&
                   cos_n<8u>()(dedekind::morphologies::Modular<8u>(2)) ==

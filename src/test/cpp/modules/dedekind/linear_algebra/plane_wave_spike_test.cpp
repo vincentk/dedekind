@@ -34,8 +34,8 @@ import dedekind.category;     // IsArrow
 import dedekind.numbers;      // Complex, QuadraticReal, Rational, root8, conj
 import dedekind.morphologies; // Modular<N> — the ℤ/N index for the DFT bra-ket
 import dedekind.linear_algebra; // scaled / pointwise_sum, inner_product, OuterProduct, eigenvalue
-import dedekind.sets; // IsRelation, Graph, graph(·) — the arrow ⟶ relation lift
-import dedekind.relational; // relative product on graphs
+import dedekind.sets;       // IsRelation, Graph
+import dedekind.relational; // owns graph(·) — the arrow ⟶ relation lift
 
 using dedekind::category::IsArrow;
 using dedekind::linear_algebra::eigenvalue;
@@ -109,7 +109,7 @@ constexpr auto operator+(F f, G g) {
 // promoted combinators (scaled ∘ pointwise_sum ∘ reflected), NOT hand-rolled:
 //   P f = ½ ⊗ (f ⊕ U f),   U f = reflected(f) = (w ↦ f(−w)).
 // So (Pψ)(w) = ½(ψ(w) ⊕ ψ(−w)); ψ is EVEN ⟺ Pψ = ψ ⟺ its spectrum is symmetric
-// under k ↦ −k.  Idempotent (P² = P): a genuine projection onto the even
+// under k ↦ −k.  Idempotent (P² = P): a projection onto the even
 // subspace — the constructive S-leg, here on the continuous spectral vector.
 template <IsWaveVector F>
 constexpr auto even(F f) {
@@ -169,7 +169,7 @@ TEST_CASE("Figure 6 row 3: the even-symmetry projector P = ½(I+U)",
   static_assert(projected(k) == kHalf, "(P|k⟩)_k = ½");
   static_assert(projected(-k) == kHalf, "(P|k⟩)_{−k} = ½");
 
-  // Idempotent P² = P — a genuine projection (witnessed at the support).
+  // Idempotent P² = P — a projection (witnessed at the support).
   static_assert(even(projected)(k) == projected(k), "P² = P at k");
   static_assert(even(projected)(-k) == projected(-k), "P² = P at −k");
 
