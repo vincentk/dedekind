@@ -891,9 +891,9 @@ relexpr   ::= setexpr                     -- carrier ⟨A,B⟩ : a relation
             | 'select' '(' relexpr ',' pred ')'
             | 'natural_join' '(' relexpr ',' relexpr ')'
             | setexpr '*' setexpr '|' relpred            -- restricted product
-relpred   ::= proj cmp proj | proj cmp 'fix(' const ')'
-            | relpred '&' relpred | relpred '+' relpred
-proj      ::= 'π1' | 'π2' | proj arith 'fix(' const ')'
+relpred   ::= proj cmp proj | proj cmp 'fix' '(' const ')'
+            | relpred ('&' | '+') relpred   -- binary (RelAnd / RelOr)
+proj      ::= 'π1' | 'π2' | proj arith 'fix' '(' const ')'
 arrow     ::= <an IsArrow A → B; functions compose via '>>'>
 \end{minted}
 \end{listing}
