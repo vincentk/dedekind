@@ -447,38 +447,57 @@ In this section, we first show working code (§\ref{sec:ddk_comprehension}) to i
 \label{sec:ddk_comprehension}
 % ============================================================
 
-Listing~\ref{lst:set-grammar} gives the grammar of set expressions, with the two absorbing laws of the complement lattice as a worked instantiation right beside it, so the surface and its use can be read together.
+Listing~\ref{lst:set-grammar} gives the grammar of the set DSL --- set expressions on the left, the predicates they filter by on the right --- with the two absorbing laws of the complement lattice as a worked instantiation right below, so the surface and its use can be read together.
 
 % Source: src/test/cpp/modules/dedekind/analysis/pruning_lattice_laws_test.cpp
 %         (Ø<bool>/Ø<Cardinality> spelling; the ambient Ø<𝔹>/Ø<ℕ> is a
 %          pending empty-set-on-ambient migration.)
 %   Bottom IR panel: .../python/showcase_03_halfspace_contradiction.ll
 \begin{listing}[htbp]
-\caption{The grammar of \textbf{set expressions} (top), with the two absorbing laws of the complement lattice (Table~\ref{tab:lattice-lift}) as a worked instantiation.  Set-forming operators factor into unary (\cppinline{op1}: complement, power set $\mathfrak{P}$) and binary (\cppinline{op2}: union, meet, symmetric difference, product); the subset relation $\subseteq$ (\cppinline{setrel}) is $\mathbb{B}$-valued.  \emph{Pluggability} is explicit: a generator may be \emph{any} user \cppinline{IsSet} carrier, and a predicate any user \cppinline{elem}\,$\to\mathbb{B}$, alongside the quantifiers $\forall$/$\exists$ (§\ref{sec:ddk_comprehension}); the comprehension filter is \cppinline{|} on such a predicate over the element (\cppinline{χ} / \cppinline{π}) and the NTTP \cppinline{fix}.  A \emph{correspondence}, not the literal C++ grammar: operator precedence, ADL, and the concept-gates sit underneath.  A set object is a carrier paired with a classifier $\chi$ (\cppinline{IsSubobject}); \cppinline{\&} is meet and \cppinline{|} is join (and, on a predicate, the comprehension filter).  \textbf{Below:} the laws as compile-time \textbf{type} collapses on an \textbf{extensional} carrier ($\mathbb{B}$, a \cppinline{Singleton}) and an \textbf{intensional} one ($\mathbb{N}$, a \cppinline{Halfspace}); complement (\cppinline{~}) with $a \cup \neg a = \top$ and $a \cap \neg a = \bot$, no element ever enumerated.  \textbf{Bottom:} the payoff, a membership query on the empty meet constant-folding to \texttt{ret i1 false} at \texttt{-O2} (\texttt{clang++-22}).}
+\caption{The grammar of the set DSL, split into its two mutually-recursive halves: \textbf{set expressions} (left, yielding an \cppinline{IsSet}) and \textbf{predicates} (right, landing in $\mathbb{B}$).
+Set-forming operators factor into unary \cppinline{op1} (complement \cppinline{~}, power set $\mathfrak{P}$) and binary \cppinline{op2} (union \cppinline{|}, meet \cppinline{&}, symmetric difference \cppinline{^}, product \cppinline{*}); generators are the universal set \cppinline{Ω}, the empty set \cppinline{Ø}, a \cppinline{singleton}, and \cppinline{ambient_set} (which promotes a predicate to a set), or \emph{any} user \cppinline{IsSet} carrier.
+The two halves interlock: comprehension (\cppinline{setexpr '|' pred}) feeds a predicate into a set over the bound element (\cppinline{χ} / \cppinline{π}) and the NTTP \cppinline{fix}, while the ordering surface of \cppinline{IsSet} --- membership \cppinline{S(χ)}, subset \cppinline{<=}, equality \cppinline{==} --- enters as $\mathbb{B}$-valued \cppinline{pred} atoms, exactly as the quantifiers \cppinline{forall}/\cppinline{exists} (§\ref{sec:ddk_comprehension}) do.
+Pluggability is explicit on both sides: \emph{any} \cppinline{IsSet} generator, \emph{any} user \cppinline{elem}\,$\to\mathbb{B}$ predicate.
+A \emph{correspondence}, not the literal C++ grammar: operator precedence, ADL, and the concept-gates sit underneath; a set object is a carrier paired with its classifier $\chi$ (\cppinline{IsSubobject}), so \cppinline{\&} is meet and \cppinline{|} is join.
+\textbf{Below:} the two absorbing laws of the complement lattice (Table~\ref{tab:lattice-lift}) as compile-time \textbf{type} collapses on an \textbf{extensional} carrier ($\mathbb{B}$, a \cppinline{Singleton}) and an \textbf{intensional} one ($\mathbb{N}$, a \cppinline{Halfspace}); complement (\cppinline{~}) with $a \cup \neg a = \top$ and $a \cap \neg a = \bot$, no element ever enumerated.
+\textbf{Bottom:} the payoff, a membership query on the empty meet constant-folding to \texttt{ret i1 false} at \texttt{-O2} (\texttt{clang++-22}).}
 \label{lst:set-grammar}\label{lst:pruning}
-\begin{minted}{text}
-setexpr   ::= generator
-            | op1 setexpr                     -- unary
-            | setexpr op2 setexpr             -- binary
-            | setexpr '|' pred                -- comprehension (filter)
-setrel    ::= setexpr ('<=' | '==') setexpr   -- subset ⊆ / equality   (→ 𝔹)
-op1       ::= '~'                             -- complement
-            | '𝔓'                             -- power set
-op2       ::= '|'   -- union (join)      | '&'  -- intersection (meet)
-            | '^'   -- symmetric diff.   | '*'  -- product → set over ⟨·,·⟩
-generator ::= 'Ω' carrier | 'Ø' carrier | 'singleton' '(' value ')'
-            | 'ambient_set' carrier '(' pred ')'
-            | <any IsSet>                     -- user carriers plug in
-pred      ::= atom
-            | '!' pred                        -- unary
-            | pred ('&&' | '||') pred         -- binary
-            | ('forall' | 'exists') '(' setexpr ',' pred ')'   -- ∀ / ∃  (§3)
-            | <any elem → 𝔹>                  -- user-defined predicate
-atom      ::= elem cmp 'fix' '(' const ')' | elem cmp elem
-elem      ::= 'χ' | 'π' | 'π1' | 'π2'         -- element / projection(s)
-cmp       ::= '==' | '<' | '<=' | '>' | '>='
-carrier   ::= <any std::regular type>
+\noindent
+\begin{minipage}[t]{0.49\linewidth}
+{\footnotesize\centering\textbf{set expressions}\par}
+\begin{minted}[fontsize=\footnotesize]{text}
+setexpr ::= generator
+  | op1 setexpr
+  | setexpr op2 setexpr
+  | setexpr '|' pred
+op1 ::= '~' | '𝔓'
+op2 ::= '|' | '&' | '^' | '*'
+generator ::= 'Ω' carrier | 'Ø' carrier
+  | 'singleton' '(' value ')'
+  | 'ambient_set' carrier '(' pred ')'
+  | <any IsSet>
+carrier ::= <any std::regular type>
 \end{minted}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\linewidth}
+{\footnotesize\centering\textbf{predicates} \ensuremath{(\to \mathbb{B})}\par}
+\begin{minted}[fontsize=\footnotesize]{text}
+pred ::= atom
+  | '!' pred
+  | pred ('&&' | '||') pred
+  | ('forall' | 'exists')
+      '(' setexpr ',' pred ')'
+  | <any elem → 𝔹>
+atom ::= elem cmp elem
+  | elem cmp 'fix' '(' const ')'
+  | setexpr '(' elem ')'
+  | setexpr ('<=' | '==') setexpr
+elem ::= 'χ' | 'π' | 'π1' | 'π2'
+cmp  ::= '==' | '<' | '<=' | '>' | '>='
+\end{minted}
+\end{minipage}
+
+\vspace{0.4em}
 \noindent
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
