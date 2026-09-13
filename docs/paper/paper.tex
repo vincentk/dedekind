@@ -447,41 +447,30 @@ In this section, we first show working code (§\ref{sec:ddk_comprehension}) to i
 \label{sec:ddk_comprehension}
 % ============================================================
 
-The set-expression surface is small; Listing~\ref{lst:set-grammar} is its grammar.
-
-\begin{listing}[htbp]
-\caption{The grammar of \textbf{set expressions}.  The generators (universal, empty, singleton, and \cppinline{ambient_set}, which promotes a predicate to a set), the Boolean-lattice operators, the product, and the comprehension filter.  This is a \emph{correspondence}, not the literal C++ grammar: operator precedence, ADL, and the concept-gates sit underneath.  A set object is a carrier paired with a classifier $\chi$ (\cppinline{IsSubobject}); \cppinline{\&} is meet, \cppinline{|} is join.}
-\label{lst:set-grammar}
-\begin{minted}{text}
-setexpr   ::= generator
-            | setexpr '|' setexpr          -- union         (join)
-            | setexpr '&' setexpr          -- intersection  (meet)
-            | setexpr '^' setexpr          -- symmetric difference
-            | '~' setexpr                  -- complement
-            | setexpr '*' setexpr          -- product  → set over ⟨·,·⟩
-            | 'Set{' scout ['%' setexpr] '|' pred '}'   -- comprehension (filter)
-generator ::= 'Ω' carrier                  -- universal set (χ ≡ ⊤)
-            | 'Ø' carrier                  -- empty set     (χ ≡ ⊥)
-            | 'singleton' '(' value ')'
-            | 'ambient_set' carrier '(' pred ')'   -- promote a predicate
-scout     ::= 'element' '<' setexpr '>'    -- a variable ranging over an ambient
-pred      ::= scout cmp value | scout cmp scout | pred '&&' pred | '!' pred
-            | <any T → 𝔹>
-cmp       ::= '==' | '<' | '<=' | '>' | '>='
-carrier   ::= <any std::regular type>
-\end{minted}
-\end{listing}
+Listing~\ref{lst:set-grammar} gives the grammar of set expressions, with the two absorbing laws of the complement lattice as a worked instantiation right beside it, so the surface and its use can be read together.
 
 % Source: src/test/cpp/modules/dedekind/analysis/pruning_lattice_laws_test.cpp
 %         (Ø<bool>/Ø<Cardinality> spelling; the ambient Ø<𝔹>/Ø<ℕ> is a
 %          pending empty-set-on-ambient migration.)
 %   Bottom IR panel: .../python/showcase_03_halfspace_contradiction.ll
 \begin{listing}[htbp]
-\caption{The two absorbing laws of the complement lattice (Table~\ref{tab:lattice-lift}), as compile-time \textbf{type} collapses on an \textbf{extensional} carrier ($\mathbb{B}$, a static \cppinline{Singleton}) and an \textbf{intensional} one ($\mathbb{N}$, a \cppinline{Halfspace}).
-Complement (\cppinline{~}) turns a subset into its dual; \textbf{union} with the dual round-trips to the universe ($a \cup \neg a = \top$), while \textbf{intersection} with it falls to the empty set ($a \cap \neg a = \bot$).
-The collapse is a type identity, the same on both carriers: no element is ever enumerated.
-\textbf{Bottom:} the payoff in the emitted code, a membership query on the empty meet constant-folding to \texttt{ret i1 false} at \texttt{-O2} (\texttt{clang++-22}).}
-\label{lst:pruning}
+\caption{The grammar of \textbf{set expressions} (top), with the two absorbing laws of the complement lattice (Table~\ref{tab:lattice-lift}) as a worked instantiation.  The generators (universal, empty, singleton, and \cppinline{ambient_set}, which promotes a predicate to a set), the Boolean-lattice operators, the product, and the comprehension filter (\cppinline{|} on a predicate over the projection $\pi$ and the NTTP \cppinline{fix}).  A \emph{correspondence}, not the literal C++ grammar: operator precedence, ADL, and the concept-gates sit underneath.  A set object is a carrier paired with a classifier $\chi$ (\cppinline{IsSubobject}); \cppinline{\&} is meet and \cppinline{|} is join (and, on a predicate, the comprehension filter).  \textbf{Below:} the laws as compile-time \textbf{type} collapses on an \textbf{extensional} carrier ($\mathbb{B}$, a \cppinline{Singleton}) and an \textbf{intensional} one ($\mathbb{N}$, a \cppinline{Halfspace}); complement (\cppinline{~}) with $a \cup \neg a = \top$ and $a \cap \neg a = \bot$, no element ever enumerated.  \textbf{Bottom:} the payoff, a membership query on the empty meet constant-folding to \texttt{ret i1 false} at \texttt{-O2} (\texttt{clang++-22}).}
+\label{lst:set-grammar}\label{lst:pruning}
+\begin{minted}{text}
+setexpr   ::= generator
+            | setexpr '|' setexpr          -- union         (join)
+            | setexpr '|' pred             -- comprehension (filter)
+            | setexpr '&' setexpr          -- intersection  (meet)
+            | setexpr '^' setexpr          -- symmetric difference
+            | '~' setexpr                  -- complement
+            | setexpr '*' setexpr          -- product  → set over ⟨·,·⟩
+generator ::= 'Ω' carrier | 'Ø' carrier | 'singleton' '(' value ')'
+            | 'ambient_set' carrier '(' pred ')'   -- promote a predicate
+pred      ::= π cmp 'fix' '(' const ')' | π cmp π | pred '&&' pred | '!' pred
+π         ::= 'π' | 'π1' | 'π2'            -- projection / bound element
+cmp       ::= '==' | '<' | '<=' | '>' | '>='
+carrier   ::= <any std::regular type>
+\end{minted}
 \noindent
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
