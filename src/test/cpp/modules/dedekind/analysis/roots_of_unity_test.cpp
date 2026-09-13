@@ -28,6 +28,8 @@
 import dedekind.numbers; // Rational, QuadraticReal, Complex, root8, ζ₈, conj
 import dedekind.morphologies; // Modular<8u> — the domain ℤ/8 of root8
 import dedekind.analysis;     // Dual
+import dedekind.sets;         // ambient_set (predicate→set), the native meet &
+import dedekind.relational;   // preimage — the residue-class pullback (#816)
 
 using namespace dedekind::numbers;
 using dedekind::analysis::Dual;
@@ -167,65 +169,93 @@ TEST_CASE("Dual numbers: exact autodiff over ℚ(√2) (the parabolic sibling)",
 
 // ---------------------------------------------------------------------------
 // §5  The Figure-5 wave: a non-separable even wave on the torus (ℤ/8)², whose
-//     EXACT node set is a strength reduction to the finite quotient.  This is
-//     what keeps the node materialisation at COMPILE TIME: the library fact
-//     {Re ζ^k = 0} = Congruence<4,2> proves the node test is a pure modular
-//     condition, so the deep ℚ(√2) grid is never evaluated.
+//     node set is a VISIBLE preimage of the residue class {Re ζ₈ᵏ = 0} through
+//     the linear forms x±y.  The strength reduction, made point-free: the exact
+//     ℚ(√2) node test collapses to the finite-quotient residue class (the §3
+//     fact {Re ζ = 0} = Congruence<4,2>), pulled back through x±y and met — no
+//     deep ℚ(√2) grid, no bespoke reduce_to, reusing the general preimage
+//     (#816).  ψ(x,y) = cos(2π(x+y)/8) + i·cos(2π(x−y)/8): even, NON-separable,
+//     so the node set is a DIAMOND (not a product of two 1-D sets) — S is
+//     genuinely more than P.
 // ---------------------------------------------------------------------------
-TEST_CASE("Non-separable wave: exact node set is a residue-class reduction",
-          "[analysis][fourier][wave][strength-reduction][exact]") {
-  // ψ(x,y) = cos(2π(x+y)/8) + i·cos(2π(x-y)/8), the even, NON-separable wave.
-  //   Re ψ = cos(2π(x+y)/8) = Re ζ₈^{(x+y) mod 8}   (exact, ∈ ℚ(√2))
-  //   Im ψ = cos(2π(x-y)/8) = Re ζ₈^{(x-y) mod 8}
-  // Even: ψ(-x,-y) = ψ(x,y).  Non-separable: the node set is a DIAMOND, not a
-  // product of two 1-D sets, so S is genuinely more than P.
-  auto re_cos = [](unsigned k) {
-    return ζ(k % 8u).real();
-  };  // cos(2πk/8) exact, via the library de Moivre map
-  auto is_node_exact = [&](unsigned x, unsigned y) {
-    return re_cos(x + y) == zero &&
-           re_cos(x + 8u - y) == zero;  // Re ψ = Im ψ = 0
-  };
+namespace figure5 {
+using dedekind::relational::preimage;
 
-  // The exact layer that JUSTIFIES the reduction is the LIBRARY fact:
-  // cos(2πk/8) = 0 ⟺ k ∈ {2,6} ⟺ Congruence<4,2>.
-  for (unsigned k = 0; k < 8u; ++k) {
-    CHECK((re_cos(k) == zero) == Congruence<4, 2>{}(k));
-  }
+// The linear-form arrows (x,y) ↦ x+y and (x,y) ↦ x−y on the torus (ℤ/8)²
+// (named, no lambdas; x−y uses Modular's group subtraction).
+struct Sum {
+  using Domain = std::pair<M8, M8>;
+  using Codomain = M8;
+  constexpr M8 operator()(const Domain& p) const { return p.first + p.second; }
+};
+struct Diff {
+  using Domain = std::pair<M8, M8>;
+  using Codomain = M8;
+  constexpr M8 operator()(const Domain& p) const { return p.first - p.second; }
+};
+// The node class on the exponent k ∈ ℤ/8: {Re ζ₈ᵏ = 0} = Congruence<4,2>
+// (k ≡ 2 mod 4), the certified §3 fact, on the representative k.value.
+struct ReZetaZeroClass {
+  using Domain = M8;
+  using Codomain = bool;
+  constexpr bool operator()(M8 k) const { return Congruence<4, 2>{}(k.value); }
+};
 
-  // STRENGTH REDUCTION (the S-leg again): the exact ℚ(√2) node test is
-  // EQUIVALENT to the finite-quotient predicate --- no ℚ(√2) at the grid.
-  auto is_node_reduced = [](unsigned x, unsigned y) {
-    return Congruence<4, 2>{}(x + y) && Congruence<4, 2>{}(x + 8u - y);
-  };
-  for (unsigned x = 0; x < 8u; ++x) {
-    for (unsigned y = 0; y < 8u; ++y) {
-      CHECK(is_node_exact(x, y) ==
-            is_node_reduced(x, y));  // the reduction is exact
-    }
-  }
+// The node class {k ∈ ℤ/8 : Re ζ₈ᵏ = 0} as a Set on ℤ/8: ambient_set<M8>(p)
+// constructs the set of M8 elements classified by the predicate p (Modular<8>
+// is a registered species).  (The "set = ambient + predicate" reading is the
+// conceptual model on #824/#826, not a claim about stored fields.)
+constexpr auto node_class = dedekind::sets::ambient_set<M8>(ReZetaZeroClass{});
 
-  // The materialised node set on the [0,4]² fundamental cell = the 4 diamond
-  // points --- computed on the CHEAP residue-class surrogate at COMPILE TIME
-  // (the strength reduction is what retains the fold; the deep ℚ(√2) grid,
-  // which would exhaust the constant-evaluation limit, is never touched).
-  static_assert(
-      [] {
-        int n = 0;
-        for (unsigned x = 0; x <= 4u; ++x)
-          for (unsigned y = 0; y <= 4u; ++y)
-            if (Congruence<4, 2>{}(x + y) && Congruence<4, 2>{}(x + 8u - y))
-              ++n;
-        return n;
-      }() == 4,
-      "4 diamond nodes on the [0,4]² cell, materialised at compile time via "
-      "the residue-class predicate Congruence<4,2> (the strength reduction "
-      "retains the compile-time fold).");
+// The diamond = the residue class pulled back through EACH linear form, then
+// MET (native Set ∩ Set): {(x,y) : (x+y) ∈ C ∧ (x−y) ∈ C}.  A visible preimage
+// of a Trsk composition (#816) --- the honest form of the strength reduction.
+constexpr auto diamond =
+    preimage(Sum{}, node_class) & preimage(Diff{}, node_class);
 
+// The diamond nodes on the [0,4]² fundamental cell, counted at compile time
+// (named helper, no lambda).
+constexpr int diamond_cell_count() {
+  int n = 0;
+  for (unsigned x = 0; x <= 4u; ++x)
+    for (unsigned y = 0; y <= 4u; ++y)
+      if (diamond(std::pair{M8{x}, M8{y}})) ++n;
+  return n;
+}
+}  // namespace figure5
+
+TEST_CASE(
+    "§5 non-separable wave: the diamond node set as a preimage of the residue "
+    "class",
+    "[analysis][fourier][wave][strength-reduction][exact]") {
+  using figure5::diamond;
+  using figure5::ReZetaZeroClass;
+
+  // EXACT layer / the strength-reduction justification: the exact ℚ(√2) node
+  // test {Re ζ₈ᵏ = 0} IS the finite-quotient residue class Congruence<4,2>
+  // (§3).  This equivalence is what lets the diamond run on ℤ/8, never touching
+  // the deep ℚ(√2) grid.
+  for (unsigned k = 0; k < 8u; ++k)
+    CHECK((ζ(k).real() == zero) == ReZetaZeroClass{}(M8{k}));
+
+  // The diamond, point-free: Re ψ = Im ψ = 0 ⟺ x+y and x−y both in the class.
+  CHECK(diamond(std::pair{M8{2}, M8{0}}));        // (2,0)
+  CHECK(diamond(std::pair{M8{0}, M8{2}}));        // (0,2)
+  CHECK(diamond(std::pair{M8{4}, M8{2}}));        // (4,2)
+  CHECK_FALSE(diamond(std::pair{M8{1}, M8{0}}));  // off band
+  CHECK_FALSE(diamond(std::pair{M8{3}, M8{5}}));  // off band
+
+  // The [0,4]² fundamental cell = the 4 diamond points, materialised at COMPILE
+  // TIME on the cheap residue surrogate (the deep ℚ(√2) grid is never touched).
+  static_assert(figure5::diamond_cell_count() == 4,
+                "4 diamond nodes on the [0,4]² cell, via the preimage of the "
+                "residue class --- compile-time.");
+
+  // Runtime materialisation (for coverage).
   std::vector<std::pair<unsigned, unsigned>> cell;
   for (unsigned x = 0; x <= 4u; ++x)
     for (unsigned y = 0; y <= 4u; ++y)
-      if (is_node_reduced(x, y)) cell.push_back({x, y});
+      if (diamond(std::pair{M8{x}, M8{y}})) cell.push_back({x, y});
   CHECK(cell == std::vector<std::pair<unsigned, unsigned>>{
                     {0, 2}, {2, 0}, {2, 4}, {4, 2}});
 }

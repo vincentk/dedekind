@@ -67,6 +67,32 @@ import :computability;  // For NaturalLogic / HasDecidableMembership
 namespace dedekind::sets {
 using namespace dedekind::category;
 
+// ── What a set object IS (actual representation) ─────────────────────────────
+// The object-level "is a set" concept is @c IsSubobject<T, T::Domain>: @c T
+// classified by a characteristic predicate χ (its @c operator()).  In the
+// carriers this is stored as JUST the classifier --- @c Subobject<A, Chi> holds
+// @c Chi χ (category:topoi), @c Set<T,L,P> holds @c P predicate_ --- and the
+// ambient is the @b type parameter (@c A / @c T), not a stored value; @c ι is
+// the @c Member inclusion (@c ι(Member{a}) = @c a), not a projection.  @c
+// IsSet<T> is then @c IsSubobject PLUS the CATEGORY commitment (the ambient
+// satisfies the ETCS axioms / is a CCC --- the ambient IS the category Set).
+//
+// Re-export the predicate→set promotion into dedekind::sets (POLA): @c
+// ambient_set forwards to @c classify --- it constructs a classified set object
+// over ambient @c A from a predicate; it does @b not build a stored
+// (ambient, predicate) pair.  It is DEFINED upstream in category:etcs (beside
+// @c IsSet / @c classify); re-exported here (not moved) so the "build a set
+// from a predicate" constructor lives at the sets DSL surface without inverting
+// the category → sets dependency.
+//
+// The CONCEPTUAL reading "a set object = ambient (whole, π₁) × predicate χ
+// (part-selector, π₂)" --- the mereological / product model --- is a @b model,
+// recorded on GH #824 / #826, NOT the current representation: it is literally a
+// stored product only in @c Comprehension<Base,P> (which holds @c base + @c
+// predicate).  Reifying it uniformly (@c IsSubobject as a free algebra) is a
+// deferred north-star (#824), not what the code does today.
+export using dedekind::category::ambient_set;
+
 /** @brief Opt-in CRTP base that supplies the ETCS @b set surface --- @c Member
  * /
  *  @c ι (the subobject inclusion), @c Codomain / @c logic_species, the
