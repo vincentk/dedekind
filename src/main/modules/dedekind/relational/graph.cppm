@@ -266,14 +266,9 @@ export template <typename F, typename S>
            // RELATION read as pair→bool, silently returning a set of pairs.
            // Exclude IsSet (a graph is IsSet; a Morphism arrow is not).
            (!dedekind::category::IsSet<std::remove_cvref_t<F>>) &&
-           // The stored arrow is invoked from PreimagePredicate::operator()
-           // CONST, so require const-invocability here (IsArrow alone checks a
-           // mutable call): a stateful arrow with a non-const operator() is
-           // rejected at overload resolution, not deep in the body.
-           requires(const std::remove_cvref_t<F>& cf,
-                    const typename std::remove_cvref_t<F>::Domain& a) {
-             cf(a);
-           } &&
+           // (PreimagePredicate::operator() const invokes the stored arrow;
+           // its const-invocability is now guaranteed by IsArrow itself, #822,
+           // so no separate const-call guard is needed here.)
            requires(const S& s,
                     const typename std::remove_cvref_t<F>::Codomain& b) {
              typename std::remove_cvref_t<S>::logic_species;

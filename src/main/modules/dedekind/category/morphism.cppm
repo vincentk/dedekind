@@ -253,12 +253,23 @@ export struct hub_arrow_tag {};
  * @brief A type that knows its own Domain (A) and Codomain (B).
  */
 export template <typename F>
-concept IsArrow = requires {
-  typename std::remove_cvref_t<F>::Domain;
-  typename std::remove_cvref_t<F>::Codomain;
-} && requires(F f, typename std::remove_cvref_t<F>::Domain x) {
-  { f(x) } -> std::convertible_to<typename std::remove_cvref_t<F>::Codomain>;
-};
+concept IsArrow =
+    requires {
+      typename std::remove_cvref_t<F>::Domain;
+      typename std::remove_cvref_t<F>::Codomain;
+    } && requires(const std::remove_cvref_t<F>& f,
+                  const typename std::remove_cvref_t<F>::Domain& x) {
+      // CONST-invocable (not merely invocable on a mutable f): a morphism is
+      // pure (Juliet Posture §2 "Pure, Terminating Arrows ... effect-free"), so
+      // applying it must not mutate it.  A mutable-only operator() is a
+      // stateful callable, not a morphism, and would break extensionality (a =
+      // b ⟹ f(a) = f(b)); it is excluded here at the type boundary.  A memoized
+      // arrow (mutable cache + const operator()) stays const-invocable and
+      // observationally pure, so it survives.
+      {
+        f(x)
+      } -> std::convertible_to<typename std::remove_cvref_t<F>::Codomain>;
+    };
 
 // ---------------------------------------------------------------------------
 // Picking policy for Domain-resolving helpers (closes #411).
@@ -412,8 +423,60 @@ struct Morphism {
   constexpr explicit Morphism(Func f) : transform(std::move(f)) {}
 
   // We provide the call operator, but NOT the composition (f ∘ g).
-  constexpr Codomain operator()(const Domain& x) const { return transform(x); }
+  // Constrained on CONST-invocability of the stored callable: the body invokes
+  // `transform` through `const` (const method → const Func&).  Without this the
+  // operator's DECLARATION is unconditional, so IsArrow's `f(x)` probe (which
+  // validates the signature, not the body) would accept a Morphism wrapping a
+  // mutable-only callable — then fail only when the body is instantiated.  The
+  // constraint makes the operator non-viable for a mutable-only Func, so such a
+  // Morphism is honestly !IsArrow at the boundary (#822).
+  constexpr Codomain operator()(const Domain& x) const
+    requires std::invocable<const Func&, const Domain&>
+  {
+    return transform(x);
+  }
 };
+
+// Regression (#822): a Morphism wrapping a MUTABLE-ONLY callable is NOT an
+// arrow.  A morphism is pure (Juliet Posture §2); the const-invocability
+// constraint on operator() above makes IsArrow reject it at the type boundary,
+// rather than admitting it and hard-erroring only when the body is called.
+namespace morphism_const_invocability_witness {
+struct MutableOnlyRule {
+  int state = 0;
+  constexpr int operator()(int x) { return state += x; }  // non-const: stateful
+};
+struct PureRule {
+  constexpr int operator()(int x) const { return x + 1; }
+};
+static_assert(!IsArrow<Morphism<int, int, MutableOnlyRule>>,
+              "a Morphism over a mutable-only callable is not a (pure) arrow.");
+static_assert(IsArrow<Morphism<int, int, PureRule>>,
+              "a Morphism over a const-invocable callable is an arrow.");
+
+// DIRECT witness for the IsArrow probe itself (#822), NOT routed through
+// Morphism's operator() constraint: a raw arrow-shaped type (Domain/Codomain +
+// a NON-CONST operator()) must be !IsArrow.  This is the assertion that would
+// FAIL if the probe were reverted to a mutable `f` — the Morphism assertions
+// above would not, since Morphism::operator() rejects the mutable rule on its
+// own.  So this pins the concept's const-invocability directly.
+struct MutableOnlyArrow {
+  using Domain = int;
+  using Codomain = int;
+  int state = 0;
+  constexpr int operator()(int x) { return state += x; }  // non-const: stateful
+};
+static_assert(!IsArrow<MutableOnlyArrow>,
+              "an arrow-shaped type with only a non-const operator() is not an "
+              "arrow (IsArrow requires const-invocability).");
+struct PureArrow {
+  using Domain = int;
+  using Codomain = int;
+  constexpr int operator()(int x) const { return x + 1; }
+};
+static_assert(IsArrow<PureArrow>,
+              "an arrow-shaped type with a const operator() is an arrow.");
+}  // namespace morphism_const_invocability_witness
 
 /** @brief Universal inference for any Morphism signature f: Args... -> Codomain
  */
