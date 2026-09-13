@@ -447,6 +447,31 @@ In this section, we first show working code (§\ref{sec:ddk_comprehension}) to i
 \label{sec:ddk_comprehension}
 % ============================================================
 
+The set-expression surface is small; Listing~\ref{lst:set-grammar} is its grammar.
+
+\begin{listing}[htbp]
+\caption{The grammar of \textbf{set expressions}.  The generators (universal, empty, singleton, and \cppinline{ambient_set}, which promotes a predicate to a set), the Boolean-lattice operators, the product, and the comprehension filter.  This is a \emph{correspondence}, not the literal C++ grammar: operator precedence, ADL, and the concept-gates sit underneath.  A set object is a carrier paired with a classifier $\chi$ (\cppinline{IsSubobject}); \cppinline{\&} is meet, \cppinline{|} is join.}
+\label{lst:set-grammar}
+\begin{minted}{text}
+setexpr   ::= generator
+            | setexpr '|' setexpr          -- union         (join)
+            | setexpr '&' setexpr          -- intersection  (meet)
+            | setexpr '^' setexpr          -- symmetric difference
+            | '~' setexpr                  -- complement
+            | setexpr '*' setexpr          -- product  → set over ⟨·,·⟩
+            | 'Set{' scout ['%' setexpr] '|' pred '}'   -- comprehension (filter)
+generator ::= 'Ω' carrier                  -- universal set (χ ≡ ⊤)
+            | 'Ø' carrier                  -- empty set     (χ ≡ ⊥)
+            | 'singleton' '(' value ')'
+            | 'ambient_set' carrier '(' pred ')'   -- promote a predicate
+scout     ::= 'element' '<' setexpr '>'    -- a variable ranging over an ambient
+pred      ::= scout cmp value | scout cmp scout | pred '&&' pred | '!' pred
+            | <any T → 𝔹>
+cmp       ::= '==' | '<' | '<=' | '>' | '>='
+carrier   ::= <any std::regular type>
+\end{minted}
+\end{listing}
+
 % Source: src/test/cpp/modules/dedekind/analysis/pruning_lattice_laws_test.cpp
 %         (Ø<bool>/Ø<Cardinality> spelling; the ambient Ø<𝔹>/Ø<ℕ> is a
 %          pending empty-set-on-ambient migration.)
@@ -849,6 +874,32 @@ The implementation tracks this definition literally at compile time.
 Relations are a \emph{dioid}, an idempotent semiring $(\mathrm{Rel}, \cup, \mathbin{;}, \varnothing, \Delta)$ under union and relative product, and that structure is the spine of this section (Table~\ref{tab:relation-dioid}).
 It stands on its own two monoids: a join-semilattice for $\cup$, and a composition monoid for $\mathbin{;}$ whose unit is the diagonal $\Delta$.
 The additive half happens to be the Boolean lattice a relation already carries \emph{as a set} (Section~\ref{sec:intensional_sets}, Table~\ref{tab:lattice-lift}); the multiplicative half, composition with unit the diagonal, is what the \emph{product} adds and is the reason the section exists.
+
+Listing~\ref{lst:relation-grammar} gives the grammar of relation expressions, built on the set expressions of Listing~\ref{lst:set-grammar}.
+
+\begin{listing}[htbp]
+\caption{The grammar of \textbf{relation expressions}, extending the set expressions of Listing~\ref{lst:set-grammar}: a relation \emph{is} a set over a product, plus the graph of an arrow, the Tarski operators (converse, relative product $\mathbin{;}$, union, meet, the diagonal, the reflexive/symmetric closures), the pullback \cppinline{preimage}, and the Codd \cppinline{select} / \cppinline{natural_join}.  Same \emph{correspondence} caveat as Listing~\ref{lst:set-grammar}: the \cppinline{>>} Boolean-middle restriction and the like are concept-gates underneath.}
+\label{lst:relation-grammar}
+\begin{minted}{text}
+relexpr   ::= setexpr                     -- carrier ⟨A,B⟩ : a relation
+            | 'graph' '(' arrow ')'       -- functional graph Γ_f
+            | 'converse' '(' relexpr ')'  -- R°
+            | relexpr '>>' relexpr        -- relative product R;S (Boolean middle)
+            | relexpr '+' relexpr         -- union  (RelOr)
+            | relexpr '&' relexpr         -- meet   (RelAnd)
+            | 'diagonal' carrier          -- Δ
+            | 'reflexive' '(' relexpr ')'
+            | 'symmetric' '(' relexpr ')'
+            | 'preimage' '(' arrow ',' setexpr ')'       -- χ_S ∘ f
+            | 'select' '(' relexpr ',' pred ')'
+            | 'natural_join' '(' relexpr ',' relexpr ')'
+            | setexpr '*' setexpr '|' relpred            -- restricted product
+relpred   ::= proj cmp proj | proj cmp 'fix(' const ')'
+            | relpred '&' relpred | relpred '+' relpred
+proj      ::= 'π1' | 'π2' | proj arith 'fix(' const ')'
+arrow     ::= <an IsArrow A → B; functions compose via '>>'>
+\end{minted}
+\end{listing}
 
 \begin{definition}[$\mathbf{Trsk} := \mathbf{Lwv} \cap \mathbf{Rel}$]
 \label{def:trsk-rel}
