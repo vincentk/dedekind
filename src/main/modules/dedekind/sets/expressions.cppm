@@ -67,12 +67,25 @@ import :computability;  // For NaturalLogic / HasDecidableMembership
 namespace dedekind::sets {
 using namespace dedekind::category;
 
-// Re-export the predicate→set promotion into dedekind::sets (POLA): a set is an
-// underlying set + a predicate, so the "build a set from a characteristic
-// predicate" constructor belongs at the sets DSL surface, even though it is
-// DEFINED upstream in category:etcs (beside IsSet / classify, the ETCS surface
-// that sets is built on).  Re-exported, not moved --- keeps it with its ETCS
-// siblings and avoids inverting the category → sets dependency.
+// ── What a set IS (the object-level model; full note on GH #824) ─────────────
+// A set OBJECT is a PRODUCT: an ambient set VALUE (the whole, π₁) paired with a
+// characteristic predicate χ (the part-selector, π₂).  This is exactly the
+// SUBOBJECT structure --- the object-level "is a set" concept is
+// @c IsSubobject<T, T::Domain> (T classified by χ over its ambient); @c ι is
+// the projection-to-π₁ (the part-of witness, Leśniewski mereology).  @c
+// IsSet<T> is then @c IsSubobject PLUS the CATEGORY commitment (the ambient
+// satisfies the ETCS axioms / is a CCC --- the ambient IS the category Set).
+// The distinction is value vs type: a set object is a VALUE (the full product);
+// a bare predicate is a TYPE (the χ factor alone, its ambient implicit).
+//
+// Re-export the predicate→set promotion into dedekind::sets (POLA): @c
+// ambient_set lifts type→value --- it materialises the implicit ambient @c Ω<T>
+// as π₁, so a bare predicate becomes a set object.  It is DEFINED upstream in
+// category:etcs (beside @c IsSet / @c classify); re-exported here (not moved)
+// so the "build a set from a predicate" constructor lives at the sets DSL
+// surface without inverting the category → sets dependency.  Reified as a
+// literal stored product only in @c Comprehension today (#824 north-star: make
+// it uniform).
 export using dedekind::category::ambient_set;
 
 /** @brief Opt-in CRTP base that supplies the ETCS @b set surface --- @c Member
