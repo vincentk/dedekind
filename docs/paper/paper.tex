@@ -454,36 +454,32 @@ Listing~\ref{lst:set-grammar} gives the grammar of the set DSL --- set expressio
 %          pending empty-set-on-ambient migration.)
 %   Bottom IR panel: .../python/showcase_03_halfspace_contradiction.ll
 \begin{listing}[htbp]
-\caption{The set DSL by example, then by grammar.
-\textbf{Top:} the two absorbing laws of the complement lattice (Table~\ref{tab:lattice-lift}) on an extensional carrier ($\mathbb{B}$, whose values enumerate, a \cppinline{Singleton}) and an intensional one ($\mathbb{N}$, predicate-only, a \cppinline{Halfspace}); a complement pair joins to the universe ($a \cup \neg a = \top$) and meets to the empty set ($a \cap \neg a = \bot$).
-\textbf{Middle:} a membership query on that empty meet compiles to \texttt{ret i1 false} at \texttt{-O2} (\texttt{clang++-22}).
+\caption{The core set algebra: worked constructions (top) and the grammar (bottom).
+\textbf{Top:} on $\mathbb{B}$ a comprehension builds a singleton, complement/union/meet run the Boolean lattice (Table~\ref{tab:lattice-lift}), and membership queries the result --- all on equality alone, no order on the elements.
 \textbf{Bottom:} the grammar in two panels.
 \emph{Set expressions} (left) build a set: the generators \cppinline{Ω} (universal), \cppinline{Ø} (empty), \cppinline{singleton}, and \cppinline{ambient_set} (a predicate promoted to a set) or any user \cppinline{IsSet}; the unary \cppinline{op1} (complement \cppinline{~}, power set $\mathfrak{P}$); the binary \cppinline{op2} (union, meet, symmetric difference, product); and the comprehension filter \cppinline{setexpr '|' pred}.
-\emph{Predicates} (right) land in $\mathbb{B}$: comparison atoms over the bound element (\cppinline{χ} / \cppinline{π}) and the NTTP \cppinline{fix}; the unary \cppinline{p1} (negation \cppinline{!}); the binary \cppinline{p2} (\cppinline{&&}, \cppinline{||}); the quantifiers \cppinline{forall}/\cppinline{exists} (§\ref{sec:ddk_comprehension}); membership \cppinline{S(χ)}; and the subset/equality relations.
+\emph{Predicates} (right) land in $\mathbb{B}$: equality atoms over the bound element (\cppinline{χ} / \cppinline{π}) and the NTTP \cppinline{fix}, the unary \cppinline{p1} (negation \cppinline{!}), the binary \cppinline{p2} (\cppinline{&&}, \cppinline{||}), and membership \cppinline{S(χ)}.
+The two open slots --- \cppinline{<any elem → 𝔹>} and \cppinline{<any IsSet>} --- are the \emph{extension points} the later listings plug into (quantifiers, Listing~\ref{lst:quantifiers_def}; order, Listing~\ref{lst:extrema_def}).
 A correspondence, not the literal C++ grammar: operator precedence, ADL, and the concept-gates sit underneath.}
 \label{lst:set-grammar}\label{lst:pruning}
 \noindent
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-constexpr auto T
+constexpr auto T          // {true}
   = 𝔹 | π == fix(true_c);
-constexpr auto F = ~T;
+constexpr auto F = ~T;    // ¬T
 static_assert((F | T) == 𝔹);
 static_assert((F & T) == Ø{});
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-constexpr auto gt_5
-  = ℕ | π > fix(5_c);
-constexpr auto le_5 = ~gt_5;
-static_assert((le_5 | gt_5) == ℕ);
-static_assert((le_5 & gt_5) == Ø{});
+static_assert(T(true));    // ∈
+static_assert(!T(false));  // ∉
+static_assert(F(false));
+static_assert(!F(true));
 \end{cpp}
 \end{minipage}
-\begin{cpp}
-define noundef zeroext i1 @witness_empty_halfspace_meet() { ret i1 false }
-\end{cpp}
 
 \vspace{0.6em}
 \noindent
@@ -509,17 +505,14 @@ carrier ::= <any std::regular type>
 pred ::= atom
   | p1 pred
   | pred p2 pred
-  | ('forall' | 'exists')
-      '(' setexpr ',' pred ')'
   | <any elem → 𝔹>
 p1 ::= '!'
 p2 ::= '&&' | '||'
-atom ::= elem cmp elem
-  | elem cmp 'fix' '(' const ')'
-  | setexpr '(' elem ')'
-  | setexpr ('<=' | '==') setexpr
+atom ::= elem '==' elem
+  | elem '==' 'fix' '(' const ')'
+  | setexpr '(' elem ')'      -- membership
+  | setexpr '==' setexpr      -- set equality
 elem ::= 'χ' | 'π' | 'π1' | 'π2'
-cmp  ::= '==' | '<' | '<=' | '>' | '>='
 \end{minted}
 \end{minipage}
 \end{listing}
@@ -661,10 +654,17 @@ Intensional quantification is thus not a general escape from the infinite, only 
 An operand that is neither a finite carrier nor a predicate factoring through a finite quotient matches no overload: the honest Rice wall, a compile error rather than a fabricated answer.
 
 \begin{listing}[htbp]
-\caption{The finite-quotient quantifiers, point-free.
-\textbf{Top}: the generic \cppinline{exists} / \cppinline{forall} over an \cppinline{IsSet} domain \cppinline{S} and a point-free \emph{fragment} \cppinline{P} (gated by \cppinline{S | P} being well-formed), as (A) a test of \cppinline{S | P} against $\varnothing$ and (B) against the input set $S$.
+\caption{The finite-quotient quantifiers, point-free --- a \emph{grammar extension} of Listing~\ref{lst:set-grammar}, plugging \cppinline{forall}/\cppinline{exists} into the \cppinline{pred} extension point (top box).
+\textbf{Middle}: the generic \cppinline{exists} / \cppinline{forall} over an \cppinline{IsSet} domain \cppinline{S} and a point-free \emph{fragment} \cppinline{P} (gated by \cppinline{S | P} being well-formed), as (A) a test of \cppinline{S | P} against $\varnothing$ and (B) against the input set $S$.
 \textbf{Bottom}: the two worked cases, $\mathbb{B} = $\cppinline{Ω<bool>} with the fragment \cppinline{π == fix(true_c)}, and $\mathbb{N} = $\cppinline{Ω<Cardinality>} with the congruence fragment $\pi \equiv 0 \pmod 3$ (materialised over the residues of $\mathbb{Z}/3\mathbb{Z}$).}
 \label{lst:quantifiers_def}
+\noindent
+{\footnotesize\centering\textbf{grammar extension} --- plugs into \cppinline{pred} (Listing~\ref{lst:set-grammar})\par}
+\begin{minted}[fontsize=\footnotesize]{text}
+pred +::= ('forall' | 'exists') '(' setexpr ',' pred ')'
+\end{minted}
+
+\vspace{0.4em}
 \noindent
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
@@ -704,7 +704,16 @@ static_assert(!forall(ℕ, div3));
 \end{minipage}
 \end{listing}
 
-The order runs the same play once more.
+% ============================================================
+\subsection{Ordered Sets}
+\label{sec:ddk_ordered}
+% ============================================================
+
+The algebra so far asks only \emph{equality} of the carrier: membership, the Boolean lattice, and the subset order $\subseteq$ --- the rightmost column of Table~\ref{tab:lattice-lift} --- are all pointwise lifts of the order on $\Omega$, so they hold for any \cppinline{std::regular} carrier.
+A second, independent order enters when the carrier's \emph{elements} are themselves ordered ($\le$): now element comparisons (\cppinline{π > fix(5)}), the halfspaces they cut by comprehension, and the extrema below all become available.
+This is the first rung that asks the carrier for more than equality; its grammar extension is the top box of Listing~\ref{lst:extrema_def}.
+
+The order runs the same play as the quantifiers once more.
 Read $\le$ as the predicate and the extremum \emph{is} a set operation: the greatest elements of $S$ are those no element of $S$ beats.
 Where $\exists$ and $\forall$ test the comprehension against a bound and return a truth value, $\max$ and $\min$ keep the comprehension and return the extremal \emph{subset}.
 \begin{equation}
@@ -722,11 +731,23 @@ A carrier that hands over no such handle matches no \cppinline{upperbounds}, hen
 Section~\ref{sec:relations_functions_blueprint} lifts $\le$ from a bare comparison to a function's graph, and the same filter becomes $\arg\max$.
 
 \begin{listing}[htbp]
-\caption{The extremal sets: one generic definition, its $\forall$-projection decided by structure.
-\textbf{Top}: \cppinline{max} is \cppinline{S} met ($\cap$, the operator \cppinline{&}) with its \cppinline{upperbounds} (the $\forall$-projection $R/\ni$, $\{\pi_2\in S \mid \forall\pi_1\in S.\; \pi_1\le\pi_2\}$, Equation~\ref{eqn:extrema}); \cppinline{min} is the dual, over \cppinline{lowerbounds}.
+\caption{Ordered sets: the grammar extension for order (top box) and the extrema it enables.
+\textbf{Grammar}: element comparisons (\cppinline{cmp}) and subset \cppinline{<=} plug into the \cppinline{pred} extension point of Listing~\ref{lst:set-grammar}; \cppinline{max}/\cppinline{min} extend \cppinline{setexpr}, returning the extremal \emph{subset}.
+\textbf{Definition}: \cppinline{max} is \cppinline{S} met ($\cap$, the operator \cppinline{&}) with its \cppinline{upperbounds} (the $\forall$-projection $R/\ni$, $\{\pi_2\in S \mid \forall\pi_1\in S.\; \pi_1\le\pi_2\}$, Equation~\ref{eqn:extrema}); \cppinline{min} is the dual, over \cppinline{lowerbounds}.
 \cppinline{upperbounds} is the pluggable point (as $\forall$/$\exists$ plug into \cppinline{==}), settled \emph{symbolically} per structure, so no candidate is enumerated; the meet then collapses $\{x\le p\}\cap\{x\ge p\}$ to the attained pivot $\{p\}$, or to $\varnothing$ when the bound is unattained (strict) or absent (unbounded).
-\textbf{Bottom}: witnesses on $\mathbb{B}$ (finite) and an infinite halfspace.}
+\textbf{Witnesses}: subset, a halfspace, and extrema on $\mathbb{B}$ (finite) and an infinite halfspace; the empty halfspace meet folds to \texttt{ret i1 false} at \texttt{-O2} (\texttt{clang++-22}).}
 \label{lst:extrema_def}
+\noindent
+{\footnotesize\centering\textbf{grammar extension} --- order on the carrier (plugs into Listing~\ref{lst:set-grammar})\par}
+\begin{minted}[fontsize=\footnotesize]{text}
+atom +::= elem cmp elem                       -- extends <any elem → 𝔹>
+        | elem cmp 'fix' '(' const ')'
+        | setexpr '<=' setexpr                 -- subset ⊆  (Table 2 order)
+cmp    ::= '<' | '<=' | '>' | '>='
+setexpr +::= ('max' | 'min') '(' setexpr ')'  -- extremal subset
+\end{minted}
+
+\vspace{0.4em}
 \noindent
 \begin{minipage}[t]{0.99\linewidth}
 \begin{cpp}
@@ -742,11 +763,19 @@ auto upperbounds(Ω<bool>)             { return Singleton<true>{}; }
 \noindent
 \begin{minipage}[t]{0.99\linewidth}
 \begin{cpp}
+constexpr auto gt_5 = ℕ | π > fix(5_c);       // halfspace {x > 5}
+static_assert((gt_5 & ~gt_5) == Ø{});         // meet ¬ → ∅
+static_assert(bool(gt_5 <= ℕ));               // subset ⊆
 static_assert(max(𝔹)(true));   static_assert(min(𝔹)(false));
-static_assert(max(ℕ | (π <= fix(5_c)))(5));   // ℤ = SignedCardinality carries NaZ,
-static_assert(min(ℕ | (π >= fix(5_c)))(5));   // so max/min run on the ordered ℕ
+static_assert(max(ℕ | (π <= fix(5_c)))(5));   // max/min run on the ordered ℕ
+static_assert(min(ℕ | (π >= fix(5_c)))(5));
 \end{cpp}
 \end{minipage}
+
+\vspace{0.4em}
+\begin{cpp}
+define noundef zeroext i1 @witness_empty_halfspace_meet() { ret i1 false }
+\end{cpp}
 \end{listing}
 
 % ============================================================
