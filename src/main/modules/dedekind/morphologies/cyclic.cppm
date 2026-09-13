@@ -150,6 +150,18 @@ struct Modular {
     return Modular(static_cast<machine_type>(sum % static_cast<wide_type>(N)));
   }
 
+  // Total Subtraction: (a - b) mod N --- ℤ/N is an abelian GROUP under +, so
+  // subtraction is total (a + (-b)).  Computed as (a + N - b) mod N with a
+  // widened intermediate so it is correct and underflow-free on an UNSIGNED
+  // machine_type (a.value, b.value are already in [0, N), so a + N - b lies in
+  // (0, 2N)).
+  constexpr friend Modular operator-(Modular a, Modular b) {
+    const wide_type diff = static_cast<wide_type>(a.value) +
+                           static_cast<wide_type>(N) -
+                           static_cast<wide_type>(b.value);
+    return Modular(static_cast<machine_type>(diff % static_cast<wide_type>(N)));
+  }
+
   // Total Multiplication: (a * b) mod N --- widened intermediate
   // avoids overflow on narrow machine_type.
   constexpr friend Modular operator*(Modular a, Modular b) {
@@ -207,6 +219,16 @@ struct Congruence {
 
 // Congruence factors through the finite quotient Modular<N>: witnessed at the
 // lowest rung, on the reduction alone (no quantifier machinery yet).
+// Modular subtraction (the abelian group's inverse): total, wraps correctly,
+// and is the additive inverse of +  (a - b) + b = a  on ℤ/N.
+static_assert(Modular<8u>{2} - Modular<8u>{5} == Modular<8u>{5},
+              "2 - 5 = -3 ≡ 5 (mod 8): subtraction wraps (no unsigned "
+              "underflow).");
+static_assert(Modular<8u>{5} - Modular<8u>{2} == Modular<8u>{3}, "5 - 2 = 3.");
+static_assert((Modular<8u>{3} - Modular<8u>{7}) + Modular<8u>{7} ==
+                  Modular<8u>{3},
+              "(a - b) + b = a: subtraction is the group inverse of +.");
+
 static_assert(Congruence<2, 0>{}(4u), "4 ≡ 0 (mod 2): even.");
 static_assert(!Congruence<2, 0>{}(3u), "3 ≢ 0 (mod 2): odd.");
 static_assert(dedekind::category::IsPredicate<Congruence<2, 0>>,

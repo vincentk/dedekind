@@ -28,6 +28,9 @@
 import dedekind.numbers; // Rational, QuadraticReal, Complex, root8, ζ₈, conj
 import dedekind.morphologies; // Modular<8u> — the domain ℤ/8 of root8
 import dedekind.analysis;     // Dual
+import dedekind.category;     // ClassicalLogic (the node-class logic species)
+import dedekind.sets;         // Set, Ω, the meet & (probe)
+import dedekind.relational;   // preimage — the residue-class pullback (probe)
 
 using namespace dedekind::numbers;
 using dedekind::analysis::Dual;
@@ -228,4 +231,53 @@ TEST_CASE("Non-separable wave: exact node set is a residue-class reduction",
       if (is_node_reduced(x, y)) cell.push_back({x, y});
   CHECK(cell == std::vector<std::pair<unsigned, unsigned>>{
                     {0, 2}, {2, 0}, {2, 4}, {4, 2}});
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PROBE (#808 §5 figure target): the diamond node set as a VISIBLE preimage of
+// the residue class through the linear-form arrows x±y — reusing the general
+// preimage (#816), no bespoke reduce_to.  Named arrows, no lambdas.
+// ─────────────────────────────────────────────────────────────────────────────
+namespace linear_form_pullback_probe {
+using dedekind::relational::preimage;
+
+// The linear-form arrows (x,y) ↦ x+y and (x,y) ↦ x−y on the torus (ℤ/8)².
+struct Sum {
+  using Domain = std::pair<M8, M8>;
+  using Codomain = M8;
+  constexpr M8 operator()(const Domain& p) const { return p.first + p.second; }
+};
+struct Diff {
+  using Domain = std::pair<M8, M8>;
+  using Codomain = M8;
+  constexpr M8 operator()(const Domain& p) const { return p.first - p.second; }
+};
+// The node class on the exponent k ∈ ℤ/8: {Re ζ₈ᵏ = 0} = Congruence<4,2>
+// (k ≡ 2 mod 4), the certified §3 fact.  Applied to the representative k.value
+// (Congruence consumes an integer).  A named predicate — no lambda.
+struct ReZetaZeroClass {
+  using Domain = M8;
+  using Codomain = bool;
+  constexpr bool operator()(M8 k) const { return Congruence<4, 2>{}(k.value); }
+};
+}  // namespace linear_form_pullback_probe
+
+TEST_CASE("PROBE: diamond = preimage(x±y, C42) via the general preimage",
+          "[analysis][probe][preimage]") {
+  using linear_form_pullback_probe::Diff;
+  using linear_form_pullback_probe::ReZetaZeroClass;
+  using linear_form_pullback_probe::Sum;
+  // The residue node class {k ∈ ℤ/8 : Re ζ₈ᵏ = 0} as a Set on M8.  Built by
+  // wrapping the predicate directly (the filter idiom Ω<M8> | pred fires only
+  // for scout/π predicate-expressions, not a bare IsPredicate functor — see
+  // #824); the explicit Set supplies preimage's S-gate its logic_species.
+  constexpr auto node_class =
+      dedekind::sets::Set<M8, dedekind::category::ClassicalLogic,
+                          ReZetaZeroClass>{ReZetaZeroClass{}};
+  // Pull it back through each linear form; the diamond is the meet.
+  constexpr auto nodes = dedekind::relational::preimage(Sum{}, node_class) &
+                         dedekind::relational::preimage(Diff{}, node_class);
+  CHECK(nodes(std::pair{M8{2}, M8{0}}));        // (2,0): 2∈{2,6}, 2∈{2,6}
+  CHECK(nodes(std::pair{M8{0}, M8{2}}));        // (0,2): 2, 6
+  CHECK_FALSE(nodes(std::pair{M8{1}, M8{0}}));  // 1∉{2,6}
 }
