@@ -454,50 +454,14 @@ Listing~\ref{lst:set-grammar} gives the grammar of the set DSL --- set expressio
 %          pending empty-set-on-ambient migration.)
 %   Bottom IR panel: .../python/showcase_03_halfspace_contradiction.ll
 \begin{listing}[htbp]
-\caption{The grammar of the set DSL, split into its two mutually-recursive halves: \textbf{set expressions} (left, yielding an \cppinline{IsSet}) and \textbf{predicates} (right, landing in $\mathbb{B}$).
-Set-forming operators factor into unary \cppinline{op1} (complement \cppinline{~}, power set $\mathfrak{P}$) and binary \cppinline{op2} (union \cppinline{|}, meet \cppinline{&}, symmetric difference \cppinline{^}, product \cppinline{*}); generators are the universal set \cppinline{Ω}, the empty set \cppinline{Ø}, a \cppinline{singleton}, and \cppinline{ambient_set} (which promotes a predicate to a set), or \emph{any} user \cppinline{IsSet} carrier.
-The two halves interlock: comprehension (\cppinline{setexpr '|' pred}) feeds a predicate into a set over the bound element (\cppinline{χ} / \cppinline{π}) and the NTTP \cppinline{fix}, while the ordering surface of \cppinline{IsSet} --- membership \cppinline{S(χ)}, subset \cppinline{<=}, equality \cppinline{==} --- enters as $\mathbb{B}$-valued \cppinline{pred} atoms, exactly as the quantifiers \cppinline{forall}/\cppinline{exists} (§\ref{sec:ddk_comprehension}) do.
-Pluggability is explicit on both sides: \emph{any} \cppinline{IsSet} generator, \emph{any} user \cppinline{elem}\,$\to\mathbb{B}$ predicate.
-A \emph{correspondence}, not the literal C++ grammar: operator precedence, ADL, and the concept-gates sit underneath; a set object is a carrier paired with its classifier $\chi$ (\cppinline{IsSubobject}), so \cppinline{\&} is meet and \cppinline{|} is join.
-\textbf{Below:} the two absorbing laws of the complement lattice (Table~\ref{tab:lattice-lift}) as compile-time \textbf{type} collapses on an \textbf{extensional} carrier ($\mathbb{B}$, a \cppinline{Singleton}) and an \textbf{intensional} one ($\mathbb{N}$, a \cppinline{Halfspace}); complement (\cppinline{~}) with $a \cup \neg a = \top$ and $a \cap \neg a = \bot$, no element ever enumerated.
-\textbf{Bottom:} the payoff, a membership query on the empty meet constant-folding to \texttt{ret i1 false} at \texttt{-O2} (\texttt{clang++-22}).}
+\caption{The set DSL by example, then by grammar.
+\textbf{Top:} the two absorbing laws of the complement lattice (Table~\ref{tab:lattice-lift}) on an extensional carrier ($\mathbb{B}$, whose values enumerate, a \cppinline{Singleton}) and an intensional one ($\mathbb{N}$, predicate-only, a \cppinline{Halfspace}); a complement pair joins to the universe ($a \cup \neg a = \top$) and meets to the empty set ($a \cap \neg a = \bot$).
+\textbf{Middle:} a membership query on that empty meet compiles to \texttt{ret i1 false} at \texttt{-O2} (\texttt{clang++-22}).
+\textbf{Bottom:} the grammar in two panels.
+\emph{Set expressions} (left) build a set: the generators \cppinline{Ω} (universal), \cppinline{Ø} (empty), \cppinline{singleton}, and \cppinline{ambient_set} (a predicate promoted to a set) or any user \cppinline{IsSet}; the unary \cppinline{op1} (complement \cppinline{~}, power set $\mathfrak{P}$); the binary \cppinline{op2} (union, meet, symmetric difference, product); and the comprehension filter \cppinline{setexpr '|' pred}.
+\emph{Predicates} (right) land in $\mathbb{B}$: comparison atoms over the bound element (\cppinline{χ} / \cppinline{π}) and the NTTP \cppinline{fix}; the unary \cppinline{p1} (negation \cppinline{!}); the binary \cppinline{p2} (\cppinline{&&}, \cppinline{||}); the quantifiers \cppinline{forall}/\cppinline{exists} (§\ref{sec:ddk_comprehension}); membership \cppinline{S(χ)}; and the subset/equality relations.
+A correspondence, not the literal C++ grammar: operator precedence, ADL, and the concept-gates sit underneath.}
 \label{lst:set-grammar}\label{lst:pruning}
-\noindent
-\begin{minipage}[t]{0.49\linewidth}
-{\footnotesize\centering\textbf{set expressions}\par}
-\begin{minted}[fontsize=\footnotesize]{text}
-setexpr ::= generator
-  | op1 setexpr
-  | setexpr op2 setexpr
-  | setexpr '|' pred
-op1 ::= '~' | '𝔓'
-op2 ::= '|' | '&' | '^' | '*'
-generator ::= 'Ω' carrier | 'Ø' carrier
-  | 'singleton' '(' value ')'
-  | 'ambient_set' carrier '(' pred ')'
-  | <any IsSet>
-carrier ::= <any std::regular type>
-\end{minted}
-\end{minipage}\hfill
-\begin{minipage}[t]{0.49\linewidth}
-{\footnotesize\centering\textbf{predicates} \ensuremath{(\to \mathbb{B})}\par}
-\begin{minted}[fontsize=\footnotesize]{text}
-pred ::= atom
-  | '!' pred
-  | pred ('&&' | '||') pred
-  | ('forall' | 'exists')
-      '(' setexpr ',' pred ')'
-  | <any elem → 𝔹>
-atom ::= elem cmp elem
-  | elem cmp 'fix' '(' const ')'
-  | setexpr '(' elem ')'
-  | setexpr ('<=' | '==') setexpr
-elem ::= 'χ' | 'π' | 'π1' | 'π2'
-cmp  ::= '==' | '<' | '<=' | '>' | '>='
-\end{minted}
-\end{minipage}
-
-\vspace{0.4em}
 \noindent
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
@@ -520,6 +484,44 @@ static_assert((le_5 & gt_5) == Ø{});
 \begin{cpp}
 define noundef zeroext i1 @witness_empty_halfspace_meet() { ret i1 false }
 \end{cpp}
+
+\vspace{0.6em}
+\noindent
+\begin{minipage}[t]{0.49\linewidth}
+{\footnotesize\centering\textbf{set expressions}\par}
+\begin{minted}[fontsize=\footnotesize]{text}
+setexpr ::= generator
+  | op1 setexpr
+  | setexpr op2 setexpr
+  | setexpr '|' pred
+op1 ::= '~' | '𝔓'
+op2 ::= '|' | '&' | '^' | '*'
+generator ::= 'Ω' carrier | 'Ø' carrier
+  | 'singleton' '(' value ')'
+  | 'ambient_set' carrier '(' pred ')'
+  | <any IsSet>
+carrier ::= <any std::regular type>
+\end{minted}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\linewidth}
+{\footnotesize\centering\textbf{predicates} \ensuremath{(\to \mathbb{B})}\par}
+\begin{minted}[fontsize=\footnotesize]{text}
+pred ::= atom
+  | p1 pred
+  | pred p2 pred
+  | ('forall' | 'exists')
+      '(' setexpr ',' pred ')'
+  | <any elem → 𝔹>
+p1 ::= '!'
+p2 ::= '&&' | '||'
+atom ::= elem cmp elem
+  | elem cmp 'fix' '(' const ')'
+  | setexpr '(' elem ')'
+  | setexpr ('<=' | '==') setexpr
+elem ::= 'χ' | 'π' | 'π1' | 'π2'
+cmp  ::= '==' | '<' | '<=' | '>' | '>='
+\end{minted}
+\end{minipage}
 \end{listing}
 
 \begin{table}[htbp]
