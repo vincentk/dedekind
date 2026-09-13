@@ -1107,6 +1107,12 @@ export template <std::size_t Slot>
 struct Projection {};
 
 export inline constexpr Projection<0> π{};
+// Cosmetic alias for the sole projection π (the bound element of a
+// single-carrier comprehension): a plain element also reads as @c χ,
+// e.g. @c ℕ @c | @c χ @c <= @c fix(5_c).  Same object as π, different spelling.
+// (Plain @c x is deliberately not offered: it shadows the pervasive local
+// element parameter named @c x and would trip @c -Wshadow.)
+export inline constexpr Projection<0> χ{};
 
 /** @brief Unbound predicates: shape fixed, @c Domain deferred until a carrier
  *  binds them via @c operator| below. */
