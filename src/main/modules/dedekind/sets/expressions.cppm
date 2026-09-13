@@ -67,6 +67,14 @@ import :computability;  // For NaturalLogic / HasDecidableMembership
 namespace dedekind::sets {
 using namespace dedekind::category;
 
+// Re-export the predicate→set promotion into dedekind::sets (POLA): a set is an
+// underlying set + a predicate, so the "build a set from a characteristic
+// predicate" constructor belongs at the sets DSL surface, even though it is
+// DEFINED upstream in category:etcs (beside IsSet / classify, the ETCS surface
+// that sets is built on).  Re-exported, not moved --- keeps it with its ETCS
+// siblings and avoids inverting the category → sets dependency.
+export using dedekind::category::ambient_set;
+
 /** @brief Opt-in CRTP base that supplies the ETCS @b set surface --- @c Member
  * /
  *  @c ι (the subobject inclusion), @c Codomain / @c logic_species, the
