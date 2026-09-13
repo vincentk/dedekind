@@ -1514,7 +1514,7 @@ using Torus = X * X;
 // S: symmetric, non-separable wave:
 auto ψ = Torus * ℂ
   | z == wave(x+y) + i*wave(x-y);
-static_assert((pt(-x,-y) >> ψ) == ψ);
+static_assert(reflected(ψ) == ψ);  // even
 
 
 // Node selection:
@@ -1576,19 +1576,22 @@ using T = X * X;
 //    (√2 = ζ₈+ζ₈⁻¹, so ζ₈ is exact)
 auto ψ = T * ℂ
   | z == ζ8(x+y) + i*ζ8(x-y);
-static_assert((pt(-x,-y) >> ψ) == ψ);
+static_assert(reflected(ψ) == ψ);  // even
 
-// S again: STRENGTH REDUCTION.
-// The exact algebra collapses the node
-// test to size_t modular arithmetic:
-//   abs2(ψ) == 0
-//   <=> (x+y)%8 in {2,6}
-//    && (x-y)%8 in {2,6}
-auto node = reduce_to<size_t>(abs2(ψ) == 0);
+// S again: STRENGTH REDUCTION, made
+// VISIBLE as a preimage.  {Re ζ = 0} on
+// the exponent ℤ/8 IS the residue class
+// C = Congruence<4,2>; pull it back
+// through the linear forms x±y.  The
+// exact ζ₈ → ℤ/8 collapse is the
+// EMBEDDING in the composition, so no
+// ℚ(√2) is evaluated at the grid:
+auto C     = Ω<X> | Congruence<4,2>{};
+auto nodes = preimage(x+y, C)
+           & preimage(x-y, C);
 
-// materialise on the cheap carrier:
 auto cell = materialise(
-  T | node && x <= 4 && y <= 4);
+  nodes | x <= 4 && y <= 4);
 static_assert(cell == std::set{  // compile-time
   {2,0},{0,2},{4,2},{2,4}});
 \end{minted}
