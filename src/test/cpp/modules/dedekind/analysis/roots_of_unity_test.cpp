@@ -201,9 +201,10 @@ struct ReZetaZeroClass {
   constexpr bool operator()(M8 k) const { return Congruence<4, 2>{}(k.value); }
 };
 
-// The node class as a Set on ℤ/8: the bare predicate PROMOTED to a set by
-// pairing it with its ambient --- ambient_set is exactly "a set = an underlying
-// set + a predicate" (#826); Modular<8> is a registered species.
+// The node class {k ∈ ℤ/8 : Re ζ₈ᵏ = 0} as a Set on ℤ/8: ambient_set<M8>(p)
+// constructs the set of M8 elements classified by the predicate p (Modular<8>
+// is a registered species).  (The "set = ambient + predicate" reading is the
+// conceptual model on #824/#826, not a claim about stored fields.)
 constexpr auto node_class = dedekind::sets::ambient_set<M8>(ReZetaZeroClass{});
 
 // The diamond = the residue class pulled back through EACH linear form, then
