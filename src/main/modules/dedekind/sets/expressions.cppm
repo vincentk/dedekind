@@ -1592,12 +1592,24 @@ constexpr auto 𝔓(const Set<T, L, P>& base) {
  * @ref Comprehension, itself @c IsSet).  Delegates to @ref Comprehension, so
  * the result @b is a first-class set.  Coexists with set-builder @c | --- the
  * @c |-for-union-only migration (option (c)) is deferred (#826).
+ *
+ * @note Gated on the set @b member-shape (@c Domain + @c logic_species present
+ * on @c S, @b absent on @c Q), @b NOT on the @c IsSet concept.  @c IsSet pulls
+ * in @c IsSubobject, which checks @c meet / @c join --- i.e. @c operator& /
+ * @c operator| --- so constraining @c operator& on @c IsSet makes the concept
+ * depend on itself (a constraint-recursion error, hit on @c Set<pair> @c &
+ * @c Set<pair> relation meets).  The member-shape check discriminates the same
+ * way (a set carries @c logic_species; a bare predicate does not) without
+ * re-entering @c IsSubobject.
  */
 export template <typename S, typename Q>
-  requires(dedekind::category::IsSet<std::remove_cvref_t<S>> &&
-           !dedekind::category::IsSet<std::remove_cvref_t<Q>> &&
-           requires(const std::remove_cvref_t<Q>& q,
-                    const typename std::remove_cvref_t<S>::Domain& x) { q(x); })
+  requires(
+      requires {
+        typename std::remove_cvref_t<S>::Domain;
+        typename std::remove_cvref_t<S>::logic_species;
+      } && !requires { typename std::remove_cvref_t<Q>::logic_species; } &&
+      requires(const std::remove_cvref_t<Q>& q,
+               const typename std::remove_cvref_t<S>::Domain& x) { q(x); })
 constexpr auto operator&(const S& s, Q&& q) {
   return Comprehension<std::remove_cvref_t<S>, std::remove_cvref_t<Q>>{
       s, std::forward<Q>(q)};
