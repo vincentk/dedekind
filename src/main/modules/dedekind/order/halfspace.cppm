@@ -423,6 +423,18 @@ constexpr auto operator~(const Halfspace<T, Pivot, D, S, L>&) {
   return Halfspace<T, Pivot, flip(D), flip(S), L>{};
 }
 
+/** @brief @f$\{V\} \subseteq S \iff V \in S@f$ (#831): a singleton is a subset
+ *  iff its sole point is a member --- the membership base case, decidable
+ *  whenever @c S's χ is.  Mirrors @c SingletonSet::operator<=; the universal
+ *  set is excluded so its own @c X @c ⊆ @c Ω overload stays unambiguous. */
+export template <auto V, typename L, typename S>
+  requires(dedekind::category::IsSet<S> &&
+           std::same_as<typename S::logic_species, L> &&
+           !requires { typename S::is_universal_boundary; })
+constexpr typename L::Ω operator<=(const Singleton<V, L>&, const S& other) {
+  return other.contains(V);
+}
+
 /** @brief Complement-pair join: same pivot, opposite direction, flipped
  *         strictness is a complement pair whose union is the universe.  The
  *         @c (D1!=D2 && S1!=S2) gate rules out non-complement pairs (they keep

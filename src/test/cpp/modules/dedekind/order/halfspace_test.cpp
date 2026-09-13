@@ -359,3 +359,55 @@ TEST_CASE("order:halfspace — projection-arithmetic functional graphs (runtime)
   CHECK(res(std::pair{M, finite_cardinality(3)}));
   CHECK_FALSE(res(std::pair{M, finite_cardinality(4)}));
 }
+
+TEST_CASE("order:halfspace — structural subset ⊆ and derived >=,<,> (#831)",
+          "[order][halfspace][subset]") {
+  constexpr Halfspace<int, 5, Direction::Upward, Strictness::Strict> gt5{};
+  constexpr Halfspace<int, 3, Direction::Upward, Strictness::Strict> gt3{};
+  constexpr Halfspace<int, 5, Direction::Upward, Strictness::NonStrict> ge5{};
+  constexpr Halfspace<int, 3, Direction::Downward, Strictness::Strict> lt3{};
+  constexpr Halfspace<int, 5, Direction::Downward, Strictness::Strict> lt5{};
+
+  SECTION("subset via the lattice identity A ⊆ B ⟺ A ∩ B = A") {
+    static_assert(bool(gt5 <= gt3), "{x>5} ⊆ {x>3}");
+    static_assert(!bool(gt3 <= gt5), "{x>3} ⊄ {x>5}");
+    static_assert(bool(ge5 <= gt3), "{x≥5} ⊆ {x>3}");
+    static_assert(bool(gt5 <= ge5), "{x>5} ⊆ {x≥5}");
+    static_assert(!bool(ge5 <= gt5), "{x≥5} ⊄ {x>5} (5 ∈ LHS, ∉ RHS)");
+    static_assert(bool(lt3 <= lt5), "{x<3} ⊆ {x<5}");
+    static_assert(!bool(lt5 <= lt3), "{x<5} ⊄ {x<3}");
+    // Opposite directions ({x>5} vs {x<3}) hinge on the empty-halfspace edge:
+    // the meet is Ø, and Ø == {x>5} is decidable only once emptiness is (see
+    // #831 discussion). Left out here pending that gate.
+    CHECK(bool(gt5 <= gt3));
+    CHECK_FALSE(bool(gt3 <= gt5));
+    CHECK(bool(lt3 <= lt5));
+  }
+
+  SECTION("empty ⊆ anything; anything ⊆ universe") {
+    static_assert(bool(Ø<int>{} <= gt5), "∅ ⊆ {x>5}");
+    static_assert(bool(gt5 <= Ω<int>), "{x>5} ⊆ ℤ");
+    CHECK(bool(Ø<int>{} <= gt5));
+    CHECK(bool(gt5 <= Ω<int>));
+  }
+
+  SECTION("singleton ⊆ via membership") {
+    constexpr Singleton<5, ClassicalLogic> s5{};
+    static_assert(bool(s5 <= ge5), "{5} ⊆ {x≥5}");
+    static_assert(!bool(s5 <= gt5), "{5} ⊄ {x>5}");
+    CHECK(bool(s5 <= ge5));
+    CHECK_FALSE(bool(s5 <= gt5));
+  }
+
+  SECTION("derived >=, <, > from the primitive <= and ==") {
+    static_assert(bool(gt3 >= gt5), "{x>3} ⊇ {x>5}");
+    static_assert(bool(gt5 < gt3), "{x>5} ⊊ {x>3}");
+    static_assert(!bool(gt5 < gt5), "not a proper subset of itself");
+    static_assert(bool(gt3 > gt5), "{x>3} ⊋ {x>5}");
+    static_assert(!bool(gt5 > gt3), "{x>5} ⊉̸ {x>3} strictly");
+    CHECK(bool(gt3 >= gt5));
+    CHECK(bool(gt5 < gt3));
+    CHECK_FALSE(bool(gt5 < gt5));
+    CHECK(bool(gt3 > gt5));
+  }
+}

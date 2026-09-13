@@ -1281,6 +1281,66 @@ constexpr auto operator~(Set<T, L, Predicate>&& s) {
   return s.operator!();
 }
 
+/** @brief Generic subset via the lattice identity @f$A \subseteq B \iff A \cap
+ *  B = A@f$ (#831): the @b default order on sets, derived from the meet @c &
+ *  and equality @c == every carrier already provides --- no bespoke per-type
+ *  comparison.
+ *
+ *  @details Decidable exactly where the structured meet collapses so @c == can
+ *  compare; otherwise the @c requires gate leaves an honest compile error (the
+ *  same wall as @c exists / @c forall), never a guess.  More-specialized
+ *  per-carrier overloads (@c Set / @c Ø / @c UniversalSet member-@c <= , the
+ *  @c Singleton membership @c <=) win by partial ordering where they apply, so
+ *  this only fills the gaps (e.g. @c Halfspace ⊆ @c Halfspace). */
+template <typename A, typename B>
+concept MeetEqComparable = requires(const A& a, const B& b) {
+  typename A::logic_species;
+  { (a & b) == a } -> std::convertible_to<bool>;
+};
+
+export template <typename A, typename B>
+  requires MeetEqComparable<A, B>
+constexpr typename A::logic_species::Ω operator<=(const A& a, const B& b) {
+  using L = typename A::logic_species;
+  return ((a & b) == a) ? L::True : L::False;  // A ⊆ B  ⟺  A ∩ B = A
+}
+
+/** @brief Order-derived set relations (#831): superset @c >=, proper subset
+ *  @c <, and proper superset @c >, defined @b once from the primitive @c <=
+ *  (subset) and @c == (equality) so every set carrier inherits them from the
+ *  two it already supplies.
+ *
+ *  @details Gated on a @b truth-valued @c <= (convertible to
+ *  @c logic_species::Ω) plus a @c bool @c ==.  That keeps the templates off
+ *  element/scalar comparisons (no @c logic_species) and off the
+ *  comprehension-building @c BoundScout (whose @c <= yields a @b set, not a
+ *  truth value).  Proper subset is @f$A \subsetneq B \equiv A \subseteq B
+ *  \wedge A \neq B@f$, combined in the ambient logic @c L. */
+template <typename A, typename B>
+concept OrderedSets = requires(const A& a, const B& b) {
+  typename A::logic_species;
+  { a <= b } -> std::convertible_to<typename A::logic_species::Ω>;
+  { a == b } -> std::convertible_to<bool>;
+};
+
+export template <typename A, typename B>
+  requires OrderedSets<B, A>
+constexpr typename A::logic_species::Ω operator>=(const A& a, const B& b) {
+  return b <= a;  // A ⊇ B  :=  B ⊆ A
+}
+export template <typename A, typename B>
+  requires OrderedSets<A, B>
+constexpr typename A::logic_species::Ω operator<(const A& a, const B& b) {
+  using L = typename A::logic_species;
+  return L::AND(a <= b, (a == b) ? L::False : L::True);  // A ⊊ B
+}
+export template <typename A, typename B>
+  requires OrderedSets<B, A>
+constexpr typename A::logic_species::Ω operator>(const A& a, const B& b) {
+  using L = typename A::logic_species;
+  return L::AND(b <= a, (a == b) ? L::False : L::True);  // A ⊋ B := B ⊊ A
+}
+
 /** @brief @c Set @c ^ @c Ø @c = @c Set (symmetric difference with empty
  *         is identity; #469).  Symmetric of @c Ø::operator^(S) above —
  *         this overload picks up @c S @c ^ @c Ø when the boundary is on
