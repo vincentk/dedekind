@@ -457,7 +457,7 @@ Listing~\ref{lst:set-grammar} gives the grammar of the set DSL --- set expressio
 \caption{The core set algebra: worked constructions (top) and the grammar (bottom).
 \textbf{Top:} on $\mathbb{B}$ a comprehension builds a singleton, complement/union/meet run the Boolean lattice (Table~\ref{tab:lattice-lift}), and membership queries the result --- all on equality alone, no order on the elements.
 \textbf{Bottom:} the grammar in two panels.
-\emph{Set expressions} (left) build a set: the generators \cppinline{Ω} (universal), \cppinline{Ø} (empty), \cppinline{singleton}, and \cppinline{ambient_set} (a predicate promoted to a set) or any user \cppinline{IsSet}; the unary \cppinline{op1} (complement \cppinline{~}, power set $\mathfrak{P}$); the binary \cppinline{op2} (union, meet, symmetric difference, product); and the comprehension filter \cppinline{setexpr '|' pred}.
+\emph{Set expressions} (left) build a set: the generators \cppinline{Ω} (universal), \cppinline{Ø} (empty), \cppinline{singleton}, and \cppinline{ambient_set} (a predicate promoted to a set) or any user \cppinline{IsSet}; the unary \cppinline{op1} (complement \cppinline{~}); the binary \cppinline{op2} (union, meet, symmetric difference, product); and the comprehension filter \cppinline{setexpr '|' pred}.  (The power set $\mathfrak{P}$ is deferred to §\ref{sec:ddk_ordered}, where it reads as a comprehension over the subset order.)
 \emph{Predicates} (right) land in $\mathbb{B}$: equality atoms over the bound element (\cppinline{χ} / \cppinline{π}) and the NTTP \cppinline{fix}, the unary \cppinline{p1} (negation \cppinline{!}), the binary \cppinline{p2} (\cppinline{&&}, \cppinline{||}), and membership \cppinline{S(χ)}.
 The two open slots --- \cppinline{<any elem → 𝔹>} and \cppinline{<any IsSet>} --- are the \emph{extension points} the later listings plug into (quantifiers, Listing~\ref{lst:quantifiers_def}; order, Listing~\ref{lst:extrema_def}).
 A correspondence, not the literal C++ grammar: operator precedence, ADL, and the concept-gates sit underneath.}
@@ -490,7 +490,7 @@ setexpr ::= generator
   | op1 setexpr
   | setexpr op2 setexpr
   | setexpr '|' pred
-op1 ::= '~' | '𝔓'
+op1 ::= '~'
 op2 ::= '|' | '&' | '^' | '*'
 generator ::= 'Ω' carrier | 'Ø' carrier
   | 'singleton' '(' value ')'
@@ -713,29 +713,12 @@ The algebra so far asks only \emph{equality} of the carrier: membership, the Boo
 A second, independent order enters when the carrier's \emph{elements} are themselves ordered ($\le$): now element comparisons (\cppinline{π > fix(5)}), the halfspaces they cut by comprehension, and the extrema below all become available.
 This is the first rung that asks the carrier for more than equality; its grammar extension is the top box of Listing~\ref{lst:extrema_def}.
 
-The order runs the same play as the quantifiers once more.
-Read $\le$ as the predicate and the extremum \emph{is} a set operation: the greatest elements of $S$ are those no element of $S$ beats.
-Where $\exists$ and $\forall$ test the comprehension against a bound and return a truth value, $\max$ and $\min$ keep the comprehension and return the extremal \emph{subset}.
-\begin{equation}
-\label{eqn:extrema}
-\max S \;:\equiv\; \{x \in S \mid \forall x' \in S.\; x' \le x\},
-\qquad
-\min \;:\equiv\; \max \text{ under } {\le} \mapsto {\ge}.
-\end{equation}
-In code it is one generic definition: $S$ met with its \cppinline{upperbounds}, the region $R/\ni$ that dominates all of $S$ (Listing~\ref{lst:extrema_def}, top).
-Read relationally, \cppinline{upperbounds} is the $\forall$-projection of the order relation \cppinline{S * S | π1 <= π2} onto its second coordinate, so $\max$ keeps the $\pi_2$ that every $\pi_1$ precedes; $\min$ is the same in the dual order, the way $\forall$ was $\exists$ under $\neg$.
-The implementation builds no product and needs no inverse: the meet of $S$ with a comparison-defined halfspace suffices, which is why the extremum of a set lands before relations do.
-The answer is a set, so the degenerate cases need no special casing: an empty carrier gives $\varnothing$, and a total or partial order gives a singleton (a greatest element, when it exists, is unique by antisymmetry) or $\varnothing$; a larger set arises only under a \emph{preorder}, where distinct elements can be equivalent and tie for the top.
-Being generic, $\max$ types in for any ordered carrier and decides wherever \cppinline{upperbounds} is settled by structure: a halfspace's dual (an upward halfspace, unbounded above, has none, so $\max$ is $\varnothing$) or a finite carrier's top.
-A carrier that hands over no such handle matches no \cppinline{upperbounds}, hence no \cppinline{max}: a compile error, the same Rice wall as the quantifiers, rather than a fabricated bound.
-Section~\ref{sec:relations_functions_blueprint} lifts $\le$ from a bare comparison to a function's graph, and the same filter becomes $\arg\max$.
-
 \begin{listing}[htbp]
 \caption{Ordered sets: the grammar extension for order (top box) and the extrema it enables.
-\textbf{Grammar}: element comparisons (\cppinline{cmp}) and subset \cppinline{<=} plug into the \cppinline{pred} extension point of Listing~\ref{lst:set-grammar}; \cppinline{max}/\cppinline{min} extend \cppinline{setexpr}, returning the extremal \emph{subset}.
+\textbf{Grammar}: element comparisons (\cppinline{cmp}) and subset \cppinline{<=} plug into the \cppinline{pred} extension point of Listing~\ref{lst:set-grammar}; \cppinline{max}/\cppinline{min} extend \cppinline{setexpr}, returning the extremal \emph{subset}; the power set $\mathfrak{P}$ is itself a comprehension over the subset order ($\mathfrak{P}(S) = \Omega\langle\Omega^T\rangle \mid \chi \le S$), so its membership \emph{is} the subset test.
 \textbf{Definition}: \cppinline{max} is \cppinline{S} met ($\cap$, the operator \cppinline{&}) with its \cppinline{upperbounds} (the $\forall$-projection $R/\ni$, $\{\pi_2\in S \mid \forall\pi_1\in S.\; \pi_1\le\pi_2\}$, Equation~\ref{eqn:extrema}); \cppinline{min} is the dual, over \cppinline{lowerbounds}.
 \cppinline{upperbounds} is the pluggable point (as $\forall$/$\exists$ plug into \cppinline{==}), settled \emph{symbolically} per structure, so no candidate is enumerated; the meet then collapses $\{x\le p\}\cap\{x\ge p\}$ to the attained pivot $\{p\}$, or to $\varnothing$ when the bound is unattained (strict) or absent (unbounded).
-\textbf{Witnesses}: subset, a halfspace, and extrema on $\mathbb{B}$ (finite) and an infinite halfspace; the empty halfspace meet folds to \texttt{ret i1 false} at \texttt{-O2} (\texttt{clang++-22}).}
+\textbf{Witnesses}: subset, a halfspace, extrema on $\mathbb{B}$ (finite) and an infinite halfspace, and the power set (a set is a member of its own, $A \in \mathfrak{P}(A)$; heterogeneous membership $\mathfrak{P}(\mathbb{B})(T)$ awaits the erased carrier of issue~\#830); the empty halfspace meet folds to \texttt{ret i1 false} at \texttt{-O2} (\texttt{clang++-22}).}
 \label{lst:extrema_def}
 \noindent
 {\footnotesize\centering\textbf{grammar extension} --- order on the carrier (plugs into Listing~\ref{lst:set-grammar})\par}
@@ -745,6 +728,7 @@ atom +::= elem cmp elem                       -- extends <any elem → 𝔹>
         | setexpr '<=' setexpr                 -- subset ⊆  (Table 2 order)
 cmp    ::= '<' | '<=' | '>' | '>='
 setexpr +::= ('max' | 'min') '(' setexpr ')'  -- extremal subset
+        | '𝔓' '(' setexpr ')'                 -- power set: Ω⟨Ω^T⟩ | χ <= S
 \end{minted}
 
 \vspace{0.4em}
@@ -764,11 +748,12 @@ auto upperbounds(Ω<bool>)             { return Singleton<true>{}; }
 \begin{minipage}[t]{0.99\linewidth}
 \begin{cpp}
 constexpr auto gt_5 = ℕ | π > fix(5_c);       // halfspace {x > 5}
-static_assert((gt_5 & ~gt_5) == Ø{});         // meet ¬ → ∅
 static_assert(bool(gt_5 <= ℕ));               // subset ⊆
+static_assert((gt_5 & ~gt_5) == Ø{});         // complement meet → ∅
 static_assert(max(𝔹)(true));   static_assert(min(𝔹)(false));
-static_assert(max(ℕ | (π <= fix(5_c)))(5));   // max/min run on the ordered ℕ
-static_assert(min(ℕ | (π >= fix(5_c)))(5));
+static_assert(max(ℕ | (π <= fix(5_c)))(5));   // extrema on the ordered ℕ
+constexpr auto x = element<ℕ>;  constexpr auto A = Set{x | x > 0u};
+static_assert(bool(𝔓(A)(A)));                 // power set: A ∈ 𝔓(A) = A ⊆ A
 \end{cpp}
 \end{minipage}
 
@@ -777,6 +762,24 @@ static_assert(min(ℕ | (π >= fix(5_c)))(5));
 define noundef zeroext i1 @witness_empty_halfspace_meet() { ret i1 false }
 \end{cpp}
 \end{listing}
+
+The order runs the same play as the quantifiers once more.
+Read $\le$ as the predicate and the extremum \emph{is} a set operation: the greatest elements of $S$ are those no element of $S$ beats.
+Where $\exists$ and $\forall$ test the comprehension against a bound and return a truth value, $\max$ and $\min$ keep the comprehension and return the extremal \emph{subset}.
+\begin{equation}
+\label{eqn:extrema}
+\max S \;:\equiv\; \{x \in S \mid \forall x' \in S.\; x' \le x\},
+\qquad
+\min \;:\equiv\; \max \text{ under } {\le} \mapsto {\ge}.
+\end{equation}
+In code it is one generic definition: $S$ met with its \cppinline{upperbounds}, the region $R/\ni$ that dominates all of $S$ (Listing~\ref{lst:extrema_def}, top).
+Read relationally, \cppinline{upperbounds} is the $\forall$-projection of the order relation \cppinline{S * S | π1 <= π2} onto its second coordinate, so $\max$ keeps the $\pi_2$ that every $\pi_1$ precedes; $\min$ is the same in the dual order, the way $\forall$ was $\exists$ under $\neg$.
+The implementation builds no product and needs no inverse: the meet of $S$ with a comparison-defined halfspace suffices, which is why the extremum of a set lands before relations do.
+The answer is a set, so the degenerate cases need no special casing: an empty carrier gives $\varnothing$, and a total or partial order gives a singleton (a greatest element, when it exists, is unique by antisymmetry) or $\varnothing$; a larger set arises only under a \emph{preorder}, where distinct elements can be equivalent and tie for the top.
+Being generic, $\max$ types in for any ordered carrier and decides wherever \cppinline{upperbounds} is settled by structure: a halfspace's dual (an upward halfspace, unbounded above, has none, so $\max$ is $\varnothing$) or a finite carrier's top.
+A carrier that hands over no such handle matches no \cppinline{upperbounds}, hence no \cppinline{max}: a compile error, the same Rice wall as the quantifiers, rather than a fabricated bound.
+Section~\ref{sec:relations_functions_blueprint} lifts $\le$ from a bare comparison to a function's graph, and the same filter becomes $\arg\max$.
+
 
 % ============================================================
 \subsection{A Categorical Notion of Set}
