@@ -550,10 +550,10 @@ Listing~\ref{lst:pruning} exhibits a checked-in extract that tests this type-dir
 The container reading and the predicate reading are almost interconvertible, and the asymmetry is the point (Listing~\ref{lst:materialise}).
 Any \cppinline{std::set} is a $\mathbf{Lwv}$ set for free, its \cppinline{contains} the characteristic predicate; call that embedding $\iota$, and it is total.
 Only a finite, enumerable $\mathbf{Lwv}$ set materialises back to a container; call that $\mu$, and it is partial, the naturals having no finite materialisation.
-This asymmetry is the model/materialise gap of the whole framework: $\mathbf{Jlt}$ \emph{models} carriers up to the continuum but \emph{materialises} only finite ones,
+This asymmetry is the model/materialise gap of the whole framework: $\mathbf{Lwv}$ \emph{models} carriers up to the continuum but \emph{materialises} only finite ones,
 \begin{equation}
 \label{eqn:model-materialise}
-  \mathbf{Jlt}\ \text{models} \le \beth_1, \qquad \mathbf{Jlt}\ \text{materialises} < \aleph_0 ,
+  \mathbf{Lwv}\ \text{models} \le \beth_1, \qquad \mathbf{Lwv}\ \text{materialises} < \aleph_0 ,
 \end{equation}
 the library's Axiom-9 restriction of carrier predicates to $\beth_1$ (Appendix~\ref{sec:etcs}) above, meeting the finite reach of $\mu$ below.
 So $\mathbf{Lwv}$ is strictly more expressive than \cppinline{std::set}, the extensional container it generalises, and the price is paid in \emph{proof obligations}: where $\mu$ is unavailable, membership is settled by the concept constraints and factorisations of this section, not by enumeration.
@@ -1289,42 +1289,8 @@ The implemented $\arg\max$ is exactly this structural specialization (a group-ca
 \label{sec:algebraic_lattice_carriers}
 
 We reify $\mathbf{Alg}(-)$ as the \emph{relational magmas} over $\mathbf{Trsk}$: a carrier with a pointwise operation $A \times A \to A$, read as the functional relation that is its graph and refined by the laws it keeps (Equation~\ref{eqn:ddk}).
-The section is four capabilities, each a compile-time certificate (Listing~\ref{lst:alg-capabilities}): a magma is a carrier with a closed operation, and Birkhoff's three constructions --- quotient (H), subalgebra (S), and direct product (P) --- each build a new carrier from it, the base's certificate carried across for S and P by trait propagation, and, for the relational H shown here, the quotient \emph{witnessed} by its congruence rather than by propagation (\S\ref{sec:relations_functions_blueprint}).
-
-% Source excerpts from dedekind.algebra:quotient, :morphologies:cyclic, :sequences, :linear_algebra:vec2.
-\begin{listing}[!ht]
-\caption{Section~\ref{sec:algebraic_lattice_carriers} at a glance: four capabilities, each a checked-in \cppinline{static_assert}.  A magma is a carrier with a closed operation; the three Birkhoff constructions each build a new carrier from it --- S and P carry the certificate across by trait propagation, while the relational H \emph{witnesses} the quotient by its congruence.  The section develops each below.}
-\label{lst:alg-capabilities}
-\noindent
-\begin{minipage}[t]{0.49\linewidth}
-\textbf{magma} --- a carrier with a closed operation
-\begin{cpp}
-// ℤ/8ℤ: + closes on the carrier
-static_assert(IsMagma<Modular<8u>,
-                std::plus<Modular<8u>>>);
-\end{cpp}
-\textbf{H} --- quotient by a congruence
-\begin{cpp}
-// Modular<8> = unsigned/(≡ mod 8), 8|2^w
-static_assert(IsCongruenceQuotient<
-    Modular<8u>, std::plus<unsigned>>);
-\end{cpp}
-\end{minipage}\hfill
-\begin{minipage}[t]{0.49\linewidth}
-\textbf{S} --- subalgebra (a closed subset)
-\begin{cpp}
-// even ⊆ (unsigned, +): total ambient
-static_assert(IsSubalgebra<EvenUnsigned,
-    unsigned, std::plus<unsigned>>);
-\end{cpp}
-\textbf{P} --- direct product (componentwise)
-\begin{cpp}
-// Vec2<T> = T × T
-static_assert(
-    IsProductAlgebra<Vec2V<int>>);
-\end{cpp}
-\end{minipage}
-\end{listing}
+The section is four capabilities, each a compile-time certificate: a magma is a carrier with a closed operation, and Birkhoff's three constructions, quotient (H), subalgebra (S), and direct product (P), each build a new carrier from it, the base's certificate carried across for S and P by trait propagation, and, for the relational H shown here, the quotient \emph{witnessed} by its congruence rather than by propagation (\S\ref{sec:relations_functions_blueprint}).
+These constructions \emph{compose}: Figure~\ref{fig:hsp-combos} pairs H$\cdot$S, S$\cdot$P, P$\cdot$H, and the full H$\cdot$S$\cdot$P synthesis with their idiomatic $\mathbf{Ddk}$ realisations, each materialising to a numerical shadow (Figure~\ref{fig:primitive-reconciliation}).
 
 Two facts organise the columns.
 Every homomorphism $f\colon A\to B$ factors through its image, an epimorphism $\pi$ (a quotient, H) followed by a monomorphism $\iota$ (a subalgebra inclusion, S), the arrow classes of Table~\ref{tab:relation-quantifier}:
@@ -1352,6 +1318,292 @@ exemplar             & $\mathbb{Z}/N\mathbb{Z}$, $F[\varepsilon]/(\varepsilon^2)
 \bottomrule
 \end{tabular}
 \end{table}
+
+\begin{figure}[tbp]
+\centering
+
+% ===== Row 1: H·S =====
+\noindent\textbf{H$\cdot$S}\enspace\emph{Gaussian integers, cut to a quadrant, folded to a finite field.}\par\smallskip
+\begin{minipage}[c]{0.40\linewidth}\centering
+\begin{tikzpicture}[x=0.42cm,y=0.42cm,>=stealth,font=\scriptsize]
+  \fill[blue!5] (-2.6,-3.4) rectangle (3.4,2.4);
+  \fill[orange!20] (0,-3.4) rectangle (3.4,0);
+  \node[orange!60!black] at (2.4,-0.9){$(+,-)$};
+  \draw[->,gray!60] (-2.7,0)--(3.7,0) node[right]{Re};
+  \draw[->,gray!60] (0,-3.5)--(0,2.6) node[above]{Im};
+  \foreach \x in {-2,...,3}\foreach \y in {-3,...,2}\fill[blue!60] (\x,\y) circle(1.7pt);
+  \fill[black] (0,0) circle(2.2pt); \node at (-0.45,0.5){$0$};
+  \foreach \p in {(3,-2),(3,1),(0,-2)}{\draw[red,very thick] \p circle(4pt);}
+  \node[red] at (1.2,-2.75){$3\!-\!2i$};
+  % three ℤ[i] points ≡ i (mod π) share one fibre → the i cell
+  \draw[->,red!65,thin] (3,-2) to[bend right=8] (6.55,-0.5);
+  \draw[->,red!65,thin] (3,1) to[bend left=8] (6.55,-0.5);
+  \draw[->,red!65,thin] (0,-2) to[bend right=16] (6.55,-0.5);
+  \node[red!65] at (5.2,-2.5){$/\,\pi$};
+  \begin{scope}[shift={(6.8,-1.5)}]
+    \foreach \x in {0,1,2}\foreach \y in {0,1,2}\fill[teal!70!black] (\x,\y) circle(2pt);
+    \draw[red,very thick] (0,1) circle(5pt);
+    \node[teal!70!black] at (1,-0.95){$\mathbb{F}_9\ni i$};
+  \end{scope}
+\end{tikzpicture}
+\end{minipage}\hfill
+\begin{minipage}[c]{0.58\linewidth}
+\begin{minted}[fontsize=\footnotesize]{cpp}
+auto pts = Ω<Complex<Q>>   // ℂ
+     | is_int(re) && is_int(im)   // S: ℤ[i]
+     | re > 0 && im < 0;          // (+,−) cut
+using F9 = Quotient<decltype(pts), ByPrime<3>>;
+static_assert(materialise(3 - 2*i) == F9{i});
+\end{minted}
+\end{minipage}
+\par\vspace{0.5ex}\hrule\vspace{0.9ex}
+
+% ===== Row 2: S·P =====
+\noindent\textbf{S$\cdot$P}\enspace\emph{A chessboard: the parity-even squares are a subalgebra.}\par\smallskip
+\begin{minipage}[c]{0.40\linewidth}\centering
+\begin{tikzpicture}[x=0.46cm,y=0.46cm,>=stealth,font=\scriptsize]
+  \foreach \x in {0,...,7}\foreach \y in {0,...,7}{%
+    \ifodd\numexpr\x+\y\relax\else\fill[gray!40] (\x,\y) rectangle +(1,1);\fi}
+  \draw[gray!55] (0,0) rectangle (8,8);
+  \draw[->,gray!70] (0,-0.5)--(8.4,-0.5) node[right]{$x$};
+  \draw[->,gray!70] (-0.5,0)--(-0.5,8.4) node[above]{$y$};
+  \fill[black] (0,0) circle(2.4pt); \node at (-0.6,-0.6){$0$};
+  \node[gray,font=\tiny] at (4.5,-1.0){4};  \node[gray,font=\tiny] at (-1.0,6.5){6};
+  \draw[teal!70!black,very thick] (4.5,6.5) circle(0.32);
+  \node[teal!70!black] at (5.0,8.7){$(4,6)\in S$};
+  \draw[red,very thick] (3.15,6.15)--(3.85,6.85) (3.15,6.85)--(3.85,6.15);
+  \node[red] at (2.1,6.5){$(3,6)$};
+\end{tikzpicture}
+\end{minipage}\hfill
+\begin{minipage}[c]{0.58\linewidth}
+\begin{minted}[fontsize=\footnotesize]{cpp}
+using M    = Modular<8u>;
+auto board = Ω<M> * Ω<M>;   // P: 8×8 board
+auto S = board | (x+y)%2 == 0;   // S: parity ∩
+static_assert(size(S) == 32);    // half of 64
+static_assert( S(pt(4,6)));  // 4+6 even → in ✓
+static_assert(!S(pt(3,6)));  // 3+6 odd  → out ✗
+\end{minted}
+\end{minipage}
+\par\vspace{0.5ex}\hrule\vspace{0.9ex}
+
+% ===== Row 3: P·H =====
+\noindent\textbf{P$\cdot$H}\enspace\emph{An infinite lattice wraps onto a small torus (count it).}\par\smallskip
+\begin{minipage}[c]{0.40\linewidth}\centering
+\begin{tikzpicture}[x=0.55cm,y=0.55cm,>=stealth,font=\scriptsize]
+  \foreach \x in {-1,...,6}\foreach \y in {-1,...,4}\fill[gray!30] (\x,\y) circle(1.3pt);
+  \fill[teal!10] (-0.4,-0.4) rectangle (3.4,2.4);
+  \draw[teal!70!black,thick] (-0.4,-0.4) rectangle (3.4,2.4);
+  \foreach \x in {0,1,2,3}\foreach \y in {0,1,2}\fill[teal!70!black] (\x,\y) circle(2pt);
+  \draw[->,gray!70] (-1.4,0)--(6.5,0) node[right]{$x$};
+  \draw[->,gray!70] (0,-1.4)--(0,4.7) node[above]{$y$};
+  \fill[black] (0,0) circle(2.4pt); \node at (-0.4,-0.5){$0$};
+  \node[teal!70!black] at (1.5,-1.05){$\mathbb{Z}^2\!\twoheadrightarrow\!\mathbb{Z}/4\!\times\!\mathbb{Z}/3$};
+  % the coset {(5,4),(5,1),(1,4)} all wrap onto (1,1): one fibre
+  \foreach \p in {(5,4),(5,1),(1,4)}{\fill[red] \p circle(2.2pt);}
+  \node[red] at (5.0,4.5){$(5,4)$};
+  \fill[orange!90!black] (1,1) circle(3.2pt); \node[orange!80!black] at (1.85,1.4){$(1,1)$};
+  \draw[->,orange!80!black,thin] (5,4) to[bend right=13] (1.15,1.12);
+  \draw[->,orange!80!black,thin] (5,1) to[bend right=13] (1.2,1);
+  \draw[->,orange!80!black,thin] (1,4) to[bend left=18] (1,1.2);
+\end{tikzpicture}
+\end{minipage}\hfill
+\begin{minipage}[c]{0.58\linewidth}
+\begin{minted}[fontsize=\footnotesize]{cpp}
+using X = Quotient<Z, Mod<4>>;   // H: ℤ ↠ ℤ/4
+using Y = Quotient<Z, Mod<3>>;   // H: ℤ ↠ ℤ/3
+auto torus = Ω<X> * Ω<Y>;   // P: 4×3 torus
+static_assert(size(torus) == 12);   // 4·3
+static_assert(materialise(pt(5,4)) == pt(1,1));
+\end{minted}
+\end{minipage}
+\caption{\textbf{Idiomatic universal algebra, at compile time.}  Each row (glossed above it) starts from an \emph{infinite} domain, carves out an extensional subset with $\mathbf{Trsk}$'s relational primitives, and ends in a value a \cppinline{static_assert} pins down.
+The Birkhoff constructions \emph{are} Trsk operators: product P is \cppinline{*}, quotient H is \cppinline{/}, and a subalgebra S is a filter \cppinline{|} by a closed predicate.
+Predicates are point-free expressions over projections (\cppinline{re}, \cppinline{im}, \cppinline{x}, \cppinline{y}), not opaque lambdas, so they compose and certify at the type level.
+A carrier's \emph{own} operation then computes within it, \emph{not} the filter \cppinline{|} that built the subalgebra: the full triple is worked out in Figure~\ref{fig:hsp-torus}, where the field's elements combine with \cppinline{+}.
+The S$\cdot$P and P$\cdot$H rows rest on witnesses that check in today (\S\ref{sec:hsp_varieties}); the surface syntax, and the H$\cdot$S row, are the spec the code grows into.}
+\label{fig:hsp-combos}
+\end{figure}
+
+% ===== Figure: waves in a periodic box, constructed step by step (H → P → S) =====
+\begin{figure}[tp]
+\centering
+\noindent\begin{minipage}[c]{0.46\linewidth}\centering
+\begin{tikzpicture}[>=Stealth,scale=1.0]
+% ---- the line Z ----
+\begin{scope}[shift={(0,0)}]
+  \draw[gray!45,thin] (-0.9,0)--(0.9,0);
+  \foreach \i in {-1,...,8}{\pgfmathsetmacro\x{-0.65+0.185*\i}
+    \ifnum\i>-1\ifnum\i<8 \fill[blue!70](\x,0)circle(1.1pt)\else\fill[gray!45](\x,0)circle(0.9pt)\fi\else\fill[gray!45](\x,0)circle(0.9pt)\fi;}
+  \node[font=\tiny] at (-0.65,-0.22){$0$};\node[font=\tiny,gray] at (0.85,-0.22){$8\!\equiv\!0$};
+\end{scope}
+% arrow H
+\draw[->,line width=0.9pt] (0,-0.8)--(0,-1.5);
+\node[right] at (0.14,-1.1){\textbf{H}};
+% ---- the circle Z/L ----
+\begin{scope}[shift={(0,-2.2)}]
+  \draw[gray!45,thin](0,0)circle(0.45);
+  \foreach \k in {0,...,7}{\pgfmathsetmacro\ang{90-45*\k}\fill[blue!70]({0.45*cos(\ang)},{0.45*sin(\ang)})circle(1.1pt);}
+  \fill[black](0,0.45)circle(1pt);\node[font=\tiny]at(0.16,0.55){$0$};\draw[red,line width=0.9pt](0,0.45)arc(90:135:0.45);
+\end{scope}
+% arrow P
+\draw[->,line width=0.9pt] (0,-3.2)--(0,-3.9);
+\node[right,font=\small] at (0.14,-3.5){\textbf{P}};
+% ---- the torus (periodic box) ----
+\begin{scope}[shift={(0,-5.3)}]
+  \begin{scope}\clip(-1.2,-1.2)rectangle(1.2,1.2);
+    \foreach \dx in {-1,0,1}{\foreach \dy in {-1,0,1}{\draw[gray!35,very thin](1.6*\dx-0.8,1.6*\dy-0.8)rectangle++(1.6,1.6);}}\end{scope}
+  \fill[teal!8](-0.8,-0.8)rectangle(0.8,0.8);
+  \draw[gray!40,thin,step=0.2](-0.8,-0.8)grid(0.8,0.8);
+  \draw[thick](-0.8,-0.8)rectangle(0.8,0.8);
+  \draw[->,red,line width=0.9pt](-0.8,-0.13)--(-0.8,0.13);\draw[->,red,line width=0.9pt](0.8,-0.13)--(0.8,0.13);
+  \draw[->,blue,line width=0.9pt](-0.13,-0.8)--(0.13,-0.8);\draw[->,blue,line width=0.9pt](-0.13,0.8)--(0.13,0.8);
+\end{scope}
+% arrow S
+\draw[->,line width=0.9pt] (0,-6.6)--(0,-7.3);
+\node[right] at (0.14,-7.0){\textbf{S}};
+% ---- the even wave ----
+\begin{scope}[shift={(0,-8.7)}]
+  \begin{scope}\clip(-0.8,-0.8)rectangle(0.8,0.8);
+    \foreach \i in {0,...,23}{\foreach \j in {0,...,23}{
+      \pgfmathsetmacro\xx{-0.8+(\i+0.5)/24*1.6}\pgfmathsetmacro\yy{-0.8+(\j+0.5)/24*1.6}
+      \pgfmathsetmacro\rr{abs(cos(225*(\xx+\yy)))}\pgfmathsetmacro\bb{abs(cos(225*(\xx-\yy)))}
+      \definecolor{cell}{rgb}{\rr,0,\bb}\fill[cell](-0.8+\i/24*1.6,-0.8+\j/24*1.6)rectangle++(0.071,0.071);}}
+    \draw[white!70,line width=0.4pt](0.4,0)--(-0.4,0)(0,0.4)--(0,-0.4);
+    \foreach \p in {(0.4,0),(-0.4,0),(0,0.4),(0,-0.4),(0.8,0.4),(0.8,-0.4),(-0.8,0.4),(-0.8,-0.4),(0.4,0.8),(-0.4,0.8),(0.4,-0.8),(-0.4,-0.8)}{
+      \draw[white,line width=0.5pt]\p circle(0.07);\fill[black]\p circle(0.9pt);}\end{scope}
+  \draw[thick](-0.8,-0.8)rectangle(0.8,0.8);
+  \node[white,font=\tiny]at(0,0){$\circlearrowleft$};
+\end{scope}
+% arrow select
+\draw[->,line width=0.9pt] (0,-10.05)--(0,-10.75);
+\node[right,font=\small] at (0.14,-10.4){\textbf{select}};
+% ---- the selected fundamental cell ----
+\begin{scope}[shift={(0,-11.6)}]
+  \fill[teal!8](-0.7,-0.7)rectangle(0.7,0.7);
+  \draw[gray!40,thin,step=0.35](-0.7,-0.7)grid(0.7,0.7);
+  \draw[thick](-0.7,-0.7)rectangle(0.7,0.7);
+  \foreach \i in {-2,...,2}{\foreach \j in {-2,...,2}{\fill[gray!45](0.35*\i,0.35*\j)circle(0.9pt);}}
+  \draw[gray!55,thin](0,-0.7)--(0.7,0)--(0,0.7)--(-0.7,0)--cycle;
+  \foreach \p in {(0,-0.7),(-0.7,0),(0.7,0),(0,0.7)}{\fill[black]\p circle(1.3pt);\draw[white,line width=0.9pt]\p circle(2pt);}
+\end{scope}
+\node[right] at (1.5,0) {$x \in \mathbb{Z}$};
+\node[right] at (1.5,-1.1) {$x \in \mathbb{Z}/L$};
+\node[right] at (1.5,-3.5) {$(x, y) \in (\mathbb{Z}/L)^2$};
+\node[right] at (1.5,-7.0) {$\psi(x, y) = \psi(-x, -y)$};
+\node[right] at (1.5,-9.25){$|\psi|^2\le\varepsilon$};
+\node[right] at (1.5,-10.4) {$[0,4]^2$ cell};
+\end{tikzpicture}
+\end{minipage}\hfill
+\begin{minipage}[c]{0.50\linewidth}
+\begin{minted}{cpp}
+
+// H: Modular circle on the integers:
+using X     = Modular<8u>;
+
+
+
+
+// P: Torus in 2D
+using Torus = X * X;
+
+
+
+
+
+// S: symmetric, non-separable wave:
+auto ψ = Torus * ℂ
+  | z == wave(x+y) + i*wave(x-y);
+static_assert(reflected(ψ) == ψ);  // even
+
+
+// Node selection:
+auto nodes = preimage(abs2(ψ),
+  z <= fix(ε));
+  
+auto selection = materialise(nodes
+  | x <= fix(4) && y <= fix(4));
+  
+static_assert(selection == std::set{
+  {2,0},{0,2},
+  {4,2},{2,4}});
+\end{minted}
+\end{minipage}
+
+\caption{\textbf{A reification of H, then P, then S: an even wave in a 2-D periodic box.}
+Each row pairs a construction with the code that builds it.
+\textbf{H}: the integer line $\mathbb{Z}$ is wrapped into a circle $\mathbb{Z}/L\mathbb{Z}$, the quotient \cppinline{Modular<8u>} ($L=8$; the red mark is the seam where $L\equiv0$).
+\textbf{P}: pairing two such algebraic circles is the product algebra \cppinline{X * X}, a torus drawn flat as the $L\times L$ periodic box whose opposite edges are identified (red $=$ the $x$-circle, blue $=$ the $y$-circle; the faded copies are its periodic images).
+\textbf{S}: the subalgebra fixed by the carrier's own inversion $p\mapsto-p$ (a $180^\circ$ rotation; spin the panel a half turn and it is unchanged).
+The wave is deliberately \emph{non-separable}: $\psi=\mathrm{wave}(x{+}y)+i\,\mathrm{wave}(x{-}y)$ carries a $\sin\!\cdot\!\sin$ cross term, so its nodes form a \emph{diamond, not a rectangle}, a relation that cannot be recovered from the two circles alone.
+\textbf{select}: the node set $\{\,|\psi|^2\le\varepsilon\,\}$ restricted to the $[0,4]^2$ fundamental cell, the four points the \cppinline{static_assert} pins down.
+Colour: $\mathrm{Re}\,\psi$ red, $\mathrm{Im}\,\psi$ blue, mixtures purple, nodes black.}
+\label{fig:hsp-torus}
+\end{figure}
+
+% ===== Figure: the same wave, made exact and kept at compile time =====
+\begin{figure}[tp]
+\centering
+\noindent\begin{minipage}[c]{0.45\linewidth}\centering
+\begin{tikzpicture}[>=Stealth,font=\scriptsize,scale=1.0]
+  \node[draw,rounded corners,align=center,fill=teal!8,inner sep=4pt] (exact) at (0,0)
+    {\textbf{exact layer}\;\; $\mathbb{C}=\mathrm{Complex}\langle\mathbb{Q}(\sqrt2)\rangle$\\[1pt]
+     $\psi=\zeta_8^{\,x+y}+i\,\zeta_8^{\,x-y}$ is exact\\[1pt]
+     proves $\cos\tfrac{2\pi k}{8}=0 \Leftrightarrow k\in\{2,6\}$};
+  \draw[->,line width=1pt] (0,-1.25)--(0,-2.15);
+  \node[right,align=left,font=\scriptsize] at (0.15,-1.7){\textbf{S}: strength-reduce\\ $\mathbb{Q}(\sqrt2)\to$ \cppinline{size_t}};
+  \node[draw,rounded corners,align=center,fill=gray!10,inner sep=4pt] (red) at (0,-3.5)
+    {\textbf{reduced layer}\;\; \cppinline{size_t}, $\bmod\,8$\\[1pt]
+     $|\psi|^2{=}0 \Leftrightarrow (x{+}y)\%8,\,(x{-}y)\%8\in\{2,6\}$\\[1pt]
+     nodes materialised at \emph{compile time}};
+  % the diamond node set on the [0,4]^2 cell
+  \begin{scope}[shift={(0,-5.6)}]
+    \draw[gray!40,thin,step=0.34](-0.68,-0.68)grid(0.68,0.68);
+    \draw[thick](-0.68,-0.68)rectangle(0.68,0.68);
+    \foreach \i in {-2,...,2}{\foreach \j in {-2,...,2}{\fill[gray!45](0.34*\i,0.34*\j)circle(0.8pt);}}
+    \draw[gray!55,thin](0,-0.68)--(0.68,0)--(0,0.68)--(-0.68,0)--cycle;
+    \foreach \p in {(0,-0.68),(-0.68,0),(0.68,0),(0,0.68)}{\fill[black]\p circle(1.2pt);\draw[white,line width=0.8pt]\p circle(1.9pt);}
+  \end{scope}
+\end{tikzpicture}
+\end{minipage}\hfill
+\begin{minipage}[c]{0.52\linewidth}
+\begin{minted}{cpp}
+// H, P: modular circle, then torus
+using X = Modular<8u>;
+using T = X * X;
+
+// S: the exact even wave over ℂ/ℚ(√2)
+//    (√2 = ζ₈+ζ₈⁻¹, so ζ₈ is exact)
+auto ψ = T * ℂ
+  | z == ζ8(x+y) + i*ζ8(x-y);
+static_assert(reflected(ψ) == ψ);  // even
+
+// S again: STRENGTH REDUCTION, made
+// VISIBLE as a preimage.  {Re ζ = 0} on
+// the exponent ℤ/8 IS the residue class
+// C = Congruence<4,2>; pull it back
+// through the linear forms x±y.  The
+// exact ζ₈ → ℤ/8 collapse is the
+// EMBEDDING in the composition, so no
+// ℚ(√2) is evaluated at the grid:
+auto C     = Ω<X> | Congruence<4,2>{};
+auto nodes = preimage(x+y, C)
+           & preimage(x-y, C);
+
+auto cell = materialise(
+  nodes | x <= 4 && y <= 4);
+static_assert(cell == std::set{  // compile-time
+  {2,0},{0,2},{4,2},{2,4}});
+\end{minted}
+\end{minipage}
+\caption{\textbf{The same construction, made exact and kept at compile time.}
+Where Figure~\ref{fig:hsp-torus} thresholds an abstract wave ($|\psi|^2\le\varepsilon$), here the wave is the genuine 8-point plane wave over $\mathbb{C}=\mathrm{Complex}\langle\mathbb{Q}(\sqrt2)\rangle$.
+Because $\sqrt2=\zeta_8+\zeta_8^{-1}$, every value is exact in $\mathbb{Q}(\sqrt2)=\mathbb{R}\cap\mathbb{Q}(\zeta_8)$ --- the real subfield the 8-point transform needs --- so the node set is $\{|\psi|^2=0\}$ \emph{exactly}, with no $\varepsilon$.
+The deep exact grid would exhaust the constant-evaluation budget; instead the exact algebra proves the node test is a pure modular condition ($\cos\tfrac{2\pi k}{8}=0\Leftrightarrow k\in\{2,6\}$), a second \textbf{S}-leg that \emph{strength-reduces} $\mathbb{Q}(\sqrt2)$ to \cppinline{size_t}.
+The nodes are then materialised on \cppinline{size_t} and pinned by \cppinline{static_assert} at compile time; the deep $\mathbb{Q}(\sqrt2)$ grid is never evaluated.
+The four diamond nodes are the same as Figure~\ref{fig:hsp-torus}, now exact and compile-time (the construction is machine-checked in the roots-of-unity test).}
+\label{fig:hsp-torus-exact}
+\end{figure}
 
 \begin{figure}[htbp]
 \centering
