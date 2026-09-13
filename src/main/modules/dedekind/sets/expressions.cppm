@@ -1575,6 +1575,34 @@ constexpr auto 𝔓(const Set<T, L, P>& base) {
   return power_set(base);
 }
 
+/**
+ * @brief @c S @c & @c predicate --- FILTRATION as a meet:
+ *        @f$\{\,x \in S : q(x)\,\}@f$, over @b any @c IsSet carrier
+ *        (@c Ω, a @ref Comprehension, a singleton, a @c Set, ...).
+ *
+ * @details Filtration @b is a meet, and @c & is uniformly meet in the DSL, so
+ * this is the filter spelling (#826).  @c q is any predicate callable on the
+ * carrier's @c Domain, whose background set is the @b implicit universe; a
+ * @c Set / @c IsSet RHS has an @b explicit background and routes to the set-set
+ * meets instead (the @c !IsSet<Q> guard).  On a universal @c S this @b is the
+ * predicate→set @b promotion @c Ω<T> @c & @c q --- the infix form of
+ * @c category::ambient_set<T>(q) (a bare predicate's implicit background made
+ * explicit).  A @b free function (not a member) so every @c IsSet carrier gets
+ * it and chaining @c S @c & @c P1 @c & @c P2 works (each @c & yields a
+ * @ref Comprehension, itself @c IsSet).  Delegates to @ref Comprehension, so
+ * the result @b is a first-class set.  Coexists with set-builder @c | --- the
+ * @c |-for-union-only migration (option (c)) is deferred (#826).
+ */
+export template <typename S, typename Q>
+  requires(dedekind::category::IsSet<std::remove_cvref_t<S>> &&
+           !dedekind::category::IsSet<std::remove_cvref_t<Q>> &&
+           requires(const std::remove_cvref_t<Q>& q,
+                    const typename std::remove_cvref_t<S>::Domain& x) { q(x); })
+constexpr auto operator&(const S& s, Q&& q) {
+  return Comprehension<std::remove_cvref_t<S>, std::remove_cvref_t<Q>>{
+      s, std::forward<Q>(q)};
+}
+
 // NOTE: the relation query surface (@c relates / @c dom / @c cod / @c apply /
 // @c is_single_valued_at) moved to @c dedekind.relational:dyadic alongside the
 // @c Relation type --- see the relation-core note above the powerset.
@@ -1592,6 +1620,25 @@ static_assert(IsSet<Comprehension<UniversalSet<int>, all_in>>,
               "{Ω | P} is a first-class set: IsSet by SetExpr + its own χ.");
 static_assert(IsSet<Comprehension<Ø<int>, all_in>>,
               "{Ø | P} is a first-class set.");
+
+// The adopted filter idiom (#826): `S & predicate` is a meet over any IsSet
+// carrier.  `Ω<int> & positive` PROMOTES the bare predicate to a set (implicit
+// background made explicit); it IS a set, gates correctly, and chains.
+struct positive {
+  constexpr bool operator()(const int& x) const { return x > 0; }
+};
+struct lt10 {
+  constexpr bool operator()(const int& x) const { return x < 10; }
+};
+static_assert(
+    IsSet<decltype(Ω<int> & positive{})>,
+    "Ω<T> & pred is a first-class set (the predicate→set promotion).");
+static_assert((Ω<int> & positive{})(5), "Ω<int> & positive: 5 is in.");
+static_assert(!(Ω<int> & positive{})(-3), "Ω<int> & positive: -3 is out.");
+static_assert((Ω<int> & positive{} & lt10{})(5),
+              "chained meet S & P1 & P2: 0 < 5 < 10 is in.");
+static_assert(!(Ω<int> & positive{} & lt10{})(15),
+              "chained meet excludes 15 (fails < 10).");
 }  // namespace detail_setexpr_witness
 
 }  // namespace dedekind::sets
