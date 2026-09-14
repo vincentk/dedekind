@@ -20,8 +20,8 @@
  *                            heterogeneous -> Unknown via TernaryLogic).
  *  - cartesian_product    -- A x B as a Set of pairs.
  *  - Relation, SetFunction -- subobjects of products.
- *  - power_set            -- P(A) encoded as a Set of sets.
  *  - relates, is_single_valued_at -- point-wise witnesses.
+ *  (power_set / 𝔓 moved to dedekind.order:powerset, #830.)
  *
  * @section expressions__Canonical_Examples
  * ```cpp
@@ -1572,72 +1572,11 @@ static_assert(
 // point.  @c sets keeps only the @b powerset (below), which is genuine
 // set-theory, not relation algebra.
 
-/**
- * @brief The power set @f$\mathfrak{P}(A) = \{\,X \mid X \subseteq A\,\}@f$ as
- * a
- * @b heterogeneous carrier (#830).
- *
- * @details Membership is the subset test on the MEMBER's own type, so
- * @f$\mathfrak{P}(A)@f$ accepts any set @c X over @c A's carrier whose
- * @f$X \subseteq A@f$ is decidable --- a @c Singleton, a @c Halfspace, an
- * @c OrderInterval, another @c Set, @c Ø / @c Ω --- not only same-typed subsets
- * (the old form fixed the candidate to one @c Set<T,L,P>).  The classifier is a
- * constrained @b template, so @c X @c ⊆ @c A resolves at the @b call site: ADL
- * reaches the structured @c <= in @c dedekind.order even though this lives in
- * @c dedekind.sets, with @b no type erasure.  An @c X off the decidable
- * frontier (no @c X @c <= @c A) removes @c operator() rather than fabricating
- * an answer
- * --- a compile-time miss, not a runtime @c Unknown (the honest Rice wall).
- *
- * @c 𝔓(A) is therefore a @b callable carrier, not a monomorphic @c IsSet: a
- * heterogeneous member type has no single @c Domain / @c Member, so the ETCS
- * subobject surface does not apply.  It exposes @c Domain (nominal: the self
- * member @f$A \subseteq A@f$) and @c logic_species for the DSL.
- * @see Lambek and Scott @cite lambek1988higher
- */
-export template <typename Base>
-struct PowerSet {
-  Base base;
-  using Domain = Base;
-  using logic_species = typename Base::logic_species;
-  using Codomain = typename logic_species::Ω;
-
-  /** @brief @f$X \in \mathfrak{P}(A) \iff X \subseteq A@f$ --- constrained on
-   * the subset test being a truth value in the ambient logic, so an undecidable
-   *  member is rejected structurally. */
-  template <typename X>
-    requires requires(const X& x, const Base& b) {
-      { x <= b } -> std::convertible_to<typename Base::logic_species::Ω>;
-    }
-  constexpr typename logic_species::Ω operator()(const X& candidate) const {
-    return candidate <= base;
-  }
-};
-
-/**
- * @brief Power set @f$\mathfrak{P}(A)@f$ of any set-shaped carrier @c A.
- * @see PowerSet
- */
-export template <typename Base>
-  requires requires { typename std::remove_cvref_t<Base>::logic_species; }
-constexpr auto power_set(const Base& base) {
-  return PowerSet<std::remove_cvref_t<Base>>{base};
-}
-
-/**
- * @brief Textbook fraktur-P alias for @c power_set.
- *
- * @details In standard set-theory texts (Halmos, Munkres, Lambek--Scott)
- * the power-set operator is written @c 𝔓 (fraktur capital P).  Exposed as
- * a one-line forwarding wrapper so callers can write @c 𝔓(A) for the
- * power set of @c A and have it read the same way it reads on the
- * blackboard.  Mirrored on the Python side as @c dedekind.sets.𝔓.
- */
-export template <typename Base>
-  requires requires { typename std::remove_cvref_t<Base>::logic_species; }
-constexpr auto 𝔓(const Base& base) {
-  return power_set(base);
-}
+// The power set @c power_set / @c 𝔓 lives in @c dedekind.order:powerset (#830):
+// @f$\mathfrak{P}(S) = \Omega\langle\mathrm{Sub}(C)\rangle \mid (X \subseteq
+// S)@f$ is a @c Set over the subobject domain @c Sub(C), and @c Sub(C) is
+// decided by the subset order (@c :inclusion), which is downstream of @c :sets.
+// Kept out of @c :sets to respect that layering.
 
 // NOTE: the relation query surface (@c relates / @c dom / @c cod / @c apply /
 // @c is_single_valued_at) moved to @c dedekind.relational:dyadic alongside the

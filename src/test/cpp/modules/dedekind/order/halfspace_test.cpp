@@ -567,36 +567,4 @@ TEST_CASE("order:halfspace — the factory makes a Halfspace a proper cut (#832)
   }
 }
 
-TEST_CASE("order — heterogeneous power set 𝔓 accepts structured members (#830)",
-          "[order][powerset]") {
-  constexpr Halfspace<int, 5, Direction::Upward, Strictness::Strict> gt5{};
-  constexpr Halfspace<int, 3, Direction::Upward, Strictness::Strict> gt3{};
-  constexpr Halfspace<int, 3, Direction::Downward, Strictness::Strict> lt3{};
-
-  SECTION("𝔓 over a halfspace decides structured membership X ⊆ A") {
-    // 𝔓({x>3}) accepts a DIFFERENTLY-typed member and decides X ⊆ {x>3} via the
-    // structured <= resolved by ADL at this call site (the old monomorphic form
-    // fixed the candidate to one Set<T,L,P>).
-    constexpr auto P = 𝔓(gt3);
-    static_assert(bool(P(gt5)), "{x>5} ⊆ {x>3} ∈ 𝔓({x>3})");
-    static_assert(!bool(P(lt3)), "{x<3} ⊄ {x>3} (opposite direction, meet ∅)");
-    CHECK(bool(P(gt5)));
-    CHECK_FALSE(bool(P(lt3)));
-  }
-
-  SECTION("𝔓 over the universe accepts anything over the carrier (X ⊆ Ω)") {
-    constexpr auto P = 𝔓(Ω<int>);
-    constexpr Singleton<4, ClassicalLogic> s4{};
-    static_assert(bool(P(gt5)), "{x>5} ⊆ ℤ");
-    static_assert(bool(P(s4)), "{4} ⊆ ℤ");  // heterogeneous: a Singleton member
-    CHECK(bool(P(gt5)));
-    CHECK(bool(P(s4)));
-  }
-
-  SECTION("a member off the decidable frontier is a compile-time miss") {
-    constexpr auto P = 𝔓(gt3);
-    // A bare int is no subset of a halfspace: no int <= Halfspace, so the
-    // constrained classifier drops out (a type error, not a runtime Unknown).
-    static_assert(!requires { P(42); }, "𝔓's χ rejects an undecidable member");
-  }
-}
+// The power set 𝔓 (#830) is exercised in order/powerset_test.cpp.

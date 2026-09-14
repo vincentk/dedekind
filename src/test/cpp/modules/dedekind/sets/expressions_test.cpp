@@ -381,36 +381,9 @@ TEST_CASE("Dedekind Sets: Ambient cartesian product ergonomics",
   STATIC_CHECK(p_via_operator(PDomain{3, 4}));
 }
 
-TEST_CASE("Dedekind Sets: Power-set witness over homogeneous predicates",
-          "[sets][powerset]") {
-  auto x = element<Ω<int>>;
-
-  const auto positive = Set{x % UniversalSet<int>{} | (x > 0)};
-
-  const auto p_positive = power_set(positive);
-  // Textbook fraktur-P alias: 𝔓(A) ≡ power_set(A).
-  const auto 𝔓_positive = 𝔓(positive);
-
-  STATIC_CHECK(std::same_as<typename decltype(p_positive)::Domain,
-                            std::remove_cvref_t<decltype(positive)>>);
-  STATIC_CHECK(std::same_as<decltype(p_positive), decltype(𝔓_positive)>);
-  CHECK(p_positive(positive));
-  CHECK(𝔓_positive(positive));
-}
-
-TEST_CASE("Dedekind Sets: Power-set preserves ambient logic",
-          "[sets][powerset][logic]") {
-  auto x = element<ℕ>;
-
-  const auto gt_zero = Set{x | (x > 0u)};
-  const auto p_gt_zero = power_set(gt_zero);
-
-  // Post-#622: ℕ-carrier Sets route to ClassicalLogic on the carrier
-  // axis; power_set preserves the source's logic species.
-  STATIC_CHECK(std::same_as<typename decltype(p_gt_zero)::logic_species,
-                            ClassicalLogic>);
-  CHECK(p_gt_zero(gt_zero));
-}
+// (Power-set 𝔓 moved to dedekind.order:powerset, #830 — it is a Set over the
+// subobject domain Sub(C), decided by the subset order downstream of :sets. Its
+// tests live in the order layer, order/powerset_test.cpp.)
 
 // ("Relation witnesses preserve ternary logic" moved to
 // relational/relation_core_test with the Relation type and the relates /
