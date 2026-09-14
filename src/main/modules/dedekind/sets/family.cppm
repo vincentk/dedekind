@@ -70,9 +70,11 @@ namespace dedekind::sets {
  *  (has its own @c Domain) AND F::Domain::Domain is @c Species" — i.e.
  *  one level of nesting, common-species-uniform.
  *
- *  Matches @c Set<Set<Species, L, P>, L, λ> (the return type of
- *  @c power_set), and any other carrier whose elements are
- *  @c Domain-typedef-bearing carriers over @c Species.
+ *  Matches @c Set<Set<Species, L, P>, L, λ> (a set of sets over a common
+ *  species) and any other carrier whose elements are @c Domain-typedef-bearing
+ *  carriers over @c Species.  (NB @c power_set / @c 𝔓 no longer returns this
+ *  shape: post-#830 it returns a @c Set over the reified subobject domain
+ *  @c Sub(C) --- see @c dedekind.order:powerset.)
  *
  *  Does NOT match the legacy @c Family<Species, L>::Domain =
  *  @c AnySetOver = @c std::variant<…> — the variant has no

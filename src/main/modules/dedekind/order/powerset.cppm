@@ -262,7 +262,25 @@ constexpr auto power_set(const S& base) {
       SubsetOf<C, L>{Sub<C, L>{base}}};
 }
 
-/** @brief Textbook fraktur-P alias for @c power_set (blackboard @c 𝔓). */
+/** @brief @f$\mathfrak{P}(\Omega) = \Omega\langle\mathrm{Sub}(C)\rangle@f$ ---
+ * the universe of ALL (decidable convex) subobjects, as the universal @b
+ * boundary
+ *  @b type, @b not a trivially-true filtered @c Set.  A more-specialised
+ * overload than the generic @c power_set above, so it wins by partial ordering;
+ * keeping the @c Ω type (rather than @c Set<Sub,…,SubsetOf>) preserves the
+ *  boundary / cardinality metadata and the lattice identities @c Ω|X=Ω / @c
+ *  Ω&X=X on @c 𝔓(Ω).  (Sibling of the @c :sets closed form
+ *  @f$\mathfrak{P}(\emptyset)=\{\emptyset\}=\Omega\langle\varnothing\rangle@f$.)
+ */
+export template <typename C, typename L, typename Card>
+  requires IsTotallyOrdered<C>
+constexpr auto power_set(const dedekind::sets::UniversalSet<C, L, Card>&) {
+  return dedekind::sets::Ω<Sub<C, L>, L>;
+}
+
+/** @brief Textbook fraktur-P alias for @c power_set (blackboard @c 𝔓). Forwards
+ *  to @c power_set, so the @c Ω closed form above is selected for a universe
+ *  base and the filtered form for a proper ordered base. */
 export template <SubReifiable S>
 constexpr auto 𝔓(const S& base) {
   return power_set(base);

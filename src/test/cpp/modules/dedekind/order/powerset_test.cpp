@@ -55,6 +55,13 @@ TEST_CASE("order:powerset — 𝔓(S) is a bona-fide IsSet over Sub(C) (#830)",
     STATIC_CHECK(
         std::same_as<typename std::remove_cvref_t<decltype(Pu)>::Domain,
                      Sub<int, ClassicalLogic>>);
+    // 𝔓(Ω) is the universal BOUNDARY type Ω<Sub(C)> (a closed form), not a
+    // trivially-true filtered Set --- so boundary / lattice identities survive.
+    // (Domain == Sub(C) above + the is_universal_boundary tag pins it as
+    // UniversalSet<Sub(C)>, robust to the cardinality parameter.)
+    STATIC_CHECK(requires {
+      typename std::remove_cvref_t<decltype(Pu)>::is_universal_boundary;
+    });
     constexpr Halfspace<int, 5, Direction::Upward, Strictness::Strict> gt5{};
     CHECK(bool(Pu(gt5)));       // X ⊆ Ω
     CHECK(bool(Pu(Ø<int>{})));  // Ø ⊆ Ω
