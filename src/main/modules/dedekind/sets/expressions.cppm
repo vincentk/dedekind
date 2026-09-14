@@ -21,7 +21,8 @@
  *  - cartesian_product    -- A x B as a Set of pairs.
  *  - Relation, SetFunction -- subobjects of products.
  *  - relates, is_single_valued_at -- point-wise witnesses.
- *  (power_set / 𝔓 moved to dedekind.order:powerset, #830.)
+ *  - power_set / 𝔓         -- default (deleted) gate here; the ordered/convex
+ *                            specialisation is dedekind.order:powerset (#830).
  *
  * @section expressions__Canonical_Examples
  * ```cpp
@@ -1572,11 +1573,43 @@ static_assert(
 // point.  @c sets keeps only the @b powerset (below), which is genuine
 // set-theory, not relation algebra.
 
-// The power set @c power_set / @c 𝔓 lives in @c dedekind.order:powerset (#830):
-// @f$\mathfrak{P}(S) = \Omega\langle\mathrm{Sub}(C)\rangle \mid (X \subseteq
-// S)@f$ is a @c Set over the subobject domain @c Sub(C), and @c Sub(C) is
-// decided by the subset order (@c :inclusion), which is downstream of @c :sets.
-// Kept out of @c :sets to respect that layering.
+/** @brief A set-shaped carrier: exposes the ambient @c Domain and the
+ *  @c logic_species.  The gate constraint for the power-set customization
+ *  point; the ordered specialisation conjoins it (so it @b subsumes this gate
+ *  and wins by partial ordering for the carriers it handles). */
+export template <typename S>
+concept SetShaped = requires {
+  typename std::remove_cvref_t<S>::Domain;
+  typename std::remove_cvref_t<S>::logic_species;
+};
+
+/**
+ * @brief Power set @f$\mathfrak{P}(S)@f$ --- the @b default declaration
+ * (customization-point gate).
+ *
+ * @details Establishes the @c :sets-level signature for @c power_set / @c 𝔓 and
+ * is @c =delete d, so a @b set-shaped base with no decidable power set is a
+ * clean type error (type-check failure by default).  The decidable
+ * specialisations live downstream, where the subset order does:
+ * @c dedekind.order:powerset gives the ordered / convex case
+ * (@f$\mathfrak{P}(S) = \Omega\langle\mathrm{Sub}(C)\rangle \mid X \subseteq
+ * S@f$ over the subobject domain @c Sub(C), an @c Interval), covering @c Ø / @c
+ * Ω /
+ * @c Singleton / @c Halfspace / @c OrderInterval by coercion; a finite-carrier
+ * / erased case may follow (#830).  Same shape as @c exists / @c forall (an
+ * algebraic default lifted by per-carrier decidable specialisations).  A
+ * non-set-shaped argument fails @c SetShaped and matches nothing (also a type
+ * error).
+ * @see Lambek and Scott @cite lambek1988higher
+ */
+export template <typename S>
+  requires SetShaped<S>
+auto power_set(const S&) = delete;
+/** @brief Textbook fraktur-P alias for @c power_set (the deleted default gate).
+ *  Mirrored on the Python side as @c dedekind.sets.𝔓. */
+export template <typename S>
+  requires SetShaped<S>
+auto 𝔓(const S&) = delete;
 
 // NOTE: the relation query surface (@c relates / @c dom / @c cod / @c apply /
 // @c is_single_valued_at) moved to @c dedekind.relational:dyadic alongside the

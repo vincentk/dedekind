@@ -140,8 +140,9 @@ struct SubsetOf {
  * on
  *  @c S coercing to @c Sub(C): an unordered / general base is ill-formed. */
 export template <typename S>
-  requires std::convertible_to<
-      S, Interval<typename S::Domain, typename S::logic_species>>
+  requires dedekind::sets::SetShaped<S> &&
+           std::convertible_to<
+               S, Interval<typename S::Domain, typename S::logic_species>>
 constexpr auto power_set(const S& base) {
   using C = typename S::Domain;
   using L = typename S::logic_species;
@@ -149,10 +150,13 @@ constexpr auto power_set(const S& base) {
       SubsetOf<C, L>{Interval<C, L>{base}}};
 }
 
-/** @brief Textbook fraktur-P alias for @c power_set (blackboard @c 𝔓). */
+/** @brief Textbook fraktur-P alias for @c power_set (blackboard @c 𝔓).  The
+ *  @c SetShaped conjunct makes this @b subsume the @c :sets deleted default, so
+ *  it wins by partial ordering for the ordered families. */
 export template <typename S>
-  requires std::convertible_to<
-      S, Interval<typename S::Domain, typename S::logic_species>>
+  requires dedekind::sets::SetShaped<S> &&
+           std::convertible_to<
+               S, Interval<typename S::Domain, typename S::logic_species>>
 constexpr auto 𝔓(const S& base) {
   return power_set(base);
 }
