@@ -45,53 +45,106 @@ concept SubobjectLatticePair =
     std::same_as<typename A::Domain, typename B::Domain> &&
     std::same_as<typename A::logic_species, typename B::logic_species>;
 
-/** @brief @f$A \subseteq B@f$ is @b decidable: a subobject-lattice pair whose
- *  structural meet-then-equality is a truth value in the ambient logic.  Where
- *  the meet does not collapse, this is unsatisfied --- the honest @c exists /
- *  @c forall wall, no guess. */
+/** @brief @f$A \subseteq B@f$ is decidable @b via the structural meet: a
+ *  subobject-lattice pair whose meet-then-equality is a truth value.  The gate
+ *  for the @b generic identity @c <=; where the meet does not collapse this is
+ *  unsatisfied (the honest @c exists / @c forall wall) and a per-carrier @c <=
+ *  must supply the case. */
 export template <typename A, typename B>
-concept DecidableSubset =
+concept DecidableMeetSubset =
     SubobjectLatticePair<A, B> && requires(const A& a, const B& b) {
       { (a & b) == a } -> std::convertible_to<typename A::logic_species::Ω>;
     };
 
-/** @brief Its strict refinement: additionally @c == is a @c bool, so
- *  @f$A \subsetneq B \equiv A \subseteq B \wedge A \neq B@f$ is expressible. */
+/** @brief A decidable @c <= exists for the pair --- generic (meet) @b or a
+ *  per-carrier specialisation (@c Singleton membership, @c OrderInterval
+ *  endpoints).  The gate for the derived relations, so they ride @b any
+ *  @c <=, not only the meet-based one. */
 export template <typename A, typename B>
-concept DecidableProperSubset =
-    DecidableSubset<A, B> && requires(const A& a, const B& b) {
-      { a == b } -> std::convertible_to<bool>;
+concept HasSubset =
+    SubobjectLatticePair<A, B> && requires(const A& a, const B& b) {
+      { a <= b } -> std::convertible_to<typename A::logic_species::Ω>;
     };
 
-/** @brief @f$A \subseteq B \iff A \cap B = A@f$.  More-specialized per-carrier
- *  @c <= (@c Set / @c Ø / @c UniversalSet, the @c Singleton membership below)
- *  win by partial ordering; this fills the gaps (@c Halfspace ⊆ @c Halfspace).
- */
+/** @brief @c HasSubset plus a @c bool @c ==, so @f$A \subsetneq B \equiv A
+ *  \subseteq B \wedge A \neq B@f$ is expressible. */
 export template <typename A, typename B>
-  requires DecidableSubset<A, B>
+concept HasProperSubset = HasSubset<A, B> && requires(const A& a, const B& b) {
+  { a == b } -> std::convertible_to<bool>;
+};
+
+/** @brief @f$A \subseteq B \iff A \cap B = A@f$ --- the generic identity.
+ *  More-specialized per-carrier @c <= (@c Set / @c Ø / @c UniversalSet, the
+ *  @c Singleton membership and @c OrderInterval endpoints below) win by partial
+ *  ordering; this fills the gaps (@c Halfspace ⊆ @c Halfspace). */
+export template <typename A, typename B>
+  requires DecidableMeetSubset<A, B>
 constexpr typename A::logic_species::Ω operator<=(const A& a, const B& b) {
   return (a & b) == a;  // A ⊆ B ⟺ A ∩ B = A (via the structural &)
 }
 
 /** @brief Superset, proper subset, proper superset --- each once from @c <= and
- *  @c ==, combined in the ambient logic.  Together they supply
- *  @c HasPartialOrderOperators. */
+ *  @c ==, gated on @c HasSubset so they ride @b any decidable @c <= (generic or
+ *  specialised).  Together they supply @c HasPartialOrderOperators. */
 export template <typename A, typename B>
-  requires DecidableSubset<B, A>
+  requires HasSubset<B, A>
 constexpr typename A::logic_species::Ω operator>=(const A& a, const B& b) {
   return b <= a;  // A ⊇ B := B ⊆ A
 }
 export template <typename A, typename B>
-  requires DecidableProperSubset<A, B>
+  requires HasProperSubset<A, B>
 constexpr typename A::logic_species::Ω operator<(const A& a, const B& b) {
   using L = typename A::logic_species;
   return L::AND(a <= b, (a == b) ? L::False : L::True);  // A ⊊ B
 }
 export template <typename A, typename B>
-  requires DecidableProperSubset<B, A>
+  requires HasProperSubset<B, A>
 constexpr typename A::logic_species::Ω operator>(const A& a, const B& b) {
   using L = typename A::logic_species;
   return L::AND(b <= a, (a == b) ? L::False : L::True);  // A ⊋ B := B ⊊ A
+}
+
+/** @brief @f$[a,b] \subseteq [c,d]@f$ by endpoint + strictness comparison
+ *  (#831): an @c OrderInterval is the meet of an upward and a downward
+ *  halfspace, so containment is the two halfspace containments --- decidable
+ *  directly, no meet materialisation.  The per-carrier specialisation for
+ *  intervals; it wins over the generic @c <= by partial ordering.
+ *
+ *  An empty left interval (a degenerate construction like @c (5,5), which
+ *  @c OrderInterval represents rather than forbids) short-circuits to @c True:
+ *  @f$\emptyset \subseteq X@f$ for every @c X, and the endpoint test alone
+ *  would wrongly report @c False (#835 review). */
+export template <typename T, auto ALo, auto AHi, Strictness ASL, Strictness ASU,
+                 auto BLo, auto BHi, Strictness BSL, Strictness BSU, typename L>
+constexpr typename L::Ω operator<=(
+    const OrderInterval<T, ALo, AHi, ASL, ASU, L>&,
+    const OrderInterval<T, BLo, BHi, BSL, BSU, L>&) {
+  using AIv = OrderInterval<T, ALo, AHi, ASL, ASU, L>;
+  if constexpr (AIv::is_empty) {
+    return L::True;  // ∅ ⊆ X
+  } else if constexpr (AIv::is_integer_range) {
+    // Discrete: nest the EFFECTIVE carrier bounds, the same normalisation
+    // is_empty / size() use, so intervals denoting the same set agree ---
+    // @c (1,4) ⊆ @c [2,3] (both @c {2,3} over @c int) decides True, where a
+    // syntactic pivot compare would wrongly reject it (#835 review).
+    constexpr bool lower = eff_lower<ALo, ASL>() >= eff_lower<BLo, BSL>();
+    constexpr bool upper = eff_upper<AHi, ASU>() <= eff_upper<BHi, BSU>();
+    return (lower && upper) ? L::True : L::False;
+  } else {
+    // Continuous: distinct pivots are distinct sets; compare endpoints through
+    // the carrier-aware order (pivot_less / pivot_equal), not raw NTTP
+    // comparison, so a signed and an unsigned pivot rank by mathematical value
+    // (#835 review).  A's lower end sits inside B, and dually its upper end.
+    constexpr bool lower =
+        pivot_less<BLo, ALo>() ||
+        (pivot_equal<ALo, BLo>() &&
+         !(ASL == Strictness::NonStrict && BSL == Strictness::Strict));
+    constexpr bool upper =
+        pivot_less<AHi, BHi>() ||
+        (pivot_equal<AHi, BHi>() &&
+         !(ASU == Strictness::NonStrict && BSU == Strictness::Strict));
+    return (lower && upper) ? L::True : L::False;
+  }
 }
 
 /** @brief @f$\{V\} \subseteq S \iff V \in S@f$: a singleton is a subset iff its

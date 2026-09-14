@@ -463,6 +463,77 @@ static_assert(IsSubobject<Above<5>, dedekind::sets::Cardinality>,
 static_assert(IsSubobject<Singleton<true>, bool>,
               "a static Singleton is a first-class subobject.");
 
+/** @brief Carrier-aware ordering of two interval-endpoint NTTPs.  Integral
+ *  pivots compare by @b mathematical value through @c std::cmp_less /
+ *  @c std::cmp_equal, so a signed and an unsigned pivot are not silently
+ *  mis-ranked by C++'s usual arithmetic conversions (@c -1 @c > @c 0u is @c
+ *  true as a plain comparison, but @c −1 precedes @c 0 in the carrier order);
+ *  any other carrier uses its native @c < / @c ==.  Interval emptiness and
+ *  subset are decided through these --- never by subtracting endpoints, which
+ *  wraps on an unsigned carrier and overflows a full-range signed interval in a
+ *  constant expression (#835 review). */
+export template <auto A, auto B>
+consteval bool pivot_less() {
+  if constexpr (std::integral<decltype(A)> && std::integral<decltype(B)>)
+    return std::cmp_less(A, B);
+  else
+    return A < B;
+}
+export template <auto A, auto B>
+consteval bool pivot_equal() {
+  if constexpr (std::integral<decltype(A)> && std::integral<decltype(B)>)
+    return std::cmp_equal(A, B);
+  else
+    return A == B;
+}
+
+/** @brief Manual @c constexpr floor / ceil to an integer --- truncation toward
+ *  zero, adjusted by sign --- avoiding a @c <cmath> @c constexpr dependency.
+ *  Normalises a floating interval pivot to its effective carrier integer. */
+consteval long long cfloor(double d) {
+  const long long t = static_cast<long long>(d);  // toward zero
+  return static_cast<double>(t) > d ? t - 1 : t;
+}
+consteval long long cceil(double d) {
+  const long long t = static_cast<long long>(d);
+  return static_cast<double>(t) < d ? t + 1 : t;
+}
+template <auto p>
+consteval long long pivot_floor() {
+  if constexpr (std::integral<decltype(p)>)
+    return static_cast<long long>(p);
+  else
+    return cfloor(static_cast<double>(p));
+}
+template <auto p>
+consteval long long pivot_ceil() {
+  if constexpr (std::integral<decltype(p)>)
+    return static_cast<long long>(p);
+  else
+    return cceil(static_cast<double>(p));
+}
+
+/** @brief The @b effective inclusive carrier bounds of a DISCRETE interval
+ *  boundary (#835 review): the tightest carrier integer the boundary admits.
+ *  So distinct pivot / strictness pairs that denote the @b same discrete set
+ *  --- @c (1,4) and @c [2,3] are both @c {2,3} over @c int --- normalise equal,
+ *  and an open or fractional bound (@c (5.0,6.0) has no member) is decided
+ *  exactly.  Computed in a wide @c long @c long, so the successor / predecessor
+ *  never wraps the pivot type (spans beyond @c size_t are the documented policy
+ *  corner, #838).  This is the local realisation of the @f$\mathbb{Z}
+ *  \hookrightarrow \mathbb{R}@f$ pullback of #838.
+ *  @c eff_lower: smallest integer admitted by @f$\{x > p\}@f$ / @f$\{x \ge
+ *  p\}@f$; @c eff_upper: largest admitted by @f$\{x < p\}@f$ / @f$\{x \le
+ *  p\}@f$. */
+export template <auto p, Strictness S>
+consteval long long eff_lower() {
+  return S == Strictness::Strict ? pivot_floor<p>() + 1 : pivot_ceil<p>();
+}
+export template <auto p, Strictness S>
+consteval long long eff_upper() {
+  return S == Strictness::Strict ? pivot_ceil<p>() - 1 : pivot_floor<p>();
+}
+
 /** @brief Meet of two opposing halfspaces — an order-theoretic interval. */
 export template <typename T, auto Lo, auto Hi, Strictness SL, Strictness SU,
                  typename L = ClassicalLogic>
@@ -493,13 +564,42 @@ struct OrderInterval
   // built-in integers, plus admission of the variant carriers.
   static constexpr bool is_integer_range = IsRingIntegral<T>;
 
+  // @brief Whether the interval denotes the empty set (χ ≡ False).  A DISCRETE
+  // carrier decides on the @b effective carrier bounds (@c eff_lower /
+  // @c eff_upper): empty ⟺ the tightest admitted lower integer exceeds the
+  // tightest admitted upper integer.  This is exact for every strictness combo,
+  // an inverted or open gap (@c (5,6) empty), a fractional or integer-valued
+  // floating pivot (@c (5.0,6.0) empty), and a full range (no endpoint
+  // subtraction to wrap or overflow) --- and it is the same normalisation the
+  // subset test and @c size() use, so distinct pivots denoting the same set
+  // agree (#835 review).  A CONTINUOUS carrier has distinct pivots for distinct
+  // sets, so endpoint degeneracy suffices (@c Lo>Hi, or @c Lo==Hi with an open
+  // end --- @c [5,5] is the singleton).  Empty intervals are representable, so
+  // @c :inclusion recognises @f$\emptyset \subseteq X@f$ for every @c X.
+  static constexpr bool is_empty = [] {
+    if constexpr (is_integer_range)
+      // Discrete: empty ⟺ no carrier integer between the effective bounds.  One
+      // comparison over the normalised bounds handles every strictness combo,
+      // an inverted or open gap, and a full range --- no endpoint arithmetic.
+      return eff_lower<Lo, SL>() > eff_upper<Hi, SU>();
+    else
+      // Continuous: distinct pivots are distinct sets; endpoint degeneracy
+      // only.
+      return pivot_less<Hi, Lo>() ||
+             (pivot_equal<Lo, Hi>() &&
+              (SL == Strictness::Strict || SU == Strictness::Strict));
+  }();
+
   constexpr std::size_t size() const
     requires is_integer_range
   {
-    constexpr bool lo_open = (SL == Strictness::Strict);
-    constexpr bool hi_open = (SU == Strictness::Strict);
-    constexpr auto span = Hi - Lo + (lo_open ? 0 : 1) + (hi_open ? -1 : 0);
-    return span > 0 ? static_cast<std::size_t>(span) : 0u;
+    constexpr long long lo = eff_lower<Lo, SL>();
+    constexpr long long hi = eff_upper<Hi, SU>();
+    if constexpr (hi < lo)
+      return 0u;  // empty
+    else
+      return static_cast<std::size_t>(hi - lo + 1);  // wide span; fits size_t
+                                                     // for any ≤64-bit range
   }
 
   // Advertise Finite only when the cardinality is computable.
