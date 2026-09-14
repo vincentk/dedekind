@@ -108,19 +108,28 @@ constexpr typename A::logic_species::Ω operator>(const A& a, const B& b) {
  *  (#831): an @c OrderInterval is the meet of an upward and a downward
  *  halfspace, so containment is the two halfspace containments --- decidable
  *  directly, no meet materialisation.  The per-carrier specialisation for
- *  intervals; it wins over the generic @c <= by partial ordering. */
+ *  intervals; it wins over the generic @c <= by partial ordering.
+ *
+ *  An empty left interval (a degenerate construction like @c (5,5), which
+ *  @c OrderInterval represents rather than forbids) short-circuits to @c True:
+ *  @f$\emptyset \subseteq X@f$ for every @c X, and the endpoint test alone
+ *  would wrongly report @c False (#835 review). */
 export template <typename T, auto ALo, auto AHi, Strictness ASL, Strictness ASU,
                  auto BLo, auto BHi, Strictness BSL, Strictness BSU, typename L>
 constexpr typename L::Ω operator<=(
     const OrderInterval<T, ALo, AHi, ASL, ASU, L>&,
     const OrderInterval<T, BLo, BHi, BSL, BSU, L>&) {
-  constexpr bool lower =
-      (ALo > BLo) || (ALo == BLo && !(ASL == Strictness::NonStrict &&
-                                      BSL == Strictness::Strict));
-  constexpr bool upper =
-      (AHi < BHi) || (AHi == BHi && !(ASU == Strictness::NonStrict &&
-                                      BSU == Strictness::Strict));
-  return (lower && upper) ? L::True : L::False;
+  if constexpr (OrderInterval<T, ALo, AHi, ASL, ASU, L>::is_empty) {
+    return L::True;  // ∅ ⊆ X
+  } else {
+    constexpr bool lower =
+        (ALo > BLo) || (ALo == BLo && !(ASL == Strictness::NonStrict &&
+                                        BSL == Strictness::Strict));
+    constexpr bool upper =
+        (AHi < BHi) || (AHi == BHi && !(ASU == Strictness::NonStrict &&
+                                        BSU == Strictness::Strict));
+    return (lower && upper) ? L::True : L::False;
+  }
 }
 
 /** @brief @f$\{V\} \subseteq S \iff V \in S@f$: a singleton is a subset iff its

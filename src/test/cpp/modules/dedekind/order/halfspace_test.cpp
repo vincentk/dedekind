@@ -425,4 +425,20 @@ TEST_CASE("order:halfspace — structural subset ⊆ and derived >=,<,> (#831)",
     CHECK(bool(i25 <= i16));
     CHECK_FALSE(bool(i16 <= i25));
   }
+
+  SECTION("empty interval ⊆ every interval (#835 review: ∅ ⊆ X)") {
+    // (5,5) is a representable empty interval (χ ≡ False, size() == 0); the
+    // endpoint test alone would wrongly report it ⊄ a disjoint interval.
+    constexpr OrderInterval<int, 5, 5, Strictness::Strict, Strictness::Strict>
+        empty{};
+    static_assert(OrderInterval<int, 5, 5, Strictness::Strict,
+                                Strictness::Strict>::is_empty);
+    static_assert(empty.size() == 0u);
+    constexpr OrderInterval<int, 0, 1, Strictness::NonStrict,
+                            Strictness::NonStrict>
+        i01{};  // [0,1], disjoint from where (5,5) sits
+    static_assert(bool(empty <= i01), "∅ ⊆ [0,1] despite disjoint endpoints");
+    static_assert(bool(i01 >= empty), "[0,1] ⊇ ∅ (derived)");
+    CHECK(bool(empty <= i01));
+  }
 }

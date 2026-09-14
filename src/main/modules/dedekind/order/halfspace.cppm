@@ -502,6 +502,24 @@ struct OrderInterval
     return span > 0 ? static_cast<std::size_t>(span) : 0u;
   }
 
+  // @brief Whether the interval denotes the empty set (χ ≡ False), decided
+  // from the bounds alone.  Degenerate constructions are representable
+  // (@c size() already returns 0 for them), so downstream reasoning --- the
+  // subset test in :inclusion --- must recognise them: @f$\emptyset \subseteq
+  // X@f$ for every @c X.  Discrete carriers use the @c size() span (an open
+  // integer gap like @c (5,6) is empty too); continuous carriers, which have
+  // no @c size(), use endpoint degeneracy (@c Lo > @c Hi, or @c Lo == @c Hi
+  // with either side open --- @c [5,5] is the singleton, not empty).
+  static constexpr bool is_empty = [] {
+    if constexpr (is_integer_range) {
+      return !((Hi - Lo + (SL == Strictness::Strict ? 0 : 1) +
+                (SU == Strictness::Strict ? -1 : 0)) > 0);
+    } else {
+      return (Lo > Hi) || (Lo == Hi && (SL == Strictness::Strict ||
+                                        SU == Strictness::Strict));
+    }
+  }();
+
   // Advertise Finite only when the cardinality is computable.
   using cardinality_type = std::conditional_t<is_integer_range, Finite, ℵ_0>;
 };
