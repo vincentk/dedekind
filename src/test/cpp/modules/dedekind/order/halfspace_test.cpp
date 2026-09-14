@@ -410,4 +410,19 @@ TEST_CASE("order:halfspace — structural subset ⊆ and derived >=,<,> (#831)",
     CHECK_FALSE(bool(gt5 < gt5));
     CHECK(bool(gt3 > gt5));
   }
+
+  SECTION("interval subset rides the same generic identity") {
+    constexpr OrderInterval<int, 2, 5, Strictness::NonStrict,
+                            Strictness::NonStrict>
+        i25{};  // [2,5]
+    constexpr OrderInterval<int, 1, 6, Strictness::NonStrict,
+                            Strictness::NonStrict>
+        i16{};  // [1,6]
+    static_assert(bool(i25 <= i16), "[2,5] ⊆ [1,6]");
+    static_assert(!bool(i16 <= i25), "[1,6] ⊄ [2,5]");
+    static_assert(bool(i16 >= i25), "[1,6] ⊇ [2,5] (derived, rides <=)");
+    // (proper-subset < / > on intervals awaits an OrderInterval ==.)
+    CHECK(bool(i25 <= i16));
+    CHECK_FALSE(bool(i16 <= i25));
+  }
 }
