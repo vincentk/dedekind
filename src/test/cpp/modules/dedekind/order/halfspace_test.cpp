@@ -377,12 +377,16 @@ TEST_CASE("order:halfspace — structural subset ⊆ and derived >=,<,> (#831)",
     static_assert(!bool(ge5 <= gt5), "{x≥5} ⊄ {x>5} (5 ∈ LHS, ∉ RHS)");
     static_assert(bool(lt3 <= lt5), "{x<3} ⊆ {x<5}");
     static_assert(!bool(lt5 <= lt3), "{x<5} ⊄ {x<3}");
-    // Opposite directions ({x>5} vs {x<3}) hinge on the empty-halfspace edge:
-    // the meet is Ø, and Ø == {x>5} is decidable only once emptiness is (see
-    // #831 discussion). Left out here pending that gate.
+    // Opposite directions now decide (#832): the meet is empty, and
+    // Ø / EmptyPredicate == Halfspace is a theorem — a Halfspace is a proper
+    // cut by construction, so it is never empty.
+    static_assert(!bool(gt5 <= lt3), "{x>5} ⊄ {x<3} (disjoint, meet ∅)");
+    static_assert(!bool(lt3 <= gt5), "{x<3} ⊄ {x>5}");
+    static_assert(!bool(ge5 <= lt5), "{x≥5} ⊄ {x<5} (complement pair, meet Ø)");
     CHECK(bool(gt5 <= gt3));
     CHECK_FALSE(bool(gt3 <= gt5));
     CHECK(bool(lt3 <= lt5));
+    CHECK_FALSE(bool(gt5 <= lt3));
   }
 
   SECTION("empty ⊆ anything; anything ⊆ universe") {
@@ -497,5 +501,68 @@ TEST_CASE("order:halfspace — structural subset ⊆ and derived >=,<,> (#831)",
     static_assert(OrderInterval<int, 5.0, 6.0, Strictness::Strict,
                                 Strictness::Strict>::is_empty,
                   "(5.0,6.0) has no integer member");
+  }
+}
+
+TEST_CASE("order:halfspace — the factory makes a Halfspace a proper cut (#832)",
+          "[order][halfspace][subset]") {
+  SECTION("empty cut → Ø, moot cut → the universe, proper cut → Halfspace") {
+    // {x>INT_MAX} admits nothing → Ø.
+    static_assert(
+        std::same_as<
+            decltype(make_halfspace<int, std::numeric_limits<int>::max(),
+                                    Direction::Upward, Strictness::Strict>()),
+            Ø<int, ClassicalLogic>>,
+        "{x>INT_MAX} = Ø");
+    // {x≥0} on ℕ is all of ℕ → the universe (halfspace(ℕ,·,Upper) = ℕ).
+    static_assert(
+        std::same_as<decltype(make_halfspace<Cardinality, 0, Direction::Upward,
+                                             Strictness::NonStrict>()),
+                     UniversalSet<Cardinality, ClassicalLogic>>,
+        "{x≥0} on ℕ = ℕ (moot constraint drops)");
+    // An interior cut stays a proper Halfspace.
+    static_assert(
+        std::same_as<decltype(make_halfspace<int, 5, Direction::Upward,
+                                             Strictness::Strict>()),
+                     Halfspace<int, 5, Direction::Upward, Strictness::Strict,
+                               ClassicalLogic>>,
+        "{x>5} is a proper cut");
+  }
+
+  SECTION("the DSL and ~ route through the factory") {
+    constexpr auto n = element<ℕ>;
+    // The DSL surface collapses a moot cut: {x≥0} on ℕ = ℕ.
+    static_assert(std::same_as<std::decay_t<decltype(n >= bound<0>)>,
+                               UniversalSet<Cardinality, ClassicalLogic>>,
+                  "element<ℕ> >= bound<0> = ℕ");
+    // ~ of a raw moot cut is its empty complement: ~{x≥0} = {x<0} = Ø, and
+    // dually ~Ø = ℕ, so the boundary complement round-trips (involution).
+    constexpr Halfspace<Cardinality, 0, Direction::Upward,
+                        Strictness::NonStrict>
+        raw_all{};
+    static_assert(std::same_as<std::decay_t<decltype(~raw_all)>,
+                               Ø<Cardinality, ClassicalLogic>>,
+                  "~{x≥0} on ℕ = Ø");
+  }
+
+  SECTION(
+      "the signed ℤ-proxy has no floor: {z<0} is a proper cut (#837 review)") {
+    // SignedCardinality is IsSaturating but unbounded below, so {z<0} is
+    // inhabited (must NOT collapse to Ø) and {z≥0} is not all of ℤ (not moot).
+    // The bare IsSaturating floor test got both wrong; HasZeroFloor fixes it.
+    static_assert(
+        std::same_as<
+            decltype(make_halfspace<SignedCardinality, 0, Direction::Downward,
+                                    Strictness::Strict>()),
+            Halfspace<SignedCardinality, 0, Direction::Downward,
+                      Strictness::Strict, ClassicalLogic>>,
+        "{z<0} on ℤ is a proper cut, not Ø");
+    static_assert(
+        std::same_as<
+            decltype(make_halfspace<SignedCardinality, 0, Direction::Upward,
+                                    Strictness::NonStrict>()),
+            Halfspace<SignedCardinality, 0, Direction::Upward,
+                      Strictness::NonStrict, ClassicalLogic>>,
+        "{z≥0} on ℤ is a proper cut, not the universe");
   }
 }

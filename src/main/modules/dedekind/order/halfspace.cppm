@@ -253,6 +253,93 @@ static_assert(fix(5_c).value == 5, "5_c carries its value in the type.");
 static_assert(std::same_as<decltype(fix(true_c)), Bound<true>>,
               "fix(true_c) is bound<true>, the bool analogue.");
 
+/** @brief Flip a @c Direction --- the direction half of a halfspace complement
+ *  (@c ~{x>P} is @c {x≤P}).  Reused by the reflection-image pushforward
+ *  (@c dedekind.algebra:halfspace_transport) to flip a halfspace's sense under
+ *  @f$x \mapsto -x@f$. */
+export constexpr Direction flip(Direction d) {
+  return d == Direction::Upward ? Direction::Downward : Direction::Upward;
+}
+/** @brief Flip a @c Strictness --- the strictness half of the same complement
+ *  (@c ~{x>P} is @c {x≤P}: @c > relaxes to @c ≤). */
+export constexpr Strictness flip(Strictness s) {
+  return s == Strictness::Strict ? Strictness::NonStrict : Strictness::Strict;
+}
+
+/** @brief A carrier bounded below at @c 0 --- @c bool, an @c unsigned machine
+ *  integer, and the ℕ proxy @c Cardinality --- so no value is @c < @c 0.
+ *  @b Not the signed ℤ proxy @c SignedCardinality, which is @c IsSaturating too
+ *  but is unbounded below: the trap the bare @c IsSaturating floor test fell
+ *  into (#837 review) --- it rejected the valid cut @c {x<0} on ℤ and misread
+ *  @c {x≥0} as moot.  The dedicated lower-bound classification for the
+ *  emptiness oracles below. */
+template <typename T>
+concept HasZeroFloor =
+    std::unsigned_integral<T> || std::same_as<T, dedekind::sets::Cardinality>;
+
+/** @brief Is the strict lower cut @c {x<p} empty (i.e. @c p at/below the
+ *  carrier's least element)?  The @c if constexpr isolates @c numeric_limits so
+ *  it is instantiated ONLY for a signed machine int --- a floor-0 carrier (ℕ /
+ *  unsigned / bool) tests @c p≤0, a dense/unbounded-below carrier never
+ * empties.
+ */
+template <typename T, auto p>
+consteval bool strict_lower_cut_empty() {
+  if constexpr (std::signed_integral<T>)
+    return p <= std::numeric_limits<T>::min();
+  else if constexpr (HasZeroFloor<T>)
+    return p <= 0;
+  else
+    return false;
+}
+/** @brief Is the strict upper cut @c {x>p} empty (@c p at/above the carrier's
+ *  greatest element)?  Only a bounded MACHINE integer (@c numeric_limits::max)
+ *  can empty here; ℕ is unbounded above and a dense carrier never empties. */
+template <typename T, auto p>
+consteval bool strict_upper_cut_empty() {
+  if constexpr (std::integral<T>)
+    return p >= std::numeric_limits<T>::max();
+  else
+    return false;
+}
+
+/** @brief Does the halfspace @f$\{x \mathbin{\lrcorner} p\}@f$ denote the empty
+ *  set on carrier @c T?  The single emptiness oracle over all four
+ *  direction/strictness combinations: the strict cuts reuse the tests above; a
+ *  @b non-strict cut empties only when its pivot escapes the carrier's range
+ *  entirely (@c {x≥p} with @c p above @c max(T), @c {x≤p} with @c p below @c
+ *  min(T)) --- impossible for a representable pivot, so @c false for an
+ * ordinary halfspace and @c true only at the machine ceiling / floor. */
+template <typename T, auto Pivot, Direction D, Strictness S>
+consteval bool halfspace_is_empty() {
+  if constexpr (D == Direction::Upward) {
+    if constexpr (S == Strictness::Strict)
+      return strict_upper_cut_empty<T, Pivot>();  // {x>p}: p ≥ max
+    else if constexpr (std::integral<T>)
+      return Pivot > std::numeric_limits<T>::max();  // {x≥p}: p > max
+    else
+      return false;
+  } else {  // Downward
+    if constexpr (S == Strictness::Strict)
+      return strict_lower_cut_empty<T, Pivot>();  // {x<p}: p ≤ min
+    else if constexpr (std::signed_integral<T>)
+      return Pivot < std::numeric_limits<T>::min();  // {x≤p}: p < min
+    else if constexpr (HasZeroFloor<T>)
+      return Pivot < 0;  // floor-0 carrier: {x≤p} empty iff p < 0
+    else
+      return false;
+  }
+}
+
+/** @brief Is the halfspace @b moot --- its χ ≡ ⊤, so it is all of @c T (e.g.
+ *  @c {x≥0} on ℕ, or @c {x>−1} below the floor)?  A halfspace is universal iff
+ *  its complement is empty, so this is exactly @c halfspace_is_empty on the
+ *  flipped cut --- one oracle, both boundary degeneracies. */
+template <typename T, auto Pivot, Direction D, Strictness S>
+consteval bool halfspace_is_moot() {
+  return halfspace_is_empty<T, Pivot, flip(D), flip(S)>();
+}
+
 /**
  * @brief Halfspace predicate { x ∈ T | x ⋈ Pivot } with Pivot at the type
  * level.
@@ -262,6 +349,14 @@ static_assert(std::same_as<decltype(fix(true_c)), Bound<true>>,
 export template <typename T, auto Pivot, Direction D, Strictness S,
                  typename L = ClassicalLogic>
 struct Halfspace : dedekind::sets::SetExpr<Halfspace<T, Pivot, D, S, L>, T, L> {
+  // A Halfspace value is an INHABITED cut by construction (#832): an empty
+  // configuration (@c {x>max(T)}, @c {x<min(T)}) is ill-formed here and must be
+  // spelt @c Ø --- @c make_halfspace collapses it, so no code path forms one.
+  // The gate closes raw construction, making @f$\emptyset = \text{Halfspace}@f$
+  // a genuine type-level impossibility rather than a factory convention.
+  static_assert(!halfspace_is_empty<T, Pivot, D, S>(),
+                "empty halfspace is not representable: construct through the "
+                "DSL / make_halfspace (which yields Ø), never the raw type");
   // Domain / Codomain / logic_species / Member / ι are inherited from SetExpr
   // (the ETCS subobject surface): a bare Halfspace is a first-class
   // @c IsSubobject (ι: S ↣ T) whose χ is @c operator() below.  This is the same
@@ -406,21 +501,31 @@ constexpr auto operator|(const Singleton<A, LA>& a, const Singleton<B, LB>&) {
  * @c OrderInterval unchanged.
  */
 
-// Direction / strictness flips: the pieces of the halfspace complement.
-// ~{x > P} = {x <= P} — opposite direction, flipped strictness.  Exported: the
-// reflection-image pushforward (dedekind.algebra:halfspace_transport) reuses it
-// to flip a halfspace's sense under x↦−x.
-export constexpr Direction flip(Direction d) {
-  return d == Direction::Upward ? Direction::Downward : Direction::Upward;
-}
-constexpr Strictness flip(Strictness s) {
-  return s == Strictness::Strict ? Strictness::NonStrict : Strictness::Strict;
+/** @brief The halfspace factory (#832): a @c Halfspace @b value denotes a
+ *  @b proper cut by construction.  A degenerate configuration collapses to the
+ *  canonical boundary set instead --- an empty cut to @c Ø, a moot cut to the
+ *  universe @c UniversalSet --- so @f$\emptyset = \text{Halfspace}@f$ and
+ *  @f$\Omega = \text{Halfspace}@f$ never arise as values and the boundary cases
+ *  are decided by @c Ø / @c Ω's own initial / terminal machinery.  The return
+ *  type is heterogeneous but statically resolved by @c if @c constexpr (no type
+ *  erasure); every halfspace-producing surface routes through it. */
+export template <typename T, auto V, Direction D, Strictness S,
+                 typename L = ClassicalLogic>
+constexpr auto make_halfspace() {
+  if constexpr (halfspace_is_empty<T, V, D, S>())
+    return dedekind::sets::Ø<T, L>{};
+  else if constexpr (halfspace_is_moot<T, V, D, S>())
+    return dedekind::sets::UniversalSet<T, L>{};
+  else
+    return Halfspace<T, V, D, S, L>{};
 }
 
-/** @brief Complement of a halfspace: the opposite halfspace. */
+/** @brief Complement of a halfspace: the opposite halfspace, through the
+ *  factory so a boundary complement collapses (@c ~{x≥0} on ℕ is @c {x<0} = Ø,
+ *  and dually @c ~Ø = Ω keeps the involution). */
 export template <typename T, auto Pivot, Direction D, Strictness S, typename L>
 constexpr auto operator~(const Halfspace<T, Pivot, D, S, L>&) {
-  return Halfspace<T, Pivot, flip(D), flip(S), L>{};
+  return make_halfspace<T, Pivot, flip(D), flip(S), L>();
 }
 
 /** @brief Complement-pair join: same pivot, opposite direction, flipped
@@ -622,7 +727,7 @@ export template <auto Ambient, auto V>
             !std::signed_integral<decltype(V)> || V >= 0)
 constexpr auto operator>(const dedekind::sets::BoundScout<Ambient>&, Bound<V>) {
   using T = typename dedekind::sets::BoundScout<Ambient>::T;
-  return Halfspace<T, V, Direction::Upward, Strictness::Strict>{};
+  return make_halfspace<T, V, Direction::Upward, Strictness::Strict>();
 }
 
 export template <auto Ambient, auto V>
@@ -634,7 +739,7 @@ export template <auto Ambient, auto V>
 constexpr auto operator>=(const dedekind::sets::BoundScout<Ambient>&,
                           Bound<V>) {
   using T = typename dedekind::sets::BoundScout<Ambient>::T;
-  return Halfspace<T, V, Direction::Upward, Strictness::NonStrict>{};
+  return make_halfspace<T, V, Direction::Upward, Strictness::NonStrict>();
 }
 
 export template <auto Ambient, auto V>
@@ -645,7 +750,7 @@ export template <auto Ambient, auto V>
             !std::signed_integral<decltype(V)> || V >= 0)
 constexpr auto operator<(const dedekind::sets::BoundScout<Ambient>&, Bound<V>) {
   using T = typename dedekind::sets::BoundScout<Ambient>::T;
-  return Halfspace<T, V, Direction::Downward, Strictness::Strict>{};
+  return make_halfspace<T, V, Direction::Downward, Strictness::Strict>();
 }
 
 export template <auto Ambient, auto V>
@@ -657,7 +762,7 @@ export template <auto Ambient, auto V>
 constexpr auto operator<=(const dedekind::sets::BoundScout<Ambient>&,
                           Bound<V>) {
   using T = typename dedekind::sets::BoundScout<Ambient>::T;
-  return Halfspace<T, V, Direction::Downward, Strictness::NonStrict>{};
+  return make_halfspace<T, V, Direction::Downward, Strictness::NonStrict>();
 }
 
 /** @section halfspace__Halfspace_Structural_Algebra — ADL hooks for operator&&.
@@ -1041,9 +1146,12 @@ constexpr UnboundSingleton<V> operator==(Projection<0>, Bound<V>) {
 // union operator| on a UniversalSet (that one takes a Set).
 export template <typename T, typename L, typename C, Direction D, Strictness S,
                  auto V>
-constexpr Halfspace<T, V, D, S, L> operator|(const UniversalSet<T, L, C>&,
-                                             const UnboundHalfspace<D, S, V>&) {
-  return {};
+constexpr auto operator|(const UniversalSet<T, L, C>&,
+                         const UnboundHalfspace<D, S, V>&) {
+  // Through the factory (#837 review): a degenerate binder collapses like any
+  // other construction --- @c Ω<bool> | (π > fix(true_c)) is @c {x>true} = Ø,
+  // not a raw (gate-tripping) halfspace.
+  return make_halfspace<T, V, D, S, L>();
 }
 // Restricted to a carrier whose value type IS the pivot's type: Singleton<V,L>
 // has Domain = decltype(V), so a mismatch (e.g. ℕ | π == fix(5_c), Cardinality
@@ -1661,33 +1769,6 @@ static_assert(
                                  finite_cardinality(20))(finite_cardinality(4)),
     "apply(R,20) does not contain 4.");
 
-/** @brief Is the strict lower cut @c {x<p} empty (i.e. @c p at/below the
- *  carrier's least element)?  The @c if constexpr isolates @c numeric_limits so
- *  it is instantiated ONLY for a signed machine int --- a floor-0 carrier (ℕ /
- *  unsigned / bool) tests @c p≤0, a dense/unbounded-below carrier never
- * empties.
- */
-template <typename T, auto p>
-consteval bool strict_lower_cut_empty() {
-  if constexpr (std::signed_integral<T>)
-    return p <= std::numeric_limits<T>::min();
-  else if constexpr (std::unsigned_integral<T> ||
-                     dedekind::category::IsSaturating<T>)
-    return p <= 0;
-  else
-    return false;
-}
-/** @brief Is the strict upper cut @c {x>p} empty (@c p at/above the carrier's
- *  greatest element)?  Only a bounded MACHINE integer (@c numeric_limits::max)
- *  can empty here; ℕ is unbounded above and a dense carrier never empties. */
-template <typename T, auto p>
-consteval bool strict_upper_cut_empty() {
-  if constexpr (std::integral<T>)
-    return p >= std::numeric_limits<T>::max();
-  else
-    return false;
-}
-
 /** @brief @c upperbounds(S) --- the @f$\forall@f$-projection @f$R/\ni@f$: the
  *  region dominating all of @c S, and the pluggable point of the extremum
  *  (Bird \& de~Moor @cite birddemoor1997aop).
@@ -1739,10 +1820,12 @@ constexpr auto lowerbounds(Halfspace<T, p, Direction::Upward, S, L>) {
     // value: true for bool, INT_MAX for int), so every element bounds ∅ → the
     // universe (min = S ∩ Ω = ∅).  No p+1 (which would overflow/wrap).
     return dedekind::sets::UniversalSet<T, L>{};
-  } else if constexpr (S == Strictness::Strict &&
-                       dedekind::category::IsSaturating<T> && p + 1 < 0) {
-    // Saturating carrier bounded below at 0 (ℕ): the successor p+1 falls below
-    // the carrier, so the min clamps to the carrier minimum 0.
+  } else if constexpr (S == Strictness::Strict && HasZeroFloor<T> &&
+                       p + 1 < 0) {
+    // Floor-0 carrier (ℕ / unsigned): the successor p+1 falls below the
+    // carrier, so the min clamps to the carrier minimum 0.  NOT the signed ℤ
+    // proxy, which has no floor and takes the ordinary successor branch below
+    // (#837 review).
     return Halfspace<T, 0, Direction::Downward, Strictness::NonStrict, L>{};
   } else if constexpr (S == Strictness::Strict &&
                        (std::integral<T> ||
@@ -1942,6 +2025,49 @@ export template <auto P, Direction D, Strictness S, typename L, typename C>
 constexpr bool operator==(const UniversalSet<bool, L, C>& u,
                           const Halfspace<bool, P, D, S, L>& h) {
   return h == u;
+}
+
+/** @brief The general boundary-equality theorems (#832): a @c Halfspace value
+ *  is a @b proper cut by construction --- @c make_halfspace collapses an empty
+ *  cut to @c Ø and a moot cut to @c Ω --- so it equals neither boundary.
+ *  Decided from the carrier bounds (@c halfspace_is_empty / @c
+ * halfspace_is_moot) so the answer is sound even for a raw out-of-contract
+ * halfspace; for every factory-built value the oracles are @c false and these
+ * are simply @c False. This lifts the honest Rice wall (@c Ø / @c UniversalSet
+ * expose no general halfspace-equality case) now that emptiness / mootness are
+ * decidable, and it unlocks opposite-direction subset: @c {x>5} ⊆ {x<3} reduces
+ * to @c (a∩b)==a where the meet is @c EmptyPredicate / @c Ø, and @c Ω ⊆ @c
+ * {x≥5} reduces through @c Halfspace @c == @c Ω.  The finite-@c bool overloads
+ * above are more specialised and still claim @c bool. */
+export template <typename T, auto P, Direction D, Strictness S, typename L>
+constexpr bool operator==(const Ø<T, L>&, const Halfspace<T, P, D, S, L>&) {
+  return halfspace_is_empty<T, P, D, S>();
+}
+export template <typename T, auto P, Direction D, Strictness S, typename L>
+constexpr bool operator==(const Halfspace<T, P, D, S, L>&, const Ø<T, L>&) {
+  return halfspace_is_empty<T, P, D, S>();
+}
+export template <typename T, auto P, Direction D, Strictness S, typename L>
+constexpr bool operator==(const dedekind::sets::EmptyPredicate<T>&,
+                          const Halfspace<T, P, D, S, L>&) {
+  return halfspace_is_empty<T, P, D, S>();
+}
+export template <typename T, auto P, Direction D, Strictness S, typename L>
+constexpr bool operator==(const Halfspace<T, P, D, S, L>&,
+                          const dedekind::sets::EmptyPredicate<T>&) {
+  return halfspace_is_empty<T, P, D, S>();
+}
+export template <typename T, auto P, Direction D, Strictness S, typename L,
+                 typename C>
+constexpr bool operator==(const UniversalSet<T, L, C>&,
+                          const Halfspace<T, P, D, S, L>&) {
+  return halfspace_is_moot<T, P, D, S>();
+}
+export template <typename T, auto P, Direction D, Strictness S, typename L,
+                 typename C>
+constexpr bool operator==(const Halfspace<T, P, D, S, L>&,
+                          const UniversalSet<T, L, C>&) {
+  return halfspace_is_moot<T, P, D, S>();
 }
 
 /** @brief A @c Singleton over @c bool is never all of @c 𝔹 (two elements), so
