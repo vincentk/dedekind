@@ -1594,10 +1594,12 @@ concept SetShaped = requires {
  * specialisations live downstream, where the subset order does:
  * @c dedekind.topology:powerset gives the ordered / convex case
  * (@f$\mathfrak{P}(S) = \Omega\langle\mathrm{Sub}(C)\rangle \mid X \subseteq
- * S@f$ over the subobject domain @c Sub(C), an @c Interval), covering @c Ø / @c
- * Ω /
+ * S@f$ over the subobject domain @c Sub(C), an interval), covering @c Ω /
  * @c Singleton / @c Halfspace / @c OrderInterval by coercion; a finite-carrier
- * / erased case may follow (#830).  Same shape as @c exists / @c forall (an
+ * / erased case may follow (#830).  The one exception is @f$\mathfrak{P}
+ * (\emptyset) = \{\emptyset\}@f$, which needs no subobject domain and is a
+ * closed form here in @c :sets (below).  Same shape as @c exists / @c forall
+ * (an
  * algebraic default lifted by per-carrier decidable specialisations).  A
  * non-set-shaped argument fails @c SetShaped and matches nothing (also a type
  * error).
@@ -1611,6 +1613,30 @@ auto power_set(const S&) = delete;
 export template <typename S>
   requires SetShaped<S>
 auto 𝔓(const S&) = delete;
+
+/**
+ * @brief @f$\mathfrak{P}(\emptyset) = \{\emptyset\}@f$ --- the one power set
+ * that needs no subobject normal-form, so it is a closed form here in @c :sets.
+ *
+ * @details The empty set has exactly one subset (itself), so its power set is
+ * the @b singleton @f$\{\emptyset\}@f$ (cardinality @f$1 = 2^0@f$, @b not
+ * @f$\emptyset@f$).  That singleton is exactly the universe over the
+ * one-inhabitant domain @c Ø<T,L>: every empty set is equal to every other
+ * (@c Ø's cross-carrier @c ==), so @c Ω over the empty-set carrier has a single
+ * inhabitant, @f$\emptyset@f$ itself.  No @c Sub, no ordered carrier, no
+ * @c Rice-walled subobject enumeration --- which is why the @c empty node of
+ * the grammar can be discharged upstream of the interval specialisation.  This
+ * is a more-specialised overload than the deleted @c SetShaped gate, so it wins
+ * by partial ordering.
+ */
+export template <typename T, typename L>
+constexpr auto power_set(const Ø<T, L>&) {
+  return Ω<Ø<T, L>, L, Finite>;
+}
+export template <typename T, typename L>
+constexpr auto 𝔓(const Ø<T, L>&) {
+  return power_set(Ø<T, L>{});
+}
 
 // NOTE: the relation query surface (@c relates / @c dom / @c cod / @c apply /
 // @c is_single_valued_at) moved to @c dedekind.relational:dyadic alongside the

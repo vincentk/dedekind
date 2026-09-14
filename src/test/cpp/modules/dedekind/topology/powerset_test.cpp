@@ -45,14 +45,28 @@ TEST_CASE("topology:powerset — 𝔓(S) is a bona-fide IsSet over Sub(C) (#830)
     CHECK(bool(P(gt3)));        // self-membership {x>3} ⊆ {x>3}
   }
 
-  SECTION("𝔓(Ω) accepts anything over the carrier; 𝔓(Ø) is {Ø}") {
+  SECTION("𝔓(Ω) is the full universe over Sub(C): accepts every subobject") {
+    // 𝔓(Ω) has the Sub(C) domain (the interval specialisation), so it composes
+    // with the ordered families.  (𝔓(∅) = {∅} is the one closed form that needs
+    // no Sub --- it is a :sets fast path, exercised in sets/expressions_test.)
     constexpr auto Pu = 𝔓(Ω<int>);
+    STATIC_CHECK(
+        std::same_as<typename std::remove_cvref_t<decltype(Pu)>::Domain,
+                     Sub<int, ClassicalLogic>>);
     constexpr Halfspace<int, 5, Direction::Upward, Strictness::Strict> gt5{};
     CHECK(bool(Pu(gt5)));       // X ⊆ Ω
     CHECK(bool(Pu(Ø<int>{})));  // Ø ⊆ Ω
-    constexpr auto Pe = 𝔓(Ø<int>{});
-    CHECK(bool(Pe(Ø<int>{})));   // Ø ∈ 𝔓(Ø)
-    CHECK_FALSE(bool(Pe(gt5)));  // {x>5} ⊄ Ø
+  }
+
+  SECTION(
+      "empty intervals canonicalise: all spellings of ∅ are one Sub value") {
+    using D = Sub<int, ClassicalLogic>;
+    constexpr OrderInterval<int, 5, 5, Strictness::Strict, Strictness::Strict>
+        oi_empty{};                        // (5,5) = ∅
+    constexpr D from_oi = oi_empty;        // empty, dead bounds lo=hi=5
+    constexpr D from_bottom = Ø<int>{};    // empty, bounds default
+    STATIC_CHECK(from_oi == from_bottom);  // one ∅, regardless of spelling
+    STATIC_CHECK(bool(from_oi <= from_bottom));  // and mutually nested
   }
 
   SECTION("lattice: 𝔓(S) plugs into the set lattice (Ø & 𝔓(S) = Ø)") {

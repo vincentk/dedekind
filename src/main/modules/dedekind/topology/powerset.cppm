@@ -113,7 +113,18 @@ struct Sub {
     return (lo_ok && hi_ok) ? L::True : L::False;
   }
 
-  constexpr bool operator==(const Sub&) const = default;
+  /** @brief Value equality with @b canonical emptiness: every empty interval
+   *  denotes @f$\emptyset@f$ regardless of the (dead) bound fields, so all
+   *  empties compare equal (and no empty equals a non-empty).  Non-empty
+   *  intervals compare fieldwise.  Keeps @c Sub a proper @c std::regular value
+   *  whose @c == matches its extension, so @f$\mathfrak{P}@f$ over @c Sub does
+   *  not distinguish two spellings of @f$\emptyset@f$. */
+  constexpr bool operator==(const Sub& o) const {
+    if (empty || o.empty) return empty == o.empty;
+    return lo == o.lo && hi == o.hi && lo_unbounded == o.lo_unbounded &&
+           hi_unbounded == o.hi_unbounded && lo_strict == o.lo_strict &&
+           hi_strict == o.hi_strict;
+  }
 };
 
 /** @brief @f$a \subseteq b@f$ --- homogeneous interval nesting (the #835
@@ -147,14 +158,22 @@ struct SubsetOf {
   }
 };
 
+/** @brief A base that reifies as an ordered-carrier subobject @c Sub(C): it is
+ *  @c SetShaped @b and coerces to @c Sub via one of the converting constructors
+ *  above.  The single gate concept for both @c power_set and @c 𝔓 (DRY), and
+ *  --- because it conjoins the very @c SetShaped atom the @c :sets default is
+ *  constrained on --- it @b subsumes that deleted gate, so it wins by partial
+ *  ordering for the ordered families. */
+export template <typename S>
+concept SubReifiable =
+    dedekind::sets::SetShaped<S> &&
+    std::convertible_to<S, Sub<typename S::Domain, typename S::logic_species>>;
+
 /** @brief @f$\mathfrak{P}(S) = \Omega\langle\mathrm{Sub}(C)\rangle \mid
  *  (X \mapsto X \subseteq S)@f$ --- a bona-fide @c Set over @c Sub(C).  Gated
  * on
  *  @c S coercing to @c Sub(C): an unordered / general base is ill-formed. */
-export template <typename S>
-  requires dedekind::sets::SetShaped<S> &&
-           std::convertible_to<
-               S, Sub<typename S::Domain, typename S::logic_species>>
+export template <SubReifiable S>
 constexpr auto power_set(const S& base) {
   using C = typename S::Domain;
   using L = typename S::logic_species;
@@ -162,13 +181,8 @@ constexpr auto power_set(const S& base) {
       SubsetOf<C, L>{Sub<C, L>{base}}};
 }
 
-/** @brief Textbook fraktur-P alias for @c power_set (blackboard @c 𝔓).  The
- *  @c SetShaped conjunct makes this @b subsume the @c :sets deleted default, so
- *  it wins by partial ordering for the ordered families. */
-export template <typename S>
-  requires dedekind::sets::SetShaped<S> &&
-           std::convertible_to<
-               S, Sub<typename S::Domain, typename S::logic_species>>
+/** @brief Textbook fraktur-P alias for @c power_set (blackboard @c 𝔓). */
+export template <SubReifiable S>
 constexpr auto 𝔓(const S& base) {
   return power_set(base);
 }

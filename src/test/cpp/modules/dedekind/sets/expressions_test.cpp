@@ -381,9 +381,33 @@ TEST_CASE("Dedekind Sets: Ambient cartesian product ergonomics",
   STATIC_CHECK(p_via_operator(PDomain{3, 4}));
 }
 
-// (Power-set 𝔓 moved to dedekind.topology:powerset, #830 — it is a Set over the
-// subobject domain Sub(C), decided by the subset order downstream of :sets. Its
-// tests live in the topology layer, topology/powerset_test.cpp.)
+// (The ordered / convex power set 𝔓(setexpr) moved to
+// dedekind.topology:powerset
+// (#830) — a Set over the subobject domain Sub(C), decided by the subset order
+// downstream of :sets; those tests live in topology/powerset_test.cpp.  The one
+// closed form that needs no Sub — 𝔓(∅) = {∅} — stays in :sets and is tested
+// here.)
+TEST_CASE("sets:powerset — 𝔓(∅) = {∅} is a :sets closed form (#830)",
+          "[sets][powerset]") {
+  constexpr auto P0 = 𝔓(Ø<int>{});
+
+  SECTION("𝔓(∅) is a bona-fide IsSet over the empty-set carrier Ø<int>") {
+    STATIC_CHECK(IsSet<std::remove_cvref_t<decltype(P0)>>);
+    STATIC_CHECK(
+        std::same_as<typename std::remove_cvref_t<decltype(P0)>::Domain,
+                     Ø<int>>);
+    STATIC_CHECK(
+        std::same_as<decltype(power_set(Ø<int>{})), decltype(𝔓(Ø<int>{}))>);
+  }
+
+  SECTION("its sole member is ∅ (so |𝔓(∅)| = 1 = 2^0, not the empty set)") {
+    // ∅ ∈ 𝔓(∅): membership is True, which witnesses that 𝔓(∅) is the NON-empty
+    // singleton {∅} --- the honest power set of ∅ --- not ∅ itself.  (Ø == P0
+    // is deliberately unavailable: the Rice wall, so we witness via
+    // membership.)
+    CHECK(bool(P0(Ø<int>{})));
+  }
+}
 
 // ("Relation witnesses preserve ternary logic" moved to
 // relational/relation_core_test with the Relation type and the relates /
