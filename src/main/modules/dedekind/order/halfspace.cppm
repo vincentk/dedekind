@@ -463,6 +463,30 @@ static_assert(IsSubobject<Above<5>, dedekind::sets::Cardinality>,
 static_assert(IsSubobject<Singleton<true>, bool>,
               "a static Singleton is a first-class subobject.");
 
+/** @brief Carrier-aware ordering of two interval-endpoint NTTPs.  Integral
+ *  pivots compare by @b mathematical value through @c std::cmp_less /
+ *  @c std::cmp_equal, so a signed and an unsigned pivot are not silently
+ *  mis-ranked by C++'s usual arithmetic conversions (@c -1 @c > @c 0u is @c
+ *  true as a plain comparison, but @c −1 precedes @c 0 in the carrier order);
+ *  any other carrier uses its native @c < / @c ==.  Interval emptiness and
+ *  subset are decided through these --- never by subtracting endpoints, which
+ *  wraps on an unsigned carrier and overflows a full-range signed interval in a
+ *  constant expression (#835 review). */
+export template <auto A, auto B>
+consteval bool pivot_less() {
+  if constexpr (std::integral<decltype(A)> && std::integral<decltype(B)>)
+    return std::cmp_less(A, B);
+  else
+    return A < B;
+}
+export template <auto A, auto B>
+consteval bool pivot_equal() {
+  if constexpr (std::integral<decltype(A)> && std::integral<decltype(B)>)
+    return std::cmp_equal(A, B);
+  else
+    return A == B;
+}
+
 /** @brief Meet of two opposing halfspaces — an order-theoretic interval. */
 export template <typename T, auto Lo, auto Hi, Strictness SL, Strictness SU,
                  typename L = ClassicalLogic>
@@ -493,32 +517,48 @@ struct OrderInterval
   // built-in integers, plus admission of the variant carriers.
   static constexpr bool is_integer_range = IsRingIntegral<T>;
 
+  // @brief Whether the interval denotes the empty set (χ ≡ False), decided
+  // from the bounds by ORDER comparison alone --- never by subtracting the
+  // endpoints, which wraps on an unsigned carrier (an inverted @c (5u,3u) would
+  // read non-empty) and overflows a full-range signed interval in constant
+  // evaluation (#835 review).  Degenerate constructions are representable, so
+  // the subset test in :inclusion must recognise them: @f$\emptyset \subseteq
+  // X@f$ for every @c X.  Discrete carriers additionally empty on an open
+  // integer gap (@c (5,6) has no member); the successor @c Lo+1 is formed only
+  // in the @c Lo<Hi arm, hence below the ceiling, so it cannot overflow.
+  // Continuous carriers use endpoint degeneracy (@c Lo>Hi, or @c Lo==Hi with an
+  // open end --- @c [5,5] is the singleton, not empty).
+  static constexpr bool is_empty = [] {
+    if constexpr (is_integer_range) {
+      if constexpr (SL == Strictness::NonStrict && SU == Strictness::NonStrict)
+        return pivot_less<Hi, Lo>();  // [Lo,Hi]: empty ⟺ Hi < Lo
+      else if constexpr (SL == Strictness::Strict && SU == Strictness::Strict) {
+        // (Lo,Hi): empty ⟺ no integer strictly between, i.e. Hi ≤ Lo+1.
+        if constexpr (!pivot_less<Lo, Hi>())
+          return true;  // Lo ≥ Hi: already empty (and guards Lo+1 below)
+        else
+          return !pivot_less<Lo + 1, Hi>();  // Lo<Hi ⟹ Lo<max ⟹ Lo+1 safe
+      } else
+        return !pivot_less<Lo, Hi>();  // half-open: empty ⟺ Lo ≥ Hi
+    } else {
+      return pivot_less<Hi, Lo>() ||
+             (pivot_equal<Lo, Hi>() &&
+              (SL == Strictness::Strict || SU == Strictness::Strict));
+    }
+  }();
+
   constexpr std::size_t size() const
     requires is_integer_range
   {
+    if constexpr (is_empty)
+      return 0u;  // subtraction-free emptiness; keeps
+                  // size() consistent with is_empty and
+                  // dodges the inverted-endpoint wrap.
     constexpr bool lo_open = (SL == Strictness::Strict);
     constexpr bool hi_open = (SU == Strictness::Strict);
     constexpr auto span = Hi - Lo + (lo_open ? 0 : 1) + (hi_open ? -1 : 0);
     return span > 0 ? static_cast<std::size_t>(span) : 0u;
   }
-
-  // @brief Whether the interval denotes the empty set (χ ≡ False), decided
-  // from the bounds alone.  Degenerate constructions are representable
-  // (@c size() already returns 0 for them), so downstream reasoning --- the
-  // subset test in :inclusion --- must recognise them: @f$\emptyset \subseteq
-  // X@f$ for every @c X.  Discrete carriers use the @c size() span (an open
-  // integer gap like @c (5,6) is empty too); continuous carriers, which have
-  // no @c size(), use endpoint degeneracy (@c Lo > @c Hi, or @c Lo == @c Hi
-  // with either side open --- @c [5,5] is the singleton, not empty).
-  static constexpr bool is_empty = [] {
-    if constexpr (is_integer_range) {
-      return !((Hi - Lo + (SL == Strictness::Strict ? 0 : 1) +
-                (SU == Strictness::Strict ? -1 : 0)) > 0);
-    } else {
-      return (Lo > Hi) || (Lo == Hi && (SL == Strictness::Strict ||
-                                        SU == Strictness::Strict));
-    }
-  }();
 
   // Advertise Finite only when the cardinality is computable.
   using cardinality_type = std::conditional_t<is_integer_range, Finite, ℵ_0>;

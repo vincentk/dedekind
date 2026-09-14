@@ -122,12 +122,18 @@ constexpr typename L::Ω operator<=(
   if constexpr (OrderInterval<T, ALo, AHi, ASL, ASU, L>::is_empty) {
     return L::True;  // ∅ ⊆ X
   } else {
+    // Endpoint containment through the carrier-aware order (pivot_less /
+    // pivot_equal), not raw NTTP comparison: a signed and an unsigned pivot
+    // must rank by mathematical value, not by C++'s usual conversions (#835
+    // review).  A's lower end sits inside B, and dually its upper end.
     constexpr bool lower =
-        (ALo > BLo) || (ALo == BLo && !(ASL == Strictness::NonStrict &&
-                                        BSL == Strictness::Strict));
+        pivot_less<BLo, ALo>() ||
+        (pivot_equal<ALo, BLo>() &&
+         !(ASL == Strictness::NonStrict && BSL == Strictness::Strict));
     constexpr bool upper =
-        (AHi < BHi) || (AHi == BHi && !(ASU == Strictness::NonStrict &&
-                                        BSU == Strictness::Strict));
+        pivot_less<AHi, BHi>() ||
+        (pivot_equal<AHi, BHi>() &&
+         !(ASU == Strictness::NonStrict && BSU == Strictness::Strict));
     return (lower && upper) ? L::True : L::False;
   }
 }

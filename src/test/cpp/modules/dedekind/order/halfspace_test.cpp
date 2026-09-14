@@ -11,6 +11,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <concepts>
+#include <limits>
 #include <type_traits>
 #include <utility>
 
@@ -440,5 +441,34 @@ TEST_CASE("order:halfspace — structural subset ⊆ and derived >=,<,> (#831)",
     static_assert(bool(empty <= i01), "∅ ⊆ [0,1] despite disjoint endpoints");
     static_assert(bool(i01 >= empty), "[0,1] ⊇ ∅ (derived)");
     CHECK(bool(empty <= i01));
+  }
+
+  SECTION("emptiness/subset are overflow- and sign-safe (#835 re-review)") {
+    // (a) Inverted endpoints must NOT wrap to a huge span: (5,3) is empty, and
+    //     size() agrees (the old `Hi - Lo` on unsigned read non-empty).
+    static_assert(OrderInterval<int, 5, 3, Strictness::Strict,
+                                Strictness::Strict>::is_empty,
+                  "(5,3) is empty, not a wrapped span");
+    // (b) A full-range interval must COMPILE: INT_MAX - INT_MIN overflows a
+    //     constant expression, so emptiness cannot subtract the endpoints.
+    constexpr OrderInterval<int, std::numeric_limits<int>::min(),
+                            std::numeric_limits<int>::max(),
+                            Strictness::NonStrict, Strictness::NonStrict>
+        full{};
+    static_assert(!decltype(full)::is_empty, "[INT_MIN,INT_MAX] is non-empty");
+    // (c) Open integer gap (5,6): adjacent endpoints, no member.
+    static_assert(OrderInterval<int, 5, 6, Strictness::Strict,
+                                Strictness::Strict>::is_empty,
+                  "(5,6) has no integer strictly between");
+    // (d) The carrier-aware endpoint order (through which both is_empty and the
+    //     interval ⊆ decide) ranks mixed signed/unsigned pivots by mathematical
+    //     value, not by C++'s usual conversions: −1 precedes 0u, though the raw
+    //     `-1 < 0u` is false (−1 converts to a huge unsigned).  A whole mixed-
+    //     sign interval is independently ill-formed (its χ trips -Wsign-compare
+    //     on `x > Lo`), so the comparison primitive is what carries soundness.
+    static_assert(pivot_less<-1, 0u>(), "−1 < 0u by value");
+    static_assert(!pivot_less<0u, -1>(), "0u is not < −1");
+    static_assert(pivot_equal<0, 0u>(), "0 == 0u by value");
+    static_assert(!pivot_equal<-1, 0u>(), "−1 ≠ 0u");
   }
 }
