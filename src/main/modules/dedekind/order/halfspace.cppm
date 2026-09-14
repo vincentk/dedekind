@@ -428,11 +428,81 @@ constexpr auto operator~(const Halfspace<T, Pivot, D, S, L>&) {
  *  whenever @c S's χ is.  Mirrors @c SingletonSet::operator<=; the universal
  *  set is excluded so its own @c X @c ⊆ @c Ω overload stays unambiguous. */
 export template <auto V, typename L, typename S>
-  requires(dedekind::category::IsSet<S> &&
-           std::same_as<typename S::logic_species, L> &&
-           !requires { typename S::is_universal_boundary; })
+  requires(
+      dedekind::category::IsSet<S> &&
+      std::same_as<typename S::logic_species, L> &&
+      !requires { typename S::is_universal_boundary; } &&
+      requires(const S& s) { s(V); })
 constexpr typename L::Ω operator<=(const Singleton<V, L>&, const S& other) {
-  return other.contains(V);
+  return other(
+      V);  // the classifier χ (IsSet guarantees operator(), not contains)
+}
+
+/** @section halfspace__Subobject_Order — the order on sets, derived (#831).
+ *
+ *  @details The subset order is the lattice identity @f$A \subseteq B \iff A
+ *  \cap B = A@f$ (Birkhoff §1.4; @c category::IsSubobjectLattice documents the
+ *  same equivalence), and the dual / strict relations derive from @c <= and
+ *  @c ==.  These forwarders live in @c :order --- not @c :sets --- so they can
+ *  name the order concepts they @b provide (@c HasPartialOrderOperators).
+ *
+ *  Why a bespoke gate rather than @c order:HasLatticeOperators: that concept
+ *  requires closure to @c T (@c {a @c & @c b} @c -> @c T, @c {~a} @c -> @c T),
+ *  but a subobject is a @b type-level lattice --- @c ~{x>5} @c = @c {x<=5} is a
+ *  @b different type --- so the value-level concept does not fit.  The gate is
+ *  the type-level shape instead: set-like carriers (a @c logic_species) sharing
+ *  one logic species (cross-logic mereology needs an explicit embedding,
+ *  @c sets/singleton.cppm), whose meet-then-equality is a truth value. */
+template <typename A, typename B>
+concept MeetSubset =
+    std::same_as<typename A::logic_species, typename B::logic_species> &&
+    requires(const A& a, const B& b) {
+      { (a & b) == a } -> std::convertible_to<bool>;
+    };
+
+/** @brief @f$A \subseteq B \iff A \cap B = A@f$: the default subset, derived
+ *  from the meet and equality every carrier supplies.  Decidable exactly where
+ *  the structured meet collapses so @c == can compare (else no overload, an
+ *  honest compile error --- the @c exists / @c forall wall).  More-specialized
+ *  per-carrier @c <= (@c Set / @c Ø / @c UniversalSet, the @c Singleton
+ *  membership above) win by partial ordering; this fills the gaps
+ *  (@c Halfspace ⊆ @c Halfspace). */
+export template <typename A, typename B>
+  requires MeetSubset<A, B>
+constexpr typename A::logic_species::Ω operator<=(const A& a, const B& b) {
+  using L = typename A::logic_species;
+  return ((a & b) == a) ? L::True : L::False;
+}
+
+/** @brief Gate for the derived relations: a truth-valued @c <= (however
+ *  provided --- generic or per-carrier) plus a @c bool @c ==, in one logic. */
+template <typename A, typename B>
+concept SubsetComparable =
+    std::same_as<typename A::logic_species, typename B::logic_species> &&
+    requires(const A& a, const B& b) {
+      { a <= b } -> std::convertible_to<typename A::logic_species::Ω>;
+      { a == b } -> std::convertible_to<bool>;
+    };
+
+/** @brief Superset @c >=, proper subset @c < (@f$A \subseteq B \wedge A \neq
+ *  B@f$), proper superset @c > --- each once from @c <= and @c ==, combined in
+ *  the ambient logic.  Together they supply @c HasPartialOrderOperators. */
+export template <typename A, typename B>
+  requires SubsetComparable<B, A>
+constexpr typename A::logic_species::Ω operator>=(const A& a, const B& b) {
+  return b <= a;  // A ⊇ B  :=  B ⊆ A
+}
+export template <typename A, typename B>
+  requires SubsetComparable<A, B>
+constexpr typename A::logic_species::Ω operator<(const A& a, const B& b) {
+  using L = typename A::logic_species;
+  return L::AND(a <= b, (a == b) ? L::False : L::True);  // A ⊊ B
+}
+export template <typename A, typename B>
+  requires SubsetComparable<B, A>
+constexpr typename A::logic_species::Ω operator>(const A& a, const B& b) {
+  using L = typename A::logic_species;
+  return L::AND(b <= a, (a == b) ? L::False : L::True);  // A ⊋ B := B ⊊ A
 }
 
 /** @brief Complement-pair join: same pivot, opposite direction, flipped
