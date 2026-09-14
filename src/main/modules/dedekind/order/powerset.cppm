@@ -12,7 +12,13 @@
  *     (X \mapsto X \subseteq S), @f]
  * an ordinary @c Set over the subobject domain @c Sub(C).  So @c 𝔓(S) is a
  * bona-fide @c IsSet and inherits the lattice laws (@c &Ø=Ø, @c |Ω=Ω) and
- * grammar-composability from the set machinery, with no bespoke carrier.
+ * @b setexpr @b participation --- meet / join / filter as any @c Set --- from
+ * the set machinery, with no bespoke carrier.  (This is @b not
+ * self-composition:
+ * @c 𝔓(𝔓(S)) is @b not decidable-convex --- @f$\downarrow\!S@f$, the principal
+ * ideal @f$\{X : X \subseteq S\}@f$, is a down-set in @c Sub(C), not a convex
+ * @c Sub value --- so nested @c 𝔓 correctly meets the honest wall, like any
+ * non-convex base.)
  *
  * @c Sub(C) is the gated part (the @c exists / @c forall pattern: an algebraic
  * default lifted by decidable specialisations).  Over an @b ordered carrier the
@@ -39,7 +45,13 @@
  * decided on structure, not on avoiding a clash.)
  *
  * @build_order (order layer)
- * @dependency :category, :sets, :halfspace, :inclusion
+ * @dependency :category, :sets, :total, :halfspace, :inclusion
+ *
+ * Wikipedia: Power set, Subobject, Interval (mathematics)
+ *
+ * @note "A set is a Many that allows itself to be thought of as a One."
+ *       --- Georg Cantor (letter to Dedekind, 1899).  @f$\mathfrak{P}(S)@f$
+ *       reifies "the subobjects of @c S" as one @c Set, over one carrier.
  */
 
 module;
@@ -50,7 +62,8 @@ export module dedekind.order:powerset;
 
 import dedekind.category;
 import dedekind.sets; // Ø, UniversalSet, Set, SetShaped (the deleted gate)
-import :halfspace;    // Halfspace, Singleton, OrderInterval, Direction, ...
+import :total;        // IsTotallyOrdered --- the ordered-carrier gate
+import :halfspace;    // Halfspace, Singleton, OrderInterval, IsRingIntegral
 import :inclusion;    // the subset order this 𝔓 filters on
 
 namespace dedekind::order {
@@ -81,7 +94,7 @@ struct Sub {
   constexpr Sub() = default;  // Ω
 
   // --- the to_sub coercions (and, structurally, the 𝔓 gate) ---
-  constexpr Sub(const dedekind::sets::Ø<C, L>&) : empty(true) {}
+  constexpr Sub(const dedekind::sets::Ø<C, L>&) : empty(true) { normalize(); }
   template <typename Card>
   constexpr Sub(const dedekind::sets::UniversalSet<C, L, Card>&) {}  // Ω
   template <auto V>
@@ -94,10 +107,14 @@ struct Sub {
         hi_strict(Strictness::NonStrict) {}
   template <auto P, Strictness S>
   constexpr Sub(const Halfspace<C, P, Direction::Upward, S, L>&)
-      : lo(P), lo_unbounded(false), lo_strict(S) {}  // (P, +∞)
+      : lo(P), lo_unbounded(false), lo_strict(S) {
+    normalize();
+  }  // (P, +∞)
   template <auto P, Strictness S>
   constexpr Sub(const Halfspace<C, P, Direction::Downward, S, L>&)
-      : hi(P), hi_unbounded(false), hi_strict(S) {}  // (−∞, P)
+      : hi(P), hi_unbounded(false), hi_strict(S) {
+    normalize();
+  }  // (−∞, P)
   template <auto Lo, auto Hi, Strictness SL, Strictness SU>
   constexpr Sub(const OrderInterval<C, Lo, Hi, SL, SU, L>&)
       : lo(Lo),
@@ -106,7 +123,9 @@ struct Sub {
         hi_unbounded(false),
         lo_strict(SL),
         hi_strict(SU),
-        empty(OrderInterval<C, Lo, Hi, SL, SU, L>::is_empty) {}
+        empty(OrderInterval<C, Lo, Hi, SL, SU, L>::is_empty) {
+    normalize();
+  }
 
   /** @brief χ: is @c x in this interval? */
   constexpr typename L::Ω operator()(const C& x) const {
@@ -129,6 +148,43 @@ struct Sub {
     return lo == o.lo && hi == o.hi && lo_unbounded == o.lo_unbounded &&
            hi_unbounded == o.hi_unbounded && lo_strict == o.lo_strict &&
            hi_strict == o.hi_strict;
+  }
+
+ private:
+  /** @brief Canonicalise to @b effective closed bounds on a DISCRETE carrier
+   * --- the runtime sibling of the #835 @c eff_lower / @c eff_upper
+   * normalisation. Over an @c IsRingIntegral carrier @c {x>3} and @c {x>=4} are
+   * the same subobject, and @c (1,4) = @c [2,3]; folding every strict finite
+   * bound to its closed successor / predecessor makes those ONE @c Sub value,
+   * so both @c == and @c <= (and hence @c 𝔓 membership) match extension.  A @b
+   * continuous carrier keeps its open/closed distinction untouched (@c (1,4) !=
+   * @c [1,4]). Empty (any carrier) collapses to a single canonical
+   * @f$\emptyset@f$.
+   *  FIXME(#838): a strict bound AT the carrier extremum overflows the
+   *  @c +1/@c -1; that boundary-pivot corner is #838's carrier-native / clamped
+   *  effective-bound story (never produced by @c structured_and / the DSL). */
+  constexpr void normalize() {
+    if constexpr (IsRingIntegral<C>) {
+      if (!empty) {
+        if (!lo_unbounded && lo_strict == Strictness::Strict) {
+          lo = static_cast<C>(lo + C{1});
+          lo_strict = Strictness::NonStrict;
+        }
+        if (!hi_unbounded && hi_strict == Strictness::Strict) {
+          hi = static_cast<C>(hi - C{1});
+          hi_strict = Strictness::NonStrict;
+        }
+        if (!lo_unbounded && !hi_unbounded && lo > hi) empty = true;
+      }
+    }
+    if (empty) {  // one canonical ∅ (dead bound fields), every carrier
+      lo = C{};
+      hi = C{};
+      lo_unbounded = false;
+      hi_unbounded = false;
+      lo_strict = Strictness::Strict;
+      hi_strict = Strictness::Strict;
+    }
   }
 };
 
@@ -164,14 +220,16 @@ struct SubsetOf {
 };
 
 /** @brief A base that reifies as an ordered-carrier subobject @c Sub(C): it is
- *  @c SetShaped @b and coerces to @c Sub via one of the converting constructors
- *  above.  The single gate concept for both @c power_set and @c 𝔓 (DRY), and
- *  --- because it conjoins the very @c SetShaped atom the @c :sets default is
- *  constrained on --- it @b subsumes that deleted gate, so it wins by partial
- *  ordering for the ordered families. */
+ *  @c SetShaped, its carrier is @b totally @b ordered (the enabler --- so the
+ *  gate itself, not a later membership call, rejects an unordered carrier), @b
+ *  and it coerces to @c Sub via one of the converting constructors above.  The
+ *  single gate concept for both @c power_set and @c 𝔓 (DRY), and --- because it
+ *  conjoins the very @c SetShaped atom the @c :sets default is constrained on
+ * --- it @b subsumes that deleted gate, so it wins by partial ordering for the
+ *  ordered families. */
 export template <typename S>
 concept SubReifiable =
-    dedekind::sets::SetShaped<S> &&
+    dedekind::sets::SetShaped<S> && IsTotallyOrdered<typename S::Domain> &&
     std::convertible_to<S, Sub<typename S::Domain, typename S::logic_species>>;
 
 /** @brief @f$\mathfrak{P}(S) = \Omega\langle\mathrm{Sub}(C)\rangle \mid

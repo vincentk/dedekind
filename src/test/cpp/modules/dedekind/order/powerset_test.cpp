@@ -67,6 +67,28 @@ TEST_CASE("order:powerset — 𝔓(S) is a bona-fide IsSet over Sub(C) (#830)",
     STATIC_CHECK(bool(from_oi <= from_bottom));  // and mutually nested
   }
 
+  SECTION(
+      "discrete bounds canonicalise: {x>3} = {x>=4}, (1,4) = [2,3] over int") {
+    using D = Sub<int, ClassicalLogic>;
+    // Mixed strictness that denotes the SAME subobject over a discrete carrier
+    // must be ONE Sub value (effective-bound normalisation, the #835 sibling).
+    constexpr Halfspace<int, 3, Direction::Upward, Strictness::Strict> gt3s{};
+    constexpr Halfspace<int, 4, Direction::Upward, Strictness::NonStrict> ge4{};
+    constexpr D a = gt3s;  // {x>3}
+    constexpr D b = ge4;   // {x>=4}
+    STATIC_CHECK(a == b);  // same subobject, one value
+    // and 𝔓 membership agrees across the two spellings (the CP finding):
+    constexpr auto P = 𝔓(ge4);  // 𝔓({x>=4})
+    CHECK(bool(P(gt3s)));       // {x>3} ⊆ {x>=4} (extensionally equal)
+    // open (1,4) and closed [2,3] both denote {2,3}:
+    constexpr OrderInterval<int, 1, 4, Strictness::Strict, Strictness::Strict>
+        open14{};
+    constexpr OrderInterval<int, 2, 3, Strictness::NonStrict,
+                            Strictness::NonStrict>
+        closed23{};
+    STATIC_CHECK(static_cast<D>(open14) == static_cast<D>(closed23));
+  }
+
   SECTION("lattice: 𝔓(S) plugs into the set lattice (Ø & 𝔓(S) = Ø)") {
     constexpr auto P = 𝔓(gt3);
     using D = Sub<int, ClassicalLogic>;
@@ -81,5 +103,10 @@ TEST_CASE("order:powerset — 𝔓(S) is a bona-fide IsSet over Sub(C) (#830)",
     // requires-expression is not cleanly SFINAE under clang).
     STATIC_CHECK(!SetShaped<int>);
     STATIC_CHECK(SetShaped<decltype(gt3)>);
+    // The ordered overload's gate additionally requires a totally-ordered
+    // carrier (so an unordered carrier is rejected AT the gate, not at a later
+    // membership call): the ordered family passes it.
+    STATIC_CHECK(SubReifiable<decltype(gt3)>);
+    STATIC_CHECK(IsTotallyOrdered<int>);
   }
 }
