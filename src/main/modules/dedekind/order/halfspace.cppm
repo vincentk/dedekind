@@ -1146,9 +1146,12 @@ constexpr UnboundSingleton<V> operator==(Projection<0>, Bound<V>) {
 // union operator| on a UniversalSet (that one takes a Set).
 export template <typename T, typename L, typename C, Direction D, Strictness S,
                  auto V>
-constexpr Halfspace<T, V, D, S, L> operator|(const UniversalSet<T, L, C>&,
-                                             const UnboundHalfspace<D, S, V>&) {
-  return {};
+constexpr auto operator|(const UniversalSet<T, L, C>&,
+                         const UnboundHalfspace<D, S, V>&) {
+  // Through the factory (#837 review): a degenerate binder collapses like any
+  // other construction --- @c Ω<bool> | (π > fix(true_c)) is @c {x>true} = Ø,
+  // not a raw (gate-tripping) halfspace.
+  return make_halfspace<T, V, D, S, L>();
 }
 // Restricted to a carrier whose value type IS the pivot's type: Singleton<V,L>
 // has Domain = decltype(V), so a mismatch (e.g. ℕ | π == fix(5_c), Cardinality
