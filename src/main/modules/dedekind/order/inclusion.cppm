@@ -125,7 +125,10 @@ constexpr typename L::Ω operator<=(
     // Endpoint containment through the carrier-aware order (pivot_less /
     // pivot_equal), not raw NTTP comparison: a signed and an unsigned pivot
     // must rank by mathematical value, not by C++'s usual conversions (#835
-    // review).  A's lower end sits inside B, and dually its upper end.
+    // review).  A's lower end sits inside B, and dually its upper end.  Sound
+    // for the integer-valued bounds structured_and emits; two directly-built
+    // FRACTIONAL intervals that denote the same discrete set are the deferred
+    // corner (#838).
     constexpr bool lower =
         pivot_less<BLo, ALo>() ||
         (pivot_equal<ALo, BLo>() &&

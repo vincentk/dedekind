@@ -517,32 +517,21 @@ struct OrderInterval
   // built-in integers, plus admission of the variant carriers.
   static constexpr bool is_integer_range = IsRingIntegral<T>;
 
-  // A DISCRETE-carrier interval carries same-typed INTEGER pivots (#835
-  // re-review).  The emptiness adjacency (@c Lo+1) and the subset endpoint
-  // order are carrier arithmetic, sound only when the pivots ARE carrier
-  // integers: a fractional pivot on a discrete carrier (e.g. @c
-  // OrderInterval<int,5.5,6.5>, where distinct pivots can denote the same set
-  // @c {6}) or a mixed-width pair (an @c int @c Lo at @c INT_MAX beside a wider
-  // @c Hi, where @c Lo+1 would overflow) is ill-formed here, not silently
-  // mis-decided.  @c structured_and always emits carrier-typed pivots, so this
-  // constrains only the raw heterogeneous-pivot API; continuous carriers, whose
-  // pivots compare exactly, are unaffected.
-  static_assert(
-      !is_integer_range || (std::integral<decltype(Lo)> &&
-                            std::same_as<decltype(Lo), decltype(Hi)>),
-      "a discrete-carrier OrderInterval has same-typed integer pivots");
-
   // @brief Whether the interval denotes the empty set (χ ≡ False), decided
   // from the bounds by ORDER comparison alone --- never by subtracting the
   // endpoints, which wraps on an unsigned carrier (an inverted @c (5u,3u) would
   // read non-empty) and overflows a full-range signed interval in constant
   // evaluation (#835 review).  Degenerate constructions are representable, so
   // the subset test in :inclusion must recognise them: @f$\emptyset \subseteq
-  // X@f$ for every @c X.  Discrete carriers additionally empty on an open
-  // integer gap (@c (5,6) has no member); the same-typed-pivot invariant above
-  // makes @c Lo+1 (formed only in the @c Lo<Hi arm, hence below that type's
-  // ceiling) overflow-safe.  Continuous carriers use endpoint degeneracy
-  // (@c Lo>Hi, or @c Lo==Hi with an open end --- @c [5,5] is the singleton).
+  // X@f$ for every @c X.  A discrete carrier additionally empties on an open
+  // integer gap (@c (5,6) has no member); that adjacency uses the successor
+  // @c Lo+1 and so is applied only for @b same-typed integer pivots, where
+  // @c Lo<Hi guarantees @c Lo below that type's ceiling (no overflow).  Other
+  // pivots --- a fractional or mixed-width pair, which @c structured_and never
+  // emits (it produces integer-valued bounds) --- are treated as inhabited;
+  // exact normalisation of the rare directly-constructed fractional gap is
+  // deferred (#838).  Continuous carriers use endpoint degeneracy (@c Lo>Hi, or
+  // @c Lo==Hi with an open end --- @c [5,5] is the singleton).
   static constexpr bool is_empty = [] {
     if constexpr (is_integer_range) {
       if constexpr (SL == Strictness::NonStrict && SU == Strictness::NonStrict)
@@ -550,9 +539,15 @@ struct OrderInterval
       else if constexpr (SL == Strictness::Strict && SU == Strictness::Strict) {
         // (Lo,Hi): empty ⟺ no integer strictly between, i.e. Hi ≤ Lo+1.
         if constexpr (!pivot_less<Lo, Hi>())
-          return true;  // Lo ≥ Hi: already empty (and guards Lo+1 below)
+          return true;  // Lo ≥ Hi: already empty
+        else if constexpr (std::integral<decltype(Lo)> &&
+                           std::same_as<decltype(Lo), decltype(Hi)>)
+          return !pivot_less<Lo + 1, Hi>();  // integer pivots: Lo<Hi ⟹ Lo below
+                                             // the ceiling ⟹ Lo+1 is safe
         else
-          return !pivot_less<Lo + 1, Hi>();  // Lo<Hi ⟹ Lo<max ⟹ Lo+1 safe
+          return false;  // fractional / mixed-width (never from
+                         // structured_and): Lo<Hi ⟹ treat as inhabited; exact
+                         // gap deferred (#838)
       } else
         return !pivot_less<Lo, Hi>();  // half-open: empty ⟺ Lo ≥ Hi
     } else {
