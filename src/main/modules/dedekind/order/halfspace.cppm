@@ -438,68 +438,74 @@ constexpr typename L::Ω operator<=(const Singleton<V, L>&, const S& other) {
       V);  // the classifier χ (IsSet guarantees operator(), not contains)
 }
 
-/** @section halfspace__Subobject_Order — the order on sets, derived (#831).
+/** @section halfspace__Subobject_Order — subset on subobject lattices (#831).
  *
- *  @details The subset order is the lattice identity @f$A \subseteq B \iff A
- *  \cap B = A@f$ (Birkhoff §1.4; @c category::IsSubobjectLattice documents the
- *  same equivalence), and the dual / strict relations derive from @c <= and
- *  @c ==.  These forwarders live in @c :order --- not @c :sets --- so they can
- *  name the order concepts they @b provide (@c HasPartialOrderOperators).
+ *  @details Subset is the lattice identity @f$A \subseteq B \iff A \cap B =
+ *  A@f$ (Birkhoff §1.4), gated on the canonical ladder rung @c
+ *  category::IsSubobjectLattice, with the strict / dual relations derived from
+ *  @c <= and @c ==.  They live in @c :order (not @c :sets) so they can name the
+ *  order concepts they @b provide (@c HasPartialOrderOperators).
  *
- *  Why a bespoke gate rather than @c order:HasLatticeOperators: that concept
- *  requires closure to @c T (@c {a @c & @c b} @c -> @c T, @c {~a} @c -> @c T),
- *  but a subobject is a @b type-level lattice --- @c ~{x>5} @c = @c {x<=5} is a
- *  @b different type --- so the value-level concept does not fit.  The gate is
- *  the type-level shape instead: set-like carriers (a @c logic_species) sharing
- *  one logic species (cross-logic mereology needs an explicit embedding,
- *  @c sets/singleton.cppm), whose meet-then-equality is a truth value. */
+ *  It computes via the @b structural @c & operator, @b not the CT-vocabulary
+ *  @c meet: the two diverge for structured carriers --- @c meet
+ *  (@c set_intersection) materialises an opaque conjunction, while @c & rides
+ *  @c structured_and and @b collapses (@c {x>5} @c ∩ @c {x>3} @c = @c {x>5}),
+ * so only @c & makes the subset @b decidable.  Converging @c meet onto @c & is
+ * a separate refactor blocked by @c set_intersection's return-type contract
+ *  (@c IsSet / the product depend on its uniform @c Subobject result); tracked
+ *  in #834. */
 template <typename A, typename B>
-concept MeetSubset =
-    std::same_as<typename A::logic_species, typename B::logic_species> &&
-    requires(const A& a, const B& b) {
-      { (a & b) == a } -> std::convertible_to<bool>;
-    };
+concept SubobjectLatticePair =
+    dedekind::category::IsSubobjectLattice<A> &&
+    dedekind::category::IsSubobjectLattice<B> &&
+    std::same_as<typename A::Domain, typename B::Domain> &&
+    std::same_as<typename A::logic_species, typename B::logic_species>;
 
-/** @brief @f$A \subseteq B \iff A \cap B = A@f$: the default subset, derived
- *  from the meet and equality every carrier supplies.  Decidable exactly where
- *  the structured meet collapses so @c == can compare (else no overload, an
- *  honest compile error --- the @c exists / @c forall wall).  More-specialized
+/** @brief @f$A \subseteq B \iff A \cap B = A@f$ on a pair of subobject
+ *  lattices.  Decidable exactly where the structural @c & collapses so @c ==
+ *  can compare; otherwise the @c requires gate leaves an honest compile error
+ *  (the @c exists / @c forall wall), never a guess.  More-specialized
  *  per-carrier @c <= (@c Set / @c Ø / @c UniversalSet, the @c Singleton
  *  membership above) win by partial ordering; this fills the gaps
  *  (@c Halfspace ⊆ @c Halfspace). */
 export template <typename A, typename B>
-  requires MeetSubset<A, B>
+  requires(SubobjectLatticePair<A, B> &&
+           requires(const A& a, const B& b) {
+             { (a & b) == a } -> std::convertible_to<bool>;
+           })
 constexpr typename A::logic_species::Ω operator<=(const A& a, const B& b) {
   using L = typename A::logic_species;
-  return ((a & b) == a) ? L::True : L::False;
+  return ((a & b) == a) ? L::True
+                        : L::False;  // A ⊆ B ⟺ A ∩ B = A (structural &)
 }
-
-/** @brief Gate for the derived relations: a truth-valued @c <= (however
- *  provided --- generic or per-carrier) plus a @c bool @c ==, in one logic. */
-template <typename A, typename B>
-concept SubsetComparable =
-    std::same_as<typename A::logic_species, typename B::logic_species> &&
-    requires(const A& a, const B& b) {
-      { a <= b } -> std::convertible_to<typename A::logic_species::Ω>;
-      { a == b } -> std::convertible_to<bool>;
-    };
 
 /** @brief Superset @c >=, proper subset @c < (@f$A \subseteq B \wedge A \neq
  *  B@f$), proper superset @c > --- each once from @c <= and @c ==, combined in
  *  the ambient logic.  Together they supply @c HasPartialOrderOperators. */
 export template <typename A, typename B>
-  requires SubsetComparable<B, A>
+  requires(SubobjectLatticePair<A, B> &&
+           requires(const A& a, const B& b) {
+             { b <= a } -> std::convertible_to<typename A::logic_species::Ω>;
+           })
 constexpr typename A::logic_species::Ω operator>=(const A& a, const B& b) {
   return b <= a;  // A ⊇ B  :=  B ⊆ A
 }
 export template <typename A, typename B>
-  requires SubsetComparable<A, B>
+  requires(SubobjectLatticePair<A, B> &&
+           requires(const A& a, const B& b) {
+             { a <= b } -> std::convertible_to<typename A::logic_species::Ω>;
+             { a == b } -> std::convertible_to<bool>;
+           })
 constexpr typename A::logic_species::Ω operator<(const A& a, const B& b) {
   using L = typename A::logic_species;
   return L::AND(a <= b, (a == b) ? L::False : L::True);  // A ⊊ B
 }
 export template <typename A, typename B>
-  requires SubsetComparable<B, A>
+  requires(SubobjectLatticePair<A, B> &&
+           requires(const A& a, const B& b) {
+             { b <= a } -> std::convertible_to<typename A::logic_species::Ω>;
+             { a == b } -> std::convertible_to<bool>;
+           })
 constexpr typename A::logic_species::Ω operator>(const A& a, const B& b) {
   using L = typename A::logic_species;
   return L::AND(b <= a, (a == b) ? L::False : L::True);  // A ⊋ B := B ⊊ A

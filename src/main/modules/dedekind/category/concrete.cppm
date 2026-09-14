@@ -201,18 +201,36 @@ concept IsCompatibleSetPair =
     std::same_as<std::invoke_result_t<S1 const&, typename S1::Domain const&>,
                  std::invoke_result_t<S2 const&, typename S2::Domain const&>>;
 
+/** @brief The general intersection classifier @f$\chi_{A\cap B} = \chi_A \wedge
+ *  \chi_B@f$ as a @b named predicate (no lambda; #831/#365): stores the two
+ *  carriers-as-predicates and @c AND-s their @c χ pointwise.  Only reached for
+ *  @b unstructured operands --- the decidable/structured cases route through
+ *  @c operator& / @c structured_and first (see @c set_intersection). */
+export template <typename S1, typename S2, typename L>
+struct ConjunctionChi {
+  S1 lhs;
+  S2 rhs;
+  template <typename A>
+  constexpr auto operator()(const A& a) const {
+    return L::AND(lhs(a), rhs(a));
+  }
+};
+
 /** @brief Set intersection: materialize @c A @c ∩ @c B from the
- *         carriers-as-predicates @c S1, @c S2.  Post-#681 structural
- *         refactor: invocation @c s(a) replaces named @c s.χ access;
- *         the meet uses @c L::AND directly so the operation works for
- *         any @c IsLogicalSpecies @c L (not just @c bool / @c Ternary
- *         where C++ @c operator&& happens to be defined). */
+ *         carriers-as-predicates.  The classifier is the named
+ *         @c ConjunctionChi (no lambda; #831/#365) --- same @c classify-@c
+ *         Subobject return contract that @c IsSet / @c HasETCSAxioms / the
+ *         product depend on.  (Structural collapse of the decidable cases is a
+ *         separate concern: it belongs to @c operator&, whose result type
+ *         differs, so @c set_intersection can @b not simply route through it
+ *         without breaking that contract --- see the divergence note in #831.)
+ */
 export template <typename S1, typename S2>
   requires IsCompatibleSetPair<S1, S2>
 constexpr auto set_intersection(const S1& lhs, const S2& rhs) {
   using A = typename S1::Domain;
   using L = typename GetLogic<std::invoke_result_t<S1 const&, A const&>>::type;
-  return classify<A>([lhs, rhs](const A& a) { return L::AND(lhs(a), rhs(a)); });
+  return classify<A>(ConjunctionChi<S1, S2, L>{lhs, rhs});
 }
 
 /** @brief Set union: materialize @c A @c ∪ @c B from carriers as
