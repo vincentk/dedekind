@@ -75,82 +75,115 @@ using namespace dedekind::sets;
  *  interval value.  Bounds are @c C values with @c ±∞ (unbounded) flags and an
  *  empty flag; the convex families coerce in via the converting constructors
  *  below (which also @b are the @c 𝔓 gate --- no constructor ⇒ no @c Sub(C)).
- *  @c std::regular (default @c == and members), so @c Set<Sub,…> is an
- *  @c IsSet. */
+ *  Folds onto @c SetExpr (so it is itself a first-class @c IsSubobject / @c
+ *  IsSet) and is @c std::regular, so @c Set<Sub,…> is an @c IsSet and @c Sub
+ *  values are usable in generic set APIs. */
 export template <typename C, typename L = ClassicalLogic>
-struct Sub {
-  C lo{};
-  C hi{};
-  bool lo_unbounded = true;  // default: Ω = (−∞, +∞)
-  bool hi_unbounded = true;
-  Strictness lo_strict = Strictness::Strict;  // open at the infinite ends
-  Strictness hi_strict = Strictness::Strict;
-  bool empty = false;
-
-  using Domain = C;
-  using logic_species = L;
-  using Codomain = typename L::Ω;
+struct Sub : dedekind::sets::SetExpr<Sub<C, L>, C, L> {
+  // Domain / Codomain / logic_species / Member / ι / contains are inherited
+  // from SetExpr (the ETCS subobject surface), exactly as Halfspace / Singleton
+  // / OrderInterval / Ray fold onto it --- so a Sub value is itself a
+  // first-class IsSubobject / IsSet (pinned below), not a bespoke half-surface.
+  // State is PRIVATE and canonicalised at construction (normalize()), so no
+  // caller can fabricate a non-canonical Sub that breaks == / <= / χ.
 
   constexpr Sub() = default;  // Ω
 
   // --- the to_sub coercions (and, structurally, the 𝔓 gate) ---
-  constexpr Sub(const dedekind::sets::Ø<C, L>&) : empty(true) { normalize(); }
+  constexpr Sub(const dedekind::sets::Ø<C, L>&) : empty_(true) { normalize(); }
   template <typename Card>
   constexpr Sub(const dedekind::sets::UniversalSet<C, L, Card>&) {}  // Ω
+  // The singleton's carrier must BE @c C (like the Halfspace / OrderInterval
+  // ctors that fix @c C): otherwise @c Singleton<4.5> would silently narrow
+  // into a @c Sub<int>, testing a different set.  Cross-carrier needs an
+  // explicit order embedding, not an implicit coercion.
   template <auto V>
+    requires std::same_as<decltype(V), C>
   constexpr Sub(const Singleton<V, L>&)
-      : lo(V),
-        hi(V),
-        lo_unbounded(false),
-        hi_unbounded(false),
-        lo_strict(Strictness::NonStrict),
-        hi_strict(Strictness::NonStrict) {}
+      : lo_(V),
+        hi_(V),
+        lo_unbounded_(false),
+        hi_unbounded_(false),
+        lo_strict_(Strictness::NonStrict),
+        hi_strict_(Strictness::NonStrict) {}
   template <auto P, Strictness S>
   constexpr Sub(const Halfspace<C, P, Direction::Upward, S, L>&)
-      : lo(P), lo_unbounded(false), lo_strict(S) {
+      : lo_(P), lo_unbounded_(false), lo_strict_(S) {
     normalize();
   }  // (P, +∞)
   template <auto P, Strictness S>
   constexpr Sub(const Halfspace<C, P, Direction::Downward, S, L>&)
-      : hi(P), hi_unbounded(false), hi_strict(S) {
+      : hi_(P), hi_unbounded_(false), hi_strict_(S) {
     normalize();
   }  // (−∞, P)
   template <auto Lo, auto Hi, Strictness SL, Strictness SU>
   constexpr Sub(const OrderInterval<C, Lo, Hi, SL, SU, L>&)
-      : lo(Lo),
-        hi(Hi),
-        lo_unbounded(false),
-        hi_unbounded(false),
-        lo_strict(SL),
-        hi_strict(SU),
-        empty(OrderInterval<C, Lo, Hi, SL, SU, L>::is_empty) {
+      : lo_(Lo),
+        hi_(Hi),
+        lo_unbounded_(false),
+        hi_unbounded_(false),
+        lo_strict_(SL),
+        hi_strict_(SU),
+        empty_(OrderInterval<C, Lo, Hi, SL, SU, L>::is_empty) {
     normalize();
   }
 
   /** @brief χ: is @c x in this interval? */
   constexpr typename L::Ω operator()(const C& x) const {
-    if (empty) return L::False;
-    const bool lo_ok = lo_unbounded ||
-                       (lo_strict == Strictness::Strict ? (x > lo) : (x >= lo));
-    const bool hi_ok = hi_unbounded ||
-                       (hi_strict == Strictness::Strict ? (x < hi) : (x <= hi));
+    if (empty_) return L::False;
+    const bool lo_ok =
+        lo_unbounded_ ||
+        (lo_strict_ == Strictness::Strict ? (x > lo_) : (x >= lo_));
+    const bool hi_ok =
+        hi_unbounded_ ||
+        (hi_strict_ == Strictness::Strict ? (x < hi_) : (x <= hi_));
     return (lo_ok && hi_ok) ? L::True : L::False;
   }
 
   /** @brief Value equality with @b canonical emptiness: every empty interval
    *  denotes @f$\emptyset@f$ regardless of the (dead) bound fields, so all
    *  empties compare equal (and no empty equals a non-empty).  Non-empty
-   *  intervals compare fieldwise.  Keeps @c Sub a proper @c std::regular value
-   *  whose @c == matches its extension, so @f$\mathfrak{P}@f$ over @c Sub does
-   *  not distinguish two spellings of @f$\emptyset@f$. */
+   *  intervals compare fieldwise (bounds already in canonical form).  Keeps
+   *  @c Sub a proper @c std::regular value whose @c == matches its extension.
+   */
   constexpr bool operator==(const Sub& o) const {
-    if (empty || o.empty) return empty == o.empty;
-    return lo == o.lo && hi == o.hi && lo_unbounded == o.lo_unbounded &&
-           hi_unbounded == o.hi_unbounded && lo_strict == o.lo_strict &&
-           hi_strict == o.hi_strict;
+    if (empty_ || o.empty_) return empty_ == o.empty_;
+    return lo_ == o.lo_ && hi_ == o.hi_ && lo_unbounded_ == o.lo_unbounded_ &&
+           hi_unbounded_ == o.hi_unbounded_ && lo_strict_ == o.lo_strict_ &&
+           hi_strict_ == o.hi_strict_;
+  }
+
+  /** @brief @f$a \subseteq b@f$ --- homogeneous interval nesting (the #835
+   *  endpoint comparison on the canonical runtime bounds).  A hidden friend so
+   *  it reads the private state; @f$\emptyset \subseteq X@f$; a non-empty
+   *  interval is no subset of @c ∅; otherwise @c a's ends sit inside @c b's. */
+  friend constexpr typename L::Ω operator<=(const Sub& a, const Sub& b) {
+    if (a.empty_) return L::True;
+    if (b.empty_) return L::False;
+    const bool lower =
+        b.lo_unbounded_ ||
+        (!a.lo_unbounded_ &&
+         (a.lo_ > b.lo_ ||
+          (a.lo_ == b.lo_ && !(a.lo_strict_ == Strictness::NonStrict &&
+                               b.lo_strict_ == Strictness::Strict))));
+    const bool upper =
+        b.hi_unbounded_ ||
+        (!a.hi_unbounded_ &&
+         (a.hi_ < b.hi_ ||
+          (a.hi_ == b.hi_ && !(a.hi_strict_ == Strictness::NonStrict &&
+                               b.hi_strict_ == Strictness::Strict))));
+    return (lower && upper) ? L::True : L::False;
   }
 
  private:
+  C lo_{};
+  C hi_{};
+  bool lo_unbounded_ = true;  // default: Ω = (−∞, +∞)
+  bool hi_unbounded_ = true;
+  Strictness lo_strict_ = Strictness::Strict;  // open at the infinite ends
+  Strictness hi_strict_ = Strictness::Strict;
+  bool empty_ = false;
+
   /** @brief Canonicalise to @b effective closed bounds on a DISCRETE carrier
    * --- the runtime sibling of the #835 @c eff_lower / @c eff_upper
    * normalisation. Over an @c IsRingIntegral carrier @c {x>3} and @c {x>=4} are
@@ -165,49 +198,34 @@ struct Sub {
    *  effective-bound story (never produced by @c structured_and / the DSL). */
   constexpr void normalize() {
     if constexpr (IsRingIntegral<C>) {
-      if (!empty) {
-        if (!lo_unbounded && lo_strict == Strictness::Strict) {
-          lo = static_cast<C>(lo + C{1});
-          lo_strict = Strictness::NonStrict;
+      if (!empty_) {
+        if (!lo_unbounded_ && lo_strict_ == Strictness::Strict) {
+          lo_ = static_cast<C>(lo_ + C{1});
+          lo_strict_ = Strictness::NonStrict;
         }
-        if (!hi_unbounded && hi_strict == Strictness::Strict) {
-          hi = static_cast<C>(hi - C{1});
-          hi_strict = Strictness::NonStrict;
+        if (!hi_unbounded_ && hi_strict_ == Strictness::Strict) {
+          hi_ = static_cast<C>(hi_ - C{1});
+          hi_strict_ = Strictness::NonStrict;
         }
-        if (!lo_unbounded && !hi_unbounded && lo > hi) empty = true;
+        if (!lo_unbounded_ && !hi_unbounded_ && lo_ > hi_) empty_ = true;
       }
     }
-    if (empty) {  // one canonical ∅ (dead bound fields), every carrier
-      lo = C{};
-      hi = C{};
-      lo_unbounded = false;
-      hi_unbounded = false;
-      lo_strict = Strictness::Strict;
-      hi_strict = Strictness::Strict;
+    if (empty_) {  // one canonical ∅ (dead bound fields), every carrier
+      lo_ = C{};
+      hi_ = C{};
+      lo_unbounded_ = false;
+      hi_unbounded_ = false;
+      lo_strict_ = Strictness::Strict;
+      hi_strict_ = Strictness::Strict;
     }
   }
 };
 
-/** @brief @f$a \subseteq b@f$ --- homogeneous interval nesting (the #835
- *  endpoint comparison on runtime bounds).  @f$\emptyset \subseteq X@f$; a
- *  non-empty interval is no subset of @c ∅; otherwise @c a's ends sit inside
- *  @c b's. */
-export template <typename C, typename L>
-constexpr typename L::Ω operator<=(const Sub<C, L>& a, const Sub<C, L>& b) {
-  if (a.empty) return L::True;
-  if (b.empty) return L::False;
-  const bool lower = b.lo_unbounded ||
-                     (!a.lo_unbounded &&
-                      (a.lo > b.lo || (a.lo == b.lo &&
-                                       !(a.lo_strict == Strictness::NonStrict &&
-                                         b.lo_strict == Strictness::Strict))));
-  const bool upper = b.hi_unbounded ||
-                     (!a.hi_unbounded &&
-                      (a.hi < b.hi || (a.hi == b.hi &&
-                                       !(a.hi_strict == Strictness::NonStrict &&
-                                         b.hi_strict == Strictness::Strict))));
-  return (lower && upper) ? L::True : L::False;
-}
+static_assert(dedekind::category::IsSubobject<Sub<int>, int>,
+              "Sub is a first-class subobject ι: Sub ↣ C (via SetExpr).");
+static_assert(dedekind::category::IsSet<Sub<int>>,
+              "Sub is a first-class ETCS set, so 𝔓's elements are usable in "
+              "generic set APIs (the CP round-2 contract).");
 
 /** @brief The membership predicate of @c 𝔓(S): @f$X \mapsto X \subseteq S@f$,
  *  with @c S coerced to @c Sub(C).  A named functor (no lambda). */

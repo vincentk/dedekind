@@ -30,6 +30,10 @@ TEST_CASE("order:powerset — 𝔓(S) is a bona-fide IsSet over Sub(C) (#830)",
     STATIC_CHECK(std::same_as<typename std::remove_cvref_t<decltype(P)>::Domain,
                               Sub<int, ClassicalLogic>>);
     STATIC_CHECK(std::same_as<decltype(power_set(gt3)), decltype(𝔓(gt3))>);
+    // 𝔓's elements are themselves first-class sets (Sub folds onto SetExpr), so
+    // they are usable in generic set APIs.
+    STATIC_CHECK(IsSubobject<Sub<int, ClassicalLogic>, int>);
+    STATIC_CHECK(IsSet<Sub<int, ClassicalLogic>>);
   }
 
   SECTION("membership X ⊆ S decides across the ordered families") {
@@ -108,5 +112,21 @@ TEST_CASE("order:powerset — 𝔓(S) is a bona-fide IsSet over Sub(C) (#830)",
     // membership call): the ordered family passes it.
     STATIC_CHECK(SubReifiable<decltype(gt3)>);
     STATIC_CHECK(IsTotallyOrdered<int>);
+  }
+
+  SECTION("gate: a set-shaped base with no Sub(C) coercion hits the wall") {
+    // Acceptance #2: a genuine Set (SetShaped, even over an ORDERED carrier)
+    // but with no convex Sub(C) coercion is NOT SubReifiable, so 𝔓 of it
+    // selects the deleted :sets default (type-check failure) rather than the
+    // ordered overload.  A general filtered set {x ∈ ℤ | x > 0} is exactly such
+    // a base.
+    auto x = element<Ω<int>>;
+    auto positives = Set{x % UniversalSet<int>{} | (x > 0)};
+    using G = std::remove_cvref_t<decltype(positives)>;
+    STATIC_CHECK(SetShaped<G>);  // it IS a set...
+    STATIC_CHECK(
+        IsTotallyOrdered<typename G::Domain>);  // ...over ℤ (ordered)...
+    STATIC_CHECK(
+        !SubReifiable<G>);  // ...but no Sub(C) coercion → deleted gate.
   }
 }
