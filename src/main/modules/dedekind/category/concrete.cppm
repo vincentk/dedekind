@@ -202,16 +202,17 @@ concept IsCompatibleSetPair =
                  std::invoke_result_t<S2 const&, typename S2::Domain const&>>;
 
 /** @brief The general intersection classifier @f$\chi_{A\cap B} = \chi_A \wedge
- *  \chi_B@f$ as a @b named predicate (no lambda; #831/#365): stores the two
- *  carriers-as-predicates and @c AND-s their @c χ pointwise.  Only reached for
+ *  \chi_B@f$ as a @b named predicate (no lambda; #831/#365).  Only reached for
  *  @b unstructured operands --- the decidable/structured cases route through
  *  @c operator& / @c structured_and first (see @c set_intersection). */
-export template <typename S1, typename S2, typename L>
+export template <typename S1, typename S2, IsLogicalSpecies L>
 struct ConjunctionChi {
   S1 lhs;
   S2 rhs;
   template <typename A>
-  constexpr auto operator()(const A& a) const {
+    requires std::invocable<const S1&, const A&> &&
+             std::invocable<const S2&, const A&>
+  constexpr typename L::Ω operator()(const A& a) const {
     return L::AND(lhs(a), rhs(a));
   }
 };
