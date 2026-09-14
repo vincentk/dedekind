@@ -38,3 +38,4 @@ export import :lattice;
 export import :completeness;
 export import :halfspace;
 export import :inclusion;
+export import :powerset;

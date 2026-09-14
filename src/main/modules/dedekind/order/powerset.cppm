@@ -1,5 +1,5 @@
 /**
- * @file dedekind/topology/powerset.cppm
+ * @file dedekind/order/powerset.cppm
  * @partition :powerset
  * @brief The power set @f$\mathfrak{P}(S)@f$ as a filtered universe over a
  *        reified subobject domain @c Sub(C) (#830).
@@ -25,33 +25,38 @@
  * the honest wall.
  *
  * @section powerset__Home Home
- * @c Sub is the runtime-pivot mereological @b unification of this module's
- * @c Ray / @c HalfSpace / @c Interval family together with the empty / full
- * cases, reified as ONE @c std::regular value; hence it lives here, beside its
- * siblings.  @c topology is downstream of both @c order and @c sets, so this
- * partition sees the ordered NTTP-pivot families (@c order::Halfspace, ...) and
- * the deleted @c sets::power_set gate at once; the constrained overload below
- * @b subsumes that gate for the ordered families (#830).
+ * The @b enabler here is an @b ordered carrier, not intervals: @c Sub becomes a
+ * decidable @c std::regular normal form precisely because @c C is totally
+ * ordered, and membership @f$X \subseteq S@f$ @b is the subset order (@c
+ * :inclusion).  So the home is @c order, where that order lives --- @b not
+ * @c topology (whose @c Interval is about the continuum / neighbourhoods).  @c
+ * Sub has @b no topology dependency: it coerces in only the @c :sets boundaries
+ * (@c Ø / @c Ω) and the @c order NTTP-pivot families (@c Singleton / @c
+ * Halfspace / @c OrderInterval).  Being upstream, this reaches every downstream
+ * layer (topology included).  (The earlier @c order::Interval name collided
+ * with
+ * @c topology::Interval; renaming to @c Sub removed that, so the placement is
+ * decided on structure, not on avoiding a clash.)
  *
- * @build_order 6.2
- * @dependency :category, :order, :sets
+ * @build_order (order layer)
+ * @dependency :category, :sets, :halfspace, :inclusion
  */
 
 module;
 
 #include <concepts>
 
-export module dedekind.topology:powerset;
+export module dedekind.order:powerset;
 
 import dedekind.category;
-import dedekind.sets;  // Ø, UniversalSet, Set, SetShaped (the deleted gate)
-import dedekind.order; // Halfspace, Singleton, OrderInterval, Direction, ...
+import dedekind.sets; // Ø, UniversalSet, Set, SetShaped (the deleted gate)
+import :halfspace;    // Halfspace, Singleton, OrderInterval, Direction, ...
+import :inclusion;    // the subset order this 𝔓 filters on
 
-namespace dedekind::topology {
+namespace dedekind::order {
 
 using namespace dedekind::category;
 using namespace dedekind::sets;
-using namespace dedekind::order;
 
 /** @brief @c Sub(C) for an @b ordered carrier: a subobject reified as a runtime
  *  interval value.  Bounds are @c C values with @c ±∞ (unbounded) flags and an
@@ -187,4 +192,4 @@ constexpr auto 𝔓(const S& base) {
   return power_set(base);
 }
 
-}  // namespace dedekind::topology
+}  // namespace dedekind::order

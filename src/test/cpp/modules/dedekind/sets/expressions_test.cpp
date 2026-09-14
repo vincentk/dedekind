@@ -382,9 +382,9 @@ TEST_CASE("Dedekind Sets: Ambient cartesian product ergonomics",
 }
 
 // (The ordered / convex power set 𝔓(setexpr) moved to
-// dedekind.topology:powerset
+// dedekind.order:powerset
 // (#830) — a Set over the subobject domain Sub(C), decided by the subset order
-// downstream of :sets; those tests live in topology/powerset_test.cpp.  The one
+// downstream of :sets; those tests live in order/powerset_test.cpp.  The one
 // closed form that needs no Sub — 𝔓(∅) = {∅} — stays in :sets and is tested
 // here.)
 TEST_CASE("sets:powerset — 𝔓(∅) = {∅} is a :sets closed form (#830)",

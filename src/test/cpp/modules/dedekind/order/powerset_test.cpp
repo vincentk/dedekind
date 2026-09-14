@@ -1,11 +1,11 @@
-/** @file dedekind/topology/powerset_test.cpp
+/** @file dedekind/order/powerset_test.cpp
  *
  * Power set 𝔓(S) over the reified subobject domain Sub(C) (#830).  𝔓(S) is a
  * bona-fide `IsSet` (a `Set` over `Sub<C>`), gated on S coercing to Sub(C),
  * with membership X ⊆ S decided by homogeneous interval nesting.  Home:
- * dedekind.topology (Sub is the runtime-pivot sibling of Ray/Interval/
- * HalfSpace).  Acceptance: clear typing, type-check failure by default,
- * grammar/lattice participation.
+ * dedekind.order (the enabler is an ordered carrier + the subset order, and Sub
+ * has no topology dependency).  Acceptance: clear typing, type-check failure by
+ * default, grammar/lattice participation.
  */
 
 #include <catch2/catch_test_macros.hpp>
@@ -14,16 +14,14 @@
 
 import dedekind.category;
 import dedekind.sets;
-import dedekind.order;    // the NTTP-pivot ordered families (Halfspace, ...)
-import dedekind.topology; // 𝔓, Sub
+import dedekind.order; // 𝔓, Sub, and the NTTP-pivot families (Halfspace, ...)
 
 using namespace dedekind::category;
 using namespace dedekind::sets;
 using namespace dedekind::order;
-using namespace dedekind::topology;
 
-TEST_CASE("topology:powerset — 𝔓(S) is a bona-fide IsSet over Sub(C) (#830)",
-          "[topology][powerset]") {
+TEST_CASE("order:powerset — 𝔓(S) is a bona-fide IsSet over Sub(C) (#830)",
+          "[order][powerset]") {
   constexpr Halfspace<int, 3, Direction::Upward, Strictness::Strict> gt3{};
 
   SECTION("clear typing: 𝔓(S) is IsSet, Domain = Sub(C)") {

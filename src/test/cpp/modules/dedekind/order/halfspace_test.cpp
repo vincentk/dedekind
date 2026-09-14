@@ -567,4 +567,4 @@ TEST_CASE("order:halfspace — the factory makes a Halfspace a proper cut (#832)
   }
 }
 
-// The power set 𝔓 (#830) is exercised in topology/powerset_test.cpp.
+// The power set 𝔓 (#830) is exercised in order/powerset_test.cpp.

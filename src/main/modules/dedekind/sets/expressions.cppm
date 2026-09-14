@@ -22,7 +22,7 @@
  *  - Relation, SetFunction -- subobjects of products.
  *  - relates, is_single_valued_at -- point-wise witnesses.
  *  - power_set / 𝔓         -- default (deleted) gate here; the ordered/convex
- *                            specialisation is dedekind.topology:powerset
+ *                            specialisation is dedekind.order:powerset
  * (#830).
  *
  * @section expressions__Canonical_Examples
@@ -1592,7 +1592,7 @@ concept SetShaped = requires {
  * is @c =delete d, so a @b set-shaped base with no decidable power set is a
  * clean type error (type-check failure by default).  The decidable
  * specialisations live downstream, where the subset order does:
- * @c dedekind.topology:powerset gives the ordered / convex case
+ * @c dedekind.order:powerset gives the ordered / convex case
  * (@f$\mathfrak{P}(S) = \Omega\langle\mathrm{Sub}(C)\rangle \mid X \subseteq
  * S@f$ over the subobject domain @c Sub(C), an interval), covering @c Ω /
  * @c Singleton / @c Halfspace / @c OrderInterval by coercion; a finite-carrier
