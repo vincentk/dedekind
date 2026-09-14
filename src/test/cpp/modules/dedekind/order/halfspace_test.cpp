@@ -566,3 +566,5 @@ TEST_CASE("order:halfspace — the factory makes a Halfspace a proper cut (#832)
         "{z≥0} on ℤ is a proper cut, not the universe");
   }
 }
+
+// The power set 𝔓 (#830) is exercised in order/powerset_test.cpp.

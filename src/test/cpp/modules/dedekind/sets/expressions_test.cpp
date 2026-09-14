@@ -381,35 +381,32 @@ TEST_CASE("Dedekind Sets: Ambient cartesian product ergonomics",
   STATIC_CHECK(p_via_operator(PDomain{3, 4}));
 }
 
-TEST_CASE("Dedekind Sets: Power-set witness over homogeneous predicates",
+// (The ordered / convex power set 𝔓(setexpr) moved to
+// dedekind.order:powerset
+// (#830) — a Set over the subobject domain Sub(C), decided by the subset order
+// downstream of :sets; those tests live in order/powerset_test.cpp.  The one
+// closed form that needs no Sub — 𝔓(∅) = {∅} — stays in :sets and is tested
+// here.)
+TEST_CASE("sets:powerset — 𝔓(∅) = {∅} is a :sets closed form (#830)",
           "[sets][powerset]") {
-  auto x = element<Ω<int>>;
+  constexpr auto P0 = 𝔓(Ø<int>{});
 
-  const auto positive = Set{x % UniversalSet<int>{} | (x > 0)};
+  SECTION("𝔓(∅) is a bona-fide IsSet over the empty-set carrier Ø<int>") {
+    STATIC_CHECK(IsSet<std::remove_cvref_t<decltype(P0)>>);
+    STATIC_CHECK(
+        std::same_as<typename std::remove_cvref_t<decltype(P0)>::Domain,
+                     Ø<int>>);
+    STATIC_CHECK(
+        std::same_as<decltype(power_set(Ø<int>{})), decltype(𝔓(Ø<int>{}))>);
+  }
 
-  const auto p_positive = power_set(positive);
-  // Textbook fraktur-P alias: 𝔓(A) ≡ power_set(A).
-  const auto 𝔓_positive = 𝔓(positive);
-
-  STATIC_CHECK(std::same_as<typename decltype(p_positive)::Domain,
-                            std::remove_cvref_t<decltype(positive)>>);
-  STATIC_CHECK(std::same_as<decltype(p_positive), decltype(𝔓_positive)>);
-  CHECK(p_positive(positive));
-  CHECK(𝔓_positive(positive));
-}
-
-TEST_CASE("Dedekind Sets: Power-set preserves ambient logic",
-          "[sets][powerset][logic]") {
-  auto x = element<ℕ>;
-
-  const auto gt_zero = Set{x | (x > 0u)};
-  const auto p_gt_zero = power_set(gt_zero);
-
-  // Post-#622: ℕ-carrier Sets route to ClassicalLogic on the carrier
-  // axis; power_set preserves the source's logic species.
-  STATIC_CHECK(std::same_as<typename decltype(p_gt_zero)::logic_species,
-                            ClassicalLogic>);
-  CHECK(p_gt_zero(gt_zero));
+  SECTION("its sole member is ∅ (so |𝔓(∅)| = 1 = 2^0, not the empty set)") {
+    // ∅ ∈ 𝔓(∅): membership is True, which witnesses that 𝔓(∅) is the NON-empty
+    // singleton {∅} --- the honest power set of ∅ --- not ∅ itself.  (Ø == P0
+    // is deliberately unavailable: the Rice wall, so we witness via
+    // membership.)
+    CHECK(bool(P0(Ø<int>{})));
+  }
 }
 
 // ("Relation witnesses preserve ternary logic" moved to

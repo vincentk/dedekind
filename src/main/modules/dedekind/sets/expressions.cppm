@@ -20,8 +20,10 @@
  *                            heterogeneous -> Unknown via TernaryLogic).
  *  - cartesian_product    -- A x B as a Set of pairs.
  *  - Relation, SetFunction -- subobjects of products.
- *  - power_set            -- P(A) encoded as a Set of sets.
  *  - relates, is_single_valued_at -- point-wise witnesses.
+ *  - power_set / 𝔓         -- default (deleted) gate here; the ordered/convex
+ *                            specialisation is dedekind.order:powerset
+ * (#830).
  *
  * @section expressions__Canonical_Examples
  * ```cpp
@@ -1572,33 +1574,68 @@ static_assert(
 // point.  @c sets keeps only the @b powerset (below), which is genuine
 // set-theory, not relation algebra.
 
-/**
- * @brief Power set witness over same-predicate subsets.
- *
- * Membership in P(A) is decided by the subset predicate `candidate <= base`.
- * This conservative form keeps the domain monomorphic (`Set<T,L,P>`) and is
- * sufficient for finite / homogeneous DSL constructions.
- * @see Lambek and Scott @cite lambek1988higher
- */
-export template <typename T, typename L, typename P>
-constexpr auto power_set(const Set<T, L, P>& base) {
-  using Candidate = Set<T, L, P>;
-  auto pred = [base](const Candidate& candidate) { return candidate <= base; };
-  return Set<Candidate, L, decltype(pred)>{pred};
-}
+/** @brief A set-shaped carrier: exposes the ambient @c Domain and the
+ *  @c logic_species.  The gate constraint for the power-set customization
+ *  point; the ordered specialisation conjoins it (so it @b subsumes this gate
+ *  and wins by partial ordering for the carriers it handles). */
+export template <typename S>
+concept SetShaped = requires {
+  typename std::remove_cvref_t<S>::Domain;
+  typename std::remove_cvref_t<S>::logic_species;
+};
 
 /**
- * @brief Textbook fraktur-P alias for @c power_set.
+ * @brief Power set @f$\mathfrak{P}(S)@f$ --- the @b default declaration
+ * (customization-point gate).
  *
- * @details In standard set-theory texts (Halmos, Munkres, Lambek--Scott)
- * the power-set operator is written @c 𝔓 (fraktur capital P).  Exposed as
- * a one-line forwarding wrapper so callers can write @c 𝔓(A) for the
- * power set of @c A and have it read the same way it reads on the
- * blackboard.  Mirrored on the Python side as @c dedekind.sets.𝔓.
+ * @details Establishes the @c :sets-level signature for @c power_set / @c 𝔓 and
+ * is @c =delete d, so a @b set-shaped base with no decidable power set is a
+ * clean type error (type-check failure by default).  The decidable
+ * specialisations live downstream, where the subset order does:
+ * @c dedekind.order:powerset gives the ordered / convex case
+ * (@f$\mathfrak{P}(S) = \Omega\langle\mathrm{Sub}(C)\rangle \mid X \subseteq
+ * S@f$ over the subobject domain @c Sub(C), an interval), covering @c Ω /
+ * @c Singleton / @c Halfspace / @c OrderInterval by coercion; a finite-carrier
+ * / erased case may follow (#830).  The one exception is @f$\mathfrak{P}
+ * (\emptyset) = \{\emptyset\}@f$, which needs no subobject domain and is a
+ * closed form here in @c :sets (below).  Same shape as @c exists / @c forall
+ * (an
+ * algebraic default lifted by per-carrier decidable specialisations).  A
+ * non-set-shaped argument fails @c SetShaped and matches nothing (also a type
+ * error).
+ * @see Lambek and Scott @cite lambek1988higher
  */
-export template <typename T, typename L, typename P>
-constexpr auto 𝔓(const Set<T, L, P>& base) {
-  return power_set(base);
+export template <typename S>
+  requires SetShaped<S>
+auto power_set(const S&) = delete;
+/** @brief Textbook fraktur-P alias for @c power_set (the deleted default gate).
+ *  Mirrored on the Python side as @c dedekind.sets.𝔓. */
+export template <typename S>
+  requires SetShaped<S>
+auto 𝔓(const S&) = delete;
+
+/**
+ * @brief @f$\mathfrak{P}(\emptyset) = \{\emptyset\}@f$ --- the one power set
+ * that needs no subobject normal-form, so it is a closed form here in @c :sets.
+ *
+ * @details The empty set has exactly one subset (itself), so its power set is
+ * the @b singleton @f$\{\emptyset\}@f$ (cardinality @f$1 = 2^0@f$, @b not
+ * @f$\emptyset@f$).  That singleton is exactly the universe over the
+ * one-inhabitant domain @c Ø<T,L>: every empty set is equal to every other
+ * (@c Ø's cross-carrier @c ==), so @c Ω over the empty-set carrier has a single
+ * inhabitant, @f$\emptyset@f$ itself.  No @c Sub, no ordered carrier, no
+ * @c Rice-walled subobject enumeration --- which is why the @c empty node of
+ * the grammar can be discharged upstream of the interval specialisation.  This
+ * is a more-specialised overload than the deleted @c SetShaped gate, so it wins
+ * by partial ordering.
+ */
+export template <typename T, typename L>
+constexpr auto power_set(const Ø<T, L>&) {
+  return Ω<Ø<T, L>, L, Finite>;
+}
+export template <typename T, typename L>
+constexpr auto 𝔓(const Ø<T, L>&) {
+  return power_set(Ø<T, L>{});
 }
 
 // NOTE: the relation query surface (@c relates / @c dom / @c cod / @c apply /
