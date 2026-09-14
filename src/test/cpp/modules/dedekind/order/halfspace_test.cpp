@@ -444,11 +444,12 @@ TEST_CASE("order:halfspace — structural subset ⊆ and derived >=,<,> (#831)",
   }
 
   SECTION("emptiness/subset are overflow- and sign-safe (#835 re-review)") {
-    // (a) Inverted endpoints must NOT wrap to a huge span: (5,3) is empty, and
-    //     size() agrees (the old `Hi - Lo` on unsigned read non-empty).
-    static_assert(OrderInterval<int, 5, 3, Strictness::Strict,
+    // (a) Inverted endpoints on an UNSIGNED carrier must NOT wrap to a huge
+    //     span: (5u,3u) is empty, though the old `Hi - Lo` (3u-5u) wrapped to a
+    //     large positive span and read non-empty (#835 re-review).
+    static_assert(OrderInterval<unsigned, 5u, 3u, Strictness::Strict,
                                 Strictness::Strict>::is_empty,
-                  "(5,3) is empty, not a wrapped span");
+                  "(5u,3u) is empty, not a wrapped unsigned span");
     // (b) A full-range interval must COMPILE: INT_MAX - INT_MIN overflows a
     //     constant expression, so emptiness cannot subtract the endpoints.
     constexpr OrderInterval<int, std::numeric_limits<int>::min(),
