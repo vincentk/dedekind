@@ -544,4 +544,25 @@ TEST_CASE("order:halfspace — the factory makes a Halfspace a proper cut (#832)
                                Ø<Cardinality, ClassicalLogic>>,
                   "~{x≥0} on ℕ = Ø");
   }
+
+  SECTION(
+      "the signed ℤ-proxy has no floor: {z<0} is a proper cut (#837 review)") {
+    // SignedCardinality is IsSaturating but unbounded below, so {z<0} is
+    // inhabited (must NOT collapse to Ø) and {z≥0} is not all of ℤ (not moot).
+    // The bare IsSaturating floor test got both wrong; HasZeroFloor fixes it.
+    static_assert(
+        std::same_as<
+            decltype(make_halfspace<SignedCardinality, 0, Direction::Downward,
+                                    Strictness::Strict>()),
+            Halfspace<SignedCardinality, 0, Direction::Downward,
+                      Strictness::Strict, ClassicalLogic>>,
+        "{z<0} on ℤ is a proper cut, not Ø");
+    static_assert(
+        std::same_as<
+            decltype(make_halfspace<SignedCardinality, 0, Direction::Upward,
+                                    Strictness::NonStrict>()),
+            Halfspace<SignedCardinality, 0, Direction::Upward,
+                      Strictness::NonStrict, ClassicalLogic>>,
+        "{z≥0} on ℤ is a proper cut, not the universe");
+  }
 }

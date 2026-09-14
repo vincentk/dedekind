@@ -266,6 +266,17 @@ export constexpr Strictness flip(Strictness s) {
   return s == Strictness::Strict ? Strictness::NonStrict : Strictness::Strict;
 }
 
+/** @brief A carrier bounded below at @c 0 --- @c bool, an @c unsigned machine
+ *  integer, and the ℕ proxy @c Cardinality --- so no value is @c < @c 0.
+ *  @b Not the signed ℤ proxy @c SignedCardinality, which is @c IsSaturating too
+ *  but is unbounded below: the trap the bare @c IsSaturating floor test fell
+ *  into (#837 review) --- it rejected the valid cut @c {x<0} on ℤ and misread
+ *  @c {x≥0} as moot.  The dedicated lower-bound classification for the
+ *  emptiness oracles below. */
+template <typename T>
+concept HasZeroFloor =
+    std::unsigned_integral<T> || std::same_as<T, dedekind::sets::Cardinality>;
+
 /** @brief Is the strict lower cut @c {x<p} empty (i.e. @c p at/below the
  *  carrier's least element)?  The @c if constexpr isolates @c numeric_limits so
  *  it is instantiated ONLY for a signed machine int --- a floor-0 carrier (ℕ /
@@ -276,8 +287,7 @@ template <typename T, auto p>
 consteval bool strict_lower_cut_empty() {
   if constexpr (std::signed_integral<T>)
     return p <= std::numeric_limits<T>::min();
-  else if constexpr (std::unsigned_integral<T> ||
-                     dedekind::category::IsSaturating<T>)
+  else if constexpr (HasZeroFloor<T>)
     return p <= 0;
   else
     return false;
@@ -314,8 +324,7 @@ consteval bool halfspace_is_empty() {
       return strict_lower_cut_empty<T, Pivot>();  // {x<p}: p ≤ min
     else if constexpr (std::signed_integral<T>)
       return Pivot < std::numeric_limits<T>::min();  // {x≤p}: p < min
-    else if constexpr (std::unsigned_integral<T> ||
-                       dedekind::category::IsSaturating<T>)
+    else if constexpr (HasZeroFloor<T>)
       return Pivot < 0;  // floor-0 carrier: {x≤p} empty iff p < 0
     else
       return false;
@@ -1808,10 +1817,12 @@ constexpr auto lowerbounds(Halfspace<T, p, Direction::Upward, S, L>) {
     // value: true for bool, INT_MAX for int), so every element bounds ∅ → the
     // universe (min = S ∩ Ω = ∅).  No p+1 (which would overflow/wrap).
     return dedekind::sets::UniversalSet<T, L>{};
-  } else if constexpr (S == Strictness::Strict &&
-                       dedekind::category::IsSaturating<T> && p + 1 < 0) {
-    // Saturating carrier bounded below at 0 (ℕ): the successor p+1 falls below
-    // the carrier, so the min clamps to the carrier minimum 0.
+  } else if constexpr (S == Strictness::Strict && HasZeroFloor<T> &&
+                       p + 1 < 0) {
+    // Floor-0 carrier (ℕ / unsigned): the successor p+1 falls below the
+    // carrier, so the min clamps to the carrier minimum 0.  NOT the signed ℤ
+    // proxy, which has no floor and takes the ordinary successor branch below
+    // (#837 review).
     return Halfspace<T, 0, Direction::Downward, Strictness::NonStrict, L>{};
   } else if constexpr (S == Strictness::Strict &&
                        (std::integral<T> ||
