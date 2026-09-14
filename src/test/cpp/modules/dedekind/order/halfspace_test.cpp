@@ -411,7 +411,7 @@ TEST_CASE("order:halfspace — structural subset ⊆ and derived >=,<,> (#831)",
     CHECK(bool(gt3 > gt5));
   }
 
-  SECTION("interval subset rides the same generic identity") {
+  SECTION("interval subset decides by endpoints; derived ⊇ rides it") {
     constexpr OrderInterval<int, 2, 5, Strictness::NonStrict,
                             Strictness::NonStrict>
         i25{};  // [2,5]
