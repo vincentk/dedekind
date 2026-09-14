@@ -471,5 +471,31 @@ TEST_CASE("order:halfspace — structural subset ⊆ and derived >=,<,> (#831)",
     static_assert(!pivot_less<0u, -1>(), "0u is not < −1");
     static_assert(pivot_equal<0, 0u>(), "0 == 0u by value");
     static_assert(!pivot_equal<-1, 0u>(), "−1 ≠ 0u");
+    // (e) size() of a full range is the exact count in a wide span, not a
+    //     wrapped `Hi - Lo + 1`: |[INT_MIN,INT_MAX]| = 2^32.
+    static_assert(decltype(full)::is_integer_range);
+    static_assert(full.size() == 4294967296ull, "|[INT_MIN,INT_MAX]| = 2^32");
+  }
+
+  SECTION(
+      "discrete intervals normalize to effective carrier bounds (#835 rd 4)") {
+    // (1,4) and [2,3] both denote {2,3} over int, so they must compare equal
+    // --- a syntactic pivot compare would wrongly reject (1,4) ⊆ [2,3].
+    constexpr OrderInterval<int, 1, 4, Strictness::Strict, Strictness::Strict>
+        open14{};  // {2,3}
+    constexpr OrderInterval<int, 2, 3, Strictness::NonStrict,
+                            Strictness::NonStrict>
+        clos23{};  // {2,3}
+    static_assert(!decltype(open14)::is_empty && !decltype(clos23)::is_empty);
+    static_assert(open14.size() == 2u && clos23.size() == 2u);
+    static_assert(bool(open14 <= clos23), "(1,4) ⊆ [2,3] (both {2,3})");
+    static_assert(bool(clos23 <= open14), "[2,3] ⊆ (1,4) (both {2,3})");
+    CHECK(bool(open14 <= clos23));
+    CHECK(bool(clos23 <= open14));
+    // Integer-valued FLOATING pivots (DSL-produced) decide exactly: (5.0,6.0)
+    // has no integer member, so it is empty.
+    static_assert(OrderInterval<int, 5.0, 6.0, Strictness::Strict,
+                                Strictness::Strict>::is_empty,
+                  "(5.0,6.0) has no integer member");
   }
 }

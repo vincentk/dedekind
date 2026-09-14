@@ -119,16 +119,22 @@ export template <typename T, auto ALo, auto AHi, Strictness ASL, Strictness ASU,
 constexpr typename L::Ω operator<=(
     const OrderInterval<T, ALo, AHi, ASL, ASU, L>&,
     const OrderInterval<T, BLo, BHi, BSL, BSU, L>&) {
-  if constexpr (OrderInterval<T, ALo, AHi, ASL, ASU, L>::is_empty) {
+  using AIv = OrderInterval<T, ALo, AHi, ASL, ASU, L>;
+  if constexpr (AIv::is_empty) {
     return L::True;  // ∅ ⊆ X
+  } else if constexpr (AIv::is_integer_range) {
+    // Discrete: nest the EFFECTIVE carrier bounds, the same normalisation
+    // is_empty / size() use, so intervals denoting the same set agree ---
+    // @c (1,4) ⊆ @c [2,3] (both @c {2,3} over @c int) decides True, where a
+    // syntactic pivot compare would wrongly reject it (#835 review).
+    constexpr bool lower = eff_lower<ALo, ASL>() >= eff_lower<BLo, BSL>();
+    constexpr bool upper = eff_upper<AHi, ASU>() <= eff_upper<BHi, BSU>();
+    return (lower && upper) ? L::True : L::False;
   } else {
-    // Endpoint containment through the carrier-aware order (pivot_less /
-    // pivot_equal), not raw NTTP comparison: a signed and an unsigned pivot
-    // must rank by mathematical value, not by C++'s usual conversions (#835
-    // review).  A's lower end sits inside B, and dually its upper end.  Sound
-    // for the integer-valued bounds structured_and emits; two directly-built
-    // FRACTIONAL intervals that denote the same discrete set are the deferred
-    // corner (#838).
+    // Continuous: distinct pivots are distinct sets; compare endpoints through
+    // the carrier-aware order (pivot_less / pivot_equal), not raw NTTP
+    // comparison, so a signed and an unsigned pivot rank by mathematical value
+    // (#835 review).  A's lower end sits inside B, and dually its upper end.
     constexpr bool lower =
         pivot_less<BLo, ALo>() ||
         (pivot_equal<ALo, BLo>() &&
