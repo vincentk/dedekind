@@ -35,8 +35,12 @@ Coherence checks:
 - **Reuse over reinvention.** Before new surface lands, a concept-search should
   have happened: does an existing concept/trait already cover this? Flag ad-hoc
   reimplementation of upstream abstractions; prefer extending them.
-- **Prefer algebraic gates over architectural ones.** Constraints should be
-  expressed as concepts (`IsGroup`, `IsField`, …), not bespoke plumbing.
+- **Prefer concept gates over bespoke plumbing.** Express a constraint as a
+  concept — algebraic (`IsGroup`, `IsField`) or categorical (`IsRegularEpi`,
+  `IsRegularMono`, `IsImageOf`, the paper's epi–monic factorization) — rather
+  than ad-hoc nominal plumbing. Categorical/architectural gates the paper
+  prescribes are the *right* kind of gate; flag only hand-rolled structural
+  checks that an existing concept already captures.
 - **Burden of proof is on ADDING a struct/wrapper**, not on removing one. Push
   back on new wrappers that don't earn their place — especially thin "glorified
   for-loop" wrappers around `std::` containers/algorithms.
