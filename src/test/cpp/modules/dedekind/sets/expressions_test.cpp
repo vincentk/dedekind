@@ -381,9 +381,9 @@ TEST_CASE("Dedekind Sets: Ambient cartesian product ergonomics",
   STATIC_CHECK(p_via_operator(PDomain{3, 4}));
 }
 
-// (Power-set 𝔓 moved to dedekind.order:powerset, #830 — it is a Set over the
+// (Power-set 𝔓 moved to dedekind.topology:powerset, #830 — it is a Set over the
 // subobject domain Sub(C), decided by the subset order downstream of :sets. Its
-// tests live in the order layer, order/powerset_test.cpp.)
+// tests live in the topology layer, topology/powerset_test.cpp.)
 
 // ("Relation witnesses preserve ternary logic" moved to
 // relational/relation_core_test with the Relation type and the relates /
