@@ -1573,18 +1573,55 @@ static_assert(
 // set-theory, not relation algebra.
 
 /**
- * @brief Power set witness over same-predicate subsets.
+ * @brief The power set @f$\mathfrak{P}(A) = \{\,X \mid X \subseteq A\,\}@f$ as
+ * a
+ * @b heterogeneous carrier (#830).
  *
- * Membership in P(A) is decided by the subset predicate `candidate <= base`.
- * This conservative form keeps the domain monomorphic (`Set<T,L,P>`) and is
- * sufficient for finite / homogeneous DSL constructions.
+ * @details Membership is the subset test on the MEMBER's own type, so
+ * @f$\mathfrak{P}(A)@f$ accepts any set @c X over @c A's carrier whose
+ * @f$X \subseteq A@f$ is decidable --- a @c Singleton, a @c Halfspace, an
+ * @c OrderInterval, another @c Set, @c Ø / @c Ω --- not only same-typed subsets
+ * (the old form fixed the candidate to one @c Set<T,L,P>).  The classifier is a
+ * constrained @b template, so @c X @c ⊆ @c A resolves at the @b call site: ADL
+ * reaches the structured @c <= in @c dedekind.order even though this lives in
+ * @c dedekind.sets, with @b no type erasure.  An @c X off the decidable
+ * frontier (no @c X @c <= @c A) removes @c operator() rather than fabricating
+ * an answer
+ * --- a compile-time miss, not a runtime @c Unknown (the honest Rice wall).
+ *
+ * @c 𝔓(A) is therefore a @b callable carrier, not a monomorphic @c IsSet: a
+ * heterogeneous member type has no single @c Domain / @c Member, so the ETCS
+ * subobject surface does not apply.  It exposes @c Domain (nominal: the self
+ * member @f$A \subseteq A@f$) and @c logic_species for the DSL.
  * @see Lambek and Scott @cite lambek1988higher
  */
-export template <typename T, typename L, typename P>
-constexpr auto power_set(const Set<T, L, P>& base) {
-  using Candidate = Set<T, L, P>;
-  auto pred = [base](const Candidate& candidate) { return candidate <= base; };
-  return Set<Candidate, L, decltype(pred)>{pred};
+export template <typename Base>
+struct PowerSet {
+  Base base;
+  using Domain = Base;
+  using logic_species = typename Base::logic_species;
+  using Codomain = typename logic_species::Ω;
+
+  /** @brief @f$X \in \mathfrak{P}(A) \iff X \subseteq A@f$ --- constrained on
+   * the subset test being a truth value in the ambient logic, so an undecidable
+   *  member is rejected structurally. */
+  template <typename X>
+    requires requires(const X& x, const Base& b) {
+      { x <= b } -> std::convertible_to<typename Base::logic_species::Ω>;
+    }
+  constexpr typename logic_species::Ω operator()(const X& candidate) const {
+    return candidate <= base;
+  }
+};
+
+/**
+ * @brief Power set @f$\mathfrak{P}(A)@f$ of any set-shaped carrier @c A.
+ * @see PowerSet
+ */
+export template <typename Base>
+  requires requires { typename std::remove_cvref_t<Base>::logic_species; }
+constexpr auto power_set(const Base& base) {
+  return PowerSet<std::remove_cvref_t<Base>>{base};
 }
 
 /**
@@ -1596,8 +1633,9 @@ constexpr auto power_set(const Set<T, L, P>& base) {
  * power set of @c A and have it read the same way it reads on the
  * blackboard.  Mirrored on the Python side as @c dedekind.sets.𝔓.
  */
-export template <typename T, typename L, typename P>
-constexpr auto 𝔓(const Set<T, L, P>& base) {
+export template <typename Base>
+  requires requires { typename std::remove_cvref_t<Base>::logic_species; }
+constexpr auto 𝔓(const Base& base) {
   return power_set(base);
 }
 
