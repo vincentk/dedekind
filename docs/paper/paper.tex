@@ -595,38 +595,54 @@ This asymmetry is the model/materialise gap of the whole framework: $\mathbf{Jlt
 the library's Axiom-9 restriction of carrier predicates to $\beth_1$ (Appendix~\ref{sec:etcs}) above, meeting the finite reach of $\mu$ below.
 So $\mathbf{Lwv}$ is strictly more expressive than \cppinline{std::set}, the extensional container it generalises, and the price is paid in \emph{proof obligations}: where $\mu$ is unavailable, membership is settled by the concept constraints and factorisations of this section, not by enumeration.
 This is the extensional/intensional database distinction of deductive databases, \cppinline{std::set} playing the extensional store (EDB, facts) and $\mathbf{Lwv}$ the intensional one (IDB, rules), with materialisation the materialised view~\cite{abiteboul1995foundations}.
+The section's tiers track the classical decidability hierarchy~\cite{chomsky1956three}: a general predicate is recursively enumerable, hence Rice-walled; the ordered and periodic sets of §\ref{sec:ddk_ordered} are \emph{regular}, decidable by a canonical normal form; and \cppinline{ext} reaches the finite sets that list.
 
 \begin{listing}[htbp]
-\caption{The two conversions between \cppinline{std::set} and $\mathbf{Lwv}$, and their composition.
-\textbf{Left, top} ($\iota$): \cppinline{ambient_set(from_std(·))} lifts a \cppinline{std::set} to an \cppinline{IsSet} object.
-\textbf{Left, bottom} ($\mu$): \cppinline{materialise} enumerates a finite universe and keeps the $\chi$-matches.
-\textbf{Right}: the intersection of an extensional set with the intensional halfspaces $\{x>3\}$ and $\{x>5\}$.}
+\caption{Extensional operations on sets in \emph{normal form}: the extension \cppinline{ext} (the partial materialisation $\mu$, finite only), the comparisons \cppinline{==}/\cppinline{<=}, and the power set $\mathfrak{P}$.
+Two sets are equal iff their canonical representatives coincide, so the comparisons are decided by normalise-and-compare: decidable for the finite and \emph{regular} normal forms (the minimal automaton is the canonical representative, Myhill--Nerode~\cite{nerode1958linear}; a bound or residue is a more compact one), undecidable above (the Rice wall~\cite{rice1953classes}).
+\cppinline{ext} is the finite normaliser, \cppinline{Sub(C)} bounds and residues the regular ones.
+\textbf{Top}: \cppinline{ambient_set(from_std(·))} lifts a container into the DSL (the total $\iota$); \cppinline{ext} materialises a finite set back (the partial $\mu$); \cppinline{==}/\cppinline{<=} then decide on whatever normal form the carrier supplies.
+\textbf{Bottom}: the grammar in two panels, set expressions (left) and comparison predicates (right).}
 \label{lst:materialise}
 \noindent
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
 std::set<int> c{2, 3, 5};
-static_assert(IsSet<decltype(
-  ambient_set<int>(from_std(c)))>);
-\end{cpp}
-\vspace{0.4em}
-\begin{cpp}
-auto isEven = [](int x){ return x % 2 == 0; };
-auto evens = materialise(
-  std::views::iota(0, 10), isEven);
-assert((evens == std::set{0,2,4,6,8}));
+constexpr auto S = ambient_set(from_std(c));
+static_assert(
+  ext(S & (Ω<int> | π > fix(3_c))) == std::set{5});
+static_assert(
+  ext(S & (Ω<int> | π > fix(5_c))) == std::set<int>{});
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-std::set<int> ext{2, 3, 5};
-auto gt3 = ℕ | π > fix(3_c);
-auto gt5 = ℕ | π > fix(5_c);
-assert(materialise(ext, gt3)
-       == std::set{5});
-assert(materialise(ext, gt5)
-       == std::set<int>{});
+static_assert(ext(𝔹) == std::set{false, true});
+static_assert(
+  bool((ℕ | π > fix(5_c)) <= (ℕ | π > fix(3_c))));
+static_assert(bool(𝔓(η(4))(η(4))));
 \end{cpp}
+\end{minipage}
+
+\vspace{0.6em}
+\noindent
+\begin{minipage}[t]{0.49\linewidth}
+{\footnotesize\centering\textbf{set expressions}\par}
+\begin{minted}[fontsize=\footnotesize]{text}
+setexpr +::= 'ext' '(' setexpr ')'
+         |  '𝔓' '(' nf ')'
+nf      ::= 'ext' '(' setexpr ')'
+         |  'Ø' carrier | 'Ω' carrier
+         |  'Sub' '(' carrier ')'
+         |  residue
+\end{minted}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\linewidth}
+{\footnotesize\centering\textbf{predicates} \ensuremath{(\to \mathbb{B})}\par}
+\begin{minted}[fontsize=\footnotesize]{text}
+atom +::= nf sp2 nf
+sp2   ::= '==' | '<='
+\end{minted}
 \end{minipage}
 \end{listing}
 
@@ -640,55 +656,44 @@ A second, independent order enters when the carrier's \emph{elements} are themse
 This is the first rung that asks the carrier for more than equality; its grammar extension is the top box of Listing~\ref{lst:extrema_def}.
 
 \begin{listing}[htbp]
-\caption{Ordered sets: the grammar extension for order (top box) and the extrema it enables.
-\textbf{Grammar}: element comparisons (\cppinline{cmp}) and subset \cppinline{<=} plug into the \cppinline{pred} extension point of Listing~\ref{lst:set-grammar}; \cppinline{max}/\cppinline{min} extend \cppinline{setexpr}, returning the extremal \emph{subset}; the power set $\mathfrak{P}$ is itself a comprehension over the subset order, its domain the carrier's reified subobjects $\mathrm{Sub}(C)$ ($\mathfrak{P}(S) = \Omega\langle\mathrm{Sub}(C)\rangle \mid X \subseteq S$), so its membership \emph{is} the subset test.
-\textbf{Definition}: \cppinline{max} is \cppinline{S} met ($\cap$, the operator \cppinline{&}) with its \cppinline{upperbounds} (the $\forall$-projection $R/\ni$, $\{\pi_2\in S \mid \forall\pi_1\in S.\; \pi_1\le\pi_2\}$, Equation~\ref{eqn:extrema}); \cppinline{min} is the dual, over \cppinline{lowerbounds}.
-\cppinline{upperbounds} is the pluggable point (as $\forall$/$\exists$ plug into \cppinline{==}), settled \emph{symbolically} per structure, so no candidate is enumerated; the meet then collapses $\{x\le p\}\cap\{x\ge p\}$ to the attained pivot $\{p\}$, or to $\varnothing$ when the bound is unattained (strict) or absent (unbounded).
-\textbf{Witnesses}: subset, a halfspace, extrema on $\mathbb{B}$ (finite) and an infinite halfspace, and the power set --- a set is a member of its own ($A \in \mathfrak{P}(A)$), and a singleton and a halfspace sit in one $\mathfrak{P}$ decided homogeneously through the reified subobject $\mathrm{Sub}(C)$ (no erased carrier; issue~\#830); the empty halfspace meet folds to \texttt{ret i1 false} at \texttt{-O2} (\texttt{clang++-22}).}
+\caption{Ordered sets: the grammar extension for order on the carrier's elements, and the extrema it enables.
+\textbf{Set expressions} (left): \cppinline{max}/\cppinline{min} return the extremal \emph{subset} --- \cppinline{S} met with its \cppinline{upperbounds}/\cppinline{lowerbounds}, settled \emph{symbolically} per structure so no candidate is enumerated (Equation~\ref{eqn:extrema}).
+\textbf{Predicates} (right): element comparisons \cppinline{cmp} cut halfspaces by comprehension.
+\textbf{Witnesses}: a halfspace and its membership, and extrema on the finite $\mathbb{B}$ and the ordered $\mathbb{N}$.
+(Subset \cppinline{<=} and the power set $\mathfrak{P}$ are the normal-form operations of Listing~\ref{lst:materialise}; over an ordered carrier the normal form is the reified subobject $\mathrm{Sub}(C)$, so $\mathfrak{P}(S) = \Omega\langle\mathrm{Sub}(C)\rangle \mid X \subseteq S$.)}
 \label{lst:extrema_def}
 \noindent
-{\footnotesize\centering\textbf{grammar extension} --- order on the carrier (plugs into Listing~\ref{lst:set-grammar})\par}
+\begin{minipage}[t]{0.49\linewidth}
+\begin{cpp}
+constexpr auto gt5 = ℕ | π > fix(5_c);
+static_assert(bool(gt5(6)));
+static_assert(!bool(gt5(5)));
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\linewidth}
+\begin{cpp}
+static_assert(max(𝔹)(true));
+static_assert(min(𝔹)(false));
+static_assert(max(ℕ | π <= fix(5_c))(5));
+\end{cpp}
+\end{minipage}
+
+\vspace{0.6em}
+\noindent
+\begin{minipage}[t]{0.49\linewidth}
+{\footnotesize\centering\textbf{set expressions}\par}
 \begin{minted}[fontsize=\footnotesize]{text}
-atom +::= elem cmp elem                       -- extends <any elem → 𝔹>
-        | elem cmp 'fix' '(' const ')'
-        | setexpr '<=' setexpr                 -- subset ⊆  (Table 2 order)
-cmp    ::= '<' | '<=' | '>' | '>='
-setexpr +::= ('max' | 'min') '(' setexpr ')'  -- extremal subset
-        | '𝔓' '(' setexpr ')'                 -- power set: Ω⟨Sub(C)⟩ | X <= S
+setexpr +::= ('max' | 'min') '(' setexpr ')'
 \end{minted}
-
-\vspace{0.4em}
-\noindent
-\begin{minipage}[t]{0.99\linewidth}
-\begin{cpp}
-auto max(S s) { return s & upperbounds(s); }
-
-auto upperbounds(Halfspace<T,p,Down>) { return Halfspace<T,p,Up,NonStrict>{}; }
-auto upperbounds(Halfspace<T,p,Up>)   { return Ø<T>{}; }
-auto upperbounds(Ω<bool>)             { return η(true); }
-\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\linewidth}
+{\footnotesize\centering\textbf{predicates} \ensuremath{(\to \mathbb{B})}\par}
+\begin{minted}[fontsize=\footnotesize]{text}
+atom +::= elem cmp elem
+        |  elem cmp 'fix' '(' const ')'
+cmp   ::= '<' | '<=' | '>' | '>='
+\end{minted}
 \end{minipage}
-
-\vspace{0.4em}
-\noindent
-\begin{minipage}[t]{0.99\linewidth}
-\begin{cpp}
-constexpr auto gt_5 = ℕ | π > fix(5_c);       // halfspace {x > 5}
-static_assert(bool(gt_5 <= ℕ));               // subset ⊆
-static_assert((gt_5 & ~gt_5) == Ø{});         // complement meet → ∅
-static_assert(max(𝔹)(true));   static_assert(min(𝔹)(false));
-static_assert(max(ℕ | (π <= fix(5_c)))(5));   // extrema on the ordered ℕ
-constexpr auto gt3 = ℕ | π > fix(3_c);        // halfspace {x > 3}
-static_assert(bool(𝔓(gt3)(gt3)));             // A ∈ 𝔓(A): self-membership
-static_assert(bool(𝔓(gt3)(η(4))));            // {4} ⊆ {x>3}: a singleton in a
-                                              // halfspace's 𝔓, one Sub(C), no erasure
-\end{cpp}
-\end{minipage}
-
-\vspace{0.4em}
-\begin{cpp}
-define noundef zeroext i1 @witness_empty_halfspace_meet() { ret i1 false }
-\end{cpp}
 \end{listing}
 
 The order runs the same play once more.
@@ -700,7 +705,7 @@ Where $\exists$ and $\forall$ test the comprehension against a bound and return 
 \qquad
 \min \;:\equiv\; \max \text{ under } {\le} \mapsto {\ge}.
 \end{equation}
-In code it is one generic definition: $S$ met with its \cppinline{upperbounds}, the region $R/\ni$ that dominates all of $S$ (Listing~\ref{lst:extrema_def}, top).
+In code it is one generic definition: $S$ met with its \cppinline{upperbounds}, the region $R/\ni$ that dominates all of $S$.
 Read relationally, \cppinline{upperbounds} is the $\forall$-projection of the order relation \cppinline{S * S | π1 <= π2} onto its second coordinate, so $\max$ keeps the $\pi_2$ that every $\pi_1$ precedes; $\min$ is the same in the dual order, the way $\forall$ is $\exists$ under $\neg$ in the quantifiers below.
 The implementation builds no product and needs no inverse: the meet of $S$ with a comparison-defined halfspace suffices, which is why the extremum of a set lands before relations do.
 The answer is a set, so the degenerate cases need no special casing: an empty carrier gives $\varnothing$, and a total or partial order gives a singleton (a greatest element, when it exists, is unique by antisymmetry) or $\varnothing$; a larger set arises only under a \emph{preorder}, where distinct elements can be equivalent and tie for the top.
@@ -782,30 +787,6 @@ static_assert(!forall(ℕ, div3));
 \end{cpp}
 \end{minipage}
 \end{listing}
-
-% ============================================================
-\subsection{Sets in Normal Form}
-\label{sec:ddk_normalform}
-% ============================================================
-
-Equality, subset, and the power set are the operations of sets in \emph{normal form}.
-Two sets are equal exactly when their canonical representatives coincide, so \cppinline{==} and \cppinline{<=} are decided by normalising both sides and comparing.
-This is the word problem: decidable exactly when a confluent, terminating reduction gives each set a unique normal form~\cite{baader1998term}.
-A set reaches one several ways: \cppinline{ext} enumerates a finite set to a canonical container (Listing~\ref{lst:materialise}); the ordered reification \cppinline{Sub(C)} normalises a halfspace or interval to its effective bounds (§\ref{sec:ddk_ordered}); a periodic predicate collapses to a residue; and the boundaries \cppinline{Ø}/\cppinline{Ω} are normal by construction.
-So \cppinline{ext} is one normaliser among several, not the gate; the \cppinline{==}/\cppinline{<=}/$\mathfrak{P}$ first seen in Listing~\ref{lst:set-grammar} and §\ref{sec:ddk_ordered} are these same operations, read on whatever normal form the carrier supplies.
-A predicate with no normal form has no decidable \cppinline{==}: the Rice wall once more.
-
-\noindent
-{\footnotesize\centering\textbf{grammar extension} --- normal forms and their comparison (plugs into Listing~\ref{lst:set-grammar})\par}
-\begin{minted}[fontsize=\footnotesize]{text}
-nf       ::= 'ext' '(' setexpr ')'    -- normalise: enumerate to a container (finite)
-          |  'Ø' carrier | 'Ω' carrier -- boundary normal forms
-          |  'Sub' '(' carrier ')'     -- ordered convex reification (Sec 3.2)
-          |  residue                   -- periodic (finite quotient)
-atom    +::= nf sp2 nf                 -- decide by normalise-and-compare
-sp2      ::= '==' | '<='
-setexpr +::= '𝔓' '(' nf ')'           -- power set of a normal-form set
-\end{minted}
 
 % ============================================================
 \subsection{A Categorical Notion of Set}
