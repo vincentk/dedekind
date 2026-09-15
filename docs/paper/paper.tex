@@ -285,10 +285,10 @@ The recovery has a recurring shape, a meta-algorithm we name \emph{Galois specia
 The satisfaction of a law by an arbitrary carrier is a non-trivial semantic property, undecidable in general (Rice's theorem~\cite{rice1953classes}).
 A \emph{Galois specialisation} discharges it on a structured sub-domain in four steps, one development cycle of Figure~\ref{fig:target_model}:
 \begin{enumerate}
-\item \textbf{A truth theorem}: the law holds over the variety its axioms define.
-\item \textbf{A computability theorem}: the law decides on the sub-domain that a carrier's operation-preserving invariants (its polymorphisms) single out, reached along a Galois connection: a decidable fragment of the otherwise undecidable theory~\cite{borger2001classical}, the tractable side of the constraint-satisfaction dichotomy~\cite{zhuk2020proof, geiger1968closed}, the computational analogue of Noether's coupling of symmetries and invariants~\cite{noether1918invariante}; absent such structure, a sound over-approximation~\cite{cousot1977abstract}.
+\item \textbf{A truth theorem}: the law holds over the class its axioms define.
+\item \textbf{A computability theorem}: the law decides on the sub-domain fixed by the invariants a carrier's operations preserve. That algebraic invariants govern computability is the lesson of the polymorphism--invariant Galois connection~\cite{geiger1968closed} and the constraint-satisfaction dichotomy it drives~\cite{zhuk2020proof}, the computational analogue of Noether's coupling of symmetries and invariants~\cite{noether1918invariante}; a decidable fragment of the theory~\cite{borger2001classical} or a sound over-approximation~\cite{cousot1977abstract} serve where less structure is at hand.
 \item \textbf{A \cppinline{concept}} approximating the conjunction of (1) and (2): sound, and, being an approximation, at worst under-deciding, never fabricating.
-\item \textbf{A carrier type} satisfying that \cppinline{concept}: a \emph{realizer}~\cite{kleene1945realizability} that the law is at once true and decidable, a proof-as-program~\cite{wadler2015propositions} the type checker discharges and compares back to~(1).
+\item \textbf{A carrier type} satisfying that \cppinline{concept}: a checkable witness, a proof-as-program~\cite{wadler2015propositions} in the realizability sense~\cite{kleene1945realizability}, discharging the \cppinline{concept} rather than the law itself, for which an unbounded carrier still rests on the registered axiom (below).
 \end{enumerate}
 The outer loop is Lakatos's~\cite{lakatos1976proofs}: meet a counterexample, restrict the domain by incorporating the missing lemma as a hypothesis, and retry.
 \end{definition}
@@ -452,6 +452,7 @@ This forms the exact Cartesian Closed Category needed to bootstrap formal set co
 \label{sec:intensional_sets}
 
 With a deterministic, structurally-typed substrate established in Section~\ref{sec:jlt_posture}, mathematical sets can be bootstrapped inside the type system.
+This section is the Galois specialisation (Definition~\ref{def:galois-specialisation}) of $\mathbf{Set}$, the category of sets.
 Here, both the syntax and the semantics of mathematical set-builder notation are modelled in executable $\mathbf{Jlt}$, aiming at a system that lends itself to the expression and subsequent evaluation of precisely those kinds of problems that one might also encounter in a pure-math blackboard setting.
 Figure~\ref{fig:hub-spoke-bnz} in the introduction previews the functionality this section builds.
 
@@ -799,6 +800,7 @@ sp2   ::= cmp
 \section{A Reification of $\mathbf{RAlg}$}
 \label{sec:relations_functions_blueprint}
 
+This section is the Galois specialisation (Definition~\ref{def:galois-specialisation}) of $\mathbf{RAlg}$, the category of relations.
 Relations are a \emph{dioid}, an idempotent semiring $(\mathrm{Rel}, \cup, \mathbin{;}, \varnothing, \Delta)$ under union and relative product, and that structure is the spine of this section (Table~\ref{tab:relation-dioid}).
 It stands on its own two monoids: a join-semilattice for $\cup$, and a composition monoid for $\mathbin{;}$ whose unit is the diagonal $\Delta$.
 The additive half happens to be the Boolean lattice a relation already carries \emph{as a set} (Section~\ref{sec:intensional_sets}, Table~\ref{tab:lattice-lift}); the multiplicative half, composition with unit the diagonal, is what the \emph{product} adds and is the reason the section exists.
@@ -1267,7 +1269,8 @@ The implemented $\arg\max$ is exactly this structural specialization (a group-ca
 \section{A Reification of $\mathbf{Alg}(-)$}
 \label{sec:algebraic_lattice_carriers}
 
-We reify $\mathbf{Alg}(-)$ as the \emph{relational magmas} over $\mathbf{Trsk}$: a carrier with a pointwise operation $A \times A \to A$, read as the functional relation that is its graph and refined by the laws it keeps (Equation~\ref{eqn:ddk}).
+This section is the Galois specialisation (Definition~\ref{def:galois-specialisation}) of $\mathbf{Alg}(-)$, the category of varieties.
+$\mathbf{Alg}(-)$ is reified as the \emph{relational magmas} over $\mathbf{Trsk}$: a carrier with a pointwise operation $A \times A \to A$, read as the functional relation that is its graph and refined by the laws it keeps (Equation~\ref{eqn:ddk}).
 The section is four capabilities, each a compile-time certificate (Listing~\ref{lst:alg-capabilities}): a magma is a carrier with a closed operation, and Birkhoff's three constructions --- quotient (H), subalgebra (S), and direct product (P) --- each build a new carrier from it, the base's certificate carried across for S and P by trait propagation, and, for the relational H shown here, the quotient \emph{witnessed} by its congruence rather than by propagation (\S\ref{sec:relations_functions_blueprint}).
 
 % Source excerpts from dedekind.algebra:quotient, :morphologies:cyclic, :sequences, :linear_algebra:vec2.
