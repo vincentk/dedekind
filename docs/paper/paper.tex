@@ -461,7 +461,7 @@ Listing~\ref{lst:set-grammar} gives the grammar of the set DSL --- set expressio
 The generators are \cppinline{Ω} (universal), \cppinline{Ø} (empty), the singleton $\eta$ (the power-set monad's unit, $x \mapsto \{x\}$), and any user \cppinline{IsSet}; \cppinline{op1} is complement (\cppinline{~}); \cppinline{op2} is union, meet, symmetric difference, or product; \cppinline{setexpr '|' pred} is the comprehension filter, so a predicate promoted to a set is just \cppinline{Ω | pred}; and $\mathfrak{P}$ is the power set.
 $\mathfrak{P}$ is a set constructor in the grammar but is decidable only per carrier: over an ordered carrier it is a comprehension over the subset order (§\ref{sec:ddk_ordered}), over a finite carrier an enumeration, and over a general carrier a type error.
 \emph{Predicates} (right) land in $\mathbb{B}$: equality atoms over the bound element (\cppinline{χ} / \cppinline{π}) and the NTTP \cppinline{fix}, the unary \cppinline{p1} (negation \cppinline{!}), the binary \cppinline{p2} (\cppinline{&&}, \cppinline{||}), and membership \cppinline{S(χ)}.
-The two open slots --- \cppinline{<any elem → 𝔹>} and \cppinline{<any IsSet>} --- are the \emph{extension points} the later listings plug into (quantifiers, Listing~\ref{lst:quantifiers_def}; order, Listing~\ref{lst:extrema_def}).
+The two open slots --- \cppinline{<any elem → 𝔹>} and \cppinline{<any IsSet>} --- are the \emph{extension points} the later listings plug into (quantifiers and order, Listing~\ref{lst:extrema_def}).
 A correspondence, not the literal C++ grammar: operator precedence, ADL, and the concept-gates sit underneath.}
 \label{lst:set-grammar}\label{lst:pruning}
 \noindent
@@ -590,26 +590,49 @@ Listing~\ref{lst:pruning} exhibits a checked-in extract that tests this type-dir
 % ============================================================
 
 The algebra so far asks only \emph{equality} of the carrier: membership, the Boolean lattice, and the subset order $\subseteq$ --- the rightmost column of Table~\ref{tab:lattice-lift} --- are all pointwise lifts of the order on $\Omega$, so they hold for any \cppinline{std::regular} carrier.
-A second, independent order enters when the carrier's \emph{elements} are themselves ordered ($\le$): now element comparisons (\cppinline{π > fix(5)}), the halfspaces they cut by comprehension, and the extrema below all become available.
-This is the first rung that asks the carrier for more than equality; its grammar extension is the top box of Listing~\ref{lst:extrema_def}.
+A second, independent order enters when the carrier's \emph{elements} are themselves ordered ($\le$): now element comparisons (\cppinline{π > fix(5)}), the halfspaces they cut by comprehension, the quantifiers over them, and the extrema below all become available.
+This is the first rung that asks the carrier for more than equality; its grammar extension is Listing~\ref{lst:extrema_def}.
 
 \begin{listing}[htbp]
-\caption{Ordered sets: the grammar extension for order on the carrier's elements, and the extrema it enables.
-\textbf{Set expressions} (left): \cppinline{max}/\cppinline{min} return the extremal \emph{subset} --- \cppinline{S} met with its \cppinline{upperbounds}/\cppinline{lowerbounds}, settled \emph{symbolically} per structure so no candidate is enumerated (Equation~\ref{eqn:extrema}).
-\textbf{Predicates} (right): element comparisons \cppinline{cmp} cut halfspaces by comprehension.
-\textbf{Witnesses}: a halfspace and its membership, and extrema on the finite $\mathbb{B}$ and the ordered $\mathbb{N}$.
+\caption{Ordered sets: order on the carrier's elements, the quantifiers it makes decidable, and the extrema they define --- grammar extension of Listing~\ref{lst:set-grammar}.
+\textbf{Predicates} (right): element comparisons \cppinline{cmp} cut halfspaces by comprehension; \cppinline{forall}/\cppinline{exists} plug into \cppinline{pred}, each one point-free \cppinline{operator==} against a bound (Equation~\ref{eqn:quantifiers}) --- \cppinline{exists(S,P)} tests \cppinline{S | P} against $\varnothing$, \cppinline{forall(S,P)} against $S$.
+\textbf{Set expressions} (left): \cppinline{max}/\cppinline{min} return the extremal \emph{subset}, defined via $\forall$ (Equation~\ref{eqn:extrema}) and computed as \cppinline{S} met with its symbolically-settled \cppinline{upperbounds}/\cppinline{lowerbounds}, so no candidate is enumerated.
+\textbf{Witnesses}: $\exists$/$\forall$ on the finite $\mathbb{B}$ and on $\mathbb{N}$ through the finite quotient $\mathbb{Z}/3\mathbb{Z}$ (the congruence $\pi \equiv 0 \pmod 3$); a halfspace; and extrema on $\mathbb{B}$ and $\mathbb{N}$.
 (Subset \cppinline{<=} and the power set $\mathfrak{P}$ are the normal-form operations of Listing~\ref{lst:materialise}; over an ordered carrier the normal form is the reified subobject $\mathrm{Sub}(C)$, so $\mathfrak{P}(S) = \Omega\langle\mathrm{Sub}(C)\rangle \mid X \subseteq S$.)}
 \label{lst:extrema_def}
 \noindent
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-constexpr auto gt5 = ℕ | π > fix(5_c);
-static_assert(bool(gt5(6)));
-static_assert(!bool(gt5(5)));
+template <IsSet S, class P>
+constexpr bool exists(S s, P p) {
+  return !(Ø{} == (s | p));
+}
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
+template <IsSet S, class P>
+constexpr bool forall(S s, P p) {
+  return (s | p) == s;
+}
+\end{cpp}
+\end{minipage}
+
+\vspace{0.4em}
+\noindent
+\begin{minipage}[t]{0.49\linewidth}
+\begin{cpp}
+constexpr auto div3 = π % fix(3_c) == fix(0_c);
+static_assert( exists(𝔹, π == fix(true_c)));
+static_assert(!forall(𝔹, π == fix(true_c)));
+static_assert( exists(ℕ, div3));
+static_assert(!forall(ℕ, div3));
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\linewidth}
+\begin{cpp}
+constexpr auto gt5 = ℕ | π > fix(5_c);
+static_assert(bool(gt5(6)) && !bool(gt5(5)));
 static_assert(max(𝔹)(true));
 static_assert(min(𝔹)(false));
 static_assert(max(ℕ | π <= fix(5_c))(5));
@@ -627,29 +650,13 @@ setexpr +::= ('max' | 'min') '(' setexpr ')'
 \begin{minipage}[t]{0.49\linewidth}
 {\footnotesize\centering\textbf{predicates} \ensuremath{(\to \mathbb{B})}\par}
 \begin{minted}[fontsize=\footnotesize]{text}
+pred +::= ('forall' | 'exists') '(' setexpr ',' pred ')'
 atom +::= elem cmp elem
         |  elem cmp 'fix' '(' const ')'
 cmp   ::= '<' | '<=' | '>' | '>='
 \end{minted}
 \end{minipage}
 \end{listing}
-
-The order runs the same play once more.
-Read $\le$ as the predicate and the extremum \emph{is} a set operation: the greatest elements of $S$ are those no element of $S$ beats.
-Where $\exists$ and $\forall$ test the comprehension against a bound and return a truth value, $\max$ and $\min$ keep the comprehension and return the extremal \emph{subset}.
-\begin{equation}
-\label{eqn:extrema}
-\max S \;:\equiv\; \{x \in S \mid \forall x' \in S.\; x' \le x\},
-\qquad
-\min \;:\equiv\; \max \text{ under } {\le} \mapsto {\ge}.
-\end{equation}
-In code it is one generic definition: $S$ met with its \cppinline{upperbounds}, the region $R/\ni$ that dominates all of $S$.
-Read relationally, \cppinline{upperbounds} is the $\forall$-projection of the order relation \cppinline{S * S | π1 <= π2} onto its second coordinate, so $\max$ keeps the $\pi_2$ that every $\pi_1$ precedes; $\min$ is the same in the dual order, the way $\forall$ is $\exists$ under $\neg$ in the quantifiers below.
-The implementation builds no product and needs no inverse: the meet of $S$ with a comparison-defined halfspace suffices, which is why the extremum of a set lands before relations do.
-The answer is a set, so the degenerate cases need no special casing: an empty carrier gives $\varnothing$, and a total or partial order gives a singleton (a greatest element, when it exists, is unique by antisymmetry) or $\varnothing$; a larger set arises only under a \emph{preorder}, where distinct elements can be equivalent and tie for the top.
-Being generic, $\max$ types in for any ordered carrier and decides wherever \cppinline{upperbounds} is settled by structure: a halfspace's dual (an upward halfspace, unbounded above, has none, so $\max$ is $\varnothing$) or a finite carrier's top.
-A carrier that hands over no such handle matches no \cppinline{upperbounds}, hence no \cppinline{max}: a compile error, the same Rice wall as the quantifiers, rather than a fabricated bound.
-Section~\ref{sec:relations_functions_blueprint} lifts $\le$ from a bare comparison to a function's graph, and the same filter becomes $\arg\max$.
 
 First-order quantification is the same reading once more: a quantifier \emph{is} a set operation, and we take that structural (Bourbaki) sense as the definition, not as a later coincidence.
 \begin{equation}
@@ -663,68 +670,34 @@ First-order quantification is the same reading once more: a quantifier \emph{is}
 &\quad \exists &\;:\equiv\; \neg\,\forall\,\neg\,.
 \end{aligned}
 \end{equation}
-In code the comprehension is the where-clause \cppinline{S | P} and each formulation is one \cppinline{operator==} against a bound: (A) \cppinline{exists(S,P)} is \cppinline{!(Ø{} == (S | P))}, (B) \cppinline{forall(S,P)} is \cppinline{(S | P) == S}, and each recovers its partner by De Morgan's duality, complementing the predicate, \cppinline{!P} (Listing~\ref{lst:quantifiers_def}, top row).
+In code the comprehension is the where-clause \cppinline{S | P} and each formulation is one \cppinline{operator==} against a bound: (A) \cppinline{exists(S,P)} is \cppinline{!(Ø{} == (S | P))}, (B) \cppinline{forall(S,P)} is \cppinline{(S | P) == S}, and each recovers its partner by De Morgan's duality, complementing the predicate, \cppinline{!P} (Listing~\ref{lst:extrema_def}).
 Read extensionally, as a loop over the elements of the carrier, the two formulations part ways.
 Formulation (A) asks for a single example (for $\exists$), or through $\neg\exists\neg$ a single counterexample (for $\forall$): find one and you are done, so it returns even on an infinite carrier whenever the witness sits at a finite position.
 Formulation (B) asks whether the comprehension fills the whole carrier, which extensionally means enumerating every element, so on an infinite carrier only (A) is on the table.
 Read the same definitions intensionally, as an algebra on the characteristic predicates, and both formulations collapse to one cheap question: does the comprehension \cppinline{S | P}, the meet $S \wedge P$, reduce to always-false (then $\exists$ fails) or to always-true (then $\forall$ holds)?
 The cost is then not a function of the carrier's cardinality but of the \emph{set relation}, the conjunction or disjunction of the characteristic predicates.
 This can rescue $\forall$ over an infinite carrier, but only in the exceptional case that the predicate factors through a finite quotient.
-The congruence $\pi \equiv 0 \pmod 3$ is periodic, so it factors through the finite codomain $\mathbb{Z}/3\mathbb{Z}$ (Section~\ref{sec:functions_morphism_factorization}), the collapse is settled on three residues rather than the countably many naturals, and both $\exists$ and $\forall$ return in finite time (Listing~\ref{lst:quantifiers_def}, bottom row).
+The congruence $\pi \equiv 0 \pmod 3$ is periodic, so it factors through the finite codomain $\mathbb{Z}/3\mathbb{Z}$ (Section~\ref{sec:functions_morphism_factorization}), the collapse is settled on three residues rather than the countably many naturals, and both $\exists$ and $\forall$ return in finite time (Listing~\ref{lst:extrema_def}).
 The technique is confined to predicates carrying a \emph{certified} finite quotient or algebraic factorisation; a predicate with none (\cppinline{isPrime}, a Collatz-style recurrence) does not reduce, and $\forall$ over it stays undecidable at compile time.
 Intensional quantification is thus not a general escape from the infinite, only a lever where the predicate's own structure supplies the finite handle.
 An operand that is neither a finite carrier nor a predicate factoring through a finite quotient matches no overload: the honest Rice wall, a compile error rather than a fabricated answer.
 
-\begin{listing}[htbp]
-\caption{The finite-quotient quantifiers, point-free --- a \emph{grammar extension} of Listing~\ref{lst:set-grammar}, plugging \cppinline{forall}/\cppinline{exists} into the \cppinline{pred} extension point (top box).
-\textbf{Middle}: the generic \cppinline{exists} / \cppinline{forall} over an \cppinline{IsSet} domain \cppinline{S} and a point-free \emph{fragment} \cppinline{P} (gated by \cppinline{S | P} being well-formed), as (A) a test of \cppinline{S | P} against $\varnothing$ and (B) against the input set $S$.
-\textbf{Bottom}: the two worked cases, $\mathbb{B} = $\cppinline{Ω<bool>} with the fragment \cppinline{π == fix(true_c)}, and $\mathbb{N} = $\cppinline{Ω<Cardinality>} with the congruence fragment $\pi \equiv 0 \pmod 3$ (materialised over the residues of $\mathbb{Z}/3\mathbb{Z}$).}
-\label{lst:quantifiers_def}
-\noindent
-{\footnotesize\centering\textbf{grammar extension} --- plugs into \cppinline{pred} (Listing~\ref{lst:set-grammar})\par}
-\begin{minted}[fontsize=\footnotesize]{text}
-pred +::= ('forall' | 'exists') '(' setexpr ',' pred ')'
-\end{minted}
-
-\vspace{0.4em}
-\noindent
-\begin{minipage}[t]{0.49\linewidth}
-\begin{cpp}
-template <IsSet S, class P>
-constexpr bool
-exists(S s, P p) {
-  return !(Ø{} == (s | p));
-}
-\end{cpp}
-\end{minipage}\hfill
-\begin{minipage}[t]{0.49\linewidth}
-\begin{cpp}
-template <IsSet S, class P>
-constexpr bool
-forall(S s, P p) {
-  return (s | p) == s;
-}
-\end{cpp}
-\end{minipage}
-
-\vspace{0.4em}
-\noindent
-\begin{minipage}[t]{0.49\linewidth}
-\begin{cpp}
-constexpr auto 𝔹 = Ω<bool>;
-static_assert( exists(𝔹, π == fix(true_c)));
-static_assert(!forall(𝔹, π == fix(true_c)));
-\end{cpp}
-\end{minipage}\hfill
-\begin{minipage}[t]{0.49\linewidth}
-\begin{cpp}
-constexpr auto ℕ = Ω<Cardinality>;
-constexpr auto div3 = π % fix(3_c) == fix(0_c);
-static_assert( exists(ℕ, div3));
-static_assert(!forall(ℕ, div3));
-\end{cpp}
-\end{minipage}
-\end{listing}
+The order runs the same play once more.
+Read $\le$ as the predicate and the extremum \emph{is} a set operation: the greatest elements of $S$ are those no element of $S$ beats.
+Where $\exists$ and $\forall$ test the comprehension against a bound and return a truth value, $\max$ and $\min$ keep the comprehension and return the extremal \emph{subset}.
+\begin{equation}
+\label{eqn:extrema}
+\max S \;:\equiv\; \{x \in S \mid \forall x' \in S.\; x' \le x\},
+\qquad
+\min \;:\equiv\; \max \text{ under } {\le} \mapsto {\ge}.
+\end{equation}
+In code it is one generic definition: $S$ met with its \cppinline{upperbounds}, the region $R/\ni$ that dominates all of $S$.
+Read relationally, \cppinline{upperbounds} is the $\forall$-projection of the order relation \cppinline{S * S | π1 <= π2} onto its second coordinate, so $\max$ keeps the $\pi_2$ that every $\pi_1$ precedes; $\min$ is the same in the dual order, the way $\forall$ is $\exists$ under $\neg$ in the quantifiers above.
+The implementation builds no product and needs no inverse: the meet of $S$ with a comparison-defined halfspace suffices, which is why the extremum of a set lands before relations do.
+The answer is a set, so the degenerate cases need no special casing: an empty carrier gives $\varnothing$, and a total or partial order gives a singleton (a greatest element, when it exists, is unique by antisymmetry) or $\varnothing$; a larger set arises only under a \emph{preorder}, where distinct elements can be equivalent and tie for the top.
+Being generic, $\max$ types in for any ordered carrier and decides wherever \cppinline{upperbounds} is settled by structure: a halfspace's dual (an upward halfspace, unbounded above, has none, so $\max$ is $\varnothing$) or a finite carrier's top.
+A carrier that hands over no such handle matches no \cppinline{upperbounds}, hence no \cppinline{max}: a compile error, the same Rice wall as the quantifiers, rather than a fabricated bound.
+Section~\ref{sec:relations_functions_blueprint} lifts $\le$ from a bare comparison to a function's graph, and the same filter becomes $\arg\max$.
 
 % ============================================================
 \subsection{Finite and Extensional Sets}
