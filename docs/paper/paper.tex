@@ -442,7 +442,7 @@ Figure~\ref{fig:hub-spoke-bnz} in the introduction previews the functionality th
 
 We fix the notion of set the DSL reifies before building it.
 A set here is \emph{intensional}: given by the condition its members satisfy, not the bag of elements a container stores.
-Where ZF stores a set extensionally (elements in memory, as \cppinline{std::set} does), ETCS presents it by that condition --- the open disk $\{\, x \mid \lVert x - c \rVert < r \,\}$ is an uncountable bag no machine can hold, or the single inequality that \emph{is} it (raster versus vector).
+Where ZF stores a set extensionally (elements in memory, as \cppinline{std::set} does), ETCS presents it by that condition: the open disk $\{\, x \mid \lVert x - c \rVert < r \,\}$ is an uncountable bag no machine can hold, or the single inequality that \emph{is} it (raster versus vector).
 This is Lawvere's elementary theory of the category of sets~\cite{lawvere1964etcs}, a set given by objects and their morphisms:
 \begin{definition}[ETCS Set]
 \label{def:etcs-set}
@@ -451,7 +451,9 @@ This is Lawvere's elementary theory of the category of sets~\cite{lawvere1964etc
 We made an honest attempt to ground the DSL in it: the ten defining axioms are reified as type-level \cppinline{concept} predicates and composed into a structural \cppinline{concept IsSet}, which checks whether a $\mathbf{Jlt}$ type is also an object of $\mathbf{Set}$; the step-by-step embedding is in Appendix~\ref{sec:etcs}, the concepts in the reference implementation~\cite{Krautler_dedekind_2026} (Mac Lane~\cite{maclane1971categories} and Pierce~\cite{pierce1991basic} for background).
 The steps taken to reify intensional sets form a core category $\mathbf{Ddk} \subset \mathbf{Jlt} \cap \mathbf{Set}$, tracked literally at compile time.
 
-With the notion of set fixed, the rest of this section develops the DSL: the general set algebra (§\ref{sec:ddk_comprehension}), then the ordered (§\ref{sec:ddk_ordered}) and finite/extensional (§\ref{sec:ddk_extensional}) tiers that make progressively more of it decidable.
+With the notion of set fixed, the rest of the section develops the DSL over three tiers of increasing decidability, the classical hierarchy of set equality~\cite{chomsky1956three}.
+A general predicate (§\ref{sec:ddk_comprehension}) is recursively enumerable, so equality and subset are Rice-walled~\cite{rice1953classes}; the ordered and periodic sets (§\ref{sec:ddk_ordered}) are \emph{regular}, decidable by a canonical normal form (the minimal automaton, Myhill--Nerode~\cite{nerode1958linear}); and the finite, extensional sets (§\ref{sec:ddk_extensional}) simply list.
+Each tier's normal form is what makes its comparisons decidable.
 
 % ============================================================
 \subsection{An Algebra of Sets}
@@ -605,8 +607,8 @@ A second, independent order enters when the carrier's \emph{elements} are themse
 This is the first rung that asks the carrier for more than equality; its grammar extension is Listing~\ref{lst:extrema_def}.
 
 \begin{listing}[htbp]
-\caption{Ordered sets: order on the carrier's elements, the quantifiers it makes decidable, and the extrema they define --- grammar extension of Listing~\ref{lst:set-grammar}.
-\textbf{Predicates} (right): element comparisons \cppinline{cmp} cut halfspaces by comprehension; \cppinline{forall}/\cppinline{exists} plug into \cppinline{pred}, each one point-free \cppinline{operator==} against a bound (Equation~\ref{eqn:quantifiers}) --- \cppinline{exists(S,P)} tests \cppinline{S | P} against $\varnothing$, \cppinline{forall(S,P)} against $S$.
+\caption{Ordered sets: order on the carrier's elements, the quantifiers it makes decidable, and the extrema they define; a grammar extension of Listing~\ref{lst:set-grammar}.
+\textbf{Predicates} (right): element comparisons \cppinline{cmp} cut halfspaces by comprehension; \cppinline{forall}/\cppinline{exists} plug into \cppinline{pred}, each one point-free \cppinline{operator==} against a bound (Equation~\ref{eqn:quantifiers}): \cppinline{exists(S,P)} tests \cppinline{S | P} against $\varnothing$, \cppinline{forall(S,P)} against $S$.
 \textbf{Set expressions} (left): \cppinline{max}/\cppinline{min} return the extremal \emph{subset}, defined via $\forall$ (Equation~\ref{eqn:extrema}) and computed as \cppinline{S} met with its symbolically-settled \cppinline{upperbounds}/\cppinline{lowerbounds}, so no candidate is enumerated.
 \textbf{Witnesses}: $\exists$/$\forall$ on the finite $\mathbb{B}$ and on $\mathbb{N}$ through the finite quotient $\mathbb{Z}/3\mathbb{Z}$ (the congruence $\pi \equiv 0 \pmod 3$); a halfspace; and extrema on $\mathbb{B}$ and $\mathbb{N}$.
 (Subset \cppinline{<=} and the power set $\mathfrak{P}$ are the normal-form operations of Listing~\ref{lst:materialise}; over an ordered carrier the normal form is the reified subobject $\mathrm{Sub}(C)$, so $\mathfrak{P}(S) = \Omega\langle\mathrm{Sub}(C)\rangle \mid X \subseteq S$.)}
@@ -717,7 +719,11 @@ Section~\ref{sec:relations_functions_blueprint} lifts $\le$ from a bare comparis
 
 The container reading and the predicate reading are almost interconvertible, and the asymmetry is the point (Listing~\ref{lst:materialise}).
 Any \cppinline{std::set} is a $\mathbf{Lwv}$ set for free, its \cppinline{contains} the characteristic predicate; call that embedding $\iota$, and it is total.
-Only a finite, enumerable $\mathbf{Lwv}$ set materialises back to a container; call that map $\mu$ (its CT name is the \emph{extension}, \cppinline{ext}, dual to the predicate's intension, as $\eta$ names \cppinline{singleton}), and it is partial, the naturals having no finite materialisation.
+Only a finite, enumerable $\mathbf{Lwv}$ set materialises back to a container; call that map $\mu$ (its CT name is the \emph{extension}, \cppinline{ext}, dual to the predicate's intension, as $\eta$ names \cppinline{singleton}, the power-set monad's unit~\cite{moggi1991notions}), and it is partial, the naturals having no finite materialisation.
+% FUTURE WORK (#842, backlog): Frobenius structure on sets / Rel objects
+% (classical/CQM copy-delete on the power-set monad's objects). The power-set
+% monad has η (singleton) and μ (union-flatten) but no natural counit ε, so the
+% Frobenius structure lives on the Rel objects, not on the monad-as-functor.
 This asymmetry is the model/materialise gap of the whole framework: $\mathbf{Jlt}$ \emph{models} carriers up to the continuum but \emph{materialises} only finite ones,
 \begin{equation}
 \label{eqn:model-materialise}
@@ -726,15 +732,11 @@ This asymmetry is the model/materialise gap of the whole framework: $\mathbf{Jlt
 the library's Axiom-9 restriction of carrier predicates to $\beth_1$ (Appendix~\ref{sec:etcs}) above, meeting the finite reach of $\mu$ below.
 So $\mathbf{Lwv}$ is strictly more expressive than \cppinline{std::set}, the extensional container it generalises, and the price is paid in \emph{proof obligations}: where $\mu$ is unavailable, membership is settled by the concept constraints and factorisations of this section, not by enumeration.
 This is the extensional/intensional database distinction of deductive databases, \cppinline{std::set} playing the extensional store (EDB, facts) and $\mathbf{Lwv}$ the intensional one (IDB, rules), with materialisation the materialised view~\cite{abiteboul1995foundations}.
-The section's tiers track the classical decidability hierarchy~\cite{chomsky1956three}: a general predicate is recursively enumerable, hence Rice-walled; the ordered and periodic sets of §\ref{sec:ddk_ordered} are \emph{regular}, decidable by a canonical normal form; and \cppinline{ext} reaches the finite sets that list.
 
 \begin{listing}[htbp]
 \caption{Extensional operations on sets in \emph{normal form}: the extension \cppinline{ext} (the partial materialisation $\mu$, finite only), the comparisons \cppinline{==}/\cppinline{<=}, and the power set $\mathfrak{P}$.
-Two sets are equal iff their canonical representatives coincide, so the comparisons are decided by normalise-and-compare: decidable for the finite and \emph{regular} normal forms (the minimal automaton is the canonical representative, Myhill--Nerode~\cite{nerode1958linear}; a bound or residue is a more compact one), undecidable above (the Rice wall~\cite{rice1953classes}).
-\cppinline{ext} is the finite normaliser, \cppinline{Sub(C)} bounds and residues the regular ones.
-\textbf{Top}: \cppinline{ambient_set(from_std(·))} lifts a container into the DSL (the total $\iota$); \cppinline{ext} materialises a finite set back (the partial $\mu$); \cppinline{==}/\cppinline{<=} then decide on whatever normal form the carrier supplies.
-\textbf{Bottom}: the grammar in two panels, set expressions (left) and comparison predicates (right).
-The boundary normal forms \cppinline{Ø}/\cppinline{Ω} are Listing~\ref{lst:set-grammar}'s generators, and by symmetry the subset order \cppinline{sp2} is the element comparison \cppinline{cmp} of Listing~\ref{lst:extrema_def} (set equality \cppinline{==} is already Listing~\ref{lst:set-grammar}'s \cppinline{setexpr == setexpr}).}
+\textbf{Top}: \cppinline{ambient_set(from_std(·))} lifts a container into the DSL (the total $\iota$); \cppinline{ext} materialises a finite set back (the partial $\mu$); \cppinline{==}/\cppinline{<=} decide on the normal form the carrier supplies.
+\textbf{Bottom}: the grammar in two panels, set expressions (left) and comparison predicates (right); the boundaries \cppinline{Ø}/\cppinline{Ω} are Listing~\ref{lst:set-grammar}'s generators, and by symmetry the subset order \cppinline{sp2} is the element comparison \cppinline{cmp} of Listing~\ref{lst:extrema_def} (set equality \cppinline{==} is Listing~\ref{lst:set-grammar}'s \cppinline{setexpr == setexpr}).}
 \label{lst:materialise}
 \noindent
 \begin{minipage}[t]{0.49\linewidth}
