@@ -288,13 +288,13 @@ Rice's theorem is thus less a wall than an invitation to contribute: it marks th
 The recovery has a recurring shape, a meta-algorithm we name \emph{Galois specialisation} (Definition~\ref{def:galois-specialisation}) and apply throughout.
 \begin{definition}[Galois specialisation]
 \label{def:galois-specialisation}
-The satisfaction of a law by an arbitrary carrier is a non-trivial semantic property, undecidable in general (Rice's theorem~\cite{rice1953classes}).
+Whether an arbitrary carrier satisfies a law is undecidable in general (Rice's theorem~\cite{rice1953classes}).
 A \emph{Galois specialisation} discharges it on a structured sub-domain in four steps, one development cycle of Figure~\ref{fig:target_model}:
 \begin{enumerate}
 \item \textbf{A truth theorem}: the law holds over the class its axioms define.
-\item \textbf{A computability theorem}: the law decides on the sub-domain fixed by the invariants a carrier's operations preserve. That algebraic invariants govern computability is the lesson of the polymorphism--invariant Galois connection~\cite{geiger1968closed} and the constraint-satisfaction dichotomy it drives~\cite{zhuk2020proof}, the computational analogue of Noether's coupling of symmetries and invariants~\cite{noether1918invariante}; a decidable fragment of the theory~\cite{borger2001classical} or a sound over-approximation~\cite{cousot1977abstract} serve where less structure is at hand.
-\item \textbf{A \cppinline{concept}} approximating the conjunction of (1) and (2): sound, and, being an approximation, at worst under-deciding, never fabricating.
-\item \textbf{A carrier type} satisfying that \cppinline{concept}: a checkable witness, a proof-as-program~\cite{wadler2015propositions} in the realizability sense~\cite{kleene1945realizability}, discharging the \cppinline{concept} rather than the law itself, for which an unbounded carrier still rests on the registered axiom.
+\item \textbf{A computability theorem}: the law becomes decidable on the sub-domain fixed by the invariants the carrier's operations preserve. Operations and the invariants they preserve are paired by a Galois connection~\cite{geiger1968closed}, and the same pairing settles the difficulty of a constraint problem~\cite{zhuk2020proof}, echoing Noether's link between symmetries and invariants~\cite{noether1918invariante}. Where less structure is at hand, a decidable fragment~\cite{borger2001classical} or a sound over-approximation~\cite{cousot1977abstract} serves instead.
+\item \textbf{A \cppinline{concept}} approximating (1) and (2) together: sound, so at worst it under-decides and never fabricates.
+\item \textbf{A carrier type} satisfying that \cppinline{concept}: a checkable proof-as-program~\cite{wadler2015propositions} in the realizability sense~\cite{kleene1945realizability}. It discharges the \cppinline{concept}, not the law itself; an unbounded carrier still rests on the registered axiom.
 \end{enumerate}
 Steps~(1), (3) and~(4) are a reification (Definition~\ref{def:reification}); step~(2), the Galois connection, is what lets it decide rather than merely record.
 The outer loop is Lakatos's~\cite{lakatos1976proofs}: meet a counterexample, restrict the domain by incorporating the missing lemma as a hypothesis, and retry.
