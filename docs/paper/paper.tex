@@ -278,6 +278,21 @@ Whether an arbitrary carrier obeys a given algebraic law is a non-trivial semant
 A universal proof would imply the existential over any inhabited domain, so the existential is the strictly weaker claim, and the one within reach: the library does not decide a law for every carrier, it names a specific carrier, a specific law, a specific reduction, and lets the compiler discharge it.
 Rice's theorem is thus less a wall than an invitation to contribute: it marks the seam Figure~\ref{fig:target_model} operationalizes, between the aspirational $\mathbf{Cat}$ (a universal conjecture, a general automatic verifier) on the one hand and the $\mathbf{Cpp}$ fragment of current best practice (checkable existential demonstrations with mechanical support) on the other, and a plausible conjecture is precisely an invitation to search for the existential witness.\footnote{Penrose~\cite{penrose2004roadtoreality} reads G\"odel's incompleteness in the same spirit: a formal system closing at one level motivates the next, not as exhaustion but as a natural successor.}
 
+\paragraph{Galois specialisation.}
+The recovery has a recurring shape, a meta-algorithm we name \emph{Galois specialisation} (Definition~\ref{def:galois-specialisation}) and apply throughout.
+\begin{definition}[Galois specialisation]
+\label{def:galois-specialisation}
+The satisfaction of a law by an arbitrary carrier is a non-trivial semantic property, undecidable in general (Rice's theorem~\cite{rice1953classes}).
+A \emph{Galois specialisation} discharges it on a structured sub-domain in four steps, one development cycle of Figure~\ref{fig:target_model}:
+\begin{enumerate}
+\item \textbf{A truth theorem}: the law holds over the variety its axioms define.
+\item \textbf{A computability theorem}: the law decides on the sub-domain that a carrier's operation-preserving invariants (its polymorphisms) single out, reached along a Galois connection: a decidable fragment of the otherwise undecidable theory~\cite{borger2001classical}, the tractable side of the constraint-satisfaction dichotomy~\cite{zhuk2020proof, geiger1968closed}, the computational analogue of Noether's coupling of symmetries and invariants~\cite{noether1918invariante}; absent such structure, a sound over-approximation~\cite{cousot1977abstract}.
+\item \textbf{A \cppinline{concept}} approximating the conjunction of (1) and (2): sound, and, being an approximation, at worst under-deciding, never fabricating.
+\item \textbf{A carrier type} satisfying that \cppinline{concept}: a \emph{realizer}~\cite{kleene1945realizability} that the law is at once true and decidable, a proof-as-program~\cite{wadler2015propositions} the type checker discharges and compares back to~(1).
+\end{enumerate}
+The outer loop is Lakatos's~\cite{lakatos1976proofs}: meet a counterexample, restrict the domain by incorporating the missing lemma as a hypothesis, and retry.
+\end{definition}
+
 \paragraph{Mechanical discharge is not a proof.}
 The discharge is not itself a proof of the law: for an unbounded carrier the author registers the axiom (the honesty obligation above) and the compiler mechanically checks its consequences.
 This is the bargain the proof assistants already accept: Coq~\cite{Coq} and Lean~\cite{Moura2015Lean} check a development against a trusted kernel and a base of accepted axioms, and their \cppinline{Admitted} and \cppinline{sorry} escape hatches admit as much.
