@@ -749,7 +749,8 @@ The section's tiers track the classical decidability hierarchy~\cite{chomsky1956
 Two sets are equal iff their canonical representatives coincide, so the comparisons are decided by normalise-and-compare: decidable for the finite and \emph{regular} normal forms (the minimal automaton is the canonical representative, Myhill--Nerode~\cite{nerode1958linear}; a bound or residue is a more compact one), undecidable above (the Rice wall~\cite{rice1953classes}).
 \cppinline{ext} is the finite normaliser, \cppinline{Sub(C)} bounds and residues the regular ones.
 \textbf{Top}: \cppinline{ambient_set(from_std(·))} lifts a container into the DSL (the total $\iota$); \cppinline{ext} materialises a finite set back (the partial $\mu$); \cppinline{==}/\cppinline{<=} then decide on whatever normal form the carrier supplies.
-\textbf{Bottom}: the grammar in two panels, set expressions (left) and comparison predicates (right).}
+\textbf{Bottom}: the grammar in two panels, set expressions (left) and comparison predicates (right).
+The boundary normal forms \cppinline{Ø}/\cppinline{Ω} are Listing~\ref{lst:set-grammar}'s generators, and by symmetry the subset order \cppinline{sp2} is the element comparison \cppinline{cmp} of Listing~\ref{lst:extrema_def} (set equality \cppinline{==} is already Listing~\ref{lst:set-grammar}'s \cppinline{setexpr == setexpr}).}
 \label{lst:materialise}
 \noindent
 \begin{minipage}[t]{0.49\linewidth}
@@ -779,7 +780,6 @@ static_assert(bool(𝔓(η(4))(η(4))));
 setexpr +::= 'ext' '(' setexpr ')'
          |  '𝔓' '(' nf ')'
 nf      ::= 'ext' '(' setexpr ')'
-         |  'Ø' carrier | 'Ω' carrier
          |  'Sub' '(' carrier ')'
          |  residue
 \end{minted}
@@ -788,7 +788,7 @@ nf      ::= 'ext' '(' setexpr ')'
 {\footnotesize\centering\textbf{predicates} \ensuremath{(\to \mathbb{B})}\par}
 \begin{minted}[fontsize=\footnotesize]{text}
 atom +::= nf sp2 nf
-sp2   ::= '==' | '<='
+sp2   ::= cmp
 \end{minted}
 \end{minipage}
 \end{listing}
