@@ -440,7 +440,18 @@ With a deterministic, structurally-typed substrate established in Section~\ref{s
 Here, we aim to model both the syntax and the semantics of mathematical set builder notation in executable $\mathbf{Jlt}$ hoping to achieve a system that lends itself to the expression and subsequent evaluation of precisely those kinds of problems that one might also encounter in a pure math blackboard setting.
 Figure~\ref{fig:hub-spoke-bnz} in the introduction previews the functionality this section builds.
 
-In this section, we first show working code (§\ref{sec:ddk_comprehension}) to illustrate the expected payoff, then discuss the theoretical foundations in set theory, specifically the category-theoretical elementary theory of sets (§\ref{sec:ddk_etcs}).
+We fix the notion of set the DSL reifies before building it.
+A set here is \emph{intensional}: given by the condition its members satisfy, not the bag of elements a container stores.
+Where ZF stores a set extensionally (elements in memory, as \cppinline{std::set} does), ETCS presents it by that condition --- the open disk $\{\, x \mid \lVert x - c \rVert < r \,\}$ is an uncountable bag no machine can hold, or the single inequality that \emph{is} it (raster versus vector).
+This is Lawvere's elementary theory of the category of sets~\cite{lawvere1964etcs}, a set given by objects and their morphisms:
+\begin{definition}[ETCS Set]
+\label{def:etcs-set}
+\emph{$\mathbf{Set}$ is a \textbf{well-pointed}, \textbf{Cartesian Closed Category} with a \textbf{subobject classifier}, a \textbf{natural numbers object}, and the \textbf{axiom of choice}}~\cite{nlab:nlab}.
+\end{definition}
+We made an honest attempt to ground the DSL in it: the ten defining axioms are reified as type-level \cppinline{concept} predicates and composed into a structural \cppinline{concept IsSet}, which checks whether a $\mathbf{Jlt}$ type is also an object of $\mathbf{Set}$; the step-by-step embedding is in Appendix~\ref{sec:etcs}, the concepts in the reference implementation~\cite{Krautler_dedekind_2026} (Mac Lane~\cite{maclane1971categories} and Pierce~\cite{pierce1991basic} for background).
+The steps taken to reify intensional sets form a core category $\mathbf{Ddk} \subset \mathbf{Jlt} \cap \mathbf{Set}$, tracked literally at compile time.
+
+With the notion of set fixed, the rest of this section develops the DSL: the general set algebra (§\ref{sec:ddk_comprehension}), then the ordered (§\ref{sec:ddk_ordered}) and finite/extensional (§\ref{sec:ddk_extensional}) tiers that make progressively more of it decidable.
 
 % ============================================================
 \subsection{An Algebra of Sets}
@@ -534,7 +545,7 @@ $\mathbf{Lwv}$ & \cppinline{s(x)} & \cppinline{&} & \cppinline{|} & \cppinline{~
 \bottomrule
 \end{tabular}
 \caption{
-Operator-mapping table: each column is one construction, spelled in four languages over the rows $\mathbb{B}$, $\mathcal{P}(A)$, $\mathbf{Topos}$, $\mathbf{Lwv}$ (Section~\ref{sec:ddk_etcs}, Eqn~\ref{eqn:lwv}).
+Operator-mapping table: each column is one construction, spelled in four languages over the rows $\mathbb{B}$, $\mathcal{P}(A)$, $\mathbf{Topos}$, $\mathbf{Lwv}$ (Section~\ref{sec:intensional_sets}, Eqn~\ref{eqn:lwv}).
 The $\mathbf{Topos}$ row is the Boolean case realised by $\mathbf{Set}$, where the Heyting pseudo-complement is a genuine $\neg$.
 The \emph{member} column is membership, the characteristic morphism $\chi : A \to \Omega$ ($\models$ satisfaction, $\in$ set membership, $\chi$ the classifier, \cppinline{s(x)} the set applied to a point); the other columns are the lattice operations.
 }
@@ -576,7 +587,7 @@ Its \emph{member} column stands apart, being not a lattice operation but the cha
 Its top element, the universal set $A$ itself, is reified as \cppinline{sets::Ω<T>}; Listing~\ref{lst:pruning} (left) exhibits the canonical case, the Booleans $\mathbb{B} = $ \cppinline{Ω<bool>}.
 Where membership is undecided the codomain lifts to $\mathbb{B}+\text{U}$ and the operations become the three-valued Kleene ones, a de Morgan structure but no longer a Boolean algebra, since complement has no inverse at $\text{U}$.
 Optimization is then the simplification of these predicate compositions at translation time: an empty meet prunes, $\bot \wedge p \Rightarrow \bot$, and constant conjuncts fold away.
-The induced order, set inclusion, is pointwise implication $\chi_S \Rightarrow \chi_T$; it ranges over the domain, and keeping it decidable is the task of the specializations in §\ref{sec:ddk_etcs}.
+The induced order, set inclusion, is pointwise implication $\chi_S \Rightarrow \chi_T$; it ranges over the domain, and keeping it decidable is the task of the ordered (§\ref{sec:ddk_ordered}) and extensional (§\ref{sec:ddk_extensional}) specialisations.
 
 The compiler is then allowed to perform aggressive compile-time verification and type-directed optimization.
 When a membership test or set relation is encountered, the template engine expands the composed predicates and evaluates them during compilation.
@@ -765,33 +776,6 @@ sp2   ::= cmp
 \end{minted}
 \end{minipage}
 \end{listing}
-
-% ============================================================
-\subsection{A Categorical Notion of Set}
-\label{sec:ddk_etcs}
-% ============================================================
-
-With the syntactic behavior of the set comprehension DSL established, what follows formalizes its semantic engine.
-This intensional set layer is the disciplined fragment of §\ref{sec:jlt_posture} intersected with $\mathbf{Set}$, where a set is a predicate and a graph is a relation (Definition~\ref{def:etcs-set}).
-
-Here, we use the following literature definition~\cite{nlab:nlab}: 
-\begin{definition}[ETCS Set]
-\label{def:etcs-set}
-\emph{$\mathbf{Set}$ is a \textbf{well-pointed}, \textbf{Cartesian Closed Category} with a \textbf{subobject classifier}, a \textbf{natural numbers object}, and the \textbf{axiom of choice}}.
-\end{definition}
-
-Loosely speaking, a set here is just its membership test.
-Where ZF stores a set extensionally (a bag of elements in memory, as \cppinline{std::set} does), ETCS presents it \emph{intensionally}, by the condition its members satisfy: the open disk $\{\, x \mid \lVert x - c \rVert < r \,\}$ is an uncountable bag no machine can hold, or the single inequality that \emph{is} it (raster versus vector).
-
-The semantic engine presupposes a categorical, not extensional, notion of set: Lawvere's ETCS~\cite{lawvere1964etcs}, where a set is given \emph{intensionally}, by objects and their morphisms (Definition~\ref{def:etcs-set}).
-We made an honest attempt to ground the DSL in it: the ten defining axioms are reified as type-level \cppinline{concept} predicates and composed into a structural \cppinline{concept IsSet}, which checks whether a $\mathbf{Jlt}$ type is also an object of $\mathbf{Set}$.
-The step-by-step embedding is detailed in Appendix~\ref{sec:etcs}, with the concepts themselves in the reference implementation~\cite{Krautler_dedekind_2026} (Mac Lane~\cite{maclane1971categories} and Pierce~\cite{pierce1991basic} for background).
-
-A concrete type that type checks against \cppinline{concept IsSet} should support all of the above functionality and allow the evaluation of non-trivial set expressions as one might encounter them in a blackboard environment.
-
-Identity is denoted by an identity arrow, and set membership is tested by evaluating a predicate on a value.
-The steps taken to reify intensional sets in the code base form a core category $\mathbf{Ddk} \subset \mathbf{Jlt} \cap \mathbf{Set}$, which occupies the intersection of pure $\mathbf{Jlt}$ types and universal-algebraic set structures.
-The implementation tracks this definition literally at compile time.
 
 \section{A Reification of $\mathbf{RAlg}$}
 \label{sec:relations_functions_blueprint}
