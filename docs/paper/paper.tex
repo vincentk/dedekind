@@ -584,68 +584,6 @@ If an intersection yields a logical contradiction, the type system reduces the r
 As a direct consequence, downstream runtime membership queries for statically impossible configurations are completely eliminated by the LLVM optimizer backend, collapsing into literal constant returns within the emitted machine instructions.
 Listing~\ref{lst:pruning} exhibits a checked-in extract that tests this type-directed collapse in practice, and its bottom panel makes the collapse mechanically observable during the build: the witness function for set membership constant-folds to \texttt{ret i1 false} in the emitted LLVM IR.
 
-The container reading and the predicate reading are almost interconvertible, and the asymmetry is the point (Listing~\ref{lst:materialise}).
-Any \cppinline{std::set} is a $\mathbf{Lwv}$ set for free, its \cppinline{contains} the characteristic predicate; call that embedding $\iota$, and it is total.
-Only a finite, enumerable $\mathbf{Lwv}$ set materialises back to a container; call that map $\mu$ (its CT name is the \emph{extension}, \cppinline{ext}, dual to the predicate's intension, as $\eta$ names \cppinline{singleton}), and it is partial, the naturals having no finite materialisation.
-This asymmetry is the model/materialise gap of the whole framework: $\mathbf{Jlt}$ \emph{models} carriers up to the continuum but \emph{materialises} only finite ones,
-\begin{equation}
-\label{eqn:model-materialise}
-  \mathbf{Jlt}\ \text{models} \le \beth_1, \qquad \mathbf{Jlt}\ \text{materialises} < \aleph_0 ,
-\end{equation}
-the library's Axiom-9 restriction of carrier predicates to $\beth_1$ (Appendix~\ref{sec:etcs}) above, meeting the finite reach of $\mu$ below.
-So $\mathbf{Lwv}$ is strictly more expressive than \cppinline{std::set}, the extensional container it generalises, and the price is paid in \emph{proof obligations}: where $\mu$ is unavailable, membership is settled by the concept constraints and factorisations of this section, not by enumeration.
-This is the extensional/intensional database distinction of deductive databases, \cppinline{std::set} playing the extensional store (EDB, facts) and $\mathbf{Lwv}$ the intensional one (IDB, rules), with materialisation the materialised view~\cite{abiteboul1995foundations}.
-The section's tiers track the classical decidability hierarchy~\cite{chomsky1956three}: a general predicate is recursively enumerable, hence Rice-walled; the ordered and periodic sets of §\ref{sec:ddk_ordered} are \emph{regular}, decidable by a canonical normal form; and \cppinline{ext} reaches the finite sets that list.
-
-\begin{listing}[htbp]
-\caption{Extensional operations on sets in \emph{normal form}: the extension \cppinline{ext} (the partial materialisation $\mu$, finite only), the comparisons \cppinline{==}/\cppinline{<=}, and the power set $\mathfrak{P}$.
-Two sets are equal iff their canonical representatives coincide, so the comparisons are decided by normalise-and-compare: decidable for the finite and \emph{regular} normal forms (the minimal automaton is the canonical representative, Myhill--Nerode~\cite{nerode1958linear}; a bound or residue is a more compact one), undecidable above (the Rice wall~\cite{rice1953classes}).
-\cppinline{ext} is the finite normaliser, \cppinline{Sub(C)} bounds and residues the regular ones.
-\textbf{Top}: \cppinline{ambient_set(from_std(·))} lifts a container into the DSL (the total $\iota$); \cppinline{ext} materialises a finite set back (the partial $\mu$); \cppinline{==}/\cppinline{<=} then decide on whatever normal form the carrier supplies.
-\textbf{Bottom}: the grammar in two panels, set expressions (left) and comparison predicates (right).}
-\label{lst:materialise}
-\noindent
-\begin{minipage}[t]{0.49\linewidth}
-\begin{cpp}
-std::set<int> c{2, 3, 5};
-constexpr auto S = ambient_set(from_std(c));
-static_assert(
-  ext(S & (Ω<int> | π > fix(3_c))) == std::set{5});
-static_assert(
-  ext(S & (Ω<int> | π > fix(5_c))) == std::set<int>{});
-\end{cpp}
-\end{minipage}\hfill
-\begin{minipage}[t]{0.49\linewidth}
-\begin{cpp}
-static_assert(ext(𝔹) == std::set{false, true});
-static_assert(
-  bool((ℕ | π > fix(5_c)) <= (ℕ | π > fix(3_c))));
-static_assert(bool(𝔓(η(4))(η(4))));
-\end{cpp}
-\end{minipage}
-
-\vspace{0.6em}
-\noindent
-\begin{minipage}[t]{0.49\linewidth}
-{\footnotesize\centering\textbf{set expressions}\par}
-\begin{minted}[fontsize=\footnotesize]{text}
-setexpr +::= 'ext' '(' setexpr ')'
-         |  '𝔓' '(' nf ')'
-nf      ::= 'ext' '(' setexpr ')'
-         |  'Ø' carrier | 'Ω' carrier
-         |  'Sub' '(' carrier ')'
-         |  residue
-\end{minted}
-\end{minipage}\hfill
-\begin{minipage}[t]{0.49\linewidth}
-{\footnotesize\centering\textbf{predicates} \ensuremath{(\to \mathbb{B})}\par}
-\begin{minted}[fontsize=\footnotesize]{text}
-atom +::= nf sp2 nf
-sp2   ::= '==' | '<='
-\end{minted}
-\end{minipage}
-\end{listing}
-
 % ============================================================
 \subsection{Ordered Sets and Quantifiers}
 \label{sec:ddk_ordered}
@@ -789,6 +727,73 @@ static_assert(!forall(ℕ, div3));
 \end{listing}
 
 % ============================================================
+\subsection{Finite and Extensional Sets}
+\label{sec:ddk_extensional}
+% ============================================================
+
+The container reading and the predicate reading are almost interconvertible, and the asymmetry is the point (Listing~\ref{lst:materialise}).
+Any \cppinline{std::set} is a $\mathbf{Lwv}$ set for free, its \cppinline{contains} the characteristic predicate; call that embedding $\iota$, and it is total.
+Only a finite, enumerable $\mathbf{Lwv}$ set materialises back to a container; call that map $\mu$ (its CT name is the \emph{extension}, \cppinline{ext}, dual to the predicate's intension, as $\eta$ names \cppinline{singleton}), and it is partial, the naturals having no finite materialisation.
+This asymmetry is the model/materialise gap of the whole framework: $\mathbf{Jlt}$ \emph{models} carriers up to the continuum but \emph{materialises} only finite ones,
+\begin{equation}
+\label{eqn:model-materialise}
+  \mathbf{Jlt}\ \text{models} \le \beth_1, \qquad \mathbf{Jlt}\ \text{materialises} < \aleph_0 ,
+\end{equation}
+the library's Axiom-9 restriction of carrier predicates to $\beth_1$ (Appendix~\ref{sec:etcs}) above, meeting the finite reach of $\mu$ below.
+So $\mathbf{Lwv}$ is strictly more expressive than \cppinline{std::set}, the extensional container it generalises, and the price is paid in \emph{proof obligations}: where $\mu$ is unavailable, membership is settled by the concept constraints and factorisations of this section, not by enumeration.
+This is the extensional/intensional database distinction of deductive databases, \cppinline{std::set} playing the extensional store (EDB, facts) and $\mathbf{Lwv}$ the intensional one (IDB, rules), with materialisation the materialised view~\cite{abiteboul1995foundations}.
+The section's tiers track the classical decidability hierarchy~\cite{chomsky1956three}: a general predicate is recursively enumerable, hence Rice-walled; the ordered and periodic sets of §\ref{sec:ddk_ordered} are \emph{regular}, decidable by a canonical normal form; and \cppinline{ext} reaches the finite sets that list.
+
+\begin{listing}[htbp]
+\caption{Extensional operations on sets in \emph{normal form}: the extension \cppinline{ext} (the partial materialisation $\mu$, finite only), the comparisons \cppinline{==}/\cppinline{<=}, and the power set $\mathfrak{P}$.
+Two sets are equal iff their canonical representatives coincide, so the comparisons are decided by normalise-and-compare: decidable for the finite and \emph{regular} normal forms (the minimal automaton is the canonical representative, Myhill--Nerode~\cite{nerode1958linear}; a bound or residue is a more compact one), undecidable above (the Rice wall~\cite{rice1953classes}).
+\cppinline{ext} is the finite normaliser, \cppinline{Sub(C)} bounds and residues the regular ones.
+\textbf{Top}: \cppinline{ambient_set(from_std(·))} lifts a container into the DSL (the total $\iota$); \cppinline{ext} materialises a finite set back (the partial $\mu$); \cppinline{==}/\cppinline{<=} then decide on whatever normal form the carrier supplies.
+\textbf{Bottom}: the grammar in two panels, set expressions (left) and comparison predicates (right).}
+\label{lst:materialise}
+\noindent
+\begin{minipage}[t]{0.49\linewidth}
+\begin{cpp}
+std::set<int> c{2, 3, 5};
+constexpr auto S = ambient_set(from_std(c));
+static_assert(
+  ext(S & (Ω<int> | π > fix(3_c))) == std::set{5});
+static_assert(
+  ext(S & (Ω<int> | π > fix(5_c))) == std::set<int>{});
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\linewidth}
+\begin{cpp}
+static_assert(ext(𝔹) == std::set{false, true});
+static_assert(
+  bool((ℕ | π > fix(5_c)) <= (ℕ | π > fix(3_c))));
+static_assert(bool(𝔓(η(4))(η(4))));
+\end{cpp}
+\end{minipage}
+
+\vspace{0.6em}
+\noindent
+\begin{minipage}[t]{0.49\linewidth}
+{\footnotesize\centering\textbf{set expressions}\par}
+\begin{minted}[fontsize=\footnotesize]{text}
+setexpr +::= 'ext' '(' setexpr ')'
+         |  '𝔓' '(' nf ')'
+nf      ::= 'ext' '(' setexpr ')'
+         |  'Ø' carrier | 'Ω' carrier
+         |  'Sub' '(' carrier ')'
+         |  residue
+\end{minted}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\linewidth}
+{\footnotesize\centering\textbf{predicates} \ensuremath{(\to \mathbb{B})}\par}
+\begin{minted}[fontsize=\footnotesize]{text}
+atom +::= nf sp2 nf
+sp2   ::= '==' | '<='
+\end{minted}
+\end{minipage}
+\end{listing}
+
+% ============================================================
 \subsection{A Categorical Notion of Set}
 \label{sec:ddk_etcs}
 % ============================================================
@@ -803,20 +808,7 @@ Here, we use the following literature definition~\cite{nlab:nlab}:
 \end{definition}
 
 Loosely speaking, a set here is just its membership test.
-A reader who wants only the API can keep that picture and skim the rest of this subsection, which makes it precise in the language of topos theory.
-The more common description of sets, the one \cppinline{std::set} follows, is Zermelo-Fraenkel (ZF): a set is built from the bottom up from atoms such as $\emptyset$ via union and intersection, with membership tested by an element relation ($\in$).
-Its obvious reading is a bag with things in it, and an implementation stores exactly that, the elements in memory, so it is \emph{extensional} by definition.
-That reading does not fit every set one wants to compute with.
-Take the open disk $D = \{\, x \mid \lVert x - c \rVert < r \,\}$ in the plane: extensionally a bag of uncountably many points that no machine can hold, intensionally a single inequality that \emph{is} the set.
-This is the everyday contrast between a raster image and a vector drawing: extensionally the disk is a grid of stored points, intensionally it is the defining inequality, exact at any resolution.
-% FIXME(restructure): candidate wrapfigure. Side-by-side rendering of the same
-% disk: left a raster / pixel grid (extensional / ZFC, the stored points), right a
-% vector drawing labelled by the predicate (intensional / ETCS, the defining
-% condition). Caption: raster-vs-vector = extensional-vs-intensional = ZFC-by-
-% contents vs ETCS-by-condition. Alt design: a Venn whose overlap P and Q ties to
-% the lattice-lift table (intersection IS conjunction). Keep it small; decide at
-% the 22pp main/appendix split.
-ETCS gives a natural language for this second perspective, where a set is presented by the condition its members satisfy, a perspective the bag-of-things reading of ZF leaves implicit.
+Where ZF stores a set extensionally (a bag of elements in memory, as \cppinline{std::set} does), ETCS presents it \emph{intensionally}, by the condition its members satisfy: the open disk $\{\, x \mid \lVert x - c \rVert < r \,\}$ is an uncountable bag no machine can hold, or the single inequality that \emph{is} it (raster versus vector).
 
 To escape the limitations of resource-bounded containers, \texttt{dedekind} shifts from an extensional formulation to a structural, category-theoretic foundation.
 The library acts as a change-of-base engine across a diagram of distinct structural set theories.
@@ -836,8 +828,7 @@ The type system exposes a family of named, structurally transparent predicates t
 When a carrier matches one, the compiler reads its structure, fires the rewrite rules of Theorem~\ref{thm:type-directed-collapse-1d}, prunes at compile time, and decides membership.
 The answer is then always a plain yes or no, the two-valued logic every programmer expects ($\Omega = \mathbb{B}$).
 The shared set interface (\cppinline{IsSet}) presents both paths identically to the downstream code, so a specialization is a drop-in fast path, not a separate type.
-% IMPLEMENTATION NOTE (2026-08-17, spec vs code): this sentence and
-% Figure~\ref{fig:compiler_decision_tree}'s "none -> B+U" branch state the SPEC.
+% IMPLEMENTATION NOTE (2026-08-17, spec vs code): this sentence states the SPEC.
 % The current resolver only approximates it: NaturalLogic keys on IsCountable
 % (a cardinality proxy, unsound for an opaque predicate over a countable domain)
 % plus structural reductions, NOT on decidability. An opaque bool lambda always
@@ -849,75 +840,15 @@ The shared set interface (\cppinline{IsSet}) presents both paths identically to 
 The split is therefore not by cardinality but by whether a specialization applies.
 The catalogue of structured presentations, and the algebra of which set operations preserve the fast path, is the subject of §\ref{sec:algebraic_lattice_carriers}.
 
-\begin{figure}[htbp]
-\centering
-\begin{tikzcd}[row sep=1.8em, column sep=2.6em, ampersand replacement=\&]
-\& \& \& \mathbb{B} \arrow[r, "\chi"] \& \{\top, \bot\} \\
-T \arrow[r, "\text{inspect}"] \& \mathbf{Jlt} \arrow[r, "\text{yes}"] \arrow[d, "\text{no}"'] \& |[draw, rounded corners]| \text{specialization?} \arrow[ur, "\text{matches}"] \arrow[dr, "\text{none}"'] \& \& \\
-\& \text{Reject} \& \& \mathbb{B}+\text{U} \arrow[r, "\chi"] \& \{\top, \bot, \text{U}\}
-\end{tikzcd}
-\caption{
-The one decision the semantic engine makes on type inspection.
-Carriers failing the $\mathbf{Jlt}$ gate (non-\texttt{std::regular}) are rejected by concept constraints.
-Rice's theorem rules out a universal fast path, so the library ships a correct general default and lets the user opt into optimization by specializing.
-When a carrier matches a named, transparent presentation, the compiler reads its structure, prunes at compile time, and decides: membership is two-valued and the classifier is Boolean, $\Omega = \mathbb{B}$.
-When none matches, only the opaque predicate remains, and a query the compiler cannot search returns a deterministic \texttt{Unknown} rather than risking a translation-time hang.
-That default is a partial characteristic map into the lifted Boolean $\mathbb{B}+\text{U}$, where \texttt{U} records definedness, not a third truth.
-}
-\label{fig:compiler_decision_tree}
-\end{figure}
-
 When one side of an \texttt{and} or \texttt{or} is \texttt{Unknown}, the result follows the rule you would hope for.
 An intersection with a provably empty set is still empty even if the other side is undecided ($\bot \wedge \text{U} = \bot$), so the prune survives.
 This is exactly what compile-time pruning needs, and it is stronger than threading the unknowns through a \texttt{Maybe}-style combinator, which would surrender and return \texttt{Unknown} the moment either side is unknown, losing the prune.
 Formally these are the strong-Kleene, or \emph{parallel}, connectives, and the resulting three-valued logic of partial predicates is Kleene's, not an intuitionistic one: the underlying truth values stay Boolean, and the third value marks undecidedness~\cite{kleene1952metamathematics, plotkin1977lcf}.
 The upshot is that a query the compiler cannot enumerate returns a definite \texttt{Unknown} during translation rather than hanging, and the structural guarantees survive intact.
-Figure~\ref{fig:compiler_decision_tree} shows the decision.
 
-\begin{listing}[ht]
-\caption{Excerpts of the \cppinline{concept} definitions reifying $\mathbf{Ddk} \subseteq (\mathbf{Set} \cap \mathbf{Jlt})$.
-\textbf{Top} ($\mathbf{Cat}$ in $\mathbf{Jlt}$): \cppinline{IsArrow}, a type carrying its own \cppinline{Domain} and \cppinline{Codomain}.
-\textbf{Bottom} ($\mathbf{Set}$ in $\mathbf{Jlt}$): \cppinline{IsSubobject}, whose call shape \cppinline{s(a)} is the classifier $\chi : A \to \Omega$, and the composite \cppinline{IsSet}.
-See the reference implementation~\cite{Krautler_dedekind_2026} for detail.}
-\label{lst:concept_isset}
-
-\noindent $\mathbf{Cat}$ in $\mathbf{Jlt}$:
-\begin{cpp}
-export template <typename F>
-concept IsArrow = requires {
-  typename std::remove_cvref_t<F>::Domain;
-  typename std::remove_cvref_t<F>::Codomain;
-} && requires(F f, typename std::remove_cvref_t<F>::Domain x) {
-  { f(x) } -> std::convertible_to<typename std::remove_cvref_t<F>::Codomain>;
-};
-\end{cpp}
-
-\noindent $\mathbf{Set}$ in $\mathbf{Jlt}$:
-\begin{cpp}
-template <typename S, typename A>
-concept IsSubobject = requires(S s, typename S::Member m, A a) {
-  { s.ι(m) } -> std::same_as<A>;
-  { s(a) }   -> LogicalValue;
-};
-
-template <typename A>
-concept IsSet =
-  std::regular<typename A::Domain> &&
-  HasETCSAxioms<A> &&
-  IsCartesianClosed<CanonicalSetCCC<typename A::Domain>>;
-\end{cpp}
-\end{listing}
-
-The semantic engine above presupposes a categorical, rather than extensional, notion of set.
-That notion is Lawvere's~\cite{lawvere1964etcs}: a set is given \emph{intensionally}, by objects and the functions (morphisms) between them.
-Here, we use the following literature definition~\cite{nlab:nlab}: \emph{$\mathbf{Set}$ is a \textbf{well-pointed}, \textbf{Cartesian Closed Category} with a \textbf{subobject classifier}, a \textbf{natural numbers object}, and the \textbf{axiom of choice}}.
-This definition is arguably terse and full of jargon, but it can be broken down into 10 defining axioms.
-These axioms can in turn be reified as type-level \cppinline{concept} predicates and composed into an overall structural type predicate \cppinline{concept IsSet} which can then be used to check if a type in $\mathbf{Jlt}$ is also an object in $\mathbf{Set}$.
-The interested reader is referred to  Mac Lane~\cite{maclane1971categories} for an in-depth treatment and to Pierce~\cite{pierce1991basic} for a pedagogical introduction to many of the key concepts.
-
-Here, we present a reification of its 10 defining axioms in terms of a type-predicate (\cppinline{concept IsSet}) reified in $\mathbf{Jlt}$.
-The implementation is layered into a number of steps, each step refining the \cppinline{concept} in question and introducing applicable terminology from category theory and set theory respectively so that readers familiar with any of these schools should be able to follow.
-For the sake of brevity, the steps are detailed in Appendix~\ref{sec:etcs}, key excerpts from the code base are summarized in Listing~\ref{lst:concept_isset}.
+The semantic engine presupposes a categorical, not extensional, notion of set: Lawvere's ETCS~\cite{lawvere1964etcs}, where a set is given \emph{intensionally}, by objects and their morphisms (Definition~\ref{def:etcs-set}).
+We made an honest attempt to ground the DSL in it: the ten defining axioms are reified as type-level \cppinline{concept} predicates and composed into a structural \cppinline{concept IsSet}, which checks whether a $\mathbf{Jlt}$ type is also an object of $\mathbf{Set}$.
+The step-by-step embedding is detailed in Appendix~\ref{sec:etcs}, with the concepts themselves in the reference implementation~\cite{Krautler_dedekind_2026} (Mac Lane~\cite{maclane1971categories} and Pierce~\cite{pierce1991basic} for background).
 
 A concrete type that type checks against \cppinline{concept IsSet} should support all of the above functionality and allow the evaluation of non-trivial set expressions as one might encounter them in a blackboard environment.
 
