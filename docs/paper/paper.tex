@@ -271,6 +271,11 @@ Clang++ is used a formal system where a successful type check serves as a struct
 The \Cpp{23} type system, while limited, is sufficiently rich to name predicates, enforce structural boundaries, and license the LLVM backend to completely remove dead code paths that have been resolved at translation time.
 This architecture thus enforces a clear division of labor: the library user holds an out-of-band honesty obligation when registering trait axioms, and the compiler mechanically discharges every subsequent \cppinline{static_assert}, \cppinline{requires} clause, or \cppinline{constexpr} evaluation.
 A simple proof search is mimicked by operator resolution.
+\begin{definition}[Reification]
+\label{def:reification}
+To \emph{reify} a structure is to encode it as propositions-as-types~\cite{wadler2015propositions}: a law becomes a \cppinline{concept}, and a carrier satisfying the \cppinline{concept} is a proof-as-program the type checker discharges.
+Reification records what holds without deciding it: for an unbounded carrier the \cppinline{concept} rests on a registered axiom (the honesty obligation), the compiler checking its consequences.
+\end{definition}
 
 \paragraph{Existential proofs, not universal ones.}
 That division of labour is forced by a limit, not chosen for convenience.
@@ -288,8 +293,9 @@ A \emph{Galois specialisation} discharges it on a structured sub-domain in four 
 \item \textbf{A truth theorem}: the law holds over the class its axioms define.
 \item \textbf{A computability theorem}: the law decides on the sub-domain fixed by the invariants a carrier's operations preserve. That algebraic invariants govern computability is the lesson of the polymorphism--invariant Galois connection~\cite{geiger1968closed} and the constraint-satisfaction dichotomy it drives~\cite{zhuk2020proof}, the computational analogue of Noether's coupling of symmetries and invariants~\cite{noether1918invariante}; a decidable fragment of the theory~\cite{borger2001classical} or a sound over-approximation~\cite{cousot1977abstract} serve where less structure is at hand.
 \item \textbf{A \cppinline{concept}} approximating the conjunction of (1) and (2): sound, and, being an approximation, at worst under-deciding, never fabricating.
-\item \textbf{A carrier type} satisfying that \cppinline{concept}: a checkable witness, a proof-as-program~\cite{wadler2015propositions} in the realizability sense~\cite{kleene1945realizability}, discharging the \cppinline{concept} rather than the law itself, for which an unbounded carrier still rests on the registered axiom (below).
+\item \textbf{A carrier type} satisfying that \cppinline{concept}: a checkable witness, a proof-as-program~\cite{wadler2015propositions} in the realizability sense~\cite{kleene1945realizability}, discharging the \cppinline{concept} rather than the law itself, for which an unbounded carrier still rests on the registered axiom.
 \end{enumerate}
+Steps~(1), (3) and~(4) are a reification (Definition~\ref{def:reification}); step~(2), the Galois connection, is what lets it decide rather than merely record.
 The outer loop is Lakatos's~\cite{lakatos1976proofs}: meet a counterexample, restrict the domain by incorporating the missing lemma as a hypothesis, and retry.
 \end{definition}
 
