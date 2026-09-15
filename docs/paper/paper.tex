@@ -179,22 +179,6 @@ automatic differentiation.
 \label{sec:introduction}
 % ============================================================
 
-Recent breakthroughs in machine learning have resulted not just in an explosion of novel and interesting use cases but also sparked public debate about the technology's demands and bottlenecks:
-Hardware cost, computational cost, energy use, and interpretability are often named in applicable literature.
-Here, the focus is placed on a complementary approach: correct-by-construction systems engineering, where the view is that white-box modeling, interpretability and computational efficiency are facilitated by way of static program verification and optimization.
-To this end, an embedded domain specific language (eDSL) was  implemented in a \emph{mainstream systems programming language} -- the very substrate that these large models build on.
-The resulting \texttt{dedekind} library targets analytics and machine learning use cases and consistently defaults to mathematical rigor and build-time constraints as opposed to risking runtime inefficiencies or outright errors.
-It rests on two pillars:
-\begin{enumerate}
-\item The domain is grounded in category theory, transitioning from morphisms and small categories to cartesian-closed categories, the elementary theory of the category of sets (ETCS) and finally universal algebra~\cite{pierce2002tapl, lawvere1964etcs}. 
-This framework provides pre-validated axioms, theorems and terminology and allows a minimalist type checker to drive optimizations via equivalence relations. 
-\item On the encoding side, the choice was more open, as any sufficiently expressive type system was considered to be a plausible implementation substrate.
-C++23~\cite{cpp23standard} was selected as it met the following criteria:
-a) it should be mainstream so that tooling is provided for;
-b) its default runtime requirements should be modest so as not to preclude embeddings in higher-level languages or deployment on constrained environments;
-c) its type system should be rich enough to perform many of the desired type checks.
-\end{enumerate}
-
 \begin{figure}[htbp]
 \centering
 \begin{tikzcd}[column sep=3.8em, row sep=3.4em, ampersand replacement=\&]
@@ -224,6 +208,22 @@ The subsequent sections develop the reading.
 }
 \label{fig:hub-spoke-bnz}
 \end{figure}
+
+Recent breakthroughs in machine learning have resulted not just in an explosion of novel and interesting use cases but also sparked public debate about the technology's demands and bottlenecks:
+Hardware cost, computational cost, energy use, and interpretability are often named in applicable literature.
+Here, the focus is placed on a complementary approach: correct-by-construction systems engineering, where the view is that white-box modeling, interpretability and computational efficiency are facilitated by way of static program verification and optimization.
+To this end, an embedded domain specific language (eDSL) was  implemented in a \emph{mainstream systems programming language} -- the very substrate that these large models build on.
+The resulting \texttt{dedekind} library targets analytics and machine learning use cases and consistently defaults to mathematical rigor and build-time constraints as opposed to risking runtime inefficiencies or outright errors.
+It rests on two pillars:
+\begin{enumerate}
+\item The domain is grounded in category theory, transitioning from morphisms and small categories to cartesian-closed categories, the elementary theory of the category of sets (ETCS) and finally universal algebra~\cite{pierce2002tapl, lawvere1964etcs}. 
+This framework provides pre-validated axioms, theorems and terminology and allows a minimalist type checker to drive optimizations via equivalence relations. 
+\item On the encoding side, the choice was more open, as any sufficiently expressive type system was considered to be a plausible implementation substrate.
+C++23~\cite{cpp23standard} was selected as it met the following criteria:
+a) it should be mainstream so that tooling is provided for;
+b) its default runtime requirements should be modest so as not to preclude embeddings in higher-level languages or deployment on constrained environments;
+c) its type system should be rich enough to perform many of the desired type checks.
+\end{enumerate}
 
 Figure~\ref{fig:hub-spoke-bnz} sketches the domain of the first pillar.
 It is deliberately vanilla: carrier sets such as $\mathbb{B}, \mathbb{N}, \mathbb{Z}$ with the arithmetic and set operations of elementary mathematics, packaged as algebraic structures.
