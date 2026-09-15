@@ -335,18 +335,66 @@ static_assert(
         decltype(dedekind::category::ambient_set<int>(SingletonSet<int>{0}))>,
     "SingletonSet must lift to an ETCS set object.");
 
-/** @section singleton__The_Set_Monad_Realization */
+/** @section singleton__The_Set_Monad_Realization
+ *  The singleton @f$x \mapsto \{x\}@f$ is the @b unit of the power-set @b
+ * monad. It is the power-set instance of the categorical unit machinery in
+ *  @c dedekind.category: the hub-dispatched @c η / @c pure and its siblings
+ *  @c μ / @c ε / @c δ (@c :monad, laws checked by @c IsMonad; @c η / @c ε live
+ * in
+ *  @c :natural), whose bona-fide monad-and-comonad (@c IsFrobenius, #632)
+ * carrier is @c std::tuple (@c :kleisli).  The power-set monad's own hub (@c η
+ * + the union-flatten @c μ) is tracked in #691.  @b Distinct from the two other
+ *  reifications of the power object: @c dedekind.order:powerset (#830) is the
+ *  @c Sub(C) subobject @b lattice @c 𝔓 (a @c Set), and
+ *  the @b enumeration (the characteristic relation @f$\chi : S \to 2@f$ over a
+ *  countable carrier) is #840. */
 
-/** @brief η: T -> SingletonSet<T> (The Unit) */
+/** @brief @c singleton: @f$T \to \mathrm{SingletonSet}\langle T\rangle@f$ ---
+ *  the power-set monad's unit @f$\eta@f$ (see the section note). */
 export template <typename T>
 constexpr auto singleton(T&& value) {
   return SingletonSet<std::decay_t<T>>{std::forward<T>(value)};
 }
 
+/** @brief @c η --- the idiomatic spelling of @c singleton: the power-set
+ *  monad's unit @f$\eta : x \mapsto \{x\}@f$.  The name matches the categorical
+ *  unit @c dedekind::category::η (the hub-dispatched @c η / @c pure of
+ *  @c :monad, §above) and the grammar's @c η generator (paper Listing~2).
+ *  @f$\eta(x)@f$ is the least set containing @c x, so
+ *  @f$\eta(x) \in \mathfrak{P}(S) \iff x \in S@f$.  The monad's @c μ
+ *  (union-flatten) and full hub are #691; the @b enumerated power set is
+ *  #840; the @c Sub(C) subobject @b lattice @c 𝔓 is
+ *  @c order:powerset (#830) --- three distinct reifications of the power
+ * object, all sharing this unit. */
+export template <typename T>
+constexpr auto η(T&& value) {
+  return singleton(std::forward<T>(value));
+}
+
+/** @brief @c ι --- the singleton read as an @b inclusion (a @b mono), the other
+ *  categorical hat of the same map @c η / @c singleton names.  Where @c η is
+ * the power-set monad's @b unit, @c ι is the injection of each point as its
+ *  singleton subobject, @f$\iota : T \rightarrowtail \mathcal{P}(T)@f$,
+ *  @f$x \mapsto \{x\}@f$ --- the @b atoms of the power-set Boolean algebra, and
+ *  injective (mathematically a mono).  It follows the @c iota-for-inclusion
+ *  convention it shares with the coproduct injections @c ι_1 / @c ι_2
+ *  (@c :cartesian) and the Galois inclusion @c ι of the ceiling/floor
+ *  adjunctions @c ⌈·⌉ ⊣ ι ⊣ ⌊·⌋ (@c :adjunction).  Same underlying map as
+ *  @c η; the name picks out the @b subobject-inclusion reading.
+ *  @note This is mathematical motivation, not a concept claim: @c ι(x) returns
+ * a
+ *  @c SingletonSet (its callable is the membership classifier @f$T \to
+ * \Omega@f$),
+ *  @b not a reified arrow carrying an @c IsMonicArrow monicity witness
+ *  (@c :morphism).  Reifying/certifying the unit arrow is a separate step. */
 export template <typename T>
 constexpr auto ι(T&& value) {
   return singleton(std::forward<T>(value));
 }
+
+// @c η is exactly @c singleton (the unit), only more idiomatic at call sites.
+static_assert(std::same_as<decltype(η(0)), decltype(singleton(0))>,
+              "η is the singleton unit alias.");
 
 /** @brief Explicit @c !{a} overload — shadows the generic
  *         @c IsPredicate-based @c operator! in @c :category:topoi so
