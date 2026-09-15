@@ -270,7 +270,8 @@ In the latter case, the technique's compile-time-substrate posture sits one laye
 Clang++ is used a formal system where a successful type check serves as a structural proof against a fixed set of inference rules~\cite{wadler2015propositions}.
 The \Cpp{23} type system, while limited, is sufficiently rich to name predicates, enforce structural boundaries, and license the LLVM backend to completely remove dead code paths that have been resolved at translation time.
 This architecture thus enforces a clear division of labor: the library user holds an out-of-band honesty obligation when registering trait axioms, and the compiler mechanically discharges every subsequent \cppinline{static_assert}, \cppinline{requires} clause, or \cppinline{constexpr} evaluation.
-A simple proof search is mimicked by operator resolution.
+A simple proof search is mimicked by operator resolution.\footnote{Fully automated, this is Augustsson's Djinn~\cite{augustsson2005djinn}, which synthesises an inhabiting term from a type, deciding inhabitation on the propositional fragment through Dyckhoff's terminating calculus~\cite{dyckhoff1992contraction}.
+The present approach is strictly weaker: it splits that single procedure across the loop of Figure~\ref{fig:target_model}, where a carrier is proposed and \cppinline{clang} discharges it, propose-and-check in place of decide-and-synthesise, without the completeness a decision procedure would give.}
 \begin{definition}[Reification]
 \label{def:reification}
 To \emph{reify} a structure is to encode it as propositions-as-types~\cite{wadler2015propositions}: a law becomes a \cppinline{concept}, and a carrier satisfying the \cppinline{concept} is a proof-as-program the type checker discharges.
