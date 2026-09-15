@@ -453,6 +453,38 @@ The steps taken to reify intensional sets form a core category $\mathbf{Lwv} := 
 One thing is taken as given: membership itself is decidable, the characteristic map $\chi : A \to \Omega$ total.
 A carrier whose membership is only semi-decidable (a Mandelbrot set, say) would lift $\Omega$ to the three-valued $\mathbb{B}+\mathrm{U}$ of partial predicates~\cite{kleene1952metamathematics}; decidable membership is imposed as an axiom and that generalisation left aside.
 
+Because a set \emph{is} its characteristic predicate, its lattice operations \emph{are} the pointwise logical ones; writing $A = \{x \mid P_A(x)\}$ and $B = \{x \mid P_B(x)\}$,
+\begin{equation}
+\label{eqn:lattice-lift-ops}
+A \cap B = \{x \mid P_A(x) \wedge P_B(x)\}, \qquad
+A \cup B = \{x \mid P_A(x) \vee P_B(x)\}, \qquad
+\complement A = \{x \mid \neg\, P_A(x)\}.
+\end{equation}
+Table~\ref{tab:lattice-lift} spells the correspondence in four languages: the Boolean $\mathbb{B}$, the power set $\mathcal{P}(A)$, the elementary topos (meet the product, join the coproduct, membership the classifier $\chi$), and the $\mathbf{Lwv}$ operators.
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}lccccccc@{}}
+\toprule
+ & member & meet & join & complement & bottom & top & order \\
+\midrule
+$\mathbb{B}$ & $\models$ & $\wedge$ & $\vee$ & $\neg$ & $\bot$ & $\top$ & $\Rightarrow$ \\
+\addlinespace
+$\mathcal{P}(A)$ & $\in$ & $\cap$ & $\cup$ & $\complement$ & $\varnothing$ & $A$ & $\subseteq$ \\
+\addlinespace
+$\mathbf{Topos}$ & $\chi$ & $\times$ & $\sqcup$ & $\neg$ & $\mathbf{0}$ & $\mathbf{1}$ & $B^A$ \\
+\addlinespace
+$\mathbf{Lwv}$ & \cppinline{s(x)} & \cppinline{&} & \cppinline{|} & \cppinline{~} & \cppinline{Ø} & \cppinline{Ω} & \cppinline{<=} \\
+\bottomrule
+\end{tabular}
+\caption{
+Operator-mapping table: each column is one construction, spelled in four languages over the rows $\mathbb{B}$, $\mathcal{P}(A)$, $\mathbf{Topos}$, $\mathbf{Lwv}$ (Section~\ref{sec:intensional_sets}, Eqn~\ref{eqn:lwv}).
+The $\mathbf{Topos}$ row is the Boolean case realised by $\mathbf{Set}$, where the Heyting pseudo-complement is a genuine $\neg$.
+The \emph{member} column is membership, the characteristic morphism $\chi : A \to \Omega$ ($\models$ satisfaction, $\in$ set membership, $\chi$ the classifier, \cppinline{s(x)} the set applied to a point); the other columns are the lattice operations.
+}
+\label{tab:lattice-lift}
+\end{table}
+
 With the notion of set fixed, the rest of the section develops the DSL over three tiers of increasing decidability, the classical hierarchy of set equality~\cite{chomsky1956three}.
 A general predicate (§\ref{sec:ddk_comprehension}) is recursively enumerable, so equality and subset are Rice-walled~\cite{rice1953classes}; the ordered and periodic sets (§\ref{sec:ddk_ordered}) are \emph{regular}, decidable by a canonical normal form (the minimal automaton, Myhill--Nerode~\cite{nerode1958linear}); and the finite, extensional sets (§\ref{sec:ddk_extensional}) simply list.
 Each tier's normal form is what makes its comparisons decidable.
@@ -531,29 +563,6 @@ elem ::= 'χ' | 'π' | 'π1' | 'π2'
 \end{minipage}
 \end{listing}
 
-\begin{table}[htbp]
-\centering
-\begin{tabular}{@{}lccccccc@{}}
-\toprule
- & member & meet & join & complement & bottom & top & order \\
-\midrule
-$\mathbb{B}$ & $\models$ & $\wedge$ & $\vee$ & $\neg$ & $\bot$ & $\top$ & $\Rightarrow$ \\
-\addlinespace
-$\mathcal{P}(A)$ & $\in$ & $\cap$ & $\cup$ & $\complement$ & $\varnothing$ & $A$ & $\subseteq$ \\
-\addlinespace
-$\mathbf{Topos}$ & $\chi$ & $\times$ & $\sqcup$ & $\neg$ & $\mathbf{0}$ & $\mathbf{1}$ & $B^A$ \\
-\addlinespace
-$\mathbf{Lwv}$ & \cppinline{s(x)} & \cppinline{&} & \cppinline{|} & \cppinline{~} & \cppinline{Ø} & \cppinline{Ω} & \cppinline{<=} \\
-\bottomrule
-\end{tabular}
-\caption{
-Operator-mapping table: each column is one construction, spelled in four languages over the rows $\mathbb{B}$, $\mathcal{P}(A)$, $\mathbf{Topos}$, $\mathbf{Lwv}$ (Section~\ref{sec:intensional_sets}, Eqn~\ref{eqn:lwv}).
-The $\mathbf{Topos}$ row is the Boolean case realised by $\mathbf{Set}$, where the Heyting pseudo-complement is a genuine $\neg$.
-The \emph{member} column is membership, the characteristic morphism $\chi : A \to \Omega$ ($\models$ satisfaction, $\in$ set membership, $\chi$ the classifier, \cppinline{s(x)} the set applied to a point); the other columns are the lattice operations.
-}
-\label{tab:lattice-lift}
-\end{table}
-
 \begin{definition}[$\mathbf{Lwv} := \mathbf{Jlt} \cap \mathbf{Set}$]
 \label{def:lwv-set}
 In $\mathbf{Lwv}$:
@@ -580,11 +589,7 @@ The set operations are then the algebra on these predicates.
 Intersection (\cppinline{&}), union (\cppinline{|}) and complement (\cppinline{~}) compose these predicates into one type-level predicate, which the template engine reduces during instantiation: it constant-folds, and on a complement pair collapses to \cppinline{Ø} or the universe by type (Listing~\ref{lst:pruning}).
 
 The correspondence is exact on the decidable track, and it is what makes the algebra optimizable.
-Because a set is its predicate, the lattice of sets over a domain $A$ with decidable membership is the Boolean lattice lifted pointwise, $\mathcal{P}(A) \cong \mathbb{B}^A$ (Table~\ref{tab:lattice-lift}).
-Each column of that table is one universal construction of an elementary topos in four languages: the meet \emph{is} the categorical product, the join the coproduct, the implication the exponential, and membership the subobject classifier $\chi$.
-Its \emph{member} column stands apart, being not a lattice operation but the characteristic morphism $\chi : A \to \Omega$ (membership), which degenerates to satisfaction when $A$ is a single point, since $\mathbb{B} = \mathcal{P}(1)$.
-Its top element, the universal set $A$ itself, is reified as \cppinline{sets::Ω<T>}; Listing~\ref{lst:pruning} (left) exhibits the canonical case, the Booleans $\mathbb{B} = $ \cppinline{Ω<bool>}.
-Where membership is undecided the codomain lifts to $\mathbb{B}+\text{U}$ and the operations become the three-valued Kleene ones, a de Morgan structure but no longer a Boolean algebra, since complement has no inverse at $\text{U}$.
+The top element, the universal set $A$ itself, is reified as \cppinline{sets::Ω<T>}; Listing~\ref{lst:pruning} (left) exhibits the canonical case, the Booleans $\mathbb{B} = $ \cppinline{Ω<bool>}.
 Optimization is then the simplification of these predicate compositions at translation time: an empty meet prunes, $\bot \wedge p \Rightarrow \bot$, and constant conjuncts fold away.
 The induced order, set inclusion, is pointwise implication $\chi_S \Rightarrow \chi_T$; it ranges over the domain, and keeping it decidable is the task of the ordered (§\ref{sec:ddk_ordered}) and extensional (§\ref{sec:ddk_extensional}) specialisations.
 
