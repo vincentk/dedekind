@@ -457,7 +457,9 @@ Listing~\ref{lst:set-grammar} gives the grammar of the set DSL --- set expressio
 \caption{The core set algebra: worked constructions (top) and the grammar (bottom).
 \textbf{Top:} on $\mathbb{B}$ a comprehension builds a singleton, complement/union/meet run the Boolean lattice (Table~\ref{tab:lattice-lift}), and membership queries the result --- all on equality alone, no order on the elements.
 \textbf{Bottom:} the grammar in two panels.
-\emph{Set expressions} (left) build a set: the generators \cppinline{Ω} (universal), \cppinline{Ø} (empty), \cppinline{singleton}, and \cppinline{ambient_set} (a predicate promoted to a set) or any user \cppinline{IsSet}; the unary \cppinline{op1} (complement \cppinline{~}); the binary \cppinline{op2} (union, meet, symmetric difference, product); and the comprehension filter \cppinline{setexpr '|' pred}.  (The power set $\mathfrak{P}$ is deferred to §\ref{sec:ddk_ordered}, where it reads as a comprehension over the subset order.)
+\emph{Set expressions} (left) build a set.
+The generators are \cppinline{Ω} (universal), \cppinline{Ø} (empty), the singleton $\eta$ (the power-set monad's unit, $x \mapsto \{x\}$), and any user \cppinline{IsSet}; \cppinline{op1} is complement (\cppinline{~}); \cppinline{op2} is union, meet, symmetric difference, or product; \cppinline{setexpr '|' pred} is the comprehension filter, so a predicate promoted to a set is just \cppinline{Ω | pred}; and $\mathfrak{P}$ is the power set.
+$\mathfrak{P}$ is a set constructor in the grammar but is decidable only per carrier: over an ordered carrier it is a comprehension over the subset order (§\ref{sec:ddk_ordered}), over a finite carrier an enumeration, and over a general carrier a type error.
 \emph{Predicates} (right) land in $\mathbb{B}$: equality atoms over the bound element (\cppinline{χ} / \cppinline{π}) and the NTTP \cppinline{fix}, the unary \cppinline{p1} (negation \cppinline{!}), the binary \cppinline{p2} (\cppinline{&&}, \cppinline{||}), and membership \cppinline{S(χ)}.
 The two open slots --- \cppinline{<any elem → 𝔹>} and \cppinline{<any IsSet>} --- are the \emph{extension points} the later listings plug into (quantifiers, Listing~\ref{lst:quantifiers_def}; order, Listing~\ref{lst:extrema_def}).
 A correspondence, not the literal C++ grammar: operator precedence, ADL, and the concept-gates sit underneath.}
@@ -465,17 +467,16 @@ A correspondence, not the literal C++ grammar: operator precedence, ADL, and the
 \noindent
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-constexpr auto T          // {true}
-  = 𝔹 | π == fix(true_c);
-constexpr auto F = ~T;    // ¬T
+constexpr auto T = 𝔹 | π == fix(true_c);
+constexpr auto F = ~T;
 static_assert((F | T) == 𝔹);
 static_assert((F & T) == Ø{});
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-static_assert(T(true));    // ∈
-static_assert(!T(false));  // ∉
+static_assert(T(true));
+static_assert(!T(false));
 static_assert(F(false));
 static_assert(!F(true));
 \end{cpp}
@@ -490,11 +491,11 @@ setexpr ::= generator
   | op1 setexpr
   | setexpr op2 setexpr
   | setexpr '|' pred
+  | '𝔓' '(' setexpr ')'
 op1 ::= '~'
 op2 ::= '|' | '&' | '^' | '*'
 generator ::= 'Ω' carrier | 'Ø' carrier
-  | 'singleton' '(' value ')'
-  | 'ambient_set' carrier '(' pred ')'
+  | 'η' '(' value ')'
   | <any IsSet>
 carrier ::= <any std::regular type>
 \end{minted}
@@ -510,8 +511,8 @@ p1 ::= '!'
 p2 ::= '&&' | '||'
 atom ::= elem '==' elem
   | elem '==' 'fix' '(' const ')'
-  | setexpr '(' elem ')'      -- membership
-  | setexpr '==' setexpr      -- set equality
+  | setexpr '(' elem ')'
+  | setexpr '==' setexpr
 elem ::= 'χ' | 'π' | 'π1' | 'π2'
 \end{minted}
 \end{minipage}
@@ -739,7 +740,7 @@ auto max(S s) { return s & upperbounds(s); }
 
 auto upperbounds(Halfspace<T,p,Down>) { return Halfspace<T,p,Up,NonStrict>{}; }
 auto upperbounds(Halfspace<T,p,Up>)   { return Ø<T>{}; }
-auto upperbounds(Ω<bool>)             { return Singleton<true>{}; }
+auto upperbounds(Ω<bool>)             { return η(true); }
 \end{cpp}
 \end{minipage}
 
@@ -754,7 +755,7 @@ static_assert(max(𝔹)(true));   static_assert(min(𝔹)(false));
 static_assert(max(ℕ | (π <= fix(5_c)))(5));   // extrema on the ordered ℕ
 constexpr auto gt3 = ℕ | π > fix(3_c);        // halfspace {x > 3}
 static_assert(bool(𝔓(gt3)(gt3)));             // A ∈ 𝔓(A): self-membership
-static_assert(bool(𝔓(gt3)(singleton(4))));    // {4} ⊆ {x>3}: a singleton in a
+static_assert(bool(𝔓(gt3)(η(4))));            // {4} ⊆ {x>3}: a singleton in a
                                               // halfspace's 𝔓, one Sub(C), no erasure
 \end{cpp}
 \end{minipage}
