@@ -473,7 +473,7 @@ This is Lawvere's elementary theory of the category of sets~\cite{lawvere1964etc
 \end{definition}
 The DSL is grounded in it by an honest reification: the ten defining axioms become type-level \cppinline{concept} predicates, composed into a structural \cppinline{concept IsSet} that checks whether a $\mathbf{Jlt}$ type is also an object of $\mathbf{Set}$; the step-by-step embedding is in Appendix~\ref{sec:etcs}, the concepts in the reference implementation~\cite{Krautler_dedekind_2026} (Mac Lane~\cite{maclane1971categories} and Pierce~\cite{pierce1991basic} for background).
 The steps taken to reify intensional sets form a core category $\mathbf{Lwv}$ (Definition~\ref{def:lwv-set}), tracked literally at compile time.
-One thing is taken as given: membership is decidable, the characteristic map $\chi : A \to \Omega$ total.\footnote{This scopes the reification to carriers with decidable membership (the \cppinline{HasDecidableMembership} gate). A carrier whose membership is only semi-decidable (a Mandelbrot set, say) lifts $\Omega$ to the three-valued $\mathbb{B}+\mathrm{U}$ of partial predicates~\cite{kleene1952metamathematics}, which the codebase carries as the \cppinline{TernaryLogic} logic species (Appendix~\ref{sec:etcs}); the decidable case is the one developed here.}
+One thing is taken as given: membership is decidable, the characteristic map $\chi : A \to \Omega$ total.\footnote{This is a scoping choice for the development here, not a constraint on \cppinline{IsSet}: membership is assumed decidable (the \cppinline{HasDecidableMembership} observable holds) and $\chi$ total. A carrier whose membership is only semi-decidable (a Mandelbrot set, say) lifts $\Omega$ to the three-valued $\mathbb{B}+\mathrm{U}$ of partial predicates~\cite{kleene1952metamathematics}, which the codebase carries as the \cppinline{TernaryLogic} logic species (Appendix~\ref{sec:etcs}); the decidable case is the one developed here.}
 
 Because a set \emph{is} its characteristic predicate, its lattice operations \emph{are} the pointwise logical ones; writing $A = \{x \mid P_A(x)\}$ and $B = \{x \mid P_B(x)\}$,
 \begin{equation}
@@ -581,7 +581,8 @@ setexpr ::= generator
   | setexpr '|' pred
 op2 ::= '|' | '&' | '^' | '*'
 generator ::= 'Ω' carrier | 'Ø' carrier
-  | 'η' '(' value ')'
+  | 'η' '(' value ')'          -- singleton
+  | 'ambient_set' '(' pred ')' -- the predicate as a set
   | <any IsSet>
 carrier ::= <any std::regular type>
 \end{minted}
@@ -837,10 +838,11 @@ table     ::= 'natural_join' '(' relexpr ',' relexpr ')' -- n-ary result: a tabl
                                                           --   not a binary relexpr
 relpred   ::= ratom
             | '!' ratom                     -- negate a comparison (atoms only)
-            | relpred ('&' | '+') relpred   -- binary (RelAnd / RelOr)
+            | relpred '&' relpred           -- meet (RelAnd); union is relexpr '+'
 ratom     ::= proj rcmp proj | proj rcmp 'fix' '(' const ')'
 rcmp      ::= cmp | '==' | '!='             -- ordering cmp plus (in)equality
 proj      ::= 'π1' | 'π2' | proj arith 'fix' '(' const ')'
+arith     ::= '+' | '*'                     -- π1 + fix(k), π1 * fix(k)
 arrow     ::= <an IsArrow A → B; functions compose via '>>'>
 \end{minted}
 \end{listing}
