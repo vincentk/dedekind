@@ -483,7 +483,7 @@ A \cap B = \{x \mid P_A(x) \wedge P_B(x)\}, \qquad
 A \cup B = \{x \mid P_A(x) \vee P_B(x)\}, \qquad
 \complement A = \{x \mid \neg\, P_A(x)\}.
 \end{equation}
-Table~\ref{tab:lattice-lift} spells the correspondence in four languages: the Boolean $\mathbb{B}$, the power set $\mathcal{P}(A)$, the elementary topos (meet the product, join the coproduct, membership the classifier $\chi$), and the $\mathbf{Lwv}$ operators.
+Table~\ref{tab:lattice-lift} spells the correspondence in four languages: the Boolean $\mathbb{B}$, the power set $\mathcal{P}(A)$, the elementary topos (in the subobject lattice $\mathrm{Sub}(A)$, meet the intersection, join the union, membership the classifier $\chi$), and the $\mathbf{Lwv}$ operators.
 
 \begin{table}[htbp]
 \centering
@@ -495,7 +495,7 @@ $\mathbb{B}$ & $\models$ & $\wedge$ & $\vee$ & $\neg$ & $\bot$ & $\top$ & $\Righ
 \addlinespace
 $\mathcal{P}(A)$ & $\in$ & $\cap$ & $\cup$ & $\complement$ & $\varnothing$ & $A$ & $\subseteq$ \\
 \addlinespace
-$\mathbf{Topos}$ & $\chi$ & $\times$ & $\sqcup$ & $\neg$ & $\mathbf{0}$ & $\mathbf{1}$ & $B^A$ \\
+$\mathbf{Topos}$ & $\chi$ & $\wedge$ & $\vee$ & $\neg$ & $\mathbf{0}$ & $A$ & $\hookrightarrow$ \\
 \addlinespace
 $\mathbf{Lwv}$ & \cppinline{s(x)} & \cppinline{&} & \cppinline{|} & \cppinline{~} & \cppinline{Ø} & \cppinline{Ω} & \cppinline{<=} \\
 \bottomrule
@@ -591,10 +591,9 @@ carrier ::= <any std::regular type>
 {\footnotesize\centering\textbf{predicates} \ensuremath{(\to \mathbb{B})}\par}
 \begin{minted}[fontsize=\footnotesize]{text}
 pred ::= atom
-  | p1 pred
-  | pred p2 pred
+  | '!' atom            -- negation: atoms only
+  | pred p2 pred        --   (compound De Morgan: future work)
   | <any elem → 𝔹>
-p1 ::= '!'
 p2 ::= '&&' | '||'
 atom ::= elem '==' elem
   | elem '==' 'fix' '(' const ')'
@@ -619,7 +618,7 @@ The compiler is then allowed to perform aggressive compile-time verification and
 When a membership test or set relation is encountered, the template engine expands the composed predicates and evaluates them during compilation.
 If an intersection yields a logical contradiction, the type system reduces the resulting expression directly to the empty set $\emptyset$ before code generation occurs.
 As a direct consequence, downstream runtime membership queries for statically impossible configurations are completely eliminated by the LLVM optimizer backend, collapsing into literal constant returns within the emitted machine instructions.
-Listing~\ref{lst:pruning} exhibits a checked-in extract that tests this type-directed collapse in practice, and its bottom panel makes the collapse mechanically observable during the build: the witness function for set membership constant-folds to \texttt{ret i1 false} in the emitted LLVM IR.
+Listing~\ref{lst:pruning} exhibits a checked-in extract that tests this type-directed collapse in practice, and a companion checked-in IR extract makes the collapse mechanically observable during the build: the witness function for set membership constant-folds to \texttt{ret i1 false} in the emitted LLVM IR.
 
 % ============================================================
 \subsection{Ordered Sets and Quantifiers}
@@ -716,7 +715,7 @@ The set comparisons are these quantifiers specialised to a membership predicate:
 \begin{aligned}
 A \subseteq B &\;:\equiv\; \forall x \in A.\; B(x), &\qquad
 A = B &\;:\equiv\; A \subseteq B \,\wedge\, B \subseteq A,\\
-A \subsetneq B &\;:\equiv\; A \subseteq B \,\wedge\, \neg\,(B \subseteq A). &&
+A \subsetneq B &\;:\equiv\; A \subseteq B \,\wedge\, \neg\,(B \subseteq A).
 \end{aligned}
 \end{equation}
 The power set is the predicate lift of subset: its membership test \emph{is} the subset relation, which is why $\mathfrak{P}$ belongs to this grammar extension.

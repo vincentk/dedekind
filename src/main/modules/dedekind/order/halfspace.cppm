@@ -1109,7 +1109,8 @@ struct Projection {};
 export inline constexpr Projection<0> π{};
 // Cosmetic alias for the sole projection π (the bound element of a
 // single-carrier comprehension): a plain element also reads as @c χ,
-// e.g. @c ℕ @c | @c χ @c <= @c fix(5_c).  Same object as π, different spelling.
+// e.g. @c ℕ @c | @c χ @c <= @c fix(5_c).  Same type and behaviour as π (a
+// distinct inline object, so a distinct address), just a second spelling.
 // (Plain @c x is deliberately not offered: it shadows the pervasive local
 // element parameter named @c x and would trip @c -Wshadow.)
 export inline constexpr Projection<0> χ{};
