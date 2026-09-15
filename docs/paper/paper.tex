@@ -471,7 +471,7 @@ This is Lawvere's elementary theory of the category of sets~\cite{lawvere1964etc
 \label{def:etcs-set}
 \emph{$\mathbf{Set}$ is a \textbf{well-pointed}, \textbf{Cartesian Closed Category} with a \textbf{subobject classifier}, a \textbf{natural numbers object}, and the \textbf{axiom of choice}}~\cite{nlab:nlab}.
 \end{definition}
-The DSL is grounded in it by an honest reification: the ten defining axioms become type-level \cppinline{concept} predicates, composed into a structural \cppinline{concept IsSet} that checks whether a $\mathbf{Jlt}$ type is also an object of $\mathbf{Set}$; the step-by-step embedding is in Appendix~\ref{sec:etcs}, the concepts in the reference implementation~\cite{Krautler_dedekind_2026} (Mac Lane~\cite{maclane1971categories} and Pierce~\cite{pierce1991basic} for background).
+The DSL is grounded in it by an honest reification: the defining axioms become type-level \cppinline{concept} predicates, composed into a structural \cppinline{concept IsSet} that checks whether a $\mathbf{Jlt}$ type is also an object of $\mathbf{Set}$, with the axiom of choice (Axiom~10) only approximated, by the power-object lattice, and marked aspirational; the step-by-step embedding is in Appendix~\ref{sec:etcs}, the concepts in the reference implementation~\cite{Krautler_dedekind_2026} (Mac Lane~\cite{maclane1971categories} and Pierce~\cite{pierce1991basic} for background).
 The steps taken to reify intensional sets form a core category $\mathbf{Lwv}$ (Definition~\ref{def:lwv-set}), tracked literally at compile time.
 One thing is taken as given: membership is decidable, the characteristic map $\chi : A \to \Omega$ total.\footnote{This is a scoping choice for the development here, not a constraint on \cppinline{IsSet}: membership is assumed decidable (the \cppinline{HasDecidableMembership} observable holds) and $\chi$ total. A carrier whose membership is only semi-decidable (a Mandelbrot set, say) lifts $\Omega$ to the three-valued $\mathbb{B}+\mathrm{U}$ of partial predicates~\cite{kleene1952metamathematics}, which the codebase carries as the \cppinline{TernaryLogic} logic species (Appendix~\ref{sec:etcs}); the decidable case is the one developed here.}
 
@@ -583,7 +583,6 @@ setexpr ::= generator
 op2 ::= '|' | '&' | '^' | '*'
 generator ::= 'Ω' carrier | 'Ø' carrier
   | 'η' '(' value ')'          -- singleton
-  | 'ambient_set' '(' pred ')' -- the predicate as a set
   | <any IsSet>
 carrier ::= <any std::regular type>
 \end{minted}
@@ -759,7 +758,7 @@ This asymmetry is the model/materialise gap of the whole framework: $\mathbf{Jlt
 \label{eqn:model-materialise}
   \mathbf{Jlt}\ \text{models} \le \beth_1, \qquad \mathbf{Jlt}\ \text{materialises} < \aleph_0 ,
 \end{equation}
-the library's Axiom-9 restriction of carrier predicates to $\beth_1$ (Appendix~\ref{sec:etcs}) above, meeting the finite reach of $\mu$ below.
+the library's modelling scope for carrier predicates, $\beth_1$ (Appendix~\ref{sec:etcs}), above, meeting the finite reach of $\mu$ below.
 So $\mathbf{Lwv}$ is strictly more expressive than \cppinline{std::set}, the extensional container it generalises, and the price is paid in \emph{proof obligations}: where $\mu$ is unavailable, membership is settled by the concept constraints and factorisations of this section, not by enumeration.
 This is the extensional/intensional database distinction of deductive databases, \cppinline{std::set} playing the extensional store (EDB, facts) and $\mathbf{Lwv}$ the intensional one (IDB, rules), with materialisation the materialised view~\cite{abiteboul1995foundations}.
 
@@ -797,7 +796,7 @@ static_assert(
 {\footnotesize\centering\textbf{materialisation} \ensuremath{\mu}\par}
 \begin{minted}[fontsize=\footnotesize]{text}
 container ::= 'materialise' '(' universe ',' pred ')'
-universe  ::= 'from_std' '(' std-range ')' | setexpr
+universe  ::= <any std::ranges::input_range>
 \end{minted}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.49\linewidth}
@@ -821,7 +820,7 @@ The additive half happens to be the Boolean lattice a relation already carries \
 Listing~\ref{lst:relation-grammar} gives the grammar of relation expressions, built on the set expressions of Listing~\ref{lst:set-grammar}.
 
 \begin{listing}[htbp]
-\caption{The grammar of \textbf{relation expressions}, extending the set expressions of Listing~\ref{lst:set-grammar}: a relation \emph{is} a set over a product, plus the graph of an arrow, the Tarski operators (converse, relative product $\mathbin{;}$, union, meet, the diagonal, the reflexive/symmetric closures), the pullback \cppinline{preimage}, and the Codd \cppinline{select} / \cppinline{natural_join}.  Same \emph{correspondence} caveat as Listing~\ref{lst:set-grammar}: the \cppinline{>>} Boolean-middle restriction and the like are concept-gates underneath.}
+\caption{The grammar of \textbf{relation expressions}, extending the set expressions of Listing~\ref{lst:set-grammar}: a relation \emph{is} a set over a product, plus the graph of an arrow, the Tarski operators (converse, relative product $\mathbin{;}$, union, meet, the diagonal, the reflexive/symmetric closures), and the Codd \cppinline{select} / \cppinline{natural_join}.  The pullback \cppinline{preimage}$(f, S) = f^{-1}(S)$ is a \emph{setexpr} over the arrow's domain (Listing~\ref{lst:set-grammar}), a relation only when that domain is itself a product.  Same \emph{correspondence} caveat as Listing~\ref{lst:set-grammar}: the \cppinline{>>} Boolean-middle restriction and the like are concept-gates underneath.}
 \label{lst:relation-grammar}
 \begin{minted}{text}
 relexpr   ::= setexpr                     -- carrier ⟨A,B⟩ : a relation
@@ -833,7 +832,6 @@ relexpr   ::= setexpr                     -- carrier ⟨A,B⟩ : a relation
             | 'diagonal' carrier          -- Δ
             | 'reflexive' '(' relexpr ')'
             | 'symmetric' '(' relexpr ')'
-            | 'preimage' '(' arrow ',' setexpr ')'       -- χ_S ∘ f
             | 'select' '(' relexpr ',' pred ')'
             | setexpr '*' setexpr '|' relpred            -- restricted product
 table     ::= 'natural_join' '(' relexpr ',' relexpr ')' -- n-ary result: a table,
