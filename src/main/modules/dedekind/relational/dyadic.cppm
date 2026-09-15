@@ -155,6 +155,17 @@ constexpr auto cod(const Relation<T1, T2, L, P>&) {
  * (@c apply(R,x)(b) is @c (x,b)∈R), so it types in for any relation and the
  * existential --- is it nonempty? what is its max? --- is deferred to whoever
  * reduces it.
+ *
+ * @warning @b Lambda @b blackbox.  The fibre predicate is a @b capturing
+ * @b lambda, so the returned @c Set carries an @b opaque, @b anonymous, @b
+ * non-@c equality_comparable predicate type.  Two @c apply results are never
+ * type-equal and never value-equal, and the @c Set cannot be lifted back to a
+ * relation (@c as_relation @c requires @c std::equality_comparable).  Prefer a
+ * @b named fibre functor with @c operator== wherever the fibre must be
+ * compared, reified, or round-tripped through @c graph / @c as_relation; reach
+ * for @c apply only for the throw-away, reduce-it-now case.  The
+ * equality-comparable, named-fibre enumeration (the characteristic relation
+ * @f$\chi : S \to 2@f$) is tracked in #840.
  */
 export template <typename T1, typename T2, typename L, typename P>
 constexpr auto apply(const Relation<T1, T2, L, P>& r, const T1& x) {
