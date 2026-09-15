@@ -682,34 +682,37 @@ First-order quantification is the same reading once more: a quantifier \emph{is}
 &\quad \exists &\;:\equiv\; \neg\,\forall\,\neg\,.
 \end{aligned}
 \end{equation}
-In code the comprehension is the where-clause \cppinline{S | P} and each formulation is one \cppinline{operator==} against a bound: (A) \cppinline{exists(S,P)} is \cppinline{!(Ø{} == (S | P))}, (B) \cppinline{forall(S,P)} is \cppinline{(S | P) == S}, and each recovers its partner by De Morgan's duality, complementing the predicate, \cppinline{!P} (Listing~\ref{lst:extrema_def}).
-Read extensionally, as a loop over the elements of the carrier, the two formulations part ways.
-Formulation (A) asks for a single example (for $\exists$), or through $\neg\exists\neg$ a single counterexample (for $\forall$): find one and you are done, so it returns even on an infinite carrier whenever the witness sits at a finite position.
-Formulation (B) asks whether the comprehension fills the whole carrier, which extensionally means enumerating every element, so on an infinite carrier only (A) is on the table.
-Read the same definitions intensionally, as an algebra on the characteristic predicates, and both formulations collapse to one cheap question: does the comprehension \cppinline{S | P}, the meet $S \wedge P$, reduce to always-false (then $\exists$ fails) or to always-true (then $\forall$ holds)?
-The cost is then not a function of the carrier's cardinality but of the \emph{set relation}, the conjunction or disjunction of the characteristic predicates.
-This can rescue $\forall$ over an infinite carrier, but only in the exceptional case that the predicate factors through a finite quotient.
-The congruence $\pi \equiv 0 \pmod 3$ is periodic, so it factors through the finite codomain $\mathbb{Z}/3\mathbb{Z}$ (Section~\ref{sec:functions_morphism_factorization}), the collapse is settled on three residues rather than the countably many naturals, and both $\exists$ and $\forall$ return in finite time (Listing~\ref{lst:extrema_def}).
-The technique is confined to predicates carrying a \emph{certified} finite quotient or algebraic factorisation; a predicate with none (\cppinline{isPrime}, a Collatz-style recurrence) does not reduce, and $\forall$ over it stays undecidable at compile time.
-Intensional quantification is thus not a general escape from the infinite, only a lever where the predicate's own structure supplies the finite handle.
-An operand that is neither a finite carrier nor a predicate factoring through a finite quotient matches no overload: the honest Rice wall, a compile error rather than a fabricated answer.
+In code the comprehension is the where-clause \cppinline{S | P}, and each quantifier is one \cppinline{operator==} against a bound: \cppinline{exists(S,P)} is \cppinline{!(Ø{} == (S | P))}, \cppinline{forall(S,P)} is \cppinline{(S | P) == S} (Listing~\ref{lst:extrema_def}).
+The set comparisons are these quantifiers specialised to a membership predicate:
+\begin{equation}
+\label{eqn:inclusion}
+\begin{aligned}
+A \subseteq B &\;:\equiv\; \forall x \in A.\; B(x), &\qquad
+A = B &\;:\equiv\; A \subseteq B \,\wedge\, B \subseteq A,\\
+A \subsetneq B &\;:\equiv\; A \subseteq B \,\wedge\, \neg\,(B \subseteq A). &&
+\end{aligned}
+\end{equation}
+The power set is the predicate lift of subset: its membership test \emph{is} the subset relation, which is why $\mathfrak{P}$ belongs to this grammar extension.
+\begin{equation}
+\label{eqn:powerset}
+X \in \mathfrak{P}(S) \;:\equiv\; X \subseteq S, \qquad
+\mathfrak{P}(S) \;=\; \{\, X \mid X \subseteq S \,\}.
+\end{equation}
+Intensionally, a quantifier collapses to one question: does the meet \cppinline{S | P} reduce to always-false ($\exists$ fails) or always-true ($\forall$ holds)?
+The cost is then the \emph{set relation}, not the carrier's cardinality, so $\forall$ decides even over an infinite carrier when the predicate factors through a finite quotient: the periodic congruence $\pi \equiv 0 \pmod 3$ settles on the three residues of $\mathbb{Z}/3\mathbb{Z}$, not the countably many naturals (Listing~\ref{lst:extrema_def}).
+A predicate with no such factorisation (\cppinline{isPrime}, a Collatz recurrence) does not reduce: the honest Rice wall, a compile error rather than a fabricated answer.
 
-The order runs the same play once more.
-Read $\le$ as the predicate and the extremum \emph{is} a set operation: the greatest elements of $S$ are those no element of $S$ beats.
-Where $\exists$ and $\forall$ test the comprehension against a bound and return a truth value, $\max$ and $\min$ keep the comprehension and return the extremal \emph{subset}.
+The extremum is a set operation in the same spirit: the greatest elements of $S$ are those no element beats, so $\max$ keeps the comprehension $\forall$ tests and returns the extremal \emph{subset}.
 \begin{equation}
 \label{eqn:extrema}
 \max S \;:\equiv\; \{x \in S \mid \forall x' \in S.\; x' \le x\},
 \qquad
 \min \;:\equiv\; \max \text{ under } {\le} \mapsto {\ge}.
 \end{equation}
-In code it is one generic definition: $S$ met with its \cppinline{upperbounds}, the region $R/\ni$ that dominates all of $S$.
-Read relationally, \cppinline{upperbounds} is the $\forall$-projection of the order relation \cppinline{S * S | π1 <= π2} onto its second coordinate, so $\max$ keeps the $\pi_2$ that every $\pi_1$ precedes; $\min$ is the same in the dual order, the way $\forall$ is $\exists$ under $\neg$ in the quantifiers above.
-The implementation builds no product and needs no inverse: the meet of $S$ with a comparison-defined halfspace suffices, which is why the extremum of a set lands before relations do.
-The answer is a set, so the degenerate cases need no special casing: an empty carrier gives $\varnothing$, and a total or partial order gives a singleton (a greatest element, when it exists, is unique by antisymmetry) or $\varnothing$; a larger set arises only under a \emph{preorder}, where distinct elements can be equivalent and tie for the top.
-Being generic, $\max$ types in for any ordered carrier and decides wherever \cppinline{upperbounds} is settled by structure: a halfspace's dual (an upward halfspace, unbounded above, has none, so $\max$ is $\varnothing$) or a finite carrier's top.
-A carrier that hands over no such handle matches no \cppinline{upperbounds}, hence no \cppinline{max}: a compile error, the same Rice wall as the quantifiers, rather than a fabricated bound.
-Section~\ref{sec:relations_functions_blueprint} lifts $\le$ from a bare comparison to a function's graph, and the same filter becomes $\arg\max$.
+In code it is $S$ met with its symbolically-settled \cppinline{upperbounds}, so no product is built and no candidate enumerated; $\min$ is the dual.
+The answer is a set, so the degenerate cases need no special-casing: an empty or unbounded carrier gives $\varnothing$, a total or partial order a singleton (unique by antisymmetry), a preorder a possible tie.
+A carrier settling no \cppinline{upperbounds} matches no \cppinline{max}: the same Rice wall.
+Section~\ref{sec:relations_functions_blueprint} lifts $\le$ to a function's graph, and the same filter becomes $\arg\max$.
 
 % ============================================================
 \subsection{Finite and Extensional Sets}
