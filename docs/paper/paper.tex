@@ -449,7 +449,7 @@ This is Lawvere's elementary theory of the category of sets~\cite{lawvere1964etc
 \emph{$\mathbf{Set}$ is a \textbf{well-pointed}, \textbf{Cartesian Closed Category} with a \textbf{subobject classifier}, a \textbf{natural numbers object}, and the \textbf{axiom of choice}}~\cite{nlab:nlab}.
 \end{definition}
 The DSL is grounded in it by an honest reification: the ten defining axioms become type-level \cppinline{concept} predicates, composed into a structural \cppinline{concept IsSet} that checks whether a $\mathbf{Jlt}$ type is also an object of $\mathbf{Set}$; the step-by-step embedding is in Appendix~\ref{sec:etcs}, the concepts in the reference implementation~\cite{Krautler_dedekind_2026} (Mac Lane~\cite{maclane1971categories} and Pierce~\cite{pierce1991basic} for background).
-The steps taken to reify intensional sets form a core category $\mathbf{Lwv} := \mathbf{Jlt} \cap \mathbf{Set}$~\ref{def:lwv-set}, tracked literally at compile time.
+The steps taken to reify intensional sets form a core category $\mathbf{Lwv}$ (Definition~\ref{def:lwv-set}), tracked literally at compile time.
 One thing is taken as given: membership itself is decidable, the characteristic map $\chi : A \to \Omega$ total.
 A carrier whose membership is only semi-decidable (a Mandelbrot set, say) would lift $\Omega$ to the three-valued $\mathbb{B}+\mathrm{U}$ of partial predicates~\cite{kleene1952metamathematics}; decidable membership is imposed as an axiom and that generalisation left aside.
 
@@ -484,6 +484,23 @@ The \emph{member} column is membership, the characteristic morphism $\chi : A \t
 }
 \label{tab:lattice-lift}
 \end{table}
+
+\begin{definition}[$\mathbf{Lwv} := \mathbf{Jlt} \cap \mathbf{Set}$]
+\label{def:lwv-set}
+In $\mathbf{Lwv}$:
+\begin{enumerate}
+\item A \emph{set} over a regular (\cppinline{std::regular}) carrier \cppinline{A} in $\mathbf{Jlt}$ is a \emph{subobject} of \cppinline{A}: a type \cppinline{S} satisfying \cppinline{IsSubobject<S, A>}, whose characteristic predicate $\chi_S : A \to \Omega$ decides membership.
+\item A \emph{relation} is a subobject of the Cartesian product \cppinline{::Domain} $\times$ \cppinline{::Codomain}.
+\item A \emph{set} is thus the true-fiber of its characteristic morphism $\chi_S : A \to \Omega$: the pullback of $\top$ along $\chi_S$, the true-slice of the graph of $\chi_S$ rather than the whole graph (which also carries the \cppinline{false} pairs).
+\end{enumerate}
+The full ETCS axioms live not on the individual set but on its ambient \emph{universe}: the top element $\Omega\langle A\rangle$ is itself an ETCS set-object, satisfying the heavier \cppinline{concept IsSet} (Definition~\ref{def:etcs-set}).
+A $\mathbf{Lwv}$ set is a subobject of such a universe over a $\mathbf{Jlt}$ carrier, so one can write:
+\begin{equation}
+\label{eqn:lwv}
+\mathbf{Lwv} := \mathbf{Jlt} \cap \mathbf{Set},
+\end{equation}
+in which the predicate $\chi_S$ \emph{is} the set.
+\end{definition}
 
 With the notion of set fixed, the rest of the section develops the DSL over three tiers of increasing decidability, the classical hierarchy of set equality~\cite{chomsky1956three}.
 A general predicate (§\ref{sec:ddk_comprehension}) is recursively enumerable, so equality and subset are Rice-walled~\cite{rice1953classes}; the ordered and periodic sets (§\ref{sec:ddk_ordered}) are \emph{regular}, decidable by a canonical normal form (the minimal automaton, Myhill--Nerode~\cite{nerode1958linear}); and the finite, extensional sets (§\ref{sec:ddk_extensional}) simply list.
@@ -563,27 +580,7 @@ elem ::= 'χ' | 'π' | 'π1' | 'π2'
 \end{minipage}
 \end{listing}
 
-\begin{definition}[$\mathbf{Lwv} := \mathbf{Jlt} \cap \mathbf{Set}$]
-\label{def:lwv-set}
-In $\mathbf{Lwv}$:
-\begin{enumerate}
-\item A \emph{set} over a regular (\cppinline{std::regular}) carrier \cppinline{A} in $\mathbf{Jlt}$ is a \emph{subobject} of \cppinline{A}: a type \cppinline{S} satisfying \cppinline{IsSubobject<S, A>}, whose characteristic predicate $\chi_S : A \to \Omega$ decides membership.
-\item A \emph{relation} is a subobject of the Cartesian product \cppinline{::Domain} $\times$ \cppinline{::Codomain}.
-\item A \emph{set} is thus the true-fiber of its characteristic morphism $\chi_S : A \to \Omega$: the pullback of $\top$ along $\chi_S$, the true-slice of the graph of $\chi_S$ rather than the whole graph (which also carries the \cppinline{false} pairs).
-\end{enumerate}
-The full ETCS axioms live not on the individual set but on its ambient \emph{universe}: the top element $\Omega\langle A\rangle$ is itself an ETCS set-object, satisfying the heavier \cppinline{concept IsSet} (Definition~\ref{def:etcs-set}).
-A $\mathbf{Lwv}$ set is a subobject of such a universe over a $\mathbf{Jlt}$ carrier, so one can write:
-\begin{equation}
-\label{eqn:lwv}
-\mathbf{Lwv} := \mathbf{Jlt} \cap \mathbf{Set},
-\end{equation}
-in which the predicate $\chi_S$ \emph{is} the set.
-\end{definition}
-
-Because the carrier is \cppinline{std::regular}, the elements of a $\mathbf{Lwv}$ set are transparent value types with a decidable equality.
-This $\mathbf{Set}$ is therefore a subcategory of structural data types, not the universal mathematical blackboard: richer objects enter by regular representation rather than natively as elements, a function as its graph (item~2, a set of \cppinline{std::pair}s) and an equivalence class as a quotient of such a graph, but not, say, an arbitrary morphism whose equality is undecidable.
-
-A predicate \emph{is} the set, since a set is its own characteristic morphism: \cppinline{ℕ | π > fix(5_c)} already denotes $\{x \in \mathbb{N} \mid x > 5\}$, a \cppinline{Halfspace}, with no wrapper (Listing~\ref{lst:pruning}).
+By comprehension, \cppinline{ℕ | π > fix(5_c)} denotes $\{x \in \mathbb{N} \mid x > 5\}$, a \cppinline{Halfspace}, with no wrapper (Listing~\ref{lst:pruning}).
 
 The set operations are then the algebra on these predicates.
 Intersection (\cppinline{&}), union (\cppinline{|}) and complement (\cppinline{~}) compose these predicates into one type-level predicate, which the template engine reduces during instantiation: it constant-folds, and on a complement pair collapses to \cppinline{Ø} or the universe by type (Listing~\ref{lst:pruning}).
