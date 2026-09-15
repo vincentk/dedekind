@@ -548,7 +548,8 @@ Listing~\ref{lst:set-grammar} gives the grammar of the set DSL --- set expressio
 \emph{Set expressions} (left) build a set.
 The generators are \cppinline{Ω} (universal), \cppinline{Ø} (empty), the singleton $\eta$ (the power-set monad's unit, $x \mapsto \{x\}$), and any user \cppinline{IsSet}; \cppinline{~} is complement; \cppinline{op2} is union, meet, symmetric difference, or product; \cppinline{setexpr '|' pred} is the comprehension filter, so a predicate promoted to a set is just \cppinline{Ω | pred}.
 The power set $\mathfrak{P}$ enters with the ordered sets (§\ref{sec:ddk_ordered}).
-\emph{Predicates} (right) land in $\mathbb{B}$: equality atoms over the bound element (\cppinline{χ} / \cppinline{π}) and the NTTP \cppinline{fix}, the unary \cppinline{p1} (negation \cppinline{!}), the binary \cppinline{p2} (\cppinline{&&}, \cppinline{||}), and membership \cppinline{S(χ)}.
+\emph{Predicates} (right) are open, landing in $\mathbb{B}$ per bound element: equality atoms over the element (\cppinline{χ} / \cppinline{π}) and the NTTP \cppinline{fix}, negation \cppinline{!}, the binary \cppinline{p2} (\cppinline{&&}, \cppinline{||}), and membership \cppinline{S(x)}.
+The \cppinline{query} nonterminal is separate: the \emph{closed} set relations (equality, subset), a proposition returning $\mathbb{B}$ rather than an open predicate, so it is a query and not a comprehension filter \cppinline{S | pred}.
 The two open slots --- \cppinline{<any elem → 𝔹>} and \cppinline{<any IsSet>} --- are the \emph{extension points} the later listings plug into (quantifiers and order, Listing~\ref{lst:extrema_def}).
 A correspondence, not the literal C++ grammar: operator precedence, ADL, and the concept-gates sit underneath.}
 \label{lst:set-grammar}\label{lst:pruning}
@@ -590,16 +591,17 @@ carrier ::= <any std::regular type>
 \begin{minipage}[t]{0.49\linewidth}
 {\footnotesize\centering\textbf{predicates} \ensuremath{(\to \mathbb{B})}\par}
 \begin{minted}[fontsize=\footnotesize]{text}
-pred ::= atom
-  | '!' atom            -- negation: atoms only
-  | pred p2 pred        --   (compound De Morgan: future work)
+pred ::= atom              -- open: elem → 𝔹
+  | '!' atom               -- negation: atoms only
+  | pred p2 pred           --   (compound De Morgan: future work)
+  | setexpr '(' elem ')'   -- membership x ∈ S
   | <any elem → 𝔹>
 p2 ::= '&&' | '||'
 atom ::= elem '==' elem
   | elem '==' 'fix' '(' const ')'
-  | setexpr '(' elem ')'
-  | setexpr '==' setexpr
 elem ::= 'χ' | 'π' | 'π1' | 'π2'
+query ::= setexpr srel setexpr   -- closed (→𝔹)
+srel ::= '==' | '<='             -- set eq / subset
 \end{minted}
 \end{minipage}
 \end{listing}
