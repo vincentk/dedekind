@@ -437,10 +437,10 @@ This forms the exact Cartesian Closed Category needed to bootstrap formal set co
 \label{sec:intensional_sets}
 
 With a deterministic, structurally-typed substrate established in Section~\ref{sec:jlt_posture}, mathematical sets can be bootstrapped inside the type system.
-Here, we aim to model both the syntax and the semantics of mathematical set builder notation in executable $\mathbf{Jlt}$ hoping to achieve a system that lends itself to the expression and subsequent evaluation of precisely those kinds of problems that one might also encounter in a pure math blackboard setting.
+Here, both the syntax and the semantics of mathematical set-builder notation are modelled in executable $\mathbf{Jlt}$, aiming at a system that lends itself to the expression and subsequent evaluation of precisely those kinds of problems that one might also encounter in a pure-math blackboard setting.
 Figure~\ref{fig:hub-spoke-bnz} in the introduction previews the functionality this section builds.
 
-We fix the notion of set the DSL reifies before building it.
+The notion of set the DSL reifies is fixed before the DSL is built.
 A set here is \emph{intensional}: given by the condition its members satisfy, not the bag of elements a container stores.
 Where ZF stores a set extensionally (elements in memory, as \cppinline{std::set} does), ETCS presents it by that condition: the open disk $\{\, x \mid \lVert x - c \rVert < r \,\}$ is an uncountable bag no machine can hold, or the single inequality that \emph{is} it (raster versus vector).
 This is Lawvere's elementary theory of the category of sets~\cite{lawvere1964etcs}, a set given by objects and their morphisms:
@@ -448,10 +448,10 @@ This is Lawvere's elementary theory of the category of sets~\cite{lawvere1964etc
 \label{def:etcs-set}
 \emph{$\mathbf{Set}$ is a \textbf{well-pointed}, \textbf{Cartesian Closed Category} with a \textbf{subobject classifier}, a \textbf{natural numbers object}, and the \textbf{axiom of choice}}~\cite{nlab:nlab}.
 \end{definition}
-We made an honest attempt to ground the DSL in it: the ten defining axioms are reified as type-level \cppinline{concept} predicates and composed into a structural \cppinline{concept IsSet}, which checks whether a $\mathbf{Jlt}$ type is also an object of $\mathbf{Set}$; the step-by-step embedding is in Appendix~\ref{sec:etcs}, the concepts in the reference implementation~\cite{Krautler_dedekind_2026} (Mac Lane~\cite{maclane1971categories} and Pierce~\cite{pierce1991basic} for background).
+The DSL is grounded in it by an honest reification: the ten defining axioms become type-level \cppinline{concept} predicates, composed into a structural \cppinline{concept IsSet} that checks whether a $\mathbf{Jlt}$ type is also an object of $\mathbf{Set}$; the step-by-step embedding is in Appendix~\ref{sec:etcs}, the concepts in the reference implementation~\cite{Krautler_dedekind_2026} (Mac Lane~\cite{maclane1971categories} and Pierce~\cite{pierce1991basic} for background).
 The steps taken to reify intensional sets form a core category $\mathbf{Lwv} := \mathbf{Jlt} \cap \mathbf{Set}$~\ref{def:lwv-set}, tracked literally at compile time.
-One thing we take as given: membership itself is decidable, the characteristic map $\chi : A \to \Omega$ total.
-A carrier whose membership is only semi-decidable (a Mandelbrot set, say) would lift $\Omega$ to the three-valued $\mathbb{B}+\mathrm{U}$ of partial predicates~\cite{kleene1952metamathematics}; we impose decidable membership as an axiom and leave that generalisation aside.
+One thing is taken as given: membership itself is decidable, the characteristic map $\chi : A \to \Omega$ total.
+A carrier whose membership is only semi-decidable (a Mandelbrot set, say) would lift $\Omega$ to the three-valued $\mathbb{B}+\mathrm{U}$ of partial predicates~\cite{kleene1952metamathematics}; decidable membership is imposed as an axiom and that generalisation left aside.
 
 With the notion of set fixed, the rest of the section develops the DSL over three tiers of increasing decidability, the classical hierarchy of set equality~\cite{chomsky1956three}.
 A general predicate (§\ref{sec:ddk_comprehension}) is recursively enumerable, so equality and subset are Rice-walled~\cite{rice1953classes}; the ordered and periodic sets (§\ref{sec:ddk_ordered}) are \emph{regular}, decidable by a canonical normal form (the minimal automaton, Myhill--Nerode~\cite{nerode1958linear}); and the finite, extensional sets (§\ref{sec:ddk_extensional}) simply list.
@@ -574,13 +574,10 @@ in which the predicate $\chi_S$ \emph{is} the set.
 Because the carrier is \cppinline{std::regular}, the elements of a $\mathbf{Lwv}$ set are transparent value types with a decidable equality.
 This $\mathbf{Set}$ is therefore a subcategory of structural data types, not the universal mathematical blackboard: richer objects enter by regular representation rather than natively as elements, a function as its graph (item~2, a set of \cppinline{std::pair}s) and an equivalence class as a quotient of such a graph, but not, say, an arbitrary morphism whose equality is undecidable.
 
-The combinator \cppinline{in} constructs a \emph{scout variable}: in the blackboard form $\{\,x \in \mathbb{N} \mid P(x)\,\}$ it is the bound variable $x$, a stand-in for an arbitrary element that a predicate then constrains.
-It carries its domain in its own type (\cppinline{BoundScout} is an empty structural type whose type-level ambient records the domain), so the compiler knows what the variable ranges over.
 A predicate \emph{is} the set, since a set is its own characteristic morphism: \cppinline{ℕ | π > fix(5_c)} already denotes $\{x \in \mathbb{N} \mid x > 5\}$, a \cppinline{Halfspace}, with no wrapper (Listing~\ref{lst:pruning}).
-The set-builder syntax thus survives without a variadic constructor; the \cppinline{Set{scout | predicate}} form is reserved for the opaque case, a raw lambda that does not reify to a set type on its own (§\ref{sec:relations_functions_blueprint}).
 
 The set operations are then the algebra on these predicates.
-Intersection (\cppinline{&}), union (\cppinline{|}) and complement (\cppinline{~}) compose the scouts' predicates into one type-level predicate, which the template engine reduces during instantiation: it constant-folds, and on a complement pair collapses to \cppinline{Ø} or the universe by type (Listing~\ref{lst:pruning}).
+Intersection (\cppinline{&}), union (\cppinline{|}) and complement (\cppinline{~}) compose these predicates into one type-level predicate, which the template engine reduces during instantiation: it constant-folds, and on a complement pair collapses to \cppinline{Ø} or the universe by type (Listing~\ref{lst:pruning}).
 
 The correspondence is exact on the decidable track, and it is what makes the algebra optimizable.
 Because a set is its predicate, the lattice of sets over a domain $A$ with decidable membership is the Boolean lattice lifted pointwise, $\mathcal{P}(A) \cong \mathbb{B}^A$ (Table~\ref{tab:lattice-lift}).
@@ -673,7 +670,7 @@ cmp   ::= '<' | '<=' | '>' | '>='
 \end{minipage}
 \end{listing}
 
-First-order quantification is the same reading once more: a quantifier \emph{is} a set operation, and we take that structural (Bourbaki) sense as the definition, not as a later coincidence.
+First-order quantification is the same reading once more: a quantifier \emph{is} a set operation, and that structural (Bourbaki) sense is taken as the definition, not as a later coincidence.
 \begin{equation}
 \label{eqn:quantifiers}
 \begin{aligned}
