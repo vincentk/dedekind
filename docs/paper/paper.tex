@@ -835,8 +835,11 @@ relexpr   ::= setexpr                     -- carrier ⟨A,B⟩ : a relation
             | setexpr '*' setexpr '|' relpred            -- restricted product
 table     ::= 'natural_join' '(' relexpr ',' relexpr ')' -- n-ary result: a table,
                                                           --   not a binary relexpr
-relpred   ::= proj cmp proj | proj cmp 'fix' '(' const ')'
+relpred   ::= ratom
+            | '!' ratom                     -- negate a comparison (atoms only)
             | relpred ('&' | '+') relpred   -- binary (RelAnd / RelOr)
+ratom     ::= proj rcmp proj | proj rcmp 'fix' '(' const ')'
+rcmp      ::= cmp | '==' | '!='             -- ordering cmp plus (in)equality
 proj      ::= 'π1' | 'π2' | proj arith 'fix' '(' const ')'
 arrow     ::= <an IsArrow A → B; functions compose via '>>'>
 \end{minted}
