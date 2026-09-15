@@ -715,10 +715,10 @@ This is the first rung that asks the carrier for more than equality; its grammar
 
 \begin{listing}[htbp]
 \caption{Ordered sets: the grammar extension for order (top box) and the extrema it enables.
-\textbf{Grammar}: element comparisons (\cppinline{cmp}) and subset \cppinline{<=} plug into the \cppinline{pred} extension point of Listing~\ref{lst:set-grammar}; \cppinline{max}/\cppinline{min} extend \cppinline{setexpr}, returning the extremal \emph{subset}; the power set $\mathfrak{P}$ is itself a comprehension over the subset order ($\mathfrak{P}(S) = \Omega\langle\Omega^T\rangle \mid \chi \le S$), so its membership \emph{is} the subset test.
+\textbf{Grammar}: element comparisons (\cppinline{cmp}) and subset \cppinline{<=} plug into the \cppinline{pred} extension point of Listing~\ref{lst:set-grammar}; \cppinline{max}/\cppinline{min} extend \cppinline{setexpr}, returning the extremal \emph{subset}; the power set $\mathfrak{P}$ is itself a comprehension over the subset order, its domain the carrier's reified subobjects $\mathrm{Sub}(C)$ ($\mathfrak{P}(S) = \Omega\langle\mathrm{Sub}(C)\rangle \mid X \subseteq S$), so its membership \emph{is} the subset test.
 \textbf{Definition}: \cppinline{max} is \cppinline{S} met ($\cap$, the operator \cppinline{&}) with its \cppinline{upperbounds} (the $\forall$-projection $R/\ni$, $\{\pi_2\in S \mid \forall\pi_1\in S.\; \pi_1\le\pi_2\}$, Equation~\ref{eqn:extrema}); \cppinline{min} is the dual, over \cppinline{lowerbounds}.
 \cppinline{upperbounds} is the pluggable point (as $\forall$/$\exists$ plug into \cppinline{==}), settled \emph{symbolically} per structure, so no candidate is enumerated; the meet then collapses $\{x\le p\}\cap\{x\ge p\}$ to the attained pivot $\{p\}$, or to $\varnothing$ when the bound is unattained (strict) or absent (unbounded).
-\textbf{Witnesses}: subset, a halfspace, extrema on $\mathbb{B}$ (finite) and an infinite halfspace, and the power set (a set is a member of its own, $A \in \mathfrak{P}(A)$; heterogeneous membership $\mathfrak{P}(\mathbb{B})(T)$ awaits the erased carrier of issue~\#830); the empty halfspace meet folds to \texttt{ret i1 false} at \texttt{-O2} (\texttt{clang++-22}).}
+\textbf{Witnesses}: subset, a halfspace, extrema on $\mathbb{B}$ (finite) and an infinite halfspace, and the power set --- a set is a member of its own ($A \in \mathfrak{P}(A)$), and a singleton and a halfspace sit in one $\mathfrak{P}$ decided homogeneously through the reified subobject $\mathrm{Sub}(C)$ (no erased carrier; issue~\#830); the empty halfspace meet folds to \texttt{ret i1 false} at \texttt{-O2} (\texttt{clang++-22}).}
 \label{lst:extrema_def}
 \noindent
 {\footnotesize\centering\textbf{grammar extension} --- order on the carrier (plugs into Listing~\ref{lst:set-grammar})\par}
@@ -728,7 +728,7 @@ atom +::= elem cmp elem                       -- extends <any elem → 𝔹>
         | setexpr '<=' setexpr                 -- subset ⊆  (Table 2 order)
 cmp    ::= '<' | '<=' | '>' | '>='
 setexpr +::= ('max' | 'min') '(' setexpr ')'  -- extremal subset
-        | '𝔓' '(' setexpr ')'                 -- power set: Ω⟨Ω^T⟩ | χ <= S
+        | '𝔓' '(' setexpr ')'                 -- power set: Ω⟨Sub(C)⟩ | X <= S
 \end{minted}
 
 \vspace{0.4em}
@@ -752,8 +752,10 @@ static_assert(bool(gt_5 <= ℕ));               // subset ⊆
 static_assert((gt_5 & ~gt_5) == Ø{});         // complement meet → ∅
 static_assert(max(𝔹)(true));   static_assert(min(𝔹)(false));
 static_assert(max(ℕ | (π <= fix(5_c)))(5));   // extrema on the ordered ℕ
-constexpr auto x = element<ℕ>;  constexpr auto A = Set{x | x > 0u};
-static_assert(bool(𝔓(A)(A)));                 // power set: A ∈ 𝔓(A) = A ⊆ A
+constexpr auto gt3 = ℕ | π > fix(3_c);        // halfspace {x > 3}
+static_assert(bool(𝔓(gt3)(gt3)));             // A ∈ 𝔓(A): self-membership
+static_assert(bool(𝔓(gt3)(singleton(4))));    // {4} ⊆ {x>3}: a singleton in a
+                                              // halfspace's 𝔓, one Sub(C), no erasure
 \end{cpp}
 \end{minipage}
 
