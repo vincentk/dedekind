@@ -293,7 +293,7 @@ A \emph{Galois specialisation} discharges it on a structured sub-domain in four 
 \begin{enumerate}
 \item \textbf{A truth theorem}: the law holds over the class its axioms define.
 \item \textbf{A computability theorem}: the law becomes decidable on the sub-domain fixed by the invariants the carrier's operations preserve. Operations and the invariants they preserve are paired by a Galois connection~\cite{geiger1968closed}, and the same pairing settles the difficulty of a constraint problem~\cite{zhuk2020proof}, echoing Noether's link between symmetries and invariants~\cite{noether1918invariante}. Where less structure is at hand, a decidable fragment~\cite{borger2001classical} or a sound over-approximation~\cite{cousot1977abstract} serves instead.
-\item \textbf{A \cppinline{concept}} approximating (1) and (2) together: sound, so at worst it under-decides and never fabricates.
+\item \textbf{A \cppinline{concept}} approximating (1) and (2) together: sound relative to the registered axioms, so at worst it under-decides, and misleads only if a registered axiom is false.
 \item \textbf{A carrier type} satisfying that \cppinline{concept}: a checkable proof-as-program~\cite{wadler2015propositions} in the realizability sense~\cite{kleene1945realizability}. It discharges the \cppinline{concept}, not the law itself; an unbounded carrier still rests on the registered axiom.
 \end{enumerate}
 Steps~(1), (3) and~(4) are a reification (Definition~\ref{def:reification}); step~(2), the Galois connection, is what lets it decide rather than merely record.
@@ -525,8 +525,10 @@ A $\mathbf{Lwv}$ set is a subobject of such a universe over a $\mathbf{Jlt}$ car
 in which the predicate $\chi_S$ \emph{is} the set.
 \end{definition}
 
-With the notion of set fixed, the rest of the section develops the DSL over three tiers of increasing decidability, the classical hierarchy of set equality~\cite{chomsky1956three}.
-A general predicate (§\ref{sec:ddk_comprehension}) is recursively enumerable, so equality and subset are Rice-walled~\cite{rice1953classes}; the ordered and periodic sets (§\ref{sec:ddk_ordered}) are \emph{regular}, decidable by a canonical normal form (the minimal automaton, Myhill--Nerode~\cite{nerode1958linear}); and the finite, extensional sets (§\ref{sec:ddk_extensional}) simply list.
+With the notion of set fixed, the rest of the section develops the DSL over three tiers of increasing decidability, loosely echoing the Chomsky hierarchy~\cite{chomsky1956three}.
+Equality and subset of a general predicate (§\ref{sec:ddk_comprehension}) are undecidable, Rice-walled~\cite{rice1953classes}.
+An ordered set (§\ref{sec:ddk_ordered}) instead has a canonical normal form, its convex bounds, and comparison decides on those; a periodic one is \emph{regular}, its residue the Myhill--Nerode canonical form~\cite{nerode1958linear}.
+The finite, extensional sets (§\ref{sec:ddk_extensional}) simply list.
 Each tier's normal form is what makes its comparisons decidable.
 
 % ============================================================
@@ -633,7 +635,7 @@ This is the first rung that asks the carrier for more than equality; its grammar
 \textbf{Predicates} (right): element comparisons \cppinline{cmp} cut halfspaces by comprehension; \cppinline{forall}/\cppinline{exists} plug into \cppinline{pred}, each one point-free \cppinline{operator==} against a bound (Equation~\ref{eqn:quantifiers}): \cppinline{exists(S,P)} tests \cppinline{S | P} against $\varnothing$, \cppinline{forall(S,P)} against $S$.
 \textbf{Set expressions} (left): \cppinline{max}/\cppinline{min} return the extremal \emph{subset}, defined via $\forall$ (Equation~\ref{eqn:extrema}) and computed as \cppinline{S} met with its symbolically-settled \cppinline{upperbounds}/\cppinline{lowerbounds}, so no candidate is enumerated.
 \textbf{Witnesses}: $\exists$/$\forall$ on the finite $\mathbb{B}$ and on $\mathbb{N}$ through the finite quotient $\mathbb{Z}/3\mathbb{Z}$ (the congruence $\pi \equiv 0 \pmod 3$); a halfspace; and extrema on $\mathbb{B}$ and $\mathbb{N}$.
-The power set $\mathfrak{P}(S)$ is a comprehension over the subset order, its subsets reified as the subobject $\mathrm{Sub}(C)$: $\mathfrak{P}(S) = \Omega\langle\mathrm{Sub}(C)\rangle \mid X \subseteq S$; over a finite carrier it enumerates, over a general one a type error.
+The power set $\mathfrak{P}(S)$ is a comprehension over the subset order, its subsets reified as the subobject $\mathrm{Sub}(C)$: $\mathfrak{P}(S) = \Omega\langle\mathrm{Sub}(C)\rangle \mid X \subseteq S$; an ordered carrier supplies $\mathrm{Sub}(C)$ and a general one does not, so $\mathfrak{P}$ is then a type error, and extensional enumeration of a finite power set is left aside.
 (Subset \cppinline{<=} is the normal-form comparison of Listing~\ref{lst:materialise}.)}
 \label{lst:extrema_def}
 \noindent
@@ -746,7 +748,7 @@ Section~\ref{sec:relations_functions_blueprint} lifts $\le$ to a function's grap
 
 The container reading and the predicate reading are almost interconvertible, and the asymmetry is the point (Listing~\ref{lst:materialise}).
 Any \cppinline{std::set} is a $\mathbf{Lwv}$ set for free, its \cppinline{contains} the characteristic predicate; call that embedding $\iota$, and it is total.
-Only a finite, enumerable $\mathbf{Lwv}$ set materialises back to a container; call that map $\mu$ (its CT name is the \emph{extension}, \cppinline{ext}, dual to the predicate's intension, as $\eta$ names \cppinline{singleton}, the power-set monad's unit~\cite{moggi1991notions}), and it is partial, the naturals having no finite materialisation.
+Only a finite, enumerable $\mathbf{Lwv}$ set materialises back to a container; call that map $\mu$ (the \emph{extension}, dual to the predicate's intension), realised by \cppinline{materialise}, as $\eta$ names \cppinline{singleton}, the power-set monad's unit~\cite{moggi1991notions}; it is partial, the naturals having no finite materialisation.
 % FUTURE WORK (#842, backlog): Frobenius structure on sets / Rel objects
 % (classical/CQM copy-delete on the power-set monad's objects). The power-set
 % monad has η (singleton) and μ (union-flatten) but no natural counit ε, so the
@@ -761,44 +763,47 @@ So $\mathbf{Lwv}$ is strictly more expressive than \cppinline{std::set}, the ext
 This is the extensional/intensional database distinction of deductive databases, \cppinline{std::set} playing the extensional store (EDB, facts) and $\mathbf{Lwv}$ the intensional one (IDB, rules), with materialisation the materialised view~\cite{abiteboul1995foundations}.
 
 \begin{listing}[htbp]
-\caption{Extensional operations on sets in \emph{normal form}: the extension \cppinline{ext} (the partial materialisation $\mu$, finite only) and the comparisons \cppinline{==}/\cppinline{<=}.
-\textbf{Top}: \cppinline{ambient_set(from_std(·))} lifts a container into the DSL (the total $\iota$); \cppinline{ext} materialises a finite set back (the partial $\mu$); \cppinline{==}/\cppinline{<=} decide on the normal form the carrier supplies.
-\textbf{Bottom}: the grammar in two panels, set expressions (left) and comparison predicates (right); the boundaries \cppinline{Ø}/\cppinline{Ω} are Listing~\ref{lst:set-grammar}'s generators, and by symmetry the subset order \cppinline{sp2} is the element comparison \cppinline{cmp} of Listing~\ref{lst:extrema_def} (set equality \cppinline{==} is Listing~\ref{lst:set-grammar}'s \cppinline{setexpr == setexpr}).}
+\caption{Extensional operations on sets in \emph{normal form}: the materialisation \cppinline{materialise} (the partial $\mu$, a finite universe kept where $\chi$ accepts, into a \cppinline{std::set}) and the comparisons \cppinline{==}/\cppinline{<=}.
+\textbf{Top}: a finite \cppinline{std::set} bounds an intensional halfspace, so their intersection always materialises even though the halfspace over $\mathbb{N}$ does not; the extensional and intensional readings compose.
+\cppinline{materialise} is a runtime retraction (it fills a \cppinline{std::set}), not a \cppinline{constexpr} one.
+\textbf{Right}: subset \cppinline{<=} decides \emph{structurally} on the normal form the carrier supplies, here two halfspaces, at compile time.
+\textbf{Bottom}: the grammar in two panels; the boundaries \cppinline{Ø}/\cppinline{Ω} are Listing~\ref{lst:set-grammar}'s generators, and by symmetry the subset order \cppinline{sp2} is the element comparison \cppinline{cmp} of Listing~\ref{lst:extrema_def} (set equality \cppinline{==} is Listing~\ref{lst:set-grammar}'s \cppinline{setexpr == setexpr}).}
 \label{lst:materialise}
 \noindent
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-std::set<int> c{2, 3, 5};
-constexpr auto S = ambient_set(from_std(c));
-static_assert(
-  ext(S & (Ω<int> | π > fix(3_c))) == std::set{5});
-static_assert(
-  ext(S & (Ω<int> | π > fix(5_c))) == std::set<int>{});
+std::set<int> ext{2, 3, 5};      // finite universe
+auto gt3 = ℕ | π > fix(3_c);     // {x > 3}
+// μ: keep the members χ accepts (runtime)
+assert(materialise(ext, gt3)
+       == std::set<int>{5});
+assert(materialise(ext, ℕ | π > fix(5_c))
+       == std::set<int>{});
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-static_assert(ext(𝔹) == std::set{false, true});
+// <= decides structurally, at compile time
 static_assert(
-  bool((ℕ | π > fix(5_c)) <= (ℕ | π > fix(3_c))));
+  bool((ℕ | π > fix(5_c))
+       <= (ℕ | π > fix(3_c))));
 \end{cpp}
 \end{minipage}
 
 \vspace{0.6em}
 \noindent
 \begin{minipage}[t]{0.49\linewidth}
-{\footnotesize\centering\textbf{set expressions}\par}
+{\footnotesize\centering\textbf{materialisation} \ensuremath{\mu}\par}
 \begin{minted}[fontsize=\footnotesize]{text}
-setexpr +::= 'ext' '(' setexpr ')'
-nf      ::= 'ext' '(' setexpr ')'
-         |  'Sub' '(' carrier ')'
-         |  residue
+container ::= 'materialise' '(' universe ',' pred ')'
+universe  ::= 'from_std' '(' std-range ')' | setexpr
 \end{minted}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.49\linewidth}
-{\footnotesize\centering\textbf{predicates} \ensuremath{(\to \mathbb{B})}\par}
+{\footnotesize\centering\textbf{normal-form comparison}\par}
 \begin{minted}[fontsize=\footnotesize]{text}
 atom +::= nf sp2 nf
+nf    ::= 'Sub' '(' carrier ')' | residue | 'Ø' | 'Ω'
 sp2   ::= cmp
 \end{minted}
 \end{minipage}

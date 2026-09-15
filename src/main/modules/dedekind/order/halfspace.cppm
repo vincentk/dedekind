@@ -1395,6 +1395,29 @@ constexpr ProjBound<I, Rel::Ne, V> operator!=(Projection<I>, Bound<V>) {
   return {};
 }
 
+// !pred witnesses on the relational predicates (grammar p1): negation flips the
+// comparison flavour on both ProjProj and ProjBound, covering every negate(Rel)
+// mapping including the Eq/Ne branch.  The set-level dual is ~ (complement);
+// see the UnboundHalfspace witnesses above and FIXME(#829).
+static_assert(std::same_as<decltype(!(π1 < π2)), decltype(π1 >= π2)>,
+              "!(π1 < π2) is π1 >= π2 (Lt->Ge).");
+static_assert(std::same_as<decltype(!(π1 <= π2)), decltype(π1 > π2)>,
+              "!(π1 <= π2) is π1 > π2 (Le->Gt).");
+static_assert(std::same_as<decltype(!(π1 > π2)), decltype(π1 <= π2)>,
+              "!(π1 > π2) is π1 <= π2 (Gt->Le).");
+static_assert(std::same_as<decltype(!(π1 >= π2)), decltype(π1 < π2)>,
+              "!(π1 >= π2) is π1 < π2 (Ge->Lt).");
+static_assert(std::same_as<decltype(!(π1 == π2)), decltype(π1 != π2)>,
+              "!(π1 == π2) is π1 != π2 (Eq->Ne).");
+static_assert(std::same_as<decltype(!(π1 != π2)), decltype(π1 == π2)>,
+              "!(π1 != π2) is π1 == π2 (Ne->Eq).");
+static_assert(
+    std::same_as<decltype(!(π1 > fix(5_c))), decltype(π1 <= fix(5_c))>,
+    "!(π1 > fix(5)) is π1 <= fix(5) (ProjBound Gt->Le).");
+static_assert(
+    std::same_as<decltype(!(π1 == fix(5_c))), decltype(π1 != fix(5_c))>,
+    "!(π1 == fix(5)) is π1 != fix(5) (ProjBound Eq->Ne).");
+
 // meet of relational predicates.  RelAnd now lives in :dyadic (#792).
 export template <IsRelPredicate A, IsRelPredicate B>
 constexpr dedekind::relational::RelAnd<A, B> operator&(A a, B b) {
