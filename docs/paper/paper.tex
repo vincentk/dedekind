@@ -907,10 +907,10 @@ Only a finite, enumerable $\mathbf{Lwv}$ set materialises back to a container; c
 % (classical/CQM copy-delete on the power-set monad's objects). The power-set
 % monad has η (singleton) and μ (union-flatten) but no natural counit ε, so the
 % Frobenius structure lives on the Rel objects, not on the monad-as-functor.
-This asymmetry is the model/materialise gap of the whole framework: $\mathbf{Jlt}$ \emph{models} carriers up to the continuum but \emph{materialises} only finite ones,
+This asymmetry is the model/materialise gap of the whole framework: $\mathbf{Lwv}$ \emph{models} carriers up to the continuum but \emph{materialises} only finite ones,
 \begin{equation}
 \label{eqn:model-materialise}
-  \mathbf{Jlt}\ \text{models} \le \beth_1, \qquad \mathbf{Jlt}\ \text{materialises} < \aleph_0 ,
+  \mathbf{Lwv}\ \text{models} \le \beth_1, \qquad \mathbf{Lwv}\ \text{materialises} < \aleph_0 ,
 \end{equation}
 the library's modelling scope for carrier predicates, $\beth_1$ (Appendix~\ref{sec:etcs}), above, meeting the finite reach of $\mu$ below.
 So $\mathbf{Lwv}$ is strictly more expressive than \cppinline{std::set}, the extensional container it generalises, and the price is paid in \emph{proof obligations}: where $\mu$ is unavailable, membership is settled by the concept constraints and factorisations of this section, not by enumeration.
