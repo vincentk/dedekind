@@ -147,23 +147,20 @@
 \begin{abstract}
 
 % Core Thesis:
-This paper describes a symbolic-algebra library in a mainstream systems programming language: standard \Cpp{23} (the category $\mathbf{Cpp}$), capable of using compile-time  evaluation in part or in full as a form of static program analysis, verification and optimization.
-
-The initial step is a deliberate restriction to a fragment of \Cpp{23} which is both a) referentially transparent ($\mathbf{Per}$, via \cppinline{const}, \cppinline{constexpr},  \cppinline{std::regular}) and b) structurally typed by default (syntactic type constraint satisfaction via \cppinline{concept}).
-This fragment is named the \emph{Juliet Posture} ($\mathbf{Jlt} = \mathbf{Per} \cap \mathbf{Cpp}$): a rose by any other name would smell as sweet, so a type is known by its structure, not its name, as in duck typing.
-A deliberate code smell, but a \emph{sweet} one: it smells of System~F, since loosely $\mathbf{Jlt}$ admits a System~F reading of the \Cpp{23} type system.
-
+This paper describes a symbolic-algebra library in a mainstream systems programming language: standard \Cpp{23} (the category $\mathbf{Cpp}$), capable of using compile-time  evaluation in part or in full as a form of static program analysis, verification and optimization. 
+The initial step is a deliberate restriction to a fragment of \Cpp{23} which is both a) referentially transparent ($\mathbf{Per}$, via \cppinline{const}, \cppinline{constexpr},  \cppinline{std::regular}) and b) structurally typed by default (syntactic type constraint satisfaction and template specialization via \cppinline{concept}).
+This fragment is named the \emph{Juliet Posture} ($\mathbf{Jlt} = \mathbf{Per} \cap \mathbf{Cpp}$): just like in dynamic duck typing, a type is known by its structure, not its name.
+The resulting code has a deliberate, sweet and flowery smell: $\mathbf{Jlt}$ admits a System~F reading of the \Cpp{23} type system.
 On this foundation an embedded, lazy domain-specific language is built which supports
-i) a set-comprehension engine ($\mathbf{Lwv} = \mathbf{Jlt} \cap \mathbf{Set}$) whose sets are defined in an intensional way: via a membership test ($\{ x \in S | P(x) \}$, \cppinline{S | P(x)}) rather than by listing elements,
-ii) a point-free relational calculus ($\mathbf{Trsk} = \mathbf{Lwv} \cap \mathbf{Rel}$) built on cartesian products ($\{{x, y} \in S \times S | P(x, y)\}$, \cppinline{S * S | P(x, y)}), and
-iii) symbolic algebra $\mathbf{Ddk} = \mathbf{Trsk} \cap \mathbf{Alg}$ built on operations  ($(x, y, z) \in S^3 | z = f(x, y)$, \cppinline{S * S * S | z = f(x, y)}), specifically the canonical sets $\mathbb B, \mathbb N, \ldots$.
+\begin{enumerate}
+\item a set-comprehension engine ($\mathbf{Lwv} = \mathbf{Jlt} \cap \mathbf{Set}$) whose sets are defined in an intensional way: via a membership test ($\{ x \in S | P(x) \}$, \cppinline{S | P(x)}) rather than by listing elements,
+\item a point-free relational calculus ($\mathbf{Trsk} = \mathbf{Lwv} \cap \mathbf{Rel}$) built on cartesian products ($\{{x, y} \in S \times S | P(x, y)\}$, \cppinline{S * S | P(x, y)}), and
+\item symbolic algebra $\mathbf{Ddk} = \mathbf{Trsk} \cap \mathbf{Alg}$ built on operations  ($(x, y, z) \in S^3 | z = f(x, y)$, \cppinline{S * S * S | z = f(x, y)}), specifically the canonical sets $\mathbb B, \mathbb N, \ldots$.
+\end{enumerate}
 The embedded domain-specific language spells out the corresponding algebraic laws as types, enabling the compiler to verify and optimize the expression tree.
-Partial compile-time evaluation of the expression tree is then the default behavior and full compile-time evaluation is the limiting case.
-
 % Demonstration of the Principle by way of a worked non-trivial example:
 A worked example demonstrates feasibility: the critical path of a directed acyclic network, computed by semiring closure and cast entirely in the type system.
 When every argument is known at compile time, the compiler constant-folds the optimum and the emitted LLVM IR is a single literal, typed to the semiring of the cost function (the Boolean semiring for reachability, max-plus over $\mathbb N$ for cost, max-plus over dual numbers for sensitivity analysis).
-
 % Concluding remarks:
 The approach is expected to be portable to other systems programming languages with a rich enough type system, specifically Rust.
 \end{abstract}
@@ -183,6 +180,22 @@ automatic differentiation.
 \section{Introduction}
 \label{sec:introduction}
 % ============================================================
+
+Recent breakthroughs in machine learning have resulted not just in an explosion of novel and interesting use cases but also sparked public debate about the technology's demands and bottlenecks:
+Hardware cost, computational cost, energy use, and interpretability are often named in applicable literature.
+Here, the focus is placed on a complementary approach: correct-by-construction systems engineering, where the view is that white-box modeling, interpretability and computational efficiency are facilitated by way of static program verification and optimization.
+To this end, an embedded domain specific language (eDSL) was  implemented in a \emph{mainstream systems programming language} -- the very substrate that these large models build on.
+The resulting \texttt{dedekind} library targets analytics and machine-learning use cases; it moves correctness checks and optimization to build time, so mismatches surface as compile errors rather than runtime faults.
+It rests on two pillars:
+\begin{enumerate}
+\item The domain is grounded in category theory, transitioning from morphisms and small categories to cartesian-closed categories, the elementary theory of the category of sets (ETCS) and finally universal algebra~\cite{pierce2002tapl, lawvere1964etcs}. 
+This framework provides pre-validated axioms, theorems and terminology and allows a minimalist type checker to drive optimizations via equivalence relations. 
+\item On the encoding side, the choice was more open, as any sufficiently expressive type system was considered to be a plausible implementation substrate.
+C++23~\cite{cpp23standard} was selected as it met the following criteria:
+a) it should be mainstream so that tooling is provided for;
+b) its default runtime requirements should be modest so as not to preclude embeddings in higher-level languages or deployment on constrained environments;
+c) its type system should be rich enough to perform many of the desired type checks.
+\end{enumerate}
 
 \begin{figure}[htbp]
 \centering
@@ -213,22 +226,6 @@ The subsequent sections develop the reading.
 }
 \label{fig:hub-spoke-bnz}
 \end{figure}
-
-Recent breakthroughs in machine learning have resulted not just in an explosion of novel and interesting use cases but also sparked public debate about the technology's demands and bottlenecks:
-Hardware cost, computational cost, energy use, and interpretability are often named in applicable literature.
-Here, the focus is placed on a complementary approach: correct-by-construction systems engineering, where the view is that white-box modeling, interpretability and computational efficiency are facilitated by way of static program verification and optimization.
-To this end, an embedded domain specific language (eDSL) was  implemented in a \emph{mainstream systems programming language} -- the very substrate that these large models build on.
-The resulting \texttt{dedekind} library targets analytics and machine-learning use cases; it moves correctness checks and optimization to build time, so mismatches surface as compile errors rather than runtime faults.
-It rests on two pillars:
-\begin{enumerate}
-\item The domain is grounded in category theory, transitioning from morphisms and small categories to cartesian-closed categories, the elementary theory of the category of sets (ETCS) and finally universal algebra~\cite{pierce2002tapl, lawvere1964etcs}. 
-This framework provides pre-validated axioms, theorems and terminology and allows a minimalist type checker to drive optimizations via equivalence relations. 
-\item On the encoding side, the choice was more open, as any sufficiently expressive type system was considered to be a plausible implementation substrate.
-C++23~\cite{cpp23standard} was selected as it met the following criteria:
-a) it should be mainstream so that tooling is provided for;
-b) its default runtime requirements should be modest so as not to preclude embeddings in higher-level languages or deployment on constrained environments;
-c) its type system should be rich enough to perform many of the desired type checks.
-\end{enumerate}
 
 Figure~\ref{fig:hub-spoke-bnz} sketches the domain of the first pillar.
 It is deliberately vanilla: carrier sets such as $\mathbb{B}, \mathbb{N}, \mathbb{Z}$ with the arithmetic and set operations of elementary mathematics, packaged as algebraic structures.
@@ -604,8 +601,8 @@ p2 ::= '&&' | '||'
 atom ::= elem '==' elem
   | elem '==' 'fix' '(' const ')'
 elem ::= 'χ' | 'π' | 'π1' | 'π2'
-query ::= setexpr srel setexpr   -- closed (→𝔹)
-srel ::= '==' | '<='             -- set eq / subset
+query ::= setexpr (cmp | '==') setexpr  -- closed (→𝔹): subset order + equality
+cmp  ::= '<' | '<=' | '>' | '>='         -- the one comparison set (subset / element order)
 \end{minted}
 \end{minipage}
 \end{listing}
@@ -697,7 +694,6 @@ setexpr +::= ('max' | 'min') '(' setexpr ')'
 pred +::= ('forall' | 'exists') '(' setexpr ',' pred ')'
 atom +::= elem cmp elem
         |  elem cmp 'fix' '(' const ')'
-cmp   ::= '<' | '<=' | '>' | '>='
 \end{minted}
 \end{minipage}
 \end{listing}
@@ -772,7 +768,7 @@ This is the extensional/intensional database distinction of deductive databases,
 \textbf{Top}: a finite \cppinline{std::set} bounds an intensional halfspace, so their intersection always materialises even though the halfspace over $\mathbb{N}$ does not; the extensional and intensional readings compose.
 \cppinline{materialise} is a runtime retraction (it fills a \cppinline{std::set}), not a \cppinline{constexpr} one.
 \textbf{Right}: subset \cppinline{<=} decides \emph{structurally} on the normal form the carrier supplies, here two halfspaces, at compile time.
-\textbf{Bottom}: the grammar in two panels; the boundaries \cppinline{Ø}/\cppinline{Ω} are Listing~\ref{lst:set-grammar}'s generators, and by symmetry the subset order \cppinline{sp2} is the element comparison \cppinline{cmp} of Listing~\ref{lst:extrema_def} (set equality \cppinline{==} is Listing~\ref{lst:set-grammar}'s \cppinline{setexpr == setexpr}).}
+\textbf{Bottom}: the grammar in two panels; the boundaries \cppinline{Ø}/\cppinline{Ω} are Listing~\ref{lst:set-grammar}'s generators, and normal forms are compared by the set \cppinline{query} over the single \cppinline{cmp} (the subset order, Listing~\ref{lst:set-grammar}).}
 \label{lst:materialise}
 \noindent
 \begin{minipage}[t]{0.49\linewidth}
@@ -807,9 +803,8 @@ universe  ::= <any std::ranges::input_range>
 \begin{minipage}[t]{0.49\linewidth}
 {\footnotesize\centering\textbf{normal-form comparison}\par}
 \begin{minted}[fontsize=\footnotesize]{text}
-atom +::= nf sp2 nf
-nf    ::= 'Sub' '(' carrier ')' | residue | 'Ø' | 'Ω'
-sp2   ::= cmp
+query +::= nf (cmp | '==') nf   -- normal forms: subset order + equality
+nf     ::= 'Sub' '(' carrier ')' | residue | 'Ø' | 'Ω'
 \end{minted}
 \end{minipage}
 \end{listing}
@@ -825,7 +820,7 @@ The additive half happens to be the Boolean lattice a relation already carries \
 Listing~\ref{lst:relation-grammar} gives the grammar of relation expressions, built on the set expressions of Listing~\ref{lst:set-grammar}.
 
 \begin{listing}[htbp]
-\caption{The grammar of \textbf{relation expressions}, extending the set expressions of Listing~\ref{lst:set-grammar}: a relation \emph{is} a set over a product, plus the graph of an arrow, the Tarski operators (converse, relative product $\mathbin{;}$, union, meet, the diagonal, the reflexive/symmetric closures), and the Codd selection \cppinline{select}.  Two operators leave the binary-relation sort: \cppinline{preimage}$(f, S) = f^{-1}(S)$ is a \emph{setexpr} over the arrow's domain (a relation only when that domain is a product), and \cppinline{natural_join} yields an $n$-ary \emph{table}, a \emph{setexpr} over the joined tuple product (binary only when the join has two columns).  The reflexive-transitive closure $R^{*}$ is not a point-free operator here; it enters at the semiring level (\S\ref{sec:optimization_lp}).  The closed \cppinline{query} sort (relation equality and inclusion, reusing the set grammar's \cppinline{srel}, and the properties \cppinline{IsFunctional}/\cppinline{IsEntire}) mirrors the set grammar's open/closed \cppinline{pred}/\cppinline{query} split; its semantics are Table~\ref{tab:relation-quantifier} and Listing~\ref{lst:relation_spec}.  Same \emph{correspondence} caveat as Listing~\ref{lst:set-grammar}: the \cppinline{>>} Boolean-middle restriction and the like are concept-gates underneath.}
+\caption{The grammar of \textbf{relation expressions}, extending the set expressions of Listing~\ref{lst:set-grammar}: a relation \emph{is} a set over a product, plus the graph of an arrow, the Tarski operators (converse, relative product $\mathbin{;}$, union, meet, the diagonal, the reflexive/symmetric closures), and the Codd selection \cppinline{select}.  Two operators leave the binary-relation sort: \cppinline{preimage}$(f, S) = f^{-1}(S)$ is a \emph{setexpr} over the arrow's domain (a relation only when that domain is a product), and \cppinline{natural_join} yields an $n$-ary \emph{table}, a \emph{setexpr} over the joined tuple product (binary only when the join has two columns).  The reflexive-transitive closure $R^{*}$ is not a point-free operator here; it enters at the semiring level (\S\ref{sec:optimization_lp}).  The closed \cppinline{query} sort extends the set grammar's: relation equality and inclusion are already the set \cppinline{query} (a relation is a set), and §4 adds the properties \cppinline{IsFunctional}/\cppinline{IsEntire}, mirroring the open/closed \cppinline{pred}/\cppinline{query} split; their semantics are Table~\ref{tab:relation-quantifier} and Listing~\ref{lst:relation_spec}.  Same \emph{correspondence} caveat as Listing~\ref{lst:set-grammar}: the \cppinline{>>} Boolean-middle restriction and the like are concept-gates underneath.}
 \label{lst:relation-grammar}
 \begin{minted}{text}
 relexpr   ::= setexpr                     -- carrier ⟨A,B⟩ : a relation
@@ -839,8 +834,7 @@ relexpr   ::= setexpr                     -- carrier ⟨A,B⟩ : a relation
             | 'symmetric' '(' relexpr ')'
             | 'select' '(' relexpr ',' relpred ')'       -- σ: filter by a pair predicate
             | setexpr '*' setexpr '|' relpred            -- restricted product
-query     ::= relexpr srel relexpr          -- closed (→𝔹): R == S / R <= S (srel: set grammar)
-            | ('IsFunctional' | 'IsEntire') '(' relexpr ')'  -- properties (four-properties table)
+query    +::= ('IsFunctional' | 'IsEntire') '(' relexpr ')'  -- R ==/<= S already in the set query; add properties
 relpred   ::= ratom
             | '!' ratom                     -- negate a comparison (atoms only)
             | relpred '&' relpred           -- meet (RelAnd); union is relexpr '+'
