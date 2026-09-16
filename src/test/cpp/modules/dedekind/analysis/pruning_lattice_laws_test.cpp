@@ -47,13 +47,23 @@ TEST_CASE("complement-lattice absorbing laws collapse (𝔹 and ℕ)",
     constexpr Ø<Cardinality> empty = le_5 & gt_5;  // & : the empty set (⊥)
     static_assert(Ø<Cardinality>{} == empty);
   }
-  // #844: a product of static singletons collapses to the singleton of the
-  // pair, so it is equality-comparable (not just membership-testable).
+  // ── generator η, symmetric difference ^, product * (source for paper
+  // Listing 2).  Singleton products collapse to a value SingletonSet, so they
+  // are equality-comparable (#844/#845); ^ and the general product decide by
+  // membership. ──
   {
+    constexpr Singleton<true> T{};
+    constexpr Singleton<false> F = ~T;
+    // η agrees with the point-free {true}; T, F are the two singletons
+    static_assert(η(true)(true) && T(true) && !F(true));
+    // ^ : {true} ^ {false} carries both (= 𝔹); {x} ^ {x} is empty
+    static_assert((η(true) ^ η(false))(true) && (η(true) ^ η(false))(false));
+    static_assert(!(η(true) ^ η(true))(true));
+    // * : singletons collapse, so the product is == the singleton-pair;
+    //     the general product decides by membership
     static_assert((η(true) * η(false)) == η(std::pair{true, false}));
     static_assert((η(false) * η(true)) == η(std::pair{false, true}));
-    static_assert((η(true) * η(false))(std::pair{true, false}));
-    static_assert(!(η(true) * η(false))(std::pair{true, true}));
+    static_assert((Ω<bool> * Ω<bool>)(std::pair{true, false}));
   }
   CHECK(true);  // runtime anchor for coverage
 }

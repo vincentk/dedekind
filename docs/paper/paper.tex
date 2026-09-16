@@ -462,28 +462,47 @@ This forms the exact Cartesian Closed Category needed to bootstrap formal set co
 
 With a deterministic, structurally-typed substrate established in Section~\ref{sec:jlt_posture}, mathematical sets can be bootstrapped inside the type system.
 This section is the Galois specialisation (Definition~\ref{def:galois-specialisation}) of $\mathbf{Set}$, the category of sets.
-Here, both the syntax and the semantics of mathematical set-builder notation are modelled in executable $\mathbf{Jlt}$, aiming at a system that lends itself to the expression and subsequent evaluation of precisely those kinds of problems that one might also encounter in a pure-math blackboard setting.
 Figure~\ref{fig:hub-spoke-bnz} in the introduction previews the functionality this section builds.
-
-The notion of set the DSL reifies is fixed before the DSL is built.
-A set here is \emph{intensional}: given by the condition its members satisfy, not the bag of elements a container stores.
-Where ZF stores a set extensionally (elements in memory, as \cppinline{std::set} does), ETCS presents it by that condition: the open disk $\{\, x \mid \lVert x - c \rVert < r \,\}$ is an uncountable bag no machine can hold, or the single inequality that \emph{is} it (raster versus vector).
-This is Lawvere's elementary theory of the category of sets~\cite{lawvere1964etcs}, a set given by objects and their morphisms:
+Writing $A = \{x \mid P_A(x)\}$ and $B = \{x \mid P_B(x)\}$ we can see how the predicate logic maps to some set operations:
+\begin{equation}
+\label{eqn:lattice-lift-ops}
+\begin{aligned}
+x \in A = P_A(x), \qquad &
+\complement A = \{x \mid \neg\, P_A(x)\}, \\
+A \cap B = \{x \mid P_A(x) \wedge P_B(x)\}, &
+A \cup B = \{x \mid P_A(x) \vee P_B(x)\}, \qquad
+\end{aligned}
+\end{equation}
+Here, a set \emph{is} its characteristic predicate, not a list of its elements.
+The set operations \emph{are} the pointwise logical ones.
+This way, there is no problem to model an open disk $\{\, x \mid \lVert x - c \rVert < r \,\}$, which in an extensional setting is an uncountable bag no machine can hold.
+This intuition is formalized in Lawvere's elementary theory of the category of sets~\cite{lawvere1964etcs}, a set given by objects and their morphisms.
+Formally speaking:
 \begin{definition}[ETCS Set]
 \label{def:etcs-set}
 \emph{$\mathbf{Set}$ is a \textbf{well-pointed}, \textbf{Cartesian Closed Category} with a \textbf{subobject classifier}, a \textbf{natural numbers object}, and the \textbf{axiom of choice}}~\cite{nlab:nlab}.
 \end{definition}
-The DSL is grounded in it by an honest reification: the defining axioms become type-level \cppinline{concept} predicates, composed into a structural \cppinline{concept IsSet} that checks whether a $\mathbf{Jlt}$ type is also an object of $\mathbf{Set}$, with the axiom of choice (Axiom~10) only approximated, by the power-object lattice, and marked aspirational; the step-by-step embedding is in Appendix~\ref{sec:etcs}, the concepts in the reference implementation~\cite{Krautler_dedekind_2026} (Mac Lane~\cite{maclane1971categories} and Pierce~\cite{pierce1991basic} for background).
-The steps taken to reify intensional sets form a core category $\mathbf{Lwv}$ (Definition~\ref{def:lwv-set}), tracked literally at compile time.
-One thing is taken as given: membership is decidable, the characteristic map $\chi : A \to \Omega$ total.\footnote{This is a scoping choice for the development here, not a constraint on \cppinline{IsSet}: membership is assumed decidable (the \cppinline{HasDecidableMembership} observable holds) and $\chi$ total. A carrier whose membership is only semi-decidable (a Mandelbrot set, say) lifts $\Omega$ to the three-valued $\mathbb{B}+\mathrm{U}$ of partial predicates~\cite{kleene1952metamathematics}, which the codebase carries as the \cppinline{TernaryLogic} logic species (Appendix~\ref{sec:etcs}); the decidable case is the one developed here.}
-
-Because a set \emph{is} its characteristic predicate, its lattice operations \emph{are} the pointwise logical ones; writing $A = \{x \mid P_A(x)\}$ and $B = \{x \mid P_B(x)\}$,
+The DSL is grounded in it by an honest reification: the defining axioms become type-level \cppinline{concept} predicates, composed into a structural \cppinline{concept IsSet} that checks whether a $\mathbf{Jlt}$ type is also an object of $\mathbf{Set}$.
+The step-by-step embedding is in Appendix~\ref{sec:etcs}, the concepts in the reference implementation~\cite{Krautler_dedekind_2026} (Mac Lane~\cite{maclane1971categories} and Pierce~\cite{pierce1991basic} for background).
+Two caveats apply: i) the axiom of choice (Axiom~10) is only approximated through the power-object lattice, and marked aspirational and ii) membership is assumed decidable, the characteristic map $\chi : A \to \Omega$ is total.\footnote{This is a scoping choice for the development here, not a constraint on \cppinline{IsSet}: membership is assumed decidable (the \cppinline{HasDecidableMembership} observable holds) and $\chi$ total. A carrier whose membership is only semi-decidable (a Mandelbrot set, say) lifts $\Omega$ to the three-valued $\mathbb{B}+\mathrm{U}$ of partial predicates~\cite{kleene1952metamathematics}, which the codebase carries as the \cppinline{TernaryLogic} logic species (Appendix~\ref{sec:etcs}); the decidable case is the one developed here.}
+With these assumptions acknowledged, one can define:
+\begin{definition}[$\mathbf{Lwv} := \mathbf{Jlt} \cap \mathbf{Set}$]
+\label{def:lwv-set}
+In $\mathbf{Lwv}$:
+\begin{enumerate}
+\item A \emph{set} over a regular (\cppinline{std::regular}) carrier \cppinline{A} in $\mathbf{Jlt}$ is a \emph{subobject} of \cppinline{A}: a type \cppinline{S} satisfying \cppinline{IsSubobject<S, A>}, whose characteristic predicate $\chi_S : A \to \Omega$ decides membership.
+\item A \emph{relation} is a subobject of the Cartesian product \cppinline{::Domain} $\times$ \cppinline{::Codomain}.
+\item A \emph{set} is thus the true-fiber of its characteristic morphism $\chi_S : A \to \Omega$: the pullback of $\top$ along $\chi_S$, the true-slice of the graph of $\chi_S$ rather than the whole graph (which also carries the \cppinline{false} pairs).
+\end{enumerate}
+The full ETCS axioms live not on the individual set but on its ambient \emph{universe}: the top element $\Omega\langle A\rangle$ is itself an ETCS set-object, satisfying the heavier \cppinline{concept IsSet} (Definition~\ref{def:etcs-set}).
+A $\mathbf{Lwv}$ set is a subobject of such a universe over a $\mathbf{Jlt}$ carrier, so one can write:
 \begin{equation}
-\label{eqn:lattice-lift-ops}
-A \cap B = \{x \mid P_A(x) \wedge P_B(x)\}, \qquad
-A \cup B = \{x \mid P_A(x) \vee P_B(x)\}, \qquad
-\complement A = \{x \mid \neg\, P_A(x)\}.
+\label{eqn:lwv}
+\mathbf{Lwv} := \mathbf{Jlt} \cap \mathbf{Set},
 \end{equation}
+in which the predicate $\chi_S$ \emph{is} the set.
+\end{definition}
+
 Table~\ref{tab:lattice-lift} spells the correspondence in four languages: the Boolean $\mathbb{B}$, the power set $\mathcal{P}(A)$, the elementary topos (in the subobject lattice $\mathrm{Sub}(A)$, meet the intersection, join the union, membership the classifier $\chi$), and the $\mathbf{Lwv}$ operators.
 
 \begin{table}[htbp]
@@ -509,23 +528,6 @@ The \emph{member} column is membership, the characteristic morphism $\chi : A \t
 \label{tab:lattice-lift}
 \end{table}
 
-\begin{definition}[$\mathbf{Lwv} := \mathbf{Jlt} \cap \mathbf{Set}$]
-\label{def:lwv-set}
-In $\mathbf{Lwv}$:
-\begin{enumerate}
-\item A \emph{set} over a regular (\cppinline{std::regular}) carrier \cppinline{A} in $\mathbf{Jlt}$ is a \emph{subobject} of \cppinline{A}: a type \cppinline{S} satisfying \cppinline{IsSubobject<S, A>}, whose characteristic predicate $\chi_S : A \to \Omega$ decides membership.
-\item A \emph{relation} is a subobject of the Cartesian product \cppinline{::Domain} $\times$ \cppinline{::Codomain}.
-\item A \emph{set} is thus the true-fiber of its characteristic morphism $\chi_S : A \to \Omega$: the pullback of $\top$ along $\chi_S$, the true-slice of the graph of $\chi_S$ rather than the whole graph (which also carries the \cppinline{false} pairs).
-\end{enumerate}
-The full ETCS axioms live not on the individual set but on its ambient \emph{universe}: the top element $\Omega\langle A\rangle$ is itself an ETCS set-object, satisfying the heavier \cppinline{concept IsSet} (Definition~\ref{def:etcs-set}).
-A $\mathbf{Lwv}$ set is a subobject of such a universe over a $\mathbf{Jlt}$ carrier, so one can write:
-\begin{equation}
-\label{eqn:lwv}
-\mathbf{Lwv} := \mathbf{Jlt} \cap \mathbf{Set},
-\end{equation}
-in which the predicate $\chi_S$ \emph{is} the set.
-\end{definition}
-
 With the notion of set fixed, the rest of the section develops the DSL over three tiers of increasing decidability, loosely echoing the Chomsky hierarchy~\cite{chomsky1956three}.
 Equality and subset of a general predicate (§\ref{sec:ddk_comprehension}) are undecidable, Rice-walled~\cite{rice1953classes}.
 An ordered set (§\ref{sec:ddk_ordered}) instead has a canonical normal form, its convex bounds, and comparison decides on those; a periodic one is \emph{regular}, its residue the Myhill--Nerode canonical form~\cite{nerode1958linear}.
@@ -537,72 +539,96 @@ Each tier's normal form is what makes its comparisons decidable.
 \label{sec:ddk_comprehension}
 % ============================================================
 
-Listing~\ref{lst:set-grammar} gives the grammar of the set DSL --- set expressions on the left, the predicates they filter by on the right --- with the two absorbing laws of the complement lattice as a worked instantiation right below, so the surface and its use can be read together.
+Listing~\ref{lst:set-grammar} gives worked examples and the generic grammar of $\mathbf{Lwv}$.
+A set expression (\texttt{setexpr}) builds a set from canonical or user-defined values and combines them through set operations or filtration with a predicate.
+A predicate (\texttt{pred})  can be assembled from an atomic equality operation, a set membership test and boolean composition rules applied to compile-time constants (\texttt{fix}) or set element aliases (\texttt{elem}).
+The cartesian \texttt{product} \cppinline{S * T} changes the carrier ($\mathbf{Set}\langle A\rangle \times \mathbf{Set}\langle B\rangle \to \mathbf{Set}\langle A \times B\rangle$), and forms the foundation for the relational algebra discussed in §\ref{sec:relations_functions_blueprint}.
+The \texttt{query} nonterminal defines the \emph{closed} partial order on sets via the relations ($A = B$, $A \subset B$).
+\cppinline{<any elem → 𝔹>} and \cppinline{<any IsSet>} are extension points allowing for specializations such as those presented in Listing~\ref{lst:extrema_def}.
 
 % Source: src/test/cpp/modules/dedekind/analysis/pruning_lattice_laws_test.cpp
 %         (Ø<bool>/Ø<Cardinality> spelling; the ambient Ø<𝔹>/Ø<ℕ> is a
 %          pending empty-set-on-ambient migration.)
 %   Bottom IR panel: .../python/showcase_03_halfspace_contradiction.ll
 \begin{listing}[htbp]
-\caption{The core set algebra: worked constructions (top) and the grammar (bottom).
-\textbf{Top:} on $\mathbb{B}$ a comprehension builds a singleton, complement/union/meet run the Boolean lattice (Table~\ref{tab:lattice-lift}), and membership queries the result --- all on equality alone, no order on the elements.
-\textbf{Bottom:} the grammar in two panels.
-\emph{Set expressions} (left) build a set.
-The generators are \cppinline{Ω} (universal), \cppinline{Ø} (empty), the singleton $\eta$ (the power-set monad's unit, $x \mapsto \{x\}$), and any user \cppinline{IsSet}; \cppinline{~} is complement; \cppinline{op2} is union, meet, symmetric difference, or product; \cppinline{setexpr '|' pred} is the comprehension filter, so a predicate promoted to a set is just \cppinline{Ω | pred}.
-The power set $\mathfrak{P}$ enters with the ordered sets (§\ref{sec:ddk_ordered}).
-\emph{Predicates} (right) are open, landing in $\mathbb{B}$ per bound element: equality atoms over the element (\cppinline{χ} / \cppinline{π}) and the NTTP \cppinline{fix}, negation \cppinline{!}, the binary \cppinline{p2} (\cppinline{&&}, \cppinline{||}), and membership \cppinline{S(x)}.
-The \cppinline{query} nonterminal is separate: the \emph{closed} set relations (equality, subset), a proposition returning $\mathbb{B}$ rather than an open predicate, so it is a query and not a comprehension filter \cppinline{S | pred}.
-The two open slots --- \cppinline{<any elem → 𝔹>} and \cppinline{<any IsSet>} --- are the \emph{extension points} the later listings plug into (quantifiers and order, Listing~\ref{lst:extrema_def}).
-A correspondence, not the literal C++ grammar: operator precedence, ADL, and the concept-gates sit underneath.}
+\caption{\textbf{Generic set algebra} corresponding to Eqn.~\ref{eqn:lattice-lift-ops} and the bottom row in Table~\ref{tab:lattice-lift}.
+\textbf{Top:} worked examples on $\mathbb{B}$: a comprehension builds a singleton, complement/union/meet run the Boolean lattice (Table~\ref{tab:lattice-lift}), and membership queries the result --- all on equality alone, no order on the elements.
+\textbf{Bottom:} the grammar in four panels, set expressions and predicates above, the cartesian product and closed queries below.
+A \texttt{setexpr} builds a set.
+A \texttt{pred} filters a set.
+The cartesian \texttt{product} \cppinline{S * T} changes the carrier and forms the foundation for set relations.
+The \texttt{query} nonterminal defines the \emph{closed} partial order on sets.
+\cppinline{<any elem → 𝔹>} and \cppinline{<any IsSet>} are extension points.
+A correspondence, not the literal C++ grammar: operator precedence, ADL, and the concept-gates sit underneath.
+}
 \label{lst:set-grammar}\label{lst:pruning}
 \noindent
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
 constexpr auto T = 𝔹 | π == fix(true_c);
 constexpr auto F = ~T;
-static_assert((F | T) == 𝔹);
-static_assert((F & T) == Ø{});
+static_assert(
+   T(true) && !F(true)
+&& η(true)(true)
+&& (F | T) == 𝔹
+&& (F & T) == Ø{}
+);
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-static_assert(T(true));
-static_assert(!T(false));
-static_assert(F(false));
-static_assert(!F(true));
+static_assert(
+   (η(true) ^ η(false))(true)
+&& (η(true) ^ η(false))(false)
+&& !(η(true) ^ η(true))(true)
+&& (𝔹 * 𝔹)(std::pair{true, false})
+&& (T * F)(std::pair{true, false})
+&&!(T * F)(std::pair{true, true})
+);
 \end{cpp}
 \end{minipage}
 
 \vspace{0.6em}
 \noindent
 \begin{minipage}[t]{0.49\linewidth}
-{\footnotesize\centering\textbf{set expressions}\par}
 \begin{minted}[fontsize=\footnotesize]{text}
 setexpr ::= generator
   | '~' setexpr
   | setexpr op2 setexpr
   | setexpr '|' pred
-op2 ::= '|' | '&' | '^' | '*'
+  | product
+op2 ::= '|' | '&' | '^'
 generator ::= 'Ω' carrier | 'Ø' carrier
-  | 'η' '(' value ')'          -- singleton
+  | 'η' '(' value ')'
   | <any IsSet>
 carrier ::= <any std::regular type>
 \end{minted}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.49\linewidth}
-{\footnotesize\centering\textbf{predicates} \ensuremath{(\to \mathbb{B})}\par}
 \begin{minted}[fontsize=\footnotesize]{text}
-pred ::= atom              -- open: elem → 𝔹
-  | '!' atom               -- negation: atoms only
-  | pred p2 pred           --   (compound De Morgan: future work)
-  | setexpr '(' elem ')'   -- membership x ∈ S
+pred ::= atom
+  | '!' pred
+  | pred p2 pred
+  | setexpr '(' elem ')'
   | <any elem → 𝔹>
 p2 ::= '&&' | '||'
 atom ::= elem '==' elem
   | elem '==' 'fix' '(' const ')'
 elem ::= 'χ' | 'π' | 'π1' | 'π2'
-query ::= setexpr (cmp | '==') setexpr  -- closed (→𝔹): subset order + equality
-cmp  ::= '<' | '<=' | '>' | '>='         -- the one comparison set (subset / element order)
+\end{minted}
+\end{minipage}
+
+\vspace{0.6em}
+\noindent
+\begin{minipage}[t]{0.49\linewidth}
+\begin{minted}[fontsize=\footnotesize]{text}
+product ::= setexpr '*' setexpr
+\end{minted}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\linewidth}
+\begin{minted}[fontsize=\footnotesize]{text}
+query ::= setexpr cmp setexpr
+cmp  ::= '<' | '<=' | '>' | '>='  | '=='
 \end{minted}
 \end{minipage}
 \end{listing}
