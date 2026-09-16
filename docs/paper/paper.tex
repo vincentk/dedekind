@@ -820,7 +820,7 @@ The additive half happens to be the Boolean lattice a relation already carries \
 Listing~\ref{lst:relation-grammar} gives the grammar of relation expressions, built on the set expressions of Listing~\ref{lst:set-grammar}.
 
 \begin{listing}[htbp]
-\caption{The grammar of \textbf{relation expressions}, extending the set expressions of Listing~\ref{lst:set-grammar}: a relation \emph{is} a set over a product, plus the graph of an arrow, the Tarski operators (converse, relative product $\mathbin{;}$, union, meet, the diagonal, the reflexive/symmetric closures), and the Codd \cppinline{select} / \cppinline{natural_join}.  The pullback \cppinline{preimage}$(f, S) = f^{-1}(S)$ is a \emph{setexpr} over the arrow's domain (Listing~\ref{lst:set-grammar}), a relation only when that domain is itself a product.  Same \emph{correspondence} caveat as Listing~\ref{lst:set-grammar}: the \cppinline{>>} Boolean-middle restriction and the like are concept-gates underneath.}
+\caption{The grammar of \textbf{relation expressions}, extending the set expressions of Listing~\ref{lst:set-grammar}: a relation \emph{is} a set over a product, plus the graph of an arrow, the Tarski operators (converse, relative product $\mathbin{;}$, union, meet, the diagonal, the reflexive/symmetric closures), and the Codd selection \cppinline{select}.  Two operators leave the binary-relation sort: \cppinline{preimage}$(f, S) = f^{-1}(S)$ is a \emph{setexpr} over the arrow's domain (a relation only when that domain is a product), and \cppinline{natural_join} yields an $n$-ary \emph{table}, a \emph{setexpr} over the joined tuple product (binary only when the join has two columns).  The reflexive-transitive closure $R^{*}$ is not a point-free operator here; it enters at the semiring level (\S\ref{sec:optimization_lp}).  Same \emph{correspondence} caveat as Listing~\ref{lst:set-grammar}: the \cppinline{>>} Boolean-middle restriction and the like are concept-gates underneath.}
 \label{lst:relation-grammar}
 \begin{minted}{text}
 relexpr   ::= setexpr                     -- carrier ⟨A,B⟩ : a relation
@@ -832,16 +832,14 @@ relexpr   ::= setexpr                     -- carrier ⟨A,B⟩ : a relation
             | 'diagonal' carrier          -- Δ
             | 'reflexive' '(' relexpr ')'
             | 'symmetric' '(' relexpr ')'
-            | 'select' '(' relexpr ',' pred ')'
+            | 'select' '(' relexpr ',' relpred ')'       -- σ: filter by a pair predicate
             | setexpr '*' setexpr '|' relpred            -- restricted product
-table     ::= 'natural_join' '(' relexpr ',' relexpr ')' -- n-ary result: a table,
-                                                          --   not a binary relexpr
 relpred   ::= ratom
             | '!' ratom                     -- negate a comparison (atoms only)
             | relpred '&' relpred           -- meet (RelAnd); union is relexpr '+'
 ratom     ::= proj rcmp proj | proj rcmp 'fix' '(' const ')'
 rcmp      ::= cmp | '==' | '!='             -- ordering cmp plus (in)equality
-proj      ::= 'π1' | 'π2' | proj arith 'fix' '(' const ')'
+proj      ::= 'π1' | 'π2' | ('π1' | 'π2') arith 'fix' '(' const ')'
 arith     ::= '+' | '*'                     -- π1 + fix(k), π1 * fix(k)
 arrow     ::= <an IsArrow A → B; functions compose via '>>'>
 \end{minted}
