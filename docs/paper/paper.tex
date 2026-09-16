@@ -124,7 +124,7 @@
 \newcommand{\Cpp}[1]{C\kern-.05em\raise.3ex\hbox{\footnotesize ++}#1}
 
 % --- Document Metadata ---
-\title{Verified Symbolic Algebra at Compile Time: The Juliet Posture in Standard C++\thanks{%
+\title{Symbolic Algebra in Standard C++ Verified at Compile Time \thanks{%
     Draft intended for submission to \emph{Programming}~\cite{programming_journal},
     the journal for programming-related research.
     The paper's scope is deliberately narrower than the companion project
@@ -137,7 +137,7 @@
     geometry, linear algebra, morphologies, Python facade) is
     documented in the companion Report distributed alongside the source
     tree.}}
-\author{The \texttt{dedekind} Authors}
+\author{Vincent Kr\"autler}
 \date{\today}
 
 \begin{document}
@@ -145,22 +145,27 @@
 \maketitle
 
 \begin{abstract}
-\noindent This paper builds a symbolic-algebra library in a mainstream language, C++, using compile-time evaluation as a form of static program verification.
 
 % Core Thesis:
-The foundation is a disciplined, structurally-typed fragment of C++23, the \emph{Juliet Posture} $\mathbf{Jlt} = \mathbf{Per} \cap \mathbf{Cpp}$: types are judged by their structure and invariants rather than their names, the compile-time counterpart of duck typing.\footnote{The architecture is written throughout as a chain of category intersections, each layer adding one commitment.  We mean these equations loosely: they say where each layer sits and carry the spirit of the thesis, not identities the paper proves.}
-Built from \cppinline{constexpr} evaluation, \cppinline{concept} checks, and template instantiation, it admits a System~F reading of the type system.
-On this foundation are built i) a lazy set-comprehension engine whose sets are given by a membership predicate rather than by listing elements (an ETCS reading, $\mathbf{Lwv} = \mathbf{Jlt} \cap \mathbf{Set}$), refined to a point-free relational calculus ($\mathbf{Trsk} = \mathbf{Lwv} \cap \mathbf{Rel}$), and ii) an intersection with universal algebraic signatures, the core category $\mathbf{Ddk} = \mathbf{Trsk} \cap \mathbf{Alg}$.
-The resulting embedded DSL \emph{reifies} these structures (each algebraic law becomes a type the compiler checks), so operators, functions, and relations on algebraic sets are written point-free, without naming coordinates.
-The compiler then uses those laws to verify and optimize the expression tree, with full compile-time evaluation as the limiting case.
+This paper describes a symbolic-algebra library in a mainstream systems programming language: standard \Cpp{23} (the category $\mathbf{Cpp}$), capable of using compile-time  evaluation in part or in full as a form of static program analysis, verification and optimization.
+
+The initial step is a deliberate restriction to a fragment of \Cpp{23} which is both a) referentially transparent ($\mathbf{Per}$, via \cppinline{const}, \cppinline{constexpr},  \cppinline{std::regular}) and b) structurally typed by default (syntactic type constraint satisfaction via \cppinline{concept}).
+This fragment is named the \emph{Juliet Posture} ($\mathbf{Jlt} = \mathbf{Per} \cap \mathbf{Cpp}$): a rose by any other name would smell as sweet, so a type is known by its structure, not its name, as in duck typing.
+A deliberate code smell, but a \emph{sweet} one: it smells of System~F, since loosely $\mathbf{Jlt}$ admits a System~F reading of the \Cpp{23} type system.
+
+On this foundation an embedded, lazy domain-specific language is built which supports
+i) a set-comprehension engine ($\mathbf{Lwv} = \mathbf{Jlt} \cap \mathbf{Set}$) whose sets are defined in an intensional way: via a membership test ($\{ x \in S | P(x) \}$, \cppinline{S | P(x)}) rather than by listing elements,
+ii) a point-free relational calculus ($\mathbf{Trsk} = \mathbf{Lwv} \cap \mathbf{Rel}$) built on cartesian products ($\{{x, y} \in S \times S | P(x, y)\}$, \cppinline{S * S | P(x, y)}), and
+iii) symbolic algebra $\mathbf{Ddk} = \mathbf{Trsk} \cap \mathbf{Alg}$ built on operations  ($(x, y, z) \in S^3 | z = f(x, y)$, \cppinline{S * S * S | z = f(x, y)}), specifically the canonical sets $\mathbb B, \mathbb N, \ldots$.
+The embedded domain-specific language spells out the corresponding algebraic laws as types, enabling the compiler to verify and optimize the expression tree.
+Partial compile-time evaluation of the expression tree is then the default behavior and full compile-time evaluation is the limiting case.
 
 % Demonstration of the Principle by way of a worked non-trivial example:
 A worked example demonstrates feasibility: the critical path of a directed acyclic network, computed by semiring closure and cast entirely in the type system.
 When every argument is known at compile time, the compiler constant-folds the optimum and the emitted LLVM IR is a single literal, typed to the semiring of the cost function (the Boolean semiring for reachability, max-plus over $\mathbb N$ for cost, max-plus over dual numbers for sensitivity analysis).
 
 % Concluding remarks:
-This compile-time evaluation is \emph{optional}: when some arguments are left open, the compiler emits an optimized, partially evaluated intermediate representation instead of a constant.
-The approach, though theory-heavy, should carry over to other systems programming languages with a rich enough type system, such as Rust.
+The approach is expected to be portable to other systems programming languages with a rich enough type system, specifically Rust.
 \end{abstract}
 
 % Table of contents is just a convenience during editing. It will be removed before submission.
