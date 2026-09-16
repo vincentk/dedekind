@@ -124,7 +124,7 @@
 \newcommand{\Cpp}[1]{C\kern-.05em\raise.3ex\hbox{\footnotesize ++}#1}
 
 % --- Document Metadata ---
-\title{Compile-Time Optimization via the Juliet Posture\thanks{%
+\title{Verified Symbolic Algebra at Compile Time: The Juliet Posture in Standard C++\thanks{%
     Draft intended for submission to \emph{Programming}~\cite{programming_journal},
     the journal for programming-related research.
     The paper's scope is deliberately narrower than the companion project
@@ -145,22 +145,22 @@
 \maketitle
 
 \begin{abstract}
-\noindent We focus on the development of a symbolic algebra library in a mainstream programming language using compile-time evaluation as one way to perform static program verification.
+\noindent This paper builds a symbolic-algebra library in a mainstream language, C++, using compile-time evaluation as a form of static program verification.
 
 % Core Thesis:
-A structurally-typed fragment of C++23 termed the \emph{Juliet Posture} $\mathbf{Jlt} = \mathbf{Per} \cap \mathbf{Cpp}$ is identified.\footnote{The architecture is written throughout as a chain of category intersections, each layer adding one commitment.  We mean these equations loosely: they say where each layer sits and carry the spirit of the thesis, not identities the paper proves.}
-It is assembled from \cppinline{constexpr} evaluation, \cppinline{concept} checks, and template instantiation and permits a System~F reading of the underlying type system.
-$\mathbf{Jlt}$ was then used to bootstrap i) a lazy, intensional set comprehension engine under an ETCS reading ($\mathbf{Lwv} = \mathbf{Jlt} \cap \mathbf{Set}$), refined to a point-free relational calculus ($\mathbf{Trsk} = \mathbf{Lwv} \cap \mathbf{Rel}$), and ii) an intersection with universal algebraic signatures, forming the core category $\mathbf{Ddk} = \mathbf{Trsk} \cap \mathbf{Alg}$.
-The resulting embedded DSL allows for the reification of coordinate-free analytic graphs as operators, functions and relations on algebraic sets.
-The compiler can then use those laws to not only verify but also optimize the corresponding expression tree, with full compile-time evaluation being a limiting case.
+The foundation is a disciplined, structurally-typed fragment of C++23, the \emph{Juliet Posture} $\mathbf{Jlt} = \mathbf{Per} \cap \mathbf{Cpp}$: types are judged by their structure and invariants rather than their names, the compile-time counterpart of duck typing.\footnote{The architecture is written throughout as a chain of category intersections, each layer adding one commitment.  We mean these equations loosely: they say where each layer sits and carry the spirit of the thesis, not identities the paper proves.}
+Built from \cppinline{constexpr} evaluation, \cppinline{concept} checks, and template instantiation, it admits a System~F reading of the type system.
+On this foundation are built i) a lazy set-comprehension engine whose sets are given by a membership predicate rather than by listing elements (an ETCS reading, $\mathbf{Lwv} = \mathbf{Jlt} \cap \mathbf{Set}$), refined to a point-free relational calculus ($\mathbf{Trsk} = \mathbf{Lwv} \cap \mathbf{Rel}$), and ii) an intersection with universal algebraic signatures, the core category $\mathbf{Ddk} = \mathbf{Trsk} \cap \mathbf{Alg}$.
+The resulting embedded DSL \emph{reifies} these structures (each algebraic law becomes a type the compiler checks), so operators, functions, and relations on algebraic sets are written point-free, without naming coordinates.
+The compiler then uses those laws to verify and optimize the expression tree, with full compile-time evaluation as the limiting case.
 
 % Demonstration of the Principle by way of a worked non-trivial example:
-The feasibility of the approach is demonstrated by a worked example: the computation of a directed acyclic network's critical path, computed by semiring closure and cast entirely in the type system.
-If all arguments can be applied at compile-time, the compiler folds the optimum and the emitted IR is simply a constant result, typed to the semiring used to describe the cost function (the Boolean semiring for reachability, max-plus over $\mathbb N$ for cost estimates, max-plus over dual numbers for sensitivity analysis).
+A worked example demonstrates feasibility: the critical path of a directed acyclic network, computed by semiring closure and cast entirely in the type system.
+When every argument is known at compile time, the compiler constant-folds the optimum and the emitted LLVM IR is a single literal, typed to the semiring of the cost function (the Boolean semiring for reachability, max-plus over $\mathbb N$ for cost, max-plus over dual numbers for sensitivity analysis).
 
 % Concluding remarks:
-Crucially, this compile-time collapse is \emph{optional}: if not all arguments are supplied, an optimized, partially evaluated intermediate representation is emitted.
-The overall approach, while heavy on the theory, would appear to generalize to systems programming languages other than C++, specifically Rust.
+This compile-time evaluation is \emph{optional}: when some arguments are left open, the compiler emits an optimized, partially evaluated intermediate representation instead of a constant.
+The approach, though theory-heavy, should carry over to other systems programming languages with a rich enough type system, such as Rust.
 \end{abstract}
 
 % Table of contents is just a convenience during editing. It will be removed before submission.
