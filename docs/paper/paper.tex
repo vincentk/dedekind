@@ -213,7 +213,7 @@ Recent breakthroughs in machine learning have resulted not just in an explosion 
 Hardware cost, computational cost, energy use, and interpretability are often named in applicable literature.
 Here, the focus is placed on a complementary approach: correct-by-construction systems engineering, where the view is that white-box modeling, interpretability and computational efficiency are facilitated by way of static program verification and optimization.
 To this end, an embedded domain specific language (eDSL) was  implemented in a \emph{mainstream systems programming language} -- the very substrate that these large models build on.
-The resulting \texttt{dedekind} library targets analytics and machine learning use cases and consistently defaults to mathematical rigor and build-time constraints as opposed to risking runtime inefficiencies or outright errors.
+The resulting \texttt{dedekind} library targets analytics and machine-learning use cases; it moves correctness checks and optimization to build time, so mismatches surface as compile errors rather than runtime faults.
 It rests on two pillars:
 \begin{enumerate}
 \item The domain is grounded in category theory, transitioning from morphisms and small categories to cartesian-closed categories, the elementary theory of the category of sets (ETCS) and finally universal algebra~\cite{pierce2002tapl, lawvere1964etcs}. 
