@@ -1107,6 +1107,13 @@ export template <std::size_t Slot>
 struct Projection {};
 
 export inline constexpr Projection<0> π{};
+// Cosmetic alias for the sole projection π (the bound element of a
+// single-carrier comprehension): a plain element also reads as @c χ,
+// e.g. @c ℕ @c | @c χ @c <= @c fix(5_c).  Same type and behaviour as π (a
+// distinct inline object, so a distinct address), just a second spelling.
+// (Plain @c x is deliberately not offered: it shadows the pervasive local
+// element parameter named @c x and would trip @c -Wshadow.)
+export inline constexpr Projection<0> χ{};
 
 /** @brief Unbound predicates: shape fixed, @c Domain deferred until a carrier
  *  binds them via @c operator| below. */
@@ -1138,6 +1145,21 @@ operator<=(Projection<0>, Bound<V>) {
 }
 export template <auto V>
 constexpr UnboundSingleton<V> operator==(Projection<0>, Bound<V>) {
+  return {};
+}
+
+/** @brief @c !pred on an unbound halfspace: negate the predicate by flipping
+ *  the halfspace's sense, @c !(x @c > @c V) @c = @c (x @c <= @c V).
+ *
+ *  @details The predicate-level dual of @c operator~ on a @b bound
+ *  @c Halfspace (a SET, line ~422): same @c flip(D)/flip(S), one level up on
+ *  the unbound comprehension query.  This is the @c p1 of the §3 grammar
+ *  (Listing~\\ref{lst:set-grammar}): @c ! negates a @b predicate, @c ~
+ *  complements a @b set.  Only the atom level is covered here; the wider
+ *  discipline (compound De Morgan, retiring @c !set) is FIXME(#829). */
+export template <Direction D, Strictness S, auto V>
+constexpr UnboundHalfspace<flip(D), flip(S), V> operator!(
+    const UnboundHalfspace<D, S, V>&) {
   return {};
 }
 
@@ -1178,6 +1200,17 @@ static_assert(static_cast<bool>((𝔹 | (π == fix(true_c)))(true)),
               "true ∈ {true}.");
 static_assert(!static_cast<bool>((𝔹 | (π == fix(true_c)))(false)),
               "false ∉ {true}.");
+
+// !pred (grammar p1): negating an unbound halfspace flips its sense, and binds
+// to the same set as the flipped comparison — the predicate-level dual of ~set.
+static_assert(
+    std::same_as<decltype(!(π > fix(5_c))), decltype(π <= fix(5_c))>,
+    "!(π > fix(5)) is π <= fix(5): the unbound (predicate) complement.");
+static_assert(std::same_as<decltype(!(π >= fix(5_c))), decltype(π < fix(5_c))>,
+              "!(π >= fix(5)) is π < fix(5).");
+static_assert(
+    std::same_as<decltype(ℕ | !(π > fix(5_c))), decltype(ℕ | (π <= fix(5_c)))>,
+    "ℕ | !(π > fix(5)) binds to the same halfspace as ℕ | π <= fix(5).");
 
 // The complement-pair collapse is unchanged by the point-free spelling: the
 // meet of a halfspace with its complement gives the same empty result as the
@@ -1239,6 +1272,27 @@ constexpr bool rel_apply(const X& x, const Y& y) {
     return x != y;
 }
 
+/** @brief The De Morgan dual of a comparison flavour: @c !(x @c R @c y) is
+ *  @c x @c negate(R) @c y.  Drives @c operator! on the relational predicates.
+ */
+constexpr Rel negate(Rel r) {
+  switch (r) {
+    case Rel::Lt:
+      return Rel::Ge;
+    case Rel::Le:
+      return Rel::Gt;
+    case Rel::Gt:
+      return Rel::Le;
+    case Rel::Ge:
+      return Rel::Lt;
+    case Rel::Eq:
+      return Rel::Ne;
+    case Rel::Ne:
+      return Rel::Eq;
+  }
+  return r;  // unreachable; all six flavours are covered above.
+}
+
 /** @brief Nested-typedef marker so @c & / @c | fire only on relational
  *  predicates; kept off the class hierarchy so the predicates stay aggregates.
  */
@@ -1298,6 +1352,18 @@ constexpr ProjProj<I, Rel::Ne, J> operator!=(Projection<I>, Projection<J>) {
   return {};
 }
 
+// !pred on the relational predicates: negate the comparison flavour (the
+// De Morgan dual), the unbound-predicate analogue of set complement.  See the
+// UnboundHalfspace overload above and FIXME(#829).
+export template <std::size_t I, Rel R, std::size_t J>
+constexpr ProjProj<I, negate(R), J> operator!(const ProjProj<I, R, J>&) {
+  return {};
+}
+export template <std::size_t I, Rel R, auto V>
+constexpr ProjBound<I, negate(R), V> operator!(const ProjBound<I, R, V>&) {
+  return {};
+}
+
 // π_I ⋈ fix(V), I >= 1  →  ProjBound (I == 0 is the unary π of §M1 above).
 export template <std::size_t I, auto V>
   requires(I >= 1)
@@ -1329,6 +1395,29 @@ export template <std::size_t I, auto V>
 constexpr ProjBound<I, Rel::Ne, V> operator!=(Projection<I>, Bound<V>) {
   return {};
 }
+
+// !pred witnesses on the relational predicates (grammar p1): negation flips the
+// comparison flavour on both ProjProj and ProjBound, covering every negate(Rel)
+// mapping including the Eq/Ne branch.  The set-level dual is ~ (complement);
+// see the UnboundHalfspace witnesses above and FIXME(#829).
+static_assert(std::same_as<decltype(!(π1 < π2)), decltype(π1 >= π2)>,
+              "!(π1 < π2) is π1 >= π2 (Lt->Ge).");
+static_assert(std::same_as<decltype(!(π1 <= π2)), decltype(π1 > π2)>,
+              "!(π1 <= π2) is π1 > π2 (Le->Gt).");
+static_assert(std::same_as<decltype(!(π1 > π2)), decltype(π1 <= π2)>,
+              "!(π1 > π2) is π1 <= π2 (Gt->Le).");
+static_assert(std::same_as<decltype(!(π1 >= π2)), decltype(π1 < π2)>,
+              "!(π1 >= π2) is π1 < π2 (Ge->Lt).");
+static_assert(std::same_as<decltype(!(π1 == π2)), decltype(π1 != π2)>,
+              "!(π1 == π2) is π1 != π2 (Eq->Ne).");
+static_assert(std::same_as<decltype(!(π1 != π2)), decltype(π1 == π2)>,
+              "!(π1 != π2) is π1 == π2 (Ne->Eq).");
+static_assert(
+    std::same_as<decltype(!(π1 > fix(5_c))), decltype(π1 <= fix(5_c))>,
+    "!(π1 > fix(5)) is π1 <= fix(5) (ProjBound Gt->Le).");
+static_assert(
+    std::same_as<decltype(!(π1 == fix(5_c))), decltype(π1 != fix(5_c))>,
+    "!(π1 == fix(5)) is π1 != fix(5) (ProjBound Eq->Ne).");
 
 // meet of relational predicates.  RelAnd now lives in :dyadic (#792).
 export template <IsRelPredicate A, IsRelPredicate B>
