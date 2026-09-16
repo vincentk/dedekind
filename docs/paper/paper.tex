@@ -825,7 +825,7 @@ The additive half happens to be the Boolean lattice a relation already carries \
 Listing~\ref{lst:relation-grammar} gives the grammar of relation expressions, built on the set expressions of Listing~\ref{lst:set-grammar}.
 
 \begin{listing}[htbp]
-\caption{The grammar of \textbf{relation expressions}, extending the set expressions of Listing~\ref{lst:set-grammar}: a relation \emph{is} a set over a product, plus the graph of an arrow, the Tarski operators (converse, relative product $\mathbin{;}$, union, meet, the diagonal, the reflexive/symmetric closures), and the Codd selection \cppinline{select}.  Two operators leave the binary-relation sort: \cppinline{preimage}$(f, S) = f^{-1}(S)$ is a \emph{setexpr} over the arrow's domain (a relation only when that domain is a product), and \cppinline{natural_join} yields an $n$-ary \emph{table}, a \emph{setexpr} over the joined tuple product (binary only when the join has two columns).  The reflexive-transitive closure $R^{*}$ is not a point-free operator here; it enters at the semiring level (\S\ref{sec:optimization_lp}).  Same \emph{correspondence} caveat as Listing~\ref{lst:set-grammar}: the \cppinline{>>} Boolean-middle restriction and the like are concept-gates underneath.}
+\caption{The grammar of \textbf{relation expressions}, extending the set expressions of Listing~\ref{lst:set-grammar}: a relation \emph{is} a set over a product, plus the graph of an arrow, the Tarski operators (converse, relative product $\mathbin{;}$, union, meet, the diagonal, the reflexive/symmetric closures), and the Codd selection \cppinline{select}.  Two operators leave the binary-relation sort: \cppinline{preimage}$(f, S) = f^{-1}(S)$ is a \emph{setexpr} over the arrow's domain (a relation only when that domain is a product), and \cppinline{natural_join} yields an $n$-ary \emph{table}, a \emph{setexpr} over the joined tuple product (binary only when the join has two columns).  The reflexive-transitive closure $R^{*}$ is not a point-free operator here; it enters at the semiring level (\S\ref{sec:optimization_lp}).  The closed \cppinline{query} sort (relation equality and inclusion, reusing the set grammar's \cppinline{srel}, and the properties \cppinline{IsFunctional}/\cppinline{IsEntire}) mirrors the set grammar's open/closed \cppinline{pred}/\cppinline{query} split; its semantics are Table~\ref{tab:relation-quantifier} and Listing~\ref{lst:relation_spec}.  Same \emph{correspondence} caveat as Listing~\ref{lst:set-grammar}: the \cppinline{>>} Boolean-middle restriction and the like are concept-gates underneath.}
 \label{lst:relation-grammar}
 \begin{minted}{text}
 relexpr   ::= setexpr                     -- carrier ⟨A,B⟩ : a relation
@@ -839,6 +839,8 @@ relexpr   ::= setexpr                     -- carrier ⟨A,B⟩ : a relation
             | 'symmetric' '(' relexpr ')'
             | 'select' '(' relexpr ',' relpred ')'       -- σ: filter by a pair predicate
             | setexpr '*' setexpr '|' relpred            -- restricted product
+query     ::= relexpr srel relexpr          -- closed (→𝔹): R == S / R <= S (srel: set grammar)
+            | ('IsFunctional' | 'IsEntire') '(' relexpr ')'  -- properties (four-properties table)
 relpred   ::= ratom
             | '!' ratom                     -- negate a comparison (atoms only)
             | relpred '&' relpred           -- meet (RelAnd); union is relexpr '+'
