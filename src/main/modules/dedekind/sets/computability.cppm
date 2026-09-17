@@ -144,8 +144,14 @@ concept HasDecidableMembership =
  * the observable consequence (@c HasDecidableMembership, i.e. `logic_species`
  * is @c ClassicalLogic) rather than on choice itself.  Naming the restriction
  * positively (rather than tightening `IsSet`) keeps partial sets first-class
- * and makes "assume the Boolean fragment" an explicit, visible act.  See #846,
- * #267, and Figure "Classifier Ω vs dominance Σ" in the paper.
+ * and makes "assume the Boolean fragment" an explicit, visible act.  See #846
+ * and Figure "Classifier Ω vs dominance Σ" in the paper.
+ *
+ * @see Giuseppe Rosolini (Università di Genova), @e Continuity @e and
+ *      @e Effectiveness @e in @e Topoi (Oxford D.Phil., 1986) --- the dominance
+ *      Σ this concept selects.  Design note / dictionary (the theory,
+ * grounded):
+ *      https://github.com/vincentk/dedekind/issues/267#issuecomment-5711242416
  */
 export template <typename S>
 concept IsDecidableSet = IsSet<S> && HasDecidableMembership<S>;

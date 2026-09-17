@@ -125,6 +125,10 @@ concept IsCharacteristic = IsPredicate<P>;
  * \hookrightarrow \Omega@f$.  In strict (Boolean) ETCS every characteristic
  * arrow is already decidable (Σ = Ω); here it is the earned special case.
  * See #846, @c category/logic.cppm (@c lift_logic = ι).
+ *
+ * @see Giuseppe Rosolini (Università di Genova), Oxford D.Phil. 1986 (the
+ *      dominance Σ); design note:
+ *      https://github.com/vincentk/dedekind/issues/267#issuecomment-5711242416
  */
 export template <typename P>
 concept IsDecidableCharacteristic =
@@ -143,6 +147,11 @@ concept IsDecidableCharacteristic =
  * mono that adjoins the @c Unknown point; in ETCS it collapses to @c id
  * (@f$\Sigma = \Omega@f$).  The mono/order-embedding semantics are the intent
  * (laws exercised in tests); the concept fixes the shape Σ → Ω.  See #846.
+ *
+ * @see G. Rosolini, @e Continuity @e and @e Effectiveness @e in @e Topoi
+ *      (Oxford, 1986); Robinson & Rosolini, @e Categories @e of @e Partial
+ *      @e Maps (1988).  @c lift_logic is the canonical ι; design note:
+ *      https://github.com/vincentk/dedekind/issues/267#issuecomment-5711242416
  */
 export template <typename E>
 concept IsDominanceInclusion =

@@ -213,7 +213,8 @@ struct Comprehension
  *  @c MembershipBinding<S>::operator| below for the bool-truthy
  *  specialisation. */
 export template <auto Ambient>
-  requires dedekind::category::IsCharacteristic<std::remove_cvref_t<decltype(Ambient)>>
+  requires dedekind::category::IsCharacteristic<
+      std::remove_cvref_t<decltype(Ambient)>>
 struct BoundScout;
 
 /** @brief Boolean equality predicate for compile-time pruning over 𝔹.
@@ -292,7 +293,8 @@ struct MembershipBinding {
  * AmbientType::Domain below).
  */
 export template <auto Ambient>
-  requires dedekind::category::IsCharacteristic<std::remove_cvref_t<decltype(Ambient)>>
+  requires dedekind::category::IsCharacteristic<
+      std::remove_cvref_t<decltype(Ambient)>>
 struct BoundScout {
   using AmbientType = std::remove_cvref_t<decltype(Ambient)>;
   using T = typename AmbientType::Domain;
@@ -352,7 +354,8 @@ struct BoundScout {
 // non-characteristic carriers), THIS is the gate to loosen back to
 // @c IsArrow.
 export template <auto Ambient>
-  requires dedekind::category::IsCharacteristic<std::remove_cvref_t<decltype(Ambient)>>
+  requires dedekind::category::IsCharacteristic<
+      std::remove_cvref_t<decltype(Ambient)>>
 inline constexpr BoundScout<Ambient> element{};
 
 /** @brief Soft alias @c in<Ambient> for @c element<Ambient> (#603) ---
@@ -381,7 +384,8 @@ inline constexpr BoundScout<Ambient> element{};
  *  in the @c sets DSL idiomatically route through @c S.contains(x) on
  *  the set value itself, sidestepping the conflict. */
 export template <auto Ambient>
-  requires dedekind::category::IsCharacteristic<std::remove_cvref_t<decltype(Ambient)>>
+  requires dedekind::category::IsCharacteristic<
+               std::remove_cvref_t<decltype(Ambient)>>
 inline constexpr BoundScout<Ambient> const& in = element<Ambient>;
 
 // True-alias witness: @c in<A> and @c element<A> are the same object

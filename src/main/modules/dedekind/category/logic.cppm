@@ -272,10 +272,18 @@ export enum class CardinalityTag { Finite, Countable, Continuum };
  *          @c Unknown; that factorisation is exactly @c HasDecidableMembership
  *          (see @c sets/computability.cppm).  ETCS proper is the degenerate
  *          case @f$\Sigma = \Omega@f$.
- * @see Rosolini (1986), @e Continuity and Effectiveness in Topoi (origin of the
- *      dominance); Robinson & Rosolini (1988), @e Categories of Partial Maps.
- *      FIXME(#267): name the factorisation concept (open: reuse
- *      @c HasDecidableMembership vs. a @c FactorsThroughDominance alias).
+ * @see Giuseppe Rosolini, @e Continuity @e and @e Effectiveness @e in @e Topoi,
+ *      D.Phil. thesis, University of Oxford, 1986 --- the origin of the
+ *      @b dominance @f$\Sigma@f$ (Rosolini is at the Università di Genova).
+ *      E. Robinson & G. Rosolini, @e Categories @e of @e Partial @e Maps,
+ *      Information and Computation 79(2):95--130, 1988.
+ * @see Design note and Rosolini↔codebase dictionary (the theory this concept
+ *      instantiates, not an improvisation):
+ *      https://github.com/vincentk/dedekind/issues/267#issuecomment-5711242416
+ *      The factorisation @f$A \to \Sigma \to \Omega@f$ is named
+ *      @c sets::IsDecidableSet / @c HasDecidableMembership; the classifier
+ *      arrows are @c IsCharacteristic / @c IsDecidableCharacteristic and this
+ *      inclusion is @c IsDominanceInclusion (all #846).
  */
 export template <typename TargetLogic, typename T>
 constexpr auto lift_logic(T value) {
