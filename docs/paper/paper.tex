@@ -539,6 +539,76 @@ Each tier's normal form is what makes its comparisons decidable.
 \label{sec:ddk_comprehension}
 % ============================================================
 
+The primitive of the DSL is membership: a set $A$ is its characteristic map $\chi_A$, and $x \in A$ is $\chi_A(x)$, valued in the classifier $\Omega$.
+Listing~\ref{lst:membership} is the honest starting point.
+For the three-valued species, $\Omega = \{\top, \bot, U\}$ admits an undecided answer $U$, so a bare membership query may be undecidable.
+The algebra of Listing~\ref{lst:set-grammar} is then what remains once we restrict to the decided fragment $\Sigma = \{\top, \bot\} \hookrightarrow \Omega$, on which set equality becomes available.\footnote{$\Sigma \hookrightarrow \Omega$ is a Rosolini dominance: the sub-object of the classifier picking out the decided truth-values~\cite{rosolini1986continuity}. A set is decidable exactly when $\chi_A$ factors through $\Sigma$; \textsc{etcs} proper is the degenerate case $\Sigma = \Omega$.}
+
+% Source: src/test/cpp/modules/dedekind/analysis/partial_membership_laws_test.cpp
+%   fix(¬)=U and fix(succ)=ℵ₀; the ℝ (ℶ₁) classification; the intensional-image
+%   Unknown (mirrors showcase_10_image_intensional_naturals.cpp).
+\begin{listing}[htbp]
+\caption{\textbf{Partial membership}, the primitive that precedes the algebra.
+A set is its characteristic map $\chi_A$; membership $x \in A = \chi_A(x)$ is valued in the full classifier $\Omega$, which for the honest species is Kleene's $\{\top, \bot, U\}$, so the answer may be Unknown ($U$).
+\textbf{Top left}: the classifier.
+Kleene negation is negation about zero, so $U$ is its fixpoint, $\mathrm{fix}(\lnot) = U$; the decided fragment $\Sigma = \{\top, \bot\}$ has none.
+The domain decides $\mathrm{fix}(\mathit{succ})$: the finite cardinals have no fixpoint, but the saturation point $\aleph_0$ is one.
+\textbf{Top right}: membership that is not decided.
+A comprehension over $\mathbb{R}$ (tagged $\beth_1$) is classified undecidable, its species \cppinline{TernaryLogic}, so $==$ is withheld; the intensional image of a set returns $U$ outright.
+\textbf{Bottom}: the grammar in two panels.
+A \texttt{setexpr} is a generator or a comprehension, and the only observation is \texttt{membership}, valued in $\Omega$.
+There is no $==$: with $U$ in reach set equality is undecidable, and Listing~\ref{lst:set-grammar} restores it on $\Sigma$.
+The archetype hard predicate is Mandelbrot membership, semi-decidable: escape is recognizable, non-escape is not.
+A correspondence, not the literal C++ grammar.}
+\label{lst:membership}
+\noindent
+\begin{minipage}[t]{0.49\linewidth}
+\begin{cpp}
+// Ω = {⊤,⊥,U};  Σ = {⊤,⊥}, decided
+static_assert(
+  !Ternary::Unknown == Ternary::Unknown); // fix(¬)=U
+constexpr cardinality_succ succ; // ℕ→ℕ
+static_assert(
+   succ(3_c) != 3_c              // no finite fix
+&& succ(ℵ_0) == ℵ_0);           // fix(succ)=ℵ₀
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\linewidth}
+\begin{cpp}
+constexpr auto x = element<ℝ_d>; // ℝ (ℶ₁)
+constexpr auto gt = Set{x | (x > bound<5.0>)};
+static_assert(         // χ : ℝ → Ω, == withheld
+  !HasDecidableMembership<decltype(gt)>);
+static_assert(         // image returns U outright
+  image(succ, Set{in<ℕ> | in<ℕ> > bound<5>})
+    (7_c) == Ternary::Unknown);
+\end{cpp}
+\end{minipage}
+
+\vspace{0.6em}
+\noindent
+\begin{minipage}[t]{0.49\linewidth}
+\begin{minted}[fontsize=\footnotesize]{text}
+setexpr ::= generator
+  | ambient '|' pred
+generator ::= 'Ω' carrier | 'Ø' carrier
+  | 'η' '(' value ')'
+  | <any IsSet>
+carrier ::= <any std::regular type>
+\end{minted}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\linewidth}
+\begin{minted}[fontsize=\footnotesize]{text}
+membership ::= setexpr '(' elem ')'
+  -- valued in Ω = {⊤, ⊥, U}
+pred ::= <any elem → Ω>
+  -- may be Unknown
+-- no '==': equality is undecidable
+--   (restored on Σ, next listing)
+\end{minted}
+\end{minipage}
+\end{listing}
+
 Listing~\ref{lst:set-grammar} gives worked examples and the generic grammar of $\mathbf{Lwv}$.
 A set expression (\texttt{setexpr}) builds a set from canonical or user-defined values and combines them through set operations or filtration with a predicate.
 A predicate (\texttt{pred})  can be assembled from an atomic equality operation, a set membership test and boolean composition rules applied to compile-time constants (\texttt{fix}) or set element aliases (\texttt{elem}).
