@@ -539,10 +539,26 @@ Each tier's normal form is what makes its comparisons decidable.
 \label{sec:ddk_comprehension}
 % ============================================================
 
-The primitive of the DSL is membership: a set $A$ is its characteristic map $\chi_A$, and $x \in A$ is $\chi_A(x)$, valued in the classifier $\Omega$.
+The primitive of the DSL is membership: a set $A$ is its characteristic map $\chi_A : A \to \Omega$, and $x \in A$ is $\chi_A(x)$, valued in the classifier $\Omega$.
 Listing~\ref{lst:membership} is the honest starting point.
 For the three-valued species, $\Omega = \{\top, \bot, U\}$ admits an undecided answer $U$, so a bare membership query may be undecidable.
-The algebra of Listing~\ref{lst:set-grammar} is then what remains once we restrict to the decided fragment $\Sigma = \{\top, \bot\} \hookrightarrow \Omega$, on which set equality becomes available.\footnote{$\Sigma \hookrightarrow \Omega$ is a Rosolini dominance: the sub-object of the classifier picking out the decided truth-values~\cite{rosolini1986continuity}. A set is decidable exactly when $\chi_A$ factors through $\Sigma$; \textsc{etcs} proper is the degenerate case $\Sigma = \Omega$.}
+The classifier $\Omega$ and its \emph{dominance} $\Sigma \hookrightarrow \Omega$, the sub-object of \emph{decided} truth-values, are not the same object and are worth keeping apart; Figure~\ref{fig:dominance} makes the distinction precise.\footnote{$\Sigma \hookrightarrow \Omega$ is a Rosolini dominance~\cite{rosolini1986continuity}.}
+The algebra of Listing~\ref{lst:set-grammar} is what remains once we restrict to $\Sigma = \{\top, \bot\}$, on which set equality becomes available.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzcd}[column sep=huge, row sep=large, ampersand replacement=\&]
+\& \Sigma = \{\top, \bot\} \arrow[d, hook, "\iota"] \\
+A \arrow[ur, dashed, "\bar\chi"] \arrow[r, "\chi_A"'] \& \Omega = \{\top, \bot, U\}
+\end{tikzcd}
+\caption{\textbf{Classifier $\Omega$ vs.\ dominance $\Sigma$.}
+Membership is the characteristic arrow $\chi_A : A \to \Omega$, valued in the \emph{classifier} $\Omega$, the truth-values the logic admits ($\{\top, \bot, U\}$ for the honest species).
+The \emph{dominance} is the sub-object $\iota : \Sigma \hookrightarrow \Omega$ of \emph{decided} truth-values, here $\Sigma = \{\top, \bot\}$.
+A set is decidable exactly when $\chi_A$ \emph{factors through} $\Sigma$: some $\bar\chi : A \to \Sigma$ has $\iota \circ \bar\chi = \chi_A$ (the triangle commutes), equivalently $\chi_A$ never lands on $U$.
+\textsc{etcs} is the collapsed case $\Sigma = \Omega$ with $\iota = \mathrm{id}$: every arrow factors, so all membership is decidable.
+The partial setting keeps $\iota$ a \emph{proper} inclusion $\{\top, \bot\} \subsetneq \{\top, \bot, U\}$, so a $\chi_A$ that hits $U$ has no factorisation.}
+\label{fig:dominance}
+\end{figure}
 
 % Source: src/test/cpp/modules/dedekind/analysis/partial_membership_laws_test.cpp
 %   fix(¬)=U and fix(succ)=ℵ₀; the ℝ (ℶ₁) classification; the intensional-image
