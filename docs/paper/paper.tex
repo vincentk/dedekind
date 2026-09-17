@@ -474,9 +474,8 @@ A \cup B = \{x \mid P_A(x) \vee P_B(x)\}, \\
 A = f^{-1}(B) \;\Rightarrow\; P_A = P_B \circ f. &
 \end{aligned}
 \end{equation}
-% FIXME(#847): two-axis decidability figure (dominance x quantifier; four
-% corners) + the Eqn-3 characterization of the decidable quadrant, and the
-% closure/retract framing (this preimage line is the finite-composition half).
+% Two-axis decidability figure + Eqn-3 characterisation + closure/retract:
+% delivered as fig:two-axis in the tier-framing paragraph below (#847).
 Here, a set \emph{is} its characteristic predicate, not a list of its elements.
 The set operations \emph{are} the pointwise logical ones.
 This way, there is no problem to model an open disk $\{\, x \mid \lVert x - c \rVert < r \,\}$, which in an extensional setting is an uncountable bag no machine can hold.
@@ -543,6 +542,29 @@ Equality and subset of a general predicate (§\ref{sec:ddk_comprehension}) are u
 An ordered set (§\ref{sec:ddk_ordered}) instead has a canonical normal form, its convex bounds, and comparison decides on those; a periodic one is \emph{regular}, its residue the Myhill--Nerode canonical form~\cite{nerode1958linear}.
 The finite, extensional sets (§\ref{sec:ddk_extensional}) simply list.
 Each tier's normal form is what makes its comparisons decidable.
+
+These two undecidability sources are \emph{orthogonal} axes, and every set operation sits at a point in their product (Figure~\ref{fig:two-axis}).
+The \emph{dominance} axis (Figure~\ref{fig:dominance}) is the codomain of $\chi$: does membership land in $\Sigma$, or hit $U$?
+The \emph{quantifier} axis is the arithmetic hierarchy of the query, made concrete by Equation~\ref{eqn:quantifiers}: membership is atomic ($\Delta^0_0$), subset and equality are $\forall$-quantified ($\Pi^0_1$), and the image of a set is $\exists$-quantified ($\Sigma^0_1$).
+
+\begin{figure}[htbp]
+\centering
+\begin{tabular}{@{}lll@{}}
+\toprule
+ & $\forall$ dischargeable (normal form) & $\forall$ not dischargeable \\
+\midrule
+$\chi \in \Sigma$ (membership decided) & $\subseteq$, $==$ decidable (finite sets) & membership decides, $\subseteq$ Rice-walled \\
+$\chi$ hits $\Omega\setminus\Sigma$ (Unknown) & structural $\subseteq$ still decides ($\varnothing \subseteq B$) & Unknown \\
+\bottomrule
+\end{tabular}
+\caption{\textbf{Decidability is a 2-D lattice: dominance $\times$ quantifier.}
+Rows are the \emph{dominance} axis (Figure~\ref{fig:dominance}); columns the \emph{quantifier} axis (the arithmetic hierarchy, of which the Chomsky tiers~\cite{chomsky1956three} are the loose analogy).
+All four corners are inhabited, so the axes are genuinely orthogonal; the bottom-left ($\varnothing \subseteq B$ decides even where membership in $B$ does not) is the clincher.
+\textbf{Characterisation}: a query lands in the decidable (top-left) quadrant exactly when its Equation~\ref{eqn:quantifiers} form is $\Sigma$-valued --- one check that folds in both axes, since the bounded comparison $S \subseteq \{x \mid P\}$ is $\Sigma$-valued only if the pointwise $\Rightarrow$ is (axis~1) \emph{and} the $\forall$ discharges (axis~2).
+\textbf{Closure vs.\ specialisation}: the decidable corner is closed under finite composition (Equation~\ref{eqn:lattice-lift-ops}, including the preimage line $P_{f^{-1}(B)} = P_B \circ f$), so compile-time optimisation is ``stay in the corner''; Galois specialisation replaces an unbounded quantifier with a bounded one on a carved sub-domain, so it is ``get to the corner''.
+Deciding membership of the corner is itself undecidable (Rice~\cite{rice1953classes}), so the type system recognises a \emph{sound sub-quadrant} and answers $U$ elsewhere.}
+\label{fig:two-axis}
+\end{figure}
 
 % ============================================================
 \subsection{An Algebra of Sets}
