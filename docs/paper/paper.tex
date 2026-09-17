@@ -962,7 +962,7 @@ relexpr   ::= setexpr                     -- carrier ⟨A,B⟩ : a relation
             | setexpr '*' setexpr '|' relpred            -- restricted product
 query    +::= ('IsFunctional' | 'IsEntire') '(' relexpr ')'  -- R ==/<= S already in the set query; add properties
 relpred   ::= ratom
-            | '!' ratom                     -- negate a comparison (atoms only)
+            | '!' relpred                   -- negation (recursive, as in the set pred)
             | relpred '&' relpred           -- meet (RelAnd); union is relexpr '+'
 ratom     ::= proj rcmp proj | proj rcmp 'fix' '(' const ')'
 rcmp      ::= cmp | '!='                     -- cmp (incl. ==, from the set query) plus !=
