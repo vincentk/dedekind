@@ -106,7 +106,7 @@ export using NaturalLatticePoint2D =
  * @tparam E  A monic (injective) embedding arrow S::Domain ↣ V.
  */
 export template <typename S, typename E>
-concept IsGeometricLattice = IsMonicArrow<E> && IsCharacteristic<S>;
+concept IsGeometricLattice = IsMonicArrow<E> && IsSubobject<S, Dom<E>>;
 
 /**
  * @brief Factory for unbounded lattice discretizations by set species.

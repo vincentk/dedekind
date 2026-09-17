@@ -332,12 +332,14 @@ struct UniversalSet final {
 
   constexpr cardinality_type cardinality() const { return cardinality_type{}; }
 
-  // U | S = U, for a set-like S (one carrying a @c Domain).  An unbound
-  // predicate fragment (e.g.\ the point-free @c π > fix(5) shape in
-  // @c :order:halfspace) has no @c Domain and instead binds to this universe
-  // via its own @c operator|, spelling the set-builder where-clause.
+  /** @brief @c U @c | @c S @c = @c U: the universe absorbs any subobject.
+   *  @details Gated by @c IsSubobject<S, T>, so it admits @c Halfspace,
+   *  @c Singleton and @c Set alike, not only full @c IsSet.  An unbound
+   *  predicate fragment (e.g.\ the point-free @c π @c > @c fix(5) shape in
+   *  @c :order:halfspace) is not a subobject; it binds to this universe via
+   *  its own @c operator| instead, spelling the where-clause. */
   template <typename S>
-    requires(IsSet<S>)
+    requires(IsSubobject<S, T>)
   constexpr auto operator|(const S&) const {
     return *this;
   }

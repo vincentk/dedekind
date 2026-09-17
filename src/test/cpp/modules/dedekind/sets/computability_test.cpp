@@ -74,7 +74,8 @@ TEST_CASE("sets:computability — extensionality and decidability are orthogonal
 TEST_CASE("sets:computability — IsDecidableSet: Σ-set vs Ω-set (#846)",
           "[sets][computability][846]") {
   // IsDecidableSet = IsSet && HasDecidableMembership: the strict, Boolean
-  // reading (χ factors through the dominance Σ = Ω).  IsSet is the honest
+  // reading (χ factors through the dominance Σ ↪ Ω; Σ = Ω only in strict
+  // ETCS).  IsSet is the honest
   // base and does NOT imply it — an ETCS set over TernaryLogic is IsSet but
   // has non-decidable (Ω-valued) membership.
   SECTION("Σ-sets: ETCS sets over ClassicalLogic are decidable") {

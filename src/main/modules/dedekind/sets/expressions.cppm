@@ -383,8 +383,9 @@ inline constexpr BoundScout<Ambient> element{};
  *  the same @c BoundScout<Ambient> instance as @c element<Ambient> ---
  *  not a parallel default-constructed instance.  Address equality
  *  ( @c &in<A> @c == @c &element<A>) is verified by the
- *  @c static_assert below.  New code prefers the @c in spelling; a
- *  hard rename is a future slice once usage stabilises.
+ *  @c static_assert below.  New code should use the point-free @c A @c | @c
+ * pred form instead: scout algebra is @b deprecated (see the section note
+ * above).
  *
  *  Disambiguation: this is a variable template at value-as-NTTP
  *  position ( @c in<Ambient>), structurally distinct from the ETCS

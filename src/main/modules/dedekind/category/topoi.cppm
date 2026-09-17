@@ -141,16 +141,21 @@ concept IsDecidableCharacteristic =
  *
  * @details A signature-level witness for the dominance inclusion: an @c IsArrow
  * whose domain is the Boolean dominance @f$\Sigma = @c bool@f$ and whose
- * codomain is a classifier @f$\Omega@f$ (any @c LogicalValue).  The canonical
- * inhabitant is @c lift_logic (@c category/logic.cppm), embedding
- * @c bool @c ↪ @c Ternary.  For an @b undecidable (Ω-)set this ι is a @b proper
- * mono that adjoins the @c Unknown point; in ETCS it collapses to @c id
+ * codomain is a classifier @f$\Omega@f$ (any @c LogicalValue).  @c lift_logic
+ * (@c category/logic.cppm) is the underlying map @c bool @c ↪ @c Ternary; a
+ * typed arrow wrapping it (a @c Domain=bool, @c Codomain=Ternary functor, e.g.
+ * the @c DominanceIota witness in @c topoi_test.cpp) inhabits this concept ---
+ * @c lift_logic itself is a free function template and has no @c Domain /
+ * @c Codomain, so it is not directly an @c IsArrow.  For an @b undecidable
+ * (Ω-)set this ι is a @b proper mono that adjoins the @c Unknown point; in ETCS
+ * it collapses to @c id
  * (@f$\Sigma = \Omega@f$).  The mono/order-embedding semantics are the intent
  * (laws exercised in tests); the concept fixes the shape Σ → Ω.  See #846.
  *
  * @see G. Rosolini, @e Continuity @e and @e Effectiveness @e in @e Topoi
  *      (Oxford, 1986); Robinson & Rosolini, @e Categories @e of @e Partial
- *      @e Maps (1988).  @c lift_logic is the canonical ι; design note:
+ *      @e Maps (1988).  @c lift_logic is the underlying ι map (wrap in a typed
+ *      arrow to inhabit the concept); design note:
  *      https://github.com/vincentk/dedekind/issues/267#issuecomment-5711242416
  */
 export template <typename E>

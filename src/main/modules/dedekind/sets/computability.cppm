@@ -135,7 +135,8 @@ concept HasDecidableMembership =
 /**
  * @concept IsDecidableSet
  * @brief The strict, Boolean reading of an ETCS set: an @c IsSet whose
- *        membership is decidable (χ factors through the dominance Σ = Ω).
+ *        membership is decidable (χ factors through the dominance Σ ↪ Ω;
+ *        Σ = Ω is the strict-ETCS collapse only).
  *
  * @details `IsSet` (category/etcs.cppm) is the honest BASE: it checks the ETCS
  * axiom schema over the ambient logic species, which may be @c TernaryLogic, so

@@ -269,9 +269,11 @@ export enum class CardinalityTag { Finite, Countable, Continuum };
  *          under dependent conjunction, so a @f$\Sigma@f$-valued map is a
  *          @b decidable predicate.  A set whose characteristic map factors as
  *          @f$A \to \Sigma \xrightarrow{\iota} \Omega@f$ never answers
- *          @c Unknown; that factorisation is exactly @c HasDecidableMembership
- *          (see @c sets/computability.cppm).  ETCS proper is the degenerate
- *          case @f$\Sigma = \Omega@f$.
+ *          @c Unknown; @c HasDecidableMembership is a @b sound, @b conservative
+ *          certificate of that factorisation (see @c sets/computability.cppm),
+ *          not a decision of it: a ternary-tagged map that never returns
+ *          @c Unknown factors through Σ yet the observable stays false.  ETCS
+ *          proper is the degenerate case @f$\Sigma = \Omega@f$.
  * @see Giuseppe Rosolini, @e Continuity @e and @e Effectiveness @e in @e Topoi,
  *      D.Phil. thesis, University of Oxford, 1986 --- the origin of the
  *      @b dominance @f$\Sigma@f$ (Rosolini is at the Università di Genova).
