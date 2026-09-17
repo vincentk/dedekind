@@ -489,11 +489,12 @@ The DSL is grounded in it by a faithful reification: the defining axioms become 
 The step-by-step embedding is in Appendix~\ref{sec:etcs}, the concepts in the reference implementation~\cite{Krautler_dedekind_2026} (Mac Lane~\cite{maclane1971categories} and Pierce~\cite{pierce1991basic} for background).
 Two caveats apply, and they are really one.
 i) The axiom of choice (Axiom~10) is only approximated through the power-object lattice, and is marked aspirational.
-ii) Choice is what makes ETCS Boolean, collapsing the classifier to the two-valued $\Sigma$; \cppinline{IsSet} does \emph{not} assume choice, so it does not assume decidable membership either.
-It reifies the axiom schema over a possibly non-Boolean ambient: the characteristic map $\chi_A : A \to \Omega$ is valued in the full three-valued classifier $\Omega = \mathbb{B} + \mathrm{U}$~\cite{kleene1952metamathematics} (the \cppinline{TernaryLogic} species), and need not factor through the decided fragment.
-Decidable membership is the earned case where $\chi_A$ factors as $A \to \Sigma \to \Omega$ through the dominance $\Sigma \hookrightarrow \Omega$, a Rosolini dominance~\cite{rosolini1986continuity} (Figure~\ref{fig:dominance}).
-The \cppinline{HasDecidableMembership} observable is a \emph{sound, conservative} certificate of this factorisation, not a decision of it: it checks that the logic species is Boolean, so it recognises a decidable sub-class but may answer conservatively (an $\mathbb{R}$-tagged halfspace whose $\chi$ never actually returns $U$ is still classified \cppinline{TernaryLogic}), deciding the factorisation exactly being itself undecidable~\cite{rice1953classes}.
-Admitting undecidability by default is what keeps the grammar strictly sound.\footnote{A carrier whose membership is only semi-decidable, a Mandelbrot set say, stays at the partial default (Appendix~\ref{sec:etcs}); the decidable track (§\ref{sec:ddk_ordered} onward) is the specialisation, not the assumption.}
+ii) A membership test answers on a small chain of truth-values: classically two, $\{\,\text{no} < \text{yes}\,\}$; honestly three, $\{\,\text{no} < \text{unknown} < \text{yes}\,\}$ (Kleene's middle value~\cite{kleene1952metamathematics}, the \cppinline{TernaryLogic} species).
+Choice is what would force the two-valued chain (a Boolean answer); \cppinline{IsSet} does not assume choice, so by default a test may answer \emph{unknown} and membership is not assumed decidable.
+A set is \emph{decidable} exactly when its test only ever lands on the two decided rungs $\{\,\text{no},\text{yes}\,\}$, the sub-chain $\Sigma$ inside the full answer-chain $\Omega$ (Figure~\ref{fig:dominance}).\footnote{Categorically: the characteristic map $\chi_A : A \to \Omega$ factors as $A \to \Sigma \to \Omega$ through the dominance $\Sigma \hookrightarrow \Omega$, a Rosolini dominance~\cite{rosolini1986continuity}.}
+The \cppinline{HasDecidableMembership} check is a \emph{sound but conservative} witness of this, not a decision of it: it accepts only a test \emph{declared} two-valued, so it may report ``not decidable'' for one that in fact never answers \emph{unknown} (an $\mathbb{R}$-tagged halfspace, say).
+Telling the two apart exactly is itself impossible in general~\cite{rice1953classes}.
+Admitting \emph{unknown} by default is what keeps the grammar strictly sound.\footnote{A carrier whose membership is only semi-decidable, a Mandelbrot set say, stays at the partial default (Appendix~\ref{sec:etcs}); the decidable track (§\ref{sec:ddk_ordered} onward) is the specialisation, not the assumption.}
 With these assumptions acknowledged, one can define:
 \begin{definition}[$\mathbf{Lwv} := \mathbf{Jlt} \cap \mathbf{Set}$]
 \label{def:lwv-set}
@@ -501,7 +502,7 @@ In $\mathbf{Lwv}$:
 \begin{enumerate}
 \item A \emph{set} over a regular (\cppinline{std::regular}) carrier \cppinline{A} in $\mathbf{Jlt}$ is a \emph{subobject} of \cppinline{A}: a type \cppinline{S} satisfying \cppinline{IsSubobject<S, A>}, whose characteristic predicate $\chi_S : A \to \Omega$ classifies membership (decidably when $\chi_S$ factors through the Boolean $\Sigma$, Figure~\ref{fig:dominance}).
 \item A \emph{relation} is a subobject of the Cartesian product \cppinline{::Domain} $\times$ \cppinline{::Codomain}.
-\item A \emph{set} is thus the true-fiber of its characteristic morphism $\chi_S : A \to \Omega$: the pullback of $\top$ along $\chi_S$, the true-slice of the graph of $\chi_S$ rather than the whole graph (which also carries the \cppinline{false} or \cppinline{Unknown} pairs).
+\item A \emph{set} is thus just the points its test accepts: the \cppinline{true}-slice, not the \cppinline{false} or \cppinline{Unknown} rest.\footnote{Categorically, the true-fibre of $\chi_S$: the pullback of $\top$ along $\chi_S$, the true-slice of its graph rather than the whole graph.}
 \end{enumerate}
 The full ETCS axioms live not on the individual set but on its ambient \emph{universe}: the top element $\Omega\langle A\rangle$ is itself an ETCS set-object, satisfying the heavier \cppinline{concept IsSet} (Definition~\ref{def:etcs-set}).
 A $\mathbf{Lwv}$ set is a subobject of such a universe over a $\mathbf{Jlt}$ carrier, so one can write:
@@ -545,7 +546,7 @@ Each tier's normal form is what makes its comparisons decidable.
 
 These two undecidability sources are \emph{orthogonal} axes, and every set operation sits at a point in their product (Figure~\ref{fig:two-axis}).
 The \emph{dominance} axis (Figure~\ref{fig:dominance}) is the codomain of $\chi$: does membership land in $\Sigma$, or hit $U$?
-The \emph{quantifier} axis is the arithmetic hierarchy of the query, made concrete by Equation~\ref{eqn:quantifiers}: membership is atomic ($\Delta^0_0$), subset and equality are $\forall$-quantified ($\Pi^0_1$), and the image of a set is $\exists$-quantified ($\Sigma^0_1$).
+The \emph{quantifier} axis is how much of the set a query must inspect (Equation~\ref{eqn:quantifiers}): membership asks about one point, subset and equality about \emph{every} point ($\forall$), the image about whether \emph{some} point exists ($\exists$).\footnote{In recursion-theoretic terms this is the arithmetic hierarchy of the query: membership atomic ($\Delta^0_0$), subset and equality $\forall$-quantified ($\Pi^0_1$), image $\exists$-quantified ($\Sigma^0_1$).}
 
 \begin{figure}[htbp]
 \centering
