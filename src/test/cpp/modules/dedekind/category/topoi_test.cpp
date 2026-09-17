@@ -20,6 +20,32 @@ struct BadArrowToBool {
   constexpr bool operator()(const int& x) const { return x % 2 == 0; }
 };
 
+// Classifier-arrow witnesses (#846): the membership test χ : A → Ω, its Boolean
+// refinement χ : A → Σ, and the dominance inclusion ι : Σ ↪ Ω.
+struct BoolMembership {  // χ : int → Σ = bool (decidable)
+  using Domain = int;
+  using Codomain = bool;
+  constexpr bool operator()(const int& x) const { return x > 0; }
+};
+struct TernaryMembership {  // χ : int → Ω = Ternary (may be Unknown)
+  using Domain = int;
+  using Codomain = Ternary;
+  constexpr Ternary operator()(const int&) const { return Ternary::Unknown; }
+};
+struct DominanceIota {  // ι : Σ ↪ Ω, proper mono bool → Ternary (adjoins
+                        // Unknown)
+  using Domain = bool;
+  using Codomain = Ternary;
+  constexpr Ternary operator()(const bool& b) const {
+    return b ? Ternary::True : Ternary::False;
+  }
+};
+struct IdentityIota {  // ETCS collapse Σ = Ω: ι = id, bool → bool
+  using Domain = bool;
+  using Codomain = bool;
+  constexpr bool operator()(const bool& b) const { return b; }
+};
+
 struct DemoSieve {
   using Object = int;
   using Arrow = DemoArrow;
@@ -212,6 +238,25 @@ TEST_CASE("Topos: IsCharacteristic Concept", "[category][topoi]") {
     CHECK(composed(2) == true);    // 2 is even and positive
     CHECK(composed(1) == false);   // 1 is positive but odd
     CHECK(composed(-2) == false);  // -2 is even but negative
+  }
+}
+
+TEST_CASE("Topos: classifier arrows — characteristic / decidable / inclusion",
+          "[category][topoi][846]") {
+  SECTION("membership test χ : A → Ω (both species)") {
+    STATIC_CHECK(IsCharacteristic<BoolMembership>);
+    STATIC_CHECK(IsCharacteristic<TernaryMembership>);
+  }
+  SECTION("decidable refinement χ : A → Σ = bool") {
+    STATIC_CHECK(IsDecidableCharacteristic<BoolMembership>);
+    STATIC_CHECK_FALSE(IsDecidableCharacteristic<TernaryMembership>);
+  }
+  SECTION("dominance inclusion ι : Σ ↪ Ω") {
+    STATIC_CHECK(
+        IsDominanceInclusion<DominanceIota>);  // proper mono bool→Ternary
+    STATIC_CHECK(IsDominanceInclusion<IdentityIota>);  // ETCS collapse (id)
+    STATIC_CHECK_FALSE(
+        IsDominanceInclusion<BoolMembership>);  // domain int, not Σ
   }
 }
 

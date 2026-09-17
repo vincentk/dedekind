@@ -72,11 +72,15 @@ constexpr auto lift_classifier_constant(Constant&& value) {
 /** @section topoi__Point_Free_Composition_Engine */
 
 /**
- * @brief The Predicate Morphism (A Mapping from Domain to Truth).
+ * @brief The Predicate Morphism: the DSL's membership test, i.e. the
+ *        characteristic arrow @f$\chi_A : A \to \Omega@f$.
  *
  * In the Dedekind topos, a Set is not a container, but a Rule. `IsPredicate`
  * formalizes this rule as a mapping from a Domain object (T) to a Logical
- * Species (Ω).
+ * Species (Ω) --- an @c IsArrow whose codomain is a @c LogicalValue (the
+ * classifier Ω).  This is the named concept for "the membership test"; the
+ * two-valued refinement is @c IsDecidableCharacteristic and the classifier
+ * inclusion ι : Σ ↪ Ω is @c IsDominanceInclusion (both below).
  *
  * @tparam P The Predicate candidate (typically a Lambda or a Functor).
  *
@@ -98,10 +102,65 @@ concept IsPredicate =
 
 /**
  * @concept IsCharacteristic
- * @brief Categorical alias for a Predicate mapping to Ω.
+ * @brief Categorical alias for a Predicate mapping to Ω: the characteristic
+ *        arrow @f$\chi_A : A \to \Omega@f$ that classifies a subobject (a set).
  */
 export template <typename P>
 concept IsCharacteristic = IsPredicate<P>;
+
+/**
+ * @concept IsDecidableCharacteristic
+ * @brief The Boolean refinement of @c IsCharacteristic: a membership test
+ *        valued in the dominance Σ, i.e. @f$\chi_A : A \to \Sigma@f$ with
+ *        @f$\Sigma = \Omega@f$-decided @f$= @c bool@f$.
+ *
+ * @details `IsCharacteristic` lands in the full classifier Ω, which for the
+ * honest species is three-valued (@c Ternary, admitting @c Unknown).
+ * `IsDecidableCharacteristic` demands the codomain be @c ClassicalLogic::Ω
+ * (@c bool): membership is answered in two-valued logic and never says
+ * @c Unknown.  This is the arrow-level twin of @c sets::HasDecidableMembership:
+ * a @b sound, @b conservative certificate that @f$\chi_A@f$ factors through the
+ * Rosolini dominance @f$\iota : \Sigma \hookrightarrow \Omega@f$, not a
+ * decision of it (it recognises a decidable sub-class; deciding the
+ * factorisation exactly is undecidable, #847).  In strict (Boolean) ETCS every
+ * characteristic arrow is already decidable (Σ = Ω); here it is the earned
+ * special case. See #846, @c category/logic.cppm (@c lift_logic = ι).
+ *
+ * @see Giuseppe Rosolini (Università di Genova), Oxford D.Phil. 1986 (the
+ *      dominance Σ); design note:
+ *      https://github.com/vincentk/dedekind/issues/267#issuecomment-5711242416
+ */
+export template <typename P>
+concept IsDecidableCharacteristic =
+    IsCharacteristic<P> && std::same_as<Cod<P>, bool>;
+
+/**
+ * @concept IsDominanceInclusion
+ * @brief The Rosolini inclusion arrow @f$\iota : \Sigma \hookrightarrow
+ *        \Omega@f$: a map between truth-objects out of the decided fragment.
+ *
+ * @details A signature-level witness for the dominance inclusion: an @c IsArrow
+ * whose domain is the Boolean dominance @f$\Sigma = @c bool@f$ and whose
+ * codomain is a classifier @f$\Omega@f$ (any @c LogicalValue).  @c lift_logic
+ * (@c category/logic.cppm) is the underlying map @c bool @c ↪ @c Ternary; a
+ * typed arrow wrapping it (a @c Domain=bool, @c Codomain=Ternary functor, e.g.
+ * the @c DominanceIota witness in @c topoi_test.cpp) inhabits this concept ---
+ * @c lift_logic itself is a free function template and has no @c Domain /
+ * @c Codomain, so it is not directly an @c IsArrow.  For an @b undecidable
+ * (Ω-)set this ι is a @b proper mono that adjoins the @c Unknown point; in ETCS
+ * it collapses to @c id
+ * (@f$\Sigma = \Omega@f$).  The mono/order-embedding semantics are the intent
+ * (laws exercised in tests); the concept fixes the shape Σ → Ω.  See #846.
+ *
+ * @see G. Rosolini, @e Continuity @e and @e Effectiveness @e in @e Topoi
+ *      (Oxford, 1986); Robinson & Rosolini, @e Categories @e of @e Partial
+ *      @e Maps (1988).  @c lift_logic is the underlying ι map (wrap in a typed
+ *      arrow to inhabit the concept); design note:
+ *      https://github.com/vincentk/dedekind/issues/267#issuecomment-5711242416
+ */
+export template <typename E>
+concept IsDominanceInclusion =
+    IsArrow<E> && std::same_as<Dom<E>, bool> && LogicalValue<Cod<E>>;
 
 /**
  * @concept IsSieve
@@ -312,6 +371,13 @@ concept IsSubobject = requires(S s, typename S::Member m, A const& a) {
    *        @c s(a) returns a logical value (the carrier's classifier's
    *        Ω).  S itself IS the characteristic morphism; no named
    *        @c χ member required at the concept body.
+   *
+   * NB: this is a call-shape check, @b not @c IsCharacteristic<S>, on
+   * purpose (#681): typedef-less callables (@c std-range lifts via
+   * @c ambient_set / @c discrete_lift_t, @c image results) are genuine
+   * subobjects here without declaring a @c ::Codomain, so @c IsSubobject
+   * does @b not refine @c IsCharacteristic.  The two coincide only over
+   * carriers that do declare @c ::Codomain.
    */
   { s(a) } -> LogicalValue;
 

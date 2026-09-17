@@ -258,6 +258,35 @@ using OmegaOf = std::remove_cvref_t<
 /** @section logic__Cardinality_Ontology_Tokens */
 export enum class CardinalityTag { Finite, Countable, Continuum };
 
+/**
+ * @brief The Rosolini dominance inclusion @f$\iota : \Sigma \hookrightarrow
+ *        \Omega@f$ (a.k.a. @c embed_𝔹_𝕂3_).
+ * @details Embeds the @b decided fragment @f$\Sigma@f$ = @c ClassicalLogic::Ω
+ *          = @c bool into the full classifier @f$\Omega@f$ = @c TernaryLogic::Ω
+ *          = @c Ternary = @f$\Sigma + 1@f$ (the lift, with the extra point
+ *          @c Unknown).  This is the monic that carves the @b dominance out of
+ *          the classifier: @f$\top \in \Sigma@f$ and @f$\Sigma@f$ is closed
+ *          under dependent conjunction, so a @f$\Sigma@f$-valued map is a
+ *          @b decidable predicate.  A set whose characteristic map factors as
+ *          @f$A \to \Sigma \xrightarrow{\iota} \Omega@f$ never answers
+ *          @c Unknown; @c HasDecidableMembership is a @b sound, @b conservative
+ *          certificate of that factorisation (see @c sets/computability.cppm),
+ *          not a decision of it: a ternary-tagged map that never returns
+ *          @c Unknown factors through Σ yet the observable stays false.  ETCS
+ *          proper is the degenerate case @f$\Sigma = \Omega@f$.
+ * @see Giuseppe Rosolini, @e Continuity @e and @e Effectiveness @e in @e Topoi,
+ *      D.Phil. thesis, University of Oxford, 1986 --- the origin of the
+ *      @b dominance @f$\Sigma@f$ (Rosolini is at the Università di Genova).
+ *      E. Robinson & G. Rosolini, @e Categories @e of @e Partial @e Maps,
+ *      Information and Computation 79(2):95--130, 1988.
+ * @see Design note and Rosolini↔codebase dictionary (the theory this concept
+ *      instantiates, not an improvisation):
+ *      https://github.com/vincentk/dedekind/issues/267#issuecomment-5711242416
+ *      The factorisation @f$A \to \Sigma \to \Omega@f$ is named
+ *      @c sets::IsDecidableSet / @c HasDecidableMembership; the classifier
+ *      arrows are @c IsCharacteristic / @c IsDecidableCharacteristic and this
+ *      inclusion is @c IsDominanceInclusion (all #846).
+ */
 export template <typename TargetLogic, typename T>
 constexpr auto lift_logic(T value) {
   if constexpr (std::is_same_v<TargetLogic, TernaryLogic> &&

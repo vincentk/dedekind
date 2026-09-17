@@ -201,19 +201,20 @@ struct Comprehension
   }
 };
 
-// @c BoundScout forward declaration, gated by @c IsArrow (from
-// @c :category:morphism) on @c decltype(Ambient) per #623 so callers
-// passing a value whose type lacks @c ::Domain hit a single diagnostic
-// at the declaration site rather than a cascade of template-instantiation
-// errors inside @c BoundScout's body.  The textbook justification for
-// the @c IsArrow gate (a set IS its characteristic morphism under the
+// @c BoundScout forward declaration, gated by @c IsCharacteristic (from
+// @c :category:topoi) on @c decltype(Ambient) per #623 (tightened #846) so
+// callers passing a value that is not a characteristic map @c χ:T→Ω hit a
+// single diagnostic at the declaration site rather than a cascade of
+// template-instantiation errors inside @c BoundScout's body.  The textbook
+// justification for the gate (a set IS its characteristic morphism under the
 // current encoding) is in the longer comment on @c element below.
 
 /** @brief Forward declaration of @c BoundScout (post-#551), needed by
  *  @c MembershipBinding<S>::operator| below for the bool-truthy
  *  specialisation. */
 export template <auto Ambient>
-  requires dedekind::category::IsArrow<std::remove_cvref_t<decltype(Ambient)>>
+  requires dedekind::category::IsCharacteristic<
+      std::remove_cvref_t<decltype(Ambient)>>
 struct BoundScout;
 
 /** @brief Boolean equality predicate for compile-time pruning over 𝔹.
@@ -273,6 +274,16 @@ struct MembershipBinding {
 
 /** @section expressions__BoundScout_and_Element__per_551
  *
+ * @deprecated Scout algebra --- @c element<A> / @c in<A> / @c BoundScout and
+ * the scout @c | (predicate) / @c % (re-bind) operators --- is @b no @b longer
+ * part of the official @b Lwv grammar.  The official set-builder is the
+ * point-free comprehension @c A @c | @c pred applied to the ambient set
+ * directly (with the element aliases @c π / @c fix), e.g. @c ℕ @c | @c π @c >
+ * @c fix(5_c).  The scout spelling is retained for existing call sites; new
+ * code must use the point-free form, and this machinery is scheduled for
+ * migration.  (Kept as a note because it otherwise keeps resurfacing as if it
+ * were current grammar.)
+ *
  * Per #551 (one-transaction Ω-redesign): a typed scout that carries
  * its ambient set as a non-type template parameter, so the
  * @c % @c <ambient> binding step in @c Set{n @c % @c B @c | @c
@@ -292,7 +303,8 @@ struct MembershipBinding {
  * AmbientType::Domain below).
  */
 export template <auto Ambient>
-  requires dedekind::category::IsArrow<std::remove_cvref_t<decltype(Ambient)>>
+  requires dedekind::category::IsCharacteristic<
+      std::remove_cvref_t<decltype(Ambient)>>
 struct BoundScout {
   using AmbientType = std::remove_cvref_t<decltype(Ambient)>;
   using T = typename AmbientType::Domain;
@@ -338,25 +350,32 @@ struct BoundScout {
 /** @brief Variable-template factory for bound scouts at a specific
  *  ambient value.  Companion to @c Ω<T>: spell @c element<Ω<T>> to
  *  get a scout that ranges over the universal predicate at carrier
- *  @c T.  */
-// Gated by @c IsArrow (#623): the @c BoundScout instantiation requires
-// @c decltype(Ambient)::Domain.  Under the project's @b current encoding
-// a "set" @b is its characteristic morphism @c χ : @c T @c → @c Ω
-// (ETCS reading), so any IsArrow has @c ::Domain, and the project's
+ *  @c T.
+ *  @deprecated Not part of the official Lwv grammar; use the point-free
+ *  comprehension @c A @c | @c pred instead (see the section note above).  */
+// Gated by @c IsCharacteristic (#623, tightened #846): the @c BoundScout
+// instantiation requires @c decltype(Ambient)::Domain, and under the
+// project's @b current encoding a "set" @b is its characteristic morphism
+// @c χ : @c T @c → @c Ω (ETCS reading).  So the ambient is not merely an
+// arrow but a @b characteristic arrow into the classifier Ω; the
 // set-as-predicate carriers (@c Ω<T>, @c UniversalSet<T, L, C>, @c
-// Subobject<A, χ>) all satisfy @c IsArrow via their @c χ --- no need
-// for a project-specific @c HasUnderlyingCarrier concept.  If the
-// encoding later decouples sets from arrows (e.g. sets as
-// non-characteristic carriers), the gate is the natural site to
-// revisit.
+// Subobject<A, χ>) all satisfy @c IsCharacteristic via their @c χ.  Gating
+// on @c IsCharacteristic (the telling concept) rather than the generic
+// @c IsArrow states that invariant at the type level.  If the encoding
+// later decouples sets from characteristic maps (e.g. sets as
+// non-characteristic carriers), THIS is the gate to loosen back to
+// @c IsArrow.
 export template <auto Ambient>
-  requires dedekind::category::IsArrow<std::remove_cvref_t<decltype(Ambient)>>
+  requires dedekind::category::IsCharacteristic<
+      std::remove_cvref_t<decltype(Ambient)>>
 inline constexpr BoundScout<Ambient> element{};
 
 /** @brief Soft alias @c in<Ambient> for @c element<Ambient> (#603) ---
  *  reads closer to the math @c Set{in<ℕ> @c | @c …} ≈ "the set of
  *  @c x @c ∈ @c ℕ such that …", saves four chars per scout, and keeps
  *  paper Listing 6 one-liner-friendly:
+ *  @deprecated Not part of the official Lwv grammar; use the point-free
+ *  comprehension @c A @c | @c pred instead (see the section note above).
  *
  *      inline constexpr auto S = Set{in<ℕ> | (in<ℕ> > bound<5>)};
  *
@@ -364,8 +383,9 @@ inline constexpr BoundScout<Ambient> element{};
  *  the same @c BoundScout<Ambient> instance as @c element<Ambient> ---
  *  not a parallel default-constructed instance.  Address equality
  *  ( @c &in<A> @c == @c &element<A>) is verified by the
- *  @c static_assert below.  New code prefers the @c in spelling; a
- *  hard rename is a future slice once usage stabilises.
+ *  @c static_assert below.  New code should use the point-free @c A @c | @c
+ * pred form instead: scout algebra is @b deprecated (see the section note
+ * above).
  *
  *  Disambiguation: this is a variable template at value-as-NTTP
  *  position ( @c in<Ambient>), structurally distinct from the ETCS
@@ -379,7 +399,8 @@ inline constexpr BoundScout<Ambient> element{};
  *  in the @c sets DSL idiomatically route through @c S.contains(x) on
  *  the set value itself, sidestepping the conflict. */
 export template <auto Ambient>
-  requires dedekind::category::IsArrow<std::remove_cvref_t<decltype(Ambient)>>
+  requires dedekind::category::IsCharacteristic<
+               std::remove_cvref_t<decltype(Ambient)>>
 inline constexpr BoundScout<Ambient> const& in = element<Ambient>;
 
 // True-alias witness: @c in<A> and @c element<A> are the same object
