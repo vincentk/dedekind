@@ -305,6 +305,19 @@ inline const SingletonSet<T, L> SingletonSet<T, L>::χ{};
 // correct without engineering the predicate-rewrite branch.
 // ---------------------------------------------------------------------------
 
+/** @brief Product of two singletons: @f$\{a\}\times\{b\}=\{(a,b)\}@f$,
+ * collapsed to the @c SingletonSet of the pair.  A structural collapse (the
+ * product-side analogue of the complement-pair collapse), so a singleton
+ * product is
+ *  @b equality-comparable, not merely membership-testable:
+ *  @c η(a)*η(b) @c == @c η(std::pair{a,b}).  General (non-singleton) products
+ *  keep the predicate-set form of @c :expressions cartesian_product. */
+export template <typename T1, typename L1, typename T2, typename L2>
+constexpr auto operator*(const SingletonSet<T1, L1>& a,
+                         const SingletonSet<T2, L2>& b) {
+  return SingletonSet<std::pair<T1, T2>, L1>{std::pair{a.pivot, b.pivot}};
+}
+
 export template <typename T, typename L1, typename L2, typename P>
 constexpr auto operator^(const SingletonSet<T, L1>& s,
                          const Set<T, L2, P>& other) {
