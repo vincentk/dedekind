@@ -170,7 +170,7 @@ static_assert(std::is_arithmetic_v<unsigned short> &&
  * concern carried by the @b separate concepts @c HasFieldOperators (shape
  * only) and @c IsDivisionRing (ring + surface).  Keeping it out makes
  * @c IsField a pure axiomatic lift, so a genuine field with no division
- * operator --- @f$\mathbb{F}_2 = \Omega\langle\texttt{bool}\rangle@f$ under
+ * operator --- @f$\mathbb{F}_2 = \mathbb{A}\langle\texttt{bool}\rangle@f$ under
  * @c (bit_xor, bit_and) --- qualifies.  A callsite that needs to write
  * @c a/b on field elements constrains additionally on @c HasFieldOperators.
  */
@@ -201,7 +201,7 @@ concept IsField = IsAlgebraOnSet<X, Add, Mult> &&
  * only non-zero element is @c true, which is self-inverse under AND).
  *
  * The set-indexed @c algebra::IsField is a @b pure @b axiomatic lift, so
- * it too holds on the set object @f$\Omega\langle\texttt{bool}\rangle@f$
+ * it too holds on the set object @f$\mathbb{A}\langle\texttt{bool}\rangle@f$
  * (asserted below): no division @b operator surface is demanded.  A
  * callsite that needs to write @c a/b constrains additionally on
  * @c HasFieldOperators, which @c bool's bitwise surface does not satisfy.

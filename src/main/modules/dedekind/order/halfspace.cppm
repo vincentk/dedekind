@@ -505,10 +505,10 @@ constexpr auto operator|(const Singleton<A, LA>& a, const Singleton<B, LB>&) {
  *  @b proper cut by construction.  A degenerate configuration collapses to the
  *  canonical boundary set instead --- an empty cut to @c Ø, a moot cut to the
  *  universe @c UniversalSet --- so @f$\emptyset = \text{Halfspace}@f$ and
- *  @f$\Omega = \text{Halfspace}@f$ never arise as values and the boundary cases
- *  are decided by @c Ø / @c 𝔸's own initial / terminal machinery.  The return
- *  type is heterogeneous but statically resolved by @c if @c constexpr (no type
- *  erasure); every halfspace-producing surface routes through it. */
+ *  @f$\mathbb{A} = \text{Halfspace}@f$ never arise as values and the boundary
+ * cases are decided by @c Ø / @c 𝔸's own initial / terminal machinery.  The
+ * return type is heterogeneous but statically resolved by @c if @c constexpr
+ * (no type erasure); every halfspace-producing surface routes through it. */
 export template <typename T, auto V, Direction D, Strictness S,
                  typename L = ClassicalLogic>
 constexpr auto make_halfspace() {
@@ -1495,7 +1495,7 @@ constexpr auto cylinder(const Halfspace<T, Pivot, D, S, L>&) {
   return ProjBound<I, rel_of(D, S), Pivot>{};
 }
 
-// restricted × total:  {x ⋈ p} × Ω  =  𝔸<pair> | (π1 ⋈ fix(p)).
+// restricted × total:  {x ⋈ p} × 𝔸  =  𝔸<pair> | (π1 ⋈ fix(p)).
 export template <typename T, auto P, Direction D, Strictness S, typename L,
                  typename T2, typename L2, typename C2>
   requires std::same_as<L, L2>
@@ -1504,7 +1504,7 @@ constexpr auto operator*(const Halfspace<T, P, D, S, L>& a,
   return 𝔸<std::pair<T, T2>, L> | cylinder<1>(a);
 }
 
-// total × restricted:  Ω × {y ⋈ q}  =  𝔸<pair> | (π2 ⋈ fix(q)).
+// total × restricted:  𝔸 × {y ⋈ q}  =  𝔸<pair> | (π2 ⋈ fix(q)).
 export template <typename T1, typename L1, typename C1, typename T, auto Q,
                  Direction D, Strictness S, typename L>
   requires std::same_as<L1, L>

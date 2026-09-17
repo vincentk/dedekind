@@ -8,10 +8,10 @@
  * Licensed under the Apache License, Version 2.0.
  *
  * @details In the grammar's own vocabulary (empty / universe / filtered base),
- * @f[ \mathfrak{P}(S) \;\equiv\; \Omega\langle \mathrm{Sub}(C)\rangle \,\mid\,
- *     (X \mapsto X \subseteq S), @f]
- * an ordinary @c Set over the subobject domain @c Sub(C).  So @c 𝔓(S) is a
- * bona-fide @c IsSet and inherits the lattice laws (@c &Ø=Ø, @c |𝔸=𝔸) and
+ * @f[ \mathfrak{P}(S) \;\equiv\; \mathbb{A}\langle \mathrm{Sub}(C)\rangle
+ * \,\mid\, (X \mapsto X \subseteq S), @f] an ordinary @c Set over the subobject
+ * domain @c Sub(C).  So @c 𝔓(S) is a bona-fide @c IsSet and inherits the
+ * lattice laws (@c &Ø=Ø, @c |𝔸=𝔸) and
  * @b setexpr @b participation --- meet / join / filter as any @c Set --- from
  * the set machinery, with no bespoke carrier.  (This is @b not
  * self-composition:
@@ -250,7 +250,7 @@ concept SubReifiable =
     dedekind::sets::SetShaped<S> && IsTotallyOrdered<typename S::Domain> &&
     std::convertible_to<S, Sub<typename S::Domain, typename S::logic_species>>;
 
-/** @brief @f$\mathfrak{P}(S) = \Omega\langle\mathrm{Sub}(C)\rangle \mid
+/** @brief @f$\mathfrak{P}(S) = \mathbb{A}\langle\mathrm{Sub}(C)\rangle \mid
  *  (X \mapsto X \subseteq S)@f$ --- a bona-fide @c Set over @c Sub(C).  Gated
  * on
  *  @c S coercing to @c Sub(C): an unordered / general base is ill-formed. */
@@ -262,15 +262,15 @@ constexpr auto power_set(const S& base) {
       SubsetOf<C, L>{Sub<C, L>{base}}};
 }
 
-/** @brief @f$\mathfrak{P}(\Omega) = \Omega\langle\mathrm{Sub}(C)\rangle@f$ ---
- * the universe of ALL (decidable convex) subobjects, as the universal @b
- * boundary
+/** @brief @f$\mathfrak{P}(\mathbb{A}) =
+ * \mathbb{A}\langle\mathrm{Sub}(C)\rangle@f$ --- the universe of ALL (decidable
+ * convex) subobjects, as the universal @b boundary
  *  @b type, @b not a trivially-true filtered @c Set.  A more-specialised
  * overload than the generic @c power_set above, so it wins by partial ordering;
  * keeping the @c 𝔸 type (rather than @c Set<Sub,…,SubsetOf>) preserves the
  *  boundary / cardinality metadata and the lattice identities @c 𝔸|X=𝔸 / @c
  *  𝔸&X=X on @c 𝔓(𝔸).  (Sibling of the @c :sets closed form
- *  @f$\mathfrak{P}(\emptyset)=\{\emptyset\}=\Omega\langle\varnothing\rangle@f$.)
+ *  @f$\mathfrak{P}(\emptyset)=\{\emptyset\}=\mathbb{A}\langle\varnothing\rangle@f$.)
  */
 export template <typename C, typename L, typename Card>
   requires IsTotallyOrdered<C>

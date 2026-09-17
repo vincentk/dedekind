@@ -1504,8 +1504,9 @@ constexpr auto cartesian_product(const A& a, const B& b) {
 }
 
 /**
- * @brief The @b universal set of products: @f$\Omega_A \times \Omega_B =
- *        \Omega_{A\times B}@f$, spelled as the universe over the product
+ * @brief The @b universal set of products: @f$\mathbb{A}_A \times \mathbb{A}_B
+ * =
+ *        \mathbb{A}_{A\times B}@f$, spelled as the universe over the product
  *        carrier (@c IsProduct).
  *
  * @details Two @b total factors carry no restriction to lift, so the product
@@ -1614,8 +1615,9 @@ concept SetShaped = requires {
  * clean type error (type-check failure by default).  The decidable
  * specialisations live downstream, where the subset order does:
  * @c dedekind.order:powerset gives the ordered / convex case
- * (@f$\mathfrak{P}(S) = \Omega\langle\mathrm{Sub}(C)\rangle \mid X \subseteq
- * S@f$ over the subobject domain @c Sub(C), an interval), covering @c 𝔸 /
+ * (@f$\mathfrak{P}(S) = \mathbb{A}\langle\mathrm{Sub}(C)\rangle \mid X
+ * \subseteq S@f$ over the subobject domain @c Sub(C), an interval), covering @c
+ * 𝔸 /
  * @c Singleton / @c Halfspace / @c OrderInterval by coercion; a finite-carrier
  * / erased case may follow (#830).  The one exception is @f$\mathfrak{P}
  * (\emptyset) = \{\emptyset\}@f$, which needs no subobject domain and is a

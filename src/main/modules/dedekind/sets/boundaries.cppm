@@ -240,8 +240,9 @@ constexpr auto operator*(const S&, const Ø<T2, L>&) {
  * spell @c 𝔸<bool> at value-context sites rather than reaching for
  * @c UniversalSet<bool>{}; the type and the variable template share their
  * parameter pack so both names remain reachable at the same arity.  This
- * makes the topos-theoretic reading direct ( @c 𝔸 is the subobject
- * classifier value at carrier @c T), and lets paper Listing 6 read as
+ * makes the topos-theoretic reading direct ( @c 𝔸 is the universal
+ * (top) set over carrier @c T; the subobject classifier is @c L::Ω),
+ * and lets paper Listing 6 read as
  * @c auto @c 𝔹 @c = @c 𝔸<bool>; without the type/value schism the
  * pre-#551 surface had.
  */
