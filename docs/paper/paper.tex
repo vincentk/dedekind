@@ -567,21 +567,20 @@ A correspondence, not the literal C++ grammar.}
 // Ω = {⊤,⊥,U};  Σ = {⊤,⊥}, decided
 static_assert(
   !Ternary::Unknown == Ternary::Unknown); // fix(¬)=U
-constexpr cardinality_succ succ; // ℕ→ℕ
+// fix(succ): none finite, ℵ₀ saturates
 static_assert(
-   succ(3_c) != 3_c              // no finite fix
-&& succ(ℵ_0) == ℵ_0);           // fix(succ)=ℵ₀
+  succ(3_c) != 3_c && succ(ℵ_0) == ℵ_0);  // =ℵ₀
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-constexpr auto x = element<ℝ_d>; // ℝ (ℶ₁)
-constexpr auto gt = Set{x | (x > bound<5.0>)};
-static_assert(         // χ : ℝ → Ω, == withheld
-  !HasDecidableMembership<decltype(gt)>);
-static_assert(         // image returns U outright
-  image(succ, Set{in<ℕ> | in<ℕ> > bound<5>})
-    (7_c) == Ternary::Unknown);
+// {r ∈ ℝ | r > 5}: χ : ℝ → Ω, == withheld
+static_assert(!HasDecidableMembership<
+  decltype(ℝ | π > fix(5.0))>);
+// image of {n ∈ ℕ | n > 5}: membership → U
+static_assert(
+  image(succ, ℕ | π > fix(5_c))(7_c)
+    == Ternary::Unknown);
 \end{cpp}
 \end{minipage}
 
