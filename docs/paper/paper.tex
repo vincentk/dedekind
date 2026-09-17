@@ -581,9 +581,9 @@ static_assert(
    (η(true) ^ η(false))(true)
 && (η(true) ^ η(false))(false)
 && !(η(true) ^ η(true))(true)
+&& (η(true) * η(false)) == η(std::pair{true, false})
+&& (η(false) * η(true)) == η(std::pair{false, true})
 && (𝔹 * 𝔹)(std::pair{true, false})
-&& (T * F)(std::pair{true, false})
-&&!(T * F)(std::pair{true, true})
 );
 \end{cpp}
 \end{minipage}
