@@ -229,6 +229,14 @@ struct GetLogic<T> {
  * @brief Any type that serves as the Omega (Ω) for a Logical Species.
  * This is open-ended: if you register a FuzzyLogic, its 'type'
  * automatically becomes a LogicalValue.
+ *
+ * @note @c bool and @c Ternary are @e peer inhabitants of this concept:
+ *       neither is a privileged "the Ω".  @c bool is distinguished only at the
+ *       dominance layer (as the decided core @f$\mathbb{B}@f$ that any Ω
+ * factors onto; see @c lift_logic), not as a logic.  Register a new species
+ * (say a fuzzy logic) and its truth-type joins as another peer.  @c Ternary
+ *       (Kleene @f$K_3@f$) is the one non-trivial inhabitant currently shipped,
+ *       a test case rather than the canonical Ω.
  */
 export template <typename T>
 concept LogicalValue = requires {
@@ -259,21 +267,34 @@ using OmegaOf = std::remove_cvref_t<
 export enum class CardinalityTag { Finite, Countable, Continuum };
 
 /**
- * @brief The Rosolini dominance inclusion @f$\iota : \Sigma \hookrightarrow
- *        \Omega@f$ (a.k.a. @c embed_𝔹_𝕂3_).
- * @details Embeds the @b decided fragment @f$\Sigma@f$ = @c ClassicalLogic::Ω
- *          = @c bool into the full classifier @f$\Omega@f$ = @c TernaryLogic::Ω
- *          = @c Ternary = @f$\Sigma + 1@f$ (the lift, with the extra point
- *          @c Unknown).  This is the monic that carves the @b dominance out of
- *          the classifier: @f$\top \in \Sigma@f$ and @f$\Sigma@f$ is closed
- *          under dependent conjunction, so a @f$\Sigma@f$-valued map is a
- *          @b decidable predicate.  A set whose characteristic map factors as
- *          @f$A \to \Sigma \xrightarrow{\iota} \Omega@f$ never answers
- *          @c Unknown; @c HasDecidableMembership is a @b sound, @b conservative
- *          certificate of that factorisation (see @c sets/computability.cppm),
- *          not a decision of it: a ternary-tagged map that never returns
- *          @c Unknown factors through Σ yet the observable stays false.  ETCS
- *          proper is the degenerate case @f$\Sigma = \Omega@f$.
+ * @brief The Rosolini dominance inclusion @f$\iota : \mathbb{B} \hookrightarrow
+ *        \Omega@f$, the decided core into a classifier.
+ * @details The dominance is general in the classifier @f$\Omega@f$.
+ *          @f$\mathbb{B}@f$ = @c ClassicalLogic::Ω = @c bool is the two-valued
+ *          @b decided @b core @f$\{\top,\bot\}@f$ that sits inside @e every
+ *          answer-lattice @f$\Omega@f$ (every @c LogicalValue), and @f$\iota@f$
+ *          is its inclusion.  So @f$\mathbb{B}@f$ is @e primus @e inter @e
+ * pares among the truth-objects: a peer of any other @f$\Omega@f$ at the object
+ * layer, but the one target every decidable map factors onto (the Rosolini
+ * dominance @f$\Sigma@f$).  @c Ternary (Kleene
+ *          @f$K_3@f$) is the single non-trivial @f$\Omega@f$ we currently ship:
+ * a peer of @f$\mathbb{B}@f$, @b not the canonical @f$\Omega@f$; for it
+ * @f$\iota@f$ is the concrete map @c bool @c ↪ @c Ternary
+ *          (@c Ternary = @f$\mathbb{B} + 1@f$, adjoining @c Unknown), while the
+ *          concept @c IsDominanceInclusion fixes only the shape
+ *          @f$\mathbb{B} \to \Omega@f$, so a future @f$\Omega@f$ plugs in
+ *          without privileging any inhabitant.  @f$\top \in \mathbb{B}@f$ and
+ *          @f$\mathbb{B}@f$ is closed under dependent conjunction, so a
+ *          @f$\mathbb{B}@f$-valued map is @b decidable: a set whose
+ *          characteristic map factors as
+ *          @f$A \to \mathbb{B} \xrightarrow{\iota} \Omega@f$ never answers
+ *          @c Unknown.  @c HasDecidableMembership is a @b sound, @b
+ * conservative certificate of that factorisation (see @c
+ * sets/computability.cppm), not a decision of it (Rice): a ternary-tagged map
+ * that never returns
+ *          @c Unknown factors through @f$\mathbb{B}@f$ yet the observable stays
+ *          false.  ETCS proper is the degenerate case @f$\mathbb{B} =
+ * \Omega@f$.
  * @see Giuseppe Rosolini, @e Continuity @e and @e Effectiveness @e in @e Topoi,
  *      D.Phil. thesis, University of Oxford, 1986 --- the origin of the
  *      @b dominance @f$\Sigma@f$ (Rosolini is at the Università di Genova).
