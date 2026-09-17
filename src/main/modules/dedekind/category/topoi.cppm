@@ -336,54 +336,34 @@ static_assert(
 
 /**
  * @concept IsSubobject
- * @brief The categorical witness of a monomorphism ι: S ↣ A.
+ * @brief The categorical witness of a monomorphism ι: S ↣ A --- a
+ *        characteristic morphism χ: A → Ω together with its inclusion.
  *
- * @details
- * @section topoi__IsSubobject_Structural_Refactor
- * Structural recognition (#681 / Slice 9 follow-up): @c S @b is the
- * characteristic morphism — invoked via @c s(a), not accessed via a
- * named @c s.χ member.  The earlier @c { s.χ } @c -> @c IsPredicate
- * clause forced every @c IsSubobject-checked type to materialise @c χ
- * as a struct member; for @c Set carriers this was a static
- * @c default-initialised Set instance, which @b fails for capturing-
- * lambda Predicates (the comprehension DSL).
+ * @details Categorically a subobject @b is the characteristic morphism plus the
+ * inclusion, so @c IsSubobject refines @c IsCharacteristic definitionally
+ * (#850): @c IsCharacteristic<S> (S is the χ arrow A → Ω), @c same_as<Dom<S>,
+ * @c A> (the domain tie), and the inclusion @c { s.ι(m) } @c -> @c A.
  *
- * Project's architectural commitment ("undecidable functionality can't
- * be struct-built"): structural call recognition replaces named-member
- * lookup.  Same lesson as the Slice 6 @c IsExponential refactor
- * (carrier IS the exponential via call shape).
+ * @section topoi__IsSubobject_Codomain_Tagging
+ * Every inhabitant declares @c ::Codomain: the @c Subobject wrapper re-exports
+ * its stored rule's codomain (@c logic_species::Ω), and the #607 @c std-range
+ * lifts (@c ambient_set) and @c image results all go through it.  The #681
+ * lesson still holds --- no materialised χ @b value member: @c IsCharacteristic
+ * recognises χ by @b call @b shape (via @c LogicalMap), not a @c s.χ member ---
+ * so requiring the @c ::Codomain @e typedef (not a value member) is compatible
+ * with it, and subsumes the earlier structural @c { s(a) } @c -> @c
+ * IsΩ check.
  *
  * @tparam S The Subobject Species (The "Body").
  * @tparam A The Ambient Species (The "Space").
  */
 export template <typename S, typename A>
-concept IsSubobject = requires(S s, typename S::Member m, A const& a) {
-  /**
-   * @brief ι: S ↣ A
-   * The canonical inclusion morphism. Every member of S must
-   * uniquely map to a member of the ambient species A.
-   */
-  { s.ι(m) } -> std::same_as<A>;
-
-  /**
-   * @brief χ: A ⟶ Ω — recognised structurally as S's call shape.
-   *        @c s(a) returns a logical value (the carrier's classifier's
-   *        Ω).  S itself IS the characteristic morphism; no named
-   *        @c χ member required at the concept body.
-   *
-   * NB: this is a call-shape check, @b not @c IsCharacteristic<S>, on
-   * purpose (#681): typedef-less callables (@c std-range lifts via
-   * @c ambient_set / @c discrete_lift_t, @c image results) are genuine
-   * subobjects here without declaring a @c ::Codomain, so @c IsSubobject
-   * does @b not refine @c IsCharacteristic.  The two coincide only over
-   * carriers that do declare @c ::Codomain.
-   */
-  { s(a) } -> IsΩ;
-
-  // Metadata verification: The declared ambient must match A.
-  typename S::Domain;
-  requires std::same_as<typename S::Domain, A>;
-};
+concept IsSubobject = IsCharacteristic<S> && std::same_as<Dom<S>, A> &&
+                      requires(S s, typename S::Member m) {
+                        /** @brief ι: S ↣ A --- the canonical inclusion; each
+                         * member maps to A. */
+                        { s.ι(m) } -> std::same_as<A>;
+                      };
 
 /**
  * @brief The Subobject Species S ↣ A.
@@ -404,6 +384,13 @@ struct Subobject {
    *  @c :lattice::IsSubobjectLattice as a CT-vocabulary metadata
    *  typedef (#698 Slice 9). */
   using logic_species = typename GetLogic<Cod<Chi>>::type;
+
+  /** @brief χ: A ⟶ Ω, so the codomain is the classifier Ω = @c logic_species::Ω
+   *  (@c bool for @c ClassicalLogic, @c Ternary for @c TernaryLogic). Declaring
+   *  it re-exports the stored rule's codomain, making a @c Subobject a full
+   *  @c IsArrow / @c IsCharacteristic (#850) --- not merely a structural
+   *  callable. */
+  using Codomain = typename logic_species::Ω;
 
   Chi χ;  // The Rule: A ⟶ Ω
 
