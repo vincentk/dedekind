@@ -12,6 +12,7 @@
  * ambient spelling Ø<𝔹> / Ø<ℕ> is pending the empty-set-on-ambient migration.
  */
 #include <catch2/catch_test_macros.hpp>
+#include <utility>
 
 import dedekind.category;
 import dedekind.sets;
@@ -45,6 +46,14 @@ TEST_CASE("complement-lattice absorbing laws collapse (𝔹 and ℕ)",
     static_assert((le_5 | gt_5) == ℕ);  // | : round-trip to the universe (⊤)
     constexpr Ø<Cardinality> empty = le_5 & gt_5;  // & : the empty set (⊥)
     static_assert(Ø<Cardinality>{} == empty);
+  }
+  // #844: a product of static singletons collapses to the singleton of the
+  // pair, so it is equality-comparable (not just membership-testable).
+  {
+    static_assert((η(true) * η(false)) == η(std::pair{true, false}));
+    static_assert((η(false) * η(true)) == η(std::pair{false, true}));
+    static_assert((η(true) * η(false))(std::pair{true, false}));
+    static_assert(!(η(true) * η(false))(std::pair{true, true}));
   }
   CHECK(true);  // runtime anchor for coverage
 }
