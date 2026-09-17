@@ -144,7 +144,7 @@ TEST_CASE("scout_algebra: in-line shift transports halfspace pivot on ℤ (#664)
           "[algebra][scout_algebra][comprehension][slice2]") {
   using Z = dedekind::sets::SignedCardinality;
 
-  constexpr auto x = dedekind::sets::element<dedekind::sets::Ω<Z>>;
+  constexpr auto x = dedekind::sets::element<dedekind::sets::𝔸<Z>>;
   constexpr auto S = dedekind::sets::Set{x + dedekind::order::bound<3> |
                                          (x > dedekind::order::bound<5>)};
 

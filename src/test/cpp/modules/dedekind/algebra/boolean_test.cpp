@@ -16,7 +16,7 @@ TEST_CASE("Algebra:Boolean starter symbols", "[algebra][boolean][starter]") {
   auto falsy = Set{b | !b};
 
   // Universe-vs-carrier surface (post-#559).
-  //   • 𝔹 is the universe value Ω<bool>: a constexpr
+  //   • 𝔹 is the universe value 𝔸<bool>: a constexpr
   //     UniversalSet<bool, ClassicalLogic, Finite>{}, suitable as the
   //     ambient NTTP for element<𝔹> / Set{...}.
   //   • bool is the carrier — what concept gates and template-type-

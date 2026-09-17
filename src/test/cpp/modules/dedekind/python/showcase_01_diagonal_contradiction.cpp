@@ -30,9 +30,9 @@ using R2Point = typename decltype(R2)::Domain;
 // FIXME(#399 slice 4-6): once ℝ becomes a carrier alias, R2's Domain
 // becomes the canonical pair<ℝ, ℝ>; for now the carrier reads as the
 // underlying std::pair<Real<double>, Real<double>>.  The
-// universal-ambient @c Ω<R2Point> ⊃ R2 lets the scout re-bind to the
+// universal-ambient @c 𝔸<R2Point> ⊃ R2 lets the scout re-bind to the
 // narrower R2 via @c xy @c % @c R2 below.
-constexpr auto xy = element<Ω<R2Point>>;
+constexpr auto xy = element<𝔸<R2Point>>;
 
 // Diagonal: { (x, y) ∈ ℝ² | x = y }
 constexpr auto diagonal =

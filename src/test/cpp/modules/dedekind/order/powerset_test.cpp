@@ -47,15 +47,15 @@ TEST_CASE("order:powerset — 𝔓(S) is a bona-fide IsSet over Sub(C) (#830)",
     CHECK(bool(P(gt3)));        // self-membership {x>3} ⊆ {x>3}
   }
 
-  SECTION("𝔓(Ω) is the full universe over Sub(C): accepts every subobject") {
-    // 𝔓(Ω) has the Sub(C) domain (the interval specialisation), so it composes
+  SECTION("𝔓(𝔸) is the full universe over Sub(C): accepts every subobject") {
+    // 𝔓(𝔸) has the Sub(C) domain (the interval specialisation), so it composes
     // with the ordered families.  (𝔓(∅) = {∅} is the one closed form that needs
     // no Sub --- it is a :sets fast path, exercised in sets/expressions_test.)
-    constexpr auto Pu = 𝔓(Ω<int>);
+    constexpr auto Pu = 𝔓(𝔸<int>);
     STATIC_CHECK(
         std::same_as<typename std::remove_cvref_t<decltype(Pu)>::Domain,
                      Sub<int, ClassicalLogic>>);
-    // 𝔓(Ω) is the universal BOUNDARY type Ω<Sub(C)> (a closed form), not a
+    // 𝔓(Ω) is the universal BOUNDARY type 𝔸<Sub(C)> (a closed form), not a
     // trivially-true filtered Set --- so boundary / lattice identities survive.
     // (Domain == Sub(C) above + the is_universal_boundary tag pins it as
     // UniversalSet<Sub(C)>, robust to the cardinality parameter.)
@@ -63,8 +63,8 @@ TEST_CASE("order:powerset — 𝔓(S) is a bona-fide IsSet over Sub(C) (#830)",
       typename std::remove_cvref_t<decltype(Pu)>::is_universal_boundary;
     });
     constexpr Halfspace<int, 5, Direction::Upward, Strictness::Strict> gt5{};
-    CHECK(bool(Pu(gt5)));       // X ⊆ Ω
-    CHECK(bool(Pu(Ø<int>{})));  // Ø ⊆ Ω
+    CHECK(bool(Pu(gt5)));       // X ⊆ 𝔸
+    CHECK(bool(Pu(Ø<int>{})));  // Ø ⊆ 𝔸
   }
 
   SECTION(
@@ -127,7 +127,7 @@ TEST_CASE("order:powerset — 𝔓(S) is a bona-fide IsSet over Sub(C) (#830)",
     // selects the deleted :sets default (type-check failure) rather than the
     // ordered overload.  A general filtered set {x ∈ ℤ | x > 0} is exactly such
     // a base.
-    auto x = element<Ω<int>>;
+    auto x = element<𝔸<int>>;
     auto positives = Set{x % UniversalSet<int>{} | (x > 0)};
     using G = std::remove_cvref_t<decltype(positives)>;
     STATIC_CHECK(SetShaped<G>);  // it IS a set...

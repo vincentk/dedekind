@@ -41,7 +41,7 @@
  *
  * @section quotient__Sequencing
  * - Depends on the post-#551 @c Set / @c cartesian_product surface (in
- *   @c :expressions) and on the @c Ω / @c element machinery.
+ *   @c :expressions) and on the @c 𝔸 / @c element machinery.
  * - The operator is structural-only at this phase: membership of a
  *   value @c v in the quotient is universal (every value of @c Domain
  *   is the canonical representative of @b some pair in the underlying
@@ -67,7 +67,7 @@ module;
 export module dedekind.sets:quotient;
 
 import dedekind.category;
-import :boundaries;   // Ω, UniversalSet
+import :boundaries;   // 𝔸, UniversalSet
 import :expressions;  // Set, cartesian_product, element
 
 namespace dedekind::sets {

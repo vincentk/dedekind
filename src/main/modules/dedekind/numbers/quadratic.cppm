@@ -342,15 +342,15 @@ static_assert(root2 * (R2{2} + root2) == root2 * R2{2} + root2 * root2,
 
 // The concept-level payoff: ℚ(√2) is a bona-fide FIELD — not just field-shaped
 // operators, but the axiomatic IsField, now that Path-D (exact) totality lifts
-// it to a Magma.  Ω⟨ℚ(√2)⟩ is a real field as a first-class C++ value, exactly
-// the way ℚ = Ω⟨Rational⟩ is — the algebraic coat-hanger, on the reals.
+// it to a Magma.  𝔸⟨ℚ(√2)⟩ is a real field as a first-class C++ value, exactly
+// the way ℚ = 𝔸⟨Rational⟩ is — the algebraic coat-hanger, on the reals.
 static_assert(
     dedekind::category::IsField<R2, std::plus<R2>, std::multiplies<R2>>,
     "ℚ(√2)'s carrier satisfies the axiomatic IsField.");
 static_assert(
     dedekind::algebra::IsField<
-        std::remove_cvref_t<decltype(dedekind::sets::Ω<R2>)>>,
-    "Ω⟨ℚ(√2)⟩ is a field as a first-class value, like ℚ = Ω⟨Rational⟩.");
+        std::remove_cvref_t<decltype(dedekind::sets::𝔸<R2>)>>,
+    "𝔸⟨ℚ(√2)⟩ is a field as a first-class value, like ℚ = 𝔸⟨Rational⟩.");
 
 // The topological half of the coat-hanger, paired with IsField: ℚ(√2) is
 // order-complete — totally ordered + dense (midpoint (a+b)/T{2}) + extrema.
@@ -358,7 +358,7 @@ static_assert(
 // dense + extrema), which ℚ itself also passes; ℚ(√2) is countable and so not
 // genuinely order-complete.  What is honest here is the concept pair holding on
 // one real value: a field AND the completeness surrogate — like ℚ =
-// Ω⟨Rational⟩.
+// 𝔸⟨Rational⟩.
 static_assert(dedekind::order::IsDedekindComplete<R2>,
               "ℚ(√2) satisfies the structural IsDedekindComplete surrogate, "
               "paired with IsField on the same real value.");

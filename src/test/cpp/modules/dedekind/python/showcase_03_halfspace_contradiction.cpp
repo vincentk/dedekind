@@ -34,7 +34,7 @@ using namespace dedekind::order;
 // Symbolic scout ranging over the natural-numbers universe ℕ.  Per
 // #551 the scout carries its ambient at the type level (the % binding
 // step disappears); per #559 the canonical spelling is element<ℕ> with
-// ℕ itself the universe value (= Ω<Cardinality>).
+// ℕ itself the universe value (= 𝔸<Cardinality>).
 constexpr auto n = element<ℕ>;
 
 // Two halfspace-structured sets, with pivots (5 and 3) carried as NTTPs.

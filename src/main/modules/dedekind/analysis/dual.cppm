@@ -295,7 +295,7 @@ using DualSetOf = UniversalSet<Dual<F>, L, C>;
 
 export using DualSet = DualSetOf<>;
 
-/** @brief The canonical dual-number universe 𝔻 = Ω<Dual<QuadraticReal<2>>,
+/** @brief The canonical dual-number universe 𝔻 = 𝔸<Dual<QuadraticReal<2>>,
  *         ClassicalLogic, ℶ_1> — the coat-hanger 𝔻 = Dual(ℝ) over the
  *         genuine ℝ = ℚ(√2) (mirroring ℝ and ℂ).
  *
@@ -308,14 +308,14 @@ export using DualSet = DualSetOf<>;
  *  Post-HSP retarget: the carrier of @c 𝔻 is @c Dual<QuadraticReal<2>> —
  *  the 2nd-order quotient ℝ[ε]/(ε²) over the coat-hanger ℝ, NOT
  *  @c Dual<double>.  Machine-double forward-mode AD lives on the
- *  materialisable ambient @c 𝔻_d = Ω<Dual<machine_real_scalar>> below
+ *  materialisable ambient @c 𝔻_d = 𝔸<Dual<machine_real_scalar>> below
  *  (mirroring ℝ_d / ℂ_d).  The classifier is reachable via
  *  @c DualSet @c = @c DualSetOf<>.
  *
  *  Cardinality is set explicitly to @c ℶ_1 (continuum) — @c 𝔻 is in
  *  bijection with ℝ × ℝ via the @c (a, @c b) coefficient pair (the
  *  same shape that gives @c ℂ its @c ℶ_1) — overriding the
- *  @c Ω<...> variable template's @c ℵ_0 default.
+ *  @c 𝔸<...> variable template's @c ℵ_0 default.
  *
  *  Pre-#559 the spelling was @c using @c 𝔻 @c = @c DualSet (the
  *  classifier alias); type-context sites in concept gates and member
@@ -330,7 +330,7 @@ export using DualSet = DualSetOf<>;
  *  is the universal-algebra side of that same construction.
  */
 export inline constexpr auto 𝔻 =
-    dedekind::sets::Ω<Dual<dedekind::numbers::QuadraticReal<2>>, ClassicalLogic,
+    dedekind::sets::𝔸<Dual<dedekind::numbers::QuadraticReal<2>>, ClassicalLogic,
                       ℶ_1>;
 
 static_assert(
@@ -338,7 +338,7 @@ static_assert(
         std::remove_cvref_t<decltype(𝔻)>,
         dedekind::sets::UniversalSet<Dual<dedekind::numbers::QuadraticReal<2>>,
                                      ClassicalLogic, ℶ_1>>,
-    "𝔻 is the universe Ω<Dual<QuadraticReal<2>>, ClassicalLogic, ℶ_1> — the "
+    "𝔻 is the universe 𝔸<Dual<QuadraticReal<2>>, ClassicalLogic, ℶ_1> — the "
     "coat-hanger 𝔻 = Dual(ℝ) = ℝ[ε]/(ε²) over the genuine ℝ = ℚ(√2), mirroring "
     "ℝ and ℂ.  Not Dual<double>.");
 static_assert(std::same_as<typename std::remove_cvref_t<decltype(𝔻)>::Domain,
@@ -346,11 +346,11 @@ static_assert(std::same_as<typename std::remove_cvref_t<decltype(𝔻)>::Domain,
               "𝔻's carrier IS Dual<QuadraticReal<2>> — the 2nd-order quotient "
               "ℝ[ε]/(ε²) over the coat-hanger ℝ.");
 
-/** @brief The materialisable machine ambient @c 𝔻_d = @c Ω<Dual<double>>,
+/** @brief The materialisable machine ambient @c 𝔻_d = @c 𝔸<Dual<double>>,
  *  mirroring @c ℝ_d / @c ℂ_d.  Machine-double forward-mode AD lives here; the
  *  abstract @c 𝔻 is the coat-hanger. */
 export inline constexpr auto 𝔻_d =
-    dedekind::sets::Ω<Dual<dedekind::numbers::machine_real_scalar>,
+    dedekind::sets::𝔸<Dual<dedekind::numbers::machine_real_scalar>,
                       ClassicalLogic, ℶ_1>;
 static_assert(std::same_as<typename std::remove_cvref_t<decltype(𝔻_d)>::Domain,
                            Dual<dedekind::numbers::machine_real_scalar>>,

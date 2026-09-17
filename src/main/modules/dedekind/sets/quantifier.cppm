@@ -115,7 +115,7 @@ constexpr bool forall(const S& s, P p) {
  * @details The comprehension is the where-clause @c S @c | @c P: on
  * @f$\mathbb{B}@f$ a fragment collapses structurally (@c π==fix(v) to a @c
  * Singleton, @c π⋈fix(v) to a @c Halfspace), each carrying a finite @c ==Ø /
- * @c ==Ω over @c {false, true}; on @f$\mathbb{N}@f$ a congruence @c π%fix(N)==
+ * @c ==𝔸 over @c {false, true}; on @f$\mathbb{N}@f$ a congruence @c π%fix(N)==
  * fix(R) materialises to a @c FiniteResidueSet over
  * @f$\mathbb{Z}/N\mathbb{Z}@f$. No range, no @c begin/end walk: the proof is
  * exhaustion of a finite quotient. See the §3.1 exhibit.
@@ -136,8 +136,8 @@ constexpr bool forall(const S& s, P p) {
 // operator| against the universe, so it falls through to the enumerable
 // (@c input_range) surface instead, keeping the two regimes honestly apart.
 // The predicate must be an UNBOUND fragment, never an @c IsSet: for a
-// set-valued operand @c s|p resolves to set UNION (@c Ω|Ø = Ω), not the
-// comprehension, which would make @c exists(Ω<bool>, Ø{}) wrongly true.
+// set-valued operand @c s|p resolves to set UNION (@c 𝔸|Ø = 𝔸), not the
+// comprehension, which would make @c exists(𝔸<bool>, Ø{}) wrongly true.
 // Excluding @c IsSet keeps @c | bound to the where-clause here.
 export template <dedekind::category::IsSet S, typename P>
   requires(!dedekind::category::IsSet<std::remove_cvref_t<P>> &&
@@ -156,8 +156,8 @@ constexpr bool forall(const S& s, P p) {
 
 /** @section quantifier__Formal_Verification */
 
-// The finite-quotient witnesses (Ω<bool> with a structural Singleton predicate,
-// Ω<Cardinality> with a Congruence) live in :numbers, where the structural
+// The finite-quotient witnesses (𝔸<bool> with a structural Singleton predicate,
+// 𝔸<Cardinality> with a Congruence) live in :numbers, where the structural
 // IsPredicate operands (dedekind.order Singleton, morphologies Congruence) are
 // in scope.  Source for the §3.1 exhibit (lst:quantifiers_def).
 

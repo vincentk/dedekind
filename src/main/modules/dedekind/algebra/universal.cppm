@@ -633,7 +633,7 @@ concept IsQuotientMorphism =
  * that
  *     @c IsSet roots on a carrier --- @b not @c IsAlgebraOnSet, which would
  * make the arrow a @f$\text{Set}\to\text{Set}@f$ map and break the hom law. The
- *     ambient algebra structure (@c IsAlgebraOnSet on @c Ω<Domain>) is
+ *     ambient algebra structure (@c IsAlgebraOnSet on @c 𝔸<Domain>) is
  * witnessed at the declaration site, where the operations are in scope.
  *
  * @note This concept classifies the @b arrow (the inclusion mono itself).  Its

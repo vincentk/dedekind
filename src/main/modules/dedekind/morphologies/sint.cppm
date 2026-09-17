@@ -102,7 +102,7 @@ using namespace dedekind::sets;
 //
 // These concepts and aliases previously lived in :integer alongside the
 // value-level ℤ alias.  The reorganisation separates the @b set-level
-// ℤ (now `Ω<SignedCardinality>`, kept in :integer) from the
+// ℤ (now `𝔸<SignedCardinality>`, kept in :integer) from the
 // @b carrier-level machinery for machine signed integers (concepts,
 // embedding, GCD --- relocated here).  Downstream consumers (Rational
 // in :rational) import :sint to pick them up.

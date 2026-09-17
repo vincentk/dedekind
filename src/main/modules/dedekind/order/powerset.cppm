@@ -11,7 +11,7 @@
  * @f[ \mathfrak{P}(S) \;\equiv\; \Omega\langle \mathrm{Sub}(C)\rangle \,\mid\,
  *     (X \mapsto X \subseteq S), @f]
  * an ordinary @c Set over the subobject domain @c Sub(C).  So @c 𝔓(S) is a
- * bona-fide @c IsSet and inherits the lattice laws (@c &Ø=Ø, @c |Ω=Ω) and
+ * bona-fide @c IsSet and inherits the lattice laws (@c &Ø=Ø, @c |𝔸=𝔸) and
  * @b setexpr @b participation --- meet / join / filter as any @c Set --- from
  * the set machinery, with no bespoke carrier.  (This is @b not
  * self-composition:
@@ -22,7 +22,7 @@
  *
  * @c Sub(C) is the gated part (the @c exists / @c forall pattern: an algebraic
  * default lifted by decidable specialisations).  Over an @b ordered carrier the
- * decidable convex subobjects --- @c Ø, @c Ω, @c Singleton, @c Halfspace,
+ * decidable convex subobjects --- @c Ø, @c 𝔸, @c Singleton, @c Halfspace,
  * @c OrderInterval --- all collapse to ONE @c std::regular type, a runtime
  * @c Sub; membership @f$X \subseteq S@f$ is then a @b homogeneous interval
  * nesting (no family variant, no double dispatch), reusing the #835 endpoint
@@ -37,7 +37,7 @@
  * :inclusion).  So the home is @c order, where that order lives --- @b not
  * @c topology (whose @c Interval is about the continuum / neighbourhoods).  @c
  * Sub has @b no topology dependency: it coerces in only the @c :sets boundaries
- * (@c Ø / @c Ω) and the @c order NTTP-pivot families (@c Singleton / @c
+ * (@c Ø / @c 𝔸) and the @c order NTTP-pivot families (@c Singleton / @c
  * Halfspace / @c OrderInterval).  Being upstream, this reaches every downstream
  * layer (topology included).  (The earlier @c order::Interval name collided
  * with
@@ -87,12 +87,12 @@ struct Sub : dedekind::sets::SetExpr<Sub<C, L>, C, L> {
   // State is PRIVATE and canonicalised at construction (normalize()), so no
   // caller can fabricate a non-canonical Sub that breaks == / <= / χ.
 
-  constexpr Sub() = default;  // Ω
+  constexpr Sub() = default;  // 𝔸
 
   // --- the to_sub coercions (and, structurally, the 𝔓 gate) ---
   constexpr Sub(const dedekind::sets::Ø<C, L>&) : empty_(true) { normalize(); }
   template <typename Card>
-  constexpr Sub(const dedekind::sets::UniversalSet<C, L, Card>&) {}  // Ω
+  constexpr Sub(const dedekind::sets::UniversalSet<C, L, Card>&) {}  // 𝔸
   // The singleton's carrier must BE @c C (like the Halfspace / OrderInterval
   // ctors that fix @c C): otherwise @c Singleton<4.5> would silently narrow
   // into a @c Sub<int>, testing a different set.  Cross-carrier needs an
@@ -178,7 +178,7 @@ struct Sub : dedekind::sets::SetExpr<Sub<C, L>, C, L> {
  private:
   C lo_{};
   C hi_{};
-  bool lo_unbounded_ = true;  // default: Ω = (−∞, +∞)
+  bool lo_unbounded_ = true;  // default: 𝔸 = (−∞, +∞)
   bool hi_unbounded_ = true;
   Strictness lo_strict_ = Strictness::Strict;  // open at the infinite ends
   Strictness hi_strict_ = Strictness::Strict;
@@ -267,19 +267,19 @@ constexpr auto power_set(const S& base) {
  * boundary
  *  @b type, @b not a trivially-true filtered @c Set.  A more-specialised
  * overload than the generic @c power_set above, so it wins by partial ordering;
- * keeping the @c Ω type (rather than @c Set<Sub,…,SubsetOf>) preserves the
- *  boundary / cardinality metadata and the lattice identities @c Ω|X=Ω / @c
- *  Ω&X=X on @c 𝔓(Ω).  (Sibling of the @c :sets closed form
+ * keeping the @c 𝔸 type (rather than @c Set<Sub,…,SubsetOf>) preserves the
+ *  boundary / cardinality metadata and the lattice identities @c 𝔸|X=𝔸 / @c
+ *  𝔸&X=X on @c 𝔓(𝔸).  (Sibling of the @c :sets closed form
  *  @f$\mathfrak{P}(\emptyset)=\{\emptyset\}=\Omega\langle\varnothing\rangle@f$.)
  */
 export template <typename C, typename L, typename Card>
   requires IsTotallyOrdered<C>
 constexpr auto power_set(const dedekind::sets::UniversalSet<C, L, Card>&) {
-  return dedekind::sets::Ω<Sub<C, L>, L>;
+  return dedekind::sets::𝔸<Sub<C, L>, L>;
 }
 
 /** @brief Textbook fraktur-P alias for @c power_set (blackboard @c 𝔓). Forwards
- *  to @c power_set, so the @c Ω closed form above is selected for a universe
+ *  to @c power_set, so the @c 𝔸 closed form above is selected for a universe
  *  base and the filtered form for a proper ordered base. */
 export template <SubReifiable S>
 constexpr auto 𝔓(const S& base) {

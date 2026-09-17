@@ -10,9 +10,9 @@ using namespace dedekind::numbers;
 using namespace dedekind::sets;
 
 TEST_CASE("Numbers: canonical starter symbols", "[numbers][starter]") {
-  // Per #559 (option-A migration, sibling to #551's Ω<carrier> ambient
+  // Per #559 (option-A migration, sibling to #551's 𝔸<carrier> ambient
   // redesign), the canonical species symbols are universe @b values:
-  // @c ℕ = @c Ω<Cardinality>, @c ℤ = @c Ω<SignedCardinality> (post-#670:
+  // @c ℕ = @c 𝔸<Cardinality>, @c ℤ = @c 𝔸<SignedCardinality> (post-#670:
   // saturating-discipline alignment with ℕ), and so on.  Carriers are
   // spelled directly (Cardinality, SignedCardinality, Rational<...>, ...)
   // in template-type-parameter positions.  Each symbol's STATIC_CHECK
@@ -22,16 +22,16 @@ TEST_CASE("Numbers: canonical starter symbols", "[numbers][starter]") {
 
   STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(ℕ)>,
                             UniversalSet<Cardinality>>);
-  STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(Ω<Cardinality>)>,
+  STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(𝔸<Cardinality>)>,
                             UniversalSet<Cardinality>>);
 
   // Post-#670: ℤ uses the saturating SignedCardinality variant
-  // (mirroring ℕ = Ω<Cardinality>), not the cyclic finite fragment.
+  // (mirroring ℕ = 𝔸<Cardinality>), not the cyclic finite fragment.
   STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(ℤ)>,
                             UniversalSet<SignedCardinality>>);
   STATIC_CHECK(std::same_as<typename std::remove_cvref_t<decltype(ℤ)>::Domain,
                             SignedCardinality>);
-  STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(Ω<SignedCardinality>)>,
+  STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(𝔸<SignedCardinality>)>,
                             UniversalSet<SignedCardinality>>);
 
   STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(ℚ)>,
@@ -39,7 +39,7 @@ TEST_CASE("Numbers: canonical starter symbols", "[numbers][starter]") {
   STATIC_CHECK(std::same_as<typename std::remove_cvref_t<decltype(ℚ)>::Domain,
                             Rational<default_integer>>);
   STATIC_CHECK(
-      std::same_as<std::remove_cvref_t<decltype(Ω<Rational<default_integer>>)>,
+      std::same_as<std::remove_cvref_t<decltype(𝔸<Rational<default_integer>>)>,
                    UniversalSet<Rational<default_integer>>>);
 
   // 𝔻 / D / DualSet starter aliases moved to dedekind.analysis:dual at
@@ -54,7 +54,7 @@ TEST_CASE("Numbers: starter universes construct from ambient values",
   //   constexpr auto naturals = Set{n};      // universal Set over ℕ-carrier
   //   static_assert(naturals.contains(7u));  // value-level membership query
   //
-  // (Pre-#559 the spelling was @c element<Ω<ℕ>> with ℕ a carrier alias;
+  // (Pre-#559 the spelling was @c element<𝔸<ℕ>> with ℕ a carrier alias;
   //  the @c % @c N binding step had already gone in #551.)
 
   constexpr auto n = element<ℕ>;
@@ -62,10 +62,10 @@ TEST_CASE("Numbers: starter universes construct from ambient values",
   static_assert(naturals(7u));
   static_assert(naturals(0u));
   // Direct ambient-call route: ℕ.contains(value) (or equivalently
-  // Ω<Cardinality>.contains(value), since ℕ = Ω<Cardinality>) returns
+  // 𝔸<Cardinality>.contains(value), since ℕ = 𝔸<Cardinality>) returns
   // L::True for every Cardinality value (the universal-set semantics).
-  static_assert(Ω<Cardinality>.contains(7u));
-  static_assert(Ω<Cardinality>.contains(0u));
+  static_assert(𝔸<Cardinality>.contains(7u));
+  static_assert(𝔸<Cardinality>.contains(0u));
 
   constexpr auto z = element<ℤ>;
   constexpr auto integers = Set{z};
@@ -111,7 +111,7 @@ TEST_CASE(
   // canonical ℤ carrier, mirroring @c ℕ's @c Cardinality).  The
   // exhibit therefore ties directly to the canonical @c ℤ alias,
   // dropping the cyclic-vs-saturating workaround that had briefly
-  // anchored the prior version on @c Ω<SignedExtensionalCardinal<>>.
+  // anchored the prior version on @c 𝔸<SignedExtensionalCardinal<>>.
 
   using I = default_integer;  // SignedCardinality (canonical ℤ carrier)
   constexpr auto z = element<ℤ>;

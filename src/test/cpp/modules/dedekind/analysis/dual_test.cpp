@@ -14,7 +14,7 @@ import dedekind.analysis;
 import dedekind.category; // ClassicalLogic, Ternary, var, ...
 import dedekind.geometry; // IsTangentBundle (flat-case tangent-bundle concept)
 import dedekind.numbers;  // Complex<F>, machine_real_scalar, IEEE<F>
-import dedekind.sets;     // Set, Ω, predicate-set DSL
+import dedekind.sets;     // Set, 𝔸, predicate-set DSL
 
 using namespace dedekind::analysis;
 using namespace dedekind::category;
@@ -110,8 +110,8 @@ TEST_CASE(
 TEST_CASE("Analysis: 𝔻 / D / DualSet starter aliases",
           "[analysis][dual][starter]") {
   // Post-HSP retarget: 𝔻 is the COAT-HANGER universe value
-  // Ω<Dual<QuadraticReal<2>>, ClassicalLogic, ℶ_1>; the machine-double ambient
-  // is 𝔻_d = Ω<Dual<machine_real_scalar>> (mirroring ℝ_d / ℂ_d).  D is the
+  // 𝔸<Dual<QuadraticReal<2>>, ClassicalLogic, ℶ_1>; the machine-double ambient
+  // is 𝔻_d = 𝔸<Dual<machine_real_scalar>> (mirroring ℝ_d / ℂ_d).  D is the
   // classifier instance DualSet{} (= DualSetOf<>{}).  The pair mirrors ℝ/ℂ.
   using R2 = QuadraticReal<2>;
   STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(𝔻)>,

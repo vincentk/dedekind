@@ -883,7 +883,7 @@ struct ComplexesOf {
 export using ComplexSet = ComplexesOf<>;
 
 /** @brief The canonical complex-number universe ℂ =
- * Ω<Complex<QuadraticReal<2>>, ClassicalLogic, ℶ_1> — the coat-hanger
+ * 𝔸<Complex<QuadraticReal<2>>, ClassicalLogic, ℶ_1> — the coat-hanger
  * ℂ = Cplx(ℝ) over the genuine ℝ = ℚ(√2) (mirroring ℝ and 𝔻).
  *
  *  @details Per #559's chosen direction (option A): the named species
@@ -895,14 +895,14 @@ export using ComplexSet = ComplexesOf<>;
  *  Post-HSP retarget: the carrier of @c ℂ is @c Complex<QuadraticReal<2>> ---
  *  the 2nd-order quotient ℝ[i]/(i²+1) over the coat-hanger ℝ, NOT
  *  @c Complex<double>.  Machine-double complex lives on the materialisable
- *  ambient @c ℂ_d = Ω<Complex<machine_real_scalar>> below (mirroring
+ *  ambient @c ℂ_d = 𝔸<Complex<machine_real_scalar>> below (mirroring
  *  ℝ_d / 𝔻_d).  The classifier (multi-overload cross-carrier @c operator()
  *  that delegates ℝ_d-side arguments through @c embed_ℝ_d_ℂ and lands non-
  *  parent ancestors via @c RealsOf<>) is reachable via @c ComplexSet
  *  @c = @c ComplexesOf<>.
  *
  *  Cardinality is set explicitly to @c ℶ_1 (continuum) — the textbook
- *  cardinality of ℂ, matching ℝ — overriding the @c Ω<...> variable
+ *  cardinality of ℂ, matching ℝ — overriding the @c 𝔸<...> variable
  *  template's @c ℵ_0 default.  ℂ is in bijection with ℝ × ℝ and
  *  therefore shares ℝ's continuum cardinality.
  *
@@ -910,27 +910,27 @@ export using ComplexSet = ComplexesOf<>;
  *  @c quotient_algebra_base<Complex<R>> = R (the sibling of 𝔻 = ℝ[ε]/(ε²)).
  */
 export inline constexpr auto ℂ =
-    dedekind::sets::Ω<Complex<QuadraticReal<2>>, ClassicalLogic, ℶ_1>;
+    dedekind::sets::𝔸<Complex<QuadraticReal<2>>, ClassicalLogic, ℶ_1>;
 
 static_assert(
     std::same_as<std::remove_cvref_t<decltype(ℂ)>,
                  dedekind::sets::UniversalSet<Complex<QuadraticReal<2>>,
                                               ClassicalLogic, ℶ_1>>,
-    "ℂ is the universe Ω<Complex<QuadraticReal<2>>, ClassicalLogic, ℶ_1> — the "
+    "ℂ is the universe 𝔸<Complex<QuadraticReal<2>>, ClassicalLogic, ℶ_1> — the "
     "coat-hanger ℂ = Cplx(ℝ) over the genuine ℝ = ℚ(√2), mirroring "
-    "ℝ = Ω<QuadraticReal<2>> (#806).  Not Complex<double>.");
+    "ℝ = 𝔸<QuadraticReal<2>> (#806).  Not Complex<double>.");
 static_assert(
     std::same_as<typename std::remove_cvref_t<decltype(ℂ)>::Domain,
                  Complex<QuadraticReal<2>>>,
     "ℂ's carrier IS Complex<QuadraticReal<2>> — the 2nd-order quotient "
     "ℝ[i]/(i²+1) over the coat-hanger ℝ.");
 
-/** @brief The materialisable machine ambient @c ℂ_d = @c Ω<Complex<double>>,
+/** @brief The materialisable machine ambient @c ℂ_d = @c 𝔸<Complex<double>>,
  *  mirroring @c ℝ_d.  Machine-double complex work (showcases, Mandelbrot,
  *  benchmarks, the Python facade) lives here, exactly as @c double reals moved
  *  from @c ℝ to @c ℝ_d in #806.  The abstract @c ℂ is the coat-hanger. */
 export inline constexpr auto ℂ_d =
-    dedekind::sets::Ω<Complex<machine_real_scalar>, ClassicalLogic, ℶ_1>;
+    dedekind::sets::𝔸<Complex<machine_real_scalar>, ClassicalLogic, ℶ_1>;
 static_assert(
     std::same_as<typename std::remove_cvref_t<decltype(ℂ_d)>::Domain,
                  Complex<machine_real_scalar>>,
@@ -1109,9 +1109,9 @@ constexpr auto embed_grid_ℂ(
         grid) {
   using namespace dedekind::sets;
   // FIXME(#399 slice 4-6): once ℂ becomes a carrier alias for
-  // Complex<...>, switch to @c element<Ω<ℂ>>; for now ℂ is still the
+  // Complex<...>, switch to @c element<𝔸<ℂ>>; for now ℂ is still the
   // predicate-set type.
-  auto c = element<Ω<Complex<double>>>;
+  auto c = element<𝔸<Complex<double>>>;
   return Set{c | [grid](const Complex<double>& z) {
     const double re = z.real();
     const double im = z.imag();

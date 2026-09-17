@@ -37,7 +37,7 @@ namespace {
 constexpr auto R2 = R * R;
 using R2Point = typename decltype(R2)::Domain;
 // FIXME(#399 slice 4-6): see showcase_01 source for the same comment.
-constexpr auto xy = element<Ω<R2Point>>;
+constexpr auto xy = element<𝔸<R2Point>>;
 
 // The diagonal {x == y}: reuse the set-expression operator== on the projections
 // (π1 == π2), not a hand lambda — over the SAME xy % R2 base as `strip`, so the
@@ -62,7 +62,7 @@ TEST_CASE("Pruning showcase 1: diagonal × strip on ℝ² is empty",
 namespace {
 
 // Shared with showcase 2 (ℂ lattice × square singleton).
-// Post-HSP retarget: ℂ is the coat-hanger Ω<Complex<QuadraticReal<2>>, ...>, so
+// Post-HSP retarget: ℂ is the coat-hanger 𝔸<Complex<QuadraticReal<2>>, ...>, so
 // showcase 2 runs on EXACT ℚ(√2) arithmetic; the scout stays element<ℂ> (now a
 // Complex<QuadraticReal<2>> scout).
 using QR = QuadraticReal<2>;  // exact real carrier (R2 is taken above for ℝ²)
@@ -137,8 +137,8 @@ TEST_CASE("Pruning showcase 4: cardinality-1 halfspace meet = Singleton<4>",
 TEST_CASE("Pruning showcase 5: halfspace meet on ℝ collapses to Ø",
           "[analysis][pruning][showcase][showcase05]") {
   // FIXME(#399 slice 4-6): once ℝ becomes a carrier alias, switch to
-  // @c element<Ω<ℝ>>; for now ℝ is still the predicate-set type.
-  constexpr auto x = element<Ω<Real<double>>>;
+  // @c element<𝔸<ℝ>>; for now ℝ is still the predicate-set type.
+  constexpr auto x = element<𝔸<Real<double>>>;
   constexpr auto gt_five = Set{x | (x > bound<5.0>)};
   constexpr auto lt_three = Set{x | (x < bound<3.0>)};
 
@@ -192,9 +192,9 @@ TEST_CASE("Pruning showcase 7: ℤ lattice ∩ real interval (-21.0, 21.0]",
   // @c IntsOnInt is the int-Domain universal predicate, defined
   // The pre-#551 surface used a locally-defined IntsOnInt predicate-set
   // because the canonical @c IntegersOf<> carried @c Domain @c =
-  // @c SEC<>; under #551 the scout itself knows its ambient (Ω<int>),
+  // @c SEC<>; under #551 the scout itself knows its ambient (𝔸<int>),
   // so no local predicate-set is needed.
-  constexpr auto n = element<Ω<int>>;
+  constexpr auto n = element<𝔸<int>>;
   constexpr auto above = Set{n | (n > bound<-21.0>)};
   constexpr auto at_most = Set{n | (n <= bound<21.0>)};
 

@@ -13,7 +13,7 @@
  *
  * Key constructs exported:
  *  - Set<T,L,P>           -- ETCS-compatible intensional set.
- *  - element<Ω<T>>        -- BoundScout factory for comprehension syntax
+ *  - element<𝔸<T>>        -- BoundScout factory for comprehension syntax
  * (#551).
  *  - Boolean connectives &&, ||, ! lifted to predicate combinators.
  *  - operator<=           -- subset relation (same-predicate -> True;
@@ -27,7 +27,7 @@
  *
  * @section expressions__Canonical_Examples
  * ```cpp
- * auto n = element<Ω<ℕ>>;
+ * auto n = element<𝔸<ℕ>>;
  * const int size = 512;
  * const auto xs = Set{n | (n < size)};
  * const auto grid = cartesian_product(xs, xs);  // xs x xs
@@ -60,7 +60,7 @@ module;
 export module dedekind.sets:expressions;
 
 import dedekind.category;
-import :boundaries;     // For Ω, Ø
+import :boundaries;     // For 𝔸, Ø
 import :cardinality;    // For Cardinality / SignedCardinality (cross-carrier
                         // meet)
 import :mereology;      // For mereology lattice concepts
@@ -290,7 +290,7 @@ struct MembershipBinding {
  * predicate} becomes redundant — the scout already knows its
  * ambient.  Paper Listing 6 reads as:
  *
- *     inline constexpr auto 𝔹 = Ω<bool>;            // ambient value
+ *     inline constexpr auto 𝔹 = 𝔸<bool>;            // ambient value
  *     inline constexpr auto b = element<𝔹>;          // bound scout
  *     constexpr auto f = Set{b | !b};                // {b ∈ 𝔹 | !b}
  *
@@ -322,7 +322,7 @@ struct BoundScout {
 
   /** @brief Membership re-bind: @c b @c % @c S binds @c b to a
    *  @b narrower set @c S whose @c Domain matches the scout's @c T.
-   *  Used when the scout's declared ambient is the universal @c Ω<T>
+   *  Used when the scout's declared ambient is the universal @c 𝔸<T>
    *  but the caller wants to specialise to a smaller subset (e.g.\
    *  @c singleton(1), an empty set, a specific predicate-set). */
   template <typename SubSpecies>
@@ -348,7 +348,7 @@ struct BoundScout {
 };
 
 /** @brief Variable-template factory for bound scouts at a specific
- *  ambient value.  Companion to @c Ω<T>: spell @c element<Ω<T>> to
+ *  ambient value.  Companion to @c 𝔸<T>: spell @c element<𝔸<T>> to
  *  get a scout that ranges over the universal predicate at carrier
  *  @c T.
  *  @deprecated Not part of the official Lwv grammar; use the point-free
@@ -358,7 +358,7 @@ struct BoundScout {
 // project's @b current encoding a "set" @b is its characteristic morphism
 // @c χ : @c T @c → @c Ω (ETCS reading).  So the ambient is not merely an
 // arrow but a @b characteristic arrow into the classifier Ω; the
-// set-as-predicate carriers (@c Ω<T>, @c UniversalSet<T, L, C>, @c
+// set-as-predicate carriers (@c 𝔸<T>, @c UniversalSet<T, L, C>, @c
 // Subobject<A, χ>) all satisfy @c IsCharacteristic via their @c χ.  Gating
 // on @c IsCharacteristic (the telling concept) rather than the generic
 // @c IsArrow states that invariant at the type level.  If the encoding
@@ -877,7 +877,7 @@ class Set {
    *
    * @section expressions__Soundness_note
    * Complementary-pair XOR collapses to the universe
-   * (@c A @c △ @c ¬A @c = @c Ω) via the same @c IsComplementPair_v
+   * (@c A @c △ @c ¬A @c = @c 𝔸) via the same @c IsComplementPair_v
    * detection used by @c | / @c &.  A naïve same-predicate-type
    * collapse to @c Ø would be @b unsound: predicate types like
    * @c BooleanEqPredicate are stateful (carry an @c expected field),
@@ -911,9 +911,9 @@ class Set {
       // Compile-time-covering optimisation (dual of the disjoint
       // branch above): when @c A @c ∪ @c B reduces structurally to
       // @c UniversalSet<T, L> at the type level, the textbook identity becomes
-      // @c A @c △ @c B @c = @c Ω @c ∖ @c (A @c ∩ @c B) @c =
+      // @c A @c △ @c B @c = @c 𝔸 @c ∖ @c (A @c ∩ @c B) @c =
       // @c ¬(A @c ∩ @c B).  Currently dormant: today the only path
-      // by which @c | yields @c Ω at the type level is the
+      // by which @c | yields @c 𝔸 at the type level is the
       // @c IsComplementPair_v branch, which is already handled by
       // branch 1 above.  When a @c structured_or overload lands
       // (mirroring the existing @c structured_and in
@@ -1147,10 +1147,10 @@ constexpr auto image(F&& f, const Set<T, L, P>& s) {
 }
 
 /** @brief image of the @b unbounded universe under an iso @c F:T→U is the
- *  universe @b of the codomain, @c Ω<U>: an iso is surjective, so it fixes the
+ *  universe @b of the codomain, @c 𝔸<U>: an iso is surjective, so it fixes the
  *  universe setwise --- but onto @c U, not @c T.  For an endo-iso (@c U==T)
- * this is @c Ω<T> unchanged; for a heterogeneous iso (e.g.\ @c Modular<2> → @c
- * bool) it correctly returns @c Ω<bool> so callers can query codomain values.
+ * this is @c 𝔸<T> unchanged; for a heterogeneous iso (e.g.\ @c Modular<2> → @c
+ * bool) it correctly returns @c 𝔸<bool> so callers can query codomain values.
  */
 export template <typename T, typename L, typename C,
                  dedekind::category::IsIsomorphism F>
@@ -1158,12 +1158,12 @@ export template <typename T, typename L, typename C,
            !dedekind::category::IsTerminalMorphism<std::remove_cvref_t<F>>)
 constexpr auto image(F&&, const UniversalSet<T, L, C>&) {
   using U = dedekind::category::Cod<std::remove_cvref_t<F>>;
-  return Ω<U, L, C>;  // iso |U| = |T|, so the cardinality carries
+  return 𝔸<U, L, C>;  // iso |U| = |T|, so the cardinality carries
 }
 // The terminal case (@c id<One>, which is BOTH an iso and the unique One→One
 // terminal morphism) is excluded here and handled by the terminal-morphism
 // @c image overload in @c :singleton --- otherwise the two identically-typed
-// overloads are ambiguous for @c image(id<One>(), Ω<One>).
+// overloads are ambiguous for @c image(id<One>(), 𝔸<One>).
 
 /** @brief Composed predicate for the retract-decidable @c image(f, Set)
  *         specialisation: @c y @c ↦ @c let @c mx @c = @c retract(f)(y);
@@ -1314,9 +1314,9 @@ constexpr auto operator^(const Set<T, L, Predicate>& s, const Ø<T, L>&) {
   return s;
 }
 
-/** @brief @c Set @c ^ @c Ω @c = @c ¬Set (symmetric difference with the
+/** @brief @c Set @c ^ @c 𝔸 @c = @c ¬Set (symmetric difference with the
  *         universe is the complement; #469).  Symmetric of
- *         @c Ω::operator^(S) above. */
+ *         @c 𝔸::operator^(S) above. */
 export template <typename T, typename L, typename C, typename Predicate>
 constexpr auto operator^(const Set<T, L, Predicate>& s,
                          const UniversalSet<T, L, C>&) {
@@ -1496,8 +1496,8 @@ export template <typename A, typename B>
   } && std::same_as<typename NaturalLogic<std::remove_cvref_t<A>>::type,
                     typename NaturalLogic<std::remove_cvref_t<B>>::type>
 constexpr auto cartesian_product(const A& a, const B& b) {
-  auto xa = element<Ω<typename std::remove_cvref_t<A>::Domain>>;
-  auto xb = element<Ω<typename std::remove_cvref_t<B>::Domain>>;
+  auto xa = element<𝔸<typename std::remove_cvref_t<A>::Domain>>;
+  auto xb = element<𝔸<typename std::remove_cvref_t<B>::Domain>>;
   const auto left = Set{xa % a};
   const auto right = Set{xb % b};
   return cartesian_product(left, right);
@@ -1509,7 +1509,7 @@ constexpr auto cartesian_product(const A& a, const B& b) {
  *        carrier (@c IsProduct).
  *
  * @details Two @b total factors carry no restriction to lift, so the product
- * @b is the pure product universe @c Ω<pair<A,B>> --- not a refinement of it.
+ * @b is the pure product universe @c 𝔸<pair<A,B>> --- not a refinement of it.
  * This is the base case of the cylinder decomposition @f$A\times B =
  * \pi_1^{-1}(A)\cap\pi_2^{-1}(B)@f$: with @c A, @c B universal both cylinders
  * are the whole universe, so their intersection is too.  A @b restricted
@@ -1551,7 +1551,7 @@ export template <typename A, typename LA, typename CA, typename B, typename LB,
 constexpr auto operator*(const UniversalSet<A, LA, CA>&,
                          const UniversalSet<B, LB, CB>&) {
   using CC = typename product_cardinality<CA, CB>::type;
-  return Ω<std::pair<A, B>, LA, CC>;
+  return 𝔸<std::pair<A, B>, LA, CC>;
 }
 
 /** @brief Infix sugar for cartesian product over sets. */
@@ -1615,7 +1615,7 @@ concept SetShaped = requires {
  * specialisations live downstream, where the subset order does:
  * @c dedekind.order:powerset gives the ordered / convex case
  * (@f$\mathfrak{P}(S) = \Omega\langle\mathrm{Sub}(C)\rangle \mid X \subseteq
- * S@f$ over the subobject domain @c Sub(C), an interval), covering @c Ω /
+ * S@f$ over the subobject domain @c Sub(C), an interval), covering @c 𝔸 /
  * @c Singleton / @c Halfspace / @c OrderInterval by coercion; a finite-carrier
  * / erased case may follow (#830).  The one exception is @f$\mathfrak{P}
  * (\emptyset) = \{\emptyset\}@f$, which needs no subobject domain and is a
@@ -1643,7 +1643,7 @@ auto 𝔓(const S&) = delete;
  * the @b singleton @f$\{\emptyset\}@f$ (cardinality @f$1 = 2^0@f$, @b not
  * @f$\emptyset@f$).  That singleton is exactly the universe over the
  * one-inhabitant domain @c Ø<T,L>: every empty set is equal to every other
- * (@c Ø's cross-carrier @c ==), so @c Ω over the empty-set carrier has a single
+ * (@c Ø's cross-carrier @c ==), so @c 𝔸 over the empty-set carrier has a single
  * inhabitant, @f$\emptyset@f$ itself.  No @c Sub, no ordered carrier, no
  * @c Rice-walled subobject enumeration --- which is why the @c empty node of
  * the grammar can be discharged upstream of the interval specialisation.  This
@@ -1652,7 +1652,7 @@ auto 𝔓(const S&) = delete;
  */
 export template <typename T, typename L>
 constexpr auto power_set(const Ø<T, L>&) {
-  return Ω<Ø<T, L>, L, Finite>;
+  return 𝔸<Ø<T, L>, L, Finite>;
 }
 export template <typename T, typename L>
 constexpr auto 𝔓(const Ø<T, L>&) {
@@ -1673,7 +1673,7 @@ struct all_in {
   constexpr bool operator()(int) const { return true; }
 };
 static_assert(IsSet<Comprehension<UniversalSet<int>, all_in>>,
-              "{Ω | P} is a first-class set: IsSet by SetExpr + its own χ.");
+              "{𝔸 | P} is a first-class set: IsSet by SetExpr + its own χ.");
 static_assert(IsSet<Comprehension<Ø<int>, all_in>>,
               "{Ø | P} is a first-class set.");
 }  // namespace detail_setexpr_witness

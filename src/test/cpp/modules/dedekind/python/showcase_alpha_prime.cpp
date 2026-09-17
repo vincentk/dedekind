@@ -61,7 +61,7 @@ using namespace dedekind::order;
 //     textbook membership shape.
 constexpr auto S = Set{in<ℕ> | in<ℕ> > bound<5>};
 
-// Post-#622: ℕ = Ω<Cardinality> is countable on the carrier axis
+// Post-#622: ℕ = 𝔸<Cardinality> is countable on the carrier axis
 // (ℵ_0), so NaturalLogic routes the comprehension @c S to
 // @c ClassicalLogic — @c S.contains(...) lands @c bool directly, no
 // Kleene lift required.  Rice's theorem still caps further promotion of

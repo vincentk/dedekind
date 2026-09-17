@@ -44,7 +44,7 @@ inline constexpr bool
 
 TEST_CASE("Dedekind MVP: Basic Membership and Symbols", "[sets]") {
   SECTION("Integer Universe Membership") {
-    auto x = element<Ω<int>>;  // A variable representing an element of
+    auto x = element<𝔸<int>>;  // A variable representing an element of
                                // the integer universe
 
     // Should be Set<int, ClassicalLogic>
@@ -54,7 +54,7 @@ TEST_CASE("Dedekind MVP: Basic Membership and Symbols", "[sets]") {
   }
 
   SECTION("Natural-numbers membership") {
-    // Post-#559, ℕ is the universe value Ω<Cardinality>; the underlying
+    // Post-#559, ℕ is the universe value 𝔸<Cardinality>; the underlying
     // carrier is Cardinality (the variant ℕ-proxy from #402, which
     // accepts unsigned literals via implicit construction).  Callsites
     // here use unsigned values that lift into Cardinality.
@@ -89,7 +89,7 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
   }
 
   SECTION("Singleton ^ Set — pivot toggles membership (#469)") {
-    auto x_int = element<Ω<int>>;
+    auto x_int = element<𝔸<int>>;
     auto positives = Set{x_int % UniversalSet<int>{} | (x_int > 0)};
     auto sing_in_set = singleton(5);
     auto sing_out_set = singleton(-3);
@@ -126,7 +126,7 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
     REQUIRE_FALSE(right_collapse(5u));
   }
 
-  SECTION("Boundary collapses: A ^ Ω = ¬A, Ω ^ A = ¬A (#469)") {
+  SECTION("Boundary collapses: A ^ 𝔸 = ¬A, 𝔸 ^ A = ¬A (#469)") {
     auto S = Set{x | x > 10u};
     using SDomain = decltype(S)::Domain;
     using SLogic = decltype(S)::logic_species;
@@ -164,7 +164,7 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
     // pair regardless of the .expected field.
     using BoolAmbient = UniversalSet<bool, ClassicalLogic, Finite>;
     constexpr BoolAmbient B_bool{};
-    constexpr auto b = element<Ω<bool>>;
+    constexpr auto b = element<𝔸<bool>>;
     auto only_true = Set{b % B_bool | (b == true)};
     auto only_false = Set{b % B_bool | (b == false)};
     auto sym_diff = only_true ^ only_false;
@@ -291,7 +291,7 @@ TEST_CASE("Dedekind Identities: Extremal Collapse", "[sets][identities]") {
     REQUIRE_FALSE(S(12u));
   }
 
-  SECTION("Tautology: {x ∈ ℕ | x > 10 ∨ x <= 10} is Ω") {
+  SECTION("Tautology: {x ∈ ℕ | x > 10 ∨ x <= 10} is 𝔸") {
     auto S = Set{x | (x > 10u || x <= 10u)};
     REQUIRE(S(7u));
   }
@@ -302,7 +302,7 @@ TEST_CASE("Dedekind Identities: Boolean literals collapse over 𝔹",
   using BoolAmbient = UniversalSet<bool, ClassicalLogic, Finite>;
   constexpr BoolAmbient B_bool{};
 
-  constexpr auto b = element<Ω<bool>>;
+  constexpr auto b = element<𝔸<bool>>;
 
   constexpr auto b_false = Set{b % B_bool | !b};
   constexpr auto b_true = Set{b % B_bool | (b == true)};
@@ -326,7 +326,7 @@ TEST_CASE(
   using BoolAmbient = UniversalSet<bool, ClassicalLogic, Finite>;
   constexpr BoolAmbient B_bool{};
 
-  constexpr auto b = element<Ω<bool>>;
+  constexpr auto b = element<𝔸<bool>>;
 
   // Bare-b form (the issue's target ergonomics).
   constexpr auto b_true_bare = Set{b % B_bool | b};
@@ -351,7 +351,7 @@ TEST_CASE("Dedekind Sets: Cartesian product witnesses", "[sets][cartesian]") {
   // is_single_valued_at) moved with their concepts to
   // relational/relation_core_test (the concept left :sets, so its test did
   // too --- the test DAG imports upstream only).
-  auto x = element<Ω<int>>;
+  auto x = element<𝔸<int>>;
 
   const auto positive = Set{x % UniversalSet<int>{} | (x > 0)};
   const auto small = Set{x % UniversalSet<int>{} | (x <= 3)};

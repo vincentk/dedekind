@@ -65,7 +65,7 @@ TEST_CASE("order:halfspace — Variable DSL constructs Halfspace from bound<V>",
           "[order][halfspace][dsl]") {
   // ℕ rather than ℤ so the order-test target stays upstream of numbers: ℤ
   // lives in `dedekind.numbers`, which is downstream of `dedekind.order`
-  // in the build DAG.  Post-#559 ℕ is the universe value Ω<Cardinality>;
+  // in the build DAG.  Post-#559 ℕ is the universe value 𝔸<Cardinality>;
   // the underlying carrier is Cardinality (the variant ℕ-proxy from
   // #402), so the test exercises `Halfspace<Cardinality, ...>`
   // instantiations.
@@ -99,7 +99,7 @@ TEST_CASE("order:halfspace — Variable DSL constructs Halfspace from bound<V>",
                                            Strictness::NonStrict>>);
   }
   // Note (post-#409 review): the DSL constraint also rejects negative
-  // signed pivots on unsigned carriers (e.g. `element<Ω<ℕ>> > bound<-1>` no
+  // signed pivots on unsigned carriers (e.g. `element<𝔸<ℕ>> > bound<-1>` no
   // longer compiles, where previously int→unsigned conversion would
   // wrap -1 to UINT_MAX silently).  The regression is exercised
   // implicitly: dropping the constraint would not break any existing
@@ -391,9 +391,9 @@ TEST_CASE("order:halfspace — structural subset ⊆ and derived >=,<,> (#831)",
 
   SECTION("empty ⊆ anything; anything ⊆ universe") {
     static_assert(bool(Ø<int>{} <= gt5), "∅ ⊆ {x>5}");
-    static_assert(bool(gt5 <= Ω<int>), "{x>5} ⊆ ℤ");
+    static_assert(bool(gt5 <= 𝔸<int>), "{x>5} ⊆ ℤ");
     CHECK(bool(Ø<int>{} <= gt5));
-    CHECK(bool(gt5 <= Ω<int>));
+    CHECK(bool(gt5 <= 𝔸<int>));
   }
 
   SECTION("singleton ⊆ via membership") {

@@ -607,7 +607,7 @@ static_assert(
     "Rational<I> is a module over its IntegerCarrier I.");
 
 /** @brief The canonical rational-number universe ℚ =
- * Ω<Rational<default_integer>> (post-#559).
+ * 𝔸<Rational<default_integer>> (post-#559).
  *
  *  @details Per #559's chosen direction (option A): the named species
  *  symbols (@c 𝔹 / @c ℕ / @c ℤ / @c ℚ / @c ℝ / @c ℂ / @c 𝔻) denote the
@@ -619,7 +619,7 @@ static_assert(
  *  value the set-builder DSL takes as ambient.
  *
  *  This makes @c element<ℚ> the canonical scout spelling — closer to
- *  textbook math notation than the pre-#559 @c element<Ω<ℚ>> form.
+ *  textbook math notation than the pre-#559 @c element<𝔸<ℚ>> form.
  *  Pre-#559 the spelling was @c using @c ℚ @c = @c ℚ_t<> (a carrier-
  *  type alias); the type-context sites in concept gates and
  *  static_asserts were migrated to @c Rational<default_integer>
@@ -630,12 +630,12 @@ static_assert(
  */
 export inline constexpr UniversalSet<Rational<default_integer>, ClassicalLogic,
                                      ℵ_0>
-    ℚ = dedekind::sets::Ω<Rational<default_integer>>;
+    ℚ = dedekind::sets::𝔸<Rational<default_integer>>;
 
 static_assert(std::same_as<std::remove_cvref_t<decltype(ℚ)>,
                            dedekind::sets::UniversalSet<
                                Rational<default_integer>, ClassicalLogic, ℵ_0>>,
-              "ℚ is the universe Ω<Rational<default_integer>> (post-#559).");
+              "ℚ is the universe 𝔸<Rational<default_integer>> (post-#559).");
 static_assert(
     std::same_as<typename std::remove_cvref_t<decltype(ℚ)>::Domain,
                  Rational<default_integer>>,
@@ -1094,7 +1094,7 @@ namespace dedekind::numbers {
 // removed.  IsSet for ℚ is witnessed via the universe value ℚ above.
 
 // (2) Syntax (the C++ operator surface that maps to ℚ's algebra).  Post-
-// #559, ℚ is the universe value Ω<Rational<default_integer>>; the carrier
+// #559, ℚ is the universe value 𝔸<Rational<default_integer>>; the carrier
 // in concept-gate type-parameter slots is Rational<default_integer>
 // directly.
 //   - HasRingOperators<Rational<default_integer>>: literal +, binary -,
@@ -1234,7 +1234,7 @@ static_assert(
 // (Lang, @em Algebra §III.1).  This asserts the axiomatic
 // @c category::IsField directly on the carrier; the set-indexed
 // @c algebra::IsField lifts the same axioms over a set object
-// (e.g.\ @c Ω<Rational<default_integer>>).
+// (e.g.\ @c 𝔸<Rational<default_integer>>).
 static_assert(dedekind::category::IsField<
               Rational<default_integer>, std::plus<Rational<default_integer>>,
               std::multiplies<Rational<default_integer>>>);

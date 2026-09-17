@@ -42,7 +42,7 @@
  * and the @c IsRelation concept --- live in the @c dedekind::relational
  * namespace, the module's OWN namespace (no @c dedekind::sets leftover).  Only
  * the underlying @b carriers stay in @c dedekind::sets: @c Set (the
- * @c Set<pair> a relation @b is) and @c Ω (the declared factor universals),
+ * @c Set<pair> a relation @b is) and @c 𝔸 (the declared factor universals),
  * brought in by a @c using-declaration inside each partition.
  *
  * Migration impact of the namespace move (do NOT under-state it): ADL searches

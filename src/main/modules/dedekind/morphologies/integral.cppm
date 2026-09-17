@@ -248,7 +248,7 @@ namespace {
 // unsigned = ℤ/2^wℤ with N=4 a power of two (N | 2^w) --- the discrete circle
 // ℤ/L the torus rotates on.  The graph carrier is the residue's own integer
 // type (T = decltype(N) = unsigned), so the result is homogeneous.
-inline constexpr auto ℤ4 = dedekind::sets::Ω<unsigned>;
+inline constexpr auto ℤ4 = dedekind::sets::𝔸<unsigned>;
 static_assert(std::same_as<decltype(preimage(ℤ4 * ℤ4 | π1 + fix(1_c) == π2,
                                              Congruence<4u, 2u>{})),
                            Congruence<4u, 1u>>,

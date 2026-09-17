@@ -27,8 +27,8 @@ using namespace dedekind::relational;
 using namespace dedekind::order;
 
 namespace {
-inline constexpr auto ℤ = Ω<SignedCardinality>;
-inline constexpr auto ℕ = Ω<Cardinality>;
+inline constexpr auto ℤ = 𝔸<SignedCardinality>;
+inline constexpr auto ℕ = 𝔸<Cardinality>;
 
 // ── image: bare onto-ness, and the affine pushforward of a halfspace ─────────
 static_assert(image(ℤ* ℤ | π1 + fix(3_c) == π2) == ℤ,
@@ -209,7 +209,7 @@ static_assert(preimage(ℤ* ℤ | π1 + fix(5_c) == π2, ℤ | (π <= fix(8_c)))
 TEST_CASE(
     "algebra:halfspace_transport — a function is its graph: inverse/image",
     "[algebra][relation][function][inverse][image]") {
-  constexpr auto Z = Ω<SignedCardinality>;
+  constexpr auto Z = 𝔸<SignedCardinality>;
   const auto f = Z * Z | π1 + fix(3_c) == π2;  // graph of x ↦ x+3
 
   STATIC_CHECK(is_function(f));
@@ -230,7 +230,7 @@ TEST_CASE(
 // {x≤5 ∧ x≡0 mod3}, and argmax reads the constrained optimum (3) structurally.
 TEST_CASE("algebra:halfspace_transport — argmax over a partial function",
           "[algebra][argmax][partial][optimization]") {
-  constexpr auto Z = Ω<SignedCardinality>;
+  constexpr auto Z = 𝔸<SignedCardinality>;
   const auto g =
       Z * Z | π1 + fix(3_c) == π2 | π2 <= fix(8_c) & π2 % fix(3_c) == fix(0_c);
   STATIC_CHECK(!is_entire(g));
@@ -248,7 +248,7 @@ TEST_CASE("algebra:halfspace_transport — argmax over a partial function",
 // halfspace pushed forward.  Sound where a lone retract is not; no walk.
 TEST_CASE("algebra:halfspace_transport — image of the sign-fold reflection",
           "[algebra][image][reflection]") {
-  constexpr auto Z = Ω<SignedCardinality>;
+  constexpr auto Z = 𝔸<SignedCardinality>;
   const auto absNeg =
       Z * Z | π1 * fix(-1_c) == π2 | π1 < fix(0_c);  // x↦-x, x<0
   const auto img = image(absNeg);                    // {y>0}
@@ -266,7 +266,7 @@ TEST_CASE("algebra:halfspace_transport — image of the sign-fold reflection",
 // ⟺ f(a) ∈ P, checked at the boundary; reflection flips the sense.
 TEST_CASE("algebra:halfspace_transport — preimage, the contravariant inverse",
           "[algebra][preimage][pullback][inverse]") {
-  constexpr auto Z = Ω<SignedCardinality>;
+  constexpr auto Z = 𝔸<SignedCardinality>;
   const auto f = Z * Z | π1 + fix(3_c) == π2;         // x ↦ x+3
   const auto dom = preimage(f, Z | (π <= fix(8_c)));  // derived {x ≤ 5}
   volatile int five = 5, six = 6;

@@ -35,7 +35,7 @@ export import dedekind.topology;  // Rays, half-spaces, intervals, convex shapes
 export import :boolean;  // Truth<L> and Ω
 export import :natural;  // Cardinality partition (carrier:
                          // dedekind::sets::Cardinality)
-export import :integer;  // ℤ = Ω<SignedCardinality> (saturating variant
+export import :integer;  // ℤ = 𝔸<SignedCardinality> (saturating variant
                          // ℤ-proxy, post-#670); default_integer alias also
                          // anchored on SignedCardinality (post-PR #676).
 /** @section numbers__Algebraic_Extensions */
@@ -55,8 +55,8 @@ export import :mandelbrot;  // Mandelbrot recurrence/orbit helpers
 // `import dedekind.analysis;` (downstream of :numbers in the build graph)
 // to reach Dual<F> and the 𝔻 alias.
 export import :symbolic;     // Formal symbols / Indeterminates
-export import :real;         // ℝ = Ω<QuadraticReal<2>> (the ℚ(√2) coat-hanger);
-                             // materialisable ambient ℝ_d = Ω<Real<double>>;
+export import :real;         // ℝ = 𝔸<QuadraticReal<2>> (the ℚ(√2) coat-hanger);
+                             // materialisable ambient ℝ_d = 𝔸<Real<double>>;
                              // Real<Q>/ExactReal; RealsOf<>/RealSet; R
 export import :real_bridge;  // HSP S-leg ℚ ↪ ℝ (monic hom EmbedsAsSubalgebra;
                              // the inclusion arrow IS embed_ℚ_ℝ) + its graph

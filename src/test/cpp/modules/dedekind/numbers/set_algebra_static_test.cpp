@@ -11,13 +11,13 @@ using namespace dedekind::sets;
 namespace {
 
 // Post-HSP retarget: ℂ is the COAT-HANGER universe value
-// Ω<Complex<QuadraticReal<2>>, ClassicalLogic, ℶ_1>, so these ℂ showcases run
+// 𝔸<Complex<QuadraticReal<2>>, ClassicalLogic, ℶ_1>, so these ℂ showcases run
 // on EXACT ℚ(√2) arithmetic.  (The scout stays element<ℂ>: `ℂ | pred` directly
 // is blocked because the free operator|(Set, Set) already means set-union, so
 // the scout disambiguates comprehension from union.)  The machine-real scout is
 // element<ℝ_d> — ℝ itself is the ℚ(√2) coat-hanger, so Real<double> live on the
-// materialisable ambient ℝ_d = Ω<Real<double>, ClassicalLogic, ℶ_1>.  (A plain
-// Ω<Real<double>> with the default ℵ_0 would route the carrier-axis resolver to
+// materialisable ambient ℝ_d = 𝔸<Real<double>, ClassicalLogic, ℶ_1>.  (A plain
+// 𝔸<Real<double>> with the default ℵ_0 would route the carrier-axis resolver to
 // ClassicalLogic, contradicting the ℶ_1 cardinality and the Ternary semantics
 // this test relies on.)
 using R2 = QuadraticReal<2>;  // the exact real carrier ℝ = ℚ(√2)
