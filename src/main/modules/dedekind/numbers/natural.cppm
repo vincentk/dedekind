@@ -182,7 +182,7 @@ using ::dedekind::sets::ℕ;
 
 // (0) Universe witness: ℕ names the universe over the Cardinality
 //     carrier (post-#559).  Pre-#559, ℕ was a carrier-type alias for
-//     Cardinality; post-#559 it is the value Ω<Cardinality> (a constexpr
+//     Cardinality; post-#559 it is the value 𝔸<Cardinality> (a constexpr
 //     UniversalSet<Cardinality, ClassicalLogic, ℵ_0>{}).  Cardinality is
 //     the variant ℕ-proxy carrier (= @c std::variant<ExtensionalCardinal<>,
 //     ℵ_0>) — saturating to ℵ_0 on overflow; honestly models ℕ (no
@@ -190,7 +190,7 @@ using ::dedekind::sets::ℕ;
 //     machine carrier explicitly spell @c unsigned @c int directly.
 static_assert(std::same_as<std::remove_cvref_t<decltype(dedekind::sets::ℕ)>,
                            UniversalSet<Cardinality, ClassicalLogic, ℵ_0>>,
-              "ℕ is the universe Ω<Cardinality> (post-#559).");
+              "ℕ is the universe 𝔸<Cardinality> (post-#559).");
 static_assert(
     std::same_as<
         typename std::remove_cvref_t<decltype(dedekind::sets::ℕ)>::Domain,
@@ -217,7 +217,7 @@ static_assert(dedekind::algebra::IsAlgebraOnSet<decltype(dedekind::sets::ℕ),
 //      @b is the carrier — same shape as the 𝔹 ↔ UniversalSet<bool>
 //      relationship from #400.  The bare @b carrier type @c Cardinality
 //      carries no predicate-set surface, so @c NaturalNumbersOf<> (below)
-//      anchors the set-builder DSL; the universe @b value ℕ = Ω<Cardinality>
+//      anchors the set-builder DSL; the universe @b value ℕ = 𝔸<Cardinality>
 //      is itself an @c IsSet, which is exactly what (0a′) above relies on.
 static_assert(std::same_as<typename NaturalNumbersOf<>::Domain, Cardinality>,
               "NaturalNumbersOf<>::Domain is the variant ℕ-proxy carrier "
@@ -339,7 +339,7 @@ static_assert(dedekind::sequences::IsFiniteSequence<
               "Cardinality carrier (carrier of the ℕ universe post-#559) is a "
               "valid sequence codomain.");
 
-// (4) Primitive-type arrows.  ℕ is the universe @c Ω<Cardinality> (post-#559;
+// (4) Primitive-type arrows.  ℕ is the universe @c 𝔸<Cardinality> (post-#559;
 // underlying carrier @c Cardinality from #402, replacing the earlier
 // post-#401 unsigned-int reading).  Predicate-set membership reduces to
 // direct calls on the classifier @c N (the namespace-level
@@ -516,7 +516,7 @@ static_assert(IsMonotone<std::decay_t<decltype(dedekind::numbers::embed_𝔹_ℕ
 // morphologies::Congruence<N,R>) reduces ∃/∀ over the INFINITE carrier
 // Cardinality to exhausting the N residues.  This lives at :natural because it
 // is the lowest rung where both dependency branches resolve: sets
-// (Ω<Cardinality>, Ø, the exists/forall primaries) and morphologies (Modular,
+// (𝔸<Cardinality>, Ø, the exists/forall primaries) and morphologies (Modular,
 // Congruence), which are parallel branches meeting first at numbers.  The
 // overloads sit in namespace dedekind::sets so ADL on the UniversalSet operand
 // finds them, as a sibling to sets:FiniteBooleanSet (folding the two into one
@@ -536,7 +536,7 @@ namespace dedekind::sets {
  *
  * @details Sibling to @c FiniteBooleanSet.  Carries BOTH lattice-bound
  * comparisons (Eqn 2): @c ==Ø (scheme A anchor: every residue a non-member) and
- * @c ==Ω (scheme B anchor: every residue a member).  Emptiness of the
+ * @c ==𝔸 (scheme B anchor: every residue a member).  Emptiness of the
  * @f$\aleph_0@f$-sized @f$\{x\in\mathbb{N}\mid P(x)\}@f$ is decided on the
  * finite quotient: no residue is a member iff no natural is, since every
  * natural has a residue.
@@ -554,7 +554,7 @@ struct FiniteResidueSet {
   constexpr bool operator==(const UniversalSet<Cardinality, L, C>&) const {
     for (const auto& v : at)
       if (!(v == L::True)) return false;
-    return true;  // (B) Ω iff every residue is a member
+    return true;  // (B) 𝔸 iff every residue is a member
   }
   friend constexpr bool operator==(const Ø<Cardinality, L>& e,
                                    const FiniteResidueSet& s) {
@@ -572,7 +572,7 @@ struct FiniteResidueSet {
  *  where-clause form of the finite-quotient comprehension --- @c
  *  ProjModConstBound is the order-layer congruence fragment (@c π % fix(N) ==
  *  fix(R)), and this is @c {x ∈ ℕ | x ≡ R mod N} decided on the N residues.
- *  ADL finds it through the @c Ω<Cardinality> (sets) operand. */
+ *  ADL finds it through the @c 𝔸<Cardinality> (sets) operand. */
 export template <typename L, typename C, auto N, auto R>
 constexpr auto operator|(
     const UniversalSet<Cardinality, L, C>&,
@@ -590,11 +590,11 @@ constexpr auto operator|(
   return FiniteResidueSet<N, L>{at};
 }
 
-// ∃ / ∀ over Ω<Cardinality> are the generic structural quantifiers of
+// ∃ / ∀ over 𝔸<Cardinality> are the generic structural quantifiers of
 // :quantifier (template <IsSet S, typename P> with !IsSet<P>, folded onto s |
 // p; the point-free fragment is NOT an IsPredicate): the congruence fragment π
 // % fix(N) == fix(R) materialises through the operator| above into a
-// FiniteResidueSet, whose == Ø / == Ω decide.
+// FiniteResidueSet, whose == Ø / == 𝔸 decide.
 
 }  // namespace dedekind::sets
 
@@ -609,24 +609,24 @@ using dedekind::order::true_c;
 using dedekind::order::π;
 using dedekind::order::operator""_c;
 
-// 𝔹 = Ω<bool>, a finite carrier: the point-free membership fragment
+// 𝔹 = 𝔸<bool>, a finite carrier: the point-free membership fragment
 // π == fix(true_c) materialises over {false, true} through s | p.
-static_assert(dedekind::sets::exists(dedekind::sets::Ω<bool>, π == fix(true_c)),
+static_assert(dedekind::sets::exists(dedekind::sets::𝔸<bool>, π == fix(true_c)),
               "∃b∈𝔹. b — true is a member.");
-static_assert(!dedekind::sets::forall(dedekind::sets::Ω<bool>,
+static_assert(!dedekind::sets::forall(dedekind::sets::𝔸<bool>,
                                       π == fix(true_c)),
               "¬∀b∈𝔹. b — false is a counterexample.");
 
-// ℕ = Ω<Cardinality>, infinite: the point-free congruence fragment
+// ℕ = 𝔸<Cardinality>, infinite: the point-free congruence fragment
 // π % fix(3_c) == fix(0_c) (≡ 0 mod 3).  ∃/∀ are decided in FINITE time by the
 // three residues of ℤ/3ℤ: ∃ finds residue 0 against ∅; ∀ fails on residues 1,2
 // against S --- s | p materialises the fragment into a FiniteResidueSet.
 static_assert(
-    dedekind::sets::exists(dedekind::sets::Ω<dedekind::sets::Cardinality>,
+    dedekind::sets::exists(dedekind::sets::𝔸<dedekind::sets::Cardinality>,
                            π % fix(3_c) == fix(0_c)),
     "∃x∈ℕ. 3∣x — residue 0 is divisible by 3.");
 static_assert(
-    !dedekind::sets::forall(dedekind::sets::Ω<dedekind::sets::Cardinality>,
+    !dedekind::sets::forall(dedekind::sets::𝔸<dedekind::sets::Cardinality>,
                             π % fix(3_c) == fix(0_c)),
     "¬∀x∈ℕ. 3∣x — residues 1,2 are counterexamples.");
 

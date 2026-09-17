@@ -17,7 +17,7 @@
  * @c structured_and and collapses (@c {x>5} @c ∩ @c {x>3} @c = @c {x>5}), so
  * only @c & makes the subset @b decidable.  Per the operating model, the
  * identity is the @b default and each concrete carrier proves its own
- * decidability by a @b specialised @c <= (@c Ø / @c Ω trivial, @c Singleton
+ * decidability by a @b specialised @c <= (@c Ø / @c 𝔸 trivial, @c Singleton
  * membership, non-empty @c Halfspace by pivot); those win by partial ordering,
  * and this generic fills the gaps.
  */
@@ -151,7 +151,7 @@ constexpr typename L::Ω operator<=(
  *  sole point is a member --- the membership base case, decidable whenever
  *  @c S's χ is.  Calls the classifier @c other(V) directly (@c IsSet guarantees
  *  @c operator(), not @c contains); the universal set is excluded so its own
- *  @c X ⊆ Ω overload stays unambiguous. */
+ *  @c X ⊆ 𝔸 overload stays unambiguous. */
 export template <auto V, typename L, typename S>
   requires(
       dedekind::category::IsSet<S> &&

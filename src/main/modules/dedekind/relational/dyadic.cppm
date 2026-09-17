@@ -72,7 +72,7 @@ import dedekind.sets;     // Set<std::pair<...>, L, P> (:expressions)
 namespace dedekind::relational {
 using dedekind::sets::Set;  // relations ARE Set<pair>; the carrier stays in
                             // :sets
-using dedekind::sets::Ω;    // the declared-domain/codomain universal set
+using dedekind::sets::𝔸;    // the declared-domain/codomain universal set
 
 // ── The relation CORE (moved here from :sets/expressions, #792) ─────────────
 // A relation is a downstream concept (category → sets → relational), so its
@@ -115,12 +115,12 @@ constexpr typename L::Ω relates(const Relation<T1, T2, L, P>& r, const T1& a,
 
 /**
  * @brief The @b declared domain of a relation @c R ⊆ A×B: the universal set
- *        @c Ω<A> over the first factor --- @c π₁'s codomain.
+ *        @c 𝔸<A> over the first factor --- @c π₁'s codomain.
  *
  * @details A relation @b is a @c Set on the product carrier @c pair<A,B>, so
  * it @b is @c IsProduct and its projections fall out of the type: the factor
  * @b type @c A survives in @c R::Domain (@c pair<A,B>) even though the factor
- * @b set is not retained, so the @b declared domain @c Ω<A> is recoverable
+ * @b set is not retained, so the @b declared domain @c 𝔸<A> is recoverable
  * total and free, with no @c ∃.  This is deliberately @b not the @b effective
  * domain @f$\{a \mid \exists b.\ R(a,b)\}@f$ (the @c π₁-image), which is a
  * separate existential carrying its own decidability certificate --- the Rice
@@ -128,14 +128,14 @@ constexpr typename L::Ω relates(const Relation<T1, T2, L, P>& r, const T1& a,
  */
 export template <typename T1, typename T2, typename L, typename P>
 constexpr auto dom(const Relation<T1, T2, L, P>&) {
-  return Ω<T1, L>;  // preserve the relation's logic species
+  return 𝔸<T1, L>;  // preserve the relation's logic species
 }
 
-/** @brief The @b declared codomain of a relation @c R ⊆ A×B: @c Ω<B>, the
+/** @brief The @b declared codomain of a relation @c R ⊆ A×B: @c 𝔸<B>, the
  *         second factor (@c π₂'s codomain).  Dual to @c dom. */
 export template <typename T1, typename T2, typename L, typename P>
 constexpr auto cod(const Relation<T1, T2, L, P>&) {
-  return Ω<T2, L>;  // preserve the relation's logic species
+  return 𝔸<T2, L>;  // preserve the relation's logic species
 }
 
 /**

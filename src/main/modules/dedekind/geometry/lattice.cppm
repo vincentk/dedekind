@@ -66,7 +66,7 @@ export module dedekind.geometry:lattice;
 
 import :affine;  // for Vector<F, N>
 import dedekind.category;
-import dedekind.sets; // for Set, var, Ω, Cardinality, N, cartesian_product
+import dedekind.sets; // for Set, element, 𝔸, Cardinality, N, cartesian_product
 
 namespace dedekind::geometry {
 
@@ -87,7 +87,7 @@ export using IntegerLatticePoint2D =
     std::pair<IntegerLatticeScalar, IntegerLatticeScalar>;
 // Natural-lattice scalar is the Cardinality carrier — the variant ℕ-proxy
 // (post-#402; supersedes the post-#401 unsigned-int reading).  Post-#559,
-// ℕ is the universe value Ω<Cardinality>; the carrier in concept gates
+// ℕ is the universe value 𝔸<Cardinality>; the carrier in concept gates
 // and template-type-parameter positions is Cardinality directly.
 export using NaturalLatticeScalar = Cardinality;
 export using NaturalLatticePoint2D =
@@ -125,7 +125,7 @@ struct LatticeFactory<NaturalLatticeSet> {
   constexpr auto line() const {
     auto k = element<ℕ>;
     // Every Cardinality value is in ℕ by construction (post-#402);
-    // the universe value @c ℕ (= @c Ω<Cardinality>, post-#559) is the
+    // the universe value @c ℕ (= @c 𝔸<Cardinality>, post-#559) is the
     // canonical ambient here.
     return Set{k};
   }
@@ -139,7 +139,7 @@ struct LatticeFactory<NaturalLatticeSet> {
 template <std::signed_integral I>
 struct LatticeFactory<UniversalSet<I>> {
   constexpr auto line() const {
-    auto k = element<Ω<I>>;
+    auto k = element<𝔸<I>>;
     return Set{k % UniversalSet<I>{}};
   }
 
@@ -182,7 +182,7 @@ export constexpr auto integer_lattice_2d() {
  * @return A Set<NaturalLatticePoint2D, TernaryLogic, ...>.
  */
 export constexpr auto square_natural_grid(unsigned int n) {
-  auto p = element<Ω<NaturalLatticePoint2D>>;
+  auto p = element<𝔸<NaturalLatticePoint2D>>;
   const auto unbounded = natural_lattice_2d();
   return Set{p % unbounded | [n](const NaturalLatticePoint2D& q) {
     return (q.first < n) && (q.second < n);
@@ -198,7 +198,7 @@ export constexpr auto square_natural_grid(unsigned int n) {
  */
 export constexpr auto square_integer_grid(IntegerLatticeScalar lower,
                                           IntegerLatticeScalar upper) {
-  auto p = element<Ω<IntegerLatticePoint2D>>;
+  auto p = element<𝔸<IntegerLatticePoint2D>>;
   const auto unbounded = integer_lattice_2d();
   return Set{p % unbounded | [lower, upper](const IntegerLatticePoint2D& q) {
     return (q.first >= lower) && (q.first < upper) && (q.second >= lower) &&

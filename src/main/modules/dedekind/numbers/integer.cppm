@@ -34,9 +34,9 @@ using namespace dedekind::sets;
 /** @brief Default signed-integer carrier used by downstream numeric
  *  layers (Rational<I>, embeddings).  Post-#670-sibling (ℚ retarget):
  *  anchored on @c sets::SignedCardinality (saturating ℤ proxy with
- *  ±ℵ_0 / NaZ escalation), mirroring how @c ℤ = @c Ω<SignedCardinality>
+ *  ±ℵ_0 / NaZ escalation), mirroring how @c ℤ = @c 𝔸<SignedCardinality>
  *  in @c :integer.  This is the discipline-consistent canonical ℤ
- *  carrier --- @c ℚ = @c Ω<Rational<default_integer>> now uses the
+ *  carrier --- @c ℚ = @c 𝔸<Rational<default_integer>> now uses the
  *  saturating variant uniformly.
  *
  *  Pre-retarget value: @c SignedExtensionalCardinal<> (cyclic finite
@@ -47,10 +47,10 @@ export using default_integer = dedekind::sets::SignedCardinality;
 
 /** @section integer__Saturating_ℤ (#670)
  *
- * @c ℤ is the universe @c Ω<SignedCardinality>, using the @b saturating
+ * @c ℤ is the universe @c 𝔸<SignedCardinality>, using the @b saturating
  * variant @c sets::SignedCardinality as the carrier (rather than the
  * @b cyclic finite fragment @c SignedExtensionalCardinal<>).  This
- * mirrors the @c ℕ pattern (@c ℕ @c = @c Ω<Cardinality>, where
+ * mirrors the @c ℕ pattern (@c ℕ @c = @c 𝔸<Cardinality>, where
  * @c Cardinality is the saturating @f$\mathbb{N} \cup \{\aleph_0\}@f$
  * variant) --- the project's stance is now consistent across @c ℕ and
  * @c ℤ: bounded representations @b escalate (saturate to
@@ -71,14 +71,14 @@ export using default_integer = dedekind::sets::SignedCardinality;
  * the wrap boundary.
  */
 export inline constexpr auto ℤ =
-    dedekind::sets::Ω<dedekind::sets::SignedCardinality>;
+    dedekind::sets::𝔸<dedekind::sets::SignedCardinality>;
 
 static_assert(
     std::same_as<std::remove_cvref_t<decltype(ℤ)>,
                  dedekind::sets::UniversalSet<dedekind::sets::SignedCardinality,
                                               ClassicalLogic, ℵ_0>>,
-    "ℤ is the universe Ω<SignedCardinality>, mirroring "
-    "ℕ = Ω<Cardinality> (#670).");
+    "ℤ is the universe 𝔸<SignedCardinality>, mirroring "
+    "ℕ = 𝔸<Cardinality> (#670).");
 static_assert(std::same_as<typename std::remove_cvref_t<decltype(ℤ)>::Domain,
                            dedekind::sets::SignedCardinality>,
               "ℤ's underlying carrier IS SignedCardinality — the project's "

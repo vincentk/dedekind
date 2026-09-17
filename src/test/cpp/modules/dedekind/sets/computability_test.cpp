@@ -80,12 +80,12 @@ TEST_CASE("sets:computability — IsDecidableSet: Σ-set vs Ω-set (#846)",
   // has non-decidable (Ω-valued) membership.
   SECTION("Σ-sets: ETCS sets over ClassicalLogic are decidable") {
     STATIC_CHECK(IsDecidableSet<decltype(ℕ)>);
-    STATIC_CHECK(IsDecidableSet<decltype(Ω<bool>)>);
+    STATIC_CHECK(IsDecidableSet<decltype(𝔸<bool>)>);
   }
   SECTION("Ω-set: same carrier, Ternary ambient — IsSet but not decidable") {
-    STATIC_CHECK(IsSet<decltype(Ω<bool, TernaryLogic>)>);
-    STATIC_CHECK_FALSE(HasDecidableMembership<decltype(Ω<bool, TernaryLogic>)>);
-    STATIC_CHECK_FALSE(IsDecidableSet<decltype(Ω<bool, TernaryLogic>)>);
+    STATIC_CHECK(IsSet<decltype(𝔸<bool, TernaryLogic>)>);
+    STATIC_CHECK_FALSE(HasDecidableMembership<decltype(𝔸<bool, TernaryLogic>)>);
+    STATIC_CHECK_FALSE(IsDecidableSet<decltype(𝔸<bool, TernaryLogic>)>);
   }
 }
 

@@ -49,7 +49,7 @@ module;
 export module dedekind.algebra:galois;
 
 import dedekind.category;
-import dedekind.sets; // Ω<T> — the set carrier for the set-indexed witnesses
+import dedekind.sets; // 𝔸<T> — the set carrier for the set-indexed witnesses
 import dedekind.sequences; // FinitePath / IsFiniteSequence — for the
     // 𝔽64^× primitive-element enumeration witness (#388).
 import :field;
@@ -343,10 +343,10 @@ namespace dedekind::algebra {
 
 /** @section galois__Formal_Verification */
 
-// Ω<bool> is the Galois field 𝔽2 under (XOR, AND).
-static_assert(IsGaloisField<decltype(dedekind::sets::Ω<bool>),
+// 𝔸<bool> is the Galois field 𝔽2 under (XOR, AND).
+static_assert(IsGaloisField<decltype(dedekind::sets::𝔸<bool>),
                             std::bit_xor<bool>, std::bit_and<bool>>,
-              "Ω<bool> must satisfy IsGaloisField under (XOR, AND): its "
+              "𝔸<bool> must satisfy IsGaloisField under (XOR, AND): its "
               "carrier is the Galois field 𝔽2 (order 2).");
 
 // 𝔽64 is the Galois field of order 64 under its polynomial arithmetic.
@@ -365,9 +365,9 @@ static_assert(
     "axiomatic category::IsField above, this is algebra::IsField's carrier "
     "content: division ring + axiomatic field).");
 
-static_assert(IsGaloisField<decltype(dedekind::sets::Ω<𝔽64>), std::plus<𝔽64>,
+static_assert(IsGaloisField<decltype(dedekind::sets::𝔸<𝔽64>), std::plus<𝔽64>,
                             std::multiplies<𝔽64>>,
-              "Ω<𝔽64> must satisfy IsGaloisField (the algebraic set over "
+              "𝔸<𝔽64> must satisfy IsGaloisField (the algebraic set over "
               "GF(2^6), order 64).");
 
 // IsCyclicGroup main-source assertions, visible to downstream modules

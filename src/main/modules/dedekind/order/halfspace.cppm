@@ -15,7 +15,7 @@
  *
  * @section halfspace__DSL_Surface
  *
- *     inline constexpr auto n = element<Ω<ℕ>>;
+ *     inline constexpr auto n = element<𝔸<ℕ>>;
  *     inline constexpr auto big   = Set{n | (n > bound<5>)};
  *     inline constexpr auto small = Set{n | (n < bound<3>)};
  *     // (big ∩ small) = ∅  — witnessed at compile time via structured_and
@@ -505,10 +505,10 @@ constexpr auto operator|(const Singleton<A, LA>& a, const Singleton<B, LB>&) {
  *  @b proper cut by construction.  A degenerate configuration collapses to the
  *  canonical boundary set instead --- an empty cut to @c Ø, a moot cut to the
  *  universe @c UniversalSet --- so @f$\emptyset = \text{Halfspace}@f$ and
- *  @f$\Omega = \text{Halfspace}@f$ never arise as values and the boundary cases
- *  are decided by @c Ø / @c Ω's own initial / terminal machinery.  The return
- *  type is heterogeneous but statically resolved by @c if @c constexpr (no type
- *  erasure); every halfspace-producing surface routes through it. */
+ *  @f$\mathbb{A} = \text{Halfspace}@f$ never arise as values and the boundary
+ * cases are decided by @c Ø / @c 𝔸's own initial / terminal machinery.  The
+ * return type is heterogeneous but statically resolved by @c if @c constexpr
+ * (no type erasure); every halfspace-producing surface routes through it. */
 export template <typename T, auto V, Direction D, Strictness S,
                  typename L = ClassicalLogic>
 constexpr auto make_halfspace() {
@@ -522,7 +522,7 @@ constexpr auto make_halfspace() {
 
 /** @brief Complement of a halfspace: the opposite halfspace, through the
  *  factory so a boundary complement collapses (@c ~{x≥0} on ℕ is @c {x<0} = Ø,
- *  and dually @c ~Ø = Ω keeps the involution). */
+ *  and dually @c ~Ø = 𝔸 keeps the involution). */
 export template <typename T, auto Pivot, Direction D, Strictness S, typename L>
 constexpr auto operator~(const Halfspace<T, Pivot, D, S, L>&) {
   return make_halfspace<T, Pivot, flip(D), flip(S), L>();
@@ -561,7 +561,7 @@ using AtMost = Halfspace<dedekind::sets::Cardinality, N, Direction::Downward,
 // A bare Halfspace / Singleton is a first-class @c IsSubobject (ι: S ↣ A plus
 // its own χ), though NOT a full ETCS @c IsSet: @c IsSet additionally demands
 // the ETCS-axiom surface (@c HasETCSAxioms + the CCC witness) that only the
-// ambient universe @c Ω<T> carries.  Subobject-hood is the right membership —
+// ambient universe @c 𝔸<T> carries.  Subobject-hood is the right membership —
 // it is what the complement-lattice operators above operate on.
 static_assert(IsSubobject<Above<5>, dedekind::sets::Cardinality>,
               "a Halfspace is a first-class subobject ι: S ↣ ℕ.");
@@ -815,7 +815,7 @@ constexpr auto structured_and(Halfspace<T, Lo, Direction::Upward, SL, L>,
       // For @c std::integral @c T the cast is preserved verbatim so the
       // pre-#402 behaviour on primitive carriers (@c Singleton<4u> on
       // @c unsigned @c int, @c Singleton<int_value> for real-pivot-on-int
-      // showcases like @c bound<-21.0> on @c element<Ω<int>>) doesn't shift.
+      // showcases like @c bound<-21.0> on @c element<𝔸<int>>) doesn't shift.
       if constexpr (std::integral<T>) {
         constexpr T unique =
             lo_open ? static_cast<T>(Lo + 1) : static_cast<T>(Lo);
@@ -1171,7 +1171,7 @@ export template <typename T, typename L, typename C, Direction D, Strictness S,
 constexpr auto operator|(const UniversalSet<T, L, C>&,
                          const UnboundHalfspace<D, S, V>&) {
   // Through the factory (#837 review): a degenerate binder collapses like any
-  // other construction --- @c Ω<bool> | (π > fix(true_c)) is @c {x>true} = Ø,
+  // other construction --- @c 𝔸<bool> | (π > fix(true_c)) is @c {x>true} = Ø,
   // not a raw (gate-tripping) halfspace.
   return make_halfspace<T, V, D, S, L>();
 }
@@ -1446,7 +1446,7 @@ struct ProductRestrict {
   }
 };
 
-// Ω<A×B> | relPred  →  the relation as an IsSet on A × B.  The @b universal
+// 𝔸<A×B> | relPred  →  the relation as an IsSet on A × B.  The @b universal
 // product carries no factor restriction, so the relation's membership @b is
 // the rel-predicate: the pure product universe refined to a subobject.
 export template <typename T1, typename T2, typename L, typename C,
@@ -1469,7 +1469,7 @@ constexpr auto operator|(const Set<std::pair<T1, T2>, L, P>& prod, RP rp) {
  * @brief A @b restricted factor lifts to a @b cylinder on its axis, so
  *        @c operator* keeps the factor predicates instead of dropping them.
  *
- * @details The product is the universal set of products @c Ω<pair> refined by
+ * @details The product is the universal set of products @c 𝔸<pair> refined by
  * the two @b cylinders @f$A\times B = \pi_1^{-1}(A)\cap\pi_2^{-1}(B)@f$.  A
  * total factor's cylinder is the whole universe (nothing to add); a halfspace
  * factor @f$\{x \bowtie p\}@f$ lifts to the projection halfspace
@@ -1495,31 +1495,31 @@ constexpr auto cylinder(const Halfspace<T, Pivot, D, S, L>&) {
   return ProjBound<I, rel_of(D, S), Pivot>{};
 }
 
-// restricted × total:  {x ⋈ p} × Ω  =  Ω<pair> | (π1 ⋈ fix(p)).
+// restricted × total:  {x ⋈ p} × 𝔸  =  𝔸<pair> | (π1 ⋈ fix(p)).
 export template <typename T, auto P, Direction D, Strictness S, typename L,
                  typename T2, typename L2, typename C2>
   requires std::same_as<L, L2>
 constexpr auto operator*(const Halfspace<T, P, D, S, L>& a,
                          const UniversalSet<T2, L2, C2>&) {
-  return Ω<std::pair<T, T2>, L> | cylinder<1>(a);
+  return 𝔸<std::pair<T, T2>, L> | cylinder<1>(a);
 }
 
-// total × restricted:  Ω × {y ⋈ q}  =  Ω<pair> | (π2 ⋈ fix(q)).
+// total × restricted:  𝔸 × {y ⋈ q}  =  𝔸<pair> | (π2 ⋈ fix(q)).
 export template <typename T1, typename L1, typename C1, typename T, auto Q,
                  Direction D, Strictness S, typename L>
   requires std::same_as<L1, L>
 constexpr auto operator*(const UniversalSet<T1, L1, C1>&,
                          const Halfspace<T, Q, D, S, L>& b) {
-  return Ω<std::pair<T1, T>, L> | cylinder<2>(b);
+  return 𝔸<std::pair<T1, T>, L> | cylinder<2>(b);
 }
 
-// restricted × restricted:  Ω<pair> | (π1 ⋈ fix(p)) & (π2 ⋈ fix(q)).
+// restricted × restricted:  𝔸<pair> | (π1 ⋈ fix(p)) & (π2 ⋈ fix(q)).
 export template <typename Ta, auto Pa, Direction Da, Strictness Sa, typename La,
                  typename Tb, auto Qb, Direction Db, Strictness Sb, typename Lb>
   requires std::same_as<La, Lb>
 constexpr auto operator*(const Halfspace<Ta, Pa, Da, Sa, La>& a,
                          const Halfspace<Tb, Qb, Db, Sb, Lb>& b) {
-  return Ω<std::pair<Ta, Tb>, La> | (cylinder<1>(a) & cylinder<2>(b));
+  return 𝔸<std::pair<Ta, Tb>, La> | (cylinder<1>(a) & cylinder<2>(b));
 }
 
 /**
@@ -1531,10 +1531,10 @@ constexpr auto operator*(const Halfspace<Ta, Pa, Da, Sa, La>& a,
  * relation): @c dom is @f$\pi_A(R)@f$, @c cod is @f$\pi_B(R)@f$.  Read off the
  * axis-@f$I@f$ cylinder @c ProjBound structurally: a comparison bound becomes
  * the halfspace factor, no axis-@f$I@f$ bound leaves the declared universe
- * @c Ω<T_I> (honest exactly when @c R is entire on that side).  This is the
+ * @c 𝔸<T_I> (honest exactly when @c R is entire on that side).  This is the
  * @b free case; the @b existential @f$\{a\mid\exists b.R(a,b)\}@f$ that a
  * coupled, non-entire relation needs is the separate Rice-gated operation.
- * The order-layer overloads specialise the sets-layer @c Ω<T1> fallback (they
+ * The order-layer overloads specialise the sets-layer @c 𝔸<T1> fallback (they
  * win by @c IsRelPredicate, and ADL reaches them through the @c ProjBound
  * predicate's own namespace).
  */
@@ -1555,10 +1555,10 @@ export constexpr bool is_order_rel(Rel r) {
 }
 
 /** @brief Recover the axis-@c I factor from a relational predicate.  Default:
- *  no axis-@c I structure, so the declared universe @c Ω<TI>. */
+ *  no axis-@c I structure, so the declared universe @c 𝔸<TI>. */
 export template <std::size_t I, typename TI, typename L, typename P>
 constexpr auto axis_factor(const P&) {
-  return Ω<TI, L>;  // preserve the relation's logic species
+  return 𝔸<TI, L>;  // preserve the relation's logic species
 }
 
 /** @brief A cylinder @c ProjBound on axis @c I: the halfspace it lifted from
@@ -1881,7 +1881,7 @@ constexpr auto upperbounds(Halfspace<T, p, Direction::Downward, S, L>) {
   if constexpr (S == Strictness::Strict && strict_lower_cut_empty<T, p>()) {
     // The strict cut {x<p} is EMPTY (p at/below the carrier's least element),
     // so EVERY element is vacuously an upper bound: the ∀-projection is the
-    // whole universe Ω (and max = S ∩ Ω = S = ∅).  Honouring the contract, not
+    // whole universe 𝔸 (and max = S ∩ 𝔸 = S = ∅).  Honouring the contract, not
     // just the answer.
     return dedekind::sets::UniversalSet<T, L>{};
   } else if constexpr (S == Strictness::Strict &&
@@ -1907,7 +1907,7 @@ constexpr auto lowerbounds(Halfspace<T, p, Direction::Upward, S, L>) {
   if constexpr (S == Strictness::Strict && strict_upper_cut_empty<T, p>()) {
     // Machine discrete {x>p} is EMPTY at the ceiling (p at the type's greatest
     // value: true for bool, INT_MAX for int), so every element bounds ∅ → the
-    // universe (min = S ∩ Ω = ∅).  No p+1 (which would overflow/wrap).
+    // universe (min = S ∩ 𝔸 = ∅).  No p+1 (which would overflow/wrap).
     return dedekind::sets::UniversalSet<T, L>{};
   } else if constexpr (S == Strictness::Strict && HasZeroFloor<T> &&
                        p + 1 < 0) {
@@ -1988,9 +1988,9 @@ export template <typename T, auto p, Direction D, Strictness S, typename L,
 constexpr auto operator&(Halfspace<T, p, D, S, L>, Ø<T, LZ>) {
   return Ø<T, L>{};
 }
-/** @brief @c Ω is the meet IDENTITY at the other end: @c {x⋈p} ∩ Ω = @c {x⋈p}.
- *  The universe's own @c operator& handles @c Ω∩X; this is the halfspace-first
- *  order @c X∩Ω, which @c max/min hit when @c upperbounds/lowerbounds of an
+/** @brief @c 𝔸 is the meet IDENTITY at the other end: @c {x⋈p} ∩ 𝔸 = @c {x⋈p}.
+ *  The universe's own @c operator& handles @c 𝔸∩X; this is the halfspace-first
+ *  order @c X∩𝔸, which @c max/min hit when @c upperbounds/lowerbounds of an
  *  EMPTY source is the whole universe (the @f$\forall@f$-projection of @c ∅).
  */
 export template <typename T, auto p, Direction D, Strictness S, typename L,
@@ -2028,13 +2028,13 @@ constexpr auto min(const S& s) {
 }
 
 inline constexpr auto ℤ =
-    Ω<SignedCardinality>;  // local alias (:integer is downstream)
-// Exhibit (intensional, infinite case) over ℕ = @c Ω<Cardinality>, a registered
+    𝔸<SignedCardinality>;  // local alias (:integer is downstream)
+// Exhibit (intensional, infinite case) over ℕ = @c 𝔸<Cardinality>, a registered
 // TOTAL order (⊃ partial).  @c ℤ = @c SignedCardinality carries the unordered
 // @c NaZ (NaN-like), so it is NOT an ordered set and the @c IsPartiallyOrdered
 // gate correctly rejects @c max/min on it; the max/min VALUES are identical on
 // ℕ (they are non-negative).
-inline constexpr auto ℕ = Ω<Cardinality>;
+inline constexpr auto ℕ = 𝔸<Cardinality>;
 inline constexpr auto le5 = ℕ | (π <= fix(5_c));  // {x ∈ ℕ | x ≤ 5}
 inline constexpr auto ge5 = ℕ | (π >= fix(5_c));  // {x ∈ ℕ | x ≥ 5}
 static_assert(max(le5)(5), "5 = max {x ≤ 5} (read off the pivot).");
@@ -2118,15 +2118,15 @@ constexpr bool operator==(const UniversalSet<bool, L, C>& u,
 
 /** @brief The general boundary-equality theorems (#832): a @c Halfspace value
  *  is a @b proper cut by construction --- @c make_halfspace collapses an empty
- *  cut to @c Ø and a moot cut to @c Ω --- so it equals neither boundary.
+ *  cut to @c Ø and a moot cut to @c 𝔸 --- so it equals neither boundary.
  *  Decided from the carrier bounds (@c halfspace_is_empty / @c
  * halfspace_is_moot) so the answer is sound even for a raw out-of-contract
  * halfspace; for every factory-built value the oracles are @c false and these
  * are simply @c False. This lifts the honest Rice wall (@c Ø / @c UniversalSet
  * expose no general halfspace-equality case) now that emptiness / mootness are
  * decidable, and it unlocks opposite-direction subset: @c {x>5} ⊆ {x<3} reduces
- * to @c (a∩b)==a where the meet is @c EmptyPredicate / @c Ø, and @c Ω ⊆ @c
- * {x≥5} reduces through @c Halfspace @c == @c Ω.  The finite-@c bool overloads
+ * to @c (a∩b)==a where the meet is @c EmptyPredicate / @c Ø, and @c 𝔸 ⊆ @c
+ * {x≥5} reduces through @c Halfspace @c == @c 𝔸.  The finite-@c bool overloads
  * above are more specialised and still claim @c bool. */
 export template <typename T, auto P, Direction D, Strictness S, typename L>
 constexpr bool operator==(const Ø<T, L>&, const Halfspace<T, P, D, S, L>&) {
@@ -2160,8 +2160,8 @@ constexpr bool operator==(const Halfspace<T, P, D, S, L>&,
 }
 
 /** @brief A @c Singleton over @c bool is never all of @c 𝔹 (two elements), so
- *  @c == Ω is @c false: the forall (scheme B) leg for the @c == fragment on 𝔹
- *  (@c Ω<bool> | (π == fix(v)) collapses to @c Singleton<v>). */
+ *  @c == 𝔸 is @c false: the forall (scheme B) leg for the @c == fragment on 𝔹
+ *  (@c 𝔸<bool> | (π == fix(v)) collapses to @c Singleton<v>). */
 export template <auto V, typename L, typename C>
   requires std::same_as<decltype(V), bool>
 constexpr bool operator==(const Singleton<V, L>&,
@@ -2189,17 +2189,17 @@ static_assert(min(ge5)(5) == (ge5(5) && ((ge5 & (ℕ | (π < fix(5_c)))) == Ø{}
 // Exhibit (finite case): max 𝔹 = {true}, min 𝔹 = {false} --- the SAME generic
 // max/min above, its ∀-projection settled by 𝔹's upperbounds/lowerbounds ({⊤} /
 // {⊥}) and the universe-identity meet 𝔹 ∩ {⊤} = {⊤}.
-static_assert(max(Ω<bool>)(true), "max 𝔹 = {true}.");
-static_assert(!max(Ω<bool>)(false), "false is not the greatest element of 𝔹.");
-static_assert(min(Ω<bool>)(false), "min 𝔹 = {false}.");
-static_assert(!min(Ω<bool>)(true), "true is not the least element of 𝔹.");
+static_assert(max(𝔸<bool>)(true), "max 𝔹 = {true}.");
+static_assert(!max(𝔸<bool>)(false), "false is not the greatest element of 𝔹.");
+static_assert(min(𝔸<bool>)(false), "min 𝔹 = {false}.");
+static_assert(!min(𝔸<bool>)(true), "true is not the least element of 𝔹.");
 // Modelling witness ("Theorems for Free", type-checked) with a STRUCTURAL
 // IsPredicate --- not an opaque lambda, which cannot feed the collapse.  The
 // specific max(𝔹) models the abstract (∈) ∩ (R/∋): at false the dominance
 // ∀a∈𝔹. a ≤ false FAILS (true ⋠ false), spelled as the halfspace {a ≤ false},
 // so false is correctly NOT the max.
-static_assert(max(Ω<bool>)(false) ==
-                  (Ω<bool>(false) && forall(Ω<bool>, π <= fix(false_c))),
+static_assert(max(𝔸<bool>)(false) ==
+                  (𝔸<bool>(false) && forall(𝔸<bool>, π <= fix(false_c))),
               "specific max(𝔹) models (∈) ∩ (R/∋), structurally.");
 
 // (The image of a halfspace under a translation --- the pivot shifted by K ---

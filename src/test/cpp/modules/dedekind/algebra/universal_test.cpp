@@ -45,7 +45,7 @@ using dedekind::category::IsArrow;
 using dedekind::category::IsClosedUnder;
 using dedekind::category::IsClosedUnderUnary;
 using dedekind::category::IsSet;
-using dedekind::sets::Ω;
+using dedekind::sets::𝔸;
 
 TEST_CASE(
     "Universal algebra: closure-tier witness on canonical primitive carriers",
@@ -90,12 +90,12 @@ TEST_CASE(
   // must accept a genuine ETCS set object and reject a bare arrow that merely
   // happens to carry a Domain.
 
-  // Positive: Ω<int> is a set object (IsSet) whose carrier int closes under
-  // (+, *), so it type-checks against IsAlgebraOnSet.  (𝔹 = Ω<bool> is the
+  // Positive: 𝔸<int> is a set object (IsSet) whose carrier int closes under
+  // (+, *), so it type-checks against IsAlgebraOnSet.  (𝔹 = 𝔸<bool> is the
   // sibling witness pinned in :algebra:boolean; ℕ/ℤ/ℚ downstream in :numbers.)
-  STATIC_CHECK(IsSet<decltype(Ω<int>)>);
+  STATIC_CHECK(IsSet<decltype(𝔸<int>)>);
   STATIC_CHECK(
-      IsAlgebraOnSet<decltype(Ω<int>), std::plus<int>, std::multiplies<int>>);
+      IsAlgebraOnSet<decltype(𝔸<int>), std::plus<int>, std::multiplies<int>>);
 
   // Negative: a plain arrow int -> int is IsArrow with Domain = int, and int
   // closes under (+, *), so the OLD IsArrow-gated concept would have wrongly

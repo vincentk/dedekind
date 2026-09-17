@@ -38,13 +38,13 @@ TEST_CASE("Level 1 Final Proof: The Mereology Highway",
 }
 
 TEST_CASE("Boundaries: The Algebra of Extremality", "[sets][boundaries]") {
-  // The Identities: Ø and Ω as the "North and South Poles"
+  // The Identities: Ø and 𝔸 as the "North and South Poles"
   constexpr Ø<int> null;
   constexpr UniversalSet<int> universe;
 
   SECTION("Aha! 1: The Law of Absorption (Annihilation)") {
     /**
-     * In a Union, the Universe is the Annihilator: Ω | S = Ω.
+     * In a Union, the Universe is the Annihilator: 𝔸 | S = 𝔸.
      * In an Intersection, the Void is the Annihilator: ∅ & S = ∅.
      */
     static_assert(
@@ -59,7 +59,7 @@ TEST_CASE("Boundaries: The Algebra of Extremality", "[sets][boundaries]") {
     STATIC_REQUIRE(
         std::is_same_v<decltype(null | s), std::remove_cvref_t<decltype(s)>>);
     STATIC_REQUIRE((null | s) == s);
-    INFO("In an Intersection, the Universe is the Identity: Ω & S = S.");
+    INFO("In an Intersection, the Universe is the Identity: 𝔸 & S = S.");
     STATIC_REQUIRE(std::is_same_v<decltype(universe & s),
                                   std::remove_cvref_t<decltype(s)>>);
     STATIC_REQUIRE((universe & s) == s);
@@ -123,10 +123,10 @@ TEST_CASE("Boundaries: The Algebra of Extremality", "[sets][boundaries]") {
     // of pairs.
     INFO("Ø × Ø = Ø<pair>");
     STATIC_CHECK(std::is_same_v<decltype(null * null), Ø<std::pair<int, int>>>);
-    INFO("Ω × Ø = Ø<pair>");
+    INFO("𝔸 × Ø = Ø<pair>");
     STATIC_CHECK(
         std::is_same_v<decltype(universe * null), Ø<std::pair<int, int>>>);
-    INFO("Ø × Ω = Ø<pair>");
+    INFO("Ø × 𝔸 = Ø<pair>");
     STATIC_CHECK(
         std::is_same_v<decltype(null * universe), Ø<std::pair<int, int>>>);
   }

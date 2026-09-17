@@ -52,7 +52,7 @@ concept IsMagma = IsAlgebraOnSet<X, Op> &&
 
 // Seal the axiom substrate the lift rests on: unsigned int under + is the
 // canonical magma carrier; signed int is not (overflow is UB, not total).
-// The set-indexed IsMagma<X> itself is witnessed on Ω<unsigned int> in
+// The set-indexed IsMagma<X> itself is witnessed on 𝔸<unsigned int> in
 // algebra/monoid_test.cpp (it needs a set carrier, which this upstream
 // partition does not import).
 static_assert(

@@ -235,14 +235,15 @@ constexpr auto operator*(const S&, const Ø<T2, L>&) {
  *
  * Per #551 (one-transaction redesign of the set-builder DSL): the @b type
  * is named @c UniversalSet<T, L, C>; the value-level handle is the
- * sibling variable template @c Ω<T, L, C> (declared further below in this
+ * sibling variable template @c 𝔸<T, L, C> (declared further below in this
  * partition) which spells @c UniversalSet<T, L, C>{}.  Callers therefore
- * spell @c Ω<bool> at value-context sites rather than reaching for
+ * spell @c 𝔸<bool> at value-context sites rather than reaching for
  * @c UniversalSet<bool>{}; the type and the variable template share their
  * parameter pack so both names remain reachable at the same arity.  This
- * makes the topos-theoretic reading direct ( @c Ω is the subobject
- * classifier value at carrier @c T), and lets paper Listing 6 read as
- * @c auto @c 𝔹 @c = @c Ω<bool>; without the type/value schism the
+ * makes the topos-theoretic reading direct ( @c 𝔸 is the universal
+ * (top) set over carrier @c T; the subobject classifier is @c L::Ω),
+ * and lets paper Listing 6 read as
+ * @c auto @c 𝔹 @c = @c 𝔸<bool>; without the type/value schism the
  * pre-#551 surface had.
  */
 export template <typename T, typename L = ClassicalLogic, typename C = ℵ_0>
@@ -307,7 +308,7 @@ struct UniversalSet final {
 
   // Cross-(L, C) identity: the universe of a carrier T is the universe
   // regardless of logic species or cardinality annotation.  Enables
-  // `Ω<T> == r` when a complement-pair join elevates r to a UniversalSet<T,
+  // `𝔸<T> == r` when a complement-pair join elevates r to a UniversalSet<T,
   // L2, C2> whose C differs from the reference (e.g. bool's Finite vs the
   // ℵ_0 default), the same spirit as Ø's cross-carrier equality above.
   template <typename L2, typename C2>
@@ -362,29 +363,28 @@ struct UniversalSet final {
 template <typename T, typename L, typename C>
 inline const UniversalSet<T, L, C> UniversalSet<T, L, C>::χ{};
 
-/** @brief The universal-predicate value at carrier @c T (subobject-classifier
- *         reading per #551).
+/** @brief The universal (top) set over carrier @c T --- the value-level handle
+ *         (per #551).  This is the universe, not the subobject classifier;
+ *         the classifier is @c L::Ω.
  *
  *  Variable template producing a default-constructed @c UniversalSet<T,L,C>
- *  instance.  Lets callers spell the ambient as @c UniversalSet<bool> rather
- * than
+ *  instance.  Lets callers spell the ambient as @c 𝔸<bool> rather than
  *  @c UniversalSet<bool>{} — paper Listing 6 reads as @c auto @c 𝔹 @c =
- *  @c UniversalSet<bool>; without the type-vs-value schism the pre-#551 surface
- * had.
+ *  @c 𝔸<bool>; without the type-vs-value schism the pre-#551 surface had.
  */
 export template <typename T, typename L = ClassicalLogic, typename C = ℵ_0>
-inline constexpr UniversalSet<T, L, C> Ω{};
+inline constexpr UniversalSet<T, L, C> 𝔸{};
 
-/** @brief @c Ω<bool> specialisation: the Boolean carrier is finite,
+/** @brief @c 𝔸<bool> specialisation: the Boolean carrier is finite,
  *  so its universal predicate is classified by @c Finite cardinality
- *  (not @c ℵ_0).  Without this specialisation, @c NaturalLogic<Ω<bool>>
+ *  (not @c ℵ_0).  Without this specialisation, @c NaturalLogic<𝔸<bool>>
  *  would route through @c TernaryLogic (because @c ℵ_0 is transfinite);
  *  the canonical 𝔹 ambient wants @c ClassicalLogic.  Mirrors the
  *  pre-#551 @c BooleanSetOf<L,C> default of @c BooleanSetOf<
  *  ClassicalLogic, Finite>.
  */
 export template <>
-inline constexpr UniversalSet<bool, ClassicalLogic, Finite> Ω<bool>{};
+inline constexpr UniversalSet<bool, ClassicalLogic, Finite> 𝔸<bool>{};
 
 template <typename T, typename L>
 constexpr auto Ø<T, L>::operator!() const {
@@ -409,17 +409,17 @@ static_assert(IsSet<decltype(ambient_set<int>(Ø<int>{}))>,
               "The empty boundary must lift to an ETCS set object.");
 
 // =============================================================
-// Architecture note: universe Ω<T> vs. classifier <Tower>Of<>
+// Architecture note: universe 𝔸<T> vs. classifier <Tower>Of<>
 // =============================================================
 //
 // Two distinct primitives sit at this layer, both rooted in ETCS
 // (Lawvere 1964):
 //
-//   (1) Universe per carrier — @c Ω<T> (variable template above)
+//   (1) Universe per carrier — @c 𝔸<T> (variable template above)
 //       = @c UniversalSet<T,L,C>{}.  Constant-True predicate over
 //       carrier T.  Plays the role of "T as its own set" — the
 //       monomorphic identity inclusion T ↪ T.  Used by the
-//       set-builder DSL as the ambient for @c element<Ω<T>>
+//       set-builder DSL as the ambient for @c element<𝔸<T>>
 //       (BoundScout factory, post-#551).
 //
 //   (2) Tower classifier — @c <Tower>Of<L,C> (this and sibling
@@ -439,22 +439,22 @@ static_assert(IsSet<decltype(ambient_set<int>(Ø<int>{}))>,
 //   Asymmetry: @c BooleanSetOf<L,C> ≡ @c UniversalSet<bool,L,C>
 //       (alias, not a separate struct) because 𝔹 is the @b bottom
 //       of the algebraic tower — no proper super-object — so χ_𝔹
-//       collapses to Ω<bool>.  See @c algebra:boolean for that
+//       collapses to 𝔸<bool>.  See @c algebra:boolean for that
 //       collapse note.
 //
-// Why both: @c Ω<T> is the structural primitive (one per carrier;
+// Why both: @c 𝔸<T> is the structural primitive (one per carrier;
 // uniform DSL surface for set-builder), while @c <Tower>Of<> is
 // the engineering pragma that lifts predecessor literals (@c N(0u)
 // for @c unsigned, @c N(-7) for @c int) without forcing each
 // callsite to thread the embedding manually.  Removing the
-// classifiers in favour of Ω alone would lose the cross-carrier
-// classification — @c Ω<unsigned>{}(-7) is ill-typed, but
+// classifiers in favour of 𝔸 alone would lose the cross-carrier
+// classification — @c 𝔸<unsigned>{}(-7) is ill-typed, but
 // @c N(-7) is well-typed and returns @c False.
 //
 // Paper alignment: §3.3 (Juliet Posture) names the two-axis split
 // (closure / laws); the universe-vs-classifier distinction is a
 // third meta-axis (§5 figure breadcrumb).  Listing 6 in the paper
-// shows both: @c 𝔹 = @c Ω<bool> for the trivial-bottom case;
+// shows both: @c 𝔹 = @c 𝔸<bool> for the trivial-bottom case;
 // @c N = @c NaturalNumbersOf<>{} for the non-trivial classifier
 // case.
 export template <typename L = ClassicalLogic, typename C = ℵ_0>
@@ -495,7 +495,7 @@ struct NaturalNumbersOf {
 // @c BooleanSet de-export pattern from #407.
 using NaturalNumbers = NaturalNumbersOf<>;
 
-/** @brief The canonical Natural-numbers universe @c ℕ = @c Ω<Cardinality>
+/** @brief The canonical Natural-numbers universe @c ℕ = @c 𝔸<Cardinality>
  *  (post-#559).
  *
  *  @details Per #559's chosen direction (option A): the named species
@@ -507,7 +507,7 @@ using NaturalNumbers = NaturalNumbersOf<>;
  *
  *  This makes @c element<ℕ> the canonical scout spelling for the
  *  natural-numbers universe — closer to textbook math notation than the
- *  pre-#559 @c element<Ω<ℕ>> form (which required @c ℕ to be a type
+ *  pre-#559 @c element<𝔸<ℕ>> form (which required @c ℕ to be a type
  *  alias for @c Cardinality).
  *
  *  Pre-#559 the spelling was @c using @c ℕ @c = @c
@@ -525,13 +525,13 @@ using NaturalNumbers = NaturalNumbersOf<>;
  *  @c IsTotallyOrdered, @c IsDirectedSet, @c IsDirectedPoset, ...)
  *  are now expressed against @c Cardinality directly.
  */
-export inline constexpr auto ℕ = Ω<Cardinality>;
+export inline constexpr auto ℕ = 𝔸<Cardinality>;
 
-/** @brief @c 𝔹 --- the Boolean carrier as a value-tag, @c Ω<bool>, the
+/** @brief @c 𝔹 --- the Boolean carrier as a value-tag, @c 𝔸<bool>, the
  *  finite universe @f$\{\mathtt{false},\mathtt{true}\}@f$.  Companion to @c ℕ
  *  for the point-free set-builder surface @c 𝔹 @c | @c π @c == @c fix(true_c).
  */
-export inline constexpr auto 𝔹 = Ω<bool>;
+export inline constexpr auto 𝔹 = 𝔸<bool>;
 
 // Canonical ambient-set value used by the sets DSL tests.
 export inline constexpr NaturalNumbersOf<> N{};

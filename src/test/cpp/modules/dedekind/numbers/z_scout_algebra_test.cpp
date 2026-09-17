@@ -124,7 +124,7 @@ TEST_CASE(
   CHECK(S(dedekind::sets::finite_signed_cardinality(10)) == L::False);
   CHECK(S(dedekind::sets::finite_signed_cardinality(11)) == L::False);
 
-  // Sentinel behaviour: ℤ = Ω<SignedCardinality> includes ±ℵ_0 and
+  // Sentinel behaviour: ℤ = 𝔸<SignedCardinality> includes ±ℵ_0 and
   // NaZ.  The scaling map x ↦ M*x (with finite non-zero M) maps
   //   +ℵ_0 ↦ +ℵ_0,  -ℵ_0 ↦ -ℵ_0,  NaZ ↦ NaZ
   // per @c SignedCardinality::operator*.  The predicate uses the

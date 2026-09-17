@@ -60,7 +60,7 @@ using FiniteBooleanSetOf = dedekind::sets::FiniteBooleanSet<L>;
 /** @section numbers_boolean__Canonical_Species_Spine
  *
  * The canonical Boolean species symbol @c 𝔹 names the @b universe value
- * @c Ω<bool> (post-#559).  The carrier is @c bool, addressed directly in
+ * @c 𝔸<bool> (post-#559).  The carrier is @c bool, addressed directly in
  * template-type-parameter positions; @c 𝔹 is the constexpr
  * @c UniversalSet<bool, ClassicalLogic, Finite>{} value the set-builder
  * DSL takes as ambient.  The Boolean structures the carrier @c bool
@@ -85,7 +85,7 @@ using FiniteBooleanSetOf = dedekind::sets::FiniteBooleanSet<L>;
  *
  *  @details The canonical definition lives in @c dedekind::algebra::boolean
  *  (upstream of this partition).  Post-#559, @c 𝔹 names the universe value
- *  @c Ω<bool> (a constexpr @c UniversalSet<bool, ClassicalLogic, Finite>{}),
+ *  @c 𝔸<bool> (a constexpr @c UniversalSet<bool, ClassicalLogic, Finite>{}),
  *  not a carrier-type alias.  The underlying carrier is @c bool, used
  *  directly in template-type-parameter positions.  Predicate-set callers
  *  want @c FiniteBooleanSetOf<>{...} (explicit construction; e.g.\ the
@@ -127,10 +127,10 @@ concept Is_B = std::same_as<E, bool> && requires(const M& m) {
 
 // (0) Universe witness: 𝔹 names the universe over the bool carrier (post-#559).
 //     Pre-#559, 𝔹 was a carrier-type alias for bool; post-#559 it is the
-//     value Ω<bool> (a constexpr UniversalSet<bool, ClassicalLogic, Finite>{}).
+//     value 𝔸<bool> (a constexpr UniversalSet<bool, ClassicalLogic, Finite>{}).
 static_assert(std::same_as<std::remove_cvref_t<decltype(dedekind::algebra::𝔹)>,
                            UniversalSet<bool, ClassicalLogic, Finite>>,
-              "𝔹 is the universe Ω<bool> (post-#559).");
+              "𝔹 is the universe 𝔸<bool> (post-#559).");
 static_assert(
     std::same_as<
         typename std::remove_cvref_t<decltype(dedekind::algebra::𝔹)>::Domain,
@@ -151,11 +151,11 @@ static_assert(
 //      in (1) below witnesses exactly that lift.
 static_assert(std::same_as<typename UniversalSet<bool>::Domain, bool>,
               "UniversalSet<bool>::Domain is the carrier `bool` (and 𝔹 = "
-              "Ω<bool>) — predicate-set's "
+              "𝔸<bool>) — predicate-set's "
               "underlying element type IS the carrier.");
 static_assert(
     std::same_as<typename FiniteBooleanSetOf<>::Domain, bool>,
-    "FiniteBooleanSetOf<>::Domain is the carrier `bool` (and 𝔹 = Ω<bool>).");
+    "FiniteBooleanSetOf<>::Domain is the carrier `bool` (and 𝔹 = 𝔸<bool>).");
 
 // (1) IsSet anchor: the predicate-set FiniteBooleanSetOf<> is a bona-fide
 //     set (membership morphism 𝔹 → Ω).  Witnesses the set-builder DSL
@@ -176,7 +176,7 @@ static_assert(
 //      (instances actually containing both `true` and `false`) live in
 //      `extensional_test.cpp` since `std::unordered_set` is not
 //      constexpr-initializable with elements in C++23.  Sister anchor
-//      to (1): predicate vs. listed view of the same Ω-shaped set.
+//      to (1): predicate vs. listed view of the same 𝔸-shaped set.
 static_assert(
     dedekind::category::IsSet<decltype(dedekind::category::ambient_set<bool>(
         dedekind::sets::ExtensionalSet<bool>{}))>,

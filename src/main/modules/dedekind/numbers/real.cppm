@@ -287,7 +287,7 @@ inline constexpr bool
 // field gate) require @c category::IsField<R>, and strict @c category::IsField
 // on the exact Dedekind-cut @c Real is deliberately blocked (the @c IsTotal
 // exact-path gate --- see the @c ExactReal witness block below).  @c Real
-// carries only the @b set-indexed @c algebra::IsField (ℝ = Ω<Rational>), not
+// carries only the @b set-indexed @c algebra::IsField (ℝ = 𝔸<Rational>), not
 // the type-indexed @c category::IsField, so @c Complex<Real> is NOT a certified
 // field.  Add the markers here only once @c category::IsField<Real> lands, with
 // a test (#818 keeps the certified reals to ℚ and ℚ(√D)).
@@ -345,12 +345,12 @@ struct RealsOf {
 export using RealSet = RealsOf<>;
 
 /** @brief The canonical real-number universe @c ℝ @c = @c
- *         Ω<QuadraticReal<2>, ClassicalLogic, ℶ_1> --- the coat-hanger.
+ *         𝔸<QuadraticReal<2>, ClassicalLogic, ℶ_1> --- the coat-hanger.
  *
  *  @details Per #559 the named species symbols denote @b universe values
  *  (constexpr @c UniversalSet instances over the carrier).  @c ℝ's carrier is
  *  the decidable FIELD @c QuadraticReal<2> @c = ℚ(√2): the @b universe @c ℝ is
- * a set-indexed field (@c algebra::IsField, as @c ℚ @c = @c Ω<Rational> is),
+ * a set-indexed field (@c algebra::IsField, as @c ℚ @c = @c 𝔸<Rational> is),
  * and its @b carrier is order-complete in the library's @b structural surrogate
  *  sense (totally ordered + dense + extrema).  So the Ddk algebra hangs off
  *  @c ℝ the way analysis bootstraps from the reals.
@@ -364,18 +364,18 @@ export using RealSet = RealsOf<>;
  *  uninhabited carrier.
  *
  *  @c ℂ and @c 𝔻 are the sibling coat-hanger universe values
- *  (ℂ = ℝ[i]/(i²+1) = Ω<Complex<QuadraticReal<2>>>, 𝔻 = ℝ[ε]/(ε²) =
- *  Ω<Dual<QuadraticReal<2>>>), the 2nd-order quotient functors over this same
+ *  (ℂ = ℝ[i]/(i²+1) = 𝔸<Complex<QuadraticReal<2>>>, 𝔻 = ℝ[ε]/(ε²) =
+ *  𝔸<Dual<QuadraticReal<2>>>), the 2nd-order quotient functors over this same
  *  ℝ.  The cross-carrier membership classifier is @c RealSet @c = @c RealsOf<>.
  */
 export inline constexpr auto ℝ =
-    dedekind::sets::Ω<QuadraticReal<2>, ClassicalLogic, ℶ_1>;
+    dedekind::sets::𝔸<QuadraticReal<2>, ClassicalLogic, ℶ_1>;
 
 static_assert(
     std::same_as<
         std::remove_cvref_t<decltype(ℝ)>,
         dedekind::sets::UniversalSet<QuadraticReal<2>, ClassicalLogic, ℶ_1>>,
-    "ℝ is the universe Ω<QuadraticReal<2>, ClassicalLogic, ℶ_1> — the "
+    "ℝ is the universe 𝔸<QuadraticReal<2>, ClassicalLogic, ℶ_1> — the "
     "coat-hanger realised as ℚ(√2).");
 static_assert(std::same_as<typename std::remove_cvref_t<decltype(ℝ)>::Domain,
                            QuadraticReal<2>>,
@@ -383,12 +383,12 @@ static_assert(std::same_as<typename std::remove_cvref_t<decltype(ℝ)>::Domain,
 
 // The coat-hanger is load-bearing at TWO distinct levels (not one value
 // satisfying both concepts): the set-indexed @c algebra::IsField holds on the
-// UNIVERSE ℝ (exactly as it does on ℚ = Ω⟨Rational⟩), while order-completeness
+// UNIVERSE ℝ (exactly as it does on ℚ = 𝔸⟨Rational⟩), while order-completeness
 // is a CARRIER property — @c IsDedekindComplete is an order concept a
 // UniversalSet does not itself model — so it is asserted on ℚ(√2).  The claim
 // is therefore: ℝ is a field, and its carrier is order-complete (surrogate).
 static_assert(dedekind::algebra::IsField<std::remove_cvref_t<decltype(ℝ)>>,
-              "ℝ (the universe) is a set-indexed field, like ℚ = Ω⟨Rational⟩.");
+              "ℝ (the universe) is a set-indexed field, like ℚ = 𝔸⟨Rational⟩.");
 static_assert(IsDedekindComplete<QuadraticReal<2>>,
               "ℝ's CARRIER ℚ(√2) is order-complete (structural surrogate) — a "
               "carrier-level property, not a property of the set ℝ itself.");
@@ -400,7 +400,7 @@ static_assert(IsDedekindComplete<QuadraticReal<2>>,
  *  integer-coordinate lattices).  Rule of thumb: compute on @c ℝ_d; model on
  *  @c ℝ. */
 export inline constexpr auto ℝ_d =
-    dedekind::sets::Ω<Real<machine_real_scalar>, ClassicalLogic, ℶ_1>;
+    dedekind::sets::𝔸<Real<machine_real_scalar>, ClassicalLogic, ℶ_1>;
 
 export inline constexpr RealsOf<> R{};
 

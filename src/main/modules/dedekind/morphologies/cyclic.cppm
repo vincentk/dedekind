@@ -198,7 +198,7 @@ struct Modular {
  * @c Modular<N> constructor), a quantifier over an @b infinite carrier reduces
  * to exhausting the @c N residues: @f$\exists@f$ and @f$\forall@f$ both become
  * decidable in finite time (see the @c sets:quantifier finite-carrier path and
- * the numbers-level @c Ω<Cardinality> bridge).  The modulus @c N is carried in
+ * the numbers-level @c 𝔸<Cardinality> bridge).  The modulus @c N is carried in
  * the type, so the compiler sees the quotient; an opaque lambda could not.
  *
  * It is a characteristic morphism (@c IsPredicate): @c Domain is the integer

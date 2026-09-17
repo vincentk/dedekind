@@ -47,12 +47,12 @@ module;
 export module dedekind.algebra:halfspace_transport;
 
 import dedekind.category; // IsAbelianGroup, is_left_total_v (the trait primary)
-import dedekind.sets;     // Set, Ω, Singleton, Cardinality, SignedCardinality
+import dedekind.sets;     // Set, 𝔸, Singleton, Cardinality, SignedCardinality
 import dedekind.order; // Halfspace, ProjAddConstProj, Rel, dir_of/strict_of/flip
 import dedekind.relational; // ComposePred (Tarski :dyadic) — the >> trait NODE (#792)
 import :scout_algebra;  // IsOrderedAdditiveGroup — the canonical gate
 
-// Mirror order/halfspace.cppm's directives so the DSL names (Set, Ω, Singleton
+// Mirror order/halfspace.cppm's directives so the DSL names (Set, 𝔸, Singleton
 // from sets; the trait primaries from category) resolve unqualified inside the
 // re-opened namespaces.  using-directives are TU-local (never exported).
 using namespace dedekind::sets;
@@ -105,7 +105,7 @@ constexpr auto inverse(
 // A translation is surjective on ANY additive group (@c IsAbelianGroup under
 // +): on ℤ the range of the unbounded graph is the whole line; on a cyclic
 // group
-// (@c unsigned) the modular translation is still a bijection, hence onto, so Ω
+// (@c unsigned) the modular translation is still a bijection, hence onto, so 𝔸
 // is the correct range regardless of wrap.  (On ℕ = @c Cardinality, NOT a
 // group, x↦x+K misses {0,…,K−1}, so this overload is gated to the group case.)
 // Bounded by a π1-halfspace the range is that halfspace pushed forward by K ---
@@ -115,7 +115,7 @@ export template <typename T, auto K, typename L>
   requires dedekind::category::IsAbelianGroup<T, std::plus<T>>
 constexpr auto image(
     const Set<std::pair<T, T>, L, ProjAddConstProj<1, K, Rel::Eq, 2>>&) {
-  return Ω<T, L>;  // preserve the relation's logic species
+  return 𝔸<T, L>;  // preserve the relation's logic species
 }
 
 /** @brief image of a translation graph restricted to a halfspace @c {x⋈P}: the

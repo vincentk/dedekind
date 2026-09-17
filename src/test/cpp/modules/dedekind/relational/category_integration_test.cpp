@@ -41,7 +41,7 @@ TEST_CASE("Sets+Category: singleton and comprehension predicates satisfy ETCS",
 
   // ambient_set<Cardinality> lifts the predicate-set into the variant
   // ℕ-proxy ambient (the carrier of the ℕ universe; post-#402 / #559
-  // ℕ = Ω<Cardinality>).  The characteristic-function χ then reads on
+  // ℕ = 𝔸<Cardinality>).  The characteristic-function χ then reads on
   // Cardinality values; unsigned literals like @c 5u / @c 0u lift
   // implicitly into the variant's finite alternative on the call site.
   const auto positive_set = ambient_set<Cardinality>(positive);

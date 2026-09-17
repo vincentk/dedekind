@@ -41,7 +41,7 @@ TEST_CASE(
   // apply(R, x) = the fibre {b | (x,b) ∈ R}; here R doubles, so apply(R,3)={6}.
   CHECK(apply(R, 3)(6));        // (3,6) ∈ R  ⇒  6 ∈ apply(R,3)
   CHECK_FALSE(apply(R, 3)(7));  // (3,7) ∉ R
-  // dom / cod are the DECLARED factor universals Ω<A> / Ω<B> (total, no ∃).
+  // dom / cod are the DECLARED factor universals 𝔸<A> / 𝔸<B> (total, no ∃).
   CHECK(dom(R)(42));  // declared domain is all of int
   CHECK(cod(R)(42));  // declared codomain is all of int
 }

@@ -225,7 +225,7 @@ TEST_CASE(
 // Compile-time contract pinning for #415: variant carrier ↔ std::integral
 // relational ops MUST be constexpr-evaluable.  These static_asserts lock
 // the contract that downstream halfspace machinery relies on — for
-// example, @c element<Ω<ℤ>> @c > @c bound<-21> after the @c #402 retarget.
+// example, @c element<𝔸<ℤ>> @c > @c bound<-21> after the @c #402 retarget.
 namespace {
 constexpr auto sa_c5 = finite_cardinality(5);
 constexpr auto sa_c0 = finite_cardinality(0);
@@ -539,10 +539,10 @@ TEST_CASE(
   //   ⇒  A ∪ B ⊂ ℤ   (union widens to the larger carrier)
   //
   // The ℤ side is built directly on the variant carrier @c
-  // SignedCardinality (rather than @c element<Ω<ℤ>> via the predicate-set
+  // SignedCardinality (rather than @c element<𝔸<ℤ>> via the predicate-set
   // alias) because the @c ℤ alias-flip to the variant lives behind
   // #402 — see the @c FIXME breadcrumb.  Once #402 lands this test can
-  // shift to the more idiomatic @c element<Ω<ℤ>> form.
+  // shift to the more idiomatic @c element<𝔸<ℤ>> form.
   // Post-#622: ℕ → ClassicalLogic on the carrier axis, so the cross-
   // carrier Sets in these sections must use the same logic species for
   // the @c & / @c | overloads (gated on @c same_as<L1, L2>) to fire.

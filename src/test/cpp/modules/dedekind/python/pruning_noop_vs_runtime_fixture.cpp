@@ -32,7 +32,7 @@ using namespace dedekind::category;
 using namespace dedekind::sets;
 using namespace dedekind::algebra;
 
-// Symbolic scout ranging over the Boolean universe 𝔹 (= Ω<bool> =
+// Symbolic scout ranging over the Boolean universe 𝔹 (= 𝔸<bool> =
 // UniversalSet<bool, ClassicalLogic, Finite>) post-#559.
 constexpr auto b = element<𝔹>;
 

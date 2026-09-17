@@ -10,7 +10,7 @@
  * Licensed under the Apache License, Version 2.0.
  *
  * @section real_bridge__The_S_Leg
- * @f$\mathbb{R}=\Omega\langle\mathbb{Q}(\sqrt2)\rangle@f$ is the algebraic
+ * @f$\mathbb{R}=\mathbb{A}\langle\mathbb{Q}(\sqrt2)\rangle@f$ is the algebraic
  * coat-hanger (a first-class @c IsField value; see @c :quadratic).  This
  * partition hangs the first HSP leg off it: @f$\mathbb{Q}\hookrightarrow
  * \mathbb{R}@f$, @f$q\mapsto q+0\sqrt2@f$, as an @c EmbedsAsSubalgebra arrow.

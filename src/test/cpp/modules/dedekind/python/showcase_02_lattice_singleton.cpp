@@ -33,7 +33,7 @@ constexpr bool is_integral_coordinate(double x) {
 
 // This showcase is an IR-COLLAPSE fixture (its whole point is that the
 // singleton witness constant-folds to `ret i1 true` at -O2), so it stays on the
-// machine ambient ℂ_d = Ω<Complex<double>>: `double` comparisons fold, whereas
+// machine ambient ℂ_d = 𝔸<Complex<double>>: `double` comparisons fold, whereas
 // exact ℚ(√2) arithmetic (Rational gcd/simplify) does not.  The EXACT ℚ(√2)
 // version of this lattice∩square singleton lives in
 // analysis/pruning_showcases_test.cpp (showcase 2), which is a

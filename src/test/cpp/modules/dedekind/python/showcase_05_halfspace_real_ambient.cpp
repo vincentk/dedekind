@@ -32,9 +32,9 @@ using namespace dedekind::numbers;
 using namespace dedekind::order;
 
 // ℝ is now the ℚ(√2) coat-hanger, so machine-real (double) halfspaces live on
-// @c ℝ_d = @c Ω<Real<double>, ClassicalLogic, ℶ_1> --- the materialisable real
+// @c ℝ_d = @c 𝔸<Real<double>, ClassicalLogic, ℶ_1> --- the materialisable real
 // ambient whose ℶ_1 cardinality threads @c NaturalLogic to TernaryLogic (the
-// uncountable-carrier verdict), where @c Ω<Real<double>> alone would
+// uncountable-carrier verdict), where @c 𝔸<Real<double>> alone would
 // default-route ℵ_0.  We keep the ambient-BEARING scout @c element<ℝ_d> (not a
 // point-free @c ℝ_d @c | @c … , which reduces to a bare @c Halfspace and drops
 // the ℶ_1 metadata before @c Set deduction --- defeating the very

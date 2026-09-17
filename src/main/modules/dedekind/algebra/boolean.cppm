@@ -13,7 +13,7 @@
  *
  * @section algebra_boolean__Notation
  * - `𝔹`: canonical Unicode symbol for the Boolean @b universe over the
- *   carrier @c bool (post-#559).  Spelled as the value @c Ω<bool> below;
+ *   carrier @c bool (post-#559).  Spelled as the value @c 𝔸<bool> below;
  *   carrier-type positions use @c bool directly.
  *   @c static_assert(IsField<bool, bit_xor, bit_and>) carries the algebra
  *   on the carrier, while @c element<𝔹> is the canonical scout spelling
@@ -21,7 +21,7 @@
  * - `BooleanSetOf<L, C>` ≡ `UniversalSet<bool, L, C>`: parameterised
  *   predicate-set template alias.  Bool is the @b bottom of the algebraic
  *   tower, so the characteristic morphism χ_𝔹 of 𝔹-as-subobject coincides
- *   with the universe Ω<bool> (no proper ambient super-object); the alias
+ *   with the universe 𝔸<bool> (no proper ambient super-object); the alias
  *   makes this collapse explicit.  Contrast with @c NaturalNumbersOf,
  *   @c IntegersOf, @c RationalsOf, @c RealsOf, @c ComplexesOf,
  *   @c DualSetOf, where χ_T : tower-ambient → Ω is a non-trivial
@@ -42,9 +42,9 @@
  * alignment explicitly.
  *
  * Element scouts are post-#559 spelled @c element<𝔹> (BoundScout factory
- * over the Boolean universe value @c 𝔹 = @c Ω<bool>); the legacy
+ * over the Boolean universe value @c 𝔹 = @c 𝔸<bool>); the legacy
  * @c var<...> family was retired in Phase 2e.3 of the Ω-ambient redesign
- * (#551), and the @c element<Ω<𝔹>> intermediate spelling went away in
+ * (#551), and the @c element<𝔸<𝔹>> intermediate spelling went away in
  * #559's option-A migration once @c 𝔹 stopped being a carrier alias.
  *
  * @note "La matematica non e una collezione di trucchi: e grammatica delle
@@ -78,7 +78,7 @@ using BooleanSetOf = UniversalSet<bool, L, C>;
 // the namespace surface small, per Copilot review on PR #407.
 using BooleanSet = BooleanSetOf<>;
 
-/** @brief The canonical Boolean universe @c 𝔹 = @c Ω<bool> (post-#559).
+/** @brief The canonical Boolean universe @c 𝔹 = @c 𝔸<bool> (post-#559).
  *
  *  @details Per #559's chosen direction (option A): the named species
  *  symbols (@c 𝔹 / @c ℕ / @c ℤ / @c ℚ / @c ℝ / @c ℂ / @c 𝔻) denote the
@@ -88,7 +88,7 @@ using BooleanSet = BooleanSetOf<>;
  *  the math symbols denote the sets.
  *
  *  This makes @c element<𝔹> the canonical scout spelling — closer to
- *  textbook math notation than the previous @c element<Ω<𝔹>> form (which
+ *  textbook math notation than the previous @c element<𝔸<𝔹>> form (which
  *  required @c 𝔹 to be a type alias for @c bool).  The Boolean structures
  *  @c bool carries — the Boolean rig (@c bool, @c ∨, @c ∧), the Galois
  *  field 𝔽₂ (@c bool, @c ⊕, @c ∧), the order lattice — are still witnessed

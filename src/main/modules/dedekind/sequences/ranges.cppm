@@ -368,7 +368,7 @@ auto materialise(
  *
  *  The optimum as a filtration, carried with its own finite domain so it flows
  *  straight into @ref materialise as the single argument the endorsed surface
- *  @c materialise(argmax(Ω|[0,N], cost)) calls.
+ *  @c materialise(argmax(𝔸|[0,N], cost)) calls.
  */
 
 /** @brief The value-semantic comprehension @f$\{x \in \mathrm{dom} \mid

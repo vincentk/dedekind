@@ -3,7 +3,7 @@
 import dedekind.category;
 import dedekind.algebra;
 import dedekind.sets;
-import dedekind.order; // the translation graph (Ω*Ω | π1+fix==π2) for preimage
+import dedekind.order; // the translation graph (𝔸*𝔸 | π1+fix==π2) for preimage
 import dedekind.morphologies;
 
 using namespace dedekind::category;
@@ -51,7 +51,7 @@ TEST_CASE("Congruence residue preimage: {x≡R mod N} ⟵ x↦x+K rotates by −
   // On the cyclic carrier unsigned = ℤ/2^w with N=4 a power of two (the
   // discrete circle ℤ/L the torus rotates on); the graph carrier is the
   // residue's own integer type (unsigned = decltype(N)).
-  constexpr auto ℤ4 = Ω<unsigned>;
+  constexpr auto ℤ4 = 𝔸<unsigned>;
   // preimage(x↦x+1, {x≡2 mod4}) = {x≡1 mod4}: the class rotates by −1.
   constexpr auto pre =
       preimage(ℤ4 * ℤ4 | π1 + fix(1_c) == π2, Congruence<4u, 2u>{});

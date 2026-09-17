@@ -28,11 +28,11 @@ TEST_CASE("complement-lattice absorbing laws collapse (𝔹 and ℕ)",
   // ── 𝔹 : extensional carrier — the value is in the type (static Singleton) ──
   {
     static_assert(
-        dedekind::category::IsSet<decltype(Ω<bool>)>);  // the universe IS an
+        dedekind::category::IsSet<decltype(𝔸<bool>)>);  // the universe IS an
                                                         // ETCS set
     constexpr Singleton<true> T{};                      // {true} ⊂ 𝔹
     constexpr Singleton<false> F = ~T;  // complement: the other singleton
-    static_assert((F | T) == Ω<bool>);  // | : round-trip to the universe (⊤)
+    static_assert((F | T) == 𝔸<bool>);  // | : round-trip to the universe (⊤)
     constexpr Ø<bool> empty = F & T;    // & : collapse to the empty set (⊥)
     static_assert(Ø<bool>{} == empty);
   }
@@ -63,7 +63,7 @@ TEST_CASE("complement-lattice absorbing laws collapse (𝔹 and ℕ)",
     //     the general product decides by membership
     static_assert((η(true) * η(false)) == η(std::pair{true, false}));
     static_assert((η(false) * η(true)) == η(std::pair{false, true}));
-    static_assert((Ω<bool> * Ω<bool>)(std::pair{true, false}));
+    static_assert((𝔸<bool> * 𝔸<bool>)(std::pair{true, false}));
   }
   CHECK(true);  // runtime anchor for coverage
 }
