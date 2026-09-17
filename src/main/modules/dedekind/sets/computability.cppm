@@ -114,11 +114,17 @@ struct NaturalLogic<Base, std::void_t<typename Base::cardinality_type>> {
  * classified Sets fail. This is the library's observable proxy for
  * "membership is decidable": the compiler knows there's no third answer.
  *
- * @details Rosolini reading: this is exactly "the characteristic map χ: A → Ω
- *          factors through the dominance Σ ↪ Ω", i.e. χ = lift_logic ∘ χ_total
- *          with χ_total: A → Σ (= ClassicalLogic::Ω). ETCS proper is the
- *          Σ = Ω case; a partial set is χ: A → Ω = TernaryLogic::Ω. See
- *          `category/logic.cppm` (lift_logic = the inclusion Σ ↪ Ω) and #267.
+ * @details Rosolini reading: this is a @b sound, @b conservative certificate
+ *          that "the characteristic map χ: A → Ω factors through the dominance
+ *          Σ ↪ Ω" (χ = lift_logic ∘ χ_total with χ_total: A → Σ =
+ *          ClassicalLogic::Ω), @b not a decision of it.  It checks that the
+ *          logic species is Boolean, so it recognises a decidable sub-class but
+ *          may answer conservatively: an ℝ-tagged @c Halfspace whose χ never
+ *          actually returns @c Unknown is still @c TernaryLogic-classified, and
+ *          deciding the factorisation exactly is undecidable (Rice).  ETCS
+ *          proper is the Σ = Ω case; a partial set is χ: A → Ω =
+ * TernaryLogic::Ω. See `category/logic.cppm` (lift_logic = the inclusion Σ ↪
+ * Ω), #267, and #847 (the recognised-vs-actual sub-quadrant).
  */
 export template <typename S>
 concept HasDecidableMembership =

@@ -118,13 +118,13 @@ concept IsCharacteristic = IsPredicate<P>;
  * honest species is three-valued (@c Ternary, admitting @c Unknown).
  * `IsDecidableCharacteristic` demands the codomain be @c ClassicalLogic::Ω
  * (@c bool): membership is answered in two-valued logic and never says
- * @c Unknown.  This is the arrow-level twin of @c sets::HasDecidableMembership
- * (a Set is decidable iff its characteristic arrow satisfies this);
- * equivalently
- * @f$\chi_A@f$ factors through the Rosolini dominance @f$\iota : \Sigma
- * \hookrightarrow \Omega@f$.  In strict (Boolean) ETCS every characteristic
- * arrow is already decidable (Σ = Ω); here it is the earned special case.
- * See #846, @c category/logic.cppm (@c lift_logic = ι).
+ * @c Unknown.  This is the arrow-level twin of @c sets::HasDecidableMembership:
+ * a @b sound, @b conservative certificate that @f$\chi_A@f$ factors through the
+ * Rosolini dominance @f$\iota : \Sigma \hookrightarrow \Omega@f$, not a
+ * decision of it (it recognises a decidable sub-class; deciding the
+ * factorisation exactly is undecidable, #847).  In strict (Boolean) ETCS every
+ * characteristic arrow is already decidable (Σ = Ω); here it is the earned
+ * special case. See #846, @c category/logic.cppm (@c lift_logic = ι).
  *
  * @see Giuseppe Rosolini (Università di Genova), Oxford D.Phil. 1986 (the
  *      dominance Σ); design note:
