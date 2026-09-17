@@ -363,15 +363,14 @@ struct UniversalSet final {
 template <typename T, typename L, typename C>
 inline const UniversalSet<T, L, C> UniversalSet<T, L, C>::χ{};
 
-/** @brief The universal-predicate value at carrier @c T (subobject-classifier
- *         reading per #551).
+/** @brief The universal (top) set over carrier @c T --- the value-level handle
+ *         (per #551).  This is the universe, not the subobject classifier;
+ *         the classifier is @c L::Ω.
  *
  *  Variable template producing a default-constructed @c UniversalSet<T,L,C>
- *  instance.  Lets callers spell the ambient as @c UniversalSet<bool> rather
- * than
+ *  instance.  Lets callers spell the ambient as @c 𝔸<bool> rather than
  *  @c UniversalSet<bool>{} — paper Listing 6 reads as @c auto @c 𝔹 @c =
- *  @c UniversalSet<bool>; without the type-vs-value schism the pre-#551 surface
- * had.
+ *  @c 𝔸<bool>; without the type-vs-value schism the pre-#551 surface had.
  */
 export template <typename T, typename L = ClassicalLogic, typename C = ℵ_0>
 inline constexpr UniversalSet<T, L, C> 𝔸{};
