@@ -337,7 +337,7 @@ struct UniversalSet final {
   // @c :order:halfspace) has no @c Domain and instead binds to this universe
   // via its own @c operator|, spelling the set-builder where-clause.
   template <typename S>
-    requires requires { typename S::Domain; }
+    requires(IsSet<S>)
   constexpr auto operator|(const S&) const {
     return *this;
   }
