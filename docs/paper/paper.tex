@@ -124,7 +124,7 @@
 \newcommand{\Cpp}[1]{C\kern-.05em\raise.3ex\hbox{\footnotesize ++}#1}
 
 % --- Document Metadata ---
-\title{Symbolic Algebra in Standard C++ Verified at Compile Time \thanks{%
+\title{Symbolic Algebra in Standard C++ Verified at Compile Time\thanks{%
     Draft intended for submission to \emph{Programming}~\cite{programming_journal},
     the journal for programming-related research.
     The paper's scope is deliberately narrower than the companion project
@@ -153,16 +153,16 @@ This fragment is named the \emph{Juliet Posture} ($\mathbf{Jlt} = \mathbf{Per} \
 The resulting code has a deliberate, sweet and flowery smell: $\mathbf{Jlt}$ admits a System~F reading of the \Cpp{23} type system.
 On this foundation an embedded, lazy domain-specific language is built which supports
 \begin{enumerate}
-\item a set-comprehension engine ($\mathbf{Lwv} = \mathbf{Jlt} \cap \mathbf{Set}$) whose sets are defined in an intensional way: via a membership test ($\{ x \in S | P(x) \}$, \cppinline{S | P(x)}) rather than by listing elements,
+\item a set-comprehension engine ($\mathbf{Lwv} = \mathbf{Jlt} \cap \mathbf{Set}$) whose sets are defined in an intensional way: via a membership test ($\{ x \in S \mid P(x) \}$, \cppinline{S | P(x)}) rather than by listing elements,
 \item a point-free relational calculus ($\mathbf{Trsk} = \mathbf{Lwv} \cap \mathbf{Rel}$) built on cartesian products ($\{ (x, y) \in S \times S \mid P(x, y) \}$, \cppinline{S * S | P(x, y)}), and
-\item symbolic algebra $\mathbf{Ddk} = \mathbf{Trsk} \cap \mathbf{Alg}$ built on operations ($(x, y, z) \in S^3 | z = f(x, y)$, \cppinline{S * S * S | z = f(x, y)}), specifically the canonical sets $\mathbb B, \mathbb N, \ldots$.
+\item symbolic algebra $\mathbf{Ddk} = \mathbf{Trsk} \cap \mathbf{Alg}$ built on operations over the canonical sets $\mathbb B, \mathbb N, \ldots$ ($(x, y, z) \in S^3 \mid z = f(x, y)$, \cppinline{S * S * S | z = f(x, y)}).
 \end{enumerate}
 The embedded domain-specific language spells out the corresponding algebraic laws as types, enabling the compiler to verify and optimize the expression tree.
 % Demonstration of the Principle by way of a worked non-trivial example:
 A worked example demonstrates feasibility: the critical path of a directed acyclic network, computed by semiring closure and cast entirely in the type system.
 When every argument is known at compile time, the compiler constant-folds the optimum and the emitted LLVM IR is a single literal, typed to the semiring of the cost function (the Boolean semiring for reachability, max-plus over $\mathbb N$ for cost, max-plus over dual numbers for sensitivity analysis).
 % Concluding remarks:
-The approach is expected to be portable to other systems programming languages with a rich enough type system, specifically Rust.
+The approach should port to other systems programming languages with a rich enough type system, specifically Rust.
 \end{abstract}
 
 % Table of contents is just a convenience during editing. It will be removed before submission.
@@ -486,7 +486,7 @@ The DSL is grounded in it by a faithful reification: the defining axioms become 
 The step-by-step embedding is in Appendix~\ref{sec:etcs}, the concepts in the reference implementation~\cite{Krautler_dedekind_2026} (Mac Lane~\cite{maclane1971categories} and Pierce~\cite{pierce1991basic} for background).
 Two caveats apply, and they are really one.
 i) The axiom of choice (Axiom~10) is only approximated through the power-object lattice, and is marked aspirational.
-ii) Choice is what makes ETCS Boolean, collapsing the classifier to the two-valued $\Sigma$, so \cppinline{IsSet} does \emph{not} assume decidable membership.
+ii) Choice is what makes ETCS Boolean, collapsing the classifier to the two-valued $\Sigma$; \cppinline{IsSet} does \emph{not} assume choice, so it does not assume decidable membership either.
 It reifies the axiom schema over a possibly non-Boolean ambient: the characteristic map $\chi_A : A \to \Omega$ is valued in the full three-valued classifier $\Omega = \mathbb{B} + \mathrm{U}$~\cite{kleene1952metamathematics} (the \cppinline{TernaryLogic} species), and need not factor through the decided fragment.
 Decidable membership, the \cppinline{HasDecidableMembership} observable, is the earned case where $\chi_A$ factors as $A \to \Sigma \to \Omega$ through the dominance $\Sigma \hookrightarrow \Omega$, a Rosolini dominance~\cite{rosolini1986continuity} (Figure~\ref{fig:dominance}); admitting undecidability by default is what keeps the grammar strictly sound.\footnote{A carrier whose membership is only semi-decidable, a Mandelbrot set say, stays at the partial default (Appendix~\ref{sec:etcs}); the decidable track (§\ref{sec:ddk_ordered} onward) is the specialisation, not the assumption.}
 With these assumptions acknowledged, one can define:
@@ -496,7 +496,7 @@ In $\mathbf{Lwv}$:
 \begin{enumerate}
 \item A \emph{set} over a regular (\cppinline{std::regular}) carrier \cppinline{A} in $\mathbf{Jlt}$ is a \emph{subobject} of \cppinline{A}: a type \cppinline{S} satisfying \cppinline{IsSubobject<S, A>}, whose characteristic predicate $\chi_S : A \to \Omega$ classifies membership (decidably when $\chi_S$ factors through the Boolean $\Sigma$, Figure~\ref{fig:dominance}).
 \item A \emph{relation} is a subobject of the Cartesian product \cppinline{::Domain} $\times$ \cppinline{::Codomain}.
-\item A \emph{set} is thus the true-fiber of its characteristic morphism $\chi_S : A \to \Omega$: the pullback of $\top$ along $\chi_S$, the true-slice of the graph of $\chi_S$ rather than the whole graph (which also carries the \cppinline{false} pairs).
+\item A \emph{set} is thus the true-fiber of its characteristic morphism $\chi_S : A \to \Omega$: the pullback of $\top$ along $\chi_S$, the true-slice of the graph of $\chi_S$ rather than the whole graph (which also carries the \cppinline{false} or \cppinline{Unknown} pairs).
 \end{enumerate}
 The full ETCS axioms live not on the individual set but on its ambient \emph{universe}: the top element $\Omega\langle A\rangle$ is itself an ETCS set-object, satisfying the heavier \cppinline{concept IsSet} (Definition~\ref{def:etcs-set}).
 A $\mathbf{Lwv}$ set is a subobject of such a universe over a $\mathbf{Jlt}$ carrier, so one can write:
@@ -587,7 +587,7 @@ The domain decides $\mathrm{fix}(\mathit{succ})$: the finite cardinals have no f
 \textbf{Top right}: membership that is not decided.
 A comprehension over $\mathbb{R}$ (tagged $\beth_1$) is classified undecidable, its species \cppinline{TernaryLogic}, so $==$ is withheld; the intensional image of a set returns $U$ outright.
 \textbf{Bottom}: the grammar in two panels.
-A \texttt{setexpr} is a generator or a comprehension, and the only observation is \texttt{membership}, valued in $\Omega$.
+A \texttt{setexpr} is a generator or a comprehension, and the only observation is \texttt{membership}, valued in the classifier $\Omega$ (the generator \texttt{'Ω'} is the universal set $\Omega\langle A\rangle$, a distinct use of the glyph).
 There is no $==$: with $U$ in reach set equality is undecidable, and Listing~\ref{lst:set-grammar} restores it on $\Sigma$.
 The archetype hard predicate is Mandelbrot membership, semi-decidable: escape is recognizable, non-escape is not.
 The grammar is sound; whether a membership query is \emph{decided} is the separate question this listing is about (Figure~\ref{fig:dominance}).}
@@ -641,9 +641,9 @@ pred ::= <any elem → Ω>
 
 Listing~\ref{lst:set-grammar} gives worked examples and the generic grammar of $\mathbf{Lwv}$.
 A set expression (\texttt{setexpr}) builds a set from canonical or user-defined values and combines them through set operations or filtration with a predicate.
-A predicate (\texttt{pred})  can be assembled from an atomic equality operation, a set membership test and boolean composition rules applied to compile-time constants (\texttt{fix}) or set element aliases (\texttt{elem}).
+A predicate (\texttt{pred}) can be assembled from an atomic equality operation, a set membership test and boolean composition rules applied to compile-time constants (\texttt{fix}) or set element aliases (\texttt{elem}).
 The cartesian \texttt{product} \cppinline{S * T} changes the carrier ($\mathbf{Set}\langle A\rangle \times \mathbf{Set}\langle B\rangle \to \mathbf{Set}\langle A \times B\rangle$), and forms the foundation for the relational algebra discussed in §\ref{sec:relations_functions_blueprint}.
-The \texttt{query} nonterminal defines the \emph{closed} partial order on sets via the relations ($A = B$, $A \subset B$).
+The \texttt{query} nonterminal defines the \emph{closed} partial order on sets via set equality and the non-strict subset order $A \subseteq B$ (and its converse).
 \cppinline{<any elem → 𝔹>} and \cppinline{<any IsSet>} are extension points allowing for specializations such as those presented in Listing~\ref{lst:extrema_def}.
 
 % Source: src/test/cpp/modules/dedekind/analysis/pruning_lattice_laws_test.cpp
