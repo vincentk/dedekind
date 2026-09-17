@@ -113,6 +113,12 @@ struct NaturalLogic<Base, std::void_t<typename Base::cardinality_type>> {
  * The presence of `Unknown` in the codomain would forbid this — so Ternary-
  * classified Sets fail. This is the library's observable proxy for
  * "membership is decidable": the compiler knows there's no third answer.
+ *
+ * @details Rosolini reading: this is exactly "the characteristic map χ: A → Ω
+ *          factors through the dominance Σ ↪ Ω", i.e. χ = lift_logic ∘ χ_total
+ *          with χ_total: A → Σ (= ClassicalLogic::Ω). ETCS proper is the
+ *          Σ = Ω case; a partial set is χ: A → Ω = TernaryLogic::Ω. See
+ *          `category/logic.cppm` (lift_logic = the inclusion Σ ↪ Ω) and #267.
  */
 export template <typename S>
 concept HasDecidableMembership =

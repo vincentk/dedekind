@@ -258,6 +258,25 @@ using OmegaOf = std::remove_cvref_t<
 /** @section logic__Cardinality_Ontology_Tokens */
 export enum class CardinalityTag { Finite, Countable, Continuum };
 
+/**
+ * @brief The Rosolini dominance inclusion @f$\iota : \Sigma \hookrightarrow
+ *        \Omega@f$ (a.k.a. @c embed_𝔹_𝕂3_).
+ * @details Embeds the @b decided fragment @f$\Sigma@f$ = @c ClassicalLogic::Ω
+ *          = @c bool into the full classifier @f$\Omega@f$ = @c TernaryLogic::Ω
+ *          = @c Ternary = @f$\Sigma + 1@f$ (the lift, with the extra point
+ *          @c Unknown).  This is the monic that carves the @b dominance out of
+ *          the classifier: @f$\top \in \Sigma@f$ and @f$\Sigma@f$ is closed
+ *          under dependent conjunction, so a @f$\Sigma@f$-valued map is a
+ *          @b decidable predicate.  A set whose characteristic map factors as
+ *          @f$A \to \Sigma \xrightarrow{\iota} \Omega@f$ never answers
+ *          @c Unknown; that factorisation is exactly @c HasDecidableMembership
+ *          (see @c sets/computability.cppm).  ETCS proper is the degenerate
+ *          case @f$\Sigma = \Omega@f$.
+ * @see Rosolini (1986), @e Continuity and Effectiveness in Topoi (origin of the
+ *      dominance); Robinson & Rosolini (1988), @e Categories of Partial Maps.
+ *      FIXME(#267): name the factorisation concept (open: reuse
+ *      @c HasDecidableMembership vs. a @c FactorsThroughDominance alias).
+ */
 export template <typename TargetLogic, typename T>
 constexpr auto lift_logic(T value) {
   if constexpr (std::is_same_v<TargetLogic, TernaryLogic> &&
