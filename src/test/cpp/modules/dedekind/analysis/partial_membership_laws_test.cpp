@@ -5,7 +5,7 @@
  *
  * The primitive of the set DSL is membership, x ∈ A = χ_A(x), valued in the
  * FULL classifier Ω.  For the honest, three-valued species Ω = Ternary =
- * {True, False, Unknown}, so membership may answer Unknown.  Two facts anchor
+ * {True, False, Unknown}, so membership may answer Unknown.  Three facts anchor
  * the listing:
  *
  *   1. Codomain axis.  The extra point of Ω is a fixpoint of negation: Kleene ¬
