@@ -470,9 +470,13 @@ Writing $A = \{x \mid P_A(x)\}$ and $B = \{x \mid P_B(x)\}$ we can see how the p
 x \in A = P_A(x), \qquad &
 \complement A = \{x \mid \neg\, P_A(x)\}, \\
 A \cap B = \{x \mid P_A(x) \wedge P_B(x)\}, &
-A \cup B = \{x \mid P_A(x) \vee P_B(x)\}, \qquad
+A \cup B = \{x \mid P_A(x) \vee P_B(x)\}, \\
+A = f^{-1}(B) \;\Rightarrow\; P_A = P_B \circ f. &
 \end{aligned}
 \end{equation}
+% FIXME(#847): two-axis decidability figure (dominance x quantifier; four
+% corners) + the Eqn-3 characterization of the decidable quadrant, and the
+% closure/retract framing (this preimage line is the finite-composition half).
 Here, a set \emph{is} its characteristic predicate, not a list of its elements.
 The set operations \emph{are} the pointwise logical ones.
 This way, there is no problem to model an open disk $\{\, x \mid \lVert x - c \rVert < r \,\}$, which in an extensional setting is an uncountable bag no machine can hold.
