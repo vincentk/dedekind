@@ -1547,7 +1547,7 @@ export template <typename R>
 concept IsPotential = requires(R r) {
     typename R::value_type;
     { *r } -> std::convertible_to<typename R::value_type&>;
-    { presence_of(r) } -> LogicalValue; // Bridge to Omega
+    { presence_of(r) } -> IsΩ; // Bridge to Omega
 }; 
 
 // The Universal Highway: Works for any IsPotential result
@@ -1749,7 +1749,7 @@ Operationally, \texttt{:topoi} complements \texttt{:etcs}: while ETCS gives the 
 From a code-level review of \texttt{dedekind.category:logic} and \texttt{dedekind.category:topoi}, ordinary C++ predicates are already supported as the primary practical realization of characteristic maps.
 The \texttt{LogicalMap<Pred, T>} concept in \texttt{:logic} accepts invocables returning a registered logical value, and \texttt{GetLogic<bool>} defaults to \texttt{ClassicalLogic}; this gives standard Boolean predicates a canonical classifier codomain.
 In \texttt{:topoi}, \texttt{classify} lifts such callables into subobjects by constructing the characteristic morphism $\chi : A \to \Omega$.
-The \texttt{IsPredicate} concept now explicitly requires \texttt{LogicalMap<P, Dom<P>>} in addition to \texttt{IsArrow<P>} and \texttt{LogicalValue<Cod<P>>}, which tightens alignment between callable-level and categorical contracts.
+The \texttt{IsPredicate} concept now explicitly requires \texttt{LogicalMap<P, Dom<P>>} in addition to \texttt{IsArrow<P>} and \texttt{IsΩ<Cod<P>>}, which tightens alignment between callable-level and categorical contracts.
 
 \paragraph{Constant classifiers and mixed composition (PR \#157, Issue \#143).}
 The \texttt{:topoi} partition now provides explicit support for constant classifiers and their composition with standard predicates.
@@ -2122,7 +2122,7 @@ This allows the compiler to inspect, decompose, and optimize a set based on its 
 // Verifies the "Element Of" relation (x in Y)
 template <typename T, typename S>
 concept IsElementOf = requires(T x, S s) {
-    { s.\u03C7(x) } -> dedekind::category::LogicalValue;
+    { s.\u03C7(x) } -> dedekind::category::IsΩ;
 };
 
 // Verifies "Parthood" or "Subset" relation (X subset of Y)

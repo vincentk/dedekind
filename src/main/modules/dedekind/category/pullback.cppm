@@ -67,7 +67,7 @@ module;
 export module dedekind.category:pullback;
 
 import :morphism;   // For arrow<>
-import :logic;      // For LogicalValue
+import :logic;      // For IsΩ
 import :cartesian;  // For Product
 import :topoi;
 

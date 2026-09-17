@@ -709,7 +709,7 @@ class Set {
    *  contract — historically a static self-reference (now retired).
    *  Post-#681 structural refactor: @c Set @b is the characteristic
    *  morphism via @c operator() below; the @c IsSubobject concept
-   *  recognises this structurally with @c { s(a) } @c -> @c LogicalValue
+   *  recognises this structurally with @c { s(a) } @c -> @c IsΩ
    *  rather than via a named @c .χ member.  No static-init cascade for
    *  non-default-constructible Predicates (e.g.\ capturing-lambda
    *  predicates produced by the comprehension DSL). */
