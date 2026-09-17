@@ -56,10 +56,8 @@ TEST_CASE("partial membership: fix(¬)=Unknown and undecidable classification",
   {
     constexpr cardinality_succ succ{};
     static_assert(succ(finite_cardinality(3)) !=
-                  finite_cardinality(3));  // none finite
-    constexpr auto inf =
-        Cardinality{ℵ_0{}};           // the transfinite saturation point
-    static_assert(succ(inf) == inf);  // fix(succ) = ℵ₀ (saturation)
+                  finite_cardinality(3));     // none finite
+    static_assert(succ(aleph_0) == aleph_0);  // fix(succ) = ℵ₀ (saturation)
   }
   // ── membership CLASSIFIED into Ω: a comprehension over ℝ (ℶ₁) ──
   {
@@ -73,11 +71,12 @@ TEST_CASE("partial membership: fix(¬)=Unknown and undecidable classification",
   // ── membership RETURNS Unknown: the intensional image of a set ──
   {
     constexpr auto n = element<ℕ>;
-    constexpr auto gt_5 =
+    constexpr auto gt5 =
         Set{n | (n > bound<5>)};  // {n ∈ ℕ | n > 5} : decidable (ℵ₀)
-    static_assert(HasDecidableMembership<decltype(gt_5)>);
-    constexpr auto succ = arrow<Cardinality, Cardinality>(cardinality_succ{});
-    constexpr auto img = image(succ, gt_5);  // {y | ∃n. n>5 ∧ y=n+1} : Ω
+    static_assert(HasDecidableMembership<decltype(gt5)>);
+    constexpr cardinality_succ succ;
+    constexpr auto s = arrow<Cardinality, Cardinality>(succ);  // ℕ → ℕ
+    constexpr auto img = image(s, gt5);  // {y | ∃n. n>5 ∧ y=n+1} : Ω
     static_assert(
         std::same_as<typename decltype(img)::logic_species, TernaryLogic>);
     static_assert(!HasDecidableMembership<decltype(img)>);

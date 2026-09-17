@@ -581,11 +581,10 @@ A notational caution the table settles: \textsc{etcs}, being Boolean, writes $\O
 \begin{listing}[htbp]
 \caption{\textbf{Partial membership}, the primitive that precedes the algebra.
 A set is its characteristic map $\chi_A$; membership $x \in A = \chi_A(x)$ is valued in the full classifier $\Omega$, which for the honest species is Kleene's $\{\top, \bot, U\}$, so the answer may be Unknown ($U$).
-\textbf{Top left}: the classifier.
-Kleene negation is negation about zero, so $U$ is its fixpoint, $\mathrm{fix}(\lnot) = U$; the decided fragment $\Sigma = \{\top, \bot\}$ has none.
-The domain decides $\mathrm{fix}(\mathit{succ})$: the finite cardinals have no fixpoint, but the saturation point $\aleph_0$ is one.
-\textbf{Top right}: membership that is not decided.
-A comprehension over $\mathbb{R}$ (tagged $\beth_1$) is classified undecidable, its species \cppinline{TernaryLogic}, so $==$ is withheld; the intensional image of a set returns $U$ outright.
+\textbf{Top}: two fixpoints bounding the classifier.
+Kleene negation is negation about zero, so $U$ is its fixpoint, $\mathrm{fix}(\lnot) = U$; the decided fragment $\Sigma = \{\top, \bot\}$ has none (the codomain axis).
+The domain decides $\mathrm{fix}(\mathit{succ})$: the finite cardinals have no fixpoint, but the saturation point $\aleph_0$ is one (the domain axis).
+Membership itself may then be undecidable (witnessed in the checked-in test): a comprehension over $\mathbb{R}$ (tagged $\beth_1$) is classified undecidable, its species \cppinline{TernaryLogic}, so $==$ is withheld; and the intensional image of a set returns $U$ outright.
 \textbf{Bottom}: the grammar in two panels.
 A \texttt{setexpr} is a generator or a comprehension, and the only observation is \texttt{membership}, valued in the classifier $\Omega$ (the generator \texttt{'Ω'} is the universal set $\Omega\langle A\rangle$, a distinct use of the glyph).
 There is no $==$: pointwise membership landing in $\Sigma$ does not decide set equality (a $\forall$-quantified query); Listing~\ref{lst:set-grammar} restores it only on the normal-form tiers (§\ref{sec:ddk_ordered} onward).
@@ -593,25 +592,13 @@ The archetype hard predicate is Mandelbrot membership, semi-decidable: escape is
 The grammar is sound; whether a membership query is \emph{decided} is the separate question this listing is about (Figure~\ref{fig:dominance}).}
 \label{lst:membership}
 \noindent
-\begin{minipage}[t]{0.49\linewidth}
+\begin{minipage}[t]{\linewidth}
 \begin{cpp}
-// Ω = {⊤,⊥,U};  Σ = {⊤,⊥}, decided
-static_assert(
-  !Ternary::Unknown == Ternary::Unknown); // fix(¬)=U
-// fix(succ): none finite, ℵ₀ saturates
-static_assert(
-  succ(3_c) != 3_c && succ(ℵ_0) == ℵ_0);  // =ℵ₀
-\end{cpp}
-\end{minipage}\hfill
-\begin{minipage}[t]{0.49\linewidth}
-\begin{cpp}
-// {r ∈ ℝ | r > 5}: χ : ℝ → Ω, == withheld
-static_assert(!HasDecidableMembership<
-  decltype(ℝ | π > fix(5.0))>);
-// image of {n ∈ ℕ | n > 5}: membership → U
-static_assert(
-  image(succ, ℕ | π > fix(5_c))(7_c)
-    == Ternary::Unknown);
+// Ω = {⊤, ⊥, U};  Σ = {⊤, ⊥}, the decided fragment.  Two fixpoints:
+static_assert(!Ternary::Unknown == Ternary::Unknown);  // fix(¬) = U (codomain axis)
+constexpr cardinality_succ succ;                       // the NNO successor ℕ → ℕ
+static_assert(   succ(finite_cardinality(3)) != finite_cardinality(3)  // none finite
+              && succ(aleph_0) == aleph_0);            // fix(succ) = ℵ₀ (domain axis)
 \end{cpp}
 \end{minipage}
 
