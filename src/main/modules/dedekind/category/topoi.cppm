@@ -371,6 +371,13 @@ concept IsSubobject = requires(S s, typename S::Member m, A const& a) {
    *        @c s(a) returns a logical value (the carrier's classifier's
    *        Ω).  S itself IS the characteristic morphism; no named
    *        @c χ member required at the concept body.
+   *
+   * NB: this is a call-shape check, @b not @c IsCharacteristic<S>, on
+   * purpose (#681): typedef-less callables (@c std-range lifts via
+   * @c ambient_set / @c discrete_lift_t, @c image results) are genuine
+   * subobjects here without declaring a @c ::Codomain, so @c IsSubobject
+   * does @b not refine @c IsCharacteristic.  The two coincide only over
+   * carriers that do declare @c ::Codomain.
    */
   { s(a) } -> LogicalValue;
 
