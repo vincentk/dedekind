@@ -147,15 +147,15 @@
 \begin{abstract}
 
 % Core Thesis:
-This paper describes a symbolic-algebra library in a mainstream systems programming language: standard \Cpp{23} (the category $\mathbf{Cpp}$), capable of using compile-time  evaluation in part or in full as a form of static program analysis, verification and optimization. 
-The initial step is a deliberate restriction to a fragment of \Cpp{23} which is both a) referentially transparent ($\mathbf{Per}$, via \cppinline{const}, \cppinline{constexpr},  \cppinline{std::regular}) and b) structurally typed by default (syntactic type constraint satisfaction and template specialization via \cppinline{concept}).
+This paper describes a symbolic-algebra library in a mainstream systems programming language: standard \Cpp{23} (the category $\mathbf{Cpp}$), capable of using compile-time evaluation in part or in full as a form of static program analysis, verification and optimization.
+The initial step is a deliberate restriction to a fragment of \Cpp{23} which is both a) referentially transparent ($\mathbf{Per}$, via \cppinline{const}, \cppinline{constexpr}, \cppinline{std::regular}) and b) structurally typed by default (syntactic type constraint satisfaction and template specialization via \cppinline{concept}).
 This fragment is named the \emph{Juliet Posture} ($\mathbf{Jlt} = \mathbf{Per} \cap \mathbf{Cpp}$): just like in dynamic duck typing, a type is known by its structure, not its name.
 The resulting code has a deliberate, sweet and flowery smell: $\mathbf{Jlt}$ admits a System~F reading of the \Cpp{23} type system.
 On this foundation an embedded, lazy domain-specific language is built which supports
 \begin{enumerate}
 \item a set-comprehension engine ($\mathbf{Lwv} = \mathbf{Jlt} \cap \mathbf{Set}$) whose sets are defined in an intensional way: via a membership test ($\{ x \in S | P(x) \}$, \cppinline{S | P(x)}) rather than by listing elements,
-\item a point-free relational calculus ($\mathbf{Trsk} = \mathbf{Lwv} \cap \mathbf{Rel}$) built on cartesian products ($\{{x, y} \in S \times S | P(x, y)\}$, \cppinline{S * S | P(x, y)}), and
-\item symbolic algebra $\mathbf{Ddk} = \mathbf{Trsk} \cap \mathbf{Alg}$ built on operations  ($(x, y, z) \in S^3 | z = f(x, y)$, \cppinline{S * S * S | z = f(x, y)}), specifically the canonical sets $\mathbb B, \mathbb N, \ldots$.
+\item a point-free relational calculus ($\mathbf{Trsk} = \mathbf{Lwv} \cap \mathbf{Rel}$) built on cartesian products ($\{ (x, y) \in S \times S \mid P(x, y) \}$, \cppinline{S * S | P(x, y)}), and
+\item symbolic algebra $\mathbf{Ddk} = \mathbf{Trsk} \cap \mathbf{Alg}$ built on operations ($(x, y, z) \in S^3 | z = f(x, y)$, \cppinline{S * S * S | z = f(x, y)}), specifically the canonical sets $\mathbb B, \mathbb N, \ldots$.
 \end{enumerate}
 The embedded domain-specific language spells out the corresponding algebraic laws as types, enabling the compiler to verify and optimize the expression tree.
 % Demonstration of the Principle by way of a worked non-trivial example:
@@ -184,7 +184,7 @@ automatic differentiation.
 Recent breakthroughs in machine learning have resulted not just in an explosion of novel and interesting use cases but also sparked public debate about the technology's demands and bottlenecks:
 Hardware cost, computational cost, energy use, and interpretability are often named in applicable literature.
 Here, the focus is placed on a complementary approach: correct-by-construction systems engineering, where the view is that white-box modeling, interpretability and computational efficiency are facilitated by way of static program verification and optimization.
-To this end, an embedded domain specific language (eDSL) was  implemented in a \emph{mainstream systems programming language} -- the very substrate that these large models build on.
+To this end, an embedded domain-specific language (eDSL) was implemented in a \emph{mainstream systems programming language} -- the very substrate that these large models build on.
 The resulting \texttt{dedekind} library targets analytics and machine-learning use cases; it moves correctness checks and optimization to build time, so mismatches surface as compile errors rather than runtime faults.
 It rests on two pillars:
 \begin{enumerate}
@@ -482,13 +482,13 @@ Formally speaking:
 \label{def:etcs-set}
 \emph{$\mathbf{Set}$ is a \textbf{well-pointed}, \textbf{Cartesian Closed Category} with a \textbf{subobject classifier}, a \textbf{natural numbers object}, and the \textbf{axiom of choice}}~\cite{nlab:nlab}.
 \end{definition}
-The DSL is grounded in it by an honest reification: the defining axioms become type-level \cppinline{concept} predicates, composed into a structural \cppinline{concept IsSet} that checks whether a $\mathbf{Jlt}$ type is also an object of $\mathbf{Set}$.
+The DSL is grounded in it by a faithful reification: the defining axioms become type-level \cppinline{concept} predicates, composed into a structural \cppinline{concept IsSet} that checks whether a $\mathbf{Jlt}$ type is also an object of $\mathbf{Set}$.
 The step-by-step embedding is in Appendix~\ref{sec:etcs}, the concepts in the reference implementation~\cite{Krautler_dedekind_2026} (Mac Lane~\cite{maclane1971categories} and Pierce~\cite{pierce1991basic} for background).
 Two caveats apply, and they are really one.
 i) The axiom of choice (Axiom~10) is only approximated through the power-object lattice, and is marked aspirational.
-ii) Choice is what makes ETCS Boolean, and Boolean is what makes the characteristic map $\chi : A \to \Omega$ total, so \cppinline{IsSet} does \emph{not} assume decidable membership.
-It reifies the axiom schema over a possibly non-Boolean ambient, and its honest default is a partial $\chi$ valued in the three-valued $\Omega = \mathbb{B} + \mathrm{U}$~\cite{kleene1952metamathematics} (the \cppinline{TernaryLogic} species).
-Decidable membership, the \cppinline{HasDecidableMembership} observable, is the earned Boolean case where $\chi$ factors through the decided fragment $\Sigma \hookrightarrow \Omega$, a Rosolini dominance~\cite{rosolini1986continuity} (Figure~\ref{fig:dominance}); admitting undecidability by default is what keeps the grammar strictly sound.\footnote{A carrier whose membership is only semi-decidable, a Mandelbrot set say, stays at the partial default (Appendix~\ref{sec:etcs}); the decidable track (§\ref{sec:ddk_ordered} onward) is the specialisation, not the assumption.}
+ii) Choice is what makes ETCS Boolean, collapsing the classifier to the two-valued $\Sigma$, so \cppinline{IsSet} does \emph{not} assume decidable membership.
+It reifies the axiom schema over a possibly non-Boolean ambient: the characteristic map $\chi_A : A \to \Omega$ is valued in the full three-valued classifier $\Omega = \mathbb{B} + \mathrm{U}$~\cite{kleene1952metamathematics} (the \cppinline{TernaryLogic} species), and need not factor through the decided fragment.
+Decidable membership, the \cppinline{HasDecidableMembership} observable, is the earned case where $\chi_A$ factors as $A \to \Sigma \to \Omega$ through the dominance $\Sigma \hookrightarrow \Omega$, a Rosolini dominance~\cite{rosolini1986continuity} (Figure~\ref{fig:dominance}); admitting undecidability by default is what keeps the grammar strictly sound.\footnote{A carrier whose membership is only semi-decidable, a Mandelbrot set say, stays at the partial default (Appendix~\ref{sec:etcs}); the decidable track (§\ref{sec:ddk_ordered} onward) is the specialisation, not the assumption.}
 With these assumptions acknowledged, one can define:
 \begin{definition}[$\mathbf{Lwv} := \mathbf{Jlt} \cap \mathbf{Set}$]
 \label{def:lwv-set}
@@ -544,7 +544,7 @@ Each tier's normal form is what makes its comparisons decidable.
 % ============================================================
 
 The primitive of the DSL is membership: a set $A$ is its characteristic map $\chi_A : A \to \Omega$, and $x \in A$ is $\chi_A(x)$, valued in the classifier $\Omega$.
-Listing~\ref{lst:membership} is the honest starting point.
+Listing~\ref{lst:membership} is the natural starting point.
 For the three-valued species, $\Omega = \{\top, \bot, U\}$ admits an undecided answer $U$, so a bare membership query may be undecidable.
 The classifier $\Omega$ and its \emph{dominance} $\Sigma \hookrightarrow \Omega$, the sub-object of \emph{decided} truth-values, are not the same object and are worth keeping apart; Figure~\ref{fig:dominance} makes the distinction precise.\footnote{$\Sigma \hookrightarrow \Omega$ is a Rosolini dominance~\cite{rosolini1986continuity}.}
 The algebra of Listing~\ref{lst:set-grammar} is what remains once we restrict to $\Sigma = \{\top, \bot\}$, on which set equality becomes available.
@@ -566,7 +566,7 @@ A \arrow[ur, dashed, "\bar\chi"] \arrow[r, "\chi_A"'] \& \Omega = \{\top, \bot, 
 \bottomrule
 \end{tabular}
 \caption{\textbf{Classifier $\Omega$ vs.\ dominance $\Sigma$.}
-Membership is the characteristic arrow $\chi_A : A \to \Omega$, valued in the \emph{classifier} $\Omega$, the truth-values the logic admits ($\{\top, \bot, U\}$ for the honest species).
+Membership is the characteristic arrow $\chi_A : A \to \Omega$, valued in the \emph{classifier} $\Omega$, the truth-values the logic admits ($\{\top, \bot, U\}$ for the three-valued species).
 The \emph{dominance} is the sub-object $\iota : \Sigma \hookrightarrow \Omega$ of \emph{decided} truth-values, here $\Sigma = \{\top, \bot\}$.
 A set is decidable exactly when $\chi_A$ \emph{factors through} $\Sigma$: some $\bar\chi : A \to \Sigma$ has $\iota \circ \bar\chi = \chi_A$ (the triangle commutes), equivalently $\chi_A$ never lands on $U$.
 \textsc{etcs} is the collapsed case $\Sigma = \Omega$ with $\iota = \mathrm{id}$: every arrow factors, so all membership is decidable.
@@ -590,7 +590,7 @@ A comprehension over $\mathbb{R}$ (tagged $\beth_1$) is classified undecidable, 
 A \texttt{setexpr} is a generator or a comprehension, and the only observation is \texttt{membership}, valued in $\Omega$.
 There is no $==$: with $U$ in reach set equality is undecidable, and Listing~\ref{lst:set-grammar} restores it on $\Sigma$.
 The archetype hard predicate is Mandelbrot membership, semi-decidable: escape is recognizable, non-escape is not.
-A correspondence, not the literal C++ grammar.}
+The grammar is sound; whether a membership query is \emph{decided} is the separate question this listing is about (Figure~\ref{fig:dominance}).}
 \label{lst:membership}
 \noindent
 \begin{minipage}[t]{0.49\linewidth}
@@ -620,7 +620,7 @@ static_assert(
 \begin{minipage}[t]{0.49\linewidth}
 \begin{minted}[fontsize=\footnotesize]{text}
 setexpr ::= generator
-  | ambient '|' pred
+  | setexpr '|' pred
 generator ::= 'Ω' carrier | 'Ø' carrier
   | 'η' '(' value ')'
   | <any IsSet>
@@ -652,14 +652,10 @@ The \texttt{query} nonterminal defines the \emph{closed} partial order on sets v
 %   Bottom IR panel: .../python/showcase_03_halfspace_contradiction.ll
 \begin{listing}[htbp]
 \caption{\textbf{Generic set algebra} corresponding to Eqn.~\ref{eqn:lattice-lift-ops} and the bottom row in Table~\ref{tab:lattice-lift}.
-\textbf{Top:} worked examples on $\mathbb{B}$: a comprehension builds a singleton, complement/union/meet run the Boolean lattice (Table~\ref{tab:lattice-lift}), and membership queries the result --- all on equality alone, no order on the elements.
+\textbf{Top:} worked examples on $\mathbb{B}$: a comprehension builds a singleton, complement/union/meet run the Boolean lattice (Table~\ref{tab:lattice-lift}), and membership queries the result, all on equality alone, no order on the elements.
 \textbf{Bottom:} the grammar in four panels, set expressions and predicates above, the cartesian product and closed queries below.
-A \texttt{setexpr} builds a set.
-A \texttt{pred} filters a set.
-The cartesian \texttt{product} \cppinline{S * T} changes the carrier and forms the foundation for set relations.
-The \texttt{query} nonterminal defines the \emph{closed} partial order on sets.
-\cppinline{<any elem → 𝔹>} and \cppinline{<any IsSet>} are extension points.
-A correspondence, not the literal C++ grammar: operator precedence, ADL, and the concept-gates sit underneath.
+A \texttt{setexpr} builds a set; a \texttt{pred} filters one; the cartesian \texttt{product} and the closed \texttt{query} sort are read out in the body.
+The grammar is sound; \emph{decidability} is the separate, certified question, sort by sort (membership by the dominance of Figure~\ref{fig:dominance}, \texttt{query} by the tier's normal form).
 }
 \label{lst:set-grammar}\label{lst:pruning}
 \noindent
@@ -929,7 +925,7 @@ universe  ::= <any std::ranges::input_range>
 \begin{minipage}[t]{0.49\linewidth}
 {\footnotesize\centering\textbf{normal-form comparison}\par}
 \begin{minted}[fontsize=\footnotesize]{text}
-query +::= nf (cmp | '==') nf   -- normal forms: subset order + equality
+query +::= nf cmp nf   -- comparing normal forms decides cmp (⊆ order and ==)
 nf     ::= 'Sub' '(' carrier ')' | residue | 'Ø' | 'Ω'
 \end{minted}
 \end{minipage}
@@ -946,7 +942,11 @@ The additive half happens to be the Boolean lattice a relation already carries \
 Listing~\ref{lst:relation-grammar} gives the grammar of relation expressions, built on the set expressions of Listing~\ref{lst:set-grammar}.
 
 \begin{listing}[htbp]
-\caption{The grammar of \textbf{relation expressions}, extending the set expressions of Listing~\ref{lst:set-grammar}: a relation \emph{is} a set over a product, plus the graph of an arrow, the Tarski operators (converse, relative product $\mathbin{;}$, union, meet, the diagonal, the reflexive/symmetric closures), and the Codd selection \cppinline{select}.  Two operators leave the binary-relation sort: \cppinline{preimage}$(f, S) = f^{-1}(S)$ is a \emph{setexpr} over the arrow's domain (a relation only when that domain is a product), and \cppinline{natural_join} yields an $n$-ary \emph{table}, a \emph{setexpr} over the joined tuple product (binary only when the join has two columns).  The reflexive-transitive closure $R^{*}$ is not a point-free operator here; it enters at the semiring level (\S\ref{sec:optimization_lp}).  The closed \cppinline{query} sort extends the set grammar's: relation equality and inclusion are already the set \cppinline{query} (a relation is a set), and §4 adds the properties \cppinline{IsFunctional}/\cppinline{IsEntire}, mirroring the open/closed \cppinline{pred}/\cppinline{query} split; their semantics are Table~\ref{tab:relation-quantifier} and Listing~\ref{lst:relation_spec}.  Same \emph{correspondence} caveat as Listing~\ref{lst:set-grammar}: the \cppinline{>>} Boolean-middle restriction and the like are concept-gates underneath.}
+\caption{The grammar of \textbf{relation expressions}, extending the set expressions of Listing~\ref{lst:set-grammar}: a relation \emph{is} a set over a product, plus the graph of an arrow, the Tarski operators (converse, relative product $\mathbin{;}$, union, meet, the diagonal, the reflexive/symmetric closures), and the Codd selection \cppinline{select}.
+Two operators leave the binary-relation sort: \cppinline{preimage}$(f, S) = f^{-1}(S)$ is a \emph{setexpr} over the arrow's domain (a relation only when that domain is a product), and \cppinline{natural_join} yields an $n$-ary \emph{table}, a \emph{setexpr} over the joined tuple product (binary only when the join has two columns).
+The reflexive-transitive closure $R^{*}$ is not a point-free operator here; it enters at the semiring level (\S\ref{sec:optimization_lp}).
+The closed \cppinline{query} sort extends the set grammar's: relation equality and inclusion are already the set \cppinline{query} (a relation is a set), and §4 adds the properties \cppinline{IsFunctional}/\cppinline{IsEntire}, mirroring the open/closed \cppinline{pred}/\cppinline{query} split; their semantics are Table~\ref{tab:relation-quantifier} and Listing~\ref{lst:relation_spec}.
+As in Listing~\ref{lst:set-grammar}, the grammar is sound; well-typedness side-conditions like the \cppinline{>>} Boolean-middle restriction are concept-gates, certified separately.}
 \label{lst:relation-grammar}
 \begin{minted}{text}
 relexpr   ::= setexpr                     -- carrier ⟨A,B⟩ : a relation
@@ -965,7 +965,7 @@ relpred   ::= ratom
             | '!' ratom                     -- negate a comparison (atoms only)
             | relpred '&' relpred           -- meet (RelAnd); union is relexpr '+'
 ratom     ::= proj rcmp proj | proj rcmp 'fix' '(' const ')'
-rcmp      ::= cmp | '==' | '!='             -- ordering cmp plus (in)equality
+rcmp      ::= cmp | '!='                     -- cmp (incl. ==, from the set query) plus !=
 proj      ::= 'π1' | 'π2' | ('π1' | 'π2') arith 'fix' '(' const ')'
 arith     ::= '+' | '*'                     -- π1 + fix(k), π1 * fix(k)
 arrow     ::= <an IsArrow A → B; functions compose via '>>'>

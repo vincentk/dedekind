@@ -14,8 +14,8 @@
  *   2. Domain axis.  fix(succ) is decided by the CARRIER: on the finite
  *      fragment the successor has no fixpoint, but the transfinite saturation
  *      point ℵ₀ is one.  Whether a construction closes on itself (hence whether
- *      membership is decided) is a property of the domain — the Galois-
- *      specialisation axis.
+ *      membership is decided) is a property of the domain, the
+ *      Galois-specialisation axis.
  *   3. Membership genuinely lands in Ω\Σ: a comprehension over an uncountable
  *      carrier (ℝ, tagged ℶ₁) is CLASSIFIED undecidable (its logic species is
  *      TernaryLogic, so == is withheld), and the intensional image of a set
@@ -44,15 +44,15 @@ TEST_CASE("partial membership: fix(¬)=Unknown and undecidable classification",
   // ── Ω = {⊤, ⊥, U}: the extra point is the fixpoint of negation ──
   {
     // Kleene ¬ fixes Unknown (negation about zero); the decided fragment
-    // Σ = {⊤, ⊥} has none — on Σ, ¬ swaps the two values.
+    // Σ = {⊤, ⊥} has none; on Σ, ¬ swaps the two values.
     static_assert(!Ternary::Unknown == Ternary::Unknown);  // fix(¬) = U
     static_assert(!Ternary::True == Ternary::False);       // no fixpoint on Σ
     static_assert(!Ternary::False == Ternary::True);
   }
-  // ── fix(succ): the DOMAIN decides — ℵ₀ is a fixpoint, the finite fragment
+  // ── fix(succ): the DOMAIN decides: ℵ₀ is a fixpoint, the finite fragment
   //    has none.  Whether the successor closes on itself (hence whether the
   //    normal form / membership is decided) is a property of the carrier, not
-  //    of the arrow — the Galois-specialisation axis. ──
+  //    of the arrow, the Galois-specialisation axis. ──
   {
     constexpr cardinality_succ succ{};
     static_assert(succ(finite_cardinality(3)) !=
@@ -65,7 +65,9 @@ TEST_CASE("partial membership: fix(¬)=Unknown and undecidable classification",
   {
     constexpr auto x = element<ℝ_d>;  // ℝ, tagged ℶ₁ (uncountable)
     constexpr auto gt = Set{x | (x > bound<5.0>)};  // {r ∈ ℝ | r > 5}
-    // χ_gt : ℝ → Ω, not ℝ → Σ — the type system withholds decidable membership
+    // χ_gt : ℝ → Ω, not ℝ → Σ; the type system withholds decidable membership
+    static_assert(
+        std::same_as<typename decltype(gt)::logic_species, TernaryLogic>);
     static_assert(!HasDecidableMembership<decltype(gt)>);
   }
   // ── membership RETURNS Unknown: the intensional image of a set ──
