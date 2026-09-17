@@ -71,6 +71,23 @@ TEST_CASE("sets:computability — extensionality and decidability are orthogonal
                !HasDecidableMembership<Ø<int, TernaryLogic>>);
 }
 
+TEST_CASE("sets:computability — IsDecidableSet: Σ-set vs Ω-set (#846)",
+          "[sets][computability][846]") {
+  // IsDecidableSet = IsSet && HasDecidableMembership: the strict, Boolean
+  // reading (χ factors through the dominance Σ = Ω).  IsSet is the honest
+  // base and does NOT imply it — an ETCS set over TernaryLogic is IsSet but
+  // has non-decidable (Ω-valued) membership.
+  SECTION("Σ-sets: ETCS sets over ClassicalLogic are decidable") {
+    STATIC_CHECK(IsDecidableSet<decltype(ℕ)>);
+    STATIC_CHECK(IsDecidableSet<decltype(Ω<bool>)>);
+  }
+  SECTION("Ω-set: same carrier, Ternary ambient — IsSet but not decidable") {
+    STATIC_CHECK(IsSet<decltype(Ω<bool, TernaryLogic>)>);
+    STATIC_CHECK_FALSE(HasDecidableMembership<decltype(Ω<bool, TernaryLogic>)>);
+    STATIC_CHECK_FALSE(IsDecidableSet<decltype(Ω<bool, TernaryLogic>)>);
+  }
+}
+
 TEST_CASE("sets:computability — NaturalLogic carrier-axis cut (#622)",
           "[sets][computability][resolver][622]") {
   // Positive witnesses: countable carriers route to ClassicalLogic on the

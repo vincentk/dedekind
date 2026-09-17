@@ -125,4 +125,28 @@ concept HasDecidableMembership =
     requires { typename std::remove_cvref_t<S>::logic_species; } &&
     std::same_as<typename std::remove_cvref_t<S>::logic_species,
                  ClassicalLogic>;
+
+/**
+ * @concept IsDecidableSet
+ * @brief The strict, Boolean reading of an ETCS set: an @c IsSet whose
+ *        membership is decidable (χ factors through the dominance Σ = Ω).
+ *
+ * @details `IsSet` (category/etcs.cppm) is the honest BASE: it checks the ETCS
+ * axiom schema over the ambient logic species, which may be @c TernaryLogic, so
+ * a bare `IsSet` may have @c Unknown membership (an "Ω-set"; an object of the
+ * partial-map category, Kleisli of the lift monad).  `IsDecidableSet` is the
+ * earned refinement — a "Σ-set" — where the classifier collapses to the
+ * two-valued fragment and every membership query is answered in Boolean logic.
+ *
+ * This is the classifier being Boolean (LEM holds on membership), which is the
+ * effect the ETCS Axiom of Choice (Axiom 10, well-pointed + choice ⟹ LEM)
+ * delivers; it is strictly weaker than committing to full choice, so we gate on
+ * the observable consequence (@c HasDecidableMembership, i.e. `logic_species`
+ * is @c ClassicalLogic) rather than on choice itself.  Naming the restriction
+ * positively (rather than tightening `IsSet`) keeps partial sets first-class
+ * and makes "assume the Boolean fragment" an explicit, visible act.  See #846,
+ * #267, and Figure "Classifier Ω vs dominance Σ" in the paper.
+ */
+export template <typename S>
+concept IsDecidableSet = IsSet<S> && HasDecidableMembership<S>;
 }  // namespace dedekind::sets
