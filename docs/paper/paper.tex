@@ -155,7 +155,7 @@ On this foundation an embedded, lazy domain-specific language is built which sup
 \begin{enumerate}
 \item a set-comprehension engine ($\mathbf{Lwv} = \mathbf{Jlt} \cap \mathbf{Set}$) whose sets are defined in an intensional way: via a membership test ($\{ x \in S \mid P(x) \}$, \cppinline{S | P(x)}) rather than by listing elements,
 \item a point-free relational calculus ($\mathbf{Trsk} = \mathbf{Lwv} \cap \mathbf{Rel}$) built on cartesian products ($\{ (x, y) \in S \times S \mid P(x, y) \}$, \cppinline{S * S | P(x, y)}), and
-\item symbolic algebra $\mathbf{Ddk} = \mathbf{Trsk} \cap \mathbf{Alg}$ built on operations over the canonical sets $\mathbb B, \mathbb N, \ldots$ ($(x, y, z) \in S^3 \mid z = f(x, y)$, \cppinline{S * S * S | z = f(x, y)}).
+\item symbolic algebra $\mathbf{Ddk} = \mathbf{Trsk} \cap \mathbf{Alg}$ built on operations over the canonical sets $\mathbb B, \mathbb N, \ldots$ ($(x, y, z) \in S^3 \mid z = f(x, y)$, \cppinline{S * S * S | z == f(x, y)}).
 \end{enumerate}
 The embedded domain-specific language spells out the corresponding algebraic laws as types, enabling the compiler to verify and optimize the expression tree.
 % Demonstration of the Principle by way of a worked non-trivial example:
@@ -488,7 +488,9 @@ Two caveats apply, and they are really one.
 i) The axiom of choice (Axiom~10) is only approximated through the power-object lattice, and is marked aspirational.
 ii) Choice is what makes ETCS Boolean, collapsing the classifier to the two-valued $\Sigma$; \cppinline{IsSet} does \emph{not} assume choice, so it does not assume decidable membership either.
 It reifies the axiom schema over a possibly non-Boolean ambient: the characteristic map $\chi_A : A \to \Omega$ is valued in the full three-valued classifier $\Omega = \mathbb{B} + \mathrm{U}$~\cite{kleene1952metamathematics} (the \cppinline{TernaryLogic} species), and need not factor through the decided fragment.
-Decidable membership, the \cppinline{HasDecidableMembership} observable, is the earned case where $\chi_A$ factors as $A \to \Sigma \to \Omega$ through the dominance $\Sigma \hookrightarrow \Omega$, a Rosolini dominance~\cite{rosolini1986continuity} (Figure~\ref{fig:dominance}); admitting undecidability by default is what keeps the grammar strictly sound.\footnote{A carrier whose membership is only semi-decidable, a Mandelbrot set say, stays at the partial default (Appendix~\ref{sec:etcs}); the decidable track (§\ref{sec:ddk_ordered} onward) is the specialisation, not the assumption.}
+Decidable membership is the earned case where $\chi_A$ factors as $A \to \Sigma \to \Omega$ through the dominance $\Sigma \hookrightarrow \Omega$, a Rosolini dominance~\cite{rosolini1986continuity} (Figure~\ref{fig:dominance}).
+The \cppinline{HasDecidableMembership} observable is a \emph{sound, conservative} certificate of this factorisation, not a decision of it: it checks that the logic species is Boolean, so it recognises a decidable sub-class but may answer conservatively (an $\mathbb{R}$-tagged halfspace whose $\chi$ never actually returns $U$ is still classified \cppinline{TernaryLogic}), deciding the factorisation exactly being itself undecidable~\cite{rice1953classes}.
+Admitting undecidability by default is what keeps the grammar strictly sound.\footnote{A carrier whose membership is only semi-decidable, a Mandelbrot set say, stays at the partial default (Appendix~\ref{sec:etcs}); the decidable track (§\ref{sec:ddk_ordered} onward) is the specialisation, not the assumption.}
 With these assumptions acknowledged, one can define:
 \begin{definition}[$\mathbf{Lwv} := \mathbf{Jlt} \cap \mathbf{Set}$]
 \label{def:lwv-set}
@@ -621,7 +623,7 @@ membership ::= setexpr '(' elem ')'
 pred ::= <any elem → Ω>
   -- may be Unknown
 -- no '==': equality is undecidable
---   (restored on Σ, next listing)
+--   (restored on the normal-form tiers)
 \end{minted}
 \end{minipage}
 \end{listing}
@@ -2308,7 +2310,7 @@ To bridge this abstract mathematical formalism with systems-programming primitiv
         \item \textit{Subobject Classifier:} a truth-value object $\Omega$ with an element $\mathrm{true}: 1 \to \Omega$ such that every mono $S \hookrightarrow A$ arises as the pullback of $\mathrm{true}$ along a \emph{unique} characteristic map $\chi: A \to \Omega$.
         \item \textit{Equalizers:} for parallel arrows $f, g: A \to B$, the subobject $\{x \in A \mid f(x) = g(x)\}$.
     \end{enumerate}
-    \item \textbf{C++ Reification:} The ambient classifier $\Omega$ is the codomain of a carrier's (possibly partial) characteristic map, fixed by a \emph{logic species} \cppinline{L} (the code names it \cppinline{L::Omega}). Its Boolean fragment is the \emph{dominance} $\Sigma \hookrightarrow \Omega$, a Rosolini dominance~\cite{rosolini1986continuity} (Figure~\ref{fig:dominance}); strict \textsc{etcs} is the Boolean collapse $\Sigma = \Omega$. \cppinline{ClassicalLogic} gives the Boolean $\mathbb{B} = \Sigma$ (\cppinline{bool}), a total map; \cppinline{TernaryLogic} gives the lifted Boolean (\cppinline{Ternary}, $\mathbb{B}+\text{U}$, under strong-Kleene connectives~\cite{kleene1952metamathematics}), the codomain of a partial $\chi$. \cppinline{concept IsLogicalSpecies} gates such a species; the predicate of a \cppinline{Set<T, L, P>} is $\chi$, and \cppinline{concept IsSubobject} recognises it. Which codomain a carrier receives is the decidability split of Section~\ref{sec:intensional_sets}: $\mathbb{B}$ where membership is decidable, the lifted Boolean where it is not. Equalizers are named by \cppinline{concept IsEqualizer}, the subobject solving $f = g$.
+    \item \textbf{C++ Reification:} The ambient classifier $\Omega$ is the codomain of a carrier's (possibly partial) characteristic map, fixed by a \emph{logic species} \cppinline{L} (the code names it \cppinline{L::Ω}). Its Boolean fragment is the \emph{dominance} $\Sigma \hookrightarrow \Omega$, a Rosolini dominance~\cite{rosolini1986continuity} (Figure~\ref{fig:dominance}); strict \textsc{etcs} is the Boolean collapse $\Sigma = \Omega$. \cppinline{ClassicalLogic} gives the Boolean $\mathbb{B} = \Sigma$ (\cppinline{bool}), a total map; \cppinline{TernaryLogic} gives the lifted Boolean (\cppinline{Ternary}, $\mathbb{B}+\text{U}$, under strong-Kleene connectives~\cite{kleene1952metamathematics}), the codomain of a partial $\chi$. \cppinline{concept IsLogicalSpecies} gates such a species; the predicate of a \cppinline{Set<T, L, P>} is $\chi$, and \cppinline{concept IsSubobject} recognises it. Which codomain a carrier receives is the decidability split of Section~\ref{sec:intensional_sets}: $\mathbb{B}$ where membership is decidable, the lifted Boolean where it is not. Equalizers are named by \cppinline{concept IsEqualizer}, the subobject solving $f = g$.
     \item \textbf{Explanatory Note:} An \textit{intensional} set is a rule, not an array. Testing $x \in S$ evaluates $\chi(x)$ instead of searching memory.
 \end{itemize}
 
