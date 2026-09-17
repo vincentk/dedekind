@@ -577,7 +577,7 @@ The primitive of the DSL is membership: a set $A$ is its characteristic map $\ch
 Listing~\ref{lst:membership} is the natural starting point.
 For the three-valued species, $\Omega = \{\top, \bot, U\}$ admits an undecided answer $U$, so a bare membership query may be undecidable.
 The classifier $\Omega$ and its \emph{dominance} $\Sigma \hookrightarrow \Omega$, the sub-object of \emph{decided} truth-values, are not the same object and are worth keeping apart; Figure~\ref{fig:dominance} makes the distinction precise.\footnote{$\Sigma \hookrightarrow \Omega$ is a Rosolini dominance~\cite{rosolini1986continuity}.}
-The algebra of Listing~\ref{lst:set-grammar} adds the lattice operations and the closed \texttt{query} sort; restricting to $\Sigma = \{\top, \bot\}$ decides \emph{membership}, but set \emph{equality} (a $\forall$-quantified query) is a \emph{separate} axis, decidable only where a normal form exists (§\ref{sec:ddk_ordered} onward).
+The algebra of Listing~\ref{lst:set-grammar} adds the lattice operations and the closed \texttt{query} sort; restricting to $\Sigma = \{\top, \bot\}$ decides \emph{membership}, while set \emph{equality} sits on the orthogonal quantifier axis (Figure~\ref{fig:two-axis}), decidable only where a normal form exists (§\ref{sec:ddk_ordered} onward).
 
 \begin{figure}[htbp]
 \centering
@@ -617,7 +617,7 @@ The domain decides $\mathrm{fix}(\mathit{succ})$: the finite cardinals have no f
 Membership itself may then be undecidable (witnessed in the checked-in test): a comprehension over $\mathbb{R}$ (tagged $\beth_1$) is classified undecidable, its species \cppinline{TernaryLogic}, so $==$ is withheld; and the intensional image of a set returns $U$ outright.
 \textbf{Bottom}: the grammar in two panels.
 A \texttt{setexpr} is a generator or a comprehension, and the only observation is \texttt{membership}, valued in the classifier $\Omega$ (the generator \texttt{'Ω'} is the universal set $\Omega\langle A\rangle$, a distinct use of the glyph).
-There is no $==$: pointwise membership landing in $\Sigma$ does not decide set equality (a $\forall$-quantified query); Listing~\ref{lst:set-grammar} restores it only on the normal-form tiers (§\ref{sec:ddk_ordered} onward).
+There is no $==$: deciding membership does not decide set equality, which asks about \emph{every} point (the orthogonal axis of Figure~\ref{fig:two-axis}); Listing~\ref{lst:set-grammar} restores it only on the normal-form tiers (§\ref{sec:ddk_ordered} onward).
 The archetype hard predicate is Mandelbrot membership, semi-decidable: escape is recognizable, non-escape is not.
 The grammar is sound; whether a membership query is \emph{decided} is the separate question this listing is about (Figure~\ref{fig:dominance}).}
 \label{lst:membership}
