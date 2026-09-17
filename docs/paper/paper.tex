@@ -484,8 +484,8 @@ A set is \emph{decidable} exactly when membership never returns $U$, i.e.\ its c
 \qquad \iota : \Sigma \hookrightarrow \Omega .
 \end{equation}
 Strict \textsc{etcs} is the Boolean collapse $\Sigma = \Omega$ ($\iota = \mathrm{id}$, so every test factors and all membership is decidable); the honest species keeps $\iota$ a \emph{proper} inclusion $\{\top, \bot\} \subsetneq \{\top, \bot, U\}$, so a $\chi_A$ that hits $U$ has no factorisation.\footnote{A notational caution: \textsc{etcs}, being Boolean, writes $\Omega$ for the two-valued object we call $\Sigma$; we reserve $\Omega$ for the ambient classifier and $\Sigma$ for its decided sub-object. The inclusion $\Sigma \hookrightarrow \Omega$ is a Rosolini dominance~\cite{rosolini1986continuity}.}
-% Two-axis decidability figure + Eqn-3 characterisation + closure/retract:
-% delivered as fig:two-axis in the tier-framing paragraph below (#847).
+% Two-axis decidability (#847) + the corner characterisation + closure/retract:
+% now folded into eqn:quantifiers + eqn:corner in the tier-framing prose below.
 Here, a set \emph{is} its characteristic predicate, not a list of its elements.
 The set operations \emph{are} the pointwise logical ones.
 This way, there is no problem to model an open disk $\{\, x \mid \lVert x - c \rVert < r \,\}$, which in an extensional setting is an uncountable bag no machine can hold.
@@ -554,28 +554,32 @@ An ordered set (§\ref{sec:ddk_ordered}) instead has a canonical normal form, it
 The finite, extensional sets (§\ref{sec:ddk_extensional}) simply list.
 Each tier's normal form is what makes its comparisons decidable.
 
-These two undecidability sources are \emph{orthogonal} axes, and every set operation sits at a point in their product (Figure~\ref{fig:two-axis}).
+These two undecidability sources are \emph{orthogonal} axes, and every set operation sits at a point in their product.
 The \emph{dominance} axis (Equation~\ref{eqn:dominance}) is the codomain of $\chi$: does membership land in $\Sigma$, or hit $U$?
-The \emph{quantifier} axis is how much of the set a query must inspect (Equation~\ref{eqn:quantifiers}): membership asks about one point, subset and equality about \emph{every} point ($\forall$), the image about whether \emph{some} point exists ($\exists$).\footnote{In recursion-theoretic terms this is the arithmetic hierarchy of the query: membership atomic ($\Delta^0_0$), subset and equality $\forall$-quantified ($\Pi^0_1$), image $\exists$-quantified ($\Sigma^0_1$).}
-
-\begin{figure}[htbp]
-\centering
-\begin{tabular}{@{}lll@{}}
-\toprule
- & $\forall$ dischargeable (normal form) & $\forall$ not dischargeable \\
-\midrule
-$\chi \in \Sigma$ (membership decided) & $\subseteq$, $==$ decidable (finite sets) & membership decides, $\subseteq$ Rice-walled \\
-$\chi$ hits $\Omega\setminus\Sigma$ (Unknown) & structural $\subseteq$ still decides ($\varnothing \subseteq B$) & Unknown \\
-\bottomrule
-\end{tabular}
-\caption{\textbf{Decidability is a 2-D lattice: dominance $\times$ quantifier.}
-Rows are the \emph{dominance} axis (Equation~\ref{eqn:dominance}); columns the \emph{quantifier} axis (the arithmetic hierarchy, of which the Chomsky tiers~\cite{chomsky1956three} are the loose analogy).
-All four corners are inhabited, so the axes are genuinely orthogonal; the bottom-left ($\varnothing \subseteq B$ decides even where membership in $B$ does not) is the clincher.
-\textbf{Characterisation}: a query lands in the decidable (top-left) quadrant exactly when its Equation~\ref{eqn:quantifiers} form is $\Sigma$-valued --- one check that folds in both axes, since the bounded comparison $S \subseteq \{x \mid P\}$ is $\Sigma$-valued only if the pointwise $\Rightarrow$ is (axis~1) \emph{and} the $\forall$ discharges (axis~2).
-\textbf{Closure vs.\ specialisation}: the decidable corner is closed under finite composition (Equation~\ref{eqn:lattice-lift-ops}, including the preimage line $P_{f^{-1}(B)} = P_B \circ f$), so compile-time optimisation is ``stay in the corner''; Galois specialisation replaces an unbounded quantifier with a bounded one on a carved sub-domain, so it is ``get to the corner''.
-Deciding membership of the corner is itself undecidable (Rice~\cite{rice1953classes}), so the type system recognises a \emph{sound sub-quadrant} and answers $U$ elsewhere.}
-\label{fig:two-axis}
-\end{figure}
+The \emph{quantifier} axis is how much of the set a query inspects.
+A quantifier \emph{is} a set operation, a fold of the membership test over the domain (the structural, Bourbaki sense, taken as the definition, not a later coincidence):
+\begin{equation}
+\label{eqn:quantifiers}
+\begin{aligned}
+\exists x \in S.\,P(x) &\;:\equiv\; \{x\in S \mid P(x)\} \neq \varnothing \;=\; \textstyle\bigvee_{x\in S} P(x),
+&\quad \forall &\;:\equiv\; \neg\,\exists\,\neg\,;\\
+\forall x \in S.\,P(x) &\;:\equiv\; \{x\in S \mid P(x)\} = S \;=\; \textstyle\bigwedge_{x\in S} P(x),
+&\quad \exists &\;:\equiv\; \neg\,\forall\,\neg\,.
+\end{aligned}
+\end{equation}
+Membership asks about one point; the quantifiers about \emph{every} point ($\forall$) or \emph{some} point ($\exists$).\footnote{In recursion-theoretic terms this is the arithmetic hierarchy of the query: membership atomic ($\Delta^0_0$), the $\forall$-fold $\Pi^0_1$, the $\exists$-fold $\Sigma^0_1$.}
+The two axes now read straight off the fold: a \emph{finite} meet or join of \emph{decided} values is decided, so a query lands in the decidable corner exactly when
+\begin{equation}
+\label{eqn:corner}
+\underbrace{P(A) \subseteq \Sigma}_{\text{axis 1: each test decided}}
+\qquad\text{and}\qquad
+\underbrace{\lvert S/{\sim}\rvert < \infty}_{\text{axis 2: the fold is finite}} .
+\end{equation}
+This is the trick that handles the hard corner.
+Membership can be perfectly decidable ($P(A) \subseteq \Sigma$, axis~1) while the quantifier still escapes $\Sigma$, because an unbounded fold may never resolve (it stays $U$); a finite normal form (§\ref{sec:ddk_ordered} onward) discharges the bound and pulls the query back into $\Sigma$ (axis~2).
+All four combinations occur; the bottom-left is inhabited too, since $\varnothing \subseteq B$ decides even where membership in $B$ does not.
+The corner is closed under finite composition (Equation~\ref{eqn:lattice-lift-ops}, including the preimage line $P_{f^{-1}(B)} = P_B \circ f$), so compile-time optimisation is ``stay in the corner'', while Galois specialisation carves a finite normal form to ``get to the corner''.
+Deciding membership of the corner is itself undecidable (Rice~\cite{rice1953classes}), so the type system recognises a \emph{sound sub-quadrant} and answers $U$ elsewhere.
 
 % ============================================================
 \subsection{An Algebra of Sets}
@@ -586,7 +590,7 @@ The primitive of the DSL is membership: a set $A$ is its characteristic map $\ch
 Listing~\ref{lst:membership} is the natural starting point.
 For the three-valued species, $\Omega = \{\top, \bot, U\}$ admits an undecided answer $U$, so a bare membership query may be undecidable.
 The classifier $\Omega$ and its \emph{dominance} $\Sigma \hookrightarrow \Omega$, the sub-object of \emph{decided} truth-values, are not the same object and are worth keeping apart; Equation~\ref{eqn:dominance} makes the distinction precise.\footnote{$\Sigma \hookrightarrow \Omega$ is a Rosolini dominance~\cite{rosolini1986continuity}.}
-The algebra of Listing~\ref{lst:set-grammar} adds the lattice operations and the closed \texttt{query} sort; restricting to $\Sigma = \{\top, \bot\}$ decides \emph{membership}, while set \emph{equality} sits on the orthogonal quantifier axis (Figure~\ref{fig:two-axis}), decidable only where a normal form exists (§\ref{sec:ddk_ordered} onward).
+The algebra of Listing~\ref{lst:set-grammar} adds the lattice operations and the closed \texttt{query} sort; restricting to $\Sigma = \{\top, \bot\}$ decides \emph{membership}, while set \emph{equality} sits on the orthogonal quantifier axis (Equation~\ref{eqn:quantifiers}), decidable only where a normal form exists (§\ref{sec:ddk_ordered} onward).
 
 % Source: src/test/cpp/modules/dedekind/analysis/partial_membership_laws_test.cpp
 %   fix(¬)=U and fix(succ)=ℵ₀; the ℝ (ℶ₁) classification; the intensional-image
@@ -600,7 +604,7 @@ The domain decides $\mathrm{fix}(\mathit{succ})$: the finite cardinals have no f
 Membership itself may then be undecidable (witnessed in the checked-in test): a comprehension over $\mathbb{R}$ (tagged $\beth_1$) is classified undecidable, its species \cppinline{TernaryLogic}, so $==$ is withheld; and the intensional image of a set returns $U$ outright.
 \textbf{Bottom}: the grammar in two panels.
 A \texttt{setexpr} is a generator or a comprehension, and the only observation is \texttt{membership}, valued in the classifier $\Omega$ (the generator \texttt{'Ω'} is the universal set $\Omega\langle A\rangle$, a distinct use of the glyph).
-There is no $==$: deciding membership does not decide set equality, which asks about \emph{every} point (the orthogonal axis of Figure~\ref{fig:two-axis}); Listing~\ref{lst:set-grammar} restores it only on the normal-form tiers (§\ref{sec:ddk_ordered} onward).
+There is no $==$: deciding membership does not decide set equality, which asks about \emph{every} point (the orthogonal axis of Equation~\ref{eqn:quantifiers}); Listing~\ref{lst:set-grammar} restores it only on the normal-form tiers (§\ref{sec:ddk_ordered} onward).
 The archetype hard predicate is Mandelbrot membership, semi-decidable: escape is recognizable, non-escape is not.
 The grammar is sound; whether a membership query is \emph{decided} is the separate question this listing is about (Equation~\ref{eqn:dominance}).}
 \label{lst:membership}
@@ -820,19 +824,7 @@ atom +::= elem cmp elem
 \end{minipage}
 \end{listing}
 
-First-order quantification is the same reading once more: a quantifier \emph{is} a set operation, and that structural (Bourbaki) sense is taken as the definition, not as a later coincidence.
-\begin{equation}
-\label{eqn:quantifiers}
-\begin{aligned}
-\text{(A)}\quad
-\exists x \in S.\,P(x) &\;:\equiv\; \{x\in S \mid P(x)\} \neq \varnothing,
-&\quad \forall &\;:\equiv\; \neg\,\exists\,\neg\,;\\
-\text{(B)}\quad
-\forall x \in S.\,P(x) &\;:\equiv\; \{x\in S \mid P(x)\} = S,
-&\quad \exists &\;:\equiv\; \neg\,\forall\,\neg\,.
-\end{aligned}
-\end{equation}
-In code the comprehension is the where-clause \cppinline{S | P}, and each quantifier is one \cppinline{operator==} against a bound: \cppinline{exists(S,P)} is \cppinline{!(Ø{} == (S | P))}, \cppinline{forall(S,P)} is \cppinline{(S | P) == S} (Listing~\ref{lst:extrema_def}).
+First-order quantification is the fold of Equation~\ref{eqn:quantifiers} once more, now in code: the comprehension is the where-clause \cppinline{S | P}, and each quantifier is one \cppinline{operator==} against a bound, \cppinline{exists(S,P)} being \cppinline{!(Ø{} == (S | P))} and \cppinline{forall(S,P)} being \cppinline{(S | P) == S} (Listing~\ref{lst:extrema_def}).
 The set comparisons are these quantifiers specialised to a membership predicate:
 \begin{equation}
 \label{eqn:inclusion}
@@ -849,7 +841,7 @@ X \in \mathfrak{P}(S) \;:\equiv\; X \subseteq S, \qquad
 \mathfrak{P}(S) \;=\; \{\, X \mid X \subseteq S \,\}.
 \end{equation}
 Intensionally, a quantifier collapses to one question: does the meet \cppinline{S | P} reduce to always-false ($\exists$ fails) or always-true ($\forall$ holds)?
-The cost is then the \emph{set relation}, not the carrier's cardinality, so $\forall$ decides even over an infinite carrier when the predicate factors through a finite quotient: the periodic congruence $\pi \equiv 0 \pmod 3$ settles on the three residues of $\mathbb{Z}/3\mathbb{Z}$, not the countably many naturals (Listing~\ref{lst:extrema_def}).
+The cost is then the \emph{set relation}, not the carrier's cardinality, so $\forall$ decides even over an infinite carrier when the predicate factors through a finite quotient (the finite normal form of Equation~\ref{eqn:corner}): the periodic congruence $\pi \equiv 0 \pmod 3$ settles on the three residues of $\mathbb{Z}/3\mathbb{Z}$, not the countably many naturals (Listing~\ref{lst:extrema_def}).
 A predicate with no such factorisation (\cppinline{isPrime}, a Collatz recurrence) does not reduce: the honest Rice wall, a compile error rather than a fabricated answer.
 
 The extremum is a set operation in the same spirit: the greatest elements of $S$ are those no element beats, so $\max$ keeps the comprehension $\forall$ tests and returns the extremal \emph{subset}.
