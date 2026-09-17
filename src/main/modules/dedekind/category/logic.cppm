@@ -232,11 +232,11 @@ struct GetLogic<T> {
  *
  * @note @c bool and @c Ternary are @e peer inhabitants of this concept:
  *       neither is a privileged "the Ω".  @c bool is distinguished only at the
- *       dominance layer (as the decided core @f$\mathbb{B}@f$ that any Ω
- * factors onto; see @c lift_logic), not as a logic.  Register a new species
- * (say a fuzzy logic) and its truth-type joins as another peer.  @c Ternary
- *       (Kleene @f$K_3@f$) is the one non-trivial inhabitant currently shipped,
- *       a test case rather than the canonical Ω.
+ *       dominance layer (as the decided core @f$\mathbb{B}@f$ that decidable
+ * maps factor through; see @c lift_logic), not as a logic.  Register a new
+ * species (say a fuzzy logic) and its truth-type joins as another peer.  @c
+ * Ternary (Kleene @f$K_3@f$) is the one non-trivial inhabitant currently
+ * shipped, the honest default, not the only possible Ω.
  */
 export template <typename T>
 concept LogicalValue = requires {
@@ -275,15 +275,17 @@ export enum class CardinalityTag { Finite, Countable, Continuum };
  *          answer-lattice @f$\Omega@f$ (every @c LogicalValue), and @f$\iota@f$
  *          is its inclusion.  So @f$\mathbb{B}@f$ is @e primus @e inter @e
  * pares among the truth-objects: a peer of any other @f$\Omega@f$ at the object
- * layer, but the one target every decidable map factors onto (the Rosolini
+ * layer, but the one target every decidable map factors through (the Rosolini
  * dominance @f$\Sigma@f$).  @c Ternary (Kleene
  *          @f$K_3@f$) is the single non-trivial @f$\Omega@f$ we currently ship:
  * a peer of @f$\mathbb{B}@f$, @b not the canonical @f$\Omega@f$; for it
  * @f$\iota@f$ is the concrete map @c bool @c ↪ @c Ternary
  *          (@c Ternary = @f$\mathbb{B} + 1@f$, adjoining @c Unknown), while the
  *          concept @c IsDominanceInclusion fixes only the shape
- *          @f$\mathbb{B} \to \Omega@f$, so a future @f$\Omega@f$ plugs in
- *          without privileging any inhabitant.  @f$\top \in \mathbb{B}@f$ and
+ *          @f$\mathbb{B} \to \Omega@f$; a future @f$\Omega@f$ is admitted by
+ * that shape but supplies its own @f$\mathbb{B}@f$-inclusion (@c lift_logic
+ *          currently embeds only @c bool @c ↪ @c Ternary, returning other
+ *          values unchanged).  @f$\top \in \mathbb{B}@f$ and
  *          @f$\mathbb{B}@f$ is closed under dependent conjunction, so a
  *          @f$\mathbb{B}@f$-valued map is @b decidable: a set whose
  *          characteristic map factors as
