@@ -225,36 +225,74 @@ struct GetLogic<T> {
 };
 
 /**
- * @concept LogicalValue
- * @brief Any type that serves as the Omega (Ω) for a Logical Species.
- * This is open-ended: if you register a FuzzyLogic, its 'type'
- * automatically becomes a LogicalValue.
+ * @concept HasLogicalOperators
+ * @brief @b Pure @b syntactic @b shape: T supports the logical
+ *        operators @c &&, @c ||, @c ! with closed results.
  *
- * @note @c bool and @c Ternary are @e peer inhabitants of this concept:
- *       neither is a privileged "the Ω".  @c bool is distinguished only at the
- *       dominance layer (as the decided core @f$\mathbb{B}@f$ that decidable
- * maps factor through; see @c lift_logic), not as a logic.  Register a new
- * species (say a fuzzy logic) and its truth-type joins as another peer.  @c
- * Ternary (Kleene @f$K_3@f$) is the one non-trivial inhabitant currently
- * shipped, the honest default, not the only possible Ω.
+ * @details
+ * Use this concept where the callsite needs Boolean-flavoured logical
+ * operators (rather than the bitwise lattice operators of
+ * @c dedekind::order::HasLatticeOperators) --- @c bool, @c Ternary,
+ * predicate carriers, Kleene three-valued logic.  No axiomatic claim
+ * is made about truth tables or excluded-middle.  Note also that
+ * short-circuit evaluation of @c && / @c || is guaranteed only for
+ * the @b built-in operators on @c bool; once @c && / @c || are
+ * @b overloaded for a user-defined @c T they evaluate like ordinary
+ * functions (both operands always evaluated, in unspecified order),
+ * so this concept makes no short-circuit claim either.  Sibling of
+ * @c dedekind::algebra::HasRingOperators (in @c algebra:ring) and
+ * @c dedekind::order::HasLatticeOperators (in @c order:lattice) in
+ * the shape-concept family --- introduced under #393.
  */
 export template <typename T>
-concept LogicalValue = requires {
-  // We check if there exists a Logic Species L that uses T as its
-  // representation.
-  typename GetLogic<T>::type;
-  requires IsLogicalSpecies<typename GetLogic<T>::type>;
+concept HasLogicalOperators = requires(T a, T b) {
+  { a && b } -> std::same_as<T>;
+  { a || b } -> std::same_as<T>;
+  { !a } -> std::same_as<T>;
 };
 
 /**
+ * @concept IsΩ
+ * @brief A truth-object: a type that can serve as the classifier Ω for a
+ *        logical species.
+ *
+ * @details Satisfied when @c T either carries the @b closed logical operators
+ * (@c && / @c || / @c ! all returning @c T, as for @c bool and @c Ternary), or
+ * is a registered logic wrapper declaring a valid @c logic_species (e.g.\ @c
+ * Truth<L>).  @c int and @c std::string satisfy neither (@c int's @c && yields
+ * @c bool, and neither declares a @c logic_species), so @c IsΩ does not
+ * over-accept them.  This is deliberately decoupled from @c GetLogic, whose
+ * permissive default maps any type to @c ClassicalLogic and would otherwise let
+ * @c IsΩ accept arbitrary types.
+ *
+ * @note @c bool and @c Ternary are @e peer inhabitants: neither is a privileged
+ * "the Ω".  @c bool is distinguished only at the dominance layer (as the
+ * decided core @f$\mathbb{B}@f$ that decidable maps factor through; see @c
+ * lift_logic), not as a logic.  Register a new species (say a fuzzy logic) and
+ * its truth-type joins as another peer.  @c Ternary (Kleene @f$K_3@f$) is the
+ * one non-trivial inhabitant currently shipped, the honest default, not the
+ * only possible Ω.
+ */
+export template <typename T>
+concept IsΩ =
+    // Raw truth-type: the logical operators close on T (bool, Ternary)...
+    HasLogicalOperators<T> ||
+    // ...or a registered logic wrapper declaring a valid logic_species
+    // (e.g. Truth<L>), which need not overload the operators directly.
+    requires {
+      typename T::logic_species;
+      requires IsLogicalSpecies<typename T::logic_species>;
+    };
+
+/**
  * @concept LogicalMap
- * @brief A callable Pred that maps T -> Ω for some LogicalValue Ω.
+ * @brief A callable Pred that maps T -> Ω for some IsΩ Ω.
  * Captures the notion of a predicate valued in an arbitrary logic species.
  */
 export template <typename Pred, typename T>
 concept LogicalMap =
     std::invocable<const std::decay_t<Pred>&, const T&> &&
-    LogicalValue<std::remove_cvref_t<
+    IsΩ<std::remove_cvref_t<
         std::invoke_result_t<const std::decay_t<Pred>&, const T&>>>;
 
 /** @brief Extract the Ω-type of a LogicalMap. */
@@ -272,7 +310,7 @@ export enum class CardinalityTag { Finite, Countable, Continuum };
  * @details The dominance is general in the classifier @f$\Omega@f$.
  *          @f$\mathbb{B}@f$ = @c ClassicalLogic::Ω = @c bool is the two-valued
  *          @b decided @b core @f$\{\top,\bot\}@f$ that sits inside @e every
- *          answer-lattice @f$\Omega@f$ (every @c LogicalValue), and @f$\iota@f$
+ *          answer-lattice @f$\Omega@f$ (every @c IsΩ), and @f$\iota@f$
  *          is its inclusion.  So @f$\mathbb{B}@f$ is @e primus @e inter @e
  * pares among the truth-objects: a peer of any other @f$\Omega@f$ at the object
  * layer, but the one target every decidable map factors through (the Rosolini
@@ -495,33 +533,6 @@ struct SubobjectClassifier {
  * the Standard Library to the Ternary Topos.
  */
 
-/**
- * @concept HasLogicalOperators
- * @brief @b Pure @b syntactic @b shape: T supports the logical
- *        operators @c &&, @c ||, @c ! with closed results.
- *
- * @details
- * Use this concept where the callsite needs Boolean-flavoured logical
- * operators (rather than the bitwise lattice operators of
- * @c dedekind::order::HasLatticeOperators) --- @c bool, @c Ternary,
- * predicate carriers, Kleene three-valued logic.  No axiomatic claim
- * is made about truth tables or excluded-middle.  Note also that
- * short-circuit evaluation of @c && / @c || is guaranteed only for
- * the @b built-in operators on @c bool; once @c && / @c || are
- * @b overloaded for a user-defined @c T they evaluate like ordinary
- * functions (both operands always evaluated, in unspecified order),
- * so this concept makes no short-circuit claim either.  Sibling of
- * @c dedekind::algebra::HasRingOperators (in @c algebra:ring) and
- * @c dedekind::order::HasLatticeOperators (in @c order:lattice) in
- * the shape-concept family --- introduced under #393.
- */
-export template <typename T>
-concept HasLogicalOperators = requires(T a, T b) {
-  { a && b } -> std::same_as<T>;
-  { a || b } -> std::same_as<T>;
-  { !a } -> std::same_as<T>;
-};
-
 /** @section logic__Formal_Verification */
 
 // Pure-syntactic-shape witness: bool is the canonical fit because
@@ -532,5 +543,17 @@ static_assert(HasLogicalOperators<bool>,
               "bool has the syntactic logical-operator surface "
               "(&&, ||, ! all close to bool; short-circuit evaluation "
               "is the built-in-operator behaviour, not a concept claim).");
+
+// IsΩ gate (the truth-object concept): raw truth-types qualify via closed
+// operators; the Truth<L> wrappers via their registered logic_species; and
+// non-truth types (int, ...) qualify by neither.
+static_assert(IsΩ<bool> && IsΩ<Ternary>,
+              "raw truth-types are Ω (their &&/||/! close on the type)");
+static_assert(IsΩ<Boolean> && IsΩ<Kleene>,
+              "Truth<L> wrappers are Ω via their registered logic_species "
+              "(they overload +/* and !, not &&/||)");
+static_assert(!IsΩ<int>,
+              "int is not Ω: its && yields bool (not int) and it declares no "
+              "logic_species");
 
 }  // namespace dedekind::category

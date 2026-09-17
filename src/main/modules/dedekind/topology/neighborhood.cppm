@@ -76,7 +76,7 @@ concept IsClosed = dedekind::category::IsPredicate<S> &&
  */
 export template <typename N, typename T>
 concept IsNeighborhood = IsOpen<N> && requires(N n, T p) {
-  { n(p) } -> LogicalValue;
+  { n(p) } -> IsΩ;
 };
 
 /**

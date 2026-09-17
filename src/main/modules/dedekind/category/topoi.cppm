@@ -77,7 +77,7 @@ constexpr auto lift_classifier_constant(Constant&& value) {
  *
  * In the Dedekind topos, a Set is not a container, but a Rule. `IsPredicate`
  * formalizes this rule as a mapping from a Domain object (T) to a Logical
- * Species (Ω) --- an @c IsArrow whose codomain is a @c LogicalValue (the
+ * Species (Ω) --- an @c IsArrow whose codomain is a @c IsΩ (the
  * classifier Ω).  This is the named concept for "the membership test"; the
  * two-valued refinement is @c IsDecidableCharacteristic and the classifier
  * inclusion ι : Σ ↪ Ω is @c IsDominanceInclusion (both below).
@@ -86,19 +86,18 @@ constexpr auto lift_classifier_constant(Constant&& value) {
  *
  * @req { p(x) } The candidate must be callable with an instance of the
  * Domain.
- * @req SpeciesTraits<Res>::species The return type must be registered in the
- *      Ontology Bridge.
- * @req IsLogicalSpecies<S> The resolved logic species must satisfy the
- *      formal algebraic requirements (AND/OR/NOT).
+ * @req IsΩ<Cod<P>> The result type must be a truth-object: it either carries
+ *      the closed logical operators @c && / @c || / @c ! (@c bool, @c Ternary)
+ *      or declares a valid @c logic_species (a registered wrapper, e.g.\ @c
+ *      Truth<L>).
  *
  * @note By enforcing this contract, `dedekind` ensures that logical
  * composition (p1 && p2) only occurs between rules that share a common
  * mathematical foundation.
  */
 export template <typename P>
-concept IsPredicate =
-    IsArrow<P> && LogicalValue<Cod<P>> && LogicalMap<P, Dom<P>> &&
-    !std::same_as<std::remove_cvref_t<P>, bool>;
+concept IsPredicate = IsArrow<P> && IsΩ<Cod<P>> && LogicalMap<P, Dom<P>> &&
+                      !std::same_as<std::remove_cvref_t<P>, bool>;
 
 /**
  * @concept IsCharacteristic
@@ -141,7 +140,7 @@ concept IsDecidableCharacteristic =
  *
  * @details A signature-level witness for the dominance inclusion: an @c IsArrow
  * whose domain is the Boolean dominance @f$\Sigma = @c bool@f$ and whose
- * codomain is a classifier @f$\Omega@f$ (any @c LogicalValue).  @c lift_logic
+ * codomain is a classifier @f$\Omega@f$ (any @c IsΩ).  @c lift_logic
  * (@c category/logic.cppm) is the underlying map @c bool @c ↪ @c Ternary; a
  * typed arrow wrapping it (a @c Domain=bool, @c Codomain=Ternary functor, e.g.
  * the @c DominanceIota witness in @c topoi_test.cpp) inhabits this concept ---
@@ -160,7 +159,7 @@ concept IsDecidableCharacteristic =
  */
 export template <typename E>
 concept IsDominanceInclusion =
-    IsArrow<E> && std::same_as<Dom<E>, bool> && LogicalValue<Cod<E>>;
+    IsArrow<E> && std::same_as<Dom<E>, bool> && IsΩ<Cod<E>>;
 
 /**
  * @concept IsSieve
@@ -379,7 +378,7 @@ concept IsSubobject = requires(S s, typename S::Member m, A const& a) {
    * does @b not refine @c IsCharacteristic.  The two coincide only over
    * carriers that do declare @c ::Codomain.
    */
-  { s(a) } -> LogicalValue;
+  { s(a) } -> IsΩ;
 
   // Metadata verification: The declared ambient must match A.
   typename S::Domain;
@@ -460,7 +459,7 @@ struct Subobject {
 export template <typename A, typename F>
   requires(!IsArrow<std::remove_cvref_t<F>>) &&
           std::invocable<std::decay_t<F>, const A&> &&
-          LogicalValue<std::invoke_result_t<std::decay_t<F>, const A&>>
+          IsΩ<std::invoke_result_t<std::decay_t<F>, const A&>>
 constexpr auto classify(F&& f) {
   auto rule = arrow<A>(std::forward<F>(f));
   return Subobject<A, decltype(rule)>{std::move(rule)};
@@ -476,7 +475,7 @@ constexpr auto classify(F&& f) {
 export template <typename F>
   requires(!IsArrow<std::remove_cvref_t<F>>) &&
           requires { typename signature_extractor<std::decay_t<F>>::type; } &&
-          LogicalValue<codomain_t<std::decay_t<F>>>
+          IsΩ<codomain_t<std::decay_t<F>>>
 constexpr auto classify(F&& f) {
   using Fn = std::decay_t<F>;
   using A = domain_t<Fn>;
@@ -662,7 +661,7 @@ auto operator!(P&& p) {
 export template <typename A, typename P, typename Q>
   requires std::invocable<const std::decay_t<P>&, const A&> &&
            std::invocable<const std::decay_t<Q>&, const A&> &&
-           LogicalValue<std::remove_cvref_t<
+           IsΩ<std::remove_cvref_t<
                std::invoke_result_t<const std::decay_t<P>&, const A&>>> &&
            std::same_as<
                std::remove_cvref_t<
@@ -677,7 +676,7 @@ constexpr auto predicate_and(P&& p, Q&& q) {
 export template <typename A, typename P, typename Q>
   requires std::invocable<const std::decay_t<P>&, const A&> &&
            std::invocable<const std::decay_t<Q>&, const A&> &&
-           LogicalValue<std::remove_cvref_t<
+           IsΩ<std::remove_cvref_t<
                std::invoke_result_t<const std::decay_t<P>&, const A&>>> &&
            std::same_as<
                std::remove_cvref_t<
@@ -691,7 +690,7 @@ constexpr auto predicate_or(P&& p, Q&& q) {
 /** @brief Negation bridge for plain callable predicates over domain A. */
 export template <typename A, typename P>
   requires std::invocable<const std::decay_t<P>&, const A&> &&
-           LogicalValue<std::remove_cvref_t<
+           IsΩ<std::remove_cvref_t<
                std::invoke_result_t<const std::decay_t<P>&, const A&>>>
 constexpr auto predicate_not(P&& p) {
   return !classify<A>(std::forward<P>(p)).χ;

@@ -135,7 +135,7 @@ concept HasAxiom3TerminalObject = IsTerminalObject<One>;
 /** @brief ETCS axiom 4 witness: membership is evaluation through the
  *  carrier-as-characteristic-morphism.  Post-#681 structural refactor:
  *  @c IsSubobject already requires the structural call shape
- *  @c { s(a) } @c -> @c LogicalValue, so the membership-as-evaluation
+ *  @c { s(a) } @c -> @c IsΩ, so the membership-as-evaluation
  *  reading lands on the @c IsSubobject witness itself. */
 export template <typename S>
 concept HasAxiom4WellPointedness = IsSubobject<S, typename S::Domain>;
@@ -414,7 +414,7 @@ concept IsSet = std::regular<typename A::Domain> && HasETCSAxioms<A> &&
  */
 export template <typename A, typename Pred>
   requires IsSpecies<A> && std::invocable<std::decay_t<Pred>, const A&> &&
-           LogicalValue<std::invoke_result_t<std::decay_t<Pred>, const A&>>
+           IsΩ<std::invoke_result_t<std::decay_t<Pred>, const A&>>
 constexpr auto ambient_set(Pred&& predicate) {
   return classify<A>(std::forward<Pred>(predicate));
 }

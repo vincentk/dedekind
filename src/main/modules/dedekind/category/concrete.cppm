@@ -70,7 +70,7 @@ module;
 export module dedekind.category:concrete;
 
 import :cartesian;  // Set<T> --- target of the IsConcrete witnesses below
-import :logic;      // classify, classifier_true, Ternary, LogicalValue
+import :logic;      // classify, classifier_true, Ternary, IsΩ
 import :morphism;   // IsArrow, IsSpokeArrow, Dom, Cod, operator>>
 import :small;      // IsSmallCategory --- size-axis prerequisite for IsConcrete
 import :species;    // IsSpecies --- "object collection is set-shaped"
