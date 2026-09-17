@@ -464,6 +464,12 @@ static_assert(
     "the textbook NNO — an honest sentinel for values "
     "that exceed the machine implementation's range.");
 
+/** @brief The countably-infinite cardinal @f$\aleph_0@f$ as a @c Cardinality
+ *         @b value: the saturation point, and the unique fixpoint of
+ *         @c cardinality_succ (@c succ(ℵ₀) @c = @c ℵ₀).  A readable spelling of
+ *         @c Cardinality{ℵ_0{}}, sibling to @c finite_cardinality(n). */
+export inline constexpr Cardinality aleph_0 = Cardinality{ℵ_0{}};
+
 }  // namespace dedekind::numbers
 
 namespace dedekind::category {
