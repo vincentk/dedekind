@@ -274,6 +274,16 @@ struct MembershipBinding {
 
 /** @section expressions__BoundScout_and_Element__per_551
  *
+ * @deprecated Scout algebra --- @c element<A> / @c in<A> / @c BoundScout and
+ * the scout @c | (predicate) / @c % (re-bind) operators --- is @b no @b longer
+ * part of the official @b Lwv grammar.  The official set-builder is the
+ * point-free comprehension @c A @c | @c pred applied to the ambient set
+ * directly (with the element aliases @c π / @c fix), e.g. @c ℕ @c | @c π @c >
+ * @c fix(5_c).  The scout spelling is retained for existing call sites; new
+ * code must use the point-free form, and this machinery is scheduled for
+ * migration.  (Kept as a note because it otherwise keeps resurfacing as if it
+ * were current grammar.)
+ *
  * Per #551 (one-transaction Ω-redesign): a typed scout that carries
  * its ambient set as a non-type template parameter, so the
  * @c % @c <ambient> binding step in @c Set{n @c % @c B @c | @c
@@ -340,7 +350,9 @@ struct BoundScout {
 /** @brief Variable-template factory for bound scouts at a specific
  *  ambient value.  Companion to @c Ω<T>: spell @c element<Ω<T>> to
  *  get a scout that ranges over the universal predicate at carrier
- *  @c T.  */
+ *  @c T.
+ *  @deprecated Not part of the official Lwv grammar; use the point-free
+ *  comprehension @c A @c | @c pred instead (see the section note above).  */
 // Gated by @c IsCharacteristic (#623, tightened #846): the @c BoundScout
 // instantiation requires @c decltype(Ambient)::Domain, and under the
 // project's @b current encoding a "set" @b is its characteristic morphism
@@ -362,6 +374,8 @@ inline constexpr BoundScout<Ambient> element{};
  *  reads closer to the math @c Set{in<ℕ> @c | @c …} ≈ "the set of
  *  @c x @c ∈ @c ℕ such that …", saves four chars per scout, and keeps
  *  paper Listing 6 one-liner-friendly:
+ *  @deprecated Not part of the official Lwv grammar; use the point-free
+ *  comprehension @c A @c | @c pred instead (see the section note above).
  *
  *      inline constexpr auto S = Set{in<ℕ> | (in<ℕ> > bound<5>)};
  *
