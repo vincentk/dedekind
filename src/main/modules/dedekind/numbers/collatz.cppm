@@ -3,19 +3,23 @@
  * @partition :collatz
  * @brief Bounded Collatz reachability — a §4 relational exhibit on ℕ.
  *
- * The recurrence is spelled @b once as an @c IsFunction on ℕ (the arrow
- * @c collatz_step, whose graph @c collatz is the @c Trsk relation
- * @f$T \subseteq \mathbb{N}\times\mathbb{N}@f$), and then @b finitely iterated.
+ * The recurrence is spelled @b once, @b point-free, as the @c Trsk relation
+ * @c collatz @f$= T \subseteq \mathbb{N}\times\mathbb{N}@f$ (an @c IsRelation
+ * --- whether the even/odd guard-union is inferred @c IsFunction is a
+ * follow-up), and then @b finitely iterated via its native @c size_t shadow @c
+ * collatz_rule.
  *
- * The set @f$\{\, n : \text{the orbit of } n \text{ reaches } 1 \,\}@f$ is @b de
+ * The set @f$\{\, n : \text{the orbit of } n \text{ reaches } 1 \,\}@f$ is @b
+ * de
  * @b facto @b undecidable: universality is the open Collatz conjecture, the
  * generalized problem is provably undecidable (Conway), and the search is
- * unbounded a priori.  We make @b no closure statement --- reachability would be
+ * unbounded a priori.  We make @b no closure statement --- reachability would
+ * be
  * @f$\mathrm{dom}(T^{*} ; \eta(1))@f$, but @f$T^{*}@f$ is not a point-free
  * operator (the relative product @c >> is Boolean-middle only, and the Kleene
- * star is @c FIXME(#786)).  So beyond @b one relational step (the @c preimage
- * below), reachability @b strength-reduces to the finite iteration of the arrow
- * on its native @c size_t shadow --- the honest boundary this exhibit names.
+ * star is @c FIXME(#786)).  So reachability @b strength-reduces to the finite
+ * iteration on its native @c size_t shadow --- the honest boundary this exhibit
+ * names, and a motivating case for point-free @f$R^{*}@f$ (#786).
  *
  * The "reaches 1" indicator mirrors @c :mandelbrot's escape indicator (its ℕ
  * sibling): a monotone @c {Unknown,True}-valued absorptive @c Path<Ternary>.
@@ -53,25 +57,32 @@ using namespace dedekind::sets;
 // ─── The recurrence, spelled once as an IsFunction on ℕ (Trsk) ────────────
 
 /** @brief The recurrence, spelled out @b explicitly as a named function (not a
- *         lambda): @c n even @c ↦ @c n/2, @c n odd @c ↦ @c 3n+1.  Computed on the
- *         native @c size_t shadow (halving and @c 3n+1 are exact below the
- *         wrap); the canonical ℕ is the ideal it faithfully shadows. */
+ *         lambda): @c n even @c ↦ @c n/2, @c n odd @c ↦ @c 3n+1.  Computed on
+ * the native @c size_t shadow (halving and @c 3n+1 are exact below the wrap);
+ * the canonical ℕ is the ideal it faithfully shadows. */
 export constexpr std::size_t collatz_rule(std::size_t n) {
   return (n % 2 == 0) ? n / 2 : 3 * n + 1;
 }
 
-/** @brief The Collatz step as an arrow ℕ → ℕ --- the named rule lifted into a
- *         @c Trsk morphism.  A total function, hence a map. */
-export inline constexpr auto collatz_step =
-    arrow<std::size_t, std::size_t>(collatz_rule);
-
-/** @brief The Trsk relation @f$T = \{(n, \text{collatz\_step}(n))\}@f$ --- the
- *         graph of the arrow.  @c graph(f) is @c IsFunctional and @c IsEntire by
- *         construction, so @c T is an @c IsFunction with no opt-in flag. */
-export inline constexpr auto collatz = graph(collatz_step);
+/** @brief The Trsk relation @f$T \subseteq \mathbb{N}\times\mathbb{N}@f$,
+ * spelled
+ *         @b point-free as the union of the two guard-partitioned functional
+ *         pieces --- @b no lambda, @b no graph, the recurrence @e is the
+ * relation predicate (even @f$\mapsto n/2@f$ via @f$2\pi_2 = \pi_1@f$; odd
+ *         @f$\mapsto 3n+1@f$).  Mirrors the divides relation of §4.
+ * @note First step: get it compiling.  Whether the DSL infers @c IsFunction
+ *       across the even/odd guard-partition union (or needs a trusted opt-in)
+ * is the next investigation --- functionality is inferred from a graph-shaped
+ *       leaf or through @c >>, not obviously across a union of guards. */
+export inline constexpr auto collatz =
+    (ℕ * ℕ | π1 % fix(2_c) == fix(0_c) & fix(2_c) * π2 == π1) |
+    (ℕ * ℕ | π1 % fix(2_c) != fix(0_c) & π2 == fix(3_c) * π1 + fix(1_c));
 
 static_assert(IsSet<decltype(collatz)>,
-              "graph(collatz_step) is the ETCS relation ℕ × ℕ | m == step(n)");
+              "the point-free recurrence is an ETCS Set on ℕ × ℕ");
+static_assert(
+    IsRelation<decltype(collatz), std::size_t, std::size_t>,
+    "T ⊆ ℕ × ℕ is an IsRelation (IsFunction is the next investigation)");
 static_assert(collatz(std::pair{std::size_t{6}, std::size_t{3}}),
               "6 is even: 6 ↦ 3");
 static_assert(collatz(std::pair{std::size_t{7}, std::size_t{22}}),
@@ -79,22 +90,10 @@ static_assert(collatz(std::pair{std::size_t{7}, std::size_t{22}}),
 static_assert(!collatz(std::pair{std::size_t{6}, std::size_t{4}}),
               "6 ↦ 3, not 4");
 
-/** @brief One relational step, point-free: the @c preimage of @f$\{1\}@f$ under
- *         the arrow is exactly @f$\{2\}@f$ (the only @c n with @c step(n)=1).
- *         The @e full reachability would iterate this (@f$T^{*}@f$), which is
- *         not point-free (#786); beyond one step it strength-reduces to the
- *         finite iteration below. */
-export inline constexpr auto reaches_1_in_one_step =
-    preimage(collatz_step, ℕ | (π == fix(1_c)));
-
-static_assert(reaches_1_in_one_step(std::size_t{2}), "2 → 1");
-static_assert(!reaches_1_in_one_step(std::size_t{3}), "3 → 10, not 1");
-static_assert(!reaches_1_in_one_step(std::size_t{4}), "4 → 2, not 1");
-
 // ─── The finite iteration (the strength-reduced shadow) ───────────────────
 
-/** @brief The orbit @f$\{n\} ; T^{\le N}@f$ presented as the arrow's iterate ---
- *         a lazy @c Path<std::size_t>. */
+/** @brief The orbit @f$\{n\} ; T^{\le N}@f$ presented as the arrow's iterate
+ * --- a lazy @c Path<std::size_t>. */
 export constexpr auto collatz_orbit(std::size_t n) {
   return iterate(n, collatz_rule);
 }
