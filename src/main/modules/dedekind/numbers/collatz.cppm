@@ -44,12 +44,14 @@ module;
 export module dedekind.numbers:collatz;
 
 import dedekind.category;
+import dedekind.order;
 import dedekind.relational;
 import dedekind.sequences;
 import dedekind.sets;
 
 namespace dedekind::numbers {
 using namespace dedekind::category;
+using namespace dedekind::order;  // operator""_c (the fix(N_c) literals)
 using namespace dedekind::relational;
 using namespace dedekind::sequences;
 using namespace dedekind::sets;
@@ -75,8 +77,8 @@ export constexpr std::size_t collatz_rule(std::size_t n) {
  * is the next investigation --- functionality is inferred from a graph-shaped
  *       leaf or through @c >>, not obviously across a union of guards. */
 export inline constexpr auto collatz =
-    (ℕ * ℕ | π1 % fix(2_c) == fix(0_c) & fix(2_c) * π2 == π1) |
-    (ℕ * ℕ | π1 % fix(2_c) != fix(0_c) & π2 == fix(3_c) * π1 + fix(1_c));
+    (ℕ * ℕ | π_1 % fix(2_c) == fix(0_c) & fix(2_c) * π_2 == π_1) |
+    (ℕ * ℕ | π_1 % fix(2_c) != fix(0_c) & π_2 == fix(3_c) * π_1 + fix(1_c));
 
 static_assert(IsSet<decltype(collatz)>,
               "the point-free recurrence is an ETCS Set on ℕ × ℕ");
