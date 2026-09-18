@@ -12,9 +12,11 @@
 
 import dedekind.category;
 import dedekind.numbers;
+import dedekind.sets;
 
 using namespace dedekind::numbers;
 using dedekind::category::Ternary;
+using dedekind::sets::finite_cardinality;
 
 TEST_CASE("numbers:collatz — the recurrence, explicit and as a relation",
           "[numbers][collatz]") {
@@ -23,9 +25,10 @@ TEST_CASE("numbers:collatz — the recurrence, explicit and as a relation",
   CHECK(collatz_rule(4) == 2);    // even: 4/2
   CHECK(collatz_rule(2) == 1);    // even: 2/2
   CHECK(collatz_rule(27) == 82);  // odd: 3·27+1
-  // The point-free relation, validated on pairs.
-  CHECK(collatz(std::pair{std::size_t{6}, std::size_t{3}}));
-  CHECK(!collatz(std::pair{std::size_t{6}, std::size_t{4}}));
+  // The point-free relation, validated on pairs (ℕ = 𝔸<Cardinality>).
+  CHECK(collatz(std::pair{finite_cardinality(6), finite_cardinality(3)}));
+  CHECK(collatz(std::pair{finite_cardinality(7), finite_cardinality(22)}));
+  CHECK(!collatz(std::pair{finite_cardinality(6), finite_cardinality(4)}));
 }
 
 TEST_CASE("numbers:collatz — reach time is the first index hitting 1",
