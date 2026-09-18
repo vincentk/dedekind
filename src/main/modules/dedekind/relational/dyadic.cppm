@@ -187,7 +187,7 @@ constexpr typename L::Ω is_single_valued_at(const SetFunction<T1, T2, L, P>& f,
   const auto both_related = L::AND(m1, m2);
   const auto equal_outputs = dedekind::category::lift_logic<L>(y1 == y2);
   // ((x,y1) ∈ f && (x,y2) ∈ f) => (y1 == y2)
-  return L::OR(L::NOT(both_related), equal_outputs);
+  return L::OR(L::RFL(both_related), equal_outputs);
 }
 
 // ── Meet / join of relational predicates (the carriers of & and +) ─────────

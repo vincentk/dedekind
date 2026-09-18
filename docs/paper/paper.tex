@@ -154,7 +154,8 @@ This fragment is named the \emph{Juliet Posture} ($\mathbf{Jlt} = \mathbf{Per} \
 The resulting code has a deliberate, sweet and flowery smell: $\mathbf{Jlt}$ admits a System~F reading of the \Cpp{23} type system.
 On this foundation an embedded, lazy domain-specific language is built which supports
 \begin{enumerate}
-\item a set-comprehension engine ($\mathbf{Lwv} = \mathbf{Jlt} \cap \mathbf{Set}$) whose sets are defined in an intensional way: via a membership test ($\{ x \in S \mid P(x) \}$, \cppinline{S | P(x)}) rather than by listing elements,
+\item a logic lattice of truth-values ($\mathbf{Pst} = \mathbf{Jlt} \cap \mathbf{Chain}$): the bounded chains $\mathbb{B}$, $\mathrm{K}_3, \ldots$ (Post's many-valued logics) that classify membership,
+\item a set-comprehension engine ($\mathbf{Lwv} = \mathbf{Jlt} \cap \mathbf{Set}$), valued in $\mathbf{Pst}$, whose sets are defined in an intensional way: via a membership test ($\{ x \in S \mid P(x) \}$, \cppinline{S | P(x)}) rather than by listing elements,
 \item a point-free relational calculus ($\mathbf{Trsk} = \mathbf{Lwv} \cap \mathbf{Rel}$) built on cartesian products ($\{ (x, y) \in S \times S \mid P(x, y) \}$, \cppinline{S * S | P(x, y)}), and
 \item symbolic algebra $\mathbf{Ddk} = \mathbf{Trsk} \cap \mathbf{Alg}$ built on operations over the canonical sets $\mathbb B, \mathbb N, \ldots$ ($(x, y, z) \in S^3 \mid z = f(x, y)$, \cppinline{S * S * S | z == f(x, y)}).
 \end{enumerate}
@@ -465,7 +466,87 @@ This forms the exact Cartesian Closed Category needed to bootstrap formal set co
 With a deterministic, structurally-typed substrate established in Section~\ref{sec:jlt_posture}, mathematical sets can be bootstrapped inside the type system.
 This section is the Galois specialisation (Definition~\ref{def:galois-specialisation}) of $\mathbf{Set}$, the category of sets.
 Figure~\ref{fig:hub-spoke-bnz} in the introduction previews the functionality this section builds.
-Writing $A = \{x \mid P_A(x)\}$ and $B = \{x \mid P_B(x)\}$ we can see how the predicate logic maps to some set operations:
+\subsection{The Logic Lattice: Truth on a Bounded Chain}
+\label{sec:logic_lattice}
+
+\begin{listing}[ht]
+\caption{\textbf{The answer-chain} $\Omega$, a bounded chain (Eqn.~\ref{eqn:pst}): \cppinline{IsPst} is a truth-object (\cppinline{IsΩ}) whose values are totally ordered.
+\textbf{Top left ($\mathbb{B}$):} the native operators, the species API \cppinline{AND}/\cppinline{OR}/\cppinline{RFL}, and the lattice $\min/\max$ are one and the same operation; $\wedge/\vee = \min/\max$ on $\bot < \top$, and $\neg = $ \cppinline{RFL} is the reflection, a genuine complement only here.
+\textbf{Top right ($\mathrm{K}_3$):} the undecided $U$ under the order.
+$\bot \le U \le \top$; $U$ met with the \emph{identity} ($\top$ for $\wedge$, $\bot$ for $\vee$) stays $U$, but with the \emph{annihilator} ($\bot$ for $\wedge$, $\top$ for $\vee$) it collapses to a decided value ($U \wedge \bot = \bot$, $U \vee \top = \top$), so a $\forall/\exists$ fold stays undecided until a decisive endpoint appears; the order $\le$ (the meet-order $a \le b \Leftrightarrow a \wedge b = a$) later reifies as the subset test; and \cppinline{RFL} fixes the centre ($\neg U = U$).
+\textbf{Bottom:} the grammar of truth expressions, each operator spelled for \cppinline{bool} and for the general chain; the structure of the two panels is described above, so the code carries no inline commentary.}
+\label{lst:membership}
+\noindent
+\begin{minipage}[t]{0.49\linewidth}
+\begin{cpp}
+static_assert(IsPst<bool>);
+using B = ClassicalLogic;
+static_assert(
+   (false < true)
+&& (false && true) == B::AND(false, true)
+&& B::AND(false, true) == std::min(false, true)
+&& B::OR(false, true) == std::max(false, true)
+&& (!true) == B::RFL(true)
+&& B::RFL(false) == true
+);
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\linewidth}
+\begin{cpp}
+static_assert(IsPst<Ternary>);
+using K = TernaryLogic; using enum Ternary;
+static_assert(
+   (False <= Unknown) && (Unknown <= True)
+&& K::AND(Unknown, True)  == Unknown
+&& K::AND(Unknown, False) == False
+&& K::OR(Unknown, False)  == Unknown
+&& K::OR(Unknown, True)   == True
+&& K::RFL(Unknown) == Unknown
+);
+\end{cpp}
+\end{minipage}
+
+\vspace{0.6em}
+\noindent
+\begin{minipage}[t]{0.49\linewidth}
+\begin{minted}[fontsize=\footnotesize]{text}
+Ω     ::= <any IsPst>
+truth ::= <a value of Ω>       (⊥, ⊤; U on K3)
+logic ::= truth
+  | logic meet logic
+  | logic join logic
+  | refl logic
+\end{minted}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\linewidth}
+\begin{minted}[fontsize=\footnotesize]{text}
+meet  ::= '&&' | 'AND' | 'min'
+join  ::= '||' | 'OR'  | 'max'
+refl  ::= '!'  | 'RFL'
+order ::= '<=' | '<=>'
+\end{minted}
+\end{minipage}
+\end{listing}
+
+Sets will be indexed by truth-values, so we fix those first --- algebraically, before any set is defined, to keep the construction non-circular.
+An \emph{answer} is a value in a \emph{bounded chain} $\Omega$: a totally ordered set $\bot < \cdots < \top$ with $\wedge = \min$, $\vee = \max$, and a negation $\neg$ that is the order-reversing \emph{reflection} about the centre.
+A chain is fixed by enumeration alone, and its lattice operations follow from the order, so nothing set-theoretic is presupposed (Listing~\ref{lst:membership}).
+Two instances carry the whole paper:
+\begin{itemize}
+\item $\mathbb{B} = \{\bot < \top\}$, the two-chain.  Here $\neg$ swaps the endpoints and \emph{is} a complement, so the law of the excluded middle holds: $\mathbb{B}$ is the Boolean archetype.
+\item $\mathrm{K}_3 = \{\bot < U < \top\}$, the three-chain (Kleene~\cite{kleene1952metamathematics}).  Now $\neg$ reflects about the interior point, $\neg U = U$, which is therefore \emph{not} a complement ($U \wedge \neg U = U \neq \bot$); the excluded middle fails and $U$ is an \emph{undecided} answer.
+\end{itemize}
+We need no more.
+Every bounded chain with reflection is automatically a distributive lattice and a \emph{Kleene algebra}: the condition $a \wedge \neg a \le b \vee \neg b$ holds on any chain, since $\min(a, \neg a)$ sits at or below the centre and $\max(b, \neg b)$ at or above it.
+So the De~Morgan/Kleene structure is a \emph{theorem} of ``chain $+$ reflection'', not a separate axiom.\footnote{$\mathbf{Pst}$ is the bounded chains selectable by a type constraint alone (the chain \emph{laws} are witnessed on each carrier, Listing~\ref{lst:membership}, not certified by the constraint): $\mathbb{B}$, $\mathrm{K}_3$, a {\L}ukasiewicz $\text{\L}_n$, and, on a purpose-built carrier, the unit interval $[0,1]$ under $\min/\max$, the fuzzy/G\"odel reading (distinct from probability's product t-norm, $a \cdot b \ne \min$).  Order alone makes the chain well-behaved (§\ref{sec:ddk_ordered}), so finiteness is not required.  What is excluded is the non-chain many-valued logics (a four-element Boolean algebra, Belnap's bilattice): they are not totally ordered.}
+
+These truth-objects, the $\mathbf{Jlt}$ types that are bounded chains, form the logic layer
+\begin{equation}
+\label{eqn:pst}
+\mathbf{Pst} := \mathbf{Jlt} \cap \mathbf{Chain},
+\end{equation}
+named for Post's many-valued logics~\cite{post1921general}; the sets of §\ref{sec:reification_set} are indexed by them.
+Writing $A = \{x \mid P_A(x)\}$ and $B = \{x \mid P_B(x)\}$, the pointwise lifts of $\wedge, \vee, \neg$ to predicates are the set operations (Table~\ref{tab:lattice-lift}):
 \begin{equation}
 \label{eqn:lattice-lift-ops}
 \begin{aligned}
@@ -477,16 +558,54 @@ A = f^{-1}(B) \;\Rightarrow\; P_A = P_B \circ f \quad (f\ \text{total}). &
 \end{aligned}
 \end{equation}
 The answer-chain $\Omega$ is set by the logic species; the honest default is Kleene's three-valued $\{\top, \bot, U\}$~\cite{kleene1952metamathematics}, so $\wedge$ is $\min$, $\vee$ is $\max$, and $\neg$ the flip.
-A set is \emph{decidable} exactly when membership never returns $U$, i.e.\ its characteristic map $\chi_A = P_A$ factors through the \emph{decided} sub-chain $\Sigma = \{\top, \bot\}$:
+A set is \emph{decidable} exactly when membership never returns $U$, i.e.\ its characteristic map $\chi_A = P_A$ factors through the \emph{decided} sub-chain $\Sigma = \{\top, \bot\}$, the endpoints (the limits) of $\Omega$:
 \begin{equation}
 \label{eqn:dominance}
 \chi_A \;=\; \iota \circ \bar\chi,
 \qquad \bar\chi : A \to \Sigma = \{\top, \bot\},
 \qquad \iota : \Sigma \hookrightarrow \Omega .
 \end{equation}
-Strict \textsc{etcs} is the Boolean collapse $\Sigma = \Omega$ ($\iota = \mathrm{id}$, so every test factors and all membership is decidable); the honest species keeps $\iota$ a \emph{proper} inclusion $\{\top, \bot\} \subsetneq \{\top, \bot, U\}$, so a $\chi_A$ that hits $U$ has no factorisation.\footnote{A notational caution: \textsc{etcs}, being Boolean, writes $\Omega$ for the two-valued object we call $\Sigma$; we reserve $\Omega$ for the ambient classifier and $\Sigma$ for its decided sub-object. The inclusion $\Sigma \hookrightarrow \Omega$ is a Rosolini dominance~\cite{rosolini1986continuity}.}
+Strict \textsc{etcs} is the Boolean collapse $\Sigma = \Omega$ ($\iota = \mathrm{id}$, so every test factors and all membership is decidable); the honest species keeps $\iota$ a \emph{proper} inclusion $\{\top, \bot\} \subsetneq \{\top, \bot, U\}$, so a $\chi_A$ that hits $U$ has no factorisation.\footnote{A notational caution: \textsc{etcs}, being Boolean, writes $\Omega$ for the two-valued object we call $\Sigma$.  We reserve $\Omega$ for the \emph{full} chain (the ambient classifier, $\{\top,\bot,U\}$ for $\mathrm{K}_3$) and $\Sigma = \{\top,\bot\}$ for its endpoints (the decided sub-object), so $\Sigma \subsetneq \Omega$, never the reverse.  The inclusion $\Sigma \hookrightarrow \Omega$ is a Rosolini dominance~\cite{rosolini1986continuity}.}
+The factorisation $\chi_A = \iota \circ \bar\chi$ is the classifier-side instance of the morphism factorisation that §\ref{sec:functions_morphism_factorization} reifies as a first-class (epic-monic) structure.
+This is the \emph{value} axis of (un)decidability, fixed by the chain $\Omega$; the orthogonal \emph{quantifier} axis (Equation~\ref{eqn:quantifiers}, echoing the Chomsky hierarchy) is a property of the \emph{domain}, and arrives with the sets below.
+
+Table~\ref{tab:lattice-lift} reads these operations across five languages, from the Boolean archetype $\mathbb{B}$ down to the two executable-C++ rows, $\mathbf{Pst}$ (the chain itself) and $\mathbf{Lwv}$ (the sets of §\ref{sec:reification_set} built over it), placed side by side.
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}lccccccc@{}}
+\toprule
+ & member & meet & join & negation & bottom & top & order \\
+\midrule
+$\mathbb{B}$ & $\models$ & $\wedge$ & $\vee$ & $\neg$ & $\bot$ & $\top$ & $\Rightarrow$ \\
+\addlinespace
+$\mathcal{P}(A)$ & $\in$ & $\cap$ & $\cup$ & $\complement$ & $\varnothing$ & $A$ & $\subseteq$ \\
+\addlinespace
+$\mathbf{Topos}$ & $\chi$ & $\wedge$ & $\vee$ & $\neg$ & $\mathbf{0}$ & $A$ & $\hookrightarrow$ \\
+\addlinespace
+$\mathbf{Pst}$ & \cppinline{IsPst} & \cppinline{&&}\,/\,\cppinline{AND} & \cppinline{||}\,/\,\cppinline{OR} & \cppinline{!}\,/\,\cppinline{RFL} & \cppinline{false}\,/\,\cppinline{False} & \cppinline{true}\,/\,\cppinline{True} & \cppinline{<=} \\
+\addlinespace
+$\mathbf{Lwv}$ & \cppinline{s(x)} & \cppinline{&} & \cppinline{|} & \cppinline{~} & \cppinline{Ø} & \cppinline{𝔸} & \cppinline{<=} \\
+\bottomrule
+\end{tabular}
+\caption{
+Operator-mapping table: each column is one construction, spelled in five languages over the rows $\mathbb{B}$, $\mathcal{P}(A)$, $\mathbf{Topos}$, $\mathbf{Pst}$, $\mathbf{Lwv}$.
+The two executable-C++ rows are placed together at the bottom for direct comparison: $\mathbf{Pst}$ is the bounded chain (\cppinline{IsPst} the truth-object type-constraint), $\mathbf{Lwv}$ the sets built over it.
+Each $\mathbf{Pst}$ cell is spelled twice: the native \cppinline{bool} form left of the slash, and the species API (\cppinline{TernaryLogic::AND} and friends, the surface every logic species provides) right; $\neg$ is the reflection, a genuine complement only on the two-chain $\mathbb{B}$ (on $\mathrm{K}_3$, $\neg U = U$).
+The $\mathbf{Topos}$ row is the Boolean case realised by $\mathbf{Set}$.
+The \emph{member} column is membership ($\models$ satisfaction, $\in$ set membership, $\chi$ the classifier, \cppinline{IsPst} the truth-object constraint, \cppinline{s(x)} the set applied to a point); the other columns are the lattice operations.
+}
+\label{tab:lattice-lift}
+\end{table}
+
 % Two-axis decidability (#847) + the corner characterisation + closure/retract:
 % now folded into eqn:quantifiers + eqn:corner in the tier-framing prose below.
+\subsection{Sets over the Lattice}
+\label{sec:reification_set}
+The chains of §\ref{sec:logic_lattice} already give a well-defined set: a type \emph{is} a set, and membership reduces to the \emph{type check} the compiler already performs, reified as the universal set \cppinline{𝔸<T>} over \cppinline{T}, whose characteristic map is constant-true ($\chi \equiv \top$).
+This much already serves the algebra and the exposition; the relational operations, subset and equality, are reified later (§\ref{sec:ddk_ordered} onward) where the quantifier they hide can discharge.
+A \emph{proper} set adds a \emph{predicate} to that type constraint: a carrier \cppinline{A} with a characteristic map $\chi_S : A \to \Omega$ (\cppinline{𝔸<A> | P}), whose membership is now valued in the chain and may answer $U$.
+The two layers are thus one construction at two settings of the predicate: the trivial $\chi \equiv \top$ (a bare type, the universal set) and a genuine $\chi$ (a refined subobject).
 Here, a set \emph{is} its characteristic predicate, not a list of its elements.
 The set operations \emph{are} the pointwise logical ones.
 This way, there is no problem to model an open disk $\{\, x \mid \lVert x - c \rVert < r \,\}$, which in an extensional setting is an uncountable bag no machine can hold.
@@ -500,12 +619,8 @@ The DSL is grounded in it by a faithful reification: the defining axioms become 
 The step-by-step embedding is in Appendix~\ref{sec:etcs}, the concepts in the reference implementation~\cite{Krautler_dedekind_2026} (Mac Lane~\cite{maclane1971categories} and Pierce~\cite{pierce1991basic} for background).
 Two caveats apply, and they are really one.
 i) The axiom of choice (Axiom~10) is only approximated through the power-object lattice, and is marked aspirational.
-ii) A membership test answers on a small chain of truth-values: classically two, $\{\,\text{no} < \text{yes}\,\}$; honestly three, $\{\,\text{no} < \text{unknown} < \text{yes}\,\}$ (Kleene's middle value~\cite{kleene1952metamathematics}, the \cppinline{TernaryLogic} species).
-Choice is what would force the two-valued chain (a Boolean answer); \cppinline{IsSet} does not assume choice, so by default a test may answer \emph{unknown} and membership is not assumed decidable.
-A set is \emph{decidable} exactly when its test only ever lands on the two decided rungs $\{\,\text{no},\text{yes}\,\}$, the sub-chain $\Sigma$ inside the full answer-chain $\Omega$ (Equation~\ref{eqn:dominance}).\footnote{Categorically: the characteristic map $\chi_A : A \to \Omega$ factors as $A \to \Sigma \to \Omega$ through the dominance $\Sigma \hookrightarrow \Omega$, a Rosolini dominance~\cite{rosolini1986continuity}.}
-The \cppinline{HasDecidableMembership} check is a \emph{sound but conservative} witness of this, not a decision of it: it accepts only a test \emph{declared} two-valued, so it may report ``not decidable'' for one that in fact never answers \emph{unknown} (an $\mathbb{R}$-tagged halfspace, say).
-Telling the two apart exactly is itself impossible in general~\cite{rice1953classes}.
-Admitting \emph{unknown} by default is what keeps the grammar strictly sound.\footnote{A carrier whose membership is only semi-decidable, a Mandelbrot set say, stays at the partial default (Appendix~\ref{sec:etcs}); the decidable track (§\ref{sec:ddk_ordered} onward) is the specialisation, not the assumption.}
+ii) Choice is what would force the two-valued chain (a Boolean answer); \cppinline{IsSet} does not assume it, so membership is valued in the full chain $\Omega$ and may answer \emph{unknown} by default (§\ref{sec:logic_lattice}), decidable only where the test factors through the endpoints $\Sigma$.
+\cppinline{HasDecidableMembership} is the \emph{sound, conservative} certificate of that factorisation, not a decision of it (checking it exactly is impossible in general, Rice~\cite{rice1953classes}); admitting \emph{unknown} by default is what keeps the grammar strictly sound.\footnote{A carrier whose membership is only semi-decidable, a Mandelbrot set say, stays at the partial default; the decidable track (§\ref{sec:ddk_ordered} onward) is the specialisation, not the assumption.}
 With these assumptions acknowledged, one can define:
 \begin{definition}[$\mathbf{Lwv} := \mathbf{Jlt} \cap \mathbf{Set}$]
 \label{def:lwv-set}
@@ -523,31 +638,6 @@ A $\mathbf{Lwv}$ set is a subobject of such a universe over a $\mathbf{Jlt}$ car
 \end{equation}
 in which the predicate $\chi_S$ \emph{is} the set.
 \end{definition}
-
-Table~\ref{tab:lattice-lift} spells the correspondence in four languages: the Boolean $\mathbb{B}$, the power set $\mathcal{P}(A)$, the elementary topos (in the subobject lattice $\mathrm{Sub}(A)$, meet the intersection, join the union, membership the classifier $\chi$), and the $\mathbf{Lwv}$ operators.
-
-\begin{table}[htbp]
-\centering
-\begin{tabular}{@{}lccccccc@{}}
-\toprule
- & member & meet & join & complement & bottom & top & order \\
-\midrule
-$\mathbb{B}$ & $\models$ & $\wedge$ & $\vee$ & $\neg$ & $\bot$ & $\top$ & $\Rightarrow$ \\
-\addlinespace
-$\mathcal{P}(A)$ & $\in$ & $\cap$ & $\cup$ & $\complement$ & $\varnothing$ & $A$ & $\subseteq$ \\
-\addlinespace
-$\mathbf{Topos}$ & $\chi$ & $\wedge$ & $\vee$ & $\neg$ & $\mathbf{0}$ & $A$ & $\hookrightarrow$ \\
-\addlinespace
-$\mathbf{Lwv}$ & \cppinline{s(x)} & \cppinline{&} & \cppinline{|} & \cppinline{~} & \cppinline{Ø} & \cppinline{𝔸} & \cppinline{<=} \\
-\bottomrule
-\end{tabular}
-\caption{
-Operator-mapping table: each column is one construction, spelled in four languages over the rows $\mathbb{B}$, $\mathcal{P}(A)$, $\mathbf{Topos}$, $\mathbf{Lwv}$ (Section~\ref{sec:intensional_sets}, Eqn~\ref{eqn:lwv}).
-The $\mathbf{Topos}$ row is the Boolean case realised by $\mathbf{Set}$, where the Heyting pseudo-complement is a genuine $\neg$.
-The \emph{member} column is membership, the characteristic morphism $\chi : A \to \Omega$ ($\models$ satisfaction, $\in$ set membership, $\chi$ the classifier, \cppinline{s(x)} the set applied to a point); the other columns are the lattice operations.
-}
-\label{tab:lattice-lift}
-\end{table}
 
 With the notion of set fixed, the rest of the section develops the DSL over three tiers of increasing decidability, loosely echoing the Chomsky hierarchy~\cite{chomsky1956three}.
 Equality and subset of a general predicate (§\ref{sec:ddk_comprehension}) are undecidable, Rice-walled~\cite{rice1953classes}.
@@ -587,62 +677,9 @@ Deciding membership of the corner is itself undecidable (Rice~\cite{rice1953clas
 \label{sec:ddk_comprehension}
 % ============================================================
 
-The primitive of the DSL is membership: a set $A$ is its characteristic map $\chi_A : A \to \Omega$, and $x \in A$ is $\chi_A(x)$, valued in the classifier $\Omega$.
-Listing~\ref{lst:membership} is the natural starting point.
-For the three-valued species, $\Omega = \{\top, \bot, U\}$ admits an undecided answer $U$, so a bare membership query may be undecidable.
-The classifier $\Omega$ and its \emph{dominance} $\Sigma \hookrightarrow \Omega$, the sub-object of \emph{decided} truth-values, are not the same object and are worth keeping apart; Equation~\ref{eqn:dominance} makes the distinction precise.\footnote{$\Sigma \hookrightarrow \Omega$ is a Rosolini dominance~\cite{rosolini1986continuity}.}
+Membership was fixed in §\ref{sec:logic_lattice}: a set is its characteristic map $\chi_A : A \to \Omega$, valued in the answer-chain, and decidable exactly where it factors through the decided endpoints $\Sigma$ (Equation~\ref{eqn:dominance}).
 The algebra of Listing~\ref{lst:set-grammar} adds the lattice operations and the closed \texttt{query} sort; restricting to $\Sigma = \{\top, \bot\}$ decides \emph{membership}, while set \emph{equality} sits on the orthogonal quantifier axis (Equation~\ref{eqn:quantifiers}), decidable only where a normal form exists (§\ref{sec:ddk_ordered} onward).
 
-% Source: src/test/cpp/modules/dedekind/analysis/partial_membership_laws_test.cpp
-%   fix(¬)=U and fix(succ)=ℵ₀; the ℝ (ℶ₁) classification; the intensional-image
-%   Unknown (mirrors showcase_10_image_intensional_naturals.cpp).
-\begin{listing}[htbp]
-\caption{\textbf{Partial membership}, the primitive that precedes the algebra.
-A set is its characteristic map $\chi_A$; membership $x \in A = \chi_A(x)$ is valued in the full classifier $\Omega$, which for the honest species is Kleene's $\{\top, \bot, U\}$, so the answer may be Unknown ($U$).
-\textbf{Top}: two fixpoints bounding the classifier.
-Kleene negation is negation about zero, so $U$ is its fixpoint, $\mathrm{fix}(\lnot) = U$; the decided fragment $\Sigma = \{\top, \bot\}$ has none (the codomain axis).
-The domain decides $\mathrm{fix}(\mathit{succ})$: the finite cardinals have no fixpoint, but the saturation point $\aleph_0$ is one (the domain axis).
-Membership itself may then be undecidable (witnessed in the checked-in test): a comprehension over $\mathbb{R}$ (tagged $\beth_1$) is classified undecidable, its species \cppinline{TernaryLogic}, so $==$ is withheld; and the intensional image of a set returns $U$ outright.
-\textbf{Bottom}: the grammar in two panels.
-A \texttt{setexpr} is a generator or a comprehension, and the only observation is \texttt{membership}, valued in the classifier $\Omega$ (the generator \texttt{'𝔸'} is the universal set $\mathbb{A}\langle A\rangle$).
-There is no $==$: deciding membership does not decide set equality, which asks about \emph{every} point (the orthogonal axis of Equation~\ref{eqn:quantifiers}); Listing~\ref{lst:set-grammar} restores it only on the normal-form tiers (§\ref{sec:ddk_ordered} onward).
-The archetype hard predicate is Mandelbrot membership, semi-decidable: escape is recognizable, non-escape is not.
-The grammar is sound; whether a membership query is \emph{decided} is the separate question this listing is about (Equation~\ref{eqn:dominance}).}
-\label{lst:membership}
-\noindent
-\begin{minipage}[t]{\linewidth}
-\begin{cpp}
-// Ω = {⊤, ⊥, U};  Σ = {⊤, ⊥}, the decided fragment.  Two fixpoints:
-static_assert(!Ternary::Unknown == Ternary::Unknown);  // fix(¬) = U (codomain axis)
-constexpr cardinality_succ succ;                       // the NNO successor ℕ → ℕ
-static_assert(   succ(finite_cardinality(3)) != finite_cardinality(3)  // none finite
-              && succ(aleph_0) == aleph_0);            // fix(succ) = ℵ₀ (domain axis)
-\end{cpp}
-\end{minipage}
-
-\vspace{0.6em}
-\noindent
-\begin{minipage}[t]{0.49\linewidth}
-\begin{minted}[fontsize=\footnotesize]{text}
-setexpr ::= generator
-  | setexpr '|' pred
-generator ::= '𝔸' carrier | 'Ø' carrier
-  | 'η' '(' value ')'
-  | <any IsSet>
-carrier ::= <any std::regular type>
-\end{minted}
-\end{minipage}\hfill
-\begin{minipage}[t]{0.49\linewidth}
-\begin{minted}[fontsize=\footnotesize]{text}
-membership ::= setexpr '(' elem ')'
-  -- valued in Ω = {⊤, ⊥, U}
-pred ::= <any elem → Ω>
-  -- may be Unknown
--- no '==': equality is undecidable
---   (restored on the normal-form tiers)
-\end{minted}
-\end{minipage}
-\end{listing}
 
 Listing~\ref{lst:set-grammar} gives worked examples and the generic grammar of $\mathbf{Lwv}$.
 A set expression (\texttt{setexpr}) builds a set from canonical or user-defined values and combines them through set operations or filtration with a predicate.

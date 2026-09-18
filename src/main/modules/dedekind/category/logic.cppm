@@ -73,7 +73,8 @@ namespace dedekind::category {
  * @req L::Ω The underlying data representation (e.g., bool, enum).
  * @req L::AND(a, b) The infimum (conjunction) morphism.
  * @req L::OR(a, b)  The supremum (disjunction) morphism.
- * @req L::NOT(a)    The negation (complement) morphism.
+ * @req L::RFL(a)    The reflection: the order-reversing involution (a
+ *                   complement only on the two-chain 𝔹).
  *
  * @note This concept uses `std::same_as` to enforce strict species integrity;
  * logic operations must not result in type-decay or "species-leak."
@@ -83,7 +84,7 @@ concept IsLogicalSpecies = requires(typename L::Ω a, typename L::Ω b) {
   typename L::Ω;
   { L::AND(a, b) } -> std::same_as<typename L::Ω>;
   { L::OR(a, b) } -> std::same_as<typename L::Ω>;
-  { L::NOT(a) } -> std::same_as<typename L::Ω>;
+  { L::RFL(a) } -> std::same_as<typename L::Ω>;
 
   // The Categorical Constants (True/False)
   { L::True } -> std::convertible_to<typename L::Ω>;
@@ -95,7 +96,7 @@ concept IsLogicalSpecies = requires(typename L::Ω a, typename L::Ω b) {
  * @brief The internal logic of the Classical Topos ({True, False}).
  *
  * ClassicalLogic defines the standard Boolean algebra where the Law of
- * Excluded Middle holds. It maps the structuralist AND/OR/NOT morphisms
+ * Excluded Middle holds. It maps the structuralist AND/OR/RFL morphisms
  * directly to C++ hardware-level logical primitives.
  *
  * @note This species is the "Zero-Cost" foundation for standard set operations.
@@ -111,7 +112,7 @@ export struct ClassicalLogic final {
 
   static constexpr bool AND(bool a, bool b) { return a && b; }
   static constexpr bool OR(bool a, bool b) { return a || b; }
-  static constexpr bool NOT(bool a) { return !a; }
+  static constexpr bool RFL(bool a) { return !a; }
 };
 
 // STATIC "IS A" CHECK:
@@ -166,9 +167,9 @@ export struct TernaryLogic final {
                                                  static_cast<std::int8_t>(b)));
   }
 
-  /** @brief Kleene Negation: Returns the additive inverse (rotation about
-   * Unknown). */
-  static constexpr Ternary NOT(Ternary a) {
+  /** @brief Kleene reflection: the order-reversing involution, here the
+   * additive inverse (reflection about Unknown; fixes U, swaps ⊥/⊤). */
+  static constexpr Ternary RFL(Ternary a) {
     return static_cast<Ternary>(-static_cast<std::int8_t>(a));
   }
 };
@@ -183,7 +184,7 @@ export constexpr Ternary operator&&(Ternary a, Ternary b) {
 export constexpr Ternary operator||(Ternary a, Ternary b) {
   return TernaryLogic::OR(a, b);
 }
-export constexpr Ternary operator!(Ternary a) { return TernaryLogic::NOT(a); }
+export constexpr Ternary operator!(Ternary a) { return TernaryLogic::RFL(a); }
 
 /** @brief Truth-order @c <=> on @c Ternary: the chain
  *         @c False @c (-1) @c < @c Unknown @c (0) @c < @c True @c (1).
@@ -312,7 +313,7 @@ concept IsΩ =
  *
  * What the concept does @b not gate is the @b semantic @b chain @b law: that
  * this order @e is the truth-order, so @c AND / @c OR are @f$\min/\max@f$ under
- * it, @c NOT is the order-reversing reflection, and the bounds are
+ * it, @c RFL is the order-reversing reflection, and the bounds are
  * @f$\bot/\top@f$.  That law quantifies over values, so it cannot be a concept;
  * it is witnessed at compile time by the @b chain-law static_asserts below
  * (@c bool and @c Ternary) and by the §3.1 listing.  The residual gap is only a
@@ -419,7 +420,7 @@ struct Truth {
 
   // Unary Negation: Ensures !Boolean returns a Boolean, not a raw bool
   friend constexpr Truth operator!(Truth a) noexcept {
-    return {L::NOT(a.value)};
+    return {L::RFL(a.value)};
   }
 
   /** @section logic__Rig_Operations */
@@ -606,17 +607,17 @@ static_assert(!IsPst<int>,
               "int is a chain but not a truth-object (not IsΩ), so not Pst");
 
 // Chain-law witnesses: the *semantics* IsPst names but cannot gate.  On each
-// shipped chain, under the truth-order, AND = min, OR = max, NOT is the
+// shipped chain, under the truth-order, AND = min, OR = max, RFL is the
 // order-reversing reflection, and the bounds are ⊥/⊤.  A regression in a
 // species operator (say AND stops being min) surfaces here at compile time.
-// 𝔹 = {false < true}: NOT swaps the endpoints (a genuine complement).
+// 𝔹 = {false < true}: RFL swaps the endpoints (a genuine complement).
 static_assert(false < true);  // ⊥ < ⊤
 static_assert((true && false) == false && (true && true) == true,
               "𝔹: AND = min");
 static_assert((false || true) == true && (false || false) == false,
               "𝔹: OR = max");
-static_assert(!false == true && !true == false, "𝔹: NOT reflects the 2-chain");
-// K₃ = {False < Unknown < True}: NOT reflects about Unknown (¬U = U).
+static_assert(!false == true && !true == false, "𝔹: RFL reflects the 2-chain");
+// K₃ = {False < Unknown < True}: RFL reflects about Unknown (¬U = U).
 static_assert(Ternary::False < Ternary::Unknown &&
                   Ternary::Unknown < Ternary::True,
               "K₃: ⊥ < U < ⊤");
@@ -630,9 +631,9 @@ static_assert(TernaryLogic::OR(Ternary::False, Ternary::Unknown) ==
                   TernaryLogic::OR(Ternary::True, Ternary::Unknown) ==
                       Ternary::True,
               "K₃: OR = max");
-static_assert(TernaryLogic::NOT(Ternary::True) == Ternary::False &&
-                  TernaryLogic::NOT(Ternary::False) == Ternary::True &&
-                  TernaryLogic::NOT(Ternary::Unknown) == Ternary::Unknown,
-              "K₃: NOT reflects about U (¬U = U)");
+static_assert(TernaryLogic::RFL(Ternary::True) == Ternary::False &&
+                  TernaryLogic::RFL(Ternary::False) == Ternary::True &&
+                  TernaryLogic::RFL(Ternary::Unknown) == Ternary::Unknown,
+              "K₃: RFL reflects about U (¬U = U)");
 
 }  // namespace dedekind::category

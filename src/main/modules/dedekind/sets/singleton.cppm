@@ -270,7 +270,7 @@ struct SingletonSet {
       // normalise if L1 or L2 ever returns bool.
       const auto a = dedekind::category::lift_logic<L>(s1(x));
       const auto b = dedekind::category::lift_logic<L>(s2(x));
-      return L::OR(L::AND(a, L::NOT(b)), L::AND(L::NOT(a), b));
+      return L::OR(L::AND(a, L::RFL(b)), L::AND(L::RFL(a), b));
     }};
   }
 
@@ -330,7 +330,7 @@ constexpr auto operator^(const SingletonSet<T, L1>& s,
   return Set{element<𝔸<T, L2>> | [s, other](const T& x) {
     const auto a = dedekind::category::lift_logic<L2>(s(x));
     const auto b = dedekind::category::lift_logic<L2>(other(x));
-    return L2::OR(L2::AND(a, L2::NOT(b)), L2::AND(L2::NOT(a), b));
+    return L2::OR(L2::AND(a, L2::RFL(b)), L2::AND(L2::RFL(a), b));
   }};
 }
 
