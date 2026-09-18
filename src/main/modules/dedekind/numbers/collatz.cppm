@@ -110,7 +110,7 @@ static_assert(!collatz(std::pair{finite_cardinality(6), finite_cardinality(4)}),
 // point-free, decidable @c Trsk step: the pre-image of a set @f$S@f$ under a
 // relation @f$R@f$ is @f$\{a \mid \exists b \in S.\ (a,b) \in R\}@f$, which for
 // a @b singleton target @f$S=\{t\}@f$ is the converse fibre
-// @f$R^{\circ}(t) = \{a \mid (a,t) \in R\}@f$ --- @c apply(converse(R), t).  No
+// @f$R^{\circ}(t) = \{a \mid (a,t) \in R\}@f$ --- @c fibre(converse(R), t).  No
 // existential over an infinite codomain is needed for a singleton target.
 
 /** @brief @c converges_in_1 @f$= \mathrm{collatz}^{\circ}(1) = \{n \mid
@@ -118,7 +118,7 @@ static_assert(!collatz(std::pair{finite_cardinality(6), finite_cardinality(4)}),
  *  @f$\{1\}@f$: the naturals that reach 1 in exactly one step.  Point-free, via
  *  the converse fibre. */
 export inline constexpr auto converges_in_1 =
-    apply(converse(collatz), finite_cardinality(1));
+    fibre(converse(collatz), finite_cardinality(1));
 
 static_assert(converges_in_1(finite_cardinality(2)),
               "2 is even, 2/2 = 1: 2 → 1 in one step (2 ∈ collatz°(1))");
