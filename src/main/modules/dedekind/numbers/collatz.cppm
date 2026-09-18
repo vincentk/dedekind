@@ -133,8 +133,9 @@ static_assert(!converges_in_1(finite_cardinality(4)),
 // @c collatz;collatz needs @f$\exists b@f$ over the ℕ middle --- the Rice wall
 // on all of ℕ, but DECIDABLE over a finite prefix @f$[0,M)@f$: @c compose_over
 // enumerates the prefix as the middle.  This is the finite generalization of
-// the Boolean-middle @c >>; repeated squaring (@c c4 = @c c2;c2, …) is then the
-// bounded transitive closure the §4 exhibit collapses to.
+// the Boolean-middle @c >>; repeated squaring (@c collatz4 = @c
+// collatz2;collatz2, …) is then the bounded transitive closure the §4 exhibit
+// collapses to.
 
 /** @brief The canonical ℕ prefix @f$\{0,1,\dots,M-1\}@f$ as a finite middle. */
 template <std::size_t M>
@@ -144,21 +145,23 @@ constexpr std::array<Cardinality, M> prefix_ℕ() {
   return a;
 }
 
-/** @brief @c c2 @f$= \mathrm{collatz};\mathrm{collatz}@f$ over the finite
+/** @brief @c collatz2 @f$= \mathrm{collatz};\mathrm{collatz}@f$ over the finite
  * prefix
  *  @f$[0,64)@f$ middle --- two Collatz steps, point-free, the relative product
  *  with a bounded @f$\exists@f$ (no shadow, no graph). */
-export inline constexpr auto c2 =
+export inline constexpr auto collatz2 =
     compose_over(collatz, collatz, prefix_ℕ<64>());
 
-static_assert(c2(std::pair{finite_cardinality(4), finite_cardinality(1)}),
+static_assert(collatz2(std::pair{finite_cardinality(4), finite_cardinality(1)}),
               "4 → 2 → 1: (4,1) ∈ collatz;collatz (middle b=2)");
-static_assert(c2(std::pair{finite_cardinality(8), finite_cardinality(2)}),
-              "8 → 4 → 2: (8,2) ∈ c2 (middle b=4)");
-static_assert(c2(std::pair{finite_cardinality(6), finite_cardinality(10)}),
-              "6 → 3 → 10: (6,10) ∈ c2 (middle b=3)");
-static_assert(!c2(std::pair{finite_cardinality(6), finite_cardinality(5)}),
-              "6 → 3 → 10 ≠ 5: (6,5) ∉ c2");
+static_assert(collatz2(std::pair{finite_cardinality(8), finite_cardinality(2)}),
+              "8 → 4 → 2: (8,2) ∈ collatz2 (middle b=4)");
+static_assert(collatz2(std::pair{finite_cardinality(6),
+                                 finite_cardinality(10)}),
+              "6 → 3 → 10: (6,10) ∈ collatz2 (middle b=3)");
+static_assert(!collatz2(std::pair{finite_cardinality(6),
+                                  finite_cardinality(5)}),
+              "6 → 3 → 10 ≠ 5: (6,5) ∉ collatz2");
 
 // ─── The finite iteration (the strength-reduced shadow) ───────────────────
 
