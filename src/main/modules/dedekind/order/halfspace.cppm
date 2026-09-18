@@ -2223,8 +2223,9 @@ static_assert(!static_cast<bool>(((𝔹 * 𝔹 | π1 <= π2) >>
                                   (𝔹 * 𝔹 | π1 <= π2))(std::pair{true, false})),
               "≤ ∘ ≤ excludes (true, false): transitivity recovers ≤.");
 
-// ── Relation algebra: union (Kleene +), the diagonal, and the reflexive /
-// symmetric closures.  The relation operator+ / operator& (union / meet), the
+// ── Relation algebra: union (the set-grammar |), the diagonal, and the
+// reflexive / symmetric closures.  The relation | / operator& (union / meet),
+// the
 // diagonal Δ (reframed from ProjProj<Eq> to a plain equality DiagPred), and the
 // reflexive / symmetric closures moved DOWN to dedekind.relational:dyadic
 // (#792) --- pure Set<pair> algebra.  The ordered witnesses below stay and
@@ -2265,7 +2266,7 @@ static_assert(
 
 // Kleene / relation-algebra laws on the DSL, witnessed on 𝔹: Δ is the
 // composition unit (R;Δ = R, the algebra's 1); composition distributes over
-// union (R;(S+T) = R;S + R;T); and --- the Schröder property-gated rewrite ---
+// union (R;(S∪T) = R;S ∪ R;T); and --- the Schröder property-gated rewrite ---
 // a FUNCTIONAL relation's composition distributes over MEET too (R;(S∩T) =
 // R;S ∩ R;T), which fails for a non-functional relation.
 static_assert(static_cast<bool>(((𝔹 * 𝔹 | π1 < π2) >>
@@ -2305,8 +2306,8 @@ static_assert(
 //      showcase_13 through the DSL star and retiring the net/DSL duality.
 // Brick 2's semiring choice + the carrier-enumeration protocol are design
 // decisions best made with the author (not guessed); this seed lands the union
-// (+), the diagonal (1), and the reflexive/symmetric closures (half the Kleene
-// algebra), leaving the star for the next pass.
+// (∪, the set-grammar |), the diagonal (1), and the reflexive/symmetric
+// closures (half the Kleene algebra), leaving the star for the next pass.
 
 }  // namespace dedekind::order
 
