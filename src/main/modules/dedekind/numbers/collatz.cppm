@@ -104,6 +104,29 @@ static_assert(collatz(std::pair{finite_cardinality(7), finite_cardinality(22)}),
 static_assert(!collatz(std::pair{finite_cardinality(6), finite_cardinality(4)}),
               "6 ↦ 3, not 4");
 
+// ─── Backward reachability, relationally (no shadow, no graph) ─────────────
+//
+// Restricting @c collatz to a target codomain and reading the PRE-IMAGE is a
+// point-free, decidable @c Trsk step: the pre-image of a set @f$S@f$ under a
+// relation @f$R@f$ is @f$\{a \mid \exists b \in S.\ (a,b) \in R\}@f$, which for
+// a @b singleton target @f$S=\{t\}@f$ is the converse fibre
+// @f$R^{\circ}(t) = \{a \mid (a,t) \in R\}@f$ --- @c apply(converse(R), t).  No
+// existential over an infinite codomain is needed for a singleton target.
+
+/** @brief @c converges_in_1 @f$= \mathrm{collatz}^{\circ}(1) = \{n \mid
+ *  \mathrm{collatz}(n) = 1\}@f$ --- the pre-image of the fixed-point target
+ *  @f$\{1\}@f$: the naturals that reach 1 in exactly one step.  Point-free, via
+ *  the converse fibre. */
+export inline constexpr auto converges_in_1 =
+    apply(converse(collatz), finite_cardinality(1));
+
+static_assert(converges_in_1(finite_cardinality(2)),
+              "2 is even, 2/2 = 1: 2 → 1 in one step (2 ∈ collatz°(1))");
+static_assert(!converges_in_1(finite_cardinality(1)),
+              "1 is odd, 3·1+1 = 4: 1 does NOT reach 1 in one step");
+static_assert(!converges_in_1(finite_cardinality(4)),
+              "4 is even, 4/2 = 2 ≠ 1: 4 ∉ collatz°(1)");
+
 // ─── The finite iteration (the strength-reduced shadow) ───────────────────
 
 /** @brief The orbit @f$\{n\} ; T^{\le N}@f$ presented as the arrow's iterate
