@@ -47,13 +47,17 @@ struct even_chi {
 
 /** @brief The even-residues subobject of @c unsigned.  Mirrors the
  *         @c :topoi::Subobject<A, Chi> shape with explicit
- *         @c Domain / @c Member / @c ι / @c operator() fields, so
+ *         @c Domain / @c Codomain / @c Member / @c ι / @c operator()
+ *         fields, so
  *         it satisfies @c IsSubobject<even_unsigned, unsigned> directly
  *         without going through the @c Subobject struct (the test
  *         exercises the @c IsSubalgebra concept body, not the
  *         downstream @c Subobject machinery). */
 struct even_unsigned {
   using Domain = unsigned;
+  using Codomain = bool;  // χ: unsigned → 𝔹; makes this hand-rolled witness a
+                          // tagged arrow, so it satisfies the #850-refined
+                          // IsSubobject (which refines IsCharacteristic).
   struct Member {
     unsigned value;
   };

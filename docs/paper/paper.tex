@@ -49,6 +49,7 @@
 \newunicodechar{β}{\ensuremath{\beta}}
 \newunicodechar{λ}{\ensuremath{\lambda}}
 \newunicodechar{Ω}{\ensuremath{\Omega}}
+\newunicodechar{𝔸}{\ensuremath{\mathbb{A}}}
 \newunicodechar{↔}{\ensuremath{\leftrightarrow}}
 \newunicodechar{χ}{\ensuremath{\chi}}
 \newunicodechar{Σ}{\ensuremath{\Sigma}}
@@ -273,7 +274,8 @@ Clang++ is used a formal system where a successful type check serves as a struct
 The \Cpp{23} type system, while limited, is sufficiently rich to name predicates, enforce structural boundaries, and license the LLVM backend to completely remove dead code paths that have been resolved at translation time.
 This architecture thus enforces a clear division of labor: the library user holds an out-of-band honesty obligation when registering trait axioms, and the compiler mechanically discharges every subsequent \cppinline{static_assert}, \cppinline{requires} clause, or \cppinline{constexpr} evaluation.
 A simple proof search is mimicked by operator resolution.\footnote{Fully automated, this is Augustsson's Djinn~\cite{augustsson2005djinn}, which synthesises an inhabiting term from a type, deciding inhabitation on the propositional fragment through Dyckhoff's terminating calculus~\cite{dyckhoff1992contraction}.
-The present approach is strictly weaker: it splits that single procedure across the loop of Figure~\ref{fig:target_model}, where a carrier is proposed and \cppinline{clang} discharges it, propose-and-check in place of decide-and-synthesise, without the completeness a decision procedure would give.}
+The present approach is strictly weaker: it splits that single procedure across the loop of Figure~\ref{fig:target_model}, where a carrier is proposed and \cppinline{clang} discharges it, propose-and-check in place of decide-and-synthesise, without the completeness a decision procedure would give.
+Djinn can synthesise precisely because it confines itself to a decidable fragment; the present setting does the opposite, admitting the undecidable region and letting the compiler \emph{witness} decidability wherever a carrier makes it hold, rather than requiring it up front.}
 \begin{definition}[Reification]
 \label{def:reification}
 To \emph{reify} a structure is to encode it as propositions-as-types~\cite{wadler2015propositions}: a law becomes a \cppinline{concept}, and a carrier satisfying the \cppinline{concept} is a proof-as-program the type checker discharges.
@@ -470,9 +472,21 @@ Writing $A = \{x \mid P_A(x)\}$ and $B = \{x \mid P_B(x)\}$ we can see how the p
 x \in A = P_A(x), \qquad &
 \complement A = \{x \mid \neg\, P_A(x)\}, \\
 A \cap B = \{x \mid P_A(x) \wedge P_B(x)\}, &
-A \cup B = \{x \mid P_A(x) \vee P_B(x)\}, \qquad
+A \cup B = \{x \mid P_A(x) \vee P_B(x)\}, \\
+A = f^{-1}(B) \;\Rightarrow\; P_A = P_B \circ f \quad (f\ \text{total}). &
 \end{aligned}
 \end{equation}
+The answer-chain $\Omega$ is set by the logic species; the honest default is Kleene's three-valued $\{\top, \bot, U\}$~\cite{kleene1952metamathematics}, so $\wedge$ is $\min$, $\vee$ is $\max$, and $\neg$ the flip.
+A set is \emph{decidable} exactly when membership never returns $U$, i.e.\ its characteristic map $\chi_A = P_A$ factors through the \emph{decided} sub-chain $\Sigma = \{\top, \bot\}$:
+\begin{equation}
+\label{eqn:dominance}
+\chi_A \;=\; \iota \circ \bar\chi,
+\qquad \bar\chi : A \to \Sigma = \{\top, \bot\},
+\qquad \iota : \Sigma \hookrightarrow \Omega .
+\end{equation}
+Strict \textsc{etcs} is the Boolean collapse $\Sigma = \Omega$ ($\iota = \mathrm{id}$, so every test factors and all membership is decidable); the honest species keeps $\iota$ a \emph{proper} inclusion $\{\top, \bot\} \subsetneq \{\top, \bot, U\}$, so a $\chi_A$ that hits $U$ has no factorisation.\footnote{A notational caution: \textsc{etcs}, being Boolean, writes $\Omega$ for the two-valued object we call $\Sigma$; we reserve $\Omega$ for the ambient classifier and $\Sigma$ for its decided sub-object. The inclusion $\Sigma \hookrightarrow \Omega$ is a Rosolini dominance~\cite{rosolini1986continuity}.}
+% Two-axis decidability (#847) + the corner characterisation + closure/retract:
+% now folded into eqn:quantifiers + eqn:corner in the tier-framing prose below.
 Here, a set \emph{is} its characteristic predicate, not a list of its elements.
 The set operations \emph{are} the pointwise logical ones.
 This way, there is no problem to model an open disk $\{\, x \mid \lVert x - c \rVert < r \,\}$, which in an extensional setting is an uncountable bag no machine can hold.
@@ -486,21 +500,22 @@ The DSL is grounded in it by a faithful reification: the defining axioms become 
 The step-by-step embedding is in Appendix~\ref{sec:etcs}, the concepts in the reference implementation~\cite{Krautler_dedekind_2026} (Mac Lane~\cite{maclane1971categories} and Pierce~\cite{pierce1991basic} for background).
 Two caveats apply, and they are really one.
 i) The axiom of choice (Axiom~10) is only approximated through the power-object lattice, and is marked aspirational.
-ii) Choice is what makes ETCS Boolean, collapsing the classifier to the two-valued $\Sigma$; \cppinline{IsSet} does \emph{not} assume choice, so it does not assume decidable membership either.
-It reifies the axiom schema over a possibly non-Boolean ambient: the characteristic map $\chi_A : A \to \Omega$ is valued in the full three-valued classifier $\Omega = \mathbb{B} + \mathrm{U}$~\cite{kleene1952metamathematics} (the \cppinline{TernaryLogic} species), and need not factor through the decided fragment.
-Decidable membership is the earned case where $\chi_A$ factors as $A \to \Sigma \to \Omega$ through the dominance $\Sigma \hookrightarrow \Omega$, a Rosolini dominance~\cite{rosolini1986continuity} (Figure~\ref{fig:dominance}).
-The \cppinline{HasDecidableMembership} observable is a \emph{sound, conservative} certificate of this factorisation, not a decision of it: it checks that the logic species is Boolean, so it recognises a decidable sub-class but may answer conservatively (an $\mathbb{R}$-tagged halfspace whose $\chi$ never actually returns $U$ is still classified \cppinline{TernaryLogic}), deciding the factorisation exactly being itself undecidable~\cite{rice1953classes}.
-Admitting undecidability by default is what keeps the grammar strictly sound.\footnote{A carrier whose membership is only semi-decidable, a Mandelbrot set say, stays at the partial default (Appendix~\ref{sec:etcs}); the decidable track (§\ref{sec:ddk_ordered} onward) is the specialisation, not the assumption.}
+ii) A membership test answers on a small chain of truth-values: classically two, $\{\,\text{no} < \text{yes}\,\}$; honestly three, $\{\,\text{no} < \text{unknown} < \text{yes}\,\}$ (Kleene's middle value~\cite{kleene1952metamathematics}, the \cppinline{TernaryLogic} species).
+Choice is what would force the two-valued chain (a Boolean answer); \cppinline{IsSet} does not assume choice, so by default a test may answer \emph{unknown} and membership is not assumed decidable.
+A set is \emph{decidable} exactly when its test only ever lands on the two decided rungs $\{\,\text{no},\text{yes}\,\}$, the sub-chain $\Sigma$ inside the full answer-chain $\Omega$ (Equation~\ref{eqn:dominance}).\footnote{Categorically: the characteristic map $\chi_A : A \to \Omega$ factors as $A \to \Sigma \to \Omega$ through the dominance $\Sigma \hookrightarrow \Omega$, a Rosolini dominance~\cite{rosolini1986continuity}.}
+The \cppinline{HasDecidableMembership} check is a \emph{sound but conservative} witness of this, not a decision of it: it accepts only a test \emph{declared} two-valued, so it may report ``not decidable'' for one that in fact never answers \emph{unknown} (an $\mathbb{R}$-tagged halfspace, say).
+Telling the two apart exactly is itself impossible in general~\cite{rice1953classes}.
+Admitting \emph{unknown} by default is what keeps the grammar strictly sound.\footnote{A carrier whose membership is only semi-decidable, a Mandelbrot set say, stays at the partial default (Appendix~\ref{sec:etcs}); the decidable track (§\ref{sec:ddk_ordered} onward) is the specialisation, not the assumption.}
 With these assumptions acknowledged, one can define:
 \begin{definition}[$\mathbf{Lwv} := \mathbf{Jlt} \cap \mathbf{Set}$]
 \label{def:lwv-set}
 In $\mathbf{Lwv}$:
 \begin{enumerate}
-\item A \emph{set} over a regular (\cppinline{std::regular}) carrier \cppinline{A} in $\mathbf{Jlt}$ is a \emph{subobject} of \cppinline{A}: a type \cppinline{S} satisfying \cppinline{IsSubobject<S, A>}, whose characteristic predicate $\chi_S : A \to \Omega$ classifies membership (decidably when $\chi_S$ factors through the Boolean $\Sigma$, Figure~\ref{fig:dominance}).
+\item A \emph{set} over a regular (\cppinline{std::regular}) carrier \cppinline{A} in $\mathbf{Jlt}$ is a \emph{subobject} of \cppinline{A}: a type \cppinline{S} satisfying \cppinline{IsSubobject<S, A>}, whose characteristic predicate $\chi_S : A \to \Omega$ classifies membership (decidably when $\chi_S$ factors through the Boolean $\Sigma$, Equation~\ref{eqn:dominance}).
 \item A \emph{relation} is a subobject of the Cartesian product \cppinline{::Domain} $\times$ \cppinline{::Codomain}.
-\item A \emph{set} is thus the true-fiber of its characteristic morphism $\chi_S : A \to \Omega$: the pullback of $\top$ along $\chi_S$, the true-slice of the graph of $\chi_S$ rather than the whole graph (which also carries the \cppinline{false} or \cppinline{Unknown} pairs).
+\item A \emph{set} is thus just the points its test accepts: the \cppinline{true}-slice, not the \cppinline{false} or \cppinline{Unknown} rest.\footnote{Categorically, the true-fibre of $\chi_S$: the pullback of $\top$ along $\chi_S$, the true-slice of its graph rather than the whole graph.}
 \end{enumerate}
-The full ETCS axioms live not on the individual set but on its ambient \emph{universe}: the top element $\Omega\langle A\rangle$ is itself an ETCS set-object, satisfying the heavier \cppinline{concept IsSet} (Definition~\ref{def:etcs-set}).
+The full ETCS axioms live not on the individual set but on its ambient \emph{universe}: the top element $\mathbb{A}\langle A\rangle$ is itself an ETCS set-object, satisfying the heavier \cppinline{concept IsSet} (Definition~\ref{def:etcs-set}).
 A $\mathbf{Lwv}$ set is a subobject of such a universe over a $\mathbf{Jlt}$ carrier, so one can write:
 \begin{equation}
 \label{eqn:lwv}
@@ -523,7 +538,7 @@ $\mathcal{P}(A)$ & $\in$ & $\cap$ & $\cup$ & $\complement$ & $\varnothing$ & $A$
 \addlinespace
 $\mathbf{Topos}$ & $\chi$ & $\wedge$ & $\vee$ & $\neg$ & $\mathbf{0}$ & $A$ & $\hookrightarrow$ \\
 \addlinespace
-$\mathbf{Lwv}$ & \cppinline{s(x)} & \cppinline{&} & \cppinline{|} & \cppinline{~} & \cppinline{Ø} & \cppinline{Ω} & \cppinline{<=} \\
+$\mathbf{Lwv}$ & \cppinline{s(x)} & \cppinline{&} & \cppinline{|} & \cppinline{~} & \cppinline{Ø} & \cppinline{𝔸} & \cppinline{<=} \\
 \bottomrule
 \end{tabular}
 \caption{
@@ -540,6 +555,33 @@ An ordered set (§\ref{sec:ddk_ordered}) instead has a canonical normal form, it
 The finite, extensional sets (§\ref{sec:ddk_extensional}) simply list.
 Each tier's normal form is what makes its comparisons decidable.
 
+These two undecidability sources are \emph{orthogonal} axes, and every set operation sits at a point in their product.\footnote{A set can resist decision in other ways too, e.g.\ an unrepresentable (uncountable) carrier or a partial map's $\Sigma^0_1$ definedness (§\ref{sec:relations_functions_blueprint}); these feed the two axes here as witnesses or reduce to the quantifier one. The general setting is synthetic computability over a Rosolini dominance~\cite{rosolini1986continuity}.}
+The \emph{dominance} axis (Equation~\ref{eqn:dominance}) is the codomain of $\chi$: does membership land in $\Sigma$, or hit $U$?
+The \emph{quantifier} axis is how much of the set a query inspects.
+A quantifier \emph{is} a set operation, a fold of the membership test over the domain (the structural, Bourbaki sense, taken as the definition, not a later coincidence):
+\begin{equation}
+\label{eqn:quantifiers}
+\begin{aligned}
+\exists x \in S.\,P(x) &\;:\equiv\; \{x\in S \mid P(x)\} \neq \varnothing \;=\; \textstyle\bigvee_{x\in S} P(x),
+&\quad \forall &\;:\equiv\; \neg\,\exists\,\neg\,;\\
+\forall x \in S.\,P(x) &\;:\equiv\; \{x\in S \mid P(x)\} = S \;=\; \textstyle\bigwedge_{x\in S} P(x),
+&\quad \exists &\;:\equiv\; \neg\,\forall\,\neg\,.
+\end{aligned}
+\end{equation}
+Membership asks about one point; the quantifiers about \emph{every} point ($\forall$) or \emph{some} point ($\exists$).\footnote{In recursion-theoretic terms this is the arithmetic hierarchy of the query: membership atomic ($\Delta^0_0$), the $\forall$-fold $\Pi^0_1$, the $\exists$-fold $\Sigma^0_1$.}
+The two axes now read straight off the fold: a \emph{finite} meet or join of \emph{decided} values is decided, so a query lands in the decidable corner \emph{when} the predicate factors through an effective finite quotient $\sim$:
+\begin{equation}
+\label{eqn:corner}
+\underbrace{P(A) \subseteq \Sigma}_{\text{axis 1: each test decided}}
+\qquad\text{and}\qquad
+\underbrace{\lvert S/{\sim}\rvert < \infty}_{\text{axis 2: the fold is finite}} .
+\end{equation}
+This is a \emph{sound, sufficient} certificate for the hard corner, not an exact characterisation: a direct witness or a symbolic reduction can settle a query with no finite quotient at all.
+Membership can be perfectly decidable ($P(A) \subseteq \Sigma$, axis~1) while the quantifier still escapes $\Sigma$, because an unbounded fold may never resolve (it stays $U$); a finite normal form (§\ref{sec:ddk_ordered} onward) discharges the bound and pulls the query back into $\Sigma$ (axis~2).
+All four combinations occur; the bottom-left is inhabited too, since $\varnothing \subseteq B$ decides even where membership in $B$ does not.
+The corner is closed under finite composition (Equation~\ref{eqn:lattice-lift-ops}, including the preimage line $P_{f^{-1}(B)} = P_B \circ f$), so compile-time optimisation is ``stay in the corner'', while Galois specialisation carves a finite normal form to ``get to the corner''.
+Deciding membership of the corner is itself undecidable (Rice~\cite{rice1953classes}), so the type system recognises a \emph{sound sub-quadrant} and answers $U$ elsewhere.
+
 % ============================================================
 \subsection{An Algebra of Sets}
 \label{sec:ddk_comprehension}
@@ -548,34 +590,8 @@ Each tier's normal form is what makes its comparisons decidable.
 The primitive of the DSL is membership: a set $A$ is its characteristic map $\chi_A : A \to \Omega$, and $x \in A$ is $\chi_A(x)$, valued in the classifier $\Omega$.
 Listing~\ref{lst:membership} is the natural starting point.
 For the three-valued species, $\Omega = \{\top, \bot, U\}$ admits an undecided answer $U$, so a bare membership query may be undecidable.
-The classifier $\Omega$ and its \emph{dominance} $\Sigma \hookrightarrow \Omega$, the sub-object of \emph{decided} truth-values, are not the same object and are worth keeping apart; Figure~\ref{fig:dominance} makes the distinction precise.\footnote{$\Sigma \hookrightarrow \Omega$ is a Rosolini dominance~\cite{rosolini1986continuity}.}
-The algebra of Listing~\ref{lst:set-grammar} adds the lattice operations and the closed \texttt{query} sort; restricting to $\Sigma = \{\top, \bot\}$ decides \emph{membership}, but set \emph{equality} (a $\forall$-quantified query) is a \emph{separate} axis, decidable only where a normal form exists (§\ref{sec:ddk_ordered} onward).
-
-\begin{figure}[htbp]
-\centering
-\begin{tikzcd}[column sep=huge, row sep=large, ampersand replacement=\&]
-\& \Sigma = \{\top, \bot\} \arrow[d, hook, "\iota"] \\
-A \arrow[ur, dashed, "\bar\chi"] \arrow[r, "\chi_A"'] \& \Omega = \{\top, \bot, U\}
-\end{tikzcd}
-
-\smallskip
-\begin{tabular}{@{}llll@{}}
-\toprule
- & internal logic & classifier $\Omega$ & dominance $\Sigma$ \\
-\midrule
-\textsc{etcs} & Boolean & $\{\top, \bot\}$ & $= \Omega$ \quad($\iota = \mathrm{id}$) \\
-\texttt{dedekind} & Kleene $K_3$ & $\{\top, \bot, U\}$ & $\{\top, \bot\} \subsetneq \Omega$ \\
-\bottomrule
-\end{tabular}
-\caption{\textbf{Classifier $\Omega$ vs.\ dominance $\Sigma$.}
-Membership is the characteristic arrow $\chi_A : A \to \Omega$, valued in the \emph{classifier} $\Omega$, the truth-values the logic admits ($\{\top, \bot, U\}$ for the three-valued species).
-The \emph{dominance} is the sub-object $\iota : \Sigma \hookrightarrow \Omega$ of \emph{decided} truth-values, here $\Sigma = \{\top, \bot\}$.
-A set is decidable exactly when $\chi_A$ \emph{factors through} $\Sigma$: some $\bar\chi : A \to \Sigma$ has $\iota \circ \bar\chi = \chi_A$ (the triangle commutes), equivalently $\chi_A$ never lands on $U$.
-\textsc{etcs} is the collapsed case $\Sigma = \Omega$ with $\iota = \mathrm{id}$: every arrow factors, so all membership is decidable.
-The partial setting keeps $\iota$ a \emph{proper} inclusion $\{\top, \bot\} \subsetneq \{\top, \bot, U\}$, so a $\chi_A$ that hits $U$ has no factorisation.
-A notational caution the table settles: \textsc{etcs}, being Boolean, writes $\Omega$ for the two-valued object we call $\Sigma$; we reserve $\Omega$ for the ambient classifier and $\Sigma$ for its decided sub-object.}
-\label{fig:dominance}
-\end{figure}
+The classifier $\Omega$ and its \emph{dominance} $\Sigma \hookrightarrow \Omega$, the sub-object of \emph{decided} truth-values, are not the same object and are worth keeping apart; Equation~\ref{eqn:dominance} makes the distinction precise.\footnote{$\Sigma \hookrightarrow \Omega$ is a Rosolini dominance~\cite{rosolini1986continuity}.}
+The algebra of Listing~\ref{lst:set-grammar} adds the lattice operations and the closed \texttt{query} sort; restricting to $\Sigma = \{\top, \bot\}$ decides \emph{membership}, while set \emph{equality} sits on the orthogonal quantifier axis (Equation~\ref{eqn:quantifiers}), decidable only where a normal form exists (§\ref{sec:ddk_ordered} onward).
 
 % Source: src/test/cpp/modules/dedekind/analysis/partial_membership_laws_test.cpp
 %   fix(¬)=U and fix(succ)=ℵ₀; the ℝ (ℶ₁) classification; the intensional-image
@@ -588,10 +604,10 @@ Kleene negation is negation about zero, so $U$ is its fixpoint, $\mathrm{fix}(\l
 The domain decides $\mathrm{fix}(\mathit{succ})$: the finite cardinals have no fixpoint, but the saturation point $\aleph_0$ is one (the domain axis).
 Membership itself may then be undecidable (witnessed in the checked-in test): a comprehension over $\mathbb{R}$ (tagged $\beth_1$) is classified undecidable, its species \cppinline{TernaryLogic}, so $==$ is withheld; and the intensional image of a set returns $U$ outright.
 \textbf{Bottom}: the grammar in two panels.
-A \texttt{setexpr} is a generator or a comprehension, and the only observation is \texttt{membership}, valued in the classifier $\Omega$ (the generator \texttt{'Ω'} is the universal set $\Omega\langle A\rangle$, a distinct use of the glyph).
-There is no $==$: pointwise membership landing in $\Sigma$ does not decide set equality (a $\forall$-quantified query); Listing~\ref{lst:set-grammar} restores it only on the normal-form tiers (§\ref{sec:ddk_ordered} onward).
+A \texttt{setexpr} is a generator or a comprehension, and the only observation is \texttt{membership}, valued in the classifier $\Omega$ (the generator \texttt{'𝔸'} is the universal set $\mathbb{A}\langle A\rangle$).
+There is no $==$: deciding membership does not decide set equality, which asks about \emph{every} point (the orthogonal axis of Equation~\ref{eqn:quantifiers}); Listing~\ref{lst:set-grammar} restores it only on the normal-form tiers (§\ref{sec:ddk_ordered} onward).
 The archetype hard predicate is Mandelbrot membership, semi-decidable: escape is recognizable, non-escape is not.
-The grammar is sound; whether a membership query is \emph{decided} is the separate question this listing is about (Figure~\ref{fig:dominance}).}
+The grammar is sound; whether a membership query is \emph{decided} is the separate question this listing is about (Equation~\ref{eqn:dominance}).}
 \label{lst:membership}
 \noindent
 \begin{minipage}[t]{\linewidth}
@@ -610,7 +626,7 @@ static_assert(   succ(finite_cardinality(3)) != finite_cardinality(3)  // none f
 \begin{minted}[fontsize=\footnotesize]{text}
 setexpr ::= generator
   | setexpr '|' pred
-generator ::= 'Ω' carrier | 'Ø' carrier
+generator ::= '𝔸' carrier | 'Ø' carrier
   | 'η' '(' value ')'
   | <any IsSet>
 carrier ::= <any std::regular type>
@@ -634,6 +650,7 @@ A predicate (\texttt{pred}) can be assembled from an atomic equality operation, 
 The cartesian \texttt{product} \cppinline{S * T} changes the carrier ($\mathbf{Set}\langle A\rangle \times \mathbf{Set}\langle B\rangle \to \mathbf{Set}\langle A \times B\rangle$), and forms the foundation for the relational algebra discussed in §\ref{sec:relations_functions_blueprint}.
 The \texttt{query} nonterminal defines the \emph{closed} partial order on sets via set equality and the non-strict subset order $A \subseteq B$ (and its converse).
 \cppinline{<any elem → 𝔹>} and \cppinline{<any IsSet>} are extension points allowing for specializations such as those presented in Listing~\ref{lst:extrema_def}.
+Together with a pluggable \cppinline{logic_species} (the classifier codomain), these are the points at which further species of (un)decidability enter: the coordinate of a query is \emph{inferred} by the compiler, not enumerated by the grammar.
 
 % Source: src/test/cpp/modules/dedekind/analysis/pruning_lattice_laws_test.cpp
 %         (Ø<bool>/Ø<Cardinality> spelling; the ambient Ø<𝔹>/Ø<ℕ> is a
@@ -644,7 +661,7 @@ The \texttt{query} nonterminal defines the \emph{closed} partial order on sets v
 \textbf{Top:} worked examples on $\mathbb{B}$: a comprehension builds a singleton, complement/union/meet run the Boolean lattice (Table~\ref{tab:lattice-lift}), and membership queries the result, all on equality alone, no order on the elements.
 \textbf{Bottom:} the grammar in four panels, set expressions and predicates above, the cartesian product and closed queries below.
 A \texttt{setexpr} builds a set; a \texttt{pred} filters one; the cartesian \texttt{product} and the closed \texttt{query} sort are read out in the body.
-The grammar is sound; \emph{decidability} is the separate, certified question, sort by sort (membership by the dominance of Figure~\ref{fig:dominance}, \texttt{query} by the tier's normal form).
+The grammar is sound; \emph{decidability} is the separate, certified question, sort by sort (membership by the dominance of Equation~\ref{eqn:dominance}, \texttt{query} by the tier's normal form).
 }
 \label{lst:set-grammar}\label{lst:pruning}
 \noindent
@@ -683,7 +700,7 @@ setexpr ::= generator
   | setexpr '|' pred
   | product
 op2 ::= '|' | '&' | '^'
-generator ::= 'Ω' carrier | 'Ø' carrier
+generator ::= '𝔸' carrier | 'Ø' carrier
   | 'η' '(' value ')'
   | <any IsSet>
 carrier ::= <any std::regular type>
@@ -724,7 +741,7 @@ The set operations are then the algebra on these predicates.
 Intersection (\cppinline{&}), union (\cppinline{|}) and complement (\cppinline{~}) compose these predicates into one type-level predicate, which the template engine reduces during instantiation: it constant-folds, and on a complement pair collapses to \cppinline{Ø} or the universe by type (Listing~\ref{lst:pruning}).
 
 The correspondence is exact on the decidable track, and it is what makes the algebra optimizable.
-The top element, the universal set $A$ itself, is reified as \cppinline{sets::Ω<T>}; Listing~\ref{lst:pruning} (left) exhibits the canonical case, the Booleans $\mathbb{B} = $ \cppinline{Ω<bool>}.
+The top element, the universal set $A$ itself, is reified as \cppinline{sets::𝔸<T>}; Listing~\ref{lst:pruning} (left) exhibits the canonical case, the Booleans $\mathbb{B} = $ \cppinline{𝔸<bool>}.
 Optimization is then the simplification of these predicate compositions at translation time: an empty meet prunes, $\bot \wedge p \Rightarrow \bot$, and constant conjuncts fold away.
 The induced order, set inclusion, is pointwise implication $\chi_S \Rightarrow \chi_T$; it ranges over the domain, and keeping it decidable is the task of the ordered (§\ref{sec:ddk_ordered}) and extensional (§\ref{sec:ddk_extensional}) specialisations.
 
@@ -748,7 +765,7 @@ This is the first rung that asks the carrier for more than equality; its grammar
 \textbf{Predicates} (right): element comparisons \cppinline{cmp} cut halfspaces by comprehension; \cppinline{forall}/\cppinline{exists} plug into \cppinline{pred}, each one point-free \cppinline{operator==} against a bound (Equation~\ref{eqn:quantifiers}): \cppinline{exists(S,P)} tests \cppinline{S | P} against $\varnothing$, \cppinline{forall(S,P)} against $S$.
 \textbf{Set expressions} (left): \cppinline{max}/\cppinline{min} return the extremal \emph{subset}, defined via $\forall$ (Equation~\ref{eqn:extrema}) and computed as \cppinline{S} met with its symbolically-settled \cppinline{upperbounds}/\cppinline{lowerbounds}, so no candidate is enumerated.
 \textbf{Witnesses}: $\exists$/$\forall$ on the finite $\mathbb{B}$ and on $\mathbb{N}$ through the finite quotient $\mathbb{Z}/3\mathbb{Z}$ (the congruence $\pi \equiv 0 \pmod 3$); a halfspace; and extrema on $\mathbb{B}$ and $\mathbb{N}$.
-The power set $\mathfrak{P}(S)$ is a comprehension over the subset order, its subsets reified as the subobject $\mathrm{Sub}(C)$: $\mathfrak{P}(S) = \Omega\langle\mathrm{Sub}(C)\rangle \mid X \subseteq S$; an ordered carrier supplies $\mathrm{Sub}(C)$ and a general one does not, so $\mathfrak{P}$ is then a type error, and extensional enumeration of a finite power set is left aside.
+The power set $\mathfrak{P}(S)$ is a comprehension over the subset order, its subsets reified as the subobject $\mathrm{Sub}(C)$: $\mathfrak{P}(S) = \mathbb{A}\langle\mathrm{Sub}(C)\rangle \mid X \subseteq S$; an ordered carrier supplies $\mathrm{Sub}(C)$ and a general one does not, so $\mathfrak{P}$ is then a type error, and extensional enumeration of a finite power set is left aside.
 (Subset \cppinline{<=} is the normal-form comparison of Listing~\ref{lst:materialise}.)}
 \label{lst:extrema_def}
 \noindent
@@ -809,19 +826,7 @@ atom +::= elem cmp elem
 \end{minipage}
 \end{listing}
 
-First-order quantification is the same reading once more: a quantifier \emph{is} a set operation, and that structural (Bourbaki) sense is taken as the definition, not as a later coincidence.
-\begin{equation}
-\label{eqn:quantifiers}
-\begin{aligned}
-\text{(A)}\quad
-\exists x \in S.\,P(x) &\;:\equiv\; \{x\in S \mid P(x)\} \neq \varnothing,
-&\quad \forall &\;:\equiv\; \neg\,\exists\,\neg\,;\\
-\text{(B)}\quad
-\forall x \in S.\,P(x) &\;:\equiv\; \{x\in S \mid P(x)\} = S,
-&\quad \exists &\;:\equiv\; \neg\,\forall\,\neg\,.
-\end{aligned}
-\end{equation}
-In code the comprehension is the where-clause \cppinline{S | P}, and each quantifier is one \cppinline{operator==} against a bound: \cppinline{exists(S,P)} is \cppinline{!(Ø{} == (S | P))}, \cppinline{forall(S,P)} is \cppinline{(S | P) == S} (Listing~\ref{lst:extrema_def}).
+First-order quantification is the fold of Equation~\ref{eqn:quantifiers} once more, now in code: the comprehension is the where-clause \cppinline{S | P}, and each quantifier is one \cppinline{operator==} against a bound, \cppinline{exists(S,P)} being \cppinline{!(Ø{} == (S | P))} and \cppinline{forall(S,P)} being \cppinline{(S | P) == S} (Listing~\ref{lst:extrema_def}).
 The set comparisons are these quantifiers specialised to a membership predicate:
 \begin{equation}
 \label{eqn:inclusion}
@@ -838,7 +843,7 @@ X \in \mathfrak{P}(S) \;:\equiv\; X \subseteq S, \qquad
 \mathfrak{P}(S) \;=\; \{\, X \mid X \subseteq S \,\}.
 \end{equation}
 Intensionally, a quantifier collapses to one question: does the meet \cppinline{S | P} reduce to always-false ($\exists$ fails) or always-true ($\forall$ holds)?
-The cost is then the \emph{set relation}, not the carrier's cardinality, so $\forall$ decides even over an infinite carrier when the predicate factors through a finite quotient: the periodic congruence $\pi \equiv 0 \pmod 3$ settles on the three residues of $\mathbb{Z}/3\mathbb{Z}$, not the countably many naturals (Listing~\ref{lst:extrema_def}).
+The cost is then the \emph{set relation}, not the carrier's cardinality, so $\forall$ decides even over an infinite carrier when the predicate factors through a finite quotient (the finite normal form of Equation~\ref{eqn:corner}): the periodic congruence $\pi \equiv 0 \pmod 3$ settles on the three residues of $\mathbb{Z}/3\mathbb{Z}$, not the countably many naturals (Listing~\ref{lst:extrema_def}).
 A predicate with no such factorisation (\cppinline{isPrime}, a Collatz recurrence) does not reduce: the honest Rice wall, a compile error rather than a fabricated answer.
 
 The extremum is a set operation in the same spirit: the greatest elements of $S$ are those no element beats, so $\max$ keeps the comprehension $\forall$ tests and returns the extremal \emph{subset}.
@@ -879,7 +884,7 @@ This is the extensional/intensional database distinction of deductive databases,
 \textbf{Top}: a finite \cppinline{std::set} bounds an intensional halfspace, so their intersection always materialises even though the halfspace over $\mathbb{N}$ does not; the extensional and intensional readings compose.
 \cppinline{materialise} is a runtime retraction (it fills a \cppinline{std::set}), not a \cppinline{constexpr} one.
 \textbf{Right}: subset \cppinline{<=} decides \emph{structurally} on the normal form the carrier supplies, here two halfspaces, at compile time.
-\textbf{Bottom}: the grammar in two panels; the boundaries \cppinline{Ø}/\cppinline{Ω} are Listing~\ref{lst:set-grammar}'s generators, and normal forms are compared by the set \cppinline{query} over the single \cppinline{cmp} (the subset order, Listing~\ref{lst:set-grammar}).}
+\textbf{Bottom}: the grammar in two panels; the boundaries \cppinline{Ø}/\cppinline{𝔸} are Listing~\ref{lst:set-grammar}'s generators, and normal forms are compared by the set \cppinline{query} over the single \cppinline{cmp} (the subset order, Listing~\ref{lst:set-grammar}).}
 \label{lst:materialise}
 \noindent
 \begin{minipage}[t]{0.49\linewidth}
@@ -915,7 +920,7 @@ universe  ::= <any std::ranges::input_range>
 {\footnotesize\centering\textbf{normal-form comparison}\par}
 \begin{minted}[fontsize=\footnotesize]{text}
 query +::= nf cmp nf   -- comparing normal forms decides cmp (⊆ order and ==)
-nf     ::= 'Sub' '(' carrier ')' | residue | 'Ø' | 'Ω'
+nf     ::= 'Sub' '(' carrier ')' | residue | 'Ø' | '𝔸'
 \end{minted}
 \end{minipage}
 \end{listing}
@@ -1173,7 +1178,7 @@ static_assert(
 \end{minipage}
 \end{listing}
 
-The product itself is a first-class set: $A \times B$ is the universal set of pairs $\Omega_{A\times B}$.
+The product itself is a first-class set: $A \times B$ is the universal set of pairs $\mathbb{A}_{A\times B}$.
 A \emph{restricted} factor is then a refinement of that universe, not a special case, since $A \times B = \pi_1^{-1}(A) \cap \pi_2^{-1}(B)$.
 Restricting a factor lifts its predicate onto the matching projection, the same $\pi_I$ vocabulary the graph uses, so the bound is carried rather than dropped (Listing~\ref{lst:restricted_product}).
 
@@ -1212,8 +1217,8 @@ If a function is certified as surjective, every element of the target space is a
 More generally, if the mono leg of the factorization carries a \emph{retract} (an inverse on the image, total when the arrow is an iso and partial when it is merely monic), the type system decides membership as a local lookup on the image boundary, with no search of the domain (Listing~\ref{lst:functional_image_bijection}).
 
 The four maps that read a relation, its \cppinline{dom} and \cppinline{cod} and the \cppinline{image} and \cppinline{preimage} of a set, are one cell each of Table~\ref{tab:relation-quantifier}: one bound on one projection.
-\cppinline{preimage} and \cppinline{dom} read the $\pi_A$ side and never leave the domain, so they cost nothing beyond a forward call: $\mathrm{preimage}(f, S) = \{a \mid f(a) \in S\}$ is apply-and-test, decided by single-valuedness alone, and $\mathrm{dom}$ returns the \emph{declared} first factor $\Omega\langle A\rangle$ (the effective domain $\{a \mid \exists b.\, R(a,b)\}$, which equals $A$ only when $f$ is entire, is the separate $\exists$-projection behind the Rice wall).
-\cppinline{image} and \cppinline{cod} read the $\pi_B$ side: $\mathrm{cod}$ likewise returns the \emph{declared} second factor $\Omega\langle B\rangle$ (all of $B$ effectively only when $f$ is surjective), and $b \in \mathrm{image}(f, S)$ is the question $\exists x \in S.\, f(x) = b$, which injectivity turns into the single lookup $f^{-1}(b) \in S$ and does have to cross back.
+\cppinline{preimage} and \cppinline{dom} read the $\pi_A$ side and never leave the domain, so they cost nothing beyond a forward call: $\mathrm{preimage}(f, S) = \{a \mid f(a) \in S\}$ is apply-and-test, decided by single-valuedness alone, and $\mathrm{dom}$ returns the \emph{declared} first factor $\mathbb{A}\langle A\rangle$ (the effective domain $\{a \mid \exists b.\, R(a,b)\}$, which equals $A$ only when $f$ is entire, is the separate $\exists$-projection behind the Rice wall).
+\cppinline{image} and \cppinline{cod} read the $\pi_B$ side: $\mathrm{cod}$ likewise returns the \emph{declared} second factor $\mathbb{A}\langle B\rangle$ (all of $B$ effectively only when $f$ is surjective), and $b \in \mathrm{image}(f, S)$ is the question $\exists x \in S.\, f(x) = b$, which injectivity turns into the single lookup $f^{-1}(b) \in S$ and does have to cross back.
 The forward image is thus the one whose membership needs the inverse, and that inverse is the retract on the mono leg.
 An isomorphism meets all four bounds and collapses every cell to a constant-time answer; a plain function gets its $\pi_A$ side for free and waits on injectivity for its $\pi_B$ side, which is exactly where the retract is required.
 
@@ -1596,7 +1601,7 @@ The primitive machine carriers sit at the base of the tower as shadows of finite
 
 % Source excerpts from dedekind.algebra:boolean and dedekind.numbers:rational.
 \begin{listing}[!ht]
-\caption{Primitive carriers as \emph{algebraic sets}, inhabiting the set-indexed concepts of Listing~\ref{lst:algebra:universal}.  \textbf{Left:} $\mathbb{B} = \Omega\langle\texttt{bool}\rangle$ needs \emph{explicit} operators: a Boolean rig under logical $(\vee,\wedge)$ and the Galois field $\mathbb{F}_2$ under bitwise $(\oplus,\wedge)$.  \textbf{Right:} $\mathbb{S} = \Omega\langle\texttt{size\_t}\rangle$, the modular ring $\mathbb{Z}/2^{w}\mathbb{Z}$ (width $w$ implementation-defined), is a commutative ring under the \emph{default} arithmetic $(+,\times)$, so the operators are omitted.  The complementary set-lattice layer ($\cup,\cap$) is Listing~\ref{lst:pruning}; composite carriers such as $\mathbb{Q}$ appear in \S\ref{sec:hsp_varieties}.}
+\caption{Primitive carriers as \emph{algebraic sets}, inhabiting the set-indexed concepts of Listing~\ref{lst:algebra:universal}.  \textbf{Left:} $\mathbb{B} = \mathbb{A}\langle\texttt{bool}\rangle$ needs \emph{explicit} operators: a Boolean rig under logical $(\vee,\wedge)$ and the Galois field $\mathbb{F}_2$ under bitwise $(\oplus,\wedge)$.  \textbf{Right:} $\mathbb{S} = \mathbb{A}\langle\texttt{size\_t}\rangle$, the modular ring $\mathbb{Z}/2^{w}\mathbb{Z}$ (width $w$ implementation-defined), is a commutative ring under the \emph{default} arithmetic $(+,\times)$, so the operators are omitted.  The complementary set-lattice layer ($\cup,\cap$) is Listing~\ref{lst:pruning}; composite carriers such as $\mathbb{Q}$ appear in \S\ref{sec:hsp_varieties}.}
 \label{lst:algebra:boolean_case}
 \noindent
 \begin{minipage}[t]{0.52\linewidth}
@@ -1615,7 +1620,7 @@ static_assert(IsGaloisField<decltype(𝔹),
 \begin{minipage}[t]{0.45\linewidth}
 $\mathbb{S}$ as an algebraic set (default ops)
 \begin{cpp}
-constexpr auto 𝕊 = sets::Ω<std::size_t>;
+constexpr auto 𝕊 = sets::𝔸<std::size_t>;
 // (+, ×) are the defaults, so omitted:
 static_assert(
   IsCommutativeRing<decltype(𝕊)>);
@@ -1730,7 +1735,7 @@ Materialised, an operator is the matrix ring $M_n(F) = \operatorname{End}(V)$, t
 \label{lst:certificate-ladder}
 \begin{cpp}
 using Q = Rational<default_integer>;         // the ℚ carrier = Frac(ℤ)
-constexpr auto ℚ = sets::Ω<Q>;               // ℚ as an algebraic set
+constexpr auto ℚ = sets::𝔸<Q>;               // ℚ as an algebraic set
 using V = Vec2V<Q>;  using M = Matrix2x2V<Q>;
 
 static_assert(IsField<decltype(ℚ)>);         // scalar: ℚ is a field
@@ -2310,7 +2315,7 @@ To bridge this abstract mathematical formalism with systems-programming primitiv
         \item \textit{Subobject Classifier:} a truth-value object $\Omega$ with an element $\mathrm{true}: 1 \to \Omega$ such that every mono $S \hookrightarrow A$ arises as the pullback of $\mathrm{true}$ along a \emph{unique} characteristic map $\chi: A \to \Omega$.
         \item \textit{Equalizers:} for parallel arrows $f, g: A \to B$, the subobject $\{x \in A \mid f(x) = g(x)\}$.
     \end{enumerate}
-    \item \textbf{C++ Reification:} The ambient classifier $\Omega$ is the codomain of a carrier's (possibly partial) characteristic map, fixed by a \emph{logic species} \cppinline{L} (the code names it \cppinline{L::Ω}). Its Boolean fragment is the \emph{dominance} $\Sigma \hookrightarrow \Omega$, a Rosolini dominance~\cite{rosolini1986continuity} (Figure~\ref{fig:dominance}); strict \textsc{etcs} is the Boolean collapse $\Sigma = \Omega$. \cppinline{ClassicalLogic} gives the Boolean $\mathbb{B} = \Sigma$ (\cppinline{bool}), a total map; \cppinline{TernaryLogic} gives the lifted Boolean (\cppinline{Ternary}, $\mathbb{B}+\text{U}$, under strong-Kleene connectives~\cite{kleene1952metamathematics}), the codomain of a partial $\chi$. \cppinline{concept IsLogicalSpecies} gates such a species; the predicate of a \cppinline{Set<T, L, P>} is $\chi$, and \cppinline{concept IsSubobject} recognises it. Which codomain a carrier receives is the decidability split of Section~\ref{sec:intensional_sets}: $\mathbb{B}$ where membership is decidable, the lifted Boolean where it is not. Equalizers are named by \cppinline{concept IsEqualizer}, the subobject solving $f = g$.
+    \item \textbf{C++ Reification:} The ambient classifier $\Omega$ is the codomain of a carrier's (possibly partial) characteristic map, fixed by a \emph{logic species} \cppinline{L} (the code names it \cppinline{L::Ω}). Its Boolean fragment is the \emph{dominance} $\Sigma \hookrightarrow \Omega$, a Rosolini dominance~\cite{rosolini1986continuity} (Equation~\ref{eqn:dominance}); strict \textsc{etcs} is the Boolean collapse $\Sigma = \Omega$. \cppinline{ClassicalLogic} gives the Boolean $\mathbb{B} = \Sigma$ (\cppinline{bool}), a total map; \cppinline{TernaryLogic} gives the lifted Boolean (\cppinline{Ternary}, $\mathbb{B}+\text{U}$, under strong-Kleene connectives~\cite{kleene1952metamathematics}), the codomain of a partial $\chi$. \cppinline{concept IsLogicalSpecies} gates such a species; the predicate of a \cppinline{Set<T, L, P>} is $\chi$, and \cppinline{concept IsSubobject} recognises it. Which codomain a carrier receives is the decidability split of Section~\ref{sec:intensional_sets}: $\mathbb{B}$ where membership is decidable, the lifted Boolean where it is not. Equalizers are named by \cppinline{concept IsEqualizer}, the subobject solving $f = g$.
     \item \textbf{Explanatory Note:} An \textit{intensional} set is a rule, not an array. Testing $x \in S$ evaluates $\chi(x)$ instead of searching memory.
 \end{itemize}
 
