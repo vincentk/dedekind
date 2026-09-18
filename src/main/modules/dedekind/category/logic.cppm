@@ -285,6 +285,47 @@ concept IsΩ =
     };
 
 /**
+ * @concept IsPst
+ * @brief A truth-object that is a @b bounded @b chain: an @c IsΩ classifier
+ * whose values are totally ordered.
+ *
+ * @details @f$\mathbf{Pst} := \mathbf{Jlt} \cap \mathbf{Chain}@f$ (named for
+ * Post's many-valued logics): the @c IsΩ truth-objects whose order is total, so
+ * @f$\wedge = \min@f$, @f$\vee = \max@f$ on the chain @f$\bot < \cdots <
+ * \top@f$, and @f$\neg@f$ is the order-reversing reflection.  @c bool
+ * (@f$\mathbb{B}@f$, the two-chain) and @c Ternary (Kleene @f$K_3@f$, the
+ * three-chain) both satisfy it; a truth-object valued in a non-chain lattice (a
+ * four-element Boolean algebra, Belnap's bilattice) would be @c IsΩ but @b not
+ * @c IsPst.  This is the classifier layer's carrier constraint: @c IsPst pins
+ * @e which chains can serve as @f$\Omega@f$ from a type constraint alone (see
+ * @c lift_logic for the dominance @f$\Sigma \hookrightarrow \Omega@f$ these
+ * chains support).
+ *
+ * @note This is a @b shape gate, exactly as @c IsΩ is: it certifies the @e
+ * surface (a truth-object that is @c std::totally_ordered), the definitional
+ * @f$\mathbf{Jlt} \cap \mathbf{Chain}@f$.  It admits @e any bounded chain, of
+ * any cardinality: order alone makes the chain well-behaved, so finiteness is
+ * @b not required.  @c bool and @c Ternary are the shipped (finite) chains; a
+ * purpose-built @f$[0,1]@f$ fuzzy/G\"odel carrier under @f$\min/\max@f$ would
+ * satisfy it too.  A truly non-chain logic (a four-element Boolean algebra,
+ * Belnap's bilattice) is excluded because it is not @c std::totally_ordered.
+ *
+ * What the concept does @b not gate is the @b semantic @b chain @b law: that
+ * this order @e is the truth-order, so @c AND / @c OR are @f$\min/\max@f$ under
+ * it, @c NOT is the order-reversing reflection, and the bounds are
+ * @f$\bot/\top@f$.  That law quantifies over values, so it cannot be a concept;
+ * it is witnessed at compile time by the @b chain-law static_asserts below
+ * (@c bool and @c Ternary) and by the §3.1 listing.  The residual gap is only a
+ * pathological type carrying an @e unrelated total order.
+ * FIXME(#854): the principled gate (a consolidated faithful-semilattice
+ * primitive tying @c AND / @c OR to @f$\min/\max@f$ under the order and
+ * supplying the bounds/reflection law) supersedes this shape gate; #854's
+ * acceptance criteria are extended to cover the @c IsPst chain case.
+ */
+export template <typename T>
+concept IsPst = IsΩ<T> && std::totally_ordered<T>;
+
+/**
  * @concept LogicalMap
  * @brief A callable Pred that maps T -> Ω for some IsΩ Ω.
  * Captures the notion of a predicate valued in an arbitrary logic species.
@@ -555,5 +596,43 @@ static_assert(IsΩ<Boolean> && IsΩ<Kleene>,
 static_assert(!IsΩ<int>,
               "int is not Ω: its && yields bool (not int) and it declares no "
               "logic_species");
+
+// IsPst gate (Pst = Jlt ∩ Chain): the truth-objects that are bounded chains.
+// bool (𝔹) and Ternary (K₃) are totally ordered classifiers; int is totally
+// ordered but not IsΩ, so the intersection excludes it.
+static_assert(IsPst<bool> && IsPst<Ternary>,
+              "𝔹 and K₃ are bounded chains: IsΩ and totally ordered");
+static_assert(!IsPst<int>,
+              "int is a chain but not a truth-object (not IsΩ), so not Pst");
+
+// Chain-law witnesses: the *semantics* IsPst names but cannot gate.  On each
+// shipped chain, under the truth-order, AND = min, OR = max, NOT is the
+// order-reversing reflection, and the bounds are ⊥/⊤.  A regression in a
+// species operator (say AND stops being min) surfaces here at compile time.
+// 𝔹 = {false < true}: NOT swaps the endpoints (a genuine complement).
+static_assert(false < true);  // ⊥ < ⊤
+static_assert((true && false) == false && (true && true) == true,
+              "𝔹: AND = min");
+static_assert((false || true) == true && (false || false) == false,
+              "𝔹: OR = max");
+static_assert(!false == true && !true == false, "𝔹: NOT reflects the 2-chain");
+// K₃ = {False < Unknown < True}: NOT reflects about Unknown (¬U = U).
+static_assert(Ternary::False < Ternary::Unknown &&
+                  Ternary::Unknown < Ternary::True,
+              "K₃: ⊥ < U < ⊤");
+static_assert(TernaryLogic::AND(Ternary::True, Ternary::Unknown) ==
+                      Ternary::Unknown &&
+                  TernaryLogic::AND(Ternary::False, Ternary::Unknown) ==
+                      Ternary::False,
+              "K₃: AND = min");
+static_assert(TernaryLogic::OR(Ternary::False, Ternary::Unknown) ==
+                      Ternary::Unknown &&
+                  TernaryLogic::OR(Ternary::True, Ternary::Unknown) ==
+                      Ternary::True,
+              "K₃: OR = max");
+static_assert(TernaryLogic::NOT(Ternary::True) == Ternary::False &&
+                  TernaryLogic::NOT(Ternary::False) == Ternary::True &&
+                  TernaryLogic::NOT(Ternary::Unknown) == Ternary::Unknown,
+              "K₃: NOT reflects about U (¬U = U)");
 
 }  // namespace dedekind::category
