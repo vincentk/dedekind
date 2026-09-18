@@ -443,6 +443,52 @@ struct NegatedPredicate {
   }
 };
 
+/** @brief The minimal shape a set predicate must have to be combined into an
+ *  @c AndPredicate / @c OrPredicate: a copyable @b functor (class) @b or
+ *  @b function @b pointer (both are used as set predicates).  A deliberately
+ *  @b weak gate --- the carrier @c T is known only at call time, so
+ * invocability cannot be checked at definition --- that still rejects obvious
+ * misuse such as
+ *  @c AndPredicate<int,bool>, a data pointer, or a reference/@c void type.
+ *  (@c NegatedPredicate stays unconstrained: it is the pre-existing complement
+ *  wrapper, not a combinand introduced here.) */
+template <typename P>
+concept CombinablePredicate =
+    std::copy_constructible<P> &&
+    (std::is_class_v<P> || std::is_function_v<std::remove_pointer_t<P>>);
+
+/** @brief Structural conjunction of two predicates: the @b named meet result
+ *  @c Set::operator& produces when no @c structured_and collapse fires,
+ *  replacing the opaque lambda so the predicate survives in @c decltype
+ *  (#365).  This is the @c AndPredicate<P,Q> named in @c :category:lattice's
+ *  spec.  Carrier-general; it inherits the operands' logic through the bare
+ *  @c && (Kleene when both return @c Ternary; @c FIXME(#780) tracks the mixed
+ *  bool/Ternary lift the raw operator skips). */
+export template <CombinablePredicate P, CombinablePredicate Q>
+struct AndPredicate {
+  P lhs;
+  Q rhs;
+
+  template <typename T>
+  constexpr auto operator()(const T& v) const {
+    return lhs(v) && rhs(v);
+  }
+};
+
+/** @brief Structural disjunction of two predicates: the @b named join dual of
+ *  @c AndPredicate, produced by @c Set::operator| (and the predicate-level
+ *  @c operator||) when no @c structured_or collapse fires (#365). */
+export template <CombinablePredicate P, CombinablePredicate Q>
+struct OrPredicate {
+  P lhs;
+  Q rhs;
+
+  template <typename T>
+  constexpr auto operator()(const T& v) const {
+    return lhs(v) || rhs(v);
+  }
+};
+
 template <typename P1, typename P2>
 struct IsComplementPair : std::false_type {};
 
@@ -793,14 +839,25 @@ class Set {
           L::OR((*this)(false), other(false)),
           L::OR((*this)(true), other(true)),
       };
+    } else if constexpr (requires {
+                           structured_or(predicate_, other.predicate_);
+                         }) {
+      // The JOIN dual of operator&'s structured_and branch.  A union never
+      // shrinks cardinality, so the only non-predicate result is a covering
+      // pair collapsing to the universe (returned as-is); every other reduction
+      // (a wider halfspace) is a predicate we wrap.
+      auto reduced = structured_or(predicate_, other.predicate_);
+      using Result = std::decay_t<decltype(reduced)>;
+      if constexpr (std::same_as<Result, UniversalSet<T, L>>) {
+        return reduced;
+      } else {
+        return Set<T, L, Result>{std::move(reduced)};
+      }
     } else {
-      // FIXME(#365): symmetric of the operator& fallback below — lattice-law
-      // rewriting (dually: absorption, De Morgan) could collapse `A ∪ B`
-      // structurally before falling through to this opaque lambda.
-      auto predicate = [lhs = predicate_, rhs = other.predicate_](const T& v) {
-        return lhs(v) || rhs(v);
-      };
-      return Set<T, L, decltype(predicate)>{predicate};
+      // No structural collapse: keep the disjunction as a NAMED predicate so it
+      // survives in decltype (#365), rather than an opaque lambda.
+      return Set<T, L, OrPredicate<Predicate, OtherPredicate>>{
+          OrPredicate<Predicate, OtherPredicate>{predicate_, other.predicate_}};
     }
   }
 
@@ -852,14 +909,14 @@ class Set {
         return Set<T, L, Result>{std::move(reduced)};
       }
     } else {
-      // FIXME(#365): lambda fallback erases predicate structure. Lattice-law
-      // rewriting (distributivity / absorption / De Morgan) could expose
-      // collapses here that the local structured_and branches miss — e.g.
-      // `(A ∪ B) ∩ ¬A` normalising to `B ∩ ¬A` before this fallback fires.
-      auto predicate = [lhs = predicate_, rhs = other.predicate_](const T& v) {
-        return lhs(v) && rhs(v);
-      };
-      return Set<T, L, decltype(predicate)>{predicate};
+      // No structural collapse: keep the conjunction as a NAMED predicate so it
+      // survives in decltype (#365), rather than an opaque lambda.  A deeper
+      // lattice-law normalisation (distributivity / absorption / De Morgan,
+      // e.g. `(A ∪ B) ∩ ¬A → B ∩ ¬A`) that exposes collapses this misses is the
+      // follow-up #865.
+      return Set<T, L, AndPredicate<Predicate, OtherPredicate>>{
+          AndPredicate<Predicate, OtherPredicate>{predicate_,
+                                                  other.predicate_}};
     }
   }
 
@@ -906,23 +963,16 @@ class Set {
       // @c (x @c < @c 5) is not the @c NegatedPredicate wrapper of
       // @c (x @c > @c 100)) but @c structured_and detects.
       return *this | other;
-    } else if constexpr (std::same_as<std::decay_t<decltype(*this | other)>,
-                                      UniversalSet<T, L>>) {
-      // Compile-time-covering optimisation (dual of the disjoint
-      // branch above): when @c A @c ∪ @c B reduces structurally to
-      // @c UniversalSet<T, L> at the type level, the textbook identity becomes
-      // @c A @c △ @c B @c = @c 𝔸 @c ∖ @c (A @c ∩ @c B) @c =
-      // @c ¬(A @c ∩ @c B).  Currently dormant: today the only path
-      // by which @c | yields @c 𝔸 at the type level is the
-      // @c IsComplementPair_v branch, which is already handled by
-      // branch 1 above.  When a @c structured_or overload lands
-      // (mirroring the existing @c structured_and in
-      // @c order:halfspace) and detects covering halfspace pairs
-      // whose union covers the carrier without complement-pair
-      // shape, this branch will fire automatically.  Added now for
-      // symmetry with the disjoint branch and to document the
-      // design space.
-      return !(*this & other);
+      // NOTE(#864): a dual "covering" optimisation once lived here --- when
+      // @c A @c ∪ @c B reduces to @c UniversalSet, @c A @c △ @c B @c =
+      // @c ¬(A @c ∩ @c B).  It was dormant until @c structured_or landed, and
+      // on activation was incorrect: @c A @c ∩ @c B elevates to a bare
+      // @c OrderInterval / @c Singleton, so @c !(...) dispatched to the
+      // predicate-level @c category::operator! and returned a @c Morphism, not
+      // an
+      // @c IsSet.  Removed: covering XOR falls through to the general branch
+      // below, which yields a correct @c Set.  A structural covering-XOR
+      // optimisation that stays closed over @c Set can revisit this under #865.
     } else if constexpr (IsNegatedPredicate_v<OtherPredicate>) {
       // De Morgan negation-peel (#469 / PR #523):
       // A △ ¬X = ¬(A △ X)
@@ -1444,8 +1494,8 @@ constexpr auto operator&&(P1&& p1, P2&& p2) {
   if constexpr (HasStructuredAnd<P1, P2>) {
     return structured_and(std::forward<P1>(p1), std::forward<P2>(p2));
   } else {
-    return [p1 = std::forward<P1>(p1), p2 = std::forward<P2>(p2)](
-               const auto& v) { return p1(v) && p2(v); };
+    return AndPredicate<std::decay_t<P1>, std::decay_t<P2>>{
+        std::forward<P1>(p1), std::forward<P2>(p2)};
   }
 }
 
@@ -1454,8 +1504,8 @@ constexpr auto operator||(P1&& p1, P2&& p2) {
   if constexpr (HasStructuredOr<P1, P2>) {
     return structured_or(std::forward<P1>(p1), std::forward<P2>(p2));
   } else {
-    return [p1 = std::forward<P1>(p1), p2 = std::forward<P2>(p2)](
-               const auto& v) { return p1(v) || p2(v); };
+    return OrPredicate<std::decay_t<P1>, std::decay_t<P2>>{
+        std::forward<P1>(p1), std::forward<P2>(p2)};
   }
 }
 
