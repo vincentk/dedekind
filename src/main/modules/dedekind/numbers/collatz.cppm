@@ -66,19 +66,29 @@ export constexpr std::size_t collatz_rule(std::size_t n) {
   return (n % 2 == 0) ? n / 2 : 3 * n + 1;
 }
 
+/** @brief The parity discriminant @f$\{(n,m) : n \text{ even}\}@f$ --- the axis
+ *  restriction spelled @b once, so @f$T@f$ never repeats the @f$\pi_1 \bmod
+ * 2@f$ test.  Its complement @f$\sim@f$@c n_even is @f$\{n \text{ odd}\}@f$ (on
+ * ℕ the two parities exhaust and are disjoint), which makes the case split
+ *  @b structural rather than two independent guards. */
+constexpr auto n_even = ℕ * ℕ | π1 % fix(2_c) == fix(0_c);
+/** @brief The even step @f$m = n/2@f$, spelled without division as
+ *  @f$2\pi_2 = \pi_1@f$ (the doubling graph read backwards). */
+constexpr auto halve = ℕ * ℕ | π2 * fix(2_c) == π1;
+/** @brief The odd step @f$m = 3n+1@f$ --- the affine graph (@c :order). */
+constexpr auto triple_plus_1 = ℕ * ℕ | π1 * fix(3_c) + fix(1_c) == π2;
+
 /** @brief The Trsk relation @f$T \subseteq \mathbb{N}\times\mathbb{N}@f$,
- * spelled
- *         @b point-free as the union of the two guard-partitioned functional
- *         pieces --- @b no lambda, @b no graph, the recurrence @e is the
- * relation predicate (even @f$\mapsto n/2@f$ via @f$2\pi_2 = \pi_1@f$; odd
- *         @f$\mapsto 3n+1@f$).  Mirrors the divides relation of §4.
- * @note First step: get it compiling.  Whether the DSL infers @c IsFunction
- *       across the even/odd guard-partition union (or needs a trusted opt-in)
- * is the next investigation --- functionality is inferred from a graph-shaped
- *       leaf or through @c >>, not obviously across a union of guards. */
+ *  spelled @b point-free as the McCarthy conditional
+ *  @f$T = (\text{even} \cap \text{halve}) \cup (\text{odd} \cap
+ * \text{triple})@f$
+ *  --- @b no lambda, @b no graph, the recurrence @e is the relation.  Mirrors
+ *  the divides relation of §4; the parity test appears exactly once.
+ * @note Whether the DSL infers @c IsFunction across the (disjoint, total)
+ *       case split is the next investigation --- functionality is inferred from
+ * a graph-shaped leaf or through @c >>, not yet across @f$\cap/\cup@f$. */
 export inline constexpr auto collatz =
-    (ℕ * ℕ | π1 % fix(2_c) == fix(0_c) & π2 * fix(2_c) == π1) +
-    (ℕ * ℕ | π1 % fix(2_c) == fix(1_c) & π1 * fix(3_c) + fix(1_c) == π2);
+    (n_even & halve) + (~n_even & triple_plus_1);
 
 static_assert(IsSet<decltype(collatz)>,
               "the point-free recurrence is an ETCS Set on ℕ × ℕ");
