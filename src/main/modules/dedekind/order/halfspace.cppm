@@ -1321,10 +1321,11 @@ struct ProjBound {
   }
 };
 
-// RelAnd / RelOr (the meet / join predicate carriers) moved DOWN to
-// dedekind.relational:dyadic (#792); halfspace still USES them (the
-// predicate-level operator& below, axis_factor, the >> functional trait) as
-// dedekind::sets::RelAnd / RelOr, imported from :dyadic.
+// RelAnd (the meet predicate carrier) moved DOWN to dedekind.relational:dyadic
+// (#792); halfspace still USES it (the predicate-level operator& below,
+// axis_factor, the >> functional trait) as dedekind::sets::RelAnd, imported
+// from :dyadic.  The join carrier is the set-grammar | / OrPredicate (:sets,
+// #365); the old RelOr / operator+ was dropped as redundant (#864).
 
 // π_I ⋈ π_J  →  ProjProj (projection-vs-projection).
 export template <std::size_t I, std::size_t J>
@@ -2273,12 +2274,12 @@ static_assert(static_cast<bool>(((𝔹 * 𝔹 | π1 < π2) >>
               "R;Δ = R: the diagonal is the composition unit (the 1).");
 static_assert(
     static_cast<bool>(((𝔹 * 𝔹 | π1 <= π2) >>
-                       ((𝔹 * 𝔹 | π1 < π2) + (𝔹 * 𝔹 | π1 == π2)))(std::pair{
+                       ((𝔹 * 𝔹 | π1 < π2) | (𝔹 * 𝔹 | π1 == π2)))(std::pair{
         false, true})) ==
-        static_cast<bool>((((𝔹 * 𝔹 | π1 <= π2) >> (𝔹 * 𝔹 | π1 < π2)) +
+        static_cast<bool>((((𝔹 * 𝔹 | π1 <= π2) >> (𝔹 * 𝔹 | π1 < π2)) |
                            ((𝔹 * 𝔹 | π1 <= π2) >>
                             (𝔹 * 𝔹 | π1 == π2)))(std::pair{false, true})),
-    "R;(S+T) = R;S + R;T: composition distributes over union.");
+    "R;(S∪T) = R;S ∪ R;T: composition distributes over union.");
 static_assert(
     static_cast<bool>(((𝔹 * 𝔹 | π1 != π2) >>
                        ((𝔹 * 𝔹 | π1 <= π2) & (𝔹 * 𝔹 | π1 == π2)))(std::pair{
