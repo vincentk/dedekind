@@ -179,21 +179,44 @@ constexpr auto cod(const Relation<T1, T2, L, P>&) {
  * existential --- is it nonempty? what is its max? --- is deferred to whoever
  * reduces it.
  *
- * @warning @b Lambda @b blackbox.  The fibre predicate is a @b capturing
- * @b lambda, so the returned @c Set carries an @b opaque, @b anonymous, @b
- * non-@c equality_comparable predicate type.  Two @c apply results are never
- * type-equal and never value-equal, and the @c Set cannot be lifted back to a
- * relation (@c as_relation @c requires @c std::equality_comparable).  Prefer a
- * @b named fibre functor with @c operator== wherever the fibre must be
- * compared, reified, or round-tripped through @c graph / @c as_relation; reach
- * for @c apply only for the throw-away, reduce-it-now case.  The
- * equality-comparable, named-fibre enumeration (the characteristic relation
- * @f$\chi : S \to 2@f$) is tracked in #840.
+ * @deprecated (documentation-level; #840).  @c apply returns the fibre as a
+ * @b capturing @b lambda, so its @c Set carries an @b opaque, @b anonymous,
+ * @b non-@c equality_comparable predicate type: two @c apply results are never
+ * type-equal and the @c Set cannot round-trip through @c as_relation.  Prefer
+ * @c fibre(R,x) below --- it reifies the same fibre as the @b named
+ * @c FibrePredicate (a stable, inspectable, @c GraphPredicate /
+ * @c PreimagePredicate-style type).  @c apply is retained (no @c [[deprecated]]
+ * attribute, to keep its existing call sites @c -Werror-clean) only for the
+ * throw-away, reduce-it-now case.
  */
 export template <typename T1, typename T2, typename L, typename P>
 constexpr auto apply(const Relation<T1, T2, L, P>& r, const T1& x) {
-  auto fibre = [r, x](const T2& b) { return r(std::pair<T1, T2>{x, b}); };
-  return Set<T2, L, decltype(fibre)>{fibre};
+  auto f = [r, x](const T2& b) { return r(std::pair<T1, T2>{x, b}); };
+  return Set<T2, L, decltype(f)>{f};
+}
+
+/** @brief The reified fibre of a relation @c R at a point @c x: the predicate
+ *  @f$b \mapsto (x,b)\in R@f$.  @b Named (the sibling of @c GraphPredicate /
+ *  @c PreimagePredicate) so the fibre @c Set is stable and inspectable rather
+ *  than a lambda blackbox (#840). */
+export template <typename Rel, typename T1>
+struct FibrePredicate {
+  Rel relation;
+  T1 point;
+  template <typename T2>
+  constexpr auto operator()(const T2& b) const {
+    return relation(std::pair<T1, T2>{point, b});
+  }
+};
+
+/** @brief @c fibre(R, x) = the fibre @f$\{b \mid (x,b)\in R\}@f$ as a @b named
+ *  @c Set --- the reified, lambda-free replacement for the deprecated @c apply
+ *  (#840).  The power transpose @f$\Lambda R : A \to \mathcal{P}(B)@f$ read as
+ * a first-class subobject. */
+export template <typename T1, typename T2, typename L, typename P>
+constexpr auto fibre(const Relation<T1, T2, L, P>& r, const T1& x) {
+  using Fib = FibrePredicate<Relation<T1, T2, L, P>, T1>;
+  return Set<T2, L, Fib>{Fib{r, x}};
 }
 
 /**
