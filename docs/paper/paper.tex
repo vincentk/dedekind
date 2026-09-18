@@ -468,6 +468,20 @@ Figure~\ref{fig:hub-spoke-bnz} in the introduction previews the functionality th
 \subsection{The Logic Lattice: Truth on a Bounded Chain}
 \label{sec:logic_lattice}
 
+\begin{listing}[ht]
+\begin{cpp}
+// Truth is a bounded chain Ω:  ⊥ < ⊤  (𝔹)  or  ⊥ < U < ⊤  (K3).
+static_assert(Ternary::False < Ternary::Unknown
+           && Ternary::Unknown < Ternary::True);        // ⊥ < U < ⊤  (order, bounds)
+static_assert((Ternary::True  && Ternary::Unknown) == Ternary::Unknown);  // ∧ = min (meet)
+static_assert((Ternary::False || Ternary::Unknown) == Ternary::Unknown);  // ∨ = max (join)
+static_assert(!true == false);                          // 𝔹: ¬ swaps ⊥,⊤ — a complement
+static_assert(!Ternary::Unknown == Ternary::Unknown);   // K3: ¬ fixes U — reflection, not complement
+\end{cpp}
+\caption{The answer-chain $\Omega$: $\wedge/\vee = \min/\max$ on the order $\bot < \cdots < \top$; $\neg$ is the reflection, a complement only on the two-chain $\mathbb{B}$.}
+\label{lst:membership}
+\end{listing}
+
 Sets will be indexed by truth-values, so we fix those first --- algebraically, before any set is defined, to keep the construction non-circular.
 An \emph{answer} is a value in a \emph{bounded chain} $\Omega$: a totally ordered set $\bot < \cdots < \top$ with $\wedge = \min$, $\vee = \max$, and a negation $\neg$ that is the order-reversing \emph{reflection} about the centre.
 A chain is fixed by enumeration alone, and its lattice operations follow from the order, so nothing set-theoretic is presupposed (Listing~\ref{lst:membership}).
@@ -608,62 +622,9 @@ Deciding membership of the corner is itself undecidable (Rice~\cite{rice1953clas
 \label{sec:ddk_comprehension}
 % ============================================================
 
-The primitive of the DSL is membership: a set $A$ is its characteristic map $\chi_A : A \to \Omega$, and $x \in A$ is $\chi_A(x)$, valued in the classifier $\Omega$.
-Listing~\ref{lst:membership} is the natural starting point.
-For the three-valued species, $\Omega = \{\top, \bot, U\}$ admits an undecided answer $U$, so a bare membership query may be undecidable.
-The classifier $\Omega$ and its \emph{dominance} $\Sigma \hookrightarrow \Omega$, the sub-object of \emph{decided} truth-values, are not the same object and are worth keeping apart; Equation~\ref{eqn:dominance} makes the distinction precise.\footnote{$\Sigma \hookrightarrow \Omega$ is a Rosolini dominance~\cite{rosolini1986continuity}.}
+Membership was fixed in §\ref{sec:logic_lattice}: a set is its characteristic map $\chi_A : A \to \Omega$, valued in the answer-chain, and decidable exactly where it factors through the decided endpoints $\Sigma$ (Equation~\ref{eqn:dominance}).
 The algebra of Listing~\ref{lst:set-grammar} adds the lattice operations and the closed \texttt{query} sort; restricting to $\Sigma = \{\top, \bot\}$ decides \emph{membership}, while set \emph{equality} sits on the orthogonal quantifier axis (Equation~\ref{eqn:quantifiers}), decidable only where a normal form exists (§\ref{sec:ddk_ordered} onward).
 
-% Source: src/test/cpp/modules/dedekind/analysis/partial_membership_laws_test.cpp
-%   fix(¬)=U and fix(succ)=ℵ₀; the ℝ (ℶ₁) classification; the intensional-image
-%   Unknown (mirrors showcase_10_image_intensional_naturals.cpp).
-\begin{listing}[htbp]
-\caption{\textbf{Partial membership}, the primitive that precedes the algebra.
-A set is its characteristic map $\chi_A$; membership $x \in A = \chi_A(x)$ is valued in the full classifier $\Omega$, which for the honest species is Kleene's $\{\top, \bot, U\}$, so the answer may be Unknown ($U$).
-\textbf{Top}: two fixpoints bounding the classifier.
-Kleene negation is negation about zero, so $U$ is its fixpoint, $\mathrm{fix}(\lnot) = U$; the decided fragment $\Sigma = \{\top, \bot\}$ has none (the codomain axis).
-The domain decides $\mathrm{fix}(\mathit{succ})$: the finite cardinals have no fixpoint, but the saturation point $\aleph_0$ is one (the domain axis).
-Membership itself may then be undecidable (witnessed in the checked-in test): a comprehension over $\mathbb{R}$ (tagged $\beth_1$) is classified undecidable, its species \cppinline{TernaryLogic}, so $==$ is withheld; and the intensional image of a set returns $U$ outright.
-\textbf{Bottom}: the grammar in two panels.
-A \texttt{setexpr} is a generator or a comprehension, and the only observation is \texttt{membership}, valued in the classifier $\Omega$ (the generator \texttt{'𝔸'} is the universal set $\mathbb{A}\langle A\rangle$).
-There is no $==$: deciding membership does not decide set equality, which asks about \emph{every} point (the orthogonal axis of Equation~\ref{eqn:quantifiers}); Listing~\ref{lst:set-grammar} restores it only on the normal-form tiers (§\ref{sec:ddk_ordered} onward).
-The archetype hard predicate is Mandelbrot membership, semi-decidable: escape is recognizable, non-escape is not.
-The grammar is sound; whether a membership query is \emph{decided} is the separate question this listing is about (Equation~\ref{eqn:dominance}).}
-\label{lst:membership}
-\noindent
-\begin{minipage}[t]{\linewidth}
-\begin{cpp}
-// Ω = {⊤, ⊥, U};  Σ = {⊤, ⊥}, the decided fragment.  Two fixpoints:
-static_assert(!Ternary::Unknown == Ternary::Unknown);  // fix(¬) = U (codomain axis)
-constexpr cardinality_succ succ;                       // the NNO successor ℕ → ℕ
-static_assert(   succ(finite_cardinality(3)) != finite_cardinality(3)  // none finite
-              && succ(aleph_0) == aleph_0);            // fix(succ) = ℵ₀ (domain axis)
-\end{cpp}
-\end{minipage}
-
-\vspace{0.6em}
-\noindent
-\begin{minipage}[t]{0.49\linewidth}
-\begin{minted}[fontsize=\footnotesize]{text}
-setexpr ::= generator
-  | setexpr '|' pred
-generator ::= '𝔸' carrier | 'Ø' carrier
-  | 'η' '(' value ')'
-  | <any IsSet>
-carrier ::= <any std::regular type>
-\end{minted}
-\end{minipage}\hfill
-\begin{minipage}[t]{0.49\linewidth}
-\begin{minted}[fontsize=\footnotesize]{text}
-membership ::= setexpr '(' elem ')'
-  -- valued in Ω = {⊤, ⊥, U}
-pred ::= <any elem → Ω>
-  -- may be Unknown
--- no '==': equality is undecidable
---   (restored on the normal-form tiers)
-\end{minted}
-\end{minipage}
-\end{listing}
 
 Listing~\ref{lst:set-grammar} gives worked examples and the generic grammar of $\mathbf{Lwv}$.
 A set expression (\texttt{setexpr}) builds a set from canonical or user-defined values and combines them through set operations or filtration with a predicate.
