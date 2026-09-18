@@ -300,6 +300,20 @@ concept IsΩ =
  * @e which chains can serve as @f$\Omega@f$ from a type constraint alone (see
  * @c lift_logic for the dominance @f$\Sigma \hookrightarrow \Omega@f$ these
  * chains support).
+ *
+ * @note This is a @b shape gate, exactly as @c IsΩ is: it certifies the @e
+ * surface (a truth-object that is @c std::totally_ordered) but does @b not
+ * certify that this order @e is the truth-order, i.e.\ that @c AND / @c OR are
+ * @f$\min/\max@f$ under it and @c NOT its order-reversing reflection with the
+ * species bounds as @f$\bot/\top@f$.  That semantic law cannot be phrased as a
+ * concept (it quantifies over values); it is witnessed on the shipped chains by
+ * static_assert (@c bool, @c Ternary below and in the §3.1 listing).  A truly
+ * non-chain logic (a four-element Boolean algebra, Belnap's bilattice) is
+ * already excluded here because it is not @c std::totally_ordered; the residual
+ * gap is only a @e pathological type that carries an @e unrelated total order.
+ * FIXME(#854): the principled faithful-chain gate (a certified trait tying
+ * @c AND / @c OR to @f$\min/\max@f$ under the order and supplying the
+ * bounds/reflection law) supersedes this shape gate.
  */
 export template <typename T>
 concept IsPst = IsΩ<T> && std::totally_ordered<T>;
