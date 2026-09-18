@@ -154,7 +154,8 @@ This fragment is named the \emph{Juliet Posture} ($\mathbf{Jlt} = \mathbf{Per} \
 The resulting code has a deliberate, sweet and flowery smell: $\mathbf{Jlt}$ admits a System~F reading of the \Cpp{23} type system.
 On this foundation an embedded, lazy domain-specific language is built which supports
 \begin{enumerate}
-\item a set-comprehension engine ($\mathbf{Lwv} = \mathbf{Jlt} \cap \mathbf{Set}$) whose sets are defined in an intensional way: via a membership test ($\{ x \in S \mid P(x) \}$, \cppinline{S | P(x)}) rather than by listing elements,
+\item a logic lattice of truth-values ($\mathbf{Pst} = \mathbf{Jlt} \cap \mathbf{Chain}$): the bounded chains $\mathbb{B}$, $\mathrm{K}_3, \ldots$ (Post's many-valued logics) that classify membership,
+\item a set-comprehension engine ($\mathbf{Lwv} = \mathbf{Jlt} \cap \mathbf{Set}$), valued in $\mathbf{Pst}$, whose sets are defined in an intensional way: via a membership test ($\{ x \in S \mid P(x) \}$, \cppinline{S | P(x)}) rather than by listing elements,
 \item a point-free relational calculus ($\mathbf{Trsk} = \mathbf{Lwv} \cap \mathbf{Rel}$) built on cartesian products ($\{ (x, y) \in S \times S \mid P(x, y) \}$, \cppinline{S * S | P(x, y)}), and
 \item symbolic algebra $\mathbf{Ddk} = \mathbf{Trsk} \cap \mathbf{Alg}$ built on operations over the canonical sets $\mathbb B, \mathbb N, \ldots$ ($(x, y, z) \in S^3 \mid z = f(x, y)$, \cppinline{S * S * S | z == f(x, y)}).
 \end{enumerate}
@@ -492,6 +493,12 @@ Two instances carry the whole paper:
 \end{itemize}
 We need no more: every bounded chain with reflection is automatically a distributive lattice and a \emph{Kleene algebra} --- the condition $a \wedge \neg a \le b \vee \neg b$ holds on any chain, since $\min(a, \neg a)$ sits at or below the centre and $\max(b, \neg b)$ at or above it --- so the De~Morgan/Kleene structure is a \emph{theorem} of ``chain $+$ reflection'', not a separate axiom.\footnote{The scope is deliberately narrow.  Bounded chains cover $\mathbb{B}$, $\mathrm{K}_3$, and the graded extension to a finite {\L}ukasiewicz $\mathrm{\L}_n$ or $[0,1]$ under $\min/\max$ (a natural third case study), but exclude non-chain many-valued logics (a four-element Boolean algebra, Belnap's bilattice) that the library does not use.  On $[0,1]$ this is the fuzzy/G\"odel reading; probability's product t-norm is a different structure, $a \cdot b \ne \min(a,b)$.}
 
+These truth-objects, the $\mathbf{Jlt}$ types that are bounded chains, form the logic layer
+\begin{equation}
+\label{eqn:pst}
+\mathbf{Pst} := \mathbf{Jlt} \cap \mathbf{Chain},
+\end{equation}
+named for Post's many-valued logics; the sets of §\ref{sec:reification_set} are indexed by them.
 Writing $A = \{x \mid P_A(x)\}$ and $B = \{x \mid P_B(x)\}$, the pointwise lifts of $\wedge, \vee, \neg$ to predicates are the set operations (Table~\ref{tab:lattice-lift}):
 \begin{equation}
 \label{eqn:lattice-lift-ops}
