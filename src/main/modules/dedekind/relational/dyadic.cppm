@@ -51,7 +51,8 @@
  * pairs.  Migration impact: @c converse / @c is_relation / @c reflexive /
  * @c symmetric / @c preimage take a @c Set argument, so they @b were
  * ADL-reachable from @c dedekind::sets and now need qualification or a @c
- * using; so do the infix operators @c >> / @c + / @c &.  (Only @c graph ---
+ * using; so do the infix operators @c >> / @c & (union is the set-grammar
+ * @c |).  (Only @c graph ---
  * called on an @b arrow --- and the relation/function @b concepts never
  * ADL-reached
  * @c sets.)  A consumer that wants the bare forms brings them in with @c using
