@@ -303,27 +303,24 @@ concept IsΩ =
  *
  * @note This is a @b shape gate, exactly as @c IsΩ is: it certifies the @e
  * surface (a truth-object that is @c std::totally_ordered), the definitional
- * @f$\mathbf{Jlt} \cap \mathbf{Chain}@f$.  It does @b not gate two further
- * properties the paper's §3.1 exposition scopes onto @f$\mathbf{Pst}@f$:
- *  - The @b semantic @b chain @b law: that this order @e is the truth-order, so
- *    @c AND / @c OR are @f$\min/\max@f$ under it, @c NOT is the order-reversing
- *    reflection, and the bounds are @f$\bot/\top@f$.  It quantifies over
- * values, so it cannot be a concept; it is witnessed at compile time by the
- *    @b chain-law static_asserts below (@c bool and @c Ternary) and by the §3.1
- *    listing.
- *  - @b Finiteness.  The paper scopes @f$\mathbf{Pst}@f$ to the finite chains
- *    describable by a type constraint alone (@f$\mathbb{B}@f$, @f$K_3@f$, a
- *    finite {\L}ukasiewicz chain).  Every shipped chain is finite, but the
- *    concept admits @e any bounded chain, so a hypothetical infinite
- *    totally-ordered truth-object would still satisfy it.
- * A truly non-chain logic (a four-element Boolean algebra, Belnap's bilattice)
- * is already excluded because it is not @c std::totally_ordered.  The residual
- * gaps are a @e pathological type carrying an @e unrelated total order, and an
- * infinite chain.
- * FIXME(#854): the principled gate (a faithful-semilattice / cardinality
- * primitive tying @c AND / @c OR to @f$\min/\max@f$ under the order, supplying
- * the bounds/reflection law, and certifying finiteness) supersedes this shape
- * gate; #854's acceptance criteria are extended to cover the @c IsPst case.
+ * @f$\mathbf{Jlt} \cap \mathbf{Chain}@f$.  It admits @e any bounded chain, of
+ * any cardinality: order alone makes the chain well-behaved, so finiteness is
+ * @b not required.  @c bool and @c Ternary are the shipped (finite) chains; a
+ * purpose-built @f$[0,1]@f$ fuzzy/G\"odel carrier under @f$\min/\max@f$ would
+ * satisfy it too.  A truly non-chain logic (a four-element Boolean algebra,
+ * Belnap's bilattice) is excluded because it is not @c std::totally_ordered.
+ *
+ * What the concept does @b not gate is the @b semantic @b chain @b law: that
+ * this order @e is the truth-order, so @c AND / @c OR are @f$\min/\max@f$ under
+ * it, @c NOT is the order-reversing reflection, and the bounds are
+ * @f$\bot/\top@f$.  That law quantifies over values, so it cannot be a concept;
+ * it is witnessed at compile time by the @b chain-law static_asserts below
+ * (@c bool and @c Ternary) and by the §3.1 listing.  The residual gap is only a
+ * pathological type carrying an @e unrelated total order.
+ * FIXME(#854): the principled gate (a consolidated faithful-semilattice
+ * primitive tying @c AND / @c OR to @f$\min/\max@f$ under the order and
+ * supplying the bounds/reflection law) supersedes this shape gate; #854's
+ * acceptance criteria are extended to cover the @c IsPst chain case.
  */
 export template <typename T>
 concept IsPst = IsΩ<T> && std::totally_ordered<T>;
