@@ -465,7 +465,20 @@ This forms the exact Cartesian Closed Category needed to bootstrap formal set co
 With a deterministic, structurally-typed substrate established in Section~\ref{sec:jlt_posture}, mathematical sets can be bootstrapped inside the type system.
 This section is the Galois specialisation (Definition~\ref{def:galois-specialisation}) of $\mathbf{Set}$, the category of sets.
 Figure~\ref{fig:hub-spoke-bnz} in the introduction previews the functionality this section builds.
-Writing $A = \{x \mid P_A(x)\}$ and $B = \{x \mid P_B(x)\}$ we can see how the predicate logic maps to some set operations:
+\subsection{The Logic Lattice: Truth on a Bounded Chain}
+\label{sec:logic_lattice}
+
+Sets will be indexed by truth-values, so we fix those first --- algebraically, before any set is defined, to keep the construction non-circular.
+An \emph{answer} is a value in a \emph{bounded chain} $\Omega$: a totally ordered set $\bot < \cdots < \top$ with $\wedge = \min$, $\vee = \max$, and a negation $\neg$ that is the order-reversing \emph{reflection} about the centre.
+A chain is fixed by enumeration alone, and its lattice operations follow from the order, so nothing set-theoretic is presupposed (Listing~\ref{lst:membership}).
+Two instances carry the whole paper:
+\begin{itemize}
+\item $\mathbb{B} = \{\bot < \top\}$, the two-chain.  Here $\neg$ swaps the endpoints and \emph{is} a complement, so the law of the excluded middle holds: $\mathbb{B}$ is the Boolean archetype.
+\item $\mathrm{K}_3 = \{\bot < U < \top\}$, the three-chain (Kleene~\cite{kleene1952metamathematics}).  Now $\neg$ reflects about the interior point, $\neg U = U$, which is therefore \emph{not} a complement ($U \wedge \neg U = U \neq \bot$); the excluded middle fails and $U$ is an \emph{undecided} answer.
+\end{itemize}
+We need no more: every bounded chain with reflection is automatically a distributive lattice and a \emph{Kleene algebra} --- the condition $a \wedge \neg a \le b \vee \neg b$ holds on any chain, since $\min(a, \neg a)$ sits at or below the centre and $\max(b, \neg b)$ at or above it --- so the De~Morgan/Kleene structure is a \emph{theorem} of ``chain $+$ reflection'', not a separate axiom.\footnote{The scope is deliberately narrow.  Bounded chains cover $\mathbb{B}$, $\mathrm{K}_3$, and the graded extension to a finite {\L}ukasiewicz $\mathrm{\L}_n$ or $[0,1]$ under $\min/\max$ (a natural third case study), but exclude non-chain many-valued logics (a four-element Boolean algebra, Belnap's bilattice) that the library does not use.  On $[0,1]$ this is the fuzzy/G\"odel reading; probability's product t-norm is a different structure, $a \cdot b \ne \min(a,b)$.}
+
+Writing $A = \{x \mid P_A(x)\}$ and $B = \{x \mid P_B(x)\}$, the pointwise lifts of $\wedge, \vee, \neg$ to predicates are the set operations (Table~\ref{tab:lattice-lift}):
 \begin{equation}
 \label{eqn:lattice-lift-ops}
 \begin{aligned}
@@ -485,8 +498,12 @@ A set is \emph{decidable} exactly when membership never returns $U$, i.e.\ its c
 \qquad \iota : \Sigma \hookrightarrow \Omega .
 \end{equation}
 Strict \textsc{etcs} is the Boolean collapse $\Sigma = \Omega$ ($\iota = \mathrm{id}$, so every test factors and all membership is decidable); the honest species keeps $\iota$ a \emph{proper} inclusion $\{\top, \bot\} \subsetneq \{\top, \bot, U\}$, so a $\chi_A$ that hits $U$ has no factorisation.\footnote{A notational caution: \textsc{etcs}, being Boolean, writes $\Omega$ for the two-valued object we call $\Sigma$; we reserve $\Omega$ for the ambient classifier and $\Sigma$ for its decided sub-object. The inclusion $\Sigma \hookrightarrow \Omega$ is a Rosolini dominance~\cite{rosolini1986continuity}.}
+This is the \emph{value} axis of (un)decidability, fixed by the chain $\Omega$; the orthogonal \emph{quantifier} axis (Equation~\ref{eqn:quantifiers}, echoing the Chomsky hierarchy) is a property of the \emph{domain}, and arrives with the sets below.
+
 % Two-axis decidability (#847) + the corner characterisation + closure/retract:
 % now folded into eqn:quantifiers + eqn:corner in the tier-framing prose below.
+\subsection{Sets over the Lattice}
+\label{sec:reification_set}
 Here, a set \emph{is} its characteristic predicate, not a list of its elements.
 The set operations \emph{are} the pointwise logical ones.
 This way, there is no problem to model an open disk $\{\, x \mid \lVert x - c \rVert < r \,\}$, which in an extensional setting is an uncountable bag no machine can hold.
