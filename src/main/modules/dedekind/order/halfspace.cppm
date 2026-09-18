@@ -1728,11 +1728,18 @@ struct ProjModConstBound {
     // normalisation and the finite-residue materialisation.  Add V only to a
     // negative remainder (which is already in (−V,0)), so the intermediate
     // never overflows for a large valid modulus.
-    const auto lhs0 = coord<I>(p) % V;
-    const auto lhs = lhs0 < 0 ? lhs0 + V : lhs0;
+    const auto a = coord<I>(p);
+    using C = std::remove_cvref_t<decltype(a)>;
+    const auto lhs0 = a % static_cast<C>(V);
+    // Add V through std::plus<C> (same narrow-carrier reason as
+    // ProjAddConstProj): +V on the carrier, never a bare C + int (which is
+    // ambiguous on Cardinality).  Unsigned carriers never take this branch.
+    const auto lhs = lhs0 < static_cast<C>(0)
+                         ? std::plus<C>{}(lhs0, static_cast<C>(V))
+                         : lhs0;
     constexpr auto rhs0 = W % V;
     constexpr auto rhs = rhs0 < 0 ? rhs0 + V : rhs0;
-    return rel_apply<R>(lhs, rhs);
+    return rel_apply<R>(lhs, static_cast<C>(rhs));
   }
 };
 export template <IsRingIntegral auto I, auto V, auto W>
