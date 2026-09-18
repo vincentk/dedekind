@@ -219,6 +219,24 @@ constexpr auto fibre(const Relation<T1, T2, L, P>& r, const T1& x) {
   return Set<T2, L, Fib>{Fib{r, x}};
 }
 
+/** @brief The relational IMAGE of a @b finite set of points, given as a pack:
+ *  @f$R[\{x_0,\dots,x_n\}] = \bigcup_i \mathrm{fibre}(R, x_i)@f$ --- the power
+ *  transpose extended from a point to a finite set, @b distributing over the
+ *  join (image preserves unions, the left-adjoint law).  Point-free and
+ *  @b lambda-free: the structural @c | union of the named point-fibres, with no
+ *  enumeration carrier (@b no array, @b no @c ∃).  Probes only the given
+ * points, so it stays in the point-fibre's complexity class.
+ *  @note A @b set-valued argument (@c fibre(R, S) for an intensional @c S) is
+ *  the power-set-monad image, which needs a @c constexpr enumerable finite-set
+ *  carrier --- @c FIXME(#691).  The pack is the honest finite instance. */
+export template <typename T1, typename T2, typename L, typename P,
+                 std::same_as<T1>... Xs>
+  requires(sizeof...(Xs) >= 1)
+constexpr auto fibre(const Relation<T1, T2, L, P>& r, const T1& x0,
+                     const Xs&... xs) {
+  return (fibre(r, x0) | ... | fibre(r, xs));
+}
+
 /**
  * @brief Point-wise single-valuedness witness for a set-function relation.
  *

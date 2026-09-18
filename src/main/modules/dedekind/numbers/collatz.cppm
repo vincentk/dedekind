@@ -178,11 +178,12 @@ static_assert(!collatz2(std::pair{finite_cardinality(6),
 
 /** @brief @c converged_2 @f$= \mathrm{collatz2}^{\circ}(\{1,2,4\})@f$ --- the
  *  naturals captured by the attractor within two steps: the pre-image of the
- *  cycle, the union of converse-fibres over @f$\{1,2,4\}@f$. */
+ *  cycle, spelled as the @b finite relational image (@c fibre of the converse
+ *  over the three cycle points), which distributes to the union of the
+ *  point-fibres. */
 constexpr auto back2 = converse(collatz2);
-export inline constexpr auto converged_2 = fibre(back2, finite_cardinality(1)) |
-                                           fibre(back2, finite_cardinality(2)) |
-                                           fibre(back2, finite_cardinality(4));
+export inline constexpr auto converged_2 = fibre(
+    back2, finite_cardinality(1), finite_cardinality(2), finite_cardinality(4));
 
 /** @brief @c pending_2 @f$= \sim@f$@c converged_2 --- the naturals @b not yet
  *  captured within two steps: the honest "Unknown", complemented on the domain
