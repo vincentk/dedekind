@@ -285,6 +285,26 @@ concept IsΩ =
     };
 
 /**
+ * @concept IsPst
+ * @brief A truth-object that is a @b bounded @b chain: an @c IsΩ classifier
+ * whose values are totally ordered.
+ *
+ * @details @f$\mathbf{Pst} := \mathbf{Jlt} \cap \mathbf{Chain}@f$ (named for
+ * Post's many-valued logics): the @c IsΩ truth-objects whose order is total, so
+ * @f$\wedge = \min@f$, @f$\vee = \max@f$ on the chain @f$\bot < \cdots <
+ * \top@f$, and @f$\neg@f$ is the order-reversing reflection.  @c bool
+ * (@f$\mathbb{B}@f$, the two-chain) and @c Ternary (Kleene @f$K_3@f$, the
+ * three-chain) both satisfy it; a truth-object valued in a non-chain lattice (a
+ * four-element Boolean algebra, Belnap's bilattice) would be @c IsΩ but @b not
+ * @c IsPst.  This is the classifier layer's carrier constraint: @c IsPst pins
+ * @e which chains can serve as @f$\Omega@f$ from a type constraint alone (see
+ * @c lift_logic for the dominance @f$\Sigma \hookrightarrow \Omega@f$ these
+ * chains support).
+ */
+export template <typename T>
+concept IsPst = IsΩ<T> && std::totally_ordered<T>;
+
+/**
  * @concept LogicalMap
  * @brief A callable Pred that maps T -> Ω for some IsΩ Ω.
  * Captures the notion of a predicate valued in an arbitrary logic species.
@@ -555,5 +575,13 @@ static_assert(IsΩ<Boolean> && IsΩ<Kleene>,
 static_assert(!IsΩ<int>,
               "int is not Ω: its && yields bool (not int) and it declares no "
               "logic_species");
+
+// IsPst gate (Pst = Jlt ∩ Chain): the truth-objects that are bounded chains.
+// bool (𝔹) and Ternary (K₃) are totally ordered classifiers; int is totally
+// ordered but not IsΩ, so the intersection excludes it.
+static_assert(IsPst<bool> && IsPst<Ternary>,
+              "𝔹 and K₃ are bounded chains: IsΩ and totally ordered");
+static_assert(!IsPst<int>,
+              "int is a chain but not a truth-object (not IsΩ), so not Pst");
 
 }  // namespace dedekind::category
