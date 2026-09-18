@@ -286,8 +286,8 @@ constexpr auto operator>>(const Set<std::pair<A, B>, L, PR>& r,
 // ── Meet, the diagonal, reflexive / symmetric closures ─────────────────────
 // (Union is the set-grammar @c |: see the note above @c SwapPred.)
 /** @brief @c R @c & @c S --- the INTERSECTION (meet) of two relations over the
- *  same product, dual to the union @c +: membership is both predicates
- *  (@c RelAnd).  The Boolean-lattice ∩ on relations. */
+ *  same product, dual to the union @c | (@c OrPredicate): membership is both
+ *  predicates (@c RelAnd).  The Boolean-lattice ∩ on relations. */
 export template <typename A, typename B, typename L, typename PR, typename PS>
 constexpr auto operator&(const Set<std::pair<A, B>, L, PR>& r,
                          const Set<std::pair<A, B>, L, PS>& s) {
@@ -318,8 +318,9 @@ constexpr auto diagonal() {
 
 /** @brief @c reflexive(R) = @c R @c | @c Δ --- the smallest reflexive relation
  *  containing an endorelation @c R (add the self-loops).  @c P is constrained
- * to a genuine pair-predicate (invocable on the diagonal pair) so a mis-typed
- * @c R fails at the call, not deep inside the union. */
+ * to a genuine pair-predicate (invocable on a carrier pair @f$\langle A,A
+ * \rangle@f$) so a mis-typed @c R fails at the call, not deep inside the
+ * union. */
 export template <typename A, typename L, typename P>
   requires std::invocable<const P&, std::pair<A, A>>
 constexpr auto reflexive(const Set<std::pair<A, A>, L, P>& r) {
