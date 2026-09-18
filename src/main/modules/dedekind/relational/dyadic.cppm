@@ -351,43 +351,11 @@ constexpr auto operator>>(const Set<std::pair<A, B>, L, PR>& r,
       ComposePred<PR, PS, B>{r.predicate(), s.predicate()}};
 }
 
-/** @brief The composed predicate for @c R;S over a FINITE middle SET, the
- *  ∃-over-the-middle enumerated on the stored @c middle range --- the
- *  finite-@c IsExtensional generalization of @c ComposePred's Boolean
- *  @c {false,true} middle (#795).  @c middle is any range of @c B values (a
- *  prefix of the intermediate carrier); @f$(a,c)\in R;S@f$ holds iff some @c b
- *  in it witnesses @f$R(a,b)\wedge S(b,c)@f$. */
-export template <typename PR, typename PS, typename Middle>
-struct ComposeOverPred {
-  using is_rel_predicate = void;
-  PR r;
-  PS s;
-  Middle middle;
-  template <typename Pair>
-  constexpr bool operator()(const Pair& ac) const {
-    for (const auto& b : middle)
-      if (static_cast<bool>(r(std::pair{ac.first, b})) &&
-          static_cast<bool>(s(std::pair{b, ac.second})))
-        return true;
-    return false;
-  }
-};
-
-/** @brief @c compose_over(R, S, middle) = @f$R;S@f$ with the ∃-over-the-middle
- *  enumerated on the finite @c middle (a prefix of the intermediate carrier)
- *  --- the finite generalization of the Boolean-middle @c >> (#795).  Over an
- *  @b infinite middle the ∃ is the Rice wall, so the middle is given explicitly
- *  and must be finite/@c IsExtensional; @c >> remains the @c bool special case
- *  (no middle argument needed). */
-export template <typename A, typename B, typename C, typename L, typename PR,
-                 typename PS, typename Middle>
-constexpr auto compose_over(const Set<std::pair<A, B>, L, PR>& r,
-                            const Set<std::pair<B, C>, L, PS>& s,
-                            Middle middle) {
-  return Set<std::pair<A, C>, L, ComposeOverPred<PR, PS, Middle>>{
-      ComposeOverPred<PR, PS, Middle>{r.predicate(), s.predicate(),
-                                      std::move(middle)}};
-}
+// The finite-middle relative product (#795 --- the generalization of the
+// Boolean-middle @c >> above to a bounded ℕ carrier) lives in @c :sequences
+// (@c :relprod), not here: it reads the bound from an @c order-level half-space
+// cut (which @c :relational, upstream of @c order, cannot see) and folds the
+// @f$\exists@f$-over-the-middle with @c :sequences' own @c fold.
 
 // ── Meet, the diagonal, reflexive / symmetric closures ─────────────────────
 // (Union is the set-grammar @c |: see the note above @c SwapPred.)
