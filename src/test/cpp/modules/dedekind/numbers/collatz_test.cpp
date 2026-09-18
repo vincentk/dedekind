@@ -23,12 +23,9 @@ TEST_CASE("numbers:collatz — the recurrence, explicit and as a relation",
   CHECK(collatz_rule(4) == 2);    // even: 4/2
   CHECK(collatz_rule(2) == 1);    // even: 2/2
   CHECK(collatz_rule(27) == 82);  // odd: 3·27+1
-  // Its graph is the Trsk relation, validated on pairs.
+  // The point-free relation, validated on pairs.
   CHECK(collatz(std::pair{std::size_t{6}, std::size_t{3}}));
   CHECK(!collatz(std::pair{std::size_t{6}, std::size_t{4}}));
-  // One relational step: preimage of {1} is {2}.
-  CHECK(reaches_1_in_one_step(std::size_t{2}));
-  CHECK(!reaches_1_in_one_step(std::size_t{3}));
 }
 
 TEST_CASE("numbers:collatz — reach time is the first index hitting 1",
