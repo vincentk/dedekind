@@ -316,8 +316,11 @@ constexpr auto diagonal() {
 }
 
 /** @brief @c reflexive(R) = @c R @c | @c Δ --- the smallest reflexive relation
- *  containing an endorelation @c R (add the self-loops). */
+ *  containing an endorelation @c R (add the self-loops).  @c P is constrained
+ * to a genuine pair-predicate (invocable on the diagonal pair) so a mis-typed
+ * @c R fails at the call, not deep inside the union. */
 export template <typename A, typename L, typename P>
+  requires std::invocable<const P&, std::pair<A, A>>
 constexpr auto reflexive(const Set<std::pair<A, A>, L, P>& r) {
   return r | diagonal<A, L>();
 }
@@ -325,6 +328,7 @@ constexpr auto reflexive(const Set<std::pair<A, A>, L, P>& r) {
 /** @brief @c symmetric(R) = @c R @c | @c R° --- the smallest symmetric relation
  *  containing @c R (add the reversed edges; @c R° is the @c converse). */
 export template <typename A, typename L, typename P>
+  requires std::invocable<const P&, std::pair<A, A>>
 constexpr auto symmetric(const Set<std::pair<A, A>, L, P>& r) {
   return r | converse(r);
 }

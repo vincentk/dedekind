@@ -60,7 +60,8 @@
  */
 export module dedekind.relational;
 
-export import :dyadic;  // Tarski BASE: converse °, relative product ;, Δ, +, &
+export import :dyadic;  // Tarski BASE: converse °, relative product >>, Δ, & (∪
+                        // = set-grammar |)
 export import :tables;  // Codd: σ ⋈ ∪ ∖ ∩ (dedekind::relational namespace)
 export import :graph;   // graphs of arrows (binary relations): graph(f),
                         // is_graph_of

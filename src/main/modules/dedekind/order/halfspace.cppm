@@ -62,8 +62,9 @@ using namespace dedekind::category;
 // ignores such hiding); the using-DECLARATIONS restore exactly that candidate
 // set, joining --- not losing to --- order's own operators.
 using dedekind::relational::operator>>;  // the relative product R;S
-using dedekind::relational::operator+;   // relation union R + S
 using dedekind::relational::operator&;   // relation meet R & S
+// relation union is the set-grammar | (Set::operator|, member — no using
+// needed)
 
 /**
  * @concept IsRingIntegral
