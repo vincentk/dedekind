@@ -8,6 +8,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <cstddef>
+#include <utility>
 
 import dedekind.category;
 import dedekind.numbers;
@@ -15,11 +16,19 @@ import dedekind.numbers;
 using namespace dedekind::numbers;
 using dedekind::category::Ternary;
 
-TEST_CASE("numbers:collatz — the step map ℕ → ℕ", "[numbers][collatz]") {
-  CHECK(collatz_step(1) == 4);    // odd: 3·1+1
-  CHECK(collatz_step(4) == 2);    // even: 4/2
-  CHECK(collatz_step(2) == 1);    // even: 2/2
-  CHECK(collatz_step(27) == 82);  // odd: 3·27+1
+TEST_CASE("numbers:collatz — the recurrence, explicit and as a relation",
+          "[numbers][collatz]") {
+  // The explicit named rule ℕ → ℕ.
+  CHECK(collatz_rule(1) == 4);    // odd: 3·1+1
+  CHECK(collatz_rule(4) == 2);    // even: 4/2
+  CHECK(collatz_rule(2) == 1);    // even: 2/2
+  CHECK(collatz_rule(27) == 82);  // odd: 3·27+1
+  // Its graph is the Trsk relation, validated on pairs.
+  CHECK(collatz(std::pair{std::size_t{6}, std::size_t{3}}));
+  CHECK(!collatz(std::pair{std::size_t{6}, std::size_t{4}}));
+  // One relational step: preimage of {1} is {2}.
+  CHECK(reaches_1_in_one_step(std::size_t{2}));
+  CHECK(!reaches_1_in_one_step(std::size_t{3}));
 }
 
 TEST_CASE("numbers:collatz — reach time is the first index hitting 1",
