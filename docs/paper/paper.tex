@@ -472,7 +472,7 @@ Figure~\ref{fig:hub-spoke-bnz} in the introduction previews the functionality th
 \begin{listing}[ht]
 \caption{\textbf{The answer-chain} $\Omega$, a bounded chain (Eqn.~\ref{eqn:pst}): \cppinline{IsPst} is a truth-object (\cppinline{IsΩ}) whose values are totally ordered.
 \textbf{Top:} the same lattice twice.
-$\mathbb{B} = $ \cppinline{bool} on the left carries the native operators; $\mathrm{K}_3 = $ \cppinline{Ternary} on the right runs through the species API, since the logical operators are not overloaded on the general chain.
+$\mathbb{B} = $ \cppinline{bool} on the left carries the native operators; $\mathrm{K}_3 = $ \cppinline{Ternary} on the right runs through the species API \cppinline{AND}/\cppinline{OR}/\cppinline{NOT}, the surface every logic species must provide (the native operators are the \cppinline{bool} spelling).
 $\wedge/\vee = \min/\max$ on the order $\bot < \cdots < \top$, and $\neg$ is the reflection, a genuine complement only on $\mathbb{B}$ (on $\mathrm{K}_3$, $\neg U = U$).
 \textbf{Bottom:} the grammar of truth expressions, each operator spelled for \cppinline{bool} and for the general chain.}
 \label{lst:membership}
@@ -530,7 +530,7 @@ Two instances carry the whole paper:
 \end{itemize}
 We need no more.
 Every bounded chain with reflection is automatically a distributive lattice and a \emph{Kleene algebra}: the condition $a \wedge \neg a \le b \vee \neg b$ holds on any chain, since $\min(a, \neg a)$ sits at or below the centre and $\max(b, \neg b)$ at or above it.
-So the De~Morgan/Kleene structure is a \emph{theorem} of ``chain $+$ reflection'', not a separate axiom.\footnote{The scope is deliberately narrow.  $\mathbf{Pst}$ is the \emph{finite} chains describable by a type constraint alone: $\mathbb{B}$, $\mathrm{K}_3$, a finite {\L}ukasiewicz $\text{\L}_n$.  Graded truth on $[0,1]$ under $\min/\max$ needs a range \emph{predicate}, so it is a set (§\ref{sec:reification_set}, carrier $+$ predicate) rather than a $\mathbf{Pst}$ chain, and is the fuzzy/G\"odel reading, distinct from probability's product t-norm ($a \cdot b \ne \min$).  Non-chain many-valued logics (a four-element Boolean algebra, Belnap's bilattice) are excluded throughout.}
+So the De~Morgan/Kleene structure is a \emph{theorem} of ``chain $+$ reflection'', not a separate axiom.\footnote{$\mathbf{Pst}$ is the bounded chains a type constraint pins on its own: $\mathbb{B}$, $\mathrm{K}_3$, a {\L}ukasiewicz $\text{\L}_n$, and, on a purpose-built carrier, the unit interval $[0,1]$ under $\min/\max$, the fuzzy/G\"odel reading (distinct from probability's product t-norm, $a \cdot b \ne \min$).  Order alone makes the chain well-behaved (§\ref{sec:ddk_ordered}), so finiteness is not required.  What is excluded is the non-chain many-valued logics (a four-element Boolean algebra, Belnap's bilattice): they are not totally ordered.}
 
 These truth-objects, the $\mathbf{Jlt}$ types that are bounded chains, form the logic layer
 \begin{equation}
@@ -574,7 +574,7 @@ $\mathcal{P}(A)$ & $\in$ & $\cap$ & $\cup$ & $\complement$ & $\varnothing$ & $A$
 \addlinespace
 $\mathbf{Topos}$ & $\chi$ & $\wedge$ & $\vee$ & $\neg$ & $\mathbf{0}$ & $A$ & $\hookrightarrow$ \\
 \addlinespace
-$\mathbf{Pst}$ & \cppinline{IsPst} & \cppinline{&&}\,/\,\cppinline{AND} & \cppinline{||}\,/\,\cppinline{OR} & \cppinline{!}\,/\,\cppinline{NOT} & \cppinline{false} & \cppinline{true} & \cppinline{<=} \\
+$\mathbf{Pst}$ & \cppinline{IsPst} & \cppinline{&&}\,/\,\cppinline{AND} & \cppinline{||}\,/\,\cppinline{OR} & \cppinline{!}\,/\,\cppinline{NOT} & \cppinline{false}\,/\,\cppinline{False} & \cppinline{true}\,/\,\cppinline{True} & \cppinline{<=} \\
 \addlinespace
 $\mathbf{Lwv}$ & \cppinline{s(x)} & \cppinline{&} & \cppinline{|} & \cppinline{~} & \cppinline{Ø} & \cppinline{𝔸} & \cppinline{<=} \\
 \bottomrule
@@ -582,7 +582,7 @@ $\mathbf{Lwv}$ & \cppinline{s(x)} & \cppinline{&} & \cppinline{|} & \cppinline{~
 \caption{
 Operator-mapping table: each column is one construction, spelled in five languages over the rows $\mathbb{B}$, $\mathcal{P}(A)$, $\mathbf{Topos}$, $\mathbf{Pst}$, $\mathbf{Lwv}$.
 The two executable-C++ rows are placed together at the bottom for direct comparison: $\mathbf{Pst}$ is the bounded chain (\cppinline{IsPst} the truth-object type-constraint), $\mathbf{Lwv}$ the sets built over it.
-Because the logical operators are not overloaded on the general chain, the $\mathbf{Pst}$ operators are spelled twice: the native \cppinline{bool} form left of the slash, the species API (\cppinline{TernaryLogic::AND} and friends) right; $\neg$ is the reflection, a genuine complement only on the two-chain $\mathbb{B}$ (on $\mathrm{K}_3$, $\neg U = U$).
+Each $\mathbf{Pst}$ cell is spelled twice: the native \cppinline{bool} form left of the slash, and the species API (\cppinline{TernaryLogic::AND} and friends, the surface every logic species provides) right; $\neg$ is the reflection, a genuine complement only on the two-chain $\mathbb{B}$ (on $\mathrm{K}_3$, $\neg U = U$).
 The $\mathbf{Topos}$ row is the Boolean case realised by $\mathbf{Set}$.
 The \emph{member} column is membership ($\models$ satisfaction, $\in$ set membership, $\chi$ the classifier, \cppinline{IsPst} the truth-object constraint, \cppinline{s(x)} the set applied to a point); the other columns are the lattice operations.
 }
@@ -593,7 +593,7 @@ The \emph{member} column is membership ($\models$ satisfaction, $\in$ set member
 % now folded into eqn:quantifiers + eqn:corner in the tier-framing prose below.
 \subsection{Sets over the Lattice}
 \label{sec:reification_set}
-The chains of §\ref{sec:logic_lattice} already give a well-defined set: a type \emph{is} a set, and membership is a \emph{type constraint} the compiler decides, namely \cppinline{𝔸<T>}, the universal set over \cppinline{T}, whose $\chi \equiv \top$.
+The chains of §\ref{sec:logic_lattice} already give a well-defined set: a type \emph{is} a set, and membership reduces to the \emph{type check} the compiler already performs, reified as the universal set \cppinline{𝔸<T>} over \cppinline{T}, whose characteristic map is constant-true ($\chi \equiv \top$).
 This much already serves the algebra and the exposition; the relational operations, subset and equality, are reified later (§\ref{sec:ddk_ordered} onward) where the quantifier they hide can discharge.
 A \emph{proper} set adds a \emph{predicate} to that type constraint: a carrier \cppinline{A} with a characteristic map $\chi_S : A \to \Omega$ (\cppinline{𝔸<A> | P}), whose membership is now valued in the chain and may answer $U$.
 The two layers are thus one construction at two settings of the predicate: the trivial $\chi \equiv \top$ (a bare type, the universal set) and a genuine $\chi$ (a refined subobject).
