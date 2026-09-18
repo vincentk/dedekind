@@ -984,7 +984,7 @@ relexpr   ::= setexpr                     -- carrier ⟨A,B⟩ : a relation
             | 'graph' '(' arrow ')'       -- functional graph Γ_f
             | 'converse' '(' relexpr ')'  -- R°
             | relexpr '>>' relexpr        -- relative product R;S (Boolean middle)
-            | relexpr '+' relexpr         -- union  (RelOr)
+            | relexpr '|' relexpr         -- union  (the set-grammar |, OrPredicate)
             | relexpr '&' relexpr         -- meet   (RelAnd)
             | 'diagonal' carrier          -- Δ
             | 'reflexive' '(' relexpr ')'
@@ -994,7 +994,7 @@ relexpr   ::= setexpr                     -- carrier ⟨A,B⟩ : a relation
 query    +::= ('IsFunctional' | 'IsEntire') '(' relexpr ')'  -- R ==/<= S already in the set query; add properties
 relpred   ::= ratom
             | '!' relpred                   -- negation (recursive, as in the set pred)
-            | relpred '&' relpred           -- meet (RelAnd); union is relexpr '+'
+            | relpred '&' relpred           -- meet (RelAnd); union is relexpr '|'
 ratom     ::= proj rcmp proj | proj rcmp 'fix' '(' const ')'
 rcmp      ::= cmp | '!='                     -- cmp (incl. ==, from the set query) plus !=
 proj      ::= 'π1' | 'π2' | ('π1' | 'π2') arith 'fix' '(' const ')'
