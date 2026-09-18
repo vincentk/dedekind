@@ -511,7 +511,7 @@ A = f^{-1}(B) \;\Rightarrow\; P_A = P_B \circ f \quad (f\ \text{total}). &
 \end{aligned}
 \end{equation}
 The answer-chain $\Omega$ is set by the logic species; the honest default is Kleene's three-valued $\{\top, \bot, U\}$~\cite{kleene1952metamathematics}, so $\wedge$ is $\min$, $\vee$ is $\max$, and $\neg$ the flip.
-A set is \emph{decidable} exactly when membership never returns $U$, i.e.\ its characteristic map $\chi_A = P_A$ factors through the \emph{decided} sub-chain $\Sigma = \{\top, \bot\}$:
+A set is \emph{decidable} exactly when membership never returns $U$, i.e.\ its characteristic map $\chi_A = P_A$ factors through the \emph{decided} sub-chain $\Sigma = \{\top, \bot\}$, the endpoints (the limits) of $\Omega$:
 \begin{equation}
 \label{eqn:dominance}
 \chi_A \;=\; \iota \circ \bar\chi,
@@ -542,12 +542,8 @@ The DSL is grounded in it by a faithful reification: the defining axioms become 
 The step-by-step embedding is in Appendix~\ref{sec:etcs}, the concepts in the reference implementation~\cite{Krautler_dedekind_2026} (Mac Lane~\cite{maclane1971categories} and Pierce~\cite{pierce1991basic} for background).
 Two caveats apply, and they are really one.
 i) The axiom of choice (Axiom~10) is only approximated through the power-object lattice, and is marked aspirational.
-ii) A membership test answers on a small chain of truth-values: classically two, $\{\,\text{no} < \text{yes}\,\}$; honestly three, $\{\,\text{no} < \text{unknown} < \text{yes}\,\}$ (Kleene's middle value~\cite{kleene1952metamathematics}, the \cppinline{TernaryLogic} species).
-Choice is what would force the two-valued chain (a Boolean answer); \cppinline{IsSet} does not assume choice, so by default a test may answer \emph{unknown} and membership is not assumed decidable.
-A set is \emph{decidable} exactly when its test only ever lands on the two decided rungs $\{\,\text{no},\text{yes}\,\}$, the sub-chain $\Sigma$ inside the full answer-chain $\Omega$ (Equation~\ref{eqn:dominance}).\footnote{Categorically: the characteristic map $\chi_A : A \to \Omega$ factors as $A \to \Sigma \to \Omega$ through the dominance $\Sigma \hookrightarrow \Omega$, a Rosolini dominance~\cite{rosolini1986continuity}.}
-The \cppinline{HasDecidableMembership} check is a \emph{sound but conservative} witness of this, not a decision of it: it accepts only a test \emph{declared} two-valued, so it may report ``not decidable'' for one that in fact never answers \emph{unknown} (an $\mathbb{R}$-tagged halfspace, say).
-Telling the two apart exactly is itself impossible in general~\cite{rice1953classes}.
-Admitting \emph{unknown} by default is what keeps the grammar strictly sound.\footnote{A carrier whose membership is only semi-decidable, a Mandelbrot set say, stays at the partial default (Appendix~\ref{sec:etcs}); the decidable track (§\ref{sec:ddk_ordered} onward) is the specialisation, not the assumption.}
+ii) Choice is what would force the two-valued chain (a Boolean answer); \cppinline{IsSet} does not assume it, so membership is valued in the full chain $\Omega$ and may answer \emph{unknown} by default (§\ref{sec:logic_lattice}), decidable only where the test factors through the endpoints $\Sigma$.
+\cppinline{HasDecidableMembership} is the \emph{sound, conservative} certificate of that factorisation, not a decision of it (checking it exactly is impossible in general, Rice~\cite{rice1953classes}); admitting \emph{unknown} by default is what keeps the grammar strictly sound.\footnote{A carrier whose membership is only semi-decidable, a Mandelbrot set say, stays at the partial default; the decidable track (§\ref{sec:ddk_ordered} onward) is the specialisation, not the assumption.}
 With these assumptions acknowledged, one can define:
 \begin{definition}[$\mathbf{Lwv} := \mathbf{Jlt} \cap \mathbf{Set}$]
 \label{def:lwv-set}
