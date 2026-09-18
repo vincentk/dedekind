@@ -385,12 +385,16 @@ struct Subobject {
    *  typedef (#698 Slice 9). */
   using logic_species = typename GetLogic<Cod<Chi>>::type;
 
-  /** @brief χ: A ⟶ Ω, so the codomain is the classifier Ω = @c logic_species::Ω
-   *  (@c bool for @c ClassicalLogic, @c Ternary for @c TernaryLogic). Declaring
-   *  it re-exports the stored rule's codomain, making a @c Subobject a full
-   *  @c IsArrow / @c IsCharacteristic (#850) --- not merely a structural
-   *  callable. */
-  using Codomain = typename logic_species::Ω;
+  /** @brief χ: A ⟶ Ω: re-export the stored rule's @b own codomain @c Cod<Chi>
+   *  (the classifier the predicate returns --- @c bool / @c Ternary, or a
+   *  @c Truth<L> wrapper such as @c Boolean / @c Kleene).  Preserving it,
+   * rather than normalising to @c logic_species::Ω (which would unwrap @c
+   * Truth<L> to
+   *  @c bool and then break @c IsArrow's @c convertible_to<Codomain> check,
+   *  since @c Truth<L>'s conversion to its @c machine_type is @c explicit),
+   *  makes a @c Subobject a full @c IsArrow / @c IsCharacteristic (#850), not
+   *  merely a structural callable. */
+  using Codomain = Cod<Chi>;
 
   Chi χ;  // The Rule: A ⟶ Ω
 

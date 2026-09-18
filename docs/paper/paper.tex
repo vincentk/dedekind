@@ -469,11 +469,11 @@ Writing $A = \{x \mid P_A(x)\}$ and $B = \{x \mid P_B(x)\}$ we can see how the p
 \begin{equation}
 \label{eqn:lattice-lift-ops}
 \begin{aligned}
-x \in A = P_A(x) \in \Omega, \qquad &
+x \in A = P_A(x), \qquad &
 \complement A = \{x \mid \neg\, P_A(x)\}, \\
 A \cap B = \{x \mid P_A(x) \wedge P_B(x)\}, &
 A \cup B = \{x \mid P_A(x) \vee P_B(x)\}, \\
-A = f^{-1}(B) \;\Rightarrow\; P_A = P_B \circ f. &
+A = f^{-1}(B) \;\Rightarrow\; P_A = P_B \circ f \quad (f\ \text{total}). &
 \end{aligned}
 \end{equation}
 The answer-chain $\Omega$ is set by the logic species; the honest default is Kleene's three-valued $\{\top, \bot, U\}$~\cite{kleene1952metamathematics}, so $\wedge$ is $\min$, $\vee$ is $\max$, and $\neg$ the flip.
@@ -569,14 +569,14 @@ A quantifier \emph{is} a set operation, a fold of the membership test over the d
 \end{aligned}
 \end{equation}
 Membership asks about one point; the quantifiers about \emph{every} point ($\forall$) or \emph{some} point ($\exists$).\footnote{In recursion-theoretic terms this is the arithmetic hierarchy of the query: membership atomic ($\Delta^0_0$), the $\forall$-fold $\Pi^0_1$, the $\exists$-fold $\Sigma^0_1$.}
-The two axes now read straight off the fold: a \emph{finite} meet or join of \emph{decided} values is decided, so a query lands in the decidable corner exactly when
+The two axes now read straight off the fold: a \emph{finite} meet or join of \emph{decided} values is decided, so a query lands in the decidable corner \emph{when} the predicate factors through an effective finite quotient $\sim$:
 \begin{equation}
 \label{eqn:corner}
 \underbrace{P(A) \subseteq \Sigma}_{\text{axis 1: each test decided}}
 \qquad\text{and}\qquad
 \underbrace{\lvert S/{\sim}\rvert < \infty}_{\text{axis 2: the fold is finite}} .
 \end{equation}
-This is the trick that handles the hard corner.
+This is a \emph{sound, sufficient} certificate for the hard corner, not an exact characterisation: a direct witness or a symbolic reduction can settle a query with no finite quotient at all.
 Membership can be perfectly decidable ($P(A) \subseteq \Sigma$, axis~1) while the quantifier still escapes $\Sigma$, because an unbounded fold may never resolve (it stays $U$); a finite normal form (§\ref{sec:ddk_ordered} onward) discharges the bound and pulls the query back into $\Sigma$ (axis~2).
 All four combinations occur; the bottom-left is inhabited too, since $\varnothing \subseteq B$ decides even where membership in $B$ does not.
 The corner is closed under finite composition (Equation~\ref{eqn:lattice-lift-ops}, including the preimage line $P_{f^{-1}(B)} = P_B \circ f$), so compile-time optimisation is ``stay in the corner'', while Galois specialisation carves a finite normal form to ``get to the corner''.
@@ -741,7 +741,7 @@ The set operations are then the algebra on these predicates.
 Intersection (\cppinline{&}), union (\cppinline{|}) and complement (\cppinline{~}) compose these predicates into one type-level predicate, which the template engine reduces during instantiation: it constant-folds, and on a complement pair collapses to \cppinline{Ø} or the universe by type (Listing~\ref{lst:pruning}).
 
 The correspondence is exact on the decidable track, and it is what makes the algebra optimizable.
-The top element, the universal set $A$ itself, is reified as \cppinline{sets::Ω<T>}; Listing~\ref{lst:pruning} (left) exhibits the canonical case, the Booleans $\mathbb{B} = $ \cppinline{Ω<bool>}.
+The top element, the universal set $A$ itself, is reified as \cppinline{sets::𝔸<T>}; Listing~\ref{lst:pruning} (left) exhibits the canonical case, the Booleans $\mathbb{B} = $ \cppinline{𝔸<bool>}.
 Optimization is then the simplification of these predicate compositions at translation time: an empty meet prunes, $\bot \wedge p \Rightarrow \bot$, and constant conjuncts fold away.
 The induced order, set inclusion, is pointwise implication $\chi_S \Rightarrow \chi_T$; it ranges over the domain, and keeping it decidable is the task of the ordered (§\ref{sec:ddk_ordered}) and extensional (§\ref{sec:ddk_extensional}) specialisations.
 
@@ -1620,7 +1620,7 @@ static_assert(IsGaloisField<decltype(𝔹),
 \begin{minipage}[t]{0.45\linewidth}
 $\mathbb{S}$ as an algebraic set (default ops)
 \begin{cpp}
-constexpr auto 𝕊 = sets::Ω<std::size_t>;
+constexpr auto 𝕊 = sets::𝔸<std::size_t>;
 // (+, ×) are the defaults, so omitted:
 static_assert(
   IsCommutativeRing<decltype(𝕊)>);
@@ -1735,7 +1735,7 @@ Materialised, an operator is the matrix ring $M_n(F) = \operatorname{End}(V)$, t
 \label{lst:certificate-ladder}
 \begin{cpp}
 using Q = Rational<default_integer>;         // the ℚ carrier = Frac(ℤ)
-constexpr auto ℚ = sets::Ω<Q>;               // ℚ as an algebraic set
+constexpr auto ℚ = sets::𝔸<Q>;               // ℚ as an algebraic set
 using V = Vec2V<Q>;  using M = Matrix2x2V<Q>;
 
 static_assert(IsField<decltype(ℚ)>);         // scalar: ℚ is a field
