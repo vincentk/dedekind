@@ -952,7 +952,7 @@ class Set {
       auto predicate = [lhs = predicate_, rhs = other.predicate_](const T& v) {
         const auto a = dedekind::category::lift_logic<L>(lhs(v));
         const auto b = dedekind::category::lift_logic<L>(rhs(v));
-        return L::OR(L::AND(a, L::NOT(b)), L::AND(L::NOT(a), b));
+        return L::OR(L::AND(a, L::RFL(b)), L::AND(L::RFL(a), b));
       };
       return Set<T, L, decltype(predicate)>{predicate};
     }
@@ -987,7 +987,7 @@ class Set {
     const auto in_this = (*this)(x);
     const auto in_other = other(x);
     // Implication in Ω: a => b  is  (!a) OR b.
-    return L::OR(L::NOT(in_this), in_other);
+    return L::OR(L::RFL(in_this), in_other);
   }
 
  private:

@@ -640,7 +640,7 @@ auto operator!(P&& p) {
 
   // Return a formal Morphism A -> Ω
   return arrow<A>(
-      [p = std::forward<P>(p)](const A& x) { return L::NOT(p(x)); });
+      [p = std::forward<P>(p)](const A& x) { return L::RFL(p(x)); });
 }
 
 /**

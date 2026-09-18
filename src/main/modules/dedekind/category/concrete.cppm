@@ -251,7 +251,7 @@ export template <typename S>
 constexpr auto set_complement(const S& s) {
   using A = typename S::Domain;
   using L = typename GetLogic<std::invoke_result_t<S const&, A const&>>::type;
-  return classify<A>([s](const A& a) { return L::NOT(s(a)); });
+  return classify<A>([s](const A& a) { return L::RFL(s(a)); });
 }
 
 /** @brief Membership: @c x @c ∈ @c S evaluated via @c S's structural
