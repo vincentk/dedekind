@@ -444,14 +444,18 @@ struct NegatedPredicate {
 };
 
 /** @brief The minimal shape a set predicate must have to be combined into an
- *  @c AndPredicate / @c OrPredicate: a functor (class) type storing by value.
- *  A deliberately @b weak gate --- the carrier @c T is known only at call time,
- *  so invocability cannot be checked at definition --- that still rejects
- *  obvious misuse such as @c AndPredicate<int,bool> or a reference/function
- *  type.  (@c NegatedPredicate stays unconstrained: it is the pre-existing
- *  complement wrapper and not a combinand introduced here.) */
+ *  @c AndPredicate / @c OrPredicate: a copyable @b functor (class) @b or
+ *  @b function @b pointer (both are used as set predicates).  A deliberately
+ *  @b weak gate --- the carrier @c T is known only at call time, so
+ * invocability cannot be checked at definition --- that still rejects obvious
+ * misuse such as
+ *  @c AndPredicate<int,bool>, a data pointer, or a reference/@c void type.
+ *  (@c NegatedPredicate stays unconstrained: it is the pre-existing complement
+ *  wrapper, not a combinand introduced here.) */
 template <typename P>
-concept CombinablePredicate = std::is_class_v<P> && std::copy_constructible<P>;
+concept CombinablePredicate =
+    std::copy_constructible<P> &&
+    (std::is_class_v<P> || std::is_function_v<std::remove_pointer_t<P>>);
 
 /** @brief Structural conjunction of two predicates: the @b named meet result
  *  @c Set::operator& produces when no @c structured_and collapse fires,
