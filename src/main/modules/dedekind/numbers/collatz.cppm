@@ -202,6 +202,40 @@ static_assert(pending_2(finite_cardinality(3)), "3 is still pending at step 2");
 static_assert(!pending_2(finite_cardinality(4)),
               "4 has converged, so it is not pending");
 
+// ─── Squaring: bounded transitive closure by repeated doubling (#795) ──────
+//
+// @c collatz4 = @c collatz2 @c >> @c collatz2 is FOUR steps: the same bounded
+// @c >>, now over the already-doubled relation.  @c ComposePrefixPred carries
+// the bound, so no middle need be re-supplied; the chain
+// @c collatz2, @c collatz4, @c collatz8, … is the bounded transitive closure
+// @f$T^{\le 2^k}@f$ grown by doubling, and @c converged_{2^k} = the pre-image
+// of the attractor at each rung is a monotone-growing prefix (capture is
+// absorbing, so @c converged_{2^k} @c ⊆ @c converged_{2^{k+1}}).
+
+/** @brief @c collatz4 @f$= \mathrm{collatz};^{4}@f$ --- four steps, the square
+ *  of @c collatz2 over the finite middle. */
+export inline constexpr auto collatz4 = collatz2 >> collatz2;
+
+/** @brief @c converged_4 --- captured by the attractor within FOUR steps: the
+ *  finite relational image of the converse over the cycle, one rung up. */
+export inline constexpr auto converged_4 =
+    fibre(converse(collatz4), finite_cardinality(1), finite_cardinality(2),
+          finite_cardinality(4));
+export inline constexpr auto pending_4 = ~converged_4;
+
+static_assert(collatz4(std::pair{finite_cardinality(5), finite_cardinality(2)}),
+              "5 → 16 → 8 → 4 → 2: (5,2) ∈ collatz⁴ (four steps)");
+static_assert(
+    converged_4(finite_cardinality(5)),
+    "5 → 16 → 8 → 4 → 2: newly captured at step 4 (was pending at 2)");
+static_assert(converged_4(finite_cardinality(16)),
+              "16 → 8 → 4 → 2 → 1: captured within four steps");
+static_assert(converged_4(finite_cardinality(4)),
+              "capture is absorbing: converged_2 ⊆ converged_4");
+static_assert(!converged_4(finite_cardinality(3)),
+              "3 → 10 → 5 → 16 → 8: still not captured at step 4");
+static_assert(pending_4(finite_cardinality(3)), "3 is still pending at step 4");
+
 // ─── The finite iteration (the strength-reduced shadow) ───────────────────
 
 /** @brief The orbit @f$\{n\} ; T^{\le N}@f$ presented as the arrow's iterate
