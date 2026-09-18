@@ -518,8 +518,36 @@ A set is \emph{decidable} exactly when membership never returns $U$, i.e.\ its c
 \qquad \bar\chi : A \to \Sigma = \{\top, \bot\},
 \qquad \iota : \Sigma \hookrightarrow \Omega .
 \end{equation}
-Strict \textsc{etcs} is the Boolean collapse $\Sigma = \Omega$ ($\iota = \mathrm{id}$, so every test factors and all membership is decidable); the honest species keeps $\iota$ a \emph{proper} inclusion $\{\top, \bot\} \subsetneq \{\top, \bot, U\}$, so a $\chi_A$ that hits $U$ has no factorisation.\footnote{A notational caution: \textsc{etcs}, being Boolean, writes $\Omega$ for the two-valued object we call $\Sigma$; we reserve $\Omega$ for the ambient classifier and $\Sigma$ for its decided sub-object. The inclusion $\Sigma \hookrightarrow \Omega$ is a Rosolini dominance~\cite{rosolini1986continuity}.}
+Strict \textsc{etcs} is the Boolean collapse $\Sigma = \Omega$ ($\iota = \mathrm{id}$, so every test factors and all membership is decidable); the honest species keeps $\iota$ a \emph{proper} inclusion $\{\top, \bot\} \subsetneq \{\top, \bot, U\}$, so a $\chi_A$ that hits $U$ has no factorisation.\footnote{A notational caution: \textsc{etcs}, being Boolean, writes $\Omega$ for the two-valued object we call $\Sigma$.  We reserve $\Omega$ for the \emph{full} chain (the ambient classifier, $\{\top,\bot,U\}$ for $\mathrm{K}_3$) and $\Sigma = \{\top,\bot\}$ for its endpoints (the decided sub-object), so $\Sigma \subsetneq \Omega$, never the reverse.  The inclusion $\Sigma \hookrightarrow \Omega$ is a Rosolini dominance~\cite{rosolini1986continuity}.}
 This is the \emph{value} axis of (un)decidability, fixed by the chain $\Omega$; the orthogonal \emph{quantifier} axis (Equation~\ref{eqn:quantifiers}, echoing the Chomsky hierarchy) is a property of the \emph{domain}, and arrives with the sets below.
+
+Table~\ref{tab:lattice-lift} reads these operations across five languages, from the bounded chain $\mathbf{Pst}$ itself down to the $\mathbf{Lwv}$ code (the last two rows anticipate the sets of §\ref{sec:reification_set}).
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}lccccccc@{}}
+\toprule
+ & member & meet & join & complement & bottom & top & order \\
+\midrule
+$\mathbf{Pst}$ & ${:}$ & $\min$ & $\max$ & $\neg$ & $\bot$ & $\top$ & $\le$ \\
+\addlinespace
+$\mathbb{B}$ & $\models$ & $\wedge$ & $\vee$ & $\neg$ & $\bot$ & $\top$ & $\Rightarrow$ \\
+\addlinespace
+$\mathcal{P}(A)$ & $\in$ & $\cap$ & $\cup$ & $\complement$ & $\varnothing$ & $A$ & $\subseteq$ \\
+\addlinespace
+$\mathbf{Topos}$ & $\chi$ & $\wedge$ & $\vee$ & $\neg$ & $\mathbf{0}$ & $A$ & $\hookrightarrow$ \\
+\addlinespace
+$\mathbf{Lwv}$ & \cppinline{s(x)} & \cppinline{&} & \cppinline{|} & \cppinline{~} & \cppinline{Ø} & \cppinline{𝔸} & \cppinline{<=} \\
+\bottomrule
+\end{tabular}
+\caption{
+Operator-mapping table: each column is one construction, spelled in five languages over the rows $\mathbf{Pst}$, $\mathbb{B}$, $\mathcal{P}(A)$, $\mathbf{Topos}$, $\mathbf{Lwv}$.
+The $\mathbf{Pst}$ row is the bounded chain itself: membership is a type constraint ($x : \Omega$), meet/join are $\min/\max$ on the order, and $\neg$ the reflection, a genuine complement only on the two-chain $\mathbb{B}$ (on $\mathrm{K}_3$, $\neg U = U$).
+The $\mathbf{Topos}$ row is the Boolean case realised by $\mathbf{Set}$.
+The \emph{member} column is membership ($\models$ satisfaction, $\in$ set membership, $\chi$ the classifier, \cppinline{s(x)} the set applied to a point); the other columns are the lattice operations.
+}
+\label{tab:lattice-lift}
+\end{table}
 
 % Two-axis decidability (#847) + the corner characterisation + closure/retract:
 % now folded into eqn:quantifiers + eqn:corner in the tier-framing prose below.
@@ -561,34 +589,6 @@ A $\mathbf{Lwv}$ set is a subobject of such a universe over a $\mathbf{Jlt}$ car
 \end{equation}
 in which the predicate $\chi_S$ \emph{is} the set.
 \end{definition}
-
-Table~\ref{tab:lattice-lift} spells the correspondence in four languages: the Boolean $\mathbb{B}$, the power set $\mathcal{P}(A)$, the elementary topos (in the subobject lattice $\mathrm{Sub}(A)$, meet the intersection, join the union, membership the classifier $\chi$), and the $\mathbf{Lwv}$ operators.
-
-\begin{table}[htbp]
-\centering
-\begin{tabular}{@{}lccccccc@{}}
-\toprule
- & member & meet & join & complement & bottom & top & order \\
-\midrule
-$\mathbf{Pst}$ & ${:}$ & $\min$ & $\max$ & $\neg$ & $\bot$ & $\top$ & $\le$ \\
-\addlinespace
-$\mathbb{B}$ & $\models$ & $\wedge$ & $\vee$ & $\neg$ & $\bot$ & $\top$ & $\Rightarrow$ \\
-\addlinespace
-$\mathcal{P}(A)$ & $\in$ & $\cap$ & $\cup$ & $\complement$ & $\varnothing$ & $A$ & $\subseteq$ \\
-\addlinespace
-$\mathbf{Topos}$ & $\chi$ & $\wedge$ & $\vee$ & $\neg$ & $\mathbf{0}$ & $A$ & $\hookrightarrow$ \\
-\addlinespace
-$\mathbf{Lwv}$ & \cppinline{s(x)} & \cppinline{&} & \cppinline{|} & \cppinline{~} & \cppinline{Ø} & \cppinline{𝔸} & \cppinline{<=} \\
-\bottomrule
-\end{tabular}
-\caption{
-Operator-mapping table: each column is one construction, spelled in five languages over the rows $\mathbf{Pst}$, $\mathbb{B}$, $\mathcal{P}(A)$, $\mathbf{Topos}$, $\mathbf{Lwv}$ (Section~\ref{sec:intensional_sets}).
-The $\mathbf{Pst}$ row is the bounded chain itself: membership is a type constraint ($x : \Omega$), meet/join are $\min/\max$ on the order, and $\neg$ the reflection, a genuine complement only on the two-chain $\mathbb{B}$ (on $\mathrm{K}_3$, $\neg U = U$).
-The $\mathbf{Topos}$ row is the Boolean case realised by $\mathbf{Set}$.
-The \emph{member} column is membership ($\models$ satisfaction, $\in$ set membership, $\chi$ the classifier, \cppinline{s(x)} the set applied to a point); the other columns are the lattice operations.
-}
-\label{tab:lattice-lift}
-\end{table}
 
 With the notion of set fixed, the rest of the section develops the DSL over three tiers of increasing decidability, loosely echoing the Chomsky hierarchy~\cite{chomsky1956three}.
 Equality and subset of a general predicate (§\ref{sec:ddk_comprehension}) are undecidable, Rice-walled~\cite{rice1953classes}.
