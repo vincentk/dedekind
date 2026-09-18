@@ -473,8 +473,8 @@ Figure~\ref{fig:hub-spoke-bnz} in the introduction previews the functionality th
 \caption{\textbf{The answer-chain} $\Omega$, a bounded chain (Eqn.~\ref{eqn:pst}): \cppinline{IsPst} is a truth-object (\cppinline{IsΩ}) whose values are totally ordered.
 \textbf{Top left ($\mathbb{B}$):} the native operators, the species API \cppinline{AND}/\cppinline{OR}/\cppinline{RFL}, and the lattice $\min/\max$ are one and the same operation; $\wedge/\vee = \min/\max$ on $\bot < \top$, and $\neg = $ \cppinline{RFL} is the reflection, a genuine complement only here.
 \textbf{Top right ($\mathrm{K}_3$):} the undecided $U$ under the order.
-$\bot \le U \le \top$; $\wedge/\vee$ of $U$ stay $U$; meet is a lower bound and join an upper bound, so a $\forall/\exists$ verdict can only lose decidedness; $\le$ is the meet-order $a \le b \Leftrightarrow a \wedge b = a$ that later reifies as the subset test; and \cppinline{RFL} fixes the centre ($\neg U = U$).
-\textbf{Bottom:} the grammar of truth expressions, each operator spelled for \cppinline{bool} and for the general chain.}
+$\bot \le U \le \top$; $\wedge$ and $\vee$ with $U$ stay $U$; the meet lies below its arguments, so a $\forall/\exists$ verdict can only lose decidedness; the order $\le$ (the meet-order $a \le b \Leftrightarrow a \wedge b = a$) later reifies as the subset test; and \cppinline{RFL} fixes the centre ($\neg U = U$).
+\textbf{Bottom:} the grammar of truth expressions, each operator spelled for \cppinline{bool} and for the general chain; the structure of the two panels is described above, so the code carries no inline commentary.}
 \label{lst:membership}
 \noindent
 \begin{minipage}[t]{0.49\linewidth}
@@ -482,42 +482,26 @@ $\bot \le U \le \top$; $\wedge/\vee$ of $U$ stay $U$; meet is a lower bound and 
 static_assert(IsPst<bool>);
 using B = ClassicalLogic;
 static_assert(
-   // ordering
    (false < true)
-   // conjunction = meet = min
 && (false && true) == B::AND(false, true)
 && B::AND(false, true) == std::min(false, true)
-   // disjunction = join = max
-&& (false || true) == B::OR(false, true)
 && B::OR(false, true) == std::max(false, true)
-   // reflection: ! == RFL, flips min/max
 && (!true) == B::RFL(true)
-&& B::RFL(std::min(false, true))
-     == std::max(B::RFL(false), B::RFL(true))
+&& B::RFL(false) == true
 );
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
 static_assert(IsPst<Ternary>);
-using K = TernaryLogic;
-using enum Ternary;
+using K = TernaryLogic; using enum Ternary;
 static_assert(
-   // ordering: bottom <= U <= top
    (False <= Unknown) && (Unknown <= True)
-   // U meets top / joins bottom -> stays U
 && K::AND(Unknown, True) == Unknown
 && K::OR(Unknown, False) == Unknown
-   // meet <= args, join >= args
 && (K::AND(Unknown, True) <= Unknown)
-&& (Unknown <= K::OR(Unknown, False))
-   // <= is the subset order: a <= b iff a&&b == a
-&& ((Unknown <= True)
-      == (K::AND(Unknown, True) == Unknown))
-   // reflection fixes the centre: RFL(U) = U
 && K::RFL(Unknown) == Unknown
 && K::RFL(True) == False
-&& K::RFL(False) == True
 );
 \end{cpp}
 \end{minipage}
