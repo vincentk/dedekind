@@ -443,6 +443,38 @@ struct NegatedPredicate {
   }
 };
 
+/** @brief Structural conjunction of two predicates: the @b named meet result
+ *  @c Set::operator& produces when no @c structured_and collapse fires,
+ *  replacing the opaque lambda so the predicate survives in @c decltype
+ *  (#365).  This is the @c AndPredicate<P,Q> named in @c :category:lattice's
+ *  spec.  Carrier-general; it inherits the operands' logic through the bare
+ *  @c && (Kleene when both return @c Ternary; @c FIXME(#780) tracks the mixed
+ *  bool/Ternary lift the raw operator skips). */
+export template <typename P, typename Q>
+struct AndPredicate {
+  P lhs;
+  Q rhs;
+
+  template <typename T>
+  constexpr auto operator()(const T& v) const {
+    return lhs(v) && rhs(v);
+  }
+};
+
+/** @brief Structural disjunction of two predicates: the @b named join dual of
+ *  @c AndPredicate, produced by @c Set::operator| (and the predicate-level
+ *  @c operator||) when no @c structured_or collapse fires (#365). */
+export template <typename P, typename Q>
+struct OrPredicate {
+  P lhs;
+  Q rhs;
+
+  template <typename T>
+  constexpr auto operator()(const T& v) const {
+    return lhs(v) || rhs(v);
+  }
+};
+
 template <typename P1, typename P2>
 struct IsComplementPair : std::false_type {};
 
@@ -793,14 +825,25 @@ class Set {
           L::OR((*this)(false), other(false)),
           L::OR((*this)(true), other(true)),
       };
+    } else if constexpr (requires {
+                           structured_or(predicate_, other.predicate_);
+                         }) {
+      // The JOIN dual of operator&'s structured_and branch.  A union never
+      // shrinks cardinality, so the only non-predicate result is a covering
+      // pair collapsing to the universe (returned as-is); every other reduction
+      // (a wider halfspace) is a predicate we wrap.
+      auto reduced = structured_or(predicate_, other.predicate_);
+      using Result = std::decay_t<decltype(reduced)>;
+      if constexpr (std::same_as<Result, UniversalSet<T, L>>) {
+        return reduced;
+      } else {
+        return Set<T, L, Result>{std::move(reduced)};
+      }
     } else {
-      // FIXME(#365): symmetric of the operator& fallback below — lattice-law
-      // rewriting (dually: absorption, De Morgan) could collapse `A ∪ B`
-      // structurally before falling through to this opaque lambda.
-      auto predicate = [lhs = predicate_, rhs = other.predicate_](const T& v) {
-        return lhs(v) || rhs(v);
-      };
-      return Set<T, L, decltype(predicate)>{predicate};
+      // No structural collapse: keep the disjunction as a NAMED predicate so it
+      // survives in decltype (#365), rather than an opaque lambda.
+      return Set<T, L, OrPredicate<Predicate, OtherPredicate>>{
+          OrPredicate<Predicate, OtherPredicate>{predicate_, other.predicate_}};
     }
   }
 
@@ -852,14 +895,14 @@ class Set {
         return Set<T, L, Result>{std::move(reduced)};
       }
     } else {
-      // FIXME(#365): lambda fallback erases predicate structure. Lattice-law
-      // rewriting (distributivity / absorption / De Morgan) could expose
-      // collapses here that the local structured_and branches miss — e.g.
-      // `(A ∪ B) ∩ ¬A` normalising to `B ∩ ¬A` before this fallback fires.
-      auto predicate = [lhs = predicate_, rhs = other.predicate_](const T& v) {
-        return lhs(v) && rhs(v);
-      };
-      return Set<T, L, decltype(predicate)>{predicate};
+      // No structural collapse: keep the conjunction as a NAMED predicate so it
+      // survives in decltype (#365), rather than an opaque lambda.  A deeper
+      // lattice-law normalisation (distributivity / absorption / De Morgan,
+      // e.g. `(A ∪ B) ∩ ¬A → B ∩ ¬A`) that exposes collapses this misses stays
+      // the broader #365 ambition.
+      return Set<T, L, AndPredicate<Predicate, OtherPredicate>>{
+          AndPredicate<Predicate, OtherPredicate>{predicate_,
+                                                  other.predicate_}};
     }
   }
 
@@ -1444,8 +1487,8 @@ constexpr auto operator&&(P1&& p1, P2&& p2) {
   if constexpr (HasStructuredAnd<P1, P2>) {
     return structured_and(std::forward<P1>(p1), std::forward<P2>(p2));
   } else {
-    return [p1 = std::forward<P1>(p1), p2 = std::forward<P2>(p2)](
-               const auto& v) { return p1(v) && p2(v); };
+    return AndPredicate<std::decay_t<P1>, std::decay_t<P2>>{
+        std::forward<P1>(p1), std::forward<P2>(p2)};
   }
 }
 
@@ -1454,8 +1497,8 @@ constexpr auto operator||(P1&& p1, P2&& p2) {
   if constexpr (HasStructuredOr<P1, P2>) {
     return structured_or(std::forward<P1>(p1), std::forward<P2>(p2));
   } else {
-    return [p1 = std::forward<P1>(p1), p2 = std::forward<P2>(p2)](
-               const auto& v) { return p1(v) || p2(v); };
+    return OrPredicate<std::decay_t<P1>, std::decay_t<P2>>{
+        std::forward<P1>(p1), std::forward<P2>(p2)};
   }
 }
 

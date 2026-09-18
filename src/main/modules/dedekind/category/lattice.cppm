@@ -774,8 +774,9 @@ static_assert(
  * The lattice operations on @c Sub(A) (meet, join, complement) close
  * over the @em family of subobjects of @c A in @c L, not over a single
  * predicate-type closed carrier.  Concretely: @c Set<T, L, P> @c &
- * @c Set<T, L, Q> returns @c Set<T, L, AndPredicate<P,Q>> — a different
- * predicate type, but the same @c Ambient and @c logic_species.
+ * @c Set<T, L, Q> returns @c Set<T, L, AndPredicate<P,Q>> (dually, @c | returns
+ * @c OrPredicate<P,Q>) — a different predicate type, but the same @c Ambient
+ * and @c logic_species.
  *
  * @section lattice__Family_Anchor
  * The @b ambient @c A is the anchor (per #712 review): a subobject
