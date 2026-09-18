@@ -62,8 +62,9 @@ using namespace dedekind::category;
 // ignores such hiding); the using-DECLARATIONS restore exactly that candidate
 // set, joining --- not losing to --- order's own operators.
 using dedekind::relational::operator>>;  // the relative product R;S
-using dedekind::relational::operator+;   // relation union R + S
 using dedekind::relational::operator&;   // relation meet R & S
+// relation union is the set-grammar | (Set::operator|, member — no using
+// needed)
 
 /**
  * @concept IsRingIntegral
@@ -1321,10 +1322,11 @@ struct ProjBound {
   }
 };
 
-// RelAnd / RelOr (the meet / join predicate carriers) moved DOWN to
-// dedekind.relational:dyadic (#792); halfspace still USES them (the
-// predicate-level operator& below, axis_factor, the >> functional trait) as
-// dedekind::sets::RelAnd / RelOr, imported from :dyadic.
+// RelAnd (the meet predicate carrier) moved DOWN to dedekind.relational:dyadic
+// (#792); halfspace still USES it (the predicate-level operator& below,
+// axis_factor, the >> functional trait) as dedekind::sets::RelAnd, imported
+// from :dyadic.  The join carrier is the set-grammar | / OrPredicate (:sets,
+// #365); the old RelOr / operator+ was dropped as redundant (#864).
 
 // π_I ⋈ π_J  →  ProjProj (projection-vs-projection).
 export template <std::size_t I, std::size_t J>
@@ -2221,8 +2223,9 @@ static_assert(!static_cast<bool>(((𝔹 * 𝔹 | π1 <= π2) >>
                                   (𝔹 * 𝔹 | π1 <= π2))(std::pair{true, false})),
               "≤ ∘ ≤ excludes (true, false): transitivity recovers ≤.");
 
-// ── Relation algebra: union (Kleene +), the diagonal, and the reflexive /
-// symmetric closures.  The relation operator+ / operator& (union / meet), the
+// ── Relation algebra: union (the set-grammar |), the diagonal, and the
+// reflexive / symmetric closures.  The relation | / operator& (union / meet),
+// the
 // diagonal Δ (reframed from ProjProj<Eq> to a plain equality DiagPred), and the
 // reflexive / symmetric closures moved DOWN to dedekind.relational:dyadic
 // (#792) --- pure Set<pair> algebra.  The ordered witnesses below stay and
@@ -2263,7 +2266,7 @@ static_assert(
 
 // Kleene / relation-algebra laws on the DSL, witnessed on 𝔹: Δ is the
 // composition unit (R;Δ = R, the algebra's 1); composition distributes over
-// union (R;(S+T) = R;S + R;T); and --- the Schröder property-gated rewrite ---
+// union (R;(S∪T) = R;S ∪ R;T); and --- the Schröder property-gated rewrite ---
 // a FUNCTIONAL relation's composition distributes over MEET too (R;(S∩T) =
 // R;S ∩ R;T), which fails for a non-functional relation.
 static_assert(static_cast<bool>(((𝔹 * 𝔹 | π1 < π2) >>
@@ -2273,12 +2276,12 @@ static_assert(static_cast<bool>(((𝔹 * 𝔹 | π1 < π2) >>
               "R;Δ = R: the diagonal is the composition unit (the 1).");
 static_assert(
     static_cast<bool>(((𝔹 * 𝔹 | π1 <= π2) >>
-                       ((𝔹 * 𝔹 | π1 < π2) + (𝔹 * 𝔹 | π1 == π2)))(std::pair{
+                       ((𝔹 * 𝔹 | π1 < π2) | (𝔹 * 𝔹 | π1 == π2)))(std::pair{
         false, true})) ==
-        static_cast<bool>((((𝔹 * 𝔹 | π1 <= π2) >> (𝔹 * 𝔹 | π1 < π2)) +
+        static_cast<bool>((((𝔹 * 𝔹 | π1 <= π2) >> (𝔹 * 𝔹 | π1 < π2)) |
                            ((𝔹 * 𝔹 | π1 <= π2) >>
                             (𝔹 * 𝔹 | π1 == π2)))(std::pair{false, true})),
-    "R;(S+T) = R;S + R;T: composition distributes over union.");
+    "R;(S∪T) = R;S ∪ R;T: composition distributes over union.");
 static_assert(
     static_cast<bool>(((𝔹 * 𝔹 | π1 != π2) >>
                        ((𝔹 * 𝔹 | π1 <= π2) & (𝔹 * 𝔹 | π1 == π2)))(std::pair{
@@ -2303,8 +2306,8 @@ static_assert(
 //      showcase_13 through the DSL star and retiring the net/DSL duality.
 // Brick 2's semiring choice + the carrier-enumeration protocol are design
 // decisions best made with the author (not guessed); this seed lands the union
-// (+), the diagonal (1), and the reflexive/symmetric closures (half the Kleene
-// algebra), leaving the star for the next pass.
+// (∪, the set-grammar |), the diagonal (1), and the reflexive/symmetric
+// closures (half the Kleene algebra), leaving the star for the next pass.
 
 }  // namespace dedekind::order
 

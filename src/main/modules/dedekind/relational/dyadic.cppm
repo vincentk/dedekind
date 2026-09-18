@@ -13,11 +13,11 @@
  * calculus of relations (Tarski 1941, "On the Calculus of Relations") is the
  * Boolean involutive monoid on that carrier: converse @f$R^{\circ}@f$
  * (@c converse / @c SwapPred), relative product @f$R;S@f$ (@c operator>> /
- * @c ComposePred), union @f$R\cup S@f$ (@c operator+ / @c RelOr), meet
- * @f$R\cap S@f$ (@c operator& / @c RelAnd), the diagonal @f$\Delta@f$
+ * @c ComposePred), union @f$R\cup S@f$ (the set-grammar @c | / @c OrPredicate),
+ * meet @f$R\cap S@f$ (@c operator& / @c RelAnd), the diagonal @f$\Delta@f$
  * (@c diagonal), and the derived @c reflexive / @c symmetric closures.  The
  * reflexive-transitive closure @f$R^{*}@f$ would be the Kleene star over
- * @f$(+,;)@f$ --- not yet a provided operator (@c >> is Boolean-middle only;
+ * @f$(\cup,;)@f$ --- not yet a provided operator (@c >> is Boolean-middle only;
  * FIXME(#786)).
  *
  * These combinators moved DOWN out of @c order/halfspace.cppm (#792): they are
@@ -51,7 +51,8 @@
  * pairs.  Migration impact: @c converse / @c is_relation / @c reflexive /
  * @c symmetric / @c preimage take a @c Set argument, so they @b were
  * ADL-reachable from @c dedekind::sets and now need qualification or a @c
- * using; so do the infix operators @c >> / @c + / @c &.  (Only @c graph ---
+ * using; so do the infix operators @c >> / @c & (union is the set-grammar
+ * @c |).  (Only @c graph ---
  * called on an @b arrow --- and the relation/function @b concepts never
  * ADL-reached
  * @c sets.)  A consumer that wants the bare forms brings them in with @c using
@@ -190,7 +191,9 @@ constexpr typename L::Ω is_single_valued_at(const SetFunction<T1, T2, L, P>& f,
   return L::OR(L::RFL(both_related), equal_outputs);
 }
 
-// ── Meet / join of relational predicates (the carriers of & and +) ─────────
+// ── Meet of relational predicates (RelAnd, the carrier of &) ────────────────
+// (Join is the set-grammar | / OrPredicate in :sets; there is no relation-
+// specific union carrier.)
 /** @brief Meet (conjunction) of two relational predicates. */
 export template <typename A, typename B>
 struct RelAnd {
@@ -207,24 +210,12 @@ struct RelAnd {
   }
 };
 
-/** @brief Join (disjunction) of two relational predicates --- the relation
- *  UNION carrier, dual to @c RelAnd.  It is the Kleene @c + of the relation
- *  algebra @f$(+, ;, {}^{*})@f$: @c ; is the relative product @c >>, and @c *
- *  the reflexive-transitive closure. */
-export template <typename A, typename B>
-struct RelOr {
-  using is_rel_predicate = void;
-  A a;
-  B b;
-  // @c auto (not @c bool): the result inherits the operands' own logic, so over
-  // a @c TernaryLogic relation this is the Kleene @c ∨ (a @c bool cast would
-  // collapse @c Unknown).  FIXME(#780): mixed Boolean/Ternary operands still
-  // need a lift on the bool side.
-  template <typename P>
-  constexpr auto operator()(const P& p) const {
-    return a(p) || b(p);
-  }
-};
+// Relation UNION is the set-grammar join @c |: two relations over the same
+// product are just two @c Set<pair>, so @c r @c | @c s is their structural
+// @c OrPredicate union (@c :sets, #365).  The old @c operator+ / @c RelOr
+// carriers were a redundant dioid-additive spelling of the same set and were
+// dropped (#864 landed the structural @c |); @c ; (@c >>) remains the relation
+// product and @c * (closure) is @c FIXME(#786).
 
 // ── converse and the bracket-free relation query ───────────────────────────
 /** @brief The swapped predicate for @c converse: @f$R^\smile(b,a) = R(a,b)@f$.
@@ -294,21 +285,11 @@ constexpr auto operator>>(const Set<std::pair<A, B>, L, PR>& r,
       ComposePred<PR, PS, B>{r.predicate(), s.predicate()}};
 }
 
-// ── Union (Kleene +), meet, the diagonal, reflexive / symmetric closures ────
-/** @brief @c R @c + @c S --- the UNION of two relations over the same product
- *  @f$A \times B@f$: membership is either predicate (@c RelOr).  The Kleene @c
- * +
- *  (@c ; is the relative product @c >>). */
-export template <typename A, typename B, typename L, typename PR, typename PS>
-constexpr auto operator+(const Set<std::pair<A, B>, L, PR>& r,
-                         const Set<std::pair<A, B>, L, PS>& s) {
-  return Set<std::pair<A, B>, L, RelOr<PR, PS>>{
-      RelOr<PR, PS>{r.predicate(), s.predicate()}};
-}
-
+// ── Meet, the diagonal, reflexive / symmetric closures ─────────────────────
+// (Union is the set-grammar @c |: see the note above @c SwapPred.)
 /** @brief @c R @c & @c S --- the INTERSECTION (meet) of two relations over the
- *  same product, dual to the union @c +: membership is both predicates
- *  (@c RelAnd).  The Boolean-lattice ∩ on relations. */
+ *  same product, dual to the union @c | (@c OrPredicate): membership is both
+ *  predicates (@c RelAnd).  The Boolean-lattice ∩ on relations. */
 export template <typename A, typename B, typename L, typename PR, typename PS>
 constexpr auto operator&(const Set<std::pair<A, B>, L, PR>& r,
                          const Set<std::pair<A, B>, L, PS>& s) {
@@ -337,18 +318,23 @@ constexpr auto diagonal() {
   return Set<std::pair<A, A>, L, DiagPred<A>>{DiagPred<A>{}};
 }
 
-/** @brief @c reflexive(R) = @c R @c + @c Δ --- the smallest reflexive relation
- *  containing an endorelation @c R (add the self-loops). */
+/** @brief @c reflexive(R) = @c R @c | @c Δ --- the smallest reflexive relation
+ *  containing an endorelation @c R (add the self-loops).  @c P is constrained
+ * to a genuine pair-predicate (invocable on a carrier pair @f$\langle A,A
+ * \rangle@f$) so a mis-typed @c R fails at the call, not deep inside the
+ * union. */
 export template <typename A, typename L, typename P>
+  requires std::invocable<const P&, std::pair<A, A>>
 constexpr auto reflexive(const Set<std::pair<A, A>, L, P>& r) {
-  return r + diagonal<A, L>();
+  return r | diagonal<A, L>();
 }
 
-/** @brief @c symmetric(R) = @c R @c + @c R° --- the smallest symmetric relation
+/** @brief @c symmetric(R) = @c R @c | @c R° --- the smallest symmetric relation
  *  containing @c R (add the reversed edges; @c R° is the @c converse). */
 export template <typename A, typename L, typename P>
+  requires std::invocable<const P&, std::pair<A, A>>
 constexpr auto symmetric(const Set<std::pair<A, A>, L, P>& r) {
-  return r + converse(r);
+  return r | converse(r);
 }
 
 // ── Self-contained base witnesses (no order DSL) ────────────────────────────

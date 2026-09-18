@@ -30,7 +30,8 @@
  *       are n-ary tables of tuples.
  *   @li @c :dyadic  --- @b Tarski's calculus of relations (1941): converse
  *       @f$R^{\circ}@f$, relative product @f$R;S@f$ (over a Boolean middle),
- *       diagonal @f$\Delta@f$, union @f$+@f$ / meet @f$\&@f$; relations are
+ *       diagonal @f$\Delta@f$, union @f$\cup@f$ (the set-grammar @c |) / meet
+ *       @f$\&@f$; relations are
  *       dyadic (binary), one carrier under a Boolean involutive monoid.  The
  *       BASE the other two build on.  (The reflexive-transitive closure
  *       @f$R^{*}@f$ is not yet a provided operator; FIXME(#786).)
@@ -50,8 +51,9 @@
  * @c Set / @c Relation argument --- @c converse, @c select, @c set_difference,
  * @c natural_join, @c preimage, @c reflexive, @c symmetric --- @b was
  * ADL-reachable from @c dedekind::sets and now is @b not; those bare calls need
- * qualification or a @c using.  The infix operators (@c >> / @c + / @c & / the
- * set-difference @c -) are the same story.  The ONLY symbols that never
+ * qualification or a @c using.  The infix operators (@c >> / @c & / the
+ * set-difference @c -) are the same story (union is the set-grammar @c |, a
+ * @c Set member, so it needs no @c using).  The ONLY symbols that never
  * ADL-reached @c sets are @c graph (called on an @b arrow, whose type is not in
  * @c sets) and the relation/function @b concepts (used as type traits, not
  * calls).  In practice consumers add @c using @c namespace @c
@@ -60,7 +62,8 @@
  */
 export module dedekind.relational;
 
-export import :dyadic;  // Tarski BASE: converse °, relative product ;, Δ, +, &
+export import :dyadic;  // Tarski BASE: converse °, relative product >>, Δ, & (∪
+                        // = set-grammar |)
 export import :tables;  // Codd: σ ⋈ ∪ ∖ ∩ (dedekind::relational namespace)
 export import :graph;   // graphs of arrows (binary relations): graph(f),
                         // is_graph_of
