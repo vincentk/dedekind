@@ -470,17 +470,54 @@ Figure~\ref{fig:hub-spoke-bnz} in the introduction previews the functionality th
 \label{sec:logic_lattice}
 
 \begin{listing}[ht]
-\begin{cpp}
-// Truth is a bounded chain Ω:  ⊥ < ⊤  (𝔹)  or  ⊥ < U < ⊤  (K3).
-static_assert(Ternary::False < Ternary::Unknown
-           && Ternary::Unknown < Ternary::True);        // ⊥ < U < ⊤  (order, bounds)
-static_assert((Ternary::True  && Ternary::Unknown) == Ternary::Unknown);  // ∧ = min (meet)
-static_assert((Ternary::False || Ternary::Unknown) == Ternary::Unknown);  // ∨ = max (join)
-static_assert(!true == false);                          // 𝔹: ¬ swaps ⊥,⊤ — a complement
-static_assert(!Ternary::Unknown == Ternary::Unknown);   // K3: ¬ fixes U — reflection, not complement
-\end{cpp}
-\caption{The answer-chain $\Omega$: $\wedge/\vee = \min/\max$ on the order $\bot < \cdots < \top$; $\neg$ is the reflection, a complement only on the two-chain $\mathbb{B}$.}
+\caption{\textbf{The answer-chain} $\Omega$, a bounded chain (Eqn.~\ref{eqn:pst}): \cppinline{IsPst} is a truth-object (\cppinline{IsΩ}) whose values are totally ordered.
+\textbf{Top:} the same lattice twice.
+$\mathbb{B} = $ \cppinline{bool} on the left carries the native operators; $\mathrm{K}_3 = $ \cppinline{Ternary} on the right runs through the species API, since the logical operators are not overloaded on the general chain.
+$\wedge/\vee = \min/\max$ on the order $\bot < \cdots < \top$, and $\neg$ is the reflection, a genuine complement only on $\mathbb{B}$ (on $\mathrm{K}_3$, $\neg U = U$).
+\textbf{Bottom:} the grammar of truth expressions, each operator spelled for \cppinline{bool} and for the general chain.}
 \label{lst:membership}
+\noindent
+\begin{minipage}[t]{0.49\linewidth}
+\begin{cpp}
+static_assert(IsPst<bool>);
+static_assert(false < true);
+static_assert((true && false) == false);
+static_assert((true || false) == true);
+static_assert((!true) == false);
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\linewidth}
+\begin{cpp}
+using K = TernaryLogic;
+using enum Ternary;
+static_assert(IsPst<Ternary>);
+static_assert(False < Unknown && Unknown < True);
+static_assert(K::AND(True, Unknown) == Unknown);
+static_assert(K::OR (False, Unknown) == Unknown);
+static_assert(K::NOT(Unknown) == Unknown);
+\end{cpp}
+\end{minipage}
+
+\vspace{0.6em}
+\noindent
+\begin{minipage}[t]{0.49\linewidth}
+\begin{minted}[fontsize=\footnotesize]{text}
+Ω     ::= <any IsPst>
+truth ::= '⊥' | '⊤' | 'U'
+logic ::= truth
+  | logic meet logic
+  | logic join logic
+  | comp logic
+\end{minted}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\linewidth}
+\begin{minted}[fontsize=\footnotesize]{text}
+meet  ::= '&&' | 'AND' | 'min'
+join  ::= '||' | 'OR'  | 'max'
+comp  ::= '!'  | 'NOT'
+order ::= '<=' | '<=>'
+\end{minted}
+\end{minipage}
 \end{listing}
 
 Sets will be indexed by truth-values, so we fix those first --- algebraically, before any set is defined, to keep the construction non-circular.
@@ -491,7 +528,9 @@ Two instances carry the whole paper:
 \item $\mathbb{B} = \{\bot < \top\}$, the two-chain.  Here $\neg$ swaps the endpoints and \emph{is} a complement, so the law of the excluded middle holds: $\mathbb{B}$ is the Boolean archetype.
 \item $\mathrm{K}_3 = \{\bot < U < \top\}$, the three-chain (Kleene~\cite{kleene1952metamathematics}).  Now $\neg$ reflects about the interior point, $\neg U = U$, which is therefore \emph{not} a complement ($U \wedge \neg U = U \neq \bot$); the excluded middle fails and $U$ is an \emph{undecided} answer.
 \end{itemize}
-We need no more: every bounded chain with reflection is automatically a distributive lattice and a \emph{Kleene algebra} --- the condition $a \wedge \neg a \le b \vee \neg b$ holds on any chain, since $\min(a, \neg a)$ sits at or below the centre and $\max(b, \neg b)$ at or above it --- so the De~Morgan/Kleene structure is a \emph{theorem} of ``chain $+$ reflection'', not a separate axiom.\footnote{The scope is deliberately narrow.  $\mathbf{Pst}$ is the \emph{finite} chains describable by a type constraint alone: $\mathbb{B}$, $\mathrm{K}_3$, a finite {\L}ukasiewicz $\mathrm{\L}_n$.  Graded truth on $[0,1]$ under $\min/\max$ needs a range \emph{predicate}, so it is a set (§\ref{sec:reification_set}, carrier $+$ predicate) rather than a $\mathbf{Pst}$ chain, and is the fuzzy/G\"odel reading, distinct from probability's product t-norm ($a \cdot b \ne \min$).  Non-chain many-valued logics (a four-element Boolean algebra, Belnap's bilattice) are excluded throughout.}
+We need no more.
+Every bounded chain with reflection is automatically a distributive lattice and a \emph{Kleene algebra}: the condition $a \wedge \neg a \le b \vee \neg b$ holds on any chain, since $\min(a, \neg a)$ sits at or below the centre and $\max(b, \neg b)$ at or above it.
+So the De~Morgan/Kleene structure is a \emph{theorem} of ``chain $+$ reflection'', not a separate axiom.\footnote{The scope is deliberately narrow.  $\mathbf{Pst}$ is the \emph{finite} chains describable by a type constraint alone: $\mathbb{B}$, $\mathrm{K}_3$, a finite {\L}ukasiewicz $\text{\L}_n$.  Graded truth on $[0,1]$ under $\min/\max$ needs a range \emph{predicate}, so it is a set (§\ref{sec:reification_set}, carrier $+$ predicate) rather than a $\mathbf{Pst}$ chain, and is the fuzzy/G\"odel reading, distinct from probability's product t-norm ($a \cdot b \ne \min$).  Non-chain many-valued logics (a four-element Boolean algebra, Belnap's bilattice) are excluded throughout.}
 
 These truth-objects, the $\mathbf{Jlt}$ types that are bounded chains, form the logic layer
 \begin{equation}
@@ -521,7 +560,7 @@ A set is \emph{decidable} exactly when membership never returns $U$, i.e.\ its c
 Strict \textsc{etcs} is the Boolean collapse $\Sigma = \Omega$ ($\iota = \mathrm{id}$, so every test factors and all membership is decidable); the honest species keeps $\iota$ a \emph{proper} inclusion $\{\top, \bot\} \subsetneq \{\top, \bot, U\}$, so a $\chi_A$ that hits $U$ has no factorisation.\footnote{A notational caution: \textsc{etcs}, being Boolean, writes $\Omega$ for the two-valued object we call $\Sigma$.  We reserve $\Omega$ for the \emph{full} chain (the ambient classifier, $\{\top,\bot,U\}$ for $\mathrm{K}_3$) and $\Sigma = \{\top,\bot\}$ for its endpoints (the decided sub-object), so $\Sigma \subsetneq \Omega$, never the reverse.  The inclusion $\Sigma \hookrightarrow \Omega$ is a Rosolini dominance~\cite{rosolini1986continuity}.}
 This is the \emph{value} axis of (un)decidability, fixed by the chain $\Omega$; the orthogonal \emph{quantifier} axis (Equation~\ref{eqn:quantifiers}, echoing the Chomsky hierarchy) is a property of the \emph{domain}, and arrives with the sets below.
 
-Table~\ref{tab:lattice-lift} reads these operations across five languages, from the bounded chain $\mathbf{Pst}$ itself down to the $\mathbf{Lwv}$ code (the last two rows anticipate the sets of §\ref{sec:reification_set}).
+Table~\ref{tab:lattice-lift} reads these operations across five languages, from the Boolean archetype $\mathbb{B}$ down to the two executable-C++ rows, $\mathbf{Pst}$ (the chain itself) and $\mathbf{Lwv}$ (the sets of §\ref{sec:reification_set} built over it), placed side by side.
 
 \begin{table}[htbp]
 \centering
@@ -529,22 +568,23 @@ Table~\ref{tab:lattice-lift} reads these operations across five languages, from 
 \toprule
  & member & meet & join & complement & bottom & top & order \\
 \midrule
-$\mathbf{Pst}$ & ${:}$ & $\min$ & $\max$ & $\neg$ & $\bot$ & $\top$ & $\le$ \\
-\addlinespace
 $\mathbb{B}$ & $\models$ & $\wedge$ & $\vee$ & $\neg$ & $\bot$ & $\top$ & $\Rightarrow$ \\
 \addlinespace
 $\mathcal{P}(A)$ & $\in$ & $\cap$ & $\cup$ & $\complement$ & $\varnothing$ & $A$ & $\subseteq$ \\
 \addlinespace
 $\mathbf{Topos}$ & $\chi$ & $\wedge$ & $\vee$ & $\neg$ & $\mathbf{0}$ & $A$ & $\hookrightarrow$ \\
 \addlinespace
+$\mathbf{Pst}$ & \cppinline{IsPst} & \cppinline{&&}\,/\,\cppinline{AND} & \cppinline{||}\,/\,\cppinline{OR} & \cppinline{!}\,/\,\cppinline{NOT} & \cppinline{false} & \cppinline{true} & \cppinline{<=} \\
+\addlinespace
 $\mathbf{Lwv}$ & \cppinline{s(x)} & \cppinline{&} & \cppinline{|} & \cppinline{~} & \cppinline{Ø} & \cppinline{𝔸} & \cppinline{<=} \\
 \bottomrule
 \end{tabular}
 \caption{
-Operator-mapping table: each column is one construction, spelled in five languages over the rows $\mathbf{Pst}$, $\mathbb{B}$, $\mathcal{P}(A)$, $\mathbf{Topos}$, $\mathbf{Lwv}$.
-The $\mathbf{Pst}$ row is the bounded chain itself: membership is a type constraint ($x : \Omega$), meet/join are $\min/\max$ on the order, and $\neg$ the reflection, a genuine complement only on the two-chain $\mathbb{B}$ (on $\mathrm{K}_3$, $\neg U = U$).
+Operator-mapping table: each column is one construction, spelled in five languages over the rows $\mathbb{B}$, $\mathcal{P}(A)$, $\mathbf{Topos}$, $\mathbf{Pst}$, $\mathbf{Lwv}$.
+The two executable-C++ rows are placed together at the bottom for direct comparison: $\mathbf{Pst}$ is the bounded chain (\cppinline{IsPst} the truth-object type-constraint), $\mathbf{Lwv}$ the sets built over it.
+Because the logical operators are not overloaded on the general chain, the $\mathbf{Pst}$ operators are spelled twice: the native \cppinline{bool} form left of the slash, the species API (\cppinline{TernaryLogic::AND} and friends) right; $\neg$ is the reflection, a genuine complement only on the two-chain $\mathbb{B}$ (on $\mathrm{K}_3$, $\neg U = U$).
 The $\mathbf{Topos}$ row is the Boolean case realised by $\mathbf{Set}$.
-The \emph{member} column is membership ($\models$ satisfaction, $\in$ set membership, $\chi$ the classifier, \cppinline{s(x)} the set applied to a point); the other columns are the lattice operations.
+The \emph{member} column is membership ($\models$ satisfaction, $\in$ set membership, $\chi$ the classifier, \cppinline{IsPst} the truth-object constraint, \cppinline{s(x)} the set applied to a point); the other columns are the lattice operations.
 }
 \label{tab:lattice-lift}
 \end{table}
