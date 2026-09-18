@@ -37,9 +37,9 @@
  */
 module;
 
-#include <array>
 #include <cstddef>
 #include <optional>
+#include <ranges>
 #include <utility>
 
 export module dedekind.numbers:collatz;
@@ -131,24 +131,26 @@ static_assert(!converges_in_1(finite_cardinality(4)),
 // ─── Two steps: the relative product over a finite ℕ-prefix middle (#795) ──
 //
 // @c collatz;collatz needs @f$\exists b@f$ over the ℕ middle --- the Rice wall
-// on all of ℕ, but DECIDABLE over a finite prefix @f$[0,M)@f$: @c compose_over
-// enumerates the prefix as the middle.  This is the finite generalization of
-// the Boolean-middle @c >>; repeated squaring (@c collatz4 = @c
+// on all of ℕ, but DECIDABLE over a finite prefix @f$[0,M)@f$.  The ∃ is a
+// @b streaming @b Boolean @b OR-fold over a @b lazy @c iota generator (@c
+// compose_over's loop @e is that short-circuiting fold): O(1) memory (one
+// bool), O(M) steps, @b no array.  Repeated squaring (@c collatz4 = @c
 // collatz2;collatz2, …) is then the bounded transitive closure the §4 exhibit
 // collapses to.
 
-/** @brief The canonical ℕ prefix @f$\{0,1,\dots,M-1\}@f$ as a finite middle. */
+/** @brief The finite ℕ-prefix @f$[0,M)@f$ as a @b lazy generator (no storage):
+ *  @c iota streamed through @c finite_cardinality.  Streaming, not stored ---
+ *  the middle is folded, never materialised. */
 template <std::size_t M>
-constexpr std::array<Cardinality, M> prefix_ℕ() {
-  std::array<Cardinality, M> a{};
-  for (std::size_t i = 0; i < M; ++i) a[i] = finite_cardinality(i);
-  return a;
+constexpr auto prefix_ℕ() {
+  return std::views::iota(std::size_t{0}, M) |
+         std::views::transform(finite_cardinality);
 }
 
 /** @brief @c collatz2 @f$= \mathrm{collatz};\mathrm{collatz}@f$ over the finite
- * prefix
- *  @f$[0,64)@f$ middle --- two Collatz steps, point-free, the relative product
- *  with a bounded @f$\exists@f$ (no shadow, no graph). */
+ *  prefix @f$[0,64)@f$ middle --- two Collatz steps, point-free, the relative
+ *  product with the bounded @f$\exists@f$ streamed as an OR-fold (no shadow, no
+ *  graph, no array). */
 export inline constexpr auto collatz2 =
     compose_over(collatz, collatz, prefix_ℕ<64>());
 
