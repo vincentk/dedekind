@@ -160,6 +160,47 @@ static_assert(!collatz2(std::pair{finite_cardinality(6),
                                   finite_cardinality(5)}),
               "6 → 3 → 10 ≠ 5: (6,5) ∉ collatz2");
 
+// ─── Who has converged?  The pre-image of the attractor (#795) ─────────────
+//
+// A number @f$n@f$ has @b converged (been captured by the cycle 1 → 4 → 2 → 1)
+// within @f$2^k@f$ steps iff @f$\mathrm{collatz}^{2^k}(n)@f$ lands in the
+// @b absorbing set @f$\{1,2,4\}@f$.  Because that cycle is CLOSED under
+// @c collatz, membership at @b exactly step @f$2^k@f$ already certifies capture
+// --- the orbit can only rotate within the cycle thereafter --- so the
+// exact-step product suffices, with @b no reflexive closure.
+//
+// Read it as @c converges_in_1 reads its one-step target, one rung up: the
+// converged set is the @b pre-image of the attractor, the union of
+// converse-fibres over its three points.  @c fibre(converse(R), t) pins
+// @f$\pi_2 = t@f$ and returns the domain elements reaching it, so the
+// membership test is purely on @f$\pi_2@f$ (which cycle point) --- a unary
+// @c Set on ℕ, the shape the prefix tracker folds over.
+
+/** @brief @c converged_2 @f$= \mathrm{collatz2}^{\circ}(\{1,2,4\})@f$ --- the
+ *  naturals captured by the attractor within two steps: the pre-image of the
+ *  cycle, the union of converse-fibres over @f$\{1,2,4\}@f$. */
+constexpr auto back2 = converse(collatz2);
+export inline constexpr auto converged_2 = fibre(back2, finite_cardinality(1)) |
+                                           fibre(back2, finite_cardinality(2)) |
+                                           fibre(back2, finite_cardinality(4));
+
+/** @brief @c pending_2 @f$= \sim@f$@c converged_2 --- the naturals @b not yet
+ *  captured within two steps: the honest "Unknown", complemented on the domain
+ *  (unary), not on the pair universe. */
+export inline constexpr auto pending_2 = ~converged_2;
+
+static_assert(converged_2(finite_cardinality(4)),
+              "4 → 2 → 1: captured within two steps");
+static_assert(converged_2(finite_cardinality(8)),
+              "8 → 4 → 2: captured within two steps");
+static_assert(converged_2(finite_cardinality(1)),
+              "1 → 4 → 2: already inside the cycle");
+static_assert(!converged_2(finite_cardinality(3)),
+              "3 → 10 → 5: not captured within two steps");
+static_assert(pending_2(finite_cardinality(3)), "3 is still pending at step 2");
+static_assert(!pending_2(finite_cardinality(4)),
+              "4 has converged, so it is not pending");
+
 // ─── The finite iteration (the strength-reduced shadow) ───────────────────
 
 /** @brief The orbit @f$\{n\} ; T^{\le N}@f$ presented as the arrow's iterate
