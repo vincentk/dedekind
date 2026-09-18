@@ -82,13 +82,15 @@ constexpr auto triple_plus_1 = ℕ * ℕ | π1 * fix(3_c) + fix(1_c) == π2;
  *  spelled @b point-free as the McCarthy conditional
  *  @f$T = (\text{even} \cap \text{halve}) \cup (\text{odd} \cap
  * \text{triple})@f$
- *  --- @b no lambda, @b no graph, the recurrence @e is the relation.  Mirrors
- *  the divides relation of §4; the parity test appears exactly once.
+ *  --- @b no lambda, @b no graph, the recurrence @e is the relation, spelled in
+ *  uniform set-grammar: @c & (meet), @c ~ (complement), @c | (join, the
+ *  structural @c OrPredicate union of #365).  Mirrors the divides relation of
+ *  §4; the parity test appears exactly once.
  * @note Whether the DSL infers @c IsFunction across the (disjoint, total)
  *       case split is the next investigation --- functionality is inferred from
  * a graph-shaped leaf or through @c >>, not yet across @f$\cap/\cup@f$. */
 export inline constexpr auto collatz =
-    (n_even & halve) + (~n_even & triple_plus_1);
+    (n_even & halve) | (~n_even & triple_plus_1);
 
 static_assert(IsSet<decltype(collatz)>,
               "the point-free recurrence is an ETCS Set on ℕ × ℕ");
