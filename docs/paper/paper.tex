@@ -504,6 +504,10 @@ This is the \emph{value} axis of (un)decidability, fixed by the chain $\Omega$; 
 % now folded into eqn:quantifiers + eqn:corner in the tier-framing prose below.
 \subsection{Sets over the Lattice}
 \label{sec:reification_set}
+The chains of §\ref{sec:logic_lattice} already give a well-defined set: a type \emph{is} a set, and membership is a \emph{type constraint} the compiler decides, namely \cppinline{𝔸<T>}, the universal set over \cppinline{T}, whose $\chi \equiv \top$.
+This much already serves the algebra and the exposition; the relational operations, subset and equality, are reified later (§\ref{sec:ddk_ordered} onward) where the quantifier they hide can discharge.
+A \emph{proper} set adds a \emph{predicate} to that type constraint: a carrier \cppinline{A} with a characteristic map $\chi_S : A \to \Omega$ (\cppinline{𝔸<A> | P}), whose membership is now valued in the chain and may answer $U$.
+The two layers are thus one construction at two settings of the predicate: the trivial $\chi \equiv \top$ (a bare type, the universal set) and a genuine $\chi$ (a refined subobject).
 Here, a set \emph{is} its characteristic predicate, not a list of its elements.
 The set operations \emph{are} the pointwise logical ones.
 This way, there is no problem to model an open disk $\{\, x \mid \lVert x - c \rVert < r \,\}$, which in an extensional setting is an uncountable bag no machine can hold.
