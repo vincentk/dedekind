@@ -37,6 +37,7 @@
  */
 module;
 
+#include <array>
 #include <cstddef>
 #include <optional>
 #include <utility>
@@ -126,6 +127,38 @@ static_assert(!converges_in_1(finite_cardinality(1)),
               "1 is odd, 3·1+1 = 4: 1 does NOT reach 1 in one step");
 static_assert(!converges_in_1(finite_cardinality(4)),
               "4 is even, 4/2 = 2 ≠ 1: 4 ∉ collatz°(1)");
+
+// ─── Two steps: the relative product over a finite ℕ-prefix middle (#795) ──
+//
+// @c collatz;collatz needs @f$\exists b@f$ over the ℕ middle --- the Rice wall
+// on all of ℕ, but DECIDABLE over a finite prefix @f$[0,M)@f$: @c compose_over
+// enumerates the prefix as the middle.  This is the finite generalization of
+// the Boolean-middle @c >>; repeated squaring (@c c4 = @c c2;c2, …) is then the
+// bounded transitive closure the §4 exhibit collapses to.
+
+/** @brief The canonical ℕ prefix @f$\{0,1,\dots,M-1\}@f$ as a finite middle. */
+template <std::size_t M>
+constexpr std::array<Cardinality, M> prefix_ℕ() {
+  std::array<Cardinality, M> a{};
+  for (std::size_t i = 0; i < M; ++i) a[i] = finite_cardinality(i);
+  return a;
+}
+
+/** @brief @c c2 @f$= \mathrm{collatz};\mathrm{collatz}@f$ over the finite
+ * prefix
+ *  @f$[0,64)@f$ middle --- two Collatz steps, point-free, the relative product
+ *  with a bounded @f$\exists@f$ (no shadow, no graph). */
+export inline constexpr auto c2 =
+    compose_over(collatz, collatz, prefix_ℕ<64>());
+
+static_assert(c2(std::pair{finite_cardinality(4), finite_cardinality(1)}),
+              "4 → 2 → 1: (4,1) ∈ collatz;collatz (middle b=2)");
+static_assert(c2(std::pair{finite_cardinality(8), finite_cardinality(2)}),
+              "8 → 4 → 2: (8,2) ∈ c2 (middle b=4)");
+static_assert(c2(std::pair{finite_cardinality(6), finite_cardinality(10)}),
+              "6 → 3 → 10: (6,10) ∈ c2 (middle b=3)");
+static_assert(!c2(std::pair{finite_cardinality(6), finite_cardinality(5)}),
+              "6 → 3 → 10 ≠ 5: (6,5) ∉ c2");
 
 // ─── The finite iteration (the strength-reduced shadow) ───────────────────
 
