@@ -912,8 +912,8 @@ class Set {
       // No structural collapse: keep the conjunction as a NAMED predicate so it
       // survives in decltype (#365), rather than an opaque lambda.  A deeper
       // lattice-law normalisation (distributivity / absorption / De Morgan,
-      // e.g. `(A ∪ B) ∩ ¬A → B ∩ ¬A`) that exposes collapses this misses stays
-      // the broader #365 ambition.
+      // e.g. `(A ∪ B) ∩ ¬A → B ∩ ¬A`) that exposes collapses this misses is the
+      // follow-up #865.
       return Set<T, L, AndPredicate<Predicate, OtherPredicate>>{
           AndPredicate<Predicate, OtherPredicate>{predicate_,
                                                   other.predicate_}};
@@ -963,23 +963,16 @@ class Set {
       // @c (x @c < @c 5) is not the @c NegatedPredicate wrapper of
       // @c (x @c > @c 100)) but @c structured_and detects.
       return *this | other;
-    } else if constexpr (std::same_as<std::decay_t<decltype(*this | other)>,
-                                      UniversalSet<T, L>>) {
-      // Compile-time-covering optimisation (dual of the disjoint
-      // branch above): when @c A @c ∪ @c B reduces structurally to
-      // @c UniversalSet<T, L> at the type level, the textbook identity becomes
-      // @c A @c △ @c B @c = @c 𝔸 @c ∖ @c (A @c ∩ @c B) @c =
-      // @c ¬(A @c ∩ @c B).  Currently dormant: today the only path
-      // by which @c | yields @c 𝔸 at the type level is the
-      // @c IsComplementPair_v branch, which is already handled by
-      // branch 1 above.  When a @c structured_or overload lands
-      // (mirroring the existing @c structured_and in
-      // @c order:halfspace) and detects covering halfspace pairs
-      // whose union covers the carrier without complement-pair
-      // shape, this branch will fire automatically.  Added now for
-      // symmetry with the disjoint branch and to document the
-      // design space.
-      return !(*this & other);
+      // NOTE(#864): a dual "covering" optimisation once lived here --- when
+      // @c A @c ∪ @c B reduces to @c UniversalSet, @c A @c △ @c B @c =
+      // @c ¬(A @c ∩ @c B).  It was dormant until @c structured_or landed, and
+      // on activation was incorrect: @c A @c ∩ @c B elevates to a bare
+      // @c OrderInterval / @c Singleton, so @c !(...) dispatched to the
+      // predicate-level @c category::operator! and returned a @c Morphism, not
+      // an
+      // @c IsSet.  Removed: covering XOR falls through to the general branch
+      // below, which yields a correct @c Set.  A structural covering-XOR
+      // optimisation that stays closed over @c Set can revisit this under #865.
     } else if constexpr (IsNegatedPredicate_v<OtherPredicate>) {
       // De Morgan negation-peel (#469 / PR #523):
       // A △ ¬X = ¬(A △ X)

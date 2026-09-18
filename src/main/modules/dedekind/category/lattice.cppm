@@ -773,10 +773,12 @@ static_assert(
  * @details
  * The lattice operations on @c Sub(A) (meet, join, complement) close
  * over the @em family of subobjects of @c A in @c L, not over a single
- * predicate-type closed carrier.  Concretely: @c Set<T, L, P> @c &
- * @c Set<T, L, Q> returns @c Set<T, L, AndPredicate<P,Q>> (dually, @c | returns
- * @c OrPredicate<P,Q>) — a different predicate type, but the same @c Ambient
- * and @c logic_species.
+ * predicate-type closed carrier.  Concretely, when no structural collapse
+ * fires (a @c structured_and / @c structured_or reduction to a halfspace,
+ * interval, @c Singleton, @c Ø or @c UniversalSet, or an @c IsComplementPair
+ * short-circuit), @c Set<T, L, P> @c & @c Set<T, L, Q> returns
+ * @c Set<T, L, AndPredicate<P,Q>> (dually, @c | returns @c OrPredicate<P,Q>) —
+ * a different predicate type, but the same @c Ambient and @c logic_species.
  *
  * @section lattice__Family_Anchor
  * The @b ambient @c A is the anchor (per #712 review): a subobject

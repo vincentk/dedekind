@@ -192,6 +192,9 @@ namespace {
 // A ClassicalLogic halfspace over int, abbreviated for the union/meet tests.
 template <int Piv, Direction D, Strictness S>
 using HS = Halfspace<int, Piv, D, S, ClassicalLogic>;
+// A function-pointer predicate (not a class functor): the case
+// CombinablePredicate must still admit, exercised through the Set operators.
+constexpr bool is_pos(int x) { return x > 0; }
 }  // namespace
 
 TEST_CASE("order:halfspace — structured_or joins halfspaces (#365)",
@@ -279,6 +282,63 @@ TEST_CASE("order:halfspace — excluded middle B ∪ ¬B = 𝔸 (#365, dual of B
   using U = std::decay_t<decltype(B | ~B)>;
   STATIC_CHECK(std::same_as<U, UniversalSet<std::pair<Cardinality, Cardinality>,
                                             ClassicalLogic>>);
+}
+
+TEST_CASE("order:halfspace — covering XOR stays an IsSet (#864 CP review)",
+          "[order][halfspace][set][xor]") {
+  // {x > 10} △ {x < 100}: the union covers the line.  A dormant covering-XOR
+  // branch that structured_or once activated returned ¬(A ∩ B) by negating a
+  // bare OrderInterval — a Morphism, not a Set.  Removed; the general path must
+  // keep △ closed over Set.
+  constexpr Set<int, ClassicalLogic,
+                HS<10, Direction::Upward, Strictness::Strict>>
+      a{HS<10, Direction::Upward, Strictness::Strict>{}};
+  constexpr Set<int, ClassicalLogic,
+                HS<100, Direction::Downward, Strictness::Strict>>
+      b{HS<100, Direction::Downward, Strictness::Strict>{}};
+  STATIC_CHECK(IsSet<std::decay_t<decltype(a ^ b)>>);
+  // △ = in exactly one: {x ≤ 10} ∪ {x ≥ 100} (the complement of the overlap).
+  CHECK((a ^ b)(5));         // in b, not a
+  CHECK((a ^ b)(200));       // in a, not b
+  CHECK_FALSE((a ^ b)(50));  // in both → excluded
+}
+
+TEST_CASE(
+    "order:halfspace — And/OrPredicate fallbacks are directly covered (#365)",
+    "[order][halfspace][set][predicate]") {
+  SECTION(
+      "function-pointer predicate combines via Set::operator& (AndPredicate)") {
+    constexpr Set<int, ClassicalLogic, bool (*)(int)> pos{&is_pos};  // x > 0
+    constexpr Set<int, ClassicalLogic,
+                  HS<10, Direction::Downward, Strictness::Strict>>
+        cap{HS<10, Direction::Downward, Strictness::Strict>{}};  // x < 10
+    using M = std::decay_t<decltype(pos & cap)>;
+    STATIC_CHECK(
+        std::same_as<M,
+                     Set<int, ClassicalLogic,
+                         AndPredicate<bool (*)(int), HS<10, Direction::Downward,
+                                                        Strictness::Strict>>>>);
+    CHECK((pos & cap)(5));         // 0 < 5 < 10
+    CHECK_FALSE((pos & cap)(-1));  // not > 0
+    CHECK_FALSE((pos & cap)(20));  // not < 10
+  }
+
+  SECTION("predicate-level operator&& / || fall back to named structs") {
+    // Two projection predicates: no structured_and/_or overload, so the
+    // predicate-level fallbacks build the named structs (not opaque lambdas).
+    constexpr auto p = π1 > fix(5_c);
+    constexpr auto q = π2 > fix(3_c);
+    using AndP = std::decay_t<decltype(p && q)>;
+    using OrP = std::decay_t<decltype(p || q)>;
+    STATIC_CHECK(std::same_as<AndP, AndPredicate<std::decay_t<decltype(p)>,
+                                                 std::decay_t<decltype(q)>>>);
+    STATIC_CHECK(std::same_as<OrP, OrPredicate<std::decay_t<decltype(p)>,
+                                               std::decay_t<decltype(q)>>>);
+    CHECK((p || q)(std::pair{finite_cardinality(6), finite_cardinality(0)}));
+    CHECK_FALSE(
+        (p && q)(std::pair{finite_cardinality(6), finite_cardinality(0)}));
+    CHECK((p && q)(std::pair{finite_cardinality(6), finite_cardinality(4)}));
+  }
 }
 
 TEST_CASE("order:halfspace — Singleton identity and cross-L equality",
