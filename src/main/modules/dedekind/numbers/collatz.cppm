@@ -77,19 +77,19 @@ export constexpr std::size_t collatz_rule(std::size_t n) {
  * is the next investigation --- functionality is inferred from a graph-shaped
  *       leaf or through @c >>, not obviously across a union of guards. */
 export inline constexpr auto collatz =
-    (ℕ * ℕ | π_1 % fix(2_c) == fix(0_c) & fix(2_c) * π_2 == π_1) |
-    (ℕ * ℕ | π_1 % fix(2_c) != fix(0_c) & π_2 == fix(3_c) * π_1 + fix(1_c));
+    (ℕ * ℕ | π1 % fix(2_c) == fix(0_c) & π2 * fix(2_c) == π1) +
+    (ℕ * ℕ | π1 % fix(2_c) == fix(1_c) & π1 * fix(3_c) + fix(1_c) == π2);
 
 static_assert(IsSet<decltype(collatz)>,
               "the point-free recurrence is an ETCS Set on ℕ × ℕ");
 static_assert(
-    IsRelation<decltype(collatz), std::size_t, std::size_t>,
+    IsRelation<decltype(collatz), Cardinality, Cardinality>,
     "T ⊆ ℕ × ℕ is an IsRelation (IsFunction is the next investigation)");
-static_assert(collatz(std::pair{std::size_t{6}, std::size_t{3}}),
-              "6 is even: 6 ↦ 3");
-static_assert(collatz(std::pair{std::size_t{7}, std::size_t{22}}),
-              "7 is odd: 7 ↦ 3·7+1");
-static_assert(!collatz(std::pair{std::size_t{6}, std::size_t{4}}),
+static_assert(collatz(std::pair{finite_cardinality(6), finite_cardinality(3)}),
+              "6 is even: 2·3 == 6, so 6 ↦ 3");
+static_assert(collatz(std::pair{finite_cardinality(7), finite_cardinality(22)}),
+              "7 is odd: 3·7+1 == 22, so 7 ↦ 22");
+static_assert(!collatz(std::pair{finite_cardinality(6), finite_cardinality(4)}),
               "6 ↦ 3, not 4");
 
 // ─── The finite iteration (the strength-reduced shadow) ───────────────────
