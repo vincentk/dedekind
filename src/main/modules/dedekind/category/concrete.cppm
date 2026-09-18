@@ -245,7 +245,7 @@ constexpr auto set_union(const S1& lhs, const S2& rhs) {
 }
 
 /** @brief Set complement: materialize @c A^c from carrier-as-predicate.
- *         Uses @c L::NOT directly per #715 review. */
+ *         Uses @c L::RFL directly per #715 review. */
 export template <typename S>
   requires IsSubobject<S, typename S::Domain>
 constexpr auto set_complement(const S& s) {
@@ -313,7 +313,7 @@ constexpr auto join(const S1& lhs, const S2& rhs) {
  *  shape.  Result inhabits the same subobject family
  *  (@c IsSubobjectFamilyMember-shaped) because @c set_complement returns
  *  a @c Subobject<A, ...> with the same @c Ambient and @c logic_species
- *  as the input — pointwise lift of @c L::NOT through @c χ.
+ *  as the input — pointwise lift of @c L::RFL through @c χ.
  *
  *  @note Strength of the resulting complement depends on @c L:
  *  classical → bona-fide Boolean complement; Kleene → involutive

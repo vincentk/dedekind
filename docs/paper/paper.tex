@@ -473,7 +473,7 @@ Figure~\ref{fig:hub-spoke-bnz} in the introduction previews the functionality th
 \caption{\textbf{The answer-chain} $\Omega$, a bounded chain (Eqn.~\ref{eqn:pst}): \cppinline{IsPst} is a truth-object (\cppinline{IsΩ}) whose values are totally ordered.
 \textbf{Top left ($\mathbb{B}$):} the native operators, the species API \cppinline{AND}/\cppinline{OR}/\cppinline{RFL}, and the lattice $\min/\max$ are one and the same operation; $\wedge/\vee = \min/\max$ on $\bot < \top$, and $\neg = $ \cppinline{RFL} is the reflection, a genuine complement only here.
 \textbf{Top right ($\mathrm{K}_3$):} the undecided $U$ under the order.
-$\bot \le U \le \top$; $\wedge$ and $\vee$ with $U$ stay $U$; the meet lies below its arguments, so a $\forall/\exists$ verdict can only lose decidedness; the order $\le$ (the meet-order $a \le b \Leftrightarrow a \wedge b = a$) later reifies as the subset test; and \cppinline{RFL} fixes the centre ($\neg U = U$).
+$\bot \le U \le \top$; $U$ met with the \emph{identity} ($\top$ for $\wedge$, $\bot$ for $\vee$) stays $U$, but with the \emph{annihilator} ($\bot$ for $\wedge$, $\top$ for $\vee$) it collapses to a decided value ($U \wedge \bot = \bot$, $U \vee \top = \top$), so a $\forall/\exists$ fold stays undecided until a decisive endpoint appears; the order $\le$ (the meet-order $a \le b \Leftrightarrow a \wedge b = a$) later reifies as the subset test; and \cppinline{RFL} fixes the centre ($\neg U = U$).
 \textbf{Bottom:} the grammar of truth expressions, each operator spelled for \cppinline{bool} and for the general chain; the structure of the two panels is described above, so the code carries no inline commentary.}
 \label{lst:membership}
 \noindent
@@ -497,11 +497,11 @@ static_assert(IsPst<Ternary>);
 using K = TernaryLogic; using enum Ternary;
 static_assert(
    (False <= Unknown) && (Unknown <= True)
-&& K::AND(Unknown, True) == Unknown
-&& K::OR(Unknown, False) == Unknown
-&& (K::AND(Unknown, True) <= Unknown)
+&& K::AND(Unknown, True)  == Unknown
+&& K::AND(Unknown, False) == False
+&& K::OR(Unknown, False)  == Unknown
+&& K::OR(Unknown, True)   == True
 && K::RFL(Unknown) == Unknown
-&& K::RFL(True) == False
 );
 \end{cpp}
 \end{minipage}
@@ -511,7 +511,7 @@ static_assert(
 \begin{minipage}[t]{0.49\linewidth}
 \begin{minted}[fontsize=\footnotesize]{text}
 Ω     ::= <any IsPst>
-truth ::= '⊥' | '⊤' | 'U'
+truth ::= <a value of Ω>       (⊥, ⊤; U on K3)
 logic ::= truth
   | logic meet logic
   | logic join logic
@@ -538,7 +538,7 @@ Two instances carry the whole paper:
 \end{itemize}
 We need no more.
 Every bounded chain with reflection is automatically a distributive lattice and a \emph{Kleene algebra}: the condition $a \wedge \neg a \le b \vee \neg b$ holds on any chain, since $\min(a, \neg a)$ sits at or below the centre and $\max(b, \neg b)$ at or above it.
-So the De~Morgan/Kleene structure is a \emph{theorem} of ``chain $+$ reflection'', not a separate axiom.\footnote{$\mathbf{Pst}$ is the bounded chains a type constraint pins on its own: $\mathbb{B}$, $\mathrm{K}_3$, a {\L}ukasiewicz $\text{\L}_n$, and, on a purpose-built carrier, the unit interval $[0,1]$ under $\min/\max$, the fuzzy/G\"odel reading (distinct from probability's product t-norm, $a \cdot b \ne \min$).  Order alone makes the chain well-behaved (§\ref{sec:ddk_ordered}), so finiteness is not required.  What is excluded is the non-chain many-valued logics (a four-element Boolean algebra, Belnap's bilattice): they are not totally ordered.}
+So the De~Morgan/Kleene structure is a \emph{theorem} of ``chain $+$ reflection'', not a separate axiom.\footnote{$\mathbf{Pst}$ is the bounded chains selectable by a type constraint alone (the chain \emph{laws} are witnessed on each carrier, Listing~\ref{lst:membership}, not certified by the constraint): $\mathbb{B}$, $\mathrm{K}_3$, a {\L}ukasiewicz $\text{\L}_n$, and, on a purpose-built carrier, the unit interval $[0,1]$ under $\min/\max$, the fuzzy/G\"odel reading (distinct from probability's product t-norm, $a \cdot b \ne \min$).  Order alone makes the chain well-behaved (§\ref{sec:ddk_ordered}), so finiteness is not required.  What is excluded is the non-chain many-valued logics (a four-element Boolean algebra, Belnap's bilattice): they are not totally ordered.}
 
 These truth-objects, the $\mathbf{Jlt}$ types that are bounded chains, form the logic layer
 \begin{equation}
