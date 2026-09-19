@@ -362,6 +362,9 @@ namespace dedekind::algebra {
  * @tparam K The compile-time shift (its type @c decltype(K) is the carrier).
  */
 export template <auto K>
+  requires requires(decltype(K) x) {
+    { x + K } -> std::convertible_to<decltype(K)>;
+  }
 struct Translate {
   using T = decltype(K);
   using Domain = T;
@@ -375,16 +378,30 @@ struct Translate {
  *
  * @details The group inverse of the shift.  A translation is a bijection, so
  * the retract is total (always engaged); it is returned as @c std::optional<T>
- * to fit the @c IsRetractableArrow shape.  Uses the carrier's own binary minus
- * @c x−K, guaranteed by the additive-group surface.
+ * to fit the @c IsRetractableArrow shape.  Spelled additively as
+ * @f$x + (-K)@f$: it needs only the carrier's @c operator+ (a @c (monoid, +)),
+ * with the group inverse living in the negated shift @c -K.  So the struct is
+ * gated on @c operator+, while the @b semantic claim that this is a genuine
+ * retract (the shift is invertible) is the @c IsGroup gate on @c retract below.
  *
  * @tparam K The shift whose inverse translation this realises.
  */
 export template <auto K>
+  requires requires(decltype(K) y) {
+    { y + (-K) } -> std::convertible_to<decltype(K)>;
+  }
 struct TranslateRetract {
   using T = decltype(K);
-  constexpr std::optional<T> operator()(const T& y) const {
-    return std::optional<T>{static_cast<T>(y - K)};
+  // Valued in category::Maybe (the maybe monad, an alias for std::optional, so
+  // it still satisfies IsRetractableArrow's std::optional contract).  A
+  // translation is a bijection, so this retract is TOTAL: it is always the
+  // monad UNIT η (never `nothing`), built through category::η just like the
+  // singleton/powerset monad's unit.  That totality is precisely why
+  // image_of(Translate) is decidable, the preimage search never fails.  See
+  // category::η / category::Maybe (:natural, :functor).
+  constexpr dedekind::category::Maybe<T> operator()(const T& y) const {
+    return dedekind::category::η(dedekind::category::maybe_hub,
+                                 static_cast<T>(y + (-K)));
   }
 };
 
