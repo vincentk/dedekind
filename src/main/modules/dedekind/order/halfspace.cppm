@@ -1625,7 +1625,14 @@ constexpr auto axis_factor(const dedekind::relational::RelAnd<A, B>& r) {
                        }) {
     return fa;  // b does not constrain axis I; the factor is a's
   } else {
-    return fa && fb;  // BOTH constrain axis I: intersect (structured_and)
+    // BOTH constrain axis I.  fa/fb are recovered Halfspace SETS, so this is
+    // the set-level bare-halfspace meet: call structured_and DIRECTLY (the
+    // customization point operator& / && both forward to) so it collapses to
+    // the tighter bound / interval.  NOT the predicate-level && (a categorical
+    // Morphism, dropping the tightening), and not the set-level operator&
+    // either (declared below this point, so unreachable by ordinary lookup
+    // here).
+    return dedekind::order::structured_and(fa, fb);
   }
 }
 
@@ -1910,6 +1917,17 @@ static_assert(cod((ℕ | (π <= fix(5_c))) * ℕ)(finite_cardinality(99)),
 static_assert(dom((ℕ | (π <= fix(5_c))) * ℕ |
                   π1 + fix(1_c) == π2)(finite_cardinality(4)),
               "π_A of the restricted successor still recovers {a ≤ 5}.");
+
+// TWO bounds on the SAME axis: dom recovers the TIGHTER halfspace (their meet),
+// not either bound alone.  Guards axis_factor's both-branch: the factors are
+// recovered Halfspace SETS, so their meet is the set-level & collapse; the
+// predicate-level && would build a categorical Morphism and lose dom/cod.
+static_assert(dom(ℕ* ℕ |
+                  (π1 <= fix(5_c) && π1 <= fix(3_c)))(finite_cardinality(3)),
+              "π_A of {a ≤ 5 ∧ a ≤ 3} recovers the tighter {a ≤ 3}: 3 ≤ 3.");
+static_assert(!dom(ℕ * ℕ |
+                   (π1 <= fix(5_c) && π1 <= fix(3_c)))(finite_cardinality(4)),
+              "π_A recovers the TIGHTER bound: 4 ≤ 5 but 4 ≰ 3, so excluded.");
 
 // relational application: apply(R, a) is the fibre {b | (a,b) ∈ R}.  For the
 // residue graph (a function) it is the singleton {a % 17}: apply(R,20) = {3}.
