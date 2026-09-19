@@ -1101,8 +1101,20 @@ constexpr auto structured_and(OrderInterval<T, Lo1, Hi1, SL1, SU1, L>,
  * and pivot) as an @c UnboundHalfspace / @c UnboundSingleton; a later
  * @c carrier @c | @c ... instantiates it at the carrier's @c Domain, reusing
  * @c Halfspace / @c Singleton.  @c π is the unary projection; the product
- * coordinates @c π1 / @c π2 follow with the relational surface (#783), reusing
- * @c :cartesian projections where they fit.
+ * coordinates @c π1 / @c π2 follow with the relational surface (#783).
+ *
+ * @note These product coordinates @b are the canonical product projections of
+ * @c dedekind::category (@c :limit): @c π1 / @c π2 select the same components
+ * as
+ * @c category::π_1 / @c category::π_2, and @c coord below @b delegates to them,
+ * so a @c Projection satisfies @c category::IsProductProjection.  Two spellings
+ * of one notion.  The symbolic-tag surface (comparisons build @c ProjRel /
+ * @c ProjBound predicates) lives in @c :halfspace for historical reasons ---
+ * it grew up with the comprehension DSL --- rather than beside
+ * @c IsProductProjection in @c :limit; unifying the two surfaces is a
+ * @b non-urgent follow-up (#878).  Left as pointers for now.
+ * @see dedekind::category::π_1, dedekind::category::π_2
+ * @see dedekind::category::IsProductProjection
  */
 export template <IsRingIntegral auto Slot>
 struct Projection {};
@@ -1263,11 +1275,32 @@ export inline constexpr Projection<3> 𝑧{};
 template <IsRingIntegral auto I, typename P>
   requires(I == 1 || I == 2)
 constexpr decltype(auto) coord(const P& p) {
+  // Reuse @c :limit's canonical product projections rather than re-deriving
+  // @c .first / @c .second here: halfspace's @c coord and @c category::π_1 /
+  // @c π_2 are the @b same projection (@c IsProductProjection).  Letting the
+  // two surfaces share one accessor stops halfspace shadowing @c :limit.
   if constexpr (I == 1)
-    return (p.first);
+    return dedekind::category::π_1(p);
   else
-    return (p.second);
+    return dedekind::category::π_2(p);
 }
+
+// The two wheels know each other: @c :limit's @c π_1 / @c π_2 are exactly the
+// @c coord accessors above, and they are certified @c IsProductProjection there
+// (@c limit.cppm).  Pin the agreement so the surfaces cannot silently diverge.
+static_assert(
+    dedekind::category::IsProductProjection<
+        decltype([](const std::pair<int, bool>& p) {
+          return dedekind::category::π_1(p);
+        }),
+        std::pair<int, bool>, int>,
+    "coord<1> = category::π_1 is a certified product projection (left).");
+static_assert(coord<1>(std::pair{7, false}) ==
+                      dedekind::category::π_1(std::pair{7, false}) &&
+                  coord<2>(std::pair{7, false}) ==
+                      dedekind::category::π_2(std::pair{7, false}),
+              "halfspace coord IS category::π_1 / π_2 (one projection, two "
+              "call sites).");
 
 /** @brief Comparison flavour for the relational predicates. */
 export enum class Rel { Lt, Le, Gt, Ge, Eq, Ne };
@@ -1606,10 +1639,16 @@ constexpr auto axis_factor(const P&) {
 }
 
 /** @brief A cylinder @c ProjBound on axis @c I: the halfspace it lifted from
- *  (only an order comparison is a halfspace; Eq/Ne fall to the default). */
-export template <IsRingIntegral auto I, typename TI, typename L, Rel R, auto V>
-  requires(is_order_rel(R))
-constexpr auto axis_factor(const ProjBound<I, R, V>&) {
+ *  (only an order comparison is a halfspace; Eq/Ne fall to the default).
+ *  @note The predicate's own slot @c Slot is deduced separately and matched to
+ *  the requested axis @c I @b by value (@c Slot @c == @c I), @b not by NTTP
+ *  type-identity: a @c ProjBound built from an @c int @c 1 and a query for an
+ *  @c unsigned @c 1 name the same axis and must agree, rather than silently
+ *  falling through to the universal factor (review #871). */
+export template <IsRingIntegral auto I, typename TI, typename L,
+                 IsRingIntegral auto Slot, Rel R, auto V>
+  requires(is_order_rel(R) && Slot == I)
+constexpr auto axis_factor(const ProjBound<Slot, R, V>&) {
   return Halfspace<TI, V, dir_of(R), strict_of(R), L>{};
 }
 
@@ -1753,17 +1792,15 @@ static_assert(!(ℕ * ℕ | (π1 != fix(0_c) && π2 % π1 == fix(0_c)))(std::pai
  *  @c ap(f, π_I).
  *
  *  @note The coordinate index is a constrained-auto NTTP gated by
- *  @c IsRingIntegral, the algebraic integer-range concept --- the whole
- *  projection DSL (@c Projection, @c coord, and every relpred that deduces a
- *  @c Projection<I>) is index-@b generic in lockstep, so the concrete index
- *  @b type is a call-site free variable, not machinery baked into these
- *  templates.  This keeps the constraint @b real (CP review #871: a bare
- *  @c std::size_t on some sites and @c IsRingIntegral on others would be a
- *  vacuous, misleading claim) and forward-compatible: swapping the selector to
- *  any other structural @c IsRingIntegral type (a 2-valued enum, say) is a
- *  call-site change, not a DSL rewrite (cf. #877).  ℕ/Cardinality remains
- *  excluded --- it is a @c std::variant, hence non-structural, hence never an
- *  NTTP --- but any structural ring-integral type is admitted. */
+ *  @c IsRingIntegral (a structural integral).  Axis identity is matched @b by
+ *  value, not by NTTP type-identity (see @c axis_factor), so two spellings of
+ *  the same axis (@c int @c 1 vs @c unsigned @c 1) agree rather than silently
+ *  diverging (CP review #871).  @c IsRingIntegral admits neither ℕ/Cardinality
+ *  (a @c std::variant, non-structural) nor enums (not @c std::integral); it is
+ *  the structural integers.  @b Provisional: this whole projection surface
+ *  belongs with @c category::IsProductProjection in @c :limit, not in
+ *  @c :halfspace --- relocation (and the attendant deletion) is tracked in
+ *  #878. */
 export template <IsRingIntegral auto I, typename F>
 struct ProjApply {
   F f;
@@ -1771,9 +1808,14 @@ struct ProjApply {
 
 /** @brief @c ap(f, π_I) --- lift the arrow @c f into the relpred DSL as
  *  @f$f(\pi_I)@f$.  Gated on @c IsArrow<F> (a pure, terminating map, §2.2).
- *  @c f is taken by value and @c std::move'd into the wrapper, so a @b
- * move-only arrow (@c IsArrow does @b not require copyability) lifts cleanly.
- */
+ *  @c f is taken by value and @c std::move'd into the wrapper, so the @b lift
+ *  step itself never copies the arrow.
+ *  @note This does @b not promise end-to-end move-only support: the relpred is
+ *  a value carried by the comprehension binders (@c operator| and the
+ *  restricted-product overloads copy their stored predicate), so the DSL is
+ *  value-semantics throughout and arrows used in @c 𝔸<pair> @c | @c (...)
+ * should be copyable.  The @c std::move here is a local optimisation, not a
+ *  move-only guarantee (CP review #871). */
 export template <IsRingIntegral auto I, typename F>
   requires dedekind::category::IsArrow<F>
 constexpr ProjApply<I, std::remove_cvref_t<F>> ap(F f, Projection<I>) {

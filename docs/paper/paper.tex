@@ -1006,6 +1006,7 @@ relpred +::= ratom
 ratom    ::= proj cmp proj
            | proj cmp 'fix' '(' const ')'
            | proj '==' 'ap' '(' arrow ',' proj ')'
+           | 'ap' '(' arrow ',' proj ')' '==' proj
 proj     ::= 'π1' | 'π2' | 'π3'
            | '𝑥' | '𝑦' | '𝑧'
            | proj arith 'fix' '(' const ')'
