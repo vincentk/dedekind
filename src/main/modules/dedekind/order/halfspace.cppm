@@ -1234,9 +1234,11 @@ static_assert(((𝔹 | (π == fix(true_c))) & ~(𝔹 | (π == fix(true_c)))) == 
  *        variables of the point-free relational surface.
  *
  * @details A comparison @c π_I @c ⋈ @c π_J or @c π_I @c ⋈ @c fix(V) builds a
- * @b strongly-typed predicate on a pair (no lambda); @c & conjoins them; and
- * @c product @c | @c predicate restricts the product to the relation.  So
- * @c ℕ*ℕ @c | @c π1 @c < @c π2 @c & @c π1 @c > @c fix(5_c) is the relation
+ * @b strongly-typed predicate on a pair (no lambda); @c && conjoins them
+ * (@c || joins), distinct from the set-level @c & / @c | on whole relations;
+ * and @c product @c | @c predicate restricts the product to the relation.
+ * @c && binds looser than @c |, so the comprehension parenthesises the meet:
+ * @c ℕ*ℕ @c | @c (π1 @c < @c π2 @c && @c π1 @c > @c fix(5_c)) is the relation
  * @f$\{(x,y) \mid x<y \wedge x>5\}@f$ as an @c IsSet on @c ℕ×ℕ.
  */
 export inline constexpr Projection<1> π1{};
@@ -1303,8 +1305,10 @@ constexpr Rel negate(Rel r) {
   return r;  // unreachable; all six flavours are covered above.
 }
 
-/** @brief Nested-typedef marker so @c & / @c | fire only on relational
- *  predicates; kept off the class hierarchy so the predicates stay aggregates.
+/** @brief Nested-typedef marker so the predicate-level @c && / @c || fire only
+ *  on relational predicates (and gate the @c 𝔸<pair> @c | @c relpred
+ *  comprehension); kept off the class hierarchy so the predicates stay
+ *  aggregates.
  */
 export template <typename T>
 concept IsRelPredicate = requires { typename T::is_rel_predicate; };
@@ -1332,10 +1336,11 @@ struct ProjBound {
 };
 
 // RelAnd (the meet predicate carrier) moved DOWN to dedekind.relational:dyadic
-// (#792); halfspace still USES it (the predicate-level operator& below,
-// axis_factor, the >> functional trait) as dedekind::sets::RelAnd, imported
-// from :dyadic.  The join carrier is the set-grammar | / OrPredicate (:sets,
-// #365); the old RelOr / operator+ was dropped as redundant (#864).
+// (#792); halfspace still USES it (the predicate-level meet --- now
+// structured_and, reached via the generic &&, #824 --- axis_factor, the >>
+// functional trait) as dedekind::relational::RelAnd, imported from :dyadic.
+// Its dual RelOr (structured_or, via ||) was re-added (#824); the set-level
+// join stays the set-grammar | / OrPredicate (:sets, #365).
 
 // π_I ⋈ π_J  →  ProjProj (projection-vs-projection).
 export template <std::size_t I, std::size_t J>
@@ -1430,9 +1435,33 @@ static_assert(
     std::same_as<decltype(!(π1 == fix(5_c))), decltype(π1 != fix(5_c))>,
     "!(π1 == fix(5)) is π1 != fix(5) (ProjBound Eq->Ne).");
 
-// meet of relational predicates.  RelAnd now lives in :dyadic (#792).
+// Meet / join of relational PREDICATES is the pointwise && / || over the
+// operands' OWN truth-value carrier (Boolean, or Kleene ∧/∨ over a
+// TernaryLogic relation --- RelAnd/RelOr return auto, not bool, to keep
+// Unknown), distinct from set intersection/union & / | (the vectorized
+// {truth-value}ⁿ ops on Sets).  Rather than defining operator&& / operator||
+// here (which would be ambiguous with the generic predicate operator&& /
+// operator|| in :sets:expressions), we hook the STRUCTURED forms: the generic
+// operators dispatch to structured_and / structured_or via ADL, and these
+// return the marker-preserving RelAnd / RelOr (which the generic AndPredicate /
+// OrPredicate are NOT — so their result could not feed the 𝔸<pair> | relpred
+// comprehension)
+// (#824).  This is the same mechanism the Halfspace lattice uses above.  RelAnd
+// / RelOr live in :dyadic (#792).
+//
+// FIXME(#824): these hooks live in :order, so ADL reaches them only when an
+// operand is :order-native (ProjProj/ProjBound — every current meet).  A pair
+// of :relational-native rel-predicates (e.g. two DiagPred) does NOT find them
+// and falls back to the marker-less AndPredicate/OrPredicate.  The clean fix is
+// to unify the projection+equality DSL in ONE namespace (relocate it to
+// :relational, where relations live and order is not required) — done in the
+// graph/arrow-lift follow-up, not here.
 export template <IsRelPredicate A, IsRelPredicate B>
-constexpr dedekind::relational::RelAnd<A, B> operator&(A a, B b) {
+constexpr dedekind::relational::RelAnd<A, B> structured_and(A a, B b) {
+  return {a, b};
+}
+export template <IsRelPredicate A, IsRelPredicate B>
+constexpr dedekind::relational::RelOr<A, B> structured_or(A a, B b) {
   return {a, b};
 }
 
@@ -1524,13 +1553,13 @@ constexpr auto operator*(const UniversalSet<T1, L1, C1>&,
   return 𝔸<std::pair<T1, T>, L> | cylinder<2>(b);
 }
 
-// restricted × restricted:  𝔸<pair> | (π1 ⋈ fix(p)) & (π2 ⋈ fix(q)).
+// restricted × restricted:  𝔸<pair> | (π1 ⋈ fix(p)) && (π2 ⋈ fix(q)).
 export template <typename Ta, auto Pa, Direction Da, Strictness Sa, typename La,
                  typename Tb, auto Qb, Direction Db, Strictness Sb, typename Lb>
   requires std::same_as<La, Lb>
 constexpr auto operator*(const Halfspace<Ta, Pa, Da, Sa, La>& a,
                          const Halfspace<Tb, Qb, Db, Sb, Lb>& b) {
-  return 𝔸<std::pair<Ta, Tb>, La> | (cylinder<1>(a) & cylinder<2>(b));
+  return 𝔸<std::pair<Ta, Tb>, La> | (cylinder<1>(a) && cylinder<2>(b));
 }
 
 /**
@@ -1582,7 +1611,8 @@ constexpr auto axis_factor(const ProjBound<I, R, V>&) {
 
 /** @brief A meet of cylinders: the factor on axis @c I is the @b intersection
  *  of both children's factors on that axis, so two bounds on the same axis
- *  (@c π1<=5 & @c π1<=3) meet to the tighter one rather than dropping either.
+ *  (@c π1<=5 @c && @c π1<=3) meet to the tighter one rather than dropping
+ * either.
  */
 export template <std::size_t I, typename TI, typename L, typename A, typename B>
 constexpr auto axis_factor(const dedekind::relational::RelAnd<A, B>& r) {
@@ -1595,7 +1625,21 @@ constexpr auto axis_factor(const dedekind::relational::RelAnd<A, B>& r) {
                        }) {
     return fa;  // b does not constrain axis I; the factor is a's
   } else {
-    return fa & fb;  // BOTH constrain axis I: intersect (structured_and)
+    // BOTH constrain axis I.  fa/fb are recovered Halfspace SETS, so this is
+    // the set-level bare-halfspace meet: call structured_and DIRECTLY (the
+    // customization point operator& / && both forward to) so it collapses to
+    // the tighter bound / interval.  NOT the predicate-level && (a categorical
+    // Morphism, dropping the tightening), and not the set-level operator&
+    // either (declared below this point, so unreachable by ordinary lookup
+    // here).
+    //
+    // FIXME(#872): axis_factor is not closed over its recursive outputs.  With
+    // 3+ same-axis bounds a child reduces to an OrderInterval/Singleton and
+    // structured_and(OrderInterval, Halfspace) has no overload, so the relation
+    // fails to instantiate (association-dependent).  Two-bound meets work
+    // (witnessed below); the meet-lattice closure / RelAnd normalization is
+    // #872, out of this PR's meet/join scope.
+    return dedekind::order::structured_and(fa, fb);
   }
 }
 
@@ -1630,10 +1674,25 @@ static_assert(!(𝔹 * 𝔹 | π1 < π2)(std::pair{true, true}),
               "(true, true) ∉ {(x,y) | x < y}.");
 
 // a meet of two projection predicates: {(x,y) | x ≤ y ∧ y == true}.
-static_assert((𝔹 * 𝔹 | π1 <= π2 & π2 == fix(true_c))(std::pair{false, true}),
+static_assert((𝔹 * 𝔹 | (π1 <= π2 && π2 == fix(true_c)))(std::pair{false, true}),
               "(false, true) satisfies x ≤ y ∧ y = true.");
-static_assert(!(𝔹 * 𝔹 | π1 <= π2 & π2 == fix(true_c))(std::pair{false, false}),
+static_assert(!(𝔹 * 𝔹 |
+                (π1 <= π2 && π2 == fix(true_c)))(std::pair{false, false}),
               "(false, false) fails y = true.");
+
+// NESTED meet: BOTH operands of the outer && are themselves RelAnd (relational-
+// native, no bare :order operand), so this is the case the FIXME(#824) warns
+// about --- yet ADL still reaches structured_and THROUGH RelAnd's projection-
+// atom template args, so the marker survives and the comprehension restricts.
+// relpred is therefore closed under &&/|| for the projection sub-grammar; the
+// fall-through only bites non-projection rel-predicates (e.g. two diag()).
+static_assert(
+    IsRelPredicate<decltype((π1 <= π2 && π2 == fix(true_c)) &&
+                            (π1 <= π2 && π1 < π2))>,
+    "nested (RelAnd && RelAnd) stays IsRelPredicate via ADL on the atom args.");
+static_assert((𝔹 * 𝔹 | ((π1 <= π2 && π2 == fix(true_c)) &&
+                        (π1 <= π2 && π1 < π2)))(std::pair{false, true}),
+              "(false, true) satisfies (x ≤ y ∧ y = true) ∧ (x ≤ y ∧ x < y).");
 
 // ── converse and the bracket-free relation query ───────────────────────────
 // SwapPred / converse and IsPairLike / is_relation moved DOWN to
@@ -1672,12 +1731,13 @@ constexpr ProjModBound<I, J, Rel::Eq, V> operator==(ProjMod<I, J>, Bound<V>) {
   return {};
 }
 
-// divides: {(a,b) | b % a == 0 ∧ a != 0} = ℕ*ℕ | π2 % π1 == fix(0_c) & π1 != 0.
-// The && in RelAnd short-circuits the guard first, so a == 0 never reaches %.
-static_assert((ℕ * ℕ | π1 != fix(0_c) & π2 % π1 == fix(0_c))(std::pair{
+// divides: {(a,b) | b % a == 0 ∧ a != 0} = ℕ*ℕ | (π1 != fix(0_c) && π2 % π1 ==
+// fix(0_c)).  The guard is spelled FIRST so RelAnd's && short-circuits it
+// before the %, and a == 0 never reaches the division.
+static_assert((ℕ * ℕ | (π1 != fix(0_c) && π2 % π1 == fix(0_c)))(std::pair{
                   finite_cardinality(2), finite_cardinality(6)}),
               "6 % 2 == 0: (2,6) ∈ divides.");
-static_assert(!(ℕ * ℕ | π1 != fix(0_c) & π2 % π1 == fix(0_c))(std::pair{
+static_assert(!(ℕ * ℕ | (π1 != fix(0_c) && π2 % π1 == fix(0_c)))(std::pair{
                   finite_cardinality(4), finite_cardinality(6)}),
               "6 % 4 != 0: (4,6) ∉ divides.");
 
@@ -1807,6 +1867,13 @@ constexpr ProjMulConstProj<I, V, Rel::Eq, J> operator==(ProjMulConst<I, V>,
   return {};
 }
 
+// (The monic-gated arrow lift 𝑦 == apply(f, 𝑥) → ProjApply/ProjApplyEq moved to
+// its own effort: CP review showed monicity ≠ a computable pre-image (that
+// needs IsRetractableArrow), the codomain-== gate was missing, and it
+// duplicated the existing GraphPredicate — so it is reworked as the
+// graph-redefinition PR, in :relational, alongside the projection-DSL
+// relocation.  See #824.)
+
 // successor graph: {(a,b) | b = a + 1} = ℕ * ℕ | π1 + fix(1_c) == π2.
 static_assert((ℕ * ℕ | π1 + fix(1_c) == π2)(std::pair{finite_cardinality(4),
                                                       finite_cardinality(5)}),
@@ -1857,6 +1924,17 @@ static_assert(cod((ℕ | (π <= fix(5_c))) * ℕ)(finite_cardinality(99)),
 static_assert(dom((ℕ | (π <= fix(5_c))) * ℕ |
                   π1 + fix(1_c) == π2)(finite_cardinality(4)),
               "π_A of the restricted successor still recovers {a ≤ 5}.");
+
+// TWO bounds on the SAME axis: dom recovers the TIGHTER halfspace (their meet),
+// not either bound alone.  Guards axis_factor's both-branch: the factors are
+// recovered Halfspace SETS, so their meet is the set-level & collapse; the
+// predicate-level && would build a categorical Morphism and lose dom/cod.
+static_assert(dom(ℕ* ℕ |
+                  (π1 <= fix(5_c) && π1 <= fix(3_c)))(finite_cardinality(3)),
+              "π_A of {a ≤ 5 ∧ a ≤ 3} recovers the tighter {a ≤ 3}: 3 ≤ 3.");
+static_assert(!dom(ℕ * ℕ |
+                   (π1 <= fix(5_c) && π1 <= fix(3_c)))(finite_cardinality(4)),
+              "π_A recovers the TIGHTER bound: 4 ≤ 5 but 4 ≰ 3, so excluded.");
 
 // relational application: apply(R, a) is the fibre {b | (a,b) ∈ R}.  For the
 // residue graph (a function) it is the singleton {a % 17}: apply(R,20) = {3}.

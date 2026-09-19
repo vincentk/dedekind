@@ -23,10 +23,11 @@
  * These combinators moved DOWN out of @c order/halfspace.cppm (#792): they are
  * pure @c Set<pair> algebra with @b no ordering, so they belong below @c order.
  * @c order keeps its projection DSL (@c π1/π2, @c ProjProj, the ordered
- * comparisons @c π1<π2, and the predicate-level @c operator& / @c
- * IsRelPredicate for building cylinder predicates) and its relation @b
- * witnesses, now consuming these combinators via @c using @c namespace @c
- * dedekind::relational (order imports @c dedekind.relational).
+ * comparisons @c π1<π2, and the predicate-level meet @c && --- @c
+ * structured_and → @c RelAnd, #824 --- over @c IsRelPredicate for building
+ * cylinder predicates) and its relation @b witnesses, now consuming these
+ * combinators via @c using @c namespace @c dedekind::relational (order imports
+ * @c dedekind.relational).
  *
  * @section dyadic__Base_Of_The_Others
  * @c :graph (graphs of arrows) and @c :tables (Codd's n-ary model) both build
@@ -191,9 +192,11 @@ constexpr typename L::Ω is_single_valued_at(const SetFunction<T1, T2, L, P>& f,
   return L::OR(L::RFL(both_related), equal_outputs);
 }
 
-// ── Meet of relational predicates (RelAnd, the carrier of &) ────────────────
-// (Join is the set-grammar | / OrPredicate in :sets; there is no relation-
-// specific union carrier.)
+// ── Meet / join of relational PREDICATES (RelAnd / RelOr) ───────────────────
+// Marker-preserving pointwise combinators for the predicate-level && / || on
+// relpreds.  Distinct from the SET-level relation & / | (intersection / union
+// of two Set<pair>): those combine whole relations, RelAnd / RelOr combine bare
+// pair-predicates and stay IsRelPredicate (usable in 𝔸<pair> | relpred).
 /** @brief Meet (conjunction) of two relational predicates. */
 export template <typename A, typename B>
 struct RelAnd {
@@ -210,12 +213,31 @@ struct RelAnd {
   }
 };
 
-// Relation UNION is the set-grammar join @c |: two relations over the same
-// product are just two @c Set<pair>, so @c r @c | @c s is their structural
-// @c OrPredicate union (@c :sets, #365).  The old @c operator+ / @c RelOr
-// carriers were a redundant dioid-additive spelling of the same set and were
-// dropped (#864 landed the structural @c |); @c ; (@c >>) remains the relation
-// product and @c * (closure) is @c FIXME(#786).
+/** @brief Join (disjunction) of two relational PREDICATES --- the dual of
+ *  @c RelAnd, and the marker-preserving carrier for the pointwise @c || on
+ *  @c relpred.  Distinct from relation UNION at the SET level (@c r @c | @c s,
+ *  the @c OrPredicate join of two @c Set<pair>): @c RelOr composes two bare
+ *  pair-PREDICATES so the result is itself an @c IsRelPredicate (usable in the
+ *  comprehension @c 𝔸<pair> @c | @c relpred).  (#864 dropped the old
+ *  @c operator+ spelling; this is the @c && / @c || dual re-introduced (#824)
+ *  as the @c structured_or result, not a competing operator.) */
+export template <typename A, typename B>
+struct RelOr {
+  using is_rel_predicate = void;
+  A a;
+  B b;
+  // @c auto (not @c bool): inherit the operands' logic (Kleene @c ∨ over
+  // TernaryLogic), mirroring @c RelAnd.
+  template <typename P>
+  constexpr auto operator()(const P& p) const {
+    return a(p) || b(p);
+  }
+};
+
+// Relation UNION at the SET level is the set-grammar join @c |: two relations
+// over the same product are two @c Set<pair>, so @c r @c | @c s is their
+// @c OrPredicate union (@c :sets, #365).  @c ; (@c >>) is the relation product
+// and @c * (closure) is @c FIXME(#786).
 
 // ── converse and the bracket-free relation query ───────────────────────────
 /** @brief The swapped predicate for @c converse: @f$R^\smile(b,a) = R(a,b)@f$.
