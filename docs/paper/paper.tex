@@ -973,34 +973,81 @@ The additive half happens to be the Boolean lattice a relation already carries \
 Listing~\ref{lst:relation-grammar} gives the grammar of relation expressions, built on the set expressions of Listing~\ref{lst:set-grammar}.
 
 \begin{listing}[htbp]
-\caption{The grammar of \textbf{relation expressions}, extending the set expressions of Listing~\ref{lst:set-grammar}: a relation \emph{is} a set over a product, plus the graph of an arrow, the Tarski operators (converse, relative product $\mathbin{;}$, union, meet, the diagonal, the reflexive/symmetric closures), and the Codd selection \cppinline{select}.
-Two operators leave the binary-relation sort: \cppinline{preimage}$(f, S) = f^{-1}(S)$ is a \emph{setexpr} over the arrow's domain (a relation only when that domain is a product), and \cppinline{natural_join} yields an $n$-ary \emph{table}, a \emph{setexpr} over the joined tuple product (binary only when the join has two columns).
-The reflexive-transitive closure $R^{*}$ is not a point-free operator here; it enters at the semiring level (\S\ref{sec:optimization_lp}).
-The closed \cppinline{query} sort extends the set grammar's: relation equality and inclusion are already the set \cppinline{query} (a relation is a set), and §4 adds the properties \cppinline{IsFunctional}/\cppinline{IsEntire}, mirroring the open/closed \cppinline{pred}/\cppinline{query} split; their semantics are Table~\ref{tab:relation-quantifier} and Listing~\ref{lst:relation_spec}.
-As in Listing~\ref{lst:set-grammar}, the grammar is sound; well-typedness side-conditions like the \cppinline{>>} Boolean-middle restriction are concept-gates, certified separately.}
+\caption{The grammar of \textbf{relation expressions}, a refinement of Listing~\ref{lst:set-grammar}: a relation \emph{is} a set over a product, so complement, union \cppinline{|}, meet \cppinline{&} and the product \cppinline{*} are \emph{inherited} from \texttt{setexpr}.
+Operators are grouped by tradition and attached to their \emph{result sort}, keeping the grammar compositional.
+\textbf{Tarski's calculus} ($\texttt{relexpr}\to\texttt{relexpr}$): converse $R^{\circ}$, relative product $R\mathbin{;}S$ (\cppinline{>>}, Boolean middle), the coreflexive/diagonal $\Delta_S$ (\cppinline{diag}), and the \cppinline{reflexive}/\cppinline{symmetric} closures; a relation is also a restricted product \cppinline{S * T | relpred}.
+\textbf{\texttt{relpred}}, the pair-predicate sub-grammar, compares projections $\pi_1,\pi_2$ (with affine \cppinline{fix(k)} offsets) and inherits \cppinline{!}, \cppinline{&&}, \cppinline{cmp} from \texttt{pred}.
+\textbf{Codd's algebra}: selection $\sigma$ (\cppinline{select}$\to\texttt{relexpr}$) and natural join $\bowtie$ (\cppinline{join}$\to$ an $n$-ary \emph{table}).
+\textbf{Function algebra} ($\to\texttt{setexpr}$): image $f[S]$, pre-image $f^{-1}(S)$, and the point fibre $f^{-1}(y)$.
+\textbf{Spellings}: operators also accept a textbook alias where a valid identifier exists --- \cppinline{Δ}/\cppinline{diag}, \cppinline{σ}/\cppinline{select} (letter-glyphs, as \cppinline{π}/\cppinline{η} already are); converse has none (\cppinline{†} is not an identifier), so \cppinline{conv}/\cppinline{dagger}.
+The projections also take the blackboard coordinate aliases \cppinline{𝑥}/\cppinline{𝑦}/\cppinline{𝑧} (mathematical-italic, so a valid identifier yet not ASCII \cppinline{x}/\cppinline{y}/\cppinline{z}) for \cppinline{π1}/\cppinline{π2}/\cppinline{π3}, so a triple predicate reads as $z = f(x,y)$.
+\textbf{\texttt{query}} adds the closed properties \cppinline{IsFunctional}/\cppinline{IsEntire}; their semantics are Table~\ref{tab:relation-quantifier} and Listing~\ref{lst:relation_spec}.
+The reflexive-transitive closure $R^{*}$ is not point-free here (\S\ref{sec:optimization_lp}); the functional-graph lift is deliberately kept out of the grammar, as it forces image and pre-image to be \emph{inferred}.}
 \label{lst:relation-grammar}
-\begin{minted}{text}
-relexpr   ::= setexpr                     -- carrier ⟨A,B⟩ : a relation
-            | 'graph' '(' arrow ')'       -- functional graph Γ_f
-            | 'converse' '(' relexpr ')'  -- R°
-            | relexpr '>>' relexpr        -- relative product R;S (Boolean middle)
-            | relexpr '|' relexpr         -- union  (the set-grammar |, OrPredicate)
-            | relexpr '&' relexpr         -- meet   (RelAnd)
-            | 'diagonal' carrier          -- Δ
-            | 'reflexive' '(' relexpr ')'
-            | 'symmetric' '(' relexpr ')'
-            | 'select' '(' relexpr ',' relpred ')'       -- σ: filter by a pair predicate
-            | setexpr '*' setexpr '|' relpred            -- restricted product
-query    +::= ('IsFunctional' | 'IsEntire') '(' relexpr ')'  -- R ==/<= S already in the set query; add properties
-relpred   ::= ratom
-            | '!' relpred                   -- negation (recursive, as in the set pred)
-            | relpred '&' relpred           -- meet (RelAnd); union is relexpr '|'
-ratom     ::= proj rcmp proj | proj rcmp 'fix' '(' const ')'
-rcmp      ::= cmp | '!='                     -- cmp (incl. ==, from the set query) plus !=
-proj      ::= 'π1' | 'π2' | ('π1' | 'π2') arith 'fix' '(' const ')'
-arith     ::= '+' | '*'                     -- π1 + fix(k), π1 * fix(k)
-arrow     ::= <an IsArrow A → B; functions compose via '>>'>
+\noindent
+\begin{minipage}[t]{0.49\linewidth}
+{\footnotesize\textbf{Tarski's calculus}}
+\begin{minted}[fontsize=\footnotesize]{text}
+relexpr ::= setexpr
+          | setexpr '*' setexpr '|' relpred
+          | converse '(' relexpr ')'
+          | relexpr '>>' relexpr
+          | diag '(' setexpr ')'
+          | reflexive '(' relexpr ')'
+          | symmetric '(' relexpr ')'
 \end{minted}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\linewidth}
+{\footnotesize\textbf{pair predicates (extends \texttt{pred})}}
+\begin{minted}[fontsize=\footnotesize]{text}
+relpred +::= ratom
+ratom    ::= proj cmp proj
+           | proj cmp 'fix' '(' const ')'
+proj     ::= 'π1' | 'π2' | 'π3'
+           | '𝑥' | '𝑦' | '𝑧'
+           | proj arith 'fix' '(' const ')'
+arith    ::= '+' | '*' | '%'
+\end{minted}
+\end{minipage}
+
+\vspace{0.6em}
+\noindent
+\begin{minipage}[t]{0.49\linewidth}
+{\footnotesize\textbf{Codd's relational algebra}}
+\begin{minted}[fontsize=\footnotesize]{text}
+relexpr +::= select '(' relexpr ',' relpred ')'
+table    ::= join '(' relexpr ',' relexpr ')'
+\end{minted}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\linewidth}
+{\footnotesize\textbf{function algebra}}
+\begin{minted}[fontsize=\footnotesize]{text}
+setexpr +::= image '(' arrow ',' setexpr ')'
+           | preimage '(' arrow ',' setexpr ')'
+           | fibre '(' relexpr ',' elem ')'
+\end{minted}
+\end{minipage}
+
+\vspace{0.6em}
+\noindent
+\begin{minipage}[t]{0.49\linewidth}
+{\footnotesize\textbf{spellings}}
+\begin{minted}[fontsize=\footnotesize]{text}
+converse  ::= 'converse' | 'conv' | 'dagger'
+diag      ::= 'diag' | 'Δ'
+select    ::= 'select' | 'σ'
+reflexive ::= 'reflexive' | 'refl'
+symmetric ::= 'symmetric' | 'sym'
+join      ::= 'natural_join' | 'join'
+\end{minted}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\linewidth}
+{\footnotesize\textbf{query}}
+\begin{minted}[fontsize=\footnotesize]{text}
+query +::= ('IsFunctional' | 'IsEntire') '(' relexpr ')'
+arrow  ::= <an IsArrow A → B>
+\end{minted}
+\end{minipage}
 \end{listing}
 
 \begin{definition}[$\mathbf{Trsk} := \mathbf{Lwv} \cap \mathbf{Rel}$]

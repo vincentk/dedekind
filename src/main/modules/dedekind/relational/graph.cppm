@@ -113,6 +113,17 @@ using Graph = Set<std::pair<typename F::Domain, typename F::Codomain>,
  * @param  f The analytic arrow.
  * @return A @c Graph<F> (a @c :expressions Relation) whose @c GraphPredicate<F>
  *         membership carries @c f for composition.
+ *
+ * @note @b Not part of the @c Trsk grammar (Listing~6), on purpose: lifting an
+ *       arrow to a relation forces @c image / @c preimage to be @e inferred
+ *       from @c f rather than spelled point-free, which is the source of the
+ *       lambda-opacity these reifications (@c GraphPredicate, @c
+ * FibrePredicate,
+ *       @c PreimagePredicate) exist to contain.  Prefer building relations
+ *       point-free (the restricted product @c S*T@c |@c relpred and the Tarski
+ *       operators); @c graph stays available for the arrow-composition path but
+ *       is kept out of the grammar surface.  Sibling of the doc-deprecated
+ *       @c element scout.
  */
 export template <typename F>
   requires dedekind::category::IsArrow<F> &&
