@@ -24,7 +24,7 @@
  *    named primitive, one binary operator, two seeds, no fanout /
  *    projection / explicit-product-type ceremony.  Parameterised on the
  *    same algebraic gate @c IsSequence imposes on its @c Domain
- *    (@c :order:halfspace:IsRingIntegral , the gate used by #755 ): any
+ *    (@c :sets:cardinality:IsRingIntegral , the gate used by #755 ): any
  *    ring-integral carrier @c T whose seed @c T(0u) and @c T(1u) are
  *    well-formed.  The named default @c fibonacci @c = @c
  *    fibonacci_of<ℕ_Form> (@c ExtensionalCardinal<> at the carrier
@@ -106,7 +106,7 @@ export inline const auto is_even = Path<Boolean, ℵ_0, ℕ_Form>{
  * @c (0, @c 1)) instance of the "binary op applied recursively" pattern.
  * The carrier @c T is parameterised on the same algebraic gate
  * @c IsSequence imposes on its @c Domain (@c IsRingIntegral at
- * @c :order:halfspace:96 ); the @c requires-clause narrows to those
+ * @c :sets:cardinality ); the @c requires-clause narrows to those
  * carriers where the unsigned-literal brace-init @c T(0u), @c T(1u) is
  * well-formed.
  *
@@ -119,7 +119,7 @@ export inline const auto is_even = Path<Boolean, ℵ_0, ℕ_Form>{
  *           @c finite_cardinality factories rather than @c T(0u)
  *           (a Sollbruchstelle named in the partition docstring above).
  */
-export template <dedekind::order::IsRingIntegral T>
+export template <dedekind::sets::IsRingIntegral T>
   requires requires {
     T(0u);
     T(1u);

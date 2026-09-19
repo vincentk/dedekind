@@ -78,7 +78,7 @@ using namespace dedekind::order;
  *               @c size_t choice principled rather than accidental").
  */
 export template <typename T, typename Cardinality = ℵ_0,
-                 dedekind::order::IsRingIntegral Index = std::size_t>
+                 dedekind::sets::IsRingIntegral Index = std::size_t>
 struct Path {
   using Domain = Index;
   using Codomain = T;
@@ -1012,16 +1012,16 @@ static_assert(
 // IsSequence (above, in :net) now requires its @c Domain to satisfy
 // @c IsRingIntegral — the algebraic concept certified for the operational
 // carriers (std::size_t, unsigned, etc.) AND the project's Form-shaped
-// carriers (Cardinality, SignedCardinality) at :order:halfspace:96.  This
+// carriers (Cardinality, SignedCardinality) at :sets:cardinality.  This
 // pins the Form-before-Carrier discipline at the type level: the choice of
 // std::size_t for Path::Domain is principled (satisfies the algebraic
 // concept) rather than ad-hoc, and the same algebraic concept gates the
 // relation form's index column.
 static_assert(
-    dedekind::order::IsRingIntegral<typename Path<int>::Domain>,
+    dedekind::sets::IsRingIntegral<typename Path<int>::Domain>,
     "Path::Domain must satisfy IsRingIntegral — the algebraic concept "
     "shared by std::size_t (operational) and Cardinality (Form).");
-static_assert(dedekind::order::IsRingIntegral<typename FinitePath<int>::Domain>,
+static_assert(dedekind::sets::IsRingIntegral<typename FinitePath<int>::Domain>,
               "FinitePath::Domain must satisfy IsRingIntegral.");
 
 // Juliet-posture witness (#531): the @c std::ranges API produces bona
