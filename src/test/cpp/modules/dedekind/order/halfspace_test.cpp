@@ -18,6 +18,7 @@
 import dedekind.category;
 import dedekind.sets;
 import dedekind.order;
+import dedekind.relational; // RelAnd / RelOr (the structured meet/join result)
 
 using namespace dedekind::category;
 using namespace dedekind::sets;
@@ -323,17 +324,27 @@ TEST_CASE(
     CHECK_FALSE((pos & cap)(20));  // not < 10
   }
 
-  SECTION("predicate-level operator&& / || fall back to named structs") {
-    // Two projection predicates: no structured_and/_or overload, so the
-    // predicate-level fallbacks build the named structs (not opaque lambdas).
+  SECTION(
+      "predicate-level && / || build the marker-preserving RelAnd / RelOr") {
+    // Two projection predicates: structured_and / structured_or (order)
+    // dispatch the generic operator&& / operator|| to RelAnd / RelOr, which
+    // stay IsRelPredicate (so the result can feed the 𝔸<pair> | relpred
+    // comprehension) --- unlike the generic AndPredicate / OrPredicate, which
+    // would drop the marker (#824).
     constexpr auto p = π1 > fix(5_c);
     constexpr auto q = π2 > fix(3_c);
     using AndP = std::decay_t<decltype(p && q)>;
     using OrP = std::decay_t<decltype(p || q)>;
-    STATIC_CHECK(std::same_as<AndP, AndPredicate<std::decay_t<decltype(p)>,
+    STATIC_CHECK(
+        std::same_as<AndP,
+                     dedekind::relational::RelAnd<std::decay_t<decltype(p)>,
+                                                  std::decay_t<decltype(q)>>>);
+    STATIC_CHECK(
+        std::same_as<OrP,
+                     dedekind::relational::RelOr<std::decay_t<decltype(p)>,
                                                  std::decay_t<decltype(q)>>>);
-    STATIC_CHECK(std::same_as<OrP, OrPredicate<std::decay_t<decltype(p)>,
-                                               std::decay_t<decltype(q)>>>);
+    STATIC_CHECK(IsRelPredicate<AndP>);  // the marker is preserved through &&
+    STATIC_CHECK(IsRelPredicate<OrP>);   // ... and through ||
     CHECK((p || q)(std::pair{finite_cardinality(6), finite_cardinality(0)}));
     CHECK_FALSE(
         (p && q)(std::pair{finite_cardinality(6), finite_cardinality(0)}));

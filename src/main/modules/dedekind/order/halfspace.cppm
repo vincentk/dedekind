@@ -1430,9 +1430,23 @@ static_assert(
     std::same_as<decltype(!(π1 == fix(5_c))), decltype(π1 != fix(5_c))>,
     "!(π1 == fix(5)) is π1 != fix(5) (ProjBound Eq->Ne).");
 
-// meet of relational predicates.  RelAnd now lives in :dyadic (#792).
+// Meet / join of relational PREDICATES is the pointwise boolean && / || (bool
+// → bool → bool), distinct from set intersection/union & / | (the vectorized
+// {bool}ⁿ ops on Sets).  Rather than defining operator&& / operator|| here
+// (which would be ambiguous with the generic predicate operator&& / operator||
+// in :sets:expressions), we hook the STRUCTURED forms: the generic operators
+// dispatch to structured_and / structured_or via ADL, and these return the
+// marker-preserving RelAnd / RelOr (which the generic AndPredicate /
+// OrPredicate are NOT — so their result could not feed the 𝔸<pair> | relpred
+// comprehension)
+// (#824).  This is the same mechanism the Halfspace lattice uses above.  RelAnd
+// / RelOr live in :dyadic (#792).
 export template <IsRelPredicate A, IsRelPredicate B>
-constexpr dedekind::relational::RelAnd<A, B> operator&(A a, B b) {
+constexpr dedekind::relational::RelAnd<A, B> structured_and(A a, B b) {
+  return {a, b};
+}
+export template <IsRelPredicate A, IsRelPredicate B>
+constexpr dedekind::relational::RelOr<A, B> structured_or(A a, B b) {
   return {a, b};
 }
 
@@ -1524,7 +1538,7 @@ constexpr auto operator*(const UniversalSet<T1, L1, C1>&,
   return 𝔸<std::pair<T1, T>, L> | cylinder<2>(b);
 }
 
-// restricted × restricted:  𝔸<pair> | (π1 ⋈ fix(p)) & (π2 ⋈ fix(q)).
+// restricted × restricted:  𝔸<pair> | (π1 ⋈ fix(p)) && (π2 ⋈ fix(q)).
 export template <typename Ta, auto Pa, Direction Da, Strictness Sa, typename La,
                  typename Tb, auto Qb, Direction Db, Strictness Sb, typename Lb>
   requires std::same_as<La, Lb>
@@ -1630,9 +1644,10 @@ static_assert(!(𝔹 * 𝔹 | π1 < π2)(std::pair{true, true}),
               "(true, true) ∉ {(x,y) | x < y}.");
 
 // a meet of two projection predicates: {(x,y) | x ≤ y ∧ y == true}.
-static_assert((𝔹 * 𝔹 | π1 <= π2 & π2 == fix(true_c))(std::pair{false, true}),
+static_assert((𝔹 * 𝔹 | (π1 <= π2 && π2 == fix(true_c)))(std::pair{false, true}),
               "(false, true) satisfies x ≤ y ∧ y = true.");
-static_assert(!(𝔹 * 𝔹 | π1 <= π2 & π2 == fix(true_c))(std::pair{false, false}),
+static_assert(!(𝔹 * 𝔹 |
+                (π1 <= π2 && π2 == fix(true_c)))(std::pair{false, false}),
               "(false, false) fails y = true.");
 
 // ── converse and the bracket-free relation query ───────────────────────────
@@ -1672,12 +1687,13 @@ constexpr ProjModBound<I, J, Rel::Eq, V> operator==(ProjMod<I, J>, Bound<V>) {
   return {};
 }
 
-// divides: {(a,b) | b % a == 0 ∧ a != 0} = ℕ*ℕ | π2 % π1 == fix(0_c) & π1 != 0.
-// The && in RelAnd short-circuits the guard first, so a == 0 never reaches %.
-static_assert((ℕ * ℕ | π1 != fix(0_c) & π2 % π1 == fix(0_c))(std::pair{
+// divides: {(a,b) | b % a == 0 ∧ a != 0} = ℕ*ℕ | (π2 % π1 == fix(0_c) && π1 !=
+// 0). The && in RelAnd short-circuits the guard first, so a == 0 never reaches
+// %.
+static_assert((ℕ * ℕ | (π1 != fix(0_c) && π2 % π1 == fix(0_c)))(std::pair{
                   finite_cardinality(2), finite_cardinality(6)}),
               "6 % 2 == 0: (2,6) ∈ divides.");
-static_assert(!(ℕ * ℕ | π1 != fix(0_c) & π2 % π1 == fix(0_c))(std::pair{
+static_assert(!(ℕ * ℕ | (π1 != fix(0_c) && π2 % π1 == fix(0_c)))(std::pair{
                   finite_cardinality(4), finite_cardinality(6)}),
               "6 % 4 != 0: (4,6) ∉ divides.");
 

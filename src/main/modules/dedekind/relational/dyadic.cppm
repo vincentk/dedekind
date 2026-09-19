@@ -210,12 +210,31 @@ struct RelAnd {
   }
 };
 
-// Relation UNION is the set-grammar join @c |: two relations over the same
-// product are just two @c Set<pair>, so @c r @c | @c s is their structural
-// @c OrPredicate union (@c :sets, #365).  The old @c operator+ / @c RelOr
-// carriers were a redundant dioid-additive spelling of the same set and were
-// dropped (#864 landed the structural @c |); @c ; (@c >>) remains the relation
-// product and @c * (closure) is @c FIXME(#786).
+/** @brief Join (disjunction) of two relational PREDICATES --- the dual of
+ *  @c RelAnd, and the marker-preserving carrier for the pointwise @c || on
+ *  @c relpred.  Distinct from relation UNION at the SET level (@c r @c | @c s,
+ *  the @c OrPredicate join of two @c Set<pair>): @c RelOr composes two bare
+ *  pair-PREDICATES so the result is itself an @c IsRelPredicate (usable in the
+ *  comprehension @c 𝔸<pair> @c | @c relpred).  (#864 dropped the old
+ *  @c operator+ spelling; this is the @c && / @c || dual re-introduced (#824)
+ *  as the @c structured_or result, not a competing operator.) */
+export template <typename A, typename B>
+struct RelOr {
+  using is_rel_predicate = void;
+  A a;
+  B b;
+  // @c auto (not @c bool): inherit the operands' logic (Kleene @c ∨ over
+  // TernaryLogic), mirroring @c RelAnd.
+  template <typename P>
+  constexpr auto operator()(const P& p) const {
+    return a(p) || b(p);
+  }
+};
+
+// Relation UNION at the SET level is the set-grammar join @c |: two relations
+// over the same product are two @c Set<pair>, so @c r @c | @c s is their
+// @c OrPredicate union (@c :sets, #365).  @c ; (@c >>) is the relation product
+// and @c * (closure) is @c FIXME(#786).
 
 // ── converse and the bracket-free relation query ───────────────────────────
 /** @brief The swapped predicate for @c converse: @f$R^\smile(b,a) = R(a,b)@f$.

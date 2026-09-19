@@ -87,14 +87,14 @@ static_assert(is_function(ℤ* ℤ | π1 + fix(3_c) == π2),
 static_assert(is_entire(ℤ* ℤ | π1 + fix(3_c) == π2),
               "the bare translation graph is total (entire).");
 static_assert(!is_entire(ℤ * ℤ | π1 + fix(3_c) == π2 |
-                         π2 <= fix(8_c) & π2 % fix(3_c) == fix(0_c)),
+                         (π2 <= fix(8_c) && π2 % fix(3_c) == fix(0_c))),
               "constraining the codomain makes the graph a partial function.");
 static_assert(argmax(ℤ* ℤ | π1 + fix(3_c) == π2 |
-                     π2 <= fix(8_c) & π2 % fix(3_c) == fix(0_c))(3),
+                     (π2 <= fix(8_c) && π2 % fix(3_c) == fix(0_c)))(3),
               "argmax = max{x ≤ 5 ∧ x ≡ 0 mod 3} = 3: a compile-time "
               "constrained optimum.");
 static_assert(!argmax(ℤ * ℤ | π1 + fix(3_c) == π2 |
-                      π2 <= fix(8_c) & π2 % fix(3_c) == fix(0_c))(4),
+                      (π2 <= fix(8_c) && π2 % fix(3_c) == fix(0_c)))(4),
               "4 is feasible-adjacent but not the optimiser (4 ≢ 0 mod 3).");
 
 // ── The translation group, at compile time: closure (T₂∘T₃ = T₅), the converse
@@ -231,8 +231,8 @@ TEST_CASE(
 TEST_CASE("algebra:halfspace_transport — argmax over a partial function",
           "[algebra][argmax][partial][optimization]") {
   constexpr auto Z = 𝔸<SignedCardinality>;
-  const auto g =
-      Z * Z | π1 + fix(3_c) == π2 | π2 <= fix(8_c) & π2 % fix(3_c) == fix(0_c);
+  const auto g = Z * Z | π1 + fix(3_c) == π2 |
+                 (π2 <= fix(8_c) && π2 % fix(3_c) == fix(0_c));
   STATIC_CHECK(!is_entire(g));
   STATIC_CHECK(is_entire(Z * Z | π1 + fix(3_c) == π2));
 
