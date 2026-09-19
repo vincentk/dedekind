@@ -249,7 +249,11 @@ struct MatNxNV {
    * without an awkward @c dedekind.order dependency --- so it lands with the
    * function-space image work, not on the bare @c Mat call operator.
    */
-  constexpr Ket<S, N> operator()(const Ket<S, N>& v) const {
+  constexpr Ket<S, N> operator()(const Ket<S, N>& v) const
+    requires dedekind::category::IsSemiring<
+        S, typename dedekind::algebra::semiring_ops<S>::add,
+        typename dedekind::algebra::semiring_ops<S>::mult>
+  {
     using Add = typename dedekind::algebra::semiring_ops<S>::add;
     using Mult = typename dedekind::algebra::semiring_ops<S>::mult;
     const S zero = dedekind::category::identity_v<S, Add>;
@@ -370,8 +374,14 @@ export template <typename F>
 concept IsLinearOperator =
     dedekind::category::IsArrow<F> && is_linear_operator_v<F>;
 
-/// @brief @c Mat(S) is the linear operator @f$|v\rangle \mapsto M|v\rangle@f$.
+/// @brief @c Mat(S) is the linear operator @f$|v\rangle \mapsto M|v\rangle@f$
+/// ---
+///        only when @c S is a semiring (else there is no @c ⊕/@c ⊗ to be linear
+///        over, and the matvec is not even an @c IsArrow).
 export template <typename S, std::size_t N>
+  requires dedekind::category::IsSemiring<
+               S, typename dedekind::algebra::semiring_ops<S>::add,
+               typename dedekind::algebra::semiring_ops<S>::mult>
 inline constexpr bool is_linear_operator_v<MatNxNV<S, N>> = true;
 
 // @note NO bare @c dagger(M) alias either (same reason as the vector case
