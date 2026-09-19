@@ -78,7 +78,7 @@ using namespace dedekind::order;
  *               @c size_t choice principled rather than accidental").
  */
 export template <typename T, typename Cardinality = ℵ_0,
-                 dedekind::order::IsRingIntegral Index = std::size_t>
+                 dedekind::sets::IsRingIntegral Index = std::size_t>
 struct Path {
   using Domain = Index;
   using Codomain = T;
@@ -1018,10 +1018,10 @@ static_assert(
 // concept) rather than ad-hoc, and the same algebraic concept gates the
 // relation form's index column.
 static_assert(
-    dedekind::order::IsRingIntegral<typename Path<int>::Domain>,
+    dedekind::sets::IsRingIntegral<typename Path<int>::Domain>,
     "Path::Domain must satisfy IsRingIntegral — the algebraic concept "
     "shared by std::size_t (operational) and Cardinality (Form).");
-static_assert(dedekind::order::IsRingIntegral<typename FinitePath<int>::Domain>,
+static_assert(dedekind::sets::IsRingIntegral<typename FinitePath<int>::Domain>,
               "FinitePath::Domain must satisfy IsRingIntegral.");
 
 // Juliet-posture witness (#531): the @c std::ranges API produces bona

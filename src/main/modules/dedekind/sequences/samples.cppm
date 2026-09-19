@@ -119,7 +119,7 @@ export inline const auto is_even = Path<Boolean, ℵ_0, ℕ_Form>{
  *           @c finite_cardinality factories rather than @c T(0u)
  *           (a Sollbruchstelle named in the partition docstring above).
  */
-export template <dedekind::order::IsRingIntegral T>
+export template <dedekind::sets::IsRingIntegral T>
   requires requires {
     T(0u);
     T(1u);

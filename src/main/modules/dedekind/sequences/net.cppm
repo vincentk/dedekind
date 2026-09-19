@@ -226,7 +226,7 @@ concept IsSequence = IsNet<Seq> && IsCountablyIndexedFamily<Seq> && requires {
   // @c :order:halfspace:96 .  This makes the §3 page-2 claim "a sequence
   // IS a countable set of @f$\mathbb{N} \times T@f$ pairs" type-checkable
   // via @c as_relation while respecting Form-before-Carrier discipline.
-  requires dedekind::order::IsRingIntegral<typename Seq::Domain>;
+  requires dedekind::sets::IsRingIntegral<typename Seq::Domain>;
 };
 
 /**

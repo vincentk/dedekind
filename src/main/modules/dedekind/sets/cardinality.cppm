@@ -35,6 +35,7 @@ module;
 #include <cstddef>
 #include <functional>
 #include <limits>
+#include <type_traits>  // std::remove_cvref_t --- IsRingIntegral normalisation
 #include <utility>
 #include <variant>
 
@@ -1872,6 +1873,82 @@ export constexpr SignedCardinality operator*(const SignedCardinality& a,
                                              const Cardinality& b) noexcept {
   return a * lift_cardinality_to_signed(b);
 }
+
+/**
+ * @concept IsRingIntegral
+ * @brief Carrier types that admit integer-range arithmetic semantics.
+ *
+ * @details Generalises @c std::integral to also recognise the project's variant
+ * ℕ-/ℤ-proxy carriers (@c Cardinality, @c SignedCardinality) and their bounded
+ * @c ExtensionalCardinal / @c SignedExtensionalCardinal cousins.  The concept
+ * names "carriers that read as an integer-magnitude domain for cardinality
+ * counting" --- the integer-range reading --- @b without claiming closure under
+ * arithmetic, additive inverses, or strict ring laws (a @b shape concept,
+ * sibling of @c HasRingOperators / @c IsRing).
+ *
+ * Floating-point carriers (@c float / @c double / @c Real<Q>) are @b not
+ * admitted: their range cardinalities are uncountable in the abstract reading
+ * and lossy under IEEE rounding.
+ *
+ * @note Lives in @c :sets:cardinality --- the canonical cardinality /
+ * enumerability home --- since it depends only on @c std::integral and the
+ * cardinal carriers above.  It was previously (mis)housed in
+ * @c :order:halfspace; relocated here (#878) as that partition sheds its
+ * accreted non-order concerns.
+ */
+namespace detail_isringintegral {
+template <typename>
+struct is_signed_extensional_cardinal : std::false_type {};
+template <std::size_t N>
+struct is_signed_extensional_cardinal<SignedExtensionalCardinal<N>>
+    : std::true_type {};
+template <typename>
+struct is_extensional_cardinal : std::false_type {};
+template <std::size_t N>
+struct is_extensional_cardinal<ExtensionalCardinal<N>> : std::true_type {};
+}  // namespace detail_isringintegral
+
+export template <typename T>
+concept IsRingIntegral =
+    std::integral<std::remove_cvref_t<T>> ||
+    std::same_as<std::remove_cvref_t<T>, Cardinality> ||
+    std::same_as<std::remove_cvref_t<T>, SignedCardinality> ||
+    detail_isringintegral::is_signed_extensional_cardinal<
+        std::remove_cvref_t<T>>::value ||
+    detail_isringintegral::is_extensional_cardinal<
+        std::remove_cvref_t<T>>::value;
+
+// Positive witnesses: built-in integrals + the variant ℕ-/ℤ-proxy carriers.
+static_assert(IsRingIntegral<int>);
+static_assert(IsRingIntegral<unsigned int>);
+static_assert(IsRingIntegral<long>);
+static_assert(IsRingIntegral<long long>);
+static_assert(IsRingIntegral<std::size_t>);
+static_assert(IsRingIntegral<bool>);
+static_assert(IsRingIntegral<Cardinality>,
+              "Cardinality must satisfy IsRingIntegral — the variant ℕ-proxy "
+              "is the canonical exact-ℕ integer-range carrier.");
+static_assert(IsRingIntegral<SignedCardinality>,
+              "SignedCardinality must satisfy IsRingIntegral — the variant "
+              "ℤ-proxy is the canonical exact-ℤ integer-range carrier.");
+static_assert(IsRingIntegral<SignedExtensionalCardinal<>>,
+              "SignedExtensionalCardinal<> must satisfy IsRingIntegral — the "
+              "bounded exact-ℤ carrier underlying the ℤ alias.");
+static_assert(IsRingIntegral<ExtensionalCardinal<>>,
+              "ExtensionalCardinal<> must satisfy IsRingIntegral — the bounded "
+              "exact-ℕ carrier (sibling of SEC<> on the unsigned side).");
+
+// Cv-/ref-qualified spellings normalise via std::remove_cvref_t, so the concept
+// fires in deduced contexts.
+static_assert(IsRingIntegral<const int>);
+static_assert(IsRingIntegral<int&>);
+static_assert(IsRingIntegral<const Cardinality&>);
+static_assert(IsRingIntegral<SignedCardinality&&>);
+
+// Negative witnesses: continuous / non-integer carriers correctly refused.
+static_assert(!IsRingIntegral<double>);
+static_assert(!IsRingIntegral<float>);
+static_assert(!IsRingIntegral<long double>);
 
 }  // namespace dedekind::sets
 
