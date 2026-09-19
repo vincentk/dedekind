@@ -103,6 +103,22 @@ using SetFunction = Relation<T1, T2, L, P>;
 /**
  * @brief Concept: a set S whose ambient type is std::pair<T1,T2> is a valid
  *        binary relation on T1 and T2.
+ *
+ * @details @b A @b relation @b wears @b both @b arrow @b hats @b at @b once
+ * (they are not rivals --- do not treat one as "the wrong reading"):
+ *   @li as its characteristic function @f$\chi_R : A\times B \to \Omega@f$ it
+ *       is a @b callable @c IsArrow (@c Domain @c = @c pair<A,B>, @c Codomain
+ *       @c = @c Ω) --- this is what @c R(std::pair{a,b}) evaluates, and it is
+ *       already an @c IsArrow today (the subobject-classifier reading);
+ *   @li as @f$A \rightsquigarrow B@f$ it is an @b allegory @b arrow, composed
+ * by the relative product @c >> and converse @c ° of this calculus. The
+ * power-transpose adjunction @f$\Lambda R : A \to \mathcal{P}(B)@f$
+ * (@c apply below) is the bridge: these are @b one @b datum viewed three ways.
+ * A @c IsFunction (@c :graph) additionally collapses the @f$\mathcal{P}(B)@f$
+ * fibre to a single value (a functional + entire relation), so it @b also reads
+ * as the map @f$f : A \to B@f$ --- while remaining all of the above.  Hence
+ * @c IsLinearOperator ⟹ @c IsFunction ⟹ @c IsRelation ⟹ @c IsArrow is
+ * coherent top to bottom, with no choice of "which arrow" to make.
  */
 export template <typename S, typename T1, typename T2>
 concept IsRelation = requires { typename S::Domain; } &&
@@ -359,7 +375,18 @@ struct CoreflexivePred {
  *  Generalizes the full diagonal (@c diag(𝔸<A>) recovers it) and is the
  *  restrictor for a relative product's endpoints, so a set pre-image is
  *  @f$\mathrm{dom}(R \mathbin{;} \mathrm{diag}(S))@f$ without leaving the
- *  point-free surface. */
+ *  point-free surface.
+ *
+ *  @note @b Linear-algebra @b incarnation: given a suitable domain/codomain
+ *  --- a finite, indexable carrier @c A (a dimension @c D) and the logic
+ *  semiring @c 𝔹 as scalar --- this coreflexive @b is a @b diagonal @b matrix
+ *  @c dedekind::linear_algebra::Diagonal<D, χ_S>, whose diagonal rule is
+ * exactly
+ *  @c S's characteristic function (@c CoreflexivePred::s @b is the diagonal
+ *  rule @c F, both point-free).  The full diagonal @c diag(𝔸<A>) is then the
+ *  @c Identity<D> matrix.  So @c diag on the two surfaces is one
+ * partial-identity operator.  FIXME(#873): the concrete @c coreflexive→Diagonal
+ * bridge (needs the finite-carrier→dimension indexing). */
 export template <typename S>
   requires dedekind::category::IsSet<S>
 constexpr auto diag(const S& s) {

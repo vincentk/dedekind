@@ -120,6 +120,15 @@ static_assert(IsDimension<dedekind::sets::ℵ_0>,
  *          dense @c D@c ×@c D entry table is never materialised.  Works
  *          uniformly at any @c D, including @c ℵ_0.  Off-diagonal entries
  *          are @c T{} (the additive zero), per the @c δ_ij convention.
+ *
+ * @note @b Relational @b incarnation: a @c Diagonal @b is the matrix reading of
+ * a Trsk coreflexive @c dedekind::relational::diag(S) --- the partial identity
+ * @f$\Delta_S = \{(x,x)\mid x\in S\}@f$.  The diagonal @b rule @c F is exactly
+ * @c S's characteristic function (over the logic semiring @c 𝔹), so
+ * @c Diagonal<D, χ_S> @c ≅ @c diag(S) and @c Identity<D> @c ≅ the full diagonal
+ * @c diag(𝔸<A>) (@c DiagPred).  Both are point-free (rule, not table): the same
+ * partial-identity operator on the linear-algebra and relational surfaces.
+ * FIXME(#873): the concrete @c coreflexive↔Diagonal bridge.
  */
 export template <typename D, typename F>
   requires IsDimension<D> && dedekind::category::IsArrow<F>

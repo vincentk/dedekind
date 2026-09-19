@@ -151,15 +151,16 @@ struct MatNxNV {
   using column_type = Ket<S, N>;
   using row_type = Bra<S, N>;
 
-  /// @brief @c Mat(S) @b is the linear operator @f$|v\rangle \mapsto M|v\rangle@f$
+  /// @brief @c Mat(S) @b is the linear operator @f$|v\rangle \mapsto
+  /// M|v\rangle@f$
   ///        --- a callable @c IsArrow with @c Domain @c = @c Codomain @c =
   ///        @c Ket<S,N>.  This is the @b callable reading of the arrow chain
   ///        @c IsLinearOperator ⟹ @c IsFunction ⟹ @c IsRelation ⟹ @c IsArrow
   ///        (see @c dedekind::relational::IsRelation for the three-hats note):
   ///        matrix-vector application is a total, single-valued map, so the
-  ///        matrix @b is a function @b is an arrow.  The binary @c operator()(i,j)
-  ///        entry accessor and this unary @c operator()(Ket) apply differ in
-  ///        arity, so they do not collide.
+  ///        matrix @b is a function @b is an arrow.  The binary @c
+  ///        operator()(i,j) entry accessor and this unary @c operator()(Ket)
+  ///        apply differ in arity, so they do not collide.
   using Domain = Ket<S, N>;
   using Codomain = Ket<S, N>;
 
@@ -270,8 +271,8 @@ export template <typename F>
 inline constexpr bool is_linear_operator_v = false;
 
 /**
- * @brief A @b linear @b operator @b is a (callable) @c IsArrow that additionally
- *        preserves the semimodule structure --- the top of the chain
+ * @brief A @b linear @b operator @b is a (callable) @c IsArrow that
+ * additionally preserves the semimodule structure --- the top of the chain
  *        @c IsLinearOperator ⟹ @c IsFunction ⟹ @c IsRelation ⟹ @c IsArrow.
  *
  * @details The chain (see @c dedekind::relational::IsRelation for the
@@ -506,16 +507,17 @@ static_assert(IsMatrix<MatNxNV<MPll, 3>>,
               "decompositions, all over a semiring.");
 
 // ── Mat(S) as a callable arrow: the IsLinearOperator chain (#787 / #301) ────
-static_assert(dedekind::category::IsArrow<MatNxNV<MPll, 3>>,
-              "Mat(S) is a callable arrow |v⟩ ↦ M|v⟩ (Domain = Codomain = Ket), "
-              "the callable reading of IsLinearOperator ⟹ … ⟹ IsArrow.");
+static_assert(
+    dedekind::category::IsArrow<MatNxNV<MPll, 3>>,
+    "Mat(S) is a callable arrow |v⟩ ↦ M|v⟩ (Domain = Codomain = Ket), "
+    "the callable reading of IsLinearOperator ⟹ … ⟹ IsArrow.");
 static_assert(IsLinearOperator<MatNxNV<MPll, 3>>,
               "Mat(S) is a linear operator (a callable arrow + declared "
               "linearity).");
 // Matrix-vector application over the MaxPlus semiring: the identity operator
 // I|v⟩ = |v⟩ (exercises operator()(Ket) end to end).  FIXME: richer value-level
-// witnesses (a non-identity M on a non-default |v⟩) once a MaxPlus literal helper
-// lands.
+// witnesses (a non-identity M on a non-default |v⟩) once a MaxPlus literal
+// helper lands.
 static_assert(identity_matrix<MPll, 3>()(Ket<MPll, 3>{}) == Ket<MPll, 3>{},
               "I|v⟩ = |v⟩ for the semiring identity matrix.");
 
