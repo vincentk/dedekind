@@ -116,9 +116,14 @@ using SetFunction = Relation<T1, T2, L, P>;
  * (@c apply below) is the bridge: these are @b one @b datum viewed three ways.
  * A @c IsFunction (@c :graph) additionally collapses the @f$\mathcal{P}(B)@f$
  * fibre to a single value (a functional + entire relation), so it @b also reads
- * as the map @f$f : A \to B@f$ --- while remaining all of the above.  Hence
- * @c IsLinearOperator ⟹ @c IsFunction ⟹ @c IsRelation ⟹ @c IsArrow is
- * coherent top to bottom, with no choice of "which arrow" to make.
+ * as the map @f$f : A \to B@f$ --- while remaining all of the above.
+ *
+ * @note This @b concept, @c IsRelation<S,T1,T2>, checks only that @c S::Domain
+ * is @c pair<T1,T2> --- it does @b not encode the arrow implications above. The
+ * chain @c IsLinearOperator ⟹ @c IsFunction ⟹ @c IsRelation ⟹ @c IsArrow is a
+ * @b conceptual reading, reified where needed through the @b graph adapter (a
+ * function's @c graph IS the @c IsRelation / @c IsFunction), @b not by direct
+ * concept subsumption.
  */
 export template <typename S, typename T1, typename T2>
 concept IsRelation = requires { typename S::Domain; } &&

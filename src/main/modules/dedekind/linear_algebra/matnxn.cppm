@@ -342,24 +342,29 @@ export template <typename F>
 inline constexpr bool is_linear_operator_v = false;
 
 /**
- * @brief A @b linear @b operator @b is a (callable) @c IsArrow that
- * additionally preserves the semimodule structure --- the top of the chain
- *        @c IsLinearOperator ⟹ @c IsFunction ⟹ @c IsRelation ⟹ @c IsArrow.
+ * @brief A @b linear @b operator: a (callable) @c IsArrow that additionally
+ *        preserves the semimodule structure.
  *
- * @details The chain (see @c dedekind::relational::IsRelation for the
- * three-hats note): a callable arrow @f$f:A\to B@f$ is a total, single-valued
- * @b map (a @c IsFunction, @c :graph); its graph @f$\{(x,f(x))\}@f$ is a
- * @c IsRelation; and the relation is itself an @c IsArrow (both as its
- * characteristic @f$\chi:A\times B\to\Omega@f$ and, via the power transpose, as
- * the map).  @c IsLinearOperator adds the one extra law (linearity) on top.
+ * @details @b What @b this @b concept @b reifies (and what it does @b not).  As
+ * @b code, @c IsLinearOperator<F> is exactly @c IsArrow<F> plus the opt-in
+ * linearity trait --- a @b callable arrow (@c Domain/@c Codomain + a call
+ * operator, which is what makes @c Mat(S) an @c IsArrow) that is declared
+ * linear.  The wider reading
+ * @c IsLinearOperator ⟹ @c IsFunction ⟹ @c IsRelation ⟹ @c IsArrow is the
+ * @b conceptual chain, @b not a direct concept subsumption: the relational
+ * @c IsFunction<R,A,B> / @c IsRelation<S,T1,T2> are predicates over a
+ * @c Set<pair> carrier, a different shape from this unary callable arrow.  The
+ * bridge is the @b graph: @c graph(f) (@c :relational, via
+ * @c arrow_as_relation) IS the @c IsFunction / @c IsRelation, so the chain is
+ * reified @b through that adapter, not by making @c IsLinearOperator require
+ * the relational concepts directly.  (Linearity itself is a law over all
+ * inputs --- uncheckable --- hence the opt-in trait, not a computed
+ * refinement.)
  *
- * @note Concept vs. reification: the linearity @b law is the opt-in trait
- * (uncheckable); the @b callable-arrow reification (@c Domain/@c Codomain +
- * matrix-vector @c operator()) is what makes @c Mat(S) satisfy @c IsArrow.
  * FIXME(#787): once @c Mat(S) carries a dagger @c inverse, @c IsUnitary ⟹
- * @c IsIsomorphism becomes real (@c f^{-1}=f^{\dagger}); FIXME(#301): general
- * invertibility via determinant/adjugate (@c det≠0); FIXME(#442): the law set
- * that survives when @c S is not a field.
+ * @c IsIsomorphism becomes real; FIXME(#301): invertibility via
+ * determinant/adjugate; FIXME(#442): the law set that survives when @c S is not
+ * a field.
  */
 export template <typename F>
 concept IsLinearOperator =
