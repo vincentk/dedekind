@@ -1,4 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
+#include <concepts>     // std::same_as
+#include <type_traits>  // std::decay_t
 import dedekind.category;
 import dedekind.sets;
 
@@ -74,13 +76,36 @@ TEST_CASE("Sets: Singleton Acceptance", "[sets][singleton][acceptance]") {
     // `UniversalSet<T>{}` in place of `Ø<T>{}`.  Same underlying
     // structural-identity / cross-type-overload / equality-matrix
     // surgery needed.
-    INFO("The union of a set with itself is a fixed point.");
-    REQUIRE((_s | _s).size() == 1);
+    // The union is now the recoverable named OrPredicate (no element scout,
+    // no lambda), so it is tested by MEMBERSHIP rather than a size() probe.
+    INFO(
+        "The union of a set with itself is a fixed point: {42} ∪ {42} = {42}.");
+    REQUIRE((_s | _s)(42));
+    REQUIRE(!(_s | _s)(4));
+    // Two DISTINCT atoms: {42} ∪ {7} = {42, 7} — contains both, nothing else.
+    // (Regression guard: the old lvalue comprehension-over-*this wrongly gave
+    // {42} here; the recoverable OrPredicate is correct for distinct atoms.)
+    const auto _t = ι<size_t>(7);
+    REQUIRE((_s | _t)(42));
+    REQUIRE((_s | _t)(7));
+    REQUIRE(!(_s | _t)(4));
+    // The STRUCTURAL contract (#691/#842), which membership alone does not pin:
+    // the union is a RECOVERABLE named OrPredicate whose two atoms survive in
+    // the type (an opaque predicate with the same membership would pass the
+    // checks above).  Pin the result type and recover both pivots.
+    using UnionT = std::decay_t<decltype(_s | _t)>;
+    STATIC_REQUIRE(
+        std::same_as<
+            UnionT,
+            Set<size_t, ClassicalLogic,
+                OrPredicate<SingletonSet<size_t>, SingletonSet<size_t>>>>);
+    REQUIRE((_s | _t).predicate().lhs.pivot == 42);
+    REQUIRE((_s | _t).predicate().rhs.pivot == 7);
+    // FIXME(#685): structural identity ({a}∪{a} == {a}, round-trip to the
+    // universe for {a}∪¬{a}) still needs the equality-matrix / cross-type
+    // overload surgery tracked there.
     // REQUIRE((_s | _s) == _s);
-    // REQUIRE(&(_s | _s) == &_s);
-    INFO("The union of a set with its complement is the universal set.");
     // REQUIRE((!_s) | _s == UniversalSet<size_t>{});
-    // REQUIRE(UniversalSet<size_t>{} == (!_s) | _s);
   }
   SECTION("Difference") {
     // FIXME(#685): set-difference operator `-` not defined on the

@@ -217,14 +217,23 @@ struct SingletonSet {
 
   /** @section singleton__Unified_Lattice_Operations */
 
-  /** @brief Singleton-bounded join (lvalue self): comprehension over
-   *         @c *this (size 1).  Lvalue-only because @c Comprehension
-   *         stores its base by reference; rvalue self-joins use the
-   *         universe-bounded fallback below to avoid dangling. */
+  /** @brief Union of two atoms @f$\{a\}\cup\{b\}@f$ as the @b recoverable named
+   *  join @c OrPredicate --- the #365 replacement for the opaque comprehension
+   *  lambda.  No @c element scout, no lambda: the two pivots survive in
+   *  @c decltype (reachable as @c .predicate().lhs / @c .rhs), so the union can
+   *  be @b flattened and inspected structurally --- the prerequisite for the
+   *  power-set monad's @c μ (union-flatten, #691) and the Frobenius comonoid
+   *  @c δ on sets/relations (#842).  One non-ref-qualified overload: the old
+   * lvalue/rvalue split was a @c Comprehension-base-dangling workaround this
+   * form does not need, and it is correct for @b distinct atoms (the old lvalue
+   * comprehension over
+   *  @c *this computed @f$\{a\}\cap(a\vee b)=\{a\}@f$ for
+   * @f$\{a\}\cup\{b\}@f$).
+   */
   template <typename U, typename L2>
-  constexpr auto operator|(const SingletonSet<U, L2>& other) const& {
-    return Comprehension{
-        *this, [s1 = *this, s2 = other](const T& x) { return s1(x) || s2(x); }};
+  constexpr auto operator|(const SingletonSet<U, L2>& other) const {
+    using Or = OrPredicate<SingletonSet<T, L>, SingletonSet<U, L2>>;
+    return Set<T, L, Or>{Or{*this, other}};
   }
 
   /** @brief Singleton-bounded meet (lvalue self). */
@@ -233,15 +242,10 @@ struct SingletonSet {
     return Comprehension{*this, [s2 = other](const T& x) { return s2(x); }};
   }
 
-  /** @brief Rvalue-safe fallback: universe-bounded comprehension that
-   *         doesn't reference @c *this.  Size is not computable (the
-   *         base is the universe) — the price of rvalue safety. */
-  template <typename U, typename L2>
-  constexpr auto operator|(const SingletonSet<U, L2>& other) const&& {
-    return element<𝔸<T, L>> |
-           [s1 = *this, s2 = other](const T& x) { return s1(x) || s2(x); };
-  }
-
+  // FIXME(#842): the meet @c & below still routes through the deprecated
+  // @c element scout + a lambda; de-lambda it to a named @c AndPredicate the
+  // way @c | above was, when the meet side (the Frobenius multiplication) is
+  // needed.  Union went first as the @c μ (#691) / comonoid blocker.
   template <typename U, typename L2>
   constexpr auto operator&(const SingletonSet<U, L2>& other) const&& {
     return element<𝔸<T, L>> |
