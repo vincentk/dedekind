@@ -151,6 +151,18 @@ struct MatNxNV {
   using column_type = Ket<S, N>;
   using row_type = Bra<S, N>;
 
+  /// @brief @c Mat(S) @b is the linear operator @f$|v\rangle \mapsto M|v\rangle@f$
+  ///        --- a callable @c IsArrow with @c Domain @c = @c Codomain @c =
+  ///        @c Ket<S,N>.  This is the @b callable reading of the arrow chain
+  ///        @c IsLinearOperator ⟹ @c IsFunction ⟹ @c IsRelation ⟹ @c IsArrow
+  ///        (see @c dedekind::relational::IsRelation for the three-hats note):
+  ///        matrix-vector application is a total, single-valued map, so the
+  ///        matrix @b is a function @b is an arrow.  The binary @c operator()(i,j)
+  ///        entry accessor and this unary @c operator()(Ket) apply differ in
+  ///        arity, so they do not collide.
+  using Domain = Ket<S, N>;
+  using Codomain = Ket<S, N>;
+
   std::array<std::array<S, N>, N> e{};
 
   /// @brief §4 property distribution: matrix @c ⊕ (@ref MatPlus) is associative
@@ -183,6 +195,25 @@ struct MatNxNV {
           S, typename dedekind::algebra::semiring_ops<S>::add>;
 
   constexpr S operator()(std::size_t i, std::size_t j) const { return e[i][j]; }
+
+  /// @brief Matrix-vector application @f$(M|v\rangle)_i = \bigoplus_j M_{ij}
+  ///        \otimes v_j@f$ over @c S's semiring ops (never native @c +/@c *,
+  ///        which the tropical carriers skew).  The @c IsArrow call operator:
+  ///        @c Ket → @c Ket.
+  constexpr Ket<S, N> operator()(const Ket<S, N>& v) const {
+    using Add = typename dedekind::algebra::semiring_ops<S>::add;
+    using Mult = typename dedekind::algebra::semiring_ops<S>::mult;
+    const S zero = dedekind::category::identity_v<S, Add>;
+    Ket<S, N> r{};
+    for (std::size_t i = 0; i < N; ++i) {
+      S acc = zero;
+      for (std::size_t j = 0; j < N; ++j)
+        acc = Add{}(acc, Mult{}(e[i][j], v.c[j]));
+      r.c[i] = acc;
+    }
+    return r;
+  }
+
   constexpr const std::array<S, N>& operator[](std::size_t i) const {
     return e[i];
   }
@@ -226,6 +257,45 @@ struct MatNxNV {
     return b;
   }
 };
+
+/**
+ * @brief Opt-in: @c F is a @b linear @b operator --- a structure-preserving
+ *        arrow @f$f(s\otimes x \oplus y) = s\otimes f(x) \oplus f(y)@f$.
+ *
+ * @details Like @c is_monic_arrow_v (@c :morphism), linearity quantifies over
+ * all inputs, so it @b cannot be verified at compile time; the carrier declares
+ * it and the public review is the audit trail.  @c Mat(S) is registered below.
+ */
+export template <typename F>
+inline constexpr bool is_linear_operator_v = false;
+
+/**
+ * @brief A @b linear @b operator @b is a (callable) @c IsArrow that additionally
+ *        preserves the semimodule structure --- the top of the chain
+ *        @c IsLinearOperator ⟹ @c IsFunction ⟹ @c IsRelation ⟹ @c IsArrow.
+ *
+ * @details The chain (see @c dedekind::relational::IsRelation for the
+ * three-hats note): a callable arrow @f$f:A\to B@f$ is a total, single-valued
+ * @b map (a @c IsFunction, @c :graph); its graph @f$\{(x,f(x))\}@f$ is a
+ * @c IsRelation; and the relation is itself an @c IsArrow (both as its
+ * characteristic @f$\chi:A\times B\to\Omega@f$ and, via the power transpose, as
+ * the map).  @c IsLinearOperator adds the one extra law (linearity) on top.
+ *
+ * @note Concept vs. reification: the linearity @b law is the opt-in trait
+ * (uncheckable); the @b callable-arrow reification (@c Domain/@c Codomain +
+ * matrix-vector @c operator()) is what makes @c Mat(S) satisfy @c IsArrow.
+ * FIXME(#787): once @c Mat(S) carries a dagger @c inverse, @c IsUnitary ⟹
+ * @c IsIsomorphism becomes real (@c f^{-1}=f^{\dagger}); FIXME(#301): general
+ * invertibility via determinant/adjugate (@c det≠0); FIXME(#442): the law set
+ * that survives when @c S is not a field.
+ */
+export template <typename F>
+concept IsLinearOperator =
+    dedekind::category::IsArrow<F> && is_linear_operator_v<F>;
+
+/// @brief @c Mat(S) is the linear operator @f$|v\rangle \mapsto M|v\rangle@f$.
+export template <typename S, std::size_t N>
+inline constexpr bool is_linear_operator_v<MatNxNV<S, N>> = true;
 
 /** @brief The zero matrix — every entry the base @c ⊕-identity (0̄). */
 export template <typename S, std::size_t N>
@@ -434,5 +504,19 @@ static_assert(
 static_assert(IsMatrix<MatNxNV<MPll, 3>>,
               "Mat(S) is a matrix: shape + Ket columns + Bra rows + both "
               "decompositions, all over a semiring.");
+
+// ── Mat(S) as a callable arrow: the IsLinearOperator chain (#787 / #301) ────
+static_assert(dedekind::category::IsArrow<MatNxNV<MPll, 3>>,
+              "Mat(S) is a callable arrow |v⟩ ↦ M|v⟩ (Domain = Codomain = Ket), "
+              "the callable reading of IsLinearOperator ⟹ … ⟹ IsArrow.");
+static_assert(IsLinearOperator<MatNxNV<MPll, 3>>,
+              "Mat(S) is a linear operator (a callable arrow + declared "
+              "linearity).");
+// Matrix-vector application over the MaxPlus semiring: the identity operator
+// I|v⟩ = |v⟩ (exercises operator()(Ket) end to end).  FIXME: richer value-level
+// witnesses (a non-identity M on a non-default |v⟩) once a MaxPlus literal helper
+// lands.
+static_assert(identity_matrix<MPll, 3>()(Ket<MPll, 3>{}) == Ket<MPll, 3>{},
+              "I|v⟩ = |v⟩ for the semiring identity matrix.");
 
 }  // namespace dedekind::linear_algebra
