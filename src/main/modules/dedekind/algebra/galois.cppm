@@ -261,6 +261,25 @@ export struct 𝔽64 final {
  */
 export constexpr 𝔽64 operator*(bool s, 𝔽64 v) noexcept { return s ? v : 𝔽64{}; }
 
+/**
+ * @brief The additive (group) inverse of @c 𝔽64, spelled as the @b computable
+ *        @c inverse(a, std::plus) free function that @c category::inverse_v
+ *        routes through by ADL.
+ * @details In characteristic two every element is its own additive inverse
+ *          (@f$-x = x@f$, since @f$2x = 0@f$), so this returns @c -a via the
+ *          carrier's unary negation.  The @c is_invertible_v @b marker for
+ *          @c (𝔽64, std::plus) is supplied separately by the
+ *          @c GaloisFieldRegistration atlas (see @c SpeciesTraits above); that
+ *          marker asserts invertibility but does @b not by itself make the
+ *          inverse @b computable.  This free function is the matching
+ *          computable operation, without which @c inverse_v<𝔽64, std::plus> is
+ *          not callable even though the marker holds.  Downstream, the
+ *          translation-graph @c inverse (@c :algebra:halfspace_transport)
+ *          takes the converse shift from @c inverse_v, so it needs this hook to
+ *          fire over @c 𝔽64.
+ */
+export constexpr 𝔽64 inverse(𝔽64 a, std::plus<𝔽64>) noexcept { return -a; }
+
 }  // namespace dedekind::algebra
 
 namespace dedekind::category {

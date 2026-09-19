@@ -14,6 +14,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <limits>
+#include <type_traits>  // std::is_same_v (𝔽64 converse type witness)
 #include <utility>
 
 import dedekind.category;
@@ -140,25 +141,34 @@ static_assert(((ℤ * ℤ | π1 + fix(2_c) == π2) >> (ℤ * ℤ | π1 + fix(3_c
 // coherence test: XOR also means set symmetric difference (^) in Trsk, but 𝔽64
 // routes its group op through operator+, not ^, so the translation graph does
 // not collide with the set-level ^.  In char 2 the shift is self-inverse (−K =
-// K), so the inverse graph is the same graph.  (The operator-generic version,
-// retract computing the Op-inverse for any IsGroup<T,Op>, is the #882 harvest.)
+// K), computed through the group-inverse registry (category::inverse_v), so the
+// inverse graph is the same graph.  (Generalizing the GRAPH itself to a
+// non-additive op, e.g. π1·fix(K) over a multiplicative group, is #882.)
 static_assert(dedekind::category::IsAbelianGroup<𝔽64, std::plus<𝔽64>>,
               "𝔽64 = GF(2⁶) is an additive abelian group under + (= XOR): the "
               "#875 IsAbelianGroup gate picks it up.");
-// The relaxed inverse gate FIRES for a 𝔽64 translation graph: the converse
-// (group inverse) is well-formed for the Galois field, from IsAbelianGroup
-// alone.  Its group op (+) does NOT collide with the set-level ^ (symmetric
-// difference), since 𝔽64 spells its op operator+, not operator^.
+// The inverse gate FIRES for a 𝔽64 translation graph AND the converse shift is
+// the GROUP inverse, taken from the group-inverse registry (category::inverse_v
+// → the 𝔽64 inverse(a, std::plus) hook in :galois), NOT carrier operator- on
+// the NTTP.  In characteristic two −K = K, so the converse graph is the SAME
+// graph: its type equals the forward graph's type.  This is the sharp coherence
+// test the group carrier was chosen for, and it is the point of finding #876:1
+// (derive the shift from the group-inverse API).  A plain −K would have leaned
+// on 𝔽64's carrier operator-, which IsGroup never promises.
 static_assert(
-    requires { inverse(𝔸<𝔽64> * 𝔸<𝔽64> | π1 + Bound<𝔽64{5}>{} == π2); },
-    "#875: inverse of a 𝔽64 (GF(2⁶)) translation graph is well-formed, so "
-    "retractability is picked up over a Galois field carrier for free.");
-// FINDING (the sharp test paid off): retractability generalized to
-// IsAbelianGroup AHEAD of the surrounding DSL.  Set==Set equality is gated on
+    std::is_same_v<decltype(inverse(𝔸<𝔽64> * 𝔸<𝔽64> |
+                                    π1 + Bound<𝔽64{5}>{} == π2)),
+                   decltype(𝔸<𝔽64> * 𝔸<𝔽64> | π1 + Bound<𝔽64{5}>{} == π2)>,
+    "#876/#875: over 𝔽64 = GF(2⁶) the group inverse of the +5 shift is +5 "
+    "itself (char 2), so the converse graph EQUALS the forward graph; the "
+    "shift flows through the group-inverse registry, not carrier operator-.");
+// FINDING (the sharp test paid off): retractability generalized to any
+// IsAbelianGroup, and the converse now flows through the group-inverse registry
+// rather than carrier negation.  Set==Set equality is still gated on
 // IsSaturating and entireness on IsOrderedAdditiveGroup/ℕ, which 𝔽64 (a
 // non-ordered field) does NOT satisfy, so a 𝔽64 graph gets its inverse but
-// cannot yet be compared / asserted entire in the DSL.  Widening those gates to
-// any abelian group is the follow-up (#882 thread).
+// cannot yet be compared by value / asserted entire in the DSL (hence the
+// type-level decltype witness above).  Widening those gates is the #882 thread.
 
 // ── Existence proof: the DSL's graph relations are FUNCTIONS (functional AND
 // entire), the property INFERRED through composition.  Entireness is the

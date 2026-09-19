@@ -82,34 +82,62 @@ concept IsEntireTranslationCarrier =
      K >= 0);
 
 /** @brief @c inverse of a translation-graph relation = its CONVERSE
- *  @c B*A|P⁻¹: the same graph read backwards, @c x↦x−K, again a GRAPH (a
+ *  @c B*A|P⁻¹: the same graph read backwards, @c x↦x+(−K), again a GRAPH (a
  *  relation, not an arrow), so it stays on the surface and composes.
  *
- *  @details Functions ARE graphs here, so @c inverse is a relational operation,
- *  the converse with the shift negated.  A translation @f$x\mapsto x+K@f$ is a
- *  bijection on @b any additive group, and the converse of a bijection @b is
- *  its inverse, so the negated-shift converse @c x↦x+(−K) is the GROUP inverse
- *  (hence the retract) regardless of the carrier's order.  This is the #875
- *  generalization from @f$\mathbb{Z}@f$ (@c IsOrderedAdditiveGroup) to an
- *  arbitrary @c IsGroup: the gate is now @c IsGroup<T, Op> (commutativity is
- *  unnecessary, right translation @c x↦x+K is bijective in @b every group). The
- *  group operation @c Op is a template parameter defaulting to @c std::plus<T>,
- *  so the theorem reads over the group operation (the seam toward the
- *  operator-generic form, #882); the current @c ProjAddConstProj graph fixes it
- *  at @c + for now.  On a wrapping/cyclic group such as @c unsigned
- *  (@f$\mathbb{Z}/2^w@f$), @c −K folds to the MODULAR group-inverse of the
- *  shift; that fold is the CORRECT inverse (again, a bijection's converse is
- * its inverse), even though it is @b not the order-predecessor the old gate
- *  conflated it with.  (The ORDER-preserving affine pushforward
+ *  @details Functions ARE graphs here, so @c inverse is the relational converse
+ *  with the shift replaced by its GROUP inverse.  A right translation
+ *  @f$x\mapsto x+K@f$ is a bijection on @b any group, and a bijection's
+ * converse is its inverse, so the converse is @f$x\mapsto x+(-K)@f$ where
+ * @f$-K@f$ is the group's @b unary inverse of the shift.  In a group @c (G,+)
+ * the primitive is that unary inverse and the binary @c y−K unfolds as @c
+ * y+(−K); this overload builds the @c +(−K) converse from the same @c std::plus
+ * the forward graph applies.
+ *
+ *  We take the unary inverse from the group-inverse registry,
+ *  @c category::inverse_v, @b not the carrier's @c operator- on the NTTP.
+ *  @c IsGroup guarantees a group inverse @b exists; it does @b not guarantee a
+ *  carrier @c operator-, and the two disagree in general: on a
+ *  characteristic-two field such as @c 𝔽64 the additive inverse is @c K itself
+ *  (@f$-x=x@f$), where a plain negation would demand an @c operator- the group
+ *  axioms never promised.  So the gate pairs the structural claim
+ *  @c IsGroup<T,Op> with the operational one that @c inverse_v is @b
+ * computable: the @c is_invertible_v @b marker can be a bare opt-in (as it is
+ * for @c 𝔽64 via its @c GaloisFieldRegistration atlas) without a matching
+ * computable
+ *  @c inverse free function, and forming the converse needs the value, not just
+ *  the claim.
+ *
+ *  The inverse is computed at the shift's own type @c decltype(K), not at the
+ *  carrier @c T, so the graph's NTTP type-identity is preserved (the DSL spells
+ *  a shift over @c ℤ = @c 𝔸<SignedCardinality> with an @c int NTTP, @c
+ * fix(3_c); promoting it to @c T would change the graph type and break converse
+ *  equality).  The graph's @c std::plus<T> then interprets the constant in the
+ *  carrier.  On a wrapping group such as @c unsigned (@f$\mathbb{Z}/2^w@f$) the
+ *  registry inverse folds modulo capacity, the correct converse even though it
+ *  is @b not the order-predecessor the old @c IsOrderedAdditiveGroup gate
+ *  conflated it with.  @c Op defaults to @c std::plus<T> (the operation
+ *  @c ProjAddConstProj applies) and is the seam toward the operator-generic
+ *  form, #882.  This is the #875 generalization from @f$\mathbb{Z}@f$ to an
+ *  arbitrary @c IsGroup.  (The ORDER-preserving affine pushforward
  *  @c image(Halfspace, +K) below genuinely needs the order and stays gated on
  * @c IsOrderedAdditiveGroup; the two facts are gated independently.  ℕ = @c
  *  Cardinality is not a group, so it is not matched here either way.) */
 export template <typename T, auto K, typename L, typename Op = std::plus<T>>
-  requires dedekind::category::IsGroup<T, Op>
+  requires dedekind::category::IsGroup<T, Op> && requires(decltype(K) k) {
+    {
+      dedekind::category::inverse_v<decltype(K), std::plus<decltype(K)>>(k)
+    } -> std::same_as<decltype(K)>;
+  }
 constexpr auto inverse(
     const Set<std::pair<T, T>, L, ProjAddConstProj<1, K, Rel::Eq, 2>>&) {
-  return Set<std::pair<T, T>, L, ProjAddConstProj<1, -K, Rel::Eq, 2>>{
-      ProjAddConstProj<1, -K, Rel::Eq, 2>{}};
+  // −K is the group's UNARY inverse of the shift (category::inverse_v), NOT
+  // carrier operator- on the NTTP; the converse graph is x ↦ x + (−K).  It is
+  // computed at decltype(K) to preserve the graph's NTTP type-identity.
+  constexpr decltype(K) neg_K =
+      dedekind::category::inverse_v<decltype(K), std::plus<decltype(K)>>(K);
+  return Set<std::pair<T, T>, L, ProjAddConstProj<1, neg_K, Rel::Eq, 2>>{
+      ProjAddConstProj<1, neg_K, Rel::Eq, 2>{}};
 }
 
 // ── #875 witness: retractability generalizes ℤ → arbitrary IsGroup ───────────
