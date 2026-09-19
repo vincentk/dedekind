@@ -128,6 +128,49 @@ export template <typename S, std::size_t N>
 using Bra = SemimoduleVec<S, N, RowOrientation>;
 
 /**
+ * @brief The @b dagger of a 1-tensor: transpose flips the orientation
+ *        (@c Ket ↔ @c Bra), keeping the components --- so
+ *        @f$\mathrm{dagger}(|v\rangle)=\langle v|@f$ and
+ *        @f$\mathrm{dagger}(\langle w|)=|w\rangle@f$
+ *        (@f$(n\times1)^{\top}=1\times n@f$).
+ *
+ * @details The vector face of the one dagger documented on
+ * @c MatNxNV::transpose (see @c dedekind::category::IsDagger).  The
+ * orientation-flip itself (@c Ket ↔ @c Bra, keeping the components) is
+ * unconditional, and it is @b involutive on any semiring:
+ * @c transpose(transpose(v)) @c == @c v.
+ *
+ * @warning The @b adjoint alignment with the matrix transpose,
+ * @f$(M|v\rangle)^{\top}=\langle v|M^{\top}@f$, is @b not unconditional: its
+ * left side contracts @f$M_{ij}\otimes v_j@f$ while @f$\langle v|M^{\top}@f$
+ * contracts @f$v_j\otimes M_{ij}@f$, so the identity needs the scalar @c ⊗ to
+ * be @b commutative (or a scalar anti-involution).  It therefore holds for the
+ * registered exhibits --- real, Boolean, tropical max-plus are @b all
+ * commutative semirings --- but @b not for a noncommutative @c S, where the
+ * orientation-flip stays involutive yet is no longer the adjoint.  Over @c ℂ
+ * the true adjoint additionally conjugates the components (FIXME(#787): a
+ * @c conj-aware @c Dagger functor).
+ */
+export template <typename S, std::size_t N, typename O>
+  requires(IsColumnVector<SemimoduleVec<S, N, O>> ||
+           IsCovector<SemimoduleVec<S, N, O>>)
+constexpr SemimoduleVec<S, N, dual_orientation_t<O>> transpose(
+    const SemimoduleVec<S, N, O>& v) {
+  return SemimoduleVec<S, N, dual_orientation_t<O>>{v.c};
+}
+
+// @note NO bare @c dagger(v) alias.  A @b dagger is relative to a @b (type,
+//       operation): a carrier can carry several (over @c ℂ: unary negation,
+//       reciprocal, complex conjugation; and, reading a scalar as a 1×1 matrix,
+//       the trivial transpose).  So "the dagger" is @c Dagger{}(x) for a @b
+//       chosen involution functor (@c category::IsDagger), not a single global
+//       name.  @c transpose above IS the coordinate-swap dagger --- certified
+//       @c is_involutive as @c TransposeF (the real / semiring adjoint, no
+//       conjugation) --- but it is one dagger among several, so it keeps its
+//       honest linear-algebra name.  ℂ's conjugate-transpose is a @b different
+//       @c Dagger functor (FIXME(#787)).
+
+/**
  * @brief @c Mat(S): the N×N matrix over a semiring @c S.  Entries are stored
  *        row-major; @c ⊕ / @c ⊗ are @c S's semiring operations, read off
  *        @c dedekind::algebra::semiring_ops<S> (never native @c
@@ -150,6 +193,22 @@ struct MatNxNV {
   ///        matrix's column/row vectors, so @c Mat(S) is an @c IsMatrix.
   using column_type = Ket<S, N>;
   using row_type = Bra<S, N>;
+
+  /**
+   * @brief @c Mat(S) @b is the linear operator @f$|v\rangle \mapsto
+   *        M|v\rangle@f$ --- a callable @c IsArrow with
+   *        @c Domain @c = @c Codomain @c = @c Ket<S,N>.
+   *
+   * @details The @b callable reading of the arrow chain
+   * @c IsLinearOperator ⟹ @c IsFunction ⟹ @c IsRelation ⟹ @c IsArrow
+   * (see @c dedekind::relational::IsRelation for the three-hats note):
+   * matrix-vector application is a total, single-valued map, so the matrix
+   * @b is a function @b is an arrow.  The binary @c operator()(i,j) entry
+   * accessor and this unary @c operator()(Ket) apply differ in arity, so
+   * they do not collide.
+   */
+  using Domain = Ket<S, N>;
+  using Codomain = Ket<S, N>;
 
   std::array<std::array<S, N>, N> e{};
 
@@ -183,6 +242,38 @@ struct MatNxNV {
           S, typename dedekind::algebra::semiring_ops<S>::add>;
 
   constexpr S operator()(std::size_t i, std::size_t j) const { return e[i][j]; }
+
+  /**
+   * @brief Matrix-vector application @f$(M|v\rangle)_i = \bigoplus_j M_{ij}
+   *        \otimes v_j@f$ over @c S's semiring ops (never native @c +/@c *,
+   *        which the tropical carriers skew).  The @c IsArrow call operator:
+   *        @c Ket → @c Ket.
+   *
+   * @details Takes the extensional (array-backed) @c Ket.  Accepting an
+   * @b intensional (rule / function-backed) index→scalar vector too is a
+   * follow-up: the sound gate is that @c V is indexable at the finite index
+   * (an @c IsRingIntegral domain), and that concept is not in scope here
+   * without an awkward @c dedekind.order dependency --- so it lands with the
+   * function-space image work, not on the bare @c Mat call operator.
+   */
+  constexpr Ket<S, N> operator()(const Ket<S, N>& v) const
+    requires dedekind::category::IsSemiring<
+        S, typename dedekind::algebra::semiring_ops<S>::add,
+        typename dedekind::algebra::semiring_ops<S>::mult>
+  {
+    using Add = typename dedekind::algebra::semiring_ops<S>::add;
+    using Mult = typename dedekind::algebra::semiring_ops<S>::mult;
+    const S zero = dedekind::category::identity_v<S, Add>;
+    Ket<S, N> r{};
+    for (std::size_t i = 0; i < N; ++i) {
+      S acc = zero;
+      for (std::size_t j = 0; j < N; ++j)
+        acc = Add{}(acc, Mult{}(e[i][j], v.c[j]));
+      r.c[i] = acc;
+    }
+    return r;
+  }
+
   constexpr const std::array<S, N>& operator[](std::size_t i) const {
     return e[i];
   }
@@ -204,8 +295,31 @@ struct MatNxNV {
     return MatTimes<S, N>{}(a, b);
   }
 
-  /// @brief Transpose — reflect across the main diagonal (the extensional
-  ///        dagger; @c :transfer's @c converse is its intensional twin).
+  /**
+   * @brief Transpose @f$M^{\top}@f$ --- reflect across the main diagonal.
+   *
+   * @details @b The @b dagger @b of @b this @b arrow, one operation across the
+   * three surfaces (see @c dedekind::category::IsDagger and
+   * @c dedekind::relational::converse):
+   *   @li on a @b relation (over @c 𝔹) it is the @b converse @f$R^{\circ}@f$
+   *       (@c relational::converse / @c SwapPred):
+   *       @f$(M^{\top})_{ij}=M_{ji}@f$ @b is @f$R^{\circ}(j,i)=R(i,j)@f$ ---
+   *       transpose of the Boolean matrix @b is the swap of the relation's
+   *       coordinates;
+   *   @li on a @b real space it is the transpose @f$M^{\top}@f$ (here);
+   *   @li on a complex/Hilbert space the @b adjoint @f$M^{*}@f$
+   *       (conjugate-transpose).
+   * It reverses every arrow (contravariant:
+   * @f$(AB)^{\top}=B^{\top}A^{\top}@f$), exactly as @c converse does
+   * (@f$(R;S)^{\circ}=S^{\circ};R^{\circ}@f$).  Now that @c Mat(S) is a
+   * callable @c IsArrow, this transpose IS its @c † --- so
+   * FIXME(#787): register @c inverse @c = @c transpose for the @b orthogonal /
+   * @b unitary case (@f$M^{\top}=M^{-1}@f$), where "the converse is the
+   * inverse" (bijective relation) and "the transpose is the inverse"
+   * (orthogonal matrix) are @b one theorem.  @c :transfer's @c converse is this
+   * dagger's intensional (rule-level) twin; this transpose is its extensional
+   * (materialised) form.
+   */
   constexpr MatNxNV transpose() const {
     MatNxNV t{};
     for (std::size_t i = 0; i < N; ++i)
@@ -226,6 +340,84 @@ struct MatNxNV {
     return b;
   }
 };
+
+/**
+ * @brief Opt-in: @c F is a @b linear @b operator --- a semimodule
+ *        homomorphism, additive and @b scalar-equivariant on the @b matching
+ *        side: @f$f(x\otimes s \oplus y) = f(x)\otimes s \oplus f(y)@f$.
+ *
+ * @details The law is stated on the @b right (the scalar on the side the
+ * homomorphism preserves for @b any semiring, by associativity).  The @b left
+ * form @f$f(s\otimes x)=s\otimes f(x)@f$ additionally needs a @b commutative
+ * @c ⊗ and is @b not what the opt-in certifies (over a commutative @c S the two
+ * coincide; see the @c Mat(S) registration below for the worked law).  Like
+ * @c is_monic_arrow_v (@c :morphism), linearity quantifies over all inputs, so
+ * it @b cannot be verified at compile time; the carrier declares it and the
+ * public review is the audit trail.  @c Mat(S) is registered below.
+ */
+export template <typename F>
+inline constexpr bool is_linear_operator_v = false;
+
+/**
+ * @brief A @b linear @b operator: a (callable) @c IsArrow that additionally
+ *        preserves the semimodule structure (the right-@c S-semimodule-hom law
+ *        above --- sound over any semiring, no commutativity assumed).
+ *
+ * @details @b What @b this @b concept @b reifies (and what it does @b not).  As
+ * @b code, @c IsLinearOperator<F> is exactly @c IsArrow<F> plus the opt-in
+ * linearity trait --- a @b callable arrow (@c Domain/@c Codomain + a call
+ * operator, which is what makes @c Mat(S) an @c IsArrow) that is declared
+ * linear.  The wider reading
+ * @c IsLinearOperator ⟹ @c IsFunction ⟹ @c IsRelation ⟹ @c IsArrow is the
+ * @b conceptual chain, @b not a direct concept subsumption: the relational
+ * @c IsFunction<R,A,B> / @c IsRelation<S,T1,T2> are predicates over a
+ * @c Set<pair> carrier, a different shape from this unary callable arrow.  The
+ * bridge is the @b graph: @c graph(f) (@c :relational, via
+ * @c arrow_as_relation) IS the @c IsFunction / @c IsRelation, so the chain is
+ * reified @b through that adapter, not by making @c IsLinearOperator require
+ * the relational concepts directly.  (Linearity itself is a law over all
+ * inputs --- uncheckable --- hence the opt-in trait, not a computed
+ * refinement.)
+ *
+ * FIXME(#787): once @c Mat(S) carries a dagger @c inverse, @c IsUnitary ⟹
+ * @c IsIsomorphism becomes real; FIXME(#301): invertibility via
+ * determinant/adjugate; FIXME(#442): the law set that survives when @c S is not
+ * a field.
+ */
+export template <typename F>
+concept IsLinearOperator =
+    dedekind::category::IsArrow<F> && is_linear_operator_v<F>;
+
+/**
+ * @brief @c Mat(S) is a linear operator on @f$S^N@f$ --- a @b semimodule
+ *        @b homomorphism over any semiring @c S (the lower bound; @b no
+ *        commutativity required).
+ *
+ * @details @f$|v\rangle \mapsto M|v\rangle@f$ is additive
+ * (@f$M(v\oplus w)=Mv\oplus Mw@f$, by left-distributivity) and
+ * @b scalar-equivariant for the scalar acting on the @b matching side:
+ * @f$M(v\otimes s)=(Mv)\otimes s@f$ holds for @b every semiring by
+ * associativity + distributivity (a right-@c S-semimodule endomorphism of
+ * @f$S^N@f$).  Only the @b left form @f$M(s\otimes v)=s\otimes(Mv)@f$ needs
+ * @f$M_{ij}\otimes s=s\otimes M_{ij}@f$, i.e.\ a @b commutative @c S --- over
+ * a commutative semiring the two sides coincide and this is the familiar
+ * @f$f(s\otimes x)=s\otimes f(x)@f$.  So the certification is sound over any
+ * semiring (CP #874): the law is the semimodule-hom law, stated on the
+ * consistent side, not the left form that would demand commutativity.
+ */
+export template <typename S, std::size_t N>
+  requires dedekind::category::IsSemiring<
+               S, typename dedekind::algebra::semiring_ops<S>::add,
+               typename dedekind::algebra::semiring_ops<S>::mult>
+inline constexpr bool is_linear_operator_v<MatNxNV<S, N>> = true;
+
+// @note NO bare @c dagger(M) alias either (same reason as the vector case
+//       above): a matrix over @c ℂ has several daggers, so "the dagger" is a
+//       @b chosen involution functor.  @c MatNxNV::transpose is the
+//       coordinate-swap one, certified @c is_involutive as @c TransposeF; ℂ's
+//       conjugate-transpose is a different @c Dagger (FIXME(#787)).  Spell the
+//       chosen dagger as @c TransposeF{}(M) (or the future conjugate one), not
+//       a name that pretends the dagger is unique.
 
 /** @brief The zero matrix — every entry the base @c ⊕-identity (0̄). */
 export template <typename S, std::size_t N>
@@ -318,11 +510,17 @@ struct identity_trait<dedekind::linear_algebra::MatNxNV<S, N>,
       dedekind::linear_algebra::identity_matrix<S, N>();
 };
 
-/** @brief The transpose is an @b involution (@c Aᵀᵀ = @c A), so @c TransposeF
- * is a certified @c IsDagger on @c Mat(S) --- what the dagger predicates
- *  (@c is_unitary) require.  A @b structural fact about the operation, @b not a
- *  per-arrow unitarity claim (unitarity is a @b value property; see
- *  @c :involution). */
+/** @brief The transpose is an @b involution (@c Aᵀᵀ = @c A) for @b any @c S, so
+ *  @c TransposeF is a certified @c IsDagger on @c Mat(S) --- the involutive
+ * core the dagger predicates (@c is_unitary) require.  A @b structural fact
+ * about the operation, @b not a per-arrow unitarity claim (unitarity is a @b
+ * value property; see @c :involution).
+ *  @note @c IsDagger is @b deliberately just this involutive core.  The
+ *  @b contravariant reading @f$(A B)^{\top}=B^{\top}A^{\top}@f$ (and the
+ *  bra-ket adjoint) is @b not part of the certificate and holds only when the
+ *  scalar @c ⊗ is @b commutative --- see the @c
+ * contravariance_over_commutative_semiring witness below and the @c warning on
+ * the vector @c transpose. */
 template <typename S, std::size_t N>
 struct is_involutive<dedekind::linear_algebra::TransposeF<S, N>,
                      dedekind::linear_algebra::MatNxNV<S, N>> : std::true_type {
@@ -434,5 +632,101 @@ static_assert(
 static_assert(IsMatrix<MatNxNV<MPll, 3>>,
               "Mat(S) is a matrix: shape + Ket columns + Bra rows + both "
               "decompositions, all over a semiring.");
+
+// ── Mat(S) as a callable arrow: the IsLinearOperator chain (#787 / #301) ────
+static_assert(
+    dedekind::category::IsArrow<MatNxNV<MPll, 3>>,
+    "Mat(S) is a callable arrow |v⟩ ↦ M|v⟩ (Domain = Codomain = Ket), "
+    "the callable reading of IsLinearOperator ⟹ … ⟹ IsArrow.");
+static_assert(IsLinearOperator<MatNxNV<MPll, 3>>,
+              "Mat(S) is a linear operator (a callable arrow + declared "
+              "linearity).");
+// Matrix-vector application over the MaxPlus semiring: the identity operator
+// I|v⟩ = |v⟩ (exercises operator()(Ket) end to end).
+static_assert(identity_matrix<MPll, 3>()(Ket<MPll, 3>{}) == Ket<MPll, 3>{},
+              "I|v⟩ = |v⟩ for the semiring identity matrix.");
+
+// A NON-identity matvec, hand-checked, so a wrong-indexing / wrong-⊕⊗ impl
+// cannot pass: M = [[0,1],[2,0]], v = [10,20] over max-plus (⊕=max, ⊗=+), so
+// (Mv)_i = max_j(M_ij + v_j) = [max(0+10,1+20), max(2+10,0+20)] = [21, 20].
+constexpr bool nontrivial_maxplus_matvec() {
+  MatNxNV<MPll, 2> m{};
+  m.e[0][0] = MPll{true, 0ull};
+  m.e[0][1] = MPll{true, 1ull};
+  m.e[1][0] = MPll{true, 2ull};
+  m.e[1][1] = MPll{true, 0ull};
+  Ket<MPll, 2> v{};
+  v.c[0] = MPll{true, 10ull};
+  v.c[1] = MPll{true, 20ull};
+  const Ket<MPll, 2> r = m(v);
+  return r.c[0] == MPll{true, 21ull} && r.c[1] == MPll{true, 20ull};
+}
+static_assert(nontrivial_maxplus_matvec(),
+              "non-identity max-plus matvec M·v = [21, 20] "
+              "(catches mis-indexing / wrong ⊕⊗).");
+
+// ── The bra-ket dagger: transpose flips Ket ↔ Bra (aligns with Mat transpose)
+// ─
+static_assert(std::same_as<decltype(transpose(Ket<MPll, 3>{})), Bra<MPll, 3>>,
+              "dagger(|v⟩) = ⟨v|: the transpose of a Ket is a Bra.");
+static_assert(std::same_as<decltype(transpose(Bra<MPll, 3>{})), Ket<MPll, 3>>,
+              "dagger(⟨w|) = |w⟩: and of a Bra is a Ket.");
+static_assert(transpose(Ket<MPll, 3>{}) == Bra<MPll, 3>{},
+              "the dagger keeps the components (Ket ↦ Bra, same entries).");
+static_assert(
+    transpose(transpose(Ket<MPll, 3>{})) == Ket<MPll, 3>{},
+    "the transpose (coordinate-swap dagger) is an involution: v†† = v.");
+
+// ── dagger ↔ involution ↔ (group) ↔ isomorphism, where applicable ───────────
+// (1) INVOLUTION: the coordinate-swap dagger on a matrix IS the CERTIFIED
+//     involution TransposeF (Aᵀᵀ = A, the order-2 / ℤ2 fact).  ("The" dagger is
+//     relative to a chosen involution functor --- TransposeF here; ℂ's
+//     conjugate-transpose is a different one, #787.)
+static_assert(
+    dedekind::category::IsDagger<TransposeF<MPll, 3>, MatNxNV<MPll, 3>>,
+    "transpose is a certified dagger / involution on Mat(S): Aᵀᵀ = A.");
+static_assert(TransposeF<MPll, 3>{}(TransposeF<MPll, 3>{}(
+                  identity_matrix<MPll, 3>())) == identity_matrix<MPll, 3>(),
+              "the TransposeF dagger is an involution: M†† = M.");
+// The vector dagger's involution is the transpose(transpose(v)) == v witness
+// above (Ket ↔ Bra is order-2); the IsInvolution CONCEPT is N/A there, since a
+// single dagger flips the TYPE (Ket → Bra), not an endomap on one carrier.
+
+// (1b) CONTRAVARIANCE is a PRECONDITION, not part of the involutive core: the
+//      dagger's anti-homomorphism (A⊗B)ᵀ = Bᵀ⊗Aᵀ (and the bra-ket adjoint) hold
+//      only when the scalar ⊗ COMMUTES.  (A⊗B)ᵀ contracts Mᵢⱼ⊗vⱼ while Bᵀ⊗Aᵀ
+//      contracts vⱼ⊗Mᵢⱼ, so a noncommutative S diverges (CP #874).  MaxPlus's ⊗
+//      is + (commutative), so it holds here; witnessed on non-symmetric A, B so
+//      a symmetric fluke cannot pass.
+constexpr bool contravariance_over_commutative_semiring() {
+  MatNxNV<MPll, 2> a{};
+  a.e[0][0] = MPll{true, 0ull};
+  a.e[0][1] = MPll{true, 1ull};
+  a.e[1][0] = MPll{true, 2ull};
+  a.e[1][1] = MPll{true, 3ull};
+  MatNxNV<MPll, 2> b{};
+  b.e[0][0] = MPll{true, 4ull};
+  b.e[0][1] = MPll{true, 5ull};
+  b.e[1][0] = MPll{true, 6ull};
+  b.e[1][1] = MPll{true, 7ull};
+  using Mul = MatTimes<MPll, 2>;
+  return Mul{}(a, b).transpose() == Mul{}(b.transpose(), a.transpose());
+}
+static_assert(contravariance_over_commutative_semiring(),
+              "(A⊗B)ᵀ = Bᵀ⊗Aᵀ over the COMMUTATIVE max-plus semiring: the "
+              "contravariant / adjoint reading of the transpose dagger holds "
+              "exactly because scalar ⊗ commutes (CP #874).");
+
+// (2) ISOMORPHISM, where applicable: for a UNITARY matrix the dagger IS the
+//     inverse (M† = M⁻¹).  The identity is the trivial unitary (I† = I = I⁻¹),
+//     read off the generic dagger surface.  Concept-level IsUnitary ⟹
+//     IsIsomorphism (registering inverse = f†) is FIXME(#787); a matrix TYPE
+//     holds many arrows, so unitarity stays value-level here.
+static_assert(
+    dedekind::category::is_unitary<
+        TransposeF<MPll, 3>,
+        typename dedekind::algebra::semiring_ops<MatNxNV<MPll, 3>>::mult>(
+        identity_matrix<MPll, 3>()),
+    "the identity is unitary: I†;I = I;I† = I (dagger = inverse, applicable).");
 
 }  // namespace dedekind::linear_algebra

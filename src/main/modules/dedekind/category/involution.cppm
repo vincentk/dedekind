@@ -147,9 +147,16 @@ static_assert(std::logical_not<bool>{}(std::logical_not<bool>{}(true)) == true,
  * (@f$f^{\dagger\dagger} = f@f$).  At the endomap level a dagger @b is exactly
  * this involutive core, so @c IsDagger is @b deliberately @c IsInvolution; the
  * contravariance @f$(f\,g)^\dagger = g^\dagger f^\dagger@f$ and
- * identity-on-objects structure are @b not re-checked here (they hold for the
- * daggers the library registers: converse in @c order::halfspace, transpose in
- * @c linear_algebra).
+ * identity-on-objects structure are @b not re-checked here.
+ * @warning Contravariance is a @b precondition on the registered dagger, not a
+ * consequence of the involutive core.  It holds unconditionally for @c converse
+ * in @c order::halfspace, but for @c transpose in @c linear_algebra @b only
+ * when the scalar @c ⊗ is commutative: @f$(A B)^{\top}_{ij}=\sum_k A_{jk}
+ * B_{ki}@f$ while @f$(B^{\top}A^{\top})_{ij}=\sum_k B_{ki} A_{jk}@f$, equal iff
+ * the entries commute.  Over a noncommutative semiring @c Aᵀᵀ=A still holds (so
+ * the involutive core, and @c IsDagger, stay honest), but plain transpose is @b
+ * not the contravariant adjoint --- that is the conjugate-transpose against the
+ * scalar anti-involution (a dagger is relative to a @c (type, @c op) pair).
  */
 export template <typename Dagger, typename T>
 concept IsDagger = IsInvolution<Dagger, T>;

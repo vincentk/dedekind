@@ -125,6 +125,24 @@ concept HasOrientation =
     (std::same_as<typename V::orientation, ColumnOrientation> ||
      std::same_as<typename V::orientation, RowOrientation>);
 
+/**
+ * @brief The dual (opposite) orientation --- the type-level column↔row flip the
+ *        transpose / dagger of a 1-tensor performs (a @c Ket becomes a @c Bra
+ *        and vice versa).
+ */
+template <typename O>
+struct dual_orientation;
+template <>
+struct dual_orientation<ColumnOrientation> {
+  using type = RowOrientation;
+};
+template <>
+struct dual_orientation<RowOrientation> {
+  using type = ColumnOrientation;
+};
+template <typename O>
+using dual_orientation_t = typename dual_orientation<O>::type;
+
 /** @section contracts__Vectors and covectors.
  *
  *  A column/row vector is not a new operational predicate --- it @b is the
