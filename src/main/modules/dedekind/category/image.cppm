@@ -285,11 +285,12 @@ struct ImageChi {
  * @c Subobject<Cod<F>, ImageChi<F>>::logic_species is @c ClassicalLogic and the
  * image @b is @c HasDecidableMembership --- the arrow's factorization class
  * (retractable vs. merely an arrow) becomes the relation's decidability class,
- * read off at compile time.  Monic-but-not-retractable and iso route elsewhere
- * (the retract hook is opt-in; see @c IsRetractableArrow).
+ * read off at compile time.  Isos route to their own (tighter) spec below,
+ * excluded here by @c !IsIsomorphism so dispatch stays unambiguous; a general
+ * monic-but-not-retractable arrow keeps the primary @c Ternary classifier.
  */
 export template <typename F>
-  requires IsRetractableArrow<F> &&
+  requires IsRetractableArrow<F> && (!IsIsomorphism<F>) &&
            requires(const std::remove_cvref_t<F>& cf, const Cod<F>& y) {
              { retract(cf)(y) } -> std::same_as<std::optional<Dom<F>>>;
            }
@@ -305,6 +306,27 @@ struct ImageChi<F> {
   constexpr bool operator()(const Cod<F>& y) const {
     return retract(f)(y).has_value();
   }
+};
+
+/**
+ * @brief Image classifier for an @b isomorphism: the image is the whole
+ *        codomain, so membership is decidably @c true.
+ * @details An iso @f$f:A\to B@f$ is surjective, so every @c y in @c B is in
+ * @c im(f) (equivalently @c retract(f)(y) is always @c Some for the total
+ * @c inverse).  @c Codomain is @c bool, hence @c ClassicalLogic /
+ * @c HasDecidableMembership.  This is the branch-on-iso the arrow hierarchy
+ * takes so that an iso never routes through the monic/retract path (which is
+ * excluded here by @c !IsIsomorphism above): @c IsIsomorphism ⟹
+ * @c IsRetractableArrow via the blanket @c IsoRetract, but the iso gets its
+ * own tighter, always-true classifier rather than the has_value lookup.
+ */
+export template <typename F>
+  requires IsIsomorphism<F>
+struct ImageChi<F> {
+  F f;
+  using Domain = Cod<F>;
+  using Codomain = bool;
+  constexpr bool operator()(const Cod<F>&) const { return true; }
 };
 
 /**
@@ -354,6 +376,15 @@ struct ToyEmbed {
   constexpr int operator()(bool b) const { return b ? 1 : 0; }
 };
 constexpr ToyRetract retract(ToyEmbed) { return {}; }
+// A genuinely GENERAL arrow: the squaring endo int→int is not injective (not
+// monic), has no inverse (not iso) and no retract, so its image existential is
+// Rice-undecidable and it keeps the primary Ternary classifier.  (Identity is
+// NOT a valid witness for this: it is an iso, hence now decidable.)
+struct ToyGeneral {
+  using Domain = int;
+  using Codomain = int;
+  constexpr int operator()(int x) const { return x * x; }
+};
 }  // namespace image_decidability_witness
 
 template <>
@@ -373,9 +404,19 @@ static_assert(
     "retractable arrow → DECIDABLE image (ClassicalLogic = decidable "
     "membership).");
 static_assert(
-    std::same_as<typename decltype(image_of(Identity<int>{}))::logic_species,
+    std::same_as<typename decltype(image_of(
+                     image_decidability_witness::ToyGeneral{}))::logic_species,
                  TernaryLogic>,
     "general arrow → UNDECIDABLE image (TernaryLogic, Unknown-capable).");
+// An ISO is decidable too, by the same seam: it is surjective, so its image is
+// the whole codomain (ClassicalLogic).  Identity is an iso, so image_of it is
+// now DECIDABLE (branch-on-iso: it takes the iso ImageChi, not the primary
+// Ternary path it used before iso ⟹ IsRetractableArrow was wired).
+static_assert(
+    std::same_as<typename decltype(image_of(Identity<int>{}))::logic_species,
+                 ClassicalLogic>,
+    "iso → DECIDABLE image (ClassicalLogic): an iso is surjective, so its "
+    "image is the whole codomain.");
 
 // Exercise the retractable classifier's operator() (not just its logic
 // species): the toy embed bool↪int has image {0,1}, so 0 ∈ im (retract fires)

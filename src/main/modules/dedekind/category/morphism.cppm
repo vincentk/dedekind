@@ -1015,9 +1015,23 @@ inline constexpr bool is_monic_arrow_v = false;
  * @brief An arrow declared to be a monomorphism (ι: A ↣ B).
  * @details A monic arrow is injective: if e(x) == e(y) then x == y.
  *          The user declares monicity via `is_monic_arrow_v<E> = true`.
+ *
+ *          An @c IsIsomorphism is monic for free: a two-sided inverse makes
+ *          it injective, so every iso satisfies @c IsMonicArrow without a
+ *          separate opt-in.  This is the concept-level derivation (an @c ||
+ *          in the concept body, @b not an @c is_monic_arrow_v partial spec):
+ *          it fires across module boundaries (where a concept-constrained
+ *          variable-template partial spec does not, cf.\ the note at
+ *          @c algebra:registration) and avoids overlapping the explicit
+ *          @c is_monic_arrow_v<Identity<T>> and regular-mono specialisations.
+ *          Pairs with the blanket iso @c retract below so that
+ *          @c IsIsomorphism ⟹ @c IsRetractableArrow: a sound iso yields a
+ *          sound retract by construction (its total @c inverse wrapped in
+ *          always-Some), so the mono/retract decidability path is available
+ *          to isos with no manual, unaudited @c retract hook.
  */
 export template <typename E>
-concept IsMonicArrow = IsArrow<E> && is_monic_arrow_v<E>;
+concept IsMonicArrow = IsArrow<E> && (is_monic_arrow_v<E> || IsIsomorphism<E>);
 
 // Identity arrows are always monic.
 template <typename T>
@@ -1045,9 +1059,16 @@ inline constexpr bool is_epic_arrow_v = false;
  * @details An epic arrow is surjective: for every b in B there exists a in A
  *          with e(a) == b. The user declares epicity via
  *          `is_epic_arrow_v<E> = true`.
+ *
+ *          An @c IsIsomorphism is epic for free, symmetrically to @c
+ *          IsMonicArrow: a two-sided inverse makes it surjective.  So an iso
+ *          is both monic and epic without a separate opt-in, and @c
+ *          IsBijectiveArrow (monic ∧ epic) follows from @c IsIsomorphism.
+ *          Concept-level @c || (not an @c is_epic_arrow_v partial spec) for
+ *          the same cross-module-firing reason as @c IsMonicArrow.
  */
 export template <typename E>
-concept IsEpicArrow = IsArrow<E> && is_epic_arrow_v<E>;
+concept IsEpicArrow = IsArrow<E> && (is_epic_arrow_v<E> || IsIsomorphism<E>);
 
 // Identity arrows are always epic: for every element t in the codomain,
 // id(t) == t, so every element is hit.
@@ -1096,26 +1117,55 @@ static_assert(IsEpicArrow<Identity<int>>,
  *
  * @par Relation to @c IsIsomorphism
  * Mathematically, an isomorphism has a total inverse, so a retract for
- * it is structurally available (wrap @c inverse(f) in always-Some).
- * In @b code, however, this PR does @b not auto-register a
- * @c retract(f) hook for arbitrary @c IsIsomorphism @c F --- the
- * concept here is satisfied only when the user has explicitly provided
- * a @c retract overload AND opted into @c is_monic_arrow_v.  Iso
- * arrows therefore continue to route through the @c IsIsomorphism
- * image-overload path (#657), and the retract path handles the
- * monic-but-not-iso case.  If a user wanted to route an iso through
- * the retract overload they would have to register the retract hook
- * themselves --- not done by default.
+ * it is available by construction (wrap @c inverse(f) in always-Some).
+ * We wire that up: @c IsMonicArrow accepts isos (above) and the
+ * @c IsoRetract blanket @c retract below serves every @c IsIsomorphism,
+ * so @c IsIsomorphism ⟹ @c IsRetractableArrow with @b no manual opt-in.
+ * A sound iso yields a sound retract, so this trades the (never audited)
+ * requirement to hand-register a retract for a derivation that cannot
+ * drift from @c inverse.  Dispatch still branches on iso where a tighter
+ * iso path exists: the DSL @c image(iso, Set) overload (#657, in
+ * @c :sets:expressions) and the @c ImageChi iso specialisation both take
+ * precedence over the retract path (guarded @c !IsIsomorphism), so an iso
+ * uses its own path and only monic-but-not-iso arrows take the retract
+ * route.  The point is to avoid divergent parallel paths, not to guard a
+ * developer against a mathematically-sound derived retract.
  *
  * @par Opt-in semantics
- * Retracts are user-declared via the @c retract(f) ADL hook (like
- * @c inverse for @c IsIsomorphism).  The user owns the @b correctness
- * obligation (the hook genuinely partially-inverts F).
+ * A monic-but-not-iso retract is user-declared via the @c retract(f) ADL
+ * hook; there the user owns the @b correctness obligation (the hook
+ * genuinely partially-inverts F).  The iso case needs no such hook.
  */
 export template <typename F>
 concept IsRetractableArrow = IsMonicArrow<F> && requires(F f, const Cod<F>& y) {
   { retract(f)(y) } -> std::same_as<std::optional<Dom<F>>>;
 };
+
+/**
+ * @brief The retract of an @c IsIsomorphism: its total @c inverse arrow
+ *        wrapped in an always-engaged @c std::optional.
+ * @details Every iso @f$f:A\to B@f$ has a two-sided inverse
+ *          @f$f^{-1}:B\to A@f$, so its retract is total: @c retract(f)(y)
+ *          is always @c Some(@c f^{-1}(y)).  A named functor (not a lambda)
+ *          so the type is nameable and the closure is transparent.
+ * @tparam F The iso arrow type.
+ */
+export template <typename F>
+struct IsoRetract {
+  F f;
+  constexpr std::optional<Dom<F>> operator()(const Cod<F>& y) const {
+    return std::optional<Dom<F>>{inverse(f)(y)};
+  }
+};
+
+/** @brief Blanket @c retract for @b any @c IsIsomorphism: wraps @c inverse(f)
+ *  in always-Some (see @c IsoRetract).  This is what makes
+ *  @c IsIsomorphism ⟹ @c IsRetractableArrow hold with no manual hook. */
+export template <typename F>
+  requires IsIsomorphism<std::remove_cvref_t<F>>
+constexpr auto retract(F&& f) {
+  return IsoRetract<std::remove_cvref_t<F>>{std::forward<F>(f)};
+}
 
 /**
  * @concept IsBijectiveArrow
@@ -1131,6 +1181,14 @@ concept IsBijectiveArrow = IsMonicArrow<E> && IsEpicArrow<E>;
 
 static_assert(IsBijectiveArrow<Identity<int>>,
               "Identity must be recognised as a bijective arrow.");
+
+// Coherence: an iso is bijective for free, with NO is_monic_arrow_v /
+// is_epic_arrow_v opt-in.  TaggedNegate is an iso (proven above) but never
+// opts into either marker, so this holds only because IsMonicArrow and
+// IsEpicArrow both derive from IsIsomorphism.
+static_assert(IsMonicArrow<TaggedNegate> && IsEpicArrow<TaggedNegate> &&
+                  IsBijectiveArrow<TaggedNegate>,
+              "IsIsomorphism ⟹ monic ∧ epic ∧ bijective, derived (no opt-in).");
 
 // ---------------------------------------------------------------------------
 // Pedagogical-accessibility synonyms (closes #459).
