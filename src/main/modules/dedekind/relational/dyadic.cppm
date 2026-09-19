@@ -192,9 +192,11 @@ constexpr typename L::Ω is_single_valued_at(const SetFunction<T1, T2, L, P>& f,
   return L::OR(L::RFL(both_related), equal_outputs);
 }
 
-// ── Meet of relational predicates (RelAnd, the carrier of &) ────────────────
-// (Join is the set-grammar | / OrPredicate in :sets; there is no relation-
-// specific union carrier.)
+// ── Meet / join of relational PREDICATES (RelAnd / RelOr) ───────────────────
+// Marker-preserving pointwise combinators for the predicate-level && / || on
+// relpreds.  Distinct from the SET-level relation & / | (intersection / union
+// of two Set<pair>): those combine whole relations, RelAnd / RelOr combine bare
+// pair-predicates and stay IsRelPredicate (usable in 𝔸<pair> | relpred).
 /** @brief Meet (conjunction) of two relational predicates. */
 export template <typename A, typename B>
 struct RelAnd {

@@ -1431,13 +1431,15 @@ static_assert(
     std::same_as<decltype(!(π1 == fix(5_c))), decltype(π1 != fix(5_c))>,
     "!(π1 == fix(5)) is π1 != fix(5) (ProjBound Eq->Ne).");
 
-// Meet / join of relational PREDICATES is the pointwise boolean && / || (bool
-// → bool → bool), distinct from set intersection/union & / | (the vectorized
-// {bool}ⁿ ops on Sets).  Rather than defining operator&& / operator|| here
-// (which would be ambiguous with the generic predicate operator&& / operator||
-// in :sets:expressions), we hook the STRUCTURED forms: the generic operators
-// dispatch to structured_and / structured_or via ADL, and these return the
-// marker-preserving RelAnd / RelOr (which the generic AndPredicate /
+// Meet / join of relational PREDICATES is the pointwise && / || over the
+// operands' OWN truth-value carrier (Boolean, or Kleene ∧/∨ over a
+// TernaryLogic relation --- RelAnd/RelOr return auto, not bool, to keep
+// Unknown), distinct from set intersection/union & / | (the vectorized
+// {truth-value}ⁿ ops on Sets).  Rather than defining operator&& / operator||
+// here (which would be ambiguous with the generic predicate operator&& /
+// operator|| in :sets:expressions), we hook the STRUCTURED forms: the generic
+// operators dispatch to structured_and / structured_or via ADL, and these
+// return the marker-preserving RelAnd / RelOr (which the generic AndPredicate /
 // OrPredicate are NOT — so their result could not feed the 𝔸<pair> | relpred
 // comprehension)
 // (#824).  This is the same mechanism the Halfspace lattice uses above.  RelAnd
