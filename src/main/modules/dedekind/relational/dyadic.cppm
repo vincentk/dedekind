@@ -15,7 +15,7 @@
  * (@c converse / @c SwapPred), relative product @f$R;S@f$ (@c operator>> /
  * @c ComposePred), union @f$R\cup S@f$ (the set-grammar @c | / @c OrPredicate),
  * meet @f$R\cap S@f$ (@c operator& / @c RelAnd), the diagonal @f$\Delta@f$
- * (@c diagonal), and the derived @c reflexive / @c symmetric closures.  The
+ * (@c diag), and the derived @c reflexive / @c symmetric closures.  The
  * reflexive-transitive closure @f$R^{*}@f$ would be the Kleene star over
  * @f$(\cup,;)@f$ --- not yet a provided operator (@c >> is Boolean-middle only;
  * FIXME(#786)).
@@ -203,7 +203,7 @@ struct RelAnd {
   // @c auto (not @c bool): the result inherits the operands' own logic, so over
   // a @c TernaryLogic relation this is the Kleene @c ∧ (a @c bool cast would
   // collapse @c Unknown).  FIXME(#780): mixed Boolean/Ternary operands (a
-  // ternary relation @c & @c diagonal()) still need a lift on the bool side.
+  // ternary relation @c & @c diag()) still need a lift on the bool side.
   template <typename P>
   constexpr auto operator()(const P& p) const {
     return a(p) && b(p);
@@ -314,8 +314,36 @@ struct DiagPred {
  *  carrier @c A --- @c {π1==π2} --- the reflexive-closure unit and the @c 1 of
  *  the relation algebra. */
 export template <typename A, typename L = dedekind::category::ClassicalLogic>
-constexpr auto diagonal() {
+constexpr auto diag() {
   return Set<std::pair<A, A>, L, DiagPred<A>>{DiagPred<A>{}};
+}
+
+/** @brief The coreflexive predicate for @f$\Delta_S = \{(x,x) \mid x \in S\}@f$
+ *  --- the diagonal restricted to a unary set @c S (a @b partial identity): on
+ *  the diagonal @b and in @c S.  Carries @c S by value so it stays inspectable
+ *  (no lambda). */
+export template <typename S>
+struct CoreflexivePred {
+  using is_rel_predicate = void;
+  S s;
+  template <typename A>
+  constexpr bool operator()(const std::pair<A, A>& p) const {
+    return p.first == p.second && static_cast<bool>(s(p.first));
+  }
+};
+
+/** @brief @c diag(S) --- the coreflexive @f$\Delta_S = \{(x,x) \mid x \in
+ *  S\}@f$, the partial identity on a unary set (Tarski's monotype).
+ *  Generalizes the full diagonal (@c diag(𝔸<A>) recovers it) and is the
+ *  restrictor for a relative product's endpoints, so a set pre-image is
+ *  @f$\mathrm{dom}(R \mathbin{;} \mathrm{diag}(S))@f$ without leaving the
+ *  point-free surface. */
+export template <typename S>
+  requires dedekind::category::IsSet<S>
+constexpr auto diag(const S& s) {
+  using A = typename S::Domain;
+  using L = typename S::logic_species;
+  return Set<std::pair<A, A>, L, CoreflexivePred<S>>{CoreflexivePred<S>{s}};
 }
 
 /** @brief @c reflexive(R) = @c R @c | @c Δ --- the smallest reflexive relation
@@ -326,7 +354,7 @@ constexpr auto diagonal() {
 export template <typename A, typename L, typename P>
   requires std::invocable<const P&, std::pair<A, A>>
 constexpr auto reflexive(const Set<std::pair<A, A>, L, P>& r) {
-  return r | diagonal<A, L>();
+  return r | diag<A, L>();
 }
 
 /** @brief @c symmetric(R) = @c R @c | @c R° --- the smallest symmetric relation
@@ -343,19 +371,27 @@ constexpr auto symmetric(const Set<std::pair<A, A>, L, P>& r) {
 // combinators by ADL.  Here we witness the base laws on Δ alone
 // (self-contained, no external predicate): Δ is a relation; Δ° = Δ; Δ;Δ = Δ;
 // reflexive(Δ)=Δ.
-static_assert(is_relation(diagonal<bool>()), "Δ is a relation (IsSet on ×).");
-static_assert(diagonal<bool>()(std::pair{true, true}), "Δ contains (a,a).");
-static_assert(!diagonal<bool>()(std::pair{true, false}), "Δ excludes (a,b≠a).");
-static_assert(converse(diagonal<bool>())(std::pair{true, true}),
+static_assert(is_relation(diag<bool>()), "Δ is a relation (IsSet on ×).");
+static_assert(diag<bool>()(std::pair{true, true}), "Δ contains (a,a).");
+static_assert(!diag<bool>()(std::pair{true, false}), "Δ excludes (a,b≠a).");
+static_assert(converse(diag<bool>())(std::pair{true, true}),
               "Δ° = Δ: the diagonal is its own converse.");
-static_assert((diagonal<bool>() >> diagonal<bool>())(std::pair{true, true}),
+static_assert((diag<bool>() >> diag<bool>())(std::pair{true, true}),
               "Δ;Δ = Δ: the diagonal is the ; unit.");
-static_assert(!(diagonal<bool>() >> diagonal<bool>())(std::pair{true, false}),
+static_assert(!(diag<bool>() >> diag<bool>())(std::pair{true, false}),
               "Δ;Δ excludes off-diagonal.");
-static_assert(reflexive(diagonal<bool>())(std::pair{false, false}),
+static_assert(reflexive(diag<bool>())(std::pair{false, false}),
               "reflexive(Δ) = Δ still contains the diagonal.");
-static_assert(symmetric(diagonal<bool>())(std::pair{true, true}),
+static_assert(symmetric(diag<bool>())(std::pair{true, true}),
               "symmetric(Δ) = Δ ∪ Δ° = Δ.");
+// Coreflexive Δ_S = diag(S): on the diagonal AND in S.  Δ_{{true}} restricts
+// to the single self-loop (true, true).
+static_assert(diag(dedekind::sets::η(true))(std::pair{true, true}),
+              "Δ_S contains (x,x) for x ∈ S");
+static_assert(!diag(dedekind::sets::η(true))(std::pair{false, false}),
+              "Δ_S excludes (x,x) for x ∉ S");
+static_assert(!diag(dedekind::sets::η(true))(std::pair{true, false}),
+              "Δ_S excludes off-diagonal pairs");
 
 }  // namespace dedekind::relational
 
@@ -399,16 +435,14 @@ inline constexpr bool is_left_total_v<dedekind::sets::Set<
     is_left_total_v<dedekind::sets::Set<std::pair<A, B>, L, PR>> &&
     is_left_total_v<dedekind::sets::Set<std::pair<B, C>, L, PS>>;
 
-static_assert(
-    is_right_unique_v<decltype(dedekind::relational::diagonal<bool>())>,
-    "Δ is FUNCTIONAL (single-valued).");
-static_assert(is_left_total_v<decltype(dedekind::relational::diagonal<bool>())>,
+static_assert(is_right_unique_v<decltype(dedekind::relational::diag<bool>())>,
+              "Δ is FUNCTIONAL (single-valued).");
+static_assert(is_left_total_v<decltype(dedekind::relational::diag<bool>())>,
               "Δ is ENTIRE (total): a ↦ a for every a.");
-static_assert(
-    is_right_unique_v<decltype(dedekind::relational::diagonal<bool>() >>
-                               dedekind::relational::diagonal<bool>())>,
-    "Δ;Δ is FUNCTIONAL: the NODE rule composes through >>.");
-static_assert(is_left_total_v<decltype(dedekind::relational::diagonal<bool>() >>
-                                       dedekind::relational::diagonal<bool>())>,
+static_assert(is_right_unique_v<decltype(dedekind::relational::diag<bool>() >>
+                                         dedekind::relational::diag<bool>())>,
+              "Δ;Δ is FUNCTIONAL: the NODE rule composes through >>.");
+static_assert(is_left_total_v<decltype(dedekind::relational::diag<bool>() >>
+                                       dedekind::relational::diag<bool>())>,
               "Δ;Δ is ENTIRE: the NODE rule composes through >>.");
 }  // namespace dedekind::category
