@@ -291,7 +291,7 @@ struct ImageChi {
 export template <typename F>
   requires IsRetractableArrow<F> &&
            requires(const std::remove_cvref_t<F>& cf, const Cod<F>& y) {
-             retract(cf)(y);
+             { retract(cf)(y) } -> std::same_as<std::optional<Dom<F>>>;
            }
 struct ImageChi<F> {
   F f;
