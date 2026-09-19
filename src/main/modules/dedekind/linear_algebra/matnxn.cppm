@@ -599,11 +599,28 @@ static_assert(IsLinearOperator<MatNxNV<MPll, 3>>,
               "Mat(S) is a linear operator (a callable arrow + declared "
               "linearity).");
 // Matrix-vector application over the MaxPlus semiring: the identity operator
-// I|v⟩ = |v⟩ (exercises operator()(Ket) end to end).  FIXME: richer value-level
-// witnesses (a non-identity M on a non-default |v⟩) once a MaxPlus literal
-// helper lands.
+// I|v⟩ = |v⟩ (exercises operator()(Ket) end to end).
 static_assert(identity_matrix<MPll, 3>()(Ket<MPll, 3>{}) == Ket<MPll, 3>{},
               "I|v⟩ = |v⟩ for the semiring identity matrix.");
+
+// A NON-identity matvec, hand-checked, so a wrong-indexing / wrong-⊕⊗ impl
+// cannot pass: M = [[0,1],[2,0]], v = [10,20] over max-plus (⊕=max, ⊗=+), so
+// (Mv)_i = max_j(M_ij + v_j) = [max(0+10,1+20), max(2+10,0+20)] = [21, 20].
+constexpr bool nontrivial_maxplus_matvec() {
+  MatNxNV<MPll, 2> m{};
+  m.e[0][0] = MPll{true, 0ull};
+  m.e[0][1] = MPll{true, 1ull};
+  m.e[1][0] = MPll{true, 2ull};
+  m.e[1][1] = MPll{true, 0ull};
+  Ket<MPll, 2> v{};
+  v.c[0] = MPll{true, 10ull};
+  v.c[1] = MPll{true, 20ull};
+  const Ket<MPll, 2> r = m(v);
+  return r.c[0] == MPll{true, 21ull} && r.c[1] == MPll{true, 20ull};
+}
+static_assert(nontrivial_maxplus_matvec(),
+              "non-identity max-plus matvec M·v = [21, 20] "
+              "(catches mis-indexing / wrong ⊕⊗).");
 
 // ── The bra-ket dagger: transpose flips Ket ↔ Bra (aligns with Mat transpose)
 // ─
