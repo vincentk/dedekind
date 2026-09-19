@@ -130,13 +130,12 @@ concept IsEntireTranslationCarrier =
  *  are gated independently.  ℕ = @c Cardinality is not a group, so it is not
  *  matched here either way.) */
 export template <typename T, auto K, typename L>
-  requires dedekind::category::IsGroup<T, std::plus<T>> &&
-           requires(decltype(K) k) {
-             {
-               dedekind::category::inverse_v<decltype(K),
-                                             std::plus<decltype(K)>>(k)
-             } -> std::same_as<decltype(K)>;
-           }
+  requires dedekind::category::IsGroup<T, std::plus<T>> && requires(
+                                                               decltype(K) k) {
+    {
+      dedekind::category::inverse_v<decltype(K), std::plus<decltype(K)>>(k)
+    } -> std::same_as<decltype(K)>;
+  }
 constexpr auto inverse(
     const Set<std::pair<T, T>, L, ProjAddConstProj<1, K, Rel::Eq, 2>>&) {
   // −K is the group's UNARY inverse of the shift (category::inverse_v), NOT

@@ -1078,94 +1078,11 @@ inline constexpr bool is_epic_arrow_v<Identity<T>> = true;
 static_assert(IsEpicArrow<Identity<int>>,
               "Identity must be recognised as an epic arrow.");
 
-/**
- * @concept IsRetractableArrow
- * @brief A monic arrow that ships with a structurally-known
- *        @em retract --- a partial inverse
- *        @c retract(f) @c : @c Cod<F> @c → @c std::optional<Dom<F>> ---
- *        discoverable via ADL on @p F.
- *
- * @details The retract is the operational gate for a decidability path
- * on @c image(f, S) that's strictly more general than @c IsIsomorphism
- * (which requires a @em total inverse): for a monic @c F that admits a
- * partial inverse, the image membership
- *
- *   @c y @c ∈ @c image(F, @c S)
- *
- * reduces to
- *
- *   @c let @c mx @c = @c retract(f)(y); @c mx.has_value() @c && @c
- * S(*mx)
- *
- * which is decidable whenever the retract itself is decidable.  The
- * canonical project use case is the @c embed_* family of carrier-
- * lattice embeddings, each of which is monic and admits a natural
- * partial inverse (e.g.\ @c embed_𝔹_ℕ has retract
- * @c Cardinality @c → @c std::optional<bool>; @c embed_uint_ℕ has
- * retract @c Cardinality @c → @c std::optional<unsigned> that fires on
- * the finite-representable range).
- *
- * @par Concept shape
- * The concept requires that @c retract(f) is invocable on
- * @c Cod<F> @c const& and returns an @c std::optional -shaped value
- * (one supporting @c has_value() and @c operator*).  Generalising to
- * the project's broader @c IsPotential surface (which also admits
- * @c Partial<T> / @c TernaryResult<T> as Maybe-likes) is a deliberate
- * follow-up --- for retracts specifically, the binary has/has-not
- * distinction @c std::optional carries is what the image-overload
- * needs, and tighter shapes than that aren't load-bearing today.
- *
- * @par Relation to @c IsIsomorphism
- * Mathematically, an isomorphism has a total inverse, so a retract for
- * it is available by construction (wrap @c inverse(f) in always-Some).
- * We wire that up: @c IsMonicArrow accepts isos (above) and the
- * @c IsoRetract blanket @c retract below serves every @c IsIsomorphism,
- * so @c IsIsomorphism ⟹ @c IsRetractableArrow with @b no manual opt-in.
- * A sound iso yields a sound retract, so this trades the (never audited)
- * requirement to hand-register a retract for a derivation that cannot
- * drift from @c inverse.  Dispatch still branches on iso where a tighter
- * iso path exists: the DSL @c image(iso, Set) overload (#657, in
- * @c :sets:expressions) and the @c ImageChi iso specialisation both take
- * precedence over the retract path (guarded @c !IsIsomorphism), so an iso
- * uses its own path and only monic-but-not-iso arrows take the retract
- * route.  The point is to avoid divergent parallel paths, not to guard a
- * developer against a mathematically-sound derived retract.
- *
- * @par Opt-in semantics
- * A monic-but-not-iso retract is user-declared via the @c retract(f) ADL
- * hook; there the user owns the @b correctness obligation (the hook
- * genuinely partially-inverts F).  The iso case needs no such hook.
- */
-export template <typename F>
-concept IsRetractableArrow = IsMonicArrow<F> && requires(F f, const Cod<F>& y) {
-  { retract(f)(y) } -> std::same_as<std::optional<Dom<F>>>;
-};
-
-/**
- * @brief The retract of an @c IsIsomorphism: its total @c inverse arrow
- *        wrapped in an always-engaged @c std::optional.
- * @details Every iso @f$f:A\to B@f$ has a two-sided inverse
- *          @f$f^{-1}:B\to A@f$, so its retract is total: @c retract(f)(y)
- *          is always @c Some(@c f^{-1}(y)).  A named functor (not a lambda)
- *          so the type is nameable and the closure is transparent.
- * @tparam F The iso arrow type.
- */
-export template <typename F>
-struct IsoRetract {
-  F f;
-  constexpr std::optional<Dom<F>> operator()(const Cod<F>& y) const {
-    return std::optional<Dom<F>>{inverse(f)(y)};
-  }
-};
-
-/** @brief Blanket @c retract for @b any @c IsIsomorphism: wraps @c inverse(f)
- *  in always-Some (see @c IsoRetract).  This is what makes
- *  @c IsIsomorphism ⟹ @c IsRetractableArrow hold with no manual hook. */
-export template <typename F>
-  requires IsIsomorphism<std::remove_cvref_t<F>>
-constexpr auto retract(F&& f) {
-  return IsoRetract<std::remove_cvref_t<F>>{std::forward<F>(f)};
-}
+// The retract / iso-enabling surface (IsoRetract, the blanket iso retract, and
+// the IsRetractableArrow concept) was extracted to the @c :iso partition, which
+// imports @c :morphism.  @c :morphism keeps the basic arrow / factorisation
+// primitives (IsArrow, IsMonicArrow, IsEpicArrow, IsIsomorphism); the retract
+// surface (morally a Kleisli arrow into the maybe monad) lives downstream.
 
 /**
  * @concept IsBijectiveArrow

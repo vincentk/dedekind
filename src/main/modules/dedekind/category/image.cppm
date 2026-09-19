@@ -107,6 +107,7 @@ module;
 export module dedekind.category:image;
 
 import :morphism;       // For IsArrow / Cod / Dom / Identity
+import :iso;            // For IsRetractableArrow (retract/iso-enabling surface)
 import :pullback;       // For IsParallelPair
 import :topoi;          // For IsSubobject / IsQuotient / Subobject
 import :factorisation;  // For IsFactorisationSystem / IsRegularCategory /
