@@ -236,8 +236,30 @@ struct MatNxNV {
     return MatTimes<S, N>{}(a, b);
   }
 
-  /// @brief Transpose — reflect across the main diagonal (the extensional
-  ///        dagger; @c :transfer's @c converse is its intensional twin).
+  /// @brief Transpose @f$M^{\top}@f$ — reflect across the main diagonal.
+  ///
+  /// @details @b The @b dagger @b of @b this @b arrow, one operation across the
+  /// three surfaces (see @c dedekind::category::IsDagger and
+  /// @c dedekind::relational::converse):
+  ///   @li on a @b relation (over @c 𝔹) it is the @b converse @f$R^{\circ}@f$
+  ///       (@c relational::converse / @c SwapPred):
+  ///       @f$(M^{\top})_{ij}=M_{ji}@f$
+  ///       @b is @f$R^{\circ}(j,i)=R(i,j)@f$ --- transpose of the Boolean
+  ///       matrix
+  ///       @b is the swap of the relation's coordinates;
+  ///   @li on a @b real space it is the transpose @f$M^{\top}@f$ (here);
+  ///   @li on a complex/Hilbert space the @b adjoint @f$M^{*}@f$
+  ///       (conjugate-transpose).
+  /// It reverses every arrow (contravariant:
+  /// @f$(AB)^{\top}=B^{\top}A^{\top}@f$), exactly as @c converse does
+  /// (@f$(R;S)^{\circ}=S^{\circ};R^{\circ}@f$).  Now that @c Mat(S) is a
+  /// callable @c IsArrow, this transpose IS its @c † --- so
+  /// FIXME(#787): register @c inverse @c = @c transpose for the @b orthogonal /
+  /// @b unitary case (@f$M^{\top}=M^{-1}@f$), where "the converse is the
+  /// inverse" (bijective relation) and "the transpose is the inverse"
+  /// (orthogonal matrix) are @b one theorem.  @c :transfer's @c converse is
+  /// this dagger's intensional (rule-level) twin; this transpose is its
+  /// extensional (materialised) form.
   constexpr MatNxNV transpose() const {
     MatNxNV t{};
     for (std::size_t i = 0; i < N; ++i)
