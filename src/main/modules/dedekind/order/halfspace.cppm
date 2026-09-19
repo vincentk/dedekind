@@ -1746,14 +1746,19 @@ static_assert(!(ℕ * ℕ | (π1 != fix(0_c) && π2 % π1 == fix(0_c)))(std::pai
  *  coordinate: a value expression on a pair awaiting a comparison (the arrow
  *  LIFT into the projection DSL, sibling of @c ProjMod).  Built by
  *  @c ap(f, π_I). */
-export template <std::size_t I, typename F>
+// The coordinate index is a constrained-auto NTTP: its value must stay a
+// structural type (an NTTP cannot be ℕ/Cardinality --- a std::variant), but its
+// TYPE is gated by @c IsRingIntegral, the algebraic integer-range concept that
+// @c std::size_t satisfies (and which also admits ℕ).  So the selector is
+// algebraically constrained rather than a bare @c std::size_t.
+export template <IsRingIntegral auto I, typename F>
 struct ProjApply {
   F f;
 };
 
 /** @brief @c ap(f, π_I) --- lift the arrow @c f into the relpred DSL as
  *  @f$f(\pi_I)@f$.  Gated on @c IsArrow<F> (a pure, terminating map, §2.2). */
-export template <std::size_t I, typename F>
+export template <IsRingIntegral auto I, typename F>
   requires dedekind::category::IsArrow<F>
 constexpr ProjApply<I, std::remove_cvref_t<F>> ap(F f, Projection<I>) {
   return {f};
@@ -1770,7 +1775,7 @@ constexpr ProjApply<I, std::remove_cvref_t<F>> ap(F f, Projection<I>) {
  *  @c a from @c b) is a separate capability gated on @c IsRetractableArrow /
  *  iso (consuming the retract / dagger witness); it is @b not required here and
  *  is the graph/preimage follow-up. */
-export template <std::size_t J, std::size_t I, typename F>
+export template <IsRingIntegral auto J, IsRingIntegral auto I, typename F>
   requires std::equality_comparable<typename std::remove_cvref_t<F>::Codomain>
 struct ProjApplyEq {
   F f;
@@ -1783,12 +1788,12 @@ struct ProjApplyEq {
 
 /** @brief @f$\pi_J = \mathrm{ap}(f, \pi_I)@f$ → @c ProjApplyEq (the
  *  @c 𝑦 @c == @c ap(f, @c 𝑥) blackboard spelling). */
-export template <std::size_t J, std::size_t I, typename F>
+export template <IsRingIntegral auto J, IsRingIntegral auto I, typename F>
 constexpr ProjApplyEq<J, I, F> operator==(Projection<J>, ProjApply<I, F> a) {
   return {a.f};
 }
 /** @brief The symmetric spelling @f$\mathrm{ap}(f, \pi_I) = \pi_J@f$. */
-export template <std::size_t I, std::size_t J, typename F>
+export template <IsRingIntegral auto I, IsRingIntegral auto J, typename F>
 constexpr ProjApplyEq<J, I, F> operator==(ProjApply<I, F> a, Projection<J>) {
   return {a.f};
 }
