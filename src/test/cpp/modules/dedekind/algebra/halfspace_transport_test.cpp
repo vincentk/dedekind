@@ -280,3 +280,38 @@ TEST_CASE("algebra:halfspace_transport — preimage, the contravariant inverse",
   CHECK(back(int(m5)));        // −5 ≥ −5, and −(−5)=5 ≤ 5
   CHECK_FALSE(back(int(m6)));  // −6 ≱ −5, and −(−6)=6 ≰ 5
 }
+
+// #875/#876: runtime coverage paired with the static_assert witnesses in
+// halfspace_transport.cppm.  The group translation Translate<K> is a bijection
+// whose retract is the inverse translation x↦x−K (the group inverse), so
+// retract∘Translate == id and its image (image_of) is decidable: every y is in
+// range (retract always fires), on both a wrapping group (unsigned) and the ℤ
+// proxy SignedExtensionalCardinal<1>.
+TEST_CASE(
+    "algebra:halfspace_transport: group translation is a retractable"
+    "arrow with a decidable image (#875)",
+    "[algebra][image][retract][group]") {
+  constexpr dedekind::algebra::Translate<3u> t{};
+  volatile unsigned ten = 10u;
+  CHECK(t(unsigned(ten)) == 13u);  // x ↦ x+3
+
+  // retract = inverse translation x ↦ x−3 (the group inverse of the shift):
+  // a genuine left/right inverse, so retract(t)(t(x)) == x.
+  const auto r = dedekind::algebra::retract(t);
+  CHECK(r(t(unsigned(ten))).value() == 10u);  // undoes the shift
+  CHECK(r(unsigned(2u)).value() == 2u - 3u);  // total: always engaged (wraps)
+
+  // Decidable image: a bijection over the whole group hits every point, so the
+  // classifier answers true everywhere (a lookup, not an ∃-search).
+  const auto imgT = image_of(t);
+  CHECK(imgT(unsigned(0u)));
+  CHECK(imgT(unsigned(ten)));
+
+  // Carrier-generic: the same facts on the ℤ proxy (not unsigned).
+  using Z1 = SignedExtensionalCardinal<1>;
+  constexpr dedekind::algebra::Translate<Z1{5}> tz{};
+  const auto rz = dedekind::algebra::retract(tz);
+  CHECK(rz(tz(Z1{7})).value() == Z1{7});  // retract undoes the +5 shift on ℤ
+  const auto imgZ = image_of(tz);
+  CHECK(imgZ(Z1{-3}));  // every point is in range on the group
+}

@@ -41,6 +41,7 @@ module;
 #include <concepts>     // std::same_as
 #include <functional>   // std::plus
 #include <limits>       // std::numeric_limits (overflow-safe pivot guards)
+#include <optional>     // std::optional --- the translation retract's shape
 #include <type_traits>  // std::remove_cvref_t
 #include <utility>      // std::pair
 
@@ -339,6 +340,75 @@ constexpr auto preimage(
 
 }  // namespace dedekind::order
 
+// ── #875/#876: the group translation as a RETRACTABLE ARROW ─────────────────
+// A group translation @c x↦x+K is a bijection whose inverse is the INVERSE
+// translation @c x↦x−K, computed from the group inverse of the shift.  So it is
+// an @c IsRetractableArrow purely by virtue of @c IsGroup --- no per-arrow
+// retract registration --- and its image is therefore DECIDABLE (@c
+// ClassicalLogic) via the seam in @c :category:image.  This is the
+// productionisation of the #876 spike (moved out of @c :category:image, which
+// stays generic): the group specifics live here, where the additive-group gate
+// is already in scope.
+namespace dedekind::algebra {
+
+/**
+ * @brief The carrier-generic translation arrow @f$x \mapsto x + K@f$.
+ *
+ * @details An @c IsArrow whose @c Domain and @c Codomain are both the shift's
+ * own carrier @c decltype(K).  Carrier-generic: any type usable as a non-type
+ * template parameter serves as @c K, and the group facts (retract, monicity)
+ * are gated on @c IsGroup below, not baked into this type.
+ *
+ * @tparam K The compile-time shift (its type @c decltype(K) is the carrier).
+ */
+export template <auto K>
+struct Translate {
+  using T = decltype(K);
+  using Domain = T;
+  using Codomain = T;
+  constexpr T operator()(T x) const { return static_cast<T>(x + K); }
+};
+
+/**
+ * @brief The retract of @c Translate<K>: the inverse translation
+ *        @f$x \mapsto x - K@f$.
+ *
+ * @details The group inverse of the shift.  A translation is a bijection, so
+ * the retract is total (always engaged); it is returned as @c std::optional<T>
+ * to fit the @c IsRetractableArrow shape.  Uses the carrier's own binary minus
+ * @c x−K, guaranteed by the additive-group surface.
+ *
+ * @tparam K The shift whose inverse translation this realises.
+ */
+export template <auto K>
+struct TranslateRetract {
+  using T = decltype(K);
+  constexpr std::optional<T> operator()(const T& y) const {
+    return std::optional<T>{static_cast<T>(y - K)};
+  }
+};
+
+/**
+ * @brief The @c retract ADL hook for @c Translate<K>, gated on the GROUP:
+ *        the inverse translation exists exactly because the carrier is a group
+ *        under @c + (the inverse translation @b is the group inverse of the
+ *        shift).
+ *
+ * @note The gate is @c IsGroup, @b not @c IsOrderedAdditiveGroup: the
+ * bijection and its retract need only the additive inverse, no order.  The
+ * order-preserving @b halfspace pushforward @c image(Halfspace, +K) in the
+ * @c dedekind::order block above is the aspect that needs
+ * @c IsOrderedAdditiveGroup (a translation-invariant order); the two facts are
+ * gated independently and deliberately.
+ */
+export template <auto K>
+  requires dedekind::category::IsGroup<decltype(K), std::plus<decltype(K)>>
+constexpr TranslateRetract<K> retract(Translate<K>) {
+  return {};
+}
+
+}  // namespace dedekind::algebra
+
 // ── Entireness inference (Table 3): the ALGEBRAIC half of the DSL's relation
 // properties.  Functionality (is_right_unique_v) stays structural in @c order;
 // entireness (is_left_total_v) lands here because a translation is total
@@ -370,5 +440,54 @@ inline constexpr bool is_left_total_v<dedekind::sets::Set<
 // functionality sibling --- both are structure-independent relation-algebra
 // (R>>S entire iff both factors are), so they live with ComposePred and are
 // reachable from :relational alone, not only via @c order / @c algebra.
+
+// ── #875/#876: monicity + decidable-image witnesses for @c Translate ────────
+// A group translation is injective (monic) by the same group fact that gives
+// it a retract: distinct @c x map to distinct @c x+K exactly because @c +K has
+// an inverse.  Gated on @c IsGroup so the claim rides the group, carrier-
+// generically.
+template <auto K>
+  requires IsGroup<decltype(K), std::plus<decltype(K)>>
+inline constexpr bool is_monic_arrow_v<dedekind::algebra::Translate<K>> = true;
+
+// The payoff, read off at compile time: @c IsGroup ⟹ translation retractable ⟹
+// its image is DECIDABLE (@c ClassicalLogic) via the @c :category:image seam,
+// with NO per-arrow plumbing.  Witnessed on two genuine, distinct additive-
+// group carriers to pin the carrier-genericity:
+//
+//   (1) @c unsigned --- ℤ/2ʷ under two's-complement wrap (the #876 spike's
+//       carrier, a witnessed @c IsAbelianGroup under @c +), and
+//   (2) @c SignedExtensionalCardinal<1> --- the library's bona-fide ℤ proxy
+//       (sign-magnitude, a witnessed @c IsAbelianGroup under @c +), a
+//       structural type usable as a non-type template parameter.
+//
+// (@c SignedCardinality, the ±ℵ_0-escalating ℤ proxy, is @b not usable here:
+// it is a @c std::variant, hence not a structural type, so it cannot be a
+// non-type template parameter.  @c SignedExtensionalCardinal<1> is the
+// NTTP-legal, non-@c unsigned group carrier that stands in for it.)
+static_assert(
+    IsRetractableArrow<dedekind::algebra::Translate<3u>>,
+    "a group translation over unsigned (ℤ/2ʷ) is retractable: retract = the "
+    "inverse translation (the group inverse of the shift), by IsGroup.");
+static_assert(
+    std::same_as<typename decltype(image_of(
+                     dedekind::algebra::Translate<3u>{}))::logic_species,
+                 ClassicalLogic>,
+    "IsGroup ⟹ translation retractable ⟹ DECIDABLE image over unsigned "
+    "(#875), carrier-generic.");
+static_assert(
+    IsRetractableArrow<dedekind::algebra::Translate<
+        dedekind::sets::SignedExtensionalCardinal<1>{5}>>,
+    "a group translation over the ℤ proxy SignedExtensionalCardinal<1> is "
+    "retractable by the same IsGroup fact --- carrier-generic, not unsigned-"
+    "specific.");
+static_assert(
+    std::same_as<
+        typename decltype(image_of(dedekind::algebra::Translate<
+                                   dedekind::sets::SignedExtensionalCardinal<1>{
+                                       5}>{}))::logic_species,
+        ClassicalLogic>,
+    "IsGroup ⟹ DECIDABLE image over the ℤ proxy too (#875): the decidability "
+    "rides the group, not the carrier.");
 
 }  // namespace dedekind::category
