@@ -1741,6 +1741,66 @@ static_assert(!(ℕ * ℕ | (π1 != fix(0_c) && π2 % π1 == fix(0_c)))(std::pai
                   finite_cardinality(4), finite_cardinality(6)}),
               "6 % 4 != 0: (4,6) ∉ divides.");
 
+// ── The arrow lift: f(π_I) into the relpred DSL (#871 / #824) ────────────────
+/** @brief @f$f(\pi_I)@f$ --- an @c IsArrow @c f applied to the @c I-th
+ *  coordinate: a value expression on a pair awaiting a comparison (the arrow
+ *  LIFT into the projection DSL, sibling of @c ProjMod).  Built by
+ *  @c ap(f, π_I). */
+export template <std::size_t I, typename F>
+struct ProjApply {
+  F f;
+};
+
+/** @brief @c ap(f, π_I) --- lift the arrow @c f into the relpred DSL as
+ *  @f$f(\pi_I)@f$.  Gated on @c IsArrow<F> (a pure, terminating map, §2.2). */
+export template <std::size_t I, typename F>
+  requires dedekind::category::IsArrow<F>
+constexpr ProjApply<I, std::remove_cvref_t<F>> ap(F f, Projection<I>) {
+  return {f};
+}
+
+/** @brief @f$\pi_J = f(\pi_I)@f$ --- the arrow-lift relpred: coordinate @c J
+ *  equals @c f of coordinate @c I.  This is the point-free @f$y = f(x)@f$ that
+ *  will redefine @c graph (#871).
+ *
+ *  @details @b Forward membership @f$b = f(a)@f$ is decidable exactly when the
+ *  arrow's @c Codomain has decidable equality (@c std::equality_comparable) ---
+ *  the corrected gate from the #870 CP review: monicity is neither necessary
+ *  nor sufficient for this direction.  The @b pre-image direction (recover
+ *  @c a from @c b) is a separate capability gated on @c IsRetractableArrow /
+ *  iso (consuming the retract / dagger witness); it is @b not required here and
+ *  is the graph/preimage follow-up. */
+export template <std::size_t J, std::size_t I, typename F>
+  requires std::equality_comparable<typename std::remove_cvref_t<F>::Codomain>
+struct ProjApplyEq {
+  F f;
+  using is_rel_predicate = void;
+  template <typename P>
+  constexpr bool operator()(const P& p) const {
+    return coord<J>(p) == f(coord<I>(p));
+  }
+};
+
+/** @brief @f$\pi_J = \mathrm{ap}(f, \pi_I)@f$ → @c ProjApplyEq (the
+ *  @c 𝑦 @c == @c ap(f, @c 𝑥) blackboard spelling). */
+export template <std::size_t J, std::size_t I, typename F>
+constexpr ProjApplyEq<J, I, F> operator==(Projection<J>, ProjApply<I, F> a) {
+  return {a.f};
+}
+/** @brief The symmetric spelling @f$\mathrm{ap}(f, \pi_I) = \pi_J@f$. */
+export template <std::size_t I, std::size_t J, typename F>
+constexpr ProjApplyEq<J, I, F> operator==(ProjApply<I, F> a, Projection<J>) {
+  return {a.f};
+}
+
+// The lift in action: 𝑦 == ap(id, 𝑥) is the diagonal Δ = {(x,x)}.
+static_assert((𝔹 * 𝔹 | (𝑦 == ap(dedekind::category::Identity<bool>{},
+                                𝑥)))(std::pair{true, true}),
+              "(true,true) ∈ {(x,y) | y = id(x)} = Δ.");
+static_assert(!(𝔹 * 𝔹 | (𝑦 == ap(dedekind::category::Identity<bool>{},
+                                 𝑥)))(std::pair{true, false}),
+              "(true,false) ∉ Δ: false ≠ id(true).");
+
 /** @brief @f$\pi_I \% \mathrm{fix}(V)@f$ --- projection mod a @b constant, a
  *  value expression on a pair awaiting a comparison (sibling of @c ProjMod,
  *  whose modulus is the projection @c π_J rather than a fixed @c V). */
