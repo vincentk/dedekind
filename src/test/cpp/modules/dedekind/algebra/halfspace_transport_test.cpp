@@ -30,6 +30,7 @@ using namespace dedekind::order;
 namespace {
 inline constexpr auto ℤ = 𝔸<SignedCardinality>;
 inline constexpr auto ℕ = 𝔸<Cardinality>;
+using dedekind::algebra::𝔽64;  // GF(2⁶): operator+ is XOR (characteristic 2)
 
 // ── image: bare onto-ness, and the affine pushforward of a halfspace ─────────
 static_assert(image(ℤ* ℤ | π1 + fix(3_c) == π2) == ℤ,
@@ -131,6 +132,33 @@ static_assert(((ℤ * ℤ | π1 + fix(2_c) == π2) >> (ℤ * ℤ | π1 + fix(3_c
                inverse(ℤ * ℤ | π1 + fix(2_c) == π2)) ==
                   (ℤ * ℤ | π1 + fix(3_c) == π2),
               "abelian conjugation: g ∘ f ∘ g⁻¹ = f (+ commutes).");
+
+// ── #875 over a Galois field: is the free theorem operator-generic, or gated
+// on std::plus?  It is gated on std::plus (the graph is π1+fix(K)), so it picks
+// up any carrier whose GROUP operation is spelled operator+: ℤ, unsigned
+// (ℤ/2ʷ), and 𝔽64 = GF(2⁶), whose operator+ IS XOR (characteristic 2).  A sharp
+// coherence test: XOR also means set symmetric difference (^) in Trsk, but 𝔽64
+// routes its group op through operator+, not ^, so the translation graph does
+// not collide with the set-level ^.  In char 2 the shift is self-inverse (−K =
+// K), so the inverse graph is the same graph.  (The operator-generic version,
+// retract computing the Op-inverse for any IsGroup<T,Op>, is the #882 harvest.)
+static_assert(dedekind::category::IsAbelianGroup<𝔽64, std::plus<𝔽64>>,
+              "𝔽64 = GF(2⁶) is an additive abelian group under + (= XOR): the "
+              "#875 IsAbelianGroup gate picks it up.");
+// The relaxed inverse gate FIRES for a 𝔽64 translation graph: the converse
+// (group inverse) is well-formed for the Galois field, from IsAbelianGroup
+// alone.  Its group op (+) does NOT collide with the set-level ^ (symmetric
+// difference), since 𝔽64 spells its op operator+, not operator^.
+static_assert(
+    requires { inverse(𝔸<𝔽64> * 𝔸<𝔽64> | π1 + Bound<𝔽64{5}>{} == π2); },
+    "#875: inverse of a 𝔽64 (GF(2⁶)) translation graph is well-formed, so "
+    "retractability is picked up over a Galois field carrier for free.");
+// FINDING (the sharp test paid off): retractability generalized to
+// IsAbelianGroup AHEAD of the surrounding DSL.  Set==Set equality is gated on
+// IsSaturating and entireness on IsOrderedAdditiveGroup/ℕ, which 𝔽64 (a
+// non-ordered field) does NOT satisfy, so a 𝔽64 graph gets its inverse but
+// cannot yet be compared / asserted entire in the DSL.  Widening those gates to
+// any abelian group is the follow-up (#882 thread).
 
 // ── Existence proof: the DSL's graph relations are FUNCTIONS (functional AND
 // entire), the property INFERRED through composition.  Entireness is the
