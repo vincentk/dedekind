@@ -124,6 +124,18 @@ using Graph = Set<std::pair<typename F::Domain, typename F::Codomain>,
  *       operators); @c graph stays available for the arrow-composition path but
  *       is kept out of the grammar surface.  Sibling of the doc-deprecated
  *       @c element scout.
+ *
+ * @note @b Planned redefinition (WIP, #824): re-express @c graph as sugar over
+ *       the point-free arrow lift, @c graph(f) @c := @c 𝔸<X> @c * @c 𝔸<Y> @c |
+ *       @c (𝑦 @c == @c ap(f, @c 𝑥)) --- a @c ProjApplyEq relpred, no
+ *       @c GraphPredicate lambda.  Corrections from the #870 CP review: (1)
+ *       @b forward membership @f$b=f(a)@f$ gates on @c equality_comparable<Y>
+ *       (not monicity); (2) the @b pre-image capability gates on
+ *       @c IsRetractableArrow / iso and @b consumes the retract/dagger witness
+ *       (monicity alone gives injectivity, not a computable inverse); (3)
+ *       reconcile with THIS @c GraphPredicate rather than duplicate it.  Lands
+ *       in @c :relational once the projection+equality DSL (@c π/coord/Proj*/@c
+ *       ap) relocates here from @c :order (it needs no order theory).
  */
 export template <typename F>
   requires dedekind::category::IsArrow<F> &&
