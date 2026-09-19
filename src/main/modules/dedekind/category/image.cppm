@@ -389,11 +389,14 @@ static_assert(
         image_decidability_witness::ToyEmbed{}}(2),
     "2 ∉ image(ToyEmbed): the retract is nullopt off the image.");
 
-// #875/#876: the group-translation retractable-arrow productionisation moved to
-// @c :algebra:halfspace_transport (a group translation @c x↦x+K is retractable
-// by @c IsGroup alone, so its image is decidable via the seam above).  The seam
-// stays carrier-generic here; the group specifics live where the additive-group
-// gate is in scope, keeping @c :image free of group machinery.
+// #875/#876: group-translation retractability lives in
+// @c :algebra:halfspace_transport, expressed on the graph representation (a
+// translation IS its graph @c x↦x+K, per @c :morphism), NOT as a standalone
+// arrow wrapper.  A group translation is a bijection, so its converse graph is
+// its group inverse; that @c inverse is gated on @c IsAbelianGroup there, which
+// generalizes retractability from ordered ℤ to any additive group (cyclic
+// carriers such as @c unsigned included).  @c :image stays free of group
+// machinery; the general retractable-arrow seam above is untouched.
 
 // ===========================================================================
 // First Isomorphism Theorem — reusable typed surface (#718 Slice 4).

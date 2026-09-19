@@ -41,7 +41,6 @@ module;
 #include <concepts>     // std::same_as
 #include <functional>   // std::plus
 #include <limits>       // std::numeric_limits (overflow-safe pivot guards)
-#include <optional>     // std::optional --- the translation retract's shape
 #include <type_traits>  // std::remove_cvref_t
 #include <utility>      // std::pair
 
@@ -87,20 +86,46 @@ concept IsEntireTranslationCarrier =
  *  relation, not an arrow), so it stays on the surface and composes.
  *
  *  @details Functions ARE graphs here, so @c inverse is a relational operation,
- *  the converse with the shift negated.  Gated on @c IsOrderedAdditiveGroup:
- *  negating the shift (@c K→−K) is the predecessor relation only where the
- *  carrier has genuine, order-respecting additive inverses.  On ℕ (@c
- *  Cardinality) there is no inverse below 0; on a wrapping group (@c unsigned)
- *  @c −K folds modulo capacity rather than computing the predecessor, so the
- *  inverse of the successor is NOT its converse there; the overload is
- *  withheld. */
+ *  the converse with the shift negated.  A translation @f$x\mapsto x+K@f$ is a
+ *  bijection on @b any additive group, and the converse of a bijection @b is
+ *  its inverse, so the negated-shift converse @c x↦x+(−K) is the GROUP inverse
+ *  (hence the retract) regardless of the carrier's order.  This is the #875
+ *  generalization from @f$\mathbb{Z}@f$ (@c IsOrderedAdditiveGroup) to an
+ *  arbitrary @c IsGroup: the gate is now @c IsAbelianGroup under @c +, matching
+ *  the @c image overload below.  On a wrapping/cyclic group such as @c unsigned
+ *  (@f$\mathbb{Z}/2^w@f$), @c −K folds to the MODULAR group-inverse of the
+ *  shift; that fold is the CORRECT inverse (again, a bijection's converse is
+ * its inverse), even though it is @b not the order-predecessor the old gate
+ *  conflated it with.  (The ORDER-preserving affine pushforward
+ *  @c image(Halfspace, +K) below genuinely needs the order and stays gated on
+ * @c IsOrderedAdditiveGroup; the two facts are gated independently.  ℕ = @c
+ *  Cardinality is not a group, so it is not matched here either way.) */
 export template <typename T, auto K, typename L>
-  requires dedekind::algebra::IsOrderedAdditiveGroup<T>
+  requires dedekind::category::IsAbelianGroup<T, std::plus<T>>
 constexpr auto inverse(
     const Set<std::pair<T, T>, L, ProjAddConstProj<1, K, Rel::Eq, 2>>&) {
   return Set<std::pair<T, T>, L, ProjAddConstProj<1, -K, Rel::Eq, 2>>{
       ProjAddConstProj<1, -K, Rel::Eq, 2>{}};
 }
+
+// ── #875 witness: retractability generalizes ℤ → arbitrary IsGroup ───────────
+// The OLD gate (@c IsOrderedAdditiveGroup) withheld @c inverse on the cyclic
+// group @c unsigned (@f$\mathbb{Z}/2^w@f$), conflating the group inverse with
+// the order-predecessor.  With the gate relaxed to @c IsAbelianGroup the
+// converse-with-negated-shift now resolves there too, and it IS the modular
+// group inverse: @c inverse of the successor graph @c π1+1==π2 over @c unsigned
+// equals the converse graph @c π1+(−1)==π2 (i.e. @c x↦x+UINT_MAX, the modular
+// predecessor).  A bijection's converse is its inverse, so this is correct.
+static_assert(
+    std::same_as<
+        decltype(inverse(Set<std::pair<unsigned, unsigned>, ClassicalLogic,
+                             ProjAddConstProj<1, 1u, Rel::Eq, 2>>{
+            ProjAddConstProj<1, 1u, Rel::Eq, 2>{}})),
+        Set<std::pair<unsigned, unsigned>, ClassicalLogic,
+            ProjAddConstProj<1, -1u, Rel::Eq, 2>>>,
+    "inverse over unsigned (a cyclic group the old IsOrderedAdditiveGroup gate "
+    "withheld) is now the converse graph with the negated (modular) shift: the "
+    "group inverse, #875 (retractability generalizes ℤ → arbitrary IsGroup).");
 
 // image = the RANGE (π_B projection) of a functional graph, read structurally.
 // A translation is surjective on ANY additive group (@c IsAbelianGroup under
@@ -340,91 +365,13 @@ constexpr auto preimage(
 
 }  // namespace dedekind::order
 
-// ── #875/#876: the group translation as a RETRACTABLE ARROW ─────────────────
-// A group translation @c x↦x+K is a bijection whose inverse is the INVERSE
-// translation @c x↦x−K, computed from the group inverse of the shift.  So it is
-// an @c IsRetractableArrow purely by virtue of @c IsGroup --- no per-arrow
-// retract registration --- and its image is therefore DECIDABLE (@c
-// ClassicalLogic) via the seam in @c :category:image.  This is the
-// productionisation of the #876 spike (moved out of @c :category:image, which
-// stays generic): the group specifics live here, where the additive-group gate
-// is already in scope.
-namespace dedekind::algebra {
-
-/**
- * @brief The carrier-generic translation arrow @f$x \mapsto x + K@f$.
- *
- * @details An @c IsArrow whose @c Domain and @c Codomain are both the shift's
- * own carrier @c decltype(K).  Carrier-generic: any type usable as a non-type
- * template parameter serves as @c K, and the group facts (retract, monicity)
- * are gated on @c IsGroup below, not baked into this type.
- *
- * @tparam K The compile-time shift (its type @c decltype(K) is the carrier).
- */
-export template <auto K>
-  requires requires(decltype(K) x) {
-    { x + K } -> std::convertible_to<decltype(K)>;
-  }
-struct Translate {
-  using T = decltype(K);
-  using Domain = T;
-  using Codomain = T;
-  constexpr T operator()(T x) const { return static_cast<T>(x + K); }
-};
-
-/**
- * @brief The retract of @c Translate<K>: the inverse translation
- *        @f$x \mapsto x - K@f$.
- *
- * @details The group inverse of the shift.  A translation is a bijection, so
- * the retract is total (always engaged); it is returned as @c std::optional<T>
- * to fit the @c IsRetractableArrow shape.  Spelled additively as
- * @f$x + (-K)@f$: it needs only the carrier's @c operator+ (a @c (monoid, +)),
- * with the group inverse living in the negated shift @c -K.  So the struct is
- * gated on @c operator+, while the @b semantic claim that this is a genuine
- * retract (the shift is invertible) is the @c IsGroup gate on @c retract below.
- *
- * @tparam K The shift whose inverse translation this realises.
- */
-export template <auto K>
-  requires requires(decltype(K) y) {
-    { y + (-K) } -> std::convertible_to<decltype(K)>;
-  }
-struct TranslateRetract {
-  using T = decltype(K);
-  // Valued in category::Maybe (the maybe monad, an alias for std::optional, so
-  // it still satisfies IsRetractableArrow's std::optional contract).  A
-  // translation is a bijection, so this retract is TOTAL: it is always the
-  // monad UNIT η (never `nothing`), built through category::η just like the
-  // singleton/powerset monad's unit.  That totality is precisely why
-  // image_of(Translate) is decidable, the preimage search never fails.  See
-  // category::η / category::Maybe (:natural, :functor).
-  constexpr dedekind::category::Maybe<T> operator()(const T& y) const {
-    return dedekind::category::η(dedekind::category::maybe_hub,
-                                 static_cast<T>(y + (-K)));
-  }
-};
-
-/**
- * @brief The @c retract ADL hook for @c Translate<K>, gated on the GROUP:
- *        the inverse translation exists exactly because the carrier is a group
- *        under @c + (the inverse translation @b is the group inverse of the
- *        shift).
- *
- * @note The gate is @c IsGroup, @b not @c IsOrderedAdditiveGroup: the
- * bijection and its retract need only the additive inverse, no order.  The
- * order-preserving @b halfspace pushforward @c image(Halfspace, +K) in the
- * @c dedekind::order block above is the aspect that needs
- * @c IsOrderedAdditiveGroup (a translation-invariant order); the two facts are
- * gated independently and deliberately.
- */
-export template <auto K>
-  requires dedekind::category::IsGroup<decltype(K), std::plus<decltype(K)>>
-constexpr TranslateRetract<K> retract(Translate<K>) {
-  return {};
-}
-
-}  // namespace dedekind::algebra
+// ── #875: the group translation's retractability lives in the graph `inverse`
+// overload above (no standalone arrow wrapper).  A group translation @c x↦x+K
+// is a bijection whose inverse is the negated-shift converse graph, and that IS
+// its retract; the generalization from @f$\mathbb{Z}@f$ to an arbitrary @c
+// IsGroup is done by relaxing that overload's gate from @c
+// IsOrderedAdditiveGroup to @c IsAbelianGroup (superseded standalone-arrow
+// reading, cf. morphism.cppm: functions are graphs).
 
 // ── Entireness inference (Table 3): the ALGEBRAIC half of the DSL's relation
 // properties.  Functionality (is_right_unique_v) stays structural in @c order;
@@ -457,54 +404,5 @@ inline constexpr bool is_left_total_v<dedekind::sets::Set<
 // functionality sibling --- both are structure-independent relation-algebra
 // (R>>S entire iff both factors are), so they live with ComposePred and are
 // reachable from :relational alone, not only via @c order / @c algebra.
-
-// ── #875/#876: monicity + decidable-image witnesses for @c Translate ────────
-// A group translation is injective (monic) by the same group fact that gives
-// it a retract: distinct @c x map to distinct @c x+K exactly because @c +K has
-// an inverse.  Gated on @c IsGroup so the claim rides the group, carrier-
-// generically.
-template <auto K>
-  requires IsGroup<decltype(K), std::plus<decltype(K)>>
-inline constexpr bool is_monic_arrow_v<dedekind::algebra::Translate<K>> = true;
-
-// The payoff, read off at compile time: @c IsGroup ⟹ translation retractable ⟹
-// its image is DECIDABLE (@c ClassicalLogic) via the @c :category:image seam,
-// with NO per-arrow plumbing.  Witnessed on two genuine, distinct additive-
-// group carriers to pin the carrier-genericity:
-//
-//   (1) @c unsigned --- ℤ/2ʷ under two's-complement wrap (the #876 spike's
-//       carrier, a witnessed @c IsAbelianGroup under @c +), and
-//   (2) @c SignedExtensionalCardinal<1> --- the library's bona-fide ℤ proxy
-//       (sign-magnitude, a witnessed @c IsAbelianGroup under @c +), a
-//       structural type usable as a non-type template parameter.
-//
-// (@c SignedCardinality, the ±ℵ_0-escalating ℤ proxy, is @b not usable here:
-// it is a @c std::variant, hence not a structural type, so it cannot be a
-// non-type template parameter.  @c SignedExtensionalCardinal<1> is the
-// NTTP-legal, non-@c unsigned group carrier that stands in for it.)
-static_assert(
-    IsRetractableArrow<dedekind::algebra::Translate<3u>>,
-    "a group translation over unsigned (ℤ/2ʷ) is retractable: retract = the "
-    "inverse translation (the group inverse of the shift), by IsGroup.");
-static_assert(
-    std::same_as<typename decltype(image_of(
-                     dedekind::algebra::Translate<3u>{}))::logic_species,
-                 ClassicalLogic>,
-    "IsGroup ⟹ translation retractable ⟹ DECIDABLE image over unsigned "
-    "(#875), carrier-generic.");
-static_assert(
-    IsRetractableArrow<dedekind::algebra::Translate<
-        dedekind::sets::SignedExtensionalCardinal<1>{5}>>,
-    "a group translation over the ℤ proxy SignedExtensionalCardinal<1> is "
-    "retractable by the same IsGroup fact --- carrier-generic, not unsigned-"
-    "specific.");
-static_assert(
-    std::same_as<
-        typename decltype(image_of(dedekind::algebra::Translate<
-                                   dedekind::sets::SignedExtensionalCardinal<1>{
-                                       5}>{}))::logic_species,
-        ClassicalLogic>,
-    "IsGroup ⟹ DECIDABLE image over the ℤ proxy too (#875): the decidability "
-    "rides the group, not the carrier.");
 
 }  // namespace dedekind::category

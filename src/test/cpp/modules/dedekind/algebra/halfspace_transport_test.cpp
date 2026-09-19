@@ -13,6 +13,7 @@
  */
 
 #include <catch2/catch_test_macros.hpp>
+#include <limits>
 #include <utility>
 
 import dedekind.category;
@@ -281,37 +282,22 @@ TEST_CASE("algebra:halfspace_transport — preimage, the contravariant inverse",
   CHECK_FALSE(back(int(m6)));  // −6 ≱ −5, and −(−6)=6 ≰ 5
 }
 
-// #875/#876: runtime coverage paired with the static_assert witnesses in
-// halfspace_transport.cppm.  The group translation Translate<K> is a bijection
-// whose retract is the inverse translation x↦x−K (the group inverse), so
-// retract∘Translate == id and its image (image_of) is decidable: every y is in
-// range (retract always fires), on both a wrapping group (unsigned) and the ℤ
-// proxy SignedExtensionalCardinal<1>.
+// #875: retractability generalizes ℤ → arbitrary IsGroup.  The graph `inverse`
+// gate relaxed from IsOrderedAdditiveGroup to IsAbelianGroup, so a
+// translation's converse graph (the group inverse of the shift) is now
+// available on a cyclic group such as `unsigned` (ℤ/2ʷ), which the old gate
+// withheld.  The converse is the (modular) inverse: (x, x−1) ∈ inverse(succ),
+// even under wrap.
 TEST_CASE(
-    "algebra:halfspace_transport: group translation is a retractable"
-    "arrow with a decidable image (#875)",
-    "[algebra][image][retract][group]") {
-  constexpr dedekind::algebra::Translate<3u> t{};
+    "algebra:halfspace_transport: inverse over a cyclic group (unsigned), #875",
+    "[algebra][inverse][group]") {
+  constexpr auto U = 𝔸<unsigned>;
+  const auto succ = U * U | π1 + fix(1_c) == π2;  // graph of x ↦ x+1 over ℤ/2ʷ
+  const auto pred = inverse(succ);                // converse = modular x ↦ x−1
   volatile unsigned ten = 10u;
-  CHECK(t(unsigned(ten)) == 13u);  // x ↦ x+3
-
-  // retract = inverse translation x ↦ x−3 (the group inverse of the shift):
-  // a genuine left/right inverse, so retract(t)(t(x)) == x.
-  const auto r = dedekind::algebra::retract(t);
-  CHECK(r(t(unsigned(ten))).value() == 10u);  // undoes the shift
-  CHECK(r(unsigned(2u)).value() == 2u - 3u);  // total: always engaged (wraps)
-
-  // Decidable image: a bijection over the whole group hits every point, so the
-  // classifier answers true everywhere (a lookup, not an ∃-search).
-  const auto imgT = image_of(t);
-  CHECK(imgT(unsigned(0u)));
-  CHECK(imgT(unsigned(ten)));
-
-  // Carrier-generic: the same facts on the ℤ proxy (not unsigned).
-  using Z1 = SignedExtensionalCardinal<1>;
-  constexpr dedekind::algebra::Translate<Z1{5}> tz{};
-  const auto rz = dedekind::algebra::retract(tz);
-  CHECK(rz(tz(Z1{7})).value() == Z1{7});  // retract undoes the +5 shift on ℤ
-  const auto imgZ = image_of(tz);
-  CHECK(imgZ(Z1{-3}));  // every point is in range on the group
+  CHECK(pred(std::pair{unsigned(ten), 9u}));         // (10, 9) ∈ inverse(succ)
+  CHECK_FALSE(pred(std::pair{unsigned(ten), 11u}));  // (10, 11) ∉ inverse(succ)
+  volatile unsigned zero = 0u;
+  // The modular group inverse wraps: pred(0) = UINT_MAX (0 − 1 in ℤ/2ʷ).
+  CHECK(pred(std::pair{unsigned(zero), std::numeric_limits<unsigned>::max()}));
 }
