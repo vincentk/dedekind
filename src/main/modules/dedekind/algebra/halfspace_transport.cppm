@@ -116,19 +116,27 @@ concept IsEntireTranslationCarrier =
  *  carrier.  On a wrapping group such as @c unsigned (@f$\mathbb{Z}/2^w@f$) the
  *  registry inverse folds modulo capacity, the correct converse even though it
  *  is @b not the order-predecessor the old @c IsOrderedAdditiveGroup gate
- *  conflated it with.  @c Op defaults to @c std::plus<T> (the operation
- *  @c ProjAddConstProj applies) and is the seam toward the operator-generic
- *  form, #882.  This is the #875 generalization from @f$\mathbb{Z}@f$ to an
- *  arbitrary @c IsGroup.  (The ORDER-preserving affine pushforward
- *  @c image(Halfspace, +K) below genuinely needs the order and stays gated on
- * @c IsOrderedAdditiveGroup; the two facts are gated independently.  ℕ = @c
- *  Cardinality is not a group, so it is not matched here either way.) */
-export template <typename T, auto K, typename L, typename Op = std::plus<T>>
-  requires dedekind::category::IsGroup<T, Op> && requires(decltype(K) k) {
-    {
-      dedekind::category::inverse_v<decltype(K), std::plus<decltype(K)>>(k)
-    } -> std::same_as<decltype(K)>;
-  }
+ *  conflated it with.  The gate is @c IsGroup<T, std::plus<T>>: @c std::plus<T>
+ *  is @b the operation @c ProjAddConstProj actually evaluates, so the group
+ *  structure is asserted for @b that operation, not a free @c Op parameter.  A
+ *  free @c Op would be unsound here (it is not deducible from the argument, so
+ *  a caller could certify an unrelated group op, e.g.\ @c bool under
+ *  @c std::bit_xor, and expose an @c inverse for a non-bijective
+ *  @c std::plus<bool> graph); the operator-generic form waits until the graph
+ *  carries its operation in its type (#882).  This is the #875 generalization
+ *  from @f$\mathbb{Z}@f$ to an arbitrary @c IsGroup under @c +.  (The
+ *  ORDER-preserving affine pushforward @c image(Halfspace, +K) below genuinely
+ *  needs the order and stays gated on @c IsOrderedAdditiveGroup; the two facts
+ *  are gated independently.  ℕ = @c Cardinality is not a group, so it is not
+ *  matched here either way.) */
+export template <typename T, auto K, typename L>
+  requires dedekind::category::IsGroup<T, std::plus<T>> &&
+           requires(decltype(K) k) {
+             {
+               dedekind::category::inverse_v<decltype(K),
+                                             std::plus<decltype(K)>>(k)
+             } -> std::same_as<decltype(K)>;
+           }
 constexpr auto inverse(
     const Set<std::pair<T, T>, L, ProjAddConstProj<1, K, Rel::Eq, 2>>&) {
   // −K is the group's UNARY inverse of the shift (category::inverse_v), NOT
