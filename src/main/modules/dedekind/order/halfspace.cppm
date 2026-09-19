@@ -564,9 +564,10 @@ struct OrderInterval
   // surface so that continuous carriers (like Real<double>) correctly fail
   // IsExtensional, AND so that the variant ℕ-/ℤ-proxy carriers from
   // sets:cardinality (Cardinality, SignedCardinality) keep this surface
-  // post-#402 retarget.  The IsRingIntegral concept (above) is the
-  // post-#414 generalisation of std::integral — same semantics for the
-  // built-in integers, plus admission of the variant carriers.
+  // post-#402 retarget.  The IsRingIntegral concept (in :sets:cardinality,
+  // relocated #878) is the post-#414 generalisation of std::integral — same
+  // semantics for the built-in integers, plus admission of the variant
+  // carriers.
   static constexpr bool is_integer_range = IsRingIntegral<T>;
 
   // @brief Whether the interval denotes the empty set (χ ≡ False).  A DISCRETE

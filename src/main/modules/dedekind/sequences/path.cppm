@@ -1012,7 +1012,7 @@ static_assert(
 // IsSequence (above, in :net) now requires its @c Domain to satisfy
 // @c IsRingIntegral — the algebraic concept certified for the operational
 // carriers (std::size_t, unsigned, etc.) AND the project's Form-shaped
-// carriers (Cardinality, SignedCardinality) at :order:halfspace:96.  This
+// carriers (Cardinality, SignedCardinality) at :sets:cardinality.  This
 // pins the Form-before-Carrier discipline at the type level: the choice of
 // std::size_t for Path::Domain is principled (satisfies the algebraic
 // concept) rather than ad-hoc, and the same algebraic concept gates the

@@ -61,9 +61,10 @@ module;
 export module dedekind.order:powerset;
 
 import dedekind.category;
-import dedekind.sets; // Ø, UniversalSet, Set, SetShaped (the deleted gate)
+import dedekind.sets; // Ø, UniversalSet, Set, SetShaped (the deleted gate),
+                      // IsRingIntegral (:sets:cardinality, #878)
 import :total;        // IsTotallyOrdered --- the ordered-carrier gate
-import :halfspace;    // Halfspace, Singleton, OrderInterval, IsRingIntegral
+import :halfspace;    // Halfspace, Singleton, OrderInterval
 import :inclusion;    // the subset order this 𝔓 filters on
 
 namespace dedekind::order {
