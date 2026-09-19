@@ -1730,4 +1730,103 @@ static_assert(IsSet<Comprehension<Ø<int>, all_in>>,
               "{Ø | P} is a first-class set.");
 }  // namespace detail_setexpr_witness
 
+// ── The point-free projection scout ────────────────────────────────────────
+/**
+ * @brief @c π --- the point-free variable, a @b domain-less scout.
+ *
+ * @details Where @c in<ℕ> bakes the carrier into the scout's type, @c π leaves
+ * it open.  A comparison @c π @c ⋈ @c fix(V) fixes only the @b shape (direction
+ * and pivot) as an @c UnboundHalfspace / @c UnboundSingleton; a later
+ * @c carrier @c | @c ... instantiates it at the carrier's @c Domain, reusing
+ * @c Halfspace / @c Singleton.  @c π is the unary projection; the product
+ * coordinates @c π1 / @c π2 follow with the relational surface (#783).
+ *
+ * @note @c Projection itself is an @b empty symbolic tag (not callable), so it
+ * does @b not satisfy @c category::IsProductProjection --- it is the DSL
+ * @b spelling of a coordinate, consumed by the comparison operators.  The
+ * actual product-projection is the @b accessor @c coord below (@c coord<1> /
+ * @c coord<2>), which @b delegates to @c category::π_1 / @c category::π_2 (the
+ * canonical projections in @c :limit) and IS a certified
+ * @c IsProductProjection --- the static_assert after @c coord pins that
+ * agreement.  So @c π1 / @c π2 (tags) and @c category::π_1 / @c π_2 (accessors)
+ * are two spellings of one notion, bridged by @c coord.  The symbolic-tag
+ * surface + its comparison operators (which build @c ProjRel / @c ProjBound in
+ * @c :order) grew up with the comprehension DSL; unifying it with @c :limit is
+ * a @b non-urgent follow-up (#878).
+ * @see dedekind::category::π_1, dedekind::category::π_2
+ * @see dedekind::category::IsProductProjection
+ */
+export template <IsRingIntegral auto Slot>
+struct Projection {};
+
+export inline constexpr Projection<0> π{};
+// Cosmetic alias for the sole projection π (the bound element of a
+// single-carrier comprehension): a plain element also reads as @c χ,
+// e.g. @c ℕ @c | @c χ @c <= @c fix(5_c).  Same type and behaviour as π (a
+// distinct inline object, so a distinct address), just a second spelling.
+// (Plain @c x is deliberately not offered: it shadows the pervasive local
+// element parameter named @c x and would trip @c -Wshadow.)
+export inline constexpr Projection<0> χ{};
+
+// ── Product projections: the relational (point-free) variables ─────────────
+/**
+ * @brief @c π1 / @c π2 --- the coordinate projections of a pair, the positional
+ *        variables of the point-free relational surface.
+ *
+ * @details A comparison @c π_I @c ⋈ @c π_J or @c π_I @c ⋈ @c fix(V) builds a
+ * @b strongly-typed predicate on a pair (no lambda); @c && conjoins them
+ * (@c || joins), distinct from the set-level @c & / @c | on whole relations;
+ * and @c product @c | @c predicate restricts the product to the relation.
+ * @c && binds looser than @c |, so the comprehension parenthesises the meet:
+ * @c ℕ*ℕ @c | @c (π1 @c < @c π2 @c && @c π1 @c > @c fix(5_c)) is the relation
+ * @f$\{(x,y) \mid x<y \wedge x>5\}@f$ as an @c IsSet on @c ℕ×ℕ.
+ */
+export inline constexpr Projection<1> π1{};
+export inline constexpr Projection<2> π2{};
+export inline constexpr Projection<3> π3{};
+
+// Blackboard coordinate aliases so a pair/triple predicate reads as
+// @f$z = f(x,y)@f$: the mathematical-italic @c 𝑥/𝑦/𝑧 (U+1D465..7) are
+// letter-category identifiers (like @c 𝔸/ℕ), NOT ASCII @c x/y/z, so they carry
+// the blackboard look without colliding with ordinary variable names.
+export inline constexpr Projection<1> 𝑥{};
+export inline constexpr Projection<2> 𝑦{};
+export inline constexpr Projection<3> 𝑧{};
+
+/** @brief The @c I-th component of a pair (1 = @c first, 2 = @c second).
+ *  Binary products only, so an out-of-range slot (the unary @c π, or @c π3) is
+ *  a hard error rather than a silent alias for @c .second.
+ *  @note The index @b type is a call-site free variable (@c IsRingIntegral);
+ *  the @c requires guard pins the @b value domain to @c {1,2} (binary
+ *  products), independent of that type.  Extending @c coord to higher arities
+ *  (@c π3 / @c 𝑧 already exist as tags) is the arity-aware follow-up (#824). */
+export template <IsRingIntegral auto I, typename P>
+  requires(I == 1 || I == 2)
+constexpr decltype(auto) coord(const P& p) {
+  // Reuse @c :limit's canonical product projections rather than re-deriving
+  // @c .first / @c .second here: halfspace's @c coord and @c category::π_1 /
+  // @c π_2 are the @b same projection (@c IsProductProjection).  Letting the
+  // two surfaces share one accessor stops halfspace shadowing @c :limit.
+  if constexpr (I == 1)
+    return dedekind::category::π_1(p);
+  else
+    return dedekind::category::π_2(p);
+}
+
+// The two wheels know each other: @c :limit's @c π_1 / @c π_2 are exactly the
+// @c coord accessors above, and they are certified @c IsProductProjection there
+// (@c limit.cppm).  Pin the agreement so the surfaces cannot silently diverge.
+static_assert(
+    dedekind::category::IsProductProjection<
+        decltype([](const std::pair<int, bool>& p) {
+          return dedekind::category::π_1(p);
+        }),
+        std::pair<int, bool>, int>,
+    "coord<1> = category::π_1 is a certified product projection (left).");
+static_assert(coord<1>(std::pair{7, false}) ==
+                      dedekind::category::π_1(std::pair{7, false}) &&
+                  coord<2>(std::pair{7, false}) ==
+                      dedekind::category::π_2(std::pair{7, false}),
+              "coord IS category::π_1 / π_2 (one projection, two call sites).");
+
 }  // namespace dedekind::sets
