@@ -1687,9 +1687,9 @@ constexpr ProjModBound<I, J, Rel::Eq, V> operator==(ProjMod<I, J>, Bound<V>) {
   return {};
 }
 
-// divides: {(a,b) | b % a == 0 ∧ a != 0} = ℕ*ℕ | (π2 % π1 == fix(0_c) && π1 !=
-// 0). The && in RelAnd short-circuits the guard first, so a == 0 never reaches
-// %.
+// divides: {(a,b) | b % a == 0 ∧ a != 0} = ℕ*ℕ | (π1 != fix(0_c) && π2 % π1 ==
+// fix(0_c)).  The guard is spelled FIRST so RelAnd's && short-circuits it
+// before the %, and a == 0 never reaches the division.
 static_assert((ℕ * ℕ | (π1 != fix(0_c) && π2 % π1 == fix(0_c)))(std::pair{
                   finite_cardinality(2), finite_cardinality(6)}),
               "6 % 2 == 0: (2,6) ∈ divides.");
