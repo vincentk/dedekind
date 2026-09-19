@@ -14,8 +14,9 @@ export module dedekind.sequences;
 
 export import :net;
 export import :convergence;
-export import :fold;    // fold(xs, init, op) — the catamorphism
-export import :finite;  // Net / FiniteSeq — compile-time realizations
+export import :fold;     // fold(xs, init, op) — the catamorphism
+export import :relprod;  // R;S over a finite ℕ-prefix middle (bounded >>, #795)
+export import :finite;   // Net / FiniteSeq — compile-time realizations
 export import :limits;
 export import :path;
 export import :samples;
