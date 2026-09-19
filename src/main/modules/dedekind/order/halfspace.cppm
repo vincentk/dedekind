@@ -2270,8 +2270,8 @@ static_assert(
 // a FUNCTIONAL relation's composition distributes over MEET too (R;(S∩T) =
 // R;S ∩ R;T), which fails for a non-functional relation.
 static_assert(static_cast<bool>(((𝔹 * 𝔹 | π1 < π2) >>
-                                 dedekind::relational::diagonal<bool>())(
-                  std::pair{false, true})) ==
+                                 dedekind::relational::diag<bool>())(std::pair{
+                  false, true})) ==
                   static_cast<bool>((𝔹 * 𝔹 | π1 < π2)(std::pair{false, true})),
               "R;Δ = R: the diagonal is the composition unit (the 1).");
 static_assert(
