@@ -1,4 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
+#include <concepts>     // std::same_as
+#include <type_traits>  // std::decay_t
 import dedekind.category;
 import dedekind.sets;
 
@@ -87,6 +89,18 @@ TEST_CASE("Sets: Singleton Acceptance", "[sets][singleton][acceptance]") {
     REQUIRE((_s | _t)(42));
     REQUIRE((_s | _t)(7));
     REQUIRE(!(_s | _t)(4));
+    // The STRUCTURAL contract (#691/#842), which membership alone does not pin:
+    // the union is a RECOVERABLE named OrPredicate whose two atoms survive in
+    // the type (an opaque predicate with the same membership would pass the
+    // checks above).  Pin the result type and recover both pivots.
+    using UnionT = std::decay_t<decltype(_s | _t)>;
+    STATIC_REQUIRE(
+        std::same_as<
+            UnionT,
+            Set<size_t, ClassicalLogic,
+                OrPredicate<SingletonSet<size_t>, SingletonSet<size_t>>>>);
+    REQUIRE((_s | _t).predicate().lhs.pivot == 42);
+    REQUIRE((_s | _t).predicate().rhs.pivot == 7);
     // FIXME(#685): structural identity ({a}∪{a} == {a}, round-trip to the
     // universe for {a}∪¬{a}) still needs the equality-matrix / cross-type
     // overload surgery tracked there.
