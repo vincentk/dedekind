@@ -1332,10 +1332,11 @@ struct ProjBound {
 };
 
 // RelAnd (the meet predicate carrier) moved DOWN to dedekind.relational:dyadic
-// (#792); halfspace still USES it (the predicate-level operator& below,
-// axis_factor, the >> functional trait) as dedekind::sets::RelAnd, imported
-// from :dyadic.  The join carrier is the set-grammar | / OrPredicate (:sets,
-// #365); the old RelOr / operator+ was dropped as redundant (#864).
+// (#792); halfspace still USES it (the predicate-level meet --- now
+// structured_and, reached via the generic &&, #824 --- axis_factor, the >>
+// functional trait) as dedekind::relational::RelAnd, imported from :dyadic.
+// Its dual RelOr (structured_or, via ||) was re-added (#824); the set-level
+// join stays the set-grammar | / OrPredicate (:sets, #365).
 
 // π_I ⋈ π_J  →  ProjProj (projection-vs-projection).
 export template <std::size_t I, std::size_t J>
@@ -1552,7 +1553,7 @@ export template <typename Ta, auto Pa, Direction Da, Strictness Sa, typename La,
   requires std::same_as<La, Lb>
 constexpr auto operator*(const Halfspace<Ta, Pa, Da, Sa, La>& a,
                          const Halfspace<Tb, Qb, Db, Sb, Lb>& b) {
-  return 𝔸<std::pair<Ta, Tb>, La> | (cylinder<1>(a) & cylinder<2>(b));
+  return 𝔸<std::pair<Ta, Tb>, La> | (cylinder<1>(a) && cylinder<2>(b));
 }
 
 /**
@@ -1617,7 +1618,7 @@ constexpr auto axis_factor(const dedekind::relational::RelAnd<A, B>& r) {
                        }) {
     return fa;  // b does not constrain axis I; the factor is a's
   } else {
-    return fa & fb;  // BOTH constrain axis I: intersect (structured_and)
+    return fa && fb;  // BOTH constrain axis I: intersect (structured_and)
   }
 }
 

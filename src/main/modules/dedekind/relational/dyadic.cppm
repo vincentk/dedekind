@@ -23,10 +23,11 @@
  * These combinators moved DOWN out of @c order/halfspace.cppm (#792): they are
  * pure @c Set<pair> algebra with @b no ordering, so they belong below @c order.
  * @c order keeps its projection DSL (@c π1/π2, @c ProjProj, the ordered
- * comparisons @c π1<π2, and the predicate-level @c operator& / @c
- * IsRelPredicate for building cylinder predicates) and its relation @b
- * witnesses, now consuming these combinators via @c using @c namespace @c
- * dedekind::relational (order imports @c dedekind.relational).
+ * comparisons @c π1<π2, and the predicate-level meet @c && --- @c
+ * structured_and → @c RelAnd, #824 --- over @c IsRelPredicate for building
+ * cylinder predicates) and its relation @b witnesses, now consuming these
+ * combinators via @c using @c namespace @c dedekind::relational (order imports
+ * @c dedekind.relational).
  *
  * @section dyadic__Base_Of_The_Others
  * @c :graph (graphs of arrows) and @c :tables (Codd's n-ary model) both build
