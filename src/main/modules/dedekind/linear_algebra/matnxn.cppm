@@ -152,23 +152,16 @@ constexpr SemimoduleVec<S, N, dual_orientation_t<O>> transpose(
   return SemimoduleVec<S, N, dual_orientation_t<O>>{v.c};
 }
 
-/**
- * @brief @c dagger --- the cross-surface alias for the vector @c transpose.
- *
- * @details One operation, three vocabularies: @b transpose (linear algebra,
- * the native name), @b converse (@c relational, @f$R^{\circ}@f$), @b dagger
- * (@c category::IsDagger, the @f$\dagger@f$-category adjoint).  Provided so the
- * bra-ket surface reads in the involution vocabulary too: @c dagger(|v⟩)=⟨v|.
- * Over a general semiring the dagger @b is the transpose (no conjugation);
- * over @c ℂ the adjoint conjugates the components (FIXME(#787)).
- */
-export template <typename S, std::size_t N, typename O>
-  requires(IsColumnVector<SemimoduleVec<S, N, O>> ||
-           IsCovector<SemimoduleVec<S, N, O>>)
-constexpr SemimoduleVec<S, N, dual_orientation_t<O>> dagger(
-    const SemimoduleVec<S, N, O>& v) {
-  return transpose(v);
-}
+// @note NO bare @c dagger(v) alias.  A @b dagger is relative to a @b (type,
+//       operation): a carrier can carry several (over @c ℂ: unary negation,
+//       reciprocal, complex conjugation; and, reading a scalar as a 1×1 matrix,
+//       the trivial transpose).  So "the dagger" is @c Dagger{}(x) for a @b
+//       chosen involution functor (@c category::IsDagger), not a single global
+//       name.  @c transpose above IS the coordinate-swap dagger --- certified
+//       @c is_involutive as @c TransposeF (the real / semiring adjoint, no
+//       conjugation) --- but it is one dagger among several, so it keeps its
+//       honest linear-algebra name.  ℂ's conjugate-transpose is a @b different
+//       @c Dagger functor (FIXME(#787)).
 
 /**
  * @brief @c Mat(S): the N×N matrix over a semiring @c S.  Entries are stored
@@ -249,18 +242,14 @@ struct MatNxNV {
    *        which the tropical carriers skew).  The @c IsArrow call operator:
    *        @c Ket → @c Ket.
    *
-   * @details Generic over the @b input vector: it reads the coordinate through
-   * @c v(j), so any @b index→scalar arrow applies --- an @b intensional
-   * (rule / function-backed) column vector (@c one_hot, a @c Character, a
-   * @c Diagonal column) just as readily as the @b extensional array-backed
-   * @c Ket.  The result is materialised as a @c Ket.  @c Domain / @c Codomain
-   * stay @c Ket<S,N> so @c Mat(S) is a concrete @c IsArrow; the array @c Ket is
-   * one inhabitant of the readers this accepts.
+   * @details Takes the extensional (array-backed) @c Ket.  Accepting an
+   * @b intensional (rule / function-backed) index→scalar vector too is a
+   * follow-up: the sound gate is that @c V is indexable at the finite index
+   * (an @c IsRingIntegral domain), and that concept is not in scope here
+   * without an awkward @c dedekind.order dependency --- so it lands with the
+   * function-space image work, not on the bare @c Mat call operator.
    */
-  template <typename V>
-    requires dedekind::category::IsArrow<V> &&
-             std::same_as<typename std::remove_cvref_t<V>::Codomain, S>
-  constexpr Ket<S, N> operator()(const V& v) const {
+  constexpr Ket<S, N> operator()(const Ket<S, N>& v) const {
     using Add = typename dedekind::algebra::semiring_ops<S>::add;
     using Mult = typename dedekind::algebra::semiring_ops<S>::mult;
     const S zero = dedekind::category::identity_v<S, Add>;
@@ -268,7 +257,7 @@ struct MatNxNV {
     for (std::size_t i = 0; i < N; ++i) {
       S acc = zero;
       for (std::size_t j = 0; j < N; ++j)
-        acc = Add{}(acc, Mult{}(e[i][j], v(j)));
+        acc = Add{}(acc, Mult{}(e[i][j], v.c[j]));
       r.c[i] = acc;
     }
     return r;
@@ -380,19 +369,13 @@ concept IsLinearOperator =
 export template <typename S, std::size_t N>
 inline constexpr bool is_linear_operator_v<MatNxNV<S, N>> = true;
 
-/**
- * @brief @c dagger of a matrix --- the cross-surface alias for @c transpose
- *        (@c category::IsDagger vocabulary): @c dagger(M) @c = @c Mᵀ.
- *
- * @details Consistency across the surfaces (see @c MatNxNV::transpose): one
- * operation named @b transpose in linear algebra, @b converse in @c relational,
- * @b dagger in @c category.  Over a semiring the dagger @b is the transpose (no
- * conjugation); over @c ℂ the adjoint conjugates (FIXME(#787)).
- */
-export template <typename S, std::size_t N>
-constexpr MatNxNV<S, N> dagger(const MatNxNV<S, N>& m) {
-  return m.transpose();
-}
+// @note NO bare @c dagger(M) alias either (same reason as the vector case
+//       above): a matrix over @c ℂ has several daggers, so "the dagger" is a
+//       @b chosen involution functor.  @c MatNxNV::transpose is the
+//       coordinate-swap one, certified @c is_involutive as @c TransposeF; ℂ's
+//       conjugate-transpose is a different @c Dagger (FIXME(#787)).  Spell the
+//       chosen dagger as @c TransposeF{}(M) (or the future conjugate one), not
+//       a name that pretends the dagger is unique.
 
 /** @brief The zero matrix — every entry the base @c ⊕-identity (0̄). */
 export template <typename S, std::size_t N>
@@ -625,27 +608,21 @@ static_assert(std::same_as<decltype(transpose(Bra<MPll, 3>{})), Ket<MPll, 3>>,
               "dagger(⟨w|) = |w⟩: and of a Bra is a Ket.");
 static_assert(transpose(Ket<MPll, 3>{}) == Bra<MPll, 3>{},
               "the dagger keeps the components (Ket ↦ Bra, same entries).");
-static_assert(transpose(transpose(Ket<MPll, 3>{})) == Ket<MPll, 3>{},
-              "the dagger is an involution: v†† = v.");
-// The dagger alias (category/Rel vocabulary) agrees with transpose (LA name).
-static_assert(dagger(Ket<MPll, 3>{}) == Bra<MPll, 3>{},
-              "dagger(|v⟩) = ⟨v| via the dagger alias (== transpose).");
-static_assert(dagger(identity_matrix<MPll, 3>()) == identity_matrix<MPll, 3>(),
-              "dagger(M) = Mᵀ via the matrix dagger alias (dagger(I) = I).");
+static_assert(
+    transpose(transpose(Ket<MPll, 3>{})) == Ket<MPll, 3>{},
+    "the transpose (coordinate-swap dagger) is an involution: v†† = v.");
 
 // ── dagger ↔ involution ↔ (group) ↔ isomorphism, where applicable ───────────
-// (1) INVOLUTION: the matrix dagger is the CERTIFIED involution TransposeF
-//     (Aᵀᵀ = A, the order-2 / ℤ2 fact), and our dagger() alias IS that functor.
+// (1) INVOLUTION: the coordinate-swap dagger on a matrix IS the CERTIFIED
+//     involution TransposeF (Aᵀᵀ = A, the order-2 / ℤ2 fact).  ("The" dagger is
+//     relative to a chosen involution functor --- TransposeF here; ℂ's
+//     conjugate-transpose is a different one, #787.)
 static_assert(
     dedekind::category::IsDagger<TransposeF<MPll, 3>, MatNxNV<MPll, 3>>,
     "transpose is a certified dagger / involution on Mat(S): Aᵀᵀ = A.");
-static_assert(
-    dagger(identity_matrix<MPll, 3>()) ==
-        TransposeF<MPll, 3>{}(identity_matrix<MPll, 3>()),
-    "the dagger() alias agrees with the certified TransposeF functor.");
-static_assert(dagger(dagger(identity_matrix<MPll, 3>())) ==
-                  identity_matrix<MPll, 3>(),
-              "matrix dagger is an involution: M†† = M.");
+static_assert(TransposeF<MPll, 3>{}(TransposeF<MPll, 3>{}(
+                  identity_matrix<MPll, 3>())) == identity_matrix<MPll, 3>(),
+              "the TransposeF dagger is an involution: M†† = M.");
 // The vector dagger's involution is the transpose(transpose(v)) == v witness
 // above (Ket ↔ Bra is order-2); the IsInvolution CONCEPT is N/A there, since a
 // single dagger flips the TYPE (Ket → Bra), not an endomap on one carrier.
@@ -661,22 +638,5 @@ static_assert(
         typename dedekind::algebra::semiring_ops<MatNxNV<MPll, 3>>::mult>(
         identity_matrix<MPll, 3>()),
     "the identity is unitary: I†;I = I;I† = I (dagger = inverse, applicable).");
-
-// (3) INTENSIONAL bra-ket: Mat applies to a rule-backed (non-array) column
-//     vector, not only the extensional Ket --- the generalized operator() reads
-//     v(j).  A minimal intensional ket (the rule j ↦ 0̄); richer ones (one_hot,
-//     a Character) are index→scalar IsArrows and apply the same way.
-struct ZeroKetRule {
-  using Domain = std::size_t;  // an index → scalar arrow (IsArrow), no array
-  using Codomain = MPll;
-  constexpr MPll operator()(std::size_t) const {
-    return dedekind::category::identity_v<
-        MPll, typename dedekind::algebra::semiring_ops<MPll>::add>;
-  }
-};
-static_assert(
-    identity_matrix<MPll, 3>()(ZeroKetRule{})(0) == ZeroKetRule{}(0),
-    "I·v = v componentwise for an INTENSIONAL v: the matvec reads the "
-    "rule v(j), not an array.");
 
 }  // namespace dedekind::linear_algebra
