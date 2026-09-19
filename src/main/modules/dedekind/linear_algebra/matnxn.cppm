@@ -248,8 +248,19 @@ struct MatNxNV {
    *        \otimes v_j@f$ over @c S's semiring ops (never native @c +/@c *,
    *        which the tropical carriers skew).  The @c IsArrow call operator:
    *        @c Ket → @c Ket.
+   *
+   * @details Generic over the @b input vector: it reads the coordinate through
+   * @c v(j), so any @b index→scalar arrow applies --- an @b intensional
+   * (rule / function-backed) column vector (@c one_hot, a @c Character, a
+   * @c Diagonal column) just as readily as the @b extensional array-backed
+   * @c Ket.  The result is materialised as a @c Ket.  @c Domain / @c Codomain
+   * stay @c Ket<S,N> so @c Mat(S) is a concrete @c IsArrow; the array @c Ket is
+   * one inhabitant of the readers this accepts.
    */
-  constexpr Ket<S, N> operator()(const Ket<S, N>& v) const {
+  template <typename V>
+    requires dedekind::category::IsArrow<V> &&
+             std::same_as<typename std::remove_cvref_t<V>::Codomain, S>
+  constexpr Ket<S, N> operator()(const V& v) const {
     using Add = typename dedekind::algebra::semiring_ops<S>::add;
     using Mult = typename dedekind::algebra::semiring_ops<S>::mult;
     const S zero = dedekind::category::identity_v<S, Add>;
@@ -257,7 +268,7 @@ struct MatNxNV {
     for (std::size_t i = 0; i < N; ++i) {
       S acc = zero;
       for (std::size_t j = 0; j < N; ++j)
-        acc = Add{}(acc, Mult{}(e[i][j], v.c[j]));
+        acc = Add{}(acc, Mult{}(e[i][j], v(j)));
       r.c[i] = acc;
     }
     return r;
@@ -621,5 +632,51 @@ static_assert(dagger(Ket<MPll, 3>{}) == Bra<MPll, 3>{},
               "dagger(|v⟩) = ⟨v| via the dagger alias (== transpose).");
 static_assert(dagger(identity_matrix<MPll, 3>()) == identity_matrix<MPll, 3>(),
               "dagger(M) = Mᵀ via the matrix dagger alias (dagger(I) = I).");
+
+// ── dagger ↔ involution ↔ (group) ↔ isomorphism, where applicable ───────────
+// (1) INVOLUTION: the matrix dagger is the CERTIFIED involution TransposeF
+//     (Aᵀᵀ = A, the order-2 / ℤ2 fact), and our dagger() alias IS that functor.
+static_assert(
+    dedekind::category::IsDagger<TransposeF<MPll, 3>, MatNxNV<MPll, 3>>,
+    "transpose is a certified dagger / involution on Mat(S): Aᵀᵀ = A.");
+static_assert(
+    dagger(identity_matrix<MPll, 3>()) ==
+        TransposeF<MPll, 3>{}(identity_matrix<MPll, 3>()),
+    "the dagger() alias agrees with the certified TransposeF functor.");
+static_assert(dagger(dagger(identity_matrix<MPll, 3>())) ==
+                  identity_matrix<MPll, 3>(),
+              "matrix dagger is an involution: M†† = M.");
+// The vector dagger's involution is the transpose(transpose(v)) == v witness
+// above (Ket ↔ Bra is order-2); the IsInvolution CONCEPT is N/A there, since a
+// single dagger flips the TYPE (Ket → Bra), not an endomap on one carrier.
+
+// (2) ISOMORPHISM, where applicable: for a UNITARY matrix the dagger IS the
+//     inverse (M† = M⁻¹).  The identity is the trivial unitary (I† = I = I⁻¹),
+//     read off the generic dagger surface.  Concept-level IsUnitary ⟹
+//     IsIsomorphism (registering inverse = f†) is FIXME(#787); a matrix TYPE
+//     holds many arrows, so unitarity stays value-level here.
+static_assert(
+    dedekind::category::is_unitary<
+        TransposeF<MPll, 3>,
+        typename dedekind::algebra::semiring_ops<MatNxNV<MPll, 3>>::mult>(
+        identity_matrix<MPll, 3>()),
+    "the identity is unitary: I†;I = I;I† = I (dagger = inverse, applicable).");
+
+// (3) INTENSIONAL bra-ket: Mat applies to a rule-backed (non-array) column
+//     vector, not only the extensional Ket --- the generalized operator() reads
+//     v(j).  A minimal intensional ket (the rule j ↦ 0̄); richer ones (one_hot,
+//     a Character) are index→scalar IsArrows and apply the same way.
+struct ZeroKetRule {
+  using Domain = std::size_t;  // an index → scalar arrow (IsArrow), no array
+  using Codomain = MPll;
+  constexpr MPll operator()(std::size_t) const {
+    return dedekind::category::identity_v<
+        MPll, typename dedekind::algebra::semiring_ops<MPll>::add>;
+  }
+};
+static_assert(
+    identity_matrix<MPll, 3>()(ZeroKetRule{})(0) == ZeroKetRule{}(0),
+    "I·v = v componentwise for an INTENSIONAL v: the matvec reads the "
+    "rule v(j), not an array.");
 
 }  // namespace dedekind::linear_algebra
