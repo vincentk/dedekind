@@ -1741,16 +1741,18 @@ static_assert(IsSet<Comprehension<Ø<int>, all_in>>,
  * @c Halfspace / @c Singleton.  @c π is the unary projection; the product
  * coordinates @c π1 / @c π2 follow with the relational surface (#783).
  *
- * @note These product coordinates @b are the canonical product projections of
- * @c dedekind::category (@c :limit): @c π1 / @c π2 select the same components
- * as
- * @c category::π_1 / @c category::π_2, and @c coord below @b delegates to them,
- * so a @c Projection satisfies @c category::IsProductProjection.  Two spellings
- * of one notion.  The symbolic-tag surface (comparisons build @c ProjRel /
- * @c ProjBound predicates) lives in @c :halfspace for historical reasons ---
- * it grew up with the comprehension DSL --- rather than beside
- * @c IsProductProjection in @c :limit; unifying the two surfaces is a
- * @b non-urgent follow-up (#878).  Left as pointers for now.
+ * @note @c Projection itself is an @b empty symbolic tag (not callable), so it
+ * does @b not satisfy @c category::IsProductProjection --- it is the DSL
+ * @b spelling of a coordinate, consumed by the comparison operators.  The
+ * actual product-projection is the @b accessor @c coord below (@c coord<1> /
+ * @c coord<2>), which @b delegates to @c category::π_1 / @c category::π_2 (the
+ * canonical projections in @c :limit) and IS a certified
+ * @c IsProductProjection --- the static_assert after @c coord pins that
+ * agreement.  So @c π1 / @c π2 (tags) and @c category::π_1 / @c π_2 (accessors)
+ * are two spellings of one notion, bridged by @c coord.  The symbolic-tag
+ * surface + its comparison operators (which build @c ProjRel / @c ProjBound in
+ * @c :order) grew up with the comprehension DSL; unifying it with @c :limit is
+ * a @b non-urgent follow-up (#878).
  * @see dedekind::category::π_1, dedekind::category::π_2
  * @see dedekind::category::IsProductProjection
  */
