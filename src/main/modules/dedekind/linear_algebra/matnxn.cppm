@@ -151,16 +151,19 @@ struct MatNxNV {
   using column_type = Ket<S, N>;
   using row_type = Bra<S, N>;
 
-  /// @brief @c Mat(S) @b is the linear operator @f$|v\rangle \mapsto
-  /// M|v\rangle@f$
-  ///        --- a callable @c IsArrow with @c Domain @c = @c Codomain @c =
-  ///        @c Ket<S,N>.  This is the @b callable reading of the arrow chain
-  ///        @c IsLinearOperator ⟹ @c IsFunction ⟹ @c IsRelation ⟹ @c IsArrow
-  ///        (see @c dedekind::relational::IsRelation for the three-hats note):
-  ///        matrix-vector application is a total, single-valued map, so the
-  ///        matrix @b is a function @b is an arrow.  The binary @c
-  ///        operator()(i,j) entry accessor and this unary @c operator()(Ket)
-  ///        apply differ in arity, so they do not collide.
+  /**
+   * @brief @c Mat(S) @b is the linear operator @f$|v\rangle \mapsto
+   *        M|v\rangle@f$ --- a callable @c IsArrow with
+   *        @c Domain @c = @c Codomain @c = @c Ket<S,N>.
+   *
+   * @details The @b callable reading of the arrow chain
+   * @c IsLinearOperator ⟹ @c IsFunction ⟹ @c IsRelation ⟹ @c IsArrow
+   * (see @c dedekind::relational::IsRelation for the three-hats note):
+   * matrix-vector application is a total, single-valued map, so the matrix
+   * @b is a function @b is an arrow.  The binary @c operator()(i,j) entry
+   * accessor and this unary @c operator()(Ket) apply differ in arity, so
+   * they do not collide.
+   */
   using Domain = Ket<S, N>;
   using Codomain = Ket<S, N>;
 
@@ -197,10 +200,12 @@ struct MatNxNV {
 
   constexpr S operator()(std::size_t i, std::size_t j) const { return e[i][j]; }
 
-  /// @brief Matrix-vector application @f$(M|v\rangle)_i = \bigoplus_j M_{ij}
-  ///        \otimes v_j@f$ over @c S's semiring ops (never native @c +/@c *,
-  ///        which the tropical carriers skew).  The @c IsArrow call operator:
-  ///        @c Ket → @c Ket.
+  /**
+   * @brief Matrix-vector application @f$(M|v\rangle)_i = \bigoplus_j M_{ij}
+   *        \otimes v_j@f$ over @c S's semiring ops (never native @c +/@c *,
+   *        which the tropical carriers skew).  The @c IsArrow call operator:
+   *        @c Ket → @c Ket.
+   */
   constexpr Ket<S, N> operator()(const Ket<S, N>& v) const {
     using Add = typename dedekind::algebra::semiring_ops<S>::add;
     using Mult = typename dedekind::algebra::semiring_ops<S>::mult;
@@ -236,30 +241,31 @@ struct MatNxNV {
     return MatTimes<S, N>{}(a, b);
   }
 
-  /// @brief Transpose @f$M^{\top}@f$ — reflect across the main diagonal.
-  ///
-  /// @details @b The @b dagger @b of @b this @b arrow, one operation across the
-  /// three surfaces (see @c dedekind::category::IsDagger and
-  /// @c dedekind::relational::converse):
-  ///   @li on a @b relation (over @c 𝔹) it is the @b converse @f$R^{\circ}@f$
-  ///       (@c relational::converse / @c SwapPred):
-  ///       @f$(M^{\top})_{ij}=M_{ji}@f$
-  ///       @b is @f$R^{\circ}(j,i)=R(i,j)@f$ --- transpose of the Boolean
-  ///       matrix
-  ///       @b is the swap of the relation's coordinates;
-  ///   @li on a @b real space it is the transpose @f$M^{\top}@f$ (here);
-  ///   @li on a complex/Hilbert space the @b adjoint @f$M^{*}@f$
-  ///       (conjugate-transpose).
-  /// It reverses every arrow (contravariant:
-  /// @f$(AB)^{\top}=B^{\top}A^{\top}@f$), exactly as @c converse does
-  /// (@f$(R;S)^{\circ}=S^{\circ};R^{\circ}@f$).  Now that @c Mat(S) is a
-  /// callable @c IsArrow, this transpose IS its @c † --- so
-  /// FIXME(#787): register @c inverse @c = @c transpose for the @b orthogonal /
-  /// @b unitary case (@f$M^{\top}=M^{-1}@f$), where "the converse is the
-  /// inverse" (bijective relation) and "the transpose is the inverse"
-  /// (orthogonal matrix) are @b one theorem.  @c :transfer's @c converse is
-  /// this dagger's intensional (rule-level) twin; this transpose is its
-  /// extensional (materialised) form.
+  /**
+   * @brief Transpose @f$M^{\top}@f$ --- reflect across the main diagonal.
+   *
+   * @details @b The @b dagger @b of @b this @b arrow, one operation across the
+   * three surfaces (see @c dedekind::category::IsDagger and
+   * @c dedekind::relational::converse):
+   *   @li on a @b relation (over @c 𝔹) it is the @b converse @f$R^{\circ}@f$
+   *       (@c relational::converse / @c SwapPred):
+   *       @f$(M^{\top})_{ij}=M_{ji}@f$ @b is @f$R^{\circ}(j,i)=R(i,j)@f$ ---
+   *       transpose of the Boolean matrix @b is the swap of the relation's
+   *       coordinates;
+   *   @li on a @b real space it is the transpose @f$M^{\top}@f$ (here);
+   *   @li on a complex/Hilbert space the @b adjoint @f$M^{*}@f$
+   *       (conjugate-transpose).
+   * It reverses every arrow (contravariant:
+   * @f$(AB)^{\top}=B^{\top}A^{\top}@f$), exactly as @c converse does
+   * (@f$(R;S)^{\circ}=S^{\circ};R^{\circ}@f$).  Now that @c Mat(S) is a
+   * callable @c IsArrow, this transpose IS its @c † --- so
+   * FIXME(#787): register @c inverse @c = @c transpose for the @b orthogonal /
+   * @b unitary case (@f$M^{\top}=M^{-1}@f$), where "the converse is the
+   * inverse" (bijective relation) and "the transpose is the inverse"
+   * (orthogonal matrix) are @b one theorem.  @c :transfer's @c converse is this
+   * dagger's intensional (rule-level) twin; this transpose is its extensional
+   * (materialised) form.
+   */
   constexpr MatNxNV transpose() const {
     MatNxNV t{};
     for (std::size_t i = 0; i < N; ++i)
