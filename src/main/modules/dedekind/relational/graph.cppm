@@ -125,18 +125,20 @@ using Graph = Set<std::pair<typename F::Domain, typename F::Codomain>,
  *       is kept out of the grammar surface.  Sibling of the doc-deprecated
  *       @c element scout.
  *
- * @note @b Planned redefinition (WIP, #824): re-express @c graph as sugar over
- *       the point-free arrow lift, @c graph(f) @c := @c 𝔸<X> @c * @c 𝔸<Y> @c |
- *       @c (𝑦 @c == @c ap(f, @c 𝑥)) --- a @c ProjApplyEq relpred, no
- *       @c GraphPredicate lambda.  Corrections from the #870 CP review: (1)
- *       @b forward membership @f$b=f(a)@f$ gates on @c equality_comparable<Y>
- *       (not monicity); (2) the @b pre-image capability gates on
- *       @c IsRetractableArrow / iso and @b consumes the retract/dagger witness
- *       (monicity alone gives injectivity, not a computable inverse); (3)
- *       reconcile with THIS @c GraphPredicate rather than duplicate it.  Lands
- *       in @c :relational once the projection+equality DSL (@c π, @c coord, the
- *       @c Proj* family, @c ap) relocates here from @c :order (it needs no
- * order theory).
+ * @note @b Related surfaces (#824).  The point-free arrow lift now exists as
+ *       @c ap(f, π_I) → @c ProjApplyEq (the @c 𝑦 @c == @c f(𝑥) relpred) in
+ *       @c :order, and image-membership decidability is read off the arrow's
+ *       certificate in @c :category:image (@c ImageChi specialised for
+ *       @c IsRetractableArrow → @c ClassicalLogic / decidable, else the default
+ *       @c Ternary::Unknown).  Redefining @c graph @b itself as sugar over
+ *       @c ap (@c graph(f) @c := @c 𝔸<X>*𝔸<Y> @c | @c (𝑦==ap(f,𝑥))) is
+ *       @b parked: the lift plus the decidability seam capture the value
+ *       without the DSL relocation.  The group-derived mileage --- @c IsGroup
+ *       ⟹ translations retractable ⟹ free decidable image --- is #875.
+ *       Corrections retained from the #870 CP review: forward membership
+ *       @f$b=f(a)@f$ gates on @c equality_comparable (not monicity); the
+ *       pre-image capability gates on @c IsRetractableArrow / iso (monicity
+ *       gives a single-valued pre-image, the retract a @b computable one).
  */
 export template <typename F>
   requires dedekind::category::IsArrow<F> &&
