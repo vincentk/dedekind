@@ -289,11 +289,19 @@ struct ImageChi {
  * (the retract hook is opt-in; see @c IsRetractableArrow).
  */
 export template <typename F>
-  requires IsRetractableArrow<F>
+  requires IsRetractableArrow<F> &&
+           requires(const std::remove_cvref_t<F>& cf, const Cod<F>& y) {
+             retract(cf)(y);
+           }
 struct ImageChi<F> {
   F f;
   using Domain = Cod<F>;
   using Codomain = bool;
+  // @c f is a @c const member here, so the retract must be @b const-invocable
+  // (the extra requirement above; @c IsRetractableArrow alone probes a mutable
+  // @c f, cf. the #823 @c IsArrow const-invocability fix).  A mutable-only
+  // retract therefore falls back to the primary @c Ternary::Unknown classifier
+  // --- honest: it cannot be decided in a const membership test.
   constexpr bool operator()(const Cod<F>& y) const {
     return retract(f)(y).has_value();
   }
@@ -368,6 +376,18 @@ static_assert(
     std::same_as<typename decltype(image_of(Identity<int>{}))::logic_species,
                  TernaryLogic>,
     "general arrow → UNDECIDABLE image (TernaryLogic, Unknown-capable).");
+
+// Exercise the retractable classifier's operator() (not just its logic
+// species): the toy embed bool↪int has image {0,1}, so 0 ∈ im (retract fires)
+// and 2 ∉ im (retract is nullopt).
+static_assert(
+    ImageChi<image_decidability_witness::ToyEmbed>{
+        image_decidability_witness::ToyEmbed{}}(0),
+    "0 ∈ image(ToyEmbed): the retractable classifier fires.");
+static_assert(
+    !ImageChi<image_decidability_witness::ToyEmbed>{
+        image_decidability_witness::ToyEmbed{}}(2),
+    "2 ∉ image(ToyEmbed): the retract is nullopt off the image.");
 
 // ===========================================================================
 // First Isomorphism Theorem — reusable typed surface (#718 Slice 4).

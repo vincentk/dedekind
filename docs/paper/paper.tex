@@ -977,6 +977,7 @@ Listing~\ref{lst:relation-grammar} gives the grammar of relation expressions, bu
 Operators are grouped by tradition and attached to their \emph{result sort}, keeping the grammar compositional.
 \textbf{Tarski's calculus} ($\texttt{relexpr}\to\texttt{relexpr}$): converse $R^{\circ}$, relative product $R\mathbin{;}S$ (\cppinline{>>}, Boolean middle), the coreflexive/diagonal $\Delta_S$ (\cppinline{diag}), and the \cppinline{reflexive}/\cppinline{symmetric} closures; a relation is also a restricted product \cppinline{S * T | relpred}.
 \textbf{\texttt{relpred}}, the pair-predicate sub-grammar, compares projections $\pi_1,\pi_2$ (with affine \cppinline{fix(k)} offsets) and inherits \cppinline{!}, \cppinline{&&}, \cppinline{||}, \cppinline{cmp} from \texttt{pred}.
+It also lifts an arrow into the surface: \cppinline{𝑦 == ap(f, 𝑥)} is the point-free $y=f(x)$, so a function's graph is spelled without leaving the calculus; forward membership needs only a decidable-equality codomain, while a \emph{retractable}/iso \cppinline{f} additionally makes the image decidable (its factorisation class becomes the relation's decidability class).
 \textbf{Codd's algebra}: selection $\sigma$ (\cppinline{select}$\to\texttt{relexpr}$) and natural join $\bowtie$ (\cppinline{join}$\to$ an $n$-ary \emph{table}).
 \textbf{Function algebra} ($\to\texttt{setexpr}$): image $f[S]$, pre-image $f^{-1}(S)$, and the point fibre $f^{-1}(y)$.
 \textbf{Spellings}: operators also accept a textbook alias where a valid identifier exists --- \cppinline{Δ}/\cppinline{diag}, \cppinline{σ}/\cppinline{select} (letter-glyphs, as \cppinline{π}/\cppinline{η} already are); converse has none (\cppinline{†} is not an identifier), so \cppinline{conv}/\cppinline{dagger}.
@@ -1003,6 +1004,7 @@ relexpr ::= setexpr
 relpred +::= ratom
 ratom    ::= proj cmp proj
            | proj cmp 'fix' '(' const ')'
+           | proj '==' 'ap' '(' arrow ',' proj ')'
 proj     ::= 'π1' | 'π2' | 'π3'
            | '𝑥' | '𝑦' | '𝑧'
            | proj arith 'fix' '(' const ')'
