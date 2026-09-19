@@ -1241,6 +1241,15 @@ static_assert(((𝔹 | (π == fix(true_c))) & ~(𝔹 | (π == fix(true_c)))) == 
  */
 export inline constexpr Projection<1> π1{};
 export inline constexpr Projection<2> π2{};
+export inline constexpr Projection<3> π3{};
+
+// Blackboard coordinate aliases so a pair/triple predicate reads as
+// @f$z = f(x,y)@f$: the mathematical-italic @c 𝑥/𝑦/𝑧 (U+1D465..7) are
+// letter-category identifiers (like @c 𝔸/ℕ), NOT ASCII @c x/y/z, so they carry
+// the blackboard look without colliding with ordinary variable names.
+export inline constexpr Projection<1> 𝑥{};
+export inline constexpr Projection<2> 𝑦{};
+export inline constexpr Projection<3> 𝑧{};
 
 /** @brief The @c I-th component of a pair (1 = @c first, 2 = @c second).
  *  Binary products only, so an out-of-range slot (the unary @c π, or @c π3) is

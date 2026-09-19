@@ -245,4 +245,14 @@ static_assert(
 // @c limit(Path<T>) ), so naming relational σ-specialisations
 // identically would create overload ambiguity for no algebraic gain.
 
+// ── Codd textbook aliases (Listing 6 spellings) ─────────────────────────────
+// @c σ is Codd's selection; @c join is the terse @c natural_join.  Thin
+// forwarders, so a query may read in the database vernacular.
+export constexpr auto σ(auto&&... a) {
+  return select(std::forward<decltype(a)>(a)...);
+}
+export constexpr auto join(auto&&... a) {
+  return natural_join(std::forward<decltype(a)>(a)...);
+}
+
 }  // namespace dedekind::relational

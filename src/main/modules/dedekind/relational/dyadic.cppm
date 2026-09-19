@@ -365,6 +365,25 @@ constexpr auto symmetric(const Set<std::pair<A, A>, L, P>& r) {
   return r | converse(r);
 }
 
+// ── Textbook aliases (Listing 6 spellings) ──────────────────────────────────
+// Thin forwarders so callers may spell the Tarski operators by their shorthand
+// or (where a valid identifier glyph exists) their blackboard symbol.  converse
+// has no glyph (@c † is not an identifier), so it takes @c conv / @c dagger;
+// @c diag also answers to @c Δ.
+export constexpr auto conv(auto&& r) {
+  return converse(std::forward<decltype(r)>(r));
+}
+export constexpr auto dagger(auto&& r) {
+  return converse(std::forward<decltype(r)>(r));
+}
+export constexpr auto refl(auto&& r) {
+  return reflexive(std::forward<decltype(r)>(r));
+}
+export constexpr auto sym(auto&& r) {
+  return symmetric(std::forward<decltype(r)>(r));
+}
+export constexpr auto Δ(auto&& s) { return diag(std::forward<decltype(s)>(s)); }
+
 // ── Self-contained base witnesses (no order DSL) ────────────────────────────
 // The rich witnesses (≤∘≤=≤ transitivity, reflexive(<), symmetric(<)) live in
 // order/halfspace, which owns the π1/π2 projection DSL and now consumes these

@@ -980,7 +980,7 @@ Operators are grouped by tradition and attached to their \emph{result sort}, kee
 \textbf{Codd's algebra}: selection $\sigma$ (\cppinline{select}$\to\texttt{relexpr}$) and natural join $\bowtie$ (\cppinline{join}$\to$ an $n$-ary \emph{table}).
 \textbf{Function algebra} ($\to\texttt{setexpr}$): image $f[S]$, pre-image $f^{-1}(S)$, and the point fibre $f^{-1}(y)$.
 \textbf{Spellings}: operators also accept a textbook alias where a valid identifier exists --- \cppinline{Δ}/\cppinline{diag}, \cppinline{σ}/\cppinline{select} (letter-glyphs, as \cppinline{π}/\cppinline{η} already are); converse has none (\cppinline{†} is not an identifier), so \cppinline{conv}/\cppinline{dagger}.
-The projections also take the coordinate aliases \cppinline{x}/\cppinline{y}/\cppinline{z} for \cppinline{π1}/\cppinline{π2}/\cppinline{π3}.
+The projections also take the blackboard coordinate aliases \cppinline{𝑥}/\cppinline{𝑦}/\cppinline{𝑧} (mathematical-italic, so a valid identifier yet not ASCII \cppinline{x}/\cppinline{y}/\cppinline{z}) for \cppinline{π1}/\cppinline{π2}/\cppinline{π3}, so a triple predicate reads as $z = f(x,y)$.
 \textbf{\texttt{query}} adds the closed properties \cppinline{IsFunctional}/\cppinline{IsEntire}; their semantics are Table~\ref{tab:relation-quantifier} and Listing~\ref{lst:relation_spec}.
 The reflexive-transitive closure $R^{*}$ is not point-free here (\S\ref{sec:optimization_lp}); the functional-graph lift is deliberately kept out of the grammar, as it forces image and pre-image to be \emph{inferred}.}
 \label{lst:relation-grammar}
@@ -1004,7 +1004,7 @@ relpred +::= ratom
 ratom    ::= proj cmp proj
            | proj cmp 'fix' '(' const ')'
 proj     ::= 'π1' | 'π2' | 'π3'
-           | 'x' | 'y' | 'z'
+           | '𝑥' | '𝑦' | '𝑧'
            | proj arith 'fix' '(' const ')'
 arith    ::= '+' | '*' | '%'
 \end{minted}
