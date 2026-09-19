@@ -606,7 +606,8 @@ namespace dedekind::numbers {
 
 using dedekind::order::fix;
 using dedekind::order::true_c;
-using dedekind::order::π;
+using dedekind::sets::π;  // projection scout, moved to :sets:expressions
+                          // (#878)
 using dedekind::order::operator""_c;
 
 // 𝔹 = 𝔸<bool>, a finite carrier: the point-free membership fragment
