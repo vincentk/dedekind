@@ -134,8 +134,9 @@ using Graph = Set<std::pair<typename F::Domain, typename F::Codomain>,
  *       @c IsRetractableArrow / iso and @b consumes the retract/dagger witness
  *       (monicity alone gives injectivity, not a computable inverse); (3)
  *       reconcile with THIS @c GraphPredicate rather than duplicate it.  Lands
- *       in @c :relational once the projection+equality DSL (@c π/coord/Proj*/@c
- *       ap) relocates here from @c :order (it needs no order theory).
+ *       in @c :relational once the projection+equality DSL (@c π, @c coord, the
+ *       @c Proj* family, @c ap) relocates here from @c :order (it needs no
+ * order theory).
  */
 export template <typename F>
   requires dedekind::category::IsArrow<F> &&
