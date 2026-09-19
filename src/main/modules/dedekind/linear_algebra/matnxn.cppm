@@ -128,6 +128,45 @@ export template <typename S, std::size_t N>
 using Bra = SemimoduleVec<S, N, RowOrientation>;
 
 /**
+ * @brief The @b dagger of a 1-tensor: transpose flips the orientation
+ *        (@c Ket ↔ @c Bra), keeping the components --- so
+ *        @f$\mathrm{dagger}(|v\rangle)=\langle v|@f$ and
+ *        @f$\mathrm{dagger}(\langle w|)=|w\rangle@f$
+ *        (@f$(n\times1)^{\top}=1\times n@f$).
+ *
+ * @details The vector face of the one dagger documented on
+ * @c MatNxNV::transpose (see @c dedekind::category::IsDagger).  It aligns with
+ * the matrix transpose: @f$(M|v\rangle)^{\top}=\langle v|M^{\top}@f$ --- the
+ * dagger reverses every arrow, turning the operator @c Mat and its @c Ket into
+ * a @c Bra and the transposed operator.  Over a general semiring there is no
+ * conjugation, so this transpose @b is the dagger (real / Boolean / tropical);
+ * over @c ℂ the true adjoint additionally conjugates the components
+ * (FIXME(#787): a @c conj-aware overload).  Involutive:
+ * @c transpose(transpose(v)) @c == @c v.
+ */
+export template <typename S, std::size_t N, typename O>
+constexpr SemimoduleVec<S, N, dual_orientation_t<O>> transpose(
+    const SemimoduleVec<S, N, O>& v) {
+  return SemimoduleVec<S, N, dual_orientation_t<O>>{v.c};
+}
+
+/**
+ * @brief @c dagger --- the cross-surface alias for the vector @c transpose.
+ *
+ * @details One operation, three vocabularies: @b transpose (linear algebra,
+ * the native name), @b converse (@c relational, @f$R^{\circ}@f$), @b dagger
+ * (@c category::IsDagger, the @f$\dagger@f$-category adjoint).  Provided so the
+ * bra-ket surface reads in the involution vocabulary too: @c dagger(|v⟩)=⟨v|.
+ * Over a general semiring the dagger @b is the transpose (no conjugation);
+ * over @c ℂ the adjoint conjugates the components (FIXME(#787)).
+ */
+export template <typename S, std::size_t N, typename O>
+constexpr SemimoduleVec<S, N, dual_orientation_t<O>> dagger(
+    const SemimoduleVec<S, N, O>& v) {
+  return transpose(v);
+}
+
+/**
  * @brief @c Mat(S): the N×N matrix over a semiring @c S.  Entries are stored
  *        row-major; @c ⊕ / @c ⊗ are @c S's semiring operations, read off
  *        @c dedekind::algebra::semiring_ops<S> (never native @c
@@ -325,6 +364,20 @@ concept IsLinearOperator =
 /// @brief @c Mat(S) is the linear operator @f$|v\rangle \mapsto M|v\rangle@f$.
 export template <typename S, std::size_t N>
 inline constexpr bool is_linear_operator_v<MatNxNV<S, N>> = true;
+
+/**
+ * @brief @c dagger of a matrix --- the cross-surface alias for @c transpose
+ *        (@c category::IsDagger vocabulary): @c dagger(M) @c = @c Mᵀ.
+ *
+ * @details Consistency across the surfaces (see @c MatNxNV::transpose): one
+ * operation named @b transpose in linear algebra, @b converse in @c relational,
+ * @b dagger in @c category.  Over a semiring the dagger @b is the transpose (no
+ * conjugation); over @c ℂ the adjoint conjugates (FIXME(#787)).
+ */
+export template <typename S, std::size_t N>
+constexpr MatNxNV<S, N> dagger(const MatNxNV<S, N>& m) {
+  return m.transpose();
+}
 
 /** @brief The zero matrix — every entry the base @c ⊕-identity (0̄). */
 export template <typename S, std::size_t N>
@@ -548,5 +601,21 @@ static_assert(IsLinearOperator<MatNxNV<MPll, 3>>,
 // helper lands.
 static_assert(identity_matrix<MPll, 3>()(Ket<MPll, 3>{}) == Ket<MPll, 3>{},
               "I|v⟩ = |v⟩ for the semiring identity matrix.");
+
+// ── The bra-ket dagger: transpose flips Ket ↔ Bra (aligns with Mat transpose)
+// ─
+static_assert(std::same_as<decltype(transpose(Ket<MPll, 3>{})), Bra<MPll, 3>>,
+              "dagger(|v⟩) = ⟨v|: the transpose of a Ket is a Bra.");
+static_assert(std::same_as<decltype(transpose(Bra<MPll, 3>{})), Ket<MPll, 3>>,
+              "dagger(⟨w|) = |w⟩: and of a Bra is a Ket.");
+static_assert(transpose(Ket<MPll, 3>{}) == Bra<MPll, 3>{},
+              "the dagger keeps the components (Ket ↦ Bra, same entries).");
+static_assert(transpose(transpose(Ket<MPll, 3>{})) == Ket<MPll, 3>{},
+              "the dagger is an involution: v†† = v.");
+// The dagger alias (category/Rel vocabulary) agrees with transpose (LA name).
+static_assert(dagger(Ket<MPll, 3>{}) == Bra<MPll, 3>{},
+              "dagger(|v⟩) = ⟨v| via the dagger alias (== transpose).");
+static_assert(dagger(identity_matrix<MPll, 3>()) == identity_matrix<MPll, 3>(),
+              "dagger(M) = Mᵀ via the matrix dagger alias (dagger(I) = I).");
 
 }  // namespace dedekind::linear_algebra
