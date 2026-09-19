@@ -123,7 +123,19 @@ using SetFunction = Relation<T1, T2, L, P>;
  * chain @c IsLinearOperator ⟹ @c IsFunction ⟹ @c IsRelation ⟹ @c IsArrow is a
  * @b conceptual reading, reified where needed through the @b graph adapter (a
  * function's @c graph IS the @c IsRelation / @c IsFunction), @b not by direct
- * concept subsumption.
+ * concept subsumption.  Deliberately so: @c IsRelation stays lightweight, and
+ * over-constraining it (e.g.\ to @c IsArrow @c && @c IsSet @c && @c
+ * IsEqualizer) would exclude valid relations and force the
+ * classifier/parallel-pair arrow machinery on every use.
+ *
+ * The @b equalizer reading extends the same conceptual chain: a relation @c S
+ * is a subobject of @c T1×T2, hence the equalizer of its classifier and @c ⊤
+ * (@f$\{x \mid \chi_S(x) = \top\}@f$); a @b functional graph @f$\Gamma_f@f$ is
+ * moreover the equalizer of the parallel pair @f$(f\circ\pi_A, \pi_B)@f$.  Like
+ * the arrow chain, this is reified through the @b graph adapter
+ * (@c category::IsEqualizer witnessed on @c graph(f) and on the affine
+ * translation graph, @c algebra:halfspace_transport, #876), not baked into the
+ * concept.
  */
 export template <typename S, typename T1, typename T2>
 concept IsRelation = requires { typename S::Domain; } &&
