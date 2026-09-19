@@ -100,8 +100,7 @@
 module;
 
 #include <concepts>
-#include <functional>  // std::plus --- the additive-group operation (#875 spike)
-#include <optional>    // std::optional --- the retract's partial-inverse shape
+#include <optional>     // std::optional --- the retract's partial-inverse shape
 #include <type_traits>  // std::remove_cvref_t
 #include <utility>      // std::forward
 
@@ -118,7 +117,6 @@ import :cartesian;  // For CanonicalSetCCC — Set witness site (#718 Slice 2).
 import :logic;      // For Ternary — default codomain of image_of's
                     // predicate (Honest Rejection until concrete
                     // specialisation, see image_of below).
-import :total;      // For IsGroup — the group-translation retract spike (#875).
 
 namespace dedekind::category {
 
@@ -391,60 +389,11 @@ static_assert(
         image_decidability_witness::ToyEmbed{}}(2),
     "2 ∉ image(ToyEmbed): the retract is nullopt off the image.");
 
-// ── #875 SPIKE: IsGroup ⟹ translation retractable ⟹ decidable image ─────────
-// A group translation x ↦ x·g is a bijection; its retract is the INVERSE
-// translation x ↦ x·g⁻¹, computed from the GROUP INVERSE.  So it is
-// IsRetractableArrow purely by virtue of IsGroup --- no per-arrow retract
-// registration --- and its image is decidable via the seam above.  Spike:
-// additive translation over an abelian group (ℤ/2ʷ = unsigned, a witnessed
-// IsAbelianGroup).  The mileage: `a + b = c` becomes decidable image FROM
-// IsGroup alone, carrier-generic.
-namespace group_translation_spike {
-template <auto K>
-struct AddTranslate {
-  using T = decltype(K);
-  using Domain = T;
-  using Codomain = T;
-  constexpr T operator()(T x) const { return static_cast<T>(x + K); }
-};
-template <auto K>
-struct AddTranslateRetract {
-  using T = decltype(K);
-  // The inverse translation x ↦ x − K = x + (−K): the group inverse of the
-  // shift.  A translation is a bijection, so the retract is total (always
-  // Some).
-  constexpr std::optional<T> operator()(const T& y) const {
-    return std::optional<T>{static_cast<T>(y - K)};
-  }
-};
-// The retract exists BECAUSE the carrier is a group under + (the inverse
-// translation IS the group inverse of the shift).
-template <auto K>
-  requires IsGroup<decltype(K), std::plus<decltype(K)>>
-constexpr AddTranslateRetract<K> retract(AddTranslate<K>) {
-  return {};
-}
-}  // namespace group_translation_spike
-
-// Monic by the same group fact (a translation is injective).
-template <auto K>
-  requires IsGroup<decltype(K), std::plus<decltype(K)>>
-inline constexpr bool
-    is_monic_arrow_v<group_translation_spike::AddTranslate<K>> = true;
-
-// The payoff, read off at compile time: a group translation is retractable, so
-// its image is DECIDABLE (ClassicalLogic) via the seam — from IsGroup alone.
-static_assert(
-    IsRetractableArrow<group_translation_spike::AddTranslate<3u>>,
-    "a group translation is retractable: retract = the inverse translation "
-    "(the group inverse of the shift), by IsGroup.");
-static_assert(
-    std::same_as<
-        typename decltype(image_of(
-            group_translation_spike::AddTranslate<3u>{}))::logic_species,
-        ClassicalLogic>,
-    "IsGroup ⟹ translation retractable ⟹ DECIDABLE image (#875), "
-    "carrier-generic — no per-arrow plumbing.");
+// #875/#876: the group-translation retractable-arrow productionisation moved to
+// @c :algebra:halfspace_transport (a group translation @c x↦x+K is retractable
+// by @c IsGroup alone, so its image is decidable via the seam above).  The seam
+// stays carrier-generic here; the group specifics live where the additive-group
+// gate is in scope, keeping @c :image free of group machinery.
 
 // ===========================================================================
 // First Isomorphism Theorem — reusable typed surface (#718 Slice 4).
