@@ -977,12 +977,14 @@ Listing~\ref{lst:relation-grammar} gives the grammar of relation expressions, bu
 Operators are grouped by tradition and attached to their \emph{result sort}, keeping the grammar compositional.
 \textbf{Tarski's calculus} ($\texttt{relexpr}\to\texttt{relexpr}$): converse $R^{\circ}$, relative product $R\mathbin{;}S$ (\cppinline{>>}, Boolean middle), the coreflexive/diagonal $\Delta_S$ (\cppinline{diag}), and the \cppinline{reflexive}/\cppinline{symmetric} closures; a relation is also a restricted product \cppinline{S * T | relpred}.
 \textbf{\texttt{relpred}}, the pair-predicate sub-grammar, compares projections $\pi_1,\pi_2$ (with affine \cppinline{fix(k)} offsets) and inherits \cppinline{!}, \cppinline{&&}, \cppinline{||}, \cppinline{cmp} from \texttt{pred}.
+It also lifts an arrow's \emph{value} into a \texttt{relpred} atom: \cppinline{𝑦 == ap(f, 𝑥)} is the point-free $y=f(x)$; forward membership needs only a decidable-equality codomain, while a \emph{retractable} \cppinline{f} (one carrying a \cppinline{retract} hook) additionally makes the image decidable (its factorisation class becomes the relation's decidability class); a bare isomorphism qualifies only once it exposes that retract.
+This value-lift is distinct from the whole-arrow \cppinline{graph} lift below.
 \textbf{Codd's algebra}: selection $\sigma$ (\cppinline{select}$\to\texttt{relexpr}$) and natural join $\bowtie$ (\cppinline{join}$\to$ an $n$-ary \emph{table}).
 \textbf{Function algebra} ($\to\texttt{setexpr}$): image $f[S]$, pre-image $f^{-1}(S)$, and the point fibre $f^{-1}(y)$.
 \textbf{Spellings}: operators also accept a textbook alias where a valid identifier exists --- \cppinline{Δ}/\cppinline{diag}, \cppinline{σ}/\cppinline{select} (letter-glyphs, as \cppinline{π}/\cppinline{η} already are); converse has none (\cppinline{†} is not an identifier), so \cppinline{conv}/\cppinline{dagger}.
 The projections also take the blackboard coordinate aliases \cppinline{𝑥}/\cppinline{𝑦}/\cppinline{𝑧} (mathematical-italic, so a valid identifier yet not ASCII \cppinline{x}/\cppinline{y}/\cppinline{z}) for \cppinline{π1}/\cppinline{π2}/\cppinline{π3}, so a triple predicate reads as $z = f(x,y)$.
 \textbf{\texttt{query}} adds the closed properties \cppinline{IsFunctional}/\cppinline{IsEntire}; their semantics are Table~\ref{tab:relation-quantifier} and Listing~\ref{lst:relation_spec}.
-The reflexive-transitive closure $R^{*}$ is not point-free here (\S\ref{sec:optimization_lp}); the functional-graph lift is deliberately kept out of the grammar, as it forces image and pre-image to be \emph{inferred}.}
+The reflexive-transitive closure $R^{*}$ is not point-free here (\S\ref{sec:optimization_lp}); the whole-arrow \cppinline{graph} lift (arrow $\to$ \cppinline{Set<pair>}) is deliberately kept out of the grammar, as it forces image and pre-image to be \emph{inferred} --- unlike the point-free value-lift \cppinline{ap} above, which stays in.}
 \label{lst:relation-grammar}
 \noindent
 \begin{minipage}[t]{0.49\linewidth}
@@ -1003,6 +1005,8 @@ relexpr ::= setexpr
 relpred +::= ratom
 ratom    ::= proj cmp proj
            | proj cmp 'fix' '(' const ')'
+           | proj '==' 'ap' '(' arrow ',' proj ')'
+           | 'ap' '(' arrow ',' proj ')' '==' proj
 proj     ::= 'π1' | 'π2' | 'π3'
            | '𝑥' | '𝑦' | '𝑧'
            | proj arith 'fix' '(' const ')'

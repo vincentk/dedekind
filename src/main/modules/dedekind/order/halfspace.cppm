@@ -1101,10 +1101,22 @@ constexpr auto structured_and(OrderInterval<T, Lo1, Hi1, SL1, SU1, L>,
  * and pivot) as an @c UnboundHalfspace / @c UnboundSingleton; a later
  * @c carrier @c | @c ... instantiates it at the carrier's @c Domain, reusing
  * @c Halfspace / @c Singleton.  @c π is the unary projection; the product
- * coordinates @c π1 / @c π2 follow with the relational surface (#783), reusing
- * @c :cartesian projections where they fit.
+ * coordinates @c π1 / @c π2 follow with the relational surface (#783).
+ *
+ * @note These product coordinates @b are the canonical product projections of
+ * @c dedekind::category (@c :limit): @c π1 / @c π2 select the same components
+ * as
+ * @c category::π_1 / @c category::π_2, and @c coord below @b delegates to them,
+ * so a @c Projection satisfies @c category::IsProductProjection.  Two spellings
+ * of one notion.  The symbolic-tag surface (comparisons build @c ProjRel /
+ * @c ProjBound predicates) lives in @c :halfspace for historical reasons ---
+ * it grew up with the comprehension DSL --- rather than beside
+ * @c IsProductProjection in @c :limit; unifying the two surfaces is a
+ * @b non-urgent follow-up (#878).  Left as pointers for now.
+ * @see dedekind::category::π_1, dedekind::category::π_2
+ * @see dedekind::category::IsProductProjection
  */
-export template <std::size_t Slot>
+export template <IsRingIntegral auto Slot>
 struct Projection {};
 
 export inline constexpr Projection<0> π{};
@@ -1255,15 +1267,40 @@ export inline constexpr Projection<3> 𝑧{};
 
 /** @brief The @c I-th component of a pair (1 = @c first, 2 = @c second).
  *  Binary products only, so an out-of-range slot (the unary @c π, or @c π3) is
- *  a hard error rather than a silent alias for @c .second. */
-template <std::size_t I, typename P>
+ *  a hard error rather than a silent alias for @c .second.
+ *  @note The index @b type is a call-site free variable (@c IsRingIntegral);
+ *  the @c requires guard pins the @b value domain to @c {1,2} (binary
+ *  products), independent of that type.  Extending @c coord to higher arities
+ *  (@c π3 / @c 𝑧 already exist as tags) is the arity-aware follow-up (#824). */
+template <IsRingIntegral auto I, typename P>
   requires(I == 1 || I == 2)
 constexpr decltype(auto) coord(const P& p) {
+  // Reuse @c :limit's canonical product projections rather than re-deriving
+  // @c .first / @c .second here: halfspace's @c coord and @c category::π_1 /
+  // @c π_2 are the @b same projection (@c IsProductProjection).  Letting the
+  // two surfaces share one accessor stops halfspace shadowing @c :limit.
   if constexpr (I == 1)
-    return (p.first);
+    return dedekind::category::π_1(p);
   else
-    return (p.second);
+    return dedekind::category::π_2(p);
 }
+
+// The two wheels know each other: @c :limit's @c π_1 / @c π_2 are exactly the
+// @c coord accessors above, and they are certified @c IsProductProjection there
+// (@c limit.cppm).  Pin the agreement so the surfaces cannot silently diverge.
+static_assert(
+    dedekind::category::IsProductProjection<
+        decltype([](const std::pair<int, bool>& p) {
+          return dedekind::category::π_1(p);
+        }),
+        std::pair<int, bool>, int>,
+    "coord<1> = category::π_1 is a certified product projection (left).");
+static_assert(coord<1>(std::pair{7, false}) ==
+                      dedekind::category::π_1(std::pair{7, false}) &&
+                  coord<2>(std::pair{7, false}) ==
+                      dedekind::category::π_2(std::pair{7, false}),
+              "halfspace coord IS category::π_1 / π_2 (one projection, two "
+              "call sites).");
 
 /** @brief Comparison flavour for the relational predicates. */
 export enum class Rel { Lt, Le, Gt, Ge, Eq, Ne };
@@ -1315,7 +1352,7 @@ concept IsRelPredicate = requires { typename T::is_rel_predicate; };
 
 /** @brief @f$\pi_I \bowtie \pi_J@f$ --- a strongly-typed predicate on a pair.
  */
-export template <std::size_t I, Rel R, std::size_t J>
+export template <IsRingIntegral auto I, Rel R, IsRingIntegral auto J>
 struct ProjProj {
   using is_rel_predicate = void;
   template <typename P>
@@ -1326,7 +1363,7 @@ struct ProjProj {
 
 /** @brief @f$\pi_I \bowtie \mathrm{fix}(V)@f$ --- a strongly-typed pair
  *  predicate. */
-export template <std::size_t I, Rel R, auto V>
+export template <IsRingIntegral auto I, Rel R, auto V>
 struct ProjBound {
   using is_rel_predicate = void;
   template <typename P>
@@ -1343,27 +1380,27 @@ struct ProjBound {
 // join stays the set-grammar | / OrPredicate (:sets, #365).
 
 // π_I ⋈ π_J  →  ProjProj (projection-vs-projection).
-export template <std::size_t I, std::size_t J>
+export template <IsRingIntegral auto I, IsRingIntegral auto J>
 constexpr ProjProj<I, Rel::Lt, J> operator<(Projection<I>, Projection<J>) {
   return {};
 }
-export template <std::size_t I, std::size_t J>
+export template <IsRingIntegral auto I, IsRingIntegral auto J>
 constexpr ProjProj<I, Rel::Le, J> operator<=(Projection<I>, Projection<J>) {
   return {};
 }
-export template <std::size_t I, std::size_t J>
+export template <IsRingIntegral auto I, IsRingIntegral auto J>
 constexpr ProjProj<I, Rel::Gt, J> operator>(Projection<I>, Projection<J>) {
   return {};
 }
-export template <std::size_t I, std::size_t J>
+export template <IsRingIntegral auto I, IsRingIntegral auto J>
 constexpr ProjProj<I, Rel::Ge, J> operator>=(Projection<I>, Projection<J>) {
   return {};
 }
-export template <std::size_t I, std::size_t J>
+export template <IsRingIntegral auto I, IsRingIntegral auto J>
 constexpr ProjProj<I, Rel::Eq, J> operator==(Projection<I>, Projection<J>) {
   return {};
 }
-export template <std::size_t I, std::size_t J>
+export template <IsRingIntegral auto I, IsRingIntegral auto J>
 constexpr ProjProj<I, Rel::Ne, J> operator!=(Projection<I>, Projection<J>) {
   return {};
 }
@@ -1371,42 +1408,42 @@ constexpr ProjProj<I, Rel::Ne, J> operator!=(Projection<I>, Projection<J>) {
 // !pred on the relational predicates: negate the comparison flavour (the
 // De Morgan dual), the unbound-predicate analogue of set complement.  See the
 // UnboundHalfspace overload above and FIXME(#829).
-export template <std::size_t I, Rel R, std::size_t J>
+export template <IsRingIntegral auto I, Rel R, IsRingIntegral auto J>
 constexpr ProjProj<I, negate(R), J> operator!(const ProjProj<I, R, J>&) {
   return {};
 }
-export template <std::size_t I, Rel R, auto V>
+export template <IsRingIntegral auto I, Rel R, auto V>
 constexpr ProjBound<I, negate(R), V> operator!(const ProjBound<I, R, V>&) {
   return {};
 }
 
 // π_I ⋈ fix(V), I >= 1  →  ProjBound (I == 0 is the unary π of §M1 above).
-export template <std::size_t I, auto V>
+export template <IsRingIntegral auto I, auto V>
   requires(I >= 1)
 constexpr ProjBound<I, Rel::Lt, V> operator<(Projection<I>, Bound<V>) {
   return {};
 }
-export template <std::size_t I, auto V>
+export template <IsRingIntegral auto I, auto V>
   requires(I >= 1)
 constexpr ProjBound<I, Rel::Le, V> operator<=(Projection<I>, Bound<V>) {
   return {};
 }
-export template <std::size_t I, auto V>
+export template <IsRingIntegral auto I, auto V>
   requires(I >= 1)
 constexpr ProjBound<I, Rel::Gt, V> operator>(Projection<I>, Bound<V>) {
   return {};
 }
-export template <std::size_t I, auto V>
+export template <IsRingIntegral auto I, auto V>
   requires(I >= 1)
 constexpr ProjBound<I, Rel::Ge, V> operator>=(Projection<I>, Bound<V>) {
   return {};
 }
-export template <std::size_t I, auto V>
+export template <IsRingIntegral auto I, auto V>
   requires(I >= 1)
 constexpr ProjBound<I, Rel::Eq, V> operator==(Projection<I>, Bound<V>) {
   return {};
 }
-export template <std::size_t I, auto V>
+export template <IsRingIntegral auto I, auto V>
   requires(I >= 1)
 constexpr ProjBound<I, Rel::Ne, V> operator!=(Projection<I>, Bound<V>) {
   return {};
@@ -1529,7 +1566,7 @@ export constexpr Rel rel_of(Direction d, Strictness s) {
 
 /** @brief @f$\pi_I^{-1}@f$ of a halfspace factor: the cylinder
  *  @f$\pi_I \bowtie \mathrm{fix}(\text{pivot})@f$ on the product. */
-export template <std::size_t I, typename T, auto Pivot, Direction D,
+export template <IsRingIntegral auto I, typename T, auto Pivot, Direction D,
                  Strictness S, typename L>
 constexpr auto cylinder(const Halfspace<T, Pivot, D, S, L>&) {
   return ProjBound<I, rel_of(D, S), Pivot>{};
@@ -1596,16 +1633,22 @@ export constexpr bool is_order_rel(Rel r) {
 
 /** @brief Recover the axis-@c I factor from a relational predicate.  Default:
  *  no axis-@c I structure, so the declared universe @c 𝔸<TI>. */
-export template <std::size_t I, typename TI, typename L, typename P>
+export template <IsRingIntegral auto I, typename TI, typename L, typename P>
 constexpr auto axis_factor(const P&) {
   return 𝔸<TI, L>;  // preserve the relation's logic species
 }
 
 /** @brief A cylinder @c ProjBound on axis @c I: the halfspace it lifted from
- *  (only an order comparison is a halfspace; Eq/Ne fall to the default). */
-export template <std::size_t I, typename TI, typename L, Rel R, auto V>
-  requires(is_order_rel(R))
-constexpr auto axis_factor(const ProjBound<I, R, V>&) {
+ *  (only an order comparison is a halfspace; Eq/Ne fall to the default).
+ *  @note The predicate's own slot @c Slot is deduced separately and matched to
+ *  the requested axis @c I @b by value (@c Slot @c == @c I), @b not by NTTP
+ *  type-identity: a @c ProjBound built from an @c int @c 1 and a query for an
+ *  @c unsigned @c 1 name the same axis and must agree, rather than silently
+ *  falling through to the universal factor (review #871). */
+export template <IsRingIntegral auto I, typename TI, typename L,
+                 IsRingIntegral auto Slot, Rel R, auto V>
+  requires(is_order_rel(R) && Slot == I)
+constexpr auto axis_factor(const ProjBound<Slot, R, V>&) {
   return Halfspace<TI, V, dir_of(R), strict_of(R), L>{};
 }
 
@@ -1614,7 +1657,8 @@ constexpr auto axis_factor(const ProjBound<I, R, V>&) {
  *  (@c π1<=5 @c && @c π1<=3) meet to the tighter one rather than dropping
  * either.
  */
-export template <std::size_t I, typename TI, typename L, typename A, typename B>
+export template <IsRingIntegral auto I, typename TI, typename L, typename A,
+                 typename B>
 constexpr auto axis_factor(const dedekind::relational::RelAnd<A, B>& r) {
   auto fa = axis_factor<I, TI, L>(r.a);
   auto fb = axis_factor<I, TI, L>(r.b);
@@ -1646,7 +1690,7 @@ constexpr auto axis_factor(const dedekind::relational::RelAnd<A, B>& r) {
 /** @brief A restricted product bounding a graph: the factor lives on the
  *  product (cylinder) side; the graph @c rp couples the axes, so it is
  *  transparent to a single-axis projection. */
-export template <std::size_t I, typename TI, typename L, typename Pp,
+export template <IsRingIntegral auto I, typename TI, typename L, typename Pp,
                  typename RP>
 constexpr auto axis_factor(const ProductRestrict<Pp, RP>& r) {
   return axis_factor<I, TI, L>(r.product);
@@ -1709,16 +1753,16 @@ static_assert(is_relation(𝔹* 𝔹 | π1 < π2),
 // ── Projection arithmetic (for the divides relation, Listing 7) ────────────
 /** @brief @f$\pi_I \% \pi_J@f$ --- a value expression on a pair, awaiting a
  *  comparison to a bound. */
-export template <std::size_t I, std::size_t J>
+export template <IsRingIntegral auto I, IsRingIntegral auto J>
 struct ProjMod {};
-export template <std::size_t I, std::size_t J>
+export template <IsRingIntegral auto I, IsRingIntegral auto J>
 constexpr ProjMod<I, J> operator%(Projection<I>, Projection<J>) {
   return {};
 }
 
 /** @brief @f$(\pi_I \% \pi_J) \bowtie \mathrm{fix}(V)@f$ --- a strongly-typed
  *  pair predicate (the modular / divisibility shape). */
-export template <std::size_t I, std::size_t J, Rel R, auto V>
+export template <IsRingIntegral auto I, IsRingIntegral auto J, Rel R, auto V>
 struct ProjModBound {
   using is_rel_predicate = void;
   template <typename P>
@@ -1726,7 +1770,7 @@ struct ProjModBound {
     return rel_apply<R>(coord<I>(p) % coord<J>(p), V);
   }
 };
-export template <std::size_t I, std::size_t J, auto V>
+export template <IsRingIntegral auto I, IsRingIntegral auto J, auto V>
 constexpr ProjModBound<I, J, Rel::Eq, V> operator==(ProjMod<I, J>, Bound<V>) {
   return {};
 }
@@ -1741,14 +1785,98 @@ static_assert(!(ℕ * ℕ | (π1 != fix(0_c) && π2 % π1 == fix(0_c)))(std::pai
                   finite_cardinality(4), finite_cardinality(6)}),
               "6 % 4 != 0: (4,6) ∉ divides.");
 
+// ── The arrow lift: f(π_I) into the relpred DSL (#871 / #824) ────────────────
+/** @brief @f$f(\pi_I)@f$ --- an @c IsArrow @c f applied to the @c I-th
+ *  coordinate: a value expression on a pair awaiting a comparison (the arrow
+ *  LIFT into the projection DSL, sibling of @c ProjMod).  Built by
+ *  @c ap(f, π_I).
+ *
+ *  @note The coordinate index is a constrained-auto NTTP gated by
+ *  @c IsRingIntegral (a structural integral).  Axis identity is matched @b by
+ *  value, not by NTTP type-identity (see @c axis_factor), so two spellings of
+ *  the same axis (@c int @c 1 vs @c unsigned @c 1) agree rather than silently
+ *  diverging (CP review #871).  @c IsRingIntegral admits neither ℕ/Cardinality
+ *  (a @c std::variant, non-structural) nor enums (not @c std::integral); it is
+ *  the structural integers.  @b Provisional: this whole projection surface
+ *  belongs with @c category::IsProductProjection in @c :limit, not in
+ *  @c :halfspace --- relocation (and the attendant deletion) is tracked in
+ *  #878. */
+export template <IsRingIntegral auto I, typename F>
+struct ProjApply {
+  F f;
+};
+
+/** @brief @c ap(f, π_I) --- lift the arrow @c f into the relpred DSL as
+ *  @f$f(\pi_I)@f$.  Gated on @c IsArrow<F> (a pure, terminating map, §2.2).
+ *  @c f is taken by value and @c std::move'd into the wrapper, so the @b lift
+ *  step itself never copies the arrow.
+ *  @note This does @b not promise end-to-end move-only support: the relpred is
+ *  a value carried by the comprehension binders (@c operator| and the
+ *  restricted-product overloads copy their stored predicate), so the DSL is
+ *  value-semantics throughout and arrows used in @c 𝔸<pair> @c | @c (...)
+ * should be copyable.  The @c std::move here is a local optimisation, not a
+ *  move-only guarantee (CP review #871). */
+export template <IsRingIntegral auto I, typename F>
+  requires dedekind::category::IsArrow<F>
+constexpr ProjApply<I, std::remove_cvref_t<F>> ap(F f, Projection<I>) {
+  return {std::move(f)};
+}
+
+/** @brief @f$\pi_J = f(\pi_I)@f$ --- the arrow-lift relpred: coordinate @c J
+ *  equals @c f of coordinate @c I.  This is the point-free @f$y = f(x)@f$ that
+ *  will redefine @c graph (#871).
+ *
+ *  @details @b Forward membership @f$b = f(a)@f$ is decidable exactly when the
+ *  arrow's @c Codomain has decidable equality (@c std::equality_comparable) ---
+ *  the corrected gate from the #870 CP review: monicity is neither necessary
+ *  nor sufficient for this direction.  The @b pre-image direction (recover
+ *  @c a from @c b) is a separate capability gated on @c IsRetractableArrow /
+ *  iso (consuming the retract / dagger witness); it is @b not required here and
+ *  is the graph/preimage follow-up. */
+export template <IsRingIntegral auto J, IsRingIntegral auto I, typename F>
+  requires std::equality_comparable<typename std::remove_cvref_t<F>::Codomain>
+struct ProjApplyEq {
+  F f;
+  using is_rel_predicate = void;
+  template <typename P>
+  constexpr bool operator()(const P& p) const {
+    // @c IsArrow only guarantees @c f(x) is @b convertible to @c Codomain, not
+    // that its (possibly proxy) result compares directly with the coordinate.
+    // Normalise to the declared @c Codomain --- the type the @c
+    // equality_comparable gate actually vouches for --- before the compare.
+    using Cod = typename std::remove_cvref_t<F>::Codomain;
+    return static_cast<Cod>(f(coord<I>(p))) == coord<J>(p);
+  }
+};
+
+/** @brief @f$\pi_J = \mathrm{ap}(f, \pi_I)@f$ → @c ProjApplyEq (the
+ *  @c 𝑦 @c == @c ap(f, @c 𝑥) blackboard spelling). */
+export template <IsRingIntegral auto J, IsRingIntegral auto I, typename F>
+constexpr ProjApplyEq<J, I, F> operator==(Projection<J>, ProjApply<I, F> a) {
+  return {std::move(a.f)};
+}
+/** @brief The symmetric spelling @f$\mathrm{ap}(f, \pi_I) = \pi_J@f$. */
+export template <IsRingIntegral auto I, IsRingIntegral auto J, typename F>
+constexpr ProjApplyEq<J, I, F> operator==(ProjApply<I, F> a, Projection<J>) {
+  return {std::move(a.f)};
+}
+
+// The lift in action: 𝑦 == ap(id, 𝑥) is the diagonal Δ = {(x,x)}.
+static_assert((𝔹 * 𝔹 | (𝑦 == ap(dedekind::category::Identity<bool>{},
+                                𝑥)))(std::pair{true, true}),
+              "(true,true) ∈ {(x,y) | y = id(x)} = Δ.");
+static_assert(!(𝔹 * 𝔹 | (𝑦 == ap(dedekind::category::Identity<bool>{},
+                                 𝑥)))(std::pair{true, false}),
+              "(true,false) ∉ Δ: false ≠ id(true).");
+
 /** @brief @f$\pi_I \% \mathrm{fix}(V)@f$ --- projection mod a @b constant, a
  *  value expression on a pair awaiting a comparison (sibling of @c ProjMod,
  *  whose modulus is the projection @c π_J rather than a fixed @c V). */
-export template <std::size_t I, auto V>
+export template <IsRingIntegral auto I, auto V>
 struct ProjModConst {};
 // The modulus must be positive: @c coord % 0 is undefined behaviour (and fails
 // constant evaluation), matching the @c Modular<N> requirement @c N>0.
-export template <std::size_t I, auto V>
+export template <IsRingIntegral auto I, auto V>
   requires(V > 0)
 constexpr ProjModConst<I, V> operator%(Projection<I>, Bound<V>) {
   return {};
@@ -1757,7 +1885,7 @@ constexpr ProjModConst<I, V> operator%(Projection<I>, Bound<V>) {
 /** @brief @f$(\pi_I \% \mathrm{fix}(V)) \bowtie \pi_J@f$ --- compare a
  *  projection-mod-constant to another projection: the residue-class graph
  *  @f$b = a \bmod V@f$. */
-export template <std::size_t I, auto V, Rel R, std::size_t J>
+export template <IsRingIntegral auto I, auto V, Rel R, IsRingIntegral auto J>
 struct ProjModConstProj {
   using is_rel_predicate = void;
   template <typename P>
@@ -1765,7 +1893,7 @@ struct ProjModConstProj {
     return rel_apply<R>(coord<I>(p) % V, coord<J>(p));
   }
 };
-export template <std::size_t I, auto V, std::size_t J>
+export template <IsRingIntegral auto I, auto V, IsRingIntegral auto J>
 constexpr ProjModConstProj<I, V, Rel::Eq, J> operator==(ProjModConst<I, V>,
                                                         Projection<J>) {
   return {};
@@ -1775,7 +1903,7 @@ constexpr ProjModConstProj<I, V, Rel::Eq, J> operator==(ProjModConst<I, V>,
  *  @b congruence @b class predicate @f$\pi_I \equiv W \pmod V@f$ (sibling of
  *  @c ProjModConstProj, whose right side is the projection @c π_J rather than a
  *  fixed residue @c W).  Restricts an axis to a residue class. */
-export template <std::size_t I, auto V, Rel R, auto W>
+export template <IsRingIntegral auto I, auto V, Rel R, auto W>
 struct ProjModConstBound {
   using is_rel_predicate = void;
   template <typename P>
@@ -1793,7 +1921,7 @@ struct ProjModConstBound {
     return rel_apply<R>(lhs, rhs);
   }
 };
-export template <std::size_t I, auto V, auto W>
+export template <IsRingIntegral auto I, auto V, auto W>
 constexpr ProjModConstBound<I, V, Rel::Eq, W> operator==(ProjModConst<I, V>,
                                                          Bound<W>) {
   return {};
@@ -1811,22 +1939,22 @@ static_assert(!(ℕ * ℕ | π1 % fix(17_c) == π2)(std::pair{finite_cardinality
  *  a projection plus / times a @b constant, a value expression on a pair
  *  awaiting a comparison to another projection (siblings of @c ProjModConst).
  *  Enough to spell the successor and scaling graphs natively point-free. */
-export template <std::size_t I, auto V>
+export template <IsRingIntegral auto I, auto V>
 struct ProjAddConst {};
-export template <std::size_t I, auto V>
+export template <IsRingIntegral auto I, auto V>
 constexpr ProjAddConst<I, V> operator+(Projection<I>, Bound<V>) {
   return {};
 }
-export template <std::size_t I, auto V>
+export template <IsRingIntegral auto I, auto V>
 struct ProjMulConst {};
-export template <std::size_t I, auto V>
+export template <IsRingIntegral auto I, auto V>
 constexpr ProjMulConst<I, V> operator*(Projection<I>, Bound<V>) {
   return {};
 }
 
 /** @brief @f$(\pi_I + \mathrm{fix}(V)) \bowtie \pi_J@f$ --- the
  * successor-shaped graph @f$b = a + V@f$. */
-export template <std::size_t I, auto V, Rel R, std::size_t J>
+export template <IsRingIntegral auto I, auto V, Rel R, IsRingIntegral auto J>
 struct ProjAddConstProj {
   using is_rel_predicate = void;
   template <typename P>
@@ -1840,7 +1968,7 @@ struct ProjAddConstProj {
     return rel_apply<R>(std::plus<C>{}(a, static_cast<C>(V)), coord<J>(p));
   }
 };
-export template <std::size_t I, auto V, std::size_t J>
+export template <IsRingIntegral auto I, auto V, IsRingIntegral auto J>
 constexpr ProjAddConstProj<I, V, Rel::Eq, J> operator==(ProjAddConst<I, V>,
                                                         Projection<J>) {
   return {};
@@ -1848,7 +1976,7 @@ constexpr ProjAddConstProj<I, V, Rel::Eq, J> operator==(ProjAddConst<I, V>,
 
 /** @brief @f$(\pi_I \cdot \mathrm{fix}(V)) \bowtie \pi_J@f$ --- the scaling
  *  graph @f$b = a \cdot V@f$ (e.g. the doubler @f$b = 2a@f$). */
-export template <std::size_t I, auto V, Rel R, std::size_t J>
+export template <IsRingIntegral auto I, auto V, Rel R, IsRingIntegral auto J>
 struct ProjMulConstProj {
   using is_rel_predicate = void;
   template <typename P>
@@ -1861,7 +1989,7 @@ struct ProjMulConstProj {
                         coord<J>(p));
   }
 };
-export template <std::size_t I, auto V, std::size_t J>
+export template <IsRingIntegral auto I, auto V, IsRingIntegral auto J>
 constexpr ProjMulConstProj<I, V, Rel::Eq, J> operator==(ProjMulConst<I, V>,
                                                         Projection<J>) {
   return {};

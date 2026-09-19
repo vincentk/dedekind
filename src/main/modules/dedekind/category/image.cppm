@@ -100,6 +100,7 @@
 module;
 
 #include <concepts>
+#include <optional>     // std::optional --- the retract's partial-inverse shape
 #include <type_traits>  // std::remove_cvref_t
 #include <utility>      // std::forward
 
@@ -273,6 +274,40 @@ struct ImageChi {
 };
 
 /**
+ * @brief Image classifier for a @b retractable arrow: @c y is in the image iff
+ *        the retract fires at @c y.
+ *
+ * @details The decidability seam.  Where the primary @c ImageChi answers
+ * @c Ternary::Unknown (the @f$\exists x. F(x)=y@f$ is Rice-undecidable on a
+ * general arrow), a @c IsRetractableArrow @c F discharges the existential as a
+ * @b lookup: @f$y \in \mathrm{im}(F) \iff \mathrm{retract}(F)(y)@f$ has a
+ * value. The @c Codomain is therefore @c bool (@b not @c Ternary), so
+ * @c Subobject<Cod<F>, ImageChi<F>>::logic_species is @c ClassicalLogic and the
+ * image @b is @c HasDecidableMembership --- the arrow's factorization class
+ * (retractable vs. merely an arrow) becomes the relation's decidability class,
+ * read off at compile time.  Monic-but-not-retractable and iso route elsewhere
+ * (the retract hook is opt-in; see @c IsRetractableArrow).
+ */
+export template <typename F>
+  requires IsRetractableArrow<F> &&
+           requires(const std::remove_cvref_t<F>& cf, const Cod<F>& y) {
+             { retract(cf)(y) } -> std::same_as<std::optional<Dom<F>>>;
+           }
+struct ImageChi<F> {
+  F f;
+  using Domain = Cod<F>;
+  using Codomain = bool;
+  // @c f is a @c const member here, so the retract must be @b const-invocable
+  // (the extra requirement above; @c IsRetractableArrow alone probes a mutable
+  // @c f, cf. the #823 @c IsArrow const-invocability fix).  A mutable-only
+  // retract therefore falls back to the primary @c Ternary::Unknown classifier
+  // --- honest: it cannot be decided in a const membership test.
+  constexpr bool operator()(const Cod<F>& y) const {
+    return retract(f)(y).has_value();
+  }
+};
+
+/**
  * @brief Factory: @c image_of(f) constructs the image of @c f as a
  *        @c Subobject of @c Cod<F>.
  *
@@ -299,6 +334,60 @@ constexpr auto image_of(F&& f) {
 static_assert(IsSubobject<decltype(image_of(Identity<int>{})), int>,
               "image_of(Identity<int>) realises a Subobject of int — the "
               "trivial image-of-identity exhibit.");
+
+// ── The decidability seam: factorization class → decidability class ─────────
+// A toy retractable arrow (bool ↪ int, the {0,1} embedding) whose retract fires
+// on the image and is std::nullopt elsewhere.  (The library's real retractable
+// arrows --- the embed_* family --- live downstream in numbers, so the witness
+// carries its own.)
+namespace image_decidability_witness {
+struct ToyRetract {
+  constexpr std::optional<bool> operator()(const int& y) const {
+    if (y == 0) return false;
+    if (y == 1) return true;
+    return std::nullopt;
+  }
+};
+struct ToyEmbed {
+  using Domain = bool;
+  using Codomain = int;
+  constexpr int operator()(bool b) const { return b ? 1 : 0; }
+};
+constexpr ToyRetract retract(ToyEmbed) { return {}; }
+}  // namespace image_decidability_witness
+
+template <>
+inline constexpr bool is_monic_arrow_v<image_decidability_witness::ToyEmbed> =
+    true;
+
+// A RETRACTABLE arrow's image is ClassicalLogic == HasDecidableMembership:
+// y ∈ im(f) ⟺ retract(f)(y) fires, a lookup.  A general (non-retractable)
+// arrow's image stays TernaryLogic (Unknown --- the ∃ is Rice-undecidable).  So
+// the arrow's factorization class becomes the relation's DECIDABILITY class,
+// read off at compile time.  (logic_species == ClassicalLogic is exactly the
+// criterion sets::HasDecidableMembership checks, one layer up.)
+static_assert(
+    std::same_as<typename decltype(image_of(
+                     image_decidability_witness::ToyEmbed{}))::logic_species,
+                 ClassicalLogic>,
+    "retractable arrow → DECIDABLE image (ClassicalLogic = decidable "
+    "membership).");
+static_assert(
+    std::same_as<typename decltype(image_of(Identity<int>{}))::logic_species,
+                 TernaryLogic>,
+    "general arrow → UNDECIDABLE image (TernaryLogic, Unknown-capable).");
+
+// Exercise the retractable classifier's operator() (not just its logic
+// species): the toy embed bool↪int has image {0,1}, so 0 ∈ im (retract fires)
+// and 2 ∉ im (retract is nullopt).
+static_assert(
+    ImageChi<image_decidability_witness::ToyEmbed>{
+        image_decidability_witness::ToyEmbed{}}(0),
+    "0 ∈ image(ToyEmbed): the retractable classifier fires.");
+static_assert(
+    !ImageChi<image_decidability_witness::ToyEmbed>{
+        image_decidability_witness::ToyEmbed{}}(2),
+    "2 ∉ image(ToyEmbed): the retract is nullopt off the image.");
 
 // ===========================================================================
 // First Isomorphism Theorem — reusable typed surface (#718 Slice 4).
