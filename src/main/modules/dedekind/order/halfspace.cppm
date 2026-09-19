@@ -1441,6 +1441,14 @@ static_assert(
 // comprehension)
 // (#824).  This is the same mechanism the Halfspace lattice uses above.  RelAnd
 // / RelOr live in :dyadic (#792).
+//
+// FIXME(#824): these hooks live in :order, so ADL reaches them only when an
+// operand is :order-native (ProjProj/ProjBound — every current meet).  A pair
+// of :relational-native rel-predicates (e.g. two DiagPred) does NOT find them
+// and falls back to the marker-less AndPredicate/OrPredicate.  The clean fix is
+// to unify the projection+equality DSL in ONE namespace (relocate it to
+// :relational, where relations live and order is not required) — done in the
+// graph/arrow-lift follow-up, not here.
 export template <IsRelPredicate A, IsRelPredicate B>
 constexpr dedekind::relational::RelAnd<A, B> structured_and(A a, B b) {
   return {a, b};
@@ -1823,59 +1831,12 @@ constexpr ProjMulConstProj<I, V, Rel::Eq, J> operator==(ProjMulConst<I, V>,
   return {};
 }
 
-// ── Lifting a MONIC arrow into a relpred: 𝑦 == apply(f, 𝑥) (#824) ───────────
-// The safe, grammar-level replacement for graph(f) and the deprecated relation
-// apply (both lambda-opaque): lift an arrow f into the projection comparison
-// coord_J == f(coord_I) as a NAMED relpred.  The IsMonicArrow gate is the
-// certificate that f's converse is single-valued (a partial function), so this
-// relpred's pre-image is a decidable function --- the iso/mono ⇒ enabling
-// principle, cashed out via the dagger surface (:category:involution).  A
-// non-monic arrow gets no lift (no pre-image guarantee).  Reuses the `apply`
-// name (Bird & de Moor's power transpose), now lambda-free and gated.
-
-/** @brief The value expression @f$f(\pi_I)@f$ awaiting a comparison --- the
- *  arrow-application node, sibling of @c ProjMulConst.  Carries @c f by value
- *  (named, no lambda), so the relpred it forms is inspectable. */
-export template <std::size_t I, typename F>
-struct ProjApply {
-  F f;
-};
-
-/** @brief @c apply(f, π_I) --- lift a @b monic arrow into the projection DSL.
- *  Gated on @c IsMonicArrow so the relpred @f$\pi_J = f(\pi_I)@f$ has a
- *  decidable pre-image (f's converse is single-valued). */
-export template <std::size_t I, typename F>
-  requires dedekind::category::IsMonicArrow<F>
-constexpr ProjApply<I, F> apply(F f, Projection<I>) {
-  return {f};
-}
-
-/** @brief @f$\pi_J = f(\pi_I)@f$ as a relpred: @c coord_J == f(coord_I).
- *  Membership is a bounded, decidable comparison (codomain @c ==) --- the
- *  arrow's graph without graph(f)'s image/pre-image inference. */
-export template <std::size_t J, std::size_t I, typename F>
-struct ProjApplyEq {
-  using is_rel_predicate = void;
-  F f;
-  template <typename P>
-  constexpr bool operator()(const P& p) const {
-    return coord<J>(p) == f(coord<I>(p));
-  }
-};
-export template <std::size_t J, std::size_t I, typename F>
-constexpr ProjApplyEq<J, I, F> operator==(Projection<J>, ProjApply<I, F> a) {
-  return {a.f};
-}
-
-// 𝑦 == apply(id, 𝑥) is the diagonal (id is monic): (4,4) ∈, (4,5) ∉.
-static_assert((ℕ * ℕ | (π2 == apply(dedekind::category::Identity<Cardinality>{},
-                                    π1)))(std::pair{finite_cardinality(4),
-                                                    finite_cardinality(4)}),
-              "𝑦 == id(𝑥): the lifted diagonal contains (4,4).");
-static_assert(!(ℕ * ℕ |
-                (π2 == apply(dedekind::category::Identity<Cardinality>{}, π1)))(
-                  std::pair{finite_cardinality(4), finite_cardinality(5)}),
-              "𝑦 == id(𝑥): the lifted diagonal excludes (4,5).");
+// (The monic-gated arrow lift 𝑦 == apply(f, 𝑥) → ProjApply/ProjApplyEq moved to
+// its own effort: CP review showed monicity ≠ a computable pre-image (that
+// needs IsRetractableArrow), the codomain-== gate was missing, and it
+// duplicated the existing GraphPredicate — so it is reworked as the
+// graph-redefinition PR, in :relational, alongside the projection-DSL
+// relocation.  See #824.)
 
 // successor graph: {(a,b) | b = a + 1} = ℕ * ℕ | π1 + fix(1_c) == π2.
 static_assert((ℕ * ℕ | π1 + fix(1_c) == π2)(std::pair{finite_cardinality(4),

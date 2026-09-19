@@ -1190,7 +1190,7 @@ static_assert(IsFunctional<decltype(                           // composite:
 \label{lst:intensional_relation_validation}
 \begin{cpp}
 constexpr auto R
-  = ℕ * ℕ | π1 != fix(0_c) & π2 % π1 == fix(0_c);
+  = ℕ * ℕ | (π1 != fix(0_c) && π2 % π1 == fix(0_c));
 static_assert( R(pair{2,6}));
 static_assert(!R(pair{4,6}));
 \end{cpp}
@@ -1473,8 +1473,8 @@ Its feasible domain is that codomain constraint pulled back through the graph, $
 \label{lst:argmax_def}
 \begin{cpp}
 constexpr auto g = ℤ * ℤ | π1 + fix(3_c) == π2   // x ↦ x+3 ...
-                     | π2 <= fix(8_c)              //   ... into a bounded ...
-                     & π2 % fix(3_c) == fix(0_c);  //   ... residue codomain
+                     | (π2 <= fix(8_c)             //   ... into a bounded ...
+                        && π2 % fix(3_c) == fix(0_c)); // ... residue codomain
 static_assert(!is_entire(g));                       // a partial function now
 static_assert( argmax(g)(3));                       // max{x≤5, x≡0 mod 3} = 3
 static_assert(!argmax(g)(4));                        // 4 ≢ 0 mod 3
