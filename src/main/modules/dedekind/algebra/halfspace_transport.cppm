@@ -91,8 +91,12 @@ concept IsEntireTranslationCarrier =
  *  its inverse, so the negated-shift converse @c x↦x+(−K) is the GROUP inverse
  *  (hence the retract) regardless of the carrier's order.  This is the #875
  *  generalization from @f$\mathbb{Z}@f$ (@c IsOrderedAdditiveGroup) to an
- *  arbitrary @c IsGroup: the gate is now @c IsAbelianGroup under @c +, matching
- *  the @c image overload below.  On a wrapping/cyclic group such as @c unsigned
+ *  arbitrary @c IsGroup: the gate is now @c IsGroup<T, Op> (commutativity is
+ *  unnecessary, right translation @c x↦x+K is bijective in @b every group). The
+ *  group operation @c Op is a template parameter defaulting to @c std::plus<T>,
+ *  so the theorem reads over the group operation (the seam toward the
+ *  operator-generic form, #882); the current @c ProjAddConstProj graph fixes it
+ *  at @c + for now.  On a wrapping/cyclic group such as @c unsigned
  *  (@f$\mathbb{Z}/2^w@f$), @c −K folds to the MODULAR group-inverse of the
  *  shift; that fold is the CORRECT inverse (again, a bijection's converse is
  * its inverse), even though it is @b not the order-predecessor the old gate
@@ -100,8 +104,8 @@ concept IsEntireTranslationCarrier =
  *  @c image(Halfspace, +K) below genuinely needs the order and stays gated on
  * @c IsOrderedAdditiveGroup; the two facts are gated independently.  ℕ = @c
  *  Cardinality is not a group, so it is not matched here either way.) */
-export template <typename T, auto K, typename L>
-  requires dedekind::category::IsAbelianGroup<T, std::plus<T>>
+export template <typename T, auto K, typename L, typename Op = std::plus<T>>
+  requires dedekind::category::IsGroup<T, Op>
 constexpr auto inverse(
     const Set<std::pair<T, T>, L, ProjAddConstProj<1, K, Rel::Eq, 2>>&) {
   return Set<std::pair<T, T>, L, ProjAddConstProj<1, -K, Rel::Eq, 2>>{
@@ -111,7 +115,7 @@ constexpr auto inverse(
 // ── #875 witness: retractability generalizes ℤ → arbitrary IsGroup ───────────
 // The OLD gate (@c IsOrderedAdditiveGroup) withheld @c inverse on the cyclic
 // group @c unsigned (@f$\mathbb{Z}/2^w@f$), conflating the group inverse with
-// the order-predecessor.  With the gate relaxed to @c IsAbelianGroup the
+// the order-predecessor.  With the gate relaxed to @c IsGroup the
 // converse-with-negated-shift now resolves there too, and it IS the modular
 // group inverse: @c inverse of the successor graph @c π1+1==π2 over @c unsigned
 // equals the converse graph @c π1+(−1)==π2 (i.e. @c x↦x+UINT_MAX, the modular
