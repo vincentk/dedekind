@@ -145,6 +145,8 @@ using Bra = SemimoduleVec<S, N, RowOrientation>;
  * @c transpose(transpose(v)) @c == @c v.
  */
 export template <typename S, std::size_t N, typename O>
+  requires(IsColumnVector<SemimoduleVec<S, N, O>> ||
+           IsCovector<SemimoduleVec<S, N, O>>)
 constexpr SemimoduleVec<S, N, dual_orientation_t<O>> transpose(
     const SemimoduleVec<S, N, O>& v) {
   return SemimoduleVec<S, N, dual_orientation_t<O>>{v.c};
@@ -161,6 +163,8 @@ constexpr SemimoduleVec<S, N, dual_orientation_t<O>> transpose(
  * over @c ℂ the adjoint conjugates the components (FIXME(#787)).
  */
 export template <typename S, std::size_t N, typename O>
+  requires(IsColumnVector<SemimoduleVec<S, N, O>> ||
+           IsCovector<SemimoduleVec<S, N, O>>)
 constexpr SemimoduleVec<S, N, dual_orientation_t<O>> dagger(
     const SemimoduleVec<S, N, O>& v) {
   return transpose(v);
