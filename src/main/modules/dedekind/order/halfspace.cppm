@@ -1234,9 +1234,11 @@ static_assert(((𝔹 | (π == fix(true_c))) & ~(𝔹 | (π == fix(true_c)))) == 
  *        variables of the point-free relational surface.
  *
  * @details A comparison @c π_I @c ⋈ @c π_J or @c π_I @c ⋈ @c fix(V) builds a
- * @b strongly-typed predicate on a pair (no lambda); @c & conjoins them; and
- * @c product @c | @c predicate restricts the product to the relation.  So
- * @c ℕ*ℕ @c | @c π1 @c < @c π2 @c & @c π1 @c > @c fix(5_c) is the relation
+ * @b strongly-typed predicate on a pair (no lambda); @c && conjoins them
+ * (@c || joins), distinct from the set-level @c & / @c | on whole relations;
+ * and @c product @c | @c predicate restricts the product to the relation.
+ * @c && binds looser than @c |, so the comprehension parenthesises the meet:
+ * @c ℕ*ℕ @c | @c (π1 @c < @c π2 @c && @c π1 @c > @c fix(5_c)) is the relation
  * @f$\{(x,y) \mid x<y \wedge x>5\}@f$ as an @c IsSet on @c ℕ×ℕ.
  */
 export inline constexpr Projection<1> π1{};
@@ -1303,8 +1305,10 @@ constexpr Rel negate(Rel r) {
   return r;  // unreachable; all six flavours are covered above.
 }
 
-/** @brief Nested-typedef marker so @c & / @c | fire only on relational
- *  predicates; kept off the class hierarchy so the predicates stay aggregates.
+/** @brief Nested-typedef marker so the predicate-level @c && / @c || fire only
+ *  on relational predicates (and gate the @c 𝔸<pair> @c | @c relpred
+ *  comprehension); kept off the class hierarchy so the predicates stay
+ *  aggregates.
  */
 export template <typename T>
 concept IsRelPredicate = requires { typename T::is_rel_predicate; };
@@ -1607,7 +1611,8 @@ constexpr auto axis_factor(const ProjBound<I, R, V>&) {
 
 /** @brief A meet of cylinders: the factor on axis @c I is the @b intersection
  *  of both children's factors on that axis, so two bounds on the same axis
- *  (@c π1<=5 & @c π1<=3) meet to the tighter one rather than dropping either.
+ *  (@c π1<=5 @c && @c π1<=3) meet to the tighter one rather than dropping
+ * either.
  */
 export template <std::size_t I, typename TI, typename L, typename A, typename B>
 constexpr auto axis_factor(const dedekind::relational::RelAnd<A, B>& r) {
