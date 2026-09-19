@@ -342,19 +342,26 @@ struct MatNxNV {
 };
 
 /**
- * @brief Opt-in: @c F is a @b linear @b operator --- a structure-preserving
- *        arrow @f$f(s\otimes x \oplus y) = s\otimes f(x) \oplus f(y)@f$.
+ * @brief Opt-in: @c F is a @b linear @b operator --- a semimodule
+ *        homomorphism, additive and @b scalar-equivariant on the @b matching
+ *        side: @f$f(x\otimes s \oplus y) = f(x)\otimes s \oplus f(y)@f$.
  *
- * @details Like @c is_monic_arrow_v (@c :morphism), linearity quantifies over
- * all inputs, so it @b cannot be verified at compile time; the carrier declares
- * it and the public review is the audit trail.  @c Mat(S) is registered below.
+ * @details The law is stated on the @b right (the scalar on the side the
+ * homomorphism preserves for @b any semiring, by associativity).  The @b left
+ * form @f$f(s\otimes x)=s\otimes f(x)@f$ additionally needs a @b commutative
+ * @c ⊗ and is @b not what the opt-in certifies (over a commutative @c S the two
+ * coincide; see the @c Mat(S) registration below for the worked law).  Like
+ * @c is_monic_arrow_v (@c :morphism), linearity quantifies over all inputs, so
+ * it @b cannot be verified at compile time; the carrier declares it and the
+ * public review is the audit trail.  @c Mat(S) is registered below.
  */
 export template <typename F>
 inline constexpr bool is_linear_operator_v = false;
 
 /**
  * @brief A @b linear @b operator: a (callable) @c IsArrow that additionally
- *        preserves the semimodule structure.
+ *        preserves the semimodule structure (the right-@c S-semimodule-hom law
+ *        above --- sound over any semiring, no commutativity assumed).
  *
  * @details @b What @b this @b concept @b reifies (and what it does @b not).  As
  * @b code, @c IsLinearOperator<F> is exactly @c IsArrow<F> plus the opt-in
@@ -512,8 +519,8 @@ struct identity_trait<dedekind::linear_algebra::MatNxNV<S, N>,
  *  @b contravariant reading @f$(A B)^{\top}=B^{\top}A^{\top}@f$ (and the
  *  bra-ket adjoint) is @b not part of the certificate and holds only when the
  *  scalar @c ⊗ is @b commutative --- see the @c
- * contravariance_needs_commutativity witness below and the @c warning on the
- * vector @c transpose. */
+ * contravariance_over_commutative_semiring witness below and the @c warning on
+ * the vector @c transpose. */
 template <typename S, std::size_t N>
 struct is_involutive<dedekind::linear_algebra::TransposeF<S, N>,
                      dedekind::linear_algebra::MatNxNV<S, N>> : std::true_type {
