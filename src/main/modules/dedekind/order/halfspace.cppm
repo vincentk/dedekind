@@ -1632,6 +1632,13 @@ constexpr auto axis_factor(const dedekind::relational::RelAnd<A, B>& r) {
     // Morphism, dropping the tightening), and not the set-level operator&
     // either (declared below this point, so unreachable by ordinary lookup
     // here).
+    //
+    // FIXME(#872): axis_factor is not closed over its recursive outputs.  With
+    // 3+ same-axis bounds a child reduces to an OrderInterval/Singleton and
+    // structured_and(OrderInterval, Halfspace) has no overload, so the relation
+    // fails to instantiate (association-dependent).  Two-bound meets work
+    // (witnessed below); the meet-lattice closure / RelAnd normalization is
+    // #872, out of this PR's meet/join scope.
     return dedekind::order::structured_and(fa, fb);
   }
 }
