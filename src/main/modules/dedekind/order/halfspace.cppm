@@ -1666,6 +1666,20 @@ static_assert(!(𝔹 * 𝔹 |
                 (π1 <= π2 && π2 == fix(true_c)))(std::pair{false, false}),
               "(false, false) fails y = true.");
 
+// NESTED meet: BOTH operands of the outer && are themselves RelAnd (relational-
+// native, no bare :order operand), so this is the case the FIXME(#824) warns
+// about --- yet ADL still reaches structured_and THROUGH RelAnd's projection-
+// atom template args, so the marker survives and the comprehension restricts.
+// relpred is therefore closed under &&/|| for the projection sub-grammar; the
+// fall-through only bites non-projection rel-predicates (e.g. two diag()).
+static_assert(
+    IsRelPredicate<decltype((π1 <= π2 && π2 == fix(true_c)) &&
+                            (π1 <= π2 && π1 < π2))>,
+    "nested (RelAnd && RelAnd) stays IsRelPredicate via ADL on the atom args.");
+static_assert((𝔹 * 𝔹 | ((π1 <= π2 && π2 == fix(true_c)) &&
+                        (π1 <= π2 && π1 < π2)))(std::pair{false, true}),
+              "(false, true) satisfies (x ≤ y ∧ y = true) ∧ (x ≤ y ∧ x < y).");
+
 // ── converse and the bracket-free relation query ───────────────────────────
 // SwapPred / converse and IsPairLike / is_relation moved DOWN to
 // dedekind.relational:dyadic (#792) --- pure Set<pair> algebra, no ordering.
