@@ -374,10 +374,23 @@ export template <typename F>
 concept IsLinearOperator =
     dedekind::category::IsArrow<F> && is_linear_operator_v<F>;
 
-/// @brief @c Mat(S) is the linear operator @f$|v\rangle \mapsto M|v\rangle@f$
-/// ---
-///        only when @c S is a semiring (else there is no @c ⊕/@c ⊗ to be linear
-///        over, and the matvec is not even an @c IsArrow).
+/**
+ * @brief @c Mat(S) is a linear operator on @f$S^N@f$ --- a @b semimodule
+ *        @b homomorphism over any semiring @c S (the lower bound; @b no
+ *        commutativity required).
+ *
+ * @details @f$|v\rangle \mapsto M|v\rangle@f$ is additive
+ * (@f$M(v\oplus w)=Mv\oplus Mw@f$, by left-distributivity) and
+ * @b scalar-equivariant for the scalar acting on the @b matching side:
+ * @f$M(v\otimes s)=(Mv)\otimes s@f$ holds for @b every semiring by
+ * associativity + distributivity (a right-@c S-semimodule endomorphism of
+ * @f$S^N@f$).  Only the @b left form @f$M(s\otimes v)=s\otimes(Mv)@f$ needs
+ * @f$M_{ij}\otimes s=s\otimes M_{ij}@f$, i.e.\ a @b commutative @c S --- over
+ * a commutative semiring the two sides coincide and this is the familiar
+ * @f$f(s\otimes x)=s\otimes f(x)@f$.  So the certification is sound over any
+ * semiring (CP #874): the law is the semimodule-hom law, stated on the
+ * consistent side, not the left form that would demand commutativity.
+ */
 export template <typename S, std::size_t N>
   requires dedekind::category::IsSemiring<
                S, typename dedekind::algebra::semiring_ops<S>::add,
