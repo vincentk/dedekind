@@ -135,14 +135,21 @@ using Bra = SemimoduleVec<S, N, RowOrientation>;
  *        (@f$(n\times1)^{\top}=1\times n@f$).
  *
  * @details The vector face of the one dagger documented on
- * @c MatNxNV::transpose (see @c dedekind::category::IsDagger).  It aligns with
- * the matrix transpose: @f$(M|v\rangle)^{\top}=\langle v|M^{\top}@f$ --- the
- * dagger reverses every arrow, turning the operator @c Mat and its @c Ket into
- * a @c Bra and the transposed operator.  Over a general semiring there is no
- * conjugation, so this transpose @b is the dagger (real / Boolean / tropical);
- * over @c ℂ the true adjoint additionally conjugates the components
- * (FIXME(#787): a @c conj-aware overload).  Involutive:
+ * @c MatNxNV::transpose (see @c dedekind::category::IsDagger).  The
+ * orientation-flip itself (@c Ket ↔ @c Bra, keeping the components) is
+ * unconditional, and it is @b involutive on any semiring:
  * @c transpose(transpose(v)) @c == @c v.
+ *
+ * @warning The @b adjoint alignment with the matrix transpose,
+ * @f$(M|v\rangle)^{\top}=\langle v|M^{\top}@f$, is @b not unconditional: its
+ * left side contracts @f$M_{ij}\otimes v_j@f$ while @f$\langle v|M^{\top}@f$
+ * contracts @f$v_j\otimes M_{ij}@f$, so the identity needs the scalar @c ⊗ to
+ * be @b commutative (or a scalar anti-involution).  It therefore holds for the
+ * registered exhibits --- real, Boolean, tropical max-plus are @b all
+ * commutative semirings --- but @b not for a noncommutative @c S, where the
+ * orientation-flip stays involutive yet is no longer the adjoint.  Over @c ℂ
+ * the true adjoint additionally conjugates the components (FIXME(#787): a
+ * @c conj-aware @c Dagger functor).
  */
 export template <typename S, std::size_t N, typename O>
   requires(IsColumnVector<SemimoduleVec<S, N, O>> ||
@@ -496,11 +503,17 @@ struct identity_trait<dedekind::linear_algebra::MatNxNV<S, N>,
       dedekind::linear_algebra::identity_matrix<S, N>();
 };
 
-/** @brief The transpose is an @b involution (@c Aᵀᵀ = @c A), so @c TransposeF
- * is a certified @c IsDagger on @c Mat(S) --- what the dagger predicates
- *  (@c is_unitary) require.  A @b structural fact about the operation, @b not a
- *  per-arrow unitarity claim (unitarity is a @b value property; see
- *  @c :involution). */
+/** @brief The transpose is an @b involution (@c Aᵀᵀ = @c A) for @b any @c S, so
+ *  @c TransposeF is a certified @c IsDagger on @c Mat(S) --- the involutive
+ * core the dagger predicates (@c is_unitary) require.  A @b structural fact
+ * about the operation, @b not a per-arrow unitarity claim (unitarity is a @b
+ * value property; see @c :involution).
+ *  @note @c IsDagger is @b deliberately just this involutive core.  The
+ *  @b contravariant reading @f$(A B)^{\top}=B^{\top}A^{\top}@f$ (and the
+ *  bra-ket adjoint) is @b not part of the certificate and holds only when the
+ *  scalar @c ⊗ is @b commutative --- see the @c
+ * contravariance_needs_commutativity witness below and the @c warning on the
+ * vector @c transpose. */
 template <typename S, std::size_t N>
 struct is_involutive<dedekind::linear_algebra::TransposeF<S, N>,
                      dedekind::linear_algebra::MatNxNV<S, N>> : std::true_type {
@@ -671,6 +684,31 @@ static_assert(TransposeF<MPll, 3>{}(TransposeF<MPll, 3>{}(
 // The vector dagger's involution is the transpose(transpose(v)) == v witness
 // above (Ket ↔ Bra is order-2); the IsInvolution CONCEPT is N/A there, since a
 // single dagger flips the TYPE (Ket → Bra), not an endomap on one carrier.
+
+// (1b) CONTRAVARIANCE is a PRECONDITION, not part of the involutive core: the
+//      dagger's anti-homomorphism (A⊗B)ᵀ = Bᵀ⊗Aᵀ (and the bra-ket adjoint) hold
+//      only when the scalar ⊗ COMMUTES.  (A⊗B)ᵀ contracts Mᵢⱼ⊗vⱼ while Bᵀ⊗Aᵀ
+//      contracts vⱼ⊗Mᵢⱼ, so a noncommutative S diverges (CP #874).  MaxPlus's ⊗
+//      is + (commutative), so it holds here; witnessed on non-symmetric A, B so
+//      a symmetric fluke cannot pass.
+constexpr bool contravariance_over_commutative_semiring() {
+  MatNxNV<MPll, 2> a{};
+  a.e[0][0] = MPll{true, 0ull};
+  a.e[0][1] = MPll{true, 1ull};
+  a.e[1][0] = MPll{true, 2ull};
+  a.e[1][1] = MPll{true, 3ull};
+  MatNxNV<MPll, 2> b{};
+  b.e[0][0] = MPll{true, 4ull};
+  b.e[0][1] = MPll{true, 5ull};
+  b.e[1][0] = MPll{true, 6ull};
+  b.e[1][1] = MPll{true, 7ull};
+  using Mul = MatTimes<MPll, 2>;
+  return Mul{}(a, b).transpose() == Mul{}(b.transpose(), a.transpose());
+}
+static_assert(contravariance_over_commutative_semiring(),
+              "(A⊗B)ᵀ = Bᵀ⊗Aᵀ over the COMMUTATIVE max-plus semiring: the "
+              "contravariant / adjoint reading of the transpose dagger holds "
+              "exactly because scalar ⊗ commutes (CP #874).");
 
 // (2) ISOMORPHISM, where applicable: for a UNITARY matrix the dagger IS the
 //     inverse (M† = M⁻¹).  The identity is the trivial unitary (I† = I = I⁻¹),
