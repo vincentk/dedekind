@@ -13,6 +13,7 @@
  */
 
 #include <catch2/catch_test_macros.hpp>
+#include <functional>  // std::plus (equalizer parallel-pair arrow)
 #include <limits>
 #include <type_traits>  // std::is_same_v (𝔽64 converse type witness)
 #include <utility>
@@ -32,6 +33,34 @@ namespace {
 inline constexpr auto ℤ = 𝔸<SignedCardinality>;
 inline constexpr auto ℕ = 𝔸<Cardinality>;
 using dedekind::algebra::𝔽64;  // GF(2⁶): operator+ is XOR (characteristic 2)
+
+// ── #876 finding 2: the translation graph IS a categorical equalizer ─────────
+// A translation graph is NOT an IsIsomorphism arrow: its Set-Domain is the
+// product pair<T,T>.  It is the EQUALIZER subobject of pair<T,T> where the
+// parallel pair (π1+K, π2): pair<T,T> → T coincide, representing the function
+// whose (domain, codomain) are (T, T).  So the group⟹decidable-image mileage
+// pins on the predicate slot of the (domain, codomain, predicate) triple, not
+// on a Set→Ω arrow view.  Pinned via category::IsEqualizer for future/CP
+// reference.
+using ZT = SignedCardinality;
+struct Pi1Plus3Arrow {
+  using Domain = std::pair<ZT, ZT>;
+  using Codomain = ZT;
+  constexpr ZT operator()(const std::pair<ZT, ZT>& p) const {
+    return std::plus<ZT>{}(p.first, static_cast<ZT>(3));
+  }
+};
+struct Pi2Arrow {
+  using Domain = std::pair<ZT, ZT>;
+  using Codomain = ZT;
+  constexpr ZT operator()(const std::pair<ZT, ZT>& p) const { return p.second; }
+};
+static_assert(
+    dedekind::category::IsEqualizer<decltype(ℤ * ℤ | π1 + fix(3_c) == π2),
+                                    Pi1Plus3Arrow, Pi2Arrow>,
+    "the translation graph x+3==y is the equalizer subobject of pair<T,T> of "
+    "the parallel pair (π1+3, π2): the categorical view CP's IsIsomorphism "
+    "expectation missed (#876 finding 2).");
 
 // ── image: bare onto-ness, and the affine pushforward of a halfspace ─────────
 static_assert(image(ℤ* ℤ | π1 + fix(3_c) == π2) == ℤ,
