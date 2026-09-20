@@ -1,21 +1,54 @@
 /**
- * @file iso.cppm
- * @brief @c dedekind.category:iso --- the retract / iso-enabling arrow surface.
+ * @file dedekind/category/iso.cppm
+ * @partition :iso
+ * @brief The retract / iso-enabling arrow surface: the constructions that turn
+ *        a factorisation class into a downstream decidability class.
  *
- * @details The "advanced" arrow constructions that turn a factorisation class
- * (iso / monic-with-retract) into a @b decidability class downstream: the
- * @c retract of an isomorphism, the blanket @c IsIsomorphism ⟹
- * @c IsRetractableArrow wiring, and the @c IsRetractableArrow concept the
- * @c :image seam dispatches on.  Extracted from @c :morphism (the basic arrow /
- * factorisation primitives @c IsArrow / @c IsMonicArrow / @c IsEpicArrow /
- * @c IsIsomorphism stay there) so the arrow base stays lean, mirroring how the
- * @c is_involutive machinery was extracted into @c :involution.
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
  *
- * @note The retract is a Kleisli arrow into the maybe monad
- * (@c Cod<F> → @c Maybe<Dom<F>>), spelled honestly with @c category::Maybe and
- * the unit @c η (@c maybe_hub) from @c :functor / @c :natural rather than raw
- * @c std::optional.  That is why this partition sits downstream of @c :natural:
- * @c :morphism → @c :natural → @c :iso.
+ * @section iso__What_Lives_Here
+ * The "advanced" arrow constructions, extracted from @c :morphism so the arrow
+ * base keeps only the lean factorisation primitives (@c IsArrow /
+ * @c IsMonicArrow / @c IsEpicArrow / @c IsIsomorphism stay there), mirroring
+ * how the @c is_involutive machinery was extracted into @c :involution:
+ *  @li @c IsRetractableArrow, a monic arrow carrying a partial inverse: the
+ *      concept the @c :image decidability seam dispatches on;
+ *  @li @c IsoRetract and the blanket @c retract, the wiring
+ *      @c IsIsomorphism ⟹ @c IsRetractableArrow, so a sound iso is retractable
+ *      @b by @b construction (its total @c inverse wrapped in always-Some),
+ * with no manual, unaudited hook.
+ *
+ * @section iso__Retract_As_Kleisli
+ * A retract is a Kleisli arrow into the maybe monad,
+ * @c retract(f) @c : @c Cod<F> @c → @c Maybe<Dom<F>>, spelled honestly with
+ * @c category::Maybe and the unit @c η (@c maybe_hub) from @c :functor /
+ * @c :natural, not raw @c std::optional.  That is why this partition sits
+ * downstream of @c :natural (@c :morphism → @c :natural → @c :iso): it removes
+ * the layering inversion in which @c :morphism (importing only @c :species)
+ * reached for a raw @c optional that is really @c Maybe.
+ *
+ * @section iso__Branch_On_Iso
+ * Dispatch branches on iso: the @c :image @c ImageChi iso specialisation and
+ * the DSL @c image(iso, Set) overload (#657) take precedence over the retract
+ * path (guarded @c !IsIsomorphism), so an iso uses its own tighter path and
+ * only monic-but-not-iso arrows take the retract route.  The blanket iso @c
+ * retract additionally gates on the inverse arrow being @b const-invocable (the
+ * #823 discipline), so a mutable-inverse-only iso is @b not advertised
+ * retractable.
+ *
+ * Wikipedia: Section (category theory); Kleisli category; Equaliser
+ * (mathematics).
+ *
+ * @note "Every standard construction is induced by a pair of adjoint
+ *       functors."  Heinrich Kleisli, Proc. Amer. Math. Soc. 16(3) (1965),
+ *       pp. 544-546: the title of the note showing every monad (a "standard
+ *       construction") resolves through the Kleisli category.  Fitting, since a
+ *       retract here is a Kleisli arrow, the structure handed back through the
+ *       unit @c η.  (Kleisli wrote in English; no translation needed.)
+ *
+ * @build_order imports @c :morphism, @c :functor, @c :natural; upstream of
+ *              @c :image (which dispatches on @c IsRetractableArrow).
  */
 module;
 
@@ -58,18 +91,29 @@ struct IsoRetract {
  *  @c retract(f) lookup finds it by @b ordinary (non-ADL) lookup: an iso
  *  defined in a client namespace (whose associated namespaces do not include
  *  @c dedekind::category) is then still retractable, as the blanket
- *  implication advertises. */
+ *  implication advertises.
+ *
+ *  Gated on the inverse arrow being @b const-invocable: @c IsoRetract holds
+ *  @c f as a @c const member and applies @c inverse(f) in a @c const
+ *  @c operator(), so a mutable-inverse-only iso (one that satisfies
+ *  @c IsIsomorphism but whose inverse arrow has a mutable-only @c operator())
+ *  must @b not be advertised as retractable: without this guard the concept's
+ *  call-expression check passes (the body is not instantiated) yet the actual
+ *  @c retract(f)(y) fails to compile.  This mirrors the #823 const-invocability
+ *  discipline the @c ImageChi retract seam also enforces. */
 export template <typename F>
-  requires IsIsomorphism<std::remove_cvref_t<F>>
+  requires IsIsomorphism<std::remove_cvref_t<F>> &&
+           requires(const std::remove_cvref_t<F>& cf, const Cod<F>& y) {
+             inverse(cf)(y);
+           }
 constexpr auto retract(F&& f) {
   return IsoRetract<std::remove_cvref_t<F>>{std::forward<F>(f)};
 }
 
 /**
  * @concept IsRetractableArrow
- * @brief A monic arrow that ships with a structurally-known
- *        @em retract --- a partial inverse
- *        @c retract(f) @c : @c Cod<F> @c → @c Maybe<Dom<F>> ---
+ * @brief A monic arrow that ships with a structurally-known @em retract, a
+ *        partial inverse @c retract(f) @c : @c Cod<F> @c → @c Maybe<Dom<F>>,
  *        discoverable via ADL on @p F.
  *
  * @details The retract is the operational gate for a decidability path
@@ -99,7 +143,7 @@ constexpr auto retract(F&& f) {
  * @c operator*).  Generalising to
  * the project's broader @c IsPotential surface (which also admits
  * @c Partial<T> / @c TernaryResult<T> as Maybe-likes) is a deliberate
- * follow-up --- for retracts specifically, the binary has/has-not
+ * follow-up; for retracts specifically, the binary has/has-not
  * distinction @c std::optional carries is what the image-overload
  * needs, and tighter shapes than that aren't load-bearing today.
  *
