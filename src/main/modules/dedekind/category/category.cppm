@@ -87,6 +87,10 @@ export import :f_algebra;  // Initial F-algebra / terminal F-coalgebra
                            // universal-property reification (Pierce §5; closes
                            // #449)
 export import :natural;
+export import :iso;         // Retract / iso-enabling surface (Kleisli into the
+                            // maybe monad): IsRetractableArrow, IsoRetract,
+                            // blanket iso retract.  Downstream of :natural for
+                            // Maybe / η.
 export import :adjunction;  // Free / Forgetful pair, IsAdjunction (Pierce-style
                             // separate section)
 export import :monad;

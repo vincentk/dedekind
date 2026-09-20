@@ -35,6 +35,31 @@ struct TriEven {
     return (x % 2 == 0) ? Ternary::True : Ternary::False;
   }
 };
+
+// The parallel pair whose equalizer is the graph Γ_succ ⊆ int×int:
+// (succ∘π₁, π₂) : int×int → int, coinciding exactly where b = succ(a).
+struct SuccPi1Arrow {
+  using Domain = std::pair<int, int>;
+  using Codomain = int;
+  constexpr int operator()(const std::pair<int, int>& p) const {
+    return Succ{}(p.first);
+  }
+};
+struct Pi2Arrow {
+  using Domain = std::pair<int, int>;
+  using Codomain = int;
+  constexpr int operator()(const std::pair<int, int>& p) const {
+    return p.second;
+  }
+};
+// The graph of a function IS a categorical equalizer, reified through the graph
+// adapter (dyadic.cppm's conceptual chain): Γ_succ is the equalizer subobject
+// of int×int of (succ∘π₁, π₂).  The :relational sibling of the affine
+// translation-graph equalizer witnessed in algebra:halfspace_transport (#876).
+static_assert(dedekind::category::IsEqualizer<decltype(graph(Succ{})),
+                                              SuccPi1Arrow, Pi2Arrow>,
+              "a functional graph IS an equalizer subobject of A×B: "
+              "Γ_succ = equalizer(succ∘π₁, π₂).");
 }  // namespace
 
 TEST_CASE("graph: functional relative product Γ_f ; Γ_g = Γ_{f;g} at runtime",

@@ -25,6 +25,17 @@ import dedekind.category;
 
 using namespace dedekind::category;
 
+namespace {
+// A general (non-iso, non-monic) arrow: squaring is not injective, has no
+// inverse and no retract, so @c image_of on it keeps the default Ternary
+// classifier.  (Identity is NOT such a witness: it is an iso, hence decidable.)
+struct SquaringEndo {
+  using Domain = int;
+  using Codomain = int;
+  constexpr int operator()(int x) const { return x * x; }
+};
+}  // namespace
+
 TEST_CASE(
     "category:factorisation — Identity<int> is the trivial regular epi / mono",
     "[category][factorisation][regular-epi][regular-mono][identity]") {
@@ -143,13 +154,22 @@ TEST_CASE("image:image_of — factory produces a Subobject of Cod<F>",
   STATIC_CHECK(IsSubobject<decltype(image_const), int>);
 
   // Runtime witness — exercises the factory body, the Subobject
-  // construction, the ImageChi default classifier, and the
-  // Subobject::operator() forwarder all at runtime.
+  // construction, the ImageChi iso classifier, and the
+  // Subobject::operator() forwarder all at runtime.  Identity is an iso, so
+  // its image is the whole codomain: membership is decidably true.
   Identity<int> id_int_runtime{};
   auto image_runtime = image_of(id_int_runtime);
-  CHECK(image_runtime(42) == Ternary::Unknown);
-  CHECK(image_runtime(0) == Ternary::Unknown);
-  CHECK(image_runtime(-1) == Ternary::Unknown);
+  CHECK(image_runtime(42) == true);
+  CHECK(image_runtime(0) == true);
+  CHECK(image_runtime(-1) == true);
+
+  // A GENERAL (non-iso, non-monic) arrow keeps the default Honest-Rejection
+  // classifier (Ternary::Unknown) — the ∃ is Rice-undecidable.  Runtime witness
+  // so codecov sees the default ImageChi::operator() body.
+  auto image_general = image_of(SquaringEndo{});
+  CHECK(image_general(42) == Ternary::Unknown);
+  CHECK(image_general(0) == Ternary::Unknown);
+  CHECK(image_general(-1) == Ternary::Unknown);
 
   // Also exercise the Subobject::ι inclusion arm at runtime (it's
   // wired up by the factory but not otherwise touched).

@@ -23,6 +23,23 @@
  * @c :expressions, so the arrow participates mechanically in the relational
  * algebra of @c :relational.
  *
+ * @section graph__The_Graph_Is_An_Equalizer
+ * Categorically @f$\Gamma_f@f$ is the @b equalizer subobject of @f$A\times B@f$
+ * of the parallel pair @f$(f\circ\pi_A,\ \pi_B) : A\times B \to B@f$: exactly
+ * the members where the two coincide, @f$f(a)=b@f$.  Hence a graph is a
+ * @c category::IsEqualizer (an @c IsSubobject of @c pair<A,B>), @b not an
+ * @c IsIsomorphism arrow (its @c Set-domain is the @b product @c pair<A,B>, not
+ * @c A).  The function it carries is the @b triple @c IsFunction<Graph<F>, A,
+ * B>
+ * @c = @c (domain @c A, @c codomain @c B, @b predicate), and the predicate slot
+ * (the equalizing @f$f(a)=b@f$) is the categorically-honest home of the
+ * function-ness: derived properties such as retractability and decidable
+ * @c image pin on @b that predicate, not on any @c pair<A,B> @c → @c Ω view of
+ * the @c Set.  Pinned concretely for the affine translation graph by
+ * @c static_assert(category::IsEqualizer<...>) in @c
+ * algebra:halfspace_transport
+ * (#876).
+ *
  * @section graph__Single_Source_Of_Truth
  * The membership predicate delegates to @c category::arrow_as_relation<F>
  * (the two-argument indicator @f$(a,b) \mapsto f(a)=b@f$, which already
@@ -192,6 +209,11 @@ concept IsFunctional = dedekind::category::is_right_unique_v<R>;
 export template <typename R>
 concept IsEntire = dedekind::category::is_left_total_v<R>;
 // A FUNCTION is a relation that is functional and entire (nLab, verbatim).
+// The signature is the TRIPLE (domain A, codomain B, predicate R): R is the
+// equalizing predicate f(a)=b, so a functional graph IS the equalizer subobject
+// of A×B of the parallel pair (f∘π_A, π_B) --- @c category::IsEqualizer, not an
+// @c IsIsomorphism arrow (see the @c graph__The_Graph_Is_An_Equalizer header
+// note and the witness in @c algebra:halfspace_transport, #876).
 export template <typename R, typename A, typename B>
 concept IsFunction = dedekind::category::IsBinaryRelation<R, A, B> &&
                      IsFunctional<R> && IsEntire<R>;

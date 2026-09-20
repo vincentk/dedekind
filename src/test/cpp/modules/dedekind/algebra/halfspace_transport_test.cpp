@@ -13,6 +13,9 @@
  */
 
 #include <catch2/catch_test_macros.hpp>
+#include <functional>  // std::plus (equalizer parallel-pair arrow)
+#include <limits>
+#include <type_traits>  // std::is_same_v (𝔽64 converse type witness)
 #include <utility>
 
 import dedekind.category;
@@ -29,6 +32,35 @@ using namespace dedekind::order;
 namespace {
 inline constexpr auto ℤ = 𝔸<SignedCardinality>;
 inline constexpr auto ℕ = 𝔸<Cardinality>;
+using dedekind::algebra::𝔽64;  // GF(2⁶): operator+ is XOR (characteristic 2)
+
+// ── #876 finding 2: the translation graph IS a categorical equalizer ─────────
+// A translation graph is NOT an IsIsomorphism arrow: its Set-Domain is the
+// product pair<T,T>.  It is the EQUALIZER subobject of pair<T,T> where the
+// parallel pair (π1+K, π2): pair<T,T> → T coincide, representing the function
+// whose (domain, codomain) are (T, T).  So the group⟹decidable-image mileage
+// pins on the predicate slot of the (domain, codomain, predicate) triple, not
+// on a Set→Ω arrow view.  Pinned via category::IsEqualizer for future/CP
+// reference.
+using ZT = SignedCardinality;
+struct Pi1Plus3Arrow {
+  using Domain = std::pair<ZT, ZT>;
+  using Codomain = ZT;
+  constexpr ZT operator()(const std::pair<ZT, ZT>& p) const {
+    return std::plus<ZT>{}(p.first, static_cast<ZT>(3));
+  }
+};
+struct Pi2Arrow {
+  using Domain = std::pair<ZT, ZT>;
+  using Codomain = ZT;
+  constexpr ZT operator()(const std::pair<ZT, ZT>& p) const { return p.second; }
+};
+static_assert(
+    dedekind::category::IsEqualizer<decltype(ℤ * ℤ | π1 + fix(3_c) == π2),
+                                    Pi1Plus3Arrow, Pi2Arrow>,
+    "the translation graph x+3==y is the equalizer subobject of pair<T,T> of "
+    "the parallel pair (π1+3, π2): the categorical view CP's IsIsomorphism "
+    "expectation missed (#876 finding 2).");
 
 // ── image: bare onto-ness, and the affine pushforward of a halfspace ─────────
 static_assert(image(ℤ* ℤ | π1 + fix(3_c) == π2) == ℤ,
@@ -130,6 +162,42 @@ static_assert(((ℤ * ℤ | π1 + fix(2_c) == π2) >> (ℤ * ℤ | π1 + fix(3_c
                inverse(ℤ * ℤ | π1 + fix(2_c) == π2)) ==
                   (ℤ * ℤ | π1 + fix(3_c) == π2),
               "abelian conjugation: g ∘ f ∘ g⁻¹ = f (+ commutes).");
+
+// ── #875 over a Galois field: is the free theorem operator-generic, or gated
+// on std::plus?  It is gated on std::plus (the graph is π1+fix(K)), so it picks
+// up any carrier whose GROUP operation is spelled operator+: ℤ, unsigned
+// (ℤ/2ʷ), and 𝔽64 = GF(2⁶), whose operator+ IS XOR (characteristic 2).  A sharp
+// coherence test: XOR also means set symmetric difference (^) in Trsk, but 𝔽64
+// routes its group op through operator+, not ^, so the translation graph does
+// not collide with the set-level ^.  In char 2 the shift is self-inverse (−K =
+// K), computed through the group-inverse registry (category::inverse_v), so the
+// inverse graph is the same graph.  (Generalizing the GRAPH itself to a
+// non-additive op, e.g. π1·fix(K) over a multiplicative group, is #882.)
+static_assert(dedekind::category::IsAbelianGroup<𝔽64, std::plus<𝔽64>>,
+              "𝔽64 = GF(2⁶) is an additive abelian group under + (= XOR): the "
+              "#875 IsAbelianGroup gate picks it up.");
+// The inverse gate FIRES for a 𝔽64 translation graph AND the converse shift is
+// the GROUP inverse, taken from the group-inverse registry (category::inverse_v
+// → the 𝔽64 inverse(a, std::plus) hook in :galois), NOT carrier operator- on
+// the NTTP.  In characteristic two −K = K, so the converse graph is the SAME
+// graph: its type equals the forward graph's type.  This is the sharp coherence
+// test the group carrier was chosen for, and it is the point of finding #876:1
+// (derive the shift from the group-inverse API).  A plain −K would have leaned
+// on 𝔽64's carrier operator-, which IsGroup never promises.
+static_assert(
+    std::is_same_v<decltype(inverse(𝔸<𝔽64> * 𝔸<𝔽64> |
+                                    π1 + Bound<𝔽64{5}>{} == π2)),
+                   decltype(𝔸<𝔽64> * 𝔸<𝔽64> | π1 + Bound<𝔽64{5}>{} == π2)>,
+    "#876/#875: over 𝔽64 = GF(2⁶) the group inverse of the +5 shift is +5 "
+    "itself (char 2), so the converse graph EQUALS the forward graph; the "
+    "shift flows through the group-inverse registry, not carrier operator-.");
+// FINDING (the sharp test paid off): retractability generalized to any
+// IsAbelianGroup, and the converse now flows through the group-inverse registry
+// rather than carrier negation.  Set==Set equality is still gated on
+// IsSaturating and entireness on IsOrderedAdditiveGroup/ℕ, which 𝔽64 (a
+// non-ordered field) does NOT satisfy, so a 𝔽64 graph gets its inverse but
+// cannot yet be compared by value / asserted entire in the DSL (hence the
+// type-level decltype witness above).  Widening those gates is the #882 thread.
 
 // ── Existence proof: the DSL's graph relations are FUNCTIONS (functional AND
 // entire), the property INFERRED through composition.  Entireness is the
@@ -279,4 +347,24 @@ TEST_CASE("algebra:halfspace_transport — preimage, the contravariant inverse",
   volatile int m5 = -5, m6 = -6;
   CHECK(back(int(m5)));        // −5 ≥ −5, and −(−5)=5 ≤ 5
   CHECK_FALSE(back(int(m6)));  // −6 ≱ −5, and −(−6)=6 ≰ 5
+}
+
+// #875: retractability generalizes ℤ → arbitrary IsGroup.  The graph `inverse`
+// gate relaxed from IsOrderedAdditiveGroup to IsAbelianGroup, so a
+// translation's converse graph (the group inverse of the shift) is now
+// available on a cyclic group such as `unsigned` (ℤ/2ʷ), which the old gate
+// withheld.  The converse is the (modular) inverse: (x, x−1) ∈ inverse(succ),
+// even under wrap.
+TEST_CASE(
+    "algebra:halfspace_transport: inverse over a cyclic group (unsigned), #875",
+    "[algebra][inverse][group]") {
+  constexpr auto U = 𝔸<unsigned>;
+  const auto succ = U * U | π1 + fix(1_c) == π2;  // graph of x ↦ x+1 over ℤ/2ʷ
+  const auto pred = inverse(succ);                // converse = modular x ↦ x−1
+  volatile unsigned ten = 10u;
+  CHECK(pred(std::pair{unsigned(ten), 9u}));         // (10, 9) ∈ inverse(succ)
+  CHECK_FALSE(pred(std::pair{unsigned(ten), 11u}));  // (10, 11) ∉ inverse(succ)
+  volatile unsigned zero = 0u;
+  // The modular group inverse wraps: pred(0) = UINT_MAX (0 − 1 in ℤ/2ʷ).
+  CHECK(pred(std::pair{unsigned(zero), std::numeric_limits<unsigned>::max()}));
 }
