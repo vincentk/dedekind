@@ -485,6 +485,23 @@ struct AndPredicate {
   }
 };
 
+/** @brief @c π_1 / @c π_2 for @c AndPredicate: the non-collapsed meet's
+ *  classifier @b is the pairing @f$\langle \chi_A, \chi_B \rangle@f$ of the two
+ *  operand classifiers, so it satisfies @c category::IsProduct<AndPredicate<P,
+ *  Q>, P, Q>.  Free overloads (found by ADL), overriding the default
+ *  @c .first / @c .second projection exactly as @c Dual overrides it with
+ *  @c val / @c der.  This reifies the set meet @c A @c & @c B (classified by
+ *  @c AndPredicate) as the classifier-pairing that makes it the pullback of
+ *  @c A ↪ U ↩ B in @c Sub(U): #881, the @c category → @c sets alignment. */
+export template <CombinablePredicate P, CombinablePredicate Q>
+constexpr P π_1(const AndPredicate<P, Q>& a) {
+  return a.lhs;
+}
+export template <CombinablePredicate P, CombinablePredicate Q>
+constexpr Q π_2(const AndPredicate<P, Q>& a) {
+  return a.rhs;
+}
+
 /** @brief Structural disjunction of two predicates: the @b named join dual of
  *  @c AndPredicate, produced by @c Set::operator| (and the predicate-level
  *  @c operator||) when no @c structured_or collapse fires (#365). */
