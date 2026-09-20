@@ -195,18 +195,11 @@ struct Ø final {
   // satisfy @c IsSet structurally post-#625, so the lattice ops accept
   // anything that does.
 
-  // Ø | S = S
-  template <typename S>
-    requires(IsSet<S>)
-  constexpr auto operator|(const S& s) const {
-    return s;
-  }
-  // Ø & S = Ø
-  template <typename S>
-    requires(IsSet<S>)
-  constexpr auto operator&(const S&) const {
-    return *this;
-  }
+  // Ø | S and Ø & S are the subobject-lattice join / meet.  They are no
+  // longer hand-spelled here: the reducer's bounded law (⊥∨X=X, ⊥∧X=⊥)
+  // supplants them via the free operators below (#865/#890, Phase 2), which
+  // recognise Ø as the ⊥ of Sub(T) under subobject_order<L>.
+
   // Ø ^ S = S  (∅ △ S = S; #469)
   template <typename S>
     requires(IsSet<S>)
@@ -333,10 +326,6 @@ struct UniversalSet final {
     return true;
   }
 
-  // Note: You'll eventually want overloads for:
-  // Universal | Any = Universal
-  // Universal & Any = Any
-
   // The Axiom: Total Presence
   constexpr typename L::Ω operator()(const T&) const { return L::True; }
 
@@ -349,23 +338,13 @@ struct UniversalSet final {
 
   constexpr cardinality_type cardinality() const { return cardinality_type{}; }
 
-  /** @brief @c U @c | @c S @c = @c U: the universe absorbs any subobject.
-   *  @details Gated by @c IsSubobject<S, T>, so it admits @c Halfspace,
-   *  @c Singleton and @c Set alike, not only full @c IsSet.  An unbound
-   *  predicate fragment (e.g.\ the point-free @c π @c > @c fix(5) shape in
-   *  @c :order:halfspace) is not a subobject; it binds to this universe via
-   *  its own @c operator| instead, spelling the where-clause. */
-  template <typename S>
-    requires(IsSubobject<S, T>)
-  constexpr auto operator|(const S&) const {
-    return *this;
-  }
-
-  // U & S = S
-  template <typename S>
-  constexpr auto operator&(const S& s) const {
-    return s;
-  }
+  // U | S = U and U & S = S are the subobject-lattice join / meet.  They are
+  // no longer hand-spelled here: the reducer's bounded law (⊤∨X=⊤, ⊤∧X=X)
+  // supplants them via the free operators below (#865/#890, Phase 2), which
+  // recognise 𝔸 as the ⊤ of Sub(T) under subobject_order<L>.  (The unbound
+  // predicate fragment that the old IsSubobject-gated U|S deliberately did NOT
+  // capture is not IsSet, so the IsSet-gated free operator| leaves it to bind
+  // via its own operator|, as before.)
 
   // U ^ S = ¬S  (U △ S = ¬S; #469)
   // Pointwise: x ∈ U △ S iff x is in exactly one; x is always in U,
@@ -412,9 +391,76 @@ inline constexpr UniversalSet<bool, ClassicalLogic, Finite> 𝔸<bool>{};
 export template <typename L = ClassicalLogic>
 struct subobject_order {};
 
+/** @brief The lattice-law term reducer localised to the subobject lattice
+ *  @c Sub(T): normalise @c Term under @c subobject_order<L> as @b both the
+ *  semantic order (@c Ord, boundedness / distributivity / complement) and the
+ *  canonicalisation order (@c Less).  Every set-level meet / join / complement
+ *  route (the boundary operators below, and @c Set::operator&/|/~ in
+ *  @c :expressions) folds through this one alias, so the injected-order policy
+ *  for @c Sub(T) is named in a single place (#865/#890, Phase 2). */
+export template <typename Term, typename L = ClassicalLogic>
+using subobject_reduce_t =
+    reduce_t<Term, subobject_order<L>, subobject_order<L>>;
+
 template <typename T, typename L>
 constexpr auto Ø<T, L>::operator!() const {
   return UniversalSet<T, L>{};
+}
+
+/** @section boundaries__Engine_Routed_Lattice_Ops
+ *
+ *  The boundary meet / join are no longer hand-spelled inside @c Ø and
+ *  @c UniversalSet.  They route through the generic lattice-law term reducer
+ *  (@c category:lattice_term, #865/#890): the term @c Meet<boundary,S> /
+ *  @c Join<boundary,S> is reduced under @c subobject_order<L>, where @c Ø is
+ *  the ⊥ (initial) and @c 𝔸 the ⊤ (terminal) of @c Sub(T).  The reducer's
+ *  bounded law then supplies the four identities the members used to spell by
+ *  hand (⊥∧X=⊥, ⊥∨X=X, ⊤∧X=X, ⊤∨X=⊤).
+ *
+ *  @c materialize_boundary: the reducer works on @b types, so the normal form
+ *  is turned back into a value.  Either the term collapsed to a stateless
+ *  boundary (@c Ø / @c UniversalSet — default-construct it), or the surviving
+ *  operand is the normal form (return the operand value @c s).  These are the
+ *  only two shapes a bounded-law collapse can produce for a boundary term. */
+namespace detail_boundary {
+template <typename R, typename S>
+constexpr auto materialize(const S& s) {
+  if constexpr (std::same_as<R, std::remove_cvref_t<S>>) {
+    return s;  // the operand survived as the normal form (unit law)
+  } else {
+    return R{};  // the term collapsed to a stateless boundary (annihilator)
+  }
+}
+}  // namespace detail_boundary
+
+// Ø & S / Ø | S : the ⊥ of Sub(T) meets / joins any set.  Free operators (the
+// Ø-LHS members were retired); overload resolution pins them by the Ø operand.
+export template <typename T, typename L, typename S>
+  requires(IsSet<S>)
+constexpr auto operator&(const Ø<T, L>&, const S& s) {
+  return detail_boundary::materialize<subobject_reduce_t<Meet<Ø<T, L>, S>, L>>(
+      s);
+}
+export template <typename T, typename L, typename S>
+  requires(IsSet<S>)
+constexpr auto operator|(const Ø<T, L>&, const S& s) {
+  return detail_boundary::materialize<subobject_reduce_t<Join<Ø<T, L>, S>, L>>(
+      s);
+}
+
+// 𝔸 & S / 𝔸 | S : the ⊤ of Sub(T) meets / joins any set.  Free operators (the
+// UniversalSet-LHS members were retired); pinned by the UniversalSet operand.
+export template <typename T, typename L, typename C, typename S>
+  requires(IsSet<S>)
+constexpr auto operator&(const UniversalSet<T, L, C>&, const S& s) {
+  return detail_boundary::materialize<
+      subobject_reduce_t<Meet<UniversalSet<T, L, C>, S>, L>>(s);
+}
+export template <typename T, typename L, typename C, typename S>
+  requires(IsSet<S>)
+constexpr auto operator|(const UniversalSet<T, L, C>&, const S& s) {
+  return detail_boundary::materialize<
+      subobject_reduce_t<Join<UniversalSet<T, L, C>, S>, L>>(s);
 }
 
 // Cardinality metadata drives extensional classification for UniversalSet.
@@ -625,9 +671,10 @@ struct is_transfinite<dedekind::sets::UniversalSet<T, L, C>>
 // ── Term-reducer boundary hookup (#865/#890, Phase 2) ──────────────────────
 // Ø is the ⊥ (initial) and 𝔸 the ⊤ (terminal) of the subobject lattice Sub(T)
 // under the injected order dedekind::sets::subobject_order<L>, so the reducer's
-// bounded law (⊥∧X=⊥, ⊤∨X=⊤, ⊤∧X=X, ⊥∨X=X) recognises them and supplants the
-// hand-written left-biased Ø / 𝔸 operator members (retired in a following
-// slice).
+// bounded law (⊥∧X=⊥, ⊤∨X=⊤, ⊤∧X=X, ⊥∨X=X) recognises them.  The hand-written
+// left-biased Ø / 𝔸 operator& / operator| members have now been retired: the
+// free engine-routed operators in the sets namespace above delegate to reduce<>
+// and materialise the normal form back to a value.
 template <typename T, typename L>
 struct is_lattice_bottom_for<dedekind::sets::Ø<T, L>,
                              dedekind::sets::subobject_order<L>>
@@ -641,17 +688,17 @@ struct is_lattice_top_for<dedekind::sets::UniversalSet<T, L, C>,
 // Sub(T) under subobject_order, so its bounded law reduces boundary meets/joins
 // (the annihilator / unit laws the hand-written Ø / 𝔸 operators currently
 // spell by hand — retired next).
-static_assert(std::same_as<reduce_t<Meet<dedekind::sets::Ø<int>,
-                                         dedekind::sets::UniversalSet<int>>,
-                                    dedekind::sets::subobject_order<>,
-                                    dedekind::sets::subobject_order<>>,
-                           dedekind::sets::Ø<int>>,
-              "Ø ∧ 𝔸 → Ø (Ø recognised as the subobject-lattice ⊥).");
-static_assert(std::same_as<reduce_t<Join<dedekind::sets::Ø<int>,
-                                         dedekind::sets::UniversalSet<int>>,
-                                    dedekind::sets::subobject_order<>,
-                                    dedekind::sets::subobject_order<>>,
-                           dedekind::sets::UniversalSet<int>>,
-              "Ø ∨ 𝔸 → 𝔸 (𝔸 recognised as the subobject-lattice ⊤).");
+static_assert(
+    std::same_as<
+        dedekind::sets::subobject_reduce_t<
+            Meet<dedekind::sets::Ø<int>, dedekind::sets::UniversalSet<int>>>,
+        dedekind::sets::Ø<int>>,
+    "Ø ∧ 𝔸 → Ø (Ø recognised as the subobject-lattice ⊥).");
+static_assert(
+    std::same_as<
+        dedekind::sets::subobject_reduce_t<
+            Join<dedekind::sets::Ø<int>, dedekind::sets::UniversalSet<int>>>,
+        dedekind::sets::UniversalSet<int>>,
+    "Ø ∨ 𝔸 → 𝔸 (𝔸 recognised as the subobject-lattice ⊤).");
 
 }  // namespace dedekind::category
