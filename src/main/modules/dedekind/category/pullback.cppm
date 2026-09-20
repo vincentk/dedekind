@@ -255,7 +255,17 @@ concept IsKernelPair = IsPullback<P, F, F>;
  * ∀-universal property remain the engineer's-honesty obligation (C++ concepts
  * reason about shape, not the ∀ that makes the cocone initial).  #881.
  *
- * @tparam P The candidate pushout apex (a Subobject carrying the colegs).
+ * @note @b Scope: this is the @c Sub(U)-specific pushout, whose apex is a
+ * @c IsSubobject just as @c IsPullback's is.  In a general category the strict
+ * dual of a mono (subobject) apex is an @b epi (quotient) apex, so a general
+ * colimit is not a subobject; @c category::IsQuotient (@c topoi.cppm) is the
+ * dual representation earmarked for that general pushout / colimit.  Here the
+ * join @c A @c | @c B genuinely @b is a subobject of the ambient @c U (in the
+ * thin poset @c Sub(U) every object is a subobject of @c U), so the
+ * subobject-apex constraint is exact for this setting, not an over-restriction.
+ *
+ * @tparam P The candidate pushout apex (a @c Sub(U) subobject carrying the
+ *           colegs; the general colimit apex is a @c IsQuotient instead).
  * @tparam F The span arrow f: Z ⟶ X.
  * @tparam G The span arrow g: Z ⟶ Y.
  */
@@ -264,11 +274,13 @@ concept IsPushout = IsArrow<F> && IsArrow<G> && std::same_as<Dom<F>, Dom<G>> &&
                     IsSubobject<P, typename P::Domain> &&
                     requires(P p, const Cod<F>& x, const Cod<G>& y) {
                       // The two colegs ι1: X ⟶ P and ι2: Y ⟶ P (dual to π1/π2).
-                      // Their existence is the shape; commutativity +
-                      // universality are the honesty obligation (cf. IsPullback
-                      // / IsEqualizer).
-                      { p.ι1(x) };
-                      { p.ι2(y) };
+                      // Both land in the apex, so both return P's Member (dual
+                      // to IsPullback's legs returning Dom<F>/Dom<G>); a void
+                      // coleg must not qualify.  Commutativity + universality
+                      // remain the honesty obligation (cf. IsPullback /
+                      // IsEqualizer).
+                      { p.ι1(x) } -> std::same_as<typename P::Member>;
+                      { p.ι2(y) } -> std::same_as<typename P::Member>;
                     };
 
 /**

@@ -53,7 +53,7 @@ import :species;
 namespace dedekind::category {
 
 // NOTE (#637 re-home): the @c IsProduct concept family --- @c
-// IsPairLikeProduct, @c IsProduct, @c IsProductProjection, @c
+// IsProduct, @c IsProductProjection, @c
 // IsProjectedProduct, @c IsArrowFromProduct, plus the @c
 // SpeciesTraits<std::pair<A, B>> / @c SpeciesTraits<std::tuple<Ts...>>
 // specialisations and the @c mediate_product factory --- moved to @c

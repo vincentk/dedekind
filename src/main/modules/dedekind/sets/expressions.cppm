@@ -465,15 +465,23 @@ concept CombinablePredicate =
  *  @c && (Kleene when both return @c Ternary; @c FIXME(#780) tracks the mixed
  *  bool/Ternary lift the raw operator skips).
  *
- *  @note (category alignment, #881) The meet @c A @c & @c B classifies
- *  @f$A\cap B@f$ by @f$\chi_A \wedge \chi_B@f$; categorically that intersection
- *  @b is the @c category::IsPullback of the two subobject inclusions
- *  @f$A\hookrightarrow U \hookleftarrow B@f$ (the fiber product over the
- *  ambient), the classifier presentation of that pullback.  Anchored by a
- *  static witness in @c category/pullback_test (@f$2\mathbb{Z}\cap
- *  3\mathbb{Z}=6\mathbb{Z}@f$).  Full alignment (pin @c IsPullback on
- *  @c set_intersection itself, and @c natural_join as a pullback over shared
- *  columns) is the @c category → @c sets → @c relational follow-up. */
+ *  @note (category alignment, #881) The @b non-collapsing meet @c A @c & @c B
+ *  --- the one whose apex is this @c AndPredicate (no @c structured_and
+ *  reduction fired) --- classifies @f$A\cap B@f$ by @f$\chi_A \wedge \chi_B@f$,
+ *  and categorically @b is the @c category::IsPullback of the two subobject
+ *  inclusions @f$A\hookrightarrow U \hookleftarrow B@f$ (the fiber product over
+ *  the ambient).  @b Scope: a @b reduced meet (@c operator& collapsing to
+ *  @c Ø / @c UniversalSet / @c SingletonSet / @c OrderInterval, or a
+ *  @c structured_and result) does @b not carry this @c operation tag or the
+ *  legs, so it does not satisfy the concept as written --- it is the
+ *  @e collapsed pullback, and preserving the source-leg metadata through those
+ *  reductions is tracked by @c FIXME(#834) (converge @c meet /@c &) and
+ *  @c FIXME(#865) (the lattice-law normaliser).  Anchored by a static witness
+ *  in @c category/pullback_test (@f$2\mathbb{Z}\cap
+ * 3\mathbb{Z}=6\mathbb{Z}@f$). Full alignment (pin @c IsPullback on @c
+ * set_intersection itself, and
+ *  @c natural_join as a pullback over shared columns) is the @c category →
+ *  @c sets → @c relational follow-up. */
 export template <CombinablePredicate P, CombinablePredicate Q>
 struct AndPredicate {
   P lhs;
@@ -481,14 +489,17 @@ struct AndPredicate {
 
   /** @brief The reduction operation this pairing feeds, as a first-class type
    *  parameter (like algebra's @c IsMonoid<X,Op>, @c Op @c = @c std::plus): the
-   *  meet @c ∧ is @c std::logical_and.  Read by @c IsPairingOver to expose the
-   *  pullback legs on a meet, replacing the old @c is_meet_pairing_v marker.
-   *  #881. */
+   *  meet @c ∧ is @c std::logical_and.  Read as @c category::IsProduct's @c Op
+   *  to expose the pullback legs on a meet, replacing the old
+   *  @c is_meet_pairing_v marker.
+   *  @b Metadata only: @c operator() keeps the lazy short-circuiting @c && (a
+   *  guarded / expensive @c rhs must not run when @c lhs is false); calling the
+   *  functor would evaluate both operands first.  #881. */
   using operation = std::logical_and<>;
 
   template <typename T>
   constexpr auto operator()(const T& v) const {
-    return operation{}(lhs(v), rhs(v));
+    return lhs(v) && rhs(v);
   }
 };
 
@@ -518,13 +529,16 @@ struct OrPredicate {
   Q rhs;
 
   /** @brief The reduction operation, dual to @c AndPredicate: the join @c ∨ is
-   *  @c std::logical_or.  Read by @c IsPairingOver to expose the pushout colegs
-   *  on a join, replacing the old @c is_join_pairing_v marker.  #881. */
+   *  @c std::logical_or.  Read as @c category::IsProduct's @c Op to expose the
+   *  pushout colegs on a join, replacing the old @c is_join_pairing_v marker.
+   *  @b Metadata
+   *  only: @c operator() keeps the lazy short-circuiting @c || (see
+   *  @c AndPredicate).  #881. */
   using operation = std::logical_or<>;
 
   template <typename T>
   constexpr auto operator()(const T& v) const {
-    return operation{}(lhs(v), rhs(v));
+    return lhs(v) || rhs(v);
   }
 };
 
@@ -549,21 +563,15 @@ constexpr Q π_2(const OrPredicate<P, Q>& a) {
 
 /** @brief Which universal construction a pairing feeds is its reduction op, not
  *  the pairing: @c AndPredicate (∧) is the @b meet / pullback kind,
- *  @c OrPredicate (∨) the @b join / pushout kind.  Rather than two boolean
- *  markers, the operation is a first-class parameter (as algebra keys
- *  @c IsMonoid<X,Op> by @c Op): a pairing carries its @c operation typedef, and
- *  @c IsPairingOver<P,Op> tests it.  @c Set then exposes the pullback
- * projection legs (@c π1/@c π2) on a meet (@c
- * IsPairingOver<Predicate,std::logical_and<>>) and the pushout coprojection
- * colegs (@c ι1/@c ι2) on a join
- *  (@c std::logical_or<>), so a meet does not spuriously satisfy @c IsPushout
- *  nor a join @c IsPullback.  This is the operation-refinement of
- *  @c category::IsProduct: both pairings @b are products (⟨χ_A,χ_B⟩), and @c Op
- *  says which lattice product.  #881. */
-export template <typename P, typename Op>
-concept IsPairingOver = requires {
-  typename std::remove_cvref_t<P>::operation;
-} && std::same_as<typename std::remove_cvref_t<P>::operation, Op>;
+ *  @c OrPredicate (∨) the @b join / pushout kind.  Both @b are products
+ *  ⟨χ_A,χ_B⟩ (both carry @c π_1/@c π_2); @c Op says which lattice product. This
+ *  needs no @c sets-local concept: it is the @c Op parameter of
+ *  @c category::IsProduct<P,A,B,Op> (defaulting to @c AnyOperation, ignored).
+ *  @c Set gates its pullback projection legs (@c π1/@c π2) on a meet
+ *  (@c IsProduct<Predicate,...,std::logical_and<>>) and its pushout
+ *  coprojection colegs (@c ι1/@c ι2) on a join (@c ...,std::logical_or<>), so a
+ *  meet does not spuriously satisfy @c IsPushout nor a join @c IsPullback.
+ *  #881. */
 
 template <typename P1, typename P2>
 struct IsComplementPair : std::false_type {};
@@ -837,13 +845,21 @@ class Set {
    * name the operand predicates, @c ι supplies the value.  Guarded, so ordinary
    * Sets expose no legs.  #881. */
   constexpr auto π1(const Member& m) const
-    requires IsPairingOver<Predicate, std::logical_and<>>
+    requires dedekind::category::IsProduct<
+        Predicate,
+        std::remove_cvref_t<decltype(π_1(std::declval<const Predicate&>()))>,
+        std::remove_cvref_t<decltype(π_2(std::declval<const Predicate&>()))>,
+        std::logical_and<>>
   {
     using PA = std::remove_cvref_t<decltype(π_1(predicate_))>;
     return typename Set<T, L, PA>::Member{m.value};
   }
   constexpr auto π2(const Member& m) const
-    requires IsPairingOver<Predicate, std::logical_and<>>
+    requires dedekind::category::IsProduct<
+        Predicate,
+        std::remove_cvref_t<decltype(π_1(std::declval<const Predicate&>()))>,
+        std::remove_cvref_t<decltype(π_2(std::declval<const Predicate&>()))>,
+        std::logical_and<>>
   {
     using PB = std::remove_cvref_t<decltype(π_2(predicate_))>;
     return typename Set<T, L, PB>::Member{m.value};
@@ -859,7 +875,10 @@ class Set {
    * value, opposite direction (operand ⟶ apex).  Guarded, so only joins expose
    * colegs.  #881. */
   template <typename Pr = Predicate>
-    requires IsPairingOver<Pr, std::logical_or<>>
+    requires dedekind::category::IsProduct<
+        Pr, std::remove_cvref_t<decltype(π_1(std::declval<const Pr&>()))>,
+        std::remove_cvref_t<decltype(π_2(std::declval<const Pr&>()))>,
+        std::logical_or<>>
   constexpr Member
   ι1(const typename Set<
       T, L,
@@ -868,7 +887,10 @@ class Set {
     return Member{m.value};
   }
   template <typename Pr = Predicate>
-    requires IsPairingOver<Pr, std::logical_or<>>
+    requires dedekind::category::IsProduct<
+        Pr, std::remove_cvref_t<decltype(π_1(std::declval<const Pr&>()))>,
+        std::remove_cvref_t<decltype(π_2(std::declval<const Pr&>()))>,
+        std::logical_or<>>
   constexpr Member
   ι2(const typename Set<
       T, L,

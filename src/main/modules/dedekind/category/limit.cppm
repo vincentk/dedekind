@@ -315,15 +315,44 @@ constexpr auto π_2(const P& p) {
  * @c Rational satisfy it through the default @c .first / @c .second projection,
  * while @c Dual satisfies it through its @c val / @c der overload --- the P-leg
  * is uniform across every product-shaped carrier regardless of storage names.
+ *
+ * @tparam Op The reduction operation the product commits to, defaulting to
+ * @c AnyOperation (unconstrained; the base case, ignored).  Naming an @c Op
+ * (e.g. @c std::logical_and<> for a meet, @c std::logical_or<> for a join) pins
+ * the product to a pairing that declares that @c operation --- the mechanism
+ * @c sets uses to tell a meet-pairing (pullback legs) from a join-pairing
+ * (pushout colegs) without a separate concept.  #881.
  */
-template <typename P, typename A, typename B>
-concept IsPairLikeProduct = requires(P p) {
+/**
+ * @brief Base-case sentinel for @c IsProduct's operation parameter.
+ * @details When @c Op is @c AnyOperation (the default) the reduction is
+ * unconstrained, so every product qualifies regardless of whether it commits to
+ * a lattice reduction --- @c std::pair, @c Complex, @c Dual, @c Rational are
+ * all products "over any operation".  A pairing that DOES carry a reduction
+ * (e.g.
+ * @c sets::AndPredicate is ∧, @c OrPredicate is ∨, via an @c operation typedef)
+ * is pinned to it by naming that @c Op.  This is how algebra keys
+ * @c IsMonoid<X,Op> by @c Op: the operation is a first-class, defaulted
+ * parameter, ignored in the base case.
+ */
+export struct AnyOperation {};
+
+/** @brief The product declares reduction operation @c Op (its @c operation
+ *  typedef equals @c Op): the Op-refinement of @c IsProduct. */
+template <typename P, typename Op>
+concept HasOperation = requires {
+  typename std::remove_cvref_t<P>::operation;
+} && std::same_as<typename std::remove_cvref_t<P>::operation, Op>;
+
+export template <typename P, typename A, typename B, typename Op = AnyOperation>
+concept IsProduct = requires(P p) {
+  // The pair-like projection legs, formerly the standalone IsPairLikeProduct
+  // (folded in here as its only caller): π_1 / π_2, canonical over .first /
+  // .second, so std::pair / Complex / Rational (default) and Dual (val / der
+  // overload) all qualify.
   { π_1(p) } -> std::convertible_to<A>;
   { π_2(p) } -> std::convertible_to<B>;
-};
-
-export template <typename P, typename A, typename B>
-concept IsProduct = IsPairLikeProduct<P, A, B>;
+} && (std::same_as<Op, AnyOperation> || HasOperation<P, Op>);
 
 static_assert(
     IsProduct<std::pair<int, bool>, int, bool>,
