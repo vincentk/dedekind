@@ -479,9 +479,16 @@ struct AndPredicate {
   P lhs;
   Q rhs;
 
+  /** @brief The reduction operation this pairing feeds, as a first-class type
+   *  parameter (like algebra's @c IsMonoid<X,Op>, @c Op @c = @c std::plus): the
+   *  meet @c ∧ is @c std::logical_and.  Read by @c IsPairingOver to expose the
+   *  pullback legs on a meet, replacing the old @c is_meet_pairing_v marker.
+   *  #881. */
+  using operation = std::logical_and<>;
+
   template <typename T>
   constexpr auto operator()(const T& v) const {
-    return lhs(v) && rhs(v);
+    return operation{}(lhs(v), rhs(v));
   }
 };
 
@@ -510,9 +517,14 @@ struct OrPredicate {
   P lhs;
   Q rhs;
 
+  /** @brief The reduction operation, dual to @c AndPredicate: the join @c ∨ is
+   *  @c std::logical_or.  Read by @c IsPairingOver to expose the pushout colegs
+   *  on a join, replacing the old @c is_join_pairing_v marker.  #881. */
+  using operation = std::logical_or<>;
+
   template <typename T>
   constexpr auto operator()(const T& v) const {
-    return lhs(v) || rhs(v);
+    return operation{}(lhs(v), rhs(v));
   }
 };
 
@@ -537,18 +549,21 @@ constexpr Q π_2(const OrPredicate<P, Q>& a) {
 
 /** @brief Which universal construction a pairing feeds is its reduction op, not
  *  the pairing: @c AndPredicate (∧) is the @b meet / pullback kind,
- *  @c OrPredicate (∨) the @b join / pushout kind.  These markers let @c Set
- *  expose the pullback projection legs (@c π1/@c π2) on a meet and the pushout
- *  coprojection colegs (@c ι1/@c ι2) on a join, so a meet does not spuriously
- *  satisfy @c IsPushout nor a join @c IsPullback.  #881. */
-export template <typename>
-inline constexpr bool is_meet_pairing_v = false;
-export template <CombinablePredicate P, CombinablePredicate Q>
-inline constexpr bool is_meet_pairing_v<AndPredicate<P, Q>> = true;
-export template <typename>
-inline constexpr bool is_join_pairing_v = false;
-export template <CombinablePredicate P, CombinablePredicate Q>
-inline constexpr bool is_join_pairing_v<OrPredicate<P, Q>> = true;
+ *  @c OrPredicate (∨) the @b join / pushout kind.  Rather than two boolean
+ *  markers, the operation is a first-class parameter (as algebra keys
+ *  @c IsMonoid<X,Op> by @c Op): a pairing carries its @c operation typedef, and
+ *  @c IsPairingOver<P,Op> tests it.  @c Set then exposes the pullback
+ * projection legs (@c π1/@c π2) on a meet (@c
+ * IsPairingOver<Predicate,std::logical_and<>>) and the pushout coprojection
+ * colegs (@c ι1/@c ι2) on a join
+ *  (@c std::logical_or<>), so a meet does not spuriously satisfy @c IsPushout
+ *  nor a join @c IsPullback.  This is the operation-refinement of
+ *  @c category::IsProduct: both pairings @b are products (⟨χ_A,χ_B⟩), and @c Op
+ *  says which lattice product.  #881. */
+export template <typename P, typename Op>
+concept IsPairingOver = requires {
+  typename std::remove_cvref_t<P>::operation;
+} && std::same_as<typename std::remove_cvref_t<P>::operation, Op>;
 
 template <typename P1, typename P2>
 struct IsComplementPair : std::false_type {};
@@ -822,13 +837,13 @@ class Set {
    * name the operand predicates, @c ι supplies the value.  Guarded, so ordinary
    * Sets expose no legs.  #881. */
   constexpr auto π1(const Member& m) const
-    requires is_meet_pairing_v<Predicate>
+    requires IsPairingOver<Predicate, std::logical_and<>>
   {
     using PA = std::remove_cvref_t<decltype(π_1(predicate_))>;
     return typename Set<T, L, PA>::Member{m.value};
   }
   constexpr auto π2(const Member& m) const
-    requires is_meet_pairing_v<Predicate>
+    requires IsPairingOver<Predicate, std::logical_and<>>
   {
     using PB = std::remove_cvref_t<decltype(π_2(predicate_))>;
     return typename Set<T, L, PB>::Member{m.value};
@@ -844,7 +859,7 @@ class Set {
    * value, opposite direction (operand ⟶ apex).  Guarded, so only joins expose
    * colegs.  #881. */
   template <typename Pr = Predicate>
-    requires is_join_pairing_v<Pr>
+    requires IsPairingOver<Pr, std::logical_or<>>
   constexpr Member
   ι1(const typename Set<
       T, L,
@@ -853,7 +868,7 @@ class Set {
     return Member{m.value};
   }
   template <typename Pr = Predicate>
-    requires is_join_pairing_v<Pr>
+    requires IsPairingOver<Pr, std::logical_or<>>
   constexpr Member
   ι2(const typename Set<
       T, L,
@@ -1168,11 +1183,18 @@ export template <typename S>
 struct SubobjectInclusion {
   using Domain = typename S::Member;
   using Codomain = typename S::Domain;
-  constexpr Codomain operator()(const Domain& m) const { return m.value; }
+  /** @brief The subobject whose canonical inclusion this arrow reifies; held so
+   *  @c operator() routes through @b its @c ι rather than re-deriving
+   *  @c m.value, staying faithful to any subobject that customises @c ι. */
+  S subobject;
+  constexpr Codomain operator()(const Domain& m) const {
+    return subobject.ι(m);
+  }
 };
 export template <typename S>
-constexpr SubobjectInclusion<std::remove_cvref_t<S>> inclusion_arrow(const S&) {
-  return {};
+constexpr SubobjectInclusion<std::remove_cvref_t<S>> inclusion_arrow(
+    const S& s) {
+  return {s};
 }
 
 // Out-of-class χ definition retired (#681 structural refactor).  The
