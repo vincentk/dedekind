@@ -639,8 +639,9 @@ consteval bool order_leq() {
 /** @brief Law induced by a @b lattice's order-meet consistency (@c RA≤RB @c ⟺
  *  @c RA∧RB=RA): for @c ≤-comparable operands the meet is their @b glb (the
  *  smaller).  @b Note this is @b not the structural absorption identity
- *  @c a∧(a∨b)=a (which needs no comparison); that rewrite is a deferred law,
- *  to arrive with distributivity.  Here only comparable operands collapse. */
+ *  @c a∧(a∨b)=a (which needs no comparison); that is the separate
+ *  @c meet_structural_absorption_law.  Here only comparable operands collapse.
+ */
 export template <typename RA, typename RB, typename Ord>
 consteval auto meet_glb_law() {
   if constexpr (order_leq<RA, RB, Ord>()) {
@@ -653,14 +654,64 @@ consteval auto meet_glb_law() {
 }
 
 /** @brief The join dual: for comparable operands the join is their @b lub (the
- *  larger), @c RA≤RB ⟹ RA∨RB=RB.  (Structural absorption @c a∨(a∧b)=a is
- *  likewise deferred.) */
+ *  larger), @c RA≤RB ⟹ RA∨RB=RB.  (Structural absorption @c a∨(a∧b)=a is the
+ *  separate @c join_structural_absorption_law.) */
 export template <typename RA, typename RB, typename Ord>
 consteval auto join_lub_law() {
   if constexpr (order_leq<RA, RB, Ord>()) {
     return std::type_identity<RB>{};
   } else if constexpr (order_leq<RB, RA, Ord>()) {
     return std::type_identity<RA>{};
+  } else {
+    return std::type_identity<law_inactive>{};
+  }
+}
+
+// ── Distributivity (induced by IsDistributiveLattice) ─────────────────────
+
+/** @brief Is @c X a @c Join node? */
+export template <typename X>
+inline constexpr bool is_join_node_v = false;
+export template <typename A, typename B>
+inline constexpr bool is_join_node_v<Join<A, B>> = true;
+
+/** @brief Is the lattice (carrier @c T, order @c Ord) distributive?  Keyed to
+ *  the order like the boundedness markers.  The canonical (@c std::less_equal
+ *  chain) case reuses @c is_distributive_v over the default @c min/@c max ops
+ *  (every chain is distributive); a NON-chain distributive lattice (a custom
+ *  @c Ord) opts in by specialising this to @c true (the Jlt assertion — the
+ *  same posture as the injected total order).  A chain is gated distributive
+ *  but never actually distributes: its joins glb/lub-collapse first. */
+export template <typename T, typename Ord>
+inline constexpr bool is_distributive_lattice_for_v =
+    std::same_as<Ord, canonical_order> &&
+    is_distributive_v<T, decltype(std::ranges::max),
+                      decltype(std::ranges::min)>;
+
+// Distribute a meet over a join node: X ∧ (P ∨ Q) = (X ∧ P) ∨ (X ∧ Q).
+template <typename X, typename JoinNode>
+struct distribute_meet_over;
+template <typename X, typename P, typename Q>
+struct distribute_meet_over<X, Join<P, Q>> {
+  using type = Join<Meet<X, P>, Meet<X, Q>>;
+};
+
+/** @brief Law induced by a @b distributive lattice: distribute meet over join,
+ *  @c X∧(P∨Q) → (X∧P)∨(X∧Q), driving toward a join-of-meets (DNF).  @b One
+ *  direction only (meet over join, never join over meet), so re-reduction of
+ *  the result — which the assembler performs — terminates.  Gated on both
+ *  operands sharing a carrier (@c SameCarrier) whose lattice is distributive
+ *  under @c Ord; a chain is gated but pre-empted by the glb collapse, so this
+ *  fires only on a genuine non-chain distributive lattice. */
+export template <typename RA, typename RB, typename Ord>
+consteval auto meet_distributivity_law() {
+  if constexpr (!(SameCarrier<RA, RB> &&
+                  is_distributive_lattice_for_v<carrier_of_t<RA>, Ord>)) {
+    return std::type_identity<law_inactive>{};
+  } else if constexpr (is_join_node_v<RB>) {
+    return std::type_identity<typename distribute_meet_over<RA, RB>::type>{};
+  } else if constexpr (is_join_node_v<RA>) {
+    return std::type_identity<typename distribute_meet_over<RB, RA>::type>{};
   } else {
     return std::type_identity<law_inactive>{};
   }

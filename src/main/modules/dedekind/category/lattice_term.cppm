@@ -143,14 +143,22 @@ consteval auto meet_assemble() {
       if constexpr (!std::same_as<Abs, law_inactive>) {
         return std::type_identity<Abs>{};  // a ∧ (a ∨ b) = a
       } else {
-        using Glb = typename decltype(meet_glb_law<RA, RB, Ord>())::type;
-        if constexpr (!std::same_as<Glb, law_inactive>) {
-          return std::type_identity<Glb>{};
-        } else if constexpr (lattice_definitely_less<Less, RB, RA>()) {
-          return std::type_identity<Meet<RB, RA>>{};  // canonicalise
-                                                      // (commutative)
+        using Dist =
+            typename decltype(meet_distributivity_law<RA, RB, Ord>())::type;
+        if constexpr (!std::same_as<Dist, law_inactive>) {
+          // distributed to a join-of-meets; re-reduce toward DNF (terminates —
+          // one direction only).
+          return std::type_identity<reduce_t<Dist, Less, Ord>>{};
         } else {
-          return std::type_identity<Meet<RA, RB>>{};  // Unknown ⟹ keep authored
+          using Glb = typename decltype(meet_glb_law<RA, RB, Ord>())::type;
+          if constexpr (!std::same_as<Glb, law_inactive>) {
+            return std::type_identity<Glb>{};
+          } else if constexpr (lattice_definitely_less<Less, RB, RA>()) {
+            return std::type_identity<Meet<RB, RA>>{};  // canonicalise
+                                                        // (commutative)
+          } else {
+            return std::type_identity<Meet<RA, RB>>{};  // Unknown ⟹ keep
+          }
         }
       }
     }

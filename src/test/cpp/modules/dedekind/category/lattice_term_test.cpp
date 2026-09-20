@@ -267,6 +267,63 @@ static_assert(std::same_as<reduce_t<Join<UA, Meet<UA, UB>>, TernLess>, UA>,
 
 }  // namespace lattice_term_smoke
 
+// ══ Distributivity: X∧(P∨Q) → (X∧P)∨(X∧Q) toward DNF ══════════════════════
+// Cannot fire on a chain (the inner join glb/lub-collapses first), so it is
+// witnessed on a SYNTHETIC non-chain distributive lattice: three pairwise
+// incomparable atoms whose (carrier, order) is ASSERTED distributive — the Jlt
+// caller-assertion, the same posture as the injected order.  An Unknown-
+// returning comparator keeps the produced DNF order (a value-based comparator
+// would not type-check on the composite Meet nodes the DNF contains).
+namespace dist_toy {
+enum class D3 { a, b, c };
+template <D3 V>
+struct DLit {
+  static constexpr D3 value = V;
+};
+struct DistOrd {};  // opaque order: the three atoms are pairwise incomparable
+struct NonDistOrd {};  // an order NOT asserted distributive (gate stays off)
+struct KeepOrder {
+  using logic = dedekind::category::TernaryLogic;
+  template <typename, typename>
+  static consteval dedekind::category::Ternary less() {
+    return dedekind::category::Ternary::Unknown;
+  }
+};
+using DA = DLit<D3::a>;
+using DB = DLit<D3::b>;
+using DC = DLit<D3::c>;
+}  // namespace dist_toy
+
+// Assert the toy (carrier, order) is a distributive lattice (Jlt assertion):
+namespace dedekind::category {
+template <>
+inline constexpr bool
+    is_distributive_lattice_for_v<dist_toy::D3, dist_toy::DistOrd> = true;
+}  // namespace dedekind::category
+
+namespace dist_toy {
+using namespace dedekind::category;
+
+// The law in isolation: X ∧ (P ∨ Q) → (X∧P) ∨ (X∧Q) (not yet re-reduced).
+static_assert(
+    std::same_as<
+        decltype(meet_distributivity_law<DC, Join<DA, DB>, DistOrd>())::type,
+        Join<Meet<DC, DA>, Meet<DC, DB>>>,
+    "distributivity law: X ∧ (P ∨ Q) → (X∧P) ∨ (X∧Q).");
+// Gated OFF for an order not asserted distributive:
+static_assert(
+    std::same_as<
+        decltype(meet_distributivity_law<DC, Join<DA, DB>, NonDistOrd>())::type,
+        law_inactive>,
+    "…inactive for an order not asserted distributive (gated).");
+
+// Assembled through reduce<>: c ∧ (a ∨ b) collapses to the DNF (c∧a) ∨ (c∧b);
+// the sub-meets are incomparable so they stay symbolic (a genuine DNF).
+static_assert(std::same_as<reduce_t<Meet<DC, Join<DA, DB>>, KeepOrder, DistOrd>,
+                           Join<Meet<DC, DA>, Meet<DC, DB>>>,
+              "assembled: meet distributes over join to DNF, then re-reduces.");
+}  // namespace dist_toy
+
 TEST_CASE("lattice_term: induced laws + assembled reducer (#865/#888)",
           "[category][lattice][lattice_term]") {
   // All behaviour is compile-time (the static_asserts above); this runtime
