@@ -9,6 +9,23 @@ import dedekind.category;
 
 using namespace dedekind::category;
 
+namespace {
+// #881: the Op parameter of IsProduct / IsCoproduct is the (co)data-constructor
+// FACTORY, per the Haskell correspondence.  MakePair is the pairing constructor
+// (,) : A×B → pair (the product Op); MakeVariant is the injections Left/Right :
+// int→variant, bool→variant (the coproduct Op).
+struct MakePair {
+  template <typename A, typename B>
+  constexpr std::pair<A, B> operator()(const A& a, const B& b) const {
+    return {a, b};
+  }
+};
+struct MakeVariant {
+  constexpr std::variant<int, bool> operator()(int a) const { return a; }
+  constexpr std::variant<int, bool> operator()(bool b) const { return b; }
+};
+}  // namespace
+
 TEST_CASE("Discrete: Product and Coproduct (Cartesian Bridge)",
           "[category][discrete][universal]") {
   // Section 2.3.5: Mapping categorical products to C++ primitives
@@ -16,6 +33,11 @@ TEST_CASE("Discrete: Product and Coproduct (Cartesian Bridge)",
   SECTION("Product (A x B) via std::pair") {
     using P = std::pair<int, bool>;
     STATIC_CHECK(IsProduct<P, int, bool>);
+    // #881: the Op-refinement --- a named Op must be the pairing factory
+    // A×B → P.  MakePair qualifies; the coproduct injection MakeVariant (no
+    // binary call) does not.
+    STATIC_CHECK(IsProduct<P, int, bool, MakePair>);
+    STATIC_CHECK_FALSE(IsProduct<P, int, bool, MakeVariant>);
 
     P p{42, true};
     // Updated to use native members per your preference
@@ -25,6 +47,12 @@ TEST_CASE("Discrete: Product and Coproduct (Cartesian Bridge)",
 
   SECTION("Coproduct (A + B) via std::variant") {
     STATIC_CHECK(IsCoproduct<std::variant<int, bool>, int, bool>);
+    // #881: dual Op-refinement --- a named Op must be the injection factory
+    // A → C, B → C.  MakeVariant qualifies; the product pairing MakePair (no
+    // unary call) does not.
+    STATIC_CHECK(IsCoproduct<std::variant<int, bool>, int, bool, MakeVariant>);
+    STATIC_CHECK_FALSE(
+        IsCoproduct<std::variant<int, bool>, int, bool, MakePair>);
 
     auto choice_1 = ι_1<int, bool>(10);
     STATIC_CHECK(std::same_as<decltype(choice_1), std::variant<int, bool>>);

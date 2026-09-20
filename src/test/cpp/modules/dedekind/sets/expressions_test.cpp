@@ -90,22 +90,28 @@ static_assert(
     "the applied meet A & B is the pullback of its two concrete sets (the "
     "cospan ι_A, ι_B); in Sub(U) product = pullback = meet. #881.");
 
+// #881: the Sub(U) bounds ARE the categorical initial / terminal objects (⊥/⊤
+// of the subobject lattice): Ø is classified by the always-false predicate,
+// UniversalSet by the always-true.  Now tagged, they participate in :limit's
+// IsInitialObject / IsTerminalObject (the same tag-discovery branch the lattice
+// bounds use), so the pushout span reuses the canonical initial-object arrow
+// instead of a hand-rolled struct.
+static_assert(dedekind::category::IsInitialObject<
+                  dedekind::sets::Ø<int, dedekind::category::ClassicalLogic>>,
+              "Ø is the initial object (⊥) of Sub(U). #881.");
+static_assert(
+    dedekind::category::IsTerminalObject<dedekind::sets::UniversalSet<int>>,
+    "UniversalSet is the terminal object (⊤) of Sub(U). #881.");
+
 // #881 step 4: dually, the APPLIED join A | B is the PUSHOUT of its two
 // concrete sets --- the coproduct over the initial ∅ (span ∅ ⟶ A, ∅ ⟶ B), with
 // the join's coprojection colegs ι1/ι2 (A ↪ A∪B, B ↪ A∪B).  In Sub(U) pushout =
-// coproduct = join, dual to product = pullback = meet.
-struct SpanToA {  // ∅ ⟶ A, the unique map from the initial object
-  using Domain =
-      dedekind::sets::Ø<int, dedekind::category::ClassicalLogic>::Member;
-  using Codomain = A_set::Member;
-  constexpr Codomain operator()(const Domain& m) const { return {m.value}; }
-};
-struct SpanToB {  // ∅ ⟶ B
-  using Domain =
-      dedekind::sets::Ø<int, dedekind::category::ClassicalLogic>::Member;
-  using Codomain = B_set::Member;
-  constexpr Codomain operator()(const Domain& m) const { return {m.value}; }
-};
+// coproduct = join, dual to product = pullback = meet.  The span legs are the
+// canonical InitialObjectArrow (the unique empty function out of Ø), not
+// hand-rolled per-instance structs.
+using Empty = dedekind::sets::Ø<int, dedekind::category::ClassicalLogic>;
+using SpanToA = dedekind::sets::InitialObjectArrow<Empty, A_set>;  // ∅ ⟶ A
+using SpanToB = dedekind::sets::InitialObjectArrow<Empty, B_set>;  // ∅ ⟶ B
 constexpr auto join_set = a_set | b_set;
 static_assert(
     dedekind::category::IsPushout<decltype(join_set), SpanToA, SpanToB>,

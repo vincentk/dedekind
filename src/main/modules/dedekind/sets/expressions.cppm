@@ -1230,6 +1230,23 @@ constexpr SubobjectInclusion<std::remove_cvref_t<S>> inclusion_arrow(
   return {s};
 }
 
+/** @brief @c InitialObjectArrow<Init, Target> --- the unique arrow from the
+ *  initial object into any subobject (@c Init @c → @c Target), i.e. the empty
+ *  function / the @c ⊥-of-Sub(U) leg.  Dual to @c inclusion_arrow: where that
+ *  reifies an inclusion into the ambient, this reifies the initiality mediator
+ *  out of @c Ø.  Gated on @c category::IsInitialObject<Init> so only a genuine
+ *  initial object (@c Ø, tagged) can be the source; the body forwards the
+ *  (vacuous) @c Member value and is unreachable in practice (@c Ø has no
+ *  members).  Canonical span leg for a pushout @c A @c ← @c Ø @c → @c B,
+ *  replacing hand-rolled per-instance span structs.  #881. */
+export template <typename Init, typename Target>
+  requires dedekind::category::IsInitialObject<Init>
+struct InitialObjectArrow {
+  using Domain = typename Init::Member;
+  using Codomain = typename Target::Member;
+  constexpr Codomain operator()(const Domain& m) const { return {m.value}; }
+};
+
 // Out-of-class χ definition retired (#681 structural refactor).  The
 // @c IsSubobject concept now recognises @c Set as the characteristic
 // morphism via its @c operator() call shape, not via a named static
