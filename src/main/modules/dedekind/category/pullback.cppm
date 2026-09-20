@@ -236,6 +236,42 @@ export template <typename P, typename F>
 concept IsKernelPair = IsPullback<P, F, F>;
 
 /**
+ * @concept IsPushout
+ * @brief The categorical dual of @c IsPullback: the apex of a pushout square
+ *        over the @b span f: Z ⟶ X, g: Z ⟶ Y, carrying the two coprojection
+ *        colegs ι1: X ⟶ P, ι2: Y ⟶ P.
+ *
+ * @details Every arrow of @c IsPullback is reversed.  The cospan (shared
+ * @c Cod<F> @c = @c Cod<G>) becomes a @b span (shared @c Dom<F> @c = @c
+ * Dom<G>); the projection legs P ⟶ X, P ⟶ Y become @b coprojection colegs X ⟶
+ * P, Y ⟶ P (so the apex exposes @c p.ι1(x), @c p.ι2(y) rather than @c p.π1(m),
+ * @c p.π2(m)).  In the poset @c Sub(U) the pushout = coproduct = @b join (the
+ * least upper bound, taken over the initial object @c ∅), exactly dual to
+ * product = pullback = @b meet (the greatest lower bound, over the terminal
+ * @c U).  So @c A @c | @c B is the pushout of the span @c A ← @c ∅ → @c B, with
+ * colegs @c A ↪ A∪B, @c B ↪ A∪B.
+ *
+ * Structural shape only, exactly as @c IsPullback: commutativity and the
+ * ∀-universal property remain the engineer's-honesty obligation (C++ concepts
+ * reason about shape, not the ∀ that makes the cocone initial).  #881.
+ *
+ * @tparam P The candidate pushout apex (a Subobject carrying the colegs).
+ * @tparam F The span arrow f: Z ⟶ X.
+ * @tparam G The span arrow g: Z ⟶ Y.
+ */
+export template <typename P, typename F, typename G>
+concept IsPushout = IsArrow<F> && IsArrow<G> && std::same_as<Dom<F>, Dom<G>> &&
+                    IsSubobject<P, typename P::Domain> &&
+                    requires(P p, const Cod<F>& x, const Cod<G>& y) {
+                      // The two colegs ι1: X ⟶ P and ι2: Y ⟶ P (dual to π1/π2).
+                      // Their existence is the shape; commutativity +
+                      // universality are the honesty obligation (cf. IsPullback
+                      // / IsEqualizer).
+                      { p.ι1(x) };
+                      { p.ι2(y) };
+                    };
+
+/**
  * @concept IsParallelPair
  * @brief @c F and @c G are a parallel pair of arrows --- shared
  *        @c Dom and shared @c Cod.
