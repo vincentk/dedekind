@@ -32,6 +32,7 @@
 module;
 
 #include <concepts>
+#include <functional>
 #include <type_traits>
 
 export module dedekind.category:lattice_term;
@@ -39,6 +40,7 @@ export module dedekind.category:lattice_term;
 import :lattice;  // IsBoundedLatticeCategory, LatticeTop/Bottom,
                   // is_complement_v
 import :limit;    // IsInitialObject (⊥), IsTerminalObject (⊤)
+import :posetal;  // IsPosetal — the carrier's own semantic order (absorption)
 import :species;  // law traits (associative / idempotent / distributive / …)
 import :logic;    // ClassicalLogic (default), Ternary, IsLogicalSpecies
 
@@ -94,6 +96,38 @@ consteval bool lattice_definitely_less() {
   }
 }
 
+/** @brief The carrier's OWN semantic order — the Jlt (b) choice: absorption
+ *  reads the lattice's `≤`, bundled with its axioms, rather than an injected
+ *  comparator.  For a value-carrier leaf exposing @c ::value of a type @c T
+ * that
+ *  @c IsPosetal under its canonical order, parthood is @c Rel(A::value,
+ *  B::value).  A leaf with no such order (e.g. a subobject type, whose subset
+ *  @c ≤ is decided downstream) yields @c false — no absorption (honest
+ *  fallback).  The subobject-carrier order is supplied by the downstream sets
+ *  specialisation. */
+export template <typename A, typename B>
+concept HasPosetalValue =
+    requires {
+      A::value;
+      B::value;
+    } &&
+    std::same_as<std::remove_cvref_t<decltype(A::value)>,
+                 std::remove_cvref_t<decltype(B::value)>> &&
+    IsPosetal<std::remove_cvref_t<decltype(A::value)>,
+              std::less_equal<std::remove_cvref_t<decltype(A::value)>>>;
+
+/** @brief Is @c A @c ≤ @c B in the carrier's own order? (`false` when the order
+ *  is not available here — absorption then does not fire.) */
+export template <typename A, typename B>
+consteval bool semantic_leq() {
+  if constexpr (HasPosetalValue<A, B>) {
+    using T = std::remove_cvref_t<decltype(A::value)>;
+    return std::less_equal<T>{}(A::value, B::value);
+  } else {
+    return false;
+  }
+}
+
 /** @brief @c reduce_t<Term, Less> — the normal form of @c Term under the
  *  lattice laws, with commutative operands canonicalised by @c Less. */
 export template <typename Term, typename Less>
@@ -119,6 +153,10 @@ consteval auto meet_reduce() {
     return std::type_identity<RA>{};
   } else if constexpr (std::same_as<RA, RB>) {
     return std::type_identity<RA>{};  // X ∧ X = X (idempotent)
+  } else if constexpr (semantic_leq<RA, RB>()) {
+    return std::type_identity<RA>{};  // absorption: RA ≤ RB ⟹ RA ∧ RB = RA
+  } else if constexpr (semantic_leq<RB, RA>()) {
+    return std::type_identity<RB>{};  // RB ≤ RA ⟹ RA ∧ RB = RB
   } else if constexpr (lattice_definitely_less<Less, RB, RA>()) {
     // canonicalise: definitely RB < RA ⟹ swap to left < right.  An Unknown /
     // undecidable comparison is NOT definitely-less, so it keeps authoring
@@ -142,6 +180,10 @@ consteval auto join_reduce() {
     return std::type_identity<RA>{};
   } else if constexpr (std::same_as<RA, RB>) {
     return std::type_identity<RA>{};  // idempotent
+  } else if constexpr (semantic_leq<RA, RB>()) {
+    return std::type_identity<RB>{};  // absorption: RA ≤ RB ⟹ RA ∨ RB = RB
+  } else if constexpr (semantic_leq<RB, RA>()) {
+    return std::type_identity<RA>{};  // RB ≤ RA ⟹ RA ∨ RB = RA
   } else if constexpr (lattice_definitely_less<Less, RB, RA>()) {
     return std::type_identity<Join<RB, RA>>{};  // canonicalise (Unknown keeps
                                                 // order)

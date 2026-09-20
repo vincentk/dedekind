@@ -63,16 +63,15 @@ static_assert(std::same_as<reduce_t<Join<TopN, L5>, NumLess>, TopN>,
 static_assert(std::same_as<reduce_t<Meet<L5, L5>, NumLess>, L5>,
               "X ∧ X = X (idempotent).");
 
-// Commutative canonicalisation: both operand orders reduce to the SAME
-// normal form, left < right under the injected NumLess (Lit<3> before Lit<5>).
-static_assert(std::same_as<reduce_t<Meet<L5, L3>, NumLess>, Meet<L3, L5>>,
-              "Meet<L5,L3> canonicalises to Meet<L3,L5> (left < right).");
-static_assert(std::same_as<reduce_t<Meet<L3, L5>, NumLess>, Meet<L3, L5>>,
-              "Meet<L3,L5> is already canonical.");
-static_assert(
-    std::same_as<reduce_t<Meet<L5, L3>, NumLess>,
-                 reduce_t<Meet<L3, L5>, NumLess>>,
-    "A ∧ B and B ∧ A share one normal form (commutativity, canonicalised).");
+// Absorption on the size_t CHAIN (comparable operands): the meet is the
+// glb (min), the join the lub (max) — read off the carrier's own IsPosetal
+// order (the Jlt (b) choice), not the injected NumLess.  3 ≤ 5, so:
+static_assert(std::same_as<reduce_t<Meet<L5, L3>, NumLess>, L3>,
+              "L5 ∧ L3 = L3 (absorption / meet = min on the chain).");
+static_assert(std::same_as<reduce_t<Meet<L3, L5>, NumLess>, L3>,
+              "…either operand order (absorption is order-agnostic).");
+static_assert(std::same_as<reduce_t<Join<L5, L3>, NumLess>, L5>,
+              "L5 ∨ L3 = L5 (absorption / join = max on the chain).");
 
 // Nested: reduction recurses into children before applying the node law.
 // Meet<TopN, Join<BotN, L5>> → Meet<TopN, L5> → L5.
@@ -103,6 +102,22 @@ static_assert(std::same_as<reduce_t<Meet<UA, UB>, TernLess>, Meet<UA, UB>>,
               "form — the honest fallback).");
 static_assert(std::same_as<reduce_t<Meet<UA, UA>, TernLess>, UA>,
               "idempotence still fires regardless of comparator decidability.");
+
+// Positive canonicalisation WITHOUT collapse: UA/UB expose no ::value, so they
+// have no semantic ≤ (no absorption) — the pure reorder path the SETS stage
+// will hit for ≤-incomparable subobjects.  A definite injected order swaps them
+// into canonical form (both authoring orders → one normal form).
+struct OpaqueLess {  // decides UB < UA (arbitrary but total on {UA, UB})
+  template <typename X, typename Y>
+  static consteval bool less() {
+    return std::same_as<X, UB> && std::same_as<Y, UA>;
+  }
+};
+static_assert(
+    std::same_as<reduce_t<Meet<UA, UB>, OpaqueLess>, Meet<UB, UA>>,
+    "canonicalise (no collapse): definite order swaps to left < right.");
+static_assert(std::same_as<reduce_t<Meet<UB, UA>, OpaqueLess>, Meet<UB, UA>>,
+              "…and the mirror order reduces to the SAME normal form.");
 
 }  // namespace lattice_term_smoke
 
