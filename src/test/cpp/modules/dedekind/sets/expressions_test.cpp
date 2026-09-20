@@ -60,6 +60,26 @@ static_assert(π_1(Meet{IsEven{}, IsPositive{}})(4),
               "π_1 recovers χ_A = IsEven: π_1(meet)(4) = true.");
 static_assert(π_2(Meet{IsEven{}, IsPositive{}})(4),
               "π_2 recovers χ_B = IsPositive: π_2(meet)(4) = true.");
+
+// #881: the APPLIED meet A & B (the reified intersection of two concrete sets)
+// IS the pullback of those two sets --- the cospan of their inclusions
+// ι_A, ι_B, with the meet's co-restriction legs π1/π2.  In the poset Sub(U),
+// product = pullback = meet.  (The predicate alone, AndPredicate, is only the
+// classifier-pairing above; the pullback is the applied predicate.)
+using A_set =
+    dedekind::sets::Set<int, dedekind::category::ClassicalLogic, IsEven>;
+using B_set =
+    dedekind::sets::Set<int, dedekind::category::ClassicalLogic, IsPositive>;
+constexpr A_set a_set{IsEven{}};
+constexpr B_set b_set{IsPositive{}};
+constexpr auto meet_set = a_set & b_set;
+constexpr auto iota_A = dedekind::sets::inclusion_arrow(a_set);
+constexpr auto iota_B = dedekind::sets::inclusion_arrow(b_set);
+static_assert(
+    dedekind::category::IsPullback<decltype(meet_set), decltype(iota_A),
+                                   decltype(iota_B)>,
+    "the applied meet A & B is the pullback of its two concrete sets (the "
+    "cospan ι_A, ι_B); in Sub(U) product = pullback = meet. #881.");
 }  // namespace and_predicate_product_test
 
 TEST_CASE("Dedekind MVP: Basic Membership and Symbols", "[sets]") {

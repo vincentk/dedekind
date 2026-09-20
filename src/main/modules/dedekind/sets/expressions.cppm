@@ -778,6 +778,28 @@ class Set {
    *  the Member's T-value back to the ambient. */
   constexpr T ι(const Member& m) const { return m.value; }
 
+  /** @brief π1 / π2 --- the pullback projection legs, present exactly when this
+   *  Set is a MEET: its classifier is a pairing (@c Predicate @c ⊨ @c
+   * IsProduct, e.g. @c AndPredicate ⟨χ_A, χ_B⟩).  In the poset @c Sub(T)
+   * product = pullback = meet, so @c A @c & @c B is the pullback of its two
+   * operand subobjects @c A ↪ T ↩ B; a member (a @c T-value lying in both)
+   * re-views as a member of each operand @c Set<T,L,χ_A> / @c Set<T,L,χ_B>.
+   * This is @c ι re-typed into the operands: the classifier's @c π_1 / @c π_2
+   * name the operand predicates, @c ι supplies the value.  Guarded, so ordinary
+   * Sets expose no legs.  #881. */
+  constexpr auto π1(const Member& m) const
+    requires requires(const Predicate& p) { π_1(p); }
+  {
+    using PA = std::remove_cvref_t<decltype(π_1(predicate_))>;
+    return typename Set<T, L, PA>::Member{m.value};
+  }
+  constexpr auto π2(const Member& m) const
+    requires requires(const Predicate& p) { π_2(p); }
+  {
+    using PB = std::remove_cvref_t<decltype(π_2(predicate_))>;
+    return typename Set<T, L, PB>::Member{m.value};
+  }
+
   /** @brief χ: T → Ω — arrow-form classifier for the IsSubobject
    *  contract — historically a static self-reference (now retired).
    *  Post-#681 structural refactor: @c Set @b is the characteristic
@@ -1073,6 +1095,23 @@ class Set {
 
   Predicate predicate_;
 };
+
+/** @brief @c inclusion_arrow(S) --- the inclusion ι_S: S ↪ Domain<S> of a
+ *  subobject as a first-class @c IsArrow (@c Domain = @c S::Member,
+ *  @c Codomain = @c S::Domain, @c m ↦ @c m.value).  A thin arrow-wrapper of the
+ *  @c ι that @c Set / @c Subobject already expose, so it can serve as a cospan
+ *  arrow.  The meet-as-pullback (#881): @c A @c & @c B is the pullback of the
+ *  cospan @c inclusion_arrow(A), @c inclusion_arrow(B). */
+export template <typename S>
+struct SubobjectInclusion {
+  using Domain = typename S::Member;
+  using Codomain = typename S::Domain;
+  constexpr Codomain operator()(const Domain& m) const { return m.value; }
+};
+export template <typename S>
+constexpr SubobjectInclusion<std::remove_cvref_t<S>> inclusion_arrow(const S&) {
+  return {};
+}
 
 // Out-of-class χ definition retired (#681 structural refactor).  The
 // @c IsSubobject concept now recognises @c Set as the characteristic
