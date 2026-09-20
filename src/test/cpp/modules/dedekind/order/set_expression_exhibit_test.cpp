@@ -91,4 +91,18 @@ TEST_CASE(
     CHECK(join(5));
     CHECK(join(-5));
   }
+
+  // Complement laws (the lattice ⊥/⊤): the collapse also fires the boundary
+  // reductions A & ~A → Ø and A | ~A → 𝔸 (~ = set complement; ~{x<5} = {x≥5}).
+  SECTION(
+      "A & ~A collapses to Ø (contradiction), A | ~A to 𝔸 (excluded middle)") {
+    constexpr auto contradiction = SA & ~SA;
+    CHECK_FALSE(contradiction(0));
+    CHECK_FALSE(contradiction(4));
+    CHECK_FALSE(contradiction(5));
+    constexpr auto excluded_middle = SA | ~SA;
+    CHECK(excluded_middle(0));
+    CHECK(excluded_middle(4));
+    CHECK(excluded_middle(5));
+  }
 }
