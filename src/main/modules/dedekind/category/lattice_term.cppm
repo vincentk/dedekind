@@ -11,8 +11,8 @@
  * @section lattice_term__Overview
  * @c :lattice defines the term AST (`Meet`, `Join`) and, next to each lattice
  * concept, the equational law it @b induces as a decomposable, independently
- * testable part (@c meet_bounded_law, @c idempotent_law, @c meet_absorption_law
- * and their join duals).  This partition is the @b assembly: @c reduce<> folds
+ * testable part (@c meet_bounded_law, @c idempotent_law, @c meet_glb_law and
+ * their join duals).  This partition is the @b assembly: @c reduce<> folds
  * those parts into one normal-form reducer, applying exactly the laws the
  * carrier proves.  Reduction power scales with the carrier's structure — a
  * bounded chain collapses the most, and @c bool (the two-element Boolean
@@ -24,16 +24,19 @@
  * `structured_and` / `structured_or`; this partition is not yet wired into it.
  *
  * @section lattice_term__This_Increment
- * The @b safe core (#865): unit / annihilator, idempotence and absorption (the
- * @c :lattice laws), plus commutative canonicalisation by an @b injected total
- * order.  Distributivity and the complement laws are deferred; each will arrive
- * as further induced laws in @c :lattice (a distributive- and a
- * complemented-lattice reducer), assembled here in turn.
+ * The @b safe core (#865): unit / annihilator, idempotence, and the glb/lub
+ * collapse of `≤`-comparable operands (the @c :lattice laws), plus commutative
+ * canonicalisation by an @b injected total order.  Distributivity, @b
+ * structural absorption (@c a∧(a∨b)=a, which needs no comparison) and the
+ * complement laws are deferred; each will arrive as further induced laws in @c
+ * :lattice (a distributive- and a complemented-lattice reducer), assembled here
+ * in turn.
  *
  * @section lattice_term__Ordering
  * Two orders enter, both @b injected (the Juliet posture: the engine clicks
  * against a concept, the caller asserts it over exactly its carriers):
- *  - the @b semantic order @c Ord that defines absorption and boundedness (see
+ *  - the @b semantic order @c Ord that defines the glb/lub collapse and
+ *    boundedness (see
  *    @c :lattice); default @c canonical_order is the carrier's @c
  * std::less_equal chain.  A carrier may bear several lattice orders, so the
  * caller supplies the one its `∧`/`∨` induce.
@@ -123,8 +126,8 @@ using reduce_t = typename reduce<Term, Less, Ord>::type;
 namespace detail_lattice_term {
 
 // Assemble the meet laws over two ALREADY-REDUCED operands, most-collapsing
-// first (bounded ▸ idempotent ▸ absorption), then canonicalise the commutative
-// residue.  A law returning `law_inactive` cedes to the next.
+// first (bounded ▸ idempotent ▸ glb collapse), then canonicalise the
+// commutative residue.  A law returning `law_inactive` cedes to the next.
 template <typename RA, typename RB, typename Less, typename Ord>
 consteval auto meet_assemble() {
   using Bounded = typename decltype(meet_bounded_law<RA, RB, Ord>())::type;
@@ -135,10 +138,9 @@ consteval auto meet_assemble() {
     if constexpr (!std::same_as<Idem, law_inactive>) {
       return std::type_identity<Idem>{};
     } else {
-      using Absorb =
-          typename decltype(meet_absorption_law<RA, RB, Ord>())::type;
-      if constexpr (!std::same_as<Absorb, law_inactive>) {
-        return std::type_identity<Absorb>{};
+      using Glb = typename decltype(meet_glb_law<RA, RB, Ord>())::type;
+      if constexpr (!std::same_as<Glb, law_inactive>) {
+        return std::type_identity<Glb>{};
       } else if constexpr (lattice_definitely_less<Less, RB, RA>()) {
         return std::type_identity<Meet<RB, RA>>{};  // canonicalise
                                                     // (commutative)
@@ -160,10 +162,9 @@ consteval auto join_assemble() {
     if constexpr (!std::same_as<Idem, law_inactive>) {
       return std::type_identity<Idem>{};
     } else {
-      using Absorb =
-          typename decltype(join_absorption_law<RA, RB, Ord>())::type;
-      if constexpr (!std::same_as<Absorb, law_inactive>) {
-        return std::type_identity<Absorb>{};
+      using Lub = typename decltype(join_lub_law<RA, RB, Ord>())::type;
+      if constexpr (!std::same_as<Lub, law_inactive>) {
+        return std::type_identity<Lub>{};
       } else if constexpr (lattice_definitely_less<Less, RB, RA>()) {
         return std::type_identity<Join<RB, RA>>{};
       } else {

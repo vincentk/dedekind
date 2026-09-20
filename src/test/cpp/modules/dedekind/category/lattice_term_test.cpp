@@ -13,9 +13,9 @@
  *                    top operand (the laws that need no top).
  *
  * The total order is INJECTED at the call site (`NumLess`); the semantic
- * (absorption / boundedness) order defaults to `canonical_order`.  These are
- * test fixtures only: the reducer is generic and is NOT constrained to any of
- * these carriers.
+ * (glb/lub collapse / boundedness) order defaults to `canonical_order`.  These
+ * are test fixtures only: the reducer is generic and is NOT constrained to any
+ * of these carriers.
  */
 
 #include <catch2/catch_test_macros.hpp>
@@ -89,22 +89,20 @@ static_assert(
     std::same_as<decltype(idempotent_law<I5, I3>())::type, law_inactive>,
     "distinct operands ⟹ idempotence does not fire.");
 
-// meet_absorption_law (induced by a lattice): comparable operands collapse to
-// the glb (meet = min on a chain); the dual join collapses to the lub.
+// meet_glb_law (induced by the order-meet consistency): ≤-comparable operands
+// collapse to the glb (meet = min on a chain); the dual join to the lub.  This
+// is NOT structural absorption a∧(a∨b)=a (deferred) — only comparable operands.
 static_assert(
-    std::same_as<decltype(meet_absorption_law<I5, I3, canonical_order>())::type,
-                 I3>,
-    "5 ∧ 3 = 3 (absorption / meet = min).");
+    std::same_as<decltype(meet_glb_law<I5, I3, canonical_order>())::type, I3>,
+    "5 ∧ 3 = 3 (glb / meet = min).");
 static_assert(
-    std::same_as<decltype(join_absorption_law<I5, I3, canonical_order>())::type,
-                 I5>,
-    "5 ∨ 3 = 5 (absorption / join = max).");
+    std::same_as<decltype(join_lub_law<I5, I3, canonical_order>())::type, I5>,
+    "5 ∨ 3 = 5 (lub / join = max).");
 static_assert(
-    std::same_as<decltype(meet_absorption_law<I5, I3, NumLess>())::type,
-                 law_inactive>,
-    "NumLess is not a registered poset for int ⟹ absorption inactive.");
+    std::same_as<decltype(meet_glb_law<I5, I3, NumLess>())::type, law_inactive>,
+    "NumLess is not a registered poset for int ⟹ glb collapse inactive.");
 
-// The absorption order is INJECTED; `canonical_order` resolves to the carrier's
+// The semantic order is INJECTED; `canonical_order` resolves to the carrier's
 // own std::less_equal chain.
 static_assert(
     std::same_as<resolved_order_t<int, canonical_order>, std::less_equal<int>>,
@@ -153,39 +151,40 @@ static_assert(std::same_as<reduce_t<Join<TopB, BotB>, NumLess>, TopB>,
 static_assert(std::same_as<reduce_t<Meet<TopB, TopB>, NumLess>, TopB>,
               "⊤ ∧ ⊤ = ⊤ (idempotent).");
 
-// int — a bounded chain: units, idempotence, absorption, canonicalisation.
+// int — a bounded chain: units, idempotence, glb/lub collapse,
+// canonicalisation.
 static_assert(std::same_as<reduce_t<Meet<TopI, I5>, NumLess>, I5>,
               "⊤ ∧ X = X (bounded-chain unit).");
 static_assert(std::same_as<reduce_t<Meet<BotI, I5>, NumLess>, BotI>,
               "⊥ ∧ X = ⊥ (annihilator).");
 static_assert(std::same_as<reduce_t<Meet<I5, I3>, NumLess>, I3>,
-              "5 ∧ 3 = 3 (absorption on the chain).");
+              "5 ∧ 3 = 3 (glb collapse on the chain).");
 static_assert(std::same_as<reduce_t<Join<I5, I3>, NumLess>, I5>,
-              "5 ∨ 3 = 5 (absorption on the chain).");
+              "5 ∨ 3 = 5 (lub collapse on the chain).");
 // Nested: reduction recurses into children before applying the node law.
 static_assert(std::same_as<reduce_t<Meet<TopI, Join<BotI, I5>>, NumLess>, I5>,
               "⊤ ∧ (⊥ ∨ 5) = ⊤ ∧ 5 = 5.");
 
 // size_t — a bounded chain, exercised WITHOUT a top operand: the bottom (0)
-// annihilates and absorption / idempotence fire without touching the top.
+// annihilates and glb collapse / idempotence fire without touching the top.
 static_assert(std::same_as<reduce_t<Meet<BotN, N5>, NumLess>, BotN>,
               "0 ∧ X = 0 (bottom annihilates).");
 static_assert(std::same_as<reduce_t<Meet<N5, N3>, NumLess>, N3>,
-              "5 ∧ 3 = 3 (absorption, no top needed).");
+              "5 ∧ 3 = 3 (glb collapse, no top needed).");
 static_assert(std::same_as<reduce_t<Meet<N5, N5>, NumLess>, N5>,
               "X ∧ X = X (idempotent).");
 
 // ══ Layer 3: injected-order safety + logic-parametrised canonicalisation ══
 
 // Fail-closed: an injected order the carrier has NOT proven posetal licenses no
-// absorption — the meet stays un-collapsed (canonicalised by NumLess: 3 < 5),
-// rather than mis-absorbing to the numeric min.
+// glb collapse — the meet stays un-collapsed (canonicalised by NumLess: 3 < 5),
+// rather than collapsing to the numeric min.
 struct NotAnOrder {  // a relation size_t does not prove a partial order
   constexpr bool operator()(std::size_t, std::size_t) const { return true; }
 };
 static_assert(
     std::same_as<reduce_t<Meet<N5, N3>, NumLess, NotAnOrder>, Meet<N3, N5>>,
-    "no posetal proof ⟹ no absorption (canonicalised, not min).");
+    "no posetal proof ⟹ no glb collapse (canonicalised, not min).");
 
 // Logic-parametrised comparator: an UNDECIDABLE order (Unknown) is not
 // definitely-less, so operands keep authoring order, while idempotence (a
@@ -207,7 +206,7 @@ static_assert(std::same_as<reduce_t<Meet<UA, UA>, TernLess>, UA>,
               "idempotence still fires regardless of comparator decidability.");
 
 // Positive canonicalisation WITHOUT collapse: UA/UB expose no ::value, so they
-// have no semantic order (no absorption) — the pure reorder path.  A definite
+// have no semantic order (no glb collapse) — the pure reorder path.  A definite
 // injected order swaps them into one normal form.
 struct OpaqueLess {
   template <typename X, typename Y>

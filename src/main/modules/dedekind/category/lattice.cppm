@@ -390,7 +390,8 @@ static_assert(LatticeTop<bool, std::less_equal<bool>>::value == true,
  *  @details A law consumes two @b already-reduced operands and returns a
  *  @c std::type_identity of either the rewritten form or @c law_inactive (the
  *  law did not fire — the assembler then tries the next).  Order-dependent laws
- *  (units, absorption) are keyed to the @b injected order @c Ord so that the
+ *  (units, glb/lub collapse) are keyed to the @b injected order @c Ord so that
+ *  the
  *  boundary / comparison they use is the one this lattice's `∧`/`∨` induce, not
  *  another order the same carrier happens to bear (e.g. the numeric chain vs
  *  @c order::bit_subset_eq on an integer). */
@@ -485,7 +486,7 @@ using carrier_of_t = typename carrier_of<X>::type;
  *  different carrier: a mixed-carrier term (@c ⊤ᵢₙₜ @c ∧ @c bool-leaf) fails
  *  closed.  Because the carrier is read via @c carrier_of, the laws still apply
  *  to an arbitrary same-carrier @b composite subterm (@c ⊤∧X=X even when @c X
- *  is an un-collapsed @c Meet / @c Join), not only to leaves.  (The absorption
+ *  is an un-collapsed @c Meet / @c Join), not only to leaves.  (The glb/lub
  *  law forces a shared carrier through @c OrderComparable; this is its
  *  boundary-law counterpart.) */
 export template <typename A, typename B>
@@ -552,7 +553,8 @@ consteval auto idempotent_law() {
  *  @c IsPosetal under @c Ord's resolved relation, and that relation must be
  *  @b default-constructible and @b constexpr-callable on those values.  A
  *  registered-but-runtime-only or stateful order therefore fails this guard and
- *  absorption stays @b inactive (fail-closed) rather than hard-erroring. */
+ *  the glb/lub collapse stays @b inactive (fail-closed) rather than
+ *  hard-erroring. */
 export template <typename A, typename B, typename Ord>
 concept OrderComparable =
     requires {
@@ -579,7 +581,8 @@ concept OrderComparable =
     };
 
 /** @brief Is @c A ≤ @c B in the injected order @c Ord? (`false` when the pair
- *  is not compile-time comparable there — absorption then does not fire.) */
+ *  is not compile-time comparable there — the glb/lub law then does not
+ *  fire.) */
 export template <typename A, typename B, typename Ord>
 consteval bool order_leq() {
   if constexpr (OrderComparable<A, B, Ord>) {
@@ -590,10 +593,13 @@ consteval bool order_leq() {
   }
 }
 
-/** @brief Law induced by a @b lattice (IsLatticeCategory): absorption of
- *  comparable operands.  Meet is the glb: @c RA≤RB ⟹ RA∧RB=RA. */
+/** @brief Law induced by a @b lattice's order-meet consistency (@c RA≤RB @c ⟺
+ *  @c RA∧RB=RA): for @c ≤-comparable operands the meet is their @b glb (the
+ *  smaller).  @b Note this is @b not the structural absorption identity
+ *  @c a∧(a∨b)=a (which needs no comparison); that rewrite is a deferred law,
+ *  to arrive with distributivity.  Here only comparable operands collapse. */
 export template <typename RA, typename RB, typename Ord>
-consteval auto meet_absorption_law() {
+consteval auto meet_glb_law() {
   if constexpr (order_leq<RA, RB, Ord>()) {
     return std::type_identity<RA>{};
   } else if constexpr (order_leq<RB, RA, Ord>()) {
@@ -603,9 +609,11 @@ consteval auto meet_absorption_law() {
   }
 }
 
-/** @brief The join dual: join is the lub, @c RA≤RB ⟹ RA∨RB=RB. */
+/** @brief The join dual: for comparable operands the join is their @b lub (the
+ *  larger), @c RA≤RB ⟹ RA∨RB=RB.  (Structural absorption @c a∨(a∧b)=a is
+ *  likewise deferred.) */
 export template <typename RA, typename RB, typename Ord>
-consteval auto join_absorption_law() {
+consteval auto join_lub_law() {
   if constexpr (order_leq<RA, RB, Ord>()) {
     return std::type_identity<RB>{};
   } else if constexpr (order_leq<RB, RA, Ord>()) {
