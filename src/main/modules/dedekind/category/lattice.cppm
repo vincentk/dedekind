@@ -462,6 +462,16 @@ export template <typename X>
 struct carrier_of<X> {
   using type = std::remove_cvref_t<decltype(X::value)>;
 };
+// Set-predicate / subobject leaves carry a `Domain` typedef rather than a
+// `::value` (they are predicates χ:Domain→Ω, not wrapped values); the carrier
+// is that domain.  So the carrier-based gates (SameCarrier, distributivity,
+// complement, De Morgan negation) apply to set expressions too.
+export template <typename X>
+  requires(
+      requires { typename X::Domain; } && !requires { X::value; })
+struct carrier_of<X> {
+  using type = typename X::Domain;
+};
 namespace detail_carrier {
 // The carrier shared by two children, or void if they differ or are unknown.
 template <typename CA, typename CB>

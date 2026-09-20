@@ -141,6 +141,15 @@ static_assert(!SameCarrier<TopI, Meet<Lit<true>, Lit<false>>>,
 static_assert(!SameCarrier<TopI, Join<I3, Lit<true>>>,
               "…nor a NESTED mixed-carrier composite (recursive fail-closed).");
 
+// A subobject-style leaf carries ::Domain (a predicate χ:Domain→Ω), not
+// ::value; carrier_of falls back to that domain — the bridge that lets the
+// carrier-based gates apply to the forthcoming sets specialisation.
+struct DomainLeaf {
+  using Domain = int;
+};
+static_assert(std::same_as<carrier_of_t<DomainLeaf>, int>,
+              "carrier_of falls back to ::Domain for a predicate leaf.");
+
 // ══ Layer 2: the ASSEMBLED reducer on the canonical carriers ══════════════
 
 // bool — the Boolean lattice: optimal reduction (every safe-core law fires).
