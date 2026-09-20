@@ -463,7 +463,17 @@ concept CombinablePredicate =
  *  (#365).  This is the @c AndPredicate<P,Q> named in @c :category:lattice's
  *  spec.  Carrier-general; it inherits the operands' logic through the bare
  *  @c && (Kleene when both return @c Ternary; @c FIXME(#780) tracks the mixed
- *  bool/Ternary lift the raw operator skips). */
+ *  bool/Ternary lift the raw operator skips).
+ *
+ *  @note (category alignment, #881) The meet @c A @c & @c B classifies
+ *  @f$A\cap B@f$ by @f$\chi_A \wedge \chi_B@f$; categorically that intersection
+ *  @b is the @c category::IsPullback of the two subobject inclusions
+ *  @f$A\hookrightarrow U \hookleftarrow B@f$ (the fiber product over the
+ *  ambient), the classifier presentation of that pullback.  Anchored by a
+ *  static witness in @c category/pullback_test (@f$2\mathbb{Z}\cap
+ *  3\mathbb{Z}=6\mathbb{Z}@f$).  Full alignment (pin @c IsPullback on
+ *  @c set_intersection itself, and @c natural_join as a pullback over shared
+ *  columns) is the @c category → @c sets → @c relational follow-up. */
 export template <CombinablePredicate P, CombinablePredicate Q>
 struct AndPredicate {
   P lhs;
