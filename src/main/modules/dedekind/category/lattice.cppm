@@ -441,21 +441,43 @@ struct is_lattice_top_for<LatticeTop<T, Rel>, Ord>
 export template <typename X, typename Ord>
 inline constexpr bool is_lattice_top_for_v = is_lattice_top_for<X, Ord>::value;
 
-/** @concept SameCarrier
- *  @brief Do both operands expose a @c ::value of the @b same carrier type?
- *  The boundary laws require this so a bound of one carrier (e.g. an @c int
- *  @c ⊤) is never applied as the unit / annihilator of a term whose other
- *  operand lives in a different carrier: a mixed-carrier term (@c ⊤ₙₜ @c ∧
- *  @c bool-leaf) fails closed rather than silently collapsing to the foreign
- *  leaf.  (The absorption law already forces a shared carrier through
- *  @c OrderComparable; this is its boundary-law counterpart.) */
+/** @brief The carrier type of a reduced term: a value-bearing leaf's @c ::value
+ *  type, @b propagated through @c Meet / @c Join composites (a subterm that did
+ *  not collapse, e.g. @c Join of two `≤`-incomparable elements of a bit-subset
+ *  lattice), or @c void when the carrier is unknown (an order-opaque leaf). */
+export template <typename X>
+struct carrier_of {
+  using type = void;
+};
+export template <typename X>
+  requires requires { X::value; }
+struct carrier_of<X> {
+  using type = std::remove_cvref_t<decltype(X::value)>;
+};
 export template <typename A, typename B>
-concept SameCarrier =
-    requires {
-      A::value;
-      B::value;
-    } && std::same_as<std::remove_cvref_t<decltype(A::value)>,
-                      std::remove_cvref_t<decltype(B::value)>>;
+struct carrier_of<Meet<A, B>> {
+  using type = typename carrier_of<A>::type;
+};
+export template <typename A, typename B>
+struct carrier_of<Join<A, B>> {
+  using type = typename carrier_of<A>::type;
+};
+export template <typename X>
+using carrier_of_t = typename carrier_of<X>::type;
+
+/** @concept SameCarrier
+ *  @brief Do both operands live in the @b same, known carrier?  The boundary
+ *  laws require this so a bound of one carrier (e.g. an @c int @c ⊤) is never
+ *  applied as the unit / annihilator of a term whose other operand lives in a
+ *  different carrier: a mixed-carrier term (@c ⊤ᵢₙₜ @c ∧ @c bool-leaf) fails
+ *  closed.  Because the carrier is read via @c carrier_of, the laws still apply
+ *  to an arbitrary same-carrier @b composite subterm (@c ⊤∧X=X even when @c X
+ *  is an un-collapsed @c Meet / @c Join), not only to leaves.  (The absorption
+ *  law forces a shared carrier through @c OrderComparable; this is its
+ *  boundary-law counterpart.) */
+export template <typename A, typename B>
+concept SameCarrier = !std::same_as<carrier_of_t<A>, void> &&
+                      std::same_as<carrier_of_t<A>, carrier_of_t<B>>;
 
 /** @brief Law induced by a @b bounded lattice (IsBoundedLatticeCategory): the
  *  unit and annihilator.  Meet: @c ⊥∧X=⊥ (annihilator), @c ⊤∧X=X (unit).

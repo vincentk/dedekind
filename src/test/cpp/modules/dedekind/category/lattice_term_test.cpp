@@ -130,6 +130,17 @@ static_assert(
         law_inactive>,
     "mixed-carrier term ⟹ boundary law inactive (fail-closed).");
 
+// …but the carrier PROPAGATES through composites, so ⊤ ∧ X = X still applies
+// when X is a same-carrier subterm that has not collapsed (not only a leaf) —
+// the case a non-chain lattice (e.g. bit-subset) hits with an un-collapsed
+// Join.
+static_assert(std::same_as<carrier_of_t<Join<I3, I5>>, int>,
+              "carrier propagates through a composite subterm.");
+static_assert(SameCarrier<TopI, Join<I3, I5>>,
+              "⊤ and a same-carrier composite share a carrier.");
+static_assert(!SameCarrier<TopI, Meet<Lit<true>, Lit<false>>>,
+              "…a foreign-carrier composite does not (fail-closed).");
+
 // ══ Layer 2: the ASSEMBLED reducer on the canonical carriers ══════════════
 
 // bool — the Boolean lattice: optimal reduction (every safe-core law fires).
