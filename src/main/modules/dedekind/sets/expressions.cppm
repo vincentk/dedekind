@@ -516,6 +516,25 @@ struct OrPredicate {
   }
 };
 
+/** @brief @c π_1 / @c π_2 for @c OrPredicate: the non-collapsed join carries
+ * the
+ *  @b same pairing @f$\langle \chi_A, \chi_B \rangle@f$ as @c AndPredicate, so
+ * it too satisfies @c category::IsProduct<OrPredicate<P,Q>, P, Q> (free
+ * overloads, found by ADL).  The pullback / pushout distinction is not in the
+ * pairing but in the reduction operator: @c AndPredicate reduces by @c ∧ (the
+ * meet, a pullback), @c OrPredicate by @c ∨ (the join, a pushout).  This is
+ * step 2 of #881: @c OrPredicate is the same product-pairing, primed to become
+ * the
+ *  @c IsPushout kind once that dual concept exists. */
+export template <CombinablePredicate P, CombinablePredicate Q>
+constexpr P π_1(const OrPredicate<P, Q>& a) {
+  return a.lhs;
+}
+export template <CombinablePredicate P, CombinablePredicate Q>
+constexpr Q π_2(const OrPredicate<P, Q>& a) {
+  return a.rhs;
+}
+
 template <typename P1, typename P2>
 struct IsComplementPair : std::false_type {};
 

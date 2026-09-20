@@ -61,6 +61,15 @@ static_assert(π_1(Meet{IsEven{}, IsPositive{}})(4),
 static_assert(π_2(Meet{IsEven{}, IsPositive{}})(4),
               "π_2 recovers χ_B = IsPositive: π_2(meet)(4) = true.");
 
+// #881 step 2: OrPredicate carries the same pairing ⟨χ_A, χ_B⟩, so it too is an
+// IsProduct (the join's classifier).  Same substrate as AndPredicate; the
+// pushout vs pullback distinction is the ∨ vs ∧ reduction, not the pairing.
+using Join = dedekind::sets::OrPredicate<IsEven, IsPositive>;
+static_assert(
+    dedekind::category::IsProduct<Join, IsEven, IsPositive>,
+    "OrPredicate ⟨χ_A, χ_B⟩ is also the categorical product of its two "
+    "operand classifiers (π_1 → χ_A, π_2 → χ_B): #881 step 2.");
+
 // #881: the APPLIED meet A & B (the reified intersection of two concrete sets)
 // IS the pullback of those two sets --- the cospan of their inclusions
 // ι_A, ι_B, with the meet's co-restriction legs π1/π2.  In the poset Sub(U),
