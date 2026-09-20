@@ -40,6 +40,7 @@ import :lattice;  // IsBoundedLatticeCategory, LatticeTop/Bottom,
                   // is_complement_v
 import :limit;    // IsInitialObject (⊥), IsTerminalObject (⊤)
 import :species;  // law traits (associative / idempotent / distributive / …)
+import :logic;    // ClassicalLogic (default), Ternary, IsLogicalSpecies
 
 namespace dedekind::category {
 
@@ -52,15 +53,46 @@ struct Join {};  // A ∨ B
 export template <typename A>
 struct Not {};  // ¬A
 
+/** @brief The logic species a comparator reports in — @c ClassicalLogic (a
+ *  @c bool decision) unless the comparator names its own @c logic typedef (e.g.
+ *  @c TernaryLogic, so an @b undecidable comparison can be @c Unknown). */
+export template <typename Less>
+struct lattice_less_logic {
+  using type = ClassicalLogic;
+};
+export template <typename Less>
+  requires requires { typename Less::logic; }
+struct lattice_less_logic<Less> {
+  using type = typename Less::logic;
+};
+export template <typename Less>
+using lattice_less_logic_t = typename lattice_less_logic<Less>::type;
+
 /** @concept IsLatticeLess
  *  @brief The injected total order: a caller-supplied comparator with a
- *  @c static @c consteval @c bool @c less<X,Y>() giving a strict total order on
- *  the leaf types present in a term.  Total-ness is the caller's obligation
- *  (Jlt: asserted downstream), not checked here. */
+ *  @c static @c consteval @c less<X,Y>() returning a logic value in its
+ *  @c lattice_less_logic (default @c ClassicalLogic, i.e. @c bool).  The
+ *  reducer canonicalises only on a @b definitely-True result, so an @c Unknown
+ *  (undecidable) comparison leaves the operands in authoring order.  Total-ness
+ *  is the caller's obligation (Jlt: asserted downstream), not checked here. */
 export template <typename Less, typename X, typename Y>
 concept IsLatticeLess = requires {
-  { Less::template less<X, Y>() } -> std::same_as<bool>;
+  {
+    Less::template less<X, Y>()
+  } -> std::convertible_to<typename lattice_less_logic_t<Less>::Ω>;
 };
+
+/** @brief Did the comparator decide @b definitely @c True? (`Unknown`/`False`
+ *  ⟹ don't reorder — keep authoring order.)  For @c ClassicalLogic this is the
+ *  bool itself; for @c TernaryLogic it is @c == @c Ternary::True. */
+export template <typename Less, typename X, typename Y>
+consteval bool lattice_definitely_less() {
+  if constexpr (IsLatticeLess<Less, X, Y>) {
+    return Less::template less<X, Y>() == lattice_less_logic_t<Less>::True;
+  } else {
+    return false;  // no order for this pair ⟹ leave as authored
+  }
+}
 
 /** @brief @c reduce_t<Term, Less> — the normal form of @c Term under the
  *  lattice laws, with commutative operands canonicalised by @c Less. */
@@ -87,9 +119,11 @@ consteval auto meet_reduce() {
     return std::type_identity<RA>{};
   } else if constexpr (std::same_as<RA, RB>) {
     return std::type_identity<RA>{};  // X ∧ X = X (idempotent)
-  } else if constexpr (IsLatticeLess<Less, RB, RA> &&
-                       Less::template less<RB, RA>()) {
-    return std::type_identity<Meet<RB, RA>>{};  // canonicalise: left < right
+  } else if constexpr (lattice_definitely_less<Less, RB, RA>()) {
+    // canonicalise: definitely RB < RA ⟹ swap to left < right.  An Unknown /
+    // undecidable comparison is NOT definitely-less, so it keeps authoring
+    // order.
+    return std::type_identity<Meet<RB, RA>>{};
   } else {
     return std::type_identity<Meet<RA, RB>>{};
   }
@@ -108,9 +142,9 @@ consteval auto join_reduce() {
     return std::type_identity<RA>{};
   } else if constexpr (std::same_as<RA, RB>) {
     return std::type_identity<RA>{};  // idempotent
-  } else if constexpr (IsLatticeLess<Less, RB, RA> &&
-                       Less::template less<RB, RA>()) {
-    return std::type_identity<Join<RB, RA>>{};  // canonicalise
+  } else if constexpr (lattice_definitely_less<Less, RB, RA>()) {
+    return std::type_identity<Join<RB, RA>>{};  // canonicalise (Unknown keeps
+                                                // order)
   } else {
     return std::type_identity<Join<RA, RB>>{};
   }

@@ -64,8 +64,9 @@ static_assert(std::same_as<JoinForm, UniversalSet<int, ClassicalLogic>>,
 
 }  // namespace set_expression_exhibit
 
-// ── Runtime behaviour: the collapsed sets classify exactly as the original
+// ── Membership: the collapsed sets classify exactly as the original
 //    expression would, so the compile-time optimization is meaning-preserving.
+//    All bona fide constexpr (Jlt) — STATIC_CHECK, decided at compile time.
 TEST_CASE(
     "Exhibit: two overlapping halfspaces collapse (structural axis, #888)",
     "[order][sets][exhibit][collapse]") {
@@ -75,21 +76,21 @@ TEST_CASE(
 
   SECTION("A & B is the open interval (-5, 5)") {
     constexpr auto meet = SA & SB;
-    CHECK(meet(0));
-    CHECK(meet(4));
-    CHECK(meet(-4));
-    CHECK_FALSE(meet(5));   // boundary excluded (strict)
-    CHECK_FALSE(meet(-5));  // boundary excluded (strict)
-    CHECK_FALSE(meet(100));
+    STATIC_CHECK(meet(0));
+    STATIC_CHECK(meet(4));
+    STATIC_CHECK(meet(-4));
+    STATIC_CHECK_FALSE(meet(5));   // boundary excluded (strict)
+    STATIC_CHECK_FALSE(meet(-5));  // boundary excluded (strict)
+    STATIC_CHECK_FALSE(meet(100));
   }
 
   SECTION("A | B is the universe 𝔸 (covers ℤ)") {
     constexpr auto join = SA | SB;
-    CHECK(join(0));
-    CHECK(join(100));
-    CHECK(join(-100));
-    CHECK(join(5));
-    CHECK(join(-5));
+    STATIC_CHECK(join(0));
+    STATIC_CHECK(join(100));
+    STATIC_CHECK(join(-100));
+    STATIC_CHECK(join(5));
+    STATIC_CHECK(join(-5));
   }
 
   // Complement laws (the lattice ⊥/⊤): the collapse also fires the boundary
@@ -97,12 +98,12 @@ TEST_CASE(
   SECTION(
       "A & ~A collapses to Ø (contradiction), A | ~A to 𝔸 (excluded middle)") {
     constexpr auto contradiction = SA & ~SA;
-    CHECK_FALSE(contradiction(0));
-    CHECK_FALSE(contradiction(4));
-    CHECK_FALSE(contradiction(5));
+    STATIC_CHECK_FALSE(contradiction(0));
+    STATIC_CHECK_FALSE(contradiction(4));
+    STATIC_CHECK_FALSE(contradiction(5));
     constexpr auto excluded_middle = SA | ~SA;
-    CHECK(excluded_middle(0));
-    CHECK(excluded_middle(4));
-    CHECK(excluded_middle(5));
+    STATIC_CHECK(excluded_middle(0));
+    STATIC_CHECK(excluded_middle(4));
+    STATIC_CHECK(excluded_middle(5));
   }
 }

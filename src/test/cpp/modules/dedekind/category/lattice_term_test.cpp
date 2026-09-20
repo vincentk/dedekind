@@ -83,6 +83,27 @@ static_assert(std::same_as<reduce_t<Meet<TopN, Join<BotN, L5>>, NumLess>, L5>,
 static_assert(std::same_as<reduce_t<Not<Not<L5>>, NumLess>, L5>,
               "¬¬X = X (involutive complement).");
 
+// ── Logic-parametrised comparator (#1): the order returns a LogicalValue in
+//    its own `logic` (here TernaryLogic).  An UNDECIDABLE comparison (Unknown)
+//    is not definitely-less, so operands keep authoring order — while the other
+//    laws still fire.  ClassicalLogic (bool) stays the default (NumLess above).
+struct UA {};  // two opaque leaves the comparator cannot order
+struct UB {};
+struct TernLess {
+  using logic = TernaryLogic;
+  template <typename, typename>
+  static consteval Ternary less() {
+    return Ternary::Unknown;  // "cannot decide the order"
+  }
+};
+static_assert(std::same_as<reduce_t<Meet<UB, UA>, TernLess>, Meet<UB, UA>>,
+              "undecidable order ⟹ authoring order kept (no swap).");
+static_assert(std::same_as<reduce_t<Meet<UA, UB>, TernLess>, Meet<UA, UB>>,
+              "…the mirror order likewise stays as authored (not one normal "
+              "form — the honest fallback).");
+static_assert(std::same_as<reduce_t<Meet<UA, UA>, TernLess>, UA>,
+              "idempotence still fires regardless of comparator decidability.");
+
 }  // namespace lattice_term_smoke
 
 TEST_CASE("lattice_term: generic reducer smoke (bool + size_t chains, #888)",
