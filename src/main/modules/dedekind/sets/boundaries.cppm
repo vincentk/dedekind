@@ -402,6 +402,16 @@ inline constexpr UniversalSet<T, L, C> 𝔸{};
 export template <>
 inline constexpr UniversalSet<bool, ClassicalLogic, Finite> 𝔸<bool>{};
 
+/** @brief The subset (⊆) order on the subobject lattice @c Sub(T), keyed by the
+ *  logic species @c L.  This is the @b injected order (@c Ord) under which the
+ *  generic lattice-law term reducer (@c category:lattice_term, #865/#890)
+ *  normalises set expressions: @c Ø is its bottom (⊥, initial), @c 𝔸 its top
+ *  (⊤, terminal).  Keying by @c L lets the algebra markers distinguish
+ *  @c ClassicalLogic (a @b Boolean subobject lattice — every law) from
+ *  @c TernaryLogic (Heyting / De Morgan, no complement collapse). */
+export template <typename L = ClassicalLogic>
+struct subobject_order {};
+
 template <typename T, typename L>
 constexpr auto Ø<T, L>::operator!() const {
   return UniversalSet<T, L>{};
@@ -611,5 +621,37 @@ namespace dedekind::category {
 template <typename T, typename L, typename C>
 struct is_transfinite<dedekind::sets::UniversalSet<T, L, C>>
     : std::bool_constant<!C::is_finite> {};
+
+// ── Term-reducer boundary hookup (#865/#890, Phase 2) ──────────────────────
+// Ø is the ⊥ (initial) and 𝔸 the ⊤ (terminal) of the subobject lattice Sub(T)
+// under the injected order dedekind::sets::subobject_order<L>, so the reducer's
+// bounded law (⊥∧X=⊥, ⊤∨X=⊤, ⊤∧X=X, ⊥∨X=X) recognises them and supplants the
+// hand-written left-biased Ø / 𝔸 operator members (retired in a following
+// slice).
+template <typename T, typename L>
+struct is_lattice_bottom_for<dedekind::sets::Ø<T, L>,
+                             dedekind::sets::subobject_order<L>>
+    : std::true_type {};
+template <typename T, typename L, typename C>
+struct is_lattice_top_for<dedekind::sets::UniversalSet<T, L, C>,
+                          dedekind::sets::subobject_order<L>> : std::true_type {
+};
+
+// Foot-in-the-door witness: the engine now sees Ø as the ⊥ and 𝔸 as the ⊤ of
+// Sub(T) under subobject_order, so its bounded law reduces boundary meets/joins
+// (the annihilator / unit laws the hand-written Ø / 𝔸 operators currently
+// spell by hand — retired next).
+static_assert(std::same_as<reduce_t<Meet<dedekind::sets::Ø<int>,
+                                         dedekind::sets::UniversalSet<int>>,
+                                    dedekind::sets::subobject_order<>,
+                                    dedekind::sets::subobject_order<>>,
+                           dedekind::sets::Ø<int>>,
+              "Ø ∧ 𝔸 → Ø (Ø recognised as the subobject-lattice ⊥).");
+static_assert(std::same_as<reduce_t<Join<dedekind::sets::Ø<int>,
+                                         dedekind::sets::UniversalSet<int>>,
+                                    dedekind::sets::subobject_order<>,
+                                    dedekind::sets::subobject_order<>>,
+                           dedekind::sets::UniversalSet<int>>,
+              "Ø ∨ 𝔸 → 𝔸 (𝔸 recognised as the subobject-lattice ⊤).");
 
 }  // namespace dedekind::category
