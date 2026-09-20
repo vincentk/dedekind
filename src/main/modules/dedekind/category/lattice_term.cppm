@@ -210,4 +210,19 @@ struct reduce<Join<A, B>, Less, Ord> {
                                  Less, Ord>())::type;
 };
 
+// ¬A: reduce the operand, then apply the complement law (involution / De
+// Morgan, gated on an involutive complement).  If it fires, the pushed-down
+// result is re-reduced (¬ descends toward the leaves, so this terminates);
+// otherwise ¬(reduced) is already negation-normal and stays.
+export template <typename A, typename Less, typename Ord>
+struct reduce<Not<A>, Less, Ord> {
+ private:
+  using RA = reduce_t<A, Less, Ord>;
+  using Pushed = typename decltype(complement_law<RA, Ord>())::type;
+
+ public:
+  using type = std::conditional_t<std::same_as<Pushed, law_inactive>, Not<RA>,
+                                  reduce_t<Pushed, Less, Ord>>;
+};
+
 }  // namespace dedekind::category

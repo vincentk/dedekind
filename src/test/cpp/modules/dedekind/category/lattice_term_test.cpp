@@ -294,11 +294,15 @@ using DB = DLit<D3::b>;
 using DC = DLit<D3::c>;
 }  // namespace dist_toy
 
-// Assert the toy (carrier, order) is a distributive lattice (Jlt assertion):
+// Assert the toy (carrier, order) is a distributive lattice with an involutive
+// complement (Jlt assertions):
 namespace dedekind::category {
 template <>
 inline constexpr bool
     is_distributive_lattice_for_v<dist_toy::D3, dist_toy::DistOrd> = true;
+template <>
+inline constexpr bool
+    is_involutive_complement_for_v<dist_toy::D3, dist_toy::DistOrd> = true;
 }  // namespace dedekind::category
 
 namespace dist_toy {
@@ -322,6 +326,19 @@ static_assert(
 static_assert(std::same_as<reduce_t<Meet<DC, Join<DA, DB>>, KeepOrder, DistOrd>,
                            Join<Meet<DC, DA>, Meet<DC, DB>>>,
               "assembled: meet distributes over join to DNF, then re-reduces.");
+
+// ── Complement / De Morgan (involution ¬¬A→A, De Morgan) ──────────────────
+static_assert(std::same_as<reduce_t<Not<Not<DA>>, KeepOrder, DistOrd>, DA>,
+              "¬¬a → a (involution).");
+static_assert(std::same_as<reduce_t<Not<Meet<DA, DB>>, KeepOrder, DistOrd>,
+                           Join<Not<DA>, Not<DB>>>,
+              "¬(a ∧ b) → ¬a ∨ ¬b (De Morgan, complement pushed to leaves).");
+static_assert(std::same_as<reduce_t<Not<Join<DA, DB>>, KeepOrder, DistOrd>,
+                           Meet<Not<DA>, Not<DB>>>,
+              "¬(a ∨ b) → ¬a ∧ ¬b (De Morgan dual).");
+static_assert(
+    std::same_as<reduce_t<Not<Not<DA>>, KeepOrder, NonDistOrd>, Not<Not<DA>>>,
+    "…involution inactive without an involutive complement (gated).");
 }  // namespace dist_toy
 
 TEST_CASE("lattice_term: induced laws + assembled reducer (#865/#888)",

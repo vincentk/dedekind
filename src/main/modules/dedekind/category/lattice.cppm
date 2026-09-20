@@ -402,6 +402,8 @@ export template <typename A, typename B>
 struct Meet {};  // A ∧ B
 export template <typename A, typename B>
 struct Join {};  // A ∨ B
+export template <typename A>
+struct Not {};  // ¬A (complement)
 
 /** @brief Sentinel: a law that does not fire on the given node. */
 export struct law_inactive {};
@@ -475,6 +477,10 @@ export template <typename A, typename B>
 struct carrier_of<Join<A, B>> {
   using type = detail_carrier::common<typename carrier_of<A>::type,
                                       typename carrier_of<B>::type>;
+};
+export template <typename A>
+struct carrier_of<Not<A>> {
+  using type = typename carrier_of<A>::type;
 };
 export template <typename X>
 using carrier_of_t = typename carrier_of<X>::type;
@@ -714,6 +720,66 @@ consteval auto meet_distributivity_law() {
     return std::type_identity<typename distribute_meet_over<RB, RA>::type>{};
   } else {
     return std::type_identity<law_inactive>{};
+  }
+}
+
+// ── Complement / De Morgan (induced by an involutive complement) ──────────
+
+/** @brief Is @c X a @c Not node? */
+export template <typename X>
+inline constexpr bool is_not_node_v = false;
+export template <typename A>
+inline constexpr bool is_not_node_v<Not<A>> = true;
+
+/** @brief Is @c X a @c Meet node? */
+export template <typename X>
+inline constexpr bool is_meet_node_v = false;
+export template <typename A, typename B>
+inline constexpr bool is_meet_node_v<Meet<A, B>> = true;
+
+/** @brief Does the lattice (carrier @c T, order @c Ord) carry an @b involutive
+ *  order-reversing complement (a De Morgan algebra: @c ¬¬a=a and the De Morgan
+ *  laws hold)?  Keyed to the order and opt-in (default @c false — the Jlt
+ *  assertion), the same posture as @c is_distributive_lattice_for_v.  @b Note
+ *  this is weaker than Boolean: it does @b not assert the complement laws
+ *  @c a∧¬a=⊥ / @c a∨¬a=⊤ (those need a genuinely @b complemented lattice and
+ *  are a separate law, tracked on #890). */
+export template <typename T, typename Ord>
+inline constexpr bool is_involutive_complement_for_v = false;
+
+// The De Morgan / involution rewrite of ¬(node): push the complement inward
+// one level.  Defined only for the nodes it rewrites (Not / Meet / Join); a
+// bare ¬leaf is already negation-normal and is left to the caller.
+template <typename Node>
+struct complement_of;
+template <typename B>
+struct complement_of<Not<B>> {
+  using type = B;  // ¬¬B → B (involution)
+};
+template <typename P, typename Q>
+struct complement_of<Meet<P, Q>> {
+  using type = Join<Not<P>, Not<Q>>;  // ¬(P∧Q) → ¬P ∨ ¬Q
+};
+template <typename P, typename Q>
+struct complement_of<Join<P, Q>> {
+  using type = Meet<Not<P>, Not<Q>>;  // ¬(P∨Q) → ¬P ∧ ¬Q
+};
+
+/** @brief Law induced by an @b involutive complement: rewrite @c ¬(reduced) by
+ *  involution (@c ¬¬A→A) and De Morgan (@c ¬(A∧B)→¬A∨¬B, @c ¬(A∨B)→¬A∧¬B),
+ *  pushing the complement toward the leaves (negation-normal form).  Gated on
+ *  the carrier's lattice carrying an involutive complement under @c Ord; a bare
+ *  @c ¬leaf is already normal and stays (@c law_inactive).  The driver
+ *  re-reduces the pushed-down result (termination: @c ¬ strictly descends). */
+export template <typename RA, typename Ord>
+consteval auto complement_law() {
+  if constexpr (!is_involutive_complement_for_v<carrier_of_t<RA>, Ord>) {
+    return std::type_identity<law_inactive>{};
+  } else if constexpr (is_not_node_v<RA> || is_meet_node_v<RA> ||
+                       is_join_node_v<RA>) {
+    return std::type_identity<typename complement_of<RA>::type>{};
+  } else {
+    return std::type_identity<law_inactive>{};  // ¬leaf is negation-normal
   }
 }
 
