@@ -324,25 +324,21 @@ constexpr auto π_2(const P& p) {
  * (pushout colegs) without a separate concept.  #881.
  */
 /**
- * @brief Base-case sentinel for @c IsProduct's operation parameter.
- * @details When @c Op is @c AnyOperation (the default) the reduction is
- * unconstrained, so every product qualifies regardless of whether it commits to
- * a lattice reduction --- @c std::pair, @c Complex, @c Dual, @c Rational are
- * all products "over any operation".  A pairing that DOES carry a reduction
- * (e.g.
- * @c sets::AndPredicate is ∧, @c OrPredicate is ∨, via an @c operation typedef)
- * is pinned to it by naming that @c Op.  This is how algebra keys
- * @c IsMonoid<X,Op> by @c Op: the operation is a first-class, defaulted
- * parameter, ignored in the base case.
+ * @brief Base-case sentinel for the operation parameter of @c IsProduct /
+ * @c IsCoproduct.
+ * @details When @c Op is @c AnyOperation (the default) the mediator is
+ * unconstrained, so every product / coproduct qualifies on its projections /
+ * injections alone --- @c std::pair, @c Complex, @c Dual, @c Rational and
+ * @c std::variant are all (co)products "over any operation".  Naming an @c Op
+ * pins the (co)product to a specific @b constructor-like factory: for a product
+ * a pairing factory @c A×B → P; for a coproduct the injections @c A → C,
+ * @c B → C.  This is how algebra keys @c IsMonoid<X,Op> by @c Op --- the
+ * operation is a first-class, defaulted parameter, ignored in the base case.
+ * The factory's @b result type is what distinguishes otherwise-identical shapes
+ * (e.g. @c sets::AndPredicate ∧ vs @c OrPredicate ∨: only the matching factory
+ * builds @c P).
  */
 export struct AnyOperation {};
-
-/** @brief The product declares reduction operation @c Op (its @c operation
- *  typedef equals @c Op): the Op-refinement of @c IsProduct. */
-template <typename P, typename Op>
-concept HasOperation = requires {
-  typename std::remove_cvref_t<P>::operation;
-} && std::same_as<typename std::remove_cvref_t<P>::operation, Op>;
 
 export template <typename P, typename A, typename B, typename Op = AnyOperation>
 concept IsProduct = requires(P p) {
@@ -352,7 +348,13 @@ concept IsProduct = requires(P p) {
   // overload) all qualify.
   { π_1(p) } -> std::convertible_to<A>;
   { π_2(p) } -> std::convertible_to<B>;
-} && (std::same_as<Op, AnyOperation> || HasOperation<P, Op>);
+} && (std::same_as<Op, AnyOperation> || requires(const A& a, const B& b) {
+                      // A named Op must be the pairing FACTORY ⟨-,-⟩: A × B → P
+                      // (it builds the product).  Its result type pins which
+                      // product, so it doubles as the meet/join discriminator
+                      // without a separate tag.
+                      { Op{}(a, b) } -> std::convertible_to<P>;
+                    });
 
 static_assert(
     IsProduct<std::pair<int, bool>, int, bool>,

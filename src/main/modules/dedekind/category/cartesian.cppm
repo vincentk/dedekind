@@ -262,11 +262,18 @@ auto uncurry(F&& f) {
  * injected into the variant, and `std::visit` provides the universal
  * elimination morphism.
  */
-export template <typename T, typename A, typename B>
+export template <typename T, typename A, typename B, typename Op = AnyOperation>
 concept IsCoproduct = requires(A a, B b) {
   { T(a) } -> std::same_as<T>;
   { T(b) } -> std::same_as<T>;
-};
+} && (std::same_as<Op, AnyOperation> || requires(const A& a, const B& b) {
+                        // Dual to IsProduct's pairing factory: a named Op must
+                        // be the injection factory --- the two coprojections
+                        // ι1: A → C, ι2: B → C (Op invocable on either factor,
+                        // both landing in the coproduct C).
+                        { Op{}(a) } -> std::convertible_to<T>;
+                        { Op{}(b) } -> std::convertible_to<T>;
+                      });
 
 /**
  * @brief Left injection ι₁: A → A + B.
