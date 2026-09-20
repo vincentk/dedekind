@@ -441,11 +441,30 @@ struct is_lattice_top_for<LatticeTop<T, Rel>, Ord>
 export template <typename X, typename Ord>
 inline constexpr bool is_lattice_top_for_v = is_lattice_top_for<X, Ord>::value;
 
+/** @concept SameCarrier
+ *  @brief Do both operands expose a @c ::value of the @b same carrier type?
+ *  The boundary laws require this so a bound of one carrier (e.g. an @c int
+ *  @c ⊤) is never applied as the unit / annihilator of a term whose other
+ *  operand lives in a different carrier: a mixed-carrier term (@c ⊤ₙₜ @c ∧
+ *  @c bool-leaf) fails closed rather than silently collapsing to the foreign
+ *  leaf.  (The absorption law already forces a shared carrier through
+ *  @c OrderComparable; this is its boundary-law counterpart.) */
+export template <typename A, typename B>
+concept SameCarrier =
+    requires {
+      A::value;
+      B::value;
+    } && std::same_as<std::remove_cvref_t<decltype(A::value)>,
+                      std::remove_cvref_t<decltype(B::value)>>;
+
 /** @brief Law induced by a @b bounded lattice (IsBoundedLatticeCategory): the
- *  unit and annihilator.  Meet: @c ⊥∧X=⊥ (annihilator), @c ⊤∧X=X (unit). */
+ *  unit and annihilator.  Meet: @c ⊥∧X=⊥ (annihilator), @c ⊤∧X=X (unit).
+ *  Fires only when both operands share a carrier (mixed-carrier ⟹ inactive). */
 export template <typename RA, typename RB, typename Ord>
 consteval auto meet_bounded_law() {
-  if constexpr (is_lattice_bottom_for_v<RA, Ord>) {
+  if constexpr (!SameCarrier<RA, RB>) {
+    return std::type_identity<law_inactive>{};  // mixed carrier ⟹ fail closed
+  } else if constexpr (is_lattice_bottom_for_v<RA, Ord>) {
     return std::type_identity<RA>{};  // ⊥ ∧ X = ⊥
   } else if constexpr (is_lattice_bottom_for_v<RB, Ord>) {
     return std::type_identity<RB>{};
@@ -458,10 +477,13 @@ consteval auto meet_bounded_law() {
   }
 }
 
-/** @brief The join dual: @c ⊤∨X=⊤ (annihilator), @c ⊥∨X=X (unit). */
+/** @brief The join dual: @c ⊤∨X=⊤ (annihilator), @c ⊥∨X=X (unit).
+ *  Likewise fires only when both operands share a carrier. */
 export template <typename RA, typename RB, typename Ord>
 consteval auto join_bounded_law() {
-  if constexpr (is_lattice_top_for_v<RA, Ord>) {
+  if constexpr (!SameCarrier<RA, RB>) {
+    return std::type_identity<law_inactive>{};  // mixed carrier ⟹ fail closed
+  } else if constexpr (is_lattice_top_for_v<RA, Ord>) {
     return std::type_identity<RA>{};  // ⊤ ∨ X = ⊤
   } else if constexpr (is_lattice_top_for_v<RB, Ord>) {
     return std::type_identity<RB>{};

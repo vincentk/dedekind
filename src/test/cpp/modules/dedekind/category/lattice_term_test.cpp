@@ -8,8 +8,9 @@
  *      carriers, chosen for how much lattice structure they carry:
  *        - `bool`  : the two-element Boolean lattice — OPTIMAL reduction, every
  *                    safe-core law fires (the easy oracle);
- *        - `int`   : a BOUNDED chain (⊥ = INT_MIN, ⊤ = INT_MAX);
- *        - `size_t`: an UNBOUNDED chain (⊥ = 0, no top used) — fewer laws fire.
+ *        - `int`   : a bounded chain (⊥ = INT_MIN, ⊤ = INT_MAX);
+ *        - `size_t`: also a bounded chain (⊤ = SIZE_MAX), exercised WITHOUT a
+ *                    top operand (the laws that need no top).
  *
  * The total order is INJECTED at the call site (`NumLess`); the semantic
  * (absorption / boundedness) order defaults to `canonical_order`.  These are
@@ -42,8 +43,8 @@ struct NumLess {
   }
 };
 
-// Carriers.  bool = Boolean lattice; int = bounded chain; size_t = unbounded
-// chain (bottom only — its top is intentionally unused here).
+// Carriers.  bool = Boolean lattice; int, size_t = bounded chains (size_t's
+// top SIZE_MAX is simply not used in the terms below).
 using BotB = LatticeBottom<bool, std::less_equal<bool>>;
 using TopB = LatticeTop<bool, std::less_equal<bool>>;
 using BotI = LatticeBottom<int, std::less_equal<int>>;
@@ -121,6 +122,14 @@ static_assert(
 static_assert(!is_lattice_bottom_for_v<BotI, BitSubsetOrd>,
               "…but NOT the ⊥ of a different lattice order on int.");
 
+// Mixed-carrier fail-closed: an int ⊤ is NOT the unit of a bool leaf — the
+// boundary law requires both operands share a carrier (SameCarrier).
+static_assert(
+    std::same_as<
+        decltype(meet_bounded_law<TopI, Lit<true>, canonical_order>())::type,
+        law_inactive>,
+    "mixed-carrier term ⟹ boundary law inactive (fail-closed).");
+
 // ══ Layer 2: the ASSEMBLED reducer on the canonical carriers ══════════════
 
 // bool — the Boolean lattice: optimal reduction (every safe-core law fires).
@@ -144,10 +153,10 @@ static_assert(std::same_as<reduce_t<Join<I5, I3>, NumLess>, I5>,
 static_assert(std::same_as<reduce_t<Meet<TopI, Join<BotI, I5>>, NumLess>, I5>,
               "⊤ ∧ (⊥ ∨ 5) = ⊤ ∧ 5 = 5.");
 
-// size_t — an unbounded chain: no top used; the bottom (0) still annihilates,
-// and absorption / idempotence fire on the chain.
+// size_t — a bounded chain, exercised WITHOUT a top operand: the bottom (0)
+// annihilates and absorption / idempotence fire without touching the top.
 static_assert(std::same_as<reduce_t<Meet<BotN, N5>, NumLess>, BotN>,
-              "0 ∧ X = 0 (unbounded chain still has a bottom).");
+              "0 ∧ X = 0 (bottom annihilates).");
 static_assert(std::same_as<reduce_t<Meet<N5, N3>, NumLess>, N3>,
               "5 ∧ 3 = 3 (absorption, no top needed).");
 static_assert(std::same_as<reduce_t<Meet<N5, N5>, NumLess>, N5>,
