@@ -545,6 +545,49 @@ consteval auto idempotent_law() {
   }
 }
 
+/** @brief Is @c Elem one of the operands of the @c Join node @c Node? */
+export template <typename Elem, typename Node>
+inline constexpr bool is_join_containing_v = false;
+export template <typename Elem, typename A, typename B>
+inline constexpr bool is_join_containing_v<Elem, Join<A, B>> =
+    std::same_as<Elem, A> || std::same_as<Elem, B>;
+
+/** @brief Is @c Elem one of the operands of the @c Meet node @c Node? */
+export template <typename Elem, typename Node>
+inline constexpr bool is_meet_containing_v = false;
+export template <typename Elem, typename A, typename B>
+inline constexpr bool is_meet_containing_v<Elem, Meet<A, B>> =
+    std::same_as<Elem, A> || std::same_as<Elem, B>;
+
+/** @brief Law induced by a @b lattice (IsLatticeCategory): @b structural
+ *  absorption @c a∧(a∨b)=a.  @b Structural like idempotence (a lattice axiom
+ *  needing no order or carrier), so it fires even for order-incomparable opaque
+ *  leaves; @b unlike the glb collapse (which needs comparable operands).  One
+ *  level only: nested / associatively-buried occurrences (@c a∧((a∨b)∨c)) await
+ *  an associativity-flattening law (tracked on the reducer epic #890). */
+export template <typename RA, typename RB>
+consteval auto meet_structural_absorption_law() {
+  if constexpr (is_join_containing_v<RA, RB>) {
+    return std::type_identity<RA>{};  // a ∧ (a ∨ b) = a
+  } else if constexpr (is_join_containing_v<RB, RA>) {
+    return std::type_identity<RB>{};  // (a ∨ b) ∧ a = a
+  } else {
+    return std::type_identity<law_inactive>{};
+  }
+}
+
+/** @brief The join dual: @c a∨(a∧b)=a. */
+export template <typename RA, typename RB>
+consteval auto join_structural_absorption_law() {
+  if constexpr (is_meet_containing_v<RA, RB>) {
+    return std::type_identity<RA>{};  // a ∨ (a ∧ b) = a
+  } else if constexpr (is_meet_containing_v<RB, RA>) {
+    return std::type_identity<RB>{};
+  } else {
+    return std::type_identity<law_inactive>{};
+  }
+}
+
 // ── Absorption, decided by the injected order ─────────────────────────────
 
 /** @concept OrderComparable

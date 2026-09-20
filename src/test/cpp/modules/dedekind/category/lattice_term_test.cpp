@@ -234,6 +234,37 @@ static_assert(!IsLatticeLess<RuntimeLess, UA, UB>,
 static_assert(std::same_as<reduce_t<Meet<UA, UB>, RuntimeLess>, Meet<UA, UB>>,
               "…so the term keeps authoring order instead of hard-erroring.");
 
+// ══ Structural absorption a∧(a∨b)=a / a∨(a∧b)=a ═══════════════════════════
+// A pure lattice-axiom rewrite (no order / carrier), so it is witnessed on the
+// order-opaque leaves UA/UB — where the inner Join/Meet does NOT collapse (on a
+// chain the inner node would glb/lub-collapse first, pre-empting it).
+
+// The law in isolation:
+static_assert(
+    std::same_as<
+        decltype(meet_structural_absorption_law<UA, Join<UA, UB>>())::type, UA>,
+    "a ∧ (a ∨ b) = a.");
+static_assert(
+    std::same_as<
+        decltype(meet_structural_absorption_law<Join<UB, UA>, UA>())::type, UA>,
+    "(b ∨ a) ∧ a = a (operand order in the join irrelevant).");
+static_assert(
+    std::same_as<
+        decltype(meet_structural_absorption_law<UA, Join<UB, UB>>())::type,
+        law_inactive>,
+    "a ∧ (b ∨ b): a absent from the join ⟹ inactive.");
+static_assert(
+    std::same_as<
+        decltype(join_structural_absorption_law<UA, Meet<UA, UB>>())::type, UA>,
+    "a ∨ (a ∧ b) = a (join dual).");
+
+// Assembled through reduce<> (TernLess keeps the opaque inner node
+// un-collapsed):
+static_assert(std::same_as<reduce_t<Meet<UA, Join<UA, UB>>, TernLess>, UA>,
+              "assembled: a ∧ (a ∨ b) collapses to a.");
+static_assert(std::same_as<reduce_t<Join<UA, Meet<UA, UB>>, TernLess>, UA>,
+              "assembled dual: a ∨ (a ∧ b) collapses to a.");
+
 }  // namespace lattice_term_smoke
 
 TEST_CASE("lattice_term: induced laws + assembled reducer (#865/#888)",
