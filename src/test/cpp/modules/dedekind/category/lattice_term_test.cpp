@@ -140,6 +140,8 @@ static_assert(SameCarrier<TopI, Join<I3, I5>>,
               "⊤ and a same-carrier composite share a carrier.");
 static_assert(!SameCarrier<TopI, Meet<Lit<true>, Lit<false>>>,
               "…a foreign-carrier composite does not (fail-closed).");
+static_assert(!SameCarrier<TopI, Join<I3, Lit<true>>>,
+              "…nor a NESTED mixed-carrier composite (recursive fail-closed).");
 
 // ══ Layer 2: the ASSEMBLED reducer on the canonical carriers ══════════════
 

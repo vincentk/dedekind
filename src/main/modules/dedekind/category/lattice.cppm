@@ -444,7 +444,12 @@ inline constexpr bool is_lattice_top_for_v = is_lattice_top_for<X, Ord>::value;
 /** @brief The carrier type of a reduced term: a value-bearing leaf's @c ::value
  *  type, @b propagated through @c Meet / @c Join composites (a subterm that did
  *  not collapse, e.g. @c Join of two `≤`-incomparable elements of a bit-subset
- *  lattice), or @c void when the carrier is unknown (an order-opaque leaf). */
+ *  lattice), or @c void when the carrier is unknown (an order-opaque leaf) @b
+ * or
+ *  @b inhomogeneous.  A composite propagates a carrier only when @b both
+ *  children agree on a known one, so a nested mixed-carrier term (at any depth)
+ *  is @c void and fails the @c SameCarrier guard below (fail-closed
+ * recursively). */
 export template <typename X>
 struct carrier_of {
   using type = void;
@@ -454,13 +459,21 @@ export template <typename X>
 struct carrier_of<X> {
   using type = std::remove_cvref_t<decltype(X::value)>;
 };
+namespace detail_carrier {
+// The carrier shared by two children, or void if they differ or are unknown.
+template <typename CA, typename CB>
+using common =
+    std::conditional_t<!std::is_void_v<CA> && std::is_same_v<CA, CB>, CA, void>;
+}  // namespace detail_carrier
 export template <typename A, typename B>
 struct carrier_of<Meet<A, B>> {
-  using type = typename carrier_of<A>::type;
+  using type = detail_carrier::common<typename carrier_of<A>::type,
+                                      typename carrier_of<B>::type>;
 };
 export template <typename A, typename B>
 struct carrier_of<Join<A, B>> {
-  using type = typename carrier_of<A>::type;
+  using type = detail_carrier::common<typename carrier_of<A>::type,
+                                      typename carrier_of<B>::type>;
 };
 export template <typename X>
 using carrier_of_t = typename carrier_of<X>::type;
