@@ -90,6 +90,12 @@ concept IsLatticeLess =
       {
         Less::template less<X, Y>()
       } -> std::convertible_to<typename lattice_less_logic_t<Less>::Ω>;
+      // Constant-evaluability gate on the EXACT operation the helper runs
+      // (`less() == True`): a non-constexpr comparator fails the concept, so
+      // `lattice_definitely_less` takes the fail-closed `else` rather than
+      // hard-erroring inside its consteval body.
+      typename std::bool_constant<(Less::template less<X, Y>() ==
+                                   lattice_less_logic_t<Less>::True)>;
     };
 
 /** @brief Did the comparator decide @b definitely @c True? (`Unknown`/`False`

@@ -221,6 +221,20 @@ static_assert(
 static_assert(std::same_as<reduce_t<Meet<UB, UA>, OpaqueLess>, Meet<UB, UA>>,
               "…and the mirror order reduces to the SAME normal form.");
 
+// A NON-constexpr comparator fails IsLatticeLess (its `less() == True` is not a
+// constant expression), so canonicalisation stays fail-closed rather than
+// hard-erroring in the consteval helper.
+struct RuntimeLess {
+  template <typename, typename>
+  static bool less() {  // deliberately NOT consteval / constexpr
+    return true;
+  }
+};
+static_assert(!IsLatticeLess<RuntimeLess, UA, UB>,
+              "non-constexpr comparator ⟹ fails the gate (fail-closed).");
+static_assert(std::same_as<reduce_t<Meet<UA, UB>, RuntimeLess>, Meet<UA, UB>>,
+              "…so the term keeps authoring order instead of hard-erroring.");
+
 }  // namespace lattice_term_smoke
 
 TEST_CASE("lattice_term: induced laws + assembled reducer (#865/#888)",
