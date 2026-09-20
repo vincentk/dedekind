@@ -825,6 +825,102 @@ constexpr auto operator|(const Set<SignedCardinality, L, P1>& lhs,
   return rhs | lhs;
 }
 
+/** @section expressions__Reducer_Leaf_Combiner
+ *
+ *  The set meet / join route through the generic lattice-law term reducer
+ *  (@c category:lattice_term, #865/#890) under @c subobject_order<L>.  The
+ *  reducer owns the structural laws (bounded, idempotence, absorption, ...);
+ *  the @b domain-specific collapse of two order-incomparable set leaves ---
+ *  the @c structured_and / @c structured_or of two halfspaces into an interval,
+ *  say --- is the injected @b leaf-combiner @c SetCombine.  It reaches @c
+ * :order via ADL (order is downstream of sets, so ADL is the cycle-free
+ * customisation point), exactly as the pre-reducer @c operator& / @c operator|
+ * did. */
+
+/** @brief Value-level elevate of a @c structured_and result to the meet's
+ *  normal-form value: an empty reduction is the initial object @c Ø; a
+ *  finite / static-singleton reduction is itself a set-like leaf (returned
+ *  bare); any other reduction is a named predicate wrapped back into a @c Set.
+ *  (Extracted verbatim from the pre-reducer @c operator& structured_and branch
+ *  so @c SetCombine's type and this value stay in lockstep.) */
+export template <typename T, typename L, typename Reduced>
+constexpr auto elevate_meet(Reduced reduced) {
+  using Result = std::decay_t<Reduced>;
+  if constexpr (std::same_as<Result, EmptyPredicate<T>>) {
+    return Ø<T, L>{};
+  } else if constexpr (requires { typename Result::is_static_singleton_tag; }) {
+    return reduced;
+  } else if constexpr (requires { typename Result::cardinality_type; }) {
+    // Nested (not &&-chained): a Result without cardinality_type must not
+    // instantiate the inner probe.
+    if constexpr (std::same_as<typename Result::cardinality_type, Finite>) {
+      return reduced;
+    } else {
+      return Set<T, L, Result>{std::move(reduced)};
+    }
+  } else {
+    return Set<T, L, Result>{std::move(reduced)};
+  }
+}
+
+/** @brief Value-level elevate of a @c structured_or result to the join's
+ *  normal-form value: a covering pair is the universe @c 𝔸 (returned bare);
+ *  any other reduction (a wider halfspace) is wrapped back into a @c Set.
+ *  Dual of @c elevate_meet. */
+export template <typename T, typename L, typename Reduced>
+constexpr auto elevate_join(Reduced reduced) {
+  using Result = std::decay_t<Reduced>;
+  if constexpr (std::same_as<Result, UniversalSet<T, L>>) {
+    return reduced;
+  } else {
+    return Set<T, L, Result>{std::move(reduced)};
+  }
+}
+
+namespace detail_reducer {
+/** @brief Type-level companion of @c elevate_meet: the leaf @c SetCombine::meet
+ *  yields for a combinable set-leaf pair, or @c law_inactive when the leaves
+ *  are not both sets over one carrier or no @c structured_and applies. */
+template <typename RA, typename RB>
+struct combine_meet {
+  using type = law_inactive;
+};
+template <typename T, typename L, typename PA, typename PB>
+  requires requires(const PA& a, const PB& b) { structured_and(a, b); }
+struct combine_meet<Set<T, L, PA>, Set<T, L, PB>> {
+  using type = decltype(elevate_meet<T, L>(
+      structured_and(std::declval<const PA&>(), std::declval<const PB&>())));
+};
+
+template <typename RA, typename RB>
+struct combine_join {
+  using type = law_inactive;
+};
+template <typename T, typename L, typename PA, typename PB>
+  requires requires(const PA& a, const PB& b) { structured_or(a, b); }
+struct combine_join<Set<T, L, PA>, Set<T, L, PB>> {
+  using type = decltype(elevate_join<T, L>(
+      structured_or(std::declval<const PA&>(), std::declval<const PB&>())));
+};
+}  // namespace detail_reducer
+
+/** @brief The injected leaf-combiner (the reducer's 4th @c reduce<> policy) for
+ *  the subobject lattice: at an order-incomparable residual, hand the two set
+ *  leaves to the carrier's domain @c ∧ / @c ∨ (@c structured_and /
+ *  @c structured_or via ADL) and let the reducer re-reduce the result. */
+export struct SetCombine {
+  template <typename RA, typename RB>
+  static consteval auto meet() {
+    return std::type_identity<
+        typename detail_reducer::combine_meet<RA, RB>::type>{};
+  }
+  template <typename RA, typename RB>
+  static consteval auto join() {
+    return std::type_identity<
+        typename detail_reducer::combine_join<RA, RB>::type>{};
+  }
+};
+
 export template <typename T, typename L, typename Predicate>
 class Set {
  public:
@@ -988,6 +1084,9 @@ class Set {
   template <typename OtherPredicate>
   constexpr auto operator|(const Set<T, L, OtherPredicate>& other) const {
     if constexpr (IsComplementPair_v<Predicate, OtherPredicate>) {
+      // FIXME(#865): route through the engine's join_complement_law once it
+      // recognises the predicate-pair encoding (Set<P> / Set<NegatedPredicate>)
+      // as a structural Not; is_complement_pair_v is a fixed formula today.
       return UniversalSet<T, L>{};
     } else if constexpr (std::same_as<T, bool> &&
                          std::same_as<Predicate, BooleanEqPredicate> &&
@@ -996,31 +1095,39 @@ class Set {
           L::OR((*this)(false), other(false)),
           L::OR((*this)(true), other(true)),
       };
-    } else if constexpr (requires {
-                           structured_or(predicate_, other.predicate_);
-                         }) {
-      // The JOIN dual of operator&'s structured_and branch.  A union never
-      // shrinks cardinality, so the only non-predicate result is a covering
-      // pair collapsing to the universe (returned as-is); every other reduction
-      // (a wider halfspace) is a predicate we wrap.
-      auto reduced = structured_or(predicate_, other.predicate_);
-      using Result = std::decay_t<decltype(reduced)>;
-      if constexpr (std::same_as<Result, UniversalSet<T, L>>) {
-        return reduced;
-      } else {
-        return Set<T, L, Result>{std::move(reduced)};
-      }
     } else {
-      // No structural collapse: keep the disjunction as a NAMED predicate so it
-      // survives in decltype (#365), rather than an opaque lambda.
-      return Set<T, L, OrPredicate<Predicate, OtherPredicate>>{
-          OrPredicate<Predicate, OtherPredicate>{predicate_, other.predicate_}};
+      // Route the join through the lattice-law term reducer under
+      // subobject_order<L>; SetCombine performs the domain structured_or at the
+      // order-incomparable residual.  Materialise the type-level normal form.
+      using R = subobject_reduce_t<
+          Join<Set<T, L, Predicate>, Set<T, L, OtherPredicate>>, L, SetCombine>;
+      if constexpr (std::same_as<R, UniversalSet<T, L>>) {
+        return UniversalSet<T, L>{};
+      } else if constexpr (std::same_as<R, Ø<T, L>>) {
+        return Ø<T, L>{};
+      } else if constexpr (std::same_as<R, Set<T, L, Predicate>>) {
+        return *this;
+      } else if constexpr (std::same_as<R, Set<T, L, OtherPredicate>>) {
+        return other;
+      } else if constexpr (std::same_as<R, Join<Set<T, L, Predicate>,
+                                                Set<T, L, OtherPredicate>>>) {
+        // No structural collapse: keep the disjunction as a NAMED predicate so
+        // it survives in decltype (#365), rather than an opaque lambda.
+        return Set<T, L, OrPredicate<Predicate, OtherPredicate>>{
+            OrPredicate<Predicate, OtherPredicate>{predicate_,
+                                                   other.predicate_}};
+      } else {
+        // SetCombine collapsed the leaves via structured_or: recompute value.
+        return elevate_join<T, L>(structured_or(predicate_, other.predicate_));
+      }
     }
   }
 
   template <typename OtherPredicate>
   constexpr auto operator&(const Set<T, L, OtherPredicate>& other) const {
     if constexpr (IsComplementPair_v<Predicate, OtherPredicate>) {
+      // FIXME(#865): route through the engine's meet_complement_law once it
+      // recognises the predicate-pair encoding as a structural Not.
       return Ø<T, L>{};
     } else if constexpr (std::same_as<T, bool> &&
                          std::same_as<Predicate, BooleanEqPredicate> &&
@@ -1029,51 +1136,34 @@ class Set {
           L::AND((*this)(false), other(false)),
           L::AND((*this)(true), other(true)),
       };
-    } else if constexpr (requires {
-                           structured_and(predicate_, other.predicate_);
-                         }) {
-      // Evaluate the reduction once. Calling `structured_and` multiple times
-      // inflates compile time (each call is a fresh template instantiation)
-      // and would risk inconsistency if a future overload produced a value-
-      // carrying (non-empty) result whose default-construction differs from
-      // the original call's result.
-      auto reduced = structured_and(predicate_, other.predicate_);
-      using Result = std::decay_t<decltype(reduced)>;
-      if constexpr (std::same_as<Result, EmptyPredicate<T>>) {
-        return Ø<T, L>{};
-      } else if constexpr (requires {
-                             typename Result::is_static_singleton_tag;
-                           }) {
-        // Cardinality-1 reduction (e.g. integer halfspace meet): elevate to a
-        // bare Singleton-typed value, paralleling the Ø collapse for empty.
-        return reduced;
-      } else if constexpr (requires { typename Result::cardinality_type; }) {
-        // The probe must be nested, not `&&`-chained: a logical-and of two
-        // bool operands instantiates BOTH, so a `Result` without
-        // `cardinality_type` (e.g. a bare Halfspace reached when a downstream
-        // structured_and overload is out of ADL range) would hard-error on the
-        // second operand.  Nesting keeps the type probe guarded.
-        if constexpr (std::same_as<typename Result::cardinality_type, Finite>) {
-          // Structured reduction to a named finite object (e.g. an integer
-          // OrderInterval with compile-time-computed size): elevate it out of
-          // the Set wrapper so downstream code can observe size() / bounds /
-          // computability classification directly on the reduced type.
-          return reduced;
-        } else {
-          return Set<T, L, Result>{std::move(reduced)};
-        }
-      } else {
-        return Set<T, L, Result>{std::move(reduced)};
-      }
     } else {
-      // No structural collapse: keep the conjunction as a NAMED predicate so it
-      // survives in decltype (#365), rather than an opaque lambda.  A deeper
-      // lattice-law normalisation (distributivity / absorption / De Morgan,
-      // e.g. `(A ∪ B) ∩ ¬A → B ∩ ¬A`) that exposes collapses this misses is the
-      // follow-up #865.
-      return Set<T, L, AndPredicate<Predicate, OtherPredicate>>{
-          AndPredicate<Predicate, OtherPredicate>{predicate_,
-                                                  other.predicate_}};
+      // Route the meet through the lattice-law term reducer under
+      // subobject_order<L>; SetCombine performs the domain structured_and at
+      // the order-incomparable residual.  Materialise the type-level normal
+      // form. The deeper lattice normalisations (distributivity / absorption /
+      // De Morgan) light up once ∧/∨ are kept as reducer AST rather than nested
+      // in a single predicate leaf — the #892 endpoint.
+      using R = subobject_reduce_t<
+          Meet<Set<T, L, Predicate>, Set<T, L, OtherPredicate>>, L, SetCombine>;
+      if constexpr (std::same_as<R, Ø<T, L>>) {
+        return Ø<T, L>{};
+      } else if constexpr (std::same_as<R, UniversalSet<T, L>>) {
+        return UniversalSet<T, L>{};
+      } else if constexpr (std::same_as<R, Set<T, L, Predicate>>) {
+        return *this;
+      } else if constexpr (std::same_as<R, Set<T, L, OtherPredicate>>) {
+        return other;
+      } else if constexpr (std::same_as<R, Meet<Set<T, L, Predicate>,
+                                                Set<T, L, OtherPredicate>>>) {
+        // No structural collapse: keep the conjunction as a NAMED predicate so
+        // it survives in decltype (#365), rather than an opaque lambda.
+        return Set<T, L, AndPredicate<Predicate, OtherPredicate>>{
+            AndPredicate<Predicate, OtherPredicate>{predicate_,
+                                                    other.predicate_}};
+      } else {
+        // SetCombine collapsed the leaves via structured_and: recompute value.
+        return elevate_meet<T, L>(structured_and(predicate_, other.predicate_));
+      }
     }
   }
 

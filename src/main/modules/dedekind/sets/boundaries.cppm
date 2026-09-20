@@ -398,9 +398,10 @@ struct subobject_order {};
  *  route (the boundary operators below, and @c Set::operator&/|/~ in
  *  @c :expressions) folds through this one alias, so the injected-order policy
  *  for @c Sub(T) is named in a single place (#865/#890, Phase 2). */
-export template <typename Term, typename L = ClassicalLogic>
+export template <typename Term, typename L = ClassicalLogic,
+                 typename Combine = no_leaf_combine>
 using subobject_reduce_t =
-    reduce_t<Term, subobject_order<L>, subobject_order<L>>;
+    reduce_t<Term, subobject_order<L>, subobject_order<L>, Combine>;
 
 template <typename T, typename L>
 constexpr auto Ø<T, L>::operator!() const {
