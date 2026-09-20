@@ -535,6 +535,21 @@ constexpr Q π_2(const OrPredicate<P, Q>& a) {
   return a.rhs;
 }
 
+/** @brief Which universal construction a pairing feeds is its reduction op, not
+ *  the pairing: @c AndPredicate (∧) is the @b meet / pullback kind,
+ *  @c OrPredicate (∨) the @b join / pushout kind.  These markers let @c Set
+ *  expose the pullback projection legs (@c π1/@c π2) on a meet and the pushout
+ *  coprojection colegs (@c ι1/@c ι2) on a join, so a meet does not spuriously
+ *  satisfy @c IsPushout nor a join @c IsPullback.  #881. */
+export template <typename>
+inline constexpr bool is_meet_pairing_v = false;
+export template <CombinablePredicate P, CombinablePredicate Q>
+inline constexpr bool is_meet_pairing_v<AndPredicate<P, Q>> = true;
+export template <typename>
+inline constexpr bool is_join_pairing_v = false;
+export template <CombinablePredicate P, CombinablePredicate Q>
+inline constexpr bool is_join_pairing_v<OrPredicate<P, Q>> = true;
+
 template <typename P1, typename P2>
 struct IsComplementPair : std::false_type {};
 
@@ -807,16 +822,44 @@ class Set {
    * name the operand predicates, @c ι supplies the value.  Guarded, so ordinary
    * Sets expose no legs.  #881. */
   constexpr auto π1(const Member& m) const
-    requires requires(const Predicate& p) { π_1(p); }
+    requires is_meet_pairing_v<Predicate>
   {
     using PA = std::remove_cvref_t<decltype(π_1(predicate_))>;
     return typename Set<T, L, PA>::Member{m.value};
   }
   constexpr auto π2(const Member& m) const
-    requires requires(const Predicate& p) { π_2(p); }
+    requires is_meet_pairing_v<Predicate>
   {
     using PB = std::remove_cvref_t<decltype(π_2(predicate_))>;
     return typename Set<T, L, PB>::Member{m.value};
+  }
+
+  /** @brief ι1 / ι2 --- the pushout coprojection colegs, dual to π1/π2, present
+   *  exactly when this Set is a JOIN (its classifier is an @c OrPredicate ∨
+   *  pairing).  In the poset @c Sub(T) pushout = coproduct = join, so @c A @c |
+   *  @c B is the pushout of its two operand subobjects (the coproduct over @c
+   *  ∅), and the colegs are the coprojections @c A ↪ A∪B, @c B ↪ A∪B: an
+   * operand member (a @c T-value in @c A resp. @c B, hence in the union)
+   * injects as a member of this join.  Dual of the meet's re-view: same @c ι
+   * value, opposite direction (operand ⟶ apex).  Guarded, so only joins expose
+   * colegs.  #881. */
+  template <typename Pr = Predicate>
+    requires is_join_pairing_v<Pr>
+  constexpr Member
+  ι1(const typename Set<
+      T, L,
+      std::remove_cvref_t<decltype(π_1(std::declval<const Pr&>()))>>::Member& m)
+      const {
+    return Member{m.value};
+  }
+  template <typename Pr = Predicate>
+    requires is_join_pairing_v<Pr>
+  constexpr Member
+  ι2(const typename Set<
+      T, L,
+      std::remove_cvref_t<decltype(π_2(std::declval<const Pr&>()))>>::Member& m)
+      const {
+    return Member{m.value};
   }
 
   /** @brief χ: T → Ω — arrow-form classifier for the IsSubobject

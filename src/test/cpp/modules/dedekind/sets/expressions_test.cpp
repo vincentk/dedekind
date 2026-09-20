@@ -89,6 +89,34 @@ static_assert(
                                    decltype(iota_B)>,
     "the applied meet A & B is the pullback of its two concrete sets (the "
     "cospan ι_A, ι_B); in Sub(U) product = pullback = meet. #881.");
+
+// #881 step 4: dually, the APPLIED join A | B is the PUSHOUT of its two
+// concrete sets --- the coproduct over the initial ∅ (span ∅ ⟶ A, ∅ ⟶ B), with
+// the join's coprojection colegs ι1/ι2 (A ↪ A∪B, B ↪ A∪B).  In Sub(U) pushout =
+// coproduct = join, dual to product = pullback = meet.
+struct SpanToA {  // ∅ ⟶ A, the unique map from the initial object
+  using Domain =
+      dedekind::sets::Ø<int, dedekind::category::ClassicalLogic>::Member;
+  using Codomain = A_set::Member;
+  constexpr Codomain operator()(const Domain& m) const { return {m.value}; }
+};
+struct SpanToB {  // ∅ ⟶ B
+  using Domain =
+      dedekind::sets::Ø<int, dedekind::category::ClassicalLogic>::Member;
+  using Codomain = B_set::Member;
+  constexpr Codomain operator()(const Domain& m) const { return {m.value}; }
+};
+constexpr auto join_set = a_set | b_set;
+static_assert(
+    dedekind::category::IsPushout<decltype(join_set), SpanToA, SpanToB>,
+    "the applied join A | B is the pushout of its two concrete sets (the span "
+    "from ∅, colegs ι1/ι2); in Sub(U) pushout = coproduct = join. #881 step "
+    "4.");
+// Precision: the meet is not a pushout and the join is not a pullback (the
+// ∧/∨ pairing markers gate the legs vs colegs).
+static_assert(
+    !dedekind::category::IsPushout<decltype(meet_set), SpanToA, SpanToB>,
+    "a meet is a pullback, not a pushout (no coprojection colegs).");
 }  // namespace and_predicate_product_test
 
 TEST_CASE("Dedekind MVP: Basic Membership and Symbols", "[sets]") {
