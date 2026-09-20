@@ -270,6 +270,12 @@ static_assert(std::same_as<reduce_t<Meet<UA, Join<UA, UB>>, TernLess>, UA>,
 static_assert(std::same_as<reduce_t<Join<UA, Meet<UA, UB>>, TernLess>, UA>,
               "assembled dual: a ∨ (a ∧ b) collapses to a.");
 
+// Fail-closed on a KNOWN/OPAQUE mix: I3 is int, UA is opaque (no evidence it is
+// an int-lattice element), so a ∧ (a ∨ opaque) does NOT absorb — kept whole.
+static_assert(std::same_as<reduce_t<Meet<I3, Join<I3, UA>>, TernLess>,
+                           Meet<I3, Join<I3, UA>>>,
+              "known/opaque mix ⟹ structural absorption fails closed.");
+
 }  // namespace lattice_term_smoke
 
 // ══ Distributivity: X∧(P∨Q) → (X∧P)∨(X∧Q) toward DNF ══════════════════════

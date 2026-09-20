@@ -212,10 +212,11 @@ struct reduce<Join<A, B>, Less, Ord> {
                                  Less, Ord>())::type;
 };
 
-// ¬A: reduce the operand, then apply the complement law (involution / De
-// Morgan, gated on an involutive complement).  If it fires, the pushed-down
-// result is re-reduced (¬ descends toward the leaves, so this terminates);
-// otherwise ¬(reduced) is already negation-normal and stays.
+// ¬A: reduce the operand, then apply the De Morgan negation law (involution
+// ¬¬A→A / De Morgan, gated on an involutive De Morgan negation — NOT a genuine
+// complement).  If it fires, the pushed-down result is re-reduced (¬ descends
+// toward the leaves, so this terminates); otherwise ¬(reduced) is already
+// negation-normal and stays.
 export template <typename A, typename Less, typename Ord>
 struct reduce<Not<A>, Less, Ord> {
  private:

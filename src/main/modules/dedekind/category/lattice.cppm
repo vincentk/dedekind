@@ -485,11 +485,16 @@ struct carrier_of<Not<A>> {
 export template <typename X>
 using carrier_of_t = typename carrier_of<X>::type;
 
-/** @brief Does the term @c X mix two @b different known carriers anywhere?
- *  Distinguishes a genuinely @b mixed term (≥2 distinct known carriers — a
- *  malformed lattice term) from a merely @b unknown one (all-opaque leaves,
- *  which @c carrier_of also reports as @c void).  The structural laws use this
- *  to fail closed on mixed terms while still firing on the all-opaque case. */
+/** @brief Does the term @c X mix carriers anywhere — either two @b different
+ *  known carriers, @b or a known carrier with an @b opaque (unknown) one?  Only
+ *  a @b uniform term fails this: all leaves opaque (the all-unknown case), or
+ *  all leaves the @b same known carrier.  A known/opaque mix counts as mixed
+ *  because an opaque leaf carries no evidence it belongs to the known carrier's
+ *  lattice.  The structural laws use this to fail closed on any mixed term
+ *  while still firing on the all-opaque case.  (`carrier_of` reports @c void
+ * for
+ *  @b both all-opaque and mixed, so a per-node @c is_void mismatch is what
+ *  distinguishes a known/opaque boundary here.) */
 export template <typename X>
 inline constexpr bool has_mixed_carrier_v = false;  // a leaf mixes nothing
 export template <typename A>
@@ -497,11 +502,13 @@ inline constexpr bool has_mixed_carrier_v<Not<A>> = has_mixed_carrier_v<A>;
 export template <typename A, typename B>
 inline constexpr bool has_mixed_carrier_v<Meet<A, B>> =
     has_mixed_carrier_v<A> || has_mixed_carrier_v<B> ||
+    (std::is_void_v<carrier_of_t<A>> != std::is_void_v<carrier_of_t<B>>) ||
     (!std::is_void_v<carrier_of_t<A>> && !std::is_void_v<carrier_of_t<B>> &&
      !std::is_same_v<carrier_of_t<A>, carrier_of_t<B>>);
 export template <typename A, typename B>
 inline constexpr bool has_mixed_carrier_v<Join<A, B>> =
     has_mixed_carrier_v<A> || has_mixed_carrier_v<B> ||
+    (std::is_void_v<carrier_of_t<A>> != std::is_void_v<carrier_of_t<B>>) ||
     (!std::is_void_v<carrier_of_t<A>> && !std::is_void_v<carrier_of_t<B>> &&
      !std::is_same_v<carrier_of_t<A>, carrier_of_t<B>>);
 
