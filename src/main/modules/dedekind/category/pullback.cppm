@@ -104,15 +104,17 @@ namespace dedekind::category {
  * @tparam G The morphism g: Y ⟶ Z.
  */
 export template <typename P, typename F, typename G>
-concept IsPullback =
-    IsArrow<F> && IsArrow<G> && std::same_as<Cod<F>, Cod<G>> &&
-    IsSubobject<P, typename P::Domain> && requires(P p, typename P::Member m) {
-      // The two legs π₁: P ⟶ X and π₂: P ⟶ Y.  Their existence
-      // is the shape; commutativity + universality are the
-      // honesty obligation (cf. IsEqualizer).
-      { p.π1(m) } -> std::same_as<Dom<F>>;
-      { p.π2(m) } -> std::same_as<Dom<G>>;
-    };
+concept IsPullback = IsArrow<F> && IsArrow<G> && std::same_as<Cod<F>, Cod<G>> &&
+                     IsSubobject<P, typename P::Domain> &&
+                     requires(const P& p, typename P::Member m) {
+                       // The two legs π₁: P ⟶ X and π₂: P ⟶ Y.  Probed through
+                       // const P& --- IsArrow purity requires const invocation.
+                       // Their existence is the shape; commutativity +
+                       // universality are the honesty obligation (cf.
+                       // IsEqualizer).
+                       { p.π1(m) } -> std::same_as<Dom<F>>;
+                       { p.π2(m) } -> std::same_as<Dom<G>>;
+                     };
 
 /**
  * @brief The Characteristic Morphism χ: (X × Y) ⟶ Ω.
@@ -272,13 +274,14 @@ concept IsKernelPair = IsPullback<P, F, F>;
 export template <typename P, typename F, typename G>
 concept IsPushout = IsArrow<F> && IsArrow<G> && std::same_as<Dom<F>, Dom<G>> &&
                     IsSubobject<P, typename P::Domain> &&
-                    requires(P p, const Cod<F>& x, const Cod<G>& y) {
-                      // The two colegs ι1: X ⟶ P and ι2: Y ⟶ P (dual to π1/π2).
-                      // Both land in the apex, so both return P's Member (dual
-                      // to IsPullback's legs returning Dom<F>/Dom<G>); a void
-                      // coleg must not qualify.  Commutativity + universality
-                      // remain the honesty obligation (cf. IsPullback /
-                      // IsEqualizer).
+                    requires(const P& p, const Cod<F>& x, const Cod<G>& y) {
+                      // The two colegs ι1: X ⟶ P and ι2: Y ⟶ P (dual to π1/π2),
+                      // probed through const P& (IsArrow purity requires const
+                      // invocation).  Both land in the apex, so both return P's
+                      // Member (dual to IsPullback's legs returning
+                      // Dom<F>/Dom<G>); a void coleg must not qualify.
+                      // Commutativity + universality remain the honesty
+                      // obligation (cf. IsPullback / IsEqualizer).
                       { p.ι1(x) } -> std::same_as<typename P::Member>;
                       { p.ι2(y) } -> std::same_as<typename P::Member>;
                     };

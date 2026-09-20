@@ -1220,6 +1220,7 @@ class Set {
  * subobject carrier (strengthening @c IsSubobject) and retiring this wrapper.
  */
 export template <typename S>
+  requires dedekind::category::IsSubobject<S, typename S::Domain>
 struct SubobjectInclusion {
   using Domain = typename S::Member;
   using Codomain = typename S::Domain;
