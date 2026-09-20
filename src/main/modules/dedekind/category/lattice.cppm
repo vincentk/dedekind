@@ -377,6 +377,187 @@ static_assert(LatticeBottom<bool, std::less_equal<bool>>::value == false,
 static_assert(LatticeTop<bool, std::less_equal<bool>>::value == true,
               "Bool's lattice top is true.");
 
+/** @section lattice__Induced_Reduction_Laws
+ *
+ *  @brief The equational laws a lattice concept @b induces, as compile-time
+ *         term-reduction rules over the term AST below.  Each law is a
+ *         decomposable, independently-testable part; the assembled reducer
+ *         (@c :lattice_term) applies exactly the laws the supplied carrier
+ *         proves.  The richer the carrier's structure (a bounded chain is the
+ *         sweet spot; @c bool the optimal witness), the more laws fire and the
+ *         further a term collapses.
+ *
+ *  @details A law consumes two @b already-reduced operands and returns a
+ *  @c std::type_identity of either the rewritten form or @c law_inactive (the
+ *  law did not fire — the assembler then tries the next).  Order-dependent laws
+ *  (units, absorption) are keyed to the @b injected order @c Ord so that the
+ *  boundary / comparison they use is the one this lattice's `∧`/`∨` induce, not
+ *  another order the same carrier happens to bear (e.g. the numeric chain vs
+ *  @c order::bit_subset_eq on an integer). */
+
+/** @brief The type-level term AST.  Leaves are lattice-carrier types; the nodes
+ *  combine them.  Empty tags: a term is a compile-time tree, not a value. */
+export template <typename A, typename B>
+struct Meet {};  // A ∧ B
+export template <typename A, typename B>
+struct Join {};  // A ∨ B
+
+/** @brief Sentinel: a law that does not fire on the given node. */
+export struct law_inactive {};
+
+/** @brief The default @c Ord: the carrier's own canonical @c std::less_equal
+ *  order (the order bundled with its axioms).  A caller whose `∧`/`∨` mean a
+ *  different lattice on the same carrier injects that relation as @c Ord. */
+export struct canonical_order {};
+
+/** @brief The comparator @c Ord resolves to for a carrier @c T:
+ *  @c std::less_equal<T> for @c canonical_order, otherwise @c Ord itself. */
+export template <typename T, typename Ord>
+using resolved_order_t = std::conditional_t<std::same_as<Ord, canonical_order>,
+                                            std::less_equal<T>, Ord>;
+
+// ── Boundedness, keyed to the injected order ──────────────────────────────
+// A ⊥/⊤ marker counts for order @c Ord only when its OWN registered relation
+// is the one @c Ord resolves to over the same carrier.  A bound of a different
+// order on that carrier is therefore not mistaken for this lattice's bound.
+
+/** @brief Is @c X the registered bottom of the lattice whose order is @c Ord?
+ */
+export template <typename X, typename Ord>
+struct is_lattice_bottom_for : std::false_type {};
+export template <typename T, typename Rel, typename Ord>
+struct is_lattice_bottom_for<LatticeBottom<T, Rel>, Ord>
+    : std::bool_constant<std::same_as<Rel, resolved_order_t<T, Ord>>> {};
+export template <typename X, typename Ord>
+inline constexpr bool is_lattice_bottom_for_v =
+    is_lattice_bottom_for<X, Ord>::value;
+
+/** @brief Is @c X the registered top of the lattice whose order is @c Ord? */
+export template <typename X, typename Ord>
+struct is_lattice_top_for : std::false_type {};
+export template <typename T, typename Rel, typename Ord>
+struct is_lattice_top_for<LatticeTop<T, Rel>, Ord>
+    : std::bool_constant<std::same_as<Rel, resolved_order_t<T, Ord>>> {};
+export template <typename X, typename Ord>
+inline constexpr bool is_lattice_top_for_v = is_lattice_top_for<X, Ord>::value;
+
+/** @brief Law induced by a @b bounded lattice (IsBoundedLatticeCategory): the
+ *  unit and annihilator.  Meet: @c ⊥∧X=⊥ (annihilator), @c ⊤∧X=X (unit). */
+export template <typename RA, typename RB, typename Ord>
+consteval auto meet_bounded_law() {
+  if constexpr (is_lattice_bottom_for_v<RA, Ord>) {
+    return std::type_identity<RA>{};  // ⊥ ∧ X = ⊥
+  } else if constexpr (is_lattice_bottom_for_v<RB, Ord>) {
+    return std::type_identity<RB>{};
+  } else if constexpr (is_lattice_top_for_v<RA, Ord>) {
+    return std::type_identity<RB>{};  // ⊤ ∧ X = X
+  } else if constexpr (is_lattice_top_for_v<RB, Ord>) {
+    return std::type_identity<RA>{};
+  } else {
+    return std::type_identity<law_inactive>{};
+  }
+}
+
+/** @brief The join dual: @c ⊤∨X=⊤ (annihilator), @c ⊥∨X=X (unit). */
+export template <typename RA, typename RB, typename Ord>
+consteval auto join_bounded_law() {
+  if constexpr (is_lattice_top_for_v<RA, Ord>) {
+    return std::type_identity<RA>{};  // ⊤ ∨ X = ⊤
+  } else if constexpr (is_lattice_top_for_v<RB, Ord>) {
+    return std::type_identity<RB>{};
+  } else if constexpr (is_lattice_bottom_for_v<RA, Ord>) {
+    return std::type_identity<RB>{};  // ⊥ ∨ X = X
+  } else if constexpr (is_lattice_bottom_for_v<RB, Ord>) {
+    return std::type_identity<RA>{};
+  } else {
+    return std::type_identity<law_inactive>{};
+  }
+}
+
+/** @brief Law induced by a @b (meet/join-)semilattice: idempotence @c X∧X=X /
+ *  @c X∨X=X.  @b Structural — it holds for the lattice operation itself, so it
+ *  does not depend on the carrier's order (it fires even for order-incomparable
+ *  opaque leaves). */
+export template <typename RA, typename RB>
+consteval auto idempotent_law() {
+  if constexpr (std::same_as<RA, RB>) {
+    return std::type_identity<RA>{};
+  } else {
+    return std::type_identity<law_inactive>{};
+  }
+}
+
+// ── Absorption, decided by the injected order ─────────────────────────────
+
+/** @concept OrderComparable
+ *  @brief Can @c A and @c B be compared in the injected order @c Ord, @b at
+ *  compile time?  Both must expose @c ::value of one carrier type @c T that is
+ *  @c IsPosetal under @c Ord's resolved relation, and that relation must be
+ *  @b default-constructible and @b constexpr-callable on those values.  A
+ *  registered-but-runtime-only or stateful order therefore fails this guard and
+ *  absorption stays @b inactive (fail-closed) rather than hard-erroring. */
+export template <typename A, typename B, typename Ord>
+concept OrderComparable =
+    requires {
+      A::value;
+      B::value;
+    } &&
+    std::same_as<std::remove_cvref_t<decltype(A::value)>,
+                 std::remove_cvref_t<decltype(B::value)>> &&
+    IsPosetal<std::remove_cvref_t<decltype(A::value)>,
+              resolved_order_t<std::remove_cvref_t<decltype(A::value)>, Ord>> &&
+    std::default_initializable<
+        resolved_order_t<std::remove_cvref_t<decltype(A::value)>, Ord>> &&
+    requires {
+      {
+        resolved_order_t<std::remove_cvref_t<decltype(A::value)>, Ord>{}(
+            A::value, B::value)
+      } -> std::convertible_to<bool>;
+      // Constant-evaluability gate: forces the comparison into a constant
+      // expression, so a non-constexpr order fails the concept (fail-closed).
+      typename std::bool_constant<(
+          resolved_order_t<std::remove_cvref_t<decltype(A::value)>, Ord>{}(
+              A::value, B::value),
+          true)>;
+    };
+
+/** @brief Is @c A ≤ @c B in the injected order @c Ord? (`false` when the pair
+ *  is not compile-time comparable there — absorption then does not fire.) */
+export template <typename A, typename B, typename Ord>
+consteval bool order_leq() {
+  if constexpr (OrderComparable<A, B, Ord>) {
+    using T = std::remove_cvref_t<decltype(A::value)>;
+    return resolved_order_t<T, Ord>{}(A::value, B::value);
+  } else {
+    return false;
+  }
+}
+
+/** @brief Law induced by a @b lattice (IsLatticeCategory): absorption of
+ *  comparable operands.  Meet is the glb: @c RA≤RB ⟹ RA∧RB=RA. */
+export template <typename RA, typename RB, typename Ord>
+consteval auto meet_absorption_law() {
+  if constexpr (order_leq<RA, RB, Ord>()) {
+    return std::type_identity<RA>{};
+  } else if constexpr (order_leq<RB, RA, Ord>()) {
+    return std::type_identity<RB>{};
+  } else {
+    return std::type_identity<law_inactive>{};
+  }
+}
+
+/** @brief The join dual: join is the lub, @c RA≤RB ⟹ RA∨RB=RB. */
+export template <typename RA, typename RB, typename Ord>
+consteval auto join_absorption_law() {
+  if constexpr (order_leq<RA, RB, Ord>()) {
+    return std::type_identity<RB>{};
+  } else if constexpr (order_leq<RB, RA, Ord>()) {
+    return std::type_identity<RA>{};
+  } else {
+    return std::type_identity<law_inactive>{};
+  }
+}
+
 /** @section lattice__Involutive_Endofunctor
  *
  *  @brief Involutive endofunctor concept — an endomap @c F @c : @c T @c → @c T
