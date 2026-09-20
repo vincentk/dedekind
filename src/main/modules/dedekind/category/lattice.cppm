@@ -402,6 +402,8 @@ export template <typename A, typename B>
 struct Meet {};  // A ∧ B
 export template <typename A, typename B>
 struct Join {};  // A ∨ B
+export template <typename A>
+struct Not {};  // ¬A (complement)
 
 /** @brief Sentinel: a law that does not fire on the given node. */
 export struct law_inactive {};
@@ -476,8 +478,39 @@ struct carrier_of<Join<A, B>> {
   using type = detail_carrier::common<typename carrier_of<A>::type,
                                       typename carrier_of<B>::type>;
 };
+export template <typename A>
+struct carrier_of<Not<A>> {
+  using type = typename carrier_of<A>::type;
+};
 export template <typename X>
 using carrier_of_t = typename carrier_of<X>::type;
+
+/** @brief Does the term @c X mix carriers anywhere — either two @b different
+ *  known carriers, @b or a known carrier with an @b opaque (unknown) one?  Only
+ *  a @b uniform term fails this: all leaves opaque (the all-unknown case), or
+ *  all leaves the @b same known carrier.  A known/opaque mix counts as mixed
+ *  because an opaque leaf carries no evidence it belongs to the known carrier's
+ *  lattice.  The structural laws use this to fail closed on any mixed term
+ *  while still firing on the all-opaque case.  (`carrier_of` reports @c void
+ * for
+ *  @b both all-opaque and mixed, so a per-node @c is_void mismatch is what
+ *  distinguishes a known/opaque boundary here.) */
+export template <typename X>
+inline constexpr bool has_mixed_carrier_v = false;  // a leaf mixes nothing
+export template <typename A>
+inline constexpr bool has_mixed_carrier_v<Not<A>> = has_mixed_carrier_v<A>;
+export template <typename A, typename B>
+inline constexpr bool has_mixed_carrier_v<Meet<A, B>> =
+    has_mixed_carrier_v<A> || has_mixed_carrier_v<B> ||
+    (std::is_void_v<carrier_of_t<A>> != std::is_void_v<carrier_of_t<B>>) ||
+    (!std::is_void_v<carrier_of_t<A>> && !std::is_void_v<carrier_of_t<B>> &&
+     !std::is_same_v<carrier_of_t<A>, carrier_of_t<B>>);
+export template <typename A, typename B>
+inline constexpr bool has_mixed_carrier_v<Join<A, B>> =
+    has_mixed_carrier_v<A> || has_mixed_carrier_v<B> ||
+    (std::is_void_v<carrier_of_t<A>> != std::is_void_v<carrier_of_t<B>>) ||
+    (!std::is_void_v<carrier_of_t<A>> && !std::is_void_v<carrier_of_t<B>> &&
+     !std::is_same_v<carrier_of_t<A>, carrier_of_t<B>>);
 
 /** @concept SameCarrier
  *  @brief Do both operands live in the @b same, known carrier?  The boundary
@@ -545,6 +578,57 @@ consteval auto idempotent_law() {
   }
 }
 
+/** @brief Is @c Elem one of the operands of the @c Join node @c Node? */
+export template <typename Elem, typename Node>
+inline constexpr bool is_join_containing_v = false;
+export template <typename Elem, typename A, typename B>
+inline constexpr bool is_join_containing_v<Elem, Join<A, B>> =
+    std::same_as<Elem, A> || std::same_as<Elem, B>;
+
+/** @brief Is @c Elem one of the operands of the @c Meet node @c Node? */
+export template <typename Elem, typename Node>
+inline constexpr bool is_meet_containing_v = false;
+export template <typename Elem, typename A, typename B>
+inline constexpr bool is_meet_containing_v<Elem, Meet<A, B>> =
+    std::same_as<Elem, A> || std::same_as<Elem, B>;
+
+/** @brief Law induced by a @b lattice (IsLatticeCategory): @b structural
+ *  absorption @c a∧(a∨b)=a.  @b Structural like idempotence (a lattice axiom
+ *  needing no order or carrier), so it fires even for order-incomparable opaque
+ *  leaves; @b unlike the glb collapse (which needs comparable operands).  One
+ *  level only: nested / associatively-buried occurrences (@c a∧((a∨b)∨c)) await
+ *  an associativity-flattening law (tracked on the reducer epic #890).  Fails
+ *  closed on a @b mixed-carrier term (@c has_mixed_carrier_v) so it upholds the
+ *  same recursive fail-closed invariant as @c carrier_of / the boundary laws;
+ *  the all-opaque (unknown-carrier) case still fires. */
+export template <typename RA, typename RB>
+consteval auto meet_structural_absorption_law() {
+  if constexpr (has_mixed_carrier_v<Meet<RA, RB>>) {
+    return std::type_identity<law_inactive>{};  // mixed carrier ⟹ fail closed
+  } else if constexpr (is_join_containing_v<RA, RB>) {
+    return std::type_identity<RA>{};  // a ∧ (a ∨ b) = a
+  } else if constexpr (is_join_containing_v<RB, RA>) {
+    return std::type_identity<RB>{};  // (a ∨ b) ∧ a = a
+  } else {
+    return std::type_identity<law_inactive>{};
+  }
+}
+
+/** @brief The join dual: @c a∨(a∧b)=a.  Likewise fails closed on mixed
+ * carriers. */
+export template <typename RA, typename RB>
+consteval auto join_structural_absorption_law() {
+  if constexpr (has_mixed_carrier_v<Join<RA, RB>>) {
+    return std::type_identity<law_inactive>{};  // mixed carrier ⟹ fail closed
+  } else if constexpr (is_meet_containing_v<RA, RB>) {
+    return std::type_identity<RA>{};  // a ∨ (a ∧ b) = a
+  } else if constexpr (is_meet_containing_v<RB, RA>) {
+    return std::type_identity<RB>{};
+  } else {
+    return std::type_identity<law_inactive>{};
+  }
+}
+
 // ── Absorption, decided by the injected order ─────────────────────────────
 
 /** @concept OrderComparable
@@ -596,8 +680,9 @@ consteval bool order_leq() {
 /** @brief Law induced by a @b lattice's order-meet consistency (@c RA≤RB @c ⟺
  *  @c RA∧RB=RA): for @c ≤-comparable operands the meet is their @b glb (the
  *  smaller).  @b Note this is @b not the structural absorption identity
- *  @c a∧(a∨b)=a (which needs no comparison); that rewrite is a deferred law,
- *  to arrive with distributivity.  Here only comparable operands collapse. */
+ *  @c a∧(a∨b)=a (which needs no comparison); that is the separate
+ *  @c meet_structural_absorption_law.  Here only comparable operands collapse.
+ */
 export template <typename RA, typename RB, typename Ord>
 consteval auto meet_glb_law() {
   if constexpr (order_leq<RA, RB, Ord>()) {
@@ -610,8 +695,8 @@ consteval auto meet_glb_law() {
 }
 
 /** @brief The join dual: for comparable operands the join is their @b lub (the
- *  larger), @c RA≤RB ⟹ RA∨RB=RB.  (Structural absorption @c a∨(a∧b)=a is
- *  likewise deferred.) */
+ *  larger), @c RA≤RB ⟹ RA∨RB=RB.  (Structural absorption @c a∨(a∧b)=a is the
+ *  separate @c join_structural_absorption_law.) */
 export template <typename RA, typename RB, typename Ord>
 consteval auto join_lub_law() {
   if constexpr (order_leq<RA, RB, Ord>()) {
@@ -620,6 +705,128 @@ consteval auto join_lub_law() {
     return std::type_identity<RA>{};
   } else {
     return std::type_identity<law_inactive>{};
+  }
+}
+
+// ── Distributivity (induced by IsDistributiveLattice) ─────────────────────
+
+/** @brief Is @c X a @c Join node? */
+export template <typename X>
+inline constexpr bool is_join_node_v = false;
+export template <typename A, typename B>
+inline constexpr bool is_join_node_v<Join<A, B>> = true;
+
+/** @brief Is the lattice (carrier @c T, order @c Ord) distributive?  Keyed to
+ *  the order like the boundedness markers.  The canonical (@c std::less_equal
+ *  chain) case derives from the @b concept gates @c IsLatticeCategory<T> @c &&
+ *  @c IsOrderDistributiveLatticeOperations<T> — so a carrier that is not a
+ *  lattice under @c std::less_equal is @b not licensed to distribute (NB the
+ *  bare @c is_distributive_v<T,max,min> trait is unconditionally @c true, which
+ *  would license any carrier — hence the concept gate).  A NON-chain
+ *  distributive lattice (a custom @c Ord) opts in by specialising this to
+ *  @c true (the Jlt assertion — the same posture as the injected total order).
+ *  A canonical chain is gated distributive but never actually distributes: its
+ *  joins glb/lub-collapse first. */
+export template <typename T, typename Ord>
+inline constexpr bool is_distributive_lattice_for_v =
+    std::same_as<resolved_order_t<T, Ord>, std::less_equal<T>> &&
+    IsLatticeCategory<T> && IsOrderDistributiveLatticeOperations<T>;
+
+// Distribute a meet over a join node: X ∧ (P ∨ Q) = (X ∧ P) ∨ (X ∧ Q).
+template <typename X, typename JoinNode>
+struct distribute_meet_over;
+template <typename X, typename P, typename Q>
+struct distribute_meet_over<X, Join<P, Q>> {
+  using type = Join<Meet<X, P>, Meet<X, Q>>;
+};
+
+/** @brief Law induced by a @b distributive lattice: distribute meet over join,
+ *  @c X∧(P∨Q) → (X∧P)∨(X∧Q), driving toward a join-of-meets (DNF).  @b One
+ *  direction only (meet over join, never join over meet), so re-reduction of
+ *  the result — which the assembler performs — terminates.  Gated on both
+ *  operands sharing a carrier (@c SameCarrier) whose lattice is distributive
+ *  under @c Ord; a chain is gated but pre-empted by the glb collapse, so this
+ *  fires only on a genuine non-chain distributive lattice. */
+export template <typename RA, typename RB, typename Ord>
+consteval auto meet_distributivity_law() {
+  if constexpr (!(SameCarrier<RA, RB> &&
+                  is_distributive_lattice_for_v<carrier_of_t<RA>, Ord>)) {
+    return std::type_identity<law_inactive>{};
+  } else if constexpr (is_join_node_v<RB>) {
+    return std::type_identity<typename distribute_meet_over<RA, RB>::type>{};
+  } else if constexpr (is_join_node_v<RA>) {
+    return std::type_identity<typename distribute_meet_over<RB, RA>::type>{};
+  } else {
+    return std::type_identity<law_inactive>{};
+  }
+}
+
+// ── De Morgan negation (an involutive, order-reversing negation) ──────────
+// This is @b De Morgan negation, NOT a genuine complement: the module reserves
+// @c is_complement_v for a real complement (with @c a∧¬a=⊥ / @c a∨¬a=⊤), and
+// the paper likewise distinguishes involutive De Morgan negation (e.g. the K3
+// reflection) from complement.  These laws (involution + De Morgan) hold in any
+// De Morgan algebra; the complement collapse @c a∧¬a→⊥ is a separate law that
+// needs a genuinely complemented lattice (tracked on #890).
+
+/** @brief Is @c X a @c Not node? */
+export template <typename X>
+inline constexpr bool is_not_node_v = false;
+export template <typename A>
+inline constexpr bool is_not_node_v<Not<A>> = true;
+
+/** @brief Is @c X a @c Meet node? */
+export template <typename X>
+inline constexpr bool is_meet_node_v = false;
+export template <typename A, typename B>
+inline constexpr bool is_meet_node_v<Meet<A, B>> = true;
+
+/** @brief Does the lattice (carrier @c T, order @c Ord) carry an @b involutive
+ *  order-reversing @b negation (@c ¬¬a=a and the De Morgan laws)?  Keyed to the
+ *  order and opt-in (default @c false — the Jlt assertion), the same posture as
+ *  @c is_distributive_lattice_for_v. */
+export template <typename T, typename Ord>
+inline constexpr bool is_de_morgan_negation_for_v = false;
+/** @brief Canonical @c bool is a De Morgan (indeed Boolean) algebra: @c ¬ is
+ *  @c std::logical_not, involutive with the De Morgan laws — the production
+ *  carrier that activates the negation laws (the all-laws-fire oracle). */
+export template <>
+inline constexpr bool is_de_morgan_negation_for_v<bool, canonical_order> = true;
+
+// The De Morgan / involution rewrite of ¬(node): push the negation inward one
+// level.  Defined only for the nodes it rewrites (Not / Meet / Join); a bare
+// ¬leaf is already negation-normal and is left to the caller.
+template <typename Node>
+struct de_morgan_of;
+template <typename B>
+struct de_morgan_of<Not<B>> {
+  using type = B;  // ¬¬B → B (involution)
+};
+template <typename P, typename Q>
+struct de_morgan_of<Meet<P, Q>> {
+  using type = Join<Not<P>, Not<Q>>;  // ¬(P∧Q) → ¬P ∨ ¬Q
+};
+template <typename P, typename Q>
+struct de_morgan_of<Join<P, Q>> {
+  using type = Meet<Not<P>, Not<Q>>;  // ¬(P∨Q) → ¬P ∧ ¬Q
+};
+
+/** @brief Law induced by an @b involutive De Morgan negation: rewrite
+ *  @c ¬(reduced) by involution (@c ¬¬A→A) and De Morgan (@c ¬(A∧B)→¬A∨¬B,
+ *  @c ¬(A∨B)→¬A∧¬B), pushing the negation toward the leaves (negation-normal
+ *  form).  Gated on the carrier's lattice carrying such a negation under @c
+ * Ord; a bare @c ¬leaf is already normal and stays (@c law_inactive).  The
+ * driver re-reduces the pushed-down result (termination: @c ¬ strictly
+ * descends). */
+export template <typename RA, typename Ord>
+consteval auto de_morgan_law() {
+  if constexpr (!is_de_morgan_negation_for_v<carrier_of_t<RA>, Ord>) {
+    return std::type_identity<law_inactive>{};
+  } else if constexpr (is_not_node_v<RA> || is_meet_node_v<RA> ||
+                       is_join_node_v<RA>) {
+    return std::type_identity<typename de_morgan_of<RA>::type>{};
+  } else {
+    return std::type_identity<law_inactive>{};  // ¬leaf is negation-normal
   }
 }
 

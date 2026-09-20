@@ -150,6 +150,11 @@ static_assert(std::same_as<reduce_t<Join<TopB, BotB>, NumLess>, TopB>,
               "⊤ ∨ ⊥ = ⊤.");
 static_assert(std::same_as<reduce_t<Meet<TopB, TopB>, NumLess>, TopB>,
               "⊤ ∧ ⊤ = ⊤ (idempotent).");
+// bool activates the De Morgan negation in PRODUCTION (registered under
+// canonical_order): involution ¬¬⊤ → ⊤.  (The meet/join De Morgan needs a
+// non-chain, since a chain collapses the inner meet/join first — see dist_toy.)
+static_assert(std::same_as<reduce_t<Not<Not<TopB>>, NumLess>, TopB>,
+              "¬¬⊤ → ⊤ on bool (involution, production carrier).");
 
 // int — a bounded chain: units, idempotence, glb/lub collapse,
 // canonicalisation.
@@ -234,7 +239,127 @@ static_assert(!IsLatticeLess<RuntimeLess, UA, UB>,
 static_assert(std::same_as<reduce_t<Meet<UA, UB>, RuntimeLess>, Meet<UA, UB>>,
               "…so the term keeps authoring order instead of hard-erroring.");
 
+// ══ Structural absorption a∧(a∨b)=a / a∨(a∧b)=a ═══════════════════════════
+// A pure lattice-axiom rewrite (no order / carrier), so it is witnessed on the
+// order-opaque leaves UA/UB — where the inner Join/Meet does NOT collapse (on a
+// chain the inner node would glb/lub-collapse first, pre-empting it).
+
+// The law in isolation:
+static_assert(
+    std::same_as<
+        decltype(meet_structural_absorption_law<UA, Join<UA, UB>>())::type, UA>,
+    "a ∧ (a ∨ b) = a.");
+static_assert(
+    std::same_as<
+        decltype(meet_structural_absorption_law<Join<UB, UA>, UA>())::type, UA>,
+    "(b ∨ a) ∧ a = a (operand order in the join irrelevant).");
+static_assert(
+    std::same_as<
+        decltype(meet_structural_absorption_law<UA, Join<UB, UB>>())::type,
+        law_inactive>,
+    "a ∧ (b ∨ b): a absent from the join ⟹ inactive.");
+static_assert(
+    std::same_as<
+        decltype(join_structural_absorption_law<UA, Meet<UA, UB>>())::type, UA>,
+    "a ∨ (a ∧ b) = a (join dual).");
+
+// Assembled through reduce<> (TernLess keeps the opaque inner node
+// un-collapsed):
+static_assert(std::same_as<reduce_t<Meet<UA, Join<UA, UB>>, TernLess>, UA>,
+              "assembled: a ∧ (a ∨ b) collapses to a.");
+static_assert(std::same_as<reduce_t<Join<UA, Meet<UA, UB>>, TernLess>, UA>,
+              "assembled dual: a ∨ (a ∧ b) collapses to a.");
+
+// Fail-closed on a KNOWN/OPAQUE mix: I3 is int, UA is opaque (no evidence it is
+// an int-lattice element), so a ∧ (a ∨ opaque) does NOT absorb — kept whole.
+static_assert(std::same_as<reduce_t<Meet<I3, Join<I3, UA>>, TernLess>,
+                           Meet<I3, Join<I3, UA>>>,
+              "known/opaque mix ⟹ structural absorption fails closed.");
+
 }  // namespace lattice_term_smoke
+
+// ══ Distributivity: X∧(P∨Q) → (X∧P)∨(X∧Q) toward DNF ══════════════════════
+// Cannot fire on a chain (the inner join glb/lub-collapses first), so it is
+// witnessed on a SYNTHETIC non-chain distributive lattice: three pairwise
+// incomparable atoms whose (carrier, order) is ASSERTED distributive — the Jlt
+// caller-assertion, the same posture as the injected order.  An Unknown-
+// returning comparator keeps the produced DNF order (a value-based comparator
+// would not type-check on the composite Meet nodes the DNF contains).
+namespace dist_toy {
+// A GENUINE non-chain distributive lattice: the bit-subset (Boolean) lattice on
+// the masks of an integer, a ⊑ b ⟺ (a & b) == a.  DA/DB/DC are three pairwise
+// disjoint atoms of 2^3 ⊂ 2^8, hence pairwise incomparable — so their joins /
+// meets stay symbolic (the reducer never evaluates a genuine lub/glb), which is
+// what exercises distributivity and De Morgan.  2^8 under bit-subset is a
+// Boolean algebra, so the distributive + De-Morgan-negation assertions below
+// are HONEST (unlike a bare antichain, which is not a lattice at all).
+using Mask = unsigned char;
+template <Mask V>
+struct DLit {
+  static constexpr Mask value = V;
+};
+struct BitSubset {  // a genuine partial order (reflexive, transitive, antisym.)
+  constexpr bool operator()(Mask a, Mask b) const { return (a & b) == a; }
+};
+struct NonDistOrd {};  // an order NOT asserted distributive (gate stays off)
+struct KeepOrder {     // Unknown ⟹ keep authoring order (no value comparison)
+  using logic = dedekind::category::TernaryLogic;
+  template <typename, typename>
+  static consteval dedekind::category::Ternary less() {
+    return dedekind::category::Ternary::Unknown;
+  }
+};
+using DA = DLit<Mask{0b001}>;
+using DB = DLit<Mask{0b010}>;
+using DC = DLit<Mask{0b100}>;
+}  // namespace dist_toy
+
+// The 2^n bit-subset lattice is a Boolean algebra: distributive, with an
+// involutive De Morgan negation (Jlt assertions — honest):
+namespace dedekind::category {
+template <>
+inline constexpr bool
+    is_distributive_lattice_for_v<dist_toy::Mask, dist_toy::BitSubset> = true;
+template <>
+inline constexpr bool
+    is_de_morgan_negation_for_v<dist_toy::Mask, dist_toy::BitSubset> = true;
+}  // namespace dedekind::category
+
+namespace dist_toy {
+using namespace dedekind::category;
+
+// The distributivity law in isolation: X ∧ (P ∨ Q) → (X∧P) ∨ (X∧Q).
+static_assert(
+    std::same_as<
+        decltype(meet_distributivity_law<DC, Join<DA, DB>, BitSubset>())::type,
+        Join<Meet<DC, DA>, Meet<DC, DB>>>,
+    "distributivity law: X ∧ (P ∨ Q) → (X∧P) ∨ (X∧Q).");
+// Gated OFF for an order not asserted distributive:
+static_assert(
+    std::same_as<
+        decltype(meet_distributivity_law<DC, Join<DA, DB>, NonDistOrd>())::type,
+        law_inactive>,
+    "…inactive for an order not asserted distributive (gated).");
+// Assembled: c ∧ (a ∨ b) collapses to the DNF (c∧a) ∨ (c∧b); the sub-meets are
+// incomparable so they stay symbolic (a genuine DNF).
+static_assert(
+    std::same_as<reduce_t<Meet<DC, Join<DA, DB>>, KeepOrder, BitSubset>,
+                 Join<Meet<DC, DA>, Meet<DC, DB>>>,
+    "assembled: meet distributes over join to DNF, then re-reduces.");
+
+// ── De Morgan negation (involution ¬¬A→A, De Morgan) on the non-chain ─────
+static_assert(std::same_as<reduce_t<Not<Meet<DA, DB>>, KeepOrder, BitSubset>,
+                           Join<Not<DA>, Not<DB>>>,
+              "¬(a ∧ b) → ¬a ∨ ¬b (De Morgan, negation pushed to leaves).");
+static_assert(std::same_as<reduce_t<Not<Join<DA, DB>>, KeepOrder, BitSubset>,
+                           Meet<Not<DA>, Not<DB>>>,
+              "¬(a ∨ b) → ¬a ∧ ¬b (De Morgan dual).");
+static_assert(std::same_as<reduce_t<Not<Not<DA>>, KeepOrder, BitSubset>, DA>,
+              "¬¬a → a (involution).");
+static_assert(
+    std::same_as<reduce_t<Not<Not<DA>>, KeepOrder, NonDistOrd>, Not<Not<DA>>>,
+    "…negation laws inactive without an involutive negation (gated).");
+}  // namespace dist_toy
 
 TEST_CASE("lattice_term: induced laws + assembled reducer (#865/#888)",
           "[category][lattice][lattice_term]") {

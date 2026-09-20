@@ -9,28 +9,30 @@
  * Licensed under the Apache License, Version 2.0.
  *
  * @section lattice_term__Overview
- * @c :lattice defines the term AST (`Meet`, `Join`) and, next to each lattice
- * concept, the equational law it @b induces as a decomposable, independently
- * testable part (@c meet_bounded_law, @c idempotent_law, @c meet_glb_law and
- * their join duals).  This partition is the @b assembly: @c reduce<> folds
- * those parts into one normal-form reducer, applying exactly the laws the
+ * @c :lattice defines the term AST (`Meet`, `Join`, `Not`) and, next to each
+ * lattice concept, the equational law it @b induces as a decomposable,
+ * independently testable part.  This partition is the @b assembly: @c reduce<>
+ * folds those parts into one normal-form reducer, applying exactly the laws the
  * carrier proves.  Reduction power scales with the carrier's structure — a
  * bounded chain collapses the most, and @c bool (the two-element Boolean
- * lattice) is the optimal witness where every safe-core law fires.
+ * lattice) is the optimal witness where every law fires.
  *
  * It is intended as the reusable engine for the set-expression collapse (epic
- * #888): a later @b sets specialisation will map `& ↦ Meet`, `| ↦ Join`,
- * `𝔸 ↦ ⊤`, `Ø ↦ ⊥`.  The present exhibit still collapses through
+ * #888/#890): a later @b sets specialisation will map `& ↦ Meet`, `| ↦ Join`,
+ * `~ ↦ Not`, `𝔸 ↦ ⊤`, `Ø ↦ ⊥`.  The present exhibit still collapses through
  * `structured_and` / `structured_or`; this partition is not yet wired into it.
  *
- * @section lattice_term__This_Increment
- * The @b safe core (#865): unit / annihilator, idempotence, and the glb/lub
- * collapse of `≤`-comparable operands (the @c :lattice laws), plus commutative
- * canonicalisation by an @b injected total order.  Distributivity, @b
- * structural absorption (@c a∧(a∨b)=a, which needs no comparison) and the
- * complement laws are deferred; each will arrive as further induced laws in @c
- * :lattice (a distributive- and a complemented-lattice reducer), assembled here
- * in turn.
+ * @section lattice_term__Law_Surface
+ * The induced laws assembled here (all in @c :lattice): unit / annihilator
+ * (@c meet_bounded_law), idempotence (@c idempotent_law), @b structural
+ * absorption @c a∧(a∨b)=a (@c meet_structural_absorption_law), @b glb/lub
+ * collapse of `≤`-comparable operands (@c meet_glb_law), @b distributivity
+ * @c X∧(P∨Q)→(X∧P)∨(X∧Q) toward DNF (@c meet_distributivity_law; @b one
+ * direction — meet over join — for termination, @b not the join-over-meet CNF
+ * dual), and @b De Morgan negation @c ¬¬A→A / @c ¬(A∧B)→¬A∨¬B
+ * (@c de_morgan_law), plus commutative canonicalisation by an @b injected total
+ * order.  The complement @b collapse @c a∧¬a→⊥ (needing a genuinely
+ * complemented lattice) and associativity-flattening remain deferred (#890).
  *
  * @section lattice_term__Ordering
  * Two orders enter, both @b injected (the Juliet posture: the engine clicks
@@ -138,14 +140,28 @@ consteval auto meet_assemble() {
     if constexpr (!std::same_as<Idem, law_inactive>) {
       return std::type_identity<Idem>{};
     } else {
-      using Glb = typename decltype(meet_glb_law<RA, RB, Ord>())::type;
-      if constexpr (!std::same_as<Glb, law_inactive>) {
-        return std::type_identity<Glb>{};
-      } else if constexpr (lattice_definitely_less<Less, RB, RA>()) {
-        return std::type_identity<Meet<RB, RA>>{};  // canonicalise
-                                                    // (commutative)
+      using Abs =
+          typename decltype(meet_structural_absorption_law<RA, RB>())::type;
+      if constexpr (!std::same_as<Abs, law_inactive>) {
+        return std::type_identity<Abs>{};  // a ∧ (a ∨ b) = a
       } else {
-        return std::type_identity<Meet<RA, RB>>{};  // Unknown ⟹ keep authored
+        using Dist =
+            typename decltype(meet_distributivity_law<RA, RB, Ord>())::type;
+        if constexpr (!std::same_as<Dist, law_inactive>) {
+          // distributed to a join-of-meets; re-reduce toward DNF (terminates —
+          // one direction only).
+          return std::type_identity<reduce_t<Dist, Less, Ord>>{};
+        } else {
+          using Glb = typename decltype(meet_glb_law<RA, RB, Ord>())::type;
+          if constexpr (!std::same_as<Glb, law_inactive>) {
+            return std::type_identity<Glb>{};
+          } else if constexpr (lattice_definitely_less<Less, RB, RA>()) {
+            return std::type_identity<Meet<RB, RA>>{};  // canonicalise
+                                                        // (commutative)
+          } else {
+            return std::type_identity<Meet<RA, RB>>{};  // Unknown ⟹ keep
+          }
+        }
       }
     }
   }
@@ -162,13 +178,19 @@ consteval auto join_assemble() {
     if constexpr (!std::same_as<Idem, law_inactive>) {
       return std::type_identity<Idem>{};
     } else {
-      using Lub = typename decltype(join_lub_law<RA, RB, Ord>())::type;
-      if constexpr (!std::same_as<Lub, law_inactive>) {
-        return std::type_identity<Lub>{};
-      } else if constexpr (lattice_definitely_less<Less, RB, RA>()) {
-        return std::type_identity<Join<RB, RA>>{};
+      using Abs =
+          typename decltype(join_structural_absorption_law<RA, RB>())::type;
+      if constexpr (!std::same_as<Abs, law_inactive>) {
+        return std::type_identity<Abs>{};  // a ∨ (a ∧ b) = a
       } else {
-        return std::type_identity<Join<RA, RB>>{};
+        using Lub = typename decltype(join_lub_law<RA, RB, Ord>())::type;
+        if constexpr (!std::same_as<Lub, law_inactive>) {
+          return std::type_identity<Lub>{};
+        } else if constexpr (lattice_definitely_less<Less, RB, RA>()) {
+          return std::type_identity<Join<RB, RA>>{};
+        } else {
+          return std::type_identity<Join<RA, RB>>{};
+        }
       }
     }
   }
@@ -188,6 +210,22 @@ struct reduce<Join<A, B>, Less, Ord> {
   using type = typename decltype(detail_lattice_term::join_assemble<
                                  reduce_t<A, Less, Ord>, reduce_t<B, Less, Ord>,
                                  Less, Ord>())::type;
+};
+
+// ¬A: reduce the operand, then apply the De Morgan negation law (involution
+// ¬¬A→A / De Morgan, gated on an involutive De Morgan negation — NOT a genuine
+// complement).  If it fires, the pushed-down result is re-reduced (¬ descends
+// toward the leaves, so this terminates); otherwise ¬(reduced) is already
+// negation-normal and stays.
+export template <typename A, typename Less, typename Ord>
+struct reduce<Not<A>, Less, Ord> {
+ private:
+  using RA = reduce_t<A, Less, Ord>;
+  using Pushed = typename decltype(de_morgan_law<RA, Ord>())::type;
+
+ public:
+  using type = std::conditional_t<std::same_as<Pushed, law_inactive>, Not<RA>,
+                                  reduce_t<Pushed, Less, Ord>>;
 };
 
 }  // namespace dedekind::category
