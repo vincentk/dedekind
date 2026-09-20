@@ -119,10 +119,13 @@ static_assert(
     "from ∅, colegs ι1/ι2); in Sub(U) pushout = coproduct = join. #881 step "
     "4.");
 // Precision: the meet is not a pushout and the join is not a pullback (the
-// ∧/∨ pairing markers gate the legs vs colegs).
+// ∧/∨ factories gate the legs vs colegs).
 static_assert(
     !dedekind::category::IsPushout<decltype(meet_set), SpanToA, SpanToB>,
     "a meet is a pullback, not a pushout (no coprojection colegs).");
+static_assert(!dedekind::category::IsPullback<
+                  decltype(join_set), decltype(iota_A), decltype(iota_B)>,
+              "a join is a pushout, not a pullback (no projection legs).");
 }  // namespace and_predicate_product_test
 
 TEST_CASE("Dedekind MVP: Basic Membership and Symbols", "[sets]") {

@@ -21,8 +21,28 @@ struct MakePair {
   }
 };
 struct MakeVariant {
-  constexpr std::variant<int, bool> operator()(int a) const { return a; }
-  constexpr std::variant<int, bool> operator()(bool b) const { return b; }
+  static constexpr std::variant<int, bool> inl(int a) {
+    return std::variant<int, bool>(std::in_place_index<0>, a);
+  }
+  static constexpr std::variant<int, bool> inr(bool b) {
+    return std::variant<int, bool>(std::in_place_index<1>, b);
+  }
+};
+// Equal summands A == B: the two injections must stay distinct (tagged), which
+// a single overloaded call could not express.  std::variant<int,int> cannot
+// carry this witness --- its converting constructor from int is ambiguous, so
+// it fails IsCoproduct's base { T(a) } check independently of Op --- so a
+// minimal tagged int ⊕ int does: a single-int constructor for the base shape,
+// and inl (tag 0) / inr (tag 1) as the two distinct injections.
+struct IntPlusInt {
+  int which;
+  int value;
+  constexpr IntPlusInt(int v) : which(0), value(v) {}
+  constexpr IntPlusInt(int w, int v) : which(w), value(v) {}
+};
+struct MakeIntPlusInt {
+  static constexpr IntPlusInt inl(int a) { return IntPlusInt(0, a); }
+  static constexpr IntPlusInt inr(int b) { return IntPlusInt(1, b); }
 };
 }  // namespace
 
@@ -47,12 +67,16 @@ TEST_CASE("Discrete: Product and Coproduct (Cartesian Bridge)",
 
   SECTION("Coproduct (A + B) via std::variant") {
     STATIC_CHECK(IsCoproduct<std::variant<int, bool>, int, bool>);
-    // #881: dual Op-refinement --- a named Op must be the injection factory
-    // A → C, B → C.  MakeVariant qualifies; the product pairing MakePair (no
-    // unary call) does not.
+    // #881: dual Op-refinement --- a named Op exposes the two injection
+    // constructors Op::inl : A → C, Op::inr : B → C (Haskell Left / Right).
+    // MakeVariant qualifies; the product pairing MakePair (no inl / inr) does
+    // not.
     STATIC_CHECK(IsCoproduct<std::variant<int, bool>, int, bool, MakeVariant>);
     STATIC_CHECK_FALSE(
         IsCoproduct<std::variant<int, bool>, int, bool, MakePair>);
+    // Equal summands: two distinct injections into int ⊕ int (a single
+    // overloaded call could not tell ι_1 from ι_2 here).
+    STATIC_CHECK(IsCoproduct<IntPlusInt, int, int, MakeIntPlusInt>);
 
     auto choice_1 = ι_1<int, bool>(10);
     STATIC_CHECK(std::same_as<decltype(choice_1), std::variant<int, bool>>);

@@ -267,12 +267,15 @@ concept IsCoproduct = requires(A a, B b) {
   { T(a) } -> std::same_as<T>;
   { T(b) } -> std::same_as<T>;
 } && (std::same_as<Op, AnyOperation> || requires(const A& a, const B& b) {
-                        // Dual to IsProduct's pairing factory: a named Op must
-                        // be the injection factory --- the two coprojections
-                        // ι1: A → C, ι2: B → C (Op invocable on either factor,
-                        // both landing in the coproduct C).
-                        { Op{}(a) } -> std::convertible_to<T>;
-                        { Op{}(b) } -> std::convertible_to<T>;
+                        // Dual to IsProduct's single binary pairing factory: a
+                        // coproduct has TWO unary injection constructors (the
+                        // Haskell Left / Right), so a named Op exposes them as
+                        // distinct Op::inl : A → C, Op::inr : B → C. Two named
+                        // constructors (not one overloaded call) keep the
+                        // injections distinguishable even for equal summands A
+                        // == B --- mirroring the indexed ι_1<A,A> / ι_2<A,A>.
+                        { Op::inl(a) } -> std::convertible_to<T>;
+                        { Op::inr(b) } -> std::convertible_to<T>;
                       });
 
 /**

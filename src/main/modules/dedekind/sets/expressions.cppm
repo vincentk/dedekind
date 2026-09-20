@@ -1240,7 +1240,9 @@ constexpr SubobjectInclusion<std::remove_cvref_t<S>> inclusion_arrow(
  *  members).  Canonical span leg for a pushout @c A @c ← @c Ø @c → @c B,
  *  replacing hand-rolled per-instance span structs.  #881. */
 export template <typename Init, typename Target>
-  requires dedekind::category::IsInitialObject<Init>
+  requires dedekind::category::IsInitialObject<Init> &&
+           dedekind::category::IsSubobject<Init, typename Init::Domain> &&
+           dedekind::category::IsSubobject<Target, typename Target::Domain>
 struct InitialObjectArrow {
   using Domain = typename Init::Member;
   using Codomain = typename Target::Member;

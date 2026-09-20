@@ -316,12 +316,13 @@ constexpr auto π_2(const P& p) {
  * while @c Dual satisfies it through its @c val / @c der overload --- the P-leg
  * is uniform across every product-shaped carrier regardless of storage names.
  *
- * @tparam Op The reduction operation the product commits to, defaulting to
- * @c AnyOperation (unconstrained; the base case, ignored).  Naming an @c Op
- * (e.g. @c std::logical_and<> for a meet, @c std::logical_or<> for a join) pins
- * the product to a pairing that declares that @c operation --- the mechanism
- * @c sets uses to tell a meet-pairing (pullback legs) from a join-pairing
- * (pushout colegs) without a separate concept.  #881.
+ * @tparam Op The pairing-constructor FACTORY the product commits to, defaulting
+ * to @c AnyOperation (unconstrained; the base case, ignored).  A named @c Op
+ * must build the product: @c Op{}(a,b) is convertible to @c P (the Haskell pair
+ * constructor @c (,) specialised to @c P).  Its @b result type is the
+ * discriminator, so @c sets tells a meet-pairing (@c MakeAndPredicate, pullback
+ * legs) from a join-pairing (@c MakeOrPredicate, pushout colegs) without a
+ * separate concept.  #881.
  */
 /**
  * @brief Base-case sentinel for the operation parameter of @c IsProduct /
