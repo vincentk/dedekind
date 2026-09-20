@@ -718,16 +718,19 @@ inline constexpr bool is_join_node_v<Join<A, B>> = true;
 
 /** @brief Is the lattice (carrier @c T, order @c Ord) distributive?  Keyed to
  *  the order like the boundedness markers.  The canonical (@c std::less_equal
- *  chain) case reuses @c is_distributive_v over the default @c min/@c max ops
- *  (every chain is distributive); a NON-chain distributive lattice (a custom
- *  @c Ord) opts in by specialising this to @c true (the Jlt assertion — the
- *  same posture as the injected total order).  A chain is gated distributive
- *  but never actually distributes: its joins glb/lub-collapse first. */
+ *  chain) case derives from the @b concept gates @c IsLatticeCategory<T> @c &&
+ *  @c IsOrderDistributiveLatticeOperations<T> — so a carrier that is not a
+ *  lattice under @c std::less_equal is @b not licensed to distribute (NB the
+ *  bare @c is_distributive_v<T,max,min> trait is unconditionally @c true, which
+ *  would license any carrier — hence the concept gate).  A NON-chain
+ *  distributive lattice (a custom @c Ord) opts in by specialising this to
+ *  @c true (the Jlt assertion — the same posture as the injected total order).
+ *  A canonical chain is gated distributive but never actually distributes: its
+ *  joins glb/lub-collapse first. */
 export template <typename T, typename Ord>
 inline constexpr bool is_distributive_lattice_for_v =
     std::same_as<resolved_order_t<T, Ord>, std::less_equal<T>> &&
-    is_distributive_v<T, decltype(std::ranges::max),
-                      decltype(std::ranges::min)>;
+    IsLatticeCategory<T> && IsOrderDistributiveLatticeOperations<T>;
 
 // Distribute a meet over a join node: X ∧ (P ∨ Q) = (X ∧ P) ∨ (X ∧ Q).
 template <typename X, typename JoinNode>
