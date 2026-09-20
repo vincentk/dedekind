@@ -1,6 +1,7 @@
 /** @file src/test/cpp/modules/dedekind/category/pullback_test.cpp */
 #include <catch2/catch_test_macros.hpp>
 #include <concepts>
+#include <cstddef>
 #include <utility>
 
 import dedekind.category;
@@ -8,18 +9,22 @@ import dedekind.category;
 using namespace dedekind::category;
 
 namespace {
-// Two subobject inclusions into the ambient ℤ: the subgroups 2ℤ and 3ℤ, each
-// presented by its inclusion arrow (a ↦ 2a, b ↦ 3b).  Named functors, not
-// lambdas, so the inclusion is nameable.
+// Two subobject inclusions into the ambient carrier: the multiples-of-2 and
+// multiples-of-3 subgroups, each presented by its inclusion arrow (a ↦ 2a,
+// b ↦ 3b).  The carrier is @c std::size_t (the unsigned modular integers): its
+// multiplication is TOTAL (defined for all inputs, mod 2^n --- a law-abiding
+// ring), so these are genuine total arrows, unlike @c int where @c 2*a is
+// signed-overflow UB (and signed ints are not a law-abiding arithmetic carrier
+// per the paper).  Named functors, not lambdas, so the inclusion is nameable.
 struct IncludeTwoZ {
-  using Domain = int;
-  using Codomain = int;
-  constexpr int operator()(int a) const { return 2 * a; }
+  using Domain = std::size_t;
+  using Codomain = std::size_t;
+  constexpr std::size_t operator()(std::size_t a) const { return 2 * a; }
 };
 struct IncludeThreeZ {
-  using Domain = int;
-  using Codomain = int;
-  constexpr int operator()(int b) const { return 3 * b; }
+  using Domain = std::size_t;
+  using Codomain = std::size_t;
+  constexpr std::size_t operator()(std::size_t b) const { return 3 * b; }
 };
 }  // namespace
 
@@ -157,9 +162,9 @@ TEST_CASE("Pullback: TernaryLogic classifier",
 // same pullback.
 TEST_CASE("Pullback: intersection of subobjects is the pullback of inclusions",
           "[category][pullback][intersection]") {
-  using Π = std::pair<int, int>;
-  auto iota2 = arrow<int, int>(IncludeTwoZ{});    // 2ℤ ↪ ℤ
-  auto iota3 = arrow<int, int>(IncludeThreeZ{});  // 3ℤ ↪ ℤ
+  using Π = std::pair<std::size_t, std::size_t>;
+  auto iota2 = arrow<std::size_t, std::size_t>(IncludeTwoZ{});    // 2ℤ ↪ ℤ
+  auto iota3 = arrow<std::size_t, std::size_t>(IncludeThreeZ{});  // 3ℤ ↪ ℤ
   auto P = pullback<ClassicalLogic, Π>(iota2, iota3);
 
   STATIC_CHECK(IsPullback<decltype(P), decltype(iota2), decltype(iota3)>);

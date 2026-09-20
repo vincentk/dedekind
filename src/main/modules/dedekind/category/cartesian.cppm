@@ -263,20 +263,25 @@ auto uncurry(F&& f) {
  * elimination morphism.
  */
 export template <typename T, typename A, typename B, typename Op = AnyOperation>
-concept IsCoproduct = requires(A a, B b) {
-  { T(a) } -> std::same_as<T>;
-  { T(b) } -> std::same_as<T>;
-} && (std::same_as<Op, AnyOperation> || requires(const A& a, const B& b) {
-                        // Dual to IsProduct's single binary pairing factory: a
-                        // coproduct has TWO unary injection constructors (the
-                        // Haskell Left / Right), so a named Op exposes them as
-                        // distinct Op::inl : A → C, Op::inr : B → C. Two named
-                        // constructors (not one overloaded call) keep the
-                        // injections distinguishable even for equal summands A
-                        // == B --- mirroring the indexed ι_1<A,A> / ι_2<A,A>.
-                        { Op::inl(a) } -> std::convertible_to<T>;
-                        { Op::inr(b) } -> std::convertible_to<T>;
-                      });
+concept IsCoproduct =
+    // Default sentinel: the legacy structural check --- T is constructible from
+    // either summand.
+    (std::same_as<Op, AnyOperation> &&
+     requires(A a, B b) {
+       { T(a) } -> std::same_as<T>;
+       { T(b) } -> std::same_as<T>;
+     }) ||
+    // A named Op SUPERSEDES that check (it is ambiguous for equal summands):
+    // dual to IsProduct's single binary pairing factory, a coproduct has TWO
+    // unary injection constructors (the Haskell Left / Right), so a named Op
+    // exposes them as distinct Op::inl : A → C, Op::inr : B → C.  Two named
+    // constructors (not one overloaded call, nor the constructor check) keep
+    // the injections distinguishable even for equal summands A == B, so the
+    // canonical std::variant<int,int> (via indexed ι_1 / ι_2) qualifies.
+    requires(const A& a, const B& b) {
+      { Op::inl(a) } -> std::convertible_to<T>;
+      { Op::inr(b) } -> std::convertible_to<T>;
+    };
 
 /**
  * @brief Left injection ι₁: A → A + B.

@@ -28,21 +28,18 @@ struct MakeVariant {
     return std::variant<int, bool>(std::in_place_index<1>, b);
   }
 };
-// Equal summands A == B: the two injections must stay distinct (tagged), which
-// a single overloaded call could not express.  std::variant<int,int> cannot
-// carry this witness --- its converting constructor from int is ambiguous, so
-// it fails IsCoproduct's base { T(a) } check independently of Op --- so a
-// minimal tagged int ⊕ int does: a single-int constructor for the base shape,
-// and inl (tag 0) / inr (tag 1) as the two distinct injections.
-struct IntPlusInt {
-  int which;
-  int value;
-  constexpr IntPlusInt(int v) : which(0), value(v) {}
-  constexpr IntPlusInt(int w, int v) : which(w), value(v) {}
-};
-struct MakeIntPlusInt {
-  static constexpr IntPlusInt inl(int a) { return IntPlusInt(0, a); }
-  static constexpr IntPlusInt inr(int b) { return IntPlusInt(1, b); }
+// Equal summands A == B: the injections must stay distinct, which a single
+// overloaded call could not express.  On the canonical std::variant<int,int>
+// the indexed injections (in_place_index 0 / 1) are the two constructors ---
+// exactly the library's ι_1<int,int> / ι_2<int,int>.  A named Op supersedes the
+// (here-ambiguous) base { T(a) } check, so this qualifies.
+struct MakeVariantII {
+  static constexpr std::variant<int, int> inl(int a) {
+    return std::variant<int, int>(std::in_place_index<0>, a);
+  }
+  static constexpr std::variant<int, int> inr(int b) {
+    return std::variant<int, int>(std::in_place_index<1>, b);
+  }
 };
 }  // namespace
 
@@ -74,9 +71,10 @@ TEST_CASE("Discrete: Product and Coproduct (Cartesian Bridge)",
     STATIC_CHECK(IsCoproduct<std::variant<int, bool>, int, bool, MakeVariant>);
     STATIC_CHECK_FALSE(
         IsCoproduct<std::variant<int, bool>, int, bool, MakePair>);
-    // Equal summands: two distinct injections into int ⊕ int (a single
-    // overloaded call could not tell ι_1 from ι_2 here).
-    STATIC_CHECK(IsCoproduct<IntPlusInt, int, int, MakeIntPlusInt>);
+    // Equal summands: the canonical std::variant<int, int> qualifies via the
+    // indexed injections, now that a named Op supersedes the ambiguous base
+    // constructor check.
+    STATIC_CHECK(IsCoproduct<std::variant<int, int>, int, int, MakeVariantII>);
 
     auto choice_1 = ι_1<int, bool>(10);
     STATIC_CHECK(std::same_as<decltype(choice_1), std::variant<int, bool>>);
