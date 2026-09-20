@@ -520,7 +520,7 @@ constexpr Q π_2(const AndPredicate<P, Q>& a) {
  *  is the @c Op that @c category::IsProduct names for a meet: @c Op must build
  *  the product (signature @c A×B → P), and its @b result type (@c AndPredicate,
  *  not @c OrPredicate) is what distinguishes the meet from the join.  #881. */
-struct MakeAndPredicate {
+export struct MakeAndPredicate {
   template <CombinablePredicate P, CombinablePredicate Q>
   constexpr AndPredicate<P, Q> operator()(const P& p, const Q& q) const {
     return {p, q};
@@ -562,7 +562,7 @@ constexpr Q π_2(const OrPredicate<P, Q>& a) {
  *  @f$\langle -, - \rangle \mapsto \mathrm{OrPredicate}@f$.  The @c Op
  *  @c category::IsProduct names for a join; its result type (@c OrPredicate)
  *  distinguishes the join from the meet.  #881. */
-struct MakeOrPredicate {
+export struct MakeOrPredicate {
   template <CombinablePredicate P, CombinablePredicate Q>
   constexpr OrPredicate<P, Q> operator()(const P& p, const Q& q) const {
     return {p, q};
@@ -1206,14 +1206,29 @@ class Set {
 
 /** @brief @c inclusion_arrow(S) --- the inclusion ι_S: S ↪ Domain<S> of a
  *  subobject as a first-class @c IsArrow (@c Domain = @c S::Member,
- *  @c Codomain = @c S::Domain, @c m ↦ @c m.value).  A thin arrow-wrapper of the
- *  @c ι that @c Set / @c Subobject already expose, so it can serve as a cospan
- *  arrow.  The meet-as-pullback (#881): @c A @c & @c B is the pullback of the
- *  cospan @c inclusion_arrow(A), @c inclusion_arrow(B). */
+ *  @c Codomain = @c S::Domain, routing through @c S's own @c ι).  A thin
+ *  arrow-wrapper of the @c ι that @c Set / @c Subobject already expose, so it
+ *  can serve as a cospan arrow.  The meet-as-pullback (#881): @c A @c & @c B is
+ *  the pullback of the cospan @c inclusion_arrow(A), @c inclusion_arrow(B).
+ *
+ *  @note FIXME(#887): this is a @b localized reification.  Categorically @c ι
+ * is already an arrow, but every subobject exposes it only as the @c .ι @b
+ * member
+ *  @b function (the @c #681 structural-refactor call shape), so it is not a
+ *  nameable @c IsArrow that @c IsPullback can take as a cospan leg.  #887
+ * tracks promoting the inclusion to a first-class arrow intrinsic to each
+ * subobject carrier (strengthening @c IsSubobject) and retiring this wrapper.
+ */
 export template <typename S>
 struct SubobjectInclusion {
   using Domain = typename S::Member;
   using Codomain = typename S::Domain;
+  /** @brief Structural monic opt-in: a subobject inclusion @c ι: S ↪ A is a
+   *  monomorphism by definition, so @c IsMonicArrow fires via its tag-discovery
+   *  branch.  A tag (not an @c is_monic_arrow_v partial spec) because a
+   *  variable-template partial spec does not cross the module boundary from
+   *  @c :sets to @c :morphism (cf. the note at @c is_monic_arrow_v). */
+  using is_monic_arrow_tag = void;
   /** @brief The subobject whose canonical inclusion this arrow reifies; held so
    *  @c operator() routes through @b its @c ι rather than re-deriving
    *  @c m.value, staying faithful to any subobject that customises @c ι. */

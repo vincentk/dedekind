@@ -84,6 +84,10 @@ constexpr B_set b_set{IsPositive{}};
 constexpr auto meet_set = a_set & b_set;
 constexpr auto iota_A = dedekind::sets::inclusion_arrow(a_set);
 constexpr auto iota_B = dedekind::sets::inclusion_arrow(b_set);
+static_assert(dedekind::category::IsMonicArrow<decltype(iota_A)>,
+              "inclusion_arrow reifies the subobject monomorphism ι_A: A ↪ U, "
+              "so it is registered monic (generic mono/image code accepts it). "
+              "#881.");
 static_assert(
     dedekind::category::IsPullback<decltype(meet_set), decltype(iota_A),
                                    decltype(iota_B)>,

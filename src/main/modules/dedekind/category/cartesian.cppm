@@ -261,6 +261,16 @@ auto uncurry(F&& f) {
  * `std::variant<A, B>` satisfies this concept: any value of type A or B can be
  * injected into the variant, and `std::visit` provides the universal
  * elimination morphism.
+ *
+ * @note (#881) The @c Op-refinement (the injection factory @c Op::inl / @c
+ * Op::inr) is landed here for symmetry with @c IsProduct's pairing factory, but
+ * its consumer is @b not the set join (which is product-shaped).  Its home is
+ * the set-expression @b collapse: the reduced-form outcome space
+ * @c {Ø, Singleton, Interval, Set, U} is a coproduct and each collapse rule is
+ * an injection into one summand (see #865, and the boundary injections
+ * @c Set{AlwaysTrue/False} == U/Ø in #685).  The recursive case (fold over an
+ * initial F-algebra, @c ℕ = @c μX.1+X) is #449.  Until one of those lands, the
+ * @c Op parameter is exercised only by its own witnesses.
  */
 export template <typename T, typename A, typename B, typename Op = AnyOperation>
 concept IsCoproduct =
