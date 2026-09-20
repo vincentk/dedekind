@@ -312,6 +312,19 @@ struct KeepOrder {     // Unknown ⟹ keep authoring order (no value comparison)
 using DA = DLit<Mask{0b001}>;
 using DB = DLit<Mask{0b010}>;
 using DC = DLit<Mask{0b100}>;
+// A leaf-combiner supplying the carrier's DOMAIN meet/join (bitwise ∧/∨), the
+// stand-in for what `sets` will inject as structured_and / structured_or: it
+// computes the actual glb/lub of two order-incomparable leaves.
+struct BitCombine {
+  template <typename RA, typename RB>
+  static consteval auto meet() {
+    return std::type_identity<DLit<Mask(RA::value & RB::value)>>{};
+  }
+  template <typename RA, typename RB>
+  static consteval auto join() {
+    return std::type_identity<DLit<Mask(RA::value | RB::value)>>{};
+  }
+};
 }  // namespace dist_toy
 
 // The 2^n bit-subset lattice is a Boolean algebra: distributive, with an
@@ -383,6 +396,21 @@ static_assert(
     std::same_as<reduce_t<Meet<DA, Not<DA>>, KeepOrder, NonDistOrd>,
                  Meet<DA, Not<DA>>>,
     "…complement collapse inactive without a complemented lattice (gated).");
+
+// ── Injected leaf-combiner: the order-incomparable residual is handed to the
+//    carrier's domain ∧/∨ (here bitwise), the mechanism `sets` will use for
+//    structured_and/or.  Without a combiner the residual stays a Meet node. ──
+static_assert(
+    std::same_as<reduce_t<Meet<DA, DB>, KeepOrder, BitSubset, BitCombine>,
+                 DLit<Mask{0b000}>>,
+    "leaf-combiner computes the domain meet DA ∧ DB = 0 (the glb).");
+static_assert(
+    std::same_as<reduce_t<Join<DA, DB>, KeepOrder, BitSubset, BitCombine>,
+                 DLit<Mask{0b011}>>,
+    "leaf-combiner computes the domain join DA ∨ DB (the lub).");
+static_assert(
+    std::same_as<reduce_t<Meet<DA, DB>, KeepOrder, BitSubset>, Meet<DA, DB>>,
+    "…no combiner ⟹ the incomparable residual stays a Meet node.");
 }  // namespace dist_toy
 
 TEST_CASE("lattice_term: induced laws + assembled reducer (#865/#888)",
