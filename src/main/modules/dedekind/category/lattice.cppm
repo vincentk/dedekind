@@ -161,6 +161,8 @@ module;
 export module dedekind.category:lattice;
 
 import :logic;
+import :morphism;    // IsArrow — the Domain/Codomain surface a predicate leaf
+                     // (χ:Domain→Ω) presents; carrier_of reuses it (below)
 import :involution;  // is_involutive_v + IsInvolution (extracted from here)
 import :posetal;     // IsPosetal — row 2 (thin + antisymmetric);
                      // IsOrderLatticeOperations — bottom-up algebraic surface
@@ -462,15 +464,18 @@ export template <typename X>
 struct carrier_of<X> {
   using type = std::remove_cvref_t<decltype(X::value)>;
 };
-// Set-predicate / subobject leaves carry a `Domain` typedef rather than a
-// `::value` (they are predicates χ:Domain→Ω, not wrapped values); the carrier
-// is that domain.  So the carrier-based gates (SameCarrier, distributivity,
-// complement, De Morgan negation) apply to set expressions too.
+// A predicate / subobject leaf is an arrow χ:Domain→Ω (`IsArrow`), not a
+// wrapped value; its carrier is the arrow's @b Domain.  Reusing @c IsArrow (the
+// category arrow surface) rather than a bespoke typedef probe ties the reducer
+// into @c category and lets the carrier-based gates (SameCarrier,
+// distributivity, complement, De Morgan negation) apply to set expressions too.
+// (An element leaf carries @c ::value — a point 1→T whose carrier is the
+// value's type — handled by the specialisation above; the two extract the
+// carrier from opposite ends of the arrow, so both spellings coexist.)
 export template <typename X>
-  requires(
-      requires { typename X::Domain; } && !requires { X::value; })
+  requires(IsArrow<X> && !requires { X::value; })
 struct carrier_of<X> {
-  using type = typename X::Domain;
+  using type = typename std::remove_cvref_t<X>::Domain;
 };
 namespace detail_carrier {
 // The carrier shared by two children, or void if they differ or are unknown.

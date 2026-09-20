@@ -141,14 +141,18 @@ static_assert(!SameCarrier<TopI, Meet<Lit<true>, Lit<false>>>,
 static_assert(!SameCarrier<TopI, Join<I3, Lit<true>>>,
               "…nor a NESTED mixed-carrier composite (recursive fail-closed).");
 
-// A subobject-style leaf carries ::Domain (a predicate χ:Domain→Ω), not
-// ::value; carrier_of falls back to that domain — the bridge that lets the
-// carrier-based gates apply to the forthcoming sets specialisation.
-struct DomainLeaf {
+// A predicate / subobject leaf is an arrow χ:Domain→Ω (IsArrow); carrier_of
+// reads its Domain (reusing the category arrow surface, not a bespoke probe) —
+// the bridge that lets the carrier-based gates apply to the forthcoming sets
+// specialisation.
+struct CharLeaf {  // a minimal characteristic arrow int → bool
   using Domain = int;
+  using Codomain = bool;
+  constexpr bool operator()(const int&) const { return true; }
 };
-static_assert(std::same_as<carrier_of_t<DomainLeaf>, int>,
-              "carrier_of falls back to ::Domain for a predicate leaf.");
+static_assert(IsArrow<CharLeaf>, "the predicate leaf is a category arrow.");
+static_assert(std::same_as<carrier_of_t<CharLeaf>, int>,
+              "carrier_of reads a predicate leaf's Domain (via IsArrow).");
 
 // ══ Layer 2: the ASSEMBLED reducer on the canonical carriers ══════════════
 
