@@ -830,6 +830,57 @@ consteval auto de_morgan_law() {
   }
 }
 
+// ── Complement collapse (induced by a genuinely COMPLEMENTED lattice) ─────
+// STRONGER than De Morgan negation: a complemented lattice additionally proves
+// the complement laws a∧¬a=⊥ (contradiction) and a∨¬a=⊤ (excluded middle).  A
+// De Morgan algebra alone (e.g. Kleene K3) does NOT — a∧¬a can be the middle —
+// so this is a distinct, opt-in gate.
+
+/** @brief Does the lattice (carrier @c T, order @c Ord) carry a genuine
+ *  @b complement (@c a∧¬a=⊥, @c a∨¬a=⊤), not merely a De Morgan negation? Keyed
+ *  to the order and opt-in (default @c false).  A complemented lattice is also
+ * a De Morgan algebra, so a carrier asserting this should also assert
+ *  @c is_de_morgan_negation_for_v. */
+export template <typename T, typename Ord>
+inline constexpr bool is_complemented_lattice_for_v = false;
+/** @brief Canonical @c bool is a Boolean (hence complemented) lattice. */
+export template <>
+inline constexpr bool is_complemented_lattice_for_v<bool, canonical_order> =
+    true;
+
+/** @brief Are @c RA and @c RB a complement pair (@c RB=¬RA or @c RA=¬RB)? */
+export template <typename RA, typename RB>
+inline constexpr bool is_complement_pair_v =
+    std::same_as<RB, Not<RA>> || std::same_as<RA, Not<RB>>;
+
+/** @brief Law induced by a @b complemented lattice: the complement collapse
+ *  @c a∧¬a→⊥ (meet) / @c a∨¬a→⊤ (join).  The bottom / top produced is the
+ *  carrier's registered @c LatticeBottom / @c LatticeTop over its resolved
+ *  order (for sets, that is @c Ø / @c 𝔸 once the sets layer registers them).
+ *  Gated on the carrier being complemented under @c Ord; else inactive. */
+export template <typename RA, typename RB, typename Ord>
+consteval auto meet_complement_law() {
+  if constexpr (is_complement_pair_v<RA, RB> &&
+                is_complemented_lattice_for_v<carrier_of_t<RA>, Ord>) {
+    return std::type_identity<LatticeBottom<
+        carrier_of_t<RA>, resolved_order_t<carrier_of_t<RA>, Ord>>>{};
+  } else {
+    return std::type_identity<law_inactive>{};
+  }
+}
+
+/** @brief The join dual: @c a∨¬a→⊤ (excluded middle). */
+export template <typename RA, typename RB, typename Ord>
+consteval auto join_complement_law() {
+  if constexpr (is_complement_pair_v<RA, RB> &&
+                is_complemented_lattice_for_v<carrier_of_t<RA>, Ord>) {
+    return std::type_identity<LatticeTop<
+        carrier_of_t<RA>, resolved_order_t<carrier_of_t<RA>, Ord>>>{};
+  } else {
+    return std::type_identity<law_inactive>{};
+  }
+}
+
 /** @section lattice__Involutive_Endofunctor
  *
  *  @brief Involutive endofunctor concept — an endomap @c F @c : @c T @c → @c T

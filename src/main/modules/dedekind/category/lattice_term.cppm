@@ -140,26 +140,30 @@ consteval auto meet_assemble() {
     if constexpr (!std::same_as<Idem, law_inactive>) {
       return std::type_identity<Idem>{};
     } else {
-      using Abs =
-          typename decltype(meet_structural_absorption_law<RA, RB>())::type;
-      if constexpr (!std::same_as<Abs, law_inactive>) {
-        return std::type_identity<Abs>{};  // a ∧ (a ∨ b) = a
+      using Comp = typename decltype(meet_complement_law<RA, RB, Ord>())::type;
+      if constexpr (!std::same_as<Comp, law_inactive>) {
+        return std::type_identity<Comp>{};  // a ∧ ¬a = ⊥ (complemented lattice)
       } else {
-        using Dist =
-            typename decltype(meet_distributivity_law<RA, RB, Ord>())::type;
-        if constexpr (!std::same_as<Dist, law_inactive>) {
-          // distributed to a join-of-meets; re-reduce toward DNF (terminates —
-          // one direction only).
-          return std::type_identity<reduce_t<Dist, Less, Ord>>{};
+        using Abs =
+            typename decltype(meet_structural_absorption_law<RA, RB>())::type;
+        if constexpr (!std::same_as<Abs, law_inactive>) {
+          return std::type_identity<Abs>{};  // a ∧ (a ∨ b) = a
         } else {
-          using Glb = typename decltype(meet_glb_law<RA, RB, Ord>())::type;
-          if constexpr (!std::same_as<Glb, law_inactive>) {
-            return std::type_identity<Glb>{};
-          } else if constexpr (lattice_definitely_less<Less, RB, RA>()) {
-            return std::type_identity<Meet<RB, RA>>{};  // canonicalise
-                                                        // (commutative)
+          using Dist =
+              typename decltype(meet_distributivity_law<RA, RB, Ord>())::type;
+          if constexpr (!std::same_as<Dist, law_inactive>) {
+            // distributed to a join-of-meets; re-reduce toward DNF (terminates
+            // — one direction only).
+            return std::type_identity<reduce_t<Dist, Less, Ord>>{};
           } else {
-            return std::type_identity<Meet<RA, RB>>{};  // Unknown ⟹ keep
+            using Glb = typename decltype(meet_glb_law<RA, RB, Ord>())::type;
+            if constexpr (!std::same_as<Glb, law_inactive>) {
+              return std::type_identity<Glb>{};
+            } else if constexpr (lattice_definitely_less<Less, RB, RA>()) {
+              return std::type_identity<Meet<RB, RA>>{};  // canonicalise
+            } else {
+              return std::type_identity<Meet<RA, RB>>{};  // Unknown ⟹ keep
+            }
           }
         }
       }
@@ -178,18 +182,23 @@ consteval auto join_assemble() {
     if constexpr (!std::same_as<Idem, law_inactive>) {
       return std::type_identity<Idem>{};
     } else {
-      using Abs =
-          typename decltype(join_structural_absorption_law<RA, RB>())::type;
-      if constexpr (!std::same_as<Abs, law_inactive>) {
-        return std::type_identity<Abs>{};  // a ∨ (a ∧ b) = a
+      using Comp = typename decltype(join_complement_law<RA, RB, Ord>())::type;
+      if constexpr (!std::same_as<Comp, law_inactive>) {
+        return std::type_identity<Comp>{};  // a ∨ ¬a = ⊤ (complemented lattice)
       } else {
-        using Lub = typename decltype(join_lub_law<RA, RB, Ord>())::type;
-        if constexpr (!std::same_as<Lub, law_inactive>) {
-          return std::type_identity<Lub>{};
-        } else if constexpr (lattice_definitely_less<Less, RB, RA>()) {
-          return std::type_identity<Join<RB, RA>>{};
+        using Abs =
+            typename decltype(join_structural_absorption_law<RA, RB>())::type;
+        if constexpr (!std::same_as<Abs, law_inactive>) {
+          return std::type_identity<Abs>{};  // a ∨ (a ∧ b) = a
         } else {
-          return std::type_identity<Join<RA, RB>>{};
+          using Lub = typename decltype(join_lub_law<RA, RB, Ord>())::type;
+          if constexpr (!std::same_as<Lub, law_inactive>) {
+            return std::type_identity<Lub>{};
+          } else if constexpr (lattice_definitely_less<Less, RB, RA>()) {
+            return std::type_identity<Join<RB, RA>>{};
+          } else {
+            return std::type_identity<Join<RA, RB>>{};
+          }
         }
       }
     }

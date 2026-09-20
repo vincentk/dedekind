@@ -323,6 +323,10 @@ inline constexpr bool
 template <>
 inline constexpr bool
     is_de_morgan_negation_for_v<dist_toy::Mask, dist_toy::BitSubset> = true;
+// …and genuinely COMPLEMENTED (Boolean): a ∧ ¬a = ⊥, a ∨ ¬a = ⊤.
+template <>
+inline constexpr bool
+    is_complemented_lattice_for_v<dist_toy::Mask, dist_toy::BitSubset> = true;
 }  // namespace dedekind::category
 
 namespace dist_toy {
@@ -359,6 +363,26 @@ static_assert(std::same_as<reduce_t<Not<Not<DA>>, KeepOrder, BitSubset>, DA>,
 static_assert(
     std::same_as<reduce_t<Not<Not<DA>>, KeepOrder, NonDistOrd>, Not<Not<DA>>>,
     "…negation laws inactive without an involutive negation (gated).");
+
+// ── Complement collapse (a ∧ ¬a → ⊥, a ∨ ¬a → ⊤) on the complemented toy ──
+// Needs an INTERIOR element a with ¬a (bool can't: its only elements are the
+// bounds, where ⊤∧¬⊤ collapses via the unit law first).  ⊥/⊤ are the carrier's
+// LatticeBottom/Top over its resolved order.
+static_assert(
+    std::same_as<decltype(meet_complement_law<DA, Not<DA>, BitSubset>())::type,
+                 LatticeBottom<Mask, BitSubset>>,
+    "law: a ∧ ¬a → ⊥.");
+static_assert(std::same_as<reduce_t<Meet<DA, Not<DA>>, KeepOrder, BitSubset>,
+                           LatticeBottom<Mask, BitSubset>>,
+              "assembled: a ∧ ¬a → ⊥ (contradiction).");
+static_assert(std::same_as<reduce_t<Join<DA, Not<DA>>, KeepOrder, BitSubset>,
+                           LatticeTop<Mask, BitSubset>>,
+              "assembled dual: a ∨ ¬a → ⊤ (excluded middle).");
+// Gated OFF where the carrier is not asserted complemented:
+static_assert(
+    std::same_as<reduce_t<Meet<DA, Not<DA>>, KeepOrder, NonDistOrd>,
+                 Meet<DA, Not<DA>>>,
+    "…complement collapse inactive without a complemented lattice (gated).");
 }  // namespace dist_toy
 
 TEST_CASE("lattice_term: induced laws + assembled reducer (#865/#888)",
