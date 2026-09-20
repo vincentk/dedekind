@@ -9,28 +9,30 @@
  * Licensed under the Apache License, Version 2.0.
  *
  * @section lattice_term__Overview
- * @c :lattice defines the term AST (`Meet`, `Join`) and, next to each lattice
- * concept, the equational law it @b induces as a decomposable, independently
- * testable part (@c meet_bounded_law, @c idempotent_law, @c meet_glb_law and
- * their join duals).  This partition is the @b assembly: @c reduce<> folds
- * those parts into one normal-form reducer, applying exactly the laws the
+ * @c :lattice defines the term AST (`Meet`, `Join`, `Not`) and, next to each
+ * lattice concept, the equational law it @b induces as a decomposable,
+ * independently testable part.  This partition is the @b assembly: @c reduce<>
+ * folds those parts into one normal-form reducer, applying exactly the laws the
  * carrier proves.  Reduction power scales with the carrier's structure — a
  * bounded chain collapses the most, and @c bool (the two-element Boolean
- * lattice) is the optimal witness where every safe-core law fires.
+ * lattice) is the optimal witness where every law fires.
  *
  * It is intended as the reusable engine for the set-expression collapse (epic
- * #888): a later @b sets specialisation will map `& ↦ Meet`, `| ↦ Join`,
- * `𝔸 ↦ ⊤`, `Ø ↦ ⊥`.  The present exhibit still collapses through
+ * #888/#890): a later @b sets specialisation will map `& ↦ Meet`, `| ↦ Join`,
+ * `~ ↦ Not`, `𝔸 ↦ ⊤`, `Ø ↦ ⊥`.  The present exhibit still collapses through
  * `structured_and` / `structured_or`; this partition is not yet wired into it.
  *
- * @section lattice_term__This_Increment
- * The @b safe core (#865): unit / annihilator, idempotence, and the glb/lub
- * collapse of `≤`-comparable operands (the @c :lattice laws), plus commutative
- * canonicalisation by an @b injected total order.  Distributivity, @b
- * structural absorption (@c a∧(a∨b)=a, which needs no comparison) and the
- * complement laws are deferred; each will arrive as further induced laws in @c
- * :lattice (a distributive- and a complemented-lattice reducer), assembled here
- * in turn.
+ * @section lattice_term__Law_Surface
+ * The induced laws assembled here (all in @c :lattice): unit / annihilator
+ * (@c meet_bounded_law), idempotence (@c idempotent_law), @b structural
+ * absorption @c a∧(a∨b)=a (@c meet_structural_absorption_law), @b glb/lub
+ * collapse of `≤`-comparable operands (@c meet_glb_law), @b distributivity
+ * @c X∧(P∨Q)→(X∧P)∨(X∧Q) toward DNF (@c meet_distributivity_law; @b one
+ * direction — meet over join — for termination, @b not the join-over-meet CNF
+ * dual), and @b De Morgan negation @c ¬¬A→A / @c ¬(A∧B)→¬A∨¬B
+ * (@c de_morgan_law), plus commutative canonicalisation by an @b injected total
+ * order.  The complement @b collapse @c a∧¬a→⊥ (needing a genuinely
+ * complemented lattice) and associativity-flattening remain deferred (#890).
  *
  * @section lattice_term__Ordering
  * Two orders enter, both @b injected (the Juliet posture: the engine clicks
@@ -218,7 +220,7 @@ export template <typename A, typename Less, typename Ord>
 struct reduce<Not<A>, Less, Ord> {
  private:
   using RA = reduce_t<A, Less, Ord>;
-  using Pushed = typename decltype(complement_law<RA, Ord>())::type;
+  using Pushed = typename decltype(de_morgan_law<RA, Ord>())::type;
 
  public:
   using type = std::conditional_t<std::same_as<Pushed, law_inactive>, Not<RA>,

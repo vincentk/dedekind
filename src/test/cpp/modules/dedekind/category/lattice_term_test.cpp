@@ -150,6 +150,11 @@ static_assert(std::same_as<reduce_t<Join<TopB, BotB>, NumLess>, TopB>,
               "⊤ ∨ ⊥ = ⊤.");
 static_assert(std::same_as<reduce_t<Meet<TopB, TopB>, NumLess>, TopB>,
               "⊤ ∧ ⊤ = ⊤ (idempotent).");
+// bool activates the De Morgan negation in PRODUCTION (registered under
+// canonical_order): involution ¬¬⊤ → ⊤.  (The meet/join De Morgan needs a
+// non-chain, since a chain collapses the inner meet/join first — see dist_toy.)
+static_assert(std::same_as<reduce_t<Not<Not<TopB>>, NumLess>, TopB>,
+              "¬¬⊤ → ⊤ on bool (involution, production carrier).");
 
 // int — a bounded chain: units, idempotence, glb/lub collapse,
 // canonicalisation.
@@ -275,43 +280,52 @@ static_assert(std::same_as<reduce_t<Join<UA, Meet<UA, UB>>, TernLess>, UA>,
 // returning comparator keeps the produced DNF order (a value-based comparator
 // would not type-check on the composite Meet nodes the DNF contains).
 namespace dist_toy {
-enum class D3 { a, b, c };
-template <D3 V>
+// A GENUINE non-chain distributive lattice: the bit-subset (Boolean) lattice on
+// the masks of an integer, a ⊑ b ⟺ (a & b) == a.  DA/DB/DC are three pairwise
+// disjoint atoms of 2^3 ⊂ 2^8, hence pairwise incomparable — so their joins /
+// meets stay symbolic (the reducer never evaluates a genuine lub/glb), which is
+// what exercises distributivity and De Morgan.  2^8 under bit-subset is a
+// Boolean algebra, so the distributive + De-Morgan-negation assertions below
+// are HONEST (unlike a bare antichain, which is not a lattice at all).
+using Mask = unsigned char;
+template <Mask V>
 struct DLit {
-  static constexpr D3 value = V;
+  static constexpr Mask value = V;
 };
-struct DistOrd {};  // opaque order: the three atoms are pairwise incomparable
+struct BitSubset {  // a genuine partial order (reflexive, transitive, antisym.)
+  constexpr bool operator()(Mask a, Mask b) const { return (a & b) == a; }
+};
 struct NonDistOrd {};  // an order NOT asserted distributive (gate stays off)
-struct KeepOrder {
+struct KeepOrder {     // Unknown ⟹ keep authoring order (no value comparison)
   using logic = dedekind::category::TernaryLogic;
   template <typename, typename>
   static consteval dedekind::category::Ternary less() {
     return dedekind::category::Ternary::Unknown;
   }
 };
-using DA = DLit<D3::a>;
-using DB = DLit<D3::b>;
-using DC = DLit<D3::c>;
+using DA = DLit<Mask{0b001}>;
+using DB = DLit<Mask{0b010}>;
+using DC = DLit<Mask{0b100}>;
 }  // namespace dist_toy
 
-// Assert the toy (carrier, order) is a distributive lattice with an involutive
-// complement (Jlt assertions):
+// The 2^n bit-subset lattice is a Boolean algebra: distributive, with an
+// involutive De Morgan negation (Jlt assertions — honest):
 namespace dedekind::category {
 template <>
 inline constexpr bool
-    is_distributive_lattice_for_v<dist_toy::D3, dist_toy::DistOrd> = true;
+    is_distributive_lattice_for_v<dist_toy::Mask, dist_toy::BitSubset> = true;
 template <>
 inline constexpr bool
-    is_involutive_complement_for_v<dist_toy::D3, dist_toy::DistOrd> = true;
+    is_de_morgan_negation_for_v<dist_toy::Mask, dist_toy::BitSubset> = true;
 }  // namespace dedekind::category
 
 namespace dist_toy {
 using namespace dedekind::category;
 
-// The law in isolation: X ∧ (P ∨ Q) → (X∧P) ∨ (X∧Q) (not yet re-reduced).
+// The distributivity law in isolation: X ∧ (P ∨ Q) → (X∧P) ∨ (X∧Q).
 static_assert(
     std::same_as<
-        decltype(meet_distributivity_law<DC, Join<DA, DB>, DistOrd>())::type,
+        decltype(meet_distributivity_law<DC, Join<DA, DB>, BitSubset>())::type,
         Join<Meet<DC, DA>, Meet<DC, DB>>>,
     "distributivity law: X ∧ (P ∨ Q) → (X∧P) ∨ (X∧Q).");
 // Gated OFF for an order not asserted distributive:
@@ -320,25 +334,25 @@ static_assert(
         decltype(meet_distributivity_law<DC, Join<DA, DB>, NonDistOrd>())::type,
         law_inactive>,
     "…inactive for an order not asserted distributive (gated).");
+// Assembled: c ∧ (a ∨ b) collapses to the DNF (c∧a) ∨ (c∧b); the sub-meets are
+// incomparable so they stay symbolic (a genuine DNF).
+static_assert(
+    std::same_as<reduce_t<Meet<DC, Join<DA, DB>>, KeepOrder, BitSubset>,
+                 Join<Meet<DC, DA>, Meet<DC, DB>>>,
+    "assembled: meet distributes over join to DNF, then re-reduces.");
 
-// Assembled through reduce<>: c ∧ (a ∨ b) collapses to the DNF (c∧a) ∨ (c∧b);
-// the sub-meets are incomparable so they stay symbolic (a genuine DNF).
-static_assert(std::same_as<reduce_t<Meet<DC, Join<DA, DB>>, KeepOrder, DistOrd>,
-                           Join<Meet<DC, DA>, Meet<DC, DB>>>,
-              "assembled: meet distributes over join to DNF, then re-reduces.");
-
-// ── Complement / De Morgan (involution ¬¬A→A, De Morgan) ──────────────────
-static_assert(std::same_as<reduce_t<Not<Not<DA>>, KeepOrder, DistOrd>, DA>,
-              "¬¬a → a (involution).");
-static_assert(std::same_as<reduce_t<Not<Meet<DA, DB>>, KeepOrder, DistOrd>,
+// ── De Morgan negation (involution ¬¬A→A, De Morgan) on the non-chain ─────
+static_assert(std::same_as<reduce_t<Not<Meet<DA, DB>>, KeepOrder, BitSubset>,
                            Join<Not<DA>, Not<DB>>>,
-              "¬(a ∧ b) → ¬a ∨ ¬b (De Morgan, complement pushed to leaves).");
-static_assert(std::same_as<reduce_t<Not<Join<DA, DB>>, KeepOrder, DistOrd>,
+              "¬(a ∧ b) → ¬a ∨ ¬b (De Morgan, negation pushed to leaves).");
+static_assert(std::same_as<reduce_t<Not<Join<DA, DB>>, KeepOrder, BitSubset>,
                            Meet<Not<DA>, Not<DB>>>,
               "¬(a ∨ b) → ¬a ∧ ¬b (De Morgan dual).");
+static_assert(std::same_as<reduce_t<Not<Not<DA>>, KeepOrder, BitSubset>, DA>,
+              "¬¬a → a (involution).");
 static_assert(
     std::same_as<reduce_t<Not<Not<DA>>, KeepOrder, NonDistOrd>, Not<Not<DA>>>,
-    "…involution inactive without an involutive complement (gated).");
+    "…negation laws inactive without an involutive negation (gated).");
 }  // namespace dist_toy
 
 TEST_CASE("lattice_term: induced laws + assembled reducer (#865/#888)",
