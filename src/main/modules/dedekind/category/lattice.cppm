@@ -399,13 +399,61 @@ static_assert(LatticeTop<bool, std::less_equal<bool>>::value == true,
  *  @c order::bit_subset_eq on an integer). */
 
 /** @brief The type-level term AST.  Leaves are lattice-carrier types; the nodes
- *  combine them.  Empty tags: a term is a compile-time tree, not a value. */
+ *  combine them.
+ *
+ *  @section lattice__AST_dual_nature
+ *  Primarily a @b compile-time tree: the reducer names @c Meet<A,B> only in
+ *  @c type_identity / @c same_as contexts, which never instantiate the class,
+ *  so for the reducer these stay empty tags with no completeness or
+ *  default-construction obligation on the operands.
+ *
+ *  Secondarily, a node @b is the combined set VALUE when it is actually
+ *  constructed from operand values (aggregate init @c Meet<A,B>{a,b}): it
+ *  carries the operands and evaluates pointwise through the operands' shared
+ *  @c logic_species (@c ∧ = @c L::AND, @c ∨ = @c L::OR, @c ¬ = @c L::RFL).  The
+ *  @c operator() is @b guarded, so it exists only when the operands are
+ *  callable predicates over one logic --- the type-level tag use is unaffected.
+ *  This is the seam toward "the AST is the set" (#892): as set operators come
+ *  to return these nodes, the predicate-nested @c AndPredicate / @c OrPredicate
+ *  residual and its materialisation bridge dissolve. */
 export template <typename A, typename B>
-struct Meet {};  // A ∧ B
+struct Meet {  // A ∧ B
+  A a;
+  B b;
+  template <typename X>
+    requires requires(const A& l, const B& r, const X& x) {
+      typename A::logic_species;
+      A::logic_species::AND(l(x), r(x));
+    }
+  constexpr auto operator()(const X& x) const {
+    return A::logic_species::AND(a(x), b(x));
+  }
+};
 export template <typename A, typename B>
-struct Join {};  // A ∨ B
+struct Join {  // A ∨ B
+  A a;
+  B b;
+  template <typename X>
+    requires requires(const A& l, const B& r, const X& x) {
+      typename A::logic_species;
+      A::logic_species::OR(l(x), r(x));
+    }
+  constexpr auto operator()(const X& x) const {
+    return A::logic_species::OR(a(x), b(x));
+  }
+};
 export template <typename A>
-struct Not {};  // ¬A (complement)
+struct Not {  // ¬A (complement)
+  A a;
+  template <typename X>
+    requires requires(const A& l, const X& x) {
+      typename A::logic_species;
+      A::logic_species::RFL(l(x));
+    }
+  constexpr auto operator()(const X& x) const {
+    return A::logic_species::RFL(a(x));
+  }
+};
 
 /** @brief Sentinel: a law that does not fire on the given node. */
 export struct law_inactive {};

@@ -154,6 +154,28 @@ static_assert(IsArrow<CharLeaf>, "the predicate leaf is a category arrow.");
 static_assert(std::same_as<carrier_of_t<CharLeaf>, int>,
               "carrier_of reads a predicate leaf's Domain (via IsArrow).");
 
+// ── AST nodes as SET VALUES (#892) ────────────────────────────────────────
+// A node constructed from operand values (aggregate init) IS the combined set:
+// it evaluates pointwise through the operands' shared logic_species (∧=AND,
+// ∨=OR, ¬=RFL).  This is latent for the reducer (which names the nodes only as
+// type tags) and the seam toward "the AST is the set".
+struct GELeaf {  // χ: n ↦ (n ≥ threshold), a classical characteristic arrow
+  using Domain = int;
+  using Codomain = bool;
+  using logic_species = ClassicalLogic;
+  int threshold;
+  constexpr bool operator()(const int& n) const { return n >= threshold; }
+};
+static_assert(Meet<GELeaf, GELeaf>{GELeaf{2}, GELeaf{5}}(7),
+              "(·≥2) ∧ (·≥5) holds at 7 — the Meet node evaluates the meet.");
+static_assert(!Meet<GELeaf, GELeaf>{GELeaf{2}, GELeaf{5}}(3),
+              "(·≥2) ∧ (·≥5) fails at 3 (3 ≥ 5 is false).");
+static_assert(Join<GELeaf, GELeaf>{GELeaf{2}, GELeaf{5}}(3),
+              "(·≥2) ∨ (·≥5) holds at 3 (3 ≥ 2).");
+static_assert(Not<GELeaf>{GELeaf{5}}(3),
+              "¬(·≥5) holds at 3 (3 ≥ 5 is false, so its negation is true).");
+static_assert(!Not<GELeaf>{GELeaf{5}}(7), "¬(·≥5) fails at 7 (7 ≥ 5).");
+
 // ══ Layer 2: the ASSEMBLED reducer on the canonical carriers ══════════════
 
 // bool — the Boolean lattice: optimal reduction (every safe-core law fires).
@@ -428,7 +450,18 @@ static_assert(
 
 TEST_CASE("lattice_term: induced laws + assembled reducer (#865/#888)",
           "[category][lattice][lattice_term]") {
-  // All behaviour is compile-time (the static_asserts above); this runtime
-  // case exists so the witnesses are linked into a test binary.
-  SUCCEED("lattice-term reducer static witnesses compiled.");
+  // Most behaviour is compile-time (the static_asserts above); this runtime
+  // case links the witnesses and exercises the AST-node value semantics at
+  // run time (Codecov cannot see static_asserts).
+  SECTION("AST nodes evaluate as set values (#892)") {
+    using lattice_term_smoke::GELeaf;
+    const Meet<GELeaf, GELeaf> both{GELeaf{2}, GELeaf{5}};    // ·≥2 ∧ ·≥5
+    const Join<GELeaf, GELeaf> either{GELeaf{2}, GELeaf{5}};  // ·≥2 ∨ ·≥5
+    const Not<GELeaf> below5{GELeaf{5}};                      // ¬(·≥5)
+    CHECK(both(7));
+    CHECK_FALSE(both(3));
+    CHECK(either(3));
+    CHECK(below5(3));
+    CHECK_FALSE(below5(7));
+  }
 }
