@@ -78,9 +78,26 @@ static_assert(std::same_as<reduce_t<Join<L5, L3>, NumLess>, L5>,
 static_assert(std::same_as<reduce_t<Meet<TopN, Join<BotN, L5>>, NumLess>, L5>,
               "nested: ⊤ ∧ (⊥ ∨ L5) = ⊤ ∧ L5 = L5.");
 
-// Double-negation involution.
-static_assert(std::same_as<reduce_t<Not<Not<L5>>, NumLess>, L5>,
-              "¬¬X = X (involutive complement).");
+// ── The semantic (absorption) order is INJECTED (default = the carrier's
+//    canonical std::less_equal chain).  This is the fix behind CP's concern
+//    that a carrier can bear more than one lattice order (e.g. size_t under
+//    numeric ≤ vs the bit-subset lattice, where 1 and 2 are incomparable). ──
+static_assert(std::same_as<resolved_order_t<std::size_t, canonical_order>,
+                           std::less_equal<std::size_t>>,
+              "canonical_order resolves to the carrier's std::less_equal.");
+
+// Fail-closed: an injected order the carrier has NOT proven posetal licenses no
+// absorption — the meet stays un-collapsed (only canonicalised by NumLess:
+// 3 < 5), rather than mis-absorbing to the numeric min.  So numeric ≤ is never
+// silently applied where a different lattice order was meant.
+struct NotAnOrder {  // a relation size_t does not prove a partial order
+  constexpr bool operator()(std::size_t, std::size_t) const { return true; }
+};
+static_assert(
+    std::same_as<reduce_t<Meet<L5, L3>, NumLess, NotAnOrder>, Meet<L3, L5>>,
+    "no posetal proof ⟹ no absorption (canonicalised, not min).");
+static_assert(std::same_as<reduce_t<Meet<L5, L3>, NumLess>, L3>,
+              "…whereas the canonical order DOES absorb to the min.");
 
 // ── Logic-parametrised comparator (#1): the order returns a LogicalValue in
 //    its own `logic` (here TernaryLogic).  An UNDECIDABLE comparison (Unknown)

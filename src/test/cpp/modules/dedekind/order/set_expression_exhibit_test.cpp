@@ -76,6 +76,9 @@ TEST_CASE(
 
   SECTION("A & B is the open interval (-5, 5)") {
     constexpr auto meet = SA & SB;
+    // The collapse IS the point: pin the reduced TYPE, not just membership —
+    // else the exhibit would still pass if operator& stopped collapsing.
+    STATIC_CHECK(std::same_as<std::decay_t<decltype(meet)>, MeetForm>);
     STATIC_CHECK(meet(0));
     STATIC_CHECK(meet(4));
     STATIC_CHECK(meet(-4));
@@ -86,6 +89,8 @@ TEST_CASE(
 
   SECTION("A | B is the universe 𝔸 (covers ℤ)") {
     constexpr auto join = SA | SB;
+    STATIC_CHECK(std::same_as<std::decay_t<decltype(join)>,
+                              UniversalSet<int, ClassicalLogic>>);
     STATIC_CHECK(join(0));
     STATIC_CHECK(join(100));
     STATIC_CHECK(join(-100));
@@ -98,10 +103,14 @@ TEST_CASE(
   SECTION(
       "A & ~A collapses to Ø (contradiction), A | ~A to 𝔸 (excluded middle)") {
     constexpr auto contradiction = SA & ~SA;
+    STATIC_CHECK(std::same_as<std::decay_t<decltype(contradiction)>,
+                              Ø<int, ClassicalLogic>>);
     STATIC_CHECK_FALSE(contradiction(0));
     STATIC_CHECK_FALSE(contradiction(4));
     STATIC_CHECK_FALSE(contradiction(5));
     constexpr auto excluded_middle = SA | ~SA;
+    STATIC_CHECK(std::same_as<std::decay_t<decltype(excluded_middle)>,
+                              UniversalSet<int, ClassicalLogic>>);
     STATIC_CHECK(excluded_middle(0));
     STATIC_CHECK(excluded_middle(4));
     STATIC_CHECK(excluded_middle(5));
