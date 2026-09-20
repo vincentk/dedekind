@@ -7,6 +7,28 @@ import dedekind.category;
 
 using namespace dedekind::category;
 
+namespace {
+// Two subobject inclusions into the ambient ℤ, presented as genuinely monic
+// (injective), TOTAL finite embeddings --- no arithmetic, so neither int's
+// signed-overflow UB (2*a) nor size_t's modular non-injectivity (2*a mod 2^N
+// collides) applies.  Each is a two-point window of a subgroup: 2ℤ restricted
+// to {0, 2} and 3ℤ restricted to {0, 3}, indexed by @c bool (false ↦ 0,
+// true ↦ the nonzero representative).  They share exactly the point 0, so the
+// pullback of the two inclusions is that intersection {0} --- the least shared
+// multiple (6ℤ) meeting the window.  Named functors, not lambdas, so the
+// inclusion is nameable.
+struct IncludeTwoZ {
+  using Domain = bool;
+  using Codomain = int;
+  constexpr int operator()(bool a) const { return a ? 2 : 0; }
+};
+struct IncludeThreeZ {
+  using Domain = bool;
+  using Codomain = int;
+  constexpr int operator()(bool b) const { return b ? 3 : 0; }
+};
+}  // namespace
+
 TEST_CASE("Pullback: IsEqualizer Concept", "[category][pullback][equalizer]") {
   SECTION("Subobject of a product satisfies IsEqualizer for a parallel pair") {
     using X = int;
@@ -129,5 +151,36 @@ TEST_CASE("Pullback: TernaryLogic classifier",
   SECTION("χ returns Ternary::False when f(x) != g(y)") {
     CHECK(P.χ({1, 2}) == Ternary::False);
     CHECK(P.χ({-1, 1}) == Ternary::False);
+  }
+}
+
+// #881 (category → sets alignment): the intersection of two subobjects IS the
+// pullback of their inclusions (the fiber product over the ambient).  Here the
+// two-point windows 2ℤ ⊇ {0,2} ↪ ℤ ↩ {0,3} ⊆ 3ℤ pull back to their intersection
+// {0}: χ fires on a pair (a, b) exactly when the images agree, and the images
+// (0/2 and 0/3) agree only at 0 --- the least shared multiple (6ℤ) meeting the
+// window.  This is the categorical anchor for set intersection; the sets-level
+// meet (structured_and, χ_{A∩B} = χ_A ∧ χ_B) is the classifier presentation of
+// this same pullback.  bool domains make the inclusions genuinely monic +
+// total.
+TEST_CASE("Pullback: intersection of subobjects is the pullback of inclusions",
+          "[category][pullback][intersection]") {
+  using Π = std::pair<bool, bool>;
+  auto iota2 = arrow<bool, int>(IncludeTwoZ{});    // {0,2} ↪ ℤ
+  auto iota3 = arrow<bool, int>(IncludeThreeZ{});  // {0,3} ↪ ℤ
+  auto P = pullback<ClassicalLogic, Π>(iota2, iota3);
+
+  STATIC_CHECK(IsPullback<decltype(P), decltype(iota2), decltype(iota3)>);
+
+  SECTION("χ fires exactly on the shared element (0)") {
+    CHECK(P.χ({false, false}));       // 0 = 0 : the shared point
+    CHECK_FALSE(P.χ({true, true}));   // 2 ≠ 3
+    CHECK_FALSE(P.χ({true, false}));  // 2 ≠ 0
+    CHECK_FALSE(P.χ({false, true}));  // 0 ≠ 3
+  }
+  SECTION("the pullback projections recover the two witnesses") {
+    typename decltype(P)::Member m{{false, false}};
+    CHECK(P.π1(m) == false);
+    CHECK(P.π2(m) == false);
   }
 }

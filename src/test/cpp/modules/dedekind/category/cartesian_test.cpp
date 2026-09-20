@@ -9,6 +9,40 @@ import dedekind.category;
 
 using namespace dedekind::category;
 
+namespace {
+// #881: the Op parameter of IsProduct / IsCoproduct is the (co)data-constructor
+// FACTORY, per the Haskell correspondence.  MakePair is the pairing constructor
+// (,) : A×B → pair (the product Op); MakeVariant is the injections Left/Right :
+// int→variant, bool→variant (the coproduct Op).
+struct MakePair {
+  template <typename A, typename B>
+  constexpr std::pair<A, B> operator()(const A& a, const B& b) const {
+    return {a, b};
+  }
+};
+struct MakeVariant {
+  static constexpr std::variant<int, bool> inl(int a) {
+    return std::variant<int, bool>(std::in_place_index<0>, a);
+  }
+  static constexpr std::variant<int, bool> inr(bool b) {
+    return std::variant<int, bool>(std::in_place_index<1>, b);
+  }
+};
+// Equal summands A == B: the injections must stay distinct, which a single
+// overloaded call could not express.  On the canonical std::variant<int,int>
+// the indexed injections (in_place_index 0 / 1) are the two constructors ---
+// exactly the library's ι_1<int,int> / ι_2<int,int>.  A named Op supersedes the
+// (here-ambiguous) base { T(a) } check, so this qualifies.
+struct MakeVariantII {
+  static constexpr std::variant<int, int> inl(int a) {
+    return std::variant<int, int>(std::in_place_index<0>, a);
+  }
+  static constexpr std::variant<int, int> inr(int b) {
+    return std::variant<int, int>(std::in_place_index<1>, b);
+  }
+};
+}  // namespace
+
 TEST_CASE("Discrete: Product and Coproduct (Cartesian Bridge)",
           "[category][discrete][universal]") {
   // Section 2.3.5: Mapping categorical products to C++ primitives
@@ -16,6 +50,11 @@ TEST_CASE("Discrete: Product and Coproduct (Cartesian Bridge)",
   SECTION("Product (A x B) via std::pair") {
     using P = std::pair<int, bool>;
     STATIC_CHECK(IsProduct<P, int, bool>);
+    // #881: the Op-refinement --- a named Op must be the pairing factory
+    // A×B → P.  MakePair qualifies; the coproduct injection MakeVariant (no
+    // binary call) does not.
+    STATIC_CHECK(IsProduct<P, int, bool, MakePair>);
+    STATIC_CHECK_FALSE(IsProduct<P, int, bool, MakeVariant>);
 
     P p{42, true};
     // Updated to use native members per your preference
@@ -25,6 +64,17 @@ TEST_CASE("Discrete: Product and Coproduct (Cartesian Bridge)",
 
   SECTION("Coproduct (A + B) via std::variant") {
     STATIC_CHECK(IsCoproduct<std::variant<int, bool>, int, bool>);
+    // #881: dual Op-refinement --- a named Op exposes the two injection
+    // constructors Op::inl : A → C, Op::inr : B → C (Haskell Left / Right).
+    // MakeVariant qualifies; the product pairing MakePair (no inl / inr) does
+    // not.
+    STATIC_CHECK(IsCoproduct<std::variant<int, bool>, int, bool, MakeVariant>);
+    STATIC_CHECK_FALSE(
+        IsCoproduct<std::variant<int, bool>, int, bool, MakePair>);
+    // Equal summands: the canonical std::variant<int, int> qualifies via the
+    // indexed injections, now that a named Op supersedes the ambiguous base
+    // constructor check.
+    STATIC_CHECK(IsCoproduct<std::variant<int, int>, int, int, MakeVariantII>);
 
     auto choice_1 = ι_1<int, bool>(10);
     STATIC_CHECK(std::same_as<decltype(choice_1), std::variant<int, bool>>);

@@ -463,7 +463,28 @@ concept CombinablePredicate =
  *  (#365).  This is the @c AndPredicate<P,Q> named in @c :category:lattice's
  *  spec.  Carrier-general; it inherits the operands' logic through the bare
  *  @c && (Kleene when both return @c Ternary; @c FIXME(#780) tracks the mixed
- *  bool/Ternary lift the raw operator skips). */
+ *  bool/Ternary lift the raw operator skips).
+ *
+ *  @note (category alignment, #881) @c AndPredicate is the @b classifier
+ *  @f$\chi_A \wedge \chi_B@f$ (the pairing ⟨χ_A,χ_B⟩), not the apex: the
+ *  @b non-collapsing meet @c A @c & @c B, i.e. the @c
+ * Set<T,L,AndPredicate<...>> that @c operator& produces when no @c
+ * structured_and reduction fired, is the
+ *  @b apex, and categorically @b is the @c category::IsPullback of the two
+ *  subobject inclusions @f$A\hookrightarrow U \hookleftarrow B@f$ (the fiber
+ *  product over the ambient), with this @c AndPredicate as its classifying map.
+ *  @b Scope: a @b reduced meet (@c operator& collapsing to @c Ø /
+ *  @c UniversalSet / @c SingletonSet / @c OrderInterval, or a @c structured_and
+ *  result) is @b not built by @c MakeAndPredicate and carries no legs, so it
+ *  does not satisfy the concept as written --- it is the @e collapsed pullback,
+ *  and preserving the source-leg metadata through those reductions is tracked
+ *  by @c FIXME(#834) (converge @c meet /@c &) and
+ *  @c FIXME(#865) (the lattice-law normaliser).  Anchored by a static witness
+ *  in @c category/pullback_test (@f$2\mathbb{Z}\cap
+ * 3\mathbb{Z}=6\mathbb{Z}@f$). Full alignment (pin @c IsPullback on @c
+ * set_intersection itself, and
+ *  @c natural_join as a pullback over shared columns) is the @c category →
+ *  @c sets → @c relational follow-up. */
 export template <CombinablePredicate P, CombinablePredicate Q>
 struct AndPredicate {
   P lhs;
@@ -472,6 +493,37 @@ struct AndPredicate {
   template <typename T>
   constexpr auto operator()(const T& v) const {
     return lhs(v) && rhs(v);
+  }
+};
+
+/** @brief @c π_1 / @c π_2 for @c AndPredicate: the non-collapsed meet's
+ *  classifier @b is the pairing @f$\langle \chi_A, \chi_B \rangle@f$ of the two
+ *  operand classifiers, so it satisfies @c category::IsProduct<AndPredicate<P,
+ *  Q>, P, Q>.  Free overloads (found by ADL), overriding the default
+ *  @c .first / @c .second projection exactly as @c Dual overrides it with
+ *  @c val / @c der.  This reifies the set meet @c A @c & @c B (classified by
+ *  @c AndPredicate) as the classifier-pairing that makes it the pullback of
+ *  @c A ↪ U ↩ B in @c Sub(U): #881, the @c category → @c sets alignment. */
+export template <CombinablePredicate P, CombinablePredicate Q>
+constexpr P π_1(const AndPredicate<P, Q>& a) {
+  return a.lhs;
+}
+export template <CombinablePredicate P, CombinablePredicate Q>
+constexpr Q π_2(const AndPredicate<P, Q>& a) {
+  return a.rhs;
+}
+
+/** @brief The pairing FACTORY for the meet: the constructor-like operation
+ *  @f$\langle -, - \rangle: \chi_A \times \chi_B \mapsto
+ * \mathrm{AndPredicate}@f$
+ *  --- the Haskell pair-constructor @c (,) specialised to @c AndPredicate. This
+ *  is the @c Op that @c category::IsProduct names for a meet: @c Op must build
+ *  the product (signature @c A×B → P), and its @b result type (@c AndPredicate,
+ *  not @c OrPredicate) is what distinguishes the meet from the join.  #881. */
+export struct MakeAndPredicate {
+  template <CombinablePredicate P, CombinablePredicate Q>
+  constexpr AndPredicate<P, Q> operator()(const P& p, const Q& q) const {
+    return {p, q};
   }
 };
 
@@ -488,6 +540,47 @@ struct OrPredicate {
     return lhs(v) || rhs(v);
   }
 };
+
+/** @brief @c π_1 / @c π_2 for @c OrPredicate: the non-collapsed join carries
+ * the
+ *  @b same pairing @f$\langle \chi_A, \chi_B \rangle@f$ as @c AndPredicate, so
+ *  it too satisfies @c category::IsProduct<OrPredicate<P,Q>, P, Q> (free
+ *  overloads, found by ADL).  The pullback / pushout distinction is not in the
+ *  pairing but in the FACTORY that builds it (below): @c AndPredicate is built
+ *  by @c MakeAndPredicate (∧, meet, a pullback), @c OrPredicate by
+ *  @c MakeOrPredicate (∨, join, a pushout).  #881. */
+export template <CombinablePredicate P, CombinablePredicate Q>
+constexpr P π_1(const OrPredicate<P, Q>& a) {
+  return a.lhs;
+}
+export template <CombinablePredicate P, CombinablePredicate Q>
+constexpr Q π_2(const OrPredicate<P, Q>& a) {
+  return a.rhs;
+}
+
+/** @brief The pairing FACTORY for the join, dual to @c MakeAndPredicate:
+ *  @f$\langle -, - \rangle \mapsto \mathrm{OrPredicate}@f$.  The @c Op
+ *  @c category::IsProduct names for a join; its result type (@c OrPredicate)
+ *  distinguishes the join from the meet.  #881. */
+export struct MakeOrPredicate {
+  template <CombinablePredicate P, CombinablePredicate Q>
+  constexpr OrPredicate<P, Q> operator()(const P& p, const Q& q) const {
+    return {p, q};
+  }
+};
+
+/** @brief Which universal construction a pairing feeds is named by the FACTORY
+ *  that builds it, not a separate tag: @c AndPredicate (∧) is built by
+ *  @c MakeAndPredicate (meet / pullback), @c OrPredicate (∨) by
+ *  @c MakeOrPredicate (join / pushout).  Both @b are products ⟨χ_A,χ_B⟩ (both
+ *  carry @c π_1/@c π_2); the factory's result type says which.  This needs no
+ *  @c sets-local concept: it is the @c Op parameter of
+ *  @c category::IsProduct<P,A,B,Op> (defaulting to @c AnyOperation, ignored),
+ *  where @c Op is required to be the constructor-like factory @c A×B → P.
+ *  @c Set gates its pullback projection legs (@c π1/@c π2) on a meet
+ *  (@c IsProduct<Predicate,...,MakeAndPredicate>) and its pushout coprojection
+ *  colegs (@c ι1/@c ι2) on a join (@c ...,MakeOrPredicate), so a meet does not
+ *  spuriously satisfy @c IsPushout nor a join @c IsPullback.  #881. */
 
 template <typename P1, typename P2>
 struct IsComplementPair : std::false_type {};
@@ -750,6 +843,70 @@ class Set {
    *  Subobject<A, χ>::ι and SingletonSet::ι; the inclusion projects
    *  the Member's T-value back to the ambient. */
   constexpr T ι(const Member& m) const { return m.value; }
+
+  /** @brief π1 / π2 --- the pullback projection legs, present exactly when this
+   *  Set is a MEET: its classifier is a pairing (@c Predicate @c ⊨ @c
+   * IsProduct, e.g. @c AndPredicate ⟨χ_A, χ_B⟩).  In the poset @c Sub(T)
+   * product = pullback = meet, so @c A @c & @c B is the pullback of its two
+   * operand subobjects @c A ↪ T ↩ B; a member (a @c T-value lying in both)
+   * re-views as a member of each operand @c Set<T,L,χ_A> / @c Set<T,L,χ_B>.
+   * This is @c ι re-typed into the operands: the classifier's @c π_1 / @c π_2
+   * name the operand predicates, @c ι supplies the value.  Guarded, so ordinary
+   * Sets expose no legs.  #881. */
+  constexpr auto π1(const Member& m) const
+    requires dedekind::category::IsProduct<
+        Predicate,
+        std::remove_cvref_t<decltype(π_1(std::declval<const Predicate&>()))>,
+        std::remove_cvref_t<decltype(π_2(std::declval<const Predicate&>()))>,
+        MakeAndPredicate>
+  {
+    using PA = std::remove_cvref_t<decltype(π_1(predicate_))>;
+    return typename Set<T, L, PA>::Member{m.value};
+  }
+  constexpr auto π2(const Member& m) const
+    requires dedekind::category::IsProduct<
+        Predicate,
+        std::remove_cvref_t<decltype(π_1(std::declval<const Predicate&>()))>,
+        std::remove_cvref_t<decltype(π_2(std::declval<const Predicate&>()))>,
+        MakeAndPredicate>
+  {
+    using PB = std::remove_cvref_t<decltype(π_2(predicate_))>;
+    return typename Set<T, L, PB>::Member{m.value};
+  }
+
+  /** @brief ι1 / ι2 --- the pushout coprojection colegs, dual to π1/π2, present
+   *  exactly when this Set is a JOIN (its classifier is an @c OrPredicate ∨
+   *  pairing).  In the poset @c Sub(T) pushout = coproduct = join, so @c A @c |
+   *  @c B is the pushout of its two operand subobjects (the coproduct over @c
+   *  ∅), and the colegs are the coprojections @c A ↪ A∪B, @c B ↪ A∪B: an
+   * operand member (a @c T-value in @c A resp. @c B, hence in the union)
+   * injects as a member of this join.  Dual of the meet's re-view: same @c ι
+   * value, opposite direction (operand ⟶ apex).  Guarded, so only joins expose
+   * colegs.  #881. */
+  template <typename Pr = Predicate>
+    requires dedekind::category::IsProduct<
+        Pr, std::remove_cvref_t<decltype(π_1(std::declval<const Pr&>()))>,
+        std::remove_cvref_t<decltype(π_2(std::declval<const Pr&>()))>,
+        MakeOrPredicate>
+  constexpr Member
+  ι1(const typename Set<
+      T, L,
+      std::remove_cvref_t<decltype(π_1(std::declval<const Pr&>()))>>::Member& m)
+      const {
+    return Member{m.value};
+  }
+  template <typename Pr = Predicate>
+    requires dedekind::category::IsProduct<
+        Pr, std::remove_cvref_t<decltype(π_1(std::declval<const Pr&>()))>,
+        std::remove_cvref_t<decltype(π_2(std::declval<const Pr&>()))>,
+        MakeOrPredicate>
+  constexpr Member
+  ι2(const typename Set<
+      T, L,
+      std::remove_cvref_t<decltype(π_2(std::declval<const Pr&>()))>>::Member& m)
+      const {
+    return Member{m.value};
+  }
 
   /** @brief χ: T → Ω — arrow-form classifier for the IsSubobject
    *  contract — historically a static self-reference (now retired).
@@ -1045,6 +1202,67 @@ class Set {
   friend class Set;
 
   Predicate predicate_;
+};
+
+/** @brief @c inclusion_arrow(S) --- the inclusion ι_S: S ↪ Domain<S> of a
+ *  subobject as a first-class @c IsArrow (@c Domain = @c S::Member,
+ *  @c Codomain = @c S::Domain, routing through @c S's own @c ι).  A thin
+ *  arrow-wrapper of the @c ι that @c Set / @c Subobject already expose, so it
+ *  can serve as a cospan arrow.  The meet-as-pullback (#881): @c A @c & @c B is
+ *  the pullback of the cospan @c inclusion_arrow(A), @c inclusion_arrow(B).
+ *
+ *  @note FIXME(#887): this is a @b localized reification.  Categorically @c ι
+ * is already an arrow, but every subobject exposes it only as the @c .ι @b
+ * member
+ *  @b function (the @c #681 structural-refactor call shape), so it is not a
+ *  nameable @c IsArrow that @c IsPullback can take as a cospan leg.  #887
+ * tracks promoting the inclusion to a first-class arrow intrinsic to each
+ * subobject carrier (strengthening @c IsSubobject) and retiring this wrapper.
+ */
+export template <typename S>
+  requires dedekind::category::IsSubobject<S, typename S::Domain>
+struct SubobjectInclusion {
+  using Domain = typename S::Member;
+  using Codomain = typename S::Domain;
+  /** @brief Structural monic opt-in: a subobject inclusion @c ι: S ↪ A is a
+   *  monomorphism by definition, so @c IsMonicArrow fires via its tag-discovery
+   *  branch.  A tag (not an @c is_monic_arrow_v partial spec) because a
+   *  variable-template partial spec does not cross the module boundary from
+   *  @c :sets to @c :morphism (cf. the note at @c is_monic_arrow_v). */
+  using is_monic_arrow_tag = void;
+  /** @brief The subobject whose canonical inclusion this arrow reifies; held so
+   *  @c operator() routes through @b its @c ι rather than re-deriving
+   *  @c m.value, staying faithful to any subobject that customises @c ι. */
+  S subobject;
+  constexpr Codomain operator()(const Domain& m) const {
+    return subobject.ι(m);
+  }
+};
+export template <typename S>
+  requires dedekind::category::IsSubobject<
+      std::remove_cvref_t<S>, typename std::remove_cvref_t<S>::Domain>
+constexpr SubobjectInclusion<std::remove_cvref_t<S>> inclusion_arrow(
+    const S& s) {
+  return {s};
+}
+
+/** @brief @c InitialObjectArrow<Init, Target> --- the unique arrow from the
+ *  initial object into any subobject (@c Init @c → @c Target), i.e. the empty
+ *  function / the @c ⊥-of-Sub(U) leg.  Dual to @c inclusion_arrow: where that
+ *  reifies an inclusion into the ambient, this reifies the initiality mediator
+ *  out of @c Ø.  Gated on @c category::IsInitialObject<Init> so only a genuine
+ *  initial object (@c Ø, tagged) can be the source; the body forwards the
+ *  (vacuous) @c Member value and is unreachable in practice (@c Ø has no
+ *  members).  Canonical span leg for a pushout @c A @c ← @c Ø @c → @c B,
+ *  replacing hand-rolled per-instance span structs.  #881. */
+export template <typename Init, typename Target>
+  requires dedekind::category::IsInitialObject<Init> &&
+           dedekind::category::IsSubobject<Init, typename Init::Domain> &&
+           dedekind::category::IsSubobject<Target, typename Target::Domain>
+struct InitialObjectArrow {
+  using Domain = typename Init::Member;
+  using Codomain = typename Target::Member;
+  constexpr Codomain operator()(const Domain& m) const { return {m.value}; }
 };
 
 // Out-of-class χ definition retired (#681 structural refactor).  The

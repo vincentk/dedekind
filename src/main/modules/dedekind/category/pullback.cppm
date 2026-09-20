@@ -75,28 +75,43 @@ namespace dedekind::category {
 
 /**
  * @concept IsPullback
- * @brief The Fiber Product (X ×_Z Y) as a Subobject of the Product (X × Y).
+ * @brief The apex of a pullback square over the cospan f: X ⟶ Z, g: Y ⟶ Z:
+ *        a subobject carrying the two projection legs π₁ ⟶ X, π₂ ⟶ Y.
  *
- * @details A pullback of f: X ⟶ Z and g: Y ⟶ Z is an object P that represents
- * the subset of the product species X × Y where the images in Z coincide.
+ * @details A pullback of f: X ⟶ Z and g: Y ⟶ Z is an object P with legs
+ * π₁: P ⟶ X and π₂: P ⟶ Y making the square commute (f ∘ π₁ = g ∘ π₂),
+ * universal among such cones.  This concept pins the @b structural shape (an
+ * apex subobject with the two legs), @b not the representation of the apex and
+ * @b not the universal property.  Both of those are the engineer's-honesty
+ * obligation, exactly as for @c IsEqualizer / @c IsImageOf / @c IsNNO
+ * (C++ concepts reason about shape, not the ∀ that makes the cone terminal).
  *
- * In this implementation, the pullback is realized as a Subobject:
- * - ι: P ↣ X × Y is the inclusion into the product space.
- * - π₁ = p1 ∘ ι and π₂ = p2 ∘ ι are the projections to the domains.
- * - Commutativity (f ∘ π₁ = g ∘ π₂) is guaranteed by the characteristic
- *   morphism χ used to classify the subobject.
+ * @note Deliberately representation-agnostic (#881).  The @b canonical apex is
+ * the fiber product @c X ×_Z Y, a subobject of the @b product @c X × Y with
+ * @c π₁/@c π₂ the pair projections (this is what the @c pullback factory below
+ * builds).  But the same universal object appears in @b reduced presentations
+ * that are @b not subobjects of the product: the meet @c A ∩ B in @c Sub(U) is
+ * the pullback of the inclusions @c A ↪ U ↩ B with apex a subobject of @c U
+ * (legs the co-restrictions @c A∩B ↪ A, @c A∩B ↪ B); Codd's @c natural_join is
+ * the fiber product over a shared column.  Requiring the apex to @b be the
+ * product (the earlier @c IsProduct<P::Domain, X, Y> clause) matched only the
+ * one canonical realization and rejected these; dropping it lets any apex that
+ * carries the two legs qualify, while the fiber-product apex still satisfies it
+ * (its @c π₁/@c π₂ are the legs).
  *
- * @tparam P The candidate pullback species (a Subobject).
+ * @tparam P The candidate pullback apex (a Subobject carrying π₁, π₂).
  * @tparam F The morphism f: X ⟶ Z.
  * @tparam G The morphism g: Y ⟶ Z.
  */
 export template <typename P, typename F, typename G>
 concept IsPullback = IsArrow<F> && IsArrow<G> && std::same_as<Cod<F>, Cod<G>> &&
                      IsSubobject<P, typename P::Domain> &&
-                     IsProduct<typename P::Domain, Dom<F>, Dom<G>> &&
-                     requires(P p, typename P::Member m) {
-                       // π₁: P ⟶ X and π₂: P ⟶ Y (Projections via the inclusion
-                       // ι)
+                     requires(const P& p, typename P::Member m) {
+                       // The two legs π₁: P ⟶ X and π₂: P ⟶ Y.  Probed through
+                       // const P& --- IsArrow purity requires const invocation.
+                       // Their existence is the shape; commutativity +
+                       // universality are the honesty obligation (cf.
+                       // IsEqualizer).
                        { p.π1(m) } -> std::same_as<Dom<F>>;
                        { p.π2(m) } -> std::same_as<Dom<G>>;
                      };
@@ -221,6 +236,55 @@ concept IsEqualizer =
  */
 export template <typename P, typename F>
 concept IsKernelPair = IsPullback<P, F, F>;
+
+/**
+ * @concept IsPushout
+ * @brief The categorical dual of @c IsPullback: the apex of a pushout square
+ *        over the @b span f: Z ⟶ X, g: Z ⟶ Y, carrying the two coprojection
+ *        colegs ι1: X ⟶ P, ι2: Y ⟶ P.
+ *
+ * @details Every arrow of @c IsPullback is reversed.  The cospan (shared
+ * @c Cod<F> @c = @c Cod<G>) becomes a @b span (shared @c Dom<F> @c = @c
+ * Dom<G>); the projection legs P ⟶ X, P ⟶ Y become @b coprojection colegs X ⟶
+ * P, Y ⟶ P (so the apex exposes @c p.ι1(x), @c p.ι2(y) rather than @c p.π1(m),
+ * @c p.π2(m)).  In the poset @c Sub(U) the pushout = coproduct = @b join (the
+ * least upper bound, taken over the initial object @c ∅), exactly dual to
+ * product = pullback = @b meet (the greatest lower bound, over the terminal
+ * @c U).  So @c A @c | @c B is the pushout of the span @c A ← @c ∅ → @c B, with
+ * colegs @c A ↪ A∪B, @c B ↪ A∪B.
+ *
+ * Structural shape only, exactly as @c IsPullback: commutativity and the
+ * ∀-universal property remain the engineer's-honesty obligation (C++ concepts
+ * reason about shape, not the ∀ that makes the cocone initial).  #881.
+ *
+ * @note @b Scope: this is the @c Sub(U)-specific pushout, whose apex is a
+ * @c IsSubobject just as @c IsPullback's is.  In a general category the strict
+ * dual of a mono (subobject) apex is an @b epi (quotient) apex, so a general
+ * colimit is not a subobject; @c category::IsQuotient (@c topoi.cppm) is the
+ * dual representation earmarked for that general pushout / colimit.  Here the
+ * join @c A @c | @c B genuinely @b is a subobject of the ambient @c U (in the
+ * thin poset @c Sub(U) every object is a subobject of @c U), so the
+ * subobject-apex constraint is exact for this setting, not an over-restriction.
+ *
+ * @tparam P The candidate pushout apex (a @c Sub(U) subobject carrying the
+ *           colegs; the general colimit apex is a @c IsQuotient instead).
+ * @tparam F The span arrow f: Z ⟶ X.
+ * @tparam G The span arrow g: Z ⟶ Y.
+ */
+export template <typename P, typename F, typename G>
+concept IsPushout = IsArrow<F> && IsArrow<G> && std::same_as<Dom<F>, Dom<G>> &&
+                    IsSubobject<P, typename P::Domain> &&
+                    requires(const P& p, const Cod<F>& x, const Cod<G>& y) {
+                      // The two colegs ι1: X ⟶ P and ι2: Y ⟶ P (dual to π1/π2),
+                      // probed through const P& (IsArrow purity requires const
+                      // invocation).  Both land in the apex, so both return P's
+                      // Member (dual to IsPullback's legs returning
+                      // Dom<F>/Dom<G>); a void coleg must not qualify.
+                      // Commutativity + universality remain the honesty
+                      // obligation (cf. IsPullback / IsEqualizer).
+                      { p.ι1(x) } -> std::same_as<typename P::Member>;
+                      { p.ι2(y) } -> std::same_as<typename P::Member>;
+                    };
 
 /**
  * @concept IsParallelPair

@@ -96,6 +96,14 @@ struct Ø final {
   using cardinality_type = Finite;
   using base_set_type = Ø<T, L>;
 
+  /** @brief @c Ø is the @b initial object of the subobject poset @c Sub(U): the
+   *  bottom @c ⊥, classified by the always-false predicate @c χ_Ø @c ≡ @c ⊥,
+   *  with the unique (empty) arrow @c Ø @c → @c S into every subobject.  This
+   *  tag opts @c Ø into @c :limit's @c IsInitialObject (the tag-discovery
+   *  branch @c :lattice::LatticeBottom already uses), so the Sub(U) bound
+   *  participates in the categorical initial-object vocabulary.  #881. */
+  using is_initial_object_tag = void;
+
   /** @section boundaries__Algebraic_Axioms */
   template <typename Op>
   static constexpr bool is_associative_v =
@@ -271,6 +279,14 @@ struct UniversalSet final {
   using base_set_type = UniversalSet<T, L, C>;
   using is_universal_boundary = void;
   using logic_species = L;
+
+  /** @brief @c UniversalSet is the @b terminal object of the subobject poset
+   *  @c Sub(U): the top @c ⊤, classified by the always-true predicate
+   *  @c χ_U @c ≡ @c ⊤, with the unique arrow @c S @c → @c U from every
+   *  subobject.  Dual to @c Ø's initiality tag; opts @c U into @c :limit's
+   *  @c IsTerminalObject (the tag-discovery branch @c :lattice::LatticeTop
+   *  already uses).  #881. */
+  using is_terminal_object_tag = void;
 
   /** @section boundaries__Algebraic_Axioms_2 */
   template <typename Op>

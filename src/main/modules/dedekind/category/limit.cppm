@@ -315,15 +315,47 @@ constexpr auto π_2(const P& p) {
  * @c Rational satisfy it through the default @c .first / @c .second projection,
  * while @c Dual satisfies it through its @c val / @c der overload --- the P-leg
  * is uniform across every product-shaped carrier regardless of storage names.
+ *
+ * @tparam Op The pairing-constructor FACTORY the product commits to, defaulting
+ * to @c AnyOperation (unconstrained; the base case, ignored).  A named @c Op
+ * must build the product: @c Op{}(a,b) is convertible to @c P (the Haskell pair
+ * constructor @c (,) specialised to @c P).  Its @b result type is the
+ * discriminator, so @c sets tells a meet-pairing (@c MakeAndPredicate, pullback
+ * legs) from a join-pairing (@c MakeOrPredicate, pushout colegs) without a
+ * separate concept.  #881.
  */
-template <typename P, typename A, typename B>
-concept IsPairLikeProduct = requires(P p) {
+/**
+ * @brief Base-case sentinel for the operation parameter of @c IsProduct /
+ * @c IsCoproduct.
+ * @details When @c Op is @c AnyOperation (the default) the mediator is
+ * unconstrained, so every product / coproduct qualifies on its projections /
+ * injections alone --- @c std::pair, @c Complex, @c Dual, @c Rational and
+ * @c std::variant are all (co)products "over any operation".  Naming an @c Op
+ * pins the (co)product to a specific @b constructor-like factory: for a product
+ * a pairing factory @c A×B → P; for a coproduct the injections @c A → C,
+ * @c B → C.  This is how algebra keys @c IsMonoid<X,Op> by @c Op --- the
+ * operation is a first-class, defaulted parameter, ignored in the base case.
+ * The factory's @b result type is what distinguishes otherwise-identical shapes
+ * (e.g. @c sets::AndPredicate ∧ vs @c OrPredicate ∨: only the matching factory
+ * builds @c P).
+ */
+export struct AnyOperation {};
+
+export template <typename P, typename A, typename B, typename Op = AnyOperation>
+concept IsProduct = requires(P p) {
+  // The pair-like projection legs, formerly the standalone IsPairLikeProduct
+  // (folded in here as its only caller): π_1 / π_2, canonical over .first /
+  // .second, so std::pair / Complex / Rational (default) and Dual (val / der
+  // overload) all qualify.
   { π_1(p) } -> std::convertible_to<A>;
   { π_2(p) } -> std::convertible_to<B>;
-};
-
-export template <typename P, typename A, typename B>
-concept IsProduct = IsPairLikeProduct<P, A, B>;
+} && (std::same_as<Op, AnyOperation> || requires(const A& a, const B& b) {
+                      // A named Op must be the pairing FACTORY ⟨-,-⟩: A × B → P
+                      // (it builds the product).  Its result type pins which
+                      // product, so it doubles as the meet/join discriminator
+                      // without a separate tag.
+                      { Op{}(a, b) } -> std::convertible_to<P>;
+                    });
 
 static_assert(
     IsProduct<std::pair<int, bool>, int, bool>,

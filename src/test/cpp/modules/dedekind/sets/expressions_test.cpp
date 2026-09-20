@@ -42,6 +42,96 @@ inline constexpr bool
     dedekind::category::is_monic_arrow_v<retract_image_test::DoubleArrow> =
         true;
 
+// #881: the non-collapsed meet's classifier AndPredicate<P,Q> IS the pairing
+// ⟨χ_A, χ_B⟩ of its two operand classifiers, so it satisfies IsProduct
+// (π_1 → χ_A, π_2 → χ_B) via the free overloads in :sets, found by ADL.
+namespace and_predicate_product_test {
+struct IsEven {
+  constexpr bool operator()(int x) const { return x % 2 == 0; }
+};
+struct IsPositive {
+  constexpr bool operator()(int x) const { return x > 0; }
+};
+using Meet = dedekind::sets::AndPredicate<IsEven, IsPositive>;
+static_assert(dedekind::category::IsProduct<Meet, IsEven, IsPositive>,
+              "AndPredicate ⟨χ_A, χ_B⟩ is the categorical product of its two "
+              "operand classifiers (π_1 → χ_A, π_2 → χ_B): #881.");
+static_assert(π_1(Meet{IsEven{}, IsPositive{}})(4),
+              "π_1 recovers χ_A = IsEven: π_1(meet)(4) = true.");
+static_assert(π_2(Meet{IsEven{}, IsPositive{}})(4),
+              "π_2 recovers χ_B = IsPositive: π_2(meet)(4) = true.");
+
+// #881 step 2: OrPredicate carries the same pairing ⟨χ_A, χ_B⟩, so it too is an
+// IsProduct (the join's classifier).  Same substrate as AndPredicate; the
+// pushout vs pullback distinction is the ∨ vs ∧ reduction, not the pairing.
+using Join = dedekind::sets::OrPredicate<IsEven, IsPositive>;
+static_assert(
+    dedekind::category::IsProduct<Join, IsEven, IsPositive>,
+    "OrPredicate ⟨χ_A, χ_B⟩ is also the categorical product of its two "
+    "operand classifiers (π_1 → χ_A, π_2 → χ_B): #881 step 2.");
+
+// #881: the APPLIED meet A & B (the reified intersection of two concrete sets)
+// IS the pullback of those two sets --- the cospan of their inclusions
+// ι_A, ι_B, with the meet's co-restriction legs π1/π2.  In the poset Sub(U),
+// product = pullback = meet.  (The predicate alone, AndPredicate, is only the
+// classifier-pairing above; the pullback is the applied predicate.)
+using A_set =
+    dedekind::sets::Set<int, dedekind::category::ClassicalLogic, IsEven>;
+using B_set =
+    dedekind::sets::Set<int, dedekind::category::ClassicalLogic, IsPositive>;
+constexpr A_set a_set{IsEven{}};
+constexpr B_set b_set{IsPositive{}};
+constexpr auto meet_set = a_set & b_set;
+constexpr auto iota_A = dedekind::sets::inclusion_arrow(a_set);
+constexpr auto iota_B = dedekind::sets::inclusion_arrow(b_set);
+static_assert(dedekind::category::IsMonicArrow<decltype(iota_A)>,
+              "inclusion_arrow reifies the subobject monomorphism ι_A: A ↪ U, "
+              "so it is registered monic (generic mono/image code accepts it). "
+              "#881.");
+static_assert(
+    dedekind::category::IsPullback<decltype(meet_set), decltype(iota_A),
+                                   decltype(iota_B)>,
+    "the applied meet A & B is the pullback of its two concrete sets (the "
+    "cospan ι_A, ι_B); in Sub(U) product = pullback = meet. #881.");
+
+// #881: the Sub(U) bounds ARE the categorical initial / terminal objects (⊥/⊤
+// of the subobject lattice): Ø is classified by the always-false predicate,
+// UniversalSet by the always-true.  Now tagged, they participate in :limit's
+// IsInitialObject / IsTerminalObject (the same tag-discovery branch the lattice
+// bounds use), so the pushout span reuses the canonical initial-object arrow
+// instead of a hand-rolled struct.
+static_assert(dedekind::category::IsInitialObject<
+                  dedekind::sets::Ø<int, dedekind::category::ClassicalLogic>>,
+              "Ø is the initial object (⊥) of Sub(U). #881.");
+static_assert(
+    dedekind::category::IsTerminalObject<dedekind::sets::UniversalSet<int>>,
+    "UniversalSet is the terminal object (⊤) of Sub(U). #881.");
+
+// #881 step 4: dually, the APPLIED join A | B is the PUSHOUT of its two
+// concrete sets --- the coproduct over the initial ∅ (span ∅ ⟶ A, ∅ ⟶ B), with
+// the join's coprojection colegs ι1/ι2 (A ↪ A∪B, B ↪ A∪B).  In Sub(U) pushout =
+// coproduct = join, dual to product = pullback = meet.  The span legs are the
+// canonical InitialObjectArrow (the unique empty function out of Ø), not
+// hand-rolled per-instance structs.
+using Empty = dedekind::sets::Ø<int, dedekind::category::ClassicalLogic>;
+using SpanToA = dedekind::sets::InitialObjectArrow<Empty, A_set>;  // ∅ ⟶ A
+using SpanToB = dedekind::sets::InitialObjectArrow<Empty, B_set>;  // ∅ ⟶ B
+constexpr auto join_set = a_set | b_set;
+static_assert(
+    dedekind::category::IsPushout<decltype(join_set), SpanToA, SpanToB>,
+    "the applied join A | B is the pushout of its two concrete sets (the span "
+    "from ∅, colegs ι1/ι2); in Sub(U) pushout = coproduct = join. #881 step "
+    "4.");
+// Precision: the meet is not a pushout and the join is not a pullback (the
+// ∧/∨ factories gate the legs vs colegs).
+static_assert(
+    !dedekind::category::IsPushout<decltype(meet_set), SpanToA, SpanToB>,
+    "a meet is a pullback, not a pushout (no coprojection colegs).");
+static_assert(!dedekind::category::IsPullback<
+                  decltype(join_set), decltype(iota_A), decltype(iota_B)>,
+              "a join is a pushout, not a pullback (no projection legs).");
+}  // namespace and_predicate_product_test
+
 TEST_CASE("Dedekind MVP: Basic Membership and Symbols", "[sets]") {
   SECTION("Integer Universe Membership") {
     auto x = element<𝔸<int>>;  // A variable representing an element of

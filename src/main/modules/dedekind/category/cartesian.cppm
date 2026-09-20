@@ -53,7 +53,7 @@ import :species;
 namespace dedekind::category {
 
 // NOTE (#637 re-home): the @c IsProduct concept family --- @c
-// IsPairLikeProduct, @c IsProduct, @c IsProductProjection, @c
+// IsProduct, @c IsProductProjection, @c
 // IsProjectedProduct, @c IsArrowFromProduct, plus the @c
 // SpeciesTraits<std::pair<A, B>> / @c SpeciesTraits<std::tuple<Ts...>>
 // specialisations and the @c mediate_product factory --- moved to @c
@@ -261,12 +261,37 @@ auto uncurry(F&& f) {
  * `std::variant<A, B>` satisfies this concept: any value of type A or B can be
  * injected into the variant, and `std::visit` provides the universal
  * elimination morphism.
+ *
+ * @note (#881) The @c Op-refinement (the injection factory @c Op::inl / @c
+ * Op::inr) is landed here for symmetry with @c IsProduct's pairing factory, but
+ * its consumer is @b not the set join (which is product-shaped).  Its home is
+ * the set-expression @b collapse: the reduced-form outcome space
+ * @c {Ø, Singleton, Interval, Set, U} is a coproduct and each collapse rule is
+ * an injection into one summand (see #865, and the boundary injections
+ * @c Set{AlwaysTrue/False} == U/Ø in #685).  The recursive case (fold over an
+ * initial F-algebra, @c ℕ = @c μX.1+X) is #449.  Until one of those lands, the
+ * @c Op parameter is exercised only by its own witnesses.
  */
-export template <typename T, typename A, typename B>
-concept IsCoproduct = requires(A a, B b) {
-  { T(a) } -> std::same_as<T>;
-  { T(b) } -> std::same_as<T>;
-};
+export template <typename T, typename A, typename B, typename Op = AnyOperation>
+concept IsCoproduct =
+    // Default sentinel: the legacy structural check --- T is constructible from
+    // either summand.
+    (std::same_as<Op, AnyOperation> &&
+     requires(A a, B b) {
+       { T(a) } -> std::same_as<T>;
+       { T(b) } -> std::same_as<T>;
+     }) ||
+    // A named Op SUPERSEDES that check (it is ambiguous for equal summands):
+    // dual to IsProduct's single binary pairing factory, a coproduct has TWO
+    // unary injection constructors (the Haskell Left / Right), so a named Op
+    // exposes them as distinct Op::inl : A → C, Op::inr : B → C.  Two named
+    // constructors (not one overloaded call, nor the constructor check) keep
+    // the injections distinguishable even for equal summands A == B, so the
+    // canonical std::variant<int,int> (via indexed ι_1 / ι_2) qualifies.
+    requires(const A& a, const B& b) {
+      { Op::inl(a) } -> std::convertible_to<T>;
+      { Op::inr(b) } -> std::convertible_to<T>;
+    };
 
 /**
  * @brief Left injection ι₁: A → A + B.
