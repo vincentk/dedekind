@@ -51,16 +51,18 @@ export import :equivalence;  // Equivalence relations (Mazur up-to relaxation;
 export import :logic;        // The Subobject Classifier (Truth)
 
 // Level 0.5: The Structural Infrastructure
-export import :thin;       // Thin Categories (preorders; row 1 of the
-                           // lattice Form-chain; #698)
-export import :posetal;    // Partial Orders (thin + antisymmetric)
-export import :filtered;   // Filtered Categories (thin + directed; row 3
-                           // of the lattice Form-chain; #698 Slice 2)
-export import :lattice;    // Lattice Categories (posetal + filtered +
-                           // cofiltered + universality; row 4 of the
-                           // lattice Form-chain; #698 Slice 3)
-export import :small;      // Small Categories
-export import :discrete;   // The Discrete Category (Points as Arrows)
+export import :thin;          // Thin Categories (preorders; row 1 of the
+                              // lattice Form-chain; #698)
+export import :posetal;       // Partial Orders (thin + antisymmetric)
+export import :filtered;      // Filtered Categories (thin + directed; row 3
+                              // of the lattice Form-chain; #698 Slice 2)
+export import :lattice;       // Lattice Categories (posetal + filtered +
+                              // cofiltered + universality; row 4 of the
+                              // lattice Form-chain; #698 Slice 3)
+export import :lattice_term;  // Generic lattice-law term reducer (compile-time
+                              // normal form over <L,∧,∨,⊤,⊥>; #865/#888)
+export import :small;         // Small Categories
+export import :discrete;      // The Discrete Category (Points as Arrows)
 export import :nno;        // The Natural Numbers Object (ETCS Axiom 9 reified;
                            // closes part of #445)
 export import :limit;      // Universal Limits
