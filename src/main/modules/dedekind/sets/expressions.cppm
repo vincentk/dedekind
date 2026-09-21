@@ -1217,11 +1217,9 @@ constexpr auto operator&(const LHS& lhs, const RHS& rhs) {
     return Ø<T, Log>{};
   } else {
     using R = subobject_reduce_t<Meet<LHS, RHS>, Log, SetCombine>;
-    if constexpr (std::same_as<R, Ø<T, Log>>) {
-      // Codomain leg (#894): a domain reduction to the ⊥ boundary factors
+    if constexpr (IsInitialObject<R> || IsTerminalObject<R>) {
+      // Codomain leg (#894): a domain reduction to a boundary (⊥ / ⊤) factors
       // through Σ, so it carries the Boolean codomain whatever the ambient.
-      return codomain_reduce_t<R>{};
-    } else if constexpr (std::same_as<R, UniversalSet<T, Log>>) {
       return codomain_reduce_t<R>{};
     } else if constexpr (std::same_as<R, LHS>) {
       return lhs;
@@ -1258,11 +1256,9 @@ constexpr auto operator|(const LHS& lhs, const RHS& rhs) {
     return UniversalSet<T, Log>{};
   } else {
     using R = subobject_reduce_t<Join<LHS, RHS>, Log, SetCombine>;
-    if constexpr (std::same_as<R, UniversalSet<T, Log>>) {
-      // Codomain leg (#894): a domain reduction to the ⊤ boundary factors
+    if constexpr (IsInitialObject<R> || IsTerminalObject<R>) {
+      // Codomain leg (#894): a domain reduction to a boundary (⊥ / ⊤) factors
       // through Σ, so it carries the Boolean codomain whatever the ambient.
-      return codomain_reduce_t<R>{};
-    } else if constexpr (std::same_as<R, Ø<T, Log>>) {
       return codomain_reduce_t<R>{};
     } else if constexpr (std::same_as<R, LHS>) {
       return lhs;
