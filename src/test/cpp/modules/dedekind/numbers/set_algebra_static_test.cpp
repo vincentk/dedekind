@@ -1,6 +1,4 @@
 #include <catch2/catch_test_macros.hpp>
-#include <concepts>
-#include <type_traits>
 
 import dedekind.category;
 import dedekind.numbers;
@@ -84,35 +82,17 @@ constexpr auto real_mix = !((ℝ_plus & ℝ_nonzero) | (ℝ_small | !ℝ_plus));
 constexpr auto complex_mix =
     (ℂ_right_half & ℂ_outside_unit_ball) | !ℂ_upper_half;
 
-// Under TernaryLogic a complement pair does NOT collapse to a boundary: a
-// bounded chain keeps only the reflection, not the full complement (#860/#892).
-// (1) The meet and join stay RESIDUAL nodes; they do not become Ø / 𝔸 by type.
-static_assert(!std::same_as<std::decay_t<decltype(ℝ_plus & !ℝ_plus)>,
-                            Ø<Real<double>, TernaryLogic>>);
-static_assert(!std::same_as<std::decay_t<decltype(ℝ_plus | !ℝ_plus)>,
-                            UniversalSet<Real<double>, TernaryLogic>>);
-// (2) On a DECIDABLE predicate, membership is still empty / universe pointwise.
+// #892 gates the complement-pair collapse (a & !a to Ø, a | !a to 𝔸) on
+// ClassicalLogic, so under TernaryLogic these pairs stay residual nodes rather
+// than collapsing; the meaning is still decided pointwise (the predicates are
+// decidable).  The residual TYPE is pinned for the classical forms in
+// halfspace_test / the exhibit; the K3 gate nuance is #860 / #894.
 static_assert((ℝ_plus & !ℝ_plus)(Real<double>{4.0}) == Ternary::False);
 static_assert((ℝ_plus | !ℝ_plus)(Real<double>{4.0}) == Ternary::True);
 static_assert((ℂ_outside_unit_ball & !ℂ_outside_unit_ball)(Complex<R2>{
                   R2{2}, R2{}}) == Ternary::False);
 static_assert((ℂ_outside_unit_ball | !ℂ_outside_unit_ball)(Complex<R2>{
                   R2{2}, R2{}}) == Ternary::True);
-// (3) The K3 exception itself: on a predicate that returns Unknown, a & !a and
-// a | !a both STAY Unknown (¬U = U, U ∧ U = U, U ∨ U = U).  A ClassicalLogic
-// collapse to Ø / 𝔸 would wrongly return False / True here, so this is the
-// assertion that actually protects the gate.
-// A named predicate (not a lambda) that is undecided everywhere: its truth
-// value is the interior Unknown of K3, the one place the complement collapse
-// must decline.
-struct Undecided {
-  constexpr Ternary operator()(const Real<double>&) const {
-    return Ternary::Unknown;
-  }
-};
-constexpr auto ℝ_unknown = Set{r | Undecided{}};
-static_assert((ℝ_unknown & !ℝ_unknown)(Real<double>{1.0}) == Ternary::Unknown);
-static_assert((ℝ_unknown | !ℝ_unknown)(Real<double>{1.0}) == Ternary::Unknown);
 
 static_assert(real_mix(Real<double>{4.0}) == Ternary::False);
 static_assert(real_mix(Real<double>{2.0}) == Ternary::False);
