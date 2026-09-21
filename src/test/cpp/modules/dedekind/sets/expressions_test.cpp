@@ -101,6 +101,9 @@ static_assert(
     "π_1 returns the operand BY REFERENCE — no copy of the sub-structure.");
 static_assert(π_1(meet_lift)(4) && !π_1(meet_lift)(3),
               "π_1(meet) recovers A = IsEven and evaluates as that set.");
+static_assert(IsArrowProduct<MeetLift, A_set, B_set>,
+              "the lifted meet is an ARROW product: π_1 / π_2 are genuine "
+              "morphisms MeetSet → A / MeetSet → B (arrow-shaped signatures).");
 
 // #881: the Sub(U) bounds ARE the categorical initial / terminal objects (⊥/⊤
 // of the subobject lattice): Ø is classified by the always-false predicate,
@@ -458,7 +461,7 @@ TEST_CASE("Dedekind Sets: Cartesian product witnesses", "[sets][cartesian]") {
   using ProductDomain = typename decltype(product)::Domain;
   const auto product_set = ambient_set<ProductDomain>(product);
 
-  STATIC_CHECK(IsProduct<ProductDomain, int, int>);
+  STATIC_CHECK(IsArrowProduct<ProductDomain, int, int>);
   STATIC_CHECK(IsSet<decltype(product_set)>);
 
   CHECK(product(ProductDomain{1, 2}));
@@ -474,7 +477,7 @@ TEST_CASE("Dedekind Sets: Ambient cartesian product ergonomics",
 
   using PDomain = typename decltype(p_via_operator)::Domain;
 
-  STATIC_CHECK(IsProduct<PDomain, int, int>);
+  STATIC_CHECK(IsArrowProduct<PDomain, int, int>);
   STATIC_CHECK(p_via_function(PDomain{1, 2}));
   STATIC_CHECK(p_via_operator(PDomain{3, 4}));
 }

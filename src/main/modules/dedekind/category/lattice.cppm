@@ -517,6 +517,12 @@ export struct MakeJoin {
   }
 };
 
+// The projection MORPHISMS Π_1 / Π_2 and the stronger concept
+// IsArrowProduct (an IsProduct whose projections are arrows) live in the
+// :limit partition, next to IsProduct and the free π_1 / π_2 accessors.  The
+// reducer nodes Meet / Join (and their downstream sets lifts) target
+// IsArrowProduct, so their projections are pinned to arrow-shaped signatures.
+
 /** @brief Sentinel: a law that does not fire on the given node. */
 export struct law_inactive {};
 

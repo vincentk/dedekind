@@ -361,6 +361,51 @@ static_assert(
     IsProduct<std::pair<int, bool>, int, bool>,
     "Verification Failed: std::pair<int, bool> must satisfy IsProduct.");
 
+/** @brief π₁ as a first-class MORPHISM: the projection @b arrow @c P → A of a
+ *  product, reifying the textbook projection with an arrow-shaped type
+ * signature
+ *  (@c Domain @c = @c P, @c Codomain @c = the left part).  It forwards to the
+ *  free @c π_1 accessor, so it copies nothing (returns the part by reference
+ * for a reference-returning @c π_1, e.g.\ a reducer node's operand).  Distinct
+ * from
+ *  @c π_1 itself (a plain callable): @c Π_1 is the projection @b as a
+ * morphism, the building block of @c IsArrowProduct. */
+export template <typename P>
+struct Π_1 {
+  using Domain = P;
+  using Codomain = std::remove_cvref_t<decltype(π_1(std::declval<const P&>()))>;
+  constexpr decltype(auto) operator()(const P& p) const { return π_1(p); }
+};
+/** @brief π₂ as a first-class morphism: the right projection arrow @c P → B.
+ *  Dual of @c Π_1 (see there). */
+export template <typename P>
+struct Π_2 {
+  using Domain = P;
+  using Codomain = std::remove_cvref_t<decltype(π_2(std::declval<const P&>()))>;
+  constexpr decltype(auto) operator()(const P& p) const { return π_2(p); }
+};
+
+/** @concept IsArrowProduct
+ *  @brief An @c IsProduct whose projections are genuine MORPHISMS (arrows), not
+ *  merely the structural callables @c IsProduct checks.
+ *
+ *  @details Extends @c IsProduct with @c IsArrow on the reified projections
+ *  @c Π_1<P> / @c Π_2<P> (@c Domain @c = @c P, @c Codomain the
+ * corresponding part).  The shared @c IsProduct is deliberately left @b
+ * structural --- requiring arrow projections across all ~40 product witnesses
+ * (@c std::pair,
+ *  @c Complex, @c Dual, ...) would be a separate 6-module refactor.  The
+ * reducer nodes @c :lattice::Meet / @c Join (and their downstream @c sets lifts
+ *  @c MeetSet / @c JoinSet) target @b this stronger concept, so their
+ * projection type signatures are pinned to arrows with no churn to the wider
+ * ecosystem.
+ *  @see IsProduct, Π_1, Π_2 */
+export template <typename P, typename A, typename B, typename Op = AnyOperation>
+concept IsArrowProduct =
+    IsProduct<P, A, B, Op> && IsArrow<Π_1<P>> && IsArrow<Π_2<P>> &&
+    std::same_as<typename Π_1<P>::Codomain, A> &&
+    std::same_as<typename Π_2<P>::Codomain, B>;
+
 template <typename A, typename B>
 struct SpeciesTraits<std::pair<A, B>> {
   using Domain = std::pair<A, B>;

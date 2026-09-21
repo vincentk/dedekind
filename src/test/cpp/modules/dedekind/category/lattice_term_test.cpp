@@ -198,6 +198,20 @@ static_assert(std::same_as<decltype(MakeJoin{}(GELeaf{2}, GELeaf{5})),
                            Join<GELeaf, GELeaf>>,
               "MakeJoin is the join pairing factory A×B → Join.");
 
+// The projections reified as first-class MORPHISMS: the node targets the
+// stronger IsArrowProduct (IsProduct + arrow-shaped projections Π_1/Π_2),
+// pinning the projection type signatures ahead of the operator switch.  The
+// shared IsProduct stays structural for the ~40 ecosystem witnesses.
+static_assert(IsArrow<Π_1<Meet<GELeaf, GELeaf>>> &&
+                  IsArrow<Π_2<Meet<GELeaf, GELeaf>>>,
+              "π₁ / π₂ of a meet are genuine morphisms Meet → A / Meet → B.");
+static_assert(std::same_as<Cod<Π_1<Meet<GELeaf, GELeaf>>>, GELeaf>,
+              "the π₁ morphism's Codomain is the left operand.");
+static_assert(IsArrowProduct<Meet<GELeaf, GELeaf>, GELeaf, GELeaf, MakeMeet>,
+              "Meet is an ARROW product: its projections are morphisms.");
+static_assert(IsArrowProduct<Join<GELeaf, GELeaf>, GELeaf, GELeaf, MakeJoin>,
+              "Join is an ARROW product (dual).");
+
 // ══ Layer 2: the ASSEMBLED reducer on the canonical carriers ══════════════
 
 // bool — the Boolean lattice: optimal reduction (every safe-core law fires).
