@@ -468,6 +468,31 @@ static_assert(UnknownPredicate<int>{}(0) == Ternary::Unknown &&
 static_assert(!is_decided<TernaryLogic>(UnknownPredicate<int>{}(0)),
               "UnknownPredicate is never in the decided core Σ ⊔ ¬Σ");
 
+/** @brief The codomain leg of a set combine (#894), as one finalizer.
+ *
+ *  @details A combine's domain-reduced result that @b is a boundary
+ *  (@c ⊥ / @c ⊤ = @c Ø / @c 𝔸) factors through the Rosolini dominance @c Σ, so
+ *  it carries the decided Boolean codomain whatever the ambient; every other
+ *  result passes through unchanged.  Each set operator routes its output
+ * through this one finalizer, so the codomain rule lives in @b one place and
+ * applies at the combine's @b output --- never inside a still-reducing term,
+ * which would mix logic species and shred the reducer.  A new set operator
+ * needs only
+ *  @c return @c finalize_combine(...) and inherits the rule.  Hoisted above the
+ *  @c Set class so every set operator (including @c Set::operator^) can reach
+ *  it; the boundary operators in @c :boundaries are upstream of it and inline
+ *  the rule instead.
+ *  FIXME(#894): @c boundary @c → @c Boole is the only rule for now; the general
+ *  form is @c image(χ) @c ⊆ @c Σ folded on the Kleene image lattice. */
+template <typename R>
+constexpr auto finalize_combine(R r) {
+  if constexpr (IsBoundaryObject<R>) {
+    return codomain_reduce_t<R>{};
+  } else {
+    return r;
+  }
+}
+
 /** @brief Predicate-level complement wrapper used for set-collapse detection.
  */
 export template <typename Predicate>
@@ -1021,7 +1046,8 @@ class Set {
   template <typename OtherPredicate>
   constexpr auto operator^(const Set<T, L, OtherPredicate>& other) const {
     if constexpr (IsComplementPair_v<Predicate, OtherPredicate>) {
-      return UniversalSet<T, L>{};
+      // A △ ¬A = 𝔸.  Codomain leg (#894): the universe is decided → Boole.
+      return finalize_combine(UniversalSet<T, L>{});
     } else if constexpr (std::same_as<std::decay_t<decltype(*this & other)>,
                                       Ø<T, L>>) {
       // Compile-time-disjoint optimisation (#469 / PR #523 review):
@@ -1189,28 +1215,6 @@ inline constexpr bool are_complement_sets_v = false;
 template <typename T, typename L, typename PA, typename PB>
 inline constexpr bool are_complement_sets_v<Set<T, L, PA>, Set<T, L, PB>> =
     IsComplementPair_v<PA, PB>;
-
-/** @brief The codomain leg of a set combine (#894), as one finalizer.
- *
- *  @details A combine's domain-reduced result that @b is a boundary
- *  (@c ⊥ / @c ⊤ = @c Ø / @c 𝔸) factors through the Rosolini dominance @c Σ, so
- *  it carries the decided Boolean codomain whatever the ambient; every other
- *  result passes through unchanged.  Each set operator routes its output
- * through this, so the codomain rule lives in @b one place and applies at the
- * combine's
- *  @b output --- never inside a still-reducing term, which would mix logic
- *  species and shred the reducer.  A new set operator needs only
- *  @c return @c finalize_combine(...) and inherits the rule.
- *  FIXME(#894): @c boundary @c → @c Boole is the only rule for now; the general
- *  form is @c image(χ) @c ⊆ @c Σ folded on the Kleene image lattice. */
-template <typename R>
-constexpr auto finalize_combine(R r) {
-  if constexpr (IsBoundaryObject<R>) {
-    return codomain_reduce_t<R>{};
-  } else {
-    return r;
-  }
-}
 
 /** @brief The subobject-lattice meet @c A @c & @c B, over any two @c
  * IsSubobject operands sharing a carrier and logic.  It folds @c Meet<A,B>
@@ -1961,7 +1965,8 @@ export template <typename A, typename LA, typename CA, typename B, typename LB,
 constexpr auto operator*(const UniversalSet<A, LA, CA>&,
                          const UniversalSet<B, LB, CB>&) {
   using CC = typename product_cardinality<CA, CB>::type;
-  return 𝔸<std::pair<A, B>, LA, CC>;
+  // 𝔸 × 𝔸 = 𝔸<pair>.  Codomain leg (#894): the universe is decided → Boole.
+  return finalize_combine(𝔸<std::pair<A, B>, LA, CC>);
 }
 
 /** @brief Infix sugar for cartesian product over sets. */

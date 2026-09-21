@@ -213,7 +213,10 @@ struct Ø final {
   template <typename S>
     requires(IsSet<S>)
   constexpr auto operator*(const S&) const {
-    return Ø<std::pair<T, typename S::Domain>, L>{};
+    // Codomain leg (#894): an empty product is decided (χ ≡ ⊥), so it carries
+    // the Boolean codomain.  Inlined here because this op is upstream of
+    // finalize_combine / codomain_reduce_t; it always yields a boundary.
+    return Ø<std::pair<T, typename S::Domain>, ClassicalLogic>{};
   }
 };
 
@@ -226,7 +229,8 @@ inline const Ø<T, L> Ø<T, L>::χ{};
 export template <typename S, typename T2, typename L>
   requires(IsSet<S> && !std::same_as<S, Ø<typename S::Domain, L>>)
 constexpr auto operator*(const S&, const Ø<T2, L>&) {
-  return Ø<std::pair<typename S::Domain, T2>, L>{};
+  // Codomain leg (#894): an empty product is decided, so Boolean codomain.
+  return Ø<std::pair<typename S::Domain, T2>, ClassicalLogic>{};
 }
 
 /**
@@ -292,7 +296,8 @@ struct UniversalSet final {
       std::is_same_v<Op, std::bit_and<base_set_type>> ||
       std::is_same_v<Op, std::bit_or<base_set_type>>;
 
-  constexpr auto operator!() const { return Ø<T, L>{}; }
+  // !𝔸 = Ø.  Codomain leg (#894): the empty set is decided → Boolean codomain.
+  constexpr auto operator!() const { return Ø<T, ClassicalLogic>{}; }
 
   /**
    * @section boundaries__Lattice_Axiom_2
@@ -441,7 +446,8 @@ using codomain_reduce_t = typename codomain_reduce<R>::type;
 
 template <typename T, typename L>
 constexpr auto Ø<T, L>::operator!() const {
-  return UniversalSet<T, L>{};
+  // !Ø = 𝔸.  Codomain leg (#894): the universe is decided → Boolean codomain.
+  return UniversalSet<T, ClassicalLogic>{};
 }
 
 /** @section boundaries__Engine_Routed_Lattice_Ops
