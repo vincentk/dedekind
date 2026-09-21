@@ -78,23 +78,21 @@ constexpr auto outside_real_band = Set{r | real_outside_band};
 constexpr auto first_quadrant = Set{c | complex_first_quadrant};
 constexpr auto not_third_quadrant = Set{c | complex_not_third_quadrant};
 
-using RDomain = typename decltype(ℝ_plus)::Domain;
-using CDomain = typename decltype(ℂ_right_half)::Domain;
-
-constexpr Ø<RDomain, TernaryLogic> R_empty{};
-constexpr UniversalSet<RDomain, TernaryLogic> R_ambient{};
-constexpr Ø<CDomain, TernaryLogic> C_empty{};
-constexpr UniversalSet<CDomain, TernaryLogic> C_ambient{};
-
 constexpr auto real_mix = !((ℝ_plus & ℝ_nonzero) | (ℝ_small | !ℝ_plus));
 constexpr auto complex_mix =
     (ℂ_right_half & ℂ_outside_unit_ball) | !ℂ_upper_half;
 
-static_assert(R_empty == (ℝ_plus & !ℝ_plus));
-static_assert(R_ambient == (ℝ_plus | !ℝ_plus));
-
-static_assert(C_empty == (ℂ_outside_unit_ball & !ℂ_outside_unit_ball));
-static_assert(C_ambient == (ℂ_outside_unit_ball | !ℂ_outside_unit_ball));
+// #892 gates the complement-pair collapse (a & !a to Ø, a | !a to 𝔸) on
+// ClassicalLogic, so under TernaryLogic these pairs stay residual nodes rather
+// than collapsing; the meaning is still decided pointwise (the predicates are
+// decidable).  The residual TYPE is pinned for the classical forms in
+// halfspace_test / the exhibit; the K3 gate nuance is #860 / #894.
+static_assert((ℝ_plus & !ℝ_plus)(Real<double>{4.0}) == Ternary::False);
+static_assert((ℝ_plus | !ℝ_plus)(Real<double>{4.0}) == Ternary::True);
+static_assert((ℂ_outside_unit_ball & !ℂ_outside_unit_ball)(Complex<R2>{
+                  R2{2}, R2{}}) == Ternary::False);
+static_assert((ℂ_outside_unit_ball | !ℂ_outside_unit_ball)(Complex<R2>{
+                  R2{2}, R2{}}) == Ternary::True);
 
 static_assert(real_mix(Real<double>{4.0}) == Ternary::False);
 static_assert(real_mix(Real<double>{2.0}) == Ternary::False);
