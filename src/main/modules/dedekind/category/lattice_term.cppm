@@ -114,13 +114,13 @@ consteval bool lattice_definitely_less() {
   }
 }
 
-/** @brief The default leaf-combiner: no domain combination — two order-
- *  incomparable leaves stay a @c Meet / @c Join node.  A downstream carrier
- *  (e.g. @c sets) injects a @c Combine that computes the actual domain meet /
- *  join of two compatible leaves (e.g. @c structured_and of two halfspaces →
- *  an @c OrderInterval), returning @c law_inactive when no domain combination
- *  applies.  This is the injected policy that lets the reducer's residual
- *  (incomparable-leaf) case fall through to the carrier's own `∧`/`∨`. */
+/** @brief The default leaf-combiner performs no domain combination.  Two
+ *  order-incomparable leaves stay a @c Meet / @c Join node.  A downstream
+ *  carrier (e.g.\ @c sets) injects a @c Combine that computes the actual domain
+ *  meet / join of two compatible leaves.  @c structured_and of two halfspaces
+ *  yields an @c OrderInterval, say.  @c Combine returns @c law_inactive when no
+ *  domain combination applies.  This injected policy lets the reducer's
+ *  incomparable-leaf residual fall through to the carrier's own `∧`/`∨`. */
 export struct no_leaf_combine {
   template <typename, typename>
   static consteval auto meet() {
@@ -132,11 +132,12 @@ export struct no_leaf_combine {
   }
 };
 
-/** @brief @c reduce_t<Term, Less, Ord, Combine> — the normal form of @c Term.
- *  Leaves reduce to themselves; @c Meet / @c Join recurse into their operands,
- *  then assemble the induced laws (@c :lattice), canonicalising the commutative
- *  residue by @c Less, and finally offering an order-incomparable residual to
- *  the injected leaf-combiner @c Combine (the carrier's domain `∧`/`∨`). */
+/** @brief The normal form of @c Term under @c reduce_t<Term, Less, Ord,
+ *  Combine>.  Leaves reduce to themselves.  @c Meet / @c Join recurse into
+ * their operands, then assemble the induced laws (@c :lattice).  @c Less
+ * canonicalises the commutative residue.  An order-incomparable residual is
+ * offered last to the injected leaf-combiner @c Combine (the carrier's domain
+ * `∧`/`∨`). */
 export template <typename Term, typename Less, typename Ord = canonical_order,
                  typename Combine = no_leaf_combine>
 struct reduce {

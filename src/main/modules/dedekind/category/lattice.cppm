@@ -591,14 +591,16 @@ export template <typename X>
 struct carrier_of<X> {
   using type = std::remove_cvref_t<decltype(X::value)>;
 };
-// A predicate / subobject leaf is an arrow χ:Domain→Ω (`IsArrow`), not a
-// wrapped value; its carrier is the arrow's @b Domain.  Reusing @c IsArrow (the
-// category arrow surface) rather than a bespoke typedef probe ties the reducer
-// into @c category and lets the carrier-based gates (SameCarrier,
-// distributivity, complement, De Morgan negation) apply to set expressions too.
-// (An element leaf carries @c ::value — a point 1→T whose carrier is the
-// value's type — handled by the specialisation above; the two extract the
-// carrier from opposite ends of the arrow, so both spellings coexist.)
+/** @brief Carrier of a predicate / subobject leaf.  Such a leaf is an arrow
+ *  χ:Domain→Ω (@c IsArrow), not a wrapped value, so its carrier is the arrow's
+ *  @b Domain.  Reading it through @c IsArrow (the category arrow surface)
+ * rather than a bespoke typedef probe ties the reducer into @c category.  The
+ *  carrier-based gates (@c SameCarrier, distributivity, complement, De Morgan
+ *  negation) then apply to set expressions too.  An element leaf instead
+ * carries
+ *  @c ::value, a point 1→T whose carrier is the value's type; the @c ::value
+ *  specialisation above handles it.  The two spellings extract the carrier from
+ *  opposite ends of the arrow, so both coexist. */
 export template <typename X>
   requires(IsArrow<X> && !requires { X::value; })
 struct carrier_of<X> {
@@ -707,13 +709,27 @@ consteval auto join_bounded_law() {
   }
 }
 
+/** @brief Is @c X a leaf whose VALUE is determined by its TYPE?  Idempotence
+ *  @c X∧X=X is sound only for such a leaf.  Two same-type instances are then
+ *  necessarily the same set, so collapsing them is correct.  The default is
+ *  @c std::is_empty_v<X>, true for a stateless tag or an NTTP-encoded carrier.
+ *  A carrier with RUNTIME-STATEFUL leaves specialises this to @c false for
+ * them.
+ *  @c sets does so for @c Set<T,L,P> whose predicate @c P carries a runtime
+ *  field (e.g.\ a @c BooleanEqPredicate's @c expected).  The type-based
+ *  idempotence then does not collapse two distinct-but-same-type values. */
+export template <typename X>
+inline constexpr bool idempotent_leaf_v =
+    std::is_empty_v<std::remove_cvref_t<X>>;
+
 /** @brief Law induced by a @b (meet/join-)semilattice: idempotence @c X∧X=X /
- *  @c X∨X=X.  @b Structural — it holds for the lattice operation itself, so it
- *  does not depend on the carrier's order (it fires even for order-incomparable
- *  opaque leaves). */
+ *  @c X∨X=X.  Structural: it holds for the lattice operation itself, so it does
+ *  not depend on the carrier's order.  It fires even for order-incomparable
+ *  opaque leaves.  It is gated on @c idempotent_leaf_v, so a runtime-stateful
+ *  leaf (two same-type-but-distinct instances) is not collapsed. */
 export template <typename RA, typename RB>
 consteval auto idempotent_law() {
-  if constexpr (std::same_as<RA, RB>) {
+  if constexpr (std::same_as<RA, RB> && idempotent_leaf_v<RA>) {
     return std::type_identity<RA>{};
   } else {
     return std::type_identity<law_inactive>{};

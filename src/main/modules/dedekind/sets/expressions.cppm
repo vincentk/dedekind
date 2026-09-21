@@ -95,11 +95,10 @@ using namespace dedekind::category;
 // deferred north-star (#824), not what the code does today.
 export using dedekind::category::ambient_set;
 
-/** @brief Opt-in CRTP base that supplies the ETCS @b set surface --- @c Member
- * /
- *  @c ι (the subobject inclusion), @c Codomain / @c logic_species, the
- *  set-lattice trait members, and @c contains --- to a @b specialized set
- *  expression, keying the classifier χ off the @c Derived's own @c operator().
+/** @brief Opt-in CRTP base that supplies the ETCS @b set surface to a
+ *  @b specialized set expression.  It provides @c Member, @c ι (the subobject
+ *  inclusion), @c Codomain, @c logic_species, and the set-lattice trait
+ *  members.  It keys the classifier χ off the @c Derived's own @c operator().
  *
  *  @details This makes @c IsSet reachable by @b inheritance for expression
  *  structs (@ref Comprehension, and any wrapper that is "morally a set"),
@@ -119,11 +118,6 @@ struct SetExpr {
     DomainT value;
   };
   constexpr DomainT ι(const Member& m) const { return m.value; }
-
-  /** @brief Membership sugar, routed to @c Derived's χ (@c operator()). */
-  constexpr auto contains(const DomainT& x) const {
-    return static_cast<const Derived&>(*this)(x);
-  }
 
   // NOTE: SetExpr is the ETCS @b subobject surface (Domain/Codomain/Member/ι/χ)
   // and NOTHING more.  It deliberately does @b not register algebra laws:
@@ -396,8 +390,8 @@ inline constexpr BoundScout<Ambient> element{};
  *  shape.  Call-site fix: omit @c using @c namespace
  *  @c dedekind::category and spell category names fully qualified, or
  *  reach for the @c sets::in<...> qualified form.  Membership queries
- *  in the @c sets DSL idiomatically route through @c S.contains(x) on
- *  the set value itself, sidestepping the conflict. */
+ *  in the @c sets DSL idiomatically route through the set's own
+ *  @c operator() (@c S(x)), sidestepping the conflict. */
 export template <auto Ambient>
   requires dedekind::category::IsCharacteristic<
                std::remove_cvref_t<decltype(Ambient)>>
@@ -711,9 +705,9 @@ constexpr auto operator|(const Set<SignedCardinality, L, P1>& lhs,
  *  The set meet / join route through the generic lattice-law term reducer
  *  (@c category:lattice_term, #865/#890) under @c subobject_order<L>.  The
  *  reducer owns the structural laws (bounded, idempotence, absorption, ...);
- *  the @b domain-specific collapse of two order-incomparable set leaves ---
- *  the @c structured_and / @c structured_or of two halfspaces into an interval,
- *  say --- is the injected @b leaf-combiner @c SetCombine.  It reaches @c
+ *  the @b domain-specific collapse of two order-incomparable set leaves is the
+ *  injected @b leaf-combiner @c SetCombine.  It reduces the @c structured_and /
+ *  @c structured_or of two halfspaces into an interval, say.  It reaches @c
  * :order via ADL (order is downstream of sets, so ADL is the cycle-free
  * customisation point), exactly as the pre-reducer @c operator& / @c operator|
  * did. */
@@ -804,27 +798,26 @@ export struct SetCombine {
 
 /** @section expressions__Reducer_Set_Lift
  *
- *  The reducer's meet / join (@c category::Meet / Join), lifted into @c IsSet.
- *  The lattice nodes carry the ALGEBRA only (operands, pointwise evaluation,
+ *  The reducer's meet / join (@c category::Meet / Join) lifted into @c IsSet.
+ *  The lattice nodes carry the ALGEBRA only: operands, pointwise evaluation,
  * the
- *  @c IsProduct pairing) and know nothing of ETCS; here in @c sets we add the
- *  Set-specific SUBOBJECT surface --- @c Member / @c ι / the pullback legs ---
- *  so the intersection / union is a genuine @c IsSet.  Because it @b inherits
- * the lattice node, its two operands @b are the underlying sets it carries
- * (Pierce: the meet @c A∩B remembers it is the pullback of @c A ↩ U ↩ B),
- * recovered by the free @c π_1 / @c π_2 @b by const-reference --- @c π_1(meet)
- * is a bona fide
- *  @c IsSet with @b no copying of the sub-structure.  The node composes
- *  recursively: an operand may itself be a @c MeetSet, so a set expression is a
- *  set of sets.
+ *  @c IsProduct pairing.  They know nothing of ETCS.  Here in @c sets we add
+ * the Set-specific SUBOBJECT surface: @c Member, @c ι, the pullback legs.  The
+ *  intersection / union is then a genuine @c IsSet.  The lift @b inherits the
+ *  lattice node, so its two operands @b are the underlying sets it carries.
+ *  (Pierce: the meet @c A∩B remembers it is the pullback of @c A ↩ U ↩ B.)  The
+ *  free @c π_1 / @c π_2 recover the operands @b by const-reference, so
+ *  @c π_1(meet) is a bona fide @c IsSet and no sub-structure is copied.  The
+ *  node composes recursively: an operand may itself be a @c MeetSet, so a set
+ *  expression is a set of sets.
  *
- *  @c ι defaults to the IDENTITY inclusion (HOMOGENEOUS BY DEFAULT): a member
+ *  @c ι defaults to the IDENTITY inclusion, HOMOGENEOUS BY DEFAULT.  A member
  * of
- *  @c A∩B is a @c T-value lying in both operands, so its inclusion into the
- *  ambient @c T is the identity --- exactly as @c Set / @c Ø / @c UniversalSet
+ *  @c A∩B is a @c T-value lying in both operands.  Its inclusion into the
+ *  ambient @c T is the identity, exactly as @c Set / @c Ø / @c UniversalSet
  *  already spell @c ι(m) @c = @c m.value.  A subobject over a DIFFERENT carrier
- *  (a subset composed with a type conversion, e.g.\ @c ℕ ↪ ℤ) specialises @c ι;
- *  that is a downstream / §5-HSP concern, not this generic contract. */
+ *  (a subset composed with a type conversion, e.g.\ @c ℕ ↪ ℤ) specialises @c ι.
+ *  That is a downstream / §5-HSP concern, not this generic contract. */
 export template <typename A, typename B>
 struct MeetSet : Meet<A, B> {  // A ∩ B as a subobject carrying A and B
   using Domain = typename A::Domain;
@@ -835,7 +828,7 @@ struct MeetSet : Meet<A, B> {  // A ∩ B as a subobject carrying A and B
   };
   /** @brief ι: A∩B ↣ T --- the trivial identity inclusion (homogeneous). */
   constexpr Domain ι(const Member& m) const { return m.value; }
-  /** @brief π1 / π2 --- the pullback co-restriction legs A∩B ↪ A, A∩B ↪ B: the
+  /** @brief π1 / π2: the pullback co-restriction legs A∩B ↪ A, A∩B ↪ B.  The
    *  shared T-value re-viewed as a member of each operand (identity on it). */
   constexpr typename A::Member π1(const Member& m) const { return {m.value}; }
   constexpr typename B::Member π2(const Member& m) const { return {m.value}; }
@@ -933,13 +926,8 @@ class Set {
     return dedekind::category::lift_logic<L>(predicate_(v));
   }
 
-  /** @brief Value-level membership query: sugar over @c operator() per
-   *  #551.  @c set.contains(v) reads more directly than @c set(v) at
-   *  paper-listing sites. */
-  constexpr auto contains(const T& v) const { return (*this)(v); }
-
   /** @brief Const reference to the underlying predicate.  Most callers
-   *  should use @c operator() / @ref contains for membership and let
+   *  should use @c operator() for membership and let
    *  the predicate stay encapsulated; this getter exists for scalar-
    *  interop layers (Python facades, IR fixtures) that need to extract
    *  value-level state from a predicate whose fields are part of its
@@ -1083,6 +1071,20 @@ class Set {
   Predicate predicate_;
 };
 
+}  // namespace dedekind::sets
+
+namespace dedekind::category {
+// A Set's value is determined by its type only when its predicate is stateless.
+// A runtime-stateful predicate (a field-carrying P such as BooleanEqPredicate)
+// makes two same-type Sets potentially distinct, so the reducer's type-based
+// idempotence must NOT collapse them; gate it on the predicate's emptiness.
+template <typename T, typename L, typename P>
+inline constexpr bool idempotent_leaf_v<dedekind::sets::Set<T, L, P>> =
+    std::is_empty_v<P>;
+}  // namespace dedekind::category
+
+namespace dedekind::sets {
+
 // ── Free set combinators over IsSet (#892) ──────────────────────────────────
 // The meet / join / complement, retired as Set MEMBERS, as free combinators
 // over the structural IsSet concept.  Set, MeetSet, JoinSet and the boundaries
@@ -1113,12 +1115,12 @@ template <typename T, typename L, typename PA, typename PB>
 inline constexpr bool are_complement_sets_v<Set<T, L, PA>, Set<T, L, PB>> =
     IsComplementPair_v<PA, PB>;
 
-/** @brief @c A @c & @c B --- the subobject-lattice meet, over any two @c IsSet
- *  operands sharing a carrier and logic.  Folds @c Meet<A,B> through the
- * reducer
- *  (@c SetCombine supplies the domain @c structured_and at the incomparable
- *  residual) and materialises: @c Ø / @c 𝔸 / an operand / a structured leaf, or
- *  --- irreducible --- a @c MeetSet carrying both operand sets. */
+/** @brief The subobject-lattice meet @c A @c & @c B, over any two @c
+ * IsSubobject operands sharing a carrier and logic.  It folds @c Meet<A,B>
+ * through the reducer; @c SetCombine supplies the domain @c structured_and at
+ * the incomparable residual.  The normal form materialises to @c Ø, @c 𝔸, an
+ *  operand, or a structured leaf.  An irreducible meet becomes a @c MeetSet
+ *  carrying both operand sets. */
 export template <typename LHS, typename RHS>
   requires IsSubobject<LHS, typename LHS::Domain> &&
            IsSubobject<RHS, typename RHS::Domain> &&
@@ -1129,7 +1131,7 @@ constexpr auto operator&(const LHS& lhs, const RHS& rhs) {
   using T = typename LHS::Domain;
   using Log = typename LHS::logic_species;
   if constexpr (are_complement_sets_v<LHS, RHS>) {
-    // FIXME(#865): a ∧ ¬a = ⊥ — held until the engine's complement law
+    // FIXME(#865): a ∧ ¬a = ⊥. Held until the engine's complement law
     // recognises the predicate-pair encoding as a structural Not.
     return Ø<T, Log>{};
   } else {
@@ -1153,8 +1155,8 @@ constexpr auto operator&(const LHS& lhs, const RHS& rhs) {
   }
 }
 
-/** @brief @c A @c | @c B --- the subobject-lattice join, dual to @c operator&:
- *  the irreducible case is a @c JoinSet carrying both operand sets. */
+/** @brief The subobject-lattice join @c A @c | @c B, dual to @c operator&.  An
+ *  irreducible join becomes a @c JoinSet carrying both operand sets. */
 export template <typename LHS, typename RHS>
   requires IsSubobject<LHS, typename LHS::Domain> &&
            IsSubobject<RHS, typename RHS::Domain> &&
@@ -1186,7 +1188,7 @@ constexpr auto operator|(const LHS& lhs, const RHS& rhs) {
   }
 }
 
-/** @brief @c is_set_node_v --- true for the concrete set-node types @c Set /
+/** @brief @c is_set_node_v is true for the concrete set-node types @c Set /
  *  @c MeetSet / @c JoinSet, the carriers of the free set combinators. */
 template <typename S>
 inline constexpr bool is_set_node_v = false;
@@ -1197,15 +1199,24 @@ inline constexpr bool is_set_node_v<MeetSet<A, B>> = true;
 template <typename A, typename B>
 inline constexpr bool is_set_node_v<JoinSet<A, B>> = true;
 
-/** @brief @c !A --- the set complement.  A forwarding-reference overload whose
- *  constraint @c IsPredicate<P> && @c is_set_node_v SUBSUMES the greedy
- *  @c category::operator!(IsPredicate) --- same @c P&& binding, strictly more
- *  constrained, so it wins the tiebreak for every value category (the category
- *  @c ! would otherwise turn @c !A into a formal @c Morphism A -> Ω).  A plain
- *  @c Set negates its predicate (preserving the @c NegatedPredicate<P> shape
- * the complement-pair collapse keys on); a compound node (@c MeetSet / @c
- * JoinSet) negates the node itself.  A boundary (@c Ø / @c 𝔸) keeps its own
- * non-template member @c operator! (the dual @c !Ø = 𝔸). */
+/** @brief The set complement @c !A.  This forwarding-reference overload
+ *  constrains on @c IsPredicate<P> && @c is_set_node_v.  That constraint
+ *  subsumes the greedy @c category::operator!(IsPredicate): same @c P&&
+ *  binding, strictly more constrained.  So it wins the tiebreak for every value
+ *  category.  The category @c ! would otherwise turn @c !A into a formal
+ *  @c Morphism A → Ω.
+ *
+ *  @details The complement is a certified @b involution.  On a plain @c Set it
+ *  eliminates double negation: @c !!A ≡ A at the type level.  A first
+ *  complement wraps the predicate in @c NegatedPredicate; a second complement
+ *  @b peels that wrapper rather than nesting a second one.  The peel is gated
+ * on
+ *  @c logic_negation_is_involutive_v (the @c :involution witness that ¬¬ = id
+ *  for the logic), so it stays honest for a future non-involutive species.  The
+ *  @c NegatedPredicate shape is exactly what the complement-pair collapse
+ * reads. A compound node (@c MeetSet / @c JoinSet) negates the node itself.  A
+ *  boundary (@c Ø / @c 𝔸) keeps its own non-template member @c operator! (the
+ *  dual @c !Ø = 𝔸). */
 export template <IsPredicate P>
   requires is_set_node_v<std::remove_cvref_t<P>>
 constexpr auto operator!(P&& p) {
@@ -1214,19 +1225,49 @@ constexpr auto operator!(P&& p) {
   using L = typename D::logic_species;
   if constexpr (PlainSet<D>) {
     using Pred = typename set_predicate<D>::type;
-    return Set<T, L, NegatedPredicate<Pred>>{
-        NegatedPredicate<Pred>{p.predicate()}};
+    if constexpr (IsNegatedPredicate_v<Pred> &&
+                  dedekind::category::logic_negation_is_involutive_v<L>) {
+      // Double-negation elimination: !!A ≡ A.  The logic negation is a
+      // certified involution, so peeling the NegatedPredicate wrapper is
+      // sound and makes the set complement structurally self-inverse.
+      using Inner = NegatedPredicateBase_t<Pred>;
+      return Set<T, L, Inner>{p.predicate().base};
+    } else {
+      return Set<T, L, NegatedPredicate<Pred>>{
+          NegatedPredicate<Pred>{p.predicate()}};
+    }
   } else {
     return Set<T, L, NegatedPredicate<D>>{
         NegatedPredicate<D>{std::forward<P>(p)}};
   }
 }
-/** @brief @c ~A --- the complement spelled bitwise, aliasing @c operator!. */
+/** @brief @c ~A is the complement spelled bitwise, aliasing @c operator!. */
 export template <IsPredicate P>
   requires is_set_node_v<std::remove_cvref_t<P>>
 constexpr auto operator~(P&& p) {
   return !std::forward<P>(p);
 }
+
+/** @section expressions__Complement_Is_An_Involution
+ *  The set complement is an involution: @c !!A ≡ A at the @b type level for a
+ *  plain @c Set.  The property @c reduces to the logic negation: @c :involution
+ *  certifies ¬¬ = id on the classifier (@c logic_negation_is_involutive_v), and
+ *  @c operator! gates its double-negation elimination on exactly that witness.
+ *  A single @c ! is @b not a same-type endomap (it flips @c A and @c !A), so
+ *  the fact is witnessed structurally here as a type identity rather than as a
+ *  @c IsInvolution endomap. */
+namespace detail_complement_involution {
+using UnivSizeSet = Set<std::size_t, dedekind::category::ClassicalLogic,
+                        UniversalPredicate<std::size_t>>;
+static_assert(
+    std::same_as<std::remove_cvref_t<decltype(!!std::declval<UnivSizeSet>())>,
+                 UnivSizeSet>,
+    "!!A ≡ A: the set complement is a structural involution");
+static_assert(dedekind::category::logic_negation_is_involutive_v<
+                  dedekind::category::ClassicalLogic>,
+              ":involution certifies the logic negation the complement reduces "
+              "to is an involution");
+}  // namespace detail_complement_involution
 
 /** @brief @c inclusion_arrow(S) --- the inclusion ι_S: S ↪ Domain<S> of a
  *  subobject as a first-class @c IsArrow (@c Domain = @c S::Member,
