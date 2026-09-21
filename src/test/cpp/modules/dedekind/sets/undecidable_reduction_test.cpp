@@ -35,6 +35,12 @@ TEST_CASE("is_decided detects the two-valued core Σ ⊔ ¬Σ of Ω",
   STATIC_CHECK(is_decided<TernaryLogic>(Ternary::True));
   STATIC_CHECK(is_decided<TernaryLogic>(Ternary::False));
   STATIC_CHECK_FALSE(is_decided<TernaryLogic>(Ternary::Unknown));
+
+  // Runtime exercise so is_decided's body is covered (the STATIC_CHECKs above
+  // run at compile time, invisible to Codecov).
+  CHECK(is_decided<ClassicalLogic>(true));
+  CHECK(is_decided<TernaryLogic>(Ternary::False));
+  CHECK_FALSE(is_decided<TernaryLogic>(Ternary::Unknown));
 }
 
 TEST_CASE("UnknownPredicate is the archetypal undecidable predicate",
