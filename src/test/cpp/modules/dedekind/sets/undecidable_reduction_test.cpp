@@ -121,6 +121,12 @@ TEST_CASE("Cross-species combine: Boole ∩ Kleene lifts into the reducer (#894)
   const auto collapsed_rt = A & E;
   CHECK_FALSE(collapsed_rt(3));  // Ø membership is false
 
+  // Order-independence (#894): the boundary-LHS path re-tags to Boole too, so
+  // E & A is decided just as A & E is (the codomain leg is not
+  // order-dependent).
+  const auto collapsed_lhs = E & A;
+  CHECK(HasDecidableMembership<std::decay_t<decltype(collapsed_lhs)>>);
+
   // The cross-species JOIN overload too: ⊤ ∨ Unknown = True.
   const auto joined_rt = A | B;
   CHECK(joined_rt(7) == Ternary::True);

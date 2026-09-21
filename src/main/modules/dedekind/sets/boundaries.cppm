@@ -207,7 +207,7 @@ struct Ø final {
     return s;
   }
 
-  /** @brief Ø × S = Ø<pair<T, S::Domain>, ClassicalLogic> — empty annihilates
+  /** @brief Ø × S = Ø<pair<T, S::Domain>, ClassicalLogic>.  Empty annihilates
    *         the cartesian product on the @b left.  Carrier widens to the pair
    *         type; the codomain is Boolean (an empty product is decided, #894).
    */
@@ -224,7 +224,7 @@ struct Ø final {
 template <typename T, typename L>
 inline const Ø<T, L> Ø<T, L>::χ{};
 
-/** @brief S × Ø = Ø<pair<S::Domain, T2>, ClassicalLogic> — empty annihilates
+/** @brief S × Ø = Ø<pair<S::Domain, T2>, ClassicalLogic>.  Empty annihilates
  * the cartesian product on the @b right.  Symmetric companion to
  *         @c Ø::operator*; carrier widens to the pair type, codomain Boolean
  *         (an empty product is decided, #894). */
@@ -485,15 +485,18 @@ constexpr auto materialize(const S& s) {
 export template <typename T, typename L, typename S>
   requires(IsSet<S> && std::same_as<typename S::Domain, T>)
 constexpr auto operator&(const Ø<T, L>&, const S& s) {
-  return detail_boundary::materialize<subobject_reduce_t<Meet<Ø<T, L>, S>, L>>(
-      s);
+  // Codomain leg (#894): wrap the domain normal form so a boundary result is
+  // re-tagged to Boole, matching the S-LHS path (S & Ø); otherwise the codomain
+  // would be order-dependent.
+  return detail_boundary::materialize<
+      codomain_reduce_t<subobject_reduce_t<Meet<Ø<T, L>, S>, L>>>(s);
 }
 /** @brief @c Ø @c | @c S = @c S (⊥ is the join unit); see @c operator&. */
 export template <typename T, typename L, typename S>
   requires(IsSet<S> && std::same_as<typename S::Domain, T>)
 constexpr auto operator|(const Ø<T, L>&, const S& s) {
-  return detail_boundary::materialize<subobject_reduce_t<Join<Ø<T, L>, S>, L>>(
-      s);
+  return detail_boundary::materialize<
+      codomain_reduce_t<subobject_reduce_t<Join<Ø<T, L>, S>, L>>>(s);
 }
 
 /** @brief @c 𝔸 @c & @c S / @c 𝔸 @c | @c S: @c 𝔸 is the ⊤ of @c Sub(T)
@@ -503,7 +506,8 @@ export template <typename T, typename L, typename C, typename S>
   requires(IsSet<S> && std::same_as<typename S::Domain, T>)
 constexpr auto operator&(const UniversalSet<T, L, C>&, const S& s) {
   return detail_boundary::materialize<
-      subobject_reduce_t<Meet<UniversalSet<T, L, C>, S>, L>>(s);
+      codomain_reduce_t<subobject_reduce_t<Meet<UniversalSet<T, L, C>, S>, L>>>(
+      s);
 }
 /** @brief @c 𝔸 @c | @c S = @c 𝔸 (⊤ is the join annihilator); see @c operator&.
  */
@@ -511,7 +515,8 @@ export template <typename T, typename L, typename C, typename S>
   requires(IsSet<S> && std::same_as<typename S::Domain, T>)
 constexpr auto operator|(const UniversalSet<T, L, C>&, const S& s) {
   return detail_boundary::materialize<
-      subobject_reduce_t<Join<UniversalSet<T, L, C>, S>, L>>(s);
+      codomain_reduce_t<subobject_reduce_t<Join<UniversalSet<T, L, C>, S>, L>>>(
+      s);
 }
 
 // Cardinality metadata drives extensional classification for UniversalSet.

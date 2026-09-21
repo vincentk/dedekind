@@ -432,7 +432,7 @@ struct EmptyPredicate {
  * @f$\top@f$) and @c EmptyPredicate (always @f$\bot@f$).  Its characteristic
  * map is constantly @c Ternary::Unknown, the interior of the chain @f$K_3 =
  * \{\bot < U < \top\}@f$, so membership is @b never decided: for any point @c x
- * its answer sits outside the decided core @f$\Sigma \sqcup \neg\Sigma@f$ that
+ * its answer sits outside the decided core @f$\Sigma = \{\top,\bot\}@f$ that
  * @c is_decided detects.  It is intrinsically three-valued, hence @c
  * TernaryLogic-tagged, and a
  * @c Set carrying it fails @c HasDecidableMembership.
@@ -473,15 +473,16 @@ static_assert(!is_decided<TernaryLogic>(UnknownPredicate<int>{}(0)),
  *  @details A combine's domain-reduced result that @b is a boundary
  *  (@c ⊥ / @c ⊤ = @c Ø / @c 𝔸) factors through the Rosolini dominance @c Σ, so
  *  it carries the decided Boolean codomain whatever the ambient; every other
- *  result passes through unchanged.  Each set operator routes its output
- * through this one finalizer, so the codomain rule lives in @b one place and
- * applies at the combine's @b output --- never inside a still-reducing term,
- * which would mix logic species and shred the reducer.  A new set operator
- * needs only
- *  @c return @c finalize_combine(...) and inherits the rule.  Hoisted above the
- *  @c Set class so every set operator (including @c Set::operator^) can reach
- *  it; the boundary operators in @c :boundaries are upstream of it and inline
- *  the rule instead.
+ *  result passes through unchanged.  The codomain rule applies at @b every
+ *  combine's @b output, never inside a still-reducing term (which would mix
+ *  logic species and shred the reducer): the expressions-level operators route
+ *  through this finalizer, and the upstream boundary operators in @c
+ * :boundaries apply the same rule via @c codomain_reduce_t directly (they are
+ * declared above this finalizer, so they cannot call it).  A new
+ * expressions-level operator needs only @c return @c finalize_combine(...) and
+ * inherits the rule. Hoisted above the @c Set class so every operator here
+ * (including
+ *  @c Set::operator^) can reach it.
  *  FIXME(#894): @c boundary @c → @c Boole is the only rule for now; the general
  *  form is @c image(χ) @c ⊆ @c Σ folded on the Kleene image lattice. */
 template <typename R>
