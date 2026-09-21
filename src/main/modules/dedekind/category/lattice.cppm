@@ -472,20 +472,31 @@ struct Not {  // ¬A (complement)
  *  discriminates the meet-pairing (pullback) from the join-pairing (pushout).
  *  The meet / join distinction is the reduction (@c ∧ vs @c ∨), not the
  * pairing; both nodes store and project both operands. */
+/** @brief π_1: the left-operand accessor of a binary node, returned @b by
+ *  const-reference.  The operand may itself be a whole set expression (a nested
+ *  node), and @c π_1 / @c π_2 are pure projections --- they must not copy the
+ *  sub-structure.  When the operand is a set, @c π_1(node) is then a bona fide
+ *  reference to that @c IsSet (the downstream @c sets lift relies on this).
+ *  Still @c ->convertible_to<A>, so @c IsProduct is satisfied. */
 export template <typename A, typename B>
-constexpr A π_1(const Meet<A, B>& m) {
+constexpr const A& π_1(const Meet<A, B>& m) {
   return m.lhs;
 }
+/** @brief π_2: the right-operand accessor of a meet, by const-reference (see
+ *  @c π_1). */
 export template <typename A, typename B>
-constexpr B π_2(const Meet<A, B>& m) {
+constexpr const B& π_2(const Meet<A, B>& m) {
   return m.rhs;
 }
+/** @brief π_1: the left-operand accessor of a join, by const-reference (see the
+ *  meet overload). */
 export template <typename A, typename B>
-constexpr A π_1(const Join<A, B>& j) {
+constexpr const A& π_1(const Join<A, B>& j) {
   return j.lhs;
 }
+/** @brief π_2: the right-operand accessor of a join, by const-reference. */
 export template <typename A, typename B>
-constexpr B π_2(const Join<A, B>& j) {
+constexpr const B& π_2(const Join<A, B>& j) {
   return j.rhs;
 }
 

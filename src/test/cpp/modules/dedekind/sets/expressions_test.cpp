@@ -1,5 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 #include <optional>
+#include <type_traits>
 
 import dedekind.category;
 import dedekind.sets;
@@ -79,6 +80,27 @@ static_assert(
                                    decltype(iota_B)>,
     "the applied meet A & B is the pullback of its two concrete sets (the "
     "cospan ι_A, ι_B); in Sub(U) product = pullback = meet. #881.");
+
+// #892: the reducer's meet lifted into IsSet.  MeetSet<A,B> INHERITS the
+// lattice meet's algebra and adds the Set-specific subobject surface, so it IS
+// a set that carries its two underlying sets (A, B are IsSet).  π_1 / π_2
+// recover them BY REFERENCE — a bona fide IsSet each, no sub-structure copied
+// (Pierce).  ι is the identity inclusion (homogeneous by default).
+using MeetLift = MeetSet<A_set, B_set>;
+constexpr MeetLift meet_lift{a_set, b_set};
+static_assert(IsSet<MeetLift>,
+              "the lifted meet IS a set (the reducer AST node, promoted).");
+static_assert(IsSubobject<MeetLift, int>,
+              "…and a subobject of the ambient int with the identity ι.");
+static_assert(
+    IsSet<std::remove_cvref_t<decltype(π_1(meet_lift))>>,
+    "π_1(meet) is a bona fide IsSet (the underlying set A), not a bare "
+    "predicate — the node carries references to its factors.");
+static_assert(
+    std::is_reference_v<decltype(π_1(meet_lift))>,
+    "π_1 returns the operand BY REFERENCE — no copy of the sub-structure.");
+static_assert(π_1(meet_lift)(4) && !π_1(meet_lift)(3),
+              "π_1(meet) recovers A = IsEven and evaluates as that set.");
 
 // #881: the Sub(U) bounds ARE the categorical initial / terminal objects (⊥/⊤
 // of the subobject lattice): Ø is classified by the always-false predicate,

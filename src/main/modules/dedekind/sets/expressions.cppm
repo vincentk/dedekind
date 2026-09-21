@@ -921,6 +921,61 @@ export struct SetCombine {
   }
 };
 
+/** @section expressions__Reducer_Set_Lift
+ *
+ *  The reducer's meet / join (@c category::Meet / Join), lifted into @c IsSet.
+ *  The lattice nodes carry the ALGEBRA only (operands, pointwise evaluation,
+ * the
+ *  @c IsProduct pairing) and know nothing of ETCS; here in @c sets we add the
+ *  Set-specific SUBOBJECT surface --- @c Member / @c ι / the pullback legs ---
+ *  so the intersection / union is a genuine @c IsSet.  Because it @b inherits
+ * the lattice node, its two operands @b are the underlying sets it carries
+ * (Pierce: the meet @c A∩B remembers it is the pullback of @c A ↩ U ↩ B),
+ * recovered by the free @c π_1 / @c π_2 @b by const-reference --- @c π_1(meet)
+ * is a bona fide
+ *  @c IsSet with @b no copying of the sub-structure.  The node composes
+ *  recursively: an operand may itself be a @c MeetSet, so a set expression is a
+ *  set of sets.
+ *
+ *  @c ι defaults to the IDENTITY inclusion (HOMOGENEOUS BY DEFAULT): a member
+ * of
+ *  @c A∩B is a @c T-value lying in both operands, so its inclusion into the
+ *  ambient @c T is the identity --- exactly as @c Set / @c Ø / @c UniversalSet
+ *  already spell @c ι(m) @c = @c m.value.  A subobject over a DIFFERENT carrier
+ *  (a subset composed with a type conversion, e.g.\ @c ℕ ↪ ℤ) specialises @c ι;
+ *  that is a downstream / §5-HSP concern, not this generic contract. */
+export template <typename A, typename B>
+struct MeetSet : Meet<A, B> {  // A ∩ B as a subobject carrying A and B
+  using Domain = typename A::Domain;
+  using Codomain = typename A::Codomain;
+  using logic_species = typename A::logic_species;
+  struct Member {
+    Domain value;
+  };
+  /** @brief ι: A∩B ↣ T --- the trivial identity inclusion (homogeneous). */
+  constexpr Domain ι(const Member& m) const { return m.value; }
+  /** @brief π1 / π2 --- the pullback co-restriction legs A∩B ↪ A, A∩B ↪ B: the
+   *  shared T-value re-viewed as a member of each operand (identity on it). */
+  constexpr typename A::Member π1(const Member& m) const { return {m.value}; }
+  constexpr typename B::Member π2(const Member& m) const { return {m.value}; }
+  constexpr MeetSet(A a, B b) : Meet<A, B>{std::move(a), std::move(b)} {}
+};
+
+export template <typename A, typename B>
+struct JoinSet : Join<A, B> {  // A ∪ B as a subobject carrying A and B
+  using Domain = typename A::Domain;
+  using Codomain = typename A::Codomain;
+  using logic_species = typename A::logic_species;
+  struct Member {
+    Domain value;
+  };
+  /** @brief ι: A∪B ↣ T --- the trivial identity inclusion (homogeneous).  The
+   *  pushout coprojection colegs ι1/ι2 are deferred to the applied-set pushout
+   *  witness (dual to the meet's legs). */
+  constexpr Domain ι(const Member& m) const { return m.value; }
+  constexpr JoinSet(A a, B b) : Join<A, B>{std::move(a), std::move(b)} {}
+};
+
 export template <typename T, typename L, typename Predicate>
 class Set {
  public:
