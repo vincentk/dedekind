@@ -700,6 +700,25 @@ constexpr auto operator&(const FiniteBooleanSet<L>& lhs,
   return rhs & lhs;
 }
 
+// @c BooleanEqPredicate is RUNTIME-stateful (same TYPE, different @c expected
+// field), so the generic reducer's TYPE-based idempotent law would wrongly
+// collapse two distinct bool singletons.  Compute the finite meet / join
+// directly (these overloads are more specialised, so they win over the generic
+// IsSet combinators below).  A finite bool set is extensional, so the result is
+// a @c FiniteBooleanSet.
+export template <typename L>
+constexpr auto operator&(const Set<bool, L, BooleanEqPredicate>& a,
+                         const Set<bool, L, BooleanEqPredicate>& b) {
+  return FiniteBooleanSet<L>{L::AND(a(false), b(false)),
+                             L::AND(a(true), b(true))};
+}
+export template <typename L>
+constexpr auto operator|(const Set<bool, L, BooleanEqPredicate>& a,
+                         const Set<bool, L, BooleanEqPredicate>& b) {
+  return FiniteBooleanSet<L>{L::OR(a(false), b(false)),
+                             L::OR(a(true), b(true))};
+}
+
 // ---------------------------------------------------------------------------
 // Cross-carrier meet on the variant pair (existential proof, slice of #362)
 // ---------------------------------------------------------------------------
@@ -969,10 +988,17 @@ struct JoinSet : Join<A, B> {  // A ∪ B as a subobject carrying A and B
   struct Member {
     Domain value;
   };
-  /** @brief ι: A∪B ↣ T --- the trivial identity inclusion (homogeneous).  The
-   *  pushout coprojection colegs ι1/ι2 are deferred to the applied-set pushout
-   *  witness (dual to the meet's legs). */
+  /** @brief ι: A∪B ↣ T --- the trivial identity inclusion (homogeneous). */
   constexpr Domain ι(const Member& m) const { return m.value; }
+  /** @brief ι1 / ι2 --- the pushout coprojection colegs A ↪ A∪B, B ↪ A∪B: an
+   *  operand member (a T-value in A resp. B, hence in the union) injects as a
+   *  member of the join (dual to MeetSet's co-restriction legs). */
+  constexpr Member ι1(const typename A::Member& m) const {
+    return Member{m.value};
+  }
+  constexpr Member ι2(const typename B::Member& m) const {
+    return Member{m.value};
+  }
   constexpr JoinSet(A a, B b) : Join<A, B>{std::move(a), std::move(b)} {}
 };
 
@@ -1127,100 +1153,10 @@ class Set {
 
   constexpr cardinality_type cardinality() const { return {}; }
 
-  constexpr auto operator!() const {
-    return Set<T, L, NegatedPredicate<Predicate>>{
-        NegatedPredicate<Predicate>{predicate_}};
-  }
-
-  // FIXME(#362): operator| / operator& currently require the same carrier
-  // type `T`. Heterogeneous meets (`Set<ℕ> & Set<ℝ>`) should dispatch through
-  // the canonical-embedding lattice (`embed_ℕ_ℝ`, …) so the result tightens
-  // to the sharper of the two carriers; same applies below for operator&.
-  template <typename OtherPredicate>
-  constexpr auto operator|(const Set<T, L, OtherPredicate>& other) const {
-    if constexpr (IsComplementPair_v<Predicate, OtherPredicate>) {
-      // FIXME(#865): route through the engine's join_complement_law once it
-      // recognises the predicate-pair encoding (Set<P> / Set<NegatedPredicate>)
-      // as a structural Not; is_complement_pair_v is a fixed formula today.
-      return UniversalSet<T, L>{};
-    } else if constexpr (std::same_as<T, bool> &&
-                         std::same_as<Predicate, BooleanEqPredicate> &&
-                         std::same_as<OtherPredicate, BooleanEqPredicate>) {
-      return FiniteBooleanSet<L>{
-          L::OR((*this)(false), other(false)),
-          L::OR((*this)(true), other(true)),
-      };
-    } else {
-      // Route the join through the lattice-law term reducer under
-      // subobject_order<L>; SetCombine performs the domain structured_or at the
-      // order-incomparable residual.  Materialise the type-level normal form.
-      using R = subobject_reduce_t<
-          Join<Set<T, L, Predicate>, Set<T, L, OtherPredicate>>, L, SetCombine>;
-      if constexpr (std::same_as<R, UniversalSet<T, L>>) {
-        return UniversalSet<T, L>{};
-      } else if constexpr (std::same_as<R, Ø<T, L>>) {
-        return Ø<T, L>{};
-      } else if constexpr (std::same_as<R, Set<T, L, Predicate>>) {
-        return *this;
-      } else if constexpr (std::same_as<R, Set<T, L, OtherPredicate>>) {
-        return other;
-      } else if constexpr (std::same_as<R, Join<Set<T, L, Predicate>,
-                                                Set<T, L, OtherPredicate>>>) {
-        // No structural collapse: keep the disjunction as a NAMED predicate so
-        // it survives in decltype (#365), rather than an opaque lambda.
-        return Set<T, L, OrPredicate<Predicate, OtherPredicate>>{
-            OrPredicate<Predicate, OtherPredicate>{predicate_,
-                                                   other.predicate_}};
-      } else {
-        // SetCombine collapsed the leaves via structured_or: recompute value.
-        return elevate_join<T, L>(structured_or(predicate_, other.predicate_));
-      }
-    }
-  }
-
-  template <typename OtherPredicate>
-  constexpr auto operator&(const Set<T, L, OtherPredicate>& other) const {
-    if constexpr (IsComplementPair_v<Predicate, OtherPredicate>) {
-      // FIXME(#865): route through the engine's meet_complement_law once it
-      // recognises the predicate-pair encoding as a structural Not.
-      return Ø<T, L>{};
-    } else if constexpr (std::same_as<T, bool> &&
-                         std::same_as<Predicate, BooleanEqPredicate> &&
-                         std::same_as<OtherPredicate, BooleanEqPredicate>) {
-      return FiniteBooleanSet<L>{
-          L::AND((*this)(false), other(false)),
-          L::AND((*this)(true), other(true)),
-      };
-    } else {
-      // Route the meet through the lattice-law term reducer under
-      // subobject_order<L>; SetCombine performs the domain structured_and at
-      // the order-incomparable residual.  Materialise the type-level normal
-      // form. The deeper lattice normalisations (distributivity / absorption /
-      // De Morgan) light up once ∧/∨ are kept as reducer AST rather than nested
-      // in a single predicate leaf — the #892 endpoint.
-      using R = subobject_reduce_t<
-          Meet<Set<T, L, Predicate>, Set<T, L, OtherPredicate>>, L, SetCombine>;
-      if constexpr (std::same_as<R, Ø<T, L>>) {
-        return Ø<T, L>{};
-      } else if constexpr (std::same_as<R, UniversalSet<T, L>>) {
-        return UniversalSet<T, L>{};
-      } else if constexpr (std::same_as<R, Set<T, L, Predicate>>) {
-        return *this;
-      } else if constexpr (std::same_as<R, Set<T, L, OtherPredicate>>) {
-        return other;
-      } else if constexpr (std::same_as<R, Meet<Set<T, L, Predicate>,
-                                                Set<T, L, OtherPredicate>>>) {
-        // No structural collapse: keep the conjunction as a NAMED predicate so
-        // it survives in decltype (#365), rather than an opaque lambda.
-        return Set<T, L, AndPredicate<Predicate, OtherPredicate>>{
-            AndPredicate<Predicate, OtherPredicate>{predicate_,
-                                                    other.predicate_}};
-      } else {
-        // SetCombine collapsed the leaves via structured_and: recompute value.
-        return elevate_meet<T, L>(structured_and(predicate_, other.predicate_));
-      }
-    }
-  }
+  // The meet / join / complement operators are no longer Set MEMBERS: they are
+  // free combinators over IsSet (below the class), so Set, MeetSet, JoinSet and
+  // the boundaries all compose uniformly (combinators over Jlt structural
+  // types, not an inheritance hierarchy).  #892.
 
   /**
    * @brief Symmetric difference @c A @c △ @c B (set-theoretic XOR; #469).
@@ -1348,6 +1284,151 @@ class Set {
 
   Predicate predicate_;
 };
+
+// ── Free set combinators over IsSet (#892) ──────────────────────────────────
+// The meet / join / complement, retired as Set MEMBERS, as free combinators
+// over the structural IsSet concept.  Set, MeetSet, JoinSet and the boundaries
+// therefore compose uniformly, so nested expressions like @c (A|B) & !(A&B)
+// resolve without an inheritance hierarchy.  Each folds the reducer term
+// through
+// @c subobject_reduce_t and materialises the normal form; the irreducible meet
+// / join becomes a @c MeetSet / @c JoinSet carrying its operand sets (#892).
+
+/** @brief The predicate of a PLAIN @c Set<T,L,P> (@c ::type absent otherwise);
+ *  @c PlainSet gates the plain-set-only branches (complement pair, predicate
+ *  negation) so a compound node (@c MeetSet / @c JoinSet) takes the node path.
+ */
+template <typename S>
+struct set_predicate {};
+template <typename T, typename L, typename P>
+struct set_predicate<Set<T, L, P>> {
+  using type = P;
+};
+template <typename S>
+concept PlainSet = requires { typename set_predicate<S>::type; };
+
+/** @brief A complement pair of PLAIN sets: @c Set<T,L,P> and @c Set<T,L,¬P>
+ *  (either order), detected through the predicate-level @c IsComplementPair. */
+template <typename LHS, typename RHS>
+inline constexpr bool are_complement_sets_v = false;
+template <typename T, typename L, typename PA, typename PB>
+inline constexpr bool are_complement_sets_v<Set<T, L, PA>, Set<T, L, PB>> =
+    IsComplementPair_v<PA, PB>;
+
+/** @brief @c A @c & @c B --- the subobject-lattice meet, over any two @c IsSet
+ *  operands sharing a carrier and logic.  Folds @c Meet<A,B> through the
+ * reducer
+ *  (@c SetCombine supplies the domain @c structured_and at the incomparable
+ *  residual) and materialises: @c Ø / @c 𝔸 / an operand / a structured leaf, or
+ *  --- irreducible --- a @c MeetSet carrying both operand sets. */
+export template <typename LHS, typename RHS>
+  requires IsSubobject<LHS, typename LHS::Domain> &&
+           IsSubobject<RHS, typename RHS::Domain> &&
+           std::same_as<typename LHS::Domain, typename RHS::Domain> &&
+           std::same_as<typename LHS::logic_species,
+                        typename RHS::logic_species>
+constexpr auto operator&(const LHS& lhs, const RHS& rhs) {
+  using T = typename LHS::Domain;
+  using Log = typename LHS::logic_species;
+  if constexpr (are_complement_sets_v<LHS, RHS>) {
+    // FIXME(#865): a ∧ ¬a = ⊥ — held until the engine's complement law
+    // recognises the predicate-pair encoding as a structural Not.
+    return Ø<T, Log>{};
+  } else {
+    using R = subobject_reduce_t<Meet<LHS, RHS>, Log, SetCombine>;
+    if constexpr (std::same_as<R, Ø<T, Log>>) {
+      return Ø<T, Log>{};
+    } else if constexpr (std::same_as<R, UniversalSet<T, Log>>) {
+      return UniversalSet<T, Log>{};
+    } else if constexpr (std::same_as<R, LHS>) {
+      return lhs;
+    } else if constexpr (std::same_as<R, RHS>) {
+      return rhs;
+    } else if constexpr (std::same_as<R, Meet<LHS, RHS>>) {
+      // Irreducible: the intersection AS a set, carrying both operands (#892).
+      return MeetSet<LHS, RHS>{lhs, rhs};
+    } else {
+      // SetCombine collapsed two plain-set leaves via structured_and.
+      return elevate_meet<T, Log>(
+          structured_and(lhs.predicate(), rhs.predicate()));
+    }
+  }
+}
+
+/** @brief @c A @c | @c B --- the subobject-lattice join, dual to @c operator&:
+ *  the irreducible case is a @c JoinSet carrying both operand sets. */
+export template <typename LHS, typename RHS>
+  requires IsSubobject<LHS, typename LHS::Domain> &&
+           IsSubobject<RHS, typename RHS::Domain> &&
+           std::same_as<typename LHS::Domain, typename RHS::Domain> &&
+           std::same_as<typename LHS::logic_species,
+                        typename RHS::logic_species>
+constexpr auto operator|(const LHS& lhs, const RHS& rhs) {
+  using T = typename LHS::Domain;
+  using Log = typename LHS::logic_species;
+  if constexpr (are_complement_sets_v<LHS, RHS>) {
+    // FIXME(#865): a ∨ ¬a = ⊤ (dual of the meet complement collapse).
+    return UniversalSet<T, Log>{};
+  } else {
+    using R = subobject_reduce_t<Join<LHS, RHS>, Log, SetCombine>;
+    if constexpr (std::same_as<R, UniversalSet<T, Log>>) {
+      return UniversalSet<T, Log>{};
+    } else if constexpr (std::same_as<R, Ø<T, Log>>) {
+      return Ø<T, Log>{};
+    } else if constexpr (std::same_as<R, LHS>) {
+      return lhs;
+    } else if constexpr (std::same_as<R, RHS>) {
+      return rhs;
+    } else if constexpr (std::same_as<R, Join<LHS, RHS>>) {
+      return JoinSet<LHS, RHS>{lhs, rhs};
+    } else {
+      return elevate_join<T, Log>(
+          structured_or(lhs.predicate(), rhs.predicate()));
+    }
+  }
+}
+
+/** @brief @c is_set_node_v --- true for the concrete set-node types @c Set /
+ *  @c MeetSet / @c JoinSet, the carriers of the free set combinators. */
+template <typename S>
+inline constexpr bool is_set_node_v = false;
+template <typename T, typename L, typename P>
+inline constexpr bool is_set_node_v<Set<T, L, P>> = true;
+template <typename A, typename B>
+inline constexpr bool is_set_node_v<MeetSet<A, B>> = true;
+template <typename A, typename B>
+inline constexpr bool is_set_node_v<JoinSet<A, B>> = true;
+
+/** @brief @c !A --- the set complement.  A forwarding-reference overload whose
+ *  constraint @c IsPredicate<P> && @c is_set_node_v SUBSUMES the greedy
+ *  @c category::operator!(IsPredicate) --- same @c P&& binding, strictly more
+ *  constrained, so it wins the tiebreak for every value category (the category
+ *  @c ! would otherwise turn @c !A into a formal @c Morphism A -> Ω).  A plain
+ *  @c Set negates its predicate (preserving the @c NegatedPredicate<P> shape
+ * the complement-pair collapse keys on); a compound node (@c MeetSet / @c
+ * JoinSet) negates the node itself.  A boundary (@c Ø / @c 𝔸) keeps its own
+ * non-template member @c operator! (the dual @c !Ø = 𝔸). */
+export template <IsPredicate P>
+  requires is_set_node_v<std::remove_cvref_t<P>>
+constexpr auto operator!(P&& p) {
+  using D = std::remove_cvref_t<P>;
+  using T = typename D::Domain;
+  using L = typename D::logic_species;
+  if constexpr (PlainSet<D>) {
+    using Pred = typename set_predicate<D>::type;
+    return Set<T, L, NegatedPredicate<Pred>>{
+        NegatedPredicate<Pred>{p.predicate()}};
+  } else {
+    return Set<T, L, NegatedPredicate<D>>{
+        NegatedPredicate<D>{std::forward<P>(p)}};
+  }
+}
+/** @brief @c ~A --- the complement spelled bitwise, aliasing @c operator!. */
+export template <IsPredicate P>
+  requires is_set_node_v<std::remove_cvref_t<P>>
+constexpr auto operator~(P&& p) {
+  return !std::forward<P>(p);
+}
 
 /** @brief @c inclusion_arrow(S) --- the inclusion ι_S: S ↪ Domain<S> of a
  *  subobject as a first-class @c IsArrow (@c Domain = @c S::Member,
@@ -1674,48 +1755,8 @@ constexpr auto image(F&& f, const Set<T, L, P>& s) {
 // operational retract/cofibre fibre-walk here: the monic @c IsRetractableArrow
 // overload above is the only retract path, and it is a single lookup.
 
-/** @brief Explicit set complement overload to avoid picking category morphism
- * `!`. */
-export template <typename T, typename L, typename Predicate>
-constexpr auto operator!(const Set<T, L, Predicate>& s) {
-  return s.operator!();
-}
-
-/** @brief lvalue set complement overload for stable prefix `!` resolution. */
-export template <typename T, typename L, typename Predicate>
-constexpr auto operator!(Set<T, L, Predicate>& s) {
-  return s.operator!();
-}
-
-/** @brief rvalue set complement overload for composed temporary expressions. */
-export template <typename T, typename L, typename Predicate>
-constexpr auto operator!(Set<T, L, Predicate>&& s) {
-  return s.operator!();
-}
-
-/** @brief Set complement via the bitwise-style operator @c ~ (#469).
- *
- *  @details Alias for @c operator!(Set): @c ~A returns the
- *  predicate-level complement @c Set<T, L, NegatedPredicate<P>>.
- *  Adding the @c ~ spelling completes the bitwise-operator family
- *  @c (|, &, ^, ~) on @c Set<T, L, P>, satisfying
- *  @c dedekind::order::HasLatticeOperators (witness pinned in
- *  @c order:lattice).  The deeper @c U @c ∖ @c A reading where
- *  @c U is a chosen ambient universe is a separate semantic
- *  question (#469's deferred design call, tracked under #524).
- */
-export template <typename T, typename L, typename Predicate>
-constexpr auto operator~(const Set<T, L, Predicate>& s) {
-  return s.operator!();
-}
-export template <typename T, typename L, typename Predicate>
-constexpr auto operator~(Set<T, L, Predicate>& s) {
-  return s.operator!();
-}
-export template <typename T, typename L, typename Predicate>
-constexpr auto operator~(Set<T, L, Predicate>&& s) {
-  return s.operator!();
-}
+// The set complement operators @c ! / @c ~ are free combinators over IsSet,
+// defined right after the Set class (with @c & / @c |); see there.
 
 /** @brief @c Set @c ^ @c Ø @c = @c Set (symmetric difference with empty
  *         is identity; #469).  Symmetric of @c Ø::operator^(S) above —
