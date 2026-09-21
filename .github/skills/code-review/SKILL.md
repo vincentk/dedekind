@@ -35,12 +35,33 @@ Coherence checks:
 - **Reuse over reinvention.** Before new surface lands, a concept-search should
   have happened: does an existing concept/trait already cover this? Flag ad-hoc
   reimplementation of upstream abstractions; prefer extending them.
+- **Ground new structure in the basic categorical constructions, and inherit
+  axioms from upstream.** A downstream type should reuse an upstream construction
+  (product, coproduct, subobject, involution/dagger, pullback, the logic species,
+  ...) rather than re-derive its laws locally. The Juliet posture (structural
+  augmentation) is the mechanism: take the upstream type, add the extra structure
+  the downstream needs *selectively*, then **witness and assert** that structure
+  downstream (a `static_assert` binding the added law to the upstream concept).
+  When a fix restores a law (an involution `f∘f = id`, an idempotent `a∧a = a`, a
+  De Morgan dual), check whether the law already lives upstream and can be
+  *inherited* — a downstream gate consulting an upstream witness — before
+  accepting a local, hand-rolled fix that re-states the law. Flag a downstream
+  quick-fix when the proper fix derives from an upstream construction or axiom.
 - **Prefer concept gates over bespoke plumbing.** Express a constraint as a
   concept — algebraic (`IsGroup`, `IsField`) or categorical (`IsRegularEpi`,
   `IsRegularMono`, `IsImageOf`, the paper's epi–monic factorization) — rather
   than ad-hoc nominal plumbing. Categorical/architectural gates the paper
   prescribes are the *right* kind of gate; flag only hand-rolled structural
   checks that an existing concept already captures.
+- **Template parameters should carry a constraint that establishes intent.** A
+  new `template <typename T>` on an exported function or type wants at least a
+  `requires` clause or a constrained-`auto` / concept-typed parameter that says
+  what `T` is meant to be (`IsSet`, `IsArrow`, `IsPredicate`, ...). The bar is
+  intent, not exhaustive rigor: a single well-chosen concept beats a bare
+  `typename`, and a bare `typename` is fine only when the parameter is genuinely
+  any type (a passthrough wrapper, a perfect-forwarding sink). Flag a new
+  unconstrained parameter whose body clearly assumes a shape; do not demand
+  maximal strictness where a light concept already pins the intent.
 - **Burden of proof is on ADDING a struct/wrapper**, not on removing one. Push
   back on new wrappers that don't earn their place — especially thin "glorified
   for-loop" wrappers around `std::` containers/algorithms.
@@ -55,11 +76,21 @@ Coherence checks:
   brief, partition summary, copyright notice, Wikipedia-leads, and the
   practitioner-quote social-embedding line).
 - **Flag a leading `//` comment on any EXPORTED declaration.** Every `export`ed
-  function / struct / concept / variable — and members (operator(), operator&&,
-  ...) of an exported type — must be documented with a `/** @brief ... */`
+  function / struct / concept / variable, and members (operator(), operator&&,
+  ...) of an exported type, must be documented with a `/** @brief ... */`
   Doxygen block, never a leading `//` block. A `//` is only for in-body notes and
   `// FIXME(#NNN)` breadcrumbs. This is a recurring miss; call it out when the
   diff introduces a `//` header above an exported declaration.
+- **Prefer short, descriptive sentences over long, snaky ones** in all new prose
+  (Doxygen, paper text, PR descriptions). One clause, one point: subject, verb,
+  object. Subject, verb, object. A sentence that chains three or more clauses
+  with dashes, semicolons, and parentheticals should be split into several. This
+  is the general rule; the em-dash below is its most common symptom.
+- **Flag em-dashes** (`—`, U+2014) in new prose. An em-dash almost always joins
+  clauses that should be separate sentences, and it reads as an AI-slop tell. Ask
+  for the sentence to be split; where a genuine break remains, a colon,
+  semicolon, parenthesis, or hyphen serves. Call out any em-dash a diff
+  introduces.
 
 ## Do NOT flag
 
