@@ -13,7 +13,7 @@
 The `dedekind` library translates a coherent slice of mathematical concepts into modern high-efficiency `C++`.
 It defines an embedded domain-specific language (eDSL) for mathematics with the following goals:
 
-- **Efficiency:** default runtime requirements stay modest. This keeps embeddings in higher-level languages and constrained environments open. The software dependencies are the C++ and Python toolchains.
+- **Efficiency:** the default runtime footprint stays modest. This keeps embeddings in higher-level languages and constrained environments open. The build itself uses the standard C++ toolchain with CMake and Ninja (and fetches Catch2 for the tests).
 - **Recognizability:** Code should be intuitive to both mathematicians and `C++` programmers. The DSL mimics set-builder notation and common algebraic idioms.
 - **Versatility:** The DSL expresses both infinite (intensional, symbolic) and finite (extensional, data) structures. It is extensible to allow the specification of further algebraic laws and identities. It allows mixing numerical and symbolic codes.
 - **Abstraction First:** Intensional and symbolic development should stay in abstract mathematical carriers; choose a concrete runtime representation only when explicitly realizing or evaluating numerically.
@@ -31,14 +31,12 @@ static_assert(in_between == Singleton<4>{});
 
 // Decidability is not the contrast: a halfspace on ℕ decides membership
 // by a comparison, so both parents and the result are decidable.  The
-// collapse gains finiteness and extensionality.  The intersection IS the
-// theorem: { x ∈ ℕ | x > 3 } ∩ { x ∈ ℕ | x < 5 } = {4}.
+// collapse gains extensionality.  The intersection IS the theorem:
+// { x ∈ ℕ | x > 3 } ∩ { x ∈ ℕ | x < 5 } = {4}.
 static_assert(HasDecidableMembership<decltype(gt_3)>);
-static_assert(!IsFiniteSet<decltype(gt_3)>);
 static_assert(!IsExtensional<decltype(gt_3)>);
 
 static_assert(HasDecidableMembership<decltype(in_between)>);
-static_assert(IsFiniteSet<decltype(in_between)>);
 static_assert(IsExtensional<decltype(in_between)>);
 ```
 

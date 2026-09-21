@@ -2683,10 +2683,11 @@ is decidable'').
 \end{definition}
 
 Every showcase of Section~\ref{sec:ddk_comprehension} is a motion inside this
-lattice. The empty-halfspace reductions of Showcase~3 go $(\mathrm{Int},\mathrm{K3},\mathrm{Opq}) \mapsto \top$
-in one step (the result is $\varnothing$); the cardinality-1 reduction
-of Showcase~4 does the same. The
-reductions never slide downward. With that in hand:
+lattice.
+Showcases~3 and~4 both act over $\mathbb{N}$, whose membership is already classical, so they start at $(\mathrm{Int},\mathrm{Cl},\mathrm{Opq})$, not at $\bot$.
+Their reductions move up the representation and knowledge axes to $\top$ in one step: the empty-halfspace meet of Showcase~3 lands on $\varnothing$, and the cardinality-1 meet of Showcase~4 lands on a \lstinline{Singleton}.
+The logic axis is already at $\mathrm{Cl}$ and does not move; a genuine $\mathrm{K3} \mapsto \mathrm{Cl}$ (restoring decidability) needs a carrier whose membership is three-valued, not a halfspace on $\mathbb{N}$.
+The reductions never slide downward. With that in hand:
 
 \begin{theorem}[Type-Directed Collapse, totally-ordered 1D case]
 \label{thm:type-directed-collapse-1d}
