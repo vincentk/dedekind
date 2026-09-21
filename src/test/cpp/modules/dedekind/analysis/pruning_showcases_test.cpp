@@ -121,10 +121,10 @@ TEST_CASE("Pruning showcase 3: halfspace contradiction on ℕ collapses to Ø",
 
 TEST_CASE("Pruning showcase 4: cardinality-1 halfspace meet = Singleton<4>",
           "[analysis][pruning][showcase][showcase04]") {
-  // Bare comprehension grammar (the paper-aligned form, no Set{} wrapper).
-  constexpr auto n = element<ℕ>;
-  constexpr auto gt_3 = n | (n > bound<3>);
-  constexpr auto lt_5 = n | (n < bound<5>);
+  // Canonical point-free grammar (the paper form): the canonical set ℕ, the
+  // projection π, and a compile-time bound spelled fix(3_c).  No Set{} wrapper.
+  constexpr auto gt_3 = ℕ | (π > fix(3_c));
+  constexpr auto lt_5 = ℕ | (π < fix(5_c));
 
   // The punch line: the meet COLLAPSES to a named Singleton at compile time.
   constexpr Singleton<4> in_between = gt_3 & lt_5;

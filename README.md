@@ -23,9 +23,8 @@ It defines an embedded domain-specific language (eDSL) for mathematics with the 
 // Cardinality-1 reduction: an intensional meet of two halfspaces over
 // a transfinite carrier collapses to a named extensional Singleton, at
 // compile time, with no lambdas and no predicate erasure.
-constexpr auto n    = element<ℕ>;
-constexpr auto gt_3 = n | (n > bound<3>);          // { n ∈ ℕ | n > 3 }
-constexpr auto lt_5 = n | (n < bound<5>);          // { n ∈ ℕ | n < 5 }
+constexpr auto gt_3 = ℕ | (π > fix(3_c));          // { n ∈ ℕ | n > 3 }
+constexpr auto lt_5 = ℕ | (π < fix(5_c));          // { n ∈ ℕ | n < 5 }
 
 constexpr Singleton<4> in_between = gt_3 & lt_5;   // ≡ {4}, at compile time
 static_assert(in_between == Singleton<4>{});
