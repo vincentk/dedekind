@@ -296,8 +296,7 @@ struct UniversalSet final {
       std::is_same_v<Op, std::bit_and<base_set_type>> ||
       std::is_same_v<Op, std::bit_or<base_set_type>>;
 
-  // !𝔸 = Ø.  Codomain leg (#894): the empty set is decided → Boolean codomain.
-  constexpr auto operator!() const { return Ø<T, ClassicalLogic>{}; }
+  constexpr auto operator!() const { return Ø<T, L>{}; }
 
   /**
    * @section boundaries__Lattice_Axiom_2
@@ -446,8 +445,10 @@ using codomain_reduce_t = typename codomain_reduce<R>::type;
 
 template <typename T, typename L>
 constexpr auto Ø<T, L>::operator!() const {
-  // !Ø = 𝔸.  Codomain leg (#894): the universe is decided → Boolean codomain.
-  return UniversalSet<T, ClassicalLogic>{};
+  // FIXME(#894): a boundary complement should carry the Boolean codomain (!Ø is
+  // the decided universe), but `!Ø` resolves to the greedy free operator! (a
+  // Morphism), not this member, so the codomain leg cannot land here yet.
+  return UniversalSet<T, L>{};
 }
 
 /** @section boundaries__Engine_Routed_Lattice_Ops
