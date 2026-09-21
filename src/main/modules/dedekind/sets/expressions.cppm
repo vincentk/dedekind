@@ -443,20 +443,6 @@ struct NegatedPredicate {
   }
 };
 
-/** @brief The minimal shape a set predicate must have to be combined into an
- *  @c AndPredicate / @c OrPredicate: a copyable @b functor (class) @b or
- *  @b function @b pointer (both are used as set predicates).  A deliberately
- *  @b weak gate --- the carrier @c T is known only at call time, so
- * invocability cannot be checked at definition --- that still rejects obvious
- * misuse such as
- *  @c AndPredicate<int,bool>, a data pointer, or a reference/@c void type.
- *  (@c NegatedPredicate stays unconstrained: it is the pre-existing complement
- *  wrapper, not a combinand introduced here.) */
-template <typename P>
-concept CombinablePredicate =
-    std::copy_constructible<P> &&
-    (std::is_class_v<P> || std::is_function_v<std::remove_pointer_t<P>>);
-
 template <typename P1, typename P2>
 struct IsComplementPair : std::false_type {};
 
@@ -575,18 +561,19 @@ constexpr auto operator&(const FiniteBooleanSet<L>& lhs,
   return rhs & lhs;
 }
 
-// @c BooleanEqPredicate is RUNTIME-stateful (same TYPE, different @c expected
-// field), so the generic reducer's TYPE-based idempotent law would wrongly
-// collapse two distinct bool singletons.  Compute the finite meet / join
-// directly (these overloads are more specialised, so they win over the generic
-// IsSet combinators below).  A finite bool set is extensional, so the result is
-// a @c FiniteBooleanSet.
+/** @brief @c bool @c BooleanEqPredicate meet.  @c BooleanEqPredicate is
+ *  RUNTIME-stateful (same TYPE, different @c expected field), so the generic
+ *  reducer's TYPE-based idempotent law would wrongly collapse two distinct bool
+ *  singletons.  Compute the finite meet directly --- more specialised than the
+ *  generic @c IsSubobject combinators, so it wins; a finite bool set is
+ *  extensional, so the result is a @c FiniteBooleanSet. */
 export template <typename L>
 constexpr auto operator&(const Set<bool, L, BooleanEqPredicate>& a,
                          const Set<bool, L, BooleanEqPredicate>& b) {
   return FiniteBooleanSet<L>{L::AND(a(false), b(false)),
                              L::AND(a(true), b(true))};
 }
+/** @brief @c bool @c BooleanEqPredicate join, dual to the meet above. */
 export template <typename L>
 constexpr auto operator|(const Set<bool, L, BooleanEqPredicate>& a,
                          const Set<bool, L, BooleanEqPredicate>& b) {

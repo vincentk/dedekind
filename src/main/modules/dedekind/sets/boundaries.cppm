@@ -434,14 +434,16 @@ constexpr auto materialize(const S& s) {
 }
 }  // namespace detail_boundary
 
-// Ø & S / Ø | S : the ⊥ of Sub(T) meets / joins any set.  Free operators (the
-// Ø-LHS members were retired); overload resolution pins them by the Ø operand.
+/** @brief @c Ø @c & @c S / @c Ø @c | @c S --- @c Ø is the ⊥ of @c Sub(T)
+ *  meeting / joining any set.  Free operators (the Ø-LHS members were retired);
+ *  overload resolution pins them by the @c Ø operand. */
 export template <typename T, typename L, typename S>
   requires(IsSet<S>)
 constexpr auto operator&(const Ø<T, L>&, const S& s) {
   return detail_boundary::materialize<subobject_reduce_t<Meet<Ø<T, L>, S>, L>>(
       s);
 }
+/** @brief @c Ø @c | @c S = @c S (⊥ is the join unit); see @c operator&. */
 export template <typename T, typename L, typename S>
   requires(IsSet<S>)
 constexpr auto operator|(const Ø<T, L>&, const S& s) {
@@ -449,14 +451,17 @@ constexpr auto operator|(const Ø<T, L>&, const S& s) {
       s);
 }
 
-// 𝔸 & S / 𝔸 | S : the ⊤ of Sub(T) meets / joins any set.  Free operators (the
-// UniversalSet-LHS members were retired); pinned by the UniversalSet operand.
+/** @brief @c 𝔸 @c & @c S / @c 𝔸 @c | @c S --- @c 𝔸 is the ⊤ of @c Sub(T)
+ *  meeting / joining any set.  Free operators (the UniversalSet-LHS members
+ * were retired); pinned by the @c UniversalSet operand. */
 export template <typename T, typename L, typename C, typename S>
   requires(IsSet<S>)
 constexpr auto operator&(const UniversalSet<T, L, C>&, const S& s) {
   return detail_boundary::materialize<
       subobject_reduce_t<Meet<UniversalSet<T, L, C>, S>, L>>(s);
 }
+/** @brief @c 𝔸 @c | @c S = @c 𝔸 (⊤ is the join annihilator); see @c operator&.
+ */
 export template <typename T, typename L, typename C, typename S>
   requires(IsSet<S>)
 constexpr auto operator|(const UniversalSet<T, L, C>&, const S& s) {

@@ -193,8 +193,8 @@ namespace {
 // A ClassicalLogic halfspace over int, abbreviated for the union/meet tests.
 template <int Piv, Direction D, Strictness S>
 using HS = Halfspace<int, Piv, D, S, ClassicalLogic>;
-// A function-pointer predicate (not a class functor): the case
-// CombinablePredicate must still admit, exercised through the Set operators.
+// A function-pointer predicate (not a class functor): a Set over one must still
+// combine through the free set operators (exercised via a MeetSet below).
 constexpr bool is_pos(int x) { return x > 0; }
 }  // namespace
 
