@@ -236,6 +236,19 @@ concept IsInitialObject =
     std::same_as<T, Zero> || requires { typename T::is_initial_object_tag; };
 
 /**
+ * @concept IsBoundaryObject
+ * @brief A type at a lattice / category bound: an initial object (@c ⊥) or a
+ *        terminal object (@c ⊤).
+ * @details The disjunction @c IsInitialObject @c || @c IsTerminalObject, named
+ *          because "did this collapse to a bound?" is a recurring query.  The
+ *          set reducer's codomain leg uses it: a normal form that @b is a
+ *          boundary (@c Ø / @c 𝔸) factors through the Rosolini dominance @c Σ,
+ *          so it is retagged to the decided Boolean codomain (#894).
+ */
+export template <typename T>
+concept IsBoundaryObject = IsInitialObject<T> || IsTerminalObject<T>;
+
+/**
  * @concept IsProjectedInitialObject
  * @brief Initial-object witness through an optional projection policy.
  *
