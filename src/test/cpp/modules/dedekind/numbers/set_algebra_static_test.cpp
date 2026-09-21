@@ -1,4 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
+#include <concepts>
+#include <type_traits>
 
 import dedekind.category;
 import dedekind.numbers;
@@ -83,19 +85,27 @@ constexpr auto complex_mix =
     (ℂ_right_half & ℂ_outside_unit_ball) | !ℂ_upper_half;
 
 // Under TernaryLogic a complement pair does NOT collapse to a boundary: a
-// bounded chain keeps only the reflection, not the full complement (#860/#892),
-// so the meet and join stay residual MeetSet / JoinSet nodes.  Membership is
-// still decided pointwise; these predicates are decidable, so the meet is empty
-// and the join is the universe extensionally.
+// bounded chain keeps only the reflection, not the full complement (#860/#892).
+// (1) The meet and join stay RESIDUAL nodes; they do not become Ø / 𝔸 by type.
+static_assert(!std::same_as<std::decay_t<decltype(ℝ_plus & !ℝ_plus)>,
+                            Ø<Real<double>, TernaryLogic>>);
+static_assert(!std::same_as<std::decay_t<decltype(ℝ_plus | !ℝ_plus)>,
+                            UniversalSet<Real<double>, TernaryLogic>>);
+// (2) On a DECIDABLE predicate, membership is still empty / universe pointwise.
 static_assert((ℝ_plus & !ℝ_plus)(Real<double>{4.0}) == Ternary::False);
-static_assert((ℝ_plus & !ℝ_plus)(Real<double>{-1.0}) == Ternary::False);
 static_assert((ℝ_plus | !ℝ_plus)(Real<double>{4.0}) == Ternary::True);
-static_assert((ℝ_plus | !ℝ_plus)(Real<double>{-1.0}) == Ternary::True);
-
 static_assert((ℂ_outside_unit_ball & !ℂ_outside_unit_ball)(Complex<R2>{
                   R2{2}, R2{}}) == Ternary::False);
 static_assert((ℂ_outside_unit_ball | !ℂ_outside_unit_ball)(Complex<R2>{
                   R2{2}, R2{}}) == Ternary::True);
+// (3) The K3 exception itself: on a predicate that returns Unknown, a & !a and
+// a | !a both STAY Unknown (¬U = U, U ∧ U = U, U ∨ U = U).  A ClassicalLogic
+// collapse to Ø / 𝔸 would wrongly return False / True here, so this is the
+// assertion that actually protects the gate.
+constexpr auto ℝ_unknown =
+    Set{r | [](const Real<double>&) { return Ternary::Unknown; }};
+static_assert((ℝ_unknown & !ℝ_unknown)(Real<double>{1.0}) == Ternary::Unknown);
+static_assert((ℝ_unknown | !ℝ_unknown)(Real<double>{1.0}) == Ternary::Unknown);
 
 static_assert(real_mix(Real<double>{4.0}) == Ternary::False);
 static_assert(real_mix(Real<double>{2.0}) == Ternary::False);

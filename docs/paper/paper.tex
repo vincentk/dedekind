@@ -777,7 +777,7 @@ By comprehension, \cppinline{ℕ | π > fix(5_c)} denotes $\{x \in \mathbb{N} \m
 The set operations are then the algebra on these predicates.
 Intersection (\cppinline{&}), union (\cppinline{|}) and complement (\cppinline{~}) compose these predicates, and a generic lattice-law term reducer normalises the composition at instantiation time by the laws of the subset order $\mathrm{Sub}(T)$ (Listing~\ref{lst:pruning}).
 A meet collapses to the greatest lower bound, a join to the least upper bound.
-The exhibit's two halfspaces point in opposite directions, so they are incomparable, and their meet is the bounded interval that is their glb; the carrier supplies only how to compute the bound (two same-direction halfspaces are comparable, and their meet is again a halfspace).
+For example, the two oppositely directed halfspaces $\{x < 5\}$ and $\{x > -5\}$ are incomparable, so their meet is the bounded interval $(-5, 5)$ that is their glb, and the carrier supplies only how to compute the bound (two same-direction halfspaces are comparable, and their meet is again a halfspace).
 Under the classical two-valued logic the complement laws also fire: $a \wedge \neg a$ reduces to \cppinline{Ø} (non-contradiction), $a \vee \neg a$ to the universe (excluded middle).
 These two identities need the Boolean complement.
 A general bounded chain such as Kleene's $K_3$ has none, so it keeps only the reflection $\neg\neg A = A$, where $a \wedge \neg a$ can sit at the middle value.
