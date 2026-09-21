@@ -193,8 +193,8 @@ namespace {
 // A ClassicalLogic halfspace over int, abbreviated for the union/meet tests.
 template <int Piv, Direction D, Strictness S>
 using HS = Halfspace<int, Piv, D, S, ClassicalLogic>;
-// A function-pointer predicate (not a class functor): the case
-// CombinablePredicate must still admit, exercised through the Set operators.
+// A function-pointer predicate (not a class functor): a Set over one must still
+// combine through the free set operators (exercised via a MeetSet below).
 constexpr bool is_pos(int x) { return x > 0; }
 }  // namespace
 
@@ -241,21 +241,21 @@ TEST_CASE(
                             HS<5, Direction::Upward, Strictness::Strict>>>);
   }
 
-  SECTION("no collapse (a gap) → a NAMED OrPredicate, not an opaque lambda") {
+  SECTION("no collapse (a gap) → a JoinSet carrying both operand sets") {
     using Lo = HS<5, Direction::Upward, Strictness::NonStrict>;    // {x ≥ 5}
     using Hi = HS<2, Direction::Downward, Strictness::NonStrict>;  // {x ≤ 2}
     constexpr Set<int, ClassicalLogic, Lo> a{Lo{}};
     constexpr Set<int, ClassicalLogic, Hi> b{Hi{}};
     using U = std::decay_t<decltype(a | b)>;
-    STATIC_CHECK(
-        std::same_as<U, Set<int, ClassicalLogic, OrPredicate<Lo, Hi>>>);
+    STATIC_CHECK(std::same_as<U, JoinSet<Set<int, ClassicalLogic, Lo>,
+                                         Set<int, ClassicalLogic, Hi>>>);
     // {x ≥ 5} ∪ {x ≤ 2}: a genuine gap at 3, 4 (structured_or declines it).
     CHECK((a | b)(7));
     CHECK((a | b)(1));
     CHECK_FALSE((a | b)(3));
   }
 
-  SECTION("meet with no structured_and → a NAMED AndPredicate, not a lambda") {
+  SECTION("meet with no structured_and → a MeetSet carrying both operands") {
     using Lo = HS<5, Direction::Upward, Strictness::NonStrict>;
     using Hi = HS<2, Direction::Downward, Strictness::NonStrict>;
     using Cap = HS<10, Direction::Downward, Strictness::Strict>;  // {x < 10}
@@ -264,8 +264,10 @@ TEST_CASE(
     constexpr Set<int, ClassicalLogic, Cap> c{Cap{}};
     // c ∩ (a ∪ b): meet of a halfspace with a union — no structured_and.
     using M = std::decay_t<decltype(c & (a | b))>;
-    STATIC_CHECK(std::same_as<M, Set<int, ClassicalLogic,
-                                     AndPredicate<Cap, OrPredicate<Lo, Hi>>>>);
+    STATIC_CHECK(
+        std::same_as<M, MeetSet<Set<int, ClassicalLogic, Cap>,
+                                JoinSet<Set<int, ClassicalLogic, Lo>,
+                                        Set<int, ClassicalLogic, Hi>>>>);
     // x < 10 ∧ (x ≥ 5 ∨ x ≤ 2): {0,1,2} ∪ {5,6,7,8,9}.
     CHECK((c & (a | b))(7));
     CHECK((c & (a | b))(1));
@@ -305,20 +307,22 @@ TEST_CASE("order:halfspace — covering XOR stays an IsSet (#864 CP review)",
 }
 
 TEST_CASE(
-    "order:halfspace — And/OrPredicate fallbacks are directly covered (#365)",
+    "order:halfspace: MeetSet/JoinSet fallbacks are directly covered "
+    "(#365/#892)",
     "[order][halfspace][set][predicate]") {
   SECTION(
-      "function-pointer predicate combines via Set::operator& (AndPredicate)") {
+      "function-pointer predicate combines via the free operator& (a "
+      "MeetSet)") {
     constexpr Set<int, ClassicalLogic, bool (*)(int)> pos{&is_pos};  // x > 0
     constexpr Set<int, ClassicalLogic,
                   HS<10, Direction::Downward, Strictness::Strict>>
         cap{HS<10, Direction::Downward, Strictness::Strict>{}};  // x < 10
     using M = std::decay_t<decltype(pos & cap)>;
     STATIC_CHECK(
-        std::same_as<M,
-                     Set<int, ClassicalLogic,
-                         AndPredicate<bool (*)(int), HS<10, Direction::Downward,
-                                                        Strictness::Strict>>>>);
+        std::same_as<
+            M, MeetSet<Set<int, ClassicalLogic, bool (*)(int)>,
+                       Set<int, ClassicalLogic,
+                           HS<10, Direction::Downward, Strictness::Strict>>>>);
     CHECK((pos & cap)(5));         // 0 < 5 < 10
     CHECK_FALSE((pos & cap)(-1));  // not > 0
     CHECK_FALSE((pos & cap)(20));  // not < 10

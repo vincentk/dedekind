@@ -90,15 +90,14 @@ TEST_CASE("Sets: Singleton Acceptance", "[sets][singleton][acceptance]") {
     REQUIRE((_s | _t)(7));
     REQUIRE(!(_s | _t)(4));
     // The STRUCTURAL contract (#691/#842), which membership alone does not pin:
-    // the union is a RECOVERABLE named OrPredicate whose two atoms survive in
-    // the type (an opaque predicate with the same membership would pass the
-    // checks above).  Pin the result type and recover both pivots.
+    // the union is a RECOVERABLE Join node whose two atoms survive in the type
+    // (an opaque predicate with the same membership would pass the checks
+    // above).  Pin the result type and recover both pivots.
     using UnionT = std::decay_t<decltype(_s | _t)>;
     STATIC_REQUIRE(
-        std::same_as<
-            UnionT,
-            Set<size_t, ClassicalLogic,
-                OrPredicate<SingletonSet<size_t>, SingletonSet<size_t>>>>);
+        std::same_as<UnionT,
+                     Set<size_t, ClassicalLogic,
+                         Join<SingletonSet<size_t>, SingletonSet<size_t>>>>);
     REQUIRE((_s | _t).predicate().lhs.pivot == 42);
     REQUIRE((_s | _t).predicate().rhs.pivot == 7);
     // FIXME(#685): structural identity ({a}∪{a} == {a}, round-trip to the
@@ -128,9 +127,9 @@ TEST_CASE("Sets: Singleton Acceptance", "[sets][singleton][acceptance]") {
     //     SingletonSet&) const = delete` shadows the template
     //     `operator<=(const S&)` for same-type self-comparison;
     //     overload resolution picks the deleted spaceship first.
-    //   * `_s <= Ø`, `Ø <= _s`, `_s <= !_s`: Ø and Complement lack
-    //     `.contains(v)`, which the SingletonSet template `<=`
-    //     delegates to.
+    //   * `_s <= Ø`, `Ø <= _s`, `_s <= !_s`: cross-type mereology through
+    //     the SingletonSet template `<=` (which delegates to the operand's
+    //     `operator()`) still needs its equality / bound wiring.
     //   * Catch2 `REQUIRE` rejects chained comparisons
     //     (`a <= b == false`); wrap as `(a <= b) == false`.
     // REQUIRE(_s <= _s);
@@ -203,13 +202,11 @@ TEST_CASE("Sets: Composition of Operations: The Functor Highway",
 TEST_CASE("Sets: Comprehension runtime membership (χ coverage)",
           "[sets][comprehension][runtime]") {
   // Runtime companion to the STATIC_REQUIRE witnesses: call the comprehension's
-  // characteristic map (operator() / contains) at RUNTIME so its
-  // L::AND-and-lift body is exercised, not only compile-time-asserted.
+  // characteristic map (operator()) at RUNTIME so its L::AND-and-lift body is
+  // exercised, not only compile-time-asserted.
   auto _s = ι<size_t>(42);
-  const auto self_meet = _s & _s;         // Comprehension<UniversalSet, lambda>
-  CHECK(self_meet(size_t{42}));           // 42 ∈ {42} ∧ 42 ∈ {42}
-  CHECK_FALSE(self_meet(size_t{7}));      // 7 ∉ {42}
-  CHECK(self_meet.contains(size_t{42}));  // via SetExpr::contains → χ
-  CHECK_FALSE(self_meet.contains(size_t{7}));
+  const auto self_meet = _s & _s;     // Comprehension<UniversalSet, lambda>
+  CHECK(self_meet(size_t{42}));       // 42 ∈ {42} ∧ 42 ∈ {42}
+  CHECK_FALSE(self_meet(size_t{7}));  // 7 ∉ {42}
   CHECK(self_meet.size() == 1);
 }

@@ -201,7 +201,7 @@ struct SingletonSet {
   // S1 <= S2 (Is S1 a part of S2?)
   //
   // Constrained to operands that share our logic species so the verdict
-  // returned by @c other.contains(pivot) (a @c S::logic_species::Ω value)
+  // returned by @c other(pivot) (a @c S::logic_species::Ω value)
   // is type-compatible with our return type @c L::Ω.  Avoids the
   // bool-conversion trap of @c (Ternary::True ? ... : ...): on
   // non-Boolean logics @c L::Ω is an enum class that's not contextually
@@ -210,17 +210,18 @@ struct SingletonSet {
   template <typename S>
     requires IsSet<S> && std::same_as<typename S::logic_species, L>
   constexpr typename L::Ω operator<=(const S& other) const {
-    return other.contains(pivot);
+    return other(pivot);
   }
 
   /** @section singleton__Mereological_Lattice_Audit */
 
   /** @section singleton__Unified_Lattice_Operations */
 
-  /** @brief Union of two atoms @f$\{a\}\cup\{b\}@f$ as the @b recoverable named
-   *  join @c OrPredicate --- the #365 replacement for the opaque comprehension
-   *  lambda.  No @c element scout, no lambda: the two pivots survive in
-   *  @c decltype (reachable as @c .predicate().lhs / @c .rhs), so the union can
+  /** @brief Union of two atoms @f$\{a\}\cup\{b\}@f$ as the @b recoverable
+   *  reducer @c category::Join node (#892; was @c OrPredicate).  It is the #365
+   *  replacement for the opaque comprehension lambda.  No @c element scout, no
+   *  lambda: the two pivots survive in @c decltype (reachable as
+   *  @c .predicate().lhs / @c .rhs), so the union can
    *  be @b flattened and inspected structurally --- the prerequisite for the
    *  power-set monad's @c μ (union-flatten, #691) and the Frobenius comonoid
    *  @c δ on sets/relations (#842).  One non-ref-qualified overload: the old
@@ -232,7 +233,8 @@ struct SingletonSet {
    */
   template <typename U, typename L2>
   constexpr auto operator|(const SingletonSet<U, L2>& other) const {
-    using Or = OrPredicate<SingletonSet<T, L>, SingletonSet<U, L2>>;
+    using Or =
+        dedekind::category::Join<SingletonSet<T, L>, SingletonSet<U, L2>>;
     return Set<T, L, Or>{Or{*this, other}};
   }
 
@@ -243,9 +245,9 @@ struct SingletonSet {
   }
 
   // FIXME(#842): the meet @c & below still routes through the deprecated
-  // @c element scout + a lambda; de-lambda it to a named @c AndPredicate the
-  // way @c | above was, when the meet side (the Frobenius multiplication) is
-  // needed.  Union went first as the @c μ (#691) / comonoid blocker.
+  // @c element scout + a lambda; de-lambda it to a named @c category::Meet node
+  // the way @c | above was, when the meet side (the Frobenius multiplication)
+  // is needed.  Union went first as the @c μ (#691) / comonoid blocker.
   template <typename U, typename L2>
   constexpr auto operator&(const SingletonSet<U, L2>& other) const&& {
     return element<𝔸<T, L>> |

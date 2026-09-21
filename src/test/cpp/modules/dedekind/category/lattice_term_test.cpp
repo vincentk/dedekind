@@ -141,6 +141,77 @@ static_assert(!SameCarrier<TopI, Meet<Lit<true>, Lit<false>>>,
 static_assert(!SameCarrier<TopI, Join<I3, Lit<true>>>,
               "…nor a NESTED mixed-carrier composite (recursive fail-closed).");
 
+// A predicate / subobject leaf is an arrow χ:Domain→Ω (IsArrow); carrier_of
+// reads its Domain (reusing the category arrow surface, not a bespoke probe).
+// That bridges the carrier-based gates to the forthcoming sets
+// specialisation.
+struct CharLeaf {  // a minimal characteristic arrow int → bool
+  using Domain = int;
+  using Codomain = bool;
+  constexpr bool operator()(const int&) const { return true; }
+};
+static_assert(IsArrow<CharLeaf>, "the predicate leaf is a category arrow.");
+static_assert(std::same_as<carrier_of_t<CharLeaf>, int>,
+              "carrier_of reads a predicate leaf's Domain (via IsArrow).");
+
+// ── AST nodes as SET VALUES (#892) ────────────────────────────────────────
+// A node constructed from operand values (aggregate init) IS the combined set:
+// it evaluates pointwise through the operands' shared logic_species (∧=AND,
+// ∨=OR, ¬=RFL).  This is latent for the reducer (which names the nodes only as
+// type tags) and the seam toward "the AST is the set".
+struct GELeaf {  // χ: n ↦ (n ≥ threshold), a classical characteristic arrow
+  using Domain = int;
+  using Codomain = bool;
+  using logic_species = ClassicalLogic;
+  int threshold;
+  constexpr bool operator()(const int& n) const { return n >= threshold; }
+};
+static_assert(Meet<GELeaf, GELeaf>{GELeaf{2}, GELeaf{5}}(7),
+              "(·≥2) ∧ (·≥5) holds at 7: the Meet node evaluates the meet.");
+static_assert(!Meet<GELeaf, GELeaf>{GELeaf{2}, GELeaf{5}}(3),
+              "(·≥2) ∧ (·≥5) fails at 3 (3 ≥ 5 is false).");
+static_assert(Join<GELeaf, GELeaf>{GELeaf{2}, GELeaf{5}}(3),
+              "(·≥2) ∨ (·≥5) holds at 3 (3 ≥ 2).");
+static_assert(Not<GELeaf>{GELeaf{5}}(3),
+              "¬(·≥5) holds at 3 (3 ≥ 5 is false, so its negation is true).");
+static_assert(!Not<GELeaf>{GELeaf{5}}(7), "¬(·≥5) fails at 7 (7 ≥ 5).");
+
+// A binary node IS the categorical product / coproduct of its operands (#881,
+// hoisted here from sets:AndPredicate / OrPredicate): the pairing ⟨χ_A, χ_B⟩
+// with the π_1 / π_2 accessors, keyed by the MakeMeet / MakeJoin factory (whose
+// result type (Meet vs Join) discriminates the pullback from the pushout).
+static_assert(IsProduct<Meet<GELeaf, GELeaf>, GELeaf, GELeaf, MakeMeet>,
+              "Meet ⟨χ_A, χ_B⟩ is the categorical product keyed by MakeMeet.");
+static_assert(IsProduct<Join<GELeaf, GELeaf>, GELeaf, GELeaf, MakeJoin>,
+              "Join ⟨χ_A, χ_B⟩ is the categorical product keyed by MakeJoin.");
+static_assert(
+    π_1(Meet<GELeaf, GELeaf>{GELeaf{2}, GELeaf{5}})(3),
+    "π_1 recovers the left operand χ_A = (·≥2): π_1(meet)(3) = true.");
+static_assert(
+    !π_2(Meet<GELeaf, GELeaf>{GELeaf{2}, GELeaf{5}})(3),
+    "π_2 recovers the right operand χ_B = (·≥5): π_2(meet)(3) = false.");
+// The factory rebuilds the node it names (⟨-,-⟩: A×B → P).
+static_assert(std::same_as<decltype(MakeMeet{}(GELeaf{2}, GELeaf{5})),
+                           Meet<GELeaf, GELeaf>>,
+              "MakeMeet is the meet pairing factory A×B → Meet.");
+static_assert(std::same_as<decltype(MakeJoin{}(GELeaf{2}, GELeaf{5})),
+                           Join<GELeaf, GELeaf>>,
+              "MakeJoin is the join pairing factory A×B → Join.");
+
+// The projections reified as first-class MORPHISMS: the node targets the
+// stronger IsArrowProduct (IsProduct + arrow-shaped projections Π_1/Π_2),
+// pinning the projection type signatures ahead of the operator switch.  The
+// shared IsProduct stays structural for the ~40 ecosystem witnesses.
+static_assert(IsArrow<Π_1<Meet<GELeaf, GELeaf>>> &&
+                  IsArrow<Π_2<Meet<GELeaf, GELeaf>>>,
+              "π₁ / π₂ of a meet are genuine morphisms Meet → A / Meet → B.");
+static_assert(std::same_as<Cod<Π_1<Meet<GELeaf, GELeaf>>>, GELeaf>,
+              "the π₁ morphism's Codomain is the left operand.");
+static_assert(IsArrowProduct<Meet<GELeaf, GELeaf>, GELeaf, GELeaf, MakeMeet>,
+              "Meet is an ARROW product: its projections are morphisms.");
+static_assert(IsArrowProduct<Join<GELeaf, GELeaf>, GELeaf, GELeaf, MakeJoin>,
+              "Join is an ARROW product (dual).");
+
 // ══ Layer 2: the ASSEMBLED reducer on the canonical carriers ══════════════
 
 // bool — the Boolean lattice: optimal reduction (every safe-core law fires).
@@ -312,6 +383,19 @@ struct KeepOrder {     // Unknown ⟹ keep authoring order (no value comparison)
 using DA = DLit<Mask{0b001}>;
 using DB = DLit<Mask{0b010}>;
 using DC = DLit<Mask{0b100}>;
+// A leaf-combiner supplying the carrier's DOMAIN meet/join (bitwise ∧/∨), the
+// stand-in for what `sets` will inject as structured_and / structured_or: it
+// computes the actual glb/lub of two order-incomparable leaves.
+struct BitCombine {
+  template <typename RA, typename RB>
+  static consteval auto meet() {
+    return std::type_identity<DLit<Mask(RA::value & RB::value)>>{};
+  }
+  template <typename RA, typename RB>
+  static consteval auto join() {
+    return std::type_identity<DLit<Mask(RA::value | RB::value)>>{};
+  }
+};
 }  // namespace dist_toy
 
 // The 2^n bit-subset lattice is a Boolean algebra: distributive, with an
@@ -323,6 +407,10 @@ inline constexpr bool
 template <>
 inline constexpr bool
     is_de_morgan_negation_for_v<dist_toy::Mask, dist_toy::BitSubset> = true;
+// …and genuinely COMPLEMENTED (Boolean): a ∧ ¬a = ⊥, a ∨ ¬a = ⊤.
+template <>
+inline constexpr bool
+    is_complemented_lattice_for_v<dist_toy::Mask, dist_toy::BitSubset> = true;
 }  // namespace dedekind::category
 
 namespace dist_toy {
@@ -359,11 +447,57 @@ static_assert(std::same_as<reduce_t<Not<Not<DA>>, KeepOrder, BitSubset>, DA>,
 static_assert(
     std::same_as<reduce_t<Not<Not<DA>>, KeepOrder, NonDistOrd>, Not<Not<DA>>>,
     "…negation laws inactive without an involutive negation (gated).");
+
+// ── Complement collapse (a ∧ ¬a → ⊥, a ∨ ¬a → ⊤) on the complemented toy ──
+// Needs an INTERIOR element a with ¬a (bool can't: its only elements are the
+// bounds, where ⊤∧¬⊤ collapses via the unit law first).  ⊥/⊤ are the carrier's
+// LatticeBottom/Top over its resolved order.
+static_assert(
+    std::same_as<decltype(meet_complement_law<DA, Not<DA>, BitSubset>())::type,
+                 LatticeBottom<Mask, BitSubset>>,
+    "law: a ∧ ¬a → ⊥.");
+static_assert(std::same_as<reduce_t<Meet<DA, Not<DA>>, KeepOrder, BitSubset>,
+                           LatticeBottom<Mask, BitSubset>>,
+              "assembled: a ∧ ¬a → ⊥ (contradiction).");
+static_assert(std::same_as<reduce_t<Join<DA, Not<DA>>, KeepOrder, BitSubset>,
+                           LatticeTop<Mask, BitSubset>>,
+              "assembled dual: a ∨ ¬a → ⊤ (excluded middle).");
+// Gated OFF where the carrier is not asserted complemented:
+static_assert(
+    std::same_as<reduce_t<Meet<DA, Not<DA>>, KeepOrder, NonDistOrd>,
+                 Meet<DA, Not<DA>>>,
+    "…complement collapse inactive without a complemented lattice (gated).");
+
+// ── Injected leaf-combiner: the order-incomparable residual is handed to the
+//    carrier's domain ∧/∨ (here bitwise), the mechanism `sets` will use for
+//    structured_and/or.  Without a combiner the residual stays a Meet node. ──
+static_assert(
+    std::same_as<reduce_t<Meet<DA, DB>, KeepOrder, BitSubset, BitCombine>,
+                 DLit<Mask{0b000}>>,
+    "leaf-combiner computes the domain meet DA ∧ DB = 0 (the glb).");
+static_assert(
+    std::same_as<reduce_t<Join<DA, DB>, KeepOrder, BitSubset, BitCombine>,
+                 DLit<Mask{0b011}>>,
+    "leaf-combiner computes the domain join DA ∨ DB (the lub).");
+static_assert(
+    std::same_as<reduce_t<Meet<DA, DB>, KeepOrder, BitSubset>, Meet<DA, DB>>,
+    "…no combiner ⟹ the incomparable residual stays a Meet node.");
 }  // namespace dist_toy
 
 TEST_CASE("lattice_term: induced laws + assembled reducer (#865/#888)",
           "[category][lattice][lattice_term]") {
-  // All behaviour is compile-time (the static_asserts above); this runtime
-  // case exists so the witnesses are linked into a test binary.
-  SUCCEED("lattice-term reducer static witnesses compiled.");
+  // Most behaviour is compile-time (the static_asserts above); this runtime
+  // case links the witnesses and exercises the AST-node value semantics at
+  // run time (Codecov cannot see static_asserts).
+  SECTION("AST nodes evaluate as set values (#892)") {
+    using lattice_term_smoke::GELeaf;
+    const Meet<GELeaf, GELeaf> both{GELeaf{2}, GELeaf{5}};    // ·≥2 ∧ ·≥5
+    const Join<GELeaf, GELeaf> either{GELeaf{2}, GELeaf{5}};  // ·≥2 ∨ ·≥5
+    const Not<GELeaf> below5{GELeaf{5}};                      // ¬(·≥5)
+    CHECK(both(7));
+    CHECK_FALSE(both(3));
+    CHECK(either(3));
+    CHECK(below5(3));
+    CHECK_FALSE(below5(7));
+  }
 }

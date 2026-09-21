@@ -1,5 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 #include <optional>
+#include <type_traits>
 
 import dedekind.category;
 import dedekind.sets;
@@ -42,9 +43,12 @@ inline constexpr bool
     dedekind::category::is_monic_arrow_v<retract_image_test::DoubleArrow> =
         true;
 
-// #881: the non-collapsed meet's classifier AndPredicate<P,Q> IS the pairing
-// ⟨χ_A, χ_B⟩ of its two operand classifiers, so it satisfies IsProduct
-// (π_1 → χ_A, π_2 → χ_B) via the free overloads in :sets, found by ADL.
+// #881: the CLASSIFIER-level pairing witness (AndPredicate / OrPredicate ⟨χ_A,
+// χ_B⟩ ⊨ IsProduct) now lives UPSTREAM on the reducer AST nodes
+// category::Meet / Join (lattice_term_test, #892): the pairing is a property of
+// the ∧/∨ node, not of the sets predicate wrapper, so it is witnessed once
+// where the AST lives.  The APPLIED-set pullback / pushout below stays here (it
+// is Set-specific: concrete sets, inclusion arrows, the initial-object span).
 namespace and_predicate_product_test {
 struct IsEven {
   constexpr bool operator()(int x) const { return x % 2 == 0; }
@@ -52,23 +56,6 @@ struct IsEven {
 struct IsPositive {
   constexpr bool operator()(int x) const { return x > 0; }
 };
-using Meet = dedekind::sets::AndPredicate<IsEven, IsPositive>;
-static_assert(dedekind::category::IsProduct<Meet, IsEven, IsPositive>,
-              "AndPredicate ⟨χ_A, χ_B⟩ is the categorical product of its two "
-              "operand classifiers (π_1 → χ_A, π_2 → χ_B): #881.");
-static_assert(π_1(Meet{IsEven{}, IsPositive{}})(4),
-              "π_1 recovers χ_A = IsEven: π_1(meet)(4) = true.");
-static_assert(π_2(Meet{IsEven{}, IsPositive{}})(4),
-              "π_2 recovers χ_B = IsPositive: π_2(meet)(4) = true.");
-
-// #881 step 2: OrPredicate carries the same pairing ⟨χ_A, χ_B⟩, so it too is an
-// IsProduct (the join's classifier).  Same substrate as AndPredicate; the
-// pushout vs pullback distinction is the ∨ vs ∧ reduction, not the pairing.
-using Join = dedekind::sets::OrPredicate<IsEven, IsPositive>;
-static_assert(
-    dedekind::category::IsProduct<Join, IsEven, IsPositive>,
-    "OrPredicate ⟨χ_A, χ_B⟩ is also the categorical product of its two "
-    "operand classifiers (π_1 → χ_A, π_2 → χ_B): #881 step 2.");
 
 // #881: the APPLIED meet A & B (the reified intersection of two concrete sets)
 // IS the pullback of those two sets --- the cospan of their inclusions
@@ -93,6 +80,30 @@ static_assert(
                                    decltype(iota_B)>,
     "the applied meet A & B is the pullback of its two concrete sets (the "
     "cospan ι_A, ι_B); in Sub(U) product = pullback = meet. #881.");
+
+// #892: the reducer's meet lifted into IsSet.  MeetSet<A,B> INHERITS the
+// lattice meet's algebra and adds the Set-specific subobject surface, so it IS
+// a set that carries its two underlying sets (A, B are IsSet).  π_1 / π_2
+// recover them BY REFERENCE: a bona fide IsSet each, no sub-structure copied
+// (Pierce).  ι is the identity inclusion (homogeneous by default).
+using MeetLift = MeetSet<A_set, B_set>;
+constexpr MeetLift meet_lift{a_set, b_set};
+static_assert(IsSet<MeetLift>,
+              "the lifted meet IS a set (the reducer AST node, promoted).");
+static_assert(IsSubobject<MeetLift, int>,
+              "…and a subobject of the ambient int with the identity ι.");
+static_assert(
+    IsSet<std::remove_cvref_t<decltype(π_1(meet_lift))>>,
+    "π_1(meet) is a bona fide IsSet (the underlying set A), not a bare "
+    "predicate: the node carries references to its factors.");
+static_assert(
+    std::is_reference_v<decltype(π_1(meet_lift))>,
+    "π_1 returns the operand BY REFERENCE: no copy of the sub-structure.");
+static_assert(π_1(meet_lift)(4) && !π_1(meet_lift)(3),
+              "π_1(meet) recovers A = IsEven and evaluates as that set.");
+static_assert(IsArrowProduct<MeetLift, A_set, B_set>,
+              "the lifted meet is an ARROW product: π_1 / π_2 are genuine "
+              "morphisms MeetSet → A / MeetSet → B (arrow-shaped signatures).");
 
 // #881: the Sub(U) bounds ARE the categorical initial / terminal objects (⊥/⊤
 // of the subobject lattice): Ø is classified by the always-false predicate,
@@ -450,7 +461,7 @@ TEST_CASE("Dedekind Sets: Cartesian product witnesses", "[sets][cartesian]") {
   using ProductDomain = typename decltype(product)::Domain;
   const auto product_set = ambient_set<ProductDomain>(product);
 
-  STATIC_CHECK(IsProduct<ProductDomain, int, int>);
+  STATIC_CHECK(IsArrowProduct<ProductDomain, int, int>);
   STATIC_CHECK(IsSet<decltype(product_set)>);
 
   CHECK(product(ProductDomain{1, 2}));
@@ -466,7 +477,7 @@ TEST_CASE("Dedekind Sets: Ambient cartesian product ergonomics",
 
   using PDomain = typename decltype(p_via_operator)::Domain;
 
-  STATIC_CHECK(IsProduct<PDomain, int, int>);
+  STATIC_CHECK(IsArrowProduct<PDomain, int, int>);
   STATIC_CHECK(p_via_function(PDomain{1, 2}));
   STATIC_CHECK(p_via_operator(PDomain{3, 4}));
 }

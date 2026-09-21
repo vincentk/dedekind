@@ -161,6 +161,8 @@ module;
 export module dedekind.category:lattice;
 
 import :logic;
+import :morphism;    // IsArrow: the Domain/Codomain surface a predicate leaf
+                     // (χ:Domain→Ω) presents; carrier_of reuses it (below)
 import :involution;  // is_involutive_v + IsInvolution (extracted from here)
 import :posetal;     // IsPosetal — row 2 (thin + antisymmetric);
                      // IsOrderLatticeOperations — bottom-up algebraic surface
@@ -397,13 +399,153 @@ static_assert(LatticeTop<bool, std::less_equal<bool>>::value == true,
  *  @c order::bit_subset_eq on an integer). */
 
 /** @brief The type-level term AST.  Leaves are lattice-carrier types; the nodes
- *  combine them.  Empty tags: a term is a compile-time tree, not a value. */
+ *  combine them.
+ *
+ *  @section lattice__AST_dual_nature
+ *  Primarily a @b compile-time tree: the reducer names @c Meet<A,B> only in
+ *  @c type_identity / @c same_as contexts, which never instantiate the class,
+ *  so for the reducer these stay empty tags with no completeness or
+ *  default-construction obligation on the operands.
+ *
+ *  Secondarily, a node @b is the combined set VALUE when it is actually
+ *  constructed from operand values (aggregate init @c Meet<A,B>{a,b}): it
+ *  carries the operands and evaluates pointwise through the operands' shared
+ *  @c logic_species (@c ∧ = @c L::AND, @c ∨ = @c L::OR, @c ¬ = @c L::RFL).  The
+ *  @c operator() is @b guarded, so it exists only when the operands are
+ *  callable predicates over one logic.  The type-level tag use is unaffected.
+ *  This is the seam toward "the AST is the set" (#892): the set operators now
+ *  return these nodes, and the predicate-nested collapse representation they
+ *  replaced (the retired @c AndPredicate / @c OrPredicate) has been removed. */
 export template <typename A, typename B>
-struct Meet {};  // A ∧ B
+struct Meet {  // A ∧ B
+  A lhs;
+  B rhs;
+  /** @brief Evaluate the meet at @c x, through the @c π_1 / @c π_2 accessors
+   *  (operand storage touched in one place).  With a @c logic_species the
+   *  combination is that logic's @c AND (honouring Kleene / Heyting Ω); for
+   *  plain bool-returning callables (comprehension lambdas) it is the bare
+   *  @c &&.
+   *  @note LAYERING: the node stays LATTICE ALGEBRA only; the Set-specific
+   *  subobject lift (@c Member / @c ι / @c IsSet) lives DOWNSTREAM in @c sets.
+   *  @note The @c logic_species branch feeds operand results straight to
+   *  @c L::AND, so it assumes operands return the RAW @c L::Ω.  The @c :sets
+   *  surface always does (membership is @c lift_logic<L>, which yields @c L::Ω,
+   *  never a @c Truth<L> wrapper), so this is sound there.  A callable whose
+   *  codomain is @c Truth<L> would need unwrapping first; that path is not
+   *  reached through @c sets. */
+  template <typename X>
+    requires requires(const A& l, const B& r, const X& x) {
+      l(x);
+      r(x);
+    }
+  constexpr auto operator()(const X& x) const {
+    if constexpr (requires { typename A::logic_species; }) {
+      return A::logic_species::AND(π_1(*this)(x), π_2(*this)(x));
+    } else {
+      return π_1(*this)(x) && π_2(*this)(x);
+    }
+  }
+};
 export template <typename A, typename B>
-struct Join {};  // A ∨ B
+struct Join {  // A ∨ B
+  A lhs;
+  B rhs;
+  /** @brief Evaluate the join at @c x, dual to @c Meet::operator().  With a
+   *  @c logic_species the combination is that logic's @c OR; for plain
+   *  bool-returning callables it is the bare @c ||.  Operand storage is touched
+   *  only through the @c π_1 / @c π_2 accessors. */
+  template <typename X>
+    requires requires(const A& l, const B& r, const X& x) {
+      l(x);
+      r(x);
+    }
+  constexpr auto operator()(const X& x) const {
+    if constexpr (requires { typename A::logic_species; }) {
+      return A::logic_species::OR(π_1(*this)(x), π_2(*this)(x));
+    } else {
+      return π_1(*this)(x) || π_2(*this)(x);
+    }
+  }
+};
 export template <typename A>
-struct Not {};  // ¬A (complement)
+struct Not {  // ¬A (complement)
+  A base;
+  /** @brief Evaluate the complement at @c x.  With a @c logic_species the value
+   *  is that logic's @c RFL (reflection / negation, honouring Kleene / Heyting
+   *  Ω); for a plain bool-returning callable it is the bare @c !. */
+  template <typename X>
+    requires requires(const A& b, const X& x) { b(x); }
+  constexpr auto operator()(const X& x) const {
+    if constexpr (requires { typename A::logic_species; }) {
+      return A::logic_species::RFL(base(x));
+    } else {
+      return !base(x);
+    }
+  }
+};
+
+/** @section lattice__AST_as_product
+ *  A binary node @b is the categorical product / coproduct of its operands, so
+ *  it inhabits @c category::IsProduct (the role @c sets::AndPredicate /
+ *  @c OrPredicate held before #892, now hoisted to where the AST lives).  The
+ * operands are recovered by the free @c π_1 / @c π_2 accessors (found by ADL,
+ * overriding the default @c .first / @c .second projection), and @c MakeMeet /
+ * @c MakeJoin are the pairing FACTORIES @f$\langle -,- \rangle: A \times B \to
+ * P@f$, the
+ *  @c Op that @c IsProduct names, whose @b result type (@c Meet vs @c Join)
+ *  discriminates the meet-pairing (pullback) from the join-pairing (pushout).
+ *  The meet / join distinction is the reduction (@c ∧ vs @c ∨), not the
+ * pairing; both nodes store and project both operands. */
+/** @brief π_1: the left-operand accessor of a binary node, returned @b by
+ *  const-reference.  The operand may itself be a whole set expression (a nested
+ *  node), and @c π_1 / @c π_2 are pure projections.  They must not copy the
+ *  sub-structure.  When the operand is a set, @c π_1(node) is then a bona fide
+ *  reference to that @c IsSet (the downstream @c sets lift relies on this).
+ *  Still @c ->convertible_to<A>, so @c IsProduct is satisfied. */
+export template <typename A, typename B>
+constexpr const A& π_1(const Meet<A, B>& m) {
+  return m.lhs;
+}
+/** @brief π_2: the right-operand accessor of a meet, by const-reference (see
+ *  @c π_1). */
+export template <typename A, typename B>
+constexpr const B& π_2(const Meet<A, B>& m) {
+  return m.rhs;
+}
+/** @brief π_1: the left-operand accessor of a join, by const-reference (see the
+ *  meet overload). */
+export template <typename A, typename B>
+constexpr const A& π_1(const Join<A, B>& j) {
+  return j.lhs;
+}
+/** @brief π_2: the right-operand accessor of a join, by const-reference. */
+export template <typename A, typename B>
+constexpr const B& π_2(const Join<A, B>& j) {
+  return j.rhs;
+}
+
+/** @brief The pairing factory for the meet (∧, pullback): @c ⟨-,-⟩ : A×B→Meet.
+ */
+export struct MakeMeet {
+  template <typename A, typename B>
+  constexpr Meet<A, B> operator()(const A& a, const B& b) const {
+    return {a, b};
+  }
+};
+/** @brief The pairing factory for the join (∨, pushout): @c ⟨-,-⟩ : A×B→Join.
+ */
+export struct MakeJoin {
+  template <typename A, typename B>
+  constexpr Join<A, B> operator()(const A& a, const B& b) const {
+    return {a, b};
+  }
+};
+
+// The projection MORPHISMS Π_1 / Π_2 and the stronger concept
+// IsArrowProduct (an IsProduct whose projections are arrows) live in the
+// :limit partition, next to IsProduct and the free π_1 / π_2 accessors.  The
+// reducer nodes Meet / Join (and their downstream sets lifts) target
+// IsArrowProduct, so their projections are pinned to arrow-shaped signatures.
 
 /** @brief Sentinel: a law that does not fire on the given node. */
 export struct law_inactive {};
@@ -461,6 +603,21 @@ export template <typename X>
   requires requires { X::value; }
 struct carrier_of<X> {
   using type = std::remove_cvref_t<decltype(X::value)>;
+};
+/** @brief Carrier of a predicate / subobject leaf.  Such a leaf is an arrow
+ *  χ:Domain→Ω (@c IsArrow), not a wrapped value, so its carrier is the arrow's
+ *  @b Domain.  Reading it through @c IsArrow (the category arrow surface)
+ * rather than a bespoke typedef probe ties the reducer into @c category.  The
+ *  carrier-based gates (@c SameCarrier, distributivity, complement, De Morgan
+ *  negation) then apply to set expressions too.  An element leaf instead
+ * carries
+ *  @c ::value, a point 1→T whose carrier is the value's type; the @c ::value
+ *  specialisation above handles it.  The two spellings extract the carrier from
+ *  opposite ends of the arrow, so both coexist. */
+export template <typename X>
+  requires(IsArrow<X> && !requires { X::value; })
+struct carrier_of<X> {
+  using type = typename std::remove_cvref_t<X>::Domain;
 };
 namespace detail_carrier {
 // The carrier shared by two children, or void if they differ or are unknown.
@@ -565,13 +722,43 @@ consteval auto join_bounded_law() {
   }
 }
 
+/** @brief Is @c X a leaf whose VALUE is determined by its TYPE?  Idempotence
+ *  @c X∧X=X is sound only for such a leaf.  Two same-type instances are then
+ *  necessarily the same set, so collapsing them is correct.  The default is
+ *  @c std::is_empty_v<X>, true for a stateless tag or an NTTP-encoded carrier.
+ *  A carrier with RUNTIME-STATEFUL leaves specialises this to @c false for
+ * them.
+ *  @c sets does so for @c Set<T,L,P> whose predicate @c P carries a runtime
+ *  field (e.g.\ a @c BooleanEqPredicate's @c expected).  The type-based
+ *  idempotence then does not collapse two distinct-but-same-type values. */
+export template <typename X>
+inline constexpr bool idempotent_leaf_v =
+    std::is_empty_v<std::remove_cvref_t<X>>;
+
+/** @brief A compound node is value-determined iff its operands are.  So a
+ *  @c Meet / @c Join / @c Not of value-determined leaves stays collapsible,
+ *  while one carrying a runtime-stateful leaf does not.  This keeps the
+ *  value-safety gate @b recursive rather than treating every operand-storing
+ *  node as stateful (@c Meet / @c Join / @c Not now store their operands, so
+ * the bare @c std::is_empty_v default would report @c false for all of them).
+ */
+template <typename A, typename B>
+inline constexpr bool idempotent_leaf_v<Meet<A, B>> =
+    idempotent_leaf_v<A> && idempotent_leaf_v<B>;
+template <typename A, typename B>
+inline constexpr bool idempotent_leaf_v<Join<A, B>> =
+    idempotent_leaf_v<A> && idempotent_leaf_v<B>;
+template <typename A>
+inline constexpr bool idempotent_leaf_v<Not<A>> = idempotent_leaf_v<A>;
+
 /** @brief Law induced by a @b (meet/join-)semilattice: idempotence @c X∧X=X /
- *  @c X∨X=X.  @b Structural — it holds for the lattice operation itself, so it
- *  does not depend on the carrier's order (it fires even for order-incomparable
- *  opaque leaves). */
+ *  @c X∨X=X.  Structural: it holds for the lattice operation itself, so it does
+ *  not depend on the carrier's order.  It fires even for order-incomparable
+ *  opaque leaves.  It is gated on @c idempotent_leaf_v, so a runtime-stateful
+ *  leaf (two same-type-but-distinct instances) is not collapsed. */
 export template <typename RA, typename RB>
 consteval auto idempotent_law() {
-  if constexpr (std::same_as<RA, RB>) {
+  if constexpr (std::same_as<RA, RB> && idempotent_leaf_v<RA>) {
     return std::type_identity<RA>{};
   } else {
     return std::type_identity<law_inactive>{};
@@ -605,9 +792,9 @@ export template <typename RA, typename RB>
 consteval auto meet_structural_absorption_law() {
   if constexpr (has_mixed_carrier_v<Meet<RA, RB>>) {
     return std::type_identity<law_inactive>{};  // mixed carrier ⟹ fail closed
-  } else if constexpr (is_join_containing_v<RA, RB>) {
+  } else if constexpr (is_join_containing_v<RA, RB> && idempotent_leaf_v<RA>) {
     return std::type_identity<RA>{};  // a ∧ (a ∨ b) = a
-  } else if constexpr (is_join_containing_v<RB, RA>) {
+  } else if constexpr (is_join_containing_v<RB, RA> && idempotent_leaf_v<RB>) {
     return std::type_identity<RB>{};  // (a ∨ b) ∧ a = a
   } else {
     return std::type_identity<law_inactive>{};
@@ -620,9 +807,9 @@ export template <typename RA, typename RB>
 consteval auto join_structural_absorption_law() {
   if constexpr (has_mixed_carrier_v<Join<RA, RB>>) {
     return std::type_identity<law_inactive>{};  // mixed carrier ⟹ fail closed
-  } else if constexpr (is_meet_containing_v<RA, RB>) {
+  } else if constexpr (is_meet_containing_v<RA, RB> && idempotent_leaf_v<RA>) {
     return std::type_identity<RA>{};  // a ∨ (a ∧ b) = a
-  } else if constexpr (is_meet_containing_v<RB, RA>) {
+  } else if constexpr (is_meet_containing_v<RB, RA> && idempotent_leaf_v<RB>) {
     return std::type_identity<RB>{};
   } else {
     return std::type_identity<law_inactive>{};
@@ -827,6 +1014,57 @@ consteval auto de_morgan_law() {
     return std::type_identity<typename de_morgan_of<RA>::type>{};
   } else {
     return std::type_identity<law_inactive>{};  // ¬leaf is negation-normal
+  }
+}
+
+// ── Complement collapse (induced by a genuinely COMPLEMENTED lattice) ─────
+// STRONGER than De Morgan negation: a complemented lattice additionally proves
+// the complement laws a∧¬a=⊥ (contradiction) and a∨¬a=⊤ (excluded middle).  A
+// De Morgan algebra alone (e.g. Kleene K3) does NOT (a∧¬a can be the middle).
+// so this is a distinct, opt-in gate.
+
+/** @brief Does the lattice (carrier @c T, order @c Ord) carry a genuine
+ *  @b complement (@c a∧¬a=⊥, @c a∨¬a=⊤), not merely a De Morgan negation? Keyed
+ *  to the order and opt-in (default @c false).  A complemented lattice is also
+ * a De Morgan algebra, so a carrier asserting this should also assert
+ *  @c is_de_morgan_negation_for_v. */
+export template <typename T, typename Ord>
+inline constexpr bool is_complemented_lattice_for_v = false;
+/** @brief Canonical @c bool is a Boolean (hence complemented) lattice. */
+export template <>
+inline constexpr bool is_complemented_lattice_for_v<bool, canonical_order> =
+    true;
+
+/** @brief Are @c RA and @c RB a complement pair (@c RB=¬RA or @c RA=¬RB)? */
+export template <typename RA, typename RB>
+inline constexpr bool is_complement_pair_v =
+    std::same_as<RB, Not<RA>> || std::same_as<RA, Not<RB>>;
+
+/** @brief Law induced by a @b complemented lattice: the complement collapse
+ *  @c a∧¬a→⊥ (meet) / @c a∨¬a→⊤ (join).  The bottom / top produced is the
+ *  carrier's registered @c LatticeBottom / @c LatticeTop over its resolved
+ *  order (for sets, that is @c Ø / @c 𝔸 once the sets layer registers them).
+ *  Gated on the carrier being complemented under @c Ord; else inactive. */
+export template <typename RA, typename RB, typename Ord>
+consteval auto meet_complement_law() {
+  if constexpr (is_complement_pair_v<RA, RB> &&
+                is_complemented_lattice_for_v<carrier_of_t<RA>, Ord>) {
+    return std::type_identity<LatticeBottom<
+        carrier_of_t<RA>, resolved_order_t<carrier_of_t<RA>, Ord>>>{};
+  } else {
+    return std::type_identity<law_inactive>{};
+  }
+}
+
+/** @brief The join dual: @c a∨¬a→⊤ (excluded middle). */
+export template <typename RA, typename RB, typename Ord>
+consteval auto join_complement_law() {
+  if constexpr (is_complement_pair_v<RA, RB> &&
+                is_complemented_lattice_for_v<carrier_of_t<RA>, Ord>) {
+    return std::type_identity<LatticeTop<
+        carrier_of_t<RA>, resolved_order_t<carrier_of_t<RA>, Ord>>>{};
+  } else {
+    return std::type_identity<law_inactive>{};
   }
 }
 
@@ -1229,9 +1467,9 @@ static_assert(
  * predicate-type closed carrier.  Concretely, when no structural collapse
  * fires (a @c structured_and / @c structured_or reduction to a halfspace,
  * interval, @c Singleton, @c Ø or @c UniversalSet, or an @c IsComplementPair
- * short-circuit), @c Set<T, L, P> @c & @c Set<T, L, Q> returns
- * @c Set<T, L, AndPredicate<P,Q>> (dually, @c | returns @c OrPredicate<P,Q>) —
- * a different predicate type, but the same @c Ambient and @c logic_species.
+ * short-circuit), @c A @c & @c B returns a @c MeetSet<A,B> carrying both
+ * operand sets (dually, @c | returns a @c JoinSet<A,B>).  The node is a
+ * different type, but over the same @c Ambient and @c logic_species.
  *
  * @section lattice__Family_Anchor
  * The @b ambient @c A is the anchor (per #712 review): a subobject

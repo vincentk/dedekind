@@ -39,8 +39,14 @@ TEST_CASE(
   // apply here) — runtime coverage, since the partition's own witnesses are
   // static_asserts (invisible to coverage).
   // apply(R, x) = the fibre {b | (x,b) ∈ R}; here R doubles, so apply(R,3)={6}.
-  CHECK(apply(R, 3)(6));        // (3,6) ∈ R  ⇒  6 ∈ apply(R,3)
-  CHECK_FALSE(apply(R, 3)(7));  // (3,7) ∉ R
+  // Qualified: R is a Set<std::pair<...>>, so std::pair pulls `std` into the
+  // ADL set and the unconstrained libc++ `std::apply(fn, tuple)` becomes a
+  // rival candidate that hard-errors on the int second argument (a
+  // libc++/libstdc++ divergence; CI's libstdc++ constrains std::apply out).
+  // `apply` is legacy anyway (not part of the §4 grammar); qualifying pins the
+  // relational one.
+  CHECK(dedekind::relational::apply(R, 3)(6));  // (3,6) ∈ R  ⇒  6 ∈ apply(R,3)
+  CHECK_FALSE(dedekind::relational::apply(R, 3)(7));  // (3,7) ∉ R
   // dom / cod are the DECLARED factor universals 𝔸<A> / 𝔸<B> (total, no ∃).
   CHECK(dom(R)(42));  // declared domain is all of int
   CHECK(cod(R)(42));  // declared codomain is all of int

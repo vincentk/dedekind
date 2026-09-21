@@ -107,10 +107,15 @@ TEST_CASE("Boundaries: The Algebra of Extremality", "[sets][boundaries]") {
   SECTION("Identity optimizations remain structurally valid") {
     constexpr SingletonSet<SignedExtensionalCardinal<>> s{42};
     constexpr Ø<SignedExtensionalCardinal<>> empty;
+    // Boundaries share the singleton's carrier: 𝔸 & S = S and Ø | S = S are
+    // carrier-uniform identities.  (The engine-routed operators fail closed on
+    // a mixed carrier, so the universe must be over the same carrier as s, not
+    // the outer UniversalSet<int>.)
+    constexpr UniversalSet<SignedExtensionalCardinal<>> sc_universe;
 
     CHECK(std::is_same_v<decltype(empty | s),
                          SingletonSet<SignedExtensionalCardinal<>>>);
-    CHECK(std::is_same_v<decltype(universe & s),
+    CHECK(std::is_same_v<decltype(sc_universe & s),
                          SingletonSet<SignedExtensionalCardinal<>>>);
   }
 

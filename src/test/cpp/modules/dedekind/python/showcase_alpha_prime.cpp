@@ -68,9 +68,9 @@ constexpr auto S = Set{in<ℕ> | in<ℕ> > bound<5>};
 // the opaque λ inside the comprehension, but the carrier-axis witness
 // is sufficient at this layer.
 
-// (2) Tested.  Compile-time membership query — the rule is the type, so
-//     `S.contains(7u)` is constant-evaluable and reads as bare @c bool.
-static_assert(S.contains(7u));
+// (2) Tested.  Compile-time membership query: the rule is the type, so
+//     `S(7u)` is constant-evaluable and reads as bare @c bool.
+static_assert(S(7u));
 
 // (3) Trimmed.  Set difference: A ∖ B = {x | x ∈ A ∧ x ∉ B}.  The textbook
 //     `S \ T` would be the natural spelling; substituted here as
@@ -80,8 +80,8 @@ static_assert(S.contains(7u));
 //     interval [6, 6]) is a future DSL refinement; membership on T still
 //     constant-folds via the predicate.
 constexpr auto T = set_difference(S, Set{in<ℕ> | in<ℕ> > bound<10>});
-static_assert(T.contains(8u));    // 5 < 8 ≤ 10 ✓
-static_assert(!T.contains(11u));  // 11 > 10 ✗
+static_assert(T(8u));    // 5 < 8 ≤ 10 ✓
+static_assert(!T(11u));  // 11 > 10 ✗
 
 // (4) Collapsed.  Cardinality reduction → 1 (intensional → extensional).
 //     `S` (= {x : x > 5}) intersected with {x : x < 7} on ℕ has cardinality
@@ -135,7 +135,7 @@ static_assert(
  * @brief Showcase α′: the §3 walk's compile-time payoff lifted to a
  *        runtime witness.
  *
- * @c S.contains(7u) is constant-evaluable (7 > 5 lands in the halfspace).
+ * @c S(7u) is constant-evaluable (7 > 5 lands in the halfspace).
  * Post-#622 the result IS @c bool directly (ℕ → ClassicalLogic on the
  * carrier axis), so the body returns the membership query as-is — no
  * Kleene comparison lift required.
@@ -143,5 +143,5 @@ static_assert(
  * Expected IR: `ret i1 true`
  */
 extern "C" __attribute__((noinline)) bool witness_alpha_prime() {
-  return S.contains(7u);
+  return S(7u);
 }

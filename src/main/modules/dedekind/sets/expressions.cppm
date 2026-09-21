@@ -95,11 +95,10 @@ using namespace dedekind::category;
 // deferred north-star (#824), not what the code does today.
 export using dedekind::category::ambient_set;
 
-/** @brief Opt-in CRTP base that supplies the ETCS @b set surface --- @c Member
- * /
- *  @c ι (the subobject inclusion), @c Codomain / @c logic_species, the
- *  set-lattice trait members, and @c contains --- to a @b specialized set
- *  expression, keying the classifier χ off the @c Derived's own @c operator().
+/** @brief Opt-in CRTP base that supplies the ETCS @b set surface to a
+ *  @b specialized set expression.  It provides @c Member, @c ι (the subobject
+ *  inclusion), @c Codomain, @c logic_species, and the set-lattice trait
+ *  members.  It keys the classifier χ off the @c Derived's own @c operator().
  *
  *  @details This makes @c IsSet reachable by @b inheritance for expression
  *  structs (@ref Comprehension, and any wrapper that is "morally a set"),
@@ -119,11 +118,6 @@ struct SetExpr {
     DomainT value;
   };
   constexpr DomainT ι(const Member& m) const { return m.value; }
-
-  /** @brief Membership sugar, routed to @c Derived's χ (@c operator()). */
-  constexpr auto contains(const DomainT& x) const {
-    return static_cast<const Derived&>(*this)(x);
-  }
 
   // NOTE: SetExpr is the ETCS @b subobject surface (Domain/Codomain/Member/ι/χ)
   // and NOTHING more.  It deliberately does @b not register algebra laws:
@@ -255,8 +249,8 @@ struct MembershipBinding {
    *  which produces a @c BooleanEqPredicate{true}.  This overload
    *  rewrites the bare form to that canonical predicate so the
    *  existing collapse machinery ( @c structured_and / @c
-   *  FiniteBooleanSet operators / @c Set::operator& / @c
-   *  Set::operator|) recognises it as the truthy half of a
+   *  FiniteBooleanSet operators / @c operator& / @c
+   *  operator|) recognises it as the truthy half of a
    *  complementary pair.  Mirrors the @c operator==(b, bool) and
    *  @c operator!(b) overloads in this partition: the bool-domain
    *  encoding lives in exactly one place ( @c BooleanEqPredicate),
@@ -396,8 +390,8 @@ inline constexpr BoundScout<Ambient> element{};
  *  shape.  Call-site fix: omit @c using @c namespace
  *  @c dedekind::category and spell category names fully qualified, or
  *  reach for the @c sets::in<...> qualified form.  Membership queries
- *  in the @c sets DSL idiomatically route through @c S.contains(x) on
- *  the set value itself, sidestepping the conflict. */
+ *  in the @c sets DSL idiomatically route through the set's own
+ *  @c operator() (@c S(x)), sidestepping the conflict. */
 export template <auto Ambient>
   requires dedekind::category::IsCharacteristic<
                std::remove_cvref_t<decltype(Ambient)>>
@@ -442,145 +436,6 @@ struct NegatedPredicate {
     return !base(v);
   }
 };
-
-/** @brief The minimal shape a set predicate must have to be combined into an
- *  @c AndPredicate / @c OrPredicate: a copyable @b functor (class) @b or
- *  @b function @b pointer (both are used as set predicates).  A deliberately
- *  @b weak gate --- the carrier @c T is known only at call time, so
- * invocability cannot be checked at definition --- that still rejects obvious
- * misuse such as
- *  @c AndPredicate<int,bool>, a data pointer, or a reference/@c void type.
- *  (@c NegatedPredicate stays unconstrained: it is the pre-existing complement
- *  wrapper, not a combinand introduced here.) */
-template <typename P>
-concept CombinablePredicate =
-    std::copy_constructible<P> &&
-    (std::is_class_v<P> || std::is_function_v<std::remove_pointer_t<P>>);
-
-/** @brief Structural conjunction of two predicates: the @b named meet result
- *  @c Set::operator& produces when no @c structured_and collapse fires,
- *  replacing the opaque lambda so the predicate survives in @c decltype
- *  (#365).  This is the @c AndPredicate<P,Q> named in @c :category:lattice's
- *  spec.  Carrier-general; it inherits the operands' logic through the bare
- *  @c && (Kleene when both return @c Ternary; @c FIXME(#780) tracks the mixed
- *  bool/Ternary lift the raw operator skips).
- *
- *  @note (category alignment, #881) @c AndPredicate is the @b classifier
- *  @f$\chi_A \wedge \chi_B@f$ (the pairing ⟨χ_A,χ_B⟩), not the apex: the
- *  @b non-collapsing meet @c A @c & @c B, i.e. the @c
- * Set<T,L,AndPredicate<...>> that @c operator& produces when no @c
- * structured_and reduction fired, is the
- *  @b apex, and categorically @b is the @c category::IsPullback of the two
- *  subobject inclusions @f$A\hookrightarrow U \hookleftarrow B@f$ (the fiber
- *  product over the ambient), with this @c AndPredicate as its classifying map.
- *  @b Scope: a @b reduced meet (@c operator& collapsing to @c Ø /
- *  @c UniversalSet / @c SingletonSet / @c OrderInterval, or a @c structured_and
- *  result) is @b not built by @c MakeAndPredicate and carries no legs, so it
- *  does not satisfy the concept as written --- it is the @e collapsed pullback,
- *  and preserving the source-leg metadata through those reductions is tracked
- *  by @c FIXME(#834) (converge @c meet /@c &) and
- *  @c FIXME(#865) (the lattice-law normaliser).  Anchored by a static witness
- *  in @c category/pullback_test (@f$2\mathbb{Z}\cap
- * 3\mathbb{Z}=6\mathbb{Z}@f$). Full alignment (pin @c IsPullback on @c
- * set_intersection itself, and
- *  @c natural_join as a pullback over shared columns) is the @c category →
- *  @c sets → @c relational follow-up. */
-export template <CombinablePredicate P, CombinablePredicate Q>
-struct AndPredicate {
-  P lhs;
-  Q rhs;
-
-  template <typename T>
-  constexpr auto operator()(const T& v) const {
-    return lhs(v) && rhs(v);
-  }
-};
-
-/** @brief @c π_1 / @c π_2 for @c AndPredicate: the non-collapsed meet's
- *  classifier @b is the pairing @f$\langle \chi_A, \chi_B \rangle@f$ of the two
- *  operand classifiers, so it satisfies @c category::IsProduct<AndPredicate<P,
- *  Q>, P, Q>.  Free overloads (found by ADL), overriding the default
- *  @c .first / @c .second projection exactly as @c Dual overrides it with
- *  @c val / @c der.  This reifies the set meet @c A @c & @c B (classified by
- *  @c AndPredicate) as the classifier-pairing that makes it the pullback of
- *  @c A ↪ U ↩ B in @c Sub(U): #881, the @c category → @c sets alignment. */
-export template <CombinablePredicate P, CombinablePredicate Q>
-constexpr P π_1(const AndPredicate<P, Q>& a) {
-  return a.lhs;
-}
-export template <CombinablePredicate P, CombinablePredicate Q>
-constexpr Q π_2(const AndPredicate<P, Q>& a) {
-  return a.rhs;
-}
-
-/** @brief The pairing FACTORY for the meet: the constructor-like operation
- *  @f$\langle -, - \rangle: \chi_A \times \chi_B \mapsto
- * \mathrm{AndPredicate}@f$
- *  --- the Haskell pair-constructor @c (,) specialised to @c AndPredicate. This
- *  is the @c Op that @c category::IsProduct names for a meet: @c Op must build
- *  the product (signature @c A×B → P), and its @b result type (@c AndPredicate,
- *  not @c OrPredicate) is what distinguishes the meet from the join.  #881. */
-export struct MakeAndPredicate {
-  template <CombinablePredicate P, CombinablePredicate Q>
-  constexpr AndPredicate<P, Q> operator()(const P& p, const Q& q) const {
-    return {p, q};
-  }
-};
-
-/** @brief Structural disjunction of two predicates: the @b named join dual of
- *  @c AndPredicate, produced by @c Set::operator| (and the predicate-level
- *  @c operator||) when no @c structured_or collapse fires (#365). */
-export template <CombinablePredicate P, CombinablePredicate Q>
-struct OrPredicate {
-  P lhs;
-  Q rhs;
-
-  template <typename T>
-  constexpr auto operator()(const T& v) const {
-    return lhs(v) || rhs(v);
-  }
-};
-
-/** @brief @c π_1 / @c π_2 for @c OrPredicate: the non-collapsed join carries
- * the
- *  @b same pairing @f$\langle \chi_A, \chi_B \rangle@f$ as @c AndPredicate, so
- *  it too satisfies @c category::IsProduct<OrPredicate<P,Q>, P, Q> (free
- *  overloads, found by ADL).  The pullback / pushout distinction is not in the
- *  pairing but in the FACTORY that builds it (below): @c AndPredicate is built
- *  by @c MakeAndPredicate (∧, meet, a pullback), @c OrPredicate by
- *  @c MakeOrPredicate (∨, join, a pushout).  #881. */
-export template <CombinablePredicate P, CombinablePredicate Q>
-constexpr P π_1(const OrPredicate<P, Q>& a) {
-  return a.lhs;
-}
-export template <CombinablePredicate P, CombinablePredicate Q>
-constexpr Q π_2(const OrPredicate<P, Q>& a) {
-  return a.rhs;
-}
-
-/** @brief The pairing FACTORY for the join, dual to @c MakeAndPredicate:
- *  @f$\langle -, - \rangle \mapsto \mathrm{OrPredicate}@f$.  The @c Op
- *  @c category::IsProduct names for a join; its result type (@c OrPredicate)
- *  distinguishes the join from the meet.  #881. */
-export struct MakeOrPredicate {
-  template <CombinablePredicate P, CombinablePredicate Q>
-  constexpr OrPredicate<P, Q> operator()(const P& p, const Q& q) const {
-    return {p, q};
-  }
-};
-
-/** @brief Which universal construction a pairing feeds is named by the FACTORY
- *  that builds it, not a separate tag: @c AndPredicate (∧) is built by
- *  @c MakeAndPredicate (meet / pullback), @c OrPredicate (∨) by
- *  @c MakeOrPredicate (join / pushout).  Both @b are products ⟨χ_A,χ_B⟩ (both
- *  carry @c π_1/@c π_2); the factory's result type says which.  This needs no
- *  @c sets-local concept: it is the @c Op parameter of
- *  @c category::IsProduct<P,A,B,Op> (defaulting to @c AnyOperation, ignored),
- *  where @c Op is required to be the constructor-like factory @c A×B → P.
- *  @c Set gates its pullback projection legs (@c π1/@c π2) on a meet
- *  (@c IsProduct<Predicate,...,MakeAndPredicate>) and its pushout coprojection
- *  colegs (@c ι1/@c ι2) on a join (@c ...,MakeOrPredicate), so a meet does not
- *  spuriously satisfy @c IsPushout nor a join @c IsPullback.  #881. */
 
 template <typename P1, typename P2>
 struct IsComplementPair : std::false_type {};
@@ -698,6 +553,26 @@ export template <typename L>
 constexpr auto operator&(const FiniteBooleanSet<L>& lhs,
                          const Set<bool, L, BooleanEqPredicate>& rhs) {
   return rhs & lhs;
+}
+
+/** @brief @c bool @c BooleanEqPredicate meet.  @c BooleanEqPredicate is
+ *  RUNTIME-stateful (same TYPE, different @c expected field), so the generic
+ *  reducer's TYPE-based idempotent law would wrongly collapse two distinct bool
+ *  singletons.  Compute the finite meet directly, more specialised than the
+ *  generic @c IsSubobject combinators, so it wins; a finite bool set is
+ *  extensional, so the result is a @c FiniteBooleanSet. */
+export template <typename L>
+constexpr auto operator&(const Set<bool, L, BooleanEqPredicate>& a,
+                         const Set<bool, L, BooleanEqPredicate>& b) {
+  return FiniteBooleanSet<L>{L::AND(a(false), b(false)),
+                             L::AND(a(true), b(true))};
+}
+/** @brief @c bool @c BooleanEqPredicate join, dual to the meet above. */
+export template <typename L>
+constexpr auto operator|(const Set<bool, L, BooleanEqPredicate>& a,
+                         const Set<bool, L, BooleanEqPredicate>& b) {
+  return FiniteBooleanSet<L>{L::OR(a(false), b(false)),
+                             L::OR(a(true), b(true))};
 }
 
 // ---------------------------------------------------------------------------
@@ -825,6 +700,171 @@ constexpr auto operator|(const Set<SignedCardinality, L, P1>& lhs,
   return rhs | lhs;
 }
 
+/** @section expressions__Reducer_Leaf_Combiner
+ *
+ *  The set meet / join route through the generic lattice-law term reducer
+ *  (@c category:lattice_term, #865/#890) under @c subobject_order<L>.  The
+ *  reducer owns the structural laws (bounded, idempotence, absorption, ...);
+ *  the @b domain-specific collapse of two order-incomparable set leaves is the
+ *  injected @b leaf-combiner @c SetCombine.  It reduces the @c structured_and /
+ *  @c structured_or of two halfspaces into an interval, say.  It reaches @c
+ * :order via ADL (order is downstream of sets, so ADL is the cycle-free
+ * customisation point), exactly as the pre-reducer @c operator& / @c operator|
+ * did. */
+
+/** @brief Value-level elevate of a @c structured_and result to the meet's
+ *  normal-form value: an empty reduction is the initial object @c Ø; a
+ *  finite / static-singleton reduction is itself a set-like leaf (returned
+ *  bare); any other reduction is a named predicate wrapped back into a @c Set.
+ *  (Extracted verbatim from the pre-reducer @c operator& structured_and branch
+ *  so @c SetCombine's type and this value stay in lockstep.) */
+export template <typename T, typename L, typename Reduced>
+constexpr auto elevate_meet(Reduced reduced) {
+  using Result = std::decay_t<Reduced>;
+  if constexpr (std::same_as<Result, EmptyPredicate<T>>) {
+    return Ø<T, L>{};
+  } else if constexpr (requires { typename Result::is_static_singleton_tag; }) {
+    return reduced;
+  } else if constexpr (requires { typename Result::cardinality_type; }) {
+    // Nested (not &&-chained): a Result without cardinality_type must not
+    // instantiate the inner probe.
+    if constexpr (std::same_as<typename Result::cardinality_type, Finite>) {
+      return reduced;
+    } else {
+      return Set<T, L, Result>{std::move(reduced)};
+    }
+  } else {
+    return Set<T, L, Result>{std::move(reduced)};
+  }
+}
+
+/** @brief Value-level elevate of a @c structured_or result to the join's
+ *  normal-form value: a covering pair is the universe @c 𝔸 (returned bare);
+ *  any other reduction (a wider halfspace) is wrapped back into a @c Set.
+ *  Dual of @c elevate_meet. */
+export template <typename T, typename L, typename Reduced>
+constexpr auto elevate_join(Reduced reduced) {
+  using Result = std::decay_t<Reduced>;
+  if constexpr (std::same_as<Result, UniversalSet<T, L>>) {
+    return reduced;
+  } else {
+    return Set<T, L, Result>{std::move(reduced)};
+  }
+}
+
+namespace detail_reducer {
+/** @brief Type-level companion of @c elevate_meet: the leaf @c SetCombine::meet
+ *  yields for a combinable set-leaf pair, or @c law_inactive when the leaves
+ *  are not both sets over one carrier or no @c structured_and applies. */
+template <typename RA, typename RB>
+struct combine_meet {
+  using type = law_inactive;
+};
+template <typename T, typename L, typename PA, typename PB>
+  requires requires(const PA& a, const PB& b) { structured_and(a, b); }
+struct combine_meet<Set<T, L, PA>, Set<T, L, PB>> {
+  using type = decltype(elevate_meet<T, L>(
+      structured_and(std::declval<const PA&>(), std::declval<const PB&>())));
+};
+
+template <typename RA, typename RB>
+struct combine_join {
+  using type = law_inactive;
+};
+template <typename T, typename L, typename PA, typename PB>
+  requires requires(const PA& a, const PB& b) { structured_or(a, b); }
+struct combine_join<Set<T, L, PA>, Set<T, L, PB>> {
+  using type = decltype(elevate_join<T, L>(
+      structured_or(std::declval<const PA&>(), std::declval<const PB&>())));
+};
+}  // namespace detail_reducer
+
+/** @brief The injected leaf-combiner (the reducer's 4th @c reduce<> policy) for
+ *  the subobject lattice: at an order-incomparable residual, hand the two set
+ *  leaves to the carrier's domain @c ∧ / @c ∨ (@c structured_and /
+ *  @c structured_or via ADL) and let the reducer re-reduce the result. */
+export struct SetCombine {
+  template <typename RA, typename RB>
+  static consteval auto meet() {
+    return std::type_identity<
+        typename detail_reducer::combine_meet<RA, RB>::type>{};
+  }
+  template <typename RA, typename RB>
+  static consteval auto join() {
+    return std::type_identity<
+        typename detail_reducer::combine_join<RA, RB>::type>{};
+  }
+};
+
+/** @section expressions__Reducer_Set_Lift
+ *
+ *  The reducer's meet / join (@c category::Meet / Join) lifted into @c IsSet.
+ *  The lattice nodes carry the ALGEBRA only: operands, pointwise evaluation,
+ * the
+ *  @c IsProduct pairing.  They know nothing of ETCS.  Here in @c sets we add
+ * the Set-specific SUBOBJECT surface: @c Member, @c ι, the pullback legs.  The
+ *  intersection / union is then a genuine @c IsSet.  The lift @b inherits the
+ *  lattice node, so its two operands @b are the underlying sets it carries.
+ *  (Pierce: the meet @c A∩B remembers it is the pullback of @c A ↩ U ↩ B.)  The
+ *  free @c π_1 / @c π_2 recover the operands @b by const-reference, so
+ *  @c π_1(meet) is a bona fide @c IsSet and no sub-structure is copied.  The
+ *  node composes recursively: an operand may itself be a @c MeetSet, so a set
+ *  expression is a set of sets.
+ *
+ *  @c ι defaults to the IDENTITY inclusion, HOMOGENEOUS BY DEFAULT.  A member
+ * of
+ *  @c A∩B is a @c T-value lying in both operands.  Its inclusion into the
+ *  ambient @c T is the identity, exactly as @c Set / @c Ø / @c UniversalSet
+ *  already spell @c ι(m) @c = @c m.value.  A subobject over a DIFFERENT carrier
+ *  (a subset composed with a type conversion, e.g.\ @c ℕ ↪ ℤ) specialises @c ι.
+ *  That is a downstream / §5-HSP concern, not this generic contract. */
+export template <typename A, typename B>
+  requires IsSubobject<A, typename A::Domain> &&
+           IsSubobject<B, typename B::Domain> &&
+           std::same_as<typename A::Domain, typename B::Domain> &&
+           std::same_as<typename A::logic_species, typename B::logic_species>
+struct MeetSet : Meet<A, B> {  // A ∩ B as a subobject carrying A and B
+  using Domain = typename A::Domain;
+  using Codomain = typename A::Codomain;
+  using logic_species = typename A::logic_species;
+  struct Member {
+    Domain value;
+  };
+  /** @brief ι: A∩B ↣ T, the trivial identity inclusion (homogeneous). */
+  constexpr Domain ι(const Member& m) const { return m.value; }
+  /** @brief π1 / π2: the pullback co-restriction legs A∩B ↪ A, A∩B ↪ B.  The
+   *  shared T-value re-viewed as a member of each operand (identity on it). */
+  constexpr typename A::Member π1(const Member& m) const { return {m.value}; }
+  constexpr typename B::Member π2(const Member& m) const { return {m.value}; }
+  constexpr MeetSet(A a, B b) : Meet<A, B>{std::move(a), std::move(b)} {}
+};
+
+export template <typename A, typename B>
+  requires IsSubobject<A, typename A::Domain> &&
+           IsSubobject<B, typename B::Domain> &&
+           std::same_as<typename A::Domain, typename B::Domain> &&
+           std::same_as<typename A::logic_species, typename B::logic_species>
+struct JoinSet : Join<A, B> {  // A ∪ B as a subobject carrying A and B
+  using Domain = typename A::Domain;
+  using Codomain = typename A::Codomain;
+  using logic_species = typename A::logic_species;
+  struct Member {
+    Domain value;
+  };
+  /** @brief ι: A∪B ↣ T, the trivial identity inclusion (homogeneous). */
+  constexpr Domain ι(const Member& m) const { return m.value; }
+  /** @brief ι1 / ι2, the pushout coprojection colegs A ↪ A∪B, B ↪ A∪B: an
+   *  operand member (a T-value in A resp. B, hence in the union) injects as a
+   *  member of the join (dual to MeetSet's co-restriction legs). */
+  constexpr Member ι1(const typename A::Member& m) const {
+    return Member{m.value};
+  }
+  constexpr Member ι2(const typename B::Member& m) const {
+    return Member{m.value};
+  }
+  constexpr JoinSet(A a, B b) : Join<A, B>{std::move(a), std::move(b)} {}
+};
+
 export template <typename T, typename L, typename Predicate>
 class Set {
  public:
@@ -843,70 +883,6 @@ class Set {
    *  Subobject<A, χ>::ι and SingletonSet::ι; the inclusion projects
    *  the Member's T-value back to the ambient. */
   constexpr T ι(const Member& m) const { return m.value; }
-
-  /** @brief π1 / π2 --- the pullback projection legs, present exactly when this
-   *  Set is a MEET: its classifier is a pairing (@c Predicate @c ⊨ @c
-   * IsProduct, e.g. @c AndPredicate ⟨χ_A, χ_B⟩).  In the poset @c Sub(T)
-   * product = pullback = meet, so @c A @c & @c B is the pullback of its two
-   * operand subobjects @c A ↪ T ↩ B; a member (a @c T-value lying in both)
-   * re-views as a member of each operand @c Set<T,L,χ_A> / @c Set<T,L,χ_B>.
-   * This is @c ι re-typed into the operands: the classifier's @c π_1 / @c π_2
-   * name the operand predicates, @c ι supplies the value.  Guarded, so ordinary
-   * Sets expose no legs.  #881. */
-  constexpr auto π1(const Member& m) const
-    requires dedekind::category::IsProduct<
-        Predicate,
-        std::remove_cvref_t<decltype(π_1(std::declval<const Predicate&>()))>,
-        std::remove_cvref_t<decltype(π_2(std::declval<const Predicate&>()))>,
-        MakeAndPredicate>
-  {
-    using PA = std::remove_cvref_t<decltype(π_1(predicate_))>;
-    return typename Set<T, L, PA>::Member{m.value};
-  }
-  constexpr auto π2(const Member& m) const
-    requires dedekind::category::IsProduct<
-        Predicate,
-        std::remove_cvref_t<decltype(π_1(std::declval<const Predicate&>()))>,
-        std::remove_cvref_t<decltype(π_2(std::declval<const Predicate&>()))>,
-        MakeAndPredicate>
-  {
-    using PB = std::remove_cvref_t<decltype(π_2(predicate_))>;
-    return typename Set<T, L, PB>::Member{m.value};
-  }
-
-  /** @brief ι1 / ι2 --- the pushout coprojection colegs, dual to π1/π2, present
-   *  exactly when this Set is a JOIN (its classifier is an @c OrPredicate ∨
-   *  pairing).  In the poset @c Sub(T) pushout = coproduct = join, so @c A @c |
-   *  @c B is the pushout of its two operand subobjects (the coproduct over @c
-   *  ∅), and the colegs are the coprojections @c A ↪ A∪B, @c B ↪ A∪B: an
-   * operand member (a @c T-value in @c A resp. @c B, hence in the union)
-   * injects as a member of this join.  Dual of the meet's re-view: same @c ι
-   * value, opposite direction (operand ⟶ apex).  Guarded, so only joins expose
-   * colegs.  #881. */
-  template <typename Pr = Predicate>
-    requires dedekind::category::IsProduct<
-        Pr, std::remove_cvref_t<decltype(π_1(std::declval<const Pr&>()))>,
-        std::remove_cvref_t<decltype(π_2(std::declval<const Pr&>()))>,
-        MakeOrPredicate>
-  constexpr Member
-  ι1(const typename Set<
-      T, L,
-      std::remove_cvref_t<decltype(π_1(std::declval<const Pr&>()))>>::Member& m)
-      const {
-    return Member{m.value};
-  }
-  template <typename Pr = Predicate>
-    requires dedekind::category::IsProduct<
-        Pr, std::remove_cvref_t<decltype(π_1(std::declval<const Pr&>()))>,
-        std::remove_cvref_t<decltype(π_2(std::declval<const Pr&>()))>,
-        MakeOrPredicate>
-  constexpr Member
-  ι2(const typename Set<
-      T, L,
-      std::remove_cvref_t<decltype(π_2(std::declval<const Pr&>()))>>::Member& m)
-      const {
-    return Member{m.value};
-  }
 
   /** @brief χ: T → Ω — arrow-form classifier for the IsSubobject
    *  contract — historically a static self-reference (now retired).
@@ -958,13 +934,8 @@ class Set {
     return dedekind::category::lift_logic<L>(predicate_(v));
   }
 
-  /** @brief Value-level membership query: sugar over @c operator() per
-   *  #551.  @c set.contains(v) reads more directly than @c set(v) at
-   *  paper-listing sites. */
-  constexpr auto contains(const T& v) const { return (*this)(v); }
-
   /** @brief Const reference to the underlying predicate.  Most callers
-   *  should use @c operator() / @ref contains for membership and let
+   *  should use @c operator() for membership and let
    *  the predicate stay encapsulated; this getter exists for scalar-
    *  interop layers (Python facades, IR fixtures) that need to extract
    *  value-level state from a predicate whose fields are part of its
@@ -976,106 +947,10 @@ class Set {
 
   constexpr cardinality_type cardinality() const { return {}; }
 
-  constexpr auto operator!() const {
-    return Set<T, L, NegatedPredicate<Predicate>>{
-        NegatedPredicate<Predicate>{predicate_}};
-  }
-
-  // FIXME(#362): operator| / operator& currently require the same carrier
-  // type `T`. Heterogeneous meets (`Set<ℕ> & Set<ℝ>`) should dispatch through
-  // the canonical-embedding lattice (`embed_ℕ_ℝ`, …) so the result tightens
-  // to the sharper of the two carriers; same applies below for operator&.
-  template <typename OtherPredicate>
-  constexpr auto operator|(const Set<T, L, OtherPredicate>& other) const {
-    if constexpr (IsComplementPair_v<Predicate, OtherPredicate>) {
-      return UniversalSet<T, L>{};
-    } else if constexpr (std::same_as<T, bool> &&
-                         std::same_as<Predicate, BooleanEqPredicate> &&
-                         std::same_as<OtherPredicate, BooleanEqPredicate>) {
-      return FiniteBooleanSet<L>{
-          L::OR((*this)(false), other(false)),
-          L::OR((*this)(true), other(true)),
-      };
-    } else if constexpr (requires {
-                           structured_or(predicate_, other.predicate_);
-                         }) {
-      // The JOIN dual of operator&'s structured_and branch.  A union never
-      // shrinks cardinality, so the only non-predicate result is a covering
-      // pair collapsing to the universe (returned as-is); every other reduction
-      // (a wider halfspace) is a predicate we wrap.
-      auto reduced = structured_or(predicate_, other.predicate_);
-      using Result = std::decay_t<decltype(reduced)>;
-      if constexpr (std::same_as<Result, UniversalSet<T, L>>) {
-        return reduced;
-      } else {
-        return Set<T, L, Result>{std::move(reduced)};
-      }
-    } else {
-      // No structural collapse: keep the disjunction as a NAMED predicate so it
-      // survives in decltype (#365), rather than an opaque lambda.
-      return Set<T, L, OrPredicate<Predicate, OtherPredicate>>{
-          OrPredicate<Predicate, OtherPredicate>{predicate_, other.predicate_}};
-    }
-  }
-
-  template <typename OtherPredicate>
-  constexpr auto operator&(const Set<T, L, OtherPredicate>& other) const {
-    if constexpr (IsComplementPair_v<Predicate, OtherPredicate>) {
-      return Ø<T, L>{};
-    } else if constexpr (std::same_as<T, bool> &&
-                         std::same_as<Predicate, BooleanEqPredicate> &&
-                         std::same_as<OtherPredicate, BooleanEqPredicate>) {
-      return FiniteBooleanSet<L>{
-          L::AND((*this)(false), other(false)),
-          L::AND((*this)(true), other(true)),
-      };
-    } else if constexpr (requires {
-                           structured_and(predicate_, other.predicate_);
-                         }) {
-      // Evaluate the reduction once. Calling `structured_and` multiple times
-      // inflates compile time (each call is a fresh template instantiation)
-      // and would risk inconsistency if a future overload produced a value-
-      // carrying (non-empty) result whose default-construction differs from
-      // the original call's result.
-      auto reduced = structured_and(predicate_, other.predicate_);
-      using Result = std::decay_t<decltype(reduced)>;
-      if constexpr (std::same_as<Result, EmptyPredicate<T>>) {
-        return Ø<T, L>{};
-      } else if constexpr (requires {
-                             typename Result::is_static_singleton_tag;
-                           }) {
-        // Cardinality-1 reduction (e.g. integer halfspace meet): elevate to a
-        // bare Singleton-typed value, paralleling the Ø collapse for empty.
-        return reduced;
-      } else if constexpr (requires { typename Result::cardinality_type; }) {
-        // The probe must be nested, not `&&`-chained: a logical-and of two
-        // bool operands instantiates BOTH, so a `Result` without
-        // `cardinality_type` (e.g. a bare Halfspace reached when a downstream
-        // structured_and overload is out of ADL range) would hard-error on the
-        // second operand.  Nesting keeps the type probe guarded.
-        if constexpr (std::same_as<typename Result::cardinality_type, Finite>) {
-          // Structured reduction to a named finite object (e.g. an integer
-          // OrderInterval with compile-time-computed size): elevate it out of
-          // the Set wrapper so downstream code can observe size() / bounds /
-          // computability classification directly on the reduced type.
-          return reduced;
-        } else {
-          return Set<T, L, Result>{std::move(reduced)};
-        }
-      } else {
-        return Set<T, L, Result>{std::move(reduced)};
-      }
-    } else {
-      // No structural collapse: keep the conjunction as a NAMED predicate so it
-      // survives in decltype (#365), rather than an opaque lambda.  A deeper
-      // lattice-law normalisation (distributivity / absorption / De Morgan,
-      // e.g. `(A ∪ B) ∩ ¬A → B ∩ ¬A`) that exposes collapses this misses is the
-      // follow-up #865.
-      return Set<T, L, AndPredicate<Predicate, OtherPredicate>>{
-          AndPredicate<Predicate, OtherPredicate>{predicate_,
-                                                  other.predicate_}};
-    }
-  }
+  // The meet / join / complement operators are no longer Set MEMBERS: they are
+  // free combinators over IsSet (below the class), so Set, MeetSet, JoinSet and
+  // the boundaries all compose uniformly (combinators over Jlt structural
+  // types, not an inheritance hierarchy).  #892.
 
   /**
    * @brief Symmetric difference @c A @c △ @c B (set-theoretic XOR; #469).
@@ -1203,6 +1078,238 @@ class Set {
 
   Predicate predicate_;
 };
+
+}  // namespace dedekind::sets
+
+namespace dedekind::category {
+// A Set's value is determined by its type only when its predicate is stateless.
+// A runtime-stateful predicate (a field-carrying P such as BooleanEqPredicate)
+// makes two same-type Sets potentially distinct, so the reducer's type-based
+// idempotence must NOT collapse them; gate it on the predicate's emptiness.
+template <typename T, typename L, typename P>
+inline constexpr bool idempotent_leaf_v<dedekind::sets::Set<T, L, P>> =
+    std::is_empty_v<P>;
+
+// A materialized MeetSet / JoinSet still IS the reducer's meet / join node (it
+// derives Meet / Join and carries the same operands).  Teach the structural
+// pattern-matchers to see through the :sets materialization boundary, so a
+// later A & (A | B) applies absorption even though A | B already materialized
+// as a JoinSet<A, B> (#865's A ∩ (A ∪ B) → A over materialized nodes).
+template <typename Elem, typename A, typename B>
+inline constexpr bool
+    is_join_containing_v<Elem, dedekind::sets::JoinSet<A, B>> =
+        std::same_as<Elem, A> || std::same_as<Elem, B>;
+template <typename Elem, typename A, typename B>
+inline constexpr bool
+    is_meet_containing_v<Elem, dedekind::sets::MeetSet<A, B>> =
+        std::same_as<Elem, A> || std::same_as<Elem, B>;
+
+// Value-determinism recurses through the materialized node as it does through
+// the bare Meet / Join, so a MeetSet / JoinSet of value-determined operands
+// stays collapsible under idempotence and absorption.
+template <typename A, typename B>
+inline constexpr bool idempotent_leaf_v<dedekind::sets::MeetSet<A, B>> =
+    idempotent_leaf_v<A> && idempotent_leaf_v<B>;
+template <typename A, typename B>
+inline constexpr bool idempotent_leaf_v<dedekind::sets::JoinSet<A, B>> =
+    idempotent_leaf_v<A> && idempotent_leaf_v<B>;
+}  // namespace dedekind::category
+
+namespace dedekind::sets {
+
+// ── Free set combinators over IsSet (#892) ──────────────────────────────────
+// The meet / join / complement, retired as Set MEMBERS, as free combinators
+// over the structural IsSet concept.  Set, MeetSet, JoinSet and the boundaries
+// therefore compose uniformly, so nested expressions like @c (A|B) & !(A&B)
+// resolve without an inheritance hierarchy.  Each folds the reducer term
+// through
+// @c subobject_reduce_t and materialises the normal form; the irreducible meet
+// / join becomes a @c MeetSet / @c JoinSet carrying its operand sets (#892).
+
+/** @brief The predicate of a PLAIN @c Set<T,L,P> (@c ::type absent otherwise);
+ *  @c PlainSet gates the plain-set-only branches (complement pair, predicate
+ *  negation) so a compound node (@c MeetSet / @c JoinSet) takes the node path.
+ */
+template <typename S>
+struct set_predicate {};
+template <typename T, typename L, typename P>
+struct set_predicate<Set<T, L, P>> {
+  using type = P;
+};
+template <typename S>
+concept PlainSet = requires { typename set_predicate<S>::type; };
+
+/** @brief A complement pair of PLAIN sets: @c Set<T,L,P> and @c Set<T,L,¬P>
+ *  (either order), detected through the predicate-level @c IsComplementPair. */
+template <typename LHS, typename RHS>
+inline constexpr bool are_complement_sets_v = false;
+template <typename T, typename L, typename PA, typename PB>
+inline constexpr bool are_complement_sets_v<Set<T, L, PA>, Set<T, L, PB>> =
+    IsComplementPair_v<PA, PB>;
+
+/** @brief The subobject-lattice meet @c A @c & @c B, over any two @c
+ * IsSubobject operands sharing a carrier and logic.  It folds @c Meet<A,B>
+ * through the reducer; @c SetCombine supplies the domain @c structured_and at
+ * the incomparable residual.  The normal form materialises to @c Ø, @c 𝔸, an
+ *  operand, or a structured leaf.  An irreducible meet becomes a @c MeetSet
+ *  carrying both operand sets. */
+export template <typename LHS, typename RHS>
+  requires IsSubobject<LHS, typename LHS::Domain> &&
+           IsSubobject<RHS, typename RHS::Domain> &&
+           std::same_as<typename LHS::Domain, typename RHS::Domain> &&
+           std::same_as<typename LHS::logic_species,
+                        typename RHS::logic_species>
+constexpr auto operator&(const LHS& lhs, const RHS& rhs) {
+  using T = typename LHS::Domain;
+  using Log = typename LHS::logic_species;
+  if constexpr (are_complement_sets_v<LHS, RHS> &&
+                std::same_as<Log, ClassicalLogic>) {
+    // a ∧ ¬a = ⊥, the law of non-contradiction.  Gated on ClassicalLogic: a
+    // general bounded chain offers only REFLECTION (¬ = RFL, an involution),
+    // not full complementation.  Kleene K3 fails it, at Unknown a ∧ ¬a = U, not
+    // ⊥ (#860).  A Ternary complement pair therefore falls through to the
+    // reducer and stays an un-collapsed MeetSet, whose pointwise L::AND yields
+    // U at the middle (sound).  FIXME(#865): generalise the collapse once the
+    // reducer recognises the predicate-pair encoding as a structural Not.
+    return Ø<T, Log>{};
+  } else {
+    using R = subobject_reduce_t<Meet<LHS, RHS>, Log, SetCombine>;
+    if constexpr (std::same_as<R, Ø<T, Log>>) {
+      return Ø<T, Log>{};
+    } else if constexpr (std::same_as<R, UniversalSet<T, Log>>) {
+      return UniversalSet<T, Log>{};
+    } else if constexpr (std::same_as<R, LHS>) {
+      return lhs;
+    } else if constexpr (std::same_as<R, RHS>) {
+      return rhs;
+    } else if constexpr (std::same_as<R, Meet<LHS, RHS>>) {
+      // Irreducible: the intersection AS a set, carrying both operands (#892).
+      return MeetSet<LHS, RHS>{lhs, rhs};
+    } else {
+      // SetCombine collapsed two plain-set leaves via structured_and.
+      return elevate_meet<T, Log>(
+          structured_and(lhs.predicate(), rhs.predicate()));
+    }
+  }
+}
+
+/** @brief The subobject-lattice join @c A @c | @c B, dual to @c operator&.  An
+ *  irreducible join becomes a @c JoinSet carrying both operand sets. */
+export template <typename LHS, typename RHS>
+  requires IsSubobject<LHS, typename LHS::Domain> &&
+           IsSubobject<RHS, typename RHS::Domain> &&
+           std::same_as<typename LHS::Domain, typename RHS::Domain> &&
+           std::same_as<typename LHS::logic_species,
+                        typename RHS::logic_species>
+constexpr auto operator|(const LHS& lhs, const RHS& rhs) {
+  using T = typename LHS::Domain;
+  using Log = typename LHS::logic_species;
+  if constexpr (are_complement_sets_v<LHS, RHS> &&
+                std::same_as<Log, ClassicalLogic>) {
+    // a ∨ ¬a = ⊤, excluded middle (dual of the meet collapse).  Gated on
+    // ClassicalLogic for the same reason: a bounded chain offers reflection,
+    // not complementation, so Kleene K3 (¬U = U, a ∨ ¬a = U ≠ ⊤) falls through
+    // to an un-collapsed JoinSet whose pointwise L::OR is sound (#860).
+    return UniversalSet<T, Log>{};
+  } else {
+    using R = subobject_reduce_t<Join<LHS, RHS>, Log, SetCombine>;
+    if constexpr (std::same_as<R, UniversalSet<T, Log>>) {
+      return UniversalSet<T, Log>{};
+    } else if constexpr (std::same_as<R, Ø<T, Log>>) {
+      return Ø<T, Log>{};
+    } else if constexpr (std::same_as<R, LHS>) {
+      return lhs;
+    } else if constexpr (std::same_as<R, RHS>) {
+      return rhs;
+    } else if constexpr (std::same_as<R, Join<LHS, RHS>>) {
+      return JoinSet<LHS, RHS>{lhs, rhs};
+    } else {
+      return elevate_join<T, Log>(
+          structured_or(lhs.predicate(), rhs.predicate()));
+    }
+  }
+}
+
+/** @brief @c is_set_node_v is true for the concrete set-node types @c Set /
+ *  @c MeetSet / @c JoinSet, the carriers of the free set combinators. */
+template <typename S>
+inline constexpr bool is_set_node_v = false;
+template <typename T, typename L, typename P>
+inline constexpr bool is_set_node_v<Set<T, L, P>> = true;
+template <typename A, typename B>
+inline constexpr bool is_set_node_v<MeetSet<A, B>> = true;
+template <typename A, typename B>
+inline constexpr bool is_set_node_v<JoinSet<A, B>> = true;
+
+/** @brief The set complement @c !A.  This forwarding-reference overload
+ *  constrains on @c IsPredicate<P> && @c is_set_node_v.  That constraint
+ *  subsumes the greedy @c category::operator!(IsPredicate): same @c P&&
+ *  binding, strictly more constrained.  So it wins the tiebreak for every value
+ *  category.  The category @c ! would otherwise turn @c !A into a formal
+ *  @c Morphism A → Ω.
+ *
+ *  @details The complement is a certified @b involution.  On a plain @c Set it
+ *  eliminates double negation: @c !!A ≡ A at the type level.  A first
+ *  complement wraps the predicate in @c NegatedPredicate; a second complement
+ *  @b peels that wrapper rather than nesting a second one.  The peel is gated
+ * on
+ *  @c logic_negation_is_involutive_v (the @c :involution witness that ¬¬ = id
+ *  for the logic), so it stays honest for a future non-involutive species.  The
+ *  @c NegatedPredicate shape is exactly what the complement-pair collapse
+ * reads. A compound node (@c MeetSet / @c JoinSet) negates the node itself.  A
+ *  boundary (@c Ø / @c 𝔸) keeps its own non-template member @c operator! (the
+ *  dual @c !Ø = 𝔸). */
+export template <IsPredicate P>
+  requires is_set_node_v<std::remove_cvref_t<P>>
+constexpr auto operator!(P&& p) {
+  using D = std::remove_cvref_t<P>;
+  using T = typename D::Domain;
+  using L = typename D::logic_species;
+  if constexpr (PlainSet<D>) {
+    using Pred = typename set_predicate<D>::type;
+    if constexpr (IsNegatedPredicate_v<Pred> &&
+                  dedekind::category::logic_negation_is_involutive_v<L>) {
+      // Double-negation elimination: !!A ≡ A.  The logic negation is a
+      // certified involution, so peeling the NegatedPredicate wrapper is
+      // sound and makes the set complement structurally self-inverse.
+      using Inner = NegatedPredicateBase_t<Pred>;
+      return Set<T, L, Inner>{p.predicate().base};
+    } else {
+      return Set<T, L, NegatedPredicate<Pred>>{
+          NegatedPredicate<Pred>{p.predicate()}};
+    }
+  } else {
+    return Set<T, L, NegatedPredicate<D>>{
+        NegatedPredicate<D>{std::forward<P>(p)}};
+  }
+}
+/** @brief @c ~A is the complement spelled bitwise, aliasing @c operator!. */
+export template <IsPredicate P>
+  requires is_set_node_v<std::remove_cvref_t<P>>
+constexpr auto operator~(P&& p) {
+  return !std::forward<P>(p);
+}
+
+/** @section expressions__Complement_Is_An_Involution
+ *  The set complement is an involution: @c !!A ≡ A at the @b type level for a
+ *  plain @c Set.  The property @c reduces to the logic negation: @c :involution
+ *  certifies ¬¬ = id on the classifier (@c logic_negation_is_involutive_v), and
+ *  @c operator! gates its double-negation elimination on exactly that witness.
+ *  A single @c ! is @b not a same-type endomap (it flips @c A and @c !A), so
+ *  the fact is witnessed structurally here as a type identity rather than as a
+ *  @c IsInvolution endomap. */
+namespace detail_complement_involution {
+using UnivSizeSet = Set<std::size_t, dedekind::category::ClassicalLogic,
+                        UniversalPredicate<std::size_t>>;
+static_assert(
+    std::same_as<std::remove_cvref_t<decltype(!!std::declval<UnivSizeSet>())>,
+                 UnivSizeSet>,
+    "!!A ≡ A: the set complement is a structural involution");
+static_assert(dedekind::category::logic_negation_is_involutive_v<
+                  dedekind::category::ClassicalLogic>,
+              ":involution certifies the logic negation the complement reduces "
+              "to is an involution");
+}  // namespace detail_complement_involution
 
 /** @brief @c inclusion_arrow(S) --- the inclusion ι_S: S ↪ Domain<S> of a
  *  subobject as a first-class @c IsArrow (@c Domain = @c S::Member,
@@ -1529,48 +1636,8 @@ constexpr auto image(F&& f, const Set<T, L, P>& s) {
 // operational retract/cofibre fibre-walk here: the monic @c IsRetractableArrow
 // overload above is the only retract path, and it is a single lookup.
 
-/** @brief Explicit set complement overload to avoid picking category morphism
- * `!`. */
-export template <typename T, typename L, typename Predicate>
-constexpr auto operator!(const Set<T, L, Predicate>& s) {
-  return s.operator!();
-}
-
-/** @brief lvalue set complement overload for stable prefix `!` resolution. */
-export template <typename T, typename L, typename Predicate>
-constexpr auto operator!(Set<T, L, Predicate>& s) {
-  return s.operator!();
-}
-
-/** @brief rvalue set complement overload for composed temporary expressions. */
-export template <typename T, typename L, typename Predicate>
-constexpr auto operator!(Set<T, L, Predicate>&& s) {
-  return s.operator!();
-}
-
-/** @brief Set complement via the bitwise-style operator @c ~ (#469).
- *
- *  @details Alias for @c operator!(Set): @c ~A returns the
- *  predicate-level complement @c Set<T, L, NegatedPredicate<P>>.
- *  Adding the @c ~ spelling completes the bitwise-operator family
- *  @c (|, &, ^, ~) on @c Set<T, L, P>, satisfying
- *  @c dedekind::order::HasLatticeOperators (witness pinned in
- *  @c order:lattice).  The deeper @c U @c ∖ @c A reading where
- *  @c U is a chosen ambient universe is a separate semantic
- *  question (#469's deferred design call, tracked under #524).
- */
-export template <typename T, typename L, typename Predicate>
-constexpr auto operator~(const Set<T, L, Predicate>& s) {
-  return s.operator!();
-}
-export template <typename T, typename L, typename Predicate>
-constexpr auto operator~(Set<T, L, Predicate>& s) {
-  return s.operator!();
-}
-export template <typename T, typename L, typename Predicate>
-constexpr auto operator~(Set<T, L, Predicate>&& s) {
-  return s.operator!();
-}
+// The set complement operators @c ! / @c ~ are free combinators over IsSet,
+// defined right after the Set class (with @c & / @c |); see there.
 
 /** @brief @c Set @c ^ @c Ø @c = @c Set (symmetric difference with empty
  *         is identity; #469).  Symmetric of @c Ø::operator^(S) above —
@@ -1707,23 +1774,32 @@ concept HasStructuredOr =
       { structured_or(p1, p2) };
     };
 
+/** @brief Predicate-level conjunction @c p1 @c && @c p2: @c structured_and when
+ *  a domain collapse applies, else the reducer's @c Meet node, a callable
+ *  predicate @f$\chi_1 \wedge \chi_2@f$ that also carries its operands via
+ *  @c π_1 / @c π_2.  It is the @b same AST the set-level combinators use, so a
+ *  set-builder @c Set{x @c | @c p1 @c && @c p2} shares one representation with
+ *  @c A @c & @c B.  There is no separate @c AndPredicate. */
 export template <typename P1, typename P2>
 constexpr auto operator&&(P1&& p1, P2&& p2) {
   if constexpr (HasStructuredAnd<P1, P2>) {
     return structured_and(std::forward<P1>(p1), std::forward<P2>(p2));
   } else {
-    return AndPredicate<std::decay_t<P1>, std::decay_t<P2>>{
-        std::forward<P1>(p1), std::forward<P2>(p2)};
+    return Meet<std::decay_t<P1>, std::decay_t<P2>>{std::forward<P1>(p1),
+                                                    std::forward<P2>(p2)};
   }
 }
 
+/** @brief Predicate-level disjunction @c p1 @c || @c p2, dual to @c operator&&:
+ *  @c structured_or when a collapse applies, else the reducer's @c Join node.
+ */
 export template <typename P1, typename P2>
 constexpr auto operator||(P1&& p1, P2&& p2) {
   if constexpr (HasStructuredOr<P1, P2>) {
     return structured_or(std::forward<P1>(p1), std::forward<P2>(p2));
   } else {
-    return OrPredicate<std::decay_t<P1>, std::decay_t<P2>>{
-        std::forward<P1>(p1), std::forward<P2>(p2)};
+    return Join<std::decay_t<P1>, std::decay_t<P2>>{std::forward<P1>(p1),
+                                                    std::forward<P2>(p2)};
   }
 }
 

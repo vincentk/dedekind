@@ -58,6 +58,8 @@ export module dedekind.category:logic;
 import :mereology;
 import :morphism;
 import :species;
+import :involution;  // is_involutive / IsInvolution: witness that the logic
+                     // negation ¬ = L::RFL is an involution (¬¬ = id)
 
 namespace dedekind::category {
 
@@ -635,5 +637,42 @@ static_assert(TernaryLogic::RFL(Ternary::True) == Ternary::False &&
                   TernaryLogic::RFL(Ternary::False) == Ternary::True &&
                   TernaryLogic::RFL(Ternary::Unknown) == Ternary::Unknown,
               "K₃: RFL reflects about U (¬U = U)");
+
+/** @brief The logic negation ¬ = @c L::RFL as a callable object.  It exists so
+ *  the @c :involution machinery can witness that the negation is an involution
+ *  (@c ¬¬ = @c id).  @c :sets consults the witness to eliminate double negation
+ *  at the type level (@c !!A ≡ A). */
+export template <typename L>
+struct logic_complement {
+  constexpr typename L::Ω operator()(typename L::Ω a) const {
+    return L::RFL(a);
+  }
+};
+
+/** @brief Witness: Boolean negation is an involution.  @c ClassicalLogic's
+ *  @c RFL is @c std::logical_not on @c bool (@c !!b = b). */
+template <>
+struct is_involutive<logic_complement<ClassicalLogic>, bool> : std::true_type {
+};
+
+/** @brief Witness: Kleene negation is an involution.  @c TernaryLogic's @c RFL
+ *  reflects the K₃ chain about @c Unknown, so @c ¬¬a = a on all three values
+ *  (the static_asserts above prove it). */
+template <>
+struct is_involutive<logic_complement<TernaryLogic>, Ternary> : std::true_type {
+};
+
+/** @brief @c true iff the logic negation ¬ = @c L::RFL is a certified
+ *  involution.  Both shipped De Morgan logics (@c 𝔹, @c K₃) qualify; a future
+ *  intuitionistic species whose ¬¬ is only a closure would not.  Downstream
+ *  double-negation elimination gates on this so it stays honest per logic. */
+export template <typename L>
+inline constexpr bool logic_negation_is_involutive_v =
+    IsInvolution<logic_complement<L>, typename L::Ω>;
+
+static_assert(logic_negation_is_involutive_v<ClassicalLogic>,
+              "𝔹: ¬ is an involution, so !!A = A is sound");
+static_assert(logic_negation_is_involutive_v<TernaryLogic>,
+              "K₃: ¬ is an involution, so !!A = A is sound");
 
 }  // namespace dedekind::category
