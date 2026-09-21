@@ -466,7 +466,7 @@ static_assert(UnknownPredicate<int>{}(0) == Ternary::Unknown &&
                   UnknownPredicate<int>{}(42) == Ternary::Unknown,
               "UnknownPredicate answers Unknown everywhere");
 static_assert(!is_decided<TernaryLogic>(UnknownPredicate<int>{}(0)),
-              "UnknownPredicate is never in the decided core Σ ⊔ ¬Σ");
+              "UnknownPredicate is never in the decided core Σ = {⊤,⊥}");
 
 /** @brief The codomain leg of a set combine (#894), as one finalizer.
  *
@@ -515,18 +515,28 @@ using join_logic_t =
  *  structurally collapsing.  The structure-preserving lift + codomain-follows-
  *  normal-form is the follow-up (see #894). */
 export template <typename S, typename TargetL>
+  requires dedekind::category::LiftsTo<typename S::logic_species, TargetL>
 struct SpeciesLifted
     : SetExpr<SpeciesLifted<S, TargetL>, typename S::Domain, TargetL> {
+  /** @brief The wrapped subobject, whose χ is lifted into @c TargetL::Ω. */
   S base;
+  /** @brief Wrap @c s; the lift is a no-op semantically, only the codomain
+   *  advertised by @c operator() changes. */
   constexpr explicit SpeciesLifted(S s) : base(std::move(s)) {}
+  /** @brief χ at @c x, lifted through the dominance into @c TargetL::Ω. */
   constexpr typename TargetL::Ω operator()(const typename S::Domain& x) const {
     return dedekind::category::lift_logic<TargetL>(base(x));
   }
 };
 
 /** @brief Bring a subobject to codomain @c TargetL: identity when it is already
- *  there, else wrap it in @c SpeciesLifted. */
+ *  there, else wrap it in @c SpeciesLifted.  Constrained to a registered
+ *  dominance inclusion (@c LiftsTo), so a downward or unsupported lift (e.g.
+ *  @c lift_to<ClassicalLogic> of a Kleene set) is rejected at the gate rather
+ *  than failing inside @c lift_logic. */
 export template <typename TargetL, typename S>
+  requires dedekind::category::LiftsTo<
+      typename std::remove_cvref_t<S>::logic_species, TargetL>
 constexpr auto lift_to(const S& s) {
   if constexpr (std::same_as<typename std::remove_cvref_t<S>::logic_species,
                              TargetL>) {
@@ -1091,11 +1101,14 @@ class Set {
     if constexpr (IsComplementPair_v<Predicate, OtherPredicate>) {
       // A △ ¬A = 𝔸.  Codomain leg (#894): the universe is decided → Boole.
       return finalize_combine(UniversalSet<T, L>{});
-    } else if constexpr (std::same_as<std::decay_t<decltype(*this & other)>,
-                                      Ø<T, L>>) {
-      // Compile-time-disjoint optimisation (#469 / PR #523 review):
-      // A △ B = (A ∪ B) ∖ (A ∩ B); when @c A @c ∩ @c B is empty
-      // (the @c ∖ here is the Unicode set-difference glyph, used
+    } else if constexpr (IsInitialObject<
+                             std::decay_t<decltype(*this & other)>>) {
+      // NB: match the empty meet species-agnostically (IsInitialObject), not
+      // `same_as<..., Ø<T, L>>` --- the codomain leg (#894) may re-tag a
+      // disjoint meet's Ø to ClassicalLogic, and the structural A △ B = A ∪ B
+      // branch must still fire in that case. Compile-time-disjoint optimisation
+      // (#469 / PR #523 review): A △ B = (A ∪ B) ∖ (A ∩ B); when @c A @c ∩ @c B
+      // is empty (the @c ∖ here is the Unicode set-difference glyph, used
       // consistently throughout this comment block; literal @c \\ is
       // avoided to keep Doxygen rendering uniform).
       // (i.e.\ @c A & @c B reduces structurally to @c Ø<T, L> at the
@@ -1353,7 +1366,15 @@ export template <typename LHS, typename RHS>
            IsSubobject<RHS, typename RHS::Domain> &&
            std::same_as<typename LHS::Domain, typename RHS::Domain> &&
            (!std::same_as<typename LHS::logic_species,
-                          typename RHS::logic_species>)
+                          typename RHS::logic_species>) &&
+           dedekind::category::LiftsTo<
+               typename LHS::logic_species,
+               join_logic_t<typename LHS::logic_species,
+                            typename RHS::logic_species>> &&
+           dedekind::category::LiftsTo<
+               typename RHS::logic_species,
+               join_logic_t<typename LHS::logic_species,
+                            typename RHS::logic_species>>
 constexpr auto operator&(const LHS& lhs, const RHS& rhs) {
   using Log =
       join_logic_t<typename LHS::logic_species, typename RHS::logic_species>;
@@ -1366,7 +1387,15 @@ export template <typename LHS, typename RHS>
            IsSubobject<RHS, typename RHS::Domain> &&
            std::same_as<typename LHS::Domain, typename RHS::Domain> &&
            (!std::same_as<typename LHS::logic_species,
-                          typename RHS::logic_species>)
+                          typename RHS::logic_species>) &&
+           dedekind::category::LiftsTo<
+               typename LHS::logic_species,
+               join_logic_t<typename LHS::logic_species,
+                            typename RHS::logic_species>> &&
+           dedekind::category::LiftsTo<
+               typename RHS::logic_species,
+               join_logic_t<typename LHS::logic_species,
+                            typename RHS::logic_species>>
 constexpr auto operator|(const LHS& lhs, const RHS& rhs) {
   using Log =
       join_logic_t<typename LHS::logic_species, typename RHS::logic_species>;

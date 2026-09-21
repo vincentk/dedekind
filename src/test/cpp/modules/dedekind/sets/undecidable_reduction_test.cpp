@@ -7,8 +7,8 @@
  *   - @c UnknownPredicate, the archetypal undecidable predicate (answers
  *     @c Unknown everywhere), the Kleene-interior companion of the always-true
  *     @c UniversalPredicate and always-false @c EmptyPredicate; and
- *   - @c is_decided, the value-level Rosolini decided-core test Σ ⊔ ¬Σ
- *     (@c :logic), which recognises exactly the two-valued endpoints.
+ *   - @c is_decided, the value-level Rosolini decided-core test (@c :logic):
+ *     membership in Σ = {⊤,⊥}, the two-valued endpoints of Ω.
  *
  * The two-axis reduce on top of them:
  *   - the codomain leg: a combine that reduces to a boundary (@c Ø / @c 𝔸)
@@ -28,7 +28,7 @@ import dedekind.sets;
 using namespace dedekind::category;
 using namespace dedekind::sets;
 
-TEST_CASE("is_decided detects the two-valued core Σ ⊔ ¬Σ of Ω",
+TEST_CASE("is_decided detects the decided core Σ = {⊤,⊥} of Ω",
           "[category][logic][decidable][rosolini]") {
   // Classical: Σ = Ω, so every answer is decided.
   STATIC_CHECK(is_decided<ClassicalLogic>(true));

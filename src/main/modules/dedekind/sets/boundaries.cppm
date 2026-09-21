@@ -207,9 +207,10 @@ struct Ø final {
     return s;
   }
 
-  /** @brief Ø × S = Ø<pair<T, S::Domain>, L> — empty annihilates the
-   *         cartesian product on the @b left.  Carrier widens to the
-   *         pair type so the result is type-correct as a set of pairs. */
+  /** @brief Ø × S = Ø<pair<T, S::Domain>, ClassicalLogic> — empty annihilates
+   *         the cartesian product on the @b left.  Carrier widens to the pair
+   *         type; the codomain is Boolean (an empty product is decided, #894).
+   */
   template <typename S>
     requires(IsSet<S>)
   constexpr auto operator*(const S&) const {
@@ -223,9 +224,10 @@ struct Ø final {
 template <typename T, typename L>
 inline const Ø<T, L> Ø<T, L>::χ{};
 
-/** @brief S × Ø = Ø<pair<S::Domain, T2>, L> — empty annihilates the
- *         cartesian product on the @b right.  Symmetric companion to
- *         @c Ø::operator*; carrier widens to the pair type. */
+/** @brief S × Ø = Ø<pair<S::Domain, T2>, ClassicalLogic> — empty annihilates
+ * the cartesian product on the @b right.  Symmetric companion to
+ *         @c Ø::operator*; carrier widens to the pair type, codomain Boolean
+ *         (an empty product is decided, #894). */
 export template <typename S, typename T2, typename L>
   requires(IsSet<S> && !std::same_as<S, Ø<typename S::Domain, L>>)
 constexpr auto operator*(const S&, const Ø<T2, L>&) {
