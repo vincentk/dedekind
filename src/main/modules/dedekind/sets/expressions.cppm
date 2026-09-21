@@ -493,6 +493,49 @@ constexpr auto finalize_combine(R r) {
   }
 }
 
+/** @brief The join of two logic species (#894): 𝔹 ⊑ K₃ under the dominance, so
+ *  the more expressive Ω --- K₃ if either operand is K₃, else 𝔹.  The codomain
+ * a cross-species combine reduces at. */
+export template <typename L1, typename L2>
+using join_logic_t =
+    std::conditional_t < std::same_as<L1, dedekind::category::TernaryLogic> ||
+    std::same_as<L2, dedekind::category::TernaryLogic>,
+      dedekind::category::TernaryLogic, dedekind::category::ClassicalLogic > ;
+
+/** @brief A subobject re-tagged to a more expressive codomain @c TargetL: its χ
+ *  lifts through the Rosolini dominance (@c lift_logic) into @c TargetL::Ω.
+ *
+ *  @details Used to bring the operands of a cross-species combine to one
+ * codomain before the reducer folds them (#894): the same-species meet/join
+ * needs both χ valued in one Ω, and a mixed @c Meet term would shred the
+ * reducer.  This is the
+ *  @b naive lift --- it does @b not preserve the operand's structural type
+ *  (interval / halfspace), so a cross-species combine materialises as a
+ *  @c MeetSet / @c JoinSet (membership correct, pointwise) rather than
+ *  structurally collapsing.  The structure-preserving lift + codomain-follows-
+ *  normal-form is the follow-up (see #894). */
+export template <typename S, typename TargetL>
+struct SpeciesLifted
+    : SetExpr<SpeciesLifted<S, TargetL>, typename S::Domain, TargetL> {
+  S base;
+  constexpr explicit SpeciesLifted(S s) : base(std::move(s)) {}
+  constexpr typename TargetL::Ω operator()(const typename S::Domain& x) const {
+    return dedekind::category::lift_logic<TargetL>(base(x));
+  }
+};
+
+/** @brief Bring a subobject to codomain @c TargetL: identity when it is already
+ *  there, else wrap it in @c SpeciesLifted. */
+export template <typename TargetL, typename S>
+constexpr auto lift_to(const S& s) {
+  if constexpr (std::same_as<typename std::remove_cvref_t<S>::logic_species,
+                             TargetL>) {
+    return s;
+  } else {
+    return SpeciesLifted<std::remove_cvref_t<S>, TargetL>{s};
+  }
+}
+
 /** @brief Predicate-level complement wrapper used for set-collapse detection.
  */
 export template <typename Predicate>
@@ -1297,6 +1340,37 @@ constexpr auto operator|(const LHS& lhs, const RHS& rhs) {
           structured_or(lhs.predicate(), rhs.predicate())));
     }
   }
+}
+
+/** @brief Cross-species meet (#894, step i): two subobjects over the same
+ *  carrier but @b different codomains join to the more expressive one; lift
+ * both there, then the same-species meet above folds them.  This lets a mixed
+ *  @c Boole @c ∩ @c Kleene combine into the reducer at all.  Same-species
+ *  combines are untouched (this overload requires the species to @b differ, so
+ *  it never competes with the meet above). */
+export template <typename LHS, typename RHS>
+  requires IsSubobject<LHS, typename LHS::Domain> &&
+           IsSubobject<RHS, typename RHS::Domain> &&
+           std::same_as<typename LHS::Domain, typename RHS::Domain> &&
+           (!std::same_as<typename LHS::logic_species,
+                          typename RHS::logic_species>)
+constexpr auto operator&(const LHS& lhs, const RHS& rhs) {
+  using Log =
+      join_logic_t<typename LHS::logic_species, typename RHS::logic_species>;
+  return lift_to<Log>(lhs) & lift_to<Log>(rhs);
+}
+
+/** @brief Cross-species join, dual to the cross-species meet (#894, step i). */
+export template <typename LHS, typename RHS>
+  requires IsSubobject<LHS, typename LHS::Domain> &&
+           IsSubobject<RHS, typename RHS::Domain> &&
+           std::same_as<typename LHS::Domain, typename RHS::Domain> &&
+           (!std::same_as<typename LHS::logic_species,
+                          typename RHS::logic_species>)
+constexpr auto operator|(const LHS& lhs, const RHS& rhs) {
+  using Log =
+      join_logic_t<typename LHS::logic_species, typename RHS::logic_species>;
+  return lift_to<Log>(lhs) | lift_to<Log>(rhs);
 }
 
 /** @brief @c is_set_node_v is true for the concrete set-node types @c Set /

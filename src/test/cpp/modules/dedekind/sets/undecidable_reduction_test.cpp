@@ -82,3 +82,42 @@ TEST_CASE("Reduction restores decidability: U ∧ Ø → Ø, decided (#894)",
   constexpr auto join = U | A;
   STATIC_CHECK(HasDecidableMembership<decltype(join)>);
 }
+
+TEST_CASE("Cross-species combine: Boole ∩ Kleene lifts into the reducer (#894)",
+          "[sets][decidable][rosolini][mixed]") {
+  // Same carrier, different codomains: A over Boole, B over Kleene.
+  constexpr Set<int, ClassicalLogic, UniversalPredicate<int>> A{
+      UniversalPredicate<int>{}};
+  constexpr Set<int, TernaryLogic, UnknownPredicate<int>> B{
+      UnknownPredicate<int>{}};
+  constexpr Ø<int, TernaryLogic> E{};
+
+  // The mixed-species meet now type-checks; the same-species gate rejected it
+  // before.  Operands lift to the joined codomain K₃, then fold (membership is
+  // pointwise-correct; the structural collapse is the follow-up).
+  constexpr auto mixed = A & B;
+  STATIC_CHECK_FALSE(HasDecidableMembership<decltype(mixed)>);
+  STATIC_CHECK(mixed(7) == Ternary::Unknown);  // lift(⊤) ∧ Unknown = Unknown
+
+  // A boundary annihilates across the species join, and the survivor carries
+  // the decided Boolean codomain.
+  constexpr auto collapsed = A & E;
+  STATIC_CHECK(HasDecidableMembership<decltype(collapsed)>);
+}
+
+TEST_CASE("Codomain leg on complement / product / symmetric difference (#894)",
+          "[sets][decidable][rosolini][reduction]") {
+  constexpr Set<int, ClassicalLogic, UniversalPredicate<int>> A{
+      UniversalPredicate<int>{}};
+
+  // Runtime calls (not static_assert) so the boundary-operator bodies are
+  // exercised for coverage; each lands on a decided boundary.
+  const auto not_empty = !Ø<int, TernaryLogic>{};  // !Ø = 𝔸
+  CHECK(HasDecidableMembership<std::decay_t<decltype(not_empty)>>);
+  const auto not_univ = !UniversalSet<int, TernaryLogic>{};  // !𝔸 = Ø
+  CHECK(HasDecidableMembership<std::decay_t<decltype(not_univ)>>);
+  const auto empty_prod = Ø<int, TernaryLogic>{} * A;  // Ø × S = Ø
+  CHECK(HasDecidableMembership<std::decay_t<decltype(empty_prod)>>);
+  const auto excluded = A ^ !A;  // A △ ¬A = 𝔸
+  CHECK(HasDecidableMembership<std::decay_t<decltype(excluded)>>);
+}
