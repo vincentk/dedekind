@@ -1162,9 +1162,15 @@ export template <typename LHS, typename RHS>
 constexpr auto operator&(const LHS& lhs, const RHS& rhs) {
   using T = typename LHS::Domain;
   using Log = typename LHS::logic_species;
-  if constexpr (are_complement_sets_v<LHS, RHS>) {
-    // FIXME(#865): a ∧ ¬a = ⊥. Held until the engine's complement law
-    // recognises the predicate-pair encoding as a structural Not.
+  if constexpr (are_complement_sets_v<LHS, RHS> &&
+                std::same_as<Log, ClassicalLogic>) {
+    // a ∧ ¬a = ⊥, the law of non-contradiction.  Gated on ClassicalLogic: a
+    // general bounded chain offers only REFLECTION (¬ = RFL, an involution),
+    // not full complementation.  Kleene K3 fails it, at Unknown a ∧ ¬a = U, not
+    // ⊥ (#860).  A Ternary complement pair therefore falls through to the
+    // reducer and stays an un-collapsed MeetSet, whose pointwise L::AND yields
+    // U at the middle (sound).  FIXME(#865): generalise the collapse once the
+    // reducer recognises the predicate-pair encoding as a structural Not.
     return Ø<T, Log>{};
   } else {
     using R = subobject_reduce_t<Meet<LHS, RHS>, Log, SetCombine>;
@@ -1198,8 +1204,12 @@ export template <typename LHS, typename RHS>
 constexpr auto operator|(const LHS& lhs, const RHS& rhs) {
   using T = typename LHS::Domain;
   using Log = typename LHS::logic_species;
-  if constexpr (are_complement_sets_v<LHS, RHS>) {
-    // FIXME(#865): a ∨ ¬a = ⊤ (dual of the meet complement collapse).
+  if constexpr (are_complement_sets_v<LHS, RHS> &&
+                std::same_as<Log, ClassicalLogic>) {
+    // a ∨ ¬a = ⊤, excluded middle (dual of the meet collapse).  Gated on
+    // ClassicalLogic for the same reason: a bounded chain offers reflection,
+    // not complementation, so Kleene K3 (¬U = U, a ∨ ¬a = U ≠ ⊤) falls through
+    // to an un-collapsed JoinSet whose pointwise L::OR is sound (#860).
     return UniversalSet<T, Log>{};
   } else {
     using R = subobject_reduce_t<Join<LHS, RHS>, Log, SetCombine>;

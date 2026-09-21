@@ -427,7 +427,12 @@ struct Meet {  // A ∧ B
    *  @c &&.
    *  @note LAYERING: the node stays LATTICE ALGEBRA only; the Set-specific
    *  subobject lift (@c Member / @c ι / @c IsSet) lives DOWNSTREAM in @c sets.
-   */
+   *  @note The @c logic_species branch feeds operand results straight to
+   *  @c L::AND, so it assumes operands return the RAW @c L::Ω.  The @c :sets
+   *  surface always does (membership is @c lift_logic<L>, which yields @c L::Ω,
+   *  never a @c Truth<L> wrapper), so this is sound there.  A callable whose
+   *  codomain is @c Truth<L> would need unwrapping first; that path is not
+   *  reached through @c sets. */
   template <typename X>
     requires requires(const A& l, const B& r, const X& x) {
       l(x);
