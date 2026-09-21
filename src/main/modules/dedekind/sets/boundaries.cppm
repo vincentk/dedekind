@@ -386,18 +386,21 @@ inline constexpr UniversalSet<bool, ClassicalLogic, Finite> 𝔸<bool>{};
  *  generic lattice-law term reducer (@c category:lattice_term, #865/#890)
  *  normalises set expressions: @c Ø is its bottom (⊥, initial), @c 𝔸 its top
  *  (⊤, terminal).  Keying by @c L lets the algebra markers distinguish
- *  @c ClassicalLogic (a @b Boolean subobject lattice — every law) from
+ *  @c ClassicalLogic (a @b Boolean subobject lattice, every law) from
  *  @c TernaryLogic (Heyting / De Morgan, no complement collapse). */
 export template <typename L = ClassicalLogic>
 struct subobject_order {};
 
 /** @brief The lattice-law term reducer localised to the subobject lattice
  *  @c Sub(T): normalise @c Term under @c subobject_order<L> as @b both the
- *  semantic order (@c Ord, boundedness / distributivity / complement) and the
- *  canonicalisation order (@c Less).  Every set-level meet / join / complement
- *  route (the boundary operators below, and @c Set::operator&/|/~ in
- *  @c :expressions) folds through this one alias, so the injected-order policy
- *  for @c Sub(T) is named in a single place (#865/#890, Phase 2). */
+ *  semantic order (@c Ord, boundedness / distributivity) and the
+ *  canonicalisation order (@c Less).  The set-level @b meet and @b join routes
+ *  fold through this one alias (the boundary operators below, and the free
+ *  @c operator& / @c operator| over @c IsSubobject in @c :expressions), so the
+ *  injected-order policy for @c Sub(T) is named in a single place (#865/#890,
+ *  Phase 2).  @b Complement does @b not route here: the free @c operator! in
+ *  @c :expressions is a certified involution that eliminates double negation
+ * via the @c :involution witness (@c !!A ≡ A). */
 export template <typename Term, typename L = ClassicalLogic,
                  typename Combine = no_leaf_combine>
 using subobject_reduce_t =
@@ -420,7 +423,7 @@ constexpr auto Ø<T, L>::operator!() const {
  *
  *  @c materialize_boundary: the reducer works on @b types, so the normal form
  *  is turned back into a value.  Either the term collapsed to a stateless
- *  boundary (@c Ø / @c UniversalSet — default-construct it), or the surviving
+ *  boundary (@c Ø / @c UniversalSet, default-construct it), or the surviving
  *  operand is the normal form (return the operand value @c s).  These are the
  *  only two shapes a bounded-law collapse can produce for a boundary term. */
 namespace detail_boundary {
@@ -434,7 +437,7 @@ constexpr auto materialize(const S& s) {
 }
 }  // namespace detail_boundary
 
-/** @brief @c Ø @c & @c S / @c Ø @c | @c S --- @c Ø is the ⊥ of @c Sub(T)
+/** @brief @c Ø @c & @c S / @c Ø @c | @c S: @c Ø is the ⊥ of @c Sub(T)
  *  meeting / joining any set.  Free operators (the Ø-LHS members were retired);
  *  overload resolution pins them by the @c Ø operand. */
 export template <typename T, typename L, typename S>
@@ -451,7 +454,7 @@ constexpr auto operator|(const Ø<T, L>&, const S& s) {
       s);
 }
 
-/** @brief @c 𝔸 @c & @c S / @c 𝔸 @c | @c S --- @c 𝔸 is the ⊤ of @c Sub(T)
+/** @brief @c 𝔸 @c & @c S / @c 𝔸 @c | @c S: @c 𝔸 is the ⊤ of @c Sub(T)
  *  meeting / joining any set.  Free operators (the UniversalSet-LHS members
  * were retired); pinned by the @c UniversalSet operand. */
 export template <typename T, typename L, typename C, typename S>
@@ -693,7 +696,7 @@ struct is_lattice_top_for<dedekind::sets::UniversalSet<T, L, C>,
 // Foot-in-the-door witness: the engine now sees Ø as the ⊥ and 𝔸 as the ⊤ of
 // Sub(T) under subobject_order, so its bounded law reduces boundary meets/joins
 // (the annihilator / unit laws the hand-written Ø / 𝔸 operators currently
-// spell by hand — retired next).
+// spell by hand (retired next).
 static_assert(
     std::same_as<
         dedekind::sets::subobject_reduce_t<

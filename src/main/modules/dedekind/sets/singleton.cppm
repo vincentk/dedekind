@@ -218,7 +218,7 @@ struct SingletonSet {
   /** @section singleton__Unified_Lattice_Operations */
 
   /** @brief Union of two atoms @f$\{a\}\cup\{b\}@f$ as the @b recoverable
-   *  reducer @c category::Join node (#892; was @c OrPredicate) --- the #365
+   *  reducer @c category::Join node (#892; was @c OrPredicate).  It is the #365
    *  replacement for the opaque comprehension lambda.  No @c element scout, no
    *  lambda: the two pivots survive in @c decltype (reachable as
    *  @c .predicate().lhs / @c .rhs), so the union can

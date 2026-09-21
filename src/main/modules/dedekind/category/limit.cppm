@@ -320,8 +320,8 @@ constexpr auto π_2(const P& p) {
  * to @c AnyOperation (unconstrained; the base case, ignored).  A named @c Op
  * must build the product: @c Op{}(a,b) is convertible to @c P (the Haskell pair
  * constructor @c (,) specialised to @c P).  Its @b result type is the
- * discriminator, so @c sets tells a meet-pairing (@c MakeAndPredicate, pullback
- * legs) from a join-pairing (@c MakeOrPredicate, pushout colegs) without a
+ * discriminator, so the lattice AST tells a meet-pairing (@c MakeMeet, pullback
+ * legs) from a join-pairing (@c MakeJoin, pushout colegs) without a
  * separate concept.  #881.
  */
 /**
@@ -336,7 +336,7 @@ constexpr auto π_2(const P& p) {
  * @c B → C.  This is how algebra keys @c IsMonoid<X,Op> by @c Op --- the
  * operation is a first-class, defaulted parameter, ignored in the base case.
  * The factory's @b result type is what distinguishes otherwise-identical shapes
- * (e.g. @c sets::AndPredicate ∧ vs @c OrPredicate ∨: only the matching factory
+ * (e.g. @c Meet ∧ vs @c Join ∨: only the matching factory
  * builds @c P).
  */
 export struct AnyOperation {};
@@ -392,7 +392,7 @@ struct Π_2 {
  *  @details Extends @c IsProduct with @c IsArrow on the reified projections
  *  @c Π_1<P> / @c Π_2<P> (@c Domain @c = @c P, @c Codomain the
  * corresponding part).  The shared @c IsProduct is deliberately left @b
- * structural --- requiring arrow projections across all ~40 product witnesses
+ * structural, requiring arrow projections across all ~40 product witnesses
  * (@c std::pair,
  *  @c Complex, @c Dual, ...) would be a separate 6-module refactor.  The
  * reducer nodes @c :lattice::Meet / @c Join (and their downstream @c sets lifts

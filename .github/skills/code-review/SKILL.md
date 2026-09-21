@@ -44,7 +44,7 @@ Coherence checks:
   downstream (a `static_assert` binding the added law to the upstream concept).
   When a fix restores a law (an involution `f∘f = id`, an idempotent `a∧a = a`, a
   De Morgan dual), check whether the law already lives upstream and can be
-  *inherited* — a downstream gate consulting an upstream witness — before
+  *inherited* (a downstream gate consulting an upstream witness) before
   accepting a local, hand-rolled fix that re-states the law. Flag a downstream
   quick-fix when the proper fix derives from an upstream construction or axiom.
 - **Prefer concept gates over bespoke plumbing.** Express a constraint as a

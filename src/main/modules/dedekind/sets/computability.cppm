@@ -28,7 +28,7 @@
  *
  * @section computability__Reduction_Restores_Decidability
  *
- * The @c Set::operator& / @c operator| machinery monotonically tightens
+ * The free @c operator& / @c operator| machinery monotonically tightens
  * the decidability classification as compile-time reductions succeed.
  * An intensional Set over a transfinite carrier starts at the bottom
  * (TernaryLogic, opaque predicate); a structural reduction to @c Ø or

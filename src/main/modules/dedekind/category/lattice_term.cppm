@@ -176,8 +176,8 @@ consteval auto meet_assemble() {
           using Dist =
               typename decltype(meet_distributivity_law<RA, RB, Ord>())::type;
           if constexpr (!std::same_as<Dist, law_inactive>) {
-            // distributed to a join-of-meets; re-reduce toward DNF (terminates
-            // — one direction only).
+            // distributed to a join-of-meets; re-reduce toward DNF.  This
+            // terminates in one direction only.
             return std::type_identity<reduce_t<Dist, Less, Ord, Combine>>{};
           } else {
             using Glb = typename decltype(meet_glb_law<RA, RB, Ord>())::type;

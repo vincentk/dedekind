@@ -142,8 +142,8 @@ static_assert(!SameCarrier<TopI, Join<I3, Lit<true>>>,
               "…nor a NESTED mixed-carrier composite (recursive fail-closed).");
 
 // A predicate / subobject leaf is an arrow χ:Domain→Ω (IsArrow); carrier_of
-// reads its Domain (reusing the category arrow surface, not a bespoke probe) —
-// the bridge that lets the carrier-based gates apply to the forthcoming sets
+// reads its Domain (reusing the category arrow surface, not a bespoke probe).
+// That bridges the carrier-based gates to the forthcoming sets
 // specialisation.
 struct CharLeaf {  // a minimal characteristic arrow int → bool
   using Domain = int;
@@ -167,7 +167,7 @@ struct GELeaf {  // χ: n ↦ (n ≥ threshold), a classical characteristic arro
   constexpr bool operator()(const int& n) const { return n >= threshold; }
 };
 static_assert(Meet<GELeaf, GELeaf>{GELeaf{2}, GELeaf{5}}(7),
-              "(·≥2) ∧ (·≥5) holds at 7 — the Meet node evaluates the meet.");
+              "(·≥2) ∧ (·≥5) holds at 7: the Meet node evaluates the meet.");
 static_assert(!Meet<GELeaf, GELeaf>{GELeaf{2}, GELeaf{5}}(3),
               "(·≥2) ∧ (·≥5) fails at 3 (3 ≥ 5 is false).");
 static_assert(Join<GELeaf, GELeaf>{GELeaf{2}, GELeaf{5}}(3),
@@ -179,7 +179,7 @@ static_assert(!Not<GELeaf>{GELeaf{5}}(7), "¬(·≥5) fails at 7 (7 ≥ 5).");
 // A binary node IS the categorical product / coproduct of its operands (#881,
 // hoisted here from sets:AndPredicate / OrPredicate): the pairing ⟨χ_A, χ_B⟩
 // with the π_1 / π_2 accessors, keyed by the MakeMeet / MakeJoin factory (whose
-// result type — Meet vs Join — discriminates the pullback from the pushout).
+// result type (Meet vs Join) discriminates the pullback from the pushout).
 static_assert(IsProduct<Meet<GELeaf, GELeaf>, GELeaf, GELeaf, MakeMeet>,
               "Meet ⟨χ_A, χ_B⟩ is the categorical product keyed by MakeMeet.");
 static_assert(IsProduct<Join<GELeaf, GELeaf>, GELeaf, GELeaf, MakeJoin>,

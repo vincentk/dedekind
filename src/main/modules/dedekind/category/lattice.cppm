@@ -161,7 +161,7 @@ module;
 export module dedekind.category:lattice;
 
 import :logic;
-import :morphism;    // IsArrow — the Domain/Codomain surface a predicate leaf
+import :morphism;    // IsArrow: the Domain/Codomain surface a predicate leaf
                      // (χ:Domain→Ω) presents; carrier_of reuses it (below)
 import :involution;  // is_involutive_v + IsInvolution (extracted from here)
 import :posetal;     // IsPosetal — row 2 (thin + antisymmetric);
@@ -412,10 +412,10 @@ static_assert(LatticeTop<bool, std::less_equal<bool>>::value == true,
  *  carries the operands and evaluates pointwise through the operands' shared
  *  @c logic_species (@c ∧ = @c L::AND, @c ∨ = @c L::OR, @c ¬ = @c L::RFL).  The
  *  @c operator() is @b guarded, so it exists only when the operands are
- *  callable predicates over one logic --- the type-level tag use is unaffected.
- *  This is the seam toward "the AST is the set" (#892): as set operators come
- *  to return these nodes, the predicate-nested @c AndPredicate / @c OrPredicate
- *  residual and its materialisation bridge dissolve. */
+ *  callable predicates over one logic.  The type-level tag use is unaffected.
+ *  This is the seam toward "the AST is the set" (#892): the set operators now
+ *  return these nodes, and the predicate-nested collapse representation they
+ *  replaced (the retired @c AndPredicate / @c OrPredicate) has been removed. */
 export template <typename A, typename B>
 struct Meet {  // A ∧ B
   A lhs;
@@ -445,6 +445,10 @@ export template <typename A, typename B>
 struct Join {  // A ∨ B
   A lhs;
   B rhs;
+  /** @brief Evaluate the join at @c x, dual to @c Meet::operator().  With a
+   *  @c logic_species the combination is that logic's @c OR; for plain
+   *  bool-returning callables it is the bare @c ||.  Operand storage is touched
+   *  only through the @c π_1 / @c π_2 accessors. */
   template <typename X>
     requires requires(const A& l, const B& r, const X& x) {
       l(x);
@@ -461,6 +465,9 @@ struct Join {  // A ∨ B
 export template <typename A>
 struct Not {  // ¬A (complement)
   A base;
+  /** @brief Evaluate the complement at @c x.  With a @c logic_species the value
+   *  is that logic's @c RFL (reflection / negation, honouring Kleene / Heyting
+   *  Ω); for a plain bool-returning callable it is the bare @c !. */
   template <typename X>
     requires requires(const A& b, const X& x) { b(x); }
   constexpr auto operator()(const X& x) const {
@@ -474,18 +481,19 @@ struct Not {  // ¬A (complement)
 
 /** @section lattice__AST_as_product
  *  A binary node @b is the categorical product / coproduct of its operands, so
- *  it inhabits @c category::IsProduct (mirroring @c sets::AndPredicate /
- *  @c OrPredicate, #881, now hoisted to where the AST lives).  The operands are
- *  recovered by the free @c π_1 / @c π_2 accessors (found by ADL, overriding
- * the default @c .first / @c .second projection), and @c MakeMeet / @c MakeJoin
- * are the pairing FACTORIES @f$\langle -,- \rangle: A \times B \to P@f$ --- the
+ *  it inhabits @c category::IsProduct (the role @c sets::AndPredicate /
+ *  @c OrPredicate held before #892, now hoisted to where the AST lives).  The
+ * operands are recovered by the free @c π_1 / @c π_2 accessors (found by ADL,
+ * overriding the default @c .first / @c .second projection), and @c MakeMeet /
+ * @c MakeJoin are the pairing FACTORIES @f$\langle -,- \rangle: A \times B \to
+ * P@f$, the
  *  @c Op that @c IsProduct names, whose @b result type (@c Meet vs @c Join)
  *  discriminates the meet-pairing (pullback) from the join-pairing (pushout).
  *  The meet / join distinction is the reduction (@c ∧ vs @c ∨), not the
  * pairing; both nodes store and project both operands. */
 /** @brief π_1: the left-operand accessor of a binary node, returned @b by
  *  const-reference.  The operand may itself be a whole set expression (a nested
- *  node), and @c π_1 / @c π_2 are pure projections --- they must not copy the
+ *  node), and @c π_1 / @c π_2 are pure projections.  They must not copy the
  *  sub-structure.  When the operand is a set, @c π_1(node) is then a bona fide
  *  reference to that @c IsSet (the downstream @c sets lift relies on this).
  *  Still @c ->convertible_to<A>, so @c IsProduct is satisfied. */
@@ -722,6 +730,22 @@ export template <typename X>
 inline constexpr bool idempotent_leaf_v =
     std::is_empty_v<std::remove_cvref_t<X>>;
 
+/** @brief A compound node is value-determined iff its operands are.  So a
+ *  @c Meet / @c Join / @c Not of value-determined leaves stays collapsible,
+ *  while one carrying a runtime-stateful leaf does not.  This keeps the
+ *  value-safety gate @b recursive rather than treating every operand-storing
+ *  node as stateful (@c Meet / @c Join / @c Not now store their operands, so
+ * the bare @c std::is_empty_v default would report @c false for all of them).
+ */
+template <typename A, typename B>
+inline constexpr bool idempotent_leaf_v<Meet<A, B>> =
+    idempotent_leaf_v<A> && idempotent_leaf_v<B>;
+template <typename A, typename B>
+inline constexpr bool idempotent_leaf_v<Join<A, B>> =
+    idempotent_leaf_v<A> && idempotent_leaf_v<B>;
+template <typename A>
+inline constexpr bool idempotent_leaf_v<Not<A>> = idempotent_leaf_v<A>;
+
 /** @brief Law induced by a @b (meet/join-)semilattice: idempotence @c X∧X=X /
  *  @c X∨X=X.  Structural: it holds for the lattice operation itself, so it does
  *  not depend on the carrier's order.  It fires even for order-incomparable
@@ -763,9 +787,9 @@ export template <typename RA, typename RB>
 consteval auto meet_structural_absorption_law() {
   if constexpr (has_mixed_carrier_v<Meet<RA, RB>>) {
     return std::type_identity<law_inactive>{};  // mixed carrier ⟹ fail closed
-  } else if constexpr (is_join_containing_v<RA, RB>) {
+  } else if constexpr (is_join_containing_v<RA, RB> && idempotent_leaf_v<RA>) {
     return std::type_identity<RA>{};  // a ∧ (a ∨ b) = a
-  } else if constexpr (is_join_containing_v<RB, RA>) {
+  } else if constexpr (is_join_containing_v<RB, RA> && idempotent_leaf_v<RB>) {
     return std::type_identity<RB>{};  // (a ∨ b) ∧ a = a
   } else {
     return std::type_identity<law_inactive>{};
@@ -778,9 +802,9 @@ export template <typename RA, typename RB>
 consteval auto join_structural_absorption_law() {
   if constexpr (has_mixed_carrier_v<Join<RA, RB>>) {
     return std::type_identity<law_inactive>{};  // mixed carrier ⟹ fail closed
-  } else if constexpr (is_meet_containing_v<RA, RB>) {
+  } else if constexpr (is_meet_containing_v<RA, RB> && idempotent_leaf_v<RA>) {
     return std::type_identity<RA>{};  // a ∨ (a ∧ b) = a
-  } else if constexpr (is_meet_containing_v<RB, RA>) {
+  } else if constexpr (is_meet_containing_v<RB, RA> && idempotent_leaf_v<RB>) {
     return std::type_identity<RB>{};
   } else {
     return std::type_identity<law_inactive>{};
@@ -991,7 +1015,7 @@ consteval auto de_morgan_law() {
 // ── Complement collapse (induced by a genuinely COMPLEMENTED lattice) ─────
 // STRONGER than De Morgan negation: a complemented lattice additionally proves
 // the complement laws a∧¬a=⊥ (contradiction) and a∨¬a=⊤ (excluded middle).  A
-// De Morgan algebra alone (e.g. Kleene K3) does NOT — a∧¬a can be the middle —
+// De Morgan algebra alone (e.g. Kleene K3) does NOT (a∧¬a can be the middle).
 // so this is a distinct, opt-in gate.
 
 /** @brief Does the lattice (carrier @c T, order @c Ord) carry a genuine
@@ -1438,9 +1462,9 @@ static_assert(
  * predicate-type closed carrier.  Concretely, when no structural collapse
  * fires (a @c structured_and / @c structured_or reduction to a halfspace,
  * interval, @c Singleton, @c Ø or @c UniversalSet, or an @c IsComplementPair
- * short-circuit), @c Set<T, L, P> @c & @c Set<T, L, Q> returns
- * @c Set<T, L, AndPredicate<P,Q>> (dually, @c | returns @c OrPredicate<P,Q>) —
- * a different predicate type, but the same @c Ambient and @c logic_species.
+ * short-circuit), @c A @c & @c B returns a @c MeetSet<A,B> carrying both
+ * operand sets (dually, @c | returns a @c JoinSet<A,B>).  The node is a
+ * different type, but over the same @c Ambient and @c logic_species.
  *
  * @section lattice__Family_Anchor
  * The @b ambient @c A is the anchor (per #712 review): a subobject

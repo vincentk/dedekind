@@ -13,7 +13,7 @@
  * calculus of relations (Tarski 1941, "On the Calculus of Relations") is the
  * Boolean involutive monoid on that carrier: converse @f$R^{\circ}@f$
  * (@c converse / @c SwapPred), relative product @f$R;S@f$ (@c operator>> /
- * @c ComposePred), union @f$R\cup S@f$ (the set-grammar @c | / @c OrPredicate),
+ * @c ComposePred), union @f$R\cup S@f$ (the set-grammar @c | / @c Join),
  * meet @f$R\cap S@f$ (@c operator& / @c RelAnd), the diagonal @f$\Delta@f$
  * (@c diag), and the derived @c reflexive / @c symmetric closures.  The
  * reflexive-transitive closure @f$R^{*}@f$ would be the Kleene star over
@@ -249,7 +249,7 @@ struct RelAnd {
 /** @brief Join (disjunction) of two relational PREDICATES --- the dual of
  *  @c RelAnd, and the marker-preserving carrier for the pointwise @c || on
  *  @c relpred.  Distinct from relation UNION at the SET level (@c r @c | @c s,
- *  the @c OrPredicate join of two @c Set<pair>): @c RelOr composes two bare
+ *  the @c Join of two @c Set<pair>): @c RelOr composes two bare
  *  pair-PREDICATES so the result is itself an @c IsRelPredicate (usable in the
  *  comprehension @c 𝔸<pair> @c | @c relpred).  (#864 dropped the old
  *  @c operator+ spelling; this is the @c && / @c || dual re-introduced (#824)
@@ -269,7 +269,7 @@ struct RelOr {
 
 // Relation UNION at the SET level is the set-grammar join @c |: two relations
 // over the same product are two @c Set<pair>, so @c r @c | @c s is their
-// @c OrPredicate union (@c :sets, #365).  @c ; (@c >>) is the relation product
+// @c Join union (@c :sets, #365).  @c ; (@c >>) is the relation product
 // and @c * (closure) is @c FIXME(#786).
 
 // ── converse and the bracket-free relation query ───────────────────────────
@@ -343,7 +343,7 @@ constexpr auto operator>>(const Set<std::pair<A, B>, L, PR>& r,
 // ── Meet, the diagonal, reflexive / symmetric closures ─────────────────────
 // (Union is the set-grammar @c |: see the note above @c SwapPred.)
 /** @brief @c R @c & @c S --- the INTERSECTION (meet) of two relations over the
- *  same product, dual to the union @c | (@c OrPredicate): membership is both
+ *  same product, dual to the union @c | (@c Join): membership is both
  *  predicates (@c RelAnd).  The Boolean-lattice ∩ on relations. */
 export template <typename A, typename B, typename L, typename PR, typename PS>
 constexpr auto operator&(const Set<std::pair<A, B>, L, PR>& r,

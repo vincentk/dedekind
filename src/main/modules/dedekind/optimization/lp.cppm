@@ -862,7 +862,7 @@ constexpr auto lp_extract(Polytope2D<T, cx, cy, Hs...>) {
  *  The integration with `:expressions` rides on the existing
  *  @c structured_and customization point (the same one @c :order:halfspace
  *  uses to collapse one-dimensional halfspace meets to singletons /
- *  intervals / empty).  @c :expressions::Set::operator& discovers our
+ *  intervals / empty).  @c :expressions::operator& discovers our
  *  @c structured_and overloads via ADL on the predicate types and
  *  produces a structurally-typed Set:
  *
@@ -881,12 +881,12 @@ constexpr auto lp_extract(Polytope2D<T, cx, cy, Hs...>) {
  *  @c operator() — the predicate Set DSL participants are built from.
  *  ADL through this type's namespace (`:optimization`) lets the
  *  @c structured_and overloads below intercept halfspace meets inside
- *  @c :expressions::Set::operator& . */
+ *  @c :expressions::operator& . */
 export template <typename T, T a, T b, T c>
 struct Halfspace2DPredicate {
   using Domain = dedekind::linear_algebra::Vec2V<T>;
   // `cardinality_type` here serves @em two purposes for the
-  // `:expressions::Set::operator&` dispatch on the structured result
+  // `:expressions::operator&` dispatch on the structured result
   // (see `:expressions::expressions.cppm:708-715`):
   //
   //   1. Required for substitution well-formedness.  The Finite-elevation
@@ -927,7 +927,7 @@ export template <typename T, typename... Hs>
 struct Polytope2DPredicate {
   using Domain = dedekind::linear_algebra::Vec2V<T>;
   // Same typed-defaulting rationale as @ref Halfspace2DPredicate (1)
-  // substitution well-formedness for `:expressions::Set::operator&`'s
+  // substitution well-formedness for `:expressions::operator&`'s
   // Finite-elevation branch (which references `Result::cardinality_type`
   // outside a `requires` guard, so the typedef must exist for the body
   // to type-check), and (2) classification — `ℵ_0` routes the structured
@@ -952,7 +952,7 @@ constexpr auto halfspace_set(Halfspace2D<T, a, b, c>) {
 
 /** @section lp__structured_and_overloads
  *
- *  Customization point: when @c :expressions::Set::operator& meets two
+ *  Customization point: when @c :expressions::operator& meets two
  *  predicates, it tries @c structured_and(p1, p2) via ADL before
  *  falling back to a lambda meet.  Our overloads here let the DSL
  *  recognise halfspace + halfspace, polytope + halfspace, and halfspace
@@ -992,7 +992,7 @@ constexpr auto structured_and(Halfspace2DPredicate<T, a, b, c>,
 
 /** @brief Polytope + polytope → concatenate the halfspace packs.  Without
  *  this overload, a right-associative meet `(H1 & H2) & (H3 & H4)` would
- *  fall through to the lambda meet in @c :expressions::Set::operator& ;
+ *  fall through to the lambda meet in @c :expressions::operator& ;
  *  the whole point of @c structured_and is that the structural collapse
  *  must not depend on how the source bracketed the meet. */
 export template <typename T, typename... Hs1, typename... Hs2>

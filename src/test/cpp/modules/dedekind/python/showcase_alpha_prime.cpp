@@ -68,7 +68,7 @@ constexpr auto S = Set{in<ℕ> | in<ℕ> > bound<5>};
 // the opaque λ inside the comprehension, but the carrier-axis witness
 // is sufficient at this layer.
 
-// (2) Tested.  Compile-time membership query — the rule is the type, so
+// (2) Tested.  Compile-time membership query: the rule is the type, so
 //     `S(7u)` is constant-evaluable and reads as bare @c bool.
 static_assert(S(7u));
 

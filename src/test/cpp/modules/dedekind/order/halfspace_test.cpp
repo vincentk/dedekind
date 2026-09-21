@@ -307,7 +307,7 @@ TEST_CASE("order:halfspace — covering XOR stays an IsSet (#864 CP review)",
 }
 
 TEST_CASE(
-    "order:halfspace — MeetSet/JoinSet fallbacks are directly covered "
+    "order:halfspace: MeetSet/JoinSet fallbacks are directly covered "
     "(#365/#892)",
     "[order][halfspace][set][predicate]") {
   SECTION(

@@ -249,8 +249,8 @@ struct MembershipBinding {
    *  which produces a @c BooleanEqPredicate{true}.  This overload
    *  rewrites the bare form to that canonical predicate so the
    *  existing collapse machinery ( @c structured_and / @c
-   *  FiniteBooleanSet operators / @c Set::operator& / @c
-   *  Set::operator|) recognises it as the truthy half of a
+   *  FiniteBooleanSet operators / @c operator& / @c
+   *  operator|) recognises it as the truthy half of a
    *  complementary pair.  Mirrors the @c operator==(b, bool) and
    *  @c operator!(b) overloads in this partition: the bool-domain
    *  encoding lives in exactly one place ( @c BooleanEqPredicate),
@@ -558,7 +558,7 @@ constexpr auto operator&(const FiniteBooleanSet<L>& lhs,
 /** @brief @c bool @c BooleanEqPredicate meet.  @c BooleanEqPredicate is
  *  RUNTIME-stateful (same TYPE, different @c expected field), so the generic
  *  reducer's TYPE-based idempotent law would wrongly collapse two distinct bool
- *  singletons.  Compute the finite meet directly --- more specialised than the
+ *  singletons.  Compute the finite meet directly, more specialised than the
  *  generic @c IsSubobject combinators, so it wins; a finite bool set is
  *  extensional, so the result is a @c FiniteBooleanSet. */
 export template <typename L>
@@ -826,7 +826,7 @@ struct MeetSet : Meet<A, B> {  // A ∩ B as a subobject carrying A and B
   struct Member {
     Domain value;
   };
-  /** @brief ι: A∩B ↣ T --- the trivial identity inclusion (homogeneous). */
+  /** @brief ι: A∩B ↣ T, the trivial identity inclusion (homogeneous). */
   constexpr Domain ι(const Member& m) const { return m.value; }
   /** @brief π1 / π2: the pullback co-restriction legs A∩B ↪ A, A∩B ↪ B.  The
    *  shared T-value re-viewed as a member of each operand (identity on it). */
@@ -843,9 +843,9 @@ struct JoinSet : Join<A, B> {  // A ∪ B as a subobject carrying A and B
   struct Member {
     Domain value;
   };
-  /** @brief ι: A∪B ↣ T --- the trivial identity inclusion (homogeneous). */
+  /** @brief ι: A∪B ↣ T, the trivial identity inclusion (homogeneous). */
   constexpr Domain ι(const Member& m) const { return m.value; }
-  /** @brief ι1 / ι2 --- the pushout coprojection colegs A ↪ A∪B, B ↪ A∪B: an
+  /** @brief ι1 / ι2, the pushout coprojection colegs A ↪ A∪B, B ↪ A∪B: an
    *  operand member (a T-value in A resp. B, hence in the union) injects as a
    *  member of the join (dual to MeetSet's co-restriction legs). */
   constexpr Member ι1(const typename A::Member& m) const {
@@ -1733,11 +1733,11 @@ concept HasStructuredOr =
     };
 
 /** @brief Predicate-level conjunction @c p1 @c && @c p2: @c structured_and when
- *  a domain collapse applies, else the reducer's @c Meet node --- a callable
+ *  a domain collapse applies, else the reducer's @c Meet node, a callable
  *  predicate @f$\chi_1 \wedge \chi_2@f$ that also carries its operands via
  *  @c π_1 / @c π_2.  It is the @b same AST the set-level combinators use, so a
  *  set-builder @c Set{x @c | @c p1 @c && @c p2} shares one representation with
- *  @c A @c & @c B --- there is no separate @c AndPredicate. */
+ *  @c A @c & @c B.  There is no separate @c AndPredicate. */
 export template <typename P1, typename P2>
 constexpr auto operator&&(P1&& p1, P2&& p2) {
   if constexpr (HasStructuredAnd<P1, P2>) {

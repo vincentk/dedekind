@@ -63,7 +63,7 @@ using namespace dedekind::category;
 // set, joining --- not losing to --- order's own operators.
 using dedekind::relational::operator>>;  // the relative product R;S
 using dedekind::relational::operator&;   // relation meet R & S
-// relation union is the set-grammar | (Set::operator|, member — no using
+// relation union is the set-grammar | (the free operator|; no using
 // needed)
 
 // @c IsRingIntegral moved to @c :sets:cardinality (#878): it depends only
@@ -305,8 +305,7 @@ struct Singleton
   using cardinality_type = Finite;
   using is_extensional_tag = void;
   using is_compile_time_extensional_tag = void;
-  using is_static_singleton_tag =
-      void;  // For Set::operator& collapse detection
+  using is_static_singleton_tag = void;  // For operator& collapse detection
 
   static constexpr Domain value = Value;
 
@@ -1182,7 +1181,7 @@ struct ProjBound {
 // structured_and, reached via the generic &&, #824 --- axis_factor, the >>
 // functional trait) as dedekind::relational::RelAnd, imported from :dyadic.
 // Its dual RelOr (structured_or, via ||) was re-added (#824); the set-level
-// join stays the set-grammar | / OrPredicate (:sets, #365).
+// join stays the set-grammar | / Join node (:sets, #365).
 
 // π_I ⋈ π_J  →  ProjProj (projection-vs-projection).
 export template <IsRingIntegral auto I, IsRingIntegral auto J>
@@ -1285,8 +1284,8 @@ static_assert(
 // here (which would be ambiguous with the generic predicate operator&& /
 // operator|| in :sets:expressions), we hook the STRUCTURED forms: the generic
 // operators dispatch to structured_and / structured_or via ADL, and these
-// return the marker-preserving RelAnd / RelOr (which the generic AndPredicate /
-// OrPredicate are NOT — so their result could not feed the 𝔸<pair> | relpred
+// return the marker-preserving RelAnd / RelOr (which the generic Meet /
+// Join nodes are NOT, so their result could not feed the 𝔸<pair> | relpred
 // comprehension)
 // (#824).  This is the same mechanism the Halfspace lattice uses above.  RelAnd
 // / RelOr live in :dyadic (#792).
@@ -1294,7 +1293,7 @@ static_assert(
 // FIXME(#824): these hooks live in :order, so ADL reaches them only when an
 // operand is :order-native (ProjProj/ProjBound — every current meet).  A pair
 // of :relational-native rel-predicates (e.g. two DiagPred) does NOT find them
-// and falls back to the marker-less AndPredicate/OrPredicate.  The clean fix is
+// and falls back to the marker-less Meet/Join nodes.  The clean fix is
 // to unify the projection+equality DSL in ONE namespace (relocate it to
 // :relational, where relations live and order is not required) — done in the
 // graph/arrow-lift follow-up, not here.
@@ -1964,7 +1963,7 @@ constexpr auto lowerbounds(const UniversalSet<bool, L, C>&) {
 }
 
 /** @brief @c & IS the meet on bare order operands: it forwards to the
- *  @c structured_and customization point, exactly as @c Set::operator& does for
+ *  @c structured_and customization point, exactly as @c operator& does for
  *  wrapped predicates, so no @c Set{} wrapping is needed.  The complement-pair
  *  @c operator& above (opposite direction AND flipped strictness → @c Ø) is
  * more specialized and still claims its case; every other halfspace pair
