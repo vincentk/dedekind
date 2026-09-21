@@ -13,33 +13,34 @@
 The `dedekind` library translates a coherent slice of mathematical concepts into modern high-efficiency `C++`.
 It defines an embedded domain-specific language (eDSL) for mathematics with the following goals:
 
-- **Efficiency:**: hardware requirements are minimal. Code is optimized to keep it that way.
+- **Efficiency:** hardware requirements are minimal. Code is optimized to keep it that way. Minimal software dependencies are C++ and python toolchains.
 - **Recognizability:** Code should be intuitive to both mathematicians and `C++` programmers. The DSL mimicks set builder notation and common algebraic idioms.
 - **Versatility:** The DSL expresses both infinite (intensional, symbolic) and finite (extensional, data) structures. It is extensible to allow the specification of further algebraic laws and identities. It allows mixing numerical and symbolic codes.
 - **Abstraction First:** Intensional and symbolic development should stay in abstract mathematical carriers; choose a concrete runtime representation only when explicitly realizing or evaluating numerically.
 - **Optimization:** The library performs *mathematically motivated* optimizations (e.g., identity laws) at compile-time and runtime through theorem search and term reduction.
 
 ```cpp
-// Cardinality-1 reduction: an intensional set over a transfinite
-// carrier collapses to a named extensional Singleton — at compile
-// time, with no lambdas, no predicate erasure.
+// Cardinality-1 reduction: an intensional meet of two halfspaces over
+// a transfinite carrier collapses to a named extensional Singleton, at
+// compile time, with no lambdas and no predicate erasure.
 constexpr auto n    = element<ℕ>;
-constexpr auto gt_3 = Set{n | n > bound<3>};
-constexpr auto lt_5 = Set{n | n < bound<5>};
+constexpr auto gt_3 = n | (n > bound<3>);          // { n ∈ ℕ | n > 3 }
+constexpr auto lt_5 = n | (n < bound<5>);          // { n ∈ ℕ | n < 5 }
 
-constexpr Singleton<4> in_between = gt_3 & lt_5;   // ≡ {4}
+constexpr Singleton<4> in_between = gt_3 & lt_5;   // ≡ {4}, at compile time
 static_assert(in_between == Singleton<4>{});
 
-// The parent Sets carry NONE of the three computability tiers; the
-// reduced Singleton carries ALL THREE.  The intersection IS the
+// Decidability is not the contrast: a halfspace on ℕ decides membership
+// by a comparison, so both parents and the result are decidable.  The
+// collapse gains finiteness and extensionality.  The intersection IS the
 // theorem: { n ∈ ℕ | n > 3 } ∩ { n ∈ ℕ | n < 5 } = {4}.
-static_assert(!HasDecidableMembership<decltype(gt_3)>);
+static_assert(HasDecidableMembership<decltype(gt_3)>);
 static_assert(!IsFiniteSet<decltype(gt_3)>);
-static_assert(!IsCompileTimeEnumerable<decltype(gt_3)>);
+static_assert(!IsExtensional<decltype(gt_3)>);
 
 static_assert(HasDecidableMembership<decltype(in_between)>);
 static_assert(IsFiniteSet<decltype(in_between)>);
-static_assert(IsCompileTimeEnumerable<decltype(in_between)>);
+static_assert(IsExtensional<decltype(in_between)>);
 ```
 
 The full set of IR-verified showcases lives under
