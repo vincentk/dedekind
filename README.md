@@ -23,8 +23,8 @@ It defines an embedded domain-specific language (eDSL) for mathematics with the 
 // Cardinality-1 reduction: an intensional meet of two halfspaces over
 // a transfinite carrier collapses to a named extensional Singleton, at
 // compile time, with no lambdas and no predicate erasure.
-constexpr auto gt_3 = ℕ | (π > fix(3_c));          // { n ∈ ℕ | n > 3 }
-constexpr auto lt_5 = ℕ | (π < fix(5_c));          // { n ∈ ℕ | n < 5 }
+constexpr auto gt_3 = ℕ | (χ > fix(3_c));          // { x ∈ ℕ | x > 3 }
+constexpr auto lt_5 = ℕ | (χ < fix(5_c));          // { x ∈ ℕ | x < 5 }
 
 constexpr Singleton<4> in_between = gt_3 & lt_5;   // ≡ {4}, at compile time
 static_assert(in_between == Singleton<4>{});
@@ -32,7 +32,7 @@ static_assert(in_between == Singleton<4>{});
 // Decidability is not the contrast: a halfspace on ℕ decides membership
 // by a comparison, so both parents and the result are decidable.  The
 // collapse gains finiteness and extensionality.  The intersection IS the
-// theorem: { n ∈ ℕ | n > 3 } ∩ { n ∈ ℕ | n < 5 } = {4}.
+// theorem: { x ∈ ℕ | x > 3 } ∩ { x ∈ ℕ | x < 5 } = {4}.
 static_assert(HasDecidableMembership<decltype(gt_3)>);
 static_assert(!IsFiniteSet<decltype(gt_3)>);
 static_assert(!IsExtensional<decltype(gt_3)>);

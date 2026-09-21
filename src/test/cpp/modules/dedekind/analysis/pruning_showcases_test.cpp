@@ -122,9 +122,10 @@ TEST_CASE("Pruning showcase 3: halfspace contradiction on ℕ collapses to Ø",
 TEST_CASE("Pruning showcase 4: cardinality-1 halfspace meet = Singleton<4>",
           "[analysis][pruning][showcase][showcase04]") {
   // Canonical point-free grammar (the paper form): the canonical set ℕ, the
-  // projection π, and a compile-time bound spelled fix(3_c).  No Set{} wrapper.
-  constexpr auto gt_3 = ℕ | (π > fix(3_c));
-  constexpr auto lt_5 = ℕ | (π < fix(5_c));
+  // sole projection χ (the element scout, reads as x), and a compile-time bound
+  // spelled fix(3_c).  No Set{} wrapper.
+  constexpr auto gt_3 = ℕ | (χ > fix(3_c));
+  constexpr auto lt_5 = ℕ | (χ < fix(5_c));
 
   // The punch line: the meet COLLAPSES to a named Singleton at compile time.
   constexpr Singleton<4> in_between = gt_3 & lt_5;
