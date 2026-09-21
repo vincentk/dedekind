@@ -906,6 +906,14 @@ class Set {
   // Store the predicate as a concrete type, not a std::function
   constexpr Set(Predicate p) : predicate_(std::move(p)) {}
 
+  /** @brief Construct from a comprehension value (@c Set{scout | pred}).
+   *  @deprecated The paper-aligned grammar is the bare comprehension
+   *  @c scout|pred, with no @c Set{...} wrapper.  This constructor is being
+   *  sunset (#895); it stays for now because the bare comprehension does not
+   *  yet carry the full set-complement surface (a @c Comprehension is not
+   *  @c is_set_node_v, so @c !(scout|pred) has no set-complement path).  This
+   *  is a soft (documentation) deprecation only: a hard @c [[deprecated]] would
+   *  break the existing call sites under @c -Werror before the migration. */
   template <typename B, typename P>
     requires std::same_as<Predicate, P>
   constexpr Set(Comprehension<B, P> cp) : predicate_(std::move(cp.predicate)) {}
