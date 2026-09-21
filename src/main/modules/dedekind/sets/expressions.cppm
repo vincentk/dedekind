@@ -1190,6 +1190,28 @@ template <typename T, typename L, typename PA, typename PB>
 inline constexpr bool are_complement_sets_v<Set<T, L, PA>, Set<T, L, PB>> =
     IsComplementPair_v<PA, PB>;
 
+/** @brief The codomain leg of a set combine (#894), as one finalizer.
+ *
+ *  @details A combine's domain-reduced result that @b is a boundary
+ *  (@c ⊥ / @c ⊤ = @c Ø / @c 𝔸) factors through the Rosolini dominance @c Σ, so
+ *  it carries the decided Boolean codomain whatever the ambient; every other
+ *  result passes through unchanged.  Each set operator routes its output
+ * through this, so the codomain rule lives in @b one place and applies at the
+ * combine's
+ *  @b output --- never inside a still-reducing term, which would mix logic
+ *  species and shred the reducer.  A new set operator needs only
+ *  @c return @c finalize_combine(...) and inherits the rule.
+ *  FIXME(#894): @c boundary @c → @c Boole is the only rule for now; the general
+ *  form is @c image(χ) @c ⊆ @c Σ folded on the Kleene image lattice. */
+template <typename R>
+constexpr auto finalize_combine(R r) {
+  if constexpr (IsBoundaryObject<R>) {
+    return codomain_reduce_t<R>{};
+  } else {
+    return r;
+  }
+}
+
 /** @brief The subobject-lattice meet @c A @c & @c B, over any two @c
  * IsSubobject operands sharing a carrier and logic.  It folds @c Meet<A,B>
  * through the reducer; @c SetCombine supplies the domain @c structured_and at
@@ -1214,24 +1236,24 @@ constexpr auto operator&(const LHS& lhs, const RHS& rhs) {
     // reducer and stays an un-collapsed MeetSet, whose pointwise L::AND yields
     // U at the middle (sound).  FIXME(#865): generalise the collapse once the
     // reducer recognises the predicate-pair encoding as a structural Not.
-    return Ø<T, Log>{};
+    return finalize_combine(Ø<T, Log>{});
   } else {
     using R = subobject_reduce_t<Meet<LHS, RHS>, Log, SetCombine>;
+    // Domain leg = the reducer; codomain leg = finalize_combine (a boundary
+    // result factors through Σ, so it is re-tagged to the Boolean codomain).
     if constexpr (IsBoundaryObject<R>) {
-      // Codomain leg (#894): a domain reduction to a boundary (⊥ / ⊤) factors
-      // through Σ, so it carries the Boolean codomain whatever the ambient.
-      return codomain_reduce_t<R>{};
+      return finalize_combine(R{});
     } else if constexpr (std::same_as<R, LHS>) {
-      return lhs;
+      return finalize_combine(lhs);
     } else if constexpr (std::same_as<R, RHS>) {
-      return rhs;
+      return finalize_combine(rhs);
     } else if constexpr (std::same_as<R, Meet<LHS, RHS>>) {
       // Irreducible: the intersection AS a set, carrying both operands (#892).
-      return MeetSet<LHS, RHS>{lhs, rhs};
+      return finalize_combine(MeetSet<LHS, RHS>{lhs, rhs});
     } else {
       // SetCombine collapsed two plain-set leaves via structured_and.
-      return elevate_meet<T, Log>(
-          structured_and(lhs.predicate(), rhs.predicate()));
+      return finalize_combine(elevate_meet<T, Log>(
+          structured_and(lhs.predicate(), rhs.predicate())));
     }
   }
 }
@@ -1253,22 +1275,22 @@ constexpr auto operator|(const LHS& lhs, const RHS& rhs) {
     // ClassicalLogic for the same reason: a bounded chain offers reflection,
     // not complementation, so Kleene K3 (¬U = U, a ∨ ¬a = U ≠ ⊤) falls through
     // to an un-collapsed JoinSet whose pointwise L::OR is sound (#860).
-    return UniversalSet<T, Log>{};
+    return finalize_combine(UniversalSet<T, Log>{});
   } else {
     using R = subobject_reduce_t<Join<LHS, RHS>, Log, SetCombine>;
+    // Domain leg = the reducer; codomain leg = finalize_combine (a boundary
+    // result factors through Σ, so it is re-tagged to the Boolean codomain).
     if constexpr (IsBoundaryObject<R>) {
-      // Codomain leg (#894): a domain reduction to a boundary (⊥ / ⊤) factors
-      // through Σ, so it carries the Boolean codomain whatever the ambient.
-      return codomain_reduce_t<R>{};
+      return finalize_combine(R{});
     } else if constexpr (std::same_as<R, LHS>) {
-      return lhs;
+      return finalize_combine(lhs);
     } else if constexpr (std::same_as<R, RHS>) {
-      return rhs;
+      return finalize_combine(rhs);
     } else if constexpr (std::same_as<R, Join<LHS, RHS>>) {
-      return JoinSet<LHS, RHS>{lhs, rhs};
+      return finalize_combine(JoinSet<LHS, RHS>{lhs, rhs});
     } else {
-      return elevate_join<T, Log>(
-          structured_or(lhs.predicate(), rhs.predicate()));
+      return finalize_combine(elevate_join<T, Log>(
+          structured_or(lhs.predicate(), rhs.predicate())));
     }
   }
 }
