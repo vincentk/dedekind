@@ -40,9 +40,10 @@ static_assert(HasDecidableMembership<decltype(in_between)>);
 static_assert(IsExtensional<decltype(in_between)>);
 ```
 
-The full set of IR-verified showcases lives under
-[`src/test/cpp/modules/dedekind/python/`](src/test/cpp/modules/dedekind/python/).
-The example above is showcase 4.
+The example above is showcase 4, checked in as a `STATIC_CHECK` in
+[`pruning_showcases_test.cpp`](src/test/cpp/modules/dedekind/analysis/pruning_showcases_test.cpp).
+The IR-fixture demonstrations (clang emitting the collapsed form at `-O2`)
+live under [`src/test/cpp/modules/dedekind/python/`](src/test/cpp/modules/dedekind/python/).
 
 ### Quickstart
 ```bash
