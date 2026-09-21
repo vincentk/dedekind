@@ -3,16 +3,19 @@
  * The decidability-reduction line (#894): can the lattice reducer collapse an
  * UNDECIDABLE operand to a DECIDABLE result, reusing the meccano verbatim?
  *
- * This first slice pins the two atoms it is built from:
+ * The two atoms it is built from:
  *   - @c UnknownPredicate, the archetypal undecidable predicate (answers
  *     @c Unknown everywhere), the Kleene-interior companion of the always-true
  *     @c UniversalPredicate and always-false @c EmptyPredicate; and
  *   - @c is_decided, the value-level Rosolini decided-core test Σ ⊔ ¬Σ
  *     (@c :logic), which recognises exactly the two-valued endpoints.
  *
- * The lattice-collapse witnesses (a meet with the bottom @c Ø, a join with the
- * top @c 𝔸, annihilating the undecidable operand) build on these and land in a
- * follow-up once the reducer path is confirmed.
+ * The two-axis reduce on top of them:
+ *   - the codomain leg: a combine that reduces to a boundary (@c Ø / @c 𝔸)
+ *     re-tags the result to the decided Boolean codomain, so an undecidable
+ *     operand annihilated by @c Ø / @c 𝔸 yields a decidable result; and
+ *   - the cross-species combine: a mixed @c Boole @c × @c Kleene meet / join
+ *     lifts both operands to the joined codomain and folds them.
  */
 
 #include <catch2/catch_test_macros.hpp>
