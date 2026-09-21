@@ -675,4 +675,48 @@ static_assert(logic_negation_is_involutive_v<ClassicalLogic>,
 static_assert(logic_negation_is_involutive_v<TernaryLogic>,
               "K₃: ¬ is an involution, so !!A = A is sound");
 
+/**
+ * @brief Membership in the decided core @f$\Sigma \sqcup \neg\Sigma = \{\top,
+ *        \bot\}@f$ of an answer-lattice @f$\Omega@f$.
+ *
+ * @details The Rosolini dominance @f$\Sigma \hookrightarrow \Omega@f$ detects
+ * the @f$\top@f$ endpoint alone; it is a meet-semilattice, not the full decided
+ * core.  Its Kleene reflection @f$\neg\Sigma@f$ detects the @f$\bot@f$
+ * endpoint, and the two join to @f$\{\top, \bot\}@f$: the two-valued fragment a
+ * decidable map factors through.  This is the reflection completing Rosolini's
+ * semilattice to the full lattice.
+ *
+ * The @f$\bot@f$-detection is spelled @c L::RFL(value) @c == @c L::True rather
+ * than @c value @c == @c L::False on purpose: the two agree @b because @c RFL
+ * is an order-reversing @b involution (@c logic_negation_is_involutive_v, the
+ * @c :involution witness from the double-negation work), which the @c requires
+ * clause demands.  A logic whose @c RFL were only a closure would not admit the
+ * reflection-completion, and is excluded.
+ *
+ * The answer is itself classical: a bound either is or is not reached, never
+ * @c Unknown.  So @c is_decided co-restricts any @f$\Omega@f$ to @c bool, the
+ * value-level observable behind @c HasDecidableMembership (the type-level,
+ * conservative certificate).  On @c ClassicalLogic (@f$\Sigma = \Omega@f$) it
+ * is constantly @c true; on @c K₃ it is @c true off @c Unknown.
+ *
+ * @see Giuseppe Rosolini, @e Continuity @e and @e Effectiveness @e in @e Topoi
+ *      (Oxford D.Phil., 1986); @c lift_logic (the inclusion @f$\Sigma
+ *      \hookrightarrow \Omega@f$), #846 / #267, and the #847
+ * recognised-vs-actual sub-quadrant this closes at the value level.
+ */
+export template <typename L>
+  requires IsLogicalSpecies<L> && logic_negation_is_involutive_v<L>
+constexpr bool is_decided(typename L::Ω value) {
+  return value == L::True || L::RFL(value) == L::True;
+}
+
+static_assert(is_decided<ClassicalLogic>(true) &&
+                  is_decided<ClassicalLogic>(false),
+              "𝔹: Σ = Ω, so every answer is decided");
+static_assert(is_decided<TernaryLogic>(Ternary::True) &&
+                  is_decided<TernaryLogic>(Ternary::False),
+              "K₃: the two endpoints ⊤, ⊥ are the decided core");
+static_assert(!is_decided<TernaryLogic>(Ternary::Unknown),
+              "K₃: the interior Unknown is undecided (outside Σ ⊔ ¬Σ)");
+
 }  // namespace dedekind::category

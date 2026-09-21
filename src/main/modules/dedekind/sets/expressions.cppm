@@ -425,6 +425,49 @@ struct EmptyPredicate {
   constexpr bool operator()(const T&) const { return false; }
 };
 
+/**
+ * @brief The archetypal undecidable predicate: answers @c Unknown everywhere.
+ *
+ * @details The Kleene-interior companion of @c UniversalPredicate (always
+ * @f$\top@f$) and @c EmptyPredicate (always @f$\bot@f$).  Its characteristic
+ * map is constantly @c Ternary::Unknown, the interior of the chain @f$K_3 =
+ * \{\bot < U < \top\}@f$, so membership is @b never decided: for any point @c x
+ * its answer sits outside the decided core @f$\Sigma \sqcup \neg\Sigma@f$ that
+ * @c is_decided detects.  It is intrinsically three-valued, hence @c
+ * TernaryLogic-tagged, and a
+ * @c Set carrying it fails @c HasDecidableMembership.
+ *
+ * It exists to exercise the lattice reducer against a genuinely undecidable
+ * operand.  The Kleene annihilators are what recover a decided answer without
+ * ever consulting @c Unknown: a meet with the bottom @c Ø (@f$x \wedge \bot =
+ * \bot@f$, @c AND @c = @c min, and @c min(U,\bot) @c = @c \bot) or a join with
+ * the top @c 𝔸 (@f$x \vee \top = \top@f$, @c OR @c = @c max, @c max(U,\top) @c
+ * =
+ * @c \top) annihilates it, and the decided boundary is recovered structurally.
+ */
+export template <typename T>
+struct UnknownPredicate {
+  using Domain = T;
+  using Codomain = typename TernaryLogic::Ω;
+  using logic_species = TernaryLogic;
+  constexpr Codomain operator()(const T&) const { return Ternary::Unknown; }
+};
+
+// It is a bona fide characteristic map χ: T → Ω, not an ad-hoc callable: an
+// @c IsArrow (Domain/Codomain) into the truth-object Ω, so the reducer and the
+// subobject surface treat it exactly as any other membership predicate.
+static_assert(IsCharacteristic<UnknownPredicate<int>>,
+              "UnknownPredicate is a characteristic map χ: T → Ω");
+// The archetype's defining property: it never lands on a decided bound, so it
+// sits strictly inside the Kleene chain (@c is_decided is the decided-core test
+// from @c :logic).  This binds the undecidability claim to a compile-time
+// witness rather than prose.
+static_assert(UnknownPredicate<int>{}(0) == Ternary::Unknown &&
+                  UnknownPredicate<int>{}(42) == Ternary::Unknown,
+              "UnknownPredicate answers Unknown everywhere");
+static_assert(!is_decided<TernaryLogic>(UnknownPredicate<int>{}(0)),
+              "UnknownPredicate is never in the decided core Σ ⊔ ¬Σ");
+
 /** @brief Predicate-level complement wrapper used for set-collapse detection.
  */
 export template <typename Predicate>
