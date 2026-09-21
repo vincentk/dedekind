@@ -16,6 +16,8 @@
  */
 
 #include <catch2/catch_test_macros.hpp>
+#include <concepts>
+#include <type_traits>
 
 import dedekind.category;
 import dedekind.sets;
@@ -50,4 +52,33 @@ TEST_CASE("UnknownPredicate is the archetypal undecidable predicate",
   // Hence it sits strictly outside the decided core the reducer needs.
   STATIC_CHECK_FALSE(is_decided<TernaryLogic>(U(0)));
   STATIC_CHECK_FALSE(is_decided<TernaryLogic>(U(42)));
+}
+
+TEST_CASE("Reduction restores decidability: U ∧ Ø → Ø, decided (#894)",
+          "[sets][decidable][rosolini][reduction]") {
+  // A Kleene ambient. U is the maximally-undecidable set (χ ≡ Unknown); the
+  // empty boundary and the universe are declared conservatively in that
+  // ambient.
+  constexpr Set<int, TernaryLogic, UnknownPredicate<int>> U{
+      UnknownPredicate<int>{}};
+  constexpr Ø<int, TernaryLogic> E{};
+  constexpr UniversalSet<int, TernaryLogic> A{};
+
+  // As DECLARED, none of the three is decidable (Kleene codomain tag).
+  STATIC_CHECK_FALSE(HasDecidableMembership<decltype(U)>);
+  STATIC_CHECK_FALSE(HasDecidableMembership<decltype(E)>);
+  STATIC_CHECK_FALSE(HasDecidableMembership<decltype(A)>);
+
+  // Domain leg: the ⊥ boundary annihilates U (χ_U is never evaluated).
+  // Codomain leg (#894): the surviving boundary factors through Σ, so it is
+  // re-tagged to the Boolean codomain. The undecidable operand is gone AND the
+  // result reads decidable.
+  constexpr auto meet = U & E;
+  STATIC_CHECK(
+      std::same_as<std::decay_t<decltype(meet)>, Ø<int, ClassicalLogic>>);
+  STATIC_CHECK(HasDecidableMembership<decltype(meet)>);
+
+  // Dual: the ⊤ boundary annihilates U in the join.
+  constexpr auto join = U | A;
+  STATIC_CHECK(HasDecidableMembership<decltype(join)>);
 }

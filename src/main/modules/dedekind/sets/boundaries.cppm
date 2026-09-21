@@ -406,6 +406,39 @@ export template <typename Term, typename L = ClassicalLogic,
 using subobject_reduce_t =
     reduce_t<Term, subobject_order<L>, subobject_order<L>, Combine>;
 
+/** @brief The @b codomain leg of the two-axis reduce (#894).
+ *
+ *  @details @c subobject_reduce_t reduces the @b domain term (the @c Sub(T)
+ *  lattice) at a fixed codomain @c L.  This reduces the @b codomain: a decided
+ *  boundary factors through the Rosolini dominance @f$\Sigma = \{\top,\bot\}@f$
+ *  (its @f$\chi@f$ is the constant @f$\bot@f$ / @f$\top@f$, valued in @c Σ
+ *  whatever the ambient), so a normal form that @b is a boundary carries the
+ *  Boolean codomain @c ClassicalLogic, not the (possibly Kleene) ambient it was
+ *  reduced under.  This is what makes "a structural reduction to @c Ø / @c 𝔸
+ *  restores decidability" (see @c :computability header) actually hold: the
+ *  collapsed boundary reads @c HasDecidableMembership.
+ *
+ *  The single rule for now is @c boundary @c → @c Boole; identity elsewhere.
+ *  FIXME(#894): the general rule is @c image(χ) @c ⊆ @c Σ folded @b alongside
+ *  the domain reduce (the pointwise Kleene image lattice), of which this is the
+ *  base case.  Singleton is deliberately excluded: its decidability needs a
+ *  decidable @c == on the carrier (fails on @c ℝ), so it rides the carrier-axis
+ *  resolver, not this rule. */
+template <typename R>
+struct codomain_reduce {
+  using type = R;
+};
+template <typename T, typename L>
+struct codomain_reduce<Ø<T, L>> {
+  using type = Ø<T, ClassicalLogic>;
+};
+template <typename T, typename L, typename C>
+struct codomain_reduce<UniversalSet<T, L, C>> {
+  using type = UniversalSet<T, ClassicalLogic, C>;
+};
+export template <typename R>
+using codomain_reduce_t = typename codomain_reduce<R>::type;
+
 template <typename T, typename L>
 constexpr auto Ø<T, L>::operator!() const {
   return UniversalSet<T, L>{};
