@@ -102,8 +102,15 @@ static_assert((ℂ_outside_unit_ball | !ℂ_outside_unit_ball)(Complex<R2>{
 // a | !a both STAY Unknown (¬U = U, U ∧ U = U, U ∨ U = U).  A ClassicalLogic
 // collapse to Ø / 𝔸 would wrongly return False / True here, so this is the
 // assertion that actually protects the gate.
-constexpr auto ℝ_unknown =
-    Set{r | [](const Real<double>&) { return Ternary::Unknown; }};
+// A named predicate (not a lambda) that is undecided everywhere: its truth
+// value is the interior Unknown of K3, the one place the complement collapse
+// must decline.
+struct Undecided {
+  constexpr Ternary operator()(const Real<double>&) const {
+    return Ternary::Unknown;
+  }
+};
+constexpr auto ℝ_unknown = Set{r | Undecided{}};
 static_assert((ℝ_unknown & !ℝ_unknown)(Real<double>{1.0}) == Ternary::Unknown);
 static_assert((ℝ_unknown | !ℝ_unknown)(Real<double>{1.0}) == Ternary::Unknown);
 
