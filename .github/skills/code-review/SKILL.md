@@ -10,13 +10,16 @@ academic paper for the ‹Programming› journal. Review with two lenses: **pape
 coherence** and **library coherence**. Keep findings actionable; prefer a few
 high-signal comments over a long list.
 
-## Read the paper for context
+## Read the paper AND the README for context first
 
-Read `docs/paper/paper.tex` from the source tree at the start of a review — it is
-the specification the code serves. Do not rely on a summary; the paper is the
-source of truth for the project's thesis, vocabulary, and worked exhibits.
-`docs/paper/references.bib` is the external north star for terminology and
-correctness.
+At the start of every review, read BOTH `docs/paper/paper.tex` and `README.md`
+from the source tree, before reading the diff. They are the specification the
+code serves: the paper is the source of truth for the thesis, vocabulary, and
+worked exhibits; the README is the reader-facing surface (its intro claims and
+its code listing). Do not rely on a summary. `docs/paper/references.bib` is the
+external north star for terminology and correctness. Hold all three in view (code,
+paper, README) so you can flag drift between them, which is the most common
+coherence miss on this repo.
 
 Coherence checks:
 
@@ -24,11 +27,21 @@ Coherence checks:
   vocabulary. Flag drift in either direction: concepts renamed in code that leave
   the paper stale, or comments that invent competing names for something the
   paper already names.
-- **Behavior parity.** If a change alters behavior the paper describes (a
-  closure, a carrier's algebra, a collapse claim, a worked exhibit), call it out
-  so the paper, README, and Doxygen get updated in step. Prevent divergence
-  between the textbook literature, the implementation, the Doxygen inline
-  documentation, the README, and the LaTeX draft.
+- **Behavior parity (code <-> paper <-> README).** If a change alters behavior
+  the paper or README describes (a closure, a carrier's algebra, a collapse
+  claim, a worked exhibit), call it out so all three move in step. A prose
+  sentence that describes a mechanism the code does not implement is a finding,
+  even when nothing is broken (e.g. a paper sentence saying complement routes
+  through the reducer when it is a separate involution). Prevent divergence
+  between the textbook literature, the implementation, the Doxygen, the README,
+  and the LaTeX draft.
+- **Listings track a verified artefact.** A code listing in the paper (`lstlisting`
+  / `cppinline`) or in the README must match code that actually compiles, and the
+  README says its examples mirror checked-in showcases. When a diff changes a
+  demonstrated capability or the DSL surface, check that the paper listing and the
+  README listing still reflect it and still correspond to a passing test. Flag a
+  README/paper snippet that uses retired syntax, or that a code change has made
+  stale, or whose asserted types/tiers no longer hold.
 
 ## Library coherence
 
