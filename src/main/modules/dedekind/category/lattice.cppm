@@ -421,7 +421,11 @@ struct Meet {  // A ∧ B
   A lhs;
   B rhs;
   // Evaluated through the π_1 / π_2 accessors (below), not raw member reads, so
-  // the operand storage is touched in exactly one place.
+  // the operand storage is touched in exactly one place.  LAYERING: the node is
+  // LATTICE ALGEBRA only (operands + evaluation + IsProduct).  Any Set-specific
+  // subobject lift (Member / ι / IsSubobject / IsSet) belongs DOWNSTREAM in
+  // sets, never here — putting it on the node would drag the :etcs / :topoi
+  // machinery back into :lattice in name only.
   template <typename X>
     requires requires(const A& l, const B& r, const X& x) {
       typename A::logic_species;
