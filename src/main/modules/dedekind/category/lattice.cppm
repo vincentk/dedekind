@@ -418,40 +418,87 @@ static_assert(LatticeTop<bool, std::less_equal<bool>>::value == true,
  *  residual and its materialisation bridge dissolve. */
 export template <typename A, typename B>
 struct Meet {  // A ∧ B
-  A a;
-  B b;
+  A lhs;
+  B rhs;
+  // Evaluated through the π_1 / π_2 accessors (below), not raw member reads, so
+  // the operand storage is touched in exactly one place.
   template <typename X>
     requires requires(const A& l, const B& r, const X& x) {
       typename A::logic_species;
       A::logic_species::AND(l(x), r(x));
     }
   constexpr auto operator()(const X& x) const {
-    return A::logic_species::AND(a(x), b(x));
+    return A::logic_species::AND(π_1(*this)(x), π_2(*this)(x));
   }
 };
 export template <typename A, typename B>
 struct Join {  // A ∨ B
-  A a;
-  B b;
+  A lhs;
+  B rhs;
   template <typename X>
     requires requires(const A& l, const B& r, const X& x) {
       typename A::logic_species;
       A::logic_species::OR(l(x), r(x));
     }
   constexpr auto operator()(const X& x) const {
-    return A::logic_species::OR(a(x), b(x));
+    return A::logic_species::OR(π_1(*this)(x), π_2(*this)(x));
   }
 };
 export template <typename A>
 struct Not {  // ¬A (complement)
-  A a;
+  A base;
   template <typename X>
-    requires requires(const A& l, const X& x) {
+    requires requires(const A& b, const X& x) {
       typename A::logic_species;
-      A::logic_species::RFL(l(x));
+      A::logic_species::RFL(b(x));
     }
   constexpr auto operator()(const X& x) const {
-    return A::logic_species::RFL(a(x));
+    return A::logic_species::RFL(base(x));
+  }
+};
+
+/** @section lattice__AST_as_product
+ *  A binary node @b is the categorical product / coproduct of its operands, so
+ *  it inhabits @c category::IsProduct (mirroring @c sets::AndPredicate /
+ *  @c OrPredicate, #881, now hoisted to where the AST lives).  The operands are
+ *  recovered by the free @c π_1 / @c π_2 accessors (found by ADL, overriding
+ * the default @c .first / @c .second projection), and @c MakeMeet / @c MakeJoin
+ * are the pairing FACTORIES @f$\langle -,- \rangle: A \times B \to P@f$ --- the
+ *  @c Op that @c IsProduct names, whose @b result type (@c Meet vs @c Join)
+ *  discriminates the meet-pairing (pullback) from the join-pairing (pushout).
+ *  The meet / join distinction is the reduction (@c ∧ vs @c ∨), not the
+ * pairing; both nodes store and project both operands. */
+export template <typename A, typename B>
+constexpr A π_1(const Meet<A, B>& m) {
+  return m.lhs;
+}
+export template <typename A, typename B>
+constexpr B π_2(const Meet<A, B>& m) {
+  return m.rhs;
+}
+export template <typename A, typename B>
+constexpr A π_1(const Join<A, B>& j) {
+  return j.lhs;
+}
+export template <typename A, typename B>
+constexpr B π_2(const Join<A, B>& j) {
+  return j.rhs;
+}
+
+/** @brief The pairing factory for the meet (∧, pullback): @c ⟨-,-⟩ : A×B→Meet.
+ */
+export struct MakeMeet {
+  template <typename A, typename B>
+  constexpr Meet<A, B> operator()(const A& a, const B& b) const {
+    return {a, b};
+  }
+};
+/** @brief The pairing factory for the join (∨, pushout): @c ⟨-,-⟩ : A×B→Join.
+ */
+export struct MakeJoin {
+  template <typename A, typename B>
+  constexpr Join<A, B> operator()(const A& a, const B& b) const {
+    return {a, b};
   }
 };
 

@@ -42,9 +42,12 @@ inline constexpr bool
     dedekind::category::is_monic_arrow_v<retract_image_test::DoubleArrow> =
         true;
 
-// #881: the non-collapsed meet's classifier AndPredicate<P,Q> IS the pairing
-// ⟨χ_A, χ_B⟩ of its two operand classifiers, so it satisfies IsProduct
-// (π_1 → χ_A, π_2 → χ_B) via the free overloads in :sets, found by ADL.
+// #881: the CLASSIFIER-level pairing witness (AndPredicate / OrPredicate ⟨χ_A,
+// χ_B⟩ ⊨ IsProduct) now lives UPSTREAM on the reducer AST nodes
+// category::Meet / Join (lattice_term_test, #892): the pairing is a property of
+// the ∧/∨ node, not of the sets predicate wrapper, so it is witnessed once
+// where the AST lives.  The APPLIED-set pullback / pushout below stays here (it
+// is Set-specific: concrete sets, inclusion arrows, the initial-object span).
 namespace and_predicate_product_test {
 struct IsEven {
   constexpr bool operator()(int x) const { return x % 2 == 0; }
@@ -52,23 +55,6 @@ struct IsEven {
 struct IsPositive {
   constexpr bool operator()(int x) const { return x > 0; }
 };
-using Meet = dedekind::sets::AndPredicate<IsEven, IsPositive>;
-static_assert(dedekind::category::IsProduct<Meet, IsEven, IsPositive>,
-              "AndPredicate ⟨χ_A, χ_B⟩ is the categorical product of its two "
-              "operand classifiers (π_1 → χ_A, π_2 → χ_B): #881.");
-static_assert(π_1(Meet{IsEven{}, IsPositive{}})(4),
-              "π_1 recovers χ_A = IsEven: π_1(meet)(4) = true.");
-static_assert(π_2(Meet{IsEven{}, IsPositive{}})(4),
-              "π_2 recovers χ_B = IsPositive: π_2(meet)(4) = true.");
-
-// #881 step 2: OrPredicate carries the same pairing ⟨χ_A, χ_B⟩, so it too is an
-// IsProduct (the join's classifier).  Same substrate as AndPredicate; the
-// pushout vs pullback distinction is the ∨ vs ∧ reduction, not the pairing.
-using Join = dedekind::sets::OrPredicate<IsEven, IsPositive>;
-static_assert(
-    dedekind::category::IsProduct<Join, IsEven, IsPositive>,
-    "OrPredicate ⟨χ_A, χ_B⟩ is also the categorical product of its two "
-    "operand classifiers (π_1 → χ_A, π_2 → χ_B): #881 step 2.");
 
 // #881: the APPLIED meet A & B (the reified intersection of two concrete sets)
 // IS the pullback of those two sets --- the cospan of their inclusions

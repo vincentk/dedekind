@@ -176,6 +176,28 @@ static_assert(Not<GELeaf>{GELeaf{5}}(3),
               "¬(·≥5) holds at 3 (3 ≥ 5 is false, so its negation is true).");
 static_assert(!Not<GELeaf>{GELeaf{5}}(7), "¬(·≥5) fails at 7 (7 ≥ 5).");
 
+// A binary node IS the categorical product / coproduct of its operands (#881,
+// hoisted here from sets:AndPredicate / OrPredicate): the pairing ⟨χ_A, χ_B⟩
+// with the π_1 / π_2 accessors, keyed by the MakeMeet / MakeJoin factory (whose
+// result type — Meet vs Join — discriminates the pullback from the pushout).
+static_assert(IsProduct<Meet<GELeaf, GELeaf>, GELeaf, GELeaf, MakeMeet>,
+              "Meet ⟨χ_A, χ_B⟩ is the categorical product keyed by MakeMeet.");
+static_assert(IsProduct<Join<GELeaf, GELeaf>, GELeaf, GELeaf, MakeJoin>,
+              "Join ⟨χ_A, χ_B⟩ is the categorical product keyed by MakeJoin.");
+static_assert(
+    π_1(Meet<GELeaf, GELeaf>{GELeaf{2}, GELeaf{5}})(3),
+    "π_1 recovers the left operand χ_A = (·≥2): π_1(meet)(3) = true.");
+static_assert(
+    !π_2(Meet<GELeaf, GELeaf>{GELeaf{2}, GELeaf{5}})(3),
+    "π_2 recovers the right operand χ_B = (·≥5): π_2(meet)(3) = false.");
+// The factory rebuilds the node it names (⟨-,-⟩: A×B → P).
+static_assert(std::same_as<decltype(MakeMeet{}(GELeaf{2}, GELeaf{5})),
+                           Meet<GELeaf, GELeaf>>,
+              "MakeMeet is the meet pairing factory A×B → Meet.");
+static_assert(std::same_as<decltype(MakeJoin{}(GELeaf{2}, GELeaf{5})),
+                           Join<GELeaf, GELeaf>>,
+              "MakeJoin is the join pairing factory A×B → Join.");
+
 // ══ Layer 2: the ASSEMBLED reducer on the canonical carriers ══════════════
 
 // bool — the Boolean lattice: optimal reduction (every safe-core law fires).
