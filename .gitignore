@@ -57,20 +57,6 @@ docs/paper/*.run.xml
 # the inline-comment form here landed at PR #514 but didn't actually
 # ignore paper.pdf for any consumer.)
 docs/paper/paper.pdf
-docs/report/*.aux
-docs/report/*.bbl
-docs/report/*.bcf
-docs/report/*.blg
-docs/report/*.fdb_latexmk
-docs/report/*.fls
-docs/report/*.log
-docs/report/*.out
-docs/report/*.synctex.gz
-docs/report/*.toc
-docs/report/*.run.xml
-docs/report/report.pdf
-docs/report/figures/dedekind_*.dot
-docs/report/figures/dedekind_*.pdf
 **/*.synctex.gz
 
 build_ci/**
