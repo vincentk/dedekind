@@ -232,7 +232,8 @@ struct SingletonSet {
    */
   template <typename U, typename L2>
   constexpr auto operator|(const SingletonSet<U, L2>& other) const {
-    using Or = OrPredicate<SingletonSet<T, L>, SingletonSet<U, L2>>;
+    using Or =
+        dedekind::category::Join<SingletonSet<T, L>, SingletonSet<U, L2>>;
     return Set<T, L, Or>{Or{*this, other}};
   }
 

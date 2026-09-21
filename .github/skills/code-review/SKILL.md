@@ -54,6 +54,12 @@ Coherence checks:
   `CONTRIBUTING.md` (Alignment with the codebase → Doxygen header convention:
   brief, partition summary, copyright notice, Wikipedia-leads, and the
   practitioner-quote social-embedding line).
+- **Flag a leading `//` comment on any EXPORTED declaration.** Every `export`ed
+  function / struct / concept / variable — and members (operator(), operator&&,
+  ...) of an exported type — must be documented with a `/** @brief ... */`
+  Doxygen block, never a leading `//` block. A `//` is only for in-body notes and
+  `// FIXME(#NNN)` breadcrumbs. This is a recurring miss; call it out when the
+  diff introduces a `//` header above an exported declaration.
 
 ## Do NOT flag
 

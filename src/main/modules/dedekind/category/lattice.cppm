@@ -420,19 +420,25 @@ export template <typename A, typename B>
 struct Meet {  // A ∧ B
   A lhs;
   B rhs;
-  // Evaluated through the π_1 / π_2 accessors (below), not raw member reads, so
-  // the operand storage is touched in exactly one place.  LAYERING: the node is
-  // LATTICE ALGEBRA only (operands + evaluation + IsProduct).  Any Set-specific
-  // subobject lift (Member / ι / IsSubobject / IsSet) belongs DOWNSTREAM in
-  // sets, never here — putting it on the node would drag the :etcs / :topoi
-  // machinery back into :lattice in name only.
+  /** @brief Evaluate the meet at @c x, through the @c π_1 / @c π_2 accessors
+   *  (operand storage touched in one place).  With a @c logic_species the
+   *  combination is that logic's @c AND (honouring Kleene / Heyting Ω); for
+   *  plain bool-returning callables (comprehension lambdas) it is the bare
+   *  @c &&.
+   *  @note LAYERING: the node stays LATTICE ALGEBRA only; the Set-specific
+   *  subobject lift (@c Member / @c ι / @c IsSet) lives DOWNSTREAM in @c sets.
+   */
   template <typename X>
     requires requires(const A& l, const B& r, const X& x) {
-      typename A::logic_species;
-      A::logic_species::AND(l(x), r(x));
+      l(x);
+      r(x);
     }
   constexpr auto operator()(const X& x) const {
-    return A::logic_species::AND(π_1(*this)(x), π_2(*this)(x));
+    if constexpr (requires { typename A::logic_species; }) {
+      return A::logic_species::AND(π_1(*this)(x), π_2(*this)(x));
+    } else {
+      return π_1(*this)(x) && π_2(*this)(x);
+    }
   }
 };
 export template <typename A, typename B>
@@ -441,23 +447,28 @@ struct Join {  // A ∨ B
   B rhs;
   template <typename X>
     requires requires(const A& l, const B& r, const X& x) {
-      typename A::logic_species;
-      A::logic_species::OR(l(x), r(x));
+      l(x);
+      r(x);
     }
   constexpr auto operator()(const X& x) const {
-    return A::logic_species::OR(π_1(*this)(x), π_2(*this)(x));
+    if constexpr (requires { typename A::logic_species; }) {
+      return A::logic_species::OR(π_1(*this)(x), π_2(*this)(x));
+    } else {
+      return π_1(*this)(x) || π_2(*this)(x);
+    }
   }
 };
 export template <typename A>
 struct Not {  // ¬A (complement)
   A base;
   template <typename X>
-    requires requires(const A& b, const X& x) {
-      typename A::logic_species;
-      A::logic_species::RFL(b(x));
-    }
+    requires requires(const A& b, const X& x) { b(x); }
   constexpr auto operator()(const X& x) const {
-    return A::logic_species::RFL(base(x));
+    if constexpr (requires { typename A::logic_species; }) {
+      return A::logic_species::RFL(base(x));
+    } else {
+      return !base(x);
+    }
   }
 };
 
