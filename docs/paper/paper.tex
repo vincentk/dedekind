@@ -775,7 +775,8 @@ cmp  ::= '<' | '<=' | '>' | '>='  | '=='
 By comprehension, \cppinline{ℕ | π > fix(5_c)} denotes $\{x \in \mathbb{N} \mid x > 5\}$, a \cppinline{Halfspace}, with no wrapper (Listing~\ref{lst:pruning}).
 
 The set operations are then the algebra on these predicates.
-Intersection (\cppinline{&}), union (\cppinline{|}) and complement (\cppinline{~}) compose these predicates into one type-level predicate, which the template engine reduces during instantiation: it constant-folds, and on a complement pair collapses to \cppinline{Ø} or the universe by type (Listing~\ref{lst:pruning}).
+Intersection (\cppinline{&}), union (\cppinline{|}) and complement (\cppinline{~}) compose these predicates, which a generic lattice-law term reducer normalises at instantiation time: it constant-folds, and under the classical two-valued logic a complement pair collapses to \cppinline{Ø} or the universe by type (Listing~\ref{lst:pruning}).
+The complement collapse is the law of non-contradiction, so it needs excluded middle: a general bounded chain such as Kleene's $K_3$ keeps only the reflection $\neg\neg A = A$, not the full complement, because $a \wedge \neg a$ can sit at the middle value there.
 
 The correspondence is exact on the decidable track, and it is what makes the algebra optimizable.
 The top element, the universal set $A$ itself, is reified as \cppinline{sets::𝔸<T>}; Listing~\ref{lst:pruning} (left) exhibits the canonical case, the Booleans $\mathbb{B} = $ \cppinline{𝔸<bool>}.

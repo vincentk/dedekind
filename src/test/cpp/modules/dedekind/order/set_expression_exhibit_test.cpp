@@ -13,9 +13,13 @@
  *     A | B  ⟶  the universe 𝔸                       (opposing cover ⟹
  * universe)
  *
- * This is the STRUCTURAL (lattice-law) axis of the exhibit.  The decidability
- * axis (undecidable-in-general ⟶ decidable-on-a-bounded-subset, #860/#858/#861)
- * and the Python mirror (#886) are the sibling sub-items of #888.
+ * This is the STRUCTURAL (lattice-law) axis of the exhibit.  A second TEST_CASE
+ * (added with #892) shows the reducer's residual behaviour: an irreducible
+ * meet / join MATERIALIZES as a MeetSet / JoinSet carrying both operands,
+ * absorption reads through that materialization, and the complement is a
+ * certified involution (!!A ≡ A).  The decidability axis
+ * (undecidable-in-general ⟶ decidable-on-a-bounded-subset, #860/#858/#861) and
+ * the Python mirror (#886) are the sibling sub-items of #888.
  */
 
 #include <catch2/catch_test_macros.hpp>
@@ -114,5 +118,55 @@ TEST_CASE(
     STATIC_CHECK(excluded_middle(0));
     STATIC_CHECK(excluded_middle(4));
     STATIC_CHECK(excluded_middle(5));
+  }
+}
+
+// ── The #892 axis: when a meet / join does NOT collapse to a boundary or an
+//    interval, it MATERIALIZES as a MeetSet / JoinSet that carries both operand
+//    sets (the AST is the set).  The reducer still reads through that
+//    materialization boundary for absorption, and the complement is a certified
+//    involution.  These are the capabilities #892 added on top of the glb / lub
+//    and boundary collapses above.
+TEST_CASE(
+    "Exhibit: irreducible meet/join materialize, absorption, involution (#892)",
+    "[order][sets][exhibit][collapse][892]") {
+  using namespace set_expression_exhibit;
+  // Lo = {x ≥ 5}, Hi = {x ≤ 2}: a disjoint pair with a gap at 3, 4, so their
+  // union has no boundary or interval normal form to collapse into.
+  using Lo = Halfspace<int, 5, Direction::Upward, Strictness::NonStrict,
+                       ClassicalLogic>;
+  using Hi = Halfspace<int, 2, Direction::Downward, Strictness::NonStrict,
+                       ClassicalLogic>;
+  constexpr Set<int, ClassicalLogic, Lo> SLo{Lo{}};
+  constexpr Set<int, ClassicalLogic, Hi> SHi{Hi{}};
+
+  SECTION("an irreducible union materializes as a JoinSet carrying both sets") {
+    constexpr auto uni = SLo | SHi;  // {x ≥ 5} ∪ {x ≤ 2}, a genuine gap at 3, 4
+    STATIC_CHECK(std::same_as<std::decay_t<decltype(uni)>,
+                              JoinSet<Set<int, ClassicalLogic, Lo>,
+                                      Set<int, ClassicalLogic, Hi>>>);
+    STATIC_CHECK(uni(7));        // in Lo
+    STATIC_CHECK(uni(1));        // in Hi
+    STATIC_CHECK_FALSE(uni(3));  // the gap
+  }
+
+  SECTION("absorption reads through the materialized node: A & (A | B) → A") {
+    // The union above is a JoinSet, yet the reducer still recognises Lo as one
+    // of its operands, so the meet absorbs to Lo rather than nesting a MeetSet.
+    constexpr auto absorbed = SLo & (SLo | SHi);
+    STATIC_CHECK(std::same_as<std::decay_t<decltype(absorbed)>,
+                              Set<int, ClassicalLogic, Lo>>);
+    STATIC_CHECK(absorbed(7));
+    STATIC_CHECK_FALSE(absorbed(1));  // 1 is in Hi = B, not in Lo = A
+  }
+
+  SECTION("complement is a certified involution: !!A ≡ A by type") {
+    // A second complement peels the first rather than nesting it, so the double
+    // negation eliminates and the original set TYPE is recovered (the
+    // :involution witness that ¬ is involutive on the classical logic).
+    STATIC_CHECK(std::same_as<std::decay_t<decltype(!!SLo)>,
+                              std::decay_t<decltype(SLo)>>);
+    STATIC_CHECK((!!SLo)(7) == SLo(7));
+    STATIC_CHECK((!!SLo)(1) == SLo(1));
   }
 }
