@@ -13,11 +13,11 @@
 The `dedekind` library translates a coherent slice of mathematical concepts into modern high-efficiency `C++`.
 It defines an embedded domain-specific language (eDSL) for mathematics with the following goals:
 
-- **Efficiency:** hardware requirements are minimal. Code is optimized to keep it that way. Minimal software dependencies are C++ and python toolchains.
-- **Recognizability:** Code should be intuitive to both mathematicians and `C++` programmers. The DSL mimicks set builder notation and common algebraic idioms.
+- **Efficiency:** default runtime requirements stay modest. This keeps embeddings in higher-level languages and constrained environments open. The software dependencies are the C++ and Python toolchains.
+- **Recognizability:** Code should be intuitive to both mathematicians and `C++` programmers. The DSL mimics set-builder notation and common algebraic idioms.
 - **Versatility:** The DSL expresses both infinite (intensional, symbolic) and finite (extensional, data) structures. It is extensible to allow the specification of further algebraic laws and identities. It allows mixing numerical and symbolic codes.
 - **Abstraction First:** Intensional and symbolic development should stay in abstract mathematical carriers; choose a concrete runtime representation only when explicitly realizing or evaluating numerically.
-- **Optimization:** The library performs *mathematically motivated* optimizations (e.g., identity laws) at compile-time and runtime through theorem search and term reduction.
+- **Optimization:** The library performs *mathematically motivated* optimizations (e.g., identity laws) at compile time, through theorem search and term reduction. Whatever cannot fold is emitted as a specialized runtime residual.
 
 ```cpp
 // Cardinality-1 reduction: an intensional meet of two halfspaces over
@@ -79,9 +79,7 @@ The library asks the engineer to claim only what is mathematically true of a typ
 
 * **Theory**: The accompanying draft paper: [Symbolic Algebra in Standard C++ Verified at Compile Time](https://vincentk.github.io/dedekind/paper.pdf).
 * **Build**: the build instructions are available through the [CMakeLists.txt](CMakeLists.txt) and controlled through the [build action](.github/workflows/cmake.yml).
-* **Documentation** (two views of the same project; both works in progress):
-  * [Doxygen API Reference](https://vincentk.github.io/dedekind/) — for quick lookups against the source tree.
-  * [Draft Paper](https://vincentk.github.io/dedekind/paper.pdf) — a high-level overview with the theoretical motivation.
+* **Documentation**: the [Doxygen API Reference](https://vincentk.github.io/dedekind/), for quick lookups against the source tree (a work in progress).
 * **Python Bindings (MVP)**: see [docs/python/README.md](docs/python/README.md) and [docs/python/release-checklist-v0.1.md](docs/python/release-checklist-v0.1.md).
 
 _AI assistance is used during the development of this project._
