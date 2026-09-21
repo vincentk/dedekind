@@ -819,6 +819,10 @@ export struct SetCombine {
  *  (a subset composed with a type conversion, e.g.\ @c ℕ ↪ ℤ) specialises @c ι.
  *  That is a downstream / §5-HSP concern, not this generic contract. */
 export template <typename A, typename B>
+  requires IsSubobject<A, typename A::Domain> &&
+           IsSubobject<B, typename B::Domain> &&
+           std::same_as<typename A::Domain, typename B::Domain> &&
+           std::same_as<typename A::logic_species, typename B::logic_species>
 struct MeetSet : Meet<A, B> {  // A ∩ B as a subobject carrying A and B
   using Domain = typename A::Domain;
   using Codomain = typename A::Codomain;
@@ -836,6 +840,10 @@ struct MeetSet : Meet<A, B> {  // A ∩ B as a subobject carrying A and B
 };
 
 export template <typename A, typename B>
+  requires IsSubobject<A, typename A::Domain> &&
+           IsSubobject<B, typename B::Domain> &&
+           std::same_as<typename A::Domain, typename B::Domain> &&
+           std::same_as<typename A::logic_species, typename B::logic_species>
 struct JoinSet : Join<A, B> {  // A ∪ B as a subobject carrying A and B
   using Domain = typename A::Domain;
   using Codomain = typename A::Codomain;
@@ -1081,6 +1089,30 @@ namespace dedekind::category {
 template <typename T, typename L, typename P>
 inline constexpr bool idempotent_leaf_v<dedekind::sets::Set<T, L, P>> =
     std::is_empty_v<P>;
+
+// A materialized MeetSet / JoinSet still IS the reducer's meet / join node (it
+// derives Meet / Join and carries the same operands).  Teach the structural
+// pattern-matchers to see through the :sets materialization boundary, so a
+// later A & (A | B) applies absorption even though A | B already materialized
+// as a JoinSet<A, B> (#865's A ∩ (A ∪ B) → A over materialized nodes).
+template <typename Elem, typename A, typename B>
+inline constexpr bool
+    is_join_containing_v<Elem, dedekind::sets::JoinSet<A, B>> =
+        std::same_as<Elem, A> || std::same_as<Elem, B>;
+template <typename Elem, typename A, typename B>
+inline constexpr bool
+    is_meet_containing_v<Elem, dedekind::sets::MeetSet<A, B>> =
+        std::same_as<Elem, A> || std::same_as<Elem, B>;
+
+// Value-determinism recurses through the materialized node as it does through
+// the bare Meet / Join, so a MeetSet / JoinSet of value-determined operands
+// stays collapsible under idempotence and absorption.
+template <typename A, typename B>
+inline constexpr bool idempotent_leaf_v<dedekind::sets::MeetSet<A, B>> =
+    idempotent_leaf_v<A> && idempotent_leaf_v<B>;
+template <typename A, typename B>
+inline constexpr bool idempotent_leaf_v<dedekind::sets::JoinSet<A, B>> =
+    idempotent_leaf_v<A> && idempotent_leaf_v<B>;
 }  // namespace dedekind::category
 
 namespace dedekind::sets {
