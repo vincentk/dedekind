@@ -65,6 +65,13 @@ Coherence checks:
 - **Burden of proof is on ADDING a struct/wrapper**, not on removing one. Push
   back on new wrappers that don't earn their place — especially thin "glorified
   for-loop" wrappers around `std::` containers/algorithms.
+- **A deprecated pattern with a future-proof alternative wants the alternative,
+  not the deprecation.** When a diff introduces or leans on something already
+  flagged deprecated (a `[[deprecated]]` API, a legacy representation the PR is
+  retiring, a shim kept only for callers), and a forward-looking replacement
+  exists, request that the code adopt the replacement rather than perpetuate the
+  deprecated form. Deprecation markers are a migration signal, not a resting
+  place; prefer completing the migration in the PR that touches the call site.
 - **Trend toward negative net lines.** This is a maturing library; PRs are
   expected to often delete more than they add. A large net-positive diff wants
   justification.
