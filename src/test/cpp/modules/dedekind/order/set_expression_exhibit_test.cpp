@@ -150,6 +150,23 @@ TEST_CASE(
     STATIC_CHECK_FALSE(uni(3));  // the gap
   }
 
+  SECTION("an irreducible meet materializes as a MeetSet carrying both sets") {
+    // Cap = {x < 10} is not one of the union's operands, so the meet does not
+    // absorb; it materializes as a MeetSet wrapping Cap and the JoinSet.
+    using Cap = Halfspace<int, 10, Direction::Downward, Strictness::Strict,
+                          ClassicalLogic>;
+    constexpr Set<int, ClassicalLogic, Cap> SCap{Cap{}};
+    constexpr auto met = SCap & (SLo | SHi);  // {x<10} ∩ ({x≥5} ∪ {x≤2})
+    STATIC_CHECK(std::same_as<std::decay_t<decltype(met)>,
+                              MeetSet<Set<int, ClassicalLogic, Cap>,
+                                      JoinSet<Set<int, ClassicalLogic, Lo>,
+                                              Set<int, ClassicalLogic, Hi>>>>);
+    STATIC_CHECK(met(7));         // < 10 and ≥ 5
+    STATIC_CHECK(met(1));         // < 10 and ≤ 2
+    STATIC_CHECK_FALSE(met(3));   // < 10 but in the gap
+    STATIC_CHECK_FALSE(met(12));  // ≥ 5 but not < 10
+  }
+
   SECTION("absorption reads through the materialized node: A & (A | B) → A") {
     // The union above is a JoinSet, yet the reducer still recognises Lo as one
     // of its operands, so the meet absorbs to Lo rather than nesting a MeetSet.
