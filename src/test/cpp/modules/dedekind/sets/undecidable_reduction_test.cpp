@@ -103,6 +103,14 @@ TEST_CASE("Cross-species combine: Boole ∩ Kleene lifts into the reducer (#894)
   // the decided Boolean codomain.
   constexpr auto collapsed = A & E;
   STATIC_CHECK(HasDecidableMembership<decltype(collapsed)>);
+
+  // Runtime exercise so the lift / cross-species overload / membership are
+  // covered (the STATIC_CHECKs above run at compile time, invisible to
+  // Codecov).
+  const auto mixed_rt = A & B;
+  CHECK(mixed_rt(7) == Ternary::Unknown);  // lift(⊤) ∧ Unknown = Unknown
+  const auto collapsed_rt = A & E;
+  CHECK_FALSE(collapsed_rt(3));  // Ø membership is false
 }
 
 TEST_CASE("Codomain leg on complement / product / symmetric difference (#894)",
