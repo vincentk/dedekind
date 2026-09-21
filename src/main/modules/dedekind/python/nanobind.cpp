@@ -147,6 +147,13 @@ auto ext_cardinality(const std::set<T>& s) -> std::size_t {
 }
 
 // Convenience: register all four set-algebra overloads for one element type.
+//
+// FIXME(#886): these bind only EXTENSIONAL std::set.  The intensional sets
+// (boundary Ø / 𝔸, Singleton, predicate Sets) are not yet Python objects; the
+// agreed shape is to model Ø / 𝔸 ~1:1, expose membership as Python `x in s`
+// (__contains__ over the C++ operator()), and `|` as the set-builder filter --
+// with the C++ core shaping the bindings, not the reverse.  Tracked in #886;
+// deliberately out of scope for the #892 reducer-sets removal.
 template <typename T>
 void register_set_ops(nb::module_& m) {
   m.def(
