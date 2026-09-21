@@ -121,15 +121,24 @@ TEST_CASE("Pruning showcase 3: halfspace contradiction on ℕ collapses to Ø",
 
 TEST_CASE("Pruning showcase 4: cardinality-1 halfspace meet = Singleton<4>",
           "[analysis][pruning][showcase][showcase04]") {
-  constexpr auto n = element<ℕ>;
-  constexpr auto gt_3 = Set{n | n > bound<3>};
-  constexpr auto lt_5 = Set{n | n < bound<5>};
+  // Canonical point-free grammar (the paper form): the canonical set ℕ, the
+  // sole projection χ (the element scout, reads as x), and a compile-time bound
+  // spelled fix(3_c).  No Set{} wrapper.
+  constexpr auto gt_3 = ℕ | (χ > fix(3_c));
+  constexpr auto lt_5 = ℕ | (χ < fix(5_c));
 
+  // The punch line: the meet COLLAPSES to a named Singleton at compile time.
   constexpr Singleton<4> in_between = gt_3 & lt_5;
   STATIC_CHECK(in_between == Singleton<4>{});
 
-  SECTION("Elements now live at the type level") {
+  SECTION("An intensional meet materialises an extensional set") {
+    // Decidability is NOT the contrast: a halfspace on ℕ decides membership by
+    // a comparison, so both the parents and the result are decidable. What the
+    // collapse gains is extensionality: the intensional (predicate-shaped)
+    // parents become an extensional, named Singleton.
+    STATIC_CHECK(HasDecidableMembership<decltype(gt_3)>);
     STATIC_CHECK_FALSE(IsExtensional<decltype(gt_3)>);
+    STATIC_CHECK(HasDecidableMembership<decltype(in_between)>);
     STATIC_CHECK(IsExtensional<decltype(in_between)>);
   }
 }

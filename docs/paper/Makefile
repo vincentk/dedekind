@@ -12,6 +12,5 @@ doc: #dot
 	$(LUALATEX) paper.tex
 
 # Fast CI/local gate: detect TeX compile errors without bibliography pass.
-# Mirrors the pattern in docs/report/Makefile.
 ci-check:
 	$(LUALATEX) -interaction=nonstopmode -halt-on-error paper.tex

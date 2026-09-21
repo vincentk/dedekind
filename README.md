@@ -10,40 +10,40 @@
 
 ### Computational Structuralism in Modern C++23
 
-The `dedekind` library translates a coherent slice of mathematical concepts into modern `C++`. 
+The `dedekind` library translates a coherent slice of mathematical concepts into modern high-efficiency `C++`.
 It defines an embedded domain-specific language (eDSL) for mathematics with the following goals:
 
-- **Recognizability:** Code should be intuitive to both mathematicians and `C++` programmers.
-- **Versatility:** The DSL expresses both infinite (intensional, symbolic) and finite (extensional, data) structures.
+- **Efficiency:** the default runtime footprint stays modest. This keeps embeddings in higher-level languages and constrained environments open. The build itself uses the standard C++ toolchain with CMake and Ninja (and fetches Catch2 for the tests).
+- **Recognizability:** Code should be intuitive to both mathematicians and `C++` programmers. The DSL mimics set-builder notation and common algebraic idioms.
+- **Versatility:** The DSL expresses both infinite (intensional, symbolic) and finite (extensional, data) structures. It is extensible to allow the specification of further algebraic laws and identities. It allows mixing numerical and symbolic codes.
 - **Abstraction First:** Intensional and symbolic development should stay in abstract mathematical carriers; choose a concrete runtime representation only when explicitly realizing or evaluating numerically.
-- **Optimization:** The library performs *mathematically motivated* optimizations (e.g., identity laws) at compile-time.
+- **Optimization:** The library performs *mathematically motivated* optimizations (e.g., identity laws) at compile time, through theorem search and term reduction. Whatever cannot fold is emitted as a specialized runtime residual.
 
 ```cpp
-// Cardinality-1 reduction: an intensional set over a transfinite
-// carrier collapses to a named extensional Singleton — at compile
-// time, with no lambdas, no predicate erasure.
-constexpr auto n    = element<ℕ>;
-constexpr auto gt_3 = Set{n | n > bound<3>};
-constexpr auto lt_5 = Set{n | n < bound<5>};
+// Cardinality-1 reduction: an intensional meet of two halfspaces over
+// a transfinite carrier collapses to a named extensional Singleton, at
+// compile time, with no lambdas and no predicate erasure.
+constexpr auto gt_3 = ℕ | (χ > fix(3_c));          // { x ∈ ℕ | x > 3 }
+constexpr auto lt_5 = ℕ | (χ < fix(5_c));          // { x ∈ ℕ | x < 5 }
 
-constexpr Singleton<4> in_between = gt_3 & lt_5;   // ≡ {4}
+constexpr Singleton<4> in_between = gt_3 & lt_5;   // ≡ {4}, at compile time
 static_assert(in_between == Singleton<4>{});
 
-// The parent Sets carry NONE of the three computability tiers; the
-// reduced Singleton carries ALL THREE.  The intersection IS the
-// theorem: { n ∈ ℕ | n > 3 } ∩ { n ∈ ℕ | n < 5 } = {4}.
-static_assert(!HasDecidableMembership<decltype(gt_3)>);
-static_assert(!IsFiniteSet<decltype(gt_3)>);
-static_assert(!IsCompileTimeEnumerable<decltype(gt_3)>);
+// Decidability is not the contrast: a halfspace on ℕ decides membership
+// by a comparison, so both parents and the result are decidable.  The
+// collapse gains extensionality.  The intersection IS the theorem:
+// { x ∈ ℕ | x > 3 } ∩ { x ∈ ℕ | x < 5 } = {4}.
+static_assert(HasDecidableMembership<decltype(gt_3)>);
+static_assert(!IsExtensional<decltype(gt_3)>);
 
 static_assert(HasDecidableMembership<decltype(in_between)>);
-static_assert(IsFiniteSet<decltype(in_between)>);
-static_assert(IsCompileTimeEnumerable<decltype(in_between)>);
+static_assert(IsExtensional<decltype(in_between)>);
 ```
 
-The full set of IR-verified showcases lives under
-[`src/test/cpp/modules/dedekind/python/`](src/test/cpp/modules/dedekind/python/).
-The example above is showcase 4.
+The example above is showcase 4, checked in as a `STATIC_CHECK` in
+[`pruning_showcases_test.cpp`](src/test/cpp/modules/dedekind/analysis/pruning_showcases_test.cpp).
+The IR-fixture demonstrations (clang emitting the collapsed form at `-O2`)
+live under [`src/test/cpp/modules/dedekind/python/`](src/test/cpp/modules/dedekind/python/).
 
 ### Quickstart
 ```bash
@@ -73,20 +73,12 @@ In this approach:
 
 The library asks the engineer to claim only what is mathematically true of a type, and lets the compiler check the consequences mechanically. The trade is an **honesty obligation up front for a mechanical guarantee afterward**; that asymmetry, not the cost, is what makes the technique worth practising.
 
-**Background reading:**
-- *Axiomatic Systems Programming* (with the *Honest Rejection* policy and the *Old mathematics, newly accessible* discussion) in the [paper](https://vincentk.github.io/dedekind/paper.pdf).
-- *C++23 ↔ STLC ↔ System F* — the paper's §2 translation table draws an explicit equivalence between the C++23 surface (`template`, `concept`, `requires`, `static_assert`, NTTP-lambda, `constexpr`) and a fragment of System F, which translates via the Lambek–Scott correspondence to STLC enriched with a subobject classifier (a topos). The active research line on extending System F with modern type-system disciplines is well-published; representative anchors include Amin, Grütter, Odersky, Rompf, and Stucki, [*The Essence of Dependent Object Types*](https://doi.org/10.1007/978-3-319-30936-1_14) (LNCS 9600, 2016) — the DOT calculus underlying Scala 3 — and Boruch-Gruszecki, Brachthäuser, Lee, Lelièvre, and Odersky, [*Capturing Types*](https://doi.org/10.1145/3618003) (TOPLAS, 2023). The dedekind library is one practitioner-side realisation of the same identification, restricted to the propositional fragment that the C++ type checker can discharge mechanically.
-- Curry–Howard reading of type-system-driven verification: Wadler, [*Propositions as Types*](https://doi.org/10.1145/2699407), CACM 2015.
-- Professional grounding: NSPE [*Code of Ethics for Engineers*](https://www.nspe.org/sites/default/files/resources/pdfs/Ethics/CodeofEthics/NSPECodeofEthicsforEngineers.pdf) — canons III (truthful public statements) and IV (faithful agency).
-- Categorical foundations: Lawvere, *An elementary theory of the category of sets* (PNAS, 1964); Mac Lane, *Categories for the Working Mathematician* (1971); for the programmer-accessible bridge, Bartosz Milewski, [*Category Theory for Programmers*](https://bartoszmilewski.com/2014/10/28/category-theory-for-programmers-the-preface/) (blog series and book); for an even friendlier working-engineer on-ramp, the [Abuse of Notation](https://abuseofnotation.github.io/) blog.
-- *Mechanical sympathy* as a software-engineering discipline — the term Jackie Stewart used about race-car drivers and Martin Thompson popularised for low-latency systems work; see the [Mechanical Sympathy blog](https://mechanical-sympathy.blogspot.com/) and the LMAX Disruptor literature.
-
-_AI assistance is used during the development of this project._
 
 ### Further reading:
 
+* **Theory**: The accompanying draft paper: [Symbolic Algebra in Standard C++ Verified at Compile Time](https://vincentk.github.io/dedekind/paper.pdf).
 * **Build**: the build instructions are available through the [CMakeLists.txt](CMakeLists.txt) and controlled through the [build action](.github/workflows/cmake.yml).
-* **Documentation** (two views of the same project; both works in progress):
-  * [Doxygen API Reference](https://vincentk.github.io/dedekind/) — for quick lookups against the source tree.
-  * [Draft Paper](https://vincentk.github.io/dedekind/paper.pdf) — a high-level overview with the theoretical motivation.
+* **Documentation**: the [Doxygen API Reference](https://vincentk.github.io/dedekind/), for quick lookups against the source tree (a work in progress).
 * **Python Bindings (MVP)**: see [docs/python/README.md](docs/python/README.md) and [docs/python/release-checklist-v0.1.md](docs/python/release-checklist-v0.1.md).
+
+_AI assistance is used during the development of this project._
