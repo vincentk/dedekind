@@ -141,3 +141,37 @@ TEST_CASE("Logic: The Lattice Order (Relational Honesty)",
     CHECK(refutes(T <= U));
   }
 }
+
+TEST_CASE("Logic: the finite Kleene chain Chain<int> (De Morgan, #901)",
+          "[category][logic][demorgan][chain]") {
+  using C = Chain<int>;
+
+  SECTION("meet/join/reflection = min/max/~; ~ swaps the poles") {
+    CHECK(C::AND(7, 3) == 3);            // meet = min
+    CHECK(C::OR(7, 3) == 7);             // join = max
+    CHECK(C::RFL(0) == ~0);              // reflection = bitwise NOT
+    CHECK(C::RFL(C::False) == C::True);  // ⊥ ↦ ⊤ (INT_MIN ↦ INT_MAX)
+    CHECK(C::RFL(C::True) == C::False);  // ⊤ ↦ ⊥
+  }
+
+  SECTION("involution, bound-absorption (decidability collapse), De Morgan") {
+    CHECK(C::RFL(C::RFL(42)) == 42);         // ~~x = x
+    CHECK(C::AND(7, C::False) == C::False);  // x ∧ ⊥ = ⊥
+    CHECK(C::OR(7, C::True) == C::True);     // x ∨ ⊤ = ⊤
+    CHECK(C::RFL(C::AND(3, 8)) ==
+          C::OR(C::RFL(3), C::RFL(8)));  // De Morgan ~(a∧b) = ~a ∨ ~b
+  }
+
+  SECTION("Kleene, not Boolean: interior values are uncomplemented") {
+    CHECK(C::AND(0, C::RFL(0)) != C::False);  // 0 ∧ ~0 = min(0,-1) = -1 ≠ ⊥
+  }
+
+  SECTION("concept tower (runtime witnesses, for coverage)") {
+    CHECK(IsDeMorganAlgebra<C>);
+    CHECK(IsBoundedDeMorganChain<C>);  // ⟹ Kleene (chain-normality)
+    CHECK(!IsBooleanLogic<C>);         // not Boolean (interior uncomplemented)
+    CHECK(IsBooleanLogic<Boole>);      // 𝔹 is the Boolean core
+    CHECK(IsBoundedDeMorganChain<Kleene>);
+    CHECK(!IsBooleanLogic<Kleene>);
+  }
+}
