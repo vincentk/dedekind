@@ -366,7 +366,7 @@ constexpr auto operator~(const Singleton<Value, L>&) {
  *         coincide, otherwise @c Ø.  Distinct points are disjoint, so the
  *         empty collapse is structural on @b any carrier. */
 export template <auto A, typename LA, auto B, typename LB>
-  requires std::same_as<decltype(A), decltype(B)>
+  requires std::same_as<decltype(A), decltype(B)> && std::same_as<LA, LB>
 constexpr auto operator&(const Singleton<A, LA>& a, const Singleton<B, LB>&) {
   if constexpr (A == B) {
     return a;
@@ -380,7 +380,7 @@ constexpr auto operator&(const Singleton<A, LA>& a, const Singleton<B, LB>&) {
  *         @b cover the universe, so @c UniversalSet.  On a larger carrier the
  *         join is a two-point set, out of scope here, so no overload fires. */
 export template <auto A, typename LA, auto B, typename LB>
-  requires std::same_as<decltype(A), decltype(B)> &&
+  requires std::same_as<decltype(A), decltype(B)> && std::same_as<LA, LB> &&
            (A == B || std::same_as<decltype(A), bool>)
 constexpr auto operator|(const Singleton<A, LA>& a, const Singleton<B, LB>&) {
   if constexpr (A == B) {
