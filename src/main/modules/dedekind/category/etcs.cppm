@@ -33,11 +33,9 @@
  * @note Row 9 is a @b witness of the NNO @e role, not an equality.
  *       @c SpeciesTraits<unsigned> supplies the NNO @b interface (a zero and a
  *       successor), so @c unsigned @b stands @b in for the Natural Number
- *       Object --- but it is @b not ℕ: @c unsigned is @b finite (bounded, with
- *       an overflow Sollbruchstelle), whereas ℕ is @c ℵ_0.  The genuine
- infinite
- *       ℕ lives downstream in @c :sets:cardinality (@c ℵ_0 / @c IsCountable)
- and
+ *       Object.  It is @b not ℕ itself: @c unsigned is @b finite (bounded, with
+ *       an overflow Sollbruchstelle), whereas ℕ is countably infinite.  The
+ *       genuine ℕ lives downstream in @c :sets:cardinality (@c IsCountable) and
  *       @c :numbers (@c natural.cppm).  Read "NNO (ℕ)" as the categorical role,
  *       never as "@c unsigned @c = ℕ".
  *

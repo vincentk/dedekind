@@ -1,4 +1,5 @@
 /** @file test/cpp/modules/dedekind/category/logic_test.cpp */
+#include <algorithm>
 #include <catch2/catch_test_macros.hpp>
 #include <concepts>
 
@@ -186,6 +187,17 @@ TEST_CASE("Logic: the finite Kleene chain Chain<int> (De Morgan, #901)",
     CHECK(P::OR(30, 70) == 70);   // join = optimistic
     CHECK(IsBoundedDeMorganChain<P>);
     CHECK(!IsBooleanLogic<P>);  // 101 grades: Kleene, not Boolean
+  }
+
+  SECTION("Percentage through its native int operator surface (everyday use)") {
+    // A percentage is a raw int, so you combine confidences with int's OWN
+    // operators --- no wrapper, no overload (the register-agnostic point).
+    const int conf_a = 80, conf_b = 60;
+    CHECK(conf_b < conf_a);  // truth order = numeric order
+    CHECK(100 - conf_a == Percentage::RFL(conf_a));  // "not A" = 100 - a
+    CHECK(std::min(conf_a, conf_b) ==
+          Percentage::AND(conf_a, conf_b));                             // A ∧ B
+    CHECK(std::max(conf_a, conf_b) == Percentage::OR(conf_a, conf_b));  // A ∨ B
   }
 
   SECTION("unsigned full-range chain (affine reflection = ~a)") {
