@@ -39,11 +39,7 @@ TEST_CASE("Logic: The Binary Prime (Classical)", "[category][logic][boolean]") {
     Truth<Boole> t{true};
     Truth<Boole> f{false};
 
-    // Verify our 'operator+' bypasses the int-promotion trap
-    STATIC_CHECK(std::same_as<decltype(t + f), Truth<Boole>>);
-    CHECK((t + f).value == true);
-
-    // De Morgan's laws for Boolean wrapper
+    // De Morgan's laws for the Boolean wrapper (via contextual bool).
     CHECK(!(t && f) == (!t || !f));
     CHECK(!(t || f) == (!t && !f));
   }
@@ -109,16 +105,6 @@ TEST_CASE("Logic: The Indeterminacy (Kleene)", "[category][logic][kleene]") {
 
     // Consistency: lifting preserves order
     CHECK(lift_logic<Kleene>(false) <= lift_logic<Kleene>(true));
-  }
-}
-
-TEST_CASE("Logic: Archimedean Successor", "[category][logic][peano]") {
-  SECTION("Boolean Successor") {
-    Truth<Boole> b{false};
-    // Successor S(0) = 1
-    CHECK((b + Truth<Boole>::one()).value == true);
-    // Saturating S(1) = 1
-    CHECK((Truth<Boole>{true} + Truth<Boole>::one()).value == true);
   }
 }
 

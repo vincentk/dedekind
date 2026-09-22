@@ -25,10 +25,18 @@
  * - Kleene: The Kleene Topos ({True, False, Unknown}).
  *
  * @section logic__Structural_Invariants
- * Logics in Dedekind are treated as Rigs (Semirings).
- * - Addition (+) is the Supremum/Join (OR).
- * - Multiplication (*) is the Infimum/Meet (AND).
- * - Successor (S) is the mapping x ∨ 1 (The Archimedean Step).
+ * Each logic species is a @b De @b Morgan @b algebra: a bounded distributive
+ * lattice with an order-reversing involution, named by its morphisms
+ * @c AND / @c OR / @c RFL.
+ * - @c OR is the supremum / join (∨).
+ * - @c AND is the infimum / meet (∧).
+ * - @c RFL is the reflection / De Morgan involution (¬); a genuine complement
+ *   only on the two-chain 𝔹.
+ * The shipped species are bounded chains (@c Boole = 2 grades, @c Kleene = 3,
+ * @c Chain<T> = |T|), hence Kleene lattices; see @c IsDeMorganAlgebra /
+ * @c IsBoundedDeMorganChain / @c IsBooleanLogic below (#901).  The former rig
+ * (@c + / @c *) surface on @c Truth was retired: a truth value is a lattice
+ * element, not a semiring element.
  *
  * Textbook defaults in this partition:
  * - Classical two-valued logic uses C++ `operator&&` / `operator||`.
@@ -478,37 +486,17 @@ struct Truth {
     return {L::RFL(a.value)};
   }
 
-  /** @section logic__Rig_Operations */
-
-  // Addition as the Supremum (OR)
-  friend constexpr Truth operator+(Truth a, Truth b) noexcept {
-    return {L::OR(a.value, b.value)};
-  }
-
-  // Multiplication as the Infimum (AND)
-  friend constexpr Truth operator*(Truth a, Truth b) noexcept {
-    return {L::AND(a.value, b.value)};
-  }
-
+  /** @section logic__Lattice_Order
+   *  @brief The truth order: @c a @c <= @c b iff the join @c a @c ∨ @c b is
+   *  @c b.  Meet / join / reflection themselves are the species morphisms
+   *  @c L::AND / @c L::OR / @c L::RFL --- the rig @c + / @c * surface was
+   *  @b retired (#901): a truth value is a @b De @b Morgan-lattice element, not
+   * a semiring element, so it carries the involution @c ! and the lattice
+   * order, not @c + / @c * / @c one().  (The logical @c && / @c || meet/join
+   * register is a separate follow-up increment.) */
   friend constexpr Truth operator<=(Truth a, Truth b) noexcept {
-    // Universal Lattice Order: a <= b iff the Join of a and b is b.
-    return {lift_logic<L>((a + b) == b)};
+    return {lift_logic<L>(L::OR(a.value, b.value) == b.value)};
   }
-
-  /** @section logic__Identity_Discovery */
-  template <typename Op>
-  static constexpr auto identity_v = []() {
-    if constexpr (std::is_same_v<Op, std::plus<Truth>> ||
-                  std::is_same_v<Op, std::plus<void>>) {
-      return Truth{L::False};
-    } else if constexpr (std::is_same_v<Op, std::multiplies<Truth>> ||
-                         std::is_same_v<Op, std::multiplies<void>>) {
-      return Truth{L::True};
-    }
-  }();
-
-  // The Archimedean Anchor (Successor = x + 1)
-  static constexpr Truth one() { return {L::True}; }
 
   /** @section logic__Conversion */
   constexpr explicit operator machine_type() const noexcept { return value; }
@@ -638,9 +626,11 @@ static_assert(HasLogicalOperators<bool>,
 // non-truth types (int, ...) qualify by neither.
 static_assert(IsΩ<bool> && IsΩ<Ternary>,
               "raw truth-types are Ω (their &&/||/! close on the type)");
-static_assert(IsΩ<Truth<Boole>> && IsΩ<Truth<Kleene>>,
-              "Truth<L> wrappers are Ω via their registered logic_species "
-              "(they overload +/* and !, not &&/||)");
+static_assert(
+    IsΩ<Truth<Boole>> && IsΩ<Truth<Kleene>>,
+    "Truth<L> wrappers are Ω via their registered logic_species "
+    "(they carry the involution ! and the lattice order <=; meet/join "
+    "are the species AND/OR, and the rig +/* surface was retired)");
 static_assert(!IsΩ<int>,
               "int is not Ω: its && yields bool (not int) and it declares no "
               "logic_species");
