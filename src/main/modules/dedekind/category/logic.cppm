@@ -138,7 +138,7 @@ static_assert(IsLogicalSpecies<Boole>, "Boole must fulfill IsLogicalSpecies");
  * Indeterminacy)
  * @brief A three-valued propositional logic for handling partial information.
  *
- * Unlike Boole, Ternary logic allows for an 'Unknown' state,
+ * Unlike Boole, Kleene's three-valued logic allows for an 'Unknown' state,
  * modeling undecidability or missing knowledge within a predicate.
  * This implementation follows Kleene's strong logic of indeterminacy (K3).
  *
@@ -150,7 +150,7 @@ static_assert(IsLogicalSpecies<Boole>, "Boole must fulfill IsLogicalSpecies");
 export enum class Ternary : std::int8_t { False = -1, Unknown = 0, True = 1 };
 
 /**
- * @brief The internal logic of the Ternary Topos.
+ * @brief The internal logic of the Kleene Topos.
  *
  * Maps logical morphisms to numerical min/max/negation operations
  * over the {-1, 0, 1} lattice. This ensures that 'Unknown' acts as
@@ -389,9 +389,12 @@ concept HasLogicalOperators = requires(T a, T b) {
  *        logical species.
  *
  * @details Satisfied when @c T either carries the @b closed logical operators
- * (@c && / @c || / @c ! all returning @c T, as for @c bool and @c Ternary), or
- * is a registered logic wrapper declaring a valid @c logic_species (e.g.\ @c
- * Truth<L>).  @c int and @c std::string satisfy neither (@c int's @c && yields
+ * (@c && / @c || / @c ! all returning @c T, as for @c bool, @c Ternary, and the
+ * @c Truth<L> wrappers now that the meet/join register has landed), or is a
+ * registered logic wrapper declaring a valid @c logic_species.  @c Truth<L> now
+ * qualifies by @b both branches; the @c logic_species branch remains the
+ * fallback for any wrapper that does not overload the operators.  @c int and
+ * @c std::string satisfy neither (@c int's @c && yields
  * @c bool, and neither declares a @c logic_species), so @c IsΩ does not
  * over-accept them.  This is deliberately decoupled from @c GetLogic, whose
  * permissive default maps any type to @c Boole and would otherwise let
@@ -409,8 +412,10 @@ export template <typename T>
 concept IsΩ =
     // Raw truth-type: the logical operators close on T (bool, Ternary)...
     HasLogicalOperators<T> ||
-    // ...or a registered logic wrapper declaring a valid logic_species
-    // (e.g. Truth<L>), which need not overload the operators directly.
+    // ...or a registered logic wrapper declaring a valid logic_species.  This
+    // is the fallback for a wrapper that does not close the operators; Truth<L>
+    // now does (see the meet/join register), so it also matches the branch
+    // above.
     requires {
       typename T::logic_species;
       requires IsLogicalSpecies<typename T::logic_species>;
@@ -574,10 +579,10 @@ concept LiftsTo = lifts_to_v<From, To>;
  * @class Truth
  * @brief The Monic Wrapper for a Logical Species (Ω).
  * @details Wraps a raw truth type (bool, Ternary) as a De Morgan-lattice
- *          element (carrying the involution @c ! and the lattice order @c <=),
- *          preventing machine-level integral promotion.  The former rig
- *          (@c + / @c *) surface was retired: a truth value is a lattice
- *          element, not a semiring element (#901).
+ *          element, carrying meet @c && , join @c || , the involution @c ! and
+ *          the lattice order @c <= , while preventing machine-level integral
+ *          promotion.  The former rig (@c + / @c *) surface was retired: a
+ * truth value is a lattice element, not a semiring element (#901).
  */
 export template <typename L = Boole>
 struct Truth {
@@ -586,26 +591,60 @@ struct Truth {
 
   machine_type value;
 
-  /** @section logic__Monic_Construction */
-  // Removed 'explicit' to allow seamless return from lambdas/expressions
-  constexpr Truth(machine_type v) noexcept : value(v) {}
+  /** @section logic__Monic_Construction
+   *  @brief Wrap a raw carrier value as a @c Truth (the monic promotion).
+   *  @details @b explicit by design: a raw carrier does @b not implicitly
+   *  become a @c Truth.  This keeps @c Truth<Boole> @c && @c bool decaying to
+   *  the built-in @c bool @c && (short-circuit preserved, which matters if the
+   *  raw operand has side effects), rather than binding a strict eager wrapper
+   *  overload.  Opt into the lattice register by wrapping explicitly:
+   *  @c Truth<L>{v}.
+   *  @note This is a deliberate @b source-breaking change from the previous
+   *  implicit constructor: a @c Truth<L>-returning function can no longer
+   *  @c return a bare carrier (write @c return @c Truth<L>{v}).  No in-tree
+   *  caller relied on the implicit form, and per the project's
+   *  experimental-API-break posture no compatibility shim is kept. */
+  constexpr explicit Truth(machine_type v) noexcept : value(v) {}
   constexpr Truth() noexcept : value(L::False) {}
 
   // Unary Negation: Ensures !Boolean returns a Boolean, not a raw bool
   friend constexpr Truth operator!(Truth a) noexcept {
-    return {L::RFL(a.value)};
+    return Truth{L::RFL(a.value)};
+  }
+
+  /** @section logic__Lattice_Register
+   *  @brief Meet @c ∧ = @c L::AND and join @c ∨ = @c L::OR on two @b wrappers,
+   *  spelled @c && / @c || to complete the @c && / @c || / @c ! register
+   *  (matching the raw carriers @c bool / @c Ternary).
+   *  @note @b Same-species only (@c Truth<L> @c op @c Truth<L>).  A @b mixed
+   *  @c Truth @c op @c carrier expression is deliberately @e not captured:
+   *  because the carrier ctor is @c explicit the raw operand does not promote
+   * to
+   *  @c Truth, so @c Truth<Boole> @c && @c bool falls to the built-in @c bool
+   *  @c && @c bool, preserving short-circuit.  Wrap explicitly to stay in the
+   *  lattice.  The register is @b strict (no short-circuit): on two wrappers
+   *  both operands are already-computed, side-effect-free values, so eager
+   *  meet/join is extensionally the built-in behaviour. */
+  friend constexpr Truth operator&&(Truth a, Truth b) noexcept(
+      noexcept(L::AND(a.value, b.value))) {
+    return Truth{L::AND(a.value, b.value)};
+  }
+  /** @brief Join @c ∨ of two wrappers.  @overload */
+  friend constexpr Truth operator||(Truth a, Truth b) noexcept(
+      noexcept(L::OR(a.value, b.value))) {
+    return Truth{L::OR(a.value, b.value)};
   }
 
   /** @section logic__Lattice_Order
    *  @brief The truth order: @c a @c <= @c b iff the join @c a @c ∨ @c b is
    *  @c b.  Meet / join / reflection themselves are the species morphisms
-   *  @c L::AND / @c L::OR / @c L::RFL.  The rig @c + / @c * surface was
-   *  @b retired (#901): a truth value is a @b De @b Morgan-lattice element, not
-   * a semiring element, so it carries the involution @c ! and the lattice
-   * order, not @c + / @c * / @c one().  (The logical @c && / @c || meet/join
-   * register is a separate follow-up increment.) */
+   *  @c L::AND / @c L::OR / @c L::RFL, spelled @c && / @c || / @c ! on the
+   *  wrapper.  The rig @c + / @c * surface was @b retired (#901): a truth value
+   *  is a @b De @b Morgan-lattice element, not a semiring element, so it
+   * carries the involution and the lattice order, not @c + / @c * / @c one().
+   */
   friend constexpr Truth operator<=(Truth a, Truth b) noexcept {
-    return {lift_logic<L>(L::OR(a.value, b.value) == b.value)};
+    return Truth{lift_logic<L>(L::OR(a.value, b.value) == b.value)};
   }
 
   /** @section logic__Conversion */
@@ -732,15 +771,20 @@ static_assert(HasLogicalOperators<bool>,
               "is the built-in-operator behaviour, not a concept claim).");
 
 // IsΩ gate (the truth-object concept): raw truth-types qualify via closed
-// operators; the Truth<L> wrappers via their registered logic_species; and
-// non-truth types (int, ...) qualify by neither.
+// operators; the Truth<L> wrappers now qualify via BOTH branches (the meet/join
+// register closes &&/||/! AND they declare a logic_species); non-truth types
+// (int, ...) qualify by neither.
 static_assert(IsΩ<bool> && IsΩ<Ternary>,
               "raw truth-types are Ω (their &&/||/! close on the type)");
 static_assert(
+    HasLogicalOperators<Truth<Boole>> && HasLogicalOperators<Truth<Kleene>>,
+    "the meet/join register closes &&/||/! on Truth<L> (all return Truth<L>), "
+    "so Truth<L> is Ω by the operator branch too, not only via logic_species");
+static_assert(
     IsΩ<Truth<Boole>> && IsΩ<Truth<Kleene>>,
-    "Truth<L> wrappers are Ω via their registered logic_species "
-    "(they carry the involution ! and the lattice order <=; meet/join "
-    "are the species AND/OR, and the rig +/* surface was retired)");
+    "Truth<L> wrappers are Ω (via the closed operators and their registered "
+    "logic_species; they carry the involution ! and the lattice order <=, "
+    "meet/join are the species AND/OR, and the rig +/* surface was retired)");
 static_assert(!IsΩ<int>,
               "int is not Ω: its && yields bool (not int) and it declares no "
               "logic_species");

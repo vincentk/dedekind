@@ -39,9 +39,44 @@ TEST_CASE("Logic: The Binary Prime (Classical)", "[category][logic][boolean]") {
     Truth<Boole> t{true};
     Truth<Boole> f{false};
 
-    // De Morgan's laws for the Boolean wrapper (via contextual bool).
+    // De Morgan's laws for the Boolean wrapper: && / || are the meet/join
+    // register on Truth<L> (they return Truth, not a raw bool).
     CHECK(!(t && f) == (!t || !f));
     CHECK(!(t || f) == (!t && !f));
+
+    // Same-species register returns the wrapper (both operands are Truth).
+    STATIC_REQUIRE(std::same_as<decltype(t && f), Truth<Boole>>);
+    STATIC_REQUIRE(std::same_as<decltype(t || f), Truth<Boole>>);
+    CHECK((t && f) == f);  // meet: true ∧ false = false
+    CHECK((t || f) == t);  // join: true ∨ false = true
+
+    // Mixed Truth op carrier is NOT captured: the explicit ctor blocks the
+    // bool→Truth promotion, so it decays to the built-in bool && / || (a bool
+    // result, short-circuit preserved).
+    STATIC_REQUIRE(std::same_as<decltype(t && false), bool>);
+    STATIC_REQUIRE(std::same_as<decltype(true || f), bool>);
+    CHECK((t && false) == false);  // built-in: true && false
+    CHECK((true || f) == true);    // built-in: true || false
+  }
+
+  SECTION("Logical register on Truth<Kleene> (&& / || / !)") {
+    using enum Ternary;
+    Truth<Kleene> T{True}, F{False}, U{Unknown};
+
+    // && = meet (min), || = join (max), returning Truth<Kleene>.
+    STATIC_REQUIRE(std::same_as<decltype(T && U), Truth<Kleene>>);
+    CHECK((T && U) == U);  // true ∧ unknown = unknown
+    CHECK((F && U) == F);  // false ∧ unknown = false (⊥ annihilates)
+    CHECK((T || U) == T);  // true ∨ unknown = true (⊤ absorbs)
+    CHECK((F || U) == U);  // false ∨ unknown = unknown
+
+    // De Morgan on the wrapper for all three grades.
+    for (auto a : {T, F, U}) {
+      for (auto b : {T, F, U}) {
+        CHECK(!(a && b) == (!a || !b));
+        CHECK(!(a || b) == (!a && !b));
+      }
+    }
   }
 }
 
