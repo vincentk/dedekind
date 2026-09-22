@@ -620,28 +620,36 @@ struct Truth {
       noexcept(L::AND(a.value, b.value))) {
     return {L::AND(a.value, b.value)};
   }
-  //! @brief Join @c ∨ of two wrappers.  @overload
+  /** @brief Join @c ∨ of two wrappers.  @overload */
   friend constexpr Truth operator||(Truth a, Truth b) noexcept(
       noexcept(L::OR(a.value, b.value))) {
     return {L::OR(a.value, b.value)};
   }
-  //! @brief Meet @c ∧ with a raw carrier on the right (promoted).  @overload
-  friend constexpr Truth operator&&(Truth a, machine_type b) noexcept(
-      noexcept(L::AND(a.value, b))) {
+  /** @brief Meet @c ∧ with a raw carrier on the right (promoted).  The operand
+   *  is a template constrained to the @b exact @c machine_type, so a stray
+   *  conversion (e.g. @c Truth<Boole> @c && @c 42, or a pointer) does @b not
+   *  select this overload.  @overload */
+  template <std::same_as<machine_type> M>
+  friend constexpr Truth operator&&(Truth a,
+                                    M b) noexcept(noexcept(L::AND(a.value,
+                                                                  b))) {
     return {L::AND(a.value, b)};
   }
-  //! @brief Meet @c ∧ with a raw carrier on the left (promoted).  @overload
-  friend constexpr Truth operator&&(machine_type a, Truth b) noexcept(
+  /** @brief Meet @c ∧ with a raw carrier on the left (promoted).  @overload */
+  template <std::same_as<machine_type> M>
+  friend constexpr Truth operator&&(M a, Truth b) noexcept(
       noexcept(L::AND(a, b.value))) {
     return {L::AND(a, b.value)};
   }
-  //! @brief Join @c ∨ with a raw carrier on the right (promoted).  @overload
-  friend constexpr Truth operator||(Truth a, machine_type b) noexcept(
-      noexcept(L::OR(a.value, b))) {
+  /** @brief Join @c ∨ with a raw carrier on the right (promoted).  @overload */
+  template <std::same_as<machine_type> M>
+  friend constexpr Truth operator||(Truth a,
+                                    M b) noexcept(noexcept(L::OR(a.value, b))) {
     return {L::OR(a.value, b)};
   }
-  //! @brief Join @c ∨ with a raw carrier on the left (promoted).  @overload
-  friend constexpr Truth operator||(machine_type a, Truth b) noexcept(
+  /** @brief Join @c ∨ with a raw carrier on the left (promoted).  @overload */
+  template <std::same_as<machine_type> M>
+  friend constexpr Truth operator||(M a, Truth b) noexcept(
       noexcept(L::OR(a, b.value))) {
     return {L::OR(a, b.value)};
   }
