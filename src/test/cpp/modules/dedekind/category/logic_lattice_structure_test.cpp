@@ -43,17 +43,18 @@ TEST_CASE(
     STATIC_REQUIRE(!IsBooleanLogic<Chain<int>>);
   }
 
-  SECTION("the bridge is consistent: only the 2-element carrier is Boolean") {
-    // bool (2 values) is a Boolean algebra; int (min/max) is a distributive
-    // lattice but not a Boolean algebra under those ops -- the same split the
-    // :logic tower draws with IsBooleanLogic.
-    STATIC_REQUIRE(IsBooleanLogic<Boole> && !IsBooleanLogic<Chain<int>> &&
-                   !IsBooleanLogic<Kleene>);
-  }
-
-  SECTION("runtime coverage") {
-    CHECK(IsBooleanLogic<Boole>);
-    CHECK(IsBoundedDeMorganChain<Chain<int>>);
-    CHECK(!IsBooleanLogic<Chain<int>>);
+  SECTION("value-level bridge: the species ops ARE the carrier's lattice ops") {
+    // Exercises actual operations (not just concept constants): each species'
+    // declared AND / OR / RFL computes exactly the carrier's :total lattice op,
+    // which is what makes the concept-level bridge above load-bearing.
+    CHECK(Boole::AND(true, false) == std::logical_and<bool>{}(true, false));
+    CHECK(Boole::OR(true, false) == std::logical_or<bool>{}(true, false));
+    CHECK(Boole::RFL(true) == std::logical_not<bool>{}(true));
+    CHECK(Chain<int>::AND(7, 3) == std::ranges::min(7, 3));
+    CHECK(Chain<int>::OR(7, 3) == std::ranges::max(7, 3));
+    // The tower split, exercised at the value level: bool's ¬ is a genuine
+    // complement (a ∧ ¬a = ⊥), int's is not (interior stays interior).
+    CHECK((Boole::AND(true, Boole::RFL(true)) == Boole::False));
+    CHECK((Chain<int>::AND(5, Chain<int>::RFL(5)) != Chain<int>::False));
   }
 }
