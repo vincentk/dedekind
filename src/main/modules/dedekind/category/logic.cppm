@@ -168,8 +168,11 @@ export struct Kleene final {
                                                  static_cast<std::int8_t>(b)));
   }
 
-  /** @brief Kleene reflection: the order-reversing involution, here the
-   * additive inverse (reflection about Unknown; fixes U, swaps ⊥/⊤). */
+  /** @brief Kleene reflection: the order-reversing De Morgan involution
+   * (fixes U, swaps ⊥/⊤).  Implemented as sign-flip on the balanced
+   * @c {-1,0,+1} @c int8 encoding, so the @c -x below is the @b encoding's
+   * additive inverse --- @b not a rig inverse: the rig addition is join
+   * (@c max), which is idempotent and has no inverses. */
   static constexpr Ternary RFL(Ternary a) {
     return static_cast<Ternary>(-static_cast<std::int8_t>(a));
   }
