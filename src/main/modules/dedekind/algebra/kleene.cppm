@@ -23,6 +23,8 @@
  */
 module;
 
+#include <functional>  // std::logical_and / logical_or / logical_not (transparent)
+
 export module dedekind.algebra:kleene;
 
 import dedekind.category;
@@ -37,38 +39,23 @@ using namespace dedekind::sets;
  *  three-valued sibling of @c 𝔹 @c = @c 𝔸<bool>). */
 export inline constexpr auto 𝕂3 = 𝔸<Ternary>;
 
-/** @brief Kleene meet @c ∧ = @c Kleene::AND (numeric min on the truth order),
- *  as an element-level function object closing on @c Ternary. */
-struct KleeneMeet {
-  constexpr Ternary operator()(Ternary a, Ternary b) const noexcept {
-    return Kleene::AND(a, b);
-  }
-};
-/** @brief Kleene join @c ∨ = @c Kleene::OR (numeric max). */
-struct KleeneJoin {
-  constexpr Ternary operator()(Ternary a, Ternary b) const noexcept {
-    return Kleene::OR(a, b);
-  }
-};
-/** @brief Kleene reflection @c ¬ = @c Kleene::RFL (the De Morgan involution).
- */
-struct KleeneNot {
-  constexpr Ternary operator()(Ternary a) const noexcept {
-    return Kleene::RFL(a);
-  }
-};
-
 // 𝕂3 is a bona-fide set object --- the IsSet anchor for the algebra-on-set.
 static_assert(IsSet<decltype(𝕂3)>,
               "𝕂3 = 𝔸<Ternary> is the canonical IsSet anchor for the Kleene "
               "three-valued surface.");
 
-// THE downstream witness (#912): 𝕂3 is an algebra on a set --- the Kleene
-// meet / join / reflection close on the carrier Ternary.  The De Morgan /
-// distributive-lattice sibling of 𝔹 = 𝔸<bool>.
+// THE downstream witness (#912): 𝕂3 is an algebra on a set.  The element-level
+// operations are Ternary's OWN logical operators --- @c && (meet ∧ = min),
+// @c || (join ∨ = max), @c ! (reflection ¬) --- reused via the @b transparent
+// @c std function objects (which forward to Ternary's operators and return
+// @c Ternary, unlike the homogeneous @c std::logical_and<Ternary> that would
+// decay to @c bool).  No bespoke wrappers: this matches the "the logical
+// operators ARE the meet/join register" decision from the @c Truth<L> register
+// (#910).  The De Morgan / distributive-lattice sibling of 𝔹 = 𝔸<bool>.
 static_assert(
-    IsAlgebraOnSet<decltype(𝕂3), KleeneMeet, KleeneJoin, KleeneNot>,
-    "𝕂3 is an algebra on a set under the Kleene meet / join / reflection.");
+    IsAlgebraOnSet<decltype(𝕂3), std::logical_and<>, std::logical_or<>,
+                   std::logical_not<>>,
+    "𝕂3 is an algebra on a set under Ternary's own ∧ / ∨ / ¬ (&& / || / !).");
 
 // Correspondence to the species-level statements upstream (:logic): Kleene is a
 // bounded De Morgan chain and --- unlike 𝔹 --- NOT Boolean (uncomplemented,
