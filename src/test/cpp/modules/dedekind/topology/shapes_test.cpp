@@ -183,24 +183,47 @@ TEST_CASE("Topology: Ø/𝔸 in the clopen ∩ decidable boundary core (Stone)",
     CHECK((HasDecidableMembership<Universeℤ> && IsClopen<Universeℤ>));
   }
 
+  // The two concepts are INDEPENDENT conservative certificates; they coincide
+  // only on the Boole core (the section above).  The next two sections pin BOTH
+  // directions of that independence with a regression witness each.
+
   SECTION(
-      "IsClopen needs BOTH tags: an open-only-tagged ray is not IsClopen "
-      "(structural, not topological)") {
+      "decidable but NOT clopen-tagged: an open-only ray "
+      "(HasDecidableMembership does not imply IsClopen)") {
     using OpenRay = Ray<int, Direction::Upward>;
-    // OpenRay carries is_open_tag but not is_closed_tag, so IsClopen fails at
-    // the TAG level.  This is a STRUCTURAL (tag-absence) check, NOT a
-    // topological claim: on the discrete order on int, {n > p} = {n >= p+1} is
-    // in fact clopen --- the type simply is not TAGGED closed.  A genuine
-    // open-⊋-clopen witness needs a non-discrete space (e.g. ℝ).
+    // OpenRay carries is_open_tag but not is_closed_tag and is no boundary
+    // object, so IsClopen fails at the STRUCTURAL (tag/boundary) level.  This
+    // is not a topological claim: on the discrete order on int every subset is
+    // clopen, so {n > p} = {n >= p+1} happens to be clopen; the type is simply
+    // not TAGGED closed.  A genuine open-but-not-closed witness needs a
+    // non-discrete space (e.g. the reals).
     static_assert(IsOpen<OpenRay> && !IsClosed<OpenRay>,
                   "open ray carries is_open_tag but not is_closed_tag");
-    static_assert(!IsClopen<OpenRay>,
-                  "so it does not satisfy IsClopen (needs both tags)");
-    // Independent axis: OpenRay's logic_species defaults to Boole, so its
-    // membership IS decidable --- tag-absence of clopen is not undecidability.
+    static_assert(!IsClopen<OpenRay>, "so it is not IsClopen (needs both)");
+    // Yet its logic_species defaults to Boole, so membership IS decidable:
+    // decidability does not entail the clopen tags.
     static_assert(HasDecidableMembership<OpenRay>,
                   "OpenRay membership is Boole-decidable (independent axis)");
     CHECK(!IsClopen<OpenRay>);
     CHECK(HasDecidableMembership<OpenRay>);
+  }
+
+  SECTION(
+      "clopen but NOT decidable: a Kleene boundary "
+      "(IsClopen does not imply HasDecidableMembership)") {
+    // The other direction of independence.  A boundary object is clopen for
+    // ANY logic species (∅ and X are open ∧ closed in every topology, inferred
+    // via IsBoundaryObject), but HasDecidableMembership gates on
+    // logic_species == Boole.  So a Kleene-valued boundary is clopen while its
+    // membership is NOT decidable: the clopen certificate is conservative, it
+    // does not by itself certify Boole-decidability off the core.
+    using EmptyK = Ø<int, Kleene>;
+    using UniverseK = UniversalSet<int, Kleene>;
+    static_assert(IsClopen<EmptyK> && !HasDecidableMembership<EmptyK>,
+                  "Ø<int,Kleene> is clopen but not decidable-membership");
+    static_assert(IsClopen<UniverseK> && !HasDecidableMembership<UniverseK>,
+                  "𝔸<int,Kleene> is clopen but not decidable-membership");
+    CHECK((IsClopen<EmptyK> && !HasDecidableMembership<EmptyK>));
+    CHECK((IsClopen<UniverseK> && !HasDecidableMembership<UniverseK>));
   }
 }
