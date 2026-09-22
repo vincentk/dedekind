@@ -16,6 +16,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <concepts>
 #include <functional>
+#include <utility>
 
 import dedekind.category;
 
@@ -45,13 +46,21 @@ TEST_CASE(
 
   SECTION("value-level bridge: the species ops ARE the carrier's lattice ops") {
     // Exercises actual operations (not just concept constants): each species'
-    // declared AND / OR / RFL computes exactly the carrier's :total lattice op,
-    // which is what makes the concept-level bridge above load-bearing.
-    CHECK(Boole::AND(true, false) == std::logical_and<bool>{}(true, false));
-    CHECK(Boole::OR(true, false) == std::logical_or<bool>{}(true, false));
-    CHECK(Boole::RFL(true) == std::logical_not<bool>{}(true));
-    CHECK(Chain<int>::AND(7, 3) == std::ranges::min(7, 3));
-    CHECK(Chain<int>::OR(7, 3) == std::ranges::max(7, 3));
+    // declared AND / OR / RFL computes exactly the carrier's :total lattice op.
+    // Both operand orders and both Boolean values, so a wrong projection impl
+    // (e.g. AND{return b;} / OR{return a;}) would fail rather than slip
+    // through.
+    for (bool a : {false, true}) {
+      for (bool b : {false, true}) {
+        CHECK(Boole::AND(a, b) == std::logical_and<bool>{}(a, b));
+        CHECK(Boole::OR(a, b) == std::logical_or<bool>{}(a, b));
+      }
+      CHECK(Boole::RFL(a) == std::logical_not<bool>{}(a));
+    }
+    for (auto [x, y] : {std::pair{7, 3}, std::pair{3, 7}, std::pair{-5, 5}}) {
+      CHECK(Chain<int>::AND(x, y) == std::ranges::min(x, y));
+      CHECK(Chain<int>::OR(x, y) == std::ranges::max(x, y));
+    }
     // The tower split, exercised at the value level: bool's ¬ is a genuine
     // complement (a ∧ ¬a = ⊥), int's is not (interior stays interior).
     CHECK((Boole::AND(true, Boole::RFL(true)) == Boole::False));
