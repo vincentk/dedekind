@@ -461,11 +461,14 @@ constexpr auto lift_logic(T value) {
   // @c numeric_limits<T>::{min,max}.  Without this, @c Truth<Chain<T>> would
   // store the raw @c 0 / @c 1 (interior chain values), not @c ⊥ / @c ⊤.  A
   // value already in the species (@c T = @c Ω, not @c bool) passes through.
-  if constexpr (std::is_same_v<T, bool> && requires {
-                  TargetLogic::True;
-                  TargetLogic::False;
-                }) {
-    return value ? TargetLogic::True : TargetLogic::False;
+  // The endpoints are cast to @c Ω explicitly: @c IsLogicalSpecies only asks
+  // @c True / @c False to be @e convertible to @c Ω, so a species declaring
+  // them at a narrower type (e.g. @c int constants for a wrapper @c Ω) must not
+  // leak that declaration type out of the codomain-preserving inclusion.
+  if constexpr (std::is_same_v<T, bool> && IsLogicalSpecies<TargetLogic>) {
+    using Ω = typename TargetLogic::Ω;
+    return value ? static_cast<Ω>(TargetLogic::True)
+                 : static_cast<Ω>(TargetLogic::False);
   } else {
     return value;
   }
