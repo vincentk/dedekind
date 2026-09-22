@@ -454,9 +454,18 @@ export enum class CardinalityTag { Finite, Countable, Continuum };
  */
 export template <typename TargetLogic, typename T>
 constexpr auto lift_logic(T value) {
-  if constexpr (std::is_same_v<TargetLogic, Kleene> &&
-                std::is_same_v<T, bool>) {
-    return value ? Ternary::True : Ternary::False;
+  // The dominance inclusion 𝔹 ↪ Ω: a decided @c bool answer embeds as the
+  // target species' poles (@c false ↦ @c ⊥, @c true ↦ @c ⊤).  This is uniform
+  // across every @c IsLogicalSpecies: @c Boole maps to itself (its poles ARE
+  // the bools), @c Kleene to @c Ternary::{False,True}, @c Chain<T> to
+  // @c numeric_limits<T>::{min,max}.  Without this, @c Truth<Chain<T>> would
+  // store the raw @c 0 / @c 1 (interior chain values), not @c ⊥ / @c ⊤.  A
+  // value already in the species (@c T = @c Ω, not @c bool) passes through.
+  if constexpr (std::is_same_v<T, bool> && requires {
+                  TargetLogic::True;
+                  TargetLogic::False;
+                }) {
+    return value ? TargetLogic::True : TargetLogic::False;
   } else {
     return value;
   }
@@ -476,6 +485,10 @@ template <typename L>
 inline constexpr bool lifts_to_v<L, L> = true;
 template <>
 inline constexpr bool lifts_to_v<Boole, Kleene> = true;
+// 𝔹 ↪ Chain<T>: the decided answers {⊥,⊤} sit at the chain's poles.
+template <std::integral T>
+  requires(!std::same_as<T, bool>)
+inline constexpr bool lifts_to_v<Boole, Chain<T>> = true;
 export template <typename From, typename To>
 concept LiftsTo = lifts_to_v<From, To>;
 
@@ -828,6 +841,22 @@ static_assert(Chain<int>::RFL(Chain<int>::AND(3, 8)) ==
 static_assert(IsBoundedDeMorganChain<Chain<unsigned>> &&
                   !IsBooleanLogic<Chain<unsigned>>,
               "unsigned full-range chain [0,UMAX] is Kleene, not Boolean");
+
+// The 𝔹 ↪ Chain<T> dominance inclusion: decided bool answers land on the poles,
+// so Truth<Chain<T>> (its operator<= lifts a bool verdict) stores ⊥/⊤, never
+// the interior 0/1.  Without this lift_logic branch the order relation would
+// decay.
+static_assert(lifts_to_v<Boole, Chain<int>> && LiftsTo<Boole, Chain<int>>,
+              "𝔹 ⊑ Chain<int>: the decided answers embed at the poles");
+static_assert(
+    lift_logic<Chain<int>>(true) == Chain<int>::True &&
+        lift_logic<Chain<int>>(false) == Chain<int>::False,
+    "lift_logic<Chain<int>>(bool) maps ⊤/⊥ to INT_MAX/INT_MIN, not 1/0");
+static_assert((Truth<Chain<int>>{3} <= Truth<Chain<int>>{7}).value ==
+                      Chain<int>::True &&
+                  (Truth<Chain<int>>{7} <= Truth<Chain<int>>{3}).value ==
+                      Chain<int>::False,
+              "Truth<Chain<int>>::operator<= yields the poles ⊤/⊥, not 1/0");
 
 /**
  * @brief Membership in the decided core @f$\{\top, \bot\}@f$ of an

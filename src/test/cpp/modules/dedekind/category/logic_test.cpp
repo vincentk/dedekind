@@ -183,4 +183,16 @@ TEST_CASE("Logic: the finite Kleene chain Chain<int> (De Morgan, #901)",
     CHECK(IsBoundedDeMorganChain<U>);
     CHECK(!IsBooleanLogic<U>);
   }
+
+  SECTION("𝔹 ↪ Chain<int>: lift_logic + Truth order land on the poles") {
+    // A decided bool verdict embeds at the chain's poles, not the interior 0/1.
+    CHECK(lift_logic<C>(true) == C::True);    // ⊤ = INT_MAX
+    CHECK(lift_logic<C>(false) == C::False);  // ⊥ = INT_MIN
+    CHECK(lifts_to_v<Boole, C>);
+
+    // Truth<Chain<int>>::operator<= lifts (OR==b) through lift_logic, so its
+    // answer is a pole, never 1/0 (which are interior chain values).
+    CHECK((Truth<C>{3} <= Truth<C>{7}).value == C::True);
+    CHECK((Truth<C>{7} <= Truth<C>{3}).value == C::False);
+  }
 }
