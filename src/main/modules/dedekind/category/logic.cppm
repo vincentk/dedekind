@@ -428,15 +428,18 @@ export enum class CardinalityTag { Finite, Countable, Continuum };
  * pares among the truth-objects: a peer of any other @f$\Omega@f$ at the object
  * layer, but the one target every decidable map factors through (the Rosolini
  * dominance @f$\Sigma@f$).  @c Ternary (Kleene
- *          @f$K_3@f$) is the single non-trivial @f$\Omega@f$ we currently ship:
- * a peer of @f$\mathbb{B}@f$, @b not the canonical @f$\Omega@f$; for it
- * @f$\iota@f$ is the concrete map @c bool @c ↪ @c Ternary
- *          (@c Ternary = @f$\mathbb{B} + 1@f$, adjoining @c Unknown), while the
- *          concept @c IsDominanceInclusion fixes only the shape
+ *          @f$K_3@f$) and @c Chain<T> are the non-trivial @f$\Omega@f$ we
+ * currently ship: peers of @f$\mathbb{B}@f$, @b not the canonical
+ * @f$\Omega@f$; for @c Ternary @f$\iota@f$ is the concrete map @c bool @c ↪
+ * @c Ternary (@c Ternary = @f$\mathbb{B} + 1@f$, adjoining @c Unknown), while
+ * the concept @c IsDominanceInclusion fixes only the shape
  *          @f$\mathbb{B} \to \Omega@f$; a future @f$\Omega@f$ is admitted by
  * that shape but supplies its own @f$\mathbb{B}@f$-inclusion (@c lift_logic
- *          currently embeds only @c bool @c ↪ @c Ternary, returning other
- *          values unchanged).  @f$\top \in \mathbb{B}@f$ and
+ *          embeds @c bool @c ↪ @f$\Omega@f$ generically, sending
+ *          @f$\bot/\top@f$ to the target species' poles: @c Ternary::{False,
+ *          True}, @c Chain<T>'s @c numeric_limits @c {min,max}; a value already
+ *          in @f$\Omega@f$ passes through unchanged).  @f$\top \in
+ * \mathbb{B}@f$ and
  *          @f$\mathbb{B}@f$ is closed under dependent conjunction, so a
  *          @f$\mathbb{B}@f$-valued map is @b decidable: a set whose
  *          characteristic map factors as
