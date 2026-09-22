@@ -480,7 +480,7 @@ $\bot \le U \le \top$; $U$ met with the \emph{identity} ($\top$ for $\wedge$, $\
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
 static_assert(IsPst<bool>);
-using B = ClassicalLogic;
+using B = Boole;
 static_assert(
    (false < true)
 && (false && true) == B::AND(false, true)
@@ -494,7 +494,7 @@ static_assert(
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
 static_assert(IsPst<Ternary>);
-using K = TernaryLogic; using enum Ternary;
+using K = Kleene; using enum Ternary;
 static_assert(
    (False <= Unknown) && (Unknown <= True)
 && K::AND(Unknown, True)  == Unknown
@@ -591,7 +591,7 @@ $\mathbf{Lwv}$ & \cppinline{s(x)} & \cppinline{&} & \cppinline{|} & \cppinline{~
 \caption{
 Operator-mapping table: each column is one construction, spelled in five languages over the rows $\mathbb{B}$, $\mathcal{P}(A)$, $\mathbf{Topos}$, $\mathbf{Pst}$, $\mathbf{Lwv}$.
 The two executable-C++ rows are placed together at the bottom for direct comparison: $\mathbf{Pst}$ is the bounded chain (\cppinline{IsPst} the truth-object type-constraint), $\mathbf{Lwv}$ the sets built over it.
-Each $\mathbf{Pst}$ cell is spelled twice: the native \cppinline{bool} form left of the slash, and the species API (\cppinline{TernaryLogic::AND} and friends, the surface every logic species provides) right; $\neg$ is the reflection, a genuine complement only on the two-chain $\mathbb{B}$ (on $\mathrm{K}_3$, $\neg U = U$).
+Each $\mathbf{Pst}$ cell is spelled twice: the native \cppinline{bool} form left of the slash, and the species API (\cppinline{Kleene::AND} and friends, the surface every logic species provides) right; $\neg$ is the reflection, a genuine complement only on the two-chain $\mathbb{B}$ (on $\mathrm{K}_3$, $\neg U = U$).
 The $\mathbf{Topos}$ row is the Boolean case realised by $\mathbf{Set}$.
 The \emph{member} column is membership ($\models$ satisfaction, $\in$ set membership, $\chi$ the classifier, \cppinline{IsPst} the truth-object constraint, \cppinline{s(x)} the set applied to a point); the other columns are the lattice operations.
 }
@@ -2407,7 +2407,7 @@ To bridge this abstract mathematical formalism with systems-programming primitiv
         \item \textit{Subobject Classifier:} a truth-value object $\Omega$ with an element $\mathrm{true}: 1 \to \Omega$ such that every mono $S \hookrightarrow A$ arises as the pullback of $\mathrm{true}$ along a \emph{unique} characteristic map $\chi: A \to \Omega$.
         \item \textit{Equalizers:} for parallel arrows $f, g: A \to B$, the subobject $\{x \in A \mid f(x) = g(x)\}$.
     \end{enumerate}
-    \item \textbf{C++ Reification:} The ambient classifier $\Omega$ is the codomain of a carrier's (possibly partial) characteristic map, fixed by a \emph{logic species} \cppinline{L} (the code names it \cppinline{L::Ω}). Its Boolean fragment is the \emph{dominance} $\Sigma \hookrightarrow \Omega$, a Rosolini dominance~\cite{rosolini1986continuity} (Equation~\ref{eqn:dominance}); strict \textsc{etcs} is the Boolean collapse $\Sigma = \Omega$. \cppinline{ClassicalLogic} gives the Boolean $\mathbb{B} = \Sigma$ (\cppinline{bool}), a total map; \cppinline{TernaryLogic} gives the lifted Boolean (\cppinline{Ternary}, $\mathbb{B}+\text{U}$, under strong-Kleene connectives~\cite{kleene1952metamathematics}), the codomain of a partial $\chi$. \cppinline{concept IsLogicalSpecies} gates such a species; the predicate of a \cppinline{Set<T, L, P>} is $\chi$, and \cppinline{concept IsSubobject} recognises it. Which codomain a carrier receives is the decidability split of Section~\ref{sec:intensional_sets}: $\mathbb{B}$ where membership is decidable, the lifted Boolean where it is not. Equalizers are named by \cppinline{concept IsEqualizer}, the subobject solving $f = g$.
+    \item \textbf{C++ Reification:} The ambient classifier $\Omega$ is the codomain of a carrier's (possibly partial) characteristic map, fixed by a \emph{logic species} \cppinline{L} (the code names it \cppinline{L::Ω}). Its Boolean fragment is the \emph{dominance} $\Sigma \hookrightarrow \Omega$, a Rosolini dominance~\cite{rosolini1986continuity} (Equation~\ref{eqn:dominance}); strict \textsc{etcs} is the Boolean collapse $\Sigma = \Omega$. \cppinline{Boole} gives the Boolean $\mathbb{B} = \Sigma$ (\cppinline{bool}), a total map; \cppinline{Kleene} gives the lifted Boolean (\cppinline{Ternary}, $\mathbb{B}+\text{U}$, under strong-Kleene connectives~\cite{kleene1952metamathematics}), the codomain of a partial $\chi$. \cppinline{concept IsLogicalSpecies} gates such a species; the predicate of a \cppinline{Set<T, L, P>} is $\chi$, and \cppinline{concept IsSubobject} recognises it. Which codomain a carrier receives is the decidability split of Section~\ref{sec:intensional_sets}: $\mathbb{B}$ where membership is decidable, the lifted Boolean where it is not. Equalizers are named by \cppinline{concept IsEqualizer}, the subobject solving $f = g$.
     \item \textbf{Explanatory Note:} An \textit{intensional} set is a rule, not an array. Testing $x \in S$ evaluates $\chi(x)$ instead of searching memory.
 \end{itemize}
 

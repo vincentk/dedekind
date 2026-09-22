@@ -21,7 +21,7 @@ module;
 export module dedekind.sequences:convergence;
 
 import dedekind.category; // is_periodic_v / cyclic_order_v — the orbit bridge;
-                          // ClassicalLogic — the classical regime tag
+                          // Boole — the classical regime tag
 import dedekind.order;    // IsOrderMeetSemilattice / IsOrderJoinSemilattice —
                           // the lattice prerequisite for order-convergence
                           // (#719 Slice 3)
@@ -95,7 +95,7 @@ concept IsCauchySequence = IsSequence<Seq> && requires(Seq s) {
  *          of a @c limit(s) witness.  Extracting @c limit(s) from a
  *          @c Cauchy sequence is the LEM-flavoured collapse step
  *          (Specker's recursive counterexample under
- *          @c ConstructiveLogic; classical under @c ClassicalLogic).
+ *          @c ConstructiveLogic; classical under @c Boole).
  *          The carrier-axis cardinality cut determines whether the
  *          collapse fires honestly — see #719 Slice 5.
  *
@@ -109,9 +109,9 @@ concept IsConvergentSequence = IsCauchySequence<Seq> && requires(Seq s) {
 /** @brief The logic regime governing @c Seq's limit-collapse, read off
  *         the carrier's cardinality via the @c :sets cardinality cut
  *         (@c NaturalLogic): a @b countable @c Codomain (@c ℵ_0 /
- *         @c Finite) lands in @c ClassicalLogic, an @b uncountable one
+ *         @c Finite) lands in @c Boole, an @b uncountable one
  *         (the continuum, or a non-cardinality'd primitive) in
- *         @c TernaryLogic. */
+ *         @c Kleene. */
 export template <typename Seq>
 using convergence_logic = typename dedekind::sets::NaturalLogic<
     typename std::remove_cvref_t<Seq>::Codomain>::type;
@@ -127,9 +127,9 @@ using convergence_logic = typename dedekind::sets::NaturalLogic<
  * exhibits a computable Cauchy sequence of rationals whose limit is not
  * computable.  The carrier-axis cardinality cut (#622/#696) decides the
  * regime via @c convergence_logic: a @b countable @c Codomain lands in
- * @c ClassicalLogic and the collapse fires; an @b uncountable carrier
+ * @c Boole and the collapse fires; an @b uncountable carrier
  * (the continuum, or a non-cardinality'd primitive like @c double — the
- * float↔ℝ gap) lands in @c TernaryLogic and the collapse is honestly
+ * float↔ℝ gap) lands in @c Kleene and the collapse is honestly
  * rejected.  The @b existence of the limit is then the classical theorem
  * / the engineer's honesty obligation; this concept gates only the
  * Cauchy shape and the regime, matching the project's
@@ -141,7 +141,7 @@ using convergence_logic = typename dedekind::sets::NaturalLogic<
 export template <typename Seq>
 concept IsClassicallyConvergent =
     IsCauchySequence<Seq> &&
-    std::same_as<convergence_logic<Seq>, dedekind::category::ClassicalLogic>;
+    std::same_as<convergence_logic<Seq>, dedekind::category::Boole>;
 
 /** @brief Opt-in: @c Seq order-converges — its liminf and limsup
  *         coincide.  The order-@b completeness of the carrier (so the
@@ -409,8 +409,8 @@ concept IsSubsequence =
  * @b logical-collapse theorem: "every bounded sequence has a convergent
  * subsequence" is classically true but constructively false (it needs
  * sequential compactness / a LEM-grade choice).  The classical collapse
- * fires exactly when the carrier is in the @c ClassicalLogic regime
- * (countable cardinality cut); over a @c TernaryLogic carrier the
+ * fires exactly when the carrier is in the @c Boole regime
+ * (countable cardinality cut); over a @c Kleene carrier the
  * witness is honestly rejected — no type-level guarantee of a convergent
  * subsequence (Specker / non-computable limit).
  *

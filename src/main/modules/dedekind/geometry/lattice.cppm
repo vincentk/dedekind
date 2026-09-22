@@ -179,7 +179,7 @@ export constexpr auto integer_lattice_2d() {
  *          to match the @c ℕ carrier reading.
  *
  * @param n  Side length of the grid (number of points per axis).
- * @return A Set<NaturalLatticePoint2D, TernaryLogic, ...>.
+ * @return A Set<NaturalLatticePoint2D, Kleene, ...>.
  */
 export constexpr auto square_natural_grid(unsigned int n) {
   auto p = element<𝔸<NaturalLatticePoint2D>>;

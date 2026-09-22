@@ -28,7 +28,7 @@ struct Succ {
 // A TERNARY-logic set over int (Kleene): even → True, odd → False, 0 → Unknown.
 // Used to prove preimage PRESERVES Ternary::Unknown (no bool collapse).
 struct TriEven {
-  using logic_species = TernaryLogic;
+  using logic_species = Kleene;
   using Domain = int;
   constexpr Ternary operator()(int x) const {
     if (x == 0) return Ternary::Unknown;  // the indeterminate case

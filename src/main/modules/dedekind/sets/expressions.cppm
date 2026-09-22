@@ -17,7 +17,7 @@
  * (#551).
  *  - Boolean connectives &&, ||, ! lifted to predicate combinators.
  *  - operator<=           -- subset relation (same-predicate -> True;
- *                            heterogeneous -> Unknown via TernaryLogic).
+ *                            heterogeneous -> Unknown via Kleene).
  *  - cartesian_product    -- A x B as a Set of pairs.
  *  - Relation, SetFunction -- subobjects of products.
  *  - relates, is_single_valued_at -- point-wise witnesses.
@@ -168,7 +168,7 @@ struct Comprehension
     // @c bool) predicate result into @c L::Ω.  A @c bool cast would collapse
     // ternary membership (@c Ternary::False, underlying −1, reads as @c true),
     // and @c L::AND(Ternary, bool) is ill-formed (@c Ternary is a scoped enum),
-    // so a @c TernaryLogic base needs the lift.  A comprehension @c {S|P} is
+    // so a @c Kleene base needs the lift.  A comprehension @c {S|P} is
     // S-membership ∧ P.
     using L = typename Base::logic_species;
     const auto p = predicate(x);
@@ -434,7 +434,7 @@ struct EmptyPredicate {
  * \{\bot < U < \top\}@f$, so membership is @b never decided: for any point @c x
  * its answer sits outside the decided core @f$\Sigma = \{\top,\bot\}@f$ that
  * @c is_decided detects.  It is intrinsically three-valued, hence @c
- * TernaryLogic-tagged, and a
+ * Kleene-tagged, and a
  * @c Set carrying it fails @c HasDecidableMembership.
  *
  * It exists to exercise the lattice reducer against a genuinely undecidable
@@ -448,8 +448,8 @@ struct EmptyPredicate {
 export template <typename T>
 struct UnknownPredicate {
   using Domain = T;
-  using Codomain = typename TernaryLogic::Ω;
-  using logic_species = TernaryLogic;
+  using Codomain = typename Kleene::Ω;
+  using logic_species = Kleene;
   constexpr Codomain operator()(const T&) const { return Ternary::Unknown; }
 };
 
@@ -465,7 +465,7 @@ static_assert(IsCharacteristic<UnknownPredicate<int>>,
 static_assert(UnknownPredicate<int>{}(0) == Ternary::Unknown &&
                   UnknownPredicate<int>{}(42) == Ternary::Unknown,
               "UnknownPredicate answers Unknown everywhere");
-static_assert(!is_decided<TernaryLogic>(UnknownPredicate<int>{}(0)),
+static_assert(!is_decided<Kleene>(UnknownPredicate<int>{}(0)),
               "UnknownPredicate is never in the decided core Σ = {⊤,⊥}");
 
 /** @brief The codomain leg of a set combine (#894), as one finalizer.
@@ -499,9 +499,9 @@ constexpr auto finalize_combine(R r) {
  * a cross-species combine reduces at. */
 export template <typename L1, typename L2>
 using join_logic_t =
-    std::conditional_t < std::same_as<L1, dedekind::category::TernaryLogic> ||
-    std::same_as<L2, dedekind::category::TernaryLogic>,
-      dedekind::category::TernaryLogic, dedekind::category::ClassicalLogic > ;
+    std::conditional_t < std::same_as<L1, dedekind::category::Kleene> ||
+    std::same_as<L2, dedekind::category::Kleene>,
+      dedekind::category::Kleene, dedekind::category::Boole > ;
 
 /** @brief A subobject re-tagged to a more expressive codomain @c TargetL: its χ
  *  lifts through the Rosolini dominance (@c lift_logic) into @c TargetL::Ω.
@@ -533,7 +533,7 @@ struct SpeciesLifted
 /** @brief Bring a subobject to codomain @c TargetL: identity when it is already
  *  there, else wrap it in @c SpeciesLifted.  Constrained to a registered
  *  dominance inclusion (@c LiftsTo), so a downward or unsupported lift (e.g.
- *  @c lift_to<ClassicalLogic> of a Kleene set) is rejected at the gate rather
+ *  @c lift_to<Boole> of a Kleene set) is rejected at the gate rather
  *  than failing inside @c lift_logic. */
 export template <typename TargetL, typename S>
   requires dedekind::category::LiftsTo<
@@ -1114,7 +1114,7 @@ class Set {
                              std::decay_t<decltype(*this & other)>>) {
       // NB: match the empty meet species-agnostically (IsInitialObject), not
       // `same_as<..., Ø<T, L>>` --- the codomain leg (#894) may re-tag a
-      // disjoint meet's Ø to ClassicalLogic, and the structural A △ B = A ∪ B
+      // disjoint meet's Ø to Boole, and the structural A △ B = A ∪ B
       // branch must still fire in that case. Compile-time-disjoint optimisation
       // (#469 / PR #523 review): A △ B = (A ∪ B) ∖ (A ∩ B); when @c A @c ∩ @c B
       // is empty (the @c ∖ here is the Unicode set-difference glyph, used
@@ -1296,9 +1296,8 @@ export template <typename LHS, typename RHS>
 constexpr auto operator&(const LHS& lhs, const RHS& rhs) {
   using T = typename LHS::Domain;
   using Log = typename LHS::logic_species;
-  if constexpr (are_complement_sets_v<LHS, RHS> &&
-                std::same_as<Log, ClassicalLogic>) {
-    // a ∧ ¬a = ⊥, the law of non-contradiction.  Gated on ClassicalLogic: a
+  if constexpr (are_complement_sets_v<LHS, RHS> && std::same_as<Log, Boole>) {
+    // a ∧ ¬a = ⊥, the law of non-contradiction.  Gated on Boole: a
     // general bounded chain offers only REFLECTION (¬ = RFL, an involution),
     // not full complementation.  Kleene K3 fails it, at Unknown a ∧ ¬a = U, not
     // ⊥ (#860).  A Ternary complement pair therefore falls through to the
@@ -1338,10 +1337,9 @@ export template <typename LHS, typename RHS>
 constexpr auto operator|(const LHS& lhs, const RHS& rhs) {
   using T = typename LHS::Domain;
   using Log = typename LHS::logic_species;
-  if constexpr (are_complement_sets_v<LHS, RHS> &&
-                std::same_as<Log, ClassicalLogic>) {
+  if constexpr (are_complement_sets_v<LHS, RHS> && std::same_as<Log, Boole>) {
     // a ∨ ¬a = ⊤, excluded middle (dual of the meet collapse).  Gated on
-    // ClassicalLogic for the same reason: a bounded chain offers reflection,
+    // Boole for the same reason: a bounded chain offers reflection,
     // not complementation, so Kleene K3 (¬U = U, a ∨ ¬a = U ≠ ⊤) falls through
     // to an un-collapsed JoinSet whose pointwise L::OR is sound (#860).
     return finalize_combine(UniversalSet<T, Log>{});
@@ -1480,14 +1478,14 @@ constexpr auto operator~(P&& p) {
  *  the fact is witnessed structurally here as a type identity rather than as a
  *  @c IsInvolution endomap. */
 namespace detail_complement_involution {
-using UnivSizeSet = Set<std::size_t, dedekind::category::ClassicalLogic,
+using UnivSizeSet = Set<std::size_t, dedekind::category::Boole,
                         UniversalPredicate<std::size_t>>;
 static_assert(
     std::same_as<std::remove_cvref_t<decltype(!!std::declval<UnivSizeSet>())>,
                  UnivSizeSet>,
     "!!A ≡ A: the set complement is a structural involution");
 static_assert(dedekind::category::logic_negation_is_involutive_v<
-                  dedekind::category::ClassicalLogic>,
+                  dedekind::category::Boole>,
               ":involution certifies the logic negation the complement reduces "
               "to is an involution");
 }  // namespace detail_complement_involution
@@ -1568,14 +1566,14 @@ struct InitialObjectArrow {
  *  On a transfinite carrier T the existential is generally undecidable
  *  (predicate-defined source, no enumerable elements); this predicate
  *  reflects the indecision honestly by returning
- *  @c TernaryLogic::Unknown for every query.
+ *  @c Kleene::Unknown for every query.
  *
  *  Specializations that decide membership for monic arrows with
  *  structural inverses, or for finite source carriers, are layer 2 of
  *  #602 (per-arrow / per-carrier dispatch).  This default predicate
  *  completes the layer-1 API surface so @c image(f, intensional_set)
  *  is well-formed and type-checked, with the result honestly tagged
- *  @c TernaryLogic.
+ *  @c Kleene.
  *
  *  Captureless / no source-set + arrow storage in the closure: keeps
  *  the predicate value-light and structurally compatible with the
@@ -1591,7 +1589,7 @@ struct InitialObjectArrow {
 export template <typename U>
 struct SymbolicImagePredicate {
   constexpr auto operator()(const U&) const {
-    return dedekind::category::TernaryLogic::Unknown;
+    return dedekind::category::Kleene::Unknown;
   }
 };
 
@@ -1602,10 +1600,10 @@ struct SymbolicImagePredicate {
  *   - @c image(f, SingletonSet) (@c :sets:singleton; extensional, exact).
  *   - @c image(f, std::set / std::unordered_set) (@c :sets:extensional;
  *     extensional, exact via enumeration).
- *   - @b this overload (intensional, symbolic with @c TernaryLogic).
+ *   - @b this overload (intensional, symbolic with @c Kleene).
  *
  *  The result is itself an intensional @c Set on the codomain
- *  @c U = Cod<F>, with @c TernaryLogic as the logic species and the
+ *  @c U = Cod<F>, with @c Kleene as the logic species and the
  *  always-Unknown @c SymbolicImagePredicate as the predicate.  This
  *  honestly admits the indecision — the existential @c ∃x ∈ T. P(x)
  *  ∧ y == f(x) is undecidable on transfinite carriers without further
@@ -1620,7 +1618,7 @@ export template <typename T, typename L, typename P,
   requires std::same_as<dedekind::category::Dom<std::remove_cvref_t<F>>, T>
 constexpr auto image(F&&, const Set<T, L, P>&) {
   using U = dedekind::category::Cod<std::remove_cvref_t<F>>;
-  return Set<U, dedekind::category::TernaryLogic, SymbolicImagePredicate<U>>{
+  return Set<U, dedekind::category::Kleene, SymbolicImagePredicate<U>>{
       SymbolicImagePredicate<U>{}};
 }
 
@@ -1869,14 +1867,13 @@ Set(BoundScout<Ambient>) -> Set<
 
 // Enforce ETCS compliance also here:
 static_assert(
-    IsSet<decltype(ambient_set<int>(
-        Set<int, ClassicalLogic, UniversalPredicate<int>>{
-            UniversalPredicate<int>{}}))>,
+    IsSet<decltype(ambient_set<int>(Set<int, Boole, UniversalPredicate<int>>{
+        UniversalPredicate<int>{}}))>,
     "The canonical intensional Set<T, L, Predicate> must lift to an ETCS set ");
 
 static_assert(
     dedekind::category::IsSet<decltype(dedekind::category::ambient_set<int>(
-        Set<int, dedekind::category::ClassicalLogic, UniversalPredicate<int>>{
+        Set<int, dedekind::category::Boole, UniversalPredicate<int>>{
             UniversalPredicate<int>{}}))>,
     "The canonical intensional Set<T, L, Predicate> must lift to an ETCS set "
     "object.");
@@ -2103,7 +2100,7 @@ constexpr auto operator*(const A& a, const B& b) {
 }
 
 using CanonicalIntSet =
-    Set<int, dedekind::category::ClassicalLogic, UniversalPredicate<int>>;
+    Set<int, dedekind::category::Boole, UniversalPredicate<int>>;
 using CanonicalIntProductSet =
     decltype(cartesian_product(std::declval<const CanonicalIntSet&>(),
                                std::declval<const CanonicalIntSet&>()));

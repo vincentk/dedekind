@@ -21,8 +21,8 @@
  * By reifying logic into the @ref Truth wrapper, we prevent the "leaky
  * abstractions" of C++ machine types (such as integral promotion of bool)
  * while allowing for pluggable logical universes:
- * - ClassicalLogic: The Boolean Topos ({True, False}).
- * - TernaryLogic: The Kleene Topos ({True, False, Unknown}).
+ * - Boole: The Boolean Topos ({True, False}).
+ * - Kleene: The Kleene Topos ({True, False, Unknown}).
  *
  * @section logic__Structural_Invariants
  * Logics in Dedekind are treated as Rigs (Semirings).
@@ -70,7 +70,7 @@ namespace dedekind::category {
  * over a specific 'type' of truth value. In categorical terms, this defines
  * the structure of the Subobject Classifier (Ω).
  *
- * @tparam L The Logic Species (e.g., ClassicalLogic, TernaryLogic).
+ * @tparam L The Logic Species (e.g., Boole, Kleene).
  *
  * @req L::Ω The underlying data representation (e.g., bool, enum).
  * @req L::AND(a, b) The infimum (conjunction) morphism.
@@ -97,7 +97,7 @@ concept IsLogicalSpecies = requires(typename L::Ω a, typename L::Ω b) {
  * @section logic__Species
  * @brief The internal logic of the Classical Topos ({True, False}).
  *
- * ClassicalLogic defines the standard Boolean algebra where the Law of
+ * Boole defines the standard Boolean algebra where the Law of
  * Excluded Middle holds. It maps the structuralist AND/OR/RFL morphisms
  * directly to C++ hardware-level logical primitives.
  *
@@ -107,7 +107,7 @@ concept IsLogicalSpecies = requires(typename L::Ω a, typename L::Ω b) {
  *
  * Textbook term: the two-element Boolean algebra.
  */
-export struct ClassicalLogic final {
+export struct Boole final {
   using Ω = bool;  // Renamed from 'type'
   static constexpr bool True = true;
   static constexpr bool False = false;
@@ -118,15 +118,14 @@ export struct ClassicalLogic final {
 };
 
 // STATIC "IS A" CHECK:
-static_assert(IsLogicalSpecies<ClassicalLogic>,
-              "ClassicalLogic must fulfill IsLogicalSpecies");
+static_assert(IsLogicalSpecies<Boole>, "Boole must fulfill IsLogicalSpecies");
 
 /**
  * @section logic__Species_2
  * Indeterminacy)
  * @brief A three-valued propositional logic for handling partial information.
  *
- * Unlike ClassicalLogic, Ternary logic allows for an 'Unknown' state,
+ * Unlike Boole, Ternary logic allows for an 'Unknown' state,
  * modeling undecidability or missing knowledge within a predicate.
  * This implementation follows Kleene's strong logic of indeterminacy (K3).
  *
@@ -150,7 +149,7 @@ export enum class Ternary : std::int8_t { False = -1, Unknown = 0, True = 1 };
  *
  * Textbook term: Kleene's strong three-valued logic (K3).
  */
-export struct TernaryLogic final {
+export struct Kleene final {
   using Ω = Ternary;  // Renamed from 'type'
 
   static constexpr Ternary True = Ternary::True;
@@ -169,24 +168,26 @@ export struct TernaryLogic final {
                                                  static_cast<std::int8_t>(b)));
   }
 
-  /** @brief Kleene reflection: the order-reversing involution, here the
-   * additive inverse (reflection about Unknown; fixes U, swaps ⊥/⊤). */
+  /** @brief Kleene reflection: the order-reversing De Morgan involution
+   * (fixes U, swaps ⊥/⊤).  Implemented as sign-flip on the balanced
+   * @c {-1,0,+1} @c int8 encoding, so the @c -x below is the @b encoding's
+   * additive inverse --- @b not a rig inverse: the rig addition is join
+   * (@c max), which is idempotent and has no inverses. */
   static constexpr Ternary RFL(Ternary a) {
     return static_cast<Ternary>(-static_cast<std::int8_t>(a));
   }
 };
 
 // STATIC "IS A" CHECK:
-static_assert(IsLogicalSpecies<TernaryLogic>,
-              "TernaryLogic must fulfill IsLogicalSpecies");
+static_assert(IsLogicalSpecies<Kleene>, "Kleene must fulfill IsLogicalSpecies");
 
 export constexpr Ternary operator&&(Ternary a, Ternary b) {
-  return TernaryLogic::AND(a, b);
+  return Kleene::AND(a, b);
 }
 export constexpr Ternary operator||(Ternary a, Ternary b) {
-  return TernaryLogic::OR(a, b);
+  return Kleene::OR(a, b);
 }
-export constexpr Ternary operator!(Ternary a) { return TernaryLogic::RFL(a); }
+export constexpr Ternary operator!(Ternary a) { return Kleene::RFL(a); }
 
 /** @brief Truth-order @c <=> on @c Ternary: the chain
  *         @c False @c (-1) @c < @c Unknown @c (0) @c < @c True @c (1).
@@ -196,7 +197,7 @@ export constexpr Ternary operator!(Ternary a) { return TernaryLogic::RFL(a); }
  *  Form-chain @c Meet / @c Join slots reuse stdlib infrastructure
  *  rather than carrying named Ternary-specific function-object struct
  *  types (#698 Slice 8 review).  @c min on the chain is Kleene AND;
- *  @c max is Kleene OR — identical to @c TernaryLogic::AND / @c OR
+ *  @c max is Kleene OR — identical to @c Kleene::AND / @c OR
  *  (which were already defined via @c std::ranges::min / @c max on
  *  the int8_t cast).
  *
@@ -213,12 +214,12 @@ export constexpr std::strong_ordering operator<=>(Ternary a,
 /** @brief Helper to resolve logic species without hard errors */
 export template <typename T>
 struct GetLogic {
-  using type = ClassicalLogic;
+  using type = Boole;
 };
 
 export template <>
 struct GetLogic<Ternary> {
-  using type = TernaryLogic;
+  using type = Kleene;
 };
 
 export template <typename T>
@@ -265,7 +266,7 @@ concept HasLogicalOperators = requires(T a, T b) {
  * Truth<L>).  @c int and @c std::string satisfy neither (@c int's @c && yields
  * @c bool, and neither declares a @c logic_species), so @c IsΩ does not
  * over-accept them.  This is deliberately decoupled from @c GetLogic, whose
- * permissive default maps any type to @c ClassicalLogic and would otherwise let
+ * permissive default maps any type to @c Boole and would otherwise let
  * @c IsΩ accept arbitrary types.
  *
  * @note @c bool and @c Ternary are @e peer inhabitants: neither is a privileged
@@ -352,7 +353,7 @@ export enum class CardinalityTag { Finite, Countable, Continuum };
  * @brief The Rosolini dominance inclusion @f$\iota : \mathbb{B} \hookrightarrow
  *        \Omega@f$, the decided core into a classifier.
  * @details The dominance is general in the classifier @f$\Omega@f$.
- *          @f$\mathbb{B}@f$ = @c ClassicalLogic::Ω = @c bool is the two-valued
+ *          @f$\mathbb{B}@f$ = @c Boole::Ω = @c bool is the two-valued
  *          @b decided @b core @f$\{\top,\bot\}@f$ that sits inside @e every
  *          answer-lattice @f$\Omega@f$ (every @c IsΩ), and @f$\iota@f$
  *          is its inclusion.  So @f$\mathbb{B}@f$ is @e primus @e inter @e
@@ -394,7 +395,7 @@ export enum class CardinalityTag { Finite, Countable, Continuum };
  */
 export template <typename TargetLogic, typename T>
 constexpr auto lift_logic(T value) {
-  if constexpr (std::is_same_v<TargetLogic, TernaryLogic> &&
+  if constexpr (std::is_same_v<TargetLogic, Kleene> &&
                 std::is_same_v<T, bool>) {
     return value ? Ternary::True : Ternary::False;
   } else {
@@ -415,7 +416,7 @@ inline constexpr bool lifts_to_v = false;
 template <typename L>
 inline constexpr bool lifts_to_v<L, L> = true;
 template <>
-inline constexpr bool lifts_to_v<ClassicalLogic, TernaryLogic> = true;
+inline constexpr bool lifts_to_v<Boole, Kleene> = true;
 export template <typename From, typename To>
 concept LiftsTo = lifts_to_v<From, To>;
 
@@ -425,7 +426,7 @@ concept LiftsTo = lifts_to_v<From, To>;
  * @details Elevates raw types (bool, Ternary) into algebraic Rigs
  *          to prevent machine-level integral promotion.
  */
-export template <typename L = ClassicalLogic>
+export template <typename L = Boole>
 struct Truth {
   using logic_species = L;
   using machine_type = typename L::Ω;
@@ -479,14 +480,6 @@ struct Truth {
   constexpr bool operator==(const Truth&) const = default;
 };
 
-/** @section logic__Logic_Species_Aliases */
-
-/** @brief The Boolean Species (The Binary Prime). */
-export using Boolean = Truth<ClassicalLogic>;
-
-/** @brief The Kleene Species (The Indeterminacy). */
-export using Kleene = Truth<TernaryLogic>;
-
 /**
  * @brief Semantic truth projection for assertion contexts.
  * @details
@@ -528,13 +521,13 @@ struct SpeciesTraits<Truth<L>> {
 /** @brief Primary Template: Default to Classical (Boolean) Logic */
 export template <typename T>
 struct LogicTraits {
-  using type = ClassicalLogic;
+  using type = Boole;
 };
 
 /** @brief Specialization for Floating-Point Species (IEEE 754 NaN handling) */
 template <std::floating_point T>
 struct LogicTraits<T> {
-  using type = TernaryLogic;
+  using type = Kleene;
 };
 
 /**
@@ -543,7 +536,7 @@ struct LogicTraits<T> {
  */
 template <std::signed_integral T>
 struct LogicTraits<T> {
-  using type = TernaryLogic;
+  using type = Kleene;
 };
 
 /** @brief Shorthand for the Logic Species of a type */
@@ -610,7 +603,7 @@ static_assert(HasLogicalOperators<bool>,
 // non-truth types (int, ...) qualify by neither.
 static_assert(IsΩ<bool> && IsΩ<Ternary>,
               "raw truth-types are Ω (their &&/||/! close on the type)");
-static_assert(IsΩ<Boolean> && IsΩ<Kleene>,
+static_assert(IsΩ<Truth<Boole>> && IsΩ<Truth<Kleene>>,
               "Truth<L> wrappers are Ω via their registered logic_species "
               "(they overload +/* and !, not &&/||)");
 static_assert(!IsΩ<int>,
@@ -640,19 +633,18 @@ static_assert(!false == true && !true == false, "𝔹: RFL reflects the 2-chain"
 static_assert(Ternary::False < Ternary::Unknown &&
                   Ternary::Unknown < Ternary::True,
               "K₃: ⊥ < U < ⊤");
-static_assert(TernaryLogic::AND(Ternary::True, Ternary::Unknown) ==
+static_assert(Kleene::AND(Ternary::True, Ternary::Unknown) ==
                       Ternary::Unknown &&
-                  TernaryLogic::AND(Ternary::False, Ternary::Unknown) ==
+                  Kleene::AND(Ternary::False, Ternary::Unknown) ==
                       Ternary::False,
               "K₃: AND = min");
-static_assert(TernaryLogic::OR(Ternary::False, Ternary::Unknown) ==
+static_assert(Kleene::OR(Ternary::False, Ternary::Unknown) ==
                       Ternary::Unknown &&
-                  TernaryLogic::OR(Ternary::True, Ternary::Unknown) ==
-                      Ternary::True,
+                  Kleene::OR(Ternary::True, Ternary::Unknown) == Ternary::True,
               "K₃: OR = max");
-static_assert(TernaryLogic::RFL(Ternary::True) == Ternary::False &&
-                  TernaryLogic::RFL(Ternary::False) == Ternary::True &&
-                  TernaryLogic::RFL(Ternary::Unknown) == Ternary::Unknown,
+static_assert(Kleene::RFL(Ternary::True) == Ternary::False &&
+                  Kleene::RFL(Ternary::False) == Ternary::True &&
+                  Kleene::RFL(Ternary::Unknown) == Ternary::Unknown,
               "K₃: RFL reflects about U (¬U = U)");
 
 /** @brief The logic negation ¬ = @c L::RFL as a callable object.  It exists so
@@ -666,18 +658,16 @@ struct logic_complement {
   }
 };
 
-/** @brief Witness: Boolean negation is an involution.  @c ClassicalLogic's
+/** @brief Witness: Boolean negation is an involution.  @c Boole's
  *  @c RFL is @c std::logical_not on @c bool (@c !!b = b). */
 template <>
-struct is_involutive<logic_complement<ClassicalLogic>, bool> : std::true_type {
-};
+struct is_involutive<logic_complement<Boole>, bool> : std::true_type {};
 
-/** @brief Witness: Kleene negation is an involution.  @c TernaryLogic's @c RFL
+/** @brief Witness: Kleene negation is an involution.  @c Kleene's @c RFL
  *  reflects the K₃ chain about @c Unknown, so @c ¬¬a = a on all three values
  *  (the static_asserts above prove it). */
 template <>
-struct is_involutive<logic_complement<TernaryLogic>, Ternary> : std::true_type {
-};
+struct is_involutive<logic_complement<Kleene>, Ternary> : std::true_type {};
 
 /** @brief @c true iff the logic negation ¬ = @c L::RFL is a certified
  *  involution.  Both shipped De Morgan logics (@c 𝔹, @c K₃) qualify; a future
@@ -687,9 +677,9 @@ export template <typename L>
 inline constexpr bool logic_negation_is_involutive_v =
     IsInvolution<logic_complement<L>, typename L::Ω>;
 
-static_assert(logic_negation_is_involutive_v<ClassicalLogic>,
+static_assert(logic_negation_is_involutive_v<Boole>,
               "𝔹: ¬ is an involution, so !!A = A is sound");
-static_assert(logic_negation_is_involutive_v<TernaryLogic>,
+static_assert(logic_negation_is_involutive_v<Kleene>,
               "K₃: ¬ is an involution, so !!A = A is sound");
 
 /**
@@ -713,7 +703,7 @@ static_assert(logic_negation_is_involutive_v<TernaryLogic>,
  * The answer is itself classical: a bound either is or is not reached, never
  * @c Unknown.  So @c is_decided co-restricts any @f$\Omega@f$ to @c bool, the
  * value-level observable behind @c HasDecidableMembership (the type-level,
- * conservative certificate).  On @c ClassicalLogic (@f$\Sigma = \Omega@f$) it
+ * conservative certificate).  On @c Boole (@f$\Sigma = \Omega@f$) it
  * is constantly @c true; on @c K₃ it is @c true off @c Unknown.
  *
  * @see Giuseppe Rosolini, @e Continuity @e and @e Effectiveness @e in @e Topoi
@@ -728,13 +718,12 @@ constexpr bool is_decided(typename L::Ω value) {
   return value == L::True || L::RFL(value) == L::True;
 }
 
-static_assert(is_decided<ClassicalLogic>(true) &&
-                  is_decided<ClassicalLogic>(false),
+static_assert(is_decided<Boole>(true) && is_decided<Boole>(false),
               "𝔹: Σ = Ω, so every answer is decided");
-static_assert(is_decided<TernaryLogic>(Ternary::True) &&
-                  is_decided<TernaryLogic>(Ternary::False),
+static_assert(is_decided<Kleene>(Ternary::True) &&
+                  is_decided<Kleene>(Ternary::False),
               "K₃: the two endpoints ⊤, ⊥ are the decided core");
-static_assert(!is_decided<TernaryLogic>(Ternary::Unknown),
+static_assert(!is_decided<Kleene>(Ternary::Unknown),
               "K₃: the interior Unknown is undecided (outside Σ = {⊤,⊥})");
 
 }  // namespace dedekind::category

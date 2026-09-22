@@ -99,7 +99,7 @@ template <std::size_t N>
 struct LatticeFactory<C, N> {
   using Domain = std::array<Complex<double>, N>;
   using Codomain = bool;
-  using logic_species = ClassicalLogic;
+  using logic_species = Boole;
   using cardinality_type = typename ComplexesOf<>::cardinality_type;
 
   constexpr Codomain operator()(const Domain& xs) const {
@@ -125,7 +125,7 @@ struct LatticeFactory<C, N> {
       }
       return true;
     };
-    return Set<Domain, ClassicalLogic, decltype(pred)>{pred};
+    return Set<Domain, Boole, decltype(pred)>{pred};
   }
 };
 
@@ -169,7 +169,7 @@ template <std::size_t N>
 struct LatticeFactory<R, N> {
   using Domain = std::array<Real<double>, N>;
   using Codomain = bool;
-  using logic_species = ClassicalLogic;
+  using logic_species = Boole;
   using cardinality_type = typename RealsOf<>::cardinality_type;
 
   constexpr Codomain operator()(const Domain& xs) const {
@@ -189,7 +189,7 @@ struct LatticeFactory<R, N> {
       }
       return true;
     };
-    return Set<Domain, ClassicalLogic, decltype(pred)>{pred};
+    return Set<Domain, Boole, decltype(pred)>{pred};
   }
 };
 

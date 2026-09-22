@@ -410,7 +410,7 @@ constexpr auto drop(const Path<T, Cardinality, Index>& path, std::size_t n) {
  * \subseteq \mathbb{N} \times T@f$ — i.e.\ a binary relation on
  * @c std::size_t and @c T .  This adapter exhibits the categorical
  * identity at the type level: for any @c Path<T, Cardinality> the result
- * is a @c Set<std::pair<std::size_t, T>, ClassicalLogic, P> whose
+ * is a @c Set<std::pair<std::size_t, T>, Boole, P> whose
  * predicate @c P (the graph predicate) tests whether a candidate pair
  * @c (i, t) belongs to the graph, i.e.\ whether @c t @c == @c path.at(i)
  * (and, for finite paths, @c i @c < @c path.size() ).
@@ -467,7 +467,7 @@ constexpr auto as_relation(const Path<T, Cardinality, Index>& path) {
   // gated on @c IsRingIntegral via @c IsSequence; the finite-cardinality bound
   // check lives in @c SequenceGraph.
   using P = Path<T, Cardinality, Index>;
-  return Set<std::pair<Index, T>, ClassicalLogic, SequenceGraph<P>>{
+  return Set<std::pair<Index, T>, Boole, SequenceGraph<P>>{
       SequenceGraph<P>{path}};
 }
 
@@ -980,7 +980,7 @@ static_assert(
 // Bourbaki's function-as-graph definition: a function f : ℕ → T is the
 // set of pairs {(n, f(n)) | n ∈ ℕ} — equivalently, a binary relation on
 // std::size_t and T.  as_relation(path) above lifts a Path<T> to this
-// relational form (a Set<pair<size_t, T>, ClassicalLogic, GraphPredicate>).
+// relational form (a Set<pair<size_t, T>, Boole, GraphPredicate>).
 // The static_assert below mechanically witnesses that the relational form
 // satisfies the project's ETCS IsSet contract via the canonical
 // ambient_set<Pair>(...) lift — same pattern as the SingletonSet /

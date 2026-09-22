@@ -15,7 +15,7 @@
  * stable surface.
  *
  * @subsection The_Sample_Pair
- *  - @c is_even @c : @c Path<Boolean> — gives the join row a heterogeneous
+ *  - @c is_even @c : @c Path<Truth<Boole>> — gives the join row a heterogeneous
  *    codomain (@c ℕ @c × @c 𝔹 @c × @c ℕ ), exhibiting tuples-not-lists.
  *  - @c fibonacci_of<T> @c : @c Path<T> — the canonical recurrence,
  *    expressed via the n-ary @c iterate(op, @c seeds...) primitive in
@@ -85,7 +85,7 @@ using ℕ_Form = dedekind::sets::ExtensionalCardinal<>;
 
 /**
  * @brief @c is_even @c : @c ℕ @c → @c 𝔹 — the parity sequence as a
- *        @c Path<Boolean> .
+ *        @c Path<Truth<Boole>> .
  *
  * @details Boolean codomain by design: the §3 page-2 join exhibit
  * relationally joins @c is_even and @c fibonacci on the shared index
@@ -93,8 +93,10 @@ using ℕ_Form = dedekind::sets::ExtensionalCardinal<>;
  * triple, not a list of one type.  The join's @em tuples-not-lists
  * character is the page-2 beat the paper prose lands on.
  */
-export inline const auto is_even = Path<Boolean, ℵ_0, ℕ_Form>{
-    [](ℕ_Form n) -> Boolean { return Boolean{n % ℕ_Form{2u} == ℕ_Form{0u}}; }};
+export inline const auto is_even =
+    Path<Truth<Boole>, ℵ_0, ℕ_Form>{[](ℕ_Form n) -> Truth<Boole> {
+      return Truth<Boole>{n % ℕ_Form{2u} == ℕ_Form{0u}};
+    }};
 
 /**
  * @brief @c fibonacci_of<T> @c : @c ℕ @c → @c T — the canonical Fibonacci

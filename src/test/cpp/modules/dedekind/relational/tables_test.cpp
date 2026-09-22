@@ -52,7 +52,7 @@ TEST_CASE("Relational Algebra: Selection (σ)", "[sets][relational]") {
   }
 
   // FIXME(#693): "Logical-valued predicates preserve Ω semantics" — the
-  // pre-#622 test relied on `evens_0_10` being TernaryLogic-routed (ℕ →
+  // pre-#622 test relied on `evens_0_10` being Kleene-routed (ℕ →
   // Ternary under the old NaturalLogic resolver), letting a lambda return
   // Ternary::Unknown straight through `select`.  Under the cardinality
   // cut (#622), ℕ → Classical on the carrier axis, so Ternary preservation

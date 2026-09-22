@@ -105,7 +105,7 @@ struct IntegerIntervalBoundaryMixin<Boundary::Closed, Boundary::Closed> {
  * @tparam T      An integral type (the element species).
  * @tparam Lower  Boundary policy for the lower bound (default: Closed).
  * @tparam Upper  Boundary policy for the upper bound (default: Open).
- * @tparam L      The subobject classifier logic (default: ClassicalLogic).
+ * @tparam L      The subobject classifier logic (default: Boole).
  *
  * @note The default [lo, hi) is the integer analog of std::ranges::iota_view.
  *
@@ -118,7 +118,7 @@ struct IntegerIntervalBoundaryMixin<Boundary::Closed, Boundary::Closed> {
  * | All three    | IsConvexEnumerable   | combination                 |
  */
 export template <std::integral T, Boundary Lower = Boundary::Closed,
-                 Boundary Upper = Boundary::Open, typename L = ClassicalLogic>
+                 Boundary Upper = Boundary::Open, typename L = Boole>
 class IntegerInterval
     : public detail::IntegerIntervalBoundaryMixin<Lower, Upper> {
  public:
@@ -435,7 +435,7 @@ struct all_ok {
 };
 using WOI = dedekind::order::OrderInterval<
     int, 0, 1, dedekind::order::Strictness::NonStrict,
-    dedekind::order::Strictness::NonStrict, dedekind::category::ClassicalLogic>;
+    dedekind::order::Strictness::NonStrict, dedekind::category::Boole>;
 static_assert(dedekind::category::IsSet<BoundedSet<WOI, all_ok>>,
               "BoundedSet is a first-class DSL set: the value-owning finite "
               "comprehension {x ∈ dom | P}.");

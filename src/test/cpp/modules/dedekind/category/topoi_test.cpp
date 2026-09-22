@@ -272,14 +272,14 @@ TEST_CASE("Topos: Constant Truth Morphisms", "[category][topoi]") {
   }
 
   SECTION("Ternary logical_true/false") {
-    auto t = logical_true<TernaryLogic>();
-    auto f = logical_false<TernaryLogic>();
+    auto t = logical_true<Kleene>();
+    auto f = logical_false<Kleene>();
     CHECK(t(One{}) == Ternary::True);
     CHECK(f(One{}) == Ternary::False);
   }
 
   SECTION("Constant morphisms composed with characteristic morphisms") {
-    auto t = logical_true<ClassicalLogic>();
+    auto t = logical_true<Boole>();
     auto p = arrow<int>([](int x) { return x % 2 == 0; });
 
     // true && p(x) == p(x)

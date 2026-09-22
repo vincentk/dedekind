@@ -11,10 +11,10 @@
  * true but constructively blocked (Specker).  The carrier-axis
  * cardinality cut (NaturalLogic) decides the regime:
  *
- *   - countable carrier (cardinality_type = ℵ_0) → ClassicalLogic → the
+ *   - countable carrier (cardinality_type = ℵ_0) → Boole → the
  *     collapse fires, BW witness holds;
  *   - Ternary carrier (a non-cardinality'd primitive like double — the
- *     float↔ℝ gap) → TernaryLogic → the collapse is honestly rejected,
+ *     float↔ℝ gap) → Kleene → the collapse is honestly rejected,
  *     BW witness fails.
  *
  * This is an existence demonstration, NOT a guarantee: it exhibits one
@@ -34,7 +34,7 @@ using namespace dedekind::sequences;
 namespace bw_witnesses {
 
 /** @brief A countable real-ish carrier: cardinality_type = ℵ_0 places it
- *         in the ClassicalLogic regime; operator- gives it the Cauchy
+ *         in the Boole regime; operator- gives it the Cauchy
  *         subtraction shape. */
 struct CountableReal {
   using cardinality_type = dedekind::sets::ℵ_0;
@@ -52,7 +52,7 @@ struct bw_sub : Path<CountableReal> {
   using Path<CountableReal>::Path;
 };
 
-// --- Ternary side: double (no cardinality_type ⇒ TernaryLogic) ---
+// --- Kleene side: double (no cardinality_type ⇒ Kleene) ---
 struct bw_super_ternary : Path<double> {
   using Path<double>::Path;
 };
@@ -84,10 +84,10 @@ TEST_CASE(
     "[sequences][convergence][collapse]") {
   STATIC_CHECK(
       std::is_same_v<convergence_logic<Path<bw_witnesses::CountableReal>>,
-                     dedekind::category::ClassicalLogic>);
+                     dedekind::category::Boole>);
   // double has no cardinality_type ⇒ NaturalLogic defaults to Ternary.
   STATIC_CHECK(std::is_same_v<convergence_logic<Path<double>>,
-                              dedekind::category::TernaryLogic>);
+                              dedekind::category::Kleene>);
 }
 
 TEST_CASE(

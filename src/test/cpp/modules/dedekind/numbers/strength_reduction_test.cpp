@@ -94,7 +94,7 @@ using ReducedLeTen =
 constexpr ReducedLeTen native_le_ten{};
 
 // Boundary: 10 ∈ {x ≤ 10}, 11 ∉ — via the ℝ chain AND the native reduction.
-static_assert((Φ(10u) <= ten) == (native_le_ten(10u) == ClassicalLogic::True));
+static_assert((Φ(10u) <= ten) == (native_le_ten(10u) == Boole::True));
 static_assert((Φ(10u) <= ten) && (10u <= 10u), "10 survives the pullback.");
 static_assert(!(Φ(11u) <= ten) && !(11u <= 10u), "11 does not.");
 
@@ -111,7 +111,7 @@ static_assert(
     pulled(10u) && !pulled(11u),
     "preimage(Φ, {x≤10}) DERIVES the same boundary native_le_ten pins "
     "by hand.");
-static_assert(pulled(10u) == (native_le_ten(10u) == ClassicalLogic::True),
+static_assert(pulled(10u) == (native_le_ten(10u) == Boole::True),
               "the derived preimage agrees with the hand-written reduction.");
 
 // The INTRINSIC clip: {x ≤ −3} pulls back to ∅ over unsigned BY CONSTRUCTION —

@@ -55,7 +55,7 @@ import :mereology;
 
 namespace dedekind::sets {
 
-export template <typename T, typename L = dedekind::category::ClassicalLogic,
+export template <typename T, typename L = dedekind::category::Boole,
                  typename Hash = std::hash<T>,
                  typename Equal = std::equal_to<T>>
 struct ExtensionalSet {
@@ -121,7 +121,7 @@ static_assert(
 
 static_assert(
     dedekind::category::IsSet<decltype(dedekind::category::ambient_set<int>(
-        ExtensionalSet<int, dedekind::category::ClassicalLogic, std::hash<int>,
+        ExtensionalSet<int, dedekind::category::Boole, std::hash<int>,
                        std::equal_to<int>>{}))>,
     "Hash / Equal template parameters do not perturb the IsSet lift: "
     "the predicate-shape `T → L::Ω` is what ambient_set<T>(...) gates on, "
@@ -271,11 +271,9 @@ constexpr auto from_std(const std::set<T, Compare, Alloc>&)
 
 export template <typename T, typename Hash, typename Equal, typename Alloc>
 constexpr auto from_std(const std::unordered_set<T, Hash, Equal, Alloc>& source)
-    -> dedekind::sets::ExtensionalSet<T, dedekind::category::ClassicalLogic,
-                                      Hash, Equal> {
-  dedekind::sets::ExtensionalSet<T, dedekind::category::ClassicalLogic, Hash,
-                                 Equal>
-      out;
+    -> dedekind::sets::ExtensionalSet<T, dedekind::category::Boole, Hash,
+                                      Equal> {
+  dedekind::sets::ExtensionalSet<T, dedekind::category::Boole, Hash, Equal> out;
   for (const auto& value : source) out.elements.insert(value);
   return out;
 }

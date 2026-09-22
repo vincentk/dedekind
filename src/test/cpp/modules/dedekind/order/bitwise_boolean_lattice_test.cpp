@@ -38,12 +38,10 @@ TEST_CASE(
    *         @c std::numeric_limits<std::size_t>::digits bit positions
    *         (64 on LP64 / LLP64; 32 on 32-bit targets), a finite
    *         Boolean algebra of that dimension. */
+  STATIC_CHECK(IsThinCategory<std::size_t, bit_subset_eq<std::size_t>, Boole>);
+  STATIC_CHECK(IsPosetal<std::size_t, bit_subset_eq<std::size_t>, Boole>);
   STATIC_CHECK(
-      IsThinCategory<std::size_t, bit_subset_eq<std::size_t>, ClassicalLogic>);
-  STATIC_CHECK(
-      IsPosetal<std::size_t, bit_subset_eq<std::size_t>, ClassicalLogic>);
-  STATIC_CHECK(IsFilteredCategory<std::size_t, bit_subset_eq<std::size_t>,
-                                  ClassicalLogic>);
+      IsFilteredCategory<std::size_t, bit_subset_eq<std::size_t>, Boole>);
   STATIC_CHECK(
       IsBooleanLatticeCategory<
           std::size_t, bit_subset_eq<std::size_t>, std::bit_or<std::size_t>,

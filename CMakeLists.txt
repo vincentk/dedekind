@@ -255,7 +255,7 @@ add_library(set-pruning-ir-fixture STATIC EXCLUDE_FROM_ALL
     # showcase_10_image_intensional_naturals.cpp is added for compile-time
     # validation of the layer-1 image overload on intensional Sets (#602 / #631);
     # it has no checked-in `.ll` fixture because its IR demo
-    # (`ret i1 false` for `TernaryLogic::Unknown == True`) is shape-identical
+    # (`ret i1 false` for `Kleene::Unknown == True`) is shape-identical
     # to showcase_03's empty-meet reduction (`ret i1 false` for
     # `L::False == L::True`).  The structural reduction itself
     # (image-of-intensional-Set carries the always-Unknown predicate) is

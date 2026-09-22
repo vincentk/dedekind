@@ -27,19 +27,19 @@ using namespace dedekind::sets;
 
 TEST_CASE("sets:computability — HasDecidableMembership on Ø",
           "[sets][computability]") {
-  SECTION("ClassicalLogic Ø satisfies the concept") {
+  SECTION("Boole Ø satisfies the concept") {
     STATIC_CHECK(HasDecidableMembership<Ø<int>>);
-    STATIC_CHECK(HasDecidableMembership<Ø<int, ClassicalLogic>>);
+    STATIC_CHECK(HasDecidableMembership<Ø<int, Boole>>);
   }
 
-  SECTION("TernaryLogic Ø fails the concept") {
-    STATIC_CHECK_FALSE(HasDecidableMembership<Ø<int, TernaryLogic>>);
+  SECTION("Kleene Ø fails the concept") {
+    STATIC_CHECK_FALSE(HasDecidableMembership<Ø<int, Kleene>>);
   }
 
   SECTION("Intensional Set over a countable carrier satisfies the concept") {
     constexpr auto x = element<ℕ>;
     constexpr auto s = Set{x | [](const auto& v) { return v > 5u; }};
-    // ℕ is countably infinite (ℵ_0) → NaturalLogic picks ClassicalLogic on
+    // ℕ is countably infinite (ℵ_0) → NaturalLogic picks Boole on
     // the carrier axis (#622).  Rice's theorem caps further promotion of
     // the opaque λ predicate, but the carrier-axis witness is sufficient
     // here: the resolver trusts the carrier and lets the λ run.
@@ -51,7 +51,7 @@ TEST_CASE("sets:cardinality — IsExtensional on Ø",
           "[sets][cardinality][computability]") {
   SECTION("Ø is extensional regardless of logic species") {
     STATIC_CHECK(IsExtensional<Ø<int>>);
-    STATIC_CHECK(IsExtensional<Ø<int, TernaryLogic>>);
+    STATIC_CHECK(IsExtensional<Ø<int, Kleene>>);
   }
 
   SECTION("Intensional Set over a transfinite carrier is not extensional") {
@@ -67,8 +67,8 @@ TEST_CASE("sets:computability — extensionality and decidability are orthogonal
   // (extensionality lives in :sets:cardinality; decidability here).
   // This test exhibits the orthogonality on a concrete witness.
   STATIC_CHECK(IsExtensional<Ø<int>> && HasDecidableMembership<Ø<int>>);
-  STATIC_CHECK(IsExtensional<Ø<int, TernaryLogic>> &&
-               !HasDecidableMembership<Ø<int, TernaryLogic>>);
+  STATIC_CHECK(IsExtensional<Ø<int, Kleene>> &&
+               !HasDecidableMembership<Ø<int, Kleene>>);
 }
 
 TEST_CASE("sets:computability — IsDecidableSet: Σ-set vs Ω-set (#846)",
@@ -76,60 +76,59 @@ TEST_CASE("sets:computability — IsDecidableSet: Σ-set vs Ω-set (#846)",
   // IsDecidableSet = IsSet && HasDecidableMembership: the strict, Boolean
   // reading (χ factors through the dominance Σ ↪ Ω; Σ = Ω only in strict
   // ETCS).  IsSet is the honest
-  // base and does NOT imply it — an ETCS set over TernaryLogic is IsSet but
+  // base and does NOT imply it — an ETCS set over Kleene is IsSet but
   // has non-decidable (Ω-valued) membership.
-  SECTION("Σ-sets: ETCS sets over ClassicalLogic are decidable") {
+  SECTION("Σ-sets: ETCS sets over Boole are decidable") {
     STATIC_CHECK(IsDecidableSet<decltype(ℕ)>);
     STATIC_CHECK(IsDecidableSet<decltype(𝔸<bool>)>);
   }
   SECTION("Ω-set: same carrier, Ternary ambient — IsSet but not decidable") {
-    STATIC_CHECK(IsSet<decltype(𝔸<bool, TernaryLogic>)>);
-    STATIC_CHECK_FALSE(HasDecidableMembership<decltype(𝔸<bool, TernaryLogic>)>);
-    STATIC_CHECK_FALSE(IsDecidableSet<decltype(𝔸<bool, TernaryLogic>)>);
+    STATIC_CHECK(IsSet<decltype(𝔸<bool, Kleene>)>);
+    STATIC_CHECK_FALSE(HasDecidableMembership<decltype(𝔸<bool, Kleene>)>);
+    STATIC_CHECK_FALSE(IsDecidableSet<decltype(𝔸<bool, Kleene>)>);
   }
 }
 
 TEST_CASE("sets:computability — NaturalLogic carrier-axis cut (#622)",
           "[sets][computability][resolver][622]") {
-  // Positive witnesses: countable carriers route to ClassicalLogic on the
+  // Positive witnesses: countable carriers route to Boole on the
   // carrier axis (Rice's theorem caps further promotion of opaque-λ
   // predicates; the carrier-axis verdict is the cheap structural witness).
-  SECTION("Countable carriers → ClassicalLogic") {
-    STATIC_CHECK(std::same_as<typename NaturalLogic<UniversalSet<int>>::type,
-                              ClassicalLogic>);
+  SECTION("Countable carriers → Boole") {
+    STATIC_CHECK(
+        std::same_as<typename NaturalLogic<UniversalSet<int>>::type, Boole>);
     STATIC_CHECK(
         std::same_as<typename NaturalLogic<UniversalSet<unsigned>>::type,
-                     ClassicalLogic>);
-    STATIC_CHECK(std::same_as<typename NaturalLogic<UniversalSet<bool>>::type,
-                              ClassicalLogic>);
+                     Boole>);
+    STATIC_CHECK(
+        std::same_as<typename NaturalLogic<UniversalSet<bool>>::type, Boole>);
   }
 
   // Negative witness: Mandelbrot-shaped Sets — uncountable carrier (ℶ_1)
   // + structurally-Π⁰₁ predicate + no set-level shortcut → no axis fires
-  // → TernaryLogic.  This is the canonical witness that the resolver
+  // → Kleene.  This is the canonical witness that the resolver
   // doesn't over-promise on structurally-undecidable sets.  Two
   // independent ceilings stack on uncountable carriers:
   //   (a) Rice forbids recognising opaque predicates as Δ⁰₁;
   //   (b) the float↔ℝ gap makes @c double-typed witnesses denote ℝ values
   //       only approximately, so even structurally-Δ⁰₁ comparisons land
   //       exact-as-@c double but unknown-as-ℝ.
-  SECTION("Uncountable carriers → TernaryLogic (Mandelbrot-shape witness)") {
+  SECTION("Uncountable carriers → Kleene (Mandelbrot-shape witness)") {
     // ℶ_1-tagged UniversalSet models the "carrier with ℝ-shaped
     // cardinality" — the Mandelbrot canonical case is @c
     // UniversalSet<Complex<...>, _, ℶ_1>, mechanically equivalent here.
     STATIC_CHECK(
-        std::same_as<
-            typename NaturalLogic<UniversalSet<int, ClassicalLogic, ℶ_1>>::type,
-            TernaryLogic>);
+        std::same_as<typename NaturalLogic<UniversalSet<int, Boole, ℶ_1>>::type,
+                     Kleene>);
   }
 
   // SFINAE fallback: types without @c cardinality_type degrade to the
-  // honest default @c TernaryLogic.  Required so @c NaturalLogic-probing
+  // honest default @c Kleene.  Required so @c NaturalLogic-probing
   // @c requires-clauses (e.g.\ the cartesian-product operator gate in
   // @c :expressions) substitute cleanly on non-Set carriers.
-  SECTION("No cardinality_type → TernaryLogic fallback") {
+  SECTION("No cardinality_type → Kleene fallback") {
     struct NoCardinality {};
     STATIC_CHECK(
-        std::same_as<typename NaturalLogic<NoCardinality>::type, TernaryLogic>);
+        std::same_as<typename NaturalLogic<NoCardinality>::type, Kleene>);
   }
 }

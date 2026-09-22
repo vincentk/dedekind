@@ -13,7 +13,7 @@
 #include <vector>
 
 import dedekind.analysis; // Dual<F> (relocated from :numbers at PR #513)
-import dedekind.category; // ClassicalLogic — Set's logic species (#747)
+import dedekind.category; // Boole — Set's logic species (#747)
 import dedekind.linear_algebra;
 import dedekind.numbers;
 import dedekind.optimization;
@@ -56,7 +56,7 @@ TEST_CASE(
     "[optimization][lp][set-out][f-algebra][catamorphism]") {
   // The output side of @c argmax @c : @c Set @c → @c Set is structurally
   // an F-algebra: the output Set carries a structure map @c F<X> @c → @c X
-  // for the carrier @c X = @c Set<Vec2V<T>, ClassicalLogic,
+  // for the carrier @c X = @c Set<Vec2V<T>, Boole,
   // LPSolutionPredicate<T>> .  The catamorphism (fold) interpretation
   // is then the canonical morphism into this algebra from the initial
   // halfspace-list F-algebra carrying the polytope's pack.
@@ -70,9 +70,8 @@ TEST_CASE(
   // halfspace-list endofunctor's full @c IsEndofunctor instantiation
   // (Σ_cat, Shape, φ) is its own scaffolding task; see the source
   // commentary @c lp__F_Algebra_Witness in @c lp.cppm .
-  using OutputSet =
-      dedekind::sets::Set<Vec2V<Rat>, dedekind::category::ClassicalLogic,
-                          LPSolutionPredicate<Rat>>;
+  using OutputSet = dedekind::sets::Set<Vec2V<Rat>, dedekind::category::Boole,
+                                        LPSolutionPredicate<Rat>>;
   using LPSolutionCat = dedekind::category::DiscreteCategory<OutputSet>;
   using LPSolutionIdF = dedekind::category::identity_functor<LPSolutionCat>;
 
@@ -104,7 +103,7 @@ TEST_CASE("optimization:lp — both argmax input and output satisfy IsSet (#749)
   // three regimes on the output.
 
   using F = Vec2V<Rat>;
-  using L = dedekind::category::ClassicalLogic;
+  using L = dedekind::category::Boole;
 
   // Input side: a polytope is `Set<F, L, Polytope2DPredicate<T, Hs...>>`.
   using PolyG =
@@ -411,7 +410,7 @@ TEST_CASE("optimization:lp — Polytope2D + lp_extract comonadic counit (#388)",
   // The expression-type witnesses: all three surfaces return a Set
   // whose predicate is Singleton2DPredicate<Rat, 2, 2>.
   using ExpectedOpt =
-      dedekind::sets::Set<Vec2V<Rat>, dedekind::category::ClassicalLogic,
+      dedekind::sets::Set<Vec2V<Rat>, dedekind::category::Boole,
                           Singleton2DPredicate<Rat, Rat{2L}, Rat{2L}>>;
   STATIC_CHECK(std::same_as<decltype(polytope.extract()), ExpectedOpt>);
   STATIC_CHECK(std::same_as<decltype(lp_extract(polytope)), ExpectedOpt>);
@@ -515,7 +514,7 @@ TEST_CASE(
  *   G ⊆ F                -- the meet `halfspace_set(H1{}) & ... &
  *                           halfspace_set(H4{})`, where `halfspace_set`
  *                           lifts each NTTP halfspace into a Set
- *                           `Set<Vec2V<Rat>, ClassicalLogic,
+ *                           `Set<Vec2V<Rat>, Boole,
  *                            Halfspace2DPredicate<Rat, ...>>` and `&`
  *                           routes through `:expressions::Set::operator&` →
  *                           `structured_and` (ADL on our overloads in
@@ -537,7 +536,7 @@ TEST_CASE(
  */
 TEST_CASE(
     "optimization:lp — Set DSL bridge: G = H1 & H2 & H3 & H4 as "
-    "Set<Vec2V<Rat>, ClassicalLogic, Polytope2DPredicate<...>>, "
+    "Set<Vec2V<Rat>, Boole, Polytope2DPredicate<...>>, "
     "opt = argmax(G, U) = Set with Singleton2DPredicate<Rat, 2, 2> (#747)",
     "[optimization][lp][dsl][bridge][centrepiece]") {
   using F = dedekind::linear_algebra::Vec2V<Rat>;
@@ -557,7 +556,7 @@ TEST_CASE(
   // `decltype(G)` IS a real `:expressions::Set` instance — the §3 DSL —
   // whose predicate carries the halfspace pack at the type level.
   using ExpectedG =
-      dedekind::sets::Set<F, dedekind::category::ClassicalLogic,
+      dedekind::sets::Set<F, dedekind::category::Boole,
                           Polytope2DPredicate<Rat, H1, H2, H3, H4>>;
   static_assert(std::same_as<decltype(G), const ExpectedG>);
 
@@ -567,7 +566,7 @@ TEST_CASE(
   // DSL vocabulary.
   constexpr auto opt = argmax(G, U);
   using ExpectedOpt =
-      dedekind::sets::Set<F, dedekind::category::ClassicalLogic,
+      dedekind::sets::Set<F, dedekind::category::Boole,
                           Singleton2DPredicate<Rat, Rat{2L}, Rat{2L}>>;
   static_assert(std::same_as<decltype(opt), const ExpectedOpt>);
 

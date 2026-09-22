@@ -4,7 +4,7 @@
  * @brief Showcase 10 — image of an intensional Set over ℕ under an arrow.
  *
  *   image( s : ℕ → ℕ , {n ∈ ℕ | n > 5} )
- *      ≡   {y ∈ ℕ | TernaryLogic::Unknown}
+ *      ≡   {y ∈ ℕ | Kleene::Unknown}
  *
  * Layer-1 entry per #602: the @c image overload for intensional
  * predicate-defined Sets completes the API surface alongside the
@@ -14,7 +14,7 @@
  * @c {y | ∃x ∈ T. P(x) ∧ y == f(x)}.  On a transfinite carrier the
  * existential is generally undecidable without further structural input
  * (a partial inverse for @c f, or finiteness of @c T); this overload
- * honestly tags the result as @c TernaryLogic and returns @c Unknown
+ * honestly tags the result as @c Kleene and returns @c Unknown
  * for every membership query.  The indecision is a compile-time
  * observable rather than a hidden assumption.
  *
@@ -31,12 +31,12 @@
  * @c witness_empty_halfspace_meet (`ret i1 false` for an
  * always-falsy comparison at @c -O2), differing only in the
  * @b structural @b reduction at the Ddk level
- * (Unknown-in-TernaryLogic vs False-in-ClassicalLogic).  The
+ * (Unknown-in-Kleene vs False-in-Boole).  The
  * structural reduction itself is exhibited via the @c static_assert
  * chain above; full IR-fixture parity (a dedicated @c .ll plus a
  * registered semantic check in
  * @c .github/copilot/housekeeping/pruning-ir-fixture.py) would be a
- * follow-up if/when the TernaryLogic-folding path needs its own
+ * follow-up if/when the Kleene-folding path needs its own
  * IR-level audit anchor distinct from the empty-meet one.  Mirrors
  * the precedent set by @c showcase_alpha_prime.cpp (also built but
  * un-fixtured for the same shape-equivalence reason).
@@ -72,20 +72,20 @@ constexpr auto succ_arrow = arrow<Cardinality, Cardinality>(
     [](const Cardinality& m) noexcept { return m + finite_cardinality(1); });
 
 // Image of an intensional Set under the successor arrow.  Result is
-// itself an intensional Set on Cardinality with @c TernaryLogic as the
+// itself an intensional Set on Cardinality with @c Kleene as the
 // logic species and the always-Unknown @c SymbolicImagePredicate as
 // predicate.
 constexpr auto img = image(succ_arrow, gt_5);
 
 // Type-shape witnesses: the result IS a Set on the codomain
-// (Cardinality) with TernaryLogic.  These pin the layer-1 API surface
+// (Cardinality) with Kleene.  These pin the layer-1 API surface
 // at the type level — @c image is well-formed on intensional inputs and
 // returns the right structural shape regardless of the (un)decidability
 // of the membership query.
 static_assert(std::same_as<typename decltype(img)::Domain, Cardinality>,
               "image(f, intensional Set<T>) lands on Cod<f> = ℕ.");
-static_assert(std::same_as<typename decltype(img)::logic_species, TernaryLogic>,
-              "image of an intensional Set lifts the result to TernaryLogic — "
+static_assert(std::same_as<typename decltype(img)::logic_species, Kleene>,
+              "image of an intensional Set lifts the result to Kleene — "
               "the existential ∃x ∈ T. P(x) ∧ y == f(x) is generally "
               "undecidable on transfinite carriers without further structural "
               "input.");
@@ -96,12 +96,12 @@ static_assert(std::same_as<typename decltype(img)::logic_species, TernaryLogic>,
 // inverses, or for finite source carriers; here we exercise the default.
 static_assert(!HasDecidableMembership<decltype(img)>,
               "Layer-1 image of an intensional Set is symbolic — "
-              "membership query is honestly TernaryLogic::Unknown.");
+              "membership query is honestly Kleene::Unknown.");
 static_assert(!IsExtensional<decltype(img)>,
               "Layer-1 image preserves the intensional shape; the result "
               "remains predicate-defined on the codomain carrier.");
 
-// Membership-query witnesses: any value lands at @c TernaryLogic::Unknown.
+// Membership-query witnesses: any value lands at @c Kleene::Unknown.
 // The existential @c ∃x ∈ ℕ. x > 5 ∧ y == x + 1 is undecidable on the
 // transfinite carrier without further structural input — the symbolic
 // predicate honestly admits the indecision.
@@ -127,14 +127,14 @@ static_assert(
     "image(f, intensional Set<T>) realises IsImageOf<result, f>: the "
     "result is a Subobject of Cod<f>, witnessing the categorical image "
     "of the source set under f even when membership is symbolic "
-    "(TernaryLogic::Unknown on transfinite carriers).");
+    "(Kleene::Unknown on transfinite carriers).");
 
 /**
  * @brief Showcase 10: image-of-intensional-Set on ℕ honestly returns
  *        Unknown.
  *
- * The image's membership query is statically @c TernaryLogic::Unknown,
- * so comparing against @c TernaryLogic::True folds to constant @c false
+ * The image's membership query is statically @c Kleene::Unknown,
+ * so comparing against @c Kleene::True folds to constant @c false
  * at compile time.  This is the structural payoff of the layer-1 API
  * surface — the indecision is a compile-time observable rather than a
  * hidden assumption (a runtime exception, an UB, a silent wrong

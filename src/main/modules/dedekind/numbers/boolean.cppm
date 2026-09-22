@@ -54,7 +54,7 @@ namespace dedekind::numbers {
 using namespace dedekind::category;
 using namespace dedekind::sets;
 
-export template <typename L = ClassicalLogic>
+export template <typename L = Boole>
 using FiniteBooleanSetOf = dedekind::sets::FiniteBooleanSet<L>;
 
 /** @section numbers_boolean__Canonical_Species_Spine
@@ -62,7 +62,7 @@ using FiniteBooleanSetOf = dedekind::sets::FiniteBooleanSet<L>;
  * The canonical Boolean species symbol @c 𝔹 names the @b universe value
  * @c 𝔸<bool> (post-#559).  The carrier is @c bool, addressed directly in
  * template-type-parameter positions; @c 𝔹 is the constexpr
- * @c UniversalSet<bool, ClassicalLogic, Finite>{} value the set-builder
+ * @c UniversalSet<bool, Boole, Finite>{} value the set-builder
  * DSL takes as ambient.  The Boolean structures the carrier @c bool
  * carries are @c (bool, @c ⊕, @c ∧, @c 0, @c 1) — the Galois field
  * 𝔽₂ — and @c (bool, @c ∨, @c ∧) — the canonical Boolean rig.  The
@@ -85,12 +85,12 @@ using FiniteBooleanSetOf = dedekind::sets::FiniteBooleanSet<L>;
  *
  *  @details The canonical definition lives in @c dedekind::algebra::boolean
  *  (upstream of this partition).  Post-#559, @c 𝔹 names the universe value
- *  @c 𝔸<bool> (a constexpr @c UniversalSet<bool, ClassicalLogic, Finite>{}),
+ *  @c 𝔸<bool> (a constexpr @c UniversalSet<bool, Boole, Finite>{}),
  *  not a carrier-type alias.  The underlying carrier is @c bool, used
  *  directly in template-type-parameter positions.  Predicate-set callers
  *  want @c FiniteBooleanSetOf<>{...} (explicit construction; e.g.\ the
- *  universal Boolean set is @c FiniteBooleanSetOf<>{ClassicalLogic::True,
- *  ClassicalLogic::True}, the empty Boolean set is @c FiniteBooleanSetOf<>{}).
+ *  universal Boolean set is @c FiniteBooleanSetOf<>{Boole::True,
+ *  Boole::True}, the empty Boolean set is @c FiniteBooleanSetOf<>{}).
  */
 export using ::dedekind::algebra::𝔹;
 
@@ -127,9 +127,9 @@ concept Is_B = std::same_as<E, bool> && requires(const M& m) {
 
 // (0) Universe witness: 𝔹 names the universe over the bool carrier (post-#559).
 //     Pre-#559, 𝔹 was a carrier-type alias for bool; post-#559 it is the
-//     value 𝔸<bool> (a constexpr UniversalSet<bool, ClassicalLogic, Finite>{}).
+//     value 𝔸<bool> (a constexpr UniversalSet<bool, Boole, Finite>{}).
 static_assert(std::same_as<std::remove_cvref_t<decltype(dedekind::algebra::𝔹)>,
-                           UniversalSet<bool, ClassicalLogic, Finite>>,
+                           UniversalSet<bool, Boole, Finite>>,
               "𝔹 is the universe 𝔸<bool> (post-#559).");
 static_assert(
     std::same_as<
@@ -256,18 +256,16 @@ static_assert(dedekind::sequences::IsFiniteSequence<
 // The universal / empty Boolean predicate-sets live on @c FiniteBooleanSetOf<>
 // — kept here as the predicate-set witnesses that survive the symbol-as-
 // carrier reading.
-static_assert(FiniteBooleanSetOf<>{ClassicalLogic::True,
-                                   ClassicalLogic::True}(true) ==
-                  ClassicalLogic::True,
+static_assert(FiniteBooleanSetOf<>{Boole::True, Boole::True}(true) ==
+                  Boole::True,
               "Universal Boolean predicate-set contains true.");
-static_assert(FiniteBooleanSetOf<>{ClassicalLogic::True,
-                                   ClassicalLogic::True}(false) ==
-                  ClassicalLogic::True,
+static_assert(FiniteBooleanSetOf<>{Boole::True, Boole::True}(false) ==
+                  Boole::True,
               "Universal Boolean predicate-set contains false (every bool is a "
               "Boolean).");
-static_assert(FiniteBooleanSetOf<>{}(true) == ClassicalLogic::False,
+static_assert(FiniteBooleanSetOf<>{}(true) == Boole::False,
               "Empty Boolean predicate-set does not contain true.");
-static_assert(FiniteBooleanSetOf<>{}(false) == ClassicalLogic::False,
+static_assert(FiniteBooleanSetOf<>{}(false) == Boole::False,
               "Empty Boolean predicate-set does not contain false.");
 
 // (5) Adjacent-set arrow: 𝔹 ↪ ℕ via @c embed_𝔹_uint_ in @c :natural.

@@ -31,7 +31,7 @@ TEST_CASE("Level 1 Final Proof: The Mereology Highway",
 
   SECTION("4. The Logic Swapping (Topos-Awareness)") {
     // Universal Set over the Ternary Topos (Kleene Logic)
-    UniversalSet<int, TernaryLogic> k_universe;
+    UniversalSet<int, Kleene> k_universe;
 
     REQUIRE(k_universe(42) == Ternary::True);
   }
@@ -146,22 +146,22 @@ TEST_CASE("image(IsTerminalMorphism F, S) — terminal-codomain collapse (#661)"
     constexpr UniversalSet<int> universe;
     const auto img = image(bang, universe);
     STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(img)>,
-                              SingletonSet<One, ClassicalLogic>>);
+                              SingletonSet<One, Boole>>);
     CHECK(img(One{}));
   }
 
   SECTION("Ø source → Ø<One> (empty stays empty)") {
     constexpr Ø<int> empty;
     const auto img = image(bang, empty);
-    STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(img)>,
-                              Ø<One, ClassicalLogic>>);
+    STATIC_CHECK(
+        std::same_as<std::remove_cvref_t<decltype(img)>, Ø<One, Boole>>);
   }
 
   SECTION("SingletonSet source → SingletonSet<One> via the generic overload") {
     const auto s = singleton(7);
     const auto img = image(bang, s);
     STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(img)>,
-                              SingletonSet<One, ClassicalLogic>>);
+                              SingletonSet<One, Boole>>);
     CHECK(img(One{}));
   }
 }

@@ -92,25 +92,21 @@ TEST_CASE("Modules: Integer Polynomial Action", "[algebra][modules]") {
   }
 
   SECTION("Vector-space and semimodule carriers lift to ETCS IsSet") {
-    auto real_space =
-        dedekind::category::ambient_set<RealLine>([](const RealLine&) {
-          return dedekind::category::ClassicalLogic::True;
-        });
+    auto real_space = dedekind::category::ambient_set<RealLine>(
+        [](const RealLine&) { return dedekind::category::Boole::True; });
     CHECK(dedekind::category::IsSet<decltype(real_space)>);
     CHECK(dedekind::category::in(RealLine(0.0), real_space) ==
-          dedekind::category::ClassicalLogic::True);
+          dedekind::category::Boole::True);
     CHECK(dedekind::category::in(RealLine(1.25), real_space) ==
-          dedekind::category::ClassicalLogic::True);
+          dedekind::category::Boole::True);
 
-    auto bool_space =
-        dedekind::category::ambient_set<BoolLine>([](const BoolLine&) {
-          return dedekind::category::ClassicalLogic::True;
-        });
+    auto bool_space = dedekind::category::ambient_set<BoolLine>(
+        [](const BoolLine&) { return dedekind::category::Boole::True; });
     CHECK(dedekind::category::IsSet<decltype(bool_space)>);
     CHECK(dedekind::category::in(BoolLine(true), bool_space) ==
-          dedekind::category::ClassicalLogic::True);
+          dedekind::category::Boole::True);
     CHECK(dedekind::category::in(BoolLine(false), bool_space) ==
-          dedekind::category::ClassicalLogic::True);
+          dedekind::category::Boole::True);
   }
 
   SECTION("Set comprehension syntax works for vector carriers") {
@@ -131,30 +127,26 @@ TEST_CASE("Modules: Integer Polynomial Action", "[algebra][modules]") {
   }
 
   SECTION("Vector-space notion exists as an ETCS set and vectors are members") {
-    auto vector_space =
-        dedekind::category::ambient_set<RealLine>([](const RealLine&) {
-          return dedekind::category::ClassicalLogic::True;
-        });
+    auto vector_space = dedekind::category::ambient_set<RealLine>(
+        [](const RealLine&) { return dedekind::category::Boole::True; });
 
     CHECK(dedekind::category::IsSet<decltype(vector_space)>);
     CHECK(dedekind::category::in(RealLine(0.0), vector_space) ==
-          dedekind::category::ClassicalLogic::True);
+          dedekind::category::Boole::True);
     CHECK(dedekind::category::in(RealLine(3.25), vector_space) ==
-          dedekind::category::ClassicalLogic::True);
+          dedekind::category::Boole::True);
   }
 
   SECTION(
       "Boolean semimodule notion exists as an ETCS set and vectors are "
       "members") {
-    auto bool_semimodule =
-        dedekind::category::ambient_set<BoolLine>([](const BoolLine&) {
-          return dedekind::category::ClassicalLogic::True;
-        });
+    auto bool_semimodule = dedekind::category::ambient_set<BoolLine>(
+        [](const BoolLine&) { return dedekind::category::Boole::True; });
 
     CHECK(dedekind::category::IsSet<decltype(bool_semimodule)>);
     CHECK(dedekind::category::in(BoolLine(true), bool_semimodule) ==
-          dedekind::category::ClassicalLogic::True);
+          dedekind::category::Boole::True);
     CHECK(dedekind::category::in(BoolLine(false), bool_semimodule) ==
-          dedekind::category::ClassicalLogic::True);
+          dedekind::category::Boole::True);
   }
 }

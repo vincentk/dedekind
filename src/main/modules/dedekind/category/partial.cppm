@@ -29,7 +29,7 @@ module;
 
 export module dedekind.category:partial;
 
-import :logic;    // Provides IsLogicalSpecies, TernaryLogic, Ternary
+import :logic;    // Provides IsLogicalSpecies, Kleene, Ternary
 import :species;  // Provides Morphism<A, B, Func>
 import :topoi;    // Provides IsCharacteristic for support classifiers
 import :numeric;
@@ -68,7 +68,7 @@ inline constexpr T partial_identity_v = T{};
 // Specialization for the Classical/Binary result
 template <typename T>
 struct GetLogic<std::optional<T>> {
-  using type = ClassicalLogic;
+  using type = Boole;
 };
 
 /**
@@ -78,7 +78,7 @@ struct GetLogic<std::optional<T>> {
 export template <typename T>
 struct Partial {
   using value_type = T;
-  using logic_species = TernaryLogic;  // Add this for the bridge
+  using logic_species = Kleene;  // Add this for the bridge
 
   T value;
   Ternary status;  // Use 'status' consistently
@@ -97,7 +97,7 @@ struct Partial {
 export template <typename T>
 struct TernaryResult {
   using value_type = T;
-  using logic_species = TernaryLogic;  // Required for GetLogic
+  using logic_species = Kleene;  // Required for GetLogic
   Ternary status;
   T value;
 
@@ -194,7 +194,7 @@ struct SafeAddTransform {
     return a + b;
   }
   // Extension to bridge optional to IsPotential
-  using logic_species = ClassicalLogic;
+  using logic_species = Boole;
 };
 
 template <typename T>
@@ -221,7 +221,7 @@ struct BoundedAddTransform {
     return {witness.status, witness.value};
   }
 
-  using logic_species = TernaryLogic;
+  using logic_species = Kleene;
 };
 
 template <std::unsigned_integral T>
@@ -253,7 +253,7 @@ struct BoundedMulTransform {
     return {witness.status, witness.value};
   }
 
-  using logic_species = TernaryLogic;
+  using logic_species = Kleene;
 };
 
 template <std::unsigned_integral T>
@@ -281,7 +281,7 @@ struct BoundedDivTransform {
     return {witness.status, witness.value};
   }
 
-  using logic_species = TernaryLogic;
+  using logic_species = Kleene;
 };
 
 /** @brief Division with truncation-awareness (Ternary Logic). */
@@ -293,7 +293,7 @@ struct HonestDivTransform {
     if (a % b != 0) return {Ternary::Unknown, static_cast<T>(a / b)};
     return {Ternary::True, static_cast<T>(a / b)};
   }
-  using logic_species = TernaryLogic;
+  using logic_species = Kleene;
 };
 
 /** @section partial__Concept_Maturation */

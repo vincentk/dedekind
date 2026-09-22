@@ -543,10 +543,10 @@ TEST_CASE(
   // alias) because the @c ℤ alias-flip to the variant lives behind
   // #402 — see the @c FIXME breadcrumb.  Once #402 lands this test can
   // shift to the more idiomatic @c element<𝔸<ℤ>> form.
-  // Post-#622: ℕ → ClassicalLogic on the carrier axis, so the cross-
+  // Post-#622: ℕ → Boole on the carrier axis, so the cross-
   // carrier Sets in these sections must use the same logic species for
   // the @c & / @c | overloads (gated on @c same_as<L1, L2>) to fire.
-  using L = ClassicalLogic;
+  using L = Boole;
   SECTION("Set<ℕ> & Set<ℤ> tightens to Set<ℕ>") {
     constexpr auto n = element<ℕ>;
     constexpr auto positive_n =

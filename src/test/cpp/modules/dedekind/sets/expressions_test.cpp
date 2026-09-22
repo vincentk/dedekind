@@ -62,10 +62,8 @@ struct IsPositive {
 // ι_A, ι_B, with the meet's co-restriction legs π1/π2.  In the poset Sub(U),
 // product = pullback = meet.  (The predicate alone, AndPredicate, is only the
 // classifier-pairing above; the pullback is the applied predicate.)
-using A_set =
-    dedekind::sets::Set<int, dedekind::category::ClassicalLogic, IsEven>;
-using B_set =
-    dedekind::sets::Set<int, dedekind::category::ClassicalLogic, IsPositive>;
+using A_set = dedekind::sets::Set<int, dedekind::category::Boole, IsEven>;
+using B_set = dedekind::sets::Set<int, dedekind::category::Boole, IsPositive>;
 constexpr A_set a_set{IsEven{}};
 constexpr B_set b_set{IsPositive{}};
 constexpr auto meet_set = a_set & b_set;
@@ -112,7 +110,7 @@ static_assert(IsArrowProduct<MeetLift, A_set, B_set>,
 // bounds use), so the pushout span reuses the canonical initial-object arrow
 // instead of a hand-rolled struct.
 static_assert(dedekind::category::IsInitialObject<
-                  dedekind::sets::Ø<int, dedekind::category::ClassicalLogic>>,
+                  dedekind::sets::Ø<int, dedekind::category::Boole>>,
               "Ø is the initial object (⊥) of Sub(U). #881.");
 static_assert(
     dedekind::category::IsTerminalObject<dedekind::sets::UniversalSet<int>>,
@@ -124,7 +122,7 @@ static_assert(
 // coproduct = join, dual to product = pullback = meet.  The span legs are the
 // canonical InitialObjectArrow (the unique empty function out of Ø), not
 // hand-rolled per-instance structs.
-using Empty = dedekind::sets::Ø<int, dedekind::category::ClassicalLogic>;
+using Empty = dedekind::sets::Ø<int, dedekind::category::Boole>;
 using SpanToA = dedekind::sets::InitialObjectArrow<Empty, A_set>;  // ∅ ⟶ A
 using SpanToB = dedekind::sets::InitialObjectArrow<Empty, B_set>;  // ∅ ⟶ B
 constexpr auto join_set = a_set | b_set;
@@ -148,7 +146,7 @@ TEST_CASE("Dedekind MVP: Basic Membership and Symbols", "[sets]") {
     auto x = element<𝔸<int>>;  // A variable representing an element of
                                // the integer universe
 
-    // Should be Set<int, ClassicalLogic>
+    // Should be Set<int, Boole>
     auto finite = Set{x % singleton(1) | (x == 1)};
     REQUIRE(finite(1) == true);
     REQUIRE(finite(2) == false);
@@ -179,7 +177,7 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
     auto sym_eq = same_a ^ same_b;
     auto sym_neq = same_a ^ distinct;
     // Post-#622 (carrier-axis cut): ℕ is countable (ℵ_0) and routes to
-    // ClassicalLogic, so the Set CTAD lands @c bool, not @c Ternary.
+    // Boole, so the Set CTAD lands @c bool, not @c Ternary.
     // {7} ^ {7} is empty pointwise.
     REQUIRE_FALSE(sym_eq(7));
     REQUIRE_FALSE(sym_eq(0));
@@ -196,7 +194,7 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
     auto sing_out_set = singleton(-3);
     auto in_xor = sing_in_set ^ positives;    // 5 ∈ positives → result drops 5
     auto out_xor = sing_out_set ^ positives;  // -3 ∉ positives → result adds -3
-    // Same TernaryLogic ascent as above.
+    // Same Kleene ascent as above.
     // 5 was in positives, now isn't (singleton toggled it off).
     REQUIRE_FALSE(in_xor(5));
     // 7 stays in (was in positives, not toggled).
@@ -210,7 +208,7 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
   SECTION("Boundary collapses: A ^ ∅ = A, ∅ ^ A = A (#469)") {
     auto S = Set{x | x > 10u};
     // Use the deduced Domain / logic species from S rather than
-    // hard-coding `unsigned int` / TernaryLogic — the carrier choice
+    // hard-coding `unsigned int` / Kleene — the carrier choice
     // is set by N's CTAD, and the test should not pre-empt it.
     using SDomain = decltype(S)::Domain;
     using SLogic = decltype(S)::logic_species;
@@ -263,7 +261,7 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
     // This regression test guards against a same-Predicate-type
     // collapse that would wrongly fire on every BooleanEqPredicate
     // pair regardless of the .expected field.
-    using BoolAmbient = UniversalSet<bool, ClassicalLogic, Finite>;
+    using BoolAmbient = UniversalSet<bool, Boole, Finite>;
     constexpr BoolAmbient B_bool{};
     constexpr auto b = element<𝔸<bool>>;
     auto only_true = Set{b % B_bool | (b == true)};
@@ -282,7 +280,7 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
     // Halfspace-style disjoint pair: (x > 10) and (x < 5) over ℕ — the
     // structured_and overload in :order:halfspace detects emptiness of
     // the intersection at the type level, so A & B reduces to
-    // Ø<unsigned int, TernaryLogic>.  In that case A ^ B should
+    // Ø<unsigned int, Kleene>.  In that case A ^ B should
     // collapse to A | B (no XOR formula needed in the result lambda).
     auto A = Set{x | x > 10u};
     auto B = Set{x | x < 5u};
@@ -371,12 +369,12 @@ TEST_CASE("Dedekind Identities: Extremal Collapse", "[sets][identities]") {
     // Naturals remain stable when materialized through Set{...}.
     auto U = Set{N};
 
-    // Post-#622: ℕ → ClassicalLogic on the carrier axis.
-    static_assert(std::is_same_v<decltype(U)::logic_species, ClassicalLogic>);
+    // Post-#622: ℕ → Boole on the carrier axis.
+    static_assert(std::is_same_v<decltype(U)::logic_species, Boole>);
     // ℕ-as-carrier (= unsigned int) accepts every unsigned value; the
     // classifier reading on int is reachable via direct N(-1) calls.
     REQUIRE(U(42u));
-    // Direct N(int) call returns ClassicalLogic::Ω (= bool), not Ternary,
+    // Direct N(int) call returns Boole::Ω (= bool), not Ternary,
     // because the int overload short-circuits to the classical answer
     // without lifting through the ambient logic.
     REQUIRE(N(-1) == false);
@@ -400,7 +398,7 @@ TEST_CASE("Dedekind Identities: Extremal Collapse", "[sets][identities]") {
 
 TEST_CASE("Dedekind Identities: Boolean literals collapse over 𝔹",
           "[sets][identities][boolean]") {
-  using BoolAmbient = UniversalSet<bool, ClassicalLogic, Finite>;
+  using BoolAmbient = UniversalSet<bool, Boole, Finite>;
   constexpr BoolAmbient B_bool{};
 
   constexpr auto b = element<𝔸<bool>>;
@@ -408,7 +406,7 @@ TEST_CASE("Dedekind Identities: Boolean literals collapse over 𝔹",
   constexpr auto b_false = Set{b % B_bool | !b};
   constexpr auto b_true = Set{b % B_bool | (b == true)};
 
-  STATIC_CHECK(Ø<bool, ClassicalLogic>{} == (b_false & b_true));
+  STATIC_CHECK(Ø<bool, Boole>{} == (b_false & b_true));
   STATIC_CHECK(B_bool == (b_false | b_true));
 
   CHECK((b_false & b_true)(false) == false);
@@ -424,7 +422,7 @@ TEST_CASE(
   // which b holds" — the bare-b form is the truthy predicate, and
   // should be recognised as semantically equivalent to b == true by
   // the structured-and / FiniteBooleanSet collapse machinery.
-  using BoolAmbient = UniversalSet<bool, ClassicalLogic, Finite>;
+  using BoolAmbient = UniversalSet<bool, Boole, Finite>;
   constexpr BoolAmbient B_bool{};
 
   constexpr auto b = element<𝔸<bool>>;
@@ -439,7 +437,7 @@ TEST_CASE(
   // The collapse machinery treats both bare-b and (b == true) as the
   // same predicate (BooleanEqPredicate{true}) so the static_asserts
   // pinning the Boolean partition laws fire on the bare-b form.
-  STATIC_CHECK(Ø<bool, ClassicalLogic>{} == (b_false & b_true_bare));
+  STATIC_CHECK(Ø<bool, Boole>{} == (b_false & b_true_bare));
   STATIC_CHECK(B_bool == (b_false | b_true_bare));
 
   // Operational witness: bare-b agrees with (b == true) at every input.
@@ -529,9 +527,8 @@ TEST_CASE("Dedekind Sets: Heterogeneous subset semantics",
     const auto positive_pred = [](const int& v) { return v > 0; };
     const auto small_pred = [](const int& v) { return v <= 3; };
 
-    const Set<int, ClassicalLogic, decltype(positive_pred)> positive{
-        positive_pred};
-    const Set<int, ClassicalLogic, decltype(small_pred)> small{small_pred};
+    const Set<int, Boole, decltype(positive_pred)> positive{positive_pred};
+    const Set<int, Boole, decltype(small_pred)> small{small_pred};
 
     CHECK(positive.is_subset_of_at(small, 5) == false);
     CHECK(positive.is_subset_of_at(small, -1) == true);
@@ -551,15 +548,13 @@ TEST_CASE(
 
   SECTION("Identity iso preserves classical decidability") {
     const auto positive_pred = [](const int& v) { return v > 0; };
-    const Set<int, ClassicalLogic, decltype(positive_pred)> positive{
-        positive_pred};
+    const Set<int, Boole, decltype(positive_pred)> positive{positive_pred};
 
     auto img = image(Identity<int>{}, positive);
 
-    // The image's logic species is the source's (ClassicalLogic),
-    // NOT TernaryLogic (which would be the IsArrow-fallback result).
-    STATIC_CHECK(
-        std::same_as<typename decltype(img)::logic_species, ClassicalLogic>);
+    // The image's logic species is the source's (Boole),
+    // NOT Kleene (which would be the IsArrow-fallback result).
+    STATIC_CHECK(std::same_as<typename decltype(img)::logic_species, Boole>);
     // Ambient is preserved.
     STATIC_CHECK(std::same_as<typename decltype(img)::Domain, int>);
     // Decidable: same truth values as the source through the identity.
@@ -568,11 +563,12 @@ TEST_CASE(
     CHECK(img(0) == false);
   }
 
-  // FIXME(#693): "Identity iso on a ternary-logic source preserves
-  // Ternary" — pre-#622 the ℕ fixture routed to TernaryLogic.  Post-#622
-  // the carrier-axis cut puts ℕ on ClassicalLogic; recovering the
-  // Ternary-preserves-Ternary witness requires an explicit Ternary-typed
-  // predicate carrier — the principled home is the predicate-level axis
+  // FIXME(#693): "Identity iso on a Kleene-logic source preserves the
+  // Kleene species" — pre-#622 the ℕ fixture routed to Kleene.  Post-#622
+  // the carrier-axis cut puts ℕ on Boole; recovering the
+  // Kleene-preserves-Kleene witness requires an explicit Ternary-typed
+  // (Kleene::Ω) predicate carrier — the principled home is the predicate-level
+  // axis
   // (#693).
 }
 
@@ -583,21 +579,19 @@ TEST_CASE(
   // is "even ints", a strict subset of int.  The retract sends even y
   // back to y/2 and odd y to nullopt.  Test that:
   //   (i)  image(DoubleArrow, S) preserves the source's logic species
-  //        (no demotion to TernaryLogic);
+  //        (no demotion to Kleene);
   //   (ii) y in image iff y is even AND y/2 in S (decidable);
   //   (iii) odd y is always out of image (the retract returns nullopt).
 
   SECTION("Classical: image preserves Classical decidability") {
     const auto positive_pred = [](const int& v) { return v > 0; };
-    const Set<int, ClassicalLogic, decltype(positive_pred)> positive{
-        positive_pred};
+    const Set<int, Boole, decltype(positive_pred)> positive{positive_pred};
 
     auto img = image(retract_image_test::DoubleArrow{}, positive);
 
-    // Logic species is preserved (NOT TernaryLogic, which would be the
+    // Logic species is preserved (NOT Kleene, which would be the
     // IsArrow-fallback result).
-    STATIC_CHECK(
-        std::same_as<typename decltype(img)::logic_species, ClassicalLogic>);
+    STATIC_CHECK(std::same_as<typename decltype(img)::logic_species, Boole>);
     STATIC_CHECK(std::same_as<typename decltype(img)::Domain, int>);
 
     // y = 10 is even, 10/2 = 5 > 0, so in image.

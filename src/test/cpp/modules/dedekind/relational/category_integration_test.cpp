@@ -49,7 +49,7 @@ TEST_CASE("Sets+Category: singleton and comprehension predicates satisfy ETCS",
   const auto support = set_intersection(positive_set, bounded_set);
 
   STATIC_CHECK(dedekind::category::IsSet<decltype(positive_set)>);
-  // Post-#622 (cardinality cut): ℕ → ClassicalLogic on the carrier axis,
+  // Post-#622 (cardinality cut): ℕ → Boole on the carrier axis,
   // so the sets-DSL Sets @c positive / @c bounded are decidable on the
   // carrier-axis fast path.  (Pre-#622 these were @c HasTernarySupport
   // assertions on the @c ambient_set-lifted wrappers.)

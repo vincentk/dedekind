@@ -67,8 +67,7 @@ namespace dedekind::algebra {
 using namespace dedekind::category;
 using namespace dedekind::sets;
 
-export template <typename L = dedekind::category::ClassicalLogic,
-                 typename C = Finite>
+export template <typename L = dedekind::category::Boole, typename C = Finite>
 using BooleanSetOf = UniversalSet<bool, L, C>;
 
 // Non-exported convenience alias used by the value-level B constant
@@ -162,13 +161,11 @@ constexpr auto embed_𝔹_𝕂3(S&& s) {
 // type.  Sister anchor to PR #624's @c embed_𝔹_ℕ witness in @c :natural ---
 // same shape, different codomain.  Lives next to the arrow itself so the
 // value-pin moves with the canonical surface.
-static_assert(embed_𝔹_𝕂3(dedekind::sets::SingletonSet<bool, ClassicalLogic>{
-                             true})
+static_assert(embed_𝔹_𝕂3(dedekind::sets::SingletonSet<bool, Boole>{true})
                       .pivot == dedekind::category::Ternary::True,
               "embed_𝔹_𝕂3(Singleton<true>) lands at Ternary::True on the 𝕂3 "
               "carrier.");
-static_assert(embed_𝔹_𝕂3(dedekind::sets::SingletonSet<bool, ClassicalLogic>{
-                             false})
+static_assert(embed_𝔹_𝕂3(dedekind::sets::SingletonSet<bool, Boole>{false})
                       .pivot == dedekind::category::Ternary::False,
               "embed_𝔹_𝕂3(Singleton<false>) lands at Ternary::False on the 𝕂3 "
               "carrier.");
@@ -178,8 +175,7 @@ static_assert(embed_𝔹_𝕂3(dedekind::sets::SingletonSet<bool, ClassicalLogic
 // @c Cod<embed_𝔹_𝕂3_> = Ternary per @c :category:image.
 static_assert(
     dedekind::category::IsImageOf<
-        decltype(embed_𝔹_𝕂3(dedekind::sets::SingletonSet<bool, ClassicalLogic>{
-            true})),
+        decltype(embed_𝔹_𝕂3(dedekind::sets::SingletonSet<bool, Boole>{true})),
         decltype(embed_𝔹_𝕂3_)>,
     "embed_𝔹_𝕂3(S) realises IsImageOf<result, embed_𝔹_𝕂3_>: result is "
     "a Subobject of Cod<embed_𝔹_𝕂3_> = Ternary, witnessing the "

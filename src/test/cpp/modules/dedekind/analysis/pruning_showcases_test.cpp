@@ -106,7 +106,7 @@ TEST_CASE("Pruning showcase 3: halfspace contradiction on ℕ collapses to Ø",
   STATIC_CHECK(empty_meet == Ø<Cardinality>{});
 
   SECTION("Reduction tightens extensionality (post-#622)") {
-    // Post-#622: ℕ → ClassicalLogic on the carrier axis, so @c gt_five
+    // Post-#622: ℕ → Boole on the carrier axis, so @c gt_five
     // is decidable on the carrier-axis fast path — no Ternary→Classical
     // promotion to witness here.  The axis that STILL tightens is
     // extensionality: @c gt_five is intensional (predicate-shaped), the

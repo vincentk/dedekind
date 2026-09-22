@@ -26,10 +26,10 @@ TEST_CASE("Concrete: SetAsProduct seam — Set := (Underlying, Classifier)",
   // built from the predicate.  Post-#681 structural refactor:
   // @c SetAsProduct's Classifier dimension is the codomain of the
   // carrier-as-predicate (L::Ω), not the predicate-type wrapper.  For
-  // a bool-returning lambda under ClassicalLogic the Classifier is bool.
+  // a bool-returning lambda under Boole the Classifier is bool.
   const auto s_even = classify<int>([](const int& x) { return x % 2 == 0; });
 
-  // Classifier = codomain of S(a) — i.e.\ @c ClassicalLogic::Ω = bool.
+  // Classifier = codomain of S(a) — i.e.\ @c Boole::Ω = bool.
   using ClassifierΩ = bool;
 
   SECTION("set object witnesses both readings (predicate and product)") {

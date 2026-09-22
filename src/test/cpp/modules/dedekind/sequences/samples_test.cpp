@@ -36,12 +36,12 @@ using ℕ_Form = ExtensionalCardinal<>;
 
 TEST_CASE("is_even pins the parity sequence on its first six indices",
           "[sequences][samples][is_even]") {
-  REQUIRE(is_even.at(ℕ_Form{0u}) == Boolean{true});
-  REQUIRE(is_even.at(ℕ_Form{1u}) == Boolean{false});
-  REQUIRE(is_even.at(ℕ_Form{2u}) == Boolean{true});
-  REQUIRE(is_even.at(ℕ_Form{3u}) == Boolean{false});
-  REQUIRE(is_even.at(ℕ_Form{4u}) == Boolean{true});
-  REQUIRE(is_even.at(ℕ_Form{5u}) == Boolean{false});
+  REQUIRE(is_even.at(ℕ_Form{0u}) == Truth<Boole>{true});
+  REQUIRE(is_even.at(ℕ_Form{1u}) == Truth<Boole>{false});
+  REQUIRE(is_even.at(ℕ_Form{2u}) == Truth<Boole>{true});
+  REQUIRE(is_even.at(ℕ_Form{3u}) == Truth<Boole>{false});
+  REQUIRE(is_even.at(ℕ_Form{4u}) == Truth<Boole>{true});
+  REQUIRE(is_even.at(ℕ_Form{5u}) == Truth<Boole>{false});
 }
 
 TEST_CASE("fibonacci pins the canonical sequence 0, 1, 1, 2, 3, 5, 8, 13",
@@ -79,12 +79,16 @@ TEST_CASE("as_relation(is_even) graph membership",
   // On-graph pairs: (n, is_even(n)).  Pair index column is ℕ (Form-
   // shaped) because @c is_even now carries @c ExtensionalCardinal<>
   // at its Path's @c Index role.
-  REQUIRE(rel(std::pair<ℕ_Form, Boolean>{ℕ_Form{0u}, Boolean{true}}));
-  REQUIRE(rel(std::pair<ℕ_Form, Boolean>{ℕ_Form{3u}, Boolean{false}}));
-  REQUIRE(rel(std::pair<ℕ_Form, Boolean>{ℕ_Form{42u}, Boolean{true}}));
+  REQUIRE(rel(std::pair<ℕ_Form, Truth<Boole>>{ℕ_Form{0u}, Truth<Boole>{true}}));
+  REQUIRE(
+      rel(std::pair<ℕ_Form, Truth<Boole>>{ℕ_Form{3u}, Truth<Boole>{false}}));
+  REQUIRE(
+      rel(std::pair<ℕ_Form, Truth<Boole>>{ℕ_Form{42u}, Truth<Boole>{true}}));
   // Off-graph (wrong value at the index): rejected.
-  REQUIRE_FALSE(rel(std::pair<ℕ_Form, Boolean>{ℕ_Form{0u}, Boolean{false}}));
-  REQUIRE_FALSE(rel(std::pair<ℕ_Form, Boolean>{ℕ_Form{3u}, Boolean{true}}));
+  REQUIRE_FALSE(
+      rel(std::pair<ℕ_Form, Truth<Boole>>{ℕ_Form{0u}, Truth<Boole>{false}}));
+  REQUIRE_FALSE(
+      rel(std::pair<ℕ_Form, Truth<Boole>>{ℕ_Form{3u}, Truth<Boole>{true}}));
 }
 
 TEST_CASE("as_relation(fibonacci) graph membership",
@@ -119,7 +123,7 @@ TEST_CASE("θ-join via σ∘× on (is_even, fibonacci) exhibits a heterogeneous 
   // @c iterate FIXME documented in @c :sequences:path ).  The θ
   // predicate compares them via @c ExtensionalCardinal<> 's implicit
   // ctor from @c std::unsigned_integral .
-  using EvenPair = std::pair<ℕ_Form, Boolean>;
+  using EvenPair = std::pair<ℕ_Form, Truth<Boole>>;
   using FibPair = std::pair<std::size_t, ℕ_Form>;
   using JoinedRow = std::pair<EvenPair, FibPair>;
 
@@ -137,21 +141,21 @@ TEST_CASE("θ-join via σ∘× on (is_even, fibonacci) exhibits a heterogeneous 
   SECTION("Diagonal row at n=7: (7, false, 13) is in the join") {
     // is_even(7) = false, fibonacci(7) = 13 — the canonical paper-citable
     // row that exhibits the heterogeneous (ℕ, 𝔹, ℕ) shape.
-    REQUIRE(joined(JoinedRow{EvenPair{ℕ_Form{7u}, Boolean{false}},
+    REQUIRE(joined(JoinedRow{EvenPair{ℕ_Form{7u}, Truth<Boole>{false}},
                              FibPair{7u, ℕ_Form{13u}}}));
   }
 
   SECTION("Diagonal row at n=8: (8, true, 21) is in the join") {
     // is_even(8) = true, fibonacci(8) = 21 — a second on-diagonal row,
     // pinning that the join is not a coincidence at n=7 only.
-    REQUIRE(joined(JoinedRow{EvenPair{ℕ_Form{8u}, Boolean{true}},
+    REQUIRE(joined(JoinedRow{EvenPair{ℕ_Form{8u}, Truth<Boole>{true}},
                              FibPair{8u, ℕ_Form{21u}}}));
   }
 
   SECTION("Off-diagonal row (mismatched indices) is rejected") {
     // is_even(7) = false, fibonacci(8) = 21 — but the indices disagree
     // (7 ≠ 8), so the θ-predicate vetoes the row.
-    REQUIRE_FALSE(joined(JoinedRow{EvenPair{ℕ_Form{7u}, Boolean{false}},
+    REQUIRE_FALSE(joined(JoinedRow{EvenPair{ℕ_Form{7u}, Truth<Boole>{false}},
                                    FibPair{8u, ℕ_Form{21u}}}));
   }
 
@@ -159,7 +163,7 @@ TEST_CASE("θ-join via σ∘× on (is_even, fibonacci) exhibits a heterogeneous 
     // The source-predicate veto from as_relation(fibonacci) fires:
     // fibonacci(7) ≠ 99, so even with matched indices, (7, false, 99)
     // is off the fibonacci graph.
-    REQUIRE_FALSE(joined(JoinedRow{EvenPair{ℕ_Form{7u}, Boolean{false}},
+    REQUIRE_FALSE(joined(JoinedRow{EvenPair{ℕ_Form{7u}, Truth<Boole>{false}},
                                    FibPair{7u, ℕ_Form{99u}}}));
   }
 }

@@ -124,7 +124,7 @@ struct IntervalBoundaryTag<Boundary::Closed, Boundary::Closed> {
  * @brief A Half-Space satisfying the Idempotent Semigroupoid laws.
  */
 export template <IsTotallyOrdered T, Direction D, Boundary B = Boundary::Open,
-                 typename L = ClassicalLogic>
+                 typename L = Boole>
 class Ray : public detail::BoundaryTag<B>,
             public dedekind::sets::SetExpr<Ray<T, D, B, L>, T, L> {
  public:
@@ -184,7 +184,7 @@ class Ray : public detail::BoundaryTag<B>,
  * @brief The "Molecule" formed by the intersection of two Rays.
  */
 export template <IsTotallyOrdered T, Boundary Lower = Boundary::Open,
-                 Boundary Upper = Boundary::Open, typename L = ClassicalLogic>
+                 Boundary Upper = Boundary::Open, typename L = Boole>
 class Interval
     : public detail::IntervalBoundaryTag<Lower, Upper>,
       public dedekind::sets::SetExpr<Interval<T, Lower, Upper, L>, T, L> {
@@ -201,7 +201,7 @@ class Interval
 
   constexpr auto operator()(const T& x) const {
     // Compose through the classifier's AND (not built-in &&), so the inherited
-    // SetExpr surface works for every logic species L (e.g. TernaryLogic, whose
+    // SetExpr surface works for every logic species L (e.g. Kleene, whose
     // Ω is the scoped enum Ternary), not only bool.
     return L::AND(lower_(x), upper_(x));
   }
@@ -252,7 +252,7 @@ inline constexpr bool is_convex_v<Interval<T, Lower, Upper, L>> = true;
  * @tparam L The subobject classifier logic.
  */
 export template <IsTotallyOrdered T, Boundary B = Boundary::Open,
-                 typename L = ClassicalLogic>
+                 typename L = Boole>
 class HalfSpace : public detail::BoundaryTag<B>,
                   public dedekind::sets::SetExpr<HalfSpace<T, B, L>, T, L> {
  public:
@@ -365,7 +365,7 @@ namespace dedekind::category {
 export template <typename T, dedekind::topology::Direction D,
                  dedekind::topology::Boundary B, typename L>
 struct SpeciesTraits<dedekind::topology::Ray<T, D, B, L>> {
-  using species = ClassicalLogic;
+  using species = Boole;
   using Domain = T;
   using Codomain = T;
 
@@ -401,7 +401,7 @@ inline constexpr bool
 
 export template <typename T, dedekind::topology::Boundary B, typename L>
 struct SpeciesTraits<dedekind::topology::HalfSpace<T, B, L>> {
-  using species = ClassicalLogic;
+  using species = Boole;
   using Domain = T;
   using Codomain = T;
 

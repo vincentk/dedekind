@@ -43,7 +43,7 @@ TEST_CASE("Pullback: IsEqualizer Concept", "[category][pullback][equalizer]") {
     auto f = arrow<X, Z>([](X x) { return x; });
     auto g = arrow<X, Z>([](X y) { return y; });
 
-    auto P = pullback<ClassicalLogic, Π>(f, g);
+    auto P = pullback<Boole, Π>(f, g);
 
     // P must satisfy IsEqualizer w.r.t. the parallel pair (h, k)
     STATIC_CHECK(IsEqualizer<decltype(P), decltype(h), decltype(k)>);
@@ -60,7 +60,7 @@ TEST_CASE("Pullback: IsPullback Concept", "[category][pullback]") {
     auto f = arrow<X, Z>([](X x) { return x; });
     auto g = arrow<Y, Z>([](Y y) { return y; });
 
-    auto P = pullback<ClassicalLogic, Π>(f, g);
+    auto P = pullback<Boole, Π>(f, g);
 
     STATIC_CHECK(IsPullback<decltype(P), decltype(f), decltype(g)>);
   }
@@ -76,7 +76,7 @@ TEST_CASE("Pullback: Factory Runtime Behavior", "[category][pullback]") {
   auto f = arrow<X, Z>([](X x) { return x; });
   auto g = arrow<Y, Z>([](Y y) { return y; });
 
-  auto P = pullback<ClassicalLogic, Π>(f, g);
+  auto P = pullback<Boole, Π>(f, g);
 
   SECTION("χ is true for pairs where f(x) == g(y)") {
     CHECK(P.χ({3, 3}) == true);
@@ -116,7 +116,7 @@ TEST_CASE("Pullback: Non-identity morphisms", "[category][pullback]") {
   auto f = arrow<X, Z>([](X x) { return x * 2; });
   auto g = arrow<Y, Z>([](Y y) { return y; });
 
-  auto P = pullback<ClassicalLogic, Π>(f, g);
+  auto P = pullback<Boole, Π>(f, g);
 
   SECTION("χ is true when f(x) == g(y), i.e., 2x == y") {
     CHECK(P.χ({1, 2}) == true);
@@ -130,8 +130,7 @@ TEST_CASE("Pullback: Non-identity morphisms", "[category][pullback]") {
   }
 }
 
-TEST_CASE("Pullback: TernaryLogic classifier",
-          "[category][pullback][ternary]") {
+TEST_CASE("Pullback: Kleene classifier", "[category][pullback][ternary]") {
   using X = int;
   using Y = int;
   using Z = int;
@@ -141,7 +140,7 @@ TEST_CASE("Pullback: TernaryLogic classifier",
   auto f = arrow<X, Z>([](X x) { return x; });
   auto g = arrow<Y, Z>([](Y y) { return y; });
 
-  auto P = pullback<TernaryLogic, Π>(f, g);
+  auto P = pullback<Kleene, Π>(f, g);
 
   SECTION("χ returns Ternary::True when f(x) == g(y)") {
     CHECK(P.χ({5, 5}) == Ternary::True);
@@ -168,7 +167,7 @@ TEST_CASE("Pullback: intersection of subobjects is the pullback of inclusions",
   using Π = std::pair<bool, bool>;
   auto iota2 = arrow<bool, int>(IncludeTwoZ{});    // {0,2} ↪ ℤ
   auto iota3 = arrow<bool, int>(IncludeThreeZ{});  // {0,3} ↪ ℤ
-  auto P = pullback<ClassicalLogic, Π>(iota2, iota3);
+  auto P = pullback<Boole, Π>(iota2, iota3);
 
   STATIC_CHECK(IsPullback<decltype(P), decltype(iota2), decltype(iota3)>);
 

@@ -54,7 +54,7 @@ static_assert(IsSet<decltype(ambient_set<int>(UniversalSet<int>{}))>,
  * @concept IsPreOrdered
  * @brief The most basic relation: Reflexive and Transitive.
  */
-export template <typename T, typename L = ClassicalLogic>
+export template <typename T, typename L = Boole>
 concept IsPreOrdered = IsPartOfRelation<T, T, typename L::Ω> &&
                        is_reflexive_v<T, std::less_equal<>> &&
                        is_transitive_v<T, std::less_equal<>>;
@@ -69,7 +69,7 @@ concept IsPreOrdered = IsPartOfRelation<T, T, typename L::Ω> &&
  *          directed sets under a different certified join operation.
  *          This is the "Ground" for all Nets and Sequences.
  */
-export template <typename D, typename L = ClassicalLogic,
+export template <typename D, typename L = Boole,
                  typename Join = decltype(std::ranges::max)>
 concept IsDirectedSet =
     IsPreOrdered<D, L> &&
@@ -79,7 +79,7 @@ concept IsDirectedSet =
  * @concept IsPartiallyOrdered
  * @brief A refinement of the Pre-Order that satisfies Antisymmetry (Identity).
  */
-export template <typename T, typename L = ClassicalLogic>
+export template <typename T, typename L = Boole>
 concept IsPartiallyOrdered =
     IsPreOrdered<T, L> && is_antisymmetric_v<T, std::less_equal<>> &&
     requires(const T a, const T b) {
@@ -90,7 +90,7 @@ concept IsPartiallyOrdered =
  * @concept IsDirectedPoset
  * @brief The "Convergent Identity": A Poset that is also a Directed Set.
  */
-export template <typename T, typename L = ClassicalLogic>
+export template <typename T, typename L = Boole>
 concept IsDirectedPoset = IsPartiallyOrdered<T, L> && IsDirectedSet<T, L>;
 
 // IsStrictWeakOrder, IsTotallyOrdered, IsLinearOrder, HasTotalOrderOperators
@@ -115,10 +115,10 @@ concept IsDirectedPoset = IsPartiallyOrdered<T, L> && IsDirectedSet<T, L>;
  * here; for those, use @c IsPreOrdered / @c IsPartiallyOrdered /
  * @c IsTotallyOrdered (the last in @c :order:total).
  *
- * The @c L parameter defaults to @c ClassicalLogic (so @c L::Ω is
+ * The @c L parameter defaults to @c Boole (so @c L::Ω is
  * @c bool); supply a different @c IsLogicalSpecies to constrain the
- * return type to a non-Boolean truth-value carrier (e.g.\ Kleene
- * @c TernaryLogic).  Mirrors the @c L-parametric pattern already used
+ * return type to a non-Boolean truth-value carrier (e.g.\ @c Kleene).
+ * Mirrors the @c L-parametric pattern already used
  * by @c IsPreOrdered / @c IsPartiallyOrdered.
  *
  * Sibling of @c dedekind::algebra::HasRingOperators (in @c
@@ -127,7 +127,7 @@ concept IsDirectedPoset = IsPartiallyOrdered<T, L> && IsDirectedSet<T, L>;
  * in the shape-concept family.  The split between @b shape and @b
  * axiom mirrors the literal-vs-strict tier introduced under PR #394.
  */
-export template <typename T, typename L = ClassicalLogic>
+export template <typename T, typename L = Boole>
 concept HasPartialOrderOperators = requires(const T a, const T b) {
   { a < b } -> std::same_as<typename L::Ω>;
   { a <= b } -> std::same_as<typename L::Ω>;
@@ -150,7 +150,7 @@ concept HasPartialOrderOperators = requires(const T a, const T b) {
  * @c x is the variant ℤ-proxy carrier and @c Pivot is the @c int NTTP
  * from @c bound<-21>).
  *
- * @c L defaults to @c ClassicalLogic, mirroring the homogeneous
+ * @c L defaults to @c Boole, mirroring the homogeneous
  * sibling above and @c IsPreOrdered / @c IsPartiallyOrdered.
  *
  * Sibling of the homogeneous @c HasPartialOrderOperators above; the
@@ -158,7 +158,7 @@ concept HasPartialOrderOperators = requires(const T a, const T b) {
  * @c HasTotalOrderOperatorsWith<T, U> lives in @c :order:total.  Per
  * #415 / cross-issue note on PR #422.
  */
-export template <typename T, typename U, typename L = ClassicalLogic>
+export template <typename T, typename U, typename L = Boole>
 concept HasPartialOrderOperatorsWith = requires(const T t, const U u) {
   { t < u } -> std::same_as<typename L::Ω>;
   { t <= u } -> std::same_as<typename L::Ω>;

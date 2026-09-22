@@ -48,7 +48,7 @@ TEST_CASE("Topology: Rules of Continuity Coverage", "[topology][continuity]") {
     static_assert(IsNeighborhood<UnitInterval, ℝ>,
                   "Topology: Interval must satisfy the Neighborhood concept.");
 
-    REQUIRE(neighborhood(point) == dedekind::category::ClassicalLogic::True);
+    REQUIRE(neighborhood(point) == dedekind::category::Boole::True);
   }
 
   SECTION("Morphological Shapes: Half-Spaces & Molecules") {
@@ -111,7 +111,7 @@ TEST_CASE("Topology: Rules of Continuity Coverage", "[topology][continuity]") {
     static_assert(IsHalfSpace<ClosedHS>);
     static_assert(IsClosed<ClosedHS>);
     constexpr auto closed_up = ClosedHS::upward_from(3);
-    static_assert(closed_up(3) == dedekind::category::ClassicalLogic::True);
+    static_assert(closed_up(3) == dedekind::category::Boole::True);
   }
 
   SECTION("Intersection Laws: The Convex Magma") {
@@ -126,24 +126,21 @@ TEST_CASE("Topology: Rules of Continuity Coverage", "[topology][continuity]") {
     ClosedUnitInterval closed_interval(0, 3);
     LeftClosedInterval left_closed_interval(0, 3);
 
-    CHECK(open_interval(0) == dedekind::category::ClassicalLogic::False);
-    CHECK(open_interval(1) == dedekind::category::ClassicalLogic::True);
-    CHECK(open_interval(3) == dedekind::category::ClassicalLogic::False);
+    CHECK(open_interval(0) == dedekind::category::Boole::False);
+    CHECK(open_interval(1) == dedekind::category::Boole::True);
+    CHECK(open_interval(3) == dedekind::category::Boole::False);
 
-    CHECK(closed_interval(0) == dedekind::category::ClassicalLogic::True);
-    CHECK(closed_interval(3) == dedekind::category::ClassicalLogic::True);
-    CHECK(closed_interval(4) == dedekind::category::ClassicalLogic::False);
+    CHECK(closed_interval(0) == dedekind::category::Boole::True);
+    CHECK(closed_interval(3) == dedekind::category::Boole::True);
+    CHECK(closed_interval(4) == dedekind::category::Boole::False);
 
-    CHECK(left_closed_interval(0) == dedekind::category::ClassicalLogic::True);
-    CHECK(left_closed_interval(3) == dedekind::category::ClassicalLogic::False);
+    CHECK(left_closed_interval(0) == dedekind::category::Boole::True);
+    CHECK(left_closed_interval(3) == dedekind::category::Boole::False);
 
     constexpr ClosedUnitInterval constexpr_closed(0, 2);
-    static_assert(constexpr_closed(0) ==
-                  dedekind::category::ClassicalLogic::True);
-    static_assert(constexpr_closed(2) ==
-                  dedekind::category::ClassicalLogic::True);
-    static_assert(constexpr_closed(3) ==
-                  dedekind::category::ClassicalLogic::False);
+    static_assert(constexpr_closed(0) == dedekind::category::Boole::True);
+    static_assert(constexpr_closed(2) == dedekind::category::Boole::True);
+    static_assert(constexpr_closed(3) == dedekind::category::Boole::False);
   }
 
   SECTION("Intervals compose as predicates in set-builder notation") {

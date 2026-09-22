@@ -214,7 +214,7 @@ export template <typename R>
   requires IsComplexScalar<R>
 struct PartialAddComplex {
   using value_type = Complex<R>;
-  using logic_species = TernaryLogic;
+  using logic_species = Kleene;
 
   TernaryResult<Complex<R>> operator()(
       std::pair<const Complex<R>&, const Complex<R>&> p) const noexcept {
@@ -233,7 +233,7 @@ export template <typename R>
   requires IsComplexScalar<R>
 struct PartialMulComplex {
   using value_type = Complex<R>;
-  using logic_species = TernaryLogic;
+  using logic_species = Kleene;
 
   TernaryResult<Complex<R>> operator()(
       std::pair<const Complex<R>&, const Complex<R>&> p) const noexcept {
@@ -267,7 +267,7 @@ struct PartialMulComplex {
 export template <IsRealCarrier R = machine_real_scalar>
 struct PartialEmbedRealToComplex {
   using value_type = Complex<R>;
-  using logic_species = TernaryLogic;
+  using logic_species = Kleene;
 
   TernaryResult<Complex<R>> operator()(const Real<R>& r) const noexcept {
     return {Ternary::True, Complex<R>{r.resolve(), R{}}};
@@ -853,7 +853,7 @@ static_assert(
  * (Real<R>, Rational<I>, int, unsigned, Ternary).
  */
 export template <typename R = machine_real_scalar,
-                 IsInteger I = default_integer, typename L = ClassicalLogic,
+                 IsInteger I = default_integer, typename L = Boole,
                  typename C = ℶ_1>
   requires IsComplexScalar<R>
 struct ComplexesOf {
@@ -883,7 +883,7 @@ struct ComplexesOf {
 export using ComplexSet = ComplexesOf<>;
 
 /** @brief The canonical complex-number universe ℂ =
- * 𝔸<Complex<QuadraticReal<2>>, ClassicalLogic, ℶ_1> — the coat-hanger
+ * 𝔸<Complex<QuadraticReal<2>>, Boole, ℶ_1> — the coat-hanger
  * ℂ = Cplx(ℝ) over the genuine ℝ = ℚ(√2) (mirroring ℝ and 𝔻).
  *
  *  @details Per #559's chosen direction (option A): the named species
@@ -910,13 +910,13 @@ export using ComplexSet = ComplexesOf<>;
  *  @c quotient_algebra_base<Complex<R>> = R (the sibling of 𝔻 = ℝ[ε]/(ε²)).
  */
 export inline constexpr auto ℂ =
-    dedekind::sets::𝔸<Complex<QuadraticReal<2>>, ClassicalLogic, ℶ_1>;
+    dedekind::sets::𝔸<Complex<QuadraticReal<2>>, Boole, ℶ_1>;
 
 static_assert(
-    std::same_as<std::remove_cvref_t<decltype(ℂ)>,
-                 dedekind::sets::UniversalSet<Complex<QuadraticReal<2>>,
-                                              ClassicalLogic, ℶ_1>>,
-    "ℂ is the universe 𝔸<Complex<QuadraticReal<2>>, ClassicalLogic, ℶ_1> — the "
+    std::same_as<
+        std::remove_cvref_t<decltype(ℂ)>,
+        dedekind::sets::UniversalSet<Complex<QuadraticReal<2>>, Boole, ℶ_1>>,
+    "ℂ is the universe 𝔸<Complex<QuadraticReal<2>>, Boole, ℶ_1> — the "
     "coat-hanger ℂ = Cplx(ℝ) over the genuine ℝ = ℚ(√2), mirroring "
     "ℝ = 𝔸<QuadraticReal<2>> (#806).  Not Complex<double>.");
 static_assert(
@@ -930,7 +930,7 @@ static_assert(
  *  benchmarks, the Python facade) lives here, exactly as @c double reals moved
  *  from @c ℝ to @c ℝ_d in #806.  The abstract @c ℂ is the coat-hanger. */
 export inline constexpr auto ℂ_d =
-    dedekind::sets::𝔸<Complex<machine_real_scalar>, ClassicalLogic, ℶ_1>;
+    dedekind::sets::𝔸<Complex<machine_real_scalar>, Boole, ℶ_1>;
 static_assert(
     std::same_as<typename std::remove_cvref_t<decltype(ℂ_d)>::Domain,
                  Complex<machine_real_scalar>>,
@@ -1099,9 +1099,9 @@ export inline constexpr auto embed_z2_c =
  * grid.
  *
  * @param grid  A Set<dedekind::geometry::IntegerLatticePoint2D,
- *              ClassicalLogic, P> (e.g. from
+ *              Boole, P> (e.g. from
  *              dedekind::geometry::square_integer_grid).
- * @return A Set<Complex<double>, ClassicalLogic, ...>.
+ * @return A Set<Complex<double>, Boole, ...>.
  */
 export template <typename L, typename P>
 constexpr auto embed_grid_ℂ(
@@ -1138,7 +1138,7 @@ constexpr auto embed_grid_ℂ(
  *          algorithms such as the Mandelbrot set approximation.
  *
  * @param n  Side length of the grid (number of lattice points per axis).
- * @return A Set<Complex<double>, ClassicalLogic, ...>.
+ * @return A Set<Complex<double>, Boole, ...>.
  */
 export constexpr auto complex_lattice(int n) {
   return embed_grid_ℂ(dedekind::geometry::square_integer_grid(n));

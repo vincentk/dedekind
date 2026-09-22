@@ -115,7 +115,7 @@ namespace dedekind::category {
  * @tparam L   The Logic Species (the Subobject Classifier Ω).
  */
 export template <typename T, typename Rel = std::less_equal<T>,
-                 typename L = ClassicalLogic>
+                 typename L = Boole>
 concept IsFilteredCategory =
     IsThinCategory<T, Rel, L> &&  // Faithful inclusion: filtered ⊊ thin.
     requires {

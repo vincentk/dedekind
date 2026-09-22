@@ -88,8 +88,8 @@ constexpr T limit(const Path<T>& s) {
  *
  * FIXME: PR 96 existential proof. Generalize.
  */
-export constexpr Boolean limit(const Path<Boolean>& s) {
-  // If Path is a Morphism f: N -> Boolean, we sample the
+export constexpr Truth<Boole> limit(const Path<Truth<Boole>>& s) {
+  // If Path is a Morphism f: N -> Truth<Boole>, we sample the
   // "Eventual" state. For PR 96, index 0 is the minimal
   // witness of the constant path.
   return s(0);

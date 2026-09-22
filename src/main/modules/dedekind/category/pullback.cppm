@@ -154,7 +154,7 @@ auto make_χ(F f, G g) {
  * morphism χ(x, y) = (f(x) == g(y)).
  *
  * @tparam L  The Logic Species used for the Subobject Classifier Ω.
- *            Defaults to `ClassicalLogic` (bool).
+ *            Defaults to `Boole` (bool).
  * @tparam Π  The Product Species (must satisfy IsProduct<Π, Dom<F>, Dom<G>>).
  *            Typically `std::pair<X, Y>`.
  * @tparam F_Raw The (possibly raw callable) type for the first morphism f: X ⟶
@@ -165,8 +165,7 @@ auto make_χ(F f, G g) {
  * @param g_raw The second morphism (or raw callable) g: Y ⟶ Z.
  * @return A `Subobject<Π, χ>` representing P = X ×_Z Y.
  */
-export template <typename L = ClassicalLogic, typename Π, typename F_Raw,
-                 typename G_Raw>
+export template <typename L = Boole, typename Π, typename F_Raw, typename G_Raw>
 auto pullback(F_Raw&& f_raw, G_Raw&& g_raw) {
   // 1. Lift raw callables into formal Morphisms using your skeletal factory.
   auto f = arrow(std::forward<F_Raw>(f_raw));

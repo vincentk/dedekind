@@ -61,16 +61,16 @@ module;
 export module dedekind.category:lattice_term;
 
 import :lattice;  // the term AST + the induced laws (the validated parts)
-import :logic;    // ClassicalLogic (default), Ternary, IsLogicalSpecies
+import :logic;    // Boole (default), Ternary, IsLogicalSpecies
 
 namespace dedekind::category {
 
-/** @brief The logic species a comparator reports in — @c ClassicalLogic (a
+/** @brief The logic species a comparator reports in — @c Boole (a
  *  @c bool decision) unless the comparator names its own @c logic typedef (e.g.
- *  @c TernaryLogic, so an @b undecidable comparison can be @c Unknown). */
+ *  @c Kleene, so an @b undecidable comparison can be @c Unknown). */
 export template <typename Less>
 struct lattice_less_logic {
-  using type = ClassicalLogic;
+  using type = Boole;
 };
 export template <typename Less>
   requires requires { typename Less::logic; }
@@ -83,7 +83,7 @@ using lattice_less_logic_t = typename lattice_less_logic<Less>::type;
 /** @concept IsLatticeLess
  *  @brief The injected total order: a caller-supplied comparator with a
  *  @c static @c consteval @c less<X,Y>() returning a logic value in its
- *  @c lattice_less_logic (default @c ClassicalLogic, i.e. @c bool).  The
+ *  @c lattice_less_logic (default @c Boole, i.e. @c bool).  The
  *  reported logic must be a full @c IsLogicalSpecies, so @c ::True (accessed
  *  by @c lattice_definitely_less) is guaranteed present.  The reducer
  *  canonicalises only on a @b definitely-True result, so an @c Unknown

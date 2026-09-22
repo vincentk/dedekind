@@ -290,13 +290,13 @@ static_assert(
     "carrier over the machine integers.");
 
 export template <typename F = dedekind::numbers::machine_real_scalar,
-                 typename L = ClassicalLogic, typename C = ℶ_1>
+                 typename L = Boole, typename C = ℶ_1>
 using DualSetOf = UniversalSet<Dual<F>, L, C>;
 
 export using DualSet = DualSetOf<>;
 
 /** @brief The canonical dual-number universe 𝔻 = 𝔸<Dual<QuadraticReal<2>>,
- *         ClassicalLogic, ℶ_1> — the coat-hanger 𝔻 = Dual(ℝ) over the
+ *         Boole, ℶ_1> — the coat-hanger 𝔻 = Dual(ℝ) over the
  *         genuine ℝ = ℚ(√2) (mirroring ℝ and ℂ).
  *
  *  @details Per #559's chosen direction (option A): the named species
@@ -330,15 +330,13 @@ export using DualSet = DualSetOf<>;
  *  is the universal-algebra side of that same construction.
  */
 export inline constexpr auto 𝔻 =
-    dedekind::sets::𝔸<Dual<dedekind::numbers::QuadraticReal<2>>, ClassicalLogic,
-                      ℶ_1>;
+    dedekind::sets::𝔸<Dual<dedekind::numbers::QuadraticReal<2>>, Boole, ℶ_1>;
 
 static_assert(
-    std::same_as<
-        std::remove_cvref_t<decltype(𝔻)>,
-        dedekind::sets::UniversalSet<Dual<dedekind::numbers::QuadraticReal<2>>,
-                                     ClassicalLogic, ℶ_1>>,
-    "𝔻 is the universe 𝔸<Dual<QuadraticReal<2>>, ClassicalLogic, ℶ_1> — the "
+    std::same_as<std::remove_cvref_t<decltype(𝔻)>,
+                 dedekind::sets::UniversalSet<
+                     Dual<dedekind::numbers::QuadraticReal<2>>, Boole, ℶ_1>>,
+    "𝔻 is the universe 𝔸<Dual<QuadraticReal<2>>, Boole, ℶ_1> — the "
     "coat-hanger 𝔻 = Dual(ℝ) = ℝ[ε]/(ε²) over the genuine ℝ = ℚ(√2), mirroring "
     "ℝ and ℂ.  Not Dual<double>.");
 static_assert(std::same_as<typename std::remove_cvref_t<decltype(𝔻)>::Domain,
@@ -350,8 +348,7 @@ static_assert(std::same_as<typename std::remove_cvref_t<decltype(𝔻)>::Domain,
  *  mirroring @c ℝ_d / @c ℂ_d.  Machine-double forward-mode AD lives here; the
  *  abstract @c 𝔻 is the coat-hanger. */
 export inline constexpr auto 𝔻_d =
-    dedekind::sets::𝔸<Dual<dedekind::numbers::machine_real_scalar>,
-                      ClassicalLogic, ℶ_1>;
+    dedekind::sets::𝔸<Dual<dedekind::numbers::machine_real_scalar>, Boole, ℶ_1>;
 static_assert(std::same_as<typename std::remove_cvref_t<decltype(𝔻_d)>::Domain,
                            Dual<dedekind::numbers::machine_real_scalar>>,
               "𝔻_d's carrier is Dual<machine_real_scalar> (machine ambient).");

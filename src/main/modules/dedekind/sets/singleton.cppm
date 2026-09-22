@@ -32,7 +32,7 @@
  *
  * @tparam T The underlying Species of the pivot element.
  * @tparam L The Subobject Classifier (Ω) governing the set's logic.
- *           Defaults to ClassicalLogic {True, False}.
+ *           Defaults to Boole {True, False}.
  *
  * Wikipedia: Singleton (mathematics), Unit element, Monad (category theory)
  *
@@ -132,7 +132,7 @@ constexpr S const& operator!(Complement<S>&& c) {
 }
 
 /** @brief {x}: The Atom. Extensional (Size 1). */
-export template <typename T, typename L = ClassicalLogic>
+export template <typename T, typename L = Boole>
 struct SingletonSet {
   T pivot;
   // ~ arrow / morphism / subobject classifier jargon
@@ -308,7 +308,7 @@ inline const SingletonSet<T, L> SingletonSet<T, L>::χ{};
 // (#469 review-driven specialisations).
 //
 // Sound version: produce a lambda-Set whose predicate evaluates the
-// pointwise XOR.  When @c S has decidable (ClassicalLogic) membership
+// pointwise XOR.  When @c S has decidable (Boole) membership
 // the predicate could be specialised further at construction time:
 //   if pivot ∈ S → result = S - {pivot} → predicate s(x) && x != pivot
 //   if pivot ∉ S → result = S + {pivot} → predicate s(x) || x == pivot
@@ -334,8 +334,8 @@ export template <typename T, typename L1, typename L2, typename P>
 constexpr auto operator^(const SingletonSet<T, L1>& s,
                          const Set<T, L2, P>& other) {
   // The asymmetry is one-sided: `singleton(v)` always lands in
-  // ClassicalLogic, while `Set{x % UniversalSet<T> | …}` ascends through
-  // NaturalLogic and routinely arrives as TernaryLogic.  Take the
+  // Boole, while `Set{x % UniversalSet<T> | …}` ascends through
+  // NaturalLogic and routinely arrives as Kleene.  Take the
   // result logic from that same side (L2): the singleton's bool lifts
   // through `lift_logic<L2>` cleanly, and the Set's predicate is
   // already in L2.

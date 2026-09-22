@@ -65,7 +65,7 @@
  *   - Axiom 10                  → direct: Sub(S) is a power-object lattice.
  *
  * In other words, @c IsSet<S> @b implies @c IsBooleanLatticeCategory<Sub<S>,
- * ClassicalLogic> once the Form-chain reaches row 7 AND a @c Sub<S>
+ * Boole> once the Form-chain reaches row 7 AND a @c Sub<S>
  * categorical wrapper exists to host the witness.  This connection is
  * a @b Sollbruchstelle: the partition header names it so future slices
  * (rows 5–7 of the chain + the @c Sub<S> wrapper + the harmonization of
@@ -100,12 +100,12 @@
  * @section lattice__Constructive_Collapse
  * The project commits to @em intensional-first (lazy predicates over
  * potentially infinite carriers, per Q1 of #698); this admits
- * undecidability as a first-class value via @c TernaryLogic (Kleene K3).
+ * undecidability as a first-class value via @c Kleene (Kleene K3).
  * Same Form-chain code, two regimes:
  *
- *   - @c L @c = @c ClassicalLogic → @c Ω @c = @c bool → Form-chain rows
+ *   - @c L @c = @c Boole → @c Ω @c = @c bool → Form-chain rows
  *     1–7 → standard set theory falls out as the @b decidable collapse.
- *   - @c L @c = @c TernaryLogic → @c Ω @c = @c Ternary → Form-chain rows
+ *   - @c L @c = @c Kleene → @c Ω @c = @c Ternary → Form-chain rows
  *     1–6 (Heyting only — K3 is the smallest non-Boolean Heyting algebra;
  *     complement laws fail honestly at @c Unknown) → the "tricky to
  *     decide" escape door.
@@ -212,8 +212,7 @@ namespace dedekind::category {
  */
 export template <typename T, typename Rel = std::less_equal<T>,
                  typename Join = decltype(std::ranges::max),
-                 typename Meet = decltype(std::ranges::min),
-                 typename L = ClassicalLogic>
+                 typename Meet = decltype(std::ranges::min), typename L = Boole>
 concept IsLatticeCategory =
     IsPosetal<T, Rel, L> &&           // Faithful: lattice ⊊ posetal.
     IsFilteredCategory<T, Rel, L> &&  // Faithful: lattice ⊊ filtered.
@@ -346,8 +345,7 @@ struct LatticeTop<T, std::less_equal<T>> {
  */
 export template <typename T, typename Rel = std::less_equal<T>,
                  typename Join = decltype(std::ranges::max),
-                 typename Meet = decltype(std::ranges::min),
-                 typename L = ClassicalLogic>
+                 typename Meet = decltype(std::ranges::min), typename L = Boole>
 concept IsBoundedLatticeCategory =
     IsLatticeCategory<T, Rel, Join, Meet, L> &&  // Faithful: bounded ⊊ lattice.
     IsInitialObject<LatticeBottom<T, Rel>> &&    // Universal-property initial.
@@ -1235,8 +1233,7 @@ struct HeytingExponential<T, std::less_equal<T>, decltype(std::ranges::min)> {
  */
 export template <typename T, typename Rel = std::less_equal<T>,
                  typename Join = decltype(std::ranges::max),
-                 typename Meet = decltype(std::ranges::min),
-                 typename L = ClassicalLogic>
+                 typename Meet = decltype(std::ranges::min), typename L = Boole>
 concept IsHeytingLatticeCategory =
     IsBoundedLatticeCategory<T, Rel, Join, Meet,
                              L> &&  // Faithful: heyting ⊊ bounded.
@@ -1375,8 +1372,7 @@ struct is_complement<std::logical_not<bool>, bool, std::less_equal<bool>,
 export template <typename T, typename Rel = std::less_equal<T>,
                  typename Join = decltype(std::ranges::max),
                  typename Meet = decltype(std::ranges::min),
-                 typename Not = std::logical_not<T>,
-                 typename L = ClassicalLogic>
+                 typename Not = std::logical_not<T>, typename L = Boole>
 concept IsBooleanLatticeCategory =
     IsHeytingLatticeCategory<T, Rel, Join, Meet,
                              L> &&      // Faithful: boolean ⊊ heyting.
@@ -1536,10 +1532,10 @@ concept IsSubobjectFamilyMember = requires {
  * The strength @c S inherits at higher rows is determined by
  * @c L @c = @c S::logic_species:
  *
- *   - @c L @c = @c ClassicalLogic → @c S participates in
+ *   - @c L @c = @c Boole → @c S participates in
  *     @c IsBooleanSubobjectLattice (below) — the Boolean refinement
  *     mirroring Diaconescu's classical-Ω direction.
- *   - @c L @c = @c TernaryLogic → @c S stays Heyting-only (the
+ *   - @c L @c = @c Kleene → @c S stays Heyting-only (the
  *     "tricky to decide" escape door, Slice 8 constructive collapse).
  *
  * Complement is required @b unconditionally; its semantic strength
@@ -1614,8 +1610,8 @@ concept IsSubobjectLattice = requires(S a, S b) {
  *
  * @details
  * Mechanises the user's downstream intuition: parametrising a set
- * carrier with @c ClassicalLogic should automatically participate in
- * the Boolean lattice surface; parametrising with @c TernaryLogic
+ * carrier with @c Boole should automatically participate in
+ * the Boolean lattice surface; parametrising with @c Kleene
  * should not.  The previous parallel-track architecture left this
  * documentation-only ("easy to forget" per the review thread); this
  * concept makes it @b type-checked.
@@ -1631,16 +1627,15 @@ concept IsSubobjectLattice = requires(S a, S b) {
  * @c Sub(A)) is uncontroversial.
  *
  * The concept is therefore just @c IsSubobjectLattice @c +
- * @c L @c = @c ClassicalLogic — no extra structural laws beyond
+ * @c L @c = @c Boole — no extra structural laws beyond
  * what @c IsSubobjectLattice already checks.  Kleene / Heyting
  * carriers fail closed because their @c logic_species @c ≠ @c
- * ClassicalLogic.
+ * Boole.
  *
  * @tparam S The subobject carrier.
  */
 export template <typename S>
 concept IsBooleanSubobjectLattice =
-    IsSubobjectLattice<S> &&
-    std::same_as<typename S::logic_species, ClassicalLogic>;
+    IsSubobjectLattice<S> && std::same_as<typename S::logic_species, Boole>;
 
 }  // namespace dedekind::category

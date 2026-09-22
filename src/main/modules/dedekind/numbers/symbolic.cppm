@@ -39,7 +39,7 @@ using namespace dedekind::category;
 
 export template <typename Q>
 constexpr auto Sqrt2_Symbolic() {
-  const dedekind::sets::UniversalSet<Q, TernaryLogic> universe{};
+  const dedekind::sets::UniversalSet<Q, Kleene> universe{};
   // Lower-cut prototype encoded as an ETCS subobject over Q.
   return ambient_set<Q>([universe](const Q& q) {
     if constexpr (std::floating_point<Q>) {
@@ -49,7 +49,7 @@ constexpr auto Sqrt2_Symbolic() {
     }
     const auto in_cut =
         (q * q < static_cast<Q>(2)) ? Ternary::True : Ternary::False;
-    return TernaryLogic::AND(universe(q), in_cut);
+    return Kleene::AND(universe(q), in_cut);
   });
 }
 

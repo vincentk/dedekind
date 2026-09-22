@@ -16,7 +16,7 @@ import dedekind.category;
 
 using namespace dedekind::sets;
 using namespace dedekind::relational;
-using namespace dedekind::category;  // ClassicalLogic / TernaryLogic / Ternary
+using namespace dedekind::category;  // Boole / Kleene / Ternary
 
 TEST_CASE(
     "relation core: Relation / IsRelation / relates / is_single_valued_at",
@@ -24,14 +24,13 @@ TEST_CASE(
   const auto graph_pred = [](const std::pair<int, int>& p) {
     return p.second == 2 * p.first;
   };
-  const Relation<int, int, ClassicalLogic, decltype(graph_pred)> R{graph_pred};
+  const Relation<int, int, Boole, decltype(graph_pred)> R{graph_pred};
 
   STATIC_CHECK(IsRelation<decltype(R), int, int>);
   CHECK(relates(R, 3, 6) == true);
   CHECK(relates(R, 3, 7) == false);
 
-  const SetFunction<int, int, ClassicalLogic, decltype(graph_pred)> F{
-      graph_pred};
+  const SetFunction<int, int, Boole, decltype(graph_pred)> F{graph_pred};
   CHECK(is_single_valued_at(F, 3, 6, 6) == true);
   CHECK(is_single_valued_at(F, 3, 6, 7) == true);
 
@@ -60,16 +59,14 @@ TEST_CASE("relation core: witnesses preserve ternary logic",
     return Ternary::False;
   };
 
-  const Relation<int, int, TernaryLogic, decltype(tri_rel_pred)> R{
-      tri_rel_pred};
+  const Relation<int, int, Kleene, decltype(tri_rel_pred)> R{tri_rel_pred};
 
-  // R is explicitly TernaryLogic-parameterised, so @c relates returns
+  // R is explicitly Kleene-parameterised, so @c relates returns
   // @c Ternary directly --- these comparisons stay Ternary-valued regardless
   // of the carrier-axis cut (#622).
   CHECK(relates(R, 3, 6) == Ternary::Unknown);
   CHECK(relates(R, 3, 7) == Ternary::True);
 
-  const SetFunction<int, int, TernaryLogic, decltype(tri_rel_pred)> F{
-      tri_rel_pred};
+  const SetFunction<int, int, Kleene, decltype(tri_rel_pred)> F{tri_rel_pred};
   CHECK(is_single_valued_at(F, 3, 6, 7) == Ternary::Unknown);
 }

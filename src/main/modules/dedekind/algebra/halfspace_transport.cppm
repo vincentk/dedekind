@@ -156,12 +156,11 @@ constexpr auto inverse(
 // equals the converse graph @c π1+(−1)==π2 (i.e. @c x↦x+UINT_MAX, the modular
 // predecessor).  A bijection's converse is its inverse, so this is correct.
 static_assert(
-    std::same_as<
-        decltype(inverse(Set<std::pair<unsigned, unsigned>, ClassicalLogic,
-                             ProjAddConstProj<1, 1u, Rel::Eq, 2>>{
-            ProjAddConstProj<1, 1u, Rel::Eq, 2>{}})),
-        Set<std::pair<unsigned, unsigned>, ClassicalLogic,
-            ProjAddConstProj<1, -1u, Rel::Eq, 2>>>,
+    std::same_as<decltype(inverse(Set<std::pair<unsigned, unsigned>, Boole,
+                                      ProjAddConstProj<1, 1u, Rel::Eq, 2>>{
+                     ProjAddConstProj<1, 1u, Rel::Eq, 2>{}})),
+                 Set<std::pair<unsigned, unsigned>, Boole,
+                     ProjAddConstProj<1, -1u, Rel::Eq, 2>>>,
     "inverse over unsigned (a cyclic group the old IsOrderedAdditiveGroup gate "
     "withheld) is now the converse graph with the negated (modular) shift: the "
     "group inverse, #875 (retractability generalizes ℤ → arbitrary IsGroup).");

@@ -963,7 +963,7 @@ inline constexpr bool is_embedding_functor_v = false;
  *
  * @b Concrete @b witnesses (registered in @c :numbers and adjacent
  * partitions): @c embed_𝔹_ℕ_ (@c bool @c ↪ @c Cardinality), @c
- * embed_𝔹_𝕂3_ (@c bool @c ↪ @c TernaryLogic::Ω), @c embed_uint_ℕ_
+ * embed_𝔹_𝕂3_ (@c bool @c ↪ @c Kleene::Ω), @c embed_uint_ℕ_
  * (@c unsigned @c ↪ @c Cardinality), @c embed_sint_ℤ_ (@c int @c ↪
  * @c SignedCardinality), @c embed_ℤ_ℚ (machine_integer @c ↪ @c
  * Rational<I>).  Each is an arrow with @c IsMonicArrow / @c

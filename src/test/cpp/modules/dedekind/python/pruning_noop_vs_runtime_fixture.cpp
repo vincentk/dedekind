@@ -33,7 +33,7 @@ using namespace dedekind::sets;
 using namespace dedekind::algebra;
 
 // Symbolic scout ranging over the Boolean universe 𝔹 (= 𝔸<bool> =
-// UniversalSet<bool, ClassicalLogic, Finite>) post-#559.
+// UniversalSet<bool, Boole, Finite>) post-#559.
 constexpr auto b = element<𝔹>;
 
 // { b ∈ 𝔹 | ¬b } = the singleton {false} ⊂ 𝔹
@@ -43,7 +43,7 @@ constexpr auto b_false = Set{b | !b};
 constexpr auto b_true = Set{b | (b == true)};
 
 // {false} and {true} partition 𝔹: their intersection is ∅ ...
-static_assert(Ø<bool, ClassicalLogic>{} == (b_false & b_true));
+static_assert(Ø<bool, Boole>{} == (b_false & b_true));
 static_assert((b_false & b_true)(false) == false);
 static_assert((b_false & b_true)(true) == false);
 
@@ -77,6 +77,6 @@ extern "C" __attribute__((noinline)) bool pruning_compile_time_noop(bool x) {
  */
 extern "C" __attribute__((noinline)) bool pruning_runtime_guard(
     bool x, bool (*runtime_pred)(bool)) {
-  const auto dynamic = Set<bool, ClassicalLogic, bool (*)(bool)>{runtime_pred};
+  const auto dynamic = Set<bool, Boole, bool (*)(bool)>{runtime_pred};
   return (b_false & dynamic)(x);
 }
