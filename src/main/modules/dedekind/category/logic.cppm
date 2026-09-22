@@ -834,6 +834,17 @@ static_assert(Percentage::RFL(0) == 100 && Percentage::RFL(100) == 0,
 static_assert(Percentage::AND(30, 70) == 30 && Percentage::OR(30, 70) == 70,
               "Percentage: meet = min (pessimistic), join = max (optimistic)");
 
+// A SYMMETRIC range centres the reflection at 0 = the additive unit: for
+// Chain<int,-N,N> the affine ¬a = Lo+Hi-a collapses to ¬a = -a (Lo+Hi = 0),
+// fixing 0.  This is the "balanced" presentation (Kleene's {-1,0,1} is
+// Chain<std::int8_t,-1,1>); only ODD-length chains have an integer fixed point
+// to centre at 0 --- even chains (the full type range) fix -1/2, no integer.
+static_assert(Chain<int, -100, 100>::RFL(0) == 0 &&
+                  Chain<int, -100, 100>::RFL(30) == -30,
+              "symmetric chain: ¬a = -a, fixed point 0 (the additive unit)");
+static_assert(IsBoundedDeMorganChain<Chain<int, -100, 100>>,
+              "symmetric [-100,100] chain is Kleene, centred at 0");
+
 /**
  * @brief Membership in the decided core @f$\{\top, \bot\}@f$ of an
  * answer-lattice

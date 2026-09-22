@@ -30,6 +30,17 @@
  * | **9. NNO (ℕ)**               | `SpeciesTraits<unsigned>`             |
  * | **10. Axiom of Choice** (asp.) | `meet` / `join` power-object lattice |
  *
+ * @note Row 9 is a @b witness of the NNO @e role, not an equality.
+ *       @c SpeciesTraits<unsigned> supplies the NNO @b interface (a zero and a
+ *       successor), so @c unsigned @b stands @b in for the Natural Number
+ *       Object --- but it is @b not ℕ: @c unsigned is @b finite (bounded, with
+ *       an overflow Sollbruchstelle), whereas ℕ is @c ℵ_0.  The genuine
+ infinite
+ *       ℕ lives downstream in @c :sets:cardinality (@c ℵ_0 / @c IsCountable)
+ and
+ *       @c :numbers (@c natural.cppm).  Read "NNO (ℕ)" as the categorical role,
+ *       never as "@c unsigned @c = ℕ".
+ *
  * @section etcs__What_Concreteness_Pins
  *
  * @c :small establishes the @em cardinality reading of "small category":
