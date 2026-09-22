@@ -104,6 +104,13 @@ struct Ø final {
    *  participates in the categorical initial-object vocabulary.  #881. */
   using is_initial_object_tag = void;
 
+  /** @brief @c Ø is @b clopen: the empty set is open @b and closed in every
+   *  topology, so it carries both tags and satisfies @c topology::IsClopen.
+   *  With @c 𝔸 it is the clopen (= decidable) core of @c Sub(U): the @c ⊥ of
+   *  the Boolean/Stone core (#903, the topological face of decidability). */
+  using is_open_tag = void;
+  using is_closed_tag = void;
+
   /** @section boundaries__Algebraic_Axioms */
   template <typename Op>
   static constexpr bool is_associative_v =
@@ -286,6 +293,13 @@ struct UniversalSet final {
    *  @c IsTerminalObject (the tag-discovery branch @c :lattice::LatticeTop
    *  already uses).  #881. */
   using is_terminal_object_tag = void;
+
+  /** @brief @c 𝔸 is @b clopen: the whole space is open @b and closed in every
+   *  topology, so it carries both tags and satisfies @c topology::IsClopen.
+   *  With @c Ø it is the clopen (= decidable) core of @c Sub(U): the @c ⊤ of
+   *  the Boolean/Stone core (#903, the topological face of decidability). */
+  using is_open_tag = void;
+  using is_closed_tag = void;
 
   /** @section boundaries__Algebraic_Axioms_2 */
   template <typename Op>

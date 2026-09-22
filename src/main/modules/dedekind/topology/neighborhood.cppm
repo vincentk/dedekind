@@ -70,6 +70,40 @@ concept IsClosed = dedekind::category::IsPredicate<S> &&
                    requires { typename S::is_closed_tag; };
 
 /**
+ * @concept IsClopen
+ * @brief A set that is BOTH open and closed --- the topological face of
+ *        @b decidability.
+ *
+ * @details In synthetic topology (Smyth / Rosolini / Escardó, the project's own
+ *          @c Rosolini-dominance foundation) @b open @c = semidecidable /
+ *          affirmable and @b closed @c = refutable, so @b clopen @c = @b open
+ *          @c ∩ @b closed @c = @b decidable.  This is the topological name for
+ *          @c sets::HasDecidableMembership and the @c Σ @c ∩ @c ¬Σ core of
+ * #894, glued to the algebraic Boolean-ring reading by Stone duality (#903).
+ *          The clopen sublattice of @c Ω @b is the decidable fragment, and its
+ *          size measures decidability = disconnectedness: @c Boole is totally
+ *          disconnected (every proposition clopen → fully decidable); a Kleene
+ *          chain is highly connected (only the poles @c ⊥ / @c ⊤ clopen → a
+ *          large undecidable interior).
+ */
+export template <typename S>
+concept IsClopen = IsOpen<S> && IsClosed<S>;
+
+// The boundary sets Ø, 𝔸 are the archetypal clopen sets (∅ and X are open ∧
+// closed in EVERY topology) and the ⊥/⊤ decidable core of Sub(U): the Stone
+// bridge in miniature (#903).  On the decided (Boole) core, clopen and
+// HasDecidableMembership coincide.  (A Kleene-tagged boundary is still clopen
+// but conservatively NOT recognized-decidable --- the #847 gap the #894
+// codomain reduction closes by retagging Ø<T,L> → Ø<T,Boole>.)
+static_assert(
+    IsClopen<Ø<int, Boole>> && IsClopen<UniversalSet<int, Boole>>,
+    "Ø and 𝔸 are clopen: ∅ and X are open ∧ closed in every topology");
+static_assert(HasDecidableMembership<Ø<int, Boole>> &&
+                  HasDecidableMembership<UniversalSet<int, Boole>>,
+              "and decidable: the clopen boundary core IS the decidable core "
+              "(Stone: clopen = decidable)");
+
+/**
  * @concept IsNeighborhood
  * @brief A set that "surrounds" a point p.
  * @details Synthesized from the Open set morphology.

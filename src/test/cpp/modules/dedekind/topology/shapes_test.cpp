@@ -159,3 +159,38 @@ TEST_CASE("Topology: Rules of Continuity Coverage", "[topology][continuity]") {
     CHECK_FALSE(in_open_mid(3));
   }
 }
+
+TEST_CASE("Topology: clopen is the decidable core (Stone)",
+          "[topology][clopen][decidability]") {
+  using namespace dedekind::sets;
+  using namespace dedekind::category;
+  using Emptyℤ = Ø<int, Boole>;
+  using Universeℤ = UniversalSet<int, Boole>;
+
+  SECTION("Ø and 𝔸 are clopen (∅ and X are open ∧ closed in every topology)") {
+    static_assert(IsClopen<Emptyℤ>, "Ø is clopen");
+    static_assert(IsClopen<Universeℤ>, "𝔸 is clopen");
+    CHECK(IsClopen<Emptyℤ>);
+    CHECK(IsClopen<Universeℤ>);
+  }
+
+  SECTION("clopen core == decidable core (Stone: clopen = decidable)") {
+    static_assert(HasDecidableMembership<Emptyℤ> && IsClopen<Emptyℤ>,
+                  "the empty boundary is both clopen and decidable");
+    static_assert(HasDecidableMembership<Universeℤ> && IsClopen<Universeℤ>,
+                  "the universe boundary is both clopen and decidable");
+    CHECK((HasDecidableMembership<Emptyℤ> && IsClopen<Emptyℤ>));
+    CHECK((HasDecidableMembership<Universeℤ> && IsClopen<Universeℤ>));
+  }
+
+  SECTION(
+      "open ⊋ clopen: a proper open set is not clopen (semidecidable, "
+      "not decidable)") {
+    using OpenRay = Ray<int, Direction::Upward>;
+    static_assert(IsOpen<OpenRay> && !IsClosed<OpenRay>,
+                  "an open ray is open but not closed");
+    static_assert(!IsClopen<OpenRay>,
+                  "so it is not clopen: the interior is undecidable");
+    CHECK(!IsClopen<OpenRay>);
+  }
+}
