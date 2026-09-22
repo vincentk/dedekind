@@ -60,7 +60,7 @@ module;
 #include <concepts>
 #include <cstdint>  // std::int8_t — Ternary int cast for the <=> body.
 #include <functional>
-#include <limits>  // std::numeric_limits — Chain<T> bounds (INT_MIN/MAX).
+#include <limits>  // std::numeric_limits: Chain<T> bounds (INT_MIN/MAX).
 
 export module dedekind.category:logic;
 
@@ -217,7 +217,7 @@ static_assert(IsLogicalSpecies<Kleene>, "Kleene must fulfill IsLogicalSpecies");
  *          confidence, @c ¬-fixed at 50) is @b not sound here: @c Ω would still
  *          be all of @c T, so @c True would not be the top and @c ¬ could leave
  *          the interval.  A genuinely bounded @c [Lo,Hi] chain needs a carrier
- *          that @e enforces the range: a follow-up (#907).  The species names
+ *          that @e enforces the range: a follow-up (#906).  The species names
  *          the ops (@c min / @c max / @c ¬); raw @c T keeps its own boolean
  *          @c &&, so the concepts gate the species' named ops (register-
  *          agnostic).  See #901.
