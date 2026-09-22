@@ -574,10 +574,10 @@ concept LiftsTo = lifts_to_v<From, To>;
  * @class Truth
  * @brief The Monic Wrapper for a Logical Species (Ω).
  * @details Wraps a raw truth type (bool, Ternary) as a De Morgan-lattice
- *          element (carrying the involution @c ! and the lattice order @c <=),
- *          preventing machine-level integral promotion.  The former rig
- *          (@c + / @c *) surface was retired: a truth value is a lattice
- *          element, not a semiring element (#901).
+ *          element, carrying meet @c && , join @c || , the involution @c ! and
+ *          the lattice order @c <= , while preventing machine-level integral
+ *          promotion.  The former rig (@c + / @c *) surface was retired: a
+ * truth value is a lattice element, not a semiring element (#901).
  */
 export template <typename L = Boole>
 struct Truth {
@@ -596,14 +596,31 @@ struct Truth {
     return {L::RFL(a.value)};
   }
 
+  /** @section logic__Lattice_Register
+   *  @brief Meet @c ∧ = @c L::AND and join @c ∨ = @c L::OR, spelled with the
+   *  @b logical operators @c && / @c || to complete the @c && / @c || / @c !
+   *  register (matching the raw carriers @c bool / @c Ternary, whose own
+   *  @c && / @c || already close on the type).
+   *  @note Overloaded @c && / @c || are @b strict (no short-circuit): unlike
+   *  built-in @c bool, both operands are evaluated.  This is sound here because
+   *  a @c Truth is an already-computed lattice @b value with no side effects,
+   * so strict meet/join is extensionally the built-in behaviour.  Reflection @c
+   * ! is the De Morgan involution @c L::RFL. */
+  friend constexpr Truth operator&&(Truth a, Truth b) noexcept {
+    return {L::AND(a.value, b.value)};
+  }
+  friend constexpr Truth operator||(Truth a, Truth b) noexcept {
+    return {L::OR(a.value, b.value)};
+  }
+
   /** @section logic__Lattice_Order
    *  @brief The truth order: @c a @c <= @c b iff the join @c a @c ∨ @c b is
    *  @c b.  Meet / join / reflection themselves are the species morphisms
-   *  @c L::AND / @c L::OR / @c L::RFL.  The rig @c + / @c * surface was
-   *  @b retired (#901): a truth value is a @b De @b Morgan-lattice element, not
-   * a semiring element, so it carries the involution @c ! and the lattice
-   * order, not @c + / @c * / @c one().  (The logical @c && / @c || meet/join
-   * register is a separate follow-up increment.) */
+   *  @c L::AND / @c L::OR / @c L::RFL, spelled @c && / @c || / @c ! on the
+   *  wrapper.  The rig @c + / @c * surface was @b retired (#901): a truth value
+   *  is a @b De @b Morgan-lattice element, not a semiring element, so it
+   * carries the involution and the lattice order, not @c + / @c * / @c one().
+   */
   friend constexpr Truth operator<=(Truth a, Truth b) noexcept {
     return {lift_logic<L>(L::OR(a.value, b.value) == b.value)};
   }
