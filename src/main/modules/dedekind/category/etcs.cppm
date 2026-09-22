@@ -35,9 +35,11 @@
  *       successor), so @c unsigned @b stands @b in for the Natural Number
  *       Object.  It is @b not ℕ itself: @c unsigned is @b finite (bounded, with
  *       an overflow Sollbruchstelle), whereas ℕ is countably infinite.  The
- *       genuine ℕ lives downstream in @c :sets:cardinality (@c IsCountable) and
- *       @c :numbers (@c natural.cppm).  Read "NNO (ℕ)" as the categorical role,
- *       never as "@c unsigned @c = ℕ".
+ *       @b canonical @b downstream NNO witness lives in @c :sets:cardinality
+ *       (@c IsCountable) and @c :numbers (@c natural.cppm); even that is an
+ *       approximation (@c Cardinality carries an @c ℵ_0 point beyond the
+ *       textbook NNO).  Read "NNO (ℕ)" as the categorical role, never as
+ *       "@c unsigned @c = ℕ".
  *
  * @section etcs__What_Concreteness_Pins
  *

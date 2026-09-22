@@ -192,61 +192,53 @@ static_assert(IsLogicalSpecies<Kleene>, "Kleene must fulfill IsLogicalSpecies");
 
 /**
  * @section logic__Species_3
- * @brief @c Chain<T,Lo,Hi> --- a finite Kleene chain over an integral carrier
- *        @c T with poles @c ⊥ = @c Lo, @c ⊤ = @c Hi (defaulting to the full
- * type range).  A |[Lo,Hi]|-grade many-valued logic; @c Boole (2 grades) and
- *        @c Kleene (3) are the small distinguished members, @c Chain<int> the
- *        2³²-grade one.
+ * @brief @c Chain<T>: the finite Kleene chain over an integral carrier @c T,
+ *        the full-@c T-range many-valued logic.  @c Boole (2 grades) and
+ *        @c Kleene (3) are the small distinguished members; @c Chain<int> spans
+ *        the implementation's full @c int range.
  *
  * @details Meet @c AND = @c min, join @c OR = @c max (the numeric order @b is
- *          the truth order); reflection @c RFL is the order-reversing @b affine
- *          involution @c ¬a @c = @c Lo+Hi-a, fixing the midpoint.  For the full
- *          type range this is exactly bitwise @c ~a (@c Lo+Hi @c = @c -1 signed
- *          / @c UMAX unsigned).  A bounded De Morgan chain, hence @b Kleene
- *          (chain ⟹ normality), @b not Boolean: only the two poles are
- *          complemented.
+ * the truth order); reflection @c RFL = @c ~a (bitwise NOT), the
+ *          order-reversing involution swapping @c ⊥ = @c numeric_limits::min
+ * and
+ *          @c ⊤ = @c numeric_limits::max.  A bounded De Morgan chain, hence
+ *          @b Kleene (chain implies normality), @b not Boolean: only the two
+ *          poles are complemented.
  *
- *          @b Signed @b and @b unsigned integrals both work (unsigned poles
- *          @c 0 / @c UMAX; signed @c INT_MIN / @c INT_MAX).  @c bool is
- * excluded (its @c ~ promotes, breaking @c RFL --- @c Boole @b is the 2-chain).
- *          Floating point is excluded by @c std::integral: totality needs
- *          @c min / @c max / @c ¬ defined everywhere, and @c NaN breaks the
- *          total order --- the same Sollbruchstelle as an unbounded carrier.
+ *          Signed @b and unsigned integrals both work (unsigned poles @c 0 /
+ *          @c UMAX; signed @c INT_MIN / @c INT_MAX, where @c ~x @c = @c -1-x on
+ *          two's complement).  @c bool is excluded (its @c ~ promotes, breaking
+ *          @c RFL: @c Boole @b is the 2-chain).  Floating point is excluded by
+ *          @c std::integral: totality needs @c min / @c max / @c ¬ everywhere,
+ *          and @c NaN breaks the total order.
  *
- *          @c Percentage @c = @c Chain<int,0,100> is the everyday face: a
- *          confidence in @c [0,100] whose neutral (@c ¬-fixed) point is @c 50
- *          (@c ¬50=50, "50:50" = maximally uncertain, the discretised continuum
- *          analogue of Kleene's @c U).  The species names the ops
- *          (@c min / @c max / @c ¬); raw @c T keeps its own boolean @c &&, so
- *          the concepts gate the species' named ops, not C++ operators
- *          (register-agnostic).  See #901.
+ *          The bounds are the carrier's own @c min / @c max, so the value set
+ *          @b is the chain.  A sub-interval like @c [0,100] (a "Percentage"
+ *          confidence, @c ¬-fixed at 50) is @b not sound here: @c Ω would still
+ *          be all of @c T, so @c True would not be the top and @c ¬ could leave
+ *          the interval.  A genuinely bounded @c [Lo,Hi] chain needs a carrier
+ *          that @e enforces the range: a follow-up (#907).  The species names
+ *          the ops (@c min / @c max / @c ¬); raw @c T keeps its own boolean
+ *          @c &&, so the concepts gate the species' named ops (register-
+ *          agnostic).  See #901.
  */
-export template <std::integral T, T Lo = std::numeric_limits<T>::min(),
-                 T Hi = std::numeric_limits<T>::max()>
+export template <std::integral T>
   requires(!std::same_as<T, bool>)
 struct Chain final {
-  static_assert(Lo <= Hi,
-                "Chain<T,Lo,Hi>: poles must satisfy Lo (⊥) <= Hi (⊤)");
   using Ω = T;
-  static constexpr T True = Hi;   // ⊤
-  static constexpr T False = Lo;  // ⊥
+  static constexpr T True = std::numeric_limits<T>::max();   // ⊤
+  static constexpr T False = std::numeric_limits<T>::min();  // ⊥
 
   static constexpr T AND(T a, T b) { return std::ranges::min(a, b); }
   static constexpr T OR(T a, T b) { return std::ranges::max(a, b); }
-  /** @brief ¬a = Lo+Hi-a: the order-reversing affine involution fixing the
-   *  midpoint (= bitwise @c ~a for the full type range). */
-  static constexpr T RFL(T a) { return static_cast<T>((Lo + Hi) - a); }
+  /** @brief ¬a = ~a (bitwise NOT): the order-reversing involution swapping the
+   *  poles (⊥ ↔ ⊤).  Overflow-free (no arithmetic). */
+  static constexpr T RFL(T a) { return static_cast<T>(~a); }
 };
 
 // STATIC "IS A" CHECK:
 static_assert(IsLogicalSpecies<Chain<int>>,
               "Chain<int> must fulfill IsLogicalSpecies");
-
-/** @brief The everyday chain: a confidence in @c [0,100], neutral (@c ¬-fixed)
- *  at @c 50 ("50:50" = maximally uncertain).  The accessible face of the
- *  Kleene-chain / clopen-decidability story --- almost everyone understands
- *  "50:50", few understand "clopen". */
-export using Percentage = Chain<int, 0, 100>;
 
 export constexpr Ternary operator&&(Ternary a, Ternary b) {
   return Kleene::AND(a, b);
@@ -490,8 +482,11 @@ concept LiftsTo = lifts_to_v<From, To>;
 /**
  * @class Truth
  * @brief The Monic Wrapper for a Logical Species (Ω).
- * @details Elevates raw types (bool, Ternary) into algebraic Rigs
- *          to prevent machine-level integral promotion.
+ * @details Wraps a raw truth type (bool, Ternary) as a De Morgan-lattice
+ *          element (carrying the involution @c ! and the lattice order @c <=),
+ *          preventing machine-level integral promotion.  The former rig
+ *          (@c + / @c *) surface was retired: a truth value is a lattice
+ *          element, not a semiring element (#901).
  */
 export template <typename L = Boole>
 struct Truth {
@@ -513,7 +508,7 @@ struct Truth {
   /** @section logic__Lattice_Order
    *  @brief The truth order: @c a @c <= @c b iff the join @c a @c ∨ @c b is
    *  @c b.  Meet / join / reflection themselves are the species morphisms
-   *  @c L::AND / @c L::OR / @c L::RFL --- the rig @c + / @c * surface was
+   *  @c L::AND / @c L::OR / @c L::RFL.  The rig @c + / @c * surface was
    *  @b retired (#901): a truth value is a @b De @b Morgan-lattice element, not
    * a semiring element, so it carries the involution @c ! and the lattice
    * order, not @c + / @c * / @c one().  (The logical @c && / @c || meet/join
@@ -718,11 +713,11 @@ struct is_involutive<logic_complement<Boole>, bool> : std::true_type {};
 template <>
 struct is_involutive<logic_complement<Kleene>, Ternary> : std::true_type {};
 
-/** @brief Witness: the @c Chain<T,Lo,Hi> reflection @c ¬a=Lo+Hi-a is an
- *  involution (@c ¬¬x = x) for every integral carrier and pole choice. */
-template <std::integral T, T Lo, T Hi>
+/** @brief Witness: the @c Chain<T> reflection @c ~a is an involution
+ *  (@c ~~x = x) for every integral carrier. */
+template <std::integral T>
   requires(!std::same_as<T, bool>)
-struct is_involutive<logic_complement<Chain<T, Lo, Hi>>, T> : std::true_type {};
+struct is_involutive<logic_complement<Chain<T>>, T> : std::true_type {};
 
 /** @brief @c true iff the logic negation ¬ = @c L::RFL is a certified
  *  involution.  Both shipped De Morgan logics (@c 𝔹, @c K₃) qualify; a future
@@ -745,16 +740,15 @@ static_assert(logic_negation_is_involutive_v<Chain<int>>,
  *
  * @details @b Register-agnostic concepts: each gates the species' @b named ops
  *          (@c L::AND / @c L::OR / @c L::RFL) and their laws, NOT any
- * particular C++ operator --- so a raw carrier like @c int qualifies via
- *          @c Chain<int> without overloading (@c int's own @c && stays
- * boolean).
+ * particular C++ operator, so a raw carrier like @c int qualifies via @c
+ * Chain<int> without overloading (@c int's own @c && stays boolean).
  *
- *  - @c IsDeMorganAlgebra --- a logical species whose reflection is a certified
+ *  - @c IsDeMorganAlgebra: a logical species whose reflection is a certified
  *    involution (bounded distributive lattice + De Morgan ¬; @c ¬¬=id).
- *  - @c IsBoundedDeMorganChain --- + the truth carrier @c Ω is totally ordered.
- *    By the chain-normality theorem (on a chain @c min(a,¬a) ≤ @c max(b,¬b)),
- *    this is automatically a @b Kleene lattice.
- *  - @c IsBooleanLogic --- + the reflection is a genuine @b complement
+ *  - @c IsBoundedDeMorganChain: adds that the truth carrier @c Ω is totally
+ *    ordered.  By the chain-normality theorem (on a chain @c min(a,¬a) ≤
+ *    @c max(b,¬b)), this is automatically a @b Kleene lattice.
+ *  - @c IsBooleanLogic: adds that the reflection is a genuine @b complement
  *    (@c a∧¬a=⊥, @c a∨¬a=⊤), which on a chain forces the 2-element case (@c 𝔹).
  *
  *  Species-level twin of the value-level @c IsPst (bounded-chain truth object):
@@ -762,19 +756,30 @@ static_assert(logic_negation_is_involutive_v<Chain<int>>,
  *  @b species / algebra, so @c Chain<int> qualifies although @c int is not @c
  * IsΩ.
  */
+// These are conservative @b shape @b gates (like @c IsΩ / @c IsPst): they
+// certify the operation SIGNATURES plus the involution law (@c ¬¬=id), NOT the
+// full semantic De Morgan / distributivity / order-reversal laws.  Those are
+// pinned by the @c static_assert witnesses below (and, for the reducer, by
+// @c category:lattice).  So a pathological species could pass without every
+// law; the concept recognises the intended family (@c Boole, @c Kleene,
+// @c Chain<T>) and the witnesses hold the laws.
 export template <typename L>
 concept IsDeMorganAlgebra =
     IsLogicalSpecies<L> && logic_negation_is_involutive_v<L>;
 
 export template <typename L>
 concept IsBoundedDeMorganChain =
-    IsDeMorganAlgebra<L> && std::totally_ordered<typename L::Ω>;
+    IsDeMorganAlgebra<L> && std::totally_ordered<typename L::Ω> &&
+    // Exclude NaN-carrying (floating) Ω: @c std::totally_ordered is a SYNTAX
+    // check, and a @c NaN breaks the total order chain-normality relies on. The
+    // shipped Ω are integral / enum, so genuinely totally ordered.
+    !std::floating_point<typename L::Ω>;
 
 /** @brief @c true iff the species' reflection is a genuine complement
- *  (@c a∧¬a=⊥ and @c a∨¬a=⊤ for all @c a) --- i.e. the chain is 2-element.
+ *  (@c a∧¬a=⊥ and @c a∨¬a=⊤ for all @c a), i.e. the chain is 2-element.
  *  @c Boole qualifies; @c Kleene and @c Chain<T> (|Ω|>2) do not: their interior
  *  values have no complement.  This is the @c logic_species=@c Boole reading of
- *  decidability --- the clopen core @c Σ = @c 𝔹 ↪ @c Ω. */
+ *  decidability: the clopen core @c Σ = @c 𝔹 ↪ @c Ω. */
 export template <typename L>
 inline constexpr bool logic_is_complemented_v = false;
 template <>
@@ -811,7 +816,7 @@ static_assert(Chain<int>::RFL(Chain<int>::RFL(42)) == 42,
 static_assert(
     Chain<int>::AND(7, Chain<int>::False) == Chain<int>::False &&
         Chain<int>::OR(7, Chain<int>::True) == Chain<int>::True,
-    "Chain<int>: bounds absorb (x∧⊥=⊥, x∨⊤=⊤) --- decidability collapse");
+    "Chain<int>: bounds absorb (x∧⊥=⊥, x∨⊤=⊤): decidability collapse");
 static_assert(
     Chain<int>::AND(0, Chain<int>::RFL(0)) != Chain<int>::False,
     "Chain<int>: 0 is NOT complemented (0 ∧ ~0 = min(0,-1) = -1 ≠ ⊥)");
@@ -819,31 +824,10 @@ static_assert(Chain<int>::RFL(Chain<int>::AND(3, 8)) ==
                   Chain<int>::OR(Chain<int>::RFL(3), Chain<int>::RFL(8)),
               "Chain<int>: De Morgan ~(a∧b) = ~a ∨ ~b");
 
-// The affine reflection ¬a=Lo+Hi-a generalises ~a off the full type range:
-// unsigned full-range chains and Percentage = Chain<int,0,100> (neutral fixed
-// point 50 = "50:50" = maximally uncertain) are Kleene chains, not Boolean.
+// The full-range integral chain works for signed AND unsigned carriers.
 static_assert(IsBoundedDeMorganChain<Chain<unsigned>> &&
                   !IsBooleanLogic<Chain<unsigned>>,
               "unsigned full-range chain [0,UMAX] is Kleene, not Boolean");
-static_assert(IsBoundedDeMorganChain<Percentage> && !IsBooleanLogic<Percentage>,
-              "Percentage [0,100] is a Kleene chain (101 grades), not Boolean");
-static_assert(Percentage::RFL(50) == 50,
-              "Percentage: 50 is the neutral fixed point (¬50=50, '50:50')");
-static_assert(Percentage::RFL(0) == 100 && Percentage::RFL(100) == 0,
-              "Percentage: ¬ swaps 0% ↔ 100%");
-static_assert(Percentage::AND(30, 70) == 30 && Percentage::OR(30, 70) == 70,
-              "Percentage: meet = min (pessimistic), join = max (optimistic)");
-
-// A SYMMETRIC range centres the reflection at 0 = the additive unit: for
-// Chain<int,-N,N> the affine ¬a = Lo+Hi-a collapses to ¬a = -a (Lo+Hi = 0),
-// fixing 0.  This is the "balanced" presentation (Kleene's {-1,0,1} is
-// Chain<std::int8_t,-1,1>); only ODD-length chains have an integer fixed point
-// to centre at 0 --- even chains (the full type range) fix -1/2, no integer.
-static_assert(Chain<int, -100, 100>::RFL(0) == 0 &&
-                  Chain<int, -100, 100>::RFL(30) == -30,
-              "symmetric chain: ¬a = -a, fixed point 0 (the additive unit)");
-static_assert(IsBoundedDeMorganChain<Chain<int, -100, 100>>,
-              "symmetric [-100,100] chain is Kleene, centred at 0");
 
 /**
  * @brief Membership in the decided core @f$\{\top, \bot\}@f$ of an
