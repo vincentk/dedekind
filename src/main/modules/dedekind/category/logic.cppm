@@ -591,12 +591,19 @@ struct Truth {
 
   machine_type value;
 
-  /** @section logic__Monic_Construction */
-  // @b explicit: a raw carrier does @b not implicitly become a @c Truth.  This
-  // keeps @c Truth<Boole> @c && @c bool decaying to the built-in @c bool @c &&
-  // (short-circuit preserved, which matters if the raw operand has side
-  // effects), instead of binding a strict eager wrapper overload.  Opt into the
-  // lattice register by wrapping: @c Truth<L>{v}.
+  /** @section logic__Monic_Construction
+   *  @brief Wrap a raw carrier value as a @c Truth (the monic promotion).
+   *  @details @b explicit by design: a raw carrier does @b not implicitly
+   *  become a @c Truth.  This keeps @c Truth<Boole> @c && @c bool decaying to
+   *  the built-in @c bool @c && (short-circuit preserved, which matters if the
+   *  raw operand has side effects), rather than binding a strict eager wrapper
+   *  overload.  Opt into the lattice register by wrapping explicitly:
+   *  @c Truth<L>{v}.
+   *  @note This is a deliberate @b source-breaking change from the previous
+   *  implicit constructor: a @c Truth<L>-returning function can no longer
+   *  @c return a bare carrier (write @c return @c Truth<L>{v}).  No in-tree
+   *  caller relied on the implicit form, and per the project's
+   *  experimental-API-break posture no compatibility shim is kept. */
   constexpr explicit Truth(machine_type v) noexcept : value(v) {}
   constexpr Truth() noexcept : value(L::False) {}
 
