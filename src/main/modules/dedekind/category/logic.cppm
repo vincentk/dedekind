@@ -25,9 +25,12 @@
  * - Kleene: The Kleene Topos ({True, False, Unknown}).
  *
  * @section logic__Structural_Invariants
- * Each logic species is a @b De @b Morgan @b algebra: a bounded distributive
- * lattice with an order-reversing involution, named by its morphisms
- * @c AND / @c OR / @c RFL.
+ * The @b shipped logic species (@c Boole, @c Kleene, @c Chain<T>) are @b De
+ * @b Morgan @b algebras: a bounded distributive lattice with an order-reversing
+ * involution, named by their morphisms @c AND / @c OR / @c RFL.  (The bare
+ * @c IsLogicalSpecies signature admits other logics too, e.g. a future
+ * non-involutive intuitionistic species; De Morgan is a property of the shipped
+ * family, not of the signature.)
  * - @c OR is the supremum / join (∨).
  * - @c AND is the infimum / meet (∧).
  * - @c RFL is the reflection / De Morgan involution (¬); a genuine complement
@@ -60,7 +63,8 @@ module;
 #include <concepts>
 #include <cstdint>  // std::int8_t — Ternary int cast for the <=> body.
 #include <functional>
-#include <limits>  // std::numeric_limits: Chain<T> bounds (INT_MIN/MAX).
+#include <limits>       // std::numeric_limits: Chain<T> bounds (INT_MIN/MAX).
+#include <type_traits>  // std::remove_cv_t (reject cv-qualified Chain carriers).
 
 export module dedekind.category:logic;
 
@@ -223,13 +227,18 @@ static_assert(IsLogicalSpecies<Kleene>, "Kleene must fulfill IsLogicalSpecies");
  *          agnostic).  See #901.
  */
 export template <std::integral T>
-  requires(!std::same_as<T, bool>)
+  requires(std::same_as<T, std::remove_cv_t<T>> && !std::same_as<T, bool>)
 struct Chain final {
   using Ω = T;
-  static constexpr T True = std::numeric_limits<T>::max();   // ⊤
-  static constexpr T False = std::numeric_limits<T>::min();  // ⊥
+  /** @brief The top pole @c ⊤ = the carrier maximum. */
+  static constexpr T True = std::numeric_limits<T>::max();
+  /** @brief The bottom pole @c ⊥ = the carrier minimum. */
+  static constexpr T False = std::numeric_limits<T>::min();
 
+  /** @brief Meet @c ∧ = numeric minimum (the numeric order @b is the truth
+   *  order). */
   static constexpr T AND(T a, T b) { return std::ranges::min(a, b); }
+  /** @brief Join @c ∨ = numeric maximum. */
   static constexpr T OR(T a, T b) { return std::ranges::max(a, b); }
   /** @brief ¬a = ~a (bitwise NOT): the order-reversing involution swapping the
    *  poles (⊥ ↔ ⊤).  Overflow-free (no arithmetic). */
@@ -772,17 +781,28 @@ static_assert(logic_negation_is_involutive_v<Chain<int>>,
  *  @b species / algebra, so @c Chain<int> qualifies although @c int is not @c
  * IsΩ.
  */
-// These are conservative @b shape @b gates (like @c IsΩ / @c IsPst): they
-// certify the operation SIGNATURES plus the involution law (@c ¬¬=id), NOT the
-// full semantic De Morgan / distributivity / order-reversal laws.  Those are
-// pinned by the @c static_assert witnesses below (and, for the reducer, by
-// @c category:lattice).  So a pathological species could pass without every
-// law; the concept recognises the intended family (@c Boole, @c Kleene,
-// @c Chain<T>) and the witnesses hold the laws.
+/**
+ * @concept IsDeMorganAlgebra
+ * @brief A logical species whose reflection @c ¬ is a certified involution
+ *        (@c ¬¬=id): a De Morgan algebra (bounded distributive lattice with an
+ *        order-reversing involution).
+ * @note These three concepts are conservative @b shape @b gates (like @c IsΩ /
+ * @c IsPst): they certify the operation SIGNATURES plus the involution law
+ * (@c ¬¬=id), NOT the full semantic De Morgan / distributivity / order-reversal
+ * laws.  Those are pinned by the @c static_assert witnesses below (and, for the
+ * reducer, by @c category:lattice).  So a pathological species could pass
+ * without every law; the concept recognises the intended family (@c Boole,
+ * @c Kleene, @c Chain<T>) and the witnesses hold the laws.
+ */
 export template <typename L>
 concept IsDeMorganAlgebra =
     IsLogicalSpecies<L> && logic_negation_is_involutive_v<L>;
 
+/**
+ * @concept IsBoundedDeMorganChain
+ * @brief A De Morgan algebra whose truth carrier @c Ω is totally ordered; by
+ *        the chain-normality theorem this is automatically a @b Kleene lattice.
+ */
 export template <typename L>
 concept IsBoundedDeMorganChain =
     IsDeMorganAlgebra<L> && std::totally_ordered<typename L::Ω> &&
@@ -801,6 +821,12 @@ inline constexpr bool logic_is_complemented_v = false;
 template <>
 inline constexpr bool logic_is_complemented_v<Boole> = true;
 
+/**
+ * @concept IsBooleanLogic
+ * @brief A bounded De Morgan chain whose reflection is a genuine @b complement
+ *        (@c a∧¬a=⊥, @c a∨¬a=⊤); on a chain this forces the 2-element case @c
+ * 𝔹.
+ */
 export template <typename L>
 concept IsBooleanLogic =
     IsBoundedDeMorganChain<L> && logic_is_complemented_v<L>;
