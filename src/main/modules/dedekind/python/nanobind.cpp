@@ -413,6 +413,39 @@ NB_MODULE(_dedekind, module) {
   bind_rational(module);
   bind_dual_rational(module);
 
+  // ── canonical sets across the bridge (#886, vertical prototype) ─────────
+  // Expose the C++ universe/subobject SETS themselves as Python objects whose
+  // `x in s` runs the NATIVE characteristic morphism χ.  This proves the core
+  // reaches Python: 𝔹 = 𝔸<bool> (the two-element universe), ℕ =
+  // NaturalNumbersOf<> whose classifier is nontrivial (ℕ ⊂ ℤ by non-negativity,
+  // so N(-7) == False crosses the wire honestly).
+  {
+    using BoolUniverse = std::decay_t<decltype(dedekind::sets::𝔹)>;
+    nb::class_<BoolUniverse>(module, "BooleanUniverse",
+                             "The Boolean universe 𝔹 = 𝔸<bool>.")
+        .def(
+            "__contains__",
+            [](const BoolUniverse& s, bool x) {
+              return static_cast<bool>(s(x));
+            },
+            "x ∈ 𝔹 via the native characteristic morphism χ_𝔹.")
+        .def("__repr__", [](const BoolUniverse&) { return std::string("𝔹"); });
+    // NB: Python NFKC-normalises identifiers, so source `𝔹` resolves to the
+    // attr key "B" (double-struck letters collapse to ASCII; Greek survives).
+    // The attr is stored under the normalised key; the repr stays mathy.
+    module.attr("B") = dedekind::sets::𝔹;
+
+    using Naturals = dedekind::sets::NaturalNumbersOf<>;
+    nb::class_<Naturals>(module, "Naturals",
+                         "The naturals ℕ as a subobject of ℤ (χ: x ↦ x ≥ 0).")
+        .def(
+            "__contains__",
+            [](const Naturals& s, int x) { return static_cast<bool>(s(x)); },
+            "x ∈ ℕ via the native classifier (N(-7) == False).")
+        .def("__repr__", [](const Naturals&) { return std::string("ℕ"); });
+    module.attr("N") = Naturals{};  // source `ℕ` NFKC-normalises to "N"
+  }
+
   // ── 2D LP across the bridge on a Dual<Rational> carrier ────────────────
   module.def(
       "maximize_lp", &maximize_lp_dual_rational,
