@@ -411,10 +411,13 @@ constexpr auto operator|(const Singleton<A, LA>& a, const Singleton<B, LB>&) {
 export template <typename T, auto V, Direction D, Strictness S,
                  typename L = ClassicalLogic>
 constexpr auto make_halfspace() {
+  // Codomain leg (#894): a degenerate halfspace collapses to a decided
+  // boundary, so it carries the Boolean codomain whatever the ambient.
   if constexpr (halfspace_is_empty<T, V, D, S>())
-    return dedekind::sets::Ø<T, L>{};
+    return dedekind::sets::codomain_reduce_t<dedekind::sets::Ø<T, L>>{};
   else if constexpr (halfspace_is_moot<T, V, D, S>())
-    return dedekind::sets::UniversalSet<T, L>{};
+    return dedekind::sets::codomain_reduce_t<
+        dedekind::sets::UniversalSet<T, L>>{};
   else
     return Halfspace<T, V, D, S, L>{};
 }
@@ -436,7 +439,9 @@ export template <typename T, auto Pivot, Direction D1, Strictness S1,
   requires(D1 != D2 && S1 != S2)
 constexpr auto operator|(const Halfspace<T, Pivot, D1, S1, L>&,
                          const Halfspace<T, Pivot, D2, S2, L>&) {
-  return dedekind::sets::UniversalSet<T, L>{};
+  // Codomain leg (#894): the universe is decided → Boolean codomain.
+  return dedekind::sets::codomain_reduce_t<
+      dedekind::sets::UniversalSet<T, L>>{};
 }
 
 /** @brief Complement-pair meet: dually, the empty set. */
@@ -445,7 +450,8 @@ export template <typename T, auto Pivot, Direction D1, Strictness S1,
   requires(D1 != D2 && S1 != S2)
 constexpr auto operator&(const Halfspace<T, Pivot, D1, S1, L>&,
                          const Halfspace<T, Pivot, D2, S2, L>&) {
-  return dedekind::sets::Ø<T, L>{};
+  // Codomain leg (#894): the empty set is decided → Boolean codomain.
+  return dedekind::sets::codomain_reduce_t<dedekind::sets::Ø<T, L>>{};
 }
 
 /** @brief Telling aliases for the two ℕ halfspaces the §3 listing uses:
@@ -847,7 +853,9 @@ export template <typename T, auto Lo, auto Hi, Strictness SL, Strictness SU,
            : (Lo <= Hi)))
 constexpr auto structured_or(Halfspace<T, Lo, Direction::Upward, SL, L>,
                              Halfspace<T, Hi, Direction::Downward, SU, L>) {
-  return dedekind::sets::UniversalSet<T, L>{};
+  // Codomain leg (#894): the covering union is the decided universe → Boole.
+  return dedekind::sets::codomain_reduce_t<
+      dedekind::sets::UniversalSet<T, L>>{};
 }
 export template <typename T, auto Hi, auto Lo, Strictness SU, Strictness SL,
                  typename L>
@@ -864,7 +872,9 @@ export template <typename T, auto Hi, auto Lo, Strictness SU, Strictness SL,
            : (Lo <= Hi)))
 constexpr auto structured_or(Halfspace<T, Hi, Direction::Downward, SU, L>,
                              Halfspace<T, Lo, Direction::Upward, SL, L>) {
-  return dedekind::sets::UniversalSet<T, L>{};
+  // Codomain leg (#894): the covering union is the decided universe → Boole.
+  return dedekind::sets::codomain_reduce_t<
+      dedekind::sets::UniversalSet<T, L>>{};
 }
 
 /** @section halfspace__Interval_Cartesian_Product — 2D structural products. */
@@ -2007,7 +2017,8 @@ constexpr auto operator|(Halfspace<T, P1, D1, S1, L> a,
 export template <typename T, auto p, Direction D, Strictness S, typename L,
                  typename LZ>
 constexpr auto operator&(Halfspace<T, p, D, S, L>, Ø<T, LZ>) {
-  return Ø<T, L>{};
+  // Codomain leg (#894): the empty meet is decided → Boolean codomain.
+  return dedekind::sets::codomain_reduce_t<Ø<T, L>>{};
 }
 /** @brief @c 𝔸 is the meet IDENTITY at the other end: @c {x⋈p} ∩ 𝔸 = @c {x⋈p}.
  *  The universe's own @c operator& handles @c 𝔸∩X; this is the halfspace-first
