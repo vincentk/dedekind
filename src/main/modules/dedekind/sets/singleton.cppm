@@ -232,14 +232,19 @@ struct SingletonSet {
    * @f$\{a\}\cup\{b\}@f$).
    */
   template <typename U, typename L2>
+    requires std::same_as<L2, L>
   constexpr auto operator|(const SingletonSet<U, L2>& other) const {
     using Or =
         dedekind::category::Join<SingletonSet<T, L>, SingletonSet<U, L2>>;
     return Set<T, L, Or>{Or{*this, other}};
   }
 
-  /** @brief Singleton-bounded meet (lvalue self). */
+  /** @brief Singleton-bounded meet (lvalue self).  Same-species only: a mixed
+   *  @c L2 would combine in the left species and instantiate @c L::AND on a
+   *  foreign @c Ω; a cross-species combine routes through the lifting overload
+   *  in @c :expressions instead (#894). */
   template <typename U, typename L2>
+    requires std::same_as<L2, L>
   constexpr auto operator&(const SingletonSet<U, L2>& other) const& {
     return Comprehension{*this, [s2 = other](const T& x) { return s2(x); }};
   }
@@ -249,6 +254,7 @@ struct SingletonSet {
   // the way @c | above was, when the meet side (the Frobenius multiplication)
   // is needed.  Union went first as the @c μ (#691) / comonoid blocker.
   template <typename U, typename L2>
+    requires std::same_as<L2, L>
   constexpr auto operator&(const SingletonSet<U, L2>& other) const&& {
     return element<𝔸<T, L>> |
            [s1 = *this, s2 = other](const T& x) { return s1(x) && s2(x); };

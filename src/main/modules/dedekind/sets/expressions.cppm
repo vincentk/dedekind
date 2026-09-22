@@ -425,6 +425,128 @@ struct EmptyPredicate {
   constexpr bool operator()(const T&) const { return false; }
 };
 
+/**
+ * @brief The archetypal undecidable predicate: answers @c Unknown everywhere.
+ *
+ * @details The Kleene-interior companion of @c UniversalPredicate (always
+ * @f$\top@f$) and @c EmptyPredicate (always @f$\bot@f$).  Its characteristic
+ * map is constantly @c Ternary::Unknown, the interior of the chain @f$K_3 =
+ * \{\bot < U < \top\}@f$, so membership is @b never decided: for any point @c x
+ * its answer sits outside the decided core @f$\Sigma = \{\top,\bot\}@f$ that
+ * @c is_decided detects.  It is intrinsically three-valued, hence @c
+ * TernaryLogic-tagged, and a
+ * @c Set carrying it fails @c HasDecidableMembership.
+ *
+ * It exists to exercise the lattice reducer against a genuinely undecidable
+ * operand.  The Kleene annihilators are what recover a decided answer without
+ * ever consulting @c Unknown: a meet with the bottom @c Ø (@f$x \wedge \bot =
+ * \bot@f$, @c AND @c = @c min, and @c min(U,\bot) @c = @c \bot) or a join with
+ * the top @c 𝔸 (@f$x \vee \top = \top@f$, @c OR @c = @c max, @c max(U,\top) @c
+ * =
+ * @c \top) annihilates it, and the decided boundary is recovered structurally.
+ */
+export template <typename T>
+struct UnknownPredicate {
+  using Domain = T;
+  using Codomain = typename TernaryLogic::Ω;
+  using logic_species = TernaryLogic;
+  constexpr Codomain operator()(const T&) const { return Ternary::Unknown; }
+};
+
+// It is a bona fide characteristic map χ: T → Ω, not an ad-hoc callable: an
+// @c IsArrow (Domain/Codomain) into the truth-object Ω, so the reducer and the
+// subobject surface treat it exactly as any other membership predicate.
+static_assert(IsCharacteristic<UnknownPredicate<int>>,
+              "UnknownPredicate is a characteristic map χ: T → Ω");
+// The archetype's defining property: it never lands on a decided bound, so it
+// sits strictly inside the Kleene chain (@c is_decided is the decided-core test
+// from @c :logic).  This binds the undecidability claim to a compile-time
+// witness rather than prose.
+static_assert(UnknownPredicate<int>{}(0) == Ternary::Unknown &&
+                  UnknownPredicate<int>{}(42) == Ternary::Unknown,
+              "UnknownPredicate answers Unknown everywhere");
+static_assert(!is_decided<TernaryLogic>(UnknownPredicate<int>{}(0)),
+              "UnknownPredicate is never in the decided core Σ = {⊤,⊥}");
+
+/** @brief The codomain leg of a set combine (#894), as one finalizer.
+ *
+ *  @details A combine's domain-reduced result that @b is a boundary
+ *  (@c ⊥ / @c ⊤ = @c Ø / @c 𝔸) factors through the Rosolini dominance @c Σ, so
+ *  it carries the decided Boolean codomain whatever the ambient; every other
+ *  result passes through unchanged.  The codomain rule applies at @b every
+ *  combine's @b output, never inside a still-reducing term (which would mix
+ *  logic species and shred the reducer): the expressions-level operators route
+ *  through this finalizer, and the upstream boundary operators in @c
+ * :boundaries apply the same rule via @c codomain_reduce_t directly (they are
+ * declared above this finalizer, so they cannot call it).  A new
+ * expressions-level operator needs only @c return @c finalize_combine(...) and
+ * inherits the rule. Hoisted above the @c Set class so every operator here
+ * (including
+ *  @c Set::operator^) can reach it.
+ *  FIXME(#894): @c boundary @c → @c Boole is the only rule for now; the general
+ *  form is @c image(χ) @c ⊆ @c Σ folded on the Kleene image lattice. */
+template <typename R>
+constexpr auto finalize_combine(R r) {
+  if constexpr (IsBoundaryObject<R>) {
+    return codomain_reduce_t<R>{};
+  } else {
+    return r;
+  }
+}
+
+/** @brief The join of two logic species (#894): 𝔹 ⊑ K₃ under the dominance, so
+ *  the more expressive Ω --- K₃ if either operand is K₃, else 𝔹.  The codomain
+ * a cross-species combine reduces at. */
+export template <typename L1, typename L2>
+using join_logic_t =
+    std::conditional_t < std::same_as<L1, dedekind::category::TernaryLogic> ||
+    std::same_as<L2, dedekind::category::TernaryLogic>,
+      dedekind::category::TernaryLogic, dedekind::category::ClassicalLogic > ;
+
+/** @brief A subobject re-tagged to a more expressive codomain @c TargetL: its χ
+ *  lifts through the Rosolini dominance (@c lift_logic) into @c TargetL::Ω.
+ *
+ *  @details Used to bring the operands of a cross-species combine to one
+ * codomain before the reducer folds them (#894): the same-species meet/join
+ * needs both χ valued in one Ω, and a mixed @c Meet term would shred the
+ * reducer.  This is the
+ *  @b naive lift --- it does @b not preserve the operand's structural type
+ *  (interval / halfspace), so a cross-species combine materialises as a
+ *  @c MeetSet / @c JoinSet (membership correct, pointwise) rather than
+ *  structurally collapsing.  The structure-preserving lift + codomain-follows-
+ *  normal-form is the follow-up (see #894). */
+export template <typename S, typename TargetL>
+  requires dedekind::category::LiftsTo<typename S::logic_species, TargetL>
+struct SpeciesLifted
+    : SetExpr<SpeciesLifted<S, TargetL>, typename S::Domain, TargetL> {
+  /** @brief The wrapped subobject, whose χ is lifted into @c TargetL::Ω. */
+  S base;
+  /** @brief Wrap @c s; the lift is a no-op semantically, only the codomain
+   *  advertised by @c operator() changes. */
+  constexpr explicit SpeciesLifted(S s) : base(std::move(s)) {}
+  /** @brief χ at @c x, lifted through the dominance into @c TargetL::Ω. */
+  constexpr typename TargetL::Ω operator()(const typename S::Domain& x) const {
+    return dedekind::category::lift_logic<TargetL>(base(x));
+  }
+};
+
+/** @brief Bring a subobject to codomain @c TargetL: identity when it is already
+ *  there, else wrap it in @c SpeciesLifted.  Constrained to a registered
+ *  dominance inclusion (@c LiftsTo), so a downward or unsupported lift (e.g.
+ *  @c lift_to<ClassicalLogic> of a Kleene set) is rejected at the gate rather
+ *  than failing inside @c lift_logic. */
+export template <typename TargetL, typename S>
+  requires dedekind::category::LiftsTo<
+      typename std::remove_cvref_t<S>::logic_species, TargetL>
+constexpr auto lift_to(const S& s) {
+  if constexpr (std::same_as<typename std::remove_cvref_t<S>::logic_species,
+                             TargetL>) {
+    return s;
+  } else {
+    return SpeciesLifted<std::remove_cvref_t<S>, TargetL>{s};
+  }
+}
+
 /** @brief Predicate-level complement wrapper used for set-collapse detection.
  */
 export template <typename Predicate>
@@ -986,12 +1108,16 @@ class Set {
   template <typename OtherPredicate>
   constexpr auto operator^(const Set<T, L, OtherPredicate>& other) const {
     if constexpr (IsComplementPair_v<Predicate, OtherPredicate>) {
-      return UniversalSet<T, L>{};
-    } else if constexpr (std::same_as<std::decay_t<decltype(*this & other)>,
-                                      Ø<T, L>>) {
-      // Compile-time-disjoint optimisation (#469 / PR #523 review):
-      // A △ B = (A ∪ B) ∖ (A ∩ B); when @c A @c ∩ @c B is empty
-      // (the @c ∖ here is the Unicode set-difference glyph, used
+      // A △ ¬A = 𝔸.  Codomain leg (#894): the universe is decided → Boole.
+      return finalize_combine(UniversalSet<T, L>{});
+    } else if constexpr (IsInitialObject<
+                             std::decay_t<decltype(*this & other)>>) {
+      // NB: match the empty meet species-agnostically (IsInitialObject), not
+      // `same_as<..., Ø<T, L>>` --- the codomain leg (#894) may re-tag a
+      // disjoint meet's Ø to ClassicalLogic, and the structural A △ B = A ∪ B
+      // branch must still fire in that case. Compile-time-disjoint optimisation
+      // (#469 / PR #523 review): A △ B = (A ∪ B) ∖ (A ∩ B); when @c A @c ∩ @c B
+      // is empty (the @c ∖ here is the Unicode set-difference glyph, used
       // consistently throughout this comment block; literal @c \\ is
       // avoided to keep Doxygen rendering uniform).
       // (i.e.\ @c A & @c B reduces structurally to @c Ø<T, L> at the
@@ -1179,24 +1305,24 @@ constexpr auto operator&(const LHS& lhs, const RHS& rhs) {
     // reducer and stays an un-collapsed MeetSet, whose pointwise L::AND yields
     // U at the middle (sound).  FIXME(#865): generalise the collapse once the
     // reducer recognises the predicate-pair encoding as a structural Not.
-    return Ø<T, Log>{};
+    return finalize_combine(Ø<T, Log>{});
   } else {
     using R = subobject_reduce_t<Meet<LHS, RHS>, Log, SetCombine>;
-    if constexpr (std::same_as<R, Ø<T, Log>>) {
-      return Ø<T, Log>{};
-    } else if constexpr (std::same_as<R, UniversalSet<T, Log>>) {
-      return UniversalSet<T, Log>{};
+    // Domain leg = the reducer; codomain leg = finalize_combine (a boundary
+    // result factors through Σ, so it is re-tagged to the Boolean codomain).
+    if constexpr (IsBoundaryObject<R>) {
+      return finalize_combine(R{});
     } else if constexpr (std::same_as<R, LHS>) {
-      return lhs;
+      return finalize_combine(lhs);
     } else if constexpr (std::same_as<R, RHS>) {
-      return rhs;
+      return finalize_combine(rhs);
     } else if constexpr (std::same_as<R, Meet<LHS, RHS>>) {
       // Irreducible: the intersection AS a set, carrying both operands (#892).
-      return MeetSet<LHS, RHS>{lhs, rhs};
+      return finalize_combine(MeetSet<LHS, RHS>{lhs, rhs});
     } else {
       // SetCombine collapsed two plain-set leaves via structured_and.
-      return elevate_meet<T, Log>(
-          structured_and(lhs.predicate(), rhs.predicate()));
+      return finalize_combine(elevate_meet<T, Log>(
+          structured_and(lhs.predicate(), rhs.predicate())));
     }
   }
 }
@@ -1218,24 +1344,71 @@ constexpr auto operator|(const LHS& lhs, const RHS& rhs) {
     // ClassicalLogic for the same reason: a bounded chain offers reflection,
     // not complementation, so Kleene K3 (¬U = U, a ∨ ¬a = U ≠ ⊤) falls through
     // to an un-collapsed JoinSet whose pointwise L::OR is sound (#860).
-    return UniversalSet<T, Log>{};
+    return finalize_combine(UniversalSet<T, Log>{});
   } else {
     using R = subobject_reduce_t<Join<LHS, RHS>, Log, SetCombine>;
-    if constexpr (std::same_as<R, UniversalSet<T, Log>>) {
-      return UniversalSet<T, Log>{};
-    } else if constexpr (std::same_as<R, Ø<T, Log>>) {
-      return Ø<T, Log>{};
+    // Domain leg = the reducer; codomain leg = finalize_combine (a boundary
+    // result factors through Σ, so it is re-tagged to the Boolean codomain).
+    if constexpr (IsBoundaryObject<R>) {
+      return finalize_combine(R{});
     } else if constexpr (std::same_as<R, LHS>) {
-      return lhs;
+      return finalize_combine(lhs);
     } else if constexpr (std::same_as<R, RHS>) {
-      return rhs;
+      return finalize_combine(rhs);
     } else if constexpr (std::same_as<R, Join<LHS, RHS>>) {
-      return JoinSet<LHS, RHS>{lhs, rhs};
+      return finalize_combine(JoinSet<LHS, RHS>{lhs, rhs});
     } else {
-      return elevate_join<T, Log>(
-          structured_or(lhs.predicate(), rhs.predicate()));
+      return finalize_combine(elevate_join<T, Log>(
+          structured_or(lhs.predicate(), rhs.predicate())));
     }
   }
+}
+
+/** @brief Cross-species meet (#894, step i): two subobjects over the same
+ *  carrier but @b different codomains join to the more expressive one; lift
+ * both there, then the same-species meet above folds them.  This lets a mixed
+ *  @c Boole @c ∩ @c Kleene combine into the reducer at all.  Same-species
+ *  combines are untouched (this overload requires the species to @b differ, so
+ *  it never competes with the meet above). */
+export template <typename LHS, typename RHS>
+  requires IsSubobject<LHS, typename LHS::Domain> &&
+           IsSubobject<RHS, typename RHS::Domain> &&
+           std::same_as<typename LHS::Domain, typename RHS::Domain> &&
+           (!std::same_as<typename LHS::logic_species,
+                          typename RHS::logic_species>) &&
+           dedekind::category::LiftsTo<
+               typename LHS::logic_species,
+               join_logic_t<typename LHS::logic_species,
+                            typename RHS::logic_species>> &&
+           dedekind::category::LiftsTo<
+               typename RHS::logic_species,
+               join_logic_t<typename LHS::logic_species,
+                            typename RHS::logic_species>>
+constexpr auto operator&(const LHS& lhs, const RHS& rhs) {
+  using Log =
+      join_logic_t<typename LHS::logic_species, typename RHS::logic_species>;
+  return lift_to<Log>(lhs) & lift_to<Log>(rhs);
+}
+
+/** @brief Cross-species join, dual to the cross-species meet (#894, step i). */
+export template <typename LHS, typename RHS>
+  requires IsSubobject<LHS, typename LHS::Domain> &&
+           IsSubobject<RHS, typename RHS::Domain> &&
+           std::same_as<typename LHS::Domain, typename RHS::Domain> &&
+           (!std::same_as<typename LHS::logic_species,
+                          typename RHS::logic_species>) &&
+           dedekind::category::LiftsTo<
+               typename LHS::logic_species,
+               join_logic_t<typename LHS::logic_species,
+                            typename RHS::logic_species>> &&
+           dedekind::category::LiftsTo<
+               typename RHS::logic_species,
+               join_logic_t<typename LHS::logic_species,
+                            typename RHS::logic_species>>
+constexpr auto operator|(const LHS& lhs, const RHS& rhs) {
+  using Log =
+      join_logic_t<typename LHS::logic_species, typename RHS::logic_species>;
+  return lift_to<Log>(lhs) | lift_to<Log>(rhs);
 }
 
 /** @brief @c is_set_node_v is true for the concrete set-node types @c Set /
@@ -1904,7 +2077,8 @@ export template <typename A, typename LA, typename CA, typename B, typename LB,
 constexpr auto operator*(const UniversalSet<A, LA, CA>&,
                          const UniversalSet<B, LB, CB>&) {
   using CC = typename product_cardinality<CA, CB>::type;
-  return 𝔸<std::pair<A, B>, LA, CC>;
+  // 𝔸 × 𝔸 = 𝔸<pair>.  Codomain leg (#894): the universe is decided → Boole.
+  return finalize_combine(𝔸<std::pair<A, B>, LA, CC>);
 }
 
 /** @brief Infix sugar for cartesian product over sets. */
