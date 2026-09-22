@@ -52,7 +52,7 @@ struct bw_sub : Path<CountableReal> {
   using Path<CountableReal>::Path;
 };
 
-// --- Ternary side: double (no cardinality_type ⇒ Kleene) ---
+// --- Kleene side: double (no cardinality_type ⇒ Kleene) ---
 struct bw_super_ternary : Path<double> {
   using Path<double>::Path;
 };

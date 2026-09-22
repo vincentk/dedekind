@@ -563,11 +563,12 @@ TEST_CASE(
     CHECK(img(0) == false);
   }
 
-  // FIXME(#693): "Identity iso on a ternary-logic source preserves
-  // Ternary" — pre-#622 the ℕ fixture routed to Kleene.  Post-#622
+  // FIXME(#693): "Identity iso on a Kleene-logic source preserves the
+  // Kleene species" — pre-#622 the ℕ fixture routed to Kleene.  Post-#622
   // the carrier-axis cut puts ℕ on Boole; recovering the
-  // Ternary-preserves-Ternary witness requires an explicit Ternary-typed
-  // predicate carrier — the principled home is the predicate-level axis
+  // Kleene-preserves-Kleene witness requires an explicit Ternary-typed
+  // (Kleene::Ω) predicate carrier — the principled home is the predicate-level
+  // axis
   // (#693).
 }
 

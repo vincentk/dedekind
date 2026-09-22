@@ -18,7 +18,7 @@ namespace {
 // element<ℝ_d> — ℝ itself is the ℚ(√2) coat-hanger, so Real<double> live on the
 // materialisable ambient ℝ_d = 𝔸<Real<double>, Boole, ℶ_1>.  (A plain
 // 𝔸<Real<double>> with the default ℵ_0 would route the carrier-axis resolver to
-// Boole, contradicting the ℶ_1 cardinality and the Ternary semantics
+// Boole, contradicting the ℶ_1 cardinality and the Kleene semantics
 // this test relies on.)
 using R2 = QuadraticReal<2>;  // the exact real carrier ℝ = ℚ(√2)
 using Q = Rational<>;         // for the exact rational thresholds below

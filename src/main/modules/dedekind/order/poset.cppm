@@ -117,8 +117,8 @@ concept IsDirectedPoset = IsPartiallyOrdered<T, L> && IsDirectedSet<T, L>;
  *
  * The @c L parameter defaults to @c Boole (so @c L::Ω is
  * @c bool); supply a different @c IsLogicalSpecies to constrain the
- * return type to a non-Boolean truth-value carrier (e.g.\ Kleene
- * @c Kleene).  Mirrors the @c L-parametric pattern already used
+ * return type to a non-Boolean truth-value carrier (e.g.\ @c Kleene).
+ * Mirrors the @c L-parametric pattern already used
  * by @c IsPreOrdered / @c IsPartiallyOrdered.
  *
  * Sibling of @c dedekind::algebra::HasRingOperators (in @c
