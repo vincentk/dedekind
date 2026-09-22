@@ -616,22 +616,33 @@ struct Truth {
    * @c Truth<Boole>{true} @c && @c false, which is otherwise a tie between the
    * same-type overload (via the implicit ctor) and the built-in (via contextual
    * @c bool). */
-  friend constexpr Truth operator&&(Truth a, Truth b) noexcept {
+  friend constexpr Truth operator&&(Truth a, Truth b) noexcept(
+      noexcept(L::AND(a.value, b.value))) {
     return {L::AND(a.value, b.value)};
   }
-  friend constexpr Truth operator||(Truth a, Truth b) noexcept {
+  //! @brief Join @c ∨ of two wrappers.  @overload
+  friend constexpr Truth operator||(Truth a, Truth b) noexcept(
+      noexcept(L::OR(a.value, b.value))) {
     return {L::OR(a.value, b.value)};
   }
-  friend constexpr Truth operator&&(Truth a, machine_type b) noexcept {
+  //! @brief Meet @c ∧ with a raw carrier on the right (promoted).  @overload
+  friend constexpr Truth operator&&(Truth a, machine_type b) noexcept(
+      noexcept(L::AND(a.value, b))) {
     return {L::AND(a.value, b)};
   }
-  friend constexpr Truth operator&&(machine_type a, Truth b) noexcept {
+  //! @brief Meet @c ∧ with a raw carrier on the left (promoted).  @overload
+  friend constexpr Truth operator&&(machine_type a, Truth b) noexcept(
+      noexcept(L::AND(a, b.value))) {
     return {L::AND(a, b.value)};
   }
-  friend constexpr Truth operator||(Truth a, machine_type b) noexcept {
+  //! @brief Join @c ∨ with a raw carrier on the right (promoted).  @overload
+  friend constexpr Truth operator||(Truth a, machine_type b) noexcept(
+      noexcept(L::OR(a.value, b))) {
     return {L::OR(a.value, b)};
   }
-  friend constexpr Truth operator||(machine_type a, Truth b) noexcept {
+  //! @brief Join @c ∨ with a raw carrier on the left (promoted).  @overload
+  friend constexpr Truth operator||(machine_type a, Truth b) noexcept(
+      noexcept(L::OR(a, b.value))) {
     return {L::OR(a, b.value)};
   }
 
