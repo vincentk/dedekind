@@ -195,3 +195,45 @@ TEST_CASE("Logic: the finite Kleene chain Chain<int> (De Morgan, #901)",
     CHECK((Truth<C>{7} <= Truth<C>{3}).value == C::False);
   }
 }
+
+TEST_CASE("Logic: the Percentage confidence chain (bounded, #906)",
+          "[category][logic][demorgan][percentage]") {
+  using P = Percent;
+
+  SECTION("meet/join/reflection on [0,100]; self-dual at 50") {
+    CHECK(P::AND(Percentage{70}, Percentage{30}) == Percentage{30});  // min
+    CHECK(P::OR(Percentage{70}, Percentage{30}) == Percentage{70});   // max
+    CHECK(P::RFL(Percentage{30}) == Percentage{70});                  // 100-30
+    CHECK(P::RFL(Percentage{50}) == Percentage{50});  // self-dual midpoint
+    CHECK(P::RFL(P::True) == P::False);               // 100 ↦ 0
+    CHECK(P::RFL(P::False) == P::True);               // 0 ↦ 100
+  }
+
+  SECTION(
+      "range enforcement: out-of-range saturates (clamp before narrowing)") {
+    CHECK(Percentage{200}.v == 100);  // above → top pole
+    CHECK(Percentage{256}.v == 100);  // NOT wrap to 0
+    CHECK(Percentage{-1}.v == 0);     // below → bottom pole
+    CHECK(P::True.v == 100);
+    CHECK(P::False.v == 0);
+  }
+
+  SECTION("involution + De Morgan") {
+    CHECK(P::RFL(P::RFL(Percentage{25})) == Percentage{25});  // ~~p = p
+    CHECK(P::RFL(P::RFL(Percentage{60})) == Percentage{60});
+    CHECK(P::RFL(P::AND(Percentage{30}, Percentage{80})) ==
+          P::OR(P::RFL(Percentage{30}),
+                P::RFL(Percentage{80})));  // ¬(a∧b) = ¬a ∨ ¬b
+  }
+
+  SECTION("Kleene, not Boolean: an interior grade is uncomplemented") {
+    // 30 ∧ ¬30 = min(30,70) = 30 ≠ ⊥
+    CHECK(P::AND(Percentage{30}, P::RFL(Percentage{30})) != P::False);
+  }
+
+  SECTION("concept tower (runtime witnesses, for coverage)") {
+    CHECK(IsDeMorganAlgebra<P>);
+    CHECK(IsBoundedDeMorganChain<P>);  // ⟹ Kleene
+    CHECK(!IsBooleanLogic<P>);         // 101 grades, not Boolean
+  }
+}

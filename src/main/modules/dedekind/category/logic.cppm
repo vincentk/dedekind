@@ -221,7 +221,8 @@ static_assert(IsLogicalSpecies<Kleene>, "Kleene must fulfill IsLogicalSpecies");
  *          confidence, @c ¬-fixed at 50) is @b not sound here: @c Ω would still
  *          be all of @c T, so @c True would not be the top and @c ¬ could leave
  *          the interval.  A genuinely bounded @c [Lo,Hi] chain needs a carrier
- *          that @e enforces the range: a follow-up (#906).  The species names
+ *          that @e enforces the range: see @c Percent / @c Percentage below
+ *          (#906).  The species names
  *          the ops (@c min / @c max / @c ¬); raw @c T keeps its own boolean
  *          @c &&, so the concepts gate the species' named ops (register-
  *          agnostic).  See #901.
@@ -248,6 +249,65 @@ struct Chain final {
 // STATIC "IS A" CHECK:
 static_assert(IsLogicalSpecies<Chain<int>>,
               "Chain<int> must fulfill IsLogicalSpecies");
+
+/**
+ * @section logic__Species_4
+ * @brief @c Percentage: a range-enforcing @c [0,100] carrier ("50:50").
+ * @details The @b sound way to get a @e bounded chain.  @c Chain<T>'s @c Ω is
+ *          the @b whole integral range, so a sub-interval like @c [0,100] is
+ *          unsound there (@c True would not be the top, @c ¬ could leave the
+ *          interval, #906).  Here the invariant @c 0≤v≤100 is @b enforced by
+ * the constructor (saturating clamp), so @c 100 / @c 0 genuinely ARE the poles
+ * and the reflection @c 100-v never leaves the range.
+ */
+export struct Percentage final {
+  /** @brief The confidence value.  @b Naked (public) per the Juliet Posture:
+   *  the @c [0,100] range is a @b saturating @b convention, not encapsulated
+   *  private state.  The constructor clamps and the algebra (@c min / @c max /
+   *  @c ¬) preserves the range, so every value that arrives @e through the API
+   *  is in @c [0,100]; a caller who writes an out-of-range @c v directly is on
+   *  their own, exactly as one who casts a fourth value into the @c Ternary
+   *  enum.  Structural transparency over an OO invariant guard. */
+  std::uint8_t v;
+  /** @brief Saturating construction into @c [0,100]: an out-of-range input pins
+   *  to the nearest pole.  The clamp is done in a signed @b wide type @b before
+   *  narrowing, so @c Percentage{256} = @c 100 and @c Percentage{-1} = @c 0
+   *  (not the wrap-around a narrowing-first clamp would give). */
+  constexpr Percentage(int p) noexcept
+      : v(static_cast<std::uint8_t>(p < 0 ? 0 : (p > 100 ? 100 : p))) {}
+  constexpr std::strong_ordering operator<=>(const Percentage&) const = default;
+  constexpr bool operator==(const Percentage&) const = default;
+};
+
+/**
+ * @brief The bounded confidence chain: a 101-grade De Morgan (Kleene) chain,
+ *        self-dual about @c 50.
+ * @details Meet @c ∧ / join @c ∨ = numeric @c min / @c max on @c [0,100] (the
+ *          numeric order @b is the confidence order); reflection @c ¬p @c =
+ *          @c 100-p is the order-reversing involution swapping the poles
+ *          (@c 0 ↔ @c 100), fixing the self-dual midpoint @c 50.  @b Not
+ *          Boolean: the interior grades are uncomplemented (@c p∧¬p ≠ @c 0).
+ */
+export struct Percent final {
+  using Ω = Percentage;
+  /** @brief The top pole @c ⊤ = full confidence @c 100. */
+  static constexpr Percentage True{100};
+  /** @brief The bottom pole @c ⊥ = no confidence @c 0. */
+  static constexpr Percentage False{0};
+  /** @brief Meet @c ∧ = numeric minimum. */
+  static constexpr Percentage AND(Percentage a, Percentage b) noexcept {
+    return {std::ranges::min(a.v, b.v)};
+  }
+  /** @brief Join @c ∨ = numeric maximum. */
+  static constexpr Percentage OR(Percentage a, Percentage b) noexcept {
+    return {std::ranges::max(a.v, b.v)};
+  }
+  /** @brief ¬p = @c 100-p: reflection about the self-dual midpoint @c 50. */
+  static constexpr Percentage RFL(Percentage a) noexcept { return {100 - a.v}; }
+};
+
+static_assert(IsLogicalSpecies<Percent>,
+              "Percent must fulfill IsLogicalSpecies");
 
 export constexpr Ternary operator&&(Ternary a, Ternary b) {
   return Kleene::AND(a, b);
@@ -750,6 +810,10 @@ template <std::integral T>
   requires(!std::same_as<T, bool>)
 struct is_involutive<logic_complement<Chain<T>>, T> : std::true_type {};
 
+/** @brief Witness: the @c Percent reflection @c 100-p is an involution. */
+template <>
+struct is_involutive<logic_complement<Percent>, Percentage> : std::true_type {};
+
 /** @brief @c true iff the logic negation ¬ = @c L::RFL is a certified
  *  involution.  Both shipped De Morgan logics (@c 𝔹, @c K₃) qualify; a future
  *  intuitionistic species whose ¬¬ is only a closure would not.  Downstream
@@ -876,6 +940,22 @@ static_assert(Chain<int>::RFL(Chain<int>::AND(3, 8)) ==
 static_assert(IsBoundedDeMorganChain<Chain<unsigned>> &&
                   !IsBooleanLogic<Chain<unsigned>>,
               "unsigned full-range chain [0,UMAX] is Kleene, not Boolean");
+
+// Percent: a range-enforcing 101-grade bounded De Morgan chain, self-dual
+// at 50.
+static_assert(IsDeMorganAlgebra<Percent> && IsBoundedDeMorganChain<Percent> &&
+                  !IsBooleanLogic<Percent>,
+              "Percent [0,100] is a bounded De Morgan (Kleene) chain, NOT "
+              "Boolean (interior grades uncomplemented)");
+static_assert(Percent::RFL(Percentage{50}) == Percentage{50},
+              "Percent is self-dual about 50 (the 50:50 midpoint)");
+static_assert(Percent::RFL(Percent::True) == Percent::False &&
+                  Percent::RFL(Percent::False) == Percent::True,
+              "Percent: ¬ swaps the poles 0 ↔ 100");
+static_assert(Percentage{200}.v == 100 && Percentage{256}.v == 100 &&
+                  Percentage{-1}.v == 0,
+              "Percentage enforces [0,100] (clamp in a wide type before "
+              "narrowing: 256↦100 not 0, -1↦0 not 100)");
 
 // The 𝔹 ↪ Chain<T> dominance inclusion: decided bool answers land on the poles,
 // so Truth<Chain<T>> (its operator<= lifts a bool verdict) stores ⊥/⊤, never
