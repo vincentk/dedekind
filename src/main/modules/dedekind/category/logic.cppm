@@ -477,14 +477,6 @@ struct Truth {
   constexpr bool operator==(const Truth&) const = default;
 };
 
-/** @section logic__Logic_Species_Aliases */
-
-/** @brief The Boolean Species (The Binary Prime). */
-export using Boolean = Truth<Boole>;
-
-/** @brief The Kleene Species (The Indeterminacy). */
-export using Kleene = Truth<Kleene>;
-
 /**
  * @brief Semantic truth projection for assertion contexts.
  * @details
@@ -608,7 +600,7 @@ static_assert(HasLogicalOperators<bool>,
 // non-truth types (int, ...) qualify by neither.
 static_assert(IsΩ<bool> && IsΩ<Ternary>,
               "raw truth-types are Ω (their &&/||/! close on the type)");
-static_assert(IsΩ<Boolean> && IsΩ<Kleene>,
+static_assert(IsΩ<Truth<Boole>> && IsΩ<Truth<Kleene>>,
               "Truth<L> wrappers are Ω via their registered logic_species "
               "(they overload +/* and !, not &&/||)");
 static_assert(!IsΩ<int>,

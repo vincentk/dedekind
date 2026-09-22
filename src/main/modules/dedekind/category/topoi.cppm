@@ -387,9 +387,9 @@ struct Subobject {
 
   /** @brief χ: A ⟶ Ω: re-export the stored rule's @b own codomain @c Cod<Chi>
    *  (the classifier the predicate returns --- @c bool / @c Ternary, or a
-   *  @c Truth<L> wrapper such as @c Boolean / @c Kleene).  Preserving it,
-   * rather than normalising to @c logic_species::Ω (which would unwrap @c
-   * Truth<L> to
+   *  @c Truth<L> wrapper such as @c Truth<Boole> / @c Truth<Kleene>).
+   * Preserving it, rather than normalising to @c logic_species::Ω (which would
+   * unwrap @c Truth<L> to
    *  @c bool and then break @c IsArrow's @c convertible_to<Codomain> check,
    *  since @c Truth<L>'s conversion to its @c machine_type is @c explicit),
    *  makes a @c Subobject a full @c IsArrow / @c IsCharacteristic (#850), not

@@ -36,11 +36,11 @@ TEST_CASE("Logic: The Binary Prime (Classical)", "[category][logic][boolean]") {
   }
 
   SECTION("Species Promotion (Boolean Wrapper)") {
-    Boolean t{true};
-    Boolean f{false};
+    Truth<Boole> t{true};
+    Truth<Boole> f{false};
 
     // Verify our 'operator+' bypasses the int-promotion trap
-    STATIC_CHECK(std::same_as<decltype(t + f), Boolean>);
+    STATIC_CHECK(std::same_as<decltype(t + f), Truth<Boole>>);
     CHECK((t + f).value == true);
 
     // De Morgan's laws for Boolean wrapper
@@ -114,11 +114,11 @@ TEST_CASE("Logic: The Indeterminacy (Kleene)", "[category][logic][kleene]") {
 
 TEST_CASE("Logic: Archimedean Successor", "[category][logic][peano]") {
   SECTION("Boolean Successor") {
-    Boolean b{false};
+    Truth<Boole> b{false};
     // Successor S(0) = 1
-    CHECK((b + Boolean::one()).value == true);
+    CHECK((b + Truth<Boole>::one()).value == true);
     // Saturating S(1) = 1
-    CHECK((Boolean{true} + Boolean::one()).value == true);
+    CHECK((Truth<Boole>{true} + Truth<Boole>::one()).value == true);
   }
 }
 
@@ -127,7 +127,7 @@ TEST_CASE("Logic: Archimedean Successor", "[category][logic][peano]") {
 TEST_CASE("Logic: The Lattice Order (Relational Honesty)",
           "[category][logic][order]") {
   SECTION("Boolean Lattice Order") {
-    using B = Boolean;
+    using B = Truth<Boole>;
     B t{true}, f{false};
 
     // Axiom: a <= b iff (a + b) == b
@@ -138,7 +138,7 @@ TEST_CASE("Logic: The Lattice Order (Relational Honesty)",
   }
 
   SECTION("Kleene Information/Truth Order") {
-    using K = Kleene;
+    using K = Truth<Kleene>;
     using enum Ternary;
     K T{True}, F{False}, U{Unknown};
 
