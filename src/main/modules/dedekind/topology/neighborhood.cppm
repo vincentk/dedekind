@@ -61,12 +61,11 @@ export template <typename S>
 concept IsOpen =
     dedekind::category::IsPredicate<S> &&
     (requires { typename S::is_open_tag; } ||
-     // INFERENCE (not tag): ∅ and X --- the initial / terminal subobjects ---
-     // are clopen in EVERY topology, so their openness is derived from their
-     // boundary status, never hand-tagged.  (General structural inference of
-     // open/closed/clopen from carrier topology + set shape is a follow-up.)
-     dedekind::category::IsInitialObject<S> ||
-     dedekind::category::IsTerminalObject<S>);
+     // INFERENCE (not tag): ∅ and X --- the boundary subobjects (⊥/⊤) --- are
+     // clopen in EVERY topology, so their openness is derived from their
+     // @c IsBoundaryObject status, never hand-tagged.  (General structural
+     // inference from carrier topology + set shape is a follow-up, #905.)
+     dedekind::category::IsBoundaryObject<S>);
 
 /**
  * @concept IsClosed
@@ -76,9 +75,8 @@ export template <typename S>
 concept IsClosed =
     dedekind::category::IsPredicate<S> &&
     (requires { typename S::is_closed_tag; } ||
-     // INFERENCE: ∅ / X are closed in every topology (see @c IsOpen above).
-     dedekind::category::IsInitialObject<S> ||
-     dedekind::category::IsTerminalObject<S>);
+     // INFERENCE: ∅ / X (@c IsBoundaryObject) are closed in every topology.
+     dedekind::category::IsBoundaryObject<S>);
 
 /**
  * @concept IsClopen
