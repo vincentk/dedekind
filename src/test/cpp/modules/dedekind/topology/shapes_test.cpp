@@ -183,14 +183,19 @@ TEST_CASE("Topology: clopen is the decidable core (Stone)",
     CHECK((HasDecidableMembership<Universeℤ> && IsClopen<Universeℤ>));
   }
 
-  SECTION(
-      "open ⊋ clopen: a proper open set is not clopen (semidecidable, "
-      "not decidable)") {
+  SECTION("open ⊋ clopen: an open ray is open but not clopen (topological)") {
     using OpenRay = Ray<int, Direction::Upward>;
     static_assert(IsOpen<OpenRay> && !IsClosed<OpenRay>,
                   "an open ray is open but not closed");
-    static_assert(!IsClopen<OpenRay>,
-                  "so it is not clopen: the interior is undecidable");
+    static_assert(!IsClopen<OpenRay>, "so it is not clopen");
+    // This is a TOPOLOGICAL fact only.  OpenRay's logic_species defaults to
+    // Boole, so its membership IS decidable (a halfspace on int is a Boole
+    // predicate).  So clopen-ness (topology) and HasDecidableMembership
+    // (classifier) are independent axes: not-clopen does NOT imply undecidable.
+    static_assert(
+        HasDecidableMembership<OpenRay>,
+        "OpenRay membership is Boole-decidable despite being not-clopen");
     CHECK(!IsClopen<OpenRay>);
+    CHECK(HasDecidableMembership<OpenRay>);
   }
 }

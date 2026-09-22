@@ -77,31 +77,38 @@ concept IsClosed = dedekind::category::IsPredicate<S> &&
  * @details In synthetic topology (Smyth / Rosolini / Escardó, the project's own
  *          @c Rosolini-dominance foundation) @b open @c = semidecidable /
  *          affirmable and @b closed @c = refutable, so @b clopen @c = @b open
- *          @c ∩ @b closed @c = @b decidable.  This is the topological name for
- *          @c sets::HasDecidableMembership and the @c Σ @c ∩ @c ¬Σ core of
- * #894, glued to the algebraic Boolean-ring reading by Stone duality (#903).
- *          The clopen sublattice of @c Ω @b is the decidable fragment, and its
- *          size measures decidability = disconnectedness: @c Boole is totally
- *          disconnected (every proposition clopen → fully decidable); a Kleene
- *          chain is highly connected (only the poles @c ⊥ / @c ⊤ clopen → a
- *          large undecidable interior).
+ *          @c ∩ @b closed @c = @b decidable.  @c IsClopen is the @b topological
+ *          conservative certificate of that; @c sets::HasDecidableMembership
+ *          (@c logic_species @c == @c Boole) is the @b classifier one.  They
+ * are
+ *          @b independent --- neither is defined from the other, and they
+ *          coincide only on the Boole-tagged core (a Kleene-tagged clopen set
+ * is clopen but NOT recognized-decidable, the #847 gap).  Both approximate the
+ * synthetic-topology identity "clopen = decidable" from the topology and
+ * classifier sides, which Stone duality glues to the Boolean-ring reading
+ * (#903, #894).  The clopen sublattice of @c Ω measures decidability =
+ * disconnectedness (@c Boole totally disconnected → fully decidable; a Kleene
+ * chain highly connected → only the poles @c ⊥ /
+ *          @c ⊤ clopen).
  */
 export template <typename S>
 concept IsClopen = IsOpen<S> && IsClosed<S>;
 
 // The boundary sets Ø, 𝔸 are the archetypal clopen sets (∅ and X are open ∧
-// closed in EVERY topology) and the ⊥/⊤ decidable core of Sub(U): the Stone
-// bridge in miniature (#903).  On the decided (Boole) core, clopen and
-// HasDecidableMembership coincide.  (A Kleene-tagged boundary is still clopen
-// but conservatively NOT recognized-decidable --- the #847 gap the #894
-// codomain reduction closes by retagging Ø<T,L> → Ø<T,Boole>.)
+// closed in EVERY topology) and the ⊥/⊤ bounds of Sub(U).  IsClopen and
+// HasDecidableMembership are INDEPENDENT certificates (see the concept doc):
+// they coincide on the Boole-tagged core witnessed here, but a Kleene-tagged
+// clopen boundary (Ø<int,Kleene>) is clopen yet NOT recognized-decidable ---
+// the #847 gap the #894 codomain reduction closes by retagging Ø<T,L> →
+// Ø<T,Boole>. So the two witnesses below record the COINCIDENCE on the core,
+// not an implication.
 static_assert(
     IsClopen<Ø<int, Boole>> && IsClopen<UniversalSet<int, Boole>>,
     "Ø and 𝔸 are clopen: ∅ and X are open ∧ closed in every topology");
 static_assert(HasDecidableMembership<Ø<int, Boole>> &&
                   HasDecidableMembership<UniversalSet<int, Boole>>,
-              "and decidable: the clopen boundary core IS the decidable core "
-              "(Stone: clopen = decidable)");
+              "and, on the Boole core, decidable: the two independent "
+              "certificates coincide there (they do not imply each other)");
 
 /**
  * @concept IsNeighborhood
