@@ -59,15 +59,65 @@ using namespace dedekind::order;
  */
 export template <typename S>
 concept IsOpen =
-    dedekind::category::IsPredicate<S> && requires { typename S::is_open_tag; };
+    dedekind::category::IsPredicate<S> &&
+    (requires { typename S::is_open_tag; } ||
+     // INFERENCE (not tag): ∅ and X --- the boundary subobjects (⊥/⊤) --- are
+     // clopen in EVERY topology, so their openness is derived from their
+     // @c IsBoundaryObject status, never hand-tagged.  (General structural
+     // inference from carrier topology + set shape is a follow-up, #905.)
+     dedekind::category::IsBoundaryObject<S>);
 
 /**
  * @concept IsClosed
  * @brief A set that contains all its limit points.
  */
 export template <typename S>
-concept IsClosed = dedekind::category::IsPredicate<S> &&
-                   requires { typename S::is_closed_tag; };
+concept IsClosed =
+    dedekind::category::IsPredicate<S> &&
+    (requires { typename S::is_closed_tag; } ||
+     // INFERENCE: ∅ / X (@c IsBoundaryObject) are closed in every topology.
+     dedekind::category::IsBoundaryObject<S>);
+
+/**
+ * @concept IsClopen
+ * @brief A set that is BOTH open and closed --- the topological face of
+ *        @b decidability.
+ *
+ * @details In synthetic topology (Smyth / Rosolini / Escardó, the project's own
+ *          @c Rosolini-dominance foundation) @b open @c = semidecidable /
+ *          affirmable and @b closed @c = refutable, so @b clopen @c = @b open
+ *          @c ∩ @b closed @c = @b decidable.  @c IsClopen is the @b topological
+ *          conservative certificate of that; @c sets::HasDecidableMembership
+ *          (@c logic_species @c == @c Boole) is the @b classifier one.  They
+ * are
+ *          @b independent --- neither is defined from the other, and they
+ *          coincide only on the Boole-tagged core (a Kleene-tagged clopen set
+ * is clopen but NOT recognized-decidable, the #847 gap).  Both approximate the
+ * synthetic-topology identity "clopen = decidable" from the topology and
+ * classifier sides, which Stone duality glues to the Boolean-ring reading
+ * (#903, #894).  The clopen sublattice of @c Ω measures decidability =
+ * disconnectedness (@c Boole totally disconnected → fully decidable; a Kleene
+ * chain highly connected → only the poles @c ⊥ /
+ *          @c ⊤ clopen).
+ */
+export template <typename S>
+concept IsClopen = IsOpen<S> && IsClosed<S>;
+
+// The boundary sets Ø, 𝔸 are the archetypal clopen sets (∅ and X are open ∧
+// closed in EVERY topology) and the ⊥/⊤ bounds of Sub(U).  IsClopen and
+// HasDecidableMembership are INDEPENDENT certificates (see the concept doc):
+// they coincide on the Boole-tagged core witnessed here, but a Kleene-tagged
+// clopen boundary (Ø<int,Kleene>) is clopen yet NOT recognized-decidable ---
+// the #847 gap the #894 codomain reduction closes by retagging Ø<T,L> →
+// Ø<T,Boole>. So the two witnesses below record the COINCIDENCE on the core,
+// not an implication.
+static_assert(
+    IsClopen<Ø<int, Boole>> && IsClopen<UniversalSet<int, Boole>>,
+    "Ø and 𝔸 are clopen: ∅ and X are open ∧ closed in every topology");
+static_assert(HasDecidableMembership<Ø<int, Boole>> &&
+                  HasDecidableMembership<UniversalSet<int, Boole>>,
+              "and, on the Boole core, decidable: the two independent "
+              "certificates coincide there (they do not imply each other)");
 
 /**
  * @concept IsNeighborhood
@@ -75,9 +125,19 @@ concept IsClosed = dedekind::category::IsPredicate<S> &&
  * @details Synthesized from the Open set morphology.
  */
 export template <typename N, typename T>
-concept IsNeighborhood = IsOpen<N> && requires(N n, T p) {
-  { n(p) } -> IsΩ;
-};
+concept IsNeighborhood =
+    IsOpen<N> &&
+    // A neighbourhood must be able to SURROUND a point, so it cannot be empty:
+    // exclude the initial boundary.  Ø is IsOpen (clopen) but is a
+    // neighbourhood of no point; point-aware containment is a runtime property,
+    // so this is the type-level guard (#904 CP).
+    !dedekind::category::IsInitialObject<N> && requires(N n, T p) {
+      { n(p) } -> IsΩ;
+    };
+
+// Regression (#904): Ø is open but is a neighbourhood of no point.
+static_assert(!IsNeighborhood<Ø<int, Boole>, int>,
+              "the empty set is IsOpen but not a neighbourhood");
 
 /**
  * @section neighborhood__Topology_2

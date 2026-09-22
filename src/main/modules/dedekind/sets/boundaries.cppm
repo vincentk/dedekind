@@ -103,6 +103,8 @@ struct Ø final {
    *  branch @c :lattice::LatticeBottom already uses), so the Sub(U) bound
    *  participates in the categorical initial-object vocabulary.  #881. */
   using is_initial_object_tag = void;
+  // ⊥ = ∅ is clopen in every topology; @c topology::IsOpen / @c IsClosed INFER
+  // that from the initiality tag above --- no separate open/closed tag (#903).
 
   /** @section boundaries__Algebraic_Axioms */
   template <typename Op>
@@ -286,6 +288,8 @@ struct UniversalSet final {
    *  @c IsTerminalObject (the tag-discovery branch @c :lattice::LatticeTop
    *  already uses).  #881. */
   using is_terminal_object_tag = void;
+  // ⊤ = X is clopen in every topology; @c topology::IsOpen / @c IsClosed INFER
+  // that from the terminality tag above --- no separate open/closed tag (#903).
 
   /** @section boundaries__Algebraic_Axioms_2 */
   template <typename Op>
