@@ -389,9 +389,12 @@ concept HasLogicalOperators = requires(T a, T b) {
  *        logical species.
  *
  * @details Satisfied when @c T either carries the @b closed logical operators
- * (@c && / @c || / @c ! all returning @c T, as for @c bool and @c Ternary), or
- * is a registered logic wrapper declaring a valid @c logic_species (e.g.\ @c
- * Truth<L>).  @c int and @c std::string satisfy neither (@c int's @c && yields
+ * (@c && / @c || / @c ! all returning @c T, as for @c bool, @c Ternary, and the
+ * @c Truth<L> wrappers now the meet/join register has landed), or is a
+ * registered logic wrapper declaring a valid @c logic_species.  @c Truth<L> now
+ * qualifies by @b both branches; the @c logic_species branch remains the
+ * fallback for any wrapper that does not overload the operators.  @c int and
+ * @c std::string satisfy neither (@c int's @c && yields
  * @c bool, and neither declares a @c logic_species), so @c IsΩ does not
  * over-accept them.  This is deliberately decoupled from @c GetLogic, whose
  * permissive default maps any type to @c Boole and would otherwise let
@@ -409,8 +412,10 @@ export template <typename T>
 concept IsΩ =
     // Raw truth-type: the logical operators close on T (bool, Ternary)...
     HasLogicalOperators<T> ||
-    // ...or a registered logic wrapper declaring a valid logic_species
-    // (e.g. Truth<L>), which need not overload the operators directly.
+    // ...or a registered logic wrapper declaring a valid logic_species.  This
+    // is the fallback for a wrapper that does not close the operators; Truth<L>
+    // now does (see the meet/join register), so it also matches the branch
+    // above.
     requires {
       typename T::logic_species;
       requires IsLogicalSpecies<typename T::logic_species>;
@@ -749,15 +754,20 @@ static_assert(HasLogicalOperators<bool>,
               "is the built-in-operator behaviour, not a concept claim).");
 
 // IsΩ gate (the truth-object concept): raw truth-types qualify via closed
-// operators; the Truth<L> wrappers via their registered logic_species; and
-// non-truth types (int, ...) qualify by neither.
+// operators; the Truth<L> wrappers now qualify via BOTH branches (the meet/join
+// register closes &&/||/! AND they declare a logic_species); non-truth types
+// (int, ...) qualify by neither.
 static_assert(IsΩ<bool> && IsΩ<Ternary>,
               "raw truth-types are Ω (their &&/||/! close on the type)");
 static_assert(
+    HasLogicalOperators<Truth<Boole>> && HasLogicalOperators<Truth<Kleene>>,
+    "the meet/join register closes &&/||/! on Truth<L> (all return Truth<L>), "
+    "so Truth<L> is Ω by the operator branch too, not only via logic_species");
+static_assert(
     IsΩ<Truth<Boole>> && IsΩ<Truth<Kleene>>,
-    "Truth<L> wrappers are Ω via their registered logic_species "
-    "(they carry the involution ! and the lattice order <=; meet/join "
-    "are the species AND/OR, and the rig +/* surface was retired)");
+    "Truth<L> wrappers are Ω (via the closed operators and their registered "
+    "logic_species; they carry the involution ! and the lattice order <=, "
+    "meet/join are the species AND/OR, and the rig +/* surface was retired)");
 static_assert(!IsΩ<int>,
               "int is not Ω: its && yields bool (not int) and it declares no "
               "logic_species");
