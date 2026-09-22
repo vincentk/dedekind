@@ -390,7 +390,7 @@ concept HasLogicalOperators = requires(T a, T b) {
  *
  * @details Satisfied when @c T either carries the @b closed logical operators
  * (@c && / @c || / @c ! all returning @c T, as for @c bool, @c Ternary, and the
- * @c Truth<L> wrappers now the meet/join register has landed), or is a
+ * @c Truth<L> wrappers now that the meet/join register has landed), or is a
  * registered logic wrapper declaring a valid @c logic_species.  @c Truth<L> now
  * qualifies by @b both branches; the @c logic_species branch remains the
  * fallback for any wrapper that does not overload the operators.  @c int and
@@ -610,12 +610,29 @@ struct Truth {
    *  built-in @c bool, both operands are evaluated.  This is sound here because
    *  a @c Truth is an already-computed lattice @b value with no side effects,
    * so strict meet/join is extensionally the built-in behaviour.  Reflection @c
-   * ! is the De Morgan involution @c L::RFL. */
+   * ! is the De Morgan involution @c L::RFL.  Mixed-operand forms
+   * (@c Truth<L> @c op @c machine_type and the reverse) promote the raw carrier
+   * to the wrapper, so the result stays @c Truth<L>; they also disambiguate
+   * @c Truth<Boole>{true} @c && @c false, which is otherwise a tie between the
+   * same-type overload (via the implicit ctor) and the built-in (via contextual
+   * @c bool). */
   friend constexpr Truth operator&&(Truth a, Truth b) noexcept {
     return {L::AND(a.value, b.value)};
   }
   friend constexpr Truth operator||(Truth a, Truth b) noexcept {
     return {L::OR(a.value, b.value)};
+  }
+  friend constexpr Truth operator&&(Truth a, machine_type b) noexcept {
+    return {L::AND(a.value, b)};
+  }
+  friend constexpr Truth operator&&(machine_type a, Truth b) noexcept {
+    return {L::AND(a, b.value)};
+  }
+  friend constexpr Truth operator||(Truth a, machine_type b) noexcept {
+    return {L::OR(a.value, b)};
+  }
+  friend constexpr Truth operator||(machine_type a, Truth b) noexcept {
+    return {L::OR(a, b.value)};
   }
 
   /** @section logic__Lattice_Order

@@ -49,6 +49,13 @@ TEST_CASE("Logic: The Binary Prime (Classical)", "[category][logic][boolean]") {
     STATIC_REQUIRE(std::same_as<decltype(t || f), Truth<Boole>>);
     CHECK((t && f) == f);  // meet: true ∧ false = false
     CHECK((t || f) == t);  // join: true ∨ false = true
+
+    // Mixed operands: a raw carrier promotes to the wrapper (unambiguous, and
+    // Truth-valued rather than decaying to bool).
+    STATIC_REQUIRE(std::same_as<decltype(t && false), Truth<Boole>>);
+    STATIC_REQUIRE(std::same_as<decltype(true || f), Truth<Boole>>);
+    CHECK((t && false) == f);
+    CHECK((false || t) == t);
   }
 
   SECTION("Logical register on Truth<Kleene> (&& / || / !)") {
