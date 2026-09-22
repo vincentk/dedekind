@@ -125,9 +125,19 @@ static_assert(HasDecidableMembership<Ø<int, Boole>> &&
  * @details Synthesized from the Open set morphology.
  */
 export template <typename N, typename T>
-concept IsNeighborhood = IsOpen<N> && requires(N n, T p) {
-  { n(p) } -> IsΩ;
-};
+concept IsNeighborhood =
+    IsOpen<N> &&
+    // A neighbourhood must be able to SURROUND a point, so it cannot be empty:
+    // exclude the initial boundary.  Ø is IsOpen (clopen) but is a
+    // neighbourhood of no point; point-aware containment is a runtime property,
+    // so this is the type-level guard (#904 CP).
+    !dedekind::category::IsInitialObject<N> && requires(N n, T p) {
+      { n(p) } -> IsΩ;
+    };
+
+// Regression (#904): Ø is open but is a neighbourhood of no point.
+static_assert(!IsNeighborhood<Ø<int, Boole>, int>,
+              "the empty set is IsOpen but not a neighbourhood");
 
 /**
  * @section neighborhood__Topology_2
