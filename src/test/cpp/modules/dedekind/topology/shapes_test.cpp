@@ -160,7 +160,7 @@ TEST_CASE("Topology: Rules of Continuity Coverage", "[topology][continuity]") {
   }
 }
 
-TEST_CASE("Topology: clopen is the decidable core (Stone)",
+TEST_CASE("Topology: Ø/𝔸 in the clopen ∩ decidable boundary core (Stone)",
           "[topology][clopen][decidability]") {
   using namespace dedekind::sets;
   using namespace dedekind::category;
@@ -174,7 +174,7 @@ TEST_CASE("Topology: clopen is the decidable core (Stone)",
     CHECK(IsClopen<Universeℤ>);
   }
 
-  SECTION("clopen core == decidable core (Stone: clopen = decidable)") {
+  SECTION("Ø and 𝔸 are BOTH clopen AND decidable (the shared boundary core)") {
     static_assert(HasDecidableMembership<Emptyℤ> && IsClopen<Emptyℤ>,
                   "the empty boundary is both clopen and decidable");
     static_assert(HasDecidableMembership<Universeℤ> && IsClopen<Universeℤ>,
@@ -183,18 +183,23 @@ TEST_CASE("Topology: clopen is the decidable core (Stone)",
     CHECK((HasDecidableMembership<Universeℤ> && IsClopen<Universeℤ>));
   }
 
-  SECTION("open ⊋ clopen: an open ray is open but not clopen (topological)") {
+  SECTION(
+      "IsClopen needs BOTH tags: an open-only-tagged ray is not IsClopen "
+      "(structural, not topological)") {
     using OpenRay = Ray<int, Direction::Upward>;
+    // OpenRay carries is_open_tag but not is_closed_tag, so IsClopen fails at
+    // the TAG level.  This is a STRUCTURAL (tag-absence) check, NOT a
+    // topological claim: on the discrete order on int, {n > p} = {n >= p+1} is
+    // in fact clopen --- the type simply is not TAGGED closed.  A genuine
+    // open-⊋-clopen witness needs a non-discrete space (e.g. ℝ).
     static_assert(IsOpen<OpenRay> && !IsClosed<OpenRay>,
-                  "an open ray is open but not closed");
-    static_assert(!IsClopen<OpenRay>, "so it is not clopen");
-    // This is a TOPOLOGICAL fact only.  OpenRay's logic_species defaults to
-    // Boole, so its membership IS decidable (a halfspace on int is a Boole
-    // predicate).  So clopen-ness (topology) and HasDecidableMembership
-    // (classifier) are independent axes: not-clopen does NOT imply undecidable.
-    static_assert(
-        HasDecidableMembership<OpenRay>,
-        "OpenRay membership is Boole-decidable despite being not-clopen");
+                  "open ray carries is_open_tag but not is_closed_tag");
+    static_assert(!IsClopen<OpenRay>,
+                  "so it does not satisfy IsClopen (needs both tags)");
+    // Independent axis: OpenRay's logic_species defaults to Boole, so its
+    // membership IS decidable --- tag-absence of clopen is not undecidability.
+    static_assert(HasDecidableMembership<OpenRay>,
+                  "OpenRay membership is Boole-decidable (independent axis)");
     CHECK(!IsClopen<OpenRay>);
     CHECK(HasDecidableMembership<OpenRay>);
   }
