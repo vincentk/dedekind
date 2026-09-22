@@ -592,66 +592,40 @@ struct Truth {
   machine_type value;
 
   /** @section logic__Monic_Construction */
-  // Removed 'explicit' to allow seamless return from lambdas/expressions
-  constexpr Truth(machine_type v) noexcept : value(v) {}
+  // @b explicit: a raw carrier does @b not implicitly become a @c Truth.  This
+  // keeps @c Truth<Boole> @c && @c bool decaying to the built-in @c bool @c &&
+  // (short-circuit preserved, which matters if the raw operand has side
+  // effects), instead of binding a strict eager wrapper overload.  Opt into the
+  // lattice register by wrapping: @c Truth<L>{v}.
+  constexpr explicit Truth(machine_type v) noexcept : value(v) {}
   constexpr Truth() noexcept : value(L::False) {}
 
   // Unary Negation: Ensures !Boolean returns a Boolean, not a raw bool
   friend constexpr Truth operator!(Truth a) noexcept {
-    return {L::RFL(a.value)};
+    return Truth{L::RFL(a.value)};
   }
 
   /** @section logic__Lattice_Register
-   *  @brief Meet @c ∧ = @c L::AND and join @c ∨ = @c L::OR, spelled with the
-   *  @b logical operators @c && / @c || to complete the @c && / @c || / @c !
-   *  register (matching the raw carriers @c bool / @c Ternary, whose own
-   *  @c && / @c || already close on the type).
-   *  @note Overloaded @c && / @c || are @b strict (no short-circuit): unlike
-   *  built-in @c bool, both operands are evaluated.  This is sound here because
-   *  a @c Truth is an already-computed lattice @b value with no side effects,
-   * so strict meet/join is extensionally the built-in behaviour.  Reflection @c
-   * ! is the De Morgan involution @c L::RFL.  Mixed-operand forms
-   * (@c Truth<L> @c op @c machine_type and the reverse) promote the raw carrier
-   * to the wrapper, so the result stays @c Truth<L>; they also disambiguate
-   * @c Truth<Boole>{true} @c && @c false, which is otherwise a tie between the
-   * same-type overload (via the implicit ctor) and the built-in (via contextual
-   * @c bool). */
+   *  @brief Meet @c ∧ = @c L::AND and join @c ∨ = @c L::OR on two @b wrappers,
+   *  spelled @c && / @c || to complete the @c && / @c || / @c ! register
+   *  (matching the raw carriers @c bool / @c Ternary).
+   *  @note @b Same-species only (@c Truth<L> @c op @c Truth<L>).  A @b mixed
+   *  @c Truth @c op @c carrier expression is deliberately @e not captured:
+   *  because the carrier ctor is @c explicit the raw operand does not promote
+   * to
+   *  @c Truth, so @c Truth<Boole> @c && @c bool falls to the built-in @c bool
+   *  @c && @c bool, preserving short-circuit.  Wrap explicitly to stay in the
+   *  lattice.  The register is @b strict (no short-circuit): on two wrappers
+   *  both operands are already-computed, side-effect-free values, so eager
+   *  meet/join is extensionally the built-in behaviour. */
   friend constexpr Truth operator&&(Truth a, Truth b) noexcept(
       noexcept(L::AND(a.value, b.value))) {
-    return {L::AND(a.value, b.value)};
+    return Truth{L::AND(a.value, b.value)};
   }
   /** @brief Join @c ∨ of two wrappers.  @overload */
   friend constexpr Truth operator||(Truth a, Truth b) noexcept(
       noexcept(L::OR(a.value, b.value))) {
-    return {L::OR(a.value, b.value)};
-  }
-  /** @brief Meet @c ∧ with a raw carrier on the right (promoted).  The operand
-   *  is a template constrained to the @b exact @c machine_type, so a stray
-   *  conversion (e.g. @c Truth<Boole> @c && @c 42, or a pointer) does @b not
-   *  select this overload.  @overload */
-  template <std::same_as<machine_type> M>
-  friend constexpr Truth operator&&(Truth a,
-                                    M b) noexcept(noexcept(L::AND(a.value,
-                                                                  b))) {
-    return {L::AND(a.value, b)};
-  }
-  /** @brief Meet @c ∧ with a raw carrier on the left (promoted).  @overload */
-  template <std::same_as<machine_type> M>
-  friend constexpr Truth operator&&(M a, Truth b) noexcept(
-      noexcept(L::AND(a, b.value))) {
-    return {L::AND(a, b.value)};
-  }
-  /** @brief Join @c ∨ with a raw carrier on the right (promoted).  @overload */
-  template <std::same_as<machine_type> M>
-  friend constexpr Truth operator||(Truth a,
-                                    M b) noexcept(noexcept(L::OR(a.value, b))) {
-    return {L::OR(a.value, b)};
-  }
-  /** @brief Join @c ∨ with a raw carrier on the left (promoted).  @overload */
-  template <std::same_as<machine_type> M>
-  friend constexpr Truth operator||(M a, Truth b) noexcept(
-      noexcept(L::OR(a, b.value))) {
-    return {L::OR(a, b.value)};
+    return Truth{L::OR(a.value, b.value)};
   }
 
   /** @section logic__Lattice_Order
@@ -663,7 +637,7 @@ struct Truth {
    * carries the involution and the lattice order, not @c + / @c * / @c one().
    */
   friend constexpr Truth operator<=(Truth a, Truth b) noexcept {
-    return {lift_logic<L>(L::OR(a.value, b.value) == b.value)};
+    return Truth{lift_logic<L>(L::OR(a.value, b.value) == b.value)};
   }
 
   /** @section logic__Conversion */
