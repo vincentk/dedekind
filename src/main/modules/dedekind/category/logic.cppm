@@ -261,17 +261,20 @@ static_assert(IsLogicalSpecies<Chain<int>>,
  * and the reflection @c 100-v never leaves the range.
  */
 export struct Percentage final {
- private:
-  std::uint8_t v_;  // invariant: 0 ≤ v_ ≤ 100 (private, so it cannot be broken)
- public:
+  /** @brief The confidence value.  @b Naked (public) per the Juliet Posture:
+   *  the @c [0,100] range is a @b saturating @b convention, not encapsulated
+   *  private state.  The constructor clamps and the algebra (@c min / @c max /
+   *  @c ¬) preserves the range, so every value that arrives @e through the API
+   *  is in @c [0,100]; a caller who writes an out-of-range @c v directly is on
+   *  their own, exactly as one who casts a fourth value into the @c Ternary
+   *  enum.  Structural transparency over an OO invariant guard. */
+  std::uint8_t v;
   /** @brief Saturating construction into @c [0,100]: an out-of-range input pins
    *  to the nearest pole.  The clamp is done in a signed @b wide type @b before
    *  narrowing, so @c Percentage{256} = @c 100 and @c Percentage{-1} = @c 0
    *  (not the wrap-around a narrowing-first clamp would give). */
   constexpr Percentage(int p) noexcept
-      : v_(static_cast<std::uint8_t>(p < 0 ? 0 : (p > 100 ? 100 : p))) {}
-  /** @brief The clamped percentage value in @c [0,100]. */
-  constexpr std::uint8_t value() const noexcept { return v_; }
+      : v(static_cast<std::uint8_t>(p < 0 ? 0 : (p > 100 ? 100 : p))) {}
   constexpr std::strong_ordering operator<=>(const Percentage&) const = default;
   constexpr bool operator==(const Percentage&) const = default;
 };
@@ -293,16 +296,14 @@ export struct Percent final {
   static constexpr Percentage False{0};
   /** @brief Meet @c ∧ = numeric minimum. */
   static constexpr Percentage AND(Percentage a, Percentage b) noexcept {
-    return {std::ranges::min(a.value(), b.value())};
+    return {std::ranges::min(a.v, b.v)};
   }
   /** @brief Join @c ∨ = numeric maximum. */
   static constexpr Percentage OR(Percentage a, Percentage b) noexcept {
-    return {std::ranges::max(a.value(), b.value())};
+    return {std::ranges::max(a.v, b.v)};
   }
   /** @brief ¬p = @c 100-p: reflection about the self-dual midpoint @c 50. */
-  static constexpr Percentage RFL(Percentage a) noexcept {
-    return {100 - a.value()};
-  }
+  static constexpr Percentage RFL(Percentage a) noexcept { return {100 - a.v}; }
 };
 
 static_assert(IsLogicalSpecies<Percent>,
@@ -951,8 +952,8 @@ static_assert(Percent::RFL(Percentage{50}) == Percentage{50},
 static_assert(Percent::RFL(Percent::True) == Percent::False &&
                   Percent::RFL(Percent::False) == Percent::True,
               "Percent: ¬ swaps the poles 0 ↔ 100");
-static_assert(Percentage{200}.value() == 100 &&
-                  Percentage{256}.value() == 100 && Percentage{-1}.value() == 0,
+static_assert(Percentage{200}.v == 100 && Percentage{256}.v == 100 &&
+                  Percentage{-1}.v == 0,
               "Percentage enforces [0,100] (clamp in a wide type before "
               "narrowing: 256↦100 not 0, -1↦0 not 100)");
 
