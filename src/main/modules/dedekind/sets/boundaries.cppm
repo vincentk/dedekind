@@ -103,13 +103,8 @@ struct Ø final {
    *  branch @c :lattice::LatticeBottom already uses), so the Sub(U) bound
    *  participates in the categorical initial-object vocabulary.  #881. */
   using is_initial_object_tag = void;
-
-  /** @brief @c Ø is @b clopen: the empty set is open @b and closed in every
-   *  topology, so it carries both tags and satisfies @c topology::IsClopen.
-   *  With @c 𝔸 it is the clopen (= decidable) core of @c Sub(U): the @c ⊥ of
-   *  the Boolean/Stone core (#903, the topological face of decidability). */
-  using is_open_tag = void;
-  using is_closed_tag = void;
+  // ⊥ = ∅ is clopen in every topology; @c topology::IsOpen / @c IsClosed INFER
+  // that from the initiality tag above --- no separate open/closed tag (#903).
 
   /** @section boundaries__Algebraic_Axioms */
   template <typename Op>
@@ -293,13 +288,8 @@ struct UniversalSet final {
    *  @c IsTerminalObject (the tag-discovery branch @c :lattice::LatticeTop
    *  already uses).  #881. */
   using is_terminal_object_tag = void;
-
-  /** @brief @c 𝔸 is @b clopen: the whole space is open @b and closed in every
-   *  topology, so it carries both tags and satisfies @c topology::IsClopen.
-   *  With @c Ø it is the clopen (= decidable) core of @c Sub(U): the @c ⊤ of
-   *  the Boolean/Stone core (#903, the topological face of decidability). */
-  using is_open_tag = void;
-  using is_closed_tag = void;
+  // ⊤ = X is clopen in every topology; @c topology::IsOpen / @c IsClosed INFER
+  // that from the terminality tag above --- no separate open/closed tag (#903).
 
   /** @section boundaries__Algebraic_Axioms_2 */
   template <typename Op>

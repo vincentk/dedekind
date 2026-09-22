@@ -59,15 +59,26 @@ using namespace dedekind::order;
  */
 export template <typename S>
 concept IsOpen =
-    dedekind::category::IsPredicate<S> && requires { typename S::is_open_tag; };
+    dedekind::category::IsPredicate<S> &&
+    (requires { typename S::is_open_tag; } ||
+     // INFERENCE (not tag): ∅ and X --- the initial / terminal subobjects ---
+     // are clopen in EVERY topology, so their openness is derived from their
+     // boundary status, never hand-tagged.  (General structural inference of
+     // open/closed/clopen from carrier topology + set shape is a follow-up.)
+     dedekind::category::IsInitialObject<S> ||
+     dedekind::category::IsTerminalObject<S>);
 
 /**
  * @concept IsClosed
  * @brief A set that contains all its limit points.
  */
 export template <typename S>
-concept IsClosed = dedekind::category::IsPredicate<S> &&
-                   requires { typename S::is_closed_tag; };
+concept IsClosed =
+    dedekind::category::IsPredicate<S> &&
+    (requires { typename S::is_closed_tag; } ||
+     // INFERENCE: ∅ / X are closed in every topology (see @c IsOpen above).
+     dedekind::category::IsInitialObject<S> ||
+     dedekind::category::IsTerminalObject<S>);
 
 /**
  * @concept IsClopen
