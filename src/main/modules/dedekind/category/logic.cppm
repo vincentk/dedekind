@@ -25,10 +25,21 @@
  * - Kleene: The Kleene Topos ({True, False, Unknown}).
  *
  * @section logic__Structural_Invariants
- * Logics in Dedekind are treated as Rigs (Semirings).
- * - Addition (+) is the Supremum/Join (OR).
- * - Multiplication (*) is the Infimum/Meet (AND).
- * - Successor (S) is the mapping x ∨ 1 (The Archimedean Step).
+ * The @b shipped logic species (@c Boole, @c Kleene, @c Chain<T>) are @b De
+ * @b Morgan @b algebras: a bounded distributive lattice with an order-reversing
+ * involution, named by their morphisms @c AND / @c OR / @c RFL.  (The bare
+ * @c IsLogicalSpecies signature admits other logics too, e.g. a future
+ * non-involutive intuitionistic species; De Morgan is a property of the shipped
+ * family, not of the signature.)
+ * - @c OR is the supremum / join (∨).
+ * - @c AND is the infimum / meet (∧).
+ * - @c RFL is the reflection / De Morgan involution (¬); a genuine complement
+ *   only on the two-chain 𝔹.
+ * The shipped species are bounded chains (@c Boole = 2 grades, @c Kleene = 3,
+ * @c Chain<T> = |T|), hence Kleene lattices; see @c IsDeMorganAlgebra /
+ * @c IsBoundedDeMorganChain / @c IsBooleanLogic below (#901).  The former rig
+ * (@c + / @c *) surface on @c Truth was retired: a truth value is a lattice
+ * element, not a semiring element.
  *
  * Textbook defaults in this partition:
  * - Classical two-valued logic uses C++ `operator&&` / `operator||`.
@@ -52,6 +63,8 @@ module;
 #include <concepts>
 #include <cstdint>  // std::int8_t — Ternary int cast for the <=> body.
 #include <functional>
+#include <limits>       // std::numeric_limits: Chain<T> bounds (INT_MIN/MAX).
+#include <type_traits>  // std::remove_cv_t (reject cv-qualified Chain carriers).
 
 export module dedekind.category:logic;
 
@@ -180,6 +193,61 @@ export struct Kleene final {
 
 // STATIC "IS A" CHECK:
 static_assert(IsLogicalSpecies<Kleene>, "Kleene must fulfill IsLogicalSpecies");
+
+/**
+ * @section logic__Species_3
+ * @brief @c Chain<T>: the finite Kleene chain over an integral carrier @c T,
+ *        the full-@c T-range many-valued logic.  @c Boole (2 grades) and
+ *        @c Kleene (3) are the small distinguished members; @c Chain<int> spans
+ *        the implementation's full @c int range.
+ *
+ * @details Meet @c AND = @c min, join @c OR = @c max (the numeric order @b is
+ * the truth order); reflection @c RFL = @c ~a (bitwise NOT), the
+ *          order-reversing involution swapping @c ⊥ = @c numeric_limits::min
+ * and
+ *          @c ⊤ = @c numeric_limits::max.  A bounded De Morgan chain, hence
+ *          @b Kleene (chain implies normality), @b not Boolean: only the two
+ *          poles are complemented.
+ *
+ *          Signed @b and unsigned integrals both work (unsigned poles @c 0 /
+ *          @c UMAX; signed @c INT_MIN / @c INT_MAX, where @c ~x @c = @c -1-x on
+ *          two's complement).  @c bool is excluded (its @c ~ promotes, breaking
+ *          @c RFL: @c Boole @b is the 2-chain).  Floating point is excluded by
+ *          @c std::integral: totality needs @c min / @c max / @c ¬ everywhere,
+ *          and @c NaN breaks the total order.
+ *
+ *          The bounds are the carrier's own @c min / @c max, so the value set
+ *          @b is the chain.  A sub-interval like @c [0,100] (a "Percentage"
+ *          confidence, @c ¬-fixed at 50) is @b not sound here: @c Ω would still
+ *          be all of @c T, so @c True would not be the top and @c ¬ could leave
+ *          the interval.  A genuinely bounded @c [Lo,Hi] chain needs a carrier
+ *          that @e enforces the range: a follow-up (#906).  The species names
+ *          the ops (@c min / @c max / @c ¬); raw @c T keeps its own boolean
+ *          @c &&, so the concepts gate the species' named ops (register-
+ *          agnostic).  See #901.
+ */
+export template <std::integral T>
+  requires(std::same_as<T, std::remove_cv_t<T>> && !std::same_as<T, bool>)
+struct Chain final {
+  using Ω = T;
+  /** @brief The top pole @c ⊤ = the carrier maximum. */
+  static constexpr T True = std::numeric_limits<T>::max();
+  /** @brief The bottom pole @c ⊥ = the carrier minimum. */
+  static constexpr T False = std::numeric_limits<T>::min();
+
+  /** @brief Meet @c ∧ = numeric minimum (the numeric order @b is the truth
+   *  order). */
+  static constexpr T AND(T a, T b) { return std::ranges::min(a, b); }
+  /** @brief Join @c ∨ = numeric maximum. */
+  static constexpr T OR(T a, T b) { return std::ranges::max(a, b); }
+  /** @brief ¬a = ~a (bitwise NOT): the order-reversing involution swapping the
+   *  poles (⊥ ↔ ⊤).  Overflow-free (no arithmetic). */
+  static constexpr T RFL(T a) { return static_cast<T>(~a); }
+};
+
+// STATIC "IS A" CHECK:
+static_assert(IsLogicalSpecies<Chain<int>>,
+              "Chain<int> must fulfill IsLogicalSpecies");
 
 export constexpr Ternary operator&&(Ternary a, Ternary b) {
   return Kleene::AND(a, b);
@@ -360,15 +428,18 @@ export enum class CardinalityTag { Finite, Countable, Continuum };
  * pares among the truth-objects: a peer of any other @f$\Omega@f$ at the object
  * layer, but the one target every decidable map factors through (the Rosolini
  * dominance @f$\Sigma@f$).  @c Ternary (Kleene
- *          @f$K_3@f$) is the single non-trivial @f$\Omega@f$ we currently ship:
- * a peer of @f$\mathbb{B}@f$, @b not the canonical @f$\Omega@f$; for it
- * @f$\iota@f$ is the concrete map @c bool @c ↪ @c Ternary
- *          (@c Ternary = @f$\mathbb{B} + 1@f$, adjoining @c Unknown), while the
- *          concept @c IsDominanceInclusion fixes only the shape
+ *          @f$K_3@f$) and @c Chain<T> are the non-trivial @f$\Omega@f$ we
+ * currently ship: peers of @f$\mathbb{B}@f$, @b not the canonical
+ * @f$\Omega@f$; for @c Ternary @f$\iota@f$ is the concrete map @c bool @c ↪
+ * @c Ternary (@c Ternary = @f$\mathbb{B} + 1@f$, adjoining @c Unknown), while
+ * the concept @c IsDominanceInclusion fixes only the shape
  *          @f$\mathbb{B} \to \Omega@f$; a future @f$\Omega@f$ is admitted by
  * that shape but supplies its own @f$\mathbb{B}@f$-inclusion (@c lift_logic
- *          currently embeds only @c bool @c ↪ @c Ternary, returning other
- *          values unchanged).  @f$\top \in \mathbb{B}@f$ and
+ *          embeds @c bool @c ↪ @f$\Omega@f$ generically, sending
+ *          @f$\bot/\top@f$ to the target species' poles: @c Ternary::{False,
+ *          True}, @c Chain<T>'s @c numeric_limits @c {min,max}; a value already
+ *          in @f$\Omega@f$ passes through unchanged).  @f$\top \in
+ * \mathbb{B}@f$ and
  *          @f$\mathbb{B}@f$ is closed under dependent conjunction, so a
  *          @f$\mathbb{B}@f$-valued map is @b decidable: a set whose
  *          characteristic map factors as
@@ -395,9 +466,21 @@ export enum class CardinalityTag { Finite, Countable, Continuum };
  */
 export template <typename TargetLogic, typename T>
 constexpr auto lift_logic(T value) {
-  if constexpr (std::is_same_v<TargetLogic, Kleene> &&
-                std::is_same_v<T, bool>) {
-    return value ? Ternary::True : Ternary::False;
+  // The dominance inclusion 𝔹 ↪ Ω: a decided @c bool answer embeds as the
+  // target species' poles (@c false ↦ @c ⊥, @c true ↦ @c ⊤).  This is uniform
+  // across every @c IsLogicalSpecies: @c Boole maps to itself (its poles ARE
+  // the bools), @c Kleene to @c Ternary::{False,True}, @c Chain<T> to
+  // @c numeric_limits<T>::{min,max}.  Without this, @c Truth<Chain<T>> would
+  // store the raw @c 0 / @c 1 (interior chain values), not @c ⊥ / @c ⊤.  A
+  // value already in the species (@c T = @c Ω, not @c bool) passes through.
+  // The endpoints are cast to @c Ω explicitly: @c IsLogicalSpecies only asks
+  // @c True / @c False to be @e convertible to @c Ω, so a species declaring
+  // them at a narrower type (e.g. @c int constants for a wrapper @c Ω) must not
+  // leak that declaration type out of the codomain-preserving inclusion.
+  if constexpr (std::is_same_v<T, bool> && IsLogicalSpecies<TargetLogic>) {
+    using Ω = typename TargetLogic::Ω;
+    return value ? static_cast<Ω>(TargetLogic::True)
+                 : static_cast<Ω>(TargetLogic::False);
   } else {
     return value;
   }
@@ -417,14 +500,24 @@ template <typename L>
 inline constexpr bool lifts_to_v<L, L> = true;
 template <>
 inline constexpr bool lifts_to_v<Boole, Kleene> = true;
+// NB: the 𝔹 ↪ Chain<T> inclusion is real (lift_logic implements it: decided
+// answers land on the poles) but is deliberately NOT registered here.  The
+// cross-species set combine that consumes lifts_to_v routes through
+// sets::join_logic_t, which only selects Boole/Kleene; a Boole/Chain mix would
+// pick Boole and then demand the false reverse edge Chain ↪ Boole.  Registering
+// a half-edge the set layer cannot honour would be a misleading claim.  Chain
+// as a set codomain (a general dominance join) is a separate increment.
 export template <typename From, typename To>
 concept LiftsTo = lifts_to_v<From, To>;
 
 /**
  * @class Truth
  * @brief The Monic Wrapper for a Logical Species (Ω).
- * @details Elevates raw types (bool, Ternary) into algebraic Rigs
- *          to prevent machine-level integral promotion.
+ * @details Wraps a raw truth type (bool, Ternary) as a De Morgan-lattice
+ *          element (carrying the involution @c ! and the lattice order @c <=),
+ *          preventing machine-level integral promotion.  The former rig
+ *          (@c + / @c *) surface was retired: a truth value is a lattice
+ *          element, not a semiring element (#901).
  */
 export template <typename L = Boole>
 struct Truth {
@@ -443,37 +536,17 @@ struct Truth {
     return {L::RFL(a.value)};
   }
 
-  /** @section logic__Rig_Operations */
-
-  // Addition as the Supremum (OR)
-  friend constexpr Truth operator+(Truth a, Truth b) noexcept {
-    return {L::OR(a.value, b.value)};
-  }
-
-  // Multiplication as the Infimum (AND)
-  friend constexpr Truth operator*(Truth a, Truth b) noexcept {
-    return {L::AND(a.value, b.value)};
-  }
-
+  /** @section logic__Lattice_Order
+   *  @brief The truth order: @c a @c <= @c b iff the join @c a @c ∨ @c b is
+   *  @c b.  Meet / join / reflection themselves are the species morphisms
+   *  @c L::AND / @c L::OR / @c L::RFL.  The rig @c + / @c * surface was
+   *  @b retired (#901): a truth value is a @b De @b Morgan-lattice element, not
+   * a semiring element, so it carries the involution @c ! and the lattice
+   * order, not @c + / @c * / @c one().  (The logical @c && / @c || meet/join
+   * register is a separate follow-up increment.) */
   friend constexpr Truth operator<=(Truth a, Truth b) noexcept {
-    // Universal Lattice Order: a <= b iff the Join of a and b is b.
-    return {lift_logic<L>((a + b) == b)};
+    return {lift_logic<L>(L::OR(a.value, b.value) == b.value)};
   }
-
-  /** @section logic__Identity_Discovery */
-  template <typename Op>
-  static constexpr auto identity_v = []() {
-    if constexpr (std::is_same_v<Op, std::plus<Truth>> ||
-                  std::is_same_v<Op, std::plus<void>>) {
-      return Truth{L::False};
-    } else if constexpr (std::is_same_v<Op, std::multiplies<Truth>> ||
-                         std::is_same_v<Op, std::multiplies<void>>) {
-      return Truth{L::True};
-    }
-  }();
-
-  // The Archimedean Anchor (Successor = x + 1)
-  static constexpr Truth one() { return {L::True}; }
 
   /** @section logic__Conversion */
   constexpr explicit operator machine_type() const noexcept { return value; }
@@ -603,9 +676,11 @@ static_assert(HasLogicalOperators<bool>,
 // non-truth types (int, ...) qualify by neither.
 static_assert(IsΩ<bool> && IsΩ<Ternary>,
               "raw truth-types are Ω (their &&/||/! close on the type)");
-static_assert(IsΩ<Truth<Boole>> && IsΩ<Truth<Kleene>>,
-              "Truth<L> wrappers are Ω via their registered logic_species "
-              "(they overload +/* and !, not &&/||)");
+static_assert(
+    IsΩ<Truth<Boole>> && IsΩ<Truth<Kleene>>,
+    "Truth<L> wrappers are Ω via their registered logic_species "
+    "(they carry the involution ! and the lattice order <=; meet/join "
+    "are the species AND/OR, and the rig +/* surface was retired)");
 static_assert(!IsΩ<int>,
               "int is not Ω: its && yields bool (not int) and it declares no "
               "logic_species");
@@ -669,6 +744,12 @@ struct is_involutive<logic_complement<Boole>, bool> : std::true_type {};
 template <>
 struct is_involutive<logic_complement<Kleene>, Ternary> : std::true_type {};
 
+/** @brief Witness: the @c Chain<T> reflection @c ~a is an involution
+ *  (@c ~~x = x) for every integral carrier. */
+template <std::integral T>
+  requires(!std::same_as<T, bool>)
+struct is_involutive<logic_complement<Chain<T>>, T> : std::true_type {};
+
 /** @brief @c true iff the logic negation ¬ = @c L::RFL is a certified
  *  involution.  Both shipped De Morgan logics (@c 𝔹, @c K₃) qualify; a future
  *  intuitionistic species whose ¬¬ is only a closure would not.  Downstream
@@ -681,6 +762,134 @@ static_assert(logic_negation_is_involutive_v<Boole>,
               "𝔹: ¬ is an involution, so !!A = A is sound");
 static_assert(logic_negation_is_involutive_v<Kleene>,
               "K₃: ¬ is an involution, so !!A = A is sound");
+static_assert(logic_negation_is_involutive_v<Chain<int>>,
+              "Chain<int>: ~ is an involution (~~x = x)");
+
+/**
+ * @section logic__De_Morgan_Hierarchy
+ * @brief The committed algebraic tower for the truth objects (#901).
+ *
+ * @details @b Register-agnostic concepts: each gates the species' @b named ops
+ *          (@c L::AND / @c L::OR / @c L::RFL) and their laws, NOT any
+ * particular C++ operator, so a raw carrier like @c int qualifies via @c
+ * Chain<int> without overloading (@c int's own @c && stays boolean).
+ *
+ *  - @c IsDeMorganAlgebra: a logical species whose reflection is a certified
+ *    involution (bounded distributive lattice + De Morgan ¬; @c ¬¬=id).
+ *  - @c IsBoundedDeMorganChain: adds that the truth carrier @c Ω is totally
+ *    ordered.  By the chain-normality theorem (on a chain @c min(a,¬a) ≤
+ *    @c max(b,¬b)), this is automatically a @b Kleene lattice.
+ *  - @c IsBooleanLogic: adds that the reflection is a genuine @b complement
+ *    (@c a∧¬a=⊥, @c a∨¬a=⊤), which on a chain forces the 2-element case (@c 𝔹).
+ *
+ *  Species-level twin of the value-level @c IsPst (bounded-chain truth object):
+ *  @c IsPst gates a truth @b value type (@c bool, @c Ternary), these gate the
+ *  @b species / algebra, so @c Chain<int> qualifies although @c int is not @c
+ * IsΩ.
+ */
+/**
+ * @concept IsDeMorganAlgebra
+ * @brief A logical species whose reflection @c ¬ is a certified involution
+ *        (@c ¬¬=id): a De Morgan algebra (bounded distributive lattice with an
+ *        order-reversing involution).
+ * @note These three concepts are conservative @b shape @b gates (like @c IsΩ /
+ * @c IsPst): they certify the operation SIGNATURES plus the involution law
+ * (@c ¬¬=id), NOT the full semantic De Morgan / distributivity / order-reversal
+ * laws.  Those are pinned by the @c static_assert witnesses below (and, for the
+ * reducer, by @c category:lattice).  So a pathological species could pass
+ * without every law; the concept recognises the intended family (@c Boole,
+ * @c Kleene, @c Chain<T>) and the witnesses hold the laws.
+ */
+export template <typename L>
+concept IsDeMorganAlgebra =
+    IsLogicalSpecies<L> && logic_negation_is_involutive_v<L>;
+
+/**
+ * @concept IsBoundedDeMorganChain
+ * @brief A De Morgan algebra whose truth carrier @c Ω is totally ordered; by
+ *        the chain-normality theorem this is automatically a @b Kleene lattice.
+ */
+export template <typename L>
+concept IsBoundedDeMorganChain =
+    IsDeMorganAlgebra<L> && std::totally_ordered<typename L::Ω> &&
+    // Exclude NaN-carrying (floating) Ω: @c std::totally_ordered is a SYNTAX
+    // check, and a @c NaN breaks the total order chain-normality relies on. The
+    // shipped Ω are integral / enum, so genuinely totally ordered.
+    !std::floating_point<typename L::Ω>;
+
+/** @brief @c true iff the species' reflection is a genuine complement
+ *  (@c a∧¬a=⊥ and @c a∨¬a=⊤ for all @c a), i.e. the chain is 2-element.
+ *  @c Boole qualifies; @c Kleene and @c Chain<T> (|Ω|>2) do not: their interior
+ *  values have no complement.  This is the @c logic_species=@c Boole reading of
+ *  decidability: the clopen core @c Σ = @c 𝔹 ↪ @c Ω. */
+export template <typename L>
+inline constexpr bool logic_is_complemented_v = false;
+template <>
+inline constexpr bool logic_is_complemented_v<Boole> = true;
+
+/**
+ * @concept IsBooleanLogic
+ * @brief A bounded De Morgan chain whose reflection is a genuine @b complement
+ *        (@c a∧¬a=⊥, @c a∨¬a=⊤); on a chain this forces the 2-element case @c
+ * 𝔹.
+ */
+export template <typename L>
+concept IsBooleanLogic =
+    IsBoundedDeMorganChain<L> && logic_is_complemented_v<L>;
+
+// Tower witnesses: 𝔹, K₃, Chain<int> are all De Morgan / bounded chains; only
+// Boole is Boolean (complemented).  These live where the Forms are defined; the
+// concrete-carrier Juliet witnesses live downstream (see #901 acceptance).
+static_assert(IsDeMorganAlgebra<Boole> && IsDeMorganAlgebra<Kleene> &&
+                  IsDeMorganAlgebra<Chain<int>>,
+              "𝔹, K₃, Chain<int> are De Morgan algebras (involutive ¬)");
+static_assert(IsBoundedDeMorganChain<Boole> && IsBoundedDeMorganChain<Kleene> &&
+                  IsBoundedDeMorganChain<Chain<int>>,
+              "... and bounded De Morgan chains (Ω totally ordered ⟹ Kleene)");
+static_assert(
+    IsBooleanLogic<Boole>,
+    "𝔹 is Boolean: its reflection is a genuine complement (2-element)");
+static_assert(!IsBooleanLogic<Kleene> && !IsBooleanLogic<Chain<int>>,
+              "K₃ and Chain<int> are Kleene, NOT Boolean (interior values "
+              "uncomplemented)");
+
+// Chain<int> proof-of-concept (#901): the involution is bitwise NOT with
+// INT_MIN / INT_MAX as the poles, and bound-absorption IS decidability
+// collapse.
+static_assert(Chain<int>::RFL(Chain<int>::False) == Chain<int>::True &&
+                  Chain<int>::RFL(Chain<int>::True) == Chain<int>::False,
+              "Chain<int>: ~ swaps ⊥=INT_MIN and ⊤=INT_MAX");
+static_assert(Chain<int>::RFL(Chain<int>::RFL(42)) == 42,
+              "Chain<int>: ~~x = x (involutive, fixed-point-free)");
+static_assert(
+    Chain<int>::AND(7, Chain<int>::False) == Chain<int>::False &&
+        Chain<int>::OR(7, Chain<int>::True) == Chain<int>::True,
+    "Chain<int>: bounds absorb (x∧⊥=⊥, x∨⊤=⊤): decidability collapse");
+static_assert(
+    Chain<int>::AND(0, Chain<int>::RFL(0)) != Chain<int>::False,
+    "Chain<int>: 0 is NOT complemented (0 ∧ ~0 = min(0,-1) = -1 ≠ ⊥)");
+static_assert(Chain<int>::RFL(Chain<int>::AND(3, 8)) ==
+                  Chain<int>::OR(Chain<int>::RFL(3), Chain<int>::RFL(8)),
+              "Chain<int>: De Morgan ~(a∧b) = ~a ∨ ~b");
+
+// The full-range integral chain works for signed AND unsigned carriers.
+static_assert(IsBoundedDeMorganChain<Chain<unsigned>> &&
+                  !IsBooleanLogic<Chain<unsigned>>,
+              "unsigned full-range chain [0,UMAX] is Kleene, not Boolean");
+
+// The 𝔹 ↪ Chain<T> dominance inclusion: decided bool answers land on the poles,
+// so Truth<Chain<T>> (its operator<= lifts a bool verdict) stores ⊥/⊤, never
+// the interior 0/1.  Without this lift_logic branch the order relation would
+// decay.
+static_assert(
+    lift_logic<Chain<int>>(true) == Chain<int>::True &&
+        lift_logic<Chain<int>>(false) == Chain<int>::False,
+    "lift_logic<Chain<int>>(bool) maps ⊤/⊥ to INT_MAX/INT_MIN, not 1/0");
+static_assert((Truth<Chain<int>>{3} <= Truth<Chain<int>>{7}).value ==
+                      Chain<int>::True &&
+                  (Truth<Chain<int>>{7} <= Truth<Chain<int>>{3}).value ==
+                      Chain<int>::False,
+              "Truth<Chain<int>>::operator<= yields the poles ⊤/⊥, not 1/0");
 
 /**
  * @brief Membership in the decided core @f$\{\top, \bot\}@f$ of an

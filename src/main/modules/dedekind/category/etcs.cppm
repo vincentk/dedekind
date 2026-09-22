@@ -27,8 +27,20 @@
  * | **6. Exponentiation (B^A)**   | `Exponential<A,B>` / `IsExponential` |
  * | **7. Subobject Classifier**   | `Subobject<A,χ>` / `classify<A>(p)`  |
  * | **8. Empty Set (∅)**          | `Zero` (`std::nullptr_t`)            |
- * | **9. NNO (ℕ)**               | `SpeciesTraits<unsigned>`             |
+ * | **9. NNO (ℕ)**               | `IsNNO<Cardinality,z,s>` (`natural`)  |
  * | **10. Axiom of Choice** (asp.) | `meet` / `join` power-object lattice |
+ *
+ * @note Row 9 is a @b witness of the NNO @e role, not an equality.  The genuine
+ *       witness (carrying a zero and a successor) is
+ *       @c IsNNO<Cardinality,@c cardinality_zero,@c cardinality_succ> in
+ *       @c :numbers (@c natural.cppm), also reachable via @c :sets:cardinality
+ *       (@c IsCountable).  @c unsigned is only a @b finite @b carrier
+ *       @b stand-in: @c SpeciesTraits<unsigned> supplies the @c Domain /
+ *       @c machine_type, @b not a zero or successor, and it is bounded with an
+ *       overflow Sollbruchstelle, whereas ℕ is countably infinite.  Even
+ *       @c Cardinality is an approximation (it carries an @c ℵ_0 point beyond
+ *       the textbook NNO).  Read "NNO (ℕ)" as the categorical role, never as
+ *       "@c unsigned @c = ℕ".
  *
  * @section etcs__What_Concreteness_Pins
  *

@@ -39,11 +39,7 @@ TEST_CASE("Logic: The Binary Prime (Classical)", "[category][logic][boolean]") {
     Truth<Boole> t{true};
     Truth<Boole> f{false};
 
-    // Verify our 'operator+' bypasses the int-promotion trap
-    STATIC_CHECK(std::same_as<decltype(t + f), Truth<Boole>>);
-    CHECK((t + f).value == true);
-
-    // De Morgan's laws for Boolean wrapper
+    // De Morgan's laws for the Boolean wrapper (via contextual bool).
     CHECK(!(t && f) == (!t || !f));
     CHECK(!(t || f) == (!t && !f));
   }
@@ -112,16 +108,6 @@ TEST_CASE("Logic: The Indeterminacy (Kleene)", "[category][logic][kleene]") {
   }
 }
 
-TEST_CASE("Logic: Archimedean Successor", "[category][logic][peano]") {
-  SECTION("Boolean Successor") {
-    Truth<Boole> b{false};
-    // Successor S(0) = 1
-    CHECK((b + Truth<Boole>::one()).value == true);
-    // Saturating S(1) = 1
-    CHECK((Truth<Boole>{true} + Truth<Boole>::one()).value == true);
-  }
-}
-
 /** @file test/cpp/modules/dedekind/category/logic_test.cpp */
 
 TEST_CASE("Logic: The Lattice Order (Relational Honesty)",
@@ -153,5 +139,59 @@ TEST_CASE("Logic: The Lattice Order (Relational Honesty)",
     // Antisymmetry (Strictly different values cannot be <= each other both
     // ways)
     CHECK(refutes(T <= U));
+  }
+}
+
+TEST_CASE("Logic: the finite Kleene chain Chain<int> (De Morgan, #901)",
+          "[category][logic][demorgan][chain]") {
+  using C = Chain<int>;
+
+  SECTION("meet/join/reflection = min/max/~; ~ swaps the poles") {
+    CHECK(C::AND(7, 3) == 3);            // meet = min
+    CHECK(C::OR(7, 3) == 7);             // join = max
+    CHECK(C::RFL(0) == ~0);              // reflection = bitwise NOT
+    CHECK(C::RFL(C::False) == C::True);  // ⊥ ↦ ⊤ (INT_MIN ↦ INT_MAX)
+    CHECK(C::RFL(C::True) == C::False);  // ⊤ ↦ ⊥
+  }
+
+  SECTION("involution, bound-absorption (decidability collapse), De Morgan") {
+    CHECK(C::RFL(C::RFL(42)) == 42);         // ~~x = x
+    CHECK(C::AND(7, C::False) == C::False);  // x ∧ ⊥ = ⊥
+    CHECK(C::OR(7, C::True) == C::True);     // x ∨ ⊤ = ⊤
+    CHECK(C::RFL(C::AND(3, 8)) ==
+          C::OR(C::RFL(3), C::RFL(8)));  // De Morgan ~(a∧b) = ~a ∨ ~b
+  }
+
+  SECTION("Kleene, not Boolean: interior values are uncomplemented") {
+    CHECK(C::AND(0, C::RFL(0)) != C::False);  // 0 ∧ ~0 = min(0,-1) = -1 ≠ ⊥
+  }
+
+  SECTION("concept tower (runtime witnesses, for coverage)") {
+    CHECK(IsDeMorganAlgebra<C>);
+    CHECK(IsBoundedDeMorganChain<C>);  // ⟹ Kleene (chain-normality)
+    CHECK(!IsBooleanLogic<C>);         // not Boolean (interior uncomplemented)
+    CHECK(IsBooleanLogic<Boole>);      // 𝔹 is the Boolean core
+    CHECK(IsBoundedDeMorganChain<Kleene>);
+    CHECK(!IsBooleanLogic<Kleene>);
+  }
+
+  SECTION("unsigned full-range chain") {
+    using U = Chain<unsigned>;
+    CHECK(U::False == 0u);
+    CHECK(U::RFL(0u) == U::True);  // ¬0 = UMAX
+    CHECK(U::RFL(U::RFL(123u)) == 123u);
+    CHECK(IsBoundedDeMorganChain<U>);
+    CHECK(!IsBooleanLogic<U>);
+  }
+
+  SECTION("𝔹 ↪ Chain<int>: lift_logic + Truth order land on the poles") {
+    // A decided bool verdict embeds at the chain's poles, not the interior 0/1.
+    CHECK(lift_logic<C>(true) == C::True);    // ⊤ = INT_MAX
+    CHECK(lift_logic<C>(false) == C::False);  // ⊥ = INT_MIN
+
+    // Truth<Chain<int>>::operator<= lifts (OR==b) through lift_logic, so its
+    // answer is a pole, never 1/0 (which are interior chain values).
+    CHECK((Truth<C>{3} <= Truth<C>{7}).value == C::True);
+    CHECK((Truth<C>{7} <= Truth<C>{3}).value == C::False);
   }
 }
