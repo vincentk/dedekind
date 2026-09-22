@@ -174,4 +174,26 @@ TEST_CASE("Logic: the finite Kleene chain Chain<int> (De Morgan, #901)",
     CHECK(IsBoundedDeMorganChain<Kleene>);
     CHECK(!IsBooleanLogic<Kleene>);
   }
+
+  SECTION("Percentage = Chain<int,0,100>: 50 is the neutral point (50:50)") {
+    using P = Percentage;
+    CHECK(P::False == 0);     // 0% = ⊥
+    CHECK(P::True == 100);    // 100% = ⊤
+    CHECK(P::RFL(50) == 50);  // neutral fixed point (maximally uncertain)
+    CHECK(P::RFL(0) == 100);  // ¬0% = 100%
+    CHECK(P::RFL(100) == 0);
+    CHECK(P::AND(30, 70) == 30);  // meet = pessimistic
+    CHECK(P::OR(30, 70) == 70);   // join = optimistic
+    CHECK(IsBoundedDeMorganChain<P>);
+    CHECK(!IsBooleanLogic<P>);  // 101 grades: Kleene, not Boolean
+  }
+
+  SECTION("unsigned full-range chain (affine reflection = ~a)") {
+    using U = Chain<unsigned>;
+    CHECK(U::False == 0u);
+    CHECK(U::RFL(0u) == U::True);  // ¬0 = UMAX
+    CHECK(U::RFL(U::RFL(123u)) == 123u);
+    CHECK(IsBoundedDeMorganChain<U>);
+    CHECK(!IsBooleanLogic<U>);
+  }
 }

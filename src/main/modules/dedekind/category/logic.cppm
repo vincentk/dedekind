@@ -192,37 +192,61 @@ static_assert(IsLogicalSpecies<Kleene>, "Kleene must fulfill IsLogicalSpecies");
 
 /**
  * @section logic__Species_3
- * @brief @c Chain<T> --- the finite Kleene chain over a signed integral carrier
- *        @c T: the |T|-grade many-valued logic.  @c Boole (2 grades) and
- *        @c Kleene (3) are the small distinguished members; @c Chain<int> is
- * the 2³²-grade one, @c Chain<short> / @c Chain<long> the 2¹⁶ / 2⁶⁴ ones.
+ * @brief @c Chain<T,Lo,Hi> --- a finite Kleene chain over an integral carrier
+ *        @c T with poles @c ⊥ = @c Lo, @c ⊤ = @c Hi (defaulting to the full
+ * type range).  A |[Lo,Hi]|-grade many-valued logic; @c Boole (2 grades) and
+ *        @c Kleene (3) are the small distinguished members, @c Chain<int> the
+ *        2³²-grade one.
  *
  * @details Meet @c AND = @c min, join @c OR = @c max (the numeric order @b is
- * the truth order); reflection @c RFL = @c ~ (bitwise NOT), which on two's
- *          complement is @c ~x @c = @c -1-x --- the order-reversing involution
- *          swapping @c ⊥ = @c INT_MIN and @c ⊤ = @c INT_MAX, with no fixed
- * point. A bounded De Morgan chain, hence @b Kleene (chain ⟹ normality), but
- *          @b not Boolean: only the two bounds are complemented (an interior
- *          @c x has @c x @c ∧ @c ~x @c = @c min(x,-1-x) @c ≠ @c ⊥).  The
- * species names the ops (@c min / @c max / @c ~); raw @c T keeps its own
- * boolean
- *          @c && --- which is why the concepts gate the species' named ops, not
- *          C++ operators (register-agnostic).  See #901.
+ *          the truth order); reflection @c RFL is the order-reversing @b affine
+ *          involution @c ¬a @c = @c Lo+Hi-a, fixing the midpoint.  For the full
+ *          type range this is exactly bitwise @c ~a (@c Lo+Hi @c = @c -1 signed
+ *          / @c UMAX unsigned).  A bounded De Morgan chain, hence @b Kleene
+ *          (chain ⟹ normality), @b not Boolean: only the two poles are
+ *          complemented.
+ *
+ *          @b Signed @b and @b unsigned integrals both work (unsigned poles
+ *          @c 0 / @c UMAX; signed @c INT_MIN / @c INT_MAX).  @c bool is
+ * excluded (its @c ~ promotes, breaking @c RFL --- @c Boole @b is the 2-chain).
+ *          Floating point is excluded by @c std::integral: totality needs
+ *          @c min / @c max / @c ¬ defined everywhere, and @c NaN breaks the
+ *          total order --- the same Sollbruchstelle as an unbounded carrier.
+ *
+ *          @c Percentage @c = @c Chain<int,0,100> is the everyday face: a
+ *          confidence in @c [0,100] whose neutral (@c ¬-fixed) point is @c 50
+ *          (@c ¬50=50, "50:50" = maximally uncertain, the discretised continuum
+ *          analogue of Kleene's @c U).  The species names the ops
+ *          (@c min / @c max / @c ¬); raw @c T keeps its own boolean @c &&, so
+ *          the concepts gate the species' named ops, not C++ operators
+ *          (register-agnostic).  See #901.
  */
-export template <std::signed_integral T>
+export template <std::integral T, T Lo = std::numeric_limits<T>::min(),
+                 T Hi = std::numeric_limits<T>::max()>
+  requires(!std::same_as<T, bool>)
 struct Chain final {
+  static_assert(Lo <= Hi,
+                "Chain<T,Lo,Hi>: poles must satisfy Lo (⊥) <= Hi (⊤)");
   using Ω = T;
-  static constexpr T True = std::numeric_limits<T>::max();   // ⊤
-  static constexpr T False = std::numeric_limits<T>::min();  // ⊥
+  static constexpr T True = Hi;   // ⊤
+  static constexpr T False = Lo;  // ⊥
 
   static constexpr T AND(T a, T b) { return std::ranges::min(a, b); }
   static constexpr T OR(T a, T b) { return std::ranges::max(a, b); }
-  static constexpr T RFL(T a) { return static_cast<T>(~a); }
+  /** @brief ¬a = Lo+Hi-a: the order-reversing affine involution fixing the
+   *  midpoint (= bitwise @c ~a for the full type range). */
+  static constexpr T RFL(T a) { return static_cast<T>((Lo + Hi) - a); }
 };
 
 // STATIC "IS A" CHECK:
 static_assert(IsLogicalSpecies<Chain<int>>,
               "Chain<int> must fulfill IsLogicalSpecies");
+
+/** @brief The everyday chain: a confidence in @c [0,100], neutral (@c ¬-fixed)
+ *  at @c 50 ("50:50" = maximally uncertain).  The accessible face of the
+ *  Kleene-chain / clopen-decidability story --- almost everyone understands
+ *  "50:50", few understand "clopen". */
+export using Percentage = Chain<int, 0, 100>;
 
 export constexpr Ternary operator&&(Ternary a, Ternary b) {
   return Kleene::AND(a, b);
@@ -694,10 +718,11 @@ struct is_involutive<logic_complement<Boole>, bool> : std::true_type {};
 template <>
 struct is_involutive<logic_complement<Kleene>, Ternary> : std::true_type {};
 
-/** @brief Witness: the @c Chain<T> reflection @c ~ is an involution
- *  (@c ~~x = x on two's complement) for every signed integral @c T. */
-template <std::signed_integral T>
-struct is_involutive<logic_complement<Chain<T>>, T> : std::true_type {};
+/** @brief Witness: the @c Chain<T,Lo,Hi> reflection @c ¬a=Lo+Hi-a is an
+ *  involution (@c ¬¬x = x) for every integral carrier and pole choice. */
+template <std::integral T, T Lo, T Hi>
+  requires(!std::same_as<T, bool>)
+struct is_involutive<logic_complement<Chain<T, Lo, Hi>>, T> : std::true_type {};
 
 /** @brief @c true iff the logic negation ¬ = @c L::RFL is a certified
  *  involution.  Both shipped De Morgan logics (@c 𝔹, @c K₃) qualify; a future
@@ -793,6 +818,21 @@ static_assert(
 static_assert(Chain<int>::RFL(Chain<int>::AND(3, 8)) ==
                   Chain<int>::OR(Chain<int>::RFL(3), Chain<int>::RFL(8)),
               "Chain<int>: De Morgan ~(a∧b) = ~a ∨ ~b");
+
+// The affine reflection ¬a=Lo+Hi-a generalises ~a off the full type range:
+// unsigned full-range chains and Percentage = Chain<int,0,100> (neutral fixed
+// point 50 = "50:50" = maximally uncertain) are Kleene chains, not Boolean.
+static_assert(IsBoundedDeMorganChain<Chain<unsigned>> &&
+                  !IsBooleanLogic<Chain<unsigned>>,
+              "unsigned full-range chain [0,UMAX] is Kleene, not Boolean");
+static_assert(IsBoundedDeMorganChain<Percentage> && !IsBooleanLogic<Percentage>,
+              "Percentage [0,100] is a Kleene chain (101 grades), not Boolean");
+static_assert(Percentage::RFL(50) == 50,
+              "Percentage: 50 is the neutral fixed point (¬50=50, '50:50')");
+static_assert(Percentage::RFL(0) == 100 && Percentage::RFL(100) == 0,
+              "Percentage: ¬ swaps 0% ↔ 100%");
+static_assert(Percentage::AND(30, 70) == 30 && Percentage::OR(30, 70) == 70,
+              "Percentage: meet = min (pessimistic), join = max (optimistic)");
 
 /**
  * @brief Membership in the decided core @f$\{\top, \bot\}@f$ of an
