@@ -50,7 +50,7 @@ using dedekind::numbers::mandelbrot_orbit;
 namespace seq_meet {
 
 /** @brief A countable real-ish carrier (cardinality_type = ℵ_0 ⇒
- *         ClassicalLogic regime; operator- gives the Cauchy shape). */
+ *         Boole regime; operator- gives the Cauchy shape). */
 struct CountableReal {
   using cardinality_type = dedekind::sets::ℵ_0;
   double v = 0.0;
@@ -113,11 +113,11 @@ TEST_CASE(
     "collapse + Bolzano–Weierstrass crown",
     "[sequences][meeting-point][crown]") {
   /** @brief The crown (row 7): a countable carrier sits in the
-   *         ClassicalLogic regime, so IsClassicallyConvergent fires and a
+   *         Boole regime, so IsClassicallyConvergent fires and a
    *         (bounded Sup, subsequence Sub) pair witnesses
    *         Bolzano–Weierstrass. */
   STATIC_CHECK(std::is_same_v<convergence_logic<Path<seq_meet::CountableReal>>,
-                              dedekind::category::ClassicalLogic>);
+                              dedekind::category::Boole>);
   STATIC_CHECK(IsClassicallyConvergent<Path<seq_meet::CountableReal>>);
   STATIC_CHECK(
       WitnessesBolzanoWeierstrass<seq_meet::bw_sub, seq_meet::bw_super>);
@@ -130,8 +130,8 @@ TEST_CASE("sequence meeting-point — ExactReal (ℝ) is the honest-rejection fo
    *         BW is classically famous on ℝ yet constructively rejected. */
   using R = ExactReal<>;
   STATIC_CHECK(IsCauchySequence<Path<R>>);
-  STATIC_CHECK(std::is_same_v<convergence_logic<Path<R>>,
-                              dedekind::category::TernaryLogic>);
+  STATIC_CHECK(
+      std::is_same_v<convergence_logic<Path<R>>, dedekind::category::Kleene>);
   STATIC_CHECK_FALSE(IsClassicallyConvergent<Path<R>>);
 }
 

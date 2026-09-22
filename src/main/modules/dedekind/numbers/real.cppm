@@ -125,7 +125,7 @@ class Real {
 export template <IsRealCarrier S>
 struct PartialAddReal {
   using value_type = Real<S>;
-  using logic_species = TernaryLogic;
+  using logic_species = Kleene;
 
   TernaryResult<Real<S>> operator()(
       std::pair<const Real<S>&, const Real<S>&> p) const noexcept {
@@ -142,7 +142,7 @@ struct PartialAddReal {
 export template <IsRealCarrier S>
 struct PartialMulReal {
   using value_type = Real<S>;
-  using logic_species = TernaryLogic;
+  using logic_species = Kleene;
 
   TernaryResult<Real<S>> operator()(
       std::pair<const Real<S>&, const Real<S>&> p) const noexcept {
@@ -160,7 +160,7 @@ struct PartialMulReal {
 export template <IsRealCarrier S>
 struct PartialDivReal {
   using value_type = Real<S>;
-  using logic_species = TernaryLogic;
+  using logic_species = Kleene;
 
   TernaryResult<Real<S>> operator()(
       std::pair<const Real<S>&, const Real<S>&> p) const noexcept {
@@ -213,7 +213,7 @@ export template <dedekind::morphologies::IsInteger I,
   requires std::convertible_to<I, S>
 struct PartialEmbedRationalToReal {
   using value_type = Real<S>;
-  using logic_species = TernaryLogic;
+  using logic_species = Kleene;
 
   TernaryResult<Real<S>> operator()(const Rational<I>& q) const noexcept {
     // The embedding is lossy due to IEEE 754 approximation — inline to avoid
@@ -323,7 +323,7 @@ constexpr Real<machine_real_scalar> embed_floating_ℝ_d(F v) {
  * Accepts native Real<S> and delegates predecessor checks through ℚ.
  */
 export template <IsRealCarrier S = machine_real_scalar,
-                 IsInteger I = default_integer, typename L = ClassicalLogic,
+                 IsInteger I = default_integer, typename L = Boole,
                  typename C = ℶ_1>
 struct RealsOf {
   using Domain = Real<S>;
@@ -345,7 +345,7 @@ struct RealsOf {
 export using RealSet = RealsOf<>;
 
 /** @brief The canonical real-number universe @c ℝ @c = @c
- *         𝔸<QuadraticReal<2>, ClassicalLogic, ℶ_1> --- the coat-hanger.
+ *         𝔸<QuadraticReal<2>, Boole, ℶ_1> --- the coat-hanger.
  *
  *  @details Per #559 the named species symbols denote @b universe values
  *  (constexpr @c UniversalSet instances over the carrier).  @c ℝ's carrier is
@@ -369,13 +369,12 @@ export using RealSet = RealsOf<>;
  *  ℝ.  The cross-carrier membership classifier is @c RealSet @c = @c RealsOf<>.
  */
 export inline constexpr auto ℝ =
-    dedekind::sets::𝔸<QuadraticReal<2>, ClassicalLogic, ℶ_1>;
+    dedekind::sets::𝔸<QuadraticReal<2>, Boole, ℶ_1>;
 
 static_assert(
-    std::same_as<
-        std::remove_cvref_t<decltype(ℝ)>,
-        dedekind::sets::UniversalSet<QuadraticReal<2>, ClassicalLogic, ℶ_1>>,
-    "ℝ is the universe 𝔸<QuadraticReal<2>, ClassicalLogic, ℶ_1> — the "
+    std::same_as<std::remove_cvref_t<decltype(ℝ)>,
+                 dedekind::sets::UniversalSet<QuadraticReal<2>, Boole, ℶ_1>>,
+    "ℝ is the universe 𝔸<QuadraticReal<2>, Boole, ℶ_1> — the "
     "coat-hanger realised as ℚ(√2).");
 static_assert(std::same_as<typename std::remove_cvref_t<decltype(ℝ)>::Domain,
                            QuadraticReal<2>>,
@@ -400,7 +399,7 @@ static_assert(IsDedekindComplete<QuadraticReal<2>>,
  *  integer-coordinate lattices).  Rule of thumb: compute on @c ℝ_d; model on
  *  @c ℝ. */
 export inline constexpr auto ℝ_d =
-    dedekind::sets::𝔸<Real<machine_real_scalar>, ClassicalLogic, ℶ_1>;
+    dedekind::sets::𝔸<Real<machine_real_scalar>, Boole, ℶ_1>;
 
 export inline constexpr RealsOf<> R{};
 

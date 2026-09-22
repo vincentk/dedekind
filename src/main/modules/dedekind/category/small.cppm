@@ -148,7 +148,7 @@ inline constexpr bool is_associative_v<T, Op> = true;
  * out of scope here; they are named (or named-able) at downstream
  * partitions where they have semantic content.  The intensional /
  * extensional split in particular is reified at @c :sets:expressions
- * (intensional, @c TernaryLogic) vs @c :sets:extensional (decidable
+ * (intensional, @c Kleene) vs @c :sets:extensional (decidable
  * membership), not at the category layer.  @b Thin categories
  * (hom(a, b) has @c ≤ 1 morphism — the categorical incarnation of
  * preorders) were lifted from this Sollbruchstelle to their own

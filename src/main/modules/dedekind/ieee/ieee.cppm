@@ -82,7 +82,7 @@ constexpr IEEE<F> ieee_bind(const IEEE<F>& x, Func&& f) {
 export template <std::floating_point F>
 struct IEEEAdd {
   using value_type = IEEE<F>;
-  using logic_species = ClassicalLogic;
+  using logic_species = Boole;
 
   constexpr IEEE<F> operator()(
       std::pair<const IEEE<F>&, const IEEE<F>&> p) const noexcept {
@@ -101,7 +101,7 @@ struct IEEEAdd {
 export template <std::floating_point F>
 struct IEEEMul {
   using value_type = IEEE<F>;
-  using logic_species = ClassicalLogic;
+  using logic_species = Boole;
 
   constexpr IEEE<F> operator()(
       std::pair<const IEEE<F>&, const IEEE<F>&> p) const noexcept {

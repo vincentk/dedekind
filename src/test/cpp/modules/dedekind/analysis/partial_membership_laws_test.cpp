@@ -10,7 +10,7 @@
  *
  *   1. Codomain axis.  The extra point of Ω is a fixpoint of negation: Kleene ¬
  *      is negation about zero, so fix(¬) = Unknown.  The decided fragment
- *      Σ = bool ↪ Ω (ClassicalLogic, the track of lst:set-grammar) has none.
+ *      Σ = bool ↪ Ω (Boole, the track of lst:set-grammar) has none.
  *   2. Domain axis.  fix(succ) is decided by the CARRIER: on the finite
  *      fragment the successor has no fixpoint, but the transfinite saturation
  *      point ℵ₀ is one.  Whether a construction closes on itself (hence whether
@@ -18,7 +18,7 @@
  *      Galois-specialisation axis.
  *   3. Membership genuinely lands in Ω\Σ: a comprehension over an uncountable
  *      carrier (ℝ, tagged ℶ₁) is CLASSIFIED undecidable (its logic species is
- *      TernaryLogic, so == is withheld), and the intensional image of a set
+ *      Kleene, so == is withheld), and the intensional image of a set
  *      RETURNS Unknown outright.
  *
  * The archetype hard predicate is Mandelbrot membership (numbers/mandelbrot),
@@ -64,8 +64,7 @@ TEST_CASE("partial membership: fix(¬)=Unknown and undecidable classification",
     constexpr auto x = element<ℝ_d>;  // ℝ, tagged ℶ₁ (uncountable)
     constexpr auto gt = Set{x | (x > bound<5.0>)};  // {r ∈ ℝ | r > 5}
     // χ_gt : ℝ → Ω, not ℝ → Σ; the type system withholds decidable membership
-    static_assert(
-        std::same_as<typename decltype(gt)::logic_species, TernaryLogic>);
+    static_assert(std::same_as<typename decltype(gt)::logic_species, Kleene>);
     static_assert(!HasDecidableMembership<decltype(gt)>);
   }
   // ── membership RETURNS Unknown: the intensional image of a set ──
@@ -77,8 +76,7 @@ TEST_CASE("partial membership: fix(¬)=Unknown and undecidable classification",
     constexpr cardinality_succ succ;
     constexpr auto s = arrow<Cardinality, Cardinality>(succ);  // ℕ → ℕ
     constexpr auto img = image(s, gt5);  // {y | ∃n. n>5 ∧ y=n+1} : Ω
-    static_assert(
-        std::same_as<typename decltype(img)::logic_species, TernaryLogic>);
+    static_assert(std::same_as<typename decltype(img)::logic_species, Kleene>);
     static_assert(!HasDecidableMembership<decltype(img)>);
     // honestly Unknown, though set-theoretically 7 ∈ image(succ, {n>5})
     static_assert(img(finite_cardinality(7)) == Ternary::Unknown);

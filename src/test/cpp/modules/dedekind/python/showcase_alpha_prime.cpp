@@ -63,7 +63,7 @@ constexpr auto S = Set{in<ℕ> | in<ℕ> > bound<5>};
 
 // Post-#622: ℕ = 𝔸<Cardinality> is countable on the carrier axis
 // (ℵ_0), so NaturalLogic routes the comprehension @c S to
-// @c ClassicalLogic — @c S.contains(...) lands @c bool directly, no
+// @c Boole — @c S.contains(...) lands @c bool directly, no
 // Kleene lift required.  Rice's theorem still caps further promotion of
 // the opaque λ inside the comprehension, but the carrier-axis witness
 // is sufficient at this layer.
@@ -117,18 +117,18 @@ constexpr auto S_scaled = Set{in<ℚ> * bound<2> | in<ℚ> > bound<5>};
 // Pivot transport: 2 + 3 = 5 (translation); 5 * 2 = 10 (scaling).
 // The reduced predicate IS a Halfspace with the transported pivot at
 // the type level; pinned via full-type equality.  ℚ is countable (ℵ_0)
-// so the carrier-axis cut (#622) routes through ClassicalLogic.
+// so the carrier-axis cut (#622) routes through Boole.
 using QCarrier =
     dedekind::numbers::Rational<dedekind::numbers::default_integer>;
 static_assert(
     std::same_as<
         std::remove_cvref_t<decltype(S_translated)>,
-        Set<QCarrier, dedekind::category::ClassicalLogic,
+        Set<QCarrier, dedekind::category::Boole,
             Halfspace<QCarrier, 5, Direction::Upward, Strictness::Strict>>>);
 static_assert(
     std::same_as<
         std::remove_cvref_t<decltype(S_scaled)>,
-        Set<QCarrier, dedekind::category::ClassicalLogic,
+        Set<QCarrier, dedekind::category::Boole,
             Halfspace<QCarrier, 10, Direction::Upward, Strictness::Strict>>>);
 
 /**
@@ -136,7 +136,7 @@ static_assert(
  *        runtime witness.
  *
  * @c S(7u) is constant-evaluable (7 > 5 lands in the halfspace).
- * Post-#622 the result IS @c bool directly (ℕ → ClassicalLogic on the
+ * Post-#622 the result IS @c bool directly (ℕ → Boole on the
  * carrier axis), so the body returns the membership query as-is — no
  * Kleene comparison lift required.
  *

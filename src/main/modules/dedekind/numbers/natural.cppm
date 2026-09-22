@@ -183,13 +183,13 @@ using ::dedekind::sets::ℕ;
 // (0) Universe witness: ℕ names the universe over the Cardinality
 //     carrier (post-#559).  Pre-#559, ℕ was a carrier-type alias for
 //     Cardinality; post-#559 it is the value 𝔸<Cardinality> (a constexpr
-//     UniversalSet<Cardinality, ClassicalLogic, ℵ_0>{}).  Cardinality is
+//     UniversalSet<Cardinality, Boole, ℵ_0>{}).  Cardinality is
 //     the variant ℕ-proxy carrier (= @c std::variant<ExtensionalCardinal<>,
 //     ℵ_0>) — saturating to ℵ_0 on overflow; honestly models ℕ (no
 //     additive inverses; rig-not-ring).  Callers wanting the bounded
 //     machine carrier explicitly spell @c unsigned @c int directly.
 static_assert(std::same_as<std::remove_cvref_t<decltype(dedekind::sets::ℕ)>,
-                           UniversalSet<Cardinality, ClassicalLogic, ℵ_0>>,
+                           UniversalSet<Cardinality, Boole, ℵ_0>>,
               "ℕ is the universe 𝔸<Cardinality> (post-#559).");
 static_assert(
     std::same_as<
@@ -350,9 +350,9 @@ static_assert(dedekind::sequences::IsFiniteSequence<
 //     `embed_unsigned_integral<N>(v)`.
 //   - Reverse (ℕ → unsigned): for the certified domain, project via
 //     `realize_to_size_t(sentinel)` (lives in sets:cardinality).
-static_assert(N(0u) == ClassicalLogic::True, "0 ∈ ℕ.");
-static_assert(N(42u) == ClassicalLogic::True, "42 ∈ ℕ.");
-static_assert(N(-7) == ClassicalLogic::False,
+static_assert(N(0u) == Boole::True, "0 ∈ ℕ.");
+static_assert(N(42u) == Boole::True, "42 ∈ ℕ.");
+static_assert(N(-7) == Boole::False,
               "Direct N(int) call is the ℕ-as-subset-of-ℤ classifier; "
               "rejects negatives.");
 
@@ -382,13 +382,13 @@ static_assert(embed_𝔹_ℕ_(true) == finite_cardinality(1),
 // through it.  Sister anchor to PR #626's @c embed_𝔹_𝕂3 witness in
 // @c :boolean --- same shape, different codomain.
 static_assert(
-    embed_𝔹_ℕ(dedekind::sets::SingletonSet<bool, ClassicalLogic>{true}).pivot ==
+    embed_𝔹_ℕ(dedekind::sets::SingletonSet<bool, Boole>{true}).pivot ==
         finite_cardinality(1),
     "embed_𝔹_ℕ(Singleton<true>) lands at finite_cardinality(1) on the "
     "Cardinality carrier.");
 static_assert(
-    embed_𝔹_ℕ(dedekind::sets::SingletonSet<bool, ClassicalLogic>{false})
-            .pivot == finite_cardinality(0),
+    embed_𝔹_ℕ(dedekind::sets::SingletonSet<bool, Boole>{false}).pivot ==
+        finite_cardinality(0),
     "embed_𝔹_ℕ(Singleton<false>) lands at finite_cardinality(0) on the "
     "Cardinality carrier.");
 
@@ -398,8 +398,7 @@ static_assert(
 // (smallest-such-subobject reading per @c :category:image).
 static_assert(
     dedekind::category::IsImageOf<
-        decltype(embed_𝔹_ℕ(dedekind::sets::SingletonSet<bool, ClassicalLogic>{
-            true})),
+        decltype(embed_𝔹_ℕ(dedekind::sets::SingletonSet<bool, Boole>{true})),
         decltype(embed_𝔹_ℕ_)>,
     "embed_𝔹_ℕ(S) realises IsImageOf<result, embed_𝔹_ℕ_>: result is a "
     "Subobject of Cod<embed_𝔹_ℕ_> = Cardinality, witnessing the "

@@ -20,7 +20,7 @@
  *
  * Textbook defaults in this partition:
  * - Relation defaults to `std::less_equal<T>` (the canonical order witness).
- * - Logic defaults to `ClassicalLogic` (Boolean Ω).
+ * - Logic defaults to `Boole` (Boolean Ω).
  *
  * @quote
  * "In a sense, the most basic category is a partially ordered set;
@@ -79,7 +79,7 @@ namespace dedekind::category {
  * @tparam L   The Logic Species (The Subobject Classifier).
  */
 export template <typename T, typename Rel = std::less_equal<T>,
-                 typename L = ClassicalLogic>
+                 typename L = Boole>
 concept IsPosetal =
     IsThinCategory<T, Rel, L> &&  // Faithful inclusion: every poset IS thin
                                   // (preorder + antisymmetric); #698 Slice 1.
@@ -93,7 +93,7 @@ concept IsPosetal =
  * @brief Posetal refinement where the underlying order is total/linear.
  */
 export template <typename T, typename Rel = std::less_equal<T>,
-                 typename L = ClassicalLogic>
+                 typename L = Boole>
 concept IsTotallyOrderedPosetal =
     IsPosetal<T, Rel, L> && IsTotalOrder<T, Rel, typename L::Ω>;
 
@@ -266,7 +266,7 @@ static_assert(
  * @tparam L   Logic species providing `AND` and the `Ω` codomain.
  */
 export template <typename T, typename Rel = std::less_equal<T>,
-                 typename L = ClassicalLogic, typename Project = std::identity>
+                 typename L = Boole, typename Project = std::identity>
   requires IsPathProjection<Project, T, Rel, typename L::Ω>
 constexpr typename L::Ω check_path(T a, T b, T c, Project project = {}) {
   const auto rel = Rel{};
@@ -308,7 +308,7 @@ static_assert(
 
 static_assert(
     check_path<const std::ranges::min_max_result<int>*, std::less_equal<int>,
-               ClassicalLogic>(
+               Boole>(
         &p1, &p2, &p3,
         arrow_drill_down_min<const std::ranges::min_max_result<int>*>),
     "Opt-in operator-> drill-down must preserve posetal path semantics.");

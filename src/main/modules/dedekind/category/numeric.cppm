@@ -227,7 +227,7 @@ export template <std::integral T, typename Policy>
 constexpr NumericWitness<T> certify_add(T a, T b, Policy policy) {
   const Ternary support_a = policy(a);
   const Ternary support_b = policy(b);
-  const Ternary support_inputs = TernaryLogic::AND(support_a, support_b);
+  const Ternary support_inputs = Kleene::AND(support_a, support_b);
 
   if (support_inputs != Ternary::True) {
     return {T{}, support_inputs};
@@ -240,11 +240,11 @@ constexpr NumericWitness<T> certify_add(T a, T b, Policy policy) {
     }
 
     const Ternary support_result = policy(result);
-    return {result, TernaryLogic::AND(support_inputs, support_result)};
+    return {result, Kleene::AND(support_inputs, support_result)};
   } else {
     const T result = static_cast<T>(a + b);
     const Ternary support_result = policy(result);
-    return {result, TernaryLogic::AND(support_inputs, support_result)};
+    return {result, Kleene::AND(support_inputs, support_result)};
   }
 }
 
@@ -258,12 +258,12 @@ export template <std::floating_point T, typename Policy = NaNHolePolicy<T>>
 constexpr NumericWitness<T> certify_add(T a, T b, Policy policy = {}) {
   const Ternary support_a = policy(a);
   const Ternary support_b = policy(b);
-  const Ternary support_inputs = TernaryLogic::AND(support_a, support_b);
+  const Ternary support_inputs = Kleene::AND(support_a, support_b);
 
   const T result = static_cast<T>(a + b);
   const Ternary support_result = policy(result);
 
-  return {result, TernaryLogic::AND(support_inputs, support_result)};
+  return {result, Kleene::AND(support_inputs, support_result)};
 }
 
 /**
@@ -278,7 +278,7 @@ export template <std::integral T, typename Policy>
 constexpr NumericWitness<T> certify_mul(T a, T b, Policy policy) {
   const Ternary support_a = policy(a);
   const Ternary support_b = policy(b);
-  const Ternary support_inputs = TernaryLogic::AND(support_a, support_b);
+  const Ternary support_inputs = Kleene::AND(support_a, support_b);
 
   if (support_inputs != Ternary::True) {
     return {T{}, support_inputs};
@@ -291,11 +291,11 @@ constexpr NumericWitness<T> certify_mul(T a, T b, Policy policy) {
     }
 
     const Ternary support_result = policy(result);
-    return {result, TernaryLogic::AND(support_inputs, support_result)};
+    return {result, Kleene::AND(support_inputs, support_result)};
   } else {
     const T result = static_cast<T>(a * b);
     const Ternary support_result = policy(result);
-    return {result, TernaryLogic::AND(support_inputs, support_result)};
+    return {result, Kleene::AND(support_inputs, support_result)};
   }
 }
 
@@ -307,12 +307,12 @@ export template <std::floating_point T, typename Policy = NaNHolePolicy<T>>
 constexpr NumericWitness<T> certify_mul(T a, T b, Policy policy = {}) {
   const Ternary support_a = policy(a);
   const Ternary support_b = policy(b);
-  const Ternary support_inputs = TernaryLogic::AND(support_a, support_b);
+  const Ternary support_inputs = Kleene::AND(support_a, support_b);
 
   const T result = static_cast<T>(a * b);
   const Ternary support_result = policy(result);
 
-  return {result, TernaryLogic::AND(support_inputs, support_result)};
+  return {result, Kleene::AND(support_inputs, support_result)};
 }
 
 /**
@@ -325,7 +325,7 @@ export template <std::integral T, typename Policy>
 constexpr NumericWitness<T> certify_div(T a, T b, Policy policy) {
   const Ternary support_a = policy(a);
   const Ternary support_b = policy(b);
-  const Ternary support_inputs = TernaryLogic::AND(support_a, support_b);
+  const Ternary support_inputs = Kleene::AND(support_a, support_b);
 
   if (support_inputs != Ternary::True) {
     return {T{}, support_inputs};
@@ -343,7 +343,7 @@ constexpr NumericWitness<T> certify_div(T a, T b, Policy policy) {
 
   const T result = static_cast<T>(a / b);
   const Ternary support_result = policy(result);
-  return {result, TernaryLogic::AND(support_inputs, support_result)};
+  return {result, Kleene::AND(support_inputs, support_result)};
 }
 
 /**
@@ -354,12 +354,12 @@ export template <std::floating_point T, typename Policy = NaNHolePolicy<T>>
 constexpr NumericWitness<T> certify_div(T a, T b, Policy policy = {}) {
   const Ternary support_a = policy(a);
   const Ternary support_b = policy(b);
-  const Ternary support_inputs = TernaryLogic::AND(support_a, support_b);
+  const Ternary support_inputs = Kleene::AND(support_a, support_b);
 
   const T result = static_cast<T>(a / b);
   const Ternary support_result = policy(result);
 
-  return {result, TernaryLogic::AND(support_inputs, support_result)};
+  return {result, Kleene::AND(support_inputs, support_result)};
 }
 
 /**

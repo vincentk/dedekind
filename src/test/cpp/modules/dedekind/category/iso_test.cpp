@@ -42,10 +42,10 @@ static_assert(
     "namespace: the blanket retract is found by ordinary lookup, so the "
     "advertised implication does not depend on dedekind::category being an "
     "associated namespace of the arrow (CP #876 finding).");
-// The image of an iso is the whole codomain, hence decidable (ClassicalLogic).
+// The image of an iso is the whole codomain, hence decidable (Boole).
 static_assert(
     std::same_as<typename decltype(image_of(client_ns::Flip{}))::logic_species,
-                 ClassicalLogic>,
+                 Boole>,
     "iso ⟹ decidable image, for a client-namespace iso.");
 
 TEST_CASE("category:iso — client-namespace iso is retractable, retract inverts",

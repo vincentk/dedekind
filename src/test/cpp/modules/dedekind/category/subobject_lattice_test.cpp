@@ -20,7 +20,7 @@
  * (@c SubsetEqRel typedefs on @c Set / @c Subobject, free-function
  * @c meet / @c join / @c complement, the @c HasAxiom10PowerObjectLattice
  * generalisation in @c :etcs, Ternary's Form-chain participation via a
- * concrete @c L = @c TernaryLogic carrier) land in Slice 9 with the
+ * concrete @c L = @c Kleene carrier) land in Slice 9 with the
  * @c :etcs harmonisation.
  */
 
@@ -74,11 +74,11 @@ TEST_CASE(
   STATIC_CHECK(std::ranges::max(Ternary::Unknown, Ternary::True) ==
                Ternary::True);  // Kleene OR, True annihilator
 
-  // Truth-functional consistency with TernaryLogic::AND / OR.
+  // Truth-functional consistency with Kleene::AND / OR.
   STATIC_CHECK(std::ranges::min(Ternary::True, Ternary::Unknown) ==
-               TernaryLogic::AND(Ternary::True, Ternary::Unknown));
+               Kleene::AND(Ternary::True, Ternary::Unknown));
   STATIC_CHECK(std::ranges::max(Ternary::False, Ternary::Unknown) ==
-               TernaryLogic::OR(Ternary::False, Ternary::Unknown));
+               Kleene::OR(Ternary::False, Ternary::Unknown));
 }
 
 namespace {
@@ -90,7 +90,7 @@ namespace {
 // exists to prove the concept's metadata clause fires structurally.
 struct FauxSubobject {
   using Domain = bool;
-  using logic_species = dedekind::category::ClassicalLogic;
+  using logic_species = dedekind::category::Boole;
 };
 
 }  // namespace

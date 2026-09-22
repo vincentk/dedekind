@@ -8,7 +8,7 @@ import dedekind.algebra;        // MaxPlus, MinPlus
 import dedekind.analysis;       // Dual — forward-mode AD carrier
 import dedekind.sequences;      // argmax over the branch interval (§3 filter)
 import dedekind.order;          // OrderInterval, Strictness
-import dedekind.category;       // ClassicalLogic
+import dedekind.category;       // Boole
 
 // The diamond necklace of showcase_13 as rank-1 transfers: the value is the
 // ⊗-fold of the per-diamond eigenvalues (transfer_chain), and the critical path
@@ -57,11 +57,9 @@ constexpr MP necklace_value() {
 // The critical (max-cost) branch of diamond m, as the §3 forall-filter over the
 // two-branch interval [0,1]: `dedekind::sequences::argmax`, ordered by the raw
 // arrival cost so it selects the branch on the longest (critical) path.
-inline constexpr auto branch_interval =
-    dedekind::order::OrderInterval<int, 0, 1,
-                                   dedekind::order::Strictness::NonStrict,
-                                   dedekind::order::Strictness::NonStrict,
-                                   dedekind::category::ClassicalLogic>{};
+inline constexpr auto branch_interval = dedekind::order::OrderInterval<
+    int, 0, 1, dedekind::order::Strictness::NonStrict,
+    dedekind::order::Strictness::NonStrict, dedekind::category::Boole>{};
 
 constexpr auto diamond_argmax(int m) {
   return dedekind::sequences::argmax(branch_interval, [m](int k) {

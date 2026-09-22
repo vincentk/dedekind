@@ -28,19 +28,19 @@ TEST_CASE("order:powerset — 𝔓(S) is a bona-fide IsSet over Sub(C) (#830)",
     constexpr auto P = 𝔓(gt3);
     STATIC_CHECK(IsSet<std::remove_cvref_t<decltype(P)>>);
     STATIC_CHECK(std::same_as<typename std::remove_cvref_t<decltype(P)>::Domain,
-                              Sub<int, ClassicalLogic>>);
+                              Sub<int, Boole>>);
     STATIC_CHECK(std::same_as<decltype(power_set(gt3)), decltype(𝔓(gt3))>);
     // 𝔓's elements are themselves first-class sets (Sub folds onto SetExpr), so
     // they are usable in generic set APIs.
-    STATIC_CHECK(IsSubobject<Sub<int, ClassicalLogic>, int>);
-    STATIC_CHECK(IsSet<Sub<int, ClassicalLogic>>);
+    STATIC_CHECK(IsSubobject<Sub<int, Boole>, int>);
+    STATIC_CHECK(IsSet<Sub<int, Boole>>);
   }
 
   SECTION("membership X ⊆ S decides across the ordered families") {
     constexpr auto P = 𝔓(gt3);  // 𝔓({x>3})
     constexpr Halfspace<int, 5, Direction::Upward, Strictness::Strict> gt5{};
     constexpr Halfspace<int, 3, Direction::Downward, Strictness::Strict> lt3{};
-    constexpr Singleton<4, ClassicalLogic> s4{};
+    constexpr Singleton<4, Boole> s4{};
     CHECK(bool(P(gt5)));        // {x>5} ⊆ {x>3}
     CHECK_FALSE(bool(P(lt3)));  // {x<3} ⊄ {x>3}
     CHECK(bool(P(s4)));         // {4} ⊆ {x>3} (a Singleton member)
@@ -54,7 +54,7 @@ TEST_CASE("order:powerset — 𝔓(S) is a bona-fide IsSet over Sub(C) (#830)",
     constexpr auto Pu = 𝔓(𝔸<int>);
     STATIC_CHECK(
         std::same_as<typename std::remove_cvref_t<decltype(Pu)>::Domain,
-                     Sub<int, ClassicalLogic>>);
+                     Sub<int, Boole>>);
     // 𝔓(𝔸) is the universal BOUNDARY type 𝔸<Sub(C)> (a closed form), not a
     // trivially-true filtered Set --- so boundary / lattice identities survive.
     // (Domain == Sub(C) above + the is_universal_boundary tag pins it as
@@ -69,7 +69,7 @@ TEST_CASE("order:powerset — 𝔓(S) is a bona-fide IsSet over Sub(C) (#830)",
 
   SECTION(
       "empty intervals canonicalise: all spellings of ∅ are one Sub value") {
-    using D = Sub<int, ClassicalLogic>;
+    using D = Sub<int, Boole>;
     constexpr OrderInterval<int, 5, 5, Strictness::Strict, Strictness::Strict>
         oi_empty{};                        // (5,5) = ∅
     constexpr D from_oi = oi_empty;        // empty, dead bounds lo=hi=5
@@ -80,7 +80,7 @@ TEST_CASE("order:powerset — 𝔓(S) is a bona-fide IsSet over Sub(C) (#830)",
 
   SECTION(
       "discrete bounds canonicalise: {x>3} = {x>=4}, (1,4) = [2,3] over int") {
-    using D = Sub<int, ClassicalLogic>;
+    using D = Sub<int, Boole>;
     // Mixed strictness that denotes the SAME subobject over a discrete carrier
     // must be ONE Sub value (effective-bound normalisation, the #835 sibling).
     constexpr Halfspace<int, 3, Direction::Upward, Strictness::Strict> gt3s{};
@@ -102,7 +102,7 @@ TEST_CASE("order:powerset — 𝔓(S) is a bona-fide IsSet over Sub(C) (#830)",
 
   SECTION("lattice: 𝔓(S) plugs into the set lattice (Ø & 𝔓(S) = Ø)") {
     constexpr auto P = 𝔓(gt3);
-    using D = Sub<int, ClassicalLogic>;
+    using D = Sub<int, Boole>;
     CHECK(bool(Ø<D>{} == (Ø<D>{} & P)));  // absorption, available because IsSet
   }
 

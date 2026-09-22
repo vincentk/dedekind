@@ -81,8 +81,7 @@ struct CanonicalPairPredicate {
   constexpr bool operator()(const std::pair<int, int>&) const { return true; }
 };
 
-using CanonicalIntRelation =
-    Relation<int, int, ClassicalLogic, CanonicalPairPredicate>;
+using CanonicalIntRelation = Relation<int, int, Boole, CanonicalPairPredicate>;
 using CanonicalIntRelationDomain = typename CanonicalIntRelation::Domain;
 
 static_assert(

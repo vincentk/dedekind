@@ -248,18 +248,18 @@ constexpr auto embed_uint_ℕ(S&& s) {
 // the pivot equality is constant-evaluated, not just the codomain type.
 // Mirrors PR #624's witnesses for @c embed_𝔹_ℕ and PR #626's for
 // @c embed_𝔹_𝕂3 — same shape, different (carrier, codomain) pair.
-static_assert(embed_uint_ℕ(dedekind::sets::SingletonSet<
-                               unsigned, dedekind::category::ClassicalLogic>{
-                               42u})
-                      .pivot == dedekind::sets::finite_cardinality(42),
-              "embed_uint_ℕ(SingletonSet<unsigned>{42}) lands at "
-              "finite_cardinality(42) on the Cardinality carrier.");
-static_assert(embed_uint_ℕ(dedekind::sets::SingletonSet<
-                               unsigned, dedekind::category::ClassicalLogic>{
-                               0u})
-                      .pivot == dedekind::sets::finite_cardinality(0),
-              "embed_uint_ℕ(SingletonSet<unsigned>{0}) lands at "
-              "finite_cardinality(0) on the Cardinality carrier.");
+static_assert(
+    embed_uint_ℕ(
+        dedekind::sets::SingletonSet<unsigned, dedekind::category::Boole>{42u})
+            .pivot == dedekind::sets::finite_cardinality(42),
+    "embed_uint_ℕ(SingletonSet<unsigned>{42}) lands at "
+    "finite_cardinality(42) on the Cardinality carrier.");
+static_assert(
+    embed_uint_ℕ(
+        dedekind::sets::SingletonSet<unsigned, dedekind::category::Boole>{0u})
+            .pivot == dedekind::sets::finite_cardinality(0),
+    "embed_uint_ℕ(SingletonSet<unsigned>{0}) lands at "
+    "finite_cardinality(0) on the Cardinality carrier.");
 
 // Concept-level witness: the result realises the categorical image of
 // the source set under the canonical mono unsigned ↪ ℕ — Subobject
@@ -267,8 +267,7 @@ static_assert(embed_uint_ℕ(dedekind::sets::SingletonSet<
 static_assert(
     dedekind::category::IsImageOf<
         decltype(embed_uint_ℕ(dedekind::sets::SingletonSet<
-                              unsigned, dedekind::category::ClassicalLogic>{
-            42u})),
+                              unsigned, dedekind::category::Boole>{42u})),
         decltype(embed_uint_ℕ_)>,
     "embed_uint_ℕ(S) realises IsImageOf<result, embed_uint_ℕ_>: result "
     "is a Subobject of Cod<embed_uint_ℕ_> = Cardinality, witnessing the "

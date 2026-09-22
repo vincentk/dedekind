@@ -155,7 +155,7 @@ concept HasSetSurface = dedekind::category::IsSet<std::remove_cvref_t<S>>;
  *           property: a reference-qualified decltype still satisfies
  *           @c HasSetSurface. */
 namespace _user_facing_witnesses {
-using _S1 = SingletonSet<int, dedekind::category::ClassicalLogic>;
+using _S1 = SingletonSet<int, dedekind::category::Boole>;
 static_assert(HasMembershipOperator<_S1>);
 static_assert(HasComplementOperator<_S1>);
 static_assert(HasSetOperators<_S1>);

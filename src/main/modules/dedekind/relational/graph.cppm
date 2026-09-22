@@ -78,7 +78,7 @@ module;
 
 export module dedekind.relational:graph;
 
-import dedekind.category; // IsArrow, Dom, Cod, arrow_as_relation, ClassicalLogic
+import dedekind.category; // IsArrow, Dom, Cod, arrow_as_relation, Boole
 import dedekind.sets;     // Set, Relation (:expressions); forall (:quantifier)
 import :dyadic;           // the Tarski BASE: a graph Γ_f IS a dyadic relation
 
@@ -120,7 +120,7 @@ struct GraphPredicate {
  */
 export template <typename F>
 using Graph = Set<std::pair<typename F::Domain, typename F::Codomain>,
-                  dedekind::category::ClassicalLogic, GraphPredicate<F>>;
+                  dedekind::category::Boole, GraphPredicate<F>>;
 
 /**
  * @brief @c graph(f) --- the graph of a function @c f : A → B as the @c Set
@@ -146,7 +146,7 @@ using Graph = Set<std::pair<typename F::Domain, typename F::Codomain>,
  *       @c ap(f, π_I) → @c ProjApplyEq (the @c 𝑦 @c == @c f(𝑥) relpred) in
  *       @c :order, and image-membership decidability is read off the arrow's
  *       certificate in @c :category:image (@c ImageChi specialised for
- *       @c IsRetractableArrow → @c ClassicalLogic / decidable, else the default
+ *       @c IsRetractableArrow → @c Boole / decidable, else the default
  *       @c Ternary::Unknown).  Redefining @c graph @b itself as sugar over
  *       @c ap (@c graph(f) @c := @c 𝔸<X>*𝔸<Y> @c | @c (𝑦==ap(f,𝑥))) is
  *       @b parked: the lift plus the decidability seam capture the value

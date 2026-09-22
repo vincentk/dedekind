@@ -162,7 +162,7 @@ static_assert(std::same_as<carrier_of_t<CharLeaf>, int>,
 struct GELeaf {  // χ: n ↦ (n ≥ threshold), a classical characteristic arrow
   using Domain = int;
   using Codomain = bool;
-  using logic_species = ClassicalLogic;
+  using logic_species = Boole;
   int threshold;
   constexpr bool operator()(const int& n) const { return n >= threshold; }
 };
@@ -264,11 +264,11 @@ static_assert(
 
 // Logic-parametrised comparator: an UNDECIDABLE order (Unknown) is not
 // definitely-less, so operands keep authoring order, while idempotence (a
-// structural law) still fires.  ClassicalLogic (bool) stays the default.
+// structural law) still fires.  Boole (bool) stays the default.
 struct UA {};
 struct UB {};
 struct TernLess {
-  using logic = TernaryLogic;
+  using logic = Kleene;
   template <typename, typename>
   static consteval Ternary less() {
     return Ternary::Unknown;
@@ -374,7 +374,7 @@ struct BitSubset {  // a genuine partial order (reflexive, transitive, antisym.)
 };
 struct NonDistOrd {};  // an order NOT asserted distributive (gate stays off)
 struct KeepOrder {     // Unknown ⟹ keep authoring order (no value comparison)
-  using logic = dedekind::category::TernaryLogic;
+  using logic = dedekind::category::Kleene;
   template <typename, typename>
   static consteval dedekind::category::Ternary less() {
     return dedekind::category::Ternary::Unknown;

@@ -91,7 +91,7 @@ namespace dedekind::category {
  * @tparam L   The Logic Species (the Subobject Classifier Ω).
  */
 export template <typename T, typename Rel = std::less_equal<T>,
-                 typename L = ClassicalLogic>
+                 typename L = Boole>
 concept IsThinCategory = requires(Rel rel, T a, T b) {
   /** @brief The relation must yield a result in the logical classifier. */
   { rel(a, b) } -> std::same_as<typename L::Ω>;

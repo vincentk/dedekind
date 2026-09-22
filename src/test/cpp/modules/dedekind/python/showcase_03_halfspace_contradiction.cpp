@@ -45,7 +45,7 @@ constexpr auto lt_3 = Set{n | (n < bound<3>)};
 constexpr Ø<Cardinality> empty_meet = gt_5 & lt_3;
 static_assert(empty_meet == Ø<Cardinality>{});
 
-// Post-#622: ℕ → ClassicalLogic on the carrier axis, so @c gt_5 is
+// Post-#622: ℕ → Boole on the carrier axis, so @c gt_5 is
 // decidable on the carrier-axis fast path — Ternary→Classical
 // promotion is no longer the story here.  The axis that STILL tightens
 // at the reduction boundary is @b extensionality: @c gt_5 is intensional

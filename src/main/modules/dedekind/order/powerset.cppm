@@ -79,7 +79,7 @@ using namespace dedekind::sets;
  *  Folds onto @c SetExpr (so it is itself a first-class @c IsSubobject / @c
  *  IsSet) and is @c std::regular, so @c Set<Sub,…> is an @c IsSet and @c Sub
  *  values are usable in generic set APIs. */
-export template <typename C, typename L = ClassicalLogic>
+export template <typename C, typename L = Boole>
 struct Sub : dedekind::sets::SetExpr<Sub<C, L>, C, L> {
   // Domain / Codomain / logic_species / Member / ι / contains are inherited
   // from SetExpr (the ETCS subobject surface), exactly as Halfspace / Singleton

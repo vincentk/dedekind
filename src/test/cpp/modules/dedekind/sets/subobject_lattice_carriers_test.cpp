@@ -23,7 +23,7 @@
  * will lock us in", #712 review).
  *
  * @c IsBooleanSubobjectLattice<S> is the parallel L-parametric
- * Boolean refinement: ClassicalLogic carriers fire it; TernaryLogic
+ * Boolean refinement: Boole carriers fire it; Kleene
  * carriers fall out (Diaconescu's classical direction).  See the
  * @c [boolean] / @c [kleene] test cases below.
  *
@@ -84,30 +84,28 @@ TEST_CASE("sets:subobject-lattice — complement free function actually runs",
 }
 
 TEST_CASE(
-    "sets:subobject-lattice — ClassicalLogic carriers fire "
+    "sets:subobject-lattice — Boole carriers fire "
     "IsBooleanSubobjectLattice",
     "[sets][lattice][subobject][boolean][classical]") {
   /** @brief Mechanises the user's downstream intuition: parametrising a
-   *         carrier with @c ClassicalLogic automatically participates in
+   *         carrier with @c Boole automatically participates in
    *         the Boolean refinement.  Type-checked, not documented. */
   STATIC_CHECK(IsBooleanSubobjectLattice<Ø<bool>>);
   STATIC_CHECK(IsBooleanSubobjectLattice<UniversalSet<bool>>);
   STATIC_CHECK(IsBooleanSubobjectLattice<SingletonSet<bool>>);
-  STATIC_CHECK(IsBooleanSubobjectLattice<Ø<bool, ClassicalLogic>>);
+  STATIC_CHECK(IsBooleanSubobjectLattice<Ø<bool, Boole>>);
 }
 
 TEST_CASE(
-    "sets:subobject-lattice — TernaryLogic carriers do NOT fire "
+    "sets:subobject-lattice — Kleene carriers do NOT fire "
     "IsBooleanSubobjectLattice",
     "[sets][lattice][subobject][boolean][kleene][negative]") {
   /** @brief Honest Rejection: parametrising a carrier with
-   *         @c TernaryLogic falls out of the Boolean refinement.
+   *         @c Kleene falls out of the Boolean refinement.
    *         Heyting structure still holds via @c IsSubobjectLattice. */
-  STATIC_CHECK_FALSE(IsBooleanSubobjectLattice<Ø<bool, TernaryLogic>>);
-  STATIC_CHECK_FALSE(
-      IsBooleanSubobjectLattice<UniversalSet<bool, TernaryLogic>>);
-  STATIC_CHECK_FALSE(
-      IsBooleanSubobjectLattice<SingletonSet<bool, TernaryLogic>>);
+  STATIC_CHECK_FALSE(IsBooleanSubobjectLattice<Ø<bool, Kleene>>);
+  STATIC_CHECK_FALSE(IsBooleanSubobjectLattice<UniversalSet<bool, Kleene>>);
+  STATIC_CHECK_FALSE(IsBooleanSubobjectLattice<SingletonSet<bool, Kleene>>);
 }
 
 TEST_CASE("sets:subobject-lattice — IsSet still fires post-Axiom-10 update",

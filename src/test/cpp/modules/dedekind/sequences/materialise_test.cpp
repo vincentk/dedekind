@@ -15,17 +15,17 @@
 
 import dedekind.sequences; // materialise, to_iota_view
 import dedekind.order;     // OrderInterval, Strictness
-import dedekind.category;  // ClassicalLogic
+import dedekind.category;  // Boole
 
 using namespace dedekind::sequences;
-using dedekind::category::ClassicalLogic;
+using dedekind::category::Boole;
 using dedekind::order::OrderInterval;
 using dedekind::order::Strictness;
 
 namespace {
 // [0, 4] — a closed integer interval, the finite prefix {0,1,2,3,4} of ℕ.
 using Prefix5 = OrderInterval<int, 0, 4, Strictness::NonStrict,
-                              Strictness::NonStrict, ClassicalLogic>;
+                              Strictness::NonStrict, Boole>;
 
 // A sequence (index → value) — the bra/ket / Path shape.
 struct squares {
@@ -75,7 +75,7 @@ TEST_CASE("materialise(argmax(interval, cost)): the endorsed one-liner",
           "[sequences][ranges][materialise][argmax]") {
   // A unique optimum: the concave cap x·(6−x) over [0,6] peaks at x=3.
   constexpr OrderInterval<int, 0, 6, Strictness::NonStrict,
-                          Strictness::NonStrict, ClassicalLogic>
+                          Strictness::NonStrict, Boole>
       dom6{};
   const auto peak =
       materialise(argmax(dom6, [](int x) { return x * (6 - x); }));
@@ -84,7 +84,7 @@ TEST_CASE("materialise(argmax(interval, cost)): the endorsed one-liner",
 
   // A tie: parity x mod 2 over [0,5] is maximal (=1) at every odd argument.
   constexpr OrderInterval<int, 0, 5, Strictness::NonStrict,
-                          Strictness::NonStrict, ClassicalLogic>
+                          Strictness::NonStrict, Boole>
       dom5{};
   const auto odds = materialise(argmax(dom5, [](int x) { return x % 2; }));
   CHECK(odds.size() == 3);  // {1,3,5} — argmax is a proper relation

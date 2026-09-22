@@ -41,7 +41,7 @@ import dedekind.sets;
 export namespace dedekind::python {
 
 /** @brief Alias for the extensional carrier exposed to wrappers. */
-template <typename T, typename L = dedekind::category::ClassicalLogic,
+template <typename T, typename L = dedekind::category::Boole,
           typename Hash = std::hash<T>, typename Equal = std::equal_to<T>>
 using FiniteSet = dedekind::sets::ExtensionalSet<T, L, Hash, Equal>;
 

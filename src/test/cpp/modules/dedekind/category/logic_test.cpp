@@ -101,14 +101,14 @@ TEST_CASE("Logic: The Indeterminacy (Kleene)", "[category][logic][kleene]") {
 
   SECTION("Morphism Lifting") {
     // Verifying the lift_logic bridge from Boolean to Ternary
-    CHECK(lift_logic<TernaryLogic>(true) == True);
-    CHECK(lift_logic<TernaryLogic>(false) == False);
+    CHECK(lift_logic<Kleene>(true) == True);
+    CHECK(lift_logic<Kleene>(false) == False);
 
     // Identity lifting
-    CHECK(lift_logic<TernaryLogic>(Unknown) == Unknown);
+    CHECK(lift_logic<Kleene>(Unknown) == Unknown);
 
     // Consistency: lifting preserves order
-    CHECK(lift_logic<TernaryLogic>(false) <= lift_logic<TernaryLogic>(true));
+    CHECK(lift_logic<Kleene>(false) <= lift_logic<Kleene>(true));
   }
 }
 

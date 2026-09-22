@@ -247,7 +247,7 @@ consteval bool halfspace_is_moot() {
  * `⋈` ∈ { >, >=, <, <= }, selected by `D` (direction) and `S` (strictness).
  */
 export template <typename T, auto Pivot, Direction D, Strictness S,
-                 typename L = ClassicalLogic>
+                 typename L = Boole>
 struct Halfspace : dedekind::sets::SetExpr<Halfspace<T, Pivot, D, S, L>, T, L> {
   // A Halfspace value is an INHABITED cut by construction (#832): an empty
   // configuration (@c {x>max(T)}, @c {x<min(T)}) is ill-formed here and must be
@@ -291,10 +291,10 @@ struct Halfspace : dedekind::sets::SetExpr<Halfspace<T, Pivot, D, S, L>, T, L> {
  * TYPE, so `Singleton<4>` and `Singleton<7>` are distinct types — the
  * compiler proves `{n | 3<n<5} = {4}` by structural pattern matching.
  *
- * L defaults to `ClassicalLogic` because a cardinality-1 extensional set
+ * L defaults to `Boole` because a cardinality-1 extensional set
  * has decidable membership regardless of ambient logic species.
  */
-export template <auto Value, typename L = ClassicalLogic>
+export template <auto Value, typename L = Boole>
 struct Singleton
     : dedekind::sets::SetExpr<Singleton<Value, L>, decltype(Value), L> {
   // Domain / Codomain / logic_species / Member / ι are inherited from SetExpr
@@ -336,7 +336,7 @@ struct Singleton
 
   // Cross-logic identity: `Singleton<V, L1>` and `Singleton<V, L2>` represent
   // the same singleton; enables the reveal `s == Singleton<V>{}` when s's
-  // logic species was inherited from a Set (e.g. TernaryLogic over ℕ).
+  // logic species was inherited from a Set (e.g. Kleene over ℕ).
   template <typename OtherL>
   constexpr bool operator==(const Singleton<Value, OtherL>&) const {
     return true;
@@ -409,7 +409,7 @@ constexpr auto operator|(const Singleton<A, LA>& a, const Singleton<B, LB>&) {
  * return type is heterogeneous but statically resolved by @c if @c constexpr
  * (no type erasure); every halfspace-producing surface routes through it. */
 export template <typename T, auto V, Direction D, Strictness S,
-                 typename L = ClassicalLogic>
+                 typename L = Boole>
 constexpr auto make_halfspace() {
   // Codomain leg (#894): a degenerate halfspace collapses to a decided
   // boundary, so it carries the Boolean codomain whatever the ambient.
@@ -456,10 +456,10 @@ constexpr auto operator&(const Halfspace<T, Pivot, D1, S1, L>&,
 
 /** @brief Telling aliases for the two ℕ halfspaces the §3 listing uses:
  *         @c Above<N> = {x>N}, @c AtMost<N> = ~Above<N> = {x<=N}. */
-export template <auto N, typename L = ClassicalLogic>
+export template <auto N, typename L = Boole>
 using Above = Halfspace<dedekind::sets::Cardinality, N, Direction::Upward,
                         Strictness::Strict, L>;
-export template <auto N, typename L = ClassicalLogic>
+export template <auto N, typename L = Boole>
 using AtMost = Halfspace<dedekind::sets::Cardinality, N, Direction::Downward,
                          Strictness::NonStrict, L>;
 
@@ -546,7 +546,7 @@ consteval long long eff_upper() {
 
 /** @brief Meet of two opposing halfspaces — an order-theoretic interval. */
 export template <typename T, auto Lo, auto Hi, Strictness SL, Strictness SU,
-                 typename L = ClassicalLogic>
+                 typename L = Boole>
 struct OrderInterval
     : dedekind::sets::SetExpr<OrderInterval<T, Lo, Hi, SL, SU, L>, T, L> {
   // Domain / Codomain / logic_species / Member / ι inherited from SetExpr — the
@@ -1082,9 +1082,9 @@ static_assert(
     "ℕ | π > fix(5_c) is the Above<5> halfspace, spelled point-free.");
 
 // And the equality shape gives the extensional Singleton, membership-checked.
-static_assert(std::same_as<decltype(𝔹 | (π == fix(true_c))),
-                           Singleton<true, ClassicalLogic>>,
-              "𝔹 | π == fix(true_c) is Singleton<true>, spelled point-free.");
+static_assert(
+    std::same_as<decltype(𝔹 | (π == fix(true_c))), Singleton<true, Boole>>,
+    "𝔹 | π == fix(true_c) is Singleton<true>, spelled point-free.");
 static_assert(static_cast<bool>((𝔹 | (π == fix(true_c)))(true)),
               "true ∈ {true}.");
 static_assert(!static_cast<bool>((𝔹 | (π == fix(true_c)))(false)),
@@ -1288,7 +1288,7 @@ static_assert(
 
 // Meet / join of relational PREDICATES is the pointwise && / || over the
 // operands' OWN truth-value carrier (Boolean, or Kleene ∧/∨ over a
-// TernaryLogic relation --- RelAnd/RelOr return auto, not bool, to keep
+// Kleene relation --- RelAnd/RelOr return auto, not bool, to keep
 // Unknown), distinct from set intersection/union & / | (the vectorized
 // {truth-value}ⁿ ops on Sets).  Rather than defining operator&& / operator||
 // here (which would be ambiguous with the generic predicate operator&& /

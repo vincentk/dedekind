@@ -83,7 +83,7 @@ module;
 export module dedekind.optimization:lp;
 
 import dedekind.algebra;        // HasRingOperators constraint
-import dedekind.category;       // ClassicalLogic — Set's logic species (#747)
+import dedekind.category;       // Boole — Set's logic species (#747)
 import dedekind.numbers;        // Rational<Z>
 import dedekind.linear_algebra; // Invertible2x2, Vec2
 import dedekind.sets;           // Set — DSL participants (#747)
@@ -506,8 +506,7 @@ export template <typename T>
 constexpr auto lp_runtime_solution_set(dedekind::linear_algebra::Vec2V<T> point,
                                        bool feasible) {
   return dedekind::sets::Set<dedekind::linear_algebra::Vec2V<T>,
-                             dedekind::category::ClassicalLogic,
-                             LPSolutionPredicate<T>>{
+                             dedekind::category::Boole, LPSolutionPredicate<T>>{
       LPSolutionPredicate<T>{point, feasible}};
 }
 
@@ -517,7 +516,7 @@ constexpr auto lp_runtime_solution_set(dedekind::linear_algebra::Vec2V<T> point,
  *  (Mac~Lane ch.~V, Pierce~1991 §5; the project's @c category::IsFAlgebra
  *  concept).  This pins the catamorphism @em shape mechanically — the
  *  output Set carries a structure map @c F<X> @c → @c X for the
- *  carrier @c X @c = @c Set<Vec2V<T>, ClassicalLogic,
+ *  carrier @c X @c = @c Set<Vec2V<T>, Boole,
  *  LPSolutionPredicate<T>> .  The witness uses the identity endofunctor
  *  ( @c F(X) @c = @c X ); the catamorphism interpretation — that
  *  @c argmax is the unique morphism into this algebra from the initial
@@ -534,9 +533,9 @@ constexpr auto lp_runtime_solution_set(dedekind::linear_algebra::Vec2V<T> point,
 namespace detail {
 
 template <typename T>
-using LPSolutionSet = dedekind::sets::Set<dedekind::linear_algebra::Vec2V<T>,
-                                          dedekind::category::ClassicalLogic,
-                                          LPSolutionPredicate<T>>;
+using LPSolutionSet =
+    dedekind::sets::Set<dedekind::linear_algebra::Vec2V<T>,
+                        dedekind::category::Boole, LPSolutionPredicate<T>>;
 
 template <typename T>
 using LPSolutionIdF = dedekind::category::identity_functor<
@@ -734,7 +733,7 @@ struct Singleton2DPredicate {
 export template <typename T, T x_val, T y_val>
 constexpr auto lp_singleton_set() {
   return dedekind::sets::Set<dedekind::linear_algebra::Vec2V<T>,
-                             dedekind::category::ClassicalLogic,
+                             dedekind::category::Boole,
                              Singleton2DPredicate<T, x_val, y_val>>{
       Singleton2DPredicate<T, x_val, y_val>{}};
 }
@@ -747,7 +746,7 @@ constexpr auto lp_singleton_set() {
 export template <typename T>
 constexpr auto lp_empty_set() {
   return dedekind::sets::Set<
-      dedekind::linear_algebra::Vec2V<T>, dedekind::category::ClassicalLogic,
+      dedekind::linear_algebra::Vec2V<T>, dedekind::category::Boole,
       dedekind::sets::EmptyPredicate<dedekind::linear_algebra::Vec2V<T>>>{
       dedekind::sets::EmptyPredicate<dedekind::linear_algebra::Vec2V<T>>{}};
 }
@@ -849,7 +848,7 @@ constexpr auto lp_extract(Polytope2D<T, cx, cy, Hs...>) {
  *
  *  The §5 LP exhibit reads in the textbook frame
  *  `F : ℚ×ℚ, U : F→ℚ, G ⊆ F, opt = argmax(G, U)`, with `G` being a
- *  genuine `:expressions::Set<Vec2V<T>, ClassicalLogic, P>` instance —
+ *  genuine `:expressions::Set<Vec2V<T>, Boole, P>` instance —
  *  the same DSL §3 builds out of bound-scout comprehensions, applied
  *  to the 2D LP carrier:
  *
@@ -866,7 +865,7 @@ constexpr auto lp_extract(Polytope2D<T, cx, cy, Hs...>) {
  *  @c structured_and overloads via ADL on the predicate types and
  *  produces a structurally-typed Set:
  *
- *      Set<Vec2V<T>, ClassicalLogic,
+ *      Set<Vec2V<T>, Boole,
  *          Polytope2DPredicate<T, H1, H2, H3, H4>>
  *
  *  carrying the halfspace pack inside the predicate's template parameter
@@ -945,7 +944,7 @@ struct Polytope2DPredicate {
 export template <typename T, T a, T b, T c>
 constexpr auto halfspace_set(Halfspace2D<T, a, b, c>) {
   return dedekind::sets::Set<dedekind::linear_algebra::Vec2V<T>,
-                             dedekind::category::ClassicalLogic,
+                             dedekind::category::Boole,
                              Halfspace2DPredicate<T, a, b, c>>{
       Halfspace2DPredicate<T, a, b, c>{}};
 }

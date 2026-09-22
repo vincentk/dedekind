@@ -288,7 +288,7 @@ concept IsRational =
 export template <IsInteger I>
 struct PartialAddRational {
   using value_type = Rational<I>;
-  using logic_species = TernaryLogic;
+  using logic_species = Kleene;
 
   TernaryResult<Rational<I>> operator()(
       std::pair<const Rational<I>&, const Rational<I>&> p) const {
@@ -306,7 +306,7 @@ struct PartialAddRational {
 export template <IsInteger I>
 struct PartialMulRational {
   using value_type = Rational<I>;
-  using logic_species = TernaryLogic;
+  using logic_species = Kleene;
 
   TernaryResult<Rational<I>> operator()(
       std::pair<const Rational<I>&, const Rational<I>&> p) const {
@@ -326,7 +326,7 @@ struct PartialMulRational {
 export template <IsInteger I>
 struct HonestDivRational {
   using value_type = Rational<I>;
-  using logic_species = TernaryLogic;
+  using logic_species = Kleene;
 
   TernaryResult<Rational<I>> operator()(
       std::pair<const Rational<I>&, const Rational<I>&> p) const {
@@ -364,7 +364,7 @@ struct HonestDivRational {
 export template <IsInteger I>
 struct PartialEmbedIntegerToRational {
   using value_type = Rational<I>;
-  using logic_species = TernaryLogic;
+  using logic_species = Kleene;
 
   TernaryResult<Rational<I>> operator()(I n) const noexcept {
     // #680: a non-finite ℤ (NaZ / ±ℵ_0) is off the edge of the countably-
@@ -628,14 +628,14 @@ static_assert(
  *  @c algebra::IsField fires on @c Rational<default_integer>; see
  *  the probe near the bottom of this file.
  */
-export inline constexpr UniversalSet<Rational<default_integer>, ClassicalLogic,
-                                     ℵ_0>
-    ℚ = dedekind::sets::𝔸<Rational<default_integer>>;
+export inline constexpr UniversalSet<Rational<default_integer>, Boole, ℵ_0> ℚ =
+    dedekind::sets::𝔸<Rational<default_integer>>;
 
-static_assert(std::same_as<std::remove_cvref_t<decltype(ℚ)>,
-                           dedekind::sets::UniversalSet<
-                               Rational<default_integer>, ClassicalLogic, ℵ_0>>,
-              "ℚ is the universe 𝔸<Rational<default_integer>> (post-#559).");
+static_assert(
+    std::same_as<
+        std::remove_cvref_t<decltype(ℚ)>,
+        dedekind::sets::UniversalSet<Rational<default_integer>, Boole, ℵ_0>>,
+    "ℚ is the universe 𝔸<Rational<default_integer>> (post-#559).");
 static_assert(
     std::same_as<typename std::remove_cvref_t<decltype(ℚ)>::Domain,
                  Rational<default_integer>>,
@@ -658,7 +658,7 @@ static_assert(dedekind::algebra::IsAlgebraOnSet<
 // #573 slice 4 pilot witness: ℚ walks SetAsProduct.  Post-#681 structural
 // refactor: @c SetAsProduct's Classifier dimension is now the codomain
 // of the carrier-as-predicate (the @c L::Ω value at any @c a), not the
-// predicate-type wrapper itself.  For ℚ under @c ClassicalLogic the
+// predicate-type wrapper itself.  For ℚ under @c Boole the
 // codomain is @c bool.  Same CT content (the universe value is a
 // UniversalSet over Rational<default_integer> classified by Ω), now
 // expressed structurally rather than via a named @c .χ projector.
@@ -666,7 +666,7 @@ static_assert(
     dedekind::category::SetAsProduct<std::remove_cvref_t<decltype(ℚ)>,
                                      Rational<default_integer>, bool>,
     "#573 slice 4: ℚ must witness SetAsProduct over "
-    "(Rational<default_integer>, ClassicalLogic::Ω = bool).  The universe "
+    "(Rational<default_integer>, Boole::Ω = bool).  The universe "
     "value is a UniversalSet whose Ambient matches the rational carrier "
     "and whose classifier codomain is bool.");
 

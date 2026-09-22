@@ -128,7 +128,7 @@ struct TailEquivalent {
  * @c IsAbsorptiveSequence is a prefix + @b 1-cycle (eventually constant),
  * @c IsPeriodicSequence<N> is a @b 0-prefix + N-cycle — and coheres with
  * the #719 Slice 5 collapse: a finite presentation is a countable /
- * @c ClassicalLogic object (decidable), its absence is @c TernaryLogic.
+ * @c Boole object (decidable), its absence is @c Kleene.
  */
 
 /** @brief Opt-in finite-state ("lasso") presentation of an

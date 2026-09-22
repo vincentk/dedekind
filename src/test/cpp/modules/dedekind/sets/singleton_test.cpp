@@ -96,7 +96,7 @@ TEST_CASE("Sets: Singleton Acceptance", "[sets][singleton][acceptance]") {
     using UnionT = std::decay_t<decltype(_s | _t)>;
     STATIC_REQUIRE(
         std::same_as<UnionT,
-                     Set<size_t, ClassicalLogic,
+                     Set<size_t, Boole,
                          Join<SingletonSet<size_t>, SingletonSet<size_t>>>>);
     REQUIRE((_s | _t).predicate().lhs.pivot == 42);
     REQUIRE((_s | _t).predicate().rhs.pivot == 7);

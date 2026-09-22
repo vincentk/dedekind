@@ -99,8 +99,8 @@ namespace dedekind::category {
  * (@c S @b is the characteristic morphism via @c operator()), so
  * @c Classifier is now @em the codomain @c L::Ω that @c S(a) produces,
  * not the predicate-type wrapper.  Concrete examples: for a Set under
- * @c ClassicalLogic, @c Classifier @c = @c bool; for a Set under
- * @c TernaryLogic, @c Classifier @c = @c Ternary.
+ * @c Boole, @c Classifier @c = @c bool; for a Set under
+ * @c Kleene, @c Classifier @c = @c Ternary.
  *
  * @par Why this concept exists (#573 / #644 --- Sollbruchstelle)
  * The user's framing for the HAS-A maturation: "a set should be a product

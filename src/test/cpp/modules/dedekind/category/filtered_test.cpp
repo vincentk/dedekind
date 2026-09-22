@@ -29,7 +29,7 @@ TEST_CASE(
    *         transitivity (already established in @c :thin) this makes
    *         @c bool the smallest non-trivial filtered category. */
   STATIC_CHECK(IsFilteredCategory<bool>);
-  STATIC_CHECK(IsFilteredCategory<bool, std::less_equal<bool>, ClassicalLogic>);
+  STATIC_CHECK(IsFilteredCategory<bool, std::less_equal<bool>, Boole>);
 }
 
 TEST_CASE("category:filtered — totally ordered integral carriers are filtered",

@@ -162,7 +162,7 @@ concept HasAxiom7SubobjectClassifier =
                                classifier_false<typename S::Domain>())),
                            typename S::Domain>;
       requires IsPullback<
-          decltype(pullback<ClassicalLogic,
+          decltype(pullback<Boole,
                             std::pair<typename S::Domain, typename S::Domain>>(
               id<typename S::Domain>(), id<typename S::Domain>())),
           Identity<typename S::Domain>, Identity<typename S::Domain>>;
@@ -274,7 +274,7 @@ concept HasAxiom7PullbackReindexingDefinitionalSurface =
  * @brief ETCS axiom 10 witness: power-object lattice completeness.
  * @details meet/join/complement on subobjects follows from the subobject
  * classifier (Axiom 7) inducing a Heyting algebra on Sub(A) (Boolean if
- * the topos is Boolean, i.e.\ L = ClassicalLogic).  The Axiom of Choice
+ * the topos is Boolean, i.e.\ L = Boole).  The Axiom of Choice
  * proper (every epimorphism splits) is aspirational and not yet encoded
  * here.
  *
@@ -320,9 +320,9 @@ concept HasAxiom10PowerObjectLattice =
  *  logic).  The codebase commits to one direction of this
  *  bi-implication only:
  *
- *      @c L @c = @c ClassicalLogic @c ⟹ Sub(A) Boolean   (Diaconescu's
+ *      @c L @c = @c Boole @c ⟹ Sub(A) Boolean   (Diaconescu's
  * classical-Ω direction)
- *      @c L @c = @c TernaryLogic   @c ⟹ Sub(A) Heyting   (constructive-collapse
+ *      @c L @c = @c Kleene   @c ⟹ Sub(A) Heyting   (constructive-collapse
  * path)
  *
  *  The Boolean refinement is exposed via the parallel

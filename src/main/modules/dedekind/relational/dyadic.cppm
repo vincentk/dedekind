@@ -68,7 +68,7 @@ module;
 
 export module dedekind.relational:dyadic;
 
-import dedekind.category; // IsSet, ClassicalLogic
+import dedekind.category; // IsSet, Boole
 import dedekind.sets;     // Set<std::pair<...>, L, P> (:expressions)
 
 namespace dedekind::relational {
@@ -237,7 +237,7 @@ struct RelAnd {
   A a;
   B b;
   // @c auto (not @c bool): the result inherits the operands' own logic, so over
-  // a @c TernaryLogic relation this is the Kleene @c ∧ (a @c bool cast would
+  // a @c Kleene relation this is the Kleene @c ∧ (a @c bool cast would
   // collapse @c Unknown).  FIXME(#780): mixed Boolean/Ternary operands (a
   // ternary relation @c & @c diag()) still need a lift on the bool side.
   template <typename P>
@@ -260,7 +260,7 @@ struct RelOr {
   A a;
   B b;
   // @c auto (not @c bool): inherit the operands' logic (Kleene @c ∨ over
-  // TernaryLogic), mirroring @c RelAnd.
+  // Kleene), mirroring @c RelAnd.
   template <typename P>
   constexpr auto operator()(const P& p) const {
     return a(p) || b(p);
@@ -368,7 +368,7 @@ struct DiagPred {
 /** @brief The DIAGONAL (identity relation) @f$\Delta = \{(a,a)\}@f$ on a
  *  carrier @c A --- @c {π1==π2} --- the reflexive-closure unit and the @c 1 of
  *  the relation algebra. */
-export template <typename A, typename L = dedekind::category::ClassicalLogic>
+export template <typename A, typename L = dedekind::category::Boole>
 constexpr auto diag() {
   return Set<std::pair<A, A>, L, DiagPred<A>>{DiagPred<A>{}};
 }

@@ -44,7 +44,7 @@
  *
  * @tparam S The Set / Lattice implementation type being verified.
  * @tparam L The Logic species (Ω) governing the membership predicate.
- *           Defaults to ClassicalLogic for zero-overhead arithmetic.
+ *           Defaults to Boole for zero-overhead arithmetic.
  *
  * Wikipedia: Mereology, Subobject classifier, Topos theory
  *
@@ -96,7 +96,7 @@ concept IsBoundedLattice = IsSetLattice<S> && requires(S s) {
  * For a structure to be mereological, it must be possible to
  * determine if two parts share a common 'Individual'.
  */
-export template <typename S, typename L = ClassicalLogic>
+export template <typename S, typename L = Boole>
 concept IsMereologicalLattice =
     IsSetLattice<S> && IsPartOfRelation<S, S, typename L::Ω> &&
     requires(S a, S b) {
@@ -150,7 +150,7 @@ concept IsMereologicalLattice =
  *
  * Wikipedia: Atom (order theory), Simple object (category theory)
  */
-export template <typename S, typename L = ClassicalLogic>
+export template <typename S, typename L = Boole>
 concept IsAtom = IsMereologicalLattice<S, L> && requires(S x) {
   /**
    * @axiom The Atomic Constraint
@@ -174,7 +174,7 @@ concept IsAtom = IsMereologicalLattice<S, L> && requires(S x) {
  * A System is a Lattice where every element is a 'Whole' relative to the
  * underlying Species, but a 'Part' relative to the System itself.
  */
-export template <typename S, typename Species, typename L = ClassicalLogic>
+export template <typename S, typename Species, typename L = Boole>
 concept IsSystem = IsBoundedLattice<S> && requires {
   /** @brief The inhabitant of the system (The Body). */
   typename S::Domain;

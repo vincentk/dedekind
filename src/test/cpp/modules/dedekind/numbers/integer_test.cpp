@@ -203,11 +203,11 @@ TEST_CASE(
   // Set-level lift exercises the runtime dispatch through
   // dedekind::sets::image(arrow, SingletonSet) — covers the
   // forwarding-reference body for codecov.
-  constexpr SingletonSet<bool, ClassicalLogic> s_true{true};
+  constexpr SingletonSet<bool, Boole> s_true{true};
   const auto image_set = embed_𝔹_ℕ(s_true);
   CHECK(image_set.pivot == finite_cardinality(1));
 
-  constexpr SingletonSet<bool, ClassicalLogic> s_false{false};
+  constexpr SingletonSet<bool, Boole> s_false{false};
   const auto image_set_false = embed_𝔹_ℕ(s_false);
   CHECK(image_set_false.pivot == finite_cardinality(0));
 }

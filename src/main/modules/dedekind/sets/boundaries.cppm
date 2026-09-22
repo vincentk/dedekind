@@ -70,7 +70,7 @@ namespace dedekind::sets {
  *  bare @c Ø{} denotes "the empty set" with no carrier to name; it compares
  *  equal to any @c Ø<T> through the cross-carrier @c operator== below, letting
  *  a collapse be asserted as @c (a @c & @c ~a) @c == @c Ø{}. */
-export template <typename T = std::nullptr_t, typename L = ClassicalLogic>
+export template <typename T = std::nullptr_t, typename L = Boole>
 struct Ø final {
   // ~ arrow / morphism / subobject classifier jargon
   using Domain = T;
@@ -119,9 +119,9 @@ struct Ø final {
 
   /**
    * @brief Cross-logic identity: the empty set under any logic species is the
-   * empty set. Enables writing `Ø<int>` (L defaults to ClassicalLogic) even
+   * empty set. Enables writing `Ø<int>` (L defaults to Boole) even
    * when the RHS was produced by a Set whose NaturalLogic selected
-   * TernaryLogic — mathematically ∅ = ∅ regardless of logic species.
+   * Kleene — mathematically ∅ = ∅ regardless of logic species.
    */
   template <typename OtherL>
     requires(!std::same_as<OtherL, L>)
@@ -207,7 +207,7 @@ struct Ø final {
     return s;
   }
 
-  /** @brief Ø × S = Ø<pair<T, S::Domain>, ClassicalLogic>.  Empty annihilates
+  /** @brief Ø × S = Ø<pair<T, S::Domain>, Boole>.  Empty annihilates
    *         the cartesian product on the @b left.  Carrier widens to the pair
    *         type; the codomain is Boolean (an empty product is decided, #894).
    */
@@ -217,14 +217,14 @@ struct Ø final {
     // Codomain leg (#894): an empty product is decided (χ ≡ ⊥), so it carries
     // the Boolean codomain.  Inlined here because this op is upstream of
     // finalize_combine / codomain_reduce_t; it always yields a boundary.
-    return Ø<std::pair<T, typename S::Domain>, ClassicalLogic>{};
+    return Ø<std::pair<T, typename S::Domain>, Boole>{};
   }
 };
 
 template <typename T, typename L>
 inline const Ø<T, L> Ø<T, L>::χ{};
 
-/** @brief S × Ø = Ø<pair<S::Domain, T2>, ClassicalLogic>.  Empty annihilates
+/** @brief S × Ø = Ø<pair<S::Domain, T2>, Boole>.  Empty annihilates
  * the cartesian product on the @b right.  Symmetric companion to
  *         @c Ø::operator*; carrier widens to the pair type, codomain Boolean
  *         (an empty product is decided, #894). */
@@ -232,7 +232,7 @@ export template <typename S, typename T2, typename L>
   requires(IsSet<S> && !std::same_as<S, Ø<typename S::Domain, L>>)
 constexpr auto operator*(const S&, const Ø<T2, L>&) {
   // Codomain leg (#894): an empty product is decided, so Boolean codomain.
-  return Ø<std::pair<typename S::Domain, T2>, ClassicalLogic>{};
+  return Ø<std::pair<typename S::Domain, T2>, Boole>{};
 }
 
 /**
@@ -253,7 +253,7 @@ constexpr auto operator*(const S&, const Ø<T2, L>&) {
  * @c auto @c 𝔹 @c = @c 𝔸<bool>; without the type/value schism the
  * pre-#551 surface had.
  */
-export template <typename T, typename L = ClassicalLogic, typename C = ℵ_0>
+export template <typename T, typename L = Boole, typename C = ℵ_0>
 struct UniversalSet final {
   // ~ arrow / morphism / subobject classifier jargon
   using Domain = T;
@@ -373,28 +373,28 @@ inline const UniversalSet<T, L, C> UniversalSet<T, L, C>::χ{};
  *  @c UniversalSet<bool>{} — paper Listing 6 reads as @c auto @c 𝔹 @c =
  *  @c 𝔸<bool>; without the type-vs-value schism the pre-#551 surface had.
  */
-export template <typename T, typename L = ClassicalLogic, typename C = ℵ_0>
+export template <typename T, typename L = Boole, typename C = ℵ_0>
 inline constexpr UniversalSet<T, L, C> 𝔸{};
 
 /** @brief @c 𝔸<bool> specialisation: the Boolean carrier is finite,
  *  so its universal predicate is classified by @c Finite cardinality
  *  (not @c ℵ_0).  Without this specialisation, @c NaturalLogic<𝔸<bool>>
- *  would route through @c TernaryLogic (because @c ℵ_0 is transfinite);
- *  the canonical 𝔹 ambient wants @c ClassicalLogic.  Mirrors the
+ *  would route through @c Kleene (because @c ℵ_0 is transfinite);
+ *  the canonical 𝔹 ambient wants @c Boole.  Mirrors the
  *  pre-#551 @c BooleanSetOf<L,C> default of @c BooleanSetOf<
- *  ClassicalLogic, Finite>.
+ *  Boole, Finite>.
  */
 export template <>
-inline constexpr UniversalSet<bool, ClassicalLogic, Finite> 𝔸<bool>{};
+inline constexpr UniversalSet<bool, Boole, Finite> 𝔸<bool>{};
 
 /** @brief The subset (⊆) order on the subobject lattice @c Sub(T), keyed by the
  *  logic species @c L.  This is the @b injected order (@c Ord) under which the
  *  generic lattice-law term reducer (@c category:lattice_term, #865/#890)
  *  normalises set expressions: @c Ø is its bottom (⊥, initial), @c 𝔸 its top
  *  (⊤, terminal).  Keying by @c L lets the algebra markers distinguish
- *  @c ClassicalLogic (a @b Boolean subobject lattice, every law) from
- *  @c TernaryLogic (Heyting / De Morgan, no complement collapse). */
-export template <typename L = ClassicalLogic>
+ *  @c Boole (a @b Boolean subobject lattice, every law) from
+ *  @c Kleene (Heyting / De Morgan, no complement collapse). */
+export template <typename L = Boole>
 struct subobject_order {};
 
 /** @brief The lattice-law term reducer localised to the subobject lattice
@@ -407,7 +407,7 @@ struct subobject_order {};
  *  Phase 2).  @b Complement does @b not route here: the free @c operator! in
  *  @c :expressions is a certified involution that eliminates double negation
  * via the @c :involution witness (@c !!A ≡ A). */
-export template <typename Term, typename L = ClassicalLogic,
+export template <typename Term, typename L = Boole,
                  typename Combine = no_leaf_combine>
 using subobject_reduce_t =
     reduce_t<Term, subobject_order<L>, subobject_order<L>, Combine>;
@@ -419,7 +419,7 @@ using subobject_reduce_t =
  *  boundary factors through the Rosolini dominance @f$\Sigma = \{\top,\bot\}@f$
  *  (its @f$\chi@f$ is the constant @f$\bot@f$ / @f$\top@f$, valued in @c Σ
  *  whatever the ambient), so a normal form that @b is a boundary carries the
- *  Boolean codomain @c ClassicalLogic, not the (possibly Kleene) ambient it was
+ *  Boolean codomain @c Boole, not the (possibly Kleene) ambient it was
  *  reduced under.  This is what makes "a structural reduction to @c Ø / @c 𝔸
  *  restores decidability" (see @c :computability header) actually hold: the
  *  collapsed boundary reads @c HasDecidableMembership.
@@ -436,11 +436,11 @@ struct codomain_reduce {
 };
 template <typename T, typename L>
 struct codomain_reduce<Ø<T, L>> {
-  using type = Ø<T, ClassicalLogic>;
+  using type = Ø<T, Boole>;
 };
 template <typename T, typename L, typename C>
 struct codomain_reduce<UniversalSet<T, L, C>> {
-  using type = UniversalSet<T, ClassicalLogic, C>;
+  using type = UniversalSet<T, Boole, C>;
 };
 export template <typename R>
 using codomain_reduce_t = typename codomain_reduce<R>::type;
@@ -585,7 +585,7 @@ static_assert(IsSet<decltype(ambient_set<int>(Ø<int>{}))>,
 // shows both: @c 𝔹 = @c 𝔸<bool> for the trivial-bottom case;
 // @c N = @c NaturalNumbersOf<>{} for the non-trivial classifier
 // case.
-export template <typename L = ClassicalLogic, typename C = ℵ_0>
+export template <typename L = Boole, typename C = ℵ_0>
 struct NaturalNumbersOf {
   using Domain = dedekind::sets::Cardinality;  // Aligned to the @c Cardinality
                                                // carrier post-#402.

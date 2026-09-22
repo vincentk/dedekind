@@ -37,10 +37,8 @@ using namespace dedekind::order;
 namespace set_expression_exhibit {
 
 // A = { x < 5 } (downward, strict);  B = { x > -5 } (upward, strict).
-using A =
-    Halfspace<int, 5, Direction::Downward, Strictness::Strict, ClassicalLogic>;
-using B =
-    Halfspace<int, -5, Direction::Upward, Strictness::Strict, ClassicalLogic>;
+using A = Halfspace<int, 5, Direction::Downward, Strictness::Strict, Boole>;
+using B = Halfspace<int, -5, Direction::Upward, Strictness::Strict, Boole>;
 
 // ── Compile-time collapse proof (the "wow"): the result TYPE is the reduced
 //    form, not an unevaluated AndPredicate / OrPredicate. ──────────────────
@@ -63,7 +61,7 @@ static_assert(structured_and(A{}, B{}).size() == 9u,
 // (-5, 5)), so the join collapses to UniversalSet — NOT an OrPredicate.
 // structured_or's opposing overload wants (Upward, Downward) order.
 using JoinForm = std::decay_t<decltype(structured_or(B{}, A{}))>;
-static_assert(std::same_as<JoinForm, UniversalSet<int, ClassicalLogic>>,
+static_assert(std::same_as<JoinForm, UniversalSet<int, Boole>>,
               "A | B collapsed to the universe 𝔸 (opposing halfspaces cover).");
 
 }  // namespace set_expression_exhibit
@@ -75,8 +73,8 @@ TEST_CASE(
     "Exhibit: two overlapping halfspaces collapse (structural axis, #888)",
     "[order][sets][exhibit][collapse]") {
   using namespace set_expression_exhibit;
-  constexpr Set<int, ClassicalLogic, A> SA{A{}};
-  constexpr Set<int, ClassicalLogic, B> SB{B{}};
+  constexpr Set<int, Boole, A> SA{A{}};
+  constexpr Set<int, Boole, B> SB{B{}};
 
   SECTION("A & B is the open interval (-5, 5)") {
     constexpr auto meet = SA & SB;
@@ -93,8 +91,8 @@ TEST_CASE(
 
   SECTION("A | B is the universe 𝔸 (covers ℤ)") {
     constexpr auto join = SA | SB;
-    STATIC_CHECK(std::same_as<std::decay_t<decltype(join)>,
-                              UniversalSet<int, ClassicalLogic>>);
+    STATIC_CHECK(
+        std::same_as<std::decay_t<decltype(join)>, UniversalSet<int, Boole>>);
     STATIC_CHECK(join(0));
     STATIC_CHECK(join(100));
     STATIC_CHECK(join(-100));
@@ -107,14 +105,14 @@ TEST_CASE(
   SECTION(
       "A & ~A collapses to Ø (contradiction), A | ~A to 𝔸 (excluded middle)") {
     constexpr auto contradiction = SA & ~SA;
-    STATIC_CHECK(std::same_as<std::decay_t<decltype(contradiction)>,
-                              Ø<int, ClassicalLogic>>);
+    STATIC_CHECK(
+        std::same_as<std::decay_t<decltype(contradiction)>, Ø<int, Boole>>);
     STATIC_CHECK_FALSE(contradiction(0));
     STATIC_CHECK_FALSE(contradiction(4));
     STATIC_CHECK_FALSE(contradiction(5));
     constexpr auto excluded_middle = SA | ~SA;
     STATIC_CHECK(std::same_as<std::decay_t<decltype(excluded_middle)>,
-                              UniversalSet<int, ClassicalLogic>>);
+                              UniversalSet<int, Boole>>);
     STATIC_CHECK(excluded_middle(0));
     STATIC_CHECK(excluded_middle(4));
     STATIC_CHECK(excluded_middle(5));
@@ -133,18 +131,17 @@ TEST_CASE(
   using namespace set_expression_exhibit;
   // Lo = {x ≥ 5}, Hi = {x ≤ 2}: a disjoint pair with a gap at 3, 4, so their
   // union has no boundary or interval normal form to collapse into.
-  using Lo = Halfspace<int, 5, Direction::Upward, Strictness::NonStrict,
-                       ClassicalLogic>;
-  using Hi = Halfspace<int, 2, Direction::Downward, Strictness::NonStrict,
-                       ClassicalLogic>;
-  constexpr Set<int, ClassicalLogic, Lo> SLo{Lo{}};
-  constexpr Set<int, ClassicalLogic, Hi> SHi{Hi{}};
+  using Lo = Halfspace<int, 5, Direction::Upward, Strictness::NonStrict, Boole>;
+  using Hi =
+      Halfspace<int, 2, Direction::Downward, Strictness::NonStrict, Boole>;
+  constexpr Set<int, Boole, Lo> SLo{Lo{}};
+  constexpr Set<int, Boole, Hi> SHi{Hi{}};
 
   SECTION("an irreducible union materializes as a JoinSet carrying both sets") {
     constexpr auto uni = SLo | SHi;  // {x ≥ 5} ∪ {x ≤ 2}, a genuine gap at 3, 4
-    STATIC_CHECK(std::same_as<std::decay_t<decltype(uni)>,
-                              JoinSet<Set<int, ClassicalLogic, Lo>,
-                                      Set<int, ClassicalLogic, Hi>>>);
+    STATIC_CHECK(
+        std::same_as<std::decay_t<decltype(uni)>,
+                     JoinSet<Set<int, Boole, Lo>, Set<int, Boole, Hi>>>);
     STATIC_CHECK(uni(7));        // in Lo
     STATIC_CHECK(uni(1));        // in Hi
     STATIC_CHECK_FALSE(uni(3));  // the gap
@@ -153,14 +150,14 @@ TEST_CASE(
   SECTION("an irreducible meet materializes as a MeetSet carrying both sets") {
     // Cap = {x < 10} is not one of the union's operands, so the meet does not
     // absorb; it materializes as a MeetSet wrapping Cap and the JoinSet.
-    using Cap = Halfspace<int, 10, Direction::Downward, Strictness::Strict,
-                          ClassicalLogic>;
-    constexpr Set<int, ClassicalLogic, Cap> SCap{Cap{}};
+    using Cap =
+        Halfspace<int, 10, Direction::Downward, Strictness::Strict, Boole>;
+    constexpr Set<int, Boole, Cap> SCap{Cap{}};
     constexpr auto met = SCap & (SLo | SHi);  // {x<10} ∩ ({x≥5} ∪ {x≤2})
-    STATIC_CHECK(std::same_as<std::decay_t<decltype(met)>,
-                              MeetSet<Set<int, ClassicalLogic, Cap>,
-                                      JoinSet<Set<int, ClassicalLogic, Lo>,
-                                              Set<int, ClassicalLogic, Hi>>>>);
+    STATIC_CHECK(std::same_as<
+                 std::decay_t<decltype(met)>,
+                 MeetSet<Set<int, Boole, Cap>,
+                         JoinSet<Set<int, Boole, Lo>, Set<int, Boole, Hi>>>>);
     STATIC_CHECK(met(7));         // < 10 and ≥ 5
     STATIC_CHECK(met(1));         // < 10 and ≤ 2
     STATIC_CHECK_FALSE(met(3));   // < 10 but in the gap
@@ -171,8 +168,8 @@ TEST_CASE(
     // The union above is a JoinSet, yet the reducer still recognises Lo as one
     // of its operands, so the meet absorbs to Lo rather than nesting a MeetSet.
     constexpr auto absorbed = SLo & (SLo | SHi);
-    STATIC_CHECK(std::same_as<std::decay_t<decltype(absorbed)>,
-                              Set<int, ClassicalLogic, Lo>>);
+    STATIC_CHECK(
+        std::same_as<std::decay_t<decltype(absorbed)>, Set<int, Boole, Lo>>);
     STATIC_CHECK(absorbed(7));
     STATIC_CHECK_FALSE(absorbed(1));  // 1 is in Hi = B, not in Lo = A
   }

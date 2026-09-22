@@ -86,10 +86,10 @@ concept IsLinearOrder = IsTotallyOrdered<T>;
  * additionally requires @c std::totally_ordered (excluded middle on
  * comparability).  The shape vs.\ axiom split follows the @c
  * HasRingOperators / @c IsRing pattern from PR #394.  @c L defaults to
- * @c ClassicalLogic, mirroring @c HasPartialOrderOperators / @c
+ * @c Boole, mirroring @c HasPartialOrderOperators / @c
  * IsPreOrdered.
  */
-export template <typename T, typename L = ClassicalLogic>
+export template <typename T, typename L = Boole>
 concept HasTotalOrderOperators =
     HasPartialOrderOperators<T, L> && std::three_way_comparable<T>;
 
@@ -110,9 +110,9 @@ concept HasTotalOrderOperators =
  *
  * Sibling of the homogeneous @c HasTotalOrderOperators above and
  * @c HasPartialOrderOperatorsWith in @c :poset.  @c L defaults to
- * @c ClassicalLogic.  Per #415 / cross-issue note on PR #422.
+ * @c Boole.  Per #415 / cross-issue note on PR #422.
  */
-export template <typename T, typename U, typename L = ClassicalLogic>
+export template <typename T, typename U, typename L = Boole>
 concept HasTotalOrderOperatorsWith = HasPartialOrderOperatorsWith<T, U, L> &&
                                      std::three_way_comparable_with<T, U>;
 

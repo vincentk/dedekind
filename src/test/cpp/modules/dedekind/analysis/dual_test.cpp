@@ -11,7 +11,7 @@
 
 import dedekind.algebra; // HasRingOperators, IsAlgebra (witness mirrors)
 import dedekind.analysis;
-import dedekind.category; // ClassicalLogic, Ternary, var, ...
+import dedekind.category; // Boole, Ternary, var, ...
 import dedekind.geometry; // IsTangentBundle (flat-case tangent-bundle concept)
 import dedekind.numbers;  // Complex<F>, machine_real_scalar, IEEE<F>
 import dedekind.sets;     // Set, 𝔸, predicate-set DSL
@@ -110,17 +110,17 @@ TEST_CASE(
 TEST_CASE("Analysis: 𝔻 / D / DualSet starter aliases",
           "[analysis][dual][starter]") {
   // Post-HSP retarget: 𝔻 is the COAT-HANGER universe value
-  // 𝔸<Dual<QuadraticReal<2>>, ClassicalLogic, ℶ_1>; the machine-double ambient
+  // 𝔸<Dual<QuadraticReal<2>>, Boole, ℶ_1>; the machine-double ambient
   // is 𝔻_d = 𝔸<Dual<machine_real_scalar>> (mirroring ℝ_d / ℂ_d).  D is the
   // classifier instance DualSet{} (= DualSetOf<>{}).  The pair mirrors ℝ/ℂ.
   using R2 = QuadraticReal<2>;
   STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(𝔻)>,
-                            UniversalSet<Dual<R2>, ClassicalLogic, ℶ_1>>);
+                            UniversalSet<Dual<R2>, Boole, ℶ_1>>);
   STATIC_CHECK(std::same_as<typename std::remove_cvref_t<decltype(𝔻)>::Domain,
                             Dual<R2>>);
-  STATIC_CHECK(std::same_as<
-               std::remove_cvref_t<decltype(𝔻_d)>,
-               UniversalSet<Dual<machine_real_scalar>, ClassicalLogic, ℶ_1>>);
+  STATIC_CHECK(
+      std::same_as<std::remove_cvref_t<decltype(𝔻_d)>,
+                   UniversalSet<Dual<machine_real_scalar>, Boole, ℶ_1>>);
   STATIC_CHECK(std::same_as<decltype(D), const DualSet>);
 
   constexpr auto d = element<𝔻>;  // now a Dual<QuadraticReal<2>> scout
@@ -165,7 +165,7 @@ TEST_CASE("Analysis: Set membership over Dual<double> domain",
   using F = machine_real_scalar;
   // Sets over Dual: membership based on the primal value component.
   const auto positive_pred = [](const Dual<F>& d) { return d.value() > 0.0; };
-  const Set<Dual<F>, ClassicalLogic, decltype(positive_pred)> positive_primal{
+  const Set<Dual<F>, Boole, decltype(positive_pred)> positive_primal{
       positive_pred};
 
   CHECK(positive_primal(Dual<F>{1.0, 0.5}) == true);

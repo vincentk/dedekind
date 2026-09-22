@@ -10,9 +10,9 @@
  *
  *   - `HasDecidableMembership<S>` — membership `x ∈ S` is answered in
  *     two-valued logic (i.e. no Unknown).  Equivalent to `logic_species`
- *     being `ClassicalLogic`.  Independent of finiteness: a finite
- *     extensional object can be declared with `TernaryLogic`
- *     (e.g. `Ø<int, TernaryLogic>`, `Singleton<42, TernaryLogic>`), in
+ *     being `Boole`.  Independent of finiteness: a finite
+ *     extensional object can be declared with `Kleene`
+ *     (e.g. `Ø<int, Kleene>`, `Singleton<42, Kleene>`), in
  *     which case it satisfies @c :sets:cardinality::IsExtensional but
  *     NOT `HasDecidableMembership`.
  *
@@ -31,8 +31,8 @@
  * The free @c operator& / @c operator| machinery monotonically tightens
  * the decidability classification as compile-time reductions succeed.
  * An intensional Set over a transfinite carrier starts at the bottom
- * (TernaryLogic, opaque predicate); a structural reduction to @c Ø or
- * @c Singleton<V> lifts it to the top (ClassicalLogic, decidable
+ * (Kleene, opaque predicate); a structural reduction to @c Ø or
+ * @c Singleton<V> lifts it to the top (Boole, decidable
  * membership).
  *
  * Wikipedia: Computability theory, Decidability (logic), Concepts (C++20)
@@ -83,7 +83,7 @@ using namespace dedekind::category;
  */
 // Primary template: when @c Base exposes no @c cardinality_type the
 // resolver cannot make a structural claim on the carrier axis — fall
-// back to the honest default of @c TernaryLogic.  This branch keeps the
+// back to the honest default of @c Kleene.  This branch keeps the
 // resolver SFINAE-friendly for callers that probe @c NaturalLogic in a
 // @c requires-clause (e.g.\ the cartesian-product @c operator* overload
 // gate in @c :sets:expressions): non-Set carriers like @c
@@ -91,18 +91,18 @@ using namespace dedekind::category;
 // a hard error.
 export template <typename Base, typename = void>
 struct NaturalLogic {
-  using species = TernaryLogic;
+  using species = Kleene;
   using type = species;
 };
 
 // Specialisation: when @c Base exposes @c cardinality_type, read the
 // carrier-axis verdict per #622 — Countable (@c Finite, @c ℵ_0) →
-// @c ClassicalLogic, Uncountable (@c ℶ_1, …) → @c TernaryLogic.
+// @c Boole, Uncountable (@c ℶ_1, …) → @c Kleene.
 export template <typename Base>
 struct NaturalLogic<Base, std::void_t<typename Base::cardinality_type>> {
   using species =
-      std::conditional_t<IsCountable<typename Base::cardinality_type>,
-                         ClassicalLogic, TernaryLogic>;
+      std::conditional_t<IsCountable<typename Base::cardinality_type>, Boole,
+                         Kleene>;
   using type = species;
 };
 
@@ -117,20 +117,19 @@ struct NaturalLogic<Base, std::void_t<typename Base::cardinality_type>> {
  * @details Rosolini reading: this is a @b sound, @b conservative certificate
  *          that "the characteristic map χ: A → Ω factors through the dominance
  *          Σ ↪ Ω" (χ = lift_logic ∘ χ_total with χ_total: A → Σ =
- *          ClassicalLogic::Ω), @b not a decision of it.  It checks that the
+ *          Boole::Ω), @b not a decision of it.  It checks that the
  *          logic species is Boolean, so it recognises a decidable sub-class but
  *          may answer conservatively: an ℝ-tagged @c Halfspace whose χ never
- *          actually returns @c Unknown is still @c TernaryLogic-classified, and
+ *          actually returns @c Unknown is still @c Kleene-classified, and
  *          deciding the factorisation exactly is undecidable (Rice).  ETCS
  *          proper is the Σ = Ω case; a partial set is χ: A → Ω =
- * TernaryLogic::Ω. See `category/logic.cppm` (lift_logic = the inclusion Σ ↪
+ * Kleene::Ω. See `category/logic.cppm` (lift_logic = the inclusion Σ ↪
  * Ω), #267, and #847 (the recognised-vs-actual sub-quadrant).
  */
 export template <typename S>
-concept HasDecidableMembership =
-    requires { typename std::remove_cvref_t<S>::logic_species; } &&
-    std::same_as<typename std::remove_cvref_t<S>::logic_species,
-                 ClassicalLogic>;
+concept HasDecidableMembership = requires {
+  typename std::remove_cvref_t<S>::logic_species;
+} && std::same_as<typename std::remove_cvref_t<S>::logic_species, Boole>;
 
 /**
  * @concept IsDecidableSet
@@ -139,7 +138,7 @@ concept HasDecidableMembership =
  *        Σ = Ω is the strict-ETCS collapse only).
  *
  * @details `IsSet` (category/etcs.cppm) is the honest BASE: it checks the ETCS
- * axiom schema over the ambient logic species, which may be @c TernaryLogic, so
+ * axiom schema over the ambient logic species, which may be @c Kleene, so
  * a bare `IsSet` may have @c Unknown membership (an "Ω-set"; an object of the
  * partial-map category, Kleisli of the lift monad).  `IsDecidableSet` is the
  * earned refinement — a "Σ-set" — where the classifier collapses to the
@@ -149,7 +148,7 @@ concept HasDecidableMembership =
  * effect the ETCS Axiom of Choice (Axiom 10, well-pointed + choice ⟹ LEM)
  * delivers; it is strictly weaker than committing to full choice, so we gate on
  * the observable consequence (@c HasDecidableMembership, i.e. `logic_species`
- * is @c ClassicalLogic) rather than on choice itself.  Naming the restriction
+ * is @c Boole) rather than on choice itself.  Naming the restriction
  * positively (rather than tightening `IsSet`) keeps partial sets first-class
  * and makes "assume the Boolean fragment" an explicit, visible act.  See #846
  * and Figure "Classifier Ω vs dominance Σ" in the paper.

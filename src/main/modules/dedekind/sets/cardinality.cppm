@@ -116,9 +116,9 @@ concept IsExtensional = requires(const S& s) {
  *          by a physical container with a terminable address space.
  *
  * @tparam S A set species.
- * @tparam L The Subobject Classifier (Ω). Defaults to ClassicalLogic.
+ * @tparam L The Subobject Classifier (Ω). Defaults to Boole.
  */
-export template <typename S, typename L = ClassicalLogic>
+export template <typename S, typename L = Boole>
 concept IsEnumerated = IsExtensional<S> && requires(const S s) {
   typename S::Domain;
   requires dedekind::category::IsSet<

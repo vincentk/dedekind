@@ -21,7 +21,7 @@
  * (no semantic change to the concepts); the positive convergent
  * witness is exercised downstream in #719 Slice 5 (logical-collapse
  * upgrades + Bolzano-Weierstrass crown), where the @c limit()
- * resolution paths and the @c ClassicalLogic / @c Ternary gating
+ * resolution paths and the @c Boole / @c Ternary gating
  * are set up coherently.
  */
 

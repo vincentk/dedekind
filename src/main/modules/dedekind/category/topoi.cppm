@@ -115,7 +115,7 @@ concept IsCharacteristic = IsPredicate<P>;
  *
  * @details `IsCharacteristic` lands in the full classifier Ω, which for the
  * honest species is three-valued (@c Ternary, admitting @c Unknown).
- * `IsDecidableCharacteristic` demands the codomain be @c ClassicalLogic::Ω
+ * `IsDecidableCharacteristic` demands the codomain be @c Boole::Ω
  * (@c bool): membership is answered in two-valued logic and never says
  * @c Unknown.  This is the arrow-level twin of @c sets::HasDecidableMembership:
  * a @b sound, @b conservative certificate that @f$\chi_A@f$ factors through the
@@ -379,8 +379,8 @@ struct Subobject {
 
   /** @brief The logic species @c L is derived from the characteristic
    *  morphism's codomain @c Cod<Chi> via @c GetLogic.  Concretely:
-   *  @c GetLogic<bool>::type @c = @c ClassicalLogic;
-   *  @c GetLogic<Ternary>::type @c = @c TernaryLogic.  Required by
+   *  @c GetLogic<bool>::type @c = @c Boole;
+   *  @c GetLogic<Ternary>::type @c = @c Kleene.  Required by
    *  @c :lattice::IsSubobjectLattice as a CT-vocabulary metadata
    *  typedef (#698 Slice 9). */
   using logic_species = typename GetLogic<Cod<Chi>>::type;
@@ -690,21 +690,21 @@ constexpr auto predicate_not(P&& p) {
 /**
  * @brief Constant classifier factory over domain A: A -> Ω.
  */
-export template <typename A, typename L = ClassicalLogic>
+export template <typename A, typename L = Boole>
   requires IsLogicalSpecies<L>
 constexpr auto constant_classifier(typename L::Ω value) {
   return arrow<A, typename L::Ω>([value](const A&) { return value; });
 }
 
 /** @brief Default true classifier over domain A. */
-export template <typename A, typename L = ClassicalLogic>
+export template <typename A, typename L = Boole>
   requires IsLogicalSpecies<L>
 constexpr auto classifier_true() {
   return constant_classifier<A, L>(L::True);
 }
 
 /** @brief Default false classifier over domain A. */
-export template <typename A, typename L = ClassicalLogic>
+export template <typename A, typename L = Boole>
   requires IsLogicalSpecies<L>
 constexpr auto classifier_false() {
   return constant_classifier<A, L>(L::False);
@@ -712,7 +712,7 @@ constexpr auto classifier_false() {
 
 /** @brief Default unknown classifier over domain A (only for logics with
  * Unknown). */
-export template <typename A, typename L = TernaryLogic>
+export template <typename A, typename L = Kleene>
   requires IsLogicalSpecies<L> && requires { L::Unknown; }
 constexpr auto classifier_unknown() {
   return constant_classifier<A, L>(L::Unknown);
@@ -721,7 +721,7 @@ constexpr auto classifier_unknown() {
 /**
  * @brief The 'true' morphism: 1 → Ω.
  */
-export template <typename L = ClassicalLogic>
+export template <typename L = Boole>
   requires IsLogicalSpecies<L>
 auto logical_true() {
   return arrow<One, typename L::Ω>([](One) { return L::True; });
@@ -730,7 +730,7 @@ auto logical_true() {
 /**
  * @brief The 'false' morphism: 1 → Ω.
  */
-export template <typename L = ClassicalLogic>
+export template <typename L = Boole>
   requires IsLogicalSpecies<L>
 auto logical_false() {
   return arrow<One, typename L::Ω>([](One) { return L::False; });
@@ -740,7 +740,7 @@ auto logical_false() {
  * @brief Power Object Alias
  * @details In a Topos, P(A) is the exponential object Ω^A.
  */
-export template <typename A, typename L = ClassicalLogic>
+export template <typename A, typename L = Boole>
 using PowerObject = Exponential<A, typename L::Ω>;
 
 }  // namespace dedekind::category

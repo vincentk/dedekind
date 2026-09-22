@@ -22,7 +22,7 @@ TEST_CASE("category:thin — Bool is the canonical 2-element thin category",
    *         smallest non-trivial thin category — and also the canonical
    *         Boolean algebra / subobject classifier in Set. */
   STATIC_CHECK(IsThinCategory<bool>);
-  STATIC_CHECK(IsThinCategory<bool, std::less_equal<bool>, ClassicalLogic>);
+  STATIC_CHECK(IsThinCategory<bool, std::less_equal<bool>, Boole>);
 }
 
 TEST_CASE("category:thin — integral carriers are thin",

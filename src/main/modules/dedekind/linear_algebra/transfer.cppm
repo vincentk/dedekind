@@ -55,8 +55,8 @@ module;
 
 export module dedekind.linear_algebra:transfer;
 
-import dedekind.algebra; // IsSemiring, semiring_ops, Tropical/MaxPlus, ⊕/⊗
-import dedekind.category; // IsArrow, IsSemiring, identity_v, closure, ClassicalLogic
+import dedekind.algebra;    // IsSemiring, semiring_ops, Tropical/MaxPlus, ⊕/⊗
+import dedekind.category;   // IsArrow, IsSemiring, identity_v, closure, Boole
 import dedekind.order;      // IsDirectedSet
 import dedekind.relational; // converse / is_relation (Tarski :dyadic, #792)
 import dedekind.sets;       // Set<pair,L,P> — the DSL relation carrier
@@ -598,8 +598,7 @@ struct EdgeSucc {
   }
 };
 inline constexpr auto path_rel =
-    dedekind::sets::Set<Idx2, dedekind::category::ClassicalLogic, EdgeSucc>{
-        EdgeSucc{}};
+    dedekind::sets::Set<Idx2, dedekind::category::Boole, EdgeSucc>{EdgeSucc{}};
 static_assert(dedekind::relational::is_relation(path_rel),
               "path_rel is a Ddk relation: an IsSet on a product domain.");
 
@@ -650,7 +649,7 @@ struct CyclicShift {
   }
 };
 inline constexpr auto perm_rel =
-    dedekind::sets::Set<Idx2, dedekind::category::ClassicalLogic, CyclicShift>{
+    dedekind::sets::Set<Idx2, dedekind::category::Boole, CyclicShift>{
         CyclicShift{}};
 static_assert(dedekind::relational::is_relation(perm_rel),
               "perm_rel is a Ddk relation: the cyclic-shift permutation.");
