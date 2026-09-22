@@ -209,10 +209,13 @@ TEST_CASE("Logic: the Percentage confidence chain (bounded, #906)",
     CHECK(P::RFL(P::False) == P::True);               // 0 ↦ 100
   }
 
-  SECTION("range enforcement: out-of-range saturates to the top pole") {
-    CHECK(Percentage{200}.v == 100);
-    CHECK(P::True.v == 100);
-    CHECK(P::False.v == 0);
+  SECTION(
+      "range enforcement: out-of-range saturates (clamp before narrowing)") {
+    CHECK(Percentage{200}.value() == 100);  // above → top pole
+    CHECK(Percentage{256}.value() == 100);  // NOT wrap to 0
+    CHECK(Percentage{-1}.value() == 0);     // below → bottom pole
+    CHECK(P::True.value() == 100);
+    CHECK(P::False.value() == 0);
   }
 
   SECTION("involution + De Morgan") {

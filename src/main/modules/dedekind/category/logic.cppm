@@ -261,13 +261,19 @@ static_assert(IsLogicalSpecies<Chain<int>>,
  * and the reflection @c 100-v never leaves the range.
  */
 export struct Percentage final {
-  std::uint8_t v;  ///< invariant: @c 0 ≤ v ≤ 100 (enforced by the constructor)
-  /** @brief Clamp into @c [0,100] (saturating): an out-of-range input pins to
-   *  the top pole rather than corrupting the invariant. */
-  constexpr Percentage(std::uint8_t p) noexcept : v(p < 100 ? p : 100) {}
-  friend constexpr std::strong_ordering operator<=>(Percentage,
-                                                    Percentage) = default;
-  friend constexpr bool operator==(Percentage, Percentage) = default;
+ private:
+  std::uint8_t v_;  // invariant: 0 ≤ v_ ≤ 100 (private, so it cannot be broken)
+ public:
+  /** @brief Saturating construction into @c [0,100]: an out-of-range input pins
+   *  to the nearest pole.  The clamp is done in a signed @b wide type @b before
+   *  narrowing, so @c Percentage{256} = @c 100 and @c Percentage{-1} = @c 0
+   *  (not the wrap-around a narrowing-first clamp would give). */
+  constexpr Percentage(int p) noexcept
+      : v_(static_cast<std::uint8_t>(p < 0 ? 0 : (p > 100 ? 100 : p))) {}
+  /** @brief The clamped percentage value in @c [0,100]. */
+  constexpr std::uint8_t value() const noexcept { return v_; }
+  constexpr std::strong_ordering operator<=>(const Percentage&) const = default;
+  constexpr bool operator==(const Percentage&) const = default;
 };
 
 /**
@@ -287,15 +293,15 @@ export struct Percent final {
   static constexpr Percentage False{0};
   /** @brief Meet @c ∧ = numeric minimum. */
   static constexpr Percentage AND(Percentage a, Percentage b) noexcept {
-    return {std::ranges::min(a.v, b.v)};
+    return {std::ranges::min(a.value(), b.value())};
   }
   /** @brief Join @c ∨ = numeric maximum. */
   static constexpr Percentage OR(Percentage a, Percentage b) noexcept {
-    return {std::ranges::max(a.v, b.v)};
+    return {std::ranges::max(a.value(), b.value())};
   }
   /** @brief ¬p = @c 100-p: reflection about the self-dual midpoint @c 50. */
   static constexpr Percentage RFL(Percentage a) noexcept {
-    return {static_cast<std::uint8_t>(100 - a.v)};
+    return {100 - a.value()};
   }
 };
 
@@ -945,8 +951,10 @@ static_assert(Percent::RFL(Percentage{50}) == Percentage{50},
 static_assert(Percent::RFL(Percent::True) == Percent::False &&
                   Percent::RFL(Percent::False) == Percent::True,
               "Percent: ¬ swaps the poles 0 ↔ 100");
-static_assert(Percentage{200}.v == 100,
-              "Percentage enforces its [0,100] range (saturating clamp)");
+static_assert(Percentage{200}.value() == 100 &&
+                  Percentage{256}.value() == 100 && Percentage{-1}.value() == 0,
+              "Percentage enforces [0,100] (clamp in a wide type before "
+              "narrowing: 256↦100 not 0, -1↦0 not 100)");
 
 // The 𝔹 ↪ Chain<T> dominance inclusion: decided bool answers land on the poles,
 // so Truth<Chain<T>> (its operator<= lifts a bool verdict) stores ⊥/⊤, never
