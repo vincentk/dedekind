@@ -188,7 +188,6 @@ TEST_CASE("Logic: the finite Kleene chain Chain<int> (De Morgan, #901)",
     // A decided bool verdict embeds at the chain's poles, not the interior 0/1.
     CHECK(lift_logic<C>(true) == C::True);    // ⊤ = INT_MAX
     CHECK(lift_logic<C>(false) == C::False);  // ⊥ = INT_MIN
-    CHECK(lifts_to_v<Boole, C>);
 
     // Truth<Chain<int>>::operator<= lifts (OR==b) through lift_logic, so its
     // answer is a pole, never 1/0 (which are interior chain values).

@@ -497,10 +497,13 @@ template <typename L>
 inline constexpr bool lifts_to_v<L, L> = true;
 template <>
 inline constexpr bool lifts_to_v<Boole, Kleene> = true;
-// 𝔹 ↪ Chain<T>: the decided answers {⊥,⊤} sit at the chain's poles.
-template <std::integral T>
-  requires(!std::same_as<T, bool>)
-inline constexpr bool lifts_to_v<Boole, Chain<T>> = true;
+// NB: the 𝔹 ↪ Chain<T> inclusion is real (lift_logic implements it: decided
+// answers land on the poles) but is deliberately NOT registered here.  The
+// cross-species set combine that consumes lifts_to_v routes through
+// sets::join_logic_t, which only selects Boole/Kleene; a Boole/Chain mix would
+// pick Boole and then demand the false reverse edge Chain ↪ Boole.  Registering
+// a half-edge the set layer cannot honour would be a misleading claim.  Chain
+// as a set codomain (a general dominance join) is a separate increment.
 export template <typename From, typename To>
 concept LiftsTo = lifts_to_v<From, To>;
 
@@ -875,8 +878,6 @@ static_assert(IsBoundedDeMorganChain<Chain<unsigned>> &&
 // so Truth<Chain<T>> (its operator<= lifts a bool verdict) stores ⊥/⊤, never
 // the interior 0/1.  Without this lift_logic branch the order relation would
 // decay.
-static_assert(lifts_to_v<Boole, Chain<int>> && LiftsTo<Boole, Chain<int>>,
-              "𝔹 ⊑ Chain<int>: the decided answers embed at the poles");
 static_assert(
     lift_logic<Chain<int>>(true) == Chain<int>::True &&
         lift_logic<Chain<int>>(false) == Chain<int>::False,
