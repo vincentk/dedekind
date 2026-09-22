@@ -138,7 +138,7 @@ static_assert(IsLogicalSpecies<Boole>, "Boole must fulfill IsLogicalSpecies");
  * Indeterminacy)
  * @brief A three-valued propositional logic for handling partial information.
  *
- * Unlike Boole, Ternary logic allows for an 'Unknown' state,
+ * Unlike Boole, Kleene's three-valued logic allows for an 'Unknown' state,
  * modeling undecidability or missing knowledge within a predicate.
  * This implementation follows Kleene's strong logic of indeterminacy (K3).
  *
@@ -150,7 +150,7 @@ static_assert(IsLogicalSpecies<Boole>, "Boole must fulfill IsLogicalSpecies");
 export enum class Ternary : std::int8_t { False = -1, Unknown = 0, True = 1 };
 
 /**
- * @brief The internal logic of the Ternary Topos.
+ * @brief The internal logic of the Kleene Topos.
  *
  * Maps logical morphisms to numerical min/max/negation operations
  * over the {-1, 0, 1} lattice. This ensures that 'Unknown' acts as
