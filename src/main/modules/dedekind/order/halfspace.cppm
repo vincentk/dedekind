@@ -266,6 +266,33 @@ struct Halfspace : dedekind::sets::SetExpr<Halfspace<T, Pivot, D, S, L>, T, L> {
   static constexpr Direction direction = D;
   static constexpr Strictness strictness = S;
 
+  /** @brief Carrier-axis cardinality of the cut, threaded so the decidability
+   *  classifier (@c sets::NaturalLogic) reads a halfspace the SAME way it reads
+   *  the ambient it was carved from (#848).
+   *
+   *  @details A halfspace is an @b unbounded ray, so it is equinumerous with
+   * its carrier: over a countable carrier it is @f$\aleph_0@f$ (never @c Finite
+   * --- contrast the @b bounded @c OrderInterval, which is @c Finite on a
+   * discrete carrier), and over a continuum it is @f$\beth_1@f$.  @c
+   * IsRingIntegral is the countable/uncountable discriminator: it admits the
+   * structural integers
+   *  @b and the @c Cardinality / @c SignedCardinality (ℕ/ℤ) proxy carriers, and
+   *  declines the real proxies (@c QuadraticReal, @c double).  This reproduces
+   *  the tag the ambient @c UniversalSet<T,L,C> carries for the canonical
+   *  carriers --- @c ℵ_0 for @c ℕ, @c ℶ_1 for @c ℝ --- so the point-free
+   *  @c A @c | @c pred comprehension classifies identically to the (deprecated)
+   *  scout @c element<A> @c | @c pred spelling, whose @c Comprehension inherits
+   *  @c C directly.  Without this typedef @c NaturalLogic<Halfspace> hit its
+   *  pessimistic primary-template fallback (@c Kleene / @c TernaryLogic).
+   *
+   *  @note This is the carrier-axis @b magnitude, not the ambient's own @c C
+   *  slot: an incoherent ambient tagged against its carrier's true cardinality
+   *  (e.g.\ @c 𝔸<Cardinality,Boole,Finite>) can still differ, but only within a
+   *  single countability class, so the @c NaturalLogic verdict is unchanged.
+   *  Threading the exact @c C would require a sixth @c Halfspace template
+   *  parameter (FIXME(#848): balloons across ~120 pattern-matched sites). */
+  using cardinality_type = std::conditional_t<IsRingIntegral<T>, ℵ_0, ℶ_1>;
+
   // `Pivot` may be a different structural type than `T` (e.g., pivot = 5.0 as
   // double, T = Real<double>). The carrier's converting ctor / overload set
   // handles the comparison; we only assume `T` is comparable with the pivot.
@@ -1115,6 +1142,50 @@ static_assert(((ℕ | (π > fix(5_c))) & ~(ℕ | (π > fix(5_c)))) == Ø{},
               "point-free: (n > 5) ∩ ¬(n > 5) == Ø.");
 static_assert(((𝔹 | (π == fix(true_c))) & ~(𝔹 | (π == fix(true_c)))) == Ø{},
               "point-free: {true} ∩ ¬{true} == Ø.");
+
+/** @section halfspace__PointFree_Scout_Decidability_848
+ *
+ * #848 acceptance witness: the point-free comprehension @c ℕ @c | @c pred and
+ * the (deprecated) scout spelling @c element<ℕ> @c | @c pred now classify
+ * IDENTICALLY on the carrier-axis decidability resolver.  The point-free path
+ * reduces to a bare @c Halfspace, whose freshly-threaded @c cardinality_type
+ * (see the struct, @c ℵ_0 over the countable @c ℕ) makes @c NaturalLogic read
+ * the same @c Boole verdict the scout @c Comprehension inherits from its
+ * ambient @c C.  Before the thread @c NaturalLogic<Halfspace> hit its
+ * pessimistic primary-template fallback (@c Kleene / @c TernaryLogic). */
+namespace detail_848_pointfree_scout {
+using PointFree = decltype(ℕ | (π > fix(5_c)));
+using Scout = decltype(element<ℕ> | (element<ℕ> > bound<5>));
+
+// The raw comprehensions agree on the NaturalLogic (carrier-axis) verdict.
+static_assert(std::same_as<typename NaturalLogic<PointFree>::type,
+                           typename NaturalLogic<Scout>::type>,
+              "#848: point-free ℕ|pred and scout element<ℕ>|pred yield the "
+              "same NaturalLogic verdict.");
+static_assert(std::same_as<typename NaturalLogic<PointFree>::type, Boole>,
+              "#848: {x∈ℕ | x>5} is carrier-axis countable (ℵ₀), hence Boole "
+              "(decidable membership), NOT the Kleene fallback.");
+
+// And the observable symptom 1: the Set-wrapped forms agree on decidable
+// membership (the Set CTAD keys the logic species off NaturalLogic<inner>).
+static_assert(HasDecidableMembership<decltype(Set{ℕ | (π > fix(5_c))})> ==
+                  HasDecidableMembership<decltype(Set{
+                      element<ℕ> | (element<ℕ> > bound<5>)})>,
+              "#848: Set{ℕ|pred} and Set{element<ℕ>|pred} agree on "
+              "HasDecidableMembership.");
+static_assert(HasDecidableMembership<decltype(Set{ℕ | (π > fix(5_c))})>,
+              "#848: Set{ℕ | x>5} is a decidable (ClassicalLogic) set.");
+
+// The continuum leg (ℝ) stays honestly ternary through the SAME thread: a real
+// halfspace is carrier-axis ℶ₁, so NaturalLogic keeps its Kleene verdict --- no
+// regression of the uncountable case the pre-fix Kleene fallback covered.
+static_assert(
+    std::same_as<
+        typename NaturalLogic<Halfspace<double, 5.0, Direction::Upward,
+                                        Strictness::Strict, Kleene>>::type,
+        Kleene>,
+    "#848: a real (ℶ₁) halfspace stays Kleene/ternary.");
+}  // namespace detail_848_pointfree_scout
 
 /** @brief Comparison flavour for the relational predicates. */
 export enum class Rel { Lt, Le, Gt, Ge, Eq, Ne };
