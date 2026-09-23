@@ -18,7 +18,7 @@ TEST_CASE("Topology: Rules of Continuity Coverage", "[topology][continuity]") {
   using LeftClosedInterval = Interval<ℝ, Boundary::Closed, Boundary::Open>;
 
   SECTION("The Skin and Body: IsOpen Verification") {
-    // ℝ is int here — a DISCRETE carrier — so #905 structural inference
+    // ℝ is int here, a DISCRETE carrier, so #905 structural inference
     // (HasDiscreteCarrier) makes EVERY shape clopen: open shapes satisfy
     // IsClosed too, and closed shapes satisfy IsOpen too.  The boundary tag no
     // longer under-reports on int (the #904 CP finding).
@@ -203,14 +203,14 @@ TEST_CASE("Topology: Ø/𝔸 in the clopen ∩ decidable boundary core (Stone)",
     // the type carried only is_open_tag.  That was the #904 CP finding: the tag
     // said LESS than the structure.  On the discrete order on int every subset
     // is clopen ({n > p} = {n >= p+1}), so #905 infers it from
-    // HasDiscreteCarrier — the ray IS clopen now.
+    // HasDiscreteCarrier. The ray IS clopen now.
     static_assert(HasDiscreteCarrier<OpenRay>,
                   "int is a discrete carrier for the ray");
     static_assert(IsOpen<OpenRay> && IsClosed<OpenRay> && IsClopen<OpenRay>,
                   "#905: discrete carrier ⟹ the int ray is clopen (open ∧ "
                   "closed) by inference, not by tag");
-    // logic_species still defaults to Boole, so membership is also decidable —
-    // here the clopen and decidable certificates coincide (both hold).  The
+    // logic_species still defaults to Boole, so membership is also decidable.
+    // Here the clopen and decidable certificates coincide (both hold).  The
     // GENUINE decidable-but-NOT-clopen witness (the other independence
     // direction) needs a DENSE carrier and lives in the ℚ neighborhood test.
     static_assert(HasDecidableMembership<OpenRay>,

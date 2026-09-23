@@ -54,7 +54,7 @@ TEST_CASE("a rational neighborhood is a topological neighborhood AND a Lwv set",
     // #905 makes every set on int clopen, so the "decidable but NOT clopen"
     // witness the #904 shapes test used to place on Ray<int> must live on a
     // DENSE carrier.  ℚ is dense (!HasDiscreteCarrier), so its open shapes are
-    // open, not closed, and hence not clopen — the real open ⊋ clopen.
+    // open, not closed, and hence not clopen: the real open ⊋ clopen.
     using namespace dedekind::topology;
     using QOpenRay = Ray<Q, Direction::Upward>;  // {x > p}, Boundary::Open
     STATIC_CHECK(!HasDiscreteCarrier<QOpenRay>);
