@@ -1899,7 +1899,8 @@ The longest path over a single-source, single-sink directed acyclic graph is the
 It is also the dual of a network-flow linear program: the flow variables live on the edges, the dual potentials live on the nodes, and total unimodularity of the node-arc incidence makes both optima integral.
 Computing the critical path is therefore solving one side of a linear program, and complementary slackness reads off the other side, namely which edges carry flow and so which activities are critical, in the sense of carrying zero float.
 
-The closure is gated on the \emph{algebraic} concept \cppinline{IsSemiring<S, Add, Mult>} rather than a syntactic operator list, with the operators defaulting to the carrier's canonical pair so no call site spells them out.
+The closure is parameterised by the carrier \cppinline{S} alone and gated on the \emph{algebraic} concept \cppinline{IsSemiring} rather than a syntactic operator list.
+Its operation pair $(\oplus, \otimes)$ is fixed by the carrier's canonical \cppinline{semiring_ops<S>}, so no call site spells the operators out.
 Its \emph{net fiber} (Table~\ref{tab:relation-matrix-map}) is a \cppinline{fold} over the graph's edges relaxing one potential per edge, $d[\mathrm{head}] := d[\mathrm{head}] \oplus d[\mathrm{tail}] \otimes c$, in one topological pass on a DAG; the checked-in \cppinline{semiring_closure} is that fold, threading its potential net in place under \cppinline{constexpr}.
 
 The tropical carrier \cppinline{Tropical<T>} $= T \cup \{\infty\}$ is a certified \cppinline{IsSemiring}, and in fact a \emph{dioid}: its addition $\oplus$ is the order-extremum (\cppinline{max} for the longest path), an idempotent semilattice, while its multiplication $\otimes$ is the carrier's own $+$.
