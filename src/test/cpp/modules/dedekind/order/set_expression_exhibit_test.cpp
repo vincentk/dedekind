@@ -272,9 +272,9 @@ TEST_CASE("Exhibit: #865 distributivity of the subobject lattice",
     constexpr auto reduced = (gt5 | gt7) & lt3;
     STATIC_CHECK(std::same_as<std::decay_t<decltype(reduced)>, Ø<int, Boole>>);
     // Meaning preservation: the reduced empty set rejects everything.
-    STATIC_CHECK_FALSE(reduced(6));   // in (n>5)∪(n>7) but not (n<3)
-    STATIC_CHECK_FALSE(reduced(2));   // in (n<3) but not the union
-    STATIC_CHECK_FALSE(reduced(42));  // in neither
+    STATIC_CHECK_FALSE(reduced(6));  // in (n>5)∪(n>7) but not (n<3)
+    STATIC_CHECK_FALSE(reduced(2));  // in (n<3) but not the union
+    STATIC_CHECK_FALSE(reduced(4));  // in neither (not >5, not <3)
   }
 
   SECTION("Sub(ℤ) distributes a genuinely non-collapsing meet-over-join") {
