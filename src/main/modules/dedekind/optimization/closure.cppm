@@ -176,10 +176,15 @@ struct CriticalPathState {
  *
  * @note Gated on @c IsTropical (idempotent @c ⊕), NOT bare @c IsSemiring: the
  * update overwrites @c d(head) with @c cand alone when @c (d(head) ⊕ cand)
- * differs from @c d(head), which recovers the join only when @c ⊕ is idempotent
- * (@c a ⊕ a = a).  With an ordinary non-idempotent @c + it would detect
- * @c (old + cand != old) and then WRONGLY store @c cand instead of the sum, so
- * this exported step deliberately rejects such a carrier at its gate.
+ * differs from @c d(head).  Storing @c cand recovers the true join only when
+ * @c ⊕ is @b selective (@c a ⊕ b @c ∈ @c {a,b}): the changed result is then
+ * @c cand itself.  Idempotence (@c a ⊕ a = a), the @c IsTropical gate, is
+ * necessary but @b not sufficient --- a non-selective idempotent @c ⊕ (a
+ * lattice join to a third value) would store @c cand and lose that value; and
+ * an ordinary non-idempotent @c + would detect @c (old + cand != old) and then
+ * WRONGLY store @c cand instead of the sum.  @c MaxPlus is selective; the gate
+ * is only the tight-enough idempotence proxy pending a selectivity concept
+ * (FIXME(#769), as @ref annotate states).
  */
 export template <typename S, std::size_t Cap,
                  typename CostFn = S (*)(std::size_t, std::size_t)>
