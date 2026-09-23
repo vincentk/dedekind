@@ -359,7 +359,11 @@ export template <std::integral T, auto Lo, auto Hi,
                  dedekind::order::Strictness SL, dedekind::order::Strictness SU,
                  typename L>
 auto ext(const dedekind::order::OrderInterval<T, Lo, Hi, SL, SU, L>& oi) {
-  return ext(oi, [](const T&) { return true; });
+  // The whole-interval realisation keeps every member: the characteristic map
+  // is the canonical tautology / top predicate ⊤ (@ref
+  // dedekind::category::classifier_true), not an ad-hoc always-true lambda.
+  // Boolean-valued (the default L) so its ⊤ reads as a decided keep.
+  return ext(oi, dedekind::category::classifier_true<T>());
 }
 
 /** @section ranges__Argmax_Over_A_Bounded_Domain
@@ -428,16 +432,37 @@ struct BoundedSet
  *  @c dedekind::sets::SetExpr and supplying the χ --- the same opt-in surface
  *  @c Comprehension uses; nominal, never a precondition. */
 namespace detail_boundedset_witness {
-struct all_ok {
-  constexpr bool operator()(int) const { return true; }
-};
 using WOI = dedekind::order::OrderInterval<
     int, 0, 1, dedekind::order::Strictness::NonStrict,
     dedekind::order::Strictness::NonStrict, dedekind::category::Boole>;
-static_assert(dedekind::category::IsSet<BoundedSet<WOI, all_ok>>,
-              "BoundedSet is a first-class DSL set: the value-owning finite "
-              "comprehension {x ∈ dom | P}.");
+// The refinement is the canonical tautology ⊤ (@ref classifier_true), reused
+// rather than a bespoke always-true functor.
+static_assert(
+    dedekind::category::IsSet<
+        BoundedSet<WOI, decltype(dedekind::category::classifier_true<int>())>>,
+    "BoundedSet is a first-class DSL set: the value-owning finite "
+    "comprehension {x ∈ dom | P}.");
 }  // namespace detail_boundedset_witness
+
+/** @brief The dominance-refinement predicate of an @ref argmax: @c x is optimal
+ *  iff @b no member @c x' of the (finite) domain beats it under @c order∘cost,
+ *  i.e. @f$\forall x' \in \mathrm{dom}.\ \mathrm{order}(\mathrm{cost}(x'),
+ *  \mathrm{cost}(x))@f$.  A @b named functor rather than a capturing lambda, so
+ *  the refinement is an inspectable type carried in the @ref BoundedSet
+ *  signature @c argmax returns --- the ∀-filter made visible at compile time.
+ */
+export template <std::integral T, typename OI, typename Cost, typename Order>
+struct DominanceRefinement {
+  OI dom;
+  Cost cost;
+  Order order;
+  constexpr bool operator()(const T& x) const {
+    bool dominant = true;
+    for (const T xp : to_iota_view(dom))
+      dominant = dominant && order(cost(xp), cost(x));
+    return dominant;
+  }
+};
 
 /** @brief @c argmax over a bounded (closed-interval) domain: the §3.3 forall-
  *         filter @c {x ∈ dom | ∀x'∈dom. cost(x') ≤ cost(x)}, with @c ≤ pulled
@@ -455,15 +480,11 @@ constexpr auto argmax(
   // @c x is optimal iff @c ∀x'∈dom. @c order(cost(x'), cost(x)) --- "no x'
   // beats x under @c order".  @c Order defaults to @c ≤ (argmax); pass @c
   // std::greater_equal for @b argmin, or a semiring @c ⊕-relative comparator to
-  // rank by a dioid's order rather than the codomain's.
-  auto pred = [dom, cost, order](const T& x) {
-    bool dominant = true;
-    for (const T xp : to_iota_view(dom))
-      dominant = dominant && order(cost(xp), cost(x));
-    return dominant;
-  };
+  // rank by a dioid's order rather than the codomain's.  The refinement is the
+  // named @ref DominanceRefinement functor, not a capturing lambda.
   using OI = dedekind::order::OrderInterval<T, Lo, Hi, SL, SU, L>;
-  return BoundedSet<OI, decltype(pred)>{dom, pred};
+  using Pred = DominanceRefinement<T, OI, Cost, Order>;
+  return BoundedSet<OI, Pred>{dom, Pred{dom, cost, order}};
 }
 
 /** @brief @c ext a @ref BoundedSet: scan its domain, keep the members
