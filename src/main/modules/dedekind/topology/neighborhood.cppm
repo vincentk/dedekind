@@ -57,15 +57,23 @@ using namespace dedekind::order;
  * @brief The set's carrier is a @b discrete space, so its order topology is the
  *        @b discrete topology --- and there @b every subset is clopen.
  *
- * @details Detected structurally from the domain: an @c std::integral carrier
- *          (@c ℤ, @c ℕ, @c bool, ...) is successor-isolated (there is no point
- *          strictly between @c n and @c n+1), so no subset has a limit point
- *          outside itself.  Every subset is therefore both @b open and
- *          @b closed.  This is the structural source of clopen-ness on discrete
- *          carriers (#905): it replaces the per-shape @c is_open / @c is_closed
- *          hand-tags on integer shapes, and it repairs the #904 CP finding that
- *          @c Ray<int,...> "carries only @c is_open_tag" although @c {n>p} @c =
- *          @c {n≥p+1} is genuinely clopen on the discrete order.
+ * @details Detected structurally from the domain: a built-in @c std::integral
+ *          carrier (@c int, @c long, @c char, @c bool, ...) is
+ *          successor-isolated (there is no point strictly between @c n and
+ *          @c n+1), so no subset has a limit point outside itself.  Every
+ *          subset is therefore both @b open and @b closed.  This is the
+ *          structural source of clopen-ness on discrete carriers (#905): it
+ *          replaces the per-shape @c is_open / @c is_closed hand-tags on
+ * integer shapes, and it repairs the #904 CP finding that @c Ray<int,...>
+ *          "carries only @c is_open_tag" although @c {n>p} @c = @c {n≥p+1} is
+ *          genuinely clopen on the discrete order.
+ *
+ * @note The canonical ℤ / ℕ carriers @c SignedCardinality / @c Cardinality
+ *       (@c numbers/integer.cppm) are @c std::variant wrappers, @b not
+ *       @c std::integral, so they fall @b outside this concept.  That is
+ *       deliberate for now: @c std::integral is the sanctioned discreteness
+ *       proxy this pass keys on, and extending discreteness to those variant
+ *       carriers is a separate follow-on, not a claim they are covered here.
  *
  * @note @c order::IsDiscrete is the order-theoretic sibling, but it is
  *       architecturally withheld on @c int (signed @c + is not a @c Magma, so

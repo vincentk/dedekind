@@ -231,12 +231,17 @@ static_assert(
 // carried NO tag and was neither open nor closed).
 static_assert(dedekind::topology::HasDiscreteCarrier<IntegerInterval<int>>,
               "IntegerInterval's carrier is std::integral, hence discrete.");
+// All four boundary corners are covered so a future change cannot regress one
+// mixed branch while the others still pass: the default [lo,hi) is (Closed,
+// Open); the other three are spelt out explicitly.
 static_assert(
     dedekind::topology::IsClopen<IntegerInterval<int>> &&
         dedekind::topology::IsClopen<
             IntegerInterval<int, Boundary::Open, Boundary::Open>> &&
         dedekind::topology::IsClopen<
-            IntegerInterval<int, Boundary::Closed, Boundary::Closed>>,
+            IntegerInterval<int, Boundary::Closed, Boundary::Closed>> &&
+        dedekind::topology::IsClopen<
+            IntegerInterval<int, Boundary::Open, Boundary::Closed>>,
     "#905: every integer interval is clopen (discrete carrier), no hand-tag.");
 
 /**
