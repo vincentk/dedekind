@@ -3,7 +3,7 @@ through nanobind, queried from Python.
 
 The point is the *meat*, not the skin: membership runs the NATIVE characteristic
 morphism χ from the C++ core, not a Python reimplementation.  The money shot is
-``-7 not in ℕ`` — decided by the C++ ``NaturalNumbersOf`` classifier
+``-7 not in ℕ``.  It is decided by the C++ ``NaturalNumbersOf`` classifier
 (ℕ ⊂ ℤ, χ: x ↦ x ≥ 0) across the nanobind boundary.
 
 NFKC note: ``ℕ`` / ``𝔹`` in Python source normalise to ``N`` / ``B`` (Python
