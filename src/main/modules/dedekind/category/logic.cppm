@@ -836,6 +836,111 @@ static_assert(Kleene::RFL(Ternary::True) == Ternary::False &&
                   Kleene::RFL(Ternary::Unknown) == Ternary::Unknown,
               "K₃: RFL reflects about U (¬U = U)");
 
+/** @section logic__Kleene_Carrier_Total_Registration (#912)
+ *
+ * @brief Register the Kleene carrier @c Ternary in the @c :total / @c :posetal
+ *        machinery so the lattice-ladder and order concepts resolve on it,
+ *        the same way @c bool and @c int are registered.
+ *
+ * @details @c Ternary is the finite 3-chain @c False @c < @c Unknown @c < @c
+ * True, with join @c ∨ @c = @c Sup and meet @c ∧ @c = @c Inf (the
+ * value-returning chain lattice ops from @c :species; @b not the
+ * @c std::ranges::max / @c min niebloids, which return @c const @c T& and so
+ * cannot satisfy @c IsClosedUnder's @c same_as<T> --- see @c Sup / @c Inf and
+ * @c FIXME(#934)).  Their lattice-law traits (@c is_idempotent_v /
+ * @c is_associative_v / @c is_commutative_v / @c is_distributive_v /
+ * @c is_absorptive_v) are registered generically over every carrier in
+ * @c :species, so @c IsDistributiveLattice<Ternary, Sup, Inf> follows once the
+ * two pieces below are supplied:
+ *
+ *   1. the @b bounds (@c identity_v): @c ⊥ @c = @c False (∨-identity) and
+ *      @c ⊤ @c = @c True (∧-identity), lifting the finite chain from
+ *      @c IsDistributiveLattice up to @c IsBoundedLattice / @c IsPointed
+ *      (@c Chain<int> cannot reach this rung: @c ℤ is unbounded);
+ *   2. the @b order traits (reflexive / transitive / antisymmetric under
+ *      @c <=), which the @c :species blanket registers only for
+ *      @c std::integral carriers --- @c Ternary is a scoped enum, so it needs
+ *      the explicit void-form @c std::less_equal<> registration mirrored here.
+ *
+ * The carrier-level variety witnesses (@c IsDistributiveLattice /
+ * @c IsBoundedLattice) live in @c :total, which imports @c :logic transitively
+ * (via @c :posetal), so they cannot be asserted from this upstream partition;
+ * they are pinned in @c logic_lattice_structure_test.cpp and @c order_test.cpp
+ * alongside the @c Boole / @c Chain<int> siblings.
+ */
+
+// The bounds, backed by a computed witness over the whole finite carrier.
+// ∨ = Sup: ⊥ = False is the identity (Sup(False, t) = t for every t).
+static_assert(Sup{}(Ternary::False, Ternary::False) == Ternary::False &&
+                  Sup{}(Ternary::False, Ternary::Unknown) == Ternary::Unknown &&
+                  Sup{}(Ternary::False, Ternary::True) == Ternary::True,
+              "K₃: ⊥ = False is the join (∨ = Sup) identity");
+// ∧ = Inf: ⊤ = True is the identity (Inf(True, t) = t for every t).
+static_assert(Inf{}(Ternary::True, Ternary::False) == Ternary::False &&
+                  Inf{}(Ternary::True, Ternary::Unknown) == Ternary::Unknown &&
+                  Inf{}(Ternary::True, Ternary::True) == Ternary::True,
+              "K₃: ⊤ = True is the meet (∧ = Inf) identity");
+
+/** @brief ∨-identity (⊥) of the K₃ lattice: @c False.  Mirrors the
+ *  @c identity_v<bool, std::logical_or<bool>> @c == @c false (⊥) registration
+ *  in @c :species (the join / OR identity is the bottom, not the top). */
+template <>
+struct identity_trait<Ternary, Sup> {
+  using value_type = Ternary;
+  static constexpr Ternary value = Ternary::False;
+};
+/** @brief ∧-identity (⊤) of the K₃ lattice: @c True. */
+template <>
+struct identity_trait<Ternary, Inf> {
+  using value_type = Ternary;
+  static constexpr Ternary value = Ternary::True;
+};
+
+static_assert(identity_v<Ternary, Sup> == Ternary::False,
+              "K₃: registered ∨-identity is ⊥ = False");
+static_assert(identity_v<Ternary, Inf> == Ternary::True,
+              "K₃: registered ∧-identity is ⊤ = True");
+
+/** @brief K₃'s total order under @c <=.  @c Ternary is the 3-chain
+ *  @c False @c < @c Unknown @c < @c True; being a scoped enum (not
+ *  @c std::integral) it is outside the @c :species blanket, so the void-form
+ *  @c std::less_equal<> registrations are mirrored here. */
+template <>
+inline constexpr bool is_reflexive_v<Ternary, std::less_equal<>> = true;
+template <>
+inline constexpr bool is_transitive_v<Ternary, std::less_equal<>> = true;
+template <>
+inline constexpr bool is_antisymmetric_v<Ternary, std::less_equal<>> = true;
+
+static_assert(is_reflexive_v<Ternary, std::less_equal<>> &&
+                  is_transitive_v<Ternary, std::less_equal<>> &&
+                  is_antisymmetric_v<Ternary, std::less_equal<>>,
+              "K₃ is a partial (indeed total) order under <=");
+
+/** @brief K₃'s total order under the @b typed relation @c std::less_equal<T>.
+ *  The @c order:: concepts (@c IsPreOrdered / @c IsTotallyOrdered) query the
+ *  @b transparent @c std::less_equal<> registered above, but the @c category::
+ *  order concepts (@c IsPartRelation / @c IsPosetal / @c IsTotalOrder / @c
+ *  IsThinCategory) default @c Rel to the @b typed @c std::less_equal<Ternary>
+ *  and query the traits for @b that exact type, so the transparent form does
+ *  not reach them.  Reflexivity is already supplied by the @c :species
+ *  @c totally_ordered @c std::less_equal<T> struct specialisation (@c Ternary
+ *  is @c std::totally_ordered); only transitivity / antisymmetry are outside
+ *  the @c :species integral blanket and are registered here.  This is also the
+ *  order the @c :species @c SupInfLattice law gate certifies against (a genuine
+ *  total order cannot contain NaN). */
+template <>
+inline constexpr bool is_transitive_v<Ternary, std::less_equal<Ternary>> = true;
+template <>
+inline constexpr bool is_antisymmetric_v<Ternary, std::less_equal<Ternary>> =
+    true;
+
+static_assert(is_reflexive_v<Ternary, std::less_equal<Ternary>> &&
+                  is_transitive_v<Ternary, std::less_equal<Ternary>> &&
+                  is_antisymmetric_v<Ternary, std::less_equal<Ternary>>,
+              "K₃ is a total order under the typed std::less_equal<Ternary> "
+              "(reflexivity via the :species totally_ordered specialisation)");
+
 /** @brief The logic negation ¬ = @c L::RFL as a callable object.  It exists so
  *  the @c :involution machinery can witness that the negation is an involution
  *  (@c ¬¬ = @c id).  @c :sets consults the witness to eliminate double negation
