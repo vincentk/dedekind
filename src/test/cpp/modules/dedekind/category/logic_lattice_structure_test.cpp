@@ -36,24 +36,26 @@ TEST_CASE(
 
   SECTION(
       "Chain<int> is a bounded De Morgan chain: int is a distributive "
-      "lattice under (max, min)") {
+      "lattice under (Sup, Inf)") {
     STATIC_REQUIRE(IsBoundedDeMorganChain<Chain<int>>);
-    STATIC_REQUIRE(IsDistributiveLattice<int, decltype(std::ranges::max),
-                                         decltype(std::ranges::min)>);
+    // int is a distributive lattice under the value-returning Sup/Inf, but NOT
+    // a bounded one (ℤ has no ⊥/⊤): no IsBoundedLattice<int, ...> here.
+    STATIC_REQUIRE(IsDistributiveLattice<int, Sup, Inf>);
     // A chain wider than two grades is NOT complemented, matching the species.
     STATIC_REQUIRE(!IsBooleanLogic<Chain<int>>);
   }
 
   SECTION(
       "Kleene is a bounded De Morgan chain: Ternary is a distributive "
-      "lattice under (max, min), and --- being finite --- a bounded one") {
+      "lattice under (Sup, Inf), and --- being finite --- a bounded one") {
     STATIC_REQUIRE(IsBoundedDeMorganChain<Kleene>);
-    STATIC_REQUIRE(IsDistributiveLattice<Ternary, decltype(std::ranges::max),
-                                         decltype(std::ranges::min)>);
+    // Value-returning Sup/Inf (not the std::ranges::max/min niebloids, which
+    // return const T& and so fail IsClosedUnder's same_as<T>): the honest
+    // T×T→T ops that reach the whole ladder (#912; niebloid migration #934).
+    STATIC_REQUIRE(IsDistributiveLattice<Ternary, Sup, Inf>);
     // K₃ is finite, so (unlike the unbounded Chain<int>) its carrier is a
     // BOUNDED lattice: ⊥ = False (∨-identity), ⊤ = True (∧-identity), #912.
-    STATIC_REQUIRE(IsBoundedLattice<Ternary, decltype(std::ranges::max),
-                                    decltype(std::ranges::min)>);
+    STATIC_REQUIRE(IsBoundedLattice<Ternary, Sup, Inf>);
     // Three grades, so NOT complemented --- matching the species (not Boolean).
     STATIC_REQUIRE(!IsBooleanLogic<Kleene>);
   }
@@ -72,13 +74,13 @@ TEST_CASE(
       CHECK(Boole::RFL(a) == std::logical_not<bool>{}(a));
     }
     for (auto [x, y] : {std::pair{7, 3}, std::pair{3, 7}, std::pair{-5, 5}}) {
-      CHECK(Chain<int>::AND(x, y) == std::ranges::min(x, y));
-      CHECK(Chain<int>::OR(x, y) == std::ranges::max(x, y));
+      CHECK(Chain<int>::AND(x, y) == Inf{}(x, y));
+      CHECK(Chain<int>::OR(x, y) == Sup{}(x, y));
     }
     for (Ternary a : {Ternary::False, Ternary::Unknown, Ternary::True}) {
       for (Ternary b : {Ternary::False, Ternary::Unknown, Ternary::True}) {
-        CHECK(Kleene::AND(a, b) == std::ranges::min(a, b));
-        CHECK(Kleene::OR(a, b) == std::ranges::max(a, b));
+        CHECK(Kleene::AND(a, b) == Inf{}(a, b));
+        CHECK(Kleene::OR(a, b) == Sup{}(a, b));
       }
     }
     // The tower split, exercised at the value level: bool's ¬ is a genuine

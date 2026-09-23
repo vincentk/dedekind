@@ -843,12 +843,15 @@ static_assert(Kleene::RFL(Ternary::True) == Ternary::False &&
  *        the same way @c bool and @c int are registered.
  *
  * @details @c Ternary is the finite 3-chain @c False @c < @c Unknown @c < @c
- * True, with @c ∨ @c = @c max and @c ∧ @c = @c min (Kleene join / meet).  The
- * @c std::ranges::max / @c std::ranges::min lattice traits
- * (@c is_idempotent_v / @c is_associative_v / @c is_commutative_v /
- * @c is_distributive_v / @c is_absorptive_v in @c :species) are already generic
- * over every carrier, so @c IsDistributiveLattice<Ternary, max, min> follows
- * once the two pieces below are supplied:
+ * True, with join @c ∨ @c = @c Sup and meet @c ∧ @c = @c Inf (the
+ * value-returning chain lattice ops from @c :species; @b not the
+ * @c std::ranges::max / @c min niebloids, which return @c const @c T& and so
+ * cannot satisfy @c IsClosedUnder's @c same_as<T> --- see @c Sup / @c Inf and
+ * @c FIXME(#934)).  Their lattice-law traits (@c is_idempotent_v /
+ * @c is_associative_v / @c is_commutative_v / @c is_distributive_v /
+ * @c is_absorptive_v) are registered generically over every carrier in
+ * @c :species, so @c IsDistributiveLattice<Ternary, Sup, Inf> follows once the
+ * two pieces below are supplied:
  *
  *   1. the @b bounds (@c identity_v): @c ⊥ @c = @c False (∨-identity) and
  *      @c ⊤ @c = @c True (∧-identity), lifting the finite chain from
@@ -867,38 +870,34 @@ static_assert(Kleene::RFL(Ternary::True) == Ternary::False &&
  */
 
 // The bounds, backed by a computed witness over the whole finite carrier.
-// ∨ = max: ⊥ = False is the identity (max(False, t) = t for every t).
-static_assert(std::ranges::max(Ternary::False, Ternary::False) ==
-                      Ternary::False &&
-                  std::ranges::max(Ternary::False, Ternary::Unknown) ==
-                      Ternary::Unknown &&
-                  std::ranges::max(Ternary::False, Ternary::True) ==
-                      Ternary::True,
-              "K₃: ⊥ = False is the join (∨ = max) identity");
-// ∧ = min: ⊤ = True is the identity (min(True, t) = t for every t).
-static_assert(
-    std::ranges::min(Ternary::True, Ternary::False) == Ternary::False &&
-        std::ranges::min(Ternary::True, Ternary::Unknown) == Ternary::Unknown &&
-        std::ranges::min(Ternary::True, Ternary::True) == Ternary::True,
-    "K₃: ⊤ = True is the meet (∧ = min) identity");
+// ∨ = Sup: ⊥ = False is the identity (Sup(False, t) = t for every t).
+static_assert(Sup{}(Ternary::False, Ternary::False) == Ternary::False &&
+                  Sup{}(Ternary::False, Ternary::Unknown) == Ternary::Unknown &&
+                  Sup{}(Ternary::False, Ternary::True) == Ternary::True,
+              "K₃: ⊥ = False is the join (∨ = Sup) identity");
+// ∧ = Inf: ⊤ = True is the identity (Inf(True, t) = t for every t).
+static_assert(Inf{}(Ternary::True, Ternary::False) == Ternary::False &&
+                  Inf{}(Ternary::True, Ternary::Unknown) == Ternary::Unknown &&
+                  Inf{}(Ternary::True, Ternary::True) == Ternary::True,
+              "K₃: ⊤ = True is the meet (∧ = Inf) identity");
 
 /** @brief ∨-identity (⊥) of the K₃ lattice: @c False.  Mirrors the
  *  @c identity_trait<bool, std::bit_and<bool>> registration in @c :species. */
 template <>
-struct identity_trait<Ternary, decltype(std::ranges::max)> {
+struct identity_trait<Ternary, Sup> {
   using value_type = Ternary;
   static constexpr Ternary value = Ternary::False;
 };
 /** @brief ∧-identity (⊤) of the K₃ lattice: @c True. */
 template <>
-struct identity_trait<Ternary, decltype(std::ranges::min)> {
+struct identity_trait<Ternary, Inf> {
   using value_type = Ternary;
   static constexpr Ternary value = Ternary::True;
 };
 
-static_assert(identity_v<Ternary, decltype(std::ranges::max)> == Ternary::False,
+static_assert(identity_v<Ternary, Sup> == Ternary::False,
               "K₃: registered ∨-identity is ⊥ = False");
-static_assert(identity_v<Ternary, decltype(std::ranges::min)> == Ternary::True,
+static_assert(identity_v<Ternary, Inf> == Ternary::True,
               "K₃: registered ∧-identity is ⊤ = True");
 
 /** @brief K₃'s total order under @c <=.  @c Ternary is the 3-chain

@@ -1088,6 +1088,67 @@ template <typename T>
 inline constexpr bool
     is_absorptive_v<T, std::logical_and<T>, std::logical_or<T>> = true;
 
+/** @section species__Value_Lattice_Ops (Sup / Inf)
+ *
+ * @brief Value-returning chain lattice ops --- the honest @c T @c × @c T @c →
+ *        @c T meet / join.
+ *
+ * @details The @c std::ranges::max / @c std::ranges::min niebloids @b select
+ * and @b alias an argument: they return @c const @c T&, not a fresh @c T.  So
+ * @c IsClosedUnder<T, Op> (which demands @c { @c Op{}(a,b) @c } @c -> @c
+ * same_as<T>) rejects them, and the strict monoid / bounded-lattice ladder
+ * (@c IsMonoid @c → @c IsMagma @c → @c IsClosedUnder in @c :total) is
+ * unreachable through the niebloid --- only the lenient @c
+ * IsOrderLatticeOperations path (which checks @c convertible_to<T>) admits it.
+ * @c Sup / @c Inf return a @b copy of the winner, so they are honest @c
+ * T @c × @c T @c → @c T ops that reach the whole ladder and never dangle on
+ * temporaries.  They compute the ternary directly (no niebloid inside).
+ *
+ * FIXME(#934): migrate the remaining carrier lattice-op sites off the
+ * reference-returning @c std::ranges::max / @c std::ranges::min niebloids to
+ * @c Sup / @c Inf (latent dangling-on-temporaries footgun; type-level markers
+ * today, so cleanup rather than a live bug). */
+/** @brief Join @c ∨: the least upper bound on a chain (@c max), returned
+ *  @b by value as an honest @c T @c × @c T @c → @c T. */
+export struct Sup {
+  template <std::totally_ordered T>
+  constexpr T operator()(const T& a, const T& b) const {
+    return a < b ? b : a;
+  }
+};
+/** @brief Meet @c ∧: the greatest lower bound on a chain (@c min), returned
+ *  @b by value.  Value-returning sibling of @c Sup. */
+export struct Inf {
+  template <std::totally_ordered T>
+  constexpr T operator()(const T& a, const T& b) const {
+    return a < b ? a : b;
+  }
+};
+
+// Sup (∨) / Inf (∧) carry exactly the lattice laws of the std::ranges::max /
+// min niebloids above; re-registered here since the concepts are trait-gated
+// (IsIdempotent / IsCommutative / ... look up is_*_v, they are not structural).
+template <typename T>
+inline constexpr bool is_idempotent_v<T, Sup> = true;
+template <typename T>
+inline constexpr bool is_associative_v<T, Sup> = true;
+template <typename T>
+inline constexpr bool is_commutative_v<T, Sup> = true;
+template <typename T>
+inline constexpr bool is_idempotent_v<T, Inf> = true;
+template <typename T>
+inline constexpr bool is_associative_v<T, Inf> = true;
+template <typename T>
+inline constexpr bool is_commutative_v<T, Inf> = true;
+template <typename T>
+inline constexpr bool is_distributive_v<T, Sup, Inf> = true;
+template <typename T>
+inline constexpr bool is_distributive_v<T, Inf, Sup> = true;
+template <typename T>
+inline constexpr bool is_absorptive_v<T, Sup, Inf> = true;
+template <typename T>
+inline constexpr bool is_absorptive_v<T, Inf, Sup> = true;
+
 /** @section species__Boolean_Ring_Morphisms (XOR, AND) */
 
 // 1. XOR (std::bit_xor) is NOT idempotent (a ^ a = 0)
