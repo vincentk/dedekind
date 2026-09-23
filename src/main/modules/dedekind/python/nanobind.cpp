@@ -419,7 +419,7 @@ NB_MODULE(_dedekind, module) {
   // reaches Python.
   //
   // NFKC note: Python normalises identifiers, so the double-struck source
-  // names collapse to ASCII attr keys — `𝔹` → "B" and `ℕ` → "N" — while the
+  // names collapse to ASCII attr keys (`𝔹` → "B", `ℕ` → "N") while the
   // repr stays mathy.  The ambient universe `ℕ` and the discriminating ℕ⊂ℤ
   // classifier `N` would BOTH normalise to "N", so we resolve the collision by
   // keying the ambient universe under "N" (reached from Python as `ℕ`) and the
@@ -462,7 +462,7 @@ NB_MODULE(_dedekind, module) {
     // Keyed under "Nat" to avoid the NFKC collision with `ℕ` → "N".
     using Naturals = dedekind::sets::NaturalNumbersOf<>;
     nb::class_<Naturals>(module, "NaturalClassifier",
-                         "The naturals as a subobject of ℤ (χ: x ↦ x ≥ 0) — "
+                         "The naturals as a subobject of ℤ (χ: x ↦ x ≥ 0): "
                          "the discriminating native classifier.")
         .def(
             "__contains__",
