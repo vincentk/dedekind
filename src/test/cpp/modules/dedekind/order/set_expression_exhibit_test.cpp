@@ -184,3 +184,134 @@ TEST_CASE(
     STATIC_CHECK((!!SLo)(1) == SLo(1));
   }
 }
+
+// ══ #865 slice: distributivity of the subobject lattice ═════════════════════
+// #865's motivating showcases and the term-level distributivity witness.  Two
+// findings this slice pins:
+//
+//  1. The motivating showcase ((n>5)∪(n>7)) ∩ (n<3) ALREADY collapses to Ø ---
+//     but the operative mechanism is the JOIN pre-collapsing (structured_or
+//     unions the two same-direction halfspaces to {n>5}), then structured_and
+//     yields the contradiction {n>5}∩{n<3}=Ø.  Distributivity never fires,
+//     because there is no surviving join to distribute over.
+//
+//  2. Distributivity IS now a first-class law of Sub(T) (the marker
+//     is_distributive_lattice_for_v<T, subobject_order<L>> is asserted in
+//     :boundaries): the reducer distributes a GENUINELY non-collapsing Sub(T)
+//     meet-over-join into disjunctive normal form.  This is witnessed at the
+//     term level, since the value-level DSL materialises an irreducible union
+//     as an opaque JoinSet (per #892), which the reducer does not distribute
+//     --- driving the DNF through the value path is a deferred normal-form
+//     decision.
+namespace dist865 {
+
+// The #865 motivating showcase, over ℤ (int).
+using Above5 = Halfspace<int, 5, Direction::Upward, Strictness::Strict, Boole>;
+using Above7 = Halfspace<int, 7, Direction::Upward, Strictness::Strict, Boole>;
+using Below3 =
+    Halfspace<int, 3, Direction::Downward, Strictness::Strict, Boole>;
+
+constexpr Set<int, Boole, Above5> gt5{Above5{}};
+constexpr Set<int, Boole, Above7> gt7{Above7{}};
+constexpr Set<int, Boole, Below3> lt3{Below3{}};
+
+// FINDING 1: the union pre-collapses (structured_or), so the whole expression
+// reduces to Ø WITHOUT distributivity ever firing.
+static_assert(
+    std::same_as<std::decay_t<decltype(gt5 | gt7)>, Set<int, Boole, Above5>>,
+    "((n>5)∪(n>7)) pre-collapses to {n>5} via structured_or, so no "
+    "join survives to distribute over.");
+static_assert(
+    std::same_as<std::decay_t<decltype((gt5 | gt7) & lt3)>, Ø<int, Boole>>,
+    "((n>5)∪(n>7)) ∩ (n<3) → Ø (contradiction after the union pre-collapse).");
+
+// The distributivity marker is now ON for the subobject lattice Sub(ℤ).
+static_assert(is_distributive_lattice_for_v<int, subobject_order<Boole>>,
+              "Sub(ℤ) is a distributive (Heyting/Boolean) lattice under "
+              "subobject_order.");
+static_assert(is_distributive_lattice_for_v<int, subobject_order<Kleene>>,
+              "the Kleene subobject lattice is Heyting, hence distributive.");
+
+// FINDING 2: a genuinely non-collapsing meet-over-join distributes to DNF.
+// Cap = {x<10}; the union {x≥5} ∪ {x≤2} has a gap at 3,4, so it does not
+// collapse.  Distribute:  {x<10} ∩ ({x≥5}∪{x≤2})
+//                       → ({x<10}∩{x≥5}) ∪ ({x<10}∩{x≤2})
+//                       → [5,10) ∪ {x≤2}.
+using Cap = Halfspace<int, 10, Direction::Downward, Strictness::Strict, Boole>;
+using Ge5 = Halfspace<int, 5, Direction::Upward, Strictness::NonStrict, Boole>;
+using Le2 =
+    Halfspace<int, 2, Direction::Downward, Strictness::NonStrict, Boole>;
+using SCap = Set<int, Boole, Cap>;
+using SGe5 = Set<int, Boole, Ge5>;
+using SLe2 = Set<int, Boole, Le2>;
+
+// The distributed disjunctive normal form the reducer produces.
+using Interval5to10 =
+    OrderInterval<int, 5, 10, Strictness::NonStrict, Strictness::Strict, Boole>;
+using DnfForm = Join<Interval5to10, SLe2>;
+
+static_assert(
+    std::same_as<
+        subobject_reduce_t<Meet<SCap, Join<SGe5, SLe2>>, Boole, SetCombine>,
+        DnfForm>,
+    "distributivity of Sub(ℤ): {x<10} ∩ ({x≥5}∪{x≤2}) → [5,10) ∪ {x≤2}.");
+
+// NON-REGRESSION: the marker fires only on a bare category::Join node, so the
+// VALUE path (which materialises an irreducible union as a JoinSet) is
+// unchanged --- SCap & (SGe5 ∪ SLe2) still materialises as a MeetSet (#892).
+using JoinSetGe5Le2 = JoinSet<SGe5, SLe2>;
+
+}  // namespace dist865
+
+TEST_CASE("Exhibit: #865 distributivity of the subobject lattice",
+          "[order][sets][exhibit][collapse][865]") {
+  using namespace dist865;
+
+  SECTION("motivating showcase ((n>5)∪(n>7)) ∩ (n<3) collapses to Ø") {
+    // The union pre-collapses; distributivity is not the mechanism.
+    constexpr auto reduced = (gt5 | gt7) & lt3;
+    STATIC_CHECK(std::same_as<std::decay_t<decltype(reduced)>, Ø<int, Boole>>);
+    // Meaning preservation: the reduced empty set rejects everything.
+    STATIC_CHECK_FALSE(reduced(6));  // in (n>5)∪(n>7) but not (n<3)
+    STATIC_CHECK_FALSE(reduced(2));  // in (n<3) but not the union
+    STATIC_CHECK_FALSE(reduced(4));  // in neither (not >5, not <3)
+  }
+
+  SECTION("Sub(ℤ) distributes a genuinely non-collapsing meet-over-join") {
+    // Pin the DNF the reducer produces (the collapse IS the point: the result
+    // TYPE is the disjunctive normal form).
+    STATIC_CHECK(
+        std::same_as<
+            subobject_reduce_t<Meet<SCap, Join<SGe5, SLe2>>, Boole, SetCombine>,
+            DnfForm>);
+
+    // Runtime meaning preservation: the DNF classifies exactly as the original
+    // meet-over-join  (x<10) ∧ ((x≥5) ∨ (x≤2))  would, at representative
+    // points.
+    constexpr DnfForm dnf{Interval5to10{}, SLe2{Le2{}}};
+    auto original = [](int x) { return (x < 10) && ((x >= 5) || (x <= 2)); };
+    for (int x : {-5, 1, 2, 3, 4, 5, 7, 9, 10, 12}) {
+      CHECK(static_cast<bool>(dnf(x)) == original(x));
+    }
+  }
+
+  SECTION("value path is unchanged: the marker does not force DNF (#892)") {
+    // {x≥5} ∪ {x≤2} has a gap at 3,4 (no boundary/interval normal form), so it
+    // materialises as a JoinSet; the meet with {x<10} materialises as a MeetSet
+    // rather than distributing --- the value-level normal form is untouched.
+    constexpr SGe5 SGe5v{Ge5{}};
+    constexpr SLe2 SLe2v{Le2{}};
+    constexpr SCap SCapv{Cap{}};
+    constexpr auto uni = SGe5v | SLe2v;
+    STATIC_CHECK(std::same_as<std::decay_t<decltype(uni)>, JoinSetGe5Le2>);
+    constexpr auto met = SCapv & uni;
+    STATIC_CHECK(std::same_as<std::decay_t<decltype(met)>,
+                              MeetSet<SCap, JoinSetGe5Le2>>);
+    // Meaning preservation of the (un-distributed) materialised meet, which
+    // equals the distributed DNF pointwise (the reducer's law is sound).
+    CHECK(met(1));         // <10 and ≤2
+    CHECK_FALSE(met(3));   // <10 but in the gap
+    CHECK(met(7));         // <10 and ≥5
+    CHECK_FALSE(met(12));  // not <10
+  }
+}

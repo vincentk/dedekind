@@ -777,6 +777,39 @@ struct is_lattice_top_for<dedekind::sets::UniversalSet<T, L, C>,
                           dedekind::sets::subobject_order<L>> : std::true_type {
 };
 
+// ── Distributivity of the subobject lattice (#865) ─────────────────────────
+/** @brief The subobject lattice @c Sub(T) is a @b distributive lattice under
+ *  @c subobject_order<L>, for every carrier @c T and classifier @c L.  In a
+ *  topos @c Sub(T) is a Heyting algebra (meet distributes over join), and the
+ *  classical (@c Boole) case is the Boolean specialisation of that.  The DNF
+ *  rewrite, however, acts on the @b pointwise @c L::AND / @c L::OR of the
+ *  predicates, so its soundness needs @b those operations to distribute, which
+ *  the @c IsOckhamAlgebra shape gate does @b not certify.  So the marker is
+ *  gated on a @b species-level @b distributivity @b certificate: @c
+ *  IsBoundedDeMorganChain<L>.  A bounded De Morgan chain is (by
+ * chain-normality) a distributive lattice, so its @c L::AND / @c L::OR
+ * distribute; every shipped species (@c Boole, @c Kleene, @c Chain<T>, @c
+ * Percent) satisfies it, while an unconstrained / non-distributive custom @c L
+ * is @b excluded (fail-closed). When gated, it licenses the reducer's @c
+ * meet_distributivity_law to rewrite a
+ *  @b genuinely non-collapsing @c Sub(T) meet-over-join into disjunctive normal
+ *  form (@c X∧(P∨Q)→(X∧P)∨(X∧Q)).
+ *  FIXME(#907/#923): replace @c IsBoundedDeMorganChain with a dedicated
+ *  species-level distributivity certificate (via the @c :species-trait bridge)
+ *  so non-chain distributive logics can also opt in.
+ *
+ *  @note This gate fires only for a @b bare @c category::Join reducer node; the
+ *  value-level set operators materialise an irreducible union as a @c JoinSet
+ *  (a distinct type the reducer treats as an opaque leaf), so this marker does
+ *  @b not change the value-level normal form (@c A∩(B∪C) still materialises as
+ *  a @c MeetSet carrying its operands, per #892).  Driving the DNF rewrite
+ *  through the value path is a separate normal-form decision, deferred (#865).
+ */
+template <typename T, typename L>
+  requires IsBoundedDeMorganChain<L>
+inline constexpr bool
+    is_distributive_lattice_for_v<T, dedekind::sets::subobject_order<L>> = true;
+
 // Foot-in-the-door witness: the engine now sees Ø as the ⊥ and 𝔸 as the ⊤ of
 // Sub(T) under subobject_order, so its bounded law reduces boundary meets/joins
 // (the annihilator / unit laws the hand-written Ø / 𝔸 operators currently
