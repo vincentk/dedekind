@@ -284,7 +284,7 @@ struct reduce<Not<A>, Less, Ord, Combine> {
 // ── Value-first reduce (#922) ──────────────────────────────────────────────
 // The runtime/dual-phase twin of @c reduce_t: it reduces a term @b value to its
 // normal-form @b value, so the SAME laws run at compile time, at runtime, and
-// (via a binding) from Python — no second reducer.  The reduction DECISION
+// (via a binding) from Python, with no second reducer.  The reduction DECISION
 // (which law fires, hence the normal-form TYPE @c D) is still the type-level
 // @c reduce_t; this only reconstructs @c D's value from the node's stored
 // operands, preserving a runtime-stateful operand where the normal form IS that
@@ -295,12 +295,16 @@ struct reduce<Not<A>, Less, Ord, Combine> {
 namespace detail_lattice_term {
 
 /** @brief Reconstruct the value of a reduced @b meet whose normal-form type is
- *  @c D, from the already-reduced operand values @c ra / @c rb.  The
- *  value-preserving cases are the ones a unit / idempotency / absorption / glb
- *  law selects (the normal form IS an operand) and the irreducible / canonical
- *  residue (@c Meet of the two).  A collapse to a stateless boundary (@c ⊥) or
- *  a restructuring law (distributivity) falls to @c D{}: exact for a stateless
- *  normal form; FIXME(#922 slice 3) rebuilds a @b stateful restructure. */
+ *  @c D, from the already-reduced operand values @c ra / @c rb.
+ *  @details The value-preserving cases are the ones a unit / idempotency /
+ *  absorption / glb law selects (the normal form IS an operand) and the
+ *  irreducible / canonical residue (a @c Meet of the two).  A collapse to a
+ *  @b stateless boundary (@c ⊥, an empty type) is exact as @c D{}.  Any other
+ *  @c D is a @b restructuring result (distributivity to a DNF): its value
+ *  cannot be rebuilt from @c ra / @c rb until slice 3, so this @b fails safe by
+ *  keeping the @b unreduced @c Meet (a sound value for the same set, merely not
+ *  normalized) rather than fabricating @c D{} with default-initialised leaves.
+ *  FIXME(#922 slice 3): rebuild the restructured tree from the sub-values. */
 template <typename D, typename RA, typename RB>
 constexpr auto rebuild_meet(const RA& ra, const RB& rb) {
   if constexpr (std::same_as<D, RA>) {
@@ -311,12 +315,15 @@ constexpr auto rebuild_meet(const RA& ra, const RB& rb) {
     return Meet<RA, RB>{ra, rb};
   } else if constexpr (std::same_as<D, Meet<RB, RA>>) {
     return Meet<RB, RA>{rb, ra};
+  } else if constexpr (std::is_empty_v<D>) {
+    return D{};  // stateless boundary collapse: exact
   } else {
-    return D{};
+    return Meet<RA, RB>{ra, rb};  // restructure not yet rebuildable: fail safe
   }
 }
 
-/** @brief Dual of @ref rebuild_meet for a reduced @b join. */
+/** @brief Dual of @ref rebuild_meet for a reduced @b join (fails safe to the
+ *  unreduced @c Join on an un-rebuildable restructure). */
 template <typename D, typename RA, typename RB>
 constexpr auto rebuild_join(const RA& ra, const RB& rb) {
   if constexpr (std::same_as<D, RA>) {
@@ -327,8 +334,10 @@ constexpr auto rebuild_join(const RA& ra, const RB& rb) {
     return Join<RA, RB>{ra, rb};
   } else if constexpr (std::same_as<D, Join<RB, RA>>) {
     return Join<RB, RA>{rb, ra};
-  } else {
+  } else if constexpr (std::is_empty_v<D>) {
     return D{};
+  } else {
+    return Join<RA, RB>{ra, rb};
   }
 }
 
@@ -367,8 +376,11 @@ constexpr auto reduce_value(const Join<A, B>& node) {
 
 /** @brief Value-first reduce of a @c Not value: reduce the operand, keep
  *  @c ¬(reduced) unless De Morgan / involution pushed it to another shape.
- *  FIXME(#922 slice 3): a stateful push must rebuild from the operand's
- *  sub-values; the stateless normal form is exact here. */
+ *  @details A push to a @b stateless normal form (an empty type) is exact as
+ *  @c D{}.  A push to a stateful shape cannot be rebuilt until slice 3, so this
+ *  fails safe to the unreduced @c ¬(reduced) node (a sound value).
+ *  FIXME(#922 slice 3): rebuild a stateful push from the operand's sub-values.
+ */
 export template <typename Less, typename Ord, typename Combine, typename A>
 constexpr auto reduce_value(const Not<A>& node) {
   const auto rb = reduce_value<Less, Ord, Combine>(node.base);
@@ -376,8 +388,10 @@ constexpr auto reduce_value(const Not<A>& node) {
   using D = reduce_t<Not<RB>, Less, Ord, Combine>;
   if constexpr (std::same_as<D, Not<RB>>) {
     return Not<RB>{rb};
-  } else {
+  } else if constexpr (std::is_empty_v<D>) {
     return D{};
+  } else {
+    return Not<RB>{rb};
   }
 }
 
