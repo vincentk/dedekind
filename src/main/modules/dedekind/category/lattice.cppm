@@ -749,7 +749,7 @@ inline constexpr bool idempotent_leaf_v<Join<A, B>> =
 template <typename A>
 inline constexpr bool idempotent_leaf_v<Not<A>> = idempotent_leaf_v<A>;
 
-/** @concept IsIdempotent
+/** @concept IsIdempotentLeaf
  *  @brief @c T's values are determined by its type, so a @b type-only lattice
  *  law (@c X∧X=X idempotence, @c a∧¬a=⊥ complement) collapses @b soundly on it:
  *  two same-type instances are necessarily the same value.  A runtime-stateful
@@ -760,7 +760,7 @@ inline constexpr bool idempotent_leaf_v<Not<A>> = idempotent_leaf_v<A>;
  *  @c :lattice_term reducer (#922).  Recursive over @c Meet / @c Join / @c Not
  *  through @c idempotent_leaf_v. */
 export template <typename T>
-concept IsIdempotent = idempotent_leaf_v<T>;
+concept IsIdempotentLeaf = idempotent_leaf_v<T>;
 
 /** @brief Law induced by a @b (meet/join-)semilattice: idempotence @c X∧X=X /
  *  @c X∨X=X.  Structural: it holds for the lattice operation itself, so it does
@@ -769,7 +769,7 @@ concept IsIdempotent = idempotent_leaf_v<T>;
  *  leaf (two same-type-but-distinct instances) is not collapsed. */
 export template <typename RA, typename RB>
 consteval auto idempotent_law() {
-  if constexpr (std::same_as<RA, RB> && IsIdempotent<RA>) {
+  if constexpr (std::same_as<RA, RB> && IsIdempotentLeaf<RA>) {
     return std::type_identity<RA>{};
   } else {
     return std::type_identity<law_inactive>{};
@@ -803,9 +803,9 @@ export template <typename RA, typename RB>
 consteval auto meet_structural_absorption_law() {
   if constexpr (has_mixed_carrier_v<Meet<RA, RB>>) {
     return std::type_identity<law_inactive>{};  // mixed carrier ⟹ fail closed
-  } else if constexpr (is_join_containing_v<RA, RB> && IsIdempotent<RA>) {
+  } else if constexpr (is_join_containing_v<RA, RB> && IsIdempotentLeaf<RA>) {
     return std::type_identity<RA>{};  // a ∧ (a ∨ b) = a
-  } else if constexpr (is_join_containing_v<RB, RA> && IsIdempotent<RB>) {
+  } else if constexpr (is_join_containing_v<RB, RA> && IsIdempotentLeaf<RB>) {
     return std::type_identity<RB>{};  // (a ∨ b) ∧ a = a
   } else {
     return std::type_identity<law_inactive>{};
@@ -818,9 +818,9 @@ export template <typename RA, typename RB>
 consteval auto join_structural_absorption_law() {
   if constexpr (has_mixed_carrier_v<Join<RA, RB>>) {
     return std::type_identity<law_inactive>{};  // mixed carrier ⟹ fail closed
-  } else if constexpr (is_meet_containing_v<RA, RB> && IsIdempotent<RA>) {
+  } else if constexpr (is_meet_containing_v<RA, RB> && IsIdempotentLeaf<RA>) {
     return std::type_identity<RA>{};  // a ∨ (a ∧ b) = a
-  } else if constexpr (is_meet_containing_v<RB, RA> && IsIdempotent<RB>) {
+  } else if constexpr (is_meet_containing_v<RB, RA> && IsIdempotentLeaf<RB>) {
     return std::type_identity<RB>{};
   } else {
     return std::type_identity<law_inactive>{};
@@ -1061,8 +1061,8 @@ consteval auto meet_complement_law() {
   // @c IsIdempotent gate: @c a∧¬a=⊥ is a type-only match, so it is sound only
   // when the leaves are value-determined; a runtime-stateful pair like
   // @c S{7}∧¬S{3} matches the type pair but is @b not empty (#922).
-  if constexpr (is_complement_pair_v<RA, RB> && IsIdempotent<RA> &&
-                IsIdempotent<RB> &&
+  if constexpr (is_complement_pair_v<RA, RB> && IsIdempotentLeaf<RA> &&
+                IsIdempotentLeaf<RB> &&
                 is_complemented_lattice_for_v<carrier_of_t<RA>, Ord>) {
     return std::type_identity<LatticeBottom<
         carrier_of_t<RA>, resolved_order_t<carrier_of_t<RA>, Ord>>>{};
@@ -1076,8 +1076,8 @@ export template <typename RA, typename RB, typename Ord>
 consteval auto join_complement_law() {
   // @c IsIdempotent gate (see @c meet_complement_law): @c a∨¬a=⊤ collapses
   // soundly only on value-determined leaves.
-  if constexpr (is_complement_pair_v<RA, RB> && IsIdempotent<RA> &&
-                IsIdempotent<RB> &&
+  if constexpr (is_complement_pair_v<RA, RB> && IsIdempotentLeaf<RA> &&
+                IsIdempotentLeaf<RB> &&
                 is_complemented_lattice_for_v<carrier_of_t<RA>, Ord>) {
     return std::type_identity<LatticeTop<
         carrier_of_t<RA>, resolved_order_t<carrier_of_t<RA>, Ord>>>{};
