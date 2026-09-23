@@ -331,9 +331,13 @@ struct Halfspace : dedekind::sets::SetExpr<Halfspace<T, Pivot, D, S, L>, T, L> {
    *  @c computability_test.cpp) classifies @c ℵ_0 by its integer carrier while
    *  the scout keeps @c ℶ_1.  That does not arise from a real halfspace (no
    *  continuum is genuinely carried by @c int), so the carrier axis is the
-   *  honest source.  Reproducing an arbitrary explicit @c C exactly would
-   *  require threading it as a sixth @c Halfspace template parameter
-   *  (FIXME(#848): ~120 pattern-matched sites). */
+   *  honest source.  The dual incoherence (a countable carrier tagged with
+   *  @c Kleene logic, @c UniversalSet<int,Kleene>) can surface a @c Set
+   * codomain mismatch when the promoted @c Boole class disagrees with the
+   * predicate's own @c Kleene species; that @c Set / @c NaturalLogic
+   * interaction is tracked in FIXME(#928).  Reproducing an arbitrary explicit
+   * @c C exactly would require threading it as a sixth @c Halfspace template
+   * parameter (FIXME(#848): ~120 pattern-matched sites). */
   using cardinality_type = carrier_cardinality_t<T>;
 
   // `Pivot` may be a different structural type than `T` (e.g., pivot = 5.0 as
