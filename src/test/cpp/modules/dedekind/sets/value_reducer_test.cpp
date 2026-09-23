@@ -15,6 +15,16 @@ import dedekind.sets;
 using namespace dedekind::category;
 using namespace dedekind::sets;
 
+// The type-only laws (idempotent X∧X=X, complement a∧¬a=⊥) are gated on
+// IsIdempotentLeaf, so they decline a runtime-stateful leaf that is not
+// value-determined — the value-safety basis for #922 (e.g. S{7}∧¬S{3} stays
+// unreduced rather than collapsing to ⊥).
+static_assert(
+    IsIdempotentLeaf<Ø<SignedExtensionalCardinal<>>>,
+    "a stateless boundary is value-determined (idempotent-collapsible)");
+static_assert(!IsIdempotentLeaf<SingletonSet<SignedExtensionalCardinal<>>>,
+              "a runtime-stateful leaf is not idempotent-collapsible");
+
 TEST_CASE(
     "value-first subobject_reduce runs the boundary laws on values (#922)",
     "[sets][reducer][value-first]") {
@@ -52,6 +62,19 @@ TEST_CASE(
     const auto r = subobject_reduce(
         Join<UniversalSet<Card>, SingletonSet<Card>>{universe, seven});
     STATIC_REQUIRE(IsTerminalObject<std::remove_cvref_t<decltype(r)>>);
+  }
+
+  SECTION("dual-phase: the same reduction runs in constant evaluation") {
+    // Not just runtime: subobject_reduce must execute at compile time too, with
+    // the stateful value flowing through, so the value-first path is genuinely
+    // one reducer across phases (#922).
+    constexpr auto r =
+        subobject_reduce(Meet<UniversalSet<Card>, SingletonSet<Card>>{
+            UniversalSet<Card>{}, SingletonSet<Card>{7}});
+    STATIC_REQUIRE(
+        std::same_as<std::remove_cvref_t<decltype(r)>, SingletonSet<Card>>);
+    STATIC_REQUIRE(static_cast<bool>(r(7)));
+    STATIC_REQUIRE(!static_cast<bool>(r(3)));
   }
 
   SECTION("agrees with the existing type-level boundary operator") {

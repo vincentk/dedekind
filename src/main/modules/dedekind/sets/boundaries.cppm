@@ -531,12 +531,27 @@ constexpr auto reify_term(const S& s) {
  *  normal form is that operand.  @c reify_term stays for the four @c Ø / @c 𝔸
  *  operators (boundary operands are stateless); this is the general entry the
  *  #916 Python composition surface will call once the leaf-combine leg is
- *  threaded (slice 2).
- *  FIXME(#922 slice 2): constrain @c Node to a valid recursive subobject
- *  expression (@c IsSet leaf, or a @c Meet / @c Join / @c Not of such), so this
- *  Python-facing entry rejects a non-subobject argument instead of falling
- *  through the generic catch-all @c reduce_value leaf overload. */
+ *  threaded (slice 2). */
+
+/** @brief A valid recursive subobject expression: an @c IsSet leaf, or a
+ *  @c Meet / @c Join / @c Not of such.  It constrains @ref subobject_reduce so
+ * a non-subobject argument (e.g.\ a bare @c int) is rejected rather than
+ * passing through @c reduce_value's generic catch-all leaf overload. */
+template <typename N>
+inline constexpr bool is_subobject_expr_v = IsSet<N>;
+template <typename A, typename B>
+inline constexpr bool is_subobject_expr_v<Meet<A, B>> =
+    is_subobject_expr_v<A> && is_subobject_expr_v<B>;
+template <typename A, typename B>
+inline constexpr bool is_subobject_expr_v<Join<A, B>> =
+    is_subobject_expr_v<A> && is_subobject_expr_v<B>;
+template <typename A>
+inline constexpr bool is_subobject_expr_v<Not<A>> = is_subobject_expr_v<A>;
+export template <typename N>
+concept IsSubobjectExpr = is_subobject_expr_v<N>;
+
 export template <typename L = Boole, typename Node>
+  requires IsSubobjectExpr<std::remove_cvref_t<Node>>
 constexpr auto subobject_reduce(const Node& node) {
   return finalize_combine(
       reduce_value<subobject_order<L>, subobject_order<L>, no_leaf_combine>(

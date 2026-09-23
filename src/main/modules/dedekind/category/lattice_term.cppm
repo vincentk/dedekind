@@ -316,7 +316,7 @@ constexpr auto rebuild_meet(const RA& ra, const RB& rb) {
     return Meet<RA, RB>{ra, rb};
   } else if constexpr (std::same_as<D, Meet<RB, RA>>) {
     return Meet<RB, RA>{rb, ra};
-  } else if constexpr (IsIdempotentLeaf<D>) {
+  } else if constexpr (IsIdempotentLeaf<D> && std::default_initializable<D>) {
     return D{};  // value-determined collapse / DNF: exact
   } else {
     return Meet<RA, RB>{ra, rb};  // stateful restructure: fail safe
@@ -335,7 +335,7 @@ constexpr auto rebuild_join(const RA& ra, const RB& rb) {
     return Join<RA, RB>{ra, rb};
   } else if constexpr (std::same_as<D, Join<RB, RA>>) {
     return Join<RB, RA>{rb, ra};
-  } else if constexpr (IsIdempotentLeaf<D>) {
+  } else if constexpr (IsIdempotentLeaf<D> && std::default_initializable<D>) {
     return D{};
   } else {
     return Join<RA, RB>{ra, rb};
@@ -389,7 +389,7 @@ constexpr auto reduce_value(const Not<A>& node) {
   using D = reduce_t<Not<RB>, Less, Ord, Combine>;
   if constexpr (std::same_as<D, Not<RB>>) {
     return Not<RB>{rb};
-  } else if constexpr (IsIdempotentLeaf<D>) {
+  } else if constexpr (IsIdempotentLeaf<D> && std::default_initializable<D>) {
     return D{};
   } else {
     return Not<RB>{rb};
