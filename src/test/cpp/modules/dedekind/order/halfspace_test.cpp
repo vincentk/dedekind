@@ -476,9 +476,8 @@ TEST_CASE("order:halfspace — reduction tightens extensionality (post-#622)",
   }
 }
 
-TEST_CASE(
-    "order:halfspace — point-free ℕ|pred classifies like the scout (#848)",
-    "[order][halfspace][computability][point-free]") {
+TEST_CASE("order:halfspace: point-free ℕ|pred classifies like the scout (#848)",
+          "[order][halfspace][computability][point-free]") {
   // #848: the point-free comprehension ℕ | (π > fix(5_c)) reduces to a bare
   // Halfspace.  Before this fix that Halfspace exposed no cardinality_type, so
   // NaturalLogic hit its pessimistic primary-template fallback (Kleene /

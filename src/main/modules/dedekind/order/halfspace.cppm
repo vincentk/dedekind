@@ -270,10 +270,13 @@ struct Halfspace : dedekind::sets::SetExpr<Halfspace<T, Pivot, D, S, L>, T, L> {
    *  classifier (@c sets::NaturalLogic) reads a halfspace the SAME way it reads
    *  the ambient it was carved from (#848).
    *
-   *  @details A halfspace is an @b unbounded ray, so it is equinumerous with
-   * its carrier: over a countable carrier it is @f$\aleph_0@f$ (never @c Finite
-   * --- contrast the @b bounded @c OrderInterval, which is @c Finite on a
-   * discrete carrier), and over a continuum it is @f$\beth_1@f$.  @c
+   *  @details @c cardinality_type here is a @b conservative classification
+   * bound, NOT the cut's exact size: a halfspace is at most equinumerous with
+   * its carrier, so the bound is @f$\aleph_0@f$ over a countable carrier and
+   * @f$\beth_1@f$ over a continuum.  A @b bounded cut (e.g.\ @c {x∈ℕ|x<5}) is
+   * actually @c Finite; the bound only has to be tight enough for the
+   * @c NaturalLogic verdict (countable ⟹ @c Boole/decidable, uncountable ⟹
+   * @c Kleene), which the finite and @f$\aleph_0@f$ cases share.  @c
    * IsRingIntegral is the countable/uncountable discriminator: it admits the
    * structural integers
    *  @b and the @c Cardinality / @c SignedCardinality (ℕ/ℤ) proxy carriers, and
