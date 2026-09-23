@@ -44,6 +44,7 @@ module;
 #include <algorithm>
 #include <concepts>
 #include <functional>
+#include <optional>  // negative witness: std::optional<double> (NaN-containing order)
 
 export module dedekind.category:species;
 
@@ -1135,14 +1136,28 @@ concept SupInfOperand = std::totally_ordered<T> && std::copy_constructible<T>;
 /**
  * @concept SupInfLattice
  * @brief A carrier on which @c Sup / @c Inf are honest @b lattice ops: usable
- *        (@c SupInfOperand) @b and not a raw float.  @c double is totally
- *        ordered and copyable, so @c Sup{}(a,b) is callable, but NaN breaks
- *        @c max / @c min commutativity (@c Sup{}(NaN,x)=NaN vs @c
- *        Sup{}(x,NaN)=x), so the equational laws do not hold --- there is no
- *        @c double lattice carrier.  Gates the law registrations below.
+ *        (@c SupInfOperand) @b and carrying a @b certified @b total @b order
+ *        (reflexive + transitive + antisymmetric under the typed relation
+ *        @c std::less_equal<T>).
+ *
+ * @details Gates the law registrations below.  We certify @b positively via
+ * the repository's order traits rather than negatively excluding
+ * @c std::floating_point, because the type-category proxy is unsound for
+ * @b wrappers whose order contains NaN: @c std::optional<double> is
+ * @c totally_ordered + @c copy_constructible + @b not @c std::floating_point,
+ * so @c !std::floating_point would admit it, yet @c max / @c min are not
+ * commutative on it (an element vs a NaN-carrying element).  A @b genuine total
+ * order cannot contain NaN, so the certified-order gate drops the float proxy
+ * entirely: raw @c double and @c std::optional<double> never register the
+ * @c is_transitive_v / @c is_antisymmetric_v @c std::less_equal<T> traits (the
+ * @c :species integral / bool blanket does not cover them), so both are
+ * excluded, while every integral / scoped-enum chain is included.
  */
 export template <typename T>
-concept SupInfLattice = SupInfOperand<T> && !std::floating_point<T>;
+concept SupInfLattice =
+    SupInfOperand<T> && is_reflexive_v<T, std::less_equal<T>> &&
+    is_transitive_v<T, std::less_equal<T>> &&
+    is_antisymmetric_v<T, std::less_equal<T>>;
 
 /** @brief Join @c ∨: the least upper bound on a chain (@c max), returned
  *  @b by value as an honest @c T @c × @c T @c → @c T. */
@@ -1175,13 +1190,17 @@ export struct Inf {
 // fail:
 //   * non-totally_ordered / non-copyable T: Sup/Inf can't be called at all
 //     (e.g. is_commutative_v<void, Sup> would spuriously be true);
-//   * raw IEEE floats: double IS totally_ordered + copyable, so Sup{}(a,b) is
-//     callable, but NaN breaks the laws --- Sup{}(NaN,x)=NaN (NaN<x is false,
-//     returns a) vs Sup{}(x,NaN)=x, so max/min are NOT commutative on double.
+//   * any carrier whose order contains NaN: raw double, but ALSO wrappers like
+//     std::optional<double> (totally_ordered + copyable + NOT floating_point),
+//     where max/min are non-commutative (Sup{}(NaN,x)=NaN vs Sup{}(x,NaN)=x).
+// SupInfLattice certifies POSITIVELY via the repo's total-order traits
+// (reflexive/transitive/antisymmetric under std::less_equal<T>) rather than a
+// negative !floating_point proxy: a genuine total order cannot contain NaN, so
+// double AND optional<double> --- which never register those traits --- are
+// both excluded, whereas integrals / scoped-enum chains register them and pass.
 // Without the gate this blanket would falsely certify
-// IsDistributiveLattice<double, ...> (and worse for un-callable types),
-// contradicting the library's raw-float rejection (there is no double lattice
-// carrier).  Scoped enums / integrals satisfy SupInfLattice and are unaffected.
+// IsDistributiveLattice<double, ...> / <optional<double>, ...>, contradicting
+// the library's raw-float rejection.
 template <typename T>
   requires SupInfLattice<T>
 inline constexpr bool is_idempotent_v<T, Sup> = true;
@@ -1213,20 +1232,32 @@ template <typename T>
   requires SupInfLattice<T>
 inline constexpr bool is_absorptive_v<T, Inf, Sup> = true;
 
-// Negative witness (co-located; :species is upstream of :total, so assert the
-// trait directly, not IsDistributiveLattice): raw floats are rejected because
-// NaN breaks max/min commutativity, so there is no double lattice carrier.
+// Negative witnesses (co-located; :species is upstream of :total, so assert the
+// trait directly, not IsDistributiveLattice).
+// (1) Raw floats: NaN breaks max/min commutativity, so no double lattice.
 static_assert(!is_commutative_v<double, Sup>,
               "raw floats rejected: NaN breaks max/min commutativity (no "
               "double lattice carrier)");
 static_assert(!is_commutative_v<double, Inf>,
               "raw floats rejected: NaN breaks max/min commutativity (no "
               "double lattice carrier)");
-// Non-usable carriers are rejected too: the trait check never instantiates
-// Sup/Inf, so without the SupInfLattice gate a type on which the op cannot even
-// be called (not totally_ordered / not copy_constructible --- here void) would
-// be spuriously certified.  Pins that the gate, not just the float exclusion,
-// is active.
+// (2) A float-CONTAINING wrapper: std::optional<double> is totally_ordered +
+// copyable + NOT floating_point, so a !floating_point proxy would have leaked
+// it in.  The positive certified-order gate excludes it (it never registers the
+// transitive/antisymmetric std::less_equal<T> traits) --- this pins that the
+// ORDER cert, not a type-category float check, is doing the work.
+static_assert(SupInfOperand<std::optional<double>> &&
+                  !SupInfLattice<std::optional<double>>,
+              "optional<double> IS a usable Sup/Inf operand (ordered + "
+              "copyable) yet fails the certified-order gate --- so the ORDER "
+              "cert, not a !floating_point proxy, is what excludes it");
+static_assert(!is_commutative_v<std::optional<double>, Sup>,
+              "float-containing wrappers rejected: optional<double>'s order "
+              "contains NaN, so it is not a lattice carrier");
+// (3) Non-usable carriers: the trait check never instantiates Sup/Inf, so
+// without SupInfLattice a type on which the op cannot even be called (not
+// totally_ordered / not copy_constructible --- here void) would be spuriously
+// certified.
 static_assert(!is_commutative_v<void, Sup>,
               "SupInfLattice gate: a non-usable carrier (void: neither ordered "
               "nor copyable) is not a Sup/Inf lattice carrier");

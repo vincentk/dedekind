@@ -916,6 +916,30 @@ static_assert(is_reflexive_v<Ternary, std::less_equal<>> &&
                   is_antisymmetric_v<Ternary, std::less_equal<>>,
               "K₃ is a partial (indeed total) order under <=");
 
+/** @brief K₃'s total order under the @b typed relation @c std::less_equal<T>.
+ *  The @c order:: concepts (@c IsPreOrdered / @c IsTotallyOrdered) query the
+ *  @b transparent @c std::less_equal<> registered above, but the @c category::
+ *  order concepts (@c IsPartRelation / @c IsPosetal / @c IsTotalOrder / @c
+ *  IsThinCategory) default @c Rel to the @b typed @c std::less_equal<Ternary>
+ *  and query the traits for @b that exact type, so the transparent form does
+ *  not reach them.  Reflexivity is already supplied by the @c :species
+ *  @c totally_ordered @c std::less_equal<T> struct specialisation (@c Ternary
+ *  is @c std::totally_ordered); only transitivity / antisymmetry are outside
+ *  the @c :species integral blanket and are registered here.  This is also the
+ *  order the @c :species @c SupInfLattice law gate certifies against (a genuine
+ *  total order cannot contain NaN). */
+template <>
+inline constexpr bool is_transitive_v<Ternary, std::less_equal<Ternary>> = true;
+template <>
+inline constexpr bool is_antisymmetric_v<Ternary, std::less_equal<Ternary>> =
+    true;
+
+static_assert(is_reflexive_v<Ternary, std::less_equal<Ternary>> &&
+                  is_transitive_v<Ternary, std::less_equal<Ternary>> &&
+                  is_antisymmetric_v<Ternary, std::less_equal<Ternary>>,
+              "K₃ is a total order under the typed std::less_equal<Ternary> "
+              "(reflexivity via the :species totally_ordered specialisation)");
+
 /** @brief The logic negation ¬ = @c L::RFL as a callable object.  It exists so
  *  the @c :involution machinery can witness that the negation is an involution
  *  (@c ¬¬ = @c id).  @c :sets consults the witness to eliminate double negation

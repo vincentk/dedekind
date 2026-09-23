@@ -37,11 +37,17 @@ TEST_CASE("Order: The Geography of Species", "[order][axioms]") {
     // its order (reflexive / transitive / antisymmetric under <=) in #912 lets
     // the order/:posetal stack resolve on it, the same as int and bool.
     using dedekind::category::Ternary;
+    // order:: concepts (transparent std::less_equal<>).
     STATIC_CHECK(IsPreOrdered<Ternary>);
     STATIC_CHECK(IsPartiallyOrdered<Ternary>);
     STATIC_CHECK(IsTotallyOrdered<Ternary>);
     STATIC_CHECK(
         dedekind::category::IsCertifiedOrderLatticeOperations<Ternary>);
+    // category:: concepts default Rel to the TYPED std::less_equal<Ternary> and
+    // query the traits for that exact type; registered in :logic (#933) so this
+    // resolves (regression guard — these were latently failing before).
+    STATIC_CHECK(dedekind::category::IsPosetal<Ternary>);
+    STATIC_CHECK(dedekind::category::IsTotalOrder<Ternary>);
   }
 }
 
