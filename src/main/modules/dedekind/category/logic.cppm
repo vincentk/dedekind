@@ -83,10 +83,16 @@ namespace dedekind::category {
  * over a specific 'type' of truth value. In categorical terms, this defines
  * the structure of the Subobject Classifier (Ω).
  *
- * @note IsOckhamAlgebra is currently a conservative SHAPE gate: it certifies
- * the (AND, OR, RFL, True, False) signature. Genuinely gating the Ockham laws
- * (distributivity plus the dual-endomorphism / De Morgan law) is the remaining
- * scope of #907, witnessed downstream.
+ * @note IsOckhamAlgebra certifies the (AND, OR, RFL, True, False) signature
+ * PLUS the boundary case of the Ockham dual endomorphism: the reflection
+ * reverses the bounds (@c ¬⊤=⊥, @c ¬⊥=⊤), checked directly below since
+ * @c True / @c False / @c RFL are compile-time constants. It is thus a shape
+ * gate strengthened by one @b constant-evaluable law, not a bare signature
+ * gate. It does NOT yet gate the @b full Ockham laws (distributivity plus the
+ * all-values dual-endomorphism / De Morgan law over the whole carrier); those
+ * remain the scope of #907, witnessed by the @c static_assert tower downstream.
+ * A species whose reflection is not constant-evaluable, or does not swap the
+ * poles, is correctly rejected (fail-closed).
  *
  * @tparam L The Logic Species (e.g., Boole, Kleene).
  *
