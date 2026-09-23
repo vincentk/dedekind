@@ -1728,11 +1728,18 @@ struct ProjModConstBound {
     // normalisation and the finite-residue materialisation.  Add V only to a
     // negative remainder (which is already in (−V,0)), so the intermediate
     // never overflows for a large valid modulus.
-    const auto lhs0 = coord<I>(p) % V;
-    const auto lhs = lhs0 < 0 ? lhs0 + V : lhs0;
+    const auto a = coord<I>(p);
+    using C = std::remove_cvref_t<decltype(a)>;
+    const auto lhs0 = a % static_cast<C>(V);
+    // Add V through std::plus<C> (same narrow-carrier reason as
+    // ProjAddConstProj): +V on the carrier, never a bare C + int (which is
+    // ambiguous on Cardinality).  Unsigned carriers never take this branch.
+    const auto lhs = lhs0 < static_cast<C>(0)
+                         ? std::plus<C>{}(lhs0, static_cast<C>(V))
+                         : lhs0;
     constexpr auto rhs0 = W % V;
     constexpr auto rhs = rhs0 < 0 ? rhs0 + V : rhs0;
-    return rel_apply<R>(lhs, rhs);
+    return rel_apply<R>(lhs, static_cast<C>(rhs));
   }
 };
 export template <IsRingIntegral auto I, auto V, auto W>
@@ -1816,6 +1823,44 @@ constexpr ProjMulConstProj<I, V, Rel::Eq, J> operator==(ProjMulConst<I, V>,
 // graph-redefinition PR, in :relational, alongside the projection-DSL
 // relocation.  See #824.)
 
+/** @brief @f$\pi_I \cdot A + B@f$ --- the @b affine value expression on a pair,
+ *  the natural completion of @c ProjMulConst (scaling @f$a \cdot A@f$) and
+ *  @c ProjAddConst (successor @f$a + B@f$): @c ProjMulConst closed under
+ *  @f$+\,\mathrm{fix}(B)@f$.  Spells the affine graph @f$b = A\cdot a + B@f$
+ *  natively point-free --- e.g. the Collatz odd branch @f$3n+1@f$
+ *  (@c :collatz).  Awaits a comparison to another projection. */
+export template <IsRingIntegral auto I, auto A, auto B>
+struct ProjAffineConst {};
+export template <IsRingIntegral auto I, auto A, auto B>
+constexpr ProjAffineConst<I, A, B> operator+(ProjMulConst<I, A>, Bound<B>) {
+  return {};
+}
+
+/** @brief @f$(\pi_I \cdot A + B) \bowtie \pi_J@f$ --- the affine graph
+ *  @f$b = A\cdot a + B@f$ (e.g. the doubling-and-shift @f$3a+1@f$). */
+export template <IsRingIntegral auto I, auto A, auto B, Rel R,
+                 IsRingIntegral auto J>
+struct ProjAffineConstProj {
+  using is_rel_predicate = void;
+  template <typename P>
+  constexpr bool operator()(const P& p) const {
+    const auto a = coord<I>(p);
+    using C = std::remove_cvref_t<decltype(a)>;
+    // Multiply then add through std::multiplies / std::plus (same
+    // narrow-carrier reason as ProjMulConstProj / ProjAddConstProj): keep the
+    // carrier's certified (modular) semantics rather than promoting to int.
+    return rel_apply<R>(
+        std::plus<C>{}(std::multiplies<C>{}(a, static_cast<C>(A)),
+                       static_cast<C>(B)),
+        coord<J>(p));
+  }
+};
+export template <IsRingIntegral auto I, auto A, auto B, IsRingIntegral auto J>
+constexpr ProjAffineConstProj<I, A, B, Rel::Eq, J> operator==(
+    ProjAffineConst<I, A, B>, Projection<J>) {
+  return {};
+}
+
 // successor graph: {(a,b) | b = a + 1} = ℕ * ℕ | π1 + fix(1_c) == π2.
 static_assert((ℕ * ℕ | π1 + fix(1_c) == π2)(std::pair{finite_cardinality(4),
                                                       finite_cardinality(5)}),
@@ -1839,6 +1884,14 @@ static_assert((ℕ * ℕ | π1 * fix(2_c) == π2)(std::pair{finite_cardinality(3
 static_assert(!(ℕ * ℕ | π1 * fix(2_c) == π2)(std::pair{finite_cardinality(3),
                                                        finite_cardinality(7)}),
               "3 * 2 != 7: (3,7) ∉ the doubling graph.");
+// affine graph: {(a,b) | b = 3a+1} = ℕ * ℕ | π1 * fix(3_c) + fix(1_c) == π2
+// (the Collatz odd branch, :collatz).
+static_assert((ℕ * ℕ | π1 * fix(3_c) + fix(1_c) == π2)(std::pair{
+                  finite_cardinality(7), finite_cardinality(22)}),
+              "3·7+1 == 22: (7,22) ∈ the affine graph.");
+static_assert(!(ℕ * ℕ | π1 * fix(3_c) + fix(1_c) == π2)(std::pair{
+                  finite_cardinality(7), finite_cardinality(21)}),
+              "3·7+1 != 21: (7,21) ∉ the affine graph.");
 
 // dom / cod are the projections π_A / π_B (Table 3), recovered from the graph's
 // STRUCTURE: they return the DECLARED domain/codomain, not the effective image.
