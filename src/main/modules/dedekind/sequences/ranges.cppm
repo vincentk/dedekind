@@ -379,8 +379,8 @@ auto ext(const dedekind::order::OrderInterval<T, Lo, Hi, SL, SU, L>& oi) {
 
 /** @brief The value-semantic comprehension @f$\{x \in \mathrm{dom} \mid
  * P(x)\}@f$ over a @b finite domain: an @c argmax result (or any refinement of
- * a bounded interval), carrying both the interval (the @c IsExtensional range
- * to scan) and the refinement predicate @c P.
+ * a bounded interval), carrying both the interval (the finite range @ref ext
+ * scans via @c to_iota_view) and the refinement predicate @c P.
  *
  *  @details Both this and @c dedekind::sets::Comprehension (the DSL's
  *  @f$\{S\mid P\}@f$) are now @c IsSet via @c dedekind::sets::SetExpr, and both
@@ -411,8 +411,10 @@ struct BoundedSet
    * through aggregate init. */
   constexpr BoundedSet(OI d, P p)
       : domain(static_cast<OI&&>(d)), pred(static_cast<P&&>(p)) {}
-  /** @brief The interval is finite (an @c IsExtensional bounded meet), so the
-   *  comprehension over it is too --- the licence @ref ext reads. */
+  /** @brief The interval is finite, so the comprehension over it is too.  This
+   *  @c cardinality_type is @b metadata (the @c Finite tag), not a gate @ref
+   * ext reads: @ref ext scans @c to_iota_view of the concrete @c OrderInterval.
+   */
   using cardinality_type = dedekind::sets::Finite;
   /** @brief χ / membership: @c x @c ∈ @c {dom @c | @c P} @c ⟺ in the domain
    *  @b and @c P-optimal.  A comprehension @b is its own characteristic map,
@@ -430,8 +432,8 @@ struct BoundedSet
     else
       return L::AND(domain(x), p ? L::True : L::False);
   }
-  /** @brief The scannable bound (@c IsExtensional): the domain's cardinality is
-   *  an addressable @c size_t — the licence to realise. */
+  /** @brief The domain's cardinality as an addressable @c size_t.  Metadata
+   *  (the finite bound), not a gate @ref ext reads. */
   constexpr std::size_t size() const { return domain.size(); }
 };
 
