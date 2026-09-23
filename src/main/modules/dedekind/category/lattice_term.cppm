@@ -295,8 +295,8 @@ struct reduce<Not<A>, Less, Ord, Combine> {
 namespace detail_lattice_term {
 
 /** @brief The shared @b collapse tail: materialize the normal-form type @c D's
- *  value, or keep @c fallback (a value @b already sound for the reduced set —
- *  the unreduced node).
+ *  value, or keep @c fallback: a value @b already sound for the reduced set
+ *  (the unreduced node).
  *  @details A @b value-determined collapse (@c D is @c IsIdempotentLeaf, so a
  *  boundary @c ⊥ / @c ⊤ or a DNF over type-determined leaves, and default
  *  constructible) is exact as @c D{}.  Otherwise @c D is a runtime-stateful
