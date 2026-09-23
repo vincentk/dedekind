@@ -1116,14 +1116,40 @@ inline constexpr bool
  * reference-returning @c std::ranges::max / @c std::ranges::min niebloids to
  * @c Sup / @c Inf (latent dangling-on-temporaries footgun; type-level markers
  * today, so cleanup rather than a live bug).  #934 also folds in the identical
- * latent float-miscertification the pre-existing niebloid law blanket carries
- * (see the @c !std::floating_point gate on the @c Sup / @c Inf laws below). */
+ * latent over-certification the pre-existing niebloid law blanket carries for
+ * @b non-ordered / @b non-copyable / @b float carriers (see the @c
+ * SupInfLattice gate on the @c Sup / @c Inf laws below). */
+
+/**
+ * @concept SupInfOperand
+ * @brief A carrier on which @c Sup / @c Inf are a genuine, usable value op:
+ *        totally ordered (for @c <) and copy-constructible (the winner is
+ *        @b returned @b by @b value).  This is the CALL gate --- @c
+ *        Sup{}(1.0, 2.0) is a valid call that returns a value, so raw floats
+ *        are @b not excluded here; only the lattice @b laws fail on them (see
+ *        @c SupInfLattice).
+ */
+export template <typename T>
+concept SupInfOperand = std::totally_ordered<T> && std::copy_constructible<T>;
+
+/**
+ * @concept SupInfLattice
+ * @brief A carrier on which @c Sup / @c Inf are honest @b lattice ops: usable
+ *        (@c SupInfOperand) @b and not a raw float.  @c double is totally
+ *        ordered and copyable, so @c Sup{}(a,b) is callable, but NaN breaks
+ *        @c max / @c min commutativity (@c Sup{}(NaN,x)=NaN vs @c
+ *        Sup{}(x,NaN)=x), so the equational laws do not hold --- there is no
+ *        @c double lattice carrier.  Gates the law registrations below.
+ */
+export template <typename T>
+concept SupInfLattice = SupInfOperand<T> && !std::floating_point<T>;
+
 /** @brief Join @c ∨: the least upper bound on a chain (@c max), returned
  *  @b by value as an honest @c T @c × @c T @c → @c T. */
 export struct Sup {
   /** @brief Value-returning join: returns @c max(a,b) by value (a copy of the
    *  winner), never a reference into an argument. */
-  template <std::totally_ordered T>
+  template <SupInfOperand T>
   constexpr T operator()(const T& a, const T& b) const {
     return a < b ? b : a;
   }
@@ -1133,7 +1159,7 @@ export struct Sup {
 export struct Inf {
   /** @brief Value-returning meet: returns @c min(a,b) by value (a copy of the
    *  winner), never a reference into an argument. */
-  template <std::totally_ordered T>
+  template <SupInfOperand T>
   constexpr T operator()(const T& a, const T& b) const {
     return a < b ? a : b;
   }
@@ -1143,42 +1169,48 @@ export struct Inf {
 // min niebloids above; re-registered here since the concepts are trait-gated
 // (IsIdempotent / IsCommutative / ... look up is_*_v, they are not structural).
 //
-// The !std::floating_point<T> gate is load-bearing, NOT decoration: a raw IEEE
-// float is std::totally_ordered syntactically, so Sup<double> compiles, but NaN
-// breaks the laws --- Sup{}(NaN, x) = NaN (NaN < x is false, returns a) whereas
-// Sup{}(x, NaN) = x, so max/min are NOT commutative on double.  Without the
-// gate this blanket would falsely certify IsDistributiveLattice<double, ...>,
-// contradicting the library's raw-float rejection (NaN breaks totality; there
-// is no double lattice carrier).  Scoped enums / integrals are unaffected.
+// The SupInfLattice<T> gate is load-bearing, NOT decoration.  The trait check
+// never instantiates Sup/Inf, so an unconstrained blanket would certify laws
+// for types where the op is not even a usable value function or where the laws
+// fail:
+//   * non-totally_ordered / non-copyable T: Sup/Inf can't be called at all
+//     (e.g. is_commutative_v<void, Sup> would spuriously be true);
+//   * raw IEEE floats: double IS totally_ordered + copyable, so Sup{}(a,b) is
+//     callable, but NaN breaks the laws --- Sup{}(NaN,x)=NaN (NaN<x is false,
+//     returns a) vs Sup{}(x,NaN)=x, so max/min are NOT commutative on double.
+// Without the gate this blanket would falsely certify
+// IsDistributiveLattice<double, ...> (and worse for un-callable types),
+// contradicting the library's raw-float rejection (there is no double lattice
+// carrier).  Scoped enums / integrals satisfy SupInfLattice and are unaffected.
 template <typename T>
-  requires(!std::floating_point<T>)
+  requires SupInfLattice<T>
 inline constexpr bool is_idempotent_v<T, Sup> = true;
 template <typename T>
-  requires(!std::floating_point<T>)
+  requires SupInfLattice<T>
 inline constexpr bool is_associative_v<T, Sup> = true;
 template <typename T>
-  requires(!std::floating_point<T>)
+  requires SupInfLattice<T>
 inline constexpr bool is_commutative_v<T, Sup> = true;
 template <typename T>
-  requires(!std::floating_point<T>)
+  requires SupInfLattice<T>
 inline constexpr bool is_idempotent_v<T, Inf> = true;
 template <typename T>
-  requires(!std::floating_point<T>)
+  requires SupInfLattice<T>
 inline constexpr bool is_associative_v<T, Inf> = true;
 template <typename T>
-  requires(!std::floating_point<T>)
+  requires SupInfLattice<T>
 inline constexpr bool is_commutative_v<T, Inf> = true;
 template <typename T>
-  requires(!std::floating_point<T>)
+  requires SupInfLattice<T>
 inline constexpr bool is_distributive_v<T, Sup, Inf> = true;
 template <typename T>
-  requires(!std::floating_point<T>)
+  requires SupInfLattice<T>
 inline constexpr bool is_distributive_v<T, Inf, Sup> = true;
 template <typename T>
-  requires(!std::floating_point<T>)
+  requires SupInfLattice<T>
 inline constexpr bool is_absorptive_v<T, Sup, Inf> = true;
 template <typename T>
-  requires(!std::floating_point<T>)
+  requires SupInfLattice<T>
 inline constexpr bool is_absorptive_v<T, Inf, Sup> = true;
 
 // Negative witness (co-located; :species is upstream of :total, so assert the
@@ -1190,10 +1222,20 @@ static_assert(!is_commutative_v<double, Sup>,
 static_assert(!is_commutative_v<double, Inf>,
               "raw floats rejected: NaN breaks max/min commutativity (no "
               "double lattice carrier)");
-// Positive-preserved witness: every non-float ordered carrier keeps the laws.
-static_assert(is_commutative_v<int, Sup> && is_idempotent_v<int, Inf>,
-              "int (and every non-float ordered carrier) keeps the Sup/Inf "
-              "lattice laws");
+// Non-usable carriers are rejected too: the trait check never instantiates
+// Sup/Inf, so without the SupInfLattice gate a type on which the op cannot even
+// be called (not totally_ordered / not copy_constructible --- here void) would
+// be spuriously certified.  Pins that the gate, not just the float exclusion,
+// is active.
+static_assert(!is_commutative_v<void, Sup>,
+              "SupInfLattice gate: a non-usable carrier (void: neither ordered "
+              "nor copyable) is not a Sup/Inf lattice carrier");
+// Positive-preserved witness: every usable non-float ordered carrier keeps the
+// laws (int and the scoped-enum Ternary carrier alike).
+static_assert(SupInfLattice<int> && is_commutative_v<int, Sup> &&
+                  is_idempotent_v<int, Inf>,
+              "int (and every SupInfLattice carrier) keeps the Sup/Inf lattice "
+              "laws");
 
 /** @section species__Boolean_Ring_Morphisms (XOR, AND) */
 
