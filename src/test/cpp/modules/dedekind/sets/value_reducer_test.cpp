@@ -16,9 +16,9 @@ using namespace dedekind::category;
 using namespace dedekind::sets;
 
 // The type-only laws (idempotent X∧X=X, complement a∧¬a=⊥) are gated on
-// IsIdempotentLeaf, so they decline a runtime-stateful leaf that is not
-// value-determined — the value-safety basis for #922 (e.g. S{7}∧¬S{3} stays
-// unreduced rather than collapsing to ⊥).
+// IsIdempotentLeaf.  They decline a runtime-stateful leaf that is not
+// value-determined.  That is the value-safety basis for #922: e.g. S{7}∧¬S{3}
+// stays unreduced rather than collapsing to ⊥.
 static_assert(
     IsIdempotentLeaf<Ø<SignedExtensionalCardinal<>>>,
     "a stateless boundary is value-determined (idempotent-collapsible)");
