@@ -1,4 +1,12 @@
-"""Minimal Python MVP facade for dedekind."""
+"""Minimal Python facade for dedekind: native (``_dedekind``) bindings only.
+
+The pure-Python prototype modules (``dsl`` / ``sequences`` / ``sets`` / ``lwv`` /
+``numbers`` / ``algebra``) were removed as pre-target-architecture technical
+debt (#886). The target operating model is handle-only over the native core:
+all predicate structure and reduction stay on the C++ side, and Python holds
+handles plus accessibility bits. The native handle surface (e.g. the canonical
+sets) is reached through ``dedekind._dedekind``.
+"""
 
 try:
     from ._dedekind import ordered_set_roundtrip
@@ -14,6 +22,14 @@ try:
     from ._dedekind import maximize_lp
     from ._dedekind import Rational
     from ._dedekind import DualRational
+    # Canonical native sets (#886).  Python NFKC-normalises identifiers, so the
+    # double-struck attrs `B` / `N` are equally reachable as `𝔹` / `ℕ`; the
+    # discriminating ℕ⊂ℤ classifier is keyed `Nat` to avoid the `ℕ` → "N"
+    # collision.  `ext` is the native materialise retraction μ: Int ⇀ Ext.
+    from ._dedekind import B
+    from ._dedekind import N
+    from ._dedekind import Nat
+    from ._dedekind import ext
 except ModuleNotFoundError as _exc:
     raise ImportError(
         "The dedekind C++ extension (_dedekind) is not available. "
@@ -21,62 +37,10 @@ except ModuleNotFoundError as _exc:
         "root, then install with `pip install -e .`."
     ) from _exc
 
-# Lazy-load submodules on first access to avoid circular imports
-def __getattr__(name):
-    """Lazy-load submodules (sequences, sets, numbers, algebra) on demand."""
-    import importlib
-
-    if name in {"sequences", "sets", "numbers", "algebra"}:
-        module_name = f"{__name__}.{name}"
-        try:
-            return importlib.import_module(f".{name}", __name__)
-        except ModuleNotFoundError as exc:
-            # Keep hasattr/getattr semantics: missing optional submodules
-            # should surface as AttributeError, not ModuleNotFoundError.
-            if exc.name == module_name:
-                raise AttributeError(
-                    f"module {__name__!r} has no attribute {name!r}"
-                ) from None
-            raise
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
-
-# Top-level utility: frame_to_paths convenience alias
-# (imported after dsl to avoid circular dependency with frame_to_paths)
-try:
-    from .sequences import frame_to_paths
-except ImportError:
-    frame_to_paths = None
-
-from .dsl import (
-    Activity,
-    AnalystFrame,
-    Dual as DSLDual,
-    Ensemble,
-    LinearChoice,
-    SetDef,
-    align_pivot_table,
-    analyst_sales_quality_lift_report,
-    critical_path_schedule,
-    dual_derivative,
-    monthly_category_report,
-    pivot_table,
-    pivot_mean_absolute_error,
-    pivot_quality_report,
-    repair_missing_by_group_ratio,
-    repair_missing_by_product,
-    solve_mixed_integer_plan,
-    smart_join,
-    smart_pivot,
-    table_quality_metrics,
-    table,
-    unpivot_table,
-)
-
 # Backward-compatible alias for the C++ dual binding at top level.
 Dual = CppDual
 
 __all__ = [
-    # C++ bindings (backward compat)
     "ordered_set_roundtrip",
     "path_from_array",
     "path_from_range",
@@ -87,36 +51,12 @@ __all__ = [
     "set_cardinality",
     "Complex",
     "CppDual",
-    "DSLDual",
     "Dual",
     "maximize_lp",
     "Rational",
     "DualRational",
-    # Submodules
-    "sets",
-    "sequences",
-    # Top-level convenience
-    "frame_to_paths",
-    # DSL classes
-    "SetDef",
-    "Ensemble",
-    "AnalystFrame",
-    "LinearChoice",
-    "Activity",
-    "table",
-    "smart_join",
-    "smart_pivot",
-    "pivot_table",
-    "unpivot_table",
-    "monthly_category_report",
-    "repair_missing_by_group_ratio",
-    "repair_missing_by_product",
-    "table_quality_metrics",
-    "analyst_sales_quality_lift_report",
-    "align_pivot_table",
-    "pivot_mean_absolute_error",
-    "pivot_quality_report",
-    "dual_derivative",
-    "solve_mixed_integer_plan",
-    "critical_path_schedule",
+    "B",
+    "N",
+    "Nat",
+    "ext",
 ]

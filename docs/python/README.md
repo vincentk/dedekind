@@ -2,13 +2,14 @@
 
 This guide covers the current Python MVP surface built on top of the C++ `dedekind.python` facade.
 
-Design slogan: Write it like Python. Reason about it like math. Realize it when you mean it.
+Design slogan: the C++ core owns the mathematics; Python holds handles to it.
 
-Operational policy: for intensional/symbolic work, use abstract mathematical and
-symbolic types; pick a concrete runtime numeric representation only when you
-explicitly realize a definition for numerical computation.
-In other words, symbolic construction and proof-shaping do not require committing
-to a numerical backend; backend policy selection happens at realization time.
+Operational policy: the Python facade is handle-only over the native core.
+Python objects are thin handles plus accessibility bits (`__repr__`,
+`__contains__`, membership, `ext`); they carry no Python-side predicate AST and
+no Python-side reducer. Composition (`& | ~`, set-builder filters) is deferred
+to the value-first reducer on the C++ side (#922) and is not reimplemented in
+Python.
 
 ## Iteration Architecture (Current)
 
@@ -17,10 +18,9 @@ This iteration uses a three-tier architecture:
 1. Top-level: notebooks
    - Define the look-and-feel and user interaction model.
    - Must execute in CI and produce visible output for review.
-2. Middle tier: Python bindings/library surface
-   - Model the DSL surface and interop behavior.
-   - May include temporary shims while semantics are being refined.
-   - Long-term goal: keep this layer as thin and transparent as possible.
+2. Middle tier: the native Python facade (`dedekind._dedekind`)
+   - Nanobind handles over the C++ core: canonical sets, membership, `ext`.
+   - Deliberately thin: no Python-side predicate structure or reduction.
 3. Lower tier: C++ core logic
    - Owns the core mathematical invariants and implementation semantics.
    - Python and notebook layers are consumers of this source of truth.
@@ -29,14 +29,19 @@ This iteration uses a three-tier architecture:
 
 Current Python bindings intentionally expose a small, reviewable API:
 
-- `ordered_set_roundtrip(values)`
-- `unordered_set_roundtrip(values)`
-- `path_from_range(values)`
+- interop/path smoke helpers: `ordered_set_roundtrip(values)`,
+  `unordered_set_roundtrip(values)`, `path_from_range(values)`
+- canonical native sets (#886): `𝔹` (the Boolean universe `𝔸<bool>`), `ℕ`
+  (the ambient natural-numbers universe `𝔸<Cardinality>`), and `Nat` (the
+  discriminating ℕ⊂ℤ classifier, χ: x ↦ x ≥ 0). Membership `x in s` runs the
+  native characteristic morphism χ from the C++ core.
+- `ext(universe)`: the native retraction μ: Int ⇀ Ext. It materialises a finite
+  candidate universe through the native ℕ⊂ℤ classifier into a Python `set`, so
+  `ext([-2, -1, 0, 1, 2]) == {0, 1, 2}` is decided in C++.
 
-These functions validate the initial interop and sequence/path boundaries for notebook and scripting workflows.
-
-Pandas is an official runtime dependency of the Python layer for DataFrame
-interop and pivot/unpivot shims used by the Analyst-tier workflow.
+There is no pandas dependency and no pure-Python DSL: those pre-target-
+architecture modules were removed in the #886 cleanup. The facade is handle-
+only over the native core.
 
 ## Install
 
@@ -72,10 +77,17 @@ python -m pip install --no-build-isolation -e .
 
 ```python
 import dedekind
+from dedekind import 𝔹, ℕ, Nat, ext  # 𝔹→B, ℕ→N via NFKC normalisation
 
 print(dedekind.ordered_set_roundtrip([3, 1, 2, 2]))
 print(dedekind.unordered_set_roundtrip([4, 2, 4, 1]))
 print(dedekind.path_from_range([2, 4, 6, 8]))
+
+# Membership runs the native χ from the C++ core, not a Python reimplementation.
+print(True in 𝔹)          # True
+print(4 in ℕ)             # True (ℕ is the ambient universe: χ_ℕ always holds)
+print(-7 not in Nat)      # True (the discriminating ℕ⊂ℤ classifier, decided in C++)
+print(ext([-2, -1, 0, 1, 2]))  # {0, 1, 2}
 ```
 
 Expected output:
@@ -84,6 +96,10 @@ Expected output:
 [1, 2, 3]
 [1, 2, 4]
 [2, 4, 6, 8]
+True
+True
+True
+{0, 1, 2}
 ```
 
 ## Caveats (MVP)
@@ -92,7 +108,7 @@ Expected output:
 - Coverage: only a narrow interop/path surface is bound in this phase.
 - Semantics: this package is a consumer of system-language semantics defined in C++ modules; Python is not the source of core invariants.
 - Performance: set conversion roundtrips are linear in collection size. Container lookup properties still follow destination container behavior.
-- **Design-in-review**: The symbolic/formal DSL tier (easy vs. expert API sketched in notebooks) is undergoing design review (GitHub issue #241). Current prototype shims are proof-of-concept; full implementation awaits API consensus.
+- **Handle-only, composition deferred**: Python holds handles plus accessibility bits over the native core; it carries no Python-side predicate AST or reducer. Composition (`& | ~`, set-builder filters) and passing a Python predicate into `ext` are deferred to the value-first reducer on the C++ side (#922). The pure-Python DSL shims that once sketched this surface were removed in the #886 cleanup.
 
 ## Error Handling Contract (MVP)
 
@@ -143,32 +159,12 @@ dropping end-to-end checks required by staged publication (issue #240).
 
 The MVP notebook demos live in `docs/python/notebooks/`:
 
-- `01_facade_roundtrip_basics.ipynb` — happy-path facade demo
-- `02_facade_error_contract.ipynb` — error contract / unhappy-path demo
-- `03_dsl_analyst_tier.ipynb` — analyst-style DSL sketch (issue #241, **design-under-review**)
-- `04_dsl_formal_tier.ipynb` — formal-notation DSL sketch (issue #241, **design-under-review**)
+- `01_facade_roundtrip_basics.ipynb`: happy-path facade demo plus the native
+  canonical-sets (`𝔹` / `ℕ`) README exhibit (membership via the C++ `χ`).
 
-These notebooks are intentionally small, deterministic, and suitable for CI
-execution as integration checks.
-
-Analyst facade behavior notes:
-
-- `smart_join` is designed for best-effort operation out of the box.
-   Planned optional trust hints can bias matching toward user-trusted
-   columns/ranges; when no hints are provided it infers from observed overlap.
-- `smart_pivot` is also best-effort by default and uses sensible inferred axes.
-   Planned optional interest hints can bias what gets emphasized in wide reports.
-- In both cases, rows not directly preserved in a final pivot can still improve
-   scaffolding/inference quality (for example via correlation and aggregate
-   evidence), so larger samples often improve outcomes ceteris paribus.
-- **Trusted-target semantics:** a trusted table encodes a structural prior about
-   what records *should* exist (e.g. exactly one record per day per region).
-   Joining messy source data against such a skeleton surfaces *gaps* (expected
-   records absent from the source) and *duplicates* (source rows matching the
-   same skeleton slot more than once), and bootstraps error estimates from the
-   known prior rather than from observed-data statistics alone.  This is the
-   mechanism by which additional high-quality reference tables improve quality
-   labels relative to a vanilla pipeline.
+The DSL-tier notebooks (`03`/`04`) were removed with the pre-target pure-Python
+modules in the #886 cleanup; the notebook set is kept to a single native-facade
+smoke test that executes as a CI integration check.
 
 Notebook outputs are committed to version control so that GitHub renders them
 without executing code. To refresh outputs locally:
