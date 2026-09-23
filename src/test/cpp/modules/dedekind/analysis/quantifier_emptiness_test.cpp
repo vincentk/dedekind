@@ -36,8 +36,8 @@ TEST_CASE("Quantifier machinery: Ø == comprehension, two regimes",
   //     compile time.  We spell the bare `&` (not a set(...) wrapper): the open
   //     combinator's specialization is reachable only at a call site below
   //     order, and an upstream sets-layer wrapper would freeze the lookup.
-  constexpr auto gt5 = Set{in<ℕ> | in<ℕ> > bound<5>};
-  constexpr auto lt3 = Set{in<ℕ> | in<ℕ> < bound<3>};
+  constexpr auto gt5 = Set{element<ℕ> | element<ℕ> > bound<5>};
+  constexpr auto lt3 = Set{element<ℕ> | element<ℕ> < bound<3>};
   static_assert(Ø<Cardinality>{} == (gt5 & lt3),
                 "{x>5 ∧ x<3} collapses to Ø at compile time (order layer).");
 

@@ -8,7 +8,7 @@
  * structural nugget exhibiting a different ingredient of the
  * type-system-as-set-DSL story:
  *
- *   1. intensional ℕ-comprehension (post-#620 @c in<...> alias),
+ *   1. intensional ℕ-comprehension (post-#620 @c element<...> bound scout),
  *   2. compile-time membership query,
  *   3. set difference via @c set_difference (substituted from textbook ∖),
  *   4. cardinality reduction → 1 (intensional → extensional, halfspace
@@ -27,8 +27,8 @@
  * transformation nugget is @b realised, parallel-sectioned on ℚ
  * (since ℕ doesn't admit the algebraic gates: not a group under @c +,
  * not a field under @c *).  ℚ admits both: additive translation
- * @c in<ℚ> @c + @c bound<k> via @c IsOrderedAdditiveGroup<ℚ>, and
- * multiplicative scaling @c in<ℚ> @c * @c bound<k> via
+ * @c element<ℚ> @c + @c bound<k> via @c IsOrderedAdditiveGroup<ℚ>, and
+ * multiplicative scaling @c element<ℚ> @c * @c bound<k> via
  * @c IsOrderedMultiplicativeGroup<ℚ>.  The transformations are
  * type-level halfspace-pivot transports, just like the §3 reductions.
  *
@@ -46,9 +46,7 @@ import dedekind.algebra;
 import dedekind.numbers;
 import dedekind.order;
 
-// Deliberately omitting `using namespace dedekind::category;`: the soft-alias
-// `dedekind::sets::in<Ambient>` (post-#620) collides with the free function
-// `dedekind::category::in(x, S)` under unqualified name lookup.  `category`
+// `using namespace dedekind::category;` is deliberately omitted; the `category`
 // names used here are spelled fully qualified.
 using namespace dedekind::sets;
 using namespace dedekind::relational;  // set_difference (∖) — relational-only
@@ -56,10 +54,10 @@ using namespace dedekind::algebra;
 using namespace dedekind::numbers;
 using namespace dedekind::order;
 
-// (1) Rule.  Intensional ℕ-comprehension via the soft alias `in<>` (post-#620).
-//     Reads "the set of x ∈ ℕ such that x > 5" — bar, "in" on the LHS, the
+// (1) Rule.  Intensional ℕ-comprehension via the `element<>` bound scout.
+//     Reads "the set of x ∈ ℕ such that x > 5" — bar on the LHS, the
 //     textbook membership shape.
-constexpr auto S = Set{in<ℕ> | in<ℕ> > bound<5>};
+constexpr auto S = Set{element<ℕ> | element<ℕ> > bound<5>};
 
 // Post-#622: ℕ = 𝔸<Cardinality> is countable on the carrier axis
 // (ℵ_0), so NaturalLogic routes the comprehension @c S to
@@ -79,7 +77,7 @@ static_assert(S(7u));
 //     across `NegatedPredicate` (so `T & {<7}` would collapse to the literal
 //     interval [6, 6]) is a future DSL refinement; membership on T still
 //     constant-folds via the predicate.
-constexpr auto T = set_difference(S, Set{in<ℕ> | in<ℕ> > bound<10>});
+constexpr auto T = set_difference(S, Set{element<ℕ> | element<ℕ> > bound<10>});
 static_assert(T(8u));    // 5 < 8 ≤ 10 ✓
 static_assert(!T(11u));  // 11 > 10 ✗
 
@@ -90,7 +88,7 @@ static_assert(!T(11u));  // 11 > 10 ✗
 //     `T & {== bound<6>}` form would land the same Singleton via the
 //     trimmed `T` and an equality-classifier reduction; both refinements
 //     are separate future slices.)
-constexpr Singleton<6> a = S & Set{in<ℕ> | in<ℕ> < bound<7>};
+constexpr Singleton<6> a = S & Set{element<ℕ> | element<ℕ> < bound<7>};
 
 // (5) Contradicted.  Complement-via-LEM: any S has empty meet with its
 //     complement.  `structured_and` reduces this to `Ø<Cardinality>` at
@@ -112,8 +110,9 @@ static_assert(IsExtensional<decltype(b)>);
 //     Each scout-algebra DSL form is a halfspace-pivot transport at
 //     compile time: the source predicate's pivot is shifted (+) or
 //     scaled (*) by the scout's Element under the group action.
-constexpr auto S_translated = Set{in<ℚ> + bound<3> | in<ℚ> > bound<2>};
-constexpr auto S_scaled = Set{in<ℚ> * bound<2> | in<ℚ> > bound<5>};
+constexpr auto S_translated =
+    Set{element<ℚ> + bound<3> | element<ℚ> > bound<2>};
+constexpr auto S_scaled = Set{element<ℚ> * bound<2> | element<ℚ> > bound<5>};
 // Pivot transport: 2 + 3 = 5 (translation); 5 * 2 = 10 (scaling).
 // The reduced predicate IS a Halfspace with the transported pivot at
 // the type level; pinned via full-type equality.  ℚ is countable (ℵ_0)

@@ -1205,7 +1205,7 @@ constexpr Singleton<V, L> operator|(const UniversalSet<T, L, C>&,
 // The point-free surface reproduces the existing halfspace exactly.
 static_assert(
     std::same_as<decltype(ℕ | (π > fix(5_c))),
-                 decltype(dedekind::sets::in<ℕ> > bound<5>)>,
+                 decltype(dedekind::sets::element<ℕ> > bound<5>)>,
     "ℕ | π > fix(5_c) is the Above<5> halfspace, spelled point-free.");
 
 // And the equality shape gives the extensional Singleton, membership-checked.
@@ -1233,8 +1233,8 @@ static_assert(
 // scout spelling (the §5 Theorem-1 witness, now bracket-free).
 static_assert(
     std::same_as<decltype((ℕ | (π > fix(5_c))) & ~(ℕ | (π > fix(5_c)))),
-                 decltype((dedekind::sets::in<ℕ> >
-                           bound<5>)&~(dedekind::sets::in<ℕ> > bound<5>))>,
+                 decltype((dedekind::sets::element<ℕ> >
+                           bound<5>)&~(dedekind::sets::element<ℕ> > bound<5>))>,
     "point-free complement-meet is identical to the scout collapse (→ Ø).");
 
 // The collapse compared to the bare empty set --- the exact Listing 2 spelling.
