@@ -63,27 +63,27 @@ constexpr FiniteSeq<Edge, Cap> materialise(Pred edge) {
  *        at @c e.head through the edge @c e, @c d(v) ← d(v) ⊕ d(u) ⊗ c(u,v).
  *
  * @details The named replacement for the capturing @c relax lambda (#920): the
- * closure structure --- which semiring @c Add / @c Mult and which @c cost the
- * fold threads --- is an inspectable type rather than a nameless closure.
- * @c cost is the only captured state; @c Add / @c Mult default to the carrier's
- * canonical operations, as in @ref semiring_closure.  Models the @c fold op
+ * closure structure --- which @c cost the fold threads --- is an inspectable
+ * type rather than a nameless closure.  The semiring ops @c ⊕ / @c ⊗ are fixed
+ * by the carrier @c S itself (@c semiring_ops<S>) rather than exposed as
+ * parameters, so @c cost is the only captured state.  Models the @c fold op
  * shape @c op(acc&,Edge).
  */
-export template <
-    typename S, std::size_t Cap,
-    typename Add = typename dedekind::algebra::semiring_ops<S>::add,
-    typename Mult = typename dedekind::algebra::semiring_ops<S>::mult,
-    typename CostFn = S (*)(std::size_t, std::size_t)>
-// Bare-callable gate, NOT @c IsArrow: @c cost is a binary edge → weight
-// callable (a raw lambda, as the necklace showcase passes), with no
-// Domain/Codomain, and @c Add / @c Mult are binary semiring ops --- none is a
-// unary library morphism, so @c IsArrow would reject every valid caller.
-  requires requires(const CostFn& cost, std::size_t u, S s) {
-    { cost(u, u) } -> std::convertible_to<S>;
-    { Add{}(s, s) } -> std::convertible_to<S>;
-    { Mult{}(s, s) } -> std::convertible_to<S>;
-  }
+export template <typename S, std::size_t Cap,
+                 typename CostFn = S (*)(std::size_t, std::size_t)>
+// The ops are the carrier's canonical semiring (@c IsSemiring gate); @c cost
+// is a bare BINARY callable (edge → weight, a raw lambda as the necklace
+// showcase passes) with no Domain/Codomain, so it is gated structurally, NOT
+// by @c IsArrow (which models a unary morphism and would reject every caller).
+  requires dedekind::category::IsSemiring<
+               S, typename dedekind::algebra::semiring_ops<S>::add,
+               typename dedekind::algebra::semiring_ops<S>::mult> &&
+           requires(const CostFn& cost, std::size_t u) {
+             { cost(u, u) } -> std::convertible_to<S>;
+           }
 struct Relax {
+  using Add = typename dedekind::algebra::semiring_ops<S>::add;
+  using Mult = typename dedekind::algebra::semiring_ops<S>::mult;
   CostFn cost;
   constexpr void operator()(FiniteNet<S, Cap>& acc, const Edge& e) const {
     acc.at(e.head) =
@@ -93,8 +93,8 @@ struct Relax {
 
 /**
  * @brief Single-source semiring closure: fold the edge sequence into the
- *        potential net, return its value at the sink.  @c Add / @c Mult
- *        default to the carrier's canonical operations.
+ *        potential net, return its value at the sink.  The semiring ops are the
+ *        carrier's canonical @c semiring_ops<S>.
  *
  * @note This is a @b value-level algebraic reduction over a dioid.  Its
  * @c ⊗-over-@c ⊕ distributivity is the @b same law the @b type-level term
@@ -105,19 +105,18 @@ struct Relax {
  * @b value-first reducer (#922) could subsume this closure as a dioid star;
  * the kinship is tracked in #926.
  */
-export template <
-    typename S, std::size_t Cap,
-    typename Add = typename dedekind::algebra::semiring_ops<S>::add,
-    typename Mult = typename dedekind::algebra::semiring_ops<S>::mult,
-    typename Edges, typename CostFn>
-  requires dedekind::category::IsSemiring<S, Add, Mult>
+export template <typename S, std::size_t Cap, typename Edges, typename CostFn>
+  requires dedekind::category::IsSemiring<
+      S, typename dedekind::algebra::semiring_ops<S>::add,
+      typename dedekind::algebra::semiring_ops<S>::mult>
 constexpr S semiring_closure(std::size_t source, std::size_t sink,
                              const Edges& edges, CostFn cost) {
+  using Add = typename dedekind::algebra::semiring_ops<S>::add;
+  using Mult = typename dedekind::algebra::semiring_ops<S>::mult;
   static_assert(S{} == dedekind::category::identity_v<S, Add>);  // 0-bar is S{}
   FiniteNet<S, Cap> d{};                                   // 0-bar everywhere
   d.at(source) = dedekind::category::identity_v<S, Mult>;  // 1-bar at source
-  return dedekind::sequences::fold(
-      edges, d, Relax<S, Cap, Add, Mult, CostFn>{cost})(sink);
+  return dedekind::sequences::fold(edges, d, Relax<S, Cap, CostFn>{cost})(sink);
 }
 
 /**
@@ -141,23 +140,25 @@ struct CriticalPathState {
  *
  * @details The named replacement for the capturing @c step lambda (#920).  The
  * selective @c ⊕ test @c (d(head) ⊕ cand != d(head)) is what makes the recorded
- * @c pred single-valued; see @ref annotate for the gate.  @c cost is the only
- * captured state.  Models the @c fold op shape @c op(acc&,Edge).
+ * @c pred single-valued; see @ref annotate for the gate.  The ops are fixed by
+ * the carrier @c S (@c semiring_ops<S>), so @c cost is the only captured state.
+ * Models the @c fold op shape @c op(acc&,Edge).
  */
-export template <
-    typename S, std::size_t Cap,
-    typename Add = typename dedekind::algebra::semiring_ops<S>::add,
-    typename Mult = typename dedekind::algebra::semiring_ops<S>::mult,
-    typename CostFn = S (*)(std::size_t, std::size_t)>
-// Bare-callable gate, NOT @c IsArrow, for the same reason as @ref Relax: the
-// cost is a binary raw-lambda callable, not a unary Domain/Codomain morphism.
-  requires requires(const CostFn& cost, std::size_t u, S s) {
-    { cost(u, u) } -> std::convertible_to<S>;
-    { Add{}(s, s) } -> std::convertible_to<S>;
-    { Mult{}(s, s) } -> std::convertible_to<S>;
-    { s != s } -> std::convertible_to<bool>;
-  }
+export template <typename S, std::size_t Cap,
+                 typename CostFn = S (*)(std::size_t, std::size_t)>
+// Carrier-canonical ops + bare-callable @c cost gate as @ref Relax (a raw
+// lambda, not an @c IsArrow morphism), plus the selective @c != the argmax
+// test needs.
+  requires dedekind::category::IsSemiring<
+               S, typename dedekind::algebra::semiring_ops<S>::add,
+               typename dedekind::algebra::semiring_ops<S>::mult> &&
+           requires(const CostFn& cost, std::size_t u, S s) {
+             { cost(u, u) } -> std::convertible_to<S>;
+             { s != s } -> std::convertible_to<bool>;
+           }
 struct CriticalPathStep {
+  using Add = typename dedekind::algebra::semiring_ops<S>::add;
+  using Mult = typename dedekind::algebra::semiring_ops<S>::mult;
   CostFn cost;
   constexpr void operator()(CriticalPathState<S, Cap>& acc,
                             const Edge& e) const {
@@ -180,20 +181,20 @@ struct CriticalPathStep {
  *        would yield a third value and need a set-valued @c pred).
  *        FIXME(#769): tighten the gate to a selectivity concept.
  */
-export template <
-    typename S, std::size_t Cap,
-    typename Add = typename dedekind::algebra::semiring_ops<S>::add,
-    typename Mult = typename dedekind::algebra::semiring_ops<S>::mult,
-    typename Edges, typename CostFn>
-  requires dedekind::algebra::IsTropical<S, Add, Mult>
+export template <typename S, std::size_t Cap, typename Edges, typename CostFn>
+  requires dedekind::algebra::IsTropical<
+      S, typename dedekind::algebra::semiring_ops<S>::add,
+      typename dedekind::algebra::semiring_ops<S>::mult>
 constexpr FiniteNet<std::size_t, Cap> annotate(std::size_t source,
                                                const Edges& edges,
                                                CostFn cost) {
+  using Add = typename dedekind::algebra::semiring_ops<S>::add;
+  using Mult = typename dedekind::algebra::semiring_ops<S>::mult;
   static_assert(S{} == dedekind::category::identity_v<S, Add>);
   CriticalPathState<S, Cap> a{};
   a.d.at(source) = dedekind::category::identity_v<S, Mult>;  // 1-bar
-  return dedekind::sequences::fold(
-             edges, a, CriticalPathStep<S, Cap, Add, Mult, CostFn>{cost})
+  return dedekind::sequences::fold(edges, a,
+                                   CriticalPathStep<S, Cap, CostFn>{cost})
       .pred;
 }
 
