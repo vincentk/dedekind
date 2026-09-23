@@ -262,6 +262,8 @@ export template <typename T>
 struct carrier_cardinality<T> {
   using type = typename T::cardinality_type;
 };
+/** @brief Alias for @ref carrier_cardinality: the cardinality class of the
+ *  carrier @c T, self-declared or derived via @c IsRingIntegral. */
 export template <typename T>
 using carrier_cardinality_t = typename carrier_cardinality<T>::type;
 
@@ -312,12 +314,20 @@ struct Halfspace : dedekind::sets::SetExpr<Halfspace<T, Pivot, D, S, L>, T, L> {
    *  typedef @c NaturalLogic<Halfspace> hit its pessimistic primary-template
    *  fallback (@c Kleene / @c TernaryLogic).
    *
-   *  @note This is the carrier-axis @b magnitude, not the ambient's own @c C
-   *  slot: an incoherent ambient tagged against its carrier's true cardinality
-   *  (e.g.\ @c 𝔸<Cardinality,Boole,Finite>) can still differ, but only within a
-   *  single countability class, so the @c NaturalLogic verdict is unchanged.
-   *  Threading the exact @c C would require a sixth @c Halfspace template
-   *  parameter (FIXME(#848): balloons across ~120 pattern-matched sites). */
+   *  @note This is the carrier-axis @b magnitude, NOT the ambient's own @c C
+   *  slot, which the @c Halfspace type does not carry.  Parity with the scout
+   *  therefore holds exactly for a @b coherent ambient, one whose explicit
+   *  @c C agrees with the carrier's own class.  Every carrier that can form a
+   *  meaningful order-halfspace is coherent: ℕ/ℤ/ℚ are @c ℵ_0, ℝ (@c
+   *  QuadraticReal) is @c ℶ_1, each matching its canonical ambient.  A
+   *  @b deliberately incoherent tag, an int carrier advertised as the
+   *  continuum (@c UniversalSet<int,Boole,ℶ_1>, the Mandelbrot stand-in at
+   *  @c computability_test.cpp), is @b not honoured: this path classifies it
+   *  @c ℵ_0 by its integer carrier while the scout keeps the @c ℶ_1 tag.  That
+   *  case does not arise from a real halfspace (no continuum is genuinely
+   *  carried by @c int), so the carrier axis is the honest source.  Honouring
+   *  an arbitrary explicit @c C would require threading it as a sixth @c
+   *  Halfspace template parameter (FIXME(#848): ~120 pattern-matched sites). */
   using cardinality_type = carrier_cardinality_t<T>;
 
   // `Pivot` may be a different structural type than `T` (e.g., pivot = 5.0 as
