@@ -398,84 +398,13 @@ export struct Percent final {
 
 static_assert(IsOckhamAlgebra<Percent>, "Percent must fulfill IsOckhamAlgebra");
 
-/** @section logic__Percent_Bounds (#923)
- *  @brief The @c Percent lattice bounds, backed by a computed witness over the
- *  poles.  @c ⊥ @c = @c Percentage{0} is the join (@c ∨ @c = @c Sup) identity,
- *  @c ⊤ @c = @c Percentage{100} the meet (@c ∧ @c = @c Inf) identity, lifting
- *  the finite @c [0,100] chain to @c IsBoundedLattice.  Mirrors the @c Ternary
- *  bounds registration (#912). */
-static_assert(Sup{}(Percentage{0}, Percentage{0}) == Percentage{0} &&
-                  Sup{}(Percentage{0}, Percentage{50}) == Percentage{50} &&
-                  Sup{}(Percentage{0}, Percentage{100}) == Percentage{100},
-              "Percent: ⊥ = 0 is the join (∨ = Sup) identity");
-static_assert(Inf{}(Percentage{100}, Percentage{0}) == Percentage{0} &&
-                  Inf{}(Percentage{100}, Percentage{50}) == Percentage{50} &&
-                  Inf{}(Percentage{100}, Percentage{100}) == Percentage{100},
-              "Percent: ⊤ = 100 is the meet (∧ = Inf) identity");
-
-/** @brief ∨-identity (⊥) of the Percent lattice: @c Percentage{0}. */
-template <>
-struct identity_trait<Percentage, Sup> {
-  using value_type = Percentage;
-  static constexpr Percentage value{0};
-};
-/** @brief ∧-identity (⊤) of the Percent lattice: @c Percentage{100}. */
-template <>
-struct identity_trait<Percentage, Inf> {
-  using value_type = Percentage;
-  static constexpr Percentage value{100};
-};
-
-static_assert(identity_v<Percentage, Sup> == Percentage{0},
-              "Percent: registered ∨-identity is ⊥ = 0");
-static_assert(identity_v<Percentage, Inf> == Percentage{100},
-              "Percent: registered ∧-identity is ⊤ = 100");
-
-/** @section logic__Op_Type_Bridge_Witnesses (#923)
- *  @brief The bridge, pinned at the @c :species trait level (upstream of
- *  @c :total).  Each species' declared @c JoinOp / @c MeetOp resolve the
- *  distributivity / absorption / bounds traits on its carrier @c Ω, so the
- *  downstream @c :total lattice-ladder concepts (@c IsDistributiveLattice /
- *  @c IsBoundedLattice) resolve @b structurally through the aliases --- pinned
- *  in @c logic_lattice_structure_test.cpp.  The reflection @c RflOp is bridged
- *  separately: @c logic_complement<L> is the @c :involution witness that ¬ is
- *  an involution (@c logic_negation_is_involutive_v below). */
-
-// Distributivity (both directions) resolves through the declared op-types.
-static_assert(is_distributive_v<Boole::Ω, Boole::JoinOp, Boole::MeetOp> &&
-                  is_distributive_v<Boole::Ω, Boole::MeetOp, Boole::JoinOp>,
-              "𝔹: the OR/AND op-types distribute (logical_or / logical_and)");
-static_assert(is_distributive_v<Kleene::Ω, Kleene::JoinOp, Kleene::MeetOp> &&
-                  is_distributive_v<Kleene::Ω, Kleene::MeetOp, Kleene::JoinOp>,
-              "K₃: the OR/AND op-types distribute (Sup / Inf on Ternary)");
-static_assert(
-    is_distributive_v<Chain<int>::Ω, Chain<int>::JoinOp, Chain<int>::MeetOp> &&
-        is_distributive_v<Chain<int>::Ω, Chain<int>::MeetOp,
-                          Chain<int>::JoinOp>,
-    "Chain<int>: the OR/AND op-types distribute (Sup / Inf on int)");
-static_assert(
-    is_distributive_v<Percent::Ω, Percent::JoinOp, Percent::MeetOp> &&
-        is_distributive_v<Percent::Ω, Percent::MeetOp, Percent::JoinOp>,
-    "Percent: the OR/AND op-types distribute (Sup / Inf on Percentage)");
-
-// Absorption resolves through the declared op-types (a ∨ (a ∧ b) = a).
-static_assert(is_absorptive_v<Boole::Ω, Boole::JoinOp, Boole::MeetOp> &&
-                  is_absorptive_v<Kleene::Ω, Kleene::JoinOp, Kleene::MeetOp> &&
-                  is_absorptive_v<Chain<int>::Ω, Chain<int>::JoinOp,
-                                  Chain<int>::MeetOp> &&
-                  is_absorptive_v<Percent::Ω, Percent::JoinOp, Percent::MeetOp>,
-              "shipped species: OR/AND op-types are mutually absorptive");
-
-// Bounds resolve through the declared op-types for the FINITE species (⊥ =
-// ∨-identity, ⊤ = ∧-identity).  Chain<int> is deliberately absent: ℤ has no
-// Sup/Inf identity registered, so it reaches IsDistributiveLattice but NOT
-// IsBoundedLattice (the carrier is unbounded).
-static_assert(identity_v<Kleene::Ω, Kleene::JoinOp> == Kleene::False &&
-                  identity_v<Kleene::Ω, Kleene::MeetOp> == Kleene::True,
-              "K₃ bounds via op-types: ⊥ = False (∨-id), ⊤ = True (∧-id)");
-static_assert(identity_v<Percent::Ω, Percent::JoinOp> == Percent::False &&
-                  identity_v<Percent::Ω, Percent::MeetOp> == Percent::True,
-              "Percent bounds via op-types: ⊥ = 0 (∨-id), ⊤ = 100 (∧-id)");
+// NB (#923): the Percent bounds registration and the op-type bridge WITNESSES
+// (is_distributive_v / is_absorptive_v / identity_v static_asserts) are placed
+// at the END of this partition, below the #912/#933 Ternary :total
+// registrations (identity_trait<Ternary, Sup/Inf> + order traits) and the
+// Ternary operator<=> that SupInfLattice<Ternary> needs.  They forward-
+// reference those, so they must follow them.  The member aliases (JoinOp /
+// MeetOp / RflOp) stay inside each species struct (they instantiate no trait).
 
 export constexpr Ternary operator&&(Ternary a, Ternary b) {
   return Kleene::AND(a, b);
@@ -1331,5 +1260,91 @@ static_assert(is_decided<Kleene>(Ternary::True) &&
               "K₃: the two endpoints ⊤, ⊥ are the decided core");
 static_assert(!is_decided<Kleene>(Ternary::Unknown),
               "K₃: the interior Unknown is undecided (outside Σ = {⊤,⊥})");
+
+/** @section logic__Percent_Bounds (#923)
+ *  @brief The @c Percent lattice bounds, backed by a computed witness over the
+ *  poles.  @c ⊥ @c = @c Percentage{0} is the join (@c ∨ @c = @c Sup) identity,
+ *  @c ⊤ @c = @c Percentage{100} the meet (@c ∧ @c = @c Inf) identity, lifting
+ *  the finite @c [0,100] chain to @c IsBoundedLattice.  Mirrors the @c Ternary
+ *  bounds registration (#912).
+ *  @note Placed here at the END of the partition (with the op-type bridge
+ *  witnesses below): the @c identity_trait specialisations forward-reference
+ *  @c Sup / @c Inf and must not be @e used before the point where the sibling
+ *  @c Ternary registrations are declared, so the whole block follows them. */
+static_assert(Sup{}(Percentage{0}, Percentage{0}) == Percentage{0} &&
+                  Sup{}(Percentage{0}, Percentage{50}) == Percentage{50} &&
+                  Sup{}(Percentage{0}, Percentage{100}) == Percentage{100},
+              "Percent: ⊥ = 0 is the join (∨ = Sup) identity");
+static_assert(Inf{}(Percentage{100}, Percentage{0}) == Percentage{0} &&
+                  Inf{}(Percentage{100}, Percentage{50}) == Percentage{50} &&
+                  Inf{}(Percentage{100}, Percentage{100}) == Percentage{100},
+              "Percent: ⊤ = 100 is the meet (∧ = Inf) identity");
+
+/** @brief ∨-identity (⊥) of the Percent lattice: @c Percentage{0}. */
+template <>
+struct identity_trait<Percentage, Sup> {
+  using value_type = Percentage;
+  static constexpr Percentage value{0};
+};
+/** @brief ∧-identity (⊤) of the Percent lattice: @c Percentage{100}. */
+template <>
+struct identity_trait<Percentage, Inf> {
+  using value_type = Percentage;
+  static constexpr Percentage value{100};
+};
+
+static_assert(identity_v<Percentage, Sup> == Percentage{0},
+              "Percent: registered ∨-identity is ⊥ = 0");
+static_assert(identity_v<Percentage, Inf> == Percentage{100},
+              "Percent: registered ∧-identity is ⊤ = 100");
+
+/** @section logic__Op_Type_Bridge_Witnesses (#923)
+ *  @brief The bridge, pinned at the @c :species trait level (upstream of
+ *  @c :total).  Each species' declared @c JoinOp / @c MeetOp resolve the
+ *  distributivity / absorption / bounds traits on its carrier @c Ω, so the
+ *  downstream @c :total lattice-ladder concepts (@c IsDistributiveLattice /
+ *  @c IsBoundedLattice) resolve @b structurally through the aliases --- pinned
+ *  in @c logic_lattice_structure_test.cpp.  The reflection @c RflOp is bridged
+ *  separately: @c logic_complement<L> is the @c :involution witness that ¬ is
+ *  an involution (@c logic_negation_is_involutive_v above).
+ *  @note At the END of the partition on purpose: the Kleene / Percent witnesses
+ *  consume the @c Ternary / @c Percentage bounds and @c Ternary @c operator<=>
+ *  (@c SupInfLattice<Ternary>), all declared earlier in the file. */
+
+// Distributivity (both directions) resolves through the declared op-types.
+static_assert(is_distributive_v<Boole::Ω, Boole::JoinOp, Boole::MeetOp> &&
+                  is_distributive_v<Boole::Ω, Boole::MeetOp, Boole::JoinOp>,
+              "𝔹: the OR/AND op-types distribute (logical_or / logical_and)");
+static_assert(is_distributive_v<Kleene::Ω, Kleene::JoinOp, Kleene::MeetOp> &&
+                  is_distributive_v<Kleene::Ω, Kleene::MeetOp, Kleene::JoinOp>,
+              "K₃: the OR/AND op-types distribute (Sup / Inf on Ternary)");
+static_assert(
+    is_distributive_v<Chain<int>::Ω, Chain<int>::JoinOp, Chain<int>::MeetOp> &&
+        is_distributive_v<Chain<int>::Ω, Chain<int>::MeetOp,
+                          Chain<int>::JoinOp>,
+    "Chain<int>: the OR/AND op-types distribute (Sup / Inf on int)");
+static_assert(
+    is_distributive_v<Percent::Ω, Percent::JoinOp, Percent::MeetOp> &&
+        is_distributive_v<Percent::Ω, Percent::MeetOp, Percent::JoinOp>,
+    "Percent: the OR/AND op-types distribute (Sup / Inf on Percentage)");
+
+// Absorption resolves through the declared op-types (a ∨ (a ∧ b) = a).
+static_assert(is_absorptive_v<Boole::Ω, Boole::JoinOp, Boole::MeetOp> &&
+                  is_absorptive_v<Kleene::Ω, Kleene::JoinOp, Kleene::MeetOp> &&
+                  is_absorptive_v<Chain<int>::Ω, Chain<int>::JoinOp,
+                                  Chain<int>::MeetOp> &&
+                  is_absorptive_v<Percent::Ω, Percent::JoinOp, Percent::MeetOp>,
+              "shipped species: OR/AND op-types are mutually absorptive");
+
+// Bounds resolve through the declared op-types for the FINITE species (⊥ =
+// ∨-identity, ⊤ = ∧-identity).  Chain<int> is deliberately absent: ℤ has no
+// Sup/Inf identity registered, so it reaches IsDistributiveLattice but NOT
+// IsBoundedLattice (the carrier is unbounded).
+static_assert(identity_v<Kleene::Ω, Kleene::JoinOp> == Kleene::False &&
+                  identity_v<Kleene::Ω, Kleene::MeetOp> == Kleene::True,
+              "K₃ bounds via op-types: ⊥ = False (∨-id), ⊤ = True (∧-id)");
+static_assert(identity_v<Percent::Ω, Percent::JoinOp> == Percent::False &&
+                  identity_v<Percent::Ω, Percent::MeetOp> == Percent::True,
+              "Percent bounds via op-types: ⊥ = 0 (∨-id), ⊤ = 100 (∧-id)");
 
 }  // namespace dedekind::category
