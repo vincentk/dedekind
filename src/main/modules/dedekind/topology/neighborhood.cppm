@@ -53,6 +53,34 @@ using namespace dedekind::sets;
 using namespace dedekind::order;
 
 /**
+ * @concept HasDiscreteCarrier
+ * @brief The set's carrier is a @b discrete space, so its order topology is the
+ *        @b discrete topology --- and there @b every subset is clopen.
+ *
+ * @details Detected structurally from the domain: an @c std::integral carrier
+ *          (@c ℤ, @c ℕ, @c bool, ...) is successor-isolated (there is no point
+ *          strictly between @c n and @c n+1), so no subset has a limit point
+ *          outside itself.  Every subset is therefore both @b open and
+ *          @b closed.  This is the structural source of clopen-ness on discrete
+ *          carriers (#905): it replaces the per-shape @c is_open / @c is_closed
+ *          hand-tags on integer shapes, and it repairs the #904 CP finding that
+ *          @c Ray<int,...> "carries only @c is_open_tag" although @c {n>p} @c =
+ *          @c {n≥p+1} is genuinely clopen on the discrete order.
+ *
+ * @note @c order::IsDiscrete is the order-theoretic sibling, but it is
+ *       architecturally withheld on @c int (signed @c + is not a @c Magma, so
+ *       @c IsSuccessor fails) and is not exported; @c std::integral is the
+ *       sanctioned discreteness proxy the topology layer keys on (issue #905:
+ *       "a discrete carrier, e.g.\ @c std::integral").  A @b dense carrier
+ *       (@c Rational, @c Cut) is @c !HasDiscreteCarrier, so open/closed there
+ *       falls to the boundary structure --- the genuine @c open @c ⊋ @c clopen
+ *       witness @c int cannot provide.
+ */
+export template <typename S>
+concept HasDiscreteCarrier = dedekind::category::IsPredicate<S> &&
+                             std::integral<dedekind::category::Dom<S>>;
+
+/**
  * @concept IsOpen
  * @brief A set where every point has a neighborhood entirely within the set.
  * @note Arity: Updated to structuralist 1-arg IsSet.
@@ -60,12 +88,16 @@ using namespace dedekind::order;
 export template <typename S>
 concept IsOpen =
     dedekind::category::IsPredicate<S> &&
-    (requires { typename S::is_open_tag; } ||
-     // INFERENCE (not tag): ∅ and X --- the boundary subobjects (⊥/⊤) --- are
-     // clopen in EVERY topology, so their openness is derived from their
-     // @c IsBoundaryObject status, never hand-tagged.  (General structural
-     // inference from carrier topology + set shape is a follow-up, #905.)
-     dedekind::category::IsBoundaryObject<S>);
+    // INFERENCE (not tag), in preference order:
+    //  * ∅ and X --- the boundary subobjects (⊥/⊤) --- are clopen in EVERY
+    //    topology, so their openness is derived from @c IsBoundaryObject
+    //    (#904);
+    //  * a @c HasDiscreteCarrier set is clopen (discrete topology, #905);
+    //  * otherwise the shape's boundary structure is reified as @c is_open_tag
+    //    --- the dense-carrier seam @c IsOpen cannot infer, since the boundary
+    //    enum lives downstream of this partition (see @c :interval).
+    (dedekind::category::IsBoundaryObject<S> || HasDiscreteCarrier<S> ||
+     requires { typename S::is_open_tag; });
 
 /**
  * @concept IsClosed
@@ -74,9 +106,10 @@ concept IsOpen =
 export template <typename S>
 concept IsClosed =
     dedekind::category::IsPredicate<S> &&
-    (requires { typename S::is_closed_tag; } ||
-     // INFERENCE: ∅ / X (@c IsBoundaryObject) are closed in every topology.
-     dedekind::category::IsBoundaryObject<S>);
+    // Same three-leg inference as @c IsOpen: boundary object (#904), discrete
+    // carrier (#905), else the reified @c is_closed_tag dense-carrier seam.
+    (dedekind::category::IsBoundaryObject<S> || HasDiscreteCarrier<S> ||
+     requires { typename S::is_closed_tag; });
 
 /**
  * @concept IsClopen

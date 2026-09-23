@@ -91,6 +91,18 @@ static_assert(to_boundary(to_strictness(Boundary::Closed)) == Boundary::Closed);
 
 namespace detail {
 
+// FIXME(#905): these boundary tags are the DENSE-carrier seam that structural
+// inference cannot remove.  On a discrete carrier @c topology::IsOpen /
+// @c IsClosed already infer clopen-ness from @c HasDiscreteCarrier (every
+// subset of a discrete space is clopen), so the tags are redundant there.  But
+// on a DENSE carrier (@c Rational, @c Cut) the boundary genuinely distinguishes
+// @c {x>p} (open, not closed) from @c {x≥p} (closed, not open), and the
+// deciding datum is the @c Boundary NTTP.  @c IsOpen lives in @c :neighborhood,
+// UPSTREAM of the @c Boundary enum defined here, so it cannot read the NTTP
+// directly; reifying it as @c is_open_tag / @c is_closed_tag is the
+// dependency-inverting bridge.  Promote to a shared trait only if @c Boundary
+// ever moves upstream of @c :neighborhood.
+
 template <Boundary B>
 struct BoundaryTag {};
 
@@ -342,6 +354,23 @@ static_assert(IsOpen<Interval<int, Boundary::Open>>,
               "an open Interval carries is_open_tag → IsOpen.");
 static_assert(IsNeighborhood<Interval<int, Boundary::Open>, int>,
               "an open Interval is a neighborhood of its points.");
+
+// #905: on the DISCRETE int carrier every shape is clopen by STRUCTURAL
+// inference (HasDiscreteCarrier), independent of the boundary tag.  This is the
+// #904 CP repair: Ray<int,…> = {n > p} = {n ≥ p+1} really IS clopen, and the
+// closed/half-open corners the boundary tag left topologically silent are now
+// answered too.  (The genuine open-⊋-clopen witness needs a DENSE carrier and
+// lives in the numbers neighborhood test, downstream of Rational.)
+static_assert(HasDiscreteCarrier<Ray<int, Direction::Upward>> &&
+                  HasDiscreteCarrier<Interval<int, Boundary::Closed>> &&
+                  HasDiscreteCarrier<HalfSpace<int>>,
+              "int is std::integral → a discrete carrier for every shape.");
+static_assert(IsClopen<Ray<int, Direction::Upward>> &&
+                  IsClopen<Ray<int, Direction::Upward, Boundary::Closed>> &&
+                  IsClopen<Interval<int, Boundary::Closed, Boundary::Closed>> &&
+                  IsClopen<Interval<int, Boundary::Open, Boundary::Closed>> &&
+                  IsClopen<HalfSpace<int>>,
+              "#905: discrete carrier ⟹ every set clopen (open ∧ closed).");
 
 // The #806 dedup payoff: folding Ray / HalfSpace onto the shared SetExpr mixin
 // makes them first-class @c IsSubobject (ι: S ↣ T) --- the subobject surface
