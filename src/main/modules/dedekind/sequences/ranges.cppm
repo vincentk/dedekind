@@ -452,10 +452,18 @@ static_assert(
  *  signature @c argmax returns --- the ∀-filter made visible at compile time.
  */
 export template <std::integral T, typename OI, typename Cost, typename Order>
+  requires requires(const OI& d, const Cost& c, const Order& o, const T& x) {
+    to_iota_view(d);                                 // scannable domain
+    { o(c(x), c(x)) } -> std::convertible_to<bool>;  // order∘cost testable
+  }
 struct DominanceRefinement {
   OI dom;
   Cost cost;
   Order order;
+  /** @brief χ: is @c x optimal? @c true iff @b no member of the (finite) domain
+   *  beats it under @c order∘cost, i.e. @f$\forall x' \in \mathrm{dom}.\
+   *  \mathrm{order}(\mathrm{cost}(x'), \mathrm{cost}(x))@f$.  The dominance
+   *  membership test @c argmax's @ref BoundedSet carries. */
   constexpr bool operator()(const T& x) const {
     bool dominant = true;
     for (const T xp : to_iota_view(dom))
