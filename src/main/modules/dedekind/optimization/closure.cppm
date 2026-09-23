@@ -21,7 +21,10 @@
  */
 module;
 
-#include <concepts>  // std::convertible_to / std::invocable (functor gates)
+#include <concepts>  // std::convertible_to / std::invocable: the cost is a bare
+                     // BINARY callable (edge → weight), a raw lambda with no
+                     // Domain/Codomain, so it is gated structurally, not by
+                     // IsArrow (which models a unary morphism); see below.
 #include <cstddef>
 
 export module dedekind.optimization:closure;
@@ -71,6 +74,10 @@ export template <
     typename Add = typename dedekind::algebra::semiring_ops<S>::add,
     typename Mult = typename dedekind::algebra::semiring_ops<S>::mult,
     typename CostFn = S (*)(std::size_t, std::size_t)>
+// Bare-callable gate, NOT @c IsArrow: @c cost is a binary edge → weight
+// callable (a raw lambda, as the necklace showcase passes), with no
+// Domain/Codomain, and @c Add / @c Mult are binary semiring ops --- none is a
+// unary library morphism, so @c IsArrow would reject every valid caller.
   requires requires(const CostFn& cost, std::size_t u, S s) {
     { cost(u, u) } -> std::convertible_to<S>;
     { Add{}(s, s) } -> std::convertible_to<S>;
@@ -133,6 +140,8 @@ export template <
     typename Add = typename dedekind::algebra::semiring_ops<S>::add,
     typename Mult = typename dedekind::algebra::semiring_ops<S>::mult,
     typename CostFn = S (*)(std::size_t, std::size_t)>
+// Bare-callable gate, NOT @c IsArrow, for the same reason as @ref Relax: the
+// cost is a binary raw-lambda callable, not a unary Domain/Codomain morphism.
   requires requires(const CostFn& cost, std::size_t u, S s) {
     { cost(u, u) } -> std::convertible_to<S>;
     { Add{}(s, s) } -> std::convertible_to<S>;
