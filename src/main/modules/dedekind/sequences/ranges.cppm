@@ -391,11 +391,13 @@ auto ext(const dedekind::order::OrderInterval<T, Lo, Hi, SL, SU, L>& oi) {
  *  domain by value to be returned safely, so the scannable bounds survive in
  *  the return value's type.  So @c BoundedSet is precisely the @b value-owning
  *  finite comprehension.  Its membership χ is @c x @c ∈ @c {dom @c | @c P} @c ⟺
- *  @c dom(x) @c ∧ @c P(x); @c size() is the interval's cardinality, the
- *  finiteness witness @ref ext scans.  @c ext is not gated on an
- *  @c IsExtensional concept: it is bounded by accepting a concrete
- *  @c OrderInterval / @c BoundedSet, whose @c size() supplies that witness.
- *  Free, because the @c OrderInterval domain is stateless. */
+ *  @c dom(x) @c ∧ @c P(x).  @c ext realises it by scanning @c to_iota_view of
+ *  the concrete @c OrderInterval domain, whose NTTP interval bounds make the
+ *  enumeration finite --- that @c to_iota_view gate is what @c ext reads, not
+ * an
+ *  @c IsExtensional concept and not @c size() (which reports the cardinality,
+ *  not what @c ext scans).  @c size() is free because the @c OrderInterval
+ *  domain is stateless. */
 export template <typename OI, typename P>
 struct BoundedSet
     : dedekind::sets::SetExpr<BoundedSet<OI, P>, typename OI::Domain,
