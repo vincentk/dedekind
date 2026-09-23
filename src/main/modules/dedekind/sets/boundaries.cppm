@@ -522,6 +522,23 @@ constexpr auto reify_term(const S& s) {
 }
 }  // namespace detail_boundary
 
+/** @brief Value-first domain reduce (#922): reduce a subobject lattice @c Node
+ *  @b value (a @c Meet / @c Join / @c Not over @c Sub(T), or a leaf) to its
+ *  normal-form @b value under @c subobject_order<L>, then finalize the codomain
+ *  leg.  The value twin of @c subobject_reduce_t: it runs the same laws but
+ *  returns a value, so it works at runtime and preserves a runtime-stateful
+ *  operand (e.g.\ a @c SingletonSet holding an extensional value) where the
+ *  normal form is that operand.  @c reify_term stays for the four @c Ø / @c 𝔸
+ *  operators (boundary operands are stateless); this is the general entry the
+ *  #916 Python composition surface will call once the leaf-combine leg is
+ *  threaded (slice 2). */
+export template <typename L = Boole, typename Node>
+constexpr auto subobject_reduce(const Node& node) {
+  return finalize_combine(
+      reduce_value<subobject_order<L>, subobject_order<L>, no_leaf_combine>(
+          node));
+}
+
 /** @brief @c Ø @c & @c S / @c Ø @c | @c S: @c Ø is the ⊥ of @c Sub(T)
  *  meeting / joining any set.  Free operators (the Ø-LHS members were retired);
  *  overload resolution pins them by the @c Ø operand. */
