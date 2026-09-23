@@ -777,6 +777,28 @@ struct is_lattice_top_for<dedekind::sets::UniversalSet<T, L, C>,
                           dedekind::sets::subobject_order<L>> : std::true_type {
 };
 
+// ── Distributivity of the subobject lattice (#865) ─────────────────────────
+/** @brief The subobject lattice @c Sub(T) is a @b distributive lattice under
+ *  @c subobject_order<L>, for every carrier @c T and classifier @c L.  In a
+ *  topos @c Sub(T) is a Heyting algebra (meet distributes over join), and the
+ *  classical (@c Boole) case is the Boolean specialisation of that; both are
+ *  distributive, so the marker is asserted uniformly over @c L (Jlt: the
+ *  subobject-lattice caller asserts the law over exactly its carriers, the same
+ *  posture as the bottom / top markers above).  This licenses the reducer's
+ *  @c meet_distributivity_law to rewrite a @b genuinely non-collapsing @c
+ * Sub(T) meet-over-join into disjunctive normal form (@c X∧(P∨Q)→(X∧P)∨(X∧Q)).
+ *
+ *  @note This gate fires only for a @b bare @c category::Join reducer node; the
+ *  value-level set operators materialise an irreducible union as a @c JoinSet
+ *  (a distinct type the reducer treats as an opaque leaf), so this marker does
+ *  @b not change the value-level normal form (@c A∩(B∪C) still materialises as
+ *  a @c MeetSet carrying its operands, per #892).  Driving the DNF rewrite
+ *  through the value path is a separate normal-form decision, deferred (#865).
+ */
+template <typename T, typename L>
+inline constexpr bool
+    is_distributive_lattice_for_v<T, dedekind::sets::subobject_order<L>> = true;
+
 // Foot-in-the-door witness: the engine now sees Ø as the ⊥ and 𝔸 as the ⊤ of
 // Sub(T) under subobject_order, so its bounded law reduces boundary meets/joins
 // (the annihilator / unit laws the hand-written Ø / 𝔸 operators currently
