@@ -143,32 +143,12 @@ dropping end-to-end checks required by staged publication (issue #240).
 
 The MVP notebook demos live in `docs/python/notebooks/`:
 
-- `01_facade_roundtrip_basics.ipynb` — happy-path facade demo
-- `02_facade_error_contract.ipynb` — error contract / unhappy-path demo
-- `03_dsl_analyst_tier.ipynb` — analyst-style DSL sketch (issue #241, **design-under-review**)
-- `04_dsl_formal_tier.ipynb` — formal-notation DSL sketch (issue #241, **design-under-review**)
+- `01_facade_roundtrip_basics.ipynb`: happy-path facade demo plus the native
+  canonical-sets (`𝔹` / `ℕ`) README exhibit (membership via the C++ `χ`).
 
-These notebooks are intentionally small, deterministic, and suitable for CI
-execution as integration checks.
-
-Analyst facade behavior notes:
-
-- `smart_join` is designed for best-effort operation out of the box.
-   Planned optional trust hints can bias matching toward user-trusted
-   columns/ranges; when no hints are provided it infers from observed overlap.
-- `smart_pivot` is also best-effort by default and uses sensible inferred axes.
-   Planned optional interest hints can bias what gets emphasized in wide reports.
-- In both cases, rows not directly preserved in a final pivot can still improve
-   scaffolding/inference quality (for example via correlation and aggregate
-   evidence), so larger samples often improve outcomes ceteris paribus.
-- **Trusted-target semantics:** a trusted table encodes a structural prior about
-   what records *should* exist (e.g. exactly one record per day per region).
-   Joining messy source data against such a skeleton surfaces *gaps* (expected
-   records absent from the source) and *duplicates* (source rows matching the
-   same skeleton slot more than once), and bootstraps error estimates from the
-   known prior rather than from observed-data statistics alone.  This is the
-   mechanism by which additional high-quality reference tables improve quality
-   labels relative to a vanilla pipeline.
+The DSL-tier notebooks (`03`/`04`) were removed with the pre-target pure-Python
+modules in the #886 cleanup; the notebook set is kept to a single native-facade
+smoke test that executes as a CI integration check.
 
 Notebook outputs are committed to version control so that GitHub renders them
 without executing code. To refresh outputs locally:
