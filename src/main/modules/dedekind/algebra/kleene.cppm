@@ -1,5 +1,5 @@
 /**
- * @file kleene.cppm
+ * @file dedekind/algebra/kleene.cppm
  * @partition :kleene
  * @brief Kleene starter: the three-valued truth surface 𝕂3 as an algebra on a
  *        set (the downstream sibling of the Boolean 𝔹).
@@ -19,7 +19,20 @@
  * The species-level statements live upstream in @c :logic
  * (@c IsBoundedDeMorganChain / @c IsBooleanLogic); this partition pins their
  * downstream algebra-on-set counterpart, where the logic's lattice structure
- * meets @c IsAlgebraOnSet.  Closes #912.
+ * meets @c IsAlgebraOnSet.  This is the algebra-on-set portion of #912; the
+ * remaining acceptance criterion (registering @c Ternary in the total/order
+ * lattice machinery) is deferred, so #912 stays open.
+ *
+ * Wikipedia: Three-valued logic, Kleene algebra (with involution),
+ * Łukasiewicz–Moisil algebra.
+ *
+ * @note "Metoda algebraiczna w logice polega na traktowaniu każdego systemu
+ *       logicznego jako pewnego określonego rodzaju algebry abstrakcyjnej."
+ *       --- Helena Rasiowa (echoing @c :logic upstream).  This partition is
+ *       exactly that thesis made concrete for the Kleene system: @c 𝕂3 is the
+ *       abstract algebra of three-valued logic, an @c IsAlgebraOnSet.
+ *       [Trans: The algebraic method in logic consists in treating every
+ *       logical system as a specific type of abstract algebra.]
  */
 module;
 
@@ -35,9 +48,18 @@ namespace dedekind::algebra {
 using namespace dedekind::category;
 using namespace dedekind::sets;
 
-/** @brief The canonical Kleene universe @c 𝕂3 @c = @c 𝔸<Ternary> (the
- *  three-valued sibling of @c 𝔹 @c = @c 𝔸<bool>). */
-export inline constexpr auto 𝕂3 = 𝔸<Ternary>;
+/** @brief The canonical Kleene universe @c 𝕂3 @c = @c 𝔸<Ternary, Boole,
+ *  Finite> (the three-valued sibling of @c 𝔹 @c = @c 𝔸<bool>).
+ *
+ *  The @c Finite cardinality tag is explicit: @c Ternary is a three-element
+ *  carrier, but the @c 𝔸 primary defaults @c C to @c ℵ_0, which would report
+ *  this universe as countably infinite (and route @c NaturalLogic through
+ *  @c Kleene rather than the decided @c Boole membership classifier this
+ *  ambient wants).  Mirrors the @c 𝔸<bool> @c = @c UniversalSet<bool, Boole,
+ *  Finite> override in @c :boundaries, but kept local here so the Kleene
+ *  carrier's cardinality stays a downstream (:algebra) fact rather than being
+ *  pushed up into @c :sets. */
+export inline constexpr auto 𝕂3 = 𝔸<Ternary, Boole, Finite>;
 
 // 𝕂3 is a bona-fide set object --- the IsSet anchor for the algebra-on-set.
 static_assert(IsSet<decltype(𝕂3)>,
