@@ -1351,7 +1351,15 @@ constexpr auto operator|(const LHS& lhs, const RHS& rhs) {
 }
 
 /** @brief @c is_set_node_v is true for the concrete set-node types @c Set /
- *  @c MeetSet / @c JoinSet, the carriers of the free set combinators. */
+ *  @c MeetSet / @c JoinSet / @c Comprehension, the carriers of the free set
+ *  combinators.  A bare @c Comprehension (the point-free @c A @c | @c pred
+ *  set-builder result) is registered so it participates in the free set
+ *  @c operator! / @c operator~ (set-complement) exactly like a @c Set: without
+ *  it, @c !(A @c | @c pred) fell through to @c category::operator! (a formal
+ *  @c Morphism A → Ω) instead of the set-complement path, so the bare grammar
+ *  was not yet feature-complete for the @c & @c | @c ~ algebra (#895).  Meet /
+ *  join already reach a @c Comprehension through the looser @c IsSubobject gate
+ *  on @c operator& / @c operator|. */
 template <typename S>
 inline constexpr bool is_set_node_v = false;
 template <typename T, typename L, typename P>
@@ -1360,6 +1368,8 @@ template <typename A, typename B>
 inline constexpr bool is_set_node_v<MeetSet<A, B>> = true;
 template <typename A, typename B>
 inline constexpr bool is_set_node_v<JoinSet<A, B>> = true;
+template <typename Base, typename Predicate>
+inline constexpr bool is_set_node_v<Comprehension<Base, Predicate>> = true;
 
 /** @brief The set complement @c !A.  This forwarding-reference overload
  *  constrains on @c IsPredicate<P> && @c is_set_node_v.  That constraint
@@ -2142,6 +2152,24 @@ static_assert(IsSet<Comprehension<UniversalSet<int>, all_in>>,
               "{𝔸 | P} is a first-class set: IsSet by SetExpr + its own χ.");
 static_assert(IsSet<Comprehension<Ø<int>, all_in>>,
               "{Ø | P} is a first-class set.");
+
+// #895: a bare Comprehension is a first-class set-node, so it carries the free
+// set-complement.  Without the is_set_node_v registration, !(A | pred) fell to
+// category::operator! (a formal Morphism A → Ω) with no set-complement path.
+using CompN = Comprehension<UniversalSet<int>, all_in>;
+static_assert(is_set_node_v<CompN>,
+              "a bare Comprehension is a set-node (participates in ! / ~).");
+// The complement of a (non-plain-Set) set-node wraps it in NegatedPredicate and
+// re-seats it as a plain Set --- a genuine set-complement, not a formal arrow.
+static_assert(
+    std::same_as<std::remove_cvref_t<decltype(!std::declval<CompN>())>,
+                 Set<int, dedekind::category::Boole, NegatedPredicate<CompN>>>,
+    "!(A | pred) is the set-complement Set<…, "
+    "NegatedPredicate<Comprehension>>.");
+static_assert(
+    std::same_as<std::remove_cvref_t<decltype(~std::declval<CompN>())>,
+                 std::remove_cvref_t<decltype(!std::declval<CompN>())>>,
+    "~ aliases ! on a bare Comprehension.");
 }  // namespace detail_setexpr_witness
 
 // ── The point-free projection scout ────────────────────────────────────────
