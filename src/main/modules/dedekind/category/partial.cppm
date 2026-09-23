@@ -29,7 +29,7 @@ module;
 
 export module dedekind.category:partial;
 
-import :logic;    // Provides IsLogicalSpecies, Kleene, Ternary
+import :logic;    // Provides IsOckhamAlgebra, Kleene, Ternary
 import :species;  // Provides Morphism<A, B, Func>
 import :topoi;    // Provides IsCharacteristic for support classifiers
 import :numeric;

@@ -109,14 +109,14 @@ concept IsDirectedPoset = IsPartiallyOrdered<T, L> && IsDirectedSet<T, L>;
  * @details
  * Use this concept where a callsite needs the four relational operators
  * to compile and yield a value in the truth-value carrier of a chosen
- * @c IsLogicalSpecies, but does @b not want to bind to a particular
+ * @c IsOckhamAlgebra, but does @b not want to bind to a particular
  * axiomatic order (preorder, partial, total).  No claim about
  * reflexivity, antisymmetry, transitivity, or comparability is made
  * here; for those, use @c IsPreOrdered / @c IsPartiallyOrdered /
  * @c IsTotallyOrdered (the last in @c :order:total).
  *
  * The @c L parameter defaults to @c Boole (so @c L::Ω is
- * @c bool); supply a different @c IsLogicalSpecies to constrain the
+ * @c bool); supply a different @c IsOckhamAlgebra to constrain the
  * return type to a non-Boolean truth-value carrier (e.g.\ @c Kleene).
  * Mirrors the @c L-parametric pattern already used
  * by @c IsPreOrdered / @c IsPartiallyOrdered.

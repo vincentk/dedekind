@@ -691,21 +691,21 @@ constexpr auto predicate_not(P&& p) {
  * @brief Constant classifier factory over domain A: A -> Ω.
  */
 export template <typename A, typename L = Boole>
-  requires IsLogicalSpecies<L>
+  requires IsOckhamAlgebra<L>
 constexpr auto constant_classifier(typename L::Ω value) {
   return arrow<A, typename L::Ω>([value](const A&) { return value; });
 }
 
 /** @brief Default true classifier over domain A. */
 export template <typename A, typename L = Boole>
-  requires IsLogicalSpecies<L>
+  requires IsOckhamAlgebra<L>
 constexpr auto classifier_true() {
   return constant_classifier<A, L>(L::True);
 }
 
 /** @brief Default false classifier over domain A. */
 export template <typename A, typename L = Boole>
-  requires IsLogicalSpecies<L>
+  requires IsOckhamAlgebra<L>
 constexpr auto classifier_false() {
   return constant_classifier<A, L>(L::False);
 }
@@ -713,7 +713,7 @@ constexpr auto classifier_false() {
 /** @brief Default unknown classifier over domain A (only for logics with
  * Unknown). */
 export template <typename A, typename L = Kleene>
-  requires IsLogicalSpecies<L> && requires { L::Unknown; }
+  requires IsOckhamAlgebra<L> && requires { L::Unknown; }
 constexpr auto classifier_unknown() {
   return constant_classifier<A, L>(L::Unknown);
 }
@@ -722,7 +722,7 @@ constexpr auto classifier_unknown() {
  * @brief The 'true' morphism: 1 → Ω.
  */
 export template <typename L = Boole>
-  requires IsLogicalSpecies<L>
+  requires IsOckhamAlgebra<L>
 auto logical_true() {
   return arrow<One, typename L::Ω>([](One) { return L::True; });
 }
@@ -731,7 +731,7 @@ auto logical_true() {
  * @brief The 'false' morphism: 1 → Ω.
  */
 export template <typename L = Boole>
-  requires IsLogicalSpecies<L>
+  requires IsOckhamAlgebra<L>
 auto logical_false() {
   return arrow<One, typename L::Ω>([](One) { return L::False; });
 }

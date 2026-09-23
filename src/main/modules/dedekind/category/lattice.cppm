@@ -1553,7 +1553,7 @@ concept IsSubobjectFamilyMember = requires {
  *
  * @tparam S The subobject carrier.  Must expose @c Domain and
  *           @c logic_species typedefs (the latter satisfying
- *           @c IsLogicalSpecies).
+ *           @c IsOckhamAlgebra).
  */
 export template <typename S>
 concept IsSubobjectLattice = requires(S a, S b) {
@@ -1561,7 +1561,7 @@ concept IsSubobjectLattice = requires(S a, S b) {
    *         classifier logic species. */
   typename S::Domain;
   typename S::logic_species;
-  requires IsLogicalSpecies<typename S::logic_species>;
+  requires IsOckhamAlgebra<typename S::logic_species>;
 
   /** @brief CT-vocabulary free functions for the binary lattice
    *         operations (binary product / coproduct in the subobject
