@@ -930,12 +930,12 @@ This is the extensional/intensional database distinction of deductive databases,
 \noindent
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-std::set<int> ext{2, 3, 5};      // finite universe
+std::set<int> xs{2, 3, 5};       // finite universe
 auto gt3 = ℕ | π > fix(3_c);     // {x > 3}
 // μ: keep the members χ accepts (runtime)
-assert(materialise(ext, gt3)
+assert(ext(xs, gt3)
        == std::set<int>{5});
-assert(materialise(ext, ℕ | π > fix(5_c))
+assert(ext(xs, ℕ | π > fix(5_c))
        == std::set<int>{});
 \end{cpp}
 \end{minipage}\hfill
@@ -953,7 +953,7 @@ static_assert(
 \begin{minipage}[t]{0.49\linewidth}
 {\footnotesize\centering\textbf{materialisation} \ensuremath{\mu}\par}
 \begin{minted}[fontsize=\footnotesize]{text}
-container ::= 'materialise' '(' universe ',' pred ')'
+container ::= 'ext' '(' universe ',' pred ')'
 universe  ::= <any std::ranges::input_range>
 \end{minted}
 \end{minipage}\hfill
@@ -2003,7 +2003,7 @@ static_assert( transfer_chain<4>(bead<MinPlus>).val     == 0 );  // shortest pat
 static_assert( bead<MaxPlus<Dual>>(0).val.der           == 1 );  // sensitivity (AD)
 
 // Optimum: the forall-filter, realized at one IsExtensional step.  (Eqn argmax)
-constexpr auto opt = materialise(argmax(omega_N | interval(0,6), cap));  // {3}
+constexpr auto opt = ext(argmax(omega_N | interval(0,6), cap));  // {3}
 \end{cpp}
 \end{listing}
 

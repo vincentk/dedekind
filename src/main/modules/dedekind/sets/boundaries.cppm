@@ -467,19 +467,31 @@ constexpr auto Ø<T, L>::operator!() const {
  *  bounded law then supplies the four identities the members used to spell by
  *  hand (⊥∧X=⊥, ⊥∨X=X, ⊤∧X=X, ⊤∨X=⊤).
  *
- *  @c ext: the reducer works on @b types, so the normal form
+ *  @c reify_term: the reducer works on @b types, so the reduced normal form
  *  is turned back into a value.  Either the term collapsed to a stateless
  *  boundary (@c Ø / @c UniversalSet, default-construct it), or the surviving
  *  operand is the normal form (return the operand value @c s).  These are the
  *  only two shapes a bounded-law collapse can produce for a boundary term. */
 namespace detail_boundary {
+/** @brief Reify a reduced normal-form @b type @c R back into a value: either
+ *  the operand @c s survived (unit law, @c R @c == @c S) or the term collapsed
+ *  to a stateless boundary (annihilator, default-construct @c R). Not
+ *  extensionalisation --- this is the type→value leg of the type-level reducer,
+ *  distinct from @c sets::ext. */
 template <typename R, typename S>
-constexpr auto ext(const S& s) {
-  if constexpr (std::same_as<R, std::remove_cvref_t<S>>) {
-    return s;  // the operand survived as the normal form (unit law)
-  } else {
-    return R{};  // the term collapsed to a stateless boundary (annihilator)
-  }
+constexpr auto reify(const S& s) {
+  if constexpr (std::same_as<R, std::remove_cvref_t<S>>)
+    return s;
+  else
+    return R{};
+}
+/** @brief Reduce a boundary lattice @c Term along @b both legs (domain
+ *  @c subobject_reduce_t + codomain @c codomain_reduce_t, #894) and @ref reify
+ *  the result.  The single pipeline the four Ø / 𝔸 meet & join operators share,
+ *  named once instead of re-spelled at every call site. */
+template <typename Term, typename L, typename S>
+constexpr auto reify_term(const S& s) {
+  return reify<codomain_reduce_t<subobject_reduce_t<Term, L>>>(s);
 }
 }  // namespace detail_boundary
 
@@ -492,15 +504,13 @@ constexpr auto operator&(const Ø<T, L>&, const S& s) {
   // Codomain leg (#894): wrap the domain normal form so a boundary result is
   // re-tagged to Boole, matching the S-LHS path (S & Ø); otherwise the codomain
   // would be order-dependent.
-  return detail_boundary::ext<
-      codomain_reduce_t<subobject_reduce_t<Meet<Ø<T, L>, S>, L>>>(s);
+  return detail_boundary::reify_term<Meet<Ø<T, L>, S>, L>(s);
 }
 /** @brief @c Ø @c | @c S = @c S (⊥ is the join unit); see @c operator&. */
 export template <typename T, typename L, typename S>
   requires(IsSet<S> && std::same_as<typename S::Domain, T>)
 constexpr auto operator|(const Ø<T, L>&, const S& s) {
-  return detail_boundary::ext<
-      codomain_reduce_t<subobject_reduce_t<Join<Ø<T, L>, S>, L>>>(s);
+  return detail_boundary::reify_term<Join<Ø<T, L>, S>, L>(s);
 }
 
 /** @brief @c 𝔸 @c & @c S / @c 𝔸 @c | @c S: @c 𝔸 is the ⊤ of @c Sub(T)
@@ -509,18 +519,14 @@ constexpr auto operator|(const Ø<T, L>&, const S& s) {
 export template <typename T, typename L, typename C, typename S>
   requires(IsSet<S> && std::same_as<typename S::Domain, T>)
 constexpr auto operator&(const UniversalSet<T, L, C>&, const S& s) {
-  return detail_boundary::ext<
-      codomain_reduce_t<subobject_reduce_t<Meet<UniversalSet<T, L, C>, S>, L>>>(
-      s);
+  return detail_boundary::reify_term<Meet<UniversalSet<T, L, C>, S>, L>(s);
 }
 /** @brief @c 𝔸 @c | @c S = @c 𝔸 (⊤ is the join annihilator); see @c operator&.
  */
 export template <typename T, typename L, typename C, typename S>
   requires(IsSet<S> && std::same_as<typename S::Domain, T>)
 constexpr auto operator|(const UniversalSet<T, L, C>&, const S& s) {
-  return detail_boundary::ext<
-      codomain_reduce_t<subobject_reduce_t<Join<UniversalSet<T, L, C>, S>, L>>>(
-      s);
+  return detail_boundary::reify_term<Join<UniversalSet<T, L, C>, S>, L>(s);
 }
 
 // Cardinality metadata drives extensional classification for UniversalSet.
