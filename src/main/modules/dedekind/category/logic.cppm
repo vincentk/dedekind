@@ -119,11 +119,17 @@ concept IsOckhamAlgebra = requires(typename L::Ω a, typename L::Ω b) {
   // Beyond pure shape: the reflection reverses the bounds --- @c ¬⊤ = ⊥ and
   // @c ¬⊥ = ⊤, the boundary case of the Ockham dual endomorphism.  @c True /
   // @c False / @c RFL are compile-time constants, so this law is checkable
-  // directly here (no per-species tag, no total-order requirement).  The full
-  // distributive-lattice and all-values dual-endomorphism / De Morgan laws
-  // remain the scope of #907, witnessed by the @c static_assert tower below.
-  requires L::RFL(L::True) == L::False;
-  requires L::RFL(L::False) == L::True;
+  // directly here (no per-species tag, no total-order requirement).  The inputs
+  // are cast to @c Ω so the already-validated @c RFL(Ω) overload is selected
+  // (@c True / @c False are only convertible_to Ω, so a bare call could bind an
+  // unrelated @c RFL overload on the constants' declared type), and the
+  // expected poles are compared as @c Ω.  The full distributive-lattice and
+  // all-values dual-endomorphism / De Morgan laws remain the scope of #907,
+  // witnessed by the @c static_assert tower below.
+  requires L::RFL(static_cast<typename L::Ω>(L::True)) ==
+               static_cast<typename L::Ω>(L::False);
+  requires L::RFL(static_cast<typename L::Ω>(L::False)) ==
+               static_cast<typename L::Ω>(L::True);
 };
 
 /**
