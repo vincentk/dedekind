@@ -175,9 +175,9 @@ namespace {
  *          reduction (@c Ø|s=s) reaches @ref finalize_combine.  Its codomain
  *          leg is the identity (the primary @c codomain_reduce only re-tags
  *          @c Ø / @c 𝔸), so @c finalize_combine must return @c r unchanged
- *          rather than default-construct @c codomain_reduce_t<R>{} — which
- *          would not even compile here.  The built-in @c Ø / @c 𝔸 boundaries
- *          are all default-constructible, so this corner is otherwise untested.
+ *          rather than default-construct @c codomain_reduce_t<R>{}.  That would
+ *          not even compile here.  The built-in @c Ø / @c 𝔸 boundaries are all
+ *          default-constructible, so this corner is otherwise untested.
  */
 struct TaggedSurvivor {
   using is_terminal_object_tag = void;
