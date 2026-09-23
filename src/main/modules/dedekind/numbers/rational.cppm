@@ -91,6 +91,18 @@ class Rational {
   using Domain = Rational;
   using IntegerCarrier = Z;
 
+  /** @brief Cardinality class of the ℚ carrier: @c ℵ_0 (#848/#927).
+   *  ℚ = (ℤ × ℤ_≠0)/~ is countable, and this matches the ambient's own tag
+   *  (@c ℚ = @c 𝔸<Rational<default_integer>> carries @c C = @c ℵ_0 below).
+   *  A point-free halfspace @c {x∈ℚ | π>c} is carved in @c :order, which is
+   *  @b upstream of @c :numbers and so cannot recognise a countable
+   *  non-integral carrier structurally (@c IsRingIntegral is false on ℚ); the
+   *  carrier therefore self-declares, and @c order::Halfspace reads this to
+   *  classify identically to the scout comprehension (which inherits @c C
+   *  directly).  Mirrors @c ExtensionalCardinal's own @c cardinality_type
+   *  (@c :sets:cardinality). */
+  using cardinality_type = ℵ_0;
+
   // Numerator and denominator as a canonical pair (second always positive).
   // Public to satisfy IsProduct<Rational<Z>, Z, Z> (ℚ ≅ ℤ × ℤ / ~).
   Z first, second;

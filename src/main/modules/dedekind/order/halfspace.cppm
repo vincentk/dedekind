@@ -240,6 +240,31 @@ consteval bool halfspace_is_moot() {
   return halfspace_is_empty<T, Pivot, flip(D), flip(S)>();
 }
 
+/** @brief Cardinality class of a halfspace's carrier @c T (#848/#927).
+ *  @details A carrier that declares its own @c cardinality_type is the
+ *  authority (e.g.\ @c numbers::Rational → @c ℵ_0, @c ExtensionalCardinal →
+ *  @c Finite): this partition (@c :order) is @b upstream of @c :numbers, so a
+ *  countable @b non-integral carrier such as ℚ cannot be recognised
+ *  structurally here (@c IsRingIntegral is false on @c Rational), and must
+ *  self-declare so the point-free @c A|pred halfspace classifies identically
+ *  to the scout comprehension (which inherits the ambient @c C directly).
+ *  Otherwise fall back to the @c IsRingIntegral discriminator: the structural
+ *  integers @b and the @c Cardinality / @c SignedCardinality (ℕ/ℤ) proxies are
+ *  @c ℵ_0, and the real proxies (@c QuadraticReal, @c double) are the continuum
+ *  @c ℶ_1.  The bound only has to be tight enough for the @c NaturalLogic
+ *  verdict (countable ⟹ decidable @c Boole, uncountable ⟹ @c Kleene). */
+export template <typename T>
+struct carrier_cardinality {
+  using type = std::conditional_t<IsRingIntegral<T>, ℵ_0, ℶ_1>;
+};
+export template <typename T>
+  requires requires { typename T::cardinality_type; }
+struct carrier_cardinality<T> {
+  using type = typename T::cardinality_type;
+};
+export template <typename T>
+using carrier_cardinality_t = typename carrier_cardinality<T>::type;
+
 /**
  * @brief Halfspace predicate { x ∈ T | x ⋈ Pivot } with Pivot at the type
  * level.
@@ -268,25 +293,24 @@ struct Halfspace : dedekind::sets::SetExpr<Halfspace<T, Pivot, D, S, L>, T, L> {
 
   /** @brief Carrier-axis cardinality of the cut, threaded so the decidability
    *  classifier (@c sets::NaturalLogic) reads a halfspace the SAME way it reads
-   *  the ambient it was carved from (#848).
+   *  the ambient it was carved from (#848/#927).
    *
-   *  @details @c cardinality_type here is a @b conservative classification
-   * bound, NOT the cut's exact size: a halfspace is at most equinumerous with
-   * its carrier, so the bound is @f$\aleph_0@f$ over a countable carrier and
-   * @f$\beth_1@f$ over a continuum.  A @b bounded cut (e.g.\ @c {x∈ℕ|x<5}) is
-   * actually @c Finite; the bound only has to be tight enough for the
-   * @c NaturalLogic verdict (countable ⟹ @c Boole/decidable, uncountable ⟹
-   * @c Kleene), which the finite and @f$\aleph_0@f$ cases share.  @c
-   * IsRingIntegral is the countable/uncountable discriminator: it admits the
-   * structural integers
-   *  @b and the @c Cardinality / @c SignedCardinality (ℕ/ℤ) proxy carriers, and
-   *  declines the real proxies (@c QuadraticReal, @c double).  This reproduces
-   *  the tag the ambient @c UniversalSet<T,L,C> carries for the canonical
-   *  carriers --- @c ℵ_0 for @c ℕ, @c ℶ_1 for @c ℝ --- so the point-free
-   *  @c A @c | @c pred comprehension classifies identically to the (deprecated)
-   *  scout @c element<A> @c | @c pred spelling, whose @c Comprehension inherits
-   *  @c C directly.  Without this typedef @c NaturalLogic<Halfspace> hit its
-   *  pessimistic primary-template fallback (@c Kleene / @c TernaryLogic).
+   *  @details A @b conservative classification bound, NOT the cut's exact size:
+   *  a halfspace is at most equinumerous with its carrier, so the bound is
+   *  @f$\aleph_0@f$ over a countable carrier and @f$\beth_1@f$ over a
+   * continuum. A @b bounded cut (e.g.\ @c {x∈ℕ|x<5}) is actually @c Finite; the
+   * bound only has to be tight enough for the @c NaturalLogic verdict
+   * (countable ⟹
+   *  @c Boole/decidable, uncountable ⟹ @c Kleene), which the finite and
+   *  @f$\aleph_0@f$ cases share.  The class is resolved by @ref
+   *  carrier_cardinality: a self-declaring carrier (@c ℚ = @c Rational →
+   *  @c ℵ_0) is trusted, else the @c IsRingIntegral discriminator applies. This
+   *  reproduces the tag the ambient @c UniversalSet<T,L,C> carries for the
+   *  canonical carriers, so the point-free @c A @c | @c pred comprehension
+   *  classifies identically to the (deprecated) scout @c element<A> @c | @c
+   * pred spelling, whose @c Comprehension inherits @c C directly.  Without this
+   *  typedef @c NaturalLogic<Halfspace> hit its pessimistic primary-template
+   *  fallback (@c Kleene / @c TernaryLogic).
    *
    *  @note This is the carrier-axis @b magnitude, not the ambient's own @c C
    *  slot: an incoherent ambient tagged against its carrier's true cardinality
@@ -294,7 +318,7 @@ struct Halfspace : dedekind::sets::SetExpr<Halfspace<T, Pivot, D, S, L>, T, L> {
    *  single countability class, so the @c NaturalLogic verdict is unchanged.
    *  Threading the exact @c C would require a sixth @c Halfspace template
    *  parameter (FIXME(#848): balloons across ~120 pattern-matched sites). */
-  using cardinality_type = std::conditional_t<IsRingIntegral<T>, ℵ_0, ℶ_1>;
+  using cardinality_type = carrier_cardinality_t<T>;
 
   // `Pivot` may be a different structural type than `T` (e.g., pivot = 5.0 as
   // double, T = Real<double>). The carrier's converting ctor / overload set
