@@ -477,20 +477,21 @@ NB_MODULE(_dedekind, module) {
     module.attr("Nat") = Naturals{};  // ASCII key, distinct from `ℕ` → "N"
   }
 
-  // ── ext: the native retraction μ: Int ⇀ Ext (materialise, #886) ─────────
-  // Honest minimal slice of the crossing: materialise a FINITE native universe
-  // through a NATIVE characteristic morphism into a Python `set`.  Here χ is
-  // the native ℕ⊂ℤ classifier, so `ext([-2, -1, 0, 1, 2]) == {0, 1, 2}` is
-  // decided entirely in C++.  Passing a *Python* predicate into the native core
-  // is deferred to the value-first reducer (#922); only the value-level
-  // feasible form (native universe + native χ) is bound here.
+  // ── ext: the native retraction μ: Int ⇀ Ext (#886) ─────────────────────
+  // Honest minimal slice of the crossing: extensionalise a FINITE native
+  // universe through a NATIVE characteristic morphism into a Python `set`.
+  // Here χ is the native ℕ⊂ℤ classifier, so `ext([-2, -1, 0, 1, 2]) ==
+  // {0, 1, 2}` is decided entirely in C++.  Binds the C++ `sets::ext`
+  // (renamed from `materialise` in #919).  Passing a *Python* predicate into
+  // the native core is deferred to the value-first reducer (#922); only the
+  // value-level feasible form (native universe + native χ) is bound here.
   module.def(
       "ext",
       [](const std::vector<int>& universe) {
-        return dedekind::sets::materialise(universe, dedekind::sets::N);
+        return dedekind::sets::ext(universe, dedekind::sets::N);
       },
-      "Materialise a finite universe through the native ℕ⊂ℤ classifier χ into "
-      "a Python set: ext([-2, -1, 0, 1, 2]) == {0, 1, 2}.  The retraction "
+      "Extensionalise a finite universe through the native ℕ⊂ℤ classifier χ "
+      "into a Python set: ext([-2, -1, 0, 1, 2]) == {0, 1, 2}.  The retraction "
       "μ: Int ⇀ Ext; χ runs in C++, not Python.");
 
   // ── 2D LP across the bridge on a Dual<Rational> carrier ────────────────
