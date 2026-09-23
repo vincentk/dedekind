@@ -78,7 +78,7 @@ TEST_CASE(
   }
 
   SECTION("agrees with the existing type-level boundary operator") {
-    // 𝔸 & S via the reify_term path must yield the same value-first result.
+    // 𝔸 & S via the boundary operator must yield the same value-first result.
     const auto via_operator = universe & seven;
     const auto via_value = subobject_reduce(
         Meet<UniversalSet<Card>, SingletonSet<Card>>{universe, seven});

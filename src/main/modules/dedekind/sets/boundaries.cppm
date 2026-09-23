@@ -497,30 +497,8 @@ constexpr auto Ø<T, L>::operator!() const {
  *  bounded law then supplies the four identities the members used to spell by
  *  hand (⊥∧X=⊥, ⊥∨X=X, ⊤∧X=X, ⊤∨X=⊤).
  *
- *  @c reify_term: the reducer works on @b types, so the reduced normal form
- *  is turned back into a value.  Either the term collapsed to a stateless
- *  boundary (@c Ø / @c UniversalSet, default-construct it), or the surviving
- *  operand is the normal form (return the operand value @c s).  These are the
- *  only two shapes a bounded-law collapse can produce for a boundary term. */
-namespace detail_boundary {
-/** @brief Reduce a boundary lattice @c Term along the domain leg
- *  (@c subobject_reduce_t) and finalize the value.  The operand @c s survives
- *  when the reduced type is unchanged (the unit / idempotency law, e.g.
- *  @c Ø∨S=S, @c 𝔸∧S=S); otherwise the term collapsed to a stateless boundary
- *  (the annihilator, @c Ø∧S=Ø, @c 𝔸∨S=𝔸).  Either way the codomain leg is
- *  applied by the shared @ref finalize_combine, so the value-finalization law
- *  lives in one place rather than being re-spelled here.  This is the type→
- *  value leg of the type-level reducer, not extensionalisation (@c sets::ext).
- *  The single pipeline the four Ø / 𝔸 meet & join operators share. */
-template <typename Term, typename L, typename S>
-constexpr auto reify_term(const S& s) {
-  using D = subobject_reduce_t<Term, L>;
-  if constexpr (std::same_as<D, std::remove_cvref_t<S>>)
-    return finalize_combine(s);
-  else
-    return finalize_combine(D{});
-}
-}  // namespace detail_boundary
+ *  The four Ø / 𝔸 meet & join operators build the @c Meet / @c Join node
+ *  @b value and hand it to the value-first @ref subobject_reduce below. */
 
 /** @brief Value-first domain reduce (#922): reduce a subobject lattice @c Node
  *  @b value (a @c Meet / @c Join / @c Not over @c Sub(T), or a leaf) to its
@@ -528,10 +506,10 @@ constexpr auto reify_term(const S& s) {
  *  leg.  The value twin of @c subobject_reduce_t: it runs the same laws but
  *  returns a value, so it works at runtime and preserves a runtime-stateful
  *  operand (e.g.\ a @c SingletonSet holding an extensional value) where the
- *  normal form is that operand.  @c reify_term stays for the four @c Ø / @c 𝔸
- *  operators (boundary operands are stateless); this is the general entry the
- *  #916 Python composition surface will call once the leaf-combine leg is
- *  threaded (slice 2). */
+ *  normal form is that operand.  The four @c Ø / @c 𝔸 meet & join operators
+ *  route through here (boundary operands are stateless); this is also the
+ *  general entry the #916 Python composition surface will call once the
+ *  leaf-combine leg is threaded (slice 2). */
 
 // FIXME(#922 slice 2): constrain @c Node to a valid recursive subobject
 // expression.  The leaves must be @c IsSubobject, NOT @c IsSet: a bare
@@ -556,13 +534,13 @@ constexpr auto operator&(const Ø<T, L>&, const S& s) {
   // Codomain leg (#894): wrap the domain normal form so a boundary result is
   // re-tagged to Boole, matching the S-LHS path (S & Ø); otherwise the codomain
   // would be order-dependent.
-  return detail_boundary::reify_term<Meet<Ø<T, L>, S>, L>(s);
+  return subobject_reduce<L>(Meet<Ø<T, L>, S>{Ø<T, L>{}, s});
 }
 /** @brief @c Ø @c | @c S = @c S (⊥ is the join unit); see @c operator&. */
 export template <typename T, typename L, typename S>
   requires(IsSet<S> && std::same_as<typename S::Domain, T>)
 constexpr auto operator|(const Ø<T, L>&, const S& s) {
-  return detail_boundary::reify_term<Join<Ø<T, L>, S>, L>(s);
+  return subobject_reduce<L>(Join<Ø<T, L>, S>{Ø<T, L>{}, s});
 }
 
 /** @brief @c 𝔸 @c & @c S / @c 𝔸 @c | @c S: @c 𝔸 is the ⊤ of @c Sub(T)
@@ -571,14 +549,16 @@ constexpr auto operator|(const Ø<T, L>&, const S& s) {
 export template <typename T, typename L, typename C, typename S>
   requires(IsSet<S> && std::same_as<typename S::Domain, T>)
 constexpr auto operator&(const UniversalSet<T, L, C>&, const S& s) {
-  return detail_boundary::reify_term<Meet<UniversalSet<T, L, C>, S>, L>(s);
+  return subobject_reduce<L>(
+      Meet<UniversalSet<T, L, C>, S>{UniversalSet<T, L, C>{}, s});
 }
 /** @brief @c 𝔸 @c | @c S = @c 𝔸 (⊤ is the join annihilator); see @c operator&.
  */
 export template <typename T, typename L, typename C, typename S>
   requires(IsSet<S> && std::same_as<typename S::Domain, T>)
 constexpr auto operator|(const UniversalSet<T, L, C>&, const S& s) {
-  return detail_boundary::reify_term<Join<UniversalSet<T, L, C>, S>, L>(s);
+  return subobject_reduce<L>(
+      Join<UniversalSet<T, L, C>, S>{UniversalSet<T, L, C>{}, s});
 }
 
 // Cardinality metadata drives extensional classification for UniversalSet.
