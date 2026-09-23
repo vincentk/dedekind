@@ -451,9 +451,11 @@ using codomain_reduce_t = typename codomain_reduce<R>::type;
 
 /** @brief The @b value-level twin of @c codomain_reduce_t: finalize a reduced
  *  normal-form value along the codomain leg (#894).  When the reduced type is a
- *  @c IsBoundaryObject the result is a decided boundary, so re-tag its codomain
- *  to @c Boole and default-construct; otherwise the value passes through
- *  unchanged.  This is the single home for the value-finalization law: this
+ *  @c IsBoundaryObject whose codomain re-tag actually changes the type, the
+ *  result is a decided boundary, so construct the re-tagged (@c Boole)
+ * boundary; otherwise (an identity re-tag, or a non-boundary) the value passes
+ * through unchanged, so a tagged non-default-constructible survivor keeps its
+ * value. This is the single home for the value-finalization law: this
  *  partition's Ø / 𝔸 meet & join operators call it directly (they are declared
  *  below it), and @c :expressions (downstream) reuses it for the general
  *  subobject combine, so the rule is spelled @b once rather than duplicated.
@@ -461,10 +463,20 @@ using codomain_reduce_t = typename codomain_reduce<R>::type;
  *  form is @c image(χ) @c ⊆ @c Σ folded on the Kleene image lattice. */
 export template <typename R>
 constexpr auto finalize_combine(R r) {
-  if constexpr (IsBoundaryObject<R>)
-    return codomain_reduce_t<R>{};
-  else
+  if constexpr (IsBoundaryObject<R>) {
+    // Re-tag the boundary's codomain to Boole, but ONLY when that actually
+    // changes the type.  @c IsBoundaryObject is tag-based and does NOT require
+    // default-constructibility (@c category:limit), so a tagged, non-default-
+    // constructible @c IsSet that survives a unit reduction (@c Ø|s = s) must
+    // keep its value: when @c codomain_reduce_t<R> is the identity, preserve
+    // @c r rather than default-constructing.
+    if constexpr (!std::same_as<codomain_reduce_t<R>, R>)
+      return codomain_reduce_t<R>{};
+    else
+      return r;
+  } else {
     return r;
+  }
 }
 
 template <typename T, typename L>
