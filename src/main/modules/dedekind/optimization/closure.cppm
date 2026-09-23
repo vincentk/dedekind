@@ -95,6 +95,15 @@ struct Relax {
  * @brief Single-source semiring closure: fold the edge sequence into the
  *        potential net, return its value at the sink.  @c Add / @c Mult
  *        default to the carrier's canonical operations.
+ *
+ * @note This is a @b value-level algebraic reduction over a dioid.  Its
+ * @c ⊗-over-@c ⊕ distributivity is the @b same law the @b type-level term
+ * reducer (@c category:lattice_term, epic #890) normalises, and a tropical
+ * @c ⊕ (min/max) is a semilattice op --- so the two share the algebraic
+ * substrate, but live on opposite sides of the phase wall (value fold here vs
+ * compile-time type rewrite there) and share no implementation today.  A
+ * @b value-first reducer (#922) could subsume this closure as a dioid star;
+ * the kinship is tracked in #926.
  */
 export template <
     typename S, std::size_t Cap,
