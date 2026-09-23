@@ -57,6 +57,7 @@ module;
 
 #include <concepts>
 #include <type_traits>
+#include <utility>  // std::forward
 
 export module dedekind.category:lattice_term;
 
@@ -294,51 +295,51 @@ struct reduce<Not<A>, Less, Ord, Combine> {
 
 namespace detail_lattice_term {
 
-/** @brief Reconstruct the value of a reduced @b meet whose normal-form type is
- *  @c D, from the already-reduced operand values @c ra / @c rb.
- *  @details The value-preserving cases are the ones a unit / idempotency /
- *  absorption / glb law selects (the normal form IS an operand) and the
- *  irreducible / canonical residue (a @c Meet of the two).  Otherwise @c D is a
- *  collapse (@c ⊥) or a restructure (distributivity to a DNF): if @c D is
- *  @c IsIdempotentLeaf (value-determined @b recursively, so a boundary OR a DNF
- *  over type-determined leaves) it is exact as @c D{}; else @c D carries a
- *  runtime-stateful leaf whose value cannot be rebuilt from @c ra / @c rb yet,
- *  so this @b fails safe by keeping the @b unreduced @c Meet (a sound value for
- *  the same set, merely not normalized) rather than default-initialising it.
- *  FIXME(#922 slice 3): rebuild the restructured tree from the sub-values. */
-template <typename D, typename RA, typename RB>
-constexpr auto rebuild_meet(const RA& ra, const RB& rb) {
-  if constexpr (std::same_as<D, RA>) {
-    return ra;
-  } else if constexpr (std::same_as<D, RB>) {
-    return rb;
-  } else if constexpr (std::same_as<D, Meet<RA, RB>>) {
-    return Meet<RA, RB>{ra, rb};
-  } else if constexpr (std::same_as<D, Meet<RB, RA>>) {
-    return Meet<RB, RA>{rb, ra};
-  } else if constexpr (IsIdempotentLeaf<D> && std::default_initializable<D>) {
-    return D{};  // value-determined collapse / DNF: exact
+/** @brief The shared collapse tail: @c D{} for a @b value-determined collapse
+ *  (@c IsIdempotentLeaf<D> and default-constructible, so a boundary @c ⊥ / @c ⊤
+ *  or a DNF over type-determined leaves), else the @c Fallback (the unreduced
+ *  node) built @b lazily from the forwarded operands.
+ *  @details The fallback is built @b only in the @c else branch.  The collapse
+ *  path therefore constructs no fallback at all.  The deferral is forwarded
+ *  args plus @c if @c constexpr, @b not a closure.  The helper takes no
+ *  pre-built fallback by const-ref, so it copies no fallback @b temporary out.
+ *  (Constructing @c Fallback{args...} still copies the operands into the node,
+ *  exactly as the inline form did; those operand copies are not eliminated.)
+ *  @note The fail-safe is this slice's intended behavior.  Rebuilding the
+ *  distributed / pushed value from the sub-values is a @b separate net-positive
+ *  follow-on (under #922), not this unification. */
+template <typename D, typename Fallback, typename... Args>
+constexpr auto materialize_or_keep(Args&&... args) {
+  if constexpr (IsIdempotentLeaf<D> && std::default_initializable<D>) {
+    return D{};  // value-determined collapse / DNF: exact (nothing built)
   } else {
-    return Meet<RA, RB>{ra, rb};  // stateful restructure: fail safe
+    return Fallback{std::forward<Args>(args)...};  // built lazily, here only
   }
 }
 
-/** @brief Dual of @ref rebuild_meet for a reduced @b join (fails safe to the
- *  unreduced @c Join on an un-rebuildable restructure). */
-template <typename D, typename RA, typename RB>
-constexpr auto rebuild_join(const RA& ra, const RB& rb) {
+/** @brief Reconstruct a reduced @b binary node's value from the already-reduced
+ *  operands @c ra / @c rb, given its normal-form type @c D.  @c Meet and @c
+ * Join are injected as the template-template @c Node and share this one
+ * adapter.
+ *  @details The @b value-output adapter of the one decision engine (@c reduce_t
+ *  decided @c D).  Value-preserving cases: the normal form IS an operand (unit
+ * / idempotency / absorption / glb) or the irreducible / canonical residue (a
+ *  @c Node of the two, either order).  Every other @c D routes through the
+ *  shared @ref materialize_or_keep tail, whose fail-safe lazily rebuilds the
+ *  unreduced @c Node. */
+template <template <typename, typename> class Node, typename D, typename RA,
+          typename RB>
+constexpr auto rebuild_binary(const RA& ra, const RB& rb) {
   if constexpr (std::same_as<D, RA>) {
     return ra;
   } else if constexpr (std::same_as<D, RB>) {
     return rb;
-  } else if constexpr (std::same_as<D, Join<RA, RB>>) {
-    return Join<RA, RB>{ra, rb};
-  } else if constexpr (std::same_as<D, Join<RB, RA>>) {
-    return Join<RB, RA>{rb, ra};
-  } else if constexpr (IsIdempotentLeaf<D> && std::default_initializable<D>) {
-    return D{};
+  } else if constexpr (std::same_as<D, Node<RA, RB>>) {
+    return Node<RA, RB>{ra, rb};
+  } else if constexpr (std::same_as<D, Node<RB, RA>>) {
+    return Node<RB, RA>{rb, ra};
   } else {
-    return Join<RA, RB>{ra, rb};
+    return materialize_or_keep<D, Node<RA, RB>>(ra, rb);
   }
 }
 
@@ -360,7 +361,7 @@ constexpr auto reduce_value(const Meet<A, B>& node) {
   using D = reduce_t<Meet<std::remove_cvref_t<decltype(ra)>,
                           std::remove_cvref_t<decltype(rb)>>,
                      Less, Ord, Combine>;
-  return detail_lattice_term::rebuild_meet<D>(ra, rb);
+  return detail_lattice_term::rebuild_binary<Meet, D>(ra, rb);
 }
 
 /** @brief Value-first reduce of a @c Join value (dual of the @c Meet case). */
@@ -372,27 +373,25 @@ constexpr auto reduce_value(const Join<A, B>& node) {
   using D = reduce_t<Join<std::remove_cvref_t<decltype(ra)>,
                           std::remove_cvref_t<decltype(rb)>>,
                      Less, Ord, Combine>;
-  return detail_lattice_term::rebuild_join<D>(ra, rb);
+  return detail_lattice_term::rebuild_binary<Join, D>(ra, rb);
 }
 
 /** @brief Value-first reduce of a @c Not value: reduce the operand, keep
  *  @c ¬(reduced) unless De Morgan / involution pushed it to another shape.
- *  @details A push to a @b value-determined normal form (@c IsIdempotentLeaf)
- *  is exact as @c D{}.  A push carrying a runtime-stateful leaf cannot be
- *  rebuilt until slice 3, so this fails safe to the unreduced @c ¬(reduced)
- *  node (a sound value).  FIXME(#922 slice 3): rebuild a stateful push from the
- *  operand's sub-values. */
+ *  @details No push (@c D is @c Not<RB>) keeps @c ¬(reduced); any push routes
+ *  through the same @ref detail_lattice_term::materialize_or_keep tail as the
+ *  binary nodes.  The @c D==Not<RB> guard stays ahead of the helper: since
+ *  @c idempotent_leaf_v<Not<A>> tracks its base, an idempotent @c Not must keep
+ *  its operand rather than default-collapse. */
 export template <typename Less, typename Ord, typename Combine, typename A>
 constexpr auto reduce_value(const Not<A>& node) {
   const auto rb = reduce_value<Less, Ord, Combine>(node.base);
   using RB = std::remove_cvref_t<decltype(rb)>;
   using D = reduce_t<Not<RB>, Less, Ord, Combine>;
   if constexpr (std::same_as<D, Not<RB>>) {
-    return Not<RB>{rb};
-  } else if constexpr (IsIdempotentLeaf<D> && std::default_initializable<D>) {
-    return D{};
+    return Not<RB>{rb};  // no push: already negation-normal
   } else {
-    return Not<RB>{rb};
+    return detail_lattice_term::materialize_or_keep<D, Not<RB>>(rb);
   }
 }
 
