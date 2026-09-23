@@ -57,6 +57,7 @@ module;
 
 #include <concepts>
 #include <type_traits>
+#include <utility>  // std::forward
 
 export module dedekind.category:lattice_term;
 
@@ -294,6 +295,26 @@ struct reduce<Not<A>, Less, Ord, Combine> {
 
 namespace detail_lattice_term {
 
+/** @brief The shared collapse tail: @c D{} for a @b value-determined collapse
+ *  (@c IsIdempotentLeaf<D> and default-constructible, so a boundary @c ⊥ / @c ⊤
+ *  or a DNF over type-determined leaves), else the @c Fallback (the unreduced
+ *  node) built @b lazily from the forwarded operands.
+ *  @details The fallback is built @b only in the @c else branch, so the
+ * collapse path materializes nothing and the fail-safe is a prvalue (no eager
+ * temporary, no const-ref copy); the deferral is forwarded args + @c if @c
+ * constexpr, @b not a closure.
+ *  @note The fail-safe is this slice's intended behavior.  Rebuilding the
+ *  distributed / pushed value from the sub-values is a @b separate net-positive
+ *  follow-on (under #922), not this unification. */
+template <typename D, typename Fallback, typename... Args>
+constexpr auto materialize_or_keep(Args&&... args) {
+  if constexpr (IsIdempotentLeaf<D> && std::default_initializable<D>) {
+    return D{};  // value-determined collapse / DNF: exact (nothing built)
+  } else {
+    return Fallback{std::forward<Args>(args)...};  // built lazily, here only
+  }
+}
+
 /** @brief Reconstruct a reduced @b binary node's value from the already-reduced
  *  operands @c ra / @c rb, given its normal-form type @c D.  @c Meet and @c
  * Join are injected as the template-template @c Node and share this one
@@ -301,15 +322,9 @@ namespace detail_lattice_term {
  *  @details The @b value-output adapter of the one decision engine (@c reduce_t
  *  decided @c D).  Value-preserving cases: the normal form IS an operand (unit
  * / idempotency / absorption / glb) or the irreducible / canonical residue (a
- *  @c Node of the two, either order).  A @b value-determined collapse
- *  (@c IsIdempotentLeaf, so a boundary @c ⊥ / @c ⊤ or a DNF over
- * type-determined leaves) is exact as @c D{}, built @b lazily so no fallback is
- * materialized on that path.  Any other @c D is a runtime-stateful restructure
- * not rebuildable from the operands, so this @b fails safe to the @b unreduced
- * @c Node, a prvalue returned directly (no extra copy).
- *  @note The fail-safe is this slice's intended behavior.  Reconstructing the
- *  distributed / pushed value from the sub-values is a @b separate net-positive
- *  follow-on (future enhancement under #922), not this unification. */
+ *  @c Node of the two, either order).  Every other @c D routes through the
+ *  shared @ref materialize_or_keep tail, whose fail-safe lazily rebuilds the
+ *  unreduced @c Node. */
 template <template <typename, typename> class Node, typename D, typename RA,
           typename RB>
 constexpr auto rebuild_binary(const RA& ra, const RB& rb) {
@@ -321,10 +336,8 @@ constexpr auto rebuild_binary(const RA& ra, const RB& rb) {
     return Node<RA, RB>{ra, rb};
   } else if constexpr (std::same_as<D, Node<RB, RA>>) {
     return Node<RB, RA>{rb, ra};
-  } else if constexpr (IsIdempotentLeaf<D> && std::default_initializable<D>) {
-    return D{};  // value-determined collapse / DNF: exact (no fallback built)
   } else {
-    return Node<RA, RB>{ra, rb};  // stateful restructure: fail safe (see @note)
+    return materialize_or_keep<D, Node<RA, RB>>(ra, rb);
   }
 }
 
@@ -363,12 +376,11 @@ constexpr auto reduce_value(const Join<A, B>& node) {
 
 /** @brief Value-first reduce of a @c Not value: reduce the operand, keep
  *  @c ¬(reduced) unless De Morgan / involution pushed it to another shape.
- *  @details No push (@c D is @c Not<RB>) keeps the negation-normal
- *  @c ¬(reduced).  A push mirrors @ref detail_lattice_term::rebuild_binary's
- *  tail: a value-determined push (@c IsIdempotentLeaf) is exact as @c D{}, a
- *  stateful push fails safe to @c ¬(reduced) (the same follow-on noted there).
- *  Kept inline so the @c D{} branch builds no fallback and @c ¬(reduced) is
- *  returned as a prvalue. */
+ *  @details No push (@c D is @c Not<RB>) keeps @c ¬(reduced); any push routes
+ *  through the same @ref detail_lattice_term::materialize_or_keep tail as the
+ *  binary nodes.  The @c D==Not<RB> guard stays ahead of the helper: since
+ *  @c idempotent_leaf_v<Not<A>> tracks its base, an idempotent @c Not must keep
+ *  its operand rather than default-collapse. */
 export template <typename Less, typename Ord, typename Combine, typename A>
 constexpr auto reduce_value(const Not<A>& node) {
   const auto rb = reduce_value<Less, Ord, Combine>(node.base);
@@ -376,10 +388,8 @@ constexpr auto reduce_value(const Not<A>& node) {
   using D = reduce_t<Not<RB>, Less, Ord, Combine>;
   if constexpr (std::same_as<D, Not<RB>>) {
     return Not<RB>{rb};  // no push: already negation-normal
-  } else if constexpr (IsIdempotentLeaf<D> && std::default_initializable<D>) {
-    return D{};  // value-determined push: exact (no fallback built)
   } else {
-    return Not<RB>{rb};  // stateful push: fail safe
+    return detail_lattice_term::materialize_or_keep<D, Not<RB>>(rb);
   }
 }
 
