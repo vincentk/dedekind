@@ -85,9 +85,18 @@ Coherence checks:
   exists, request that the code adopt the replacement rather than perpetuate the
   deprecated form. Deprecation markers are a migration signal, not a resting
   place; prefer completing the migration in the PR that touches the call site.
-- **Trend toward negative net lines.** This is a maturing library; PRs are
-  expected to often delete more than they add. A large net-positive diff wants
-  justification.
+- **Negative net lines, and replacement over layering.** This is a maturing
+  library; PRs are expected to often delete more than they add, and a
+  change
+  framed as "replace / unify / make X-first / simplify" should come out
+  net-negative. Flag the recurring anti-pattern of adding a new abstraction
+  *on top of* the one it is meant to replace while deferring the old code's
+  removal to a "later slice" / follow-up: that deletion rarely lands, so the
+  codebase only grows and the duplication the task meant to remove persists. The
+  removal should ride in the SAME PR as the addition. Concretely: if the new
+  code still CALLS the code it claims to replace (e.g. a value-level reducer that
+  internally invokes the type-level one), nothing was replaced yet; say so. A
+  net-positive diff on a replace/unify/simplify task wants strong justification.
 - **static_assert / concept-binding is the safety boundary**, not prose. Prefer a
   compile-time witness over a comment vouching that an invariant holds. Note that
   `static_assert`s are invisible to coverage tooling.
