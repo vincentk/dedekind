@@ -46,7 +46,7 @@ class DedekindPythonSmokeTest(unittest.TestCase):
 
 
 class DedekindSetAlgebraTest(unittest.TestCase):
-    """Smoke tests for the extensional set-algebra bindings (dedekind.sets)."""
+    """Smoke tests for the native extensional set-algebra bindings."""
 
     # ── int overload ──────────────────────────────────────────────────────
     def test_set_union_ints(self) -> None:
@@ -146,195 +146,12 @@ class DedekindArrayBindingsTest(unittest.TestCase):
         self.assertEqual(result, [5, 3, 9, 1])
 
 
-@unittest.skipUnless(_HAS_PANDAS, "pandas required for frame_to_paths tests")
-class DedekindFramePathsTest(unittest.TestCase):
-    """Test pandas DataFrame → product-of-sequences conversion."""
-
-    def test_frame_to_paths_int_columns(self) -> None:
-        df = pd.DataFrame({"a": [1, 2, 3], "b": [10, 20, 30]})
-        paths = dedekind.frame_to_paths(df)
-        self.assertEqual(paths["a"], [1, 2, 3])
-        self.assertEqual(paths["b"], [10, 20, 30])
-
-    def test_frame_to_paths_mixed_types(self) -> None:
-        df = pd.DataFrame({
-            "ints": [1, 2, 3],
-            "floats": [1.1, 2.2, 3.3],
-            "bools": [True, False, True],
-        })
-        paths = dedekind.frame_to_paths(df)
-        self.assertEqual(paths["ints"], [1, 2, 3])
-        self.assertEqual(paths["floats"], [1.1, 2.2, 3.3])
-        self.assertEqual(paths["bools"], [True, False, True])
-
-    def test_frame_to_paths_string_column(self) -> None:
-        df = pd.DataFrame({"labels": ["a", "b", "c"]})
-        paths = dedekind.frame_to_paths(df)
-        self.assertEqual(paths["labels"], ["a", "b", "c"])
-
-    def test_frame_to_paths_empty_dataframe(self) -> None:
-        df = pd.DataFrame()
-        paths = dedekind.frame_to_paths(df)
-        self.assertEqual(paths, {})
-
-    def test_frame_to_paths_single_row(self) -> None:
-        df = pd.DataFrame({"x": [42], "y": [3.14]})
-        paths = dedekind.frame_to_paths(df)
-        self.assertEqual(paths["x"], [42])
-        self.assertEqual(paths["y"], [3.14])
-
-    def test_frame_to_paths_bool_fallback_when_array_binding_missing(self) -> None:
-        import dedekind.sequences as sequences
-
-        df = pd.DataFrame({"b": [True, False, True]})
-        with mock.patch.object(sequences, "path_from_array", None):
-            paths = dedekind.frame_to_paths(df)
-        self.assertEqual(paths["b"], [True, False, True])
-
-    def test_frame_to_paths_bool_fallback_when_typed_binding_rejects_array(self) -> None:
-        import dedekind.sequences as sequences
-
-        df = pd.DataFrame({"b": [True, False, True]})
-        with mock.patch.object(sequences, "path_from_bool_array", side_effect=TypeError):
-            paths = dedekind.frame_to_paths(df)
-        self.assertEqual(paths["b"], [True, False, True])
-
-    def test_frame_to_paths_int_fallback_when_array_binding_missing(self) -> None:
-        import dedekind.sequences as sequences
-
-        df = pd.DataFrame({"i": [1, 2, 3]})
-        with mock.patch.object(sequences, "path_from_array", None):
-            paths = dedekind.frame_to_paths(df)
-        self.assertEqual(paths["i"], [1, 2, 3])
-
-    def test_frame_to_paths_float_fallback_when_array_binding_missing(self) -> None:
-        import dedekind.sequences as sequences
-
-        df = pd.DataFrame({"f": [1.25, 2.5, 5.0]})
-        with mock.patch.object(sequences, "path_from_float64_array", side_effect=lambda a: list(a)):
-            paths = dedekind.frame_to_paths(df)
-        self.assertEqual(paths["f"], [1.25, 2.5, 5.0])
-
-    def test_frame_to_paths_float_fallback_when_typed_binding_rejects_array(self) -> None:
-        import dedekind.sequences as sequences
-
-        df = pd.DataFrame({"f": [1.1, 2.2, 3.3]})
-        with mock.patch.object(sequences, "path_from_float64_array", side_effect=TypeError):
-            paths = dedekind.frame_to_paths(df)
-        self.assertEqual(paths["f"], [1.1, 2.2, 3.3])
-
-    def test_frame_to_paths_requires_pandas(self) -> None:
-        import dedekind.sequences as sequences
-
-        with mock.patch.object(sequences, "_HAS_PANDAS", False):
-            with self.assertRaises(ImportError):
-                sequences.frame_to_paths(object())
-
-    def test_frame_to_paths_requires_numpy(self) -> None:
-        import dedekind.sequences as sequences
-
-        df = pd.DataFrame({"x": [1]})
-        with mock.patch.object(sequences, "_HAS_NUMPY", False):
-            with self.assertRaises(ImportError):
-                sequences.frame_to_paths(df)
-
-    def test_sequences_reload_path_from_array_fallback(self) -> None:
-        import dedekind.sequences as sequences
-
-        original_import = builtins.__import__
-
-        def selective_import(name, globals=None, locals=None, fromlist=(), level=0):
-            if name.endswith("_dedekind") and "path_from_array" in tuple(fromlist):
-                raise ImportError("simulated missing path_from_array")
-            return original_import(name, globals, locals, fromlist, level)
-
-        with mock.patch("builtins.__import__", side_effect=selective_import):
-            reloaded = importlib.reload(sequences)
-            self.assertIsNone(reloaded.path_from_array)
-
-        importlib.reload(sequences)
-
-    def test_sequences_reload_without_numpy_marks_numpy_unavailable(self) -> None:
-        import dedekind.sequences as sequences
-
-        original_import = builtins.__import__
-
-        def selective_import(name, globals=None, locals=None, fromlist=(), level=0):
-            if name == "numpy":
-                raise ImportError("simulated missing numpy")
-            return original_import(name, globals, locals, fromlist, level)
-
-        with mock.patch("builtins.__import__", side_effect=selective_import):
-            reloaded = importlib.reload(sequences)
-            self.assertFalse(reloaded._HAS_NUMPY)
-
-        importlib.reload(sequences)
-
-    def test_sequences_reload_without_pandas_marks_pandas_unavailable(self) -> None:
-        import dedekind.sequences as sequences
-
-        original_import = builtins.__import__
-
-        def selective_import(name, globals=None, locals=None, fromlist=(), level=0):
-            if name == "pandas":
-                raise ImportError("simulated missing pandas")
-            return original_import(name, globals, locals, fromlist, level)
-
-        with mock.patch("builtins.__import__", side_effect=selective_import):
-            reloaded = importlib.reload(sequences)
-            self.assertFalse(reloaded._HAS_PANDAS)
-
-        importlib.reload(sequences)
-
-
 class DedekindPackageExportsTest(unittest.TestCase):
     """Test package-level exports and lazy submodule loading."""
-
-    def test_lazy_submodule_access_optional(self) -> None:
-        # Some CI packaging paths may not include pure-Python submodules.
-        # If available, lazy-loading should succeed and expose sequence helpers.
-        if hasattr(dedekind, "sequences"):
-            self.assertTrue(callable(dedekind.sequences.path_from_range))
 
     def test_unknown_lazy_attribute_raises(self) -> None:
         with self.assertRaises(AttributeError):
             _ = dedekind.not_a_real_attribute
-
-    def test_lazy_submodule_missing_maps_to_attribute_error(self) -> None:
-        with mock.patch("importlib.import_module") as import_module:
-            import_module.side_effect = ModuleNotFoundError(
-                "No module named 'dedekind.sequences'"
-            )
-            import_module.side_effect.name = "dedekind.sequences"
-            with self.assertRaises(AttributeError):
-                dedekind.__getattr__("sequences")
-
-    def test_lazy_submodule_transitive_import_error_is_not_swallowed(self) -> None:
-        with mock.patch("importlib.import_module") as import_module:
-            import_module.side_effect = ModuleNotFoundError(
-                "No module named 'numpy'"
-            )
-            import_module.side_effect.name = "numpy"
-            with self.assertRaises(ModuleNotFoundError):
-                dedekind.__getattr__("sequences")
-
-    def test_init_reload_frame_to_paths_import_fallback(self) -> None:
-        original_import = builtins.__import__
-
-        def selective_import(name, globals=None, locals=None, fromlist=(), level=0):
-            if (
-                name in {"sequences", "dedekind.sequences"}
-                and "frame_to_paths" in tuple(fromlist)
-                and level == 1
-            ):
-                raise ImportError("simulated missing sequences module")
-            return original_import(name, globals, locals, fromlist, level)
-
-        with mock.patch("builtins.__import__", side_effect=selective_import):
-            reloaded = importlib.reload(dedekind)
-            self.assertIsNone(reloaded.frame_to_paths)
-
-        importlib.reload(dedekind)
 
     def test_init_reload_without_extension_raises_import_error(self) -> None:
         original_import = builtins.__import__
@@ -363,13 +180,8 @@ class DedekindPackageExportsTest(unittest.TestCase):
         result = dedekind.path_from_array(arr)
         self.assertEqual(result, [1, 2, 3])
 
-    def test_dual_aliases_are_disambiguated(self) -> None:
+    def test_dual_alias_is_native(self) -> None:
         self.assertIs(dedekind.Dual, dedekind.CppDual)
-        self.assertIsNot(dedekind.Dual, dedekind.DSLDual)
-
-    def test_dsl_dual_alias_works_with_dual_derivative(self) -> None:
-        value, derivative = dedekind.dual_derivative(lambda x: x * x + x, 3.0)
-        self.assertEqual((value, derivative), (12.0, 7.0))
 
 
 class DedekindComplexTest(unittest.TestCase):
