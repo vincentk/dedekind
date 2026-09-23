@@ -16,11 +16,11 @@ the #886 cleanup; the handle-only surface will grow its own demos later.
 ## Payload definition
 
 The notebook exercises the native Python facade:
-
 - `ordered_set_roundtrip(values)`
 - `unordered_set_roundtrip(values)`
 - `path_from_range(values)`
-
+- canonical sets (`𝔹`, `ℕ`, `Nat`) and native membership
+- `ext(universe)` through the native classifier
 ### Happy-path payload
 
 Inputs:
