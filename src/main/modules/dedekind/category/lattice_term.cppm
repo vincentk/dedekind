@@ -299,10 +299,12 @@ namespace detail_lattice_term {
  *  (@c IsIdempotentLeaf<D> and default-constructible, so a boundary @c ⊥ / @c ⊤
  *  or a DNF over type-determined leaves), else the @c Fallback (the unreduced
  *  node) built @b lazily from the forwarded operands.
- *  @details The fallback is built @b only in the @c else branch, so the
- * collapse path materializes nothing and the fail-safe is a prvalue (no eager
- * temporary, no const-ref copy); the deferral is forwarded args + @c if @c
- * constexpr, @b not a closure.
+ *  @details The fallback is built @b only in the @c else branch.  The collapse
+ *  path therefore constructs no fallback at all.  The deferral is forwarded
+ *  args plus @c if @c constexpr, @b not a closure.  The helper takes no
+ *  pre-built fallback by const-ref, so it copies no fallback @b temporary out.
+ *  (Constructing @c Fallback{args...} still copies the operands into the node,
+ *  exactly as the inline form did; those operand copies are not eliminated.)
  *  @note The fail-safe is this slice's intended behavior.  Rebuilding the
  *  distributed / pushed value from the sub-values is a @b separate net-positive
  *  follow-on (under #922), not this unification. */
