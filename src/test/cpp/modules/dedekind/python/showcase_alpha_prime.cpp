@@ -8,7 +8,7 @@
  * structural nugget exhibiting a different ingredient of the
  * type-system-as-set-DSL story:
  *
- *   1. intensional ℕ-comprehension (post-#620 @c element<...> bound scout),
+ *   1. intensional ℕ-comprehension (point-free @c ℕ @c | @c pred),
  *   2. compile-time membership query,
  *   3. set difference via @c set_difference (substituted from textbook ∖),
  *   4. cardinality reduction → 1 (intensional → extensional, halfspace
@@ -54,10 +54,10 @@ using namespace dedekind::algebra;
 using namespace dedekind::numbers;
 using namespace dedekind::order;
 
-// (1) Rule.  Intensional ℕ-comprehension via the `element<>` bound scout.
-//     Reads "the set of x ∈ ℕ such that x > 5" — bar on the LHS, the
-//     textbook membership shape.
-constexpr auto S = Set{element<ℕ> | element<ℕ> > bound<5>};
+// (1) Rule.  Intensional ℕ-comprehension, point-free: the ambient set ℕ
+//     refined by the projection predicate `π > fix(5)`.  Reads "the set of
+//     x ∈ ℕ such that x > 5" — the textbook membership shape.
+constexpr auto S = ℕ | (π > fix(5_c));
 
 // Post-#622: ℕ = 𝔸<Cardinality> is countable on the carrier axis
 // (ℵ_0), so NaturalLogic routes the comprehension @c S to
@@ -77,7 +77,7 @@ static_assert(S(7u));
 //     across `NegatedPredicate` (so `T & {<7}` would collapse to the literal
 //     interval [6, 6]) is a future DSL refinement; membership on T still
 //     constant-folds via the predicate.
-constexpr auto T = set_difference(S, Set{element<ℕ> | element<ℕ> > bound<10>});
+constexpr auto T = set_difference(S, ℕ | (π > fix(10_c)));
 static_assert(T(8u));    // 5 < 8 ≤ 10 ✓
 static_assert(!T(11u));  // 11 > 10 ✗
 
@@ -88,7 +88,7 @@ static_assert(!T(11u));  // 11 > 10 ✗
 //     `T & {== bound<6>}` form would land the same Singleton via the
 //     trimmed `T` and an equality-classifier reduction; both refinements
 //     are separate future slices.)
-constexpr Singleton<6> a = S & Set{element<ℕ> | element<ℕ> < bound<7>};
+constexpr Singleton<6> a = S & (ℕ | (π < fix(7_c)));
 
 // (5) Contradicted.  Complement-via-LEM: any S has empty meet with its
 //     complement.  `structured_and` reduces this to `Ø<Cardinality>` at
