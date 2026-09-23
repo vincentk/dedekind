@@ -778,7 +778,8 @@ The set operations are then the algebra on these predicates.
 Intersection (\cppinline{&}) and union (\cppinline{|}) compose these predicates through a generic lattice-law term reducer, which normalises them at instantiation time by the laws of the subset order $\mathrm{Sub}(T)$ (Listing~\ref{lst:pruning}); complement (\cppinline{~}) is handled separately, as an involution.
 A meet collapses to the greatest lower bound, a join to the least upper bound.
 For example, the two oppositely directed halfspaces $\{x < 5\}$ and $\{x > -5\}$ are incomparable, so their meet is the bounded interval $(-5, 5)$ that is their glb, and the carrier supplies only how to compute the bound (two same-direction halfspaces are comparable, and their meet is again a halfspace).
-Under the classical logic a plain complement pair collapses by type: $a \wedge \neg a$ to \cppinline{Ø} (non-contradiction) and $a \vee \neg a$ to the universe (excluded middle).
+Under the classical logic a plain complement pair over a value-determined leaf, one whose value is fixed by its type, collapses: $a \wedge \neg a$ to \cppinline{Ø} (non-contradiction) and $a \vee \neg a$ to the universe (excluded middle).
+A runtime-stateful leaf is left unreduced, since a same-type pair need not be genuine complements once values differ.
 A partial logic such as Kleene's $K_3$ declines the collapse, since $a \wedge \neg a$ can sit at the interior Unknown: its negation stays involutive ($\neg\neg A = A$) but is not a full complement.
 
 The correspondence is exact on the decidable track, and it is what makes the algebra optimizable.

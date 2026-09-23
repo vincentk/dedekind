@@ -749,6 +749,19 @@ inline constexpr bool idempotent_leaf_v<Join<A, B>> =
 template <typename A>
 inline constexpr bool idempotent_leaf_v<Not<A>> = idempotent_leaf_v<A>;
 
+/** @concept IsIdempotentLeaf
+ *  @brief @c T's values are determined by its type, so a @b type-only lattice
+ *  law (@c X∧X=X idempotence, @c a∧¬a=⊥ complement) collapses @b soundly on it:
+ *  two same-type instances are necessarily the same value.  A runtime-stateful
+ *  leaf (say a @c SingletonSet holding a value, or a predicate with an
+ *  @c expected field) is @b not idempotent, so those laws must not fire on it,
+ *  else @c Meet{S{7},¬S{3}} would wrongly collapse to @c ⊥.  This is the
+ *  value-safety gate the type-level reducer shares with the value-first
+ *  @c :lattice_term reducer (#922).  Recursive over @c Meet / @c Join / @c Not
+ *  through @c idempotent_leaf_v. */
+export template <typename T>
+concept IsIdempotentLeaf = idempotent_leaf_v<T>;
+
 /** @brief Law induced by a @b (meet/join-)semilattice: idempotence @c X∧X=X /
  *  @c X∨X=X.  Structural: it holds for the lattice operation itself, so it does
  *  not depend on the carrier's order.  It fires even for order-incomparable
@@ -756,7 +769,7 @@ inline constexpr bool idempotent_leaf_v<Not<A>> = idempotent_leaf_v<A>;
  *  leaf (two same-type-but-distinct instances) is not collapsed. */
 export template <typename RA, typename RB>
 consteval auto idempotent_law() {
-  if constexpr (std::same_as<RA, RB> && idempotent_leaf_v<RA>) {
+  if constexpr (std::same_as<RA, RB> && IsIdempotentLeaf<RA>) {
     return std::type_identity<RA>{};
   } else {
     return std::type_identity<law_inactive>{};
@@ -790,9 +803,9 @@ export template <typename RA, typename RB>
 consteval auto meet_structural_absorption_law() {
   if constexpr (has_mixed_carrier_v<Meet<RA, RB>>) {
     return std::type_identity<law_inactive>{};  // mixed carrier ⟹ fail closed
-  } else if constexpr (is_join_containing_v<RA, RB> && idempotent_leaf_v<RA>) {
+  } else if constexpr (is_join_containing_v<RA, RB> && IsIdempotentLeaf<RA>) {
     return std::type_identity<RA>{};  // a ∧ (a ∨ b) = a
-  } else if constexpr (is_join_containing_v<RB, RA> && idempotent_leaf_v<RB>) {
+  } else if constexpr (is_join_containing_v<RB, RA> && IsIdempotentLeaf<RB>) {
     return std::type_identity<RB>{};  // (a ∨ b) ∧ a = a
   } else {
     return std::type_identity<law_inactive>{};
@@ -805,9 +818,9 @@ export template <typename RA, typename RB>
 consteval auto join_structural_absorption_law() {
   if constexpr (has_mixed_carrier_v<Join<RA, RB>>) {
     return std::type_identity<law_inactive>{};  // mixed carrier ⟹ fail closed
-  } else if constexpr (is_meet_containing_v<RA, RB> && idempotent_leaf_v<RA>) {
+  } else if constexpr (is_meet_containing_v<RA, RB> && IsIdempotentLeaf<RA>) {
     return std::type_identity<RA>{};  // a ∨ (a ∧ b) = a
-  } else if constexpr (is_meet_containing_v<RB, RA> && idempotent_leaf_v<RB>) {
+  } else if constexpr (is_meet_containing_v<RB, RA> && IsIdempotentLeaf<RB>) {
     return std::type_identity<RB>{};
   } else {
     return std::type_identity<law_inactive>{};
@@ -1045,7 +1058,11 @@ inline constexpr bool is_complement_pair_v =
  *  Gated on the carrier being complemented under @c Ord; else inactive. */
 export template <typename RA, typename RB, typename Ord>
 consteval auto meet_complement_law() {
-  if constexpr (is_complement_pair_v<RA, RB> &&
+  // @c IsIdempotent gate: @c a∧¬a=⊥ is a type-only match, so it is sound only
+  // when the leaves are value-determined; a runtime-stateful pair like
+  // @c S{7}∧¬S{3} matches the type pair but is @b not empty (#922).
+  if constexpr (is_complement_pair_v<RA, RB> && IsIdempotentLeaf<RA> &&
+                IsIdempotentLeaf<RB> &&
                 is_complemented_lattice_for_v<carrier_of_t<RA>, Ord>) {
     return std::type_identity<LatticeBottom<
         carrier_of_t<RA>, resolved_order_t<carrier_of_t<RA>, Ord>>>{};
@@ -1057,7 +1074,10 @@ consteval auto meet_complement_law() {
 /** @brief The join dual: @c a∨¬a→⊤ (excluded middle). */
 export template <typename RA, typename RB, typename Ord>
 consteval auto join_complement_law() {
-  if constexpr (is_complement_pair_v<RA, RB> &&
+  // @c IsIdempotent gate (see @c meet_complement_law): @c a∨¬a=⊤ collapses
+  // soundly only on value-determined leaves.
+  if constexpr (is_complement_pair_v<RA, RB> && IsIdempotentLeaf<RA> &&
+                IsIdempotentLeaf<RB> &&
                 is_complemented_lattice_for_v<carrier_of_t<RA>, Ord>) {
     return std::type_identity<LatticeTop<
         carrier_of_t<RA>, resolved_order_t<carrier_of_t<RA>, Ord>>>{};
