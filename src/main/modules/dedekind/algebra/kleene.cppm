@@ -53,9 +53,11 @@ using namespace dedekind::sets;
  *
  *  The @c Finite cardinality tag is explicit: @c Ternary is a three-element
  *  carrier, but the @c 𝔸 primary defaults @c C to @c ℵ_0, which would report
- *  this universe as countably infinite (and route @c NaturalLogic through
- *  @c Kleene rather than the decided @c Boole membership classifier this
- *  ambient wants).  Mirrors the @c 𝔸<bool> @c = @c UniversalSet<bool, Boole,
+ *  this finite universe as countably infinite.  Only the cardinality metadata
+ *  is corrected: the classifier species is @c Boole either way, since
+ *  @c NaturalLogic maps every @b countable cardinality (@c Finite and @c ℵ_0
+ *  alike) to @c Boole, reserving @c Kleene for the uncountable.  Mirrors the
+ *  @c 𝔸<bool> @c = @c UniversalSet<bool, Boole,
  *  Finite> override in @c :boundaries, but kept local here so the Kleene
  *  carrier's cardinality stays a downstream (:algebra) fact rather than being
  *  pushed up into @c :sets. */
