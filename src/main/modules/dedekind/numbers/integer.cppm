@@ -152,7 +152,7 @@ static_assert(
 // multiplicative @c GroupScout::operator|(Halfspace) pipe in
 // @c :algebra:scout_algebra both gate on
 // @c IsAbelianGroup<T, std::multiplies<T>>, so ℤ is correctly
-// removed from the candidate set when callers spell @c in<ℤ> @c *
+// removed from the candidate set when callers spell @c element<ℤ> @c *
 // @c bound<k>.  Use ℚ (Rational<default_integer>, the field of
 // fractions of ℤ; pinned at @c rational.cppm) for multiplicative
 // halfspace scaling.  Cross-partition invariant pinned in main per

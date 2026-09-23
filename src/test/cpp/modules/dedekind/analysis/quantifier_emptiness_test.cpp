@@ -33,11 +33,15 @@ TEST_CASE("Quantifier machinery: Ø == comprehension, two regimes",
   //     to the halfspace structured_and specialization (dedekind.order), which
   //     collapses two disjoint halfspaces to Ø at the TYPE level.  This is the
   //     counterexample set of ∀x>5. x≥3, namely {x>5 ∧ x<3}, decided empty at
-  //     compile time.  We spell the bare `&` (not a set(...) wrapper): the open
-  //     combinator's specialization is reachable only at a call site below
-  //     order, and an upstream sets-layer wrapper would freeze the lookup.
-  constexpr auto gt5 = Set{in<ℕ> | in<ℕ> > bound<5>};
-  constexpr auto lt3 = Set{in<ℕ> | in<ℕ> < bound<3>};
+  //     compile time.  The operands are Set-wrapped halfspaces; the MEET is
+  //     spelled bare (no `set(gt5 & lt3, …)` around the result).  `Set{…} &
+  //     Set{…}` reaches the order-layer halfspace structured_and via ADL and
+  //     collapses the disjoint pair to `Ø<Cardinality>`.  (Bare `Above<5> &
+  //     Below<3>` would land on the order layer's
+  //     `EmptyPredicate<Cardinality>`, which has no `== Ø<Cardinality>`, hence
+  //     the wrapper.)
+  constexpr auto gt5 = Set{ℕ | (π > fix(5_c))};
+  constexpr auto lt3 = Set{ℕ | (π < fix(3_c))};
   static_assert(Ø<Cardinality>{} == (gt5 & lt3),
                 "{x>5 ∧ x<3} collapses to Ø at compile time (order layer).");
 

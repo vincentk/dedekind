@@ -46,7 +46,7 @@
  *  - @c operator+(GroupScout, @c Bound<k>) and
  *    @c operator*(GroupScout, @c Bound<k>) (Slice 4): @b composition
  *    factories lifting the above to a @c GroupScout LHS, so the
- *    canonical @b affine syntax @c (in<T> @c * @c bound<m>) @c + @c
+ *    canonical @b affine syntax @c (element<T> @c * @c bound<m>) @c + @c
  *    bound<k> = @c λx.\,m*x @c + @c k compiles.  Composition is
  *    @b recursive: nesting any depth of @c GroupScout layers (e.g.\
  *    @c ((x @c + @c 1) @c * @c 2) @c + @c 3) constructs and pipes
@@ -89,7 +89,7 @@
  * @section scout_algebra__Out_Of_Scope_For_This_Partition_Today
  *
  *  - Composition of a ring-retract scout with an additive shift
- *    (e.g.\ @c bound<2> @c * @c in<ℤ> @c + @c bound<1> for the
+ *    (e.g.\ @c bound<2> @c * @c element<ℤ> @c + @c bound<1> for the
  *    issue's canonical witness @c {2n+1 @c | @c n @c > @c 5}):
  *    the additive composition pipe today expects the inner's
  *    result predicate to be a @c Halfspace exposing @c pivot @c /
@@ -307,7 +307,7 @@ concept IsOrderedMultiplicativeGroup =
  * @concept IsOrderedCommutativeRing
  * @brief A commutative ring whose carrier is ordered under the
  *        additive translation marker.  The gate for ring-retract
- *        scaling (#664 Slice 5): @c bound<m> @c * @c in<ℤ> when @c T
+ *        scaling (#664 Slice 5): @c bound<m> @c * @c element<ℤ> when @c T
  *        is a ring but not a field.
  *
  * @details
@@ -373,8 +373,8 @@ concept HasAffineImageShape = requires {
 // is now @c AffineImageOfHalfspace<T, M, /*B=*/T-typed-zero, SrcHS>; the
 // Slice-5 ring-retract pipe instantiates it that way (no offset), and a
 // new composition pipe folds outer additive shifts into the offset so
-// the canonical witness @c Set{bound<2> @c * @c in<ℤ> @c + @c bound<1>
-// @c | @c (in<ℤ> @c > @c bound<5>)} reaches a single predicate.
+// the canonical witness @c Set{bound<2> @c * @c element<ℤ> @c + @c bound<1>
+// @c | @c (element<ℤ> @c > @c bound<5>)} reaches a single predicate.
 export template <typename T, auto M, auto B, typename SourceHalfspace>
 struct AffineImageOfHalfspace;
 
@@ -463,7 +463,7 @@ struct GroupScout {
    * action) and @c Inner exposing @c AmbientType / @c ambient (i.e.\
    * a @c BoundScout).  Slice 3 adds the multiplicative case
    * (@c Op @c = @c std::multiplies<T>); composition of scouts
-   * (e.g.\ @c bound<2> @c * @c in<ℤ> @c + @c bound<1>) is further
+   * (e.g.\ @c bound<2> @c * @c element<ℤ> @c + @c bound<1>) is further
    * follow-up.
    */
   template <auto Pivot, dedekind::order::Direction D,
@@ -630,8 +630,8 @@ struct GroupScout {
    *        @c * @c g(x) @c + @c B_inner.
    *
    * @details
-   * The canonical-witness shape: @c Set{bound<M> @c * @c in<ℤ> @c +
-   * @c bound<K> @c | @c (in<ℤ> @c ⋈ @c bound<p>)} on @c ℤ.  Inner
+   * The canonical-witness shape: @c Set{bound<M> @c * @c element<ℤ> @c +
+   * @c bound<K> @c | @c (element<ℤ> @c ⋈ @c bound<p>)} on @c ℤ.  Inner
    * ring-retract produces @c AffineImageOfHalfspace<T, M, B_inner,
    * SrcHS>; outer additive shift by @c Element folds into the offset:
    *
@@ -876,7 +876,7 @@ struct AffineImageOfHalfspace {
 
 // The factory operator overloads are declared in @c dedekind::sets ---
 // the namespace of the @b first operand @c BoundScout --- so they
-// participate in ADL when callers write @c in<T> @c + @c bound<k>
+// participate in ADL when callers write @c element<T> @c + @c bound<k>
 // without an explicit @c using @c dedekind::algebra::operator+
 // directive.  This mirrors @c :order:halfspace 's placement of
 // @c operator>(BoundScout,Bound) in @c dedekind::order (the namespace
@@ -884,7 +884,7 @@ struct AffineImageOfHalfspace {
 namespace dedekind::sets {
 
 /**
- * @brief Additive specialisation: @c in<T> @c + @c bound<k> →
+ * @brief Additive specialisation: @c element<T> @c + @c bound<k> →
  *        @c GroupScout<T, @c std::plus<T>, @c k, @c BoundScout<T>>.
  *
  * @details
@@ -893,7 +893,7 @@ namespace dedekind::sets {
  * convertibility check makes invalid @c K values fail in the
  * requires-clause rather than as hard errors during instantiation.
  *
- * Honest Rejection: writing @c in<ℕ> @c + @c bound<3> fails (ℕ is not
+ * Honest Rejection: writing @c element<ℕ> @c + @c bound<3> fails (ℕ is not
  * an additive group --- @c IsAdditiveGroup<Cardinality> @c ==
  * @c false), with the diagnostic naming the missing group axiom.
  *
@@ -912,7 +912,7 @@ constexpr auto operator+(BoundScout<Ambient>, dedekind::order::Bound<K>) {
 }
 
 /**
- * @brief Additive group subtraction: @c in<T> @c - @c bound<k> →
+ * @brief Additive group subtraction: @c element<T> @c - @c bound<k> →
  *        @c GroupScout<T, @c std::plus<T>, @c -k, @c BoundScout<T>>.
  *
  * @details
@@ -938,7 +938,7 @@ constexpr auto operator-(BoundScout<Ambient>, dedekind::order::Bound<K>) {
 }
 
 /**
- * @brief Multiplicative specialisation: @c in<T> @c * @c bound<k> →
+ * @brief Multiplicative specialisation: @c element<T> @c * @c bound<k> →
  *        @c GroupScout<T, @c std::multiplies<T>, @c k, @c BoundScout<T>>
  *        (#664 Slice 3).
  *
@@ -956,7 +956,7 @@ constexpr auto operator-(BoundScout<Ambient>, dedekind::order::Bound<K>) {
  * direction, @c k < 0 flips it (Upward ↔ Downward), @c k = 0 is
  * Honest-Rejected at the pipe.
  *
- * Honest Rejection: writing @c in<ℤ> @c * @c bound<3> fails (post-#674,
+ * Honest Rejection: writing @c element<ℤ> @c * @c bound<3> fails (post-#674,
  * @c IsAbelianGroup<SignedCardinality, std::multiplies> is @b false
  * --- the saturating ℤ proxy is a ring but @b not a field; ℤ has no
  * multiplicative inverses for non-units).  On ℚ the gate fires:
@@ -975,7 +975,7 @@ constexpr auto operator*(BoundScout<Ambient>, dedekind::order::Bound<K>) {
 }
 
 /**
- * @brief Ring-retract multiplicative scaling: @c in<T> @c * @c bound<k>
+ * @brief Ring-retract multiplicative scaling: @c element<T> @c * @c bound<k>
  *        for carriers that are commutative rings but @b not fields
  *        (#664 Slice 5).
  *
@@ -1018,7 +1018,7 @@ constexpr auto operator*(BoundScout<Ambient>, dedekind::order::Bound<K>) {
  * @details
  * Lifts the @c operator+ factory from @c BoundScout to any
  * @c GroupScout LHS, enabling the canonical @b affine syntax
- * @c (in<ℚ> @c * @c bound<m>) @c + @c bound<k> = @c λx.\,m*x @c + @c k
+ * @c (element<ℚ> @c * @c bound<m>) @c + @c bound<k> = @c λx.\,m*x @c + @c k
  * (or its multiplicative-outer twin below).  The result is a
  * @c GroupScout with the LHS as @c Inner --- recursion handled by
  * the composition pipe in @c GroupScout::operator|(Halfspace) above.

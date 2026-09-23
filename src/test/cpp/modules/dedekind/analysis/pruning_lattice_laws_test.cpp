@@ -41,8 +41,8 @@ TEST_CASE("complement-lattice absorbing laws collapse (𝔹 and ℕ)",
   {
     static_assert(
         dedekind::category::IsSet<decltype(ℕ)>);  // the universe IS an ETCS set
-    constexpr Above<5> gt_5 = in<ℕ> > bound<5>;   // {x > 5} ⊂ ℕ
-    constexpr AtMost<5> le_5 = ~gt_5;             // {x <= 5}, the complement
+    constexpr Above<5> gt_5 = ℕ | (π > fix(5_c));  // {x > 5} ⊂ ℕ
+    constexpr AtMost<5> le_5 = ~gt_5;              // {x <= 5}, the complement
     static_assert((le_5 | gt_5) == ℕ);  // | : round-trip to the universe (⊤)
     constexpr Ø<Cardinality> empty = le_5 & gt_5;  // & : the empty set (⊥)
     static_assert(Ø<Cardinality>{} == empty);

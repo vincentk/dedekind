@@ -524,9 +524,10 @@ static_assert(IsMonotone<std::decay_t<decltype(dedekind::numbers::embed_𝔹_ℕ
 // ───────────────────────────────────────────────────────────────────────────
 namespace dedekind::sets {
 
-// (The in<ℕ> % Modular<N> == bound<R> scout that reified Congruence<N,R> lived
-// here; retired with the S | P fold --- the point-free congruence fragment is
-// π % fix(N) == fix(R), materialised by the operator| bridge below.)
+// (The element<ℕ> % Modular<N> == bound<R> scout that reified Congruence<N,R>
+// lived here; retired with the S | P fold --- the point-free congruence
+// fragment is π % fix(N) == fix(R), materialised by the operator| bridge
+// below.)
 
 /**
  * @struct FiniteResidueSet

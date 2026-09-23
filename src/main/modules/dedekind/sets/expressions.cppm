@@ -268,7 +268,7 @@ struct MembershipBinding {
 
 /** @section expressions__BoundScout_and_Element__per_551
  *
- * @deprecated Scout algebra --- @c element<A> / @c in<A> / @c BoundScout and
+ * @deprecated Scout algebra --- @c element<A> / @c BoundScout and
  * the scout @c | (predicate) / @c % (re-bind) operators --- is @b no @b longer
  * part of the official @b Lwv grammar.  The official set-builder is the
  * point-free comprehension @c A @c | @c pred applied to the ambient set
@@ -363,47 +363,6 @@ export template <auto Ambient>
   requires dedekind::category::IsCharacteristic<
       std::remove_cvref_t<decltype(Ambient)>>
 inline constexpr BoundScout<Ambient> element{};
-
-/** @brief Soft alias @c in<Ambient> for @c element<Ambient> (#603) ---
- *  reads closer to the math @c Set{in<ℕ> @c | @c …} ≈ "the set of
- *  @c x @c ∈ @c ℕ such that …", saves four chars per scout, and keeps
- *  paper Listing 6 one-liner-friendly:
- *  @deprecated Not part of the official Lwv grammar; use the point-free
- *  comprehension @c A @c | @c pred instead (see the section note above).
- *
- *      inline constexpr auto S = Set{in<ℕ> | (in<ℕ> > bound<5>)};
- *
- *  This is a @b reference variable template binding @c in<Ambient> to
- *  the same @c BoundScout<Ambient> instance as @c element<Ambient> ---
- *  not a parallel default-constructed instance.  Address equality
- *  ( @c &in<A> @c == @c &element<A>) is verified by the
- *  @c static_assert below.  New code should use the point-free @c A @c | @c
- * pred form instead: scout algebra is @b deprecated (see the section note
- * above).
- *
- *  Disambiguation: this is a variable template at value-as-NTTP
- *  position ( @c in<Ambient>), structurally distinct from the ETCS
- *  free function @c dedekind::category::in(x, @c S) at call position.
- *  However: when @b both namespaces are pulled in via @c using
- *  @c namespace, unqualified-lookup of the name @c in is ambiguous --
- *  C++ name lookup happens before syntactic discrimination by argument
- *  shape.  Call-site fix: omit @c using @c namespace
- *  @c dedekind::category and spell category names fully qualified, or
- *  reach for the @c sets::in<...> qualified form.  Membership queries
- *  in the @c sets DSL idiomatically route through the set's own
- *  @c operator() (@c S(x)), sidestepping the conflict. */
-export template <auto Ambient>
-  requires dedekind::category::IsCharacteristic<
-               std::remove_cvref_t<decltype(Ambient)>>
-inline constexpr BoundScout<Ambient> const& in = element<Ambient>;
-
-// True-alias witness: @c in<A> and @c element<A> are the same object
-// (the reference variable template binds rather than default-
-// constructs).  Validates the docstring claim and pins the soft-
-// alias contract at the type level.
-static_assert(&in<UniversalSet<bool>{}> == &element<UniversalSet<bool>{}>,
-              "in<Ambient> is a reference alias for element<Ambient>: "
-              "same address, same instance.");
 
 /** @brief The universal predicate: accepts every element of T. */
 export template <typename T>
@@ -2189,10 +2148,11 @@ static_assert(IsSet<Comprehension<Ø<int>, all_in>>,
 /**
  * @brief @c π --- the point-free variable, a @b domain-less scout.
  *
- * @details Where @c in<ℕ> bakes the carrier into the scout's type, @c π leaves
- * it open.  A comparison @c π @c ⋈ @c fix(V) fixes only the @b shape (direction
- * and pivot) as an @c UnboundHalfspace / @c UnboundSingleton; a later
- * @c carrier @c | @c ... instantiates it at the carrier's @c Domain, reusing
+ * @details Where @c element<ℕ> bakes the carrier into the scout's type, @c π
+ * leaves it open.  A comparison @c π @c ⋈ @c fix(V) fixes only the @b shape
+ * (direction and pivot) as an @c UnboundHalfspace / @c UnboundSingleton; a
+ * later @c carrier @c | @c ... instantiates it at the carrier's @c Domain,
+ * reusing
  * @c Halfspace / @c Singleton.  @c π is the unary projection; the product
  * coordinates @c π1 / @c π2 follow with the relational surface (#783).
  *
