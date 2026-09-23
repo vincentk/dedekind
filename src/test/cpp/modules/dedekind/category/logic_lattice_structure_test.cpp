@@ -94,6 +94,11 @@ TEST_CASE(
     // Percent's bounds are registered (⊥ = 0, ⊤ = 100), so it is bounded.
     STATIC_REQUIRE(
         IsBoundedLattice<Percent::Ω, Percent::JoinOp, Percent::MeetOp>);
+    // Typed order-trait regression guard (#923): Percentage is not integral, so
+    // its transitivity / antisymmetry under std::less_equal<Percentage> are
+    // registered explicitly (mirroring Ternary, #933); this pins that the
+    // registration cannot silently regress.
+    STATIC_REQUIRE(category::IsPosetal<Percentage>);
     // 101 grades, so NOT complemented (interior grades uncomplemented).
     STATIC_REQUIRE(!IsBooleanLogic<Percent>);
   }

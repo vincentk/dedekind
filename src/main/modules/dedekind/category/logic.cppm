@@ -1261,6 +1261,36 @@ static_assert(is_decided<Kleene>(Ternary::True) &&
 static_assert(!is_decided<Kleene>(Ternary::Unknown),
               "K₃: the interior Unknown is undecided (outside Σ = {⊤,⊥})");
 
+/** @section logic__Percent_Order_Traits (#923)
+ *  @brief @c Percentage's @b typed order traits, mirroring the @c Ternary
+ *  registration (#933).  @c Percentage is a scoped struct (not
+ *  @c std::integral), so the @c :species blanket --- which registers
+ *  @c is_transitive_v / @c is_antisymmetric_v only for @c std::integral /
+ *  @c bool carriers --- does @b not cover it, and the @c category:: order
+ *  concepts (@c IsPosetal / @c IsPartRelation / @c IsThinCategory) default
+ *  @c Rel to the @b typed @c std::less_equal<Percentage> and query the traits
+ *  for that exact type.  @b Reflexivity is already supplied: @c Percentage is
+ *  @c std::totally_ordered (its defaulted @c operator<=> yields
+ *  @c std::strong_ordering), so the @c :species
+ *  @c totally_ordered @c std::less_equal<T> specialisation fires; only
+ *  transitivity / antisymmetry are outside the integral blanket and are
+ *  registered here.  Placed at the END of the partition, after the sibling
+ *  @c Ternary registrations, and @b before the @c Percent bounds / bridge
+ *  witnesses that consume the resulting order. */
+template <>
+inline constexpr bool is_transitive_v<Percentage, std::less_equal<Percentage>> =
+    true;
+template <>
+inline constexpr bool
+    is_antisymmetric_v<Percentage, std::less_equal<Percentage>> = true;
+
+static_assert(
+    is_reflexive_v<Percentage, std::less_equal<Percentage>> &&
+        is_transitive_v<Percentage, std::less_equal<Percentage>> &&
+        is_antisymmetric_v<Percentage, std::less_equal<Percentage>>,
+    "Percent is a total order under the typed std::less_equal<Percentage> "
+    "(reflexivity via the :species totally_ordered specialisation)");
+
 /** @section logic__Percent_Bounds (#923)
  *  @brief The @c Percent lattice bounds, backed by a computed witness over the
  *  poles.  @c ⊥ @c = @c Percentage{0} is the join (@c ∨ @c = @c Sup) identity,
