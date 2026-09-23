@@ -57,7 +57,7 @@ using namespace dedekind::order;
 // (1) Rule.  Intensional ℕ-comprehension, point-free: the ambient set ℕ
 //     refined by the projection predicate `π > fix(5)`.  Reads "the set of
 //     x ∈ ℕ such that x > 5" — the textbook membership shape.
-constexpr auto S = ℕ | (π > fix(5_c));
+constexpr auto S = Set{ℕ | (π > fix(5_c))};
 
 // Post-#622: ℕ = 𝔸<Cardinality> is countable on the carrier axis
 // (ℵ_0), so NaturalLogic routes the comprehension @c S to
@@ -77,7 +77,7 @@ static_assert(S(7u));
 //     across `NegatedPredicate` (so `T & {<7}` would collapse to the literal
 //     interval [6, 6]) is a future DSL refinement; membership on T still
 //     constant-folds via the predicate.
-constexpr auto T = set_difference(S, ℕ | (π > fix(10_c)));
+constexpr auto T = set_difference(S, Set{ℕ | (π > fix(10_c))});
 static_assert(T(8u));    // 5 < 8 ≤ 10 ✓
 static_assert(!T(11u));  // 11 > 10 ✗
 
@@ -88,7 +88,7 @@ static_assert(!T(11u));  // 11 > 10 ✗
 //     `T & {== bound<6>}` form would land the same Singleton via the
 //     trimmed `T` and an equality-classifier reduction; both refinements
 //     are separate future slices.)
-constexpr Singleton<6> a = S & (ℕ | (π < fix(7_c)));
+constexpr Singleton<6> a = S & Set{ℕ | (π < fix(7_c))};
 
 // (5) Contradicted.  Complement-via-LEM: any S has empty meet with its
 //     complement.  `structured_and` reduces this to `Ø<Cardinality>` at
