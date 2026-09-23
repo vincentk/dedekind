@@ -80,13 +80,15 @@ constexpr FiniteSeq<Edge, Cap> materialise(Pred edge) {
  * by the carrier @c S itself (@c semiring_ops<S>) rather than exposed as
  * parameters, so @c cost is the only captured state.  Models the @c fold op
  * shape @c op(acc&,Edge).
+ *
+ * @note The ops are the carrier's canonical semiring (the @c IsSemiring gate).
+ * @c cost is a bare BINARY callable (edge → weight, e.g.\ the raw lambda the
+ * necklace showcase passes) with no @c Domain / @c Codomain, so it is gated
+ * structurally (a @c requires on @c cost), NOT by @c IsArrow, which models a
+ * unary morphism and would reject every caller.
  */
 export template <typename S, std::size_t Cap,
                  typename CostFn = S (*)(std::size_t, std::size_t)>
-// The ops are the carrier's canonical semiring (@c IsSemiring gate); @c cost
-// is a bare BINARY callable (edge → weight, a raw lambda as the necklace
-// showcase passes) with no Domain/Codomain, so it is gated structurally, NOT
-// by @c IsArrow (which models a unary morphism and would reject every caller).
   requires dedekind::category::IsSemiring<
                S, typename dedekind::algebra::semiring_ops<S>::add,
                typename dedekind::algebra::semiring_ops<S>::mult> &&
@@ -185,12 +187,13 @@ struct CriticalPathState {
  * WRONGLY store @c cand instead of the sum.  @c MaxPlus is selective; the gate
  * is only the tight-enough idempotence proxy pending a selectivity concept
  * (FIXME(#769), as @ref annotate states).
+ *
+ * @note As in @ref Relax, @c cost is a bare binary callable gated structurally,
+ * not via @c IsArrow; the gate also requires the selective @c != that the
+ * argmax test needs.
  */
 export template <typename S, std::size_t Cap,
                  typename CostFn = S (*)(std::size_t, std::size_t)>
-// Idempotent-dioid ops (@c IsTropical, required by the selective update below)
-// + bare-callable @c cost gate as @ref Relax (a raw lambda, not an @c IsArrow
-// morphism), plus the selective @c != the argmax test needs.
   requires dedekind::algebra::IsTropical<
                S, typename dedekind::algebra::semiring_ops<S>::add,
                typename dedekind::algebra::semiring_ops<S>::mult> &&
