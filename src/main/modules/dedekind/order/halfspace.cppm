@@ -321,11 +321,16 @@ struct Halfspace : dedekind::sets::SetExpr<Halfspace<T, Pivot, D, S, L>, T, L> {
    *  @b identical tag; what @c NaturalLogic reads off is the @b countability
    *  @b class (countable ⟹ @c Boole, uncountable ⟹ @c Kleene), and parity with
    *  the scout holds whenever the carrier axis and the ambient @c C share that
-   *  class.  Every carrier that can form a meaningful order-halfspace does:
-   *  ℕ/ℤ/ℚ are countable, ℝ (@c QuadraticReal) is the continuum.  The tags may
-   *  still differ within a class, e.g.\ @c 𝔸<bool> carries @c Finite
-   *  (@c boundaries.cppm) while this fallback maps @c bool to @c ℵ_0 --- both
-   *  countable, same @c Boole verdict.  Only a @b deliberately incoherent tag
+   *  class.  The @b canonical and @b self-declaring carriers satisfy this:
+   *  ℕ/ℤ via @c IsRingIntegral, ℚ (and any carrier that self-declares) via its
+   *  own @c cardinality_type, and ℝ (@c QuadraticReal) as the continuum.  A
+   *  @b custom ordered carrier that is countable but neither @c IsRingIntegral
+   *  nor self-declaring falls through to @c ℶ_1 here, even though its default
+   *  @c 𝔸 ambient carries @c ℵ_0; it must self-declare (as ℚ does) to classify
+   *  decidably.  The exact tags may also differ within a class, e.g.\
+   *  @c 𝔸<bool> carries @c Finite (@c boundaries.cppm) while this fallback maps
+   *  @c bool to @c ℵ_0 --- both countable, same @c Boole verdict.  Only a
+   *  @b deliberately incoherent tag
    *  that crosses classes is not honoured: an int carrier advertised as the
    *  continuum (@c UniversalSet<int,Boole,ℶ_1>, the Mandelbrot stand-in at
    *  @c computability_test.cpp) classifies @c ℵ_0 by its integer carrier while
