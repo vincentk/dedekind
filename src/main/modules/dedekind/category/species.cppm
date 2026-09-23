@@ -1104,13 +1104,25 @@ inline constexpr bool
  * T @c × @c T @c → @c T ops that reach the whole ladder and never dangle on
  * temporaries.  They compute the ternary directly (no niebloid inside).
  *
+ * @b Deliberate @b split (@b not a replacement): the @c std::ranges::max /
+ * @c min niebloids stay as the type-level markers for the @b lenient
+ * order-lattice concepts (@c IsOrderLatticeOperations etc.), where operands are
+ * lvalues and only @c convertible_to<T> is checked; @c Sup / @c Inf are the
+ * value-returning ops for the @b strict monoid / bounded-lattice rung, where
+ * @c IsClosedUnder needs @c same_as<T>.  Full migration of the niebloid sites
+ * is tracked separately.
+ *
  * FIXME(#934): migrate the remaining carrier lattice-op sites off the
  * reference-returning @c std::ranges::max / @c std::ranges::min niebloids to
  * @c Sup / @c Inf (latent dangling-on-temporaries footgun; type-level markers
- * today, so cleanup rather than a live bug). */
+ * today, so cleanup rather than a live bug).  #934 also folds in the identical
+ * latent float-miscertification the pre-existing niebloid law blanket carries
+ * (see the @c !std::floating_point gate on the @c Sup / @c Inf laws below). */
 /** @brief Join @c ∨: the least upper bound on a chain (@c max), returned
  *  @b by value as an honest @c T @c × @c T @c → @c T. */
 export struct Sup {
+  /** @brief Value-returning join: returns @c max(a,b) by value (a copy of the
+   *  winner), never a reference into an argument. */
   template <std::totally_ordered T>
   constexpr T operator()(const T& a, const T& b) const {
     return a < b ? b : a;
@@ -1119,6 +1131,8 @@ export struct Sup {
 /** @brief Meet @c ∧: the greatest lower bound on a chain (@c min), returned
  *  @b by value.  Value-returning sibling of @c Sup. */
 export struct Inf {
+  /** @brief Value-returning meet: returns @c min(a,b) by value (a copy of the
+   *  winner), never a reference into an argument. */
   template <std::totally_ordered T>
   constexpr T operator()(const T& a, const T& b) const {
     return a < b ? a : b;
@@ -1128,26 +1142,58 @@ export struct Inf {
 // Sup (∨) / Inf (∧) carry exactly the lattice laws of the std::ranges::max /
 // min niebloids above; re-registered here since the concepts are trait-gated
 // (IsIdempotent / IsCommutative / ... look up is_*_v, they are not structural).
+//
+// The !std::floating_point<T> gate is load-bearing, NOT decoration: a raw IEEE
+// float is std::totally_ordered syntactically, so Sup<double> compiles, but NaN
+// breaks the laws --- Sup{}(NaN, x) = NaN (NaN < x is false, returns a) whereas
+// Sup{}(x, NaN) = x, so max/min are NOT commutative on double.  Without the
+// gate this blanket would falsely certify IsDistributiveLattice<double, ...>,
+// contradicting the library's raw-float rejection (NaN breaks totality; there
+// is no double lattice carrier).  Scoped enums / integrals are unaffected.
 template <typename T>
+  requires(!std::floating_point<T>)
 inline constexpr bool is_idempotent_v<T, Sup> = true;
 template <typename T>
+  requires(!std::floating_point<T>)
 inline constexpr bool is_associative_v<T, Sup> = true;
 template <typename T>
+  requires(!std::floating_point<T>)
 inline constexpr bool is_commutative_v<T, Sup> = true;
 template <typename T>
+  requires(!std::floating_point<T>)
 inline constexpr bool is_idempotent_v<T, Inf> = true;
 template <typename T>
+  requires(!std::floating_point<T>)
 inline constexpr bool is_associative_v<T, Inf> = true;
 template <typename T>
+  requires(!std::floating_point<T>)
 inline constexpr bool is_commutative_v<T, Inf> = true;
 template <typename T>
+  requires(!std::floating_point<T>)
 inline constexpr bool is_distributive_v<T, Sup, Inf> = true;
 template <typename T>
+  requires(!std::floating_point<T>)
 inline constexpr bool is_distributive_v<T, Inf, Sup> = true;
 template <typename T>
+  requires(!std::floating_point<T>)
 inline constexpr bool is_absorptive_v<T, Sup, Inf> = true;
 template <typename T>
+  requires(!std::floating_point<T>)
 inline constexpr bool is_absorptive_v<T, Inf, Sup> = true;
+
+// Negative witness (co-located; :species is upstream of :total, so assert the
+// trait directly, not IsDistributiveLattice): raw floats are rejected because
+// NaN breaks max/min commutativity, so there is no double lattice carrier.
+static_assert(!is_commutative_v<double, Sup>,
+              "raw floats rejected: NaN breaks max/min commutativity (no "
+              "double lattice carrier)");
+static_assert(!is_commutative_v<double, Inf>,
+              "raw floats rejected: NaN breaks max/min commutativity (no "
+              "double lattice carrier)");
+// Positive-preserved witness: every non-float ordered carrier keeps the laws.
+static_assert(is_commutative_v<int, Sup> && is_idempotent_v<int, Inf>,
+              "int (and every non-float ordered carrier) keeps the Sup/Inf "
+              "lattice laws");
 
 /** @section species__Boolean_Ring_Morphisms (XOR, AND) */
 
