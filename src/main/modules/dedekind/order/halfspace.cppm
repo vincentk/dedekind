@@ -272,16 +272,20 @@ struct carrier_cardinality {
       std::conditional_t<std::is_enum_v<T> || IsRingIntegral<T>, ℵ_0, ℶ_1>;
 };
 template <typename T>
-  requires requires { typename T::cardinality_type; }
+  requires IsCardinality<typename T::cardinality_type>
 struct carrier_cardinality<T> {
-  // Collapse a self-declared class to the COUNTABILITY BOUND (never pass a bare
-  // @c Finite through): @c ExtensionalCardinal declares @c Finite, and letting
-  // that reach @c Halfspace::cardinality_type would trip @c elevate_meet's
-  // Finite "return bare" path for an @c ExtensionalCardinal halfspace.
-  // Countable (incl.\ @c Finite) ⟹ @c ℵ_0, uncountable ⟹ @c ℶ_1; @c
-  // NaturalLogic's decidable/@c Boole verdict is unchanged by the countable
-  // collapse.
-  using type = std::conditional_t<T::cardinality_type::is_countable, ℵ_0, ℶ_1>;
+  // Fires only when the self-declared alias is a genuine @c IsCardinality (a
+  // carrier with an unrelated / incomplete @c cardinality_type falls to the
+  // primary, not a hard error), and classifies it with the canonical
+  // @c IsCountable concept, as @c NaturalLogic does.  Collapse to the
+  // COUNTABILITY BOUND (never pass a bare @c Finite through): @c
+  // ExtensionalCardinal declares @c Finite, and letting that reach @c
+  // Halfspace::cardinality_type would trip @c elevate_meet's Finite "return
+  // bare" path for an @c ExtensionalCardinal halfspace.  Countable (incl.\
+  // @c Finite) ⟹ @c ℵ_0, uncountable ⟹ @c ℶ_1; @c NaturalLogic's decidable/
+  // @c Boole verdict is unchanged by the countable collapse.
+  using type =
+      std::conditional_t<IsCountable<typename T::cardinality_type>, ℵ_0, ℶ_1>;
 };
 template <typename T>
 using carrier_cardinality_t = typename carrier_cardinality<T>::type;
