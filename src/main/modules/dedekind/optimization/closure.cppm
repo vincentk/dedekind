@@ -94,8 +94,12 @@ export template <typename S, std::size_t Cap,
              { cost(u, u) } -> std::convertible_to<S>;
            }
 struct Relax {
+  /** @brief The carrier's canonical additive op @c ⊕ (@c semiring_ops<S>). */
   using Add = typename dedekind::algebra::semiring_ops<S>::add;
+  /** @brief The carrier's canonical multiplicative op @c ⊗
+   *  (@c semiring_ops<S>). */
   using Mult = typename dedekind::algebra::semiring_ops<S>::mult;
+  /** @brief The edge-cost function @c c(tail,head); the only captured state. */
   CostFn cost;
   /** @brief Relax @c e.head in place: @c d(head) ← d(head) ⊕ d(tail) ⊗
    *  @c c(tail,head).  The @c fold op contract, @c op(acc&,Edge). */
@@ -152,8 +156,10 @@ constexpr S semiring_closure(std::size_t source, std::size_t sink,
  */
 export template <typename S, std::size_t Cap>
 struct CriticalPathState {
-  FiniteNet<S, Cap> d{};               // potentials (transient memo)
-  FiniteNet<std::size_t, Cap> pred{};  // the V → V critical map
+  /** @brief The transient potential net @c d : V → S (the working memo). */
+  FiniteNet<S, Cap> d{};
+  /** @brief The induced single-valued critical map @c pred : V → V. */
+  FiniteNet<std::size_t, Cap> pred{};
 };
 
 /**
@@ -188,8 +194,12 @@ export template <typename S, std::size_t Cap,
              { s != s } -> std::convertible_to<bool>;
            }
 struct CriticalPathStep {
+  /** @brief The carrier's canonical additive op @c ⊕ (@c semiring_ops<S>). */
   using Add = typename dedekind::algebra::semiring_ops<S>::add;
+  /** @brief The carrier's canonical multiplicative op @c ⊗
+   *  (@c semiring_ops<S>). */
   using Mult = typename dedekind::algebra::semiring_ops<S>::mult;
+  /** @brief The edge-cost function @c c(tail,head); the only captured state. */
   CostFn cost;
   /** @brief Relax @c e.head and, when the candidate @c d(tail) ⊗ c(tail,head)
    *  wins the selective join, record @c e.tail as its predecessor.  The
