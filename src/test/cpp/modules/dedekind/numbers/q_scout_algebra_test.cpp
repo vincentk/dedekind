@@ -234,10 +234,22 @@ static_assert(
 // fix the point-free path fell to the IsRingIntegral fallback (ℶ_1 → Kleene),
 // disagreeing with the scout's ℵ_0/Boole.
 namespace {
+using dedekind::order::fix;
+using dedekind::order::operator""_c;
+// Derive the halfspace type from the PUBLIC point-free expression
+// `ℚ | (π > fix(5_c))`, not a hand-built Halfspace<Rational>: this way the
+// witness fails if `ℚ | pred` stops binding to the Rational carrier or its
+// Boole logic (the actual surface under test), per #927 review.
 using QHalfspace =
-    dedekind::order::Halfspace<Rational<default_integer>, 5,
-                               dedekind::order::Direction::Upward,
-                               dedekind::order::Strictness::Strict>;
+    std::remove_cvref_t<decltype(ℚ | (dedekind::sets::π > fix(5_c)))>;
+// The public expression really does bind the ℚ carrier and the Above<5> cut.
+static_assert(
+    std::same_as<
+        QHalfspace,
+        dedekind::order::Halfspace<
+            Rational<default_integer>, 5, dedekind::order::Direction::Upward,
+            dedekind::order::Strictness::Strict, dedekind::category::Boole>>,
+    "ℚ | (π > fix(5_c)) binds to the Above<5> halfspace over Rational.");
 // Carrier-axis magnitude is countable ℵ_0, matching the ambient's own C.
 static_assert(
     std::same_as<typename QHalfspace::cardinality_type, dedekind::sets::ℵ_0>,
