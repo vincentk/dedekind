@@ -449,6 +449,11 @@ NB_MODULE(_dedekind, module) {
         .def(
             "__contains__",
             [](const NatUniverse& s, int x) {
+              // ℕ here is the AMBIENT universe 𝔸<Cardinality>: χ_ℕ is
+              // universally true, so the verdict is True for every x and the
+              // embedding of a negative x into the unsigned Cardinality (which
+              // wraps) does not affect it.  Discrimination x ≥ 0 is the job of
+              // the `Nat` classifier below, which sees the raw signed int.
               const dedekind::sets::Cardinality v = x;
               return static_cast<bool>(s(v));
             },
