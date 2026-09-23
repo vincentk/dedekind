@@ -435,17 +435,6 @@ constexpr S transfer_chain(Bead bead) {
 export template <typename S, std::size_t N>
 using SquareMatrix = MatNxNV<S, N>;
 
-/** @brief @b THE @b JOINT: materialise a @b binary @b endorelation @b on @b a
- *  @b semiring into its dense extensional adjacency @ref SquareMatrix --- the
- *  generic (black-box) fiber of the @c relation→matrix map (§ the paper's
- *  classification table).  @c rel is @c (i,j)@c →@c S over the @b same finite
- *  index carrier @c [0,N) on both sides (hence @b endo, hence @b square), with
- *  the codomain @c S an @c IsSemiring (so @c ⊕/⊗ and thus @ref star are
- *  defined).  The compile-time bound @c N @b is the extensionality constraint:
- *  an infinite relation has no such @c N and cannot form a matrix, so the Rice
- *  wall lives in this signature.  Structured relations (functional, bijective,
- *  rank-1) admit specialised fibers (sparse, orthogonal, low-rank); this is the
- *  base case. */
 /** @brief Read a relation's @c (i,j) entry, accepting EITHER the two-index
  *  weighted call @c rel(i,j) (a semiring-adjacency arrow) OR the point-free DSL
  *  call @c rel({i,j}) (a @c Set<pair> relation).  This one seam is what lets a
@@ -461,6 +450,17 @@ template <typename Rel>
 using rel_codomain_t = std::remove_cvref_t<decltype(rel_entry(
     std::declval<const Rel&>(), std::size_t{0}, std::size_t{0}))>;
 
+/** @brief @b THE @b JOINT: materialise a @b binary @b endorelation @b on @b a
+ *  @b semiring into its dense extensional adjacency @ref SquareMatrix --- the
+ *  generic (black-box) fiber of the @c relation→matrix map (§ the paper's
+ *  classification table).  @c rel is @c (i,j)@c →@c S over the @b same finite
+ *  index carrier @c [0,N) on both sides (hence @b endo, hence @b square), with
+ *  the codomain @c S an @c IsSemiring (so @c ⊕/⊗ and thus @ref star are
+ *  defined).  The compile-time bound @c N @b is the extensionality constraint:
+ *  an infinite relation has no such @c N and cannot form a matrix, so the Rice
+ *  wall lives in this signature.  Structured relations (functional, bijective,
+ *  rank-1) admit specialised fibers (sparse, orthogonal, low-rank); this is the
+ *  base case. */
 export template <
     std::size_t N, typename Rel, typename S = rel_codomain_t<Rel>,
     typename Add = typename dedekind::algebra::semiring_ops<S>::add,

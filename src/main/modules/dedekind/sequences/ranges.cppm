@@ -355,6 +355,10 @@ auto ext(const dedekind::order::OrderInterval<T, Lo, Hi, SL, SU, L>& oi,
   return dedekind::sets::from_std(dedekind::sets::ext(to_iota_view(oi), chi));
 }
 
+/** @brief One-argument overload: realise the @b whole finite interval (every
+ *  member kept).  The @c chi @c = @c ⊤ case of the two-argument @ref ext ---
+ *  it delegates there with the canonical tautology / top predicate
+ *  @c dedekind::category::classifier_true. */
 export template <std::integral T, auto Lo, auto Hi,
                  dedekind::order::Strictness SL, dedekind::order::Strictness SU,
                  typename L>
