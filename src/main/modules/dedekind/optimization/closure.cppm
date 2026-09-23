@@ -1,9 +1,8 @@
 /**
  * @file dedekind/optimization/closure.cppm
  * @partition :closure
- * @brief Single-source graph closure over a semiring, point-free: a fold over
- *        the edge sequence producing a potential @b net; the critical path is
- *        that net's induced @c pred function, iterated.
+ * @brief Single-source graph closure over a semiring, as a fold over the edge
+ *        sequence whose induced @c pred function is the critical path.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -13,11 +12,21 @@
  * extensionally its edges are a @c FiniteSeq, and the closure threads a
  * potential @c FiniteNet @c d : V → S over it by a fold, @c d(v) ← d(v) ⊕ d(u)
  * ⊗ c. The choice of semiring is the choice of problem: @c bool @c (∨,∧) gives
- * reachability, @c MaxPlus @c (max,+) the critical path.  Over a dioid
- * (@c IsTropical) the closure also collapses the relation to a @b function
+ * reachability, @c MaxPlus @c (max,+) the critical path.  Over an idempotent
+ * dioid (@c IsTropical) it also collapses the relation to a single-valued
  * @c pred : V → V --- the critical-path tree --- which @ref critical_path
  * iterates back from the sink.  The O(V) memo lives inside @c FiniteNet and
  * @c FiniteSeq (the compile-time @c :sequences realizations), not on display.
+ *
+ * Wikipedia: Shortest path problem, Semiring, Algebraic path problem
+ *
+ * @note "This 'shadow' stands approximately in the same relation to the
+ *       traditional mathematics as does classical physics to quantum theory."
+ *       --- G. L. Litvinov, "The Maslov Dequantization, Idempotent and Tropical
+ *         Mathematics: a Brief Introduction", arXiv:math/0507014 (2005), §1.
+ *       [Litvinov writes in English; the "shadow" is idempotent mathematics ---
+ *       the tropical (min/max-plus) dioid this closure runs the critical path
+ *       over, obtained from the ordinary field by Maslov dequantization.]
  */
 module;
 
@@ -85,6 +94,8 @@ struct Relax {
   using Add = typename dedekind::algebra::semiring_ops<S>::add;
   using Mult = typename dedekind::algebra::semiring_ops<S>::mult;
   CostFn cost;
+  /** @brief Relax @c e.head in place: @c d(head) ← d(head) ⊕ d(tail) ⊗
+   *  @c c(tail,head).  The @c fold op contract, @c op(acc&,Edge). */
   constexpr void operator()(FiniteNet<S, Cap>& acc, const Edge& e) const {
     acc.at(e.head) =
         Add{}(acc(e.head), Mult{}(acc(e.tail), cost(e.tail, e.head)));
@@ -96,14 +107,23 @@ struct Relax {
  *        potential net, return its value at the sink.  The semiring ops are the
  *        carrier's canonical @c semiring_ops<S>.
  *
- * @note This is a @b value-level algebraic reduction over a dioid.  Its
- * @c ⊗-over-@c ⊕ distributivity is the @b same law the @b type-level term
- * reducer (@c category:lattice_term, epic #890) normalises, and a tropical
- * @c ⊕ (min/max) is a semilattice op --- so the two share the algebraic
- * substrate, but live on opposite sides of the phase wall (value fold here vs
- * compile-time type rewrite there) and share no implementation today.  A
- * @b value-first reducer (#922) could subsume this closure as a dioid star;
- * the kinship is tracked in #926.
+ * @note The semiring is the carrier's @b canonical @c semiring_ops<S>; the ops
+ * are not parameters.  A carrier that certifies more than one semiring (e.g.
+ * @c bool: @c (∨,∧) here, but also @c (⊕,∧)) uses only its canonical pair; a
+ * @b different semiring on the same carrier is out of scope --- pick a distinct
+ * carrier type for it, as the graph-closure use does (@c bool / @c MaxPlus /
+ * @c MinPlus).
+ *
+ * @note This is a @b value-level algebraic reduction over a @b semiring.  The
+ * gate is @c IsSemiring, so a non-idempotent semiring is admitted too; only the
+ * idempotent (@c IsTropical) instantiations --- reachability, critical path ---
+ * are dioids.  Its @c ⊗-over-@c ⊕ distributivity is the @b same law the
+ * @b type-level term reducer (@c category:lattice_term, epic #890) normalises,
+ * and a tropical @c ⊕ (min/max) is a semilattice op --- so the two share the
+ * algebraic substrate, but live on opposite sides of the phase wall (value fold
+ * here vs compile-time type rewrite there) and share no implementation today. A
+ * @b value-first reducer (#922) could subsume this closure as a semiring star
+ * (a dioid star in the idempotent case); the kinship is tracked in #926.
  */
 export template <typename S, std::size_t Cap, typename Edges, typename CostFn>
   requires dedekind::category::IsSemiring<
@@ -140,16 +160,24 @@ struct CriticalPathState {
  *
  * @details The named replacement for the capturing @c step lambda (#920).  The
  * selective @c ⊕ test @c (d(head) ⊕ cand != d(head)) is what makes the recorded
- * @c pred single-valued; see @ref annotate for the gate.  The ops are fixed by
- * the carrier @c S (@c semiring_ops<S>), so @c cost is the only captured state.
- * Models the @c fold op shape @c op(acc&,Edge).
+ * @c pred single-valued; see @ref annotate for the further selectivity
+ * precondition.  The ops are fixed by the carrier @c S (@c semiring_ops<S>), so
+ * @c cost is the only captured state.  Models the @c fold op shape
+ * @c op(acc&,Edge).
+ *
+ * @note Gated on @c IsTropical (idempotent @c ⊕), NOT bare @c IsSemiring: the
+ * update overwrites @c d(head) with @c cand alone when @c (d(head) ⊕ cand)
+ * differs from @c d(head), which recovers the join only when @c ⊕ is idempotent
+ * (@c a ⊕ a = a).  With an ordinary non-idempotent @c + it would detect
+ * @c (old + cand != old) and then WRONGLY store @c cand instead of the sum, so
+ * this exported step deliberately rejects such a carrier at its gate.
  */
 export template <typename S, std::size_t Cap,
                  typename CostFn = S (*)(std::size_t, std::size_t)>
-// Carrier-canonical ops + bare-callable @c cost gate as @ref Relax (a raw
-// lambda, not an @c IsArrow morphism), plus the selective @c != the argmax
-// test needs.
-  requires dedekind::category::IsSemiring<
+// Idempotent-dioid ops (@c IsTropical, required by the selective update below)
+// + bare-callable @c cost gate as @ref Relax (a raw lambda, not an @c IsArrow
+// morphism), plus the selective @c != the argmax test needs.
+  requires dedekind::algebra::IsTropical<
                S, typename dedekind::algebra::semiring_ops<S>::add,
                typename dedekind::algebra::semiring_ops<S>::mult> &&
            requires(const CostFn& cost, std::size_t u, S s) {
@@ -160,6 +188,9 @@ struct CriticalPathStep {
   using Add = typename dedekind::algebra::semiring_ops<S>::add;
   using Mult = typename dedekind::algebra::semiring_ops<S>::mult;
   CostFn cost;
+  /** @brief Relax @c e.head and, when the candidate @c d(tail) ⊗ c(tail,head)
+   *  wins the selective join, record @c e.tail as its predecessor.  The
+   *  @c fold op contract, @c op(acc&,Edge). */
   constexpr void operator()(CriticalPathState<S, Cap>& acc,
                             const Edge& e) const {
     const S cand = Mult{}(acc.d(e.tail), cost(e.tail, e.head));
@@ -224,5 +255,18 @@ static_assert(
 static_assert(std::invocable<const CriticalPathStep<bool, 4>&,
                              CriticalPathState<bool, 4>&, const Edge&>,
               "CriticalPathStep is a fold op op(CriticalPathState&, Edge).");
+
+// The idempotent-⊕ gate on @ref CriticalPathStep is load-bearing, not
+// decoration: its selective overwrite is valid only for an idempotent @c ⊕, so
+// a non-idempotent semiring carrier (@c int under the ordinary @c (+,×)) is
+// REJECTED at the gate, and the wrong-⊕ update is unreachable.  @c bool @c
+// (∨,∧) is idempotent and admitted.  (No runtime pair: this is a
+// non-instantiation.)
+template <typename S>
+concept HasCriticalPathStep = requires { typename CriticalPathStep<S, 4>; };
+static_assert(HasCriticalPathStep<bool>,
+              "idempotent (∨,∧) carrier: CriticalPathStep is admitted.");
+static_assert(!HasCriticalPathStep<int>,
+              "non-idempotent (+,×) carrier: CriticalPathStep is rejected.");
 
 }  // namespace dedekind::optimization
