@@ -301,6 +301,21 @@ static_assert(std::same_as<carrier_cardinality_t<Ternary>, ℵ_0>,
 static_assert(std::same_as<carrier_cardinality_t<ExtensionalCardinal<>>, ℵ_0>,
               "a self-declared Finite carrier collapses to the countable bound "
               "ℵ_0, never the bare-signal Finite.");
+namespace detail_halfspace_witness {
+// A carrier whose @c cardinality_type alias is NOT an @c IsCardinality: the
+// self-declaring specialization must @b not fire (its IsCardinality constraint
+// fails), so @c carrier_cardinality falls back to the primary rather than
+// hard-erroring on the missing @c is_countable member.
+struct UnrelatedCardinalityAlias {
+  using cardinality_type = int;  // not a cardinality (no is_countable etc.)
+};
+}  // namespace detail_halfspace_witness
+static_assert(
+    std::same_as<carrier_cardinality_t<
+                     detail_halfspace_witness::UnrelatedCardinalityAlias>,
+                 ℶ_1>,
+    "a carrier with an unrelated/incomplete cardinality_type falls back to the "
+    "primary (ℶ_1 here), never making Halfspace ill-formed.");
 
 /**
  * @brief Halfspace predicate { x ∈ T | x ⋈ Pivot } with Pivot at the type
