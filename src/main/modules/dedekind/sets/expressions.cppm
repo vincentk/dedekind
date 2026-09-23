@@ -971,12 +971,16 @@ class Set {
 
   /** @brief Construct from a comprehension value (@c Set{scout | pred}).
    *  @deprecated The paper-aligned grammar is the bare comprehension
-   *  @c scout|pred, with no @c Set{...} wrapper.  This constructor is being
-   *  sunset (#895); it stays for now because the bare comprehension does not
-   *  yet carry the full set-complement surface (a @c Comprehension is not
-   *  @c is_set_node_v, so @c !(scout|pred) has no set-complement path).  This
-   *  is a soft (documentation) deprecation only: a hard @c [[deprecated]] would
-   *  break the existing call sites under @c -Werror before the migration. */
+   *  @c scout|pred, with no @c Set{...} wrapper.  As of #895 the bare
+   *  @c Comprehension IS a first-class set-node (@c is_set_node_v), so it now
+   *  carries the full set-complement surface --- @c !(scout|pred) /
+   *  @c ~(scout|pred) route through the free set @c operator! / @c operator~,
+   *  and meet / join already applied via @c IsSubobject.  So this wrapping
+   *  constructor no longer adds any capability; it stays ONLY to keep the
+   *  ~90 live @c Set{scout|pred} call sites compiling until they migrate to the
+   *  bare grammar (PR B of #895).  This is a soft (documentation) deprecation
+   *  only: a hard @c [[deprecated]] would break those call sites under
+   *  @c -Werror before the migration. */
   template <typename B, typename P>
     requires std::same_as<Predicate, P>
   constexpr Set(Comprehension<B, P> cp) : predicate_(std::move(cp.predicate)) {}

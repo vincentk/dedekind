@@ -1241,19 +1241,10 @@ static_assert(((ℕ | (π > fix(5_c))) & ~(ℕ | (π > fix(5_c)))) == Ø{},
 static_assert(((𝔹 | (π == fix(true_c))) & ~(𝔹 | (π == fix(true_c)))) == Ø{},
               "point-free: {true} ∩ ¬{true} == Ø.");
 
-// #895: a DISJOINT bare halfspace-meet with DISTINCT pivots (so NOT the
-// same-pivot complement-pair case, which has its own operator& above) now
-// canonicalises to the SAME Ø<Cardinality> the sets layer produces.  Before
-// #895 the bare meet returned the raw EmptyPredicate<Cardinality>, which has no
-// == against Ø<Cardinality>, so this exact case (the #932 quantifier-emptiness
-// witness) needed a defensive Set{} re-wrap.  Now the bare grammar compares
-// directly.  {x>5} ∩ {x<3} = Ø.
-static_assert(
-    std::same_as<decltype((ℕ | (π > fix(5_c))) & (ℕ | (π < fix(3_c)))),
-                 Ø<Cardinality, Boole>>,
-    "bare {x>5} ∩ {x<3} is Ø<Cardinality> at the type level (no Set{} wrap).");
-static_assert(((ℕ | (π > fix(5_c))) & (ℕ | (π < fix(3_c)))) == Ø<Cardinality>{},
-              "point-free bare disjoint meet == Ø<Cardinality> (#895 / #932).");
+// NOTE(#895): the DISTINCT-pivot bare disjoint-meet witness ({x>5} ∩ {x<3} → Ø)
+// lives BELOW the general Halfspace operator& (search "#895") because it must
+// see that overload; declared here it would resolve `&` to the generic sets
+// reducer (→ MeetSet) instead.  Same witness-ordering class as #935.
 
 /** @section halfspace__PointFree_Scout_Decidability_848
  *
@@ -2186,6 +2177,23 @@ constexpr auto operator&(Halfspace<T, P1, D1, S1, L> a,
     return structured_and(a, b);
   }
 }
+
+// #895: a DISJOINT bare halfspace-meet with DISTINCT pivots (so NOT the
+// same-pivot complement-pair case, which has its own operator& above) now
+// canonicalises to the SAME Ø<Cardinality> the sets layer produces.  Before
+// #895 the bare meet returned the raw EmptyPredicate<Cardinality>, which has no
+// == against Ø<Cardinality>, so this exact case (the #932 quantifier-emptiness
+// witness) needed a defensive Set{} re-wrap.  Now the bare grammar compares
+// directly.  {x>5} ∩ {x<3} = Ø.  This witness sits BELOW the general Halfspace
+// operator& above so overload resolution sees it (declared earlier in the file
+// it would resolve `&` to the generic sets reducer → MeetSet; #935 class).
+static_assert(
+    std::same_as<decltype((ℕ | (π > fix(5_c))) & (ℕ | (π < fix(3_c)))),
+                 Ø<Cardinality, Boole>>,
+    "bare {x>5} ∩ {x<3} is Ø<Cardinality> at the type level (no Set{} wrap).");
+static_assert(((ℕ | (π > fix(5_c))) & (ℕ | (π < fix(3_c)))) == Ø<Cardinality>{},
+              "point-free bare disjoint meet == Ø<Cardinality> (#895 / #932).");
+
 /** @brief @c | IS the join on bare order operands, dual to the @c & meet: it
  *  forwards to @c structured_or, so a same-direction or overlapping halfspace
  *  union collapses.  The complement-pair @c operator| above (→ universe) is
