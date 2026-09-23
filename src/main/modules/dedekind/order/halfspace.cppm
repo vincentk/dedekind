@@ -253,18 +253,20 @@ consteval bool halfspace_is_moot() {
  *  @c ℵ_0, and the real proxies (@c QuadraticReal, @c double) are the continuum
  *  @c ℶ_1.  The bound only has to be tight enough for the @c NaturalLogic
  *  verdict (countable ⟹ decidable @c Boole, uncountable ⟹ @c Kleene). */
-export template <typename T>
+// Module-private: the fallback is a halfspace-classification heuristic, not a
+// general carrier-cardinality authority (that is @c :sets:cardinality).  It
+// only feeds @c Halfspace::cardinality_type below; external carriers customise
+// through their own @c T::cardinality_type, not this helper.
+template <typename T>
 struct carrier_cardinality {
   using type = std::conditional_t<IsRingIntegral<T>, ℵ_0, ℶ_1>;
 };
-export template <typename T>
+template <typename T>
   requires requires { typename T::cardinality_type; }
 struct carrier_cardinality<T> {
   using type = typename T::cardinality_type;
 };
-/** @brief Alias for @ref carrier_cardinality: the cardinality class of the
- *  carrier @c T, self-declared or derived via @c IsRingIntegral. */
-export template <typename T>
+template <typename T>
 using carrier_cardinality_t = typename carrier_cardinality<T>::type;
 
 /**
@@ -315,19 +317,23 @@ struct Halfspace : dedekind::sets::SetExpr<Halfspace<T, Pivot, D, S, L>, T, L> {
    *  fallback (@c Kleene / @c TernaryLogic).
    *
    *  @note This is the carrier-axis @b magnitude, NOT the ambient's own @c C
-   *  slot, which the @c Halfspace type does not carry.  Parity with the scout
-   *  therefore holds exactly for a @b coherent ambient, one whose explicit
-   *  @c C agrees with the carrier's own class.  Every carrier that can form a
-   *  meaningful order-halfspace is coherent: ℕ/ℤ/ℚ are @c ℵ_0, ℝ (@c
-   *  QuadraticReal) is @c ℶ_1, each matching its canonical ambient.  A
-   *  @b deliberately incoherent tag, an int carrier advertised as the
+   *  slot, which the @c Halfspace type does not carry.  The two need not be the
+   *  @b identical tag; what @c NaturalLogic reads off is the @b countability
+   *  @b class (countable ⟹ @c Boole, uncountable ⟹ @c Kleene), and parity with
+   *  the scout holds whenever the carrier axis and the ambient @c C share that
+   *  class.  Every carrier that can form a meaningful order-halfspace does:
+   *  ℕ/ℤ/ℚ are countable, ℝ (@c QuadraticReal) is the continuum.  The tags may
+   *  still differ within a class, e.g.\ @c 𝔸<bool> carries @c Finite
+   *  (@c boundaries.cppm) while this fallback maps @c bool to @c ℵ_0 --- both
+   *  countable, same @c Boole verdict.  Only a @b deliberately incoherent tag
+   *  that crosses classes is not honoured: an int carrier advertised as the
    *  continuum (@c UniversalSet<int,Boole,ℶ_1>, the Mandelbrot stand-in at
-   *  @c computability_test.cpp), is @b not honoured: this path classifies it
-   *  @c ℵ_0 by its integer carrier while the scout keeps the @c ℶ_1 tag.  That
-   *  case does not arise from a real halfspace (no continuum is genuinely
-   *  carried by @c int), so the carrier axis is the honest source.  Honouring
-   *  an arbitrary explicit @c C would require threading it as a sixth @c
-   *  Halfspace template parameter (FIXME(#848): ~120 pattern-matched sites). */
+   *  @c computability_test.cpp) classifies @c ℵ_0 by its integer carrier while
+   *  the scout keeps @c ℶ_1.  That does not arise from a real halfspace (no
+   *  continuum is genuinely carried by @c int), so the carrier axis is the
+   *  honest source.  Reproducing an arbitrary explicit @c C exactly would
+   *  require threading it as a sixth @c Halfspace template parameter
+   *  (FIXME(#848): ~120 pattern-matched sites). */
   using cardinality_type = carrier_cardinality_t<T>;
 
   // `Pivot` may be a different structural type than `T` (e.g., pivot = 5.0 as
