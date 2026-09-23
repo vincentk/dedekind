@@ -66,12 +66,12 @@ TEST_CASE(
     "[linear_algebra][transfer][star][closure]") {
   // The edge relation i → i+1 on the 4-node line graph, materialised to its
   // adjacency matrix then STARRED: R* = Δ ⊕ R ⊕ R² ⊕ … , the Kleene closure of
-  // the matrix semiring Mat(S).  This exercises `star` / `materialise` at
+  // the matrix semiring Mat(S).  This exercises `star` / `ext` at
   // runtime (the in-module witnesses are compile-time only).
   auto edge = [](std::size_t i, std::size_t j) { return j == i + 1; };
 
   SECTION("𝔹: the star is reachability, R*(i,j) = (i ≤ j)") {
-    const auto Rstar = star<4>(materialise<4>(edge));
+    const auto Rstar = star<4>(ext<4>(edge));
     CHECK(Rstar[0][0]);        // reflexive: 0 reaches 0 (empty path)
     CHECK(Rstar[0][3]);        // transitive: 0 reaches 3 along the path
     CHECK(Rstar[1][3]);        // 1 reaches 3
@@ -87,7 +87,7 @@ TEST_CASE(
     auto wedge = [bot](std::size_t i, std::size_t j) {
       return (j == i + 1) ? MP::of(1) : bot;
     };
-    const auto Tstar = star<4>(materialise<4>(wedge));
+    const auto Tstar = star<4>(ext<4>(wedge));
     CHECK(Tstar[0][3] == MP::of(3));  // longest path 0→1→2→3 costs 3
     CHECK(Tstar[1][3] == MP::of(2));  // 1→2→3 costs 2
     CHECK(Tstar[0][0] == MP::of(0));  // ⊗-identity on the diagonal (empty path)
@@ -101,7 +101,7 @@ TEST_CASE(
     auto wedge = [top](std::size_t i, std::size_t j) {
       return (j == i + 1) ? MP::of(1) : top;
     };
-    const auto Sstar = star<4>(materialise<4>(wedge));
+    const auto Sstar = star<4>(ext<4>(wedge));
     CHECK(Sstar[0][3] == MP::of(3));  // the only 0→3 path costs 3
     CHECK(Sstar[3][0] == top);        // unreachable = +∞
   }

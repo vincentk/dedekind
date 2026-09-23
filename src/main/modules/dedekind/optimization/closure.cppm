@@ -46,7 +46,7 @@ export struct Edge {
  *        topological (tail-ascending) order.  Where a rule becomes elements.
  */
 export template <std::size_t Nodes, std::size_t Cap, typename Pred>
-constexpr FiniteSeq<Edge, Cap> materialise(Pred edge) {
+constexpr FiniteSeq<Edge, Cap> ext(Pred edge) {
   FiniteSeq<Edge, Cap> es{};
   for (std::size_t u = 0; u < Nodes; ++u)
     for (std::size_t v = 0; v < Nodes; ++v)

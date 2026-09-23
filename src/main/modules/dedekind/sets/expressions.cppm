@@ -468,31 +468,13 @@ static_assert(UnknownPredicate<int>{}(0) == Ternary::Unknown &&
 static_assert(!is_decided<Kleene>(UnknownPredicate<int>{}(0)),
               "UnknownPredicate is never in the decided core Σ = {⊤,⊥}");
 
-/** @brief The codomain leg of a set combine (#894), as one finalizer.
- *
- *  @details A combine's domain-reduced result that @b is a boundary
- *  (@c ⊥ / @c ⊤ = @c Ø / @c 𝔸) factors through the Rosolini dominance @c Σ, so
- *  it carries the decided Boolean codomain whatever the ambient; every other
- *  result passes through unchanged.  The codomain rule applies at @b every
- *  combine's @b output, never inside a still-reducing term (which would mix
- *  logic species and shred the reducer): the expressions-level operators route
- *  through this finalizer, and the upstream boundary operators in @c
- * :boundaries apply the same rule via @c codomain_reduce_t directly (they are
- * declared above this finalizer, so they cannot call it).  A new
- * expressions-level operator needs only @c return @c finalize_combine(...) and
- * inherits the rule. Hoisted above the @c Set class so every operator here
- * (including
- *  @c Set::operator^) can reach it.
- *  FIXME(#894): @c boundary @c → @c Boole is the only rule for now; the general
- *  form is @c image(χ) @c ⊆ @c Σ folded on the Kleene image lattice. */
-template <typename R>
-constexpr auto finalize_combine(R r) {
-  if constexpr (IsBoundaryObject<R>) {
-    return codomain_reduce_t<R>{};
-  } else {
-    return r;
-  }
-}
+// The codomain-leg value finalizer `finalize_combine` (#894) is hoisted to
+// `:boundaries` (beside `codomain_reduce_t`), so the upstream boundary
+// operators and the general subobject operators below share ONE implementation
+// of the value-finalization law (boundary output → decided Boole codomain; all
+// else passes through) instead of duplicating it.  Reachable here through
+// `import :boundaries`; a new expressions-level operator needs only
+// `return finalize_combine(...)` and inherits the rule.
 
 /** @brief The join of two logic species (#894): 𝔹 ⊑ K₃ under the dominance, so
  *  the more expressive Ω --- K₃ if either operand is K₃, else 𝔹.  The codomain

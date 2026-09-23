@@ -333,7 +333,7 @@ constexpr std::ranges::iota_view<T, T> to_iota_view(
 }
 
 /** @section ranges__Materialize — the last plank of the bridge
- *  @c intensional @c → @c intensional-finite @c → @c materialise @c → @c
+ *  @c intensional @c → @c intensional-finite @c → @c ext @c → @c
  *  extensional.
  *
  *  @brief Realise a finite interval domain into its @c ExtensionalSet, keeping
@@ -341,7 +341,7 @@ constexpr std::ranges::iota_view<T, T> to_iota_view(
  *         that carries the finiteness certificate (@c cardinality_type @c =
  *         @c Finite, so @c IsExtensional); @ref to_iota_view is the @b only
  *         on-ramp from that bounded meet to a scannable range, and the fold is
- *         the existing @c dedekind::sets::materialise.  An @b unbounded set has
+ *         the existing @c dedekind::sets::ext.  An @b unbounded set has
  *         no @c to_iota_view and cannot reach here — the Rice wall made
  *         structural rather than checked.  Two-argument form takes the
  *         @c argmax (or any) predicate; the one-argument form realises the
@@ -350,31 +350,37 @@ constexpr std::ranges::iota_view<T, T> to_iota_view(
 export template <std::integral T, auto Lo, auto Hi,
                  dedekind::order::Strictness SL, dedekind::order::Strictness SU,
                  typename L, typename Chi>
-auto materialise(const dedekind::order::OrderInterval<T, Lo, Hi, SL, SU, L>& oi,
-                 Chi chi) {
-  return dedekind::sets::from_std(
-      dedekind::sets::materialise(to_iota_view(oi), chi));
+auto ext(const dedekind::order::OrderInterval<T, Lo, Hi, SL, SU, L>& oi,
+         Chi chi) {
+  return dedekind::sets::from_std(dedekind::sets::ext(to_iota_view(oi), chi));
 }
 
+/** @brief One-argument overload: realise the @b whole finite interval (every
+ *  member kept).  The @c chi @c = @c ⊤ case of the two-argument @ref ext ---
+ *  it delegates there with the canonical tautology / top predicate
+ *  @c dedekind::category::classifier_true. */
 export template <std::integral T, auto Lo, auto Hi,
                  dedekind::order::Strictness SL, dedekind::order::Strictness SU,
                  typename L>
-auto materialise(
-    const dedekind::order::OrderInterval<T, Lo, Hi, SL, SU, L>& oi) {
-  return materialise(oi, [](const T&) { return true; });
+auto ext(const dedekind::order::OrderInterval<T, Lo, Hi, SL, SU, L>& oi) {
+  // The whole-interval realisation keeps every member: the characteristic map
+  // is the canonical tautology / top predicate ⊤ (@ref
+  // dedekind::category::classifier_true), not an ad-hoc always-true lambda.
+  // Boolean-valued (the default L) so its ⊤ reads as a decided keep.
+  return ext(oi, dedekind::category::classifier_true<T>());
 }
 
 /** @section ranges__Argmax_Over_A_Bounded_Domain
  *
  *  The optimum as a filtration, carried with its own finite domain so it flows
- *  straight into @ref materialise as the single argument the endorsed surface
- *  @c materialise(argmax(𝔸|[0,N], cost)) calls.
+ *  straight into @ref ext as the single argument the endorsed surface
+ *  @c ext(argmax(𝔸|[0,N], cost)) calls.
  */
 
 /** @brief The value-semantic comprehension @f$\{x \in \mathrm{dom} \mid
  * P(x)\}@f$ over a @b finite domain: an @c argmax result (or any refinement of
- * a bounded interval), carrying both the interval (the @c IsExtensional range
- * to scan) and the refinement predicate @c P.
+ * a bounded interval), carrying both the interval (the finite range @ref ext
+ * scans via @c to_iota_view) and the refinement predicate @c P.
  *
  *  @details Both this and @c dedekind::sets::Comprehension (the DSL's
  *  @f$\{S\mid P\}@f$) are now @c IsSet via @c dedekind::sets::SetExpr, and both
@@ -385,9 +391,13 @@ auto materialise(
  *  domain by value to be returned safely, so the scannable bounds survive in
  *  the return value's type.  So @c BoundedSet is precisely the @b value-owning
  *  finite comprehension.  Its membership χ is @c x @c ∈ @c {dom @c | @c P} @c ⟺
- *  @c dom(x) @c ∧ @c P(x); @c size() is the interval's cardinality (the
- *  @c IsExtensional licence @ref materialise needs), free because the
- *  @c OrderInterval domain is stateless. */
+ *  @c dom(x) @c ∧ @c P(x).  @c ext realises it by scanning @c to_iota_view of
+ *  the concrete @c OrderInterval domain, whose NTTP interval bounds make the
+ *  enumeration finite --- that @c to_iota_view gate is what @c ext reads, not
+ * an
+ *  @c IsExtensional concept and not @c size() (which reports the cardinality,
+ *  not what @c ext scans).  @c size() is free because the @c OrderInterval
+ *  domain is stateless. */
 export template <typename OI, typename P>
 struct BoundedSet
     : dedekind::sets::SetExpr<BoundedSet<OI, P>, typename OI::Domain,
@@ -401,8 +411,10 @@ struct BoundedSet
    * through aggregate init. */
   constexpr BoundedSet(OI d, P p)
       : domain(static_cast<OI&&>(d)), pred(static_cast<P&&>(p)) {}
-  /** @brief The interval is finite (an @c IsExtensional bounded meet), so the
-   *  comprehension over it is too --- the licence @ref materialise reads. */
+  /** @brief The interval is finite, so the comprehension over it is too.  This
+   *  @c cardinality_type is @b metadata (the @c Finite tag), not a gate @ref
+   * ext reads: @ref ext scans @c to_iota_view of the concrete @c OrderInterval.
+   */
   using cardinality_type = dedekind::sets::Finite;
   /** @brief χ / membership: @c x @c ∈ @c {dom @c | @c P} @c ⟺ in the domain
    *  @b and @c P-optimal.  A comprehension @b is its own characteristic map,
@@ -420,8 +432,8 @@ struct BoundedSet
     else
       return L::AND(domain(x), p ? L::True : L::False);
   }
-  /** @brief The scannable bound (@c IsExtensional): the domain's cardinality is
-   *  an addressable @c size_t — the licence to realise. */
+  /** @brief The domain's cardinality as an addressable @c size_t.  Metadata
+   *  (the finite bound), not a gate @ref ext reads. */
   constexpr std::size_t size() const { return domain.size(); }
 };
 
@@ -430,22 +442,51 @@ struct BoundedSet
  *  @c dedekind::sets::SetExpr and supplying the χ --- the same opt-in surface
  *  @c Comprehension uses; nominal, never a precondition. */
 namespace detail_boundedset_witness {
-struct all_ok {
-  constexpr bool operator()(int) const { return true; }
-};
 using WOI = dedekind::order::OrderInterval<
     int, 0, 1, dedekind::order::Strictness::NonStrict,
     dedekind::order::Strictness::NonStrict, dedekind::category::Boole>;
-static_assert(dedekind::category::IsSet<BoundedSet<WOI, all_ok>>,
-              "BoundedSet is a first-class DSL set: the value-owning finite "
-              "comprehension {x ∈ dom | P}.");
+// The refinement is the canonical tautology ⊤ (@ref classifier_true), reused
+// rather than a bespoke always-true functor.
+static_assert(
+    dedekind::category::IsSet<
+        BoundedSet<WOI, decltype(dedekind::category::classifier_true<int>())>>,
+    "BoundedSet is a first-class DSL set: the value-owning finite "
+    "comprehension {x ∈ dom | P}.");
 }  // namespace detail_boundedset_witness
+
+/** @brief The dominance-refinement predicate of an @ref argmax: @c x is optimal
+ *  iff @b no member @c x' of the (finite) domain beats it under @c order∘cost,
+ *  i.e. @f$\forall x' \in \mathrm{dom}.\ \mathrm{order}(\mathrm{cost}(x'),
+ *  \mathrm{cost}(x))@f$.  A @b named functor rather than a capturing lambda, so
+ *  the refinement is an inspectable type carried in the @ref BoundedSet
+ *  signature @c argmax returns --- the ∀-filter made visible at compile time.
+ */
+export template <std::integral T, typename OI, typename Cost, typename Order>
+  requires requires(const OI& d, const Cost& c, const Order& o, const T& x) {
+    to_iota_view(d);                                 // scannable domain
+    { o(c(x), c(x)) } -> std::convertible_to<bool>;  // order∘cost testable
+  }
+struct DominanceRefinement {
+  OI dom;
+  Cost cost;
+  Order order;
+  /** @brief χ: is @c x optimal? @c true iff @b no member of the (finite) domain
+   *  beats it under @c order∘cost, i.e. @f$\forall x' \in \mathrm{dom}.\
+   *  \mathrm{order}(\mathrm{cost}(x'), \mathrm{cost}(x))@f$.  The dominance
+   *  membership test @c argmax's @ref BoundedSet carries. */
+  constexpr bool operator()(const T& x) const {
+    bool dominant = true;
+    for (const T xp : to_iota_view(dom))
+      dominant = dominant && order(cost(xp), cost(x));
+    return dominant;
+  }
+};
 
 /** @brief @c argmax over a bounded (closed-interval) domain: the §3.3 forall-
  *         filter @c {x ∈ dom | ∀x'∈dom. cost(x') ≤ cost(x)}, with @c ≤ pulled
  *         back through @c cost.  Returns a @ref BoundedSet — intensional (the
  *         @c ∀ is decidable @b because @c dom is finite) and carrying its
- *         domain, so @c materialise realises it.  IsSet-valued: @c ∅ /
+ *         domain, so @c ext realises it.  IsSet-valued: @c ∅ /
  * singleton (unique optimiser, a function) / larger (ties, a proper relation).
  */
 export template <std::integral T, auto Lo, auto Hi,
@@ -457,37 +498,33 @@ constexpr auto argmax(
   // @c x is optimal iff @c ∀x'∈dom. @c order(cost(x'), cost(x)) --- "no x'
   // beats x under @c order".  @c Order defaults to @c ≤ (argmax); pass @c
   // std::greater_equal for @b argmin, or a semiring @c ⊕-relative comparator to
-  // rank by a dioid's order rather than the codomain's.
-  auto pred = [dom, cost, order](const T& x) {
-    bool dominant = true;
-    for (const T xp : to_iota_view(dom))
-      dominant = dominant && order(cost(xp), cost(x));
-    return dominant;
-  };
+  // rank by a dioid's order rather than the codomain's.  The refinement is the
+  // named @ref DominanceRefinement functor, not a capturing lambda.
   using OI = dedekind::order::OrderInterval<T, Lo, Hi, SL, SU, L>;
-  return BoundedSet<OI, decltype(pred)>{dom, pred};
+  using Pred = DominanceRefinement<T, OI, Cost, Order>;
+  return BoundedSet<OI, Pred>{dom, Pred{dom, cost, order}};
 }
 
-/** @brief @c materialise a @ref BoundedSet: scan its domain, keep the members
+/** @brief @c ext a @ref BoundedSet: scan its domain, keep the members
  *         its predicate accepts — an ordered @c ExtensionalSet (the @c std::set
  *         flavour).  This is the single-argument call the endorsed
- *         @c materialise(argmax(dom, cost)) surface makes. */
+ *         @c ext(argmax(dom, cost)) surface makes. */
 export template <typename OI, typename P>
-auto materialise(const BoundedSet<OI, P>& bs) {
-  return materialise(bs.domain, bs.pred);
+auto ext(const BoundedSet<OI, P>& bs) {
+  return ext(bs.domain, bs.pred);
 }
 
-/** @brief The @b sequence flavour of @c materialise: realise the first @c N
+/** @brief The @b sequence flavour of @c ext: realise the first @c N
  *         terms of a sequence (a bra/ket / @c Path / any @c index→value arrow)
  *         into a @c std::array — @b positional and indexed, dual to the set
  *         flavour's @c std::set.  The compile-time @c N is the Kleene bound
  *         (the finite prefix); this is the QM realise — an infinite bra/ket,
  *         bounded to @c [0,N), becomes a concrete finite-dimensional vector.
- *         Selected by the explicit @c N (@c materialise<N>(seq)); the no-@c N
+ *         Selected by the explicit @c N (@c ext<N>(seq)); the no-@c N
  *         form realises a bounded @b set instead. */
 export template <std::size_t N, typename Seq>
-constexpr std::array<typename std::remove_cvref_t<Seq>::Codomain, N>
-materialise(const Seq& s) {
+constexpr std::array<typename std::remove_cvref_t<Seq>::Codomain, N> ext(
+    const Seq& s) {
   using D = typename std::remove_cvref_t<Seq>::Domain;
   std::array<typename std::remove_cvref_t<Seq>::Codomain, N> out{};
   for (std::size_t i = 0; i < N; ++i) out[i] = s(static_cast<D>(i));

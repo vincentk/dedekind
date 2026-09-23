@@ -165,3 +165,41 @@ TEST_CASE("image(IsTerminalMorphism F, S) — terminal-codomain collapse (#661)"
     CHECK(img(One{}));
   }
 }
+
+namespace {
+/**
+ * @brief Regression witness (#919): a boundary that is @b tagged terminal but
+ *        is @b not default-constructible and carries a payload.
+ * @details @c IsBoundaryObject is tag-based (@c category:limit) and does not
+ *          require default-constructibility, so a tagged survivor of a unit
+ *          reduction (@c Ø|s=s) reaches @ref finalize_combine.  Its codomain
+ *          leg is the identity (the primary @c codomain_reduce only re-tags
+ *          @c Ø / @c 𝔸), so @c finalize_combine must return @c r unchanged
+ *          rather than default-construct @c codomain_reduce_t<R>{}.  That would
+ *          not even compile here.  The built-in @c Ø / @c 𝔸 boundaries are all
+ *          default-constructible, so this corner is otherwise untested.
+ */
+struct TaggedSurvivor {
+  using is_terminal_object_tag = void;
+  int payload;
+  constexpr TaggedSurvivor() = delete;
+  constexpr explicit TaggedSurvivor(int p) : payload(p) {}
+};
+}  // namespace
+
+TEST_CASE(
+    "finalize_combine preserves a non-default-constructible tagged "
+    "boundary (#919)",
+    "[sets][boundaries][finalize]") {
+  static_assert(IsBoundaryObject<TaggedSurvivor>);
+  static_assert(!std::is_default_constructible_v<TaggedSurvivor>);
+  // The codomain leg is the identity for a non-Ø/𝔸 boundary, so the identity
+  // branch of finalize_combine is exercised (no re-tag to Boole).
+  static_assert(
+      std::is_same_v<codomain_reduce_t<TaggedSurvivor>, TaggedSurvivor>);
+
+  constexpr auto out = finalize_combine(TaggedSurvivor{42});
+  static_assert(
+      std::is_same_v<std::remove_cvref_t<decltype(out)>, TaggedSurvivor>);
+  STATIC_REQUIRE(out.payload == 42);
+}

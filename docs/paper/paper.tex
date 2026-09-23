@@ -906,7 +906,7 @@ Section~\ref{sec:relations_functions_blueprint} lifts $\le$ to a function's grap
 
 The container reading and the predicate reading are almost interconvertible, and the asymmetry is the point (Listing~\ref{lst:materialise}).
 Any \cppinline{std::set} is a $\mathbf{Lwv}$ set for free, its \cppinline{contains} the characteristic predicate; call that embedding $\iota$, and it is total.
-Only a finite, enumerable $\mathbf{Lwv}$ set materialises back to a container; call that map $\mu$ (the \emph{extension}, dual to the predicate's intension), realised by \cppinline{materialise}, as $\eta$ names \cppinline{singleton}, the power-set monad's unit~\cite{moggi1991notions}; it is partial, the naturals having no finite materialisation.
+Only a finite, enumerable $\mathbf{Lwv}$ set materialises back to a container; call that map $\mu$ (the \emph{extension}, dual to the predicate's intension), realised by \cppinline{ext}, as $\eta$ names \cppinline{singleton}, the power-set monad's unit~\cite{moggi1991notions}; it is partial, the naturals having no finite materialisation.
 % FUTURE WORK (#842, backlog): Frobenius structure on sets / Rel objects
 % (classical/CQM copy-delete on the power-set monad's objects). The power-set
 % monad has η (singleton) and μ (union-flatten) but no natural counit ε, so the
@@ -921,21 +921,21 @@ So $\mathbf{Lwv}$ is strictly more expressive than \cppinline{std::set}, the ext
 This is the extensional/intensional database distinction of deductive databases, \cppinline{std::set} playing the extensional store (EDB, facts) and $\mathbf{Lwv}$ the intensional one (IDB, rules), with materialisation the materialised view~\cite{abiteboul1995foundations}.
 
 \begin{listing}[htbp]
-\caption{Extensional operations on sets in \emph{normal form}: the materialisation \cppinline{materialise} (the partial $\mu$, a finite universe kept where $\chi$ accepts, into a \cppinline{std::set}) and the comparisons \cppinline{==}/\cppinline{<=}.
+\caption{Extensional operations on sets in \emph{normal form}: the materialisation \cppinline{ext} (the partial $\mu$, a finite universe kept where $\chi$ accepts, into a \cppinline{std::set}) and the comparisons \cppinline{==}/\cppinline{<=}.
 \textbf{Top}: a finite \cppinline{std::set} bounds an intensional halfspace, so their intersection always materialises even though the halfspace over $\mathbb{N}$ does not; the extensional and intensional readings compose.
-\cppinline{materialise} is a runtime retraction (it fills a \cppinline{std::set}), not a \cppinline{constexpr} one.
+\cppinline{ext} is a runtime retraction (it fills a \cppinline{std::set}), not a \cppinline{constexpr} one.
 \textbf{Right}: subset \cppinline{<=} decides \emph{structurally} on the normal form the carrier supplies, here two halfspaces, at compile time.
 \textbf{Bottom}: the grammar in two panels; the boundaries \cppinline{Ø}/\cppinline{𝔸} are Listing~\ref{lst:set-grammar}'s generators, and normal forms are compared by the set \cppinline{query} over the single \cppinline{cmp} (the subset order, Listing~\ref{lst:set-grammar}).}
 \label{lst:materialise}
 \noindent
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-std::set<int> ext{2, 3, 5};      // finite universe
+std::set<int> xs{2, 3, 5};       // finite universe
 auto gt3 = ℕ | π > fix(3_c);     // {x > 3}
 // μ: keep the members χ accepts (runtime)
-assert(materialise(ext, gt3)
+assert(ext(xs, gt3)
        == std::set<int>{5});
-assert(materialise(ext, ℕ | π > fix(5_c))
+assert(ext(xs, ℕ | π > fix(5_c))
        == std::set<int>{});
 \end{cpp}
 \end{minipage}\hfill
@@ -953,7 +953,7 @@ static_assert(
 \begin{minipage}[t]{0.49\linewidth}
 {\footnotesize\centering\textbf{materialisation} \ensuremath{\mu}\par}
 \begin{minted}[fontsize=\footnotesize]{text}
-container ::= 'materialise' '(' universe ',' pred ')'
+container ::= 'ext' '(' universe ',' pred ')'
 universe  ::= <any std::ranges::input_range>
 \end{minted}
 \end{minipage}\hfill
@@ -1081,14 +1081,14 @@ involution & \multicolumn{2}{l}{$(\cdot)^{\circ}$ converse: $\;(R\odot S)^{\circ
 \midrule
 \multicolumn{3}{@{}l}{\emph{dioid laws}: $\;\odot$ distributes over $\oplus$; \quad $R\odot\varnothing=\varnothing=\varnothing\odot R$ \; (annihilation)} \\
 \midrule
-\cppinline{materialise} & $\mapsto$ matrix sum $\oplus$ & $\mapsto$ matrix product $\otimes$, \; unit $I$ \\
+\cppinline{ext} & $\mapsto$ matrix sum $\oplus$ & $\mapsto$ matrix product $\otimes$, \; unit $I$ \\
 \bottomrule
 \end{tabular}
 \caption{\textbf{Relations are a dioid} $(\mathrm{Rel}, \cup, \mathbin{;}, \varnothing, \Delta)$, an idempotent semiring standing on its own two monoids.
 The multiplicative monoid is composition $R \gg S$ with unit the \emph{diagonal} $\Delta = \{\pi_1 = \pi_2\}$; it is what makes the structure a dioid and what the \emph{product} buys, since a bare set has one coordinate, nothing to compose and no diagonal to compare.
 The additive monoid is idempotent ($R\cup R = R$), a join-semilattice; that half coincides with the Boolean-lattice join a relation carries \emph{as a set} (Section~\ref{sec:intensional_sets}, Table~\ref{tab:lattice-lift}), which is why the two units differ: $\varnothing$ is the semilattice bottom, $\Delta$ the composition one, and the lattice top $A\times B$ is neither.
 $\Delta$ is $\mathrm{graph}(\mathrm{id})$, definable on every carrier because equality is universal.
-\cppinline{materialise} (Table~\ref{tab:relation-matrix-map}) sends this dioid into the Boolean matrix semiring $\mathrm{Mat}(\mathbb{B})$ as a homomorphism, $\varnothing\mapsto 0$, $\Delta\mapsto I$, $\cup\mapsto\oplus$, $\mathbin{;}\mapsto\otimes$; that instance is reachability.
+\cppinline{ext} (Table~\ref{tab:relation-matrix-map}) sends this dioid into the Boolean matrix semiring $\mathrm{Mat}(\mathbb{B})$ as a homomorphism, $\varnothing\mapsto 0$, $\Delta\mapsto I$, $\cup\mapsto\oplus$, $\mathbin{;}\mapsto\otimes$; that instance is reachability.
 A weighted $\mathrm{Mat}(S)$, shortest path and the wider algebraic path problem, is one semiring swap away (Table~\ref{tab:semirings}), taken there through the extensional matrix since the point-free product $\mathbin{;}$ composes only through a Boolean middle.}
 \label{tab:relation-dioid}
 \end{table}
@@ -1135,7 +1135,7 @@ Columns pair up: entire with functional on $\pi_A$, surjective with injective on
 A relation that is both total and functional is a \emph{function}.
 In the library this is the concept refinement \cppinline{IsFunction = IsRelation \&\& IsEntire \&\& IsFunctional}, so \cppinline{IsFunction} subsumes \cppinline{IsRelation}: the inclusion $\{\text{functions}\} \subset \{\text{relations}\}$ is genuine subtyping in the concept lattice, not an analogy.
 The bridge from an analytic arrow to its relational form is \cppinline{graph(f)}, the graph $\Gamma_f = \{(a, f(a)) \mid a \in A\}$; its \cppinline{is_graph_of} witness makes ``the rule and its set of pairs are the same function'' a compile-time fact rather than a claim.
-These two readings, the intensional rule \cppinline{f} and the extensional set of pairs $\Gamma_f$, are the horizontal axis of the same picture whose vertical axis is the relation/function refinement above, bridged by \cppinline{graph} one way and enumeration (\cppinline{materialise}) the other.
+These two readings, the intensional rule \cppinline{f} and the extensional set of pairs $\Gamma_f$, are the horizontal axis of the same picture whose vertical axis is the relation/function refinement above, bridged by \cppinline{graph} one way and enumeration (\cppinline{ext}) the other.
 
 Listing~\ref{lst:relation_spec} is the spec surface: \cppinline{IsRelation} as an \cppinline{IsSet} on the product, \cppinline{IsFunction} as its entire and functional refinement, and the calculus of relations whose composition \cppinline{>>} functions inherit as a special case.
 
@@ -1984,8 +1984,9 @@ The closure is then the $\otimes$-fold of the eigenvalues, with no potential net
 \mathrm{value} \;=\; \bigotimes_{m} \lambda_m .
 \end{equation}
 The semiring is still the choice of problem, and because the transfer asks only for \cppinline{IsSemiring} the same fold carries the sensitivity of \S\ref{subsec:necklace} on the dual-number semiring, its tangent the winning branch's derivative by the envelope theorem.
-The optimum is the filtration of Equation~\ref{eqn:argmax}, realized to an extensional set only at the end by \cppinline{materialise}, gated on \cppinline{IsExtensional}: finite and addressable, not merely finite.
-\cppinline{materialise} is the realize boundary, our \cppinline{runST}~\cite{launchbury1994st}: the enumeration runs inside and \cppinline{constexpr} seals it, and \cppinline{IsExtensional} is the type-level guarantee that makes extraction sound, the role the rank-2 $\forall s$ plays for state locality played here for finiteness.
+The optimum is the filtration of Equation~\ref{eqn:argmax}, realized to an extensional set only at the end by \cppinline{ext}.
+The finiteness is carried by the domain type: \cppinline{ext} scans a finite \cppinline{OrderInterval} (or the \cppinline{BoundedSet} an \cppinline{argmax} returns), so an unbounded domain has no such type and never reaches the realize step.
+\cppinline{ext} is the realize boundary, our \cppinline{runST}~\cite{launchbury1994st}: the enumeration runs inside at runtime, and the finite domain type is the guarantee that makes extraction sound. That is the role the rank-2 $\forall s$ plays for state locality, played here for finiteness.
 
 \begin{listing}[htbp]
 \caption{Equations~\ref{eqn:braket}--\ref{eqn:transfer-closure} and Equation~\ref{eqn:argmax}, as code (abridged from the checked-in transfer showcase).}
@@ -2002,18 +2003,20 @@ static_assert( transfer_chain<4>(bead<MaxPlus>).val     == 8 );  // critical pat
 static_assert( transfer_chain<4>(bead<MinPlus>).val     == 0 );  // shortest path
 static_assert( bead<MaxPlus<Dual>>(0).val.der           == 1 );  // sensitivity (AD)
 
-// Optimum: the forall-filter, realized at one IsExtensional step.  (Eqn argmax)
-constexpr auto opt = materialise(argmax(omega_N | interval(0,6), cap));  // {3}
+// Optimum: the forall-filter, realized at one ext step.           (Eqn argmax)
+constexpr OrderInterval<int, 0, 6, Strictness::NonStrict,
+                        Strictness::NonStrict, Boole> dom6{};
+const auto opt = ext(argmax(dom6, [](int x){ return x*(6-x); }));  // {3}
 \end{cpp}
 \end{listing}
 
-The joint is not a black box: which matrix a relation materialises to is fixed by its \emph{classification}, so \cppinline{materialise} is a structure-preserving functor rather than a dense dump (Table~\ref{tab:relation-matrix-map}).
+The joint is not a black box: which matrix a relation materialises to is fixed by its \emph{classification}, so \cppinline{ext} is a structure-preserving functor rather than a dense dump (Table~\ref{tab:relation-matrix-map}).
 The dense fiber is provided for a binary endorelation on a semiring, the generic base case; the rank-1 fiber is the transfer's own \cppinline{OuterProduct}, whose power collapses to $\lambda^{n-1}M$ by Equation~\ref{eqn:rank1}.
 The remaining fibers are read off the four properties the relation calculus already infers (\S\ref{sec:relations_functions_blueprint}): a functional relation is sparse, and a bijection is a permutation, a $0$/$1$ orthogonal matrix, the dagger of the same calculus.
 
 \begin{table}[htbp]
 \centering
-\caption{The relation-to-matrix map: \cppinline{materialise} as a structure-preserving functor, the relation's classification fixing the matrix type. The dense and rank-1 fibers are implemented; the rest are read off the inferred four properties.}
+\caption{The relation-to-matrix map: \cppinline{ext} as a structure-preserving functor, the relation's classification fixing the matrix type. The dense and rank-1 fibers are implemented; the rest are read off the inferred four properties.}
 \label{tab:relation-matrix-map}
 \begin{tabular}{lll}
 \toprule

@@ -696,14 +696,23 @@ constexpr auto constant_classifier(typename L::Ω value) {
   return arrow<A, typename L::Ω>([value](const A&) { return value; });
 }
 
-/** @brief Default true classifier over domain A. */
+/** @brief The @b tautology / @b top predicate @f$\top@f$ over domain @c A: the
+ *  canonical @b always-true classifier @c A @c → @c Ω, constant at @c L::True.
+ *  This is the topos truth arrow @f$\top: 1 \to \Omega@f$ pulled back to a
+ *  predicate on @c A (verum, "everything is a member"); use it wherever a
+ *  whole-domain / unrestricted characteristic map is wanted rather than an
+ *  ad-hoc @c [](const A&){ return true; } lambda.
+ *  @see classifier_false (@f$\bot@f$), constant_classifier (arbitrary grade).
+ */
 export template <typename A, typename L = Boole>
   requires IsOckhamAlgebra<L>
 constexpr auto classifier_true() {
   return constant_classifier<A, L>(L::True);
 }
 
-/** @brief Default false classifier over domain A. */
+/** @brief The @b contradiction / @b bottom predicate @f$\bot@f$ over domain
+ *  @c A: the canonical @b always-false classifier @c A @c → @c Ω, constant at
+ *  @c L::False (falsum, "nothing is a member"). Dual of classifier_true. */
 export template <typename A, typename L = Boole>
   requires IsOckhamAlgebra<L>
 constexpr auto classifier_false() {
