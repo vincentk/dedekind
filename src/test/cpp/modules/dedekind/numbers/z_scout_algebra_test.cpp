@@ -53,7 +53,7 @@ static_assert(std::three_way_comparable<dedekind::sets::SignedCardinality,
 //
 // The structural binding: SignedCardinality satisfies
 // IsOrderedAdditiveGroup (specialised in :algebra:scout_algebra), so a
-// comprehension like Set{in<ℤ> + bound<3> | (in<ℤ> > bound<5>)}
+// comprehension like Set{element<ℤ> + bound<3> | (element<ℤ> > bound<5>)}
 // participates in the halfspace-pivot transport pipe.
 // ---------------------------------------------------------------------------
 
@@ -151,10 +151,11 @@ TEST_CASE(
 //
 // The §First-slice example from the issue:
 //
-//   constexpr auto S = Set{bound<2> * in<ℤ> + bound<1> | in<ℤ> > bound<5>};
+//   constexpr auto S = Set{bound<2> * element<ℤ> + bound<1> | element<ℤ> >
+//   bound<5>};
 //   // S = {2n + 1 | n ∈ ℤ, n > 5} = {13, 15, 17, ...}
 //
-// Inner ring-retract `bound<2> * in<ℤ>` produces an
+// Inner ring-retract `bound<2> * element<ℤ>` produces an
 // AffineImageOfHalfspace<ℤ, 2, 0, src_hs>; the outer additive shift
 // `+ bound<1>` is detected by the new composition pipe and folded into
 // the offset, yielding AffineImageOfHalfspace<ℤ, 2, 1, src_hs> --- the
@@ -163,7 +164,8 @@ TEST_CASE(
 // ---------------------------------------------------------------------------
 
 TEST_CASE(
-    "ℤ: canonical witness Set{bound<2> * in<ℤ> + bound<1> | in<ℤ> > bound<5>} "
+    "ℤ: canonical witness Set{bound<2> * element<ℤ> + bound<1> | element<ℤ> > "
+    "bound<5>} "
     "folds to a single AffineImageOfHalfspace predicate (#664 canonical "
     "witness / Slice B)",
     "[numbers][integer][scout_algebra][canonical-witness]") {

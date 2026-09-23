@@ -56,7 +56,7 @@ using namespace dedekind::order;
 
 // (1) Rule.  Intensional ℕ-comprehension, point-free: the ambient set ℕ
 //     refined by the projection predicate `π > fix(5)`.  Reads "the set of
-//     x ∈ ℕ such that x > 5" — the textbook membership shape.
+//     x ∈ ℕ such that x > 5".  This is the textbook membership shape.
 constexpr auto S = Set{ℕ | (π > fix(5_c))};
 
 // Post-#622: ℕ = 𝔸<Cardinality> is countable on the carrier axis

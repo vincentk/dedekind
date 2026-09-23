@@ -134,7 +134,8 @@ struct Modular {
   // result back into the canonical range so @c operator== respects
   // @f$\mathbb{Z}/N\mathbb{Z}@f$ semantics.
   // Default to 0, the additive identity; also lets @c Modular<N>{} name the
-  // carrier as a value (e.g. the scout sugar @c in<ℕ> @c % @c Modular<N>{}).
+  // carrier as a value (e.g. the scout sugar @c element<ℕ> @c % @c
+  // Modular<N>{}).
   explicit constexpr Modular(machine_type v = 0) : value(normalize(v)) {}
 
   // morphologies::IsCyclic shape API: 1 generates Z/NZ; successor
