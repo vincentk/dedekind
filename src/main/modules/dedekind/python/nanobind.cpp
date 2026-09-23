@@ -416,9 +416,14 @@ NB_MODULE(_dedekind, module) {
   // ── canonical sets across the bridge (#886, vertical prototype) ─────────
   // Expose the C++ universe/subobject SETS themselves as Python objects whose
   // `x in s` runs the NATIVE characteristic morphism χ.  This proves the core
-  // reaches Python: 𝔹 = 𝔸<bool> (the two-element universe), ℕ =
-  // NaturalNumbersOf<> whose classifier is nontrivial (ℕ ⊂ ℤ by non-negativity,
-  // so N(-7) == False crosses the wire honestly).
+  // reaches Python.
+  //
+  // NFKC note: Python normalises identifiers, so the double-struck source
+  // names collapse to ASCII attr keys — `𝔹` → "B" and `ℕ` → "N" — while the
+  // repr stays mathy.  The ambient universe `ℕ` and the discriminating ℕ⊂ℤ
+  // classifier `N` would BOTH normalise to "N", so we resolve the collision by
+  // keying the ambient universe under "N" (reached from Python as `ℕ`) and the
+  // classifier under the distinct ASCII key "Nat".
   {
     using BoolUniverse = std::decay_t<decltype(dedekind::sets::𝔹)>;
     nb::class_<BoolUniverse>(module, "BooleanUniverse",
@@ -430,21 +435,58 @@ NB_MODULE(_dedekind, module) {
             },
             "x ∈ 𝔹 via the native characteristic morphism χ_𝔹.")
         .def("__repr__", [](const BoolUniverse&) { return std::string("𝔹"); });
-    // NB: Python NFKC-normalises identifiers, so source `𝔹` resolves to the
-    // attr key "B" (double-struck letters collapse to ASCII; Greek survives).
-    // The attr is stored under the normalised key; the repr stays mathy.
     module.attr("B") = dedekind::sets::𝔹;
 
+    // ℕ = 𝔸<Cardinality>, the ambient natural-numbers universe.  Membership is
+    // universally true by the UniversalSet axiom (Total Presence): `4 in ℕ` is
+    // True, exactly as `True in 𝔹` is.  ℕ is the universe, not a discriminator;
+    // discrimination lives in the `Nat` classifier below.
+    using NatUniverse = std::decay_t<decltype(dedekind::sets::ℕ)>;
+    nb::class_<NatUniverse>(
+        module, "NaturalUniverse",
+        "The natural-numbers universe ℕ = 𝔸<Cardinality> (the ambient "
+        "universe; χ_ℕ is universally true).")
+        .def(
+            "__contains__",
+            [](const NatUniverse& s, int x) {
+              const dedekind::sets::Cardinality v = x;
+              return static_cast<bool>(s(v));
+            },
+            "x ∈ ℕ via the native characteristic morphism χ_ℕ (universally "
+            "true; ℕ is the ambient universe).")
+        .def("__repr__", [](const NatUniverse&) { return std::string("ℕ"); });
+    module.attr("N") = dedekind::sets::ℕ;  // source `ℕ` NFKC-normalises to "N"
+
+    // N = NaturalNumbersOf<>, the discriminating ℤ-subobject classifier
+    // (χ: x ↦ x ≥ 0).  The money shot: `-7 not in Nat` is decided in C++.
+    // Keyed under "Nat" to avoid the NFKC collision with `ℕ` → "N".
     using Naturals = dedekind::sets::NaturalNumbersOf<>;
-    nb::class_<Naturals>(module, "Naturals",
-                         "The naturals ℕ as a subobject of ℤ (χ: x ↦ x ≥ 0).")
+    nb::class_<Naturals>(module, "NaturalClassifier",
+                         "The naturals as a subobject of ℤ (χ: x ↦ x ≥ 0) — "
+                         "the discriminating native classifier.")
         .def(
             "__contains__",
             [](const Naturals& s, int x) { return static_cast<bool>(s(x)); },
-            "x ∈ ℕ via the native classifier (N(-7) == False).")
-        .def("__repr__", [](const Naturals&) { return std::string("ℕ"); });
-    module.attr("N") = Naturals{};  // source `ℕ` NFKC-normalises to "N"
+            "x ∈ ℕ⊂ℤ via the native classifier (Nat(-7) == False).")
+        .def("__repr__", [](const Naturals&) { return std::string("ℕ⊂ℤ"); });
+    module.attr("Nat") = Naturals{};  // ASCII key, distinct from `ℕ` → "N"
   }
+
+  // ── ext: the native retraction μ: Int ⇀ Ext (materialise, #886) ─────────
+  // Honest minimal slice of the crossing: materialise a FINITE native universe
+  // through a NATIVE characteristic morphism into a Python `set`.  Here χ is
+  // the native ℕ⊂ℤ classifier, so `ext([-2, -1, 0, 1, 2]) == {0, 1, 2}` is
+  // decided entirely in C++.  Passing a *Python* predicate into the native core
+  // is deferred to the value-first reducer (#922); only the value-level
+  // feasible form (native universe + native χ) is bound here.
+  module.def(
+      "ext",
+      [](const std::vector<int>& universe) {
+        return dedekind::sets::materialise(universe, dedekind::sets::N);
+      },
+      "Materialise a finite universe through the native ℕ⊂ℤ classifier χ into "
+      "a Python set: ext([-2, -1, 0, 1, 2]) == {0, 1, 2}.  The retraction "
+      "μ: Int ⇀ Ext; χ runs in C++, not Python.");
 
   // ── 2D LP across the bridge on a Dual<Rational> carrier ────────────────
   module.def(

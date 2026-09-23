@@ -22,6 +22,14 @@ try:
     from ._dedekind import maximize_lp
     from ._dedekind import Rational
     from ._dedekind import DualRational
+    # Canonical native sets (#886).  Python NFKC-normalises identifiers, so the
+    # double-struck attrs `B` / `N` are equally reachable as `𝔹` / `ℕ`; the
+    # discriminating ℕ⊂ℤ classifier is keyed `Nat` to avoid the `ℕ` → "N"
+    # collision.  `ext` is the native materialise retraction μ: Int ⇀ Ext.
+    from ._dedekind import B
+    from ._dedekind import N
+    from ._dedekind import Nat
+    from ._dedekind import ext
 except ModuleNotFoundError as _exc:
     raise ImportError(
         "The dedekind C++ extension (_dedekind) is not available. "
@@ -47,4 +55,8 @@ __all__ = [
     "maximize_lp",
     "Rational",
     "DualRational",
+    "B",
+    "N",
+    "Nat",
+    "ext",
 ]
