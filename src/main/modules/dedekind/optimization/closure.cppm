@@ -21,6 +21,7 @@
  */
 module;
 
+#include <concepts>  // std::convertible_to / std::invocable (functor gates)
 #include <cstddef>
 
 export module dedekind.optimization:closure;
@@ -55,6 +56,35 @@ constexpr FiniteSeq<Edge, Cap> materialise(Pred edge) {
 }
 
 /**
+ * @brief Fold step of the single-source semiring closure: relax the potential
+ *        at @c e.head through the edge @c e, @c d(v) ← d(v) ⊕ d(u) ⊗ c(u,v).
+ *
+ * @details The named replacement for the capturing @c relax lambda (#920): the
+ * closure structure --- which semiring @c Add / @c Mult and which @c cost the
+ * fold threads --- is an inspectable type rather than a nameless closure.
+ * @c cost is the only captured state; @c Add / @c Mult default to the carrier's
+ * canonical operations, as in @ref semiring_closure.  Models the @c fold op
+ * shape @c op(acc&,Edge).
+ */
+export template <
+    typename S, std::size_t Cap,
+    typename Add = typename dedekind::algebra::semiring_ops<S>::add,
+    typename Mult = typename dedekind::algebra::semiring_ops<S>::mult,
+    typename CostFn = S (*)(std::size_t, std::size_t)>
+  requires requires(const CostFn& cost, std::size_t u, S s) {
+    { cost(u, u) } -> std::convertible_to<S>;
+    { Add{}(s, s) } -> std::convertible_to<S>;
+    { Mult{}(s, s) } -> std::convertible_to<S>;
+  }
+struct Relax {
+  CostFn cost;
+  constexpr void operator()(FiniteNet<S, Cap>& acc, const Edge& e) const {
+    acc.at(e.head) =
+        Add{}(acc(e.head), Mult{}(acc(e.tail), cost(e.tail, e.head)));
+  }
+};
+
+/**
  * @brief Single-source semiring closure: fold the edge sequence into the
  *        potential net, return its value at the sink.  @c Add / @c Mult
  *        default to the carrier's canonical operations.
@@ -70,12 +100,56 @@ constexpr S semiring_closure(std::size_t source, std::size_t sink,
   static_assert(S{} == dedekind::category::identity_v<S, Add>);  // 0-bar is S{}
   FiniteNet<S, Cap> d{};                                   // 0-bar everywhere
   d.at(source) = dedekind::category::identity_v<S, Mult>;  // 1-bar at source
-  const auto relax = [cost](FiniteNet<S, Cap>& acc, const Edge& e) {
-    acc.at(e.head) =
-        Add{}(acc(e.head), Mult{}(acc(e.tail), cost(e.tail, e.head)));
-  };
-  return dedekind::sequences::fold(edges, d, relax)(sink);
+  return dedekind::sequences::fold(
+      edges, d, Relax<S, Cap, Add, Mult, CostFn>{cost})(sink);
 }
+
+/**
+ * @brief Fold accumulator of @ref annotate: the transient potential net paired
+ *        with the critical-path predecessor map it induces.
+ *
+ * @details Promoted from the function-local @c Anno struct so the fold step
+ * (@ref CriticalPathStep) that threads it is a named, inspectable type (#920)
+ * rather than a closure over an anonymous local.
+ */
+export template <typename S, std::size_t Cap>
+struct CriticalPathState {
+  FiniteNet<S, Cap> d{};               // potentials (transient memo)
+  FiniteNet<std::size_t, Cap> pred{};  // the V → V critical map
+};
+
+/**
+ * @brief Fold step of @ref annotate: relax through @c e and, when the candidate
+ *        wins the (selective) join, record @c e.tail as @c e.head's
+ *        predecessor.
+ *
+ * @details The named replacement for the capturing @c step lambda (#920).  The
+ * selective @c ⊕ test @c (d(head) ⊕ cand != d(head)) is what makes the recorded
+ * @c pred single-valued; see @ref annotate for the gate.  @c cost is the only
+ * captured state.  Models the @c fold op shape @c op(acc&,Edge).
+ */
+export template <
+    typename S, std::size_t Cap,
+    typename Add = typename dedekind::algebra::semiring_ops<S>::add,
+    typename Mult = typename dedekind::algebra::semiring_ops<S>::mult,
+    typename CostFn = S (*)(std::size_t, std::size_t)>
+  requires requires(const CostFn& cost, std::size_t u, S s) {
+    { cost(u, u) } -> std::convertible_to<S>;
+    { Add{}(s, s) } -> std::convertible_to<S>;
+    { Mult{}(s, s) } -> std::convertible_to<S>;
+    { s != s } -> std::convertible_to<bool>;
+  }
+struct CriticalPathStep {
+  CostFn cost;
+  constexpr void operator()(CriticalPathState<S, Cap>& acc,
+                            const Edge& e) const {
+    const S cand = Mult{}(acc.d(e.tail), cost(e.tail, e.head));
+    if (Add{}(acc.d(e.head), cand) != acc.d(e.head)) {  // cand wins the join
+      acc.d.at(e.head) = cand;
+      acc.pred.at(e.head) = e.tail;
+    }
+  }
+};
 
 /**
  * @brief Collapse the edge relation to the critical-path FUNCTION @c pred :
@@ -98,20 +172,11 @@ constexpr FiniteNet<std::size_t, Cap> annotate(std::size_t source,
                                                const Edges& edges,
                                                CostFn cost) {
   static_assert(S{} == dedekind::category::identity_v<S, Add>);
-  struct Anno {
-    FiniteNet<S, Cap> d{};               // potentials (transient memo)
-    FiniteNet<std::size_t, Cap> pred{};  // the V → V critical map
-  };
-  Anno a{};
+  CriticalPathState<S, Cap> a{};
   a.d.at(source) = dedekind::category::identity_v<S, Mult>;  // 1-bar
-  const auto step = [cost](Anno& acc, const Edge& e) {
-    const S cand = Mult{}(acc.d(e.tail), cost(e.tail, e.head));
-    if (Add{}(acc.d(e.head), cand) != acc.d(e.head)) {  // cand wins the join
-      acc.d.at(e.head) = cand;
-      acc.pred.at(e.head) = e.tail;
-    }
-  };
-  return dedekind::sequences::fold(edges, a, step).pred;
+  return dedekind::sequences::fold(
+             edges, a, CriticalPathStep<S, Cap, Add, Mult, CostFn>{cost})
+      .pred;
 }
 
 /**
@@ -127,5 +192,18 @@ constexpr FiniteSeq<Edge, Cap> critical_path(
   for (std::size_t v = sink; v != source; v = pred(v)) p.push({pred(v), v});
   return p;
 }
+
+// Type-level witness (#920): the named fold steps model the @c fold op shape
+// @c op(acc&,Edge), so @ref semiring_closure / @ref annotate thread them
+// exactly as the @c relax / @c step lambdas they replaced.  Paired with the
+// runtime necklace showcase (@c showcase_13_necklace_critical_path), whose @c
+// witness_* functions and value @c static_asserts fold these very functors to
+// concrete costs (@c static_asserts are invisible to coverage on their own).
+static_assert(
+    std::invocable<const Relax<bool, 4>&, FiniteNet<bool, 4>&, const Edge&>,
+    "Relax is a fold op op(FiniteNet&, Edge).");
+static_assert(std::invocable<const CriticalPathStep<bool, 4>&,
+                             CriticalPathState<bool, 4>&, const Edge&>,
+              "CriticalPathStep is a fold op op(CriticalPathState&, Edge).");
 
 }  // namespace dedekind::optimization
