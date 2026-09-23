@@ -449,6 +449,24 @@ struct codomain_reduce<UniversalSet<T, L, C>> {
 export template <typename R>
 using codomain_reduce_t = typename codomain_reduce<R>::type;
 
+/** @brief The @b value-level twin of @c codomain_reduce_t: finalize a reduced
+ *  normal-form value along the codomain leg (#894).  When the reduced type is a
+ *  @c IsBoundaryObject the result is a decided boundary, so re-tag its codomain
+ *  to @c Boole and default-construct; otherwise the value passes through
+ *  unchanged.  This is the single home for the value-finalization law: this
+ *  partition's Ø / 𝔸 meet & join operators call it directly (they are declared
+ *  below it), and @c :expressions (downstream) reuses it for the general
+ *  subobject combine, so the rule is spelled @b once rather than duplicated.
+ *  FIXME(#894): @c boundary @c → @c Boole is the only rule for now; the general
+ *  form is @c image(χ) @c ⊆ @c Σ folded on the Kleene image lattice. */
+export template <typename R>
+constexpr auto finalize_combine(R r) {
+  if constexpr (IsBoundaryObject<R>)
+    return codomain_reduce_t<R>{};
+  else
+    return r;
+}
+
 template <typename T, typename L>
 constexpr auto Ø<T, L>::operator!() const {
   // FIXME(#894): a boundary complement should carry the Boolean codomain (!Ø is
@@ -473,25 +491,22 @@ constexpr auto Ø<T, L>::operator!() const {
  *  operand is the normal form (return the operand value @c s).  These are the
  *  only two shapes a bounded-law collapse can produce for a boundary term. */
 namespace detail_boundary {
-/** @brief Reify a reduced normal-form @b type @c R back into a value: either
- *  the operand @c s survived (unit law, @c R @c == @c S) or the term collapsed
- *  to a stateless boundary (annihilator, default-construct @c R). Not
- *  extensionalisation --- this is the type→value leg of the type-level reducer,
- *  distinct from @c sets::ext. */
-template <typename R, typename S>
-constexpr auto reify(const S& s) {
-  if constexpr (std::same_as<R, std::remove_cvref_t<S>>)
-    return s;
-  else
-    return R{};
-}
-/** @brief Reduce a boundary lattice @c Term along @b both legs (domain
- *  @c subobject_reduce_t + codomain @c codomain_reduce_t, #894) and @ref reify
- *  the result.  The single pipeline the four Ø / 𝔸 meet & join operators share,
- *  named once instead of re-spelled at every call site. */
+/** @brief Reduce a boundary lattice @c Term along the domain leg
+ *  (@c subobject_reduce_t) and finalize the value.  The operand @c s survives
+ *  when the reduced type is unchanged (the unit / idempotency law, e.g.
+ *  @c Ø∨S=S, @c 𝔸∧S=S); otherwise the term collapsed to a stateless boundary
+ *  (the annihilator, @c Ø∧S=Ø, @c 𝔸∨S=𝔸).  Either way the codomain leg is
+ *  applied by the shared @ref finalize_combine, so the value-finalization law
+ *  lives in one place rather than being re-spelled here.  This is the type→
+ *  value leg of the type-level reducer, not extensionalisation (@c sets::ext).
+ *  The single pipeline the four Ø / 𝔸 meet & join operators share. */
 template <typename Term, typename L, typename S>
 constexpr auto reify_term(const S& s) {
-  return reify<codomain_reduce_t<subobject_reduce_t<Term, L>>>(s);
+  using D = subobject_reduce_t<Term, L>;
+  if constexpr (std::same_as<D, std::remove_cvref_t<S>>)
+    return finalize_combine(s);
+  else
+    return finalize_combine(D{});
 }
 }  // namespace detail_boundary
 
