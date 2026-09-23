@@ -91,6 +91,19 @@ Coherence checks:
 - **static_assert / concept-binding is the safety boundary**, not prose. Prefer a
   compile-time witness over a comment vouching that an invariant holds. Note that
   `static_assert`s are invisible to coverage tooling.
+- **Python bindings are handle-only; no second reducer, and fail fast.** The C++
+  value-first / `constexpr` reducer is the single implementation across every
+  phase: compile-time (`static_assert`), runtime C++, and Python via the native
+  binding. A Python binding must NOT re-implement predicate structure or
+  reduction. Composed predicates are C++ structures, built and reduced on the C++
+  side; Python holds only a handle plus accessibility bits (`__repr__`,
+  `__call__` / `__contains__`, `ext`). Flag any Python-side predicate AST,
+  combinator normalisation, or lattice-law rewrite as a forbidden second reducer.
+  When a capability is not yet value-first in C++, the binding must **fail fast**
+  at the boundary (raise, or the operation is absent), never fall back to a
+  Python re-implementation. The binding's working surface is thereby an honest
+  witness of the `constexpr`-first frontier; a silent Python fallback destroys
+  that signal.
 - **New C++ commentary uses Doxygen blocks** per the convention documented in
   `CONTRIBUTING.md` (Alignment with the codebase → Doxygen header convention:
   brief, partition summary, copyright notice, Wikipedia-leads, and the
