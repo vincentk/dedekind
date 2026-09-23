@@ -83,16 +83,16 @@ namespace dedekind::category {
  * over a specific 'type' of truth value. In categorical terms, this defines
  * the structure of the Subobject Classifier (Ω).
  *
- * @note IsOckhamAlgebra certifies the (AND, OR, RFL, True, False) signature
- * PLUS the boundary case of the Ockham dual endomorphism: the reflection
- * reverses the bounds (@c ¬⊤=⊥, @c ¬⊥=⊤), checked directly below since
- * @c True / @c False / @c RFL are compile-time constants. It is thus a shape
- * gate strengthened by one @b constant-evaluable law, not a bare signature
- * gate. It does NOT yet gate the @b full Ockham laws (distributivity plus the
- * all-values dual-endomorphism / De Morgan law over the whole carrier); those
- * remain the scope of #907, witnessed by the @c static_assert tower downstream.
- * A species whose reflection is not constant-evaluable, or does not swap the
- * poles, is correctly rejected (fail-closed).
+ * @note IsOckhamAlgebra is a conservative SHAPE gate: it certifies the
+ * (AND, OR, RFL, True, False) signature only. The Ockham laws proper (the
+ * reflection reversing the bounds, distributivity, and the all-values
+ * dual-endomorphism / De Morgan law) are NOT gated in the concept. An
+ * in-concept attempt to require even the boundary pole-reflection law
+ * (@c ¬⊤=⊥, @c ¬⊥=⊤) snagged on C++ overload resolution (value category plus
+ * RFL-overload selection), so it was reverted (see #918): the codebase's
+ * posture holds, a shape gate here with the laws witnessed downstream by the
+ * @c static_assert tower and gated properly in #907 (which needs the
+ * static-method-ops to :species-trait bridge, #923).
  *
  * @tparam L The Logic Species (e.g., Boole, Kleene).
  *
@@ -115,21 +115,6 @@ concept IsOckhamAlgebra = requires(typename L::Ω a, typename L::Ω b) {
   // The Categorical Constants (True/False)
   { L::True } -> std::convertible_to<typename L::Ω>;
   { L::False } -> std::convertible_to<typename L::Ω>;
-
-  // Beyond pure shape: the reflection reverses the bounds --- @c ¬⊤ = ⊥ and
-  // @c ¬⊥ = ⊤, the boundary case of the Ockham dual endomorphism.  @c True /
-  // @c False / @c RFL are compile-time constants, so this law is checkable
-  // directly here (no per-species tag, no total-order requirement).  The inputs
-  // are cast to @c Ω so the already-validated @c RFL(Ω) overload is selected
-  // (@c True / @c False are only convertible_to Ω, so a bare call could bind an
-  // unrelated @c RFL overload on the constants' declared type), and the
-  // expected poles are compared as @c Ω.  The full distributive-lattice and
-  // all-values dual-endomorphism / De Morgan laws remain the scope of #907,
-  // witnessed by the @c static_assert tower below.
-  requires L::RFL(static_cast<typename L::Ω>(L::True)) ==
-               static_cast<typename L::Ω>(L::False);
-  requires L::RFL(static_cast<typename L::Ω>(L::False)) ==
-               static_cast<typename L::Ω>(L::True);
 };
 
 /**
