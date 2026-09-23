@@ -1985,7 +1985,7 @@ The closure is then the $\otimes$-fold of the eigenvalues, with no potential net
 \end{equation}
 The semiring is still the choice of problem, and because the transfer asks only for \cppinline{IsSemiring} the same fold carries the sensitivity of \S\ref{subsec:necklace} on the dual-number semiring, its tangent the winning branch's derivative by the envelope theorem.
 The optimum is the filtration of Equation~\ref{eqn:argmax}, realized to an extensional set only at the end by \cppinline{ext}, gated on \cppinline{IsExtensional}: finite and addressable, not merely finite.
-\cppinline{ext} is the realize boundary, our \cppinline{runST}~\cite{launchbury1994st}: the enumeration runs inside and \cppinline{constexpr} seals it, and \cppinline{IsExtensional} is the type-level guarantee that makes extraction sound, the role the rank-2 $\forall s$ plays for state locality played here for finiteness.
+\cppinline{ext} is the realize boundary, our \cppinline{runST}~\cite{launchbury1994st}: the enumeration runs inside at runtime, and \cppinline{IsExtensional} is the type-level guarantee that seals it and makes extraction sound. That is the role the rank-2 $\forall s$ plays for state locality, played here for finiteness.
 
 \begin{listing}[htbp]
 \caption{Equations~\ref{eqn:braket}--\ref{eqn:transfer-closure} and Equation~\ref{eqn:argmax}, as code (abridged from the checked-in transfer showcase).}
@@ -2003,7 +2003,7 @@ static_assert( transfer_chain<4>(bead<MinPlus>).val     == 0 );  // shortest pat
 static_assert( bead<MaxPlus<Dual>>(0).val.der           == 1 );  // sensitivity (AD)
 
 // Optimum: the forall-filter, realized at one IsExtensional step.  (Eqn argmax)
-constexpr auto opt = ext(argmax(omega_N | interval(0,6), cap));  // {3}
+const auto opt = ext(argmax(omega_N | interval(0,6), cap));  // {3}
 \end{cpp}
 \end{listing}
 

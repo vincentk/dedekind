@@ -4,7 +4,7 @@
  * extensional bridge: `ext` realises a finite (IsExtensional) interval
  * domain into its `ExtensionalSet`, via the halfspace→iota_view bridge and the
  * existing `sets::ext`.  An unbounded domain has no `to_iota_view`, so
- * it cannot reach `ext` at all — the Rice wall made structural.
+ * it cannot reach `ext` at all. The Rice wall is structural, not checked.
  */
 
 #include <array>
