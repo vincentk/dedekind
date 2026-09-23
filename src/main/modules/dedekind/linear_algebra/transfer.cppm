@@ -419,9 +419,9 @@ constexpr S transfer_chain(Bead bead) {
  *  relation (a predicate over a possibly-infinite carrier, whose @b type grows
  *  under @c ; and @c ∪) to its extensional adjacency matrix (a @b fixed,
  *  type-stable carrier), on which a fixpoint can run.  The extensionality
- *  constraint is spelled out @b in @b the @b type: @ref materialise demands the
+ *  constraint is spelled out @b in @b the @b type: @ref ext demands the
  *  finite bound @c N (the @c IsExtensional licence), and @ref star only accepts
- *  the resulting @ref SquareMatrix.  So @c R* @c = @c star(materialise<N>(R))
+ *  the resulting @ref SquareMatrix.  So @c R* @c = @c star(ext<N>(R))
  *  type-checks exactly when the carrier is finite; the infinite case is a type
  *  error, not a runtime check --- the Rice wall, made structural.
  */
@@ -449,7 +449,7 @@ using SquareMatrix = MatNxNV<S, N>;
 /** @brief Read a relation's @c (i,j) entry, accepting EITHER the two-index
  *  weighted call @c rel(i,j) (a semiring-adjacency arrow) OR the point-free DSL
  *  call @c rel({i,j}) (a @c Set<pair> relation).  This one seam is what lets a
- *  @b typed Ddk relation --- not a raw lambda --- feed @ref materialise. */
+ *  @b typed Ddk relation --- not a raw lambda --- feed @ref ext. */
 template <typename Rel>
 constexpr auto rel_entry(const Rel& rel, std::size_t i, std::size_t j) {
   if constexpr (std::invocable<const Rel&, std::size_t, std::size_t>)
@@ -466,7 +466,7 @@ export template <
     typename Add = typename dedekind::algebra::semiring_ops<S>::add,
     typename Mult = typename dedekind::algebra::semiring_ops<S>::mult>
   requires dedekind::category::IsSemiring<S, Add, Mult>
-constexpr SquareMatrix<S, N> materialise(const Rel& rel) {
+constexpr SquareMatrix<S, N> ext(const Rel& rel) {
   SquareMatrix<S, N> m{};
   for (std::size_t i = 0; i < N; ++i)
     for (std::size_t j = 0; j < N; ++j)
@@ -584,7 +584,7 @@ static_assert(inner_product<2>(w_first, v_present),
 // made executable.  The relations here are @b typed Ddk carriers, not raw
 // lambdas: a bool edge relation is a @c Set<pair> (the DSL @c converse and the
 // four-property traits attach to it), and its adjacency is minted by
-// @ref materialise.  R* = star(materialise<N>(R)).
+// @ref ext.  R* = star(ext<N>(R)).
 using Idx2 = std::pair<std::size_t, std::size_t>;
 
 /** @brief The path DAG's edge relation @c i → i+1, a NAMED predicate carrier
@@ -603,7 +603,7 @@ static_assert(dedekind::relational::is_relation(path_rel),
               "path_rel is a Ddk relation: an IsSet on a product domain.");
 
 // Over 𝔹 the star is REACHABILITY, R*[i][j] = (i ≤ j).
-inline constexpr auto Bstar = star<4>(materialise<4>(path_rel));
+inline constexpr auto Bstar = star<4>(ext<4>(path_rel));
 static_assert(Bstar[0][0], "reflexive: Δ ⊆ R* (0 reaches 0).");
 static_assert(Bstar[0][3], "transitive: 0 reaches 3 along the path.");
 static_assert(!Bstar[3][0], "acyclic: 3 does not reach 0.");
@@ -620,7 +620,7 @@ struct WeightedUnitPath {
   }
 };
 inline constexpr WeightedUnitPath wpath{};
-inline constexpr auto Tstar = star<4>(materialise<4>(wpath));
+inline constexpr auto Tstar = star<4>(ext<4>(wpath));
 static_assert(Tstar[0][3] == MP::of(3),
               "MaxPlus star = longest path: 0→1→2→3 costs 3.");
 static_assert(Tstar[3][0] == mp_bot, "unreachable = the ⊕-identity.");
@@ -630,7 +630,7 @@ static_assert(Tstar[3][0] == mp_bot, "unreachable = the ⊕-identity.");
 // closure of the transposed adjacency, and equals the transposed forward star,
 // (R°)* = (R*)°.  A fact of Mat(S): the *-closure commutes with transpose (over
 // MaxPlus these are the latest-start times to the sink).
-static_assert(star<4>(materialise<4>(wpath).transpose()) == transpose(Tstar),
+static_assert(star<4>(ext<4>(wpath).transpose()) == transpose(Tstar),
               "backward pass = the dagger's closure: (R°)* = (R*)°.");
 
 // ── UNITARY via the Rel DAGGER.  On a BOOL relation the dagger IS the DSL
@@ -653,9 +653,9 @@ inline constexpr auto perm_rel =
         CyclicShift{}};
 static_assert(dedekind::relational::is_relation(perm_rel),
               "perm_rel is a Ddk relation: the cyclic-shift permutation.");
-inline constexpr auto Pmat = materialise<4>(perm_rel);
+inline constexpr auto Pmat = ext<4>(perm_rel);
 inline constexpr auto PdaggerMat =
-    materialise<4>(dedekind::relational::converse(perm_rel));
+    ext<4>(dedekind::relational::converse(perm_rel));
 // ── The cyclic shift is UNITARY, read off by the GENERIC dagger surface
 // (dedekind::category, :involution) --- not a bespoke loop.  Three facts:
 using PMat = std::remove_cvref_t<decltype(Pmat)>;  // Mat(𝔹), 4×4

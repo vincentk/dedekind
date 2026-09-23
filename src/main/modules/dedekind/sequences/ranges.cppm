@@ -333,7 +333,7 @@ constexpr std::ranges::iota_view<T, T> to_iota_view(
 }
 
 /** @section ranges__Materialize — the last plank of the bridge
- *  @c intensional @c → @c intensional-finite @c → @c materialise @c → @c
+ *  @c intensional @c → @c intensional-finite @c → @c ext @c → @c
  *  extensional.
  *
  *  @brief Realise a finite interval domain into its @c ExtensionalSet, keeping
@@ -341,7 +341,7 @@ constexpr std::ranges::iota_view<T, T> to_iota_view(
  *         that carries the finiteness certificate (@c cardinality_type @c =
  *         @c Finite, so @c IsExtensional); @ref to_iota_view is the @b only
  *         on-ramp from that bounded meet to a scannable range, and the fold is
- *         the existing @c dedekind::sets::materialise.  An @b unbounded set has
+ *         the existing @c dedekind::sets::ext.  An @b unbounded set has
  *         no @c to_iota_view and cannot reach here — the Rice wall made
  *         structural rather than checked.  Two-argument form takes the
  *         @c argmax (or any) predicate; the one-argument form realises the
@@ -350,25 +350,23 @@ constexpr std::ranges::iota_view<T, T> to_iota_view(
 export template <std::integral T, auto Lo, auto Hi,
                  dedekind::order::Strictness SL, dedekind::order::Strictness SU,
                  typename L, typename Chi>
-auto materialise(const dedekind::order::OrderInterval<T, Lo, Hi, SL, SU, L>& oi,
-                 Chi chi) {
-  return dedekind::sets::from_std(
-      dedekind::sets::materialise(to_iota_view(oi), chi));
+auto ext(const dedekind::order::OrderInterval<T, Lo, Hi, SL, SU, L>& oi,
+         Chi chi) {
+  return dedekind::sets::from_std(dedekind::sets::ext(to_iota_view(oi), chi));
 }
 
 export template <std::integral T, auto Lo, auto Hi,
                  dedekind::order::Strictness SL, dedekind::order::Strictness SU,
                  typename L>
-auto materialise(
-    const dedekind::order::OrderInterval<T, Lo, Hi, SL, SU, L>& oi) {
-  return materialise(oi, [](const T&) { return true; });
+auto ext(const dedekind::order::OrderInterval<T, Lo, Hi, SL, SU, L>& oi) {
+  return ext(oi, [](const T&) { return true; });
 }
 
 /** @section ranges__Argmax_Over_A_Bounded_Domain
  *
  *  The optimum as a filtration, carried with its own finite domain so it flows
- *  straight into @ref materialise as the single argument the endorsed surface
- *  @c materialise(argmax(𝔸|[0,N], cost)) calls.
+ *  straight into @ref ext as the single argument the endorsed surface
+ *  @c ext(argmax(𝔸|[0,N], cost)) calls.
  */
 
 /** @brief The value-semantic comprehension @f$\{x \in \mathrm{dom} \mid
@@ -386,7 +384,7 @@ auto materialise(
  *  the return value's type.  So @c BoundedSet is precisely the @b value-owning
  *  finite comprehension.  Its membership χ is @c x @c ∈ @c {dom @c | @c P} @c ⟺
  *  @c dom(x) @c ∧ @c P(x); @c size() is the interval's cardinality (the
- *  @c IsExtensional licence @ref materialise needs), free because the
+ *  @c IsExtensional licence @ref ext needs), free because the
  *  @c OrderInterval domain is stateless. */
 export template <typename OI, typename P>
 struct BoundedSet
@@ -402,7 +400,7 @@ struct BoundedSet
   constexpr BoundedSet(OI d, P p)
       : domain(static_cast<OI&&>(d)), pred(static_cast<P&&>(p)) {}
   /** @brief The interval is finite (an @c IsExtensional bounded meet), so the
-   *  comprehension over it is too --- the licence @ref materialise reads. */
+   *  comprehension over it is too --- the licence @ref ext reads. */
   using cardinality_type = dedekind::sets::Finite;
   /** @brief χ / membership: @c x @c ∈ @c {dom @c | @c P} @c ⟺ in the domain
    *  @b and @c P-optimal.  A comprehension @b is its own characteristic map,
@@ -445,7 +443,7 @@ static_assert(dedekind::category::IsSet<BoundedSet<WOI, all_ok>>,
  *         filter @c {x ∈ dom | ∀x'∈dom. cost(x') ≤ cost(x)}, with @c ≤ pulled
  *         back through @c cost.  Returns a @ref BoundedSet — intensional (the
  *         @c ∀ is decidable @b because @c dom is finite) and carrying its
- *         domain, so @c materialise realises it.  IsSet-valued: @c ∅ /
+ *         domain, so @c ext realises it.  IsSet-valued: @c ∅ /
  * singleton (unique optimiser, a function) / larger (ties, a proper relation).
  */
 export template <std::integral T, auto Lo, auto Hi,
@@ -468,26 +466,26 @@ constexpr auto argmax(
   return BoundedSet<OI, decltype(pred)>{dom, pred};
 }
 
-/** @brief @c materialise a @ref BoundedSet: scan its domain, keep the members
+/** @brief @c ext a @ref BoundedSet: scan its domain, keep the members
  *         its predicate accepts — an ordered @c ExtensionalSet (the @c std::set
  *         flavour).  This is the single-argument call the endorsed
- *         @c materialise(argmax(dom, cost)) surface makes. */
+ *         @c ext(argmax(dom, cost)) surface makes. */
 export template <typename OI, typename P>
-auto materialise(const BoundedSet<OI, P>& bs) {
-  return materialise(bs.domain, bs.pred);
+auto ext(const BoundedSet<OI, P>& bs) {
+  return ext(bs.domain, bs.pred);
 }
 
-/** @brief The @b sequence flavour of @c materialise: realise the first @c N
+/** @brief The @b sequence flavour of @c ext: realise the first @c N
  *         terms of a sequence (a bra/ket / @c Path / any @c index→value arrow)
  *         into a @c std::array — @b positional and indexed, dual to the set
  *         flavour's @c std::set.  The compile-time @c N is the Kleene bound
  *         (the finite prefix); this is the QM realise — an infinite bra/ket,
  *         bounded to @c [0,N), becomes a concrete finite-dimensional vector.
- *         Selected by the explicit @c N (@c materialise<N>(seq)); the no-@c N
+ *         Selected by the explicit @c N (@c ext<N>(seq)); the no-@c N
  *         form realises a bounded @b set instead. */
 export template <std::size_t N, typename Seq>
-constexpr std::array<typename std::remove_cvref_t<Seq>::Codomain, N>
-materialise(const Seq& s) {
+constexpr std::array<typename std::remove_cvref_t<Seq>::Codomain, N> ext(
+    const Seq& s) {
   using D = typename std::remove_cvref_t<Seq>::Domain;
   std::array<typename std::remove_cvref_t<Seq>::Codomain, N> out{};
   for (std::size_t i = 0; i < N; ++i) out[i] = s(static_cast<D>(i));

@@ -40,7 +40,7 @@ module;
 #include <cstddef>
 #include <functional>
 #include <iterator>
-#include <ranges>  // materialise: enumerate a universe range
+#include <ranges>  // ext: enumerate a universe range
 #include <set>
 #include <type_traits>
 #include <unordered_set>
@@ -340,7 +340,7 @@ static_assert(
 export template <std::ranges::input_range U, typename Chi>
   requires std::totally_ordered<
       std::ranges::range_value_t<std::remove_cvref_t<U>>>
-auto materialise(U&& universe, Chi chi) {
+auto ext(U&& universe, Chi chi) {
   std::set<std::ranges::range_value_t<std::remove_cvref_t<U>>> out;
   for (auto&& x : universe)
     if (chi(x)) out.insert(x);

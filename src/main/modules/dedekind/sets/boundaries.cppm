@@ -467,14 +467,14 @@ constexpr auto Ø<T, L>::operator!() const {
  *  bounded law then supplies the four identities the members used to spell by
  *  hand (⊥∧X=⊥, ⊥∨X=X, ⊤∧X=X, ⊤∨X=⊤).
  *
- *  @c materialize_boundary: the reducer works on @b types, so the normal form
+ *  @c ext: the reducer works on @b types, so the normal form
  *  is turned back into a value.  Either the term collapsed to a stateless
  *  boundary (@c Ø / @c UniversalSet, default-construct it), or the surviving
  *  operand is the normal form (return the operand value @c s).  These are the
  *  only two shapes a bounded-law collapse can produce for a boundary term. */
 namespace detail_boundary {
 template <typename R, typename S>
-constexpr auto materialize(const S& s) {
+constexpr auto ext(const S& s) {
   if constexpr (std::same_as<R, std::remove_cvref_t<S>>) {
     return s;  // the operand survived as the normal form (unit law)
   } else {
@@ -492,14 +492,14 @@ constexpr auto operator&(const Ø<T, L>&, const S& s) {
   // Codomain leg (#894): wrap the domain normal form so a boundary result is
   // re-tagged to Boole, matching the S-LHS path (S & Ø); otherwise the codomain
   // would be order-dependent.
-  return detail_boundary::materialize<
+  return detail_boundary::ext<
       codomain_reduce_t<subobject_reduce_t<Meet<Ø<T, L>, S>, L>>>(s);
 }
 /** @brief @c Ø @c | @c S = @c S (⊥ is the join unit); see @c operator&. */
 export template <typename T, typename L, typename S>
   requires(IsSet<S> && std::same_as<typename S::Domain, T>)
 constexpr auto operator|(const Ø<T, L>&, const S& s) {
-  return detail_boundary::materialize<
+  return detail_boundary::ext<
       codomain_reduce_t<subobject_reduce_t<Join<Ø<T, L>, S>, L>>>(s);
 }
 
@@ -509,7 +509,7 @@ constexpr auto operator|(const Ø<T, L>&, const S& s) {
 export template <typename T, typename L, typename C, typename S>
   requires(IsSet<S> && std::same_as<typename S::Domain, T>)
 constexpr auto operator&(const UniversalSet<T, L, C>&, const S& s) {
-  return detail_boundary::materialize<
+  return detail_boundary::ext<
       codomain_reduce_t<subobject_reduce_t<Meet<UniversalSet<T, L, C>, S>, L>>>(
       s);
 }
@@ -518,7 +518,7 @@ constexpr auto operator&(const UniversalSet<T, L, C>&, const S& s) {
 export template <typename T, typename L, typename C, typename S>
   requires(IsSet<S> && std::same_as<typename S::Domain, T>)
 constexpr auto operator|(const UniversalSet<T, L, C>&, const S& s) {
-  return detail_boundary::materialize<
+  return detail_boundary::ext<
       codomain_reduce_t<subobject_reduce_t<Join<UniversalSet<T, L, C>, S>, L>>>(
       s);
 }

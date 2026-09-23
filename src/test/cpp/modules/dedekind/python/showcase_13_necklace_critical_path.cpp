@@ -60,8 +60,7 @@ constexpr bool nedge(std::size_t u, std::size_t v) {
 
 // The intensional rule, materialised extensionally (once) as the edge
 // sequence the fold threads — point-free, no loop at this site.
-constexpr auto necklace_edges =
-    dedekind::optimization::materialise<NCAP, 32>(nedge);
+constexpr auto necklace_edges = dedekind::optimization::ext<NCAP, 32>(nedge);
 
 }  // namespace
 
