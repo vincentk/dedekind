@@ -44,8 +44,8 @@ TEST_CASE("Order: The Geography of Species", "[order][axioms]") {
     STATIC_CHECK(
         dedekind::category::IsCertifiedOrderLatticeOperations<Ternary>);
     // category:: concepts default Rel to the TYPED std::less_equal<Ternary> and
-    // query the traits for that exact type; registered in :logic (#933) so this
-    // resolves (regression guard — these were latently failing before).
+    // query the traits for that exact type. Those typed traits are registered
+    // in :logic (#933). These were latently failing before, so keep the guard.
     STATIC_CHECK(dedekind::category::IsPosetal<Ternary>);
     STATIC_CHECK(dedekind::category::IsTotalOrder<Ternary>);
   }

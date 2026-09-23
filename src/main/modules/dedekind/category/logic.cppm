@@ -882,7 +882,8 @@ static_assert(Inf{}(Ternary::True, Ternary::False) == Ternary::False &&
               "K₃: ⊤ = True is the meet (∧ = Inf) identity");
 
 /** @brief ∨-identity (⊥) of the K₃ lattice: @c False.  Mirrors the
- *  @c identity_trait<bool, std::bit_and<bool>> registration in @c :species. */
+ *  @c identity_v<bool, std::logical_or<bool>> @c == @c false (⊥) registration
+ *  in @c :species (the join / OR identity is the bottom, not the top). */
 template <>
 struct identity_trait<Ternary, Sup> {
   using value_type = Ternary;
