@@ -222,3 +222,46 @@ static_assert(
     "k_E = 0 scaling is Honest-Rejected: scaling by zero is not a "
     "halfspace-pivot transport (the image is the singleton {0} or ∅, "
     "not a halfspace).");
+
+// ---------------------------------------------------------------------------
+// Decidability parity (#848/#927): a point-free ℚ halfspace classifies
+// IDENTICALLY to the ambient ℚ (and hence the scout comprehension above,
+// whose SetL is NaturalLogic<ℚ>).  ℚ is countable, so the cut is decidable
+// (Boole), not Kleene.  The Halfspace lives in :order, which is upstream of
+// :numbers and cannot see that Rational is countable structurally
+// (IsRingIntegral<Rational> is false); Rational self-declares its
+// cardinality_type = ℵ_0, which order::carrier_cardinality reads.  Before the
+// fix the point-free path fell to the IsRingIntegral fallback (ℶ_1 → Kleene),
+// disagreeing with the scout's ℵ_0/Boole.
+namespace {
+using dedekind::order::fix;
+using dedekind::order::operator""_c;
+// Derive the halfspace type from the PUBLIC point-free expression
+// `ℚ | (π > fix(5_c))`, not a hand-built Halfspace<Rational>: this way the
+// witness fails if `ℚ | pred` stops binding to the Rational carrier or its
+// Boole logic (the actual surface under test), per #927 review.
+using QHalfspace =
+    std::remove_cvref_t<decltype(ℚ | (dedekind::sets::π > fix(5_c)))>;
+// The public expression really does bind the ℚ carrier and the Above<5> cut.
+static_assert(
+    std::same_as<
+        QHalfspace,
+        dedekind::order::Halfspace<
+            Rational<default_integer>, 5, dedekind::order::Direction::Upward,
+            dedekind::order::Strictness::Strict, dedekind::category::Boole>>,
+    "ℚ | (π > fix(5_c)) binds to the Above<5> halfspace over Rational.");
+// Carrier-axis magnitude is countable ℵ_0, matching the ambient's own C.
+static_assert(
+    std::same_as<typename QHalfspace::cardinality_type, dedekind::sets::ℵ_0>,
+    "ℚ halfspace inherits the countable ℵ_0 the carrier self-declares.");
+// The NaturalLogic verdict therefore matches the ambient ℚ: decidable Boole.
+static_assert(
+    std::same_as<typename dedekind::sets::NaturalLogic<QHalfspace>::type,
+                 typename dedekind::sets::NaturalLogic<
+                     std::remove_cvref_t<decltype(ℚ)>>::type>,
+    "point-free ℚ halfspace classifies as the ambient ℚ does (parity).");
+static_assert(
+    std::same_as<typename dedekind::sets::NaturalLogic<QHalfspace>::type,
+                 dedekind::category::Boole>,
+    "a countable ℚ cut is decidable (Boole), not Kleene.");
+}  // namespace

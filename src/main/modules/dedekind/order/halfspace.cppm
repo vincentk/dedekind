@@ -240,6 +240,83 @@ consteval bool halfspace_is_moot() {
   return halfspace_is_empty<T, Pivot, flip(D), flip(S)>();
 }
 
+/** @brief Cardinality class of a halfspace's carrier @c T (#848/#927).
+ *  @details A carrier that declares its own @c cardinality_type is the
+ *  authority (e.g.\ @c numbers::Rational → @c ℵ_0, @c ExtensionalCardinal →
+ *  @c Finite): this partition (@c :order) is @b upstream of @c :numbers, so a
+ *  countable @b non-integral carrier such as ℚ cannot be recognised
+ *  structurally here (@c IsRingIntegral is false on @c Rational), and must
+ *  self-declare so the point-free @c A|pred halfspace classifies identically
+ *  to the scout comprehension (which inherits the ambient @c C directly).
+ *  Otherwise fall back to the @c IsRingIntegral discriminator: the structural
+ *  integers @b and the @c Cardinality / @c SignedCardinality (ℕ/ℤ) proxies are
+ *  @c ℵ_0, and the real proxies (@c QuadraticReal, @c double) are the continuum
+ *  @c ℶ_1.  The bound only has to be tight enough for the @c NaturalLogic
+ *  verdict (countable ⟹ decidable @c Boole, uncountable ⟹ @c Kleene). */
+// Module-private: the fallback is a halfspace-classification heuristic, not a
+// general carrier-cardinality authority (that is @c :sets:cardinality).  It
+// only feeds @c Halfspace::cardinality_type below; external carriers customise
+// through their own @c T::cardinality_type, not this helper.  A finite @b enum
+// carrier (e.g.\ @c Ternary) cannot self-declare a member typedef, so it is
+// recognised structurally as countable and classified @c ℵ_0 --- the same
+// conservative countable BOUND @c bool already gets via @c IsRingIntegral, NOT
+// @c Finite.  @c Finite is the @c elevate_meet "return bare, do not @c Set
+// -wrap" signal (@c :expressions); a halfspace must not trigger it, and @c ℵ_0
+// keeps the pre-existing @c Set-wrapping path while @c NaturalLogic still
+// verdicts @c Boole (@c ℵ_0 is countable), matching @c Ternary's @c 𝕂3 ambient.
+// The @c IsRingIntegral integers / ℕ,ℤ proxies are @c ℵ_0 likewise; the real
+// proxies are @c ℶ_1.
+template <typename T>
+struct carrier_cardinality {
+  using type =
+      std::conditional_t<std::is_enum_v<T> || IsRingIntegral<T>, ℵ_0, ℶ_1>;
+};
+template <typename T>
+  requires IsCardinality<typename T::cardinality_type>
+struct carrier_cardinality<T> {
+  // Fires only when the self-declared alias is a genuine @c IsCardinality (a
+  // carrier with an unrelated / incomplete @c cardinality_type falls to the
+  // primary, not a hard error), and classifies it with the canonical
+  // @c IsCountable concept, as @c NaturalLogic does.  Collapse to the
+  // COUNTABILITY BOUND (never pass a bare @c Finite through): @c
+  // ExtensionalCardinal declares @c Finite, and letting that reach @c
+  // Halfspace::cardinality_type would trip @c elevate_meet's Finite "return
+  // bare" path for an @c ExtensionalCardinal halfspace.  Countable (incl.\
+  // @c Finite) ⟹ @c ℵ_0, uncountable ⟹ @c ℶ_1; @c NaturalLogic's decidable/
+  // @c Boole verdict is unchanged by the countable collapse.
+  using type =
+      std::conditional_t<IsCountable<typename T::cardinality_type>, ℵ_0, ℶ_1>;
+};
+template <typename T>
+using carrier_cardinality_t = typename carrier_cardinality<T>::type;
+
+// A finite enum carrier classifies ℵ_0 (a conservative countable bound, like
+// bool), so a Ternary halfspace stays decidable (Boole), not Kleene (#927), and
+// does NOT trip the elevate_meet Finite "return bare" path.
+static_assert(std::same_as<carrier_cardinality_t<Ternary>, ℵ_0>,
+              "a finite enum carrier (e.g. Ternary) is countable ℵ_0, not the "
+              "continuum ℶ_1 (and not Finite, the elevate_meet bare signal).");
+// A self-declared @c Finite carrier is likewise collapsed to @c ℵ_0, so its
+// halfspace stays Set-wrapped by @c elevate_meet (not returned bare).
+static_assert(std::same_as<carrier_cardinality_t<ExtensionalCardinal<>>, ℵ_0>,
+              "a self-declared Finite carrier collapses to the countable bound "
+              "ℵ_0, never the bare-signal Finite.");
+namespace detail_halfspace_witness {
+// A carrier whose @c cardinality_type alias is NOT an @c IsCardinality: the
+// self-declaring specialization must @b not fire (its IsCardinality constraint
+// fails), so @c carrier_cardinality falls back to the primary rather than
+// hard-erroring on the missing @c is_countable member.
+struct UnrelatedCardinalityAlias {
+  using cardinality_type = int;  // not a cardinality (no is_countable etc.)
+};
+}  // namespace detail_halfspace_witness
+static_assert(
+    std::same_as<carrier_cardinality_t<
+                     detail_halfspace_witness::UnrelatedCardinalityAlias>,
+                 ℶ_1>,
+    "a carrier with an unrelated/incomplete cardinality_type falls back to the "
+    "primary (ℶ_1 here), never making Halfspace ill-formed.");
+
 /**
  * @brief Halfspace predicate { x ∈ T | x ⋈ Pivot } with Pivot at the type
  * level.
@@ -265,6 +342,56 @@ struct Halfspace : dedekind::sets::SetExpr<Halfspace<T, Pivot, D, S, L>, T, L> {
   static constexpr auto pivot = Pivot;
   static constexpr Direction direction = D;
   static constexpr Strictness strictness = S;
+
+  /** @brief Carrier-axis cardinality of the cut, threaded so the decidability
+   *  classifier (@c sets::NaturalLogic) reads a halfspace the SAME way it reads
+   *  the ambient it was carved from (#848/#927).
+   *
+   *  @details A @b conservative classification bound, NOT the cut's exact size:
+   *  a halfspace is at most equinumerous with its carrier, so the bound is
+   *  @f$\aleph_0@f$ over a countable carrier and @f$\beth_1@f$ over a
+   * continuum. A @b bounded cut (e.g.\ @c {x∈ℕ|x<5}) is actually @c Finite; the
+   * bound only has to be tight enough for the @c NaturalLogic verdict
+   * (countable ⟹
+   *  @c Boole/decidable, uncountable ⟹ @c Kleene), which the finite and
+   *  @f$\aleph_0@f$ cases share.  The class is resolved by @ref
+   *  carrier_cardinality: a self-declaring carrier (@c ℚ = @c Rational →
+   *  @c ℵ_0) is trusted, else the @c IsRingIntegral discriminator applies. This
+   *  reproduces the tag the ambient @c UniversalSet<T,L,C> carries for the
+   *  canonical carriers, so the point-free @c A @c | @c pred comprehension
+   *  classifies identically to the (deprecated) scout @c element<A> @c | @c
+   * pred spelling, whose @c Comprehension inherits @c C directly.  Without this
+   *  typedef @c NaturalLogic<Halfspace> hit its pessimistic primary-template
+   *  fallback (@c Kleene / @c TernaryLogic).
+   *
+   *  @note This is the carrier-axis @b magnitude, NOT the ambient's own @c C
+   *  slot, which the @c Halfspace type does not carry.  The two need not be the
+   *  @b identical tag; what @c NaturalLogic reads off is the @b countability
+   *  @b class (countable ⟹ @c Boole, uncountable ⟹ @c Kleene), and parity with
+   *  the scout holds whenever the carrier axis and the ambient @c C share that
+   *  class.  The @b canonical and @b self-declaring carriers satisfy this:
+   *  ℕ/ℤ via @c IsRingIntegral, ℚ (and any carrier that self-declares) via its
+   *  own @c cardinality_type, and ℝ (@c QuadraticReal) as the continuum.  A
+   *  @b custom ordered carrier that is countable but neither @c IsRingIntegral
+   *  nor self-declaring falls through to @c ℶ_1 here, even though its default
+   *  @c 𝔸 ambient carries @c ℵ_0; it must self-declare (as ℚ does) to classify
+   *  decidably.  The exact tags may also differ within a class, e.g.\
+   *  @c 𝔸<bool> carries @c Finite (@c boundaries.cppm) while this fallback maps
+   *  @c bool to @c ℵ_0 --- both countable, same @c Boole verdict.  Only a
+   *  @b deliberately incoherent tag
+   *  that crosses classes is not honoured: an int carrier advertised as the
+   *  continuum (@c UniversalSet<int,Boole,ℶ_1>, the Mandelbrot stand-in at
+   *  @c computability_test.cpp) classifies @c ℵ_0 by its integer carrier while
+   *  the scout keeps @c ℶ_1.  That does not arise from a real halfspace (no
+   *  continuum is genuinely carried by @c int), so the carrier axis is the
+   *  honest source.  The dual incoherence (a countable carrier tagged with
+   *  @c Kleene logic, @c UniversalSet<int,Kleene>) can surface a @c Set
+   * codomain mismatch when the promoted @c Boole class disagrees with the
+   * predicate's own @c Kleene species; that @c Set / @c NaturalLogic
+   * interaction is tracked in FIXME(#928).  Reproducing an arbitrary explicit
+   * @c C exactly would require threading it as a sixth @c Halfspace template
+   * parameter (FIXME(#848): ~120 pattern-matched sites). */
+  using cardinality_type = carrier_cardinality_t<T>;
 
   // `Pivot` may be a different structural type than `T` (e.g., pivot = 5.0 as
   // double, T = Real<double>). The carrier's converting ctor / overload set
@@ -1115,6 +1242,50 @@ static_assert(((ℕ | (π > fix(5_c))) & ~(ℕ | (π > fix(5_c)))) == Ø{},
               "point-free: (n > 5) ∩ ¬(n > 5) == Ø.");
 static_assert(((𝔹 | (π == fix(true_c))) & ~(𝔹 | (π == fix(true_c)))) == Ø{},
               "point-free: {true} ∩ ¬{true} == Ø.");
+
+/** @section halfspace__PointFree_Scout_Decidability_848
+ *
+ * #848 acceptance witness: the point-free comprehension @c ℕ @c | @c pred and
+ * the (deprecated) scout spelling @c element<ℕ> @c | @c pred now classify
+ * IDENTICALLY on the carrier-axis decidability resolver.  The point-free path
+ * reduces to a bare @c Halfspace, whose freshly-threaded @c cardinality_type
+ * (see the struct, @c ℵ_0 over the countable @c ℕ) makes @c NaturalLogic read
+ * the same @c Boole verdict the scout @c Comprehension inherits from its
+ * ambient @c C.  Before the thread @c NaturalLogic<Halfspace> hit its
+ * pessimistic primary-template fallback (@c Kleene / @c TernaryLogic). */
+namespace detail_848_pointfree_scout {
+using PointFree = decltype(ℕ | (π > fix(5_c)));
+using Scout = decltype(element<ℕ> | (element<ℕ> > bound<5>));
+
+// The raw comprehensions agree on the NaturalLogic (carrier-axis) verdict.
+static_assert(std::same_as<typename NaturalLogic<PointFree>::type,
+                           typename NaturalLogic<Scout>::type>,
+              "#848: point-free ℕ|pred and scout element<ℕ>|pred yield the "
+              "same NaturalLogic verdict.");
+static_assert(std::same_as<typename NaturalLogic<PointFree>::type, Boole>,
+              "#848: {x∈ℕ | x>5} is carrier-axis countable (ℵ₀), hence Boole "
+              "(decidable membership), NOT the Kleene fallback.");
+
+// And the observable symptom 1: the Set-wrapped forms agree on decidable
+// membership (the Set CTAD keys the logic species off NaturalLogic<inner>).
+static_assert(HasDecidableMembership<decltype(Set{ℕ | (π > fix(5_c))})> ==
+                  HasDecidableMembership<decltype(Set{
+                      element<ℕ> | (element<ℕ> > bound<5>)})>,
+              "#848: Set{ℕ|pred} and Set{element<ℕ>|pred} agree on "
+              "HasDecidableMembership.");
+static_assert(HasDecidableMembership<decltype(Set{ℕ | (π > fix(5_c))})>,
+              "#848: Set{ℕ | x>5} is a decidable (ClassicalLogic) set.");
+
+// The continuum leg (ℝ) stays honestly ternary through the SAME thread: a real
+// halfspace is carrier-axis ℶ₁, so NaturalLogic keeps its Kleene verdict --- no
+// regression of the uncountable case the pre-fix Kleene fallback covered.
+static_assert(
+    std::same_as<
+        typename NaturalLogic<Halfspace<double, 5.0, Direction::Upward,
+                                        Strictness::Strict, Kleene>>::type,
+        Kleene>,
+    "#848: a real (ℶ₁) halfspace stays Kleene/ternary.");
+}  // namespace detail_848_pointfree_scout
 
 /** @brief Comparison flavour for the relational predicates. */
 export enum class Rel { Lt, Le, Gt, Ge, Eq, Ne };
