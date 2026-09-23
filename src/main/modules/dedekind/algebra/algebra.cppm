@@ -38,6 +38,7 @@
 export module dedekind.algebra;
 
 export import :boolean;
+export import :kleene;  // 𝕂3 = 𝔸<Ternary> as an algebra on a set (#912)
 export import :division;
 export import :field;
 export import :galois;
