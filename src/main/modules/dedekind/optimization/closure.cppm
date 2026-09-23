@@ -258,15 +258,21 @@ static_assert(std::invocable<const CriticalPathStep<bool, 4>&,
 
 // The idempotent-⊕ gate on @ref CriticalPathStep is load-bearing, not
 // decoration: its selective overwrite is valid only for an idempotent @c ⊕, so
-// a non-idempotent semiring carrier (@c int under the ordinary @c (+,×)) is
-// REJECTED at the gate, and the wrong-⊕ update is unreachable.  @c bool @c
-// (∨,∧) is idempotent and admitted.  (No runtime pair: this is a
-// non-instantiation.)
+// a @b certified non-idempotent semiring carrier is REJECTED at the gate, and
+// the wrong-⊕ update is unreachable.  @c bool @c (∨,∧) is idempotent and
+// admitted.  The negative witness uses @c unsigned @c int: its @c (+,×) are
+// total, so it IS an @c IsSemiring, but @c + is not idempotent, so it is
+// rejected by the @c IsTropical gate --- this pins the idempotence boundary.
+// (Plain @c int would already fail @c IsSemiring on signed-overflow totality,
+// so it would stay rejected even if the gate regressed to @c IsSemiring, and
+// thus would NOT witness the idempotence requirement.)  (No runtime pair: this
+// is a non-instantiation.)
 template <typename S>
 concept HasCriticalPathStep = requires { typename CriticalPathStep<S, 4>; };
 static_assert(HasCriticalPathStep<bool>,
               "idempotent (∨,∧) carrier: CriticalPathStep is admitted.");
-static_assert(!HasCriticalPathStep<int>,
-              "non-idempotent (+,×) carrier: CriticalPathStep is rejected.");
+static_assert(!HasCriticalPathStep<unsigned int>,
+              "certified non-idempotent semiring (unsigned (+,×)): "
+              "CriticalPathStep is rejected by the IsTropical gate.");
 
 }  // namespace dedekind::optimization
