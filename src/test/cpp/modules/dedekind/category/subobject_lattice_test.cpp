@@ -100,7 +100,7 @@ TEST_CASE(
     "[category][lattice][subobject][concept][metadata]") {
   /** @brief Sanity that the concept's CT-vocabulary metadata
    *         (@c Ambient + @c logic_species typedefs, with
-   *         @c IsLogicalSpecies on the species) is the shape carriers
+   *         @c IsOckhamAlgebra on the species) is the shape carriers
    *         must expose.
    *
    *  @note The full concept additionally requires a @c SubsetEqRel
@@ -110,7 +110,7 @@ TEST_CASE(
    *  concept end-to-end.  This test pins the Slice 8 architectural
    *  commit: the metadata shape is what we want, and the carriers
    *  already expose @c Ambient + @c logic_species. */
-  STATIC_CHECK(IsLogicalSpecies<FauxSubobject::logic_species>);
+  STATIC_CHECK(IsOckhamAlgebra<FauxSubobject::logic_species>);
   STATIC_CHECK(std::same_as<FauxSubobject::Domain, bool>);
 
   /** @brief Negative witness: without @c SubsetEqRel + the free

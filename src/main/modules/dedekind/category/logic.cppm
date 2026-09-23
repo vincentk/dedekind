@@ -28,7 +28,7 @@
  * The @b shipped logic species (@c Boole, @c Kleene, @c Chain<T>) are @b De
  * @b Morgan @b algebras: a bounded distributive lattice with an order-reversing
  * involution, named by their morphisms @c AND / @c OR / @c RFL.  (The bare
- * @c IsLogicalSpecies signature admits other logics too, e.g. a future
+ * @c IsOckhamAlgebra signature admits other logics too, e.g. a future
  * non-involutive intuitionistic species; De Morgan is a property of the shipped
  * family, not of the signature.)
  * - @c OR is the supremum / join (∨).
@@ -77,11 +77,22 @@ import :involution;  // is_involutive / IsInvolution: witness that the logic
 namespace dedekind::category {
 
 /**
- * @brief The Logical Species Concept (The Algebraic Signature of Truth).
+ * @brief The IsOckhamAlgebra Concept (The Algebraic Signature of Truth).
  *
- * A type fulfills `IsLogicalSpecies` if it defines a consistent internal logic
+ * A type fulfills `IsOckhamAlgebra` if it defines a consistent internal logic
  * over a specific 'type' of truth value. In categorical terms, this defines
  * the structure of the Subobject Classifier (Ω).
+ *
+ * @note IsOckhamAlgebra is a conservative SHAPE gate: it certifies the
+ * (AND, OR, RFL, True, False) signature only. The Ockham laws proper (the
+ * reflection reversing the bounds, distributivity, and the all-values
+ * dual-endomorphism / De Morgan law) are NOT gated in the concept. An
+ * in-concept attempt to require even the boundary pole-reflection law
+ * (@c ¬⊤=⊥, @c ¬⊥=⊤) snagged on C++ overload resolution (value category plus
+ * RFL-overload selection), so it was reverted (see #918): the codebase's
+ * posture holds, a shape gate here with the laws witnessed downstream by the
+ * @c static_assert tower and gated properly in #907 (which needs the
+ * static-method-ops to :species-trait bridge, #923).
  *
  * @tparam L The Logic Species (e.g., Boole, Kleene).
  *
@@ -95,7 +106,7 @@ namespace dedekind::category {
  * logic operations must not result in type-decay or "species-leak."
  */
 export template <typename L>
-concept IsLogicalSpecies = requires(typename L::Ω a, typename L::Ω b) {
+concept IsOckhamAlgebra = requires(typename L::Ω a, typename L::Ω b) {
   typename L::Ω;
   { L::AND(a, b) } -> std::same_as<typename L::Ω>;
   { L::OR(a, b) } -> std::same_as<typename L::Ω>;
@@ -131,7 +142,7 @@ export struct Boole final {
 };
 
 // STATIC "IS A" CHECK:
-static_assert(IsLogicalSpecies<Boole>, "Boole must fulfill IsLogicalSpecies");
+static_assert(IsOckhamAlgebra<Boole>, "Boole must fulfill IsOckhamAlgebra");
 
 /**
  * @section logic__Species_2
@@ -192,7 +203,7 @@ export struct Kleene final {
 };
 
 // STATIC "IS A" CHECK:
-static_assert(IsLogicalSpecies<Kleene>, "Kleene must fulfill IsLogicalSpecies");
+static_assert(IsOckhamAlgebra<Kleene>, "Kleene must fulfill IsOckhamAlgebra");
 
 /**
  * @section logic__Species_3
@@ -247,8 +258,8 @@ struct Chain final {
 };
 
 // STATIC "IS A" CHECK:
-static_assert(IsLogicalSpecies<Chain<int>>,
-              "Chain<int> must fulfill IsLogicalSpecies");
+static_assert(IsOckhamAlgebra<Chain<int>>,
+              "Chain<int> must fulfill IsOckhamAlgebra");
 
 /**
  * @section logic__Species_4
@@ -306,8 +317,7 @@ export struct Percent final {
   static constexpr Percentage RFL(Percentage a) noexcept { return {100 - a.v}; }
 };
 
-static_assert(IsLogicalSpecies<Percent>,
-              "Percent must fulfill IsLogicalSpecies");
+static_assert(IsOckhamAlgebra<Percent>, "Percent must fulfill IsOckhamAlgebra");
 
 export constexpr Ternary operator&&(Ternary a, Ternary b) {
   return Kleene::AND(a, b);
@@ -418,7 +428,7 @@ concept IsΩ =
     // above.
     requires {
       typename T::logic_species;
-      requires IsLogicalSpecies<typename T::logic_species>;
+      requires IsOckhamAlgebra<typename T::logic_species>;
     };
 
 /**
@@ -533,16 +543,16 @@ export template <typename TargetLogic, typename T>
 constexpr auto lift_logic(T value) {
   // The dominance inclusion 𝔹 ↪ Ω: a decided @c bool answer embeds as the
   // target species' poles (@c false ↦ @c ⊥, @c true ↦ @c ⊤).  This is uniform
-  // across every @c IsLogicalSpecies: @c Boole maps to itself (its poles ARE
+  // across every @c IsOckhamAlgebra: @c Boole maps to itself (its poles ARE
   // the bools), @c Kleene to @c Ternary::{False,True}, @c Chain<T> to
   // @c numeric_limits<T>::{min,max}.  Without this, @c Truth<Chain<T>> would
   // store the raw @c 0 / @c 1 (interior chain values), not @c ⊥ / @c ⊤.  A
   // value already in the species (@c T = @c Ω, not @c bool) passes through.
-  // The endpoints are cast to @c Ω explicitly: @c IsLogicalSpecies only asks
+  // The endpoints are cast to @c Ω explicitly: @c IsOckhamAlgebra only asks
   // @c True / @c False to be @e convertible to @c Ω, so a species declaring
   // them at a narrower type (e.g. @c int constants for a wrapper @c Ω) must not
   // leak that declaration type out of the codomain-preserving inclusion.
-  if constexpr (std::is_same_v<T, bool> && IsLogicalSpecies<TargetLogic>) {
+  if constexpr (std::is_same_v<T, bool> && IsOckhamAlgebra<TargetLogic>) {
     using Ω = typename TargetLogic::Ω;
     return value ? static_cast<Ω>(TargetLogic::True)
                  : static_cast<Ω>(TargetLogic::False);
@@ -910,7 +920,7 @@ static_assert(logic_negation_is_involutive_v<Chain<int>>,
  */
 export template <typename L>
 concept IsDeMorganAlgebra =
-    IsLogicalSpecies<L> && logic_negation_is_involutive_v<L>;
+    IsOckhamAlgebra<L> && logic_negation_is_involutive_v<L>;
 
 /**
  * @concept IsBoundedDeMorganChain
@@ -1045,7 +1055,7 @@ static_assert((Truth<Chain<int>>{3} <= Truth<Chain<int>>{7}).value ==
  * recognised-vs-actual sub-quadrant this closes at the value level.
  */
 export template <typename L>
-  requires IsLogicalSpecies<L> && logic_negation_is_involutive_v<L> &&
+  requires IsOckhamAlgebra<L> && logic_negation_is_involutive_v<L> &&
            std::equality_comparable<typename L::Ω>
 constexpr bool is_decided(typename L::Ω value) {
   return value == L::True || L::RFL(value) == L::True;

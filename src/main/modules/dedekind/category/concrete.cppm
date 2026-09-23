@@ -205,7 +205,7 @@ concept IsCompatibleSetPair =
  *  \chi_B@f$ as a @b named predicate (no lambda; #831/#365).  Only reached for
  *  @b unstructured operands --- the decidable/structured cases route through
  *  @c operator& / @c structured_and first (see @c set_intersection). */
-export template <typename S1, typename S2, IsLogicalSpecies L>
+export template <typename S1, typename S2, IsOckhamAlgebra L>
 struct ConjunctionChi {
   S1 lhs;
   S2 rhs;

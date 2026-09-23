@@ -293,7 +293,7 @@ concept HasAxiom7PullbackReindexingDefinitionalSurface =
  * @section etcs__Axiom_10_Slice_9_Generalisation
  * #698 Slice 9 adds a single typedef requirement to the body — the
  * carrier must expose its @c logic_species (verified as an
- * @c IsLogicalSpecies) — alongside the pre-existing @c meet / @c join
+ * @c IsOckhamAlgebra) — alongside the pre-existing @c meet / @c join
  * structural shape.  The classical-direction Boolean refinement
  * (Diaconescu) and the @c complement clause live in the parallel
  * @c :lattice::IsSubobjectLattice / @c IsBooleanSubobjectLattice
@@ -312,11 +312,11 @@ concept HasAxiom10PowerObjectLattice =
     requires {
       /** @brief @c logic_species typedef anchors the classifier @c L
        *  (Slice 9 — required by @c :lattice::IsSubobjectLattice).
-       *  Verified as an @c IsLogicalSpecies so unrelated types with
+       *  Verified as an @c IsOckhamAlgebra so unrelated types with
        *  an accidental @c logic_species typedef don't satisfy the
        *  axiom by accident (#713 review, Copilot). */
       typename S::logic_species;
-      requires IsLogicalSpecies<typename S::logic_species>;
+      requires IsOckhamAlgebra<typename S::logic_species>;
     } && requires(S lhs, S rhs) {
       requires IsSubobject<decltype(meet(lhs, rhs)), typename S::Domain>;
       requires IsSubobject<decltype(join(lhs, rhs)), typename S::Domain>;

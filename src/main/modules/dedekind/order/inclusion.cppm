@@ -29,7 +29,7 @@ module;
 
 export module dedekind.order:inclusion;
 
-import dedekind.category; // IsSubobjectLattice, IsSet, IsLogicalSpecies
+import dedekind.category; // IsSubobjectLattice, IsSet, IsOckhamAlgebra
 import :halfspace;        // Singleton (its membership <=), Halfspace (& ladder)
 
 namespace dedekind::order {

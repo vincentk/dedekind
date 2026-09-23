@@ -61,7 +61,7 @@ module;
 export module dedekind.category:lattice_term;
 
 import :lattice;  // the term AST + the induced laws (the validated parts)
-import :logic;    // Boole (default), Ternary, IsLogicalSpecies
+import :logic;    // Boole (default), Ternary, IsOckhamAlgebra
 
 namespace dedekind::category {
 
@@ -84,14 +84,14 @@ using lattice_less_logic_t = typename lattice_less_logic<Less>::type;
  *  @brief The injected total order: a caller-supplied comparator with a
  *  @c static @c consteval @c less<X,Y>() returning a logic value in its
  *  @c lattice_less_logic (default @c Boole, i.e. @c bool).  The
- *  reported logic must be a full @c IsLogicalSpecies, so @c ::True (accessed
+ *  reported logic must be a full @c IsOckhamAlgebra, so @c ::True (accessed
  *  by @c lattice_definitely_less) is guaranteed present.  The reducer
  *  canonicalises only on a @b definitely-True result, so an @c Unknown
  *  (undecidable) comparison leaves the operands in authoring order.  Total-ness
  *  is the caller's obligation (Jlt: asserted downstream), not checked here. */
 export template <typename Less, typename X, typename Y>
 concept IsLatticeLess =
-    IsLogicalSpecies<lattice_less_logic_t<Less>> && requires {
+    IsOckhamAlgebra<lattice_less_logic_t<Less>> && requires {
       {
         Less::template less<X, Y>()
       } -> std::convertible_to<typename lattice_less_logic_t<Less>::Ω>;
