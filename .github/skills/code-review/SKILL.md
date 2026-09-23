@@ -85,8 +85,9 @@ Coherence checks:
   exists, request that the code adopt the replacement rather than perpetuate the
   deprecated form. Deprecation markers are a migration signal, not a resting
   place; prefer completing the migration in the PR that touches the call site.
-- **Negative net lines, and replacement over layering.** This is a mature
-  library; PRs are expected to often delete more than they add, and a change
+- **Negative net lines, and replacement over layering.** This is a maturing
+  library; PRs are expected to often delete more than they add, and a
+  change
   framed as "replace / unify / make X-first / simplify" should come out
   net-negative. Flag the recurring anti-pattern of adding a new abstraction
   *on top of* the one it is meant to replace while deferring the old code's
