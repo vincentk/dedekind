@@ -11,6 +11,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <concepts>
 #include <cstddef>
+#include <functional>
 #include <type_traits>
 
 import dedekind.sequences; // ext, to_iota_view
@@ -77,6 +78,22 @@ TEST_CASE("ext(argmax(interval, cost)): the endorsed one-liner",
   constexpr OrderInterval<int, 0, 6, Strictness::NonStrict,
                           Strictness::NonStrict, Boole>
       dom6{};
+
+  // Type-level regression (#915): argmax's refinement is the NAMED
+  // DominanceRefinement, not an opaque lambda.  A regression back to a
+  // capturing lambda would leave the behavioural CHECKs below green, so pin the
+  // type here.
+  struct Cap6 {
+    constexpr int operator()(int x) const { return x * (6 - x); }
+  };
+  static_assert(
+      std::same_as<decltype(argmax(dom6, Cap6{})),
+                   BoundedSet<std::remove_cvref_t<decltype(dom6)>,
+                              DominanceRefinement<
+                                  int, std::remove_cvref_t<decltype(dom6)>,
+                                  Cap6, std::less_equal<>>>>,
+      "argmax returns a BoundedSet carrying the named DominanceRefinement");
+
   const auto peak = ext(argmax(dom6, [](int x) { return x * (6 - x); }));
   CHECK(peak.size() == 1);  // {3} — argmax is a function
   CHECK(peak.contains(3));
