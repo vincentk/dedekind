@@ -294,26 +294,6 @@ struct reduce<Not<A>, Less, Ord, Combine> {
 
 namespace detail_lattice_term {
 
-/** @brief The shared @b collapse tail: materialize the normal-form type @c D's
- *  value, or keep @c fallback: a value @b already sound for the reduced set
- *  (the unreduced node).
- *  @details A @b value-determined collapse (@c D is @c IsIdempotentLeaf, so a
- *  boundary @c ⊥ / @c ⊤ or a DNF over type-determined leaves, and default
- *  constructible) is exact as @c D{}.  Otherwise @c D is a runtime-stateful
- *  restructure not rebuildable from the operands, so this @b fails safe to
- *  @c fallback rather than discarding its state.
- *  @note The fail-safe is this slice's intended behavior.  Reconstructing the
- *  distributed / pushed value from the sub-values is a @b separate net-positive
- *  follow-on (future enhancement under #922), not this unification. */
-template <typename D, typename Fallback>
-constexpr auto materialize_or_keep(const Fallback& fallback) {
-  if constexpr (IsIdempotentLeaf<D> && std::default_initializable<D>) {
-    return D{};  // value-determined collapse / DNF: exact
-  } else {
-    return fallback;  // stateful restructure: fail safe (see @note)
-  }
-}
-
 /** @brief Reconstruct a reduced @b binary node's value from the already-reduced
  *  operands @c ra / @c rb, given its normal-form type @c D.  @c Meet and @c
  * Join are injected as the template-template @c Node and share this one
@@ -321,9 +301,15 @@ constexpr auto materialize_or_keep(const Fallback& fallback) {
  *  @details The @b value-output adapter of the one decision engine (@c reduce_t
  *  decided @c D).  Value-preserving cases: the normal form IS an operand (unit
  * / idempotency / absorption / glb) or the irreducible / canonical residue (a
- *  @c Node of the two, either order).  Every other @c D routes through the
- *  shared @ref materialize_or_keep tail, fail-safe carrying the unreduced
- *  @c Node. */
+ *  @c Node of the two, either order).  A @b value-determined collapse
+ *  (@c IsIdempotentLeaf, so a boundary @c ⊥ / @c ⊤ or a DNF over
+ * type-determined leaves) is exact as @c D{}, built @b lazily so no fallback is
+ * materialized on that path.  Any other @c D is a runtime-stateful restructure
+ * not rebuildable from the operands, so this @b fails safe to the @b unreduced
+ * @c Node, a prvalue returned directly (no extra copy).
+ *  @note The fail-safe is this slice's intended behavior.  Reconstructing the
+ *  distributed / pushed value from the sub-values is a @b separate net-positive
+ *  follow-on (future enhancement under #922), not this unification. */
 template <template <typename, typename> class Node, typename D, typename RA,
           typename RB>
 constexpr auto rebuild_binary(const RA& ra, const RB& rb) {
@@ -335,8 +321,10 @@ constexpr auto rebuild_binary(const RA& ra, const RB& rb) {
     return Node<RA, RB>{ra, rb};
   } else if constexpr (std::same_as<D, Node<RB, RA>>) {
     return Node<RB, RA>{rb, ra};
+  } else if constexpr (IsIdempotentLeaf<D> && std::default_initializable<D>) {
+    return D{};  // value-determined collapse / DNF: exact (no fallback built)
   } else {
-    return materialize_or_keep<D>(Node<RA, RB>{ra, rb});
+    return Node<RA, RB>{ra, rb};  // stateful restructure: fail safe (see @note)
   }
 }
 
@@ -376,10 +364,11 @@ constexpr auto reduce_value(const Join<A, B>& node) {
 /** @brief Value-first reduce of a @c Not value: reduce the operand, keep
  *  @c ¬(reduced) unless De Morgan / involution pushed it to another shape.
  *  @details No push (@c D is @c Not<RB>) keeps the negation-normal
- *  @c ¬(reduced).  Any push routes through the same @ref materialize_or_keep
- *  tail the binary nodes use: a value-determined push is exact as @c D{}, a
- *  stateful push fails safe to @c ¬(reduced) (its follow-on is the one noted
- *  there). */
+ *  @c ¬(reduced).  A push mirrors @ref detail_lattice_term::rebuild_binary's
+ *  tail: a value-determined push (@c IsIdempotentLeaf) is exact as @c D{}, a
+ *  stateful push fails safe to @c ¬(reduced) (the same follow-on noted there).
+ *  Kept inline so the @c D{} branch builds no fallback and @c ¬(reduced) is
+ *  returned as a prvalue. */
 export template <typename Less, typename Ord, typename Combine, typename A>
 constexpr auto reduce_value(const Not<A>& node) {
   const auto rb = reduce_value<Less, Ord, Combine>(node.base);
@@ -387,8 +376,10 @@ constexpr auto reduce_value(const Not<A>& node) {
   using D = reduce_t<Not<RB>, Less, Ord, Combine>;
   if constexpr (std::same_as<D, Not<RB>>) {
     return Not<RB>{rb};  // no push: already negation-normal
+  } else if constexpr (IsIdempotentLeaf<D> && std::default_initializable<D>) {
+    return D{};  // value-determined push: exact (no fallback built)
   } else {
-    return detail_lattice_term::materialize_or_keep<D>(Not<RB>{rb});
+    return Not<RB>{rb};  // stateful push: fail safe
   }
 }
 
