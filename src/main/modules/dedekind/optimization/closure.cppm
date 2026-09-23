@@ -1,8 +1,7 @@
 /**
  * @file dedekind/optimization/closure.cppm
  * @partition :closure
- * @brief Single-source graph closure over a semiring, as a fold over the edge
- *        sequence whose induced @c pred function is the critical path.
+ * @brief Single-source graph closure over a semiring, as a fold over its edges.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -12,11 +11,15 @@
  * extensionally its edges are a @c FiniteSeq, and the closure threads a
  * potential @c FiniteNet @c d : V → S over it by a fold, @c d(v) ← d(v) ⊕ d(u)
  * ⊗ c. The choice of semiring is the choice of problem: @c bool @c (∨,∧) gives
- * reachability, @c MaxPlus @c (max,+) the critical path.  Over an idempotent
- * dioid (@c IsTropical) it also collapses the relation to a single-valued
+ * reachability, @c MaxPlus @c (max,+) the critical path.  Over a @b selective
+ * tropical dioid (an @c IsTropical @c ⊕ that returns one of its two operands,
+ * e.g.\ @c MaxPlus) it also collapses the relation to a single-valued
  * @c pred : V → V --- the critical-path tree --- which @ref critical_path
- * iterates back from the sink.  The O(V) memo lives inside @c FiniteNet and
- * @c FiniteSeq (the compile-time @c :sequences realizations), not on display.
+ * iterates back from the sink.  Idempotence (@c IsTropical) alone is @b not
+ * enough: a non-selective dioid needs a set-valued predecessor (see the
+ * @ref annotate precondition, FIXME(#769)).  The O(V) memo lives inside
+ * @c FiniteNet and @c FiniteSeq (the compile-time @c :sequences realizations),
+ * not on display.
  *
  * Wikipedia: Shortest path problem, Semiring, Algebraic path problem
  *
