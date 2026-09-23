@@ -109,6 +109,15 @@ concept IsOckhamAlgebra = requires(typename L::Ω a, typename L::Ω b) {
   // The Categorical Constants (True/False)
   { L::True } -> std::convertible_to<typename L::Ω>;
   { L::False } -> std::convertible_to<typename L::Ω>;
+
+  // Beyond pure shape: the reflection reverses the bounds --- @c ¬⊤ = ⊥ and
+  // @c ¬⊥ = ⊤, the boundary case of the Ockham dual endomorphism.  @c True /
+  // @c False / @c RFL are compile-time constants, so this law is checkable
+  // directly here (no per-species tag, no total-order requirement).  The full
+  // distributive-lattice and all-values dual-endomorphism / De Morgan laws
+  // remain the scope of #907, witnessed by the @c static_assert tower below.
+  requires L::RFL(L::True) == L::False;
+  requires L::RFL(L::False) == L::True;
 };
 
 /**
