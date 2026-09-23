@@ -531,7 +531,11 @@ constexpr auto reify_term(const S& s) {
  *  normal form is that operand.  @c reify_term stays for the four @c Ø / @c 𝔸
  *  operators (boundary operands are stateless); this is the general entry the
  *  #916 Python composition surface will call once the leaf-combine leg is
- *  threaded (slice 2). */
+ *  threaded (slice 2).
+ *  FIXME(#922 slice 2): constrain @c Node to a valid recursive subobject
+ *  expression (@c IsSet leaf, or a @c Meet / @c Join / @c Not of such), so this
+ *  Python-facing entry rejects a non-subobject argument instead of falling
+ *  through the generic catch-all @c reduce_value leaf overload. */
 export template <typename L = Boole, typename Node>
 constexpr auto subobject_reduce(const Node& node) {
   return finalize_combine(

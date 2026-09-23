@@ -298,12 +298,13 @@ namespace detail_lattice_term {
  *  @c D, from the already-reduced operand values @c ra / @c rb.
  *  @details The value-preserving cases are the ones a unit / idempotency /
  *  absorption / glb law selects (the normal form IS an operand) and the
- *  irreducible / canonical residue (a @c Meet of the two).  A collapse to a
- *  @b stateless boundary (@c ⊥, an empty type) is exact as @c D{}.  Any other
- *  @c D is a @b restructuring result (distributivity to a DNF): its value
- *  cannot be rebuilt from @c ra / @c rb until slice 3, so this @b fails safe by
- *  keeping the @b unreduced @c Meet (a sound value for the same set, merely not
- *  normalized) rather than fabricating @c D{} with default-initialised leaves.
+ *  irreducible / canonical residue (a @c Meet of the two).  Otherwise @c D is a
+ *  collapse (@c ⊥) or a restructure (distributivity to a DNF): if @c D is
+ *  @c IsIdempotentLeaf (value-determined @b recursively, so a boundary OR a DNF
+ *  over type-determined leaves) it is exact as @c D{}; else @c D carries a
+ *  runtime-stateful leaf whose value cannot be rebuilt from @c ra / @c rb yet,
+ *  so this @b fails safe by keeping the @b unreduced @c Meet (a sound value for
+ *  the same set, merely not normalized) rather than default-initialising it.
  *  FIXME(#922 slice 3): rebuild the restructured tree from the sub-values. */
 template <typename D, typename RA, typename RB>
 constexpr auto rebuild_meet(const RA& ra, const RB& rb) {
@@ -315,10 +316,10 @@ constexpr auto rebuild_meet(const RA& ra, const RB& rb) {
     return Meet<RA, RB>{ra, rb};
   } else if constexpr (std::same_as<D, Meet<RB, RA>>) {
     return Meet<RB, RA>{rb, ra};
-  } else if constexpr (std::is_empty_v<D>) {
-    return D{};  // stateless boundary collapse: exact
+  } else if constexpr (IsIdempotentLeaf<D>) {
+    return D{};  // value-determined collapse / DNF: exact
   } else {
-    return Meet<RA, RB>{ra, rb};  // restructure not yet rebuildable: fail safe
+    return Meet<RA, RB>{ra, rb};  // stateful restructure: fail safe
   }
 }
 
@@ -334,7 +335,7 @@ constexpr auto rebuild_join(const RA& ra, const RB& rb) {
     return Join<RA, RB>{ra, rb};
   } else if constexpr (std::same_as<D, Join<RB, RA>>) {
     return Join<RB, RA>{rb, ra};
-  } else if constexpr (std::is_empty_v<D>) {
+  } else if constexpr (IsIdempotentLeaf<D>) {
     return D{};
   } else {
     return Join<RA, RB>{ra, rb};
@@ -376,11 +377,11 @@ constexpr auto reduce_value(const Join<A, B>& node) {
 
 /** @brief Value-first reduce of a @c Not value: reduce the operand, keep
  *  @c ¬(reduced) unless De Morgan / involution pushed it to another shape.
- *  @details A push to a @b stateless normal form (an empty type) is exact as
- *  @c D{}.  A push to a stateful shape cannot be rebuilt until slice 3, so this
- *  fails safe to the unreduced @c ¬(reduced) node (a sound value).
- *  FIXME(#922 slice 3): rebuild a stateful push from the operand's sub-values.
- */
+ *  @details A push to a @b value-determined normal form (@c IsIdempotentLeaf)
+ *  is exact as @c D{}.  A push carrying a runtime-stateful leaf cannot be
+ *  rebuilt until slice 3, so this fails safe to the unreduced @c ¬(reduced)
+ *  node (a sound value).  FIXME(#922 slice 3): rebuild a stateful push from the
+ *  operand's sub-values. */
 export template <typename Less, typename Ord, typename Combine, typename A>
 constexpr auto reduce_value(const Not<A>& node) {
   const auto rb = reduce_value<Less, Ord, Combine>(node.base);
@@ -388,7 +389,7 @@ constexpr auto reduce_value(const Not<A>& node) {
   using D = reduce_t<Not<RB>, Less, Ord, Combine>;
   if constexpr (std::same_as<D, Not<RB>>) {
     return Not<RB>{rb};
-  } else if constexpr (std::is_empty_v<D>) {
+  } else if constexpr (IsIdempotentLeaf<D>) {
     return D{};
   } else {
     return Not<RB>{rb};
