@@ -274,7 +274,14 @@ struct carrier_cardinality {
 template <typename T>
   requires requires { typename T::cardinality_type; }
 struct carrier_cardinality<T> {
-  using type = typename T::cardinality_type;
+  // Collapse a self-declared class to the COUNTABILITY BOUND (never pass a bare
+  // @c Finite through): @c ExtensionalCardinal declares @c Finite, and letting
+  // that reach @c Halfspace::cardinality_type would trip @c elevate_meet's
+  // Finite "return bare" path for an @c ExtensionalCardinal halfspace.
+  // Countable (incl.\ @c Finite) ⟹ @c ℵ_0, uncountable ⟹ @c ℶ_1; @c
+  // NaturalLogic's decidable/@c Boole verdict is unchanged by the countable
+  // collapse.
+  using type = std::conditional_t<T::cardinality_type::is_countable, ℵ_0, ℶ_1>;
 };
 template <typename T>
 using carrier_cardinality_t = typename carrier_cardinality<T>::type;
@@ -285,6 +292,11 @@ using carrier_cardinality_t = typename carrier_cardinality<T>::type;
 static_assert(std::same_as<carrier_cardinality_t<Ternary>, ℵ_0>,
               "a finite enum carrier (e.g. Ternary) is countable ℵ_0, not the "
               "continuum ℶ_1 (and not Finite, the elevate_meet bare signal).");
+// A self-declared @c Finite carrier is likewise collapsed to @c ℵ_0, so its
+// halfspace stays Set-wrapped by @c elevate_meet (not returned bare).
+static_assert(std::same_as<carrier_cardinality_t<ExtensionalCardinal<>>, ℵ_0>,
+              "a self-declared Finite carrier collapses to the countable bound "
+              "ℵ_0, never the bare-signal Finite.");
 
 /**
  * @brief Halfspace predicate { x ∈ T | x ⋈ Pivot } with Pivot at the type
