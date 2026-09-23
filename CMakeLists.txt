@@ -320,6 +320,10 @@ if(DEDEKIND_BUILD_PYTHON_BINDINGS)
         ${DEDEKIND_PYTHON_PACKAGE_DIR}/sequences.py
         COPYONLY)
     configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/lwv.py
+        ${DEDEKIND_PYTHON_PACKAGE_DIR}/lwv.py
+        COPYONLY)
+    configure_file(
         ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/numbers/__init__.py
         ${DEDEKIND_PYTHON_PACKAGE_DIR}/numbers/__init__.py
         COPYONLY)
@@ -356,6 +360,7 @@ if(DEDEKIND_BUILD_PYTHON_BINDINGS)
         ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/dsl.py
         ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/sets.py
         ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/sequences.py
+        ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/lwv.py
         DESTINATION dedekind)
     install(FILES
         ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/numbers/__init__.py
