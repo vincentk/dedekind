@@ -43,14 +43,14 @@ TEST_CASE("Quantifier machinery: Ø == comprehension, two regimes",
   //     `Ø<Cardinality>` (the disjoint halfspace-meet is canonicalised through
   //     the empty set, no longer the raw `EmptyPredicate<Cardinality>` that had
   //     no `== Ø<Cardinality>`), so the `Set{}` wrap is no longer required for
-  //     the comparison — both spellings are witnessed just below.
+  //     the comparison; both spellings are witnessed just below.
   constexpr auto gt5 = Set{ℕ | (π > fix(5_c))};
   constexpr auto lt3 = Set{ℕ | (π < fix(3_c))};
   static_assert(Ø<Cardinality>{} == (gt5 & lt3),
                 "{x>5 ∧ x<3} collapses to Ø at compile time (order layer).");
 
   //     #895: the same collapse holds on the BARE point-free grammar, no
-  //     `Set{}` wrapper — the exact case that forced the wrap before #895.
+  //     `Set{}` wrapper: the exact case that forced the wrap before #895.
   constexpr auto gt5_bare = ℕ | (π > fix(5_c));
   constexpr auto lt3_bare = ℕ | (π < fix(3_c));
   static_assert(Ø<Cardinality>{} == (gt5_bare & lt3_bare),
@@ -86,7 +86,7 @@ struct gt_ten {
 
 // #895: a bare `Comprehension` (the point-free `A | pred` set-builder result)
 // is a first-class set-node, so the free set-complement `!` / `~` applies to it
-// directly — before #895 `!(A | pred)` had no set-complement path (it fell to
+// directly. Before #895, `!(A | pred)` had no set-complement path (it fell to
 // `category::operator!`, a formal Morphism A → Ω) and needed a defensive
 // `Set{}` wrap.  Here the bare comprehension is complemented with no wrapper.
 TEST_CASE("Bare comprehension carries the set-complement (#895)",
@@ -95,7 +95,7 @@ TEST_CASE("Bare comprehension carries the set-complement (#895)",
   constexpr Comp comp{UniversalSet<int>{}, gt_ten{}};
 
   // The complement routes through the set `operator!` and materialises as a
-  // plain Set whose predicate is the negated comprehension — a genuine
+  // plain Set whose predicate is the negated comprehension: a genuine
   // set-complement, not a formal arrow.
   constexpr auto ncomp = !comp;
   static_assert(
