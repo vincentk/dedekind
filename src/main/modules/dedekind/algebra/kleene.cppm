@@ -20,8 +20,11 @@
  * (@c IsBoundedDeMorganChain / @c IsBooleanLogic); this partition pins their
  * downstream algebra-on-set counterpart, where the logic's lattice structure
  * meets @c IsAlgebraOnSet.  This is the algebra-on-set portion of #912; the
- * remaining acceptance criterion (registering @c Ternary in the total/order
- * lattice machinery) is deferred, so #912 stays open.
+ * companion criterion --- registering @c Ternary's bounds and order in the
+ * @c :total / @c :posetal lattice machinery --- now lives at the @c Ternary
+ * definition in @c :logic (so @c IsDistributiveLattice / @c IsBoundedLattice
+ * and the order stack resolve on the carrier, witnessed in
+ * @c logic_lattice_structure_test.cpp and @c order_test.cpp).
  *
  * Wikipedia: Three-valued logic, Kleene algebra (with involution),
  * Łukasiewicz–Moisil algebra.

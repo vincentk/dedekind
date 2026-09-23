@@ -31,6 +31,18 @@ TEST_CASE("Order: The Geography of Species", "[order][axioms]") {
     STATIC_CHECK(IsPartiallyOrdered<bool>);
     STATIC_CHECK(dedekind::order::IsOrderLattice<bool>);
   }
+
+  SECTION("The Kleene Chain (Ternary)") {
+    // K₃'s carrier is the finite 3-chain False < Unknown < True.  Registering
+    // its order (reflexive / transitive / antisymmetric under <=) in #912 lets
+    // the order/:posetal stack resolve on it, the same as int and bool.
+    using dedekind::category::Ternary;
+    STATIC_CHECK(IsPreOrdered<Ternary>);
+    STATIC_CHECK(IsPartiallyOrdered<Ternary>);
+    STATIC_CHECK(IsTotallyOrdered<Ternary>);
+    STATIC_CHECK(
+        dedekind::category::IsCertifiedOrderLatticeOperations<Ternary>);
+  }
 }
 
 TEST_CASE("Order: Archimedean Scales", "[order][archimedean]") {

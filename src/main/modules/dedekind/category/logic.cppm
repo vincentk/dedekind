@@ -836,6 +836,87 @@ static_assert(Kleene::RFL(Ternary::True) == Ternary::False &&
                   Kleene::RFL(Ternary::Unknown) == Ternary::Unknown,
               "K₃: RFL reflects about U (¬U = U)");
 
+/** @section logic__Kleene_Carrier_Total_Registration (#912)
+ *
+ * @brief Register the Kleene carrier @c Ternary in the @c :total / @c :posetal
+ *        machinery so the lattice-ladder and order concepts resolve on it,
+ *        the same way @c bool and @c int are registered.
+ *
+ * @details @c Ternary is the finite 3-chain @c False @c < @c Unknown @c < @c
+ * True, with @c ∨ @c = @c max and @c ∧ @c = @c min (Kleene join / meet).  The
+ * @c std::ranges::max / @c std::ranges::min lattice traits
+ * (@c is_idempotent_v / @c is_associative_v / @c is_commutative_v /
+ * @c is_distributive_v / @c is_absorptive_v in @c :species) are already generic
+ * over every carrier, so @c IsDistributiveLattice<Ternary, max, min> follows
+ * once the two pieces below are supplied:
+ *
+ *   1. the @b bounds (@c identity_v): @c ⊥ @c = @c False (∨-identity) and
+ *      @c ⊤ @c = @c True (∧-identity), lifting the finite chain from
+ *      @c IsDistributiveLattice up to @c IsBoundedLattice / @c IsPointed
+ *      (@c Chain<int> cannot reach this rung: @c ℤ is unbounded);
+ *   2. the @b order traits (reflexive / transitive / antisymmetric under
+ *      @c <=), which the @c :species blanket registers only for
+ *      @c std::integral carriers --- @c Ternary is a scoped enum, so it needs
+ *      the explicit void-form @c std::less_equal<> registration mirrored here.
+ *
+ * The carrier-level variety witnesses (@c IsDistributiveLattice /
+ * @c IsBoundedLattice) live in @c :total, which imports @c :logic transitively
+ * (via @c :posetal), so they cannot be asserted from this upstream partition;
+ * they are pinned in @c logic_lattice_structure_test.cpp and @c order_test.cpp
+ * alongside the @c Boole / @c Chain<int> siblings.
+ */
+
+// The bounds, backed by a computed witness over the whole finite carrier.
+// ∨ = max: ⊥ = False is the identity (max(False, t) = t for every t).
+static_assert(std::ranges::max(Ternary::False, Ternary::False) ==
+                      Ternary::False &&
+                  std::ranges::max(Ternary::False, Ternary::Unknown) ==
+                      Ternary::Unknown &&
+                  std::ranges::max(Ternary::False, Ternary::True) ==
+                      Ternary::True,
+              "K₃: ⊥ = False is the join (∨ = max) identity");
+// ∧ = min: ⊤ = True is the identity (min(True, t) = t for every t).
+static_assert(
+    std::ranges::min(Ternary::True, Ternary::False) == Ternary::False &&
+        std::ranges::min(Ternary::True, Ternary::Unknown) == Ternary::Unknown &&
+        std::ranges::min(Ternary::True, Ternary::True) == Ternary::True,
+    "K₃: ⊤ = True is the meet (∧ = min) identity");
+
+/** @brief ∨-identity (⊥) of the K₃ lattice: @c False.  Mirrors the
+ *  @c identity_trait<bool, std::bit_and<bool>> registration in @c :species. */
+template <>
+struct identity_trait<Ternary, decltype(std::ranges::max)> {
+  using value_type = Ternary;
+  static constexpr Ternary value = Ternary::False;
+};
+/** @brief ∧-identity (⊤) of the K₃ lattice: @c True. */
+template <>
+struct identity_trait<Ternary, decltype(std::ranges::min)> {
+  using value_type = Ternary;
+  static constexpr Ternary value = Ternary::True;
+};
+
+static_assert(identity_v<Ternary, decltype(std::ranges::max)> == Ternary::False,
+              "K₃: registered ∨-identity is ⊥ = False");
+static_assert(identity_v<Ternary, decltype(std::ranges::min)> == Ternary::True,
+              "K₃: registered ∧-identity is ⊤ = True");
+
+/** @brief K₃'s total order under @c <=.  @c Ternary is the 3-chain
+ *  @c False @c < @c Unknown @c < @c True; being a scoped enum (not
+ *  @c std::integral) it is outside the @c :species blanket, so the void-form
+ *  @c std::less_equal<> registrations are mirrored here. */
+template <>
+inline constexpr bool is_reflexive_v<Ternary, std::less_equal<>> = true;
+template <>
+inline constexpr bool is_transitive_v<Ternary, std::less_equal<>> = true;
+template <>
+inline constexpr bool is_antisymmetric_v<Ternary, std::less_equal<>> = true;
+
+static_assert(is_reflexive_v<Ternary, std::less_equal<>> &&
+                  is_transitive_v<Ternary, std::less_equal<>> &&
+                  is_antisymmetric_v<Ternary, std::less_equal<>>,
+              "K₃ is a partial (indeed total) order under <=");
+
 /** @brief The logic negation ¬ = @c L::RFL as a callable object.  It exists so
  *  the @c :involution machinery can witness that the negation is an involution
  *  (@c ¬¬ = @c id).  @c :sets consults the witness to eliminate double negation
