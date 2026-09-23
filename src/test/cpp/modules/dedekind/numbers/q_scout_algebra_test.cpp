@@ -250,6 +250,6 @@ static_assert(
     "point-free ℚ halfspace classifies as the ambient ℚ does (parity).");
 static_assert(
     std::same_as<typename dedekind::sets::NaturalLogic<QHalfspace>::type,
-                 dedekind::sets::Boole>,
+                 dedekind::category::Boole>,
     "a countable ℚ cut is decidable (Boole), not Kleene.");
 }  // namespace
