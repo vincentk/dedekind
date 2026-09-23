@@ -256,10 +256,16 @@ consteval bool halfspace_is_moot() {
 // Module-private: the fallback is a halfspace-classification heuristic, not a
 // general carrier-cardinality authority (that is @c :sets:cardinality).  It
 // only feeds @c Halfspace::cardinality_type below; external carriers customise
-// through their own @c T::cardinality_type, not this helper.
+// through their own @c T::cardinality_type, not this helper.  A finite @b enum
+// carrier (e.g.\ @c Ternary, whose ambient @c 𝕂3 carries @c Finite) cannot
+// self-declare a member typedef, so it is recognised structurally: an enum is
+// always finite, hence @c Finite (countable).  Then the @c IsRingIntegral
+// integers / ℕ,ℤ proxies are @c ℵ_0, and the real proxies are @c ℶ_1.
 template <typename T>
 struct carrier_cardinality {
-  using type = std::conditional_t<IsRingIntegral<T>, ℵ_0, ℶ_1>;
+  using type =
+      std::conditional_t<std::is_enum_v<T>, Finite,
+                         std::conditional_t<IsRingIntegral<T>, ℵ_0, ℶ_1>>;
 };
 template <typename T>
   requires requires { typename T::cardinality_type; }
@@ -268,6 +274,14 @@ struct carrier_cardinality<T> {
 };
 template <typename T>
 using carrier_cardinality_t = typename carrier_cardinality<T>::type;
+
+// A finite enum carrier classifies Finite (countable), matching its ambient:
+// Ternary's canonical ambient 𝕂3 carries Finite, so a Ternary halfspace stays
+// decidable (Boole), not Kleene (#927).  bool is arithmetic, not an enum, so it
+// still rides the IsRingIntegral branch to ℵ_0 (also countable).
+static_assert(std::same_as<carrier_cardinality_t<Ternary>, Finite>,
+              "a finite enum carrier (e.g. Ternary) is Finite, not the "
+              "continuum ℶ_1.");
 
 /**
  * @brief Halfspace predicate { x ∈ T | x ⋈ Pivot } with Pivot at the type
