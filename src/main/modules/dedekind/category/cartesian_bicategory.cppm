@@ -105,8 +105,18 @@ struct Copy {
   using Codomain = std::pair<A, A>;
   /** @brief Fan the input out onto both legs @c Δ(a)=(a,a).
    *  @param a the value to copy.
-   *  @return the diagonal pair @c (a,a). */
-  constexpr Codomain operator()(const A& a) const { return {a, a}; }
+   *  @return the diagonal pair @c (a,a).
+   *  @note The @c requires clause gates @c A on @c std::copy_constructible: the
+   *        diagonal duplicates its input, so a move-only @c A removes
+   *        @c operator() from the overload set and @c IsArrow (hence @c IsCopy)
+   *        rejects @c Copy<A> at the concept surface rather than only when the
+   *        @c {a,a} body is later instantiated (#950 review).  Same guard as
+   *        @c Merge::operator() on its injected op. */
+  constexpr Codomain operator()(const A& a) const
+    requires std::copy_constructible<A>
+  {
+    return {a, a};
+  }
 };
 
 /** @brief Delete (counit) @c ε:A→1. Completes the commutative comonoid.
@@ -397,6 +407,19 @@ struct MergeBadOp {};  // not callable as a binary meet
 static_assert(!IsMerge<Merge<int, MergeBadOp>>,
               "an injected op that is not callable as (a,b)↦a⊓b must NOT model "
               "IsMerge (the ill-formed call is caught structurally).");
+
+// Dually, a MOVE-ONLY carrier is rejected at the concept surface: the diagonal
+// duplicates its input, so the @c std::copy_constructible<A> guard on
+// @c Copy::operator() removes it from the overload set and @c IsArrow (hence
+// @c IsCopy) fails --- not deferred to the @c {a,a} body (#950 review).
+struct CopyMoveOnly {  // move-only: the diagonal cannot duplicate it
+  CopyMoveOnly() = default;
+  CopyMoveOnly(CopyMoveOnly&&) = default;
+  CopyMoveOnly(const CopyMoveOnly&) = delete;
+};
+static_assert(!IsArrow<Copy<CopyMoveOnly>>,
+              "a move-only carrier must NOT model IsArrow via Copy: the "
+              "diagonal a↦(a,a) copies, so copy-constructibility is required.");
 
 // The parallel product and the composite meet are genuine arrows.
 static_assert(IsArrow<Tensor<Identity<bool>, Identity<bool>>>,
