@@ -56,8 +56,9 @@ export import :quotient;  // IsQuotientAlgebra<Q> / IsProductAlgebra<Q> +
                           // Frac, Cplx, Dual, Vec2V; #498/#499 NEW-A)
 export import :registration;
 export import :ring;
-export import :scout_algebra;        // GroupScout — algebraic gating of the
-                                     // in-line comprehension surface (#664)
+export import :scout_algebra;        // IsOrderedAdditiveGroup / -Ring /
+                                     // -MultiplicativeGroup — ordered-algebra
+                                     // markers + concepts (#664)
 export import :halfspace_transport;  // image / inverse / argmax — the
                                      // ordered-group transport of halfspaces
                                      // (DSL surface in namespace order)

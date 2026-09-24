@@ -368,3 +368,47 @@ TEST_CASE(
   // The modular group inverse wraps: pred(0) = UINT_MAX (0 − 1 in ℤ/2ʷ).
   CHECK(pred(std::pair{unsigned(zero), std::numeric_limits<unsigned>::max()}));
 }
+
+// ---------------------------------------------------------------------------
+// #895: concept smoke test for the ordered-algebra concepts/markers that
+// survived the GroupScout scout-algebra retirement.  These previously had
+// their only dedicated coverage in scout_algebra_test.cpp (deleted with the
+// GroupScout layer), so pin the kept concept layer here.  The concepts are
+// consumed for real by the transport operations above; this block is the
+// direct concept-satisfaction witness.
+// ---------------------------------------------------------------------------
+
+// SignedCardinality (the project's saturating ℤ proxy) is the positive
+// witness: it opts into the translation-invariance marker, so the ordered
+// additive-group concept fires.
+static_assert(
+    dedekind::algebra::is_translation_invariant_ordered_v<SignedCardinality>,
+    "SignedCardinality opts into the translation-invariance marker.");
+static_assert(dedekind::algebra::IsOrderedAdditiveGroup<SignedCardinality>,
+              "ℤ's carrier is an ordered additive group.");
+
+// unsigned int is an additive group (ℤ/2^N ℤ) but MODULAR: its order is not
+// translation-invariant (wrap reverses order at the boundary), so the marker
+// defaults to false and the ordered-group concept rejects it --- even though
+// the underlying IsAbelianGroup gate is satisfied.
+static_assert(
+    !dedekind::algebra::is_translation_invariant_ordered_v<unsigned int>,
+    "modular unsigned does not opt into translation-invariance.");
+static_assert(!dedekind::algebra::IsOrderedAdditiveGroup<unsigned int>,
+              "modular unsigned is an additive group but not an ORDERED one.");
+
+// Machine int is not modelled as an additive group at all (signed overflow is
+// UB), so it fails the concept on its algebraic leg.
+static_assert(!dedekind::algebra::IsOrderedAdditiveGroup<int>,
+              "machine int is not an additive group (overflow is UB).");
+
+TEST_CASE(
+    "algebra:ordered-algebra concepts survive GroupScout retirement (#895)",
+    "[algebra][scout_algebra][concept][smoke]") {
+  // The static_asserts above carry the structural claim; this runtime body
+  // gives Codecov a visible line (static_asserts are invisible to coverage).
+  CHECK(
+      dedekind::algebra::is_translation_invariant_ordered_v<SignedCardinality>);
+  CHECK_FALSE(
+      dedekind::algebra::is_translation_invariant_ordered_v<unsigned int>);
+}

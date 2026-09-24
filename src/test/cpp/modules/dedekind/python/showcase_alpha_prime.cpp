@@ -23,14 +23,11 @@
  * (the cross-carrier @c embed_𝔹_ℕ embedding) is dropped because
  * @c embed_𝔹_ℕ is not yet reified.
  *
- * Post-#664 (Slice 2 + Slice 3 + PR #674's @c IsField cert) the @b
- * transformation nugget is @b realised, parallel-sectioned on ℚ
- * (since ℕ doesn't admit the algebraic gates: not a group under @c +,
- * not a field under @c *).  ℚ admits both: additive translation
- * @c element<ℚ> @c + @c bound<k> via @c IsOrderedAdditiveGroup<ℚ>, and
- * multiplicative scaling @c element<ℚ> @c * @c bound<k> via
- * @c IsOrderedMultiplicativeGroup<ℚ>.  The transformations are
- * type-level halfspace-pivot transports, just like the §3 reductions.
+ * The eighth @b transformation nugget was formerly realised here via the
+ * symbolic scout-algebra affine pipe (@c element<ℚ> @c + @c bound<k> /
+ * @c element<ℚ> @c * @c bound<k>).  That test-only layer was retired
+ * under #895 (scout sunset), so the transformation nugget is dropped
+ * again until a point-free affine-transport spelling lands.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -104,31 +101,11 @@ constexpr Ø<Cardinality> b = S & !S;
 static_assert(IsExtensional<decltype(a)>);
 static_assert(IsExtensional<decltype(b)>);
 
-// (7) Transformed.  The deferred eighth nugget from #603's design,
-//     realised post-#664 + #674 on ℚ (the algebraic gates fail on ℕ
-//     --- not a group under +, not a field under *; on ℚ both fire).
-//     Each scout-algebra DSL form is a halfspace-pivot transport at
-//     compile time: the source predicate's pivot is shifted (+) or
-//     scaled (*) by the scout's Element under the group action.
-constexpr auto S_translated =
-    Set{element<ℚ> + bound<3> | element<ℚ> > bound<2>};
-constexpr auto S_scaled = Set{element<ℚ> * bound<2> | element<ℚ> > bound<5>};
-// Pivot transport: 2 + 3 = 5 (translation); 5 * 2 = 10 (scaling).
-// The reduced predicate IS a Halfspace with the transported pivot at
-// the type level; pinned via full-type equality.  ℚ is countable (ℵ_0)
-// so the carrier-axis cut (#622) routes through Boole.
-using QCarrier =
-    dedekind::numbers::Rational<dedekind::numbers::default_integer>;
-static_assert(
-    std::same_as<
-        std::remove_cvref_t<decltype(S_translated)>,
-        Set<QCarrier, dedekind::category::Boole,
-            Halfspace<QCarrier, 5, Direction::Upward, Strictness::Strict>>>);
-static_assert(
-    std::same_as<
-        std::remove_cvref_t<decltype(S_scaled)>,
-        Set<QCarrier, dedekind::category::Boole,
-            Halfspace<QCarrier, 10, Direction::Upward, Strictness::Strict>>>);
+// The deferred eighth "transformed" nugget was previously realised here
+// via the symbolic scout-algebra affine pipe (element<ℚ> + bound<k> /
+// element<ℚ> * bound<k>).  That test-only layer was retired under #895
+// (scout sunset); the nugget is dropped from this showcase until a
+// point-free affine-transport spelling lands.
 
 /**
  * @brief Showcase α′: the §3 walk's compile-time payoff lifted to a
