@@ -10,15 +10,13 @@ using namespace dedekind::category;
 using namespace dedekind::sets;
 
 TEST_CASE("Algebra:Boolean starter symbols", "[algebra][boolean][starter]") {
-  auto b = element<𝔹>;
-
-  auto truthy = Set{b | (b == true)};
-  auto falsy = Set{b | !b};
+  auto truthy = Set{Comprehension{𝔹, BooleanEqPredicate{true}}};
+  auto falsy = Set{Comprehension{𝔹, BooleanEqPredicate{false}}};
 
   // Universe-vs-carrier surface (post-#559).
   //   • 𝔹 is the universe value 𝔸<bool>: a constexpr
-  //     UniversalSet<bool, Boole, Finite>{}, suitable as the
-  //     ambient NTTP for element<𝔹> / Set{...}.
+  //     UniversalSet<bool, Boole, Finite>{}, the comprehension base
+  //     and @c Set{...} argument.
   //   • bool is the carrier — what concept gates and template-type-
   //     parameter positions name directly.
   //   • B is a sibling value-level instance, alias-equivalent to 𝔹
@@ -73,12 +71,11 @@ TEST_CASE("Algebra:Boolean paper alignment (logical vs bitwise)",
 }
 
 TEST_CASE("Algebra:Boolean set laws", "[algebra][boolean][sets][laws]") {
-  auto b = element<𝔹>;
-
-  const auto truthy = Set{b | (b == true)};
-  const auto falsy = Set{b | !b};
-  const auto empty = Set{b | ((b == true) && !b)};
-  const auto universe = Set{b};
+  const auto truthy = Set{Comprehension{𝔹, BooleanEqPredicate{true}}};
+  const auto falsy = Set{Comprehension{𝔹, BooleanEqPredicate{false}}};
+  const auto empty = Set{
+      Comprehension{𝔹, BooleanEqPredicate{true} && BooleanEqPredicate{false}}};
+  const auto universe = 𝔹;
 
   const auto same_set = [](const auto& lhs, const auto& rhs) {
     return lhs(false) == rhs(false) && lhs(true) == rhs(true);
@@ -111,16 +108,14 @@ TEST_CASE("Algebra:Boolean set laws", "[algebra][boolean][sets][laws]") {
 
 TEST_CASE("Algebra:Boolean contradiction is compile-time empty",
           "[algebra][boolean][showcase][constexpr]") {
-  constexpr auto b = element<𝔹>;
-
   // 1) Unfiltered Boolean universe.
-  constexpr auto universe = Set{b};
+  constexpr auto universe = 𝔹;
   static_assert(universe(true));
   static_assert(universe(false));
 
   // 2) Two half-spaces over {false, true}.
-  constexpr auto truthy = Set{b | (b == true)};
-  constexpr auto falsy = Set{b | !b};
+  constexpr auto truthy = Set{Comprehension{𝔹, BooleanEqPredicate{true}}};
+  constexpr auto falsy = Set{Comprehension{𝔹, BooleanEqPredicate{false}}};
 
   static_assert(truthy(true));
   static_assert(!truthy(false));

@@ -41,14 +41,12 @@ using namespace dedekind::order;
 // non-narrowing SEC<>↔real comparison arrow (deferred follow-up to
 // #399 slice 3 / #551).
 //
-// Per #551, the scout itself knows its ambient (𝔸<int>) — no
-// locally-defined predicate-set is needed.  The pre-#551 surface used
-// a one-off @c IntsOnInt because @c IntegersOf<> carries @c Domain
-// @c = @c SignedExtensionalCardinal<> (the exact ℤ carrier).
-constexpr auto n = element<𝔸<int>>;
-
-constexpr auto above = Set{n | (n > bound<-21.0>)};
-constexpr auto at_most = Set{n | (n <= bound<21.0>)};
+// The ambient 𝔸<int> is the comprehension base directly, so point-free
+// real-bounded halfspaces need no locally-defined predicate-set.  (The
+// pre-#551 surface used a one-off @c IntsOnInt because @c IntegersOf<>
+// carries @c Domain @c = @c SignedExtensionalCardinal<>, the exact ℤ carrier.)
+constexpr auto above = 𝔸<int> | (χ > bound<-21.0>);
+constexpr auto at_most = 𝔸<int> | (χ <= bound<21.0>);
 
 // Meet: integer lattice inside a real interval.
 constexpr auto lattice_cut = above & at_most;

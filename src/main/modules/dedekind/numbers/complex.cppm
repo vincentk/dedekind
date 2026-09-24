@@ -1109,10 +1109,12 @@ constexpr auto embed_grid_ℂ(
         grid) {
   using namespace dedekind::sets;
   // FIXME(#399 slice 4-6): once ℂ becomes a carrier alias for
-  // Complex<...>, switch to @c element<𝔸<ℂ>>; for now ℂ is still the
-  // predicate-set type.
-  auto c = element<𝔸<Complex<double>>>;
-  return Set{c | [grid](const Complex<double>& z) {
+  // Complex<...>, the ambient can be spelled @c ℂ directly; for now the
+  // universe over @c Complex<double> is the comprehension base.
+  // Runtime @c grid capture + a Complex→lattice coordinate conversion: not
+  // π-expressible, so a NAMED local predicate over the universe
+  // (comprehension).
+  const auto in_grid = [grid](const Complex<double>& z) {
     const double re = z.real();
     const double im = z.imag();
     dedekind::geometry::IntegerLatticeScalar x =
@@ -1125,7 +1127,8 @@ constexpr auto embed_grid_ℂ(
     using GridLogic = typename std::decay_t<decltype(grid)>::logic_species;
     return grid(dedekind::geometry::IntegerLatticePoint2D{x, y}) ==
            GridLogic::True;
-  }};
+  };
+  return Set{Comprehension{𝔸<Complex<double>>, in_grid}};
 }
 
 /**

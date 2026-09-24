@@ -49,16 +49,12 @@ TEST_CASE("Numbers: canonical starter symbols", "[numbers][starter]") {
 
 TEST_CASE("Numbers: starter universes construct from ambient values",
           "[numbers][starter][sets]") {
-  // Per #559 option-A, the canonical scout spelling is:
-  //   constexpr auto n = element<ℕ>;         // ℕ is itself the universe value
-  //   constexpr auto naturals = Set{n};      // universal Set over ℕ-carrier
-  //   static_assert(naturals.contains(7u));  // value-level membership query
-  //
-  // (Pre-#559 the spelling was @c element<𝔸<ℕ>> with ℕ a carrier alias;
-  //  the @c % @c N binding step had already gone in #551.)
+  // Post-#895 the universe value @b is the ambient; wrap it directly:
+  //   constexpr auto naturals = Set{ℕ};      // universal Set over ℕ-carrier
+  //   static_assert(naturals(7u));           // value-level membership query
+  // (ℕ = @c 𝔸<Cardinality>; the retired @c element / @c % scout is gone.)
 
-  constexpr auto n = element<ℕ>;
-  constexpr auto naturals = Set{n};
+  constexpr auto naturals = ℕ;
   static_assert(naturals(7u));
   static_assert(naturals(0u));
   // Direct ambient-call route: ℕ.contains(value) (or equivalently
@@ -67,8 +63,7 @@ TEST_CASE("Numbers: starter universes construct from ambient values",
   static_assert(𝔸<Cardinality>.contains(7u));
   static_assert(𝔸<Cardinality>.contains(0u));
 
-  constexpr auto z = element<ℤ>;
-  constexpr auto integers = Set{z};
+  constexpr auto integers = ℤ;
   static_assert(integers(-7));
 
   // 𝔻 starter-universe construction moved to
@@ -79,8 +74,7 @@ TEST_CASE("Numbers: starter universes construct from ambient values",
 TEST_CASE("Numbers: starter universes satisfy lattice identities",
           "[numbers][starter][algebra]") {
   {
-    constexpr auto n = element<ℕ>;
-    const auto U = Set{n};
+    const auto U = ℕ;
     const auto O = !U;
     CHECK((U | O)(7u));
     CHECK_FALSE((U & O)(7u));
@@ -89,8 +83,7 @@ TEST_CASE("Numbers: starter universes satisfy lattice identities",
   }
 
   {
-    constexpr auto z = element<ℤ>;
-    const auto U = Set{z};
+    const auto U = ℤ;
     const auto O = !U;
     CHECK((U | O)(4));
     CHECK_FALSE((U & O)(4));
@@ -114,12 +107,15 @@ TEST_CASE(
   // anchored the prior version on @c 𝔸<SignedExtensionalCardinal<>>.
 
   using I = default_integer;  // SignedCardinality (canonical ℤ carrier)
-  constexpr auto z = element<ℤ>;
-  constexpr auto numerators = Set{z};
+  constexpr auto numerators = ℤ;
   // Nonzero predicate via the heterogeneous @c SignedCardinality @c ==
   // @c std::integral overload (cardinality.cppm:1326) --- avoids
   // constructing @c I{0} on the variant carrier.
-  constexpr auto denominators = Set{z | [](const I& v) { return !(v == 0); }};
+  // Nonzero over ℤ: the singleton pivot type (int 0) differs from the ℤ carrier
+  // (SignedCardinality), so `χ == fix(0_c)` mismatches the carrier; a NAMED
+  // heterogeneous predicate (comprehension) instead.
+  constexpr auto is_nonzero = [](const I& v) { return !(v == 0); };
+  constexpr auto denominators = Set{Comprehension{ℤ, is_nonzero}};
   constexpr auto pairs = cartesian_product(numerators, denominators);
 
   // Cross-multiplication equivalence relation (typed tag so the

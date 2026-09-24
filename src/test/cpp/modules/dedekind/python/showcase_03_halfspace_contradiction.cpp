@@ -31,15 +31,11 @@ using namespace dedekind::algebra;
 using namespace dedekind::numbers;
 using namespace dedekind::order;
 
-// Symbolic scout ranging over the natural-numbers universe ℕ.  Per
-// #551 the scout carries its ambient at the type level (the % binding
-// step disappears); per #559 the canonical spelling is element<ℕ> with
-// ℕ itself the universe value (= 𝔸<Cardinality>).
-constexpr auto n = element<ℕ>;
-
-// Two halfspace-structured sets, with pivots (5 and 3) carried as NTTPs.
-constexpr auto gt_5 = Set{n | (n > bound<5>)};
-constexpr auto lt_3 = Set{n | (n < bound<3>)};
+// Point-free halfspaces over the natural-numbers universe ℕ (= 𝔸<Cardinality>),
+// with pivots (5 and 3) carried as NTTPs via fix().  A halfspace IS a set, so
+// no Set{} wrapper.
+constexpr auto gt_5 = ℕ | (χ > fix(5_c));
+constexpr auto lt_3 = ℕ | (χ < fix(3_c));
 
 // Compile-time theorem: the meet IS the empty set on ℕ.
 constexpr Ø<Cardinality> empty_meet = gt_5 & lt_3;

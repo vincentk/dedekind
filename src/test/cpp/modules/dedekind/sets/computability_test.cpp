@@ -37,12 +37,16 @@ TEST_CASE("sets:computability — HasDecidableMembership on Ø",
   }
 
   SECTION("Intensional Set over a countable carrier satisfies the concept") {
-    constexpr auto x = element<ℕ>;
-    constexpr auto s = Set{x | [](const auto& v) { return v > 5u; }};
+    // An @b opaque named predicate (the point of this case: decidability comes
+    // from the carrier axis, not the predicate shape --- so NOT a structured
+    // point-free halfspace).  @c :sets tests may not import @c :order, so
+    // @c π/fix is unavailable here anyway.
+    constexpr auto gt_five = [](const auto& v) { return v > 5u; };
+    constexpr auto s = Set{Comprehension{ℕ, gt_five}};
     // ℕ is countably infinite (ℵ_0) → NaturalLogic picks Boole on
     // the carrier axis (#622).  Rice's theorem caps further promotion of
-    // the opaque λ predicate, but the carrier-axis witness is sufficient
-    // here: the resolver trusts the carrier and lets the λ run.
+    // the opaque predicate, but the carrier-axis witness is sufficient
+    // here: the resolver trusts the carrier and lets the predicate run.
     STATIC_CHECK(HasDecidableMembership<decltype(s)>);
   }
 }
@@ -55,8 +59,8 @@ TEST_CASE("sets:cardinality — IsExtensional on Ø",
   }
 
   SECTION("Intensional Set over a transfinite carrier is not extensional") {
-    constexpr auto x = element<ℕ>;
-    constexpr auto s = Set{x | [](const auto& v) { return v > 5u; }};
+    constexpr auto gt_five = [](const auto& v) { return v > 5u; };
+    constexpr auto s = Set{Comprehension{ℕ, gt_five}};
     STATIC_CHECK_FALSE(IsExtensional<decltype(s)>);
   }
 }

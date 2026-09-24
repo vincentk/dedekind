@@ -12,18 +12,15 @@ namespace {
 
 // Post-HSP retarget: ℂ is the COAT-HANGER universe value
 // 𝔸<Complex<QuadraticReal<2>>, Boole, ℶ_1>, so these ℂ showcases run
-// on EXACT ℚ(√2) arithmetic.  (The scout stays element<ℂ>: `ℂ | pred` directly
-// is blocked because the free operator|(Set, Set) already means set-union, so
-// the scout disambiguates comprehension from union.)  The machine-real scout is
-// element<ℝ_d> — ℝ itself is the ℚ(√2) coat-hanger, so Real<double> live on the
-// materialisable ambient ℝ_d = 𝔸<Real<double>, Boole, ℶ_1>.  (A plain
-// 𝔸<Real<double>> with the default ℵ_0 would route the carrier-axis resolver to
-// Boole, contradicting the ℶ_1 cardinality and the Kleene semantics
-// this test relies on.)
+// on EXACT ℚ(√2) arithmetic.  The comprehensions spell the node explicitly as
+// @c Comprehension{ℂ, pred} (and @c Comprehension{ℝ_d, pred}); the ambient is
+// the base and no scout is needed to disambiguate from set-union.  ℝ itself is
+// the ℚ(√2) coat-hanger, so Real<double> live on the materialisable ambient
+// ℝ_d = 𝔸<Real<double>, Boole, ℶ_1>.  (A plain 𝔸<Real<double>> with the
+// default ℵ_0 would route the carrier-axis resolver to Boole, contradicting the
+// ℶ_1 cardinality and the Kleene semantics this test relies on.)
 using R2 = QuadraticReal<2>;  // the exact real carrier ℝ = ℚ(√2)
 using Q = Rational<>;         // for the exact rational thresholds below
-constexpr auto r = element<ℝ_d>;
-constexpr auto c = element<ℂ>;  // now a Complex<QuadraticReal<2>> scout
 
 constexpr auto real_gt_zero = [](const Real<double>& x) {
   return x.resolve() > 0.0;
@@ -55,28 +52,34 @@ constexpr auto complex_first_quadrant =
 constexpr auto complex_not_third_quadrant =
     complex_re_positive || complex_im_nonnegative;
 
-constexpr auto ℝ_plus =
-    Set{r | [](const Real<double>& x) { return x.resolve() > 0.0; }};
+constexpr auto real_nonzero = [](const Real<double>& x) {
+  return x.resolve() != 0.0;
+};
+constexpr auto complex_outside_unit_ball = [](const Complex<R2>& z) {
+  return euclidean_norm_squared(z) > R2{1};
+};
 
-constexpr auto ℝ_small =
-    Set{r | [](const Real<double>& x) { return x.resolve() < 3.0; }};
+// Component-extraction predicates (a real's @c .resolve(), a complex's
+// @c .real()/.imag()) are not π-expressible, so they stay NAMED-predicate
+// comprehensions --- reusing the named predicates above.
+constexpr auto ℝ_plus = Set{Comprehension{ℝ_d, real_gt_zero}};
 
-constexpr auto ℝ_nonzero =
-    Set{r | [](const Real<double>& x) { return x.resolve() != 0.0; }};
+constexpr auto ℝ_small = Set{Comprehension{ℝ_d, real_lt_three}};
 
-constexpr auto ℂ_right_half =
-    Set{c | [](const Complex<R2>& z) { return z.real() > R2{}; }};
+constexpr auto ℝ_nonzero = Set{Comprehension{ℝ_d, real_nonzero}};
 
-constexpr auto ℂ_upper_half =
-    Set{c | [](const Complex<R2>& z) { return z.imag() >= R2{}; }};
+constexpr auto ℂ_right_half = Set{Comprehension{ℂ, complex_re_positive}};
 
-constexpr auto ℂ_outside_unit_ball = Set{
-    c | [](const Complex<R2>& z) { return euclidean_norm_squared(z) > R2{1}; }};
+constexpr auto ℂ_upper_half = Set{Comprehension{ℂ, complex_im_nonnegative}};
 
-constexpr auto between_reals = Set{r | real_between};
-constexpr auto outside_real_band = Set{r | real_outside_band};
-constexpr auto first_quadrant = Set{c | complex_first_quadrant};
-constexpr auto not_third_quadrant = Set{c | complex_not_third_quadrant};
+constexpr auto ℂ_outside_unit_ball =
+    Set{Comprehension{ℂ, complex_outside_unit_ball}};
+
+constexpr auto between_reals = Set{Comprehension{ℝ_d, real_between}};
+constexpr auto outside_real_band = Set{Comprehension{ℝ_d, real_outside_band}};
+constexpr auto first_quadrant = Set{Comprehension{ℂ, complex_first_quadrant}};
+constexpr auto not_third_quadrant =
+    Set{Comprehension{ℂ, complex_not_third_quadrant}};
 
 constexpr auto real_mix = !((ℝ_plus & ℝ_nonzero) | (ℝ_small | !ℝ_plus));
 constexpr auto complex_mix =

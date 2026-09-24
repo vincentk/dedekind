@@ -60,8 +60,7 @@ using namespace dedekind::sets;
 // Source: an intensional predicate-defined Set over ℕ.  The set
 // {n ∈ ℕ | n > 5} is structurally a Halfspace with NTTP pivot 5; the
 // underlying carrier is Cardinality (the variant ℕ-proxy post-#402).
-constexpr auto n = element<ℕ>;
-constexpr auto gt_5 = Set{n | (n > bound<5>)};
+constexpr auto gt_5 = ℕ | (χ > fix(5_c));
 
 // Arrow ℕ → ℕ wrapped via the project's typed-arrow factory so it
 // satisfies @c IsArrow (which gates on @c Domain / @c Codomain

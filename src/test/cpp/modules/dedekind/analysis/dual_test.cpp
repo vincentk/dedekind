@@ -123,16 +123,14 @@ TEST_CASE("Analysis: 𝔻 / D / DualSet starter aliases",
                    UniversalSet<Dual<machine_real_scalar>, Boole, ℶ_1>>);
   STATIC_CHECK(std::same_as<decltype(D), const DualSet>);
 
-  constexpr auto d = element<𝔻>;  // now a Dual<QuadraticReal<2>> scout
-  constexpr auto duals = Set{d};
+  constexpr auto duals = Set{𝔻};
   static_assert(duals(Dual<R2>{R2{1}, R2{1}}) == Ternary::True);
 }
 
 TEST_CASE("Analysis: 𝔻 lattice identity (U ∪ ¬U = top, U ∩ ¬U = bottom)",
           "[analysis][dual][starter][lattice]") {
   using R2 = QuadraticReal<2>;
-  constexpr auto d = element<𝔻>;  // now a Dual<QuadraticReal<2>> scout
-  const auto U = Set{d};
+  const auto U = Set{𝔻};
   const auto O = !U;
   CHECK((U | O)(Dual<R2>{R2{3}, R2{1}}) == Ternary::True);
   CHECK((U & O)(Dual<R2>{R2{3}, R2{1}}) == Ternary::False);

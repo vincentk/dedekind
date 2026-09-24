@@ -61,17 +61,17 @@ TEST_CASE("partial membership: fix(¬)=Unknown and undecidable classification",
   }
   // ── membership CLASSIFIED into Ω: a comprehension over ℝ (ℶ₁) ──
   {
-    constexpr auto x = element<ℝ_d>;  // ℝ, tagged ℶ₁ (uncountable)
-    constexpr auto gt = Set{x | (x > bound<5.0>)};  // {r ∈ ℝ | r > 5}
+    // ℝ_d is tagged ℶ₁ (uncountable); the point-free Halfspace threads that
+    // cardinality (#848, cf. halfspace.cppm:1318), so the wrap stays Kleene.
+    constexpr auto gt = Set{ℝ_d | (χ > bound<5.0>)};  // {r ∈ ℝ | r > 5}
     // χ_gt : ℝ → Ω, not ℝ → Σ; the type system withholds decidable membership
     static_assert(std::same_as<typename decltype(gt)::logic_species, Kleene>);
     static_assert(!HasDecidableMembership<decltype(gt)>);
   }
   // ── membership RETURNS Unknown: the intensional image of a set ──
   {
-    constexpr auto n = element<ℕ>;
     constexpr auto gt5 =
-        Set{n | (n > bound<5>)};  // {n ∈ ℕ | n > 5} : decidable (ℵ₀)
+        Set{ℕ | (χ > fix(5_c))};  // {n ∈ ℕ | n > 5} : decidable (ℵ₀)
     static_assert(HasDecidableMembership<decltype(gt5)>);
     constexpr cardinality_succ succ;
     constexpr auto s = arrow<Cardinality, Cardinality>(succ);  // ℕ → ℕ

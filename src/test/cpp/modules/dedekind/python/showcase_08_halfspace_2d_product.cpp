@@ -31,13 +31,12 @@ using namespace dedekind::algebra;
 using namespace dedekind::numbers;
 using namespace dedekind::order;
 
-constexpr auto n = element<ℤ>;
-
-// Two 1D intervals on ℤ.
+// Two 1D intervals on ℤ, point-free (halfspaces are sets; meet is the
+// interval).
 constexpr auto I_wide =
-    Set{n | (n > bound<-21>)} & Set{n | (n <= bound<21>)};  // 42 elts
+    (ℤ | (χ > fix(-21_c))) & (ℤ | (χ <= fix(21_c)));  // 42 elts
 constexpr auto I_tall =
-    Set{n | (n >= bound<0>)} & Set{n | (n <= bound<10>)};  // 11 elts
+    (ℤ | (χ >= fix(0_c))) & (ℤ | (χ <= fix(10_c)));  // 11 elts
 
 // Structural 2D cartesian product.
 constexpr auto box = I_wide * I_tall;

@@ -249,15 +249,17 @@ struct SingletonSet {
     return Comprehension{*this, [s2 = other](const T& x) { return s2(x); }};
   }
 
-  // FIXME(#842): the meet @c & below still routes through the deprecated
-  // @c element scout + a lambda; de-lambda it to a named @c category::Meet node
-  // the way @c | above was, when the meet side (the Frobenius multiplication)
-  // is needed.  Union went first as the @c μ (#691) / comonoid blocker.
+  // FIXME(#842): the meet @c & below is a runtime-pivot @c Comprehension over a
+  // NAMED local predicate; de-lambda it fully to a @c category::Meet node the
+  // way @c | above was, when the meet side (the Frobenius multiplication) is
+  // needed.  Union went first as the @c μ (#691) / comonoid blocker.
   template <typename U, typename L2>
     requires std::same_as<L2, L>
   constexpr auto operator&(const SingletonSet<U, L2>& other) const&& {
-    return element<𝔸<T, L>> |
-           [s1 = *this, s2 = other](const T& x) { return s1(x) && s2(x); };
+    const auto meet_pred = [s1 = *this, s2 = other](const T& x) {
+      return s1(x) && s2(x);
+    };
+    return Comprehension{𝔸<T, L>, meet_pred};
   }
 
   /** @brief Symmetric difference @c {a} @c △ @c {b} (#469).
@@ -272,18 +274,18 @@ struct SingletonSet {
    *  @c BooleanEqPredicate; see @c expressions.cppm:operator^). */
   template <typename U, typename L2>
   constexpr auto operator^(const SingletonSet<U, L2>& other) const {
-    // The `element<𝔸<T, L>> | lambda` chain produces a Comprehension;
-    // wrap in `Set{...}` to materialise an actual Set the caller can
-    // invoke.  Without this, callers got `Comprehension does not provide
-    // a call operator` errors at the test site.
-    return Set{element<𝔸<T, L>> | [s1 = *this, s2 = other](const T& x) {
+    // Runtime-pivot XOR: a NAMED local predicate over the universal base, then
+    // wrap in `Set{...}` to materialise an actual Set the caller can invoke
+    // (a bare Comprehension has no standalone call operator at the test site).
+    const auto xor_pred = [s1 = *this, s2 = other](const T& x) {
       // SingletonSet::operator() returns L::Ω directly,
       // so the lift_logic<L> calls are defensive: they
       // normalise if L1 or L2 ever returns bool.
       const auto a = dedekind::category::lift_logic<L>(s1(x));
       const auto b = dedekind::category::lift_logic<L>(s2(x));
       return L::OR(L::AND(a, L::RFL(b)), L::AND(L::RFL(a), b));
-    }};
+    };
+    return Set{Comprehension{𝔸<T, L>, xor_pred}};
   }
 
   /** @brief Complement @c !{a} @c = @c {x @c ∈ @c T @c | @c x @c ≠ @c a}.
@@ -339,11 +341,12 @@ constexpr auto operator^(const SingletonSet<T, L1>& s,
   // result logic from that same side (L2): the singleton's bool lifts
   // through `lift_logic<L2>` cleanly, and the Set's predicate is
   // already in L2.
-  return Set{element<𝔸<T, L2>> | [s, other](const T& x) {
+  const auto xor_pred = [s, other](const T& x) {
     const auto a = dedekind::category::lift_logic<L2>(s(x));
     const auto b = dedekind::category::lift_logic<L2>(other(x));
     return L2::OR(L2::AND(a, L2::RFL(b)), L2::AND(L2::RFL(a), b));
-  }};
+  };
+  return Set{Comprehension{𝔸<T, L2>, xor_pred}};
 }
 
 export template <typename T, typename L1, typename L2, typename P>

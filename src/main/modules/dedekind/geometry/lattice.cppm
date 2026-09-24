@@ -123,11 +123,10 @@ struct LatticeFactory;
 template <>
 struct LatticeFactory<NaturalLatticeSet> {
   constexpr auto line() const {
-    auto k = element<ℕ>;
     // Every Cardinality value is in ℕ by construction (post-#402);
-    // the universe value @c ℕ (= @c 𝔸<Cardinality>, post-#559) is the
-    // canonical ambient here.
-    return Set{k};
+    // the universe value @c ℕ (= @c 𝔸<Cardinality>, post-#559) IS the line ---
+    // an ambient set needs no @c Set{...} wrapper.
+    return ℕ;
   }
 
   constexpr auto plane() const {
@@ -138,10 +137,7 @@ struct LatticeFactory<NaturalLatticeSet> {
 
 template <std::signed_integral I>
 struct LatticeFactory<UniversalSet<I>> {
-  constexpr auto line() const {
-    auto k = element<𝔸<I>>;
-    return Set{k % UniversalSet<I>{}};
-  }
+  constexpr auto line() const { return 𝔸<I>; }
 
   constexpr auto plane() const {
     const auto xs = line();
@@ -182,11 +178,12 @@ export constexpr auto integer_lattice_2d() {
  * @return A Set<NaturalLatticePoint2D, Kleene, ...>.
  */
 export constexpr auto square_natural_grid(unsigned int n) {
-  auto p = element<𝔸<NaturalLatticePoint2D>>;
   const auto unbounded = natural_lattice_2d();
-  return Set{p % unbounded | [n](const NaturalLatticePoint2D& q) {
+  // Runtime window @c n: a NAMED local predicate over the unbounded lattice.
+  const auto in_window = [n](const NaturalLatticePoint2D& q) {
     return (q.first < n) && (q.second < n);
-  }};
+  };
+  return Set{Comprehension{unbounded, in_window}};
 }
 
 /**
@@ -198,12 +195,13 @@ export constexpr auto square_natural_grid(unsigned int n) {
  */
 export constexpr auto square_integer_grid(IntegerLatticeScalar lower,
                                           IntegerLatticeScalar upper) {
-  auto p = element<𝔸<IntegerLatticePoint2D>>;
   const auto unbounded = integer_lattice_2d();
-  return Set{p % unbounded | [lower, upper](const IntegerLatticePoint2D& q) {
+  // Runtime window [lower, upper): a NAMED local predicate over the lattice.
+  const auto in_window = [lower, upper](const IntegerLatticePoint2D& q) {
     return (q.first >= lower) && (q.first < upper) && (q.second >= lower) &&
            (q.second < upper);
-  }};
+  };
+  return Set{Comprehension{unbounded, in_window}};
 }
 
 /**

@@ -70,38 +70,36 @@ TEST_CASE("order:halfspace — Variable DSL constructs Halfspace from bound<V>",
   // the underlying carrier is Cardinality (the variant ℕ-proxy from
   // #402), so the test exercises `Halfspace<Cardinality, ...>`
   // instantiations.
-  constexpr auto n = element<ℕ>;
-
   SECTION("> constructs Upward/Strict") {
-    constexpr auto h = n > bound<7>;
+    constexpr auto h = ℕ | (χ > fix(7_c));
     using H = std::decay_t<decltype(h)>;
     STATIC_CHECK(std::same_as<H, Halfspace<Cardinality, 7, Direction::Upward,
                                            Strictness::Strict>>);
   }
 
   SECTION(">= constructs Upward/NonStrict") {
-    constexpr auto h = n >= bound<7>;
+    constexpr auto h = ℕ | (χ >= fix(7_c));
     using H = std::decay_t<decltype(h)>;
     STATIC_CHECK(std::same_as<H, Halfspace<Cardinality, 7, Direction::Upward,
                                            Strictness::NonStrict>>);
   }
 
   SECTION("< constructs Downward/Strict") {
-    constexpr auto h = n < bound<7>;
+    constexpr auto h = ℕ | (χ < fix(7_c));
     using H = std::decay_t<decltype(h)>;
     STATIC_CHECK(std::same_as<H, Halfspace<Cardinality, 7, Direction::Downward,
                                            Strictness::Strict>>);
   }
 
   SECTION("<= constructs Downward/NonStrict") {
-    constexpr auto h = n <= bound<7>;
+    constexpr auto h = ℕ | (χ <= fix(7_c));
     using H = std::decay_t<decltype(h)>;
     STATIC_CHECK(std::same_as<H, Halfspace<Cardinality, 7, Direction::Downward,
                                            Strictness::NonStrict>>);
   }
   // Note (post-#409 review): the DSL constraint also rejects negative
-  // signed pivots on unsigned carriers (e.g. `element<𝔸<ℕ>> > bound<-1>` no
-  // longer compiles, where previously int→unsigned conversion would
+  // signed pivots on unsigned carriers (e.g. `ℕ | (χ > fix(-1_c))` does not
+  // compile, where previously int→unsigned conversion would
   // wrap -1 to UINT_MAX silently).  The regression is exercised
   // implicitly: dropping the constraint would not break any existing
   // test, but enabling it does not break any either, so the rejection
@@ -449,11 +447,9 @@ TEST_CASE("order:halfspace — reduction tightens extensionality (post-#622)",
   // STILL tightens here is @b extensionality: @c gt5 is not extensional
   // (predicate-shaped, no materialised members); after meet-reduction
   // to @c Ø or @c Singleton, the result IS extensional.
-  constexpr auto n = element<ℕ>;
-
   SECTION("Empty-meet reduction (extensionality tightens)") {
-    constexpr auto gt5 = Set{n | (n > bound<5>)};
-    constexpr auto lt3 = Set{n | (n < bound<3>)};
+    constexpr auto gt5 = ℕ | (χ > fix(5_c));
+    constexpr auto lt3 = ℕ | (χ < fix(3_c));
     constexpr Ø<Cardinality> meet = gt5 & lt3;
 
     // Both source and meet are Classical (carrier axis fires on ℕ).
@@ -466,8 +462,8 @@ TEST_CASE("order:halfspace — reduction tightens extensionality (post-#622)",
   }
 
   SECTION("Singleton reduction (extensionality tightens)") {
-    constexpr auto gt3 = Set{n | (n > bound<3>)};
-    constexpr auto lt5 = Set{n | (n < bound<5>)};
+    constexpr auto gt3 = ℕ | (χ > fix(3_c));
+    constexpr auto lt5 = ℕ | (χ < fix(5_c));
     constexpr Singleton<4> s = gt3 & lt5;
 
     STATIC_CHECK(HasDecidableMembership<decltype(gt3)>);
@@ -476,38 +472,28 @@ TEST_CASE("order:halfspace — reduction tightens extensionality (post-#622)",
   }
 }
 
-TEST_CASE("order:halfspace: point-free ℕ|pred classifies like the scout (#848)",
+TEST_CASE("order:halfspace: point-free ℕ|pred is carrier-axis decidable (#848)",
           "[order][halfspace][computability][point-free]") {
-  // #848: the point-free comprehension ℕ | (π > fix(5_c)) reduces to a bare
+  // #848: the point-free comprehension ℕ | (χ > fix(5_c)) reduces to a bare
   // Halfspace.  Before this fix that Halfspace exposed no cardinality_type, so
   // NaturalLogic hit its pessimistic primary-template fallback (Kleene /
-  // TernaryLogic) and Set{ℕ | pred} mis-classified as undecidable, while the
-  // (deprecated) scout spelling element<ℕ> | pred kept its ambient's ℵ₀ tag and
-  // classified ClassicalLogic.  The threaded Halfspace::cardinality_type closes
-  // the gap.  Pairs the module-level static_assert witnesses with a
-  // Codecov-visible runtime membership exercise.
-  constexpr auto point_free = ℕ | (π > fix(5_c));
-  constexpr auto scout = element<ℕ> | (element<ℕ> > bound<5>);
+  // TernaryLogic) and Set{ℕ | pred} mis-classified as undecidable.  The
+  // threaded Halfspace::cardinality_type closes the gap so the countable ℕ
+  // ambient classifies ClassicalLogic.  Pairs the module-level static_assert
+  // witnesses with a Codecov-visible runtime membership exercise.
+  constexpr auto point_free = ℕ | (χ > fix(5_c));
 
-  // Carrier-axis verdict parity: the classifier reads
-  // Halfspace::cardinality_type.
-  STATIC_CHECK(std::same_as<typename NaturalLogic<decltype(point_free)>::type,
-                            typename NaturalLogic<decltype(scout)>::type>);
+  // Carrier-axis verdict: the classifier reads Halfspace::cardinality_type.
   STATIC_CHECK(
       std::same_as<typename NaturalLogic<decltype(point_free)>::type, Boole>);
 
-  // Symptom 1: the Set-wrapped forms agree, and the point-free one is
-  // decidable.
+  // Symptom 1: the Set-wrapped form is decidable.
   STATIC_CHECK(HasDecidableMembership<decltype(Set{point_free})>);
-  STATIC_CHECK(HasDecidableMembership<decltype(Set{point_free})> ==
-               HasDecidableMembership<decltype(Set{scout})>);
 
   // Runtime membership on {x ∈ ℕ | x > 5}: 6 ∈, 5 ∉ --- exercises operator()
   // for coverage (static_asserts are invisible to Codecov).
   CHECK(static_cast<bool>(point_free(finite_cardinality(6))));
   CHECK_FALSE(static_cast<bool>(point_free(finite_cardinality(5))));
-  CHECK(static_cast<bool>(point_free(finite_cardinality(6))) ==
-        static_cast<bool>(scout(finite_cardinality(6))));
 }
 
 TEST_CASE("order:halfspace — IntervalProduct preserves cardinality",
@@ -725,11 +711,10 @@ TEST_CASE("order:halfspace — the factory makes a Halfspace a proper cut (#832)
   }
 
   SECTION("the DSL and ~ route through the factory") {
-    constexpr auto n = element<ℕ>;
     // The DSL surface collapses a moot cut: {x≥0} on ℕ = ℕ.
-    static_assert(std::same_as<std::decay_t<decltype(n >= bound<0>)>,
+    static_assert(std::same_as<std::decay_t<decltype(ℕ | (χ >= fix(0_c)))>,
                                UniversalSet<Cardinality, Boole>>,
-                  "element<ℕ> >= bound<0> = ℕ");
+                  "ℕ | (χ >= fix(0_c)) = ℕ");
     // ~ of a raw moot cut is its empty complement: ~{x≥0} = {x<0} = Ø, and
     // dually ~Ø = ℕ, so the boundary complement round-trips (involution).
     constexpr Halfspace<Cardinality, 0, Direction::Upward,
@@ -812,11 +797,6 @@ TEST_CASE(
     CHECK(s(6) == Kleene::True);
     CHECK(s(5) == Kleene::False);
   }
-
-  // FIXME(#928): the Set(MembershipBinding<S>) coherence gate is reachable only
-  // via the retired scout element<A>%S (MembershipBinding is non-exported), and
-  // its result equals the identity-CTAD wrap covered above; a point-free
-  // witness returns when the scout algebra is retired.
 }
 
 // The power set 𝔓 (#830) is exercised in order/powerset_test.cpp.
