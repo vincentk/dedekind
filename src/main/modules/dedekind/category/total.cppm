@@ -618,8 +618,9 @@ concept IsField = IsCommutativeRing<T, Add, Mult> && IsAbelianGroup<T, Mult>;
  * @brief compatibility alias for order semilattice refinement.
  * @details An operation is idempotent when a ⊕ a = a. Combined with
  * commutativity and associativity, this gives the structure of a semilattice.
- * `bool` with OR (or AND), and `int`/`double` with `max` (or `min`) are
- * canonical examples.
+ * `bool` with OR (or AND), and `int` (or any certified total order) with `max`
+ * (or `min`) are canonical examples.  Raw `double` is @b not one: NaN breaks
+ * totality, so it is excluded from the max/min lattice-law blanket (see #934).
  *
  * This alias now delegates the algebraic law shape to `:posetal`
  * (`IsOrderMeetSemilattice`) while keeping the `:total` partition's

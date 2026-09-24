@@ -1029,6 +1029,7 @@ concept IsPeriodic = is_periodic_v<T, Op>;
  * Sup{}(1.0, 2.0) is a valid call that returns a value, so raw floats are @b
  * not excluded here; only the lattice @b laws fail on them (see @c
  * SupInfLattice).
+ * @tparam T The candidate carrier type.
  */
 export template <typename T>
 concept SupInfOperand = std::totally_ordered<T> && std::copy_constructible<T>;
@@ -1058,21 +1059,30 @@ concept SupInfOperand = std::totally_ordered<T> && std::copy_constructible<T>;
  * conventions --- the typed @c std::less_equal<T> (@c int / @c bool via the
  * integral blanket, @c Ternary) or the transparent @c std::less_equal<> (@c
  * safe_float<F>, @c Rational<I>, @c Cut<Q>, cardinals).  Both are @c :species
- * traits (no DAG dependency on @c :order), so the gate accepts a certificate
- * under @b either spelling; a carrier that registers @b neither (@c double, @c
- * optional<double>, @c void) is still excluded.  Reflexivity is separately
- * available on any @c std::totally_ordered<T> via the general @c is_reflexive
- * specialisation, so the transitivity / antisymmetry certificates are the
+ * traits (no DAG dependency on @c :order), so the gate accepts a @b complete
+ * three-law certificate under @b either spelling; a carrier that lacks a
+ * complete certificate under both (@c double, @c optional<double>, @c void) is
+ * excluded.
+ *
+ * @note The three laws are grouped @b per @b relation and the two @b complete
+ * certificates are OR'd, @b not OR'd law-by-law: a mixed carrier (e.g.\
+ * antisymmetry certified typed but transitivity only transparent) has all three
+ * laws under @b neither single relation, so it must @b not pass.  Reflexivity
+ * alone is available for any @c std::totally_ordered<T> via the general @c
+ * is_reflexive specialisation (so raw @c double satisfies the typed reflexive
+ * leg), which is exactly why transitivity + antisymmetry must be checked under
+ * the @b same relation as reflexivity: that per-relation grouping is the
  * load-bearing exclusion for @c double.
+ * @tparam T The candidate carrier type.
  */
 export template <typename T>
-concept SupInfLattice = SupInfOperand<T> &&
-                        (is_reflexive_v<T, std::less_equal<T>> ||
-                         is_reflexive_v<T, std::less_equal<>>) &&
-                        (is_transitive_v<T, std::less_equal<T>> ||
-                         is_transitive_v<T, std::less_equal<>>) &&
-                        (is_antisymmetric_v<T, std::less_equal<T>> ||
-                         is_antisymmetric_v<T, std::less_equal<>>);
+concept SupInfLattice =
+    SupInfOperand<T> && ((is_reflexive_v<T, std::less_equal<T>> &&
+                          is_transitive_v<T, std::less_equal<T>> &&
+                          is_antisymmetric_v<T, std::less_equal<T>>) ||
+                         (is_reflexive_v<T, std::less_equal<>> &&
+                          is_transitive_v<T, std::less_equal<>> &&
+                          is_antisymmetric_v<T, std::less_equal<>>));
 
 /** @section species__Lattice_Morphisms (std::ranges)
  *
@@ -1278,6 +1288,18 @@ inline constexpr bool is_absorptive_v<T, Inf, Sup> = true;
 // Negative witnesses (co-located; :species is upstream of :total, so assert the
 // trait directly, not IsDistributiveLattice).
 // (1) Raw floats: NaN breaks max/min commutativity, so no double lattice.
+// Per-relation grouping is load-bearing: double satisfies the TYPED reflexive
+// leg (via the std::totally_ordered general is_reflexive spec) but neither the
+// typed transitive/antisymmetric legs nor any transparent leg, so it has NO
+// complete three-law certificate under either relation.  A law-by-law OR would
+// wrongly borrow the reflexive leg and admit it; the grouped OR does not.
+static_assert(is_reflexive_v<double, std::less_equal<double>> &&
+                  !is_transitive_v<double, std::less_equal<double>> &&
+                  !is_transitive_v<double, std::less_equal<>> &&
+                  !SupInfLattice<double>,
+              "per-relation gate: double has only the typed reflexive leg, no "
+              "complete order certificate under either relation, so it is "
+              "excluded");
 static_assert(!is_commutative_v<double, Sup>,
               "raw floats rejected: NaN breaks max/min commutativity (no "
               "double lattice carrier)");
