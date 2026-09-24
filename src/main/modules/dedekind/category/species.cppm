@@ -362,8 +362,13 @@ struct is_transitive<T, Rel>
 export template <typename T, typename Rel>
 inline constexpr bool is_transitive_v = is_transitive<T, Rel>::value;
 
+// A scoped enum is a discrete, NaN-free total order under `<=`, so its `<=` is
+// transitive (and antisymmetric, below); admitting `is_enum_v<T>` alongside the
+// integral / bool blanket lets an enum carrier (e.g. @c Ternary) ride the
+// blanket rather than hand-registering both legs.  @c double is neither
+// integral nor an enum, so the raw-float rejection is preserved (#933 / #934).
 template <typename T>
-  requires std::is_integral_v<T> || std::is_same_v<T, bool>
+  requires std::is_integral_v<T> || std::is_same_v<T, bool> || std::is_enum_v<T>
 struct is_transitive<T, std::less_equal<T>> : std::true_type {};
 
 /**
@@ -387,8 +392,12 @@ struct is_antisymmetric<T, Rel>
 export template <typename T, typename Rel>
 inline constexpr bool is_antisymmetric_v = is_antisymmetric<T, Rel>::value;
 
+// Enums join the integral / bool blanket for the same reason as transitivity:
+// a scoped enum is a discrete total order, so `<=` is antisymmetric.  This
+// admits @c Ternary while still excluding @c double (neither integral nor
+// enum), preserving the raw-float rejection (#933 / #934).
 template <typename T>
-  requires std::is_integral_v<T> || std::is_same_v<T, bool>
+  requires std::is_integral_v<T> || std::is_same_v<T, bool> || std::is_enum_v<T>
 struct is_antisymmetric<T, std::less_equal<T>> : std::true_type {};
 
 /**

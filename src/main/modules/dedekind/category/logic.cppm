@@ -1024,18 +1024,13 @@ static_assert(is_reflexive_v<Ternary, std::less_equal<>> &&
  *  order concepts (@c IsPartRelation / @c IsPosetal / @c IsTotalOrder / @c
  *  IsThinCategory) default @c Rel to the @b typed @c std::less_equal<Ternary>
  *  and query the traits for @b that exact type, so the transparent form does
- *  not reach them.  Reflexivity is already supplied by the @c :species
- *  @c totally_ordered @c std::less_equal<T> struct specialisation (@c Ternary
- *  is @c std::totally_ordered); only transitivity / antisymmetry are outside
- *  the @c :species integral blanket and are registered here.  This is also the
- *  order the @c :species @c SupInfLattice law gate certifies against (a genuine
- *  total order cannot contain NaN). */
-template <>
-inline constexpr bool is_transitive_v<Ternary, std::less_equal<Ternary>> = true;
-template <>
-inline constexpr bool is_antisymmetric_v<Ternary, std::less_equal<Ternary>> =
-    true;
-
+ *  not reach them.  All three legs now ride @c :species blankets under the
+ *  typed relation: reflexivity via the @c totally_ordered @c
+ *  std::less_equal<T> struct specialisation, transitivity and antisymmetry via
+ *  the @c is_enum_v leg of the integral blanket (a scoped enum is a discrete
+ *  total order).  It is also the order the @c :species @c SupInfLattice gate
+ *  certifies against (a genuine total order cannot contain NaN); the
+ *  static_assert below pins that the enum blanket reaches @c Ternary. */
 static_assert(is_reflexive_v<Ternary, std::less_equal<Ternary>> &&
                   is_transitive_v<Ternary, std::less_equal<Ternary>> &&
                   is_antisymmetric_v<Ternary, std::less_equal<Ternary>>,

@@ -65,6 +65,8 @@ export module dedekind.category:lattice_term;
 import :lattice;  // the term AST + the induced laws (the validated parts)
 import :logic;    // Boole (default), Ternary, IsOckhamAlgebra
 import :cartesian_bicategory;  // Copy / Merge / IsMeetAsRightAdjoint (Δ ⊣ ∧)
+import :species;  // Inf / Sup: the injected value-level glb / lub (∧ / ∨)
+import :limit;    // IsProduct: the shared product substrate (Task C bridge)
 
 namespace dedekind::category {
 
@@ -163,6 +165,57 @@ static_assert(
     IsMeetAsRightAdjoint<Copy<bool>, Merge<bool, std::logical_and<bool>>>,
     "the reducer's meet path must be the right adjoint of the diagonal "
     "(Δ ⊣ ∧) over the Boolean-lattice witness.");
+
+// #946 S1: fold in the coherence witnesses.  The Δ ⊣ ∧ theory is carrier-
+// generic, so the reducer's meet path type-checks against IsMeetAsRightAdjoint
+// over the order-certified carriers it reduces, not just the Boolean seed.
+
+// int: the integral chain.  The injected glb is @c Inf (min), supplied exactly
+// as @c reduce<> injects its order-algebra meet.
+static_assert(
+    IsMeetAsRightAdjoint<Copy<int>, Merge<int, Inf>>,
+    "the meet on the integral chain must be the right adjoint of the diagonal "
+    "(glb = min).");
+
+// HONESTY OBLIGATION, made visible.  IsMeetAsRightAdjoint is a STRUCTURAL shape
+// (crossed signatures + a posetal carrier); it cannot see which order-op the
+// merge computes, so the JOIN (@c Sup = max) passes the very same test.  That
+// is a genuine false positive: certifying the merge is the glb and not the lub
+// is the engineer's obligation (as with IsGaloisConnection), not something the
+// concept discharges.  This static_assert pins the gap so it stays honest.
+static_assert(
+    IsMeetAsRightAdjoint<Copy<int>, Merge<int, Sup>>,
+    "structural witness: the JOIN (Sup) also passes IsMeetAsRightAdjoint, the "
+    "glb-vs-lub honesty obligation the concept cannot discharge.");
+
+// Ternary (Kleene K₃): the 3-chain False < Unknown < True.  The injected glb is
+// @c Inf (min), which on this chain IS the Kleene AND.  Witnessable because the
+// :species is_enum_v blanket (this PR) certifies K₃'s ≤ as transitive +
+// antisymmetric, so IsPosetal<Ternary, less_equal<Ternary>> holds.
+static_assert(
+    IsMeetAsRightAdjoint<Copy<Ternary>, Merge<Ternary, Inf>>,
+    "the Kleene meet (AND = min) on the K₃ chain must be the right adjoint of "
+    "the diagonal.");
+
+// #946 S1 Task C: the meet-trichotomy bridge.  Three meet presentations that
+// never referenced each other are ONE universal property, the glb:
+//   (1) Δ ⊣ ∧           : Merge = Δ† (this partition + :cartesian_bicategory);
+//   (2) meet-as-product : category::Meet with the MakeMeet pairing factory;
+//   (3) meet-as-pullback: sets::MeetSet ⊨ IsPullback (#881, downstream :sets).
+// (1) and (2) share ONE substrate: the SAME IsProduct concept certifies both
+// the comonoid's product OBJECT (the pair Δ copies into, which Tensor's
+// arrow-action is gated on) and the lattice AST's product NODE.  Object half
+// and arrow half of the one product bifunctor.
+static_assert(IsProduct<std::pair<bool, bool>, bool, bool>,
+              "comonoid/Tensor substrate: the pair A×A is the product OBJECT.");
+static_assert(
+    IsProduct<Meet<bool, bool>, bool, bool, MakeMeet>,
+    "meet-as-product: the AST Meet node is that SAME product, MakeMeet the "
+    "pairing factory.");
+// (3) is a documented cross-reference, not a forced assert: sets::MeetSet ⊨
+// IsPullback lives in :sets, downstream of both partitions, so a structural
+// bridge to the IsPullback family is more than a low-risk local witness.
+// FIXME(#946): unify the glb across the product and pullback presentations.
 
 namespace detail_lattice_term {
 
