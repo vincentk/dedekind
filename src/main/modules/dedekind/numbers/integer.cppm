@@ -64,7 +64,7 @@ export using default_integer = dedekind::sets::SignedCardinality;
  * @f$2^{N \cdot 64}@f$.  This is what the in-line scout-algebra
  * surface (#664) requires for translation-invariant halfspace-pivot
  * transport: the @c IsOrderedAdditiveGroup marker in
- * @c :algebra:scout_algebra is specialised to @c true for
+ * @c :algebra:ordered_algebra is specialised to @c true for
  * @c SignedCardinality and to @c false (default) for the cyclic
  * finite fragment, exactly because the saturating discipline
  * preserves order under translation and the cyclic one does not at
@@ -88,7 +88,7 @@ static_assert(std::same_as<typename std::remove_cvref_t<decltype(ℤ)>::Domain,
 // in-line scout-algebra surface uses (#664).  Pinning the witness:
 // IsOrderedAdditiveGroup<SignedCardinality> holds via the
 // is_translation_invariant_ordered marker specialised in
-// :algebra:scout_algebra.
+// :algebra:ordered_algebra.
 static_assert(dedekind::algebra::IsOrderedAdditiveGroup<
                   dedekind::sets::SignedCardinality>,
               "ℤ's carrier SignedCardinality must satisfy "
@@ -148,7 +148,7 @@ static_assert(
 // Honest Rejection: ℤ is the initial ring AND the Grothendieck group
 // of ℕ (asserted above), but NOT a multiplicative group --- non-units
 // (everything except ±1) lack multiplicative inverses.  The
-// @c IsOrderedMultiplicativeGroup gate in @c :algebra:scout_algebra
+// @c IsOrderedMultiplicativeGroup gate in @c :algebra:ordered_algebra
 // therefore rejects ℤ; use ℚ (Rational<default_integer>, the field of
 // fractions of ℤ; pinned at @c rational.cppm) wherever multiplicative
 // order-compatibility is required.  Cross-partition invariant pinned in

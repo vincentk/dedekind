@@ -33,7 +33,7 @@
  * relations lives here.  @c IsFunctional on a graph is therefore an order-level
  * query; @c IsEntire (and @c IsFunction) is an algebra-level one.
  *
- * @build_order after :scout_algebra
+ * @build_order after :ordered_algebra
  * @dependency dedekind.order
  */
 module;
@@ -50,7 +50,7 @@ import dedekind.category; // IsAbelianGroup, is_left_total_v (the trait primary)
 import dedekind.sets;     // Set, 𝔸, Singleton, Cardinality, SignedCardinality
 import dedekind.order; // Halfspace, ProjAddConstProj, Rel, dir_of/strict_of/flip
 import dedekind.relational; // ComposePred (Tarski :dyadic) — the >> trait NODE (#792)
-import :scout_algebra;  // IsOrderedAdditiveGroup — the canonical gate
+import :ordered_algebra;  // IsOrderedAdditiveGroup — the canonical gate
 
 // Mirror order/halfspace.cppm's directives so the DSL names (Set, 𝔸, Singleton
 // from sets; the trait primaries from category) resolve unqualified inside the
