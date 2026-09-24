@@ -70,6 +70,7 @@
 module;
 
 #include <concepts>
+#include <functional>  // std::less_equal (IsGaloisConnection's default order)
 #include <type_traits>
 #include <utility>
 
