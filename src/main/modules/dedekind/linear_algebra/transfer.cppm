@@ -562,6 +562,50 @@ static_assert(matmul_entry<2>(bead, bead, 0, 1) ==
 static_assert(eigenvalue<2>(bead) == lambda,
               "eigenvalue(M) reads λ = ⟨w|v⟩ off the dyad's factors.");
 
+// ── The A′DA / bra·D·ket quadratic form, LA-native (#946).  This witness has
+// the SAME SHAPE as the Frobenius-spider composite @c Δ†∘(⊗)∘Δ (copy the
+// input, run a diagonal middle, fold), assembled from EXISTING :transfer /
+// :diagonal parts:
+//   copy   = reuse the ket @c a on BOTH legs (the input, copied);
+//   middle = the diagonal @c D|a⟩, built as the diagonal RULE times the vector
+//            (@c diagonal_product_rule = the diagonal-matvec Hadamard);
+//   fold   = @c inner_product, the ⊕-fold over the two legs.
+// So ⟨a|D|a⟩ = ⊕_k a_k ⊗ (D_k ⊗ a_k) = Σ_k D_k·a_k².  It GENERALISES the
+// @c eigenvalue() witness above: there the middle is the rank-1 dyad and D=I
+// (λ = ⟨w|v⟩); here the middle is a genuine diagonal D, so the value is the
+// quadratic form.  Carrier: @c unsigned int = ℤ/2^w, a CERTIFIED IsSemiring
+// (its native +/× are associative modular ops, unlike @c int whose overflow is
+// not a magma) --- the smallest sound ring for a Σ D_i·a_i² value witness.
+//
+// HONEST SCOPE.  This is a QUADRATIC-FORM realisation of the A′DA shape, NOT
+// literally @c dedekind::category::Intersect.  @c Intersect is an endomorphism
+// @c A→A whose merge is the equality dagger @c δ†; @c ⟨a|D|a⟩ is a SCALAR and
+// @c inner_product is a weighted ⊕-fold, not that equality merge.  The genuine
+// cross-layer identity, where the LA layer SATISFIES the category
+// @c Tensor / @c Intersect concept (a typed SCFA bridge), is the harder #951;
+// THIS only exhibits the shape natively in linear_algebra.
+struct QuadDiagRule {  // D = diag(5, 7), an IsArrow index → scalar
+  using Domain = std::size_t;
+  using Codomain = unsigned;
+  constexpr unsigned operator()(std::size_t i) const {
+    return i == 0 ? 5u : 7u;
+  }
+};
+inline constexpr Ket<unsigned, 2> qa{{2u, 3u}};               // |a⟩ = Δ's copy
+inline constexpr Diagonal<dim_finite<2>, QuadDiagRule> qD{};  // the middle D
+// D|a⟩ = the ⊗ leg, the diagonal rule times the vector (existing LA part).
+inline constexpr diagonal_product_rule<QuadDiagRule, Ket<unsigned, 2>> qDa{
+    qD.rule, qa};
+static_assert(dedekind::category::IsArrow<decltype(qDa)>,
+              "the scaled leg D|a⟩ is an arrow (index → scalar).");
+// A′DA shape: ⟨a|D|a⟩ = Σ_i D_i·a_i² = 5·2² + 7·3² = 20 + 63 = 83.
+static_assert(
+    inner_product<2>(qa, qDa) == 83u,
+    "the LA-native A′DA quadratic form ⟨a|D|a⟩ = Σ D_i·a_i² = 5·4 + 7·9 = 83.");
+// The D=I face is eigenvalue()'s bare bra·ket: ⟨a|a⟩ = Σ a_i² = 4 + 9 = 13.
+static_assert(inner_product<2>(qa, qa) == 13u,
+              "D=I face: ⟨a|a⟩ = Σ a_i² = 13, the spider's identity middle.");
+
 // (The intensional, IsSet-valued, tie-honest argmax over the branches is
 // `dedekind::sequences::argmax`; it is exercised in materialise_test and the
 // necklace exhibit, not reimplemented here.)

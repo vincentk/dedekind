@@ -1004,8 +1004,11 @@ static_assert(identity_v<Ternary, Inf> == Ternary::True,
 
 /** @brief K₃'s total order under @c <=.  @c Ternary is the 3-chain
  *  @c False @c < @c Unknown @c < @c True; being a scoped enum (not
- *  @c std::integral) it is outside the @c :species blanket, so the void-form
- *  @c std::less_equal<> registrations are mirrored here. */
+ *  @c std::integral) it is outside the @c :species integral / bool blanket, so
+ *  its order legs are hand-registered here for the specific carrier whose order
+ *  IS known.  The @c :species blanket deliberately does NOT cover @c is_enum_v
+ *  (an arbitrary enum's ADL @c <=> may fail transitivity / antisymmetry; #946
+ *  review), so this explicit registration is what makes @c Ternary posetal. */
 template <>
 inline constexpr bool is_reflexive_v<Ternary, std::less_equal<>> = true;
 template <>
@@ -1024,12 +1027,13 @@ static_assert(is_reflexive_v<Ternary, std::less_equal<>> &&
  *  order concepts (@c IsPartRelation / @c IsPosetal / @c IsTotalOrder / @c
  *  IsThinCategory) default @c Rel to the @b typed @c std::less_equal<Ternary>
  *  and query the traits for @b that exact type, so the transparent form does
- *  not reach them.  Reflexivity is already supplied by the @c :species
- *  @c totally_ordered @c std::less_equal<T> struct specialisation (@c Ternary
- *  is @c std::totally_ordered); only transitivity / antisymmetry are outside
- *  the @c :species integral blanket and are registered here.  This is also the
- *  order the @c :species @c SupInfLattice law gate certifies against (a genuine
- *  total order cannot contain NaN). */
+ *  not reach them.  Reflexivity rides the @c :species @c totally_ordered @c
+ *  std::less_equal<T> specialisation (a scoped enum has built-in relational
+ *  operators, so @c std::totally_ordered<Ternary> holds); transitivity and
+ *  antisymmetry are hand-registered below for THIS carrier, because the
+ *  @c :species blanket no longer certifies arbitrary enums (#946 review).  It
+ *  is also the order the @c :species @c SupInfLattice gate certifies against (a
+ *  genuine total order cannot contain NaN). */
 template <>
 inline constexpr bool is_transitive_v<Ternary, std::less_equal<Ternary>> = true;
 template <>
@@ -1040,7 +1044,8 @@ static_assert(is_reflexive_v<Ternary, std::less_equal<Ternary>> &&
                   is_transitive_v<Ternary, std::less_equal<Ternary>> &&
                   is_antisymmetric_v<Ternary, std::less_equal<Ternary>>,
               "K₃ is a total order under the typed std::less_equal<Ternary> "
-              "(reflexivity via the :species totally_ordered specialisation)");
+              "(reflexivity via the :species totally_ordered specialisation, "
+              "transitivity / antisymmetry hand-registered for Ternary)");
 
 /** @brief The logic negation ¬ = @c L::RFL as a callable object.  It exists so
  *  the @c :involution machinery can witness that the negation is an involution

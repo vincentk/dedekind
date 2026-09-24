@@ -478,6 +478,25 @@ static_assert(!diag(dedekind::sets::η(true))(std::pair{false, false}),
 static_assert(!diag(dedekind::sets::η(true))(std::pair{true, false}),
               "Δ_S excludes off-diagonal pairs");
 
+// The relational diagonal is NOT the parallel product ⊗ (@c
+// category::IsTensor). Δ is the coreflexive @c {(a,a)}: as an @c IsArrow it is
+// the characteristic function @c χ:A×A→Ω (product Domain, but truth-valued
+// NON-product Codomain), so it is a product-domain PREDICATE, not a pair→pair
+// arrow.  This near-miss is the #952 dom/cod residual: no relational arrow is
+// genuinely A×B→C×D.
+static_assert(
+    !dedekind::category::IsTensor<decltype(diag<bool>())>,
+    "Δ is χ:A×A→Ω (product-domain predicate), NOT a pair→pair Tensor.");
+
+// Nor is the relational Δ the COPY diagonal @c category::IsCopy (@c a↦(a,a),
+// A→A×A): the copy has a PRODUCT Codomain, while Δ's Codomain is the truth
+// object Ω.  The category copy Δ:A→A×A and this relational Δ={(a,a)} (the graph
+// of @c id, @c a↦a) are DIFFERENT typed arrows sharing a glyph --- the
+// diagonal-presentation smell, ties #873 (coreflexive↔diagonal matrix) / #952.
+static_assert(
+    !dedekind::category::IsCopy<decltype(diag<bool>())>,
+    "relational Δ (χ:A×A→Ω) is NOT the copy diagonal Δ:A→A×A (IsCopy).");
+
 }  // namespace dedekind::relational
 
 // ── Trait registry: relation-property certificates for :dyadic's predicates ──

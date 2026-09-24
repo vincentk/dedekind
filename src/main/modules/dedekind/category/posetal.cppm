@@ -393,6 +393,20 @@ export template <typename F, typename Op = std::less_equal<>>
 concept IsAntiMonotone = IsArrow<F> && is_antimonotone_v<F, Op>;
 
 /**
+ * @concept IsVariant
+ * @brief An arrow with a @b definite variance: order-preserving
+ *        (@c IsMonotone) or order-reversing (@c IsAntiMonotone).  The
+ *        leg-shape of a Galois connection, whose adjoints are always one or
+ *        the other.  Mirrors @c :limit::IsBoundaryObject's @c "X @c || @c dual"
+ *        disjunction shape.
+ * @note #908 (reify predicate variance) would DERIVE the variance from an
+ *       arrow's injected op rather than the manual @c is_monotone_v /
+ *       @c is_antimonotone_v opt-in this concept reads.
+ */
+export template <typename F, typename Op = std::less_equal<>>
+concept IsVariant = IsMonotone<F, Op> || IsAntiMonotone<F, Op>;
+
+/**
  * @concept IsOrderIsomorphism
  * @brief An arrow that is both an order-preserving map and a bijection.
  *
@@ -431,5 +445,60 @@ static_assert(IsMonotone<Identity<int>>,
 static_assert(IsOrderIsomorphism<Identity<int>>,
               "Identity must be recognised as an order-isomorphism "
               "(bijection + monotone).");
+
+// ---------------------------------------------------------------------------
+// The product of posets is a poset (componentwise order lift).
+//
+// The order on @c std::pair<A,B> is the COMPONENTWISE product order
+//   (a,c) ≤× (b,d)  :⟺  a ≤ b  ∧  c ≤ d,
+// NOT the lexicographic @c std::less_equal<std::pair<...>>.  @c ProductLeq is
+// the introduction rule ("from a≤b and c≤d infer (a,c)≤(b,d)"): it ANDs the two
+// component comparisons and returns the classifier's @c Ω.  The posetal axioms
+// then lift componentwise --- a product of reflexive / transitive /
+// antisymmetric relations is again reflexive / transitive / antisymmetric ---
+// so
+// @c IsPosetal<std::pair<A,B>, ≤×> is INFERRED whenever both components are
+// posetal, exactly as @c :numbers lifts species traits componentwise onto a
+// composite carrier.  Downstream (@c :cartesian_bicategory) the comonoid's
+// copy / merge legs are declared monotone against THIS order, not the lex one.
+// ---------------------------------------------------------------------------
+
+/** @brief Componentwise product order on @c std::pair @c ≤×: @c (a,c)≤(b,d)
+ *         @c :⟺ @c a≤b @c ∧ @c c≤d.  The order-theoretic product of two posets,
+ *         @b not the lexicographic @c std::less_equal on the pair.
+ *  @tparam LeqA the order on the first component.
+ *  @tparam LeqB the order on the second component. */
+export template <typename LeqA, typename LeqB>
+struct ProductLeq {
+  /** @brief AND the two component comparisons.
+   *  @param x the left pair @c (a,c).
+   *  @param y the right pair @c (b,d).
+   *  @return @c a≤b @c && @c c≤d, the componentwise product-order verdict. */
+  template <typename A, typename B>
+  constexpr bool operator()(const std::pair<A, B>& x,
+                            const std::pair<A, B>& y) const {
+    return LeqA{}(x.first, y.first) && LeqB{}(x.second, y.second);
+  }
+};
+
+// The three posetal axioms lift componentwise onto the pair under @c ≤×.
+template <typename A, typename B, typename LeqA, typename LeqB>
+inline constexpr bool is_reflexive_v<std::pair<A, B>, ProductLeq<LeqA, LeqB>> =
+    is_reflexive_v<A, LeqA> && is_reflexive_v<B, LeqB>;
+template <typename A, typename B, typename LeqA, typename LeqB>
+inline constexpr bool is_transitive_v<std::pair<A, B>, ProductLeq<LeqA, LeqB>> =
+    is_transitive_v<A, LeqA> && is_transitive_v<B, LeqB>;
+template <typename A, typename B, typename LeqA, typename LeqB>
+inline constexpr bool
+    is_antisymmetric_v<std::pair<A, B>, ProductLeq<LeqA, LeqB>> =
+        is_antisymmetric_v<A, LeqA> && is_antisymmetric_v<B, LeqB>;
+
+// Product-of-posets is a poset: the componentwise lift makes @c ≤× a certified
+// order, so the pair carrier the comonoid copies into is a genuine poset.
+static_assert(
+    IsPosetal<std::pair<int, int>,
+              ProductLeq<std::less_equal<int>, std::less_equal<int>>>,
+    "ℤ×ℤ under the componentwise product order ≤× is a poset (product of "
+    "posets is a poset).");
 
 }  // namespace dedekind::category

@@ -95,6 +95,9 @@ export import :iso;         // Retract / iso-enabling surface (Kleisli into the
                             // Maybe / η.
 export import :adjunction;  // Free / Forgetful pair, IsAdjunction (Pierce-style
                             // separate section)
+export import :cartesian_bicategory;  // Frobenius spider: Copy/Merge/Tensor,
+                                      // meet = right adjoint of the diagonal
+                                      // (Δ ⊣ ∧); reusable downstream (#946)
 export import :monad;
 export import :kleisli;
 

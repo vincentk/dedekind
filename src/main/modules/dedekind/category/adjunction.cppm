@@ -70,6 +70,7 @@
 module;
 
 #include <concepts>
+#include <functional>  // std::less_equal (IsGaloisConnection's default order)
 #include <type_traits>
 #include <utility>
 
@@ -80,6 +81,8 @@ import :morphism;
 import :natural;  // For IsNaturalTransformation, used in unit/counit witnesses
                   // (#434)
 import :small;
+import :posetal;  // IsMonotone / IsAntiMonotone: a Galois connection's legs
+                  // have MATCHED variance (both monotone, or both antitone)
 
 namespace dedekind::category {
 
@@ -304,11 +307,37 @@ constexpr auto make_adjunction(Left&& left, Right&& right, Unit&& unit,
  *  @c P and @c Q are not free template parameters — they are
  *  recovered from @c F's @c Domain / @c Codomain.  @c G's
  *  carriers are required to be the cross-pair: @c G : @c Q → @c P.
+ *
+ *  @note @b Matched @b variance (#946).  The legs must share variance:
+ *  both monotone (the covariant Galois connection) or both antitone (the
+ *  antitone dual), the defining shape of the adjoints.  Mismatched polarity
+ *  (a monotone @c F with an antitone @c G) is @b not a Galois connection, so a
+ *  bare @c IsVariant<F> @c && @c IsVariant<G> gate (an earlier #946 review
+ *  round) was too loose: it admitted the mismatch.  @c IsMonotone /
+ *  @c IsAntiMonotone each imply @c IsArrow, so the matched-variance disjunction
+ *  below @b replaces the bare @c IsArrow gate.  Safe to tighten upstream: the
+ *  only @c IsGaloisConnection<F,G> instantiation in the tree is
+ *  @c IsMeetAsRightAdjoint (@c :cartesian_bicategory, both legs monotone); the
+ *  floor / ceil / ±k connections above are documentation-only, so no existing
+ *  user is constrained.  #908 would derive the variance structurally from each
+ *  leg's injected op.
+ *
+ *  @note @b Threaded @b order (#950).  The variance of both legs is queried
+ *  against @c Op rather than a hard-coded @c std::less_equal<>.  A connection
+ * in a non-default poset (e.g. the comonoid legs, whose shared @c P×P object
+ *  carries the componentwise product order @c ≤×, not the lexicographic pair
+ *  order) passes its own relation in; the default keeps the arithmetic examples
+ *  above unchanged.
+ * @tparam F the left adjoint.
+ * @tparam G the right adjoint.
+ * @tparam Op the order both legs' variance is tested against; defaults to
+ *         @c std::less_equal<>.
  */
-export template <typename F, typename G>
+export template <typename F, typename G, typename Op = std::less_equal<>>
 concept IsGaloisConnection =
-    IsArrow<F> && IsArrow<G> && std::same_as<Dom<G>, Cod<F>> &&
-    std::same_as<Cod<G>, Dom<F>>;
+    ((IsMonotone<F, Op> && IsMonotone<G, Op>) ||
+     (IsAntiMonotone<F, Op> && IsAntiMonotone<G, Op>)) &&
+    std::same_as<Dom<G>, Cod<F>> && std::same_as<Cod<G>, Dom<F>>;
 
 /**
  * @concept IsClosureOperator

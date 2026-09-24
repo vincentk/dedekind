@@ -218,3 +218,48 @@ TEST_CASE(
     CHECK_FALSE(cat::is_unitary<Dag, Mult>(shear));
   }
 }
+
+// D = diag(5, 7): a named IsArrow rule (index → scalar), not a lambda.
+namespace {
+struct DiagFiveSeven {
+  using Domain = std::size_t;
+  using Codomain = unsigned;
+  constexpr unsigned operator()(std::size_t i) const {
+    return i == 0 ? 5u : 7u;
+  }
+};
+}  // namespace
+
+TEST_CASE(
+    "transfer: the A′DA spider ⟨a|D|a⟩ = Σ D_i·a_i², LA-native from existing "
+    "parts",
+    "[linear_algebra][transfer][spider]") {
+  // Runtime companion to the in-module static_assert (invisible to coverage).
+  // This exhibits the A′DA / Δ†∘(⊗)∘Δ SHAPE with LA parts: a copies onto both
+  // legs, the diagonal D is the middle (D|a⟩ = the diagonal rule times the
+  // vector), and inner_product folds the two legs.  It is the SCALAR quadratic
+  // form ⟨a|D|a⟩, NOT literally category::Intersect (an endomorphism A→A whose
+  // merge is the equality dagger δ†, not this weighted fold).  Carrier unsigned
+  // int = ℤ/2^w, a certified semiring.  Generalises eigenvalue()'s D=I bra·ket
+  // face; the genuine cross-layer identity, LA satisfying the category Tensor /
+  // Intersect concept, is #951.
+  const Ket<unsigned, 2> a{{2u, 3u}};                // |a⟩ = Δ's copy
+  const Diagonal<dim_finite<2>, DiagFiveSeven> D{};  // the ⊗ middle, diag(5, 7)
+  const diagonal_product_rule<DiagFiveSeven, Ket<unsigned, 2>> Da{D.rule, a};
+
+  // Diagonal-presentation boundary (#873 / #951): the diagonal MATRIX is a
+  // binary entry map (i,j)↦δ_ij·F(i), not an IsArrow, so it does NOT satisfy
+  // the category copy diagonal category::IsCopy (Δ:A→A×A).  It is ≅ the
+  // relational coreflexive only up to the unbuilt #873 bridge.  Its diagonal
+  // RULE, by contrast, IS an IsArrow (size_t→scalar) --- that is where the
+  // arrow lives.
+  STATIC_CHECK(
+      !dedekind::category::IsCopy<Diagonal<dim_finite<2>, DiagFiveSeven>>);
+  STATIC_CHECK(dedekind::category::IsArrow<DiagFiveSeven>);
+
+  // A′DA shape: ⟨a|D|a⟩ = Σ D_i·a_i² = 5·2² + 7·3² = 20 + 63 = 83.
+  CHECK(inner_product<2>(a, Da) == 83u);
+
+  // The D=I face is eigenvalue()'s bare bra·ket: ⟨a|a⟩ = Σ a_i² = 4 + 9 = 13.
+  CHECK(inner_product<2>(a, a) == 13u);
+}
