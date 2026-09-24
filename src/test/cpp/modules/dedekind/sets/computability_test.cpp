@@ -253,4 +253,25 @@ TEST_CASE(
     CHECK(s(3) == Kleene::True);
     CHECK(s(-1) == Kleene::Unknown);
   }
+
+  SECTION(
+      "mixed Comprehension (Kleene base, bool predicate) takes its codomain "
+      "from the whole comprehension's return, not the predicate alone (#928)") {
+    // Comprehension::operator() combines base(x) under the base's Kleene logic,
+    // so a Kleene base comprehended by a bool predicate still returns
+    // Kleene::Ω.  Deriving from the bool predicate alone would mis-type it
+    // Boole (carrier axis is countable → Boole, and GetLogic<bool> = Boole);
+    // the guide joins in the base's species, so it stays Kleene.
+    struct BoolPred {
+      constexpr bool operator()(const int& n) const { return n > 5; }
+    };
+    constexpr auto s = Set{Comprehension{𝔸<int, Kleene>, BoolPred{}}};
+    STATIC_CHECK(std::same_as<typename decltype(s)::logic_species, Kleene>);
+    STATIC_CHECK(
+        std::same_as<typename decltype(s)::Codomain, typename Kleene::Ω>);
+    STATIC_CHECK(IsSet<decltype(s)>);
+    STATIC_CHECK_FALSE(HasDecidableMembership<decltype(s)>);
+    CHECK(s(6) == Kleene::True);
+    CHECK(s(5) == Kleene::False);
+  }
 }

@@ -981,6 +981,9 @@ class Set {
    *  bare grammar (PR B of #895).  This is a soft (documentation) deprecation
    *  only: a hard @c [[deprecated]] would break those call sites under
    *  @c -Werror before the migration. */
+  // FIXME(#948): stores the predicate only, dropping the comprehension's base;
+  // membership becomes P(x) rather than base(x) ∧ P(x).  Sound for universal
+  // ambient bases (base(x) ≡ ⊤); wrong for non-universal bases.
   template <typename B, typename P>
     requires std::same_as<Predicate, P>
   constexpr Set(Comprehension<B, P> cp) : predicate_(std::move(cp.predicate)) {}
@@ -1891,14 +1894,25 @@ using wrapped_logic_t = set_logic_t<Species, Species, typename Species::Domain>;
 
 /** @brief The point-free comprehension @c A|pred (deprecated scout spelling
  *  @c element<A>|pred) builds a @c Comprehension over base @c B with wrapped
- *  predicate @c P; the codomain follows @c P's return, carrier axis from @c B
- *  (#928).  Rejected uniformly when @c P's answer is incoherent (@c
- * CoherentWrap,
- *  FIXME(#945)). */
+ *  predicate @c P.  The codomain follows the WHOLE comprehension's @c
+ *  operator() return, NOT @c P alone (#928): @c Comprehension::operator()
+ *  combines @c base(x) under @c B's own logic, so a Kleene base with a @c bool
+ *  predicate still returns @c Kleene::Ω; a @c P-only derivation would mis-type
+ *  it @c Boole (Codomain @c bool while the comprehension returns @c Ternary),
+ *  the exact #928 declared-codomain vs actual-return mismatch.  So the codomain
+ *  joins the @c P-axis @c set_logic_t UP with @c B's logic species.  Rejected
+ *  uniformly when @c P's answer is incoherent (@c CoherentWrap, FIXME(#945)).
+ *  FIXME(#948): the wrap stores @c P only (the converting ctor drops @c B), so
+ *  a NON-universal base's membership contribution is lost.  Harmless for the
+ *  universal-ambient bases that carry the live call sites (@c base(x) ≡ ⊤); the
+ *  general fix is tracked separately. */
 export template <typename B, typename P>
   requires CoherentWrap<B, P, typename B::Domain>
 Set(Comprehension<B, P>)
-    -> Set<typename B::Domain, set_logic_t<B, P, typename B::Domain>, P>;
+    -> Set<typename B::Domain,
+           join_logic_t<set_logic_t<B, P, typename B::Domain>,
+                        typename B::logic_species>,
+           P>;
 
 /** @brief Scout binding @c b%S: the wrapped predicate is the species @c S
  *  itself, so this is the bare-node case --- deduce the coherent codomain from
