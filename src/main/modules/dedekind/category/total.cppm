@@ -25,7 +25,7 @@
  * | `bool`          | Rig (OR/AND), Boolean Algebra (OR/AND/NOT)     |
  * | `unsigned int`  | Abelian Group (+), Ring (+,*), Ring (XOR,AND)  |
  * | `int`           | Distributive Lattice (max,min)                 |
- * | `double`        | Distributive Lattice (max,min)                 |
+ * | `double`        | not a lattice: NaN breaks totality (see #934)  |
  *
  * @copyright 2026 The Dedekind Authors
  *
@@ -631,7 +631,7 @@ concept IsSemilattice = IsTotal<T, Op> && IsOrderMeetSemilattice<T, Op>;
 /**
  * @concept IsJoinSemilattice
  * @brief A Semilattice used as the "join" (least upper bound / ∨) half of a
- * Lattice. In `bool` this is `logical_or`; in `int`/`double` it is `max`.
+ * Lattice. In `bool` this is `logical_or`; in `int` it is `max`.
  */
 export template <typename T, typename Op>
 concept IsJoinSemilattice = IsTotal<T, Op> && IsOrderJoinSemilattice<T, Op>;
@@ -639,7 +639,7 @@ concept IsJoinSemilattice = IsTotal<T, Op> && IsOrderJoinSemilattice<T, Op>;
 /**
  * @concept IsMeetSemilattice
  * @brief A Semilattice used as the "meet" (greatest lower bound / ∧) half of a
- * Lattice. In `bool` this is `logical_and`; in `int`/`double` it is `min`.
+ * Lattice. In `bool` this is `logical_and`; in `int` it is `min`.
  */
 export template <typename T, typename Op>
 concept IsMeetSemilattice = IsTotal<T, Op> && IsOrderMeetSemilattice<T, Op>;
@@ -649,7 +649,7 @@ concept IsMeetSemilattice = IsTotal<T, Op> && IsOrderMeetSemilattice<T, Op>;
  * @brief compatibility alias for order-lattice refinement.
  * @details Combines a JoinSemilattice and a MeetSemilattice with the
  * absorption identities: a ∨ (a ∧ b) = a and a ∧ (a ∨ b) = a.
- * `bool` with (OR, AND) and `int`/`double` with (max, min) are Lattices.
+ * `bool` with (OR, AND) and `int` with (max, min) are Lattices.
  *
  * This alias now delegates order laws to `:posetal`
  * (`IsOrderLatticeOperations`) and keeps `:total` totality guards on the
@@ -673,8 +673,9 @@ concept IsLattice = IsTotal<T, Join> && IsTotal<T, Meet> &&
  *            lattice {false < true}.
  * - `int`    with (`std::ranges::max`, `std::ranges::min`) is a Distributive
  *            Lattice.  This corresponds to the total order on integers.
- * - `double` with (`std::ranges::max`, `std::ranges::min`) is similarly a
- *            Distributive Lattice.
+ * - `double` is @b not a lattice carrier: NaN breaks reflexivity / totality, so
+ *            the `:species` lattice-law blanket is gated on a certified total
+ *            order (@c SupInfLattice) and excludes raw floats (see #934).
  *
  * Note: (unsigned int, XOR, AND) is a Ring, not a Lattice, because XOR is not
  * idempotent.
