@@ -1037,28 +1037,42 @@ concept SupInfOperand = std::totally_ordered<T> && std::copy_constructible<T>;
  * @concept SupInfLattice
  * @brief A carrier on which the meet / join ops are honest @b lattice ops:
  *        usable (@c SupInfOperand) @b and carrying a @b certified @b total @b
- *        order (reflexive + transitive + antisymmetric under the typed relation
- *        @c std::less_equal<T>).
+ *        order (reflexive + transitive + antisymmetric under @c
+ * std::less_equal, in @b either its typed @c std::less_equal<T> or transparent
+ *        @c std::less_equal<> spelling).
  *
  * @details Gates the law registrations below.  We certify @b positively via the
  * repository's order traits rather than negatively excluding
  * @c std::floating_point, because the type-category proxy is unsound for
  * @b wrappers whose order contains NaN: @c std::optional<double> is
  * @c totally_ordered + @c copy_constructible + @b not @c std::floating_point,
- * so
- * @c !std::floating_point would admit it, yet @c max / @c min are not
+ * so @c !std::floating_point would admit it, yet @c max / @c min are not
  * commutative on it (an element vs a NaN-carrying element).  A @b genuine total
  * order cannot contain NaN, so the certified-order gate drops the float proxy
- * entirely: raw @c double and @c std::optional<double> never register the
- * @c is_transitive_v / @c is_antisymmetric_v @c std::less_equal<T> traits (the
- * @c :species integral / bool blanket does not cover them), so both are
- * excluded, while every integral / scoped-enum chain is included.
+ * entirely: raw @c double and @c std::optional<double> register the
+ * @c is_transitive_v / @c is_antisymmetric_v order traits under @b neither
+ * @c std::less_equal spelling (the @c :species integral / @c bool blanket does
+ * not cover them), so both stay excluded.
+ *
+ * @c Either @c spelling: carriers register their order traits under one of two
+ * conventions --- the typed @c std::less_equal<T> (@c int / @c bool via the
+ * integral blanket, @c Ternary) or the transparent @c std::less_equal<> (@c
+ * safe_float<F>, @c Rational<I>, @c Cut<Q>, cardinals).  Both are @c :species
+ * traits (no DAG dependency on @c :order), so the gate accepts a certificate
+ * under @b either spelling; a carrier that registers @b neither (@c double, @c
+ * optional<double>, @c void) is still excluded.  Reflexivity is separately
+ * available on any @c std::totally_ordered<T> via the general @c is_reflexive
+ * specialisation, so the transitivity / antisymmetry certificates are the
+ * load-bearing exclusion for @c double.
  */
 export template <typename T>
-concept SupInfLattice =
-    SupInfOperand<T> && is_reflexive_v<T, std::less_equal<T>> &&
-    is_transitive_v<T, std::less_equal<T>> &&
-    is_antisymmetric_v<T, std::less_equal<T>>;
+concept SupInfLattice = SupInfOperand<T> &&
+                        (is_reflexive_v<T, std::less_equal<T>> ||
+                         is_reflexive_v<T, std::less_equal<>>) &&
+                        (is_transitive_v<T, std::less_equal<T>> ||
+                         is_transitive_v<T, std::less_equal<>>) &&
+                        (is_antisymmetric_v<T, std::less_equal<T>> ||
+                         is_antisymmetric_v<T, std::less_equal<>>);
 
 /** @section species__Lattice_Morphisms (std::ranges)
  *
@@ -1272,9 +1286,10 @@ static_assert(!is_commutative_v<double, Inf>,
               "double lattice carrier)");
 // (2) A float-CONTAINING wrapper: std::optional<double> is totally_ordered +
 // copyable + NOT floating_point, so a !floating_point proxy would have leaked
-// it in.  The positive certified-order gate excludes it (it never registers the
-// transitive/antisymmetric std::less_equal<T> traits) --- this pins that the
-// ORDER cert, not a type-category float check, is doing the work.
+// it in.  The positive certified-order gate excludes it (it registers the
+// transitive/antisymmetric order traits under NEITHER std::less_equal spelling)
+// --- this pins that the ORDER cert, not a type-category float check, is doing
+// the work.
 static_assert(SupInfOperand<std::optional<double>> &&
                   !SupInfLattice<std::optional<double>>,
               "optional<double> IS a usable Sup/Inf operand (ordered + "

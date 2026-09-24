@@ -272,6 +272,19 @@ namespace dedekind::morphologies {
 static_assert(dedekind::order::IsTotallyOrdered<safe_float<double>>,
               "safe_float<double> IS totally ordered: excluding NaN restores "
               "reflexivity of <=, the sole obstruction on raw double.");
+// #934 regression guard: safe_float<double> registers its order traits under
+// the TRANSPARENT std::less_equal<> (above), while the SupInfLattice gate on
+// the species max/min lattice-law blanket also queries the typed form.  The
+// gate accepts EITHER spelling, so safe_float<double> keeps its lattice laws
+// here, whereas raw double (which certifies its order under NEITHER spelling)
+// stays excluded --- the very soundness point that gate enforces.
+static_assert(dedekind::category::SupInfLattice<safe_float<double>>,
+              "safe_float<double> passes the certified-order gate via its "
+              "transparent std::less_equal<> order traits (either-spelling "
+              "acceptance); this is what keeps its (min, max) lattice laws.");
+static_assert(!dedekind::category::SupInfLattice<double>,
+              "raw double stays excluded: NaN breaks totality, so it certifies "
+              "its order under neither std::less_equal spelling.");
 // Pin the full DISTRIBUTIVE lattice, not the two semilattices separately: this
 // bundles meet + join + absorption + both distributivity directions, so a
 // future concept/trait change cannot leave 𝕃 passing only the weaker
