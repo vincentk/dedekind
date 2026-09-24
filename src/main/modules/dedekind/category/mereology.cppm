@@ -36,6 +36,7 @@ module;
 #include <algorithm>
 #include <concepts>
 #include <functional>
+#include <type_traits>  // std::remove_cvref_t: cv-normalise op keys (#934)
 
 export module dedekind.category:mereology;
 
@@ -241,7 +242,11 @@ concept IsMereologicalJoinBand =
 export template <typename T, typename Op1, typename Op2>
 concept IsAbsorptive =
     IsIdempotent<T, Op1> && IsIdempotent<T, Op2> &&
-    is_absorptive_v<T, Op1, Op2> && is_absorptive_v<T, Op2, Op1>;
+    // cv-strip the op types so a const-qualified op (decltype of a constexpr
+    // object) keys the same is_absorptive_v registration as the bare type
+    // (#934); the IsIdempotent wrappers already normalise internally.
+    is_absorptive_v<T, std::remove_cvref_t<Op1>, std::remove_cvref_t<Op2>> &&
+    is_absorptive_v<T, std::remove_cvref_t<Op2>, std::remove_cvref_t<Op1>>;
 
 /**
  * @concept IsSaturating

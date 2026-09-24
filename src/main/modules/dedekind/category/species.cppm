@@ -45,6 +45,7 @@ module;
 #include <concepts>
 #include <functional>
 #include <optional>  // negative witness: std::optional<double> (NaN-containing order)
+#include <type_traits>  // std::remove_cvref_t: cv-normalise op keys (#934)
 
 export module dedekind.category:species;
 
@@ -962,11 +963,15 @@ concept IsTransfinite =
 export template <typename T>
 concept IsFinite = !IsTransfinite<T>;
 
+// The concept wrappers strip cv from @c Op: a @c constexpr / @c const op object
+// has a @c const-qualified @c decltype (e.g. @c decltype(meet) for
+// @c constexpr @c Inf @c meet is @c const @c Inf), but the law traits are keyed
+// on the bare op type, so we normalise here so both spellings resolve (#934).
 export template <typename T, typename Op>
-concept IsAssociative = is_associative_v<T, Op>;
+concept IsAssociative = is_associative_v<T, std::remove_cvref_t<Op>>;
 
 export template <typename T, typename Op>
-concept IsCommutative = is_commutative_v<T, Op>;
+concept IsCommutative = is_commutative_v<T, std::remove_cvref_t<Op>>;
 
 /** @section species__Commutative Verification: The Symmetry Law */
 
@@ -997,12 +1002,15 @@ static_assert(!IsCommutative<int, std::divides<int>>,
  */
 export template <typename T, typename Mul, typename Add>
 concept IsDistributive = requires(T a, T b, T c) {
-  // We check the semantic presence of the law (usually via a trait)
-  requires is_distributive_v<T, Mul, Add>;
+  // We check the semantic presence of the law (usually via a trait); cv-strip
+  // the op types so a const-qualified op (decltype of a constexpr object) keys
+  // the same registration as the bare type (#934).
+  requires is_distributive_v<T, std::remove_cvref_t<Mul>,
+                             std::remove_cvref_t<Add>>;
 };
 
 export template <typename T, typename Op>
-concept IsIdempotent = is_idempotent_v<T, Op>;
+concept IsIdempotent = is_idempotent_v<T, std::remove_cvref_t<Op>>;
 
 // NOTE (#637 re-home): @c IsInvertible moved to @c :total alongside @c
 // IsPointed (which it composes with).  The @c is_invertible_v trait
