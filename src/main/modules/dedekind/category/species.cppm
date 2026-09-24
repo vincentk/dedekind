@@ -1013,37 +1013,125 @@ concept IsIdempotent = is_idempotent_v<T, Op>;
 export template <typename T, typename Op>
 concept IsPeriodic = is_periodic_v<T, Op>;
 
-/** @section species__Lattice_Morphisms (std::ranges) */
+/** @section species__Lattice_Op_Gate (Sup / Inf / niebloid law gate)
+ *
+ * @details The order-lattice law blankets below (both the @c std::ranges::max /
+ * @c std::ranges::min niebloid form and the value-returning @c Sup / @c Inf
+ * form) are gated on @c SupInfLattice<T> so they never over-certify a carrier
+ * on which the ops are not honest lattice ops.  The gate is defined here,
+ * upstream of the first blanket, and reused by both.
+ *
+ * @par Either @c std::less_equal spelling, complete per relation.
+ * Carriers register their order traits under one of two conventions: the typed
+ * @c std::less_equal<T> (@c int / @c bool via the integral blanket, @c Ternary)
+ * or the transparent @c std::less_equal<> (@c safe_float<F>, @c Rational<I>,
+ * @c Cut<Q>, cardinals).  Both are @c :species traits (no DAG dependency on
+ * @c :order, which is downstream), so the gate accepts a certificate under
+ * @b either spelling.  The three laws are grouped @b per @b relation and the
+ * two @b complete certificates are OR'd, @b not OR'd law-by-law: a mixed
+ * carrier (antisymmetry certified typed, transitivity only transparent) has all
+ * three laws under @b neither single relation, so it must not pass.  This
+ * matters because reflexivity alone is available for any @c
+ * std::totally_ordered <T> via the general @c is_reflexive specialisation, so
+ * raw @c double satisfies the typed reflexive leg; grouping per relation means
+ * @c double (no transitive / antisymmetric under either spelling) and @c
+ * std::optional<double> / @c void (no complete certificate either way) all stay
+ * excluded.
+ *
+ * FIXME(#934): the gate certifies a @b partial order (reflexive + transitive +
+ * antisymmetric) plus @b syntactic @c std::totally_ordered, but @c max / @c min
+ * are honest lattice ops only on a @b total (connex) order: on a non-total
+ * poset, @c max of incomparable @c a, @c b is order-dependent, so
+ * @c is_commutative_v<T, max> would be false while the gate still admitted it.
+ * No live mis-certification: every carrier currently registered against this
+ * blanket (@c int and the integral blanket, @c Ternary, @c safe_float<F>,
+ * @c Rational<I>, @c Cut<Q>, the cardinals) is a genuine @b chain.  @c :species
+ * has no connex / linearity relation trait (@c is_total_v here is @b operation
+ * totality, not order connexity), so a proper fix adds one and registers it for
+ * each chain carrier across @c :species / @c :logic / @c :morphologies /
+ * @c :numbers --- a cross-module sweep deferred to a #934 follow-up slice
+ * rather than balloon this one (a partial registration would instead re-break
+ * the transparent carriers, cf. the safe_float regression). */
+
+/**
+ * @concept SupInfOperand
+ * @brief A carrier on which @c Sup / @c Inf (and @c max / @c min) are a
+ * genuine, usable value op: totally ordered (for @c <) and copy-constructible
+ * (the winner is @b returned @b by @b value).  This is the CALL gate: @c
+ * Sup{}(1.0, 2.0) is a valid call that returns a value, so raw floats are @b
+ * not excluded here; only the lattice @b laws fail on them (see @c
+ * SupInfLattice).
+ * @tparam T The candidate carrier type.
+ */
+export template <typename T>
+concept SupInfOperand = std::totally_ordered<T> && std::copy_constructible<T>;
+
+/**
+ * @concept SupInfLattice
+ * @brief A carrier on which @c max / @c min (and @c Sup / @c Inf) are honest
+ *        @b lattice ops: usable (@c SupInfOperand) @b and carrying a certified
+ *        order.
+ * @details Requires a @b complete reflexive + transitive + antisymmetric
+ * certificate under @b one @c std::less_equal spelling --- typed
+ * @c std::less_equal<T> @b or transparent @c std::less_equal<> (see
+ * @c species__Lattice_Op_Gate for why the legs are grouped per relation, and
+ * for the deferred totality/connex tightening).
+ * @tparam T The candidate carrier type.
+ */
+export template <typename T>
+concept SupInfLattice =
+    SupInfOperand<T> && ((is_reflexive_v<T, std::less_equal<T>> &&
+                          is_transitive_v<T, std::less_equal<T>> &&
+                          is_antisymmetric_v<T, std::less_equal<T>>) ||
+                         (is_reflexive_v<T, std::less_equal<>> &&
+                          is_transitive_v<T, std::less_equal<>> &&
+                          is_antisymmetric_v<T, std::less_equal<>>));
+
+/** @section species__Lattice_Morphisms (std::ranges)
+ *
+ * @details Gated on @c SupInfLattice<T>: the trait check never instantiates the
+ * op, so an unconstrained blanket would certify laws for carriers on which
+ * @c max / @c min are not honest lattice ops (non-ordered / non-copyable, or
+ * float / float-containing carriers whose order carries NaN).  See #933 / #934
+ * and the co-located negative witnesses below. */
 
 // 1. Join (max) is Idempotent, Associative, and Commutative
 template <typename T>
+  requires SupInfLattice<T>
 inline constexpr bool is_idempotent_v<T, decltype(std::ranges::max)> = true;
 
 template <typename T>
+  requires SupInfLattice<T>
 inline constexpr bool is_associative_v<T, decltype(std::ranges::max)> = true;
 
 template <typename T>
+  requires SupInfLattice<T>
 inline constexpr bool is_commutative_v<T, decltype(std::ranges::max)> = true;
 
 // 2. Meet (min) is Idempotent, Associative, and Commutative
 template <typename T>
+  requires SupInfLattice<T>
 inline constexpr bool is_idempotent_v<T, decltype(std::ranges::min)> = true;
 
 template <typename T>
+  requires SupInfLattice<T>
 inline constexpr bool is_associative_v<T, decltype(std::ranges::min)> = true;
 
 template <typename T>
+  requires SupInfLattice<T>
 inline constexpr bool is_commutative_v<T, decltype(std::ranges::min)> = true;
 
 /** @section species__Distributive_Lattice_Laws (std::ranges) */
 
 // 1. Max distributes over Min
 template <typename T>
+  requires SupInfLattice<T>
 inline constexpr bool is_distributive_v<T, decltype(std::ranges::max),
                                         decltype(std::ranges::min)> = true;
 
 // 2. Min distributes over Max
 template <typename T>
+  requires SupInfLattice<T>
 inline constexpr bool is_distributive_v<T, decltype(std::ranges::min),
                                         decltype(std::ranges::max)> = true;
 
@@ -1071,12 +1159,15 @@ inline constexpr bool is_absorptive_v = false;
 
 /** @section species__Lattice_Absorber_Registration */
 
-// 1. Integers (and any totally-ordered carrier): max/min mutual absorption.
+// 1. Integers (and any certified-total-order carrier): max/min mutual
+// absorption.  Gated on SupInfLattice<T> (see species__Lattice_Op_Gate).
 template <typename T>
+  requires SupInfLattice<T>
 inline constexpr bool
     is_absorptive_v<T, decltype(std::ranges::max), decltype(std::ranges::min)> =
         true;
 template <typename T>
+  requires SupInfLattice<T>
 inline constexpr bool
     is_absorptive_v<T, decltype(std::ranges::min), decltype(std::ranges::max)> =
         true;
@@ -1110,54 +1201,19 @@ inline constexpr bool
  * order-lattice concepts (@c IsOrderLatticeOperations etc.), where operands are
  * lvalues and only @c convertible_to<T> is checked; @c Sup / @c Inf are the
  * value-returning ops for the @b strict monoid / bounded-lattice rung, where
- * @c IsClosedUnder needs @c same_as<T>.  Full migration of the niebloid sites
- * is tracked separately.
+ * @c IsClosedUnder needs @c same_as<T>.  Both law blankets share the @c
+ * SupInfLattice gate (see @c species__Lattice_Op_Gate above).
  *
  * FIXME(#934): migrate the remaining carrier lattice-op sites off the
  * reference-returning @c std::ranges::max / @c std::ranges::min niebloids to
  * @c Sup / @c Inf (latent dangling-on-temporaries footgun; type-level markers
- * today, so cleanup rather than a live bug).  #934 also folds in the identical
- * latent over-certification the pre-existing niebloid law blanket carries for
- * @b non-ordered / @b non-copyable / @b float carriers (see the @c
- * SupInfLattice gate on the @c Sup / @c Inf laws below). */
-
-/**
- * @concept SupInfOperand
- * @brief A carrier on which @c Sup / @c Inf are a genuine, usable value op:
- *        totally ordered (for @c <) and copy-constructible (the winner is
- *        @b returned @b by @b value).  This is the CALL gate --- @c
- *        Sup{}(1.0, 2.0) is a valid call that returns a value, so raw floats
- *        are @b not excluded here; only the lattice @b laws fail on them (see
- *        @c SupInfLattice).
- */
-export template <typename T>
-concept SupInfOperand = std::totally_ordered<T> && std::copy_constructible<T>;
-
-/**
- * @concept SupInfLattice
- * @brief A carrier on which @c Sup / @c Inf are honest @b lattice ops: usable
- *        (@c SupInfOperand) @b and carrying a @b certified @b total @b order
- *        (reflexive + transitive + antisymmetric under the typed relation
- *        @c std::less_equal<T>).
- *
- * @details Gates the law registrations below.  We certify @b positively via
- * the repository's order traits rather than negatively excluding
- * @c std::floating_point, because the type-category proxy is unsound for
- * @b wrappers whose order contains NaN: @c std::optional<double> is
- * @c totally_ordered + @c copy_constructible + @b not @c std::floating_point,
- * so @c !std::floating_point would admit it, yet @c max / @c min are not
- * commutative on it (an element vs a NaN-carrying element).  A @b genuine total
- * order cannot contain NaN, so the certified-order gate drops the float proxy
- * entirely: raw @c double and @c std::optional<double> never register the
- * @c is_transitive_v / @c is_antisymmetric_v @c std::less_equal<T> traits (the
- * @c :species integral / bool blanket does not cover them), so both are
- * excluded, while every integral / scoped-enum chain is included.
- */
-export template <typename T>
-concept SupInfLattice =
-    SupInfOperand<T> && is_reflexive_v<T, std::less_equal<T>> &&
-    is_transitive_v<T, std::less_equal<T>> &&
-    is_antisymmetric_v<T, std::less_equal<T>>;
+ * today, so cleanup rather than a live bug).  The soundness fold-in (gating the
+ * @b pre-existing niebloid law blanket on @c SupInfLattice, so it no longer
+ * over-certifies @b non-ordered / @b non-copyable / @b float carriers) landed
+ * with the gate above; migrating the op-type-marker sites (defaults + concept
+ * template args in @c :lattice / @c :mereology / @c :posetal / @c :total /
+ * @c :order) is the remaining work, and may flip a carrier's bounded-lattice
+ * status (see #941 for @c Chain<int>). */
 
 /** @brief Join @c ∨: the least upper bound on a chain (@c max), returned
  *  @b by value as an honest @c T @c × @c T @c → @c T. */
@@ -1235,6 +1291,18 @@ inline constexpr bool is_absorptive_v<T, Inf, Sup> = true;
 // Negative witnesses (co-located; :species is upstream of :total, so assert the
 // trait directly, not IsDistributiveLattice).
 // (1) Raw floats: NaN breaks max/min commutativity, so no double lattice.
+// Per-relation grouping is load-bearing: double satisfies the TYPED reflexive
+// leg (via the std::totally_ordered general is_reflexive spec) but neither the
+// typed transitive/antisymmetric legs nor any transparent leg, so it has NO
+// complete three-law certificate under either relation.  A law-by-law OR would
+// wrongly borrow the reflexive leg and admit it; the grouped OR does not.
+static_assert(is_reflexive_v<double, std::less_equal<double>> &&
+                  !is_transitive_v<double, std::less_equal<double>> &&
+                  !is_transitive_v<double, std::less_equal<>> &&
+                  !SupInfLattice<double>,
+              "per-relation gate: double has only the typed reflexive leg, no "
+              "complete order certificate under either relation, so it is "
+              "excluded");
 static_assert(!is_commutative_v<double, Sup>,
               "raw floats rejected: NaN breaks max/min commutativity (no "
               "double lattice carrier)");
@@ -1243,9 +1311,10 @@ static_assert(!is_commutative_v<double, Inf>,
               "double lattice carrier)");
 // (2) A float-CONTAINING wrapper: std::optional<double> is totally_ordered +
 // copyable + NOT floating_point, so a !floating_point proxy would have leaked
-// it in.  The positive certified-order gate excludes it (it never registers the
-// transitive/antisymmetric std::less_equal<T> traits) --- this pins that the
-// ORDER cert, not a type-category float check, is doing the work.
+// it in.  The positive certified-order gate excludes it (it registers the
+// transitive/antisymmetric order traits under NEITHER std::less_equal spelling)
+// --- this pins that the ORDER cert, not a type-category float check, is doing
+// the work.
 static_assert(SupInfOperand<std::optional<double>> &&
                   !SupInfLattice<std::optional<double>>,
               "optional<double> IS a usable Sup/Inf operand (ordered + "
@@ -1267,6 +1336,26 @@ static_assert(SupInfLattice<int> && is_commutative_v<int, Sup> &&
                   is_idempotent_v<int, Inf>,
               "int (and every SupInfLattice carrier) keeps the Sup/Inf lattice "
               "laws");
+
+// (4) Same gate on the pre-existing std::ranges::max / min niebloid blanket
+// (#934 fold-in): before the SupInfLattice gate this blanket unconditionally
+// certified is_commutative_v<double, max> = true etc., falsely admitting a
+// double / optional<double> lattice.  These witnesses pin that the niebloid
+// form now tracks the value-returning Sup / Inf form exactly.
+static_assert(!is_commutative_v<double, decltype(std::ranges::max)> &&
+                  !is_commutative_v<double, decltype(std::ranges::min)>,
+              "raw floats rejected on the niebloid blanket too: NaN breaks "
+              "max/min commutativity (no double lattice carrier)");
+static_assert(
+    !is_commutative_v<std::optional<double>, decltype(std::ranges::max)>,
+    "float-containing wrappers rejected on the niebloid blanket: "
+    "optional<double>'s order contains NaN, so it is not a lattice carrier");
+static_assert(is_commutative_v<int, decltype(std::ranges::max)> &&
+                  is_idempotent_v<int, decltype(std::ranges::min)> &&
+                  is_absorptive_v<int, decltype(std::ranges::max),
+                                  decltype(std::ranges::min)>,
+              "int (and every SupInfLattice carrier) keeps the niebloid "
+              "max/min lattice laws");
 
 /** @section species__Boolean_Ring_Morphisms (XOR, AND) */
 

@@ -148,15 +148,11 @@ static_assert(
 // Honest Rejection: ℤ is the initial ring AND the Grothendieck group
 // of ℕ (asserted above), but NOT a multiplicative group --- non-units
 // (everything except ±1) lack multiplicative inverses.  The
-// scout-algebra @c operator*(BoundScout, Bound) factory and the
-// multiplicative @c GroupScout::operator|(Halfspace) pipe in
-// @c :algebra:scout_algebra both gate on
-// @c IsAbelianGroup<T, std::multiplies<T>>, so ℤ is correctly
-// removed from the candidate set when callers spell @c element<ℤ> @c *
-// @c bound<k>.  Use ℚ (Rational<default_integer>, the field of
-// fractions of ℤ; pinned at @c rational.cppm) for multiplicative
-// halfspace scaling.  Cross-partition invariant pinned in main per
-// the static_assert-in-main pattern.
+// @c IsOrderedMultiplicativeGroup gate in @c :algebra:scout_algebra
+// therefore rejects ℤ; use ℚ (Rational<default_integer>, the field of
+// fractions of ℤ; pinned at @c rational.cppm) wherever multiplicative
+// order-compatibility is required.  Cross-partition invariant pinned in
+// main per the static_assert-in-main pattern.
 static_assert(
     !dedekind::algebra::IsOrderedMultiplicativeGroup<
         dedekind::sets::SignedCardinality>,

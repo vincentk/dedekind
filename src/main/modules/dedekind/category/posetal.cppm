@@ -335,10 +335,10 @@ static_assert(
 //
 // User's mnemonic ("iso / mono => enabling"): order-isos enable clean
 // halfspace-pivot transport (result is again a halfspace); monos-without-
-// inverse enable image-with-witness transport (halfspace + witness, e.g.\
-// @c AffineImageOfHalfspace on the ℤ ring-retract).  The vocabulary below
-// names the enabling shapes so scout-algebra pipes can dispatch on them
-// rather than on per-slice positive/negative branching.
+// inverse enable image-with-witness transport (halfspace + a divisibility
+// witness on the preimage, e.g.\ scaling on a ring that is not a field).
+// The vocabulary below names the enabling shapes so order-transport can
+// dispatch on them rather than on per-case positive/negative branching.
 // ---------------------------------------------------------------------------
 
 /**
@@ -400,8 +400,8 @@ concept IsAntiMonotone = IsArrow<F> && is_antimonotone_v<F, Op>;
  *          (@c :morphism::IsBijectiveArrow @c = @c IsMonicArrow @c &&
  *          @c IsEpicArrow) with the order-preservation trait above.
  *          This is the textbook "enabling" class for clean halfspace-
- *          pivot transport in @c :algebra:scout_algebra: the image of
- *          a halfspace under an order-iso is again a halfspace.
+ *          pivot transport in @c :algebra:halfspace_transport: the image
+ *          of a halfspace under an order-iso is again a halfspace.
  */
 export template <typename F, typename Op = std::less_equal<>>
 concept IsOrderIsomorphism = IsBijectiveArrow<F> && IsMonotone<F, Op>;
