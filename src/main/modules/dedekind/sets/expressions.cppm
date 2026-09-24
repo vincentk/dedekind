@@ -1857,10 +1857,16 @@ export template <typename A, typename B>
   } && std::same_as<typename NaturalLogic<std::remove_cvref_t<A>>::type,
                     typename NaturalLogic<std::remove_cvref_t<B>>::type>
 constexpr auto cartesian_product(const A& a, const B& b) {
-  // Two ambient species: their product IS the universe of products
-  // 𝔸<pair<A,B>> via @c operator*, which keeps the factor structure rather than
-  // melting into a @c pa(first)&&pb(second) closure.
-  return a * b;
+  // Materialise BOTH operands to a concrete @c Set (the identity @c
+  // Set(Species) CTAD accepts a bare ambient AND re-wraps an already-@c Set
+  // operand) and delegate to the @c Set x @c Set overload.  This normalisation
+  // is load- bearing: it TERMINATES the generic dispatch.  Spelling @c a @c *
+  // @c b here instead would recurse on a mixed @c UniversalSet x @c Set pair
+  // (no
+  // @c operator*(UniversalSet, Set), so it re-enters this generic).
+  const auto left = Set{a};
+  const auto right = Set{b};
+  return cartesian_product(left, right);
 }
 
 /**
