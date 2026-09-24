@@ -1019,7 +1019,39 @@ concept IsPeriodic = is_periodic_v<T, Op>;
  * @c std::ranges::min niebloid form and the value-returning @c Sup / @c Inf
  * form) are gated on @c SupInfLattice<T> so they never over-certify a carrier
  * on which the ops are not honest lattice ops.  The gate is defined here,
- * upstream of the first blanket, and reused by both. */
+ * upstream of the first blanket, and reused by both.
+ *
+ * @par Either @c std::less_equal spelling, complete per relation.
+ * Carriers register their order traits under one of two conventions: the typed
+ * @c std::less_equal<T> (@c int / @c bool via the integral blanket, @c Ternary)
+ * or the transparent @c std::less_equal<> (@c safe_float<F>, @c Rational<I>,
+ * @c Cut<Q>, cardinals).  Both are @c :species traits (no DAG dependency on
+ * @c :order, which is downstream), so the gate accepts a certificate under
+ * @b either spelling.  The three laws are grouped @b per @b relation and the
+ * two @b complete certificates are OR'd, @b not OR'd law-by-law: a mixed
+ * carrier (antisymmetry certified typed, transitivity only transparent) has all
+ * three laws under @b neither single relation, so it must not pass.  This
+ * matters because reflexivity alone is available for any @c
+ * std::totally_ordered <T> via the general @c is_reflexive specialisation, so
+ * raw @c double satisfies the typed reflexive leg; grouping per relation means
+ * @c double (no transitive / antisymmetric under either spelling) and @c
+ * std::optional<double> / @c void (no complete certificate either way) all stay
+ * excluded.
+ *
+ * FIXME(#934): the gate certifies a @b partial order (reflexive + transitive +
+ * antisymmetric) plus @b syntactic @c std::totally_ordered, but @c max / @c min
+ * are honest lattice ops only on a @b total (connex) order: on a non-total
+ * poset, @c max of incomparable @c a, @c b is order-dependent, so
+ * @c is_commutative_v<T, max> would be false while the gate still admitted it.
+ * No live mis-certification: every carrier currently registered against this
+ * blanket (@c int and the integral blanket, @c Ternary, @c safe_float<F>,
+ * @c Rational<I>, @c Cut<Q>, the cardinals) is a genuine @b chain.  @c :species
+ * has no connex / linearity relation trait (@c is_total_v here is @b operation
+ * totality, not order connexity), so a proper fix adds one and registers it for
+ * each chain carrier across @c :species / @c :logic / @c :morphologies /
+ * @c :numbers --- a cross-module sweep deferred to a #934 follow-up slice
+ * rather than balloon this one (a partial registration would instead re-break
+ * the transparent carriers, cf. the safe_float regression). */
 
 /**
  * @concept SupInfOperand
@@ -1036,43 +1068,14 @@ concept SupInfOperand = std::totally_ordered<T> && std::copy_constructible<T>;
 
 /**
  * @concept SupInfLattice
- * @brief A carrier on which the meet / join ops are honest @b lattice ops:
- *        usable (@c SupInfOperand) @b and carrying a @b certified @b total @b
- *        order (reflexive + transitive + antisymmetric under @c
- * std::less_equal, in @b either its typed @c std::less_equal<T> or transparent
- *        @c std::less_equal<> spelling).
- *
- * @details Gates the law registrations below.  We certify @b positively via the
- * repository's order traits rather than negatively excluding
- * @c std::floating_point, because the type-category proxy is unsound for
- * @b wrappers whose order contains NaN: @c std::optional<double> is
- * @c totally_ordered + @c copy_constructible + @b not @c std::floating_point,
- * so @c !std::floating_point would admit it, yet @c max / @c min are not
- * commutative on it (an element vs a NaN-carrying element).  A @b genuine total
- * order cannot contain NaN, so the certified-order gate drops the float proxy
- * entirely: raw @c double and @c std::optional<double> register the
- * @c is_transitive_v / @c is_antisymmetric_v order traits under @b neither
- * @c std::less_equal spelling (the @c :species integral / @c bool blanket does
- * not cover them), so both stay excluded.
- *
- * @c Either @c spelling: carriers register their order traits under one of two
- * conventions --- the typed @c std::less_equal<T> (@c int / @c bool via the
- * integral blanket, @c Ternary) or the transparent @c std::less_equal<> (@c
- * safe_float<F>, @c Rational<I>, @c Cut<Q>, cardinals).  Both are @c :species
- * traits (no DAG dependency on @c :order), so the gate accepts a @b complete
- * three-law certificate under @b either spelling; a carrier that lacks a
- * complete certificate under both (@c double, @c optional<double>, @c void) is
- * excluded.
- *
- * @note The three laws are grouped @b per @b relation and the two @b complete
- * certificates are OR'd, @b not OR'd law-by-law: a mixed carrier (e.g.\
- * antisymmetry certified typed but transitivity only transparent) has all three
- * laws under @b neither single relation, so it must @b not pass.  Reflexivity
- * alone is available for any @c std::totally_ordered<T> via the general @c
- * is_reflexive specialisation (so raw @c double satisfies the typed reflexive
- * leg), which is exactly why transitivity + antisymmetry must be checked under
- * the @b same relation as reflexivity: that per-relation grouping is the
- * load-bearing exclusion for @c double.
+ * @brief A carrier on which @c max / @c min (and @c Sup / @c Inf) are honest
+ *        @b lattice ops: usable (@c SupInfOperand) @b and carrying a certified
+ *        order.
+ * @details Requires a @b complete reflexive + transitive + antisymmetric
+ * certificate under @b one @c std::less_equal spelling --- typed
+ * @c std::less_equal<T> @b or transparent @c std::less_equal<> (see
+ * @c species__Lattice_Op_Gate for why the legs are grouped per relation, and
+ * for the deferred totality/connex tightening).
  * @tparam T The candidate carrier type.
  */
 export template <typename T>
