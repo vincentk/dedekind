@@ -24,8 +24,8 @@ using namespace dedekind::category;
 
 TEST_CASE("category:lattice — Bool is the canonical 2-element lattice category",
           "[category][lattice][bool][canonical]") {
-  /** @brief @c bool with @c std::less_equal, @c std::ranges::max,
-   *         @c std::ranges::min is the smallest non-trivial lattice
+  /** @brief @c bool with @c std::less_equal, @c Sup,
+   *         @c Inf is the smallest non-trivial lattice
    *         category — also the canonical Boolean algebra (the
    *         categorical witness of that Boolean structure lands in a
    *         future slice; #698). */
@@ -37,7 +37,7 @@ TEST_CASE("category:lattice — totally ordered integral carriers are lattices",
   /** @brief Totally ordered carriers under @c std::less_equal are
    *         trivially both directed (max is the upper bound) and
    *         codirected (min is the lower bound), and the lattice
-   *         operations are @c std::ranges::max / @c std::ranges::min. */
+   *         operations are @c Sup / @c Inf. */
   STATIC_CHECK(IsLatticeCategory<int>);
   STATIC_CHECK(IsLatticeCategory<unsigned>);
   STATIC_CHECK(IsLatticeCategory<std::size_t>);

@@ -82,9 +82,8 @@ TEST_CASE(
 
   // Row 7 honest rejection under (std::less_equal + std::bit_not).
   STATIC_CHECK_FALSE(
-      IsBooleanLatticeCategory<
-          std::size_t, std::less_equal<std::size_t>, decltype(std::ranges::max),
-          decltype(std::ranges::min), std::bit_not<std::size_t>>);
+      IsBooleanLatticeCategory<std::size_t, std::less_equal<std::size_t>, Sup,
+                               Inf, std::bit_not<std::size_t>>);
 }
 
 // ---------------------------------------------------------------------------
@@ -102,8 +101,8 @@ TEST_CASE(
    *         (carrier shape differs from @c bool / @c size_t).  What's
    *         tractable here in Slice 10: the iota_view's element type
    *         (@c int / integral) participates in the Form-chain through
-   *         the canonical @c std::ranges niebloid defaults
-   *         (@c std::ranges::max / @c std::ranges::min).  This pins the
+   *         the canonical value-returning @c :species lattice-op defaults
+   *         (@c Sup / @c Inf).  This pins the
    *         element-level meeting-point. */
   using ElementType =
       std::ranges::range_value_t<std::ranges::iota_view<int, int>>;
@@ -116,13 +115,10 @@ TEST_CASE(
   STATIC_CHECK(IsBoundedLatticeCategory<int>);
   STATIC_CHECK(IsHeytingLatticeCategory<int>);
 
-  /** @brief Niebloid identity: the Form-chain @c Meet / @c Join slots
-   *         default to @c decltype(std::ranges::min) and
-   *         @c decltype(std::ranges::max) — i.e.\ the std::ranges
-   *         niebloids ARE the Form-chain's canonical lattice ops. */
-  STATIC_CHECK(
-      IsLatticeCategory<int, std::less_equal<int>, decltype(std::ranges::max),
-                        decltype(std::ranges::min)>);
+  /** @brief Sup / Inf identity: the Form-chain @c Meet / @c Join slots
+   *         default to @c Inf and @c Sup, i.e.\ the value-returning
+   *         @c :species ops ARE the Form-chain's canonical lattice ops. */
+  STATIC_CHECK(IsLatticeCategory<int, std::less_equal<int>, Sup, Inf>);
 }
 
 TEST_CASE(

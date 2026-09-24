@@ -11,8 +11,8 @@
  *   - @c IsSubobjectFamilyMember<R, A, L> — anchored on the ambient
  *     and the classifier, the family concept paralleling
  *     @c :sets::mereology::IsSystem<S, Species, L>.
- *   - @c operator<=> on @c Ternary in @c :logic — enables stdlib
- *     niebloids (@c std::ranges::min / @c max) to compute Kleene
+ *   - @c operator<=> on @c Ternary in @c :logic: supplies the @c < the
+ *     value-returning @c :species ops @c Inf / @c Sup use to compute Kleene
  *     meet / join on Ternary directly, so @c :lattice carries no
  *     Ternary-specific function-object struct types.
  *
@@ -24,7 +24,6 @@
  * @c :etcs harmonisation.
  */
 
-#include <algorithm>  // std::ranges::min / max — Kleene meet / join on Ternary
 #include <catch2/catch_test_macros.hpp>
 #include <compare>
 #include <concepts>
@@ -58,26 +57,25 @@ TEST_CASE("category:subobject-lattice — Ternary <=> enables stdlib niebloids",
   STATIC_CHECK(Ternary::Unknown != Ternary::True);
 }
 
-TEST_CASE(
-    "category:subobject-lattice — Kleene meet / join via std::ranges niebloids",
-    "[category][logic][ternary][niebloid][lattice]") {
-  /** @brief With @c operator<=> on Ternary, @c std::ranges::min / @c max
+TEST_CASE("category:subobject-lattice: Kleene meet / join via value Sup / Inf",
+          "[category][logic][ternary][supinf][lattice]") {
+  /** @brief With @c operator<=> on Ternary, @c Inf / @c Sup
    *         compute the Kleene strong AND / OR directly.  No
    *         Ternary-specific function-object struct types live in
    *         @c :lattice (#712 review — "Structs will lock us in"). */
-  STATIC_CHECK(std::ranges::min(Ternary::True, Ternary::Unknown) ==
+  STATIC_CHECK(Inf{}(Ternary::True, Ternary::Unknown) ==
                Ternary::Unknown);  // Kleene AND
-  STATIC_CHECK(std::ranges::min(Ternary::Unknown, Ternary::False) ==
+  STATIC_CHECK(Inf{}(Ternary::Unknown, Ternary::False) ==
                Ternary::False);  // Kleene AND, False annihilator
-  STATIC_CHECK(std::ranges::max(Ternary::False, Ternary::Unknown) ==
+  STATIC_CHECK(Sup{}(Ternary::False, Ternary::Unknown) ==
                Ternary::Unknown);  // Kleene OR
-  STATIC_CHECK(std::ranges::max(Ternary::Unknown, Ternary::True) ==
+  STATIC_CHECK(Sup{}(Ternary::Unknown, Ternary::True) ==
                Ternary::True);  // Kleene OR, True annihilator
 
   // Truth-functional consistency with Kleene::AND / OR.
-  STATIC_CHECK(std::ranges::min(Ternary::True, Ternary::Unknown) ==
+  STATIC_CHECK(Inf{}(Ternary::True, Ternary::Unknown) ==
                Kleene::AND(Ternary::True, Ternary::Unknown));
-  STATIC_CHECK(std::ranges::max(Ternary::False, Ternary::Unknown) ==
+  STATIC_CHECK(Sup{}(Ternary::False, Ternary::Unknown) ==
                Kleene::OR(Ternary::False, Ternary::Unknown));
 }
 

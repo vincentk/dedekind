@@ -36,6 +36,7 @@ module;
 #include <algorithm>
 #include <concepts>
 #include <functional>
+#include <type_traits>  // std::remove_cvref_t: cv-normalise op keys (#934)
 
 export module dedekind.category:mereology;
 
@@ -150,10 +151,10 @@ concept IsPartOfRelation = requires(const Part& part, const Whole& whole) {
  * @brief Stage 0 for join-like algebra: closure only.
  *
  * @details
- * Default witness is `std::ranges::max`, matching the canonical join witness
+ * Default witness is `Sup`, matching the canonical join witness
  * on totally ordered carriers.
  */
-export template <typename T, typename Join = decltype(std::ranges::max)>
+export template <typename T, typename Join = Sup>
 concept IsMereologicalJoinMagma = requires(Join join, T a, T b) {
   { join(a, b) } -> std::convertible_to<T>;
 };
@@ -163,10 +164,10 @@ concept IsMereologicalJoinMagma = requires(Join join, T a, T b) {
  * @brief Stage 0 for meet-like algebra: closure only.
  *
  * @details
- * Default witness is `std::ranges::min`, matching the canonical meet witness
+ * Default witness is `Inf`, matching the canonical meet witness
  * on totally ordered carriers.
  */
-export template <typename T, typename Meet = decltype(std::ranges::min)>
+export template <typename T, typename Meet = Inf>
 concept IsMereologicalMeetMagma = requires(Meet meet, T a, T b) {
   { meet(a, b) } -> std::convertible_to<T>;
 };
@@ -179,7 +180,7 @@ concept IsMereologicalMeetMagma = requires(Meet meet, T a, T b) {
  * Maturation ladder in this partition:
  * magma -> semigroup -> band -> skew lattice.
  */
-export template <typename T, typename Join = decltype(std::ranges::max)>
+export template <typename T, typename Join = Sup>
 concept IsMereologicalJoinSemigroup =
     IsMereologicalJoinMagma<T, Join> && IsAssociative<T, Join>;
 
@@ -191,7 +192,7 @@ concept IsMereologicalJoinSemigroup =
  * Maturation ladder in this partition:
  * magma -> semigroup -> band -> skew lattice.
  */
-export template <typename T, typename Meet = decltype(std::ranges::min)>
+export template <typename T, typename Meet = Inf>
 concept IsMereologicalMeetSemigroup =
     IsMereologicalMeetMagma<T, Meet> && IsAssociative<T, Meet>;
 
@@ -203,7 +204,7 @@ concept IsMereologicalMeetSemigroup =
  * Textbook term: this is the band-level (possibly non-commutative) fragment
  * underlying skew lattice formulations.
  */
-export template <typename T, typename Meet = decltype(std::ranges::min)>
+export template <typename T, typename Meet = Inf>
 concept IsMereologicalMeetBand =
     IsMereologicalMeetSemigroup<T, Meet> && IsIdempotent<T, Meet>;
 
@@ -215,7 +216,7 @@ concept IsMereologicalMeetBand =
  * Textbook term: this is the dual band-level fragment used in skew lattice
  * formulations.
  */
-export template <typename T, typename Join = decltype(std::ranges::max)>
+export template <typename T, typename Join = Sup>
 concept IsMereologicalJoinBand =
     IsMereologicalJoinSemigroup<T, Join> && IsIdempotent<T, Join>;
 
@@ -241,7 +242,11 @@ concept IsMereologicalJoinBand =
 export template <typename T, typename Op1, typename Op2>
 concept IsAbsorptive =
     IsIdempotent<T, Op1> && IsIdempotent<T, Op2> &&
-    is_absorptive_v<T, Op1, Op2> && is_absorptive_v<T, Op2, Op1>;
+    // cv-strip the op types so a const-qualified op (decltype of a constexpr
+    // object) keys the same is_absorptive_v registration as the bare type
+    // (#934); the IsIdempotent wrappers already normalise internally.
+    is_absorptive_v<T, std::remove_cvref_t<Op1>, std::remove_cvref_t<Op2>> &&
+    is_absorptive_v<T, std::remove_cvref_t<Op2>, std::remove_cvref_t<Op1>>;
 
 /**
  * @concept IsSaturating
@@ -272,8 +277,7 @@ concept IsSaturating = is_saturating_v<T, Op>;
  * Requires associative + idempotent join/meet operations connected by
  * absorption. Commutativity is intentionally not required.
  */
-export template <typename T, typename Join = decltype(std::ranges::max),
-                 typename Meet = decltype(std::ranges::min)>
+export template <typename T, typename Join = Sup, typename Meet = Inf>
 concept IsMereologicalSkewLattice =
     IsMereologicalJoinBand<T, Join> && IsMereologicalMeetBand<T, Meet> &&
     IsAbsorptive<T, Join, Meet>;
@@ -287,7 +291,7 @@ concept IsMereologicalSkewLattice =
  *
  * @see https://en.wikipedia.org/wiki/Semilattice
  */
-export template <typename T, typename Meet = decltype(std::ranges::min)>
+export template <typename T, typename Meet = Inf>
 concept IsMereologicalMeetSemilattice = IsMereologicalMeetBand<T, Meet>;
 
 /**
@@ -299,7 +303,7 @@ concept IsMereologicalMeetSemilattice = IsMereologicalMeetBand<T, Meet>;
  *
  * @see https://en.wikipedia.org/wiki/Semilattice
  */
-export template <typename T, typename Join = decltype(std::ranges::max)>
+export template <typename T, typename Join = Sup>
 concept IsMereologicalJoinSemilattice = IsMereologicalJoinBand<T, Join>;
 
 /**
@@ -317,8 +321,7 @@ concept IsMereologicalJoinSemilattice = IsMereologicalJoinBand<T, Join>;
  *
  * @see https://en.wikipedia.org/wiki/Skew_lattice
  */
-export template <typename T, typename Join = decltype(std::ranges::max),
-                 typename Meet = decltype(std::ranges::min)>
+export template <typename T, typename Join = Sup, typename Meet = Inf>
 concept IsMereologicalLatticeOperations =
     IsMereologicalJoinSemilattice<T, Join> &&
     IsMereologicalMeetSemilattice<T, Meet>;
@@ -328,8 +331,7 @@ concept IsMereologicalLatticeOperations =
  * @brief Mature distributive stage: lattice operations with mutual
  * distribution.
  */
-export template <typename T, typename Join = decltype(std::ranges::max),
-                 typename Meet = decltype(std::ranges::min)>
+export template <typename T, typename Join = Sup, typename Meet = Inf>
 concept IsMereologicalDistributiveLatticeOperations =
     IsMereologicalLatticeOperations<T, Join, Meet> &&
     IsDistributive<T, Join, Meet> && IsDistributive<T, Meet, Join>;
@@ -534,14 +536,13 @@ static_assert(IsPartialOrder<int>,
 static_assert(IsTotalOrder<int>,
               "Total-order stage must refine partial-order parthood.");
 
-static_assert(IsMereologicalMeetMagma<int, decltype(std::ranges::min)>);
-static_assert(IsMereologicalJoinMagma<int, decltype(std::ranges::max)>);
-static_assert(IsMereologicalMeetSemigroup<int, decltype(std::ranges::min)>);
-static_assert(IsMereologicalJoinSemigroup<int, decltype(std::ranges::max)>);
-static_assert(IsMereologicalMeetBand<int, decltype(std::ranges::min)>);
-static_assert(IsMereologicalJoinBand<int, decltype(std::ranges::max)>);
-static_assert(IsMereologicalSkewLattice<int, decltype(std::ranges::max),
-                                        decltype(std::ranges::min)>);
+static_assert(IsMereologicalMeetMagma<int, Inf>);
+static_assert(IsMereologicalJoinMagma<int, Sup>);
+static_assert(IsMereologicalMeetSemigroup<int, Inf>);
+static_assert(IsMereologicalJoinSemigroup<int, Sup>);
+static_assert(IsMereologicalMeetBand<int, Inf>);
+static_assert(IsMereologicalJoinBand<int, Sup>);
+static_assert(IsMereologicalSkewLattice<int, Sup, Inf>);
 
 namespace detail {
 // Minimal positive witness for IsMereologicalCutCandidate.

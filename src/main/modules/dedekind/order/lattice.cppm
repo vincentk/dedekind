@@ -83,7 +83,7 @@ concept HasLatticeOperators = requires(T a, T b) {
  * @concept IsOrderMeetSemilattice
  * @brief Re-export the certified meet-semilattice stage from `:posetal`.
  */
-export template <typename T, typename Meet = decltype(std::ranges::min)>
+export template <typename T, typename Meet = Inf>
 concept IsOrderMeetSemilattice =
     dedekind::category::IsCertifiedOrderMeetSemilattice<T, Meet>;
 
@@ -91,7 +91,7 @@ concept IsOrderMeetSemilattice =
  * @concept IsOrderJoinSemilattice
  * @brief Re-export the certified join-semilattice stage from `:posetal`.
  */
-export template <typename T, typename Join = decltype(std::ranges::max)>
+export template <typename T, typename Join = Sup>
 concept IsOrderJoinSemilattice =
     dedekind::category::IsCertifiedOrderJoinSemilattice<T, Join>;
 
@@ -123,7 +123,7 @@ concept IsOrderJoinSemilattice =
  *
  * @b Meaning @b shift @b (#393): this concept previously re-exported
  * @c category::IsCertifiedOrderLatticeOperations<T, Join, Meet> with
- * @c std::ranges::min / @c std::ranges::max as the order-theoretic
+ * @c Inf / @c Sup as the order-theoretic
  * Join/Meet defaults.  The order-theoretic certified lattice machinery
  * still lives at @c category::IsCertifiedOrderLatticeOperations and
  * is reachable directly; @c IsOrderLattice now bundles the
@@ -142,8 +142,7 @@ concept IsOrderLattice =
  * @concept IsOrderDistributiveLattice
  * @brief Re-export the certified distributive lattice stage from `:posetal`.
  */
-export template <typename T, typename Join = decltype(std::ranges::max),
-                 typename Meet = decltype(std::ranges::min)>
+export template <typename T, typename Join = Sup, typename Meet = Inf>
 concept IsOrderDistributiveLattice =
     dedekind::category::IsCertifiedOrderDistributiveLatticeOperations<T, Join,
                                                                       Meet>;

@@ -23,8 +23,8 @@ TEST_CASE("Posetal: textbook default relation", "[category][posetal][order]") {
     const int b = 3;
     const int c = 9;
 
-    const auto meet = std::ranges::min;
-    const auto join = std::ranges::max;
+    const auto meet = Inf{};
+    const auto join = Sup{};
 
     CHECK(meet(a, b) == meet(b, a));
     CHECK(join(a, b) == join(b, a));
@@ -45,20 +45,16 @@ TEST_CASE("Posetal: textbook default relation", "[category][posetal][order]") {
   SECTION(
       "Certified semilattice and lattice concepts verify commutativity and "
       "associativity") {
-    STATIC_CHECK(
-        IsCertifiedOrderMeetSemilattice<int, decltype(std::ranges::min)>);
-    STATIC_CHECK(
-        IsCertifiedOrderJoinSemilattice<int, decltype(std::ranges::max)>);
-    STATIC_CHECK(
-        IsCertifiedOrderLatticeOperations<int, decltype(std::ranges::max),
-                                          decltype(std::ranges::min)>);
+    STATIC_CHECK(IsCertifiedOrderMeetSemilattice<int, Inf>);
+    STATIC_CHECK(IsCertifiedOrderJoinSemilattice<int, Sup>);
+    STATIC_CHECK(IsCertifiedOrderLatticeOperations<int, Sup, Inf>);
 
     const int x = 5;
     const int y = 12;
     const int z = 3;
 
-    const auto meet = std::ranges::min;
-    const auto join = std::ranges::max;
+    const auto meet = Inf{};
+    const auto join = Sup{};
 
     STATIC_CHECK(IsCertifiedOrderMeetSemilattice<int, decltype(meet)>);
     STATIC_CHECK(IsCertifiedOrderJoinSemilattice<int, decltype(join)>);
