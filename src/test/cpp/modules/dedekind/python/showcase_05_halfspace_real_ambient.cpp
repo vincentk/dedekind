@@ -32,13 +32,15 @@ using namespace dedekind::numbers;
 using namespace dedekind::order;
 
 // ℝ is now the ℚ(√2) coat-hanger, so machine-real (double) halfspaces live on
-// @c ℝ_d = @c 𝔸<Real<double>, Boole, ℶ_1>.  Post-#848 the point-free
-// @c Halfspace threads its carrier's ℶ_1 cardinality via @c cardinality_type
-// (proven in halfspace.cppm:1318: a @c double halfspace stays @c Kleene), so
-// @c ℝ_d @c | @c (χ ⋈ bound) keeps the uncountable-carrier verdict --- the
-// scout is no longer needed to carry it.
-constexpr auto gt_five = ℝ_d | (χ > bound<5.0>);
-constexpr auto lt_three = ℝ_d | (χ < bound<3.0>);
+// @c ℝ_d = @c 𝔸<Real<double>, Boole, ℶ_1>: @b Boole logic, @b ℶ_1 cardinality.
+// The bare point-free @c Halfspace keeps @c cardinality_type=ℶ_1 but its
+// @c logic_species is the raw @c Boole param.  The @c Set{} wrap is
+// load-bearing here: @c Set deduction runs @c NaturalLogic<Halfspace>, which
+// routes the ℶ_1 carrier to @c Kleene --- the uncountable-carrier verdict this
+// showcase tests
+// (@c HasDecidableMembership reads @c logic_species, so it needs the Kleene).
+constexpr auto gt_five = Set{ℝ_d | (χ > bound<5.0>)};
+constexpr auto lt_three = Set{ℝ_d | (χ < bound<3.0>)};
 
 // Compile-time theorem: the meet IS the empty set on ℝ.
 constexpr Ø<Real<double>> empty_meet = gt_five & lt_three;
