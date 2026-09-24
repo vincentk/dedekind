@@ -362,13 +362,16 @@ struct is_transitive<T, Rel>
 export template <typename T, typename Rel>
 inline constexpr bool is_transitive_v = is_transitive<T, Rel>::value;
 
-// A scoped enum is a discrete, NaN-free total order under `<=`, so its `<=` is
-// transitive (and antisymmetric, below); admitting `is_enum_v<T>` alongside the
-// integral / bool blanket lets an enum carrier (e.g. @c Ternary) ride the
-// blanket rather than hand-registering both legs.  @c double is neither
-// integral nor an enum, so the raw-float rejection is preserved (#933 / #934).
+// The built-in integral / @c bool @c <= is a genuine total order, hence
+// transitive (and antisymmetric, below).  Enums are DELIBERATELY excluded: a
+// scoped enum may supply an ADL @c operator<= / @c operator<=> that is neither
+// transitive nor antisymmetric, so a blanket over @c is_enum_v<T> would
+// unsoundly certify ARBITRARY enums as partial orders.  A specific enum carrier
+// whose order is known (e.g. @c Ternary) hand-registers both legs at its home
+// partition (@c :logic).  @c double is neither integral nor @c bool, so the
+// raw-float rejection is preserved (#933 / #934).
 template <typename T>
-  requires std::is_integral_v<T> || std::is_same_v<T, bool> || std::is_enum_v<T>
+  requires std::is_integral_v<T> || std::is_same_v<T, bool>
 struct is_transitive<T, std::less_equal<T>> : std::true_type {};
 
 /**
@@ -392,12 +395,12 @@ struct is_antisymmetric<T, Rel>
 export template <typename T, typename Rel>
 inline constexpr bool is_antisymmetric_v = is_antisymmetric<T, Rel>::value;
 
-// Enums join the integral / bool blanket for the same reason as transitivity:
-// a scoped enum is a discrete total order, so `<=` is antisymmetric.  This
-// admits @c Ternary while still excluding @c double (neither integral nor
-// enum), preserving the raw-float rejection (#933 / #934).
+// Enums are excluded for the same reason as transitivity: an enum's ADL @c <=
+// may fail antisymmetry, so blanketing @c is_enum_v<T> is unsound.  A known
+// enum carrier (@c Ternary) hand-registers this leg at @c :logic; @c double is
+// neither integral nor @c bool, preserving the raw-float rejection (#933/#934).
 template <typename T>
-  requires std::is_integral_v<T> || std::is_same_v<T, bool> || std::is_enum_v<T>
+  requires std::is_integral_v<T> || std::is_same_v<T, bool>
 struct is_antisymmetric<T, std::less_equal<T>> : std::true_type {};
 
 /**

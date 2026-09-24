@@ -235,12 +235,14 @@ TEST_CASE(
     "parts",
     "[linear_algebra][transfer][spider]") {
   // Runtime companion to the in-module static_assert (invisible to coverage).
-  // The Frobenius-spider composite Δ†∘(⊗)∘Δ that category::Intersect realises
-  // abstractly IS the quadratic form ⟨a|D|a⟩ here: Δ copies the ket a onto both
-  // legs, the diagonal D is the ⊗ middle (D|a⟩ = the diagonal rule times the
-  // vector), and inner_product is the Δ† ⊕-fold.  Carrier unsigned int = ℤ/2^w,
-  // a certified semiring.  Generalises eigenvalue()'s D=I bra·ket face; the
-  // cross-layer "LA satisfies the category Tensor concept" unification is #951.
+  // This exhibits the A′DA / Δ†∘(⊗)∘Δ SHAPE with LA parts: a copies onto both
+  // legs, the diagonal D is the middle (D|a⟩ = the diagonal rule times the
+  // vector), and inner_product folds the two legs.  It is the SCALAR quadratic
+  // form ⟨a|D|a⟩, NOT literally category::Intersect (an endomorphism A→A whose
+  // merge is the equality dagger δ†, not this weighted fold).  Carrier unsigned
+  // int = ℤ/2^w, a certified semiring.  Generalises eigenvalue()'s D=I bra·ket
+  // face; the genuine cross-layer identity, LA satisfying the category Tensor /
+  // Intersect concept, is #951.
   const Ket<unsigned, 2> a{{2u, 3u}};                // |a⟩ = Δ's copy
   const Diagonal<dim_finite<2>, DiagFiveSeven> D{};  // the ⊗ middle, diag(5, 7)
   const diagonal_product_rule<DiagFiveSeven, Ket<unsigned, 2>> Da{D.rule, a};
@@ -255,7 +257,7 @@ TEST_CASE(
       !dedekind::category::IsCopy<Diagonal<dim_finite<2>, DiagFiveSeven>>);
   STATIC_CHECK(dedekind::category::IsArrow<DiagFiveSeven>);
 
-  // Δ†∘(⊗)∘Δ = ⟨a|D|a⟩ = Σ D_i·a_i² = 5·2² + 7·3² = 20 + 63 = 83.
+  // A′DA shape: ⟨a|D|a⟩ = Σ D_i·a_i² = 5·2² + 7·3² = 20 + 63 = 83.
   CHECK(inner_product<2>(a, Da) == 83u);
 
   // The D=I face is eigenvalue()'s bare bra·ket: ⟨a|a⟩ = Σ a_i² = 4 + 9 = 13.

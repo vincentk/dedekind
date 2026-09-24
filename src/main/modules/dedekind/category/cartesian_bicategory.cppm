@@ -1,17 +1,39 @@
 /**
- * @file
- * @brief Sketch (epic #946, slice S0): the meet is the right adjoint of the
- *        diagonal. Reifies the theory @c Δ @c ⊣ @c ∧ as a @c concept first
- *        (@c IsMeetAsRightAdjoint), so the composite meet @c = @c Δ† @c ∘
- *        @c (⊗) @c ∘ @c Δ must type-check against it.
+ * @file dedekind/category/cartesian_bicategory.cppm
+ * @partition :cartesian_bicategory
+ * @brief The meet is the right adjoint of the diagonal (@c Δ⊣∧), reified.
  *
- * @details A compiled, type-checked partition. @c :lattice_term imports it and
- *          @c static_asserts @c IsMeetAsRightAdjoint over its canonical
- * carrier, so the reification is load-bearing early rather than an orphan. The
- *          arrow-level @c (⊗) (@c Tensor) and the composite meet
- *          @c = @c Δ† @c ∘ @c (⊗) @c ∘ @c Δ (@c Intersect) are provided; the
- *          product-order leg (a value-level proof that the composite computes
- *          the glb over a non-trivial pair) remains @c FIXME(#946).
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
+ *
+ * @section cartesian_bicategory__Overview Meet as the adjoint of the diagonal
+ *
+ * Sketch (epic #946, slice S0).  Reifies the theory @c Δ @c ⊣ @c ∧ as a
+ * @c concept first (@c IsMeetAsRightAdjoint), so the composite meet
+ * @c = @c Δ† @c ∘ @c (⊗) @c ∘ @c Δ must type-check against it.  In a cartesian
+ * bicategory (Carboni & Walters) every object carries a commutative comonoid:
+ * copy @c Δ:A→A×A, delete @c ε:A→1, and the dagger merge @c Δ†:A×A→A; the meet
+ * @b is that merge, and @c "meet @c = @c right @c adjoint @c of @c Δ" is its
+ * 1-categorical shadow (Mac Lane, adjunctions in a poset degenerate to Galois
+ * connections).
+ *
+ * @section cartesian_bicategory__Load_bearing What is compiled here
+ *
+ * A compiled, type-checked partition.  @c :lattice_term imports it and
+ * @c static_asserts @c IsMeetAsRightAdjoint over its canonical carrier, so the
+ * reification is load-bearing early rather than an orphan.  The arrow-level
+ * @c (⊗) (@c Tensor) and the composite meet @c Δ† @c ∘ @c (⊗) @c ∘ @c Δ
+ * (@c Intersect) are provided; the value-level product-order leg (a proof that
+ * the composite computes the glb over a non-trivial pair, and so distinguishes
+ * the meet from the join) remains @c FIXME(#946).
+ *
+ * Wikipedia: Cartesian bicategory, Frobenius algebra, Adjoint functors
+ *
+ * @note "Only connectivity matters."
+ *       Bob Coecke & Aleks Kissinger, *Picturing Quantum Processes*
+ *       (Cambridge, 2017), on spider fusion: the copy / merge Frobenius
+ *       maps compose by their wiring alone, which is exactly why the meet
+ *       falls out of the comonoid structure rather than the carrier.
  */
 module;
 
@@ -81,6 +103,9 @@ export template <typename A>
 struct Copy {
   using Domain = A;
   using Codomain = std::pair<A, A>;
+  /** @brief Fan the input out onto both legs @c Δ(a)=(a,a).
+   *  @param a the value to copy.
+   *  @return the diagonal pair @c (a,a). */
   constexpr Codomain operator()(const A& a) const { return {a, a}; }
 };
 
@@ -93,6 +118,9 @@ export template <typename A>
 struct Delete {
   using Domain = A;
   using Codomain = One;
+  /** @brief Discard the input into the terminal object @c ε(a)=•.
+   *  @param a the value to delete (unused; every value maps to @c One).
+   *  @return the unique inhabitant of @c One. */
   constexpr Codomain operator()(const A&) const { return {}; }
 };
 
@@ -109,7 +137,19 @@ export template <typename A, typename Meet>
 struct Merge {
   using Domain = std::pair<A, A>;
   using Codomain = A;
-  constexpr A operator()(const Domain& p) const {
+  /** @brief Fold the copied pair through the injected glb @c Δ†(a,b)=a⊓b.
+   *  @param p the pair @c (a,b) to merge.
+   *  @return @c Meet{}(a,b), the injected order-algebra meet.
+   *  @note The @c requires clause probes @c Meet on the call so an
+   *        ill-formed injected op (a @c Meet with no @c operator()(A,A))
+   *        removes @c operator() from the overload set.  @c IsArrow then fails
+   *        for that @c Merge, so @c IsMerge rejects it at the concept surface
+   *        rather than only at a later call site (#946 review). */
+  constexpr A operator()(const Domain& p) const
+    requires requires(const A& a) {
+      { Meet{}(a, a) } -> std::convertible_to<A>;
+    }
+  {
     return Meet{}(p.first, p.second);
   }
 };
@@ -148,24 +188,40 @@ concept IsMerge = IsArrow<F> && std::same_as<Dom<F>, std::pair<Cod<F>, Cod<F>>>;
 // trusted and the public review is the audit trail (as with @c
 // is_monic_arrow_v).
 //
-// Copy @c a↦(a,a) is monotone under the product order for ANY relation (both
-// components move together), so it is registered generically like @c Identity.
-template <typename A, typename Op>
-inline constexpr bool is_monotone_v<Copy<A>, Op> = true;
-// The injected binary glb / lub are monotone in each argument: min (@c Inf) and
-// max (@c Sup) preserve the order, as does Boolean AND (the reducer edge).
-template <typename A, typename Op>
-inline constexpr bool is_monotone_v<Merge<A, Inf>, Op> = true;
-template <typename A, typename Op>
-inline constexpr bool is_monotone_v<Merge<A, Sup>, Op> = true;
-template <typename Op>
-inline constexpr bool is_monotone_v<Merge<bool, std::logical_and<bool>>, Op> =
-    true;
+// Monotonicity is a claim about ONE order relation, not all @c Op: an arrow can
+// preserve @c <= yet break some other relation (e.g. @c Merge<A,Inf> fails @c
+// !=: @c (0,1) and @c (0,2) merge to the same @c 0).  So each leg is registered
+// ONLY against the actual product / carrier order @c std::less_equal<> (the
+// default @c Op the variance concepts query), never blanket-quantified over @c
+// Op (#946 review).
+// Copy @c a↦(a,a) preserves @c <= under the product order (both components move
+// together), as @c Identity does.
+template <typename A>
+inline constexpr bool is_monotone_v<Copy<A>, std::less_equal<>> = true;
+// The injected binary glb / lub preserve @c <= in each argument: min (@c Inf)
+// and max (@c Sup), as does Boolean AND (the reducer edge).
+template <typename A>
+inline constexpr bool is_monotone_v<Merge<A, Inf>, std::less_equal<>> = true;
+template <typename A>
+inline constexpr bool is_monotone_v<Merge<A, Sup>, std::less_equal<>> = true;
+template <>
+inline constexpr bool
+    is_monotone_v<Merge<bool, std::logical_and<bool>>, std::less_equal<>> =
+        true;
 
 /**
  * @concept IsMeetAsRightAdjoint
- * @brief The meet @c ∧ is the right adjoint of the diagonal @c Δ (@c Δ⊣∧):
- *        the reified theory this slice postulates as a type-check.
+ * @brief The STRUCTURAL shape of "the meet @c ∧ is the right adjoint of the
+ *        diagonal @c Δ" (@c Δ⊣∧): the reified theory this slice postulates as a
+ *        type-check.
+ * @warning This is a structural SHAPE gate, NOT a dispatch-safe glb certifier.
+ *          It names the crossed signatures + a posetal carrier + a definite
+ *          variance; it CANNOT see whether the merge computes the glb (meet) or
+ *          the lub (join), so the join @c Sup passes it too (see the labelled
+ *          limitation witness below).  glb-correctness is the injected op's
+ *          obligation, tightened later via #908 (reify predicate variance) plus
+ *          the value-level product-order leg, FIXME(#946).  Do NOT branch
+ *          dispatch on a positive result as if it guaranteed a meet.
  * @details @c Δ:P→P×P (copy) is the left adjoint, @c ∧:P×P→P the right, so
  *          the pair @b is an @c IsGaloisConnection whose left leg is the
  *          diagonal (its codomain is the square of its domain). The Galois
@@ -176,14 +232,15 @@ inline constexpr bool is_monotone_v<Merge<bool, std::logical_and<bool>>, Op> =
  *          the engineer's honesty obligation (as with @c IsGaloisConnection);
  *          the structural shape names the signatures.
  * @note Monotonicity is INHERITED, not re-gated here: @c IsGaloisConnection
- *       was tightened (#946) to require @c IsVariant on both legs, so both @c
- * Cp and @c Mg must carry a declared variance (see the @c is_monotone_v
- *       registrations above).  That NARROWS the gap (a non-variant merge is now
- *       rejected) but does NOT close the meet-vs-join residual: the join @c Sup
- *       is monotone too, so it still passes.  Which order-op the merge computes
- *       stays the value-level product-order leg, FIXME(#946).  #908 (reify
- *       predicate variance) would derive the variance structurally; #791
- *       certifies the monotone / join operations themselves.
+ *       was tightened (#946) to require MATCHED variance (both legs monotone,
+ *       or both antitone), so both @c Cp and @c Mg must carry a declared, and
+ *       agreeing, variance (see the @c is_monotone_v registrations above).
+ *       That NARROWS the gap (a variance-less or mismatched-polarity merge is
+ *       now rejected) but does NOT close the meet-vs-join residual: the join
+ *       @c Sup is monotone too, so it still passes.  Which order-op the merge
+ *       computes stays the value-level product-order leg, FIXME(#946).  #908
+ *       (reify predicate variance) would derive the variance structurally;
+ *       #791 certifies the monotone / join operations themselves.
  * @tparam Cp the copy/diagonal @c Δ.
  * @tparam Mg the meet/merge @c ∧.
  * @tparam Leq the order on @c P; defaults to @c std::less_equal<P>. */
@@ -219,6 +276,10 @@ struct Tensor {
   using Codomain = std::pair<Cod<R>, Cod<S>>;
   R r{};
   S s{};
+  /** @brief Run both legs in parallel @c (R⊗S)(a,b)=(R(a),S(b)), routed
+   *         through the product's own projections @c Π_1 / @c Π_2.
+   *  @param p the input pair @c (a,b) in @c A×B.
+   *  @return the pair @c (R(a),S(b)) in @c C×D. */
   constexpr Codomain operator()(const Domain& p) const {
     return {r(Π_1<Domain>{}(p)), s(Π_2<Domain>{}(p))};
   }
@@ -254,12 +315,22 @@ concept IsTensor = IsArrow<T> && requires {
  * to the identity, the arrow-level shadow of idempotence @c a∧a=a. */
 export template <IsArrow R, IsArrow S, typename Meet>
   requires std::same_as<Dom<R>, Dom<S>> && std::same_as<Cod<R>, Dom<R>> &&
-           std::same_as<Cod<S>, Dom<R>>
+           std::same_as<Cod<S>, Dom<R>> &&
+           IsMeetAsRightAdjoint<Copy<Dom<R>>, Merge<Dom<R>, Meet>>
 struct Intersect {
   using Domain = Dom<R>;
   using Codomain = Dom<R>;
   R r{};
   S s{};
+  /** @brief The composite meet @c (R∩S)(a)=Δ†((R⊗S)(Δ(a))): copy, run both
+   *         legs, merge where they agree.
+   *  @param a the input value.
+   *  @return @c R(a)⊓S(a), the injected glb of the two legs' outputs.
+   *  @note The @c requires clause gates only the STRUCTURAL @c Δ⊣∧ shape
+   *        (crossed signatures + posetal carrier + definite variance).  It does
+   *        NOT certify that @c Meet is the glb rather than the lub; that is the
+   *        injected op's obligation (see @c IsMeetAsRightAdjoint), tightened
+   *        later via #908 + the value-level product-order leg, FIXME(#946). */
   constexpr Codomain operator()(const Domain& a) const {
     return Merge<Domain, Meet>{}(Tensor<R, S>{r, s}(Copy<Domain>{}(a)));
   }
@@ -289,6 +360,13 @@ static_assert(
     IsMerge<Π_1<std::pair<bool, bool>>>,
     "structural witness: a projection π₁:A×A→A also satisfies IsMerge "
     "(fold-vs-projection honesty gap).");
+// An injected op with no @c operator()(A,A) is rejected at the concept surface:
+// the @c requires clause on @c Merge::operator() removes it from the overload
+// set, so @c IsArrow (hence @c IsMerge) fails --- not deferred to a call site.
+struct MergeBadOp {};  // not callable as a binary meet
+static_assert(!IsMerge<Merge<int, MergeBadOp>>,
+              "an injected op that is not callable as (a,b)↦a⊓b must NOT model "
+              "IsMerge (the ill-formed call is caught structurally).");
 
 // The parallel product and the composite meet are genuine arrows.
 static_assert(IsArrow<Tensor<Identity<bool>, Identity<bool>>>,
@@ -347,23 +425,29 @@ static_assert(
     "the meet on the integral chain must be the right adjoint of the diagonal "
     "(glb = min).");
 
-// HONESTY OBLIGATION, made visible.  IsMeetAsRightAdjoint is a STRUCTURAL shape
-// (crossed signatures + a posetal carrier + definite variance); it cannot see
-// which order-op the merge computes, so the JOIN (@c Sup = max) passes the very
-// same test --- the join is monotone too, so the #946 variance tightening does
-// NOT reject it.  That is a genuine false positive: certifying the merge is the
-// glb and not the lub is the engineer's obligation (as with
-// IsGaloisConnection), not something the concept discharges.  This
-// static_assert pins the gap so it stays honest.
+// STRUCTURAL LIMITATION, pinned --- NOT a soundness guarantee.  This assertion
+// is a KNOWN false positive, kept only so the gap stays compile-visible: if a
+// later revision (#908 + the value-level product-order leg) tightens the
+// concept to reject the join, this line fails and forces the narrative to be
+// updated.  It does NOT endorse @c Sup as a meet.  @c IsMeetAsRightAdjoint is a
+// structural SHAPE gate (crossed signatures + posetal carrier + definite
+// variance); it cannot see which order-op the merge computes, so the JOIN
+// (@c Sup = max) passes it too (the join is monotone, so the #946 variance
+// tightening does not reject it).  Certifying the merge is the glb and not the
+// lub is the injected op's obligation, exactly as with @c IsGaloisConnection.
 static_assert(
     IsMeetAsRightAdjoint<Copy<int>, Merge<int, Sup>>,
-    "structural witness: the JOIN (Sup) also passes IsMeetAsRightAdjoint, the "
-    "glb-vs-lub honesty obligation the concept cannot discharge.");
+    "STRUCTURAL LIMITATION (not a soundness guarantee): the JOIN (Sup) also "
+    "passes the shape gate IsMeetAsRightAdjoint; glb-vs-lub is the injected "
+    "op's obligation, NOT something this concept discharges.  Do not dispatch "
+    "on it.");
 
 // Ternary (Kleene K₃): the 3-chain False < Unknown < True.  The injected glb is
-// @c Inf (min), which on this chain IS the Kleene AND.  Witnessable because the
-// :species is_enum_v blanket certifies K₃'s ≤ as transitive + antisymmetric, so
-// IsPosetal<Ternary, less_equal<Ternary>> holds.
+// @c Inf (min), which on this chain IS the Kleene AND.  Witnessable because
+// @c :logic hand-registers K₃'s ≤ as transitive + antisymmetric for the typed
+// @c std::less_equal<Ternary> (the :species blanket certifies only integral /
+// bool, NOT arbitrary enums; #946 review), so IsPosetal<Ternary,
+// less_equal<Ternary>> holds.
 static_assert(
     IsMeetAsRightAdjoint<Copy<Ternary>, Merge<Ternary, Inf>>,
     "the Kleene meet (AND = min) on the K₃ chain must be the right adjoint of "

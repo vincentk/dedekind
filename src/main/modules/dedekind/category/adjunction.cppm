@@ -80,8 +80,8 @@ import :morphism;
 import :natural;  // For IsNaturalTransformation, used in unit/counit witnesses
                   // (#434)
 import :small;
-import :posetal;  // IsVariant: a Galois connection's legs are always
-                  // monotone-or-antitone (their definite-variance shape)
+import :posetal;  // IsMonotone / IsAntiMonotone: a Galois connection's legs
+                  // have MATCHED variance (both monotone, or both antitone)
 
 namespace dedekind::category {
 
@@ -307,19 +307,23 @@ constexpr auto make_adjunction(Left&& left, Right&& right, Unit&& unit,
  *  recovered from @c F's @c Domain / @c Codomain.  @c G's
  *  carriers are required to be the cross-pair: @c G : @c Q → @c P.
  */
-// Tightened (#946): the legs must have a DEFINITE variance (@c IsVariant =
-// monotone-or-antitone), the defining shape of a Galois connection's adjoints,
-// not merely be arrows.  @c IsVariant implies @c IsArrow (both @c IsMonotone
-// and @c IsAntiMonotone require it), so this REPLACES the bare @c IsArrow gate.
-// Safe to tighten upstream: the only @c IsGaloisConnection<F,G> instantiation
-// in the tree is @c IsMeetAsRightAdjoint (:cartesian_bicategory); the floor /
-// ceil / ±k connections here are documentation-only, so no existing user is
-// constrained by the added @c IsVariant gate.  #908 would derive the variance
-// structurally from each leg's injected op.
+// Tightened (#946): the legs must have MATCHED variance --- both monotone
+// (the covariant Galois connection) or both antitone (the antitone dual), the
+// defining shape of the adjoints.  MISMATCHED polarity (a monotone @c F with an
+// antitone @c G) is NOT a Galois connection, so a bare @c IsVariant<F> @c &&
+// @c IsVariant<G> gate (#946 review) was too loose: it admitted the mismatch.
+// @c IsMonotone / @c IsAntiMonotone each imply @c IsArrow, so this REPLACES the
+// bare @c IsArrow gate.  Safe to tighten upstream: the only
+// @c IsGaloisConnection<F,G> instantiation in the tree is
+// @c IsMeetAsRightAdjoint (:cartesian_bicategory, both legs monotone); the
+// floor / ceil / ±k connections here are documentation-only, so no existing
+// user is constrained.  #908 would derive the variance structurally from each
+// leg's injected op.
 export template <typename F, typename G>
 concept IsGaloisConnection =
-    IsVariant<F> && IsVariant<G> && std::same_as<Dom<G>, Cod<F>> &&
-    std::same_as<Cod<G>, Dom<F>>;
+    ((IsMonotone<F> && IsMonotone<G>) ||
+     (IsAntiMonotone<F> && IsAntiMonotone<G>)) &&
+    std::same_as<Dom<G>, Cod<F>> && std::same_as<Cod<G>, Dom<F>>;
 
 /**
  * @concept IsClosureOperator
