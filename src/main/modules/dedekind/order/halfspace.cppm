@@ -385,10 +385,16 @@ struct Halfspace : dedekind::sets::SetExpr<Halfspace<T, Pivot, D, S, L>, T, L> {
    *  the scout keeps @c ℶ_1.  That does not arise from a real halfspace (no
    *  continuum is genuinely carried by @c int), so the carrier axis is the
    *  honest source.  The dual incoherence (a countable carrier tagged with
-   *  @c Kleene logic, @c UniversalSet<int,Kleene>) can surface a @c Set
-   * codomain mismatch when the promoted @c Boole class disagrees with the
-   * predicate's own @c Kleene species; that @c Set / @c NaturalLogic
-   * interaction is tracked in FIXME(#928).  Reproducing an arbitrary explicit
+   *  @c Kleene logic, @c UniversalSet<int,Kleene>) once surfaced a @c Set
+   * codomain mismatch when this promoted @c Boole class disagreed with the
+   * predicate's own @c Kleene species; resolved in #928 by having the
+   * @c Set(Species) CTAD wrap at the @c join_logic_t of the carrier-axis
+   * @c NaturalLogic verdict AND the predicate's declared @c logic_species, so
+   * the codomain holds the halfspace's own codomain (@c Kleene wins here) and
+   * the wrapper stays coherent.  The join keeps the continuum promotion too
+   * (ℝ's @c Boole-tagged, ℶ_1 halfspace stays @c Kleene), so this
+   * @c cardinality_type still governs the carrier axis unchanged.
+   * Reproducing an arbitrary explicit
    * @c C exactly would require threading it as a sixth @c Halfspace template
    * parameter (FIXME(#848): ~120 pattern-matched sites). */
   using cardinality_type = carrier_cardinality_t<T>;

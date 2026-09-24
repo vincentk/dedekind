@@ -762,4 +762,43 @@ TEST_CASE("order:halfspace — the factory makes a Halfspace a proper cut (#832)
   }
 }
 
+TEST_CASE(
+    "order:halfspace — Set{A|pred} codomain tracks the halfspace's own logic "
+    "species for an incoherent ambient (#928)",
+    "[order][halfspace][928]") {
+  // The literal #928 scenario: a countable carrier (int → ℵ_0) carved by a
+  // predicate deliberately tagged with pessimistic Kleene logic (an A|pred
+  // halfspace over the incoherent ambient 𝔸<int,Kleene>).  The halfspace's
+  // carrier-axis cardinality is ℵ_0, so NaturalLogic<Halfspace> = Boole, but
+  // the halfspace's own logic_species is Kleene and its operator() returns
+  // Kleene::Ω (Ternary).  Pre-#928 the Set(Species) CTAD picked the Boole
+  // carrier verdict and mis-typed the wrapper (Codomain bool ≠ Ternary return
+  // → !IsSet).  Post-#928 the Set adopts the halfspace's declared species.
+  constexpr Halfspace<int, 5, Direction::Upward, Strictness::Strict, Kleene>
+      h{};
+
+  SECTION("the halfspace itself is coherent: carrier ℵ_0, species Kleene") {
+    STATIC_CHECK(std::same_as<typename decltype(h)::logic_species, Kleene>);
+    STATIC_CHECK(std::same_as<typename decltype(h)::cardinality_type, ℵ_0>);
+    STATIC_CHECK(std::same_as<typename NaturalLogic<decltype(h)>::type, Boole>);
+  }
+
+  SECTION(
+      "Set{halfspace} adopts the halfspace's Kleene species, so its "
+      "codomain matches membership and IsSet holds") {
+    constexpr auto s = Set{h};
+    STATIC_CHECK(std::same_as<typename decltype(s)::logic_species, Kleene>);
+    STATIC_CHECK(
+        std::same_as<typename decltype(s)::Codomain, typename Kleene::Ω>);
+    STATIC_CHECK(IsSet<decltype(s)>);
+    // Honestly non-decidable: the carrier axis no longer over-promotes the
+    // Kleene predicate to Boole.
+    STATIC_CHECK_FALSE(HasDecidableMembership<decltype(s)>);
+    // Runtime observable (Codecov-visible): membership answers in Ternary,
+    // coherent with the declared codomain.
+    CHECK(s(6) == Kleene::True);   // 6 > 5
+    CHECK(s(5) == Kleene::False);  // boundary excluded
+  }
+}
+
 // The power set 𝔓 (#830) is exercised in order/powerset_test.cpp.

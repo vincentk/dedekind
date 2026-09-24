@@ -132,3 +132,68 @@ TEST_CASE("sets:computability — NaturalLogic carrier-axis cut (#622)",
         std::same_as<typename NaturalLogic<NoCardinality>::type, Kleene>);
   }
 }
+
+TEST_CASE(
+    "sets:computability — Set(Species) codomain tracks the predicate's own "
+    "logic species (#928)",
+    "[sets][computability][928]") {
+  // The @c Set(Species) identity CTAD used to derive the wrapping logic from
+  // the carrier axis (@c NaturalLogic) alone, which can DEMOTE a predicate that
+  // carries its own @c logic_species: a countable carrier (@c int → ℵ_0 →
+  // Boole) tagged with pessimistic @c Kleene logic.  The species' @c operator()
+  // returns @c Kleene::Ω (Ternary), which @c lift_logic passes through
+  // unchanged, so a @c Boole-declared Set advertised @c Codomain = @c bool
+  // while its membership returned @c Ternary — the wrapper then failed
+  // @c IsSet.  #928 wraps at the @c join of the carrier-axis verdict and the
+  // predicate's own species, so the codomain is expressive enough for both:
+  // Kleene wins the countable-Kleene case, while the continuum promotion (ℝ,
+  // below) is preserved.
+
+  SECTION("Coherent ambient (𝔸<int>) is unchanged: Boole, decidable") {
+    constexpr auto s = Set{𝔸<int>};
+    STATIC_CHECK(std::same_as<typename decltype(s)::logic_species, Boole>);
+    STATIC_CHECK(std::same_as<typename decltype(s)::Codomain, bool>);
+    STATIC_CHECK(IsSet<decltype(s)>);
+    STATIC_CHECK(HasDecidableMembership<decltype(s)>);
+    CHECK(s(3) == true);  // runtime observable (Codecov-visible)
+  }
+
+  SECTION(
+      "Incoherent ambient (𝔸<int,Kleene>): Kleene species wins the "
+      "codomain, wrapper stays a coherent Ω-set") {
+    // Countable carrier + pessimistic Kleene logic: NaturalLogic's carrier
+    // axis says Boole, but the predicate carries Kleene.  Post-#928 the Set
+    // adopts Kleene, so Codomain = Kleene::Ω (Ternary) matches operator().
+    constexpr auto s = Set{𝔸<int, Kleene>};
+    STATIC_CHECK(std::same_as<typename decltype(s)::logic_species, Kleene>);
+    STATIC_CHECK(
+        std::same_as<typename decltype(s)::Codomain, typename Kleene::Ω>);
+    // Now coherent: IsSet holds (a partial / Ω-set), and it is HONESTLY
+    // non-decidable — the carrier axis no longer over-promotes it to Boole.
+    STATIC_CHECK(IsSet<decltype(s)>);
+    STATIC_CHECK_FALSE(HasDecidableMembership<decltype(s)>);
+    // Runtime observable (Codecov-visible): membership answers in Ternary,
+    // matching the declared codomain rather than a mis-typed bool.
+    CHECK(s(3) == Kleene::True);
+  }
+
+  SECTION(
+      "Continuum ambient tagged Boole (ℝ-shape 𝔸<int,Boole,ℶ_1>) stays "
+      "Kleene: the carrier axis is NOT demoted by the predicate's Boole") {
+    // The dual guard: the fix is the JOIN of the carrier axis and the
+    // predicate's species, not the predicate's species verbatim.  The
+    // canonical continuum ambient ℝ = 𝔸<QuadraticReal,Boole,ℶ_1> declares Boole
+    // logic but is semi-decidable via its ℶ_1 cardinality; NaturalLogic reads
+    // Kleene off the carrier axis, and the join with the Boole tag must stay
+    // Kleene (a verbatim-logic_species fix would wrongly make ℝ decidable).
+    // 𝔸<int,Boole,ℶ_1> is the same shape (the Mandelbrot stand-in), reachable
+    // without importing dedekind.numbers.
+    constexpr auto s = Set{𝔸<int, Boole, ℶ_1>};
+    STATIC_CHECK(std::same_as<typename decltype(s)::logic_species, Kleene>);
+    STATIC_CHECK(
+        std::same_as<typename decltype(s)::Codomain, typename Kleene::Ω>);
+    STATIC_CHECK(IsSet<decltype(s)>);
+    STATIC_CHECK_FALSE(HasDecidableMembership<decltype(s)>);
+    CHECK(s(3) == Kleene::True);
+  }
+}

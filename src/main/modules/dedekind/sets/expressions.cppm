@@ -1833,10 +1833,49 @@ static_assert(
     "The canonical intensional Set<T, L, Predicate> must lift to an ETCS set "
     "object.");
 
+/** @brief The logic species a wrapping @c Set must adopt for @c Species (#928).
+ *
+ * @details @c Set::operator() is @c lift_logic<L>(predicate(x)), and
+ *  @c lift_logic embeds a decided @c bool onto the target poles but passes a
+ *  value ALREADY in a species (a non-@c bool @c Ω) THROUGH unchanged.  So the
+ *  wrapper is coherent (its @c Codomain @c = @c L::Ω equals what @c operator()
+ *  returns) iff @c L is at least as expressive as the predicate's OWN species:
+ *  @c LiftsTo<Species::logic_species, L> (𝔹 ⊑ K₃).  Two axes bound @c L, and
+ *  the honest choice is the JOIN that dominates both:
+ *
+ *  - the carrier-axis verdict @c NaturalLogic (continuum ⟹ @c Kleene): this is
+ *    what keeps the canonical continuum ambient ℝ = @c
+ * 𝔸<QuadraticReal,Boole,ℶ_1> semi-decidable even though it declares @c Boole
+ * logic --- its cardinality, not its logic tag, carries the undecidability;
+ *  - the predicate's declared @c logic_species: taking this into the join stops
+ *    the carrier axis from DEMOTING a genuinely @c Kleene predicate down to
+ *    @c Boole, which is the #928 gap --- a countable-carrier @c Π⁰₁ set
+ *    legitimately tagged @c Kleene (@c 𝔸<int,Kleene>, or an @c A|pred halfspace
+ *    carved from it) has @c operator() returning @c Ternary, so a @c Boole
+ *    codomain would truncate it and the wrapper failed @c IsArrow / @c IsSet.
+ *
+ *  @c join_logic_t of the two is @c ⊒ both, so @c lift_logic always embeds and
+ *  the codomain is coherent everywhere.  Canonical coherent ambients
+ *  (ℕ/ℤ/ℚ decidable, ℝ semi-decidable) are unchanged; only the incoherent
+ *  countable-@c Kleene bucket moves, from a mis-typed (@c !IsSet) wrapper to a
+ *  coherent partial (Ω-set) one.  A predicate with no @c logic_species (an
+ *  opaque λ) falls back to the carrier axis alone. */
+template <typename Species, typename = void>
+struct wrapped_logic {
+  using type = typename NaturalLogic<Species>::type;
+};
+template <typename Species>
+struct wrapped_logic<Species, std::void_t<typename Species::logic_species>> {
+  using type = join_logic_t<typename NaturalLogic<Species>::type,
+                            typename Species::logic_species>;
+};
+template <typename Species>
+using wrapped_logic_t = typename wrapped_logic<Species>::type;
+
 /** @section expressions__Identity_CTAD */
 template <typename Species>
-Set(Species) -> Set<typename Species::Domain,
-                    typename NaturalLogic<Species>::type, Species>;
+Set(Species)
+    -> Set<typename Species::Domain, wrapped_logic_t<Species>, Species>;
 
 /** @section expressions__Relational_Lifting (BoundScout)
  *
