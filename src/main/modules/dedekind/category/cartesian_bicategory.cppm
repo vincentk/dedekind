@@ -7,19 +7,19 @@
  *
  * @details DESIGN SKETCH for architectural review. NOT yet wired into the
  *          @c dedekind.category aggregator and NOT expected to build clean:
- *          the product-order leg, the terminal object, and the @c (⊗) plumbing
- *          are marked @c FIXME(#946). The point of this file is the @b concept
- *          and the @b names, not a finished implementation.
+ *          the @c (⊗) plumbing and the product-order leg remain @c FIXME(#946);
+ *          the terminal object (@c One) and the injected merge are resolved.
+ *          The point of this file is the @b concept and the @b names, not a
+ *          finished implementation.
  */
 export module dedekind.category:cartesian_bicategory;
 
 import :morphism;    // IsArrow, Dom, Cod
 import :adjunction;  // IsGaloisConnection (F left-adjoint-to G in a poset)
 import :posetal;     // IsPosetal (a poset IS a thin category)
-import :species;     // Inf: the value-level meet (min) reused as the merge
+import :limit;       // One (terminal object), IsTerminalMorphism
 
 import <utility>;     // std::pair: the binary product (cf. :limit)
-import <variant>;     // std::monostate: stand-in terminal object
 import <functional>;  // std::less_equal
 
 namespace dedekind::category {
@@ -79,12 +79,13 @@ struct Copy {
 
 /** @brief Delete (counit) @c ε:A→1. Completes the commutative comonoid.
  *  @tparam A the carrier object.
- *  @note FIXME(#946): @c std::monostate stands in for the category terminal
- *        object; wire to the ETCS @c 1 when the comonoid laws land. */
+ *  @note The category terminal object @c One (@c :limit) IS @c std::monostate,
+ *        so this is an @c IsTerminalMorphism; grounding resolved the earlier
+ *        placeholder. */
 export template <typename A>
 struct Delete {
   using Domain = A;
-  using Codomain = std::monostate;
+  using Codomain = One;
   constexpr Codomain operator()(const A&) const { return {}; }
 };
 
@@ -92,10 +93,12 @@ struct Delete {
  *         adjoint of the diagonal; the value that @c IsMeetAsRightAdjoint
  *         certifies as the glb.
  *  @tparam A the carrier object.
- *  @tparam Meet the value-level glb; defaults to @c Inf (min).
- *  @note FIXME(#946): @c Inf is the totally-ordered merge; the general poset
- *        merge is the glb of the injected order algebra. */
-export template <typename A, typename Meet = Inf>
+ *  @tparam Meet the glb, @b injected: the order-algebra's meet, exactly as
+ *          @c reduce<Term,Ord,Combine> injects it. No default and no
+ *          @c :species dependency, so this partition does not reach into the
+ *          @c :species value-op catalogue; the merge is whatever glb the
+ *          caller supplies. */
+export template <typename A, typename Meet>
 struct Merge {
   using Domain = std::pair<A, A>;
   using Codomain = A;
