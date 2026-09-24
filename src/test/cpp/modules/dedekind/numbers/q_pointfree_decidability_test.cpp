@@ -20,7 +20,8 @@
  * path fell to the @c IsRingIntegral fallback (ℶ_1 → Kleene),
  * disagreeing with the ℵ_0/Boole verdict.
  */
-#include <type_traits>
+#include <concepts>     // std::same_as
+#include <type_traits>  // std::remove_cvref_t
 
 import dedekind.category;
 import dedekind.numbers;
