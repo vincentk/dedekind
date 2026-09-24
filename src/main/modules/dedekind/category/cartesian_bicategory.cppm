@@ -202,6 +202,24 @@ struct Tensor {
   }
 };
 
+/** @brief @concept IsTensor: the structural shape of the parallel product ⊗ ---
+ *  an arrow whose Domain AND Codomain are product objects (the arrow-half of
+ * the product bifunctor). @c Tensor<R,S> is the canonical MODEL; this concept
+ * is the matchable handle. Cartesian only: the non-cartesian monoidal ⊗ (LA
+ * outer product) needs the carrier generalized past IsProduct (#951); a type
+ * with >1 arrow reading needs the dom/cod contract (#952). */
+export template <typename T>
+concept IsTensor = IsArrow<T> && requires {
+  typename Dom<T>::first_type;
+  typename Dom<T>::second_type;
+  typename Cod<T>::first_type;
+  typename Cod<T>::second_type;
+  requires IsProduct<Dom<T>, typename Dom<T>::first_type,
+                     typename Dom<T>::second_type>;
+  requires IsProduct<Cod<T>, typename Cod<T>::first_type,
+                     typename Cod<T>::second_type>;
+};
+
 /** @brief The composite meet @c R∩S @c = @c Δ† @c ∘ @c (R⊗S) @c ∘ @c Δ: copy
  * the input, run both legs in parallel, merge where they agree. The
  *         1-categorical realisation of the relational intersection whose
@@ -247,6 +265,20 @@ static_assert(
 static_assert(
     IsArrow<Intersect<Identity<bool>, Identity<bool>, std::logical_and<bool>>>,
     "the composite meet Δ† ∘ (R ⊗ S) ∘ Δ must be an arrow.");
+
+// @c Tensor is the canonical MODEL of @c IsTensor: product Domain AND product
+// Codomain.  The two NEGATIVE witnesses discriminate the near-miss comonoid
+// legs
+// --- Copy has a bare (non-product) Domain @c bool, Merge a bare Codomain @c
+// bool
+// --- so neither is the arrow-half of the product bifunctor.
+static_assert(IsTensor<Tensor<Identity<bool>, Identity<bool>>>,
+              "R ⊗ S is the arrow-half of the product bifunctor (A×B → C×D).");
+static_assert(!IsTensor<Copy<bool>>,
+              "Δ: bool → bool×bool has a NON-product Domain, so not a Tensor.");
+static_assert(
+    !IsTensor<Merge<bool, std::logical_and<bool>>>,
+    "Δ†: bool×bool → bool has a NON-product Codomain, so not a Tensor.");
 
 // Over the identity endo-leg the composite collapses to the identity: it is the
 // arrow-level shadow of the idempotent law a ∧ a = a (Δ copies, id⊗id is inert,
