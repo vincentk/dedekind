@@ -114,6 +114,29 @@ struct Merge {
   }
 };
 
+/** @brief @concept IsCopy: the DIAGONAL notion @c Δ:A→A×A --- an arrow whose
+ *  Codomain is the square of its Domain (the comonoid comultiplication /
+ *  fan-out). @c Copy<A> is the canonical MODEL; this concept is the matchable
+ *  "diagonal" handle. Purely structural: it names the crossed A→A×A signature,
+ *  not that the map is @c a↦(a,a) (that is @c Copy's own obligation). Cartesian
+ *  only: the non-cartesian ⊗ setting needs the carrier generalized past
+ *  @c std::pair (#951); a type carrying more than one arrow reading needs the
+ *  dom/cod contract (#952). */
+export template <typename F>
+concept IsCopy = IsArrow<F> && std::same_as<Cod<F>, std::pair<Dom<F>, Dom<F>>>;
+
+/** @brief @concept IsMerge: the FOLD notion @c Δ†:A×A→A --- an arrow whose
+ *  Domain is the square of its Codomain (the comonoid dagger / binary
+ * combiner).
+ *  @c Merge<A,Meet> is the canonical MODEL; this concept is the matchable
+ * handle. Purely structural: it names the A×A→A signature, so a PROJECTION @c
+ * π:A×A→A also satisfies it (the shape cannot tell a fold from a projection,
+ * the same honesty gap as glb-vs-lub). Same seams as @c IsCopy: carrier past @c
+ * std::pair
+ *  (#951); the multi-reading dom/cod contract (#952). */
+export template <typename F>
+concept IsMerge = IsArrow<F> && std::same_as<Dom<F>, std::pair<Cod<F>, Cod<F>>>;
+
 // Variance registrations for the comonoid legs (:posetal @c is_monotone_v).
 // @c IsMeetAsRightAdjoint gates on @c IsGaloisConnection, tightened (#946) to
 // require @c IsVariant on both legs, so the copy and merge arrows the witnesses
@@ -167,8 +190,7 @@ inline constexpr bool is_monotone_v<Merge<bool, std::logical_and<bool>>, Op> =
 export template <typename Cp, typename Mg,
                  typename Leq = std::less_equal<Dom<Cp>>>
 concept IsMeetAsRightAdjoint =
-    IsGaloisConnection<Cp, Mg> && IsPosetal<Dom<Cp>, Leq> &&
-    std::same_as<Cod<Cp>, std::pair<Dom<Cp>, Dom<Cp>>>;
+    IsGaloisConnection<Cp, Mg> && IsPosetal<Dom<Cp>, Leq> && IsCopy<Cp>;
 
 /** @brief The parallel product @c ⊗ as the @b arrow-half of the product
  *         bifunctor: @c R⊗S : @c A×B→C×D is @c IsProduct acting on the morphism
@@ -243,11 +265,30 @@ struct Intersect {
   }
 };
 
-// The comonoid legs are the arrows the theory names: Copy is an arrow, Delete
-// is the unique terminal morphism ε: A → One.
+// The comonoid legs are the arrows the theory names, each the canonical MODEL
+// of its concept: Copy ⊨ IsCopy (Δ:A→A×A), Merge ⊨ IsMerge (Δ†:A×A→A), Delete ⊨
+// IsTerminalMorphism (ε:A→One, the counit; concept reused from :limit).
 static_assert(IsArrow<Copy<bool>>, "Δ: A → A×A must be an arrow.");
+static_assert(IsCopy<Copy<bool>>, "Copy is the canonical model of IsCopy.");
+static_assert(IsMerge<Merge<bool, std::logical_and<bool>>>,
+              "Merge is the canonical model of IsMerge.");
 static_assert(IsTerminalMorphism<Delete<bool>>,
               "ε: A → One must be the terminal morphism (counit).");
+
+// Concept discrimination.  IsCopy (product Codomain) and IsMerge (product
+// Domain) are dual crossed shapes, so each rejects the other leg.
+static_assert(!IsCopy<Merge<bool, std::logical_and<bool>>>,
+              "Δ† (A×A→A) is not the diagonal Δ (A→A×A).");
+static_assert(!IsMerge<Copy<bool>>, "Δ (A→A×A) is not the fold Δ† (A×A→A).");
+// IsMerge is STRUCTURAL: the left projection π₁:A×A→A has the merge signature,
+// so it too satisfies IsMerge --- the shape cannot tell a fold from a
+// projection (the same honesty gap that lets the JOIN pass
+// IsMeetAsRightAdjoint).  Pinned here so the limitation stays visible; #952
+// (dom/cod contract) would separate the readings.
+static_assert(
+    IsMerge<Π_1<std::pair<bool, bool>>>,
+    "structural witness: a projection π₁:A×A→A also satisfies IsMerge "
+    "(fold-vs-projection honesty gap).");
 
 // The parallel product and the composite meet are genuine arrows.
 static_assert(IsArrow<Tensor<Identity<bool>, Identity<bool>>>,

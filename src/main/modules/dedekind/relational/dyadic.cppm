@@ -488,6 +488,15 @@ static_assert(
     !dedekind::category::IsTensor<decltype(diag<bool>())>,
     "Δ is χ:A×A→Ω (product-domain predicate), NOT a pair→pair Tensor.");
 
+// Nor is the relational Δ the COPY diagonal @c category::IsCopy (@c a↦(a,a),
+// A→A×A): the copy has a PRODUCT Codomain, while Δ's Codomain is the truth
+// object Ω.  The category copy Δ:A→A×A and this relational Δ={(a,a)} (the graph
+// of @c id, @c a↦a) are DIFFERENT typed arrows sharing a glyph --- the
+// diagonal-presentation smell, ties #873 (coreflexive↔diagonal matrix) / #952.
+static_assert(
+    !dedekind::category::IsCopy<decltype(diag<bool>())>,
+    "relational Δ (χ:A×A→Ω) is NOT the copy diagonal Δ:A→A×A (IsCopy).");
+
 }  // namespace dedekind::relational
 
 // ── Trait registry: relation-property certificates for :dyadic's predicates ──

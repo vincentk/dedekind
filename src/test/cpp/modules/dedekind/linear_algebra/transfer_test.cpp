@@ -245,6 +245,16 @@ TEST_CASE(
   const Diagonal<dim_finite<2>, DiagFiveSeven> D{};  // the ⊗ middle, diag(5, 7)
   const diagonal_product_rule<DiagFiveSeven, Ket<unsigned, 2>> Da{D.rule, a};
 
+  // Diagonal-presentation boundary (#873 / #951): the diagonal MATRIX is a
+  // binary entry map (i,j)↦δ_ij·F(i), not an IsArrow, so it does NOT satisfy
+  // the category copy diagonal category::IsCopy (Δ:A→A×A).  It is ≅ the
+  // relational coreflexive only up to the unbuilt #873 bridge.  Its diagonal
+  // RULE, by contrast, IS an IsArrow (size_t→scalar) --- that is where the
+  // arrow lives.
+  STATIC_CHECK(
+      !dedekind::category::IsCopy<Diagonal<dim_finite<2>, DiagFiveSeven>>);
+  STATIC_CHECK(dedekind::category::IsArrow<DiagFiveSeven>);
+
   // Δ†∘(⊗)∘Δ = ⟨a|D|a⟩ = Σ D_i·a_i² = 5·2² + 7·3² = 20 + 63 = 83.
   CHECK(inner_product<2>(a, Da) == 83u);
 

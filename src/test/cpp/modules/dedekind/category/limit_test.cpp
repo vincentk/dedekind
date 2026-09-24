@@ -56,6 +56,17 @@ TEST_CASE("Discrete: Terminal Object (1) - Pure Existence",
     STATIC_CHECK(IsArrow<decltype(five)>);
     CHECK(five(One{}) == 5);
   }
+
+  SECTION("Terminal morphisms (T -> 1): the unit factory models it") {
+    // The unit factory produces the unique arrow !: T -> One, a genuine
+    // IsTerminalMorphism match (Codomain == One) distinct from Delete<A>.
+    STATIC_CHECK(IsTerminalMorphism<decltype(unit<int>())>);
+    STATIC_CHECK(IsTerminalMorphism<decltype(unit<bool>())>);
+    // A global element 1 -> int is the DUAL shape (Domain == One), not a
+    // terminal morphism: it does not collapse into One.
+    STATIC_CHECK(
+        !IsTerminalMorphism<decltype(arrow<One, int>([](One) { return 5; }))>);
+  }
 }
 
 TEST_CASE("Discrete: Initial Object (0) - The Annihilator",
