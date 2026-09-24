@@ -117,12 +117,27 @@ Coherence checks:
   `CONTRIBUTING.md` (Alignment with the codebase → Doxygen header convention:
   brief, partition summary, copyright notice, Wikipedia-leads, and the
   practitioner-quote social-embedding line).
-- **Flag a leading `//` comment on any EXPORTED declaration.** Every `export`ed
-  function / struct / concept / variable, and members (operator(), operator&&,
-  ...) of an exported type, must be documented with a `/** @brief ... */`
-  Doxygen block, never a leading `//` block. A `//` is only for in-body notes and
-  `// FIXME(#NNN)` breadcrumbs. This is a recurring miss; call it out when the
-  diff introduces a `//` header above an exported declaration.
+- **Doxygen shape: generous partition header, terse per-symbol.** Calibrate the
+  block to its scope. A partition / `@section` header may be generous: it carries
+  the partition summary, the Wikipedia-lead, the social-embedding quote, and the
+  theory anchor. A per-symbol block stays terse. It is a short `@brief` summary of
+  three sentences at most, plus the structured Doxygen fields the symbol actually
+  has and Doxygen renders: `@tparam` for each template parameter, `@param` for
+  each parameter, `@return`, and `@deprecated` where applicable. Fill those
+  pre-configured fields rather than writing free-form prose. Flag a per-symbol
+  block that pads a long `@details` essay onto one declaration, or that omits the
+  `@param` / `@tparam` / `@return` fields the symbol's signature calls for.
+- **Flag a leading `//` comment on any EXPORTED declaration, and flag distracting
+  in-body `//` narration.** Every `export`ed function / struct / concept /
+  variable, and members (operator(), operator&&, ...) of an exported type, must be
+  documented with a `/** @brief ... */` Doxygen block, never a leading `//` block.
+  In-body `//` comments are reserved for `// FIXME(#NNN)` breadcrumbs and the
+  occasional load-bearing note: a non-obvious overload-resolution or ordering
+  hazard, a correctness subtlety. They are not for narrating line by line what the
+  code does. Prefer terse code and the structured Doxygen over a running `//`
+  commentary. The leading-`//`-on-an-exported-declaration miss is recurring; and a
+  diff that adds many explanatory in-body `//` comments reads as clutter, not
+  documentation, so call that out too.
 - **Prefer short, descriptive sentences over long, snaky ones** in all new prose
   (Doxygen, paper text, PR descriptions). One clause, one point: subject, verb,
   object. Subject, verb, object. A sentence that chains three or more clauses
