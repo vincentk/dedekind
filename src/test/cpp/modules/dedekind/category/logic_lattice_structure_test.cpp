@@ -6,7 +6,7 @@
  * these asserts pin the bridge so the species cannot drift from the algebra
  * their carriers actually realise.
  *
- * #923 op-type bridge: the carrier-level witnesses below are now routed through
+ * #923 op-type bridge: the carrier-level witnesses below are routed through
  * each species' declared op-@b types --- @c L::JoinOp (∨), @c L::MeetOp (∧),
  * @c L::RflOp (¬) --- rather than hard-coding @c std::logical_or / @c Sup /
  * @c Inf per species.  So a species that mis-declares its op-types (e.g. Kleene
@@ -15,16 +15,18 @@
  * both at the concept level and (in the value-level section) at the value
  * level.
  *
- * Scope note: @c Kleene's carrier (the @c Ternary enum) and @c Percent's
- * (@c Percentage) are registered in @c :total / @c :posetal (order + bounds,
- * #912/#923), so both reach the @b bounded rung @c Chain<int> cannot (@c ℤ is
- * unbounded).  The full @c IsAlgebraOnSet "palace" is further down the build
- * chain and tracked separately.  Consuming this bridge to gate the full Ockham
- * laws in @c IsOckhamAlgebra is #907 (not done here).
+ * Scope (#935): the sound core is @c Boole and @c Kleene, each certified
+ * end-to-end (distributive + @b bounded --- Kleene via the merged #912/#933
+ * @c Ternary @c :total registration).  @c Chain<int> is asserted
+ * @b distributive only; #935 makes no boundedness claim about it (the
+ * machine-int @c numeric_limits poles vs unbounded ℤ decision is #941).
+ * @c Percent is @b excluded entirely: its @c [0,100] invariant is not enforced
+ * for a publicly-mutable @c Percentage::v, so certifying it as a bounded
+ * lattice via generic @c Sup / @c Inf would be unsound (#940: enforce the
+ * invariant first).  Consuming this bridge to gate the full Ockham laws is
+ * #907.
  */
-#include <algorithm>
 #include <catch2/catch_test_macros.hpp>
-#include <concepts>
 #include <functional>
 #include <utility>
 
@@ -54,20 +56,6 @@ TEST_CASE(
   }
 
   SECTION(
-      "Chain<int> is a bounded De Morgan chain: int is a distributive "
-      "lattice under (JoinOp, MeetOp) = (Sup, Inf), but NOT bounded") {
-    STATIC_REQUIRE(IsBoundedDeMorganChain<Chain<int>>);
-    STATIC_REQUIRE(IsDistributiveLattice<Chain<int>::Ω, Chain<int>::JoinOp,
-                                         Chain<int>::MeetOp>);
-    // int is distributive under the value-returning Sup/Inf, but NOT bounded:
-    // ℤ has no ⊥/⊤, so no identity_v<int, Sup> is registered.
-    STATIC_REQUIRE(!IsBoundedLattice<Chain<int>::Ω, Chain<int>::JoinOp,
-                                     Chain<int>::MeetOp>);
-    // A chain wider than two grades is NOT complemented, matching the species.
-    STATIC_REQUIRE(!IsBooleanLogic<Chain<int>>);
-  }
-
-  SECTION(
       "Kleene is a bounded De Morgan chain: Ternary is a distributive "
       "lattice under (JoinOp, MeetOp) = (Sup, Inf), and --- being finite --- "
       "a bounded one") {
@@ -77,30 +65,26 @@ TEST_CASE(
     // T×T→T ops that reach the whole ladder (#912; niebloid migration #934).
     STATIC_REQUIRE(
         IsDistributiveLattice<Kleene::Ω, Kleene::JoinOp, Kleene::MeetOp>);
-    // K₃ is finite, so (unlike the unbounded Chain<int>) its carrier is a
-    // BOUNDED lattice: ⊥ = False (∨-identity), ⊤ = True (∧-identity), #912.
+    // K₃ is finite, so its carrier is a BOUNDED lattice: ⊥ = False
+    // (∨-identity), ⊤ = True (∧-identity), via the merged #912/#933 regs.
     STATIC_REQUIRE(IsBoundedLattice<Kleene::Ω, Kleene::JoinOp, Kleene::MeetOp>);
     // Three grades, so NOT complemented --- matching the species (not Boolean).
     STATIC_REQUIRE(!IsBooleanLogic<Kleene>);
   }
 
   SECTION(
-      "Percent is a bounded De Morgan chain: Percentage is a distributive "
-      "lattice under (JoinOp, MeetOp) = (Sup, Inf), and --- being a finite "
-      "[0,100] chain --- a bounded one (#923)") {
-    STATIC_REQUIRE(IsBoundedDeMorganChain<Percent>);
-    STATIC_REQUIRE(
-        IsDistributiveLattice<Percent::Ω, Percent::JoinOp, Percent::MeetOp>);
-    // Percent's bounds are registered (⊥ = 0, ⊤ = 100), so it is bounded.
-    STATIC_REQUIRE(
-        IsBoundedLattice<Percent::Ω, Percent::JoinOp, Percent::MeetOp>);
-    // Typed order-trait regression guard (#923): Percentage is not integral, so
-    // its transitivity / antisymmetry under std::less_equal<Percentage> are
-    // registered explicitly (mirroring Ternary, #933); this pins that the
-    // registration cannot silently regress.
-    STATIC_REQUIRE(category::IsPosetal<Percentage>);
-    // 101 grades, so NOT complemented (interior grades uncomplemented).
-    STATIC_REQUIRE(!IsBooleanLogic<Percent>);
+      "Chain<int> is a De Morgan chain: int is a distributive lattice under "
+      "(JoinOp, MeetOp) = (Sup, Inf); boundedness is out of scope for #935") {
+    STATIC_REQUIRE(IsBoundedDeMorganChain<Chain<int>>);
+    STATIC_REQUIRE(IsDistributiveLattice<Chain<int>::Ω, Chain<int>::JoinOp,
+                                         Chain<int>::MeetOp>);
+    // #935 asserts NO :total boundedness for Chain<int> either way: whether the
+    // carrier's numeric_limits poles should register as Sup/Inf identities (to
+    // reach IsBoundedLattice, matching IsBoundedDeMorganChain) or it stays the
+    // unbounded ℤ reading is a deliberate design decision left to the
+    // follow-up. A chain wider than two grades is NOT complemented, matching
+    // the species.
+    STATIC_REQUIRE(!IsBooleanLogic<Chain<int>>);
   }
 
   SECTION("value-level bridge: the declared op-types ARE the species' ops") {
@@ -116,13 +100,6 @@ TEST_CASE(
       }
       CHECK(Boole::RFL(a) == Boole::RflOp{}(a));
     }
-    for (auto [x, y] : {std::pair{7, 3}, std::pair{3, 7}, std::pair{-5, 5}}) {
-      CHECK(Chain<int>::OR(x, y) == Chain<int>::JoinOp{}(x, y));
-      CHECK(Chain<int>::AND(x, y) == Chain<int>::MeetOp{}(x, y));
-    }
-    for (int x : {-5, 0, 5}) {
-      CHECK(Chain<int>::RFL(x) == Chain<int>::RflOp{}(x));
-    }
     for (Ternary a : {Ternary::False, Ternary::Unknown, Ternary::True}) {
       for (Ternary b : {Ternary::False, Ternary::Unknown, Ternary::True}) {
         CHECK(Kleene::OR(a, b) == Kleene::JoinOp{}(a, b));
@@ -130,14 +107,12 @@ TEST_CASE(
       }
       CHECK(Kleene::RFL(a) == Kleene::RflOp{}(a));
     }
-    for (int p : {0, 25, 50, 75, 100}) {
-      for (int q : {0, 50, 100}) {
-        CHECK(Percent::OR(Percentage{p}, Percentage{q}) ==
-              Percent::JoinOp{}(Percentage{p}, Percentage{q}));
-        CHECK(Percent::AND(Percentage{p}, Percentage{q}) ==
-              Percent::MeetOp{}(Percentage{p}, Percentage{q}));
-      }
-      CHECK(Percent::RFL(Percentage{p}) == Percent::RflOp{}(Percentage{p}));
+    for (auto [x, y] : {std::pair{7, 3}, std::pair{3, 7}, std::pair{-5, 5}}) {
+      CHECK(Chain<int>::OR(x, y) == Chain<int>::JoinOp{}(x, y));
+      CHECK(Chain<int>::AND(x, y) == Chain<int>::MeetOp{}(x, y));
+    }
+    for (int x : {-5, 0, 5}) {
+      CHECK(Chain<int>::RFL(x) == Chain<int>::RflOp{}(x));
     }
     // The tower split, exercised at the value level: bool's ¬ is a genuine
     // complement (a ∧ ¬a = ⊥), int's is not (interior stays interior).
