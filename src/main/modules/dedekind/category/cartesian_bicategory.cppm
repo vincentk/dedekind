@@ -178,6 +178,19 @@ export template <typename F>
 concept IsMerge = IsArrow<F> && std::same_as<Dom<F>, std::pair<Cod<F>, Cod<F>>>;
 
 // Variance registrations for the comonoid legs (:posetal @c is_monotone_v).
+//
+// REACHABILITY (#950 review): these @c is_monotone_v partial specializations
+// are deliberately NOT @c export ed --- template specializations are @b
+// reachable, not @b visible, so an importer's instantiation of @c
+// IsMeetAsRightAdjoint sees them without a name lookup.  This is the
+// SpeciesTraits precedent: @c :posetal itself registers @c
+// is_monotone_v<Identity<T>,Op> non-exported (posetal.cppm), and @c :numbers /
+// @c :morphologies / @c :sets / @c :algebra all specialize it unexported and
+// rely on it cross-partition.  @c :lattice_term's load-bearing
+// @c static_assert(IsMeetAsRightAdjoint<Copy<bool>,Merge<...>>) therefore does
+// NOT see only the @c false primary; CI (which instantiates it across the
+// import boundary) is the audit trail.  Exporting a variable-template
+// specialization is ill-formed anyway --- only the primary is exported.
 // @c IsMeetAsRightAdjoint gates on @c IsGaloisConnection, tightened (#946) to
 // require @c IsVariant on both legs, so the copy and merge arrows the witnesses
 // use must carry a declared variance or the (correctly) narrowed concept would
@@ -307,6 +320,17 @@ concept IsTensor = IsArrow<T> && requires {
  * the input, run both legs in parallel, merge where they agree. The
  *         1-categorical realisation of the relational intersection whose
  *         @c (Copy,Merge) legs are certified by @c IsMeetAsRightAdjoint.
+ *  @warning @b Not @b dispatch-safe as a glb (#950 review).  This is the meet
+ *           composite @b by @b intent, but its @c requires clause gates only
+ * the STRUCTURAL @c Δ⊣∧ shape via @c IsMeetAsRightAdjoint, which this file
+ *           deliberately proves true for @c Merge<A,Sup> (the JOIN) too.  So
+ *           @c Intersect<R,S,Sup> is publicly constructible and computes a
+ *           @b join under an intersection name.  glb-correctness is the
+ * injected
+ *           @c Meet's obligation, NOT something this composite discharges;
+ *           closing it is deferred to #908 (reify predicate variance) plus the
+ *           value-level product-order leg, FIXME(#946).  Do NOT branch dispatch
+ *           on the mere existence of this type as if it guaranteed a meet.
  *  @tparam R the left endo-leg @c A→A.
  *  @tparam S the right endo-leg @c A→A.
  *  @tparam Meet the injected glb, forwarded to @c Merge (see there).

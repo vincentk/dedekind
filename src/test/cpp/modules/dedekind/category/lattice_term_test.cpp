@@ -22,6 +22,7 @@
 #include <concepts>
 #include <cstddef>
 #include <functional>
+#include <utility>
 
 import dedekind.category;
 
@@ -499,5 +500,25 @@ TEST_CASE("lattice_term: induced laws + assembled reducer (#865/#888)",
     CHECK(either(3));
     CHECK(below5(3));
     CHECK_FALSE(below5(7));
+  }
+
+  // The comonoid legs' operator() bodies are otherwise only exercised by the
+  // static_asserts in :cartesian_bicategory (invisible to Codecov); drive them
+  // at run time here on the endo carrier bool (Δ⊣∧ over one poset).
+  SECTION("comonoid legs run at run time: Copy / Merge / Tensor / Intersect") {
+    // Copy Δ: a ↦ (a,a).
+    CHECK(Copy<bool>{}(true) == std::pair<bool, bool>{true, true});
+    // Merge Δ† = ∧: (a,b) ↦ a ⊓ b.
+    const Merge<bool, std::logical_and<bool>> merge{};
+    CHECK(merge(std::pair{true, true}));
+    CHECK_FALSE(merge(std::pair{true, false}));
+    // Tensor R⊗S: (a,b) ↦ (R(a),S(b)), run both legs in parallel.
+    const Tensor<Identity<bool>, Identity<bool>> both{};
+    CHECK(both(std::pair{true, false}) == std::pair<bool, bool>{true, false});
+    // Intersect Δ†∘(id⊗id)∘Δ collapses to a∧a = a (the idempotent meet).
+    const Intersect<Identity<bool>, Identity<bool>, std::logical_and<bool>>
+        meet{};
+    CHECK(meet(true));
+    CHECK_FALSE(meet(false));
   }
 }
