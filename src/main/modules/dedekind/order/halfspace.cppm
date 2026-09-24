@@ -1241,6 +1241,11 @@ static_assert(((ℕ | (π > fix(5_c))) & ~(ℕ | (π > fix(5_c)))) == Ø{},
 static_assert(((𝔹 | (π == fix(true_c))) & ~(𝔹 | (π == fix(true_c)))) == Ø{},
               "point-free: {true} ∩ ¬{true} == Ø.");
 
+// NOTE(#895): the DISTINCT-pivot bare disjoint-meet witness ({x>5} ∩ {x<3} → Ø)
+// lives BELOW the general Halfspace operator& (search "#895") because it must
+// see that overload; declared here it would resolve `&` to the generic sets
+// reducer (→ MeetSet) instead.  Same witness-ordering class as #935.
+
 /** @section halfspace__PointFree_Scout_Decidability_848
  *
  * #848 acceptance witness: the point-free comprehension @c ℕ @c | @c pred and
@@ -2146,15 +2151,49 @@ constexpr auto lowerbounds(const UniversalSet<bool, L, C>&) {
  *  wrapped predicates, so no @c Set{} wrapping is needed.  The complement-pair
  *  @c operator& above (opposite direction AND flipped strictness → @c Ø) is
  * more specialized and still claims its case; every other halfspace pair
- *  (overlapping, same-direction) routes here. */
+ *  (overlapping, same-direction) routes here.
+ *
+ *  @details A @b disjoint pair (@c structured_and yields @c EmptyPredicate<T>)
+ *  canonicalises to the empty set @c Ø<T,L> here, mirroring the sets-layer
+ *  @c elevate_meet and the complement-pair meet above.  Before #895 this bare
+ *  meet returned the raw @c EmptyPredicate<T>, which has no @c == against
+ *  @c Ø<T,L>, so @c A @c & @c B on bare halfspaces disagreed with the
+ *  @c Set{A} @c & @c Set{B} spelling (that reaches @c elevate_meet) and forced
+ * a defensive @c Set{} re-wrap at the disjoint-emptiness call sites.  Routing
+ * the empty result through the SAME @c Ø<T,L> the sets layer produces makes the
+ * two spellings type-identical.  Non-empty results (an @c OrderInterval, a
+ *  @c Singleton) are returned exactly as @c structured_and shapes them. */
 export template <typename T, auto P1, Direction D1, Strictness S1, auto P2,
                  Direction D2, Strictness S2, typename L>
 constexpr auto operator&(Halfspace<T, P1, D1, S1, L> a,
                          Halfspace<T, P2, D2, S2, L> b)
   requires requires { structured_and(a, b); }
 {
-  return structured_and(a, b);
+  if constexpr (std::same_as<std::decay_t<decltype(structured_and(a, b))>,
+                             dedekind::sets::EmptyPredicate<T>>) {
+    // Codomain leg (#894): the empty meet is decided → Boolean codomain.
+    return dedekind::sets::codomain_reduce_t<dedekind::sets::Ø<T, L>>{};
+  } else {
+    return structured_and(a, b);
+  }
 }
+
+// #895: a DISJOINT bare halfspace-meet with DISTINCT pivots (so NOT the
+// same-pivot complement-pair case, which has its own operator& above) now
+// canonicalises to the SAME Ø<Cardinality> the sets layer produces.  Before
+// #895 the bare meet returned the raw EmptyPredicate<Cardinality>, which has no
+// == against Ø<Cardinality>, so this exact case (the #932 quantifier-emptiness
+// witness) needed a defensive Set{} re-wrap.  Now the bare grammar compares
+// directly.  {x>5} ∩ {x<3} = Ø.  This witness sits BELOW the general Halfspace
+// operator& above so overload resolution sees it (declared earlier in the file
+// it would resolve `&` to the generic sets reducer → MeetSet; #935 class).
+static_assert(
+    std::same_as<decltype((ℕ | (π > fix(5_c))) & (ℕ | (π < fix(3_c)))),
+                 Ø<Cardinality, Boole>>,
+    "bare {x>5} ∩ {x<3} is Ø<Cardinality> at the type level (no Set{} wrap).");
+static_assert(((ℕ | (π > fix(5_c))) & (ℕ | (π < fix(3_c)))) == Ø<Cardinality>{},
+              "point-free bare disjoint meet == Ø<Cardinality> (#895 / #932).");
+
 /** @brief @c | IS the join on bare order operands, dual to the @c & meet: it
  *  forwards to @c structured_or, so a same-direction or overlapping halfspace
  *  union collapses.  The complement-pair @c operator| above (→ universe) is
