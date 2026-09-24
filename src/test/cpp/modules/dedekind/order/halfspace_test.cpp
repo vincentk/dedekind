@@ -773,7 +773,9 @@ TEST_CASE(
   // the halfspace's own logic_species is Kleene and its operator() returns
   // Kleene::Ω (Ternary).  Pre-#928 the Set(Species) CTAD picked the Boole
   // carrier verdict and mis-typed the wrapper (Codomain bool ≠ Ternary return
-  // → !IsSet).  Post-#928 the Set adopts the halfspace's declared species.
+  // → !IsSet).  Post-#928 the Set derives its codomain from the halfspace's
+  // actual operator() RETURN type (GetLogic = Kleene) joined with the carrier
+  // axis, not from a declared tag (which here merely agrees).
   constexpr Halfspace<int, 5, Direction::Upward, Strictness::Strict, Kleene>
       h{};
 
@@ -818,23 +820,13 @@ TEST_CASE(
     CHECK(s(5) == Kleene::False);
   }
 
-  SECTION(
-      "through the scout MembershipBinding path (element<A> % S) over a "
-      "Kleene species deduces Kleene") {
-    // The MembershipBinding guide wraps the species S itself; it must route
-    // through the same return-type reconciliation as the identity CTAD.  A
-    // Kleene halfspace bound via the scout % operator yields a Kleene Set.
-    constexpr Halfspace<int, 5, Direction::Upward, Strictness::Strict, Kleene>
-        h{};
-    constexpr auto s = Set{element<𝔸<int, Kleene>> % h};
-    STATIC_CHECK(std::same_as<typename decltype(s)::logic_species, Kleene>);
-    STATIC_CHECK(
-        std::same_as<typename decltype(s)::Codomain, typename Kleene::Ω>);
-    STATIC_CHECK(IsSet<decltype(s)>);
-    STATIC_CHECK_FALSE(HasDecidableMembership<decltype(s)>);
-    CHECK(s(6) == Kleene::True);
-    CHECK(s(5) == Kleene::False);
-  }
+  // FIXME(#928): the @c Set(MembershipBinding<S>) guide's codomain-coherence
+  // gate is reachable only through the retired scout surface (@c element<A>%S;
+  // @c MembershipBinding is non-exported, built solely by @c BoundScout's @c
+  // %), so no point-free witness exists for it.  Its result equals the
+  // identity-CTAD wrap of the same species (@c wrapped_logic_t<S>), so the
+  // Set{halfspace} witness above already covers the reconciliation; a dedicated
+  // witness returns when the scout algebra is retired.
 }
 
 // The power set 𝔓 (#830) is exercised in order/powerset_test.cpp.

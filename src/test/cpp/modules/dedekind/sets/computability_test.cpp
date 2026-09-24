@@ -138,16 +138,17 @@ TEST_CASE(
     "logic species (#928)",
     "[sets][computability][928]") {
   // The @c Set(Species) identity CTAD used to derive the wrapping logic from
-  // the carrier axis (@c NaturalLogic) alone, which can DEMOTE a predicate that
-  // carries its own @c logic_species: a countable carrier (@c int → ℵ_0 →
-  // Boole) tagged with pessimistic @c Kleene logic.  The species' @c operator()
-  // returns @c Kleene::Ω (Ternary), which @c lift_logic passes through
+  // the carrier axis (@c NaturalLogic) alone, which can DEMOTE a predicate
+  // whose @c operator() RETURNS a wider species than the carrier admits: a
+  // countable carrier (@c int → ℵ_0 → Boole) whose membership answer is @c
+  // Kleene::Ω (Ternary).  @c lift_logic passes that non-@c bool answer through
   // unchanged, so a @c Boole-declared Set advertised @c Codomain = @c bool
-  // while its membership returned @c Ternary; the wrapper then failed
-  // @c IsSet.  #928 wraps at the @c join of the carrier-axis verdict and the
-  // predicate's own species, so the codomain is expressive enough for both:
-  // Kleene wins the countable-Kleene case, while the continuum promotion (ℝ,
-  // below) is preserved.
+  // while its membership returned @c Ternary; that declared-codomain vs
+  // actual-return MISMATCH failed @c IsSet.  #928 derives the codomain from the
+  // @c join of the carrier-axis verdict and @c GetLogic of the predicate's
+  // actual RETURN type, so it is expressive enough for both: Kleene wins the
+  // countable-Kleene case, while the continuum promotion (ℝ, below) is
+  // preserved.
 
   SECTION("Coherent ambient (𝔸<int>) is unchanged: Boole, decidable") {
     constexpr auto s = Set{𝔸<int>};
@@ -246,19 +247,20 @@ TEST_CASE(
   }
 
   SECTION(
-      "through the genuine Comprehension DSL binding "
-      "(element<𝔸<int,Kleene>> | Ternary-predicate) deduces Kleene") {
-    // The previously-bypassed path: element<A> | pred builds a Comprehension,
-    // which selects the (more-specialised) Comprehension deduction guide, not
-    // the identity CTAD.  It must route through the SAME return-type
-    // reconciliation: the predicate returns Ternary, so the wrapped Set is
-    // Kleene rather than the carrier-axis Boole (which truncated it pre-fix).
+      "through the genuine Comprehension node (𝔸<int,Kleene> comprehended by "
+      "a Ternary-predicate) deduces Kleene") {
+    // Selects the more-specialised @c Set(Comprehension<B,P>) guide, NOT the
+    // identity CTAD: carrier axis from base @c B, codomain from predicate @c
+    // P's own RETURN.  Built point-free as a bare @c Comprehension node (the
+    // retired scout @c element<A>|pred produced the identical type).  @c P
+    // returns Ternary, so the wrapped Set is Kleene, coherent with @c
+    // operator() rather than the carrier-axis Boole that mis-typed it pre-fix.
     struct TernaryPred {
       constexpr Ternary operator()(const int& n) const {
         return n > 0 ? Ternary::True : Ternary::Unknown;
       }
     };
-    constexpr auto s = Set{element<𝔸<int, Kleene>> | TernaryPred{}};
+    constexpr auto s = Set{Comprehension{𝔸<int, Kleene>, TernaryPred{}}};
     STATIC_CHECK(std::same_as<typename decltype(s)::logic_species, Kleene>);
     STATIC_CHECK(
         std::same_as<typename decltype(s)::Codomain, typename Kleene::Ω>);
