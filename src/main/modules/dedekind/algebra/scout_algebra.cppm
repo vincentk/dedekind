@@ -19,7 +19,7 @@
  * concepts (@c IsAbelianGroup / @c IsCommutativeRing / @c IsField) to give
  * the ordered-algebra concepts (@c IsOrderedAdditiveGroup /
  * @c IsOrderedCommutativeRing / @c IsOrderedMultiplicativeGroup).  The
- * additive marker is Hölder's Archimedean-ordered-group axiom made a
+ * additive marker is the translation-invariance axiom for an ordered group, made a
  * per-carrier opt-in; the field concepts add the Artin--Schreier
  * order-compatibility axioms that pin an @b ordered (formally real) field.
  *
