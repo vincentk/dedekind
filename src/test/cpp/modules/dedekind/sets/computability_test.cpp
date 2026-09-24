@@ -132,3 +132,146 @@ TEST_CASE("sets:computability — NaturalLogic carrier-axis cut (#622)",
         std::same_as<typename NaturalLogic<NoCardinality>::type, Kleene>);
   }
 }
+
+TEST_CASE(
+    "sets:computability - Set(Species) codomain tracks the predicate's own "
+    "logic species (#928)",
+    "[sets][computability][928]") {
+  // #928: Set codomain = join(carrier-axis NaturalLogic, GetLogic of the
+  // predicate's actual RETURN type), so it stays coherent with operator().
+
+  SECTION("Coherent ambient (𝔸<int>) is unchanged: Boole, decidable") {
+    constexpr auto s = Set{𝔸<int>};
+    STATIC_CHECK(std::same_as<typename decltype(s)::logic_species, Boole>);
+    STATIC_CHECK(std::same_as<typename decltype(s)::Codomain, bool>);
+    STATIC_CHECK(IsSet<decltype(s)>);
+    STATIC_CHECK(HasDecidableMembership<decltype(s)>);
+    CHECK(s(3) == true);  // runtime observable (Codecov-visible)
+  }
+
+  SECTION(
+      "Incoherent ambient (𝔸<int,Kleene>): Kleene species wins the "
+      "codomain, wrapper stays a coherent Ω-set") {
+    // Countable carrier + pessimistic Kleene logic: NaturalLogic's carrier
+    // axis says Boole, but the predicate carries Kleene.  Post-#928 the Set
+    // adopts Kleene, so Codomain = Kleene::Ω (Ternary) matches operator().
+    constexpr auto s = Set{𝔸<int, Kleene>};
+    STATIC_CHECK(std::same_as<typename decltype(s)::logic_species, Kleene>);
+    STATIC_CHECK(
+        std::same_as<typename decltype(s)::Codomain, typename Kleene::Ω>);
+    // Now coherent: IsSet holds (a partial / Ω-set), and it is HONESTLY
+    // non-decidable: the carrier axis no longer over-promotes it to Boole.
+    STATIC_CHECK(IsSet<decltype(s)>);
+    STATIC_CHECK_FALSE(HasDecidableMembership<decltype(s)>);
+    // Runtime observable (Codecov-visible): membership answers in Ternary,
+    // matching the declared codomain rather than a mis-typed bool.
+    CHECK(s(3) == Kleene::True);
+  }
+
+  SECTION(
+      "Continuum ambient tagged Boole (ℝ-shape 𝔸<int,Boole,ℶ_1>) stays "
+      "Kleene: the carrier axis is NOT demoted by the predicate's Boole") {
+    // The dual guard: the fix is the JOIN of the carrier axis and the
+    // predicate's species, not the predicate's species verbatim.  The
+    // canonical continuum ambient ℝ = 𝔸<QuadraticReal,Boole,ℶ_1> declares Boole
+    // logic but is semi-decidable via its ℶ_1 cardinality; NaturalLogic reads
+    // Kleene off the carrier axis, and the join with the Boole tag must stay
+    // Kleene (a verbatim-logic_species fix would wrongly make ℝ decidable).
+    // 𝔸<int,Boole,ℶ_1> is the same shape (the Mandelbrot stand-in), reachable
+    // without importing dedekind.numbers.
+    constexpr auto s = Set{𝔸<int, Boole, ℶ_1>};
+    STATIC_CHECK(std::same_as<typename decltype(s)::logic_species, Kleene>);
+    STATIC_CHECK(
+        std::same_as<typename decltype(s)::Codomain, typename Kleene::Ω>);
+    STATIC_CHECK(IsSet<decltype(s)>);
+    STATIC_CHECK_FALSE(HasDecidableMembership<decltype(s)>);
+    CHECK(s(3) == Kleene::True);
+  }
+
+  SECTION(
+      "Species outside the Boole/Kleene join lattice (Percent, Chain) are "
+      "REJECTED, not silently mis-typed to Boole (#945 Sollbruchstelle)") {
+    // join_logic_t only models 𝔹 ⊑ K₃, so a Percent-/Chain-tagged ambient would
+    // wrap to Boole while membership returns Percentage / a chain value ---
+    // exactly the #928 mismatch.  The Set(Species) CTAD is gated on the
+    // CoherentSetWrap contract, so it rejects those ambients; generalising the
+    // join to deduce them coherently is FIXME(#945).  Witness the gate CONCEPT
+    // directly: a `requires { Set{...}; }` form is unreliable because GCC leaks
+    // CTAD "no viable deduction guide" as a hard error rather than absorbing
+    // it.
+    STATIC_CHECK_FALSE(CoherentSetWrap<UniversalSet<int, Percent>>);
+    STATIC_CHECK_FALSE(CoherentSetWrap<UniversalSet<int, Chain<int>>>);
+    // Control: a Kleene ambient DOES lift into the wrapped codomain, so the
+    // gate admits it and the CTAD wraps coherently (as the sections above
+    // verify).
+    STATIC_CHECK(CoherentSetWrap<UniversalSet<int, Kleene>>);
+  }
+
+  SECTION(
+      "Untagged species with a Ternary-returning operator() over a "
+      "countable carrier deduces Kleene (the RETURN type is the "
+      "authority, not the tag)") {
+    // Carrier axis says Boole; GetLogic of the Ternary RETURN makes the wrap
+    // Kleene.
+    struct UntaggedTernaryOverN {
+      using Domain = int;
+      using cardinality_type = ℵ_0;  // countable → carrier axis says Boole
+      constexpr Ternary operator()(const int& n) const {
+        return n > 0 ? Ternary::True : Ternary::Unknown;
+      }
+    };
+    STATIC_CHECK(std::same_as<typename NaturalLogic<UntaggedTernaryOverN>::type,
+                              Boole>);  // carrier axis alone would demote
+    STATIC_CHECK(CoherentSetWrap<UntaggedTernaryOverN>);
+    constexpr auto s = Set{UntaggedTernaryOverN{}};
+    STATIC_CHECK(std::same_as<typename decltype(s)::logic_species, Kleene>);
+    STATIC_CHECK(
+        std::same_as<typename decltype(s)::Codomain, typename Kleene::Ω>);
+    STATIC_CHECK(IsSet<decltype(s)>);
+    STATIC_CHECK_FALSE(HasDecidableMembership<decltype(s)>);
+    CHECK(s(3) == Kleene::True);
+    CHECK(s(-1) == Kleene::Unknown);
+  }
+
+  SECTION(
+      "through the genuine Comprehension node (𝔸<int,Kleene> comprehended by "
+      "a Ternary-predicate) deduces Kleene") {
+    // Exercises the Set(Comprehension<B,P>) guide (not the identity CTAD),
+    // built as a bare node: no point-free operator| comprehends an arbitrary
+    // predicate (the retired scout element<A>|pred produced this same type).
+    struct TernaryPred {
+      constexpr Ternary operator()(const int& n) const {
+        return n > 0 ? Ternary::True : Ternary::Unknown;
+      }
+    };
+    constexpr auto s = Set{Comprehension{𝔸<int, Kleene>, TernaryPred{}}};
+    STATIC_CHECK(std::same_as<typename decltype(s)::logic_species, Kleene>);
+    STATIC_CHECK(
+        std::same_as<typename decltype(s)::Codomain, typename Kleene::Ω>);
+    STATIC_CHECK(IsSet<decltype(s)>);
+    STATIC_CHECK_FALSE(HasDecidableMembership<decltype(s)>);
+    CHECK(s(3) == Kleene::True);
+    CHECK(s(-1) == Kleene::Unknown);
+  }
+
+  SECTION(
+      "mixed Comprehension (Kleene base, bool predicate) takes its codomain "
+      "from the whole comprehension's return, not the predicate alone (#928)") {
+    // Comprehension::operator() combines base(x) under the base's Kleene logic,
+    // so a Kleene base comprehended by a bool predicate still returns
+    // Kleene::Ω.  Deriving from the bool predicate alone would mis-type it
+    // Boole (carrier axis is countable → Boole, and GetLogic<bool> = Boole);
+    // the guide joins in the base's species, so it stays Kleene.
+    struct BoolPred {
+      constexpr bool operator()(const int& n) const { return n > 5; }
+    };
+    constexpr auto s = Set{Comprehension{𝔸<int, Kleene>, BoolPred{}}};
+    STATIC_CHECK(std::same_as<typename decltype(s)::logic_species, Kleene>);
+    STATIC_CHECK(
+        std::same_as<typename decltype(s)::Codomain, typename Kleene::Ω>);
+    STATIC_CHECK(IsSet<decltype(s)>);
+    STATIC_CHECK_FALSE(HasDecidableMembership<decltype(s)>);
+    CHECK(s(6) == Kleene::True);
+    CHECK(s(5) == Kleene::False);
+  }
+}

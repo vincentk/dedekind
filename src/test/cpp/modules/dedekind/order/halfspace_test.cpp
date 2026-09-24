@@ -762,4 +762,61 @@ TEST_CASE("order:halfspace — the factory makes a Halfspace a proper cut (#832)
   }
 }
 
+TEST_CASE(
+    "order:halfspace - Set{A|pred} codomain tracks the halfspace's own logic "
+    "species for an incoherent ambient (#928)",
+    "[order][halfspace][928]") {
+  // A Kleene halfspace over a countable carrier: NaturalLogic reads Boole (ℵ_0)
+  // but operator() returns Ternary, so #928 derives the Set codomain from the
+  // RETURN type (GetLogic), not the carrier axis.
+  constexpr Halfspace<int, 5, Direction::Upward, Strictness::Strict, Kleene>
+      h{};
+
+  SECTION("the halfspace itself is coherent: carrier ℵ_0, species Kleene") {
+    STATIC_CHECK(std::same_as<typename decltype(h)::logic_species, Kleene>);
+    STATIC_CHECK(std::same_as<typename decltype(h)::cardinality_type, ℵ_0>);
+    STATIC_CHECK(std::same_as<typename NaturalLogic<decltype(h)>::type, Boole>);
+  }
+
+  SECTION(
+      "Set{halfspace} adopts the halfspace's Kleene species, so its "
+      "codomain matches membership and IsSet holds") {
+    constexpr auto s = Set{h};
+    STATIC_CHECK(std::same_as<typename decltype(s)::logic_species, Kleene>);
+    STATIC_CHECK(
+        std::same_as<typename decltype(s)::Codomain, typename Kleene::Ω>);
+    STATIC_CHECK(IsSet<decltype(s)>);
+    // Honestly non-decidable: the carrier axis no longer over-promotes the
+    // Kleene predicate to Boole.
+    STATIC_CHECK_FALSE(HasDecidableMembership<decltype(s)>);
+    // Runtime observable (Codecov-visible): membership answers in Ternary,
+    // coherent with the declared codomain.
+    CHECK(s(6) == Kleene::True);   // 6 > 5
+    CHECK(s(5) == Kleene::False);  // boundary excluded
+  }
+
+  SECTION(
+      "end-to-end through the genuine point-free A|pred DSL binding over a "
+      "Kleene ambient (not a hand-built Halfspace)") {
+    // Exercise the real species propagation: the DSL operator| threads the
+    // ambient's Kleene into make_halfspace, so the halfspace (and thus the
+    // wrapped Set) carries Kleene end-to-end.
+    constexpr auto hs = 𝔸<int, Kleene> | (π > fix(5_c));  // {x > 5}, L = Kleene
+    STATIC_CHECK(std::same_as<typename decltype(hs)::logic_species, Kleene>);
+    constexpr auto s = Set{hs};
+    STATIC_CHECK(std::same_as<typename decltype(s)::logic_species, Kleene>);
+    STATIC_CHECK(
+        std::same_as<typename decltype(s)::Codomain, typename Kleene::Ω>);
+    STATIC_CHECK(IsSet<decltype(s)>);
+    STATIC_CHECK_FALSE(HasDecidableMembership<decltype(s)>);
+    CHECK(s(6) == Kleene::True);
+    CHECK(s(5) == Kleene::False);
+  }
+
+  // FIXME(#928): the Set(MembershipBinding<S>) coherence gate is reachable only
+  // via the retired scout element<A>%S (MembershipBinding is non-exported), and
+  // its result equals the identity-CTAD wrap covered above; a point-free
+  // witness returns when the scout algebra is retired.
+}
+
 // The power set 𝔓 (#830) is exercised in order/powerset_test.cpp.
