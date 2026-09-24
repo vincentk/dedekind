@@ -177,7 +177,14 @@ concept IsCopy = IsArrow<F> && std::same_as<Cod<F>, std::pair<Dom<F>, Dom<F>>>;
 export template <typename F>
 concept IsMerge = IsArrow<F> && std::same_as<Dom<F>, std::pair<Cod<F>, Cod<F>>>;
 
-// Variance registrations for the comonoid legs (:posetal @c is_monotone_v).
+// Variance registrations for the comonoid legs (:posetal @c is_monotone_v),
+// against the COMPONENTWISE product order @c ProductLeq (@c :posetal), NOT the
+// lexicographic @c std::less_equal on the pair.  Lex is unsound here: e.g.
+// @c (0,100) <= (1,-100) lexicographically, yet @c Inf maps them to @c 100 and
+// @c -100, so min would report a false monotonicity under lex; min is monotone
+// only under @c ≤× (#950 review).  The shared @c P×P object of the connection
+// (Copy's codomain, Merge's domain) carries @c ≤×; @c P carries the carrier's
+// @c Leq.
 //
 // REACHABILITY (#950 review): these @c is_monotone_v partial specializations
 // are deliberately NOT @c export ed --- template specializations are @b
@@ -191,36 +198,25 @@ concept IsMerge = IsArrow<F> && std::same_as<Dom<F>, std::pair<Cod<F>, Cod<F>>>;
 // NOT see only the @c false primary; CI (which instantiates it across the
 // import boundary) is the audit trail.  Exporting a variable-template
 // specialization is ill-formed anyway --- only the primary is exported.
-// @c IsMeetAsRightAdjoint gates on @c IsGaloisConnection, tightened (#946) to
-// require @c IsVariant on both legs, so the copy and merge arrows the witnesses
-// use must carry a declared variance or the (correctly) narrowed concept would
-// reject them.  These per-arrow opt-ins are the MANUAL step #908 (reify
-// predicate variance) would DERIVE structurally from each injected op's
-// variance (and would add the antitone dual); cf. #791 (certify monotone / join
-// operations).  Monotonicity is undecidable in general, so the declaration is
-// trusted and the public review is the audit trail (as with @c
-// is_monic_arrow_v).
 //
-// Monotonicity is a claim about ONE order relation, not all @c Op: an arrow can
-// preserve @c <= yet break some other relation (e.g. @c Merge<A,Inf> fails @c
-// !=: @c (0,1) and @c (0,2) merge to the same @c 0).  So each leg is registered
-// ONLY against the actual product / carrier order @c std::less_equal<> (the
-// default @c Op the variance concepts query), never blanket-quantified over @c
-// Op (#946 review).
-// Copy @c a↦(a,a) preserves @c <= under the product order (both components move
-// together), as @c Identity does.
-template <typename A>
-inline constexpr bool is_monotone_v<Copy<A>, std::less_equal<>> = true;
-// The injected binary glb / lub preserve @c <= in each argument: min (@c Inf)
-// and max (@c Sup), as does Boolean AND (the reducer edge).
-template <typename A>
-inline constexpr bool is_monotone_v<Merge<A, Inf>, std::less_equal<>> = true;
-template <typename A>
-inline constexpr bool is_monotone_v<Merge<A, Sup>, std::less_equal<>> = true;
-template <>
-inline constexpr bool
-    is_monotone_v<Merge<bool, std::logical_and<bool>>, std::less_equal<>> =
-        true;
+// Neither leg is a hand-asserted per-carrier bool: both ride the @c
+// is_monotone_v disjunct of @c IsMonotone as a DERIVED THEOREM.  Copy @c
+// a↦(a,a) is UNIVERSALLY monotone into @c ≤× (from @c c≤c' infer @c
+// (c,c)≤(c',c') componentwise), so it is registered for ANY per-component
+// order.  Merge @c Δ†=∧ is monotone in @c ≤× as a THEOREM about a
+// meet-semilattice, gated on @c IsOrderMeetSemilattice<A,Meet>: min / max /
+// Boolean AND each preserve @c ≤ in every argument, so a @c ≤×-ordered pair
+// maps to a @c ≤-ordered output.  The gate fires for EVERY certified carrier /
+// op (Inf, Sup, logical_and, ...) by INFERENCE from the algebra, retiring the
+// four per-carrier tags.  This is the step #908 (reify predicate variance)
+// would derive fully structurally (and add the antitone dual); cf. #791
+// (certify monotone / join operations).
+template <typename A, typename LeqA>
+inline constexpr bool is_monotone_v<Copy<A>, ProductLeq<LeqA, LeqA>> = true;
+template <typename A, typename Meet>
+  requires IsOrderMeetSemilattice<A, Meet>
+inline constexpr bool is_monotone_v<
+    Merge<A, Meet>, ProductLeq<std::less_equal<A>, std::less_equal<A>>> = true;
 
 /**
  * @concept IsMeetAsRightAdjoint
@@ -254,13 +250,23 @@ inline constexpr bool
  *       computes stays the value-level product-order leg, FIXME(#946).  #908
  *       (reify predicate variance) would derive the variance structurally;
  *       #791 certifies the monotone / join operations themselves.
+ * @note @b Threaded @b orders (#950).  The Galois legs live on @c P×P (Copy's
+ *       codomain, Merge's domain), so their variance is tested against the
+ *       COMPONENTWISE product order @c ProductLeq<Leq,Leq> (@c ≤×), while the
+ *       base carrier @c P is checked posetal under @c Leq itself.  @c Leq is no
+ *       longer inert: it flows into BOTH the product order threaded through
+ *       @c IsGaloisConnection and the @c IsPosetal check (#950 review), so a
+ *       custom poset relation is honoured rather than silently overridden by a
+ *       hard-coded @c std::less_equal<>.
  * @tparam Cp the copy/diagonal @c Δ.
  * @tparam Mg the meet/merge @c ∧.
- * @tparam Leq the order on @c P; defaults to @c std::less_equal<P>. */
+ * @tparam Leq the order on @c P; defaults to @c std::less_equal<P>.  The
+ *         product order on @c P×P is derived as @c ProductLeq<Leq,Leq>. */
 export template <typename Cp, typename Mg,
                  typename Leq = std::less_equal<Dom<Cp>>>
 concept IsMeetAsRightAdjoint =
-    IsGaloisConnection<Cp, Mg> && IsPosetal<Dom<Cp>, Leq> && IsCopy<Cp>;
+    IsGaloisConnection<Cp, Mg, ProductLeq<Leq, Leq>> &&
+    IsPosetal<Dom<Cp>, Leq> && IsCopy<Cp>;
 
 /** @brief The parallel product @c ⊗ as the @b arrow-half of the product
  *         bifunctor: @c R⊗S : @c A×B→C×D is @c IsProduct acting on the morphism

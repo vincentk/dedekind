@@ -235,6 +235,12 @@ TEST_CASE("graph: relational meet via the generic spider Merge∘(R⊗S)∘Copy"
   const X off_by_one{5, 6};  // R false, S true → ∧ false
   CHECK_FALSE(meet(both(copy(on_diag))));
   CHECK_FALSE(meet(both(copy(off_by_one))));
+  // Positive branch (#950 review): R ∩ R on the diagonal is true ∧ true = true.
+  // Without a true/true case a composite that ignored its inputs and always
+  // returned false would pass every assertion above.
+  const Tensor<R, R> both_rr{r, r};
+  CHECK(meet(both_rr(copy(on_diag))));
+  CHECK(meet(both_rr(copy(on_diag))) == (r(on_diag) && r(on_diag)));
   // The generic-spider composite agrees with the pointwise Boolean meet of the
   // two graph memberships --- it really is R∩S, no packaged Intersect needed.
   CHECK(meet(both(copy(on_diag))) == (r(on_diag) && s(on_diag)));
