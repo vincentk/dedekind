@@ -981,6 +981,9 @@ class Set {
    *  bare grammar (PR B of #895).  This is a soft (documentation) deprecation
    *  only: a hard @c [[deprecated]] would break those call sites under
    *  @c -Werror before the migration. */
+  // FIXME(#948): stores the predicate only, dropping the comprehension's base;
+  // membership becomes P(x) rather than base(x) ∧ P(x).  Sound for universal
+  // ambient bases (base(x) ≡ ⊤); wrong for non-universal bases.
   template <typename B, typename P>
     requires std::same_as<Predicate, P>
   constexpr Set(Comprehension<B, P> cp) : predicate_(std::move(cp.predicate)) {}
@@ -1792,15 +1795,145 @@ constexpr auto operator^(const Set<T, L, Predicate>& s,
   return !s;
 }
 
+/** @section expressions__Set_Codomain_Reconciliation (#928)
+ *
+ * The logic species every @c Set deduction guide picks for its @c L slot must
+ * keep the wrapper's codomain coherent.  @c Set::operator() is
+ * @c lift_logic<L>(predicate(x)): @c lift_logic embeds a decided @c bool onto
+ * the target poles but passes a value ALREADY in a species (a non-@c bool @c Ω)
+ * THROUGH unchanged.  So the wrapper is coherent (its @c Codomain @c = @c L::Ω
+ * equals what @c operator() returns) iff the wrapped predicate's membership
+ * answer either is @c bool (which embeds into any @c L) or already IS @c L::Ω.
+ *
+ * The single source of truth is therefore the wrapped predicate's ACTUAL
+ * @c operator() RETURN type, not a declared @c logic_species tag.  The tag was
+ * only ever a PROXY: a predicate can OMIT it, range over a countable carrier
+ * (so
+ * @c NaturalLogic reads @c Boole), yet still RETURN @c Ternary; keying off the
+ * tag would then demote the codomain to @c Boole while @c operator() still
+ * returns @c Ternary --- a declared-codomain vs actual-return MISMATCH (@c
+ * lift_logic passes a non-@c bool answer through unchanged, so no value is
+ * truncated; the wrapper is just mis-typed and fails @c IsSet, #928).  So @c
+ * set_logic_t joins the answer's own species (@c GetLogic of the
+ * return type) UP with the carrier axis, and @c CoherentWrap checks the answer
+ * against the result.  All guides that pick an @c L share this principle: the
+ * identity @c Set(Species) CTAD and the scout @c Set(MembershipBinding<S>)
+ * derive @c L from the bare node's own answer, while the point-free
+ * comprehension @c Set(Comprehension<B,P>) derives from the WHOLE
+ * comprehension's answer --- @c Comprehension::operator() combines @c base(x)
+ * under @c B's logic, so it joins @c B's species UP with the @c P-axis @c
+ * set_logic_t (a Kleene base with a @c bool predicate still returns @c
+ * Kleene::Ω, which a @c P-only derivation would mis-type @c Boole).  So the @c
+ * A|pred paths are covered, not only the bare-node one.  The @c
+ * UniversalPredicate / boundary
+ * guides are EXEMPT: their wrapped predicate answers @c bool by construction,
+ * so any @c L is coherent and they keep the plain carrier-axis @c NaturalLogic.
+ *
+ * - carrier-axis verdict @c NaturalLogic (continuum ⟹ @c Kleene) keeps the
+ *   canonical continuum ambient ℝ = @c 𝔸<QuadraticReal,Boole,ℶ_1>
+ *   semi-decidable: ℝ returns @c bool, but its ℶ_1 cardinality (not a logic
+ *   tag) carries the undecidability, so join(Kleene, Boole) = Kleene holds the
+ *   guard;
+ * - the answer's species closes the dual gap: any countable-carrier predicate
+ *   returning @c Ternary --- @c 𝔸<int,Kleene>, an @c A|pred halfspace carved
+ *   from it, an UNTAGGED species whose @c operator() merely returns @c Ternary,
+ *   or a @c Ternary-returning comprehension predicate --- has @c GetLogic =
+ *   @c Kleene, so join(Boole, Kleene) = Kleene rather than the demoted @c Boole
+ *   that made a @c !IsSet wrapper.
+ *
+ * @c CoherentWrap is the Sollbruchstelle: it admits the wrap iff the answer
+ * type is @c bool or exactly @c set_logic_t::Ω.  @c join_logic_t only models 𝔹
+ * ⊑ K₃, so a @c Percent- or @c Chain-returning predicate collapses to a @c
+ * Boole wrap whose @c Ω (@c bool) is NOT its @c Percentage / chain return; it
+ * is rejected rather than silently mis-typed.  FIXME(#945): place @c Chain / @c
+ * Percent in the logic-species lattice so such ambients wrap coherently instead
+ * of being rejected.
+ */
+
+/** @brief The type predicate @c P returns for a member query on @c Domain ---
+ *  the authority for a wrapping @c Set's codomain (a @c logic_species tag is
+ *  only a proxy for it).
+ *  @note Deliberately the @b ungated sibling of @c category::OmegaOf: same
+ *  @c const / @c decay extraction, but @b no @c LogicalMap / @c IsΩ gate.
+ *  @c CoherentWrap must read the RAW answer of a predicate whose return is
+ *  @e not a truth-object (@c Percentage, a @c Chain value) in order to REJECT
+ *  it; @c OmegaOf requires @c LogicalMap and so is ill-formed on exactly those
+ *  predicates, which is why it cannot centralize this contract.  Reuse ends at
+ *  the extraction shape.
+ *  @tparam P a predicate / set-node; @tparam Domain the carrier queried. */
+template <typename P, typename Domain>
+using membership_answer_t = std::remove_cvref_t<
+    std::invoke_result_t<const std::decay_t<P>&, const Domain&>>;
+
+/** @brief The coherent @c Set codomain species: @c join_logic_t of the
+ *  carrier-axis @c NaturalLogic<Carrier> verdict and @c GetLogic of @c P's
+ *  actual answer on @c Domain.  Rationale: @ref
+ *  expressions__Set_Codomain_Reconciliation.
+ *  @tparam Carrier the set-node whose cardinality feeds the carrier axis;
+ *  @tparam P the wrapped predicate; @tparam Domain the carrier queried. */
+template <typename Carrier, typename P, typename Domain>
+using set_logic_t = join_logic_t<typename NaturalLogic<Carrier>::type,
+                                 typename dedekind::category::GetLogic<
+                                     membership_answer_t<P, Domain>>::type>;
+
+/** @brief Whether wrapping @c P (answering on @c Domain, carrier axis from
+ *  @c Carrier) yields a coherent @c Set: the wrapper's declared @c Ω is what
+ *  @c P actually RETURNS, i.e. @c P's answer is @c bool or exactly
+ *  @c set_logic_t::Ω.  An answer outside that is a declared-codomain vs
+ *  actual-return mismatch (not a lost value), the Sollbruchstelle rejected here
+ *  (@c Percent / @c Chain, FIXME(#945)).  Rationale: @ref
+ *  expressions__Set_Codomain_Reconciliation.
+ *  @tparam Carrier carrier axis source; @tparam P wrapped predicate;
+ *  @tparam Domain the carrier queried. */
+template <typename Carrier, typename P, typename Domain>
+concept CoherentWrap =
+    requires(const P& p, const Domain& x) { p(x); } &&
+    (std::same_as<membership_answer_t<P, Domain>, bool> ||
+     std::same_as<membership_answer_t<P, Domain>,
+                  typename set_logic_t<Carrier, P, Domain>::Ω>);
+
+/** @brief One-argument convenience: a bare set-node @c Species is its own
+ *  carrier @b and predicate.
+ *  @tparam Species the set-node wrapped by the @c Set(Species) CTAD. */
+export template <typename Species>
+concept CoherentSetWrap =
+    CoherentWrap<Species, Species, typename Species::Domain>;
+
+/** @brief The @c Set codomain species for a bare set-node @c Species.
+ *  @tparam Species the set-node wrapped by the @c Set(Species) CTAD. */
+template <typename Species>
+using wrapped_logic_t = set_logic_t<Species, Species, typename Species::Domain>;
+
+/** @brief The point-free comprehension @c A|pred (deprecated scout spelling
+ *  @c element<A>|pred): codomain derived from the whole comprehension's return
+ *  per @ref expressions__Set_Codomain_Reconciliation.
+ *  @tparam B the comprehension's base (carrier axis + logic species);
+ *  @tparam P the wrapped predicate.
+ *  FIXME(#948): the wrap stores @c P only (the converting ctor drops @c B), so
+ *  a NON-universal base's membership is lost; harmless for universal ambient
+ *  bases (@c base(x) ≡ ⊤), general fix tracked separately. */
 export template <typename B, typename P>
+  requires CoherentWrap<B, P, typename B::Domain>
 Set(Comprehension<B, P>)
-    -> Set<typename B::Domain, typename NaturalLogic<B>::type, P>;
+    -> Set<typename B::Domain,
+           join_logic_t<set_logic_t<B, P, typename B::Domain>,
+                        typename B::logic_species>,
+           P>;
 
+/** @brief Scout binding @c b%S: the wrapped predicate is the species @c S
+ *  itself, so this is the bare-node case --- deduce the coherent codomain from
+ *  @c S's own return (#928), rejecting an incoherent species uniformly. */
 export template <typename S>
-  requires(!requires { typename S::is_universal_boundary; })
-Set(MembershipBinding<S>)
-    -> Set<typename S::Domain, typename NaturalLogic<S>::type, S>;
+  requires(!requires { typename S::is_universal_boundary; }) &&
+          CoherentSetWrap<S>
+Set(MembershipBinding<S>) -> Set<typename S::Domain, wrapped_logic_t<S>, S>;
 
+/** @brief Scout binding @c b%S over a @b universal-boundary species: EXEMPT
+ *  from the @c CoherentWrap gate.  The wrapped predicate is @c
+ *  UniversalPredicate<T>, whose χ ≡ True is @c bool-valued, so any @c L is
+ *  coherent and the codomain stays the plain carrier-axis @c NaturalLogic<S>
+ *  (the join with @c GetLogic<bool> = @c Boole is a no-op).
+ *  @tparam S the universal-boundary species bound by the scout. */
 export template <typename S>
   requires requires { typename S::is_universal_boundary; }
 Set(MembershipBinding<S>)
@@ -1810,7 +1943,8 @@ Set(MembershipBinding<S>)
 /** @brief Per #551: deduction guide for @c Set{n} where n is a
  *  @c BoundScout (no @c % step).  Routes to the same @c
  *  UniversalPredicate<T>-flavoured Set as the membership-binding
- *  guide above, but takes the bare scout. */
+ *  guide above, but takes the bare scout.  EXEMPT from the @c CoherentWrap gate
+ *  for the same reason: the wrapped @c UniversalPredicate answers @c bool. */
 export template <auto Ambient>
   requires requires {
     typename BoundScout<Ambient>::AmbientType::is_universal_boundary;
@@ -1833,10 +1967,14 @@ static_assert(
     "The canonical intensional Set<T, L, Predicate> must lift to an ETCS set "
     "object.");
 
-/** @section expressions__Identity_CTAD */
+/** @section expressions__Identity_CTAD
+ *  Bare set-node wrap; shares the codomain reconciliation of @ref
+ *  expressions__Set_Codomain_Reconciliation with the comprehension / scout
+ *  guides above. */
 template <typename Species>
-Set(Species) -> Set<typename Species::Domain,
-                    typename NaturalLogic<Species>::type, Species>;
+  requires CoherentSetWrap<Species>
+Set(Species)
+    -> Set<typename Species::Domain, wrapped_logic_t<Species>, Species>;
 
 /** @section expressions__Relational_Lifting (BoundScout)
  *
