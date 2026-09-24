@@ -763,7 +763,7 @@ TEST_CASE("order:halfspace — the factory makes a Halfspace a proper cut (#832)
 }
 
 TEST_CASE(
-    "order:halfspace — Set{A|pred} codomain tracks the halfspace's own logic "
+    "order:halfspace - Set{A|pred} codomain tracks the halfspace's own logic "
     "species for an incoherent ambient (#928)",
     "[order][halfspace][928]") {
   // The literal #928 scenario: a countable carrier (int → ℵ_0) carved by a

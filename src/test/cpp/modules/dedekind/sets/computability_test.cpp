@@ -134,7 +134,7 @@ TEST_CASE("sets:computability — NaturalLogic carrier-axis cut (#622)",
 }
 
 TEST_CASE(
-    "sets:computability — Set(Species) codomain tracks the predicate's own "
+    "sets:computability - Set(Species) codomain tracks the predicate's own "
     "logic species (#928)",
     "[sets][computability][928]") {
   // The @c Set(Species) identity CTAD used to derive the wrapping logic from
@@ -143,7 +143,7 @@ TEST_CASE(
   // Boole) tagged with pessimistic @c Kleene logic.  The species' @c operator()
   // returns @c Kleene::Ω (Ternary), which @c lift_logic passes through
   // unchanged, so a @c Boole-declared Set advertised @c Codomain = @c bool
-  // while its membership returned @c Ternary — the wrapper then failed
+  // while its membership returned @c Ternary; the wrapper then failed
   // @c IsSet.  #928 wraps at the @c join of the carrier-axis verdict and the
   // predicate's own species, so the codomain is expressive enough for both:
   // Kleene wins the countable-Kleene case, while the continuum promotion (ℝ,
@@ -169,7 +169,7 @@ TEST_CASE(
     STATIC_CHECK(
         std::same_as<typename decltype(s)::Codomain, typename Kleene::Ω>);
     // Now coherent: IsSet holds (a partial / Ω-set), and it is HONESTLY
-    // non-decidable — the carrier axis no longer over-promotes it to Boole.
+    // non-decidable: the carrier axis no longer over-promotes it to Boole.
     STATIC_CHECK(IsSet<decltype(s)>);
     STATIC_CHECK_FALSE(HasDecidableMembership<decltype(s)>);
     // Runtime observable (Codecov-visible): membership answers in Ternary,
