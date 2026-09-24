@@ -436,7 +436,7 @@ export constexpr Ternary operator!(Ternary a) { return Kleene::RFL(a); }
  *  Form-chain @c Meet / @c Join slots reuse the generic lattice ops
  *  rather than carrying named Ternary-specific function-object struct
  *  types (#698 Slice 8 review).  @c Inf on the chain is Kleene AND;
- *  @c Sup is Kleene OR — identical to @c Kleene::AND / @c OR
+ *  @c Sup is Kleene OR, identical to @c Kleene::AND / @c OR
  *  (which are defined via @c Inf / @c Sup on the int8_t cast).
  *
  *  @note Returns @c std::strong_ordering, not @c Ternary — comparison

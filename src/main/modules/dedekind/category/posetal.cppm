@@ -50,7 +50,7 @@ export module dedekind.category:posetal;
 
 import :logic;
 import :mereology;
-import :species;  // Sup / Inf — the value-returning join / meet defaults (#934)
+import :species;   // Sup / Inf: the value-returning join / meet defaults (#934)
 import :morphism;  // IsArrow / IsBijectiveArrow / Identity (gates for
                    // IsMonotone / IsAntiMonotone / IsOrderIsomorphism)
 import :thin;      // IsThinCategory — the faithful row-1 inclusion that

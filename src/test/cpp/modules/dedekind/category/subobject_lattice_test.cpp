@@ -11,7 +11,7 @@
  *   - @c IsSubobjectFamilyMember<R, A, L> — anchored on the ambient
  *     and the classifier, the family concept paralleling
  *     @c :sets::mereology::IsSystem<S, Species, L>.
- *   - @c operator<=> on @c Ternary in @c :logic — supplies the @c < the
+ *   - @c operator<=> on @c Ternary in @c :logic: supplies the @c < the
  *     value-returning @c :species ops @c Inf / @c Sup use to compute Kleene
  *     meet / join on Ternary directly, so @c :lattice carries no
  *     Ternary-specific function-object struct types.
@@ -57,7 +57,7 @@ TEST_CASE("category:subobject-lattice — Ternary <=> enables stdlib niebloids",
   STATIC_CHECK(Ternary::Unknown != Ternary::True);
 }
 
-TEST_CASE("category:subobject-lattice — Kleene meet / join via value Sup / Inf",
+TEST_CASE("category:subobject-lattice: Kleene meet / join via value Sup / Inf",
           "[category][logic][ternary][supinf][lattice]") {
   /** @brief With @c operator<=> on Ternary, @c Inf / @c Sup
    *         compute the Kleene strong AND / OR directly.  No

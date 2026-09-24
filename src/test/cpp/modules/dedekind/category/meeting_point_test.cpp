@@ -116,7 +116,7 @@ TEST_CASE(
   STATIC_CHECK(IsHeytingLatticeCategory<int>);
 
   /** @brief Sup / Inf identity: the Form-chain @c Meet / @c Join slots
-   *         default to @c Inf and @c Sup — i.e.\ the value-returning
+   *         default to @c Inf and @c Sup, i.e.\ the value-returning
    *         @c :species ops ARE the Form-chain's canonical lattice ops. */
   STATIC_CHECK(IsLatticeCategory<int, std::less_equal<int>, Sup, Inf>);
 }

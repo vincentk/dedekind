@@ -1196,7 +1196,7 @@ struct HeytingExponential;
 /** @brief Canonical specialisation: integral carriers under
  *         @c std::less_equal with @c Inf as the meet.
  *         Holds an exponential value @c value @c ∈ T; @c operator()(x)
- *         returns @c Inf(value, x) — the lattice meet, which @b is the
+ *         returns @c Inf(value, x), the lattice meet, which @b is the
  *         eval morphism in a thin Heyting algebra.
  *
  *  @note The @c Meet template parameter is load-bearing: it pins the
@@ -1430,7 +1430,7 @@ static_assert(
  *    pinned @c bool and @c int).
  *  - @c Sup / @c Inf identity: the Form-chain @c Meet / @c Join slots
  *    @b are the value-returning @c :species lattice ops @c Sup / @c Inf
- *    — pinned via an explicit instantiation that names them (#934). */
+ *    (pinned via an explicit instantiation that names them, #934). */
 
 static_assert(IsHeytingLatticeCategory<std::size_t>,
               "size_t is a Heyting lattice under the totally-ordered "
