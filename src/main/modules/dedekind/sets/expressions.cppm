@@ -1853,10 +1853,17 @@ constexpr auto operator^(const Set<T, L, Predicate>& s,
 /** @brief The type predicate @c P returns for a member query on @c Domain ---
  *  the authority for a wrapping @c Set's codomain (a @c logic_species tag is
  *  only a proxy for it).
+ *  @note Deliberately the @b ungated sibling of @c category::OmegaOf: same
+ *  @c const / @c decay extraction, but @b no @c LogicalMap / @c IsΩ gate.
+ *  @c CoherentWrap must read the RAW answer of a predicate whose return is
+ *  @e not a truth-object (@c Percentage, a @c Chain value) in order to REJECT
+ *  it; @c OmegaOf requires @c LogicalMap and so is ill-formed on exactly those
+ *  predicates, which is why it cannot centralize this contract.  Reuse ends at
+ *  the extraction shape.
  *  @tparam P a predicate / set-node; @tparam Domain the carrier queried. */
 template <typename P, typename Domain>
-using membership_answer_t =
-    std::remove_cvref_t<std::invoke_result_t<const P&, const Domain&>>;
+using membership_answer_t = std::remove_cvref_t<
+    std::invoke_result_t<const std::decay_t<P>&, const Domain&>>;
 
 /** @brief The coherent @c Set codomain species: @c join_logic_t of the
  *  carrier-axis @c NaturalLogic<Carrier> verdict and @c GetLogic of @c P's
