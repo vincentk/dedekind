@@ -81,7 +81,7 @@ export enum class Strictness { Strict, NonStrict };
 /** @brief Compile-time bound tag: `bound<5>` carries `5` in its type.
  *
  * Exported (post-#664) so downstream partitions outside `:halfspace`
- * (e.g.\ `:algebra:scout_algebra`) can declare overloads on `Bound<V>`
+ * (e.g.\ `:algebra:ordered_algebra`) can declare overloads on `Bound<V>`
  * directly; previously only the `bound` variable template was exported,
  * which made cross-partition operator signatures awkward.
  */

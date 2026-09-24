@@ -111,7 +111,7 @@ concept IsInteger =
  *         ℤ proxy @c SignedCardinality is the canonical witness.
  *
  *  The classifier uses @c is_translation_invariant_ordered_v as the
- *  carrier-promise marker (registered in @c :algebra:scout_algebra on
+ *  carrier-promise marker (registered in @c :algebra:ordered_algebra on
  *  @c SignedCardinality); the cyclic alternative is gated below by
  *  @c IsCyclicGroup<T, std::plus<T>> rather than the duck-typed
  *  @c morphologies::IsCyclic shape concept, which checks for the

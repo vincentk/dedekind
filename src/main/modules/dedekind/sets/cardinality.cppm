@@ -1221,7 +1221,7 @@ export constexpr bool operator<(const SignedCardinality& lhs,
  * @c \<variant\> header is in the global module fragment).  Defining
  * the operator explicitly in @c dedekind::sets --- where ADL can find
  * it from importers like @c dedekind.numbers and
- * @c dedekind.algebra:scout_algebra --- closes the gap so
+ * @c dedekind.algebra:ordered_algebra --- closes the gap so
  * @c std::equality_comparable<SignedCardinality>,
  * @c std::regular<SignedCardinality>, and
  * @c std::three_way_comparable<SignedCardinality,

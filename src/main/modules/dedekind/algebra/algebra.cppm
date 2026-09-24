@@ -56,7 +56,7 @@ export import :quotient;  // IsQuotientAlgebra<Q> / IsProductAlgebra<Q> +
                           // Frac, Cplx, Dual, Vec2V; #498/#499 NEW-A)
 export import :registration;
 export import :ring;
-export import :scout_algebra;        // IsOrderedAdditiveGroup / -Ring /
+export import :ordered_algebra;      // IsOrderedAdditiveGroup / -Ring /
                                      // -MultiplicativeGroup: ordered-algebra
                                      // markers + concepts (#664)
 export import :halfspace_transport;  // image / inverse / argmax — the

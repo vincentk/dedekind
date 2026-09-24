@@ -1,13 +1,13 @@
 /**
- * @file dedekind/algebra/scout_algebra.cppm
- * @partition :scout_algebra
+ * @file dedekind/algebra/ordered_algebra.cppm
+ * @partition :ordered_algebra
  * @brief Ordered-algebra markers and concepts: carriers whose order is
  *        compatible with their group / ring / field structure (#664, #895).
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @section scout_algebra__Motivation
+ * @section ordered_algebra__Motivation
  *
  * Compatibility of a total order with the algebraic operations is a
  * @f$\forall@f$-law over VALUES, not a property of types or operation
@@ -23,7 +23,7 @@
  * made a per-carrier opt-in; the field concepts add the Artin--Schreier
  * order-compatibility axioms that pin an @b ordered (formally real) field.
  *
- * @section scout_algebra__Consumers
+ * @section ordered_algebra__Consumers
  *
  * These concepts are the algebraic preconditions for halfspace transport
  * and the ordered-numeric carriers: they are consumed by
@@ -31,21 +31,16 @@
  * @c :numbers:quadratic, @c :numbers:integer, and
  * @c :morphologies:integral.
  *
- * @note This partition previously also hosted the symbolic scout-algebra
- *       layer (@c GroupScout, @c AffineImageOfHalfspace, and the
- *       @c element<T> @c + @c bound<k> affine factory operators).  Those
- *       were @c export ed here and re-exported by @c dedekind.algebra, so
- *       this was a @b public (exported) API, not internal scaffolding.  It
- *       was removed under #895 (scout sunset) as intentional pre-1.0
- *       cleanup; the removal was safe because the layer had zero live
- *       (non-test) consumers.  Only the ordered-algebra concept layer
- *       survives here; relocating it to a better-named partition is
- *       deferred to a later PR.
+ * @note This partition was split out of the retired @c :scout_algebra
+ *       partition under #895 (scout sunset).  It houses only the live
+ *       ordered-algebra concept layer; the symbolic scout-algebra scaffolding
+ *       (@c GroupScout et al.) that formerly shared the partition had zero
+ *       live consumers and was deleted separately.
  *
  * Wikipedia: Ordered field, Linearly ordered group, Artin-Schreier theory
  *
  * @note "Die Zahlen sind freie Schöpfungen des menschlichen Geistes."
- *       ("Numbers are free creations of the human mind.")
+ *       [Trans: "Numbers are free creations of the human mind."]
  *       -- Richard Dedekind, Was sind und was sollen die Zahlen?,
  *          Vorwort (1888)
  */
@@ -54,7 +49,7 @@ module;
 #include <functional>
 #include <type_traits>
 
-export module dedekind.algebra:scout_algebra;
+export module dedekind.algebra:ordered_algebra;
 
 import dedekind.category; // IsAbelianGroup, IsCommutativeRing, IsField
 import dedekind.sets;     // SignedCardinality

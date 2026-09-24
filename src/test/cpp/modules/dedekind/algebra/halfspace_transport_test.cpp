@@ -404,7 +404,7 @@ static_assert(!dedekind::algebra::IsOrderedAdditiveGroup<int>,
 
 TEST_CASE(
     "algebra:ordered-algebra concepts survive GroupScout retirement (#895)",
-    "[algebra][scout_algebra][concept][smoke]") {
+    "[algebra][ordered_algebra][concept][smoke]") {
   // The static_asserts above carry the structural claim; this runtime body
   // gives Codecov a visible line (static_asserts are invisible to coverage).
   CHECK(
