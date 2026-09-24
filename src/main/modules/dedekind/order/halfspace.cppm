@@ -388,12 +388,12 @@ struct Halfspace : dedekind::sets::SetExpr<Halfspace<T, Pivot, D, S, L>, T, L> {
    *  @c Kleene logic, @c UniversalSet<int,Kleene>) once surfaced a @c Set
    * codomain mismatch when this promoted @c Boole class disagreed with the
    * predicate's own @c Kleene answer; resolved in #928 by having the
-   * @c Set(Species) CTAD derive the codomain from the predicate's @b actual
-   * @c operator() RETURN type (@c GetLogic<set_membership_t>) joined with this
-   * carrier-axis @c NaturalLogic verdict.  A halfspace returning @c Ternary
-   * thus promotes to @c Kleene via its return (even untagged), while a @c bool
-   * return keeps the carrier verdict, so ℝ's ℶ_1 halfspace stays @c Kleene;
-   * this
+   * @c Set (and comprehension / scout) deduction guides derive the codomain
+   * from the predicate's @b actual @c operator() RETURN type (@c GetLogic of
+   * the membership answer) joined with this carrier-axis @c NaturalLogic
+   * verdict.  A halfspace returning @c Ternary thus promotes to @c Kleene via
+   * its return (even untagged), while a @c bool return keeps the carrier
+   * verdict, so ℝ's ℶ_1 halfspace stays @c Kleene; this
    * @c cardinality_type still governs the carrier axis unchanged.
    * Reproducing an arbitrary explicit
    * @c C exactly would require threading it as a sixth @c Halfspace template

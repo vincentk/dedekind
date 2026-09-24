@@ -244,4 +244,27 @@ TEST_CASE(
     CHECK(s(3) == Kleene::True);
     CHECK(s(-1) == Kleene::Unknown);
   }
+
+  SECTION(
+      "through the genuine Comprehension DSL binding "
+      "(element<𝔸<int,Kleene>> | Ternary-predicate) deduces Kleene") {
+    // The previously-bypassed path: element<A> | pred builds a Comprehension,
+    // which selects the (more-specialised) Comprehension deduction guide, not
+    // the identity CTAD.  It must route through the SAME return-type
+    // reconciliation: the predicate returns Ternary, so the wrapped Set is
+    // Kleene rather than the carrier-axis Boole (which truncated it pre-fix).
+    struct TernaryPred {
+      constexpr Ternary operator()(const int& n) const {
+        return n > 0 ? Ternary::True : Ternary::Unknown;
+      }
+    };
+    constexpr auto s = Set{element<𝔸<int, Kleene>> | TernaryPred{}};
+    STATIC_CHECK(std::same_as<typename decltype(s)::logic_species, Kleene>);
+    STATIC_CHECK(
+        std::same_as<typename decltype(s)::Codomain, typename Kleene::Ω>);
+    STATIC_CHECK(IsSet<decltype(s)>);
+    STATIC_CHECK_FALSE(HasDecidableMembership<decltype(s)>);
+    CHECK(s(3) == Kleene::True);
+    CHECK(s(-1) == Kleene::Unknown);
+  }
 }

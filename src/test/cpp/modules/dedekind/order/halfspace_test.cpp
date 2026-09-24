@@ -817,6 +817,24 @@ TEST_CASE(
     CHECK(s(6) == Kleene::True);
     CHECK(s(5) == Kleene::False);
   }
+
+  SECTION(
+      "through the scout MembershipBinding path (element<A> % S) over a "
+      "Kleene species deduces Kleene") {
+    // The MembershipBinding guide wraps the species S itself; it must route
+    // through the same return-type reconciliation as the identity CTAD.  A
+    // Kleene halfspace bound via the scout % operator yields a Kleene Set.
+    constexpr Halfspace<int, 5, Direction::Upward, Strictness::Strict, Kleene>
+        h{};
+    constexpr auto s = Set{element<𝔸<int, Kleene>> % h};
+    STATIC_CHECK(std::same_as<typename decltype(s)::logic_species, Kleene>);
+    STATIC_CHECK(
+        std::same_as<typename decltype(s)::Codomain, typename Kleene::Ω>);
+    STATIC_CHECK(IsSet<decltype(s)>);
+    STATIC_CHECK_FALSE(HasDecidableMembership<decltype(s)>);
+    CHECK(s(6) == Kleene::True);
+    CHECK(s(5) == Kleene::False);
+  }
 }
 
 // The power set 𝔓 (#830) is exercised in order/powerset_test.cpp.
