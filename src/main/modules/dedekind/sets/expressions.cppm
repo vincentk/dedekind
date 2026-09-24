@@ -1816,11 +1816,16 @@ constexpr auto operator^(const Set<T, L, Predicate>& s,
  * truncated; the wrapper is just mis-typed and fails @c IsSet, #928).  So @c
  * set_logic_t joins the answer's own species (@c GetLogic of the
  * return type) UP with the carrier axis, and @c CoherentWrap checks the answer
- * against the result.  All guides that pick an @c L share this: the identity
- * @c Set(Species) CTAD, the point-free comprehension @c Set(Comprehension<B,P>)
- * and the scout @c Set(MembershipBinding<S>) --- each names its own carrier and
- * wrapped predicate but derives @c L the same way, so the @c A|pred paths are
- * covered, not only the bare-node one.  The @c UniversalPredicate / boundary
+ * against the result.  All guides that pick an @c L share this principle: the
+ * identity @c Set(Species) CTAD and the scout @c Set(MembershipBinding<S>)
+ * derive @c L from the bare node's own answer, while the point-free
+ * comprehension @c Set(Comprehension<B,P>) derives from the WHOLE
+ * comprehension's answer --- @c Comprehension::operator() combines @c base(x)
+ * under @c B's logic, so it joins @c B's species UP with the @c P-axis @c
+ * set_logic_t (a Kleene base with a @c bool predicate still returns @c
+ * Kleene::Ω, which a @c P-only derivation would mis-type @c Boole).  So the @c
+ * A|pred paths are covered, not only the bare-node one.  The @c
+ * UniversalPredicate / boundary
  * guides are EXEMPT: their wrapped predicate answers @c bool by construction,
  * so any @c L is coherent and they keep the plain carrier-axis @c NaturalLogic.
  *
@@ -1893,19 +1898,13 @@ template <typename Species>
 using wrapped_logic_t = set_logic_t<Species, Species, typename Species::Domain>;
 
 /** @brief The point-free comprehension @c A|pred (deprecated scout spelling
- *  @c element<A>|pred) builds a @c Comprehension over base @c B with wrapped
- *  predicate @c P.  The codomain follows the WHOLE comprehension's @c
- *  operator() return, NOT @c P alone (#928): @c Comprehension::operator()
- *  combines @c base(x) under @c B's own logic, so a Kleene base with a @c bool
- *  predicate still returns @c Kleene::Ω; a @c P-only derivation would mis-type
- *  it @c Boole (Codomain @c bool while the comprehension returns @c Ternary),
- *  the exact #928 declared-codomain vs actual-return mismatch.  So the codomain
- *  joins the @c P-axis @c set_logic_t UP with @c B's logic species.  Rejected
- *  uniformly when @c P's answer is incoherent (@c CoherentWrap, FIXME(#945)).
+ *  @c element<A>|pred): codomain derived from the whole comprehension's return
+ *  per @ref expressions__Set_Codomain_Reconciliation.
+ *  @tparam B the comprehension's base (carrier axis + logic species);
+ *  @tparam P the wrapped predicate.
  *  FIXME(#948): the wrap stores @c P only (the converting ctor drops @c B), so
- *  a NON-universal base's membership contribution is lost.  Harmless for the
- *  universal-ambient bases that carry the live call sites (@c base(x) ≡ ⊤); the
- *  general fix is tracked separately. */
+ *  a NON-universal base's membership is lost; harmless for universal ambient
+ *  bases (@c base(x) ≡ ⊤), general fix tracked separately. */
 export template <typename B, typename P>
   requires CoherentWrap<B, P, typename B::Domain>
 Set(Comprehension<B, P>)
