@@ -56,6 +56,7 @@
 module;
 
 #include <concepts>
+#include <functional>  // std::logical_and (the Boolean-lattice glb witness)
 #include <type_traits>
 #include <utility>  // std::forward
 
@@ -63,6 +64,7 @@ export module dedekind.category:lattice_term;
 
 import :lattice;  // the term AST + the induced laws (the validated parts)
 import :logic;    // Boole (default), Ternary, IsOckhamAlgebra
+import :cartesian_bicategory;  // Copy / Merge / IsMeetAsRightAdjoint (Δ ⊣ ∧)
 
 namespace dedekind::category {
 
@@ -147,6 +149,20 @@ struct reduce {
 export template <typename Term, typename Less, typename Ord = canonical_order,
                  typename Combine = no_leaf_combine>
 using reduce_t = typename reduce<Term, Less, Ord, Combine>::type;
+
+// The reduction laws assembled here are order-theoretic: the meet IS the glb,
+// the right adjoint of the diagonal (Δ ⊣ ∧, epic #946).  Pin that reification
+// as a compile-time check against the reducer's canonical carrier --- @c bool,
+// the two-element Boolean lattice where every induced law fires (see
+// @ref lattice_term__Overview).  The injected glb is the Boolean @c AND (the
+// meet under the chain @c false ≤ @c true) and @c Copy is the diagonal
+// @c bool → @c bool×bool.  This edge makes @c :cartesian_bicategory
+// load-bearing: the reducer's meet path type-checks against the category-level
+// glb theory rather than importing an orphan partition.
+static_assert(
+    IsMeetAsRightAdjoint<Copy<bool>, Merge<bool, std::logical_and<bool>>>,
+    "the reducer's meet path must be the right adjoint of the diagonal "
+    "(Δ ⊣ ∧) over the Boolean-lattice witness.");
 
 namespace detail_lattice_term {
 

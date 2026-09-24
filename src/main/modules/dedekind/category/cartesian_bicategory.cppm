@@ -5,22 +5,26 @@
  *        (@c IsMeetAsRightAdjoint), so the composite meet @c = @c Δ† @c ∘
  *        @c (⊗) @c ∘ @c Δ must type-check against it.
  *
- * @details DESIGN SKETCH for architectural review. NOT yet wired into the
- *          @c dedekind.category aggregator and NOT expected to build clean:
- *          the @c (⊗) plumbing and the product-order leg remain @c FIXME(#946);
- *          the terminal object (@c One) and the injected merge are resolved.
- *          The point of this file is the @b concept and the @b names, not a
- *          finished implementation.
+ * @details A compiled, type-checked partition. @c :lattice_term imports it and
+ *          @c static_asserts @c IsMeetAsRightAdjoint over its canonical
+ * carrier, so the reification is load-bearing early rather than an orphan. The
+ *          arrow-level @c (⊗) (@c Tensor) and the composite meet
+ *          @c = @c Δ† @c ∘ @c (⊗) @c ∘ @c Δ (@c Intersect) are provided; the
+ *          product-order leg (a value-level proof that the composite computes
+ *          the glb over a non-trivial pair) remains @c FIXME(#946).
  */
+module;
+
+#include <concepts>    // std::same_as
+#include <functional>  // std::less_equal (default order), std::logical_and
+#include <utility>     // std::pair: the binary product (cf. :limit)
+
 export module dedekind.category:cartesian_bicategory;
 
-import :morphism;    // IsArrow, Dom, Cod
+import :morphism;    // IsArrow, Dom, Cod, Identity
 import :adjunction;  // IsGaloisConnection (F left-adjoint-to G in a poset)
 import :posetal;     // IsPosetal (a poset IS a thin category)
-import :limit;       // One (terminal object), IsTerminalMorphism
-
-import <utility>;     // std::pair: the binary product (cf. :limit)
-import <functional>;  // std::less_equal
+import :limit;       // One (terminal object), π_1 / π_2, mediate_product
 
 namespace dedekind::category {
 
@@ -129,10 +133,93 @@ concept IsMeetAsRightAdjoint =
     IsGaloisConnection<Cp, Mg> && IsPosetal<Dom<Cp>, Leq> &&
     std::same_as<Cod<Cp>, std::pair<Dom<Cp>, Dom<Cp>>>;
 
-// FIXME(#946): the implementation leg (a). The relational-intersection
-// composite  R ∩ S = Δ† ∘ (R ⊗ S) ∘ Δ  (copy the input, run both, merge)
-// is the ⊗-plumbing that must satisfy IsMeetAsRightAdjoint; sketched separately
-// once the concept above is agreed. It is the A'DA / ZX-spider shape the LA
-// layer (bra-ket / Mat(S) / transfer matrices) later inherits for free.
+/** @brief The parallel product @c ⊗ as the @b arrow-half of the product
+ *         bifunctor: @c R⊗S : @c A×B→C×D is @c IsProduct acting on the morphism
+ *         pair @c (R,S). The object-half is @c IsProduct itself (the carrier @c
+ *         A×B @b is the product object); the arrow-half is this @c Tensor. The
+ *         action is the mediating morphism @c ⟨R∘π₁, @c S∘π₂⟩ built from the
+ *         product's own reified projections @c Π_1 / @c Π_2 (@c :limit) and its
+ *         pairing (the @c std::pair mediator @c mediate_product wraps as an
+ *         arrow); nothing here reimplements the universal property.
+ *  @tparam R the left leg @c A→C.
+ *  @tparam S the right leg @c B→D.
+ *  @note @b Generalization @b seam. HERE, in the cartesian setting, @c ⊗
+ *        coincides with the categorical product @c × --- the carrier is the
+ *        product object and @c IsProduct expresses it. The name @c Tensor
+ *        deliberately anticipates the later NON-cartesian monoidal regime (the
+ *        LA / bra-ket layer, where @c ⊗ is the genuine tensor product with no
+ *        projections and the copy/merge Frobenius algebra becomes an
+ *        orthonormal basis / ZX spider), which @c IsProduct cannot express.
+ *        @c Tensor-on-@c IsProduct now, carrier generalized later.
+ *        FIXME(#946): generalize the carrier past @c IsProduct at that seam. */
+export template <IsArrow R, IsArrow S>
+  requires IsProduct<std::pair<Dom<R>, Dom<S>>, Dom<R>, Dom<S>> &&
+           IsProduct<std::pair<Cod<R>, Cod<S>>, Cod<R>, Cod<S>>
+struct Tensor {
+  using Domain = std::pair<Dom<R>, Dom<S>>;
+  using Codomain = std::pair<Cod<R>, Cod<S>>;
+  R r{};
+  S s{};
+  constexpr Codomain operator()(const Domain& p) const {
+    return {r(Π_1<Domain>{}(p)), s(Π_2<Domain>{}(p))};
+  }
+};
+
+/** @brief The composite meet @c R∩S @c = @c Δ† @c ∘ @c (R⊗S) @c ∘ @c Δ: copy
+ * the input, run both legs in parallel, merge where they agree. The
+ *         1-categorical realisation of the relational intersection whose
+ *         @c (Copy,Merge) legs are certified by @c IsMeetAsRightAdjoint.
+ *  @tparam R the left endo-leg @c A→A.
+ *  @tparam S the right endo-leg @c A→A.
+ *  @tparam Meet the injected glb, forwarded to @c Merge (see there).
+ *  @note @c R and @c S are endomorphisms of the common carrier @c A so the
+ *        composite is again @c A→A; @c Intersect<Identity,Identity> collapses
+ * to the identity, the arrow-level shadow of idempotence @c a∧a=a. */
+export template <IsArrow R, IsArrow S, typename Meet>
+  requires std::same_as<Dom<R>, Dom<S>> && std::same_as<Cod<R>, Dom<R>> &&
+           std::same_as<Cod<S>, Dom<R>>
+struct Intersect {
+  using Domain = Dom<R>;
+  using Codomain = Dom<R>;
+  R r{};
+  S s{};
+  constexpr Codomain operator()(const Domain& a) const {
+    return Merge<Domain, Meet>{}(Tensor<R, S>{r, s}(Copy<Domain>{}(a)));
+  }
+};
+
+// The comonoid legs are the arrows the theory names: Copy is an arrow, Delete
+// is the unique terminal morphism ε: A → One.
+static_assert(IsArrow<Copy<bool>>, "Δ: A → A×A must be an arrow.");
+static_assert(IsTerminalMorphism<Delete<bool>>,
+              "ε: A → One must be the terminal morphism (counit).");
+
+// The parallel product and the composite meet are genuine arrows.
+static_assert(IsArrow<Tensor<Identity<bool>, Identity<bool>>>,
+              "R ⊗ S must be an arrow (A×B → C×D).");
+
+// Compiler witness that @c Tensor IS the arrow-action of @c IsProduct: both the
+// object it acts on and the object it produces are certified products (the
+// requires-clause gate, restated here as a proof co-located with the arrow).
+static_assert(
+    IsProduct<Dom<Tensor<Identity<bool>, Identity<bool>>>, bool, bool>,
+    "Tensor's source object A×B must model IsProduct.");
+static_assert(
+    IsProduct<Cod<Tensor<Identity<bool>, Identity<bool>>>, bool, bool>,
+    "Tensor's target object C×D must model IsProduct.");
+static_assert(
+    IsArrow<Intersect<Identity<bool>, Identity<bool>, std::logical_and<bool>>>,
+    "the composite meet Δ† ∘ (R ⊗ S) ∘ Δ must be an arrow.");
+
+// Over the identity endo-leg the composite collapses to the identity: it is the
+// arrow-level shadow of the idempotent law a ∧ a = a (Δ copies, id⊗id is inert,
+// Δ† merges the two equal copies).  A runtime witness, not just a shape check.
+static_assert(
+    Intersect<Identity<bool>, Identity<bool>, std::logical_and<bool>>{}(true) ==
+        true,
+    "Δ† ∘ (id ⊗ id) ∘ Δ must compute a ∧ a = a.");
+static_assert(Intersect<Identity<bool>, Identity<bool>,
+                        std::logical_and<bool>>{}(false) == false,
+              "Δ† ∘ (id ⊗ id) ∘ Δ must compute a ∧ a = a.");
 
 }  // namespace dedekind::category
