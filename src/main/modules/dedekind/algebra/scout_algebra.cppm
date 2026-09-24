@@ -1,9 +1,11 @@
 /**
  * @file dedekind/algebra/scout_algebra.cppm
  * @partition :scout_algebra
- * @brief Ordered-algebra markers and concepts: the axiom layer that
- *        distinguishes carriers whose order is compatible with the
- *        group / ring / field structure (#664, #895).
+ * @brief Ordered-algebra markers and concepts: carriers whose order is
+ *        compatible with their group / ring / field structure (#664, #895).
+ *
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
  *
  * @section scout_algebra__Motivation
  *
@@ -16,25 +18,36 @@
  * order.  The markers are then composed with the type-indexed algebraic
  * concepts (@c IsAbelianGroup / @c IsCommutativeRing / @c IsField) to give
  * the ordered-algebra concepts (@c IsOrderedAdditiveGroup /
- * @c IsOrderedCommutativeRing / @c IsOrderedMultiplicativeGroup).
+ * @c IsOrderedCommutativeRing / @c IsOrderedMultiplicativeGroup).  The
+ * additive marker is Hölder's Archimedean-ordered-group axiom made a
+ * per-carrier opt-in; the field concepts add the Artin--Schreier
+ * order-compatibility axioms that pin an @b ordered (formally real) field.
  *
  * @section scout_algebra__Consumers
  *
  * These concepts are the algebraic preconditions for halfspace transport
  * and the ordered-numeric carriers: they are consumed by
- * @c :order:halfspace_transport, @c :numbers:complex, @c :numbers:rational,
+ * @c :algebra:halfspace_transport, @c :numbers:complex, @c :numbers:rational,
  * @c :numbers:quadratic, @c :numbers:integer, and
  * @c :morphologies:integral.
  *
- * @note This partition previously also hosted the test-only symbolic
- *       scout-algebra layer (@c GroupScout, @c AffineImageOfHalfspace,
- *       and the @c element<T> @c + @c bound<k> affine factory operators).
- *       That machinery was retired under #895 (scout sunset); only the
- *       ordered-algebra concept layer survives here.  Relocation of these
- *       concepts to a better-named partition is deferred to a later PR.
+ * @note This partition previously also hosted the symbolic scout-algebra
+ *       layer (@c GroupScout, @c AffineImageOfHalfspace, and the
+ *       @c element<T> @c + @c bound<k> affine factory operators).  Those
+ *       were @c export ed here and re-exported by @c dedekind.algebra, so
+ *       this was a @b public (exported) API, not internal scaffolding.  It
+ *       was removed under #895 (scout sunset) as intentional pre-1.0
+ *       cleanup; the removal was safe because the layer had zero live
+ *       (non-test) consumers.  Only the ordered-algebra concept layer
+ *       survives here; relocating it to a better-named partition is
+ *       deferred to a later PR.
  *
- * @copyright 2026 The Dedekind Authors
- * Licensed under the Apache License, Version 2.0.
+ * Wikipedia: Ordered field, Linearly ordered group, Artin-Schreier theory
+ *
+ * @note "Die Zahlen sind freie Schöpfungen des menschlichen Geistes."
+ *       ("Numbers are free creations of the human mind.")
+ *       -- Richard Dedekind, Was sind und was sollen die Zahlen?,
+ *          Vorwort (1888)
  */
 module;
 

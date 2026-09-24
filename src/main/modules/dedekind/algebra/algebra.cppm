@@ -57,7 +57,7 @@ export import :quotient;  // IsQuotientAlgebra<Q> / IsProductAlgebra<Q> +
 export import :registration;
 export import :ring;
 export import :scout_algebra;        // IsOrderedAdditiveGroup / -Ring /
-                                     // -MultiplicativeGroup — ordered-algebra
+                                     // -MultiplicativeGroup: ordered-algebra
                                      // markers + concepts (#664)
 export import :halfspace_transport;  // image / inverse / argmax — the
                                      // ordered-group transport of halfspaces
