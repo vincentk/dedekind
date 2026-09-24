@@ -570,7 +570,12 @@ TEST_CASE(
     CHECK_FALSE(meet(finite_cardinality(5)));
   }
   SECTION("Set<ℕ> | Set<ℤ> widens to Set<ℤ> ({1} ∪ {-1} ⊂ ℤ)") {
-    constexpr auto one_n = Set{ℕ | (χ == fix(1_c))};  // {1} ⊂ Cardinality
+    // Equality over the variant Cardinality carrier can't go point-free: an
+    // NTTP `χ == fix(1_c)` builds an UnboundSingleton<1> whose int value does
+    // not bind to the variant, and the widening test below needs one_n to stay
+    // a Set<Cardinality,...>, not an η singleton.  So a named predicate.
+    constexpr auto eq_one = [](const auto& v) { return v == 1u; };
+    constexpr auto one_n = Set{Comprehension{ℕ, eq_one}};  // {1} ⊂ Cardinality
     auto neg_one_pred = [](const SignedCardinality& v) {
       return (v == -1) ? L::True : L::False;
     };
