@@ -48,6 +48,7 @@ module;
 #include <concepts>
 #include <functional>
 #include <optional>
+#include <utility>  // std::pair (relation-reading witness, #952)
 
 export module dedekind.category:morphism;
 
@@ -272,6 +273,78 @@ concept IsArrow =
     };
 
 // ---------------------------------------------------------------------------
+// Multi-reading arrow traits (#952 S0): a type may carry MORE THAN ONE arrow
+// reading, disambiguated by a @c Shape tag.  The prototypical case is a
+// function @c f: @c A → @c B that is @b also a relation / characteristic
+// predicate on @c A × @c B (its graph).  This mirrors the
+// @c SpeciesTraits<T, Args...> idiom (@c :species), not a foreign
+// @c tag_invoke.
+//
+// The DEFAULT reading (@c default_arrow_tag) forwards to the existing
+// @c ::Domain / @c ::Codomain nested typedefs, so @c Dom<F> / @c Cod<F> and
+// every @c IsArrow site keep their exact pre-#952 meaning.  This pivot is
+// strictly additive: a second reading is expressible without disturbing the
+// default one.
+// ---------------------------------------------------------------------------
+
+/** @brief Default arrow reading: the nested-typedef map (A→B) reading. */
+export struct default_arrow_tag {};
+
+/** @brief The map reading of an arrow: @c f as a function @c A → @c B. */
+export struct map_tag {};
+
+/**
+ * @brief The relation reading of an arrow: @c f as its graph /
+ *        characteristic predicate on @c A × @c B.
+ */
+export struct relation_tag {};
+
+/**
+ * @brief Per-@c (T, @c Shape) arrow reading: the categorical Domain / Codomain
+ *        that a type exposes under a given @c Shape tag.
+ * @details Primary is undefined; register a reading by specialising on a
+ *          concrete @c T and @c Shape.  The @c default_arrow_tag reading is
+ *          supplied below by forwarding to @c T::Domain / @c T::Codomain.
+ */
+export template <typename T, typename Shape = default_arrow_tag>
+struct arrow_traits;
+
+/**
+ * @brief Default reading: forward to the arrow's own @c ::Domain / @c
+ *        ::Codomain typedefs.  This IS the pre-#952 meaning of @c Dom / @c Cod.
+ */
+template <typename T>
+  requires requires {
+    typename T::Domain;
+    typename T::Codomain;
+  }
+struct arrow_traits<T, default_arrow_tag> {
+  using Domain = typename T::Domain;
+  using Codomain = typename T::Codomain;
+};
+
+/** @brief The Domain of @c F under reading @c Shape (default: map reading). */
+export template <typename F, typename Shape = default_arrow_tag>
+using DomFor = typename arrow_traits<std::remove_cvref_t<F>, Shape>::Domain;
+
+/** @brief The Codomain of @c F under reading @c Shape (default: map reading).
+ */
+export template <typename F, typename Shape = default_arrow_tag>
+using CodFor = typename arrow_traits<std::remove_cvref_t<F>, Shape>::Codomain;
+
+/**
+ * @concept HasArrowReading
+ * @brief @c T exposes an arrow reading (Domain + Codomain) under @c Shape.
+ * @details The query for whether a type carries a given reading; false (via
+ *          the undefined primary) when no specialisation registers one.
+ */
+export template <typename T, typename Shape>
+concept HasArrowReading = requires {
+  typename arrow_traits<std::remove_cvref_t<T>, Shape>::Domain;
+  typename arrow_traits<std::remove_cvref_t<T>, Shape>::Codomain;
+};
+
+// ---------------------------------------------------------------------------
 // Picking policy for Domain-resolving helpers (closes #411).
 //
 // The codebase has @b three helpers for retrieving the underlying-element
@@ -317,7 +390,7 @@ concept IsArrow =
  *          generality use @c element_of_t<S> from @c :sets:boundaries.
  */
 export template <IsArrow F>
-using Dom = typename std::remove_cvref_t<F>::Domain;
+using Dom = DomFor<F, default_arrow_tag>;
 
 /**
  * @brief Shorthand to look up the Codomain of an Arrow type F.
@@ -325,7 +398,62 @@ using Dom = typename std::remove_cvref_t<F>::Domain;
  * @details Codomain analogue of @c Dom; same picking-policy slot.
  */
 export template <IsArrow F>
-using Cod = typename std::remove_cvref_t<F>::Codomain;
+using Cod = CodFor<F, default_arrow_tag>;
+
+// Multi-reading witness (#952 S0): ONE type carries TWO non-ambiguous arrow
+// readings.  @c DemoFn is a function A→B (default / map reading via its own
+// typedefs); the @c relation_tag specialisation below registers its graph
+// reading on A×B.  This is the maintainer's function/relation driving case in
+// miniature.  The real @c Set<pair> relation / @c Graph<F> types live in
+// @c :relational --- downstream of @c :morphism (so unreachable here without a
+// cycle) and off the same-layer test-import DAG --- so the concrete duality is
+// pinned here on an in-partition function type; registering the downstream
+// readings is S1.
+namespace arrow_traits_multishape_witness {
+struct DemoFn {
+  using Domain = int;
+  using Codomain = bool;
+  constexpr bool operator()(int x) const { return x > 0; }
+};
+}  // namespace arrow_traits_multishape_witness
+
+// The relation reading of @c DemoFn: its graph as a predicate on int × bool.
+template <>
+struct arrow_traits<arrow_traits_multishape_witness::DemoFn, relation_tag> {
+  using Domain = std::pair<int, bool>;
+  using Codomain = bool;  // Ω surrogate (truth object)
+};
+
+namespace arrow_traits_multishape_witness {
+// The default (untagged) reading is UNCHANGED: still the map reading A→B.
+static_assert(std::same_as<Dom<DemoFn>, int>,
+              "untagged Dom must remain the map reading (Domain = int).");
+static_assert(std::same_as<Cod<DemoFn>, bool>,
+              "untagged Cod must remain the map reading (Codomain = bool).");
+static_assert(std::same_as<DomFor<DemoFn, default_arrow_tag>, int>,
+              "explicit default reading agrees with untagged Dom.");
+// The SECOND reading now coexists, unambiguously, under relation_tag.
+static_assert(HasArrowReading<DemoFn, relation_tag>,
+              "DemoFn must carry a relation reading in addition to its map "
+              "reading.");
+static_assert(std::same_as<DomFor<DemoFn, relation_tag>, std::pair<int, bool>>,
+              "the relation reading's Domain is the product A×B.");
+static_assert(std::same_as<CodFor<DemoFn, relation_tag>, bool>,
+              "the relation reading's Codomain is the truth object.");
+// Discrimination: the two readings are DISTINCT, so the arrow is no longer
+// ambiguous --- each reading is addressed by its own tag.
+static_assert(!std::same_as<Dom<DemoFn>, DomFor<DemoFn, relation_tag>>,
+              "the default and relation readings are distinct (disambiguated "
+              "by tag, not merged).");
+static_assert(HasArrowReading<DemoFn, default_arrow_tag>,
+              "DemoFn carries the default reading too.");
+// Negative: a plain type with no arrow typedefs exposes NO default reading,
+// and an untagged query never conjures a relation reading out of nothing.
+static_assert(!HasArrowReading<int, default_arrow_tag>,
+              "a non-arrow type exposes no default reading.");
+static_assert(!HasArrowReading<int, relation_tag>,
+              "an unregistered (type, relation_tag) pair has no reading.");
+}  // namespace arrow_traits_multishape_witness
 
 /**
  * @concept IsSmallCategoryShape

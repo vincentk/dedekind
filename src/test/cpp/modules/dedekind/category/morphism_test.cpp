@@ -1,10 +1,26 @@
 #include <catch2/catch_test_macros.hpp>
 #include <concepts>
 #include <functional>
+#include <utility>  // std::pair (relation-reading demo, #952)
 
 import dedekind.category;
 
 using namespace dedekind::category;
+
+// #952 S0 driving case: a concrete function type f: int → bool that ALSO
+// carries a relation reading (its graph as a predicate on int × bool).  The
+// specialisation is registered here, in the type's home namespace, WITHOUT
+// touching any downstream source.  DemoArrow is a genuine in-partition
+// Morphism (not synthetic), so this witnesses the duality on a real arrow.
+namespace dedekind::category {
+using DemoArrow = Morphism<int, bool, std::function<bool(int)>>;
+
+template <>
+struct arrow_traits<DemoArrow, relation_tag> {
+  using Domain = std::pair<int, bool>;
+  using Codomain = bool;  // Ω surrogate (truth object)
+};
+}  // namespace dedekind::category
 
 TEST_CASE("Category: Morphisms and Arrow Factories", "[category][morphisms]") {
   SECTION("Identity Morphism (id)") {
@@ -140,6 +156,36 @@ TEST_CASE("Category: Algebraic Proofs (Runtime Witnesses)",
     STATIC_CHECK(!IsInjective<std::decay_t<decltype(constant)>>);
     STATIC_CHECK(!IsSurjective<std::decay_t<decltype(constant)>>);
     STATIC_CHECK(!IsBijective<std::decay_t<decltype(constant)>>);
+  }
+
+  SECTION(
+      "Multi-reading arrow_traits pivot (#952 S0): one function carries a "
+      "map reading AND a relation reading, unambiguously") {
+    // Default (untagged) reading is the map reading int → bool, UNCHANGED by
+    // the pivot: Dom/Cod route through arrow_traits<_, default_arrow_tag>.
+    STATIC_CHECK(std::same_as<Dom<DemoArrow>, int>);
+    STATIC_CHECK(std::same_as<Cod<DemoArrow>, bool>);
+    STATIC_CHECK(std::same_as<DomFor<DemoArrow, default_arrow_tag>, int>);
+    STATIC_CHECK(HasArrowReading<DemoArrow, default_arrow_tag>);
+
+    // The SECOND reading (the arrow's graph as a relation on int × bool) is
+    // now expressible on the SAME type, addressed by relation_tag.
+    STATIC_CHECK(HasArrowReading<DemoArrow, relation_tag>);
+    STATIC_CHECK(
+        std::same_as<DomFor<DemoArrow, relation_tag>, std::pair<int, bool>>);
+    STATIC_CHECK(std::same_as<CodFor<DemoArrow, relation_tag>, bool>);
+
+    // Disambiguation: the two readings are distinct, and an untagged query
+    // never sees the relation reading.
+    STATIC_CHECK(
+        !std::same_as<Dom<DemoArrow>, DomFor<DemoArrow, relation_tag>>);
+    // A plain type registers no reading under either tag.
+    STATIC_CHECK(!HasArrowReading<int, default_arrow_tag>);
+    STATIC_CHECK(!HasArrowReading<int, relation_tag>);
+
+    // IsArrow semantics are unchanged: DemoArrow is still an arrow, and the
+    // default reading still drives it.
+    STATIC_CHECK(IsArrow<DemoArrow>);
   }
 
   SECTION("Fish-operator concept tier (#450) — HasArrowComposeOperators") {
