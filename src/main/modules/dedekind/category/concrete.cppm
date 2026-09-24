@@ -202,9 +202,10 @@ concept IsCompatibleSetPair =
                  std::invoke_result_t<S2 const&, typename S2::Domain const&>>;
 
 /** @brief The general intersection classifier @f$\chi_{A\cap B} = \chi_A \wedge
- *  \chi_B@f$ as a @b named predicate (no lambda; #831/#365).  Only reached for
- *  @b unstructured operands --- the decidable/structured cases route through
- *  @c operator& / @c structured_and first (see @c set_intersection). */
+ *  \chi_B@f$ as a @b named predicate (no lambda; #831/#365).  This is the
+ *  category-layer meet: @b no structural collapse (halfspace / interval /
+ *  singleton reduction belongs to the downstream sets-layer @c operator&, which
+ *  this layer cannot reach --- FIXME(#834) on @c set_intersection). */
 export template <typename S1, typename S2, IsOckhamAlgebra L>
 struct ConjunctionChi {
   S1 lhs;
@@ -225,6 +226,30 @@ struct ConjunctionChi {
  *         separate concern: it belongs to @c operator&, whose result type
  *         differs, so @c set_intersection can @b not simply route through it
  *         without breaking that contract --- see the divergence note in #831.)
+ *
+ *  @section concrete__set_intersection_DAG_Divergence
+ *  FIXME(#834): the @c meet / @c operator& vocabulary divergence is a
+ * module-DAG
+ *  @b Sollbruchstelle, not a fixable accident.  @c operator& and its collapse
+ *  machinery (@c MeetSet, @c SetCombine, @c structured_and, @c subobject_order,
+ *  the halfspace ordering) all live in @c dedekind.sets / @c dedekind.order,
+ *  which are strictly @b downstream of @c dedekind.category.  This function is
+ *  upstream, so it @b cannot route through @c operator&.  It must return an
+ *  @c IsSubobject (its result feeds @c IsSet / @c HasETCSAxioms for category
+ *  carriers such as @c ambient_set results = @c Subobject), and in the category
+ *  layer the only @c IsSubobject producible from two subobjects is a
+ *  @c classify wrapper: the bare reducer node @c Meet<A,B> is deliberately
+ *  @b lattice-algebra-only (no @c ι / @c Member; see @c :lattice), and no
+ *  set-boundary object (@c Ø / @c 𝔸) or @c MeetSet exists upstream to
+ *  materialise a collapsed normal form.  The reducer core (@c :lattice_term) is
+ *  in this layer, but the @b subobject materialisation of its output is
+ *  sets-only by design.  Convergence therefore requires either hoisting the
+ *  subobject-materialisation + set-boundaries + halfspace ordering up into
+ *  @c :category (inverting the locked type-indexed / set-indexed layering), or
+ *  a sets-layer @c set_intersection overload that shadows this one for sets
+ *  carriers only (behaviour then depends on whether @c dedekind.sets is
+ *  imported --- a coherence footgun).  Neither is a net-negative in-place
+ * route, so the divergence stays documented rather than forced.
  */
 export template <typename S1, typename S2>
   requires IsCompatibleSetPair<S1, S2>
