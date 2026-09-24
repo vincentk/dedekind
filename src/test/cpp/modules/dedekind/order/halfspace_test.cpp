@@ -766,16 +766,9 @@ TEST_CASE(
     "order:halfspace - Set{A|pred} codomain tracks the halfspace's own logic "
     "species for an incoherent ambient (#928)",
     "[order][halfspace][928]") {
-  // The literal #928 scenario: a countable carrier (int → ℵ_0) carved by a
-  // predicate deliberately tagged with pessimistic Kleene logic (an A|pred
-  // halfspace over the incoherent ambient 𝔸<int,Kleene>).  The halfspace's
-  // carrier-axis cardinality is ℵ_0, so NaturalLogic<Halfspace> = Boole, but
-  // the halfspace's own logic_species is Kleene and its operator() returns
-  // Kleene::Ω (Ternary).  Pre-#928 the Set(Species) CTAD picked the Boole
-  // carrier verdict and mis-typed the wrapper (Codomain bool ≠ Ternary return
-  // → !IsSet).  Post-#928 the Set derives its codomain from the halfspace's
-  // actual operator() RETURN type (GetLogic = Kleene) joined with the carrier
-  // axis, not from a declared tag (which here merely agrees).
+  // A Kleene halfspace over a countable carrier: NaturalLogic reads Boole (ℵ_0)
+  // but operator() returns Ternary, so #928 derives the Set codomain from the
+  // RETURN type (GetLogic), not the carrier axis.
   constexpr Halfspace<int, 5, Direction::Upward, Strictness::Strict, Kleene>
       h{};
 
@@ -820,12 +813,9 @@ TEST_CASE(
     CHECK(s(5) == Kleene::False);
   }
 
-  // FIXME(#928): the @c Set(MembershipBinding<S>) guide's codomain-coherence
-  // gate is reachable only through the retired scout surface (@c element<A>%S;
-  // @c MembershipBinding is non-exported, built solely by @c BoundScout's @c
-  // %), so no point-free witness exists for it.  Its result equals the
-  // identity-CTAD wrap of the same species (@c wrapped_logic_t<S>), so the
-  // Set{halfspace} witness above already covers the reconciliation; a dedicated
+  // FIXME(#928): the Set(MembershipBinding<S>) coherence gate is reachable only
+  // via the retired scout element<A>%S (MembershipBinding is non-exported), and
+  // its result equals the identity-CTAD wrap covered above; a point-free
   // witness returns when the scout algebra is retired.
 }
 

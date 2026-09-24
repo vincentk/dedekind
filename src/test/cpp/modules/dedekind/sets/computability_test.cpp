@@ -137,18 +137,8 @@ TEST_CASE(
     "sets:computability - Set(Species) codomain tracks the predicate's own "
     "logic species (#928)",
     "[sets][computability][928]") {
-  // The @c Set(Species) identity CTAD used to derive the wrapping logic from
-  // the carrier axis (@c NaturalLogic) alone, which can DEMOTE a predicate
-  // whose @c operator() RETURNS a wider species than the carrier admits: a
-  // countable carrier (@c int → ℵ_0 → Boole) whose membership answer is @c
-  // Kleene::Ω (Ternary).  @c lift_logic passes that non-@c bool answer through
-  // unchanged, so a @c Boole-declared Set advertised @c Codomain = @c bool
-  // while its membership returned @c Ternary; that declared-codomain vs
-  // actual-return MISMATCH failed @c IsSet.  #928 derives the codomain from the
-  // @c join of the carrier-axis verdict and @c GetLogic of the predicate's
-  // actual RETURN type, so it is expressive enough for both: Kleene wins the
-  // countable-Kleene case, while the continuum promotion (ℝ, below) is
-  // preserved.
+  // #928: Set codomain = join(carrier-axis NaturalLogic, GetLogic of the
+  // predicate's actual RETURN type), so it stays coherent with operator().
 
   SECTION("Coherent ambient (𝔸<int>) is unchanged: Boole, decidable") {
     constexpr auto s = Set{𝔸<int>};
@@ -221,11 +211,8 @@ TEST_CASE(
       "Untagged species with a Ternary-returning operator() over a "
       "countable carrier deduces Kleene (the RETURN type is the "
       "authority, not the tag)") {
-    // The closed hole: no logic_species tag, and NaturalLogic reads Boole off
-    // the countable carrier, yet operator() returns Ternary.  A tag-based
-    // derivation would demote the codomain to Boole and truncate the Ternary
-    // answer; deriving from the RETURN type (GetLogic<Ternary> = Kleene, joined
-    // with the carrier axis) yields Kleene, so the wrapper is coherent.
+    // Carrier axis says Boole; GetLogic of the Ternary RETURN makes the wrap
+    // Kleene.
     struct UntaggedTernaryOverN {
       using Domain = int;
       using cardinality_type = ℵ_0;  // countable → carrier axis says Boole
@@ -249,12 +236,9 @@ TEST_CASE(
   SECTION(
       "through the genuine Comprehension node (𝔸<int,Kleene> comprehended by "
       "a Ternary-predicate) deduces Kleene") {
-    // Selects the more-specialised @c Set(Comprehension<B,P>) guide, NOT the
-    // identity CTAD: carrier axis from base @c B, codomain from predicate @c
-    // P's own RETURN.  Built point-free as a bare @c Comprehension node (the
-    // retired scout @c element<A>|pred produced the identical type).  @c P
-    // returns Ternary, so the wrapped Set is Kleene, coherent with @c
-    // operator() rather than the carrier-axis Boole that mis-typed it pre-fix.
+    // Exercises the Set(Comprehension<B,P>) guide (not the identity CTAD),
+    // built as a bare node: no point-free operator| comprehends an arbitrary
+    // predicate (the retired scout element<A>|pred produced this same type).
     struct TernaryPred {
       constexpr Ternary operator()(const int& n) const {
         return n > 0 ? Ternary::True : Ternary::Unknown;
