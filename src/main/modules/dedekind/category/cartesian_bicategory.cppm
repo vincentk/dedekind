@@ -2,8 +2,8 @@
  * @file
  * @brief Sketch (epic #946, slice S0): the meet is the right adjoint of the
  *        diagonal. Reifies the theory @c Δ @c ⊣ @c ∧ as a @c concept first
- *        (@c IsMeetViaAdjunction), so the composite meet @c = @c Δ† @c ∘ @c (⊗)
- *        @c ∘ @c Δ must type-check against it.
+ *        (@c IsMeetAsRightAdjoint), so the composite meet @c = @c Δ† @c ∘
+ *        @c (⊗) @c ∘ @c Δ must type-check against it.
  *
  * @details DESIGN SKETCH for architectural review. NOT yet wired into the
  *          @c dedekind.category aggregator and NOT expected to build clean:
@@ -11,7 +11,7 @@
  *          are marked @c FIXME(#946). The point of this file is the @b concept
  *          and the @b names, not a finished implementation.
  */
-export module dedekind.category:cartesian_meet;
+export module dedekind.category:cartesian_bicategory;
 
 import :morphism;    // IsArrow, Dom, Cod
 import :adjunction;  // IsGaloisConnection (F left-adjoint-to G in a poset)
@@ -25,7 +25,7 @@ import <functional>;  // std::less_equal
 namespace dedekind::category {
 
 /**
- * @section cartesian_meet__Design Meet as the adjoint of the diagonal
+ * @section cartesian_bicategory__Design Meet as the adjoint of the diagonal
  *
  * @b Thesis. Lattice reduction (@c {x>5}∩{x>3} @c → @c {x>5}) is
  * @b order-theoretic, not set-theoretic. The meet @b is the greatest lower
@@ -89,7 +89,7 @@ struct Delete {
 };
 
 /** @brief Merge (the dagger of copy) @c Δ†:A×A→A, @c (a,b)↦a⊓b. The right
- *         adjoint of the diagonal; the value that @c IsMeetViaAdjunction
+ *         adjoint of the diagonal; the value that @c IsMeetAsRightAdjoint
  *         certifies as the glb.
  *  @tparam A the carrier object.
  *  @tparam Meet the value-level glb; defaults to @c Inf (min).
@@ -105,7 +105,7 @@ struct Merge {
 };
 
 /**
- * @concept IsMeetViaAdjunction
+ * @concept IsMeetAsRightAdjoint
  * @brief The meet @c ∧ is the right adjoint of the diagonal @c Δ (@c Δ⊣∧):
  *        the reified theory this slice postulates as a type-check.
  * @details @c Δ:P→P×P (copy) is the left adjoint, @c ∧:P×P→P the right, so
@@ -122,13 +122,13 @@ struct Merge {
  * @tparam Leq the order on @c P; defaults to @c std::less_equal<P>. */
 export template <typename Cp, typename Mg,
                  typename Leq = std::less_equal<Dom<Cp>>>
-concept IsMeetViaAdjunction =
+concept IsMeetAsRightAdjoint =
     IsGaloisConnection<Cp, Mg> && IsPosetal<Dom<Cp>, Leq> &&
     std::same_as<Cod<Cp>, std::pair<Dom<Cp>, Dom<Cp>>>;
 
 // FIXME(#946): the implementation leg (a). The relational-intersection
 // composite  R ∩ S = Δ† ∘ (R ⊗ S) ∘ Δ  (copy the input, run both, merge)
-// is the ⊗-plumbing that must satisfy IsMeetViaAdjunction; sketched separately
+// is the ⊗-plumbing that must satisfy IsMeetAsRightAdjoint; sketched separately
 // once the concept above is agreed. It is the A'DA / ZX-spider shape the LA
 // layer (bra-ket / Mat(S) / transfer matrices) later inherits for free.
 
