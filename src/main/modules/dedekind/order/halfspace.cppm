@@ -1054,6 +1054,32 @@ struct IntervalProduct {
   }
 };
 
+// Cross-module witness (#946): :order is downstream of :category, so the
+// category product surface (re-exported through @c import dedekind.category
+// above) is in scope here.  @c IntervalProduct presents as an ARROW out of a
+// categorical product OBJECT --- its @c Domain is a @c std::pair that models
+// @c IsProduct (the shared product substrate the comonoid's copy/merge is built
+// on), and its @c operator() is the product-arrow action on that pair.  This
+// pins the :order ⟶ :category dependency as a compiler check rather than prose.
+// The fixture is a concrete integer OrderInterval so the assertion has real
+// carriers.  NOTE the honest limit: @c IntervalProduct is a PREDICATE on A×B
+// (its @c Codomain is a logic value), so it witnesses the product-OBJECT domain
+// and the arrow shape, NOT the pair→pair @c Tensor arrow-action; presenting it
+// AS @c Tensor would need a real adapter with a product Codomain.  FIXME(#946).
+namespace {
+using IntervalProductFixture =
+    OrderInterval<int, 1, 5, Strictness::NonStrict, Strictness::NonStrict>;
+using IntervalProductWitness =
+    IntervalProduct<IntervalProductFixture, IntervalProductFixture>;
+static_assert(dedekind::category::IsArrow<IntervalProductWitness>,
+              "IntervalProduct must be an arrow (its Domain is a pair, its "
+              "operator() the product-arrow action).");
+static_assert(
+    dedekind::category::IsProduct<IntervalProductWitness::Domain, int, int>,
+    "IntervalProduct's Domain (a std::pair) must model the product OBJECT "
+    "IsProduct --- the same substrate the comonoid copy/merge is gated on.");
+}  // namespace
+
 /** @brief Infix `*` on two `OrderInterval`s → structural `IntervalProduct`. */
 export template <typename T1, auto Lo1, auto Hi1, Strictness SL1,
                  Strictness SU1, typename L1, typename T2, auto Lo2, auto Hi2,

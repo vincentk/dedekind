@@ -393,6 +393,20 @@ export template <typename F, typename Op = std::less_equal<>>
 concept IsAntiMonotone = IsArrow<F> && is_antimonotone_v<F, Op>;
 
 /**
+ * @concept IsVariant
+ * @brief An arrow with a @b definite variance: order-preserving
+ *        (@c IsMonotone) or order-reversing (@c IsAntiMonotone).  The
+ *        leg-shape of a Galois connection, whose adjoints are always one or
+ *        the other.  Mirrors @c :limit::IsBoundaryObject's @c "X @c || @c dual"
+ *        disjunction shape.
+ * @note #908 (reify predicate variance) would DERIVE the variance from an
+ *       arrow's injected op rather than the manual @c is_monotone_v /
+ *       @c is_antimonotone_v opt-in this concept reads.
+ */
+export template <typename F, typename Op = std::less_equal<>>
+concept IsVariant = IsMonotone<F, Op> || IsAntiMonotone<F, Op>;
+
+/**
  * @concept IsOrderIsomorphism
  * @brief An arrow that is both an order-preserving map and a bijection.
  *

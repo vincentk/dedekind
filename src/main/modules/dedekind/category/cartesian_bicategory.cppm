@@ -23,8 +23,11 @@ export module dedekind.category:cartesian_bicategory;
 
 import :morphism;    // IsArrow, Dom, Cod, Identity
 import :adjunction;  // IsGaloisConnection (F left-adjoint-to G in a poset)
-import :posetal;     // IsPosetal (a poset IS a thin category)
-import :limit;       // One (terminal object), π_1 / π_2, mediate_product
+import :posetal;     // IsPosetal (thin cat); is_monotone_v / IsMonotone
+import :limit;       // One (terminal object), π_1 / π_2, IsProduct
+import :species;     // Inf / Sup: the injected value-level glb / lub (∧ / ∨)
+import :logic;       // Ternary (Kleene K₃, the 3-chain carrier witness)
+import :lattice;  // Meet AST node + MakeMeet pairing factory (the bridge below)
 
 namespace dedekind::category {
 
@@ -111,6 +114,31 @@ struct Merge {
   }
 };
 
+// Variance registrations for the comonoid legs (:posetal @c is_monotone_v).
+// @c IsMeetAsRightAdjoint gates on @c IsGaloisConnection, tightened (#946) to
+// require @c IsVariant on both legs, so the copy and merge arrows the witnesses
+// use must carry a declared variance or the (correctly) narrowed concept would
+// reject them.  These per-arrow opt-ins are the MANUAL step #908 (reify
+// predicate variance) would DERIVE structurally from each injected op's
+// variance (and would add the antitone dual); cf. #791 (certify monotone / join
+// operations).  Monotonicity is undecidable in general, so the declaration is
+// trusted and the public review is the audit trail (as with @c
+// is_monic_arrow_v).
+//
+// Copy @c a↦(a,a) is monotone under the product order for ANY relation (both
+// components move together), so it is registered generically like @c Identity.
+template <typename A, typename Op>
+inline constexpr bool is_monotone_v<Copy<A>, Op> = true;
+// The injected binary glb / lub are monotone in each argument: min (@c Inf) and
+// max (@c Sup) preserve the order, as does Boolean AND (the reducer edge).
+template <typename A, typename Op>
+inline constexpr bool is_monotone_v<Merge<A, Inf>, Op> = true;
+template <typename A, typename Op>
+inline constexpr bool is_monotone_v<Merge<A, Sup>, Op> = true;
+template <typename Op>
+inline constexpr bool is_monotone_v<Merge<bool, std::logical_and<bool>>, Op> =
+    true;
+
 /**
  * @concept IsMeetAsRightAdjoint
  * @brief The meet @c ∧ is the right adjoint of the diagonal @c Δ (@c Δ⊣∧):
@@ -124,6 +152,15 @@ struct Merge {
  *          C++ concepts cannot quantify over @c c,a,b, so that equivalence is
  *          the engineer's honesty obligation (as with @c IsGaloisConnection);
  *          the structural shape names the signatures.
+ * @note Monotonicity is INHERITED, not re-gated here: @c IsGaloisConnection
+ *       was tightened (#946) to require @c IsVariant on both legs, so both @c
+ * Cp and @c Mg must carry a declared variance (see the @c is_monotone_v
+ *       registrations above).  That NARROWS the gap (a non-variant merge is now
+ *       rejected) but does NOT close the meet-vs-join residual: the join @c Sup
+ *       is monotone too, so it still passes.  Which order-op the merge computes
+ *       stays the value-level product-order leg, FIXME(#946).  #908 (reify
+ *       predicate variance) would derive the variance structurally; #791
+ *       certifies the monotone / join operations themselves.
  * @tparam Cp the copy/diagonal @c Δ.
  * @tparam Mg the meet/merge @c ∧.
  * @tparam Leq the order on @c P; defaults to @c std::less_equal<P>. */
@@ -221,5 +258,62 @@ static_assert(
 static_assert(Intersect<Identity<bool>, Identity<bool>,
                         std::logical_and<bool>>{}(false) == false,
               "Δ† ∘ (id ⊗ id) ∘ Δ must compute a ∧ a = a.");
+
+// ---------------------------------------------------------------------------
+// Carrier coherence witnesses (co-located with the concept they exercise;
+// relocated here from :lattice_term, #946).  The Δ ⊣ ∧ theory is carrier-
+// generic, so the meet path type-checks against IsMeetAsRightAdjoint over the
+// order-certified carriers the reducer reduces, not just the Boolean seed (that
+// one edge stays in :lattice_term, next to the reducer it type-checks).
+// ---------------------------------------------------------------------------
+
+// int: the integral chain.  The injected glb is @c Inf (min), supplied exactly
+// as @c reduce<> injects its order-algebra meet.
+static_assert(
+    IsMeetAsRightAdjoint<Copy<int>, Merge<int, Inf>>,
+    "the meet on the integral chain must be the right adjoint of the diagonal "
+    "(glb = min).");
+
+// HONESTY OBLIGATION, made visible.  IsMeetAsRightAdjoint is a STRUCTURAL shape
+// (crossed signatures + a posetal carrier + definite variance); it cannot see
+// which order-op the merge computes, so the JOIN (@c Sup = max) passes the very
+// same test --- the join is monotone too, so the #946 variance tightening does
+// NOT reject it.  That is a genuine false positive: certifying the merge is the
+// glb and not the lub is the engineer's obligation (as with
+// IsGaloisConnection), not something the concept discharges.  This
+// static_assert pins the gap so it stays honest.
+static_assert(
+    IsMeetAsRightAdjoint<Copy<int>, Merge<int, Sup>>,
+    "structural witness: the JOIN (Sup) also passes IsMeetAsRightAdjoint, the "
+    "glb-vs-lub honesty obligation the concept cannot discharge.");
+
+// Ternary (Kleene K₃): the 3-chain False < Unknown < True.  The injected glb is
+// @c Inf (min), which on this chain IS the Kleene AND.  Witnessable because the
+// :species is_enum_v blanket certifies K₃'s ≤ as transitive + antisymmetric, so
+// IsPosetal<Ternary, less_equal<Ternary>> holds.
+static_assert(
+    IsMeetAsRightAdjoint<Copy<Ternary>, Merge<Ternary, Inf>>,
+    "the Kleene meet (AND = min) on the K₃ chain must be the right adjoint of "
+    "the diagonal.");
+
+// The meet-trichotomy bridge (#946 Task C).  Three meet presentations that
+// never referenced each other are ONE universal property, the glb:
+//   (1) Δ ⊣ ∧           : Merge = Δ† (this partition);
+//   (2) meet-as-product : category::Meet with the MakeMeet pairing factory;
+//   (3) meet-as-pullback: sets::MeetSet ⊨ IsPullback (#881, downstream :sets).
+// (1) and (2) share ONE substrate: the SAME IsProduct concept certifies both
+// the comonoid's product OBJECT (the pair Δ copies into, which Tensor's
+// arrow-action is gated on) and the lattice AST's product NODE.  Object half
+// and arrow half of the one product bifunctor.
+static_assert(IsProduct<std::pair<bool, bool>, bool, bool>,
+              "comonoid/Tensor substrate: the pair A×A is the product OBJECT.");
+static_assert(
+    IsProduct<Meet<bool, bool>, bool, bool, MakeMeet>,
+    "meet-as-product: the AST Meet node is that SAME product, MakeMeet the "
+    "pairing factory.");
+// (3) is a documented cross-reference, not a forced assert: sets::MeetSet ⊨
+// IsPullback lives in :sets, downstream of both partitions, so a structural
+// bridge to the IsPullback family is more than a low-risk local witness.
+// FIXME(#946): unify the glb across the product and pullback presentations.
 
 }  // namespace dedekind::category
