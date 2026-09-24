@@ -202,14 +202,17 @@ TEST_CASE(
       "REJECTED, not silently mis-typed to Boole (#945 Sollbruchstelle)") {
     // join_logic_t only models 𝔹 ⊑ K₃, so a Percent-/Chain-tagged ambient would
     // wrap to Boole while membership returns Percentage / a chain value ---
-    // exactly the #928 mismatch.  The CoherentSetWrap gate rejects the CTAD
-    // (no viable deduction) instead.  A verbatim-false requires check pins the
-    // honest rejection; generalising the join to deduce these coherently is
-    // FIXME(#945).
-    STATIC_CHECK_FALSE(requires { Set{𝔸<int, Percent>}; });
-    STATIC_CHECK_FALSE(requires { Set{𝔸<int, Chain<int>>}; });
+    // exactly the #928 mismatch.  The Set(Species) CTAD is gated on the
+    // CoherentSetWrap contract, so it rejects those ambients; generalising the
+    // join to deduce them coherently is FIXME(#945).  Witness the gate CONCEPT
+    // directly: a `requires { Set{...}; }` form is unreliable because GCC leaks
+    // CTAD "no viable deduction guide" as a hard error rather than absorbing
+    // it.
+    STATIC_CHECK_FALSE(CoherentSetWrap<UniversalSet<int, Percent>>);
+    STATIC_CHECK_FALSE(CoherentSetWrap<UniversalSet<int, Chain<int>>>);
     // Control: a Kleene ambient DOES lift into the wrapped codomain, so the
-    // CTAD accepts it (coherent, as the sections above verify).
-    STATIC_CHECK(requires { Set{𝔸<int, Kleene>}; });
+    // gate admits it and the CTAD wraps coherently (as the sections above
+    // verify).
+    STATIC_CHECK(CoherentSetWrap<UniversalSet<int, Kleene>>);
   }
 }

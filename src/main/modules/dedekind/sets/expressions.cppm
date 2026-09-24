@@ -1897,7 +1897,7 @@ using wrapped_logic_t = typename wrapped_logic<Species>::type;
  *  FIXME(#945): generalise @c join_logic_t to the full logic-species lattice
  *  (place @c Chain / @c Percent in the dominance order) so such ambients deduce
  *  coherently instead of being rejected. */
-template <typename Species>
+export template <typename Species>
 concept CoherentSetWrap =
     !requires { typename Species::logic_species; } ||
     dedekind::category::LiftsTo<typename Species::logic_species,
