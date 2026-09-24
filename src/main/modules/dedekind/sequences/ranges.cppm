@@ -76,26 +76,14 @@ using namespace dedekind::topology;
 export template <typename S>
 concept IsConvexEnumerable = IsConvex<S> && IsTerminalSet<S>;
 
-namespace detail {
-
-/**
- * @brief Boundary tag mixin for the open/closed corners of IntegerInterval.
- * Mirrors the convention in dedekind::topology::detail::IntervalBoundaryTag.
- */
-template <Boundary Lower, Boundary Upper>
-struct IntegerIntervalBoundaryMixin {};
-
-template <>
-struct IntegerIntervalBoundaryMixin<Boundary::Open, Boundary::Open> {
-  using is_open_tag = void;
-};
-
-template <>
-struct IntegerIntervalBoundaryMixin<Boundary::Closed, Boundary::Closed> {
-  using is_closed_tag = void;
-};
-
-}  // namespace detail
+// #905: the open/closed boundary tag mixin is GONE.  An @c IntegerInterval's
+// carrier @c T is @c std::integral --- a discrete space --- so @c topology::
+// IsOpen / @c IsClosed INFER clopen-ness from @c HasDiscreteCarrier (every
+// subset of a discrete space is clopen), for EVERY boundary corner including
+// the half-open default @c [lo,hi).  Hand-tagging one corner "open" and another
+// "closed" under-reported the discrete topology (the tag said less than the
+// structure); the inference now supplies the honest answer with no per-shape
+// opt-in.
 
 /**
  * @class IntegerInterval
@@ -119,8 +107,7 @@ struct IntegerIntervalBoundaryMixin<Boundary::Closed, Boundary::Closed> {
  */
 export template <std::integral T, Boundary Lower = Boundary::Closed,
                  Boundary Upper = Boundary::Open, typename L = Boole>
-class IntegerInterval
-    : public detail::IntegerIntervalBoundaryMixin<Lower, Upper> {
+class IntegerInterval {
  public:
   using Domain = T;
   using Codomain = typename L::Ω;
@@ -236,6 +223,26 @@ static_assert(dedekind::topology::IsConvex<IntegerInterval<int>>,
 static_assert(
     IsConvexEnumerable<IntegerInterval<int>>,
     "IntegerInterval must satisfy IsConvexEnumerable (convex + terminal set).");
+
+// #905 witness: with the boundary tag mixin deleted, IntegerInterval is clopen
+// PURELY by structural inference --- its @c std::integral carrier is discrete,
+// so @c HasDiscreteCarrier fires and @c topology::IsClopen holds for EVERY
+// boundary corner (here the half-open default @c [lo,hi), which previously
+// carried NO tag and was neither open nor closed).
+static_assert(dedekind::topology::HasDiscreteCarrier<IntegerInterval<int>>,
+              "IntegerInterval's carrier is std::integral, hence discrete.");
+// All four boundary corners are covered so a future change cannot regress one
+// mixed branch while the others still pass: the default [lo,hi) is (Closed,
+// Open); the other three are spelt out explicitly.
+static_assert(
+    dedekind::topology::IsClopen<IntegerInterval<int>> &&
+        dedekind::topology::IsClopen<
+            IntegerInterval<int, Boundary::Open, Boundary::Open>> &&
+        dedekind::topology::IsClopen<
+            IntegerInterval<int, Boundary::Closed, Boundary::Closed>> &&
+        dedekind::topology::IsClopen<
+            IntegerInterval<int, Boundary::Open, Boundary::Closed>>,
+    "#905: every integer interval is clopen (discrete carrier), no hand-tag.");
 
 /**
  * @section ranges__Halfspace_To_Iota_View_Bridge (#703 Slices 1–2)

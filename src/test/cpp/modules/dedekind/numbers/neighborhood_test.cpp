@@ -21,6 +21,7 @@
 import dedekind.category; // IsSet (the ETCS axioms)
 import dedekind.numbers;  // Rational, Cut
 import dedekind.order;
+import dedekind.sets;     // HasDecidableMembership
 import dedekind.topology; // Interval, Boundary, IsOpen, IsNeighborhood
 
 using namespace dedekind::numbers;
@@ -44,6 +45,27 @@ TEST_CASE("a rational neighborhood is a topological neighborhood AND a Lwv set",
   SECTION("topology: an open neighborhood of its points") {
     STATIC_CHECK(dedekind::topology::IsOpen<QNbhd>);
     STATIC_CHECK(dedekind::topology::IsNeighborhood<QNbhd, Q>);
+  }
+
+  SECTION(
+      "dense carrier ⟹ the GENUINE open-⊋-clopen witness (#905): ℚ is not "
+      "discrete, so open shapes are open-but-NOT-closed") {
+    // This is the independence direction that int (discrete) CANNOT provide:
+    // #905 makes every set on int clopen, so the "decidable but NOT clopen"
+    // witness the #904 shapes test used to place on Ray<int> must live on a
+    // DENSE carrier.  ℚ is dense (!HasDiscreteCarrier), so its open shapes are
+    // open, not closed, and hence not clopen: the real open ⊋ clopen.
+    using namespace dedekind::topology;
+    using QOpenRay = Ray<Q, Direction::Upward>;  // {x > p}, Boundary::Open
+    STATIC_CHECK(!HasDiscreteCarrier<QOpenRay>);
+    STATIC_CHECK(!HasDiscreteCarrier<QNbhd>);
+    STATIC_CHECK(IsOpen<QOpenRay> && !IsClosed<QOpenRay> &&
+                 !IsClopen<QOpenRay>);
+    STATIC_CHECK(IsOpen<QNbhd> && !IsClosed<QNbhd> && !IsClopen<QNbhd>);
+    // Yet membership is Boole-decidable: decidable does NOT imply clopen (the
+    // #904 independence direction, relocated here to a dense carrier).
+    STATIC_CHECK(dedekind::sets::HasDecidableMembership<QOpenRay>);
+    CHECK(!IsClopen<QOpenRay>);
   }
 
   SECTION("intensional, decidable characteristic map χ (no enumeration)") {

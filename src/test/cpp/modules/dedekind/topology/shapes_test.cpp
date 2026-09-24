@@ -18,7 +18,10 @@ TEST_CASE("Topology: Rules of Continuity Coverage", "[topology][continuity]") {
   using LeftClosedInterval = Interval<ℝ, Boundary::Closed, Boundary::Open>;
 
   SECTION("The Skin and Body: IsOpen Verification") {
-    // Rays and Open Intervals must carry the is_open_tag
+    // ℝ is int here, a DISCRETE carrier, so #905 structural inference
+    // (HasDiscreteCarrier) makes EVERY shape clopen: open shapes satisfy
+    // IsClosed too, and closed shapes satisfy IsOpen too.  The boundary tag no
+    // longer under-reports on int (the #904 CP finding).
     static_assert(IsOpen<UnitRay>, "Topology: Ray must be an Open set.");
     static_assert(IsOpen<UnitInterval>,
                   "Topology: Interval must be an Open set.");
@@ -26,8 +29,13 @@ TEST_CASE("Topology: Rules of Continuity Coverage", "[topology][continuity]") {
                   "Topology: closed ray must satisfy IsClosed.");
     static_assert(IsClosed<ClosedUnitInterval>,
                   "Topology: closed interval must satisfy IsClosed.");
-    static_assert(!IsOpen<ClosedUnitInterval>,
-                  "Topology: closed interval should not satisfy IsOpen.");
+    // #905: on the discrete int carrier a closed interval is ALSO open
+    // (clopen); the pre-#905 `!IsOpen<ClosedUnitInterval>` claim held only
+    // because the tag said less than the discrete structure.  A genuine
+    // open-not-closed set needs a DENSE carrier (see the ℚ neighborhood test).
+    static_assert(IsClopen<ClosedUnitInterval>,
+                  "Topology: on the discrete int carrier a closed interval is "
+                  "clopen (#905 structural inference).");
 
     // Verify they are recognized as Convex (No holes)
     static_assert(IsConvex<UnitRay>);
@@ -188,23 +196,26 @@ TEST_CASE("Topology: Ø/𝔸 in the clopen ∩ decidable boundary core (Stone)",
   // directions of that independence with a regression witness each.
 
   SECTION(
-      "decidable but NOT clopen-tagged: an open-only ray "
-      "(HasDecidableMembership does not imply IsClopen)") {
+      "discrete carrier ⟹ every set clopen: an int ray is clopen by "
+      "STRUCTURE, not by tag (#905)") {
     using OpenRay = Ray<int, Direction::Upward>;
-    // OpenRay carries is_open_tag but not is_closed_tag and is no boundary
-    // object, so IsClopen fails at the STRUCTURAL (tag/boundary) level.  This
-    // is not a topological claim: on the discrete order on int every subset is
-    // clopen, so {n > p} = {n >= p+1} happens to be clopen; the type is simply
-    // not TAGGED closed.  A genuine open-but-not-closed witness needs a
-    // non-discrete space (e.g. the reals).
-    static_assert(IsOpen<OpenRay> && !IsClosed<OpenRay>,
-                  "open ray carries is_open_tag but not is_closed_tag");
-    static_assert(!IsClopen<OpenRay>, "so it is not IsClopen (needs both)");
-    // Yet its logic_species defaults to Boole, so membership IS decidable:
-    // decidability does not entail the clopen tags.
+    // Pre-#905 this section asserted OpenRay was open-but-NOT-clopen, because
+    // the type carried only is_open_tag.  That was the #904 CP finding: the tag
+    // said LESS than the structure.  On the discrete order on int every subset
+    // is clopen ({n > p} = {n >= p+1}), so #905 infers it from
+    // HasDiscreteCarrier. The ray IS clopen now.
+    static_assert(HasDiscreteCarrier<OpenRay>,
+                  "int is a discrete carrier for the ray");
+    static_assert(IsOpen<OpenRay> && IsClosed<OpenRay> && IsClopen<OpenRay>,
+                  "#905: discrete carrier ⟹ the int ray is clopen (open ∧ "
+                  "closed) by inference, not by tag");
+    // logic_species still defaults to Boole, so membership is also decidable.
+    // Here the clopen and decidable certificates coincide (both hold).  The
+    // GENUINE decidable-but-NOT-clopen witness (the other independence
+    // direction) needs a DENSE carrier and lives in the ℚ neighborhood test.
     static_assert(HasDecidableMembership<OpenRay>,
-                  "OpenRay membership is Boole-decidable (independent axis)");
-    CHECK(!IsClopen<OpenRay>);
+                  "OpenRay membership is Boole-decidable");
+    CHECK(IsClopen<OpenRay>);
     CHECK(HasDecidableMembership<OpenRay>);
   }
 
