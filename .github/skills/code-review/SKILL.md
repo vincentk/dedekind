@@ -135,9 +135,9 @@ Coherence checks:
   occasional load-bearing note: a non-obvious overload-resolution or ordering
   hazard, a correctness subtlety. They are not for narrating line by line what the
   code does. Prefer terse code and the structured Doxygen over a running `//`
-  commentary. The leading-`//`-on-an-exported-declaration miss is recurring; and a
-  diff that adds many explanatory in-body `//` comments reads as clutter, not
-  documentation, so call that out too.
+  commentary. The leading-`//`-on-an-exported-declaration miss is recurring, so
+  call it out. Also flag diffs that add many explanatory in-body `//` comments.
+  They read as clutter, not documentation.
 - **Prefer short, descriptive sentences over long, snaky ones** in all new prose
   (Doxygen, paper text, PR descriptions). One clause, one point: subject, verb,
   object. Subject, verb, object. A sentence that chains three or more clauses
