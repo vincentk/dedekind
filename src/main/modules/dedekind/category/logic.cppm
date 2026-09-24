@@ -118,6 +118,53 @@ concept IsOckhamAlgebra = requires(typename L::Ω a, typename L::Ω b) {
 };
 
 /**
+ * @section logic__Op_Type_Bridge (#923)
+ * @brief Bridge the species' @b static-method ops (@c L::AND / @c L::OR /
+ *        @c L::RFL) to the @b function-object @b types the @c :species /
+ *        @c :total law registry is keyed on.
+ *
+ * @details The @c :species / @c :total law machinery
+ * (@c is_distributive_v<T, Join, Meet>, @c identity_v<T, Op>,
+ * @c IsDistributiveLattice / @c IsBoundedLattice) keys every law on the
+ * operation's @b type (a function object such as @c std::logical_or<bool>,
+ * @c dedekind::category::Sup, @c dedekind::category::Inf).  The logic species
+ * carry their ops as @b static @b methods on @c L, which have no type the
+ * registry can look up.  So each species publishes the op-@b types its
+ * @c AND / @c OR / @c RFL @e are, as the member aliases
+ * @c JoinOp @c (∨) / @c MeetOp @c (∧) / @c RflOp @c (¬):
+ *
+ *   - @c Boole:      @c JoinOp @c = @c std::logical_or<bool>, @c MeetOp @c =
+ *     @c std::logical_and<bool> (its @c OR / @c AND @b are @c || / @c &&, and
+ *     the Boolean-algebra + complement laws are registered under those types).
+ *   - @c Kleene / @c Chain<T>: @c JoinOp @c = @c Sup, @c MeetOp @c = @c Inf
+ *     (their @c OR / @c AND @b are @c max / @c min, the value-returning chain
+ *     ops from @c :species, #912/#933).
+ *   - @c RflOp @c = @c logic_complement<L>: the reflection ¬ = @c L::RFL as a
+ *     callable (already the @c :involution witness, see below),
+ * forward-declared here so the alias resolves.
+ *
+ * With these, @c is_distributive_v<L::Ω, L::JoinOp, L::MeetOp> and the whole
+ * @c :total lattice ladder resolve @b structurally from the species' declared
+ * ops --- no bespoke @c logic_is_distributive_v<L> tag ("inference composes,
+ * tagging explodes").  The carrier-level variety witnesses
+ * (@c IsDistributiveLattice / @c IsBoundedLattice) live in @c :total
+ * (downstream), so they are pinned in @c logic_lattice_structure_test.cpp; the
+ * @c :species-level trait witnesses are asserted below.  Consuming this bridge
+ * to gate the full Ockham laws in the @c IsOckhamAlgebra family is #907.
+ *
+ * @note @b Scope (#935): only @c Boole and @c Kleene are certified end-to-end
+ * (distributive + @b bounded).  @c Chain<T> publishes the aliases and is
+ * asserted @b distributive only --- its boundedness (machine-int @c
+ * numeric_limits poles vs unbounded ℤ) is a deferred design decision,
+ * FIXME(#941).  @c Percent is @b not bridged: its @c [0,100] invariant is not
+ * enforced for a publicly-mutable @c Percentage::v, so generic @c Sup / @c Inf
+ * (no clamp) do not agree with @c Percent::OR / @c AND, and certifying it as a
+ * bounded lattice would be unsound; that bridge is FIXME(#940).
+ */
+export template <typename L>
+struct logic_complement;
+
+/**
  * @section logic__Species
  * @brief The internal logic of the Classical Topos ({True, False}).
  *
@@ -139,6 +186,16 @@ export struct Boole final {
   static constexpr bool AND(bool a, bool b) { return a && b; }
   static constexpr bool OR(bool a, bool b) { return a || b; }
   static constexpr bool RFL(bool a) { return !a; }
+
+  /** @section logic__Boole_Op_Types (#923)
+   *  @brief The op-@b types @c OR / @c AND / @c RFL @b are, for the
+   *  @c :species / @c :total law registry.  @c 𝔹's join / meet @b are
+   *  @c || / @c && (@c std::logical_or / @c std::logical_and on @c bool),
+   *  under which the distributive-, bounded- and Boolean-algebra laws (incl.
+   *  the complement) are registered; ¬ is @c logic_complement<Boole>. */
+  using JoinOp = std::logical_or<bool>;
+  using MeetOp = std::logical_and<bool>;
+  using RflOp = logic_complement<Boole>;
 };
 
 // STATIC "IS A" CHECK:
@@ -200,6 +257,16 @@ export struct Kleene final {
   static constexpr Ternary RFL(Ternary a) {
     return static_cast<Ternary>(-static_cast<std::int8_t>(a));
   }
+
+  /** @section logic__Kleene_Op_Types (#923)
+   *  @brief The op-@b types @c OR / @c AND / @c RFL @b are.  Kleene's join /
+   *  meet @b are @c max / @c min on the @c K₃ chain, i.e. the value-returning
+   *  @c Sup / @c Inf from @c :species (@b not the @c std::ranges::max / @c min
+   *  niebloids, which return @c const @c T& and fail @c IsClosedUnder; #912/
+   *  #933).  ¬ is @c logic_complement<Kleene>. */
+  using JoinOp = Sup;
+  using MeetOp = Inf;
+  using RflOp = logic_complement<Kleene>;
 };
 
 // STATIC "IS A" CHECK:
@@ -255,6 +322,22 @@ struct Chain final {
   /** @brief ¬a = ~a (bitwise NOT): the order-reversing involution swapping the
    *  poles (⊥ ↔ ⊤).  Overflow-free (no arithmetic). */
   static constexpr T RFL(T a) { return static_cast<T>(~a); }
+
+  /** @section logic__Chain_Op_Types (#923)
+   *  @brief The op-@b types @c OR / @c AND / @c RFL @b are: join / meet @b are
+   *  @c max / @c min (the numeric order @b is the truth order), i.e. the
+   *  value-returning @c Sup / @c Inf from @c :species; ¬ is
+   *  @c logic_complement<Chain<T>>.  @c Chain<T> reaches @c
+   * IsDistributiveLattice through these.
+   *  @note #935 makes @b no boundedness claim about @c Chain<T> either way: the
+   *  machine-int-vs-ℤ question (register the @c numeric_limits poles as @c Sup
+   * /
+   *  @c Inf identities to reach @c IsBoundedLattice, matching @c
+   *  IsBoundedDeMorganChain<Chain<int>>, vs treat the carrier as unbounded ℤ)
+   *  is a deliberate design decision left out of scope: FIXME(#941). */
+  using JoinOp = Sup;
+  using MeetOp = Inf;
+  using RflOp = logic_complement<Chain<T>>;
 };
 
 // STATIC "IS A" CHECK:
@@ -315,9 +398,27 @@ export struct Percent final {
   }
   /** @brief ¬p = @c 100-p: reflection about the self-dual midpoint @c 50. */
   static constexpr Percentage RFL(Percentage a) noexcept { return {100 - a.v}; }
+
+  // NB (#923): Percent deliberately does NOT publish op-type aliases here.  Its
+  // AND / OR clamp into [0,100] (Percentage's ctor), but Percentage::v is a
+  // public mutable field so the [0,100] invariant is not enforced for every
+  // representable value; the generic value-returning Sup / Inf carry no clamp,
+  // so they do NOT agree with Percent::OR / AND on out-of-range
+  // representatives. Certifying Percent as a bounded lattice via Sup / Inf
+  // would therefore be unsound.  Bridging Percent is a follow-up gated on
+  // enforcing the invariant first (private v + clamping construction / no
+  // public mutation): FIXME(#940).
 };
 
 static_assert(IsOckhamAlgebra<Percent>, "Percent must fulfill IsOckhamAlgebra");
+
+// NB (#923): the op-type bridge WITNESSES (is_distributive_v / is_absorptive_v
+// / identity_v static_asserts) are placed at the END of this partition, below
+// the #912/#933 Ternary :total registrations (identity_trait<Ternary, Sup/Inf>)
+// and the Ternary operator<=> that SupInfLattice<Ternary> needs.  The Kleene
+// witnesses forward-reference those, so they must follow them.  The member
+// aliases (JoinOp / MeetOp / RflOp) stay inside each species struct (they
+// instantiate no trait).
 
 export constexpr Ternary operator&&(Ternary a, Ternary b) {
   return Kleene::AND(a, b);
@@ -1173,5 +1274,51 @@ static_assert(is_decided<Kleene>(Ternary::True) &&
               "K₃: the two endpoints ⊤, ⊥ are the decided core");
 static_assert(!is_decided<Kleene>(Ternary::Unknown),
               "K₃: the interior Unknown is undecided (outside Σ = {⊤,⊥})");
+
+/** @section logic__Op_Type_Bridge_Witnesses (#923)
+ *  @brief The bridge, pinned at the @c :species trait level (upstream of
+ *  @c :total).  Each species' declared @c JoinOp / @c MeetOp resolve the
+ *  distributivity / absorption / bounds traits on its carrier @c Ω, so the
+ *  downstream @c :total lattice-ladder concepts (@c IsDistributiveLattice /
+ *  @c IsBoundedLattice) resolve @b structurally through the aliases --- pinned
+ *  in @c logic_lattice_structure_test.cpp.  The reflection @c RflOp is bridged
+ *  separately: @c logic_complement<L> is the @c :involution witness that ¬ is
+ *  an involution (@c logic_negation_is_involutive_v above).
+ *  @note At the END of the partition on purpose: the @c Kleene witnesses
+ * consume the merged #912/#933 @c Ternary bounds (@c identity_trait<Ternary,
+ * Sup/Inf>) and the @c Ternary @c operator<=> (@c SupInfLattice<Ternary>), all
+ * declared earlier in the file.
+ *  @note @c Percent is @b not bridged here (its @c [0,100] invariant is not
+ *  enforced for a publicly-mutable @c Percentage::v, so generic @c Sup / @c Inf
+ *  disagree with @c Percent::OR / @c AND on out-of-range representatives ---
+ *  FIXME(#940), gated on enforcing the invariant).  @c Chain<int> is asserted
+ *  @b distributive only; #935 makes no boundedness claim about it (the
+ *  machine-int-vs-ℤ decision is FIXME(#941)). */
+
+// Distributivity (both directions) resolves through the declared op-types.
+static_assert(is_distributive_v<Boole::Ω, Boole::JoinOp, Boole::MeetOp> &&
+                  is_distributive_v<Boole::Ω, Boole::MeetOp, Boole::JoinOp>,
+              "𝔹: the OR/AND op-types distribute (logical_or / logical_and)");
+static_assert(is_distributive_v<Kleene::Ω, Kleene::JoinOp, Kleene::MeetOp> &&
+                  is_distributive_v<Kleene::Ω, Kleene::MeetOp, Kleene::JoinOp>,
+              "K₃: the OR/AND op-types distribute (Sup / Inf on Ternary)");
+static_assert(
+    is_distributive_v<Chain<int>::Ω, Chain<int>::JoinOp, Chain<int>::MeetOp> &&
+        is_distributive_v<Chain<int>::Ω, Chain<int>::MeetOp,
+                          Chain<int>::JoinOp>,
+    "Chain<int>: the OR/AND op-types distribute (Sup / Inf on int)");
+
+// Absorption resolves through the declared op-types (a ∨ (a ∧ b) = a).
+static_assert(
+    is_absorptive_v<Boole::Ω, Boole::JoinOp, Boole::MeetOp> &&
+        is_absorptive_v<Kleene::Ω, Kleene::JoinOp, Kleene::MeetOp> &&
+        is_absorptive_v<Chain<int>::Ω, Chain<int>::JoinOp, Chain<int>::MeetOp>,
+    "shipped species: OR/AND op-types are mutually absorptive");
+
+// Bounds resolve through the declared op-types for the finite Kleene chain
+// (⊥ = ∨-identity, ⊤ = ∧-identity), via the merged #912/#933 Ternary bounds.
+static_assert(identity_v<Kleene::Ω, Kleene::JoinOp> == Kleene::False &&
+                  identity_v<Kleene::Ω, Kleene::MeetOp> == Kleene::True,
+              "K₃ bounds via op-types: ⊥ = False (∨-id), ⊤ = True (∧-id)");
 
 }  // namespace dedekind::category
