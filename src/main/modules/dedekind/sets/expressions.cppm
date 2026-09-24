@@ -1837,71 +1837,72 @@ static_assert(
  *
  * The logic species a wrapping @c Set adopts for a set-node @c Species must
  * keep the wrapper's codomain coherent.  @c Set::operator() is
- * @c lift_logic<L>(predicate(x)), and @c lift_logic embeds a decided @c bool
- * onto the target poles but passes a value ALREADY in a species (a non-@c bool
- * @c Ω) THROUGH unchanged.  So the wrapper is coherent (its @c Codomain @c =
- * @c L::Ω equals what @c operator() returns) iff @c L is at least as expressive
- * as the predicate's OWN species: @c LiftsTo<Species::logic_species, L>
- * (𝔹 ⊑ K₃).  Two axes bound @c L, and the honest choice is the JOIN that
- * dominates both:
+ * @c lift_logic<L>(predicate(x)): @c lift_logic embeds a decided @c bool onto
+ * the target poles but passes a value ALREADY in a species (a non-@c bool @c Ω)
+ * THROUGH unchanged.  So the wrapper is coherent (its @c Codomain @c = @c L::Ω
+ * equals what @c operator() returns) iff the predicate's membership answer
+ * either is @c bool (which embeds into any @c L) or already IS @c L::Ω.
  *
- * - the carrier-axis verdict @c NaturalLogic (continuum ⟹ @c Kleene): this is
- *   what keeps the canonical continuum ambient
- *   ℝ = @c 𝔸<QuadraticReal,Boole,ℶ_1> semi-decidable even though it declares
- *   @c Boole logic.  Its cardinality, not its logic tag, carries the
- *   undecidability, so a verbatim-@c logic_species choice would wrongly make
- *   ℝ decidable.
- * - the predicate's declared @c logic_species: taking this into the join stops
- *   the carrier axis from DEMOTING a genuinely @c Kleene predicate down to
- *   @c Boole, which is the #928 gap.  A countable-carrier @c Π⁰₁ set
- *   legitimately tagged @c Kleene (@c 𝔸<int,Kleene>, or an @c A|pred halfspace
- *   carved from it) has @c operator() returning @c Ternary, so a @c Boole
- *   codomain would truncate it and the wrapper failed @c IsArrow / @c IsSet.
+ * The single source of truth is therefore the predicate's ACTUAL @c operator()
+ * RETURN type, not a declared @c logic_species tag.  The tag was only ever a
+ * PROXY: a species can OMIT it, expose a countable carrier (so @c NaturalLogic
+ * reads @c Boole), yet still RETURN @c Ternary; keying off the tag would then
+ * demote the codomain to @c Boole and truncate the @c Ternary answer.  So
+ * @c wrapped_logic_t joins the return's own species (@c GetLogic of the return
+ * type) UP with the carrier axis, and @c CoherentSetWrap checks the return
+ * against the result:
  *
- * @c join_logic_t of the two is @c ⊒ both, so @c lift_logic always embeds and
- * the codomain is coherent everywhere.  Canonical coherent ambients
- * (ℕ/ℤ/ℚ decidable, ℝ semi-decidable) are unchanged; only the incoherent
- * countable-@c Kleene bucket moves, from a mis-typed (@c !IsSet) wrapper to a
- * coherent partial (Ω-set) one.
+ * - carrier-axis verdict @c NaturalLogic (continuum ⟹ @c Kleene) keeps the
+ *   canonical continuum ambient ℝ = @c 𝔸<QuadraticReal,Boole,ℶ_1>
+ *   semi-decidable: ℝ returns @c bool, but its ℶ_1 cardinality (not a logic
+ *   tag) carries the undecidability, so join(Kleene, Boole) = Kleene holds the
+ *   guard;
+ * - the return's species closes the dual gap: any countable-carrier predicate
+ *   returning @c Ternary --- @c 𝔸<int,Kleene>, an @c A|pred halfspace carved
+ *   from it, or an UNTAGGED species whose @c operator() merely returns @c
+ *   Ternary --- has @c GetLogic = @c Kleene, so join(Boole, Kleene) = Kleene
+ *   rather than the demoted @c Boole that made a @c !IsSet wrapper.
+ *
+ * @c CoherentSetWrap is the Sollbruchstelle: it admits the wrap iff the return
+ * type is @c bool or exactly @c wrapped_logic_t::Ω.  @c join_logic_t only
+ * models 𝔹 ⊑ K₃, so a @c Percent- or @c Chain-returning predicate collapses to
+ * a
+ * @c Boole wrap whose @c Ω (@c bool) is NOT its @c Percentage / chain return;
+ * it is rejected rather than silently mis-typed.  FIXME(#945): place @c Chain /
+ * @c Percent in the logic-species lattice so such ambients wrap coherently
+ * instead of being rejected.
  */
 
-/** @brief The @c Set codomain species for @c Species: the @c join_logic_t of
- *  the carrier-axis @c NaturalLogic verdict and the predicate's own
- *  @c logic_species.  A predicate with no @c logic_species (an opaque λ) falls
- *  back to the carrier axis alone.  Rationale: @ref
+/** @brief The type @c Species' @c operator() returns for a member query --- the
+ *  authority for the wrapper's codomain (a declared @c logic_species is only a
+ *  proxy for it).
+ *  @tparam Species the set-node being wrapped. */
+template <typename Species>
+using set_membership_t = std::remove_cvref_t<
+    std::invoke_result_t<const Species&, const typename Species::Domain&>>;
+
+/** @brief The @c Set codomain species for @c Species: @c join_logic_t of the
+ *  carrier-axis @c NaturalLogic verdict and the species of @c Species' actual
+ *  @c operator() return type (@c GetLogic).  Rationale: @ref
  *  expressions__Set_Codomain_Reconciliation.
  *  @tparam Species the set-node being wrapped by the @c Set(Species) CTAD. */
-template <typename Species, typename = void>
-struct wrapped_logic {
-  using type = typename NaturalLogic<Species>::type;
-};
 template <typename Species>
-struct wrapped_logic<Species, std::void_t<typename Species::logic_species>> {
-  using type = join_logic_t<typename NaturalLogic<Species>::type,
-                            typename Species::logic_species>;
-};
-template <typename Species>
-using wrapped_logic_t = typename wrapped_logic<Species>::type;
+using wrapped_logic_t = join_logic_t<
+    typename NaturalLogic<Species>::type,
+    typename dedekind::category::GetLogic<set_membership_t<Species>>::type>;
 
-/** @brief Whether @c Species can be wrapped coherently: its declared
- *  @c logic_species must LIFT into the computed codomain @c wrapped_logic_t.
- *  A species with no @c logic_species has no codomain to truncate, so it wraps
- *  via the carrier axis unconditionally.
- *
- *  @details The Sollbruchstelle for a species outside the @c join_logic_t
- *  lattice: @c join_logic_t only models 𝔹 ⊑ K₃, so a @c Percent- or
- *  @c Chain-tagged ambient computes @c wrapped_logic_t @c = @c Boole, into
- * which its @c Percentage / chain codomain does NOT lift.  The @c Set(Species)
- * CTAD then rejects (SFINAE / no viable deduction) rather than silently
- * mis-typing the wrapper's codomain to @c bool.
- *  FIXME(#945): generalise @c join_logic_t to the full logic-species lattice
- *  (place @c Chain / @c Percent in the dominance order) so such ambients deduce
- *  coherently instead of being rejected. */
+/** @brief Whether @c Species wraps into a coherent @c Set: its @c operator()
+ *  return is @c bool (embeds into any codomain) or exactly
+ *  @c wrapped_logic_t::Ω.  The Sollbruchstelle for a return outside the
+ *  @c join_logic_t lattice (@c Percent / @c Chain, FIXME(#945)): rejected, not
+ *  mis-typed.  Rationale: @ref expressions__Set_Codomain_Reconciliation.
+ *  @tparam Species the set-node being wrapped by the @c Set(Species) CTAD. */
 export template <typename Species>
 concept CoherentSetWrap =
-    !requires { typename Species::logic_species; } ||
-    dedekind::category::LiftsTo<typename Species::logic_species,
-                                wrapped_logic_t<Species>>;
+    requires(const Species& s, const typename Species::Domain& x) { s(x); } &&
+    (std::same_as<set_membership_t<Species>, bool> ||
+     std::same_as<set_membership_t<Species>,
+                  typename wrapped_logic_t<Species>::Ω>);
 
 /** @section expressions__Identity_CTAD */
 template <typename Species>

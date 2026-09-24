@@ -799,6 +799,24 @@ TEST_CASE(
     CHECK(s(6) == Kleene::True);   // 6 > 5
     CHECK(s(5) == Kleene::False);  // boundary excluded
   }
+
+  SECTION(
+      "end-to-end through the genuine point-free A|pred DSL binding over a "
+      "Kleene ambient (not a hand-built Halfspace)") {
+    // Exercise the real species propagation: the DSL operator| threads the
+    // ambient's Kleene into make_halfspace, so the halfspace (and thus the
+    // wrapped Set) carries Kleene end-to-end.
+    constexpr auto hs = 𝔸<int, Kleene> | (π > fix(5_c));  // {x > 5}, L = Kleene
+    STATIC_CHECK(std::same_as<typename decltype(hs)::logic_species, Kleene>);
+    constexpr auto s = Set{hs};
+    STATIC_CHECK(std::same_as<typename decltype(s)::logic_species, Kleene>);
+    STATIC_CHECK(
+        std::same_as<typename decltype(s)::Codomain, typename Kleene::Ω>);
+    STATIC_CHECK(IsSet<decltype(s)>);
+    STATIC_CHECK_FALSE(HasDecidableMembership<decltype(s)>);
+    CHECK(s(6) == Kleene::True);
+    CHECK(s(5) == Kleene::False);
+  }
 }
 
 // The power set 𝔓 (#830) is exercised in order/powerset_test.cpp.

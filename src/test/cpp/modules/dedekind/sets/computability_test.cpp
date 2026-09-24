@@ -215,4 +215,33 @@ TEST_CASE(
     // verify).
     STATIC_CHECK(CoherentSetWrap<UniversalSet<int, Kleene>>);
   }
+
+  SECTION(
+      "Untagged species with a Ternary-returning operator() over a "
+      "countable carrier deduces Kleene (the RETURN type is the "
+      "authority, not the tag)") {
+    // The closed hole: no logic_species tag, and NaturalLogic reads Boole off
+    // the countable carrier, yet operator() returns Ternary.  A tag-based
+    // derivation would demote the codomain to Boole and truncate the Ternary
+    // answer; deriving from the RETURN type (GetLogic<Ternary> = Kleene, joined
+    // with the carrier axis) yields Kleene, so the wrapper is coherent.
+    struct UntaggedTernaryOverN {
+      using Domain = int;
+      using cardinality_type = ℵ_0;  // countable → carrier axis says Boole
+      constexpr Ternary operator()(const int& n) const {
+        return n > 0 ? Ternary::True : Ternary::Unknown;
+      }
+    };
+    STATIC_CHECK(std::same_as<typename NaturalLogic<UntaggedTernaryOverN>::type,
+                              Boole>);  // carrier axis alone would demote
+    STATIC_CHECK(CoherentSetWrap<UntaggedTernaryOverN>);
+    constexpr auto s = Set{UntaggedTernaryOverN{}};
+    STATIC_CHECK(std::same_as<typename decltype(s)::logic_species, Kleene>);
+    STATIC_CHECK(
+        std::same_as<typename decltype(s)::Codomain, typename Kleene::Ω>);
+    STATIC_CHECK(IsSet<decltype(s)>);
+    STATIC_CHECK_FALSE(HasDecidableMembership<decltype(s)>);
+    CHECK(s(3) == Kleene::True);
+    CHECK(s(-1) == Kleene::Unknown);
+  }
 }
