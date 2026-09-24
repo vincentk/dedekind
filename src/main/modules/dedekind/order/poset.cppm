@@ -65,12 +65,11 @@ concept IsPreOrdered = IsPartOfRelation<T, T, typename L::Ω> &&
  * successor.
  * @details Synthesized via the order Join-Semilattice (posetal
  *          `IsCertifiedOrderJoinSemilattice<D, Join>`). The `Join` parameter
- *          defaults to `std::ranges::max` but can be overridden to model
+ *          defaults to `Sup` but can be overridden to model
  *          directed sets under a different certified join operation.
  *          This is the "Ground" for all Nets and Sequences.
  */
-export template <typename D, typename L = Boole,
-                 typename Join = decltype(std::ranges::max)>
+export template <typename D, typename L = Boole, typename Join = Sup>
 concept IsDirectedSet =
     IsPreOrdered<D, L> &&
     dedekind::category::IsCertifiedOrderJoinSemilattice<D, Join>;

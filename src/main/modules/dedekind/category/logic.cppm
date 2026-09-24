@@ -43,7 +43,7 @@
  *
  * Textbook defaults in this partition:
  * - Classical two-valued logic uses C++ `operator&&` / `operator||`.
- * - Kleene K3 uses lattice operations `std::ranges::min` / `std::ranges::max`
+ * - Kleene K3 uses the value-returning lattice operations `Inf` / `Sup`
  *   over {-1, 0, 1}.
  *
  * Wikipedia: Subobject classifier, Topos theory, Kleene logic
@@ -239,14 +239,14 @@ export struct Kleene final {
 
   /** @brief Kleene Conjunction: Returns the minimum truth value. */
   static constexpr Ternary AND(Ternary a, Ternary b) {
-    return static_cast<Ternary>(std::ranges::min(static_cast<std::int8_t>(a),
-                                                 static_cast<std::int8_t>(b)));
+    return static_cast<Ternary>(
+        Inf{}(static_cast<std::int8_t>(a), static_cast<std::int8_t>(b)));
   }
 
   /** @brief Kleene Disjunction: Returns the maximum truth value. */
   static constexpr Ternary OR(Ternary a, Ternary b) {
-    return static_cast<Ternary>(std::ranges::max(static_cast<std::int8_t>(a),
-                                                 static_cast<std::int8_t>(b)));
+    return static_cast<Ternary>(
+        Sup{}(static_cast<std::int8_t>(a), static_cast<std::int8_t>(b)));
   }
 
   /** @brief Kleene reflection: the order-reversing De Morgan involution
@@ -316,9 +316,9 @@ struct Chain final {
 
   /** @brief Meet @c ∧ = numeric minimum (the numeric order @b is the truth
    *  order). */
-  static constexpr T AND(T a, T b) { return std::ranges::min(a, b); }
+  static constexpr T AND(T a, T b) { return Inf{}(a, b); }
   /** @brief Join @c ∨ = numeric maximum. */
-  static constexpr T OR(T a, T b) { return std::ranges::max(a, b); }
+  static constexpr T OR(T a, T b) { return Sup{}(a, b); }
   /** @brief ¬a = ~a (bitwise NOT): the order-reversing involution swapping the
    *  poles (⊥ ↔ ⊤).  Overflow-free (no arithmetic). */
   static constexpr T RFL(T a) { return static_cast<T>(~a); }
@@ -390,11 +390,11 @@ export struct Percent final {
   static constexpr Percentage False{0};
   /** @brief Meet @c ∧ = numeric minimum. */
   static constexpr Percentage AND(Percentage a, Percentage b) noexcept {
-    return {std::ranges::min(a.v, b.v)};
+    return {Inf{}(a.v, b.v)};
   }
   /** @brief Join @c ∨ = numeric maximum. */
   static constexpr Percentage OR(Percentage a, Percentage b) noexcept {
-    return {std::ranges::max(a.v, b.v)};
+    return {Sup{}(a.v, b.v)};
   }
   /** @brief ¬p = @c 100-p: reflection about the self-dual midpoint @c 50. */
   static constexpr Percentage RFL(Percentage a) noexcept { return {100 - a.v}; }
@@ -431,14 +431,13 @@ export constexpr Ternary operator!(Ternary a) { return Kleene::RFL(a); }
 /** @brief Truth-order @c <=> on @c Ternary: the chain
  *         @c False @c (-1) @c < @c Unknown @c (0) @c < @c True @c (1).
  *
- *  Enables stdlib niebloids (@c std::ranges::min, @c std::ranges::max)
- *  to compute the Kleene meet / join on @c Ternary directly, so the
- *  Form-chain @c Meet / @c Join slots reuse stdlib infrastructure
+ *  Supplies the @c < the value-returning @c :species ops @c Inf / @c Sup
+ *  need to compute the Kleene meet / join on @c Ternary directly, so the
+ *  Form-chain @c Meet / @c Join slots reuse the generic lattice ops
  *  rather than carrying named Ternary-specific function-object struct
- *  types (#698 Slice 8 review).  @c min on the chain is Kleene AND;
- *  @c max is Kleene OR — identical to @c Kleene::AND / @c OR
- *  (which were already defined via @c std::ranges::min / @c max on
- *  the int8_t cast).
+ *  types (#698 Slice 8 review).  @c Inf on the chain is Kleene AND;
+ *  @c Sup is Kleene OR — identical to @c Kleene::AND / @c OR
+ *  (which are defined via @c Inf / @c Sup on the int8_t cast).
  *
  *  @note Returns @c std::strong_ordering, not @c Ternary — comparison
  *  between two @c Ternary values is itself classically decided (the

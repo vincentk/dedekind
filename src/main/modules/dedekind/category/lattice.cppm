@@ -130,7 +130,7 @@
  * CT-vocabulary primitives (the classifier @c Ω, the ambient @c A, the
  * characteristic morphism @c χ, free functions @c meet / @c join /
  * @c complement / @c subset_eq).  Default template arguments (@c Rel @c =
- * @c std::less_equal, @c Join @c = @c std::ranges::max, ...) are
+ * @c std::less_equal, @c Join @c = @c Sup, ...) are
  * @b set-theoretic hints — examples, not body content.  Operator
  * sugar (@c <=, @c &, @c |, @c !) lives downstream in @c :sets as
  * forwarders to the CT primitives.
@@ -206,13 +206,12 @@ namespace dedekind::category {
  *
  * @tparam T    The Domain (Objects).
  * @tparam Rel  The Relation (the unique-morphism witness).
- * @tparam Join The join operation (default @c std::ranges::max).
- * @tparam Meet The meet operation (default @c std::ranges::min).
+ * @tparam Join The join operation (default @c Sup).
+ * @tparam Meet The meet operation (default @c Inf).
  * @tparam L    The Logic Species (the Subobject Classifier Ω).
  */
 export template <typename T, typename Rel = std::less_equal<T>,
-                 typename Join = decltype(std::ranges::max),
-                 typename Meet = decltype(std::ranges::min), typename L = Boole>
+                 typename Join = Sup, typename Meet = Inf, typename L = Boole>
 concept IsLatticeCategory =
     IsPosetal<T, Rel, L> &&           // Faithful: lattice ⊊ posetal.
     IsFilteredCategory<T, Rel, L> &&  // Faithful: lattice ⊊ filtered.
@@ -231,7 +230,7 @@ concept IsLatticeCategory =
 /** @section lattice__Canonical_Witnesses */
 
 static_assert(IsLatticeCategory<bool>,
-              "bool with std::less_equal, std::ranges::max/min is the "
+              "bool with std::less_equal, Sup / Inf is the "
               "canonical 2-element lattice category (also the smallest "
               "non-trivial Boolean algebra; pending the row-7 Form-chain "
               "extension that will witness this categorically).");
@@ -339,13 +338,12 @@ struct LatticeTop<T, std::less_equal<T>> {
  *
  * @tparam T    The Domain (Objects).
  * @tparam Rel  The Relation.
- * @tparam Join The join operation (default @c std::ranges::max).
- * @tparam Meet The meet operation (default @c std::ranges::min).
+ * @tparam Join The join operation (default @c Sup).
+ * @tparam Meet The meet operation (default @c Inf).
  * @tparam L    The Logic Species.
  */
 export template <typename T, typename Rel = std::less_equal<T>,
-                 typename Join = decltype(std::ranges::max),
-                 typename Meet = decltype(std::ranges::min), typename L = Boole>
+                 typename Join = Sup, typename Meet = Inf, typename L = Boole>
 concept IsBoundedLatticeCategory =
     IsLatticeCategory<T, Rel, Join, Meet, L> &&  // Faithful: bounded ⊊ lattice.
     IsInitialObject<LatticeBottom<T, Rel>> &&    // Universal-property initial.
@@ -1196,9 +1194,9 @@ export template <typename T, typename Rel, typename Meet>
 struct HeytingExponential;
 
 /** @brief Canonical specialisation: integral carriers under
- *         @c std::less_equal with @c std::ranges::min as the meet.
+ *         @c std::less_equal with @c Inf as the meet.
  *         Holds an exponential value @c value @c ∈ T; @c operator()(x)
- *         returns @c min(value, x) — the lattice meet, which @b is the
+ *         returns @c Inf(value, x) — the lattice meet, which @b is the
  *         eval morphism in a thin Heyting algebra.
  *
  *  @note The @c Meet template parameter is load-bearing: it pins the
@@ -1210,7 +1208,7 @@ struct HeytingExponential;
  *  operation — categorical contract broken. */
 export template <typename T>
   requires std::is_integral_v<T>
-struct HeytingExponential<T, std::less_equal<T>, decltype(std::ranges::min)> {
+struct HeytingExponential<T, std::less_equal<T>, Inf> {
   using Domain = T;  // IsArrow-shaped (for the future :morphism refinement)
   using Codomain = T;
 
@@ -1219,9 +1217,7 @@ struct HeytingExponential<T, std::less_equal<T>, decltype(std::ranges::min)> {
   /** @brief Eval morphism: @c value @c ∧ x (the meet, which @b is eval
    *         in a thin Heyting algebra).  Universal property:
    *         @c value @c ∧ x @c ≤ @c b when @c value @c = @c (a @c → b). */
-  constexpr T operator()(T x) const noexcept {
-    return std::ranges::min(value, x);
-  }
+  constexpr T operator()(T x) const noexcept { return Inf{}(value, x); }
 };
 
 /**
@@ -1247,13 +1243,12 @@ struct HeytingExponential<T, std::less_equal<T>, decltype(std::ranges::min)> {
  *
  * @tparam T    The Domain (Objects).
  * @tparam Rel  The Relation.
- * @tparam Join The join operation (default @c std::ranges::max).
- * @tparam Meet The meet operation (default @c std::ranges::min).
+ * @tparam Join The join operation (default @c Sup).
+ * @tparam Meet The meet operation (default @c Inf).
  * @tparam L    The Logic Species.
  */
 export template <typename T, typename Rel = std::less_equal<T>,
-                 typename Join = decltype(std::ranges::max),
-                 typename Meet = decltype(std::ranges::min), typename L = Boole>
+                 typename Join = Sup, typename Meet = Inf, typename L = Boole>
 concept IsHeytingLatticeCategory =
     IsBoundedLatticeCategory<T, Rel, Join, Meet,
                              L> &&  // Faithful: heyting ⊊ bounded.
@@ -1280,9 +1275,8 @@ static_assert(IsHeytingLatticeCategory<int>,
               "operator()(x) = min(value, x).");
 
 static_assert(
-    IsExponential<HeytingExponential<bool, std::less_equal<bool>,
-                                     decltype(std::ranges::min)>,
-                  bool, bool>,
+    IsExponential<HeytingExponential<bool, std::less_equal<bool>, Inf>, bool,
+                  bool>,
     "HeytingExponential<bool, …, min> aligns with :cartesian::IsExponential "
     "structurally — pure call-shape recognition (#698 Slice 6).");
 
@@ -1325,15 +1319,14 @@ inline constexpr bool is_complement_v =
 
 /** @brief Canonical specialisation: @c std::logical_not<bool> is the
  *         complement for the 2-element Boolean lattice over
- *         @c (bool, std::less_equal<bool>, std::ranges::max,
- *         std::ranges::min).  Value-level laws hold trivially:
- *         @c true @c ∧ @c !true @c = @c min(true, false) @c = @c false
- *         @c = @c ⊥, and @c true @c ∨ @c !true @c = @c max(true, false)
+ *         @c (bool, std::less_equal<bool>, Sup, Inf).  Value-level laws
+ *         hold trivially:
+ *         @c true @c ∧ @c !true @c = @c Inf(true, false) @c = @c false
+ *         @c = @c ⊥, and @c true @c ∨ @c !true @c = @c Sup(true, false)
  *         @c = @c true @c = @c ⊤. */
 template <>
-struct is_complement<std::logical_not<bool>, bool, std::less_equal<bool>,
-                     decltype(std::ranges::max), decltype(std::ranges::min)>
-    : std::true_type {};
+struct is_complement<std::logical_not<bool>, bool, std::less_equal<bool>, Sup,
+                     Inf> : std::true_type {};
 
 /**
  * @concept IsBooleanLatticeCategory
@@ -1382,16 +1375,15 @@ struct is_complement<std::logical_not<bool>, bool, std::less_equal<bool>,
  *
  * @tparam T    The Domain (Objects).
  * @tparam Rel  The Relation.
- * @tparam Join The join operation (default @c std::ranges::max).
- * @tparam Meet The meet operation (default @c std::ranges::min).
+ * @tparam Join The join operation (default @c Sup).
+ * @tparam Meet The meet operation (default @c Inf).
  * @tparam Not  The complement endofunctor (default
  *              @c std::logical_not<T>; fails closed for non-bool unless
  *              the carrier registers an alternative pairing).
  * @tparam L    The Logic Species.
  */
 export template <typename T, typename Rel = std::less_equal<T>,
-                 typename Join = decltype(std::ranges::max),
-                 typename Meet = decltype(std::ranges::min),
+                 typename Join = Sup, typename Meet = Inf,
                  typename Not = std::logical_not<T>, typename L = Boole>
 concept IsBooleanLatticeCategory =
     IsHeytingLatticeCategory<T, Rel, Join, Meet,
@@ -1409,9 +1401,8 @@ static_assert(IsBooleanLatticeCategory<bool>,
               "1 through 7 fires definitionally.");
 
 static_assert(
-    !IsBooleanLatticeCategory<int, std::less_equal<int>,
-                              decltype(std::ranges::max),
-                              decltype(std::ranges::min), std::bit_not<int>>,
+    !IsBooleanLatticeCategory<int, std::less_equal<int>, Sup, Inf,
+                              std::bit_not<int>>,
     "int under std::less_equal with std::bit_not is NOT a Boolean lattice: "
     "the bitwise complement doesn't match the order-theoretic meet/join "
     "(e.g. min(5, ~5) = -6 ≠ INT_MIN).  Honest Rejection via the opt-in "
@@ -1437,31 +1428,28 @@ static_assert(
  *  Carriers covered here:
  *  - @c size_t: large finite totally-ordered chain (Slices 6/7 already
  *    pinned @c bool and @c int).
- *  - @c std::ranges niebloid identity: the Form-chain @c Meet / @c Join
- *    slots @b are the @c std::ranges niebloid types — pinned via an
- *    explicit instantiation that names them. */
+ *  - @c Sup / @c Inf identity: the Form-chain @c Meet / @c Join slots
+ *    @b are the value-returning @c :species lattice ops @c Sup / @c Inf
+ *    — pinned via an explicit instantiation that names them (#934). */
 
 static_assert(IsHeytingLatticeCategory<std::size_t>,
               "size_t is a Heyting lattice under the totally-ordered "
               "implication; rows 1–6 of the Form-chain fire.");
 
 static_assert(
-    !IsBooleanLatticeCategory<
-        std::size_t, std::less_equal<std::size_t>, decltype(std::ranges::max),
-        decltype(std::ranges::min), std::bit_not<std::size_t>>,
+    !IsBooleanLatticeCategory<std::size_t, std::less_equal<std::size_t>, Sup,
+                              Inf, std::bit_not<std::size_t>>,
     "size_t under std::less_equal with std::bit_not is NOT a Boolean "
     "lattice — same Honest Rejection as int (the bitwise complement "
     "doesn't match the order-theoretic meet/join).  Bitwise route is "
     "#710's territory.");
 
-static_assert(
-    IsLatticeCategory<int, std::less_equal<int>, decltype(std::ranges::max),
-                      decltype(std::ranges::min)>,
-    "Niebloid identity: the Form-chain Meet / Join slot "
-    "defaults ARE the std::ranges niebloids "
-    "(std::ranges::min, std::ranges::max).  Pinning the "
-    "explicit instantiation here makes the structural fit "
-    "type-checked at compile time.");
+static_assert(IsLatticeCategory<int, std::less_equal<int>, Sup, Inf>,
+              "Sup / Inf identity: the Form-chain Meet / Join slot "
+              "defaults ARE the value-returning :species lattice ops "
+              "(Inf, Sup).  Pinning the "
+              "explicit instantiation here makes the structural fit "
+              "type-checked at compile time.");
 
 static_assert(
     std::same_as<std::ranges::range_value_t<std::ranges::iota_view<int, int>>,

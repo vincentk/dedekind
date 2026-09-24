@@ -65,8 +65,8 @@ TEST_CASE("Order: Archimedean Scales", "[order][archimedean]") {
 }
 
 TEST_CASE("Order: Posetal lattice reuse", "[order][lattice]") {
-  constexpr auto meet = std::ranges::min;
-  constexpr auto join = std::ranges::max;
+  constexpr auto meet = dedekind::category::Inf{};
+  constexpr auto join = dedekind::category::Sup{};
 
   SECTION("Certified lattice operations are re-exported") {
     STATIC_CHECK(dedekind::order::IsOrderMeetSemilattice<int, decltype(meet)>);

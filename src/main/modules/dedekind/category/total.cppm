@@ -672,7 +672,7 @@ concept IsLattice = IsTotal<T, Join> && IsTotal<T, Meet> &&
  * - `bool`   with (`std::logical_or`, `std::logical_and`) is a Distributive
  *            Lattice. This corresponds to the classical two-element Boolean
  *            lattice {false < true}.
- * - `int`    with (`std::ranges::max`, `std::ranges::min`) is a Distributive
+ * - `int`    with (`Sup`, `Inf`) is a Distributive
  *            Lattice.  This corresponds to the total order on integers.
  * - `double` is @b not a lattice carrier: NaN breaks reflexivity / totality, so
  *            the `:species` lattice-law blanket is gated on a certified total
@@ -759,38 +759,26 @@ concept IsBooleanAlgebra =
     IsClosedUnderUnary<T, Not> && is_complemented_v<T, Join, Meet, Not>;
 
 // Upstream ownership locks: :total aliases must track :posetal refinements.
-static_assert(IsSemilattice<int, decltype(std::ranges::min)> ==
-              (IsTotal<int, decltype(std::ranges::min)> &&
-               IsOrderMeetSemilattice<int, decltype(std::ranges::min)>));
-static_assert(IsJoinSemilattice<int, decltype(std::ranges::max)> ==
-              (IsTotal<int, decltype(std::ranges::max)> &&
-               IsOrderJoinSemilattice<int, decltype(std::ranges::max)>));
-static_assert(IsMeetSemilattice<int, decltype(std::ranges::min)> ==
-              (IsTotal<int, decltype(std::ranges::min)> &&
-               IsOrderMeetSemilattice<int, decltype(std::ranges::min)>));
-static_assert(
-    IsLattice<int, decltype(std::ranges::max), decltype(std::ranges::min)> ==
-    (IsTotal<int, decltype(std::ranges::max)> &&
-     IsTotal<int, decltype(std::ranges::min)> &&
-     IsOrderLatticeOperations<int, decltype(std::ranges::max),
-                              decltype(std::ranges::min)>));
-static_assert(
-    IsDistributiveLattice<int, decltype(std::ranges::max),
-                          decltype(std::ranges::min)> ==
-    (IsTotal<int, decltype(std::ranges::max)> &&
-     IsTotal<int, decltype(std::ranges::min)> &&
-     IsOrderLatticeOperations<int, decltype(std::ranges::max),
-                              decltype(std::ranges::min)> &&
-     IsOrderDistributiveLatticeOperations<int, decltype(std::ranges::max),
-                                          decltype(std::ranges::min)>));
+static_assert(IsSemilattice<int, Inf> ==
+              (IsTotal<int, Inf> && IsOrderMeetSemilattice<int, Inf>));
+static_assert(IsJoinSemilattice<int, Sup> ==
+              (IsTotal<int, Sup> && IsOrderJoinSemilattice<int, Sup>));
+static_assert(IsMeetSemilattice<int, Inf> ==
+              (IsTotal<int, Inf> && IsOrderMeetSemilattice<int, Inf>));
+static_assert(IsLattice<int, Sup, Inf> ==
+              (IsTotal<int, Sup> && IsTotal<int, Inf> &&
+               IsOrderLatticeOperations<int, Sup, Inf>));
+static_assert(IsDistributiveLattice<int, Sup, Inf> ==
+              (IsTotal<int, Sup> && IsTotal<int, Inf> &&
+               IsOrderLatticeOperations<int, Sup, Inf> &&
+               IsOrderDistributiveLatticeOperations<int, Sup, Inf>));
 
 // bool is a Distributive Lattice (AND/OR are both idempotent)
 static_assert(
     IsDistributiveLattice<bool, std::logical_or<bool>, std::logical_and<bool>>);
 
 // Lattice laws for integers under max/min (Total Order).
-static_assert(IsDistributiveLattice<int, decltype(std::ranges::max),
-                                    decltype(std::ranges::min)>);
+static_assert(IsDistributiveLattice<int, Sup, Inf>);
 
 /** @section total__Lattice_Variety_Ladder (#809)
  *

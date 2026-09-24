@@ -111,9 +111,9 @@ TEST_CASE("Total: Lattice Structures (Relational Presence)",
   }
 
   SECTION("Order Lattices (Total Order Species)") {
-    // Fix: Capture the type of the niebloid/algorithm
-    using Max = decltype(std::ranges::max);
-    using Min = decltype(std::ranges::min);
+    // Value-returning :species lattice ops (join = Sup, meet = Inf).
+    using Max = Sup;
+    using Min = Inf;
 
     // Verify structural properties of the operations
     STATIC_CHECK(IsSemilattice<int, Max>);

@@ -94,14 +94,13 @@ TEST_CASE(
     "[order][lattice][bitwise][order][negative]") {
   /** @brief Cross-check: the SAME @c size_t carrier under the
    *         @b order-theoretic reading (@c std::less_equal,
-   *         @c std::ranges::min / @c max, @c std::bit_not) does NOT
+   *         @c Inf / @c Sup, @c std::bit_not) does NOT
    *         participate in @c IsBooleanLatticeCategory.  Two distinct
    *         algebraic structures, two distinct lattice witnesses. */
   STATIC_CHECK(IsHeytingLatticeCategory<std::size_t>);
   STATIC_CHECK_FALSE(
-      IsBooleanLatticeCategory<
-          std::size_t, std::less_equal<std::size_t>, decltype(std::ranges::max),
-          decltype(std::ranges::min), std::bit_not<std::size_t>>);
+      IsBooleanLatticeCategory<std::size_t, std::less_equal<std::size_t>, Sup,
+                               Inf, std::bit_not<std::size_t>>);
 }
 
 TEST_CASE(

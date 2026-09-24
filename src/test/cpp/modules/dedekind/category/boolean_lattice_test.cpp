@@ -19,7 +19,6 @@
  * is tracked under #710 as a separate canonical witness.
  */
 
-#include <algorithm>  // std::ranges::min / max — Join / Meet template args
 #include <catch2/catch_test_macros.hpp>
 #include <concepts>
 #include <functional>
@@ -41,10 +40,10 @@ TEST_CASE("category:boolean — bool is the canonical 2-element Boolean lattice"
    *         enforced by the concept body (they're value-level) but the
    *         opt-in registration commits the carrier to upholding them. */
   constexpr std::logical_not<bool> not_op{};
-  STATIC_CHECK(std::ranges::min(true, not_op(true)) == false);  // x ∧ ¬x = ⊥
-  STATIC_CHECK(std::ranges::max(true, not_op(true)) == true);   // x ∨ ¬x = ⊤
-  STATIC_CHECK(std::ranges::min(false, not_op(false)) == false);
-  STATIC_CHECK(std::ranges::max(false, not_op(false)) == true);
+  STATIC_CHECK(Inf{}(true, not_op(true)) == false);  // x ∧ ¬x = ⊥
+  STATIC_CHECK(Sup{}(true, not_op(true)) == true);   // x ∨ ¬x = ⊤
+  STATIC_CHECK(Inf{}(false, not_op(false)) == false);
+  STATIC_CHECK(Sup{}(false, not_op(false)) == true);
 }
 
 TEST_CASE("category:boolean — is_complement_v is opt-in (no default true)",
@@ -52,21 +51,17 @@ TEST_CASE("category:boolean — is_complement_v is opt-in (no default true)",
   /** @brief The @c is_complement_v trait follows the @c is_involutive_v
    *         opt-in pattern: absence of a specialisation means @c false,
    *         so non-registered pairings fail closed. */
-  STATIC_CHECK(
-      is_complement_v<std::logical_not<bool>, bool, std::less_equal<bool>,
-                      decltype(std::ranges::max), decltype(std::ranges::min)>);
+  STATIC_CHECK(is_complement_v<std::logical_not<bool>, bool,
+                               std::less_equal<bool>, Sup, Inf>);
 
   /** @brief @c int under @c std::less_equal with @c std::bit_not is
    *         @b not a Boolean lattice — the bitwise complement doesn't
    *         match the order-theoretic meet/join.  Witness:
    *         @c min(5, ~5) = @c min(5, -6) = @c -6, not @c INT_MIN. */
   STATIC_CHECK_FALSE(
-      is_complement_v<std::bit_not<int>, int, std::less_equal<int>,
-                      decltype(std::ranges::max), decltype(std::ranges::min)>);
-  STATIC_CHECK_FALSE(
-      IsBooleanLatticeCategory<int, std::less_equal<int>,
-                               decltype(std::ranges::max),
-                               decltype(std::ranges::min), std::bit_not<int>>);
+      is_complement_v<std::bit_not<int>, int, std::less_equal<int>, Sup, Inf>);
+  STATIC_CHECK_FALSE(IsBooleanLatticeCategory<int, std::less_equal<int>, Sup,
+                                              Inf, std::bit_not<int>>);
 }
 
 TEST_CASE(
@@ -110,8 +105,6 @@ TEST_CASE("category:boolean — int participates in rows 1–6 but NOT row 7",
   /** @brief Explicit @c Not @c = @c std::bit_not<int> — involutive, but
    *         the complement laws fail under the order-theoretic
    *         meet/join, so @c is_complement_v is not registered. */
-  STATIC_CHECK_FALSE(
-      IsBooleanLatticeCategory<int, std::less_equal<int>,
-                               decltype(std::ranges::max),
-                               decltype(std::ranges::min), std::bit_not<int>>);
+  STATIC_CHECK_FALSE(IsBooleanLatticeCategory<int, std::less_equal<int>, Sup,
+                                              Inf, std::bit_not<int>>);
 }

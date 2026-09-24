@@ -15,7 +15,6 @@
  *  - the lattice concepts fire (@c STATIC_CHECK, for a local witness).
  */
 
-#include <algorithm>  // std::ranges::min / max
 #include <catch2/catch_test_macros.hpp>
 #include <limits>
 #include <optional>
@@ -26,6 +25,10 @@ import dedekind.order;
 
 namespace mo = dedekind::morphologies;
 using SF = mo::safe_float<double>;
+// #934: value-returning chain lattice ops (join = Sup, meet = Inf) replace the
+// ref-returning std::ranges::max / min niebloids.
+using dedekind::category::Inf;
+using dedekind::category::Sup;
 
 namespace {
 /** @brief Lift a value known to be finite (test inputs only). */
@@ -49,26 +52,24 @@ TEST_CASE(
   const SF a = sf(-2.0), b = sf(3.0), c = sf(7.5);
 
   // idempotence
-  CHECK(std::ranges::min(a, a) == a);
-  CHECK(std::ranges::max(a, a) == a);
+  CHECK(Inf{}(a, a) == a);
+  CHECK(Sup{}(a, a) == a);
 
   // commutativity
-  CHECK(std::ranges::min(a, b) == std::ranges::min(b, a));
-  CHECK(std::ranges::max(a, b) == std::ranges::max(b, a));
+  CHECK(Inf{}(a, b) == Inf{}(b, a));
+  CHECK(Sup{}(a, b) == Sup{}(b, a));
 
   // associativity --- the exact bit: a selection, no rounding
-  CHECK(std::ranges::min(a, std::ranges::min(b, c)) ==
-        std::ranges::min(std::ranges::min(a, b), c));
-  CHECK(std::ranges::max(a, std::ranges::max(b, c)) ==
-        std::ranges::max(std::ranges::max(a, b), c));
+  CHECK(Inf{}(a, Inf{}(b, c)) == Inf{}(Inf{}(a, b), c));
+  CHECK(Sup{}(a, Sup{}(b, c)) == Sup{}(Sup{}(a, b), c));
 
   // absorption: min(a, max(a, b)) == a == max(a, min(a, b))
-  CHECK(std::ranges::min(a, std::ranges::max(a, b)) == a);
-  CHECK(std::ranges::max(a, std::ranges::min(a, b)) == a);
+  CHECK(Inf{}(a, Sup{}(a, b)) == a);
+  CHECK(Sup{}(a, Inf{}(a, b)) == a);
 
   // the selected values
-  CHECK(std::ranges::min(a, b).value() == -2.0);
-  CHECK(std::ranges::max(b, c).value() == 7.5);
+  CHECK(Inf{}(a, b).value() == -2.0);
+  CHECK(Sup{}(b, c).value() == 7.5);
 }
 
 TEST_CASE(
@@ -77,7 +78,7 @@ TEST_CASE(
   // -0.0 and +0.0 are distinct bit patterns that compare equal; the lattice
   // works up to ==, which the defaulted operator== absorbs.
   CHECK(sf(-0.0) == sf(+0.0));
-  CHECK(std::ranges::min(sf(-0.0), sf(+0.0)) == sf(0.0));
+  CHECK(Inf{}(sf(-0.0), sf(+0.0)) == sf(0.0));
 }
 
 TEST_CASE("morphologies:safe_float — the lattice concepts fire",
