@@ -196,4 +196,20 @@ TEST_CASE(
     STATIC_CHECK_FALSE(HasDecidableMembership<decltype(s)>);
     CHECK(s(3) == Kleene::True);
   }
+
+  SECTION(
+      "Species outside the Boole/Kleene join lattice (Percent, Chain) are "
+      "REJECTED, not silently mis-typed to Boole (#945 Sollbruchstelle)") {
+    // join_logic_t only models 𝔹 ⊑ K₃, so a Percent-/Chain-tagged ambient would
+    // wrap to Boole while membership returns Percentage / a chain value ---
+    // exactly the #928 mismatch.  The CoherentSetWrap gate rejects the CTAD
+    // (no viable deduction) instead.  A verbatim-false requires check pins the
+    // honest rejection; generalising the join to deduce these coherently is
+    // FIXME(#945).
+    STATIC_CHECK_FALSE(requires { Set{𝔸<int, Percent>}; });
+    STATIC_CHECK_FALSE(requires { Set{𝔸<int, Chain<int>>}; });
+    // Control: a Kleene ambient DOES lift into the wrapped codomain, so the
+    // CTAD accepts it (coherent, as the sections above verify).
+    STATIC_CHECK(requires { Set{𝔸<int, Kleene>}; });
+  }
 }

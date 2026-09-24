@@ -1883,8 +1883,29 @@ struct wrapped_logic<Species, std::void_t<typename Species::logic_species>> {
 template <typename Species>
 using wrapped_logic_t = typename wrapped_logic<Species>::type;
 
+/** @brief Whether @c Species can be wrapped coherently: its declared
+ *  @c logic_species must LIFT into the computed codomain @c wrapped_logic_t.
+ *  A species with no @c logic_species has no codomain to truncate, so it wraps
+ *  via the carrier axis unconditionally.
+ *
+ *  @details The Sollbruchstelle for a species outside the @c join_logic_t
+ *  lattice: @c join_logic_t only models 𝔹 ⊑ K₃, so a @c Percent- or
+ *  @c Chain-tagged ambient computes @c wrapped_logic_t @c = @c Boole, into
+ * which its @c Percentage / chain codomain does NOT lift.  The @c Set(Species)
+ * CTAD then rejects (SFINAE / no viable deduction) rather than silently
+ * mis-typing the wrapper's codomain to @c bool.
+ *  FIXME(#945): generalise @c join_logic_t to the full logic-species lattice
+ *  (place @c Chain / @c Percent in the dominance order) so such ambients deduce
+ *  coherently instead of being rejected. */
+template <typename Species>
+concept CoherentSetWrap =
+    !requires { typename Species::logic_species; } ||
+    dedekind::category::LiftsTo<typename Species::logic_species,
+                                wrapped_logic_t<Species>>;
+
 /** @section expressions__Identity_CTAD */
 template <typename Species>
+  requires CoherentSetWrap<Species>
 Set(Species)
     -> Set<typename Species::Domain, wrapped_logic_t<Species>, Species>;
 
