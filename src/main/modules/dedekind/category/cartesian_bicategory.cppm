@@ -372,32 +372,38 @@ inline constexpr bool is_antimonotone_v<Tensor<R, S>, ProductLeq<LeqR, LeqS>> =
  *           closing it is deferred to #908 (reify predicate variance) plus the
  *           value-level product-order leg, FIXME(#946).  Do NOT branch dispatch
  *           on the mere existence of this type as if it guaranteed a meet.
- *  @tparam R the left endo-leg @c A→A.
- *  @tparam S the right endo-leg @c A→A.
- *  @tparam Meet the injected glb, forwarded to @c Merge (see there).
- *  @note @c R and @c S are endomorphisms of the common carrier @c A so the
- *        composite is again @c A→A; @c Intersect<Identity,Identity> collapses
- * to the identity, the arrow-level shadow of idempotence @c a∧a=a. */
+ *  @tparam R the left leg @c X→Y.
+ *  @tparam S the right leg @c X→Y (same domain and codomain as @c R).
+ *  @tparam Meet the injected glb on the CODOMAIN @c Y, forwarded to @c Merge.
+ *  @note @b Legs are @c X→Y, not endo (#954).  The @c Copy fans the shared
+ *        DOMAIN @c X (@c Δ:X→X×X); the @c Merge glb lives on the shared
+ *        CODOMAIN @c Y (@c Δ†:Y×Y→Y), where the two legs' outputs are met.  The
+ *        composite is @c X→Y.  This types the @b relational / predicate meet
+ *        @c R∩S directly: legs @c R,S:X→Ω, @c Merge @c = @c ∧ on @c Ω (a set
+ *        @b is @c χ:X→Ω).  The endo case @c X=Y is the special case where
+ *        @c Copy and @c Merge share the carrier; @c
+ * Intersect<Identity,Identity> still collapses to the identity (idempotence @c
+ * a∧a=a). */
 export template <IsArrow R, IsArrow S, typename Meet>
-  requires std::same_as<Dom<R>, Dom<S>> && std::same_as<Cod<R>, Dom<R>> &&
-           std::same_as<Cod<S>, Dom<R>> &&
-           IsMeetAsRightAdjoint<Copy<Dom<R>>, Merge<Dom<R>, Meet>>
+  requires std::same_as<Dom<R>, Dom<S>> && std::same_as<Cod<R>, Cod<S>> &&
+           IsMeetAsRightAdjoint<Copy<Cod<R>>, Merge<Cod<R>, Meet>>
 struct Intersect {
   using Domain = Dom<R>;
-  using Codomain = Dom<R>;
+  using Codomain = Cod<R>;
   R r{};
   S s{};
-  /** @brief The composite meet @c (R∩S)(a)=Δ†((R⊗S)(Δ(a))): copy, run both
-   *         legs, merge where they agree.
-   *  @param a the input value.
-   *  @return @c R(a)⊓S(a), the injected glb of the two legs' outputs.
-   *  @note The @c requires clause gates only the STRUCTURAL @c Δ⊣∧ shape
-   *        (crossed signatures + posetal carrier + definite variance).  It does
-   *        NOT certify that @c Meet is the glb rather than the lub; that is the
-   *        injected op's obligation (see @c IsMeetAsRightAdjoint), tightened
-   *        later via #908 + the value-level product-order leg, FIXME(#946). */
+  /** @brief The composite meet @c (R∩S)(a)=Δ†((R⊗S)(Δ(a))): copy the domain,
+   *         run both legs, merge their codomain outputs where they agree.
+   *  @param a the input value in @c X.
+   *  @return @c R(a)⊓S(a) in @c Y, the injected glb of the two legs' outputs.
+   *  @note The @c requires clause gates only the STRUCTURAL @c Δ⊣∧ shape on the
+   *        codomain (crossed signatures + posetal carrier + definite variance).
+   *        It does NOT certify that @c Meet is the glb rather than the lub;
+   * that is the injected op's obligation (see @c IsMeetAsRightAdjoint),
+   *        tightened later via #908 + the value-level product-order leg,
+   *        FIXME(#946). */
   constexpr Codomain operator()(const Domain& a) const {
-    return Merge<Domain, Meet>{}(Tensor<R, S>{r, s}(Copy<Domain>{}(a)));
+    return Merge<Cod<R>, Meet>{}(Tensor<R, S>{r, s}(Copy<Domain>{}(a)));
   }
 };
 
@@ -498,6 +504,33 @@ static_assert(
 static_assert(Intersect<Identity<bool>, Identity<bool>,
                         std::logical_and<bool>>{}(false) == false,
               "Δ† ∘ (id ⊗ id) ∘ Δ must compute a ∧ a = a.");
+
+// #954: the loosened Intersect types the PREDICATE / relational meet X→Ω
+// directly (legs X→Ω, Copy on the domain X, Merge = ∧ on the codomain Ω), not
+// only the endo A→A case. A set IS χ:X→Ω, so this is the categorical meet apex
+// the sets Sub(A) meet is a model of (#946). Two distinct int→bool predicates
+// meet where they agree.
+namespace detail_intersect_predicate_witness {
+struct EvenChi {
+  using Domain = int;
+  using Codomain = bool;
+  constexpr bool operator()(const int& x) const { return x % 2 == 0; }
+};
+struct PositiveChi {
+  using Domain = int;
+  using Codomain = bool;
+  constexpr bool operator()(const int& x) const { return x > 0; }
+};
+using PredMeet = Intersect<EvenChi, PositiveChi, std::logical_and<bool>>;
+}  // namespace detail_intersect_predicate_witness
+static_assert(
+    IsArrow<detail_intersect_predicate_witness::PredMeet>,
+    "the loosened Intersect types the predicate meet X→Ω (legs int→bool), not "
+    "just endo A→A: a set IS χ:X→Ω (#954/#946).");
+static_assert(detail_intersect_predicate_witness::PredMeet{}(4) == true,
+              "(even ∩ positive)(4) = true ∧ true = true.");
+static_assert(detail_intersect_predicate_witness::PredMeet{}(3) == false,
+              "(even ∩ positive)(3) = false ∧ true = false.");
 
 // ---------------------------------------------------------------------------
 // Carrier coherence witnesses (co-located with the concept they exercise;
