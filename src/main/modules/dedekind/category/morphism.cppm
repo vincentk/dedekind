@@ -812,10 +812,11 @@ constexpr auto id() {
  *  (diagrammatic @c f≫g order), the arrow-algebra companion to @c Identity.
  *
  *  @details Where @c Identity is the unit, @c Compose is the binary that makes
- *  composition a first-class @b type rather than only the ad-hoc per-category
- *  @c operator>>.  It carries the composite's @c Domain / @c Codomain, so it is
- *  itself an @c IsArrow and downstream reasoning can pattern-match on it.  Two
- *  payoffs it unlocks (#908):
+ *  composition a first-class @b type.  It @b is what @c operator>> returns
+ *  (@c f≫g @c = @c Compose<F,G>{f,g}); the previous lambda-wrapped @c
+ * arrow<A,C> erased the operand types, whereas @c Compose keeps @c F,G in the
+ * result type, so it is an @c IsArrow that downstream reasoning can
+ * pattern-match on.  Two payoffs it unlocks (#908):
  *  1. @b Substitution @c f*: the contravariant pullback @c preimage(f,P) is
  *     @c P∘f, i.e.\ @c Compose<F,P> --- the general shape whose closed-form
  *     collapses (halfspace, @c :relational, ...) are the downstream fibres.
@@ -831,8 +832,8 @@ export template <IsArrow F, IsArrow G>
 struct Compose final {
   using Domain = Dom<F>;
   using Codomain = Cod<G>;
-  F f{};
-  G g{};
+  F f;
+  G g;
   /** @brief Run the pipeline @c (g∘f)(x) = g(f(x)). */
   constexpr Codomain operator()(const Domain& x) const { return g(f(x)); }
 };
@@ -922,15 +923,13 @@ export template <typename F, typename G>
            std::same_as<typename std::decay_t<F>::Codomain,
                         typename std::decay_t<G>::Domain>
 constexpr auto operator>>(F&& f, G&& g) {
-  using F_pure = std::decay_t<F>;
-  using G_pure = std::decay_t<G>;
-
-  using A = typename F_pure::Domain;
-  using C = typename G_pure::Codomain;
-
-  // Note: The lambda is implicitly constexpr in C++23 if possible
-  return arrow<A, C>([f = std::forward<F>(f), g = std::forward<G>(g)](
-                         A x) constexpr { return g(f(std::move(x))); });
+  // Composition is the reified @c Compose<F,G> arrow, NOT a lambda-wrapped
+  // @c arrow<A,C>: keeping the leg types @c F,G in the result's TYPE is what
+  // lets the variance logic program pattern-match @c
+  // is_monotone_v<Compose<...>> on the operands (a captured lambda erases
+  // them), and de-lambdas the composite (#844 / #908).
+  return Compose<std::decay_t<F>, std::decay_t<G>>{std::forward<F>(f),
+                                                   std::forward<G>(g)};
 }
 
 /**

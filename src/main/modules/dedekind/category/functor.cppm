@@ -113,6 +113,15 @@ namespace dedekind::category {
  * need no change); a @b lightweight functor may instead supply its own free
  * @c map_arrow overload --- the customization point.  (Retiring the member
  * @c φ in favour of the free form is a follow-up.)
+ *
+ * @note Why not @c φ or @c fmap (the idiomatic names)?  Both are already bound
+ * to @b different operations here: @c fmap(hub) is the applicative @b factory
+ * (@c fmap(hub)(value)(f), a curried applicator), and @c φ is three-way
+ * overloaded --- the member lift @c f.φ, the @b value-level container fmap
+ * @c φ(Maybe<A>,f), and the deleted species-lift primary @c φ(𝗙,𝗳).  A free
+ * @c φ(F,arrow) would collide with that last one (both are @c (Hub,callable),
+ * and an arrow @b is callable).  @c map_arrow names the specific free
+ * arrow→arrow action without entering that overload thicket.
  */
 template <typename F, typename A>
   requires requires(const F& f, A&& a) { f.φ(std::forward<A>(a)); }
