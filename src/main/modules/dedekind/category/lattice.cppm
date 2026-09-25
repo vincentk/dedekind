@@ -1564,33 +1564,21 @@ concept IsSubobjectFamilyMember = requires {
  *           @c IsOckhamAlgebra).
  */
 export template <typename S>
-concept IsSubobjectLattice = requires(S a, S b) {
+concept IsSubobjectLattice = requires {
   /** @brief CT-vocabulary metadata: @c S exposes a domain and a
    *         classifier logic species. */
   typename S::Domain;
   typename S::logic_species;
+  /** @brief The ALGEBRAIC witness that @c Sub(A) is a lattice: the classifier
+   *  @c L is an Ockham algebra, so @c Sub(A) inherits meet / join / complement
+   *  pointwise from @c L.  #834: this concept no longer requires the @c meet /
+   *  @c join / @c complement FREE FUNCTIONS by name (those set-lattice ops
+   * moved to @c dedekind.sets, downstream of this partition, so an ADL probe on
+   * a
+   *  @c :category @c Subobject could not find them).  Requiring the ops by name
+   *  was operational redundancy over the algebraic guarantee; the induced
+   *  lattice IS the Ockham structure.  Same decoupling as ETCS Axiom 10. */
   requires IsOckhamAlgebra<typename S::logic_species>;
-
-  /** @brief CT-vocabulary free functions for the binary lattice
-   *         operations (binary product / coproduct in the subobject
-   *         category).  Results inhabit the same subobject family —
-   *         anchored on @c (S::Domain, S::logic_species) per the
-   *         family concept. */
-  {
-    meet(a, b)
-  } -> IsSubobjectFamilyMember<typename S::Domain, typename S::logic_species>;
-  {
-    join(a, b)
-  } -> IsSubobjectFamilyMember<typename S::Domain, typename S::logic_species>;
-} && requires(S a) {
-  /** @brief Complement is required unconditionally: classical carriers
-   *         get a bona-fide Boolean complement, Kleene carriers get
-   *         the involutive rotation that fails Boolean complement
-   *         laws at @c Unknown.  The semantic strength is established
-   *         at the @c L-witness level, not the concept boundary. */
-  {
-    complement(a)
-  } -> IsSubobjectFamilyMember<typename S::Domain, typename S::logic_species>;
 };
 
 /** @section lattice__IsSubobjectLattice_Order_Derivability
