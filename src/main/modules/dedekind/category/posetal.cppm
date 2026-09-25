@@ -344,9 +344,13 @@ static_assert(
 //   monotone); Tensor @c R⊗S       monotone  ⟸ @c IsMonotone(R) @c ∧ @c
 //   IsMonotone(S), and
 //                        antitone  ⟸ both legs antitone (⊗ is a bifunctor).
+//   Compose @c g∘f    variance MULTIPLIES: @c co∘co=co, @c anti∘anti=co,
+//                      @c co∘anti=anti (registered below, on @c :morphism's
+//                      reified @c Compose<F,G>).
 // (The Copy / Merge / Tensor clauses live in @c :cartesian_bicategory, next to
-// the arrows they classify.)  The still-missing clause is COMPOSITION
-// (@c co∘co=co, @c anti∘anti=co); it awaits a reified composition arrow (#908).
+// the arrows they classify.)  With composition seated on @c Compose, the rule
+// base is closed under the categorical operations (identity, composition,
+// product); atomic maps remain the only white-listed base facts.
 //
 // User's mnemonic ("iso / mono => enabling"): order-isos enable clean
 // halfspace-pivot transport (result is again a halfspace); monos-without-
@@ -521,6 +525,36 @@ static_assert(IsMonotone<LiftLogic<Kleene>>,
               "𝔹↪K₃ embeds bool as {False,True}, order-preserving.");
 static_assert(IsVariant<LiftLogic<Boole>>,
               "ι has a definite variance (covariant), hence IsVariant.");
+
+// The COMPOSITION clause of the variance logic program (#908), registered on
+// the reified composition arrow @c Compose<F,G> = @c g∘f (@c :morphism).  The
+// classic sign rule: variance MULTIPLIES along composition, so two definite
+// variances compose to a definite one and two flips cancel.
+//   co∘co   = co        (monotone ∘ monotone)
+//   anti∘anti = co       (two order-reversals cancel)
+//   co∘anti = anti,  anti∘co = anti
+// Each is a Horn clause whose premises gate on the @c IsMonotone /
+// @c IsAntiMonotone CONCEPTS of the legs; the disjunction in one specialization
+// (rather than two same-headed specializations) keeps overload selection
+// unambiguous.  This is the rule that was MISSING while composition was only
+// the ad-hoc @c operator>>; reifying @c Compose seated it.
+template <typename F, typename G, typename Op>
+  requires((IsMonotone<F, Op> && IsMonotone<G, Op>) ||
+           (IsAntiMonotone<F, Op> && IsAntiMonotone<G, Op>))
+inline constexpr bool is_monotone_v<Compose<F, G>, Op> = true;
+
+template <typename F, typename G, typename Op>
+  requires((IsMonotone<F, Op> && IsAntiMonotone<G, Op>) ||
+           (IsAntiMonotone<F, Op> && IsMonotone<G, Op>))
+inline constexpr bool is_antimonotone_v<Compose<F, G>, Op> = true;
+
+static_assert(IsMonotone<Compose<Identity<int>, Identity<int>>>,
+              "co∘co=co: identity composed with itself is monotone.");
+static_assert(IsMonotone<Compose<NegationArrow<Boole>, NegationArrow<Boole>>>,
+              "anti∘anti=co: double negation ¬∘¬ is order-PRESERVING (two "
+              "flips cancel).");
+static_assert(IsAntiMonotone<Compose<Identity<bool>, NegationArrow<Boole>>>,
+              "co∘anti=anti: ¬ after id is order-reversing.");
 
 // ---------------------------------------------------------------------------
 // The product of posets is a poset (componentwise order lift).
