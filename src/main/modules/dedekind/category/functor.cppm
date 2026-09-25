@@ -127,6 +127,49 @@ concept IsFunctor =
     IsArrow<F> && IsSmallCategory<Dom<F>> && IsSmallCategory<Cod<F>>;
 
 /**
+ * @brief @c map_arrow(F, a): the object-free @b morphism @b map of a functor
+ *        --- Haskell's @c fmap on @b arrows, @f$(a \to b) \mapsto (F a \to F
+ *        b)@f$, exposed as a @b composable free helper rather than the member
+ *        @c F.φ.
+ *
+ * @details This is the categorical @c φ freed from the receiver so it composes
+ * as an ordinary function (@c map_arrow(F, g) after @c map_arrow(F, f)) and can
+ * be reasoned about --- notably, functor @b variance (@c IsCovariantFunctor /
+ * @c IsContravariantFunctor, below) is stated on it.  The applicative
+ * @c fmap(hub) factory is sugar over the same morphism map.
+ *
+ * This base overload thinly @b forwards to a functor's member @c φ (so the
+ * existing @c IsShapedFunctor hubs need no change); a @b lightweight functor
+ * may instead supply its own free @c map_arrow overload --- the customization
+ * point.  (Retiring the member @c φ in favour of the free form is a follow-up.)
+ */
+template <typename F, typename A>
+  requires requires(const F& f, A&& a) { f.φ(std::forward<A>(a)); }
+constexpr auto map_arrow(const F& f, A&& a) {
+  return f.φ(std::forward<A>(a));
+}
+
+/**
+ * @concept IsMorphicFunctor
+ * @brief A @b lightweight functor: an @c IsArrow between small categories
+ *        (@c IsFunctor) equipped with a composable morphism map @c map_arrow,
+ *        @b without the container @c Shape<U> machinery of @c IsShapedFunctor.
+ *
+ * @details This is the honest middle of the spine: it keeps the conceptual
+ * bridge (a functor @b is an arrow between @c IsSmallCategory) and the morphism
+ * action, but drops the container-flavoured object map.  It is the home of
+ * @b variance: @c IsCovariantFunctor / @c IsContravariantFunctor branch off it.
+ * By construction @c IsShapedFunctor @c ⟹ @c IsMorphicFunctor @c ⟹ @c IsFunctor
+ * (a shaped functor's member @c φ is reached through the @c map_arrow
+ * forwarder).
+ */
+export template <typename F>
+concept IsMorphicFunctor =
+    IsFunctor<F> && requires(F f, typename Dom<F>::Arrow a) {
+      { map_arrow(f, a) } -> IsArrow;
+    };
+
+/**
  * @concept IsShapedFunctor
  * @brief A 1-morphism mapping CatS -> CatT, @b refined with the container
  * shape: an @c IsFunctor that additionally exposes a type-level object map
@@ -356,6 +399,14 @@ static_assert(
 static_assert(IsFunctor<tuple_functor<int>> && IsFunctor<maybe_functor<int>>,
               "IsShapedFunctor ⟹ IsFunctor: the fmap hubs are also textbook "
               "functors (Set<T> → Set<Shape<T>>, Mac Lane §I.3).");
+
+// IsShapedFunctor ⟹ IsMorphicFunctor: the shaped hubs' member φ is reached
+// through the map_arrow forwarder, so they are also lightweight (morphic)
+// functors --- the middle of the spine where variance is stated.
+static_assert(
+    IsMorphicFunctor<tuple_functor<int>> &&
+        IsMorphicFunctor<maybe_functor<int>>,
+    "IsShapedFunctor ⟹ IsMorphicFunctor: map_arrow lifts each hub's member φ.");
 
 /**
  * @brief Stage 1: The Functorial Applicator.
