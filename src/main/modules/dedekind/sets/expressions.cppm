@@ -380,6 +380,25 @@ template <typename P>
 using NegatedPredicateBase_t =
     typename IsNegatedPredicateImpl<std::decay_t<P>>::base_type;
 
+/** @brief Membership of a symmetric difference @c A @c △ @c B in logic @c L:
+ *  @c v is in exactly one of @c A, @c B, computed as @f$(a\wedge\neg b)\vee
+ *  (\neg a\wedge b)@f$ with both sides lifted through @c lift_logic<L>.  A
+ *  @b named functor (not a capturing closure), so the @c △ @c Set carries a
+ *  structural, pattern-matchable predicate type rather than an opaque lambda
+ *  (#844, [[feedback_no_lambdas_opacity]]); the de-lambda companion of
+ *  @c ProductMembership. */
+export template <typename L, typename PA, typename PB>
+struct SymmetricDifferenceMembership {
+  PA lhs;
+  PB rhs;
+  template <typename V>
+  constexpr auto operator()(const V& v) const {
+    const auto a = dedekind::category::lift_logic<L>(lhs(v));
+    const auto b = dedekind::category::lift_logic<L>(rhs(v));
+    return L::OR(L::AND(a, L::RFL(b)), L::AND(L::RFL(a), b));
+  }
+};
+
 export template <typename T, typename L, typename Predicate>
 class Set;
 
@@ -937,12 +956,8 @@ class Set {
       // matches the existing @c Set::operator() normalisation pattern
       // and the @c relational.cppm dispatch — bool returns lift cleanly
       // to @c L::Ω, ternary returns are passed through.
-      auto predicate = [lhs = predicate_, rhs = other.predicate_](const T& v) {
-        const auto a = dedekind::category::lift_logic<L>(lhs(v));
-        const auto b = dedekind::category::lift_logic<L>(rhs(v));
-        return L::OR(L::AND(a, L::RFL(b)), L::AND(L::RFL(a), b));
-      };
-      return Set<T, L, decltype(predicate)>{predicate};
+      using Pred = SymmetricDifferenceMembership<L, Predicate, OtherPredicate>;
+      return Set<T, L, Pred>{Pred{predicate_, other.predicate_}};
     }
   }
 
