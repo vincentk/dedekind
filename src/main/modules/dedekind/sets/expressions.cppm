@@ -1291,15 +1291,32 @@ export template <typename S1, typename S2>
 constexpr auto join(const S1& lhs, const S2& rhs) {
   return set_union(lhs, rhs);
 }
-/** @brief Set complement @f$\neg\chi_A@f$: the involutive @c !A. */
+/** @brief The pointwise reflection @f$\neg\chi_A@f$ as a @b named predicate
+ *  (no lambda): @c a @c ↦ @c L::RFL(s(a)).  Unlike the free @c operator! (which
+ *  is gated on @c is_set_node_v and collapses only concrete set-nodes), this
+ *  works for @b any @c IsSubobject (including a bare @c classify result), which
+ *  is what the general @c set_complement below needs. */
+template <typename S, typename L>
+struct NegationChi {
+  S s;
+  template <typename A>
+    requires std::invocable<const S&, const A&>
+  constexpr typename L::Ω operator()(const A& a) const {
+    return L::RFL(s(a));
+  }
+};
+/** @brief Set complement @f$\neg\chi_A@f$: lift the classifier reflection
+ *  pointwise.  General over @c IsSubobject (a set-node collapses its complement
+ *  through @c operator! directly; this free function stays general). */
 export template <typename S>
-  requires requires(const S& s) { !s; }
+  requires dedekind::category::IsSubobject<S, typename S::Domain>
 constexpr auto set_complement(const S& s) {
-  return dedekind::category::classify<typename S::Domain>(!s);
+  return dedekind::category::classify<typename S::Domain>(
+      NegationChi<S, typename S::logic_species>{s});
 }
 /** @brief Lattice alias: complement @c = @c set_complement on @c Sub(A). */
 export template <typename S>
-  requires requires(const S& s) { !s; }
+  requires dedekind::category::IsSubobject<S, typename S::Domain>
 constexpr auto complement(const S& s) {
   return set_complement(s);
 }
