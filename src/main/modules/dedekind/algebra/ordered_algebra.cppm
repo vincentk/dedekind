@@ -53,6 +53,7 @@ export module dedekind.algebra:ordered_algebra;
 
 import dedekind.category; // IsAbelianGroup, IsCommutativeRing, IsField
 import dedekind.sets;     // SignedCardinality
+import :group;            // Inverse<G, Op>: the reified group-inverse arrow
 
 namespace dedekind::algebra {
 
@@ -250,7 +251,8 @@ concept IsOrderedCommutativeRing =
     is_translation_invariant_ordered_v<T>;
 
 /**
- * @brief The additive inverse @c x @c ↦ @c -x as an @b arrow.
+ * @brief The additive inverse @c x @c ↦ @c -x --- the additive instance of the
+ *        reified group-inverse arrow @c Inverse (@c :group).
  *
  * @details On an ordered additive group it is @b antitone (order-reversing):
  *          from @c a≤b, add @c (-a-b) to both sides and use translation
@@ -258,34 +260,29 @@ concept IsOrderedCommutativeRing =
  *          unary field inverse reverses order (#908 / #959) --- the same
  *          antitone shape as the logic @c NegationArrow's @c ¬ on @c Ω, one
  *          structure down (the additive group's own @c ¬).
- *
- * @note The @b multiplicative inverse @c x @c ↦ @c 1/x is antitone only on the
- *       @b positive cone (@c 0<a≤b @c ⟹ @c 1/b≤1/a); across @c 0 it is not
- *       order-related, so it is not registered as a global antitone arrow.
- *       Additive inversion is the unconditional one.
  */
 export template <typename G>
-struct AdditiveInverse {
-  using Domain = G;
-  using Codomain = G;
-  constexpr G operator()(const G& x) const {
-    return dedekind::category::inverse_v<G, std::plus<G>>(x);
-  }
-};
+using AdditiveInverse = Inverse<G, std::plus<G>>;
 
 }  // namespace dedekind::algebra
 
 namespace dedekind::category {
 /**
- * @brief The additive inverse is @b antitone exactly on an ordered additive
- *        group (translation invariance is the hypothesis of the @c -b≤-a
- *        step), so the registration is gated on @c IsOrderedAdditiveGroup ---
- *        the algebraic dog-food of the antitone reification (#959).
+ * @brief The additive group inverse @c Inverse<G, @c +> is @b antitone exactly
+ *        on an ordered additive group (translation invariance is the
+ *        hypothesis of the @c -b≤-a step), so the registration is gated on
+ *        @c IsOrderedAdditiveGroup --- the algebraic dog-food of the antitone
+ *        reification (#959).
+ *
+ * @note The @b multiplicative inverse @c Inverse<G, @c *> (@c x @c ↦ @c 1/x) is
+ *       antitone only on the @b positive cone (@c 0<a≤b @c ⟹ @c 1/b≤1/a);
+ *       across @c 0 it is not order-related, so it is NOT registered as a
+ *       global antitone arrow.  Additive inversion is the unconditional one.
  */
 template <typename G, typename Op>
   requires dedekind::algebra::IsOrderedAdditiveGroup<G>
 inline constexpr bool
-    is_antimonotone_v<dedekind::algebra::AdditiveInverse<G>, Op> = true;
+    is_antimonotone_v<dedekind::algebra::Inverse<G, std::plus<G>>, Op> = true;
 }  // namespace dedekind::category
 
 namespace dedekind::algebra {

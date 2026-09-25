@@ -355,4 +355,29 @@ static_assert(HasCompoundGroupOperatorsMul<unsigned short>,
               "unsigned short closes under in-place *=, /= via the "
               "[expr.ass]/3 narrowing-after-promotion rule.");
 
+/**
+ * @brief The group inverse under @c Op, reified as an @b arrow (an
+ *        endomorphism @c G @c → @c G).
+ *
+ * @details Wraps the @c inverse_v bridge (@c category:species) as a first-class
+ *          morphism carrying @c Domain / @c Codomain, so the group inverse can
+ *          be reasoned about categorically --- composed, and registered with a
+ *          variance.  @c Inverse<G, @c std::plus<G>> is the additive inverse
+ *          @c x @c ↦ @c -x; @c Inverse<G, @c std::multiplies<G>> the
+ *          multiplicative @c x @c ↦ @c 1/x.
+ *
+ * @note On an @b ordered group the additive inverse is @b antitone
+ *       (order-reversing); the multiplicative inverse is antitone only on the
+ *       positive cone.  Those variance facts are registered where the order
+ *       lives (@c :ordered_algebra), not here.
+ */
+export template <typename G, typename Op>
+struct Inverse {
+  using Domain = G;
+  using Codomain = G;
+  constexpr G operator()(const G& x) const {
+    return dedekind::category::inverse_v<G, Op>(x);
+  }
+};
+
 }  // namespace dedekind::algebra
