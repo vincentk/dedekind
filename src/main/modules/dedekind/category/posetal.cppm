@@ -503,6 +503,25 @@ static_assert(IsAntiMonotone<NegationArrow<Kleene>>,
 static_assert(IsVariant<NegationArrow<Boole>>,
               "¬ has a definite variance (antitone), hence IsVariant.");
 
+// Covariant mirror of the negation witness: the dominance inclusion
+// @c ι:𝔹↪Ω (@c LiftLogic<L>, reified in @c :logic beside @c lift_logic) is
+// @b order-PRESERVING --- @c ⊥≤⊤ embeds as @c False≤True in @c Ω --- so it
+// grounds @c IsMonotone / @c IsVariant on the CODOMAIN axis of a classifier
+// @c χ:A→Ω the way @c NegationArrow grounds the antitone case (#908).  It is
+// the covariant leg the two-axis reading (#894/#897) postcomposes onto.
+// Registered for every @c Op, the covariant analogue of the universal
+// @c is_monotone_v<Identity<T>,Op>.
+template <typename L, typename Op>
+inline constexpr bool is_monotone_v<LiftLogic<L>, Op> = true;
+
+static_assert(IsMonotone<LiftLogic<Boole>>,
+              "The dominance inclusion 𝔹↪Ω is order-preserving (⊥↦False, "
+              "⊤↦True): the covariant codomain axis.");
+static_assert(IsMonotone<LiftLogic<Kleene>>,
+              "𝔹↪K₃ embeds bool as {False,True}, order-preserving.");
+static_assert(IsVariant<LiftLogic<Boole>>,
+              "ι has a definite variance (covariant), hence IsVariant.");
+
 // ---------------------------------------------------------------------------
 // The product of posets is a poset (componentwise order lift).
 //
