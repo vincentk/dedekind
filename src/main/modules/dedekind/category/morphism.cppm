@@ -864,6 +864,25 @@ constexpr auto preimage(const F& f, const P& p) {
   return Compose<F, P>{f, p};
 }
 
+/** @brief Product projections for the reified composite @c Compose<F,G>: its
+ *  two legs @c .f / @c .g @b are the product components, so @c Compose<F,G> @b
+ *  is the categorical product of its operand arrows @c F, @c G in the arrow
+ *  category --- which is exactly why composition PRESERVES the leg types where
+ *  the old type-erasing lambda hid them.  These are custom-storage overloads of
+ *  the canonical @c π_1 / @c π_2 accessors (@c :limit): storage is named
+ *  @c .f / @c .g rather than @c .first / @c .second, so per the @c Dual
+ *  @c val/der precedent @c Compose supplies its own overloads in its home
+ *  namespace, found by ADL.  With them @c IsProduct<Compose<F,G>,F,G> holds
+ *  (witnessed in @c :limit). */
+export template <IsArrow F, IsArrow G>
+constexpr F π_1(const Compose<F, G>& c) {
+  return c.f;
+}
+export template <IsArrow F, IsArrow G>
+constexpr G π_2(const Compose<F, G>& c) {
+  return c.g;
+}
+
 /** @section morphism__Morphism_Lifting_Proof */
 using Negate = std::negate<int>;
 using TaggedNegate = Morphism<int, int, Negate>;
