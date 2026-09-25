@@ -808,6 +808,35 @@ constexpr auto id() {
   return Identity<A>{};
 }
 
+/** @brief The reified @b composition arrow @c g∘f: "apply @c F, then @c G"
+ *  (diagrammatic @c f≫g order), the arrow-algebra companion to @c Identity.
+ *
+ *  @details Where @c Identity is the unit, @c Compose is the binary that makes
+ *  composition a first-class @b type rather than only the ad-hoc per-category
+ *  @c operator>>.  It carries the composite's @c Domain / @c Codomain, so it is
+ *  itself an @c IsArrow and downstream reasoning can pattern-match on it.  Two
+ *  payoffs it unlocks (#908):
+ *  1. @b Substitution @c f*: the contravariant pullback @c preimage(f,P) is
+ *     @c P∘f, i.e.\ @c Compose<F,P> --- the general shape whose closed-form
+ *     collapses (halfspace, @c :relational, ...) are the downstream fibres.
+ *  2. @b Variance composition: @c :posetal registers the Horn clauses
+ *     @c co∘co=co and @c anti∘anti=co (two flips cancel) on @c Compose, closing
+ *     the one rule the variance logic program was missing.
+ *
+ *  @tparam F the first arrow @c A→B (applied first).
+ *  @tparam G the second arrow @c B→C (applied second); @c Cod<F> must be
+ *          @c Dom<G>. */
+export template <IsArrow F, IsArrow G>
+  requires std::same_as<Cod<F>, Dom<G>>
+struct Compose final {
+  using Domain = Dom<F>;
+  using Codomain = Cod<G>;
+  F f{};
+  G g{};
+  /** @brief Run the pipeline @c (g∘f)(x) = g(f(x)). */
+  constexpr Codomain operator()(const Domain& x) const { return g(f(x)); }
+};
+
 /** @section morphism__Morphism_Lifting_Proof */
 using Negate = std::negate<int>;
 using TaggedNegate = Morphism<int, int, Negate>;
@@ -826,6 +855,12 @@ static_assert(f_neg(identity_int(42)) == f_neg(42),
 // 2. Left Identity: id(f(x)) == f(x)
 static_assert(identity_int(f_neg(42)) == f_neg(42),
               "Unit Law: id_B ∘ f must equal f.");
+
+// The reified composition arrow is itself an arrow and runs the pipeline.
+static_assert(IsArrow<Compose<Identity<int>, Identity<int>>>,
+              "Compose<F,G> carries Domain/Codomain, so it is an IsArrow.");
+static_assert(Compose<Identity<int>, Identity<int>>{}(42) == 42,
+              "(id ∘ id)(x) = x: Compose runs g(f(x)).");
 
 /** @section morphism__Lifting Traits to the Identity Functor */
 
