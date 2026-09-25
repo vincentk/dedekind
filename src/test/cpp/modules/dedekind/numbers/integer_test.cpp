@@ -258,4 +258,15 @@ TEST_CASE("Integer: additive inverse -x is antitone on ℤ (#908/#959)",
   // The arrow is a certified antitone / variant morphism.
   STATIC_CHECK(IsAntiMonotone<AdditiveInverse<SignedCardinality>>);
   STATIC_CHECK(IsVariant<AdditiveInverse<SignedCardinality>>);
+
+  // Self-adjoint antitone Galois connection: -x is an antitone involution
+  // (-(-x) = x), so (AdditiveInverse, AdditiveInverse) is a Galois connection
+  // and a <= -b iff b <= -a.  The first ANTITONE witness of IsGaloisConnection.
+  STATIC_CHECK(IsGaloisConnection<AdditiveInverse<SignedCardinality>,
+                                  AdditiveInverse<SignedCardinality>>);
+  const SignedCardinality neg_five = finite_signed_cardinality(-5);
+  // both-true side: (-5 <= -2) iff (2 <= 5).
+  CHECK((neg_five <= neg(two)) == (two <= neg(neg_five)));
+  // both-false side: (2 <= -3) iff (3 <= -2).
+  CHECK((two <= neg(three)) == (three <= neg(two)));
 }

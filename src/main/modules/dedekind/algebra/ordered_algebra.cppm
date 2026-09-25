@@ -296,4 +296,18 @@ static_assert(dedekind::category::IsAntiMonotone<
 static_assert(dedekind::category::IsVariant<
                   AdditiveInverse<dedekind::sets::SignedCardinality>>,
               "-x has a definite variance (antitone), hence IsVariant.");
+
+// The additive inverse is an antitone INVOLUTION (-(-x) = x), hence a
+// SELF-ADJOINT antitone Galois connection: a ≤ -b ⟺ b ≤ -a.  It is the same
+// arrow on both legs (an endomorphism ℤ → ℤ), so the cross-pair carriers match
+// trivially and the antitone disjunct of IsGaloisConnection fires.  This is the
+// first ANTITONE witness of IsGaloisConnection (the covariant one is
+// IsMeetAsRightAdjoint, #950), arising naturally from the reified group inverse
+// (#959).
+static_assert(
+    dedekind::category::IsGaloisConnection<
+        AdditiveInverse<dedekind::sets::SignedCardinality>,
+        AdditiveInverse<dedekind::sets::SignedCardinality>>,
+    "the additive inverse -x is a self-adjoint antitone Galois connection "
+    "(a <= -b iff b <= -a).");
 }  // namespace dedekind::algebra
