@@ -486,6 +486,15 @@ static_assert(IsMonotone<std::decay_t<decltype(embed_sint_ℤ_)>>,
               "embed_sint_ℤ_ (int → SignedCardinality) is monotone — "
               "the canonical inclusion preserves the numeric order.");
 
+// ... and therefore a COVARIANT FUNCTOR (#908), witnessed HERE in
+// :morphologies, downstream of :adjunction where IsCovariantFunctor is named:
+// the order- preserving embedding ℕ↪ℤ is, per Mac Lane, a covariant functor
+// between the posetal categories. This substantiates that the variance-functor
+// concept classifies a real carrier arrow, not just in-partition toy witnesses.
+static_assert(IsCovariantFunctor<std::decay_t<decltype(embed_sint_ℤ_)>>,
+              "embed_sint_ℤ_ is a covariant functor (monotone embedding "
+              "ℕ↪ℤ) — variance-functor concept witnessed downstream.");
+
 // ===========================================================================
 // Mazur-equivalence pilot (#591): @c std::signed_integral as @c ℤ for
 // inputs in @c [std::numeric_limits<S>::min(), @c
