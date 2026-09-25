@@ -396,12 +396,34 @@ concept IsAntiMonotone = IsArrow<F> && is_antimonotone_v<F, Op>;
  *        leg-shape of a Galois connection, whose adjoints are always one or
  *        the other.  Mirrors @c :limit::IsBoundaryObject's @c "X @c || @c dual"
  *        disjunction shape.
- * @note #908 (reify predicate variance) would DERIVE the variance from an
- *       arrow's injected op rather than the manual @c is_monotone_v /
- *       @c is_antimonotone_v opt-in this concept reads.
+ * @note Variance is DERIVED for the structured arrows and ASSERTED for the
+ *       irreducible leaf maps (#908).  Derived: @c Identity and the negation
+ *       @c NegationArrow (below), and the spider @c Copy / @c Merge whose
+ *       monotonicity is a theorem gated on @c IsOrderMeetSemilattice
+ *       (@c :cartesian_bicategory).  Asserted: atomic order-preserving maps
+ *       (the @c ℕ↪ℤ / @c sint / @c uint embeddings) register @c is_monotone_v
+ *       directly, since their variance is a fact about that specific map, not a
+ *       consequence of its type ("inference composes, tagging explodes": tag
+ *       only the irreducible leaves).  A general op-derived
+ * variance-composition law (@c co∘co=co, @c antitone∘antitone=monotone) awaits
+ * a reified composition arrow; the two-axis (contravariant-domain /
+ *       covariant-codomain) reading is the hyperdoctrine extension.
  */
 export template <typename F, typename Op = std::less_equal<>>
-concept IsVariant = IsMonotone<F, Op> || IsAntiMonotone<F, Op>;
+concept IsVariant =
+    // F is an arrow (each disjunct below also implies it, but stated up front
+    // so the @c Dom<F> / @c Cod<F> ties are well-formed; the @c &&
+    // short-circuits before they are evaluated for a non-arrow).
+    IsArrow<F> &&
+    // @c Op is not arbitrary: variance is measured against a homogeneous binary
+    // relation living on one of the arrow's OWN carriers --- its domain @b or
+    // its codomain.  The disjunction is load-bearing: @c Copy<A>'s order is the
+    // product order @c ≤× on its @b codomain @c A×A, not an order on its domain
+    // @c A, so a domain-only tie would wrongly reject it.
+    (
+        requires(Op op, Dom<F> a) { op(a, a); } ||
+        requires(Op op, Cod<F> c) { op(c, c); }) &&
+    (IsMonotone<F, Op> || IsAntiMonotone<F, Op>);
 
 /**
  * @concept IsOrderIsomorphism
@@ -442,6 +464,26 @@ static_assert(IsMonotone<Identity<int>>,
 static_assert(IsOrderIsomorphism<Identity<int>>,
               "Identity must be recognised as an order-isomorphism "
               "(bijection + monotone).");
+
+// Antitone mirror of the Identity monotone witness above: the logic negation
+// arrow @c NegationArrow<L> (¬ = @c L::RFL on the truth object @c Ω, reified in
+// @c :logic beside @c logic_complement) is @b order-reversing on the truth
+// chain --- @c Op(a,b) @c ⇒ @c Op(¬b,¬a) --- so it grounds @c IsAntiMonotone /
+// @c IsVariant the way @c Identity grounds @c IsMonotone (#908).  Registered
+// for every @c Op, the antitone analogue of the universal
+// @c is_monotone_v<Identity<T>,Op>.  (¬¬=id makes it an involution, morally an
+// order-anti-isomorphism; the bijection certificate lives on @c :involution, so
+// this claims only the variance.)
+template <typename L, typename Op>
+inline constexpr bool is_antimonotone_v<NegationArrow<L>, Op> = true;
+
+static_assert(IsAntiMonotone<NegationArrow<Boole>>,
+              "Logic negation ¬ is the canonical order-reversing arrow "
+              "(the antitone mirror of Identity's monotone witness).");
+static_assert(IsAntiMonotone<NegationArrow<Kleene>>,
+              "K₃ negation reflects the chain about Unknown: order-reversing.");
+static_assert(IsVariant<NegationArrow<Boole>>,
+              "¬ has a definite variance (antitone), hence IsVariant.");
 
 // ---------------------------------------------------------------------------
 // The product of posets is a poset (componentwise order lift).

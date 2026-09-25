@@ -664,6 +664,33 @@ export constexpr ExtensionalCardinal<> inverse(
   return -value;
 }
 
+/** @brief Generic additive inverse for a carrier supporting unary negation: the
+ *  @c +-inverse @b is @c -x, inferred from the negation structure rather than
+ *  registered per carrier.
+ *
+ *  @details This is the canonical @c inverse(x, @c op) bridge that
+ *  @c category::inverse_v (and the reified group-inverse arrow
+ *  @c algebra::Inverse<T, @c +>, #959) consume.  It covers @c SignedCardinality
+ *  (ℤ) --- which was @b asserted invertible (@c is_invertible_v) but had no
+ *  @b computation bridge --- and any sibling additive carrier, so the additive
+ *  inverse need not be hand-registered per type.  The @c ExtensionalCardinal<>
+ *  overload above is a more-specialised non-template and still wins for it.
+ *
+ *  @note The gate is @b unary @b negation (@c {-x}), the @b computational
+ *  witness of an additive inverse --- @b not @c IsGroup.  Gating on @c IsGroup
+ *  would be circular: @c IsGroup routes through @c IsInvertible /
+ *  @c is_invertible_v, and forcing that evaluation for every candidate @c T
+ *  during overload resolution trips a non-constant-expression substitution.
+ *  Unary @c - is the honest, SFINAE-friendly signal that @c -x is the inverse.
+ */
+export template <typename T>
+  requires requires(T x) {
+    { -x } -> std::convertible_to<T>;
+  }
+constexpr T inverse(const T& x, std::plus<T>) {
+  return -x;
+}
+
 /**
  * @brief Signed fixed-precision N-limb integer with a sign-magnitude layout.
  *

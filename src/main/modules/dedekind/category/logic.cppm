@@ -1057,6 +1057,27 @@ struct logic_complement {
   }
 };
 
+/** @brief The @b arrow reading of logic negation @c ¬ = @c L::RFL on the truth
+ *  object @c Ω --- the canonical @b order-reversing arrow.
+ *
+ *  @details Where @c logic_complement is the @b op (used as @c RflOp in the
+ *  op-trait bridge), @c NegationArrow carries the @c Domain / @c Codomain
+ *  typedefs that make it an @c IsArrow, so @c :posetal can register it @c
+ *  is_antimonotone_v: @c ¬ maps the truth chain to its reverse (on @c Boole,
+ *  @c False<True becomes @c True>False; on @c Kleene the @f$K_3@f$ chain
+ *  reflects about @c Unknown), i.e. @c Op(a,b) @c ⇒ @c Op(¬b,¬a).  It is the
+ *  antitone mirror of @c Identity's monotone witness (#908).  Being an
+ *  involution (@c ¬¬=id) it is morally an order-anti-isomorphism; the bijection
+ *  certificate lives on @c :involution. */
+export template <typename L>
+struct NegationArrow {
+  using Domain = typename L::Ω;
+  using Codomain = typename L::Ω;
+  constexpr typename L::Ω operator()(const typename L::Ω& a) const {
+    return L::RFL(a);
+  }
+};
+
 /** @brief Witness: Boolean negation is an involution.  @c Boole's
  *  @c RFL is @c std::logical_not on @c bool (@c !!b = b). */
 template <>

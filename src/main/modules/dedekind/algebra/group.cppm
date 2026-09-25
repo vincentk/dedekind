@@ -355,4 +355,39 @@ static_assert(HasCompoundGroupOperatorsMul<unsigned short>,
               "unsigned short closes under in-place *=, /= via the "
               "[expr.ass]/3 narrowing-after-promotion rule.");
 
+/**
+ * @brief The group inverse under @c Op, reified as an @b arrow (an
+ *        endomorphism @c G @c → @c G).
+ *
+ * @details Wraps the @c inverse_v bridge (@c category:species) as a first-class
+ *          morphism carrying @c Domain / @c Codomain, so the group inverse can
+ *          be reasoned about categorically --- composed, and registered with a
+ *          variance.  @c Inverse<G, @c std::plus<G>> is the additive inverse
+ *          @c x @c ↦ @c -x; @c Inverse<G, @c std::multiplies<G>> the
+ *          multiplicative @c x @c ↦ @c 1/x.
+ *
+ * @note On an @b ordered group the additive inverse is @b antitone
+ *       (order-reversing); the multiplicative inverse is antitone only on the
+ *       positive cone.  Those variance facts are registered where the order
+ *       lives (@c :ordered_algebra), not here.
+ *
+ * @tparam G  The carrier; constrained @c category::IsGroup<G, @c Op> --- the
+ *            group hypothesis is exactly what makes the inverse @c inverse_v<G,
+ *            @c Op> exist (@c IsMonoid @c && @c IsLoop supplies the two-sided
+ *            inverse).  @c category::IsGroup is the @b carrier-level group (not
+ *            @c algebra::IsGroup, which gates a @b set object @c X by @c
+ *            X::Domain).
+ * @tparam Op The group operation (@c std::plus<G> additive, @c
+ *            std::multiplies<G> multiplicative).
+ */
+export template <typename G, typename Op>
+  requires dedekind::category::IsGroup<G, Op>
+struct Inverse {
+  using Domain = G;
+  using Codomain = G;
+  constexpr G operator()(const G& x) const {
+    return dedekind::category::inverse_v<G, Op>(x);
+  }
+};
+
 }  // namespace dedekind::algebra

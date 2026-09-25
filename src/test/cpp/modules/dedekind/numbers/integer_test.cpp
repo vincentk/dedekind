@@ -8,10 +8,12 @@
                     // operator — see PR #437 review thread.
 
 import dedekind.category;
+import dedekind.algebra; // AdditiveInverse + IsOrderedAdditiveGroup (#959)
 import dedekind.morphologies;
 import dedekind.numbers;
 
 using namespace dedekind::category;
+using namespace dedekind::algebra;
 using namespace dedekind::morphologies;
 using namespace dedekind::numbers;
 using namespace dedekind::sets;
@@ -234,4 +236,37 @@ TEST_CASE("sint: 𝕂3 → sint → ℤ chain via embed_𝕂3_ℤ_ + lift",
   CHECK(embed_𝕂3_ℤ_(Ternary::False) == embed_sint_ℤ(-1));
   CHECK(embed_𝕂3_ℤ_(Ternary::Unknown) == embed_sint_ℤ(0));
   CHECK(embed_𝕂3_ℤ_(Ternary::True) == embed_sint_ℤ(1));
+}
+
+TEST_CASE("Integer: additive inverse -x is antitone on ℤ (#908/#959)",
+          "[numbers][integer][algebra][antitone]") {
+  // ℤ (SignedCardinality) is an ordered additive group, so the unary additive
+  // inverse -x is ORDER-REVERSING: the algebraic dog-food of the antitone
+  // reification, the same shape as the logic NegationArrow's negation on Omega.
+  constexpr AdditiveInverse<SignedCardinality> neg{};
+  const SignedCardinality two = finite_signed_cardinality(2);
+  const SignedCardinality three = finite_signed_cardinality(3);
+
+  // The inverse maps to the negatives.
+  CHECK(neg(two) == finite_signed_cardinality(-2));
+  CHECK(neg(three) == finite_signed_cardinality(-3));
+
+  // Order-reversal: 2 <= 3, so -3 <= -2, i.e. neg(3) <= neg(2).
+  CHECK(two <= three);
+  CHECK(neg(three) <= neg(two));
+
+  // The arrow is a certified antitone / variant morphism.
+  STATIC_CHECK(IsAntiMonotone<AdditiveInverse<SignedCardinality>>);
+  STATIC_CHECK(IsVariant<AdditiveInverse<SignedCardinality>>);
+
+  // Self-adjoint antitone Galois connection: -x is an antitone involution
+  // (-(-x) = x), so (AdditiveInverse, AdditiveInverse) is a Galois connection
+  // and a <= -b iff b <= -a.  The first ANTITONE witness of IsGaloisConnection.
+  STATIC_CHECK(IsGaloisConnection<AdditiveInverse<SignedCardinality>,
+                                  AdditiveInverse<SignedCardinality>>);
+  const SignedCardinality neg_five = finite_signed_cardinality(-5);
+  // both-true side: (-5 <= -2) iff (2 <= 5).
+  CHECK((neg_five <= neg(two)) == (two <= neg(neg_five)));
+  // both-false side: (2 <= -3) iff (3 <= -2).
+  CHECK((two <= neg(three)) == (three <= neg(two)));
 }
