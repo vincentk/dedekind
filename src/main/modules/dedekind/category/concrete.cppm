@@ -37,12 +37,14 @@
  *  - @c IsConcrete<C>: per-category concreteness ---
  *    @c C is small AND its objects are sets.
  *  - @c IsCompatibleSetPair / @c HasTernarySupport: subobject-pair shape gates.
+ *  - @c in / @c in_via: membership @c x @c ∈ @c S via χ-evaluation @c s(x).
  *  - @c compose_embedding: compose two embedding arrows (pullback path checks).
  *
- * The set-lattice OPERATIONS (@c set_intersection / @c set_union /
- * @c set_complement, @c meet / @c join / @c complement, membership @c in /
- * @c in_via) moved to @c dedekind.sets (#834): set operations belong in
- * @c :sets, where they collapse through @c operator& / @c | / @c !.
+ * The set-LATTICE operations (@c set_intersection / @c set_union /
+ * @c set_complement, @c meet / @c join / @c complement) moved to
+ * @c dedekind.sets (#834): the lattice DSL belongs in @c :sets, where it
+ * collapses through @c operator& / @c | / @c !.  Membership (@c in / @c in_via)
+ * stays here (χ-evaluation, category-fundamental).
  *
  * Concept-as-predicate framing (cf. #635, #637).  The chain ranges over
  * CATEGORIES C: among small categories, the concrete ones (a faithful
@@ -204,15 +206,33 @@ concept IsCompatibleSetPair =
     std::same_as<std::invoke_result_t<S1 const&, typename S1::Domain const&>,
                  std::invoke_result_t<S2 const&, typename S2::Domain const&>>;
 
-// The set-lattice operations --- @c set_intersection / @c set_union /
-// @c set_complement, membership @c in / @c in_via, the @c meet / @c join /
-// @c complement aliases, and the @c ConjunctionChi predicate --- were RELOCATED
-// to @c dedekind.sets (@c :sets:expressions), #834 / #946 S2: set operations
-// belong in @c :sets, where they converge onto the collapsing @c operator& /
-// @c | / @c ! (a set meet now COLLAPSES instead of staying an opaque
-// @c ConjunctionChi).  ETCS Axiom 10 was decoupled from the @c meet / @c join
-// free-function names (#834) so this move is DAG-clean.  This partition keeps
-// only the carrier-agnostic @c compose_embedding arrow helper below.
+// The set-LATTICE operations --- @c set_intersection / @c set_union /
+// @c set_complement, the @c meet / @c join / @c complement aliases, and the
+// @c ConjunctionChi predicate --- were RELOCATED to @c dedekind.sets
+// (@c :sets:expressions), #834 / #946 S2: the lattice DSL belongs in @c :sets,
+// where they converge onto the collapsing @c operator& / @c | / @c ! (a set
+// meet now COLLAPSES instead of staying an opaque @c ConjunctionChi).  ETCS
+// Axiom 10 was decoupled from the @c meet / @c join free-function names (#834)
+// so this move is DAG-clean.  Membership (@c in / @c in_via) STAYS here: it is
+// χ-evaluation (@c s(x) / @c s(e(x))), a category-fundamental subobject
+// operation, not a lattice-DSL op.
+
+/** @brief Membership: @c x @c ∈ @c S evaluated via @c S's structural call (the
+ *  carrier IS the characteristic morphism). */
+export template <typename S>
+  requires IsSubobject<S, typename S::Domain>
+constexpr auto in(const typename S::Domain& x, const S& s) {
+  return s(x);
+}
+
+/** @brief Membership through an embedding arrow @c e:X→A, then the
+ *  carrier-as-predicate: @c x @c ∈_e @c S @c = @c s(e(x)). */
+export template <typename S, IsArrow E>
+  requires IsSubobject<S, typename S::Domain> &&
+           std::same_as<Cod<E>, typename S::Domain>
+constexpr auto in_via(const Dom<E>& x, E&& embedding, const S& s) {
+  return s(std::forward<E>(embedding)(x));
+}
 
 /**
  * @brief Compose two embedding arrows for pullback naturality path checks.

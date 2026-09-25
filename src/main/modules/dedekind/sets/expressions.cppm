@@ -1320,23 +1320,8 @@ export template <typename S>
 constexpr auto complement(const S& s) {
   return set_complement(s);
 }
-
-/** @brief Membership: @c x @c ∈ @c S evaluated via @c S's structural call (the
- *  carrier IS the characteristic morphism). */
-export template <typename S>
-  requires dedekind::category::IsSubobject<S, typename S::Domain>
-constexpr auto in(const typename S::Domain& x, const S& s) {
-  return s(x);
-}
-/** @brief Membership through an embedding arrow @c e:X→A, then the
- *  carrier-as-predicate: @c x @c ∈_e @c S @c = @c s(e(x)). */
-export template <typename S, dedekind::category::IsArrow E>
-  requires dedekind::category::IsSubobject<S, typename S::Domain> &&
-           std::same_as<dedekind::category::Cod<E>, typename S::Domain>
-constexpr auto in_via(const dedekind::category::Dom<E>& x, E&& embedding,
-                      const S& s) {
-  return s(std::forward<E>(embedding)(x));
-}
+// Membership (in / in_via) is NOT here: it is χ-evaluation (s(x) / s(e(x))), a
+// category-fundamental subobject operation, and stays in :category:concrete.
 
 /** @section expressions__Complement_Is_An_Involution
  *  The set complement is an involution: @c !!A ≡ A at the @b type level for a

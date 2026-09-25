@@ -5,13 +5,8 @@
 #include <utility>
 
 import dedekind.category;
-import dedekind.sets; // #834: the set-lattice ops relocated here from :concrete
 
 using namespace dedekind::category;
-// #834: bring the relocated set-lattice operations into unqualified scope.
-using dedekind::sets::in_via;
-using dedekind::sets::join;
-using dedekind::sets::meet;
 
 TEST_CASE("ETCS axioms: 1 and 2 (composition and identity)",
           "[category][etcs][axioms]") {
@@ -44,7 +39,6 @@ TEST_CASE("ETCS axioms: 3 and 8 (terminal and initial objects)",
 TEST_CASE("ETCS axioms: 4, 7, 10 (well-pointed eval, classifier, lattice)",
           "[category][etcs][axioms]") {
   const auto s_even = ambient_set<int>([](const int& x) { return x % 2 == 0; });
-  const auto s_positive = ambient_set<int>([](const int& x) { return x > 0; });
 
   STATIC_CHECK(IsSubobject<decltype(s_even), int>);
   STATIC_CHECK(IsSet<decltype(s_even)>);
@@ -53,19 +47,16 @@ TEST_CASE("ETCS axioms: 4, 7, 10 (well-pointed eval, classifier, lattice)",
   CHECK(s_even.χ(2));
   CHECK_FALSE(s_even.χ(3));
 
-  const auto m = meet(s_even, s_positive);
-  const auto j = join(s_even, s_positive);
-  CHECK(m.χ(4));
-  CHECK_FALSE(m.χ(-4));
-  CHECK(j.χ(-4));
-  CHECK_FALSE(j.χ(-3));
-
   // Axiom 7 includes classifier constants and pullback-backed stability.
   STATIC_CHECK(HasAxiom7SubobjectClassifier<decltype(s_even)>);
 
   // Axiom 10 (choice) currently has an explicit split-epi witness surface.
   STATIC_CHECK(HasAxiom10ChoiceSplitEpicWitness<decltype(s_even), Identity<int>,
                                                 Identity<int>>);
+  // Axiom 10's power-object-lattice witness is the CONCEPT check (below /
+  // in etcs_test's "IsSet grouped witnesses"); the meet/join VALUE exercise
+  // moved to the :sets test layer with the ops (#834).
+  STATIC_CHECK(HasAxiom10PowerObjectLattice<decltype(s_even)>);
 }
 
 TEST_CASE("ETCS axioms: 5 and 6 (product and exponentials)",
