@@ -409,8 +409,17 @@ concept IsAntiMonotone = IsArrow<F> && is_antimonotone_v<F, Op>;
  * a reified composition arrow; the two-axis (contravariant-domain /
  *       covariant-codomain) reading is the hyperdoctrine extension.
  */
-export template <typename F, typename Op = std::less_equal<>>
-concept IsVariant = IsMonotone<F, Op> || IsAntiMonotone<F, Op>;
+export template <IsArrow F, typename Op = std::less_equal<>>
+concept IsVariant =
+    // @c Op is not arbitrary: variance is measured against a homogeneous binary
+    // relation living on one of the arrow's OWN carriers --- its domain @b or
+    // its codomain.  The disjunction is load-bearing: @c Copy<A>'s order is the
+    // product order @c ≤× on its @b codomain @c A×A, not an order on its domain
+    // @c A, so a domain-only tie would wrongly reject it.
+    (
+        requires(Op op, Dom<F> a) { op(a, a); } ||
+        requires(Op op, Cod<F> c) { op(c, c); }) &&
+    (IsMonotone<F, Op> || IsAntiMonotone<F, Op>);
 
 /**
  * @concept IsOrderIsomorphism

@@ -370,8 +370,18 @@ static_assert(HasCompoundGroupOperatorsMul<unsigned short>,
  *       (order-reversing); the multiplicative inverse is antitone only on the
  *       positive cone.  Those variance facts are registered where the order
  *       lives (@c :ordered_algebra), not here.
+ *
+ * @tparam G  The carrier; constrained @c category::IsGroup<G, @c Op> --- the
+ *            group hypothesis is exactly what makes the inverse @c inverse_v<G,
+ *            @c Op> exist (@c IsMonoid @c && @c IsLoop supplies the two-sided
+ *            inverse).  @c category::IsGroup is the @b carrier-level group (not
+ *            @c algebra::IsGroup, which gates a @b set object @c X by @c
+ *            X::Domain).
+ * @tparam Op The group operation (@c std::plus<G> additive, @c
+ *            std::multiplies<G> multiplicative).
  */
 export template <typename G, typename Op>
+  requires dedekind::category::IsGroup<G, Op>
 struct Inverse {
   using Domain = G;
   using Codomain = G;
