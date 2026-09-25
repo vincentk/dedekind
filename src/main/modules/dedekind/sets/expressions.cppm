@@ -380,25 +380,6 @@ template <typename P>
 using NegatedPredicateBase_t =
     typename IsNegatedPredicateImpl<std::decay_t<P>>::base_type;
 
-/** @brief Membership of a symmetric difference @c A @c △ @c B in logic @c L:
- *  @c v is in exactly one of @c A, @c B, computed as @f$(a\wedge\neg b)\vee
- *  (\neg a\wedge b)@f$ with both sides lifted through @c lift_logic<L>.  A
- *  @b named functor (not a capturing closure), so the @c △ @c Set carries a
- *  structural, pattern-matchable predicate type rather than an opaque lambda
- *  (#844, [[feedback_no_lambdas_opacity]]); the de-lambda companion of
- *  @c ProductMembership. */
-export template <typename L, typename PA, typename PB>
-struct SymmetricDifferenceMembership {
-  PA lhs;
-  PB rhs;
-  template <typename V>
-  constexpr auto operator()(const V& v) const {
-    const auto a = dedekind::category::lift_logic<L>(lhs(v));
-    const auto b = dedekind::category::lift_logic<L>(rhs(v));
-    return L::OR(L::AND(a, L::RFL(b)), L::AND(L::RFL(a), b));
-  }
-};
-
 export template <typename T, typename L, typename Predicate>
 class Set;
 
@@ -877,11 +858,12 @@ class Set {
    * @brief Symmetric difference @c A @c △ @c B (set-theoretic XOR; #469).
    *
    * @details The textbook identity
-   * @c A @c △ @c B @c = @c (A @c ∖ @c B) @c ∪ @c (B @c ∖ @c A) @c =
-   * @c (A @c ∪ @c B) @c \ @c (A @c ∩ @c B), realised at the predicate
-   * level via @c L::OR / @c L::AND / @c L::RFL --- no new logic species
-   * obligation, since XOR is a derived operation in any boolean /
-   * Heyting algebra.  The C++ @c ^ operator is the bitwise-XOR analogue
+   * @c A @c △ @c B @c = @c (A @c ∖ @c B) @c ∪ @c (B @c ∖ @c A), realised in
+   * the general case by the elementary combinators themselves ---
+   * @c (A @c & @c ~B) @c | @c (~A @c & @c B) --- so there is no bespoke XOR
+   * predicate and no new logic species obligation (XOR is derived in any
+   * boolean / Heyting algebra).  The C++ @c ^ operator is the bitwise-XOR
+   * analogue
    * at the singleton-bit level, completing the @c | / @c & / @c ^
    * operator surface family.
    *
@@ -949,15 +931,12 @@ class Set {
       Set<T, L, NegatedPredicateBase_t<Predicate>> inner{predicate_.base};
       return !(inner ^ other);
     } else {
-      // Predicates may return @c bool (the most common case for
-      // user-supplied lambdas) or @c L::Ω directly.  Normalise both
-      // sides via @c lift_logic<L> before passing into @c L::AND /
-      // @c L::OR / @c L::RFL, which require @c L::Ω inputs.  This
-      // matches the existing @c Set::operator() normalisation pattern
-      // and the @c relational.cppm dispatch — bool returns lift cleanly
-      // to @c L::Ω, ternary returns are passed through.
-      using Pred = SymmetricDifferenceMembership<L, Predicate, OtherPredicate>;
-      return Set<T, L, Pred>{Pred{predicate_, other.predicate_}};
+      // The textbook identity, in the elementary set combinators:
+      // @c A @c △ @c B @c = @c (A @c ∩ @c ¬B) @c ∪ @c (¬A @c ∩ @c B).
+      // No bespoke XOR predicate: @c ~ / @c & / @c | already carry the
+      // per-carrier logic (each combinator lifts through @c lift_logic<L>),
+      // and the meet/join reducer gets to collapse the result further.
+      return (*this & ~other) | (~*this & other);
     }
   }
 
