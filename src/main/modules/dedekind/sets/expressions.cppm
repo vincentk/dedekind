@@ -1245,6 +1245,82 @@ constexpr auto operator~(P&& p) {
   return !std::forward<P>(p);
 }
 
+// ===========================================================================
+// The set-lattice operations (#834 / #946 S2): RELOCATED here from
+// @c :category:concrete --- set operations belong in @c :sets, not the category
+// layer (#636 had misfiled them; ETCS Axiom 10 was decoupled from the @c meet /
+// @c join free-function names in #834 to unblock this move) --- and CONVERGED
+// onto the collapsing @c operator& / @c operator| / @c operator!.  A set meet
+// now COLLAPSES (@c {x>5}∩{x>3} @c → @c {x>5}) instead of staying an opaque
+// @c ConjunctionChi.
+//
+// Each is @c classify<Domain>(operator-result): a SHAPE-COMPATIBLE drop-in for
+// the old @c classify(ConjunctionChi) --- same @c Subobject shape (so @c IsSet
+// /
+// @c HasETCSAxioms / @c cartesian_product callers are unchanged), but the @c
+// Chi it carries is now the REDUCED form (the collapse rides through in @c Chi,
+// at compile time).  @c IsSubobjectLattice accepts it (it wants an @c
+// IsSubobjectFamilyMember, not exact-type closure), so the reduction is
+// contract-safe.  @c ConjunctionChi and the OR / RFL lambdas are retired
+// (@c operator& / @c | / @c ! subsume them).
+// ===========================================================================
+
+/** @brief Set intersection @f$\chi_{A\cap B}@f$: the collapsing meet @c A @c &
+ *  @c B, re-wrapped into the uniform @c Subobject contract. */
+export template <typename S1, typename S2>
+  requires requires(const S1& a, const S2& b) { a & b; }
+constexpr auto set_intersection(const S1& lhs, const S2& rhs) {
+  return dedekind::category::classify<typename S1::Domain>(lhs & rhs);
+}
+/** @brief Lattice alias: meet @c = intersection on @c Sub(A). */
+export template <typename S1, typename S2>
+  requires requires(const S1& a, const S2& b) { a & b; }
+constexpr auto meet(const S1& lhs, const S2& rhs) {
+  return set_intersection(lhs, rhs);
+}
+/** @brief Set union @f$\chi_{A\cup B}@f$: the collapsing join @c A @c | @c B.
+ */
+export template <typename S1, typename S2>
+  requires requires(const S1& a, const S2& b) { a | b; }
+constexpr auto set_union(const S1& lhs, const S2& rhs) {
+  return dedekind::category::classify<typename S1::Domain>(lhs | rhs);
+}
+/** @brief Lattice alias: join @c = union on @c Sub(A). */
+export template <typename S1, typename S2>
+  requires requires(const S1& a, const S2& b) { a | b; }
+constexpr auto join(const S1& lhs, const S2& rhs) {
+  return set_union(lhs, rhs);
+}
+/** @brief Set complement @f$\neg\chi_A@f$: the involutive @c !A. */
+export template <typename S>
+  requires requires(const S& s) { !s; }
+constexpr auto set_complement(const S& s) {
+  return dedekind::category::classify<typename S::Domain>(!s);
+}
+/** @brief Lattice alias: complement @c = @c set_complement on @c Sub(A). */
+export template <typename S>
+  requires requires(const S& s) { !s; }
+constexpr auto complement(const S& s) {
+  return set_complement(s);
+}
+
+/** @brief Membership: @c x @c ∈ @c S evaluated via @c S's structural call (the
+ *  carrier IS the characteristic morphism). */
+export template <typename S>
+  requires dedekind::category::IsSubobject<S, typename S::Domain>
+constexpr auto in(const typename S::Domain& x, const S& s) {
+  return s(x);
+}
+/** @brief Membership through an embedding arrow @c e:X→A, then the
+ *  carrier-as-predicate: @c x @c ∈_e @c S @c = @c s(e(x)). */
+export template <typename S, dedekind::category::IsArrow E>
+  requires dedekind::category::IsSubobject<S, typename S::Domain> &&
+           std::same_as<dedekind::category::Cod<E>, typename S::Domain>
+constexpr auto in_via(const dedekind::category::Dom<E>& x, E&& embedding,
+                      const S& s) {
+  return s(std::forward<E>(embedding)(x));
+}
+
 /** @section expressions__Complement_Is_An_Involution
  *  The set complement is an involution: @c !!A ≡ A at the @b type level for a
  *  plain @c Set.  The property @c reduces to the logic negation: @c :involution

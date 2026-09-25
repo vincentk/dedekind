@@ -101,9 +101,10 @@ import :adjunction;  // HasAdjunctionShape / IsAdjunction — the bona fide
                      // adjunction machinery used to witness Disc ⊣ U at the
                      // type level (#572 review).
 import :cartesian;
-import :concrete;  // IsSubobject, IsConcrete, set_intersection / set_union /
-                   // set_complement / in / in_via / meet / join — the
-                   // concreteness layer (#636), prerequisite for ETCS axioms.
+import :concrete;  // IsSubobject, IsConcrete, IsCompatibleSetPair,
+                   // HasTernarySupport, compose_embedding: the concreteness
+                   // layer (#636), prerequisite for ETCS axioms.  (The set-op
+                   // FUNCTIONS moved to dedekind.sets, #834.)
 import :discrete;  // DiscreteCategory<T> — target of the Set ↪ Cat lift (#572)
 import :functor;   // identity_functor — the structural-shape witness for
                    // the discrete-restriction Disc ⊣ U adjunction (#572).
@@ -117,11 +118,14 @@ import :topoi;
 
 namespace dedekind::category {
 
-// NOTE (#636 re-home): the concreteness layer --- @c IsSubobject,
-// @c HasTernarySupport, @c IsCompatibleSetPair, @c set_intersection / @c
-// set_union / @c set_complement, @c in / @c in_via, @c meet / @c join,
-// @c compose_embedding, and the new @c IsConcrete<C> umbrella ---
-// moved to @c :concrete.  @c :etcs retains the ETCS-specific axiom
+// NOTE (#636 re-home, #834 correction): the concreteness CONCEPTS ---
+// @c IsSubobject, @c HasTernarySupport, @c IsCompatibleSetPair,
+// @c compose_embedding, and the @c IsConcrete<C> umbrella --- live in
+// @c :concrete.  The set-op FUNCTIONS (@c set_intersection / @c set_union /
+// @c set_complement, @c in / @c in_via, @c meet / @c join / @c complement)
+// belong in @c dedekind.sets and moved there (#834), where they collapse
+// through @c operator&; #636 had misfiled them here.  @c :etcs retains the
+// ETCS-specific axiom
 // witnesses (@c HasAxiom1..10, @c HasETCSAxioms, @c IsSet) and imports
 // @c :concrete as the structural prerequisite.  Concept-as-predicate
 // reading: @c IsSet<A> requires the ETCS axioms over the carrier's
@@ -317,10 +321,15 @@ concept HasAxiom10PowerObjectLattice =
        *  axiom by accident (#713 review, Copilot). */
       typename S::logic_species;
       requires IsOckhamAlgebra<typename S::logic_species>;
-    } && requires(S lhs, S rhs) {
-      requires IsSubobject<decltype(meet(lhs, rhs)), typename S::Domain>;
-      requires IsSubobject<decltype(join(lhs, rhs)), typename S::Domain>;
     };
+// NB (#834): the axiom requires the ALGEBRAIC witness that @c Sub(A) is a
+// lattice --- @c IsOckhamAlgebra<S::logic_species> --- NOT the @c meet / @c
+// join free functions by name.  The subobject lattice is INDUCED pointwise from
+// the classifier @c L (Axiom 7 + Ockham @c L), so requiring the operations by
+// name was redundant; dropping it decouples the ETCS axiom from WHERE the
+// set-lattice operations live, letting @c meet / @c set_intersection / @c
+// set_union / ... relocate to @c dedekind.sets where set operations belong
+// (they collapse there through @c operator&).
 
 /** @section etcs__Axiom_10_Diaconescu_Note
  *

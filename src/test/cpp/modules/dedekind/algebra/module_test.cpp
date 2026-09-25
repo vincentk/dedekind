@@ -95,17 +95,17 @@ TEST_CASE("Modules: Integer Polynomial Action", "[algebra][modules]") {
     auto real_space = dedekind::category::ambient_set<RealLine>(
         [](const RealLine&) { return dedekind::category::Boole::True; });
     CHECK(dedekind::category::IsSet<decltype(real_space)>);
-    CHECK(dedekind::category::in(RealLine(0.0), real_space) ==
+    CHECK(dedekind::sets::in(RealLine(0.0), real_space) ==
           dedekind::category::Boole::True);
-    CHECK(dedekind::category::in(RealLine(1.25), real_space) ==
+    CHECK(dedekind::sets::in(RealLine(1.25), real_space) ==
           dedekind::category::Boole::True);
 
     auto bool_space = dedekind::category::ambient_set<BoolLine>(
         [](const BoolLine&) { return dedekind::category::Boole::True; });
     CHECK(dedekind::category::IsSet<decltype(bool_space)>);
-    CHECK(dedekind::category::in(BoolLine(true), bool_space) ==
+    CHECK(dedekind::sets::in(BoolLine(true), bool_space) ==
           dedekind::category::Boole::True);
-    CHECK(dedekind::category::in(BoolLine(false), bool_space) ==
+    CHECK(dedekind::sets::in(BoolLine(false), bool_space) ==
           dedekind::category::Boole::True);
   }
 
@@ -134,9 +134,9 @@ TEST_CASE("Modules: Integer Polynomial Action", "[algebra][modules]") {
         [](const RealLine&) { return dedekind::category::Boole::True; });
 
     CHECK(dedekind::category::IsSet<decltype(vector_space)>);
-    CHECK(dedekind::category::in(RealLine(0.0), vector_space) ==
+    CHECK(dedekind::sets::in(RealLine(0.0), vector_space) ==
           dedekind::category::Boole::True);
-    CHECK(dedekind::category::in(RealLine(3.25), vector_space) ==
+    CHECK(dedekind::sets::in(RealLine(3.25), vector_space) ==
           dedekind::category::Boole::True);
   }
 
@@ -147,9 +147,9 @@ TEST_CASE("Modules: Integer Polynomial Action", "[algebra][modules]") {
         [](const BoolLine&) { return dedekind::category::Boole::True; });
 
     CHECK(dedekind::category::IsSet<decltype(bool_semimodule)>);
-    CHECK(dedekind::category::in(BoolLine(true), bool_semimodule) ==
+    CHECK(dedekind::sets::in(BoolLine(true), bool_semimodule) ==
           dedekind::category::Boole::True);
-    CHECK(dedekind::category::in(BoolLine(false), bool_semimodule) ==
+    CHECK(dedekind::sets::in(BoolLine(false), bool_semimodule) ==
           dedekind::category::Boole::True);
   }
 }
