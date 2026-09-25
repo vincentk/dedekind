@@ -5,8 +5,13 @@
 #include <utility>
 
 import dedekind.category;
+import dedekind.sets; // #834: the set-lattice ops relocated here from :concrete
 
 using namespace dedekind::category;
+// #834: bring the relocated set-lattice operations into unqualified scope.
+using dedekind::sets::in_via;
+using dedekind::sets::join;
+using dedekind::sets::meet;
 
 TEST_CASE("ETCS axioms: 1 and 2 (composition and identity)",
           "[category][etcs][axioms]") {
