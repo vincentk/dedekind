@@ -837,6 +837,32 @@ struct Compose final {
   constexpr Codomain operator()(const Domain& x) const { return g(f(x)); }
 };
 
+/** @brief The contravariant @b substitution / pullback @c f*: pull a codomain
+ *  predicate (or arrow) @c P back along @c f, @c preimage(f,P) @c = @c P∘f
+ *  @c = @c Compose<F,P>.
+ *
+ *  @details This is the @b general shape of the domain axis of a classifier
+ *  @f$\chi:A\to\Omega@f$ (#908): reindexing a predicate on the codomain to one
+ *  on the domain.  It is @b contravariant in @c f --- @c preimage(f, @c
+ *  preimage(g,P)) @c = @c preimage(g∘f, @c P), i.e.\ @f$(g\circ f)^* = f^*\circ
+ *  g^*@f$ (by associativity of @c Compose) --- so the arrow order reverses
+ * under pullback.  Downstream partitions supply @b closed-form overloads that
+ *  collapse @c P∘f symbolically rather than deferring it (e.g.\ @c
+ *  :algebra's @c halfspace_transport pulls a @c Halfspace back through an
+ * affine graph to a new @c Halfspace; @c :relational, @c :complex likewise);
+ * those are the specialized fibres this general form is the default for.
+ *
+ *  @tparam F the map @c A→B to pull back along.
+ *  @tparam P the codomain predicate/arrow @c B→Ω; @c Cod<F> must be @c Dom<P>.
+ *  @param f the map to substitute.
+ *  @param p the codomain predicate to reindex.
+ *  @return the composite @c P∘f as a reified @c Compose<F,P> arrow @c A→Ω. */
+export template <IsArrow F, IsArrow P>
+  requires std::same_as<Cod<F>, Dom<P>>
+constexpr auto preimage(const F& f, const P& p) {
+  return Compose<F, P>{f, p};
+}
+
 /** @section morphism__Morphism_Lifting_Proof */
 using Negate = std::negate<int>;
 using TaggedNegate = Morphism<int, int, Negate>;
