@@ -1825,6 +1825,30 @@ constexpr auto operator||(P1&& p1, P2&& p2) {
 namespace dedekind::sets {
 
 /**
+ * @brief Membership predicate of a Cartesian product: @f$(x,y)\in A\times B
+ *        \iff x\in A \wedge y\in B@f$.
+ *
+ * @details A @b named functor (not a capturing lambda), so a product @c Set
+ * carries a structural, comparable predicate type rather than an opaque closure
+ * (#844, [[feedback_no_lambdas_opacity]]).  It stores the two component @c Set
+ * operands and evaluates each on its projection, going through @c
+ * Set::operator() so the logic lift is preserved.  Mirrors the @c
+ * dedekind::relational::RelAnd shape, which already ships as a @c Set<pair>
+ * predicate across translation units.
+ */
+export template <typename A, typename B>
+struct ProductMembership {
+  A a;
+  B b;
+  // @c auto (not @c bool): inherit the operands' logic species so a Kleene
+  // component keeps @c Unknown rather than collapsing under a bool cast.
+  template <typename P>
+  constexpr auto operator()(const P& p) const {
+    return a(p.first) && b(p.second);
+  }
+};
+
+/**
  * @brief Cartesian product of two sets: {(a,b) | a ∈ A, b ∈ B}.
  *
  * Constructs a Set whose domain is std::pair<T1,T2> and whose membership
@@ -1836,10 +1860,8 @@ export template <typename T1, typename L1, typename P1, typename T2,
 constexpr auto cartesian_product(const Set<T1, L1, P1>& a,
                                  const Set<T2, L2, P2>& b) {
   using Pair = std::pair<T1, T2>;
-  auto pred = [pa = a, pb = b](const Pair& p) {
-    return pa(p.first) && pb(p.second);
-  };
-  return Set<Pair, L1, decltype(pred)>{pred};
+  using Pred = ProductMembership<Set<T1, L1, P1>, Set<T2, L2, P2>>;
+  return Set<Pair, L1, Pred>{Pred{a, b}};
 }
 
 /**
