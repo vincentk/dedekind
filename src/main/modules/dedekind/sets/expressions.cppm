@@ -827,7 +827,7 @@ class Set {
   /** @brief Construct from a comprehension value (@c Set{scout | pred}).
    *  @deprecated The paper-aligned grammar is the bare comprehension
    *  @c scout|pred, with no @c Set{...} wrapper.  As of #895 the bare
-   *  @c Comprehension IS an @c IsSubobject, so it carries the full
+   *  @c Comprehension is an @c is_set_node_v, so it carries the full
    *  set-complement surface --- @c !(scout|pred) /
    *  @c ~(scout|pred) route through the free set @c operator! / @c operator~,
    *  and meet / join already applied via @c IsSubobject.  So this wrapping
@@ -1186,24 +1186,61 @@ constexpr auto operator|(const LHS& lhs, const RHS& rhs) {
   return lift_to<Log>(lhs) | lift_to<Log>(rhs);
 }
 
-/** @brief The set complement @c !A.  Constrained on @c IsSubobject: a
- *  subobject IS a set, so its complement is a set complement.  @c IsSubobject
- *  subsumes the @c IsPredicate that the greedy @c category::operator! takes, so
- *  this strictly-more-constrained overload wins the tiebreak and @c !A is a set
- *  (not a formal @c Morphism A → Ω); @c category::operator! keeps the raw
- *  non-subobject predicates.  The @c IsSubobject gate is structural (no tag)
- * and general: a bare @c classify result complements too.
+/** @brief @c is_set_node_v is true for the types whose complement is the
+ *  generic @c NegatedPredicate wrapper: the @c :sets DSL nodes @c Set /
+ *  @c MeetSet / @c JoinSet / @c Comprehension, plus the bare ETCS subobject
+ *  @c category::Subobject (the @c classify / @c ambient_set result).  It gates
+ *  the free set @c operator! / @c operator~ below, and is the ONE complement
+ *  surface: the @c set_complement free function is retired into it.
+ *
+ *  This inclusion gate is architecturally load-bearing, not a bookkeeping tag.
+ *  The free @c operator! must (a) BEAT the greedy @c category::operator! (which
+ *  turns @c !A into a formal @c Morphism A → Ω) for these types, and (b) NOT
+ *  intercept the bespoke complement of a @b downstream structured subobject
+ *  (@c :order @c Halfspace / @c Singleton, whose @c ~Above<5> = @c AtMost<5>
+ *  collapses to Ø).  The two facts sit on opposite sides of the module DAG, and
+ *  that asymmetry is what lets the gate be an INCLUSION list: @c Subobject is
+ *  @b upstream of @c :sets, so it can be named and listed here; @c Halfspace is
+ *  @b downstream, so it cannot be named, but it need not be -- carrying its own
+ *  @c operator~ keeps it out of this overload by partial ordering.  A looser
+ *  @c IsSubobject gate would sweep in @c Halfspace (it @e is a subobject) and
+ *  hijack its collapse.  FIXME(#963): express this inclusion as a derived
+ *  concept rather than a trait. */
+template <typename S>
+inline constexpr bool is_set_node_v = false;
+template <typename T, typename L, typename P>
+inline constexpr bool is_set_node_v<Set<T, L, P>> = true;
+template <typename A, typename B>
+inline constexpr bool is_set_node_v<MeetSet<A, B>> = true;
+template <typename A, typename B>
+inline constexpr bool is_set_node_v<JoinSet<A, B>> = true;
+template <typename Base, typename Predicate>
+inline constexpr bool is_set_node_v<Comprehension<Base, Predicate>> = true;
+template <typename A, typename Chi>
+inline constexpr bool is_set_node_v<dedekind::category::Subobject<A, Chi>> =
+    true;
+
+/** @brief The set complement @c !A.  Gated on @c is_set_node_v: the forwarding
+ *  reference @c P&& plus @c IsPredicate matches @c category::operator! exactly,
+ *  and the extra @c is_set_node_v constraint strictly subsumes it, so this
+ *  overload wins the tiebreak for every value category and @c !A is a set (not
+ *  a formal @c Morphism A → Ω).  @c category::operator! keeps the raw
+ *  non-set-node predicates; a downstream structured subobject
+ *  (@c Halfspace / @c Singleton) is @b not a set node, so its own bespoke
+ *  complement wins (see @c is_set_node_v above).  A bare @c Subobject
+ *  (@c classify / @c ambient_set) IS a set node, so @c !classify(f) is a set
+ *  complement @c Set<A, L, NegatedPredicate<Subobject>> -- what the retired
+ *  @c set_complement produced, without the bespoke @c NegationChi wrapper.
  *
  *  @details The complement is a certified @b involution.  On a plain @c Set it
  *  eliminates double negation: @c !!A ≡ A at the type level (peeling the
  *  @c NegatedPredicate wrapper, gated on @c logic_negation_is_involutive_v, the
  *  @c :involution witness that ¬¬ = id for the logic).  A compound node
- *  (@c MeetSet / @c JoinSet) or a bare subobject negates by wrapping in
+ *  (@c MeetSet / @c JoinSet) or a bare @c Comprehension negates by wrapping in
  *  @c NegatedPredicate.  A boundary (@c Ø / @c 𝔸) keeps its own non-template
  *  member @c operator! (the dual @c !Ø = 𝔸). */
 export template <IsPredicate P>
-  requires dedekind::category::IsSubobject<
-      std::remove_cvref_t<P>, typename std::remove_cvref_t<P>::Domain>
+  requires is_set_node_v<std::remove_cvref_t<P>>
 constexpr auto operator!(P&& p) {
   using D = std::remove_cvref_t<P>;
   using T = typename D::Domain;
@@ -1228,8 +1265,7 @@ constexpr auto operator!(P&& p) {
 }
 /** @brief @c ~A is the complement spelled bitwise, aliasing @c operator!. */
 export template <IsPredicate P>
-  requires dedekind::category::IsSubobject<
-      std::remove_cvref_t<P>, typename std::remove_cvref_t<P>::Domain>
+  requires is_set_node_v<std::remove_cvref_t<P>>
 constexpr auto operator~(P&& p) {
   return !std::forward<P>(p);
 }
@@ -2058,14 +2094,14 @@ static_assert(IsSet<Comprehension<UniversalSet<int>, all_in>>,
 static_assert(IsSet<Comprehension<Ø<int>, all_in>>,
               "{Ø | P} is a first-class set.");
 
-// #895/#834: a bare Comprehension is an IsSubobject, so it carries the free
-// set-complement (the free set operator! / operator~ gate on IsSubobject, which
-// wins the tiebreak over the greedy category::operator! that would otherwise
-// turn !(A | pred) into a formal Morphism A → Ω).
+// #895/#834: a bare Comprehension is an is_set_node_v, so it carries the free
+// set-complement.  The gate wins the tiebreak over the greedy
+// category::operator! that would otherwise turn !(A | pred) into a formal
+// Morphism A → Ω, and its complement wraps the node in NegatedPredicate and
+// re-seats it as a plain Set --- a genuine set-complement, not a formal arrow.
 using CompN = Comprehension<UniversalSet<int>, all_in>;
-// The complement of a (non-plain-Set) subobject wraps it in NegatedPredicate
-// and re-seats it as a plain Set --- a genuine set-complement, not a formal
-// arrow.
+static_assert(is_set_node_v<CompN>,
+              "a bare Comprehension is a set-node (participates in ! / ~).");
 static_assert(
     std::same_as<std::remove_cvref_t<decltype(!std::declval<CompN>())>,
                  Set<int, dedekind::category::Boole, NegatedPredicate<CompN>>>,
@@ -2075,6 +2111,17 @@ static_assert(
     std::same_as<std::remove_cvref_t<decltype(~std::declval<CompN>())>,
                  std::remove_cvref_t<decltype(!std::declval<CompN>())>>,
     "~ aliases ! on a bare Comprehension.");
+
+// #834: the bare ETCS subobject (classify / ambient_set) is also a set-node, so
+// !s is the set-complement --- what the retired set_complement produced, via
+// the ONE operator! surface rather than a bespoke NegationChi wrapper.
+using SubN = std::remove_cvref_t<decltype(classify<int>(all_in{}))>;
+static_assert(is_set_node_v<SubN>,
+              "a bare classify/ambient_set subobject is a set-node.");
+static_assert(
+    dedekind::category::IsSubobject<
+        std::remove_cvref_t<decltype(!std::declval<SubN>())>, int>,
+    "!classify(f) is a set-complement subobject, not a formal arrow.");
 }  // namespace detail_setexpr_witness
 
 // ── The point-free projection scout ────────────────────────────────────────

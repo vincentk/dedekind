@@ -61,8 +61,8 @@ TEST_CASE("Sets+Category: singleton and comprehension predicates satisfy ETCS",
 
   CHECK(positive_set.χ(5u));
   CHECK_FALSE(positive_set.χ(0u));
-  CHECK(support.χ(5u));
-  CHECK_FALSE(support.χ(50u));
+  CHECK(support(5u));
+  CHECK_FALSE(support(50u));
 }
 
 TEST_CASE("Sets+Category: Set naming boundary is explicit",
