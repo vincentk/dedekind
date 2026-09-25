@@ -108,7 +108,7 @@ static_assert(IsArrowProduct<MeetLift, A_set, B_set>,
 // #954) types the meet of two sets DIRECTLY: Copy fans the shared domain int,
 // the merge Δ†=∧ (Boole::MeetOp) glues the two membership answers on Ω.  The
 // spider computes the UNREDUCED pointwise meet; operator& then REDUCES it to a
-// normal form.  Both realise the SAME order-theoretic meet on Sub(int) — the
+// normal form.  Both realise the SAME order-theoretic meet on Sub(int): the
 // categorical apex the sets meet is a model of, and the frame #834's
 // convergence rides.
 using SpiderMeet = Intersect<A_set, B_set, Boole::MeetOp>;
