@@ -103,27 +103,10 @@ static_assert(IsArrowProduct<MeetLift, A_set, B_set>,
               "the lifted meet is an ARROW product: π_1 / π_2 are genuine "
               "morphisms MeetSet → A / MeetSet → B (arrow-shaped signatures).");
 
-// #954 / #946 slice 2: the sets meet IS the spider Intersect apex.  A Set is an
-// arrow χ:T→Ω (Domain=T, Codomain=Ω), so the loosened Intersect (X→Ω legs,
-// #954) types the meet of two sets DIRECTLY: Copy fans the shared domain int,
-// the merge Δ†=∧ (Boole::MeetOp) glues the two membership answers on Ω.  The
-// spider computes the UNREDUCED pointwise meet; operator& then REDUCES it to a
-// normal form.  Both realise the SAME order-theoretic meet on Sub(int): the
-// categorical apex the sets meet is a model of, and the frame #834's
-// convergence rides.
-using SpiderMeet = Intersect<A_set, B_set, Boole::MeetOp>;
-static_assert(IsArrow<SpiderMeet>,
-              "a Set is an arrow χ:T→Ω, so Intersect<Set,Set,∧> types: the "
-              "spider meet apex over Sub(int) (#954/#946).");
-static_assert(SpiderMeet{a_set, b_set}(4) == (a_set(4) && b_set(4)),
-              "the spider meet computes the pointwise conjunction of the two "
-              "set memberships (Δ†∘(A⊗B)∘Δ).");
-static_assert(
-    SpiderMeet{a_set, b_set}(4) == meet_set(4) &&
-        SpiderMeet{a_set, b_set}(3) == meet_set(3) &&
-        SpiderMeet{a_set, b_set}(-2) == meet_set(-2),
-    "the spider meet agrees POINTWISE with operator& (a_set & b_set): "
-    "operator& is the reduced representative of this apex.");
+// The sets meet A & B IS a model of the spider composite meet
+// Intersect = Δ†∘(A⊗B)∘Δ; that apex (and its pointwise agreement with operator&
+// here) is witnessed in :relational (spider_meet_test.cpp), where Intersect
+// lives.
 
 // #881: the Sub(U) bounds ARE the categorical initial / terminal objects (⊥/⊤
 // of the subobject lattice): Ø is classified by the always-false predicate,

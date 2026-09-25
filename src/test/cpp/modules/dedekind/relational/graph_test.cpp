@@ -147,23 +147,18 @@ static_assert(IsArrow<Copy<X>> && IsArrow<Tensor<R, S>> &&
               "the generic spider legs are all arrows, so Merge∘(R⊗S)∘Copy "
               "types as X → Ω (the relational meet; value witness below).");
 
-// THE GAP (a SMALL follow-up, NOT a #950 blocker).  The PACKAGED Intersect is
-// ENDO-ONLY: its requires clause demands Cod<R> == Dom<R> (an endomap A→A), but
-// a graph R : X → Ω has Cod = Ω ≠ Dom = X, so Intersect<R,S,∧> does NOT type.
-// The generic Copy/Tensor/Merge above ALREADY realise R∩S; only the convenience
-// wrapper needs loosening from endo A→A legs to X→Ω legs.  Witnessed here as
-// the EXACT endo predicate Intersect gates on (Cod == Dom), which is
-// unambiguously safe --- no dependence on naming a constraint-failing template.
-static_assert(std::same_as<Cod<dedekind::category::Identity<bool>>,
-                           Dom<dedekind::category::Identity<bool>>>,
-              "endo legs A→A meet Intersect's Cod==Dom clause: it applies (the "
-              "arrow-level idempotent meet a∧a).");
-static_assert(
-    !std::same_as<Cod<R>, Dom<R>>,
-    "graph legs X→Ω do NOT: Cod = Ω (bool) ≠ Dom = X (A×B), so the packaged "
-    "endo-only Intersect<R,S,∧> does not type.  FIXME: loosen Intersect from "
-    "A→A to X→Ω legs (a small #950 follow-up, NOT a blocker --- the generic "
-    "Copy/Tensor/Merge above already realise R∩S).");
+// Post-#954 the packaged Intersect is loosened from endo A→A to X→Ω legs, so it
+// types the relational meet of the graph legs R,S : X→Ω directly --- the same
+// R∩S the generic Copy/Tensor/Merge above realise, now packaged.  (Its runtime
+// witness lives in spider_meet_test.cpp, next to Intersect in :relational.)
+using GraphMeet = Intersect<R, S, std::logical_and<bool>>;
+static_assert(IsArrow<GraphMeet>,
+              "Intersect types the X→Ω graph meet R∩S directly (legs X→Ω, not "
+              "endo A→A): Cod = Ω (bool) ≠ Dom = X (A×B), and that now types.");
+static_assert(std::same_as<Dom<GraphMeet>, X> &&
+                  std::same_as<Cod<GraphMeet>, bool>,
+              "the graph meet is X→Ω, the relational intersection over the "
+              "pair carrier.");
 
 }  // namespace graph_spider_witness
 

@@ -352,6 +352,65 @@ constexpr auto operator&(const Set<std::pair<A, B>, L, PR>& r,
       RelAnd<PR, PS>{r.predicate(), s.predicate()}};
 }
 
+/** @brief The point-free composite meet @c R∩S @c = @c Δ† @c ∘ @c (R⊗S) @c ∘
+ * @c Δ: copy the shared domain, run both legs in parallel, merge their codomain
+ *         outputs where they agree.  The arrow-level (spider) realisation of
+ * the relational intersection, whose @c (Copy,Merge) legs are certified by
+ *         @c IsMeetAsRightAdjoint --- the same @c R∩S the extensional
+ *         @c operator& above computes over @c Set<pair>, spelled point-free.
+ *  @warning @b Not @b dispatch-safe as a glb (#950 review).  This is the meet
+ *           composite @b by @b intent, but its @c requires clause gates only
+ * the STRUCTURAL @c Δ⊣∧ shape via @c IsMeetAsRightAdjoint, which is
+ *           deliberately true for @c Merge<A,Sup> (the JOIN) too.  So
+ *           @c Intersect<R,S,Sup> is publicly constructible and computes a
+ *           @b join under an intersection name.  glb-correctness is the
+ * injected
+ *           @c Meet's obligation, NOT something this composite discharges;
+ *           closing it is deferred to #908 (reify predicate variance) plus the
+ *           value-level product-order leg, FIXME(#946).  Do NOT branch dispatch
+ *           on the mere existence of this type as if it guaranteed a meet.
+ *  @tparam R the left leg @c X→Y.
+ *  @tparam S the right leg @c X→Y (same domain and codomain as @c R).
+ *  @tparam Meet the injected glb on the CODOMAIN @c Y, forwarded to @c Merge.
+ *  @note @b Legs are @c X→Y, not endo (#954).  The @c Copy fans the shared
+ *        DOMAIN @c X (@c Δ:X→X×X); the @c Merge glb lives on the shared
+ *        CODOMAIN @c Y (@c Δ†:Y×Y→Y), where the two legs' outputs are met.  The
+ *        composite is @c X→Y.  This types the @b relational / predicate meet
+ *        @c R∩S directly: legs @c R,S:X→Ω, @c Merge @c = @c ∧ on @c Ω (a set
+ *        @b is @c χ:X→Ω).  The endo case @c X=Y is the special case where
+ *        @c Copy and @c Merge share the carrier; @c
+ * Intersect<Identity,Identity> still collapses to the identity (idempotence @c
+ * a∧a=a). */
+export template <dedekind::category::IsArrow R, dedekind::category::IsArrow S,
+                 typename Meet>
+  requires std::same_as<dedekind::category::Dom<R>,
+                        dedekind::category::Dom<S>> &&
+           std::same_as<dedekind::category::Cod<R>,
+                        dedekind::category::Cod<S>> &&
+           dedekind::category::IsMeetAsRightAdjoint<
+               dedekind::category::Copy<dedekind::category::Cod<R>>,
+               dedekind::category::Merge<dedekind::category::Cod<R>, Meet>>
+struct Intersect {
+  using Domain = dedekind::category::Dom<R>;
+  using Codomain = dedekind::category::Cod<R>;
+  R r{};
+  S s{};
+  /** @brief The composite meet @c (R∩S)(a)=Δ†((R⊗S)(Δ(a))): copy the domain,
+   *         run both legs, merge their codomain outputs where they agree.
+   *  @param a the input value in @c X.
+   *  @return @c R(a)⊓S(a) in @c Y, the injected glb of the two legs' outputs.
+   *  @note The @c requires clause gates only the STRUCTURAL @c Δ⊣∧ shape on the
+   *        codomain (crossed signatures + posetal carrier + definite variance).
+   *        It does NOT certify that @c Meet is the glb rather than the lub;
+   * that is the injected op's obligation (see @c IsMeetAsRightAdjoint),
+   *        tightened later via #908 + the value-level product-order leg,
+   *        FIXME(#946). */
+  constexpr Codomain operator()(const Domain& a) const {
+    using namespace dedekind::category;
+    return Merge<Cod<R>, Meet>{}(Tensor<R, S>{r, s}(Copy<Domain>{}(a)));
+  }
+};
+
 /** @brief The equality-of-coordinates predicate for the diagonal
  *  @f$\Delta = \{(a,a)\}@f$.  A plain @c std::equality_comparable check ---
  *  the sets-level reframing of what @c order/halfspace spelled as
