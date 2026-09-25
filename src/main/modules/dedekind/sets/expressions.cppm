@@ -858,11 +858,12 @@ class Set {
    * @brief Symmetric difference @c A @c △ @c B (set-theoretic XOR; #469).
    *
    * @details The textbook identity
-   * @c A @c △ @c B @c = @c (A @c ∖ @c B) @c ∪ @c (B @c ∖ @c A) @c =
-   * @c (A @c ∪ @c B) @c \ @c (A @c ∩ @c B), realised at the predicate
-   * level via @c L::OR / @c L::AND / @c L::RFL --- no new logic species
-   * obligation, since XOR is a derived operation in any boolean /
-   * Heyting algebra.  The C++ @c ^ operator is the bitwise-XOR analogue
+   * @c A @c △ @c B @c = @c (A @c ∖ @c B) @c ∪ @c (B @c ∖ @c A), realised in
+   * the general case by the elementary combinators themselves ---
+   * @c (A @c & @c ~B) @c | @c (~A @c & @c B) --- so there is no bespoke XOR
+   * predicate and no new logic species obligation (XOR is derived in any
+   * boolean / Heyting algebra).  The C++ @c ^ operator is the bitwise-XOR
+   * analogue
    * at the singleton-bit level, completing the @c | / @c & / @c ^
    * operator surface family.
    *
@@ -930,19 +931,12 @@ class Set {
       Set<T, L, NegatedPredicateBase_t<Predicate>> inner{predicate_.base};
       return !(inner ^ other);
     } else {
-      // Predicates may return @c bool (the most common case for
-      // user-supplied lambdas) or @c L::Ω directly.  Normalise both
-      // sides via @c lift_logic<L> before passing into @c L::AND /
-      // @c L::OR / @c L::RFL, which require @c L::Ω inputs.  This
-      // matches the existing @c Set::operator() normalisation pattern
-      // and the @c relational.cppm dispatch — bool returns lift cleanly
-      // to @c L::Ω, ternary returns are passed through.
-      auto predicate = [lhs = predicate_, rhs = other.predicate_](const T& v) {
-        const auto a = dedekind::category::lift_logic<L>(lhs(v));
-        const auto b = dedekind::category::lift_logic<L>(rhs(v));
-        return L::OR(L::AND(a, L::RFL(b)), L::AND(L::RFL(a), b));
-      };
-      return Set<T, L, decltype(predicate)>{predicate};
+      // The textbook identity, in the elementary set combinators:
+      // @c A @c △ @c B @c = @c (A @c ∩ @c ¬B) @c ∪ @c (¬A @c ∩ @c B).
+      // No bespoke XOR predicate: @c ~ / @c & / @c | already carry the
+      // per-carrier logic (each combinator lifts through @c lift_logic<L>),
+      // and the meet/join reducer gets to collapse the result further.
+      return (*this & ~other) | (~*this & other);
     }
   }
 
@@ -1825,6 +1819,30 @@ constexpr auto operator||(P1&& p1, P2&& p2) {
 namespace dedekind::sets {
 
 /**
+ * @brief Membership predicate of a Cartesian product: @f$(x,y)\in A\times B
+ *        \iff x\in A \wedge y\in B@f$.
+ *
+ * @details A @b named functor (not a capturing lambda), so a product @c Set
+ * carries a structural, comparable predicate type rather than an opaque closure
+ * (#844, [[feedback_no_lambdas_opacity]]).  It stores the two component @c Set
+ * operands and evaluates each on its projection, going through @c
+ * Set::operator() so the logic lift is preserved.  Mirrors the @c
+ * dedekind::relational::RelAnd shape, which already ships as a @c Set<pair>
+ * predicate across translation units.
+ */
+export template <typename A, typename B>
+struct ProductMembership {
+  A a;
+  B b;
+  // @c auto (not @c bool): inherit the operands' logic species so a Kleene
+  // component keeps @c Unknown rather than collapsing under a bool cast.
+  template <typename P>
+  constexpr auto operator()(const P& p) const {
+    return a(p.first) && b(p.second);
+  }
+};
+
+/**
  * @brief Cartesian product of two sets: {(a,b) | a ∈ A, b ∈ B}.
  *
  * Constructs a Set whose domain is std::pair<T1,T2> and whose membership
@@ -1836,10 +1854,8 @@ export template <typename T1, typename L1, typename P1, typename T2,
 constexpr auto cartesian_product(const Set<T1, L1, P1>& a,
                                  const Set<T2, L2, P2>& b) {
   using Pair = std::pair<T1, T2>;
-  auto pred = [pa = a, pb = b](const Pair& p) {
-    return pa(p.first) && pb(p.second);
-  };
-  return Set<Pair, L1, decltype(pred)>{pred};
+  using Pred = ProductMembership<Set<T1, L1, P1>, Set<T2, L2, P2>>;
+  return Set<Pair, L1, Pred>{Pred{a, b}};
 }
 
 /**
