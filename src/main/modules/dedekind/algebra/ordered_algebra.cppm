@@ -249,4 +249,54 @@ concept IsOrderedCommutativeRing =
                                           std::multiplies<T>> &&
     is_translation_invariant_ordered_v<T>;
 
+/**
+ * @brief The additive inverse @c x @c ↦ @c -x as an @b arrow.
+ *
+ * @details On an ordered additive group it is @b antitone (order-reversing):
+ *          from @c a≤b, add @c (-a-b) to both sides and use translation
+ *          invariance to obtain @c -b≤-a.  This is the algebraic witness that a
+ *          unary field inverse reverses order (#908 / #959) --- the same
+ *          antitone shape as the logic @c NegationArrow's @c ¬ on @c Ω, one
+ *          structure down (the additive group's own @c ¬).
+ *
+ * @note The @b multiplicative inverse @c x @c ↦ @c 1/x is antitone only on the
+ *       @b positive cone (@c 0<a≤b @c ⟹ @c 1/b≤1/a); across @c 0 it is not
+ *       order-related, so it is not registered as a global antitone arrow.
+ *       Additive inversion is the unconditional one.
+ */
+export template <typename G>
+struct AdditiveInverse {
+  using Domain = G;
+  using Codomain = G;
+  constexpr G operator()(const G& x) const {
+    return dedekind::category::inverse_v<G, std::plus<G>>(x);
+  }
+};
+
+}  // namespace dedekind::algebra
+
+namespace dedekind::category {
+/**
+ * @brief The additive inverse is @b antitone exactly on an ordered additive
+ *        group (translation invariance is the hypothesis of the @c -b≤-a
+ *        step), so the registration is gated on @c IsOrderedAdditiveGroup ---
+ *        the algebraic dog-food of the antitone reification (#959).
+ */
+template <typename G, typename Op>
+  requires dedekind::algebra::IsOrderedAdditiveGroup<G>
+inline constexpr bool
+    is_antimonotone_v<dedekind::algebra::AdditiveInverse<G>, Op> = true;
+}  // namespace dedekind::category
+
+namespace dedekind::algebra {
+// Dog-food: ℤ (SignedCardinality) is an ordered additive group, so its additive
+// inverse -x is a certified antitone arrow --- the algebraic mirror of
+// NegationArrow's logic ¬.
+static_assert(dedekind::category::IsAntiMonotone<
+                  AdditiveInverse<dedekind::sets::SignedCardinality>>,
+              "the additive inverse -x on ℤ (an ordered additive group) is "
+              "antitone: a ≤ b ⟹ -b ≤ -a.");
+static_assert(dedekind::category::IsVariant<
+                  AdditiveInverse<dedekind::sets::SignedCardinality>>,
+              "-x has a definite variance (antitone), hence IsVariant.");
 }  // namespace dedekind::algebra
