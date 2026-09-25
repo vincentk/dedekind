@@ -69,11 +69,12 @@
  * axioms of @c CanonicalSetCCC<A::Domain> (the @c Set-witness over the
  * carrier), never @c IsSmallCategory<A> of the set object itself.
  *
- * The @c IsSubobject, @c IsConcrete, and
- * @c χ-based set-operation machinery (@c set_intersection / @c set_union
- * / @c set_complement / @c in / @c in_via / @c meet / @c join) all live
- * in @c :concrete; this partition imports it and adds the ETCS-specific
- * axiom witnesses on top.
+ * The @c IsSubobject / @c IsConcrete concreteness CONCEPTS live in
+ * @c :concrete; this partition imports it and adds the ETCS-specific axiom
+ * witnesses on top.  The @c χ-based set-operation FUNCTIONS
+ * (@c set_intersection / @c set_union / @c set_complement / @c in / @c in_via /
+ * @c meet / @c join / @c complement) live in @c dedekind.sets (#834), where set
+ * operations belong and collapse through @c operator&.
  *
  * @see Lawvere, F.W. (1964) "An Elementary Theory of the Category of Sets"
  * @see McLarty, C. (1993) "Numbers can be just what they have to"
