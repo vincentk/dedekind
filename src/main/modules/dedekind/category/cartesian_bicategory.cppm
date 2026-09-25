@@ -343,12 +343,17 @@ concept IsTensor = IsArrow<T> && requires {
 // gate above --- no per-instance @c Tensor<...> tag.  A MIXED pair (one leg
 // monotone, one antitone) fires neither rule, so @c R⊗S is correctly denied a
 // definite variance (@c !IsVariant), which is the truth for a mixed product.
+//
+// The premises gate on the @c IsMonotone / @c IsAntiMonotone CONCEPTS, not the
+// bare @c is_monotone_v traits: the concept additionally requires each leg to
+// be an @c IsArrow, so a non-arrow leg is rejected at the premise rather than
+// silently satisfying a stray trait specialization.
 template <typename R, typename S, typename LeqR, typename LeqS>
-  requires(is_monotone_v<R, LeqR> && is_monotone_v<S, LeqS>)
+  requires(IsMonotone<R, LeqR> && IsMonotone<S, LeqS>)
 inline constexpr bool is_monotone_v<Tensor<R, S>, ProductLeq<LeqR, LeqS>> =
     true;
 template <typename R, typename S, typename LeqR, typename LeqS>
-  requires(is_antimonotone_v<R, LeqR> && is_antimonotone_v<S, LeqS>)
+  requires(IsAntiMonotone<R, LeqR> && IsAntiMonotone<S, LeqS>)
 inline constexpr bool is_antimonotone_v<Tensor<R, S>, ProductLeq<LeqR, LeqS>> =
     true;
 

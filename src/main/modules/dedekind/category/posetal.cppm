@@ -330,6 +330,24 @@ static_assert(
 // structs (Juliet posture): the trait carries the structural claim
 // without an extra type.
 //
+// Variance as a LOGIC PROGRAM (#908).  Read together, these specialisations
+// form a small Datalog-style rule base whose engine is the compiler's own
+// template resolution: a CONSTRAINED partial specialisation IS a Horn clause,
+// its @c requires clause the body, its head the trait it sets.  So variance is
+// almost never TAGGED per type; it is INFERRED by the same "inference composes,
+// tagging explodes" discipline as the rest of the library.  The base facts are
+// the irreducible leaves --- @c is_monotone_v<Identity,Op> (covariant) and
+// @c is_antimonotone_v<NegationArrow,Op> (contravariant) --- and every
+// structured arrow derives its variance from its parts:
+//   Copy   @c Δ:A→A×A   monotone  ∀ carrier/order (pairing of monotone legs);
+//   Merge  @c ∧:A×A→A   monotone  ⟸ @c IsOrderMeetSemilattice (glb is
+//   monotone); Tensor @c R⊗S       monotone  ⟸ @c IsMonotone(R) @c ∧ @c
+//   IsMonotone(S), and
+//                        antitone  ⟸ both legs antitone (⊗ is a bifunctor).
+// (The Copy / Merge / Tensor clauses live in @c :cartesian_bicategory, next to
+// the arrows they classify.)  The still-missing clause is COMPOSITION
+// (@c co∘co=co, @c anti∘anti=co); it awaits a reified composition arrow (#908).
+//
 // User's mnemonic ("iso / mono => enabling"): order-isos enable clean
 // halfspace-pivot transport (result is again a halfspace); monos-without-
 // inverse enable image-with-witness transport (halfspace + a divisibility
