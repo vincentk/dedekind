@@ -307,15 +307,14 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
     REQUIRE(sym_diff_disjoint(20u));
   }
 
-  SECTION("De Morgan negation peel: A ^ ¬B = ¬(A ^ B) (#469)") {
-    // When the rhs predicate is wrapped in NegatedPredicate (e.g.\
-    // !some_set), the operator^ peels the negation outward.
-    // Resulting semantic: x ∈ A ^ ¬B iff x is in exactly one, which
-    // is equivalent to x ∈ A ↔ x ∈ B (the biconditional).
+  SECTION("De Morgan: A ^ ~B = ~(A ^ B) (#469)") {
+    // XOR is the free identity A △ B = (A ∩ ~B) ∪ (~A ∩ B), so A ^ ~B and
+    // ~(A ^ B) agree pointwise: x ∈ A ^ ~B iff x is in exactly one, which is
+    // equivalent to x ∈ A ↔ x ∈ B (the biconditional).
     auto A = Set{Comprehension{ℕ, gt_10}};
     auto B = Set{Comprehension{ℕ, lt_100}};
-    auto sym_diff_neg = A ^ !B;
-    auto biconditional = !(A ^ B);
+    auto sym_diff_neg = A ^ ~B;
+    auto biconditional = ~(A ^ B);
     // Both should agree pointwise: A ^ ¬B = ¬(A ^ B).
     REQUIRE(sym_diff_neg(5u) == biconditional(5u));
     REQUIRE(sym_diff_neg(50u) == biconditional(50u));
@@ -328,20 +327,14 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
     REQUIRE(sym_diff_neg(50u));
   }
 
-  SECTION(
-      "Complementary-pair XOR — A ^ ¬A is universe at every input "
-      "(De Morgan peel covers the runtime case)") {
-    // The IsComplementPair_v structural collapse only fires for
-    // stateless predicate types (guarded by std::is_empty_v); the
-    // halfspace-style predicate (x > 10u) produces a capturing
-    // lambda whose closure type is non-empty, so the type-level
-    // collapse to UniversalSet<T, L> does NOT fire here.  What DOES fire is
-    // the De Morgan negation-peel branch (A ^ !B → !(A ^ B)),
-    // which leaves the result a Set<T, L, lambda> that pointwise
-    // evaluates to true at every input.  We test the runtime
-    // semantics rather than the structural type.
+  SECTION("Complementary-pair XOR — A ^ ~A is the universe at every input") {
+    // A ^ ~A expands to (A ∩ ~~A) ∪ (~A ∩ ~A) = A ∪ ~A.  The type-level
+    // collapse to 𝔸 fires only for a value-determined (stateless) predicate;
+    // the capturing lambda (x > 10u) here is non-empty, so the pair stays a
+    // residual node whose pointwise value is true everywhere.  We test the
+    // runtime semantics rather than the structural type.
     auto S = Set{Comprehension{ℕ, gt_10}};
-    auto S_xor_notS = S ^ !S;
+    auto S_xor_notS = S ^ ~S;
     REQUIRE(S_xor_notS(5u));
     REQUIRE(S_xor_notS(50u));
     REQUIRE(S_xor_notS(200u));
@@ -359,11 +352,11 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
     REQUIRE(sym_diff(200u));
   }
 
-  SECTION("Textbook identity: A ^ B == (A | B) & !(A & B)") {
+  SECTION("Textbook identity: A ^ B == (A | B) & ~(A & B)") {
     auto A = Set{Comprehension{ℕ, gt_10}};
     auto B = Set{Comprehension{ℕ, lt_100}};
     auto sym_diff = A ^ B;
-    auto union_minus_inter = (A | B) & !(A & B);
+    auto union_minus_inter = (A | B) & ~(A & B);
     REQUIRE(sym_diff(5u) == union_minus_inter(5u));
     REQUIRE(sym_diff(50u) == union_minus_inter(50u));
     REQUIRE(sym_diff(200u) == union_minus_inter(200u));

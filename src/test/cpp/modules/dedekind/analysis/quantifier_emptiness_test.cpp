@@ -94,17 +94,14 @@ TEST_CASE("Bare comprehension carries the set-complement (#895)",
   using Comp = Comprehension<UniversalSet<int>, gt_ten>;
   constexpr Comp comp{UniversalSet<int>{}, gt_ten{}};
 
-  // The complement routes through the set `operator!` and materialises as a
-  // plain Set whose predicate is the negated comprehension: a genuine
-  // set-complement, not a formal arrow.
-  constexpr auto ncomp = !comp;
-  static_assert(
-      std::same_as<std::remove_cvref_t<decltype(ncomp)>,
-                   Set<int, dedekind::category::Boole, NegatedPredicate<Comp>>>,
-      "!(A | pred) is the set-complement of the bare comprehension.");
-  static_assert(std::same_as<std::remove_cvref_t<decltype(~comp)>,
-                             std::remove_cvref_t<decltype(ncomp)>>,
-                "~ aliases ! on a bare comprehension.");
+  // The set complement ~ is the reducer's Not node over the comprehension: a
+  // genuine set-complement subobject, not a formal arrow.  ~~ peels back.
+  constexpr auto ncomp = ~comp;
+  static_assert(std::same_as<std::remove_cvref_t<decltype(ncomp)>,
+                             dedekind::category::Not<Comp>>,
+                "~(A | pred) is the set-complement Not<Comprehension>.");
+  static_assert(std::same_as<std::remove_cvref_t<decltype(~~comp)>, Comp>,
+                "~~ peels back to the bare comprehension (involution).");
 
   // Membership is complemented pointwise, checked at runtime (Codecov).
   CHECK_FALSE(static_cast<bool>(comp(5)));    // 5 ∉ {n | n>10}

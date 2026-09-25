@@ -19,10 +19,10 @@ TEST_CASE("ETCS: set lattice operations", "[sets][etcs][lattice]") {
   const auto s_even = classify<int>([](const int& x) { return x % 2 == 0; });
   const auto s_positive = classify<int>([](const int& x) { return x > 0; });
 
-  SECTION("Intersection/union/complement via operator&/|/!") {
+  SECTION("Intersection/union/complement via operator&/|/~") {
     const auto both = s_even & s_positive;
     const auto either = s_even | s_positive;
-    const auto not_even = !s_even;
+    const auto not_even = ~s_even;
 
     STATIC_CHECK(IsSubobject<decltype(both), int>);
     STATIC_CHECK(IsSubobject<decltype(either), int>);
@@ -58,7 +58,7 @@ TEST_CASE("ETCS: ternary support lattice", "[sets][etcs][support]") {
 
   SECTION("Support union and complement preserve ternary semantics") {
     const auto support_union = bounded | non_negative;
-    const auto support_not_non_negative = !non_negative;
+    const auto support_not_non_negative = ~non_negative;
 
     STATIC_CHECK(HasTernarySupport<decltype(support_union)>);
     STATIC_CHECK(HasTernarySupport<decltype(support_not_non_negative)>);
@@ -84,21 +84,21 @@ TEST_CASE("ETCS: Boolean algebra over bool ambient",
 
   const auto p_or_q = p | q;
   const auto p_and_q = p & q;
-  const auto not_p = !p;
-  const auto not_q = !q;
+  const auto not_p = ~p;
+  const auto not_q = ~q;
 
   for (bool x : {false, true}) {
     // Complements and involution
     CHECK(not_p(x) == (!p(x)));
-    CHECK((!not_p)(x) == p(x));
+    CHECK((~not_p)(x) == p(x));
 
     // Excluded middle and non-contradiction
     CHECK(p_or_q(x) == top(x));
     CHECK(p_and_q(x) == bottom(x));
 
     // De Morgan over lifted set operations
-    CHECK((!(p & q))(x) == (not_p | not_q)(x));
-    CHECK((!(p | q))(x) == (not_p & not_q)(x));
+    CHECK((~(p & q))(x) == (not_p | not_q)(x));
+    CHECK((~(p | q))(x) == (not_p & not_q)(x));
 
     // Absorption
     CHECK((p | (p & q))(x) == p(x));

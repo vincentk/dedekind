@@ -81,7 +81,7 @@ TEST_CASE("sets:subobject-lattice — complement operator actually runs",
    *         @c decltype; this runtime call exercises the body so coverage
    *         sees it. */
   constexpr UniversalSet<bool> univ{};
-  const auto univ_complement = !univ;
+  const auto univ_complement = ~univ;
   STATIC_CHECK(IsSubobject<decltype(univ_complement), bool>);
 }
 

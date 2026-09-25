@@ -815,6 +815,21 @@ template <typename T, typename L>
 inline constexpr bool
     is_distributive_lattice_for_v<T, dedekind::sets::subobject_order<L>> = true;
 
+// ── Complementedness of the subobject lattice (#834/#829) ──────────────────
+// Sub(T) inherits its complement structure POINTWISE from the codomain Ω, so
+// the reducer's complement laws (which gate on codomain_of, not the domain
+// carrier) are registered against Ω under subobject_order<L>: Sub(T) is
+// COMPLEMENTED (a∧¬a→⊥, a∨¬a→⊤ collapse) iff Ω is Boolean.  Boole's Ω = bool
+// (the 2-chain) is; Kleene's Ω = Ternary (the 3-chain, ¬U=U) is NOT, so that
+// codomain is deliberately left unregistered and a Kleene a∧¬a stays
+// un-collapsed.  Partial spec over L (mirroring the distributivity marker
+// above) so it is reachable from the reducer's instantiation point.
+template <typename L>
+  requires std::same_as<L, Boole>
+inline constexpr bool
+    is_complemented_lattice_for_v<bool, dedekind::sets::subobject_order<L>> =
+        true;
+
 // Foot-in-the-door witness: the engine now sees Ø as the ⊥ and 𝔸 as the ⊤ of
 // Sub(T) under subobject_order, so its bounded law reduces boundary meets/joins
 // (the annihilator / unit laws the hand-written Ø / 𝔸 operators currently

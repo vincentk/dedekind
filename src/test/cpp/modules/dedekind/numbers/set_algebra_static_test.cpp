@@ -81,20 +81,20 @@ constexpr auto first_quadrant = Set{Comprehension{ℂ, complex_first_quadrant}};
 constexpr auto not_third_quadrant =
     Set{Comprehension{ℂ, complex_not_third_quadrant}};
 
-constexpr auto real_mix = !((ℝ_plus & ℝ_nonzero) | (ℝ_small | !ℝ_plus));
+constexpr auto real_mix = ~((ℝ_plus & ℝ_nonzero) | (ℝ_small | ~ℝ_plus));
 constexpr auto complex_mix =
-    (ℂ_right_half & ℂ_outside_unit_ball) | !ℂ_upper_half;
+    (ℂ_right_half & ℂ_outside_unit_ball) | ~ℂ_upper_half;
 
-// #892 gates the complement-pair collapse (a & !a to Ø, a | !a to 𝔸) on
+// #892 gates the complement-pair collapse (a & ~a to Ø, a | ~a to 𝔸) on
 // Boole, so under Kleene these pairs stay residual nodes rather
 // than collapsing; the meaning is still decided pointwise (the predicates are
 // decidable).  The residual TYPE is pinned for the classical forms in
 // halfspace_test / the exhibit; the K3 gate nuance is #860 / #894.
-static_assert((ℝ_plus & !ℝ_plus)(Real<double>{4.0}) == Ternary::False);
-static_assert((ℝ_plus | !ℝ_plus)(Real<double>{4.0}) == Ternary::True);
-static_assert((ℂ_outside_unit_ball & !ℂ_outside_unit_ball)(Complex<R2>{
+static_assert((ℝ_plus & ~ℝ_plus)(Real<double>{4.0}) == Ternary::False);
+static_assert((ℝ_plus | ~ℝ_plus)(Real<double>{4.0}) == Ternary::True);
+static_assert((ℂ_outside_unit_ball & ~ℂ_outside_unit_ball)(Complex<R2>{
                   R2{2}, R2{}}) == Ternary::False);
-static_assert((ℂ_outside_unit_ball | !ℂ_outside_unit_ball)(Complex<R2>{
+static_assert((ℂ_outside_unit_ball | ~ℂ_outside_unit_ball)(Complex<R2>{
                   R2{2}, R2{}}) == Ternary::True);
 
 static_assert(real_mix(Real<double>{4.0}) == Ternary::False);
@@ -116,9 +116,9 @@ static_assert(first_quadrant(Complex<R2>{R2{1}, R2{-1}}) == Ternary::False);
 static_assert(not_third_quadrant(Complex<R2>{R2{-1}, R2{-1}}) ==
               Ternary::False);
 
-static_assert(((between_reals | !between_reals)(Real<double>{5.0})) ==
+static_assert(((between_reals | ~between_reals)(Real<double>{5.0})) ==
               Ternary::True);
-static_assert(((first_quadrant & !first_quadrant)(Complex<R2>{R2{1}, R2{1}})) ==
+static_assert(((first_quadrant & ~first_quadrant)(Complex<R2>{R2{1}, R2{1}})) ==
               Ternary::False);
 
 }  // namespace

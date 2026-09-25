@@ -382,7 +382,7 @@ TEST_CASE("Tower+IEEE: IEEE<double> union and complement",
   const auto pos =
       ambient_set<IEEE<F>>([](const IEEE<F>& v) { return v.resolve() > 0.0; });
   const auto nonzero = neg | pos;
-  const auto zero_set = !nonzero;
+  const auto zero_set = ~nonzero;
 
   CHECK(nonzero(IEEE<F>{3.0}) == true);
   CHECK(nonzero(IEEE<F>{-2.0}) == true);

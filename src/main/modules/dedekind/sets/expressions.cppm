@@ -332,64 +332,14 @@ constexpr auto lift_to(const S& s) {
   }
 }
 
-/** @brief Predicate-level complement wrapper used for set-collapse detection.
- */
-export template <typename Predicate>
-struct NegatedPredicate {
-  Predicate base;
-
-  template <typename T>
-  constexpr auto operator()(const T& v) const {
-    return !base(v);
-  }
-};
-
-template <typename P1, typename P2>
-struct IsComplementPair : std::false_type {};
-
-template <typename P, typename Q>
-struct IsComplementPair<NegatedPredicate<P>, Q>
-    : std::bool_constant<std::is_empty_v<P> &&
-                         std::same_as<std::decay_t<P>, std::decay_t<Q>>> {};
-
-template <typename P, typename Q>
-struct IsComplementPair<P, NegatedPredicate<Q>>
-    : std::bool_constant<std::is_empty_v<Q> &&
-                         std::same_as<std::decay_t<P>, std::decay_t<Q>>> {};
-
-// Both sides wrapped: (¬P, ¬Q) is never the (A, ¬A) shape this trait detects.
-// The genuine complement pair always has exactly one side wrapped: on Boole,
-// where the meet / join complement collapse fires, @c operator! eliminates
-// double negation (¬¬A ≡ A) before a pair reaches here, so ¬P and ¬Q are two
-// independent complements, not each other's.  This more-specialized template
-// also disambiguates the two single-sided specializations above, which both
-// match when both operands are @c NegatedPredicate.
-template <typename P, typename Q>
-struct IsComplementPair<NegatedPredicate<P>, NegatedPredicate<Q>>
-    : std::false_type {};
-
-template <typename P1, typename P2>
-inline constexpr bool IsComplementPair_v =
-    IsComplementPair<std::decay_t<P1>, std::decay_t<P2>>::value;
-
-// IsNegatedPredicate_v / NegatedPredicateBase_t: pattern-match on the
-// @c NegatedPredicate<X> wrapper at the type level, exposing the inner
-// predicate type for downstream rewrites (De Morgan / negation-peel
-// collapses on @c operator^; #469 / PR #523).
-template <typename P>
-struct IsNegatedPredicateImpl : std::false_type {
-  using base_type = void;
-};
-template <typename Inner>
-struct IsNegatedPredicateImpl<NegatedPredicate<Inner>> : std::true_type {
-  using base_type = Inner;
-};
-template <typename P>
-inline constexpr bool IsNegatedPredicate_v =
-    IsNegatedPredicateImpl<std::decay_t<P>>::value;
-template <typename P>
-using NegatedPredicateBase_t =
-    typename IsNegatedPredicateImpl<std::decay_t<P>>::base_type;
+// The set complement is the reducer's own @c Not<A> node (@c :lattice), not a
+// bespoke @c :sets wrapper: @c ¬A is @c Not<A> (a first-class subobject when
+// @c A is one), its χ the codomain reflection @c Ω::RFL of @c A's, and the
+// reducer's @c is_complement_pair_v / @c de_morgan_of / @c is_not_node_v
+// recognise it directly.  So the retired @c NegatedPredicate wrapper, its
+// @c IsComplementPair / @c IsNegatedPredicate_v traits, and the hand-rolled
+// @c !! peel / @c are_complement_sets_v collapse all fold into the reducer's
+// complement laws (#834 / #829 / #946).
 
 export template <typename T, typename L, typename Predicate>
 class Set;
@@ -827,10 +777,10 @@ class Set {
   /** @brief Construct from a comprehension value (@c Set{scout | pred}).
    *  @deprecated The paper-aligned grammar is the bare comprehension
    *  @c scout|pred, with no @c Set{...} wrapper.  As of #895 the bare
-   *  @c Comprehension is an @c is_set_node_v, so it carries the full
-   *  set-complement surface --- @c !(scout|pred) /
-   *  @c ~(scout|pred) route through the free set @c operator! / @c operator~,
-   *  and meet / join already applied via @c IsSubobject.  So this wrapping
+   *  @c Comprehension is an @c IsSubobject, so it carries the full
+   *  set-complement surface --- @c ~(scout|pred) is the set complement (the
+   *  reducer's @c Not node), and meet / join apply via @c IsSubobject.  So this
+   *  wrapping
    *  constructor no longer adds any capability; it stays ONLY to keep the
    *  ~90 live @c Set{scout|pred} call sites compiling until they migrate to the
    *  bare grammar (PR B of #895).  This is a soft (documentation) deprecation
@@ -865,91 +815,9 @@ class Set {
   // the boundaries all compose uniformly (combinators over Jlt structural
   // types, not an inheritance hierarchy).  #892.
 
-  /**
-   * @brief Symmetric difference @c A @c △ @c B (set-theoretic XOR; #469).
-   *
-   * @details The textbook identity
-   * @c A @c △ @c B @c = @c (A @c ∖ @c B) @c ∪ @c (B @c ∖ @c A), realised in
-   * the general case by the elementary combinators themselves ---
-   * @c (A @c & @c ~B) @c | @c (~A @c & @c B) --- so there is no bespoke XOR
-   * predicate and no new logic species obligation (XOR is derived in any
-   * boolean / Heyting algebra).  The C++ @c ^ operator is the bitwise-XOR
-   * analogue
-   * at the singleton-bit level, completing the @c | / @c & / @c ^
-   * operator surface family.
-   *
-   * @section expressions__Soundness_note
-   * Complementary-pair XOR collapses to the universe
-   * (@c A @c △ @c ¬A @c = @c 𝔸) via the same @c IsComplementPair_v
-   * detection used by @c | / @c &.  A naïve same-predicate-type
-   * collapse to @c Ø would be @b unsound: predicate types like
-   * @c BooleanEqPredicate are stateful (carry an @c expected field),
-   * so two @c Set<T, L, P> instances with the same @c Predicate type
-   * may classify @b different sets.  Self-XOR is therefore handled by
-   * the lambda fallback below — correct at every input by the textbook
-   * identity, just without the type-level structural collapse.
-   */
-  template <typename OtherPredicate>
-  constexpr auto operator^(const Set<T, L, OtherPredicate>& other) const {
-    if constexpr (IsComplementPair_v<Predicate, OtherPredicate>) {
-      // A △ ¬A = 𝔸.  Codomain leg (#894): the universe is decided → Boole.
-      return finalize_combine(UniversalSet<T, L>{});
-    } else if constexpr (IsInitialObject<
-                             std::decay_t<decltype(*this & other)>>) {
-      // NB: match the empty meet species-agnostically (IsInitialObject), not
-      // `same_as<..., Ø<T, L>>` --- the codomain leg (#894) may re-tag a
-      // disjoint meet's Ø to Boole, and the structural A △ B = A ∪ B
-      // branch must still fire in that case. Compile-time-disjoint optimisation
-      // (#469 / PR #523 review): A △ B = (A ∪ B) ∖ (A ∩ B); when @c A @c ∩ @c B
-      // is empty (the @c ∖ here is the Unicode set-difference glyph, used
-      // consistently throughout this comment block; literal @c \\ is
-      // avoided to keep Doxygen rendering uniform).
-      // (i.e.\ @c A & @c B reduces structurally to @c Ø<T, L> at the
-      // type level via @c structured_and / @c IsComplementPair_v),
-      // the symmetric difference is just the union @c A | @c B.
-      // This catches halfspace-style disjoint pairs like
-      // @c (x @c > @c 100) @c △ @c (x @c < @c 5) which the
-      // @c IsComplementPair_v branch above does not see (because
-      // @c (x @c < @c 5) is not the @c NegatedPredicate wrapper of
-      // @c (x @c > @c 100)) but @c structured_and detects.
-      return *this | other;
-      // NOTE(#864): a dual "covering" optimisation once lived here --- when
-      // @c A @c ∪ @c B reduces to @c UniversalSet, @c A @c △ @c B @c =
-      // @c ¬(A @c ∩ @c B).  It was dormant until @c structured_or landed, and
-      // on activation was incorrect: @c A @c ∩ @c B elevates to a bare
-      // @c OrderInterval / @c Singleton, so @c !(...) dispatched to the
-      // predicate-level @c category::operator! and returned a @c Morphism, not
-      // an
-      // @c IsSet.  Removed: covering XOR falls through to the general branch
-      // below, which yields a correct @c Set.  A structural covering-XOR
-      // optimisation that stays closed over @c Set can revisit this under #865.
-    } else if constexpr (IsNegatedPredicate_v<OtherPredicate>) {
-      // De Morgan negation-peel (#469 / PR #523):
-      // A △ ¬X = ¬(A △ X)
-      // When the rhs predicate is a @c NegatedPredicate<X> wrapper,
-      // peel the negation outward and recurse into @c operator^ on
-      // the unwrapped @c X.  The result is the @b complement of the
-      // unwrapped XOR, which is the textbook biconditional /
-      // equivalence (@c x @c ∈ @c A @c ↔ @c x @c ∈ @c X).  Saves a
-      // @c NegatedPredicate wrapper layer in the result type and
-      // gives the inner @c operator^ a chance to fire its other
-      // collapses against the unwrapped predicate.
-      Set<T, L, NegatedPredicateBase_t<OtherPredicate>> inner{
-          other.predicate_.base};
-      return !(*this ^ inner);
-    } else if constexpr (IsNegatedPredicate_v<Predicate>) {
-      // Symmetric peel: ¬X △ B = ¬(X △ B).
-      Set<T, L, NegatedPredicateBase_t<Predicate>> inner{predicate_.base};
-      return !(inner ^ other);
-    } else {
-      // The textbook identity, in the elementary set combinators:
-      // @c A @c △ @c B @c = @c (A @c ∩ @c ¬B) @c ∪ @c (¬A @c ∩ @c B).
-      // No bespoke XOR predicate: @c ~ / @c & / @c | already carry the
-      // per-carrier logic (each combinator lifts through @c lift_logic<L>),
-      // and the meet/join reducer gets to collapse the result further.
-      return (*this & ~other) | (~*this & other);
-    }
-  }
+  // Symmetric difference @c A △ B (XOR) is a FREE combinator over @c
+  // IsSubobject below the class (like @c & / @c | / @c ~), so @c A △ ~B
+  // composes when @c ~B is a @c Not node rather than a @c Set.  #469 / #892.
 
   /** @brief Same-predicate subset: always True (identity). */
   constexpr typename L::Ω operator<=(const Set& /*other*/) const {
@@ -1050,13 +918,24 @@ struct set_predicate<Set<T, L, P>> {
 template <typename S>
 concept PlainSet = requires { typename set_predicate<S>::type; };
 
-/** @brief A complement pair of PLAIN sets: @c Set<T,L,P> and @c Set<T,L,¬P>
- *  (either order), detected through the predicate-level @c IsComplementPair. */
-template <typename LHS, typename RHS>
-inline constexpr bool are_complement_sets_v = false;
-template <typename T, typename L, typename PA, typename PB>
-inline constexpr bool are_complement_sets_v<Set<T, L, PA>, Set<T, L, PB>> =
-    IsComplementPair_v<PA, PB>;
+// The reducer's complement / bounded laws construct the ABSTRACT lattice bounds
+// @c LatticeBottom / @c LatticeTop over the injected order.  Over
+// @c subobject_order<L> those bounds ARE the set boundaries @c Ø<T,L> / @c
+// 𝔸<T,L> (registered via @c is_lattice_bottom_for / @c is_lattice_top_for in
+// @c :boundaries), so @c operator& / @c operator| materialise them back to the
+// concrete boundary value.  This is the forward dual of that recognition: the
+// bounded law RECOGNISES Ø/𝔸 as bounds; the complement law GENERATES them.
+template <typename R>
+inline constexpr bool is_subobject_bottom_v = false;
+template <typename T, typename L>
+inline constexpr bool is_subobject_bottom_v<
+    dedekind::category::LatticeBottom<T, subobject_order<L>>> = true;
+template <typename R>
+inline constexpr bool is_subobject_top_v = false;
+template <typename T, typename L>
+inline constexpr bool
+    is_subobject_top_v<dedekind::category::LatticeTop<T, subobject_order<L>>> =
+        true;
 
 /** @brief The subobject-lattice meet @c A @c & @c B, over any two @c
  * IsSubobject operands sharing a carrier and logic.  It folds @c Meet<A,B>
@@ -1073,21 +952,20 @@ export template <typename LHS, typename RHS>
 constexpr auto operator&(const LHS& lhs, const RHS& rhs) {
   using T = typename LHS::Domain;
   using Log = typename LHS::logic_species;
-  if constexpr (are_complement_sets_v<LHS, RHS> && std::same_as<Log, Boole>) {
-    // a ∧ ¬a = ⊥, the law of non-contradiction.  Gated on Boole: a
-    // general bounded chain offers only REFLECTION (¬ = RFL, an involution),
-    // not full complementation.  Kleene K3 fails it, at Unknown a ∧ ¬a = U, not
-    // ⊥ (#860).  A Ternary complement pair therefore falls through to the
-    // reducer and stays an un-collapsed MeetSet, whose pointwise L::AND yields
-    // U at the middle (sound).  FIXME(#865): generalise the collapse once the
-    // reducer recognises the predicate-pair encoding as a structural Not.
-    return finalize_combine(Ø<T, Log>{});
-  } else {
+  // a ∧ ¬a = ⊥ collapses INSIDE the reducer: A & ~A is Meet<A, Not<A>>, and
+  // meet_complement_law fires when the CODOMAIN Ω is complemented (Boole yes;
+  // Kleene's 3-chain no, ¬U=U) --- no bespoke complement-pair branch here.
+  {
     using R = subobject_reduce_t<Meet<LHS, RHS>, Log, SetCombine>;
     // Domain leg = the reducer; codomain leg = finalize_combine (a boundary
     // result factors through Σ, so it is re-tagged to the Boolean codomain).
     if constexpr (IsBoundaryObject<R>) {
       return finalize_combine(R{});
+    } else if constexpr (is_subobject_bottom_v<R>) {
+      return finalize_combine(Ø<T, Log>{});  // reducer's abstract ⊥ over Sub(T)
+    } else if constexpr (is_subobject_top_v<R>) {
+      return finalize_combine(
+          UniversalSet<T, Log>{});  // abstract ⊤ over Sub(T)
     } else if constexpr (std::same_as<R, LHS>) {
       return finalize_combine(lhs);
     } else if constexpr (std::same_as<R, RHS>) {
@@ -1095,6 +973,12 @@ constexpr auto operator&(const LHS& lhs, const RHS& rhs) {
     } else if constexpr (std::same_as<R, Meet<LHS, RHS>>) {
       // Irreducible: the intersection AS a set, carrying both operands (#892).
       return finalize_combine(MeetSet<LHS, RHS>{lhs, rhs});
+    } else if constexpr (std::same_as<R, Meet<RHS, LHS>>) {
+      // Irreducible, but the reducer commutatively canonicalised the operands
+      // (RB ≤ RA); carry them in that order (e.g. a Not operand that did not
+      // collapse).  MeetSet, not the structured_and leaf below --- a Not node
+      // has no @c .predicate().
+      return finalize_combine(MeetSet<RHS, LHS>{rhs, lhs});
     } else {
       // SetCombine collapsed two plain-set leaves via structured_and.
       return finalize_combine(elevate_meet<T, Log>(
@@ -1114,24 +998,29 @@ export template <typename LHS, typename RHS>
 constexpr auto operator|(const LHS& lhs, const RHS& rhs) {
   using T = typename LHS::Domain;
   using Log = typename LHS::logic_species;
-  if constexpr (are_complement_sets_v<LHS, RHS> && std::same_as<Log, Boole>) {
-    // a ∨ ¬a = ⊤, excluded middle (dual of the meet collapse).  Gated on
-    // Boole for the same reason: a bounded chain offers reflection,
-    // not complementation, so Kleene K3 (¬U = U, a ∨ ¬a = U ≠ ⊤) falls through
-    // to an un-collapsed JoinSet whose pointwise L::OR is sound (#860).
-    return finalize_combine(UniversalSet<T, Log>{});
-  } else {
+  // a ∨ ¬a = ⊤ collapses INSIDE the reducer (dual of the meet): A | ~A is
+  // Join<A, Not<A>>, and join_complement_law fires when the CODOMAIN Ω is
+  // complemented --- no bespoke complement-pair branch here.
+  {
     using R = subobject_reduce_t<Join<LHS, RHS>, Log, SetCombine>;
     // Domain leg = the reducer; codomain leg = finalize_combine (a boundary
     // result factors through Σ, so it is re-tagged to the Boolean codomain).
     if constexpr (IsBoundaryObject<R>) {
       return finalize_combine(R{});
+    } else if constexpr (is_subobject_bottom_v<R>) {
+      return finalize_combine(Ø<T, Log>{});  // reducer's abstract ⊥ over Sub(T)
+    } else if constexpr (is_subobject_top_v<R>) {
+      return finalize_combine(
+          UniversalSet<T, Log>{});  // abstract ⊤ over Sub(T)
     } else if constexpr (std::same_as<R, LHS>) {
       return finalize_combine(lhs);
     } else if constexpr (std::same_as<R, RHS>) {
       return finalize_combine(rhs);
     } else if constexpr (std::same_as<R, Join<LHS, RHS>>) {
       return finalize_combine(JoinSet<LHS, RHS>{lhs, rhs});
+    } else if constexpr (std::same_as<R, Join<RHS, LHS>>) {
+      // Commutatively canonicalised operands (see the meet dual above).
+      return finalize_combine(JoinSet<RHS, LHS>{rhs, lhs});
     } else {
       return finalize_combine(elevate_join<T, Log>(
           structured_or(lhs.predicate(), rhs.predicate())));
@@ -1186,112 +1075,80 @@ constexpr auto operator|(const LHS& lhs, const RHS& rhs) {
   return lift_to<Log>(lhs) | lift_to<Log>(rhs);
 }
 
-/** @brief @c is_set_node_v is true for the types whose complement is the
- *  generic @c NegatedPredicate wrapper: the @c :sets DSL nodes @c Set /
- *  @c MeetSet / @c JoinSet / @c Comprehension, plus the bare ETCS subobject
- *  @c category::Subobject (the @c classify / @c ambient_set result).  It gates
- *  the free set @c operator! / @c operator~ below, and is the ONE complement
- *  surface: the @c set_complement free function is retired into it.
+/** @brief The set complement @c ~A (#829: @c ~ is the SET complement; @c ! is
+ *  the predicate complement, which @c category::operator! supplies as a formal
+ *  @c Morphism).  @c ~A is the reducer's own @c Not<A> node --- a first-class
+ *  subobject whose χ is the codomain reflection @c Ω::RFL of @c A's, generic
+ *  over any bounded chain (@c Boole @c !, @c Kleene @c ¬U=U, and any registered
+ *  @c Chain).  There is no bespoke wrapper and no @c is_set_node_v tag: the
+ * gate is the structural @c IsSubobject, and because @c category defines no
+ *  @c operator~ there is nothing to out-prioritise, so the tag that once
+ *  disambiguated the two @c operator! overloads is gone (#963).  The @c const
+ *  reference parameter (matching @c operator& / @c operator|) makes this a
+ *  FALLBACK that loses partial ordering to a type-specific complement, so a
+ *  @c :order @c Halfspace / @c Singleton @c operator~ still wins for its own
+ *  type (its closed-form collapse, e.g. @c ~Above<5> = @c AtMost<5>).
  *
- *  This inclusion gate is architecturally load-bearing, not a bookkeeping tag.
- *  The free @c operator! must (a) BEAT the greedy @c category::operator! (which
- *  turns @c !A into a formal @c Morphism A → Ω) for these types, and (b) NOT
- *  intercept the bespoke complement of a @b downstream structured subobject
- *  (@c :order @c Halfspace / @c Singleton, whose @c ~Above<5> = @c AtMost<5>
- *  collapses to Ø).  The two facts sit on opposite sides of the module DAG, and
- *  that asymmetry is what lets the gate be an INCLUSION list: @c Subobject is
- *  @b upstream of @c :sets, so it can be named and listed here; @c Halfspace is
- *  @b downstream, so it cannot be named, but it need not be -- carrying its own
- *  @c operator~ keeps it out of this overload by partial ordering.  A looser
- *  @c IsSubobject gate would sweep in @c Halfspace (it @e is a subobject) and
- *  hijack its collapse.  FIXME(#963): express this inclusion as a derived
- *  concept rather than a trait. */
-template <typename S>
-inline constexpr bool is_set_node_v = false;
-template <typename T, typename L, typename P>
-inline constexpr bool is_set_node_v<Set<T, L, P>> = true;
-template <typename A, typename B>
-inline constexpr bool is_set_node_v<MeetSet<A, B>> = true;
-template <typename A, typename B>
-inline constexpr bool is_set_node_v<JoinSet<A, B>> = true;
-template <typename Base, typename Predicate>
-inline constexpr bool is_set_node_v<Comprehension<Base, Predicate>> = true;
-template <typename A, typename Chi>
-inline constexpr bool is_set_node_v<dedekind::category::Subobject<A, Chi>> =
-    true;
-
-/** @brief The set complement @c !A.  Gated on @c is_set_node_v: the forwarding
- *  reference @c P&& plus @c IsPredicate matches @c category::operator! exactly,
- *  and the extra @c is_set_node_v constraint strictly subsumes it, so this
- *  overload wins the tiebreak for every value category and @c !A is a set (not
- *  a formal @c Morphism A → Ω).  @c category::operator! keeps the raw
- *  non-set-node predicates; a downstream structured subobject
- *  (@c Halfspace / @c Singleton) is @b not a set node, so its own bespoke
- *  complement wins (see @c is_set_node_v above).  A bare @c Subobject
- *  (@c classify / @c ambient_set) IS a set node, so @c !classify(f) is a set
- *  complement @c Set<A, L, NegatedPredicate<Subobject>> -- what the retired
- *  @c set_complement produced, without the bespoke @c NegationChi wrapper.
- *
- *  @details The complement is a certified @b involution.  On a plain @c Set it
- *  eliminates double negation: @c !!A ≡ A at the type level (peeling the
- *  @c NegatedPredicate wrapper, gated on @c logic_negation_is_involutive_v, the
- *  @c :involution witness that ¬¬ = id for the logic).  A compound node
- *  (@c MeetSet / @c JoinSet) or a bare @c Comprehension negates by wrapping in
- *  @c NegatedPredicate.  A boundary (@c Ø / @c 𝔸) keeps its own non-template
- *  member @c operator! (the dual @c !Ø = 𝔸). */
+ *  @details The complement is a certified @b involution: @c ~~A ≡ A, peeled
+ *  here at the leaf (the reducer's @c ¬¬A→A).  Because @c ~A is a @c Not node,
+ *  the reducer's own complement laws apply in @c operator& / @c operator|:
+ *  @c ¬(A∧B)→¬A∨¬B (De Morgan) and @c a∧¬a→⊥ / @c a∨¬a→⊤ when the codomain
+ *  @c Ω is complemented. */
 export template <IsPredicate P>
-  requires is_set_node_v<std::remove_cvref_t<P>>
-constexpr auto operator!(P&& p) {
+  requires dedekind::category::IsSubobject<
+      std::remove_cvref_t<P>, typename std::remove_cvref_t<P>::Domain>
+constexpr auto operator~(const P& p) {
   using D = std::remove_cvref_t<P>;
-  using T = typename D::Domain;
-  using L = typename D::logic_species;
-  if constexpr (PlainSet<D>) {
-    using Pred = typename set_predicate<D>::type;
-    if constexpr (IsNegatedPredicate_v<Pred> &&
-                  dedekind::category::logic_negation_is_involutive_v<L>) {
-      // Double-negation elimination: !!A ≡ A.  The logic negation is a
-      // certified involution, so peeling the NegatedPredicate wrapper is
-      // sound and makes the set complement structurally self-inverse.
-      using Inner = NegatedPredicateBase_t<Pred>;
-      return Set<T, L, Inner>{p.predicate().base};
-    } else {
-      return Set<T, L, NegatedPredicate<Pred>>{
-          NegatedPredicate<Pred>{p.predicate()}};
-    }
+  if constexpr (dedekind::category::is_not_node_v<D>) {
+    // ¬¬A ≡ A: peel the Not node (the reducer's involution, at the leaf).
+    return p.base;
   } else {
-    return Set<T, L, NegatedPredicate<D>>{
-        NegatedPredicate<D>{std::forward<P>(p)}};
+    return dedekind::category::Not<D>{p};
   }
 }
-/** @brief @c ~A is the complement spelled bitwise, aliasing @c operator!. */
-export template <IsPredicate P>
-  requires is_set_node_v<std::remove_cvref_t<P>>
-constexpr auto operator~(P&& p) {
-  return !std::forward<P>(p);
+
+/** @brief Symmetric difference @c A @c △ @c B (set-theoretic XOR; #469), a FREE
+ *  combinator over @c IsSubobject (like @c & / @c | / @c ~), so it composes
+ *  uniformly whether an operand is a @c Set, a @c MeetSet / @c JoinSet, or a
+ *  @c Not complement node.  The textbook identity @c A@c △@c B @c = @c (A@c ∩
+ *  @c ¬B)@c ∪@c (¬A@c ∩@c B): no bespoke XOR predicate --- @c ~ / @c & / @c |
+ *  carry the per-carrier logic and the reducer collapses the result, including
+ *  @c A@c △@c ¬A @c = @c 𝔸 via the join-complement law on a complemented
+ *  codomain.  The disjoint fast path (@c A@c ∩@c B @c = @c Ø @c ⟹ @c A@c △@c B
+ *  @c = @c A@c ∪@c B) is kept for the halfspace-style compile-time collapse. */
+export template <typename LHS, typename RHS>
+  requires dedekind::category::IsSubobject<LHS, typename LHS::Domain> &&
+           dedekind::category::IsSubobject<RHS, typename RHS::Domain> &&
+           std::same_as<typename LHS::Domain, typename RHS::Domain> &&
+           std::same_as<typename LHS::logic_species,
+                        typename RHS::logic_species>
+constexpr auto operator^(const LHS& a, const RHS& b) {
+  if constexpr (IsInitialObject<std::decay_t<decltype(a & b)>>) {
+    return a | b;
+  } else {
+    return (a & ~b) | (~a & b);
+  }
 }
 
 // The set-lattice operations ARE the operators @c operator& / @c operator| /
-// @c operator! (@c operator~) above: ONE surface per operation, no
-// free-function aliases.  The meet COLLAPSES ({x>5}∩{x>3} → {x>5}) and the
-// collapse is TYPE-observable in the result.  Membership @c in / @c in_via
-// lives in
-// @c :category:concrete (χ-evaluation, not a lattice op).
+// @c operator~ above: ONE surface per operation, no free-function aliases.  The
+// meet COLLAPSES ({x>5}∩{x>3} → {x>5}) and the collapse is TYPE-observable in
+// the result.  Complement is the reducer's @c Not node (@c :lattice), so its
+// laws (@c ¬¬A→A, De Morgan, @c a∧¬a→⊥) apply.  Membership @c in / @c in_via
+// lives in @c :category:concrete (χ-evaluation, not a lattice op).
 
 /** @section expressions__Complement_Is_An_Involution
- *  The set complement is an involution: @c !!A ≡ A at the @b type level for a
- *  plain @c Set.  The property @c reduces to the logic negation: @c :involution
- *  certifies ¬¬ = id on the classifier (@c logic_negation_is_involutive_v), and
- *  @c operator! gates its double-negation elimination on exactly that witness.
- *  A single @c ! is @b not a same-type endomap (it flips @c A and @c !A), so
- *  the fact is witnessed structurally here as a type identity rather than as a
- *  @c IsInvolution endomap. */
+ *  The set complement is an involution: @c ~~A ≡ A at the @b type level for a
+ *  subobject.  @c ~A is the reducer's @c Not node, and @c operator~ peels
+ *  @c Not<Not<A>> → @c A at the leaf (the reducer's @c ¬¬A→A), so the
+ *  double-negation is structurally self-inverse. */
 namespace detail_complement_involution {
 using UnivSizeSet = Set<std::size_t, dedekind::category::Boole,
                         UniversalPredicate<std::size_t>>;
 static_assert(
-    std::same_as<std::remove_cvref_t<decltype(!!std::declval<UnivSizeSet>())>,
+    std::same_as<std::remove_cvref_t<decltype(~~std::declval<UnivSizeSet>())>,
                  UnivSizeSet>,
-    "!!A ≡ A: the set complement is a structural involution");
+    "~~A ≡ A: the set complement is a structural involution");
 static_assert(dedekind::category::logic_negation_is_involutive_v<
                   dedekind::category::Boole>,
               ":involution certifies the logic negation the complement reduces "
@@ -2094,34 +1951,26 @@ static_assert(IsSet<Comprehension<UniversalSet<int>, all_in>>,
 static_assert(IsSet<Comprehension<Ø<int>, all_in>>,
               "{Ø | P} is a first-class set.");
 
-// #895/#834: a bare Comprehension is an is_set_node_v, so it carries the free
-// set-complement.  The gate wins the tiebreak over the greedy
-// category::operator! that would otherwise turn !(A | pred) into a formal
-// Morphism A → Ω, and its complement wraps the node in NegatedPredicate and
-// re-seats it as a plain Set --- a genuine set-complement, not a formal arrow.
+// #834/#829: a bare Comprehension is an IsSubobject, so ~ (the set complement)
+// is the reducer's Not node over it --- a genuine set-complement subobject, not
+// a formal arrow.  ~~ peels back to the Comprehension (the involution).
 using CompN = Comprehension<UniversalSet<int>, all_in>;
-static_assert(is_set_node_v<CompN>,
-              "a bare Comprehension is a set-node (participates in ! / ~).");
-static_assert(
-    std::same_as<std::remove_cvref_t<decltype(!std::declval<CompN>())>,
-                 Set<int, dedekind::category::Boole, NegatedPredicate<CompN>>>,
-    "!(A | pred) is the set-complement Set<…, "
-    "NegatedPredicate<Comprehension>>.");
 static_assert(
     std::same_as<std::remove_cvref_t<decltype(~std::declval<CompN>())>,
-                 std::remove_cvref_t<decltype(!std::declval<CompN>())>>,
-    "~ aliases ! on a bare Comprehension.");
+                 dedekind::category::Not<CompN>>,
+    "~(A | pred) is the set-complement Not<Comprehension>.");
+static_assert(
+    std::same_as<std::remove_cvref_t<decltype(~~std::declval<CompN>())>, CompN>,
+    "~~(A | pred) peels back to the Comprehension (involution).");
 
-// #834: the bare ETCS subobject (classify / ambient_set) is also a set-node, so
-// !s is the set-complement --- what the retired set_complement produced, via
-// the ONE operator! surface rather than a bespoke NegationChi wrapper.
+// #834: the bare ETCS subobject (classify / ambient_set) complements the same
+// way --- ~s is the Not node over it, a set-complement subobject (what the
+// retired set_complement produced), not a formal arrow.
 using SubN = std::remove_cvref_t<decltype(classify<int>(all_in{}))>;
-static_assert(is_set_node_v<SubN>,
-              "a bare classify/ambient_set subobject is a set-node.");
 static_assert(
     dedekind::category::IsSubobject<
-        std::remove_cvref_t<decltype(!std::declval<SubN>())>, int>,
-    "!classify(f) is a set-complement subobject, not a formal arrow.");
+        std::remove_cvref_t<decltype(~std::declval<SubN>())>, int>,
+    "~classify(f) is a set-complement subobject, not a formal arrow.");
 }  // namespace detail_setexpr_witness
 
 // ── The point-free projection scout ────────────────────────────────────────

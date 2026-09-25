@@ -174,14 +174,14 @@ TEST_CASE(
     STATIC_CHECK_FALSE(absorbed(1));  // 1 is in Hi = B, not in Lo = A
   }
 
-  SECTION("complement is a certified involution: !!A ≡ A by type") {
+  SECTION("complement is a certified involution: ~~A ≡ A by type") {
     // A second complement peels the first rather than nesting it, so the double
     // negation eliminates and the original set TYPE is recovered (the
     // :involution witness that ¬ is involutive on the classical logic).
-    STATIC_CHECK(std::same_as<std::decay_t<decltype(!!SLo)>,
+    STATIC_CHECK(std::same_as<std::decay_t<decltype(~~SLo)>,
                               std::decay_t<decltype(SLo)>>);
-    STATIC_CHECK((!!SLo)(7) == SLo(7));
-    STATIC_CHECK((!!SLo)(1) == SLo(1));
+    STATIC_CHECK((~~SLo)(7) == SLo(7));
+    STATIC_CHECK((~~SLo)(1) == SLo(1));
   }
 }
 
