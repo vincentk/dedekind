@@ -808,6 +808,81 @@ constexpr auto id() {
   return Identity<A>{};
 }
 
+/** @brief The reified @b composition arrow @c g∘f: "apply @c F, then @c G"
+ *  (diagrammatic @c f≫g order), the arrow-algebra companion to @c Identity.
+ *
+ *  @details Where @c Identity is the unit, @c Compose is the binary that makes
+ *  composition a first-class @b type.  It @b is what @c operator>> returns
+ *  (@c f≫g @c = @c Compose<F,G>{f,g}); the previous lambda-wrapped @c
+ * arrow<A,C> erased the operand types, whereas @c Compose keeps @c F,G in the
+ * result type, so it is an @c IsArrow that downstream reasoning can
+ * pattern-match on.  Two payoffs it unlocks (#908):
+ *  1. @b Substitution @c f*: the contravariant pullback @c preimage(f,P) is
+ *     @c P∘f, i.e.\ @c Compose<F,P> --- the general shape whose closed-form
+ *     collapses (halfspace, @c :relational, ...) are the downstream fibres.
+ *  2. @b Variance composition: @c :posetal registers the Horn clauses
+ *     @c co∘co=co and @c anti∘anti=co (two flips cancel) on @c Compose, closing
+ *     the one rule the variance logic program was missing.
+ *
+ *  @tparam F the first arrow @c A→B (applied first).
+ *  @tparam G the second arrow @c B→C (applied second); @c Cod<F> must be
+ *          @c Dom<G>. */
+export template <IsArrow F, IsArrow G>
+  requires std::same_as<Cod<F>, Dom<G>>
+struct Compose final {
+  using Domain = Dom<F>;
+  using Codomain = Cod<G>;
+  F f;
+  G g;
+  /** @brief Run the pipeline @c (g∘f)(x) = g(f(x)). */
+  constexpr Codomain operator()(const Domain& x) const { return g(f(x)); }
+};
+
+/** @brief The contravariant @b substitution / pullback @c f*: pull a codomain
+ *  predicate (or arrow) @c P back along @c f, @c preimage(f,P) @c = @c P∘f
+ *  @c = @c Compose<F,P>.
+ *
+ *  @details This is the @b general shape of the domain axis of a classifier
+ *  @f$\chi:A\to\Omega@f$ (#908): reindexing a predicate on the codomain to one
+ *  on the domain.  It is @b contravariant in @c f --- @c preimage(f, @c
+ *  preimage(g,P)) @c = @c preimage(g∘f, @c P), i.e.\ @f$(g\circ f)^* = f^*\circ
+ *  g^*@f$ (by associativity of @c Compose) --- so the arrow order reverses
+ * under pullback.  Downstream partitions supply @b closed-form overloads that
+ *  collapse @c P∘f symbolically rather than deferring it (e.g.\ @c
+ *  :algebra's @c halfspace_transport pulls a @c Halfspace back through an
+ * affine graph to a new @c Halfspace; @c :relational, @c :complex likewise);
+ * those are the specialized fibres this general form is the default for.
+ *
+ *  @tparam F the map @c A→B to pull back along.
+ *  @tparam P the codomain predicate/arrow @c B→Ω; @c Cod<F> must be @c Dom<P>.
+ *  @param f the map to substitute.
+ *  @param p the codomain predicate to reindex.
+ *  @return the composite @c P∘f as a reified @c Compose<F,P> arrow @c A→Ω. */
+export template <IsArrow F, IsArrow P>
+  requires std::same_as<Cod<F>, Dom<P>>
+constexpr auto preimage(const F& f, const P& p) {
+  return Compose<F, P>{f, p};
+}
+
+/** @brief Product projections for the reified composite @c Compose<F,G>: its
+ *  two legs @c .f / @c .g @b are the product components, so @c Compose<F,G> @b
+ *  is the categorical product of its operand arrows @c F, @c G in the arrow
+ *  category --- which is exactly why composition PRESERVES the leg types where
+ *  the old type-erasing lambda hid them.  These are custom-storage overloads of
+ *  the canonical @c π_1 / @c π_2 accessors (@c :limit): storage is named
+ *  @c .f / @c .g rather than @c .first / @c .second, so per the @c Dual
+ *  @c val/der precedent @c Compose supplies its own overloads in its home
+ *  namespace, found by ADL.  With them @c IsProduct<Compose<F,G>,F,G> holds
+ *  (witnessed in @c :limit). */
+export template <IsArrow F, IsArrow G>
+constexpr F π_1(const Compose<F, G>& c) {
+  return c.f;
+}
+export template <IsArrow F, IsArrow G>
+constexpr G π_2(const Compose<F, G>& c) {
+  return c.g;
+}
+
 /** @section morphism__Morphism_Lifting_Proof */
 using Negate = std::negate<int>;
 using TaggedNegate = Morphism<int, int, Negate>;
@@ -826,6 +901,12 @@ static_assert(f_neg(identity_int(42)) == f_neg(42),
 // 2. Left Identity: id(f(x)) == f(x)
 static_assert(identity_int(f_neg(42)) == f_neg(42),
               "Unit Law: id_B ∘ f must equal f.");
+
+// The reified composition arrow is itself an arrow and runs the pipeline.
+static_assert(IsArrow<Compose<Identity<int>, Identity<int>>>,
+              "Compose<F,G> carries Domain/Codomain, so it is an IsArrow.");
+static_assert(Compose<Identity<int>, Identity<int>>{}(42) == 42,
+              "(id ∘ id)(x) = x: Compose runs g(f(x)).");
 
 /** @section morphism__Lifting Traits to the Identity Functor */
 
@@ -861,15 +942,13 @@ export template <typename F, typename G>
            std::same_as<typename std::decay_t<F>::Codomain,
                         typename std::decay_t<G>::Domain>
 constexpr auto operator>>(F&& f, G&& g) {
-  using F_pure = std::decay_t<F>;
-  using G_pure = std::decay_t<G>;
-
-  using A = typename F_pure::Domain;
-  using C = typename G_pure::Codomain;
-
-  // Note: The lambda is implicitly constexpr in C++23 if possible
-  return arrow<A, C>([f = std::forward<F>(f), g = std::forward<G>(g)](
-                         A x) constexpr { return g(f(std::move(x))); });
+  // Composition is the reified @c Compose<F,G> arrow, NOT a lambda-wrapped
+  // @c arrow<A,C>: keeping the leg types @c F,G in the result's TYPE is what
+  // lets the variance logic program pattern-match @c
+  // is_monotone_v<Compose<...>> on the operands (a captured lambda erases
+  // them), and de-lambdas the composite (#844 / #908).
+  return Compose<std::decay_t<F>, std::decay_t<G>>{std::forward<F>(f),
+                                                   std::forward<G>(g)};
 }
 
 /**

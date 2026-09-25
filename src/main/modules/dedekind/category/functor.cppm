@@ -100,18 +100,52 @@ import :small;
 namespace dedekind::category {
 
 /**
+ * @brief @c map_arrow(F, a): the object-free @b morphism @b map of a functor
+ *        --- Haskell's @c fmap on @b arrows, @f$(a \to b) \mapsto (F a \to F
+ *        b)@f$, exposed as a @b composable free helper rather than the member
+ *        @c F.φ.
+ *
+ * @details This is the categorical @c φ freed from the receiver so it composes
+ * as an ordinary function and can be reasoned about --- notably, functor
+ * @b variance (@c IsCovariantFunctor / @c IsContravariantFunctor, below) is
+ * stated on it, and @c IsFunctor itself @c requires it.  This base overload
+ * thinly @b forwards to a functor's member @c φ (so the existing shaped hubs
+ * need no change); a @b lightweight functor may instead supply its own free
+ * @c map_arrow overload --- the customization point.  (Retiring the member
+ * @c φ in favour of the free form is a follow-up.)
+ *
+ * @note Why not @c φ or @c fmap (the idiomatic names)?  Both are already bound
+ * to @b different operations here: @c fmap(hub) is the applicative @b factory
+ * (@c fmap(hub)(value)(f), a curried applicator), and @c φ is three-way
+ * overloaded --- the member lift @c f.φ, the @b value-level container fmap
+ * @c φ(Maybe<A>,f), and the deleted species-lift primary @c φ(𝗙,𝗳).  A free
+ * @c φ(F,arrow) would collide with that last one (both are @c (Hub,callable),
+ * and an arrow @b is callable).  @c map_arrow names the specific free
+ * arrow→arrow action without entering that overload thicket.
+ */
+template <typename F, typename A>
+  requires requires(const F& f, A&& a) { f.φ(std::forward<A>(a)); }
+constexpr auto map_arrow(const F& f, A&& a) {
+  return f.φ(std::forward<A>(a));
+}
+
+/**
  * @concept IsFunctor
  * @brief The textbook functor (#633): an @c IsArrow whose Domain and Codomain
  *        are @b (small) @b categories --- a 1-morphism in @b Cat, Mac Lane
- * §I.3.
+ * §I.3 --- carrying a @b morphism @b map.
  *
  * @details This is the @b superinterface extracted from @c IsShapedFunctor: it
- * drops the container-flavoured @c Shape<U> / @c φ requirements and keeps only
- * the categorical signature @f$F\colon\Sigma\to\mathrm{T}@f$ with
- * @c IsSmallCategory Domain and Codomain.  @c IsShapedFunctor (the fmap /
- * type-constructor endofunctor: @c maybe_functor, @c tuple_functor, @c
- * complex-/dual-style hubs) @b refines it with @c Shape<U> and the morphism map
- * @c φ, so @c IsShapedFunctor @c ⟹ @c IsFunctor by construction.
+ * drops the container-flavoured @c Shape<U> object map but keeps the
+ * categorical signature @f$F\colon\Sigma\to\mathrm{T}@f$ (with @c
+ * IsSmallCategory Domain and Codomain) @b and the morphism action, required
+ * through the @b free helper
+ * @c map_arrow (@c φ) rather than a member @c f.φ.  @c IsShapedFunctor (the
+ * fmap / type-constructor endofunctor: @c maybe_functor, @c tuple_functor,
+ * @c complex-/dual-style hubs) @b refines it with @c Shape<U>, so
+ * @c IsShapedFunctor @c ⟹ @c IsFunctor by construction (a shaped functor's
+ * member @c φ is reached through the @c map_arrow forwarder).  Functor
+ * @b variance branches off @c IsFunctor directly.
  *
  * @note What @b does @b not land here yet: the carrier-lattice @c embed_*_*_
  * family are functors @c Set<source> @c → @c Set<codomain> at the Mac Lane §I.3
@@ -124,7 +158,12 @@ namespace dedekind::category {
  */
 export template <typename F>
 concept IsFunctor =
-    IsArrow<F> && IsSmallCategory<Dom<F>> && IsSmallCategory<Cod<F>>;
+    IsArrow<F> && IsSmallCategory<Dom<F>> && IsSmallCategory<Cod<F>> &&
+    requires(const F& f, typename Dom<F>::Arrow a) {
+      // The morphism map, required via the FREE helper @c map_arrow (not a
+      // member @c f.φ): a source arrow lifts to a target arrow.
+      { map_arrow(f, a) } -> IsArrow;
+    };
 
 /**
  * @concept IsShapedFunctor
@@ -353,9 +392,13 @@ static_assert(
 // The extracted superinterface (#633): every IsShapedFunctor IS an IsFunctor
 // --- the container hubs also satisfy the textbook "arrow between small
 // categories" concept, since their Σ_cat / Τ_cat = Set<·> are IsSmallCategory.
+// The strengthened IsFunctor also exercises the free morphism map: map_arrow
+// reaches each hub's member φ through the forwarder, so { map_arrow(f, a) } is
+// a valid IsArrow.
 static_assert(IsFunctor<tuple_functor<int>> && IsFunctor<maybe_functor<int>>,
               "IsShapedFunctor ⟹ IsFunctor: the fmap hubs are also textbook "
-              "functors (Set<T> → Set<Shape<T>>, Mac Lane §I.3).");
+              "functors (Set<T> → Set<Shape<T>>, Mac Lane §I.3) carrying the "
+              "free morphism map map_arrow.");
 
 /**
  * @brief Stage 1: The Functorial Applicator.

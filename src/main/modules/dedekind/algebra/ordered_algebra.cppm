@@ -296,6 +296,14 @@ static_assert(dedekind::category::IsAntiMonotone<
 static_assert(dedekind::category::IsVariant<
                   AdditiveInverse<dedekind::sets::SignedCardinality>>,
               "-x has a definite variance (antitone), hence IsVariant.");
+// ... and hence a CONTRAVARIANT FUNCTOR (#908), witnessed HERE in :algebra,
+// downstream of :adjunction: -x is exactly the order-reversing leg that
+// IsGaloisConnection consumes in the antitone witness below. The variance-
+// functor concept classifies a real carrier arrow, not a toy.
+static_assert(dedekind::category::IsContravariantFunctor<
+                  AdditiveInverse<dedekind::sets::SignedCardinality>>,
+              "-x on ℤ is a contravariant functor (order-reversing): "
+              "variance-functor concept witnessed downstream.");
 
 // The additive inverse is an antitone INVOLUTION (-(-x) = x), hence a
 // SELF-ADJOINT antitone Galois connection: a ≤ -b ⟺ b ≤ -a.  It is the same

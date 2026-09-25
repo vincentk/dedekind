@@ -83,6 +83,8 @@ import :natural;  // For IsNaturalTransformation, used in unit/counit witnesses
 import :small;
 import :posetal;  // IsMonotone / IsAntiMonotone: a Galois connection's legs
                   // have MATCHED variance (both monotone, or both antitone)
+import :logic;    // NegationArrow / LiftLogic: concrete arrows for the
+                  // variance-functor witnesses below
 
 namespace dedekind::category {
 
@@ -279,6 +281,86 @@ constexpr auto make_adjunction(Left&& left, Right&& right, Unit&& unit,
 // @c g(f(x))), monotone, and extensive (@c x ≤ g(f(x))).  The
 // closure-operator concept below names this structural rotation.
 
+// ---------------------------------------------------------------------------
+// Functor variance (#908): the documented NAMES for the two variance poles,
+// homed here because a Galois connection is their canonical consumer (its
+// adjoint legs are matched-variance functors).
+//
+// These read as ARROW properties (@c IsMonotone / @c IsAntiMonotone), and that
+// is not in tension with "functor": functors ARE arrows (the arrows of @b Cat),
+// and per Mac Lane a monotone map @b is a covariant functor between the two
+// posetal categories (a poset is a thin category, its arrows the order
+// instances).  So @c IsCovariantFunctor @b is @c IsMonotone read categorically.
+// The container @c IsFunctor (@c :functor) is a DIFFERENT, more specific
+// refinement of @c IsArrow --- an arrow between reified single-species small
+// categories --- on which co / contra collapse (every arrow is endo), which is
+// exactly why the witnessable variance lives on this posetal reading.  The
+// names make the inference visible and greppable; @c IsGaloisConnection below
+// consumes them as its leg constraints.
+// ---------------------------------------------------------------------------
+
+/**
+ * @concept IsCovariantFunctor
+ * @brief A @b covariant functor between posetal categories: an order-PRESERVING
+ *        arrow.  This @b is @c IsMonotone read categorically (a monotone map is
+ *        a functor of posets that preserves the direction of composition), the
+ *        documented covariant pole of functor variance (#908).
+ * @details Inhabited by every monotone arrow: @c Identity, the dominance
+ *          inclusion @c LiftLogic @c ι:𝔹↪Ω, the comonoid legs @c Copy / @c
+ *          Merge, the product bifunctor @c Tensor, and any @c Compose of
+ *          covariant legs.
+ * @tparam F  the arrow.
+ * @tparam Op the order it preserves; defaults to @c std::less_equal<>.
+ */
+export template <typename F, typename Op = std::less_equal<>>
+concept IsCovariantFunctor = IsMonotone<F, Op>;
+
+/**
+ * @concept IsContravariantFunctor
+ * @brief A @b contravariant functor between posetal categories: an
+ *        order-REVERSING arrow (@c IsAntiMonotone read categorically).  The
+ *        contravariant pole; inhabited by the negation @c NegationArrow @c ¬
+ * and any @c Compose that mixes one covariant with one contravariant leg.
+ * @tparam F  the arrow.
+ * @tparam Op the order it reverses; defaults to @c std::less_equal<>.
+ */
+export template <typename F, typename Op = std::less_equal<>>
+concept IsContravariantFunctor = IsAntiMonotone<F, Op>;
+
+/**
+ * @concept IsVariantFunctor
+ * @brief A functor between posetal categories with a @b definite variance:
+ *        covariant @b or contravariant.  This is the "@c IsFunctor parametrized
+ *        with @c IsVariant" umbrella whose poles are @c IsCovariantFunctor and
+ *        @c IsContravariantFunctor, and exactly the leg-shape a Galois
+ *        connection's adjoints must @b share (matched variance, below).
+ * @tparam F  the arrow.
+ * @tparam Op the order its variance is tested against; defaults to
+ *         @c std::less_equal<>.
+ */
+export template <typename F, typename Op = std::less_equal<>>
+concept IsVariantFunctor = IsVariant<F, Op>;
+
+/**
+ * @concept IsOrderEmbedding
+ * @brief An @b order-preserving embedding: a monic, order-preserving arrow of
+ *        one ordered set into another.  Such an embedding @b is a covariant
+ *        functor between the two posetal categories, so @c IsCovariantFunctor
+ * is a conjunct --- the classification is @b derived from the two legs
+ *        (@c IsEmbeddingFunctor @c && @c IsMonotone), not re-declared per
+ *        carrier (#908).
+ * @details The general rule behind the per-carrier witnesses: the carrier-
+ *          lattice inclusions @c ℕ↪ℤ↪ℚ↪ℝ (e.g.\ @c :morphologies'
+ *          @c embed_sint_ℤ_) each satisfy it, and each is thereby a covariant
+ *          functor.  Naming the composite once lets a downstream site witness
+ *          @c IsOrderEmbedding rather than re-deriving both legs, and makes the
+ *          "order-embedding @c ⟹ covariant functor" inference visible.
+ * @tparam F  the embedding arrow.
+ * @tparam Op the order it preserves; defaults to @c std::less_equal<>.
+ */
+export template <typename F, typename Op = std::less_equal<>>
+concept IsOrderEmbedding = IsEmbeddingFunctor<F> && IsCovariantFunctor<F, Op>;
+
 /**
  * @concept IsGaloisConnection
  * @brief @b Structural @b shape: @c F and @c G form a Galois
@@ -335,9 +417,34 @@ constexpr auto make_adjunction(Left&& left, Right&& right, Unit&& unit,
  */
 export template <typename F, typename G, typename Op = std::less_equal<>>
 concept IsGaloisConnection =
-    ((IsMonotone<F, Op> && IsMonotone<G, Op>) ||
-     (IsAntiMonotone<F, Op> && IsAntiMonotone<G, Op>)) &&
+    ((IsCovariantFunctor<F, Op> && IsCovariantFunctor<G, Op>) ||
+     (IsContravariantFunctor<F, Op> && IsContravariantFunctor<G, Op>)) &&
     std::same_as<Dom<G>, Cod<F>> && std::same_as<Cod<G>, Dom<F>>;
+
+// Axiom flow, TYPE-CHECKED (not prose): the variance-functor concepts are
+// inhabited, and variance PROPAGATES through composition into them.  The base
+// facts (@c Identity covariant, @c ι covariant, @c ¬ contravariant) and the
+// derived facts (@c co∘co=co, @c co∘anti=anti reaching the concept via
+// @c Compose) all fire at compile time.  Downstream, @c IsGaloisConnection ---
+// hence @c IsMeetAsRightAdjoint (@c :cartesian_bicategory) --- now consumes
+// these concepts as its leg constraints, so a witness like
+// @c IsMeetAsRightAdjoint<Copy<int>,Merge<int,Inf>> type-checks the legs'
+// covariant-functor structure end to end.
+static_assert(IsCovariantFunctor<Identity<int>>,
+              "id is a covariant functor (order-preserving).");
+static_assert(IsCovariantFunctor<LiftLogic<Boole>>,
+              "the dominance inclusion ι:𝔹↪Ω is a covariant functor.");
+static_assert(IsContravariantFunctor<NegationArrow<Boole>>,
+              "¬ is a contravariant functor (order-reversing).");
+static_assert(IsVariantFunctor<Identity<int>> &&
+                  IsVariantFunctor<NegationArrow<Boole>>,
+              "both poles carry a definite variance (IsVariantFunctor).");
+static_assert(
+    IsCovariantFunctor<Compose<Identity<int>, Identity<int>>>,
+    "covariance propagates through Compose (co∘co=co): id∘id is covariant.");
+static_assert(
+    IsContravariantFunctor<Compose<Identity<bool>, NegationArrow<Boole>>>,
+    "variance flows through Compose (co∘anti=anti): ¬∘id is contravariant.");
 
 /**
  * @concept IsClosureOperator

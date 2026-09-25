@@ -332,6 +332,31 @@ concept IsTensor = IsArrow<T> && requires {
                      typename Cod<T>::second_type>;
 };
 
+// Variance of the product bifunctor @c ⊗ (:posetal @c is_monotone_v /
+// @c is_antimonotone_v), stated as an INFERENCE RULE rather than a tag: @c ⊗ is
+// FUNCTORIAL, so @c R⊗S carries the JOINT variance of its legs.  From
+// @c (a,b)≤×(a',b') --- i.e.\ @c a≤a' and @c b≤b' --- monotone legs give
+// @c R(a)≤R(a') and @c S(b)≤S(b'), hence @c (R⊗S)(a,b)≤×(R⊗S)(a',b'); two
+// antitone legs reverse both components, so @c R⊗S is antitone.  These are Horn
+// clauses over the legs' own witnesses (@c mono(R)∧mono(S)⟹mono(R⊗S), and the
+// antitone dual), the SAME shape as Copy's pairing rule and Merge's algebra
+// gate above --- no per-instance @c Tensor<...> tag.  A MIXED pair (one leg
+// monotone, one antitone) fires neither rule, so @c R⊗S is correctly denied a
+// definite variance (@c !IsVariant), which is the truth for a mixed product.
+//
+// The premises gate on the @c IsMonotone / @c IsAntiMonotone CONCEPTS, not the
+// bare @c is_monotone_v traits: the concept additionally requires each leg to
+// be an @c IsArrow, so a non-arrow leg is rejected at the premise rather than
+// silently satisfying a stray trait specialization.
+template <typename R, typename S, typename LeqR, typename LeqS>
+  requires(IsMonotone<R, LeqR> && IsMonotone<S, LeqS>)
+inline constexpr bool is_monotone_v<Tensor<R, S>, ProductLeq<LeqR, LeqS>> =
+    true;
+template <typename R, typename S, typename LeqR, typename LeqS>
+  requires(IsAntiMonotone<R, LeqR> && IsAntiMonotone<S, LeqS>)
+inline constexpr bool is_antimonotone_v<Tensor<R, S>, ProductLeq<LeqR, LeqS>> =
+    true;
+
 /** @brief The composite meet @c R∩S @c = @c Δ† @c ∘ @c (R⊗S) @c ∘ @c Δ: copy
  * the input, run both legs in parallel, merge where they agree. The
  *         1-categorical realisation of the relational intersection whose
@@ -451,6 +476,17 @@ static_assert(!IsTensor<Copy<bool>>,
 static_assert(
     !IsTensor<Merge<bool, std::logical_and<bool>>>,
     "Δ†: bool×bool → bool has a NON-product Codomain, so not a Tensor.");
+
+// The product-bifunctor variance rule fires by INFERENCE: id ⊗ id is monotone
+// because BOTH legs are (each Identity rides is_monotone_v<Identity,Op>), never
+// a tag on Tensor<...> itself.  This is the covariance leg #908 asks Tensor to
+// carry, and it composes: the moment a leg's own monotonicity is derived, so is
+// the tensor's.
+static_assert(
+    IsMonotone<Tensor<Identity<bool>, Identity<bool>>,
+               ProductLeq<std::less_equal<bool>, std::less_equal<bool>>>,
+    "id ⊗ id inherits monotonicity from its legs (⊗ is a covariant "
+    "bifunctor); derived, not tagged.");
 
 // Over the identity endo-leg the composite collapses to the identity: it is the
 // arrow-level shadow of the idempotent law a ∧ a = a (Δ copies, id⊗id is inert,

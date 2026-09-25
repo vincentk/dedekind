@@ -374,6 +374,17 @@ static_assert(
     IsProduct<std::pair<int, bool>, int, bool>,
     "Verification Failed: std::pair<int, bool> must satisfy IsProduct.");
 
+// Arrow composition IS a product: the reified @c Compose<F,G> (@c :morphism)
+// holds its two legs @c f / @c g, and its @c π_1 / @c π_2 overloads recover
+// them, so @c Compose<F,G> is the categorical product of its operand arrows in
+// the arrow category.  This is the structural reason the de-lambdaed @c
+// operator>> preserves leg types (a type-erasing lambda would forget them), and
+// it ties composition into the @c :limit product machinery.
+static_assert(IsProduct<Compose<Identity<int>, Identity<int>>, Identity<int>,
+                        Identity<int>>,
+              "arrow composition Compose<F,G> is the product of its legs F, G "
+              "(π_1/π_2 recover the two arrows).");
+
 /** @brief π₁ as a first-class MORPHISM: the projection @b arrow @c P → A of a
  *  product, reifying the textbook projection with an arrow-shaped type
  * signature

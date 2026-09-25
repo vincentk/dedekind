@@ -330,6 +330,28 @@ static_assert(
 // structs (Juliet posture): the trait carries the structural claim
 // without an extra type.
 //
+// Variance as a LOGIC PROGRAM (#908).  Read together, these specialisations
+// form a small Datalog-style rule base whose engine is the compiler's own
+// template resolution: a CONSTRAINED partial specialisation IS a Horn clause,
+// its @c requires clause the body, its head the trait it sets.  So variance is
+// almost never TAGGED per type; it is INFERRED by the same "inference composes,
+// tagging explodes" discipline as the rest of the library.  The base facts are
+// the irreducible leaves --- @c is_monotone_v<Identity,Op> (covariant) and
+// @c is_antimonotone_v<NegationArrow,Op> (contravariant) --- and every
+// structured arrow derives its variance from its parts:
+//   Copy   @c Δ:A→A×A   monotone  ∀ carrier/order (pairing of monotone legs);
+//   Merge  @c ∧:A×A→A   monotone  ⟸ @c IsOrderMeetSemilattice (glb is
+//   monotone); Tensor @c R⊗S       monotone  ⟸ @c IsMonotone(R) @c ∧ @c
+//   IsMonotone(S), and
+//                        antitone  ⟸ both legs antitone (⊗ is a bifunctor).
+//   Compose @c g∘f    variance MULTIPLIES: @c co∘co=co, @c anti∘anti=co,
+//                      @c co∘anti=anti (registered below, on @c :morphism's
+//                      reified @c Compose<F,G>).
+// (The Copy / Merge / Tensor clauses live in @c :cartesian_bicategory, next to
+// the arrows they classify.)  With composition seated on @c Compose, the rule
+// base is closed under the categorical operations (identity, composition,
+// product); atomic maps remain the only white-listed base facts.
+//
 // User's mnemonic ("iso / mono => enabling"): order-isos enable clean
 // halfspace-pivot transport (result is again a halfspace); monos-without-
 // inverse enable image-with-witness transport (halfspace + a divisibility
@@ -484,6 +506,55 @@ static_assert(IsAntiMonotone<NegationArrow<Kleene>>,
               "K₃ negation reflects the chain about Unknown: order-reversing.");
 static_assert(IsVariant<NegationArrow<Boole>>,
               "¬ has a definite variance (antitone), hence IsVariant.");
+
+// Covariant mirror of the negation witness: the dominance inclusion
+// @c ι:𝔹↪Ω (@c LiftLogic<L>, reified in @c :logic beside @c lift_logic) is
+// @b order-PRESERVING --- @c ⊥≤⊤ embeds as @c False≤True in @c Ω --- so it
+// grounds @c IsMonotone / @c IsVariant on the CODOMAIN axis of a classifier
+// @c χ:A→Ω the way @c NegationArrow grounds the antitone case (#908).  It is
+// the covariant leg the two-axis reading (#894/#897) postcomposes onto.
+// Registered for every @c Op, the covariant analogue of the universal
+// @c is_monotone_v<Identity<T>,Op>.
+template <typename L, typename Op>
+inline constexpr bool is_monotone_v<LiftLogic<L>, Op> = true;
+
+static_assert(IsMonotone<LiftLogic<Boole>>,
+              "The dominance inclusion 𝔹↪Ω is order-preserving (⊥↦False, "
+              "⊤↦True): the covariant codomain axis.");
+static_assert(IsMonotone<LiftLogic<Kleene>>,
+              "𝔹↪K₃ embeds bool as {False,True}, order-preserving.");
+static_assert(IsVariant<LiftLogic<Boole>>,
+              "ι has a definite variance (covariant), hence IsVariant.");
+
+// The COMPOSITION clause of the variance logic program (#908), registered on
+// the reified composition arrow @c Compose<F,G> = @c g∘f (@c :morphism).  The
+// classic sign rule: variance MULTIPLIES along composition, so two definite
+// variances compose to a definite one and two flips cancel.
+//   co∘co   = co        (monotone ∘ monotone)
+//   anti∘anti = co       (two order-reversals cancel)
+//   co∘anti = anti,  anti∘co = anti
+// Each is a Horn clause whose premises gate on the @c IsMonotone /
+// @c IsAntiMonotone CONCEPTS of the legs; the disjunction in one specialization
+// (rather than two same-headed specializations) keeps overload selection
+// unambiguous.  This is the rule that was MISSING while composition was only
+// the ad-hoc @c operator>>; reifying @c Compose seated it.
+template <typename F, typename G, typename Op>
+  requires((IsMonotone<F, Op> && IsMonotone<G, Op>) ||
+           (IsAntiMonotone<F, Op> && IsAntiMonotone<G, Op>))
+inline constexpr bool is_monotone_v<Compose<F, G>, Op> = true;
+
+template <typename F, typename G, typename Op>
+  requires((IsMonotone<F, Op> && IsAntiMonotone<G, Op>) ||
+           (IsAntiMonotone<F, Op> && IsMonotone<G, Op>))
+inline constexpr bool is_antimonotone_v<Compose<F, G>, Op> = true;
+
+static_assert(IsMonotone<Compose<Identity<int>, Identity<int>>>,
+              "co∘co=co: identity composed with itself is monotone.");
+static_assert(IsMonotone<Compose<NegationArrow<Boole>, NegationArrow<Boole>>>,
+              "anti∘anti=co: double negation ¬∘¬ is order-PRESERVING (two "
+              "flips cancel).");
+static_assert(IsAntiMonotone<Compose<Identity<bool>, NegationArrow<Boole>>>,
+              "co∘anti=anti: ¬ after id is order-reversing.");
 
 // ---------------------------------------------------------------------------
 // The product of posets is a poset (componentwise order lift).

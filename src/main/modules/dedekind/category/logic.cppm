@@ -1078,6 +1078,27 @@ struct NegationArrow {
   }
 };
 
+/** @brief The @b arrow reading of the Rosolini dominance inclusion
+ *  @f$\iota:\mathbb{B}\hookrightarrow\Omega@f$ (@c lift_logic): a decided
+ *  @c bool answer embeds as the target species' poles (@c ⊥↦False, @c ⊤↦True).
+ *  The canonical @b order-PRESERVING arrow, and the covariant @b codomain axis
+ *  of a classifier @f$\chi:A\to\Omega@f$ (#908).
+ *
+ *  @details Where @c NegationArrow is the order-reversing (contravariant) arrow
+ *  on @c Ω, @c LiftLogic is its monotone (covariant) sibling: it carries the
+ *  @c Domain / @c Codomain typedefs that make @c lift_logic an @c IsArrow, so
+ *  @c :posetal can register it @c is_monotone_v --- @c ⊥≤⊤ maps to
+ *  @c False≤True, an order embedding.  This is exactly the @c lift_logic
+ *  "wrapped in a typed arrow" that @c :topoi asks for (#846), and the covariant
+ *  leg the two-axis reading (#894/#897) postcomposes onto.  It is the covariant
+ *  mirror of @c NegationArrow's antitone witness. */
+export template <typename L>
+struct LiftLogic {
+  using Domain = bool;             ///< 𝔹, the decided core @f$\{\bot,\top\}@f$.
+  using Codomain = typename L::Ω;  ///< Ω, the target answer-lattice.
+  constexpr Codomain operator()(bool b) const { return lift_logic<L>(b); }
+};
+
 /** @brief Witness: Boolean negation is an involution.  @c Boole's
  *  @c RFL is @c std::logical_not on @c bool (@c !!b = b). */
 template <>
