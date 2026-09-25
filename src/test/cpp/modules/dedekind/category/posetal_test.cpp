@@ -132,3 +132,35 @@ TEST_CASE("Posetal: Identity is the canonical monotone witness (#664)",
     STATIC_CHECK(!IsOrderAntiIsomorphism<Identity<int>>);
   }
 }
+
+TEST_CASE("Posetal: negation is the canonical antitone witness (#908)",
+          "[category][posetal][morphism][antitone][negation]") {
+  SECTION("NegationArrow is anti-monotone (order-reversing) and IsVariant") {
+    STATIC_CHECK(IsAntiMonotone<NegationArrow<Boole>>);
+    STATIC_CHECK(IsAntiMonotone<NegationArrow<Kleene>>);
+    STATIC_CHECK(IsVariant<NegationArrow<Boole>>);
+    STATIC_CHECK(IsVariant<NegationArrow<Kleene>>);
+  }
+
+  SECTION("NegationArrow is NOT monotone (it reverses order, not preserves)") {
+    STATIC_CHECK(!IsMonotone<NegationArrow<Boole>>);
+    STATIC_CHECK(!IsMonotone<NegationArrow<Kleene>>);
+  }
+
+  SECTION("Boole: ¬ reverses the two-point chain false <= true") {
+    constexpr NegationArrow<Boole> neg{};
+    STATIC_CHECK(neg(true) == false);
+    STATIC_CHECK(neg(false) == true);
+    // Order-reversal: false <= true, so ¬true <= ¬false (false <= true).
+    STATIC_CHECK(neg(true) <= neg(false));
+  }
+
+  SECTION("Kleene: ¬ reflects the K₃ chain False < Unknown < True") {
+    constexpr NegationArrow<Kleene> neg{};
+    STATIC_CHECK(neg(Ternary::True) == Ternary::False);
+    STATIC_CHECK(neg(Ternary::False) == Ternary::True);
+    STATIC_CHECK(neg(Ternary::Unknown) == Ternary::Unknown);  // fixed point
+    // Order-reversal across the chain: False < True, so ¬True <= ¬False.
+    STATIC_CHECK(neg(Ternary::True) <= neg(Ternary::False));
+  }
+}
