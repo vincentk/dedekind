@@ -31,12 +31,10 @@ using namespace dedekind::algebra;
 using namespace dedekind::numbers;
 using namespace dedekind::order;
 
-// Symbolic variable ranging over ℤ.
-constexpr auto n = element<ℤ>;
-
-// Halfspace pair with compile-time pivots, strict lower and non-strict upper.
-constexpr auto above_minus_21 = Set{n | (n > bound<-21>)};
-constexpr auto at_most_21 = Set{n | (n <= bound<21>)};
+// Point-free halfspaces over ℤ with compile-time pivots (fix), strict lower and
+// non-strict upper.  A halfspace IS a set, so no Set{} wrapper.
+constexpr auto above_minus_21 = ℤ | (χ > fix(-21_c));
+constexpr auto at_most_21 = ℤ | (χ <= fix(21_c));
 
 // The meet is structurally an OrderInterval (cardinality > 1, no Singleton
 // collapse) with strict/non-strict boundaries in the type.

@@ -32,15 +32,17 @@ using R2Point = typename decltype(R2)::Domain;
 // underlying std::pair<Real<double>, Real<double>>.  The
 // universal-ambient @c 𝔸<R2Point> ⊃ R2 lets the scout re-bind to the
 // narrower R2 via @c xy @c % @c R2 below.
-constexpr auto xy = element<𝔸<R2Point>>;
-
-// Diagonal: { (x, y) ∈ ℝ² | x = y }
-constexpr auto diagonal =
-    Set{xy % R2 | [](R2Point p) { return p.first == p.second; }};
+// Diagonal: { (x, y) ∈ ℝ² | x = y }.  NAMED-predicate comprehensions over the
+// non-universal R2 base (a product Set); candidate point-free `R2 | (π1 == π2)`
+// / `R2 | (π1 > bound<5.0> && π2 < bound<3.0>)` (Trsk pair grammar), CI-gated.
+constexpr auto on_diagonal = [](R2Point p) { return p.first == p.second; };
+constexpr auto in_strip = [](R2Point p) {
+  return (p.first > 5.0) && (p.second < 3.0);
+};
+constexpr auto diagonal = Set{Comprehension{R2, on_diagonal}};
 
 // Strip: { (x, y) ∈ ℝ² | x > 5 ∧ y < 3 }
-constexpr auto strip = Set{
-    xy % R2 | [](R2Point p) { return (p.first > 5.0) && (p.second < 3.0); }};
+constexpr auto strip = Set{Comprehension{R2, in_strip}};
 
 // Intersection is empty: no point lies on the diagonal AND in the strip.
 constexpr auto empty_diagonal_cut = diagonal & strip;

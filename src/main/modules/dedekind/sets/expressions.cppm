@@ -13,8 +13,9 @@
  *
  * Key constructs exported:
  *  - Set<T,L,P>           -- ETCS-compatible intensional set.
- *  - element<𝔸<T>>        -- BoundScout factory for comprehension syntax
- * (#551).
+ *  - Comprehension<B,P>   -- the point-free set-builder node {x in B | P(x)};
+ *                            the retired scout element/BoundScout is gone
+ * (#895).
  *  - Boolean connectives &&, ||, ! lifted to predicate combinators.
  *  - operator<=           -- subset relation (same-predicate -> True;
  *                            heterogeneous -> Unknown via Kleene).
@@ -27,9 +28,7 @@
  *
  * @section expressions__Canonical_Examples
  * ```cpp
- * auto n = element<𝔸<ℕ>>;
- * const int size = 512;
- * const auto xs = Set{n | (n < size)};
+ * const auto xs = ℕ | (χ < fix(512_c));  // {n in ℕ | n < 512}
  * const auto grid = cartesian_product(xs, xs);  // xs x xs
  * ```
  *
@@ -195,174 +194,19 @@ struct Comprehension
   }
 };
 
-// @c BoundScout forward declaration, gated by @c IsCharacteristic (from
-// @c :category:topoi) on @c decltype(Ambient) per #623 (tightened #846) so
-// callers passing a value that is not a characteristic map @c χ:T→Ω hit a
-// single diagnostic at the declaration site rather than a cascade of
-// template-instantiation errors inside @c BoundScout's body.  The textbook
-// justification for the gate (a set IS its characteristic morphism under the
-// current encoding) is in the longer comment on @c element below.
-
-/** @brief Forward declaration of @c BoundScout (post-#551), needed by
- *  @c MembershipBinding<S>::operator| below for the bool-truthy
- *  specialisation. */
-export template <auto Ambient>
-  requires dedekind::category::IsCharacteristic<
-      std::remove_cvref_t<decltype(Ambient)>>
-struct BoundScout;
-
 /** @brief Boolean equality predicate for compile-time pruning over 𝔹.
  *
  *  Defined here (rather than further down where the @c FiniteBooleanSet
- *  collapse machinery lives) because the @c BoundScout pipe's
- *  bool-truthy specialisation rewrites the bare-@c b form to
- *  @c BooleanEqPredicate{true}, and that overload needs the type to
- *  be complete (#408).  The collapse-machinery uses further down still
- *  see the same definition — it's the single source of truth for the
- *  bool-domain predicate.
+ *  collapse machinery lives) because the bool-truthy comprehension form
+ *  @c 𝔹 @c | @c BooleanEqPredicate{true} needs the type complete (#408).
+ *  The collapse-machinery uses further down still see the same definition:
+ *  it is the single source of truth for the bool-domain predicate.
  */
 export struct BooleanEqPredicate {
   bool expected;
 
   constexpr bool operator()(bool v) const { return v == expected; }
 };
-
-/** @brief The Membership Binding: bridges a narrower-bound scout to its
- * Species. */
-template <typename Species>
-struct MembershipBinding {
-  const Species& base;
-
-  /** @section expressions__The_Comprehension_Pipe */
-  template <typename P>
-  constexpr auto operator|(P&& p) const {
-    return Comprehension<Species, std::decay_t<P>>{base, std::forward<P>(p)};
-  }
-
-  /** @brief Bare-BoundScout<bool> truthy-predicate specialisation (#408 /
-   * #551).
-   *
-   *  The textbook set-builder form @c Set{b @c % @c B @c | @c b}
-   *  reads "the elements of @c B for which @c b holds".  When @c b's
-   *  underlying element type is @c bool, the bare-@c b form is the
-   *  truthy predicate — semantically equivalent to @c b @c == @c true,
-   *  which produces a @c BooleanEqPredicate{true}.  This overload
-   *  rewrites the bare form to that canonical predicate so the
-   *  existing collapse machinery ( @c structured_and / @c
-   *  FiniteBooleanSet operators / @c operator& / @c
-   *  operator|) recognises it as the truthy half of a
-   *  complementary pair.  Mirrors the @c operator==(b, bool) and
-   *  @c operator!(b) overloads in this partition: the bool-domain
-   *  encoding lives in exactly one place ( @c BooleanEqPredicate),
-   *  with all three syntactic surfaces ( @c b, @c b @c == @c true,
-   *  @c !b) routing into it.
-   */
-  template <auto OtherAmbient>
-    requires std::same_as<typename Species::Domain, bool> &&
-             std::same_as<typename BoundScout<OtherAmbient>::T, bool>
-  constexpr auto operator|(const BoundScout<OtherAmbient>&) const {
-    return Comprehension<Species, BooleanEqPredicate>{base,
-                                                      BooleanEqPredicate{true}};
-  }
-};
-
-/** @section expressions__BoundScout_and_Element__per_551
- *
- * @deprecated Scout algebra --- @c element<A> / @c BoundScout and
- * the scout @c | (predicate) / @c % (re-bind) operators --- is @b no @b longer
- * part of the official @b Lwv grammar.  The official set-builder is the
- * point-free comprehension @c A @c | @c pred applied to the ambient set
- * directly (with the element aliases @c π / @c fix), e.g. @c ℕ @c | @c π @c >
- * @c fix(5_c).  The scout spelling is retained for existing call sites; new
- * code must use the point-free form, and this machinery is scheduled for
- * migration.  (Kept as a note because it otherwise keeps resurfacing as if it
- * were current grammar.)
- *
- * Per #551 (one-transaction Ω-redesign): a typed scout that carries
- * its ambient set as a non-type template parameter, so the
- * @c % @c <ambient> binding step in @c Set{n @c % @c B @c | @c
- * predicate} becomes redundant — the scout already knows its
- * ambient.  Paper Listing 6 reads as:
- *
- *     inline constexpr auto 𝔹 = 𝔸<bool>;            // ambient value
- *     inline constexpr auto b = element<𝔹>;          // bound scout
- *     constexpr auto f = Set{b | !b};                // {b ∈ 𝔹 | !b}
- *
- * @c BoundScout<auto @c Ambient> is an empty struct (structural,
- * usable as NTTP value).  @c Ambient is a constexpr instance of an
- * ambient type (e.g.\ a @c UniversalSet<...>{} default-constructed
- * at compile time, or anything with a nested @c Domain typedef).
- * The scout's element type @c T is read directly from the ambient's
- * @c Domain typedef (see @c using @c T = @c typename @c
- * AmbientType::Domain below).
- */
-export template <auto Ambient>
-  requires dedekind::category::IsCharacteristic<
-      std::remove_cvref_t<decltype(Ambient)>>
-struct BoundScout {
-  using AmbientType = std::remove_cvref_t<decltype(Ambient)>;
-  using T = typename AmbientType::Domain;
-  using is_variable = void;
-  static constexpr AmbientType ambient = Ambient;
-
-  /** @brief Set-builder pipe: @c b @c | @c predicate skips the
-   *  @c % @c <ambient> step because the scout already knows its
-   *  ambient at the type level. */
-  template <typename P>
-  constexpr auto operator|(P&& p) const {
-    return Comprehension<AmbientType, std::decay_t<P>>{ambient,
-                                                       std::forward<P>(p)};
-  }
-
-  /** @brief Membership re-bind: @c b @c % @c S binds @c b to a
-   *  @b narrower set @c S whose @c Domain matches the scout's @c T.
-   *  Used when the scout's declared ambient is the universal @c 𝔸<T>
-   *  but the caller wants to specialise to a smaller subset (e.g.\
-   *  @c singleton(1), an empty set, a specific predicate-set). */
-  template <typename SubSpecies>
-    requires std::same_as<T, typename SubSpecies::Domain>
-  constexpr auto operator%(const SubSpecies& s) const {
-    return MembershipBinding<SubSpecies>{s};
-  }
-
-  /** @brief Bare-BoundScout<bool> truthy specialisation (#408 / #551).
-   *  @c Set{b @c | @c b} reads "elements of the ambient for which
-   *  @c b holds"; on a bool scout the bare-@c b form is the truthy
-   *  predicate.  Routes to the canonical @c BooleanEqPredicate{true}
-   *  so the existing collapse machinery treats the three syntactic
-   *  surfaces ( @c b, @c b @c == @c true, @c !b) uniformly.  Mirror
-   *  of @c MembershipBinding<S>::operator|(const BoundScout<…>&). */
-  template <auto OtherAmbient>
-    requires std::same_as<T, bool> &&
-             std::same_as<typename BoundScout<OtherAmbient>::T, bool>
-  constexpr auto operator|(const BoundScout<OtherAmbient>&) const {
-    return Comprehension<AmbientType, BooleanEqPredicate>{
-        ambient, BooleanEqPredicate{true}};
-  }
-};
-
-/** @brief Variable-template factory for bound scouts at a specific
- *  ambient value.  Companion to @c 𝔸<T>: spell @c element<𝔸<T>> to
- *  get a scout that ranges over the universal predicate at carrier
- *  @c T.
- *  @deprecated Not part of the official Lwv grammar; use the point-free
- *  comprehension @c A @c | @c pred instead (see the section note above).  */
-// Gated by @c IsCharacteristic (#623, tightened #846): the @c BoundScout
-// instantiation requires @c decltype(Ambient)::Domain, and under the
-// project's @b current encoding a "set" @b is its characteristic morphism
-// @c χ : @c T @c → @c Ω (ETCS reading).  So the ambient is not merely an
-// arrow but a @b characteristic arrow into the classifier Ω; the
-// set-as-predicate carriers (@c 𝔸<T>, @c UniversalSet<T, L, C>, @c
-// Subobject<A, χ>) all satisfy @c IsCharacteristic via their @c χ.  Gating
-// on @c IsCharacteristic (the telling concept) rather than the generic
-// @c IsArrow states that invariant at the type level.  If the encoding
-// later decouples sets from characteristic maps (e.g. sets as
-// non-characteristic carriers), THIS is the gate to loosen back to
-// @c IsArrow.
-export template <auto Ambient>
-  requires dedekind::category::IsCharacteristic<
-      std::remove_cvref_t<decltype(Ambient)>>
-inline constexpr BoundScout<Ambient> element{};
 
 /** @brief The universal predicate: accepts every element of T. */
 export template <typename T>
@@ -987,26 +831,6 @@ class Set {
   template <typename B, typename P>
     requires std::same_as<Predicate, P>
   constexpr Set(Comprehension<B, P> cp) : predicate_(std::move(cp.predicate)) {}
-
-  template <typename B>
-    requires std::same_as<T, typename B::Domain> && std::same_as<Predicate, B>
-  constexpr Set(MembershipBinding<B> b) : predicate_(b.base) {}
-
-  template <typename B>
-    requires std::same_as<T, typename B::Domain> &&
-             std::same_as<Predicate, UniversalPredicate<T>> &&
-             requires { typename B::is_universal_boundary; }
-  constexpr Set(MembershipBinding<B>) : predicate_{} {}
-
-  /** @brief Per #551: constructor from a bare BoundScout — no @c %
-   *  binding step.  The scout's @c AmbientType IS the universal
-   *  predicate, so the Set's predicate is @c UniversalPredicate<T>. */
-  template <auto Ambient>
-    requires std::same_as<T, typename BoundScout<Ambient>::T> &&
-             std::same_as<Predicate, UniversalPredicate<T>> && requires {
-               typename BoundScout<Ambient>::AmbientType::is_universal_boundary;
-             }
-  constexpr Set(BoundScout<Ambient>) : predicate_{} {}
 
   constexpr auto operator()(const T& v) const {
     return dedekind::category::lift_logic<L>(predicate_(v));
@@ -1817,8 +1641,8 @@ constexpr auto operator^(const Set<T, L, Predicate>& s,
  * set_logic_t joins the answer's own species (@c GetLogic of the
  * return type) UP with the carrier axis, and @c CoherentWrap checks the answer
  * against the result.  All guides that pick an @c L share this principle: the
- * identity @c Set(Species) CTAD and the scout @c Set(MembershipBinding<S>)
- * derive @c L from the bare node's own answer, while the point-free
+ * identity @c Set(Species) CTAD derives @c L from the bare node's own answer,
+ * while the point-free
  * comprehension @c Set(Comprehension<B,P>) derives from the WHOLE
  * comprehension's answer --- @c Comprehension::operator() combines @c base(x)
  * under @c B's logic, so it joins @c B's species UP with the @c P-axis @c
@@ -1920,40 +1744,6 @@ Set(Comprehension<B, P>)
                         typename B::logic_species>,
            P>;
 
-/** @brief Scout binding @c b%S: the wrapped predicate is the species @c S
- *  itself, so this is the bare-node case --- deduce the coherent codomain from
- *  @c S's own return (#928), rejecting an incoherent species uniformly. */
-export template <typename S>
-  requires(!requires { typename S::is_universal_boundary; }) &&
-          CoherentSetWrap<S>
-Set(MembershipBinding<S>) -> Set<typename S::Domain, wrapped_logic_t<S>, S>;
-
-/** @brief Scout binding @c b%S over a @b universal-boundary species: EXEMPT
- *  from the @c CoherentWrap gate.  The wrapped predicate is @c
- *  UniversalPredicate<T>, whose χ ≡ True is @c bool-valued, so any @c L is
- *  coherent and the codomain stays the plain carrier-axis @c NaturalLogic<S>
- *  (the join with @c GetLogic<bool> = @c Boole is a no-op).
- *  @tparam S the universal-boundary species bound by the scout. */
-export template <typename S>
-  requires requires { typename S::is_universal_boundary; }
-Set(MembershipBinding<S>)
-    -> Set<typename S::Domain, typename NaturalLogic<S>::type,
-           UniversalPredicate<typename S::Domain>>;
-
-/** @brief Per #551: deduction guide for @c Set{n} where n is a
- *  @c BoundScout (no @c % step).  Routes to the same @c
- *  UniversalPredicate<T>-flavoured Set as the membership-binding
- *  guide above, but takes the bare scout.  EXEMPT from the @c CoherentWrap gate
- *  for the same reason: the wrapped @c UniversalPredicate answers @c bool. */
-export template <auto Ambient>
-  requires requires {
-    typename BoundScout<Ambient>::AmbientType::is_universal_boundary;
-  }
-Set(BoundScout<Ambient>) -> Set<
-    typename BoundScout<Ambient>::T,
-    typename NaturalLogic<typename BoundScout<Ambient>::AmbientType>::type,
-    UniversalPredicate<typename BoundScout<Ambient>::T>>;
-
 // Enforce ETCS compliance also here:
 static_assert(
     IsSet<decltype(ambient_set<int>(Set<int, Boole, UniversalPredicate<int>>{
@@ -1975,50 +1765,6 @@ template <typename Species>
   requires CoherentSetWrap<Species>
 Set(Species)
     -> Set<typename Species::Domain, wrapped_logic_t<Species>, Species>;
-
-/** @section expressions__Relational_Lifting (BoundScout)
- *
- * Free-function relational lifts on @c BoundScout<auto>.  Same lambda-
- * returning shape as the textbook DSL; the scout's @c T is
- * @c element_of_t<AmbientType>. */
-export template <auto Ambient, typename Rhs>
-constexpr auto operator<(const BoundScout<Ambient>&, const Rhs& rhs) {
-  return [rhs](const typename BoundScout<Ambient>::T& v) { return v < rhs; };
-}
-
-export template <auto Ambient, typename Rhs>
-constexpr auto operator<=(const BoundScout<Ambient>&, const Rhs& rhs) {
-  return [rhs](const typename BoundScout<Ambient>::T& v) { return v <= rhs; };
-}
-
-export template <auto Ambient, typename Rhs>
-constexpr auto operator>(const BoundScout<Ambient>&, const Rhs& rhs) {
-  return [rhs](const typename BoundScout<Ambient>::T& v) { return v > rhs; };
-}
-
-export template <auto Ambient, typename Rhs>
-constexpr auto operator>=(const BoundScout<Ambient>&, const Rhs& rhs) {
-  return [rhs](const typename BoundScout<Ambient>::T& v) { return v >= rhs; };
-}
-
-export template <auto Ambient, typename Rhs>
-constexpr auto operator==(const BoundScout<Ambient>&, const Rhs& rhs) {
-  return [rhs](const typename BoundScout<Ambient>::T& v) { return v == rhs; };
-}
-
-export template <auto Ambient>
-  requires std::same_as<typename BoundScout<Ambient>::T, bool>
-constexpr auto operator==(const BoundScout<Ambient>&, bool rhs) {
-  return BooleanEqPredicate{rhs};
-}
-
-/** @brief Unary negation of a boolean BoundScout: @c !b ≡ @c b @c == @c false.
- */
-export template <auto Ambient>
-  requires std::same_as<typename BoundScout<Ambient>::T, bool>
-constexpr auto operator!(const BoundScout<Ambient>& v) {
-  return v == false;
-}
 
 /** @section expressions__Logical_Lifting */
 
@@ -2111,10 +1857,15 @@ export template <typename A, typename B>
   } && std::same_as<typename NaturalLogic<std::remove_cvref_t<A>>::type,
                     typename NaturalLogic<std::remove_cvref_t<B>>::type>
 constexpr auto cartesian_product(const A& a, const B& b) {
-  auto xa = element<𝔸<typename std::remove_cvref_t<A>::Domain>>;
-  auto xb = element<𝔸<typename std::remove_cvref_t<B>::Domain>>;
-  const auto left = Set{xa % a};
-  const auto right = Set{xb % b};
+  // Materialise BOTH operands to a concrete @c Set (the identity @c
+  // Set(Species) CTAD accepts a bare ambient AND re-wraps an already-@c Set
+  // operand) and delegate to the @c Set x @c Set overload.  This normalisation
+  // is load- bearing: it TERMINATES the generic dispatch.  Spelling @c a @c *
+  // @c b here instead would recurse on a mixed @c UniversalSet x @c Set pair
+  // (no
+  // @c operator*(UniversalSet, Set), so it re-enters this generic).
+  const auto left = Set{a};
+  const auto right = Set{b};
   return cartesian_product(left, right);
 }
 

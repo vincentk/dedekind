@@ -38,20 +38,23 @@ constexpr bool is_integral_coordinate(double x) {
 // version of this lattice∩square singleton lives in
 // analysis/pruning_showcases_test.cpp (showcase 2), which is a
 // static_assert/STATIC_CHECK test, not an IR fixture.
-constexpr auto c = element<ℂ_d>;
-
+// Complex real()/imag() component predicates are not π-projectable, so
+// NAMED-predicate comprehensions over the ℂ_d ambient.
 // Lifted natural-number lattice: Gaussian integers with 0 ≤ Re, Im ≤ 3
-constexpr auto natural_lattice_in_c = Set{c | [](const Complex<double>& z) {
+constexpr auto in_natural_lattice = [](const Complex<double>& z) {
   return is_integral_coordinate(z.real()) && is_integral_coordinate(z.imag()) &&
          (z.real() >= 0.0) && (z.real() <= 3.0) && (z.imag() >= 0.0) &&
          (z.imag() <= 3.0);
-}};
+};
+constexpr auto natural_lattice_in_c =
+    Set{Comprehension{ℂ_d, in_natural_lattice}};
 
 // Square region [0.5, 1.5] × [0.5, 1.5] inside ℂ
-constexpr auto square_c1_c2 = Set{c | [](const Complex<double>& z) {
+constexpr auto in_unit_square = [](const Complex<double>& z) {
   return (z.real() >= 0.5) && (z.real() <= 1.5) && (z.imag() >= 0.5) &&
          (z.imag() <= 1.5);
-}};
+};
+constexpr auto square_c1_c2 = Set{Comprehension{ℂ_d, in_unit_square}};
 
 // Intersection contains exactly c₃ = 1 + i
 constexpr auto lattice_square_intersection =

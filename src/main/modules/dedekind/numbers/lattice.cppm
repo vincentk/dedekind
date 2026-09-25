@@ -152,12 +152,14 @@ struct LatticeFactory<R, 1> {
     // This lattice specialisation computes on @c Real<double> (the machine
     // real), so it scouts the materialisable ambient @c ℝ_d --- not the
     // abstract @c ℝ (now the coat-hanger over @c QuadraticReal<2>).
-    auto r = element<ℝ_d>;
-    return Set{r | [n](const Real<double>& x) {
+    // Runtime bound @c n and an integrality gate: not π-expressible, so a NAMED
+    // local predicate over the ℝ_d base (comprehension form).
+    const auto in_bounded_grid = [n](const Real<double>& x) {
       const double v = x.resolve();
       if (!detail::is_integral_coordinate(v)) return false;
       return (v >= 0.0) && (v < static_cast<double>(n));
-    }};
+    };
+    return Set{Comprehension{ℝ_d, in_bounded_grid}};
   }
 };
 

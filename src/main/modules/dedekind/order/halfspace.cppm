@@ -751,60 +751,6 @@ struct OrderInterval
   using cardinality_type = std::conditional_t<is_integer_range, Finite, ℵ_0>;
 };
 
-/** @section halfspace__Halfspace_BoundScout_DSL — BoundScout<auto> × Bound<V>
- *  → Halfspace.
- *
- * Free-function overloads on the post-#551 NTTP-parameterised scout
- * @c BoundScout<auto @c Ambient>.  Same
- * Halfspace<T, V, D, S> result type; downstream collapse machinery
- * (structured_and on halfspace pairs) is unchanged. */
-
-export template <auto Ambient, auto V>
-  requires std::convertible_to<
-               decltype(V), typename dedekind::sets::BoundScout<Ambient>::T> &&
-           (!std::unsigned_integral<
-                typename dedekind::sets::BoundScout<Ambient>::T> ||
-            !std::signed_integral<decltype(V)> || V >= 0)
-constexpr auto operator>(const dedekind::sets::BoundScout<Ambient>&, Bound<V>) {
-  using T = typename dedekind::sets::BoundScout<Ambient>::T;
-  return make_halfspace<T, V, Direction::Upward, Strictness::Strict>();
-}
-
-export template <auto Ambient, auto V>
-  requires std::convertible_to<
-               decltype(V), typename dedekind::sets::BoundScout<Ambient>::T> &&
-           (!std::unsigned_integral<
-                typename dedekind::sets::BoundScout<Ambient>::T> ||
-            !std::signed_integral<decltype(V)> || V >= 0)
-constexpr auto operator>=(const dedekind::sets::BoundScout<Ambient>&,
-                          Bound<V>) {
-  using T = typename dedekind::sets::BoundScout<Ambient>::T;
-  return make_halfspace<T, V, Direction::Upward, Strictness::NonStrict>();
-}
-
-export template <auto Ambient, auto V>
-  requires std::convertible_to<
-               decltype(V), typename dedekind::sets::BoundScout<Ambient>::T> &&
-           (!std::unsigned_integral<
-                typename dedekind::sets::BoundScout<Ambient>::T> ||
-            !std::signed_integral<decltype(V)> || V >= 0)
-constexpr auto operator<(const dedekind::sets::BoundScout<Ambient>&, Bound<V>) {
-  using T = typename dedekind::sets::BoundScout<Ambient>::T;
-  return make_halfspace<T, V, Direction::Downward, Strictness::Strict>();
-}
-
-export template <auto Ambient, auto V>
-  requires std::convertible_to<
-               decltype(V), typename dedekind::sets::BoundScout<Ambient>::T> &&
-           (!std::unsigned_integral<
-                typename dedekind::sets::BoundScout<Ambient>::T> ||
-            !std::signed_integral<decltype(V)> || V >= 0)
-constexpr auto operator<=(const dedekind::sets::BoundScout<Ambient>&,
-                          Bound<V>) {
-  using T = typename dedekind::sets::BoundScout<Ambient>::T;
-  return make_halfspace<T, V, Direction::Downward, Strictness::NonStrict>();
-}
-
 /** @section halfspace__Halfspace_Structural_Algebra — ADL hooks for operator&&.
  */
 
@@ -1279,37 +1225,25 @@ static_assert(((𝔹 | (π == fix(true_c))) & ~(𝔹 | (π == fix(true_c)))) == 
 // see that overload; declared here it would resolve `&` to the generic sets
 // reducer (→ MeetSet) instead.  Same witness-ordering class as #935.
 
-/** @section halfspace__PointFree_Scout_Decidability_848
+/** @section halfspace__PointFree_Decidability_848
  *
- * #848 acceptance witness: the point-free comprehension @c ℕ @c | @c pred and
- * the (deprecated) scout spelling @c element<ℕ> @c | @c pred now classify
- * IDENTICALLY on the carrier-axis decidability resolver.  The point-free path
- * reduces to a bare @c Halfspace, whose freshly-threaded @c cardinality_type
- * (see the struct, @c ℵ_0 over the countable @c ℕ) makes @c NaturalLogic read
- * the same @c Boole verdict the scout @c Comprehension inherits from its
- * ambient @c C.  Before the thread @c NaturalLogic<Halfspace> hit its
- * pessimistic primary-template fallback (@c Kleene / @c TernaryLogic). */
-namespace detail_848_pointfree_scout {
-using PointFree = decltype(ℕ | (π > fix(5_c)));
-using Scout = decltype(element<ℕ> | (element<ℕ> > bound<5>));
+ * #848 acceptance witness: the point-free comprehension @c ℕ @c | @c pred
+ * reduces to a bare @c Halfspace, whose threaded @c cardinality_type (see the
+ * struct, @c ℵ_0 over the countable @c ℕ) makes @c NaturalLogic read the
+ * @c Boole verdict --- decidable membership.  Before the thread
+ * @c NaturalLogic<Halfspace> hit its pessimistic primary-template fallback
+ * (@c Kleene / @c TernaryLogic), mis-classifying the countable case. */
+namespace detail_848_pointfree {
+using PointFree = decltype(ℕ | (χ > fix(5_c)));
 
-// The raw comprehensions agree on the NaturalLogic (carrier-axis) verdict.
-static_assert(std::same_as<typename NaturalLogic<PointFree>::type,
-                           typename NaturalLogic<Scout>::type>,
-              "#848: point-free ℕ|pred and scout element<ℕ>|pred yield the "
-              "same NaturalLogic verdict.");
+// The bare comprehension is carrier-axis countable (ℵ₀), hence Boole.
 static_assert(std::same_as<typename NaturalLogic<PointFree>::type, Boole>,
               "#848: {x∈ℕ | x>5} is carrier-axis countable (ℵ₀), hence Boole "
               "(decidable membership), NOT the Kleene fallback.");
 
-// And the observable symptom 1: the Set-wrapped forms agree on decidable
-// membership (the Set CTAD keys the logic species off NaturalLogic<inner>).
-static_assert(HasDecidableMembership<decltype(Set{ℕ | (π > fix(5_c))})> ==
-                  HasDecidableMembership<decltype(Set{
-                      element<ℕ> | (element<ℕ> > bound<5>)})>,
-              "#848: Set{ℕ|pred} and Set{element<ℕ>|pred} agree on "
-              "HasDecidableMembership.");
-static_assert(HasDecidableMembership<decltype(Set{ℕ | (π > fix(5_c))})>,
+// Observable symptom: the Set-wrapped form is decidable (the Set CTAD keys the
+// logic species off NaturalLogic<inner>).
+static_assert(HasDecidableMembership<decltype(Set{ℕ | (χ > fix(5_c))})>,
               "#848: Set{ℕ | x>5} is a decidable (ClassicalLogic) set.");
 
 // The continuum leg (ℝ) stays honestly ternary through the SAME thread: a real
@@ -1321,7 +1255,7 @@ static_assert(
                                         Strictness::Strict, Kleene>>::type,
         Kleene>,
     "#848: a real (ℶ₁) halfspace stays Kleene/ternary.");
-}  // namespace detail_848_pointfree_scout
+}  // namespace detail_848_pointfree
 
 /** @brief Comparison flavour for the relational predicates. */
 export enum class Rel { Lt, Le, Gt, Ge, Eq, Ne };

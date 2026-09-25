@@ -143,11 +143,9 @@ static_assert(!dedekind::category::IsPullback<
 
 TEST_CASE("Dedekind MVP: Basic Membership and Symbols", "[sets]") {
   SECTION("Integer Universe Membership") {
-    auto x = element<𝔸<int>>;  // A variable representing an element of
-                               // the integer universe
-
-    // Should be Set<int, Boole>
-    auto finite = Set{x % singleton(1) | (x == 1)};
+    // Equality to a value IS the singleton (the monad unit η), not a
+    // comparison predicate: {x | x == 1} = η(1).
+    auto finite = η(1);
     REQUIRE(finite(1) == true);
     REQUIRE(finite(2) == false);
   }
@@ -157,8 +155,8 @@ TEST_CASE("Dedekind MVP: Basic Membership and Symbols", "[sets]") {
     // carrier is Cardinality (the variant ℕ-proxy from #402, which
     // accepts unsigned literals via implicit construction).  Callsites
     // here use unsigned values that lift into Cardinality.
-    auto n = element<ℕ>;
-    auto infinite = Set{n | (n > 0u)};
+    constexpr auto gt_zero = [](const auto& v) { return v > 0u; };
+    auto infinite = Set{Comprehension{ℕ, gt_zero}};
     REQUIRE(infinite(5u));
     REQUIRE_FALSE(infinite(0u));
   }
@@ -166,7 +164,13 @@ TEST_CASE("Dedekind MVP: Basic Membership and Symbols", "[sets]") {
 
 TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
           "[sets][operators]") {
-  auto x = element<ℕ>;
+  // A :sets test may not import :order, so the §469 halfspace-style sets are
+  // built from NAMED opaque predicates (comprehension) rather than the
+  // point-free χ/fix halfspace grammar; this also preserves the capturing-
+  // predicate Set shape these structural (^ / & / !) collapse tests exercise.
+  constexpr auto gt_10 = [](const auto& v) { return v > 10u; };
+  constexpr auto lt_5 = [](const auto& v) { return v < 5u; };
+  constexpr auto lt_100 = [](const auto& v) { return v < 100u; };
 
   SECTION(
       "Singleton ^ Singleton — equal pivots empty, distinct pivots union "
@@ -188,8 +192,8 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
   }
 
   SECTION("Singleton ^ Set — pivot toggles membership (#469)") {
-    auto x_int = element<𝔸<int>>;
-    auto positives = Set{x_int % UniversalSet<int>{} | (x_int > 0)};
+    constexpr auto gt_zero = [](const auto& v) { return v > 0; };
+    auto positives = Set{Comprehension{UniversalSet<int>{}, gt_zero}};
     auto sing_in_set = singleton(5);
     auto sing_out_set = singleton(-3);
     auto in_xor = sing_in_set ^ positives;    // 5 ∈ positives → result drops 5
@@ -206,7 +210,7 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
   }
 
   SECTION("Boundary collapses: A ^ ∅ = A, ∅ ^ A = A (#469)") {
-    auto S = Set{x | x > 10u};
+    auto S = Set{Comprehension{ℕ, gt_10}};
     // Use the deduced Domain / logic species from S rather than
     // hard-coding `unsigned int` / Kleene — the carrier choice
     // is set by N's CTAD, and the test should not pre-empt it.
@@ -226,7 +230,7 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
   }
 
   SECTION("Boundary collapses: A ^ 𝔸 = ¬A, 𝔸 ^ A = ¬A (#469)") {
-    auto S = Set{x | x > 10u};
+    auto S = Set{Comprehension{ℕ, gt_10}};
     using SDomain = decltype(S)::Domain;
     using SLogic = decltype(S)::logic_species;
     UniversalSet<SDomain, SLogic> universe{};
@@ -245,7 +249,7 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
     // different sets — see the stateful-predicate-disjoint-instances
     // section below).  The honest claim is therefore the runtime one:
     // for any Set S, S ^ S evaluates to false at every input.
-    auto S = Set{x | x > 10u};
+    auto S = Set{Comprehension{ℕ, gt_10}};
     auto S_xor_S = S ^ S;
     REQUIRE_FALSE(S_xor_S(5u));
     REQUIRE_FALSE(S_xor_S(50u));
@@ -263,9 +267,8 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
     // pair regardless of the .expected field.
     using BoolAmbient = UniversalSet<bool, Boole, Finite>;
     constexpr BoolAmbient B_bool{};
-    constexpr auto b = element<𝔸<bool>>;
-    auto only_true = Set{b % B_bool | (b == true)};
-    auto only_false = Set{b % B_bool | (b == false)};
+    auto only_true = Set{Comprehension{B_bool, BooleanEqPredicate{true}}};
+    auto only_false = Set{Comprehension{B_bool, BooleanEqPredicate{false}}};
     auto sym_diff = only_true ^ only_false;
     // The symmetric difference of two disjoint singletons is their
     // union — every element of {true, false} appears in exactly one,
@@ -282,8 +285,8 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
     // the intersection at the type level, so A & B reduces to
     // Ø<unsigned int, Kleene>.  In that case A ^ B should
     // collapse to A | B (no XOR formula needed in the result lambda).
-    auto A = Set{x | x > 10u};
-    auto B = Set{x | x < 5u};
+    auto A = Set{Comprehension{ℕ, gt_10}};
+    auto B = Set{Comprehension{ℕ, lt_5}};
     auto sym_diff_disjoint = A ^ B;
     auto union_disjoint = A | B;
     // Membership matches the union (since the intersection is empty,
@@ -304,8 +307,8 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
     // !some_set), the operator^ peels the negation outward.
     // Resulting semantic: x ∈ A ^ ¬B iff x is in exactly one, which
     // is equivalent to x ∈ A ↔ x ∈ B (the biconditional).
-    auto A = Set{x | x > 10u};
-    auto B = Set{x | x < 100u};
+    auto A = Set{Comprehension{ℕ, gt_10}};
+    auto B = Set{Comprehension{ℕ, lt_100}};
     auto sym_diff_neg = A ^ !B;
     auto biconditional = !(A ^ B);
     // Both should agree pointwise: A ^ ¬B = ¬(A ^ B).
@@ -332,7 +335,7 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
     // which leaves the result a Set<T, L, lambda> that pointwise
     // evaluates to true at every input.  We test the runtime
     // semantics rather than the structural type.
-    auto S = Set{x | x > 10u};
+    auto S = Set{Comprehension{ℕ, gt_10}};
     auto S_xor_notS = S ^ !S;
     REQUIRE(S_xor_notS(5u));
     REQUIRE(S_xor_notS(50u));
@@ -340,8 +343,8 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
   }
 
   SECTION("Membership: x ∈ A ^ B iff x is in exactly one") {
-    auto A = Set{x | x > 10u};
-    auto B = Set{x | x < 100u};
+    auto A = Set{Comprehension{ℕ, gt_10}};
+    auto B = Set{Comprehension{ℕ, lt_100}};
     auto sym_diff = A ^ B;
     // 5: in B only (5 < 100, 5 ≯ 10) → in symmetric difference
     REQUIRE(sym_diff(5u));
@@ -352,8 +355,8 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
   }
 
   SECTION("Textbook identity: A ^ B == (A | B) & !(A & B)") {
-    auto A = Set{x | x > 10u};
-    auto B = Set{x | x < 100u};
+    auto A = Set{Comprehension{ℕ, gt_10}};
+    auto B = Set{Comprehension{ℕ, lt_100}};
     auto sym_diff = A ^ B;
     auto union_minus_inter = (A | B) & !(A & B);
     REQUIRE(sym_diff(5u) == union_minus_inter(5u));
@@ -363,8 +366,6 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
 }
 
 TEST_CASE("Dedekind Identities: Extremal Collapse", "[sets][identities]") {
-  auto x = element<ℕ>;
-
   SECTION("Identity: Set{N} is N") {
     // Naturals remain stable when materialized through Set{...}.
     auto U = Set{N};
@@ -382,7 +383,10 @@ TEST_CASE("Dedekind Identities: Extremal Collapse", "[sets][identities]") {
 
   SECTION("Contradiction: {x ∈ ℕ | x > 10 ∧ x < 5} is ∅") {
     // Here we combine the symbolic predicates
-    auto S = Set{x | (x > 10u && x < 5u)};
+    constexpr auto gt10_and_lt5 = [](const auto& v) {
+      return (v > 10u) && (v < 5u);
+    };
+    auto S = Set{Comprehension{ℕ, gt10_and_lt5}};
 
     // For a non-trivial polish, we verify it is 'Total Absence'
     REQUIRE_FALSE(S(0u));
@@ -391,7 +395,10 @@ TEST_CASE("Dedekind Identities: Extremal Collapse", "[sets][identities]") {
   }
 
   SECTION("Tautology: {x ∈ ℕ | x > 10 ∨ x <= 10} is 𝔸") {
-    auto S = Set{x | (x > 10u || x <= 10u)};
+    constexpr auto gt10_or_le10 = [](const auto& v) {
+      return (v > 10u) || (v <= 10u);
+    };
+    auto S = Set{Comprehension{ℕ, gt10_or_le10}};
     REQUIRE(S(7u));
   }
 }
@@ -401,10 +408,9 @@ TEST_CASE("Dedekind Identities: Boolean literals collapse over 𝔹",
   using BoolAmbient = UniversalSet<bool, Boole, Finite>;
   constexpr BoolAmbient B_bool{};
 
-  constexpr auto b = element<𝔸<bool>>;
-
-  constexpr auto b_false = Set{b % B_bool | !b};
-  constexpr auto b_true = Set{b % B_bool | (b == true)};
+  constexpr auto b_false =
+      Set{Comprehension{B_bool, BooleanEqPredicate{false}}};
+  constexpr auto b_true = Set{Comprehension{B_bool, BooleanEqPredicate{true}}};
 
   STATIC_CHECK(Ø<bool, Boole>{} == (b_false & b_true));
   STATIC_CHECK(B_bool == (b_false | b_true));
@@ -425,14 +431,16 @@ TEST_CASE(
   using BoolAmbient = UniversalSet<bool, Boole, Finite>;
   constexpr BoolAmbient B_bool{};
 
-  constexpr auto b = element<𝔸<bool>>;
-
-  // Bare-b form (the issue's target ergonomics).
-  constexpr auto b_true_bare = Set{b % B_bool | b};
+  // Bare-b form (the issue's target ergonomics): the truthy predicate IS
+  // BooleanEqPredicate{true}, the canonical bool-domain predicate.
+  constexpr auto b_true_bare =
+      Set{Comprehension{B_bool, BooleanEqPredicate{true}}};
   // Equivalent comparison form.
-  constexpr auto b_true_eq = Set{b % B_bool | (b == true)};
+  constexpr auto b_true_eq =
+      Set{Comprehension{B_bool, BooleanEqPredicate{true}}};
   // Negated bare-b form.
-  constexpr auto b_false = Set{b % B_bool | !b};
+  constexpr auto b_false =
+      Set{Comprehension{B_bool, BooleanEqPredicate{false}}};
 
   // The collapse machinery treats both bare-b and (b == true) as the
   // same predicate (BooleanEqPredicate{true}) so the static_asserts
@@ -450,10 +458,10 @@ TEST_CASE("Dedekind Sets: Cartesian product witnesses", "[sets][cartesian]") {
   // is_single_valued_at) moved with their concepts to
   // relational/relation_core_test (the concept left :sets, so its test did
   // too --- the test DAG imports upstream only).
-  auto x = element<𝔸<int>>;
-
-  const auto positive = Set{x % UniversalSet<int>{} | (x > 0)};
-  const auto small = Set{x % UniversalSet<int>{} | (x <= 3)};
+  constexpr auto gt_zero = [](const auto& v) { return v > 0; };
+  constexpr auto le_three = [](const auto& v) { return v <= 3; };
+  const auto positive = Set{Comprehension{UniversalSet<int>{}, gt_zero}};
+  const auto small = Set{Comprehension{UniversalSet<int>{}, le_three}};
 
   const auto product = cartesian_product(positive, small);
   using ProductDomain = typename decltype(product)::Domain;

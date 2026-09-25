@@ -127,8 +127,12 @@ TEST_CASE("order:powerset — 𝔓(S) is a bona-fide IsSet over Sub(C) (#830)",
     // selects the deleted :sets default (type-check failure) rather than the
     // ordered overload.  A general filtered set {x ∈ ℤ | x > 0} is exactly such
     // a base.
-    auto x = element<𝔸<int>>;
-    auto positives = Set{x % UniversalSet<int>{} | (x > 0)};
+    // NOTE(#895 L3): kept a NAMED-predicate comprehension, NOT the point-free
+    // `𝔸<int> | (π > fix(0_c))` halfspace: this case's whole premise is a
+    // general filtered set with NO convex Sub(C) coercion (@c !SubReifiable); a
+    // halfspace IS convex/reifiable and would defeat the assertion below.
+    constexpr auto is_positive = [](const auto& v) { return v > 0; };
+    auto positives = Set{Comprehension{UniversalSet<int>{}, is_positive}};
     using G = std::remove_cvref_t<decltype(positives)>;
     STATIC_CHECK(SetShaped<G>);  // it IS a set...
     STATIC_CHECK(

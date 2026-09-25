@@ -155,12 +155,11 @@ TEST_CASE("Topology: Rules of Continuity Coverage", "[topology][continuity]") {
     using namespace dedekind::category;
     using namespace dedekind::sets;
 
-    auto x = element<𝔸<int>>;
     UnitInterval open_mid(0, 3);
 
-    auto in_open_mid =
-        Set{x % UniversalSet<int>{} |
-            [open_mid](const int& value) { return open_mid(value); }};
+    // @c open_mid is itself the membership predicate; pass it directly (no
+    // forwarding lambda).
+    auto in_open_mid = Set{Comprehension{UniversalSet<int>{}, open_mid}};
 
     CHECK(in_open_mid(1));
     CHECK_FALSE(in_open_mid(0));

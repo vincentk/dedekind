@@ -36,16 +36,19 @@ namespace {
 // Shared with showcase 1 (ℝ² diagonal × strip).
 constexpr auto R2 = R * R;
 using R2Point = typename decltype(R2)::Domain;
-// FIXME(#399 slice 4-6): see showcase_01 source for the same comment.
-constexpr auto xy = element<𝔸<R2Point>>;
-
 // The diagonal {x == y}: reuse the set-expression operator== on the projections
-// (π1 == π2), not a hand lambda — over the SAME xy % R2 base as `strip`, so the
-// element type tracks R2 (Real<double> under the double-real proxy, else
-// double) and diag & strip stays well-typed.
-constexpr auto diag = Set{xy % R2 | π1 == π2};
-constexpr auto strip = Set{
-    xy % R2 | [](R2Point p) { return (p.first > 5.0) && (p.second < 3.0); }};
+// (π1 == π2), not a hand lambda, over the R2 base, so the element type tracks
+// R2 (Real<double> under the double-real proxy, else double) and diag & strip
+// stays well-typed.  Kept as the exact scout-equivalent @c Comprehension<R2,
+// π1==π2> to guarantee the showcase compiles (Trsk `R2 | (π1==π2)` is an
+// equivalent point-free spelling; CI-gated).
+constexpr auto diag = Set{Comprehension{R2, π1 == π2}};
+// FLAG(#895 L3): pair float bounds; a NAMED predicate (not a hand lambda),
+// candidate point-free `R2 | (π1 > bound<5.0> && π2 < bound<3.0>)`.
+constexpr auto in_strip = [](R2Point p) {
+  return (p.first > 5.0) && (p.second < 3.0);
+};
+constexpr auto strip = Set{Comprehension{R2, in_strip}};
 
 }  // namespace
 
@@ -67,21 +70,23 @@ namespace {
 // Complex<QuadraticReal<2>> scout).
 using QR = QuadraticReal<2>;  // exact real carrier (R2 is taken above for ℝ²)
 using Q = Rational<>;         // for the exact rational thresholds ½, 1½
-constexpr auto c = element<ℂ>;
-
 // A coordinate is a "small natural" iff it is one of 0,1,2,3 — on the EXACT
 // carrier the "integral ∧ 0 ≤ · ≤ 3" test IS membership in {0,1,2,3}.
 constexpr bool is_small_natural(const QR& t) {
   return t == QR{} || t == QR{1} || t == QR{2} || t == QR{3};
 }
 
-constexpr auto natural_lattice_in_c = Set{c | [](const Complex<QR>& z) {
+// Complex real()/imag() component predicates are not π-projectable (π projects
+// pair coordinates, not Complex parts), so NAMED-predicate comprehensions.
+constexpr auto in_natural_lattice = [](const Complex<QR>& z) {
   return is_small_natural(z.real()) && is_small_natural(z.imag());
-}};
-constexpr auto square_c1_c2 = Set{c | [](const Complex<QR>& z) {
+};
+constexpr auto in_unit_square = [](const Complex<QR>& z) {
   return (z.real() >= QR{Q{1, 2}}) && (z.real() <= QR{Q{3, 2}}) &&
          (z.imag() >= QR{Q{1, 2}}) && (z.imag() <= QR{Q{3, 2}});
-}};
+};
+constexpr auto natural_lattice_in_c = Set{Comprehension{ℂ, in_natural_lattice}};
+constexpr auto square_c1_c2 = Set{Comprehension{ℂ, in_unit_square}};
 
 }  // namespace
 
@@ -98,9 +103,8 @@ TEST_CASE("Pruning showcase 2: ℕ² lattice × [½,1½]² in ℂ = {1+i}",
 
 TEST_CASE("Pruning showcase 3: halfspace contradiction on ℕ collapses to Ø",
           "[analysis][pruning][showcase][showcase03]") {
-  constexpr auto n = element<ℕ>;
-  constexpr auto gt_five = Set{n | (n > bound<5>)};
-  constexpr auto lt_three = Set{n | (n < bound<3>)};
+  constexpr auto gt_five = ℕ | (χ > fix(5_c));
+  constexpr auto lt_three = ℕ | (χ < fix(3_c));
 
   constexpr Ø<Cardinality> empty_meet = gt_five & lt_three;
   STATIC_CHECK(empty_meet == Ø<Cardinality>{});
@@ -147,9 +151,8 @@ TEST_CASE("Pruning showcase 5: halfspace meet on ℝ collapses to Ø",
           "[analysis][pruning][showcase][showcase05]") {
   // FIXME(#399 slice 4-6): once ℝ becomes a carrier alias, switch to
   // @c element<𝔸<ℝ>>; for now ℝ is still the predicate-set type.
-  constexpr auto x = element<𝔸<Real<double>>>;
-  constexpr auto gt_five = Set{x | (x > bound<5.0>)};
-  constexpr auto lt_three = Set{x | (x < bound<3.0>)};
+  constexpr auto gt_five = 𝔸<Real<double>> | (χ > bound<5.0>);
+  constexpr auto lt_three = 𝔸<Real<double>> | (χ < bound<3.0>);
 
   constexpr Ø<Real<double>> empty_meet = gt_five & lt_three;
   STATIC_CHECK(empty_meet == Ø<Real<double>>{});
@@ -162,9 +165,8 @@ TEST_CASE("Pruning showcase 5: halfspace meet on ℝ collapses to Ø",
 
 TEST_CASE("Pruning showcase 6: (-21, 21] on ℤ has size 42",
           "[analysis][pruning][showcase][showcase06]") {
-  constexpr auto n = element<ℤ>;
-  constexpr auto above = Set{n | (n > bound<-21>)};
-  constexpr auto at_most = Set{n | (n <= bound<21>)};
+  constexpr auto above = ℤ | (χ > fix(-21_c));
+  constexpr auto at_most = ℤ | (χ <= fix(21_c));
 
   constexpr auto iv = above & at_most;
   using Iv = std::decay_t<decltype(iv)>;
@@ -203,9 +205,8 @@ TEST_CASE("Pruning showcase 7: ℤ lattice ∩ real interval (-21.0, 21.0]",
   // because the canonical @c IntegersOf<> carried @c Domain @c =
   // @c SEC<>; under #551 the scout itself knows its ambient (𝔸<int>),
   // so no local predicate-set is needed.
-  constexpr auto n = element<𝔸<int>>;
-  constexpr auto above = Set{n | (n > bound<-21.0>)};
-  constexpr auto at_most = Set{n | (n <= bound<21.0>)};
+  constexpr auto above = 𝔸<int> | (χ > bound<-21.0>);
+  constexpr auto at_most = 𝔸<int> | (χ <= bound<21.0>);
 
   constexpr auto lattice_cut = above & at_most;
   using Iv = std::decay_t<decltype(lattice_cut)>;
@@ -219,9 +220,8 @@ TEST_CASE("Pruning showcase 7: ℤ lattice ∩ real interval (-21.0, 21.0]",
 
 TEST_CASE("Pruning showcase 8: 2D rectangle via IntervalProduct",
           "[analysis][pruning][showcase][showcase08]") {
-  constexpr auto n = element<ℤ>;
-  constexpr auto I_wide = Set{n | (n > bound<-21>)} & Set{n | (n <= bound<21>)};
-  constexpr auto I_tall = Set{n | (n >= bound<0>)} & Set{n | (n <= bound<10>)};
+  constexpr auto I_wide = (ℤ | (χ > fix(-21_c))) & (ℤ | (χ <= fix(21_c)));
+  constexpr auto I_tall = (ℤ | (χ >= fix(0_c))) & (ℤ | (χ <= fix(10_c)));
 
   constexpr auto box = I_wide * I_tall;
 

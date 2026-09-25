@@ -14,16 +14,20 @@ using namespace dedekind::relational;
 namespace {
 
 // Even integers in [0, 10)
-constexpr auto evens_0_10 = [] {
-  auto x = element<ℕ>;
-  return Set{x | [](const auto& v) { return (v < 10u) && (v % 2u == 0u); }};
-}();
+// FLAG(#895 L3): mixed bound + congruence.  A :relational test may not import
+// :order, so the point-free `π < fix(10_c) && π % fix(2_c) == fix(0_c)` grammar
+// is unavailable here; these stay NAMED-predicate comprehensions (not inline
+// lambdas).
+constexpr auto even_below_ten = [](const auto& v) {
+  return (v < 10u) && (v % 2u == 0u);
+};
+constexpr auto evens_0_10 = Set{Comprehension{ℕ, even_below_ten}};
 
 // Multiples of 3 in [0, 10)
-constexpr auto threes_0_10 = [] {
-  auto x = element<ℕ>;
-  return Set{x | [](const auto& v) { return (v < 10u) && (v % 3u == 0u); }};
-}();
+constexpr auto three_below_ten = [](const auto& v) {
+  return (v < 10u) && (v % 3u == 0u);
+};
+constexpr auto threes_0_10 = Set{Comprehension{ℕ, three_below_ten}};
 
 }  // namespace
 
@@ -135,20 +139,22 @@ TEST_CASE("Relational Algebra: Intersection (∩)", "[sets][relational]") {
 // ---------------------------------------------------------------------------
 TEST_CASE("Relational Algebra: Natural Join (⋈)", "[sets][relational]") {
   // Relation R1: {(a, b) | 0 <= a < 4 and b = a + 1}  (successor pairs)
-  auto s1 = element<𝔸<std::pair<int, int>>>;
+  // FLAG(#895 L3): affine/multiplicative pair relations (c = a+1, c = a*2).
+  // Candidates for the point-free relpred grammar (π1/π2, π1+fix==π2), but a
+  // :relational test may not import :order and the multiplicative case is not
+  // obviously π-expressible; kept as NAMED-predicate comprehensions.
+  constexpr auto is_succ_pair = [](const std::pair<int, int>& p) {
+    return (p.first >= 0) && (p.first < 4) && (p.second == p.first + 1);
+  };
   const auto succ =
-      Set{s1 % UniversalSet<std::pair<int, int>>{} |
-          [](const std::pair<int, int>& p) {
-            return (p.first >= 0) && (p.first < 4) && (p.second == p.first + 1);
-          }};
+      Set{Comprehension{UniversalSet<std::pair<int, int>>{}, is_succ_pair}};
 
   // Relation R2: {(b, c) | 0 <= b < 5 and c = b * 2}  (double pairs)
-  auto s2 = element<𝔸<std::pair<int, int>>>;
+  constexpr auto is_double_pair = [](const std::pair<int, int>& p) {
+    return (p.first >= 0) && (p.first < 5) && (p.second == p.first * 2);
+  };
   const auto dbl =
-      Set{s2 % UniversalSet<std::pair<int, int>>{} |
-          [](const std::pair<int, int>& p) {
-            return (p.first >= 0) && (p.first < 5) && (p.second == p.first * 2);
-          }};
+      Set{Comprehension{UniversalSet<std::pair<int, int>>{}, is_double_pair}};
 
   // Join: succ ⋈ dbl = {(a, b, c) | b = a+1 and c = b*2}
   // => (0,1,2), (1,2,4), (2,3,6), (3,4,8)

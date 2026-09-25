@@ -118,11 +118,10 @@ TEST_CASE("Geometry: unbounded lattice relations", "[geometry][lattice]") {
 
   SECTION(
       "Bounded natural grid can be derived from unbounded natural lattice") {
-    auto p = element<𝔸<NaturalLatticePoint2D>>;
-    const auto bounded =
-        Set{p % natural_lattice_2d() | [](const NaturalLatticePoint2D& q) {
-          return (q.first < 4u) && (q.second < 4u);
-        }};
+    constexpr auto bounded_grid = [](const NaturalLatticePoint2D& q) {
+      return (q.first < 4u) && (q.second < 4u);
+    };
+    const auto bounded = Set{Comprehension{natural_lattice_2d(), bounded_grid}};
     using Logic = typename decltype(bounded)::logic_species;
     REQUIRE(bounded({0u, 0u}) == Logic::True);
     REQUIRE(bounded({3u, 3u}) == Logic::True);
@@ -131,15 +130,17 @@ TEST_CASE("Geometry: unbounded lattice relations", "[geometry][lattice]") {
   }
 
   SECTION("Half-space and interval restrictions from integer lattice") {
-    auto p = element<𝔸<IntegerLatticePoint2D>>;
+    constexpr auto first_nonneg = [](const IntegerLatticePoint2D& q) {
+      return q.first >= 0;
+    };
+    constexpr auto interval_box_pred = [](const IntegerLatticePoint2D& q) {
+      return (q.first >= -2) && (q.first < 2) && (q.second >= -2) &&
+             (q.second < 2);
+    };
     const auto half_space =
-        Set{p % integer_lattice_2d() |
-            [](const IntegerLatticePoint2D& q) { return q.first >= 0; }};
+        Set{Comprehension{integer_lattice_2d(), first_nonneg}};
     const auto interval_box =
-        Set{p % integer_lattice_2d() | [](const IntegerLatticePoint2D& q) {
-          return (q.first >= -2) && (q.first < 2) && (q.second >= -2) &&
-                 (q.second < 2);
-        }};
+        Set{Comprehension{integer_lattice_2d(), interval_box_pred}};
 
     using HalfLogic = typename decltype(half_space)::logic_species;
     using BoxLogic = typename decltype(interval_box)::logic_species;

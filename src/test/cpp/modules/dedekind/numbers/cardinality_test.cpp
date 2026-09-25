@@ -7,10 +7,12 @@
 
 import dedekind.category;
 import dedekind.numbers;
+import dedekind.order; // point-free χ / fix / _c halfspace grammar
 
 using namespace dedekind::category;
 using namespace dedekind::numbers;
 using namespace dedekind::sets;
+using namespace dedekind::order;
 
 TEST_CASE("Numbers: Cardinality draft policy", "[numbers][cardinality]") {
   SECTION("Finite and ℵ_0 comparison policy") {
@@ -548,9 +550,8 @@ TEST_CASE(
   // the @c & / @c | overloads (gated on @c same_as<L1, L2>) to fire.
   using L = Boole;
   SECTION("Set<ℕ> & Set<ℤ> tightens to Set<ℕ>") {
-    constexpr auto n = element<ℕ>;
     constexpr auto positive_n =
-        Set{n | (n > 5u)};  // {6, 7, 8, …} ⊂ Cardinality
+        Set{ℕ | (χ > fix(5_c))};  // {6, 7, 8, …} ⊂ Cardinality
     auto bounded_pred = [](const SignedCardinality& v) {
       // {…, -1, 0, …, 10} ⊂ ℤ
       return (v <= 10) ? L::True : L::False;
@@ -569,8 +570,12 @@ TEST_CASE(
     CHECK_FALSE(meet(finite_cardinality(5)));
   }
   SECTION("Set<ℕ> | Set<ℤ> widens to Set<ℤ> ({1} ∪ {-1} ⊂ ℤ)") {
-    constexpr auto n = element<ℕ>;
-    constexpr auto one_n = Set{n | (n == 1u)};  // {1} ⊂ Cardinality
+    // Equality over the variant Cardinality carrier can't go point-free: an
+    // NTTP `χ == fix(1_c)` builds an UnboundSingleton<1> whose int value does
+    // not bind to the variant, and the widening test below needs one_n to stay
+    // a Set<Cardinality,...>, not an η singleton.  So a named predicate.
+    constexpr auto eq_one = [](const auto& v) { return v == 1u; };
+    constexpr auto one_n = Set{Comprehension{ℕ, eq_one}};  // {1} ⊂ Cardinality
     auto neg_one_pred = [](const SignedCardinality& v) {
       return (v == -1) ? L::True : L::False;
     };
@@ -590,15 +595,15 @@ TEST_CASE(
     CHECK_FALSE(union_set(finite_signed_cardinality(-2)));
   }
   SECTION("Symmetric direction: Set<ℤ> & Set<ℕ> still tightens to Set<ℕ>") {
-    constexpr auto n = element<ℕ>;
     auto bounded_pred = [](const SignedCardinality& v) {
       return (v >= -3) ? L::True
                        : L::False;  // {-3, -2, …} ⊂ SignedExtensionalCardinal<>
     };
     const Set<SignedCardinality, L, decltype(bounded_pred)> bounded_z{
         bounded_pred};
-    constexpr auto small_n = Set{n | (n < 5u)};  // {0, …, 4} ⊂ Cardinality
-    const auto meet = bounded_z & small_n;       // {0, …, 4} ⊂ Cardinality
+    constexpr auto small_n =
+        Set{ℕ | (χ < fix(5_c))};            // {0, …, 4} ⊂ Cardinality
+    const auto meet = bounded_z & small_n;  // {0, …, 4} ⊂ Cardinality
     STATIC_CHECK(std::same_as<typename decltype(meet)::Domain, Cardinality>);
     CHECK(meet(finite_cardinality(0)));
     CHECK(meet(finite_cardinality(4)));
