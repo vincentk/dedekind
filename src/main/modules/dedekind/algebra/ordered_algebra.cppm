@@ -302,7 +302,7 @@ static_assert(dedekind::category::IsVariant<
 // functor concept classifies a real carrier arrow, not a toy.
 static_assert(dedekind::category::IsContravariantFunctor<
                   AdditiveInverse<dedekind::sets::SignedCardinality>>,
-              "-x on ℤ is a contravariant functor (order-reversing) — "
+              "-x on ℤ is a contravariant functor (order-reversing): "
               "variance-functor concept witnessed downstream.");
 
 // The additive inverse is an antitone INVOLUTION (-(-x) = x), hence a

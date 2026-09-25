@@ -342,6 +342,26 @@ export template <typename F, typename Op = std::less_equal<>>
 concept IsVariantFunctor = IsVariant<F, Op>;
 
 /**
+ * @concept IsOrderEmbedding
+ * @brief An @b order-preserving embedding: a monic, order-preserving arrow of
+ *        one ordered set into another.  Such an embedding @b is a covariant
+ *        functor between the two posetal categories, so @c IsCovariantFunctor
+ * is a conjunct --- the classification is @b derived from the two legs
+ *        (@c IsEmbeddingFunctor @c && @c IsMonotone), not re-declared per
+ *        carrier (#908).
+ * @details The general rule behind the per-carrier witnesses: the carrier-
+ *          lattice inclusions @c ℕ↪ℤ↪ℚ↪ℝ (e.g.\ @c :morphologies'
+ *          @c embed_sint_ℤ_) each satisfy it, and each is thereby a covariant
+ *          functor.  Naming the composite once lets a downstream site witness
+ *          @c IsOrderEmbedding rather than re-deriving both legs, and makes the
+ *          "order-embedding @c ⟹ covariant functor" inference visible.
+ * @tparam F  the embedding arrow.
+ * @tparam Op the order it preserves; defaults to @c std::less_equal<>.
+ */
+export template <typename F, typename Op = std::less_equal<>>
+concept IsOrderEmbedding = IsEmbeddingFunctor<F> && IsCovariantFunctor<F, Op>;
+
+/**
  * @concept IsGaloisConnection
  * @brief @b Structural @b shape: @c F and @c G form a Galois
  *        connection @c F ⊣ @c G in a posetal setting — the simplest
