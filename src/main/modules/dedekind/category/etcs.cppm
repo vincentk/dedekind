@@ -71,10 +71,9 @@
  *
  * The @c IsSubobject / @c IsConcrete concreteness CONCEPTS live in
  * @c :concrete; this partition imports it and adds the ETCS-specific axiom
- * witnesses on top.  The @c χ-based set-operation FUNCTIONS
- * (@c set_intersection / @c set_union / @c set_complement / @c in / @c in_via /
- * @c meet / @c join / @c complement) live in @c dedekind.sets (#834), where set
- * operations belong and collapse through @c operator&.
+ * witnesses on top.  Membership @c in / @c in_via lives in @c :concrete
+ * (χ-evaluation); the set-lattice operations are the operators @c operator& /
+ * @c | / @c ! in @c dedekind.sets.
  *
  * @see Lawvere, F.W. (1964) "An Elementary Theory of the Category of Sets"
  * @see McLarty, C. (1993) "Numbers can be just what they have to"
@@ -119,14 +118,11 @@ import :topoi;
 
 namespace dedekind::category {
 
-// NOTE (#636 re-home, #834 correction): the concreteness CONCEPTS ---
-// @c IsSubobject, @c HasTernarySupport, @c IsCompatibleSetPair,
-// @c compose_embedding, and the @c IsConcrete<C> umbrella --- live in
-// @c :concrete.  The set-op FUNCTIONS (@c set_intersection / @c set_union /
-// @c set_complement, @c in / @c in_via, @c meet / @c join / @c complement)
-// belong in @c dedekind.sets and moved there (#834), where they collapse
-// through @c operator&; #636 had misfiled them here.  @c :etcs retains the
-// ETCS-specific axiom
+// NOTE: the concreteness CONCEPTS --- @c IsSubobject, @c HasTernarySupport,
+// @c IsCompatibleSetPair, @c compose_embedding, and the @c IsConcrete<C>
+// umbrella --- live in @c :concrete, as does membership @c in / @c in_via
+// (χ-evaluation).  The set-lattice operations are the operators @c operator& /
+// @c | / @c ! in @c dedekind.sets.  @c :etcs retains the ETCS-specific axiom
 // witnesses (@c HasAxiom1..10, @c HasETCSAxioms, @c IsSet) and imports
 // @c :concrete as the structural prerequisite.  Concept-as-predicate
 // reading: @c IsSet<A> requires the ETCS axioms over the carrier's
@@ -295,42 +291,26 @@ concept HasAxiom7PullbackReindexingDefinitionalSurface =
  * proper (every epimorphism splits) is aspirational and not yet encoded
  * here.
  *
- * @section etcs__Axiom_10_Slice_9_Generalisation
- * #698 Slice 9 adds a single typedef requirement to the body — the
- * carrier must expose its @c logic_species (verified as an
- * @c IsOckhamAlgebra) — alongside the pre-existing @c meet / @c join
- * structural shape.  The classical-direction Boolean refinement
- * (Diaconescu) and the @c complement clause live in the parallel
- * @c :lattice::IsSubobjectLattice / @c IsBooleanSubobjectLattice
- * concepts rather than inside Axiom 10's body — see the Diaconescu
- * note below for why.
- *
- * Concrete carriers (@c Set<T, L, P>, @c Subobject<A, Chi>) provide:
- *   - @c logic_species typedef (the @c L for Sub's classifier);
- *   - free functions @c meet, @c join (and @c complement at the
- *     parallel @c :lattice concept) returning same-family
- *     @c IsSubobjectFamilyMember-shaped results.
+ * @section etcs__Axiom_10_Power_Object_Lattice
+ * The body requires the carrier to expose its @c logic_species, verified as an
+ * @c IsOckhamAlgebra: the subobject lattice @c Sub(A) is INDUCED pointwise from
+ * the classifier @c L (Axiom 7 + Ockham @c L), so the algebraic witness that
+ * @c L is an Ockham algebra is exactly the power-object-lattice content.  The
+ * classical-direction Boolean refinement (Diaconescu) lives in the parallel
+ * @c :lattice::IsSubobjectLattice / @c IsBooleanSubobjectLattice concepts
+ * rather than inside Axiom 10's body; see the Diaconescu note below for why.
  */
 export template <typename S>
 concept HasAxiom10PowerObjectLattice =
     IsSubobject<S, typename S::Domain> && IsCompatibleSetPair<S, S> &&
     requires {
-      /** @brief @c logic_species typedef anchors the classifier @c L
-       *  (Slice 9 — required by @c :lattice::IsSubobjectLattice).
-       *  Verified as an @c IsOckhamAlgebra so unrelated types with
-       *  an accidental @c logic_species typedef don't satisfy the
-       *  axiom by accident (#713 review, Copilot). */
+      /** @brief @c logic_species typedef anchors the classifier @c L,
+       *  verified as an @c IsOckhamAlgebra so unrelated types with an
+       *  accidental @c logic_species typedef don't satisfy the axiom by
+       *  accident (#713 review, Copilot). */
       typename S::logic_species;
       requires IsOckhamAlgebra<typename S::logic_species>;
     };
-// NB (#834): the axiom requires the ALGEBRAIC witness that @c Sub(A) is a
-// lattice --- @c IsOckhamAlgebra<S::logic_species> --- NOT the @c meet / @c
-// join free functions by name.  The subobject lattice is INDUCED pointwise from
-// the classifier @c L (Axiom 7 + Ockham @c L), so requiring the operations by
-// name was redundant; dropping it decouples the ETCS axiom from WHERE the
-// set-lattice operations live, letting @c meet / @c set_intersection / @c
-// set_union / ... relocate to @c dedekind.sets where set operations belong
-// (they collapse there through @c operator&).
 
 /** @section etcs__Axiom_10_Diaconescu_Note
  *
@@ -351,9 +331,9 @@ concept HasAxiom10PowerObjectLattice =
  *  @c :lattice::IsBooleanSubobjectLattice<S> concept rather than
  *  baked into Axiom 10's body.  An earlier attempt to gate the
  *  conditional inside @c HasAxiom10PowerObjectLattice triggered
- *  instantiation of @c set_complement(s) → @c !s.χ → @c Set::χ's
- *  static-init for capturing-lambda Predicates produced by the
- *  comprehension DSL, which fails default-construction.  The
+ *  instantiation of the set complement, which cascades into
+ *  default-construction of the capturing-lambda Predicates produced by
+ *  the comprehension DSL and fails.  The
  *  parallel-track design avoids that ODR-use cascade; the static
  *  asserts in @c :sets carrier files pin the L-parametric route
  *  type-checked at the carrier sites without inducing the cascade.

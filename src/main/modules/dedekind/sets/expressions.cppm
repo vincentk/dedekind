@@ -357,6 +357,17 @@ struct IsComplementPair<P, NegatedPredicate<Q>>
     : std::bool_constant<std::is_empty_v<Q> &&
                          std::same_as<std::decay_t<P>, std::decay_t<Q>>> {};
 
+// Both sides wrapped: (¬P, ¬Q) is never the (A, ¬A) shape this trait detects.
+// The genuine complement pair always has exactly one side wrapped: on Boole,
+// where the meet / join complement collapse fires, @c operator! eliminates
+// double negation (¬¬A ≡ A) before a pair reaches here, so ¬P and ¬Q are two
+// independent complements, not each other's.  This more-specialized template
+// also disambiguates the two single-sided specializations above, which both
+// match when both operands are @c NegatedPredicate.
+template <typename P, typename Q>
+struct IsComplementPair<NegatedPredicate<P>, NegatedPredicate<Q>>
+    : std::false_type {};
+
 template <typename P1, typename P2>
 inline constexpr bool IsComplementPair_v =
     IsComplementPair<std::decay_t<P1>, std::decay_t<P2>>::value;
@@ -816,8 +827,8 @@ class Set {
   /** @brief Construct from a comprehension value (@c Set{scout | pred}).
    *  @deprecated The paper-aligned grammar is the bare comprehension
    *  @c scout|pred, with no @c Set{...} wrapper.  As of #895 the bare
-   *  @c Comprehension IS a first-class set-node (@c is_set_node_v), so it now
-   *  carries the full set-complement surface --- @c !(scout|pred) /
+   *  @c Comprehension IS an @c IsSubobject, so it carries the full
+   *  set-complement surface --- @c !(scout|pred) /
    *  @c ~(scout|pred) route through the free set @c operator! / @c operator~,
    *  and meet / join already applied via @c IsSubobject.  So this wrapping
    *  constructor no longer adds any capability; it stays ONLY to keep the
@@ -1175,47 +1186,24 @@ constexpr auto operator|(const LHS& lhs, const RHS& rhs) {
   return lift_to<Log>(lhs) | lift_to<Log>(rhs);
 }
 
-/** @brief @c is_set_node_v is true for the concrete set-node types @c Set /
- *  @c MeetSet / @c JoinSet / @c Comprehension, the carriers of the free set
- *  combinators.  A bare @c Comprehension (the point-free @c A @c | @c pred
- *  set-builder result) is registered so it participates in the free set
- *  @c operator! / @c operator~ (set-complement) exactly like a @c Set: without
- *  it, @c !(A @c | @c pred) fell through to @c category::operator! (a formal
- *  @c Morphism A → Ω) instead of the set-complement path, so the bare grammar
- *  was not yet feature-complete for the @c & @c | @c ~ algebra (#895).  Meet /
- *  join already reach a @c Comprehension through the looser @c IsSubobject gate
- *  on @c operator& / @c operator|. */
-template <typename S>
-inline constexpr bool is_set_node_v = false;
-template <typename T, typename L, typename P>
-inline constexpr bool is_set_node_v<Set<T, L, P>> = true;
-template <typename A, typename B>
-inline constexpr bool is_set_node_v<MeetSet<A, B>> = true;
-template <typename A, typename B>
-inline constexpr bool is_set_node_v<JoinSet<A, B>> = true;
-template <typename Base, typename Predicate>
-inline constexpr bool is_set_node_v<Comprehension<Base, Predicate>> = true;
-
-/** @brief The set complement @c !A.  This forwarding-reference overload
- *  constrains on @c IsPredicate<P> && @c is_set_node_v.  That constraint
- *  subsumes the greedy @c category::operator!(IsPredicate): same @c P&&
- *  binding, strictly more constrained.  So it wins the tiebreak for every value
- *  category.  The category @c ! would otherwise turn @c !A into a formal
- *  @c Morphism A → Ω.
+/** @brief The set complement @c !A.  Constrained on @c IsSubobject: a
+ *  subobject IS a set, so its complement is a set complement.  @c IsSubobject
+ *  subsumes the @c IsPredicate that the greedy @c category::operator! takes, so
+ *  this strictly-more-constrained overload wins the tiebreak and @c !A is a set
+ *  (not a formal @c Morphism A → Ω); @c category::operator! keeps the raw
+ *  non-subobject predicates.  The @c IsSubobject gate is structural (no tag)
+ * and general: a bare @c classify result complements too.
  *
  *  @details The complement is a certified @b involution.  On a plain @c Set it
- *  eliminates double negation: @c !!A ≡ A at the type level.  A first
- *  complement wraps the predicate in @c NegatedPredicate; a second complement
- *  @b peels that wrapper rather than nesting a second one.  The peel is gated
- * on
- *  @c logic_negation_is_involutive_v (the @c :involution witness that ¬¬ = id
- *  for the logic), so it stays honest for a future non-involutive species.  The
- *  @c NegatedPredicate shape is exactly what the complement-pair collapse
- * reads. A compound node (@c MeetSet / @c JoinSet) negates the node itself.  A
- *  boundary (@c Ø / @c 𝔸) keeps its own non-template member @c operator! (the
- *  dual @c !Ø = 𝔸). */
+ *  eliminates double negation: @c !!A ≡ A at the type level (peeling the
+ *  @c NegatedPredicate wrapper, gated on @c logic_negation_is_involutive_v, the
+ *  @c :involution witness that ¬¬ = id for the logic).  A compound node
+ *  (@c MeetSet / @c JoinSet) or a bare subobject negates by wrapping in
+ *  @c NegatedPredicate.  A boundary (@c Ø / @c 𝔸) keeps its own non-template
+ *  member @c operator! (the dual @c !Ø = 𝔸). */
 export template <IsPredicate P>
-  requires is_set_node_v<std::remove_cvref_t<P>>
+  requires dedekind::category::IsSubobject<
+      std::remove_cvref_t<P>, typename std::remove_cvref_t<P>::Domain>
 constexpr auto operator!(P&& p) {
   using D = std::remove_cvref_t<P>;
   using T = typename D::Domain;
@@ -1240,88 +1228,18 @@ constexpr auto operator!(P&& p) {
 }
 /** @brief @c ~A is the complement spelled bitwise, aliasing @c operator!. */
 export template <IsPredicate P>
-  requires is_set_node_v<std::remove_cvref_t<P>>
+  requires dedekind::category::IsSubobject<
+      std::remove_cvref_t<P>, typename std::remove_cvref_t<P>::Domain>
 constexpr auto operator~(P&& p) {
   return !std::forward<P>(p);
 }
 
-// ===========================================================================
-// The set-lattice operations (#834 / #946 S2): RELOCATED here from
-// @c :category:concrete --- set operations belong in @c :sets, not the category
-// layer (#636 had misfiled them; ETCS Axiom 10 was decoupled from the @c meet /
-// @c join free-function names in #834 to unblock this move) --- and CONVERGED
-// onto the collapsing @c operator& / @c operator| / @c operator!.  A set meet
-// now COLLAPSES (@c {x>5}∩{x>3} @c → @c {x>5}) instead of staying an opaque
-// @c ConjunctionChi.
-//
-// Each is @c classify<Domain>(operator-result): a SHAPE-COMPATIBLE drop-in for
-// the old @c classify(ConjunctionChi) --- same @c Subobject shape (so @c IsSet
-// /
-// @c HasETCSAxioms / @c cartesian_product callers are unchanged), but the @c
-// Chi it carries is now the REDUCED form (the collapse rides through in @c Chi,
-// at compile time).  @c IsSubobjectLattice accepts it (it wants an @c
-// IsSubobjectFamilyMember, not exact-type closure), so the reduction is
-// contract-safe.  @c ConjunctionChi and the OR / RFL lambdas are retired
-// (@c operator& / @c | / @c ! subsume them).
-// ===========================================================================
-
-/** @brief Set intersection @f$\chi_{A\cap B}@f$: the collapsing meet @c A @c &
- *  @c B, re-wrapped into the uniform @c Subobject contract. */
-export template <typename S1, typename S2>
-  requires requires(const S1& a, const S2& b) { a & b; }
-constexpr auto set_intersection(const S1& lhs, const S2& rhs) {
-  return dedekind::category::classify<typename S1::Domain>(lhs & rhs);
-}
-/** @brief Lattice alias: meet @c = intersection on @c Sub(A). */
-export template <typename S1, typename S2>
-  requires requires(const S1& a, const S2& b) { a & b; }
-constexpr auto meet(const S1& lhs, const S2& rhs) {
-  return set_intersection(lhs, rhs);
-}
-/** @brief Set union @f$\chi_{A\cup B}@f$: the collapsing join @c A @c | @c B.
- */
-export template <typename S1, typename S2>
-  requires requires(const S1& a, const S2& b) { a | b; }
-constexpr auto set_union(const S1& lhs, const S2& rhs) {
-  return dedekind::category::classify<typename S1::Domain>(lhs | rhs);
-}
-/** @brief Lattice alias: join @c = union on @c Sub(A). */
-export template <typename S1, typename S2>
-  requires requires(const S1& a, const S2& b) { a | b; }
-constexpr auto join(const S1& lhs, const S2& rhs) {
-  return set_union(lhs, rhs);
-}
-/** @brief The pointwise reflection @f$\neg\chi_A@f$ as a @b named predicate
- *  (no lambda): @c a @c ↦ @c L::RFL(s(a)).  Unlike the free @c operator! (which
- *  is gated on @c is_set_node_v and collapses only concrete set-nodes), this
- *  works for @b any @c IsSubobject (including a bare @c classify result), which
- *  is what the general @c set_complement below needs. */
-template <typename S, typename L>
-struct NegationChi {
-  S s;
-  template <typename A>
-    requires std::invocable<const S&, const A&>
-  constexpr typename L::Ω operator()(const A& a) const {
-    return L::RFL(s(a));
-  }
-};
-/** @brief Set complement @f$\neg\chi_A@f$: lift the classifier reflection
- *  pointwise.  General over @c IsSubobject (a set-node collapses its complement
- *  through @c operator! directly; this free function stays general). */
-export template <typename S>
-  requires dedekind::category::IsSubobject<S, typename S::Domain>
-constexpr auto set_complement(const S& s) {
-  return dedekind::category::classify<typename S::Domain>(
-      NegationChi<S, typename S::logic_species>{s});
-}
-/** @brief Lattice alias: complement @c = @c set_complement on @c Sub(A). */
-export template <typename S>
-  requires dedekind::category::IsSubobject<S, typename S::Domain>
-constexpr auto complement(const S& s) {
-  return set_complement(s);
-}
-// Membership (in / in_via) is NOT here: it is χ-evaluation (s(x) / s(e(x))), a
-// category-fundamental subobject operation, and stays in :category:concrete.
+// The set-lattice operations ARE the operators @c operator& / @c operator| /
+// @c operator! (@c operator~) above: ONE surface per operation, no
+// free-function aliases.  The meet COLLAPSES ({x>5}∩{x>3} → {x>5}) and the
+// collapse is TYPE-observable in the result.  Membership @c in / @c in_via
+// lives in
+// @c :category:concrete (χ-evaluation, not a lattice op).
 
 /** @section expressions__Complement_Is_An_Involution
  *  The set complement is an involution: @c !!A ≡ A at the @b type level for a
@@ -2140,14 +2058,14 @@ static_assert(IsSet<Comprehension<UniversalSet<int>, all_in>>,
 static_assert(IsSet<Comprehension<Ø<int>, all_in>>,
               "{Ø | P} is a first-class set.");
 
-// #895: a bare Comprehension is a first-class set-node, so it carries the free
-// set-complement.  Without the is_set_node_v registration, !(A | pred) fell to
-// category::operator! (a formal Morphism A → Ω) with no set-complement path.
+// #895/#834: a bare Comprehension is an IsSubobject, so it carries the free
+// set-complement (the free set operator! / operator~ gate on IsSubobject, which
+// wins the tiebreak over the greedy category::operator! that would otherwise
+// turn !(A | pred) into a formal Morphism A → Ω).
 using CompN = Comprehension<UniversalSet<int>, all_in>;
-static_assert(is_set_node_v<CompN>,
-              "a bare Comprehension is a set-node (participates in ! / ~).");
-// The complement of a (non-plain-Set) set-node wraps it in NegatedPredicate and
-// re-seats it as a plain Set --- a genuine set-complement, not a formal arrow.
+// The complement of a (non-plain-Set) subobject wraps it in NegatedPredicate
+// and re-seats it as a plain Set --- a genuine set-complement, not a formal
+// arrow.
 static_assert(
     std::same_as<std::remove_cvref_t<decltype(!std::declval<CompN>())>,
                  Set<int, dedekind::category::Boole, NegatedPredicate<CompN>>>,

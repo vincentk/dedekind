@@ -40,11 +40,9 @@
  *  - @c in / @c in_via: membership @c x @c ∈ @c S via χ-evaluation @c s(x).
  *  - @c compose_embedding: compose two embedding arrows (pullback path checks).
  *
- * The set-LATTICE operations (@c set_intersection / @c set_union /
- * @c set_complement, @c meet / @c join / @c complement) moved to
- * @c dedekind.sets (#834): the lattice DSL belongs in @c :sets, where it
- * collapses through @c operator& / @c | / @c !.  Membership (@c in / @c in_via)
- * stays here (χ-evaluation, category-fundamental).
+ * Membership (@c in / @c in_via) is χ-evaluation, category-fundamental, so it
+ * lives here.  The set-LATTICE operations are the operators @c operator& /
+ * @c | / @c ! in @c dedekind.sets, where the set-builder DSL lives.
  *
  * Concept-as-predicate framing (cf. #635, #637).  The chain ranges over
  * CATEGORIES C: among small categories, the concrete ones (a faithful
@@ -206,16 +204,10 @@ concept IsCompatibleSetPair =
     std::same_as<std::invoke_result_t<S1 const&, typename S1::Domain const&>,
                  std::invoke_result_t<S2 const&, typename S2::Domain const&>>;
 
-// The set-LATTICE operations --- @c set_intersection / @c set_union /
-// @c set_complement, the @c meet / @c join / @c complement aliases, and the
-// @c ConjunctionChi predicate --- were RELOCATED to @c dedekind.sets
-// (@c :sets:expressions), #834 / #946 S2: the lattice DSL belongs in @c :sets,
-// where they converge onto the collapsing @c operator& / @c | / @c ! (a set
-// meet now COLLAPSES instead of staying an opaque @c ConjunctionChi).  ETCS
-// Axiom 10 was decoupled from the @c meet / @c join free-function names (#834)
-// so this move is DAG-clean.  Membership (@c in / @c in_via) STAYS here: it is
-// χ-evaluation (@c s(x) / @c s(e(x))), a category-fundamental subobject
-// operation, not a lattice-DSL op.
+// Membership (@c in / @c in_via) is χ-evaluation (@c s(x) / @c s(e(x))), a
+// category-fundamental subobject operation, not a lattice-DSL op, so it lives
+// here.  The set-lattice operations are the collapsing @c operator& / @c | /
+// @c ! in @c dedekind.sets.
 
 /** @brief Membership: @c x @c ∈ @c S evaluated via @c S's structural call (the
  *  carrier IS the characteristic morphism). */
