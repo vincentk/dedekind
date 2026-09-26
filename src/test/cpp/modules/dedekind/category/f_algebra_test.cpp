@@ -193,26 +193,47 @@ TEST_CASE(
 }
 
 TEST_CASE(
-    "f_algebra: cata simplifies the boolean unit law id >> not -> not "
-    "(the intensional home of the Jlt exhibit, #961)",
-    "[category][f_algebra][cata][boolean][961]") {
+    "f_algebra: cata simplifies the unit law id >> refl -> refl on both "
+    "carriers (the intensional home of the Jlt exhibit, #961)",
+    "[category][f_algebra][cata][boolean][involution][961]") {
   // The Jlt Python exhibit is EXTENSIONAL (arrows are functions); its
-  // INTENSIONAL counterpart lives here.  On the boolean carrier, the type-level
-  // cata collapses the monoid unit law structurally --- this is where
-  // "simplify(id >> not) == not" honestly lands (a claim about types).
-  const auto lnot = endo<bool>(std::logical_not<bool>{});
-  using LNot = std::remove_cvref_t<decltype(lnot)>;
+  // INTENSIONAL counterpart lives here.  The type-level cata collapses the
+  // monoid unit law structurally --- this is where "simplify(id >> refl) ==
+  // refl" honestly lands (a claim about types) --- over the two Jlt objects.
 
-  // cata(id >> not) == not  and  cata(not >> id) == not, as TYPES.
-  const auto left = cata(id<bool>() >> lnot);
-  const auto right = cata(lnot >> id<bool>());
-  STATIC_CHECK(cata_reduces_to<decltype(left), LNot>);
-  STATIC_CHECK(cata_reduces_to<decltype(right), LNot>);
+  SECTION("bool: refl = logical_not") {
+    const auto refl = endo<bool>(std::logical_not<bool>{});
+    using Refl = std::remove_cvref_t<decltype(refl)>;
+    STATIC_CHECK(cata_reduces_to<decltype(cata(id<bool>() >> refl)), Refl>);
+    STATIC_CHECK(cata_reduces_to<decltype(cata(refl >> id<bool>())), Refl>);
+    const auto reduced = cata(id<bool>() >> refl);
+    CHECK(reduced(false) == true);
+    CHECK(reduced(true) == false);
+  }
 
-  // ...and the reduced arrow is still not.
-  CHECK(left(false) == true);
-  CHECK(left(true) == false);
+  SECTION("int: refl = negate") {
+    const auto refl = endo<int>(std::negate<int>{});
+    using Refl = std::remove_cvref_t<decltype(refl)>;
+    STATIC_CHECK(cata_reduces_to<decltype(cata(id<int>() >> refl)), Refl>);
+    STATIC_CHECK(cata_reduces_to<decltype(cata(refl >> id<int>())), Refl>);
+    const auto reduced = cata(id<int>() >> refl);
+    CHECK(reduced(7) == -7);
+    CHECK(reduced(-3) == 3);
+  }
 
-  // not is precisely the involution :involution witnesses.
-  STATIC_CHECK(is_involutive_v<std::logical_not<bool>, bool>);
+  // The Jlt generators are INVOLUTIVE ENDOMORPHISMS -- the type-level
+  // characterisation the exhibit's arrows are constrained to (#961).  This is
+  // the intensional constraint (IsInvolution on the erased runtime arrow is
+  // vacuous; it lives on the typed generators here).
+  STATIC_CHECK(IsEndomorphism<Identity<bool>>);
+  STATIC_CHECK(IsEndomorphism<Identity<int>>);
+  STATIC_CHECK(
+      IsEndomorphism<
+          std::remove_cvref_t<decltype(endo<bool>(std::logical_not<bool>{}))>>);
+  STATIC_CHECK(IsEndomorphism<
+               std::remove_cvref_t<decltype(endo<int>(std::negate<int>{}))>>);
+  STATIC_CHECK(is_involutive_v<Identity<bool>, bool>);
+  STATIC_CHECK(is_involutive_v<Identity<int>, int>);
+  STATIC_CHECK(is_involutive_v<std::logical_not<bool>, bool>);  // refl(bool)
+  STATIC_CHECK(is_involutive_v<std::negate<int>, int>);         // refl(int)
 }
