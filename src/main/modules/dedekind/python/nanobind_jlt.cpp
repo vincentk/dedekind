@@ -37,13 +37,13 @@ nb::object bool_type() {
   return nb::borrow<nb::object>(reinterpret_cast<PyObject*>(&PyBool_Type));
 }
 
-/** @brief Attach the shared duck-typed arrow protocol to a bound arrow class:
- *  apply @c (), diagrammatic composition @c >> (→ type-erased @c Arrow),
- *  @c dom / @c cod (→ @c bool).  Templated on the C++ arrow type @c T so the
- *  same protocol binds to both @c Identity<bool> and the type-erased
- *  @c Morphism. */
+/** @brief Attach the arrow @b operators to a bound arrow class: apply @c (),
+ *  and diagrammatic composition @c >> (→ type-erased @c Arrow).  Accessors
+ *  (@c dom / @c cod) are FREE functions (categorical style, like @c π_1 /
+ *  @c π_2), bound below.  Templated on the C++ arrow type @c T so the same
+ *  operators bind to both @c Identity<bool> and the type-erased @c Morphism. */
 template <typename T>
-void bind_arrow_protocol(nb::class_<T>& cls) {
+void bind_arrow_operators(nb::class_<T>& cls) {
   cls.def(
          "__call__", [](const T& f, bool x) { return f(x); },
          "Apply the arrow to a boolean object.")
@@ -54,13 +54,21 @@ void bind_arrow_protocol(nb::class_<T>& cls) {
       .def(
           "__rshift__",
           [](const T& f, const jlt::Arrow& g) { return jlt::compose(f, g); },
-          "f >> g (apply f, then g); composes to a type-erased Morphism.")
-      .def(
-          "dom", [](const T&) { return bool_type(); },
-          "The domain object (the boolean type).")
-      .def(
-          "cod", [](const T&) { return bool_type(); },
-          "The codomain object (the boolean type).");
+          "f >> g (apply f, then g); composes to a type-erased Morphism.");
+}
+
+/** @brief Bind @c dom / @c cod as FREE functions over an arrow type @c T
+ *  (categorical, point-free --- @c dom(f), like @c π_1(p)).  Arrows here are
+ *  total (Juliet posture), so both return the domain/codomain @b type object;
+ *  in this iteration every arrow is @c bool→bool. */
+template <typename T>
+void bind_arrow_accessors(nb::module_& m) {
+  m.def(
+      "dom", [](const T&) { return bool_type(); },
+      "dom(f): the domain object (a type; the boolean type here).");
+  m.def(
+      "cod", [](const T&) { return bool_type(); },
+      "cod(f): the codomain object (a type; the boolean type here).");
 }
 
 }  // namespace
@@ -71,25 +79,32 @@ NB_MODULE(_jlt, m) {
       "calculus "
       "of the unary boolean operations.  Objects are the booleans; the "
       "primitive arrows are `id` and `not_`.  Compose with `f >> g` (apply f, "
-      "then g); apply to a bool with `a(x)`; inspect `a.dom()` / `a.cod()`.  "
-      "Arrows are extensional (functions): structural `simplify` is "
-      "intensional "
-      "and lives on the C++ side, not here.";
+      "then g); apply to a bool with `a(x)`; inspect with the free functions "
+      "`dom(a)` / `cod(a)`.  Arrows are extensional (functions): structural "
+      "`simplify` is intensional and lives on the C++ side, not here.";
 
   auto identity =
       nb::class_<jlt::Id>(m, "Identity",
                           "The identity arrow id: bool -> bool (the monoid "
                           "unit).  A real :morphism Identity<bool>.");
-  bind_arrow_protocol(identity);
+  bind_arrow_operators(identity);
   identity.def("__repr__", [](const jlt::Id&) { return "id"; });
 
   auto morphism = nb::class_<jlt::Arrow>(
       m, "Morphism",
       "A type-erased arrow bool -> bool (the real :morphism Morphism).  "
       "Composition lands here.");
-  bind_arrow_protocol(morphism);
+  bind_arrow_operators(morphism);
   morphism.def("__repr__",
                [](const jlt::Arrow&) { return "<arrow bool -> bool>"; });
+
+  // Free-function accessors dom / cod (categorical, point-free -- dom(f), like
+  // pi_1(p)), overloaded per arrow type.  cod(f) == dom(g) is the composability
+  // law >> would check once there is more than one object; with the single
+  // object bool it is guaranteed by construction (the C++ operator>> already
+  // enforces it statically).
+  bind_arrow_accessors<jlt::Id>(m);
+  bind_arrow_accessors<jlt::Arrow>(m);
 
   // The two primitive arrows, as singleton VALUES so the DSL reads `id >>
   // not_`. `not` is a Python keyword, so negation is exposed as `not_`.

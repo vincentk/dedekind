@@ -11,19 +11,20 @@ intensional and lives on the C++ side, so it is absent here by design.
 
 import unittest
 
-from dedekind.jlt import Identity, Morphism, id, not_
+from dedekind.jlt import Identity, Morphism, cod, dom, id, not_
 
 _BOOLS = (False, True)
-_ARROW_METHODS = ("__call__", "__rshift__", "dom", "cod")
+_ARROW_OPERATORS = ("__call__", "__rshift__")
 
 
 class JltArrowProtocolTest(unittest.TestCase):
     def test_arrows_duck_type_the_protocol(self) -> None:
         # id, not_, and a composite all satisfy the arrow protocol -- no shared
         # base class; "arrow" is the protocol (IsArrow is witnessed in C++).
+        # Operators are dunders; dom / cod are free functions (below).
         for arrow in (id, not_, id >> not_, not_ >> not_):
-            for method in _ARROW_METHODS:
-                self.assertTrue(hasattr(arrow, method), (arrow, method))
+            for op in _ARROW_OPERATORS:
+                self.assertTrue(hasattr(arrow, op), (arrow, op))
 
     def test_primitive_types_are_the_real_arrows(self) -> None:
         # id is the category Identity; not_ is a type-erased Morphism.
@@ -31,10 +32,11 @@ class JltArrowProtocolTest(unittest.TestCase):
         self.assertIsInstance(not_, Morphism)
 
     def test_dom_cod_are_the_boolean_type(self) -> None:
-        # numpy/pandas style: dom/cod are type objects (the boolean type).
+        # Free-function accessors (categorical, point-free); numpy/pandas style,
+        # dom/cod are type objects (the boolean type).
         for arrow in (id, not_, id >> not_):
-            self.assertIs(arrow.dom(), bool)
-            self.assertIs(arrow.cod(), bool)
+            self.assertIs(dom(arrow), bool)
+            self.assertIs(cod(arrow), bool)
 
     def test_composition_type_erases_to_a_morphism(self) -> None:
         # Composition is extensional: it lands in the type-erased Morphism.

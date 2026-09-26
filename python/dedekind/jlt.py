@@ -9,7 +9,7 @@ primitive arrows are ``id`` and ``not_`` (``not`` is a Python keyword).
 
     (id >> not_)(False)      # True   -- compose (apply id, then not), then apply
     (not_ >> not_)(True)     # True   -- not is an involution: not∘not = id
-    id.dom() is bool         # True   -- dom/cod are type objects (numpy-style)
+    dom(id) is bool          # True   -- dom/cod are free fns returning a type
     isinstance(id >> not_, Morphism)   # composition type-erases to a Morphism
 
 Arrows are **extensional** (functions): ``id >> not_`` and ``not_`` are equal on
@@ -24,7 +24,9 @@ in C++.
 # NumPy-style; this pure-Python facade re-exports it under the public name.
 from ._jlt import Identity
 from ._jlt import Morphism
+from ._jlt import cod
+from ._jlt import dom
 from ._jlt import id
 from ._jlt import not_
 
-__all__ = ["Identity", "Morphism", "id", "not_"]
+__all__ = ["Identity", "Morphism", "cod", "dom", "id", "not_"]
