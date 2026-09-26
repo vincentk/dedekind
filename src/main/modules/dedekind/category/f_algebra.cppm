@@ -112,11 +112,14 @@ module;
 
 #include <concepts>
 #include <type_traits>
+#include <utility>
 
 export module dedekind.category:f_algebra;
 
 export import :functor;
 import :limit;
+import :morphism;  // IsArrow, Compose, π_1 / π_2: the first concrete term
+                   // functor
 
 namespace dedekind::category {
 
@@ -214,5 +217,151 @@ static_assert(IsFCoalgebra<Zero, decltype(zero<Zero>()),
               "Bridge :f_algebra ↔ :limit: zero<Zero>() : Zero → Zero is "
               "structurally the F-coalgebra structure map for "
               "identity_functor on InitialCategory with carrier Zero.");
+
+/**
+ * @concept IsBinaryTerm
+ * @brief The @c (X @c × @c X) summand of the term functor @c F(X) @c =
+ *        @c Atom @c + @c X @c × @c X: a binary term node is a @b
+ *        categorical product read through its projections.
+ *
+ * @details Rather than restate the @c π_1 / @c π_2 projection clause,
+ * this @b delegates to @c :limit's @c IsProduct (whose defining clause
+ * IS those two projections), deducing the leg types from the nodes's own
+ * @c π_1 / @c π_2.  @c Compose is the first such node (#892:
+ * @c IsProduct<Compose<F,G>, @c F, @c G>).  The leading @c requires
+ * guards the @c decltype so a node without projections is simply @b not
+ * a binary term (SFINAE), not a hard error.  @c cata reads the children
+ * @b structurally through the projections --- no injected profile or
+ * tag.
+ */
+export template <typename P>
+concept IsBinaryTerm =
+    requires(const P& p) {
+      π_1(p);
+      π_2(p);
+    } &&
+    IsProduct<P, std::remove_cvref_t<decltype(π_1(std::declval<const P&>()))>,
+              std::remove_cvref_t<decltype(π_2(std::declval<const P&>()))>>;
+
+// Evidence for the term functor @c F(X) @c = @c Atom @c + @c X @c × @c X:
+// its two @c cata injections (leaf / binary) are exhaustive AND exclusive
+// over ARROWS --- the term universe is @c IsArrow, and the split is on
+// product-ness.  We cannot PROVE the coproduct sealed (C++ type universes
+// are open), so these witnesses STATE the intention (#961 review):
+//   - an atom arrow is a leaf (arrow, not a product node);
+static_assert(IsArrow<Identity<int>> && !IsBinaryTerm<Identity<int>>,
+              "cata leaf: an atom arrow carries no π_1 / π_2 sub-terms");
+//   - a Compose is a binary term (arrow AND product node);
+static_assert(IsArrow<Compose<Identity<int>, Identity<int>>> &&
+                  IsBinaryTerm<Compose<Identity<int>, Identity<int>>>,
+              "cata binary: a Compose is an arrow that is also a product node");
+//   - a bare product (std::pair) IS IsBinaryTerm but is NOT an arrow, so
+//     the IsArrow gate on BOTH cata overloads keeps it out of the term
+//     universe: product-ness alone does not make a term.
+static_assert(IsBinaryTerm<std::pair<int, bool>> &&
+                  !IsArrow<std::pair<int, bool>>,
+              "a bare product is not an arrow, hence not a cata term");
+
+/** @name reduce_β for a Compose node --- the canonical β exhibit
+ *
+ *  @brief @c reduce_β is the @b β (F-algebra structure map, i.e. the
+ *  one-step β-reduction) that @c cata applies after folding a node's legs.
+ *  This overload set is the @b canonical exhibit: the reducer's first law,
+ *  the @b monoid law of composition, co-located with the @c cata engine.
+ *  The identity is the @b unit (@c id∘f @c = @c f @c = @c f∘id), so an
+ *  @c Identity in a @b reduced leg is dropped.
+ *
+ *  Dispatch is @b structural on @c Identity<T> in the reduced leg (no
+ *  is-identity tag): the overloads pattern-match the leg types, and partial
+ *  ordering picks the @c Identity ones over the generic @c IsArrow one.  The
+ *  first parameter is the @c Compose node as a @b type-tag for β dispatch
+ *  (which constructor is this?); its own legs are unused --- @c cata passes
+ *  the @b already-reduced legs @c rf / @c rg, which is what β combines.
+ *  Found by ADL, so a partition MAY instead scatter its node's @c reduce_β
+ *  next to that node's vocabulary; the composition law lives here as the
+ *  reference instance.
+ *  @{ */
+export template <IsArrow F, IsArrow G, IsArrow RF, IsArrow RG>
+constexpr auto reduce_β(const Compose<F, G>&, const RF& rf, const RG& rg) {
+  return Compose<RF, RG>{rf, rg};  // neither leg is the unit → inert composite
+}
+export template <IsArrow F, IsArrow G, typename T, IsArrow RG>
+constexpr RG reduce_β(const Compose<F, G>&, const Identity<T>&, const RG& rg) {
+  return rg;  // id ∘ g = g
+}
+export template <IsArrow F, IsArrow G, IsArrow RF, typename T>
+constexpr RF reduce_β(const Compose<F, G>&, const RF& rf, const Identity<T>&) {
+  return rf;  // f ∘ id = f
+}
+export template <IsArrow F, IsArrow G, typename T, typename U>
+constexpr Identity<T> reduce_β(const Compose<F, G>&, const Identity<T>& i,
+                               const Identity<U>&) {
+  return i;  // id ∘ id = id (disambiguates the two single-sided overloads)
+}
+/** @} */
+
+/**
+ * @brief @c cata ⦇β⦈ --- the @b catamorphism (fold): the unique
+ *        F-algebra homomorphism from the initial algebra (the term
+ *        itself, @c μF) into an algebra @c (B, β).  @c simplify @b is
+ *        @c cata.
+ *
+ * @details Pierce (§2.2, and Meijer et al.'s "bananas"): for the term
+ * functor @c F, the term type @b is the initial algebra @c μF, with
+ * @c in @c : @c F(μF) @c → @c μF the constructor (@c Compose here) and,
+ * by Lambek, an iso, so @c μF @c ≅ @c F(μF).  For any algebra
+ * @c (B, β) with @c β @c : @c F(B) @c → @c B there is a @b unique
+ * homomorphism @c cata(β) @c : @c μF @c → @c B satisfying
+ * @c cata(β) @c ∘ @c in @c = @c β @c ∘ @c F(cata(β)).  Reading that
+ * fixpoint left to right @b is the implementation: @c out (@c π_1 /
+ * @c π_2) exposes the children, @c F(cata) folds them (recurse), then
+ * @c β combines the results --- a @b post-order fold applying @c β
+ * once per node.
+ *
+ * The @b engine is law-free (a Scheme-@c apply-style dispatcher): it
+ * only knows to recurse and apply @c β.  @c β itself is @c reduce_β,
+ * found by ADL.  The reference law --- the composition unit law for
+ * @c Compose --- is the canonical exhibit @b above, co-located with the
+ * engine; further node laws (an inverse-cancellation law, a lattice law)
+ * add their own @c reduce_β overloads, here or scattered next to their
+ * node's vocabulary.  No node carries an is-this-kind tag; dispatch is on
+ * the node type.
+ *
+ * @note A grow-then-shrink @c β re-invokes @c cata on its result to
+ * reach a fixpoint; the unit law here is shrink-only, so one pass
+ * suffices.
+ *
+ * @tparam A a leaf arrow (an @c IsArrow that is not a binary term).
+ * @param atom the leaf term.
+ * @return @c atom unchanged --- @c cata is the identity on @c F's leaf
+ *         summand (an atom is already its own normal form).
+ */
+export template <IsArrow A>
+  requires(!IsBinaryTerm<A>)
+constexpr A cata(const A& atom) {
+  return atom;
+}
+
+/**
+ * @brief @c cata on a binary term node: @c F(cata) folds the two legs,
+ *        then @c β @c = @c reduce_β combines the reduced legs under this
+ *        node's law.
+ *
+ * @details The @c IsArrow constraint (alongside @c IsBinaryTerm) closes
+ * the term universe to arrows: a bare product that is not an arrow is not
+ * a term.  @c reduce_β is a dependent call resolved by ADL at
+ * instantiation against the node type, so the law lives next to the node
+ * (the @c Compose unit law is in @c :morphism).
+ *
+ * @tparam P a binary term node (an @c IsArrow that is also an
+ *         @c IsBinaryTerm, e.g. @c Compose).
+ * @param t the node.
+ * @return the node's β-image over its reduced legs.
+ */
+export template <typename P>
+  requires IsArrow<P> && IsBinaryTerm<P>
+constexpr auto cata(const P& t) {
+  return reduce_β(t, cata(π_1(t)), cata(π_2(t)));
+}
 
 }  // namespace dedekind::category
