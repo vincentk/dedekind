@@ -117,6 +117,8 @@ export module dedekind.category:f_algebra;
 
 export import :functor;
 import :limit;
+import :morphism;  // IsArrow, Compose, π_1 / π_2: the first concrete term
+                   // functor
 
 namespace dedekind::category {
 
@@ -214,5 +216,69 @@ static_assert(IsFCoalgebra<Zero, decltype(zero<Zero>()),
               "Bridge :f_algebra ↔ :limit: zero<Zero>() : Zero → Zero is "
               "structurally the F-coalgebra structure map for "
               "identity_functor on InitialCategory with carrier Zero.");
+
+/**
+ * @concept IsBinaryTerm
+ * @brief A term node that exposes two sub-terms via the product
+ *        projections @c π_1 / @c π_2 --- an @c IsProduct-shaped node
+ *        (@c Compose is the first, #892).
+ *
+ * @details This is the observable shape of the term functor @c F over
+ * which @c cata folds: @c F(X) @c = @c leaf @c + @c (X @c × @c X), and a
+ * binary node is the @c (X @c × @c X) summand.  @c cata reads the two
+ * children @b structurally through the projections rather than through
+ * any injected profile or tag.
+ */
+export template <typename P>
+concept IsBinaryTerm = requires(const P& p) {
+  π_1(p);
+  π_2(p);
+};
+
+/**
+ * @brief @c cata ⦇β⦈ --- the @b catamorphism (fold): the unique
+ *        F-algebra homomorphism from the initial algebra (the term
+ *        itself, @c μF) into an algebra @c (B, β).
+ *
+ * @details Pierce (§2.2, and Meijer et al.'s "bananas"): for the term
+ * functor @c F, the term type @b is the initial algebra @c μF, with
+ * @c in @c : @c F(μF) @c → @c μF the constructor (@c Compose here) and,
+ * by Lambek, an iso, so @c μF @c ≅ @c F(μF).  For any algebra
+ * @c (B, β) with @c β @c : @c F(B) @c → @c B there is a @b unique
+ * homomorphism @c cata(β) @c : @c μF @c → @c B satisfying
+ * @c cata(β) @c ∘ @c in @c = @c β @c ∘ @c F(cata(β)).  Reading that
+ * fixpoint left to right @b is the implementation: @c out (@c π_1 /
+ * @c π_2) exposes the children, @c F(cata) folds them (recurse), then
+ * @c β combines the results --- a @b post-order fold applying @c β
+ * once per node.
+ *
+ * The @b engine is law-free (a Scheme-@c apply-style dispatcher): it
+ * only knows to recurse and apply @c β.  @c β itself is @c reduce_step,
+ * found by ADL and @b scattered across the partitions next to the CT
+ * vocabulary it belongs to --- the composition unit law rides in
+ * @c :morphism (@c reduce_step for @c Compose), an inverse-cancellation
+ * law would ride in @c :iso / @c :involution, a lattice law in
+ * @c :lattice.  No node carries an is-this-kind tag; dispatch is on the
+ * node type.  @c simplify @b is @c cata.
+ *
+ * @note A grow-then-shrink @c β re-invokes @c cata on its result to
+ * reach a fixpoint; the unit law here is shrink-only, so one pass
+ * suffices.
+ */
+// Leaf: an atom (an arrow with no sub-terms) is already its own normal
+// form --- @c F's leaf summand, on which @c cata is the identity.
+export template <IsArrow A>
+  requires(!IsBinaryTerm<A>)
+constexpr A cata(const A& atom) {
+  return atom;
+}
+
+// Binary node: @c F(cata) folds the two legs, then @c β = @c reduce_step
+// combines the reduced legs under this node's law.  @c reduce_step is a
+// dependent call resolved by ADL at instantiation against the node type.
+export template <IsBinaryTerm P>
+constexpr auto cata(const P& t) {
+  return reduce_step(t, cata(π_1(t)), cata(π_2(t)));
+}
 
 }  // namespace dedekind::category

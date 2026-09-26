@@ -883,6 +883,41 @@ constexpr G π_2(const Compose<F, G>& c) {
   return c.g;
 }
 
+/** @section morphism__Compose_Beta
+ *  @brief @c reduce_step for a @c Compose node: the @b β (F-algebra structure
+ *  map) that @c cata (@c :f_algebra) applies after folding the legs.  It
+ *  carries the @b monoid law of composition --- the identity is the @b unit
+ *  (@c id∘f @c = @c f @c = @c f∘id) --- so an @c Identity in a @b reduced leg
+ * is dropped.  Dispatch is @b structural on @c Identity<T> in the reduced leg
+ * (no is-identity tag): the overloads pattern-match the leg types, and partial
+ *  ordering picks the @c Identity ones over the generic @c IsArrow one.
+ *
+ *  The first parameter is the @c Compose node as a @b type-tag for β dispatch
+ *  (which constructor is this?); its own legs are unused --- @c cata passes the
+ *  @b already-reduced legs @c rf / @c rg, which is what β combines.  This is
+ * the
+ *  @c :morphism contribution to the reducer; @c :iso / @c :involution / @c
+ *  :lattice add their own @c reduce_step overloads for their nodes. */
+export template <IsArrow F, IsArrow G, IsArrow RF, IsArrow RG>
+constexpr auto reduce_step(const Compose<F, G>&, const RF& rf, const RG& rg) {
+  return Compose<RF, RG>{rf, rg};  // neither leg is the unit → inert composite
+}
+export template <IsArrow F, IsArrow G, typename T, IsArrow RG>
+constexpr RG reduce_step(const Compose<F, G>&, const Identity<T>&,
+                         const RG& rg) {
+  return rg;  // id ∘ g = g
+}
+export template <IsArrow F, IsArrow G, IsArrow RF, typename T>
+constexpr RF reduce_step(const Compose<F, G>&, const RF& rf,
+                         const Identity<T>&) {
+  return rf;  // f ∘ id = f
+}
+export template <IsArrow F, IsArrow G, typename T, typename U>
+constexpr Identity<T> reduce_step(const Compose<F, G>&, const Identity<T>& i,
+                                  const Identity<U>&) {
+  return i;  // id ∘ id = id (disambiguates the two single-sided overloads)
+}
+
 /** @section morphism__Morphism_Lifting_Proof */
 using Negate = std::negate<int>;
 using TaggedNegate = Morphism<int, int, Negate>;
