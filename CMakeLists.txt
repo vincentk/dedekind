@@ -311,8 +311,7 @@ if(DEDEKIND_BUILD_PYTHON_BINDINGS)
         COPYONLY)
 
     nanobind_add_module(_dedekind PROTECT_STACK
-        src/main/modules/dedekind/python/nanobind.cpp
-        src/main/modules/dedekind/python/nanobind_jlt.cpp)
+        src/main/modules/dedekind/python/nanobind.cpp)
     set_target_properties(_dedekind PROPERTIES
         CXX_SCAN_FOR_MODULES ON
         LIBRARY_OUTPUT_DIRECTORY "${DEDEKIND_PYTHON_PACKAGE_DIR}"
@@ -321,7 +320,20 @@ if(DEDEKIND_BUILD_PYTHON_BINDINGS)
     target_compile_options(_dedekind PRIVATE -Wno-sign-conversion)
     target_link_libraries(_dedekind PRIVATE dedekind_python)
 
-    install(TARGETS _dedekind LIBRARY DESTINATION dedekind)
+    # The Jlt exhibit (#961) is its own private native module, dedekind._jlt
+    # (NumPy-style: one private compiled module per cohesive component,
+    # re-exported by the pure-Python dedekind.jlt facade).
+    nanobind_add_module(_jlt PROTECT_STACK
+        src/main/modules/dedekind/python/nanobind_jlt.cpp)
+    set_target_properties(_jlt PROPERTIES
+        CXX_SCAN_FOR_MODULES ON
+        LIBRARY_OUTPUT_DIRECTORY "${DEDEKIND_PYTHON_PACKAGE_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY "${DEDEKIND_PYTHON_PACKAGE_DIR}")
+    target_compile_options(_jlt PRIVATE ${DEDEKIND_WARNING_FLAGS})
+    target_compile_options(_jlt PRIVATE -Wno-sign-conversion)
+    target_link_libraries(_jlt PRIVATE dedekind_python)
+
+    install(TARGETS _dedekind _jlt LIBRARY DESTINATION dedekind)
     install(FILES
         ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/__init__.py
         ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/jlt.py

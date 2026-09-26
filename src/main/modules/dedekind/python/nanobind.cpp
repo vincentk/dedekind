@@ -341,12 +341,6 @@ void bind_dual_rational(nb::module_& m) {
       });
 }
 
-// ── Jlt: composition term + value-first reducer (#961) ──────────────────────
-// The Jlt category-concept bindings (Arrow, id, >>, simplify) live in their own
-// TU, nanobind_jlt.cpp, registered on a native `jlt` submodule.  Declared here
-// (defined there) and called from NB_MODULE below.
-void bind_jlt(nb::module_& base_module);
-
 void bind_dual(nb::module_& m) {
   using Dual = dedekind::analysis::Dual<double>;
   nb::class_<Dual>(m, "Dual",
@@ -419,9 +413,8 @@ NB_MODULE(_dedekind, module) {
   bind_rational(module);
   bind_dual_rational(module);
 
-  // ── Jlt: composition term + value-first reducer (#961) ──────────────────
-  // Defines the native `jlt` submodule (see nanobind_jlt.cpp).
-  bind_jlt(module);
+  // The Jlt exhibit (#961) is its own private native module dedekind._jlt
+  // (see nanobind_jlt.cpp), NumPy-style, not a submodule of _dedekind.
 
   // ── canonical sets across the bridge (#886, vertical prototype) ─────────
   // Expose the C++ universe/subobject SETS themselves as Python objects whose

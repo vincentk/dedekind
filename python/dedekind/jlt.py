@@ -20,15 +20,11 @@ treated as an opaque non-identity arrow, so ``not ∘ not → id`` (the involuti
 law, using :involution's witness for ``std::logical_not``) is the next slice.
 """
 
-# `jlt` is a native submodule of the `_dedekind` extension (def_submodule), so
-# it is reachable as an attribute of the base module; access it that way rather
-# than `from ._dedekind.jlt import ...` (which would rely on sys.modules
-# registration).
-from ._dedekind import jlt as _jlt
-
-Arrow = _jlt.Arrow
-id = _jlt.id
-not_ = _jlt.not_
-simplify = _jlt.simplify
+# `_jlt` is the exhibit's own private native extension module (dedekind._jlt),
+# NumPy-style; this pure-Python facade re-exports it under the public name.
+from ._jlt import Arrow
+from ._jlt import id
+from ._jlt import not_
+from ._jlt import simplify
 
 __all__ = ["Arrow", "id", "not_", "simplify"]
