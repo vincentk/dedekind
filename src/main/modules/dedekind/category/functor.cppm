@@ -88,7 +88,8 @@ module;
 #include <functional>
 #include <optional>
 #include <string>
-#include <tuple>  // tuple_functor — bona-fide Frobenius carrier (#632)
+#include <tuple>   // tuple_functor — bona-fide Frobenius carrier (#632)
+#include <vector>  // free_monoid_functor — words over an atom type (#961)
 
 export module dedekind.category:functor;
 
@@ -399,6 +400,62 @@ static_assert(IsFunctor<tuple_functor<int>> && IsFunctor<maybe_functor<int>>,
               "IsShapedFunctor ⟹ IsFunctor: the fmap hubs are also textbook "
               "functors (Set<T> → Set<Shape<T>>, Mac Lane §I.3) carrying the "
               "free morphism map map_arrow.");
+
+/**
+ * @brief The free-monoid (@c List) functor @c A @c ↦ @c A* (words over an atom
+ *        type) --- the functor leg of the composition-term reducer (#961).
+ *
+ * @details This is the endofunctor whose EM-algebras are monoids: a fully
+ * reduced composition term (@c :f_algebra's @c cata, unit + associativity) IS
+ * a WORD of atoms, with @c id the empty word.  Here we witness only the
+ * @b functor structure --- the object map @c A @c ↦ @c A* and the morphism map
+ * (relabel atoms) --- to STATE the direction; the monad (@c η / @c μ), the
+ * Eilenberg-Moore identification @c EM(List) @c ≅ @c Mon, and the Kleisli
+ * category are the deferred continuation (#961 follow-up).
+ *
+ * It is deliberately the @b light witness: it satisfies @c IsFunctor via its
+ * own free @c map_arrow overload (the documented customization point) and does
+ * NOT carry the @c IsShapedFunctor apparatus (@c Shape<U> object map, @c φ
+ * member, object-map laws) --- the @c static_asserts below pin both the badge
+ * it earns and the one it declines.  Sibling to @c maybe_functor /
+ * @c tuple_functor, with @c Shape @c = @c std::vector (the free monoid on the
+ * atom type is literally the type of finite words).
+ */
+export template <typename T>
+struct free_monoid_functor {
+  using ArrowKind = hub_arrow_tag;
+  using Domain = Set<T>;
+  using Codomain = Set<std::vector<T>>;
+
+  /** @brief Object map as a 1-morphism in @b Cat (reified like the sibling
+   *  hubs): @c Set<T> @c → @c Set<A*>. */
+  constexpr Codomain operator()(const Domain&) const noexcept { return {}; }
+};
+
+/**
+ * @brief The free @b morphism map of @c free_monoid_functor: an atom relabeling
+ *        @c h: @c T @c → @c U lifts to the word map @c T* @c → @c U* (map @c h
+ *        over the letters).  This is the lightweight customization point that
+ *        earns @c IsFunctor without a @c φ member.
+ */
+export template <typename T, IsArrow H>
+constexpr auto map_arrow(const free_monoid_functor<T>&, const H& h) {
+  return arrow([h](const std::vector<T>& word) {
+    std::vector<Cod<H>> lifted;
+    lifted.reserve(word.size());
+    for (const auto& letter : word) lifted.push_back(h(letter));
+    return lifted;
+  });
+}
+
+static_assert(IsFunctor<free_monoid_functor<int>>,
+              "free_monoid_functor is a textbook functor Set<T> → Set<T*> "
+              "(the List functor): object map A ↦ A*, morphism map = relabel "
+              "atoms over the word.");
+static_assert(!IsShapedFunctor<free_monoid_functor<int>>,
+              "Deliberately the LIGHT witness (#961): free_monoid_functor "
+              "earns IsFunctor via a free map_arrow, and declines the heavier "
+              "IsShapedFunctor apparatus (Shape<U> object map + φ member).");
 
 /**
  * @brief Stage 1: The Functorial Applicator.
