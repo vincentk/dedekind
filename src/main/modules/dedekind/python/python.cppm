@@ -112,43 +112,49 @@ constexpr bool graphblas_backend_stub_available() {
 // laws yet).  Reconciling this runtime mirror with the type-level @c cata ---
 // one functor, two carriers --- is the embedding to be witnessed next.
 
-/** @brief Node kind of the runtime composition-term functor
- *  @c F(X) @c = @c Id @c + @c Atom @c + @c (X @c × @c X). */
-enum class ArrowKind { Id, Atom, Compose };
+/** @brief Node kind of the runtime composition term.  First iteration (#961):
+ *  the objects are the booleans @c true @c | @c false and the primitive arrows
+ *  are the two invertible unary boolean operations @c id and @c not (the
+ *  automorphisms of @c bool, @f$\cong \mathbb{Z}/2@f$) --- a @b closed set, so
+ *  the term functor is @c F(X) @c = @c Id @c + @c Not @c + @c (X @c × @c X)
+ *  with no open atom alphabet. */
+enum class ArrowKind { Id, Not, Compose };
 
-/** @brief A runtime, value-level composition term over endo-maps on @c int:
- *  the value-level mirror of @c :morphism's @c Identity / @c Compose, reduced
- *  by the value-first @c cata (@c reduce).  Composition is diagrammatic
- *  (@c f @c >> @c g means "apply @c f, then @c g", matching @c operator>>). */
+/** @brief A runtime, value-level composition term over the unary boolean
+ *  operations @c {id, not}: the value-level mirror of @c :morphism's
+ *  @c Identity / @c Compose, reduced by the value-first @c cata (@c reduce).
+ *  Composition is diagrammatic (@c f @c >> @c g means "apply @c f, then @c g",
+ *  matching @c operator>>).  The arrows are C++-defined (no captured Python
+ *  callable), so a handle carries no Python reference. */
 class ArrowTerm {
  public:
   /** @brief The identity arrow (the monoid unit). */
-  static ArrowTerm id() {
-    return ArrowTerm{ArrowKind::Id, "id", nullptr, nullptr, nullptr};
-  }
+  static ArrowTerm id() { return ArrowTerm{ArrowKind::Id, nullptr, nullptr}; }
 
-  /** @brief An opaque named atom wrapping an @c int→int endo-map. */
-  static ArrowTerm atom(std::string symbol, std::function<int(int)> f) {
-    return ArrowTerm{ArrowKind::Atom, std::move(symbol),
-                     std::make_shared<std::function<int(int)>>(std::move(f)),
-                     nullptr, nullptr};
+  /** @brief Boolean negation @c not: @c b @c ↦ @c ¬b --- the canonical
+   *  involution (the SAME one @c :involution witnesses via
+   *  @c is_involutive<std::logical_not<bool>, @c bool>).  For now the reducer
+   *  treats it as an opaque non-identity arrow; @c not∘not→id (the involution
+   *  law) is the next slice (#961). */
+  static ArrowTerm lnot() {
+    return ArrowTerm{ArrowKind::Not, nullptr, nullptr};
   }
 
   /** @brief Diagrammatic composition @c f @c >> @c g (apply @c f, then @c g);
    *  builds an unreduced @c Compose node, exactly like @c :morphism. */
   friend ArrowTerm operator>>(const ArrowTerm& f, const ArrowTerm& g) {
-    return ArrowTerm{ArrowKind::Compose, ">>", nullptr,
-                     std::make_shared<ArrowTerm>(f),
+    return ArrowTerm{ArrowKind::Compose, std::make_shared<ArrowTerm>(f),
                      std::make_shared<ArrowTerm>(g)};
   }
 
-  /** @brief Apply the arrow: @c (g∘f)(x) for a composite. */
-  int operator()(int x) const {
+  /** @brief Apply the arrow to a boolean object: @c (g∘f)(x) for a composite.
+   */
+  bool operator()(bool x) const {
     switch (kind_) {
       case ArrowKind::Id:
         return x;
-      case ArrowKind::Atom:
-        return (*fn_)(x);
+      case ArrowKind::Not:
+        return !x;
       case ArrowKind::Compose:
         return (*right_)((*left_)(x));  // g(f(x))
     }
@@ -169,27 +175,26 @@ class ArrowTerm {
   }
 
   /** @brief Structural equality, so @c simplify(id @c >> @c id) @c == @c id is
-   *  decidable: @c Id~@c Id, atoms by symbol, composites leg-wise. */
+   *  decidable: primitives by kind, composites leg-wise. */
   bool operator==(const ArrowTerm& other) const {
     if (kind_ != other.kind_) return false;
     switch (kind_) {
       case ArrowKind::Id:
+      case ArrowKind::Not:
         return true;
-      case ArrowKind::Atom:
-        return symbol_ == other.symbol_;
       case ArrowKind::Compose:
         return *left_ == *other.left_ && *right_ == *other.right_;
     }
     return false;  // unreachable
   }
 
-  /** @brief S-expression rendering: @c id, @c <symbol>, or @c (>> l r). */
+  /** @brief S-expression rendering: @c id, @c not, or @c (>> l r). */
   std::string sexpr() const {
     switch (kind_) {
       case ArrowKind::Id:
         return "id";
-      case ArrowKind::Atom:
-        return symbol_;
+      case ArrowKind::Not:
+        return "not";
       case ArrowKind::Compose:
         return "(>> " + left_->sexpr() + " " + right_->sexpr() + ")";
     }
@@ -199,20 +204,13 @@ class ArrowTerm {
   ArrowKind kind() const { return kind_; }
 
  private:
-  ArrowTerm(ArrowKind kind, std::string symbol,
-            std::shared_ptr<std::function<int(int)>> fn,
-            std::shared_ptr<ArrowTerm> left, std::shared_ptr<ArrowTerm> right)
-      : kind_(kind),
-        symbol_(std::move(symbol)),
-        fn_(std::move(fn)),
-        left_(std::move(left)),
-        right_(std::move(right)) {}
+  ArrowTerm(ArrowKind kind, std::shared_ptr<ArrowTerm> left,
+            std::shared_ptr<ArrowTerm> right)
+      : kind_(kind), left_(std::move(left)), right_(std::move(right)) {}
 
   ArrowKind kind_;
-  std::string symbol_;
-  std::shared_ptr<std::function<int(int)>> fn_;  // Atom only
-  std::shared_ptr<ArrowTerm> left_;              // Compose only
-  std::shared_ptr<ArrowTerm> right_;             // Compose only
+  std::shared_ptr<ArrowTerm> left_;   // Compose only
+  std::shared_ptr<ArrowTerm> right_;  // Compose only
 };
 
 /** @brief The value-first reducer entry point exposed to wrappers:

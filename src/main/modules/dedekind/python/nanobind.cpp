@@ -342,50 +342,10 @@ void bind_dual_rational(nb::module_& m) {
 }
 
 // ── Jlt: composition term + value-first reducer (#961) ──────────────────────
-// Handle-only binding: `Arrow` is a handle over the C++ `ArrowTerm`; `simplify`
-// delegates to the C++ value-first reducer (`ArrowTerm::reduce`).  Python does
-// NOT implement the law --- it composes handles and asks C++ to normalise.
-void bind_jlt(nb::module_& m) {
-  using dedekind::python::ArrowTerm;
-
-  nb::class_<ArrowTerm>(
-      m, "Arrow",
-      "A composition term over int endo-maps (the Jlt exhibit, #961).  Compose "
-      "with `f >> g` (apply f, then g); normalise with `simplify`; apply with "
-      "`a(x)`.  Reduction runs in C++ (value-first); Python holds the handle.")
-      .def(
-          "__rshift__",
-          [](const ArrowTerm& f, const ArrowTerm& g) { return f >> g; },
-          "f >> g: diagrammatic composition (apply f, then g).")
-      .def(
-          "__call__", [](const ArrowTerm& a, int x) { return a(x); },
-          "Apply the arrow to an int.")
-      .def(
-          "__eq__",
-          [](const ArrowTerm& a, const ArrowTerm& b) { return a == b; },
-          "Structural equality of terms.")
-      .def(
-          "__repr__", [](const ArrowTerm& a) { return a.sexpr(); },
-          "S-expression rendering: id | <sym> | (>> l r).");
-
-  // `id` is a singleton Arrow VALUE (there is one identity on int), so the
-  // exhibit reads `id >> id` / `simplify(id >> id) == id` without call syntax.
-  m.attr("id") = ArrowTerm::id();
-  m.def(
-      "atom",
-      [](const std::string& name, nb::callable fn) {
-        return ArrowTerm::atom(name,
-                               [fn](int x) { return nb::cast<int>(fn(x)); });
-      },
-      nb::arg("name"), nb::arg("fn"),
-      "An opaque named atom wrapping a Python int->int map.");
-  m.def(
-      "simplify",
-      [](const ArrowTerm& t) { return dedekind::python::simplify(t); },
-      nb::arg("term"),
-      "Value-first cata: normalise a term via the monoid unit law "
-      "(id >> f == f == f >> id).  The reduction runs in C++.");
-}
+// The Jlt category-concept bindings (Arrow, id, >>, simplify) live in their own
+// TU, nanobind_jlt.cpp, registered on a native `jlt` submodule.  Declared here
+// (defined there) and called from NB_MODULE below.
+void bind_jlt(nb::module_& base_module);
 
 void bind_dual(nb::module_& m) {
   using Dual = dedekind::analysis::Dual<double>;
@@ -460,6 +420,7 @@ NB_MODULE(_dedekind, module) {
   bind_dual_rational(module);
 
   // ── Jlt: composition term + value-first reducer (#961) ──────────────────
+  // Defines the native `jlt` submodule (see nanobind_jlt.cpp).
   bind_jlt(module);
 
   // ── canonical sets across the bridge (#886, vertical prototype) ─────────

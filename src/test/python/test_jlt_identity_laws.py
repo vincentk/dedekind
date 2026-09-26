@@ -1,14 +1,16 @@
-"""Jlt identity-law exhibit (#961): the monoid unit law, reduced in C++.
+"""Jlt identity-law exhibit (#961), first iteration: the unary boolean ops.
 
-``simplify`` is the value-first ``cata`` (``ArrowTerm::reduce``); Python only
-holds handles and asks C++ to normalise.  These pin the unit law
-``id ∘ f = f = f ∘ id``, the inert two-non-units case, and apply.  Scope is the
-identity laws only (atoms are opaque; no inverse/involution law yet).
+Objects are ``True`` / ``False``; the primitive arrows are ``id`` and ``not_``.
+``simplify`` is the value-first ``cata`` (``ArrowTerm::reduce``), run in C++;
+Python only holds handles.  These pin the monoid unit law ``id ∘ f = f = f ∘ id``,
+the inert two-non-units case, and apply.  Scope is the identity laws only:
+``not`` is opaque to the reducer, so ``not ∘ not`` stays inert for now (the
+involution law is the next slice).
 """
 
 import unittest
 
-from dedekind.jlt import atom, id, simplify
+from dedekind.jlt import id, not_, simplify
 
 
 class JltIdentityLawsTest(unittest.TestCase):
@@ -17,34 +19,33 @@ class JltIdentityLawsTest(unittest.TestCase):
         self.assertEqual(simplify(id >> id), id)
 
     def test_right_identity_drops(self) -> None:
-        # f ∘ id = f
-        f = atom("f", lambda x: x + 1)
-        self.assertEqual(simplify(f >> id), f)
+        # not ∘ id = not
+        self.assertEqual(simplify(not_ >> id), not_)
 
     def test_left_identity_drops(self) -> None:
-        # id ∘ f = f
-        f = atom("f", lambda x: x + 1)
-        self.assertEqual(simplify(id >> f), f)
+        # id ∘ not = not
+        self.assertEqual(simplify(id >> not_), not_)
 
     def test_two_non_units_stay_inert(self) -> None:
         # Neither leg is the unit, so the composite is its own normal form.
-        f = atom("f", lambda x: x + 1)
-        g = atom("g", lambda x: x * 2)
-        self.assertEqual(repr(simplify(f >> g)), "(>> f g)")
+        # (not ∘ not = id is the involution law -- the NEXT slice, not yet.)
+        self.assertEqual(repr(simplify(not_ >> not_)), "(>> not not)")
 
-    def test_apply_runs_the_wrapped_map(self) -> None:
-        # f >> g = "apply f, then g"; (id >> f)(41) = f(41) = 42.
-        f = atom("f", lambda x: x + 1)
-        self.assertEqual((id >> f)(41), 42)
-        # Reduction preserves the map: simplify(id >> f) applies as f.
-        self.assertEqual(simplify(id >> f)(41), 42)
+    def test_apply_to_boolean_objects(self) -> None:
+        # The arrows act on the objects true | false.
+        self.assertIs(id(True), True)
+        self.assertIs(not_(False), True)
+        self.assertIs(not_(True), False)
+        # not ∘ id = not; (id >> not_)(False) = not(False) = True.
+        self.assertIs((id >> not_)(False), True)
+        # Reduction preserves the map.
+        self.assertIs(simplify(id >> not_)(False), True)
 
     def test_sexpr_repr(self) -> None:
         # S-expression convention for repr.
-        f = atom("f", lambda x: x + 1)
         self.assertEqual(repr(id), "id")
-        self.assertEqual(repr(f), "f")
-        self.assertEqual(repr(id >> f), "(>> id f)")
+        self.assertEqual(repr(not_), "not")
+        self.assertEqual(repr(id >> not_), "(>> id not)")
 
 
 if __name__ == "__main__":
