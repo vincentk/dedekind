@@ -1,30 +1,30 @@
-"""Jlt: the composition-term exhibit (#961), first iteration.
+"""Jlt: the arrow DSL (#961), first iteration — the unary boolean operations.
 
-A tiny point-free calculus of the unary boolean operations, exposed as *handles*
-over the C++ core.  The objects are ``True`` / ``False``; the primitive arrows
-are ``id`` and ``not_`` (``not`` is a Python keyword).  The reducer lives in C++
-(value-first): ``simplify`` calls into ``ArrowTerm::reduce``; Python only
-composes handles and asks C++ to normalise.  This mirrors the type-level
-``cata`` in ``:f_algebra`` at runtime.
+A fluent, point-free calculus over the *real* category arrows, exposed as
+duck-typed handles: an "arrow" is the protocol ``__call__`` / ``__rshift__`` /
+``dom`` / ``cod``, not a base class.  The objects are the booleans; the
+primitive arrows are ``id`` and ``not_`` (``not`` is a Python keyword).
 
-    from dedekind.jlt import id, not_, simplify
+    from dedekind.jlt import id, not_
 
-    simplify(id >> id) == id           # True:  id ∘ id = id
-    simplify(not_ >> id) == not_       # True:  not ∘ id = not
-    simplify(id >> not_) == not_       # True:  id ∘ not = not
-    repr(simplify(not_ >> not_))       # '(>> not not)': inert (unit law only)
-    not_(False)                        # True: apply to a boolean object
+    (id >> not_)(False)      # True   -- compose (apply id, then not), then apply
+    (not_ >> not_)(True)     # True   -- not is an involution: not∘not = id
+    id.dom() is bool         # True   -- dom/cod are type objects (numpy-style)
+    isinstance(id >> not_, Morphism)   # composition type-erases to a Morphism
 
-Scope (first iteration, #961): the monoid UNIT law only.  ``not`` is still
-treated as an opaque non-identity arrow, so ``not ∘ not → id`` (the involution
-law, using :involution's witness for ``std::logical_not``) is the next slice.
+Arrows are **extensional** (functions): ``id >> not_`` and ``not_`` are equal on
+every input.  Structural reduction (``simplify`` / ``cata``) is *intensional*
+and lives on the C++ side (the type-level ``:f_algebra`` reducer); it is vacuous
+on extensional arrows, so it is deliberately absent here.  ``Identity`` and
+``Morphism`` are the real ``:morphism`` arrow types, both witnessing ``IsArrow``
+in C++.
 """
 
 # `_jlt` is the exhibit's own private native extension module (dedekind._jlt),
 # NumPy-style; this pure-Python facade re-exports it under the public name.
-from ._jlt import Arrow
+from ._jlt import Identity
+from ._jlt import Morphism
 from ._jlt import id
 from ._jlt import not_
-from ._jlt import simplify
 
-__all__ = ["Arrow", "id", "not_", "simplify"]
+__all__ = ["Identity", "Morphism", "id", "not_"]

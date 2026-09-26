@@ -1,51 +1,70 @@
-"""Jlt identity-law exhibit (#961), first iteration: the unary boolean ops.
+"""Jlt arrow DSL (#961), first iteration: the unary boolean operations.
 
-Objects are ``True`` / ``False``; the primitive arrows are ``id`` and ``not_``.
-``simplify`` is the value-first ``cata`` (``ArrowTerm::reduce``), run in C++;
-Python only holds handles.  These pin the monoid unit law ``id ∘ f = f = f ∘ id``,
-the inert two-non-units case, and apply.  Scope is the identity laws only:
-``not`` is opaque to the reducer, so ``not ∘ not`` stays inert for now (the
-involution law is the next slice).
+The Python side is a fluent DSL over the *real* category arrows, duck-typed:
+an "arrow" is the protocol ``__call__`` / ``__rshift__`` / ``dom`` / ``cod``.
+Arrows are extensional (functions), so these tests pin (a) the protocol
+conformance across the distinct arrow types and (b) the monoid/group laws
+holding *behaviourally* -- the identity laws ``id∘f = f = f∘id`` and, since
+``not`` is an involution, ``not∘not = id``.  Structural ``simplify`` is
+intensional and lives on the C++ side, so it is absent here by design.
 """
 
 import unittest
 
-from dedekind.jlt import id, not_, simplify
+from dedekind.jlt import Identity, Morphism, id, not_
+
+_BOOLS = (False, True)
+_ARROW_METHODS = ("__call__", "__rshift__", "dom", "cod")
 
 
-class JltIdentityLawsTest(unittest.TestCase):
-    def test_id_compose_id_is_id(self) -> None:
-        # id ∘ id = id
-        self.assertEqual(simplify(id >> id), id)
+class JltArrowProtocolTest(unittest.TestCase):
+    def test_arrows_duck_type_the_protocol(self) -> None:
+        # id, not_, and a composite all satisfy the arrow protocol -- no shared
+        # base class; "arrow" is the protocol (IsArrow is witnessed in C++).
+        for arrow in (id, not_, id >> not_, not_ >> not_):
+            for method in _ARROW_METHODS:
+                self.assertTrue(hasattr(arrow, method), (arrow, method))
 
-    def test_right_identity_drops(self) -> None:
-        # not ∘ id = not
-        self.assertEqual(simplify(not_ >> id), not_)
+    def test_primitive_types_are_the_real_arrows(self) -> None:
+        # id is the category Identity; not_ is a type-erased Morphism.
+        self.assertIsInstance(id, Identity)
+        self.assertIsInstance(not_, Morphism)
 
-    def test_left_identity_drops(self) -> None:
-        # id ∘ not = not
-        self.assertEqual(simplify(id >> not_), not_)
+    def test_dom_cod_are_the_boolean_type(self) -> None:
+        # numpy/pandas style: dom/cod are type objects (the boolean type).
+        for arrow in (id, not_, id >> not_):
+            self.assertIs(arrow.dom(), bool)
+            self.assertIs(arrow.cod(), bool)
 
-    def test_two_non_units_stay_inert(self) -> None:
-        # Neither leg is the unit, so the composite is its own normal form.
-        # (not ∘ not = id is the involution law -- the NEXT slice, not yet.)
-        self.assertEqual(repr(simplify(not_ >> not_)), "(>> not not)")
+    def test_composition_type_erases_to_a_morphism(self) -> None:
+        # Composition is extensional: it lands in the type-erased Morphism.
+        self.assertIsInstance(id >> not_, Morphism)
+        self.assertIsInstance(not_ >> id, Morphism)
+        self.assertIsInstance(not_ >> not_, Morphism)
 
-    def test_apply_to_boolean_objects(self) -> None:
-        # The arrows act on the objects true | false.
+
+class JltMonoidLawsExtensionalTest(unittest.TestCase):
+    """The monoid/group laws hold behaviourally on {False, True}."""
+
+    def test_apply(self) -> None:
         self.assertIs(id(True), True)
         self.assertIs(not_(False), True)
         self.assertIs(not_(True), False)
-        # not ∘ id = not; (id >> not_)(False) = not(False) = True.
-        self.assertIs((id >> not_)(False), True)
-        # Reduction preserves the map.
-        self.assertIs(simplify(id >> not_)(False), True)
 
-    def test_sexpr_repr(self) -> None:
-        # S-expression convention for repr.
+    def test_left_and_right_identity(self) -> None:
+        # id ∘ f = f = f ∘ id, extensionally.
+        for x in _BOOLS:
+            self.assertEqual((id >> not_)(x), not_(x))
+            self.assertEqual((not_ >> id)(x), not_(x))
+            self.assertEqual((id >> id)(x), id(x))
+
+    def test_not_is_an_involution(self) -> None:
+        # not ∘ not = id, extensionally (the Z/2 group law).
+        for x in _BOOLS:
+            self.assertEqual((not_ >> not_)(x), x)
+
+    def test_repr(self) -> None:
         self.assertEqual(repr(id), "id")
-        self.assertEqual(repr(not_), "not")
-        self.assertEqual(repr(id >> not_), "(>> id not)")
 
 
 if __name__ == "__main__":

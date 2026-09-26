@@ -23,6 +23,7 @@
  */
 #include <catch2/catch_test_macros.hpp>
 #include <concepts>
+#include <functional>
 #include <type_traits>
 
 import dedekind.category;
@@ -189,4 +190,29 @@ TEST_CASE(
   // lands on the witnessed atom.
   STATIC_CHECK(is_involutive_v<std::remove_cvref_t<decltype(reduced)>, int>);
   STATIC_CHECK(IsInvolution<Id, int>);
+}
+
+TEST_CASE(
+    "f_algebra: cata simplifies the boolean unit law id >> not -> not "
+    "(the intensional home of the Jlt exhibit, #961)",
+    "[category][f_algebra][cata][boolean][961]") {
+  // The Jlt Python exhibit is EXTENSIONAL (arrows are functions); its
+  // INTENSIONAL counterpart lives here.  On the boolean carrier, the type-level
+  // cata collapses the monoid unit law structurally --- this is where
+  // "simplify(id >> not) == not" honestly lands (a claim about types).
+  const auto lnot = endo<bool>(std::logical_not<bool>{});
+  using LNot = std::remove_cvref_t<decltype(lnot)>;
+
+  // cata(id >> not) == not  and  cata(not >> id) == not, as TYPES.
+  const auto left = cata(id<bool>() >> lnot);
+  const auto right = cata(lnot >> id<bool>());
+  STATIC_CHECK(cata_reduces_to<decltype(left), LNot>);
+  STATIC_CHECK(cata_reduces_to<decltype(right), LNot>);
+
+  // ...and the reduced arrow is still not.
+  CHECK(left(false) == true);
+  CHECK(left(true) == false);
+
+  // not is precisely the involution :involution witnesses.
+  STATIC_CHECK(is_involutive_v<std::logical_not<bool>, bool>);
 }
