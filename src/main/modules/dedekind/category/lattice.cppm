@@ -480,6 +480,39 @@ struct Not {  // ¬A (complement)
   }
 };
 
+/** @brief When @c A is a subobject (carries @c Domain / @c Codomain /
+ *  @c logic_species), @c ¬A is @b itself a first-class subobject --- the SAME
+ *  @c Not node the reducer's complement laws already match, now usable as a set
+ *  value.  Its χ is @c A's, reflected by the codomain's own @c RFL (generic
+ *  over any bounded chain @c Ω: @c Boole @c !, @c Kleene @c ¬U=U, …), so no
+ *  bespoke complement wrapper is needed.  Adding the subobject surface here
+ *  (rather than in a downstream @c NotSet lift) keeps @c ¬A the literal
+ *  @c Not<A>, so @c is_not_node_v / @c de_morgan_of / @c is_complement_pair_v
+ *  apply unchanged --- no per-type trait re-teaching. */
+export template <typename A>
+  requires requires {
+    typename A::Domain;
+    typename A::Codomain;
+    typename A::logic_species;
+  }
+struct Not<A> {
+  A base;
+  using Domain = typename A::Domain;
+  using Codomain = typename A::Codomain;
+  using logic_species = typename A::logic_species;
+  struct Member {
+    Domain value;
+  };
+  /** @brief ι: ¬A ↣ Domain, the trivial identity inclusion (homogeneous). */
+  constexpr Domain ι(const Member& m) const { return m.value; }
+  /** @brief χ: ¬A(x) = RFL(A(x)), the codomain reflection of @c A's χ. */
+  template <typename X>
+    requires requires(const A& b, const X& x) { b(x); }
+  constexpr auto operator()(const X& x) const {
+    return logic_species::RFL(base(x));
+  }
+};
+
 /** @section lattice__AST_as_product
  *  A binary node @b is the categorical product / coproduct of its operands, so
  *  it inhabits @c category::IsProduct (the role @c sets::AndPredicate /
@@ -637,6 +670,52 @@ struct carrier_of<Not<A>> {
 };
 export template <typename X>
 using carrier_of_t = typename carrier_of<X>::type;
+
+/** @brief The CODOMAIN @c Ω of a leaf / term, dual to @c carrier_of (the
+ *  domain).  A predicate / subobject leaf is an arrow @c χ:Domain→Ω, so its
+ *  codomain is @c Ω (the subobject classifier), read via @c ::Codomain.  A bare
+ *  value leaf is a truth value, so its codomain @b is its own type (domain =
+ *  codomain there, which is why the two-element @c bool lattice behaves
+ *  identically under either accessor).  Composites propagate the common @c Ω
+ *  (fail-closed, exactly like @c carrier_of).
+ *
+ *  @details Complementation and De Morgan negation are properties of the
+ *  CODOMAIN lattice @c Ω, not the domain: @c Sub(X) is complemented iff @c Ω is
+ *  (@c Boole yes; @c Kleene's 3-chain no, @c ¬U=U).  So the complement / De
+ *  Morgan laws gate on @c codomain_of (this), while @c SameCarrier and the glb
+ *  collapse --- "are these over the same ambient?" --- stay on @c carrier_of
+ *  (the domain).  This is the domain/codomain disentanglement: the reducer
+ *  stays vanilla @c (semi-)lattice and simply asks "is @c Ω complemented?". */
+export template <typename X>
+struct codomain_of {
+  using type = void;
+};
+export template <typename X>
+  requires requires { X::value; }
+struct codomain_of<X> {
+  using type = std::remove_cvref_t<decltype(X::value)>;
+};
+export template <typename X>
+  requires(IsArrow<X> && !requires { X::value; })
+struct codomain_of<X> {
+  using type = typename std::remove_cvref_t<X>::Codomain;
+};
+export template <typename A, typename B>
+struct codomain_of<Meet<A, B>> {
+  using type = detail_carrier::common<typename codomain_of<A>::type,
+                                      typename codomain_of<B>::type>;
+};
+export template <typename A, typename B>
+struct codomain_of<Join<A, B>> {
+  using type = detail_carrier::common<typename codomain_of<A>::type,
+                                      typename codomain_of<B>::type>;
+};
+export template <typename A>
+struct codomain_of<Not<A>> {
+  using type = typename codomain_of<A>::type;
+};
+export template <typename X>
+using codomain_of_t = typename codomain_of<X>::type;
 
 /** @brief Does the term @c X mix carriers anywhere — either two @b different
  *  known carriers, @b or a known carrier with an @b opaque (unknown) one?  Only
@@ -1061,7 +1140,7 @@ consteval auto meet_complement_law() {
   // @c S{7}∧¬S{3} matches the type pair but is @b not empty (#922).
   if constexpr (is_complement_pair_v<RA, RB> && IsIdempotentLeaf<RA> &&
                 IsIdempotentLeaf<RB> &&
-                is_complemented_lattice_for_v<carrier_of_t<RA>, Ord>) {
+                is_complemented_lattice_for_v<codomain_of_t<RA>, Ord>) {
     return std::type_identity<LatticeBottom<
         carrier_of_t<RA>, resolved_order_t<carrier_of_t<RA>, Ord>>>{};
   } else {
@@ -1076,7 +1155,7 @@ consteval auto join_complement_law() {
   // soundly only on value-determined leaves.
   if constexpr (is_complement_pair_v<RA, RB> && IsIdempotentLeaf<RA> &&
                 IsIdempotentLeaf<RB> &&
-                is_complemented_lattice_for_v<carrier_of_t<RA>, Ord>) {
+                is_complemented_lattice_for_v<codomain_of_t<RA>, Ord>) {
     return std::type_identity<LatticeTop<
         carrier_of_t<RA>, resolved_order_t<carrier_of_t<RA>, Ord>>>{};
   } else {
@@ -1564,33 +1643,21 @@ concept IsSubobjectFamilyMember = requires {
  *           @c IsOckhamAlgebra).
  */
 export template <typename S>
-concept IsSubobjectLattice = requires(S a, S b) {
+concept IsSubobjectLattice = requires {
   /** @brief CT-vocabulary metadata: @c S exposes a domain and a
    *         classifier logic species. */
   typename S::Domain;
   typename S::logic_species;
+  /** @brief The ALGEBRAIC witness that @c Sub(A) is a lattice: the classifier
+   *  @c L is an Ockham algebra, so @c Sub(A) inherits meet / join / complement
+   *  pointwise from @c L.  #834: this concept no longer requires the @c meet /
+   *  @c join / @c complement FREE FUNCTIONS by name (those set-lattice ops
+   * moved to @c dedekind.sets, downstream of this partition, so an ADL probe on
+   * a
+   *  @c :category @c Subobject could not find them).  Requiring the ops by name
+   *  was operational redundancy over the algebraic guarantee; the induced
+   *  lattice IS the Ockham structure.  Same decoupling as ETCS Axiom 10. */
   requires IsOckhamAlgebra<typename S::logic_species>;
-
-  /** @brief CT-vocabulary free functions for the binary lattice
-   *         operations (binary product / coproduct in the subobject
-   *         category).  Results inhabit the same subobject family —
-   *         anchored on @c (S::Domain, S::logic_species) per the
-   *         family concept. */
-  {
-    meet(a, b)
-  } -> IsSubobjectFamilyMember<typename S::Domain, typename S::logic_species>;
-  {
-    join(a, b)
-  } -> IsSubobjectFamilyMember<typename S::Domain, typename S::logic_species>;
-} && requires(S a) {
-  /** @brief Complement is required unconditionally: classical carriers
-   *         get a bona-fide Boolean complement, Kleene carriers get
-   *         the involutive rotation that fails Boolean complement
-   *         laws at @c Unknown.  The semantic strength is established
-   *         at the @c L-witness level, not the concept boundary. */
-  {
-    complement(a)
-  } -> IsSubobjectFamilyMember<typename S::Domain, typename S::logic_species>;
 };
 
 /** @section lattice__IsSubobjectLattice_Order_Derivability

@@ -21,11 +21,13 @@
  *
  * A compiled, type-checked partition.  @c :lattice_term imports it and
  * @c static_asserts @c IsMeetAsRightAdjoint over its canonical carrier, so the
- * reification is load-bearing early rather than an orphan.  The arrow-level
- * @c (⊗) (@c Tensor) and the composite meet @c Δ† @c ∘ @c (⊗) @c ∘ @c Δ
- * (@c Intersect) are provided; the value-level product-order leg (a proof that
- * the composite computes the glb over a non-trivial pair, and so distinguishes
- * the meet from the join) remains @c FIXME(#946).
+ * reification is load-bearing early rather than an orphan.  This file provides
+ * the bicategory STRUCTURE --- the comonoid legs @c Copy / @c Merge / @c Delete
+ * and the arrow-level product @c (⊗) (@c Tensor) --- plus the @c Δ⊣∧ concept.
+ * The composite meet @c Δ† @c ∘ @c (⊗) @c ∘ @c Δ that is built FROM this
+ * structure is the relational intersection @c Intersect, and lives in
+ * @c :relational:dyadic (next to the extensional @c R∩S it realises
+ * point-free).
  *
  * Wikipedia: Cartesian bicategory, Frobenius algebra, Adjoint functors
  *
@@ -357,50 +359,6 @@ template <typename R, typename S, typename LeqR, typename LeqS>
 inline constexpr bool is_antimonotone_v<Tensor<R, S>, ProductLeq<LeqR, LeqS>> =
     true;
 
-/** @brief The composite meet @c R∩S @c = @c Δ† @c ∘ @c (R⊗S) @c ∘ @c Δ: copy
- * the input, run both legs in parallel, merge where they agree. The
- *         1-categorical realisation of the relational intersection whose
- *         @c (Copy,Merge) legs are certified by @c IsMeetAsRightAdjoint.
- *  @warning @b Not @b dispatch-safe as a glb (#950 review).  This is the meet
- *           composite @b by @b intent, but its @c requires clause gates only
- * the STRUCTURAL @c Δ⊣∧ shape via @c IsMeetAsRightAdjoint, which this file
- *           deliberately proves true for @c Merge<A,Sup> (the JOIN) too.  So
- *           @c Intersect<R,S,Sup> is publicly constructible and computes a
- *           @b join under an intersection name.  glb-correctness is the
- * injected
- *           @c Meet's obligation, NOT something this composite discharges;
- *           closing it is deferred to #908 (reify predicate variance) plus the
- *           value-level product-order leg, FIXME(#946).  Do NOT branch dispatch
- *           on the mere existence of this type as if it guaranteed a meet.
- *  @tparam R the left endo-leg @c A→A.
- *  @tparam S the right endo-leg @c A→A.
- *  @tparam Meet the injected glb, forwarded to @c Merge (see there).
- *  @note @c R and @c S are endomorphisms of the common carrier @c A so the
- *        composite is again @c A→A; @c Intersect<Identity,Identity> collapses
- * to the identity, the arrow-level shadow of idempotence @c a∧a=a. */
-export template <IsArrow R, IsArrow S, typename Meet>
-  requires std::same_as<Dom<R>, Dom<S>> && std::same_as<Cod<R>, Dom<R>> &&
-           std::same_as<Cod<S>, Dom<R>> &&
-           IsMeetAsRightAdjoint<Copy<Dom<R>>, Merge<Dom<R>, Meet>>
-struct Intersect {
-  using Domain = Dom<R>;
-  using Codomain = Dom<R>;
-  R r{};
-  S s{};
-  /** @brief The composite meet @c (R∩S)(a)=Δ†((R⊗S)(Δ(a))): copy, run both
-   *         legs, merge where they agree.
-   *  @param a the input value.
-   *  @return @c R(a)⊓S(a), the injected glb of the two legs' outputs.
-   *  @note The @c requires clause gates only the STRUCTURAL @c Δ⊣∧ shape
-   *        (crossed signatures + posetal carrier + definite variance).  It does
-   *        NOT certify that @c Meet is the glb rather than the lub; that is the
-   *        injected op's obligation (see @c IsMeetAsRightAdjoint), tightened
-   *        later via #908 + the value-level product-order leg, FIXME(#946). */
-  constexpr Codomain operator()(const Domain& a) const {
-    return Merge<Domain, Meet>{}(Tensor<R, S>{r, s}(Copy<Domain>{}(a)));
-  }
-};
-
 // The comonoid legs are the arrows the theory names, each the canonical MODEL
 // of its concept: Copy ⊨ IsCopy (Δ:A→A×A), Merge ⊨ IsMerge (Δ†:A×A→A), Delete ⊨
 // IsTerminalMorphism (ε:A→One, the counit; concept reused from :limit).
@@ -446,7 +404,7 @@ static_assert(!IsArrow<Copy<CopyMoveOnly>>,
               "a move-only carrier must NOT model IsArrow via Copy: the "
               "diagonal a↦(a,a) copies, so copy-constructibility is required.");
 
-// The parallel product and the composite meet are genuine arrows.
+// The parallel product is a genuine arrow.
 static_assert(IsArrow<Tensor<Identity<bool>, Identity<bool>>>,
               "R ⊗ S must be an arrow (A×B → C×D).");
 
@@ -459,9 +417,6 @@ static_assert(
 static_assert(
     IsProduct<Cod<Tensor<Identity<bool>, Identity<bool>>>, bool, bool>,
     "Tensor's target object C×D must model IsProduct.");
-static_assert(
-    IsArrow<Intersect<Identity<bool>, Identity<bool>, std::logical_and<bool>>>,
-    "the composite meet Δ† ∘ (R ⊗ S) ∘ Δ must be an arrow.");
 
 // @c Tensor is the canonical MODEL of @c IsTensor: product Domain AND product
 // Codomain.  The two NEGATIVE witnesses discriminate the near-miss comonoid
@@ -487,17 +442,6 @@ static_assert(
                ProductLeq<std::less_equal<bool>, std::less_equal<bool>>>,
     "id ⊗ id inherits monotonicity from its legs (⊗ is a covariant "
     "bifunctor); derived, not tagged.");
-
-// Over the identity endo-leg the composite collapses to the identity: it is the
-// arrow-level shadow of the idempotent law a ∧ a = a (Δ copies, id⊗id is inert,
-// Δ† merges the two equal copies).  A runtime witness, not just a shape check.
-static_assert(
-    Intersect<Identity<bool>, Identity<bool>, std::logical_and<bool>>{}(true) ==
-        true,
-    "Δ† ∘ (id ⊗ id) ∘ Δ must compute a ∧ a = a.");
-static_assert(Intersect<Identity<bool>, Identity<bool>,
-                        std::logical_and<bool>>{}(false) == false,
-              "Δ† ∘ (id ⊗ id) ∘ Δ must compute a ∧ a = a.");
 
 // ---------------------------------------------------------------------------
 // Carrier coherence witnesses (co-located with the concept they exercise;

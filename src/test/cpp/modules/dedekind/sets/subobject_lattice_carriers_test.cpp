@@ -71,15 +71,17 @@ TEST_CASE(
   STATIC_CHECK(IsSubobjectLattice<SingletonSet<bool>>);
 }
 
-TEST_CASE("sets:subobject-lattice — complement free function actually runs",
+TEST_CASE("sets:subobject-lattice — complement operator actually runs",
           "[sets][lattice][subobject][complement][runtime]") {
-  /** @brief Codecov touch: the @c complement(s) free function in
-   *         @c :etcs::concrete forwards to @c set_complement(s).  The
-   *         concept-level static asserts in this file check the
-   *         function's @em shape via @c decltype; this runtime call
-   *         exercises the forwarder body so coverage sees it. */
+  /** @brief Codecov touch: the set complement @c !s (post-#834 the ONE
+   *         complement surface; the @c set_complement / @c complement
+   *         free-function aliases are retired).  On a boundary the
+   *         @c UniversalSet member @c operator! fires (@c !𝔸 = Ø).  The
+   *         concept-level static asserts in this file check the shape via
+   *         @c decltype; this runtime call exercises the body so coverage
+   *         sees it. */
   constexpr UniversalSet<bool> univ{};
-  const auto univ_complement = complement(univ);
+  const auto univ_complement = ~univ;
   STATIC_CHECK(IsSubobject<decltype(univ_complement), bool>);
 }
 

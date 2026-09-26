@@ -141,6 +141,6 @@ TEST_CASE("Codomain leg on complement / product / symmetric difference (#894)",
   // does not reach it; tracked in FIXME(#894).)
   const auto empty_prod = Ø<int, Kleene>{} * A;  // Ø × S = Ø
   CHECK(HasDecidableMembership<std::decay_t<decltype(empty_prod)>>);
-  const auto excluded = A ^ !A;  // A △ ¬A = 𝔸
+  const auto excluded = A ^ ~A;  // A △ ¬A = 𝔸
   CHECK(HasDecidableMembership<std::decay_t<decltype(excluded)>>);
 }

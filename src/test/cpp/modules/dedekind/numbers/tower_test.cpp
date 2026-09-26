@@ -364,14 +364,14 @@ TEST_CASE("Tower+IEEE: sets over IEEE<double> domain",
       ambient_set<IEEE<F>>([](const IEEE<F>& v) { return v.resolve() > 0.0; });
   const auto bounded = ambient_set<IEEE<F>>(
       [](const IEEE<F>& v) { return v.resolve() <= 10.0; });
-  const auto support = set_intersection(positive, bounded);
+  const auto support = positive & bounded;
 
   // Positive and bounded
-  CHECK(support.χ(IEEE<F>{5.0}) == true);
+  CHECK(support(IEEE<F>{5.0}) == true);
   // Positive but not bounded
-  CHECK(support.χ(IEEE<F>{15.0}) == false);
+  CHECK(support(IEEE<F>{15.0}) == false);
   // Negative
-  CHECK(support.χ(IEEE<F>{-1.0}) == false);
+  CHECK(support(IEEE<F>{-1.0}) == false);
 }
 
 TEST_CASE("Tower+IEEE: IEEE<double> union and complement",
@@ -381,16 +381,16 @@ TEST_CASE("Tower+IEEE: IEEE<double> union and complement",
       ambient_set<IEEE<F>>([](const IEEE<F>& v) { return v.resolve() < 0.0; });
   const auto pos =
       ambient_set<IEEE<F>>([](const IEEE<F>& v) { return v.resolve() > 0.0; });
-  const auto nonzero = set_union(neg, pos);
-  const auto zero_set = set_complement(nonzero);
+  const auto nonzero = neg | pos;
+  const auto zero_set = ~nonzero;
 
-  CHECK(nonzero.χ(IEEE<F>{3.0}) == true);
-  CHECK(nonzero.χ(IEEE<F>{-2.0}) == true);
-  CHECK(nonzero.χ(IEEE<F>{0.0}) == false);
+  CHECK(nonzero(IEEE<F>{3.0}) == true);
+  CHECK(nonzero(IEEE<F>{-2.0}) == true);
+  CHECK(nonzero(IEEE<F>{0.0}) == false);
 
   // Complement of nonzero should contain only zero
-  CHECK(zero_set.χ(IEEE<F>{0.0}) == true);
-  CHECK(zero_set.χ(IEEE<F>{1.0}) == false);
+  CHECK(zero_set(IEEE<F>{0.0}) == true);
+  CHECK(zero_set(IEEE<F>{1.0}) == false);
 }
 
 // ---------------------------------------------------------------------------

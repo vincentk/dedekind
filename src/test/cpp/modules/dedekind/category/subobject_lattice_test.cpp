@@ -81,14 +81,20 @@ TEST_CASE("category:subobject-lattice: Kleene meet / join via value Sup / Inf",
 
 namespace {
 
-// Architectural fixture: a minimal carrier exposing the CT-vocabulary
-// metadata that IsSubobjectLattice<S>'s body requires.  No operational
-// content yet — the SubsetEqRel typedef, meet / join / complement free
-// functions land in Slice 9 with the :etcs harmonisation; this fixture
-// exists to prove the concept's metadata clause fires structurally.
+// A minimal carrier exposing the metadata IsSubobjectLattice<S> requires:
+// Domain + logic_species with IsOckhamAlgebra on the species.  The subobject
+// lattice is INDUCED pointwise from the classifier L, so that metadata IS the
+// whole concept (no meet / join / complement free functions by name).
 struct FauxSubobject {
   using Domain = bool;
   using logic_species = dedekind::category::Boole;
+};
+
+// Negative fixture: same metadata SHAPE, but the species is not an Ockham
+// algebra, so it induces no complemented subobject lattice.
+struct NonOckhamCarrier {
+  using Domain = bool;
+  using logic_species = int;  // not IsOckhamAlgebra
 };
 
 }  // namespace
@@ -96,24 +102,19 @@ struct FauxSubobject {
 TEST_CASE(
     "category:subobject-lattice — IsSubobjectLattice metadata clause fires",
     "[category][lattice][subobject][concept][metadata]") {
-  /** @brief Sanity that the concept's CT-vocabulary metadata
-   *         (@c Ambient + @c logic_species typedefs, with
-   *         @c IsOckhamAlgebra on the species) is the shape carriers
-   *         must expose.
-   *
-   *  @note The full concept additionally requires a @c SubsetEqRel
-   *  typedef and free-function @c meet, @c join, @c complement —
-   *  those land in Slice 9 with the @c :etcs harmonisation, at which
-   *  point @c Subobject<A, Chi> and @c Set<T, L, P> will fire the
-   *  concept end-to-end.  This test pins the Slice 8 architectural
-   *  commit: the metadata shape is what we want, and the carriers
-   *  already expose @c Ambient + @c logic_species. */
+  /** @brief The concept's CT-vocabulary metadata (@c Domain +
+   *         @c logic_species typedefs, with @c IsOckhamAlgebra on the
+   *         species) IS the whole concept: the subobject lattice is
+   *         induced pointwise from the classifier @c L, so a carrier
+   *         exposing the metadata over an Ockham species already fires
+   *         @c IsSubobjectLattice. */
   STATIC_CHECK(IsOckhamAlgebra<FauxSubobject::logic_species>);
   STATIC_CHECK(std::same_as<FauxSubobject::Domain, bool>);
+  STATIC_CHECK(IsSubobjectLattice<FauxSubobject>);
 
-  /** @brief Negative witness: without @c SubsetEqRel + the free
-   *         functions, the full concept does @b not fire.  Slice 9
-   *         lifts this by adding the missing pieces on @c Set /
-   *         @c Subobject. */
-  STATIC_CHECK_FALSE(IsSubobjectLattice<FauxSubobject>);
+  /** @brief Negative witness: the same metadata shape over a species that
+   *         is @b not an Ockham algebra induces no complemented subobject
+   *         lattice, so the concept does not fire. */
+  STATIC_CHECK_FALSE(IsOckhamAlgebra<NonOckhamCarrier::logic_species>);
+  STATIC_CHECK_FALSE(IsSubobjectLattice<NonOckhamCarrier>);
 }

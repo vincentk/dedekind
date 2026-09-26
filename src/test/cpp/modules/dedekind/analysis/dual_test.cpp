@@ -131,7 +131,7 @@ TEST_CASE("Analysis: 𝔻 lattice identity (U ∪ ¬U = top, U ∩ ¬U = bottom)
           "[analysis][dual][starter][lattice]") {
   using R2 = QuadraticReal<2>;
   const auto U = Set{𝔻};
-  const auto O = !U;
+  const auto O = ~U;
   CHECK((U | O)(Dual<R2>{R2{3}, R2{1}}) == Ternary::True);
   CHECK((U & O)(Dual<R2>{R2{3}, R2{1}}) == Ternary::False);
 }

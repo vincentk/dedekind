@@ -49,7 +49,7 @@ TEST_CASE("Sets+Category: singleton and comprehension predicates satisfy ETCS",
   // implicitly into the variant's finite alternative on the call site.
   const auto positive_set = ambient_set<Cardinality>(positive);
   const auto bounded_set = ambient_set<Cardinality>(bounded);
-  const auto support = set_intersection(positive_set, bounded_set);
+  const auto support = positive_set & bounded_set;
 
   STATIC_CHECK(dedekind::category::IsSet<decltype(positive_set)>);
   // Post-#622 (cardinality cut): ℕ → Boole on the carrier axis,
@@ -61,8 +61,8 @@ TEST_CASE("Sets+Category: singleton and comprehension predicates satisfy ETCS",
 
   CHECK(positive_set.χ(5u));
   CHECK_FALSE(positive_set.χ(0u));
-  CHECK(support.χ(5u));
-  CHECK_FALSE(support.χ(50u));
+  CHECK(support(5u));
+  CHECK_FALSE(support(50u));
 }
 
 TEST_CASE("Sets+Category: Set naming boundary is explicit",

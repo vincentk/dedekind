@@ -36,10 +36,13 @@
  *    @c S is a Subobject of ambient @c A.
  *  - @c IsConcrete<C>: per-category concreteness ---
  *    @c C is small AND its objects are sets.
- *  - @c set_intersection: @c χ_A @c ∧ @c χ_B (meet on @c Sub(A)).
- *  - @c set_union: @c χ_A @c ∨ @c χ_B (join on @c Sub(A)).
- *  - @c set_complement: @c ¬χ_A (Heyting complement).
- *  - @c in / @c in_via: membership @c x @c ∈ @c S evaluated via @c χ_S.
+ *  - @c IsCompatibleSetPair / @c HasTernarySupport: subobject-pair shape gates.
+ *  - @c in / @c in_via: membership @c x @c ∈ @c S via χ-evaluation @c s(x).
+ *  - @c compose_embedding: compose two embedding arrows (pullback path checks).
+ *
+ * Membership (@c in / @c in_via) is χ-evaluation, category-fundamental, so it
+ * lives here.  The set-LATTICE operations are the operators @c operator& /
+ * @c | / @c ! in @c dedekind.sets, where the set-builder DSL lives.
  *
  * Concept-as-predicate framing (cf. #635, #637).  The chain ranges over
  * CATEGORIES C: among small categories, the concrete ones (a faithful
@@ -201,72 +204,21 @@ concept IsCompatibleSetPair =
     std::same_as<std::invoke_result_t<S1 const&, typename S1::Domain const&>,
                  std::invoke_result_t<S2 const&, typename S2::Domain const&>>;
 
-/** @brief The general intersection classifier @f$\chi_{A\cap B} = \chi_A \wedge
- *  \chi_B@f$ as a @b named predicate (no lambda; #831/#365).  Only reached for
- *  @b unstructured operands --- the decidable/structured cases route through
- *  @c operator& / @c structured_and first (see @c set_intersection). */
-export template <typename S1, typename S2, IsOckhamAlgebra L>
-struct ConjunctionChi {
-  S1 lhs;
-  S2 rhs;
-  template <typename A>
-    requires std::invocable<const S1&, const A&> &&
-             std::invocable<const S2&, const A&>
-  constexpr typename L::Ω operator()(const A& a) const {
-    return L::AND(lhs(a), rhs(a));
-  }
-};
+// Membership (@c in / @c in_via) is χ-evaluation (@c s(x) / @c s(e(x))), a
+// category-fundamental subobject operation, not a lattice-DSL op, so it lives
+// here.  The set-lattice operations are the collapsing @c operator& / @c | /
+// @c ! in @c dedekind.sets.
 
-/** @brief Set intersection: materialize @c A @c ∩ @c B from the
- *         carriers-as-predicates.  The classifier is the named
- *         @c ConjunctionChi (no lambda; #831/#365) --- same @c classify-@c
- *         Subobject return contract that @c IsSet / @c HasETCSAxioms / the
- *         product depend on.  (Structural collapse of the decidable cases is a
- *         separate concern: it belongs to @c operator&, whose result type
- *         differs, so @c set_intersection can @b not simply route through it
- *         without breaking that contract --- see the divergence note in #831.)
- */
-export template <typename S1, typename S2>
-  requires IsCompatibleSetPair<S1, S2>
-constexpr auto set_intersection(const S1& lhs, const S2& rhs) {
-  using A = typename S1::Domain;
-  using L = typename GetLogic<std::invoke_result_t<S1 const&, A const&>>::type;
-  return classify<A>(ConjunctionChi<S1, S2, L>{lhs, rhs});
-}
-
-/** @brief Set union: materialize @c A @c ∪ @c B from carriers as
- *         predicates.  Uses @c L::OR directly per #715 review. */
-export template <typename S1, typename S2>
-  requires IsCompatibleSetPair<S1, S2>
-constexpr auto set_union(const S1& lhs, const S2& rhs) {
-  using A = typename S1::Domain;
-  using L = typename GetLogic<std::invoke_result_t<S1 const&, A const&>>::type;
-  return classify<A>([lhs, rhs](const A& a) { return L::OR(lhs(a), rhs(a)); });
-}
-
-/** @brief Set complement: materialize @c A^c from carrier-as-predicate.
- *         Uses @c L::RFL directly per #715 review. */
-export template <typename S>
-  requires IsSubobject<S, typename S::Domain>
-constexpr auto set_complement(const S& s) {
-  using A = typename S::Domain;
-  using L = typename GetLogic<std::invoke_result_t<S const&, A const&>>::type;
-  return classify<A>([s](const A& a) { return L::RFL(s(a)); });
-}
-
-/** @brief Membership: @c x @c ∈ @c S evaluated via @c S's structural
- *         call (the carrier IS the characteristic morphism). */
+/** @brief Membership: @c x @c ∈ @c S evaluated via @c S's structural call (the
+ *  carrier IS the characteristic morphism). */
 export template <typename S>
   requires IsSubobject<S, typename S::Domain>
 constexpr auto in(const typename S::Domain& x, const S& s) {
   return s(x);
 }
 
-/**
- * @brief Membership through an embedding arrow @c e @c : @c X @c → @c A,
- *        then the carrier-as-predicate.  Evaluates @c x @c ∈_e @c S as
- *        @c s(e(x)).
- */
+/** @brief Membership through an embedding arrow @c e:X→A, then the
+ *  carrier-as-predicate: @c x @c ∈_e @c S @c = @c s(e(x)). */
 export template <typename S, IsArrow E>
   requires IsSubobject<S, typename S::Domain> &&
            std::same_as<Cod<E>, typename S::Domain>
@@ -289,42 +241,6 @@ export template <IsArrow F, IsArrow G>
            std::same_as<Cod<std::decay_t<F>>, Dom<std::decay_t<G>>>
 constexpr auto compose_embedding(F&& f, G&& g) {
   return std::forward<F>(f) >> std::forward<G>(g);
-}
-
-/** @brief Lattice alias: meet @c = intersection on @c Sub(A). */
-export template <typename S1, typename S2>
-  requires IsCompatibleSetPair<S1, S2>
-constexpr auto meet(const S1& lhs, const S2& rhs) {
-  return set_intersection(lhs, rhs);
-}
-
-/** @brief Lattice alias: join @c = union on @c Sub(A). */
-export template <typename S1, typename S2>
-  requires IsCompatibleSetPair<S1, S2>
-constexpr auto join(const S1& lhs, const S2& rhs) {
-  return set_union(lhs, rhs);
-}
-
-/** @brief Lattice alias: complement @c = set_complement on @c Sub(A).
- *
- *  @details The third Form-chain lattice op (#698 Slice 9), paralleling
- *  the @c meet / @c join aliases above.  Required by
- *  @c :lattice::IsSubobjectLattice for the @c complement(a) free-function
- *  shape.  Result inhabits the same subobject family
- *  (@c IsSubobjectFamilyMember-shaped) because @c set_complement returns
- *  a @c Subobject<A, ...> with the same @c Ambient and @c logic_species
- *  as the input — pointwise lift of @c L::RFL through @c χ.
- *
- *  @note Strength of the resulting complement depends on @c L:
- *  classical → bona-fide Boolean complement; Kleene → involutive
- *  rotation that fails Boolean complement laws at @c Unknown.  The
- *  concept body of @c IsSubobjectLattice requires the @b shape;
- *  the semantic strength is established at the @c L-witness level
- *  (Slice 7's @c is_complement_v opt-in trait). */
-export template <typename S>
-  requires IsSubobject<S, typename S::Domain>
-constexpr auto complement(const S& s) {
-  return set_complement(s);
 }
 
 /** @section concrete__Witnesses

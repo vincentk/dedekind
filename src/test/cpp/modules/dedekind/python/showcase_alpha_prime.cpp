@@ -90,7 +90,7 @@ constexpr Singleton<6> a = S & Set{ℕ | (π < fix(7_c))};
 // (5) Contradicted.  Complement-via-LEM: any S has empty meet with its
 //     complement.  `structured_and` reduces this to `Ø<Cardinality>` at
 //     compile time — the law-of-excluded-middle made type-level.
-constexpr Ø<Cardinality> b = S & !S;
+constexpr Ø<Cardinality> b = S & ~S;
 
 // (6) Certified.  Tier elevation: both reductions (Singleton<6>,
 // Ø<Cardinality>)

@@ -69,7 +69,7 @@ TEST_CASE("Relational Algebra: Selection (σ)", "[sets][relational]") {
 // ---------------------------------------------------------------------------
 TEST_CASE("Relational Algebra: Union (∪)", "[sets][relational]") {
   // evens ∪ threes in [0,10) = {0,2,3,4,6,8,9}
-  const auto union_set = set_union(evens_0_10, threes_0_10);
+  const auto union_set = (evens_0_10 | threes_0_10);
 
   SECTION("Elements in both sets are in the union") {
     REQUIRE(union_set(0u));  // 0: even and mult-of-3
@@ -119,7 +119,7 @@ TEST_CASE("Relational Algebra: Difference (∖)", "[sets][relational]") {
 // ---------------------------------------------------------------------------
 TEST_CASE("Relational Algebra: Intersection (∩)", "[sets][relational]") {
   // evens ∩ threes = {0, 6}
-  const auto inter = set_intersection(evens_0_10, threes_0_10);
+  const auto inter = (evens_0_10 & threes_0_10);
 
   SECTION("Elements in both sets are in the intersection") {
     REQUIRE(inter(0u));

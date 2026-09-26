@@ -504,8 +504,10 @@ TEST_CASE("lattice_term: induced laws + assembled reducer (#865/#888)",
 
   // The comonoid legs' operator() bodies are otherwise only exercised by the
   // static_asserts in :cartesian_bicategory (invisible to Codecov); drive them
-  // at run time here on the endo carrier bool (Δ⊣∧ over one poset).
-  SECTION("comonoid legs run at run time: Copy / Merge / Tensor / Intersect") {
+  // at run time here on the endo carrier bool (Δ⊣∧ over one poset).  The
+  // composite meet Intersect built from these legs runs in :relational
+  // (spider_meet_test.cpp), where Intersect lives.
+  SECTION("comonoid legs run at run time: Copy / Merge / Tensor") {
     // Copy Δ: a ↦ (a,a).
     CHECK(Copy<bool>{}(true) == std::pair<bool, bool>{true, true});
     // Merge Δ† = ∧: (a,b) ↦ a ⊓ b.
@@ -515,10 +517,5 @@ TEST_CASE("lattice_term: induced laws + assembled reducer (#865/#888)",
     // Tensor R⊗S: (a,b) ↦ (R(a),S(b)), run both legs in parallel.
     const Tensor<Identity<bool>, Identity<bool>> both{};
     CHECK(both(std::pair{true, false}) == std::pair<bool, bool>{true, false});
-    // Intersect Δ†∘(id⊗id)∘Δ collapses to a∧a = a (the idempotent meet).
-    const Intersect<Identity<bool>, Identity<bool>, std::logical_and<bool>>
-        meet{};
-    CHECK(meet(true));
-    CHECK_FALSE(meet(false));
   }
 }
