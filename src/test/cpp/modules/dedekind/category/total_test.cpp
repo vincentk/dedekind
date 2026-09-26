@@ -3,6 +3,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <concepts>
 #include <functional>
+#include <type_traits>
 
 import dedekind.category;
 
@@ -119,4 +120,49 @@ TEST_CASE("Total: Lattice Structures (Relational Presence)",
     STATIC_CHECK(IsSemilattice<int, Max>);
     STATIC_CHECK(IsSemilattice<int, Min>);
   }
+}
+
+TEST_CASE(
+    "Total: composition is a monoid --- (IsArrow, >>, id()) (#961 review)",
+    "[category][total][monoid][composition][961]") {
+  // The endomorphisms End(A) of one object A, under composition @c >> with
+  // unit @c id<A>(), form a MONOID --- the one-object-category reading of
+  // @c IsMonoid.  The two arrows below are members of End(int).
+  const auto inc = endo<int>([](int x) { return x + 1; });
+  const auto dbl = endo<int>([](int x) { return x * 2; });
+  const auto neg = endo<int>([](int x) { return -x; });
+  const auto e = id<int>();  // the monoid unit
+
+  // The carrier and the unit are arrows; @c >> is closed on End(int).
+  STATIC_CHECK(IsArrow<decltype(e)>);
+  STATIC_CHECK(IsArrow<decltype(inc)>);
+  STATIC_CHECK(IsArrow<decltype(inc >> dbl)>);
+  STATIC_CHECK(std::same_as<Dom<decltype(inc >> dbl)>, int>);
+  STATIC_CHECK(std::same_as<Cod<decltype(inc >> dbl)>, int>);
+
+  // NOTE on placement: @c IsMonoid<T, Op> in @c :total is the @b
+  // set-indexed monoid --- a single value carrier @c T with a binary @c Op.
+  // The composition monoid is @b type-indexed (one-object category): its
+  // hom-set End(int) is a SET of arrows of heterogeneous C++ type (each
+  // lambda has its own type), not one carrier type, so @c IsMonoid<T, Op>
+  // does not fire on it directly.  The monoid laws are therefore witnessed
+  // OPERATIONALLY here --- the type-vs-set-indexed boundary made visible.
+  for (int x : {-3, 0, 1, 7}) {
+    // Associativity: (inc >> dbl) >> neg = inc >> (dbl >> neg).
+    CHECK(((inc >> dbl) >> neg)(x) == (inc >> (dbl >> neg))(x));
+    // Left / right unit: id >> f = f = f >> id.
+    CHECK((e >> inc)(x) == inc(x));
+    CHECK((inc >> e)(x) == inc(x));
+  }
+
+  // The unit law is exactly what @c cata (@c :f_algebra) normalises away:
+  // @c cata drops the unit leg, so the reducer's β IS this monoid law.
+  const auto reduced_left = cata(e >> inc);
+  const auto reduced_right = cata(inc >> e);
+  STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(reduced_left)>,
+                            std::remove_cvref_t<decltype(inc)>>);
+  STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(reduced_right)>,
+                            std::remove_cvref_t<decltype(inc)>>);
+  CHECK(reduced_left(5) == inc(5));
+  CHECK(reduced_right(5) == inc(5));
 }
