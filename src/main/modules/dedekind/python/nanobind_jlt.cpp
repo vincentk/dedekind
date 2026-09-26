@@ -105,18 +105,22 @@ NB_MODULE(_jlt, m) {
   m.doc() =
       "The Jlt arrow DSL (#961): a fluent, point-free calculus of involutive "
       "endomorphisms over two objects, bool and int.  Generators are `id(T)` "
-      "and `refl(T)` (reflection: not on bool, negation on int).  Compose with "
-      "`f >> g` (apply f, then g); apply with `a(x)`; inspect with `dom(a)` / "
-      "`cod(a)`.  Arrows are extensional (functions); composing across objects "
-      "(bool vs int) is not defined and raises.";
+      "and `refl(T)`, the reflection involution (:logic's logic_complement: "
+      "not "
+      "on bool, the order-reversing ~ on the int chain).  Compose with `f >> "
+      "g` "
+      "(apply f, then g); apply with `a(x)`; inspect with `dom(a)` / `cod(a)`. "
+      " "
+      "Arrows are extensional (functions); composing across objects (bool vs "
+      "int) is not defined and raises.";
 
   bind_carrier<bool>(m, "IdentityBool", "MorphismBool");
   bind_carrier<int>(m, "IdentityInt", "MorphismInt");
 
   // id(T) / refl(T): the primitive arrows on carrier T (a Python type object,
-  // bool or int) -- mirroring :morphism's id<T>().  refl is the reflection
-  // involution: `not` on bool, negation on int.  `not` is a Python keyword, so
-  // the reflection is exposed as `refl` (uniform across carriers).
+  // bool or int) -- mirroring :morphism's id<T>().  refl is :logic's reflection
+  // involution logic_complement<L>: `not` (¬) on bool, the order-reversing `~`
+  // on the int chain.  `not` is a Python keyword, so it is exposed as `refl`.
   m.def(
       "id",
       [](nb::handle t) -> nb::object {

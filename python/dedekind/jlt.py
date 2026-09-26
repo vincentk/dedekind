@@ -4,8 +4,9 @@ A fluent, point-free calculus over the *real* category arrows, exposed as
 duck-typed handles: an "arrow" is the protocol ``__call__`` / ``__rshift__``
 plus the free functions ``dom`` / ``cod``, not a base class.  The objects are
 the two carriers ``bool`` and ``int``; the primitive arrows on a carrier ``T``
-are ``id(T)`` (identity) and ``refl(T)`` (the reflection involution: ``not`` on
-``bool``, negation on ``int``).
+are ``id(T)`` (identity) and ``refl(T)`` (:logic's reflection involution
+``logic_complement``: ``not`` (¬) on ``bool``, the order-reversing ``~`` on the
+``int`` chain).
 
     from dedekind.jlt import id, refl, dom, cod
 
