@@ -22,6 +22,9 @@
  * fires on explicit registration.
  */
 #include <catch2/catch_test_macros.hpp>
+#include <concepts>
+#include <functional>
+#include <type_traits>
 
 import dedekind.category;
 
@@ -113,4 +116,124 @@ TEST_CASE(
   STATIC_CHECK(IsFCoalgebra<ToyCarrier, ToyAlpha, ToyIdF>);
   STATIC_CHECK(is_terminal_f_coalgebra_v<ToyIdF, ToyCarrier, ToyAlpha>);
   STATIC_CHECK(IsTerminalFCoalgebra<ToyIdF, ToyCarrier, ToyAlpha>);
+}
+
+// ===========================================================================
+// (3) cata ⦇β⦈ over the composition term functor (#961).
+//
+// The initial-algebra fold applied to a Compose<F,G> node: F(cata) folds
+// the two legs, then β = reduce_step (in :morphism) applies the monoid
+// unit law id∘f = f = f∘id.  The engine (cata) is law-free; the law rides
+// in :morphism next to composition, found by ADL.  simplify == cata.
+// ===========================================================================
+
+namespace {
+// Two DISTINCT non-identity endo-arrows on int, and the identity arrow.
+// endo<int>(λ) yields a Morphism leaf (no π_1 / π_2), so cata treats it as
+// an atom; id<int>() yields Identity<int>, likewise a leaf but the unit β
+// pattern-matches structurally.
+constexpr auto inc = endo<int>([](int x) { return x + 1; });
+constexpr auto dbl = endo<int>([](int x) { return x * 2; });
+
+using Inc = std::remove_cvref_t<decltype(inc)>;
+using Dbl = std::remove_cvref_t<decltype(dbl)>;
+using Id = Identity<int>;
+
+// Reduced-form helper: the normal form cata is expected to produce.
+template <typename T, typename Term>
+constexpr bool cata_reduces_to = std::same_as<std::remove_cvref_t<T>, Term>;
+}  // namespace
+
+TEST_CASE(
+    "f_algebra: cata leaves a composite of two non-identity arrows inert "
+    "(cata(f >> g) == f >> g)",
+    "[category][f_algebra][cata][monoid][961]") {
+  const auto fg = inc >> dbl;  // Compose<Inc, Dbl>: apply inc, then dbl
+  const auto reduced = cata(fg);
+
+  // Neither leg is the unit, so β rebuilds the composite: same node type.
+  STATIC_CHECK(cata_reduces_to<decltype(reduced), Compose<Inc, Dbl>>);
+  STATIC_CHECK(cata_reduces_to<decltype(fg), Compose<Inc, Dbl>>);
+
+  // ...and it is still the same map: (dbl ∘ inc)(3) = (3 + 1) * 2 = 8.
+  CHECK(reduced(3) == 8);
+  CHECK(reduced(3) == fg(3));
+}
+
+TEST_CASE("f_algebra: cata drops a right-identity leg (cata(f >> id) == f)",
+          "[category][f_algebra][cata][monoid][unit][961]") {
+  const auto reduced = cata(inc >> id<int>());  // f ∘ id = f
+
+  STATIC_CHECK(cata_reduces_to<decltype(reduced), Inc>);
+  CHECK(reduced(3) == 4);
+}
+
+TEST_CASE("f_algebra: cata drops a left-identity leg (cata(id >> g) == g)",
+          "[category][f_algebra][cata][monoid][unit][961]") {
+  const auto reduced = cata(id<int>() >> dbl);  // id ∘ g = g
+
+  STATIC_CHECK(cata_reduces_to<decltype(reduced), Dbl>);
+  CHECK(reduced(3) == 6);
+}
+
+TEST_CASE(
+    "f_algebra: cata collapses id >> id to the identity, tying back to the "
+    ":involution unit witness (#961)",
+    "[category][f_algebra][cata][monoid][involution][961]") {
+  const auto reduced = cata(id<int>() >> id<int>());  // id ∘ id = id
+
+  STATIC_CHECK(cata_reduces_to<decltype(reduced), Id>);
+  CHECK(reduced(3) == 3);
+
+  // The collapsed unit is exactly the arrow :involution certifies as the
+  // trivial involution (id⁻¹ = id), so cata's fixed point of the unit law
+  // lands on the witnessed atom.
+  STATIC_CHECK(is_involutive_v<std::remove_cvref_t<decltype(reduced)>, int>);
+  STATIC_CHECK(IsInvolution<Id, int>);
+}
+
+TEST_CASE(
+    "f_algebra: cata simplifies the unit law id >> refl -> refl on both "
+    "carriers (the intensional home of the Jlt exhibit, #961)",
+    "[category][f_algebra][cata][boolean][involution][961]") {
+  // The Jlt Python exhibit is EXTENSIONAL (arrows are functions); its
+  // INTENSIONAL counterpart lives here.  The type-level cata collapses the
+  // monoid unit law structurally --- this is where "simplify(id >> refl) ==
+  // refl" honestly lands (a claim about types) --- over the two Jlt objects.
+
+  SECTION("bool: refl = logical_not") {
+    const auto refl = endo<bool>(std::logical_not<bool>{});
+    using Refl = std::remove_cvref_t<decltype(refl)>;
+    STATIC_CHECK(cata_reduces_to<decltype(cata(id<bool>() >> refl)), Refl>);
+    STATIC_CHECK(cata_reduces_to<decltype(cata(refl >> id<bool>())), Refl>);
+    const auto reduced = cata(id<bool>() >> refl);
+    CHECK(reduced(false) == true);
+    CHECK(reduced(true) == false);
+  }
+
+  SECTION("int: refl = negate") {
+    const auto refl = endo<int>(std::negate<int>{});
+    using Refl = std::remove_cvref_t<decltype(refl)>;
+    STATIC_CHECK(cata_reduces_to<decltype(cata(id<int>() >> refl)), Refl>);
+    STATIC_CHECK(cata_reduces_to<decltype(cata(refl >> id<int>())), Refl>);
+    const auto reduced = cata(id<int>() >> refl);
+    CHECK(reduced(7) == -7);
+    CHECK(reduced(-3) == 3);
+  }
+
+  // The Jlt generators are INVOLUTIVE ENDOMORPHISMS -- the type-level
+  // characterisation the exhibit's arrows are constrained to (#961).  This is
+  // the intensional constraint (IsInvolution on the erased runtime arrow is
+  // vacuous; it lives on the typed generators here).
+  STATIC_CHECK(IsEndomorphism<Identity<bool>>);
+  STATIC_CHECK(IsEndomorphism<Identity<int>>);
+  STATIC_CHECK(
+      IsEndomorphism<
+          std::remove_cvref_t<decltype(endo<bool>(std::logical_not<bool>{}))>>);
+  STATIC_CHECK(IsEndomorphism<
+               std::remove_cvref_t<decltype(endo<int>(std::negate<int>{}))>>);
+  STATIC_CHECK(is_involutive_v<Identity<bool>, bool>);
+  STATIC_CHECK(is_involutive_v<Identity<int>, int>);
+  STATIC_CHECK(is_involutive_v<std::logical_not<bool>, bool>);  // refl(bool)
+  STATIC_CHECK(is_involutive_v<std::negate<int>, int>);         // refl(int)
 }

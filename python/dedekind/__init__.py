@@ -17,11 +17,6 @@ try:
     from ._dedekind import set_intersection
     from ._dedekind import set_difference
     from ._dedekind import set_cardinality
-    from ._dedekind import Complex
-    from ._dedekind import Dual as CppDual
-    from ._dedekind import maximize_lp
-    from ._dedekind import Rational
-    from ._dedekind import DualRational
     # Canonical native sets (#886).  Python NFKC-normalises identifiers, so the
     # double-struck attrs `B` / `N` are equally reachable as `𝔹` / `ℕ`; the
     # discriminating ℕ⊂ℤ classifier is keyed `Nat` to avoid the `ℕ` → "N"
@@ -37,9 +32,6 @@ except ModuleNotFoundError as _exc:
         "root, then install with `pip install -e .`."
     ) from _exc
 
-# Backward-compatible alias for the C++ dual binding at top level.
-Dual = CppDual
-
 __all__ = [
     "ordered_set_roundtrip",
     "path_from_array",
@@ -49,12 +41,6 @@ __all__ = [
     "set_intersection",
     "set_difference",
     "set_cardinality",
-    "Complex",
-    "CppDual",
-    "Dual",
-    "maximize_lp",
-    "Rational",
-    "DualRational",
     "B",
     "N",
     "Nat",

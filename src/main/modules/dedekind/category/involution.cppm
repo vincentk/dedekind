@@ -54,8 +54,9 @@ module;
 
 export module dedekind.category:involution;
 
-import :species;  // identity_v: the Op-identity the (co)isometry law is
-                  // measured against
+import :morphism;  // Identity<T>: the identity arrow, a trivial involution
+import :species;   // identity_v: the Op-identity the (co)isometry law is
+                   // measured against
 
 namespace dedekind::category {
 
@@ -89,6 +90,25 @@ struct is_involutive<std::logical_not<bool>, bool> : std::true_type {};
 template <typename T>
   requires std::is_integral_v<T> && (!std::is_same_v<T, bool>)
 struct is_involutive<std::bit_not<T>, T> : std::true_type {};
+
+/** @brief Canonical: @c std::negate<T> is the involution on the @b signed
+ *  integers (@c -(-x) = x), the reflection about @c 0.  The @c int-carrier
+ *  counterpart of @c std::logical_not on @c bool, and the intensional witness
+ *  behind Jlt's @c refl(int).  (@c INT_MIN is the usual signed-overflow edge,
+ *  as for @c bit_not.) */
+template <typename T>
+  requires std::signed_integral<T>
+struct is_involutive<std::negate<T>, T> : std::true_type {};
+
+/** @brief The identity arrow is (trivially) an involution: @c id(id(x)) = x,
+ *  so @c id⁻¹ = id.  @c Identity is the degenerate case where @b idempotent
+ *  (@c f²=f), @b involution (@c f²=id) and @b isomorphism coincide --- the
+ *  unique arrow with @c f²=f=id.  Witnessed here so the compiler / @c cata can
+ *  SEE it: the composition unit law (@c id∘f=f) subsumes it in practice, but a
+ *  downstream inverse-cancellation rule (@c f∘f⁻¹→id, of which @c neg∘neg→id is
+ *  the non-trivial case) needs @c id certified as the trivial member. */
+template <typename T>
+struct is_involutive<Identity<T>, T> : std::true_type {};
 
 /**
  * @concept IsInvolution

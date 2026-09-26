@@ -1,5 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 #include <concepts>
+#include <vector>
 
 import dedekind.category;
 
@@ -14,6 +15,36 @@ TEST_CASE("Category: Functor Concepts", "[category][functor]") {
   STATIC_CHECK(IsShapedFunctor<maybe_functor<int>>);
   STATIC_CHECK(IsShapedFunctor<trace_functor<int>>);
   STATIC_CHECK(IsSpokeArrow<decltype(plus_one)>);
+}
+
+TEST_CASE("Category: free_monoid_functor is the (light) List functor (#961)",
+          "[category][functor][free-monoid][961]") {
+  // The functor leg of the composition-term reducer: A ↦ A* (words of atoms),
+  // the light IsFunctor witness (earns IsFunctor, declines IsShapedFunctor).
+  STATIC_CHECK(IsFunctor<free_monoid_functor<int>>);
+  STATIC_CHECK_FALSE(IsShapedFunctor<free_monoid_functor<int>>);
+
+  const free_monoid_functor<int> T{};
+  const auto inc = arrow([](int x) { return x + 1; });
+  const auto dbl = arrow([](int x) { return x * 2; });
+  const std::vector<int> word{1, 2, 3};
+
+  // Morphism map: relabel atoms over the word (A* → B*).
+  const auto T_inc = map_arrow(T, inc);
+  CHECK(T_inc(word) == std::vector<int>{2, 3, 4});
+
+  // Functor identity law: T(id) = id on words.
+  const auto T_id = map_arrow(T, id<int>());
+  CHECK(T_id(word) == word);
+
+  // Functor composition law: T(inc >> dbl) = T(inc) >> T(dbl), pointwise.
+  const auto T_comp = map_arrow(T, inc >> dbl);
+  const auto T_dbl = map_arrow(T, dbl);
+  CHECK(T_comp(word) == T_dbl(T_inc(word)));
+  CHECK(T_comp(word) == std::vector<int>{4, 6, 8});  // ((x+1)*2)
+
+  // The empty word is the free-monoid unit (the reducer's id): T(h)([]) = [].
+  CHECK(T_inc(std::vector<int>{}).empty());
 }
 
 TEST_CASE("Category: Functor hub action", "[category][functor][hub-action]") {
