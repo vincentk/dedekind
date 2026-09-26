@@ -103,10 +103,12 @@ constexpr bool graphblas_backend_stub_available() {
 // is the @b protocol (@c dom / @c cod / call / @c >>), witnessed by @c IsArrow
 // on the C++ side.
 //
-// The generators are @b involutive @b endomorphisms: @c id and @c refl (the
-// reflection @c ¬ on @c bool @c = @c logical_not; negation @c x↦-x on @c int).
-// Under @c >> they generate @c ℤ/2 per object --- every element is self-inverse
-// (@c IsInvolution).
+// The generators are @b involutive @b endomorphisms: @c id and @c refl.  @c
+// refl is @c :logic's @b pre-configured reflection @c logic_complement<L> (@c
+// L::RFL, already witnessed an involution there): @c ¬ on @c bool (@c Boole)
+// and the order-reversing @c ~ on @c int (@c Chain<int>).  Under @c >> they
+// generate
+// @c ℤ/2 per object --- every element is self-inverse (@c IsInvolution).
 //
 // Python arrows are @b extensional (functions), so composition type-erases to a
 // @c Morphism<T,T>.  Structural REDUCTION (@c simplify / @c cata) is
@@ -133,19 +135,24 @@ inline Id<T> id() {
   return {};
 }
 
-/** @brief @c refl on @c bool: logical negation @c ¬ --- the reflection of the
- *  2-chain, the involution @c :involution witnesses
- *  (@c is_involutive<std::logical_not<bool>, @c bool>). */
+/** @brief @c refl on @c bool: the reflection @c ¬ of the 2-chain --- reusing
+ *  @c :logic's pre-configured @c logic_complement<Boole> (@c = @c Boole::RFL
+ *  @c = @c !a), already witnessed as an involution there
+ *  (@c is_involutive<logic_complement<Boole>, @c bool>).  No hand-rolled map.
+ */
 inline Arrow<bool> refl_bool() {
-  return Arrow<bool>{std::function<bool(bool)>{[](bool b) { return !b; }}};
+  return Arrow<bool>{std::function<bool(bool)>{
+      dedekind::category::logic_complement<dedekind::category::Boole>{}}};
 }
 
-/** @brief @c refl on @c int: negation @c x↦-x --- the reflection about @c 0,
- *  computed @b modularly (no signed-overflow UB even at @c INT_MIN).  An
- *  involution: @c refl∘refl @c = @c id. */
+/** @brief @c refl on @c int: the reflection of the integer bounded chain ---
+ *  @c :logic's @c logic_complement<Chain<int>> (@c = @c Chain<int>::RFL @c =
+ *  @c ~a, the order-reversing De Morgan involution), already witnessed as an
+ *  involution there (@c is_involutive<logic_complement<Chain<int>>, @c int>).
+ */
 inline Arrow<int> refl_int() {
   return Arrow<int>{std::function<int(int)>{
-      [](int x) { return static_cast<int>(0u - static_cast<unsigned>(x)); }}};
+      dedekind::category::logic_complement<dedekind::category::Chain<int>>{}}};
 }
 
 /** @brief Extensional composition @c f @c >> @c g (apply @c f, then @c g) of

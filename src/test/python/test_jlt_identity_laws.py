@@ -56,9 +56,11 @@ class JltGroupLawsExtensionalTest(unittest.TestCase):
         self.assertIs(refl(bool)(True), False)
 
     def test_apply_int(self) -> None:
+        # refl(int) is :logic's chain reflection = ~ (bitwise complement),
+        # not arithmetic negation: ~7 == -8, ~(-3) == 2.
         self.assertEqual(id(int)(7), 7)
-        self.assertEqual(refl(int)(7), -7)
-        self.assertEqual(refl(int)(-3), 3)
+        self.assertEqual(refl(int)(7), ~7)
+        self.assertEqual(refl(int)(-3), ~(-3))
 
     def test_identity_laws(self) -> None:
         # id ∘ f = f = f ∘ id, extensionally, per carrier.

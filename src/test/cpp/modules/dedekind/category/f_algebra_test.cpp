@@ -201,8 +201,13 @@ TEST_CASE(
   // monoid unit law structurally --- this is where "simplify(id >> refl) ==
   // refl" honestly lands (a claim about types) --- over the two Jlt objects.
 
-  SECTION("bool: refl = logical_not") {
-    const auto refl = endo<bool>(std::logical_not<bool>{});
+  // refl reuses :logic's pre-configured reflection logic_complement<L> (L::RFL,
+  // already witnessed an involution there) -- no hand-rolled map.
+  using ReflBool = logic_complement<Boole>;
+  using ReflInt = logic_complement<Chain<int>>;
+
+  SECTION("bool: refl = logic_complement<Boole> (¬)") {
+    const auto refl = endo<bool>(ReflBool{});
     using Refl = std::remove_cvref_t<decltype(refl)>;
     STATIC_CHECK(cata_reduces_to<decltype(cata(id<bool>() >> refl)), Refl>);
     STATIC_CHECK(cata_reduces_to<decltype(cata(refl >> id<bool>())), Refl>);
@@ -211,29 +216,30 @@ TEST_CASE(
     CHECK(reduced(true) == false);
   }
 
-  SECTION("int: refl = negate") {
-    const auto refl = endo<int>(std::negate<int>{});
+  SECTION(
+      "int: refl = logic_complement<Chain<int>> (~, the chain reflection)") {
+    const auto refl = endo<int>(ReflInt{});
     using Refl = std::remove_cvref_t<decltype(refl)>;
     STATIC_CHECK(cata_reduces_to<decltype(cata(id<int>() >> refl)), Refl>);
     STATIC_CHECK(cata_reduces_to<decltype(cata(refl >> id<int>())), Refl>);
     const auto reduced = cata(id<int>() >> refl);
-    CHECK(reduced(7) == -7);
-    CHECK(reduced(-3) == 3);
+    CHECK(reduced(7) == ~7);  // -8: the order-reversing De Morgan reflection
+    CHECK(reduced(-1) == ~(-1));  // 0
   }
 
   // The Jlt generators are INVOLUTIVE ENDOMORPHISMS -- the type-level
-  // characterisation the exhibit's arrows are constrained to (#961).  This is
-  // the intensional constraint (IsInvolution on the erased runtime arrow is
-  // vacuous; it lives on the typed generators here).
+  // characterisation the exhibit's arrows are constrained to (#961).  The refl
+  // involution is :logic's, PRE-CONFIGURED there (is_involutive<
+  // logic_complement<L>, L::Ω>); no witness is added here.  (IsInvolution on
+  // the erased runtime arrow is vacuous; it lives on these typed generators.)
   STATIC_CHECK(IsEndomorphism<Identity<bool>>);
   STATIC_CHECK(IsEndomorphism<Identity<int>>);
   STATIC_CHECK(
-      IsEndomorphism<
-          std::remove_cvref_t<decltype(endo<bool>(std::logical_not<bool>{}))>>);
-  STATIC_CHECK(IsEndomorphism<
-               std::remove_cvref_t<decltype(endo<int>(std::negate<int>{}))>>);
+      IsEndomorphism<std::remove_cvref_t<decltype(endo<bool>(ReflBool{}))>>);
+  STATIC_CHECK(
+      IsEndomorphism<std::remove_cvref_t<decltype(endo<int>(ReflInt{}))>>);
   STATIC_CHECK(is_involutive_v<Identity<bool>, bool>);
   STATIC_CHECK(is_involutive_v<Identity<int>, int>);
-  STATIC_CHECK(is_involutive_v<std::logical_not<bool>, bool>);  // refl(bool)
-  STATIC_CHECK(is_involutive_v<std::negate<int>, int>);         // refl(int)
+  STATIC_CHECK(is_involutive_v<ReflBool, bool>);  // refl(bool), from :logic
+  STATIC_CHECK(is_involutive_v<ReflInt, int>);    // refl(int), from :logic
 }
