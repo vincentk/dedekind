@@ -110,9 +110,13 @@ constexpr bool graphblas_backend_stub_available() {
 // generate
 // @c ℤ/2 per object --- every element is self-inverse (@c IsInvolution).
 //
-// Python arrows are @b extensional (functions), so composition type-erases to a
-// @c Morphism<T,T>.  Structural REDUCTION (@c simplify / @c cata) is
-// @b intensional and stays in C++; it is @b vacuous here.  Composability
+// Python arrows are @b extensional (functions), so a composition type-erases to
+// a @c Morphism<T,T>.  But it is NOT hand-rolled: @c compose builds @c
+// :morphism's
+// @c Compose (@c operator>>) and runs it through @c :f_algebra's @c cata ---
+// the ONE reducer engine --- then type-erases the reduced arrow.  So a Python
+// composition @b dispatches to the F-algebra reducer (@c id>>refl folds to
+// @c refl); the result is extensional, but structurally reduced.  Composability
 // (@c cod(f) @c = @c dom(g)) is enforced @b structurally --- a @c bool-arrow
 // cannot compose with an @c int-arrow (their types do not match).
 
@@ -155,18 +159,23 @@ inline Arrow<int> refl_int() {
       dedekind::category::logic_complement<dedekind::category::Chain<int>>{}}};
 }
 
-/** @brief Extensional composition @c f @c >> @c g (apply @c f, then @c g) of
- * two same-object endomorphisms, as a type-erased arrow --- diagrammatic order,
- *  matching @c :morphism's @c operator>>.  The @c same_as<Dom<F>,Dom<G>>
- *  constraint IS the composability law (@c cod(f) @c = @c dom(g) for
- *  endomorphisms): a cross-object compose does not type-check.  Structural
- *  reduction is NOT applied (that is intensional, C++/type-level). */
+/** @brief Composition @c f @c >> @c g (apply @c f, then @c g) of two
+ * same-object endomorphisms, as a type-erased arrow.  It REUSES the real
+ * machinery --- no hand-rolled @c g(f(x)): it builds @c :morphism's @c Compose
+ * via @c operator>> and runs it through @c :f_algebra's @c cata (the ONE
+ * reducer engine), then type-erases the reduced arrow.  So a Python composition
+ * @b dispatches to the F-algebra reducer; the result is extensional (a
+ * function), but structurally reduced (e.g. @c id>>refl folds to @c refl via @c
+ * cata's unit law).  The
+ *  @c same_as<Dom<F>,Dom<G>> constraint IS the composability law (@c cod(f) @c
+ * =
+ *  @c dom(g) for endomorphisms): a cross-object compose does not type-check. */
 template <dedekind::category::IsEndomorphism F,
           dedekind::category::IsEndomorphism G>
   requires std::same_as<dedekind::category::Dom<F>, dedekind::category::Dom<G>>
 inline Arrow<dedekind::category::Dom<F>> compose(const F& f, const G& g) {
   using T = dedekind::category::Dom<F>;
-  return Arrow<T>{std::function<T(T)>{[f, g](T x) { return g(f(x)); }}};
+  return Arrow<T>{std::function<T(T)>{dedekind::category::cata(f >> g)}};
 }
 
 }  // namespace jlt

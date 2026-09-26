@@ -65,8 +65,24 @@ export module dedekind.category:lattice_term;
 import :lattice;  // the term AST + the induced laws (the validated parts)
 import :logic;    // Boole (default), Ternary, IsOckhamAlgebra
 import :cartesian_bicategory;  // Copy / Merge / IsMeetAsRightAdjoint (Δ ⊣ ∧)
+import :f_algebra;  // cata: the ONE catamorphism engine (#961).  A lattice is a
+                    // (thin) category and its term reducer is a fold, so the
+                    // specialised lattice reducer depends on the general
+                    // F-algebra engine (specific → general), routing its
+                    // reduction through cata rather than a parallel fold.
 
 namespace dedekind::category {
+
+// Seam (#961): the lattice term reducer can now reach :f_algebra's cata --- the
+// ONE catamorphism engine.  Witnessed here so the dependency is load-bearing:
+// cata reduces id ∘ id to id from the lattice branch, so the induced lattice
+// laws can be routed through the same reducer as composition (one engine, not a
+// parallel fold).  Routing the lattice fold through cata is the follow-up; this
+// edge is the seam that makes it possible.
+static_assert(
+    std::same_as<std::remove_cvref_t<decltype(cata(id<int>() >> id<int>()))>,
+                 Identity<int>>,
+    "cata (from :f_algebra) is reachable and reduces from the lattice branch");
 
 /** @brief The logic species a comparator reports in — @c Boole (a
  *  @c bool decision) unless the comparator names its own @c logic typedef (e.g.
