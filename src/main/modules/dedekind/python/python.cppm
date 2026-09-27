@@ -36,6 +36,7 @@ export module dedekind.python;
 import dedekind.category;
 import dedekind.linear_algebra;
 import dedekind.numbers;
+import dedekind.order; // Lwv halfspaces: Halfspace / structured_and (#965)
 import dedekind.sequences;
 import dedekind.sets;
 
@@ -179,5 +180,60 @@ inline Arrow<dedekind::category::Dom<F>> compose(const F& f, const G& g) {
 }
 
 }  // namespace jlt
+
+// ── Lwv: the scalar set-comprehension language (#965, paper §3)
+// ───────────────
+//
+// Lwv := Jlt ∩ Set (paper.tex:158): intensional sets over a Jlt carrier, a set
+// being a membership test @c {x ∈ S | P(x)} rather than a listing.  The
+// canonical README exhibit is the two overlapping halfspaces
+// @c {x>3} ∩ {x<5} = {4}: a halfspace @c ℕ|(χ ⋈ fix(k)) is the principal
+// filter/ideal @c ↑k / @c ↓k of the carrier order, and its meet routes through
+// the @b real @b :order reducer @c structured_and (the value-first crossing law
+// @c ↑a ∩ ↓b = [a,b], collapsing to a @c Singleton over an integral carrier).
+// This exhibit is the SET twin of the @c jlt ARROW exhibit above: it binds the
+// real reducer, NOT a Python-side reimplementation (handle-only).
+//
+// Carrier is @c int here (the collapse is carrier-agnostic over any integral
+// carrier; the README's @c ℕ is the Cardinality variant, whose Python
+// value-conversion is deferred).  The pivots are compile-time NTTPs, so this
+// first iteration binds the curated README sets --- exactly as @c jlt binds the
+// fixed generators @c id / @c refl over @c bool / @c int.  A general fluent
+// constructor over @b runtime pivots is the next iteration, gated on the
+// value-first subobject reducer's leaf-combine leg (#922 slice 2) --- until
+// then a runtime pivot cannot index a compile-time halfspace type.
+
+namespace lwv {
+
+namespace ord = dedekind::order;
+
+/** @brief The strict upward halfspace @c {x ∈ int | x > K} = the principal
+ *  filter @c ↑K (open).  @c Above<3> is the README's @c gt_3. */
+template <int K>
+using Above =
+    ord::Halfspace<int, K, ord::Direction::Upward, ord::Strictness::Strict>;
+
+/** @brief The strict downward halfspace @c {x ∈ int | x < K} = the principal
+ *  ideal @c ↓K (open).  @c Below<5> is the README's @c lt_5. */
+template <int K>
+using Below =
+    ord::Halfspace<int, K, ord::Direction::Downward, ord::Strictness::Strict>;
+
+/** @brief The meet of two halfspaces, through the @b real @c :order reducer
+ *  (@c structured_and, the value-first crossing / same-direction law) --- NOT a
+ *  Python-side reimplementation.  The result TYPE (a @c Singleton, an
+ *  @c OrderInterval, a same-direction @c Halfspace, or the empty predicate) is
+ *  whatever the reducer collapses to; the binding reads it off by @c decltype
+ *  and never restates the law. */
+template <typename A, typename B>
+constexpr auto meet(const A& a, const B& b) {
+  return ord::structured_and(a, b);
+}
+
+/** @brief The README collapse result, read off the reducer: @c {x>3} ∩ {x<5}
+ *  over @c int collapses (cardinality analysis) to the @c Singleton @c {4}. */
+using ReadmeCollapse = decltype(meet(Above<3>{}, Below<5>{}));
+
+}  // namespace lwv
 
 }  // namespace dedekind::python
