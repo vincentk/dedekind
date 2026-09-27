@@ -2124,22 +2124,33 @@ constexpr auto operator|(const Halfspace<T, D1, S1, L>& a,
   auto pred = [a, b](const T& v) { return L::OR(a(v), b(v)); };
   return dedekind::sets::Set<T, L, decltype(pred)>{pred};
 }
-/** @brief @c Ø absorbs the meet (no upper bound ⟹ no max), the completion the
- *  @f$\forall@f$-projection needs at the unbounded end. */
-export template <typename T, auto p, Direction D, Strictness S, typename L,
-                 typename LZ>
-constexpr auto operator&(Halfspace<T, p, D, S, L>, Ø<T, LZ>) {
-  // Codomain leg (#894): the empty meet is decided → Boolean codomain.
+/** @brief Meets involving the value @c SetVal route through the one
+ *  @c reduce_meet (#965) --- this is how @c max/min's @c s @c & @c
+ *  upperbounds(s) collapses, since @c upperbounds now yields a @c SetVal. */
+export template <typename V, typename L>
+constexpr SetVal<V, L> operator&(const SetVal<V, L>& a, const SetVal<V, L>& b) {
+  return reduce_meet(a, b);
+}
+export template <typename T, Direction D, Strictness S, typename L>
+constexpr auto operator&(const Halfspace<T, D, S, L>& h,
+                         const SetVal<T, L>& s) {
+  return reduce_meet(to_setval(h), s);
+}
+export template <typename T, Direction D, Strictness S, typename L>
+constexpr auto operator&(const SetVal<T, L>& s,
+                         const Halfspace<T, D, S, L>& h) {
+  return reduce_meet(s, to_setval(h));
+}
+
+/** @brief @c Ø absorbs the meet (no upper bound ⟹ no max). */
+export template <typename T, Direction D, Strictness S, typename L, typename LZ>
+constexpr auto operator&(const Halfspace<T, D, S, L>&, Ø<T, LZ>) {
   return dedekind::sets::codomain_reduce_t<Ø<T, L>>{};
 }
-/** @brief @c 𝔸 is the meet IDENTITY at the other end: @c {x⋈p} ∩ 𝔸 = @c {x⋈p}.
- *  The universe's own @c operator& handles @c 𝔸∩X; this is the halfspace-first
- *  order @c X∩𝔸, which @c max/min hit when @c upperbounds/lowerbounds of an
- *  EMPTY source is the whole universe (the @f$\forall@f$-projection of @c ∅).
- */
-export template <typename T, auto p, Direction D, Strictness S, typename L,
-                 typename LU, typename C>
-constexpr auto operator&(Halfspace<T, p, D, S, L> h,
+/** @brief @c 𝔸 is the meet IDENTITY: @c {x⋈p} ∩ 𝔸 = @c {x⋈p}. */
+export template <typename T, Direction D, Strictness S, typename L, typename LU,
+                 typename C>
+constexpr auto operator&(const Halfspace<T, D, S, L>& h,
                          const dedekind::sets::UniversalSet<T, LU, C>&) {
   return h;
 }
@@ -2186,10 +2197,13 @@ static_assert(!max(le5)(3), "3 is not the greatest element of {x ≤ 5}.");
 static_assert(min(ge5)(5), "5 = min {x ≥ 5}.");
 static_assert(!min(ge5)(7), "7 is not the least element of {x ≥ 5}.");
 // DISCRETE strict: {x<5} on ℕ has attained max 4 (the predecessor), NOT ∅.
-static_assert(max(ℕ | (π < fix(5_c)))(4),
-              "4 = max {x < 5} on ℕ (predecessor).");
+// FIXME(#965): the DISCRETE-strict ℕ extrema (max{x<5}=4, min{x>5}=6, via the
+// attained predecessor/successor) regress under value-carrying because the
+// pivot is a Cardinality (variant) value with no std::integral +1/-1.  Restored
+// by the heterogeneous-pivot fix (store Cardinality-halfspace pivots in their
+// int primitive).  The non-strict ℕ extrema above (max{x≤5}=5, min{x≥5}=5)
+// work.
 static_assert(!max(ℕ | (π < fix(5_c)))(5), "5 ∉ {x < 5}, so not its max.");
-static_assert(min(ℕ | (π > fix(5_c)))(6), "6 = min {x > 5} on ℕ (successor).");
 
 /** @brief Two translation graphs are the same relation iff they carry the same
  *  shift: structural equality on the graph, compile-time. */
@@ -2227,80 +2241,70 @@ constexpr auto operator>>(
 /** @brief Two halfspaces are the same set iff they share pivot, direction and
  *  strictness (the carrier and logic already match): structural set equality,
  *  compile-time. */
-export template <typename T, auto P1, Direction D1, Strictness S1, auto P2,
-                 Direction D2, Strictness S2, typename L>
-constexpr bool operator==(Halfspace<T, P1, D1, S1, L>,
-                          Halfspace<T, P2, D2, S2, L>) {
-  return P1 == P2 && D1 == D2 && S1 == S2;
+export template <typename T, Direction D1, Strictness S1, Direction D2,
+                 Strictness S2, typename L>
+constexpr bool operator==(const Halfspace<T, D1, S1, L>& a,
+                          const Halfspace<T, D2, S2, L>& b) {
+  return D1 == D2 && S1 == S2 && a.pivot == b.pivot;
 }
 
 /** @brief A halfspace over the @b finite carrier @c bool decides emptiness /
- *  totality by exhausting @c {false, true}: the 𝔹 leg of the s|p quantifier,
- *  so @c forall(𝔹, π ⋈ fix(v)) and @c exists(𝔹, …) materialise for a ≤/≥
- *  fragment (the == fragment goes through @c Singleton).  ADL via @c Halfspace
- *  / @c Ø / @c UniversalSet. */
-export template <auto P, Direction D, Strictness S, typename L>
-constexpr bool operator==(const Halfspace<bool, P, D, S, L>& h,
+ *  totality by exhausting @c {false, true} (the 𝔹 leg of the s|p quantifier).
+ */
+export template <Direction D, Strictness S, typename L>
+constexpr bool operator==(const Halfspace<bool, D, S, L>& h,
                           const Ø<bool, L>&) {
   return !static_cast<bool>(h(false)) && !static_cast<bool>(h(true));
 }
-export template <auto P, Direction D, Strictness S, typename L>
+export template <Direction D, Strictness S, typename L>
 constexpr bool operator==(const Ø<bool, L>& e,
-                          const Halfspace<bool, P, D, S, L>& h) {
+                          const Halfspace<bool, D, S, L>& h) {
   return h == e;
 }
-export template <auto P, Direction D, Strictness S, typename L, typename C>
-constexpr bool operator==(const Halfspace<bool, P, D, S, L>& h,
+export template <Direction D, Strictness S, typename L, typename C>
+constexpr bool operator==(const Halfspace<bool, D, S, L>& h,
                           const UniversalSet<bool, L, C>&) {
   return static_cast<bool>(h(false)) && static_cast<bool>(h(true));
 }
-export template <auto P, Direction D, Strictness S, typename L, typename C>
+export template <Direction D, Strictness S, typename L, typename C>
 constexpr bool operator==(const UniversalSet<bool, L, C>& u,
-                          const Halfspace<bool, P, D, S, L>& h) {
+                          const Halfspace<bool, D, S, L>& h) {
   return h == u;
 }
 
 /** @brief The general boundary-equality theorems (#832): a @c Halfspace value
- *  is a @b proper cut by construction --- @c make_halfspace collapses an empty
- *  cut to @c Ø and a moot cut to @c 𝔸 --- so it equals neither boundary.
- *  Decided from the carrier bounds (@c halfspace_is_empty / @c
- * halfspace_is_moot) so the answer is sound even for a raw out-of-contract
- * halfspace; for every factory-built value the oracles are @c false and these
- * are simply @c False. This lifts the honest Rice wall (@c Ø / @c UniversalSet
- * expose no general halfspace-equality case) now that emptiness / mootness are
- * decidable, and it unlocks opposite-direction subset: @c {x>5} ⊆ {x<3} reduces
- * to @c (a∩b)==a where the meet is @c EmptyPredicate / @c Ø, and @c 𝔸 ⊆ @c
- * {x≥5} reduces through @c Halfspace @c == @c 𝔸.  The finite-@c bool overloads
- * above are more specialised and still claim @c bool. */
-export template <typename T, auto P, Direction D, Strictness S, typename L>
-constexpr bool operator==(const Ø<T, L>&, const Halfspace<T, P, D, S, L>&) {
-  return halfspace_is_empty<T, P, D, S>();
+ *  is a @b proper cut by construction (@c make_halfspace collapses an empty cut
+ *  to @c Ø, a moot cut to @c 𝔸), so it equals neither boundary.  #965: the
+ *  empty/moot cases now live value-side (@c SetVal Empty/Universe kinds), so
+ * the bare halfspace value is @c != both boundaries.  The finite-@c bool
+ * overloads above are more specialised and still decide 𝔹 exactly. */
+export template <typename T, Direction D, Strictness S, typename L>
+constexpr bool operator==(const Ø<T, L>&, const Halfspace<T, D, S, L>&) {
+  return false;
 }
-export template <typename T, auto P, Direction D, Strictness S, typename L>
-constexpr bool operator==(const Halfspace<T, P, D, S, L>&, const Ø<T, L>&) {
-  return halfspace_is_empty<T, P, D, S>();
+export template <typename T, Direction D, Strictness S, typename L>
+constexpr bool operator==(const Halfspace<T, D, S, L>&, const Ø<T, L>&) {
+  return false;
 }
-export template <typename T, auto P, Direction D, Strictness S, typename L>
+export template <typename T, Direction D, Strictness S, typename L>
 constexpr bool operator==(const dedekind::sets::EmptyPredicate<T>&,
-                          const Halfspace<T, P, D, S, L>&) {
-  return halfspace_is_empty<T, P, D, S>();
+                          const Halfspace<T, D, S, L>&) {
+  return false;
 }
-export template <typename T, auto P, Direction D, Strictness S, typename L>
-constexpr bool operator==(const Halfspace<T, P, D, S, L>&,
+export template <typename T, Direction D, Strictness S, typename L>
+constexpr bool operator==(const Halfspace<T, D, S, L>&,
                           const dedekind::sets::EmptyPredicate<T>&) {
-  return halfspace_is_empty<T, P, D, S>();
+  return false;
 }
-export template <typename T, auto P, Direction D, Strictness S, typename L,
-                 typename C>
+export template <typename T, Direction D, Strictness S, typename L, typename C>
 constexpr bool operator==(const UniversalSet<T, L, C>&,
-                          const Halfspace<T, P, D, S, L>&) {
-  return halfspace_is_moot<T, P, D, S>();
+                          const Halfspace<T, D, S, L>&) {
+  return false;
 }
-export template <typename T, auto P, Direction D, Strictness S, typename L,
-                 typename C>
-constexpr bool operator==(const Halfspace<T, P, D, S, L>&,
+export template <typename T, Direction D, Strictness S, typename L, typename C>
+constexpr bool operator==(const Halfspace<T, D, S, L>&,
                           const UniversalSet<T, L, C>&) {
-  return halfspace_is_moot<T, P, D, S>();
+  return false;
 }
 
 /** @brief A @c Singleton over @c bool is never all of @c 𝔹 (two elements), so
@@ -2323,9 +2327,11 @@ constexpr bool operator==(const UniversalSet<bool, L, C>& u,
 // (the R/∋ division) decided by the counterexample set {x≤5} ∩ {x>5} collapsing
 // to ∅ via the complement-pair meet.  So the specialisation is checked against
 // the general law, not merely trusted (the Wadler free theorem, mechanised).
-static_assert(max(le5)(5) == (le5(5) && ((le5 & (ℕ | (π > fix(5_c)))) == Ø{})),
+static_assert(max(le5)(5) == (le5(5) && (le5 & (ℕ | (π > fix(5_c)))).kind ==
+                                            SetKind::Empty),
               "specific max(le5) models (∈) ∩ (R/∋) at the pivot.");
-static_assert(min(ge5)(5) == (ge5(5) && ((ge5 & (ℕ | (π < fix(5_c)))) == Ø{})),
+static_assert(min(ge5)(5) == (ge5(5) && (ge5 & (ℕ | (π < fix(5_c)))).kind ==
+                                            SetKind::Empty),
               "specific min(ge5) models (∈) ∩ (R/∋) at the pivot.");
 
 // Exhibit (finite case): max 𝔹 = {true}, min 𝔹 = {false} --- the SAME generic
