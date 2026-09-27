@@ -323,98 +323,14 @@ static_assert(
  *
  * `⋈` ∈ { >, >=, <, <= }, selected by `D` (direction) and `S` (strictness).
  */
-export template <typename T, auto Pivot, Direction D, Strictness S,
-                 typename L = Boole>
-struct Halfspace : dedekind::sets::SetExpr<Halfspace<T, Pivot, D, S, L>, T, L> {
-  // A Halfspace value is an INHABITED cut by construction (#832): an empty
-  // configuration (@c {x>max(T)}, @c {x<min(T)}) is ill-formed here and must be
-  // spelt @c Ø --- @c make_halfspace collapses it, so no code path forms one.
-  // The gate closes raw construction, making @f$\emptyset = \text{Halfspace}@f$
-  // a genuine type-level impossibility rather than a factory convention.
-  static_assert(!halfspace_is_empty<T, Pivot, D, S>(),
-                "empty halfspace is not representable: construct through the "
-                "DSL / make_halfspace (which yields Ø), never the raw type");
-  // Domain / Codomain / logic_species / Member / ι are inherited from SetExpr
-  // (the ETCS subobject surface): a bare Halfspace is a first-class
-  // @c IsSubobject (ι: S ↣ T) whose χ is @c operator() below.  This is the same
-  // mixin @c Interval / @c Ray / @c Singleton fold onto, so the subobject
-  // boilerplate lives in exactly one place (#806 follow-up dedup).
-  static constexpr auto pivot = Pivot;
-  static constexpr Direction direction = D;
-  static constexpr Strictness strictness = S;
 
-  /** @brief Carrier-axis cardinality of the cut, threaded so the decidability
-   *  classifier (@c sets::NaturalLogic) reads a halfspace the SAME way it reads
-   *  the ambient it was carved from (#848/#927).
-   *
-   *  @details A @b conservative classification bound, NOT the cut's exact size:
-   *  a halfspace is at most equinumerous with its carrier, so the bound is
-   *  @f$\aleph_0@f$ over a countable carrier and @f$\beth_1@f$ over a
-   * continuum. A @b bounded cut (e.g.\ @c {x∈ℕ|x<5}) is actually @c Finite; the
-   * bound only has to be tight enough for the @c NaturalLogic verdict
-   * (countable ⟹
-   *  @c Boole/decidable, uncountable ⟹ @c Kleene), which the finite and
-   *  @f$\aleph_0@f$ cases share.  The class is resolved by @ref
-   *  carrier_cardinality: a self-declaring carrier (@c ℚ = @c Rational →
-   *  @c ℵ_0) is trusted, else the @c IsRingIntegral discriminator applies. This
-   *  reproduces the tag the ambient @c UniversalSet<T,L,C> carries for the
-   *  canonical carriers, so the point-free @c A @c | @c pred comprehension
-   *  classifies identically to the (deprecated) scout @c element<A> @c | @c
-   * pred spelling, whose @c Comprehension inherits @c C directly.  Without this
-   *  typedef @c NaturalLogic<Halfspace> hit its pessimistic primary-template
-   *  fallback (@c Kleene / @c TernaryLogic).
-   *
-   *  @note This is the carrier-axis @b magnitude, NOT the ambient's own @c C
-   *  slot, which the @c Halfspace type does not carry.  The two need not be the
-   *  @b identical tag; what @c NaturalLogic reads off is the @b countability
-   *  @b class (countable ⟹ @c Boole, uncountable ⟹ @c Kleene), and parity with
-   *  the scout holds whenever the carrier axis and the ambient @c C share that
-   *  class.  The @b canonical and @b self-declaring carriers satisfy this:
-   *  ℕ/ℤ via @c IsRingIntegral, ℚ (and any carrier that self-declares) via its
-   *  own @c cardinality_type, and ℝ (@c QuadraticReal) as the continuum.  A
-   *  @b custom ordered carrier that is countable but neither @c IsRingIntegral
-   *  nor self-declaring falls through to @c ℶ_1 here, even though its default
-   *  @c 𝔸 ambient carries @c ℵ_0; it must self-declare (as ℚ does) to classify
-   *  decidably.  The exact tags may also differ within a class, e.g.\
-   *  @c 𝔸<bool> carries @c Finite (@c boundaries.cppm) while this fallback maps
-   *  @c bool to @c ℵ_0 --- both countable, same @c Boole verdict.  Only a
-   *  @b deliberately incoherent tag
-   *  that crosses classes is not honoured: an int carrier advertised as the
-   *  continuum (@c UniversalSet<int,Boole,ℶ_1>, the Mandelbrot stand-in at
-   *  @c computability_test.cpp) classifies @c ℵ_0 by its integer carrier while
-   *  the scout keeps @c ℶ_1.  That does not arise from a real halfspace (no
-   *  continuum is genuinely carried by @c int), so the carrier axis is the
-   *  honest source.  The dual incoherence (a countable carrier tagged with
-   *  @c Kleene logic, @c UniversalSet<int,Kleene>) once surfaced a @c Set
-   * codomain mismatch when this promoted @c Boole class disagreed with the
-   * predicate's own @c Kleene answer; resolved in #928 by having the
-   * @c Set (and comprehension / scout) deduction guides derive the codomain
-   * from the predicate's @b actual @c operator() RETURN type (@c GetLogic of
-   * the membership answer) joined with this carrier-axis @c NaturalLogic
-   * verdict.  A halfspace returning @c Ternary thus promotes to @c Kleene via
-   * its return (even untagged), while a @c bool return keeps the carrier
-   * verdict, so ℝ's ℶ_1 halfspace stays @c Kleene; this
-   * @c cardinality_type still governs the carrier axis unchanged.
-   * Reproducing an arbitrary explicit
-   * @c C exactly would require threading it as a sixth @c Halfspace template
-   * parameter (FIXME(#848): ~120 pattern-matched sites). */
-  using cardinality_type = carrier_cardinality_t<T>;
-
-  // `Pivot` may be a different structural type than `T` (e.g., pivot = 5.0 as
-  // double, T = Real<double>). The carrier's converting ctor / overload set
-  // handles the comparison; we only assume `T` is comparable with the pivot.
-  // Return type is spelt @c L::Ω (not the inherited @c Codomain, which
-  // unqualified lookup would miss through the dependent SetExpr base).
-  constexpr typename L::Ω operator()(const T& x) const {
-    if constexpr (D == Direction::Upward) {
-      const bool hit = (S == Strictness::Strict) ? (x > Pivot) : (x >= Pivot);
-      return hit ? L::True : L::False;
-    } else {
-      const bool hit = (S == Strictness::Strict) ? (x < Pivot) : (x <= Pivot);
-      return hit ? L::True : L::False;
-    }
-  }
-};
+// FIXME(#946): the Halfspace STRUCT is DELETED here on purpose (deletion-first
+// refactor).  A halfspace IS a principal filter/ideal of the carrier order
+// (↑p / ↓p); re-create it under the tasteful factoring — set-theoretic parts
+// (SetExpr / ι / χ) into :order, pure-CT parts (the order/glb, meet = pivot
+// Sup/Inf) into :category — NOT restored verbatim.  The compile failures below
+// (structured_and signatures) and downstream ENUMERATE the retarget surface.
+// The doc above is retained as the spec.  Red CI is the intended WIP state.
 
 /**
  * @brief Compile-time singleton predicate: `{x : decltype(Value) | x ==
