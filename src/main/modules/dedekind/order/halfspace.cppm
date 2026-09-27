@@ -363,45 +363,31 @@ consteval auto principal_of() {
  * Nation, @e Notes on Lattice Theory §1).  Strictness @c S is an @c :order
  * refinement (which boundary point is excised), so it is combined locally.
  */
-export template <typename T, auto Pivot, Direction D, Strictness S,
-                 typename L = Boole>
-struct Halfspace : dedekind::sets::SetExpr<Halfspace<T, Pivot, D, S, L>, T, L> {
-  static_assert(!halfspace_is_empty<T, Pivot, D, S>(),
-                "an empty halfspace is the EmptySet, never a Halfspace value; "
-                "make_halfspace collapses that boundary case (#832).");
-
-  static constexpr auto pivot = Pivot;
+export template <typename T, Direction D, Strictness S, typename L = Boole>
+struct Halfspace : dedekind::sets::SetExpr<Halfspace<T, D, S, L>, T, L> {
   static constexpr Direction direction = D;
   static constexpr Strictness strictness = S;
   using cardinality_type = carrier_cardinality_t<T>;
 
-  /** @brief The @b :category proto-set this halfspace realizes: the principal
-   *  filter ↑Pivot (Upward) or ideal ↓Pivot (Downward) --- @b when the carrier
-   *  is a @c :category poset.  It owns the pivot and the order/meet
-   *  (↑a∩↑b=↑(a∨b), ↓a∩↓b=↓(a∧b)); @c Halfspace adds the strictness refinement,
-   *  the logic species @c L, and the ETCS subobject surface (option (a):
-   *  composition on the principal).
-   *
-   *  @note Two-tier seam (#946): a halfspace ranges over carriers strictly
-   *  wider than @c :category posets.  @c double (NaN breaks the order, so the
-   *  float-lattice gate #933/#934 rejects it) and the Cardinality variant host
-   *  halfspaces via heterogeneous comparison (#423/#425) yet admit @b no
-   *  principal filter.  There @c principal is the @c NoCategoryPrincipal
-   *  sentinel: the realization link is honestly absent, marking that @c :order
-   *  halfspaces are more general than @c :category principal filters. */
-  using principal = decltype(detail_principal::principal_of<T, Pivot, D>());
+  /** @brief The pivot, VALUE-carrying (#965): a @c constexpr data member, not
+   * an NTTP.  A halfspace is a point plus a direction (the #946 principal
+   * filter ↑pivot / ideal ↓pivot); direction @c D and strictness @c S stay in
+   * the type (they select the comparison and dispatch the meet overloads), only
+   * the pivot moves to a value, so one @c Halfspace<T,D,S> covers every pivot
+   * and the same object is usable at compile time (constexpr) or runtime. */
+  T pivot{};
 
-  /** @brief χ: the L-valued membership predicate.  The @b closed (non-strict)
-   *  half is exactly @c principal's membership (Pivot ≤ x, resp. x ≤ Pivot);
-   *  a @c Strict halfspace refines it by excising the pivot itself.  Spelt with
-   *  the carrier's own (possibly heterogeneous, #423/#425) comparison so
-   *  cross-type carriers (Cardinality / SignedCardinality) keep working. */
+  constexpr Halfspace() = default;
+  constexpr explicit Halfspace(T p) : pivot(p) {}
+
+  /** @brief χ: the L-valued membership predicate, spelt with the carrier's own
+   *  (possibly heterogeneous, #423/#425) comparison against @c pivot. */
   constexpr typename L::Ω operator()(const T& x) const {
     if constexpr (D == Direction::Upward) {
-      const bool hit = (S == Strictness::Strict) ? (x > Pivot) : (x >= Pivot);
+      const bool hit = (S == Strictness::Strict) ? (x > pivot) : (x >= pivot);
       return hit ? L::True : L::False;
     } else {
-      const bool hit = (S == Strictness::Strict) ? (x < Pivot) : (x <= Pivot);
+      const bool hit = (S == Strictness::Strict) ? (x < pivot) : (x <= pivot);
       return hit ? L::True : L::False;
     }
   }
