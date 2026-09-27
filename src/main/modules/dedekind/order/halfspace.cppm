@@ -828,11 +828,18 @@ constexpr SetVal<V, L> reduce_meet(const SetVal<V, L>& a,
     const bool either_strict =
         (sl == Strictness::Strict) || (su == Strictness::Strict);
     if (either_strict ? (lo >= hi) : (lo > hi)) return {{}, K::Empty};
-    // Integer cardinality collapse (the effective inclusive bounds).
-    const V el = (sl == Strictness::Strict) ? lo + 1 : lo;
-    const V eu = (su == Strictness::Strict) ? hi - 1 : hi;
-    if (el > eu) return {{}, K::Empty};
-    if (el == eu) return S::point(el);
+    // Integer cardinality collapse (the effective inclusive bounds).  Gated on
+    // std::integral so the +1/-1 successor is well-defined; the variant
+    // Cardinality (and continuous carriers) keep the interval without the
+    // point-collapse.  FIXME(#965): restore the ℕ-singleton collapse by storing
+    // Cardinality-halfspace pivots in their int primitive (heterogeneous
+    // pivot).
+    if constexpr (std::integral<V>) {
+      const V el = (sl == Strictness::Strict) ? lo + 1 : lo;
+      const V eu = (su == Strictness::Strict) ? hi - 1 : hi;
+      if (el > eu) return {{}, K::Empty};
+      if (el == eu) return S::point(el);
+    }
     return {{}, K::Interval, lo, hi, Direction::Upward, sl, su};
   }
   return {{}, K::Universe};
@@ -1281,14 +1288,18 @@ struct ProjProj {
   }
 };
 
-/** @brief @f$\pi_I \bowtie \mathrm{fix}(V)@f$ --- a strongly-typed pair
- *  predicate. */
-export template <IsRingIntegral auto I, Rel R, auto V>
+/** @brief @f$\pi_I \bowtie \mathrm{fix}(v)@f$ --- a strongly-typed pair
+ *  predicate.  #965: value-carrying, the bound @c value is a member (the axis
+ *  @c I and comparison @c R stay in the type). */
+export template <IsRingIntegral auto I, Rel R, typename VT = long long>
 struct ProjBound {
   using is_rel_predicate = void;
+  VT value{};
+  constexpr ProjBound() = default;
+  constexpr explicit ProjBound(VT v) : value(v) {}
   template <typename P>
   constexpr bool operator()(const P& p) const {
-    return rel_apply<R>(coord<I>(p), V);
+    return rel_apply<R>(coord<I>(p), value);
   }
 };
 
@@ -1332,41 +1343,48 @@ export template <IsRingIntegral auto I, Rel R, IsRingIntegral auto J>
 constexpr ProjProj<I, negate(R), J> operator!(const ProjProj<I, R, J>&) {
   return {};
 }
-export template <IsRingIntegral auto I, Rel R, auto V>
-constexpr ProjBound<I, negate(R), V> operator!(const ProjBound<I, R, V>&) {
-  return {};
+export template <IsRingIntegral auto I, Rel R, typename VT>
+constexpr ProjBound<I, negate(R), VT> operator!(const ProjBound<I, R, VT>& pb) {
+  return ProjBound<I, negate(R), VT>{pb.value};
 }
 
 // π_I ⋈ fix(V), I >= 1  →  ProjBound (I == 0 is the unary π of §M1 above).
+// #965: the compile-time Bound<V> supplies the value into the value ProjBound.
 export template <IsRingIntegral auto I, auto V>
   requires(I >= 1)
-constexpr ProjBound<I, Rel::Lt, V> operator<(Projection<I>, Bound<V>) {
-  return {};
+constexpr ProjBound<I, Rel::Lt, decltype(V)> operator<(Projection<I>,
+                                                       Bound<V>) {
+  return ProjBound<I, Rel::Lt, decltype(V)>{V};
 }
 export template <IsRingIntegral auto I, auto V>
   requires(I >= 1)
-constexpr ProjBound<I, Rel::Le, V> operator<=(Projection<I>, Bound<V>) {
-  return {};
+constexpr ProjBound<I, Rel::Le, decltype(V)> operator<=(Projection<I>,
+                                                        Bound<V>) {
+  return ProjBound<I, Rel::Le, decltype(V)>{V};
 }
 export template <IsRingIntegral auto I, auto V>
   requires(I >= 1)
-constexpr ProjBound<I, Rel::Gt, V> operator>(Projection<I>, Bound<V>) {
-  return {};
+constexpr ProjBound<I, Rel::Gt, decltype(V)> operator>(Projection<I>,
+                                                       Bound<V>) {
+  return ProjBound<I, Rel::Gt, decltype(V)>{V};
 }
 export template <IsRingIntegral auto I, auto V>
   requires(I >= 1)
-constexpr ProjBound<I, Rel::Ge, V> operator>=(Projection<I>, Bound<V>) {
-  return {};
+constexpr ProjBound<I, Rel::Ge, decltype(V)> operator>=(Projection<I>,
+                                                        Bound<V>) {
+  return ProjBound<I, Rel::Ge, decltype(V)>{V};
 }
 export template <IsRingIntegral auto I, auto V>
   requires(I >= 1)
-constexpr ProjBound<I, Rel::Eq, V> operator==(Projection<I>, Bound<V>) {
-  return {};
+constexpr ProjBound<I, Rel::Eq, decltype(V)> operator==(Projection<I>,
+                                                        Bound<V>) {
+  return ProjBound<I, Rel::Eq, decltype(V)>{V};
 }
 export template <IsRingIntegral auto I, auto V>
   requires(I >= 1)
-constexpr ProjBound<I, Rel::Ne, V> operator!=(Projection<I>, Bound<V>) {
-  return {};
+constexpr ProjBound<I, Rel::Ne, decltype(V)> operator!=(Projection<I>,
+                                                        Bound<V>) {
+  return ProjBound<I, Rel::Ne, decltype(V)>{V};
 }
 
 // !pred witnesses on the relational predicates (grammar p1): negation flips the
@@ -1486,36 +1504,36 @@ export constexpr Rel rel_of(Direction d, Strictness s) {
 
 /** @brief @f$\pi_I^{-1}@f$ of a halfspace factor: the cylinder
  *  @f$\pi_I \bowtie \mathrm{fix}(\text{pivot})@f$ on the product. */
-export template <IsRingIntegral auto I, typename T, auto Pivot, Direction D,
-                 Strictness S, typename L>
-constexpr auto cylinder(const Halfspace<T, Pivot, D, S, L>&) {
-  return ProjBound<I, rel_of(D, S), Pivot>{};
+export template <IsRingIntegral auto I, typename T, Direction D, Strictness S,
+                 typename L>
+constexpr auto cylinder(const Halfspace<T, D, S, L>& h) {
+  return ProjBound<I, rel_of(D, S), T>{h.pivot};
 }
 
 // restricted × total:  {x ⋈ p} × 𝔸  =  𝔸<pair> | (π1 ⋈ fix(p)).
-export template <typename T, auto P, Direction D, Strictness S, typename L,
-                 typename T2, typename L2, typename C2>
+export template <typename T, Direction D, Strictness S, typename L, typename T2,
+                 typename L2, typename C2>
   requires std::same_as<L, L2>
-constexpr auto operator*(const Halfspace<T, P, D, S, L>& a,
+constexpr auto operator*(const Halfspace<T, D, S, L>& a,
                          const UniversalSet<T2, L2, C2>&) {
   return 𝔸<std::pair<T, T2>, L> | cylinder<1>(a);
 }
 
 // total × restricted:  𝔸 × {y ⋈ q}  =  𝔸<pair> | (π2 ⋈ fix(q)).
-export template <typename T1, typename L1, typename C1, typename T, auto Q,
-                 Direction D, Strictness S, typename L>
+export template <typename T1, typename L1, typename C1, typename T, Direction D,
+                 Strictness S, typename L>
   requires std::same_as<L1, L>
 constexpr auto operator*(const UniversalSet<T1, L1, C1>&,
-                         const Halfspace<T, Q, D, S, L>& b) {
+                         const Halfspace<T, D, S, L>& b) {
   return 𝔸<std::pair<T1, T>, L> | cylinder<2>(b);
 }
 
 // restricted × restricted:  𝔸<pair> | (π1 ⋈ fix(p)) && (π2 ⋈ fix(q)).
-export template <typename Ta, auto Pa, Direction Da, Strictness Sa, typename La,
-                 typename Tb, auto Qb, Direction Db, Strictness Sb, typename Lb>
+export template <typename Ta, Direction Da, Strictness Sa, typename La,
+                 typename Tb, Direction Db, Strictness Sb, typename Lb>
   requires std::same_as<La, Lb>
-constexpr auto operator*(const Halfspace<Ta, Pa, Da, Sa, La>& a,
-                         const Halfspace<Tb, Qb, Db, Sb, Lb>& b) {
+constexpr auto operator*(const Halfspace<Ta, Da, Sa, La>& a,
+                         const Halfspace<Tb, Db, Sb, Lb>& b) {
   return 𝔸<std::pair<Ta, Tb>, La> | (cylinder<1>(a) && cylinder<2>(b));
 }
 
@@ -1566,10 +1584,10 @@ constexpr auto axis_factor(const P&) {
  *  @c unsigned @c 1 name the same axis and must agree, rather than silently
  *  falling through to the universal factor (review #871). */
 export template <IsRingIntegral auto I, typename TI, typename L,
-                 IsRingIntegral auto Slot, Rel R, auto V>
+                 IsRingIntegral auto Slot, Rel R, typename VT>
   requires(is_order_rel(R) && Slot == I)
-constexpr auto axis_factor(const ProjBound<Slot, R, V>&) {
-  return Halfspace<TI, V, dir_of(R), strict_of(R), L>{};
+constexpr auto axis_factor(const ProjBound<Slot, R, VT>& pb) {
+  return Halfspace<TI, dir_of(R), strict_of(R), L>{static_cast<TI>(pb.value)};
 }
 
 /** @brief A meet of cylinders: the factor on axis @c I is the @b intersection
@@ -2013,60 +2031,36 @@ static_assert(
  * pivot
  *  (@c {x≤p} ∩ @c {x≥p} = @c {p}) or, when the sup is unattained (strict) or
  *  absent (unbounded), to @c Ø. */
-export template <typename T, auto p, Strictness S, typename L>
-constexpr auto upperbounds(Halfspace<T, p, Direction::Downward, S, L>) {
-  if constexpr (S == Strictness::Strict && strict_lower_cut_empty<T, p>()) {
-    // The strict cut {x<p} is EMPTY (p at/below the carrier's least element),
-    // so EVERY element is vacuously an upper bound: the ∀-projection is the
-    // whole universe 𝔸 (and max = S ∩ 𝔸 = S = ∅).  Honouring the contract, not
-    // just the answer.
-    return dedekind::sets::UniversalSet<T, L>{};
-  } else if constexpr (S == Strictness::Strict &&
-                       (std::integral<T> ||
-                        dedekind::category::IsSaturating<T>)) {
-    // DISCRETE strict {x<p}, non-empty: the sup is the ATTAINED predecessor
-    // p−1, so {x<p} ∩ {x≥p−1} = {p−1}.  Boundary-safe: the empty branch already
-    // peeled off the floor, so p > the least element and p−1 neither underflows
-    // a machine int nor leaves ℕ (a saturating carrier escalates regardless).
-    return Halfspace<T, p - 1, Direction::Upward, Strictness::NonStrict, L>{};
-  } else {
-    // {x≤p}: sup p attained.  Dense {x<p}: sup p unattained (no predecessor),
-    // so upper bounds {x≥p} and the meet is Ø (no max).
-    return Halfspace<T, p, Direction::Upward, Strictness::NonStrict, L>{};
-  }
+/** @brief Upper bounds of a downward halfspace {x ⋈ p} = {x ≥ sup} (#965:
+ *  value-carrying, returns SetVal).  Discrete strict: sup = p−1 (attained), so
+ *  the meet {x<p} ∩ {x≥p−1} = {p−1}; else sup = p (dense strict → the meet is
+ *  empty, no max).  (The machine-boundary empty-cut → 𝔸 edge is simplified out;
+ *  FIXME(#965) restore it with the heterogeneous-pivot cut.) */
+export template <typename T, Strictness S, typename L>
+constexpr SetVal<T, L> upperbounds(
+    const Halfspace<T, Direction::Downward, S, L>& h) {
+  T sup = h.pivot;
+  if constexpr (std::integral<T>)
+    if (S == Strictness::Strict) sup = static_cast<T>(h.pivot - 1);
+  return SetVal<T, L>::half(sup, Direction::Upward, Strictness::NonStrict);
 }
-export template <typename T, auto p, Strictness S, typename L>
-constexpr auto upperbounds(Halfspace<T, p, Direction::Upward, S, L>) {
-  return Ø<T, L>{};  // unbounded above: no upper bound
+export template <typename T, Strictness S, typename L>
+constexpr SetVal<T, L> upperbounds(
+    const Halfspace<T, Direction::Upward, S, L>&) {
+  return {{}, SetKind::Empty};  // unbounded above: no upper bound
 }
-export template <typename T, auto p, Strictness S, typename L>
-constexpr auto lowerbounds(Halfspace<T, p, Direction::Upward, S, L>) {
-  if constexpr (S == Strictness::Strict && strict_upper_cut_empty<T, p>()) {
-    // Machine discrete {x>p} is EMPTY at the ceiling (p at the type's greatest
-    // value: true for bool, INT_MAX for int), so every element bounds ∅ → the
-    // universe (min = S ∩ 𝔸 = ∅).  No p+1 (which would overflow/wrap).
-    return dedekind::sets::UniversalSet<T, L>{};
-  } else if constexpr (S == Strictness::Strict && HasZeroFloor<T> &&
-                       p + 1 < 0) {
-    // Floor-0 carrier (ℕ / unsigned): the successor p+1 falls below the
-    // carrier, so the min clamps to the carrier minimum 0.  NOT the signed ℤ
-    // proxy, which has no floor and takes the ordinary successor branch below
-    // (#837 review).
-    return Halfspace<T, 0, Direction::Downward, Strictness::NonStrict, L>{};
-  } else if constexpr (S == Strictness::Strict &&
-                       (std::integral<T> ||
-                        dedekind::category::IsSaturating<T>)) {
-    // DISCRETE strict {x>p}, non-empty: the min is the ATTAINED successor p+1.
-    // Boundary-safe: the ceiling branch (machine) already peeled off the top, ℕ
-    // is unbounded above, and a saturating carrier escalates regardless.
-    return Halfspace<T, p + 1, Direction::Downward, Strictness::NonStrict, L>{};
-  } else {
-    return Halfspace<T, p, Direction::Downward, Strictness::NonStrict, L>{};
-  }
+export template <typename T, Strictness S, typename L>
+constexpr SetVal<T, L> lowerbounds(
+    const Halfspace<T, Direction::Upward, S, L>& h) {
+  T inf = h.pivot;
+  if constexpr (std::integral<T>)
+    if (S == Strictness::Strict) inf = static_cast<T>(h.pivot + 1);
+  return SetVal<T, L>::half(inf, Direction::Downward, Strictness::NonStrict);
 }
-export template <typename T, auto p, Strictness S, typename L>
-constexpr auto lowerbounds(Halfspace<T, p, Direction::Downward, S, L>) {
-  return Ø<T, L>{};  // unbounded below: no lower bound
+export template <typename T, Strictness S, typename L>
+constexpr SetVal<T, L> lowerbounds(
+    const Halfspace<T, Direction::Downward, S, L>&) {
+  return {{}, SetKind::Empty};  // unbounded below: no lower bound
 }
 // 𝔹: the whole carrier is bounded --- ⊤ dominates it, ⊥ is dominated by it.
 export template <typename L, typename C>
@@ -2095,60 +2089,38 @@ constexpr auto lowerbounds(const UniversalSet<bool, L, C>&) {
  * the empty result through the SAME @c Ø<T,L> the sets layer produces makes the
  * two spellings type-identical.  Non-empty results (an @c OrderInterval, a
  *  @c Singleton) are returned exactly as @c structured_and shapes them. */
-export template <typename T, auto P1, Direction D1, Strictness S1, auto P2,
-                 Direction D2, Strictness S2, typename L>
-constexpr auto operator&(Halfspace<T, P1, D1, S1, L> a,
-                         Halfspace<T, P2, D2, S2, L> b)
-  requires requires { structured_and(a, b); }
-{
-  if constexpr (std::same_as<std::decay_t<decltype(structured_and(a, b))>,
-                             dedekind::sets::EmptyPredicate<T>>) {
-    // Codomain leg (#894): the empty meet is decided → Boolean codomain.
-    return dedekind::sets::codomain_reduce_t<dedekind::sets::Ø<T, L>>{};
-  } else {
-    return structured_and(a, b);
-  }
+export template <typename T, Direction D1, Strictness S1, Direction D2,
+                 Strictness S2, typename L>
+constexpr auto operator&(const Halfspace<T, D1, S1, L>& a,
+                         const Halfspace<T, D2, S2, L>& b) {
+  // #965: the meet is the one value law; the disjoint case is the empty SetVal
+  // kind (no separate Ø<T,L> canonicalisation needed).
+  return structured_and(a, b);
 }
 
-// #895: a DISJOINT bare halfspace-meet with DISTINCT pivots (so NOT the
-// same-pivot complement-pair case, which has its own operator& above) now
-// canonicalises to the SAME Ø<Cardinality> the sets layer produces.  Before
-// #895 the bare meet returned the raw EmptyPredicate<Cardinality>, which has no
-// == against Ø<Cardinality>, so this exact case (the #932 quantifier-emptiness
-// witness) needed a defensive Set{} re-wrap.  Now the bare grammar compares
-// directly.  {x>5} ∩ {x<3} = Ø.  This witness sits BELOW the general Halfspace
-// operator& above so overload resolution sees it (declared earlier in the file
-// it would resolve `&` to the generic sets reducer → MeetSet; #935 class).
-static_assert(
-    std::same_as<decltype((ℕ | (π > fix(5_c))) & (ℕ | (π < fix(3_c)))),
-                 Ø<Cardinality, Boole>>,
-    "bare {x>5} ∩ {x<3} is Ø<Cardinality> at the type level (no Set{} wrap).");
-static_assert(((ℕ | (π > fix(5_c))) & (ℕ | (π < fix(3_c)))) == Ø<Cardinality>{},
-              "point-free bare disjoint meet == Ø<Cardinality> (#895 / #932).");
+// #895/#932: a disjoint bare halfspace-meet collapses to the empty SetVal kind.
+static_assert(((ℕ | (π > fix(5_c))) & (ℕ | (π < fix(3_c)))).kind ==
+                  SetKind::Empty,
+              "bare {x>5} ∩ {x<3} collapses to the empty set (#895 / #932).");
 
-/** @brief @c | IS the join on bare order operands, dual to the @c & meet: it
- *  forwards to @c structured_or, so a same-direction or overlapping halfspace
- *  union collapses.  The complement-pair @c operator| above (→ universe) is
- * more specialized and still claims its case. */
-export template <typename T, auto P1, Direction D1, Strictness S1, auto P2,
-                 Direction D2, Strictness S2, typename L>
-constexpr auto operator|(Halfspace<T, P1, D1, S1, L> a,
-                         Halfspace<T, P2, D2, S2, L> b)
+/** @brief @c | IS the join on bare order operands, dual to the @c & meet.  A
+ *  same-direction union collapses via @c structured_or; a crossing union has no
+ *  @c SetVal kind, so it falls to the honest point-wise union (@c L::OR). */
+export template <typename T, Direction D1, Strictness S1, Direction D2,
+                 Strictness S2, typename L>
+constexpr auto operator|(const Halfspace<T, D1, S1, L>& a,
+                         const Halfspace<T, D2, S2, L>& b)
   requires requires { structured_or(a, b); }
 {
   return structured_or(a, b);
 }
-/** @brief Fallback join for a genuine GAP that does not collapse to a
- * halfspace: the honest POINT-WISE union, a @c Set whose membership ORs the two
- * operands in the carrier's logic (@c L::OR).  Selected exactly when @c
- * structured_or does not apply, so @c | is total (no hard error) while still
- * collapsing where it can. */
-export template <typename T, auto P1, Direction D1, Strictness S1, auto P2,
-                 Direction D2, Strictness S2, typename L>
-  requires(!requires(Halfspace<T, P1, D1, S1, L> x,
-                     Halfspace<T, P2, D2, S2, L> y) { structured_or(x, y); })
-constexpr auto operator|(Halfspace<T, P1, D1, S1, L> a,
-                         Halfspace<T, P2, D2, S2, L> b) {
+export template <typename T, Direction D1, Strictness S1, Direction D2,
+                 Strictness S2, typename L>
+  requires(!requires(Halfspace<T, D1, S1, L> x, Halfspace<T, D2, S2, L> y) {
+    structured_or(x, y);
+  })
+constexpr auto operator|(const Halfspace<T, D1, S1, L>& a,
+                         const Halfspace<T, D2, S2, L>& b) {
   auto pred = [a, b](const T& v) { return L::OR(a(v), b(v)); };
   return dedekind::sets::Set<T, L, decltype(pred)>{pred};
 }
