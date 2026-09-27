@@ -309,6 +309,10 @@ if(DEDEKIND_BUILD_PYTHON_BINDINGS)
         ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/jlt.py
         ${DEDEKIND_PYTHON_PACKAGE_DIR}/jlt.py
         COPYONLY)
+    configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/lwv.py
+        ${DEDEKIND_PYTHON_PACKAGE_DIR}/lwv.py
+        COPYONLY)
 
     nanobind_add_module(_dedekind PROTECT_STACK
         src/main/modules/dedekind/python/nanobind.cpp)
