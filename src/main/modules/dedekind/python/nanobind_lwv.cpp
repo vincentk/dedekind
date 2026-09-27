@@ -102,6 +102,13 @@ NB_MODULE(_lwv, m) {
 
   // The two README exhibit sets, as module-level handles (fixed generators, as
   // jlt exposes id / refl).
+  //
+  // FIXME(#965): one module constant per pivot does NOT scale (would need
+  // gt_0, gt_1, ...).  Iteration 2 (its own PR) is the scalable, value-oriented
+  // surface: the halfspace as preimage_1(S * eta(p) | (chi/pi_1 <= pi_2)) with
+  // the pivot p a VALUE in the singleton eta(p) and the relation fixed and
+  // pivot-free, so a single `chi <= fix(p)` constructor covers all pivots; the
+  // meet collapse routes through the value-first reduce_meet.  Design on #965.
   m.attr("gt_3") = Gt3{};
   m.attr("lt_5") = Lt5{};
 }

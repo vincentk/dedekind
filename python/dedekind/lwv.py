@@ -24,9 +24,20 @@ handle *dispatches* to the C++ one, as ``jlt``'s ``>>`` dispatches to ``cata``.
 
 This is a first iteration.  The pivots are compile-time, so it binds the curated
 README sets -- exactly as ``jlt`` binds the fixed generators ``id`` / ``refl``.
-A general fluent constructor over *runtime* pivots awaits the value-first
-subobject reducer's leaf-combine leg (#922 slice 2): a runtime pivot cannot
-index a compile-time halfspace type.
+A runtime pivot cannot index a compile-time halfspace type, so one module
+constant per pivot (``gt_3``, ``lt_5``, ...) does NOT scale -- it is a stopgap.
+
+FIXME(#965): iteration 2 (its own PR) is the scalable, value-oriented surface,
+built on the *relational* form so the pivot travels as a value, never in a type:
+
+    {x in S | x <= p}  ==  preimage_1( S * eta(p) | (pi_1 <= pi_2) )
+
+i.e. the paper's ``S | (chi <= fix(p))`` (house spelling: chi = Projection<0>,
+pi_1/pi_2 the pair projections).  The pivot lives in the singleton ``eta(p)`` (a
+value), the relation ``pi_1 <= pi_2`` is fixed and pivot-free, and the preimage
+over a singleton is a trivially discharged exists.  The meet's structural
+collapse (``{x>3} & {x<5} -> {4}``) then routes through the value-first
+``reduce_meet``.  See the design summary on #965.
 """
 
 # `_lwv` is the exhibit's own private native extension module (dedekind._lwv),
