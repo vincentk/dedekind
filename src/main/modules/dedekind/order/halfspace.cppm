@@ -515,48 +515,33 @@ constexpr auto make_halfspace() {
     return dedekind::sets::codomain_reduce_t<
         dedekind::sets::UniversalSet<T, L>>{};
   else
-    return Halfspace<T, V, D, S, L>{};
+    return Halfspace<T, D, S, L>{V};
 }
 
-/** @brief Complement of a halfspace: the opposite halfspace, through the
- *  factory so a boundary complement collapses (@c ~{x≥0} on ℕ is @c {x<0} = Ø,
- *  and dually @c ~Ø = 𝔸 keeps the involution). */
-export template <typename T, auto Pivot, Direction D, Strictness S, typename L>
-constexpr auto operator~(const Halfspace<T, Pivot, D, S, L>&) {
-  return make_halfspace<T, Pivot, flip(D), flip(S), L>();
+/** @brief Complement of a halfspace: the opposite halfspace with the SAME pivot
+ *  value, flipped direction + strictness.  (#965: value-carrying, so the
+ *  boundary-collapse to Ø/𝔸 that the NTTP factory did at compile time is now a
+ *  value-level concern of @c reduce_meet, not a type-level branch here.) */
+export template <typename T, Direction D, Strictness S, typename L>
+constexpr auto operator~(const Halfspace<T, D, S, L>& h) {
+  return Halfspace<T, flip(D), flip(S), L>{h.pivot};
 }
 
-/** @brief Complement-pair join: same pivot, opposite direction, flipped
- *         strictness is a complement pair whose union is the universe.  The
- *         @c (D1!=D2 && S1!=S2) gate rules out non-complement pairs (they keep
- *         routing to @c structured_and / @c OrderInterval). */
-export template <typename T, auto Pivot, Direction D1, Strictness S1,
-                 Direction D2, Strictness S2, typename L>
-  requires(D1 != D2 && S1 != S2)
-constexpr auto operator|(const Halfspace<T, Pivot, D1, S1, L>&,
-                         const Halfspace<T, Pivot, D2, S2, L>&) {
-  // Codomain leg (#894): the universe is decided → Boolean codomain.
-  return dedekind::sets::codomain_reduce_t<
-      dedekind::sets::UniversalSet<T, L>>{};
-}
+// #965: the same-pivot complement-pair @c operator| / @c operator& (union → 𝔸,
+// meet → Ø) are DELETED --- they gated on a shared NTTP pivot, which a value
+// pivot cannot express at the type level.  The meet is subsumed by
+// @c structured_and → @c reduce_meet (a strict complement pair reduces to
+// empty, a closed one to the boundary point); the join by @c structured_or.
 
-/** @brief Complement-pair meet: dually, the empty set. */
-export template <typename T, auto Pivot, Direction D1, Strictness S1,
-                 Direction D2, Strictness S2, typename L>
-  requires(D1 != D2 && S1 != S2)
-constexpr auto operator&(const Halfspace<T, Pivot, D1, S1, L>&,
-                         const Halfspace<T, Pivot, D2, S2, L>&) {
-  // Codomain leg (#894): the empty set is decided → Boolean codomain.
-  return dedekind::sets::codomain_reduce_t<dedekind::sets::Ø<T, L>>{};
-}
-
-/** @brief Telling aliases for the two ℕ halfspaces the §3 listing uses:
- *         @c Above<N> = {x>N}, @c AtMost<N> = ~Above<N> = {x<=N}. */
-export template <auto N, typename L = Boole>
-using Above = Halfspace<dedekind::sets::Cardinality, N, Direction::Upward,
+/** @brief Telling aliases for the two ℕ halfspaces the §3 listing uses (#965:
+ *  value-carrying, so the pivot rides in the instance): @c Above<>{N} = {x>N},
+ *  @c AtMost<>{N} = {x<=N}.  The alias fixes carrier / direction / strictness;
+ *  @c Above<> is the type, @c Above<>{N} the value (was @c Above<N>{}). */
+export template <typename L = Boole>
+using Above = Halfspace<dedekind::sets::Cardinality, Direction::Upward,
                         Strictness::Strict, L>;
-export template <auto N, typename L = Boole>
-using AtMost = Halfspace<dedekind::sets::Cardinality, N, Direction::Downward,
+export template <typename L = Boole>
+using AtMost = Halfspace<dedekind::sets::Cardinality, Direction::Downward,
                          Strictness::NonStrict, L>;
 
 // A bare Halfspace / Singleton is a first-class @c IsSubobject (ι: S ↣ A plus
