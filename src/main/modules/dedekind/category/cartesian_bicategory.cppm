@@ -506,4 +506,40 @@ static_assert(
 // bridge to the IsPullback family is more than a low-risk local witness.
 // FIXME(#946): unify the glb across the product and pullback presentations.
 
+// ── The crossing meet ↑a ∩ ↓b = [a,b] : the interval as a MEET-AS-PRODUCT
+// ──────
+//
+// Same-direction principal meets collapse to a principal (the pivots' Sup /
+// Inf, :posetal).  The CROSSING meet of a filter ↑a and an ideal ↓b is
+// genuinely a NEW object --- the order interval [a,b] --- which is the
+// categorical PRODUCT (pullback) of the two principals (Davey & Priestley, @e
+// Introduction @e to
+// @e Lattices @e and @e Order 2e §2; the sets meet-as-pullback #881).  So it is
+// the lattice @c Meet AST node, and @c IsProduct certifies it (forced witness).
+//
+// Two-tier split (#946): here (@c :category, pragmatic) the crossing meet just
+// FORMS the product [a,b] as a term --- no arithmetic.  The interval's set-
+// theoretic REALIZATION (membership a≤x≤b, the empty a≰b → Ø, the discrete
+// singleton, the pole/boundedness reading) is the strict downstream concern in
+// @c :order / @c :sets, asserted in the same PR.
+export template <typename T, auto A, auto B, typename Ord>
+constexpr auto operator&(PrincipalFilter<T, A, Ord> f,
+                         PrincipalIdeal<T, B, Ord> i) {
+  return MakeMeet{}(f, i);  // [A,B] = ↑A ∩ ↓B, the meet-as-product
+}
+export template <typename T, auto A, auto B, typename Ord>
+constexpr auto operator&(PrincipalIdeal<T, B, Ord> i,
+                         PrincipalFilter<T, A, Ord> f) {
+  return f & i;  // ↓B ∩ ↑A = ↑A ∩ ↓B (meet is commutative)
+}
+
+// Witness (#946): the crossing meet IS a product --- the interval [3,7] is the
+// meet-as-product of the filter ↑3 and the ideal ↓7.
+static_assert(
+    IsProduct<Meet<PrincipalFilter<int, 3>, PrincipalIdeal<int, 7>>,
+              PrincipalFilter<int, 3>, PrincipalIdeal<int, 7>, MakeMeet>,
+    "crossing meet ↑3 ∩ ↓7 = [3,7] is the meet-as-product of the filter and "
+    "the "
+    "ideal (IsProduct forced on the interval).");
+
 }  // namespace dedekind::category
