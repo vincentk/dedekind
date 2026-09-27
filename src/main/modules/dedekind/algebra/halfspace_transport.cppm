@@ -195,21 +195,19 @@ constexpr auto image(
  *  it does not --- the image of @c {x≥5} under @c x+1 wraps @c UINT_MAX to @c
  * 0, which @c {y≥6} would miss --- so the modular groups are declined; the
  *  saturating ℕ (K≥0) and the ordered groups are admitted. */
-export template <typename T, auto K, Rel R, auto P, typename L>
+export template <typename T, auto K, Rel R, typename VT, typename L>
   requires((R == Rel::Lt || R == Rel::Le || R == Rel::Gt || R == Rel::Ge) &&
            IsEntireTranslationCarrier<T, K>)
 constexpr auto image(
     const Set<std::pair<T, T>, L,
               ProductRestrict<ProjAddConstProj<1, K, Rel::Eq, 2>,
-                              ProjBound<1, R, P>>>&) {
-  // The shifted pivot P+K stays in the NTTPs' own type (unlike argmax's
-  // Singleton value, a Halfspace pivot's TYPE is load-bearing: structured_and's
-  // complement-pair detection is type-sensitive, so widening here would make a
-  // meet like {y≤6} ∩ {y>6} miss its collapse).  A pivot at the type's boundary
-  // with a positive shift is thus the same extreme-NTTP-value limitation the
-  // rest of the DSL carries; the ordinary pivots the DSL is written against are
-  // far from it.
-  return Halfspace<T, P + K, dir_of(R), strict_of(R), L>{};  // keep L
+                              ProjBound<1, R, VT>>>& s) {
+  // #965: the pivot rides in the ProjBound VALUE now, so the shifted pivot P+K
+  // is computed at constexpr (folds when the argument is constexpr) rather than
+  // in the NTTPs.  Direction / strictness stay type-level (R is NTTP), so the
+  // meet's complement-pair collapse remains type-sensitive.
+  return Halfspace<T, dir_of(R), strict_of(R), L>{
+      static_cast<T>(s.predicate().rp.value + K)};  // keep L
 }
 
 /** @brief image of a restricted REFLECTION @c x↦c·x (@c c=±1) on @c {x⋈P}: the
@@ -228,16 +226,17 @@ constexpr auto image(
  *  @c x↦−x has no image; on a wrapping group (@c unsigned) modular negation
  * does NOT reverse the order (@c −x of @c {x<5} would admit @c 0 via @c
  * UINT_MAX), so both are declined. */
-export template <typename T, auto C, Rel R, auto P, typename L>
+export template <typename T, auto C, Rel R, typename VT, typename L>
   requires((R == Rel::Lt || R == Rel::Le || R == Rel::Gt || R == Rel::Ge) &&
            (C == 1 ||
             (C == -1 && dedekind::algebra::IsOrderedAdditiveGroup<T>)))
 constexpr auto image(
     const Set<std::pair<T, T>, L,
               ProductRestrict<ProjMulConstProj<1, C, Rel::Eq, 2>,
-                              ProjBound<1, R, P>>>&) {
+                              ProjBound<1, R, VT>>>& s) {
   constexpr Direction d = (C < 0) ? flip(dir_of(R)) : dir_of(R);
-  return Halfspace<T, C * P, d, strict_of(R), L>{};  // keep L
+  return Halfspace<T, d, strict_of(R), L>{
+      static_cast<T>(C * s.predicate().rp.value)};  // keep L
 }
 
 /** @brief @c is_function(R) --- the bracket-free query: @c R is a bona fide
@@ -274,20 +273,21 @@ consteval bool is_entire(
 // @c Cardinality is NOT matched here, precisely because a lower bound there can
 // be VACUOUS (e.g. @c π2≥0 on the successor removes nothing): declining to
 // match keeps @c is_entire from making a false non-entire claim on ℕ.
-export template <typename T, auto K, Rel R, auto P, typename L>
+export template <typename T, auto K, Rel R, typename VT, typename L>
   requires dedekind::algebra::IsOrderedAdditiveGroup<T>
 consteval bool is_entire(
     const Set<std::pair<T, T>, L,
               ProductRestrict<ProjAddConstProj<1, K, Rel::Eq, 2>,
-                              ProjBound<2, R, P>>>&) {
+                              ProjBound<2, R, VT>>>&) {
   return false;
 }
-export template <typename T, auto K, Rel R, auto P, auto V, auto W, typename L>
+export template <typename T, auto K, Rel R, typename VT, auto V, auto W,
+                 typename L>
   requires dedekind::algebra::IsOrderedAdditiveGroup<T>
 consteval bool is_entire(
     const Set<std::pair<T, T>, L,
               ProductRestrict<ProjAddConstProj<1, K, Rel::Eq, 2>,
-                              RelAnd<ProjBound<2, R, P>,
+                              RelAnd<ProjBound<2, R, VT>,
                                      ProjModConstBound<2, V, Rel::Eq, W>>>>&) {
   return false;
 }
@@ -305,27 +305,27 @@ consteval bool is_entire(
  *  --- where a codomain bound @c P<K would pull the feasible domain empty while
  *  the formula still returned a negative singleton --- and @c unsigned alike.
  */
-export template <typename T, auto K, auto P, auto V, auto W, typename L>
+export template <typename T, auto K, typename VT, auto V, auto W, typename L>
   requires(dedekind::algebra::IsOrderedAdditiveGroup<T> &&
            dedekind::sets::IsRingIntegral<T>)
 constexpr auto argmax(
     const Set<std::pair<T, T>, L,
               ProductRestrict<ProjAddConstProj<1, K, Rel::Eq, 2>,
-                              RelAnd<ProjBound<2, Rel::Le, P>,
-                                     ProjModConstBound<2, V, Rel::Eq, W>>>>&) {
-  // The optimum is read off in the NTTPs' arithmetic.  Even though @c T is a
-  // saturating ordered group, the pivots @c P/@c K/@c W/@c V are compile-time
-  // integers, so the intermediates are computed with headroom (a wider signed
-  // type) rather than the pivots' own type: @c P−K and the residue folds cannot
-  // then overflow for pivots anywhere in the pivot type's range.  Residue
-  // normalisation adds @c V only when the remainder is negative (never
-  // overflowing, cf. the ℤ/N materialisation in :numbers).
-  using W_ = long long;            // wider bound: no pivot overflow
-  constexpr W_ p = W_(P) - W_(K);  // domain bound {x ≤ P−K}
+                              RelAnd<ProjBound<2, Rel::Le, VT>,
+                                     ProjModConstBound<2, V, Rel::Eq, W>>>>&
+        s) {
+  // #965: the codomain bound P rides in the ProjBound VALUE now; the residue
+  // modulus/shift @c K/@c W/@c V stay compile-time NTTPs.  The optimum is read
+  // off with wider-type headroom (a wider signed type, not the pivot's own),
+  // so @c P−K and the residue folds cannot overflow.  Residue normalisation
+  // adds @c V only when the remainder is negative (cf. the ℤ/N materialisation
+  // in :numbers).  Folds at compile time when the argument is constexpr.
+  using W_ = long long;  // wider bound: no pivot overflow
+  const W_ p = W_(s.predicate().rp.a.value) - W_(K);  // domain bound {x ≤ P−K}
   constexpr W_ r0 = (W_(W) - W_(K)) % W_(V);
   constexpr W_ r = r0 < 0 ? r0 + W_(V) : r0;  // residue x ≡ (W−K) mod V
-  constexpr W_ d0 = (p - r) % W_(V);
-  constexpr W_ m = p - (d0 < 0 ? d0 + W_(V) : d0);  // largest x ≤ p with x ≡ r
+  const W_ d0 = (p - r) % W_(V);
+  const W_ m = p - (d0 < 0 ? d0 + W_(V) : d0);  // largest x ≤ p with x ≡ r
   return Singleton<W_, L>{m};
 }
 
@@ -350,28 +350,21 @@ constexpr auto argmax(
  * order. On a wrapping @c unsigned the shifted bound would admit wrapped
  * values, so the modular groups are declined (the same gate the forward
  * pushforward carries). */
-export template <typename T, auto K, auto P, Direction D, Strictness S,
-                 typename LG, typename LH>
-  requires dedekind::algebra::IsOrderedAdditiveGroup<T> &&
-           std::same_as<decltype(P), decltype(K)> &&
-           std::signed_integral<decltype(P)> &&
-           // Representability, OVERFLOW-SAFE: P−K must fit decltype(P). Checked
-           // by COMPARISON (not by evaluating P−K, which could itself overflow
-           // for a long long pivot): K≤0 ⇒ P ≤ MAX+K; K>0 ⇒ P ≥ MIN+K.  Each
-           // guarded sum (MAX+K with K≤0, MIN+K with K>0) is itself in range.
-           (K <= 0 ? (P <= std::numeric_limits<decltype(P)>::max() + K)
-                   : (P >= std::numeric_limits<decltype(P)>::min() + K))
+export template <typename T, auto K, Direction D, Strictness S, typename LG,
+                 typename LH>
+  requires dedekind::algebra::IsOrderedAdditiveGroup<T>
 constexpr auto preimage(
     const Set<std::pair<T, T>, LG, ProjAddConstProj<1, K, Rel::Eq, 2>>&,
-    const Halfspace<T, P, D, S, LH>&) {
-  // P and K share a signed pivot type (the DSL's `fix(_c)` NTTPs are `int`), so
-  // P − K is exact; the mixed-sign case (P=−1, K=3u) and the non-representable
-  // boundary are rejected above.  The graph's logic (LG) and the target's logic
-  // (LH) are deduced SEPARATELY: the pullback inherits the target set's logic,
-  // so a Classical translation graph can pull back a Ternary halfspace (mirrors
-  // the general :graph preimage).  Pivot TYPE preserved (load-bearing for
-  // structured_and's complement detection).
-  return Halfspace<T, P - K, D, S, LH>{};  // target's logic LH
+    const Halfspace<T, D, S, LH>& h) {
+  // #965: the pivot P rides in the Halfspace VALUE now, so the pulled-back
+  // bound P−K is computed at constexpr in the carrier's own arithmetic (folds
+  // when the argument is constexpr).  The graph's logic (LG) and the target's
+  // logic (LH) are deduced SEPARATELY: the pullback inherits the target set's
+  // logic, so a Classical translation graph can pull back a Ternary halfspace
+  // (mirrors the general :graph preimage).  Direction / strictness stay
+  // type-level (load- bearing for structured_and's complement detection).
+  return Halfspace<T, D, S, LH>{
+      static_cast<T>(h.pivot - K)};  // target logic LH
 }
 
 /** @brief preimage of a codomain halfspace @c {y⋈P} under the reflection/scale
@@ -382,23 +375,19 @@ constexpr auto preimage(
  *  @c IsOrderedAdditiveGroup --- a genuine order-REVERSING additive inverse (on
  *  a bounded-below rig or a wrapping group @f$x\mapsto -x@f$ does not reverse
  *  the order). */
-export template <typename T, auto C, auto P, Direction D, Strictness S,
-                 typename LG, typename LH>
-  requires(
-      (C == 1 || (C == -1 && dedekind::algebra::IsOrderedAdditiveGroup<T>)) &&
-      std::same_as<decltype(P), decltype(C)> &&
-      std::signed_integral<decltype(P)> &&
-      // Representability (C=±1): C·P overflows only at C=−1, P=MIN, since
-      // −MIN is not representable.  Comparison-based, no product evaluated.
-      (C == 1 || P != std::numeric_limits<decltype(P)>::min()))
+export template <typename T, auto C, Direction D, Strictness S, typename LG,
+                 typename LH>
+  requires((C == 1 ||
+            (C == -1 && dedekind::algebra::IsOrderedAdditiveGroup<T>)))
 constexpr auto preimage(
     const Set<std::pair<T, T>, LG, ProjMulConstProj<1, C, Rel::Eq, 2>>&,
-    const Halfspace<T, P, D, S, LH>&) {
+    const Halfspace<T, D, S, LH>& h) {
   constexpr Direction d = (C < 0) ? flip(D) : D;
-  // C and P share a signed pivot type, so C·P is exact (C=±1); mixed-sign and
-  // the C=−1,P=MIN boundary are rejected above.  Graph logic (LG) and target
-  // logic (LH) deduced separately; the pullback inherits the target's LH.
-  return Halfspace<T, C * P, d, S, LH>{};  // target's logic LH
+  // #965: the pivot P rides in the Halfspace VALUE; C·P (C=±1) is computed at
+  // constexpr in the carrier's arithmetic.  Graph logic (LG) and target logic
+  // (LH) deduced separately; the pullback inherits the target's LH.
+  return Halfspace<T, d, S, LH>{
+      static_cast<T>(C * h.pivot)};  // target logic LH
 }
 
 }  // namespace dedekind::order
