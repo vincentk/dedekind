@@ -285,7 +285,17 @@ static_assert(
 /** @brief Principal filter @f$\uparrow\!p = \{x : p \le x\}@f$ (an up-set) of
  *  carrier @c T under order @c Ord.  Concept-first: @c T need only be
  *  @c IsPosetal under @c Ord.  Membership is a decision (@c Codomain @c = @c
- *  bool) --- the proto-set type-check. */
+ *  bool) --- the proto-set type-check.
+ *
+ *  @note @c Codomain @c = @c bool is deliberate, not a placeholder for a
+ *  general @c LogicalValue: @c bool is the proto-set's prototypical classifier
+ *  Ω --- the decided core @f$\mathbb{B}@f$ --- and @c IsΩ<bool> holds (its
+ *  logical operators close, @c :logic), so a principal @b is a genuine
+ *  @c IsCharacteristic map @f$T \to \Omega@f$ (predicate).  That witness lives
+ *  downstream in @c :order (where @c :topoi is reachable; @c :posetal is
+ *  upstream of it), next to the @c Halfspace realization that carries the
+ *  general logic species @c L.  Two-tier (#946): the proto-set fixes @c bool;
+ *  the strict L-parametrized reading is the downstream @c Halfspace's. */
 export template <typename T, auto Pivot, typename Ord = std::less_equal<T>>
   requires IsPosetal<T, Ord>
 struct PrincipalFilter {
@@ -316,7 +326,7 @@ struct PrincipalIdeal {
  *  \vee b)@f$: the pivots' JOIN via the carrier's @c Sup (constexpr → a
  *  compile-time NTTP).  Replaces @c structured_and's Upward∩Upward "larger
  *  pivot wins" with the order-general lattice op. */
-export template <typename T, auto A, auto B, typename Ord>
+export template <typename T, auto A, auto B, typename Ord = std::less_equal<T>>
   requires IsOrderJoinSemilattice<T, Sup>
 constexpr auto operator&(PrincipalFilter<T, A, Ord>,
                          PrincipalFilter<T, B, Ord>) {
@@ -325,7 +335,7 @@ constexpr auto operator&(PrincipalFilter<T, A, Ord>,
 
 /** @brief Same-direction meet @f$\downarrow\!a \cap \downarrow\!b =
  *  \downarrow\!(a \wedge b)@f$: the pivots' MEET via @c Inf. */
-export template <typename T, auto A, auto B, typename Ord>
+export template <typename T, auto A, auto B, typename Ord = std::less_equal<T>>
   requires IsOrderMeetSemilattice<T, Inf>
 constexpr auto operator&(PrincipalIdeal<T, A, Ord>, PrincipalIdeal<T, B, Ord>) {
   return PrincipalIdeal<T, Inf{}(A, B), Ord>{};

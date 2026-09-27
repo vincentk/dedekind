@@ -926,6 +926,26 @@ static_assert(dedekind::category::IsPullback<
               "[3,7] = ↑3 ∩ ↓7 is the pullback of the cospan ↑3 ↪ int ↩ ↓7 "
               "(legs π1/π2 the co-restrictions); meet = pullback in Sub(int). "
               "#946.");
+
+/** @details #946 characteristic witness (answers the @c :posetal review note:
+ *  @c PrincipalFilter / @c PrincipalIdeal declare @c Codomain @c = @c bool, and
+ *  @c bool IS a classifier Ω).  Discharged HERE in @c :order rather than at the
+ *  struct definitions because @c IsCharacteristic lives in @c :topoi, which is
+ *  assembled AFTER @c :posetal (DAG: @c :order is downstream of both).  A
+ *  principal is a bona-fide predicate / characteristic map T → Ω=bool. */
+static_assert(
+    dedekind::category::IsΩ<bool>,
+    "bool is a classifier Ω --- its logical operators close (:logic), "
+    "so the proto-set's Codomain=bool is a genuine truth-object.");
+static_assert(
+    dedekind::category::IsCharacteristic<
+        dedekind::category::PrincipalFilter<int, 5>>,
+    "the principal FILTER ↑5 is a characteristic map χ: int → Ω (a predicate); "
+    "bool suffices as the proto-set Ω, the general L rides on Halfspace.");
+static_assert(
+    dedekind::category::IsCharacteristic<
+        dedekind::category::PrincipalIdeal<int, 5>>,
+    "the principal IDEAL ↓5 is a characteristic map χ: int → Ω (a predicate).");
 }  // namespace detail_946_agreement
 
 /** @section halfspace__Halfspace_Structural_Join — @c structured_or, the JOIN

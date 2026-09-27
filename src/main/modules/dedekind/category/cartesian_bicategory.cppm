@@ -528,12 +528,12 @@ static_assert(
 // theoretic REALIZATION (the @c ι inclusions + @c IsPullback, membership
 // a≤x≤b, the empty a≰b → Ø, the discrete singleton, the pole/boundedness
 // reading) is the strict downstream concern in @c :order / @c :sets.
-export template <typename T, auto A, auto B, typename Ord>
+export template <typename T, auto A, auto B, typename Ord = std::less_equal<T>>
 constexpr auto operator&(PrincipalFilter<T, A, Ord> f,
                          PrincipalIdeal<T, B, Ord> i) {
   return MakeMeet{}(f, i);  // [A,B] = ↑A ∩ ↓B, the meet-as-product
 }
-export template <typename T, auto A, auto B, typename Ord>
+export template <typename T, auto A, auto B, typename Ord = std::less_equal<T>>
 constexpr auto operator&(PrincipalIdeal<T, B, Ord> i,
                          PrincipalFilter<T, A, Ord> f) {
   return f & i;  // ↓B ∩ ↑A = ↑A ∩ ↓B (meet is commutative)
@@ -547,5 +547,19 @@ static_assert(
     "crossing meet ↑3 ∩ ↓7 = [3,7] is the meet-as-product of the filter and "
     "the "
     "ideal (IsProduct forced on the interval).");
+
+// Witness (#946): the crossing meet operator is COMMUTATIVE --- on-the-nose,
+// not merely up to iso.  The general product commutes only up to iso
+// (@c Meet<A,B> and @c Meet<B,A> are DISTINCT types), which is why the meet
+// magma cannot satisfy the strict @c IsCommutative<T,Op> (@c same_as) concept;
+// but the crossing @c operator& is defined by delegation (↓B ∩ ↑A ≡ ↑A ∩ ↓B),
+// so BOTH argument orders yield the SAME interval product type.  That is the
+// commutativity the prose above claims, pinned structurally.
+static_assert(
+    std::same_as<decltype(PrincipalIdeal<int, 7>{} & PrincipalFilter<int, 3>{}),
+                 decltype(PrincipalFilter<int, 3>{} &
+                          PrincipalIdeal<int, 7>{})>,
+    "↓7 ∩ ↑3 and ↑3 ∩ ↓7 are the SAME interval product: the crossing meet "
+    "operator is commutative on-the-nose (the product itself only up to iso).");
 
 }  // namespace dedekind::category
