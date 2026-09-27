@@ -1143,10 +1143,11 @@ constexpr Singleton<decltype(V), L> operator|(const UniversalSet<T, L, C>&,
   return Singleton<decltype(V), L>{V};
 }
 
-// The point-free surface reproduces the existing halfspace exactly.
-static_assert(
-    std::same_as<decltype(ℕ | (π > fix(5_c))), Above<5>>,
-    "ℕ | π > fix(5_c) is the Above<5> halfspace, spelled point-free.");
+// The point-free surface reproduces the existing halfspace exactly (#965: the
+// type is Above<> = {x>·}; the pivot 5 is the VALUE).
+static_assert(std::same_as<decltype(ℕ | (π > fix(5_c))), Above<>>,
+              "ℕ | π > fix(5_c) is an Above<> halfspace, spelled point-free.");
+static_assert((ℕ | (π > fix(5_c))).pivot == 5, "…with pivot value 5.");
 
 // And the equality shape gives the extensional Singleton, membership-checked.
 // Value-carrying (#965): the type is Singleton<bool>; the point is the VALUE.
@@ -1171,17 +1172,9 @@ static_assert(
     std::same_as<decltype(ℕ | !(π > fix(5_c))), decltype(ℕ | (π <= fix(5_c)))>,
     "ℕ | !(π > fix(5)) binds to the same halfspace as ℕ | π <= fix(5).");
 
-// The complement-pair collapse is unchanged by the point-free spelling: the
-// meet of a halfspace with its complement gives the same empty result as the
-// scout spelling (the §5 Theorem-1 witness, now bracket-free).
-static_assert(
-    std::same_as<decltype((ℕ | (π > fix(5_c))) & ~(ℕ | (π > fix(5_c)))),
-                 decltype(Above<5>{} & ~Above<5>{})>,
-    "point-free complement-meet is identical to the halfspace collapse (→ Ø).");
-
-// The collapse compared to the bare empty set --- the exact Listing 2 spelling.
-static_assert(((ℕ | (π > fix(5_c))) & ~(ℕ | (π > fix(5_c)))) == Ø{},
-              "point-free: (n > 5) ∩ ¬(n > 5) == Ø.");
+// (#965: the complement-pair collapse to Ø now happens value-side in
+// reduce_meet, not via a same-pivot operator& overload; witnessed in the value
+// tests.  The old type-level `& ~ == Ø` witness is dropped.)
 // #965: value-carrying singletons, so {true} ∩ ¬{true} is empty EXTENSIONALLY
 // (no bool inhabits both) rather than collapsing to the type Ø --- the
 // singleton non-contradiction recast to a membership check (the deleted
@@ -1223,7 +1216,7 @@ static_assert(HasDecidableMembership<decltype(Set{ℕ | (χ > fix(5_c))})>,
 // regression of the uncountable case the pre-fix Kleene fallback covered.
 static_assert(
     std::same_as<
-        typename NaturalLogic<Halfspace<double, 5.0, Direction::Upward,
+        typename NaturalLogic<Halfspace<double, Direction::Upward,
                                         Strictness::Strict, Kleene>>::type,
         Kleene>,
     "#848: a real (ℶ₁) halfspace stays Kleene/ternary.");
