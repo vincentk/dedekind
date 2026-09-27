@@ -948,6 +948,163 @@ static_assert(
     "the principal IDEAL ↓5 is a characteristic map χ: int → Ω (a predicate).");
 }  // namespace detail_946_agreement
 
+/** @section halfspace__Value_First_Meet — the VALUE-FIRST halfspace/set meet
+ *  (#965 iteration 2).
+ *
+ *  @details The type-level @c structured_and above carries the pivot as an NTTP
+ *  and returns a TYPE; that is one way to force compile-time evaluation.  The
+ *  interesting property, though, is the @b optionality of compile-time vs
+ *  runtime with partial evaluation at compile time --- so here the same meet
+ * law is written @b value-first, over a @c SetVal whose pivot is a @b value.
+ * Being
+ *  @c constexpr, @c reduce_meet serves BOTH phases: a @c constexpr call folds +
+ *  validates at compile time (@c static_assert), and the @b same function runs
+ *  at runtime (the Python @c dedekind.lwv surface calls it on runtime pivots).
+ *  No NTTP is read off at runtime; the pivot never needs to live in a type.
+ *
+ *  Value-oriented relational reading (the grounding identity): a halfspace is a
+ *  point plus a direction, @f$\{x \mid x \bowtie p\} = \pi_1(\,S \times \eta(p)
+ *  \mid \pi_1 \bowtie \pi_2\,)@f$, with the pivot in the @b value @f$\eta(p)@f$
+ *  (a @c Singleton) and the relation @f$\pi_1 \bowtie \pi_2@f$ fixed and
+ *  pivot-free; the singleton is the degenerate point @c SetVal::point.  House
+ *  spelling @c χ (@c Projection<0>) scalar, @c π₁/@c π₂ pair.
+ *
+ *  Scope (iteration 2 slice 1): the meet of two halfspaces (same-direction
+ *  @c Sup/@c Inf, crossing interval with integer cardinality collapse to a
+ *  @c point / empty), singletons, and the @c Ø / @c 𝔸 units.  Interval-operand
+ *  chaining, @c |, @c ~, and folding the type-level @c structured_and through
+ *  this one law (deletion) are follow-up slices. */
+export enum class SetKind { Empty, Universe, Halfspace, Singleton, Interval };
+
+/** @brief A set as a VALUE: kind + pivot(s) + direction/strictness, with a
+ *  runtime-evaluable membership χ.  The pivot rides in @c lo (Halfspace /
+ *  Singleton) or @c lo/@c hi (Interval), as a value --- never an NTTP. */
+export template <typename V = long long>
+struct SetVal {
+  SetKind kind = SetKind::Universe;
+  V lo{};
+  V hi{};
+  Direction dir = Direction::Upward;
+  Strictness sl = Strictness::NonStrict;
+  Strictness su = Strictness::NonStrict;
+
+  /** @brief χ(x): runtime membership, decided from the value fields. */
+  constexpr bool contains(const V& x) const {
+    switch (kind) {
+      case SetKind::Empty:
+        return false;
+      case SetKind::Universe:
+        return true;
+      case SetKind::Singleton:
+        return x == lo;
+      case SetKind::Halfspace:
+        return dir == Direction::Upward
+                   ? (sl == Strictness::Strict ? x > lo : x >= lo)
+                   : (sl == Strictness::Strict ? x < lo : x <= lo);
+      case SetKind::Interval: {
+        const bool lo_ok = (sl == Strictness::Strict) ? x > lo : x >= lo;
+        const bool hi_ok = (su == Strictness::Strict) ? x < hi : x <= hi;
+        return lo_ok && hi_ok;
+      }
+    }
+    return false;
+  }
+
+  static constexpr SetVal half(V pivot, Direction d, Strictness s) {
+    return {SetKind::Halfspace, pivot, V{}, d, s, Strictness::NonStrict};
+  }
+  static constexpr SetVal point(V pivot) {
+    return {SetKind::Singleton,
+            pivot,
+            pivot,
+            Direction::Upward,
+            Strictness::NonStrict,
+            Strictness::NonStrict};
+  }
+};
+
+/** @brief The value-first halfspace meet: @c ↑a∩↑b=↑(a∨b) / @c ↓a∩↓b=↓(a∧b)
+ *  (same direction, pivot @c Sup/@c Inf) and @c ↑a∩↓b=[a,b] (crossing), the
+ *  interval collapsing by integer cardinality to a @c point or empty.  One
+ *  @c constexpr law, evaluable at compile time or runtime. */
+export template <typename V>
+constexpr SetVal<V> reduce_meet(const SetVal<V>& a, const SetVal<V>& b) {
+  using K = SetKind;
+  if (a.kind == K::Empty || b.kind == K::Empty) return {K::Empty};
+  if (a.kind == K::Universe) return b;
+  if (b.kind == K::Universe) return a;
+  // A singleton meet is the point iff it lies in the other set (discharged ∃).
+  if (a.kind == K::Singleton) return b.contains(a.lo) ? a : SetVal<V>{K::Empty};
+  if (b.kind == K::Singleton) return a.contains(b.lo) ? b : SetVal<V>{K::Empty};
+  if (a.kind == K::Halfspace && b.kind == K::Halfspace) {
+    if (a.dir == b.dir) {
+      const bool up = a.dir == Direction::Upward;
+      if (a.lo == b.lo)
+        return SetVal<V>::half(
+            a.lo, a.dir,
+            (a.sl == Strictness::Strict || b.sl == Strictness::Strict)
+                ? Strictness::Strict
+                : Strictness::NonStrict);
+      const bool a_wins = up ? (a.lo > b.lo) : (a.lo < b.lo);
+      return a_wins ? a : b;
+    }
+    // Crossing ↑lo ∩ ↓hi = [lo, hi]; normalise lower = Upward, upper =
+    // Downward.
+    const SetVal<V> lower = (a.dir == Direction::Upward) ? a : b;
+    const SetVal<V> upper = (a.dir == Direction::Upward) ? b : a;
+    const V lo = lower.lo;
+    const V hi = upper.lo;
+    const Strictness sl = lower.sl;
+    const Strictness su = upper.sl;
+    const bool either_strict =
+        (sl == Strictness::Strict) || (su == Strictness::Strict);
+    if (either_strict ? (lo >= hi) : (lo > hi)) return {K::Empty};
+    // Integer cardinality collapse (the effective inclusive bounds).
+    const V el = (sl == Strictness::Strict) ? lo + 1 : lo;
+    const V eu = (su == Strictness::Strict) ? hi - 1 : hi;
+    if (el > eu) return {K::Empty};
+    if (el == eu) return SetVal<V>::point(el);
+    return {K::Interval, lo, hi, Direction::Upward, sl, su};
+  }
+  // Interval-operand chaining is a follow-up slice; not reached by the
+  // iteration-2 Python surface (halfspace/singleton/boundary meets only).
+  return {K::Universe};
+}
+
+namespace detail_965_value_first {
+// The COMPILE-TIME leg of the optionality: reduce_meet folds + validates in a
+// constexpr context (partial evaluation), the SAME law the Python surface runs
+// at runtime.  {x>3} ∩ {x<5} over int collapses to the point {4}.
+inline constexpr auto vf_gt3 =
+    SetVal<>::half(3, Direction::Upward, Strictness::Strict);
+inline constexpr auto vf_lt5 =
+    SetVal<>::half(5, Direction::Downward, Strictness::Strict);
+inline constexpr auto vf_meet = reduce_meet(vf_gt3, vf_lt5);
+static_assert(vf_meet.kind == SetKind::Singleton && vf_meet.lo == 4,
+              "value-first: {x>3} ∩ {x<5} = {4}, folded at compile time.");
+static_assert(vf_meet.contains(4) && !vf_meet.contains(3) &&
+                  !vf_meet.contains(5),
+              "χ of the collapsed point decides membership.");
+// ONE law, two phases: the value-first result agrees with the type-level
+// structured_and's Singleton value (pivot as a value vs as an NTTP).
+static_assert(
+    vf_meet.lo ==
+        decltype(structured_and(
+            Halfspace<int, 3, Direction::Upward, Strictness::Strict>{},
+            Halfspace<int, 5, Direction::Downward,
+                      Strictness::Strict>{}))::value,
+    "value-first reduce_meet agrees with type-level structured_and on {4}.");
+static_assert(reduce_meet(vf_gt3, SetVal<>::half(5, Direction::Upward,
+                                                 Strictness::Strict))
+                      .lo == 5,
+              "↑3 ∩ ↑5 = ↑5 (same direction, larger pivot wins).");
+static_assert(
+    reduce_meet(SetVal<>::half(5, Direction::Upward, Strictness::Strict),
+                SetVal<>::half(3, Direction::Downward, Strictness::Strict))
+            .kind == SetKind::Empty,
+    "↑5 ∩ ↓3 = Ø (disjoint).");
+}  // namespace detail_965_value_first
+
 /** @section halfspace__Halfspace_Structural_Join — @c structured_or, the JOIN
  *  (∪) dual of @c structured_and: it makes the union COLLAPSE symmetrically to
  *  the meet, so the join is no longer a declared-but-unimplemented hook.
