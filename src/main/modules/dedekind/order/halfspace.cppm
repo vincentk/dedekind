@@ -549,7 +549,7 @@ using AtMost = Halfspace<dedekind::sets::Cardinality, Direction::Downward,
 // the ETCS-axiom surface (@c HasETCSAxioms + the CCC witness) that only the
 // ambient universe @c 𝔸<T> carries.  Subobject-hood is the right membership —
 // it is what the complement-lattice operators above operate on.
-static_assert(IsSubobject<Above<5>, dedekind::sets::Cardinality>,
+static_assert(IsSubobject<Above<>, dedekind::sets::Cardinality>,
               "a Halfspace is a first-class subobject ι: S ↣ ℕ.");
 static_assert(IsSubobject<Singleton<bool>, bool>,
               "a static Singleton is a first-class subobject.");
@@ -710,11 +710,10 @@ struct OrderInterval
    *  @c !is_empty assert) instantiate only on use, never at the class
    *  instantiation of a degenerate/empty interval. */
   constexpr auto π1(const auto& m) const {
-    return typename Halfspace<T, Lo, Direction::Upward, SL, L>::Member{m.value};
+    return typename Halfspace<T, Direction::Upward, SL, L>::Member{m.value};
   }
   constexpr auto π2(const auto& m) const {
-    return
-        typename Halfspace<T, Hi, Direction::Downward, SU, L>::Member{m.value};
+    return typename Halfspace<T, Direction::Downward, SU, L>::Member{m.value};
   }
 };
 
@@ -740,8 +739,9 @@ export enum class SetKind { Empty, Universe, Halfspace, Singleton, Interval };
 /** @brief A set as a VALUE: kind + pivot(s) + direction/strictness, with a
  *  runtime-evaluable membership χ.  The pivot rides in @c lo (Halfspace /
  *  Singleton) or @c lo/@c hi (Interval), as a value --- never an NTTP. */
-export template <typename V = long long>
-struct SetVal {
+export template <typename V = long long, typename L = Boole>
+struct SetVal : dedekind::sets::SetExpr<SetVal<V, L>, V, L> {
+  using Domain = V;
   SetKind kind = SetKind::Universe;
   V lo{};
   V hi{};
@@ -771,11 +771,17 @@ struct SetVal {
     return false;
   }
 
+  /** @brief ETCS χ: @c contains lifted to the logic species @c L. */
+  constexpr typename L::Ω operator()(const V& x) const {
+    return contains(x) ? L::True : L::False;
+  }
+
   static constexpr SetVal half(V pivot, Direction d, Strictness s) {
-    return {SetKind::Halfspace, pivot, V{}, d, s, Strictness::NonStrict};
+    return {{}, SetKind::Halfspace, pivot, V{}, d, s, Strictness::NonStrict};
   }
   static constexpr SetVal point(V pivot) {
-    return {SetKind::Singleton,
+    return {{},
+            SetKind::Singleton,
             pivot,
             pivot,
             Direction::Upward,
@@ -788,20 +794,22 @@ struct SetVal {
  *  the tighter pivot wins) and @c ↑a∩↓b=[a,b] (crossing), the interval
  *  collapsing by integer cardinality to a @c point or empty.  @c constexpr, so
  *  evaluable at compile time or runtime. */
-export template <typename V>
-constexpr SetVal<V> reduce_meet(const SetVal<V>& a, const SetVal<V>& b) {
+export template <typename V, typename L>
+constexpr SetVal<V, L> reduce_meet(const SetVal<V, L>& a,
+                                   const SetVal<V, L>& b) {
   using K = SetKind;
-  if (a.kind == K::Empty || b.kind == K::Empty) return {K::Empty};
+  using S = SetVal<V, L>;
+  if (a.kind == K::Empty || b.kind == K::Empty) return {{}, K::Empty};
   if (a.kind == K::Universe) return b;
   if (b.kind == K::Universe) return a;
   // A singleton meet is the point iff it lies in the other set (discharged ∃).
-  if (a.kind == K::Singleton) return b.contains(a.lo) ? a : SetVal<V>{K::Empty};
-  if (b.kind == K::Singleton) return a.contains(b.lo) ? b : SetVal<V>{K::Empty};
+  if (a.kind == K::Singleton) return b.contains(a.lo) ? a : S{{}, K::Empty};
+  if (b.kind == K::Singleton) return a.contains(b.lo) ? b : S{{}, K::Empty};
   if (a.kind == K::Halfspace && b.kind == K::Halfspace) {
     if (a.dir == b.dir) {
       const bool up = a.dir == Direction::Upward;
       if (a.lo == b.lo)
-        return SetVal<V>::half(
+        return S::half(
             a.lo, a.dir,
             (a.sl == Strictness::Strict || b.sl == Strictness::Strict)
                 ? Strictness::Strict
@@ -811,23 +819,31 @@ constexpr SetVal<V> reduce_meet(const SetVal<V>& a, const SetVal<V>& b) {
     }
     // Crossing ↑lo ∩ ↓hi = [lo, hi]; normalise lower = Upward, upper =
     // Downward.
-    const SetVal<V> lower = (a.dir == Direction::Upward) ? a : b;
-    const SetVal<V> upper = (a.dir == Direction::Upward) ? b : a;
+    const S lower = (a.dir == Direction::Upward) ? a : b;
+    const S upper = (a.dir == Direction::Upward) ? b : a;
     const V lo = lower.lo;
     const V hi = upper.lo;
     const Strictness sl = lower.sl;
     const Strictness su = upper.sl;
     const bool either_strict =
         (sl == Strictness::Strict) || (su == Strictness::Strict);
-    if (either_strict ? (lo >= hi) : (lo > hi)) return {K::Empty};
+    if (either_strict ? (lo >= hi) : (lo > hi)) return {{}, K::Empty};
     // Integer cardinality collapse (the effective inclusive bounds).
     const V el = (sl == Strictness::Strict) ? lo + 1 : lo;
     const V eu = (su == Strictness::Strict) ? hi - 1 : hi;
-    if (el > eu) return {K::Empty};
-    if (el == eu) return SetVal<V>::point(el);
-    return {K::Interval, lo, hi, Direction::Upward, sl, su};
+    if (el > eu) return {{}, K::Empty};
+    if (el == eu) return S::point(el);
+    return {{}, K::Interval, lo, hi, Direction::Upward, sl, su};
   }
-  return {K::Universe};
+  return {{}, K::Universe};
+}
+
+/** @brief Lift a value-carrying @c Halfspace to its @c SetVal (the meet's value
+ *  domain).  #965: this is how @c structured_and feeds the one @c reduce_meet.
+ */
+export template <typename T, Direction D, Strictness S, typename L>
+constexpr SetVal<T, L> to_setval(const Halfspace<T, D, S, L>& h) {
+  return SetVal<T, L>::half(h.pivot, D, S);
 }
 
 /** @section halfspace__Halfspace_Structural_Algebra — ADL hooks for operator&&.
@@ -850,184 +866,18 @@ constexpr SetVal<V> reduce_meet(const SetVal<V>& a, const SetVal<V>& b) {
  * …clamped at 0. Cardinality 0 is the empty case; cardinality 1 picks out
  * the unique inhabitant and elevates the meet to a `Singleton`.
  */
-export template <typename T, auto Lo, auto Hi, Strictness SL, Strictness SU,
-                 typename L>
-constexpr auto structured_and(Halfspace<T, Lo, Direction::Upward, SL, L>,
-                              Halfspace<T, Hi, Direction::Downward, SU, L>) {
-  if constexpr (IsRingIntegral<T>) {
-    // DELEGATE to the one meet law on the pivot VALUES, then lift the reduced
-    // kind back to a type (integer-flavoured T: std::integral + the variant
-    // proxies Cardinality / SignedCardinality, #414).
-    constexpr auto d =
-        reduce_meet(SetVal<long long>::half(static_cast<long long>(Lo),
-                                            Direction::Upward, SL),
-                    SetVal<long long>::half(static_cast<long long>(Hi),
-                                            Direction::Downward, SU));
-    if constexpr (d.kind == SetKind::Empty) {
-      return EmptyPredicate<T>{};
-    } else if constexpr (d.kind == SetKind::Singleton) {
-      // Singleton over the bound's primitive type: variant carriers aren't
-      // structural, so the point lives over @c decltype(Lo) (e.g. int), its
-      // membership routed through the cross-type == (#423); std::integral T
-      // keeps the T-typed point verbatim (#402 primitive-carrier behaviour).
-      if constexpr (std::integral<T>)
-        return Singleton<T, L>{static_cast<T>(d.lo)};
-      else
-        return Singleton<decltype(Lo), L>{static_cast<decltype(Lo)>(d.lo)};
-    } else {
-      return OrderInterval<T, Lo, Hi, SL, SU, L>{};
-    }
-  } else {
-    // Non-integral carrier (continuous / float pivots): no cardinality collapse
-    // to a point, so only the disjoint / interval split.
-    constexpr bool either_strict =
-        (SL == Strictness::Strict) || (SU == Strictness::Strict);
-    constexpr bool disjoint = either_strict ? (Lo >= Hi) : (Lo > Hi);
-    if constexpr (disjoint)
-      return EmptyPredicate<T>{};
-    else
-      return OrderInterval<T, Lo, Hi, SL, SU, L>{};
-  }
+/** @brief The halfspace meet: ONE overload, delegating to the one @c
+ * reduce_meet on the pivot VALUES (#965).  Value-carrying pivots mean the
+ * result KIND (empty / point / interval / halfspace) depends on runtime values,
+ * so a function cannot pick a distinct return TYPE --- the meet returns the
+ * unified value @c SetVal (kind-tagged), and the type-directed collapse becomes
+ *  value-directed (a @c constexpr @c SetVal still folds at compile time). */
+export template <typename T, Direction D1, Strictness S1, Direction D2,
+                 Strictness S2, typename L>
+constexpr auto structured_and(const Halfspace<T, D1, S1, L>& a,
+                              const Halfspace<T, D2, S2, L>& b) {
+  return reduce_meet(to_setval(a), to_setval(b));
 }
-
-/** @brief Symmetric case: downward ∩ upward → delegate to the canonical order.
- */
-export template <typename T, auto Hi, auto Lo, Strictness SU, Strictness SL,
-                 typename L>
-constexpr auto structured_and(Halfspace<T, Hi, Direction::Downward, SU, L>,
-                              Halfspace<T, Lo, Direction::Upward, SL, L>) {
-  return structured_and(Halfspace<T, Lo, Direction::Upward, SL, L>{},
-                        Halfspace<T, Hi, Direction::Downward, SU, L>{});
-}
-
-/** @brief Same-direction upward meet ↑P1 ∩ ↑P2 = ↑(P1∨P2): the larger pivot
- *  wins (the principal-filter law).  Computed on the pivots' own (total) order,
- *  NOT via @c principal's @c operator& --- that would demand the carrier be a
- *  @b :category lattice, but halfspaces range over totally-ordered-but-not-
- *  lattice carriers too (@c double under the float gate #933/#934, the
- *  Cardinality variant), so the meet needs only a total order on pivots.  Where
- *  the carrier IS posetal the two agree; see the @c principal witness. */
-export template <typename T, auto P1, auto P2, Strictness S1, Strictness S2,
-                 typename L>
-constexpr auto structured_and(Halfspace<T, P1, Direction::Upward, S1, L>,
-                              Halfspace<T, P2, Direction::Upward, S2, L>) {
-  // DELEGATE to the one meet law (pivot's OWN type, so float pivots survive);
-  // lift the winning pivot / strictness back to the NTTP Halfspace.
-  constexpr auto d =
-      reduce_meet(SetVal<decltype(P1)>::half(P1, Direction::Upward, S1),
-                  SetVal<decltype(P1)>::half(P2, Direction::Upward, S2));
-  return Halfspace<T, d.lo, Direction::Upward, d.sl, L>{};
-}
-
-/** @brief Same-direction downward meet ↓P1 ∩ ↓P2 = ↓(P1∧P2): the smaller pivot
- *  wins.  Total-order-only, like the upward dual (see the note there). */
-export template <typename T, auto P1, auto P2, Strictness S1, Strictness S2,
-                 typename L>
-constexpr auto structured_and(Halfspace<T, P1, Direction::Downward, S1, L>,
-                              Halfspace<T, P2, Direction::Downward, S2, L>) {
-  constexpr auto d =
-      reduce_meet(SetVal<decltype(P1)>::half(P1, Direction::Downward, S1),
-                  SetVal<decltype(P1)>::half(P2, Direction::Downward, S2));
-  return Halfspace<T, d.lo, Direction::Downward, d.sl, L>{};
-}
-
-namespace detail_946_agreement {
-/** @details #946 reduction witness.  On the posetal fragment (@c int here is a
- *  @c :category poset) the @b :order halfspace's same-direction meet AGREES
- *  with the @b :category principal-filter meet ↑a∩↑b = ↑(a∨b) / ↓a∩↓b = ↓(a∧b):
- *  the halfspace meet IS "clever pivoting" on the principal exactly where the
- *  carrier admits a principal.  OFF that fragment --- @c double (NaN,
- * #933/#934) and Cardinality (CH-independence) --- no principal exists and the
- * halfspace is the strictly-more-general @c :order object (see @c
- * Halfspace::principal). Comparing @c ::pivot pins the agreement structurally,
- * not behaviourally. */
-using UpHi = Halfspace<int, 5, Direction::Upward, Strictness::NonStrict>;
-using UpLo = Halfspace<int, 3, Direction::Upward, Strictness::NonStrict>;
-using DnHi = Halfspace<int, 5, Direction::Downward, Strictness::NonStrict>;
-using DnLo = Halfspace<int, 3, Direction::Downward, Strictness::NonStrict>;
-static_assert(dedekind::category::IsPosetal<int>,
-              "int is a :category poset --- the clean fragment where a "
-              "halfspace realizes an honest principal filter/ideal.");
-static_assert(decltype(structured_and(UpHi{}, UpLo{}))::pivot ==
-                  decltype(UpHi::principal{} & UpLo::principal{})::pivot,
-              "↑5 ∩ ↑3 = ↑(5∨3): the :order upward meet reduces to the "
-              ":category principal-FILTER meet (Sup) on the posetal fragment.");
-static_assert(decltype(structured_and(DnHi{}, DnLo{}))::pivot ==
-                  decltype(DnHi::principal{} & DnLo::principal{})::pivot,
-              "↓5 ∩ ↓3 = ↓(5∧3): the :order downward meet reduces to the "
-              ":category principal-IDEAL meet (Inf) on the posetal fragment.");
-
-/** @details #946 crossing witness.  The crossing meet ↑3 ∩ ↓7 = [3,7] IS the
- *  pullback of the two bounding halfspaces' inclusions over the ambient carrier
- *  (↑3 ↪ int ↩ ↓7): the @b :order realization upgrades the @b :category
- *  @c IsProduct (product = pullback in the thin poset Sub(int), witnessed
- *  upstream WITHOUT ι) to a genuine @c IsPullback now that the ι inclusions
- *  exist here.  This is the @c :order twin of @c sets::MeetSet ⊨ @c IsPullback
- *  (#881), and discharges the "witness IsPullback downstream" promise of the
- *  crossing-meet commit. */
-using Lo3 = Halfspace<int, 3, Direction::Upward, Strictness::NonStrict>;
-using Hi7 = Halfspace<int, 7, Direction::Downward, Strictness::NonStrict>;
-using Interval37 = decltype(structured_and(Lo3{}, Hi7{}));
-static_assert(dedekind::category::IsPullback<
-                  Interval37, decltype(dedekind::sets::inclusion_arrow(Lo3{})),
-                  decltype(dedekind::sets::inclusion_arrow(Hi7{}))>,
-              "[3,7] = ↑3 ∩ ↓7 is the pullback of the cospan ↑3 ↪ int ↩ ↓7 "
-              "(legs π1/π2 the co-restrictions); meet = pullback in Sub(int). "
-              "#946.");
-
-/** @details #946 characteristic witness (answers the @c :posetal review note:
- *  @c PrincipalFilter / @c PrincipalIdeal declare @c Codomain @c = @c bool, and
- *  @c bool IS a classifier Ω).  Discharged HERE in @c :order rather than at the
- *  struct definitions because @c IsCharacteristic lives in @c :topoi, which is
- *  assembled AFTER @c :posetal (DAG: @c :order is downstream of both).  A
- *  principal is a bona-fide predicate / characteristic map T → Ω=bool. */
-static_assert(
-    dedekind::category::IsΩ<bool>,
-    "bool is a classifier Ω --- its logical operators close (:logic), "
-    "so the proto-set's Codomain=bool is a genuine truth-object.");
-static_assert(
-    dedekind::category::IsCharacteristic<
-        dedekind::category::PrincipalFilter<int, 5>>,
-    "the principal FILTER ↑5 is a characteristic map χ: int → Ω (a predicate); "
-    "bool suffices as the proto-set Ω, the general L rides on Halfspace.");
-static_assert(
-    dedekind::category::IsCharacteristic<
-        dedekind::category::PrincipalIdeal<int, 5>>,
-    "the principal IDEAL ↓5 is a characteristic map χ: int → Ω (a predicate).");
-}  // namespace detail_946_agreement
-
-namespace detail_965_value_first {
-// The COMPILE-TIME leg of the optionality: reduce_meet folds + validates in a
-// constexpr context (partial evaluation), the SAME law the Python surface runs
-// at runtime.  {x>3} ∩ {x<5} over int collapses to the point {4}.
-inline constexpr auto vf_gt3 =
-    SetVal<>::half(3, Direction::Upward, Strictness::Strict);
-inline constexpr auto vf_lt5 =
-    SetVal<>::half(5, Direction::Downward, Strictness::Strict);
-inline constexpr auto vf_meet = reduce_meet(vf_gt3, vf_lt5);
-static_assert(vf_meet.kind == SetKind::Singleton && vf_meet.lo == 4,
-              "value-first: {x>3} ∩ {x<5} = {4}, folded at compile time.");
-static_assert(vf_meet.contains(4) && !vf_meet.contains(3) &&
-                  !vf_meet.contains(5),
-              "χ of the collapsed point decides membership.");
-// ONE law, two phases: the value-first result agrees with the type-level
-// structured_and's Singleton value (pivot as a value member, not an NTTP).
-inline constexpr auto vf_type_level = structured_and(
-    Halfspace<int, 3, Direction::Upward, Strictness::Strict>{},
-    Halfspace<int, 5, Direction::Downward, Strictness::Strict>{});
-static_assert(
-    vf_meet.lo == vf_type_level.value,
-    "value-first reduce_meet agrees with type-level structured_and on {4}.");
-static_assert(reduce_meet(vf_gt3, SetVal<>::half(5, Direction::Upward,
-                                                 Strictness::Strict))
-                      .lo == 5,
-              "↑3 ∩ ↑5 = ↑5 (same direction, larger pivot wins).");
-static_assert(
-    reduce_meet(SetVal<>::half(5, Direction::Upward, Strictness::Strict),
-                SetVal<>::half(3, Direction::Downward, Strictness::Strict))
-            .kind == SetKind::Empty,
-    "↑5 ∩ ↓3 = Ø (disjoint).");
-}  // namespace detail_965_value_first
 
 /** @section halfspace__Halfspace_Structural_Join — @c structured_or, the JOIN
  *  (∪) dual of @c structured_and: it makes the union COLLAPSE symmetrically to
@@ -1039,86 +889,34 @@ static_assert(
  *  point-wise union.  This is why @c image(abs) = @c image(x↦x on x≥0) ∪
  *  @c image(x↦−x on x<0) = @c {y≥0} ∪ @c {y>0} collapses to @c {y≥0}. */
 
-/** @brief Same-direction upward union: {x≥p1} ∪ {x≥p2} = {x ≥ min(p1,p2)}. */
-export template <typename T, auto P1, auto P2, Strictness S1, Strictness S2,
-                 typename L>
-constexpr auto structured_or(Halfspace<T, P1, Direction::Upward, S1, L>,
-                             Halfspace<T, P2, Direction::Upward, S2, L>) {
-  if constexpr (P1 < P2) {
-    return Halfspace<T, P1, Direction::Upward, S1, L>{};
-  } else if constexpr (P2 < P1) {
-    return Halfspace<T, P2, Direction::Upward, S2, L>{};
-  } else {
-    // Same pivot: the WEAKER (non-strict) bound wins the union.
-    constexpr Strictness S =
-        (S1 == Strictness::NonStrict || S2 == Strictness::NonStrict)
+/** @brief The value-first same-direction JOIN law: ↑a∪↑b = ↑min(a,b),
+ *  ↓a∪↓b = ↓max(a,b) --- the WEAKER bound wins (non-strict on a tie).  Only the
+ *  same-direction union always collapses to a halfspace; a crossing union
+ *  either covers the line or leaves a gap (no @c SetVal kind), so it is left to
+ *  the generic point-wise @c operator|| (#965: value-carrying can't dispatch
+ *  cover-vs-gap on a runtime pivot). */
+export template <typename V, typename L>
+constexpr SetVal<V, L> reduce_join(const SetVal<V, L>& a,
+                                   const SetVal<V, L>& b) {
+  using S = SetVal<V, L>;
+  const bool up = a.dir == Direction::Upward;
+  if (a.lo == b.lo)
+    return S::half(
+        a.lo, a.dir,
+        (a.sl == Strictness::NonStrict || b.sl == Strictness::NonStrict)
             ? Strictness::NonStrict
-            : Strictness::Strict;
-    return Halfspace<T, P1, Direction::Upward, S, L>{};
-  }
+            : Strictness::Strict);
+  const bool a_wins = up ? (a.lo < b.lo) : (a.lo > b.lo);  // weaker bound
+  return a_wins ? a : b;
 }
 
-/** @brief Same-direction downward union: {x≤p1} ∪ {x≤p2} = {x ≤ max(p1,p2)}. */
-export template <typename T, auto P1, auto P2, Strictness S1, Strictness S2,
-                 typename L>
-constexpr auto structured_or(Halfspace<T, P1, Direction::Downward, S1, L>,
-                             Halfspace<T, P2, Direction::Downward, S2, L>) {
-  if constexpr (P1 > P2) {
-    return Halfspace<T, P1, Direction::Downward, S1, L>{};
-  } else if constexpr (P2 > P1) {
-    return Halfspace<T, P2, Direction::Downward, S2, L>{};
-  } else {
-    constexpr Strictness S =
-        (S1 == Strictness::NonStrict || S2 == Strictness::NonStrict)
-            ? Strictness::NonStrict
-            : Strictness::Strict;
-    return Halfspace<T, P1, Direction::Downward, S, L>{};
-  }
-}
-
-/** @brief Opposing union that COVERS the line → universe.  {x≥Lo} ∪ {x≤Hi}
- *  covers iff every point is in one, i.e. @c Lo≤Hi (or @c Lo<Hi when both are
- *  strict) --- the exact dual of @c structured_and's disjointness test.  A GAP
- *  (@c Lo>Hi) is deliberately unmatched: it does not collapse to a halfspace,
- * so
- *  @c operator|| keeps the honest point-wise union. */
-export template <typename T, auto Lo, auto Hi, Strictness SL, Strictness SU,
-                 typename L>
-  requires(
-      IsTotallyOrdered<T> &&
-      ((SL == Strictness::Strict && SU == Strictness::Strict) ? (Lo < Hi)
-       : (SL == Strictness::NonStrict && SU == Strictness::NonStrict &&
-          IsRingIntegral<T>)
-           // discrete: adjacent bounds cover (no int gap).  Spelled
-           // Lo−1≤Hi (⟺ Lo≤Hi+1) but WITHOUT Hi+1: the short-circuit only
-           // reaches Lo−1 when Lo>Hi≥min, so the predecessor is boundary-
-           // safe where Hi+1 would overflow a signed / wrap an unsigned max.
-           ? (Lo <= Hi || Lo - 1 <= Hi)
-           : (Lo <= Hi)))
-constexpr auto structured_or(Halfspace<T, Lo, Direction::Upward, SL, L>,
-                             Halfspace<T, Hi, Direction::Downward, SU, L>) {
-  // Codomain leg (#894): the covering union is the decided universe → Boole.
-  return dedekind::sets::codomain_reduce_t<
-      dedekind::sets::UniversalSet<T, L>>{};
-}
-export template <typename T, auto Hi, auto Lo, Strictness SU, Strictness SL,
-                 typename L>
-  requires(
-      IsTotallyOrdered<T> &&
-      ((SL == Strictness::Strict && SU == Strictness::Strict) ? (Lo < Hi)
-       : (SL == Strictness::NonStrict && SU == Strictness::NonStrict &&
-          IsRingIntegral<T>)
-           // discrete: adjacent bounds cover (no int gap).  Spelled
-           // Lo−1≤Hi (⟺ Lo≤Hi+1) but WITHOUT Hi+1: the short-circuit only
-           // reaches Lo−1 when Lo>Hi≥min, so the predecessor is boundary-
-           // safe where Hi+1 would overflow a signed / wrap an unsigned max.
-           ? (Lo <= Hi || Lo - 1 <= Hi)
-           : (Lo <= Hi)))
-constexpr auto structured_or(Halfspace<T, Hi, Direction::Downward, SU, L>,
-                             Halfspace<T, Lo, Direction::Upward, SL, L>) {
-  // Codomain leg (#894): the covering union is the decided universe → Boole.
-  return dedekind::sets::codomain_reduce_t<
-      dedekind::sets::UniversalSet<T, L>>{};
+/** @brief Same-direction halfspace union, through the one @c reduce_join. */
+export template <typename T, Direction D1, Strictness S1, Direction D2,
+                 Strictness S2, typename L>
+  requires(D1 == D2)
+constexpr auto structured_or(const Halfspace<T, D1, S1, L>& a,
+                             const Halfspace<T, D2, S2, L>& b) {
+  return reduce_join(to_setval(a), to_setval(b));
 }
 
 /** @section halfspace__Interval_Cartesian_Product — 2D structural products. */
