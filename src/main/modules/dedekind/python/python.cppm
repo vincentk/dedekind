@@ -207,32 +207,46 @@ namespace lwv {
 
 namespace ord = dedekind::order;
 
-/** @brief The strict upward halfspace @c {x ∈ int | x > K} = the principal
- *  filter @c ↑K (open).  @c Above<3> is the README's @c gt_3. */
-template <int K>
-using Above =
-    ord::Halfspace<int, K, ord::Direction::Upward, ord::Strictness::Strict>;
+/** @brief A value-based set handle (iteration 2, #965): the pivot rides as a
+ *  VALUE, so a single constructor covers all pivots (runtime), unifying the
+ *  earlier one-constant-per-pivot stopgap.  Carrier @c long @c long (Python
+ *  @c int).  @c ord::SetVal is a @c :order value-first set; @c meet routes
+ *  through the @b same @c constexpr @c reduce_meet the compile-time
+ *  @c static_assert exhibit folds, so there is no Python-side reducer and the
+ *  law lives in ONE place (value-oriented relational form: a halfspace is a
+ *  point plus a direction, the pivot in the value @c η(p)). */
+using Set = ord::SetVal<long long>;
 
-/** @brief The strict downward halfspace @c {x ∈ int | x < K} = the principal
- *  ideal @c ↓K (open).  @c Below<5> is the README's @c lt_5. */
-template <int K>
-using Below =
-    ord::Halfspace<int, K, ord::Direction::Downward, ord::Strictness::Strict>;
-
-/** @brief The meet of two halfspaces, through the @b real @c :order reducer
- *  (@c structured_and, the value-first crossing / same-direction law) --- NOT a
- *  Python-side reimplementation.  The result TYPE (a @c Singleton, an
- *  @c OrderInterval, a same-direction @c Halfspace, or the empty predicate) is
- *  whatever the reducer collapses to; the binding reads it off by @c decltype
- *  and never restates the law. */
-template <typename A, typename B>
-constexpr auto meet(const A& a, const B& b) {
-  return ord::structured_and(a, b);
+/** @brief @c {x | x > k} = ↑k (open).  Scalar spelling @c χ > fix(k). */
+constexpr Set above(long long k) {
+  return Set::half(k, ord::Direction::Upward, ord::Strictness::Strict);
 }
+/** @brief @c {x | x >= k} = ↑k (closed). */
+constexpr Set at_least(long long k) {
+  return Set::half(k, ord::Direction::Upward, ord::Strictness::NonStrict);
+}
+/** @brief @c {x | x < k} = ↓k (open). */
+constexpr Set below(long long k) {
+  return Set::half(k, ord::Direction::Downward, ord::Strictness::Strict);
+}
+/** @brief @c {x | x <= k} = ↓k (closed). */
+constexpr Set at_most(long long k) {
+  return Set::half(k, ord::Direction::Downward, ord::Strictness::NonStrict);
+}
+/** @brief @c {k}: the singleton / point @c η(k) --- the value-based atom. */
+constexpr Set singleton(long long k) { return Set::point(k); }
+/** @brief @c 𝔸: the universe (meet unit). */
+constexpr Set everything() { return {ord::SetKind::Universe}; }
+/** @brief @c Ø: the empty set (meet annihilator). */
+constexpr Set nothing() { return {ord::SetKind::Empty}; }
 
-/** @brief The README collapse result, read off the reducer: @c {x>3} ∩ {x<5}
- *  over @c int collapses (cardinality analysis) to the @c Singleton @c {4}. */
-using ReadmeCollapse = decltype(meet(Above<3>{}, Below<5>{}));
+/** @brief The meet @c a @c ∩ @c b, through the value-first @c :order
+ *  @c reduce_meet (the ONE law; @c static_assert folds it at compile time, the
+ *  Python surface runs it at runtime).  @c above(3) @c & @c below(5) collapses
+ *  to @c singleton(4). */
+constexpr Set meet(const Set& a, const Set& b) {
+  return ord::reduce_meet(a, b);
+}
 
 }  // namespace lwv
 

@@ -1,67 +1,97 @@
-"""Lwv set-comprehension DSL (#965): the README halfspace collapse at runtime.
+"""Lwv set-comprehension DSL (#965), value-based iteration 2: runtime halfspaces.
 
-The SET twin of the Jlt arrow tests.  These pin the README exhibit --
-``{x > 3} ∩ {x < 5} = {4}`` -- observed through the Python bindings, matching
-the compile-time ``static_assert`` collapse.  The two halfspaces are
-duck-typed handles (membership via ``s(x)`` / ``x in s``); their intersection
-``&`` dispatches to the real C++ ``:order`` reducer (``structured_and``), which
-collapses the crossing meet to the singleton ``{4}`` by cardinality analysis.
-No Python-side reducer: the handle routes to the C++ one.
-
-First iteration: pivots are compile-time, so the exhibit binds the curated
-README sets (as ``jlt`` binds the fixed generators ``id`` / ``refl``).  A fluent
-constructor over runtime pivots is the next iteration (#922 slice 2).
+The SET twin of the Jlt arrow tests.  Iteration 2 is value-based -- the pivot is
+a runtime argument, so a single ``above(k)`` / ``below(k)`` / ... covers every
+pivot (the iteration-1 ``gt_3`` / ``lt_5`` one-constant-per-pivot stopgap is
+gone).  Membership is ``s(x)`` / ``x in s``; the meet ``a & b`` dispatches to the
+same ``constexpr`` ``:order`` ``reduce_meet`` the compile-time ``static_assert``s
+fold -- so the README collapse ``{x>3} ∩ {x<5} = {4}`` now runs with *runtime*
+pivots.  No Python-side reducer.
 """
 
 import unittest
 
-from dedekind.lwv import gt_3, lt_5
+from dedekind.lwv import above, at_least, at_most, below, everything, nothing, singleton
 
 
-class LwvHalfspaceMembershipTest(unittest.TestCase):
-    """Each halfspace is a characteristic map χ: int -> bool."""
+class LwvMembershipTest(unittest.TestCase):
+    """Each set is a characteristic map χ: int -> bool, over a runtime pivot."""
 
-    def test_upper_halfspace_membership(self) -> None:
-        # gt_3 = {x ∈ int | x > 3}: the strict principal filter ↑3.
-        self.assertIs(gt_3(4), True)
-        self.assertIs(gt_3(100), True)
-        self.assertIs(gt_3(3), False)  # strict: the pivot itself is excluded
-        self.assertIs(gt_3(2), False)
+    def test_open_halfspaces(self) -> None:
+        self.assertTrue(above(3)(4))
+        self.assertFalse(above(3)(3))  # strict
+        self.assertFalse(above(3)(2))
+        self.assertTrue(below(5)(4))
+        self.assertFalse(below(5)(5))  # strict
 
-    def test_lower_halfspace_membership(self) -> None:
-        # lt_5 = {x ∈ int | x < 5}: the strict principal ideal ↓5.
-        self.assertIs(lt_5(4), True)
-        self.assertIs(lt_5(-10), True)
-        self.assertIs(lt_5(5), False)  # strict
-        self.assertIs(lt_5(6), False)
+    def test_closed_halfspaces(self) -> None:
+        self.assertTrue(at_least(3)(3))  # non-strict includes the pivot
+        self.assertTrue(at_most(5)(5))
+        self.assertFalse(at_least(3)(2))
 
-    def test_contains_is_membership(self) -> None:
-        # `x in s` is the same characteristic map, Python-idiomatic.
-        self.assertTrue(4 in gt_3)
-        self.assertFalse(3 in gt_3)
-        self.assertTrue(4 in lt_5)
-        self.assertFalse(5 in lt_5)
+    def test_singleton_and_boundaries(self) -> None:
+        self.assertTrue(4 in singleton(4))
+        self.assertFalse(3 in singleton(4))
+        self.assertTrue(everything()(42))  # 𝔸 contains everything
+        self.assertFalse(nothing()(42))  # Ø contains nothing
+
+    def test_arbitrary_runtime_pivots(self) -> None:
+        # The point of value-based: pivots are runtime, not baked per-name.
+        for k in (-100, 0, 7, 999):
+            self.assertTrue(above(k)(k + 1))
+            self.assertFalse(above(k)(k))
+            self.assertTrue(at_most(k)(k))
 
 
-class LwvReadmeCollapseTest(unittest.TestCase):
-    """{x>3} ∩ {x<5} collapses to the singleton {4} -- the README exhibit."""
+class LwvMeetCollapseTest(unittest.TestCase):
+    """`a & b` runs the value-first reduce_meet at runtime -- structural collapse."""
 
-    def test_meet_collapses_to_singleton(self) -> None:
-        # gt_3 & lt_5 dispatches to the real :order reducer (structured_and),
-        # which reduces the crossing meet to the singleton {4} at Python
-        # runtime -- the same collapse the compile-time static_assert folds.
-        collapse = gt_3 & lt_5
-        self.assertEqual(collapse.cardinality, 1)
-        self.assertEqual(repr(collapse), "{4}")
+    def test_readme_collapse_to_singleton(self) -> None:
+        # {x>3} ∩ {x<5} = {4}: the crossing law, folded at Python runtime.
+        region = above(3) & below(5)
+        self.assertEqual(region.kind, "singleton")
+        self.assertEqual(region.cardinality, 1)
+        self.assertEqual(repr(region), "{4}")
+        self.assertTrue(region(4))
+        self.assertFalse(region(3))
+        self.assertFalse(region(5))
 
-    def test_singleton_membership_is_exactly_four(self) -> None:
-        # The collapsed set contains 4 and nothing else in the window.
-        collapse = gt_3 & lt_5
-        self.assertIs(collapse(4), True)
-        self.assertIs(collapse(3), False)  # boundary of gt_3
-        self.assertIs(collapse(5), False)  # boundary of lt_5
-        self.assertIs(collapse(2), False)
-        self.assertIs(collapse(6), False)
+    def test_crossing_interval(self) -> None:
+        # A wider crossing stays an interval (more than one inhabitant).
+        region = above(3) & below(20)
+        self.assertEqual(region.kind, "interval")
+        self.assertEqual(region.cardinality, 16)  # {4..19}
+        self.assertTrue(region(10))
+        self.assertFalse(region(3))
+        self.assertFalse(region(20))
+
+    def test_disjoint_is_empty(self) -> None:
+        region = above(5) & below(3)
+        self.assertEqual(region.kind, "empty")
+        self.assertEqual(region.cardinality, 0)
+        self.assertFalse(region(4))
+
+    def test_same_direction_keeps_tighter(self) -> None:
+        # ↑3 ∩ ↑5 = ↑5 (larger pivot wins); ↓5 ∩ ↓3 = ↓3 (smaller wins).
+        up = above(3) & above(5)
+        self.assertEqual(up.kind, "halfspace")
+        self.assertFalse(up(4))  # excluded: 4 not > 5
+        self.assertTrue(up(6))
+        down = below(5) & below(3)
+        self.assertEqual(down.kind, "halfspace")
+        self.assertTrue(down(2))
+        self.assertFalse(down(4))  # excluded: 4 not < 3
+
+    def test_boundary_units(self) -> None:
+        # 𝔸 is the meet unit, Ø the annihilator.
+        gt = above(3)
+        self.assertEqual((gt & everything()).kind, "halfspace")
+        self.assertEqual((gt & nothing()).kind, "empty")
+
+    def test_singleton_meet(self) -> None:
+        # {4} ∩ {x>3} = {4} (the point is in the halfspace); ∩ {x>10} = Ø.
+        self.assertEqual((singleton(4) & above(3)).kind, "singleton")
+        self.assertEqual((singleton(4) & above(10)).kind, "empty")
 
 
 if __name__ == "__main__":

@@ -152,14 +152,15 @@ constexpr typename L::Ω operator<=(
  *  @c S's χ is.  Calls the classifier @c other(V) directly (@c IsSet guarantees
  *  @c operator(), not @c contains); the universal set is excluded so its own
  *  @c X ⊆ 𝔸 overload stays unambiguous. */
-export template <auto V, typename L, typename S>
+export template <typename T, typename L, typename S>
   requires(
       dedekind::category::IsSet<S> &&
       std::same_as<typename S::logic_species, L> &&
       !requires { typename S::is_universal_boundary; } &&
-      requires(const S& s) { s(V); })
-constexpr typename L::Ω operator<=(const Singleton<V, L>&, const S& other) {
-  return other(V);
+      requires(const S& s, const T& v) { s(v); })
+constexpr typename L::Ω operator<=(const Singleton<T, L>& single,
+                                   const S& other) {
+  return other(single.value);
 }
 
 }  // namespace dedekind::order

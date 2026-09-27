@@ -131,9 +131,12 @@ TEST_CASE("Pruning showcase 4: cardinality-1 halfspace meet = Singleton<4>",
   constexpr auto gt_3 = ℕ | (χ > fix(3_c));
   constexpr auto lt_5 = ℕ | (χ < fix(5_c));
 
-  // The punch line: the meet COLLAPSES to a named Singleton at compile time.
-  constexpr Singleton<4> in_between = gt_3 & lt_5;
-  STATIC_CHECK(in_between == Singleton<4>{});
+  // The punch line: the meet COLLAPSES to a Singleton at compile time; #965 the
+  // point is a constexpr VALUE (folds identically), not a distinct type.
+  constexpr auto in_between = gt_3 & lt_5;
+  STATIC_CHECK(in_between.value == 4);  // .value only exists on a Singleton
+  STATIC_CHECK(bool(in_between(4)) && !bool(in_between(3)) &&
+               !bool(in_between(5)));
 
   SECTION("An intensional meet materialises an extensional set") {
     // Decidability is NOT the contrast: a halfspace on ℕ decides membership by

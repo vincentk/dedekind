@@ -98,11 +98,9 @@ struct Sub : dedekind::sets::SetExpr<Sub<C, L>, C, L> {
   // ctors that fix @c C): otherwise @c Singleton<4.5> would silently narrow
   // into a @c Sub<int>, testing a different set.  Cross-carrier needs an
   // explicit order embedding, not an implicit coercion.
-  template <auto V>
-    requires std::same_as<decltype(V), C>
-  constexpr Sub(const Singleton<V, L>&)
-      : lo_(V),
-        hi_(V),
+  constexpr Sub(const Singleton<C, L>& s)
+      : lo_(s.value),
+        hi_(s.value),
         lo_unbounded_(false),
         hi_unbounded_(false),
         lo_strict_(Strictness::NonStrict),

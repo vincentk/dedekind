@@ -85,7 +85,10 @@ static_assert(!T(11u));  // 11 > 10 ✗
 //     `T & {== bound<6>}` form would land the same Singleton via the
 //     trimmed `T` and an equality-classifier reduction; both refinements
 //     are separate future slices.)
-constexpr Singleton<6> a = S & Set{ℕ | (π < fix(7_c))};
+constexpr auto a =
+    S & Set{ℕ | (π < fix(7_c))};  // #965: the point {6}, value-carrying
+static_assert(a.value == 6,
+              "the meet collapses to the point {6} at compile time");
 
 // (5) Contradicted.  Complement-via-LEM: any S has empty meet with its
 //     complement.  `structured_and` reduces this to `Ø<Cardinality>` at

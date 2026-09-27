@@ -353,8 +353,8 @@ static_assert(
 
 // Singleton inhabits IsArrow at the predicate level --- the degenerate case.
 static_assert(
-    dedekind::category::IsArrow<Singleton<42, dedekind::category::Boole>>,
-    "Singleton<v> exposes the IsArrow shape "
-    "(degenerate indicator: True at a single index).");
+    dedekind::category::IsArrow<Singleton<int, dedekind::category::Boole>>,
+    "Singleton exposes the IsArrow shape "
+    "(degenerate indicator: True at a single value).");
 
 }  // namespace dedekind::sequences
