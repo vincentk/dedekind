@@ -25,16 +25,22 @@ using namespace dedekind::order;
 
 TEST_CASE("complement-lattice absorbing laws collapse (𝔹 and ℕ)",
           "[sets][lattice][pruning]") {
-  // ── 𝔹 : extensional carrier — the value is in the type (static Singleton) ──
+  // ── 𝔹 : extensional carrier — value-carrying Singleton (#965: the pivot is a
+  // VALUE, so the complement laws are decided by membership, not by a
+  // type-level Singleton∩Singleton collapse that a value pivot cannot express)
+  // ──
   {
     static_assert(
         dedekind::category::IsSet<decltype(𝔸<bool>)>);  // the universe IS an
                                                         // ETCS set
-    constexpr Singleton<true> T{};                      // {true} ⊂ 𝔹
-    constexpr Singleton<false> F = ~T;  // complement: the other singleton
-    static_assert((F | T) == 𝔸<bool>);  // | : round-trip to the universe (⊤)
-    constexpr Ø<bool> empty = F & T;    // & : collapse to the empty set (⊥)
-    static_assert(Ø<bool>{} == empty);
+    constexpr Singleton<bool> T{true};                  // {true} ⊂ 𝔹
+    constexpr Singleton<bool> F = ~T;  // complement: the point {false}
+    // LEM (⊤): {true} ∪ {false} covers 𝔹 — both inhabitants are present.
+    static_assert(static_cast<bool>((F | T)(true)) &&
+                  static_cast<bool>((F | T)(false)));
+    // non-contradiction (⊥): {true} ∩ {false} is empty — neither inhabitant.
+    static_assert(!static_cast<bool>((F & T)(true)) &&
+                  !static_cast<bool>((F & T)(false)));
   }
   // ── ℕ : intensional carrier — bare, first-class Halfspaces (telling types)
   // ──
@@ -52,8 +58,8 @@ TEST_CASE("complement-lattice absorbing laws collapse (𝔹 and ℕ)",
   // are equality-comparable (#844/#845); ^ and the general product decide by
   // membership. ──
   {
-    constexpr Singleton<true> T{};
-    constexpr Singleton<false> F = ~T;
+    constexpr Singleton<bool> T{true};
+    constexpr Singleton<bool> F = ~T;
     // η agrees with the point-free {true}; T, F are the two singletons
     static_assert(η(true)(true) && T(true) && !F(true));
     // ^ : {true} ^ {false} carries both (= 𝔹); {x} ^ {x} is empty

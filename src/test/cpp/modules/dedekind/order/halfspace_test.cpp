@@ -130,8 +130,10 @@ TEST_CASE("order:halfspace — structured_and on opposing halfspaces",
   SECTION("Cardinality 1 (integer strict/strict, Hi-Lo == 2) → Singleton") {
     constexpr Halfspace<int, 3, Direction::Upward, Strictness::Strict> up{};
     constexpr Halfspace<int, 5, Direction::Downward, Strictness::Strict> dn{};
-    using Result = std::decay_t<decltype(structured_and(up, dn))>;
-    STATIC_CHECK(std::same_as<Result, Singleton<4, Boole>>);
+    constexpr auto r = structured_and(up, dn);
+    STATIC_CHECK(
+        std::same_as<std::decay_t<decltype(r)>, Singleton<int, Boole>>);
+    STATIC_CHECK(r.value == 4);  // #965: the point is the VALUE, not the type
   }
 
   SECTION("Cardinality > 1 → OrderInterval with correct bounds") {
@@ -151,9 +153,11 @@ TEST_CASE("order:halfspace — structured_and on opposing halfspaces",
   SECTION("Symmetric case (Downward ∩ Upward) delegates correctly") {
     constexpr Halfspace<int, 5, Direction::Downward, Strictness::Strict> dn{};
     constexpr Halfspace<int, 3, Direction::Upward, Strictness::Strict> up{};
-    // 3 < x < 5 → Singleton<4>
-    using Result = std::decay_t<decltype(structured_and(dn, up))>;
-    STATIC_CHECK(std::same_as<Result, Singleton<4, Boole>>);
+    // 3 < x < 5 → the point {4}
+    constexpr auto r = structured_and(dn, up);
+    STATIC_CHECK(
+        std::same_as<std::decay_t<decltype(r)>, Singleton<int, Boole>>);
+    STATIC_CHECK(r.value == 4);
   }
 }
 
@@ -349,8 +353,8 @@ TEST_CASE(
 
 TEST_CASE("order:halfspace — Singleton identity and cross-L equality",
           "[order][halfspace][singleton]") {
-  constexpr Singleton<4> s_classical{};
-  constexpr Singleton<4, Kleene> s_ternary{};
+  constexpr Singleton<int> s_classical{4};
+  constexpr Singleton<int, Kleene> s_ternary{4};
 
   SECTION("Membership at the inhabitant") {
     STATIC_CHECK(s_classical(4) == Boole::True);
@@ -409,12 +413,12 @@ TEST_CASE("order:halfspace — Singleton satisfies the consolidated tiers",
   // instantiated on order-level types. The sets test target cannot
   // import dedekind.order, so these downstream conformance checks live
   // here.
-  STATIC_CHECK(HasDecidableMembership<Singleton<42>>);
-  STATIC_CHECK(IsExtensional<Singleton<42>>);
+  STATIC_CHECK(HasDecidableMembership<Singleton<int>>);
+  STATIC_CHECK(IsExtensional<Singleton<int>>);
 
   SECTION("Kleene variant: extensional but not decidable") {
-    STATIC_CHECK_FALSE(HasDecidableMembership<Singleton<42, Kleene>>);
-    STATIC_CHECK(IsExtensional<Singleton<42, Kleene>>);
+    STATIC_CHECK_FALSE(HasDecidableMembership<Singleton<int, Kleene>>);
+    STATIC_CHECK(IsExtensional<Singleton<int, Kleene>>);
   }
 }
 
@@ -464,7 +468,7 @@ TEST_CASE("order:halfspace — reduction tightens extensionality (post-#622)",
   SECTION("Singleton reduction (extensionality tightens)") {
     constexpr auto gt3 = ℕ | (χ > fix(3_c));
     constexpr auto lt5 = ℕ | (χ < fix(5_c));
-    constexpr Singleton<4> s = gt3 & lt5;
+    constexpr auto s = gt3 & lt5;
 
     STATIC_CHECK(HasDecidableMembership<decltype(gt3)>);
     STATIC_CHECK(HasDecidableMembership<decltype(s)>);
@@ -578,7 +582,7 @@ TEST_CASE("order:halfspace — structural subset ⊆ and derived >=,<,> (#831)",
   }
 
   SECTION("singleton ⊆ via membership") {
-    constexpr Singleton<5, Boole> s5{};
+    constexpr Singleton<int, Boole> s5{5};
     static_assert(bool(s5 <= ge5), "{5} ⊆ {x≥5}");
     static_assert(!bool(s5 <= gt5), "{5} ⊄ {x>5}");
     CHECK(bool(s5 <= ge5));

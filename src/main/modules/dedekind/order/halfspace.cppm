@@ -408,65 +408,70 @@ struct Halfspace : dedekind::sets::SetExpr<Halfspace<T, Pivot, D, S, L>, T, L> {
 };
 
 /**
- * @brief Compile-time singleton predicate: `{x : decltype(Value) | x ==
- * Value}`.
+ * @brief Singleton predicate `{x : T | x == value}` --- the point / degenerate
+ * halfspace, VALUE-carrying (#965): the pivot is a @b constexpr @b member, not
+ * an NTTP.
  *
- * Emitted when a halfspace meet on a discrete (integral) carrier is reduced
- * by cardinality analysis to exactly one inhabitant. The value lives in the
- * TYPE, so `Singleton<4>` and `Singleton<7>` are distinct types — the
- * compiler proves `{n | 3<n<5} = {4}` by structural pattern matching.
- *
- * L defaults to `Boole` because a cardinality-1 extensional set
- * has decidable membership regardless of ambient logic species.
+ * @details Emitted when a halfspace meet on a discrete (integral) carrier is
+ * reduced by cardinality analysis to exactly one inhabitant.  The pivot rides
+ * as a value, so ONE type `Singleton<int>` covers every point --- and a
+ * @c constexpr instance still folds + validates at compile time (the
+ * compile-time/runtime optionality), so `{n | 3<n<5} = {4}` is a compile-time
+ * constant `Singleton<int>{4}` rather than a distinct type `Singleton<4>`
+ * (#965: type-directed collapse recast to constexpr-value-directed; the NTTP
+ * was a means to an end).  Still a first-class @c IsSubobject (ι: {value} ↣ T)
+ * and, since a cardinality-1 extensional set is decidable regardless of ambient
+ * logic, @c cardinality_type stays @c Finite so the decidability tier holds
+ * type-level.  @c L defaults to @c Boole.
  */
-export template <auto Value, typename L = Boole>
-struct Singleton
-    : dedekind::sets::SetExpr<Singleton<Value, L>, decltype(Value), L> {
-  // Domain / Codomain / logic_species / Member / ι are inherited from SetExpr
-  // (the ETCS subobject surface): the static Singleton is a first-class
-  // @c IsSubobject (ι: {value} ↣ Domain) whose χ is @c operator() below — same
-  // mixin @c Halfspace / @c Interval / @c Ray fold onto (#806 follow-up dedup).
-  using Domain = decltype(Value);
+export template <typename T, typename L = Boole>
+struct Singleton : dedekind::sets::SetExpr<Singleton<T, L>, T, L> {
+  using Domain = T;
   using cardinality_type = Finite;
   using is_extensional_tag = void;
   using is_compile_time_extensional_tag = void;
   using is_static_singleton_tag = void;  // For operator& collapse detection
 
-  static constexpr Domain value = Value;
+  T value{};
+
+  constexpr Singleton() = default;
+  constexpr explicit Singleton(T v) : value(v) {}
 
   // Return type spelt @c L::Ω, not the inherited (dependent-base) @c Codomain.
-  constexpr typename L::Ω operator()(const Domain& x) const {
-    return (x == Value) ? L::True : L::False;
+  constexpr typename L::Ω operator()(const T& x) const {
+    return (x == value) ? L::True : L::False;
   }
 
-  /** @brief Heterogeneous membership query: cross-type @c == against
-   *         @c Value.  @c Singleton::Domain is the type of @c Value
-   *         (typically @c int when emitted by the post-#402 variant
-   *         branch of @c structured_and), but the variant carriers
-   *         @c Cardinality / @c SignedCardinality (and any other
-   *         cross-type-comparable @c U) need to query membership too.
-   *         Routes through the cross-type @c == landed in PR #423 /
-   *         #425.  Constrained to @c U distinct from @c Domain so the
-   *         non-template overload above wins on exact matches. */
+  /** @brief Heterogeneous membership query: cross-type @c == against @c value.
+   *  @c Singleton::Domain is @c T (typically @c int when emitted by the
+   *  cardinality branch of @c structured_and), but the variant carriers
+   *  @c Cardinality / @c SignedCardinality (and any cross-type-comparable @c U)
+   *  need to query membership too --- routed through the cross-type @c ==
+   *  (#423/#425).  Constrained to @c U distinct from @c T so the non-template
+   *  overload wins on exact matches. */
   template <typename U>
-    requires(!std::same_as<std::remove_cvref_t<U>, Domain>) &&
-            requires(const U& x) {
-              { x == Value } -> std::convertible_to<bool>;
+    requires(!std::same_as<std::remove_cvref_t<U>, T>) &&
+            requires(const U& x, const T& v) {
+              { x == v } -> std::convertible_to<bool>;
             }
   constexpr typename L::Ω operator()(const U& x) const {
-    return (x == Value) ? L::True : L::False;
+    return (x == value) ? L::True : L::False;
   }
 
   constexpr std::size_t size() const { return 1; }
 
-  // Cross-logic identity: `Singleton<V, L1>` and `Singleton<V, L2>` represent
-  // the same singleton; enables the reveal `s == Singleton<V>{}` when s's
-  // logic species was inherited from a Set (e.g. Kleene over ℕ).
+  // Cross-logic identity: `Singleton<T, L1>{v}` and `Singleton<T, L2>{v}`
+  // represent the same singleton iff their values agree; enables the reveal
+  // `s == Singleton{v}` when s's logic species was inherited from a Set.
   template <typename OtherL>
-  constexpr bool operator==(const Singleton<Value, OtherL>&) const {
-    return true;
+  constexpr bool operator==(const Singleton<T, OtherL>& other) const {
+    return value == other.value;
   }
 };
+
+/** @brief CTAD: @c Singleton{4} deduces @c Singleton<int>. */
+export template <typename T>
+Singleton(T) -> Singleton<T>;
 
 /** @section halfspace__Static_Singleton_Complement_Lattice
  *
@@ -481,39 +486,19 @@ struct Singleton
 /** @brief Complement of a static singleton on a @b two-element (bool) carrier:
  *         the other singleton.  On a larger carrier the complement of a point
  *         is not a point, so there is deliberately no overload there. */
-export template <auto Value, typename L>
-  requires std::same_as<decltype(Value), bool>
-constexpr auto operator~(const Singleton<Value, L>&) {
-  return Singleton<!Value, L>{};
+export template <typename L>
+constexpr auto operator~(const Singleton<bool, L>& s) {
+  return Singleton<bool, L>{!s.value};
 }
 
-/** @brief Meet of two static singletons: the same singleton if the values
- *         coincide, otherwise @c Ø.  Distinct points are disjoint, so the
- *         empty collapse is structural on @b any carrier. */
-export template <auto A, typename LA, auto B, typename LB>
-  requires std::same_as<decltype(A), decltype(B)> && std::same_as<LA, LB>
-constexpr auto operator&(const Singleton<A, LA>& a, const Singleton<B, LB>&) {
-  if constexpr (A == B) {
-    return a;
-  } else {
-    return dedekind::sets::Ø<decltype(A), LA>{};
-  }
-}
-
-/** @brief Join of two static singletons: the same singleton if the values
- *         coincide; on a @b two-element (bool) carrier two distinct points
- *         @b cover the universe, so @c UniversalSet.  On a larger carrier the
- *         join is a two-point set, out of scope here, so no overload fires. */
-export template <auto A, typename LA, auto B, typename LB>
-  requires std::same_as<decltype(A), decltype(B)> && std::same_as<LA, LB> &&
-           (A == B || std::same_as<decltype(A), bool>)
-constexpr auto operator|(const Singleton<A, LA>& a, const Singleton<B, LB>&) {
-  if constexpr (A == B) {
-    return a;
-  } else {
-    return dedekind::sets::UniversalSet<bool, LA>{};
-  }
-}
+// FIXME(#965): the NTTP `operator&`/`operator|` over two static singletons
+// (`Singleton<A>∩Singleton<B>` → the point or `Ø`/`𝔸`) were DELETED in the
+// value-carrying port: they branched the RESULT TYPE on compile-time-distinct
+// pivots (`if constexpr (A == B)`), which a value pivot cannot do (a function
+// cannot return `Singleton` on one runtime branch and `Ø` on another).  The
+// meet/join of two points is instead the value-first `reduce_meet` (empty vs
+// singleton via `.kind`); the bool complement-lattice showcase recasts to that
+// value form.  Single caller (pruning_lattice_laws_test), reworked there.
 
 /** @section halfspace__Halfspace_Complement_Lattice
  *
@@ -595,7 +580,7 @@ using AtMost = Halfspace<dedekind::sets::Cardinality, N, Direction::Downward,
 // it is what the complement-lattice operators above operate on.
 static_assert(IsSubobject<Above<5>, dedekind::sets::Cardinality>,
               "a Halfspace is a first-class subobject ι: S ↣ ℕ.");
-static_assert(IsSubobject<Singleton<true>, bool>,
+static_assert(IsSubobject<Singleton<bool>, bool>,
               "a static Singleton is a first-class subobject.");
 
 /** @brief Carrier-aware ordering of two interval-endpoint NTTPs.  Integral
@@ -816,10 +801,10 @@ constexpr auto structured_and(Halfspace<T, Lo, Direction::Upward, SL, L>,
       if constexpr (std::integral<T>) {
         constexpr T unique =
             lo_open ? static_cast<T>(Lo + 1) : static_cast<T>(Lo);
-        return Singleton<unique, L>{};
+        return Singleton<T, L>{unique};
       } else {
         constexpr auto unique = lo_open ? (Lo + 1) : Lo;
-        return Singleton<unique, L>{};
+        return Singleton<decltype(unique), L>{unique};
       }
     } else {
       return OrderInterval<T, Lo, Hi, SL, SU, L>{};
@@ -1086,13 +1071,12 @@ static_assert(vf_meet.contains(4) && !vf_meet.contains(3) &&
                   !vf_meet.contains(5),
               "χ of the collapsed point decides membership.");
 // ONE law, two phases: the value-first result agrees with the type-level
-// structured_and's Singleton value (pivot as a value vs as an NTTP).
+// structured_and's Singleton value (pivot as a value member, not an NTTP).
+inline constexpr auto vf_type_level = structured_and(
+    Halfspace<int, 3, Direction::Upward, Strictness::Strict>{},
+    Halfspace<int, 5, Direction::Downward, Strictness::Strict>{});
 static_assert(
-    vf_meet.lo ==
-        decltype(structured_and(
-            Halfspace<int, 3, Direction::Upward, Strictness::Strict>{},
-            Halfspace<int, 5, Direction::Downward,
-                      Strictness::Strict>{}))::value,
+    vf_meet.lo == vf_type_level.value,
     "value-first reduce_meet agrees with type-level structured_and on {4}.");
 static_assert(reduce_meet(vf_gt3, SetVal<>::half(5, Direction::Upward,
                                                  Strictness::Strict))
@@ -1416,9 +1400,9 @@ constexpr auto operator|(const UniversalSet<T, L, C>&,
 // error there; a singleton over such a carrier needs a T-valued pivot.
 export template <typename T, typename L, typename C, auto V>
   requires std::same_as<T, decltype(V)>
-constexpr Singleton<V, L> operator|(const UniversalSet<T, L, C>&,
-                                    const UnboundSingleton<V>&) {
-  return {};
+constexpr Singleton<decltype(V), L> operator|(const UniversalSet<T, L, C>&,
+                                              const UnboundSingleton<V>&) {
+  return Singleton<decltype(V), L>{V};
 }
 
 // The point-free surface reproduces the existing halfspace exactly.
@@ -1427,9 +1411,12 @@ static_assert(
     "ℕ | π > fix(5_c) is the Above<5> halfspace, spelled point-free.");
 
 // And the equality shape gives the extensional Singleton, membership-checked.
+// Value-carrying (#965): the type is Singleton<bool>; the point is the VALUE.
 static_assert(
-    std::same_as<decltype(𝔹 | (π == fix(true_c))), Singleton<true, Boole>>,
-    "𝔹 | π == fix(true_c) is Singleton<true>, spelled point-free.");
+    std::same_as<decltype(𝔹 | (π == fix(true_c))), Singleton<bool, Boole>>,
+    "𝔹 | π == fix(true_c) is a Singleton<bool>, spelled point-free.");
+static_assert((𝔹 | (π == fix(true_c))).value == true,
+              "…and its pivot value is true (the point {true}).");
 static_assert(static_cast<bool>((𝔹 | (π == fix(true_c)))(true)),
               "true ∈ {true}.");
 static_assert(!static_cast<bool>((𝔹 | (π == fix(true_c)))(false)),
@@ -1457,8 +1444,15 @@ static_assert(
 // The collapse compared to the bare empty set --- the exact Listing 2 spelling.
 static_assert(((ℕ | (π > fix(5_c))) & ~(ℕ | (π > fix(5_c)))) == Ø{},
               "point-free: (n > 5) ∩ ¬(n > 5) == Ø.");
-static_assert(((𝔹 | (π == fix(true_c))) & ~(𝔹 | (π == fix(true_c)))) == Ø{},
-              "point-free: {true} ∩ ¬{true} == Ø.");
+// #965: value-carrying singletons, so {true} ∩ ¬{true} is empty EXTENSIONALLY
+// (no bool inhabits both) rather than collapsing to the type Ø --- the
+// singleton non-contradiction recast to a membership check (the deleted
+// Singleton∩Singleton type-collapse can't survive a value pivot).
+static_assert(!static_cast<bool>(((𝔹 | (π == fix(true_c))) &
+                                  ~(𝔹 | (π == fix(true_c))))(true)) &&
+                  !static_cast<bool>(((𝔹 | (π == fix(true_c))) &
+                                      ~(𝔹 | (π == fix(true_c))))(false)),
+              "point-free: {true} ∩ ¬{true} is empty (no bool in both).");
 
 // NOTE(#895): the DISTINCT-pivot bare disjoint-meet witness ({x>5} ∩ {x<3} → Ø)
 // lives BELOW the general Halfspace operator& (search "#895") because it must
@@ -2346,11 +2340,11 @@ constexpr auto lowerbounds(Halfspace<T, p, Direction::Downward, S, L>) {
 // 𝔹: the whole carrier is bounded --- ⊤ dominates it, ⊥ is dominated by it.
 export template <typename L, typename C>
 constexpr auto upperbounds(const UniversalSet<bool, L, C>&) {
-  return Singleton<true, L>{};
+  return Singleton<bool, L>{true};
 }
 export template <typename L, typename C>
 constexpr auto lowerbounds(const UniversalSet<bool, L, C>&) {
-  return Singleton<false, L>{};
+  return Singleton<bool, L>{false};
 }
 
 /** @brief @c & IS the meet on bare order operands: it forwards to the
@@ -2609,16 +2603,14 @@ constexpr bool operator==(const Halfspace<T, P, D, S, L>&,
 /** @brief A @c Singleton over @c bool is never all of @c 𝔹 (two elements), so
  *  @c == 𝔸 is @c false: the forall (scheme B) leg for the @c == fragment on 𝔹
  *  (@c 𝔸<bool> | (π == fix(v)) collapses to @c Singleton<v>). */
-export template <auto V, typename L, typename C>
-  requires std::same_as<decltype(V), bool>
-constexpr bool operator==(const Singleton<V, L>&,
+export template <typename L, typename C>
+constexpr bool operator==(const Singleton<bool, L>&,
                           const UniversalSet<bool, L, C>&) {
   return false;
 }
-export template <auto V, typename L, typename C>
-  requires std::same_as<decltype(V), bool>
+export template <typename L, typename C>
 constexpr bool operator==(const UniversalSet<bool, L, C>& u,
-                          const Singleton<V, L>& s) {
+                          const Singleton<bool, L>& s) {
   return s == u;
 }
 

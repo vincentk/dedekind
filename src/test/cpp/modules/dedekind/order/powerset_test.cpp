@@ -40,7 +40,7 @@ TEST_CASE("order:powerset — 𝔓(S) is a bona-fide IsSet over Sub(C) (#830)",
     constexpr auto P = 𝔓(gt3);  // 𝔓({x>3})
     constexpr Halfspace<int, 5, Direction::Upward, Strictness::Strict> gt5{};
     constexpr Halfspace<int, 3, Direction::Downward, Strictness::Strict> lt3{};
-    constexpr Singleton<4, Boole> s4{};
+    constexpr Singleton<int, Boole> s4{4};
     CHECK(bool(P(gt5)));        // {x>5} ⊆ {x>3}
     CHECK_FALSE(bool(P(lt3)));  // {x<3} ⊄ {x>3}
     CHECK(bool(P(s4)));         // {4} ⊆ {x>3} (a Singleton member)
