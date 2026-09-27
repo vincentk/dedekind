@@ -246,6 +246,115 @@ static_assert(
                                                   DefaultMeet> ==
     IsOrderDistributiveLatticeOperations<int, DefaultJoin, DefaultMeet>);
 
+// ── Principal filters / ideals: the "proto-set" of :category (#946)
+// ───────────
+//
+// A principal FILTER @f$\uparrow\!p = \{x : p \le x\}@f$ and principal IDEAL
+// @f$\downarrow\!p = \{x : x \le p\}@f$ of an ordered carrier (Davey &
+// Priestley,
+// @e Introduction @e to @e Lattices @e and @e Order 2e §1.27 / §2.20; Nation,
+// @e Notes @e on @e Lattice @e Theory §1).  These are the order-theoretic
+// gadget the downstream set realizations (@c :order @c Halfspace, the bounded
+// chains) instantiate: membership is a @b type-check on the carrier plus one
+// pivot comparison --- no set-theoretic predicate machinery --- so the notion
+// lives UPSTREAM without circularity (the Juliet posture; @c :sets asserts the
+// strict ETCS reading downstream, in the same PR).
+//
+// The law that makes principals a meet-semilattice under intersection:
+//   ↑a ∩ ↑b = ↑(a ∨ b)     ↓a ∩ ↓b = ↓(a ∧ b)     ↑a ∩ ↓b = [a,b]
+// (classical --- Davey & Priestley 2.20).  So the meet of two SAME-direction
+// principals is the principal of the pivots' join / meet, computed by the
+// carrier's own @c Sup / @c Inf (the injected glb/lub --- i.e. the spider
+// @c Merge, @c :cartesian_bicategory).  This is the deletion path for @c :order
+// @c structured_and's same-direction overloads (no @c if @c constexpr on
+// bounds, just the pivot lattice op) and it holds over ANY lattice carrier, not
+// only a total order.  The crossing meet ↑a∩↓b = [a,b] (an interval =
+// meet-as-product) is realized downstream where @c IsProduct is reachable (#946
+// increment 1b).
+//
+// @note SEAM (custom order): the meet overloads use @c Sup / @c Inf, which are
+// the join / meet of the DEFAULT (natural) order.  A custom @c Ord must supply
+// its own join / meet op for the pivot combine to align --- gated on the order
+// semilattice concept, so it fails closed otherwise.
+// @note SEAM (NTTP): the pivot is an @c auto NTTP; carriers whose values are
+// not structural (the variant proxies @c Cardinality / @c SignedCardinality)
+// store the pivot in its primitive proxy type, exactly as @c :order @c
+// Halfspace does
+// (#402 / #423 cross-type comparison).
+
+/** @brief Principal filter @f$\uparrow\!p = \{x : p \le x\}@f$ (an up-set) of
+ *  carrier @c T under order @c Ord.  Concept-first: @c T need only be
+ *  @c IsPosetal under @c Ord.  Membership is a decision (@c Codomain @c = @c
+ *  bool) --- the proto-set type-check.
+ *
+ *  @note @c Codomain @c = @c bool is deliberate, not a placeholder for a
+ *  general @c LogicalValue: @c bool is the proto-set's prototypical classifier
+ *  Ω --- the decided core @f$\mathbb{B}@f$ --- and @c IsΩ<bool> holds (its
+ *  logical operators close, @c :logic), so a principal @b is a genuine
+ *  @c IsCharacteristic map @f$T \to \Omega@f$ (predicate).  That witness lives
+ *  downstream in @c :order (where @c :topoi is reachable; @c :posetal is
+ *  upstream of it), next to the @c Halfspace realization that carries the
+ *  general logic species @c L.  Two-tier (#946): the proto-set fixes @c bool;
+ *  the strict L-parametrized reading is the downstream @c Halfspace's. */
+export template <typename T, auto Pivot, typename Ord = std::less_equal<T>>
+  requires IsPosetal<T, Ord>
+struct PrincipalFilter {
+  using Domain = T;
+  using Codomain = bool;
+  using carrier = T;
+  using order = Ord;
+  static constexpr auto pivot = Pivot;
+  /** @brief @f$x \in \uparrow\!p \iff p \le x@f$. */
+  constexpr bool operator()(const T& x) const { return Ord{}(Pivot, x); }
+};
+
+/** @brief Principal ideal @f$\downarrow\!p = \{x : x \le p\}@f$ (a down-set),
+ *  dual to @c PrincipalFilter. */
+export template <typename T, auto Pivot, typename Ord = std::less_equal<T>>
+  requires IsPosetal<T, Ord>
+struct PrincipalIdeal {
+  using Domain = T;
+  using Codomain = bool;
+  using carrier = T;
+  using order = Ord;
+  static constexpr auto pivot = Pivot;
+  /** @brief @f$x \in \downarrow\!p \iff x \le p@f$. */
+  constexpr bool operator()(const T& x) const { return Ord{}(x, Pivot); }
+};
+
+/** @brief Same-direction meet @f$\uparrow\!a \cap \uparrow\!b = \uparrow\!(a
+ *  \vee b)@f$: the pivots' JOIN via the carrier's @c Sup (constexpr → a
+ *  compile-time NTTP).  Replaces @c structured_and's Upward∩Upward "larger
+ *  pivot wins" with the order-general lattice op. */
+export template <typename T, auto A, auto B, typename Ord = std::less_equal<T>>
+  requires IsOrderJoinSemilattice<T, Sup>
+constexpr auto operator&(PrincipalFilter<T, A, Ord>,
+                         PrincipalFilter<T, B, Ord>) {
+  return PrincipalFilter<T, Sup{}(A, B), Ord>{};
+}
+
+/** @brief Same-direction meet @f$\downarrow\!a \cap \downarrow\!b =
+ *  \downarrow\!(a \wedge b)@f$: the pivots' MEET via @c Inf. */
+export template <typename T, auto A, auto B, typename Ord = std::less_equal<T>>
+  requires IsOrderMeetSemilattice<T, Inf>
+constexpr auto operator&(PrincipalIdeal<T, A, Ord>, PrincipalIdeal<T, B, Ord>) {
+  return PrincipalIdeal<T, Inf{}(A, B), Ord>{};
+}
+
+// Witnesses (#946): the same-direction meet IS the pivot join / meet.
+static_assert(std::same_as<decltype(PrincipalFilter<int, 5>{} &
+                                    PrincipalFilter<int, 3>{}),
+                           PrincipalFilter<int, 5>>,
+              "↑5 ∩ ↑3 = ↑(5∨3) = ↑5 (the tighter up-set; larger pivot wins)");
+static_assert(
+    std::same_as<decltype(PrincipalIdeal<int, 5>{} & PrincipalIdeal<int, 3>{}),
+                 PrincipalIdeal<int, 3>>,
+    "↓5 ∩ ↓3 = ↓(5∧3) = ↓3 (the tighter down-set; smaller pivot wins)");
+static_assert(PrincipalFilter<int, 5>{}(7) && !PrincipalFilter<int, 5>{}(4),
+              "x ∈ ↑5 ⟺ 5 ≤ x");
+static_assert(PrincipalIdeal<int, 5>{}(4) && !PrincipalIdeal<int, 5>{}(7),
+              "x ∈ ↓5 ⟺ x ≤ 5");
+
 /**
  * @brief Verify that a two-step path A→B→C exists in the posetal category.
  *

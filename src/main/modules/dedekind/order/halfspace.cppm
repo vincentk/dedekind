@@ -317,94 +317,85 @@ static_assert(
     "a carrier with an unrelated/incomplete cardinality_type falls back to the "
     "primary (ℶ_1 here), never making Halfspace ill-formed.");
 
+namespace detail_principal {
+/** @brief The two-tier seam marker (#946): a halfspace carrier that admits @b
+ *  no @c :category principal filter (not @c IsPosetal --- @c double via the
+ *  NaN/float-lattice gate #933/#934, the Cardinality variant).  A @c Halfspace
+ *  over such a carrier is a bona-fide @c :order object with no upstream
+ *  principal; its @c principal alias is this sentinel rather than a
+ *  @c PrincipalFilter / @c PrincipalIdeal. */
+struct NoCategoryPrincipal {};
+
+/** @brief The @c :category principal filter/ideal a halfspace realizes, or the
+ *  @c NoCategoryPrincipal sentinel when the carrier is not @c IsPosetal.
+ *  Consumed only through @c decltype (never called), so the sentinel branch
+ *  costs nothing at runtime. */
+template <typename T, auto Pivot, Direction D>
+consteval auto principal_of() {
+  if constexpr (dedekind::category::IsPosetal<T>) {
+    if constexpr (D == Direction::Upward)
+      return dedekind::category::PrincipalFilter<T, Pivot>{};
+    else
+      return dedekind::category::PrincipalIdeal<T, Pivot>{};
+  } else {
+    return NoCategoryPrincipal{};
+  }
+}
+}  // namespace detail_principal
+
 /**
  * @brief Halfspace predicate { x ∈ T | x ⋈ Pivot } with Pivot at the type
  * level.
  *
  * `⋈` ∈ { >, >=, <, <= }, selected by `D` (direction) and `S` (strictness).
  */
+
+/**
+ * @details #946 factoring: a @c Halfspace is the @b :order (set-theoretic)
+ * realization of a @b :category principal filter/ideal.  The pure
+ * order-theoretic content --- the pivot and the meet (glb) as a @c Sup / @c Inf
+ * collapse (↑a∩↑b = ↑(a∨b), ↓a∩↓b = ↓(a∧b)) --- lives upstream in the
+ * @c PrincipalFilter / @c PrincipalIdeal proto-set (exposed as @c principal);
+ * the set-theoretic content that references ETCS explicitly --- the L-valued
+ * characteristic map χ (@c operator()), the subobject inclusion ι (@c SetExpr),
+ * and the @c cardinality_type --- stays here.  @c structured_and delegates the
+ * pivot collapse to @c principal's @c operator& (Davey & Priestley §1.27/§2.20;
+ * Nation, @e Notes on Lattice Theory §1).  Strictness @c S is an @c :order
+ * refinement (which boundary point is excised), so it is combined locally.
+ */
 export template <typename T, auto Pivot, Direction D, Strictness S,
                  typename L = Boole>
 struct Halfspace : dedekind::sets::SetExpr<Halfspace<T, Pivot, D, S, L>, T, L> {
-  // A Halfspace value is an INHABITED cut by construction (#832): an empty
-  // configuration (@c {x>max(T)}, @c {x<min(T)}) is ill-formed here and must be
-  // spelt @c Ø --- @c make_halfspace collapses it, so no code path forms one.
-  // The gate closes raw construction, making @f$\emptyset = \text{Halfspace}@f$
-  // a genuine type-level impossibility rather than a factory convention.
   static_assert(!halfspace_is_empty<T, Pivot, D, S>(),
-                "empty halfspace is not representable: construct through the "
-                "DSL / make_halfspace (which yields Ø), never the raw type");
-  // Domain / Codomain / logic_species / Member / ι are inherited from SetExpr
-  // (the ETCS subobject surface): a bare Halfspace is a first-class
-  // @c IsSubobject (ι: S ↣ T) whose χ is @c operator() below.  This is the same
-  // mixin @c Interval / @c Ray / @c Singleton fold onto, so the subobject
-  // boilerplate lives in exactly one place (#806 follow-up dedup).
+                "an empty halfspace is the EmptySet, never a Halfspace value; "
+                "make_halfspace collapses that boundary case (#832).");
+
   static constexpr auto pivot = Pivot;
   static constexpr Direction direction = D;
   static constexpr Strictness strictness = S;
-
-  /** @brief Carrier-axis cardinality of the cut, threaded so the decidability
-   *  classifier (@c sets::NaturalLogic) reads a halfspace the SAME way it reads
-   *  the ambient it was carved from (#848/#927).
-   *
-   *  @details A @b conservative classification bound, NOT the cut's exact size:
-   *  a halfspace is at most equinumerous with its carrier, so the bound is
-   *  @f$\aleph_0@f$ over a countable carrier and @f$\beth_1@f$ over a
-   * continuum. A @b bounded cut (e.g.\ @c {x∈ℕ|x<5}) is actually @c Finite; the
-   * bound only has to be tight enough for the @c NaturalLogic verdict
-   * (countable ⟹
-   *  @c Boole/decidable, uncountable ⟹ @c Kleene), which the finite and
-   *  @f$\aleph_0@f$ cases share.  The class is resolved by @ref
-   *  carrier_cardinality: a self-declaring carrier (@c ℚ = @c Rational →
-   *  @c ℵ_0) is trusted, else the @c IsRingIntegral discriminator applies. This
-   *  reproduces the tag the ambient @c UniversalSet<T,L,C> carries for the
-   *  canonical carriers, so the point-free @c A @c | @c pred comprehension
-   *  classifies identically to the (deprecated) scout @c element<A> @c | @c
-   * pred spelling, whose @c Comprehension inherits @c C directly.  Without this
-   *  typedef @c NaturalLogic<Halfspace> hit its pessimistic primary-template
-   *  fallback (@c Kleene / @c TernaryLogic).
-   *
-   *  @note This is the carrier-axis @b magnitude, NOT the ambient's own @c C
-   *  slot, which the @c Halfspace type does not carry.  The two need not be the
-   *  @b identical tag; what @c NaturalLogic reads off is the @b countability
-   *  @b class (countable ⟹ @c Boole, uncountable ⟹ @c Kleene), and parity with
-   *  the scout holds whenever the carrier axis and the ambient @c C share that
-   *  class.  The @b canonical and @b self-declaring carriers satisfy this:
-   *  ℕ/ℤ via @c IsRingIntegral, ℚ (and any carrier that self-declares) via its
-   *  own @c cardinality_type, and ℝ (@c QuadraticReal) as the continuum.  A
-   *  @b custom ordered carrier that is countable but neither @c IsRingIntegral
-   *  nor self-declaring falls through to @c ℶ_1 here, even though its default
-   *  @c 𝔸 ambient carries @c ℵ_0; it must self-declare (as ℚ does) to classify
-   *  decidably.  The exact tags may also differ within a class, e.g.\
-   *  @c 𝔸<bool> carries @c Finite (@c boundaries.cppm) while this fallback maps
-   *  @c bool to @c ℵ_0 --- both countable, same @c Boole verdict.  Only a
-   *  @b deliberately incoherent tag
-   *  that crosses classes is not honoured: an int carrier advertised as the
-   *  continuum (@c UniversalSet<int,Boole,ℶ_1>, the Mandelbrot stand-in at
-   *  @c computability_test.cpp) classifies @c ℵ_0 by its integer carrier while
-   *  the scout keeps @c ℶ_1.  That does not arise from a real halfspace (no
-   *  continuum is genuinely carried by @c int), so the carrier axis is the
-   *  honest source.  The dual incoherence (a countable carrier tagged with
-   *  @c Kleene logic, @c UniversalSet<int,Kleene>) once surfaced a @c Set
-   * codomain mismatch when this promoted @c Boole class disagreed with the
-   * predicate's own @c Kleene answer; resolved in #928 by having the
-   * @c Set (and comprehension / scout) deduction guides derive the codomain
-   * from the predicate's @b actual @c operator() RETURN type (@c GetLogic of
-   * the membership answer) joined with this carrier-axis @c NaturalLogic
-   * verdict.  A halfspace returning @c Ternary thus promotes to @c Kleene via
-   * its return (even untagged), while a @c bool return keeps the carrier
-   * verdict, so ℝ's ℶ_1 halfspace stays @c Kleene; this
-   * @c cardinality_type still governs the carrier axis unchanged.
-   * Reproducing an arbitrary explicit
-   * @c C exactly would require threading it as a sixth @c Halfspace template
-   * parameter (FIXME(#848): ~120 pattern-matched sites). */
   using cardinality_type = carrier_cardinality_t<T>;
 
-  // `Pivot` may be a different structural type than `T` (e.g., pivot = 5.0 as
-  // double, T = Real<double>). The carrier's converting ctor / overload set
-  // handles the comparison; we only assume `T` is comparable with the pivot.
-  // Return type is spelt @c L::Ω (not the inherited @c Codomain, which
-  // unqualified lookup would miss through the dependent SetExpr base).
+  /** @brief The @b :category proto-set this halfspace realizes: the principal
+   *  filter ↑Pivot (Upward) or ideal ↓Pivot (Downward) --- @b when the carrier
+   *  is a @c :category poset.  It owns the pivot and the order/meet
+   *  (↑a∩↑b=↑(a∨b), ↓a∩↓b=↓(a∧b)); @c Halfspace adds the strictness refinement,
+   *  the logic species @c L, and the ETCS subobject surface (option (a):
+   *  composition on the principal).
+   *
+   *  @note Two-tier seam (#946): a halfspace ranges over carriers strictly
+   *  wider than @c :category posets.  @c double (NaN breaks the order, so the
+   *  float-lattice gate #933/#934 rejects it) and the Cardinality variant host
+   *  halfspaces via heterogeneous comparison (#423/#425) yet admit @b no
+   *  principal filter.  There @c principal is the @c NoCategoryPrincipal
+   *  sentinel: the realization link is honestly absent, marking that @c :order
+   *  halfspaces are more general than @c :category principal filters. */
+  using principal = decltype(detail_principal::principal_of<T, Pivot, D>());
+
+  /** @brief χ: the L-valued membership predicate.  The @b closed (non-strict)
+   *  half is exactly @c principal's membership (Pivot ≤ x, resp. x ≤ Pivot);
+   *  a @c Strict halfspace refines it by excising the pivot itself.  Spelt with
+   *  the carrier's own (possibly heterogeneous, #423/#425) comparison so
+   *  cross-type carriers (Cardinality / SignedCardinality) keep working. */
   constexpr typename L::Ω operator()(const T& x) const {
     if constexpr (D == Direction::Upward) {
       const bool hit = (S == Strictness::Strict) ? (x > Pivot) : (x >= Pivot);
@@ -749,6 +740,26 @@ struct OrderInterval
 
   // Advertise Finite only when the cardinality is computable.
   using cardinality_type = std::conditional_t<is_integer_range, Finite, ℵ_0>;
+
+  /** @brief π1 / π2: the pullback legs [Lo,Hi] ↪ ↑Lo and [Lo,Hi] ↪ ↓Hi (#946).
+   *  The crossing interval IS the pullback of its two bounding halfspaces'
+   *  inclusions over the ambient carrier: ↑Lo ↪ T ↩ ↓Hi (the meet-as-pullback
+   *  in Sub(T), mirroring @c sets::MeetSet ⊨ @c IsPullback #881).  A member ---
+   *  a T-value lying in BOTH halfspaces --- re-views as a member of each
+   *  (identity on the value), the co-restriction leg.  Whereas the @b :category
+   *  crossing @c operator& witnesses only @c IsProduct (product = pullback in
+   *  the thin poset Sub(T), but no ι upstream), here in @b :order the ι
+   *  inclusions exist, so the interval upgrades to a genuine @c IsPullback
+   * apex. Deduced return type so the bounding @c Halfspace types (and their
+   *  @c !is_empty assert) instantiate only on use, never at the class
+   *  instantiation of a degenerate/empty interval. */
+  constexpr auto π1(const auto& m) const {
+    return typename Halfspace<T, Lo, Direction::Upward, SL, L>::Member{m.value};
+  }
+  constexpr auto π2(const auto& m) const {
+    return
+        typename Halfspace<T, Hi, Direction::Downward, SU, L>::Member{m.value};
+  }
 };
 
 /** @section halfspace__Halfspace_Structural_Algebra — ADL hooks for operator&&.
@@ -828,7 +839,13 @@ constexpr auto structured_and(Halfspace<T, Hi, Direction::Downward, SU, L>,
                         Halfspace<T, Hi, Direction::Downward, SU, L>{});
 }
 
-/** @brief Same-direction upward meet: the stricter pivot wins. */
+/** @brief Same-direction upward meet ↑P1 ∩ ↑P2 = ↑(P1∨P2): the larger pivot
+ *  wins (the principal-filter law).  Computed on the pivots' own (total) order,
+ *  NOT via @c principal's @c operator& --- that would demand the carrier be a
+ *  @b :category lattice, but halfspaces range over totally-ordered-but-not-
+ *  lattice carriers too (@c double under the float gate #933/#934, the
+ *  Cardinality variant), so the meet needs only a total order on pivots.  Where
+ *  the carrier IS posetal the two agree; see the @c principal witness. */
 export template <typename T, auto P1, auto P2, Strictness S1, Strictness S2,
                  typename L>
 constexpr auto structured_and(Halfspace<T, P1, Direction::Upward, S1, L>,
@@ -847,7 +864,8 @@ constexpr auto structured_and(Halfspace<T, P1, Direction::Upward, S1, L>,
   }
 }
 
-/** @brief Same-direction downward meet: the stricter pivot wins. */
+/** @brief Same-direction downward meet ↓P1 ∩ ↓P2 = ↓(P1∧P2): the smaller pivot
+ *  wins.  Total-order-only, like the upward dual (see the note there). */
 export template <typename T, auto P1, auto P2, Strictness S1, Strictness S2,
                  typename L>
 constexpr auto structured_and(Halfspace<T, P1, Direction::Downward, S1, L>,
@@ -864,6 +882,71 @@ constexpr auto structured_and(Halfspace<T, P1, Direction::Downward, S1, L>,
     return Halfspace<T, P1, Direction::Downward, S, L>{};
   }
 }
+
+namespace detail_946_agreement {
+/** @details #946 reduction witness.  On the posetal fragment (@c int here is a
+ *  @c :category poset) the @b :order halfspace's same-direction meet AGREES
+ *  with the @b :category principal-filter meet ↑a∩↑b = ↑(a∨b) / ↓a∩↓b = ↓(a∧b):
+ *  the halfspace meet IS "clever pivoting" on the principal exactly where the
+ *  carrier admits a principal.  OFF that fragment --- @c double (NaN,
+ * #933/#934) and Cardinality (CH-independence) --- no principal exists and the
+ * halfspace is the strictly-more-general @c :order object (see @c
+ * Halfspace::principal). Comparing @c ::pivot pins the agreement structurally,
+ * not behaviourally. */
+using UpHi = Halfspace<int, 5, Direction::Upward, Strictness::NonStrict>;
+using UpLo = Halfspace<int, 3, Direction::Upward, Strictness::NonStrict>;
+using DnHi = Halfspace<int, 5, Direction::Downward, Strictness::NonStrict>;
+using DnLo = Halfspace<int, 3, Direction::Downward, Strictness::NonStrict>;
+static_assert(dedekind::category::IsPosetal<int>,
+              "int is a :category poset --- the clean fragment where a "
+              "halfspace realizes an honest principal filter/ideal.");
+static_assert(decltype(structured_and(UpHi{}, UpLo{}))::pivot ==
+                  decltype(UpHi::principal{} & UpLo::principal{})::pivot,
+              "↑5 ∩ ↑3 = ↑(5∨3): the :order upward meet reduces to the "
+              ":category principal-FILTER meet (Sup) on the posetal fragment.");
+static_assert(decltype(structured_and(DnHi{}, DnLo{}))::pivot ==
+                  decltype(DnHi::principal{} & DnLo::principal{})::pivot,
+              "↓5 ∩ ↓3 = ↓(5∧3): the :order downward meet reduces to the "
+              ":category principal-IDEAL meet (Inf) on the posetal fragment.");
+
+/** @details #946 crossing witness.  The crossing meet ↑3 ∩ ↓7 = [3,7] IS the
+ *  pullback of the two bounding halfspaces' inclusions over the ambient carrier
+ *  (↑3 ↪ int ↩ ↓7): the @b :order realization upgrades the @b :category
+ *  @c IsProduct (product = pullback in the thin poset Sub(int), witnessed
+ *  upstream WITHOUT ι) to a genuine @c IsPullback now that the ι inclusions
+ *  exist here.  This is the @c :order twin of @c sets::MeetSet ⊨ @c IsPullback
+ *  (#881), and discharges the "witness IsPullback downstream" promise of the
+ *  crossing-meet commit. */
+using Lo3 = Halfspace<int, 3, Direction::Upward, Strictness::NonStrict>;
+using Hi7 = Halfspace<int, 7, Direction::Downward, Strictness::NonStrict>;
+using Interval37 = decltype(structured_and(Lo3{}, Hi7{}));
+static_assert(dedekind::category::IsPullback<
+                  Interval37, decltype(dedekind::sets::inclusion_arrow(Lo3{})),
+                  decltype(dedekind::sets::inclusion_arrow(Hi7{}))>,
+              "[3,7] = ↑3 ∩ ↓7 is the pullback of the cospan ↑3 ↪ int ↩ ↓7 "
+              "(legs π1/π2 the co-restrictions); meet = pullback in Sub(int). "
+              "#946.");
+
+/** @details #946 characteristic witness (answers the @c :posetal review note:
+ *  @c PrincipalFilter / @c PrincipalIdeal declare @c Codomain @c = @c bool, and
+ *  @c bool IS a classifier Ω).  Discharged HERE in @c :order rather than at the
+ *  struct definitions because @c IsCharacteristic lives in @c :topoi, which is
+ *  assembled AFTER @c :posetal (DAG: @c :order is downstream of both).  A
+ *  principal is a bona-fide predicate / characteristic map T → Ω=bool. */
+static_assert(
+    dedekind::category::IsΩ<bool>,
+    "bool is a classifier Ω --- its logical operators close (:logic), "
+    "so the proto-set's Codomain=bool is a genuine truth-object.");
+static_assert(
+    dedekind::category::IsCharacteristic<
+        dedekind::category::PrincipalFilter<int, 5>>,
+    "the principal FILTER ↑5 is a characteristic map χ: int → Ω (a predicate); "
+    "bool suffices as the proto-set Ω, the general L rides on Halfspace.");
+static_assert(
+    dedekind::category::IsCharacteristic<
+        dedekind::category::PrincipalIdeal<int, 5>>,
+    "the principal IDEAL ↓5 is a characteristic map χ: int → Ω (a predicate).");
+}  // namespace detail_946_agreement
 
 /** @section halfspace__Halfspace_Structural_Join — @c structured_or, the JOIN
  *  (∪) dual of @c structured_and: it makes the union COLLAPSE symmetrically to
