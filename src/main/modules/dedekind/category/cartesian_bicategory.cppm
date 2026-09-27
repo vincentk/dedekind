@@ -511,17 +511,23 @@ static_assert(
 //
 // Same-direction principal meets collapse to a principal (the pivots' Sup /
 // Inf, :posetal).  The CROSSING meet of a filter ↑a and an ideal ↓b is
-// genuinely a NEW object --- the order interval [a,b] --- which is the
-// categorical PRODUCT (pullback) of the two principals (Davey & Priestley, @e
-// Introduction @e to
-// @e Lattices @e and @e Order 2e §2; the sets meet-as-pullback #881).  So it is
-// the lattice @c Meet AST node, and @c IsProduct certifies it (forced witness).
+// genuinely a NEW object --- the order interval [a,b].  It wears two hats: in
+// the subobject poset it is the PRODUCT (glb), and over the ambient @c T it is
+// the PULLBACK of the two inclusions @f$\uparrow\!a \hookrightarrow T
+// \hookleftarrow \downarrow\!b@f$ (Davey & Priestley §2; the sets meet-as-
+// pullback #881).  HERE we witness only @c IsProduct: it is the lattice @c Meet
+// AST node, certified a product via its @c π_1 / @c π_2 projections.  The
+// PULLBACK reading needs the @b cospan --- the subobject inclusions @c ι into
+// @c T --- which are set-theoretic arrows the proto-set does NOT carry upstream
+// (@c :category has only @c χ:T→bool).  So @c IsPullback is witnessed
+// DOWNSTREAM in @c :order, where the interval's @c ι exists (matching @c
+// sets::MeetSet ⊨ IsPullback, #881), in the same PR.
 //
 // Two-tier split (#946): here (@c :category, pragmatic) the crossing meet just
 // FORMS the product [a,b] as a term --- no arithmetic.  The interval's set-
-// theoretic REALIZATION (membership a≤x≤b, the empty a≰b → Ø, the discrete
-// singleton, the pole/boundedness reading) is the strict downstream concern in
-// @c :order / @c :sets, asserted in the same PR.
+// theoretic REALIZATION (the @c ι inclusions + @c IsPullback, membership
+// a≤x≤b, the empty a≰b → Ø, the discrete singleton, the pole/boundedness
+// reading) is the strict downstream concern in @c :order / @c :sets.
 export template <typename T, auto A, auto B, typename Ord>
 constexpr auto operator&(PrincipalFilter<T, A, Ord> f,
                          PrincipalIdeal<T, B, Ord> i) {
