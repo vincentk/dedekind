@@ -39,14 +39,15 @@ using dedekind::order::operator""_c;
 // Boole logic (the actual surface under test), per #927 review.
 using QHalfspace =
     std::remove_cvref_t<decltype(ℚ | (dedekind::sets::π > fix(5_c)))>;
-// The public expression really does bind the ℚ carrier and the Above<5> cut.
+// The public expression really does bind the ℚ carrier and the Above cut
+// (#965: value-carrying, so the pivot 5 rides in the instance, not the type).
 static_assert(
     std::same_as<
         QHalfspace,
         dedekind::order::Halfspace<
-            Rational<default_integer>, 5, dedekind::order::Direction::Upward,
+            Rational<default_integer>, dedekind::order::Direction::Upward,
             dedekind::order::Strictness::Strict, dedekind::category::Boole>>,
-    "ℚ | (π > fix(5_c)) binds to the Above<5> halfspace over Rational.");
+    "ℚ | (π > fix(5_c)) binds to the Above halfspace over Rational.");
 // Carrier-axis magnitude is countable ℵ_0, matching the ambient's own C.
 static_assert(
     std::same_as<typename QHalfspace::cardinality_type, dedekind::sets::ℵ_0>,
