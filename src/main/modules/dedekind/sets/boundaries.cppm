@@ -452,6 +452,71 @@ static_assert(
                                   Universe<bool, Boole, Finite>>,
     "the universe of a pair carrier is the product of the factor universes.");
 
+}  // namespace dedekind::sets
+
+// ── The legs of the category-level set objects ───────────────────────────────
+//
+// ADL reaches a type only through its own namespace (and its template
+// arguments' / bases'), so the set objects that live in dedekind::category ---
+// the ETCS Subobject<A,χ> and the lattice nodes Meet / Join / Not over such
+// operands --- cannot see the dedekind::sets defaults above.  Their legs are
+// declared in THEIR namespace, defined here where 𝔸 exists (the same seam the
+// reducer's trait specialisations use).  A node's universe is its operands'
+// (the mereological whole is shared, a node only selects a part of it); a
+// node's classifier is the node itself (the AST is the set).  Over operands
+// from dedekind::sets, ADL finds these AND the generic default; the node
+// overloads are the more specialised and win.
+namespace dedekind::category {
+
+template <typename A, typename Chi>
+constexpr auto universe(const Subobject<A, Chi>&) {
+  return dedekind::sets::𝔸<A, typename Subobject<A, Chi>::logic_species>;
+}
+template <typename A, typename Chi>
+constexpr const Subobject<A, Chi>& classifier(const Subobject<A, Chi>& s) {
+  return s;
+}
+
+template <typename A>
+  requires requires(const A& a) { universe(a); }
+constexpr auto universe(const Not<A>& n) {
+  return universe(n.base);
+}
+template <typename A>
+constexpr const Not<A>& classifier(const Not<A>& n) {
+  return n;
+}
+
+template <typename A, typename B>
+  requires requires(const A& a) { universe(a); }
+constexpr auto universe(const Meet<A, B>& m) {
+  return universe(π_1(m));
+}
+template <typename A, typename B>
+constexpr const Meet<A, B>& classifier(const Meet<A, B>& m) {
+  return m;
+}
+
+template <typename A, typename B>
+  requires requires(const A& a) { universe(a); }
+constexpr auto universe(const Join<A, B>& j) {
+  return universe(π_1(j));
+}
+template <typename A, typename B>
+constexpr const Join<A, B>& classifier(const Join<A, B>& j) {
+  return j;
+}
+
+}  // namespace dedekind::category
+
+namespace dedekind::sets {
+
+static_assert(IsSetObject<Meet<Ø<int>, Universe<int>>>,
+              "a lattice node over set objects is a set object, with the "
+              "operands' universe.");
+static_assert(IsSetObject<Not<Ø<int>>>,
+              "the complement of a set object is a set object.");
+
 /** @brief The subset (⊆) order on the subobject lattice @c Sub(T), keyed by the
  *  logic species @c L.  This is the @b injected order (@c Ord) under which the
  *  generic lattice-law term reducer (@c category:lattice_term, #865/#890)

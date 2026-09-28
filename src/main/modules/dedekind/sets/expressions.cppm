@@ -940,10 +940,18 @@ constexpr auto operator&(const LHS& lhs, const RHS& rhs) {
       // collapse).  Meet, not the structured_and leaf below --- a Not node
       // has no @c .predicate().
       return finalize_combine(Meet<RHS, LHS>{rhs, lhs});
-    } else {
+    } else if constexpr (requires {
+                           lhs.predicate();
+                           rhs.predicate();
+                         }) {
       // SetCombine collapsed two plain-set leaves via structured_and.
       return finalize_combine(elevate_meet<T, Log>(
           structured_and(lhs.predicate(), rhs.predicate())));
+    } else {
+      // A normal form the type-level cascade above does not name (e.g. a law
+      // reassociating through a node operand): the value-first reducer folds
+      // it, and its result is a set object by construction.
+      return subobject_reduce<Log, SetCombine>(Meet<LHS, RHS>{lhs, rhs});
     }
   }
 }
@@ -980,9 +988,14 @@ constexpr auto operator|(const LHS& lhs, const RHS& rhs) {
     } else if constexpr (std::same_as<R, Join<RHS, LHS>>) {
       // Commutatively canonicalised operands (see the meet dual above).
       return finalize_combine(Join<RHS, LHS>{rhs, lhs});
-    } else {
+    } else if constexpr (requires {
+                           lhs.predicate();
+                           rhs.predicate();
+                         }) {
       return finalize_combine(elevate_join<T, Log>(
           structured_or(lhs.predicate(), rhs.predicate())));
+    } else {
+      return subobject_reduce<Log, SetCombine>(Join<LHS, RHS>{lhs, rhs});
     }
   }
 }
