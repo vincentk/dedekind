@@ -22,7 +22,7 @@
  * recovering the pre-image in @c unsigned is a @b strength reduction: the
  * composite predicate @f$u \mapsto (\Phi(u) \le 10)@f$ (embed through four
  * carriers, compare in @f$\mathbb{Q}(\sqrt2)@f$) collapses to the native
- * @f$u \le 10@f$ --- a first-class compile-time @c Halfspace<unsigned,10> ---
+ * @f$u \le 10@f$ --- a first-class @c Halfspace<unsigned> pinned at 10 ---
  * because @c Φ is monotone.
  *
  * The @b modular half: @c unsigned @c = @c ℤ/2^wℤ is the periodic base
@@ -88,7 +88,7 @@ static_assert(!Γ_Φ(std::pair{3u, R2::root()}), "(3, √2) does not.");
 
 // ==================  Strength reduction: {x ≤ 10} pulls back =================
 // The composite ℝ-predicate reduces to the native unsigned comparison — and the
-// reduced form is a first-class COMPILE-TIME Halfspace<unsigned, 10, ≤>.
+// reduced form is a first-class value Halfspace<unsigned, ≤> pinned at 10.
 using ReducedLeTen =
     Halfspace<unsigned, Direction::Downward, Strictness::NonStrict>;
 constexpr ReducedLeTen native_le_ten{10u};  // pivot rides in the value
