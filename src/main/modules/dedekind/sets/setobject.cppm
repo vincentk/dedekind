@@ -180,7 +180,9 @@ struct is_set_object<dedekind::category::Not<A>> : is_set_object<A> {};
  *  nodes: @c Ø<T,Kleene> @c ∧ @c S<T,Boole> is a set object whose reduction the
  *  bounded law and the codomain leg decide. */
 export template <typename S>
-concept IsSetObject = is_set_object<S>::value;
+concept IsSetObject =
+    is_set_object<std::remove_cvref_t<S>>::value;  // decays: decltype(a & b) is
+                                                   // const
 
 /** @brief The type of a set object's universe leg. */
 export template <IsSetObject S>
