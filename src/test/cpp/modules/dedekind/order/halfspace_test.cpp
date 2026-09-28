@@ -124,7 +124,7 @@ namespace {
 template <Direction D, Strictness S>
 using HS = Halfspace<int, D, S, Boole>;
 // A function-pointer predicate (not a class functor): a Set over one must still
-// combine through the free set operators (exercised via a MeetSet below).
+// combine through the free set operators (exercised via a Meet below).
 constexpr bool is_pos(int x) { return x > 0; }
 }  // namespace
 
@@ -187,7 +187,8 @@ TEST_CASE("order:halfspace — covering XOR stays an IsSet (#864 CP review)",
       HS<Direction::Upward, Strictness::Strict>{10}};
   constexpr Set<int, Boole, HS<Direction::Downward, Strictness::Strict>> b{
       HS<Direction::Downward, Strictness::Strict>{100}};
-  STATIC_CHECK(IsSet<std::decay_t<decltype(a ^ b)>>);
+  STATIC_CHECK(
+      IsSetObject<decltype(a ^ b)>);  // a node: a set object, structurally
   // △ = in exactly one: {x ≤ 10} ∪ {x ≥ 100} (the complement of the overlap).
   CHECK((a ^ b)(5));         // in b, not a
   CHECK((a ^ b)(200));       // in a, not b
@@ -195,20 +196,21 @@ TEST_CASE("order:halfspace — covering XOR stays an IsSet (#864 CP review)",
 }
 
 TEST_CASE(
-    "order:halfspace: MeetSet/JoinSet fallbacks are directly covered "
-    "(#365/#892)",
+    "order:halfspace: the irreducible Meet / Join fallbacks are directly "
+    "covered (#365/#892)",
     "[order][halfspace][set][predicate]") {
   SECTION(
-      "function-pointer predicate combines via the free operator& (a "
-      "MeetSet)") {
+      "function-pointer predicate combines via the free operator& (an "
+      "irreducible Meet node, itself a set object)") {
     constexpr Set<int, Boole, bool (*)(int)> pos{&is_pos};  // x > 0
     constexpr Set<int, Boole, HS<Direction::Downward, Strictness::Strict>> cap{
         HS<Direction::Downward, Strictness::Strict>{10}};  // x < 10
     using M = std::decay_t<decltype(pos & cap)>;
-    STATIC_CHECK(std::same_as<
-                 M, MeetSet<Set<int, Boole, bool (*)(int)>,
-                            Set<int, Boole,
-                                HS<Direction::Downward, Strictness::Strict>>>>);
+    STATIC_CHECK(
+        std::same_as<M,
+                     Meet<Set<int, Boole, bool (*)(int)>,
+                          Set<int, Boole,
+                              HS<Direction::Downward, Strictness::Strict>>>>);
     CHECK((pos & cap)(5));         // 0 < 5 < 10
     CHECK_FALSE((pos & cap)(-1));  // not > 0
     CHECK_FALSE((pos & cap)(20));  // not < 10
@@ -520,7 +522,7 @@ TEST_CASE("order:halfspace — the factory makes a Halfspace a proper cut (#832)
     static_assert(
         std::same_as<decltype(make_halfspace<Cardinality, 0, Direction::Upward,
                                              Strictness::NonStrict>()),
-                     UniversalSet<Cardinality, Boole>>,
+                     Universe<Cardinality, Boole>>,
         "{x≥0} on ℕ = ℕ (moot constraint drops)");
     // An interior cut stays a proper Halfspace.
     static_assert(
@@ -534,7 +536,7 @@ TEST_CASE("order:halfspace — the factory makes a Halfspace a proper cut (#832)
   SECTION("the DSL routes through the factory") {
     // The DSL surface collapses a moot cut: {x≥0} on ℕ = ℕ.
     static_assert(std::same_as<std::decay_t<decltype(ℕ | (χ >= fix(0_c)))>,
-                               UniversalSet<Cardinality, Boole>>,
+                               Universe<Cardinality, Boole>>,
                   "ℕ | (χ >= fix(0_c)) = ℕ");
   }
 

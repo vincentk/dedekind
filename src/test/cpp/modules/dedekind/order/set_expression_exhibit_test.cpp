@@ -19,7 +19,7 @@
  * point-wise set that still DECIDES membership (it covers ℤ).  This mirrors the
  * ℕ leg of pruning_lattice_laws_test.
  *
- * The former type-level term-reducer exhibits (MeetSet/JoinSet materialisation
+ * The former type-level term-reducer exhibits (Meet/Join materialisation
  * + absorption + involution; subobject distributivity to DNF) reduced
  * halfspaces by reading their pivots FROM THE TYPE, which value-carrying pivots
  * preclude. Those two axes retired; reconciliation is tracked in #970 (the

@@ -159,7 +159,7 @@ TEST_CASE("Topology: Rules of Continuity Coverage", "[topology][continuity]") {
 
     // @c open_mid is itself the membership predicate; pass it directly (no
     // forwarding lambda).
-    auto in_open_mid = Set{Comprehension{UniversalSet<int>{}, open_mid}};
+    auto in_open_mid = Set{Comprehension{Universe<int>{}, open_mid}};
 
     CHECK(in_open_mid(1));
     CHECK_FALSE(in_open_mid(0));
@@ -172,7 +172,7 @@ TEST_CASE("Topology: Ø/𝔸 in the clopen ∩ decidable boundary core (Stone)",
   using namespace dedekind::sets;
   using namespace dedekind::category;
   using Emptyℤ = Ø<int, Boole>;
-  using Universeℤ = UniversalSet<int, Boole>;
+  using Universeℤ = Universe<int, Boole>;
 
   SECTION("Ø and 𝔸 are clopen (∅ and X are open ∧ closed in every topology)") {
     static_assert(IsClopen<Emptyℤ>, "Ø is clopen");
@@ -228,7 +228,7 @@ TEST_CASE("Topology: Ø/𝔸 in the clopen ∩ decidable boundary core (Stone)",
     // membership is NOT decidable: the clopen certificate is conservative, it
     // does not by itself certify Boole-decidability off the core.
     using EmptyK = Ø<int, Kleene>;
-    using UniverseK = UniversalSet<int, Kleene>;
+    using UniverseK = Universe<int, Kleene>;
     static_assert(IsClopen<EmptyK> && !HasDecidableMembership<EmptyK>,
                   "Ø<int,Kleene> is clopen but not decidable-membership");
     static_assert(IsClopen<UniverseK> && !HasDecidableMembership<UniverseK>,

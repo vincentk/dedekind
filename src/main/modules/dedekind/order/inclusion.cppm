@@ -74,7 +74,7 @@ concept HasProperSubset = HasSubset<A, B> && requires(const A& a, const B& b) {
 };
 
 /** @brief @f$A \subseteq B \iff A \cap B = A@f$ --- the generic identity.
- *  More-specialized per-carrier @c <= (@c Set / @c Ø / @c UniversalSet, the
+ *  More-specialized per-carrier @c <= (@c Set / @c Ø / @c Universe, the
  *  @c Singleton membership and @c OrderInterval endpoints below) win by partial
  *  ordering; this fills the gaps (@c Halfspace ⊆ @c Halfspace). */
 export template <typename A, typename B>

@@ -74,22 +74,24 @@ static_assert(dedekind::category::IsMonicArrow<decltype(iota_A)>,
               "so it is registered monic (generic mono/image code accepts it). "
               "#881.");
 static_assert(
-    dedekind::category::IsPullback<decltype(meet_set), decltype(iota_A),
-                                   decltype(iota_B)>,
+    dedekind::category::IsPullback<decltype(as_pullback(meet_set)),
+                                   decltype(iota_A), decltype(iota_B)>,
     "the applied meet A & B is the pullback of its two concrete sets (the "
     "cospan ι_A, ι_B); in Sub(U) product = pullback = meet. #881.");
 
-// #892: the reducer's meet lifted into IsSet.  MeetSet<A,B> INHERITS the
+// #892: the reducer's meet lifted into IsSet.  Meet<A,B> INHERITS the
 // lattice meet's algebra and adds the Set-specific subobject surface, so it IS
 // a set that carries its two underlying sets (A, B are IsSet).  π_1 / π_2
 // recover them BY REFERENCE: a bona fide IsSet each, no sub-structure copied
 // (Pierce).  ι is the identity inclusion (homogeneous by default).
-using MeetLift = MeetSet<A_set, B_set>;
+using MeetLift = Meet<A_set, B_set>;
 constexpr MeetLift meet_lift{a_set, b_set};
-static_assert(IsSet<MeetLift>,
-              "the lifted meet IS a set (the reducer AST node, promoted).");
-static_assert(IsSubobject<MeetLift, int>,
-              "…and a subobject of the ambient int with the identity ι.");
+static_assert(
+    IsSetObject<MeetLift>,
+    "the meet node IS a set object (structurally: the AST is the set).");
+static_assert(IsSubobject<decltype(as_pullback(meet_lift)), int>,
+              "…and its pullback apex is a subobject of the ambient int with "
+              "the identity ι (the apex legs are a sets-side view).");
 static_assert(
     IsSet<std::remove_cvref_t<decltype(π_1(meet_lift))>>,
     "π_1(meet) is a bona fide IsSet (the underlying set A), not a bare "
@@ -101,7 +103,7 @@ static_assert(π_1(meet_lift)(4) && !π_1(meet_lift)(3),
               "π_1(meet) recovers A = IsEven and evaluates as that set.");
 static_assert(IsArrowProduct<MeetLift, A_set, B_set>,
               "the lifted meet is an ARROW product: π_1 / π_2 are genuine "
-              "morphisms MeetSet → A / MeetSet → B (arrow-shaped signatures).");
+              "morphisms Meet → A / Meet → B (arrow-shaped signatures).");
 
 // The sets meet A & B IS a model of the spider composite meet
 // Intersect = Δ†∘(A⊗B)∘Δ; that apex (and its pointwise agreement with operator&
@@ -110,7 +112,7 @@ static_assert(IsArrowProduct<MeetLift, A_set, B_set>,
 
 // #881: the Sub(U) bounds ARE the categorical initial / terminal objects (⊥/⊤
 // of the subobject lattice): Ø is classified by the always-false predicate,
-// UniversalSet by the always-true.  Now tagged, they participate in :limit's
+// Universe by the always-true.  Now tagged, they participate in :limit's
 // IsInitialObject / IsTerminalObject (the same tag-discovery branch the lattice
 // bounds use), so the pushout span reuses the canonical initial-object arrow
 // instead of a hand-rolled struct.
@@ -118,8 +120,8 @@ static_assert(dedekind::category::IsInitialObject<
                   dedekind::sets::Ø<int, dedekind::category::Boole>>,
               "Ø is the initial object (⊥) of Sub(U). #881.");
 static_assert(
-    dedekind::category::IsTerminalObject<dedekind::sets::UniversalSet<int>>,
-    "UniversalSet is the terminal object (⊤) of Sub(U). #881.");
+    dedekind::category::IsTerminalObject<dedekind::sets::Universe<int>>,
+    "Universe is the terminal object (⊤) of Sub(U). #881.");
 
 // #881 step 4: dually, the APPLIED join A | B is the PUSHOUT of its two
 // concrete sets --- the coproduct over the initial ∅ (span ∅ ⟶ A, ∅ ⟶ B), with
@@ -132,18 +134,20 @@ using SpanToA = dedekind::sets::InitialObjectArrow<Empty, A_set>;  // ∅ ⟶ A
 using SpanToB = dedekind::sets::InitialObjectArrow<Empty, B_set>;  // ∅ ⟶ B
 constexpr auto join_set = a_set | b_set;
 static_assert(
-    dedekind::category::IsPushout<decltype(join_set), SpanToA, SpanToB>,
+    dedekind::category::IsPushout<decltype(as_pushout(join_set)), SpanToA,
+                                  SpanToB>,
     "the applied join A | B is the pushout of its two concrete sets (the span "
     "from ∅, colegs ι1/ι2); in Sub(U) pushout = coproduct = join. #881 step "
     "4.");
 // Precision: the meet is not a pushout and the join is not a pullback (the
 // ∧/∨ factories gate the legs vs colegs).
+static_assert(!dedekind::category::IsPushout<decltype(as_pullback(meet_set)),
+                                             SpanToA, SpanToB>,
+              "a meet is a pullback, not a pushout (no coprojection colegs).");
 static_assert(
-    !dedekind::category::IsPushout<decltype(meet_set), SpanToA, SpanToB>,
-    "a meet is a pullback, not a pushout (no coprojection colegs).");
-static_assert(!dedekind::category::IsPullback<
-                  decltype(join_set), decltype(iota_A), decltype(iota_B)>,
-              "a join is a pushout, not a pullback (no projection legs).");
+    !dedekind::category::IsPullback<decltype(as_pushout(join_set)),
+                                    decltype(iota_A), decltype(iota_B)>,
+    "a join is a pushout, not a pullback (no projection legs).");
 }  // namespace and_predicate_product_test
 
 TEST_CASE("Dedekind MVP: Basic Membership and Symbols", "[sets]") {
@@ -198,7 +202,7 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
 
   SECTION("Singleton ^ Set — pivot toggles membership (#469)") {
     constexpr auto gt_zero = [](const auto& v) { return v > 0; };
-    auto positives = Set{Comprehension{UniversalSet<int>{}, gt_zero}};
+    auto positives = Set{Comprehension{Universe<int>{}, gt_zero}};
     auto sing_in_set = singleton(5);
     auto sing_out_set = singleton(-3);
     auto in_xor = sing_in_set ^ positives;    // 5 ∈ positives → result drops 5
@@ -238,7 +242,7 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
     auto S = Set{Comprehension{ℕ, gt_10}};
     using SDomain = decltype(S)::Domain;
     using SLogic = decltype(S)::logic_species;
-    UniversalSet<SDomain, SLogic> universe{};
+    Universe<SDomain, SLogic> universe{};
     auto right_collapse = S ^ universe;  // type: !S
     auto left_collapse = universe ^ S;   // type: !S
     REQUIRE_FALSE(right_collapse(50u));  // 50 ∈ S → ∉ !S
@@ -270,7 +274,7 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
     // This regression test guards against a same-Predicate-type
     // collapse that would wrongly fire on every BooleanEqPredicate
     // pair regardless of the .expected field.
-    using BoolAmbient = UniversalSet<bool, Boole, Finite>;
+    using BoolAmbient = Universe<bool, Boole, Finite>;
     constexpr BoolAmbient B_bool{};
     auto only_true = Set{Comprehension{B_bool, BooleanEqPredicate{true}}};
     auto only_false = Set{Comprehension{B_bool, BooleanEqPredicate{false}}};
@@ -403,7 +407,7 @@ TEST_CASE("Dedekind Identities: Extremal Collapse", "[sets][identities]") {
 
 TEST_CASE("Dedekind Identities: Boolean literals collapse over 𝔹",
           "[sets][identities][boolean]") {
-  using BoolAmbient = UniversalSet<bool, Boole, Finite>;
+  using BoolAmbient = Universe<bool, Boole, Finite>;
   constexpr BoolAmbient B_bool{};
 
   constexpr auto b_false =
@@ -426,7 +430,7 @@ TEST_CASE(
   // which b holds" — the bare-b form is the truthy predicate, and
   // should be recognised as semantically equivalent to b == true by
   // the structured-and / FiniteBooleanSet collapse machinery.
-  using BoolAmbient = UniversalSet<bool, Boole, Finite>;
+  using BoolAmbient = Universe<bool, Boole, Finite>;
   constexpr BoolAmbient B_bool{};
 
   // Bare-b form (the issue's target ergonomics): the truthy predicate IS
@@ -458,8 +462,8 @@ TEST_CASE("Dedekind Sets: Cartesian product witnesses", "[sets][cartesian]") {
   // too --- the test DAG imports upstream only).
   constexpr auto gt_zero = [](const auto& v) { return v > 0; };
   constexpr auto le_three = [](const auto& v) { return v <= 3; };
-  const auto positive = Set{Comprehension{UniversalSet<int>{}, gt_zero}};
-  const auto small = Set{Comprehension{UniversalSet<int>{}, le_three}};
+  const auto positive = Set{Comprehension{Universe<int>{}, gt_zero}};
+  const auto small = Set{Comprehension{Universe<int>{}, le_three}};
 
   const auto product = cartesian_product(positive, small);
   using ProductDomain = typename decltype(product)::Domain;
@@ -475,7 +479,7 @@ TEST_CASE("Dedekind Sets: Cartesian product witnesses", "[sets][cartesian]") {
 
 TEST_CASE("Dedekind Sets: Ambient cartesian product ergonomics",
           "[sets][relations][cartesian][ambient]") {
-  constexpr auto ambient = UniversalSet<int>{};
+  constexpr auto ambient = Universe<int>{};
   constexpr auto p_via_function = cartesian_product(ambient, ambient);
   constexpr auto p_via_operator = ambient * ambient;
 

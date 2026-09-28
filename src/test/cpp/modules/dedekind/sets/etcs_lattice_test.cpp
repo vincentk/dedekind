@@ -8,6 +8,8 @@
  *  classifier call shape, rather than a named @c .χ member (which the collapsed
  *  set-node results of @c operator& / @c operator| do not carry). */
 #include <catch2/catch_test_macros.hpp>
+#include <concepts>     // std::same_as
+#include <type_traits>  // std::invoke_result_t
 
 import dedekind.category;
 import dedekind.sets;
@@ -24,9 +26,12 @@ TEST_CASE("ETCS: set lattice operations", "[sets][etcs][lattice]") {
     const auto either = s_even | s_positive;
     const auto not_even = ~s_even;
 
-    STATIC_CHECK(IsSubobject<decltype(both), int>);
-    STATIC_CHECK(IsSubobject<decltype(either), int>);
-    STATIC_CHECK(IsSubobject<decltype(not_even), int>);
+    STATIC_CHECK(
+        IsSetObject<decltype(both)>);  // a node over subobjects: a set object
+    STATIC_CHECK(
+        IsSetObject<decltype(either)>);  // a node over subobjects: a set object
+    STATIC_CHECK(IsSetObject<decltype(not_even)>);  // a node over subobjects: a
+                                                    // set object
 
     CHECK(both(2) == true);
     CHECK(both(-2) == false);
@@ -49,7 +54,10 @@ TEST_CASE("ETCS: ternary support lattice", "[sets][etcs][support]") {
   SECTION("Support intersection propagates unknown honestly") {
     const auto support = bounded & non_negative;
 
-    STATIC_CHECK(HasTernarySupport<decltype(support)>);
+    STATIC_CHECK(
+        IsSetObject<decltype(support)> &&
+        std::same_as<std::invoke_result_t<decltype(support) const&, const int&>,
+                     Ternary>);
 
     CHECK(support(5) == Ternary::True);
     CHECK(support(-5) == Ternary::False);
@@ -60,8 +68,16 @@ TEST_CASE("ETCS: ternary support lattice", "[sets][etcs][support]") {
     const auto support_union = bounded | non_negative;
     const auto support_not_non_negative = ~non_negative;
 
-    STATIC_CHECK(HasTernarySupport<decltype(support_union)>);
-    STATIC_CHECK(HasTernarySupport<decltype(support_not_non_negative)>);
+    STATIC_CHECK(
+        IsSetObject<decltype(support_union)> &&
+        std::same_as<
+            std::invoke_result_t<decltype(support_union) const&, const int&>,
+            Ternary>);
+    STATIC_CHECK(
+        IsSetObject<decltype(support_not_non_negative)> &&
+        std::same_as<std::invoke_result_t<
+                         decltype(support_not_non_negative) const&, const int&>,
+                     Ternary>);
 
     CHECK(support_union(5) == Ternary::True);
     CHECK(support_union(-5) == Ternary::True);

@@ -115,12 +115,11 @@ TEST_CASE("Analysis: 𝔻 / D / DualSet starter aliases",
   // classifier instance DualSet{} (= DualSetOf<>{}).  The pair mirrors ℝ/ℂ.
   using R2 = QuadraticReal<2>;
   STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(𝔻)>,
-                            UniversalSet<Dual<R2>, Boole, ℶ_1>>);
+                            Universe<Dual<R2>, Boole, ℶ_1>>);
   STATIC_CHECK(std::same_as<typename std::remove_cvref_t<decltype(𝔻)>::Domain,
                             Dual<R2>>);
-  STATIC_CHECK(
-      std::same_as<std::remove_cvref_t<decltype(𝔻_d)>,
-                   UniversalSet<Dual<machine_real_scalar>, Boole, ℶ_1>>);
+  STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(𝔻_d)>,
+                            Universe<Dual<machine_real_scalar>, Boole, ℶ_1>>);
   STATIC_CHECK(std::same_as<decltype(D), const DualSet>);
 
   constexpr auto duals = Set{𝔻};

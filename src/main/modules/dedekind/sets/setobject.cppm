@@ -27,6 +27,8 @@
 module;
 
 #include <concepts>
+#include <type_traits>  // std::remove_cvref_t (universe_t)
+#include <utility>      // std::declval (universe_t)
 
 export module dedekind.sets:setobject;
 
@@ -56,7 +58,7 @@ using dedekind::category::IsSubobject;
  *     cardinality  C               (ℵ_0, Finite, ...)
  *     logic        L               Ω_L a De Morgan algebra (Truth<L>)
  *     decidable == ?               a property of T, not of being a set
- *     ≡ UniversalSet<T, L, C>      𝔸 is its own universe: the fixpoint
+ *     ≡ Universe<T, L, C>      𝔸 is its own universe: the fixpoint
  *
  *   CHARACTERISTIC (π_2)           one of two kinds of predicate
  *     STRUCTURED   ⊥ ⊕ ⊤ ⊕ Halfspace ⊕ Singleton ⊕ Meet<H↑,H↓> ⊕ ...
@@ -82,28 +84,109 @@ using dedekind::category::IsSubobject;
  * requirement of being a set.  @c SetExpr (@c :expressions) is the CRTP mixin
  * that realises this surface; @c Set / @c SingletonSet realise it by hand.
  *
- * @section setobject__MUST
- * The intended refinement (RFC 2119 @b MUST, today a @b SHOULD) adds the
- * product itself: @c IsProduct<S, @c S::Universe, @c S::Classifier> --- a set
- * object @b projects (@c π_1) to its universe and (@c π_2) to its classifier,
- * making the mereological product structural rather than nominal.  (Since
- * @c 𝔸 is the ⊤ of @c Sub(T), this is @c S @c ≅ @c ⊤ @c × @c S: degenerate as
- * a product in @c Sub(T), yet informative as a reification, since the universe
- * carries the type descriptor.)  Nothing in the layering blocks it:
- * @c IsProduct calls @c π_1 / @c π_2 unqualified inside a requires-expression,
- * so satisfaction finds a carrier's overloads by ADL wherever they are
- * defined.  What the clause needs is for every set object to @b name its two
- * legs --- an associated @c Universe (the reified type constraint; @c 𝔸 is its
- * own universe, the fixpoint) and @c Classifier (the χ data: a predicate for
- * the opaque arm, the normal-form fields for a structured arm) --- with
- * @c π_1 / @c π_2 reading them off.  @c Comprehension<Base,P> already IS that
- * product as data; @c Set, @c Ø / @c 𝔸 and the @c :order arms have to spell
- * theirs out.  Tracked in #970: add the legs, then the @c IsProduct clause,
- * and the SHOULD becomes a MUST.
+ * @section setobject__Legs
+ * The two legs are @b named customization points, @c universe(s) and
+ * @c classifier(s), found by ADL (every set object lives in, or derives from
+ * a mixin in, @c dedekind::sets, so one default per leg in @c :boundaries
+ * serves them all; a type with better knowledge overloads in its own module).
+ * They are deliberately @b not @c π_1 / @c π_2: one object cannot carry two
+ * products under the same projection names, and the honest @c IsProduct here
+ * belongs to the @b universe of a pair carrier, @c 𝔸<A×B> @c ≅ @c 𝔸<A> @c ×
+ * @c 𝔸<B> (§4: a relation's @c dom / @c cod are @c π_1 / @c π_2 of its
+ * universe), while a lattice node @c Meet<A,B> is already the product of its
+ * @b operands.  Had @c S itself projected to (universe, χ) through @c π_1, the
+ * universe of a relation could not also project to its factors.  The paper's
+ * reading survives intact: a set is a subobject of a universe over a regular
+ * carrier (Definition Lwv), the predicate @b is the set, and the universe is
+ * the reified type constraint the Python surface hands out.
+ *
+ * @code
+ *   universe(s)    : S → 𝔸<Domain, L, C>     the reified type constraint;
+ *                                            𝔸 is its own universe (fixpoint)
+ *   classifier(s)  : S → (Domain → Ω_L)      the χ datum: the set itself for
+ *                                            the structured arms and for a
+ *                                            comprehension (the AST IS the
+ *                                            set); Set<T,L,P>'s predicate P
+ *   π_1 / π_2      : 𝔸<A×B> → 𝔸<A> / 𝔸<B>    the universe of a pair carrier
+ *                                            is the product of the factors
+ * @endcode
  */
+
+/** @brief The set-object @b surface alone (Definition Lwv, §3): a subobject
+ *  of a @c std::regular carrier whose codomain is the @c Ω of a named logic
+ *  species.  No legs yet --- this is what @ref IsUniverse refines, so the
+ *  universe leg of @ref IsSetObject does not recurse. */
 export template <typename S>
-concept IsSetObject = IsSubobject<S, typename S::Domain> && requires {
-  typename S::logic_species;
-} && std::same_as<typename S::Codomain, typename S::logic_species::Ω>;
+concept IsSetObjectSurface =
+    std::regular<typename S::Domain> && IsSubobject<S, typename S::Domain> &&
+    requires { typename S::logic_species; } &&
+    std::same_as<typename S::Codomain, typename S::logic_species::Ω>;
+
+/** @brief A @b universe: the terminal object of @c Sub(T) --- the reified type
+ *  constraint @c 𝔸<T,L,C> itself (carrier, logic, cardinality class). */
+export template <typename U>
+concept IsUniverse =
+    IsSetObjectSurface<U> && dedekind::category::IsTerminalObject<U>;
+
+/** @brief @c U is the universe leg @b of @c S: a universe over the same
+ *  carrier under the same logic. */
+export template <typename U, typename S>
+concept IsUniverseOf =
+    IsUniverse<U> && std::same_as<typename U::Domain, typename S::Domain> &&
+    std::same_as<typename U::logic_species, typename S::logic_species>;
+
+/** @brief The @b leaf case: a set object that carries the subobject surface
+ *  itself (Definition Lwv) together with its two legs. */
+template <typename S>
+concept IsSetObjectLeaf =
+    IsSetObjectSurface<S> && requires(const S& s, const typename S::Domain& x) {
+      /** @brief The universe leg: the reified type constraint. */
+      { universe(s) } -> IsUniverseOf<S>;
+      /** @brief The classifier leg: a χ datum callable on the carrier. */
+      classifier(s)(x);
+    };
+
+/** @brief Two types carry the same carrier: the domain tie a lattice node over
+ *  set objects needs (the logic may differ; the codomain leg reconciles it). */
+template <typename A, typename B>
+concept SameCarrier = requires {
+  typename A::Domain;
+  typename B::Domain;
+} && std::same_as<typename A::Domain, typename B::Domain>;
+
+template <typename T>
+struct is_set_object : std::bool_constant<IsSetObjectLeaf<T>> {};
+template <typename A, typename B>
+struct is_set_object<dedekind::category::Meet<A, B>>
+    : std::bool_constant<is_set_object<A>::value && is_set_object<B>::value &&
+                         SameCarrier<A, B>> {};
+template <typename A, typename B>
+struct is_set_object<dedekind::category::Join<A, B>>
+    : std::bool_constant<is_set_object<A>::value && is_set_object<B>::value &&
+                         SameCarrier<A, B>> {};
+template <typename A>
+struct is_set_object<dedekind::category::Not<A>> : is_set_object<A> {};
+
+/** @brief An @b object of the category Set: a leaf carrying the subobject
+ *  surface and its legs, @b or a lattice node --- @c Meet / @c Join / @c Not
+ *  --- over set objects on one carrier.  The node case is @b structural: the
+ *  node's χ is the pointwise evaluation @c category:lattice already gives it
+ *  (an arrow into Ω), its universe is its operands', its classifier is the
+ *  node itself.  This is the opaque arm, "the AST is the set", without any
+ *  set semantics in the lattice partition: the member shape, the inclusion
+ *  @c ι and the pullback / pushout apex legs are a @c sets-side view
+ *  (@c as_pullback / @c as_pushout in @c :expressions), not a property of the
+ *  node.  The same-logic requirement of the leaf surface is @b not imposed on
+ *  nodes: @c Ø<T,Kleene> @c ∧ @c S<T,Boole> is a set object whose reduction the
+ *  bounded law and the codomain leg decide. */
+export template <typename S>
+concept IsSetObject =
+    is_set_object<std::remove_cvref_t<S>>::value;  // decays: decltype(a & b) is
+                                                   // const
+
+/** @brief The type of a set object's universe leg. */
+export template <IsSetObject S>
+using universe_t =
+    std::remove_cvref_t<decltype(universe(std::declval<const S&>()))>;
 
 }  // namespace dedekind::sets

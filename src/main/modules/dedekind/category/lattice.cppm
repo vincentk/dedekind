@@ -463,6 +463,70 @@ struct Join {  // A ∨ B
     }
   }
 };
+
+/** @section lattice__Nodes_over_arrows
+ *  A node over two arrows into ONE truth object is itself such an arrow: the
+ *  lattice of arrows @c A @c → @c Ω is computed pointwise (@c Meet by @c AND,
+ *  @c Join by @c OR, @c Not by @c RFL of the operands' shared @c
+ * logic_species). When the operands declare the @c IsArrow vocabulary --- @c
+ * Domain /
+ *  @c Codomain / @c logic_species --- and agree on it, the node declares the
+ *  same, so it composes, reduces and evaluates as an arrow.  That is ALL a
+ *  node carries here: the @b subobject reading (a member shape, the inclusion
+ *  @c ι, the pullback / pushout apex legs) is set semantics and lives
+ *  downstream in @c dedekind.sets, where a node over set objects is a set
+ *  object @b structurally (its χ is this pointwise evaluation) and the apex
+ *  legs are a view.  The node stays the literal @c Meet / @c Join / @c Not, so
+ *  every structural law applies unchanged.  Over operands without the arrow
+ *  vocabulary the primaries above apply. */
+export template <typename A, typename B>
+  requires IsArrow<A> && IsArrow<B> && std::same_as<Dom<A>, Dom<B>> &&
+           std::same_as<Cod<A>, Cod<B>> &&
+           requires {
+             typename A::logic_species;
+             typename B::logic_species;
+           } &&
+           std::same_as<typename A::logic_species, typename B::logic_species>
+struct Meet<A, B> {  // A ∧ B: two matching arrows into Ω give one
+  A lhs;
+  B rhs;
+  using Domain = Dom<A>;
+  using Codomain = Cod<A>;
+  using logic_species = typename A::logic_species;
+  template <typename X>
+    requires requires(const A& l, const B& r, const X& x) {
+      l(x);
+      r(x);
+    }
+  constexpr auto operator()(const X& x) const {
+    return logic_species::AND(π_1(*this)(x), π_2(*this)(x));
+  }
+};
+
+export template <typename A, typename B>
+  requires IsArrow<A> && IsArrow<B> && std::same_as<Dom<A>, Dom<B>> &&
+           std::same_as<Cod<A>, Cod<B>> &&
+           requires {
+             typename A::logic_species;
+             typename B::logic_species;
+           } &&
+           std::same_as<typename A::logic_species, typename B::logic_species>
+struct Join<A, B> {  // A ∨ B: two matching arrows into Ω give one
+  A lhs;
+  B rhs;
+  using Domain = Dom<A>;
+  using Codomain = Cod<A>;
+  using logic_species = typename A::logic_species;
+  template <typename X>
+    requires requires(const A& l, const B& r, const X& x) {
+      l(x);
+      r(x);
+    }
+  constexpr auto operator()(const X& x) const {
+    return logic_species::OR(π_1(*this)(x), π_2(*this)(x));
+  }
+};
+
 export template <typename A>
 struct Not {  // ¬A (complement)
   A base;
@@ -480,32 +544,18 @@ struct Not {  // ¬A (complement)
   }
 };
 
-/** @brief When @c A is a subobject (carries @c Domain / @c Codomain /
- *  @c logic_species), @c ¬A is @b itself a first-class subobject --- the SAME
- *  @c Not node the reducer's complement laws already match, now usable as a set
- *  value.  Its χ is @c A's, reflected by the codomain's own @c RFL (generic
- *  over any bounded chain @c Ω: @c Boole @c !, @c Kleene @c ¬U=U, …), so no
- *  bespoke complement wrapper is needed.  Adding the subobject surface here
- *  (rather than in a downstream @c NotSet lift) keeps @c ¬A the literal
- *  @c Not<A>, so @c is_not_node_v / @c de_morgan_of / @c is_complement_pair_v
- *  apply unchanged --- no per-type trait re-teaching. */
+/** @brief @c ¬A over an arrow @c A @c → @c Ω is the arrow @c RFL @c ∘ @c A:
+ *  the codomain's own reflection (generic over any bounded chain @c Ω:
+ *  @c Boole @c !, @c Kleene @c ¬U=U, …).  The node stays the literal @c Not<A>,
+ *  so @c is_not_node_v / @c de_morgan_of / @c is_complement_pair_v apply
+ *  unchanged; its set-object reading is structural, downstream in @c sets. */
 export template <typename A>
-  requires requires {
-    typename A::Domain;
-    typename A::Codomain;
-    typename A::logic_species;
-  }
-struct Not<A> {
+  requires IsArrow<A> && requires { typename A::logic_species; }
+struct Not<A> {  // RFL ∘ A: an arrow into Ω, reflected
   A base;
-  using Domain = typename A::Domain;
-  using Codomain = typename A::Codomain;
+  using Domain = Dom<A>;
+  using Codomain = Cod<A>;
   using logic_species = typename A::logic_species;
-  struct Member {
-    Domain value;
-  };
-  /** @brief ι: ¬A ↣ Domain, the trivial identity inclusion (homogeneous). */
-  constexpr Domain ι(const Member& m) const { return m.value; }
-  /** @brief χ: ¬A(x) = RFL(A(x)), the codomain reflection of @c A's χ. */
   template <typename X>
     requires requires(const A& b, const X& x) { b(x); }
   constexpr auto operator()(const X& x) const {
@@ -1549,9 +1599,9 @@ static_assert(
  * over the @em family of subobjects of @c A in @c L, not over a single
  * predicate-type closed carrier.  Concretely, when no structural collapse
  * fires (a @c structured_and / @c structured_or reduction to a halfspace,
- * interval, @c Singleton, @c Ø or @c UniversalSet, or an @c IsComplementPair
- * short-circuit), @c A @c & @c B returns a @c MeetSet<A,B> carrying both
- * operand sets (dually, @c | returns a @c JoinSet<A,B>).  The node is a
+ * interval, @c Singleton, @c Ø or @c Universe, or an @c IsComplementPair
+ * short-circuit), @c A @c & @c B returns a @c Meet<A,B> carrying both
+ * operand sets (dually, @c | returns a @c Join<A,B>).  The node is a
  * different type, but over the same @c Ambient and @c logic_species.
  *
  * @section lattice__Family_Anchor

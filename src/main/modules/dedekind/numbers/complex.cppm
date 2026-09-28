@@ -888,7 +888,7 @@ export using ComplexSet = ComplexesOf<>;
  *
  *  @details Per #559's chosen direction (option A): the named species
  *  symbols denote @b universe values (constexpr instances of
- *  @c UniversalSet over the carrier), not classifier-alias types.  All
+ *  @c Universe over the carrier), not classifier-alias types.  All
  *  seven species symbols (@c 𝔹, @c ℕ, @c ℤ, @c ℚ, @c ℝ, @c ℂ, @c 𝔻)
  *  carry the canonical @c element<ℂ> scout spelling.
  *
@@ -915,7 +915,7 @@ export inline constexpr auto ℂ =
 static_assert(
     std::same_as<
         std::remove_cvref_t<decltype(ℂ)>,
-        dedekind::sets::UniversalSet<Complex<QuadraticReal<2>>, Boole, ℶ_1>>,
+        dedekind::sets::Universe<Complex<QuadraticReal<2>>, Boole, ℶ_1>>,
     "ℂ is the universe 𝔸<Complex<QuadraticReal<2>>, Boole, ℶ_1> — the "
     "coat-hanger ℂ = Cplx(ℝ) over the genuine ℝ = ℚ(√2), mirroring "
     "ℝ = 𝔸<QuadraticReal<2>> (#806).  Not Complex<double>.");

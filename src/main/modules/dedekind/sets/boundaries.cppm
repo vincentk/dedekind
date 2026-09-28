@@ -12,7 +12,7 @@
  * In the Dedekind topos, the boundaries of a Species define the 'North
  * and South poles' of the set-lattice. This partition implements the
  * identities required for a Bounded Lattice over any Species:
- * - UniversalSet (V): The 'Top' (⊤). The extensional whole of a Species.
+ * - Universe (V): The 'Top' (⊤). The extensional whole of a Species.
  * - EmptySet (∅): The 'Bottom' (⊥). The mereological remainder of the whole.
  *
  * @details
@@ -183,7 +183,7 @@ struct Ø final {
   }
 
   // The Duality: !∅ = V
-  // Forward declaration to satisfy the compiler for the UniversalSet.
+  // Forward declaration to satisfy the compiler for the Universe.
   constexpr auto operator!() const;
 
   // The Axiom: Total Absence
@@ -194,7 +194,7 @@ struct Ø final {
   constexpr std::size_t upper_bound() const { return 0; }
 
   // Set-shape gate for the lattice operators below: @c IsSet<S>.  The
-  // canonical carriers (@c UniversalSet, @c SingletonSet, @c Set) all
+  // canonical carriers (@c Universe, @c SingletonSet, @c Set) all
   // satisfy @c IsSet structurally post-#625, so the lattice ops accept
   // anything that does.
 
@@ -239,16 +239,16 @@ constexpr auto operator*(const S&, const Ø<T2, L>&) {
 }
 
 /**
- * @struct UniversalSet
+ * @struct Universe
  * @brief U: The Terminal Object.
  * @details Intentional but Decidable: The rule "x ∈ U" always returns True.
  *
  * Per #551 (one-transaction redesign of the set-builder DSL): the @b type
- * is named @c UniversalSet<T, L, C>; the value-level handle is the
+ * is named @c Universe<T, L, C>; the value-level handle is the
  * sibling variable template @c 𝔸<T, L, C> (declared further below in this
- * partition) which spells @c UniversalSet<T, L, C>{}.  Callers therefore
+ * partition) which spells @c Universe<T, L, C>{}.  Callers therefore
  * spell @c 𝔸<bool> at value-context sites rather than reaching for
- * @c UniversalSet<bool>{}; the type and the variable template share their
+ * @c Universe<bool>{}; the type and the variable template share their
  * parameter pack so both names remain reachable at the same arity.  This
  * makes the topos-theoretic reading direct ( @c 𝔸 is the universal
  * (top) set over carrier @c T; the subobject classifier is @c L::Ω),
@@ -257,7 +257,7 @@ constexpr auto operator*(const S&, const Ø<T2, L>&) {
  * pre-#551 surface had.
  */
 export template <typename T, typename L = Boole, typename C = ℵ_0>
-struct UniversalSet final {
+struct Universe final {
   // ~ arrow / morphism / subobject classifier jargon
   using Domain = T;
   using Codomain = typename L::Ω;
@@ -275,14 +275,14 @@ struct UniversalSet final {
    *  of the ambient T; ι unwraps the Member's T-value. */
   constexpr T ι(const Member& m) const { return m.value; }
 
-  static const UniversalSet χ;
+  static const Universe χ;
 
   using cardinality_type = C;
-  using base_set_type = UniversalSet<T, L, C>;
+  using base_set_type = Universe<T, L, C>;
   using is_universal_boundary = void;
   using logic_species = L;
 
-  /** @brief @c UniversalSet is the @b terminal object of the subobject poset
+  /** @brief @c Universe is the @b terminal object of the subobject poset
    *  @c Sub(U): the top @c ⊤, classified by the always-true predicate
    *  @c χ_U @c ≡ @c ⊤, with the unique arrow @c S @c → @c U from every
    *  subobject.  Dual to @c Ø's initiality tag; opts @c U into @c :limit's
@@ -314,26 +314,24 @@ struct UniversalSet final {
   template <typename S>
     requires(!requires { typename S::T; }) &&
             (!requires { typename S::is_variable; })
-  friend constexpr typename L::Ω operator<=(const S&, const UniversalSet&) {
+  friend constexpr typename L::Ω operator<=(const S&, const Universe&) {
     return L::True;
   }
 
   /** @section boundaries__Lattice_Axiom_3: Reflexivity */
-  constexpr typename L::Ω operator<=(const UniversalSet&) const {
-    return L::True;
-  }
+  constexpr typename L::Ω operator<=(const Universe&) const { return L::True; }
 
   // Explicitly define equality if <=> is being deleted by members
-  constexpr bool operator==(const UniversalSet&) const { return true; }
+  constexpr bool operator==(const Universe&) const { return true; }
 
   // Cross-(L, C) identity: the universe of a carrier T is the universe
   // regardless of logic species or cardinality annotation.  Enables
-  // `𝔸<T> == r` when a complement-pair join elevates r to a UniversalSet<T,
+  // `𝔸<T> == r` when a complement-pair join elevates r to a Universe<T,
   // L2, C2> whose C differs from the reference (e.g. bool's Finite vs the
   // ℵ_0 default), the same spirit as Ø's cross-carrier equality above.
   template <typename L2, typename C2>
     requires(!std::same_as<L2, L> || !std::same_as<C2, C>)
-  constexpr bool operator==(const UniversalSet<T, L2, C2>&) const {
+  constexpr bool operator==(const Universe<T, L2, C2>&) const {
     return true;
   }
 
@@ -341,8 +339,8 @@ struct UniversalSet final {
   constexpr typename L::Ω operator()(const T&) const { return L::True; }
 
   // Value-level membership query (sugar over operator()) per #551.
-  // @c UniversalSet<T>.contains(v) reads more directly than @c
-  // UniversalSet<T>(v) at paper-listing sites.  Returns @c L::Ω (delegating
+  // @c Universe<T>.contains(v) reads more directly than @c
+  // Universe<T>(v) at paper-listing sites.  Returns @c L::Ω (delegating
   // to @c operator()) so the contract matches @c sets::Set::contains and
   // generic code can call either uniformly.
   constexpr typename L::Ω contains(const T& v) const { return (*this)(v); }
@@ -367,28 +365,19 @@ struct UniversalSet final {
 };
 
 template <typename T, typename L, typename C>
-inline const UniversalSet<T, L, C> UniversalSet<T, L, C>::χ{};
-
-// The two trivial set objects, witnessed where they are defined: Ø is the ⊥ of
-// Sub(T), 𝔸 the ⊤ --- and 𝔸 IS the reified universe every other set object is
-// a subobject of (its own universe: the fixpoint of π_1).
-static_assert(IsSetObject<Ø<int>>,
-              "the empty set is a set object: the ⊥ of Sub(T).");
-static_assert(IsSetObject<UniversalSet<int>>,
-              "the universe is a set object: the ⊤ of Sub(T) --- and IS the "
-              "reified universe every other set object is a subobject of.");
+inline const Universe<T, L, C> Universe<T, L, C>::χ{};
 
 /** @brief The universal (top) set over carrier @c T --- the value-level handle
  *         (per #551).  This is the universe, not the subobject classifier;
  *         the classifier is @c L::Ω.
  *
- *  Variable template producing a default-constructed @c UniversalSet<T,L,C>
+ *  Variable template producing a default-constructed @c Universe<T,L,C>
  *  instance.  Lets callers spell the ambient as @c 𝔸<bool> rather than
- *  @c UniversalSet<bool>{} — paper Listing 6 reads as @c auto @c 𝔹 @c =
+ *  @c Universe<bool>{} — paper Listing 6 reads as @c auto @c 𝔹 @c =
  *  @c 𝔸<bool>; without the type-vs-value schism the pre-#551 surface had.
  */
 export template <typename T, typename L = Boole, typename C = ℵ_0>
-inline constexpr UniversalSet<T, L, C> 𝔸{};
+inline constexpr Universe<T, L, C> 𝔸{};
 
 /** @brief @c 𝔸<bool> specialisation: the Boolean carrier is finite,
  *  so its universal predicate is classified by @c Finite cardinality
@@ -399,7 +388,134 @@ inline constexpr UniversalSet<T, L, C> 𝔸{};
  *  Boole, Finite>.
  */
 export template <>
-inline constexpr UniversalSet<bool, Boole, Finite> 𝔸<bool>{};
+inline constexpr Universe<bool, Boole, Finite> 𝔸<bool>{};
+
+/** @section boundaries__SetObject_Legs
+ *  The default legs of a set object (@c IsSetObject, @c :setobject): every set
+ *  object over a carrier @c T under logic @c L has the universe @c 𝔸<T,L>
+ *  unless it says otherwise, and IS its own classifier unless it carries a
+ *  separate predicate datum.  The defaults live here because @c 𝔸 does; a type
+ *  with sharper knowledge (a comprehension: its base's universe; @c Set: its
+ *  predicate; an @c :order arm over a carrier with a known cardinality class)
+ *  overloads in its own module and wins by partial ordering. */
+
+/** @brief A universe is its own universe: the fixpoint of the universe leg. */
+export template <typename T, typename L, typename C>
+constexpr Universe<T, L, C> universe(const Universe<T, L, C>& u) {
+  return u;
+}
+
+/** @brief Default universe leg: @c 𝔸 over the set object's carrier and logic
+ *  (the @c 𝔸 variable template's own default or specialisation for @c T). */
+export template <IsSetObjectSurface S>
+  requires(!dedekind::category::IsTerminalObject<S>)
+constexpr auto universe(const S&) {
+  return 𝔸<typename S::Domain, typename S::logic_species>;
+}
+
+/** @brief Default classifier leg: the set @b is its predicate (Definition
+ *  Lwv, "the predicate χ_S is the set"). */
+export template <IsSetObjectSurface S>
+constexpr const S& classifier(const S& s) {
+  return s;
+}
+
+/** @brief The universe of a pair carrier is the product of the factor
+ *  universes, @c 𝔸<A×B> @c ≅ @c 𝔸<A> @c × @c 𝔸<B>: @c π_1 / @c π_2 project it
+ *  to the factors, so @c IsProduct<𝔸<pair<A,B>,L>, @c 𝔸<A,L>, @c 𝔸<B,L>>
+ *  holds --- the structural content of "a relation is a subobject of A × B"
+ *  (Definition Trsk, §4), read off its universe leg. */
+export template <typename A, typename B, typename L, typename C>
+constexpr auto π_1(const Universe<std::pair<A, B>, L, C>&) {
+  return 𝔸<A, L>;
+}
+export template <typename A, typename B, typename L, typename C>
+constexpr auto π_2(const Universe<std::pair<A, B>, L, C>&) {
+  return 𝔸<B, L>;
+}
+
+// The two trivial set objects, witnessed where their legs are defined: Ø is
+// the ⊥ of Sub(T), 𝔸 the ⊤ --- and 𝔸 IS the reified universe every other set
+// object is a subobject of (its own universe: the fixpoint).
+static_assert(IsUniverse<Universe<int>> && !IsUniverse<Ø<int>>,
+              "𝔸 is the universe (terminal in Sub(T)); Ø is not.");
+static_assert(IsSetObject<Ø<int>>,
+              "the empty set is a set object: the ⊥ of Sub(T).");
+static_assert(IsSetObject<Universe<int>>,
+              "the universe is a set object: the ⊤ of Sub(T) --- and IS the "
+              "reified universe every other set object is a subobject of.");
+static_assert(std::same_as<universe_t<Ø<int>>, Universe<int>> &&
+                  std::same_as<universe_t<Universe<int>>, Universe<int>>,
+              "Ø's universe is 𝔸; 𝔸 is its own universe.");
+static_assert(
+    dedekind::category::IsProduct<Universe<std::pair<int, bool>>, Universe<int>,
+                                  Universe<bool, Boole, Finite>>,
+    "the universe of a pair carrier is the product of the factor universes.");
+
+}  // namespace dedekind::sets
+
+// ── The legs of the category-level set objects ───────────────────────────────
+//
+// ADL reaches a type only through its own namespace (and its template
+// arguments' / bases'), so the set objects that live in dedekind::category ---
+// the ETCS Subobject<A,χ> and the lattice nodes Meet / Join / Not over such
+// operands --- cannot see the dedekind::sets defaults above.  Their legs are
+// declared in THEIR namespace, defined here where 𝔸 exists (the same seam the
+// reducer's trait specialisations use).  A node's universe is its operands'
+// (the mereological whole is shared, a node only selects a part of it); a
+// node's classifier is the node itself (the AST is the set).  Over operands
+// from dedekind::sets, ADL finds these AND the generic default; the node
+// overloads are the more specialised and win.
+namespace dedekind::category {
+
+export template <typename A, typename Chi>
+constexpr auto universe(const Subobject<A, Chi>&) {
+  return dedekind::sets::𝔸<A, typename Subobject<A, Chi>::logic_species>;
+}
+export template <typename A, typename Chi>
+constexpr const Subobject<A, Chi>& classifier(const Subobject<A, Chi>& s) {
+  return s;
+}
+
+export template <typename A>
+  requires requires(const A& a) { universe(a); }
+constexpr auto universe(const Not<A>& n) {
+  return universe(n.base);
+}
+export template <typename A>
+constexpr const Not<A>& classifier(const Not<A>& n) {
+  return n;
+}
+
+export template <typename A, typename B>
+  requires requires(const A& a) { universe(a); }
+constexpr auto universe(const Meet<A, B>& m) {
+  return universe(π_1(m));
+}
+export template <typename A, typename B>
+constexpr const Meet<A, B>& classifier(const Meet<A, B>& m) {
+  return m;
+}
+
+export template <typename A, typename B>
+  requires requires(const A& a) { universe(a); }
+constexpr auto universe(const Join<A, B>& j) {
+  return universe(π_1(j));
+}
+export template <typename A, typename B>
+constexpr const Join<A, B>& classifier(const Join<A, B>& j) {
+  return j;
+}
+
+}  // namespace dedekind::category
+
+namespace dedekind::sets {
+
+static_assert(IsSetObject<Meet<Ø<int>, Universe<int>>>,
+              "a lattice node over set objects is a set object, with the "
+              "operands' universe.");
+static_assert(IsSetObject<Not<Ø<int>>>,
+              "the complement of a set object is a set object.");
 
 /** @brief The subset (⊆) order on the subobject lattice @c Sub(T), keyed by the
  *  logic species @c L.  This is the @b injected order (@c Ord) under which the
@@ -453,8 +569,8 @@ struct codomain_reduce<Ø<T, L>> {
   using type = Ø<T, Boole>;
 };
 template <typename T, typename L, typename C>
-struct codomain_reduce<UniversalSet<T, L, C>> {
-  using type = UniversalSet<T, Boole, C>;
+struct codomain_reduce<Universe<T, L, C>> {
+  using type = Universe<T, Boole, C>;
 };
 export template <typename R>
 using codomain_reduce_t = typename codomain_reduce<R>::type;
@@ -494,13 +610,13 @@ constexpr auto Ø<T, L>::operator!() const {
   // FIXME(#894): a boundary complement should carry the Boolean codomain (!Ø is
   // the decided universe), but `!Ø` resolves to the greedy free operator! (a
   // Morphism), not this member, so the codomain leg cannot land here yet.
-  return UniversalSet<T, L>{};
+  return Universe<T, L>{};
 }
 
 /** @section boundaries__Engine_Routed_Lattice_Ops
  *
  *  The boundary meet / join are no longer hand-spelled inside @c Ø and
- *  @c UniversalSet.  They route through the generic lattice-law term reducer
+ *  @c Universe.  They route through the generic lattice-law term reducer
  *  (@c category:lattice_term, #865/#890): the term @c Meet<boundary,S> /
  *  @c Join<boundary,S> is reduced under @c subobject_order<L>, where @c Ø is
  *  the ⊥ (initial) and @c 𝔸 the ⊤ (terminal) of @c Sub(T).  The reducer's
@@ -521,23 +637,26 @@ constexpr auto Ø<T, L>::operator!() const {
  *  general entry the #916 Python composition surface will call once the
  *  leaf-combine leg is threaded (slice 2). */
 
-// FIXME(#922 slice 2): constrain @c Node to a valid recursive subobject
-// expression.  The leaves must be @c IsSubobject, NOT @c IsSet: a bare
-// @c Halfspace / static @c Singleton is @c IsSubobject but not @c IsSet, so an
-// @c IsSet leaf gate is too strong (rejects valid @c Sub(T) expressions); and
-// the recursion must enforce carrier @b consistency (reject a mixed-carrier
-// @c Meet<Ø<int>,Ø<bool>>).  That belongs with the leaf-combine leg (slice 2),
-// not a bare @c IsSet check.  Until then this entry is unconstrained.
+// The reducer is a function IsSetObject → IsSetObject.  A lattice term over
+// set objects on one carrier IS a set object (structurally, :setobject); the
+// cross-logic Ø<T,Kleene> ∧ S<T,Boole> is one, decided by the bounded law
+// plus the codomain leg; a mixed-carrier Meet<Ø<int>,Ø<bool>> never is, and a
+// bare Halfspace / Singleton leaf qualifies without being an ETCS IsSet.  The
+// output is asserted, not assumed: every normal form the laws fold to --- a
+// boundary, an operand, an irreducible node, a value leaf --- is a set object.
 export template <typename L = Boole, typename Combine = no_leaf_combine,
-                 typename Node>
+                 IsSetObject Node>
 constexpr auto subobject_reduce(const Node& node) {
   // @c Combine is the injected leaf-combine policy (the reducer's 4th policy):
   // the default @c no_leaf_combine has no value leg, so the boundary operators
   // below keep the pure lattice laws; a carrier passes its own policy (e.g.\
   // @c SetCombine, whose value leg meets two bare leaves on their runtime data)
   // to let a value-determined collapse reach the normal form.
-  return finalize_combine(
+  auto reduced = finalize_combine(
       reduce_value<subobject_order<L>, subobject_order<L>, Combine>(node));
+  static_assert(IsSetObject<decltype(reduced)>,
+                "subobject_reduce: the reduced term must be a set object.");
+  return reduced;
 }
 
 /** @brief @c Ø @c & @c S / @c Ø @c | @c S: @c Ø is the ⊥ of @c Sub(T)
@@ -559,32 +678,31 @@ constexpr auto operator|(const Ø<T, L>&, const S& s) {
 }
 
 /** @brief @c 𝔸 @c & @c S / @c 𝔸 @c | @c S: @c 𝔸 is the ⊤ of @c Sub(T)
- *  meeting / joining any set.  Free operators (the UniversalSet-LHS members
- * were retired); pinned by the @c UniversalSet operand. */
+ *  meeting / joining any set.  Free operators (the Universe-LHS members
+ * were retired); pinned by the @c Universe operand. */
 export template <typename T, typename L, typename C, typename S>
   requires(IsSet<S> && std::same_as<typename S::Domain, T>)
-constexpr auto operator&(const UniversalSet<T, L, C>&, const S& s) {
+constexpr auto operator&(const Universe<T, L, C>&, const S& s) {
   return subobject_reduce<L>(
-      Meet<UniversalSet<T, L, C>, S>{UniversalSet<T, L, C>{}, s});
+      Meet<Universe<T, L, C>, S>{Universe<T, L, C>{}, s});
 }
 /** @brief @c 𝔸 @c | @c S = @c 𝔸 (⊤ is the join annihilator); see @c operator&.
  */
 export template <typename T, typename L, typename C, typename S>
   requires(IsSet<S> && std::same_as<typename S::Domain, T>)
-constexpr auto operator|(const UniversalSet<T, L, C>&, const S& s) {
+constexpr auto operator|(const Universe<T, L, C>&, const S& s) {
   return subobject_reduce<L>(
-      Join<UniversalSet<T, L, C>, S>{UniversalSet<T, L, C>{}, s});
+      Join<Universe<T, L, C>, S>{Universe<T, L, C>{}, s});
 }
 
-// Cardinality metadata drives extensional classification for UniversalSet.
+// Cardinality metadata drives extensional classification for Universe.
 template <typename T, typename L, typename C>
-struct is_extensional<UniversalSet<T, L, C>>
-    : std::bool_constant<C::is_finite> {};
+struct is_extensional<Universe<T, L, C>> : std::bool_constant<C::is_finite> {};
 
-static_assert(IsSet<decltype(UniversalSet<int>{})>,
+static_assert(IsSet<decltype(Universe<int>{})>,
               "The universal boundary must lift to an ETCS set object.");
 
-static_assert(IsSet<decltype(ambient_set<int>(UniversalSet<int>{}))>,
+static_assert(IsSet<decltype(ambient_set<int>(Universe<int>{}))>,
               "The universal boundary must lift to an ETCS set object.");
 
 static_assert(IsSet<decltype(Ø<int>{})>,
@@ -601,7 +719,7 @@ static_assert(IsSet<decltype(ambient_set<int>(Ø<int>{}))>,
 // (Lawvere 1964):
 //
 //   (1) Universe per carrier — @c 𝔸<T> (variable template above)
-//       = @c UniversalSet<T,L,C>{}.  Constant-True predicate over
+//       = @c Universe<T,L,C>{}.  Constant-True predicate over
 //       carrier T.  Plays the role of "T as its own set" — the
 //       monomorphic identity inclusion T ↪ T.  Used by the
 //       set-builder DSL as the ambient for @c element<𝔸<T>>
@@ -621,7 +739,7 @@ static_assert(IsSet<decltype(ambient_set<int>(Ø<int>{}))>,
 //       textbook "ℕ as a subset of ℤ via the canonical inclusion"
 //       reading.
 //
-//   Asymmetry: @c BooleanSetOf<L,C> ≡ @c UniversalSet<bool,L,C>
+//   Asymmetry: @c BooleanSetOf<L,C> ≡ @c Universe<bool,L,C>
 //       (alias, not a separate struct) because 𝔹 is the @b bottom
 //       of the algebraic tower — no proper super-object — so χ_𝔹
 //       collapses to 𝔸<bool>.  See @c algebra:boolean for that
@@ -685,7 +803,7 @@ using NaturalNumbers = NaturalNumbersOf<>;
  *
  *  @details Per #559's chosen direction (option A): the named species
  *  symbols (@c 𝔹 / @c ℕ / @c ℤ / @c ℚ / @c ℝ / @c ℂ / @c 𝔻) denote the
- *  @b universe values (constexpr instances of @c UniversalSet over the
+ *  @b universe values (constexpr instances of @c Universe over the
  *  carrier), not carrier @b types.  Carrier types are spelled directly
  *  (@c bool, @c Cardinality, @c SignedExtensionalCardinal<>, ...) in
  *  template-type-parameter positions; the math symbols denote the sets.
@@ -776,9 +894,9 @@ constexpr std::size_t bound_join(const S1& lhs, const S2& rhs) {
 
 namespace dedekind::category {
 
-// Cardinality metadata drives transfinite classification for UniversalSet.
+// Cardinality metadata drives transfinite classification for Universe.
 template <typename T, typename L, typename C>
-struct is_transfinite<dedekind::sets::UniversalSet<T, L, C>>
+struct is_transfinite<dedekind::sets::Universe<T, L, C>>
     : std::bool_constant<!C::is_finite> {};
 
 // ── Term-reducer boundary hookup (#865/#890, Phase 2) ──────────────────────
@@ -793,7 +911,7 @@ struct is_lattice_bottom_for<dedekind::sets::Ø<T, L>,
                              dedekind::sets::subobject_order<L>>
     : std::true_type {};
 template <typename T, typename L, typename C>
-struct is_lattice_top_for<dedekind::sets::UniversalSet<T, L, C>,
+struct is_lattice_top_for<dedekind::sets::Universe<T, L, C>,
                           dedekind::sets::subobject_order<L>> : std::true_type {
 };
 
@@ -819,10 +937,10 @@ struct is_lattice_top_for<dedekind::sets::UniversalSet<T, L, C>,
  *  so non-chain distributive logics can also opt in.
  *
  *  @note This gate fires only for a @b bare @c category::Join reducer node; the
- *  value-level set operators materialise an irreducible union as a @c JoinSet
+ *  value-level set operators materialise an irreducible union as a @c Join
  *  (a distinct type the reducer treats as an opaque leaf), so this marker does
  *  @b not change the value-level normal form (@c A∩(B∪C) still materialises as
- *  a @c MeetSet carrying its operands, per #892).  Driving the DNF rewrite
+ *  a @c Meet carrying its operands, per #892).  Driving the DNF rewrite
  *  through the value path is a separate normal-form decision, deferred (#865).
  */
 template <typename T, typename L>
@@ -850,16 +968,14 @@ inline constexpr bool
 // (the annihilator / unit laws the hand-written Ø / 𝔸 operators currently
 // spell by hand (retired next).
 static_assert(
-    std::same_as<
-        dedekind::sets::subobject_reduce_t<
-            Meet<dedekind::sets::Ø<int>, dedekind::sets::UniversalSet<int>>>,
-        dedekind::sets::Ø<int>>,
+    std::same_as<dedekind::sets::subobject_reduce_t<Meet<
+                     dedekind::sets::Ø<int>, dedekind::sets::Universe<int>>>,
+                 dedekind::sets::Ø<int>>,
     "Ø ∧ 𝔸 → Ø (Ø recognised as the subobject-lattice ⊥).");
 static_assert(
-    std::same_as<
-        dedekind::sets::subobject_reduce_t<
-            Join<dedekind::sets::Ø<int>, dedekind::sets::UniversalSet<int>>>,
-        dedekind::sets::UniversalSet<int>>,
+    std::same_as<dedekind::sets::subobject_reduce_t<Join<
+                     dedekind::sets::Ø<int>, dedekind::sets::Universe<int>>>,
+                 dedekind::sets::Universe<int>>,
     "Ø ∨ 𝔸 → 𝔸 (𝔸 recognised as the subobject-lattice ⊤).");
 
 }  // namespace dedekind::category

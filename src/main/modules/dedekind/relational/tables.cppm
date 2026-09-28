@@ -50,6 +50,7 @@
  */
 module;
 
+#include <concepts>  // std::same_as (the dom / cod witness)
 #include <functional>
 #include <tuple>
 #include <type_traits>
@@ -92,6 +93,19 @@ static_assert(
 static_assert(
     dedekind::category::IsProduct<CanonicalIntRelationDomain, int, int>,
     "Relation domain must satisfy categorical IsProduct.");
+// Definition Trsk, structurally: a relation is a set object over the pair
+// carrier whose universe is the product of the factor universes, and dom / cod
+// are that product's projections.
+static_assert(IsRelation<CanonicalIntRelation, int, int>,
+              "a Relation<A,B,L,P> is an IsRelation: an Lwv set object over "
+              "A×B with universe 𝔸<A> × 𝔸<B>.");
+static_assert(
+    std::same_as<decltype(dom(CanonicalIntRelation{CanonicalPairPredicate{}})),
+                 dedekind::sets::Universe<int, Boole>> &&
+        std::same_as<decltype(cod(CanonicalIntRelation{
+                         CanonicalPairPredicate{}})),
+                     dedekind::sets::Universe<int, Boole>>,
+    "dom / cod are π_1 / π_2 of the relation's universe.");
 
 /**
  * @brief Selection (σ): filter elements of a set by an additional predicate.
@@ -162,7 +176,7 @@ constexpr auto set_difference(const Set<T, L, P1>& a, const Set<T, L, P2>& b) {
  * bitwise complement, aligned with the bitwise set semantics) rather than the
  * logical @c !.  Gated on @c IsSet for both operands (so it never shadows
  * arithmetic @c operator- on numeric carriers) and on @c a @c & @c ~b being
- * well formed, so it also accepts a @c UniversalSet minuend (@c U @c - @c B
+ * well formed, so it also accepts a @c Universe minuend (@c U @c - @c B
  * collapses through the universal-set identity to @c ~B).  There is no C++
  * set-minus glyph; this is the idiomatic stand-in for the blackboard
  * @f$\setminus@f$.

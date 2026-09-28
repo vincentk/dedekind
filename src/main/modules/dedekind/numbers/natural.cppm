@@ -183,13 +183,13 @@ using ::dedekind::sets::ℕ;
 // (0) Universe witness: ℕ names the universe over the Cardinality
 //     carrier (post-#559).  Pre-#559, ℕ was a carrier-type alias for
 //     Cardinality; post-#559 it is the value 𝔸<Cardinality> (a constexpr
-//     UniversalSet<Cardinality, Boole, ℵ_0>{}).  Cardinality is
+//     Universe<Cardinality, Boole, ℵ_0>{}).  Cardinality is
 //     the variant ℕ-proxy carrier (= @c std::variant<ExtensionalCardinal<>,
 //     ℵ_0>) — saturating to ℵ_0 on overflow; honestly models ℕ (no
 //     additive inverses; rig-not-ring).  Callers wanting the bounded
 //     machine carrier explicitly spell @c unsigned @c int directly.
 static_assert(std::same_as<std::remove_cvref_t<decltype(dedekind::sets::ℕ)>,
-                           UniversalSet<Cardinality, Boole, ℵ_0>>,
+                           Universe<Cardinality, Boole, ℵ_0>>,
               "ℕ is the universe 𝔸<Cardinality> (post-#559).");
 static_assert(
     std::same_as<
@@ -214,7 +214,7 @@ static_assert(dedekind::algebra::IsAlgebraOnSet<decltype(dedekind::sets::ℕ),
 
 // (0a) Relationship between the carrier Cardinality and NaturalNumbersOf<>
 //      (the predicate-set / classifier).  The predicate-set's @c Domain
-//      @b is the carrier — same shape as the 𝔹 ↔ UniversalSet<bool>
+//      @b is the carrier — same shape as the 𝔹 ↔ Universe<bool>
 //      relationship from #400.  The bare @b carrier type @c Cardinality
 //      carries no predicate-set surface, so @c NaturalNumbersOf<> (below)
 //      anchors the set-builder DSL; the universe @b value ℕ = 𝔸<Cardinality>
@@ -517,7 +517,7 @@ static_assert(IsMonotone<std::decay_t<decltype(dedekind::numbers::embed_𝔹_ℕ
 // is the lowest rung where both dependency branches resolve: sets
 // (𝔸<Cardinality>, Ø, the exists/forall primaries) and morphologies (Modular,
 // Congruence), which are parallel branches meeting first at numbers.  The
-// overloads sit in namespace dedekind::sets so ADL on the UniversalSet operand
+// overloads sit in namespace dedekind::sets so ADL on the Universe operand
 // finds them, as a sibling to sets:FiniteBooleanSet (folding the two into one
 // FiniteCarrierSet was not clean — the bool carrier is load-bearing;
 // FIXME(#798)).
@@ -551,7 +551,7 @@ struct FiniteResidueSet {
     return true;  // (A) ∅ iff every residue is a non-member
   }
   template <typename C>
-  constexpr bool operator==(const UniversalSet<Cardinality, L, C>&) const {
+  constexpr bool operator==(const Universe<Cardinality, L, C>&) const {
     for (const auto& v : at)
       if (!(v == L::True)) return false;
     return true;  // (B) 𝔸 iff every residue is a member
@@ -561,7 +561,7 @@ struct FiniteResidueSet {
     return s == e;
   }
   template <typename C>
-  friend constexpr bool operator==(const UniversalSet<Cardinality, L, C>& u,
+  friend constexpr bool operator==(const Universe<Cardinality, L, C>& u,
                                    const FiniteResidueSet& s) {
     return s == u;
   }
@@ -575,7 +575,7 @@ struct FiniteResidueSet {
  *  ADL finds it through the @c 𝔸<Cardinality> (sets) operand. */
 export template <typename L, typename C, auto N, auto R>
 constexpr auto operator|(
-    const UniversalSet<Cardinality, L, C>&,
+    const Universe<Cardinality, L, C>&,
     dedekind::order::ProjModConstBound<0, N, dedekind::order::Rel::Eq, R>) {
   // Normalise R into [0,N) exactly as ProjModConstBound does (mathematical
   // residue, not raw value), so equivalent fragments like π%fix(3_c)==fix(3_c)

@@ -497,12 +497,12 @@ attributes #12 = { builtin allocsize(0) }
 !237 = !{!238, !239}
 !238 = !DITemplateTypeParameter(name: "T", type: !154)
 !239 = !DITemplateTypeParameter(name: "L", type: !193, defaulted: true)
-!240 = !DISubprogram(name: "operator==", linkageName: "_ZNK8dedekind4setsW8dedekindW4sets16FiniteBooleanSetINS_8categoryS1_W8category5BooleEEeqERKNS0_S2_12UniversalSetIbS6_NS0_S2_6FiniteEEE", scope: !187, file: !188, line: 367, type: !241, scopeLine: 367, flags: DIFlagPrototyped, spFlags: DISPFlagOptimized)
+!240 = !DISubprogram(name: "operator==", linkageName: "_ZNK8dedekind4setsW8dedekindW4sets16FiniteBooleanSetINS_8categoryS1_W8category5BooleEEeqERKNS0_S2_12UniverseIbS6_NS0_S2_6FiniteEEE", scope: !187, file: !188, line: 367, type: !241, scopeLine: 367, flags: DIFlagPrototyped, spFlags: DISPFlagOptimized)
 !241 = !DISubroutineType(types: !242)
 !242 = !{!154, !198, !243}
 !243 = !DIDerivedType(tag: DW_TAG_reference_type, baseType: !244, size: 64)
 !244 = !DIDerivedType(tag: DW_TAG_const_type, baseType: !245)
-!245 = !DICompositeType(tag: DW_TAG_structure_type, name: "UniversalSet<bool, dedekind::category::Boole, dedekind::sets::Finite>", file: !206, line: 260, size: 8, flags: DIFlagFwdDecl, identifier: "_ZTSN8dedekind4setsW8dedekindW4sets12UniversalSetIbNS_8categoryS1_W8category5BooleENS0_S2_6FiniteEEE")
+!245 = !DICompositeType(tag: DW_TAG_structure_type, name: "Universe<bool, dedekind::category::Boole, dedekind::sets::Finite>", file: !206, line: 260, size: 8, flags: DIFlagFwdDecl, identifier: "_ZTSN8dedekind4setsW8dedekindW4sets12UniverseIbNS_8categoryS1_W8category5BooleENS0_S2_6FiniteEEE")
 !246 = !{!247}
 !247 = !DITemplateTypeParameter(name: "L", type: !193)
 !248 = !DIDerivedType(tag: DW_TAG_typedef, name: "\CE\A9", file: !192, line: 656, baseType: !191)

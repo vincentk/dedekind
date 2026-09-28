@@ -157,7 +157,7 @@ struct SingletonSet {
    *  reads only the SHAPE (signature + Domain match), not the
    *  semantics; the actual membership query lives in @c operator()
    *  below (instance-aware, returns True iff @c v @c == @c pivot).
-   *  Same pattern as Ø / UniversalSet's χ in @c :sets:boundaries. */
+   *  Same pattern as Ø / Universe's χ in @c :sets:boundaries. */
   static const SingletonSet χ;
 
   using logic_species = L;
@@ -336,7 +336,7 @@ export template <typename T, typename L1, typename L2, typename P>
 constexpr auto operator^(const SingletonSet<T, L1>& s,
                          const Set<T, L2, P>& other) {
   // The asymmetry is one-sided: `singleton(v)` always lands in
-  // Boole, while `Set{x % UniversalSet<T> | …}` ascends through
+  // Boole, while `Set{x % Universe<T> | …}` ascends through
   // NaturalLogic and routinely arrives as Kleene.  Take the
   // result logic from that same side (L2): the singleton's bool lifts
   // through `lift_logic<L2>` cleanly, and the Set's predicate is
@@ -517,7 +517,7 @@ constexpr auto image(
  *  @details
  *  - @c image(F, @c Ø<T, @c L>) → @c Ø<One, @c L> — empty source maps
  *    to empty image.
- *  - @c image(F, @c UniversalSet<T, @c L, @c C>) →
+ *  - @c image(F, @c Universe<T, @c L, @c C>) →
  *    @c SingletonSet<One, @c L>{One{}} — inhabited source collapses
  *    to the singleton on @c One.
  *  - @c image(F, @c SingletonSet<T, @c L>) falls through to the
@@ -530,7 +530,7 @@ constexpr auto image(
 export template <typename L, typename T, typename C, typename F>
   requires dedekind::category::IsTerminalMorphism<std::remove_cvref_t<F>> &&
            std::same_as<dedekind::category::Dom<std::remove_cvref_t<F>>, T>
-constexpr auto image(F&&, const UniversalSet<T, L, C>&) {
+constexpr auto image(F&&, const Universe<T, L, C>&) {
   return SingletonSet<dedekind::category::One, L>{dedekind::category::One{}};
 }
 

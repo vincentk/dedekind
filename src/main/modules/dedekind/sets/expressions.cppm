@@ -298,7 +298,7 @@ using join_logic_t =
  * reducer.  This is the
  *  @b naive lift --- it does @b not preserve the operand's structural type
  *  (interval / halfspace), so a cross-species combine materialises as a
- *  @c MeetSet / @c JoinSet (membership correct, pointwise) rather than
+ *  @c Meet / @c Join (membership correct, pointwise) rather than
  *  structurally collapsing.  The structure-preserving lift + codomain-follows-
  *  normal-form is the follow-up (see #894). */
 export template <typename S, typename TargetL>
@@ -364,7 +364,7 @@ struct FiniteBooleanSet {
     return at_false == L::False && at_true == L::False;
   }
 
-  constexpr bool operator==(const UniversalSet<bool, L, Finite>&) const {
+  constexpr bool operator==(const Universe<bool, L, Finite>&) const {
     return at_false == L::True && at_true == L::True;
   }
 
@@ -373,9 +373,8 @@ struct FiniteBooleanSet {
     return s == empty;
   }
 
-  friend constexpr bool operator==(
-      const UniversalSet<bool, L, Finite>& universe,
-      const FiniteBooleanSet& s) {
+  friend constexpr bool operator==(const Universe<bool, L, Finite>& universe,
+                                   const FiniteBooleanSet& s) {
     return s == universe;
   }
 
@@ -614,7 +613,7 @@ constexpr auto elevate_meet(Reduced reduced) {
 export template <typename T, typename L, typename Reduced>
 constexpr auto elevate_join(Reduced reduced) {
   using Result = std::decay_t<Reduced>;
-  if constexpr (std::same_as<Result, UniversalSet<T, L>>) {
+  if constexpr (std::same_as<Result, Universe<T, L>>) {
     return reduced;
   } else {
     return Set<T, L, Result>{std::move(reduced)};
@@ -683,75 +682,6 @@ export struct SetCombine {
   }
 };
 
-/** @section expressions__Reducer_Set_Lift
- *
- *  The reducer's meet / join (@c category::Meet / Join) lifted into @c IsSet.
- *  The lattice nodes carry the ALGEBRA only: operands, pointwise evaluation,
- * the
- *  @c IsProduct pairing.  They know nothing of ETCS.  Here in @c sets we add
- * the Set-specific SUBOBJECT surface: @c Member, @c ι, the pullback legs.  The
- *  intersection / union is then a genuine @c IsSet.  The lift @b inherits the
- *  lattice node, so its two operands @b are the underlying sets it carries.
- *  (Pierce: the meet @c A∩B remembers it is the pullback of @c A ↩ U ↩ B.)  The
- *  free @c π_1 / @c π_2 recover the operands @b by const-reference, so
- *  @c π_1(meet) is a bona fide @c IsSet and no sub-structure is copied.  The
- *  node composes recursively: an operand may itself be a @c MeetSet, so a set
- *  expression is a set of sets.
- *
- *  @c ι defaults to the IDENTITY inclusion, HOMOGENEOUS BY DEFAULT.  A member
- * of
- *  @c A∩B is a @c T-value lying in both operands.  Its inclusion into the
- *  ambient @c T is the identity, exactly as @c Set / @c Ø / @c UniversalSet
- *  already spell @c ι(m) @c = @c m.value.  A subobject over a DIFFERENT carrier
- *  (a subset composed with a type conversion, e.g.\ @c ℕ ↪ ℤ) specialises @c ι.
- *  That is a downstream / §5-HSP concern, not this generic contract. */
-export template <typename A, typename B>
-  requires IsSubobject<A, typename A::Domain> &&
-           IsSubobject<B, typename B::Domain> &&
-           std::same_as<typename A::Domain, typename B::Domain> &&
-           std::same_as<typename A::logic_species, typename B::logic_species>
-struct MeetSet : Meet<A, B> {  // A ∩ B as a subobject carrying A and B
-  using Domain = typename A::Domain;
-  using Codomain = typename A::Codomain;
-  using logic_species = typename A::logic_species;
-  struct Member {
-    Domain value;
-  };
-  /** @brief ι: A∩B ↣ T, the trivial identity inclusion (homogeneous). */
-  constexpr Domain ι(const Member& m) const { return m.value; }
-  /** @brief π1 / π2: the pullback co-restriction legs A∩B ↪ A, A∩B ↪ B.  The
-   *  shared T-value re-viewed as a member of each operand (identity on it). */
-  constexpr typename A::Member π1(const Member& m) const { return {m.value}; }
-  constexpr typename B::Member π2(const Member& m) const { return {m.value}; }
-  constexpr MeetSet(A a, B b) : Meet<A, B>{std::move(a), std::move(b)} {}
-};
-
-export template <typename A, typename B>
-  requires IsSubobject<A, typename A::Domain> &&
-           IsSubobject<B, typename B::Domain> &&
-           std::same_as<typename A::Domain, typename B::Domain> &&
-           std::same_as<typename A::logic_species, typename B::logic_species>
-struct JoinSet : Join<A, B> {  // A ∪ B as a subobject carrying A and B
-  using Domain = typename A::Domain;
-  using Codomain = typename A::Codomain;
-  using logic_species = typename A::logic_species;
-  struct Member {
-    Domain value;
-  };
-  /** @brief ι: A∪B ↣ T, the trivial identity inclusion (homogeneous). */
-  constexpr Domain ι(const Member& m) const { return m.value; }
-  /** @brief ι1 / ι2, the pushout coprojection colegs A ↪ A∪B, B ↪ A∪B: an
-   *  operand member (a T-value in A resp. B, hence in the union) injects as a
-   *  member of the join (dual to MeetSet's co-restriction legs). */
-  constexpr Member ι1(const typename A::Member& m) const {
-    return Member{m.value};
-  }
-  constexpr Member ι2(const typename B::Member& m) const {
-    return Member{m.value};
-  }
-  constexpr JoinSet(A a, B b) : Join<A, B>{std::move(a), std::move(b)} {}
-};
-
 export template <typename T, typename L, typename Predicate>
 class Set {
  public:
@@ -761,7 +691,7 @@ class Set {
 
   // ~ topoi jargon: Member-shape mirror of Subobject's; the IsSubobject
   // contract reads the Member-to-T projection through ι below.  Same
-  // shape as Ø / UniversalSet / SingletonSet's Member.
+  // shape as Ø / Universe / SingletonSet's Member.
   struct Member {
     T value;
   };
@@ -830,7 +760,7 @@ class Set {
   constexpr cardinality_type cardinality() const { return {}; }
 
   // The meet / join / complement operators are no longer Set MEMBERS: they are
-  // free combinators over IsSet (below the class), so Set, MeetSet, JoinSet and
+  // free combinators over IsSet (below the class), so Set, Meet, Join and
   // the boundaries all compose uniformly (combinators over Jlt structural
   // types, not an inheritance hierarchy).  #892.
 
@@ -877,6 +807,43 @@ class Set {
   Predicate predicate_;
 };
 
+// ── The set-object legs of the opaque arm (IsSetObject, :setobject) ──────────
+//
+// A comprehension's universe is its BASE's universe: the mereological whole is
+// what the base is a part of, restriction only shrinks the part.  So `ℕ | P`
+// has universe 𝔸<Cardinality>, and `(ℕ | P) | Q` the same --- the recursion
+// bottoms out at the universe, which is its own universe.
+export template <typename Base, typename Predicate>
+constexpr auto universe(const Comprehension<Base, Predicate>& c) {
+  return universe(c.base);
+}
+
+// Set<T,L,P> is the opaque arm with an implicit universe 𝔸<T,L> (the default
+// leg applies) and the predicate P as its χ datum --- the very object
+// `operator&` hands to `structured_and`, so the leg names what the reducer
+// already reads.
+export template <typename T, typename L, typename P>
+constexpr const P& classifier(const Set<T, L, P>& s) {
+  return s.predicate();
+}
+
+static_assert(
+    IsSetObject<Set<int, dedekind::category::Boole, UniversalPredicate<int>>>,
+    "Set<T,L,P> is a set object: universe 𝔸<T,L>, classifier P.");
+static_assert(std::same_as<universe_t<Set<int, dedekind::category::Boole,
+                                          UniversalPredicate<int>>>,
+                           Universe<int>>,
+              "the implicit universe of Set<int> is 𝔸<int>.");
+static_assert(
+    IsSetObject<Comprehension<Universe<int>, UniversalPredicate<int>>>,
+    "a comprehension is a set object.");
+static_assert(
+    std::same_as<universe_t<Comprehension<
+                     Comprehension<Universe<int>, UniversalPredicate<int>>,
+                     UniversalPredicate<int>>>,
+                 Universe<int>>,
+    "a nested comprehension's universe is the base's universe (the whole).");
+
 }  // namespace dedekind::sets
 
 namespace dedekind::category {
@@ -888,45 +855,22 @@ template <typename T, typename L, typename P>
 inline constexpr bool idempotent_leaf_v<dedekind::sets::Set<T, L, P>> =
     std::is_empty_v<P>;
 
-// A materialized MeetSet / JoinSet still IS the reducer's meet / join node (it
-// derives Meet / Join and carries the same operands).  Teach the structural
-// pattern-matchers to see through the :sets materialization boundary, so a
-// later A & (A | B) applies absorption even though A | B already materialized
-// as a JoinSet<A, B> (#865's A ∩ (A ∪ B) → A over materialized nodes).
-template <typename Elem, typename A, typename B>
-inline constexpr bool
-    is_join_containing_v<Elem, dedekind::sets::JoinSet<A, B>> =
-        std::same_as<Elem, A> || std::same_as<Elem, B>;
-template <typename Elem, typename A, typename B>
-inline constexpr bool
-    is_meet_containing_v<Elem, dedekind::sets::MeetSet<A, B>> =
-        std::same_as<Elem, A> || std::same_as<Elem, B>;
-
-// Value-determinism recurses through the materialized node as it does through
-// the bare Meet / Join, so a MeetSet / JoinSet of value-determined operands
-// stays collapsible under idempotence and absorption.
-template <typename A, typename B>
-inline constexpr bool idempotent_leaf_v<dedekind::sets::MeetSet<A, B>> =
-    idempotent_leaf_v<A> && idempotent_leaf_v<B>;
-template <typename A, typename B>
-inline constexpr bool idempotent_leaf_v<dedekind::sets::JoinSet<A, B>> =
-    idempotent_leaf_v<A> && idempotent_leaf_v<B>;
 }  // namespace dedekind::category
 
 namespace dedekind::sets {
 
 // ── Free set combinators over IsSet (#892) ──────────────────────────────────
 // The meet / join / complement, retired as Set MEMBERS, as free combinators
-// over the structural IsSet concept.  Set, MeetSet, JoinSet and the boundaries
+// over the structural IsSet concept.  Set, Meet, Join and the boundaries
 // therefore compose uniformly, so nested expressions like @c (A|B) & !(A&B)
 // resolve without an inheritance hierarchy.  Each folds the reducer term
 // through
 // @c subobject_reduce_t and materialises the normal form; the irreducible meet
-// / join becomes a @c MeetSet / @c JoinSet carrying its operand sets (#892).
+// / join becomes a @c Meet / @c Join carrying its operand sets (#892).
 
 /** @brief The predicate of a PLAIN @c Set<T,L,P> (@c ::type absent otherwise);
  *  @c PlainSet gates the plain-set-only branches (complement pair, predicate
- *  negation) so a compound node (@c MeetSet / @c JoinSet) takes the node path.
+ *  negation) so a compound node (@c Meet / @c Join) takes the node path.
  */
 template <typename S>
 struct set_predicate {};
@@ -960,11 +904,10 @@ inline constexpr bool
  * IsSubobject operands sharing a carrier and logic.  It folds @c Meet<A,B>
  * through the reducer; @c SetCombine supplies the domain @c structured_and at
  * the incomparable residual.  The normal form materialises to @c Ø, @c 𝔸, an
- *  operand, or a structured leaf.  An irreducible meet becomes a @c MeetSet
+ *  operand, or a structured leaf.  An irreducible meet becomes a @c Meet
  *  carrying both operand sets. */
 export template <typename LHS, typename RHS>
-  requires IsSubobject<LHS, typename LHS::Domain> &&
-           IsSubobject<RHS, typename RHS::Domain> &&
+  requires IsSetObject<LHS> && IsSetObject<RHS> &&
            std::same_as<typename LHS::Domain, typename RHS::Domain> &&
            std::same_as<typename LHS::logic_species,
                         typename RHS::logic_species>
@@ -983,34 +926,40 @@ constexpr auto operator&(const LHS& lhs, const RHS& rhs) {
     } else if constexpr (is_subobject_bottom_v<R>) {
       return finalize_combine(Ø<T, Log>{});  // reducer's abstract ⊥ over Sub(T)
     } else if constexpr (is_subobject_top_v<R>) {
-      return finalize_combine(
-          UniversalSet<T, Log>{});  // abstract ⊤ over Sub(T)
+      return finalize_combine(Universe<T, Log>{});  // abstract ⊤ over Sub(T)
     } else if constexpr (std::same_as<R, LHS>) {
       return finalize_combine(lhs);
     } else if constexpr (std::same_as<R, RHS>) {
       return finalize_combine(rhs);
     } else if constexpr (std::same_as<R, Meet<LHS, RHS>>) {
       // Irreducible: the intersection AS a set, carrying both operands (#892).
-      return finalize_combine(MeetSet<LHS, RHS>{lhs, rhs});
+      return finalize_combine(Meet<LHS, RHS>{lhs, rhs});
     } else if constexpr (std::same_as<R, Meet<RHS, LHS>>) {
       // Irreducible, but the reducer commutatively canonicalised the operands
       // (RB ≤ RA); carry them in that order (e.g. a Not operand that did not
-      // collapse).  MeetSet, not the structured_and leaf below --- a Not node
+      // collapse).  Meet, not the structured_and leaf below --- a Not node
       // has no @c .predicate().
-      return finalize_combine(MeetSet<RHS, LHS>{rhs, lhs});
-    } else {
+      return finalize_combine(Meet<RHS, LHS>{rhs, lhs});
+    } else if constexpr (requires {
+                           lhs.predicate();
+                           rhs.predicate();
+                         }) {
       // SetCombine collapsed two plain-set leaves via structured_and.
       return finalize_combine(elevate_meet<T, Log>(
           structured_and(lhs.predicate(), rhs.predicate())));
+    } else {
+      // A normal form the type-level cascade above does not name (e.g. a law
+      // reassociating through a node operand): the value-first reducer folds
+      // it, and its result is a set object by construction.
+      return subobject_reduce<Log, SetCombine>(Meet<LHS, RHS>{lhs, rhs});
     }
   }
 }
 
 /** @brief The subobject-lattice join @c A @c | @c B, dual to @c operator&.  An
- *  irreducible join becomes a @c JoinSet carrying both operand sets. */
+ *  irreducible join becomes a @c Join carrying both operand sets. */
 export template <typename LHS, typename RHS>
-  requires IsSubobject<LHS, typename LHS::Domain> &&
-           IsSubobject<RHS, typename RHS::Domain> &&
+  requires IsSetObject<LHS> && IsSetObject<RHS> &&
            std::same_as<typename LHS::Domain, typename RHS::Domain> &&
            std::same_as<typename LHS::logic_species,
                         typename RHS::logic_species>
@@ -1029,20 +978,24 @@ constexpr auto operator|(const LHS& lhs, const RHS& rhs) {
     } else if constexpr (is_subobject_bottom_v<R>) {
       return finalize_combine(Ø<T, Log>{});  // reducer's abstract ⊥ over Sub(T)
     } else if constexpr (is_subobject_top_v<R>) {
-      return finalize_combine(
-          UniversalSet<T, Log>{});  // abstract ⊤ over Sub(T)
+      return finalize_combine(Universe<T, Log>{});  // abstract ⊤ over Sub(T)
     } else if constexpr (std::same_as<R, LHS>) {
       return finalize_combine(lhs);
     } else if constexpr (std::same_as<R, RHS>) {
       return finalize_combine(rhs);
     } else if constexpr (std::same_as<R, Join<LHS, RHS>>) {
-      return finalize_combine(JoinSet<LHS, RHS>{lhs, rhs});
+      return finalize_combine(Join<LHS, RHS>{lhs, rhs});
     } else if constexpr (std::same_as<R, Join<RHS, LHS>>) {
       // Commutatively canonicalised operands (see the meet dual above).
-      return finalize_combine(JoinSet<RHS, LHS>{rhs, lhs});
-    } else {
+      return finalize_combine(Join<RHS, LHS>{rhs, lhs});
+    } else if constexpr (requires {
+                           lhs.predicate();
+                           rhs.predicate();
+                         }) {
       return finalize_combine(elevate_join<T, Log>(
           structured_or(lhs.predicate(), rhs.predicate())));
+    } else {
+      return subobject_reduce<Log, SetCombine>(Join<LHS, RHS>{lhs, rhs});
     }
   }
 }
@@ -1114,8 +1067,7 @@ constexpr auto operator|(const LHS& lhs, const RHS& rhs) {
  *  @c ¬(A∧B)→¬A∨¬B (De Morgan) and @c a∧¬a→⊥ / @c a∨¬a→⊤ when the codomain
  *  @c Ω is complemented. */
 export template <IsPredicate P>
-  requires dedekind::category::IsSubobject<
-      std::remove_cvref_t<P>, typename std::remove_cvref_t<P>::Domain>
+  requires IsSetObject<std::remove_cvref_t<P>>
 constexpr auto operator~(const P& p) {
   using D = std::remove_cvref_t<P>;
   if constexpr (dedekind::category::is_not_node_v<D>) {
@@ -1128,7 +1080,7 @@ constexpr auto operator~(const P& p) {
 
 /** @brief Symmetric difference @c A @c △ @c B (set-theoretic XOR; #469), a FREE
  *  combinator over @c IsSubobject (like @c & / @c | / @c ~), so it composes
- *  uniformly whether an operand is a @c Set, a @c MeetSet / @c JoinSet, or a
+ *  uniformly whether an operand is a @c Set, a @c Meet / @c Join, or a
  *  @c Not complement node.  The textbook identity @c A@c △@c B @c = @c (A@c ∩
  *  @c ¬B)@c ∪@c (¬A@c ∩@c B): no bespoke XOR predicate --- @c ~ / @c & / @c |
  *  carry the per-carrier logic and the reducer collapses the result, including
@@ -1136,8 +1088,7 @@ constexpr auto operator~(const P& p) {
  *  codomain.  The disjoint fast path (@c A@c ∩@c B @c = @c Ø @c ⟹ @c A@c △@c B
  *  @c = @c A@c ∪@c B) is kept for the halfspace-style compile-time collapse. */
 export template <typename LHS, typename RHS>
-  requires dedekind::category::IsSubobject<LHS, typename LHS::Domain> &&
-           dedekind::category::IsSubobject<RHS, typename RHS::Domain> &&
+  requires IsSetObject<LHS> && IsSetObject<RHS> &&
            std::same_as<typename LHS::Domain, typename RHS::Domain> &&
            std::same_as<typename LHS::logic_species,
                         typename RHS::logic_species>
@@ -1214,6 +1165,67 @@ export template <typename S>
 constexpr SubobjectInclusion<std::remove_cvref_t<S>> inclusion_arrow(
     const S& s) {
   return {s};
+}
+
+// ── The apex views: meet = pullback, join = pushout in Sub(U) (#881)
+// ──────────
+//
+// A lattice node is a set object structurally (:setobject) and carries only
+// the arrow vocabulary in :category.  The categorical reading of A & B as the
+// PULLBACK of the cospan ι_A, ι_B (and of A | B as the PUSHOUT of the span
+// from Ø) needs the apex's member shape and its legs, π1 / π2 resp. ι1 / ι2 on
+// members --- set semantics, so they are a view taken here, not a property of
+// the node.  The view owns nothing: it evaluates through the node's χ.
+
+/** @brief The pullback apex of an applied meet: the same set, viewed with the
+ *  subobject surface and the projection legs @c π1 / @c π2 (@c IsPullback). */
+export template <typename A, typename B>
+  requires IsSetObject<Meet<A, B>> && IsSubobject<A, typename A::Domain> &&
+           IsSubobject<B, typename B::Domain>
+struct PullbackApex {
+  Meet<A, B> node;
+  using Domain = typename Meet<A, B>::Domain;
+  using Codomain = typename Meet<A, B>::Codomain;
+  using logic_species = typename Meet<A, B>::logic_species;
+  struct Member {
+    Domain value;
+  };
+  constexpr Domain ι(const Member& m) const { return m.value; }
+  constexpr typename A::Member π1(const Member& m) const { return {m.value}; }
+  constexpr typename B::Member π2(const Member& m) const { return {m.value}; }
+  constexpr auto operator()(const Domain& x) const { return node(x); }
+};
+export template <typename A, typename B>
+constexpr auto as_pullback(const Meet<A, B>& m) {
+  return PullbackApex<A, B>{m};
+}
+
+/** @brief The pushout apex of an applied join: the same set, viewed with the
+ *  subobject surface and the coprojection colegs @c ι1 / @c ι2
+ *  (@c IsPushout).  Dual of @ref PullbackApex. */
+export template <typename A, typename B>
+  requires IsSetObject<Join<A, B>> && IsSubobject<A, typename A::Domain> &&
+           IsSubobject<B, typename B::Domain>
+struct PushoutApex {
+  Join<A, B> node;
+  using Domain = typename Join<A, B>::Domain;
+  using Codomain = typename Join<A, B>::Codomain;
+  using logic_species = typename Join<A, B>::logic_species;
+  struct Member {
+    Domain value;
+  };
+  constexpr Domain ι(const Member& m) const { return m.value; }
+  constexpr Member ι1(const typename A::Member& m) const {
+    return Member{m.value};
+  }
+  constexpr Member ι2(const typename B::Member& m) const {
+    return Member{m.value};
+  }
+  constexpr auto operator()(const Domain& x) const { return node(x); }
+};
+export template <typename A, typename B>
+constexpr auto as_pushout(const Join<A, B>& j) {
+  return PushoutApex<A, B>{j};
 }
 
 /** @brief @c InitialObjectArrow<Init, Target> --- the unique arrow from the
@@ -1394,7 +1406,7 @@ export template <typename T, typename L, typename C,
                  dedekind::category::IsIsomorphism F>
   requires(std::same_as<dedekind::category::Dom<std::remove_cvref_t<F>>, T> &&
            !dedekind::category::IsTerminalMorphism<std::remove_cvref_t<F>>)
-constexpr auto image(F&&, const UniversalSet<T, L, C>&) {
+constexpr auto image(F&&, const Universe<T, L, C>&) {
   using U = dedekind::category::Cod<std::remove_cvref_t<F>>;
   return 𝔸<U, L, C>;  // iso |U| = |T|, so the cardinality carries
 }
@@ -1517,7 +1529,7 @@ constexpr auto operator^(const Set<T, L, Predicate>& s, const Ø<T, L>&) {
  *         @c 𝔸::operator^(S) above. */
 export template <typename T, typename L, typename C, typename Predicate>
 constexpr auto operator^(const Set<T, L, Predicate>& s,
-                         const UniversalSet<T, L, C>&) {
+                         const Universe<T, L, C>&) {
   return !s;
 }
 
@@ -1785,9 +1797,9 @@ constexpr auto cartesian_product(const A& a, const B& b) {
   // Set(Species) CTAD accepts a bare ambient AND re-wraps an already-@c Set
   // operand) and delegate to the @c Set x @c Set overload.  This normalisation
   // is load- bearing: it TERMINATES the generic dispatch.  Spelling @c a @c *
-  // @c b here instead would recurse on a mixed @c UniversalSet x @c Set pair
+  // @c b here instead would recurse on a mixed @c Universe x @c Set pair
   // (no
-  // @c operator*(UniversalSet, Set), so it re-enters this generic).
+  // @c operator*(Universe, Set), so it re-enters this generic).
   const auto left = Set{a};
   const auto right = Set{b};
   return cartesian_product(left, right);
@@ -1839,8 +1851,8 @@ struct product_cardinality<ℵ<M>, ℵ<N>> {
 export template <typename A, typename LA, typename CA, typename B, typename LB,
                  typename CB>
   requires std::same_as<LA, LB>
-constexpr auto operator*(const UniversalSet<A, LA, CA>&,
-                         const UniversalSet<B, LB, CB>&) {
+constexpr auto operator*(const Universe<A, LA, CA>&,
+                         const Universe<B, LB, CB>&) {
   using CC = typename product_cardinality<CA, CB>::type;
   // 𝔸 × 𝔸 = 𝔸<pair>.  Codomain leg (#894): the universe is decided → Boole.
   return finalize_combine(𝔸<std::pair<A, B>, LA, CC>);
@@ -1974,7 +1986,7 @@ namespace detail_setexpr_witness {
 struct all_in {
   constexpr bool operator()(int) const { return true; }
 };
-static_assert(IsSet<Comprehension<UniversalSet<int>, all_in>>,
+static_assert(IsSet<Comprehension<Universe<int>, all_in>>,
               "{𝔸 | P} is a first-class set: IsSet by SetExpr + its own χ.");
 static_assert(IsSet<Comprehension<Ø<int>, all_in>>,
               "{Ø | P} is a first-class set.");
@@ -1982,7 +1994,7 @@ static_assert(IsSet<Comprehension<Ø<int>, all_in>>,
 // #834/#829: a bare Comprehension is an IsSubobject, so ~ (the set complement)
 // is the reducer's Not node over it --- a genuine set-complement subobject, not
 // a formal arrow.  ~~ peels back to the Comprehension (the involution).
-using CompN = Comprehension<UniversalSet<int>, all_in>;
+using CompN = Comprehension<Universe<int>, all_in>;
 static_assert(
     std::same_as<std::remove_cvref_t<decltype(~std::declval<CompN>())>,
                  dedekind::category::Not<CompN>>,
@@ -1996,9 +2008,9 @@ static_assert(
 // retired set_complement produced), not a formal arrow.
 using SubN = std::remove_cvref_t<decltype(classify<int>(all_in{}))>;
 static_assert(
-    dedekind::category::IsSubobject<
-        std::remove_cvref_t<decltype(~std::declval<SubN>())>, int>,
-    "~classify(f) is a set-complement subobject, not a formal arrow.");
+    IsSetObject<std::remove_cvref_t<decltype(~std::declval<SubN>())>>,
+    "~classify(f) is a set object (the complement node, structurally), not a "
+    "formal arrow.");
 }  // namespace detail_setexpr_witness
 
 // ── The point-free projection scout ────────────────────────────────────────

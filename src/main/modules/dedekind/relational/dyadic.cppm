@@ -63,8 +63,9 @@
  */
 module;
 
-#include <concepts>  // std::same_as
-#include <utility>   // std::pair
+#include <concepts>     // std::same_as
+#include <type_traits>  // std::remove_cvref_t (the factor-universe types)
+#include <utility>      // std::pair
 
 export module dedekind.relational:dyadic;
 
@@ -118,15 +119,20 @@ using SetFunction = Relation<T1, T2, L, P>;
  * fibre to a single value (a functional + entire relation), so it @b also reads
  * as the map @f$f : A \to B@f$ --- while remaining all of the above.
  *
- * @note This @b concept, @c IsRelation<S,T1,T2>, checks only that @c S::Domain
- * is @c pair<T1,T2> --- it does @b not encode the arrow implications above. The
- * chain @c IsLinearOperator ⟹ @c IsFunction ⟹ @c IsRelation ⟹ @c IsArrow is a
+ * @note This @b concept, @c IsRelation<S,T1,T2>, is Definition Trsk (§4)
+ * made structural: a relation is an @b Lwv @b set @b object (@c IsSetObject,
+ * @c :setobject --- a subobject of a regular carrier with χ into a named Ω)
+ * whose carrier is the product @c T1×T2 (@c IsProduct<Domain,T1,T2>, spelled
+ * as @c std::pair, the encoding the calculus builds) and whose @b universe is
+ * the product of the factor universes, @c 𝔸<T1×T2> @c ≅ @c 𝔸<T1> @c ×
+ * @c 𝔸<T2> --- that last clause is what makes @c dom / @c cod below
+ * projections (@c π_1 / @c π_2 of the universe leg) rather than
+ * conventions.  It does @b not encode the arrow implications above: the chain
+ * @c IsLinearOperator ⟹ @c IsFunction ⟹ @c IsRelation ⟹ @c IsArrow is a
  * @b conceptual reading, reified where needed through the @b graph adapter (a
  * function's @c graph IS the @c IsRelation / @c IsFunction), @b not by direct
- * concept subsumption.  Deliberately so: @c IsRelation stays lightweight, and
- * over-constraining it (e.g.\ to @c IsArrow @c && @c IsSet @c && @c
- * IsEqualizer) would exclude valid relations and force the
- * classifier/parallel-pair arrow machinery on every use.
+ * concept subsumption --- @c IsEqualizer and the parallel-pair machinery stay
+ * off the concept.
  *
  * The @b equalizer reading extends the same conceptual chain: a relation @c S
  * is a subobject of @c T1×T2, hence the equalizer of its classifier and @c ⊤
@@ -136,18 +142,16 @@ using SetFunction = Relation<T1, T2, L, P>;
  * (@c category::IsEqualizer witnessed on @c graph(f) and on the affine
  * translation graph, @c algebra:halfspace_transport, #876), not baked into the
  * concept.
- *
- * FIXME(#970): @c IsRelation does @b not imply @c sets::IsSetObject today ---
- * it never asks for χ, a codomain, or a logic species.  A relation IS a
- * subobject of @c T1×T2, i.e. a set object over the pair carrier, so the
- * target reads @c IsSetObject<S> @c && @c same_as<S::Domain, @c pair<T1,T2>>.
- * The lightness argument above is to be tested by that probe: whichever
- * relation-shaped type then fails is either missing its set-object surface
- * (fix the type) or is not a relation (fix the call site).
  */
 export template <typename S, typename T1, typename T2>
-concept IsRelation = requires { typename S::Domain; } &&
-                     std::same_as<typename S::Domain, std::pair<T1, T2>>;
+concept IsRelation =
+    dedekind::sets::IsSetObject<S> &&
+    std::same_as<typename S::Domain, std::pair<T1, T2>> &&
+    dedekind::category::IsProduct<typename S::Domain, T1, T2> &&
+    dedekind::category::IsProduct<
+        dedekind::sets::universe_t<S>,
+        std::remove_cvref_t<decltype(𝔸<T1, typename S::logic_species>)>,
+        std::remove_cvref_t<decltype(𝔸<T2, typename S::logic_species>)>>;
 
 /** @brief Relation membership witness: (a,b) ∈ R. */
 export template <typename T1, typename T2, typename L, typename P>
@@ -170,15 +174,18 @@ constexpr typename L::Ω relates(const Relation<T1, T2, L, P>& r, const T1& a,
  * wall stays quarantined to that one operation.
  */
 export template <typename T1, typename T2, typename L, typename P>
-constexpr auto dom(const Relation<T1, T2, L, P>&) {
-  return 𝔸<T1, L>;  // preserve the relation's logic species
+constexpr auto dom(const Relation<T1, T2, L, P>& r) {
+  // π_1 of the relation's UNIVERSE leg: 𝔸<A×B> ≅ 𝔸<A> × 𝔸<B>, so the declared
+  // domain is read off the product, not restated; the logic rides along.
+  return π_1(
+      universe(r));  // unqualified: the pair-universe π_1 is found by ADL
 }
 
 /** @brief The @b declared codomain of a relation @c R ⊆ A×B: @c 𝔸<B>, the
  *         second factor (@c π₂'s codomain).  Dual to @c dom. */
 export template <typename T1, typename T2, typename L, typename P>
-constexpr auto cod(const Relation<T1, T2, L, P>&) {
-  return 𝔸<T2, L>;  // preserve the relation's logic species
+constexpr auto cod(const Relation<T1, T2, L, P>& r) {
+  return π_2(universe(r));  // dual of dom
 }
 
 /**
