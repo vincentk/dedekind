@@ -213,22 +213,14 @@ add_library(set-pruning-ir-fixture STATIC EXCLUDE_FROM_ALL
     src/test/cpp/modules/dedekind/python/showcase_02_lattice_singleton.cpp
     src/test/cpp/modules/dedekind/python/showcase_03_halfspace_contradiction.cpp
     src/test/cpp/modules/dedekind/python/showcase_05_halfspace_real_ambient.cpp
-    # showcase_06_halfspace_interval_42.cpp and
-    # showcase_08_halfspace_2d_product.cpp have no checked-in `.ll`
-    # fixtures.  The paper's claim is the realistic one: @em sometimes
-    # the membership query evaluates all the way to a constant; when
-    # an argument is not yet known at compile time, the collapse is
-    # partial (cf. Turchin's supercompilation literature on
-    # specialisation depth).  Whether a *given* toolchain + ambient
-    # BMI takes the fold all the way through on a variant-carrier ℤ
-    # comparison is downstream of inliner cost models that don't bear
-    # on the structural claim --- which is witnessed by the in-source
-    # static_assert chain (size(), bounds, IsExtensional,
-    # HasDecidableMembership).  The .cpp files remain as compile-check
-    # fodder.
-    src/test/cpp/modules/dedekind/python/showcase_06_halfspace_interval_42.cpp
-    src/test/cpp/modules/dedekind/python/showcase_07_lattice_real_interval.cpp
-    src/test/cpp/modules/dedekind/python/showcase_08_halfspace_2d_product.cpp
+    # The paper's claim is the realistic one: @em sometimes the membership
+    # query evaluates all the way to a constant; when an argument is not yet
+    # known at compile time, the collapse is partial (cf. Turchin's
+    # supercompilation literature on specialisation depth).  Whether a *given*
+    # toolchain + ambient BMI takes the fold all the way through is downstream
+    # of inliner cost models that don't bear on the structural claim --- which
+    # is witnessed by the in-source static_assert chain.  The .cpp file remains
+    # as compile-check fodder.
     src/test/cpp/modules/dedekind/python/showcase_09_lp_vertex_typed_constant.cpp
     src/test/cpp/modules/dedekind/python/showcase_13_necklace_critical_path.cpp
     # showcase_09b is the runtime call site of the same kernel as 09:

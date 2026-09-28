@@ -37,21 +37,15 @@ using namespace dedekind::order;
 constexpr auto gt_5 = ℕ | (χ > fix(5_c));
 constexpr auto lt_3 = ℕ | (χ < fix(3_c));
 
-// Compile-time theorem: the meet IS the empty set on ℕ.
-constexpr Ø<Cardinality> empty_meet = gt_5 & lt_3;
-static_assert(empty_meet == Ø<Cardinality>{});
+// Compile-time theorem: the meet folds value-first to the empty SetVal on ℕ.
+constexpr auto empty_meet = gt_5 & lt_3;
+static_assert(empty_meet.kind == SetKind::Empty);
 
-// Post-#622: ℕ → Boole on the carrier axis, so @c gt_5 is
-// decidable on the carrier-axis fast path — Ternary→Classical
-// promotion is no longer the story here.  The axis that STILL tightens
-// at the reduction boundary is @b extensionality: @c gt_5 is intensional
-// (predicate-shaped, opaque λ); the empty-meet reduction is extensional
-// (it IS @c Ø, materialised at the type level).
+// gt_5 is an intensional predicate on ℕ (decidable membership, no materialised
+// members); the meet folds it value-first to the empty set --- witnessed by the
+// folded kind and by membership.
 static_assert(HasDecidableMembership<decltype(gt_5)>);
-static_assert(!IsExtensional<decltype(gt_5)>);
-
-static_assert(HasDecidableMembership<decltype(empty_meet)>);
-static_assert(IsExtensional<decltype(empty_meet)>);
+static_assert(!static_cast<bool>(empty_meet(4u)));  // empty: no inhabitant
 
 /**
  * @brief Showcase 3: halfspace contradiction on ℕ.

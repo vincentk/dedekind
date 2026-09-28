@@ -515,7 +515,7 @@ constexpr auto make_halfspace() {
     return dedekind::sets::codomain_reduce_t<
         dedekind::sets::UniversalSet<T, L>>{};
   else
-    return Halfspace<T, D, S, L>{V};
+    return Halfspace<T, D, S, L>{static_cast<T>(V)};  // V may be a wider pivot
 }
 
 /** @brief Complement of a halfspace: the opposite halfspace with the SAME pivot
