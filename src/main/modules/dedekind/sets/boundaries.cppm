@@ -369,15 +369,6 @@ struct UniversalSet final {
 template <typename T, typename L, typename C>
 inline const UniversalSet<T, L, C> UniversalSet<T, L, C>::χ{};
 
-// The two trivial set objects, witnessed where they are defined: Ø is the ⊥ of
-// Sub(T), 𝔸 the ⊤ --- and 𝔸 IS the reified universe every other set object is
-// a subobject of (its own universe: the fixpoint of π_1).
-static_assert(IsSetObject<Ø<int>>,
-              "the empty set is a set object: the ⊥ of Sub(T).");
-static_assert(IsSetObject<UniversalSet<int>>,
-              "the universe is a set object: the ⊤ of Sub(T) --- and IS the "
-              "reified universe every other set object is a subobject of.");
-
 /** @brief The universal (top) set over carrier @c T --- the value-level handle
  *         (per #551).  This is the universe, not the subobject classifier;
  *         the classifier is @c L::Ω.
@@ -400,6 +391,70 @@ inline constexpr UniversalSet<T, L, C> 𝔸{};
  */
 export template <>
 inline constexpr UniversalSet<bool, Boole, Finite> 𝔸<bool>{};
+
+/** @section boundaries__SetObject_Legs
+ *  The default legs of a set object (@c IsSetObject, @c :setobject): every set
+ *  object over a carrier @c T under logic @c L has the universe @c 𝔸<T,L>
+ *  unless it says otherwise, and IS its own classifier unless it carries a
+ *  separate predicate datum.  The defaults live here because @c 𝔸 does; a type
+ *  with sharper knowledge (a comprehension: its base's universe; @c Set: its
+ *  predicate; an @c :order arm over a carrier with a known cardinality class)
+ *  overloads in its own module and wins by partial ordering. */
+
+/** @brief A universe is its own universe: the fixpoint of the universe leg. */
+export template <typename T, typename L, typename C>
+constexpr UniversalSet<T, L, C> universe(const UniversalSet<T, L, C>& u) {
+  return u;
+}
+
+/** @brief Default universe leg: @c 𝔸 over the set object's carrier and logic
+ *  (the @c 𝔸 variable template's own default or specialisation for @c T). */
+export template <IsSetObjectSurface S>
+  requires(!dedekind::category::IsTerminalObject<S>)
+constexpr auto universe(const S&) {
+  return 𝔸<typename S::Domain, typename S::logic_species>;
+}
+
+/** @brief Default classifier leg: the set @b is its predicate (Definition
+ *  Lwv, "the predicate χ_S is the set"). */
+export template <IsSetObjectSurface S>
+constexpr const S& classifier(const S& s) {
+  return s;
+}
+
+/** @brief The universe of a pair carrier is the product of the factor
+ *  universes, @c 𝔸<A×B> @c ≅ @c 𝔸<A> @c × @c 𝔸<B>: @c π_1 / @c π_2 project it
+ *  to the factors, so @c IsProduct<𝔸<pair<A,B>,L>, @c 𝔸<A,L>, @c 𝔸<B,L>>
+ *  holds --- the structural content of "a relation is a subobject of A × B"
+ *  (Definition Trsk, §4), read off its universe leg. */
+export template <typename A, typename B, typename L, typename C>
+constexpr auto π_1(const UniversalSet<std::pair<A, B>, L, C>&) {
+  return 𝔸<A, L>;
+}
+export template <typename A, typename B, typename L, typename C>
+constexpr auto π_2(const UniversalSet<std::pair<A, B>, L, C>&) {
+  return 𝔸<B, L>;
+}
+
+// The two trivial set objects, witnessed where their legs are defined: Ø is
+// the ⊥ of Sub(T), 𝔸 the ⊤ --- and 𝔸 IS the reified universe every other set
+// object is a subobject of (its own universe: the fixpoint).
+static_assert(IsUniverse<UniversalSet<int>> && !IsUniverse<Ø<int>>,
+              "𝔸 is the universe (terminal in Sub(T)); Ø is not.");
+static_assert(IsSetObject<Ø<int>>,
+              "the empty set is a set object: the ⊥ of Sub(T).");
+static_assert(IsSetObject<UniversalSet<int>>,
+              "the universe is a set object: the ⊤ of Sub(T) --- and IS the "
+              "reified universe every other set object is a subobject of.");
+static_assert(
+    std::same_as<universe_t<Ø<int>>, UniversalSet<int>> &&
+        std::same_as<universe_t<UniversalSet<int>>, UniversalSet<int>>,
+    "Ø's universe is 𝔸; 𝔸 is its own universe.");
+static_assert(
+    dedekind::category::IsProduct<UniversalSet<std::pair<int, bool>>,
+                                  UniversalSet<int>,
+                                  UniversalSet<bool, Boole, Finite>>,
+    "the universe of a pair carrier is the product of the factor universes.");
 
 /** @brief The subset (⊆) order on the subobject lattice @c Sub(T), keyed by the
  *  logic species @c L.  This is the @b injected order (@c Ord) under which the

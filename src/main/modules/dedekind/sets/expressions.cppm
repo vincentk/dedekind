@@ -877,6 +877,43 @@ class Set {
   Predicate predicate_;
 };
 
+// ── The set-object legs of the opaque arm (IsSetObject, :setobject) ──────────
+//
+// A comprehension's universe is its BASE's universe: the mereological whole is
+// what the base is a part of, restriction only shrinks the part.  So `ℕ | P`
+// has universe 𝔸<Cardinality>, and `(ℕ | P) | Q` the same --- the recursion
+// bottoms out at the universe, which is its own universe.
+export template <typename Base, typename Predicate>
+constexpr auto universe(const Comprehension<Base, Predicate>& c) {
+  return universe(c.base);
+}
+
+// Set<T,L,P> is the opaque arm with an implicit universe 𝔸<T,L> (the default
+// leg applies) and the predicate P as its χ datum --- the very object
+// `operator&` hands to `structured_and`, so the leg names what the reducer
+// already reads.
+export template <typename T, typename L, typename P>
+constexpr const P& classifier(const Set<T, L, P>& s) {
+  return s.predicate();
+}
+
+static_assert(
+    IsSetObject<Set<int, dedekind::category::Boole, UniversalPredicate<int>>>,
+    "Set<T,L,P> is a set object: universe 𝔸<T,L>, classifier P.");
+static_assert(std::same_as<universe_t<Set<int, dedekind::category::Boole,
+                                          UniversalPredicate<int>>>,
+                           UniversalSet<int>>,
+              "the implicit universe of Set<int> is 𝔸<int>.");
+static_assert(
+    IsSetObject<Comprehension<UniversalSet<int>, UniversalPredicate<int>>>,
+    "a comprehension is a set object.");
+static_assert(
+    std::same_as<universe_t<Comprehension<
+                     Comprehension<UniversalSet<int>, UniversalPredicate<int>>,
+                     UniversalPredicate<int>>>,
+                 UniversalSet<int>>,
+    "a nested comprehension's universe is the base's universe (the whole).");
+
 }  // namespace dedekind::sets
 
 namespace dedekind::category {
