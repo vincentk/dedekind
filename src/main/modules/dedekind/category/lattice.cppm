@@ -483,9 +483,11 @@ export template <typename A, typename B>
     typename A::Domain;
     typename A::Codomain;
     typename A::logic_species;
+    typename A::Member;  // the operands are subobjects, not bare classifiers
     typename B::Domain;
     typename B::Codomain;
     typename B::logic_species;
+    typename B::Member;
     requires std::same_as<typename A::Domain, typename B::Domain>;
     requires std::same_as<typename A::logic_species, typename B::logic_species>;
   }
@@ -520,9 +522,11 @@ export template <typename A, typename B>
     typename A::Domain;
     typename A::Codomain;
     typename A::logic_species;
+    typename A::Member;  // the operands are subobjects, not bare classifiers
     typename B::Domain;
     typename B::Codomain;
     typename B::logic_species;
+    typename B::Member;
     requires std::same_as<typename A::Domain, typename B::Domain>;
     requires std::same_as<typename A::logic_species, typename B::logic_species>;
   }
