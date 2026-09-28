@@ -738,7 +738,16 @@ export enum class SetKind { Empty, Universe, Halfspace, Singleton, Interval };
 
 /** @brief A set as a VALUE: kind + pivot(s) + direction/strictness, with a
  *  runtime-evaluable membership χ.  The pivot rides in @c lo (Halfspace /
- *  Singleton) or @c lo/@c hi (Interval), as a value --- never an NTTP. */
+ *  Singleton) or @c lo/@c hi (Interval), as a value --- never an NTTP.
+ *
+ *  @note PROVISIONAL REPRESENTATION (FIXME #970): the kind-flag + shared-fields
+ *  layout is runtime type-dispatch by flag, a first-iteration stand-in for a
+ *  proper coproduct (@c std::variant / @c IsCoproduct, tied to the variance
+ *  architecture).  Consume sets through the stable INTERFACE --- @c operator&,
+ *  @c operator|, @c operator==, @c operator<=, membership @c operator() --- and
+ *  through the @c half / @c point / @c empty / @c universe factories; do @b not
+ *  build downstream on the @c kind / @c lo / @c hi fields, which will change.
+ */
 export template <typename V = long long, typename L = Boole>
 struct SetVal : dedekind::sets::SetExpr<SetVal<V, L>, V, L> {
   using Domain = V;
@@ -788,6 +797,11 @@ struct SetVal : dedekind::sets::SetExpr<SetVal<V, L>, V, L> {
             Strictness::NonStrict,
             Strictness::NonStrict};
   }
+  /** @brief The two boundary sets as values --- the meet's annihilator (@c Ø)
+   *  and unit (@c 𝔸).  Factories (not raw aggregate init) so callers never
+   * spell the empty-base brace of the @c SetExpr aggregate. */
+  static constexpr SetVal empty() { return {{}, SetKind::Empty}; }
+  static constexpr SetVal universe() { return {{}, SetKind::Universe}; }
 };
 
 /** @brief The ONE meet law: @c ↑a∩↑b=↑(a∨b) / @c ↓a∩↓b=↓(a∧b) (same direction,

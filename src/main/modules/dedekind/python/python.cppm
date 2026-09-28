@@ -236,9 +236,9 @@ constexpr Set at_most(long long k) {
 /** @brief @c {k}: the singleton / point @c η(k) --- the value-based atom. */
 constexpr Set singleton(long long k) { return Set::point(k); }
 /** @brief @c 𝔸: the universe (meet unit). */
-constexpr Set everything() { return {ord::SetKind::Universe}; }
+constexpr Set everything() { return Set::universe(); }
 /** @brief @c Ø: the empty set (meet annihilator). */
-constexpr Set nothing() { return {ord::SetKind::Empty}; }
+constexpr Set nothing() { return Set::empty(); }
 
 /** @brief The meet @c a @c ∩ @c b, through the value-first @c :order
  *  @c reduce_meet (the ONE law; @c static_assert folds it at compile time, the
