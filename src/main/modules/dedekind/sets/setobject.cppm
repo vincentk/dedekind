@@ -149,4 +149,35 @@ export template <IsSetObject S>
 using universe_t =
     std::remove_cvref_t<decltype(universe(std::declval<const S&>()))>;
 
+/** @brief Two types carry the same carrier: the domain tie a lattice node over
+ *  set objects needs (the logic may differ; the codomain leg reconciles it). */
+template <typename A, typename B>
+concept SameCarrier = requires {
+  typename A::Domain;
+  typename B::Domain;
+} && std::same_as<typename A::Domain, typename B::Domain>;
+
+template <typename T>
+struct is_set_term : std::bool_constant<IsSetObject<T>> {};
+template <typename A, typename B>
+struct is_set_term<dedekind::category::Meet<A, B>>
+    : std::bool_constant<is_set_term<A>::value && is_set_term<B>::value &&
+                         SameCarrier<A, B>> {};
+template <typename A, typename B>
+struct is_set_term<dedekind::category::Join<A, B>>
+    : std::bool_constant<is_set_term<A>::value && is_set_term<B>::value &&
+                         SameCarrier<A, B>> {};
+template <typename A>
+struct is_set_term<dedekind::category::Not<A>> : is_set_term<A> {};
+
+/** @brief A lattice @b term over set objects: a set object, or a @c Meet /
+ *  @c Join / @c Not whose operands are set terms over one carrier.  This is
+ *  the reducer's input sort.  A same-logic node is already a set object (it
+ *  carries the subobject surface itself); the recursion admits the
+ *  cross-logic case too --- @c Ø<T,Kleene> @c ∧ @c S<T,Boole> --- where only
+ *  the operands carry a surface and the reducer's bounded law plus the
+ *  codomain leg decide the result. */
+export template <typename T>
+concept IsSetTerm = is_set_term<T>::value;
+
 }  // namespace dedekind::sets
