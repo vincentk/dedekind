@@ -1877,6 +1877,15 @@ using CanonicalIntProductDomain = typename CanonicalIntProductSet::Domain;
 static_assert(
     dedekind::category::IsProduct<CanonicalIntProductDomain, int, int>,
     "sets::cartesian_product must expose a std::pair product domain.");
+// The product of two set objects is a set object (today's witness) ...
+static_assert(IsSetObject<CanonicalIntProductSet>,
+              "A × B is a set object over the pair carrier.");
+// FIXME(#970): ... and SHOULD be the categorical product OF THE FACTORS, not
+// only of their carriers: `IsProduct<decltype(A * B), A, B, MakeCartesian>`,
+// with π_1 / π_2 on the product SET returning the factor set objects (the
+// legs already ride in ProductMembership::a / ::b; the 𝔸 × 𝔸 overload drops
+// them) and the factors constrained IsSetObject.  Today only the carrier-level
+// IsProduct above holds.  Lands with the IsSetObject MUST slice.
 
 // The relation CORE --- the @c Relation / @c SetFunction aliases, the
 // @c IsRelation concept, and the @c relates / @c dom / @c cod / @c apply /
