@@ -468,41 +468,41 @@ static_assert(
 // overloads are the more specialised and win.
 namespace dedekind::category {
 
-template <typename A, typename Chi>
+export template <typename A, typename Chi>
 constexpr auto universe(const Subobject<A, Chi>&) {
   return dedekind::sets::𝔸<A, typename Subobject<A, Chi>::logic_species>;
 }
-template <typename A, typename Chi>
+export template <typename A, typename Chi>
 constexpr const Subobject<A, Chi>& classifier(const Subobject<A, Chi>& s) {
   return s;
 }
 
-template <typename A>
+export template <typename A>
   requires requires(const A& a) { universe(a); }
 constexpr auto universe(const Not<A>& n) {
   return universe(n.base);
 }
-template <typename A>
+export template <typename A>
 constexpr const Not<A>& classifier(const Not<A>& n) {
   return n;
 }
 
-template <typename A, typename B>
+export template <typename A, typename B>
   requires requires(const A& a) { universe(a); }
 constexpr auto universe(const Meet<A, B>& m) {
   return universe(π_1(m));
 }
-template <typename A, typename B>
+export template <typename A, typename B>
 constexpr const Meet<A, B>& classifier(const Meet<A, B>& m) {
   return m;
 }
 
-template <typename A, typename B>
+export template <typename A, typename B>
   requires requires(const A& a) { universe(a); }
 constexpr auto universe(const Join<A, B>& j) {
   return universe(π_1(j));
 }
-template <typename A, typename B>
+export template <typename A, typename B>
 constexpr const Join<A, B>& classifier(const Join<A, B>& j) {
   return j;
 }
