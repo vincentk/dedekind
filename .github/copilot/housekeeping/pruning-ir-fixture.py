@@ -42,7 +42,9 @@ SOURCES = [
     ),
     # showcase_06_halfspace_interval_42.cpp and
     # showcase_08_halfspace_2d_product.cpp dropped from the IR-fixture
-    # rotation under PR #673.  The paper's claim is the realistic one:
+    # rotation under PR #673; showcase_07_lattice_real_interval.cpp retired
+    # with the value-carrying halfspace port (the interval is a value, its
+    # size a constexpr fold; the reducer test covers it).  The paper's claim is the realistic one:
     # sometimes the membership evaluates all the way to a constant;
     # when an argument is not yet known at compile time the collapse
     # is partial (cf. Turchin supercompilation).  Whether a *given*
@@ -51,10 +53,6 @@ SOURCES = [
     # downstream of the structural claim --- which is witnessed in
     # source via static_assert(iv.size() == 42u),
     # static_assert(IsExtensional<…>), HasDecidableMembership, etc.
-    (
-        _PYTHON_DIR / "showcase_07_lattice_real_interval.cpp",
-        _PYTHON_DIR / "showcase_07_lattice_real_interval.ll",
-    ),
     (
         _PYTHON_DIR / "showcase_09_lp_vertex_typed_constant.cpp",
         _PYTHON_DIR / "showcase_09_lp_vertex_typed_constant.ll",
@@ -267,15 +265,6 @@ def semantic_sanity(ir_text: str, source: Path) -> None:
             raise AssertionError(
                 "Expected halfspace contradiction on ℝ to collapse to "
                 "`ret i1 false` in IR."
-            )
-    elif "showcase_07_lattice_real_interval" in name:
-        block = extract_function_block(ir_text, "witness_lattice_real_interval")
-        if block is None:
-            raise AssertionError("IR missing witness_lattice_real_interval symbol.")
-        if "ret i1 true" not in block:
-            raise AssertionError(
-                "Expected ℤ lattice ∩ real interval (-21.0, 21.0] at 0 to "
-                "collapse to `ret i1 true` in IR."
             )
     elif "showcase_09_lp_vertex_typed_constant" in name:
         # LP `maximize(3x + 2y, {x+y≤4, 2x+y≤6, x,y≥0})` reduces to the

@@ -687,8 +687,25 @@ struct SetVal : dedekind::sets::SetExpr<SetVal<V, L>, V, L> {
   Strictness sl = Strictness::NonStrict;
   Strictness su = Strictness::NonStrict;
 
-  /** @brief χ(x): runtime membership, decided from the value fields. */
+  /** @brief χ(x): runtime membership, decided from the value fields.
+   *
+   *  @details The two DECIDED arms (⊥ / ⊤) need no carrier comparison, so they
+   *  are answered in this small front and the carrier comparisons live in
+   *  @c contains_bounded behind it.  The split is load-bearing for the IR
+   *  exhibits: on a variant carrier (ℕ = @c Cardinality) the comparisons are
+   *  heavy enough that the inliner declines a single fat function, and a
+   *  constant @c SetVal then stays a call instead of folding to @c ret @c i1
+   *  @c false.  A small front inlines, the load of @c kind from the constant
+   *  folds, and the bounded call is dead code. */
   constexpr bool contains(const V& x) const {
+    if (kind == SetKind::Empty) return false;
+    if (kind == SetKind::Universe) return true;
+    return contains_bounded(x);
+  }
+
+  /** @brief The bounded arms of χ: point, halfspace, interval --- the arms that
+   *  compare against the carrier. */
+  constexpr bool contains_bounded(const V& x) const {
     switch (kind) {
       case SetKind::Empty:
         return false;
