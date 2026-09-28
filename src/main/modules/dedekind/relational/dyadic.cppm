@@ -177,14 +177,15 @@ export template <typename T1, typename T2, typename L, typename P>
 constexpr auto dom(const Relation<T1, T2, L, P>& r) {
   // π_1 of the relation's UNIVERSE leg: 𝔸<A×B> ≅ 𝔸<A> × 𝔸<B>, so the declared
   // domain is read off the product, not restated; the logic rides along.
-  return dedekind::category::π_1(universe(r));
+  return π_1(
+      universe(r));  // unqualified: the pair-universe π_1 is found by ADL
 }
 
 /** @brief The @b declared codomain of a relation @c R ⊆ A×B: @c 𝔸<B>, the
  *         second factor (@c π₂'s codomain).  Dual to @c dom. */
 export template <typename T1, typename T2, typename L, typename P>
 constexpr auto cod(const Relation<T1, T2, L, P>& r) {
-  return dedekind::category::π_2(universe(r));  // dual of dom
+  return π_2(universe(r));  // dual of dom
 }
 
 /**
