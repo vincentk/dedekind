@@ -4,7 +4,7 @@
  * collapses on an EXTENSIONAL carrier (𝔹, whose two values enumerate) and an
  * INTENSIONAL one (ℕ, infinite and predicate-only).  Source for the §3 Listing
  * (lst:pruning).  The MEET collapse (a ∩ ¬a = ⊥, the empty set) is STRUCTURAL
- * on both carriers.  #965 (value-carrying pivots): the JOIN (a ∪ ¬a = ⊤) is
+ * on both carriers.  With value-carrying pivots, the JOIN (a ∪ ¬a = ⊤) is
  * decided by MEMBERSHIP rather than a type-level collapse — a value pivot
  * cannot dispatch the cover-vs-gap of a crossing union, so the union is the
  * honest point-wise set that still covers every element.  The intermediate
@@ -27,7 +27,7 @@ using namespace dedekind::order;
 
 TEST_CASE("complement-lattice absorbing laws collapse (𝔹 and ℕ)",
           "[sets][lattice][pruning]") {
-  // ── 𝔹 : extensional carrier — value-carrying Singleton (#965: the pivot is a
+  // ── 𝔹 : extensional carrier — value-carrying Singleton (the pivot is a
   // VALUE, so the complement laws are decided by membership, not by a
   // type-level Singleton∩Singleton collapse that a value pivot cannot express)
   // ──
@@ -52,8 +52,8 @@ TEST_CASE("complement-lattice absorbing laws collapse (𝔹 and ℕ)",
     constexpr Above<> gt_5 =
         ℕ | (π > fix(5_c));           // {x > 5} ⊂ ℕ (pivot in value)
     constexpr AtMost<> le_5 = ~gt_5;  // {x <= 5}, the complement
-    // LEM (⊤): {x≤5} ∪ {x>5} covers ℕ.  #965: value-carrying cannot dispatch
-    // the opposite-direction cover-vs-gap on a runtime pivot, so the union is
+    // LEM (⊤): {x≤5} ∪ {x>5} covers ℕ.  Value-carrying cannot dispatch the
+    // opposite-direction cover-vs-gap on a runtime pivot, so the union is
     // the honest point-wise set (not a structural 𝔸); it still DECIDES
     // membership --- every element lands in one half or the other.
     constexpr auto cover = le_5 | gt_5;

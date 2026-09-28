@@ -40,7 +40,7 @@ using dedekind::order::operator""_c;
 using QHalfspace =
     std::remove_cvref_t<decltype(ℚ | (dedekind::sets::π > fix(5_c)))>;
 // The public expression really does bind the ℚ carrier and the Above cut
-// (#965: value-carrying, so the pivot 5 rides in the instance, not the type).
+// (value-carrying, so the pivot 5 rides in the instance, not the type).
 static_assert(
     std::same_as<
         QHalfspace,

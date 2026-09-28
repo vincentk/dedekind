@@ -853,6 +853,57 @@ constexpr SetVal<T, L> to_setval(const Halfspace<T, D, S, L>& h) {
   return SetVal<T, L>::half(h.pivot, D, S);
 }
 
+/** @brief Structural equality of two value sets: same kind and the fields that
+ *  kind uses.  The value-first counterpart of the old type-level set equality;
+ *  it is what the subset identity @f$A \subseteq B \iff (A \cap B) = A@f$ rides
+ *  on now that the meet returns a @c SetVal.
+ *
+ *  @details The verdict is returned in the ambient logic @c L::Ω (so it
+ * composes with the @c L::Ω subset ladder and stays Kleene under a Kleene
+ * ambient rather than silently narrowing a @c bool).  The comparison is gated
+ * on @c V having decidable equality (@c std::equality_comparable): an
+ * undecidable carrier --- where value equality is not answerable --- is ruled
+ * out at the type level, so the operator is simply absent rather than vouching
+ * for a verdict it cannot compute. */
+export template <typename V, typename L>
+  requires std::equality_comparable<V>
+constexpr typename L::Ω operator==(const SetVal<V, L>& a,
+                                   const SetVal<V, L>& b) {
+  if (a.kind != b.kind) return L::False;
+  bool eq = true;
+  switch (a.kind) {
+    case SetKind::Empty:
+    case SetKind::Universe:
+      break;  // kind alone decides
+    case SetKind::Singleton:
+      eq = a.lo == b.lo;
+      break;
+    case SetKind::Halfspace:
+      eq = a.lo == b.lo && a.dir == b.dir && a.sl == b.sl;
+      break;
+    case SetKind::Interval:
+      eq = a.lo == b.lo && a.hi == b.hi && a.sl == b.sl && a.su == b.su;
+      break;
+  }
+  return eq ? L::True : L::False;
+}
+
+/** @brief Bridge: compare a value set to a halfspace by the halfspace's own
+ *  @c SetVal form, so the generic meet-subset identity accepts a bare
+ *  @c Halfspace operand (@c (a & b) == a with @c a a halfspace). */
+export template <typename T, Direction D, Strictness S, typename L>
+  requires std::equality_comparable<T>
+constexpr typename L::Ω operator==(const SetVal<T, L>& s,
+                                   const Halfspace<T, D, S, L>& h) {
+  return s == to_setval(h);
+}
+export template <typename T, Direction D, Strictness S, typename L>
+  requires std::equality_comparable<T>
+constexpr typename L::Ω operator==(const Halfspace<T, D, S, L>& h,
+                                   const SetVal<T, L>& s) {
+  return s == to_setval(h);
+}
+
 /** @section halfspace__Halfspace_Structural_Algebra — ADL hooks for operator&&.
  */
 

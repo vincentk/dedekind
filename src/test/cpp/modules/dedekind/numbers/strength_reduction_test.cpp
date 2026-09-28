@@ -91,7 +91,7 @@ static_assert(!Γ_Φ(std::pair{3u, R2::root()}), "(3, √2) does not.");
 // reduced form is a first-class COMPILE-TIME Halfspace<unsigned, 10, ≤>.
 using ReducedLeTen =
     Halfspace<unsigned, Direction::Downward, Strictness::NonStrict>;
-constexpr ReducedLeTen native_le_ten{10u};  // #965: pivot rides in the value
+constexpr ReducedLeTen native_le_ten{10u};  // pivot rides in the value
 
 // Boundary: 10 ∈ {x ≤ 10}, 11 ∉ — via the ℝ chain AND the native reduction.
 static_assert((Φ(10u) <= ten) == (native_le_ten(10u) == Boole::True));

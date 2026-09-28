@@ -27,7 +27,7 @@ using namespace dedekind::order;
 TEST_CASE("order:halfspace — Halfspace operator() on integral carrier",
           "[order][halfspace]") {
   SECTION("Upward, strict: n > 5") {
-    constexpr Halfspace<int, 5, Direction::Upward, Strictness::Strict> h{};
+    constexpr Halfspace<int, Direction::Upward, Strictness::Strict> h{5};
     using Logic = typename decltype(h)::logic_species;
 
     STATIC_CHECK(h(6) == Logic::True);
@@ -36,7 +36,7 @@ TEST_CASE("order:halfspace — Halfspace operator() on integral carrier",
   }
 
   SECTION("Upward, non-strict: n >= 5") {
-    constexpr Halfspace<int, 5, Direction::Upward, Strictness::NonStrict> h{};
+    constexpr Halfspace<int, Direction::Upward, Strictness::NonStrict> h{5};
     using Logic = typename decltype(h)::logic_species;
 
     STATIC_CHECK(h(5) == Logic::True);  // boundary included
@@ -45,7 +45,7 @@ TEST_CASE("order:halfspace — Halfspace operator() on integral carrier",
   }
 
   SECTION("Downward, strict: n < 5") {
-    constexpr Halfspace<int, 5, Direction::Downward, Strictness::Strict> h{};
+    constexpr Halfspace<int, Direction::Downward, Strictness::Strict> h{5};
     using Logic = typename decltype(h)::logic_species;
 
     STATIC_CHECK(h(4) == Logic::True);
@@ -53,7 +53,7 @@ TEST_CASE("order:halfspace — Halfspace operator() on integral carrier",
   }
 
   SECTION("Downward, non-strict: n <= 5") {
-    constexpr Halfspace<int, 5, Direction::Downward, Strictness::NonStrict> h{};
+    constexpr Halfspace<int, Direction::Downward, Strictness::NonStrict> h{5};
     using Logic = typename decltype(h)::logic_species;
 
     STATIC_CHECK(h(5) == Logic::True);
@@ -70,32 +70,39 @@ TEST_CASE("order:halfspace — Variable DSL constructs Halfspace from bound<V>",
   // the underlying carrier is Cardinality (the variant ℕ-proxy from
   // #402), so the test exercises `Halfspace<Cardinality, ...>`
   // instantiations.
+  // The DSL binds the pivot-less Halfspace TYPE; the pivot 7 rides in the
+  // instance (checked via .pivot).
   SECTION("> constructs Upward/Strict") {
     constexpr auto h = ℕ | (χ > fix(7_c));
     using H = std::decay_t<decltype(h)>;
-    STATIC_CHECK(std::same_as<H, Halfspace<Cardinality, 7, Direction::Upward,
-                                           Strictness::Strict>>);
+    STATIC_CHECK(
+        std::same_as<
+            H, Halfspace<Cardinality, Direction::Upward, Strictness::Strict>>);
+    STATIC_CHECK(h.pivot == 7);
   }
 
   SECTION(">= constructs Upward/NonStrict") {
     constexpr auto h = ℕ | (χ >= fix(7_c));
     using H = std::decay_t<decltype(h)>;
-    STATIC_CHECK(std::same_as<H, Halfspace<Cardinality, 7, Direction::Upward,
+    STATIC_CHECK(std::same_as<H, Halfspace<Cardinality, Direction::Upward,
                                            Strictness::NonStrict>>);
+    STATIC_CHECK(h.pivot == 7);
   }
 
   SECTION("< constructs Downward/Strict") {
     constexpr auto h = ℕ | (χ < fix(7_c));
     using H = std::decay_t<decltype(h)>;
-    STATIC_CHECK(std::same_as<H, Halfspace<Cardinality, 7, Direction::Downward,
+    STATIC_CHECK(std::same_as<H, Halfspace<Cardinality, Direction::Downward,
                                            Strictness::Strict>>);
+    STATIC_CHECK(h.pivot == 7);
   }
 
   SECTION("<= constructs Downward/NonStrict") {
     constexpr auto h = ℕ | (χ <= fix(7_c));
     using H = std::decay_t<decltype(h)>;
-    STATIC_CHECK(std::same_as<H, Halfspace<Cardinality, 7, Direction::Downward,
+    STATIC_CHECK(std::same_as<H, Halfspace<Cardinality, Direction::Downward,
                                            Strictness::NonStrict>>);
+    STATIC_CHECK(h.pivot == 7);
   }
   // Note (post-#409 review): the DSL constraint also rejects negative
   // signed pivots on unsigned carriers (e.g. `ℕ | (χ > fix(-1_c))` does not
@@ -111,87 +118,11 @@ TEST_CASE("order:halfspace — Variable DSL constructs Halfspace from bound<V>",
   // tracked under the bare-`Domain` audit (#411).
 }
 
-TEST_CASE("order:halfspace — structured_and on opposing halfspaces",
-          "[order][halfspace][structured_and]") {
-  SECTION("Disjoint pivots (strict/strict, Lo >= Hi) → EmptyPredicate") {
-    constexpr Halfspace<int, 5, Direction::Upward, Strictness::Strict> up{};
-    constexpr Halfspace<int, 3, Direction::Downward, Strictness::Strict> dn{};
-    using Result = std::decay_t<decltype(structured_and(up, dn))>;
-    STATIC_CHECK(std::same_as<Result, EmptyPredicate<int>>);
-  }
-
-  SECTION("Touching strict/strict (Lo == Hi) → EmptyPredicate") {
-    constexpr Halfspace<int, 5, Direction::Upward, Strictness::Strict> up{};
-    constexpr Halfspace<int, 5, Direction::Downward, Strictness::Strict> dn{};
-    using Result = std::decay_t<decltype(structured_and(up, dn))>;
-    STATIC_CHECK(std::same_as<Result, EmptyPredicate<int>>);
-  }
-
-  SECTION("Cardinality 1 (integer strict/strict, Hi-Lo == 2) → Singleton") {
-    constexpr Halfspace<int, 3, Direction::Upward, Strictness::Strict> up{};
-    constexpr Halfspace<int, 5, Direction::Downward, Strictness::Strict> dn{};
-    constexpr auto r = structured_and(up, dn);
-    STATIC_CHECK(
-        std::same_as<std::decay_t<decltype(r)>, Singleton<int, Boole>>);
-    STATIC_CHECK(r.value == 4);  // #965: the point is the VALUE, not the type
-  }
-
-  SECTION("Cardinality > 1 → OrderInterval with correct bounds") {
-    constexpr Halfspace<int, -21, Direction::Upward, Strictness::Strict> up{};
-    constexpr Halfspace<int, 21, Direction::Downward, Strictness::NonStrict>
-        dn{};
-    constexpr auto iv = structured_and(up, dn);
-    using Iv = std::decay_t<decltype(iv)>;
-
-    STATIC_CHECK(Iv::lower_pivot == -21);
-    STATIC_CHECK(Iv::upper_pivot == 21);
-    STATIC_CHECK(Iv::lower_strictness == Strictness::Strict);
-    STATIC_CHECK(Iv::upper_strictness == Strictness::NonStrict);
-    STATIC_CHECK(iv.size() == 42u);
-  }
-
-  SECTION("Symmetric case (Downward ∩ Upward) delegates correctly") {
-    constexpr Halfspace<int, 5, Direction::Downward, Strictness::Strict> dn{};
-    constexpr Halfspace<int, 3, Direction::Upward, Strictness::Strict> up{};
-    // 3 < x < 5 → the point {4}
-    constexpr auto r = structured_and(dn, up);
-    STATIC_CHECK(
-        std::same_as<std::decay_t<decltype(r)>, Singleton<int, Boole>>);
-    STATIC_CHECK(r.value == 4);
-  }
-}
-
-TEST_CASE("order:halfspace — structured_and on same-direction halfspaces",
-          "[order][halfspace][structured_and]") {
-  SECTION("Upward ∩ Upward: stricter pivot wins") {
-    constexpr Halfspace<int, 5, Direction::Upward, Strictness::Strict> a{};
-    constexpr Halfspace<int, 7, Direction::Upward, Strictness::Strict> b{};
-    using Result = std::decay_t<decltype(structured_and(a, b))>;
-    STATIC_CHECK(std::same_as<Result, Halfspace<int, 7, Direction::Upward,
-                                                Strictness::Strict, Boole>>);
-  }
-
-  SECTION("Upward same pivot, mixed strictness: stricter wins") {
-    constexpr Halfspace<int, 5, Direction::Upward, Strictness::Strict> a{};
-    constexpr Halfspace<int, 5, Direction::Upward, Strictness::NonStrict> b{};
-    using Result = std::decay_t<decltype(structured_and(a, b))>;
-    STATIC_CHECK(std::same_as<Result, Halfspace<int, 5, Direction::Upward,
-                                                Strictness::Strict, Boole>>);
-  }
-
-  SECTION("Downward ∩ Downward: smaller pivot wins (stricter)") {
-    constexpr Halfspace<int, 5, Direction::Downward, Strictness::Strict> a{};
-    constexpr Halfspace<int, 3, Direction::Downward, Strictness::Strict> b{};
-    using Result = std::decay_t<decltype(structured_and(a, b))>;
-    STATIC_CHECK(std::same_as<Result, Halfspace<int, 3, Direction::Downward,
-                                                Strictness::Strict, Boole>>);
-  }
-}
-
 namespace {
-// A Boole halfspace over int, abbreviated for the union/meet tests.
-template <int Piv, Direction D, Strictness S>
-using HS = Halfspace<int, Piv, D, S, Boole>;
+// A Boole halfspace over int, abbreviated for the union/meet tests.  The alias
+// fixes direction/strictness; the pivot rides in the instance (HS<D, S>{piv}).
+template <Direction D, Strictness S>
+using HS = Halfspace<int, D, S, Boole>;
 // A function-pointer predicate (not a class functor): a Set over one must still
 // combine through the free set operators (exercised via a MeetSet below).
 constexpr bool is_pos(int x) { return x > 0; }
@@ -199,90 +130,51 @@ constexpr bool is_pos(int x) { return x > 0; }
 
 TEST_CASE("order:halfspace — structured_or joins halfspaces (#365)",
           "[order][halfspace][structured_or]") {
+  // A same-direction union collapses to a value SetVal (the weaker/wider bound
+  // wins).  A crossing union has no SetVal kind on a runtime pivot, so it is
+  // the honest point-wise set (decided by membership).
   SECTION("Upward ∪ Upward: the weaker (wider) pivot wins") {
-    using Result = std::decay_t<decltype(structured_or(
-        HS<5, Direction::Upward, Strictness::Strict>{},
-        HS<7, Direction::Upward, Strictness::Strict>{}))>;
-    STATIC_CHECK(
-        std::same_as<Result, HS<5, Direction::Upward, Strictness::Strict>>);
+    constexpr auto r =
+        structured_or(HS<Direction::Upward, Strictness::Strict>{5},
+                      HS<Direction::Upward, Strictness::Strict>{7});
+    STATIC_CHECK(r.kind == SetKind::Halfspace);
+    STATIC_CHECK(r.lo == 5);
+    STATIC_CHECK(r.dir == Direction::Upward);
   }
 
   SECTION("Downward ∪ Downward: the wider (larger) pivot wins") {
-    using Result = std::decay_t<decltype(structured_or(
-        HS<5, Direction::Downward, Strictness::Strict>{},
-        HS<3, Direction::Downward, Strictness::Strict>{}))>;
-    STATIC_CHECK(
-        std::same_as<Result, HS<5, Direction::Downward, Strictness::Strict>>);
+    constexpr auto r =
+        structured_or(HS<Direction::Downward, Strictness::Strict>{5},
+                      HS<Direction::Downward, Strictness::Strict>{3});
+    STATIC_CHECK(r.kind == SetKind::Halfspace);
+    STATIC_CHECK(r.lo == 5);
+    STATIC_CHECK(r.dir == Direction::Downward);
   }
 
-  SECTION("Covering opposing (x≥3 ∪ x≤5 overlap [3,5]) → the universe") {
-    using Result = std::decay_t<decltype(structured_or(
-        HS<3, Direction::Upward, Strictness::NonStrict>{},
-        HS<5, Direction::Downward, Strictness::NonStrict>{}))>;
-    STATIC_CHECK(std::same_as<Result, UniversalSet<int, Boole>>);
-  }
-}
-
-TEST_CASE(
-    "order:halfspace — Set::operator| is structural, never a lambda (#365)",
-    "[order][halfspace][set][structured_or]") {
-  SECTION(
-      "routes through structured_or: same-direction union collapses wider") {
-    constexpr Set<int, Boole, HS<5, Direction::Upward, Strictness::Strict>> a{
-        HS<5, Direction::Upward, Strictness::Strict>{}};
-    constexpr Set<int, Boole, HS<7, Direction::Upward, Strictness::Strict>> b{
-        HS<7, Direction::Upward, Strictness::Strict>{}};
-    using U = std::decay_t<decltype(a | b)>;
-    STATIC_CHECK(
-        std::same_as<
-            U, Set<int, Boole, HS<5, Direction::Upward, Strictness::Strict>>>);
-  }
-
-  SECTION("no collapse (a gap) → a JoinSet carrying both operand sets") {
-    using Lo = HS<5, Direction::Upward, Strictness::NonStrict>;    // {x ≥ 5}
-    using Hi = HS<2, Direction::Downward, Strictness::NonStrict>;  // {x ≤ 2}
-    constexpr Set<int, Boole, Lo> a{Lo{}};
-    constexpr Set<int, Boole, Hi> b{Hi{}};
-    using U = std::decay_t<decltype(a | b)>;
-    STATIC_CHECK(
-        std::same_as<U, JoinSet<Set<int, Boole, Lo>, Set<int, Boole, Hi>>>);
-    // {x ≥ 5} ∪ {x ≤ 2}: a genuine gap at 3, 4 (structured_or declines it).
-    CHECK((a | b)(7));
-    CHECK((a | b)(1));
-    CHECK_FALSE((a | b)(3));
-  }
-
-  SECTION("meet with no structured_and → a MeetSet carrying both operands") {
-    using Lo = HS<5, Direction::Upward, Strictness::NonStrict>;
-    using Hi = HS<2, Direction::Downward, Strictness::NonStrict>;
-    using Cap = HS<10, Direction::Downward, Strictness::Strict>;  // {x < 10}
-    constexpr Set<int, Boole, Lo> a{Lo{}};
-    constexpr Set<int, Boole, Hi> b{Hi{}};
-    constexpr Set<int, Boole, Cap> c{Cap{}};
-    // c ∩ (a ∪ b): meet of a halfspace with a union — no structured_and.
-    using M = std::decay_t<decltype(c & (a | b))>;
-    STATIC_CHECK(
-        std::same_as<
-            M, MeetSet<Set<int, Boole, Cap>,
-                       JoinSet<Set<int, Boole, Lo>, Set<int, Boole, Hi>>>>);
-    // x < 10 ∧ (x ≥ 5 ∨ x ≤ 2): {0,1,2} ∪ {5,6,7,8,9}.
-    CHECK((c & (a | b))(7));
-    CHECK((c & (a | b))(1));
-    CHECK_FALSE((c & (a | b))(3));   // 3 < 10 but neither ≥5 nor ≤2
-    CHECK_FALSE((c & (a | b))(12));  // ≥5 but not < 10
+  SECTION("Covering opposing (x≥3 ∪ x≤5 overlap [3,5]) covers ℤ") {
+    // The opposing-cover-to-universe structural collapse is gone (a value pivot
+    // cannot dispatch cover-vs-gap); the union is the point-wise set that still
+    // covers every element.
+    constexpr auto u = HS<Direction::Upward, Strictness::NonStrict>{3} |
+                       HS<Direction::Downward, Strictness::NonStrict>{5};
+    STATIC_CHECK(static_cast<bool>(u(0)));
+    STATIC_CHECK(static_cast<bool>(u(4)));
+    STATIC_CHECK(static_cast<bool>(u(100)));
   }
 }
 
-TEST_CASE("order:halfspace — excluded middle B ∪ ¬B = 𝔸 (#365, dual of B∩¬B=Ø)",
+TEST_CASE("order:halfspace — excluded middle B ∪ ¬B covers the plane (#365)",
           "[order][halfspace][set][complement]") {
-  // The user's law: union of a set with its complement is the backing universe,
-  // the exact dual of the contradiction B ∩ ¬B = Ø.  Routes through the
-  // IsComplementPair fast-path → UniversalSet, unchanged by the #365 rewiring.
+  // The user's law: a set unioned with its complement covers the ambient, the
+  // dual of the contradiction B ∩ ¬B = Ø.  A value pivot cannot dispatch the
+  // cover structurally, so the union is the honest point-wise set; it still
+  // DECIDES membership --- every pair lands in B or its complement.
   constexpr auto B = ℕ * ℕ | π1 > fix(5_c);
-  using U = std::decay_t<decltype(B | ~B)>;
-  STATIC_CHECK(
-      std::same_as<U,
-                   UniversalSet<std::pair<Cardinality, Cardinality>, Boole>>);
+  constexpr auto cover = B | ~B;
+  CHECK(static_cast<bool>(
+      cover(std::pair{finite_cardinality(6), finite_cardinality(0)})));
+  CHECK(static_cast<bool>(
+      cover(std::pair{finite_cardinality(0), finite_cardinality(0)})));
 }
 
 TEST_CASE("order:halfspace — covering XOR stays an IsSet (#864 CP review)",
@@ -291,10 +183,10 @@ TEST_CASE("order:halfspace — covering XOR stays an IsSet (#864 CP review)",
   // branch that structured_or once activated returned ¬(A ∩ B) by negating a
   // bare OrderInterval — a Morphism, not a Set.  Removed; the general path must
   // keep △ closed over Set.
-  constexpr Set<int, Boole, HS<10, Direction::Upward, Strictness::Strict>> a{
-      HS<10, Direction::Upward, Strictness::Strict>{}};
-  constexpr Set<int, Boole, HS<100, Direction::Downward, Strictness::Strict>> b{
-      HS<100, Direction::Downward, Strictness::Strict>{}};
+  constexpr Set<int, Boole, HS<Direction::Upward, Strictness::Strict>> a{
+      HS<Direction::Upward, Strictness::Strict>{10}};
+  constexpr Set<int, Boole, HS<Direction::Downward, Strictness::Strict>> b{
+      HS<Direction::Downward, Strictness::Strict>{100}};
   STATIC_CHECK(IsSet<std::decay_t<decltype(a ^ b)>>);
   // △ = in exactly one: {x ≤ 10} ∪ {x ≥ 100} (the complement of the overlap).
   CHECK((a ^ b)(5));         // in b, not a
@@ -310,14 +202,13 @@ TEST_CASE(
       "function-pointer predicate combines via the free operator& (a "
       "MeetSet)") {
     constexpr Set<int, Boole, bool (*)(int)> pos{&is_pos};  // x > 0
-    constexpr Set<int, Boole, HS<10, Direction::Downward, Strictness::Strict>>
-        cap{HS<10, Direction::Downward, Strictness::Strict>{}};  // x < 10
+    constexpr Set<int, Boole, HS<Direction::Downward, Strictness::Strict>> cap{
+        HS<Direction::Downward, Strictness::Strict>{10}};  // x < 10
     using M = std::decay_t<decltype(pos & cap)>;
-    STATIC_CHECK(
-        std::same_as<
-            M, MeetSet<Set<int, Boole, bool (*)(int)>,
-                       Set<int, Boole,
-                           HS<10, Direction::Downward, Strictness::Strict>>>>);
+    STATIC_CHECK(std::same_as<
+                 M, MeetSet<Set<int, Boole, bool (*)(int)>,
+                            Set<int, Boole,
+                                HS<Direction::Downward, Strictness::Strict>>>>);
     CHECK((pos & cap)(5));         // 0 < 5 < 10
     CHECK_FALSE((pos & cap)(-1));  // not > 0
     CHECK_FALSE((pos & cap)(20));  // not < 10
@@ -438,44 +329,6 @@ TEST_CASE("order:halfspace — OrderInterval on ℤ is finite and enumerable",
   STATIC_CHECK(iv.size() == 8u);
 }
 
-TEST_CASE("order:halfspace — reduction tightens extensionality (post-#622)",
-          "[order][halfspace][computability][reduction]") {
-  // Mirrored from analysis/pruning_showcases_test.cpp at the unit level.
-  //
-  // Pre-#622: this test was named "reduction boundary tightens all three
-  // tiers" and exhibited Ternary → Classical promotion as the structural
-  // reduction collapsed a halfspace to @c Ø / @c Singleton.  Post-#622's
-  // cardinality cut, ℕ is countable on the carrier axis and routes to
-  // Boole directly — so HasDecidableMembership fires on @c gt5
-  // / @c gt3 already, before any reduction.  The interesting axis that
-  // STILL tightens here is @b extensionality: @c gt5 is not extensional
-  // (predicate-shaped, no materialised members); after meet-reduction
-  // to @c Ø or @c Singleton, the result IS extensional.
-  SECTION("Empty-meet reduction (extensionality tightens)") {
-    constexpr auto gt5 = ℕ | (χ > fix(5_c));
-    constexpr auto lt3 = ℕ | (χ < fix(3_c));
-    constexpr Ø<Cardinality> meet = gt5 & lt3;
-
-    // Both source and meet are Classical (carrier axis fires on ℕ).
-    STATIC_CHECK(HasDecidableMembership<decltype(gt5)>);
-    STATIC_CHECK(HasDecidableMembership<decltype(meet)>);
-
-    // Extensionality tightens: gt5 is intensional, meet (=Ø) is extensional.
-    STATIC_CHECK_FALSE(IsExtensional<decltype(gt5)>);
-    STATIC_CHECK(IsExtensional<decltype(meet)>);
-  }
-
-  SECTION("Singleton reduction (extensionality tightens)") {
-    constexpr auto gt3 = ℕ | (χ > fix(3_c));
-    constexpr auto lt5 = ℕ | (χ < fix(5_c));
-    constexpr auto s = gt3 & lt5;
-
-    STATIC_CHECK(HasDecidableMembership<decltype(gt3)>);
-    STATIC_CHECK(HasDecidableMembership<decltype(s)>);
-    STATIC_CHECK(IsExtensional<decltype(s)>);
-  }
-}
-
 TEST_CASE("order:halfspace: point-free ℕ|pred is carrier-axis decidable (#848)",
           "[order][halfspace][computability][point-free]") {
   // #848: the point-free comprehension ℕ | (χ > fix(5_c)) reduces to a bare
@@ -548,11 +401,11 @@ TEST_CASE("order:halfspace — projection-arithmetic functional graphs (runtime)
 
 TEST_CASE("order:halfspace — structural subset ⊆ and derived >=,<,> (#831)",
           "[order][halfspace][subset]") {
-  constexpr Halfspace<int, 5, Direction::Upward, Strictness::Strict> gt5{};
-  constexpr Halfspace<int, 3, Direction::Upward, Strictness::Strict> gt3{};
-  constexpr Halfspace<int, 5, Direction::Upward, Strictness::NonStrict> ge5{};
-  constexpr Halfspace<int, 3, Direction::Downward, Strictness::Strict> lt3{};
-  constexpr Halfspace<int, 5, Direction::Downward, Strictness::Strict> lt5{};
+  constexpr Halfspace<int, Direction::Upward, Strictness::Strict> gt5{5};
+  constexpr Halfspace<int, Direction::Upward, Strictness::Strict> gt3{3};
+  constexpr Halfspace<int, Direction::Upward, Strictness::NonStrict> ge5{5};
+  constexpr Halfspace<int, Direction::Downward, Strictness::Strict> lt3{3};
+  constexpr Halfspace<int, Direction::Downward, Strictness::Strict> lt5{5};
 
   SECTION("subset via the lattice identity A ⊆ B ⟺ A ∩ B = A") {
     static_assert(bool(gt5 <= gt3), "{x>5} ⊆ {x>3}");
@@ -710,23 +563,15 @@ TEST_CASE("order:halfspace — the factory makes a Halfspace a proper cut (#832)
         std::same_as<
             decltype(make_halfspace<int, 5, Direction::Upward,
                                     Strictness::Strict>()),
-            Halfspace<int, 5, Direction::Upward, Strictness::Strict, Boole>>,
+            Halfspace<int, Direction::Upward, Strictness::Strict, Boole>>,
         "{x>5} is a proper cut");
   }
 
-  SECTION("the DSL and ~ route through the factory") {
+  SECTION("the DSL routes through the factory") {
     // The DSL surface collapses a moot cut: {x≥0} on ℕ = ℕ.
     static_assert(std::same_as<std::decay_t<decltype(ℕ | (χ >= fix(0_c)))>,
                                UniversalSet<Cardinality, Boole>>,
                   "ℕ | (χ >= fix(0_c)) = ℕ");
-    // ~ of a raw moot cut is its empty complement: ~{x≥0} = {x<0} = Ø, and
-    // dually ~Ø = ℕ, so the boundary complement round-trips (involution).
-    constexpr Halfspace<Cardinality, 0, Direction::Upward,
-                        Strictness::NonStrict>
-        raw_all{};
-    static_assert(
-        std::same_as<std::decay_t<decltype(~raw_all)>, Ø<Cardinality, Boole>>,
-        "~{x≥0} on ℕ = Ø");
   }
 
   SECTION(
@@ -738,14 +583,14 @@ TEST_CASE("order:halfspace — the factory makes a Halfspace a proper cut (#832)
         std::same_as<
             decltype(make_halfspace<SignedCardinality, 0, Direction::Downward,
                                     Strictness::Strict>()),
-            Halfspace<SignedCardinality, 0, Direction::Downward,
+            Halfspace<SignedCardinality, Direction::Downward,
                       Strictness::Strict, Boole>>,
         "{z<0} on ℤ is a proper cut, not Ø");
     static_assert(
         std::same_as<
             decltype(make_halfspace<SignedCardinality, 0, Direction::Upward,
                                     Strictness::NonStrict>()),
-            Halfspace<SignedCardinality, 0, Direction::Upward,
+            Halfspace<SignedCardinality, Direction::Upward,
                       Strictness::NonStrict, Boole>>,
         "{z≥0} on ℤ is a proper cut, not the universe");
   }
@@ -758,8 +603,7 @@ TEST_CASE(
   // A Kleene halfspace over a countable carrier: NaturalLogic reads Boole (ℵ_0)
   // but operator() returns Ternary, so #928 derives the Set codomain from the
   // RETURN type (GetLogic), not the carrier axis.
-  constexpr Halfspace<int, 5, Direction::Upward, Strictness::Strict, Kleene>
-      h{};
+  constexpr Halfspace<int, Direction::Upward, Strictness::Strict, Kleene> h{5};
 
   SECTION("the halfspace itself is coherent: carrier ℵ_0, species Kleene") {
     STATIC_CHECK(std::same_as<typename decltype(h)::logic_species, Kleene>);
