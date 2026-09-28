@@ -101,10 +101,10 @@ static_assert(IsRelation<CanonicalIntRelation, int, int>,
               "A×B with universe 𝔸<A> × 𝔸<B>.");
 static_assert(
     std::same_as<decltype(dom(CanonicalIntRelation{CanonicalPairPredicate{}})),
-                 decltype(dedekind::sets::𝔸<int, Boole>)> &&
+                 dedekind::sets::Universe<int, Boole>> &&
         std::same_as<decltype(cod(CanonicalIntRelation{
                          CanonicalPairPredicate{}})),
-                     decltype(dedekind::sets::𝔸<int, Boole>)>,
+                     dedekind::sets::Universe<int, Boole>>,
     "dom / cod are π_1 / π_2 of the relation's universe.");
 
 /**
