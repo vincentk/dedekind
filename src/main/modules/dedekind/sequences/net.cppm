@@ -321,32 +321,32 @@ static_assert(IsCountablyIndexedFamily<detail::toy_countable_family<int>>,
 
 // Halfspace IS-A IsArrow (carrier-independent: int suffices).
 static_assert(
-    dedekind::category::IsArrow<
-        Halfspace<int, 5, Direction::Upward, Strictness::Strict,
-                  dedekind::category::Boole>>,
+    dedekind::category::IsArrow<Halfspace<
+        int, Direction::Upward, Strictness::Strict, dedekind::category::Boole>>,
     "Halfspace exposes Domain / Codomain / operator() in the IsArrow shape.");
 
 // Halfspace IS-A IsNet on a directed carrier (std::size_t under ≤).
 static_assert(
-    IsNet<Halfspace<std::size_t, 5, Direction::Upward, Strictness::Strict,
+    IsNet<Halfspace<std::size_t, Direction::Upward, Strictness::Strict,
                     dedekind::category::Boole>>,
     "On a directed carrier, a Halfspace is structurally an indicator net.");
 
 // Downward direction is structurally symmetric.
 static_assert(
-    IsNet<Halfspace<std::size_t, 5, Direction::Downward, Strictness::NonStrict,
+    IsNet<Halfspace<std::size_t, Direction::Downward, Strictness::NonStrict,
                     dedekind::category::Boole>>,
     "Downward halfspaces inhabit IsNet symmetrically (eventually-False net).");
 
-// OrderInterval inherits the same conformance --- two-sided indicator.
+// OrderInterval (the meet of two halfspaces) inherits the same conformance ---
+// two-sided indicator.
 static_assert(
     dedekind::category::IsArrow<
-        OrderInterval<int, 3, 7, Strictness::NonStrict, Strictness::NonStrict,
+        OrderInterval<int, Strictness::NonStrict, Strictness::NonStrict,
                       dedekind::category::Boole>>,
     "OrderInterval exposes the IsArrow shape.");
 
 static_assert(
-    IsNet<OrderInterval<std::size_t, 3, 7, Strictness::NonStrict,
+    IsNet<OrderInterval<std::size_t, Strictness::NonStrict,
                         Strictness::NonStrict, dedekind::category::Boole>>,
     "On a directed carrier, OrderInterval is an indicator net "
     "(eventually-False past the upper pivot).");

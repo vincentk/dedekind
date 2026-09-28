@@ -1,23 +1,26 @@
 /** @file dedekind/sequences/halfspace_to_iota_test.cpp
  *
- * Unit coverage for the typed→runtime half of the halfspace ↔ iota_view
- * isomorphism (#703 Slice 1): @c to_iota_view, the adapter from
- * @c order::OrderInterval (a compile-time typed-Δ⁰₁ predicate) to
- * @c std::ranges::iota_view (its range view).
+ * Unit coverage for the halfspace ↔ iota_view isomorphism (#703): @c
+ * to_iota_view, the adapter from an interval --- the meet of two halfspaces,
+ * its endpoints values --- to @c std::ranges::iota_view (its range view), and
+ * @c from_iota_view, its total inverse.
  *
  * Coverage:
  *  - The four (lower, upper) strictness combinations normalise to
  *    iota_view's canonical [start, bound) shape with the correct bounds.
- *  - The image iota_view's elements all satisfy the source OrderInterval
- *    predicate (the iso's defining property — value-level agreement).
- *  - Cardinalities agree: OrderInterval::size() == iota_view's element count.
+ *  - The image iota_view's elements all satisfy the source interval predicate
+ *    (the iso's defining property — value-level agreement).
+ *  - Cardinalities agree: the interval's size == iota_view's element count.
  *  - The image flows into the library's IsFiniteSequence concept via the
  *    existing from_range adapter — the bridge plugs into the sequence layer.
+ *  - from_iota_view ∘ to_iota_view is the identity on the endpoints (and on
+ *    emptiness for an empty interval, whose representation is not unique).
  */
 
 #include <algorithm>
 #include <catch2/catch_test_macros.hpp>
 #include <climits>
+#include <cstddef>
 #include <iterator>
 #include <ranges>
 #include <type_traits>
@@ -28,8 +31,11 @@ import dedekind.order;
 import dedekind.category;
 
 using namespace dedekind::sequences;
-using dedekind::order::OrderInterval;
+using dedekind::order::is_empty;
+using dedekind::order::lower_pivot;
+using dedekind::order::make_interval;
 using dedekind::order::Strictness;
+using dedekind::order::upper_pivot;
 
 namespace {
 
@@ -45,17 +51,16 @@ TEST_CASE(
     "ranges:halfspace→iota — [Lo, Hi) (lower NonStrict, upper Strict): "
     "the canonical iota_view shape",
     "[ranges][halfspace][iota]") {
-  // OrderInterval<int, 3, 8, NonStrict, Strict> = {x : 3 ≤ x < 8} = [3, 8).
-  using OI =
-      OrderInterval<int, 3, 8, Strictness::NonStrict, Strictness::Strict>;
-  constexpr OI predicate{};
+  // {x : 3 ≤ x < 8} = [3, 8).
+  constexpr auto predicate =
+      make_interval<Strictness::NonStrict, Strictness::Strict>(3, 8);
   const auto iv = to_iota_view(predicate);
 
   STATIC_CHECK(std::is_same_v<std::remove_cvref_t<decltype(iv)>,
                               std::ranges::iota_view<int, int>>);
   REQUIRE(*iv.begin() == 3);
   REQUIRE(iv_size(iv) == 5u);
-  REQUIRE(iv_size(iv) == predicate.size());
+  REQUIRE(iv_size(iv) == dedekind::order::size(predicate));
   // Every element of the iota_view satisfies the source predicate.
   for (const int x : iv) {
     REQUIRE(predicate(x));
@@ -66,32 +71,31 @@ TEST_CASE(
     "ranges:halfspace→iota — strictness combinations normalise to "
     "[start, bound)",
     "[ranges][halfspace][iota][strictness]") {
-  // (Strict, NonStrict): {x : Lo < x ≤ Hi} = [Lo+1, Hi+1) = [4, 9) for
-  // Lo=3,Hi=8
-  using OI_SN =
-      OrderInterval<int, 3, 8, Strictness::Strict, Strictness::NonStrict>;
-  const auto iv_sn = to_iota_view(OI_SN{});
+  // (Strict, NonStrict): {x : 3 < x ≤ 8} = [4, 9)
+  constexpr auto oi_sn =
+      make_interval<Strictness::Strict, Strictness::NonStrict>(3, 8);
+  const auto iv_sn = to_iota_view(oi_sn);
   REQUIRE(*iv_sn.begin() == 4);
   REQUIRE(iv_size(iv_sn) == 5u);
 
-  // (Strict, Strict): {x : Lo < x < Hi} = [Lo+1, Hi) = [4, 8)
-  using OI_SS =
-      OrderInterval<int, 3, 8, Strictness::Strict, Strictness::Strict>;
-  const auto iv_ss = to_iota_view(OI_SS{});
+  // (Strict, Strict): {x : 3 < x < 8} = [4, 8)
+  constexpr auto oi_ss =
+      make_interval<Strictness::Strict, Strictness::Strict>(3, 8);
+  const auto iv_ss = to_iota_view(oi_ss);
   REQUIRE(*iv_ss.begin() == 4);
   REQUIRE(iv_size(iv_ss) == 4u);
 
-  // (NonStrict, NonStrict): {x : Lo ≤ x ≤ Hi} = [Lo, Hi+1) = [3, 9)
-  using OI_NN =
-      OrderInterval<int, 3, 8, Strictness::NonStrict, Strictness::NonStrict>;
-  const auto iv_nn = to_iota_view(OI_NN{});
+  // (NonStrict, NonStrict): {x : 3 ≤ x ≤ 8} = [3, 9)
+  constexpr auto oi_nn =
+      make_interval<Strictness::NonStrict, Strictness::NonStrict>(3, 8);
+  const auto iv_nn = to_iota_view(oi_nn);
   REQUIRE(*iv_nn.begin() == 3);
   REQUIRE(iv_size(iv_nn) == 6u);
 
   // Cardinality agreement on each shape:
-  REQUIRE(iv_size(iv_sn) == OI_SN{}.size());
-  REQUIRE(iv_size(iv_ss) == OI_SS{}.size());
-  REQUIRE(iv_size(iv_nn) == OI_NN{}.size());
+  REQUIRE(iv_size(iv_sn) == dedekind::order::size(oi_sn));
+  REQUIRE(iv_size(iv_ss) == dedekind::order::size(oi_ss));
+  REQUIRE(iv_size(iv_nn) == dedekind::order::size(oi_nn));
 }
 
 TEST_CASE(
@@ -99,22 +103,22 @@ TEST_CASE(
     "iota_view",
     "[ranges][halfspace][iota][empty]") {
   // Empty under (Strict, Strict): {x : 5 < x < 5} = ∅
-  using OI_empty =
-      OrderInterval<int, 5, 5, Strictness::Strict, Strictness::Strict>;
-  const auto iv = to_iota_view(OI_empty{});
+  constexpr auto oi_empty =
+      make_interval<Strictness::Strict, Strictness::Strict>(5, 5);
+  const auto iv = to_iota_view(oi_empty);
   REQUIRE(iv_size(iv) == 0u);
-  REQUIRE(iv_size(iv) == OI_empty{}.size());
+  REQUIRE(iv_size(iv) == dedekind::order::size(oi_empty));
 }
 
 TEST_CASE(
-    "ranges:halfspace→iota — unsigned carrier: pivots cross types, and the "
-    "empty case does not wrap",
+    "ranges:halfspace→iota — unsigned carrier, and the empty case does not "
+    "wrap",
     "[ranges][halfspace][iota][unsigned]") {
-  // Pivots are int (3, 7); carrier is std::size_t — exercises the
-  // auto-NTTP / convertible-to-T pivot deduction.
-  using OI_us = OrderInterval<std::size_t, 3, 7, Strictness::NonStrict,
-                              Strictness::Strict>;
-  const auto iv = to_iota_view(OI_us{});
+  // Carrier std::size_t: the endpoints are values of the carrier type.
+  constexpr auto oi_us =
+      make_interval<Strictness::NonStrict, Strictness::Strict>(std::size_t{3},
+                                                               std::size_t{7});
+  const auto iv = to_iota_view(oi_us);
   STATIC_CHECK(
       std::is_same_v<std::remove_cvref_t<decltype(iv)>,
                      std::ranges::iota_view<std::size_t, std::size_t>>);
@@ -122,9 +126,10 @@ TEST_CASE(
 
   // Empty after strictness normalisation on an unsigned carrier: the clamp
   // must produce an empty iota_view, not an underflowed (size_t)-1.
-  using OI_us_empty =
-      OrderInterval<std::size_t, 5, 5, Strictness::Strict, Strictness::Strict>;
-  const auto iv_empty = to_iota_view(OI_us_empty{});
+  constexpr auto oi_us_empty =
+      make_interval<Strictness::Strict, Strictness::Strict>(std::size_t{5},
+                                                            std::size_t{5});
+  const auto iv_empty = to_iota_view(oi_us_empty);
   REQUIRE(iv_size(iv_empty) == 0u);
 }
 
@@ -135,9 +140,9 @@ TEST_CASE(
   // The whole point of routing through iota_view: the library's sequence
   // layer already lifts ranges via from_range, so to_iota_view gets us
   // straight into IsFiniteSequence territory.
-  using OI =
-      OrderInterval<int, 0, 4, Strictness::NonStrict, Strictness::Strict>;
-  const auto fp = from_range(to_iota_view(OI{}));
+  constexpr auto oi =
+      make_interval<Strictness::NonStrict, Strictness::Strict>(0, 4);
+  const auto fp = from_range(to_iota_view(oi));
   STATIC_CHECK(IsFiniteSequence<std::remove_cvref_t<decltype(fp)>>);
   REQUIRE(fp.size() == 4u);
   REQUIRE(fp.at(0) == 0);
@@ -145,35 +150,46 @@ TEST_CASE(
 }
 
 TEST_CASE(
-    "ranges:iota→halfspace — from_iota_view rebuilds OI from a matching "
-    "iota_view, rejects a mismatched one (#703 Slice 2)",
+    "ranges:iota→halfspace — from_iota_view is the total inverse: every "
+    "iota_view denotes an interval (#703 Slice 2)",
     "[ranges][halfspace][iota][inverse]") {
-  using OI =
-      OrderInterval<int, 3, 8, Strictness::NonStrict, Strictness::Strict>;
-  // Round-trip on a matching iota_view: from_iota_view sees the [3, 8)
-  // bounds and rebuilds OI{}.
-  const auto matched = from_iota_view<OI>(to_iota_view(OI{}));
-  REQUIRE(matched.has_value());
+  // Round-trip: the interval's endpoints come back unchanged.
+  constexpr auto oi =
+      make_interval<Strictness::NonStrict, Strictness::Strict>(3, 8);
+  const auto back = from_iota_view<Strictness::NonStrict, Strictness::Strict>(
+      to_iota_view(oi));
+  REQUIRE(lower_pivot(back) == 3);
+  REQUIRE(upper_pivot(back) == 8);
 
-  // Honest-Rejection: an iota_view with the wrong bounds yields nullopt —
-  // the iso is value-level, so only the SPECIFIC iota_view value
-  // to_iota_view(OI{}) corresponds to OI{}.
-  const auto wrong_bounds = from_iota_view<OI>(std::ranges::views::iota(0, 5));
-  REQUIRE_FALSE(wrong_bounds.has_value());
-
-  // Even a partial mismatch (correct start, wrong bound) is rejected.
-  const auto partial = from_iota_view<OI>(std::ranges::views::iota(3, 9));
-  REQUIRE_FALSE(partial.has_value());
+  // With the endpoints as values the inverse simply constructs: any iota_view
+  // names the interval it denotes (the NTTP form could only verify a view
+  // against a target type, and had to reject a mismatch).
+  const auto other = from_iota_view<Strictness::NonStrict, Strictness::Strict>(
+      std::ranges::views::iota(0, 5));
+  REQUIRE(lower_pivot(other) == 0);
+  REQUIRE(upper_pivot(other) == 5);
+  const auto wider = from_iota_view<Strictness::NonStrict, Strictness::Strict>(
+      std::ranges::views::iota(3, 9));
+  REQUIRE(lower_pivot(wider) == 3);
+  REQUIRE(upper_pivot(wider) == 9);
+  // The strictness pair (the type) decides how the offsets are undone.
+  const auto strict_both =
+      from_iota_view<Strictness::Strict, Strictness::Strict>(
+          std::ranges::views::iota(4, 8));  // [4, 8) = {x : 3 < x < 8}
+  REQUIRE(lower_pivot(strict_both) == 3);
+  REQUIRE(upper_pivot(strict_both) == 8);
 }
 
 TEST_CASE("ranges:halfspace ↔ iota — the bridge respects meet (#703 Slice 3a)",
           "[ranges][halfspace][iota][meet]") {
-  // The OrderInterval ∧ on the carrier composes with to_iota_view: the
-  // image's bounds are exactly the set-intersection bounds.
-  using A = OrderInterval<int, 2, 8, Strictness::NonStrict, Strictness::Strict>;
-  using B =
-      OrderInterval<int, 5, 10, Strictness::NonStrict, Strictness::Strict>;
-  const auto iv_meet = to_iota_view(dedekind::order::structured_and(A{}, B{}));
+  // The interval ∧ composes with to_iota_view: the image's bounds are exactly
+  // the set-intersection bounds.  The meet is the reduced VALUE (a SetVal),
+  // which to_iota_view reads directly.
+  constexpr auto A =
+      make_interval<Strictness::NonStrict, Strictness::Strict>(2, 8);
+  constexpr auto B =
+      make_interval<Strictness::NonStrict, Strictness::Strict>(5, 10);
+  const auto iv_meet = to_iota_view(dedekind::order::structured_and(A, B));
   // Size-check before dereferencing — guards against the structured_and
   // result silently regressing to empty.
   REQUIRE(iv_size(iv_meet) == 3u);  // {5, 6, 7}
@@ -183,29 +199,30 @@ TEST_CASE("ranges:halfspace ↔ iota — the bridge respects meet (#703 Slice 3a
   // of A and B — a value-level lattice-homomorphism check.
   std::vector<int> via_meet(iv_meet.begin(), iv_meet.end());
   std::vector<int> via_intersection;
-  std::ranges::set_intersection(to_iota_view(A{}), to_iota_view(B{}),
+  std::ranges::set_intersection(to_iota_view(A), to_iota_view(B),
                                 std::back_inserter(via_intersection));
   REQUIRE(via_meet == via_intersection);
 
   // Strictest-wins at a tied boundary: [3, 8) ∧ [3, 8] both with NonStrict
   // lower at 3 ⇒ the meet has lower NonStrict.  Upper Strict beats
   // NonStrict at the same Hi.
-  using L = OrderInterval<int, 3, 8, Strictness::NonStrict, Strictness::Strict>;
-  using R =
-      OrderInterval<int, 3, 8, Strictness::NonStrict, Strictness::NonStrict>;
-  const auto iv_tied = to_iota_view(dedekind::order::structured_and(L{}, R{}));
+  constexpr auto L =
+      make_interval<Strictness::NonStrict, Strictness::Strict>(3, 8);
+  constexpr auto R =
+      make_interval<Strictness::NonStrict, Strictness::NonStrict>(3, 8);
+  const auto iv_tied = to_iota_view(dedekind::order::structured_and(L, R));
   REQUIRE(iv_size(iv_tied) == 5u);  // [3, 8) wins over [3, 8]
   REQUIRE(*iv_tied.begin() == 3);
 }
 
 TEST_CASE("ranges:halfspace ↔ iota — disjoint meet produces an empty iota_view",
           "[ranges][halfspace][iota][meet][empty]") {
-  using D1 =
-      OrderInterval<int, 0, 3, Strictness::NonStrict, Strictness::Strict>;
-  using D2 =
-      OrderInterval<int, 5, 10, Strictness::NonStrict, Strictness::Strict>;
+  constexpr auto D1 =
+      make_interval<Strictness::NonStrict, Strictness::Strict>(0, 3);
+  constexpr auto D2 =
+      make_interval<Strictness::NonStrict, Strictness::Strict>(5, 10);
   const auto iv_disjoint =
-      to_iota_view(dedekind::order::structured_and(D1{}, D2{}));
+      to_iota_view(dedekind::order::structured_and(D1, D2));
   REQUIRE(iv_size(iv_disjoint) == 0u);
 }
 
@@ -270,24 +287,43 @@ TEST_CASE(
     "ranges:iota→halfspace — round-trip across the four strictness "
     "combinations and across signed/unsigned carriers",
     "[ranges][halfspace][iota][inverse][round-trip]") {
-  using OI_SN =
-      OrderInterval<int, 3, 8, Strictness::Strict, Strictness::NonStrict>;
-  using OI_SS =
-      OrderInterval<int, 3, 8, Strictness::Strict, Strictness::Strict>;
-  using OI_NN =
-      OrderInterval<int, 3, 8, Strictness::NonStrict, Strictness::NonStrict>;
-  using OI_us = OrderInterval<std::size_t, 3, 7, Strictness::NonStrict,
-                              Strictness::Strict>;
+  constexpr auto oi_sn =
+      make_interval<Strictness::Strict, Strictness::NonStrict>(3, 8);
+  constexpr auto oi_ss =
+      make_interval<Strictness::Strict, Strictness::Strict>(3, 8);
+  constexpr auto oi_nn =
+      make_interval<Strictness::NonStrict, Strictness::NonStrict>(3, 8);
+  constexpr auto oi_us =
+      make_interval<Strictness::NonStrict, Strictness::Strict>(std::size_t{3},
+                                                               std::size_t{7});
 
-  REQUIRE(from_iota_view<OI_SN>(to_iota_view(OI_SN{})).has_value());
-  REQUIRE(from_iota_view<OI_SS>(to_iota_view(OI_SS{})).has_value());
-  REQUIRE(from_iota_view<OI_NN>(to_iota_view(OI_NN{})).has_value());
-  REQUIRE(from_iota_view<OI_us>(to_iota_view(OI_us{})).has_value());
+  const auto back_sn =
+      from_iota_view<Strictness::Strict, Strictness::NonStrict>(
+          to_iota_view(oi_sn));
+  REQUIRE(lower_pivot(back_sn) == 3);
+  REQUIRE(upper_pivot(back_sn) == 8);
+  const auto back_ss = from_iota_view<Strictness::Strict, Strictness::Strict>(
+      to_iota_view(oi_ss));
+  REQUIRE(lower_pivot(back_ss) == 3);
+  REQUIRE(upper_pivot(back_ss) == 8);
+  const auto back_nn =
+      from_iota_view<Strictness::NonStrict, Strictness::NonStrict>(
+          to_iota_view(oi_nn));
+  REQUIRE(lower_pivot(back_nn) == 3);
+  REQUIRE(upper_pivot(back_nn) == 8);
+  const auto back_us =
+      from_iota_view<Strictness::NonStrict, Strictness::Strict>(
+          to_iota_view(oi_us));
+  REQUIRE(lower_pivot(back_us) == std::size_t{3});
+  REQUIRE(upper_pivot(back_us) == std::size_t{7});
 
-  // Empty interval round-trips to nullopt? No — to_iota_view produces an
-  // empty iota_view at the clamped bounds; from_iota_view should accept it
-  // since the bounds match the clamped construction.
-  using OI_empty =
-      OrderInterval<int, 5, 5, Strictness::Strict, Strictness::Strict>;
-  REQUIRE(from_iota_view<OI_empty>(to_iota_view(OI_empty{})).has_value());
+  // An empty interval round-trips to an EMPTY interval.  Its endpoints need
+  // not come back identical: many empty intervals denote the one empty set,
+  // and the iso is on sets, not on representations.
+  constexpr auto oi_empty =
+      make_interval<Strictness::Strict, Strictness::Strict>(5, 5);
+  const auto back_empty =
+      from_iota_view<Strictness::Strict, Strictness::Strict>(
+          to_iota_view(oi_empty));
+  REQUIRE(is_empty(back_empty));
 }

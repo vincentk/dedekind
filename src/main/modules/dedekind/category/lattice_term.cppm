@@ -394,10 +394,20 @@ export template <typename Less, typename Ord, typename Combine, typename A,
 constexpr auto reduce_value(const Meet<A, B>& node) {
   const auto ra = reduce_value<Less, Ord, Combine>(π_1(node));
   const auto rb = reduce_value<Less, Ord, Combine>(π_2(node));
-  using D = reduce_t<Meet<std::remove_cvref_t<decltype(ra)>,
-                          std::remove_cvref_t<decltype(rb)>>,
-                     Less, Ord, Combine>;
-  return detail_lattice_term::rebuild_binary<Meet, D>(ra, rb);
+  // The injected VALUE leaf-combine: when the carrier can meet the two reduced
+  // leaves on their runtime data (a policy @c meet_value, e.g. two halfspaces
+  // whose pivots decide empty / point / interval), that decision is the normal
+  // form --- a value-determined collapse the type-level @c reduce_t cannot see,
+  // since two intervals of one type differ only in their pivots.  Otherwise
+  // reconstruct the value of the type-level normal form.
+  if constexpr (requires { Combine::meet_value(ra, rb); }) {
+    return Combine::meet_value(ra, rb);
+  } else {
+    using D = reduce_t<Meet<std::remove_cvref_t<decltype(ra)>,
+                            std::remove_cvref_t<decltype(rb)>>,
+                       Less, Ord, Combine>;
+    return detail_lattice_term::rebuild_binary<Meet, D>(ra, rb);
+  }
 }
 
 /** @brief Value-first reduce of a @c Join value (dual of the @c Meet case). */
@@ -406,10 +416,14 @@ export template <typename Less, typename Ord, typename Combine, typename A,
 constexpr auto reduce_value(const Join<A, B>& node) {
   const auto ra = reduce_value<Less, Ord, Combine>(π_1(node));
   const auto rb = reduce_value<Less, Ord, Combine>(π_2(node));
-  using D = reduce_t<Join<std::remove_cvref_t<decltype(ra)>,
-                          std::remove_cvref_t<decltype(rb)>>,
-                     Less, Ord, Combine>;
-  return detail_lattice_term::rebuild_binary<Join, D>(ra, rb);
+  if constexpr (requires { Combine::join_value(ra, rb); }) {
+    return Combine::join_value(ra, rb);
+  } else {
+    using D = reduce_t<Join<std::remove_cvref_t<decltype(ra)>,
+                            std::remove_cvref_t<decltype(rb)>>,
+                       Less, Ord, Combine>;
+    return detail_lattice_term::rebuild_binary<Join, D>(ra, rb);
+  }
 }
 
 /** @brief Value-first reduce of a @c Not value: reduce the operand, keep

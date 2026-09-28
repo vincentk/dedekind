@@ -110,7 +110,8 @@ static_assert(
 static_assert(
     (image(((ℤ * ℤ | π1 + fix(2_c) == π2) >> (ℤ * ℤ | π1 + fix(3_c) == π2)) |
            π1 <= fix(1_c)) &
-     (ℤ | (π > fix(6_c)))) == Ø{},
+     (ℤ | (π > fix(6_c))))
+            .kind == SetKind::Empty,
     "constrained image of the composite T₂∘T₃ collapses: {y≤6} ∩ {y>6} = ∅.");
 
 // ── is_function / is_entire, and argmax over a partial function ──────────────

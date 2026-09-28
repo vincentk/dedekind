@@ -216,6 +216,11 @@ namespace ord = dedekind::order;
  *  law lives in ONE place (value-oriented relational form: a halfspace is a
  *  point plus a direction, the pivot in the value @c η(p)). */
 using Set = ord::SetVal<long long>;
+// Whatever crosses the Python boundary is a set OBJECT --- (reified universe,
+// χ) --- and this is the compile-time MUST for it (RFC 2119): a type that does
+// not conform cannot be the exported Set.
+static_assert(dedekind::sets::IsSetObject<Set>,
+              "the Python surface's Set must be a set object (IsSetObject).");
 
 /** @brief @c {x | x > k} = ↑k (open).  Scalar spelling @c χ > fix(k). */
 constexpr Set above(long long k) {
@@ -236,9 +241,9 @@ constexpr Set at_most(long long k) {
 /** @brief @c {k}: the singleton / point @c η(k) --- the value-based atom. */
 constexpr Set singleton(long long k) { return Set::point(k); }
 /** @brief @c 𝔸: the universe (meet unit). */
-constexpr Set everything() { return {ord::SetKind::Universe}; }
+constexpr Set everything() { return Set::universe(); }
 /** @brief @c Ø: the empty set (meet annihilator). */
-constexpr Set nothing() { return {ord::SetKind::Empty}; }
+constexpr Set nothing() { return Set::empty(); }
 
 /** @brief The meet @c a @c ∩ @c b, through the value-first @c :order
  *  @c reduce_meet (the ONE law; @c static_assert folds it at compile time, the

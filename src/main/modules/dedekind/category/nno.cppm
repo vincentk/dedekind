@@ -174,6 +174,49 @@ concept IsNNO = requires(Z z, S s, N n) {
   { s(n) } -> std::convertible_to<N>;
 };
 
+/** @brief The successor arrow as a free customization point: @c successor(n)
+ *  for an NNO carrier, and its partial dual @c predecessor(n).
+ *
+ *  @details "Is there a next element" is the NNO's successor --- an axiom of
+ *  the @b category (it enters @c IsSet through @c HasETCSAxioms), not a
+ *  per-carrier flag.  So the order layer's value-determined point collapse of
+ *  a bounded meet (@c {x : lo < x < hi} is the single point @c succ(lo) when
+ *  @c succ(lo) @c == @c pred(hi)) gates on these, @b not on @c std::integral,
+ *  which is a C++ accident that would exclude the ℕ proxy @c Cardinality ---
+ *  itself the canonical NNO witness.
+ *
+ *  Built-in integral carriers step by @c ±1.  A carrier with the
+ *  @c :morphologies static-member convention @c T::successor(n) is bridged.
+ *  Any other carrier provides its own overloads in its namespace, found by
+ *  ADL (the ℕ proxy does so in @c :sets:cardinality; its predecessor is the
+ *  monus, 0 a fixpoint dual to @c ℵ_0 under successor).  Callers spell the
+ *  two-step (@c using @c dedekind::category::successor; then an unqualified
+ *  call) so both the generic defaults and the ADL overloads compete. */
+export template <std::integral T>
+constexpr T successor(T n) noexcept {
+  return static_cast<T>(n + 1);
+}
+export template <std::integral T>
+constexpr T predecessor(T n) noexcept {
+  return static_cast<T>(n - 1);
+}
+/** @brief Bridge to the @c :morphologies static-member convention. */
+export template <typename T>
+  requires requires(const T& n) {
+    { T::successor(n) } -> std::convertible_to<T>;
+  }
+constexpr T successor(const T& n) {
+  return T::successor(n);
+}
+
+/** @brief A carrier with both NNO steps available: the shape a
+ *  value-determined point collapse needs (@c succ(lo) @c == @c pred(hi)). */
+export template <typename T>
+concept HasNNOStep = requires(const T& n) {
+  { successor(n) } -> std::convertible_to<T>;
+  { predecessor(n) } -> std::convertible_to<T>;
+};
+
 /**
  * @brief Recursion-via-universal-property (operational discharge).
  *

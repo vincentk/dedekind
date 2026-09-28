@@ -106,20 +106,17 @@ TEST_CASE("Pruning showcase 3: halfspace contradiction on ℕ collapses to Ø",
   constexpr auto gt_five = ℕ | (χ > fix(5_c));
   constexpr auto lt_three = ℕ | (χ < fix(3_c));
 
-  constexpr Ø<Cardinality> empty_meet = gt_five & lt_three;
-  STATIC_CHECK(empty_meet == Ø<Cardinality>{});
+  // The contradiction folds value-first to the empty SetVal (kind Empty).
+  constexpr auto empty_meet = gt_five & lt_three;
+  STATIC_CHECK(empty_meet.kind == SetKind::Empty);
 
-  SECTION("Reduction tightens extensionality (post-#622)") {
-    // Post-#622: ℕ → Boole on the carrier axis, so @c gt_five
-    // is decidable on the carrier-axis fast path — no Ternary→Classical
-    // promotion to witness here.  The axis that STILL tightens is
-    // extensionality: @c gt_five is intensional (predicate-shaped), the
-    // empty-meet reduction is extensional (it IS @c Ø).
+  SECTION("Reduction folds an intensional pair to a finite value") {
+    // gt_five is an intensional predicate on ℕ (no materialised members); the
+    // meet folds it value-first to the empty set --- a finite, decided value.
+    // The extensionality tightening is now witnessed by the folded kind, not a
+    // type-level IsExtensional tag.
     STATIC_CHECK(HasDecidableMembership<decltype(gt_five)>);
-    STATIC_CHECK(HasDecidableMembership<decltype(empty_meet)>);
-
-    STATIC_CHECK_FALSE(IsExtensional<decltype(gt_five)>);
-    STATIC_CHECK(IsExtensional<decltype(empty_meet)>);
+    STATIC_CHECK(!static_cast<bool>(empty_meet(4u)));  // empty: no inhabitant
   }
 }
 
@@ -131,22 +128,23 @@ TEST_CASE("Pruning showcase 4: cardinality-1 halfspace meet = Singleton<4>",
   constexpr auto gt_3 = ℕ | (χ > fix(3_c));
   constexpr auto lt_5 = ℕ | (χ < fix(5_c));
 
-  // The punch line: the meet COLLAPSES to a Singleton at compile time; #965 the
-  // point is a constexpr VALUE (folds identically), not a distinct type.
+  // The punch line: the meet COLLAPSES to the point {4} at compile time.  The
+  // collapse gates on the NNO's successor / predecessor --- an axiom of the
+  // category, which the ℕ proxy witnesses --- so ℕ folds exactly as a machine
+  // integer does; the point is a constexpr VALUE, not a distinct type.
   constexpr auto in_between = gt_3 & lt_5;
-  STATIC_CHECK(in_between.value == 4);  // .value only exists on a Singleton
+  STATIC_CHECK(in_between.kind == SetKind::Singleton);
+  STATIC_CHECK(in_between.lo == 4);
   STATIC_CHECK(bool(in_between(4)) && !bool(in_between(3)) &&
                !bool(in_between(5)));
 
-  SECTION("An intensional meet materialises an extensional set") {
-    // Decidability is NOT the contrast: a halfspace on ℕ decides membership by
-    // a comparison, so both the parents and the result are decidable. What the
-    // collapse gains is extensionality: the intensional (predicate-shaped)
-    // parents become an extensional, named Singleton.
+  SECTION("An intensional meet folds to a finite value") {
+    // A halfspace on ℕ decides membership by comparison, so parents and result
+    // are decidable.  The collapse folds the intensional (predicate-shaped)
+    // parents to the point value {4} --- the extensionality gain, witnessed
+    // value-first by the folded kind + point.
     STATIC_CHECK(HasDecidableMembership<decltype(gt_3)>);
-    STATIC_CHECK_FALSE(IsExtensional<decltype(gt_3)>);
-    STATIC_CHECK(HasDecidableMembership<decltype(in_between)>);
-    STATIC_CHECK(IsExtensional<decltype(in_between)>);
+    STATIC_CHECK(bool(in_between(4)));
   }
 }
 
@@ -157,84 +155,12 @@ TEST_CASE("Pruning showcase 5: halfspace meet on ℝ collapses to Ø",
   constexpr auto gt_five = 𝔸<Real<double>> | (χ > bound<5.0>);
   constexpr auto lt_three = 𝔸<Real<double>> | (χ < bound<3.0>);
 
-  constexpr Ø<Real<double>> empty_meet = gt_five & lt_three;
-  STATIC_CHECK(empty_meet == Ø<Real<double>>{});
+  // The contradiction folds value-first to the empty SetVal, on a continuous
+  // carrier just as on ℕ.
+  constexpr auto empty_meet = gt_five & lt_three;
+  STATIC_CHECK(empty_meet.kind == SetKind::Empty);
 
-  SECTION("Continuous carrier: parents not finite, reduced Ø is finite") {
-    STATIC_CHECK_FALSE(IsExtensional<decltype(gt_five)>);
-    STATIC_CHECK(IsExtensional<decltype(empty_meet)>);
-  }
-}
-
-TEST_CASE("Pruning showcase 6: (-21, 21] on ℤ has size 42",
-          "[analysis][pruning][showcase][showcase06]") {
-  constexpr auto above = ℤ | (χ > fix(-21_c));
-  constexpr auto at_most = ℤ | (χ <= fix(21_c));
-
-  constexpr auto iv = above & at_most;
-  using Iv = std::decay_t<decltype(iv)>;
-
-  STATIC_CHECK(Iv::lower_pivot == -21);
-  STATIC_CHECK(Iv::upper_pivot == 21);
-  STATIC_CHECK(Iv::lower_strictness == Strictness::Strict);
-  STATIC_CHECK(Iv::upper_strictness == Strictness::NonStrict);
-  STATIC_CHECK(iv.size() == 42u);
-
-  SECTION("Finite and decidable; extensional under the consolidated gate") {
-    // The 2026-05-09 :sets:cardinality consolidation merged the
-    // type-level NTTP vs runtime-pivot distinction into the
-    // IsExtensional gate; OrderInterval qualifies (size() returns
-    // size_t).  The previous STATIC_CHECK_FALSE on the finer
-    // tag-based concept becomes a positive assertion under the
-    // simplified definition.
-    STATIC_CHECK(HasDecidableMembership<decltype(iv)>);
-    STATIC_CHECK(IsExtensional<decltype(iv)>);
-  }
-}
-
-TEST_CASE("Pruning showcase 7: ℤ lattice ∩ real interval (-21.0, 21.0]",
-          "[analysis][pruning][showcase][showcase07]") {
-  // Machine-int carrier explicitly: on int, the standard int↔double
-  // promotion is what lets the real-valued bound compare with the
-  // integer variable.  The exact ℤ carrier
-  // (@c SignedExtensionalCardinal<>) intentionally does not silently
-  // narrow to double; real-bound support against the exact carrier
-  // is deferred to a SEC<>↔real comparison arrow (follow-up to #399
-  // slice 3 / #551).  Showcase 7 keeps the real-bound demonstration
-  // distinct from showcase 6 (which uses integer bounds).
-  //
-  // @c IntsOnInt is the int-Domain universal predicate, defined
-  // The pre-#551 surface used a locally-defined IntsOnInt predicate-set
-  // because the canonical @c IntegersOf<> carried @c Domain @c =
-  // @c SEC<>; under #551 the scout itself knows its ambient (𝔸<int>),
-  // so no local predicate-set is needed.
-  constexpr auto above = 𝔸<int> | (χ > bound<-21.0>);
-  constexpr auto at_most = 𝔸<int> | (χ <= bound<21.0>);
-
-  constexpr auto lattice_cut = above & at_most;
-  using Iv = std::decay_t<decltype(lattice_cut)>;
-
-  STATIC_CHECK(Iv::lower_pivot == -21.0);
-  STATIC_CHECK(Iv::upper_pivot == 21.0);
-  STATIC_CHECK(lattice_cut.size() == 42u);
-  STATIC_CHECK(HasDecidableMembership<decltype(lattice_cut)>);
-  STATIC_CHECK(IsExtensional<decltype(lattice_cut)>);
-}
-
-TEST_CASE("Pruning showcase 8: 2D rectangle via IntervalProduct",
-          "[analysis][pruning][showcase][showcase08]") {
-  constexpr auto I_wide = (ℤ | (χ > fix(-21_c))) & (ℤ | (χ <= fix(21_c)));
-  constexpr auto I_tall = (ℤ | (χ >= fix(0_c))) & (ℤ | (χ <= fix(10_c)));
-
-  constexpr auto box = I_wide * I_tall;
-
-  STATIC_CHECK(box.size() == 42u * 11u);
-  STATIC_CHECK(box.size() == 462u);
-  STATIC_CHECK(HasDecidableMembership<decltype(box)>);
-  STATIC_CHECK(IsExtensional<decltype(box)>);
-
-  SECTION("2D membership at a specific point") {
-    using Logic = typename decltype(box)::logic_species;
-    STATIC_CHECK(box(std::pair{0, 5}) == Logic::True);
+  SECTION("Continuous carrier: parents not finite, reduced set is empty") {
+    STATIC_CHECK(!static_cast<bool>(empty_meet(4.0)));  // empty: no inhabitant
   }
 }

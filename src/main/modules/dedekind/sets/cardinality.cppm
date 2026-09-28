@@ -568,6 +568,24 @@ export constexpr Cardinality operator+(const Cardinality& lhs,
   return add(lhs, rhs);
 }
 
+/** @brief The NNO steps on the ℕ proxy, as the free customization points the
+ *  order layer's point collapse calls (@c category:nno, found here by ADL):
+ *  successor is @c + @c finite_cardinality(1), saturating at @c ℵ_0 (its
+ *  fixpoint); predecessor is the monus --- 0 is its fixpoint (ℕ has no
+ *  negatives), and @c ℵ_0 is fixed again.  The @c :numbers NNO witness
+ *  @c cardinality_succ delegates to @c successor, so the law is spelled once.
+ */
+export constexpr Cardinality successor(const Cardinality& n) noexcept {
+  return n + finite_cardinality(1);
+}
+export constexpr Cardinality predecessor(const Cardinality& n) noexcept {
+  if (std::holds_alternative<ℵ_0>(n)) return n;  // ℵ₀ is a fixpoint
+  const auto& f = std::get<ExtensionalCardinal<>>(n);
+  if (f == ExtensionalCardinal<>{}) return n;  // 0 is a fixpoint (monus)
+  return Cardinality{f -
+                     std::get<ExtensionalCardinal<>>(finite_cardinality(1))};
+}
+
 /** @brief @c * on @c Cardinality wraps the existing @c mul() policy. */
 export constexpr Cardinality operator*(const Cardinality& lhs,
                                        const Cardinality& rhs) noexcept {

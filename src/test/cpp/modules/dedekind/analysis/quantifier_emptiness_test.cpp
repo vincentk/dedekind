@@ -6,9 +6,10 @@
  * and the honest point is that the split is architectural, not hand-waved:
  *   (a) COMPILE time: the `&` meet combinator (dedekind.sets) dispatches to the
  *       halfspace `structured_and` @b specialization (dedekind.order), which
- *       collapses two disjoint halfspaces to `Ø` at the TYPE level, so
- *       `Ø == (gt5 & lt3)` is a static_assert.  The collapse is the downstream
- *       specialization firing, reachable at any call site below `order`.
+ *       folds two disjoint halfspaces to the empty set value-first, so
+ *       `(gt5 & lt3).kind == Empty` is a static_assert.  The fold is the
+ *       downstream specialization firing, reachable at any call site below
+ *       `order`.
  *   (b) RUN time: `set(S, P)` (dedekind.sets) filters an IsExtensional carrier,
  *       and `Ø == …` decides emptiness via size() — pure `sets`, no
  *       specialization needed.
@@ -33,29 +34,16 @@ TEST_CASE("Quantifier machinery: Ø == comprehension, two regimes",
           "[sets][quantifier][emptiness]") {
   // (a) COMPILE time, order specialization: the `&` meet combinator dispatches
   //     to the halfspace structured_and specialization (dedekind.order), which
-  //     collapses two disjoint halfspaces to Ø at the TYPE level.  This is the
-  //     counterexample set of ∀x>5. x≥3, namely {x>5 ∧ x<3}, decided empty at
-  //     compile time.  The operands are Set-wrapped halfspaces; the MEET is
-  //     spelled bare (no `set(gt5 & lt3, …)` around the result).  `Set{…} &
-  //     Set{…}` reaches the order-layer halfspace structured_and via ADL and
-  //     collapses the disjoint pair to `Ø<Cardinality>`.  Since #895 the BARE
-  //     point-free spelling `(ℕ | …) & (ℕ | …)` collapses to the SAME
-  //     `Ø<Cardinality>` (the disjoint halfspace-meet is canonicalised through
-  //     the empty set, no longer the raw `EmptyPredicate<Cardinality>` that had
-  //     no `== Ø<Cardinality>`), so the `Set{}` wrap is no longer required for
-  //     the comparison; both spellings are witnessed just below.
-  constexpr auto gt5 = Set{ℕ | (π > fix(5_c))};
-  constexpr auto lt3 = Set{ℕ | (π < fix(3_c))};
-  static_assert(Ø<Cardinality>{} == (gt5 & lt3),
-                "{x>5 ∧ x<3} collapses to Ø at compile time (order layer).");
-
-  //     #895: the same collapse holds on the BARE point-free grammar, no
-  //     `Set{}` wrapper: the exact case that forced the wrap before #895.
-  constexpr auto gt5_bare = ℕ | (π > fix(5_c));
-  constexpr auto lt3_bare = ℕ | (π < fix(3_c));
-  static_assert(Ø<Cardinality>{} == (gt5_bare & lt3_bare),
-                "bare {x>5} ∩ {x<3} == Ø<Cardinality> (no Set{} wrap). #895");
-  CHECK(Ø<Cardinality>{} == (gt5_bare & lt3_bare));  // runtime (Codecov)
+  //     folds two disjoint halfspaces to the empty set VALUE-FIRST (the pivots
+  //     are constexpr data, so the fold is a constant expression, not a type
+  //     collapse).  This is the counterexample set of ∀x>5. x≥3, namely
+  //     {x>5 ∧ x<3}, decided empty at compile time on the bare point-free
+  //     grammar; no `Set{}` wrap is involved.
+  constexpr auto gt5 = ℕ | (π > fix(5_c));
+  constexpr auto lt3 = ℕ | (π < fix(3_c));
+  static_assert((gt5 & lt3).kind == SetKind::Empty,
+                "{x>5 ∧ x<3} folds to the empty set at compile time.");
+  CHECK((gt5 & lt3).kind == SetKind::Empty);  // runtime (Codecov)
 
   // (b) RUN time, pure sets: over an enumerable domain, set(S, P) is a lazy
   //     views::filter and Ø == … decides emptiness by begin == end, short-

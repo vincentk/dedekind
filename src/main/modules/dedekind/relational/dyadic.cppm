@@ -136,6 +136,14 @@ using SetFunction = Relation<T1, T2, L, P>;
  * (@c category::IsEqualizer witnessed on @c graph(f) and on the affine
  * translation graph, @c algebra:halfspace_transport, #876), not baked into the
  * concept.
+ *
+ * FIXME(#970): @c IsRelation does @b not imply @c sets::IsSetObject today ---
+ * it never asks for χ, a codomain, or a logic species.  A relation IS a
+ * subobject of @c T1×T2, i.e. a set object over the pair carrier, so the
+ * target reads @c IsSetObject<S> @c && @c same_as<S::Domain, @c pair<T1,T2>>.
+ * The lightness argument above is to be tested by that probe: whichever
+ * relation-shaped type then fails is either missing its set-object surface
+ * (fix the type) or is not a relation (fix the call site).
  */
 export template <typename S, typename T1, typename T2>
 concept IsRelation = requires { typename S::Domain; } &&

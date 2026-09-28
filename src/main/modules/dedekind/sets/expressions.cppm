@@ -60,6 +60,7 @@ export module dedekind.sets:expressions;
 
 import dedekind.category;
 import :boundaries;     // For 𝔸, Ø
+import :setobject;      // IsSetObject: the noun every set type here realises
 import :cardinality;    // For Cardinality / SignedCardinality (cross-carrier
                         // meet)
 import :mereology;      // For mereology lattice concepts
@@ -661,6 +662,24 @@ export struct SetCombine {
   static consteval auto join() {
     return std::type_identity<
         typename detail_reducer::combine_join<RA, RB>::type>{};
+  }
+
+  /** @brief The VALUE leg of the leaf-combine (the reducer's value-first twin,
+   *  #922 slice 2): hand two reduced bare leaves to the carrier's domain @c ∧ /
+   *  @c ∨ on their runtime data.  Gated on the carrier actually providing
+   *  @c structured_and / @c structured_or for the pair (ADL, so an ordered
+   *  carrier's halfspaces plug in from @c :order without this module naming
+   *  them); absent that, the policy has no value leg and the reducer falls back
+   *  to reconstructing the type-level normal form. */
+  template <typename RA, typename RB>
+    requires requires(const RA& a, const RB& b) { structured_and(a, b); }
+  static constexpr auto meet_value(const RA& a, const RB& b) {
+    return structured_and(a, b);
+  }
+  template <typename RA, typename RB>
+    requires requires(const RA& a, const RB& b) { structured_or(a, b); }
+  static constexpr auto join_value(const RA& a, const RB& b) {
+    return structured_or(a, b);
   }
 };
 
@@ -1858,6 +1877,15 @@ using CanonicalIntProductDomain = typename CanonicalIntProductSet::Domain;
 static_assert(
     dedekind::category::IsProduct<CanonicalIntProductDomain, int, int>,
     "sets::cartesian_product must expose a std::pair product domain.");
+// The product of two set objects is a set object (today's witness) ...
+static_assert(IsSetObject<CanonicalIntProductSet>,
+              "A × B is a set object over the pair carrier.");
+// FIXME(#970): ... and SHOULD be the categorical product OF THE FACTORS, not
+// only of their carriers: `IsProduct<decltype(A * B), A, B, MakeCartesian>`,
+// with π_1 / π_2 on the product SET returning the factor set objects (the
+// legs already ride in ProductMembership::a / ::b; the 𝔸 × 𝔸 overload drops
+// them) and the factors constrained IsSetObject.  Today only the carrier-level
+// IsProduct above holds.  Lands with the IsSetObject MUST slice.
 
 // The relation CORE --- the @c Relation / @c SetFunction aliases, the
 // @c IsRelation concept, and the @c relates / @c dom / @c cod / @c apply /
