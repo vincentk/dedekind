@@ -55,7 +55,7 @@ TEST_CASE("Sets: Singleton Acceptance", "[sets][singleton][acceptance]") {
     // FIXME(#685): Boolean-algebra-of-sets identities not yet encoded
     // structurally at the DSL surface.  Each assertion below names a
     // textbook law that today fails to compile:
-    //   * `_s & _s` returns @c Comprehension<UniversalSet, lambda>,
+    //   * `_s & _s` returns @c Comprehension<Universe, lambda>,
     //     not @c SingletonSet — missing semantic-equality overload.
     //   * `&(_s & _s) == &_s` asks for structural pointer-identity on
     //     self-meet — `operator&` would need to return a reference
@@ -73,7 +73,7 @@ TEST_CASE("Sets: Singleton Acceptance", "[sets][singleton][acceptance]") {
   SECTION("Union") {
     // FIXME(#685): mirror of the SECTION("Intersections") gaps above,
     // with `|` (union) in place of `&` (intersection) and
-    // `UniversalSet<T>{}` in place of `Ø<T>{}`.  Same underlying
+    // `Universe<T>{}` in place of `Ø<T>{}`.  Same underlying
     // structural-identity / cross-type-overload / equality-matrix
     // surgery needed.
     // The union is now the recoverable named OrPredicate (no element scout,
@@ -104,7 +104,7 @@ TEST_CASE("Sets: Singleton Acceptance", "[sets][singleton][acceptance]") {
     // universe for {a}∪¬{a}) still needs the equality-matrix / cross-type
     // overload surgery tracked there.
     // REQUIRE((_s | _s) == _s);
-    // REQUIRE((!_s) | _s == UniversalSet<size_t>{});
+    // REQUIRE((!_s) | _s == Universe<size_t>{});
   }
   SECTION("Difference") {
     // FIXME(#685): set-difference operator `-` not defined on the
@@ -205,7 +205,7 @@ TEST_CASE("Sets: Comprehension runtime membership (χ coverage)",
   // characteristic map (operator()) at RUNTIME so its L::AND-and-lift body is
   // exercised, not only compile-time-asserted.
   auto _s = ι<size_t>(42);
-  const auto self_meet = _s & _s;     // Comprehension<UniversalSet, lambda>
+  const auto self_meet = _s & _s;     // Comprehension<Universe, lambda>
   CHECK(self_meet(size_t{42}));       // 42 ∈ {42} ∧ 42 ∈ {42}
   CHECK_FALSE(self_meet(size_t{7}));  // 7 ∉ {42}
   CHECK(self_meet.size() == 1);

@@ -162,7 +162,7 @@ constexpr auto set_difference(const Set<T, L, P1>& a, const Set<T, L, P2>& b) {
  * bitwise complement, aligned with the bitwise set semantics) rather than the
  * logical @c !.  Gated on @c IsSet for both operands (so it never shadows
  * arithmetic @c operator- on numeric carriers) and on @c a @c & @c ~b being
- * well formed, so it also accepts a @c UniversalSet minuend (@c U @c - @c B
+ * well formed, so it also accepts a @c Universe minuend (@c U @c - @c B
  * collapses through the universal-set identity to @c ~B).  There is no C++
  * set-minus glyph; this is the idiomatic stand-in for the blackboard
  * @f$\setminus@f$.

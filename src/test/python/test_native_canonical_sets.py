@@ -7,7 +7,7 @@ morphism χ from the C++ core, not a Python reimplementation.
 Two shapes are bound, per the maintainer's option (b):
 
 * ``ℕ`` is the ambient natural-numbers universe (``𝔸<Cardinality>``).  Its χ is
-  universally true by the UniversalSet axiom, so ``4 in ℕ`` is True, exactly as
+  universally true by the Universe axiom, so ``4 in ℕ`` is True, exactly as
   ``True in 𝔹`` is.  ℕ is the universe, not a discriminator.
 * ``Nat`` is the discriminating ℤ-subobject classifier (``NaturalNumbersOf``,
   χ: x ↦ x ≥ 0).  The money shot is ``-7 not in Nat``: it is decided in C++,

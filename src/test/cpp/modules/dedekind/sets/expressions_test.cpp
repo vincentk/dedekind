@@ -110,7 +110,7 @@ static_assert(IsArrowProduct<MeetLift, A_set, B_set>,
 
 // #881: the Sub(U) bounds ARE the categorical initial / terminal objects (⊥/⊤
 // of the subobject lattice): Ø is classified by the always-false predicate,
-// UniversalSet by the always-true.  Now tagged, they participate in :limit's
+// Universe by the always-true.  Now tagged, they participate in :limit's
 // IsInitialObject / IsTerminalObject (the same tag-discovery branch the lattice
 // bounds use), so the pushout span reuses the canonical initial-object arrow
 // instead of a hand-rolled struct.
@@ -118,8 +118,8 @@ static_assert(dedekind::category::IsInitialObject<
                   dedekind::sets::Ø<int, dedekind::category::Boole>>,
               "Ø is the initial object (⊥) of Sub(U). #881.");
 static_assert(
-    dedekind::category::IsTerminalObject<dedekind::sets::UniversalSet<int>>,
-    "UniversalSet is the terminal object (⊤) of Sub(U). #881.");
+    dedekind::category::IsTerminalObject<dedekind::sets::Universe<int>>,
+    "Universe is the terminal object (⊤) of Sub(U). #881.");
 
 // #881 step 4: dually, the APPLIED join A | B is the PUSHOUT of its two
 // concrete sets --- the coproduct over the initial ∅ (span ∅ ⟶ A, ∅ ⟶ B), with
@@ -198,7 +198,7 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
 
   SECTION("Singleton ^ Set — pivot toggles membership (#469)") {
     constexpr auto gt_zero = [](const auto& v) { return v > 0; };
-    auto positives = Set{Comprehension{UniversalSet<int>{}, gt_zero}};
+    auto positives = Set{Comprehension{Universe<int>{}, gt_zero}};
     auto sing_in_set = singleton(5);
     auto sing_out_set = singleton(-3);
     auto in_xor = sing_in_set ^ positives;    // 5 ∈ positives → result drops 5
@@ -238,7 +238,7 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
     auto S = Set{Comprehension{ℕ, gt_10}};
     using SDomain = decltype(S)::Domain;
     using SLogic = decltype(S)::logic_species;
-    UniversalSet<SDomain, SLogic> universe{};
+    Universe<SDomain, SLogic> universe{};
     auto right_collapse = S ^ universe;  // type: !S
     auto left_collapse = universe ^ S;   // type: !S
     REQUIRE_FALSE(right_collapse(50u));  // 50 ∈ S → ∉ !S
@@ -270,7 +270,7 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
     // This regression test guards against a same-Predicate-type
     // collapse that would wrongly fire on every BooleanEqPredicate
     // pair regardless of the .expected field.
-    using BoolAmbient = UniversalSet<bool, Boole, Finite>;
+    using BoolAmbient = Universe<bool, Boole, Finite>;
     constexpr BoolAmbient B_bool{};
     auto only_true = Set{Comprehension{B_bool, BooleanEqPredicate{true}}};
     auto only_false = Set{Comprehension{B_bool, BooleanEqPredicate{false}}};
@@ -403,7 +403,7 @@ TEST_CASE("Dedekind Identities: Extremal Collapse", "[sets][identities]") {
 
 TEST_CASE("Dedekind Identities: Boolean literals collapse over 𝔹",
           "[sets][identities][boolean]") {
-  using BoolAmbient = UniversalSet<bool, Boole, Finite>;
+  using BoolAmbient = Universe<bool, Boole, Finite>;
   constexpr BoolAmbient B_bool{};
 
   constexpr auto b_false =
@@ -426,7 +426,7 @@ TEST_CASE(
   // which b holds" — the bare-b form is the truthy predicate, and
   // should be recognised as semantically equivalent to b == true by
   // the structured-and / FiniteBooleanSet collapse machinery.
-  using BoolAmbient = UniversalSet<bool, Boole, Finite>;
+  using BoolAmbient = Universe<bool, Boole, Finite>;
   constexpr BoolAmbient B_bool{};
 
   // Bare-b form (the issue's target ergonomics): the truthy predicate IS
@@ -458,8 +458,8 @@ TEST_CASE("Dedekind Sets: Cartesian product witnesses", "[sets][cartesian]") {
   // too --- the test DAG imports upstream only).
   constexpr auto gt_zero = [](const auto& v) { return v > 0; };
   constexpr auto le_three = [](const auto& v) { return v <= 3; };
-  const auto positive = Set{Comprehension{UniversalSet<int>{}, gt_zero}};
-  const auto small = Set{Comprehension{UniversalSet<int>{}, le_three}};
+  const auto positive = Set{Comprehension{Universe<int>{}, gt_zero}};
+  const auto small = Set{Comprehension{Universe<int>{}, le_three}};
 
   const auto product = cartesian_product(positive, small);
   using ProductDomain = typename decltype(product)::Domain;
@@ -475,7 +475,7 @@ TEST_CASE("Dedekind Sets: Cartesian product witnesses", "[sets][cartesian]") {
 
 TEST_CASE("Dedekind Sets: Ambient cartesian product ergonomics",
           "[sets][relations][cartesian][ambient]") {
-  constexpr auto ambient = UniversalSet<int>{};
+  constexpr auto ambient = Universe<int>{};
   constexpr auto p_via_function = cartesian_product(ambient, ambient);
   constexpr auto p_via_operator = ambient * ambient;
 

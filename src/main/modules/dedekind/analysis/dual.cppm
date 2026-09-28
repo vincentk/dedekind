@@ -291,7 +291,7 @@ static_assert(
 
 export template <typename F = dedekind::numbers::machine_real_scalar,
                  typename L = Boole, typename C = ℶ_1>
-using DualSetOf = UniversalSet<Dual<F>, L, C>;
+using DualSetOf = Universe<Dual<F>, L, C>;
 
 export using DualSet = DualSetOf<>;
 
@@ -301,7 +301,7 @@ export using DualSet = DualSetOf<>;
  *
  *  @details Per #559's chosen direction (option A): the named species
  *  symbols denote @b universe values (constexpr instances of
- *  @c UniversalSet over the carrier), not classifier-alias types.  All
+ *  @c Universe over the carrier), not classifier-alias types.  All
  *  seven species symbols (𝔹, ℕ, ℤ, ℚ, ℝ, ℂ, 𝔻) carry the canonical
  *  @c element<𝔻> scout spelling.
  *
@@ -334,7 +334,7 @@ export inline constexpr auto 𝔻 =
 
 static_assert(
     std::same_as<std::remove_cvref_t<decltype(𝔻)>,
-                 dedekind::sets::UniversalSet<
+                 dedekind::sets::Universe<
                      Dual<dedekind::numbers::QuadraticReal<2>>, Boole, ℶ_1>>,
     "𝔻 is the universe 𝔸<Dual<QuadraticReal<2>>, Boole, ℶ_1> — the "
     "coat-hanger 𝔻 = Dual(ℝ) = ℝ[ε]/(ε²) over the genuine ℝ = ℚ(√2), mirroring "

@@ -495,7 +495,7 @@ constexpr auto operator~(const Singleton<bool, L>& s) {
 /** @brief The halfspace factory (#832): a @c Halfspace @b value denotes a
  *  @b proper cut by construction.  A degenerate configuration collapses to the
  *  canonical boundary set instead --- an empty cut to @c Ø, a moot cut to the
- *  universe @c UniversalSet --- so @f$\emptyset = \text{Halfspace}@f$ and
+ *  universe @c Universe --- so @f$\emptyset = \text{Halfspace}@f$ and
  *  @f$\mathbb{A} = \text{Halfspace}@f$ never arise as values and the boundary
  * cases are decided by @c Ø / @c 𝔸's own initial / terminal machinery.  The
  * return type is heterogeneous but statically resolved by @c if @c constexpr
@@ -508,8 +508,7 @@ constexpr auto make_halfspace() {
   if constexpr (halfspace_is_empty<T, V, D, S>())
     return dedekind::sets::codomain_reduce_t<dedekind::sets::Ø<T, L>>{};
   else if constexpr (halfspace_is_moot<T, V, D, S>())
-    return dedekind::sets::codomain_reduce_t<
-        dedekind::sets::UniversalSet<T, L>>{};
+    return dedekind::sets::codomain_reduce_t<dedekind::sets::Universe<T, L>>{};
   else
     return Halfspace<T, D, S, L>{static_cast<T>(V)};  // V may be a wider pivot
 }
@@ -1164,10 +1163,10 @@ constexpr UnboundHalfspace<flip(D), flip(S), V> operator!(
 
 // carrier | unbound → the Domain-bound predicate, reusing Halfspace /
 // Singleton. The RHS type is distinct from Set, so this does not clash with the
-// union operator| on a UniversalSet (that one takes a Set).
+// union operator| on a Universe (that one takes a Set).
 export template <typename T, typename L, typename C, Direction D, Strictness S,
                  auto V>
-constexpr auto operator|(const UniversalSet<T, L, C>&,
+constexpr auto operator|(const Universe<T, L, C>&,
                          const UnboundHalfspace<D, S, V>&) {
   // Through the factory (#837 review): a degenerate binder collapses like any
   // other construction --- @c 𝔸<bool> | (π > fix(true_c)) is @c {x>true} = Ø,
@@ -1180,7 +1179,7 @@ constexpr auto operator|(const UniversalSet<T, L, C>&,
 // error there; a singleton over such a carrier needs a T-valued pivot.
 export template <typename T, typename L, typename C, auto V>
   requires std::same_as<T, decltype(V)>
-constexpr Singleton<decltype(V), L> operator|(const UniversalSet<T, L, C>&,
+constexpr Singleton<decltype(V), L> operator|(const Universe<T, L, C>&,
                                               const UnboundSingleton<V>&) {
   return Singleton<decltype(V), L>{V};
 }
@@ -1501,7 +1500,7 @@ struct ProductRestrict {
 // the rel-predicate: the pure product universe refined to a subobject.
 export template <typename T1, typename T2, typename L, typename C,
                  IsRelPredicate RP>
-constexpr auto operator|(const UniversalSet<std::pair<T1, T2>, L, C>&, RP rp) {
+constexpr auto operator|(const Universe<std::pair<T1, T2>, L, C>&, RP rp) {
   return Set<std::pair<T1, T2>, L, RP>{rp};
 }
 
@@ -1550,7 +1549,7 @@ export template <typename T, Direction D, Strictness S, typename L, typename T2,
                  typename L2, typename C2>
   requires std::same_as<L, L2>
 constexpr auto operator*(const Halfspace<T, D, S, L>& a,
-                         const UniversalSet<T2, L2, C2>&) {
+                         const Universe<T2, L2, C2>&) {
   return 𝔸<std::pair<T, T2>, L> | cylinder<1>(a);
 }
 
@@ -1558,7 +1557,7 @@ constexpr auto operator*(const Halfspace<T, D, S, L>& a,
 export template <typename T1, typename L1, typename C1, typename T, Direction D,
                  Strictness S, typename L>
   requires std::same_as<L1, L>
-constexpr auto operator*(const UniversalSet<T1, L1, C1>&,
+constexpr auto operator*(const Universe<T1, L1, C1>&,
                          const Halfspace<T, D, S, L>& b) {
   return 𝔸<std::pair<T1, T>, L> | cylinder<2>(b);
 }
@@ -2102,11 +2101,11 @@ constexpr SetVal<T, L> lowerbounds(
 }
 // 𝔹: the whole carrier is bounded --- ⊤ dominates it, ⊥ is dominated by it.
 export template <typename L, typename C>
-constexpr auto upperbounds(const UniversalSet<bool, L, C>&) {
+constexpr auto upperbounds(const Universe<bool, L, C>&) {
   return Singleton<bool, L>{true};
 }
 export template <typename L, typename C>
-constexpr auto lowerbounds(const UniversalSet<bool, L, C>&) {
+constexpr auto lowerbounds(const Universe<bool, L, C>&) {
   return Singleton<bool, L>{false};
 }
 
@@ -2205,7 +2204,7 @@ constexpr auto operator&(const Halfspace<T, D, S, L>&, Ø<T, LZ>) {
 export template <typename T, Direction D, Strictness S, typename L, typename LU,
                  typename C>
 constexpr auto operator&(const Halfspace<T, D, S, L>& h,
-                         const dedekind::sets::UniversalSet<T, LU, C>&) {
+                         const dedekind::sets::Universe<T, LU, C>&) {
   return h;
 }
 
@@ -2315,11 +2314,11 @@ constexpr bool operator==(const Ø<bool, L>& e,
 }
 export template <Direction D, Strictness S, typename L, typename C>
 constexpr bool operator==(const Halfspace<bool, D, S, L>& h,
-                          const UniversalSet<bool, L, C>&) {
+                          const Universe<bool, L, C>&) {
   return static_cast<bool>(h(false)) && static_cast<bool>(h(true));
 }
 export template <Direction D, Strictness S, typename L, typename C>
-constexpr bool operator==(const UniversalSet<bool, L, C>& u,
+constexpr bool operator==(const Universe<bool, L, C>& u,
                           const Halfspace<bool, D, S, L>& h) {
   return h == u;
 }
@@ -2349,13 +2348,13 @@ constexpr bool operator==(const Halfspace<T, D, S, L>&,
   return false;
 }
 export template <typename T, Direction D, Strictness S, typename L, typename C>
-constexpr bool operator==(const UniversalSet<T, L, C>&,
+constexpr bool operator==(const Universe<T, L, C>&,
                           const Halfspace<T, D, S, L>&) {
   return false;
 }
 export template <typename T, Direction D, Strictness S, typename L, typename C>
 constexpr bool operator==(const Halfspace<T, D, S, L>&,
-                          const UniversalSet<T, L, C>&) {
+                          const Universe<T, L, C>&) {
   return false;
 }
 
@@ -2364,11 +2363,11 @@ constexpr bool operator==(const Halfspace<T, D, S, L>&,
  *  (@c 𝔸<bool> | (π == fix(v)) collapses to @c Singleton<v>). */
 export template <typename L, typename C>
 constexpr bool operator==(const Singleton<bool, L>&,
-                          const UniversalSet<bool, L, C>&) {
+                          const Universe<bool, L, C>&) {
   return false;
 }
 export template <typename L, typename C>
-constexpr bool operator==(const UniversalSet<bool, L, C>& u,
+constexpr bool operator==(const Universe<bool, L, C>& u,
                           const Singleton<bool, L>& s) {
   return s == u;
 }

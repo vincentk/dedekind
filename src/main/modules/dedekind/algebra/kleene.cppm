@@ -60,7 +60,7 @@ using namespace dedekind::sets;
  *  is corrected: the classifier species is @c Boole either way, since
  *  @c NaturalLogic maps every @b countable cardinality (@c Finite and @c ℵ_0
  *  alike) to @c Boole, reserving @c Kleene for the uncountable.  Mirrors the
- *  @c 𝔸<bool> @c = @c UniversalSet<bool, Boole,
+ *  @c 𝔸<bool> @c = @c Universe<bool, Boole,
  *  Finite> override in @c :boundaries, but kept local here so the Kleene
  *  carrier's cardinality stays a downstream (:algebra) fact rather than being
  *  pushed up into @c :sets. */

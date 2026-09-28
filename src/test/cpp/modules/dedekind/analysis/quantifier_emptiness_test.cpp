@@ -79,8 +79,8 @@ struct gt_ten {
 // `Set{}` wrap.  Here the bare comprehension is complemented with no wrapper.
 TEST_CASE("Bare comprehension carries the set-complement (#895)",
           "[sets][comprehension][complement]") {
-  using Comp = Comprehension<UniversalSet<int>, gt_ten>;
-  constexpr Comp comp{UniversalSet<int>{}, gt_ten{}};
+  using Comp = Comprehension<Universe<int>, gt_ten>;
+  constexpr Comp comp{Universe<int>{}, gt_ten{}};
 
   // The set complement ~ is the reducer's Not node over the comprehension: a
   // genuine set-complement subobject, not a formal arrow.  ~~ peels back.

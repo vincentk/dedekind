@@ -520,7 +520,7 @@ TEST_CASE("order:halfspace — the factory makes a Halfspace a proper cut (#832)
     static_assert(
         std::same_as<decltype(make_halfspace<Cardinality, 0, Direction::Upward,
                                              Strictness::NonStrict>()),
-                     UniversalSet<Cardinality, Boole>>,
+                     Universe<Cardinality, Boole>>,
         "{x≥0} on ℕ = ℕ (moot constraint drops)");
     // An interior cut stays a proper Halfspace.
     static_assert(
@@ -534,7 +534,7 @@ TEST_CASE("order:halfspace — the factory makes a Halfspace a proper cut (#832)
   SECTION("the DSL routes through the factory") {
     // The DSL surface collapses a moot cut: {x≥0} on ℕ = ℕ.
     static_assert(std::same_as<std::decay_t<decltype(ℕ | (χ >= fix(0_c)))>,
-                               UniversalSet<Cardinality, Boole>>,
+                               Universe<Cardinality, Boole>>,
                   "ℕ | (χ >= fix(0_c)) = ℕ");
   }
 

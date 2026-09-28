@@ -623,7 +623,7 @@ static_assert(
  *
  *  @details Per #559's chosen direction (option A): the named species
  *  symbols (@c 𝔹 / @c ℕ / @c ℤ / @c ℚ / @c ℝ / @c ℂ / @c 𝔻) denote the
- *  @b universe values (constexpr instances of @c UniversalSet over the
+ *  @b universe values (constexpr instances of @c Universe over the
  *  carrier), not carrier @b types.  Carrier types are spelled directly
  *  (@c Rational<default_integer>, or @c Rational<I> for the
  *  parameterised form over an arbitrary @c IsInteger I) in
@@ -640,14 +640,13 @@ static_assert(
  *  @c algebra::IsField fires on @c Rational<default_integer>; see
  *  the probe near the bottom of this file.
  */
-export inline constexpr UniversalSet<Rational<default_integer>, Boole, ℵ_0> ℚ =
+export inline constexpr Universe<Rational<default_integer>, Boole, ℵ_0> ℚ =
     dedekind::sets::𝔸<Rational<default_integer>>;
 
-static_assert(
-    std::same_as<
-        std::remove_cvref_t<decltype(ℚ)>,
-        dedekind::sets::UniversalSet<Rational<default_integer>, Boole, ℵ_0>>,
-    "ℚ is the universe 𝔸<Rational<default_integer>> (post-#559).");
+static_assert(std::same_as<std::remove_cvref_t<decltype(ℚ)>,
+                           dedekind::sets::Universe<Rational<default_integer>,
+                                                    Boole, ℵ_0>>,
+              "ℚ is the universe 𝔸<Rational<default_integer>> (post-#559).");
 static_assert(
     std::same_as<typename std::remove_cvref_t<decltype(ℚ)>::Domain,
                  Rational<default_integer>>,
@@ -672,15 +671,14 @@ static_assert(dedekind::algebra::IsAlgebraOnSet<
 // of the carrier-as-predicate (the @c L::Ω value at any @c a), not the
 // predicate-type wrapper itself.  For ℚ under @c Boole the
 // codomain is @c bool.  Same CT content (the universe value is a
-// UniversalSet over Rational<default_integer> classified by Ω), now
+// Universe over Rational<default_integer> classified by Ω), now
 // expressed structurally rather than via a named @c .χ projector.
-static_assert(
-    dedekind::category::SetAsProduct<std::remove_cvref_t<decltype(ℚ)>,
-                                     Rational<default_integer>, bool>,
-    "#573 slice 4: ℚ must witness SetAsProduct over "
-    "(Rational<default_integer>, Boole::Ω = bool).  The universe "
-    "value is a UniversalSet whose Ambient matches the rational carrier "
-    "and whose classifier codomain is bool.");
+static_assert(dedekind::category::SetAsProduct<std::remove_cvref_t<decltype(ℚ)>,
+                                               Rational<default_integer>, bool>,
+              "#573 slice 4: ℚ must witness SetAsProduct over "
+              "(Rational<default_integer>, Boole::Ω = bool).  The universe "
+              "value is a Universe whose Ambient matches the rational carrier "
+              "and whose classifier codomain is bool.");
 
 // `Q` constant + `RationalSet` alias removed under ℚ-retarget
 // chiselling --- callers spell @c element<ℚ> directly off the universe

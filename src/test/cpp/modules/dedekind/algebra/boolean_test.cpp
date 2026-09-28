@@ -15,19 +15,19 @@ TEST_CASE("Algebra:Boolean starter symbols", "[algebra][boolean][starter]") {
 
   // Universe-vs-carrier surface (post-#559).
   //   • 𝔹 is the universe value 𝔸<bool>: a constexpr
-  //     UniversalSet<bool, Boole, Finite>{}, the comprehension base
+  //     Universe<bool, Boole, Finite>{}, the comprehension base
   //     and @c Set{...} argument.
   //   • bool is the carrier — what concept gates and template-type-
   //     parameter positions name directly.
   //   • B is a sibling value-level instance, alias-equivalent to 𝔹
-  //     (decltype(B) == decltype(𝔹) == UniversalSet<bool, ...>).
+  //     (decltype(B) == decltype(𝔹) == Universe<bool, ...>).
   STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(𝔹)>,
-                            UniversalSet<bool, Boole, Finite>>);
+                            Universe<bool, Boole, Finite>>);
   STATIC_CHECK(
       std::same_as<typename std::remove_cvref_t<decltype(𝔹)>::Domain, bool>);
   STATIC_CHECK(std::same_as<decltype(B), const BooleanSetOf<>>);
   STATIC_CHECK(std::same_as<typename BooleanSetOf<>::Domain, bool>);
-  STATIC_CHECK(std::same_as<typename UniversalSet<bool>::Domain, bool>);
+  STATIC_CHECK(std::same_as<typename Universe<bool>::Domain, bool>);
 
   CHECK(truthy(true));
   CHECK_FALSE(truthy(false));

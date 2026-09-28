@@ -246,7 +246,7 @@ NB_MODULE(_dedekind, module) {
     module.attr("B") = dedekind::sets::𝔹;
 
     // ℕ = 𝔸<Cardinality>, the ambient natural-numbers universe.  Membership is
-    // universally true by the UniversalSet axiom (Total Presence): `4 in ℕ` is
+    // universally true by the Universe axiom (Total Presence): `4 in ℕ` is
     // True, exactly as `True in 𝔹` is.  ℕ is the universe, not a discriminator;
     // discrimination lives in the `Nat` classifier below.
     using NatUniverse = std::decay_t<decltype(dedekind::sets::ℕ)>;

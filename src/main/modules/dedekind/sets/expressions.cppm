@@ -364,7 +364,7 @@ struct FiniteBooleanSet {
     return at_false == L::False && at_true == L::False;
   }
 
-  constexpr bool operator==(const UniversalSet<bool, L, Finite>&) const {
+  constexpr bool operator==(const Universe<bool, L, Finite>&) const {
     return at_false == L::True && at_true == L::True;
   }
 
@@ -373,9 +373,8 @@ struct FiniteBooleanSet {
     return s == empty;
   }
 
-  friend constexpr bool operator==(
-      const UniversalSet<bool, L, Finite>& universe,
-      const FiniteBooleanSet& s) {
+  friend constexpr bool operator==(const Universe<bool, L, Finite>& universe,
+                                   const FiniteBooleanSet& s) {
     return s == universe;
   }
 
@@ -614,7 +613,7 @@ constexpr auto elevate_meet(Reduced reduced) {
 export template <typename T, typename L, typename Reduced>
 constexpr auto elevate_join(Reduced reduced) {
   using Result = std::decay_t<Reduced>;
-  if constexpr (std::same_as<Result, UniversalSet<T, L>>) {
+  if constexpr (std::same_as<Result, Universe<T, L>>) {
     return reduced;
   } else {
     return Set<T, L, Result>{std::move(reduced)};
@@ -701,7 +700,7 @@ export struct SetCombine {
  *  @c ι defaults to the IDENTITY inclusion, HOMOGENEOUS BY DEFAULT.  A member
  * of
  *  @c A∩B is a @c T-value lying in both operands.  Its inclusion into the
- *  ambient @c T is the identity, exactly as @c Set / @c Ø / @c UniversalSet
+ *  ambient @c T is the identity, exactly as @c Set / @c Ø / @c Universe
  *  already spell @c ι(m) @c = @c m.value.  A subobject over a DIFFERENT carrier
  *  (a subset composed with a type conversion, e.g.\ @c ℕ ↪ ℤ) specialises @c ι.
  *  That is a downstream / §5-HSP concern, not this generic contract. */
@@ -761,7 +760,7 @@ class Set {
 
   // ~ topoi jargon: Member-shape mirror of Subobject's; the IsSubobject
   // contract reads the Member-to-T projection through ι below.  Same
-  // shape as Ø / UniversalSet / SingletonSet's Member.
+  // shape as Ø / Universe / SingletonSet's Member.
   struct Member {
     T value;
   };
@@ -902,16 +901,16 @@ static_assert(
     "Set<T,L,P> is a set object: universe 𝔸<T,L>, classifier P.");
 static_assert(std::same_as<universe_t<Set<int, dedekind::category::Boole,
                                           UniversalPredicate<int>>>,
-                           UniversalSet<int>>,
+                           Universe<int>>,
               "the implicit universe of Set<int> is 𝔸<int>.");
 static_assert(
-    IsSetObject<Comprehension<UniversalSet<int>, UniversalPredicate<int>>>,
+    IsSetObject<Comprehension<Universe<int>, UniversalPredicate<int>>>,
     "a comprehension is a set object.");
 static_assert(
     std::same_as<universe_t<Comprehension<
-                     Comprehension<UniversalSet<int>, UniversalPredicate<int>>,
+                     Comprehension<Universe<int>, UniversalPredicate<int>>,
                      UniversalPredicate<int>>>,
-                 UniversalSet<int>>,
+                 Universe<int>>,
     "a nested comprehension's universe is the base's universe (the whole).");
 
 }  // namespace dedekind::sets
@@ -1020,8 +1019,7 @@ constexpr auto operator&(const LHS& lhs, const RHS& rhs) {
     } else if constexpr (is_subobject_bottom_v<R>) {
       return finalize_combine(Ø<T, Log>{});  // reducer's abstract ⊥ over Sub(T)
     } else if constexpr (is_subobject_top_v<R>) {
-      return finalize_combine(
-          UniversalSet<T, Log>{});  // abstract ⊤ over Sub(T)
+      return finalize_combine(Universe<T, Log>{});  // abstract ⊤ over Sub(T)
     } else if constexpr (std::same_as<R, LHS>) {
       return finalize_combine(lhs);
     } else if constexpr (std::same_as<R, RHS>) {
@@ -1066,8 +1064,7 @@ constexpr auto operator|(const LHS& lhs, const RHS& rhs) {
     } else if constexpr (is_subobject_bottom_v<R>) {
       return finalize_combine(Ø<T, Log>{});  // reducer's abstract ⊥ over Sub(T)
     } else if constexpr (is_subobject_top_v<R>) {
-      return finalize_combine(
-          UniversalSet<T, Log>{});  // abstract ⊤ over Sub(T)
+      return finalize_combine(Universe<T, Log>{});  // abstract ⊤ over Sub(T)
     } else if constexpr (std::same_as<R, LHS>) {
       return finalize_combine(lhs);
     } else if constexpr (std::same_as<R, RHS>) {
@@ -1431,7 +1428,7 @@ export template <typename T, typename L, typename C,
                  dedekind::category::IsIsomorphism F>
   requires(std::same_as<dedekind::category::Dom<std::remove_cvref_t<F>>, T> &&
            !dedekind::category::IsTerminalMorphism<std::remove_cvref_t<F>>)
-constexpr auto image(F&&, const UniversalSet<T, L, C>&) {
+constexpr auto image(F&&, const Universe<T, L, C>&) {
   using U = dedekind::category::Cod<std::remove_cvref_t<F>>;
   return 𝔸<U, L, C>;  // iso |U| = |T|, so the cardinality carries
 }
@@ -1554,7 +1551,7 @@ constexpr auto operator^(const Set<T, L, Predicate>& s, const Ø<T, L>&) {
  *         @c 𝔸::operator^(S) above. */
 export template <typename T, typename L, typename C, typename Predicate>
 constexpr auto operator^(const Set<T, L, Predicate>& s,
-                         const UniversalSet<T, L, C>&) {
+                         const Universe<T, L, C>&) {
   return !s;
 }
 
@@ -1822,9 +1819,9 @@ constexpr auto cartesian_product(const A& a, const B& b) {
   // Set(Species) CTAD accepts a bare ambient AND re-wraps an already-@c Set
   // operand) and delegate to the @c Set x @c Set overload.  This normalisation
   // is load- bearing: it TERMINATES the generic dispatch.  Spelling @c a @c *
-  // @c b here instead would recurse on a mixed @c UniversalSet x @c Set pair
+  // @c b here instead would recurse on a mixed @c Universe x @c Set pair
   // (no
-  // @c operator*(UniversalSet, Set), so it re-enters this generic).
+  // @c operator*(Universe, Set), so it re-enters this generic).
   const auto left = Set{a};
   const auto right = Set{b};
   return cartesian_product(left, right);
@@ -1876,8 +1873,8 @@ struct product_cardinality<ℵ<M>, ℵ<N>> {
 export template <typename A, typename LA, typename CA, typename B, typename LB,
                  typename CB>
   requires std::same_as<LA, LB>
-constexpr auto operator*(const UniversalSet<A, LA, CA>&,
-                         const UniversalSet<B, LB, CB>&) {
+constexpr auto operator*(const Universe<A, LA, CA>&,
+                         const Universe<B, LB, CB>&) {
   using CC = typename product_cardinality<CA, CB>::type;
   // 𝔸 × 𝔸 = 𝔸<pair>.  Codomain leg (#894): the universe is decided → Boole.
   return finalize_combine(𝔸<std::pair<A, B>, LA, CC>);
@@ -2011,7 +2008,7 @@ namespace detail_setexpr_witness {
 struct all_in {
   constexpr bool operator()(int) const { return true; }
 };
-static_assert(IsSet<Comprehension<UniversalSet<int>, all_in>>,
+static_assert(IsSet<Comprehension<Universe<int>, all_in>>,
               "{𝔸 | P} is a first-class set: IsSet by SetExpr + its own χ.");
 static_assert(IsSet<Comprehension<Ø<int>, all_in>>,
               "{Ø | P} is a first-class set.");
@@ -2019,7 +2016,7 @@ static_assert(IsSet<Comprehension<Ø<int>, all_in>>,
 // #834/#829: a bare Comprehension is an IsSubobject, so ~ (the set complement)
 // is the reducer's Not node over it --- a genuine set-complement subobject, not
 // a formal arrow.  ~~ peels back to the Comprehension (the involution).
-using CompN = Comprehension<UniversalSet<int>, all_in>;
+using CompN = Comprehension<Universe<int>, all_in>;
 static_assert(
     std::same_as<std::remove_cvref_t<decltype(~std::declval<CompN>())>,
                  dedekind::category::Not<CompN>>,

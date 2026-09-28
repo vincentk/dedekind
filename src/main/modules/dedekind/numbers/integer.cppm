@@ -74,7 +74,7 @@ export inline constexpr auto ℤ =
     dedekind::sets::𝔸<dedekind::sets::SignedCardinality>;
 
 static_assert(std::same_as<std::remove_cvref_t<decltype(ℤ)>,
-                           dedekind::sets::UniversalSet<
+                           dedekind::sets::Universe<
                                dedekind::sets::SignedCardinality, Boole, ℵ_0>>,
               "ℤ is the universe 𝔸<SignedCardinality>, mirroring "
               "ℕ = 𝔸<Cardinality> (#670).");

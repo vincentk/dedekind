@@ -348,7 +348,7 @@ export using RealSet = RealsOf<>;
  *         𝔸<QuadraticReal<2>, Boole, ℶ_1> --- the coat-hanger.
  *
  *  @details Per #559 the named species symbols denote @b universe values
- *  (constexpr @c UniversalSet instances over the carrier).  @c ℝ's carrier is
+ *  (constexpr @c Universe instances over the carrier).  @c ℝ's carrier is
  *  the decidable FIELD @c QuadraticReal<2> @c = ℚ(√2): the @b universe @c ℝ is
  * a set-indexed field (@c algebra::IsField, as @c ℚ @c = @c 𝔸<Rational> is),
  * and its @b carrier is order-complete in the library's @b structural surrogate
@@ -373,7 +373,7 @@ export inline constexpr auto ℝ =
 
 static_assert(
     std::same_as<std::remove_cvref_t<decltype(ℝ)>,
-                 dedekind::sets::UniversalSet<QuadraticReal<2>, Boole, ℶ_1>>,
+                 dedekind::sets::Universe<QuadraticReal<2>, Boole, ℶ_1>>,
     "ℝ is the universe 𝔸<QuadraticReal<2>, Boole, ℶ_1> — the "
     "coat-hanger realised as ℚ(√2).");
 static_assert(std::same_as<typename std::remove_cvref_t<decltype(ℝ)>::Domain,
@@ -384,7 +384,7 @@ static_assert(std::same_as<typename std::remove_cvref_t<decltype(ℝ)>::Domain,
 // satisfying both concepts): the set-indexed @c algebra::IsField holds on the
 // UNIVERSE ℝ (exactly as it does on ℚ = 𝔸⟨Rational⟩), while order-completeness
 // is a CARRIER property — @c IsDedekindComplete is an order concept a
-// UniversalSet does not itself model — so it is asserted on ℚ(√2).  The claim
+// Universe does not itself model — so it is asserted on ℚ(√2).  The claim
 // is therefore: ℝ is a field, and its carrier is order-complete (surrogate).
 static_assert(dedekind::algebra::IsField<std::remove_cvref_t<decltype(ℝ)>>,
               "ℝ (the universe) is a set-indexed field, like ℚ = 𝔸⟨Rational⟩.");

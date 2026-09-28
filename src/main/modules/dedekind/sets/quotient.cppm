@@ -67,7 +67,7 @@ module;
 export module dedekind.sets:quotient;
 
 import dedekind.category;
-import :boundaries;   // 𝔸, UniversalSet
+import :boundaries;   // 𝔸, Universe
 import :expressions;  // Set, cartesian_product, element
 
 namespace dedekind::sets {
@@ -81,7 +81,7 @@ using namespace dedekind::category;
  *  @c Codomain, @c logic_species, @c cardinality_type member typedefs
  *  and to be copy-constructible (the @c Quotient struct stores
  *  @c Pairs by value).  Mirrors the structural shape of @c sets::Set
- *  and @c sets::UniversalSet without committing to either concrete
+ *  and @c sets::Universe without committing to either concrete
  *  type, so any Set-like carrier with the four typedefs and
  *  copy-constructibility is a valid input to the quotient.
  */
@@ -178,7 +178,7 @@ struct Quotient {
 
   /** @brief Value-level membership query (sugar over @c operator()),
    *  matching the surface of @c sets::Set::contains and
-   *  @c sets::UniversalSet::contains so generic code that uses
+   *  @c sets::Universe::contains so generic code that uses
    *  @c .contains uniformly across set-like types compiles on a
    *  @c Quotient.
    */
@@ -191,7 +191,7 @@ struct Quotient {
    *  equivalence relation cannot increase cardinality, and the
    *  universal-membership semantics of @c operator() means we don't
    *  yet observe a strict drop.  Mirrors the surface of
-   *  @c sets::Set::cardinality and @c sets::UniversalSet::cardinality.
+   *  @c sets::Set::cardinality and @c sets::Universe::cardinality.
    */
   constexpr cardinality_type cardinality() const { return cardinality_type{}; }
 };

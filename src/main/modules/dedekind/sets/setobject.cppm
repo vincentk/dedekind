@@ -58,7 +58,7 @@ using dedekind::category::IsSubobject;
  *     cardinality  C               (ℵ_0, Finite, ...)
  *     logic        L               Ω_L a De Morgan algebra (Truth<L>)
  *     decidable == ?               a property of T, not of being a set
- *     ≡ UniversalSet<T, L, C>      𝔸 is its own universe: the fixpoint
+ *     ≡ Universe<T, L, C>      𝔸 is its own universe: the fixpoint
  *
  *   CHARACTERISTIC (π_2)           one of two kinds of predicate
  *     STRUCTURED   ⊥ ⊕ ⊤ ⊕ Halfspace ⊕ Singleton ⊕ Meet<H↑,H↓> ⊕ ...

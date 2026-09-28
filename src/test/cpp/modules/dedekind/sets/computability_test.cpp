@@ -100,12 +100,11 @@ TEST_CASE("sets:computability — NaturalLogic carrier-axis cut (#622)",
   // predicates; the carrier-axis verdict is the cheap structural witness).
   SECTION("Countable carriers → Boole") {
     STATIC_CHECK(
-        std::same_as<typename NaturalLogic<UniversalSet<int>>::type, Boole>);
+        std::same_as<typename NaturalLogic<Universe<int>>::type, Boole>);
     STATIC_CHECK(
-        std::same_as<typename NaturalLogic<UniversalSet<unsigned>>::type,
-                     Boole>);
+        std::same_as<typename NaturalLogic<Universe<unsigned>>::type, Boole>);
     STATIC_CHECK(
-        std::same_as<typename NaturalLogic<UniversalSet<bool>>::type, Boole>);
+        std::same_as<typename NaturalLogic<Universe<bool>>::type, Boole>);
   }
 
   // Negative witness: Mandelbrot-shaped Sets — uncountable carrier (ℶ_1)
@@ -118,11 +117,11 @@ TEST_CASE("sets:computability — NaturalLogic carrier-axis cut (#622)",
   //       only approximately, so even structurally-Δ⁰₁ comparisons land
   //       exact-as-@c double but unknown-as-ℝ.
   SECTION("Uncountable carriers → Kleene (Mandelbrot-shape witness)") {
-    // ℶ_1-tagged UniversalSet models the "carrier with ℝ-shaped
+    // ℶ_1-tagged Universe models the "carrier with ℝ-shaped
     // cardinality" — the Mandelbrot canonical case is @c
-    // UniversalSet<Complex<...>, _, ℶ_1>, mechanically equivalent here.
+    // Universe<Complex<...>, _, ℶ_1>, mechanically equivalent here.
     STATIC_CHECK(
-        std::same_as<typename NaturalLogic<UniversalSet<int, Boole, ℶ_1>>::type,
+        std::same_as<typename NaturalLogic<Universe<int, Boole, ℶ_1>>::type,
                      Kleene>);
   }
 
@@ -203,12 +202,12 @@ TEST_CASE(
     // directly: a `requires { Set{...}; }` form is unreliable because GCC leaks
     // CTAD "no viable deduction guide" as a hard error rather than absorbing
     // it.
-    STATIC_CHECK_FALSE(CoherentSetWrap<UniversalSet<int, Percent>>);
-    STATIC_CHECK_FALSE(CoherentSetWrap<UniversalSet<int, Chain<int>>>);
+    STATIC_CHECK_FALSE(CoherentSetWrap<Universe<int, Percent>>);
+    STATIC_CHECK_FALSE(CoherentSetWrap<Universe<int, Chain<int>>>);
     // Control: a Kleene ambient DOES lift into the wrapped codomain, so the
     // gate admits it and the CTAD wraps coherently (as the sections above
     // verify).
-    STATIC_CHECK(CoherentSetWrap<UniversalSet<int, Kleene>>);
+    STATIC_CHECK(CoherentSetWrap<Universe<int, Kleene>>);
   }
 
   SECTION(
