@@ -369,7 +369,7 @@ struct Halfspace : dedekind::sets::SetExpr<Halfspace<T, D, S, L>, T, L> {
   static constexpr Strictness strictness = S;
   using cardinality_type = carrier_cardinality_t<T>;
 
-  /** @brief The pivot, VALUE-carrying (#965): a @c constexpr data member, not
+  /** @brief The pivot, VALUE-carrying: a @c constexpr data member, not
    * an NTTP.  A halfspace is a point plus a direction (the #946 principal
    * filter ↑pivot / ideal ↓pivot); direction @c D and strictness @c S stay in
    * the type (they select the comparison and dispatch the meet overloads), only
@@ -395,7 +395,7 @@ struct Halfspace : dedekind::sets::SetExpr<Halfspace<T, D, S, L>, T, L> {
 
 /**
  * @brief Singleton predicate `{x : T | x == value}` --- the point / degenerate
- * halfspace, VALUE-carrying (#965): the pivot is a @b constexpr @b member, not
+ * halfspace, VALUE-carrying: the pivot is a @b constexpr @b member, not
  * an NTTP.
  *
  * @details Emitted when a halfspace meet on a discrete (integral) carrier is
@@ -404,7 +404,7 @@ struct Halfspace : dedekind::sets::SetExpr<Halfspace<T, D, S, L>, T, L> {
  * @c constexpr instance still folds + validates at compile time (the
  * compile-time/runtime optionality), so `{n | 3<n<5} = {4}` is a compile-time
  * constant `Singleton<int>{4}` rather than a distinct type `Singleton<4>`
- * (#965: type-directed collapse recast to constexpr-value-directed; the NTTP
+ * (type-directed collapse recast to constexpr-value-directed; the NTTP
  * was a means to an end).  Still a first-class @c IsSubobject (ι: {value} ↣ T)
  * and, since a cardinality-1 extensional set is decidable regardless of ambient
  * logic, @c cardinality_type stays @c Finite so the decidability tier holds
@@ -477,14 +477,10 @@ constexpr auto operator~(const Singleton<bool, L>& s) {
   return Singleton<bool, L>{!s.value};
 }
 
-// FIXME(#965): the NTTP `operator&`/`operator|` over two static singletons
-// (`Singleton<A>∩Singleton<B>` → the point or `Ø`/`𝔸`) were DELETED in the
-// value-carrying port: they branched the RESULT TYPE on compile-time-distinct
-// pivots (`if constexpr (A == B)`), which a value pivot cannot do (a function
-// cannot return `Singleton` on one runtime branch and `Ø` on another).  The
-// meet/join of two points is instead the value-first `reduce_meet` (empty vs
-// singleton via `.kind`); the bool complement-lattice showcase recasts to that
-// value form.  Single caller (pruning_lattice_laws_test), reworked there.
+// The meet / join of two points is the value-first `reduce_meet` /
+// `reduce_join` (empty vs singleton via `.kind`): a value pivot cannot branch
+// the RESULT TYPE on whether the two points coincide, so there is no type-level
+// `Singleton & Singleton` here.
 
 /** @section halfspace__Halfspace_Complement_Lattice
  *
@@ -519,7 +515,7 @@ constexpr auto make_halfspace() {
 }
 
 /** @brief Complement of a halfspace: the opposite halfspace with the SAME pivot
- *  value, flipped direction + strictness.  (#965: value-carrying, so the
+ *  value, flipped direction + strictness.  (value-carrying, so the
  *  boundary-collapse to Ø/𝔸 that the NTTP factory did at compile time is now a
  *  value-level concern of @c reduce_meet, not a type-level branch here.) */
 export template <typename T, Direction D, Strictness S, typename L>
@@ -527,14 +523,14 @@ constexpr auto operator~(const Halfspace<T, D, S, L>& h) {
   return Halfspace<T, flip(D), flip(S), L>{h.pivot};
 }
 
-// #965: the same-pivot complement-pair @c operator| / @c operator& (union → 𝔸,
+// The same-pivot complement-pair @c operator| / @c operator& (union → 𝔸,
 // meet → Ø) are DELETED --- they gated on a shared NTTP pivot, which a value
 // pivot cannot express at the type level.  The meet is subsumed by
 // @c structured_and → @c reduce_meet (a strict complement pair reduces to
 // empty, a closed one to the boundary point); the join by @c structured_or.
 
-/** @brief Telling aliases for the two ℕ halfspaces the §3 listing uses (#965:
- *  value-carrying, so the pivot rides in the instance): @c Above<>{N} = {x>N},
+/** @brief Telling aliases for the two ℕ halfspaces the §3 listing uses
+ *  (value-carrying: the pivot rides in the instance): @c Above<>{N} = {x>N},
  *  @c AtMost<>{N} = {x<=N}.  The alias fixes carrier / direction / strictness;
  *  @c Above<> is the type, @c Above<>{N} the value (was @c Above<N>{}). */
 export template <typename L = Boole>
@@ -636,7 +632,7 @@ constexpr std::size_t size(const OrderInterval<T, SL, SU, L>& iv) {
   return hi < lo ? 0u : static_cast<std::size_t>(hi - lo + 1);
 }
 
-/** @section halfspace__Value_First_Meet — the ONE meet law (#965), value-first.
+/** @section halfspace__Value_First_Meet — the ONE meet law, value-first.
  *
  *  @details The meet is written ONCE here, over a @c SetVal whose pivot is a
  *  @b value.  Being @c constexpr it serves BOTH phases (the
@@ -853,7 +849,7 @@ constexpr SetVal<V, L> reduce_meet(const SetVal<V, L>& a,
 }
 
 /** @brief Lift a value-carrying @c Halfspace to its @c SetVal (the meet's value
- *  domain).  #965: this is how @c structured_and feeds the one @c reduce_meet.
+ *  domain).  This is how @c structured_and feeds the one @c reduce_meet.
  */
 export template <typename T, Direction D, Strictness S, typename L>
 constexpr SetVal<T, L> to_setval(const Halfspace<T, D, S, L>& h) {
@@ -944,7 +940,7 @@ constexpr typename L::Ω operator==(const Halfspace<T, D, S, L>& h,
  * the unique inhabitant and elevates the meet to a `Singleton`.
  */
 /** @brief The halfspace meet: ONE overload, delegating to the one @c
- * reduce_meet on the pivot VALUES (#965).  Value-carrying pivots mean the
+ * reduce_meet on the pivot VALUES.  Value-carrying pivots mean the
  * result KIND (empty / point / interval / halfspace) depends on runtime values,
  * so a function cannot pick a distinct return TYPE --- the meet returns the
  * unified value @c SetVal (kind-tagged), and the type-directed collapse becomes
@@ -970,7 +966,7 @@ constexpr auto structured_and(const Halfspace<T, D1, S1, L>& a,
  *  ↓a∪↓b = ↓max(a,b) --- the WEAKER bound wins (non-strict on a tie).  Only the
  *  same-direction union always collapses to a halfspace; a crossing union
  *  either covers the line or leaves a gap (no @c SetVal kind), so it is left to
- *  the generic point-wise @c operator|| (#965: value-carrying can't dispatch
+ *  the generic point-wise @c operator|| (value-carrying can't dispatch
  *  cover-vs-gap on a runtime pivot). */
 export template <typename V, typename L>
 constexpr SetVal<V, L> reduce_join(const SetVal<V, L>& a,
@@ -1172,14 +1168,14 @@ constexpr Singleton<decltype(V), L> operator|(const UniversalSet<T, L, C>&,
   return Singleton<decltype(V), L>{V};
 }
 
-// The point-free surface reproduces the existing halfspace exactly (#965: the
+// The point-free surface reproduces the existing halfspace exactly (the
 // type is Above<> = {x>·}; the pivot 5 is the VALUE).
 static_assert(std::same_as<decltype(ℕ | (π > fix(5_c))), Above<>>,
               "ℕ | π > fix(5_c) is an Above<> halfspace, spelled point-free.");
 static_assert((ℕ | (π > fix(5_c))).pivot == 5, "…with pivot value 5.");
 
 // And the equality shape gives the extensional Singleton, membership-checked.
-// Value-carrying (#965): the type is Singleton<bool>; the point is the VALUE.
+// Value-carrying: the type is Singleton<bool>; the point is the VALUE.
 static_assert(
     std::same_as<decltype(𝔹 | (π == fix(true_c))), Singleton<bool, Boole>>,
     "𝔹 | π == fix(true_c) is a Singleton<bool>, spelled point-free.");
@@ -1201,10 +1197,10 @@ static_assert(
     std::same_as<decltype(ℕ | !(π > fix(5_c))), decltype(ℕ | (π <= fix(5_c)))>,
     "ℕ | !(π > fix(5)) binds to the same halfspace as ℕ | π <= fix(5).");
 
-// (#965: the complement-pair collapse to Ø now happens value-side in
+// (the complement-pair collapse to Ø now happens value-side in
 // reduce_meet, not via a same-pivot operator& overload; witnessed in the value
 // tests.  The old type-level `& ~ == Ø` witness is dropped.)
-// #965: value-carrying singletons, so {true} ∩ ¬{true} is empty EXTENSIONALLY
+// Value-carrying singletons, so {true} ∩ ¬{true} is empty EXTENSIONALLY
 // (no bool inhabits both) rather than collapsing to the type Ø --- the
 // singleton non-contradiction recast to a membership check (the deleted
 // Singleton∩Singleton type-collapse can't survive a value pivot).
@@ -1311,7 +1307,7 @@ struct ProjProj {
 };
 
 /** @brief @f$\pi_I \bowtie \mathrm{fix}(v)@f$ --- a strongly-typed pair
- *  predicate.  #965: value-carrying, the bound @c value is a member (the axis
+ *  predicate.  Value-carrying, the bound @c value is a member (the axis
  *  @c I and comparison @c R stay in the type). */
 export template <IsRingIntegral auto I, Rel R, typename VT = long long>
 struct ProjBound {
@@ -1371,7 +1367,7 @@ constexpr ProjBound<I, negate(R), VT> operator!(const ProjBound<I, R, VT>& pb) {
 }
 
 // π_I ⋈ fix(V), I >= 1  →  ProjBound (I == 0 is the unary π of §M1 above).
-// #965: the compile-time Bound<V> supplies the value into the value ProjBound.
+// The compile-time Bound<V> supplies the value into the value ProjBound.
 export template <IsRingIntegral auto I, auto V>
   requires(I >= 1)
 constexpr ProjBound<I, Rel::Lt, decltype(V)> operator<(Projection<I>,
@@ -2053,17 +2049,20 @@ static_assert(
  * pivot
  *  (@c {x≤p} ∩ @c {x≥p} = @c {p}) or, when the sup is unattained (strict) or
  *  absent (unbounded), to @c Ø. */
-/** @brief Upper bounds of a downward halfspace {x ⋈ p} = {x ≥ sup} (#965:
- *  value-carrying, returns SetVal).  Discrete strict: sup = p−1 (attained), so
- *  the meet {x<p} ∩ {x≥p−1} = {p−1}; else sup = p (dense strict → the meet is
- *  empty, no max).  (The machine-boundary empty-cut → 𝔸 edge is simplified out;
- *  FIXME(#965) restore it with the heterogeneous-pivot cut.) */
+/** @brief Upper bounds of a downward halfspace {x ⋈ p} = {x ≥ sup}
+ *  (value-carrying, returns SetVal).  Discrete strict: sup = predecessor(p)
+ *  (attained), so the meet {x<p} ∩ {x≥p−1} = {p−1}; else sup = p (dense strict
+ *  → the meet is empty, no max).  (The machine-boundary empty-cut → 𝔸 edge is
+ *  simplified out; FIXME(#970) restore it with the coproduct arms.) */
 export template <typename T, Strictness S, typename L>
 constexpr SetVal<T, L> upperbounds(
     const Halfspace<T, Direction::Downward, S, L>& h) {
   T sup = h.pivot;
-  if constexpr (std::integral<T>)
-    if (S == Strictness::Strict) sup = static_cast<T>(h.pivot - 1);
+  // Discrete carriers attain the strict bound at the predecessor --- gated on
+  // the NNO's step (an axiom of the category, which ℕ's proxy witnesses), not
+  // on std::integral.
+  if constexpr (HasNNOStep<T>)
+    if (S == Strictness::Strict) sup = predecessor(h.pivot);
   return SetVal<T, L>::half(sup, Direction::Upward, Strictness::NonStrict);
 }
 export template <typename T, Strictness S, typename L>
@@ -2075,8 +2074,8 @@ export template <typename T, Strictness S, typename L>
 constexpr SetVal<T, L> lowerbounds(
     const Halfspace<T, Direction::Upward, S, L>& h) {
   T inf = h.pivot;
-  if constexpr (std::integral<T>)
-    if (S == Strictness::Strict) inf = static_cast<T>(h.pivot + 1);
+  if constexpr (HasNNOStep<T>)
+    if (S == Strictness::Strict) inf = successor(h.pivot);
   return SetVal<T, L>::half(inf, Direction::Downward, Strictness::NonStrict);
 }
 export template <typename T, Strictness S, typename L>
@@ -2115,7 +2114,7 @@ export template <typename T, Direction D1, Strictness S1, Direction D2,
                  Strictness S2, typename L>
 constexpr auto operator&(const Halfspace<T, D1, S1, L>& a,
                          const Halfspace<T, D2, S2, L>& b) {
-  // #965: the meet is the one value law; the disjoint case is the empty SetVal
+  // The meet is the one value law; the disjoint case is the empty SetVal
   // kind (no separate Ø<T,L> canonicalisation needed).
   return structured_and(a, b);
 }
@@ -2147,7 +2146,7 @@ constexpr auto operator|(const Halfspace<T, D1, S1, L>& a,
   return dedekind::sets::Set<T, L, decltype(pred)>{pred};
 }
 /** @brief Meets involving the value @c SetVal route through the one
- *  @c reduce_meet (#965) --- this is how @c max/min's @c s @c & @c
+ *  @c reduce_meet --- this is how @c max/min's @c s @c & @c
  *  upperbounds(s) collapses, since @c upperbounds now yields a @c SetVal. */
 export template <typename V, typename L>
 constexpr SetVal<V, L> operator&(const SetVal<V, L>& a, const SetVal<V, L>& b) {
@@ -2234,14 +2233,12 @@ static_assert(max(le5)(5), "5 = max {x ≤ 5} (read off the pivot).");
 static_assert(!max(le5)(3), "3 is not the greatest element of {x ≤ 5}.");
 static_assert(min(ge5)(5), "5 = min {x ≥ 5}.");
 static_assert(!min(ge5)(7), "7 is not the least element of {x ≥ 5}.");
-// DISCRETE strict: {x<5} on ℕ has attained max 4 (the predecessor), NOT ∅.
-// FIXME(#965): the DISCRETE-strict ℕ extrema (max{x<5}=4, min{x>5}=6, via the
-// attained predecessor/successor) regress under value-carrying because the
-// pivot is a Cardinality (variant) value with no std::integral +1/-1.  Restored
-// by the heterogeneous-pivot fix (store Cardinality-halfspace pivots in their
-// int primitive).  The non-strict ℕ extrema above (max{x≤5}=5, min{x≥5}=5)
-// work.
+// DISCRETE strict: {x<5} on ℕ has attained max 4 (the predecessor), NOT ∅; the
+// bound is reached through the NNO's step on the Cardinality proxy, exactly as
+// on a machine integer.
+static_assert(max(ℕ | (π < fix(5_c)))(4), "4 = max {x < 5} on ℕ.");
 static_assert(!max(ℕ | (π < fix(5_c)))(5), "5 ∉ {x < 5}, so not its max.");
+static_assert(min(ℕ | (π > fix(5_c)))(6), "6 = min {x > 5} on ℕ.");
 
 /** @brief Two translation graphs are the same relation iff they carry the same
  *  shift: structural equality on the graph, compile-time. */
@@ -2312,7 +2309,7 @@ constexpr bool operator==(const UniversalSet<bool, L, C>& u,
 
 /** @brief The general boundary-equality theorems (#832): a @c Halfspace value
  *  is a @b proper cut by construction (@c make_halfspace collapses an empty cut
- *  to @c Ø, a moot cut to @c 𝔸), so it equals neither boundary.  #965: the
+ *  to @c Ø, a moot cut to @c 𝔸), so it equals neither boundary.  The
  *  empty/moot cases now live value-side (@c SetVal Empty/Universe kinds), so
  * the bare halfspace value is @c != both boundaries.  The finite-@c bool
  * overloads above are more specialised and still decide 𝔹 exactly. */

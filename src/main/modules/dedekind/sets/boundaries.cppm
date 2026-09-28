@@ -55,6 +55,7 @@ import dedekind.category;
 
 import :cardinality;
 import :mereology;
+import :setobject;  // IsSetObject: Ø and 𝔸 are the ⊥ / ⊤ set objects
 
 using namespace dedekind::category;
 
@@ -367,6 +368,15 @@ struct UniversalSet final {
 
 template <typename T, typename L, typename C>
 inline const UniversalSet<T, L, C> UniversalSet<T, L, C>::χ{};
+
+// The two trivial set objects, witnessed where they are defined: Ø is the ⊥ of
+// Sub(T), 𝔸 the ⊤ --- and 𝔸 IS the reified universe every other set object is
+// a subobject of (its own universe: the fixpoint of π_1).
+static_assert(IsSetObject<Ø<int>>,
+              "the empty set is a set object: the ⊥ of Sub(T).");
+static_assert(IsSetObject<UniversalSet<int>>,
+              "the universe is a set object: the ⊤ of Sub(T) --- and IS the "
+              "reified universe every other set object is a subobject of.");
 
 /** @brief The universal (top) set over carrier @c T --- the value-level handle
  *         (per #551).  This is the universe, not the subobject classifier;

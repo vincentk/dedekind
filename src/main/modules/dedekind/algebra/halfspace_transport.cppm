@@ -202,7 +202,7 @@ constexpr auto image(
     const Set<std::pair<T, T>, L,
               ProductRestrict<ProjAddConstProj<1, K, Rel::Eq, 2>,
                               ProjBound<1, R, VT>>>& s) {
-  // #965: the pivot rides in the ProjBound VALUE now, so the shifted pivot P+K
+  // The pivot rides in the ProjBound VALUE now, so the shifted pivot P+K
   // is computed at constexpr (folds when the argument is constexpr) rather than
   // in the NTTPs.  Direction / strictness stay type-level (R is NTTP), so the
   // meet's complement-pair collapse remains type-sensitive.
@@ -314,7 +314,7 @@ constexpr auto argmax(
                               RelAnd<ProjBound<2, Rel::Le, VT>,
                                      ProjModConstBound<2, V, Rel::Eq, W>>>>&
         s) {
-  // #965: the codomain bound P rides in the ProjBound VALUE now; the residue
+  // The codomain bound P rides in the ProjBound VALUE now; the residue
   // modulus/shift @c K/@c W/@c V stay compile-time NTTPs.  The optimum is read
   // off with wider-type headroom (a wider signed type, not the pivot's own),
   // so @c P−K and the residue folds cannot overflow.  Residue normalisation
@@ -356,15 +356,17 @@ export template <typename T, auto K, Direction D, Strictness S, typename LG,
 constexpr auto preimage(
     const Set<std::pair<T, T>, LG, ProjAddConstProj<1, K, Rel::Eq, 2>>&,
     const Halfspace<T, D, S, LH>& h) {
-  // #965: the pivot P rides in the Halfspace VALUE now, so the pulled-back
-  // bound P−K is computed at constexpr in the carrier's own arithmetic (folds
-  // when the argument is constexpr).  The graph's logic (LG) and the target's
-  // logic (LH) are deduced SEPARATELY: the pullback inherits the target set's
-  // logic, so a Classical translation graph can pull back a Ternary halfspace
-  // (mirrors the general :graph preimage).  Direction / strictness stay
-  // type-level (load- bearing for structured_and's complement detection).
-  return Halfspace<T, D, S, LH>{
-      static_cast<T>(h.pivot - K)};  // target logic LH
+  // The pivot P rides in the Halfspace VALUE, so the pulled-back bound P−K is
+  // computed at constexpr in the carrier's own arithmetic (folds when the
+  // argument is constexpr); K is lifted into the carrier first, since a
+  // variant carrier (ℤ = SignedCardinality) has no mixed int arithmetic.  The
+  // graph's logic (LG) and the target's logic (LH) are deduced SEPARATELY: the
+  // pullback inherits the target set's logic, so a Classical translation graph
+  // can pull back a Ternary halfspace (mirrors the general :graph preimage).
+  // Direction / strictness stay type-level (load-bearing for structured_and's
+  // complement detection).
+  return Halfspace<T, D, S, LH>{h.pivot -
+                                static_cast<T>(K)};  // target logic LH
 }
 
 /** @brief preimage of a codomain halfspace @c {y⋈P} under the reflection/scale
@@ -383,11 +385,12 @@ constexpr auto preimage(
     const Set<std::pair<T, T>, LG, ProjMulConstProj<1, C, Rel::Eq, 2>>&,
     const Halfspace<T, D, S, LH>& h) {
   constexpr Direction d = (C < 0) ? flip(D) : D;
-  // #965: the pivot P rides in the Halfspace VALUE; C·P (C=±1) is computed at
-  // constexpr in the carrier's arithmetic.  Graph logic (LG) and target logic
-  // (LH) deduced separately; the pullback inherits the target's LH.
-  return Halfspace<T, d, S, LH>{
-      static_cast<T>(C * h.pivot)};  // target logic LH
+  // The pivot P rides in the Halfspace VALUE; C·P (C=±1) is computed at
+  // constexpr in the carrier's arithmetic, C lifted into the carrier first.
+  // Graph logic (LG) and target logic (LH) deduced separately; the pullback
+  // inherits the target's LH.
+  return Halfspace<T, d, S, LH>{static_cast<T>(C) *
+                                h.pivot};  // target logic LH
 }
 
 }  // namespace dedekind::order
