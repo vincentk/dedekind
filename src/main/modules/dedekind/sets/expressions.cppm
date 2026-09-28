@@ -1067,8 +1067,7 @@ constexpr auto operator|(const LHS& lhs, const RHS& rhs) {
  *  @c ¬(A∧B)→¬A∨¬B (De Morgan) and @c a∧¬a→⊥ / @c a∨¬a→⊤ when the codomain
  *  @c Ω is complemented. */
 export template <IsPredicate P>
-  requires dedekind::category::IsSubobject<
-      std::remove_cvref_t<P>, typename std::remove_cvref_t<P>::Domain>
+  requires IsSetObject<std::remove_cvref_t<P>>
 constexpr auto operator~(const P& p) {
   using D = std::remove_cvref_t<P>;
   if constexpr (dedekind::category::is_not_node_v<D>) {
@@ -1089,8 +1088,7 @@ constexpr auto operator~(const P& p) {
  *  codomain.  The disjoint fast path (@c A@c ∩@c B @c = @c Ø @c ⟹ @c A@c △@c B
  *  @c = @c A@c ∪@c B) is kept for the halfspace-style compile-time collapse. */
 export template <typename LHS, typename RHS>
-  requires dedekind::category::IsSubobject<LHS, typename LHS::Domain> &&
-           dedekind::category::IsSubobject<RHS, typename RHS::Domain> &&
+  requires IsSetObject<LHS> && IsSetObject<RHS> &&
            std::same_as<typename LHS::Domain, typename RHS::Domain> &&
            std::same_as<typename LHS::logic_species,
                         typename RHS::logic_species>
@@ -2010,9 +2008,9 @@ static_assert(
 // retired set_complement produced), not a formal arrow.
 using SubN = std::remove_cvref_t<decltype(classify<int>(all_in{}))>;
 static_assert(
-    dedekind::category::IsSubobject<
-        std::remove_cvref_t<decltype(~std::declval<SubN>())>, int>,
-    "~classify(f) is a set-complement subobject, not a formal arrow.");
+    IsSetObject<std::remove_cvref_t<decltype(~std::declval<SubN>())>>,
+    "~classify(f) is a set object (the complement node, structurally), not a "
+    "formal arrow.");
 }  // namespace detail_setexpr_witness
 
 // ── The point-free projection scout ────────────────────────────────────────
