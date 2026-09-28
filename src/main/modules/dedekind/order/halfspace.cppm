@@ -554,168 +554,81 @@ static_assert(IsSubobject<Above<>, dedekind::sets::Cardinality>,
 static_assert(IsSubobject<Singleton<bool>, bool>,
               "a static Singleton is a first-class subobject.");
 
-/** @brief Carrier-aware ordering of two interval-endpoint NTTPs.  Integral
- *  pivots compare by @b mathematical value through @c std::cmp_less /
- *  @c std::cmp_equal, so a signed and an unsigned pivot are not silently
- *  mis-ranked by C++'s usual arithmetic conversions (@c -1 @c > @c 0u is @c
- *  true as a plain comparison, but @c −1 precedes @c 0 in the carrier order);
- *  any other carrier uses its native @c < / @c ==.  Interval emptiness and
- *  subset are decided through these --- never by subtracting endpoints, which
- *  wraps on an unsigned carrier and overflows a full-range signed interval in a
- *  constant expression (#835 review). */
-export template <auto A, auto B>
-consteval bool pivot_less() {
-  if constexpr (std::integral<decltype(A)> && std::integral<decltype(B)>)
-    return std::cmp_less(A, B);
-  else
-    return A < B;
-}
-export template <auto A, auto B>
-consteval bool pivot_equal() {
-  if constexpr (std::integral<decltype(A)> && std::integral<decltype(B)>)
-    return std::cmp_equal(A, B);
-  else
-    return A == B;
+/** @brief An interval IS the meet of two opposing halfspaces: the reducer's
+ *  crossing @c Meet node, lifted to a subobject by @c sets::MeetSet, which
+ *  supplies @c Domain / @c Codomain / @c Member / @c ι and the pullback legs
+ *  @c π1 / @c π2 --- exactly the surface a standalone struct used to spell by
+ *  hand (the meet-as-pullback in Sub(T), @c MeetSet ⊨ @c IsPullback #881).  An
+ *  @c IsProduct over @c Halfspace under the @c MakeMeet pairing.
+ *  Value-carrying: the two halfspaces ARE the data (no pivot in a type), so an
+ *  endpoint is Python-constructible; the free @c π_1 / @c π_2 recover them. */
+export template <typename T, Strictness SL, Strictness SU, typename L = Boole>
+using OrderInterval =
+    dedekind::sets::MeetSet<Halfspace<T, Direction::Upward, SL, L>,
+                            Halfspace<T, Direction::Downward, SU, L>>;
+
+/** @brief Build the interval from its two endpoints: the strictness pair in
+ *  the type, the pivots as values. */
+export template <Strictness SL, Strictness SU, typename L = Boole, typename T>
+constexpr OrderInterval<T, SL, SU, L> make_interval(T lo, T hi) {
+  return OrderInterval<T, SL, SU, L>{
+      Halfspace<T, Direction::Upward, SL, L>{lo},
+      Halfspace<T, Direction::Downward, SU, L>{hi}};
 }
 
-/** @brief Manual @c constexpr floor / ceil to an integer --- truncation toward
- *  zero, adjusted by sign --- avoiding a @c <cmath> @c constexpr dependency.
- *  Normalises a floating interval pivot to its effective carrier integer. */
-consteval long long cfloor(double d) {
-  const long long t = static_cast<long long>(d);  // toward zero
-  return static_cast<double>(t) > d ? t - 1 : t;
+/** @brief The endpoints, read off the two halfspace legs. */
+export template <typename T, Strictness SL, Strictness SU, typename L>
+constexpr T lower_pivot(const OrderInterval<T, SL, SU, L>& iv) {
+  return dedekind::category::π_1(iv).pivot;
 }
-consteval long long cceil(double d) {
-  const long long t = static_cast<long long>(d);
-  return static_cast<double>(t) < d ? t + 1 : t;
-}
-template <auto p>
-consteval long long pivot_floor() {
-  if constexpr (std::integral<decltype(p)>)
-    return static_cast<long long>(p);
-  else
-    return cfloor(static_cast<double>(p));
-}
-template <auto p>
-consteval long long pivot_ceil() {
-  if constexpr (std::integral<decltype(p)>)
-    return static_cast<long long>(p);
-  else
-    return cceil(static_cast<double>(p));
+export template <typename T, Strictness SL, Strictness SU, typename L>
+constexpr T upper_pivot(const OrderInterval<T, SL, SU, L>& iv) {
+  return dedekind::category::π_2(iv).pivot;
 }
 
-/** @brief The @b effective inclusive carrier bounds of a DISCRETE interval
- *  boundary (#835 review): the tightest carrier integer the boundary admits.
- *  So distinct pivot / strictness pairs that denote the @b same discrete set
- *  --- @c (1,4) and @c [2,3] are both @c {2,3} over @c int --- normalise equal,
- *  and an open or fractional bound (@c (5.0,6.0) has no member) is decided
- *  exactly.  Computed in a wide @c long @c long, so the successor / predecessor
- *  never wraps the pivot type (spans beyond @c size_t are the documented policy
- *  corner, #838).  This is the local realisation of the @f$\mathbb{Z}
- *  \hookrightarrow \mathbb{R}@f$ pullback of #838.
- *  @c eff_lower: smallest integer admitted by @f$\{x > p\}@f$ / @f$\{x \ge
- *  p\}@f$; @c eff_upper: largest admitted by @f$\{x < p\}@f$ / @f$\{x \le
- *  p\}@f$. */
-export template <auto p, Strictness S>
-consteval long long eff_lower() {
-  return S == Strictness::Strict ? pivot_floor<p>() + 1 : pivot_ceil<p>();
+/** @brief Effective integer bounds on a built-in integral carrier: the
+ *  tightest admitted integers after the strictness offset (an integral endpoint
+ *  carries no fractional part to floor / ceil).  Decided on the values, so the
+ *  same normalisation serves emptiness, cardinality and the subset test, and
+ *  distinct endpoints denoting the same set agree (@c (1,4) and @c [2,3] over
+ *  @c int).  The variant ℕ-/ℤ-proxies await the heterogeneous-pivot
+ *  restoration (#970). */
+export template <std::integral T, Strictness SL, Strictness SU, typename L>
+constexpr long long eff_lower(const OrderInterval<T, SL, SU, L>& iv) {
+  const auto lo = static_cast<long long>(lower_pivot(iv));
+  return SL == Strictness::Strict ? lo + 1 : lo;
 }
-export template <auto p, Strictness S>
-consteval long long eff_upper() {
-  return S == Strictness::Strict ? pivot_ceil<p>() - 1 : pivot_floor<p>();
+export template <std::integral T, Strictness SL, Strictness SU, typename L>
+constexpr long long eff_upper(const OrderInterval<T, SL, SU, L>& iv) {
+  const auto hi = static_cast<long long>(upper_pivot(iv));
+  return SU == Strictness::Strict ? hi - 1 : hi;
 }
 
-/** @brief Meet of two opposing halfspaces — an order-theoretic interval. */
-export template <typename T, auto Lo, auto Hi, Strictness SL, Strictness SU,
-                 typename L = Boole>
-struct OrderInterval
-    : dedekind::sets::SetExpr<OrderInterval<T, Lo, Hi, SL, SU, L>, T, L> {
-  // Domain / Codomain / logic_species / Member / ι inherited from SetExpr — the
-  // order-layer twin of topology::Interval, now on the same subobject mixin
-  // (#806 follow-up dedup); χ is @c operator() below.
-  static constexpr auto lower_pivot = Lo;
-  static constexpr auto upper_pivot = Hi;
-  static constexpr Strictness lower_strictness = SL;
-  static constexpr Strictness upper_strictness = SU;
-
-  // Return type spelt @c L::Ω, not the inherited (dependent-base) @c Codomain.
-  constexpr typename L::Ω operator()(const T& x) const {
-    const bool lo_ok = (SL == Strictness::Strict) ? (x > Lo) : (x >= Lo);
-    const bool hi_ok = (SU == Strictness::Strict) ? (x < Hi) : (x <= Hi);
-    return (lo_ok && hi_ok) ? L::True : L::False;
+/** @brief Whether the interval denotes the empty set (χ ≡ False).  A built-in
+ *  integral carrier decides on the effective bounds, so the open gap @c (5,6)
+ *  is empty; any other ordered carrier on endpoint degeneracy (@c hi<lo, or
+ *  @c lo==hi with an open end --- @c [5,5] is the singleton).  Empty intervals
+ *  are representable, so @c :inclusion recognises @f$∅ ⊆ X@f$. */
+export template <typename T, Strictness SL, Strictness SU, typename L>
+constexpr bool is_empty(const OrderInterval<T, SL, SU, L>& iv) {
+  if constexpr (std::integral<T>) {
+    return eff_lower(iv) > eff_upper(iv);
+  } else {
+    const T lo = lower_pivot(iv);
+    const T hi = upper_pivot(iv);
+    return hi < lo ||
+           (lo == hi && (SL == Strictness::Strict || SU == Strictness::Strict));
   }
+}
 
-  // For integer-range carriers, cardinality is compile-time-decidable
-  // from the bounds and strictness pair.  Gate the size() / cardinality_type
-  // surface so that continuous carriers (like Real<double>) correctly fail
-  // IsExtensional, AND so that the variant ℕ-/ℤ-proxy carriers from
-  // sets:cardinality (Cardinality, SignedCardinality) keep this surface
-  // post-#402 retarget.  The IsRingIntegral concept (in :sets:cardinality,
-  // relocated #878) is the post-#414 generalisation of std::integral — same
-  // semantics for the built-in integers, plus admission of the variant
-  // carriers.
-  static constexpr bool is_integer_range = IsRingIntegral<T>;
-
-  // @brief Whether the interval denotes the empty set (χ ≡ False).  A DISCRETE
-  // carrier decides on the @b effective carrier bounds (@c eff_lower /
-  // @c eff_upper): empty ⟺ the tightest admitted lower integer exceeds the
-  // tightest admitted upper integer.  This is exact for every strictness combo,
-  // an inverted or open gap (@c (5,6) empty), a fractional or integer-valued
-  // floating pivot (@c (5.0,6.0) empty), and a full range (no endpoint
-  // subtraction to wrap or overflow) --- and it is the same normalisation the
-  // subset test and @c size() use, so distinct pivots denoting the same set
-  // agree (#835 review).  A CONTINUOUS carrier has distinct pivots for distinct
-  // sets, so endpoint degeneracy suffices (@c Lo>Hi, or @c Lo==Hi with an open
-  // end --- @c [5,5] is the singleton).  Empty intervals are representable, so
-  // @c :inclusion recognises @f$\emptyset \subseteq X@f$ for every @c X.
-  static constexpr bool is_empty = [] {
-    if constexpr (is_integer_range)
-      // Discrete: empty ⟺ no carrier integer between the effective bounds.  One
-      // comparison over the normalised bounds handles every strictness combo,
-      // an inverted or open gap, and a full range --- no endpoint arithmetic.
-      return eff_lower<Lo, SL>() > eff_upper<Hi, SU>();
-    else
-      // Continuous: distinct pivots are distinct sets; endpoint degeneracy
-      // only.
-      return pivot_less<Hi, Lo>() ||
-             (pivot_equal<Lo, Hi>() &&
-              (SL == Strictness::Strict || SU == Strictness::Strict));
-  }();
-
-  constexpr std::size_t size() const
-    requires is_integer_range
-  {
-    constexpr long long lo = eff_lower<Lo, SL>();
-    constexpr long long hi = eff_upper<Hi, SU>();
-    if constexpr (hi < lo)
-      return 0u;  // empty
-    else
-      return static_cast<std::size_t>(hi - lo + 1);  // wide span; fits size_t
-                                                     // for any ≤64-bit range
-  }
-
-  // Advertise Finite only when the cardinality is computable.
-  using cardinality_type = std::conditional_t<is_integer_range, Finite, ℵ_0>;
-
-  /** @brief π1 / π2: the pullback legs [Lo,Hi] ↪ ↑Lo and [Lo,Hi] ↪ ↓Hi (#946).
-   *  The crossing interval IS the pullback of its two bounding halfspaces'
-   *  inclusions over the ambient carrier: ↑Lo ↪ T ↩ ↓Hi (the meet-as-pullback
-   *  in Sub(T), mirroring @c sets::MeetSet ⊨ @c IsPullback #881).  A member ---
-   *  a T-value lying in BOTH halfspaces --- re-views as a member of each
-   *  (identity on the value), the co-restriction leg.  Whereas the @b :category
-   *  crossing @c operator& witnesses only @c IsProduct (product = pullback in
-   *  the thin poset Sub(T), but no ι upstream), here in @b :order the ι
-   *  inclusions exist, so the interval upgrades to a genuine @c IsPullback
-   * apex. Deduced return type so the bounding @c Halfspace types (and their
-   *  @c !is_empty assert) instantiate only on use, never at the class
-   *  instantiation of a degenerate/empty interval. */
-  constexpr auto π1(const auto& m) const {
-    return typename Halfspace<T, Direction::Upward, SL, L>::Member{m.value};
-  }
-  constexpr auto π2(const auto& m) const {
-    return typename Halfspace<T, Direction::Downward, SU, L>::Member{m.value};
-  }
-};
+/** @brief The finite cardinality of an interval on a built-in integral
+ *  carrier (0 when empty). */
+export template <std::integral T, Strictness SL, Strictness SU, typename L>
+constexpr std::size_t size(const OrderInterval<T, SL, SU, L>& iv) {
+  const long long lo = eff_lower(iv);
+  const long long hi = eff_upper(iv);
+  return hi < lo ? 0u : static_cast<std::size_t>(hi - lo + 1);
+}
 
 /** @section halfspace__Value_First_Meet — the ONE meet law (#965), value-first.
  *
@@ -802,6 +715,24 @@ struct SetVal : dedekind::sets::SetExpr<SetVal<V, L>, V, L> {
    * spell the empty-base brace of the @c SetExpr aggregate. */
   static constexpr SetVal empty() { return {{}, SetKind::Empty}; }
   static constexpr SetVal universe() { return {{}, SetKind::Universe}; }
+  /** @brief The bounded meet @c [lo, hi] with its strictness pair, collapsed:
+   *  empty if the bounds cross, the single point on a built-in integral carrier
+   *  admitting exactly one integer, else the interval.  The ONE collapse law
+   *  the crossing-halfspace meet and the interval meet both ride.  The point
+   *  collapse is gated on @c std::integral: the variant ℕ-/ℤ-proxies keep the
+   *  interval pending the heterogeneous-pivot restoration (#970). */
+  static constexpr SetVal bounded(V lo, Strictness sl, V hi, Strictness su) {
+    const bool either_strict =
+        sl == Strictness::Strict || su == Strictness::Strict;
+    if (either_strict ? (lo >= hi) : (lo > hi)) return empty();
+    if constexpr (std::integral<V>) {
+      const V el = sl == Strictness::Strict ? lo + 1 : lo;
+      const V eu = su == Strictness::Strict ? hi - 1 : hi;
+      if (el > eu) return empty();
+      if (el == eu) return point(el);
+    }
+    return {{}, SetKind::Interval, lo, hi, Direction::Upward, sl, su};
+  }
 };
 
 /** @brief The ONE meet law: @c ↑a∩↑b=↑(a∨b) / @c ↓a∩↓b=↓(a∧b) (same direction,
@@ -839,22 +770,51 @@ constexpr SetVal<V, L> reduce_meet(const SetVal<V, L>& a,
     const V hi = upper.lo;
     const Strictness sl = lower.sl;
     const Strictness su = upper.sl;
-    const bool either_strict =
-        (sl == Strictness::Strict) || (su == Strictness::Strict);
-    if (either_strict ? (lo >= hi) : (lo > hi)) return {{}, K::Empty};
-    // Integer cardinality collapse (the effective inclusive bounds).  Gated on
-    // std::integral so the +1/-1 successor is well-defined; the variant
-    // Cardinality (and continuous carriers) keep the interval without the
-    // point-collapse.  FIXME(#965): restore the ℕ-singleton collapse by storing
-    // Cardinality-halfspace pivots in their int primitive (heterogeneous
-    // pivot).
-    if constexpr (std::integral<V>) {
-      const V el = (sl == Strictness::Strict) ? lo + 1 : lo;
-      const V eu = (su == Strictness::Strict) ? hi - 1 : hi;
-      if (el > eu) return {{}, K::Empty};
-      if (el == eu) return S::point(el);
+    return S::bounded(lo, sl, hi, su);
+  }
+  // An Interval operand (against an Interval or a halfspace): each operand
+  // contributes a lower bound iff it is an Interval or an Upward halfspace, and
+  // an upper bound iff an Interval or a Downward halfspace (a halfspace keeps
+  // its pivot in @c lo whatever its direction).  The tighter lower / tighter
+  // upper wins, the strictest strictness at a tie; the bounded result then
+  // collapses through the one @c bounded law.  One operand being an Interval,
+  // both sides are always present.
+  if (a.kind == K::Interval || b.kind == K::Interval) {
+    const bool a_iv = a.kind == K::Interval;
+    const bool b_iv = b.kind == K::Interval;
+    const bool a_has_lo = a_iv || a.dir == Direction::Upward;
+    const bool a_has_hi = a_iv || a.dir == Direction::Downward;
+    const bool b_has_lo = b_iv || b.dir == Direction::Upward;
+    const bool b_has_hi = b_iv || b.dir == Direction::Downward;
+    const V a_hi = a_iv ? a.hi : a.lo;
+    const V b_hi = b_iv ? b.hi : b.lo;
+    const Strictness a_su = a_iv ? a.su : a.sl;
+    const Strictness b_su = b_iv ? b.su : b.sl;
+    V lo = a_has_lo ? a.lo : b.lo;
+    Strictness sl = a_has_lo ? a.sl : b.sl;
+    if (a_has_lo && b_has_lo) {
+      if (b.lo > a.lo) {
+        lo = b.lo;
+        sl = b.sl;
+      } else if (a.lo == b.lo) {
+        sl = (a.sl == Strictness::Strict || b.sl == Strictness::Strict)
+                 ? Strictness::Strict
+                 : Strictness::NonStrict;
+      }
     }
-    return {{}, K::Interval, lo, hi, Direction::Upward, sl, su};
+    V hi = a_has_hi ? a_hi : b_hi;
+    Strictness su = a_has_hi ? a_su : b_su;
+    if (a_has_hi && b_has_hi) {
+      if (b_hi < a_hi) {
+        hi = b_hi;
+        su = b_su;
+      } else if (a_hi == b_hi) {
+        su = (a_su == Strictness::Strict || b_su == Strictness::Strict)
+                 ? Strictness::Strict
+                 : Strictness::NonStrict;
+      }
+    }
+    return S::bounded(lo, sl, hi, su);
   }
   return {{}, K::Universe};
 }
@@ -865,6 +825,18 @@ constexpr SetVal<V, L> reduce_meet(const SetVal<V, L>& a,
 export template <typename T, Direction D, Strictness S, typename L>
 constexpr SetVal<T, L> to_setval(const Halfspace<T, D, S, L>& h) {
   return SetVal<T, L>::half(h.pivot, D, S);
+}
+/** @brief Lift an interval (the meet of its two halfspaces) to its @c SetVal:
+ *  the raw @c Interval kind; @c reduce_meet normalises it. */
+export template <typename T, Strictness SL, Strictness SU, typename L>
+constexpr SetVal<T, L> to_setval(const OrderInterval<T, SL, SU, L>& iv) {
+  return {{},
+          SetKind::Interval,
+          lower_pivot(iv),
+          upper_pivot(iv),
+          Direction::Upward,
+          SL,
+          SU};
 }
 
 /** @brief Structural equality of two value sets: same kind and the fields that
@@ -1027,17 +999,19 @@ struct IntervalProduct {
                                                              : L::False;
   }
 
-  // `size()` is only available when both factors expose a `size()` returning
-  // convertible-to-`std::size_t`. This keeps the API honest for continuous
-  // factors (attempting `.size()` on a product of real-valued intervals is a
-  // compile error, not a silent nonsense).
+  // `size()` is only available when both factors have a free `size` returning
+  // convertible-to-`std::size_t` (an interval's cardinality on a built-in
+  // integral carrier). This keeps the API honest for continuous factors
+  // (attempting `.size()` on a product of real-valued intervals is a compile
+  // error, not a silent nonsense).  Qualified, so class-scope lookup does not
+  // stop at this member.
   constexpr std::size_t size() const
     requires requires(const A& factor_a, const B& factor_b) {
-      { factor_a.size() } -> std::convertible_to<std::size_t>;
-      { factor_b.size() } -> std::convertible_to<std::size_t>;
+      { dedekind::order::size(factor_a) } -> std::convertible_to<std::size_t>;
+      { dedekind::order::size(factor_b) } -> std::convertible_to<std::size_t>;
     }
   {
-    return a.size() * b.size();
+    return dedekind::order::size(a) * dedekind::order::size(b);
   }
 };
 
@@ -1055,7 +1029,7 @@ struct IntervalProduct {
 // AS @c Tensor would need a real adapter with a product Codomain.  FIXME(#946).
 namespace {
 using IntervalProductFixture =
-    OrderInterval<int, 1, 5, Strictness::NonStrict, Strictness::NonStrict>;
+    OrderInterval<int, Strictness::NonStrict, Strictness::NonStrict>;
 using IntervalProductWitness =
     IntervalProduct<IntervalProductFixture, IntervalProductFixture>;
 static_assert(dedekind::category::IsArrow<IntervalProductWitness>,
@@ -1067,78 +1041,28 @@ static_assert(
     "IsProduct --- the same substrate the comonoid copy/merge is gated on.");
 }  // namespace
 
-/** @brief Infix `*` on two `OrderInterval`s → structural `IntervalProduct`. */
-export template <typename T1, auto Lo1, auto Hi1, Strictness SL1,
-                 Strictness SU1, typename L1, typename T2, auto Lo2, auto Hi2,
-                 Strictness SL2, Strictness SU2, typename L2>
+/** @brief Infix `*` on two intervals → structural `IntervalProduct`. */
+export template <typename T1, Strictness SL1, Strictness SU1, typename L1,
+                 typename T2, Strictness SL2, Strictness SU2, typename L2>
   requires std::same_as<L1, L2>
-constexpr auto operator*(OrderInterval<T1, Lo1, Hi1, SL1, SU1, L1> a,
-                         OrderInterval<T2, Lo2, Hi2, SL2, SU2, L2> b) {
+constexpr auto operator*(OrderInterval<T1, SL1, SU1, L1> a,
+                         OrderInterval<T2, SL2, SU2, L2> b) {
   return IntervalProduct<decltype(a), decltype(b)>{a, b};
 }
 
-/** @brief Meet on two same-carrier `OrderInterval`s: the intersection.
- *
- *  @details The meet of @c [a, b] and @c [c, d] (with appropriate
- *  strictness on each side) is @c [max(a,c), min(b,d)] — the
- *  more-restrictive bound wins, and at a tie the @b strictest strictness
- *  wins.  The result is always an @c OrderInterval; an @b empty
- *  intersection is represented honestly as an @c OrderInterval whose
- *  bounds make @c size() @c = @c 0 (rather than three-way-reducing to
- *  @c EmptyPredicate / @c Singleton as the halfspace-halfspace overloads
- *  do — the OI tower is structurally closed under intersection, and
- *  closure is the load-bearing fact for the @c :ranges halfspace ↔
- *  iota_view bridge to compose with this meet).
- *
- *  This is the lattice @c ∧ on the OrderInterval carrier, supplying the
- *  meet operation @c structured_and on halfspaces lifts to its bounded
- *  child.  Same-T, same-L overloads only — heterogeneous-carrier
- *  intersection is not a lattice operation.
- *
- *  @see dedekind::sequences::bridge_meet_witness in @c :sequences:ranges —
- *       the type-level static_asserts that pin the bridge respects this
- *       meet (lattice-homomorphism). */
-export template <typename T, auto Lo1, auto Hi1, Strictness SL1, Strictness SU1,
-                 auto Lo2, auto Hi2, Strictness SL2, Strictness SU2, typename L>
-  requires std::convertible_to<decltype(Lo1), T> &&
-           std::convertible_to<decltype(Hi1), T> &&
-           std::convertible_to<decltype(Lo2), T> &&
-           std::convertible_to<decltype(Hi2), T>
-constexpr auto structured_and(OrderInterval<T, Lo1, Hi1, SL1, SU1, L>,
-                              OrderInterval<T, Lo2, Hi2, SL2, SU2, L>) {
-  // Compute the meet bounds in the common type of the source NTTPs — not
-  // by casting through T.  Casting through T would (a) lose the original
-  // pivot type (e.g. with cross-type pivots) and (b) break carriers whose
-  // T isn't a structural NTTP type (e.g. Cardinality / SignedCardinality
-  // — std::variant carriers can't be NTTPs).  The returned OrderInterval
-  // keeps T as its carrier and the bounds as their common NTTP type.
-  using LoC = std::common_type_t<decltype(Lo1), decltype(Lo2)>;
-  using HiC = std::common_type_t<decltype(Hi1), decltype(Hi2)>;
-  constexpr LoC lo1 = static_cast<LoC>(Lo1);
-  constexpr LoC lo2 = static_cast<LoC>(Lo2);
-  constexpr HiC hi1 = static_cast<HiC>(Hi1);
-  constexpr HiC hi2 = static_cast<HiC>(Hi2);
-
-  // The bigger lower / smaller upper wins; at a tie the strictest
-  // strictness wins (a Strict edge subsumes a NonStrict edge at the same
-  // pivot).
-  constexpr LoC new_lo = lo1 > lo2 ? lo1 : lo2;
-  constexpr Strictness new_SL =
-      (lo1 > lo2)   ? SL1
-      : (lo2 > lo1) ? SL2
-      : (SL1 == Strictness::Strict || SL2 == Strictness::Strict)
-          ? Strictness::Strict
-          : Strictness::NonStrict;
-
-  constexpr HiC new_hi = hi1 < hi2 ? hi1 : hi2;
-  constexpr Strictness new_SU =
-      (hi1 < hi2)   ? SU1
-      : (hi2 < hi1) ? SU2
-      : (SU1 == Strictness::Strict || SU2 == Strictness::Strict)
-          ? Strictness::Strict
-          : Strictness::NonStrict;
-
-  return OrderInterval<T, new_lo, new_hi, new_SL, new_SU, L>{};
+/** @brief Meet of two same-carrier intervals: the intersection, through the one
+ *  @c reduce_meet on the interval values --- the bigger lower / smaller upper
+ *  wins, the strictest strictness at a tie --- collapsing to empty / a point /
+ *  the interval exactly as the crossing-halfspace meet does.  The result's
+ *  strictness depends on which endpoint wins (a value), so it is the value
+ *  @c SetVal, not a fixed interval type.  Same-T, same-L overloads only ---
+ *  heterogeneous-carrier intersection is not a lattice operation.
+ *  @see dedekind::sequences::bridge_meet_witness in @c :sequences:ranges. */
+export template <typename T, Strictness SL1, Strictness SU1, Strictness SL2,
+                 Strictness SU2, typename L>
+constexpr SetVal<T, L> structured_and(const OrderInterval<T, SL1, SU1, L>& a,
+                                      const OrderInterval<T, SL2, SU2, L>& b) {
+  return reduce_meet(to_setval(a), to_setval(b));
 }
 
 // Projection tags + coord moved to :sets:expressions (#878 inc 1); reached via

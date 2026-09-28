@@ -337,15 +337,16 @@ static_assert(
                     dedekind::category::Boole>>,
     "Downward halfspaces inhabit IsNet symmetrically (eventually-False net).");
 
-// OrderInterval inherits the same conformance --- two-sided indicator.
+// OrderInterval (the meet of two halfspaces) inherits the same conformance ---
+// two-sided indicator.
 static_assert(
     dedekind::category::IsArrow<
-        OrderInterval<int, 3, 7, Strictness::NonStrict, Strictness::NonStrict,
+        OrderInterval<int, Strictness::NonStrict, Strictness::NonStrict,
                       dedekind::category::Boole>>,
     "OrderInterval exposes the IsArrow shape.");
 
 static_assert(
-    IsNet<OrderInterval<std::size_t, 3, 7, Strictness::NonStrict,
+    IsNet<OrderInterval<std::size_t, Strictness::NonStrict,
                         Strictness::NonStrict, dedekind::category::Boole>>,
     "On a directed carrier, OrderInterval is an indicator net "
     "(eventually-False past the upper pivot).");

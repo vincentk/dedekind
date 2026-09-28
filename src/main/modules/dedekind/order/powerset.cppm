@@ -115,15 +115,15 @@ struct Sub : dedekind::sets::SetExpr<Sub<C, L>, C, L> {
       : hi_(h.pivot), hi_unbounded_(false), hi_strict_(S) {
     normalize();
   }  // (−∞, P)
-  template <auto Lo, auto Hi, Strictness SL, Strictness SU>
-  constexpr Sub(const OrderInterval<C, Lo, Hi, SL, SU, L>&)
-      : lo_(Lo),
-        hi_(Hi),
+  template <Strictness SL, Strictness SU>
+  constexpr Sub(const OrderInterval<C, SL, SU, L>& iv)
+      : lo_(lower_pivot(iv)),
+        hi_(upper_pivot(iv)),
         lo_unbounded_(false),
         hi_unbounded_(false),
         lo_strict_(SL),
         hi_strict_(SU),
-        empty_(OrderInterval<C, Lo, Hi, SL, SU, L>::is_empty) {
+        empty_(is_empty(iv)) {
     normalize();
   }
 

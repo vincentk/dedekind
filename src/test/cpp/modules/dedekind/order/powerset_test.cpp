@@ -70,8 +70,8 @@ TEST_CASE("order:powerset — 𝔓(S) is a bona-fide IsSet over Sub(C) (#830)",
   SECTION(
       "empty intervals canonicalise: all spellings of ∅ are one Sub value") {
     using D = Sub<int, Boole>;
-    constexpr OrderInterval<int, 5, 5, Strictness::Strict, Strictness::Strict>
-        oi_empty{};                        // (5,5) = ∅
+    constexpr auto oi_empty =
+        make_interval<Strictness::Strict, Strictness::Strict>(5, 5);  // (5,5)=∅
     constexpr D from_oi = oi_empty;        // empty, dead bounds lo=hi=5
     constexpr D from_bottom = Ø<int>{};    // empty, bounds default
     STATIC_CHECK(from_oi == from_bottom);  // one ∅, regardless of spelling
@@ -92,11 +92,10 @@ TEST_CASE("order:powerset — 𝔓(S) is a bona-fide IsSet over Sub(C) (#830)",
     constexpr auto P = 𝔓(ge4);  // 𝔓({x>=4})
     CHECK(bool(P(gt3s)));       // {x>3} ⊆ {x>=4} (extensionally equal)
     // open (1,4) and closed [2,3] both denote {2,3}:
-    constexpr OrderInterval<int, 1, 4, Strictness::Strict, Strictness::Strict>
-        open14{};
-    constexpr OrderInterval<int, 2, 3, Strictness::NonStrict,
-                            Strictness::NonStrict>
-        closed23{};
+    constexpr auto open14 =
+        make_interval<Strictness::Strict, Strictness::Strict>(1, 4);
+    constexpr auto closed23 =
+        make_interval<Strictness::NonStrict, Strictness::NonStrict>(2, 3);
     STATIC_CHECK(static_cast<D>(open14) == static_cast<D>(closed23));
   }
 
