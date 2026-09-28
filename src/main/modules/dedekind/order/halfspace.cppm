@@ -556,17 +556,17 @@ static_assert(dedekind::sets::IsSetObject<Singleton<bool>>,
               "a Singleton is a set object: (universe 𝔹, χ = x == v).");
 
 /** @brief An interval IS the meet of two opposing halfspaces: the reducer's
- *  crossing @c Meet node, lifted to a subobject by @c sets::MeetSet, which
+ *  crossing @c Meet node, lifted to a subobject by @c category::Meet, which
  *  supplies @c Domain / @c Codomain / @c Member / @c ι and the pullback legs
  *  @c π1 / @c π2 --- exactly the surface a standalone struct used to spell by
- *  hand (the meet-as-pullback in Sub(T), @c MeetSet ⊨ @c IsPullback #881).  An
+ *  hand (the meet-as-pullback in Sub(T), @c Meet ⊨ @c IsPullback #881).  An
  *  @c IsProduct over @c Halfspace under the @c MakeMeet pairing.
  *  Value-carrying: the two halfspaces ARE the data (no pivot in a type), so an
  *  endpoint is Python-constructible; the free @c π_1 / @c π_2 recover them. */
 export template <typename T, Strictness SL, Strictness SU, typename L = Boole>
 using OrderInterval =
-    dedekind::sets::MeetSet<Halfspace<T, Direction::Upward, SL, L>,
-                            Halfspace<T, Direction::Downward, SU, L>>;
+    dedekind::category::Meet<Halfspace<T, Direction::Upward, SL, L>,
+                             Halfspace<T, Direction::Downward, SU, L>>;
 
 /** @brief Build the interval from its two endpoints: the strictness pair in
  *  the type, the pivots as values. */
@@ -1229,7 +1229,7 @@ static_assert(!static_cast<bool>(((𝔹 | (π == fix(true_c))) &
 // NOTE(#895): the DISTINCT-pivot bare disjoint-meet witness ({x>5} ∩ {x<3} → Ø)
 // lives BELOW the general Halfspace operator& (search "#895") because it must
 // see that overload; declared here it would resolve `&` to the generic sets
-// reducer (→ MeetSet) instead.  Same witness-ordering class as #935.
+// reducer (→ Meet) instead.  Same witness-ordering class as #935.
 
 /** @section halfspace__PointFree_Decidability_848
  *

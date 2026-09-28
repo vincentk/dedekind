@@ -463,6 +463,99 @@ struct Join {  // A ∨ B
     }
   }
 };
+
+/** @section lattice__Nodes_over_subobjects
+ *  When both operands are subobjects of ONE carrier under ONE logic (they
+ *  declare @c Domain / @c Codomain / @c logic_species and their domains
+ *  agree), the meet / join node IS a subobject of that carrier --- the pullback
+ *  / pushout apex in @c Sub(T) --- so it carries the subobject surface itself:
+ *  @c Domain / @c Codomain / @c logic_species, the @c Member shape, the
+ *  identity inclusion @c ι, and the apex legs @c π1 / @c π2 on members (what
+ *  @c IsPullback / @c IsPushout probe).  The same move @c Not<A> below already
+ *  makes for the complement: the node stays the literal @c Meet / @c Join, so
+ *  every structural law (@c is_meet_containing_v, absorption, idempotence,
+ *  @c reduce_t) applies unchanged --- no downstream lift to see through, and
+ * the reducer's output over set objects is a set object by construction.  Over
+ * operands that are not subobjects (bare callables) the primary above applies.
+ */
+export template <typename A, typename B>
+  requires requires {
+    typename A::Domain;
+    typename A::Codomain;
+    typename A::logic_species;
+    typename B::Domain;
+    typename B::Codomain;
+    typename B::logic_species;
+    requires std::same_as<typename A::Domain, typename B::Domain>;
+    requires std::same_as<typename A::logic_species, typename B::logic_species>;
+  }
+struct Meet<A, B> {  // A ∩ B as a subobject carrying A and B
+  A lhs;
+  B rhs;
+  using Domain = typename A::Domain;
+  using Codomain = typename A::Codomain;
+  using logic_species = typename A::logic_species;
+  struct Member {
+    Domain value;
+  };
+  /** @brief ι: A ∩ B ↣ Domain, the identity inclusion (homogeneous). */
+  constexpr Domain ι(const Member& m) const { return m.value; }
+  /** @brief The pullback apex legs: a member of the meet is a member of each
+   *  operand (@c IsPullback probes @c π1 / @c π2 on members). */
+  constexpr typename A::Member π1(const Member& m) const { return {m.value}; }
+  constexpr typename B::Member π2(const Member& m) const { return {m.value}; }
+  /** @brief χ: (A ∩ B)(x) = A(x) ∧ B(x) under the shared logic. */
+  template <typename X>
+    requires requires(const A& l, const B& r, const X& x) {
+      l(x);
+      r(x);
+    }
+  constexpr auto operator()(const X& x) const {
+    return logic_species::AND(π_1(*this)(x), π_2(*this)(x));
+  }
+};
+
+export template <typename A, typename B>
+  requires requires {
+    typename A::Domain;
+    typename A::Codomain;
+    typename A::logic_species;
+    typename B::Domain;
+    typename B::Codomain;
+    typename B::logic_species;
+    requires std::same_as<typename A::Domain, typename B::Domain>;
+    requires std::same_as<typename A::logic_species, typename B::logic_species>;
+  }
+struct Join<A, B> {  // A ∪ B as a subobject carrying A and B
+  A lhs;
+  B rhs;
+  using Domain = typename A::Domain;
+  using Codomain = typename A::Codomain;
+  using logic_species = typename A::logic_species;
+  struct Member {
+    Domain value;
+  };
+  /** @brief ι: A ∪ B ↣ Domain, the identity inclusion (homogeneous). */
+  constexpr Domain ι(const Member& m) const { return m.value; }
+  /** @brief The pushout colegs: a member of either operand is a member of the
+   *  join (@c IsPushout probes @c ι1 / @c ι2). */
+  constexpr Member ι1(const typename A::Member& m) const {
+    return Member{m.value};
+  }
+  constexpr Member ι2(const typename B::Member& m) const {
+    return Member{m.value};
+  }
+  /** @brief χ: (A ∪ B)(x) = A(x) ∨ B(x) under the shared logic. */
+  template <typename X>
+    requires requires(const A& l, const B& r, const X& x) {
+      l(x);
+      r(x);
+    }
+  constexpr auto operator()(const X& x) const {
+    return logic_species::OR(π_1(*this)(x), π_2(*this)(x));
+  }
+};
+
 export template <typename A>
 struct Not {  // ¬A (complement)
   A base;
@@ -1550,8 +1643,8 @@ static_assert(
  * predicate-type closed carrier.  Concretely, when no structural collapse
  * fires (a @c structured_and / @c structured_or reduction to a halfspace,
  * interval, @c Singleton, @c Ø or @c Universe, or an @c IsComplementPair
- * short-circuit), @c A @c & @c B returns a @c MeetSet<A,B> carrying both
- * operand sets (dually, @c | returns a @c JoinSet<A,B>).  The node is a
+ * short-circuit), @c A @c & @c B returns a @c Meet<A,B> carrying both
+ * operand sets (dually, @c | returns a @c Join<A,B>).  The node is a
  * different type, but over the same @c Ambient and @c logic_species.
  *
  * @section lattice__Family_Anchor

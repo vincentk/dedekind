@@ -572,23 +572,26 @@ constexpr auto Ø<T, L>::operator!() const {
  *  general entry the #916 Python composition surface will call once the
  *  leaf-combine leg is threaded (slice 2). */
 
-// FIXME(#922 slice 2): constrain @c Node to a valid recursive subobject
-// expression.  The leaves must be @c IsSubobject, NOT @c IsSet: a bare
-// @c Halfspace / static @c Singleton is @c IsSubobject but not @c IsSet, so an
-// @c IsSet leaf gate is too strong (rejects valid @c Sub(T) expressions); and
-// the recursion must enforce carrier @b consistency (reject a mixed-carrier
-// @c Meet<Ø<int>,Ø<bool>>).  That belongs with the leaf-combine leg (slice 2),
-// not a bare @c IsSet check.  Until then this entry is unconstrained.
+// The reducer is a function IsSetObject → IsSetObject.  The input gate is the
+// noun itself: a lattice term over set objects IS a set object (Meet / Join /
+// Not carry the subobject surface when their operands share one carrier and
+// one logic, so a mixed-carrier Meet<Ø<int>,Ø<bool>> never satisfies it), and a
+// bare Halfspace / Singleton leaf qualifies without being an ETCS IsSet.  The
+// output is asserted, not assumed: every normal form the laws fold to --- a
+// boundary, an operand, an irreducible node, a value leaf --- is a set object.
 export template <typename L = Boole, typename Combine = no_leaf_combine,
-                 typename Node>
+                 IsSetObject Node>
 constexpr auto subobject_reduce(const Node& node) {
   // @c Combine is the injected leaf-combine policy (the reducer's 4th policy):
   // the default @c no_leaf_combine has no value leg, so the boundary operators
   // below keep the pure lattice laws; a carrier passes its own policy (e.g.\
   // @c SetCombine, whose value leg meets two bare leaves on their runtime data)
   // to let a value-determined collapse reach the normal form.
-  return finalize_combine(
+  auto reduced = finalize_combine(
       reduce_value<subobject_order<L>, subobject_order<L>, Combine>(node));
+  static_assert(IsSetObject<decltype(reduced)>,
+                "subobject_reduce: the reduced term must be a set object.");
+  return reduced;
 }
 
 /** @brief @c Ø @c & @c S / @c Ø @c | @c S: @c Ø is the ⊥ of @c Sub(T)
@@ -869,10 +872,10 @@ struct is_lattice_top_for<dedekind::sets::Universe<T, L, C>,
  *  so non-chain distributive logics can also opt in.
  *
  *  @note This gate fires only for a @b bare @c category::Join reducer node; the
- *  value-level set operators materialise an irreducible union as a @c JoinSet
+ *  value-level set operators materialise an irreducible union as a @c Join
  *  (a distinct type the reducer treats as an opaque leaf), so this marker does
  *  @b not change the value-level normal form (@c A∩(B∪C) still materialises as
- *  a @c MeetSet carrying its operands, per #892).  Driving the DNF rewrite
+ *  a @c Meet carrying its operands, per #892).  Driving the DNF rewrite
  *  through the value path is a separate normal-form decision, deferred (#865).
  */
 template <typename T, typename L>

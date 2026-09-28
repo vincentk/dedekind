@@ -79,12 +79,12 @@ static_assert(
     "the applied meet A & B is the pullback of its two concrete sets (the "
     "cospan ι_A, ι_B); in Sub(U) product = pullback = meet. #881.");
 
-// #892: the reducer's meet lifted into IsSet.  MeetSet<A,B> INHERITS the
+// #892: the reducer's meet lifted into IsSet.  Meet<A,B> INHERITS the
 // lattice meet's algebra and adds the Set-specific subobject surface, so it IS
 // a set that carries its two underlying sets (A, B are IsSet).  π_1 / π_2
 // recover them BY REFERENCE: a bona fide IsSet each, no sub-structure copied
 // (Pierce).  ι is the identity inclusion (homogeneous by default).
-using MeetLift = MeetSet<A_set, B_set>;
+using MeetLift = Meet<A_set, B_set>;
 constexpr MeetLift meet_lift{a_set, b_set};
 static_assert(IsSet<MeetLift>,
               "the lifted meet IS a set (the reducer AST node, promoted).");
@@ -101,7 +101,7 @@ static_assert(π_1(meet_lift)(4) && !π_1(meet_lift)(3),
               "π_1(meet) recovers A = IsEven and evaluates as that set.");
 static_assert(IsArrowProduct<MeetLift, A_set, B_set>,
               "the lifted meet is an ARROW product: π_1 / π_2 are genuine "
-              "morphisms MeetSet → A / MeetSet → B (arrow-shaped signatures).");
+              "morphisms Meet → A / Meet → B (arrow-shaped signatures).");
 
 // The sets meet A & B IS a model of the spider composite meet
 // Intersect = Δ†∘(A⊗B)∘Δ; that apex (and its pointwise agreement with operator&

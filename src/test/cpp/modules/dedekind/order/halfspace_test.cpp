@@ -124,7 +124,7 @@ namespace {
 template <Direction D, Strictness S>
 using HS = Halfspace<int, D, S, Boole>;
 // A function-pointer predicate (not a class functor): a Set over one must still
-// combine through the free set operators (exercised via a MeetSet below).
+// combine through the free set operators (exercised via a Meet below).
 constexpr bool is_pos(int x) { return x > 0; }
 }  // namespace
 
@@ -195,20 +195,21 @@ TEST_CASE("order:halfspace — covering XOR stays an IsSet (#864 CP review)",
 }
 
 TEST_CASE(
-    "order:halfspace: MeetSet/JoinSet fallbacks are directly covered "
-    "(#365/#892)",
+    "order:halfspace: the irreducible Meet / Join fallbacks are directly "
+    "covered (#365/#892)",
     "[order][halfspace][set][predicate]") {
   SECTION(
-      "function-pointer predicate combines via the free operator& (a "
-      "MeetSet)") {
+      "function-pointer predicate combines via the free operator& (an "
+      "irreducible Meet node, itself a set object)") {
     constexpr Set<int, Boole, bool (*)(int)> pos{&is_pos};  // x > 0
     constexpr Set<int, Boole, HS<Direction::Downward, Strictness::Strict>> cap{
         HS<Direction::Downward, Strictness::Strict>{10}};  // x < 10
     using M = std::decay_t<decltype(pos & cap)>;
-    STATIC_CHECK(std::same_as<
-                 M, MeetSet<Set<int, Boole, bool (*)(int)>,
-                            Set<int, Boole,
-                                HS<Direction::Downward, Strictness::Strict>>>>);
+    STATIC_CHECK(
+        std::same_as<M,
+                     Meet<Set<int, Boole, bool (*)(int)>,
+                          Set<int, Boole,
+                              HS<Direction::Downward, Strictness::Strict>>>>);
     CHECK((pos & cap)(5));         // 0 < 5 < 10
     CHECK_FALSE((pos & cap)(-1));  // not > 0
     CHECK_FALSE((pos & cap)(20));  // not < 10

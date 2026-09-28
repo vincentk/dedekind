@@ -490,7 +490,7 @@ static_assert(
 // never referenced each other are ONE universal property, the glb:
 //   (1) Δ ⊣ ∧           : Merge = Δ† (this partition);
 //   (2) meet-as-product : category::Meet with the MakeMeet pairing factory;
-//   (3) meet-as-pullback: sets::MeetSet ⊨ IsPullback (#881, downstream :sets).
+//   (3) meet-as-pullback: category::Meet ⊨ IsPullback (#881, downstream :sets).
 // (1) and (2) share ONE substrate: the SAME IsProduct concept certifies both
 // the comonoid's product OBJECT (the pair Δ copies into, which Tensor's
 // arrow-action is gated on) and the lattice AST's product NODE.  Object half
@@ -501,7 +501,7 @@ static_assert(
     IsProduct<Meet<bool, bool>, bool, bool, MakeMeet>,
     "meet-as-product: the AST Meet node is that SAME product, MakeMeet the "
     "pairing factory.");
-// (3) is a documented cross-reference, not a forced assert: sets::MeetSet ⊨
+// (3) is a documented cross-reference, not a forced assert: category::Meet ⊨
 // IsPullback lives in :sets, downstream of both partitions, so a structural
 // bridge to the IsPullback family is more than a low-risk local witness.
 // FIXME(#946): unify the glb across the product and pullback presentations.
@@ -521,7 +521,7 @@ static_assert(
 // @c T --- which are set-theoretic arrows the proto-set does NOT carry upstream
 // (@c :category has only @c χ:T→bool).  So @c IsPullback is witnessed
 // DOWNSTREAM in @c :order, where the interval's @c ι exists (matching @c
-// sets::MeetSet ⊨ IsPullback, #881), in the same PR.
+// category::Meet ⊨ IsPullback, #881), in the same PR.
 //
 // Two-tier split (#946): here (@c :category, pragmatic) the crossing meet just
 // FORMS the product [a,b] as a term --- no arithmetic.  The interval's set-

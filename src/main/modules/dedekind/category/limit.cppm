@@ -420,7 +420,7 @@ struct Π_2 {
  * (@c std::pair,
  *  @c Complex, @c Dual, ...) would be a separate 6-module refactor.  The
  * reducer nodes @c :lattice::Meet / @c Join (and their downstream @c sets lifts
- *  @c MeetSet / @c JoinSet) target @b this stronger concept, so their
+ *  @c Meet / @c Join) target @b this stronger concept, so their
  * projection type signatures are pinned to arrows with no churn to the wider
  * ecosystem.
  *  @see IsProduct, Π_1, Π_2 */
