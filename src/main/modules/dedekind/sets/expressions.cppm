@@ -662,6 +662,24 @@ export struct SetCombine {
     return std::type_identity<
         typename detail_reducer::combine_join<RA, RB>::type>{};
   }
+
+  /** @brief The VALUE leg of the leaf-combine (the reducer's value-first twin,
+   *  #922 slice 2): hand two reduced bare leaves to the carrier's domain @c ∧ /
+   *  @c ∨ on their runtime data.  Gated on the carrier actually providing
+   *  @c structured_and / @c structured_or for the pair (ADL, so an ordered
+   *  carrier's halfspaces plug in from @c :order without this module naming
+   *  them); absent that, the policy has no value leg and the reducer falls back
+   *  to reconstructing the type-level normal form. */
+  template <typename RA, typename RB>
+    requires requires(const RA& a, const RB& b) { structured_and(a, b); }
+  static constexpr auto meet_value(const RA& a, const RB& b) {
+    return structured_and(a, b);
+  }
+  template <typename RA, typename RB>
+    requires requires(const RA& a, const RB& b) { structured_or(a, b); }
+  static constexpr auto join_value(const RA& a, const RB& b) {
+    return structured_or(a, b);
+  }
 };
 
 /** @section expressions__Reducer_Set_Lift

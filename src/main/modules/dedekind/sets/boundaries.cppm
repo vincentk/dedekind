@@ -518,11 +518,16 @@ constexpr auto Ø<T, L>::operator!() const {
 // the recursion must enforce carrier @b consistency (reject a mixed-carrier
 // @c Meet<Ø<int>,Ø<bool>>).  That belongs with the leaf-combine leg (slice 2),
 // not a bare @c IsSet check.  Until then this entry is unconstrained.
-export template <typename L = Boole, typename Node>
+export template <typename L = Boole, typename Combine = no_leaf_combine,
+                 typename Node>
 constexpr auto subobject_reduce(const Node& node) {
+  // @c Combine is the injected leaf-combine policy (the reducer's 4th policy):
+  // the default @c no_leaf_combine has no value leg, so the boundary operators
+  // below keep the pure lattice laws; a carrier passes its own policy (e.g.\
+  // @c SetCombine, whose value leg meets two bare leaves on their runtime data)
+  // to let a value-determined collapse reach the normal form.
   return finalize_combine(
-      reduce_value<subobject_order<L>, subobject_order<L>, no_leaf_combine>(
-          node));
+      reduce_value<subobject_order<L>, subobject_order<L>, Combine>(node));
 }
 
 /** @brief @c Ø @c & @c S / @c Ø @c | @c S: @c Ø is the ⊥ of @c Sub(T)
