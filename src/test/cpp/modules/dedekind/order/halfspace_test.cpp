@@ -187,7 +187,8 @@ TEST_CASE("order:halfspace — covering XOR stays an IsSet (#864 CP review)",
       HS<Direction::Upward, Strictness::Strict>{10}};
   constexpr Set<int, Boole, HS<Direction::Downward, Strictness::Strict>> b{
       HS<Direction::Downward, Strictness::Strict>{100}};
-  STATIC_CHECK(IsSet<std::decay_t<decltype(a ^ b)>>);
+  STATIC_CHECK(
+      IsSetObject<decltype(a ^ b)>);  // a node: a set object, structurally
   // △ = in exactly one: {x ≤ 10} ∪ {x ≥ 100} (the complement of the overlap).
   CHECK((a ^ b)(5));         // in b, not a
   CHECK((a ^ b)(200));       // in a, not b
