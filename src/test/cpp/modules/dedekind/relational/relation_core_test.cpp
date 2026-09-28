@@ -8,6 +8,7 @@
  * them (the test DAG imports upstream only).
  */
 #include <catch2/catch_test_macros.hpp>
+#include <concepts>  // std::same_as (dom / cod agree in type)
 #include <utility>
 
 import dedekind.sets;
@@ -29,6 +30,14 @@ TEST_CASE(
   STATIC_CHECK(IsRelation<decltype(R), int, int>);
   CHECK(relates(R, 3, 6) == true);
   CHECK(relates(R, 3, 7) == false);
+
+  // Definition Trsk at runtime: the relation's universe is 𝔸<int × int>, and
+  // dom / cod are its two projections --- the factor universes, which accept
+  // every carrier value.
+  CHECK(dedekind::sets::universe(R)(std::pair<int, int>{3, 7}));
+  CHECK(dom(R)(3));
+  CHECK(cod(R)(-7));
+  STATIC_CHECK(std::same_as<decltype(dom(R)), decltype(cod(R))>);
 
   const SetFunction<int, int, Boole, decltype(graph_pred)> F{graph_pred};
   CHECK(is_single_valued_at(F, 3, 6, 6) == true);
