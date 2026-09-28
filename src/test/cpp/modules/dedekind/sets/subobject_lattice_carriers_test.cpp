@@ -82,7 +82,7 @@ TEST_CASE("sets:subobject-lattice — complement operator actually runs",
    *         sees it. */
   constexpr Universe<bool> univ{};
   const auto univ_complement = ~univ;
-  STATIC_CHECK(IsSubobject<decltype(univ_complement), bool>);
+  STATIC_CHECK(IsSetObject<decltype(univ_complement)>);
 }
 
 TEST_CASE(
