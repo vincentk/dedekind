@@ -50,6 +50,7 @@
  */
 module;
 
+#include <concepts>  // std::same_as (the dom / cod witness)
 #include <functional>
 #include <tuple>
 #include <type_traits>
@@ -92,6 +93,19 @@ static_assert(
 static_assert(
     dedekind::category::IsProduct<CanonicalIntRelationDomain, int, int>,
     "Relation domain must satisfy categorical IsProduct.");
+// Definition Trsk, structurally: a relation is a set object over the pair
+// carrier whose universe is the product of the factor universes, and dom / cod
+// are that product's projections.
+static_assert(IsRelation<CanonicalIntRelation, int, int>,
+              "a Relation<A,B,L,P> is an IsRelation: an Lwv set object over "
+              "A×B with universe 𝔸<A> × 𝔸<B>.");
+static_assert(
+    std::same_as<decltype(dom(CanonicalIntRelation{CanonicalPairPredicate{}})),
+                 decltype(dedekind::sets::𝔸<int, Boole>)> &&
+        std::same_as<decltype(cod(CanonicalIntRelation{
+                         CanonicalPairPredicate{}})),
+                     decltype(dedekind::sets::𝔸<int, Boole>)>,
+    "dom / cod are π_1 / π_2 of the relation's universe.");
 
 /**
  * @brief Selection (σ): filter elements of a set by an additional predicate.
