@@ -79,33 +79,32 @@ static_assert(T(8u));    // 5 < 8 ≤ 10 ✓
 static_assert(!T(11u));  // 11 > 10 ✗
 
 // (4) Collapsed.  The value-first meet of two bare halfspaces folds through
-//     `structured_and` to a `SetVal`: `S` (= {x > 5}) meet {x < 7} on ℕ folds
-//     to the bounded interval (5, 7), whose sole ℕ-inhabitant is 6.  On ℕ (the
-//     `Cardinality` variant, not `std::integral`) the interval does not yet
-//     shrink to the `Singleton` value: that predecessor/successor collapse is
-//     the heterogeneous-pivot restoration deferred in the value-carrying port.
-//     Membership already decides the point exactly.
-constexpr auto a = S & (ℕ | (π < fix(7_c)));  // (5, 7) on ℕ, sole inhabitant 6
-static_assert(a.kind == SetKind::Interval && a.lo == 5 && a.hi == 7,
-              "the meet folds to the bounded interval (5, 7) at compile time");
+//     `structured_and` to a `SetVal`: `S` (= {x > 5}) meet {x < 7} on ℕ has
+//     exactly one inhabitant, and the meet folds it to the point {6}.  The
+//     point collapse gates on the NNO's successor / predecessor --- an axiom of
+//     the category, which the ℕ proxy witnesses --- not on `std::integral`, so
+//     ℕ collapses exactly as a machine integer does.
+constexpr auto a = S & (ℕ | (π < fix(7_c)));  // the point {6}
+static_assert(a.kind == SetKind::Singleton && a.lo == 6,
+              "the meet folds to the point {6} at compile time");
 static_assert(static_cast<bool>(a(6u)) && !static_cast<bool>(a(5u)) &&
                   !static_cast<bool>(a(7u)),
-              "the folded interval's sole ℕ-inhabitant is 6");
+              "the folded point is exactly 6");
 
 // (5) Contradicted.  Complement-via-LEM: any S has empty meet with its
 //     complement.  The value-first meet folds `S ∩ ¬S` to the empty `SetVal` at
-//     compile time — the law of excluded middle, value-directed.  (Emptiness is
-//     the crossing-bound test, so it fires on ℕ regardless of the deferred
-//     integer collapse above.)
+//     compile time — the law of excluded middle, value-directed.
 constexpr auto b = S & ~S;
 static_assert(b.kind == SetKind::Empty,
               "S ∩ ¬S folds to the empty set at compile time");
 
-// (6) Certified.  Both reductions are finite constexpr `SetVal`s — the interval
-//     (5, 7) (one ℕ-inhabitant) and the empty set (none) — decided at compile
-//     time even though their parent `S` is a transfinite intensional
+// (6) Certified.  Both reductions are finite constexpr `SetVal`s — the point
+//     {6} (cardinality 1) and the empty set (cardinality 0) — decided at
+//     compile time even though their parent `S` is a transfinite intensional
 //     description.  The reduction crosses the realisation boundary value-first:
 //     the folded values, not an elevated result type.
+static_assert(a.lo == 6 && a.hi == 6,
+              "the folded point is the single inhabitant {6}");
 static_assert(!static_cast<bool>(b(6u)), "the folded contradiction is empty");
 
 // The deferred eighth "transformed" nugget was previously realised here

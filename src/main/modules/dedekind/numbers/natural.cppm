@@ -451,7 +451,7 @@ export struct cardinality_zero {
  *         @c n + 1; on @c ℵ_0, returns @c ℵ_0 (saturation). */
 export struct cardinality_succ {
   constexpr Cardinality operator()(const Cardinality& n) const noexcept {
-    return n + finite_cardinality(1);
+    return successor(n);  // the one law, spelled in :sets:cardinality
   }
 };
 

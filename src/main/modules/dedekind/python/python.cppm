@@ -216,6 +216,11 @@ namespace ord = dedekind::order;
  *  law lives in ONE place (value-oriented relational form: a halfspace is a
  *  point plus a direction, the pivot in the value @c η(p)). */
 using Set = ord::SetVal<long long>;
+// Whatever crosses the Python boundary is a set OBJECT --- (reified universe,
+// χ) --- and this is the compile-time MUST for it (RFC 2119): a type that does
+// not conform cannot be the exported Set.
+static_assert(dedekind::sets::IsSetObject<Set>,
+              "the Python surface's Set must be a set object (IsSetObject).");
 
 /** @brief @c {x | x > k} = ↑k (open).  Scalar spelling @c χ > fix(k). */
 constexpr Set above(long long k) {

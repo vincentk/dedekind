@@ -128,21 +128,21 @@ TEST_CASE("Pruning showcase 4: cardinality-1 halfspace meet = Singleton<4>",
   constexpr auto gt_3 = ℕ | (χ > fix(3_c));
   constexpr auto lt_5 = ℕ | (χ < fix(5_c));
 
-  // The punch line: the meet folds value-first to the bounded interval (3, 5),
-  // whose sole ℕ-inhabitant is 4.  On ℕ (the Cardinality variant, not
-  // std::integral) the interval does not yet shrink to the Singleton value:
-  // that predecessor/successor collapse is the heterogeneous-pivot restoration
-  // deferred in the value-carrying port.  Membership decides the point exactly.
+  // The punch line: the meet COLLAPSES to the point {4} at compile time.  The
+  // collapse gates on the NNO's successor / predecessor --- an axiom of the
+  // category, which the ℕ proxy witnesses --- so ℕ folds exactly as a machine
+  // integer does; the point is a constexpr VALUE, not a distinct type.
   constexpr auto in_between = gt_3 & lt_5;
-  STATIC_CHECK(in_between.kind == SetKind::Interval);
+  STATIC_CHECK(in_between.kind == SetKind::Singleton);
+  STATIC_CHECK(in_between.lo == 4);
   STATIC_CHECK(bool(in_between(4)) && !bool(in_between(3)) &&
                !bool(in_between(5)));
 
   SECTION("An intensional meet folds to a finite value") {
     // A halfspace on ℕ decides membership by comparison, so parents and result
     // are decidable.  The collapse folds the intensional (predicate-shaped)
-    // parents to a finite interval value with a single inhabitant --- the
-    // extensionality gain, witnessed value-first by the folded kind + point.
+    // parents to the point value {4} --- the extensionality gain, witnessed
+    // value-first by the folded kind + point.
     STATIC_CHECK(HasDecidableMembership<decltype(gt_3)>);
     STATIC_CHECK(bool(in_between(4)));
   }

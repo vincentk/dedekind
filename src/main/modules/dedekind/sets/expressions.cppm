@@ -131,6 +131,82 @@ struct SetExpr {
   // review.
 };
 
+/**
+ * @concept IsSetObject
+ * @brief An @b object of the category Set --- a set is @f$(U, \chi)@f$: a
+ *        @b reified @b universe and a @b characteristic map
+ *        @f$\chi : T \to \Omega_L@f$ into a @b named logic species.
+ *
+ * @details The model in one sentence: the set is (reified universe, χ); χ's
+ * decidable normal forms form a per-carrier, meet-closed coproduct whose
+ * discriminant is the only "flag", and everything that escapes it ---
+ * complements of intervals, cofinite sets, opaque predicates --- lives honestly
+ * as a term with pointwise χ, where Rice says it must.
+ *
+ * @code
+ * SetObject(T, L) = UNIVERSE                      ×  CHARACTERISTIC  χ : T →
+ * Ω_L the reified type constraint      one of two kinds of predicate carrier T
+ *                     cardinality carrier_cardinality_t<T>   STRUCTURED: the
+ * per-carrier logic       L  (Ω_L a De Morgan          coproduct of decidable
+ * NORMAL algebra, Truth<L>)       FORMS --- flat values, not trees: decidable
+ * == ?  (equality_comparable)    ⊥ ⊕ ⊤ ⊕ Halfspace ⊕ Singleton ≡
+ * UniversalSet<T, L, C>                     ⊕ Meet<H↑,H↓> ⊕ … meet-closed;
+ * ==/≤/∩ decidable by arm-pair specialization (ADL, in the carrier's own
+ * module)
+ *
+ *                                                            OPAQUE: the
+ * Default arm --- a callable, or a lattice term Meet / Join / Not over leaves;
+ *                                                              "the AST is the
+ * set"; χ pointwise;
+ *                                                              ==/≤ undecidable
+ * → the cycle → Unknown
+ * @endcode
+ *
+ * This is the mereological / product model recorded on #824 / #826 (the
+ * ambient is the whole, χ the part-selector), named as a concept.  It is
+ * @b structural and deliberately light --- a shape, not a type hierarchy: it
+ * refines @c category::IsSubobject (an object @b in Set: χ by call shape, the
+ * inclusion @c ι, the domain tie) by requiring the codomain lattice to be a
+ * @b named @c logic_species with @c Codomain @c = @c logic_species::Ω, the
+ * handle through which De Morgan (pointwise, free) and the undecided verdict
+ * @c Unknown reach the set.  It is @b not @c category::IsSet: that is the
+ * @b category (the ETCS axioms, among them the NNO).  The NNO is an axiom of
+ * the category, not of an object, so successor is deliberately absent here;
+ * and whether @c == is decidable is a property of the universe's carrier, not a
+ * requirement of being a set.  @ref SetExpr is the CRTP mixin that realises
+ * this surface; @c Set / @c SingletonSet realise it by hand.
+ *
+ * @section expressions__IsSetObject_MUST
+ * The intended refinement (RFC 2119 @b MUST, today a @b SHOULD) adds the
+ * product itself: @c IsProduct<S, @c 𝔸<T,L>, @c χ> --- a set object @b projects
+ * (@c π_1) to its universe and (@c π_2) to its classifier arrow, making the
+ * mereological product structural rather than nominal.  (Since @c 𝔸 is the ⊤ of
+ * @c Sub(T), this is @c S @c ≅ @c ⊤ @c × @c S: degenerate as a product in
+ * @c Sub(T), yet informative as a reification, since the universe carries the
+ * type descriptor.)  Nothing in the layering blocks it: @c IsProduct calls
+ * @c π_1 / @c π_2 unqualified inside a requires-expression, so satisfaction
+ * finds a carrier's overloads by ADL wherever they are defined.  What the
+ * clause needs is for every set object to @b name its two legs --- an
+ * associated
+ * @c Universe (the reified type constraint; @c 𝔸 is its own universe, the
+ * fixpoint) and @c Classifier (the χ data: a predicate for the opaque arm, the
+ * normal-form fields for a structured arm) --- with @c π_1 / @c π_2 reading
+ * them off.  @c Comprehension<Base,P> already IS that product as data; @c Set,
+ * @c Ø / @c 𝔸 and the @c :order arms have to spell theirs out.  Tracked in
+ * #970: add the legs, then the @c IsProduct clause, and the SHOULD becomes a
+ * MUST.
+ */
+export template <typename S>
+concept IsSetObject = IsSubobject<S, typename S::Domain> && requires {
+  typename S::logic_species;
+} && std::same_as<typename S::Codomain, typename S::logic_species::Ω>;
+
+static_assert(IsSetObject<Ø<int>>,
+              "the empty set is a set object: the ⊥ of Sub(T).");
+static_assert(IsSetObject<UniversalSet<int>>,
+              "the universe is a set object: the ⊤ of Sub(T) --- and IS the "
+              "reified universe every other set object is a subobject of.");
+
 export template <typename Base, typename Predicate>
 struct Comprehension
     : SetExpr<Comprehension<Base, Predicate>, typename Base::Domain,

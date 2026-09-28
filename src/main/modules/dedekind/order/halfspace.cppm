@@ -553,6 +553,12 @@ static_assert(IsSubobject<Above<>, dedekind::sets::Cardinality>,
               "a Halfspace is a first-class subobject ι: S ↣ ℕ.");
 static_assert(IsSubobject<Singleton<bool>, bool>,
               "a static Singleton is a first-class subobject.");
+// ... and both are set OBJECTS in the (reified universe, χ) sense: a structured
+// normal form over its ambient, χ into the named logic species.
+static_assert(dedekind::sets::IsSetObject<Above<>>,
+              "a Halfspace is a set object: (universe ℕ, χ = x > p).");
+static_assert(dedekind::sets::IsSetObject<Singleton<bool>>,
+              "a Singleton is a set object: (universe 𝔹, χ = x == v).");
 
 /** @brief An interval IS the meet of two opposing halfspaces: the reducer's
  *  crossing @c Meet node, lifted to a subobject by @c sets::MeetSet, which
@@ -649,6 +655,20 @@ constexpr std::size_t size(const OrderInterval<T, SL, SU, L>& iv) {
  *  @c π₁,π₂. */
 export enum class SetKind { Empty, Universe, Halfspace, Singleton, Interval };
 
+// The NNO steps (@c category:nno) as customization points: the two-step brings
+// the generic defaults into scope so an unqualified call also admits a
+// carrier's own ADL overload (the ℕ proxy's, in @c :sets:cardinality).
+using dedekind::category::HasNNOStep;
+using dedekind::category::predecessor;
+using dedekind::category::successor;
+// The gate is TRUE on both the machine integers and the ℕ proxy: the latter's
+// steps are found by ADL in :sets:cardinality.  This is what restores the ℕ
+// point collapse ({x>5} ∩ {x<7} = {6}) that a std::integral gate excluded.
+static_assert(HasNNOStep<int>, "machine integers step by ±1.");
+static_assert(HasNNOStep<dedekind::sets::Cardinality>,
+              "the ℕ proxy steps through its NNO successor / predecessor "
+              "(the canonical NNO witness, found by ADL).");
+
 /** @brief A set as a VALUE: kind + pivot(s) + direction/strictness, with a
  *  runtime-evaluable membership χ.  The pivot rides in @c lo (Halfspace /
  *  Singleton) or @c lo/@c hi (Interval), as a value --- never an NTTP.
@@ -719,21 +739,34 @@ struct SetVal : dedekind::sets::SetExpr<SetVal<V, L>, V, L> {
    *  empty if the bounds cross, the single point on a built-in integral carrier
    *  admitting exactly one integer, else the interval.  The ONE collapse law
    *  the crossing-halfspace meet and the interval meet both ride.  The point
-   *  collapse is gated on @c std::integral: the variant ℕ-/ℤ-proxies keep the
-   *  interval pending the heterogeneous-pivot restoration (#970). */
+   *  collapse gates on the NNO steps (@c HasNNOStep: successor / predecessor,
+   *  an axiom of the category), so the ℕ proxy @c Cardinality collapses to its
+   *  point exactly as a machine integer does. */
   static constexpr SetVal bounded(V lo, Strictness sl, V hi, Strictness su) {
     const bool either_strict =
         sl == Strictness::Strict || su == Strictness::Strict;
     if (either_strict ? (lo >= hi) : (lo > hi)) return empty();
-    if constexpr (std::integral<V>) {
-      const V el = sl == Strictness::Strict ? lo + 1 : lo;
-      const V eu = su == Strictness::Strict ? hi - 1 : hi;
+    // The point collapse gates on the NNO's successor / predecessor (an axiom
+    // of the category), not on std::integral: the ℕ proxy Cardinality steps
+    // too.  With lo < hi already established, pred(hi) is defined (hi ≥ 1).
+    if constexpr (HasNNOStep<V>) {
+      const V el = sl == Strictness::Strict ? successor(lo) : lo;
+      const V eu = su == Strictness::Strict ? predecessor(hi) : hi;
       if (el > eu) return empty();
       if (el == eu) return point(el);
     }
     return {{}, SetKind::Interval, lo, hi, Direction::Upward, sl, su};
   }
 };
+
+// The value set is a set OBJECT --- (reified universe, χ) --- so whatever the
+// Python surface exports (it exports SetVal) conforms to IsSetObject by
+// construction.  A MUST for the exported type, pinned here at its definition.
+static_assert(
+    dedekind::sets::IsSetObject<SetVal<int>>,
+    "SetVal is a set object: the value normal form over its universe.");
+static_assert(dedekind::sets::IsSetObject<SetVal<long long>>,
+              "the Python surface's Set (SetVal<long long>) is a set object.");
 
 /** @brief The ONE meet law: @c ↑a∩↑b=↑(a∨b) / @c ↓a∩↓b=↓(a∧b) (same direction,
  *  the tighter pivot wins) and @c ↑a∩↓b=[a,b] (crossing), the interval

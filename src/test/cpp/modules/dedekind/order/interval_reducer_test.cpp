@@ -97,6 +97,23 @@ TEST_CASE(
     CHECK(point.lo == 4);
   }
 
+  SECTION("ℕ: the point collapse gates on the NNO, not on std::integral") {
+    // The carrier is the Cardinality proxy for ℕ --- not a machine integer.
+    // The one-point collapse needs successor / predecessor, which are an axiom
+    // of the CATEGORY (the NNO) that the proxy witnesses, so (3,5) on ℕ folds
+    // to {4} exactly as it does on int, and (5,5) to the empty set.
+    using NUp = Halfspace<Cardinality, Direction::Upward, Strictness::Strict>;
+    using NDown =
+        Halfspace<Cardinality, Direction::Downward, Strictness::Strict>;
+    const auto point = subobject_reduce<Boole, SetCombine>(
+        MakeMeet{}(NUp{finite_cardinality(3)}, NDown{finite_cardinality(5)}));
+    CHECK(point.kind == SetKind::Singleton);
+    CHECK(point.lo == finite_cardinality(4));
+    const auto empty = subobject_reduce<Boole, SetCombine>(
+        MakeMeet{}(NUp{finite_cardinality(5)}, NDown{finite_cardinality(5)}));
+    CHECK(empty.kind == SetKind::Empty);
+  }
+
   SECTION("without the value leg the reducer keeps the Meet (type fallback)") {
     // The default policy has no value leg, so the type-level normal form ---
     // the irreducible Meet of two distinct leaves --- is reconstructed as-is.
