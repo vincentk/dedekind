@@ -480,21 +480,18 @@ struct Join {  // A ∨ B
  *  every structural law applies unchanged.  Over operands without the arrow
  *  vocabulary the primaries above apply. */
 export template <typename A, typename B>
-  requires requires {
-    typename A::Domain;
-    typename A::Codomain;
-    typename A::logic_species;
-    typename B::Domain;
-    typename B::Codomain;
-    typename B::logic_species;
-    requires std::same_as<typename A::Domain, typename B::Domain>;
-    requires std::same_as<typename A::logic_species, typename B::logic_species>;
-  }
-struct Meet<A, B> {  // A ∧ B, an arrow Domain → Ω
+  requires IsArrow<A> && IsArrow<B> && std::same_as<Dom<A>, Dom<B>> &&
+           std::same_as<Cod<A>, Cod<B>> &&
+           requires {
+             typename A::logic_species;
+             typename B::logic_species;
+           } &&
+           std::same_as<typename A::logic_species, typename B::logic_species>
+struct Meet<A, B> {  // A ∧ B: two matching arrows into Ω give one
   A lhs;
   B rhs;
-  using Domain = typename A::Domain;
-  using Codomain = typename A::Codomain;
+  using Domain = Dom<A>;
+  using Codomain = Cod<A>;
   using logic_species = typename A::logic_species;
   template <typename X>
     requires requires(const A& l, const B& r, const X& x) {
@@ -507,21 +504,18 @@ struct Meet<A, B> {  // A ∧ B, an arrow Domain → Ω
 };
 
 export template <typename A, typename B>
-  requires requires {
-    typename A::Domain;
-    typename A::Codomain;
-    typename A::logic_species;
-    typename B::Domain;
-    typename B::Codomain;
-    typename B::logic_species;
-    requires std::same_as<typename A::Domain, typename B::Domain>;
-    requires std::same_as<typename A::logic_species, typename B::logic_species>;
-  }
-struct Join<A, B> {  // A ∨ B, an arrow Domain → Ω
+  requires IsArrow<A> && IsArrow<B> && std::same_as<Dom<A>, Dom<B>> &&
+           std::same_as<Cod<A>, Cod<B>> &&
+           requires {
+             typename A::logic_species;
+             typename B::logic_species;
+           } &&
+           std::same_as<typename A::logic_species, typename B::logic_species>
+struct Join<A, B> {  // A ∨ B: two matching arrows into Ω give one
   A lhs;
   B rhs;
-  using Domain = typename A::Domain;
-  using Codomain = typename A::Codomain;
+  using Domain = Dom<A>;
+  using Codomain = Cod<A>;
   using logic_species = typename A::logic_species;
   template <typename X>
     requires requires(const A& l, const B& r, const X& x) {
@@ -556,15 +550,11 @@ struct Not {  // ¬A (complement)
  *  so @c is_not_node_v / @c de_morgan_of / @c is_complement_pair_v apply
  *  unchanged; its set-object reading is structural, downstream in @c sets. */
 export template <typename A>
-  requires requires {
-    typename A::Domain;
-    typename A::Codomain;
-    typename A::logic_species;
-  }
-struct Not<A> {
+  requires IsArrow<A> && requires { typename A::logic_species; }
+struct Not<A> {  // RFL ∘ A: an arrow into Ω, reflected
   A base;
-  using Domain = typename A::Domain;
-  using Codomain = typename A::Codomain;
+  using Domain = Dom<A>;
+  using Codomain = Cod<A>;
   using logic_species = typename A::logic_species;
   template <typename X>
     requires requires(const A& b, const X& x) { b(x); }
