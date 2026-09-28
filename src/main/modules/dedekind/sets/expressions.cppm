@@ -682,20 +682,6 @@ export struct SetCombine {
   }
 };
 
-/** @brief ι: A∪B ↣ T, the trivial identity inclusion (homogeneous). */
-constexpr Domain ι(const Member& m) const { return m.value; }
-/** @brief ι1 / ι2, the pushout coprojection colegs A ↪ A∪B, B ↪ A∪B: an
- *  operand member (a T-value in A resp. B, hence in the union) injects as a
- *  member of the join (dual to Meet's co-restriction legs). */
-constexpr Member ι1(const typename A::Member& m) const {
-  return Member{m.value};
-}
-constexpr Member ι2(const typename B::Member& m) const {
-  return Member{m.value};
-}
-constexpr Join(A a, B b) : Join<A, B>{std::move(a), std::move(b)} {}
-};
-
 export template <typename T, typename L, typename Predicate>
 class Set {
  public:
