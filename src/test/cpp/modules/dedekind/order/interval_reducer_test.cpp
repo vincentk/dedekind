@@ -80,6 +80,23 @@ TEST_CASE(
     STATIC_REQUIRE(r.kind == SetKind::Empty);
   }
 
+  SECTION("value leaves: a Meet of two SetVal halfspaces collapses the same") {
+    // The leaf type the Python surface builds.  The value leg dispatches on
+    // structured_and by ADL, so the same law fires on value leaves as on bare
+    // halfspaces: a contradicting pair reduces to the empty set, not to an
+    // interval that is merely logically empty.
+    using V = SetVal<int, Boole>;
+    const auto empty = subobject_reduce<Boole, SetCombine>(
+        Meet<V, V>{V::half(5, Direction::Upward, Strictness::Strict),
+                   V::half(5, Direction::Downward, Strictness::Strict)});
+    CHECK(empty.kind == SetKind::Empty);
+    const auto point = subobject_reduce<Boole, SetCombine>(
+        Meet<V, V>{V::half(3, Direction::Upward, Strictness::Strict),
+                   V::half(5, Direction::Downward, Strictness::Strict)});
+    CHECK(point.kind == SetKind::Singleton);
+    CHECK(point.lo == 4);
+  }
+
   SECTION("without the value leg the reducer keeps the Meet (type fallback)") {
     // The default policy has no value leg, so the type-level normal form ---
     // the irreducible Meet of two distinct leaves --- is reconstructed as-is.

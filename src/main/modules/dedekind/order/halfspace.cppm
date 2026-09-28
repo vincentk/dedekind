@@ -2196,6 +2196,22 @@ export template <typename V, typename L>
 constexpr SetVal<V, L> operator&(const SetVal<V, L>& a, const SetVal<V, L>& b) {
   return reduce_meet(a, b);
 }
+/** @brief The one meet / join law under the reducer's customization-point
+ *  names, for two @b value leaves.  The lattice-term leaf-combine (@c
+ *  SetCombine's value leg) dispatches on @c structured_and / @c structured_or
+ *  by ADL; spelling the value law under those names lets a term whose leaves
+ * are already @c SetVal --- the leaf type the Python surface builds ---
+ * collapse through the same reducer as a term of bare halfspaces. */
+export template <typename V, typename L>
+constexpr SetVal<V, L> structured_and(const SetVal<V, L>& a,
+                                      const SetVal<V, L>& b) {
+  return reduce_meet(a, b);
+}
+export template <typename V, typename L>
+constexpr SetVal<V, L> structured_or(const SetVal<V, L>& a,
+                                     const SetVal<V, L>& b) {
+  return reduce_join(a, b);
+}
 export template <typename T, Direction D, Strictness S, typename L>
 constexpr auto operator&(const Halfspace<T, D, S, L>& h,
                          const SetVal<T, L>& s) {
