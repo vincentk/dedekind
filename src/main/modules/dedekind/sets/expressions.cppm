@@ -1169,6 +1169,67 @@ constexpr SubobjectInclusion<std::remove_cvref_t<S>> inclusion_arrow(
   return {s};
 }
 
+// ── The apex views: meet = pullback, join = pushout in Sub(U) (#881)
+// ──────────
+//
+// A lattice node is a set object structurally (:setobject) and carries only
+// the arrow vocabulary in :category.  The categorical reading of A & B as the
+// PULLBACK of the cospan ι_A, ι_B (and of A | B as the PUSHOUT of the span
+// from Ø) needs the apex's member shape and its legs, π1 / π2 resp. ι1 / ι2 on
+// members --- set semantics, so they are a view taken here, not a property of
+// the node.  The view owns nothing: it evaluates through the node's χ.
+
+/** @brief The pullback apex of an applied meet: the same set, viewed with the
+ *  subobject surface and the projection legs @c π1 / @c π2 (@c IsPullback). */
+export template <typename A, typename B>
+  requires IsSetObject<Meet<A, B>> && IsSubobject<A, typename A::Domain> &&
+           IsSubobject<B, typename B::Domain>
+struct PullbackApex {
+  Meet<A, B> node;
+  using Domain = typename Meet<A, B>::Domain;
+  using Codomain = typename Meet<A, B>::Codomain;
+  using logic_species = typename Meet<A, B>::logic_species;
+  struct Member {
+    Domain value;
+  };
+  constexpr Domain ι(const Member& m) const { return m.value; }
+  constexpr typename A::Member π1(const Member& m) const { return {m.value}; }
+  constexpr typename B::Member π2(const Member& m) const { return {m.value}; }
+  constexpr auto operator()(const Domain& x) const { return node(x); }
+};
+export template <typename A, typename B>
+constexpr auto as_pullback(const Meet<A, B>& m) {
+  return PullbackApex<A, B>{m};
+}
+
+/** @brief The pushout apex of an applied join: the same set, viewed with the
+ *  subobject surface and the coprojection colegs @c ι1 / @c ι2
+ *  (@c IsPushout).  Dual of @ref PullbackApex. */
+export template <typename A, typename B>
+  requires IsSetObject<Join<A, B>> && IsSubobject<A, typename A::Domain> &&
+           IsSubobject<B, typename B::Domain>
+struct PushoutApex {
+  Join<A, B> node;
+  using Domain = typename Join<A, B>::Domain;
+  using Codomain = typename Join<A, B>::Codomain;
+  using logic_species = typename Join<A, B>::logic_species;
+  struct Member {
+    Domain value;
+  };
+  constexpr Domain ι(const Member& m) const { return m.value; }
+  constexpr Member ι1(const typename A::Member& m) const {
+    return Member{m.value};
+  }
+  constexpr Member ι2(const typename B::Member& m) const {
+    return Member{m.value};
+  }
+  constexpr auto operator()(const Domain& x) const { return node(x); }
+};
+export template <typename A, typename B>
+constexpr auto as_pushout(const Join<A, B>& j) {
+  return PushoutApex<A, B>{j};
+}
+
 /** @brief @c InitialObjectArrow<Init, Target> --- the unique arrow from the
  *  initial object into any subobject (@c Init @c → @c Target), i.e. the empty
  *  function / the @c ⊥-of-Sub(U) leg.  Dual to @c inclusion_arrow: where that

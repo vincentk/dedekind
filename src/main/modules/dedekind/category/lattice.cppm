@@ -464,49 +464,38 @@ struct Join {  // A ∨ B
   }
 };
 
-/** @section lattice__Nodes_over_subobjects
- *  When both operands are subobjects of ONE carrier under ONE logic (they
- *  declare @c Domain / @c Codomain / @c logic_species and their domains
- *  agree), the meet / join node IS a subobject of that carrier --- the pullback
- *  / pushout apex in @c Sub(T) --- so it carries the subobject surface itself:
- *  @c Domain / @c Codomain / @c logic_species, the @c Member shape, the
- *  identity inclusion @c ι, and the apex legs @c π1 / @c π2 on members (what
- *  @c IsPullback / @c IsPushout probe).  The same move @c Not<A> below already
- *  makes for the complement: the node stays the literal @c Meet / @c Join, so
- *  every structural law (@c is_meet_containing_v, absorption, idempotence,
- *  @c reduce_t) applies unchanged --- no downstream lift to see through, and
- * the reducer's output over set objects is a set object by construction.  Over
- * operands that are not subobjects (bare callables) the primary above applies.
- */
+/** @section lattice__Nodes_over_arrows
+ *  A node over two arrows into ONE truth object is itself such an arrow: the
+ *  lattice of arrows @c A @c → @c Ω is computed pointwise (@c Meet by @c AND,
+ *  @c Join by @c OR, @c Not by @c RFL of the operands' shared @c
+ * logic_species). When the operands declare the @c IsArrow vocabulary --- @c
+ * Domain /
+ *  @c Codomain / @c logic_species --- and agree on it, the node declares the
+ *  same, so it composes, reduces and evaluates as an arrow.  That is ALL a
+ *  node carries here: the @b subobject reading (a member shape, the inclusion
+ *  @c ι, the pullback / pushout apex legs) is set semantics and lives
+ *  downstream in @c dedekind.sets, where a node over set objects is a set
+ *  object @b structurally (its χ is this pointwise evaluation) and the apex
+ *  legs are a view.  The node stays the literal @c Meet / @c Join / @c Not, so
+ *  every structural law applies unchanged.  Over operands without the arrow
+ *  vocabulary the primaries above apply. */
 export template <typename A, typename B>
   requires requires {
     typename A::Domain;
     typename A::Codomain;
     typename A::logic_species;
-    typename A::Member;  // the operands are subobjects, not bare classifiers
     typename B::Domain;
     typename B::Codomain;
     typename B::logic_species;
-    typename B::Member;
     requires std::same_as<typename A::Domain, typename B::Domain>;
     requires std::same_as<typename A::logic_species, typename B::logic_species>;
   }
-struct Meet<A, B> {  // A ∩ B as a subobject carrying A and B
+struct Meet<A, B> {  // A ∧ B, an arrow Domain → Ω
   A lhs;
   B rhs;
   using Domain = typename A::Domain;
   using Codomain = typename A::Codomain;
   using logic_species = typename A::logic_species;
-  struct Member {
-    Domain value;
-  };
-  /** @brief ι: A ∩ B ↣ Domain, the identity inclusion (homogeneous). */
-  constexpr Domain ι(const Member& m) const { return m.value; }
-  /** @brief The pullback apex legs: a member of the meet is a member of each
-   *  operand (@c IsPullback probes @c π1 / @c π2 on members). */
-  constexpr typename A::Member π1(const Member& m) const { return {m.value}; }
-  constexpr typename B::Member π2(const Member& m) const { return {m.value}; }
-  /** @brief χ: (A ∩ B)(x) = A(x) ∧ B(x) under the shared logic. */
   template <typename X>
     requires requires(const A& l, const B& r, const X& x) {
       l(x);
@@ -522,34 +511,18 @@ export template <typename A, typename B>
     typename A::Domain;
     typename A::Codomain;
     typename A::logic_species;
-    typename A::Member;  // the operands are subobjects, not bare classifiers
     typename B::Domain;
     typename B::Codomain;
     typename B::logic_species;
-    typename B::Member;
     requires std::same_as<typename A::Domain, typename B::Domain>;
     requires std::same_as<typename A::logic_species, typename B::logic_species>;
   }
-struct Join<A, B> {  // A ∪ B as a subobject carrying A and B
+struct Join<A, B> {  // A ∨ B, an arrow Domain → Ω
   A lhs;
   B rhs;
   using Domain = typename A::Domain;
   using Codomain = typename A::Codomain;
   using logic_species = typename A::logic_species;
-  struct Member {
-    Domain value;
-  };
-  /** @brief ι: A ∪ B ↣ Domain, the identity inclusion (homogeneous). */
-  constexpr Domain ι(const Member& m) const { return m.value; }
-  /** @brief The pushout colegs: a member of either operand is a member of the
-   *  join (@c IsPushout probes @c ι1 / @c ι2). */
-  constexpr Member ι1(const typename A::Member& m) const {
-    return Member{m.value};
-  }
-  constexpr Member ι2(const typename B::Member& m) const {
-    return Member{m.value};
-  }
-  /** @brief χ: (A ∪ B)(x) = A(x) ∨ B(x) under the shared logic. */
   template <typename X>
     requires requires(const A& l, const B& r, const X& x) {
       l(x);
@@ -577,15 +550,11 @@ struct Not {  // ¬A (complement)
   }
 };
 
-/** @brief When @c A is a subobject (carries @c Domain / @c Codomain /
- *  @c logic_species), @c ¬A is @b itself a first-class subobject --- the SAME
- *  @c Not node the reducer's complement laws already match, now usable as a set
- *  value.  Its χ is @c A's, reflected by the codomain's own @c RFL (generic
- *  over any bounded chain @c Ω: @c Boole @c !, @c Kleene @c ¬U=U, …), so no
- *  bespoke complement wrapper is needed.  Adding the subobject surface here
- *  (rather than in a downstream @c NotSet lift) keeps @c ¬A the literal
- *  @c Not<A>, so @c is_not_node_v / @c de_morgan_of / @c is_complement_pair_v
- *  apply unchanged --- no per-type trait re-teaching. */
+/** @brief @c ¬A over an arrow @c A @c → @c Ω is the arrow @c RFL @c ∘ @c A:
+ *  the codomain's own reflection (generic over any bounded chain @c Ω:
+ *  @c Boole @c !, @c Kleene @c ¬U=U, …).  The node stays the literal @c Not<A>,
+ *  so @c is_not_node_v / @c de_morgan_of / @c is_complement_pair_v apply
+ *  unchanged; its set-object reading is structural, downstream in @c sets. */
 export template <typename A>
   requires requires {
     typename A::Domain;
@@ -597,12 +566,6 @@ struct Not<A> {
   using Domain = typename A::Domain;
   using Codomain = typename A::Codomain;
   using logic_species = typename A::logic_species;
-  struct Member {
-    Domain value;
-  };
-  /** @brief ι: ¬A ↣ Domain, the trivial identity inclusion (homogeneous). */
-  constexpr Domain ι(const Member& m) const { return m.value; }
-  /** @brief χ: ¬A(x) = RFL(A(x)), the codomain reflection of @c A's χ. */
   template <typename X>
     requires requires(const A& b, const X& x) { b(x); }
   constexpr auto operator()(const X& x) const {

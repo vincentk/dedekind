@@ -637,17 +637,15 @@ constexpr auto Ø<T, L>::operator!() const {
  *  general entry the #916 Python composition surface will call once the
  *  leaf-combine leg is threaded (slice 2). */
 
-// The reducer is a function IsSetTerm → IsSetObject.  The input sort is a
-// lattice term over set objects on one carrier (a same-logic node IS a set
-// object itself, since Meet / Join / Not carry the subobject surface; the
-// cross-logic Ø<T,Kleene> ∧ S<T,Boole> is admitted through the recursion and
-// decided by the bounded law plus the codomain leg); a mixed-carrier
-// Meet<Ø<int>,Ø<bool>> never satisfies it, and a bare Halfspace / Singleton
-// leaf qualifies without being an ETCS IsSet.  The output is asserted, not
-// assumed: every normal form the laws fold to --- a boundary, an operand, an
-// irreducible node, a value leaf --- is a set object.
+// The reducer is a function IsSetObject → IsSetObject.  A lattice term over
+// set objects on one carrier IS a set object (structurally, :setobject); the
+// cross-logic Ø<T,Kleene> ∧ S<T,Boole> is one, decided by the bounded law
+// plus the codomain leg; a mixed-carrier Meet<Ø<int>,Ø<bool>> never is, and a
+// bare Halfspace / Singleton leaf qualifies without being an ETCS IsSet.  The
+// output is asserted, not assumed: every normal form the laws fold to --- a
+// boundary, an operand, an irreducible node, a value leaf --- is a set object.
 export template <typename L = Boole, typename Combine = no_leaf_combine,
-                 IsSetTerm Node>
+                 IsSetObject Node>
 constexpr auto subobject_reduce(const Node& node) {
   // @c Combine is the injected leaf-combine policy (the reducer's 4th policy):
   // the default @c no_leaf_combine has no value leg, so the boundary operators

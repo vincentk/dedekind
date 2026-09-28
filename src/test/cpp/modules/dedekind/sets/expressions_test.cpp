@@ -74,8 +74,8 @@ static_assert(dedekind::category::IsMonicArrow<decltype(iota_A)>,
               "so it is registered monic (generic mono/image code accepts it). "
               "#881.");
 static_assert(
-    dedekind::category::IsPullback<decltype(meet_set), decltype(iota_A),
-                                   decltype(iota_B)>,
+    dedekind::category::IsPullback<decltype(as_pullback(meet_set)),
+                                   decltype(iota_A), decltype(iota_B)>,
     "the applied meet A & B is the pullback of its two concrete sets (the "
     "cospan ι_A, ι_B); in Sub(U) product = pullback = meet. #881.");
 
@@ -86,10 +86,12 @@ static_assert(
 // (Pierce).  ι is the identity inclusion (homogeneous by default).
 using MeetLift = Meet<A_set, B_set>;
 constexpr MeetLift meet_lift{a_set, b_set};
-static_assert(IsSet<MeetLift>,
-              "the lifted meet IS a set (the reducer AST node, promoted).");
-static_assert(IsSubobject<MeetLift, int>,
-              "…and a subobject of the ambient int with the identity ι.");
+static_assert(
+    IsSetObject<MeetLift>,
+    "the meet node IS a set object (structurally: the AST is the set).");
+static_assert(IsSubobject<decltype(as_pullback(meet_lift)), int>,
+              "…and its pullback apex is a subobject of the ambient int with "
+              "the identity ι (the apex legs are a sets-side view).");
 static_assert(
     IsSet<std::remove_cvref_t<decltype(π_1(meet_lift))>>,
     "π_1(meet) is a bona fide IsSet (the underlying set A), not a bare "
@@ -132,18 +134,20 @@ using SpanToA = dedekind::sets::InitialObjectArrow<Empty, A_set>;  // ∅ ⟶ A
 using SpanToB = dedekind::sets::InitialObjectArrow<Empty, B_set>;  // ∅ ⟶ B
 constexpr auto join_set = a_set | b_set;
 static_assert(
-    dedekind::category::IsPushout<decltype(join_set), SpanToA, SpanToB>,
+    dedekind::category::IsPushout<decltype(as_pushout(join_set)), SpanToA,
+                                  SpanToB>,
     "the applied join A | B is the pushout of its two concrete sets (the span "
     "from ∅, colegs ι1/ι2); in Sub(U) pushout = coproduct = join. #881 step "
     "4.");
 // Precision: the meet is not a pushout and the join is not a pullback (the
 // ∧/∨ factories gate the legs vs colegs).
+static_assert(!dedekind::category::IsPushout<decltype(as_pullback(meet_set)),
+                                             SpanToA, SpanToB>,
+              "a meet is a pullback, not a pushout (no coprojection colegs).");
 static_assert(
-    !dedekind::category::IsPushout<decltype(meet_set), SpanToA, SpanToB>,
-    "a meet is a pullback, not a pushout (no coprojection colegs).");
-static_assert(!dedekind::category::IsPullback<
-                  decltype(join_set), decltype(iota_A), decltype(iota_B)>,
-              "a join is a pushout, not a pullback (no projection legs).");
+    !dedekind::category::IsPullback<decltype(as_pushout(join_set)),
+                                    decltype(iota_A), decltype(iota_B)>,
+    "a join is a pushout, not a pullback (no projection legs).");
 }  // namespace and_predicate_product_test
 
 TEST_CASE("Dedekind MVP: Basic Membership and Symbols", "[sets]") {

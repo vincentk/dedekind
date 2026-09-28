@@ -135,19 +135,16 @@ concept IsUniverseOf =
     IsUniverse<U> && std::same_as<typename U::Domain, typename S::Domain> &&
     std::same_as<typename U::logic_species, typename S::logic_species>;
 
-export template <typename S>
-concept IsSetObject =
+/** @brief The @b leaf case: a set object that carries the subobject surface
+ *  itself (Definition Lwv) together with its two legs. */
+template <typename S>
+concept IsSetObjectLeaf =
     IsSetObjectSurface<S> && requires(const S& s, const typename S::Domain& x) {
       /** @brief The universe leg: the reified type constraint. */
       { universe(s) } -> IsUniverseOf<S>;
       /** @brief The classifier leg: a χ datum callable on the carrier. */
       classifier(s)(x);
     };
-
-/** @brief The type of a set object's universe leg. */
-export template <IsSetObject S>
-using universe_t =
-    std::remove_cvref_t<decltype(universe(std::declval<const S&>()))>;
 
 /** @brief Two types carry the same carrier: the domain tie a lattice node over
  *  set objects needs (the logic may differ; the codomain leg reconciles it). */
@@ -158,26 +155,36 @@ concept SameCarrier = requires {
 } && std::same_as<typename A::Domain, typename B::Domain>;
 
 template <typename T>
-struct is_set_term : std::bool_constant<IsSetObject<T>> {};
+struct is_set_object : std::bool_constant<IsSetObjectLeaf<T>> {};
 template <typename A, typename B>
-struct is_set_term<dedekind::category::Meet<A, B>>
-    : std::bool_constant<is_set_term<A>::value && is_set_term<B>::value &&
+struct is_set_object<dedekind::category::Meet<A, B>>
+    : std::bool_constant<is_set_object<A>::value && is_set_object<B>::value &&
                          SameCarrier<A, B>> {};
 template <typename A, typename B>
-struct is_set_term<dedekind::category::Join<A, B>>
-    : std::bool_constant<is_set_term<A>::value && is_set_term<B>::value &&
+struct is_set_object<dedekind::category::Join<A, B>>
+    : std::bool_constant<is_set_object<A>::value && is_set_object<B>::value &&
                          SameCarrier<A, B>> {};
 template <typename A>
-struct is_set_term<dedekind::category::Not<A>> : is_set_term<A> {};
+struct is_set_object<dedekind::category::Not<A>> : is_set_object<A> {};
 
-/** @brief A lattice @b term over set objects: a set object, or a @c Meet /
- *  @c Join / @c Not whose operands are set terms over one carrier.  This is
- *  the reducer's input sort.  A same-logic node is already a set object (it
- *  carries the subobject surface itself); the recursion admits the
- *  cross-logic case too --- @c Ø<T,Kleene> @c ∧ @c S<T,Boole> --- where only
- *  the operands carry a surface and the reducer's bounded law plus the
- *  codomain leg decide the result. */
-export template <typename T>
-concept IsSetTerm = is_set_term<T>::value;
+/** @brief An @b object of the category Set: a leaf carrying the subobject
+ *  surface and its legs, @b or a lattice node --- @c Meet / @c Join / @c Not
+ *  --- over set objects on one carrier.  The node case is @b structural: the
+ *  node's χ is the pointwise evaluation @c category:lattice already gives it
+ *  (an arrow into Ω), its universe is its operands', its classifier is the
+ *  node itself.  This is the opaque arm, "the AST is the set", without any
+ *  set semantics in the lattice partition: the member shape, the inclusion
+ *  @c ι and the pullback / pushout apex legs are a @c sets-side view
+ *  (@c as_pullback / @c as_pushout in @c :expressions), not a property of the
+ *  node.  The same-logic requirement of the leaf surface is @b not imposed on
+ *  nodes: @c Ø<T,Kleene> @c ∧ @c S<T,Boole> is a set object whose reduction the
+ *  bounded law and the codomain leg decide. */
+export template <typename S>
+concept IsSetObject = is_set_object<S>::value;
+
+/** @brief The type of a set object's universe leg. */
+export template <IsSetObject S>
+using universe_t =
+    std::remove_cvref_t<decltype(universe(std::declval<const S&>()))>;
 
 }  // namespace dedekind::sets

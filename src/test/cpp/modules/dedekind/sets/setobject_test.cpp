@@ -60,7 +60,6 @@ TEST_CASE("sets:setobject — the two legs of a set object at runtime",
   SECTION("a lattice node over set objects is a set object: χ is pointwise") {
     const auto both = MakeMeet{}(even, positive);  // Meet<Set, Set>
     STATIC_CHECK(IsSetObject<decltype(both)>);
-    STATIC_CHECK(IsSetTerm<decltype(both)>);
     CHECK(static_cast<bool>(both(4)));
     CHECK_FALSE(static_cast<bool>(both(3)));
     CHECK_FALSE(static_cast<bool>(both(-4)));
