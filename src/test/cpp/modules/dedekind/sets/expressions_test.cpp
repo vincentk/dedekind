@@ -274,8 +274,6 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
     // This regression test guards against a same-Predicate-type
     // collapse that would wrongly fire on every BooleanEqPredicate
     // pair regardless of the .expected field.
-    using BoolAmbient = Universe<bool, Boole, Finite>;
-    constexpr BoolAmbient B_bool{};
     auto only_true =
         Set<bool, Boole, BooleanEqPredicate>{BooleanEqPredicate{true}};
     auto only_false =
