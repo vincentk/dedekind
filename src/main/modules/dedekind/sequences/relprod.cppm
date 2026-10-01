@@ -25,6 +25,7 @@
  */
 module;
 
+#include <concepts>  // std::convertible_to
 #include <cstddef>
 #include <ranges>
 #include <utility>
@@ -48,11 +49,13 @@ using dedekind::sets::Set;
  *  @e first witness @f$b@f$, so a hit returns immediately (@f$\top \vee x =
  *  \top@f$) --- O(1) memory (no bool accumulator threaded), O(M) steps
  *  @e worst-case, @b no array. */
-export template <std::size_t M, IsRelPredicate PR, IsRelPredicate PS>
+export template <IsRelPredicate PR, IsRelPredicate PS>
 struct ComposePrefixPred {
   using is_rel_predicate = void;
   PR r;
   PS s;
+  std::size_t bound;  // the finite ℕ-prefix middle [0, bound): a VALUE, so the
+                      // chain composes over runtime as well as constexpr bounds
   /** @param ac the endpoint pair @f$(a,c)@f$ --- any @c .first / @c .second
    *  carrier the operands accept. */
   template <typename Pair>
@@ -62,7 +65,7 @@ struct ComposePrefixPred {
     }
   constexpr bool operator()(const Pair& ac) const {
     // ∃ b ∈ [0,M). R(a,b) ∧ S(b,c) --- exists stops at the first witness b.
-    return exists(std::views::iota(std::size_t{0}, M), [&](std::size_t i) {
+    return exists(std::views::iota(std::size_t{0}, bound), [&](std::size_t i) {
       const auto b = finite_cardinality(i);
       return static_cast<bool>(r(std::pair{ac.first, b})) &&
              static_cast<bool>(s(std::pair{b, ac.second}));
@@ -70,28 +73,31 @@ struct ComposePrefixPred {
   }
 };
 
-/** @brief @c prefix_bound<P> --- recover the finite-prefix bound @c M carried
- *  by a bounded relation's predicate @c P: either from the half-space
- *  restriction (a @c ProductRestrict wrapping a @c ProjBound<1,Lt,M> domain
- *  cut), or from a prior compose (@c ComposePrefixPred).  Left @b undefined
- *  otherwise --- an unbounded relation has no finite middle to compose over, so
- *  its @c >> stays the honest Rice wall. */
-template <typename P>
-struct prefix_bound;
-template <typename Pp, auto V>
-struct prefix_bound<dedekind::order::ProductRestrict<
-    Pp, dedekind::order::ProjBound<1, dedekind::order::Rel::Lt, V>>> {
-  static constexpr std::size_t value = static_cast<std::size_t>(V);
-};
-template <std::size_t M, typename PR, typename PS>
-struct prefix_bound<ComposePrefixPred<M, PR, PS>> {
-  static constexpr std::size_t value = M;
-};
+/** @brief @c prefix_bound(p) --- recover the finite-prefix bound @c M carried
+ *  by a bounded relation's predicate @c p: either from the half-space
+ *  restriction (a @c ProductRestrict wrapping a @c ProjBound<1,Lt,VT> domain
+ *  cut, whose pivot is a VALUE), or from a prior compose (@c ComposePrefixPred
+ *  carries its bound).  Left @b undefined otherwise --- an unbounded relation
+ *  has no finite middle to compose over, so its @c >> stays the honest Rice
+ *  wall.  A function, not a trait: since the pivot rides in the value, so does
+ *  the bound; it still folds at compile time when the relation is constexpr. */
+template <typename Pp, typename VT>
+constexpr std::size_t prefix_bound(
+    const dedekind::order::ProductRestrict<
+        Pp, dedekind::order::ProjBound<1, dedekind::order::Rel::Lt, VT>>& p) {
+  return static_cast<std::size_t>(p.rp.value);
+}
+template <typename PR, typename PS>
+constexpr std::size_t prefix_bound(const ComposePrefixPred<PR, PS>& p) {
+  return p.bound;
+}
 
 /** @brief A relation is @b bounded (composable over a finite middle) iff its
  *  predicate carries a @c prefix_bound. */
 template <typename P>
-concept HasPrefixBound = requires { prefix_bound<P>::value; };
+concept HasPrefixBound = requires(const P& p) {
+  { prefix_bound(p) } -> std::convertible_to<std::size_t>;
+};
 
 /** @brief @c R @c >> @c S over the finite ℕ-prefix middle @b inferred from
  *  @c R's bound (no middle argument): @f$(R;S)(a,c) = \exists b \in [0,M).\,
@@ -106,9 +112,9 @@ export template <typename A, typename B, typename C, typename L,
   requires HasPrefixBound<PR>
 constexpr auto operator>>(const Set<std::pair<A, B>, L, PR>& r,
                           const Set<std::pair<B, C>, L, PS>& s) {
-  constexpr std::size_t M = prefix_bound<PR>::value;
-  using CP = ComposePrefixPred<M, PR, PS>;
-  return Set<std::pair<A, C>, L, CP>{CP{r.predicate(), s.predicate()}};
+  using CP = ComposePrefixPred<PR, PS>;
+  return Set<std::pair<A, C>, L, CP>{
+      CP{r.predicate(), s.predicate(), prefix_bound(r.predicate())}};
 }
 
 }  // namespace dedekind::sequences

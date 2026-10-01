@@ -133,7 +133,7 @@ static_assert(!converges_in_1(finite_cardinality(4)),
 // @c collatz;collatz needs @f$\exists b@f$ over the ℕ middle --- the Rice wall
 // on all of ℕ.  Bounding the domain to a finite prefix makes it DECIDABLE: the
 // half-space contraction @c collatz @c | @c (π1 @c < @c fix(M_c)) tags the
-// relation with the bound @c M in its type, and the bounded @c >> (@c
+// relation with the bound @c M in its pivot value, and the bounded @c >> (@c
 // :sequences) reads @c M and streams the @f$\exists@f$-over-the-middle as an
 // OR-fold over @f$[0,M)@f$ --- O(1) memory, O(M) steps, no array.  The result
 // is @e itself bounded, so the squaring chain (@c collatz4 = @c collatz2 @c >>
@@ -141,7 +141,7 @@ static_assert(!converges_in_1(finite_cardinality(4)),
 // closure, the §4 collapse.
 
 /** @brief @c collatz restricted to the finite ℕ-prefix @f$[0,64)@f$ by a
- *  half-space domain cut --- the bound @c 64 rides in the type, so @c >>
+ *  half-space domain cut --- the bound @c 64 rides in the pivot VALUE, so @c >>
  *  recovers it. */
 constexpr auto collatzM = collatz | (π1 < fix(64_c));
 
