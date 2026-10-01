@@ -92,8 +92,9 @@ constexpr auto triple_plus_1 = ℕ * ℕ | π1 * fix(3_c) + fix(1_c) == π2;
 export inline constexpr auto collatz =
     (n_even & halve) | (~n_even & triple_plus_1);
 
-static_assert(IsSet<decltype(collatz)>,
-              "the point-free recurrence is an ETCS Set on ℕ × ℕ");
+static_assert(dedekind::sets::IsSetObject<decltype(collatz)>,
+              "the point-free recurrence is a set object on ℕ × ℕ (a lattice "
+              "node over set objects, structurally)");
 static_assert(
     IsRelation<decltype(collatz), Cardinality, Cardinality>,
     "T ⊆ ℕ × ℕ is an IsRelation (IsFunction is the next investigation)");
