@@ -39,6 +39,7 @@ module;
 
 #include <cstddef>
 #include <optional>
+#include <type_traits>  // std::remove_cvref_t (CollatzSet)
 #include <utility>
 
 export module dedekind.numbers:collatz;
@@ -120,10 +121,14 @@ static_assert(!collatz(std::pair{finite_cardinality(6), finite_cardinality(4)}),
  *  the converse fibre. */
 // FIXME(#970): `collatz` is a lattice node (a set object structurally); the
 // pair-relational entry points `converse` and the `| relpred` restriction still
-// pattern-match `Set<pair,…>`, so the node is re-wrapped through the identity
-// `Set(Species)` guide until they are generalised to IsSetObject.
+// pattern-match `Set<pair,…>`, so the node is re-wrapped as a Set until they
+// are generalised to IsSetObject.  The wrap names its logic: the node's χ is
+// Boole, but the identity `Set(Species)` guide reads the carrier axis off a
+// `cardinality_type` a node does not declare and would fall to Kleene.
+using CollatzSet = Set<std::pair<Cardinality, Cardinality>, Boole,
+                       std::remove_cvref_t<decltype(collatz)>>;
 export inline constexpr auto converges_in_1 =
-    fibre(converse(Set{collatz}), finite_cardinality(1));
+    fibre(converse(CollatzSet{collatz}), finite_cardinality(1));
 
 static_assert(converges_in_1(finite_cardinality(2)),
               "2 is even, 2/2 = 1: 2 → 1 in one step (2 ∈ collatz°(1))");
@@ -147,7 +152,7 @@ static_assert(!converges_in_1(finite_cardinality(4)),
 /** @brief @c collatz restricted to the finite ℕ-prefix @f$[0,64)@f$ by a
  *  half-space domain cut --- the bound @c 64 rides in the pivot VALUE, so @c >>
  *  recovers it. */
-constexpr auto collatzM = Set{collatz} | (π1 < fix(64_c));
+constexpr auto collatzM = CollatzSet{collatz} | (π1 < fix(64_c));
 
 /** @brief @c collatz2 @f$= \mathrm{collatz};\mathrm{collatz}@f$ over the finite
  *  @f$[0,64)@f$ middle --- two steps, the bare relative product, middle
