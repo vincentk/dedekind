@@ -118,8 +118,12 @@ static_assert(!collatz(std::pair{finite_cardinality(6), finite_cardinality(4)}),
  *  \mathrm{collatz}(n) = 1\}@f$ --- the pre-image of the fixed-point target
  *  @f$\{1\}@f$: the naturals that reach 1 in exactly one step.  Point-free, via
  *  the converse fibre. */
+// FIXME(#970): `collatz` is a lattice node (a set object structurally); the
+// pair-relational entry points `converse` and the `| relpred` restriction still
+// pattern-match `Set<pair,…>`, so the node is re-wrapped through the identity
+// `Set(Species)` guide until they are generalised to IsSetObject.
 export inline constexpr auto converges_in_1 =
-    fibre(converse(collatz), finite_cardinality(1));
+    fibre(converse(Set{collatz}), finite_cardinality(1));
 
 static_assert(converges_in_1(finite_cardinality(2)),
               "2 is even, 2/2 = 1: 2 → 1 in one step (2 ∈ collatz°(1))");
@@ -143,7 +147,7 @@ static_assert(!converges_in_1(finite_cardinality(4)),
 /** @brief @c collatz restricted to the finite ℕ-prefix @f$[0,64)@f$ by a
  *  half-space domain cut --- the bound @c 64 rides in the pivot VALUE, so @c >>
  *  recovers it. */
-constexpr auto collatzM = collatz | (π1 < fix(64_c));
+constexpr auto collatzM = Set{collatz} | (π1 < fix(64_c));
 
 /** @brief @c collatz2 @f$= \mathrm{collatz};\mathrm{collatz}@f$ over the finite
  *  @f$[0,64)@f$ middle --- two steps, the bare relative product, middle
