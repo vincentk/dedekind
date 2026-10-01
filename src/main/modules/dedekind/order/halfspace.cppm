@@ -1505,11 +1505,16 @@ constexpr auto operator|(const Universe<std::pair<T1, T2>, L, C>&, RP rp) {
 
 // product | relPred  →  the relation as an IsSet on A × B, keeping the
 // product's own membership (so a restricted product bounds the relation).
-export template <typename T1, typename T2, typename L, typename P,
-                 IsRelPredicate RP>
-constexpr auto operator|(const Set<std::pair<T1, T2>, L, P>& prod, RP rp) {
-  return Set<std::pair<T1, T2>, L, ProductRestrict<P, RP>>{
-      ProductRestrict<P, RP>{prod.predicate(), rp}};
+// Generic over any set object on a pair carrier (a Set<pair,…>, a lattice node,
+// a comprehension): the restricted χ datum is the product's CLASSIFIER leg.
+export template <typename S, IsRelPredicate RP>
+  requires dedekind::sets::IsSetObject<S> &&
+           requires { typename S::Domain::first_type; }
+constexpr auto operator|(const S& prod, RP rp) {
+  using X = std::remove_cvref_t<decltype(classifier(prod))>;
+  return Set<typename S::Domain, typename S::logic_species,
+             ProductRestrict<X, RP>>{
+      ProductRestrict<X, RP>{classifier(prod), rp}};
 }
 
 /**

@@ -738,9 +738,6 @@ class Set {
   // FIXME(#948): stores the predicate only, dropping the comprehension's base;
   // membership becomes P(x) rather than base(x) ∧ P(x).  Sound for universal
   // ambient bases (base(x) ≡ ⊤); wrong for non-universal bases.
-  template <typename B, typename P>
-    requires std::same_as<Predicate, P>
-  constexpr Set(Comprehension<B, P> cp) : predicate_(std::move(cp.predicate)) {}
 
   constexpr auto operator()(const T& v) const {
     return dedekind::category::lift_logic<L>(predicate_(v));
@@ -1639,8 +1636,23 @@ concept CoherentSetWrap =
 
 /** @brief The @c Set codomain species for a bare set-node @c Species.
  *  @tparam Species the set-node wrapped by the @c Set(Species) CTAD. */
+/** @brief The carrier-axis authority for a wrapped species: its own declared
+ *  @c cardinality_type when it has one (a leaf), else its UNIVERSE's (a
+ *  lattice node declares no cardinality class of its own; the mereological
+ *  whole it is a part of does), else the species itself. */
 template <typename Species>
-using wrapped_logic_t = set_logic_t<Species, Species, typename Species::Domain>;
+struct wrap_carrier {
+  using type = Species;
+};
+template <typename Species>
+  requires(!requires { typename Species::cardinality_type; }) &&
+          IsSetObject<Species>
+struct wrap_carrier<Species> {
+  using type = universe_t<Species>;
+};
+template <typename Species>
+using wrapped_logic_t = set_logic_t<typename wrap_carrier<Species>::type,
+                                    Species, typename Species::Domain>;
 
 /** @brief The point-free comprehension @c A|pred (deprecated scout spelling
  *  @c element<A>|pred): codomain derived from the whole comprehension's return
@@ -1650,13 +1662,9 @@ using wrapped_logic_t = set_logic_t<Species, Species, typename Species::Domain>;
  *  FIXME(#948): the wrap stores @c P only (the converting ctor drops @c B), so
  *  a NON-universal base's membership is lost; harmless for universal ambient
  *  bases (@c base(x) ≡ ⊤), general fix tracked separately. */
-export template <typename B, typename P>
-  requires CoherentWrap<B, P, typename B::Domain>
-Set(Comprehension<B, P>)
-    -> Set<typename B::Domain,
-           join_logic_t<set_logic_t<B, P, typename B::Domain>,
-                        typename B::logic_species>,
-           P>;
+// Set{Comprehension{base, pred}} wraps the WHOLE comprehension (its χ is
+// base ∧ pred) through the identity Set(Species) guide below; the earlier
+// Comprehension-specific guide stored only pred and dropped the base (#948).
 
 // Enforce ETCS compliance also here:
 static_assert(
