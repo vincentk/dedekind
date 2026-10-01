@@ -723,22 +723,9 @@ class Set {
   // Store the predicate as a concrete type, not a std::function
   constexpr Set(Predicate p) : predicate_(std::move(p)) {}
 
-  /** @brief Construct from a comprehension value (@c Set{scout | pred}).
-   *  @deprecated The paper-aligned grammar is the bare comprehension
-   *  @c scout|pred, with no @c Set{...} wrapper.  As of #895 the bare
-   *  @c Comprehension is an @c IsSubobject, so it carries the full
-   *  set-complement surface --- @c ~(scout|pred) is the set complement (the
-   *  reducer's @c Not node), and meet / join apply via @c IsSubobject.  So this
-   *  wrapping
-   *  constructor no longer adds any capability; it stays ONLY to keep the
-   *  ~90 live @c Set{scout|pred} call sites compiling until they migrate to the
-   *  bare grammar (PR B of #895).  This is a soft (documentation) deprecation
-   *  only: a hard @c [[deprecated]] would break those call sites under
-   *  @c -Werror before the migration. */
-  // FIXME(#948): stores the predicate only, dropping the comprehension's base;
-  // membership becomes P(x) rather than base(x) ∧ P(x).  Sound for universal
-  // ambient bases (base(x) ≡ ⊤); wrong for non-universal bases.
-
+  /** @brief χ at @c v: the stored predicate's answer lifted into @c L::Ω.
+   *  @param v a carrier value.
+   *  @return membership in @c L::Ω (@c lift_logic<L>). */
   constexpr auto operator()(const T& v) const {
     return dedekind::category::lift_logic<L>(predicate_(v));
   }
@@ -1654,18 +1641,6 @@ template <typename Species>
 using wrapped_logic_t = set_logic_t<typename wrap_carrier<Species>::type,
                                     Species, typename Species::Domain>;
 
-/** @brief The point-free comprehension @c A|pred (deprecated scout spelling
- *  @c element<A>|pred): codomain derived from the whole comprehension's return
- *  per @ref expressions__Set_Codomain_Reconciliation.
- *  @tparam B the comprehension's base (carrier axis + logic species);
- *  @tparam P the wrapped predicate.
- *  FIXME(#948): the wrap stores @c P only (the converting ctor drops @c B), so
- *  a NON-universal base's membership is lost; harmless for universal ambient
- *  bases (@c base(x) ≡ ⊤), general fix tracked separately. */
-// Set{Comprehension{base, pred}} wraps the WHOLE comprehension (its χ is
-// base ∧ pred) through the identity Set(Species) guide below; the earlier
-// Comprehension-specific guide stored only pred and dropped the base (#948).
-
 // Enforce ETCS compliance also here:
 static_assert(
     IsSet<decltype(ambient_set<int>(Set<int, Boole, UniversalPredicate<int>>{
@@ -1682,7 +1657,11 @@ static_assert(
 /** @section expressions__Identity_CTAD
  *  Bare set-node wrap; shares the codomain reconciliation of @ref
  *  expressions__Set_Codomain_Reconciliation with the comprehension / scout
- *  guides above. */
+ *  guides above.  *  @note @c Set{Comprehension{base, pred}} takes this guide
+ * too and wraps the WHOLE comprehension (its χ is @c base ∧ @c pred); the
+ * earlier Comprehension-specific guide stored only @c pred and dropped the base
+ * (#948).
+ */
 template <typename Species>
   requires CoherentSetWrap<Species>
 Set(Species)

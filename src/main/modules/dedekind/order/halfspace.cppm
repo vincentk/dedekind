@@ -1494,19 +1494,30 @@ struct ProductRestrict {
   }
 };
 
-// 𝔸<A×B> | relPred  →  the relation as an IsSet on A × B.  The @b universal
-// product carries no factor restriction, so the relation's membership @b is
-// the rel-predicate: the pure product universe refined to a subobject.
+/** @brief @c 𝔸<A×B> @c | @c relPred --- the relation as a set object on
+ *  @c A×B.  The universal product carries no factor restriction, so the
+ *  relation's membership @b is the rel-predicate: the pure product universe
+ *  refined to a subobject.
+ *  @tparam T1,T2 the factor carriers; @tparam L the logic; @tparam C the
+ *  product's cardinality class; @tparam RP the rel-predicate.
+ *  @param rp the rel-predicate on pairs.
+ *  @return @c Set<pair<T1,T2>, L, RP>. */
 export template <typename T1, typename T2, typename L, typename C,
                  IsRelPredicate RP>
 constexpr auto operator|(const Universe<std::pair<T1, T2>, L, C>&, RP rp) {
   return Set<std::pair<T1, T2>, L, RP>{rp};
 }
 
-// product | relPred  →  the relation as an IsSet on A × B, keeping the
-// product's own membership (so a restricted product bounds the relation).
-// Generic over any set object on a pair carrier (a Set<pair,…>, a lattice node,
-// a comprehension): the restricted χ datum is the product's CLASSIFIER leg.
+/** @brief @c product @c | @c relPred --- the relation as a set object on
+ *  @c A×B, keeping the product's own membership (so a restricted product
+ *  bounds the relation).
+ *  @details Generic over any set object on a pair carrier (a @c Set<pair,…>, a
+ *  lattice node, a comprehension): the restricted χ datum is the product's
+ *  @b classifier leg --- @c P for a @c Set, the node itself for a node.
+ *  @tparam S an @c IsSetObject whose @c Domain is a pair; @tparam RP the
+ *  rel-predicate.
+ *  @param prod the product set object; @param rp the rel-predicate on pairs.
+ *  @return @c Set<Domain, L, ProductRestrict<classifier, RP>>. */
 export template <typename S, IsRelPredicate RP>
   requires dedekind::sets::IsSetObject<S> &&
            requires { typename S::Domain::first_type; }

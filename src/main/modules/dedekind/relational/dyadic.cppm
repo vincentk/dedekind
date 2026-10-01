@@ -301,10 +301,14 @@ struct SwapPred {
 };
 
 /** @brief @c converse(R) --- the transpose @f$R^\smile \subseteq B \times A@f$
- *  of a relation @f$R \subseteq A \times B@f$ (Tarski's @f$R^\smile@f$). */
-//  Generic over any set object on a pair carrier (a Set<pair,…>, a lattice
-//  node over relations, a comprehension): the transposed χ datum is the
-//  relation's CLASSIFIER leg --- P for a Set, the node itself for a node.
+ *  of a relation @f$R \subseteq A \times B@f$ (Tarski's @f$R^\smile@f$).
+ *  @details Generic over any set object on a pair carrier (a @c Set<pair,…>, a
+ *  lattice node over relations, a comprehension): the transposed χ datum is
+ *  the relation's @b classifier leg --- @c P for a @c Set, the node itself for
+ *  a node.
+ *  @tparam R an @c IsSetObject whose @c Domain is a pair @c A×B.
+ *  @param r the relation.
+ *  @return the relation @c Set<pair<B,A>, L, SwapPred<classifier>>. */
 export template <typename R>
   requires dedekind::sets::IsSetObject<R> &&
            requires { typename R::Domain::first_type; }
