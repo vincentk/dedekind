@@ -1012,7 +1012,7 @@ static_assert((ℕ | (π > fix(5_c))).pivot == 5, "…with pivot value 5.");
 static_assert(
     std::same_as<decltype(𝔹 | (π == fix(true_c))), Singleton<bool, Boole>>,
     "𝔹 | π == fix(true_c) is a Singleton<bool>, spelled point-free.");
-static_assert((𝔹 | (π == fix(true_c))).value == true,
+static_assert((𝔹 | (π == fix(true_c))).pivot == true,
               "…and its pivot value is true (the point {true}).");
 static_assert(static_cast<bool>((𝔹 | (π == fix(true_c)))(true)),
               "true ∈ {true}.");
