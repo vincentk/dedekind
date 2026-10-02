@@ -366,6 +366,46 @@ concept IsSubobject = IsCharacteristic<S> && std::same_as<Dom<S>, A> &&
                       };
 
 /**
+ * @concept IsLSet
+ * @brief An @b L-set (Goguen 1967): a subobject of a regular carrier whose
+ *        characteristic map lands in a @b named bounded chain @f$L@f$ ---
+ *        @f$\chi : X \to L@f$, with @c Codomain @c = @c L::Ω.
+ *
+ * @details This is the general noun the set layers specialise.  At
+ *          @f$L = \mathbb{B}@f$ it is Lawvere's @c Set and @ref IsSet (the
+ *          ETCS axioms: NNO, choice, well-pointedness) refines it; for a
+ *          longer chain it is an object of the @b presheaf @b topos on the
+ *          chain --- Kleene's @f$K_3@f$ gives the Sierpiński topos, whose
+ *          Sierpiński object is Rosolini's dominance @f$\Sigma@f$ --- which
+ *          is @b not well-pointed and has no choice.  The paper's
+ *          @f$\mathbf{Lwv}@f$ set (Definition Lwv) is exactly this concept;
+ *          @c sets::IsSetObject adds the representation (the universe and
+ *          classifier legs, the structural reading of lattice nodes); the
+ *          types that satisfy it live downstream in @c sets and @c order.
+ */
+export template <typename S>
+concept IsLSet =
+    std::regular<typename S::Domain> && IsSubobject<S, typename S::Domain> &&
+    requires { typename S::logic_species; } &&
+    std::same_as<typename S::Codomain, typename S::logic_species::Ω> &&
+    IsPst<typename S::logic_species::Ω>;
+
+/**
+ * @concept IsFiniteLSet
+ * @brief The @b Pst fragment: an L-set whose carrier is itself a finite
+ *        bounded chain (products of chains follow with @c IsProduct).
+ *
+ * @details Both domain and codomain finite makes χ a finite table, so
+ *          normalisation by evaluation is @b complete: two such sets are equal
+ *          iff their tables agree, and the normal form is the family of
+ *          α-cuts @f$\{x \mid \chi(x) \ge \ell\}@f$, one run-list per level
+ *          of @f$L@f$.  Everything is decidable here; the only "unknown" is a
+ *          representation not yet normalised.
+ */
+export template <typename S>
+concept IsFiniteLSet = IsLSet<S> && IsPst<typename S::Domain>;
+
+/**
  * @brief The Subobject Species S ↣ A.
  * @details Represents a subset of the ambient species A, defined by the
  * characteristic morphism χ: A ⟶ Ω.

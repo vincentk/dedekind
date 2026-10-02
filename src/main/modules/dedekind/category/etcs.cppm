@@ -407,7 +407,7 @@ concept HasETCSAxioms =
  * defensive rather than load-bearing.
  */
 export template <typename A>
-concept IsSet = std::regular<typename A::Domain> && HasETCSAxioms<A> &&
+concept IsSet = IsLSet<A> && HasETCSAxioms<A> &&
                 IsCartesianClosed<CanonicalSetCCC<typename A::Domain>>;
 
 /**
