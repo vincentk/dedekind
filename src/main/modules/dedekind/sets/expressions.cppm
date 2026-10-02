@@ -744,16 +744,16 @@ constexpr auto universe(const Comprehension<Base, Predicate>& c) {
 // leg applies) and the predicate P as its χ datum --- the very object
 // `operator&` hands to `structured_and`, so the leg names what the reducer
 // already reads.
-export template <typename T, typename L, typename P, typename C, typename CU>
+export template <typename T, typename L, typename P, typename C>
 constexpr const P& classifier(const Comprehension<𝔸<T, L, C>, P>& s) {
   return s.predicate;
 }
 
 static_assert(
-    std::same_as<universe_t<Comprehension<𝔸<int, dedekind::category::Boole, CU>,
+    std::same_as<universe_t<Comprehension<𝔸<int, dedekind::category::Boole>,
                                           UniversalPredicate<int>>>,
                  𝔸<int>>,
-    "the implicit universe of Set<int> is 𝔸<int>.");
+    "the universe of a comprehension over 𝔸<int> is 𝔸<int>.");
 static_assert(IsSetObject<Comprehension<𝔸<int>, UniversalPredicate<int>>>,
               "a comprehension is a set object.");
 static_assert(
@@ -1606,11 +1606,35 @@ constexpr auto cartesian_product(const Comprehension<𝔸<T1, L1, C1>, P1>& a,
   return Comprehension<𝔸<Pair, L1>, Pred>{Pred{a, b}};
 }
 
+/** @brief @f$\mathbb{A}_A \times \mathbb{A}_B = \mathbb{A}_{A\times B}@f$: the
+ *  product of two universes is the universe over the pair carrier (codomain leg
+ *  #894: a universe is decided, so the result stays in the left species). */
+export template <typename A, typename LA, typename CA, typename B, typename LB,
+                 typename CB>
+  requires std::same_as<LA, LB>
+constexpr auto cartesian_product(const 𝔸<A, LA, CA>&, const 𝔸<B, LB, CB>&) {
+  using CC = typename product_cardinality<CA, CB>::type;
+  return finalize_combine(𝔸<std::pair<A, B>, LA, CC>{});
+}
+
+/** @brief A set object as a PLAIN set over its universe: itself when it already
+ *  is one (@c PlainSet), else @c {x ∈ universe(s) | s(x)} --- the comprehension
+ *  whose species is the join of the universe's and the operand's answer.  The
+ *  normalisation the generic product and its species reconciliation rest on. */
+template <IsSetObject S>
+constexpr auto plain_over_universe(const S& s) {
+  if constexpr (PlainSet<S>) {
+    return s;
+  } else {
+    return Comprehension{universe(s), s};
+  }
+}
+
 /**
- * @brief Cartesian product over ambient species values.
+ * @brief Cartesian product over arbitrary set objects.
  *
- * Lifts each ambient species to its full carrier set and delegates to the
- * Set×Set cartesian product.
+ * Normalises each operand to a plain set over its universe, reconciles the
+ * species at the join, and delegates to the plain × plain product.
  */
 export template <typename A, typename B>
   requires requires {
@@ -1621,20 +1645,13 @@ export template <typename A, typename B>
   } && std::same_as<typename NaturalLogic<std::remove_cvref_t<A>>::type,
                     typename NaturalLogic<std::remove_cvref_t<B>>::type>
 constexpr auto cartesian_product(const A& a, const B& b) {
-  // Materialise BOTH operands to a concrete @c Set (the identity @c
-  // Set(Species) CTAD accepts a bare ambient AND re-wraps an already-@c Set
-  // operand) and delegate to the @c Set x @c Set overload.  This normalisation
-  // is load- bearing: it TERMINATES the generic dispatch.  Spelling @c a @c *
-  // @c b here instead would recurse on a mixed @c 𝔸 x @c Set pair
-  // (no
-  // @c operator*(Universe, Set), so it re-enters this generic).
-  const auto& left = a;
-  const auto& right = b;
-  // The wrapped species may differ even when the raw operands' carrier-axis
-  // reading agreed (a node over 𝔸<int> wraps Boole, one over 𝔸<double, ℶ_1>
-  // wraps Kleene): reconcile at the JOIN before delegating, lifting only the
-  // lower side, so the same-logic Set × Set overload always matches and this
-  // generic never re-enters itself.
+  // Normalise BOTH operands to plain sets over their universes; this is what
+  // TERMINATES the generic dispatch (the plain × plain overload matches).  The
+  // species may differ (a node over 𝔸<int> is Boole, one over 𝔸<double,
+  // Kleene, ℶ_1> is Kleene): reconcile at the JOIN first, lifting only the
+  // lower side, and re-plain the lifted operand.
+  const auto left = plain_over_universe(a);
+  const auto right = plain_over_universe(b);
   using LL = typename std::remove_cvref_t<decltype(left)>::logic_species;
   using LR = typename std::remove_cvref_t<decltype(right)>::logic_species;
   if constexpr (std::same_as<LL, LR>) {
@@ -1642,9 +1659,9 @@ constexpr auto cartesian_product(const A& a, const B& b) {
   } else {
     using L = join_logic_t<LL, LR>;
     if constexpr (std::same_as<LL, L>)
-      return cartesian_product(left, lift_to<L>(right));
+      return cartesian_product(left, plain_over_universe(lift_to<L>(right)));
     else
-      return cartesian_product(lift_to<L>(left), right);
+      return cartesian_product(plain_over_universe(lift_to<L>(left)), right);
   }
 }
 
@@ -1694,10 +1711,8 @@ struct product_cardinality<ℵ<M>, ℵ<N>> {
 export template <typename A, typename LA, typename CA, typename B, typename LB,
                  typename CB>
   requires std::same_as<LA, LB>
-constexpr auto operator*(const 𝔸<A, LA, CA>&, const 𝔸<B, LB, CB>&) {
-  using CC = typename product_cardinality<CA, CB>::type;
-  // 𝔸 × 𝔸 = 𝔸<pair>.  Codomain leg (#894): the universe is decided → Boole.
-  return finalize_combine(𝔸<std::pair<A, B>, LA, CC>{});
+constexpr auto operator*(const 𝔸<A, LA, CA>& a, const 𝔸<B, LB, CB>& b) {
+  return cartesian_product(a, b);
 }
 
 /** @brief Infix sugar for cartesian product over sets. */
@@ -1734,19 +1749,19 @@ static_assert(
 // The product of two set objects is a set object (today's witness) ...
 static_assert(IsSetObject<CanonicalIntProductSet>,
               "A × B is a set object over the pair carrier.");
-// Mixed-carrier nodes: the complements of a countable and an uncountable
-// universe wrap as Boole and Kleene; the product reconciles at the join
+// Mixed-species nodes: the complement of a Boole universe and of a Kleene one
+// (the continuum universes carry Kleene); the product reconciles at the join
 // (Kleene) instead of re-entering the generic overload.
 static_assert(
     std::same_as<typename std::remove_cvref_t<decltype(cartesian_product(
                      Not<𝔸<int>>{𝔸<int>{}},
-                     Not<𝔸<double, Boole, ℶ_1>>{
-                         𝔸<double, Boole, ℶ_1>{}}))>::logic_species,
+                     Not<𝔸<double, Kleene, ℶ_1>>{
+                         𝔸<double, Kleene, ℶ_1>{}}))>::logic_species,
                  Kleene>,
     "a Boole × Kleene product lands in the join species.");
 static_assert(cartesian_product(Not<𝔸<int>>{𝔸<int>{}},
-                                Not<𝔸<double, Boole, ℶ_1>>{
-                                    𝔸<double, Boole, ℶ_1>{}})(std::pair{
+                                Not<𝔸<double, Kleene, ℶ_1>>{
+                                    𝔸<double, Kleene, ℶ_1>{}})(std::pair{
                   0, 0.0}) == Ternary::False,
               "(0, 0.0) ∉ ¬𝔸 × ¬𝔸: both complements are empty.");
 // FIXME(#970): ... and SHOULD be the categorical product OF THE FACTORS, not
