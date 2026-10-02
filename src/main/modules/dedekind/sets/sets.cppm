@@ -39,7 +39,7 @@ module;
 #include <concepts>     // std::convertible_to
 #include <type_traits>  // std::remove_cvref_t (HasSetSurface decays cv/ref)
 #include <utility>  // std::pair's operator== must be reachable here: the set-algebra
-    // witnesses evaluate std::regular<std::pair<…>> in THIS unit
+// witnesses evaluate std::regular<std::pair<…>> in THIS unit
 
 export module dedekind.sets;
 
