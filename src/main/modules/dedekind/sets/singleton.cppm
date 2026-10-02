@@ -101,14 +101,15 @@ struct Singleton : SetExpr<Singleton<T, L>, T, L> {
   constexpr typename L::Ω operator()(const T& v) const {
     return (v == pivot) ? L::True : L::False;
   }
-  /** @brief Heterogeneous membership: a carrier value of another comparable
-   *  type @c U (the variant proxies @c Cardinality / @c SignedCardinality
-   *  against an @c int point, #423/#425) through the cross-type @c ==. */
+  /** @brief Heterogeneous membership: a value of another type @c U that is
+   *  NOT convertible to @c T but has a cross-type @c == with it (the variant
+   *  proxies @c Cardinality / @c SignedCardinality against an @c int point,
+   *  #423/#425).  Convertible arguments (an @c int literal against a
+   *  @c size_t point) take the @c T overload above. */
   template <typename U>
-    requires(!std::same_as<std::remove_cvref_t<U>, T>) &&
-            requires(const U& x, const T& v) {
-              { x == v } -> std::convertible_to<bool>;
-            }
+    requires(!std::convertible_to<U, T>) && requires(const U& x, const T& v) {
+      { x == v } -> std::convertible_to<bool>;
+    }
   constexpr typename L::Ω operator()(const U& x) const {
     return (x == pivot) ? L::True : L::False;
   }
