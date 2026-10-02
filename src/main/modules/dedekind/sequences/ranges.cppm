@@ -46,46 +46,35 @@ import dedekind.category;
 import dedekind.order; // Interval / Halfspace — the halfspace→iota_view
                        // bridge for #703 Slice 1
 import dedekind.sets;
-import dedekind.topology;
 import :net;
 import :path;
 
 namespace dedekind::sequences {
 using namespace dedekind::category;
-using namespace dedekind::topology;
 
 /**
- * @section ranges__Halfspace_To_Iota_View_Bridge (#703 Slices 1–2)
+ * @section ranges__Halfspace_To_Iota_View_Bridge
  *
- * @brief The halfspace ↔ iota_view isomorphism — typed @c Interval
- *        ↔ runtime-bounded @c std::ranges::iota_view, witnessed at the
- *        value level by a round-trip.
+ * @brief The interval ↔ iota_view bridge: order's value-carrying
+ *        @c Interval<T,SL,SU,L> @c = @c Meet<Halfspace↑, Halfspace↓> read as
+ *        the half-open @c std::ranges::iota_view @c [start, @c bound), and
+ *        back, as a total inverse.
  *
- * @details An @c order::Interval<T, Lo, Hi, SL, SU> is the meet of two
- * opposing halfspaces — a typed-Δ⁰₁ predicate.  @c std::ranges::iota_view
- * is its range view: the same set of integers, accessed as a view rather
- * than as a predicate.  The pair @c (to_iota_view, from_iota_view)
- * normalises the four (SL, SU) strictness combinations to iota_view's
- * canonical @c [start, bound) shape:
+ * @details The interval's endpoints are @b values (the pivots of its two
+ * halfspaces); the strictness pair @c (SL, SU) is the only thing in the type.
+ * @c to_iota_view normalises the four strictness combinations to iota_view's
+ * canonical shape through the NNO step:
  *
- *   - lower @c Strict     ⇒ @c start = Lo + 1   (predicate @c x > Lo)
- *   - lower @c NonStrict  ⇒ @c start = Lo       (predicate @c x ≥ Lo)
- *   - upper @c Strict     ⇒ @c bound = Hi       (predicate @c x < Hi)
- *   - upper @c NonStrict  ⇒ @c bound = Hi + 1   (predicate @c x ≤ Hi)
+ *   - lower @c Strict     ⇒ @c start = succ(lo)   (predicate @c x > lo)
+ *   - lower @c NonStrict  ⇒ @c start = lo         (predicate @c x ≥ lo)
+ *   - upper @c Strict     ⇒ @c bound = hi         (predicate @c x < hi)
+ *   - upper @c NonStrict  ⇒ @c bound = succ(hi)   (predicate @c x ≤ hi)
  *
- * The iso is @b value-level: it relates the singleton @c OI{} to a
- * specific @c iota_view value, not the @c Interval @b type to the
- * @c iota_view @b type.  @c Interval's bounds are template
- * parameters and @c iota_view's are runtime data, so @c from_iota_view
- * must be told the target type and verifies the runtime bounds match
- * what @c to_iota_view would produce — returning @c std::optional<OI>
- * (Honest-Rejection on mismatch).  The round-trip
- * @c from_iota_view<OI>(to_iota_view(OI{})) is the iso witness, pinned
- * by @c static_assert below.  A heavier categorical @c IsIsomorphism
- * reification (arrows-as-structs with @c inverse()) is intentionally
- * not done: it would over-claim a type-level iso, which the
- * typed/runtime asymmetry forbids.  Slice 3+: @c iota_view as a
- * Form-chain object (subobject-of-ambient lattice shape).
+ * and @c from_iota_view<SL,SU> undoes the offsets and constructs the interval
+ * directly with @c make_interval --- total, no rejection path: every half-open
+ * @c [start, @c bound) is an interval (the empty view is the empty interval,
+ * which @c is_empty reports).  Both directions are @c constexpr and the
+ * round-trip is witnessed as values in @c sequences/halfspace_to_iota_test.
  */
 namespace detail {
 

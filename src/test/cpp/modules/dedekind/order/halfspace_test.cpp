@@ -1,9 +1,10 @@
 /** @file dedekind/order/halfspace_test.cpp
  *
- * Unit coverage for the NTTP halfspace DSL introduced in PR #361:
- * `bound<V>`, `Halfspace<T, Pivot, D, S, L>`, `Interval<T, Lo, Hi, ...>`,
- * `Singleton<auto Value, L>`, `IntervalProduct<A, B>`, and the `structured_and`
- * overloads that dispatch between them.
+ * Unit coverage for the value-carrying halfspace DSL: `Halfspace<T, D, S, L>`
+ * with its pivot as a value, `Singleton<T, L>{v}`, `Interval<T, SL, SU, L>`
+ * (= `Meet<Halfspace↑, Halfspace↓>`, built by `make_interval`),
+ * `IntervalProduct<A, B>`, and the `structured_and` overloads that fold them
+ * value-first (`reduce_meet` / `SetVal`).
  *
  * Each SECTION exercises one structural branch independently of the Set
  * wrapper; end-to-end Set-level behaviour is covered by the IR showcases.

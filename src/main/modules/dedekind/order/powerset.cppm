@@ -34,15 +34,12 @@
  * The @b enabler here is an @b ordered carrier, not intervals: @c Sub becomes a
  * decidable @c std::regular normal form precisely because @c C is totally
  * ordered, and membership @f$X \subseteq S@f$ @b is the subset order (@c
- * :inclusion).  So the home is @c order, where that order lives --- @b not
- * @c topology (whose @c Interval is about the continuum / neighbourhoods).  @c
- * Sub has @b no topology dependency: it coerces in only the @c :sets boundaries
- * (@c Ø / @c 𝔸) and the @c order NTTP-pivot families (@c Singleton / @c
- * Halfspace / @c Interval).  Being upstream, this reaches every downstream
- * layer (topology included).  (The earlier @c order::Interval name collided
- * with
- * @c topology::Interval; renaming to @c Sub removed that, so the placement is
- * decided on structure, not on avoiding a clash.)
+ * :inclusion).  So the home is @c order, where that order lives.  @c Sub is
+ * the order-level normal form of a convex subset --- it coerces in the
+ * @c :sets boundaries (@c Ø / @c 𝔸) and the value-carrying @c order shapes
+ * (@c Singleton / @c Halfspace / @c Interval), reading their pivots as its two
+ * bounds --- and it has no topology dependency; being upstream, it reaches
+ * every downstream layer (topology's readers included).
  *
  * @build_order (order layer)
  * @dependency :category, :sets, :total, :halfspace, :inclusion
