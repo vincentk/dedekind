@@ -407,8 +407,9 @@ concept HasETCSAxioms =
  * defensive rather than load-bearing.
  */
 export template <typename A>
-concept IsSet = IsLSet<A> && HasETCSAxioms<A> &&
-                IsCartesianClosed<CanonicalSetCCC<typename A::Domain>>;
+concept IsSet =
+    IsLSet<A> && std::same_as<typename A::logic_species, Boole> &&  // Ω = 𝔹
+    HasETCSAxioms<A> && IsCartesianClosed<CanonicalSetCCC<typename A::Domain>>;
 
 // IsSet is a TOTAL predicate (#779): on a carrier that is not std::regular the
 // conjunction fails at IsLSet first, so the ETCS axioms --- whose subobject

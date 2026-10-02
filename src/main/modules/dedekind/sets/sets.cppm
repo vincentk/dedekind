@@ -147,7 +147,7 @@ concept HasCardinalityInterface = requires(const S& s) {
  *           sub-concepts above — composed at use sites rather than
  *           bundled here. */
 export template <typename S>
-concept HasSetSurface = dedekind::category::IsSet<std::remove_cvref_t<S>>;
+concept HasSetSurface = dedekind::category::IsLSet<std::remove_cvref_t<S>>;
 
 /** @section sets__User_Facing_Surface_Witnesses
  *  @details Canonical green witnesses pinning the master concept +

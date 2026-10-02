@@ -174,5 +174,5 @@ concept HasDecidableMembership = requires {
  *      https://github.com/vincentk/dedekind/issues/267#issuecomment-5711242416
  */
 export template <typename S>
-concept IsDecidableSet = IsSet<S> && HasDecidableMembership<S>;
+concept IsDecidableSet = IsLSet<S> && HasDecidableMembership<S>;
 }  // namespace dedekind::sets

@@ -181,8 +181,8 @@ concept IsAlgebra = std::regular<T> && IsClosedAlgebra<T, Ops...>;
  * @tparam Ops  The family of operations on @c X::Domain.
  */
 export template <typename X, typename... Ops>
-concept IsAlgebraOnSet =
-    dedekind::category::IsSet<X> && IsClosedAlgebra<typename X::Domain, Ops...>;
+concept IsAlgebraOnSet = dedekind::category::IsLSet<X> &&
+                         IsClosedAlgebra<typename X::Domain, Ops...>;
 
 // ---------------------------------------------------------------------------
 // IsTotalAlgebra: the totality-tier anchor between :universal and :total

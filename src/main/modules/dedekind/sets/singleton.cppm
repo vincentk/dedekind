@@ -208,7 +208,7 @@ struct SingletonSet {
   // convertible to @c bool.  Cross-logic mereology would need an explicit
   // logic-embedding arrow; that's a follow-up.
   template <typename S>
-    requires IsSet<S> && std::same_as<typename S::logic_species, L>
+    requires IsLSet<S> && std::same_as<typename S::logic_species, L>
   constexpr typename L::Ω operator<=(const S& other) const {
     return other(pivot);
   }

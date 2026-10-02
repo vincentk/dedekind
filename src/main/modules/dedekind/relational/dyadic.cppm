@@ -333,7 +333,7 @@ constexpr auto converse(const R& r) {
 export template <typename S>
 consteval bool is_relation(const S&) {
   if constexpr (requires { typename S::Domain; })
-    return dedekind::category::IsSet<S> && IsPairLike<typename S::Domain>;
+    return dedekind::category::IsLSet<S> && IsPairLike<typename S::Domain>;
   else
     return false;  // no Domain: not a set, hence not a relation (total query)
 }
@@ -493,7 +493,7 @@ struct CoreflexivePred {
  * partial-identity operator.  FIXME(#873): the concrete @c coreflexive→Diagonal
  * bridge (needs the finite-carrier→dimension indexing). */
 export template <typename S>
-  requires dedekind::category::IsSet<S>
+  requires dedekind::category::IsLSet<S>
 constexpr auto diag(const S& s) {
   using A = typename S::Domain;
   using L = typename S::logic_species;

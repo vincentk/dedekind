@@ -182,8 +182,8 @@ constexpr auto set_difference(const Set<T, L, P1>& a, const Set<T, L, P2>& b) {
  * @f$\setminus@f$.
  */
 export template <typename A, typename B>
-  requires dedekind::category::IsSet<std::remove_cvref_t<A>> &&
-           dedekind::category::IsSet<std::remove_cvref_t<B>> &&
+  requires dedekind::category::IsLSet<std::remove_cvref_t<A>> &&
+           dedekind::category::IsLSet<std::remove_cvref_t<B>> &&
            requires(const A& a, const B& b) { a & ~b; }
 constexpr auto operator-(const A& a, const B& b) {
   return a & ~b;

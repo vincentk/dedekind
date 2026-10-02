@@ -121,7 +121,7 @@ concept IsExtensional = requires(const S& s) {
 export template <typename S, typename L = Boole>
 concept IsEnumerated = IsExtensional<S> && requires(const S s) {
   typename S::Domain;
-  requires dedekind::category::IsSet<
+  requires dedekind::category::IsLSet<
       decltype(dedekind::category::ambient_set<typename S::Domain>(s))>;
 
   /** @section mereology__Magnitude: The Physical Proof */

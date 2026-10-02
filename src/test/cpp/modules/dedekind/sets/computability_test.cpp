@@ -87,7 +87,8 @@ TEST_CASE("sets:computability — IsDecidableSet: Σ-set vs Ω-set (#846)",
     STATIC_CHECK(IsDecidableSet<decltype(𝔸<bool>)>);
   }
   SECTION("Ω-set: same carrier, Ternary ambient — IsSet but not decidable") {
-    STATIC_CHECK(IsSet<decltype(𝔸<bool, Kleene>)>);
+    STATIC_CHECK(
+        IsLSet<decltype(𝔸<bool, Kleene>)>);  // an L-set, not ETCS (Ω ≠ 𝔹)
     STATIC_CHECK_FALSE(HasDecidableMembership<decltype(𝔸<bool, Kleene>)>);
     STATIC_CHECK_FALSE(IsDecidableSet<decltype(𝔸<bool, Kleene>)>);
   }

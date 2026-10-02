@@ -160,7 +160,7 @@ struct Ø final {
   // (i) a set-like operand exposing size(): empty iff 0 == size().  Fires for a
   //     Singleton at COMPILE time and for an extensional carrier at RUN time.
   template <typename S>
-    requires(IsSet<S> || std::ranges::range<S>) && (!std::same_as<S, Ø>) &&
+    requires(IsLSet<S> || std::ranges::range<S>) && (!std::same_as<S, Ø>) &&
             requires(const S& s) {
               { s.size() } -> std::convertible_to<std::size_t>;
             }
@@ -205,7 +205,7 @@ struct Ø final {
 
   // Ø ^ S = S  (∅ △ S = S; #469)
   template <typename S>
-    requires(IsSet<S>)
+    requires(IsLSet<S>)
   constexpr auto operator^(const S& s) const {
     return s;
   }
@@ -215,7 +215,7 @@ struct Ø final {
    *         type; the codomain is Boolean (an empty product is decided, #894).
    */
   template <typename S>
-    requires(IsSet<S>)
+    requires(IsLSet<S>)
   constexpr auto operator*(const S&) const {
     // Codomain leg (#894): an empty product is decided (χ ≡ ⊥), so it carries
     // the Boolean codomain.  Inlined here because this op is upstream of
@@ -232,7 +232,7 @@ inline const Ø<T, L> Ø<T, L>::χ{};
  *         @c Ø::operator*; carrier widens to the pair type, codomain Boolean
  *         (an empty product is decided, #894). */
 export template <typename S, typename T2, typename L>
-  requires(IsSet<S> && !std::same_as<S, Ø<typename S::Domain, L>>)
+  requires(IsLSet<S> && !std::same_as<S, Ø<typename S::Domain, L>>)
 constexpr auto operator*(const S&, const Ø<T2, L>&) {
   // Codomain leg (#894): an empty product is decided, so Boolean codomain.
   return Ø<std::pair<typename S::Domain, T2>, Boole>{};
@@ -441,7 +441,9 @@ constexpr auto π_2(const Universe<std::pair<A, B>, L, C>&) {
 // Boolean ones are ETCS sets; the ones on a finite chain carrier are Pst.
 static_assert(IsLSet<Ø<int>> && IsLSet<Universe<int, Kleene>>,
               "Ø and 𝔸 are L-sets for every logic species.");
-static_assert(IsSet<Ø<int>>, "a Boolean boundary object is an ETCS set.");
+static_assert(IsSet<Ø<int>> && !IsSet<Universe<int, Kleene>>,
+              "only a Boolean boundary object is an ETCS set: a Kleene-valued "
+              "one lives in the Sierpiński topos, which is not well-pointed.");
 static_assert(IsFiniteLSet<Ø<bool>> && !IsFiniteLSet<Ø<Cardinality>>,
               "bool is a finite chain carrier (Pst); ℕ is not.");
 static_assert(IsUniverse<Universe<int>> && !IsUniverse<Ø<int>>,
@@ -670,7 +672,7 @@ constexpr auto subobject_reduce(const Node& node) {
  *  meeting / joining any set.  Free operators (the Ø-LHS members were retired);
  *  overload resolution pins them by the @c Ø operand. */
 export template <typename T, typename L, typename S>
-  requires(IsSet<S> && std::same_as<typename S::Domain, T>)
+  requires(IsLSet<S> && std::same_as<typename S::Domain, T>)
 constexpr auto operator&(const Ø<T, L>&, const S& s) {
   // Codomain leg (#894): wrap the domain normal form so a boundary result is
   // re-tagged to Boole, matching the S-LHS path (S & Ø); otherwise the codomain
@@ -679,7 +681,7 @@ constexpr auto operator&(const Ø<T, L>&, const S& s) {
 }
 /** @brief @c Ø @c | @c S = @c S (⊥ is the join unit); see @c operator&. */
 export template <typename T, typename L, typename S>
-  requires(IsSet<S> && std::same_as<typename S::Domain, T>)
+  requires(IsLSet<S> && std::same_as<typename S::Domain, T>)
 constexpr auto operator|(const Ø<T, L>&, const S& s) {
   return subobject_reduce<L>(Join<Ø<T, L>, S>{Ø<T, L>{}, s});
 }
@@ -688,7 +690,7 @@ constexpr auto operator|(const Ø<T, L>&, const S& s) {
  *  meeting / joining any set.  Free operators (the Universe-LHS members
  * were retired); pinned by the @c Universe operand. */
 export template <typename T, typename L, typename C, typename S>
-  requires(IsSet<S> && std::same_as<typename S::Domain, T>)
+  requires(IsLSet<S> && std::same_as<typename S::Domain, T>)
 constexpr auto operator&(const Universe<T, L, C>&, const S& s) {
   return subobject_reduce<L>(
       Meet<Universe<T, L, C>, S>{Universe<T, L, C>{}, s});
@@ -696,7 +698,7 @@ constexpr auto operator&(const Universe<T, L, C>&, const S& s) {
 /** @brief @c 𝔸 @c | @c S = @c 𝔸 (⊤ is the join annihilator); see @c operator&.
  */
 export template <typename T, typename L, typename C, typename S>
-  requires(IsSet<S> && std::same_as<typename S::Domain, T>)
+  requires(IsLSet<S> && std::same_as<typename S::Domain, T>)
 constexpr auto operator|(const Universe<T, L, C>&, const S& s) {
   return subobject_reduce<L>(
       Join<Universe<T, L, C>, S>{Universe<T, L, C>{}, s});

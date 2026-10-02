@@ -313,7 +313,7 @@ export template <typename F, typename S>
            // power of two) would fall through here and pull S back through the
            // RELATION read as pair→bool, silently returning a set of pairs.
            // Exclude IsSet (a graph is IsSet; a Morphism arrow is not).
-           (!dedekind::category::IsSet<std::remove_cvref_t<F>>) &&
+           (!dedekind::category::IsLSet<std::remove_cvref_t<F>>) &&
            // (PreimagePredicate::operator() const invokes the stored arrow;
            // its const-invocability is now guaranteed by IsArrow itself, #822,
            // so no separate const-call guard is needed here.)
