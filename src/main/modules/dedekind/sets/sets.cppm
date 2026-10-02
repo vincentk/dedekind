@@ -102,30 +102,25 @@ concept HasMembershipOperator =
       { s(v) } -> std::convertible_to<typename S::logic_species::Ω>;
     };
 
-/** @brief Sub-concept: the set complement @c ~s is well-formed (@c ~ is the
- *  set-level complement, the reducer's @c Not node; @c ! is predicate
- *  negation, #963).
- *  @details Result type intentionally unconstrained at this slice
- *           (Sollbruchstelle); the structural claim @c
- * IsSetObject<decltype(~s)> is pinned where @c Not is defined. */
-export template <typename S>
-concept HasComplementOperator = requires(const S& s) {
-  { ~s };
-};
-
-/** @brief Sub-concept: lattice-of-sets surface — operations on PAIRS
- *         OF SETS (∪, ∩, △).
+/** @brief Sub-concept: the set-algebra surface, one concept so the operators
+ *  cannot diverge --- the lattice of sets on PAIRS (∪ @c |, ∩ @c &, △ @c ^),
+ *  the complement @c ~ (the reducer's @c Not node; @c ! is predicate negation,
+ *  #963) and the cartesian product @c *.
  *  @details Distinct from @c :order::HasLatticeOperators which acts on
- *           PAIRS OF ELEMENTS — different ontological layers, same
- *           lattice abstraction.  The axiomatic claim ("this IS a
- *           lattice of sets") lives upstream as
- *           @c :category:mereology::IsSetLattice<S, set_join, set_meet>;
- *           callers needing the axiomatic gate compose both. */
+ *           PAIRS OF ELEMENTS --- different ontological layers, same
+ *           lattice abstraction.  Result types are intentionally
+ *           unconstrained here (Sollbruchstelle): the structural claims
+ *           (@c IsSetObject<decltype(~s)>, the pair carrier of @c a*b) are
+ *           pinned where @c Not and @c cartesian_product are defined; the
+ *           axiomatic claim ("this IS a lattice of sets") lives upstream as
+ *           @c :category:mereology::IsSetLattice<S, set_join, set_meet>. */
 export template <typename S>
 concept HasSetOperators = requires(const S& a, const S& b) {
   { a | b };
   { a & b };
   { a ^ b };
+  { ~a };
+  { a * b };
 };
 
 /** @brief Sub-concept: @c s.cardinality() returns the carrier's
@@ -145,7 +140,7 @@ concept HasCardinalityInterface = requires(const S& s) {
  *           L-set's, not the ETCS specialisation's.  The superset is
  *           proper twice over (non-Boolean species, and reference- /
  *           cv-qualified spellings).  Granular DSL affordances (membership,
- *           complement, lattice ops, cardinality) are the @c Has*
+ *           set algebra, cardinality) are the @c Has*
  *           sub-concepts above — composed at use sites rather than
  *           bundled here. */
 export template <typename S>
@@ -160,7 +155,6 @@ concept HasSetSurface = dedekind::category::IsLSet<std::remove_cvref_t<S>>;
 namespace _user_facing_witnesses {
 using _S1 = Singleton<int, dedekind::category::Boole>;
 static_assert(HasMembershipOperator<_S1>);
-static_assert(HasComplementOperator<_S1>);
 static_assert(HasSetOperators<_S1>);
 static_assert(HasCardinalityInterface<_S1>);
 
