@@ -40,6 +40,7 @@
 module;
 #include <concepts>
 #include <functional>
+#include <type_traits>  // std::remove_cvref_t
 
 export module dedekind.topology:neighborhood;
 
@@ -138,9 +139,10 @@ inline constexpr bool is_order_closed_v<Not<A>> = is_order_open_v<A>;
  *          decides (@ref is_order_open_v).
  */
 export template <typename S>
-concept IsOpen = dedekind::category::IsPredicate<S> &&
-                 (dedekind::category::IsBoundaryObject<S> ||
-                  HasDiscreteCarrier<S> || is_order_open_v<S>);
+concept IsOpen =
+    dedekind::category::IsPredicate<S> &&
+    (dedekind::category::IsBoundaryObject<S> || HasDiscreteCarrier<S> ||
+     is_order_open_v<std::remove_cvref_t<S>>);  // decltype(x) may be const
 
 /**
  * @concept IsClosed
@@ -148,9 +150,10 @@ concept IsOpen = dedekind::category::IsPredicate<S> &&
  *        @b order topology.  Same three-leg inference as @ref IsOpen.
  */
 export template <typename S>
-concept IsClosed = dedekind::category::IsPredicate<S> &&
-                   (dedekind::category::IsBoundaryObject<S> ||
-                    HasDiscreteCarrier<S> || is_order_closed_v<S>);
+concept IsClosed =
+    dedekind::category::IsPredicate<S> &&
+    (dedekind::category::IsBoundaryObject<S> || HasDiscreteCarrier<S> ||
+     is_order_closed_v<std::remove_cvref_t<S>>);
 
 /**
  * @concept IsClopen
@@ -227,7 +230,8 @@ inline constexpr bool is_convex_v = false;
  * @brief A Set that satisfies the convexity theorem (no holes).
  */
 export template <typename S>
-concept IsConvex = dedekind::category::IsPredicate<S> && is_convex_v<S>;
+concept IsConvex =
+    dedekind::category::IsPredicate<S> && is_convex_v<std::remove_cvref_t<S>>;
 
 /**
  * @concept IsConvexMagmoid

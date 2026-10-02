@@ -8,9 +8,9 @@
  * live inside this library the neighborhood must obey the Lwv laws: it is a
  * subobject of its carrier (Member + ι + χ, the ETCS axioms) over a regular
  * carrier (the Jlt value-semantics half), with a decidable characteristic map
- * and no enumeration.  Since @c topology::Interval now inherits the @c SetExpr
- * ETCS surface while keeping its open tag, one open @c Interval is all of these
- * at once.
+ * and no enumeration.  Since order's interval @c Meet<H↑,H↓> is a set object
+ * with the @c SetExpr ETCS surface while keeping its open tag, one open @c
+ * Interval is all of these at once.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -56,7 +56,7 @@ TEST_CASE("a rational neighborhood is a topological neighborhood AND a Lwv set",
       "discrete, so open shapes are open-but-NOT-closed") {
     // This is the independence direction that int (discrete) CANNOT provide:
     // #905 makes every set on int clopen, so the "decidable but NOT clopen"
-    // witness the #904 shapes test used to place on Ray<int> must live on a
+    // witness the #904 shapes test used to place on an int ray must live on a
     // DENSE carrier.  ℚ is dense (!HasDiscreteCarrier), so its open shapes are
     // open, not closed, and hence not clopen: the real open ⊋ clopen.
     using namespace dedekind::topology;

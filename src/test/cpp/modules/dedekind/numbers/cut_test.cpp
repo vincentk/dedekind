@@ -1,7 +1,8 @@
 /** @file dedekind/numbers/cut_test.cpp
  *
  * @brief The decidable real interval @f$(-\sqrt2,\sqrt2)@f$ over the genuine
- * cut-real carrier @c Cut<>, hosted on the runtime-pivot @c topology::Interval.
+ * cut-real carrier @c Cut<>, hosted on order's value-carrying interval
+ * @c Meet<Halfspace↑, Halfspace↓> (@c make_interval).
  *
  * The load-bearing claim: a real interval whose bounds are @b irrational
  * (@f$\pm\sqrt2@f$) has @b decidable membership at every rational point, and
