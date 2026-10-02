@@ -1807,7 +1807,22 @@ constexpr auto cartesian_product(const A& a, const B& b) {
   // @c operator*(Universe, Set), so it re-enters this generic).
   const auto left = Set{a};
   const auto right = Set{b};
-  return cartesian_product(left, right);
+  // The wrapped species may differ even when the raw operands' carrier-axis
+  // reading agreed (a node over 𝔸<int> wraps Boole, one over 𝔸<double, ℶ_1>
+  // wraps Kleene): reconcile at the JOIN before delegating, lifting only the
+  // lower side, so the same-logic Set × Set overload always matches and this
+  // generic never re-enters itself.
+  using LL = typename std::remove_cvref_t<decltype(left)>::logic_species;
+  using LR = typename std::remove_cvref_t<decltype(right)>::logic_species;
+  if constexpr (std::same_as<LL, LR>) {
+    return cartesian_product(left, right);
+  } else {
+    using L = join_logic_t<LL, LR>;
+    if constexpr (std::same_as<LL, L>)
+      return cartesian_product(left, Set{lift_to<L>(right)});
+    else
+      return cartesian_product(Set{lift_to<L>(left)}, right);
+  }
 }
 
 /**
@@ -1897,6 +1912,21 @@ static_assert(
 // The product of two set objects is a set object (today's witness) ...
 static_assert(IsSetObject<CanonicalIntProductSet>,
               "A × B is a set object over the pair carrier.");
+// Mixed-carrier nodes: the complements of a countable and an uncountable
+// universe wrap as Boole and Kleene; the product reconciles at the join
+// (Kleene) instead of re-entering the generic overload.
+static_assert(
+    std::same_as<typename std::remove_cvref_t<decltype(cartesian_product(
+                     Not<Universe<int>>{Universe<int>{}},
+                     Not<Universe<double, Boole, ℶ_1>>{
+                         Universe<double, Boole, ℶ_1>{}}))>::logic_species,
+                 Kleene>,
+    "a Boole × Kleene product lands in the join species.");
+static_assert(cartesian_product(Not<Universe<int>>{Universe<int>{}},
+                                Not<Universe<double, Boole, ℶ_1>>{
+                                    Universe<double, Boole, ℶ_1>{}})(std::pair{
+                  0, 0.0}) == Ternary::False,
+              "(0, 0.0) ∉ ¬𝔸 × ¬𝔸: both complements are empty.");
 // FIXME(#970): ... and SHOULD be the categorical product OF THE FACTORS, not
 // only of their carriers: `IsProduct<decltype(A * B), A, B, MakeCartesian>`,
 // with π_1 / π_2 on the product SET returning the factor set objects (the
