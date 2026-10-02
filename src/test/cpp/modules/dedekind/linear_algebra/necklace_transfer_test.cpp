@@ -7,7 +7,7 @@ import dedekind.linear_algebra; // :transfer — inner_product, transfer_chain
 import dedekind.algebra;        // MaxPlus, MinPlus
 import dedekind.analysis;       // Dual — forward-mode AD carrier
 import dedekind.sequences;      // argmax over the branch interval (§3 filter)
-import dedekind.order;          // OrderInterval, Strictness
+import dedekind.order;          // Interval, Strictness
 import dedekind.category;       // Boole
 
 // The diamond necklace of showcase_13 as rank-1 transfers: the value is the

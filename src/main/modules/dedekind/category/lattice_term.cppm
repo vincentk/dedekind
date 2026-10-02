@@ -137,7 +137,7 @@ consteval bool lattice_definitely_less() {
  *  order-incomparable leaves stay a @c Meet / @c Join node.  A downstream
  *  carrier (e.g.\ @c sets) injects a @c Combine that computes the actual domain
  *  meet / join of two compatible leaves.  @c structured_and of two halfspaces
- *  yields an @c OrderInterval, say.  @c Combine returns @c law_inactive when no
+ *  yields an @c Interval, say.  @c Combine returns @c law_inactive when no
  *  domain combination applies.  This injected policy lets the reducer's
  *  incomparable-leaf residual fall through to the carrier's own `∧`/`∨`. */
 export struct no_leaf_combine {

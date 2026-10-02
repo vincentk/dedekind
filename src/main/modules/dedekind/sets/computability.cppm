@@ -125,6 +125,20 @@ struct NaturalLogic<Base, std::void_t<typename Base::cardinality_type>> {
  *          proper is the Σ = Ω case; a partial set is χ: A → Ω =
  * Kleene::Ω. See `category/logic.cppm` (lift_logic = the inclusion Σ ↪
  * Ω), #267, and #847 (the recognised-vs-actual sub-quadrant).
+ *
+ * @note This is the @b decidability (Sierpiński) topology's "clopen" --- the
+ *       Δ-reader of the decidability grade (Δ decidable / Σ semidecidable /
+ *       Π co-semidecidable), of which @c logic_species is the coarse
+ *       projection (Δ ↦ @c Boole, else @c Kleene).  It is deliberately @b not
+ *       @c dedekind::topology::IsClopen, which speaks the carrier's @b order
+ *       topology: an open ray on ℚ is decidable yet not order-closed.  On a
+ *       discrete carrier (@c dedekind::topology::HasDiscreteCarrier) every
+ *       subset is order-clopen, so there decidable @b implies order-clopen;
+ *       the converse fails for a Kleene-tagged set.
+ * @see dedekind::topology::IsClopen
+ * @see dedekind::topology::IsOpen
+ * @see dedekind::topology::IsClosed
+ * @see dedekind::topology::HasDiscreteCarrier
  */
 export template <typename S>
 concept HasDecidableMembership = requires {

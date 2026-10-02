@@ -1,40 +1,32 @@
 /**
  * @file dedekind/sequences/ranges.cppm
  * @partition :ranges
- * @brief The Integer Interval — A Serendipitous Bridge.
+ * @brief The bridge between order's intervals and std::ranges iota views, and
+ *        the bounded sets built on it.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @section ranges__Serendipity
- * For any integral type T, the integer interval [a, b) is simultaneously:
+ * @section ranges__Interval_as_Range
+ * An interval is @c order's @c Meet<Halfspace↑, Halfspace↓> --- two bounds,
+ * values, over a discrete chain.  This partition reads it as the half-open
+ * @c std::ranges::iota_view @c [start, @c bound) and back: @c to_iota_view
+ * normalises the strictness of the bounds through the NNO step, and
+ * @c from_iota_view is its total inverse.  Everything finite about a bounded
+ * set --- its @c size, its enumeration @c ext, @c argmax over a cost --- is
+ * derived from that reading rather than stored, so a set stays a predicate
+ * and the range is a view of it.
  *
- *   1. **A Sequence** (IsTerminalSet via as_sequence()):
- *      The injective enumeration f(i) = a + i, f: ℕ → T.
+ * Wikipedia: Interval (mathematics), Half-open interval, Range (computer
+ * programming)
  *
- *   2. **A Set with unique elements:**
- *      f is injective ⟹ no element appears twice (set axiom holds).
- *
- *   3. **A Convex Set** (IsConvex):
- *      x ∈ [a,b), y ∈ [a,b), x ≤ z ≤ y  ⟹  z ∈ [a,b).
- *      It is the integer analog of a topological interval.
- *
- * @details
- * IntegerInterval<T, Lower, Upper, L> reifies this triple nature within the
- * dedekind framework:
- *   - IsPredicate / IsConvex:      Domain = T, Codomain = Ω,
- *                                  operator()(T) → Ω.
- *   - IsCountableSet / IsTerminalSet: as_sequence() → Path<T>, size().
- *   - Uniqueness:                  formalized as a static_assert on
- *                                  injectivity of the sequence generator.
- *
- * The default boundary convention [lo, hi) mirrors std::ranges::iota_view
- * and standard C++ iterator practice.
- *
- * Wikipedia: Integer lattice, Convex set, Injective function
- *
- * @note "This procedure is the demonstration by recurrence."
- *       -- Henri Poincare, Science and Hypothesis (1901)
+ * @note "Die Zahlen sind freie Schöpfungen des menschlichen Geistes, sie dienen
+ *       als ein Mittel, um die Verschiedenheit der Dinge leichter und schärfer
+ *       aufzufassen."
+ *       -- Richard Dedekind, Was sind und was sollen die Zahlen?, Vorwort
+ * (1888) [Trans: "The numbers are free creations of the human mind; they serve
+ *       as a means of grasping the diversity of things more easily and more
+ *       sharply."]
  */
 module;
 
@@ -51,231 +43,38 @@ module;
 export module dedekind.sequences:ranges;
 
 import dedekind.category;
-import dedekind.order; // OrderInterval / Halfspace — the halfspace→iota_view
+import dedekind.order; // Interval / Halfspace — the halfspace→iota_view
                        // bridge for #703 Slice 1
 import dedekind.sets;
-import dedekind.topology;
 import :net;
 import :path;
 
 namespace dedekind::sequences {
 using namespace dedekind::category;
-using namespace dedekind::topology;
 
 /**
- * @concept IsConvexEnumerable
- * @brief A convex set that is also finitely enumerable (a terminal set).
+ * @section ranges__Halfspace_To_Iota_View_Bridge
  *
- * @details This concept captures the serendipitous combination found in
- * integer intervals: they are topologically convex (no holes) AND finitely
- * enumerable (a terminal countable set). Integer intervals are the canonical
- * witness for this concept.
+ * @brief The interval ↔ iota_view bridge: order's value-carrying
+ *        @c Interval<T,SL,SU,L> @c = @c Meet<Halfspace↑, Halfspace↓> read as
+ *        the half-open @c std::ranges::iota_view @c [start, @c bound), and
+ *        back, as a total inverse.
  *
- * @see IntegerInterval
- */
-export template <typename S>
-concept IsConvexEnumerable = IsConvex<S> && IsTerminalSet<S>;
-
-// #905: the open/closed boundary tag mixin is GONE.  An @c IntegerInterval's
-// carrier @c T is @c std::integral --- a discrete space --- so @c topology::
-// IsOpen / @c IsClosed INFER clopen-ness from @c HasDiscreteCarrier (every
-// subset of a discrete space is clopen), for EVERY boundary corner including
-// the half-open default @c [lo,hi).  Hand-tagging one corner "open" and another
-// "closed" under-reported the discrete topology (the tag said less than the
-// structure); the inference now supplies the honest answer with no per-shape
-// opt-in.
-
-/**
- * @class IntegerInterval
- * @brief The integer interval — serendipitously a sequence, a set, and a
- * convex set.
+ * @details The interval's endpoints are @b values (the pivots of its two
+ * halfspaces); the strictness pair @c (SL, SU) is the only thing in the type.
+ * @c to_iota_view normalises the four strictness combinations to iota_view's
+ * canonical shape through the NNO step:
  *
- * @tparam T      An integral type (the element species).
- * @tparam Lower  Boundary policy for the lower bound (default: Closed).
- * @tparam Upper  Boundary policy for the upper bound (default: Open).
- * @tparam L      The subobject classifier logic (default: Boole).
+ *   - lower @c Strict     ⇒ @c start = succ(lo)   (predicate @c x > lo)
+ *   - lower @c NonStrict  ⇒ @c start = lo         (predicate @c x ≥ lo)
+ *   - upper @c Strict     ⇒ @c bound = hi         (predicate @c x < hi)
+ *   - upper @c NonStrict  ⇒ @c bound = succ(hi)   (predicate @c x ≤ hi)
  *
- * @note The default [lo, hi) is the integer analog of std::ranges::iota_view.
- *
- * @par Triple nature (static assertions in the test suite)
- * | Property     | Concept              | Witness                     |
- * |:-------------|:---------------------|:----------------------------|
- * | Convex set   | IsConvex             | is_convex_v registration    |
- * | Unique elems | —                    | injectivity of as_sequence()|
- * | Finite seq   | IsTerminalSet        | size() + as_sequence()      |
- * | All three    | IsConvexEnumerable   | combination                 |
- */
-export template <std::integral T, Boundary Lower = Boundary::Closed,
-                 Boundary Upper = Boundary::Open, typename L = Boole>
-class IntegerInterval {
- public:
-  using Domain = T;
-  using Codomain = typename L::Ω;
-
-  static constexpr Boundary lower_boundary = Lower;
-  static constexpr Boundary upper_boundary = Upper;
-
-  constexpr IntegerInterval(T lo, T hi) : lo_(lo), hi_(hi) {}
-
-  /**
-   * @brief Characteristic morphism χ: T → Ω (the predicate / set view).
-   * @details Is x a member of this interval?
-   */
-  constexpr Codomain operator()(const T& x) const noexcept {
-    if constexpr (Lower == Boundary::Closed && Upper == Boundary::Open)
-      return (x >= lo_ && x < hi_) ? L::True : L::False;
-    else if constexpr (Lower == Boundary::Closed && Upper == Boundary::Closed)
-      return (x >= lo_ && x <= hi_) ? L::True : L::False;
-    else if constexpr (Lower == Boundary::Open && Upper == Boundary::Open)
-      return (x > lo_ && x < hi_) ? L::True : L::False;
-    else  // Open, Closed
-      return (x > lo_ && x <= hi_) ? L::True : L::False;
-  }
-
-  /**
-   * @brief Cardinality of the interval as a finite set.
-   * @details Computes the number of integers in the interval exactly.
-   */
-  constexpr std::size_t size() const noexcept {
-    // Use int64_t to avoid signed overflow / unsigned wrap when adjusting
-    // the bounds by ±1 for open boundaries.
-    using W = std::int64_t;
-    const W wlo = static_cast<W>(lo_);
-    const W whi = static_cast<W>(hi_);
-    const W elo = (Lower == Boundary::Closed) ? wlo : wlo + W(1);
-    const W ehi = (Upper == Boundary::Open) ? whi - W(1) : whi;
-    return (ehi >= elo) ? static_cast<std::size_t>(ehi - elo + W(1)) : 0u;
-  }
-
-  /**
-   * @brief Sequence view: the injective enumeration f(i) = lo + i.
-   *
-   * @details
-   * The generator is injective: i ≠ j ⟹ f(i) ≠ f(j). This witnesses
-   * the uniqueness (set) property of the integer interval. Callers
-   * should read at most size() terms to stay within the interval.
-   *
-   * @return A Path<T> whose first size() elements enumerate the interval.
-   */
-  constexpr auto as_sequence() const {
-    // Use int64_t for the same reason as size(): avoid signed overflow /
-    // unsigned wrap when the lower boundary is open.
-    using W = std::int64_t;
-    const W start = (Lower == Boundary::Closed) ? static_cast<W>(lo_)
-                                                : static_cast<W>(lo_) + W(1);
-    return Path<T>{[start](std::size_t i) {
-      return static_cast<T>(start + static_cast<W>(i));
-    }};
-  }
-
-  constexpr T lower_bound() const noexcept { return lo_; }
-  constexpr T upper_bound() const noexcept { return hi_; }
-
-  /** @brief Greatest lower bound (infimum) — satisfies HasExtrema. */
-  constexpr T infimum() const noexcept { return lo_; }
-  /** @brief Least upper bound (supremum) — satisfies HasExtrema. */
-  constexpr T supremum() const noexcept { return hi_; }
-
- private:
-  T lo_, hi_;
-};
-
-}  // namespace dedekind::sequences
-
-// --- Trait registrations (re-open peer namespaces, mirroring the pattern in
-//     dedekind::topology::interval.cppm) ---
-
-namespace dedekind::topology {
-
-/**
- * @brief Register IntegerInterval as a convex set.
- * @details An integer interval is a contiguous lattice segment with no holes,
- *          satisfying the topological definition of convexity over ℤ.
- */
-export template <std::integral T, Boundary Lower, Boundary Upper, typename L>
-inline constexpr bool
-    is_convex_v<dedekind::sequences::IntegerInterval<T, Lower, Upper, L>> =
-        true;
-
-}  // namespace dedekind::topology
-
-namespace dedekind::category {
-
-/** @brief Register IntegerInterval in the species atlas. */
-export template <std::integral T, dedekind::topology::Boundary Lower,
-                 dedekind::topology::Boundary Upper, typename L>
-struct SpeciesTraits<dedekind::sequences::IntegerInterval<T, Lower, Upper, L>> {
-  using Domain = T;
-  using Codomain = typename L::Ω;
-  using cardinality_type = dedekind::sets::Finite;
-};
-
-}  // namespace dedekind::category
-
-namespace dedekind::sequences {
-
-// Anchor: IntegerInterval<int> satisfies IsConvex (the trait registration above
-// is the proof; this assert makes it machine-checkable from the use site).
-static_assert(dedekind::topology::IsConvex<IntegerInterval<int>>,
-              "IntegerInterval must satisfy IsConvex (contiguous, no holes).");
-
-// Anchor: IsConvexEnumerable is the combined witness for the triple nature.
-static_assert(
-    IsConvexEnumerable<IntegerInterval<int>>,
-    "IntegerInterval must satisfy IsConvexEnumerable (convex + terminal set).");
-
-// #905 witness: with the boundary tag mixin deleted, IntegerInterval is clopen
-// PURELY by structural inference --- its @c std::integral carrier is discrete,
-// so @c HasDiscreteCarrier fires and @c topology::IsClopen holds for EVERY
-// boundary corner (here the half-open default @c [lo,hi), which previously
-// carried NO tag and was neither open nor closed).
-static_assert(dedekind::topology::HasDiscreteCarrier<IntegerInterval<int>>,
-              "IntegerInterval's carrier is std::integral, hence discrete.");
-// All four boundary corners are covered so a future change cannot regress one
-// mixed branch while the others still pass: the default [lo,hi) is (Closed,
-// Open); the other three are spelt out explicitly.
-static_assert(
-    dedekind::topology::IsClopen<IntegerInterval<int>> &&
-        dedekind::topology::IsClopen<
-            IntegerInterval<int, Boundary::Open, Boundary::Open>> &&
-        dedekind::topology::IsClopen<
-            IntegerInterval<int, Boundary::Closed, Boundary::Closed>> &&
-        dedekind::topology::IsClopen<
-            IntegerInterval<int, Boundary::Open, Boundary::Closed>>,
-    "#905: every integer interval is clopen (discrete carrier), no hand-tag.");
-
-/**
- * @section ranges__Halfspace_To_Iota_View_Bridge (#703 Slices 1–2)
- *
- * @brief The halfspace ↔ iota_view isomorphism — typed @c OrderInterval
- *        ↔ runtime-bounded @c std::ranges::iota_view, witnessed at the
- *        value level by a round-trip.
- *
- * @details An @c order::OrderInterval<T, Lo, Hi, SL, SU> is the meet of two
- * opposing halfspaces — a typed-Δ⁰₁ predicate.  @c std::ranges::iota_view
- * is its range view: the same set of integers, accessed as a view rather
- * than as a predicate.  The pair @c (to_iota_view, from_iota_view)
- * normalises the four (SL, SU) strictness combinations to iota_view's
- * canonical @c [start, bound) shape:
- *
- *   - lower @c Strict     ⇒ @c start = Lo + 1   (predicate @c x > Lo)
- *   - lower @c NonStrict  ⇒ @c start = Lo       (predicate @c x ≥ Lo)
- *   - upper @c Strict     ⇒ @c bound = Hi       (predicate @c x < Hi)
- *   - upper @c NonStrict  ⇒ @c bound = Hi + 1   (predicate @c x ≤ Hi)
- *
- * The iso is @b value-level: it relates the singleton @c OI{} to a
- * specific @c iota_view value, not the @c OrderInterval @b type to the
- * @c iota_view @b type.  @c OrderInterval's bounds are template
- * parameters and @c iota_view's are runtime data, so @c from_iota_view
- * must be told the target type and verifies the runtime bounds match
- * what @c to_iota_view would produce — returning @c std::optional<OI>
- * (Honest-Rejection on mismatch).  The round-trip
- * @c from_iota_view<OI>(to_iota_view(OI{})) is the iso witness, pinned
- * by @c static_assert below.  A heavier categorical @c IsIsomorphism
- * reification (arrows-as-structs with @c inverse()) is intentionally
- * not done: it would over-claim a type-level iso, which the
- * typed/runtime asymmetry forbids.  Slice 3+: @c iota_view as a
- * Form-chain object (subobject-of-ambient lattice shape).
+ * and @c from_iota_view<SL,SU> undoes the offsets and constructs the interval
+ * directly with @c make_interval --- total, no rejection path: every half-open
+ * @c [start, @c bound) is an interval (the empty view is the empty interval,
+ * which @c is_empty reports).  Both directions are @c constexpr and the
+ * round-trip is witnessed as values in @c sequences/halfspace_to_iota_test.
  */
 namespace detail {
 
@@ -331,7 +130,7 @@ constexpr std::ranges::iota_view<T, T> to_iota_view(
 export template <std::integral T, dedekind::order::Strictness SL,
                  dedekind::order::Strictness SU, typename L>
 constexpr std::ranges::iota_view<T, T> to_iota_view(
-    const dedekind::order::OrderInterval<T, SL, SU, L>& oi) {
+    const dedekind::order::Interval<T, SL, SU, L>& oi) {
   return to_iota_view(dedekind::order::to_setval(oi));
 }
 
@@ -352,7 +151,7 @@ constexpr std::ranges::iota_view<T, T> to_iota_view(
  */
 export template <std::integral T, dedekind::order::Strictness SL,
                  dedekind::order::Strictness SU, typename L, typename Chi>
-auto ext(const dedekind::order::OrderInterval<T, SL, SU, L>& oi, Chi chi) {
+auto ext(const dedekind::order::Interval<T, SL, SU, L>& oi, Chi chi) {
   return dedekind::sets::from_std(dedekind::sets::ext(to_iota_view(oi), chi));
 }
 
@@ -362,7 +161,7 @@ auto ext(const dedekind::order::OrderInterval<T, SL, SU, L>& oi, Chi chi) {
  *  @c dedekind::category::classifier_true. */
 export template <std::integral T, dedekind::order::Strictness SL,
                  dedekind::order::Strictness SU, typename L>
-auto ext(const dedekind::order::OrderInterval<T, SL, SU, L>& oi) {
+auto ext(const dedekind::order::Interval<T, SL, SU, L>& oi) {
   // The whole-interval realisation keeps every member: the characteristic map
   // is the canonical tautology / top predicate ⊤ (@ref
   // dedekind::category::classifier_true), not an ad-hoc always-true lambda.
@@ -387,17 +186,15 @@ auto ext(const dedekind::order::OrderInterval<T, SL, SU, L>& oi) {
  *  are callable.  The @b one contract @c Comprehension does not meet as an
  *  @c argmax @b result is @b value @b ownership: @c Comprehension holds
  *  @c const @c Base& (a reference into a named ambient set), whereas an
- *  @c argmax result must @b own its (stateless but @b typed) @c OrderInterval
- *  domain by value to be returned safely, so the scannable bounds survive in
- *  the return value's type.  So @c BoundedSet is precisely the @b value-owning
- *  finite comprehension.  Its membership χ is @c x @c ∈ @c {dom @c | @c P} @c ⟺
- *  @c dom(x) @c ∧ @c P(x).  @c ext realises it by scanning @c to_iota_view of
- *  the concrete @c OrderInterval domain, whose NTTP interval bounds make the
- *  enumeration finite --- that @c to_iota_view gate is what @c ext reads, not
- * an
- *  @c IsExtensional concept and not @c size() (which reports the cardinality,
- *  not what @c ext scans).  @c size() is free because the @c OrderInterval
- *  domain is stateless. */
+ *  @c argmax result must @b own its @c Interval domain by value to be returned
+ *  safely --- the interval carries its two endpoint values, so the scannable
+ *  bounds travel with the result.  So @c BoundedSet is precisely the
+ *  @b value-owning finite comprehension.  Its membership χ is @c x @c ∈ @c {dom
+ *  @c | @c P} @c ⟺ @c dom(x) @c ∧ @c P(x).  @c ext realises it by scanning
+ *  @c to_iota_view of the stored @c Interval domain, whose endpoint values make
+ *  the enumeration finite --- that @c to_iota_view gate is what @c ext reads,
+ *  not an @c IsExtensional concept and not @c size() (which reports the
+ *  cardinality, not what @c ext scans). */
 export template <typename OI, typename P>
 struct BoundedSet
     : dedekind::sets::SetExpr<BoundedSet<OI, P>, typename OI::Domain,
@@ -413,7 +210,7 @@ struct BoundedSet
       : domain(static_cast<OI&&>(d)), pred(static_cast<P&&>(p)) {}
   /** @brief The interval is finite, so the comprehension over it is too.  This
    *  @c cardinality_type is @b metadata (the @c Finite tag), not a gate @ref
-   * ext reads: @ref ext scans @c to_iota_view of the concrete @c OrderInterval.
+   * ext reads: @ref ext scans @c to_iota_view of the concrete @c Interval.
    */
   using cardinality_type = dedekind::sets::Finite;
   /** @brief χ / membership: @c x @c ∈ @c {dom @c | @c P} @c ⟺ in the domain
@@ -443,9 +240,9 @@ struct BoundedSet
  *  @c Comprehension uses; nominal, never a precondition. */
 namespace detail_boundedset_witness {
 using WOI =
-    dedekind::order::OrderInterval<int, dedekind::order::Strictness::NonStrict,
-                                   dedekind::order::Strictness::NonStrict,
-                                   dedekind::category::Boole>;
+    dedekind::order::Interval<int, dedekind::order::Strictness::NonStrict,
+                              dedekind::order::Strictness::NonStrict,
+                              dedekind::category::Boole>;
 // The refinement is the canonical tautology ⊤ (@ref classifier_true), reused
 // rather than a bespoke always-true functor.
 static_assert(
@@ -493,14 +290,14 @@ struct DominanceRefinement {
 export template <std::integral T, dedekind::order::Strictness SL,
                  dedekind::order::Strictness SU, typename L, typename Cost,
                  typename Order = std::less_equal<>>
-constexpr auto argmax(const dedekind::order::OrderInterval<T, SL, SU, L>& dom,
+constexpr auto argmax(const dedekind::order::Interval<T, SL, SU, L>& dom,
                       Cost cost, Order order = {}) {
   // @c x is optimal iff @c ∀x'∈dom. @c order(cost(x'), cost(x)) --- "no x'
   // beats x under @c order".  @c Order defaults to @c ≤ (argmax); pass @c
   // std::greater_equal for @b argmin, or a semiring @c ⊕-relative comparator to
   // rank by a dioid's order rather than the codomain's.  The refinement is the
   // named @ref DominanceRefinement functor, not a capturing lambda.
-  using OI = dedekind::order::OrderInterval<T, SL, SU, L>;
+  using OI = dedekind::order::Interval<T, SL, SU, L>;
   using Pred = DominanceRefinement<T, OI, Cost, Order>;
   return BoundedSet<OI, Pred>{dom, Pred{dom, cost, order}};
 }
@@ -543,7 +340,7 @@ constexpr std::array<typename std::remove_cvref_t<Seq>::Codomain, N> ext(
  *  the @c to_iota_view precondition. */
 export template <dedekind::order::Strictness SL, dedekind::order::Strictness SU,
                  typename L = dedekind::category::Boole, std::integral T>
-constexpr dedekind::order::OrderInterval<T, SL, SU, L> from_iota_view(
+constexpr dedekind::order::Interval<T, SL, SU, L> from_iota_view(
     const std::ranges::iota_view<T, T>& iv) {
   using S = dedekind::order::Strictness;
   // Read start and bound directly from the iterators (as IotaIntersection
@@ -557,9 +354,9 @@ constexpr dedekind::order::OrderInterval<T, SL, SU, L> from_iota_view(
 
 /** @section ranges__Halfspace_Iota_Round_Trip
  *  The iso witness: a value-level round-trip on a representative
- *  @c OrderInterval pins that @c from_iota_view ∘ @c to_iota_view is the
- *  identity on @c OI{}.  The negative direction is exercised in the test
- *  (a mismatched iota_view ⇒ nullopt). */
+ *  @c Interval value pins that @c from_iota_view ∘ @c to_iota_view is the
+ *  identity on it; @c from_iota_view is total, so there is no mismatch case
+ *  (the empty view round-trips to an interval @c is_empty reports). */
 namespace halfspace_iota_witness {
 using dedekind::order::Strictness;
 constexpr auto oi =

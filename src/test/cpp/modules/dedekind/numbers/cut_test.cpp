@@ -1,7 +1,8 @@
 /** @file dedekind/numbers/cut_test.cpp
  *
  * @brief The decidable real interval @f$(-\sqrt2,\sqrt2)@f$ over the genuine
- * cut-real carrier @c Cut<>, hosted on the runtime-pivot @c topology::Interval.
+ * cut-real carrier @c Cut<>, hosted on order's value-carrying interval
+ * @c Meet<Halfspace↑, Halfspace↓> (@c make_interval).
  *
  * The load-bearing claim: a real interval whose bounds are @b irrational
  * (@f$\pm\sqrt2@f$) has @b decidable membership at every rational point, and
@@ -22,15 +23,15 @@ import dedekind.order;
 import dedekind.topology;
 
 using namespace dedekind::numbers;
-using dedekind::topology::Boundary;
-using dedekind::topology::Interval;
+using dedekind::order::make_interval;
+using dedekind::order::Strictness;
 
 namespace {
 using Q = Rational<>;
 constexpr Cut<> two_root = Cut<>::sqrt(Q{2});  // √2
 // (−√2, √2) as a real interval — irrational, runtime-pivot bounds.
-constexpr Interval<Cut<>, Boundary::Open, Boundary::Open> band{-two_root,
-                                                               two_root};
+constexpr auto band =
+    make_interval<Strictness::Strict, Strictness::Strict>(-two_root, two_root);
 
 // Membership of a rational point q, decided by q² <=> 2.
 constexpr bool in_band(long n) { return static_cast<bool>(band(Cut<>{n})); }

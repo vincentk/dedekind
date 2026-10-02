@@ -5,11 +5,11 @@
  *
  *   { x ∈ ℝ | x > 5.0 }  ∩  { x ∈ ℝ | x < 3.0 }   ≡   ∅
  *
- * Same DSL, different carrier. Bounds are `double`-valued NTTPs; the Set's
- * carrier is `Real<double>`. Structural contradiction detection works
- * identically — but the computability classification differs from ℕ:
- * continuous carriers yield OrderInterval (not IsExtensional) when the meet
- * is non-empty.
+ * Same DSL, different carrier. The bounds are `double` pivot VALUES carried by
+ * the two halfspaces; the Set's carrier is `Real<double>`. The value-first
+ * contradiction fold works identically — but the collapse differs from ℕ: a
+ * continuous carrier has no successor, so a non-empty meet stays an interval
+ * value and never tightens to a point.
  *
  * Expected LLVM IR: `ret i1 false`.
  *

@@ -1930,7 +1930,7 @@ concept SetShaped = requires {
  * (@f$\mathfrak{P}(S) = \mathbb{A}\langle\mathrm{Sub}(C)\rangle \mid X
  * \subseteq S@f$ over the subobject domain @c Sub(C), an interval), covering @c
  * 𝔸 /
- * @c Singleton / @c Halfspace / @c OrderInterval by coercion; a finite-carrier
+ * @c Singleton / @c Halfspace / @c Interval by coercion; a finite-carrier
  * / erased case may follow (#830).  The one exception is @f$\mathfrak{P}
  * (\emptyset) = \{\emptyset\}@f$, which needs no subobject domain and is a
  * closed form here in @c :sets (below).  Same shape as @c exists / @c forall

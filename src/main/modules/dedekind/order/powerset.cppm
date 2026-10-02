@@ -23,7 +23,7 @@
  * @c Sub(C) is the gated part (the @c exists / @c forall pattern: an algebraic
  * default lifted by decidable specialisations).  Over an @b ordered carrier the
  * decidable convex subobjects --- @c Ø, @c 𝔸, @c Singleton, @c Halfspace,
- * @c OrderInterval --- all collapse to ONE @c std::regular type, a runtime
+ * @c Interval --- all collapse to ONE @c std::regular type, a runtime
  * @c Sub; membership @f$X \subseteq S@f$ is then a @b homogeneous interval
  * nesting (no family variant, no double dispatch), reusing the #835 endpoint
  * comparison.  A base with no coercion to @c Sub (a general / unordered set)
@@ -34,15 +34,12 @@
  * The @b enabler here is an @b ordered carrier, not intervals: @c Sub becomes a
  * decidable @c std::regular normal form precisely because @c C is totally
  * ordered, and membership @f$X \subseteq S@f$ @b is the subset order (@c
- * :inclusion).  So the home is @c order, where that order lives --- @b not
- * @c topology (whose @c Interval is about the continuum / neighbourhoods).  @c
- * Sub has @b no topology dependency: it coerces in only the @c :sets boundaries
- * (@c Ø / @c 𝔸) and the @c order NTTP-pivot families (@c Singleton / @c
- * Halfspace / @c OrderInterval).  Being upstream, this reaches every downstream
- * layer (topology included).  (The earlier @c order::Interval name collided
- * with
- * @c topology::Interval; renaming to @c Sub removed that, so the placement is
- * decided on structure, not on avoiding a clash.)
+ * :inclusion).  So the home is @c order, where that order lives.  @c Sub is
+ * the order-level normal form of a convex subset --- it coerces in the
+ * @c :sets boundaries (@c Ø / @c 𝔸) and the value-carrying @c order shapes
+ * (@c Singleton / @c Halfspace / @c Interval), reading their pivots as its two
+ * bounds --- and it has no topology dependency; being upstream, it reaches
+ * every downstream layer (topology's readers included).
  *
  * @build_order (order layer)
  * @dependency :category, :sets, :total, :halfspace, :inclusion
@@ -64,7 +61,7 @@ import dedekind.category;
 import dedekind.sets; // Ø, Universe, Set, SetShaped (the deleted gate),
                       // IsRingIntegral (:sets:cardinality, #878)
 import :total;        // IsTotallyOrdered --- the ordered-carrier gate
-import :halfspace;    // Halfspace, Singleton, OrderInterval
+import :halfspace;    // Halfspace, Singleton, Interval
 import :inclusion;    // the subset order this 𝔓 filters on
 
 namespace dedekind::order {
@@ -83,7 +80,7 @@ export template <typename C, typename L = Boole>
 struct Sub : dedekind::sets::SetExpr<Sub<C, L>, C, L> {
   // Domain / Codomain / logic_species / Member / ι / contains are inherited
   // from SetExpr (the ETCS subobject surface), exactly as Halfspace / Singleton
-  // / OrderInterval / Ray fold onto it --- so a Sub value is itself a
+  // / Interval / Ray fold onto it --- so a Sub value is itself a
   // first-class IsSubobject / IsSet (pinned below), not a bespoke half-surface.
   // State is PRIVATE and canonicalised at construction (normalize()), so no
   // caller can fabricate a non-canonical Sub that breaks == / <= / χ.
@@ -94,7 +91,7 @@ struct Sub : dedekind::sets::SetExpr<Sub<C, L>, C, L> {
   constexpr Sub(const dedekind::sets::Ø<C, L>&) : empty_(true) { normalize(); }
   template <typename Card>
   constexpr Sub(const dedekind::sets::Universe<C, L, Card>&) {}  // 𝔸
-  // The singleton's carrier must BE @c C (like the Halfspace / OrderInterval
+  // The singleton's carrier must BE @c C (like the Halfspace / Interval
   // ctors that fix @c C): otherwise @c Singleton<4.5> would silently narrow
   // into a @c Sub<int>, testing a different set.  Cross-carrier needs an
   // explicit order embedding, not an implicit coercion.
@@ -116,7 +113,7 @@ struct Sub : dedekind::sets::SetExpr<Sub<C, L>, C, L> {
     normalize();
   }  // (−∞, P)
   template <Strictness SL, Strictness SU>
-  constexpr Sub(const OrderInterval<C, SL, SU, L>& iv)
+  constexpr Sub(const Interval<C, SL, SU, L>& iv)
       : lo_(lower_pivot(iv)),
         hi_(upper_pivot(iv)),
         lo_unbounded_(false),
