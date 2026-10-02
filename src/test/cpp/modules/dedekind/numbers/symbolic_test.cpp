@@ -13,7 +13,10 @@ TEST_CASE("Numbers: Symbolic Checkpoint", "[numbers][symbolic]") {
 
   SECTION("Sqrt2 symbolic anchor") {
     const auto root2 = Sqrt2_Symbolic<double>();
-    STATIC_CHECK(dedekind::category::IsSet<decltype(root2)>);
+    // The lower cut is Kleene-valued (NaN ↦ Unknown): an L-set, not an ETCS
+    // set (IsSet needs Ω = 𝔹).
+    STATIC_CHECK(dedekind::category::IsLSet<decltype(root2)>);
+    STATIC_CHECK_FALSE(dedekind::category::IsSet<decltype(root2)>);
     STATIC_CHECK(dedekind::category::HasTernarySupport<decltype(root2)>);
     REQUIRE(root2.χ(1.4) == Ternary::True);
     REQUIRE(root2.χ(1.5) == Ternary::False);

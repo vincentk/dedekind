@@ -153,7 +153,7 @@ constexpr typename L::Ω operator<=(const Interval<T, ASL, ASU, L>& a,
  *  @c X ⊆ 𝔸 overload stays unambiguous. */
 export template <typename T, typename L, typename S>
   requires(
-      dedekind::category::IsSet<S> &&
+      dedekind::category::IsLSet<S> &&
       std::same_as<typename S::logic_species, L> &&
       !requires { typename S::is_universal_boundary; } &&
       requires(const S& s, const T& v) { s(v); })

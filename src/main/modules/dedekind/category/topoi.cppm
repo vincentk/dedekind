@@ -365,6 +365,62 @@ concept IsSubobject = IsCharacteristic<S> && std::same_as<Dom<S>, A> &&
                         { s.ι(m) } -> std::same_as<A>;
                       };
 
+/** @section topoi__L_Sets
+ *  A subobject of a regular carrier whose characteristic map lands in a named
+ *  bounded chain @f$L@f$ is an @b L-set (Goguen 1967).  At @f$L = \mathbb{B}@f$
+ *  this is Lawvere's @c Set, which @ref IsSet refines with the ETCS axioms as
+ *  implemented here (NNO, well-pointedness, the power-object-lattice
+ *  approximation of axiom 10; full choice remains aspirational, see
+ *  @c HasAxiom10PowerObjectLattice).  For a longer chain it is an object of
+ *  the presheaf topos on the chain --- Kleene's @f$K_3@f$ gives the Sierpiński
+ *  topos, whose Sierpiński object is Rosolini's dominance @f$\Sigma@f$ ---
+ *  which is not well-pointed and has no choice.  The paper's @f$\mathbf{Lwv}@f$
+ *  set (Definition Lwv) is @ref IsLSet; the @b Pst fragment is @ref
+ *  IsFiniteLSet; @c sets::IsSetObject adds the representation (universe and
+ *  classifier legs, the structural reading of lattice nodes).  The types that
+ *  satisfy these live downstream in @c sets and @c order.
+ *
+ *  Finiteness is what makes the Pst fragment complete (χ is a finite table;
+ *  normalisation by evaluation decides equality; the normal form is the family
+ *  of α-cuts, one run-list per level of @f$L@f$).  Neither @c IsPst (the
+ *  truth-object shape: it admits chains of any cardinality and excludes
+ *  @c int, which is not @c IsΩ) nor @c HasNNOStep (a step; @c Ternary has
+ *  none) is that witness, so the fragment is gated on @ref IsFiniteChain: a
+ *  totally ordered carrier that is finite by its representation --- a machine
+ *  integer or an enumeration.  @c bool, @c Ternary (@f$K_3@f$) and @c int are
+ *  the shipped witnesses; ℕ's @c Cardinality (a variant, unbounded) and the
+ *  dense carriers are not.  Products of finite chains follow with
+ *  @c IsProduct.
+ */
+
+/** @brief An L-set: a subobject of a regular carrier with @f$\chi : X \to L@f$
+ *  into a named bounded chain @f$L@f$ (@c Codomain @c = @c L::Ω).
+ *  @tparam S the candidate set type (@c Domain, @c Codomain, @c logic_species,
+ *          @c Member, @c ι, callable χ). */
+export template <typename S>
+concept IsLSet =
+    std::regular<typename S::Domain> && IsSubobject<S, typename S::Domain> &&
+    requires { typename S::logic_species; } &&
+    std::same_as<typename S::Codomain, typename S::logic_species::Ω> &&
+    IsPst<typename S::logic_species::Ω>;
+
+/** @brief A carrier that is a @b finite chain by its representation: totally
+ *  ordered and either a machine integer or an enumeration (both finite by
+ *  construction).  @c bool, @c Ternary, @c int qualify; @c Cardinality and
+ *  the dense carriers do not.
+ *  @tparam T the carrier. */
+export template <typename T>
+concept IsFiniteChain =
+    std::totally_ordered<T> && (std::integral<T> || std::is_enum_v<T>);
+
+/** @brief The Pst fragment: an L-set whose carrier is a finite chain
+ *  (@ref IsFiniteChain), so χ is a finite table and normalisation by
+ *  evaluation is complete.  Products of finite chains follow with
+ *  @c IsProduct.
+ *  @tparam S the candidate set type. */
+export template <typename S>
+concept IsFiniteLSet = IsLSet<S> && IsFiniteChain<typename S::Domain>;
+
 /**
  * @brief The Subobject Species S ↣ A.
  * @details Represents a subset of the ambient species A, defined by the

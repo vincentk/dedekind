@@ -580,12 +580,13 @@ TEST_CASE(
 
   SECTION(
       "Set{halfspace} adopts the halfspace's Kleene species, so its "
-      "codomain matches membership and IsSet holds") {
+      "codomain matches membership: an L-set, not an ETCS set") {
     constexpr auto s = Set{h};
     STATIC_CHECK(std::same_as<typename decltype(s)::logic_species, Kleene>);
     STATIC_CHECK(
         std::same_as<typename decltype(s)::Codomain, typename Kleene::Ω>);
-    STATIC_CHECK(IsSet<decltype(s)>);
+    STATIC_CHECK(IsLSet<decltype(s)>);
+    STATIC_CHECK_FALSE(IsSet<decltype(s)>);  // Kleene-valued: Ω ≠ 𝔹
     // Honestly non-decidable: the carrier axis no longer over-promotes the
     // Kleene predicate to Boole.
     STATIC_CHECK_FALSE(HasDecidableMembership<decltype(s)>);
@@ -607,7 +608,8 @@ TEST_CASE(
     STATIC_CHECK(std::same_as<typename decltype(s)::logic_species, Kleene>);
     STATIC_CHECK(
         std::same_as<typename decltype(s)::Codomain, typename Kleene::Ω>);
-    STATIC_CHECK(IsSet<decltype(s)>);
+    STATIC_CHECK(IsLSet<decltype(s)>);
+    STATIC_CHECK_FALSE(IsSet<decltype(s)>);  // Kleene-valued: Ω ≠ 𝔹
     STATIC_CHECK_FALSE(HasDecidableMembership<decltype(s)>);
     CHECK(s(6) == Kleene::True);
     CHECK(s(5) == Kleene::False);

@@ -83,7 +83,7 @@ namespace dedekind::sets {
  */
 template <typename F>
 concept IsSetFamily =
-    IsSystem<F, typename F::Domain> && IsSet<F> && IsSet<typename F::Domain>;
+    IsSystem<F, typename F::Domain> && IsLSet<F> && IsLSet<typename F::Domain>;
 
 //
 // static_assert(IsSystem<Family<int>, int>, "Family must satisfy IsSystem.");

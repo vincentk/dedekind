@@ -72,7 +72,7 @@ namespace dedekind::sets {
 // @c S&& is a forwarding reference over a @c viewable_range: an rvalue range is
 // moved into an owning @c filter_view (no dangling), an lvalue is referenced.
 export template <std::ranges::viewable_range S, typename P>
-  requires(!dedekind::category::IsSet<std::remove_cvref_t<P>>)
+  requires(!dedekind::category::IsLSet<std::remove_cvref_t<P>>)
 constexpr auto set(S&& s, P p) {
   return std::views::filter(std::forward<S>(s), std::move(p));
 }
@@ -87,7 +87,7 @@ constexpr auto set(S&& s, P p) {
  * compile time, and anything else is a compile error.
  */
 export template <std::ranges::input_range S, typename P>
-  requires(!dedekind::category::IsSet<std::remove_cvref_t<P>>)
+  requires(!dedekind::category::IsLSet<std::remove_cvref_t<P>>)
 constexpr bool exists(const S& s, P p) {
   using V = std::ranges::range_value_t<S>;
   return !(Ø<V>{} == set(s, std::move(p)));
@@ -102,7 +102,7 @@ constexpr bool exists(const S& s, P p) {
  * @f$\exists@f$ keeps a single emptiness primitive.
  */
 export template <std::ranges::input_range S, typename P>
-  requires(!dedekind::category::IsSet<std::remove_cvref_t<P>>)
+  requires(!dedekind::category::IsLSet<std::remove_cvref_t<P>>)
 constexpr bool forall(const S& s, P p) {
   return !exists(s, [p = std::move(p)](const auto& x) { return !p(x); });
 }
@@ -140,7 +140,7 @@ constexpr bool forall(const S& s, P p) {
 // comprehension, which would make @c exists(𝔸<bool>, Ø{}) wrongly true.
 // Excluding @c IsSet keeps @c | bound to the where-clause here.
 export template <dedekind::category::IsSet S, typename P>
-  requires(!dedekind::category::IsSet<std::remove_cvref_t<P>> &&
+  requires(!dedekind::category::IsLSet<std::remove_cvref_t<P>> &&
            requires(const S& s, P p) { s | p; })
 constexpr bool exists(const S& s, P p) {
   return !(Ø<typename S::Domain, typename S::logic_species>{} ==
@@ -148,7 +148,7 @@ constexpr bool exists(const S& s, P p) {
 }
 
 export template <dedekind::category::IsSet S, typename P>
-  requires(!dedekind::category::IsSet<std::remove_cvref_t<P>> &&
+  requires(!dedekind::category::IsLSet<std::remove_cvref_t<P>> &&
            requires(const S& s, P p) { s | p; })
 constexpr bool forall(const S& s, P p) {
   return (s | std::move(p)) == s;  // (B): {x ∈ S | P(x)} == S
