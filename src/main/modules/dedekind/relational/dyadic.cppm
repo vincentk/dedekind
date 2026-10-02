@@ -626,23 +626,23 @@ inline constexpr bool is_left_total_v<
 // @c algebra-level before the extraction; both are pure relation-algebra, so
 // both live here now.
 template <typename A, typename C, typename L, typename PR, typename PS,
-          typename B>
+          typename B, typename Card>
 inline constexpr bool is_right_unique_v<dedekind::sets::Comprehension<
-    dedekind::sets::𝔸<std::pair<A, C>, L, C>,
+    dedekind::sets::𝔸<std::pair<A, C>, L, Card>,
     dedekind::relational::ComposePred<PR, PS, B>>> =
     is_right_unique_v<dedekind::sets::Comprehension<
-        dedekind::sets::𝔸<std::pair<A, B>, L, C>, PR>> &&
+        dedekind::sets::𝔸<std::pair<A, B>, L, Card>, PR>> &&
     is_right_unique_v<dedekind::sets::Comprehension<
-        dedekind::sets::𝔸<std::pair<B, C>, L, C>, PS>>;
+        dedekind::sets::𝔸<std::pair<B, C>, L, Card>, PS>>;
 template <typename A, typename C, typename L, typename PR, typename PS,
-          typename B>
+          typename B, typename Card>
 inline constexpr bool is_left_total_v<dedekind::sets::Comprehension<
-    dedekind::sets::𝔸<std::pair<A, C>, L, C>,
+    dedekind::sets::𝔸<std::pair<A, C>, L, Card>,
     dedekind::relational::ComposePred<PR, PS, B>>> =
     is_left_total_v<dedekind::sets::Comprehension<
-        dedekind::sets::𝔸<std::pair<A, B>, L, C>, PR>> &&
+        dedekind::sets::𝔸<std::pair<A, B>, L, Card>, PR>> &&
     is_left_total_v<dedekind::sets::Comprehension<
-        dedekind::sets::𝔸<std::pair<B, C>, L, C>, PS>>;
+        dedekind::sets::𝔸<std::pair<B, C>, L, Card>, PS>>;
 
 static_assert(is_right_unique_v<decltype(dedekind::relational::diag<bool>())>,
               "Δ is FUNCTIONAL (single-valued).");
