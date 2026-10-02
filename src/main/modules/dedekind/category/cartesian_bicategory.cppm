@@ -51,6 +51,7 @@ import :posetal;     // IsPosetal (thin cat); is_monotone_v / IsMonotone
 import :limit;       // One (terminal object), π_1 / π_2, IsProduct
 import :species;     // Inf / Sup: the injected value-level glb / lub (∧ / ∨)
 import :logic;       // Ternary (Kleene K₃, the 3-chain carrier witness)
+import :lattice;     // Meet AST node + MakeMeet: the meet-trichotomy witness
 
 namespace dedekind::category {
 
