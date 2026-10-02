@@ -34,7 +34,7 @@ using namespace dedekind::order;
 namespace {
 
 // Shared with showcase 1 (ℝ² diagonal × strip).
-constexpr auto R2 = R * R;
+constexpr auto R2 = ℝ_d * ℝ_d;
 using R2Point = typename decltype(R2)::Domain;
 // The diagonal {x == y}: reuse the set-expression operator== on the projections
 // (π1 == π2), not a hand lambda, over the R2 base, so the element type tracks
