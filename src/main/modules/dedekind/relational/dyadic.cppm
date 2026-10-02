@@ -300,6 +300,15 @@ struct SwapPred {
   }
 };
 
+/** @brief Pair-like carrier: both coordinates present --- the shape every
+ *  relation (@c converse, @c reflexive, @c symmetric, @c is_relation) assumes.
+ */
+template <typename D>
+concept IsPairLike = requires {
+  typename D::first_type;
+  typename D::second_type;
+};
+
 /** @brief @c converse(R) --- the transpose @f$R^\smile \subseteq B \times A@f$
  *  of a relation @f$R \subseteq A \times B@f$ (Tarski's @f$R^\smile@f$).
  *  @details Generic over any set object on a pair carrier (a @c Set<pair,…>, a
@@ -310,8 +319,7 @@ struct SwapPred {
  *  @param r the relation.
  *  @return the relation @c Set<pair<B,A>, L, SwapPred<classifier>>. */
 export template <typename R>
-  requires dedekind::sets::IsSetObject<R> &&
-           requires { typename R::Domain::first_type; }
+  requires dedekind::sets::IsSetObject<R> && IsPairLike<typename R::Domain>
 constexpr auto converse(const R& r) {
   using A = typename R::Domain::first_type;
   using B = typename R::Domain::second_type;
@@ -319,13 +327,6 @@ constexpr auto converse(const R& r) {
   using X = std::remove_cvref_t<decltype(classifier(r))>;
   return Set<std::pair<B, A>, L, SwapPred<X>>{SwapPred<X>{classifier(r)}};
 }
-
-/** @brief Pair-like Domain test for @c is_relation. */
-template <typename D>
-concept IsPairLike = requires {
-  typename D::first_type;
-  typename D::second_type;
-};
 
 /** @brief @c is_relation(R) --- the bracket-free query: @c R is a relation, an
  *  @c IsSet whose Domain is a product @f$A \times B@f$. */
@@ -505,7 +506,7 @@ constexpr auto diag(const S& s) {
  * \rangle@f$) so a mis-typed @c R fails at the call, not deep inside the
  * union. */
 export template <typename R>
-  requires dedekind::sets::IsSetObject<R> &&
+  requires dedekind::sets::IsSetObject<R> && IsPairLike<typename R::Domain> &&
            std::same_as<typename R::Domain::first_type,
                         typename R::Domain::second_type>
 constexpr auto reflexive(const R& r) {
@@ -515,7 +516,7 @@ constexpr auto reflexive(const R& r) {
 /** @brief @c symmetric(R) = @c R @c | @c R° --- the smallest symmetric relation
  *  containing @c R (add the reversed edges; @c R° is the @c converse). */
 export template <typename R>
-  requires dedekind::sets::IsSetObject<R> &&
+  requires dedekind::sets::IsSetObject<R> && IsPairLike<typename R::Domain> &&
            std::same_as<typename R::Domain::first_type,
                         typename R::Domain::second_type>
 constexpr auto symmetric(const R& r) {

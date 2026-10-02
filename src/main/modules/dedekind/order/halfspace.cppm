@@ -1519,8 +1519,10 @@ constexpr auto operator|(const Universe<std::pair<T1, T2>, L, C>&, RP rp) {
  *  @param prod the product set object; @param rp the rel-predicate on pairs.
  *  @return @c Set<Domain, L, ProductRestrict<classifier, RP>>. */
 export template <typename S, IsRelPredicate RP>
-  requires dedekind::sets::IsSetObject<S> &&
-           requires { typename S::Domain::first_type; }
+  requires dedekind::sets::IsSetObject<S> && requires {
+    typename S::Domain::first_type;  // a pair carrier: both coordinates
+    typename S::Domain::second_type;
+  }
 constexpr auto operator|(const S& prod, RP rp) {
   using X = std::remove_cvref_t<decltype(classifier(prod))>;
   return Set<typename S::Domain, typename S::logic_species,
