@@ -349,6 +349,9 @@ TEST_CASE(
   // a = {1,2,3,4}, b = {1,2}
   constexpr auto box = a * b;
   STATIC_CHECK(IsSetObject<decltype(box)>);
+  // FIXME(#975): the box's finite cardinality (|a|·|b| = 4·2) is a property of
+  // the normal form (runs per coordinate), not of a bespoke product type; the
+  // generic product's cardinality_type is the carrier axis until then.
 
   SECTION("2D membership is the conjunction of factor memberships") {
     using Logic = typename decltype(box)::logic_species;

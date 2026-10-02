@@ -104,7 +104,7 @@ export using dedekind::category::ambient_set;
  *  structs (@ref Comprehension, and any wrapper that is "morally a set"),
  *  removing the surface boilerplate each would otherwise duplicate.  It is
  *  @b opt-in, @b never a precondition: @c IsSet stays a @b structural concept,
- *  and @c Set<T,L,P> / @c Singleton keep satisfying it by hand.  The
+ *  and @c Set<T,L,P> keeps satisfying it by hand.  The
  *  @c Derived must expose @c operator()(Domain)@c → @c Codomain (its χ). */
 export template <typename Derived, typename DomainT, typename L>
 struct SetExpr {

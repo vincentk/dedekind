@@ -28,9 +28,12 @@ TEST_CASE("Sets: Singleton Acceptance", "[sets][singleton][acceptance]") {
   STATIC_REQUIRE(IsSet<decltype(_s)>);
   SECTION("Construction") {
     INFO("Successful membership test.");
-    REQUIRE(_s(42));
+    REQUIRE(_s(std::size_t{42}));
     INFO("Failed membership test.");
-    REQUIRE(!_s(4));
+    REQUIRE(!_s(std::size_t{4}));
+    INFO("A foreign type compares in the common type, never by narrowing.");
+    STATIC_REQUIRE(!Singleton<int>{1}(1.5));
+    STATIC_REQUIRE(Singleton<int>{1}(1.0));
   }
   SECTION("Cardinality") {
     REQUIRE(_s.size() == 1);
@@ -47,6 +50,13 @@ TEST_CASE("Sets: Singleton Acceptance", "[sets][singleton][acceptance]") {
     STATIC_REQUIRE(std::same_as<decltype(~~_s), decltype(_s)>);
     REQUIRE((~~_s)(std::size_t{42}));
     REQUIRE(~~_s == _s);
+    INFO(
+        "On the two-element carrier the complement of a point is the other "
+        "point (found from sets alone, no order namespace in scope).");
+    STATIC_REQUIRE(
+        std::same_as<decltype(~Singleton<bool>{true}), Singleton<bool>>);
+    STATIC_REQUIRE((~Singleton<bool>{true})(false));
+    STATIC_REQUIRE(!(~Singleton<bool>{true})(true));
   }
   SECTION("Intersections") {
     // FIXME(#685): Boolean-algebra-of-sets identities not yet encoded
@@ -75,14 +85,14 @@ TEST_CASE("Sets: Singleton Acceptance", "[sets][singleton][acceptance]") {
     INFO(
         "The union of a set with itself is a fixed point: {42} ∪ {42} = {42}.");
     REQUIRE((_s | _s)(42));
-    REQUIRE(!(_s | _s)(4));
+    REQUIRE(!(_s | _s)(std::size_t{4}));
     // Two DISTINCT atoms: {42} ∪ {7} = {42, 7} — contains both, nothing else.
     // (Regression guard: the old lvalue comprehension-over-*this wrongly gave
     // {42} here; the recoverable OrPredicate is correct for distinct atoms.)
     const auto _t = ι<size_t>(7);
-    REQUIRE((_s | _t)(42));
-    REQUIRE((_s | _t)(7));
-    REQUIRE(!(_s | _t)(4));
+    REQUIRE((_s | _t)(std::size_t{42}));
+    REQUIRE((_s | _t)(std::size_t{7}));
+    REQUIRE(!(_s | _t)(std::size_t{4}));
     // The STRUCTURAL contract (#691/#842), which membership alone does not pin:
     // the union is a RECOVERABLE Join node whose two atoms survive in the type
     // (an opaque predicate with the same membership would pass the checks

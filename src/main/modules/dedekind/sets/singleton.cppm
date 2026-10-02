@@ -101,15 +101,17 @@ struct Singleton : SetExpr<Singleton<T, L>, T, L> {
   constexpr typename L::Ω operator()(const T& v) const {
     return (v == pivot) ? L::True : L::False;
   }
-  /** @brief Heterogeneous membership: a value of another type @c U that is
-   *  NOT convertible to @c T but has a cross-type @c == with it (the variant
-   *  proxies @c Cardinality / @c SignedCardinality against an @c int point,
-   *  #423/#425).  Convertible arguments (an @c int literal against a
-   *  @c size_t point) take the @c T overload above. */
+  /** @brief Heterogeneous membership: any value of another type @c U with a
+   *  cross-type @c == against @c T (the variant proxies @c Cardinality /
+   *  @c SignedCardinality against an @c int point, #423/#425; a @c double
+   *  against an @c int point).  The comparison happens in the pair's common
+   *  type, never by narrowing @c x to @c T: @c Singleton<int>{1}(1.5) is
+   *  @c False. */
   template <typename U>
-    requires(!std::convertible_to<U, T>) && requires(const U& x, const T& v) {
-      { x == v } -> std::convertible_to<bool>;
-    }
+    requires(!std::same_as<std::remove_cvref_t<U>, T>) &&
+            requires(const U& x, const T& v) {
+              { x == v } -> std::convertible_to<bool>;
+            }
   constexpr typename L::Ω operator()(const U& x) const {
     return (x == pivot) ? L::True : L::False;
   }
@@ -193,6 +195,16 @@ constexpr bool operator==(const Singleton<T, L>&, const 𝔸<T, L2, C>&) {
 export template <typename T, typename L, typename L2, typename C>
 constexpr bool operator==(const 𝔸<T, L2, C>& u, const Singleton<T, L>& s) {
   return s == u;
+}
+
+/** @brief Complement of a point on the @b two-element carrier is the other
+ *  point: @c ~{b} @c = @c {!b}.  On a larger carrier the complement of a point
+ *  is not a point, so there is deliberately no overload there and the generic
+ *  @c Not node applies.  Lives next to @c Singleton so ADL finds it wherever
+ *  the type is used. */
+export template <typename L>
+constexpr auto operator~(const Singleton<bool, L>& s) {
+  return Singleton<bool, L>{!s.pivot};
 }
 
 // ---------------------------------------------------------------------------
