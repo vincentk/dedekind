@@ -171,17 +171,14 @@ TEST_CASE(
   }
 
   SECTION(
-      "Continuum ambient tagged Boole (ℝ-shape 𝔸<int,Boole,ℶ_1>) stays "
-      "Kleene: the carrier axis is NOT demoted by the predicate's Boole") {
-    // The dual guard: the fix is the JOIN of the carrier axis and the
-    // predicate's species, not the predicate's species verbatim.  The
-    // canonical continuum ambient ℝ = 𝔸<QuadraticReal,Boole,ℶ_1> declares Boole
-    // logic but is semi-decidable via its ℶ_1 cardinality; NaturalLogic reads
-    // Kleene off the carrier axis, and the join with the Boole tag must stay
-    // Kleene (a verbatim-logic_species fix would wrongly make ℝ decidable).
-    // 𝔸<int,Boole,ℶ_1> is the same shape (the Mandelbrot stand-in), reachable
-    // without importing dedekind.numbers.
-    constexpr auto s = 𝔸<int, Boole, ℶ_1>{};
+      "Continuum ambient (ℝ-shape 𝔸<int,Kleene,ℶ_1>): the universe over an "
+      "uncountable carrier carries Kleene itself; nothing re-tags it") {
+    // The species of a set over the continuum is stated ONCE, on the universe
+    // (ℝ, ℝ_d, ℂ, ℂ_d, 𝔻, 𝔻_d all spell Kleene).  There is no wrap that
+    // re-derives it from the ℶ_1 tag any more: a comprehension over this
+    // universe is Kleene because its base is.  𝔸<int,Kleene,ℶ_1> is the same
+    // shape (the Mandelbrot stand-in), reachable without dedekind.numbers.
+    constexpr auto s = 𝔸<int, Kleene, ℶ_1>{};
     STATIC_CHECK(std::same_as<typename decltype(s)::logic_species, Kleene>);
     STATIC_CHECK(
         std::same_as<typename decltype(s)::Codomain, typename Kleene::Ω>);

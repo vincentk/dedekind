@@ -108,15 +108,15 @@ TEST_CASE(
 
 TEST_CASE("Analysis: 𝔻 / 𝔻_d starter universes", "[analysis][dual][starter]") {
   // Post-HSP retarget: 𝔻 is the COAT-HANGER universe value
-  // 𝔸<Dual<QuadraticReal<2>>, Boole, ℶ_1>; the machine-double ambient
+  // 𝔸<Dual<QuadraticReal<2>>, Kleene, ℶ_1>; the machine-double ambient
   // is 𝔻_d = 𝔸<Dual<machine_real_scalar>> (mirroring ℝ_d / ℂ_d).
   using R2 = QuadraticReal<2>;
   STATIC_CHECK(
-      std::same_as<std::remove_cvref_t<decltype(𝔻)>, 𝔸<Dual<R2>, Boole, ℶ_1>>);
+      std::same_as<std::remove_cvref_t<decltype(𝔻)>, 𝔸<Dual<R2>, Kleene, ℶ_1>>);
   STATIC_CHECK(std::same_as<typename std::remove_cvref_t<decltype(𝔻)>::Domain,
                             Dual<R2>>);
   STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(𝔻_d)>,
-                            𝔸<Dual<machine_real_scalar>, Boole, ℶ_1>>);
+                            𝔸<Dual<machine_real_scalar>, Kleene, ℶ_1>>);
 
   constexpr auto duals = 𝔻;
   static_assert(duals(Dual<R2>{R2{1}, R2{1}}) == Ternary::True);
