@@ -54,39 +54,37 @@ using namespace dedekind::order;
 
 /**
  * @concept HasDiscreteCarrier
- * @brief The set's carrier is a @b discrete space, so its order topology is the
- *        @b discrete topology --- and there @b every subset is clopen.
+ * @brief The set's carrier is a @b discrete chain, so its order topology is
+ *        the @b discrete topology --- and there @b every subset is clopen.
  *
- * @details Detected structurally from the domain: a built-in @c std::integral
- *          carrier (@c int, @c long, @c char, @c bool, ...) is
- *          successor-isolated (there is no point strictly between @c n and
- *          @c n+1), so no subset has a limit point outside itself.  Every
- *          subset is therefore both @b open and @b closed.  This is the
- *          structural source of clopen-ness on discrete carriers (#905): it
- *          replaces the per-shape @c is_open / @c is_closed hand-tags on
- * integer shapes, and it repairs the #904 CP finding that @c Ray<int,...>
- *          "carries only @c is_open_tag" although @c {n>p} @c = @c {n≥p+1} is
- *          genuinely clopen on the discrete order.
+ * @details Detected structurally from the domain: a carrier with an NNO step
+ *          (@c category::HasNNOStep --- @c successor / @c predecessor exist:
+ *          the built-in @c std::integral types and the ℕ proxy
+ *          @c Cardinality; the ℤ proxy @c SignedCardinality joins the moment it
+ *          declares its step) is successor-isolated (no
+ *          point strictly between @c n and @c n+1), so no subset has a limit
+ *          point outside itself.  Every subset is therefore both @b open and
+ *          @b closed.  This is the structural source of clopen-ness on discrete
+ *          carriers (#905); a @b dense carrier (@c Rational, @c Cut) has no
+ *          step, so its open / closed status falls to the boundary structure
+ *          --- the genuine @c open @c ⊋ @c clopen witness a discrete carrier
+ *          cannot provide.
  *
- * @note The canonical ℤ / ℕ carriers @c SignedCardinality / @c Cardinality
- *       (@c numbers/integer.cppm) are @c std::variant wrappers, @b not
- *       @c std::integral, so they fall @b outside this concept.  That is
- *       deliberate for now: @c std::integral is the sanctioned discreteness
- *       proxy this pass keys on, and extending discreteness to those variant
- *       carriers is a separate follow-on, not a claim they are covered here.
- *
- * @note @c order::IsDiscrete is the order-theoretic sibling, but it is
- *       architecturally withheld on @c int (signed @c + is not a @c Magma, so
- *       @c IsSuccessor fails) and is not exported; @c std::integral is the
- *       sanctioned discreteness proxy the topology layer keys on (issue #905:
- *       "a discrete carrier, e.g.\ @c std::integral").  A @b dense carrier
- *       (@c Rational, @c Cut) is @c !HasDiscreteCarrier, so open/closed there
- *       falls to the boundary structure --- the genuine @c open @c ⊋ @c clopen
- *       witness @c int cannot provide.
+ * @note This is also the @b bridge between two topologies that the library
+ *       keeps apart on purpose.  @c IsOpen / @c IsClosed / @c IsClopen below
+ *       speak the carrier's @b order @b topology; @c
+ * sets::HasDecidableMembership speaks the @b decidability (Sierpiński)
+ * topology, in which "clopen = decidable" (Smyth / Rosolini / Escardó).  On a
+ * dense carrier the two differ --- an open ray on ℚ is decidable (exact
+ * rationals) yet not order-closed --- so neither concept may be defined from
+ * the other.  On a discrete carrier the order topology IS discrete, every
+ * subset is order-clopen, and the two readings coincide: that is this concept.
  */
 export template <typename S>
-concept HasDiscreteCarrier = dedekind::category::IsPredicate<S> &&
-                             std::integral<dedekind::category::Dom<S>>;
+concept HasDiscreteCarrier =
+    dedekind::category::IsPredicate<S> &&
+    (std::integral<dedekind::category::Dom<S>> ||
+     dedekind::category::HasNNOStep<dedekind::category::Dom<S>>);
 
 /**
  * @concept IsOpen
@@ -128,18 +126,20 @@ concept IsClosed =
  *          @c Rosolini-dominance foundation) @b open @c = semidecidable /
  *          affirmable and @b closed @c = refutable, so @b clopen @c = @b open
  *          @c ∩ @b closed @c = @b decidable.  @c IsClopen is the @b topological
- *          conservative certificate of that; @c sets::HasDecidableMembership
- *          (@c logic_species @c == @c Boole) is the @b classifier one.  They
- * are
- *          @b independent --- neither is defined from the other, and they
- *          coincide only on the Boole-tagged core (a Kleene-tagged clopen set
- * is clopen but NOT recognized-decidable, the #847 gap).  Both approximate the
- * synthetic-topology identity "clopen = decidable" from the topology and
- * classifier sides, which Stone duality glues to the Boolean-ring reading
- * (#903, #894).  The clopen sublattice of @c Ω measures decidability =
- * disconnectedness (@c Boole totally disconnected → fully decidable; a Kleene
- * chain highly connected → only the poles @c ⊥ /
- *          @c ⊤ clopen).
+ *          conservative certificate of that in the carrier's @b order
+ *          topology; @c sets::HasDecidableMembership (@c logic_species @c ==
+ *          @c Boole) is the certificate in the @b decidability (Sierpiński)
+ *          topology.  They are @b different @b topologies, so neither is
+ *          defined from the other: on a dense carrier an open ray on ℚ is
+ *          decidable yet not order-closed, and a Kleene-tagged set on a
+ *          discrete carrier is order-clopen yet not recognised decidable (the
+ *          #847 gap).  They coincide exactly where the order topology is
+ *          discrete --- @ref HasDiscreteCarrier is that bridge.  Stone duality
+ *          glues the decidability reading to the Boolean-ring one (#903,
+ *          #894); the clopen sublattice of @c Ω measures decidability =
+ *          disconnectedness (@c Boole totally disconnected → fully decidable; a
+ *          Kleene chain highly connected → only the poles @c ⊥ / @c ⊤ clopen).
+ *  @see dedekind::sets::HasDecidableMembership
  */
 export template <typename S>
 concept IsClopen = IsOpen<S> && IsClosed<S>;
