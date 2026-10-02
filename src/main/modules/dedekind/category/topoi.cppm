@@ -41,6 +41,7 @@ export module dedekind.category:topoi;
 import :logic;
 import :morphism;
 import :cartesian;
+import :nno;  // HasNNOStep: the finiteness witness of the Pst fragment
 
 namespace dedekind::category {
 
@@ -365,24 +366,36 @@ concept IsSubobject = IsCharacteristic<S> && std::same_as<Dom<S>, A> &&
                         { s.ι(m) } -> std::same_as<A>;
                       };
 
-/**
- * @concept IsLSet
- * @brief An @b L-set (Goguen 1967): a subobject of a regular carrier whose
- *        characteristic map lands in a @b named bounded chain @f$L@f$ ---
- *        @f$\chi : X \to L@f$, with @c Codomain @c = @c L::Ω.
+/** @section topoi__L_Sets
+ *  A subobject of a regular carrier whose characteristic map lands in a named
+ *  bounded chain @f$L@f$ is an @b L-set (Goguen 1967).  At @f$L = \mathbb{B}@f$
+ *  this is Lawvere's @c Set, which @ref IsSet refines with the ETCS axioms as
+ *  implemented here (NNO, well-pointedness, the power-object-lattice
+ *  approximation of axiom 10; full choice remains aspirational, see
+ *  @c HasAxiom10PowerObjectLattice).  For a longer chain it is an object of
+ *  the presheaf topos on the chain --- Kleene's @f$K_3@f$ gives the Sierpiński
+ *  topos, whose Sierpiński object is Rosolini's dominance @f$\Sigma@f$ ---
+ *  which is not well-pointed and has no choice.  The paper's @f$\mathbf{Lwv}@f$
+ *  set (Definition Lwv) is @ref IsLSet; the @b Pst fragment is @ref
+ *  IsFiniteLSet; @c sets::IsSetObject adds the representation (universe and
+ *  classifier legs, the structural reading of lattice nodes).  The types that
+ *  satisfy these live downstream in @c sets and @c order.
  *
- * @details This is the general noun the set layers specialise.  At
- *          @f$L = \mathbb{B}@f$ it is Lawvere's @c Set and @ref IsSet (the
- *          ETCS axioms: NNO, choice, well-pointedness) refines it; for a
- *          longer chain it is an object of the @b presheaf @b topos on the
- *          chain --- Kleene's @f$K_3@f$ gives the Sierpiński topos, whose
- *          Sierpiński object is Rosolini's dominance @f$\Sigma@f$ --- which
- *          is @b not well-pointed and has no choice.  The paper's
- *          @f$\mathbf{Lwv}@f$ set (Definition Lwv) is exactly this concept;
- *          @c sets::IsSetObject adds the representation (the universe and
- *          classifier legs, the structural reading of lattice nodes); the
- *          types that satisfy it live downstream in @c sets and @c order.
+ *  Finiteness is what makes the Pst fragment complete (χ is a finite table;
+ *  normalisation by evaluation decides equality; the normal form is the family
+ *  of α-cuts, one run-list per level of @f$L@f$).  @c IsPst alone does @b not
+ *  give it --- it admits chains of any cardinality (@c logic.cppm) --- so the
+ *  fragment is gated on a bounded chain @b with @b a @b step
+ *  (@c HasNNOStep): from @f$\bot@f$ the successor reaches @f$\top@f$ in
+ *  finitely many steps, so the carrier is finite.  The shipped witnesses are
+ *  @c bool and the machine integers; ℕ's @c Cardinality is not a chain of the
+ *  required shape and a dense chain has no step.
  */
+
+/** @brief An L-set: a subobject of a regular carrier with @f$\chi : X \to L@f$
+ *  into a named bounded chain @f$L@f$ (@c Codomain @c = @c L::Ω).
+ *  @tparam S the candidate set type (@c Domain, @c Codomain, @c logic_species,
+ *          @c Member, @c ι, callable χ). */
 export template <typename S>
 concept IsLSet =
     std::regular<typename S::Domain> && IsSubobject<S, typename S::Domain> &&
@@ -390,20 +403,14 @@ concept IsLSet =
     std::same_as<typename S::Codomain, typename S::logic_species::Ω> &&
     IsPst<typename S::logic_species::Ω>;
 
-/**
- * @concept IsFiniteLSet
- * @brief The @b Pst fragment: an L-set whose carrier is itself a finite
- *        bounded chain (products of chains follow with @c IsProduct).
- *
- * @details Both domain and codomain finite makes χ a finite table, so
- *          normalisation by evaluation is @b complete: two such sets are equal
- *          iff their tables agree, and the normal form is the family of
- *          α-cuts @f$\{x \mid \chi(x) \ge \ell\}@f$, one run-list per level
- *          of @f$L@f$.  Everything is decidable here; the only "unknown" is a
- *          representation not yet normalised.
- */
+/** @brief The Pst fragment: an L-set whose carrier is a @b finite bounded
+ *  chain --- a totally ordered truth-shaped type (@c IsPst) with a successor
+ *  step (@c HasNNOStep), hence finite.  Products of such carriers follow with
+ *  @c IsProduct.
+ *  @tparam S the candidate set type. */
 export template <typename S>
-concept IsFiniteLSet = IsLSet<S> && IsPst<typename S::Domain>;
+concept IsFiniteLSet =
+    IsLSet<S> && IsPst<typename S::Domain> && HasNNOStep<typename S::Domain>;
 
 /**
  * @brief The Subobject Species S ↣ A.
