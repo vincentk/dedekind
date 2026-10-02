@@ -37,7 +37,7 @@ TEST_CASE("Complex ambient set is a canonical IsSet anchor",
           "[numbers][complex][etcs]") {
   using ComplexAmbient =
       decltype(dedekind::category::ambient_set<Complex<machine_real_scalar>>(
-          C));
+          dedekind::numbers::ℂ_d));
 
   STATIC_CHECK(IsSet<ComplexAmbient>);
   CHECK(true);
