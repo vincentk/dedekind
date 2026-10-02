@@ -186,17 +186,15 @@ auto ext(const dedekind::order::Interval<T, SL, SU, L>& oi) {
  *  are callable.  The @b one contract @c Comprehension does not meet as an
  *  @c argmax @b result is @b value @b ownership: @c Comprehension holds
  *  @c const @c Base& (a reference into a named ambient set), whereas an
- *  @c argmax result must @b own its (stateless but @b typed) @c Interval
- *  domain by value to be returned safely, so the scannable bounds survive in
- *  the return value's type.  So @c BoundedSet is precisely the @b value-owning
- *  finite comprehension.  Its membership χ is @c x @c ∈ @c {dom @c | @c P} @c ⟺
- *  @c dom(x) @c ∧ @c P(x).  @c ext realises it by scanning @c to_iota_view of
- *  the concrete @c Interval domain, whose NTTP interval bounds make the
- *  enumeration finite --- that @c to_iota_view gate is what @c ext reads, not
- * an
- *  @c IsExtensional concept and not @c size() (which reports the cardinality,
- *  not what @c ext scans).  @c size() is free because the @c Interval
- *  domain is stateless. */
+ *  @c argmax result must @b own its @c Interval domain by value to be returned
+ *  safely --- the interval carries its two endpoint values, so the scannable
+ *  bounds travel with the result.  So @c BoundedSet is precisely the
+ *  @b value-owning finite comprehension.  Its membership χ is @c x @c ∈ @c {dom
+ *  @c | @c P} @c ⟺ @c dom(x) @c ∧ @c P(x).  @c ext realises it by scanning
+ *  @c to_iota_view of the stored @c Interval domain, whose endpoint values make
+ *  the enumeration finite --- that @c to_iota_view gate is what @c ext reads,
+ *  not an @c IsExtensional concept and not @c size() (which reports the
+ *  cardinality, not what @c ext scans). */
 export template <typename OI, typename P>
 struct BoundedSet
     : dedekind::sets::SetExpr<BoundedSet<OI, P>, typename OI::Domain,
@@ -356,9 +354,9 @@ constexpr dedekind::order::Interval<T, SL, SU, L> from_iota_view(
 
 /** @section ranges__Halfspace_Iota_Round_Trip
  *  The iso witness: a value-level round-trip on a representative
- *  @c Interval pins that @c from_iota_view ∘ @c to_iota_view is the
- *  identity on @c OI{}.  The negative direction is exercised in the test
- *  (a mismatched iota_view ⇒ nullopt). */
+ *  @c Interval value pins that @c from_iota_view ∘ @c to_iota_view is the
+ *  identity on it; @c from_iota_view is total, so there is no mismatch case
+ *  (the empty view round-trips to an interval @c is_empty reports). */
 namespace halfspace_iota_witness {
 using dedekind::order::Strictness;
 constexpr auto oi =

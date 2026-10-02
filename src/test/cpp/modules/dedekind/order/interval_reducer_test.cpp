@@ -29,12 +29,15 @@ using namespace dedekind::order;
 namespace {
 using Up = Halfspace<int, Direction::Upward, Strictness::Strict>;      // {x>lo}
 using Down = Halfspace<int, Direction::Downward, Strictness::Strict>;  // {x<hi}
-using Interval = Meet<Up, Down>;  // (lo, hi): the crossing meet IS the interval
+// (lo, hi): the crossing meet IS the interval --- order's exported alias
+// Interval<int, Strict, Strict> names exactly this Meet<Up, Down>.
+using OpenInterval = Interval<int, Strictness::Strict, Strictness::Strict>;
+static_assert(std::same_as<OpenInterval, Meet<Up, Down>>);
 }  // namespace
 
 // The interval is the categorical product of its two bounding halfspaces under
 // the meet pairing: π_1 / π_2 recover the halfspaces and MakeMeet builds it.
-static_assert(IsProduct<Interval, Up, Down, MakeMeet>,
+static_assert(IsProduct<OpenInterval, Up, Down, MakeMeet>,
               "an interval is an IsProduct over Halfspace under MakeMeet.");
 
 TEST_CASE(
@@ -121,7 +124,8 @@ TEST_CASE(
     // empty.
     const auto iv = MakeMeet{}(Up{5}, Down{5});
     const auto r = subobject_reduce<Boole>(iv);
-    STATIC_REQUIRE(std::same_as<std::remove_cvref_t<decltype(r)>, Interval>);
+    STATIC_REQUIRE(
+        std::same_as<std::remove_cvref_t<decltype(r)>, OpenInterval>);
     CHECK(!static_cast<bool>(r(5)));
   }
 }
