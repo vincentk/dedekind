@@ -2398,18 +2398,16 @@ static_assert(min(ge5)(5) == (ge5(5) && (ge5 & (ℕ | (π < fix(5_c)))).kind ==
 // Exhibit (finite case): max 𝔹 = {true}, min 𝔹 = {false} --- the SAME generic
 // max/min above, its ∀-projection settled by 𝔹's upperbounds/lowerbounds ({⊤} /
 // {⊥}) and the universe-identity meet 𝔹 ∩ {⊤} = {⊤}.
-static_assert(max(𝔸<bool>{})(true), "max 𝔹 = {true}.");
-static_assert(!max(𝔸<bool>{})(false),
-              "false is not the greatest element of 𝔹.");
-static_assert(min(𝔸<bool>{})(false), "min 𝔹 = {false}.");
-static_assert(!min(𝔸<bool>{})(true), "true is not the least element of 𝔹.");
+static_assert(max(𝔹)(true), "max 𝔹 = {true}.");
+static_assert(!max(𝔹)(false), "false is not the greatest element of 𝔹.");
+static_assert(min(𝔹)(false), "min 𝔹 = {false}.");
+static_assert(!min(𝔹)(true), "true is not the least element of 𝔹.");
 // Modelling witness ("Theorems for Free", type-checked) with a STRUCTURAL
 // IsPredicate --- not an opaque lambda, which cannot feed the collapse.  The
 // specific max(𝔹) models the abstract (∈) ∩ (R/∋): at false the dominance
 // ∀a∈𝔹. a ≤ false FAILS (true ⋠ false), spelled as the halfspace {a ≤ false},
 // so false is correctly NOT the max.
-static_assert(max(𝔸<bool>{})(false) ==
-                  (𝔸<bool>{}(false) && forall(𝔸<bool>{}, π <= fix(false_c))),
+static_assert(max(𝔹)(false) == (𝔹(false) && forall(𝔹, π <= fix(false_c))),
               "specific max(𝔹) models (∈) ∩ (R/∋), structurally.");
 
 // (The image of a halfspace under a translation --- the pivot shifted by K ---

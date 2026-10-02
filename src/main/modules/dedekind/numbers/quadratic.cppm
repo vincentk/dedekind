@@ -348,8 +348,7 @@ static_assert(
     dedekind::category::IsField<R2, std::plus<R2>, std::multiplies<R2>>,
     "ℚ(√2)'s carrier satisfies the axiomatic IsField.");
 static_assert(
-    dedekind::algebra::IsField<
-        std::remove_cvref_t<decltype(dedekind::sets::𝔸<R2>{})>>,
+    dedekind::algebra::IsField<dedekind::sets::𝔸<R2>>,
     "𝔸⟨ℚ(√2)⟩ is a field as a first-class value, like ℚ = 𝔸⟨Rational⟩.");
 
 // The topological half of the coat-hanger, paired with IsField: ℚ(√2) is

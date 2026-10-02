@@ -266,11 +266,12 @@ using default_cardinality_t = typename default_cardinality<T>::type;
  * (paper Listing 6 reads @c auto @c 𝔹 @c = @c 𝔸<bool>{}), the type spelling
  * @c 𝔸<T> (so @c IsSetObject<𝔸<T>>, no @c decltype).
  */
-export template <typename T, typename L = Boole,
-                 typename C = default_cardinality_t<T>>
+export template <typename T, IsOckhamAlgebra L = Boole,
+                 IsCardinality C = default_cardinality_t<T>>
 struct 𝔸 final {
-  // ~ arrow / morphism / subobject classifier jargon
+  /** @brief The carrier: 𝔸 is the subobject @f$T \hookrightarrow T@f$. */
   using Domain = T;
+  /** @brief The classifier's truth object @c L::Ω. */
   using Codomain = typename L::Ω;
 
   // ~ topoi jargon;
@@ -286,11 +287,17 @@ struct 𝔸 final {
    *  of the ambient T; ι unwraps the Member's T-value. */
   constexpr T ι(const Member& m) const { return m.value; }
 
+  /** @brief The characteristic map is the set itself (χ ≡ ⊤). */
   static const 𝔸 χ;
 
+  /** @brief The cardinality class of the carrier (@c Finite for @c bool,
+   *  @c ℵ_0 by default; see @c default_cardinality_t). */
   using cardinality_type = C;
   using base_set_type = 𝔸<T, L, C>;
+  /** @brief Tag read by the boundary-object dispatch (@c Ø carries its dual).
+   */
   using is_universal_boundary = void;
+  /** @brief The logic species @c L the classifier is valued in. */
   using logic_species = L;
 
   /** @brief @c 𝔸 is the @b terminal object of the subobject poset
@@ -314,6 +321,7 @@ struct 𝔸 final {
       std::is_same_v<Op, std::bit_and<base_set_type>> ||
       std::is_same_v<Op, std::bit_or<base_set_type>>;
 
+  /** @brief The duality ¬⊤ = ⊥: the complement of the universe is @c Ø. */
   constexpr auto operator!() const { return Ø<T, L>{}; }
 
   /**
@@ -332,30 +340,28 @@ struct 𝔸 final {
   /** @section boundaries__Lattice_Axiom_3: Reflexivity */
   constexpr typename L::Ω operator<=(const 𝔸&) const { return L::True; }
 
-  // Explicitly define equality if <=> is being deleted by members
+  /** @brief Two universes over one carrier are equal (the type is the set). */
   constexpr bool operator==(const 𝔸&) const { return true; }
 
-  // Cross-(L, C) identity: the universe of a carrier T is the universe
-  // regardless of logic species or cardinality annotation.  Enables
-  // `𝔸<T> == r` when a complement-pair join elevates r to an 𝔸<T,
-  // L2, C2> whose C differs from the reference (e.g. bool's Finite vs the
-  // ℵ_0 default), the same spirit as Ø's cross-carrier equality above.
+  /** @brief Cross-(L, C) identity: the universe of a carrier @c T is the
+   *  universe regardless of logic species or cardinality annotation, so
+   *  @c 𝔸<T>{} @c == @c r holds when a complement-pair join elevates @c r to
+   *  an @c 𝔸<T,L2,C2> --- the same spirit as @c Ø's cross-carrier equality. */
   template <typename L2, typename C2>
     requires(!std::same_as<L2, L> || !std::same_as<C2, C>)
   constexpr bool operator==(const 𝔸<T, L2, C2>&) const {
     return true;
   }
 
-  // The Axiom: Total Presence
+  /** @brief The axiom of total presence: χ(x) = ⊤ for every @c x. */
   constexpr typename L::Ω operator()(const T&) const { return L::True; }
 
-  // Value-level membership query (sugar over operator()) per #551.
-  // @c 𝔸<T>{}.contains(v) reads more directly than @c
-  // 𝔸<T>{}(v) at paper-listing sites.  Returns @c L::Ω (delegating
-  // to @c operator()) so the contract matches @c sets::Set::contains and
-  // generic code can call either uniformly.
+  /** @brief Membership as a named query: @c 𝔸<T>{}.contains(v) reads more
+   *  directly than @c 𝔸<T>{}(v) at listing sites.  Returns @c L::Ω so the
+   *  contract matches @c sets::Set::contains. */
   constexpr typename L::Ω contains(const T& v) const { return (*this)(v); }
 
+  /** @brief The cardinality class as a value (@c Finite / @c ℵ_0 tag). */
   constexpr cardinality_type cardinality() const { return cardinality_type{}; }
 
   // U | S = U and U & S = S are the subobject-lattice join / meet.  They are
@@ -366,16 +372,16 @@ struct 𝔸 final {
   // capture is not IsSet, so the IsSet-gated free operator| leaves it to bind
   // via its own operator|, as before.)
 
-  // U ^ S = ¬S  (U △ S = ¬S; #469)
-  // Pointwise: x ∈ U △ S iff x is in exactly one; x is always in U,
-  // so x ∈ U △ S iff x ∉ S, i.e. the complement of S.
+  /** @brief Symmetric difference with the universe is complement:
+   *  @f$\top \,\triangle\, S = \neg S@f$ (every @c x is in ⊤, so it is in
+   *  exactly one of the two iff it is not in @c S). */
   template <typename S>
   constexpr auto operator^(const S& s) const {
     return !s;
   }
 };
 
-template <typename T, typename L, typename C>
+template <typename T, IsOckhamAlgebra L, IsCardinality C>
 inline const 𝔸<T, L, C> 𝔸<T, L, C>::χ{};
 
 /** @section boundaries__SetObject_Legs
@@ -735,11 +741,9 @@ static_assert(IsSet<decltype(ambient_set<int>(Ø<int>{}))>,
 //       textbook "ℕ as a subset of ℤ via the canonical inclusion"
 //       reading.
 //
-//   Asymmetry: @c BooleanSetOf<L,C> ≡ @c 𝔸<bool,L,C>
-//       (alias, not a separate struct) because 𝔹 is the @b bottom
-//       of the algebraic tower — no proper super-object — so χ_𝔹
-//       collapses to 𝔸<bool>.  See @c algebra:boolean for that
-//       collapse note.
+//   Asymmetry: there is no @c BooleansOf --- 𝔹 is the @b bottom of the
+//       algebraic tower (no proper super-object), so χ_𝔹 collapses to the
+//       universe @c 𝔸<bool> itself, i.e. @c 𝔹 above.
 //
 // Why both: @c 𝔸<T> is the structural primitive (one per carrier;
 // uniform DSL surface for set-builder), while @c <Tower>Of<> is
@@ -790,8 +794,7 @@ struct NaturalNumbersOf {
 // Non-exported convenience alias used by the value-level @c N constant
 // below.  Public surface is @c NaturalNumbersOf<L, C> (the parameterised
 // template); callers naming the default form should use
-// @c NaturalNumbersOf<> directly or @c decltype(N).  Mirrors the
-// @c BooleanSet de-export pattern from #407.
+// @c NaturalNumbersOf<> directly or @c decltype(N).
 using NaturalNumbers = NaturalNumbersOf<>;
 
 /** @brief The canonical Natural-numbers universe @c ℕ = @c 𝔸<Cardinality>
@@ -826,11 +829,24 @@ using NaturalNumbers = NaturalNumbersOf<>;
  */
 export inline constexpr auto ℕ = 𝔸<Cardinality>{};
 
-/** @brief @c 𝔹 --- the Boolean carrier as a value-tag, @c 𝔸<bool>, the
- *  finite universe @f$\{\mathtt{false},\mathtt{true}\}@f$.  Companion to @c ℕ
- *  for the point-free set-builder surface @c 𝔹 @c | @c π @c == @c fix(true_c).
+/** @brief @c 𝔹 --- the canonical Boolean universe @c 𝔸<bool>{}, the finite
+ *  set @f$\{\mathtt{false},\mathtt{true}\}@f$.  This is the one symbol
+ *  downstream code refers to (no partition re-exports or re-aliases it); the
+ *  carrier is @c bool and is spelled directly in type positions.  Companion
+ *  to @c ℕ for the point-free set-builder surface
+ *  @c 𝔹 @c | @c π @c == @c fix(true_c).
  */
 export inline constexpr auto 𝔹 = 𝔸<bool>{};
+
+// The canonical witnesses for 𝔹; downstream partitions build on these rather
+// than re-proving them.
+static_assert(std::same_as<std::remove_cvref_t<decltype(𝔹)>, 𝔸<bool>> &&
+                  std::same_as<𝔸<bool>::Domain, bool> &&
+                  std::same_as<𝔸<bool>::cardinality_type, Finite>,
+              "𝔹 is the universe over the carrier bool, finite by "
+              "representation.");
+static_assert(IsSet<𝔸<bool>> && IsFiniteLSet<𝔸<bool>>,
+              "𝔹 is an ETCS set and a Pst carrier.");
 
 // Canonical ambient-set value used by the sets DSL tests.
 export inline constexpr NaturalNumbersOf<> N{};

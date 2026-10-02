@@ -411,6 +411,18 @@ struct FiniteBooleanSet {
   }
 };
 
+// The two-cell table is a set over bool: the full table is the universe, the
+// empty table is Ø (the Pst normal form on the smallest carrier).
+static_assert(
+    FiniteBooleanSet<dedekind::category::Boole>{
+        dedekind::category::Boole::True,
+        dedekind::category::Boole::True}(false) ==
+            dedekind::category::Boole::True &&
+        FiniteBooleanSet<dedekind::category::Boole>{}(true) ==
+            dedekind::category::Boole::False,
+    "FiniteBooleanSet: the full table contains both bools, the empty table "
+    "neither.");
+
 export template <typename L>
 constexpr auto operator|(const Set<bool, L, BooleanEqPredicate>& lhs,
                          const FiniteBooleanSet<L>& rhs) {

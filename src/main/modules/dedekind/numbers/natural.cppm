@@ -612,11 +612,9 @@ using dedekind::order::operator""_c;
 
 // 𝔹 = 𝔸<bool>, a finite carrier: the point-free membership fragment
 // π == fix(true_c) materialises over {false, true} through s | p.
-static_assert(dedekind::sets::exists(dedekind::sets::𝔸<bool>{},
-                                     π == fix(true_c)),
+static_assert(dedekind::sets::exists(𝔹, π == fix(true_c)),
               "∃b∈𝔹. b — true is a member.");
-static_assert(!dedekind::sets::forall(dedekind::sets::𝔸<bool>{},
-                                      π == fix(true_c)),
+static_assert(!dedekind::sets::forall(𝔹, π == fix(true_c)),
               "¬∀b∈𝔹. b — false is a counterexample.");
 
 // ℕ = 𝔸<Cardinality>, infinite: the point-free congruence fragment

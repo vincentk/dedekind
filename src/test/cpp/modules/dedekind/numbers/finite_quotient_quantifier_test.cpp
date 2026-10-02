@@ -33,9 +33,9 @@ TEST_CASE("finite-quotient quantifiers decide exists/forall by type on 𝔹 and 
 
   SECTION("𝔹 = 𝔸<bool>: finite carrier, materialised over {false, true}") {
     // Point-free membership fragment: π == fix(true_c), materialised via s | p.
-    CHECK(exists(𝔸<bool>{},
+    CHECK(exists(𝔹,
                  π == fix(true_c)));  // (A) {b | b} ≠ ∅ — true a member
-    CHECK_FALSE(forall(𝔸<bool>{},
+    CHECK_FALSE(forall(𝔹,
                        π == fix(true_c)));  // (B) ≠ S — false a counterexample
   }
 
