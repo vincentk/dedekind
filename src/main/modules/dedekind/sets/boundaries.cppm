@@ -407,7 +407,7 @@ constexpr Universe<T, L, C> universe(const Universe<T, L, C>& u) {
 
 /** @brief Default universe leg: @c 𝔸 over the set object's carrier and logic
  *  (the @c 𝔸 variable template's own default or specialisation for @c T). */
-export template <IsSetObjectSurface S>
+export template <IsLSet S>
   requires(!dedekind::category::IsTerminalObject<S>)
 constexpr auto universe(const S&) {
   return 𝔸<typename S::Domain, typename S::logic_species>;
@@ -415,7 +415,7 @@ constexpr auto universe(const S&) {
 
 /** @brief Default classifier leg: the set @b is its predicate (Definition
  *  Lwv, "the predicate χ_S is the set"). */
-export template <IsSetObjectSurface S>
+export template <IsLSet S>
 constexpr const S& classifier(const S& s) {
   return s;
 }
@@ -437,6 +437,13 @@ constexpr auto π_2(const Universe<std::pair<A, B>, L, C>&) {
 // The two trivial set objects, witnessed where their legs are defined: Ø is
 // the ⊥ of Sub(T), 𝔸 the ⊤ --- and 𝔸 IS the reified universe every other set
 // object is a subobject of (its own universe: the fixpoint).
+// The three theories on the boundary objects: every one is an L-set; the
+// Boolean ones are ETCS sets; the ones on a finite chain carrier are Pst.
+static_assert(IsLSet<Ø<int>> && IsLSet<Universe<int, Kleene>>,
+              "Ø and 𝔸 are L-sets for every logic species.");
+static_assert(IsSet<Ø<int>>, "a Boolean boundary object is an ETCS set.");
+static_assert(IsFiniteLSet<Ø<bool>> && !IsFiniteLSet<Ø<Cardinality>>,
+              "bool is a finite chain carrier (Pst); ℕ is not.");
 static_assert(IsUniverse<Universe<int>> && !IsUniverse<Ø<int>>,
               "𝔸 is the universe (terminal in Sub(T)); Ø is not.");
 static_assert(IsSetObject<Ø<int>>,

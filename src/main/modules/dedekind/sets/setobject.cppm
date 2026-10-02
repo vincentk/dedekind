@@ -112,21 +112,15 @@ using dedekind::category::IsSubobject;
  * @endcode
  */
 
-/** @brief The set-object @b surface alone (Definition Lwv, §3): a subobject
- *  of a @c std::regular carrier whose codomain is the @c Ω of a named logic
- *  species.  No legs yet --- this is what @ref IsUniverse refines, so the
- *  universe leg of @ref IsSetObject does not recurse. */
-export template <typename S>
-concept IsSetObjectSurface =
-    std::regular<typename S::Domain> && IsSubobject<S, typename S::Domain> &&
-    requires { typename S::logic_species; } &&
-    std::same_as<typename S::Codomain, typename S::logic_species::Ω>;
+// The surface is the category-level noun, category::IsLSet (a Goguen L-set):
+// no legs yet, so the universe leg of IsSetObject below does not recurse.
+using dedekind::category::IsFiniteLSet;
+using dedekind::category::IsLSet;
 
 /** @brief A @b universe: the terminal object of @c Sub(T) --- the reified type
  *  constraint @c 𝔸<T,L,C> itself (carrier, logic, cardinality class). */
 export template <typename U>
-concept IsUniverse =
-    IsSetObjectSurface<U> && dedekind::category::IsTerminalObject<U>;
+concept IsUniverse = IsLSet<U> && dedekind::category::IsTerminalObject<U>;
 
 /** @brief @c U is the universe leg @b of @c S: a universe over the same
  *  carrier under the same logic. */
@@ -139,7 +133,7 @@ concept IsUniverseOf =
  *  itself (Definition Lwv) together with its two legs. */
 template <typename S>
 concept IsSetObjectLeaf =
-    IsSetObjectSurface<S> && requires(const S& s, const typename S::Domain& x) {
+    IsLSet<S> && requires(const S& s, const typename S::Domain& x) {
       /** @brief The universe leg: the reified type constraint. */
       { universe(s) } -> IsUniverseOf<S>;
       /** @brief The classifier leg: a χ datum callable on the carrier. */
