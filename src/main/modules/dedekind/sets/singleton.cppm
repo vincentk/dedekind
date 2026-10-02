@@ -245,6 +245,26 @@ constexpr auto operator^(const Set<T, L1, P>& other,
 }
 
 static_assert(IsSet<Singleton<int>>, "A singleton must be a set.");
+// DIAGNOSTIC (temporary): which conjunct of IsSetObject fails on a pair
+// carrier?
+namespace detail_pair_probe {
+using SP = Singleton<std::pair<int, int>>;
+static_assert(std::regular<std::pair<int, int>>, "probe: regular pair");
+static_assert(dedekind::category::IsCharacteristic<SP>,
+              "probe: IsCharacteristic");
+static_assert(dedekind::category::IsSubobject<SP, std::pair<int, int>>,
+              "probe: IsSubobject");
+static_assert(IsLSet<SP>, "probe: IsLSet");
+static_assert(
+    requires(const SP& s) { universe(s); }, "probe: universe leg callable");
+static_assert(Is𝔸Of<decltype(universe(std::declval<const SP&>())), SP>,
+              "probe: Is𝔸Of");
+static_assert(
+    requires(const SP& s, const std::pair<int, int>& x) { classifier(s)(x); },
+    "probe: classifier leg");
+static_assert(IsSetObject<SP>, "probe: IsSetObject");
+}  // namespace detail_pair_probe
+
 static_assert(IsExtensional<Singleton<int>>,
               "Mereology: Singleton must satisfy the Singleton axiom.");
 static_assert(
