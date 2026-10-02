@@ -106,21 +106,21 @@ concept HasMembershipOperator =
  *  cannot diverge --- the lattice of sets on PAIRS (∪ @c |, ∩ @c &, △ @c ^),
  *  the complement @c ~ (the reducer's @c Not node; @c ! is predicate negation,
  *  #963) and the cartesian product @c *.
- *  @details Distinct from @c :order::HasLatticeOperators which acts on
- *           PAIRS OF ELEMENTS --- different ontological layers, same
- *           lattice abstraction.  Result types are intentionally
- *           unconstrained here (Sollbruchstelle): the structural claims
- *           (@c IsSetObject<decltype(~s)>, the pair carrier of @c a*b) are
- *           pinned where @c Not and @c cartesian_product are defined; the
- *           axiomatic claim ("this IS a lattice of sets") lives upstream as
+ *  @details The same four spellings as @c :order::HasLatticeOperators, with the
+ *           closure moved one level up: a lattice of ELEMENTS closes on the
+ *           carrier (@c a&b is again a @c T), a lattice of SETS closes in the
+ *           category of set objects (@c a&b is a @c Comprehension, @c ~a a
+ *           @c Not node, @c a*b a set over the pair carrier --- each an
+ *           @c IsSetObject, none an @c S).  The axiomatic claim ("this IS a
+ *           lattice of sets") lives upstream as
  *           @c :category:mereology::IsSetLattice<S, set_join, set_meet>. */
 export template <typename S>
 concept HasSetOperators = requires(const S& a, const S& b) {
-  { a | b };
-  { a & b };
-  { a ^ b };
-  { ~a };
-  { a * b };
+  { a | b } -> IsSetObject;
+  { a & b } -> IsSetObject;
+  { a ^ b } -> IsSetObject;
+  { ~a } -> IsSetObject;
+  { a * b } -> IsSetObject;
 };
 
 /** @brief Sub-concept: @c s.cardinality() returns the carrier's
