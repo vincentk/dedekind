@@ -132,10 +132,30 @@ struct SetExpr {
   // review.
 };
 
+/** @brief The join of two logic species (#894): 𝔹 ⊑ K₃ under the dominance, so
+ *  the more expressive Ω --- K₃ if either operand is K₃, else 𝔹.  The codomain
+ * a cross-species combine reduces at. */
+export template <typename L1, typename L2>
+using join_logic_t =
+    std::conditional_t < std::same_as<L1, dedekind::category::Kleene> ||
+    std::same_as<L2, dedekind::category::Kleene>,
+      dedekind::category::Kleene, dedekind::category::Boole > ;
+
+/** @brief The logic species of @c {base @c | @c pred}: the @b join of the
+ *  base's species and the species of the predicate's answer (@c bool ↦ Boole,
+ *  @c Ternary ↦ Kleene, a declared @c logic_species as itself), so a Kleene
+ *  predicate over a Boole base lifts the base rather than truncating itself. */
+template <typename Base, typename Predicate>
+using comprehension_logic_t = join_logic_t<
+    typename Base::logic_species,
+    typename dedekind::category::GetLogic<std::remove_cvref_t<
+        std::invoke_result_t<const Predicate&, const typename Base::Domain&>>>::
+        type>;
+
 export template <typename Base, typename Predicate>
 struct Comprehension
     : SetExpr<Comprehension<Base, Predicate>, typename Base::Domain,
-              typename Base::logic_species> {
+              comprehension_logic_t<Base, Predicate>> {
   Base base;  // by VALUE: a comprehension OWNS its base.  A reference member
               // would dangle when the constructor binds an rvalue base (the
               // aggregate form extended the temporary's lifetime; a constructor
@@ -163,19 +183,13 @@ struct Comprehension
    * it
    *  @b is its own predicate (@c IsSet @c ⟹ @c IsPredicate). */
   constexpr auto operator()(const typename Base::Domain& x) const {
-    // Combine under the base's logic (@c L::AND), first @b lifting the
-    // (commonly
-    // @c bool) predicate result into @c L::Ω.  A @c bool cast would collapse
-    // ternary membership (@c Ternary::False, underlying −1, reads as @c true),
-    // and @c L::AND(Ternary, bool) is ill-formed (@c Ternary is a scoped enum),
-    // so a @c Kleene base needs the lift.  A comprehension @c {S|P} is
-    // S-membership ∧ P.
-    using L = typename Base::logic_species;
-    const auto p = predicate(x);
-    if constexpr (std::same_as<std::remove_cvref_t<decltype(p)>, typename L::Ω>)
-      return L::AND(base(x), p);
-    else
-      return L::AND(base(x), p ? L::True : L::False);
+    // Both answers are lifted into the JOIN species before the conjunction
+    // (Σ ↪ Ω: a Boole answer becomes a decided Kleene one), so a Boole base
+    // with a Kleene predicate keeps Unknown instead of failing to convert it,
+    // and a Kleene base with a bool predicate lifts the predicate as before.
+    using L = comprehension_logic_t<Base, Predicate>;
+    return L::AND(dedekind::category::lift_logic<L>(base(x)),
+                  dedekind::category::lift_logic<L>(predicate(x)));
   }
 
   /** @brief Size when the base exposes a probe element (@c pivot) and a
@@ -272,6 +286,19 @@ static_assert(UnknownPredicate<int>{}(0) == Ternary::Unknown &&
 static_assert(!is_decided<Kleene>(UnknownPredicate<int>{}(0)),
               "UnknownPredicate is never in the decided core Σ = {⊤,⊥}");
 
+// A Kleene predicate over a Boole base: the comprehension's species is the
+// JOIN (Kleene), Unknown survives, and a False base still annihilates it.
+static_assert(std::same_as<Comprehension<Universe<int>,
+                                         UnknownPredicate<int>>::logic_species,
+                           Kleene>,
+              "{𝔸<int,Boole> | Unknown} is Kleene-classified (the join)");
+static_assert(Comprehension{Universe<int>{}, UnknownPredicate<int>{}}(0) ==
+                  Ternary::Unknown,
+              "a Boole base lifts; the predicate's Unknown is preserved");
+static_assert(Comprehension{Ø<int>{}, UnknownPredicate<int>{}}(0) ==
+                  Ternary::False,
+              "a False base annihilates Unknown (Kleene AND = min)");
+
 // The codomain-leg value finalizer `finalize_combine` (#894) is hoisted to
 // `:boundaries` (beside `codomain_reduce_t`), so the upstream boundary
 // operators and the general subobject operators below share ONE implementation
@@ -279,15 +306,6 @@ static_assert(!is_decided<Kleene>(UnknownPredicate<int>{}(0)),
 // else passes through) instead of duplicating it.  Reachable here through
 // `import :boundaries`; a new expressions-level operator needs only
 // `return finalize_combine(...)` and inherits the rule.
-
-/** @brief The join of two logic species (#894): 𝔹 ⊑ K₃ under the dominance, so
- *  the more expressive Ω --- K₃ if either operand is K₃, else 𝔹.  The codomain
- * a cross-species combine reduces at. */
-export template <typename L1, typename L2>
-using join_logic_t =
-    std::conditional_t < std::same_as<L1, dedekind::category::Kleene> ||
-    std::same_as<L2, dedekind::category::Kleene>,
-      dedekind::category::Kleene, dedekind::category::Boole > ;
 
 /** @brief A subobject re-tagged to a more expressive codomain @c TargetL: its χ
  *  lifts through the Rosolini dominance (@c lift_logic) into @c TargetL::Ω.

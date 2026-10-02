@@ -620,3 +620,14 @@ TEST_CASE(
     CHECK(img(-3) == false);
   }
 }
+
+TEST_CASE("Comprehension: a Kleene predicate over a Boole base keeps Unknown",
+          "[sets][comprehension][kleene]") {
+  // The whole comprehension is wrapped (base ∧ pred); the species is the join.
+  const auto s = Set{Comprehension{Universe<int>{}, UnknownPredicate<int>{}}};
+  STATIC_CHECK(std::same_as<typename decltype(s)::logic_species, Kleene>);
+  CHECK(s(0) == Ternary::Unknown);
+  CHECK(s(42) == Ternary::Unknown);
+  const auto none = Set{Comprehension{Ø<int>{}, UnknownPredicate<int>{}}};
+  CHECK(none(0) == Ternary::False);
+}
