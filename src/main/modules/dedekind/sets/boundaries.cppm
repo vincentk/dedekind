@@ -238,20 +238,24 @@ constexpr auto operator*(const S&, const Ø<T2, L>&) {
   return Ø<std::pair<typename S::Domain, T2>, Boole>{};
 }
 
-/** @brief The cardinality class a carrier declares by its representation:
- *  @c bool is @c Finite; every other carrier defaults to @c ℵ_0 (the
- *  countable fiction of #680).  This is the default of @c 𝔸's third parameter,
- *  so @c 𝔸<bool> is classified @c Finite and @c NaturalLogic<𝔸<bool>> routes
- *  to @c Boole, not @c Kleene.
+/** @brief Trait behind @ref default_cardinality_t: @c ℵ_0 for every carrier
+ *  (the countable fiction of #680) ...
  *  @tparam T the carrier. */
 template <typename T>
 struct default_cardinality {
   using type = ℵ_0;
 };
+/** @brief ... except @c bool, which is @c Finite by its representation. */
 template <>
 struct default_cardinality<bool> {
   using type = Finite;
 };
+
+/** @brief The cardinality class a carrier declares by its representation:
+ *  @c Finite for @c bool, @c ℵ_0 otherwise.  This is the default of @c 𝔸's
+ *  third parameter, so @c 𝔸<bool> is classified @c Finite and
+ *  @c NaturalLogic<𝔸<bool>> routes to @c Boole, not @c Kleene.
+ *  @tparam T the carrier. */
 export template <typename T>
 using default_cardinality_t = typename default_cardinality<T>::type;
 
@@ -265,6 +269,11 @@ using default_cardinality_t = typename default_cardinality<T>::type;
  * type and the value, symmetric with @c Ø: the value spelling is @c 𝔸<T>{}
  * (paper Listing 6 reads @c auto @c 𝔹 @c = @c 𝔸<bool>{}), the type spelling
  * @c 𝔸<T> (so @c IsSetObject<𝔸<T>>, no @c decltype).
+ * @tparam T the carrier (unconstrained on purpose: a non-regular carrier makes
+ *         @c IsLSet / @c IsSet false rather than the name ill-formed).
+ * @tparam L the logic species the classifier is valued in (@c IsOckhamAlgebra).
+ * @tparam C the cardinality class (@c IsCardinality); defaults to
+ *         @ref default_cardinality_t.
  */
 export template <typename T, IsOckhamAlgebra L = Boole,
                  IsCardinality C = default_cardinality_t<T>>
