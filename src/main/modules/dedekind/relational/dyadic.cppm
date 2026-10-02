@@ -154,9 +154,10 @@ concept IsRelation =
         std::remove_cvref_t<𝔸<T2, typename S::logic_species>>>;
 
 /** @brief Relation membership witness: (a,b) ∈ R. */
-export template <typename T1, typename T2, typename L, typename P>
-constexpr typename L::Ω relates(const Relation<T1, T2, L, P>& r, const T1& a,
-                                const T2& b) {
+export template <typename T1, typename T2, typename L, typename P, typename C>
+constexpr typename L::Ω relates(
+    const Comprehension<𝔸<std::pair<T1, T2>, L, C>, P>& r, const T1& a,
+    const T2& b) {
   return r(std::pair<T1, T2>{a, b});
 }
 
@@ -173,8 +174,8 @@ constexpr typename L::Ω relates(const Relation<T1, T2, L, P>& r, const T1& a,
  * separate existential carrying its own decidability certificate --- the Rice
  * wall stays quarantined to that one operation.
  */
-export template <typename T1, typename T2, typename L, typename P>
-constexpr auto dom(const Relation<T1, T2, L, P>& r) {
+export template <typename T1, typename T2, typename L, typename P, typename C>
+constexpr auto dom(const Comprehension<𝔸<std::pair<T1, T2>, L, C>, P>& r) {
   // π_1 of the relation's UNIVERSE leg: 𝔸<A×B> ≅ 𝔸<A> × 𝔸<B>, so the declared
   // domain is read off the product, not restated; the logic rides along.
   return π_1(
@@ -183,8 +184,8 @@ constexpr auto dom(const Relation<T1, T2, L, P>& r) {
 
 /** @brief The @b declared codomain of a relation @c R ⊆ A×B: @c 𝔸<B>, the
  *         second factor (@c π₂'s codomain).  Dual to @c dom. */
-export template <typename T1, typename T2, typename L, typename P>
-constexpr auto cod(const Relation<T1, T2, L, P>& r) {
+export template <typename T1, typename T2, typename L, typename P, typename C>
+constexpr auto cod(const Comprehension<𝔸<std::pair<T1, T2>, L, C>, P>& r) {
   return π_2(universe(r));  // dual of dom
 }
 
@@ -217,8 +218,9 @@ constexpr auto cod(const Relation<T1, T2, L, P>& r) {
  * equality-comparable, named-fibre enumeration (the characteristic relation
  * @f$\chi : S \to 2@f$) is tracked in #840.
  */
-export template <typename T1, typename T2, typename L, typename P>
-constexpr auto apply(const Relation<T1, T2, L, P>& r, const T1& x) {
+export template <typename T1, typename T2, typename L, typename P, typename C>
+constexpr auto apply(const Comprehension<𝔸<std::pair<T1, T2>, L, C>, P>& r,
+                     const T1& x) {
   auto fibre = [r, x](const T2& b) { return r(std::pair<T1, T2>{x, b}); };
   return Comprehension<𝔸<T2, L>, decltype(fibre)>{fibre};
 }

@@ -224,9 +224,10 @@ constexpr auto set_intersection(const Comprehension<𝔸<T, L, C>, P1>& a,
  * @tparam L   Logic species shared by both relations.
  */
 export template <typename T1, typename T2, typename T3, typename L, typename P1,
-                 typename P2>
-constexpr auto natural_join(const Relation<T1, T2, L, P1>& r1,
-                            const Relation<T2, T3, L, P2>& r2) {
+                 typename P2, typename C1, typename C2>
+constexpr auto natural_join(
+    const Comprehension<𝔸<std::pair<T1, T2>, L, C1>, P1>& r1,
+    const Comprehension<𝔸<std::pair<T2, T3>, L, C2>, P2>& r2) {
   using Triple = std::tuple<T1, T2, T3>;
   auto pred = [r1, r2](const Triple& t) {
     const auto in_r1 = r1(std::pair<T1, T2>{std::get<0>(t), std::get<1>(t)});
