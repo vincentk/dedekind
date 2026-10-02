@@ -1606,6 +1606,32 @@ constexpr auto cartesian_product(const Comprehension<𝔸<T1, L1, C1>, P1>& a,
   return Comprehension<𝔸<Pair, L1>, Pred>{Pred{a, b}};
 }
 
+// The cartesian-product cardinality is the JOIN of the factors on the lattice
+// Finite < ℵ<0> < ℵ<1> < …: |A×B| = |A|·|B| = max(|A|,|B|) for infinite
+// factors, Finite only when both are finite.  The primary is left INCOMPLETE
+// (no @c type): a cardinality pair outside the known lattice (Finite / ℵ<N>) is
+// HONESTLY REJECTED at compile time rather than silently downgraded to ℵ_0 ---
+// a blanket fallback would misclassify e.g. a custom uncountable tag × Finite
+// as countable.
+template <typename CA, typename CB>
+struct product_cardinality;
+template <>
+struct product_cardinality<Finite, Finite> {
+  using type = Finite;
+};
+template <std::size_t N>
+struct product_cardinality<Finite, ℵ<N>> {
+  using type = ℵ<N>;
+};
+template <std::size_t N>
+struct product_cardinality<ℵ<N>, Finite> {
+  using type = ℵ<N>;
+};
+template <std::size_t M, std::size_t N>
+struct product_cardinality<ℵ<M>, ℵ<N>> {
+  using type = ℵ<(M > N ? M : N)>;
+};
+
 /** @brief @f$\mathbb{A}_A \times \mathbb{A}_B = \mathbb{A}_{A\times B}@f$: the
  *  product of two universes is the universe over the pair carrier (codomain leg
  *  #894: a universe is decided, so the result stays in the left species). */
@@ -1682,32 +1708,6 @@ constexpr auto cartesian_product(const A& a, const B& b) {
  * anonymous closure) discarded the factor structure; keeping the universe
  * explicit lets @c dom / @c cod read the factors back.
  */
-// The cartesian-product cardinality is the JOIN of the factors on the lattice
-// Finite < ℵ<0> < ℵ<1> < …: |A×B| = |A|·|B| = max(|A|,|B|) for infinite
-// factors, Finite only when both are finite.  The primary is left INCOMPLETE
-// (no @c type): a cardinality pair outside the known lattice (Finite / ℵ<N>) is
-// HONESTLY REJECTED at compile time rather than silently downgraded to ℵ_0 ---
-// a blanket fallback would misclassify e.g. a custom uncountable tag × Finite
-// as countable.
-template <typename CA, typename CB>
-struct product_cardinality;
-template <>
-struct product_cardinality<Finite, Finite> {
-  using type = Finite;
-};
-template <std::size_t N>
-struct product_cardinality<Finite, ℵ<N>> {
-  using type = ℵ<N>;
-};
-template <std::size_t N>
-struct product_cardinality<ℵ<N>, Finite> {
-  using type = ℵ<N>;
-};
-template <std::size_t M, std::size_t N>
-struct product_cardinality<ℵ<M>, ℵ<N>> {
-  using type = ℵ<(M > N ? M : N)>;
-};
-
 export template <typename A, typename LA, typename CA, typename B, typename LB,
                  typename CB>
   requires std::same_as<LA, LB>
