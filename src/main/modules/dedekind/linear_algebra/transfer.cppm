@@ -59,7 +59,7 @@ import dedekind.algebra;    // IsSemiring, semiring_ops, Tropical/MaxPlus, ⊕/�
 import dedekind.category;   // IsArrow, IsSemiring, identity_v, closure, Boole
 import dedekind.order;      // IsDirectedSet
 import dedekind.relational; // converse / is_relation (Tarski :dyadic, #792)
-import dedekind.sets; // Comprehension<𝔸<pair,L>, P> — the DSL relation carrier
+import dedekind.sets; // dedekind::sets::Comprehension<dedekind::sets::𝔸<pair,L>, P> — the DSL relation carrier
 import :diagonal;     // OuterProduct — the rank-1 dyad carrier
 import :matnxn;       // Mat(S) = MatNxNV<S,N>: the certified matrix semiring
 

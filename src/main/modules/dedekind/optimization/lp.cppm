@@ -506,7 +506,8 @@ export template <typename T>
 constexpr auto lp_runtime_solution_set(dedekind::linear_algebra::Vec2V<T> point,
                                        bool feasible) {
   return dedekind::sets::Comprehension<
-      𝔸<dedekind::linear_algebra::Vec2V<T>, dedekind::category::Boole>,
+      dedekind::sets::𝔸<dedekind::linear_algebra::Vec2V<T>,
+                        dedekind::category::Boole>,
       LPSolutionPredicate<T>>{LPSolutionPredicate<T>{point, feasible}};
 }
 
@@ -534,7 +535,8 @@ namespace detail {
 
 template <typename T>
 using LPSolutionSet = dedekind::sets::Comprehension<
-    𝔸<dedekind::linear_algebra::Vec2V<T>, dedekind::category::Boole>,
+    dedekind::sets::𝔸<dedekind::linear_algebra::Vec2V<T>,
+                      dedekind::category::Boole>,
     LPSolutionPredicate<T>>;
 
 template <typename T>
@@ -733,7 +735,8 @@ struct Singleton2DPredicate {
 export template <typename T, T x_val, T y_val>
 constexpr auto lp_singleton_set() {
   return dedekind::sets::Comprehension<
-      𝔸<dedekind::linear_algebra::Vec2V<T>, dedekind::category::Boole>,
+      dedekind::sets::𝔸<dedekind::linear_algebra::Vec2V<T>,
+                        dedekind::category::Boole>,
       Singleton2DPredicate<T, x_val, y_val>>{
       Singleton2DPredicate<T, x_val, y_val>{}};
 }
@@ -939,7 +942,8 @@ struct Polytope2DPredicate {
 export template <typename T, T a, T b, T c>
 constexpr auto halfspace_set(Halfspace2D<T, a, b, c>) {
   return dedekind::sets::Comprehension<
-      𝔸<dedekind::linear_algebra::Vec2V<T>, dedekind::category::Boole>,
+      dedekind::sets::𝔸<dedekind::linear_algebra::Vec2V<T>,
+                        dedekind::category::Boole>,
       Halfspace2DPredicate<T, a, b, c>>{Halfspace2DPredicate<T, a, b, c>{}};
 }
 
@@ -1026,10 +1030,11 @@ struct LinearFunctional {
  */
 export template <typename T, typename L, typename... Hs, T cx, T cy>
   requires(sizeof...(Hs) >= 2) && dedekind::algebra::HasRingOperators<T>
-constexpr auto argmax(const dedekind::sets::Comprehension<
-                          𝔸<dedekind::linear_algebra::Vec2V<T>, L>,
-                          Polytope2DPredicate<T, Hs...>>&,
-                      LinearFunctional<T, cx, cy>) {
+constexpr auto argmax(
+    const dedekind::sets::Comprehension<
+        dedekind::sets::𝔸<dedekind::linear_algebra::Vec2V<T>, L>,
+        Polytope2DPredicate<T, Hs...>>&,
+    LinearFunctional<T, cx, cy>) {
   return detail::maximize_set<T, cx, cy, Hs...>();
 }
 

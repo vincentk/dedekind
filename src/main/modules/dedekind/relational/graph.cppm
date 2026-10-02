@@ -88,7 +88,9 @@ import :dyadic;           // the Tarski BASE: a graph Γ_f IS a dyadic relation
 // See :tables.
 
 namespace dedekind::relational {
-using dedekind::sets::forall;  // the ¬∃¬ quantifier used by is_graph_of
+using dedekind::sets::Comprehension;  // the relation carrier: {p ∈ 𝔸<pair> | P}
+using dedekind::sets::forall;         // the ¬∃¬ quantifier used by is_graph_of
+using dedekind::sets::𝔸;
 
 /**
  * @brief The membership predicate of a functional graph @f$\Gamma_f@f$:

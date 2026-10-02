@@ -74,6 +74,8 @@ import :dyadic;       // the Tarski BASE.  FIXME(#798): re-target
 // qualification) --- not only the infix set-difference operator-.
 
 namespace dedekind::relational {
+using dedekind::sets::Comprehension;  // the plain set over a universe
+using dedekind::sets::𝔸;
 using namespace dedekind::category;
 // @c Relation is native to this module now (:dyadic), reached via import above.
 

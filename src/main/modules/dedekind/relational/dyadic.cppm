@@ -74,6 +74,7 @@ import dedekind.sets; // Comprehension<𝔸<std::pair<...>, L>, P> (:expressions
 
 namespace dedekind::relational {
 // :sets
+using dedekind::sets::Comprehension;  // the plain set over a universe
 using dedekind::sets::𝔸;  // the declared-domain/codomain universal set
 
 // ── The relation CORE (moved here from :sets/expressions, #792) ─────────────
