@@ -1,14 +1,32 @@
 /**
  * @file dedekind/sequences/ranges.cppm
- * @brief The bridge between order's halfspaces / intervals and std::ranges
- *        (iota views), plus the bounded sets built on it.
+ * @partition :ranges
+ * @brief The bridge between order's intervals and std::ranges iota views, and
+ *        the bounded sets built on it.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * An interval is @c order's @c Meet<Halfspace↑, Halfspace↓>; this partition
- * reads it as a half-open @c std::ranges::iota_view and back (a total inverse
- * on discrete carriers), and derives the finite-prefix machinery from that.
+ * @section ranges__Interval_as_Range
+ * An interval is @c order's @c Meet<Halfspace↑, Halfspace↓> --- two bounds,
+ * values, over a discrete chain.  This partition reads it as the half-open
+ * @c std::ranges::iota_view @c [start, @c bound) and back: @c to_iota_view
+ * normalises the strictness of the bounds through the NNO step, and
+ * @c from_iota_view is its total inverse.  Everything finite about a bounded
+ * set --- its @c size, its enumeration @c ext, @c argmax over a cost --- is
+ * derived from that reading rather than stored, so a set stays a predicate
+ * and the range is a view of it.
+ *
+ * Wikipedia: Interval (mathematics), Half-open interval, Range (computer
+ * programming)
+ *
+ * @note "Die Zahlen sind freie Schöpfungen des menschlichen Geistes, sie dienen
+ *       als ein Mittel, um die Verschiedenheit der Dinge leichter und schärfer
+ *       aufzufassen."
+ *       -- Richard Dedekind, Was sind und was sollen die Zahlen?, Vorwort
+ * (1888) [Trans: "The numbers are free creations of the human mind; they serve
+ *       as a means of grasping the diversity of things more easily and more
+ *       sharply."]
  */
 module;
 

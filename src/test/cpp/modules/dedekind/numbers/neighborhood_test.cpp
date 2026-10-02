@@ -8,9 +8,9 @@
  * live inside this library the neighborhood must obey the Lwv laws: it is a
  * subobject of its carrier (Member + ι + χ, the ETCS axioms) over a regular
  * carrier (the Jlt value-semantics half), with a decidable characteristic map
- * and no enumeration.  Since order's interval @c Meet<H↑,H↓> is a set object
- * with the @c SetExpr ETCS surface while keeping its open tag, one open @c
- * Interval is all of these at once.
+ * and no enumeration.  Order's interval @c Meet<H↑,H↓> is a set object
+ * (@c IsSetObject) whose openness reads off the strictness of its bounds, so
+ * one open interval is all of these at once.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -71,6 +71,28 @@ TEST_CASE("a rational neighborhood is a topological neighborhood AND a Lwv set",
     // #904 independence direction, relocated here to a dense carrier).
     STATIC_CHECK(dedekind::sets::HasDecidableMembership<QOpenRay>);
     CHECK(!IsClopen<QOpenRay>);
+  }
+
+  SECTION(
+      "dense carrier: open / closed are read off strictness, ¬ swaps them, "
+      "a mixed closure is neither") {
+    using namespace dedekind::topology;
+    using dedekind::category::Not;
+    using ClosedRay = Halfspace<Q, Direction::Upward, Strictness::NonStrict>;
+    STATIC_CHECK(IsClosed<ClosedRay> && !IsOpen<ClosedRay>);
+    STATIC_CHECK(
+        IsClosed<Not<Halfspace<Q, Direction::Upward, Strictness::Strict>>>);
+    constexpr auto closed_iv =
+        make_interval<Strictness::NonStrict, Strictness::NonStrict>(Q{0}, Q{3});
+    constexpr auto left_closed =
+        make_interval<Strictness::NonStrict, Strictness::Strict>(Q{0}, Q{3});
+    STATIC_CHECK(IsClosed<decltype(closed_iv)> && !IsOpen<decltype(closed_iv)>);
+    STATIC_CHECK(!IsOpen<decltype(left_closed)> &&
+                 !IsClosed<decltype(left_closed)>);
+    STATIC_CHECK(IsConvex<decltype(left_closed)>);
+    STATIC_CHECK(static_cast<bool>(closed_iv(Q{3})));     // closed: 3 ∈ [0,3]
+    STATIC_CHECK(!static_cast<bool>(left_closed(Q{3})));  // open above: 3 ∉
+    CHECK(static_cast<bool>(left_closed(Q{0})));          // codecov
   }
 
   SECTION("intensional, decidable characteristic map χ (no enumeration)") {

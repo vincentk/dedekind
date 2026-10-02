@@ -62,12 +62,18 @@ using namespace dedekind::order;
  *          (@c category::HasNNOStep --- @c successor / @c predecessor exist:
  *          the built-in @c std::integral types and the ℕ proxy
  *          @c Cardinality; the ℤ proxy @c SignedCardinality joins the moment it
- *          declares its step) is successor-isolated (no
- *          point strictly between @c n and @c n+1), so no subset has a limit
- *          point outside itself.  Every subset is therefore both @b open and
- *          @b closed.  This is the structural source of clopen-ness on discrete
- *          carriers (#905); a @b dense carrier (@c Rational, @c Cut) has no
- *          step, so its open / closed status falls to the boundary structure
+ *          declares its step) is successor-isolated, so no subset has a limit
+ *          point outside itself and every subset is both @b open and
+ *          @b closed.  The step IS the discreteness witness: Peano's axioms
+ *          (an injective successor with induction) leave no element strictly
+ *          between @c n and @c succ(n), so a carrier that overloads
+ *          @c successor / @c predecessor asserts exactly that covering relation
+ *          --- the same kind of semantic contract as registering
+ *          @c is_associative_v.  A dense carrier (@c Rational, @c Cut) has no
+ *          such step and must not declare one.  This is the structural source
+ * of clopen-ness on discrete carriers (#905); a @b dense carrier (@c Rational,
+ * @c Cut) has no step, so its open / closed status falls to the boundary
+ * structure
  *          --- the genuine @c open @c ⊋ @c clopen witness a discrete carrier
  *          cannot provide.
  *
@@ -100,8 +106,12 @@ concept HasDiscreteCarrier =
  *  closed, finite meets / joins preserve both, and complement swaps them.  On a
  *  discrete carrier @ref HasDiscreteCarrier makes everything clopen regardless.
  *  No shape carries a hand tag. */
+/** @brief Is @c S order-open by its strictness?  @c false unless a
+ *  specialisation below (or a carrier's own) says so. */
 export template <typename S>
 inline constexpr bool is_order_open_v = false;
+/** @brief Is @c S order-closed by its strictness?  Dual of
+ *  @ref is_order_open_v. */
 export template <typename S>
 inline constexpr bool is_order_closed_v = false;
 template <typename T, Direction D, typename L>
@@ -171,8 +181,10 @@ concept IsClosed =
  *          defined from the other: on a dense carrier an open ray on ℚ is
  *          decidable yet not order-closed, and a Kleene-tagged set on a
  *          discrete carrier is order-clopen yet not recognised decidable (the
- *          #847 gap).  They coincide exactly where the order topology is
- *          discrete --- @ref HasDiscreteCarrier is that bridge.  Stone duality
+ *          #847 gap).  On a discrete carrier (@ref HasDiscreteCarrier) every
+ *          subset is order-clopen, so there the decidability reader @b implies
+ *          the order reader; the converse still fails for a Kleene-tagged set,
+ *          whose @c logic_species discreteness does not change.  Stone duality
  *          glues the decidability reading to the Boolean-ring one (#903,
  *          #894); the clopen sublattice of @c Ω measures decidability =
  *          disconnectedness (@c Boole totally disconnected → fully decidable; a
@@ -195,8 +207,7 @@ static_assert(
     "Ø and 𝔸 are clopen: ∅ and X are open ∧ closed in every topology");
 static_assert(HasDecidableMembership<Ø<int, Boole>> &&
                   HasDecidableMembership<Universe<int, Boole>>,
-              "and decidable: the order-topology and decidability readings "
-              "coincide on the boundary objects of every carrier");
+              "and decidable: on the boundary objects both readings hold");
 
 /**
  * @concept IsNeighborhood
@@ -249,14 +260,12 @@ template <typename A, typename B>
 inline constexpr bool is_convex_v<Meet<A, B>> =
     is_convex_v<A> && is_convex_v<B>;
 
-static_assert(
-    IsOpen<Halfspace<double, Direction::Upward, Strictness::Strict>> &&
-        !IsClosed<Halfspace<double, Direction::Upward, Strictness::Strict>>,
-    "a strict ray on a dense carrier is open and not closed");
+// The dense-carrier witnesses (a strict ray on ℚ is open and NOT closed) live
+// downstream with the carriers that are genuinely dense and totally ordered:
+// numbers/neighborhood_test.  Here only the discrete reading is pinned.
 static_assert(IsClopen<Halfspace<int, Direction::Upward, Strictness::Strict>>,
-              "the same ray on a discrete carrier is clopen");
-static_assert(
-    IsConvex<Interval<double, Strictness::Strict, Strictness::Strict>>,
-    "an interval is convex");
+              "a ray on a discrete carrier is clopen");
+static_assert(IsConvex<Interval<int, Strictness::Strict, Strictness::Strict>>,
+              "an interval is convex");
 
 }  // namespace dedekind::topology

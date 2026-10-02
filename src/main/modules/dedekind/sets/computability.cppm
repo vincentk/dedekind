@@ -131,9 +131,10 @@ struct NaturalLogic<Base, std::void_t<typename Base::cardinality_type>> {
  *       Π co-semidecidable), of which @c logic_species is the coarse
  *       projection (Δ ↦ @c Boole, else @c Kleene).  It is deliberately @b not
  *       @c dedekind::topology::IsClopen, which speaks the carrier's @b order
- *       topology: an open ray on ℚ is decidable yet not order-closed.  The two
- *       coincide exactly on discrete carriers,
- *       @c dedekind::topology::HasDiscreteCarrier.
+ *       topology: an open ray on ℚ is decidable yet not order-closed.  On a
+ *       discrete carrier (@c dedekind::topology::HasDiscreteCarrier) every
+ *       subset is order-clopen, so there decidable @b implies order-clopen;
+ *       the converse fails for a Kleene-tagged set.
  * @see dedekind::topology::IsClopen
  * @see dedekind::topology::IsOpen
  * @see dedekind::topology::IsClosed
