@@ -58,6 +58,7 @@ import dedekind.category;
 import :cardinality;
 import :mereology;
 import :boundaries;
+import :setobject;  // IsSetObject / Is𝔸Of (the leg contract)
 import :expressions;
 
 /**
