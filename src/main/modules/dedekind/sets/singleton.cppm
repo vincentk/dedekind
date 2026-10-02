@@ -298,26 +298,6 @@ constexpr auto ι(T&& value) {
 static_assert(std::same_as<decltype(η(0)), decltype(singleton(0))>,
               "η is the singleton unit alias.");
 
-/** @brief Explicit @c !{a} overload — shadows the generic
- *         @c IsPredicate-based @c operator! in @c :category:topoi so
- *         @c !singleton picks the set-typed complement, not a
- *         @c Morphism wrapper.  Mirrors the @c Set<T,L,P> overrides
- *         in @c :sets:expressions. */
-export template <typename T, typename L>
-constexpr auto operator!(const Singleton<T, L>& s) {
-  return s.operator!();
-}
-
-export template <typename T, typename L>
-constexpr auto operator!(Singleton<T, L>& s) {
-  return s.operator!();
-}
-
-export template <typename T, typename L>
-constexpr auto operator!(Singleton<T, L>&& s) {
-  return s.operator!();
-}
-
 /** @section singleton__The_Set_Monad: The Categorical Identity */
 
 /**

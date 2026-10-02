@@ -102,14 +102,15 @@ concept HasMembershipOperator =
       { s(v) } -> std::convertible_to<typename S::logic_species::Ω>;
     };
 
-/** @brief Sub-concept: @c !s is well-formed.
+/** @brief Sub-concept: the set complement @c ~s is well-formed (@c ~ is the
+ *  set-level complement, the reducer's @c Not node; @c ! is predicate
+ *  negation, #963).
  *  @details Result type intentionally unconstrained at this slice
- *           (Sollbruchstelle).  Strict variant @c IsSet<decltype(!s)>
- *           can land later when more set types prove closure under
- *           complement. */
+ *           (Sollbruchstelle); the structural claim @c
+ * IsSetObject<decltype(~s)> is pinned where @c Not is defined. */
 export template <typename S>
 concept HasComplementOperator = requires(const S& s) {
-  { !s };
+  { ~s };
 };
 
 /** @brief Sub-concept: lattice-of-sets surface — operations on PAIRS
