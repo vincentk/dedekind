@@ -212,7 +212,7 @@ TEST_CASE(
     struct UntaggedTernaryOverN {
       using Domain = int;
       using cardinality_type = ℵ_0;  // countable → carrier axis says Boole
-      constexpr Ternary operator()(const int& n) const {
+      constexpr Ternary operator()(const Domain& n) const {
         return n > 0 ? Ternary::True : Ternary::Unknown;
       }
     };
