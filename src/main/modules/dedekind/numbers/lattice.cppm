@@ -23,18 +23,18 @@ module;
  * @section numbers_lattice__Description
  * This partition provides the user-facing lattice factory:
  *
- *   auto c = lattice<C>;         // Gaussian-integer lattice in ℂ
- *   auto r = lattice<R>;         // Integer lattice in ℝ
- *   auto x = lattice<R, 3>;      // Integer lattice in ℝ^3
- *   auto y = lattice<C, 3>;      // Gaussian-integer lattice in ℂ^3
+ *   auto c = lattice<ℂ_d>;         // Gaussian-integer lattice in ℂ
+ *   auto r = lattice<ℝ_d>;         // Integer lattice in ℝ
+ *   auto x = lattice<ℝ_d, 3>;      // Integer lattice in ℝ^3
+ *   auto y = lattice<ℂ_d, 3>;      // Gaussian-integer lattice in ℂ^3
  *
  * and bounded variants:
  *
- *   auto grid_c = lattice<C>.bounded(size);
- *   auto grid_r = lattice<R>.bounded(size);
+ *   auto grid_c = lattice<ℂ_d>.bounded(size);
+ *   auto grid_r = lattice<ℝ_d>.bounded(size);
  *
- * `lattice<C>.bounded(n)` yields points x+iy with x,y in {0,...,n-1}.
- * `lattice<R>.bounded(n)` yields points x in {0,...,n-1} embedded in ℝ.
+ * `lattice<ℂ_d>.bounded(n)` yields points x+iy with x,y in {0,...,n-1}.
+ * `lattice<ℝ_d>.bounded(n)` yields points x in {0,...,n-1} embedded in ℝ.
  */
 
 export module dedekind.numbers:lattice;

@@ -65,15 +65,15 @@ TEST_CASE("Numbers: lattice factory API", "[numbers][lattice][api]") {
     REQUIRE(bounded(Real<double>{4.0}) == LogicBounded::False);
   }
 
-  SECTION("lattice<R,3> models integer points in ℝ^3") {
-    const auto x = lattice<R, 3>;
+  SECTION("lattice<ℝ_d,3> models integer points in ℝ^3") {
+    const auto x = lattice<ℝ_d, 3>;
     using V3 = std::array<Real<double>, 3>;
     REQUIRE(x(V3{Real<double>{1.0}, Real<double>{2.0}, Real<double>{3.0}}));
     REQUIRE(!x(V3{Real<double>{1.0}, Real<double>{2.5}, Real<double>{3.0}}));
   }
 
-  SECTION("lattice<C,3> models Gaussian integer points in ℂ^3") {
-    const auto y = lattice<C, 3>;
+  SECTION("lattice<ℂ_d,3> models Gaussian integer points in ℂ^3") {
+    const auto y = lattice<ℂ_d, 3>;
     using C3 = std::array<Complex<double>, 3>;
     REQUIRE(y(C3{Complex<double>{1, 0}, Complex<double>{2, 3},
                  Complex<double>{4, 5}}));
