@@ -62,7 +62,7 @@ constexpr bool is_integral_coordinate(double x) {
 /**
  * @brief Primary template for lattice factory values.
  *
- * @tparam AmbientSet A canonical ambient set value (e.g. C, R).
+ * @tparam AmbientSet A canonical ambient set value (@c ℂ_d or @c ℝ_d).
  */
 export template <auto AmbientSet, std::size_t N = 1>
 struct LatticeFactory;
@@ -70,16 +70,16 @@ struct LatticeFactory;
 /**
  * @brief Lattice factory specialization for ℂ.
  *
- * `lattice<C>` denotes the Gaussian-integer lattice ℤ[i] ⊂ ℂ.
- * `lattice<C>(n)` denotes the bounded square lattice
+ * `lattice<ℂ_d>` denotes the Gaussian-integer lattice ℤ[i] ⊂ ℂ_d.
+ * `lattice<ℂ_d>.bounded(n)` denotes the bounded square lattice
  * {x+iy | x,y in {0,...,n-1}}.
  */
 template <>
-struct LatticeFactory<C, 1> {
-  using Domain = typename ComplexesOf<>::Domain;
-  using Codomain = typename ComplexesOf<>::Codomain;
-  using logic_species = typename ComplexesOf<>::logic_species;
-  using cardinality_type = typename ComplexesOf<>::cardinality_type;
+struct LatticeFactory<ℂ_d, 1> {
+  using Domain = Complex<machine_real_scalar>;
+  using Codomain = Boole::Ω;
+  using logic_species = Boole;
+  using cardinality_type = ℶ_1;
 
   constexpr Codomain operator()(const Domain& z) const {
     return detail::is_integral_coordinate(z.real()) &&
@@ -96,11 +96,11 @@ struct LatticeFactory<C, 1> {
  */
 template <std::size_t N>
   requires(N > 1)
-struct LatticeFactory<C, N> {
+struct LatticeFactory<ℂ_d, N> {
   using Domain = std::array<Complex<double>, N>;
   using Codomain = bool;
   using logic_species = Boole;
-  using cardinality_type = typename ComplexesOf<>::cardinality_type;
+  using cardinality_type = ℶ_1;
 
   constexpr Codomain operator()(const Domain& xs) const {
     for (const auto& z : xs) {
@@ -132,16 +132,16 @@ struct LatticeFactory<C, N> {
 /**
  * @brief Lattice factory specialization for ℝ.
  *
- * `lattice<R>` denotes integer points embedded in ℝ.
- * `lattice<R>(n)` denotes the bounded lattice
+ * `lattice<ℝ_d>` denotes integer points embedded in ℝ_d.
+ * `lattice<ℝ_d>.bounded(n)` denotes the bounded lattice
  * {x in ℝ | x in {0,...,n-1}}.
  */
 template <>
-struct LatticeFactory<R, 1> {
-  using Domain = typename RealsOf<>::Domain;
-  using Codomain = typename RealsOf<>::Codomain;
-  using logic_species = typename RealsOf<>::logic_species;
-  using cardinality_type = typename RealsOf<>::cardinality_type;
+struct LatticeFactory<ℝ_d, 1> {
+  using Domain = Real<machine_real_scalar>;
+  using Codomain = Boole::Ω;
+  using logic_species = Boole;
+  using cardinality_type = ℶ_1;
 
   constexpr Codomain operator()(const Domain& x) const {
     return detail::is_integral_coordinate(x.resolve()) ? logic_species::True
@@ -168,11 +168,11 @@ struct LatticeFactory<R, 1> {
  */
 template <std::size_t N>
   requires(N > 1)
-struct LatticeFactory<R, N> {
+struct LatticeFactory<ℝ_d, N> {
   using Domain = std::array<Real<double>, N>;
   using Codomain = bool;
   using logic_species = Boole;
-  using cardinality_type = typename RealsOf<>::cardinality_type;
+  using cardinality_type = ℶ_1;
 
   constexpr Codomain operator()(const Domain& xs) const {
     for (const auto& x : xs) {
@@ -196,7 +196,7 @@ struct LatticeFactory<R, N> {
 };
 
 /**
- * @brief First-class lattice value: `lattice<C>` and `lattice<R>`.
+ * @brief First-class lattice value: `lattice<ℂ_d>` and `lattice<ℝ_d>`.
  */
 export template <auto AmbientSet, std::size_t N = 1>
 inline constexpr LatticeFactory<AmbientSet, N> lattice{};

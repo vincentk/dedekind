@@ -73,14 +73,10 @@ namespace dedekind::geometry {
 using namespace dedekind::sets;
 using namespace dedekind::category;
 
-// Canonical lattice species in the geometry layer.
-// Pre-#401 this was @c using @c NaturalLatticeSet @c = @c ℕ; after the
-// carrier migration @c ℕ became the unsigned-int carrier itself, so the
-// lattice factory needs the predicate-set species (with @c ::Domain) for
-// its existing specialisation.  Aliasing to @c NaturalNumbersOf<>
-// preserves the geometry contract (Species with @c Domain @c = @c
-// unsigned @c int).
-export using NaturalLatticeSet = NaturalNumbersOf<>;
+// Canonical lattice species in the geometry layer: the universes ℕ and ℤ as
+// types (the factory below is keyed on the set type; the values are @c ℕ and
+// @c 𝔸<int>{}).
+export using NaturalLatticeSet = 𝔸<Cardinality>;
 export using IntegerLatticeSet = 𝔸<int>;
 export using IntegerLatticeScalar = typename IntegerLatticeSet::Domain;
 export using IntegerLatticePoint2D =

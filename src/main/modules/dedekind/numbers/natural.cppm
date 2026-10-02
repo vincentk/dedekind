@@ -166,37 +166,16 @@ constexpr N embed_unsigned_integral(U v) {
 
 /** @section natural__Canonical_Species_Spine
  *
- * The canonical natural-numbers species ℕ is defined upstream in
- * @c dedekind.sets:boundaries (as @c NaturalNumbersOf<L, C> with
- * alias @c ℕ = @c NaturalNumbers and value-level constant
- * @c inline @c constexpr @c ℕ @c N{}).  This partition adds the
- * @c numbers-/@c order-/@c algebra-layer witnesses that pin the
- * canonical species against drift, and provides the embedding chain
- * arrows @c 𝔹 ↪ ℕ ↪ ℤ that the upstream sets layer cannot reach.
+ * The canonical natural-numbers universe @c ℕ @c = @c 𝔸<Cardinality>{} is
+ * defined and witnessed upstream in @c dedekind.sets:boundaries.  This
+ * partition adds the @c numbers-/@c order-/@c algebra-layer witnesses on top
+ * and provides the embedding chain arrows @c 𝔹 ↪ ℕ ↪ ℤ that the upstream
+ * sets layer cannot reach.
  */
 
-using ::dedekind::sets::N;
 using ::dedekind::sets::ℕ;
 
 /** @section natural__Formal_Verification */
-
-// (0) Universe witness: ℕ names the universe over the Cardinality
-//     carrier (post-#559).  Pre-#559, ℕ was a carrier-type alias for
-//     Cardinality; post-#559 it is the value 𝔸<Cardinality> (a constexpr
-//     𝔸<Cardinality, Boole, ℵ_0>{}).  Cardinality is
-//     the variant ℕ-proxy carrier (= @c std::variant<ExtensionalCardinal<>,
-//     ℵ_0>) — saturating to ℵ_0 on overflow; honestly models ℕ (no
-//     additive inverses; rig-not-ring).  Callers wanting the bounded
-//     machine carrier explicitly spell @c unsigned @c int directly.
-static_assert(std::same_as<std::remove_cvref_t<decltype(dedekind::sets::ℕ)>,
-                           𝔸<Cardinality, Boole, ℵ_0>>,
-              "ℕ is the universe 𝔸<Cardinality> (post-#559).");
-static_assert(
-    std::same_as<
-        typename std::remove_cvref_t<decltype(dedekind::sets::ℕ)>::Domain,
-        Cardinality>,
-    "ℕ's underlying carrier IS Cardinality — the textbook "
-    "universe-over-carrier reading.");
 
 // (0a′) ℕ inhabits Ddk: it is an algebraic set.  The universe ℕ is an
 //     IsSet over the Cardinality carrier, and Cardinality is closed under
@@ -211,26 +190,6 @@ static_assert(dedekind::algebra::IsAlgebraOnSet<decltype(dedekind::sets::ℕ),
                                                 std::multiplies<Cardinality>>,
               "ℕ is an algebraic set (Ddk): a set whose carrier Cardinality is "
               "closed under the rig operations +, *.");
-
-// (0a) Relationship between the carrier Cardinality and NaturalNumbersOf<>
-//      (the predicate-set / classifier).  The predicate-set's @c Domain
-//      @b is the carrier — same shape as the 𝔹 ↔ 𝔸<bool>
-//      relationship from #400.  The bare @b carrier type @c Cardinality
-//      carries no predicate-set surface, so @c NaturalNumbersOf<> (below)
-//      anchors the set-builder DSL; the universe @b value ℕ = 𝔸<Cardinality>
-//      is itself an @c IsSet, which is exactly what (0a′) above relies on.
-static_assert(std::same_as<typename NaturalNumbersOf<>::Domain, Cardinality>,
-              "NaturalNumbersOf<>::Domain is the variant ℕ-proxy carrier "
-              "ℕ — predicate-set's underlying element type IS the "
-              "carrier.");
-
-// (1) IsSet anchor: the predicate-set NaturalNumbersOf<> is a bona-fide
-//     set.  Witnesses the set-builder DSL entry point that survives the
-//     carrier migration.
-static_assert(
-    dedekind::category::IsSet<decltype(dedekind::category::ambient_set<
-                                       Cardinality>(NaturalNumbersOf<>{}))>,
-    "NaturalNumbersOf<> is the canonical IsSet anchor for ℕ.");
 
 // (2) Syntax (the C++ operator surface that maps to ℕ's algebra).
 //   - HasSemiringOperators<unsigned int>: +, * close, with T{} and T{1}.
@@ -338,23 +297,6 @@ static_assert(dedekind::sequences::IsFiniteSequence<
               "FinitePath<Cardinality> is a bona-fide finite sequence; the "
               "Cardinality carrier (carrier of the ℕ universe post-#559) is a "
               "valid sequence codomain.");
-
-// (4) Primitive-type arrows.  ℕ is the universe @c 𝔸<Cardinality> (post-#559;
-// underlying carrier @c Cardinality from #402, replacing the earlier
-// post-#401 unsigned-int reading).  Predicate-set membership reduces to
-// direct calls on the classifier @c N (the namespace-level
-// @c NaturalNumbersOf<> constant from sets:boundaries):
-//   - Forward (unsigned → ℕ): trivially total (every unsigned is a
-//     natural).
-//   - Forward into a certified IsNatural domain (e.g.\ ExtensionalCardinal<>):
-//     `embed_unsigned_integral<N>(v)`.
-//   - Reverse (ℕ → unsigned): for the certified domain, project via
-//     `realize_to_size_t(sentinel)` (lives in sets:cardinality).
-static_assert(N(0u) == Boole::True, "0 ∈ ℕ.");
-static_assert(N(42u) == Boole::True, "42 ∈ ℕ.");
-static_assert(N(-7) == Boole::False,
-              "Direct N(int) call is the ℕ-as-subset-of-ℤ classifier; "
-              "rejects negatives.");
 
 // (5) Adjacent-set arrow: 𝔹 ↪ ℕ via @c embed_𝔹_uint_ above; registered
 // monic at the bottom of this partition.  The machine-layer sign

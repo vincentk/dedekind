@@ -318,32 +318,6 @@ constexpr Real<machine_real_scalar> embed_floating_ℝ_d(F v) {
   return Real<machine_real_scalar>{static_cast<machine_real_scalar>(v)};
 }
 
-/**
- * @brief Characteristic morphism for ℝ: the real numbers.
- * Accepts native Real<S> and delegates predecessor checks through ℚ.
- */
-export template <IsRealCarrier S = machine_real_scalar,
-                 IsInteger I = default_integer, typename L = Boole,
-                 typename C = ℶ_1>
-struct RealsOf {
-  using Domain = Real<S>;
-  using Codomain = typename L::Ω;
-  using logic_species = L;
-  using cardinality_type = C;
-
-  // Native Real<S>: always a member of ℝ
-  constexpr typename L::Ω operator()(const Real<S>&) const { return L::True; }
-
-  // The Rational<I> direct-parent overload and the non-parent-ancestor
-  // catch-all were removed under the ℚ retarget cleanup: both routed
-  // through @c embed_ℚ_ℝ, which itself was removed (no
-  // @c static_cast<int> on @c SignedCardinality, the post-retarget
-  // canonical ℤ carrier).  Callers that need ℝ-membership for a ℚ or
-  // ℤ value must construct the corresponding @c Real<S> explicitly.
-};
-
-export using RealSet = RealsOf<>;
-
 /** @brief The canonical real-number universe @c ℝ @c = @c
  *         𝔸<QuadraticReal<2>, Boole, ℶ_1> --- the coat-hanger.
  *
@@ -366,7 +340,7 @@ export using RealSet = RealsOf<>;
  *  @c ℂ and @c 𝔻 are the sibling coat-hanger universe values
  *  (ℂ = ℝ[i]/(i²+1) = 𝔸<Complex<QuadraticReal<2>>>, 𝔻 = ℝ[ε]/(ε²) =
  *  𝔸<Dual<QuadraticReal<2>>>), the 2nd-order quotient functors over this same
- *  ℝ.  The cross-carrier membership classifier is @c RealSet @c = @c RealsOf<>.
+ *  ℝ.
  */
 export inline constexpr auto ℝ =
     dedekind::sets::𝔸<QuadraticReal<2>, Boole, ℶ_1>{};
@@ -400,8 +374,6 @@ static_assert(IsDedekindComplete<QuadraticReal<2>>,
 export inline constexpr auto ℝ_d =
     dedekind::sets::𝔸<Real<machine_real_scalar>, Boole, ℶ_1>{};
 
-export inline constexpr RealsOf<> R{};
-
 }  // namespace dedekind::numbers
 
 namespace dedekind::category {
@@ -434,11 +406,6 @@ static_assert(std::same_as<typename Real<machine_real_scalar>::ScalarCarrier,
               "Real<Q> is the Cuts-functor image of Q; ScalarCarrier names Q "
               "mechanically.");
 
-static_assert(
-    dedekind::category::IsSet<decltype(dedekind::category::ambient_set<
-                                       Real<machine_real_scalar>>(R))>,
-    "RealsOf must be the canonical IsSet anchor for dedekind.numbers:real.");
-
 /**
  * @brief Canonical exact real: ℝ defined over ℚ by the Dedekind cut
  * construction.
@@ -466,8 +433,7 @@ static_assert(dedekind::algebra::HasFieldOperators<ExactReal<>>,
 
 /** @section real__Canonical_Species_Spine (ℝ)
  *
- * The canonical real-number species ℝ is defined above as
- * @c RealSet @c = @c RealsOf<> with value-level constant @c R; the
+ * The canonical real-number universe @c ℝ is defined above; the
  * exact realisation is @c ExactReal<I> @c = @c Real<Rational<I>>
  * (Dedekind cuts over ℚ, formally honest --- every value is a ratio
  * of integers with no rounding loss).  The spine witnesses below pin

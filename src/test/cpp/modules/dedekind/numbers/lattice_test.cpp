@@ -40,25 +40,25 @@ TEST_CASE("Numbers: complex_lattice", "[numbers][lattice]") {
 }
 
 TEST_CASE("Numbers: lattice factory API", "[numbers][lattice][api]") {
-  SECTION("lattice<C> supports unbounded and bounded forms") {
-    const auto all = lattice<C>;
+  SECTION("lattice<ℂ_d> supports unbounded and bounded forms") {
+    const auto all = lattice<ℂ_d>;
     using LogicAll = typename decltype(all)::logic_species;
     REQUIRE(all(Complex<double>{2, 5}) == LogicAll::True);
     REQUIRE(all(Complex<double>{2.25, 5}) == LogicAll::False);
 
-    const auto bounded = lattice<C>.bounded(4);
+    const auto bounded = lattice<ℂ_d>.bounded(4);
     using LogicBounded = typename decltype(bounded)::logic_species;
     REQUIRE(bounded(Complex<double>{3, 3}) == LogicBounded::True);
     REQUIRE(bounded(Complex<double>{4, 0}) == LogicBounded::False);
   }
 
-  SECTION("lattice<R> supports unbounded and bounded forms") {
-    const auto all = lattice<R>;
+  SECTION("lattice<ℝ_d> supports unbounded and bounded forms") {
+    const auto all = lattice<ℝ_d>;
     using LogicAll = typename decltype(all)::logic_species;
     REQUIRE(all(Real<double>{2.0}) == LogicAll::True);
     REQUIRE(all(Real<double>{2.25}) == LogicAll::False);
 
-    const auto bounded = lattice<R>.bounded(4);
+    const auto bounded = lattice<ℝ_d>.bounded(4);
     using LogicBounded = typename decltype(bounded)::logic_species;
     REQUIRE(bounded(Real<double>{0.0}) == LogicBounded::True);
     REQUIRE(bounded(Real<double>{3.0}) == LogicBounded::True);

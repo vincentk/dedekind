@@ -289,12 +289,6 @@ static_assert(
     "Dual<int> is the discrete-side tangent-bundle (finite-difference) "
     "carrier over the machine integers.");
 
-export template <typename F = dedekind::numbers::machine_real_scalar,
-                 typename L = Boole, typename C = ℶ_1>
-using DualSetOf = 𝔸<Dual<F>, L, C>;
-
-export using DualSet = DualSetOf<>;
-
 /** @brief The canonical dual-number universe 𝔻 = 𝔸<Dual<QuadraticReal<2>>,
  *         Boole, ℶ_1> — the coat-hanger 𝔻 = Dual(ℝ) over the
  *         genuine ℝ = ℚ(√2) (mirroring ℝ and ℂ).
@@ -309,18 +303,12 @@ export using DualSet = DualSetOf<>;
  *  the 2nd-order quotient ℝ[ε]/(ε²) over the coat-hanger ℝ, NOT
  *  @c Dual<double>.  Machine-double forward-mode AD lives on the
  *  materialisable ambient @c 𝔻_d = 𝔸<Dual<machine_real_scalar>> below
- *  (mirroring ℝ_d / ℂ_d).  The classifier is reachable via
- *  @c DualSet @c = @c DualSetOf<>.
+ *  (mirroring ℝ_d / ℂ_d).
  *
  *  Cardinality is set explicitly to @c ℶ_1 (continuum) — @c 𝔻 is in
  *  bijection with ℝ × ℝ via the @c (a, @c b) coefficient pair (the
- *  same shape that gives @c ℂ its @c ℶ_1) — overriding the
- *  @c 𝔸<...> variable template's @c ℵ_0 default.
- *
- *  Pre-#559 the spelling was @c using @c 𝔻 @c = @c DualSet (the
- *  classifier alias); type-context sites in concept gates and member
- *  extractions (@c typename @c 𝔻::Domain etc.) were migrated to
- *  @c DualSet directly in step 1 of this slice.
+ *  same shape that gives @c ℂ its @c ℶ_1) — overriding @c 𝔸's @c ℵ_0
+ *  default.
  *
  *  Textbook construction: @c 𝔻 @c = @c ℝ[ε]/(ε²) — a polynomial
  *  quotient observable via the @c quotient operator from
@@ -353,8 +341,6 @@ export inline constexpr auto 𝔻_d =
 static_assert(std::same_as<typename std::remove_cvref_t<decltype(𝔻_d)>::Domain,
                            Dual<dedekind::numbers::machine_real_scalar>>,
               "𝔻_d's carrier is Dual<machine_real_scalar> (machine ambient).");
-
-export inline constexpr DualSet D{};
 
 /**
  * @brief The Birkhoff @b S leg @f$\mathbb{R}\hookrightarrow\mathbb{D}@f$ over

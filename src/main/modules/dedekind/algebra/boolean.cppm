@@ -19,11 +19,9 @@
  *   @c static_assert(IsField<bool, bit_xor, bit_and>) carries the algebra
  *   on the carrier.  Bool is the @b bottom of the algebraic tower, so the
  *   characteristic morphism of 𝔹-as-subobject coincides with the universe
- *   (no proper ambient super-object).  Contrast with @c NaturalNumbersOf,
- *   @c IntegersOf, @c RationalsOf, @c RealsOf, @c ComplexesOf,
- *   @c DualSetOf, where χ_T : tower-ambient → Ω is a non-trivial
- *   classifier with cross-carrier embedding-aware membership (e.g.\
- *   @c N(-7) returns @c False because -7 ∈ ℤ does not land in ℕ ↪ ℤ).
+ *   (no proper ambient super-object).  Every other species symbol
+ *   (@c ℕ, @c ℤ, @c ℚ, @c ℝ, @c ℂ, @c 𝔻) is likewise the universe over its
+ *   carrier; a subobject such as ℕ ⊂ ℤ is an @c :order halfspace.
  *
  * @section algebra_boolean__Paper_Alignment
  * In the paper's Feature Cube (bool row), logical (`||`, `&&`) and bitwise

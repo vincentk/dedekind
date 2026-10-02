@@ -367,19 +367,11 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
 }
 
 TEST_CASE("Dedekind Identities: Extremal Collapse", "[sets][identities]") {
-  SECTION("Identity: Set{N} is N") {
-    // Naturals remain stable when materialized through Set{...}.
-    auto U = Set{N};
-
-    // Post-#622: ℕ → Boole on the carrier axis.
+  SECTION("Identity: Set{ℕ} is ℕ") {
+    // The universe remains stable when materialized through Set{...}.
+    auto U = Set{ℕ};
     static_assert(std::is_same_v<decltype(U)::logic_species, Boole>);
-    // ℕ-as-carrier (= unsigned int) accepts every unsigned value; the
-    // classifier reading on int is reachable via direct N(-1) calls.
     REQUIRE(U(42u));
-    // Direct N(int) call returns Boole::Ω (= bool), not Ternary,
-    // because the int overload short-circuits to the classical answer
-    // without lifting through the ambient logic.
-    REQUIRE(N(-1) == false);
   }
 
   SECTION("Contradiction: {x ∈ ℕ | x > 10 ∧ x < 5} is ∅") {

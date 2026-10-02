@@ -713,90 +713,6 @@ static_assert(IsSet<decltype(Ø<int>{})>,
 static_assert(IsSet<decltype(ambient_set<int>(Ø<int>{}))>,
               "The empty boundary must lift to an ETCS set object.");
 
-// =============================================================
-// Architecture note: universe 𝔸<T> vs. classifier <Tower>Of<>
-// =============================================================
-//
-// Two distinct primitives sit at this layer, both rooted in ETCS
-// (Lawvere 1964):
-//
-//   (1) 𝔸 per carrier — @c 𝔸<T> (variable template above)
-//       = @c 𝔸<T,L,C>{}.  Constant-True predicate over
-//       carrier T.  Plays the role of "T as its own set" — the
-//       monomorphic identity inclusion T ↪ T.  Used by the
-//       set-builder DSL as the ambient for @c element<𝔸<T>>
-//       (BoundScout factory, post-#551).
-//
-//   (2) Tower classifier — @c <Tower>Of<L,C> (this and sibling
-//       struct templates: @c NaturalNumbersOf, @c IntegersOf in
-//       :integer, @c RationalsOf in :rational, @c RealsOf in :real,
-//       @c ComplexesOf in :complex, @c DualSetOf in :dual).
-//       The characteristic morphism χ_T : tower-ambient → Ω of
-//       the subobject T inside its algebraic tower.  Multi-overload:
-//       the @c Domain overload always returns @c L::True (T is in
-//       T), and the cross-carrier overloads route predecessor
-//       types through embedding arrows (e.g.\ @c N(int) checks
-//       non-negativity, @c N(unsigned) is trivially True via the
-//       canonical embedding @c embed_uint_ℕ_).  This is the
-//       textbook "ℕ as a subset of ℤ via the canonical inclusion"
-//       reading.
-//
-//   Asymmetry: there is no @c BooleansOf --- 𝔹 is the @b bottom of the
-//       algebraic tower (no proper super-object), so χ_𝔹 collapses to the
-//       universe @c 𝔸<bool> itself, i.e. @c 𝔹 above.
-//
-// Why both: @c 𝔸<T> is the structural primitive (one per carrier;
-// uniform DSL surface for set-builder), while @c <Tower>Of<> is
-// the engineering pragma that lifts predecessor literals (@c N(0u)
-// for @c unsigned, @c N(-7) for @c int) without forcing each
-// callsite to thread the embedding manually.  Removing the
-// classifiers in favour of 𝔸 alone would lose the cross-carrier
-// classification — @c 𝔸<unsigned>{}(-7) is ill-typed, but
-// @c N(-7) is well-typed and returns @c False.
-//
-// Paper alignment: §3.3 (Juliet Posture) names the two-axis split
-// (closure / laws); the universe-vs-classifier distinction is a
-// third meta-axis (§5 figure breadcrumb).  Listing 6 in the paper
-// shows both: @c 𝔹 = @c 𝔸<bool> for the trivial-bottom case;
-// @c N = @c NaturalNumbersOf<>{} for the non-trivial classifier
-// case.
-export template <typename L = Boole, typename C = ℵ_0>
-struct NaturalNumbersOf {
-  using Domain = dedekind::sets::Cardinality;  // Aligned to the @c Cardinality
-                                               // carrier post-#402.
-  using Codomain = typename L::Ω;
-  using logic_species = L;
-  using cardinality_type = C;
-
-  // Canonical signature: every Cardinality value is in ℕ (by definition).
-  constexpr typename L::Ω operator()(const Domain&) const { return L::True; }
-
-  // Classifier convenience: every unsigned-integral value lands in ℕ
-  // (it embeds via @c ExtensionalCardinal<>{u} into @c Cardinality's
-  // finite alternative).  Kept as a separate overload so callsites
-  // that pass @c unsigned literals still resolve directly without
-  // forcing the variant lift at every call site.
-  template <std::unsigned_integral U>
-  constexpr typename L::Ω operator()(U) const {
-    return L::True;
-  }
-
-  // Classifier convenience: ℕ ⊂ ℤ via non-negativity.  Reachable via
-  // direct @c N(-7) calls for paper-listing readability.
-  constexpr typename L::Ω operator()(int x) const {
-    return x >= 0 ? L::True : L::False;
-  }
-
-  // Embedded bool (via @c embed_𝔹_uint_): landing in ℕ.
-  constexpr typename L::Ω operator()(bool) const { return L::True; }
-};
-
-// Non-exported convenience alias used by the value-level @c N constant
-// below.  Public surface is @c NaturalNumbersOf<L, C> (the parameterised
-// template); callers naming the default form should use
-// @c NaturalNumbersOf<> directly or @c decltype(N).
-using NaturalNumbers = NaturalNumbersOf<>;
-
 /** @brief The canonical Natural-numbers universe @c ℕ = @c 𝔸<Cardinality>
  *  (post-#559).
  *
@@ -829,6 +745,14 @@ using NaturalNumbers = NaturalNumbersOf<>;
  */
 export inline constexpr auto ℕ = 𝔸<Cardinality>{};
 
+// The canonical witnesses for ℕ; downstream partitions build on these.  The
+// subobject "ℕ ⊂ ℤ" over a signed carrier is not a second ℕ: it is the
+// halfspace 𝔸<int>{} | (π >= fix(0_c)) in :order.
+static_assert(std::same_as<std::remove_cvref_t<decltype(ℕ)>, 𝔸<Cardinality>> &&
+                  std::same_as<𝔸<Cardinality>::Domain, Cardinality> &&
+                  IsSet<𝔸<Cardinality>>,
+              "ℕ is the universe over the Cardinality carrier, an ETCS set.");
+
 /** @brief @c 𝔹 --- the canonical Boolean universe @c 𝔸<bool>{}, the finite
  *  set @f$\{\mathtt{false},\mathtt{true}\}@f$.  This is the one symbol
  *  downstream code refers to (no partition re-exports or re-aliases it); the
@@ -847,9 +771,6 @@ static_assert(std::same_as<std::remove_cvref_t<decltype(𝔹)>, 𝔸<bool>> &&
               "representation.");
 static_assert(IsSet<𝔸<bool>> && IsFiniteLSet<𝔸<bool>>,
               "𝔹 is an ETCS set and a Pst carrier.");
-
-// Canonical ambient-set value used by the sets DSL tests.
-export inline constexpr NaturalNumbersOf<> N{};
 
 /**
  * @brief ETCS-aligned upper bound for meet/intersection cardinality.

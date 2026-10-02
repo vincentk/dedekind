@@ -2256,7 +2256,6 @@ inline constexpr auto ℤ =
 // @c NaZ (NaN-like), so it is NOT an ordered set and the @c IsPartiallyOrdered
 // gate correctly rejects @c max/min on it; the max/min VALUES are identical on
 // ℕ (they are non-negative).
-inline constexpr auto ℕ = 𝔸<Cardinality>{};
 inline constexpr auto le5 = ℕ | (π <= fix(5_c));  // {x ∈ ℕ | x ≤ 5}
 inline constexpr auto ge5 = ℕ | (π >= fix(5_c));  // {x ∈ ℕ | x ≥ 5}
 static_assert(max(le5)(5), "5 = max {x ≤ 5} (read off the pivot).");

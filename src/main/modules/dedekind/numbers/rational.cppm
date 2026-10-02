@@ -1089,19 +1089,14 @@ namespace dedekind::numbers {
 
 /** @section rational__Canonical_Species_Spine (ℚ)
  *
- * The canonical rational-number species ℚ is defined above as
- * @c ℚ @c = @c Rational<default_integer> with value-level
- * predicate-set constant @c Q (of type @c IntegersOf<>-analog @c
- * RationalsOf<>).  The spine witnesses below pin ℚ's syntax /
- * semantics / arrow-fabric witnesses against drift; the layout
- * mirrors the @c numbers:integer spine for ℤ so that downstream code
- * can scan one block per textbook carrier and find the same five
- * witness slots.
+ * The canonical rational-number universe is @c ℚ @c = @c
+ * 𝔸<Rational<default_integer>>{} above.  The spine witnesses below pin ℚ's
+ * syntax / semantics / arrow-fabric witnesses against drift; the layout mirrors
+ * the @c numbers:integer spine for ℤ so that downstream code can scan one block
+ * per textbook carrier and find the same five witness slots.
  */
 
-// (1) IsSet anchor on the predicate-set constant Q --- removed under
-// ℚ-retarget chiselling: the @c Q constant + @c RationalsOf were
-// removed.  IsSet for ℚ is witnessed via the universe value ℚ above.
+// (1) IsSet for ℚ is witnessed via the universe value ℚ above.
 
 // (2) Syntax (the C++ operator surface that maps to ℚ's algebra).  Post-
 // #559, ℚ is the universe value 𝔸<Rational<default_integer>>; the carrier
