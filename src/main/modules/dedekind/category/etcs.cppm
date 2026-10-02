@@ -410,6 +410,28 @@ export template <typename A>
 concept IsSet = IsLSet<A> && HasETCSAxioms<A> &&
                 IsCartesianClosed<CanonicalSetCCC<typename A::Domain>>;
 
+// IsSet is a TOTAL predicate (#779): on a carrier that is not std::regular the
+// conjunction fails at IsLSet first, so the ETCS axioms --- whose subobject
+// classifier construction would be ill-formed there --- are never evaluated.
+namespace detail_etcs_total_witness {
+struct NonRegular {};  // copyable, no operator== : not std::regular
+struct SetOverNonRegular {
+  using Domain = NonRegular;
+  using logic_species = Boole;
+  using Codomain = Boole::Ω;
+  struct Member {
+    NonRegular value;
+  };
+  constexpr NonRegular ι(const Member& m) const { return m.value; }
+  constexpr bool operator()(const NonRegular&) const { return true; }
+};
+static_assert(!IsLSet<SetOverNonRegular>,
+              "a set over a non-regular carrier is not an L-set (and the "
+              "concept says so instead of failing to compile).");
+static_assert(!IsSet<SetOverNonRegular>,
+              "… hence not an ETCS set: IsSet is total (#779).");
+}  // namespace detail_etcs_total_witness
+
 /**
  * @brief Construct a set object over ambient species A from a characteristic
  * predicate.
