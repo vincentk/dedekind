@@ -51,7 +51,6 @@ import :posetal;     // IsPosetal (thin cat); is_monotone_v / IsMonotone
 import :limit;       // One (terminal object), π_1 / π_2, IsProduct
 import :species;     // Inf / Sup: the injected value-level glb / lub (∧ / ∨)
 import :logic;       // Ternary (Kleene K₃, the 3-chain carrier witness)
-import :lattice;  // Meet AST node + MakeMeet pairing factory (the bridge below)
 
 namespace dedekind::category {
 
@@ -505,61 +504,5 @@ static_assert(
 // IsPullback lives in :sets, downstream of both partitions, so a structural
 // bridge to the IsPullback family is more than a low-risk local witness.
 // FIXME(#946): unify the glb across the product and pullback presentations.
-
-// ── The crossing meet ↑a ∩ ↓b = [a,b] : the interval as a MEET-AS-PRODUCT
-// ──────
-//
-// Same-direction principal meets collapse to a principal (the pivots' Sup /
-// Inf, :posetal).  The CROSSING meet of a filter ↑a and an ideal ↓b is
-// genuinely a NEW object --- the order interval [a,b].  It wears two hats: in
-// the subobject poset it is the PRODUCT (glb), and over the ambient @c T it is
-// the PULLBACK of the two inclusions @f$\uparrow\!a \hookrightarrow T
-// \hookleftarrow \downarrow\!b@f$ (Davey & Priestley §2; the sets meet-as-
-// pullback #881).  HERE we witness only @c IsProduct: it is the lattice @c Meet
-// AST node, certified a product via its @c π_1 / @c π_2 projections.  The
-// PULLBACK reading needs the @b cospan --- the subobject inclusions @c ι into
-// @c T --- which are set-theoretic arrows the proto-set does NOT carry upstream
-// (@c :category has only @c χ:T→bool).  So @c IsPullback is witnessed
-// DOWNSTREAM in @c :order, where the interval's @c ι exists (matching @c
-// category::Meet ⊨ IsPullback, #881), in the same PR.
-//
-// Two-tier split (#946): here (@c :category, pragmatic) the crossing meet just
-// FORMS the product [a,b] as a term --- no arithmetic.  The interval's set-
-// theoretic REALIZATION (the @c ι inclusions + @c IsPullback, membership
-// a≤x≤b, the empty a≰b → Ø, the discrete singleton, the pole/boundedness
-// reading) is the strict downstream concern in @c :order / @c :sets.
-export template <typename T, auto A, auto B, typename Ord = std::less_equal<T>>
-constexpr auto operator&(PrincipalFilter<T, A, Ord> f,
-                         PrincipalIdeal<T, B, Ord> i) {
-  return MakeMeet{}(f, i);  // [A,B] = ↑A ∩ ↓B, the meet-as-product
-}
-export template <typename T, auto A, auto B, typename Ord = std::less_equal<T>>
-constexpr auto operator&(PrincipalIdeal<T, B, Ord> i,
-                         PrincipalFilter<T, A, Ord> f) {
-  return f & i;  // ↓B ∩ ↑A = ↑A ∩ ↓B (meet is commutative)
-}
-
-// Witness (#946): the crossing meet IS a product --- the interval [3,7] is the
-// meet-as-product of the filter ↑3 and the ideal ↓7.
-static_assert(
-    IsProduct<Meet<PrincipalFilter<int, 3>, PrincipalIdeal<int, 7>>,
-              PrincipalFilter<int, 3>, PrincipalIdeal<int, 7>, MakeMeet>,
-    "crossing meet ↑3 ∩ ↓7 = [3,7] is the meet-as-product of the filter and "
-    "the "
-    "ideal (IsProduct forced on the interval).");
-
-// Witness (#946): the crossing meet operator is COMMUTATIVE --- on-the-nose,
-// not merely up to iso.  The general product commutes only up to iso
-// (@c Meet<A,B> and @c Meet<B,A> are DISTINCT types), which is why the meet
-// magma cannot satisfy the strict @c IsCommutative<T,Op> (@c same_as) concept;
-// but the crossing @c operator& is defined by delegation (↓B ∩ ↑A ≡ ↑A ∩ ↓B),
-// so BOTH argument orders yield the SAME interval product type.  That is the
-// commutativity the prose above claims, pinned structurally.
-static_assert(
-    std::same_as<decltype(PrincipalIdeal<int, 7>{} & PrincipalFilter<int, 3>{}),
-                 decltype(PrincipalFilter<int, 3>{} &
-                          PrincipalIdeal<int, 7>{})>,
-    "↓7 ∩ ↑3 and ↑3 ∩ ↓7 are the SAME interval product: the crossing meet "
-    "operator is commutative on-the-nose (the product itself only up to iso).");
 
 }  // namespace dedekind::category

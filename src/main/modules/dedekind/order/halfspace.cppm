@@ -317,32 +317,6 @@ static_assert(
     "a carrier with an unrelated/incomplete cardinality_type falls back to the "
     "primary (ℶ_1 here), never making Halfspace ill-formed.");
 
-namespace detail_principal {
-/** @brief The two-tier seam marker (#946): a halfspace carrier that admits @b
- *  no @c :category principal filter (not @c IsPosetal --- @c double via the
- *  NaN/float-lattice gate #933/#934, the Cardinality variant).  A @c Halfspace
- *  over such a carrier is a bona-fide @c :order object with no upstream
- *  principal; its @c principal alias is this sentinel rather than a
- *  @c PrincipalFilter / @c PrincipalIdeal. */
-struct NoCategoryPrincipal {};
-
-/** @brief The @c :category principal filter/ideal a halfspace realizes, or the
- *  @c NoCategoryPrincipal sentinel when the carrier is not @c IsPosetal.
- *  Consumed only through @c decltype (never called), so the sentinel branch
- *  costs nothing at runtime. */
-template <typename T, auto Pivot, Direction D>
-consteval auto principal_of() {
-  if constexpr (dedekind::category::IsPosetal<T>) {
-    if constexpr (D == Direction::Upward)
-      return dedekind::category::PrincipalFilter<T, Pivot>{};
-    else
-      return dedekind::category::PrincipalIdeal<T, Pivot>{};
-  } else {
-    return NoCategoryPrincipal{};
-  }
-}
-}  // namespace detail_principal
-
 /**
  * @brief Halfspace predicate { x ∈ T | x ⋈ Pivot } with Pivot at the type
  * level.
@@ -351,17 +325,13 @@ consteval auto principal_of() {
  */
 
 /**
- * @details #946 factoring: a @c Halfspace is the @b :order (set-theoretic)
- * realization of a @b :category principal filter/ideal.  The pure
- * order-theoretic content --- the pivot and the meet (glb) as a @c Sup / @c Inf
- * collapse (↑a∩↑b = ↑(a∨b), ↓a∩↓b = ↓(a∧b)) --- lives upstream in the
- * @c PrincipalFilter / @c PrincipalIdeal proto-set (exposed as @c principal);
- * the set-theoretic content that references ETCS explicitly --- the L-valued
- * characteristic map χ (@c operator()), the subobject inclusion ι (@c SetExpr),
- * and the @c cardinality_type --- stays here.  @c structured_and delegates the
- * pivot collapse to @c principal's @c operator& (Davey & Priestley §1.27/§2.20;
- * Nation, @e Notes on Lattice Theory §1).  Strictness @c S is an @c :order
- * refinement (which boundary point is excised), so it is combined locally.
+ * @details A @c Halfspace is the principal filter ↑pivot (or ideal ↓pivot) of
+ * the carrier's order, read as an L-set: the L-valued characteristic map χ
+ * (@c operator()), the subobject inclusion ι (@c SetExpr) and the
+ * @c cardinality_type.  The meet law ↑a∩↑b = ↑(a∨b), ↓a∩↓b = ↓(a∧b) (Davey &
+ * Priestley §1.27/§2.20) is computed on the pivot VALUES by @c reduce_meet,
+ * the carrier's own @c Sup / @c Inf supplying ∨ / ∧.  Strictness @c S is an
+ * @c :order refinement (which boundary point is excised), combined locally.
  */
 export template <typename T, Direction D, Strictness S, typename L = Boole>
 struct Halfspace : dedekind::sets::SetExpr<Halfspace<T, D, S, L>, T, L> {
@@ -393,72 +363,6 @@ struct Halfspace : dedekind::sets::SetExpr<Halfspace<T, D, S, L>, T, L> {
   }
 };
 
-/**
- * @brief Singleton predicate `{x : T | x == value}` --- the point / degenerate
- * halfspace, VALUE-carrying: the pivot is a @b constexpr @b member, not
- * an NTTP.
- *
- * @details Emitted when a halfspace meet on a discrete (integral) carrier is
- * reduced by cardinality analysis to exactly one inhabitant.  The pivot rides
- * as a value, so ONE type `Singleton<int>` covers every point --- and a
- * @c constexpr instance still folds + validates at compile time (the
- * compile-time/runtime optionality), so `{n | 3<n<5} = {4}` is a compile-time
- * constant `Singleton<int>{4}` rather than a distinct type `Singleton<4>`
- * (type-directed collapse recast to constexpr-value-directed; the NTTP
- * was a means to an end).  Still a first-class @c IsSubobject (ι: {value} ↣ T)
- * and, since a cardinality-1 extensional set is decidable regardless of ambient
- * logic, @c cardinality_type stays @c Finite so the decidability tier holds
- * type-level.  @c L defaults to @c Boole.
- */
-export template <typename T, typename L = Boole>
-struct Singleton : dedekind::sets::SetExpr<Singleton<T, L>, T, L> {
-  using Domain = T;
-  using cardinality_type = Finite;
-  using is_extensional_tag = void;
-  using is_compile_time_extensional_tag = void;
-  using is_static_singleton_tag = void;  // For operator& collapse detection
-
-  T value{};
-
-  constexpr Singleton() = default;
-  constexpr explicit Singleton(T v) : value(v) {}
-
-  // Return type spelt @c L::Ω, not the inherited (dependent-base) @c Codomain.
-  constexpr typename L::Ω operator()(const T& x) const {
-    return (x == value) ? L::True : L::False;
-  }
-
-  /** @brief Heterogeneous membership query: cross-type @c == against @c value.
-   *  @c Singleton::Domain is @c T (typically @c int when emitted by the
-   *  cardinality branch of @c structured_and), but the variant carriers
-   *  @c Cardinality / @c SignedCardinality (and any cross-type-comparable @c U)
-   *  need to query membership too --- routed through the cross-type @c ==
-   *  (#423/#425).  Constrained to @c U distinct from @c T so the non-template
-   *  overload wins on exact matches. */
-  template <typename U>
-    requires(!std::same_as<std::remove_cvref_t<U>, T>) &&
-            requires(const U& x, const T& v) {
-              { x == v } -> std::convertible_to<bool>;
-            }
-  constexpr typename L::Ω operator()(const U& x) const {
-    return (x == value) ? L::True : L::False;
-  }
-
-  constexpr std::size_t size() const { return 1; }
-
-  // Cross-logic identity: `Singleton<T, L1>{v}` and `Singleton<T, L2>{v}`
-  // represent the same singleton iff their values agree; enables the reveal
-  // `s == Singleton{v}` when s's logic species was inherited from a Set.
-  template <typename OtherL>
-  constexpr bool operator==(const Singleton<T, OtherL>& other) const {
-    return value == other.value;
-  }
-};
-
-/** @brief CTAD: @c Singleton{4} deduces @c Singleton<int>. */
-export template <typename T>
-Singleton(T) -> Singleton<T>;
-
 /** @section halfspace__Static_Singleton_Complement_Lattice
  *
  * The absorbing laws of the complement lattice, at the type level, for the
@@ -474,7 +378,7 @@ Singleton(T) -> Singleton<T>;
  *         is not a point, so there is deliberately no overload there. */
 export template <typename L>
 constexpr auto operator~(const Singleton<bool, L>& s) {
-  return Singleton<bool, L>{!s.value};
+  return Singleton<bool, L>{!s.pivot};
 }
 
 // The meet / join of two points is the value-first `reduce_meet` /
@@ -1008,91 +912,6 @@ constexpr auto structured_or(const Halfspace<T, D1, S1, L>& a,
 }
 
 /** @section halfspace__Interval_Cartesian_Product — 2D structural products. */
-
-/**
- * @brief Cartesian product of two reduced extensional structures (typically
- * `Interval`s on integer carriers). Preserves size / logic / tags so the
- * 2D product participates in the same computability classification as the
- * 1D factors: `IsExtensional<IntervalProduct<I1, I2>>` holds whenever each
- * factor satisfies `IsExtensional`.
- */
-export template <typename A, typename B>
-  requires std::same_as<typename A::logic_species, typename B::logic_species>
-struct IntervalProduct {
-  A a;
-  B b;
-
-  using Domain = std::pair<typename A::Domain, typename B::Domain>;
-  using Codomain = typename A::Codomain;
-  using logic_species = typename A::logic_species;
-  using is_extensional_tag = void;
-
-  // Cardinality is only finite when both factors are — for a product whose
-  // factors include a non-integral `Interval` (cardinality ℵ_0), the
-  // product is likewise transfinite.
-  using cardinality_type = std::conditional_t<requires {
-    typename A::cardinality_type;
-    typename B::cardinality_type;
-    requires std::same_as<typename A::cardinality_type, Finite>;
-    requires std::same_as<typename B::cardinality_type, Finite>;
-  }, Finite, ℵ_0>;
-
-  constexpr Codomain operator()(const Domain& p) const {
-    using L = logic_species;
-    return (a(p.first) == L::True && b(p.second) == L::True) ? L::True
-                                                             : L::False;
-  }
-
-  // `size()` is only available when both factors have a free `size` returning
-  // convertible-to-`std::size_t` (an interval's cardinality on a built-in
-  // integral carrier). This keeps the API honest for continuous factors
-  // (attempting `.size()` on a product of real-valued intervals is a compile
-  // error, not a silent nonsense).  Qualified, so class-scope lookup does not
-  // stop at this member.
-  constexpr std::size_t size() const
-    requires requires(const A& factor_a, const B& factor_b) {
-      { dedekind::order::size(factor_a) } -> std::convertible_to<std::size_t>;
-      { dedekind::order::size(factor_b) } -> std::convertible_to<std::size_t>;
-    }
-  {
-    return dedekind::order::size(a) * dedekind::order::size(b);
-  }
-};
-
-// Cross-module witness (#946): :order is downstream of :category, so the
-// category product surface (re-exported through @c import dedekind.category
-// above) is in scope here.  @c IntervalProduct presents as an ARROW out of a
-// categorical product OBJECT --- its @c Domain is a @c std::pair that models
-// @c IsProduct (the shared product substrate the comonoid's copy/merge is built
-// on), and its @c operator() is the product-arrow action on that pair.  This
-// pins the :order ⟶ :category dependency as a compiler check rather than prose.
-// The fixture is a concrete integer Interval so the assertion has real
-// carriers.  NOTE the honest limit: @c IntervalProduct is a PREDICATE on A×B
-// (its @c Codomain is a logic value), so it witnesses the product-OBJECT domain
-// and the arrow shape, NOT the pair→pair @c Tensor arrow-action; presenting it
-// AS @c Tensor would need a real adapter with a product Codomain.  FIXME(#946).
-namespace {
-using IntervalProductFixture =
-    Interval<int, Strictness::NonStrict, Strictness::NonStrict>;
-using IntervalProductWitness =
-    IntervalProduct<IntervalProductFixture, IntervalProductFixture>;
-static_assert(dedekind::category::IsArrow<IntervalProductWitness>,
-              "IntervalProduct must be an arrow (its Domain is a pair, its "
-              "operator() the product-arrow action).");
-static_assert(
-    dedekind::category::IsProduct<IntervalProductWitness::Domain, int, int>,
-    "IntervalProduct's Domain (a std::pair) must model the product OBJECT "
-    "IsProduct --- the same substrate the comonoid copy/merge is gated on.");
-}  // namespace
-
-/** @brief Infix `*` on two intervals → structural `IntervalProduct`. */
-export template <typename T1, Strictness SL1, Strictness SU1, typename L1,
-                 typename T2, Strictness SL2, Strictness SU2, typename L2>
-  requires std::same_as<L1, L2>
-constexpr auto operator*(Interval<T1, SL1, SU1, L1> a,
-                         Interval<T2, SL2, SU2, L2> b) {
-  return IntervalProduct<decltype(a), decltype(b)>{a, b};
-}
 
 /** @brief Meet of two same-carrier intervals: the intersection, through the one
  *  @c reduce_meet on the interval values --- the bigger lower / smaller upper

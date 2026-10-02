@@ -38,30 +38,24 @@ TEST_CASE("Sets: Singleton Acceptance", "[sets][singleton][acceptance]") {
     STATIC_REQUIRE(
         std::same_as<typename decltype(_s)::cardinality_type, Finite>);
   }
-  SECTION("Complement") {
-    STATIC_REQUIRE(IsSet<decltype(!_s)>);
+  SECTION("Complement is the reducer's Not node; ~~s is s") {
+    STATIC_REQUIRE(IsSetObject<decltype(~_s)>);
     INFO("Inverted membership test vis-a-vis base set.");
-    REQUIRE((!(!_s))(42));
-    REQUIRE((!_s)(4));
-    INFO("Complement is its own inverse.");
-    // @c HasSetSurface (the @c :sets ergonomic wrapper around @c IsSet)
-    // is ref-decay-safe; @c decltype(!(!_s)) is @c SingletonSet const&
-    // post-involution and the strict @c :etcs::IsSet would not fire on
-    // a reference type without manual @c std::remove_cvref_t.
-    STATIC_REQUIRE(HasSetSurface<decltype(!(!_s))>);
-    REQUIRE(&(!(!_s)) == &_s);
+    REQUIRE((~_s)(4));
+    REQUIRE_FALSE((~_s)(42));
+    INFO("Complement is an involution: the Not node peels structurally.");
+    STATIC_REQUIRE(std::same_as<decltype(~~_s), decltype(_s)>);
+    REQUIRE((~~_s)(42));
+    REQUIRE(~~_s == _s);
   }
   SECTION("Intersections") {
     // FIXME(#685): Boolean-algebra-of-sets identities not yet encoded
     // structurally at the DSL surface.  Each assertion below names a
     // textbook law that today fails to compile:
     //   * `_s & _s` returns @c Comprehension<Universe, lambda>,
-    //     not @c SingletonSet — missing semantic-equality overload.
-    //   * `&(_s & _s) == &_s` asks for structural pointer-identity on
-    //     self-meet — `operator&` would need to return a reference
-    //     branch (mirroring the `Complement` involution pattern).
-    //   * `Complement<S> & SingletonSet<S>` lacks a cross-type overload
-    //     and no equality with `Ø<T>{}` exists today.
+    //     not @c Singleton — missing semantic-equality overload.
+    //   * `(~_s) & _s == Ø<T>{}` needs the complement-pair collapse to
+    //     reach the Singleton leaf.
     INFO("The intersection of a set with itself is a fixed point.");
     REQUIRE((_s & _s).size() == 1);
     // REQUIRE((_s & _s) == _s);
@@ -95,9 +89,8 @@ TEST_CASE("Sets: Singleton Acceptance", "[sets][singleton][acceptance]") {
     // above).  Pin the result type and recover both pivots.
     using UnionT = std::decay_t<decltype(_s | _t)>;
     STATIC_REQUIRE(
-        std::same_as<UnionT,
-                     Set<size_t, Boole,
-                         Join<SingletonSet<size_t>, SingletonSet<size_t>>>>);
+        std::same_as<UnionT, Set<size_t, Boole,
+                                 Join<Singleton<size_t>, Singleton<size_t>>>>);
     REQUIRE((_s | _t).predicate().lhs.pivot == 42);
     REQUIRE((_s | _t).predicate().rhs.pivot == 7);
     // FIXME(#685): structural identity ({a}∪{a} == {a}, round-trip to the
@@ -123,12 +116,12 @@ TEST_CASE("Sets: Singleton Acceptance", "[sets][singleton][acceptance]") {
   }
   SECTION("Subset relations") {
     // FIXME(#685): three independent gaps blocking subset assertions:
-    //   * `_s <= _s`: SingletonSet's `auto operator<=>(const
-    //     SingletonSet&) const = delete` shadows the template
+    //   * `_s <= _s`: Singleton's `auto operator<=>(const
+    //     Singleton&) const = delete` shadows the template
     //     `operator<=(const S&)` for same-type self-comparison;
     //     overload resolution picks the deleted spaceship first.
     //   * `_s <= Ø`, `Ø <= _s`, `_s <= !_s`: cross-type mereology through
-    //     the SingletonSet template `<=` (which delegates to the operand's
+    //     the Singleton template `<=` (which delegates to the operand's
     //     `operator()`) still needs its equality / bound wiring.
     //   * Catch2 `REQUIRE` rejects chained comparisons
     //     (`a <= b == false`); wrap as `(a <= b) == false`.
@@ -144,32 +137,30 @@ TEST_CASE("Sets: Singleton Acceptance", "[sets][singleton][acceptance]") {
     //     which lacks `.size()` for the same structural reason
     //     `Comprehension` did pre-singleton-bounded patch.
     //   * `_s * Ø == Ø`, `Ø * _s == Ø`: empty-annihilation needs
-    //     either a `cartesian_product(SingletonSet, Ø)` overload
+    //     either a `cartesian_product(Singleton, Ø)` overload
     //     short-circuiting to `Ø<pair, L>`, or cross-type equality
     //     between predicate-`Set` and `Ø`.
-    //   * `_s * !_s`: `Complement<SingletonSet>` doesn't satisfy
-    //     the existing `operator*` overloads' constraints.
-    // NOTE: user-side, the last line `REQUIRE(_s * !_s).size() > 1);`
-    // has unbalanced parens — likely `REQUIRE((_s * !_s).size() > 1);`.
+    //   * `_s * ~_s`: a `Not<Singleton>` factor needs the generic
+    //     cartesian product to carry the complement through.
     // REQUIRE((_s * _s).size() == 1);
     // REQUIRE((_s * Ø<size_t>{}) == Ø<size_t>{});
     // REQUIRE((Ø<size_t>{} * _s) == Ø<size_t>{});
-    // REQUIRE((_s * !_s).size() > 1);
+    // REQUIRE((_s * ~_s).size() > 1);
   }
 }
 
 /**
- * @brief Functor Highway — exercises the @c SingletonSet monad-bind
+ * @brief Functor Highway — exercises the @c Singleton monad-bind
  *        + co-monad-extract pipeline (#687).
  *
- * @details Rewritten from the original `into<SingletonSet>` /
- *          `extract<SingletonSet>` factory syntax to the current
+ * @details Rewritten from the original `into<Singleton>` /
+ *          `extract<Singleton>` factory syntax to the current
  *          surface: `singleton(value)` for η, `s.origin()` for ε,
  *          `s >>= f` for Kleisli bind (all exported by `:sets:singleton`).
- *          The Set-monad structure lives directly on `SingletonSet`; this
+ *          The Set-monad structure lives directly on `Singleton`; this
  *          TEST_CASE exercises the composition behaviour at the value level.
  *          (The former `singleton_functor` witness struct was retired: it was
- *          unused, and its codomain `category::Set<SingletonSet<T>>` was the
+ *          unused, and its codomain `category::Set<Singleton<T>>` was the
  *          project's lone category-of-sets-as-objects --- a set is an object of
  *          Set, not itself a category.)
  */

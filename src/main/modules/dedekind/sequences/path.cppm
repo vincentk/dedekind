@@ -983,7 +983,7 @@ static_assert(
 // relational form (a Set<pair<size_t, T>, Boole, GraphPredicate>).
 // The static_assert below mechanically witnesses that the relational form
 // satisfies the project's ETCS IsSet contract via the canonical
-// ambient_set<Pair>(...) lift — same pattern as the SingletonSet /
+// ambient_set<Pair>(...) lift — same pattern as the Singleton /
 // ExtensionalSet IsSet witnesses in :sets.
 //
 // This pins the §3 (page 2) categorical claim "a sequence IS a countable

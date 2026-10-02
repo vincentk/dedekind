@@ -104,7 +104,7 @@ export using dedekind::category::ambient_set;
  *  structs (@ref Comprehension, and any wrapper that is "morally a set"),
  *  removing the surface boilerplate each would otherwise duplicate.  It is
  *  @b opt-in, @b never a precondition: @c IsSet stays a @b structural concept,
- *  and @c Set<T,L,P> / @c SingletonSet keep satisfying it by hand.  The
+ *  and @c Set<T,L,P> / @c Singleton keep satisfying it by hand.  The
  *  @c Derived must expose @c operator()(Domain)@c → @c Codomain (its χ). */
 export template <typename Derived, typename DomainT, typename L>
 struct SetExpr {
@@ -164,7 +164,7 @@ struct Comprehension
 
   /** @brief Explicit two-argument constructor.  Needed because @ref SetExpr is
    * a base class, so @c Comprehension is no longer an aggregate --- the
-   *  @c Comprehension{base, pred} sites (e.g. @c SingletonSet::operator|) route
+   *  @c Comprehension{base, pred} sites (e.g. @c Singleton::operator|) route
    *  here instead of through aggregate init. */
   constexpr Comprehension(const Base& b, Predicate p)
       : base(b), predicate(static_cast<Predicate&&>(p)) {}
@@ -721,13 +721,13 @@ class Set {
 
   // ~ topoi jargon: Member-shape mirror of Subobject's; the IsSubobject
   // contract reads the Member-to-T projection through ι below.  Same
-  // shape as Ø / Universe / SingletonSet's Member.
+  // shape as Ø / Universe / Singleton's Member.
   struct Member {
     T value;
   };
 
   /** @brief ι: Set ↣ T — Member unwrap.  Identical pattern to
-   *  Subobject<A, χ>::ι and SingletonSet::ι; the inclusion projects
+   *  Subobject<A, χ>::ι and Singleton::ι; the inclusion projects
    *  the Member's T-value back to the ambient. */
   constexpr T ι(const Member& m) const { return m.value; }
 
@@ -1306,7 +1306,7 @@ struct SymbolicImagePredicate {
  *         an arrow.  Layer 1 of #602.
  *
  *  @details Sister overload in the @c image dispatch table, alongside
- *   - @c image(f, SingletonSet) (@c :sets:singleton; extensional, exact).
+ *   - @c image(f, Singleton) (@c :sets:singleton; extensional, exact).
  *   - @c image(f, std::set / std::unordered_set) (@c :sets:extensional;
  *     extensional, exact via enumeration).
  *   - @b this overload (intensional, symbolic with @c Kleene).

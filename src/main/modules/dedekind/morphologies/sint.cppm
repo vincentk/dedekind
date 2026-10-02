@@ -220,7 +220,7 @@ export inline constexpr auto embed_sint_ℤ_ =
  * construction at the call site rather than re-spelling
  * @c image(embed_sint_ℤ_, S).  Accepted input @c S is anything
  * @c dedekind::sets::image already dispatches on —
- * @c SingletonSet (@c :sets:singleton),
+ * @c Singleton (@c :sets:singleton),
  * @c std::set<int> / @c std::unordered_set<int>
  * (@c :sets:extensional); lazy predicate sets join the dispatch
  * table when #602's layer 2 lands.
@@ -248,7 +248,7 @@ export inline constexpr auto embed_sint_ℤ_ =
 // implementation-defined unsigned@→int narrowing conversion, in
 // either case bypassing the @c digits-safety @c static_assert in
 // the per-value @c embed_sint_ℤ(S).  We pin both the @c Domain-exposing
-// carriers (SingletonSet, dedekind::sets::Set, …) and the @c
+// carriers (Singleton, dedekind::sets::Set, …) and the @c
 // value_type-exposing carriers (std::set, std::unordered_set) in a single
 // disjunctive constraint — either typedef must match exactly @c int for the
 // overload to fire.  Same shape as PR #628's @c embed_uint_ℕ no-narrowing pin.
@@ -271,23 +271,21 @@ constexpr auto embed_sint_ℤ(S&& s) {
   return dedekind::sets::image(embed_sint_ℤ_, std::forward<S>(s));
 }
 
-// Set-level lift witnesses: @c embed_sint_ℤ on @c SingletonSet<int>{42}
-// lands at @c finite_signed_cardinality(42), and on @c SingletonSet<int>{-7}
+// Set-level lift witnesses: @c embed_sint_ℤ on @c Singleton<int>{42}
+// lands at @c finite_signed_cardinality(42), and on @c Singleton<int>{-7}
 // at @c finite_signed_cardinality(-7).  Pinned at the @b value level so
 // the pivot equality is constant-evaluated, not just the codomain type.
 // Mirrors PR #624 / #626 / #628's witnesses — same shape, different
 // (carrier, codomain) pair.
 static_assert(
-    embed_sint_ℤ(dedekind::sets::SingletonSet<int, dedekind::category::Boole>{
-                     42})
+    embed_sint_ℤ(dedekind::sets::Singleton<int, dedekind::category::Boole>{42})
             .pivot == dedekind::sets::finite_signed_cardinality(42),
-    "embed_sint_ℤ(SingletonSet<int>{42}) lands at "
+    "embed_sint_ℤ(Singleton<int>{42}) lands at "
     "finite_signed_cardinality(42) on the SignedCardinality carrier.");
 static_assert(
-    embed_sint_ℤ(dedekind::sets::SingletonSet<int, dedekind::category::Boole>{
-                     -7})
+    embed_sint_ℤ(dedekind::sets::Singleton<int, dedekind::category::Boole>{-7})
             .pivot == dedekind::sets::finite_signed_cardinality(-7),
-    "embed_sint_ℤ(SingletonSet<int>{-7}) lands at "
+    "embed_sint_ℤ(Singleton<int>{-7}) lands at "
     "finite_signed_cardinality(-7) on the SignedCardinality carrier "
     "(negative-value witness — the symmetric complement to "
     "embed_uint_ℕ's non-negative-only fragment).");
@@ -298,7 +296,7 @@ static_assert(
 static_assert(
     dedekind::category::IsImageOf<
         decltype(embed_sint_ℤ(
-            dedekind::sets::SingletonSet<int, dedekind::category::Boole>{42})),
+            dedekind::sets::Singleton<int, dedekind::category::Boole>{42})),
         decltype(embed_sint_ℤ_)>,
     "embed_sint_ℤ(S) realises IsImageOf<result, embed_sint_ℤ_>: result "
     "is a Subobject of Cod<embed_sint_ℤ_> = SignedCardinality, "

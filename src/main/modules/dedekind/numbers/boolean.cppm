@@ -169,12 +169,12 @@ static_assert(dedekind::sequences::IsFiniteSequence<
 // monic-arrow registration lives in @c :natural (registered there as
 // @c is_monic_arrow_v = true on @c embed_𝔹_uint_).
 
-// (5a) Set-level lift witnesses: @c embed_𝔹_𝕂3 on @c SingletonSet<true>
-// lands at @c Ternary::True, and on @c SingletonSet<false> at
+// (5a) Set-level lift witnesses: @c embed_𝔹_𝕂3 on @c Singleton<true>
+// lands at @c Ternary::True, and on @c Singleton<false> at
 // @c Ternary::False.  Both pinned at the @b value level so the
 // pivot equality is constant-evaluated, not just the codomain type
 // (the type-only form would only check that we land in some
-// @c SingletonSet<Ternary>, not which inhabitant).  Sister anchor
+// @c Singleton<Ternary>, not which inhabitant).  Sister anchor
 // to PR #624's @c embed_𝔹_ℕ witness in @c :natural --- same shape,
 // different codomain.
 // embed_𝔹_𝕂3 (set-level lift) value-witnesses live with the arrow itself in

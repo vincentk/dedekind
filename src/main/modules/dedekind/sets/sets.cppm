@@ -152,12 +152,12 @@ concept HasSetSurface = dedekind::category::IsLSet<std::remove_cvref_t<S>>;
 
 /** @section sets__User_Facing_Surface_Witnesses
  *  @details Canonical green witnesses pinning the master concept +
- *           every sub-concept on @c SingletonSet, the most fully-
+ *           every sub-concept on @c Singleton, the most fully-
  *           equipped concrete set type today.  Strict-superset
  *           property: a reference-qualified decltype still satisfies
  *           @c HasSetSurface. */
 namespace _user_facing_witnesses {
-using _S1 = SingletonSet<int, dedekind::category::Boole>;
+using _S1 = Singleton<int, dedekind::category::Boole>;
 static_assert(HasMembershipOperator<_S1>);
 static_assert(HasComplementOperator<_S1>);
 static_assert(HasSetOperators<_S1>);
